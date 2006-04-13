@@ -34,6 +34,11 @@
                  MPI_double_precision2,MPI_COMM_WORLD,ierr)
         return
         end
+
+        subroutine MPI_ALLGATHERV(psi,sendcount,MPI_DOUBLE_PRECISION,  &
+                          tpsi,recvcounts,displs, MPI_DOUBLE_PRECISION2,MPI_COMM_WORLD,ierr)
+        return
+        end
         
         subroutine MPI_ALLTOALL(zmpi2,n1, MPI_double_precision, &
                           zmpi1,n2, MPI_double_precision2,MPI_COMM_WORLD,ierr)

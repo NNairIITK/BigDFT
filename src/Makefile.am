@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-#INCLUDES =
+INCLUDES = @MPI_INCLUDE@
 #LIBS =
 
 EXTRA_DIST = \
@@ -28,7 +28,7 @@ else
 convolution_source = convolut_simple.f90
 endif
 
-#AM_FCFLAGS = @DEFS@
+AM_FCFLAGS = -I@MPI_INCLUDE@
 
 cluster_SOURCES = $(mpi_source) \
 	Build_Kernel.f90 \
@@ -58,12 +58,16 @@ cluster_SOURCES = $(mpi_source) \
 
 #AM_CFLAGS = -Wall -Wno-unused -W -Werror -pedantic-errors -ansi $(cflagWin)
 
-cluster_LDFLAGS = $(LMPI)
+cluster_LDFLAGS = $(LMPI) $(lMPI)
 
-cluster_LDADD = $(lMPI)
+cluster_LDADD = @LAPACK_LIB@ @BLAS_LIB@
 
 #dependencies
 MPIfake.f90: mpif.h
 
 mpif.h:
 	touch mpif.h
+	echo "real*8 :: MPI_double_precision" >> mpif.h
+	echo "real*8 :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h
+
+cluster.o: parameters.h

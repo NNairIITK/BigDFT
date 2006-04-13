@@ -1,0 +1,51 @@
+# ==================================
+# "Basel" way to install the package
+# ==================================
+
+Run autotools using :
+./autogen.sh
+
+
+Choose the right option for your compilation :
+export FC=/opt/intel/fc/9.0/bin/ifort   # Choose your Fortran Compiler
+export MPI_INCLUDE=/opt/scali/include   # Set the include directory for MPI
+export MPI_LDFLAGS=/opt/scali/lib       # Set the directory where to find MPI library
+export LDFLAGS="-L/opt/intel/mkl72/lib/32/ -lguide -lpthread -D_REENTRANT"
+
+If the build environement is standard, none of these export is required.
+They have to be adapted according to situation.
+
+
+Configure the source directory :
+./configure --enable-mpi --with-lapack=/opt/intel/mkl72/lib/32/libmkl_lapack.a --with-blas=/opt/intel/mkl72/lib/32/libmkl_ia32.a --prefix=/home/caliste/usr
+
+The --enable-mpi option makes the source to compile with MPI support.
+This option is enable by default and can be omited (use --disable-mpi not to compile with mpi support).
+The --with-lapack and --with-blas option is to give the compiler the
+position of required linear geometry libraries.
+The --prefis option is to give the installation directory (when 'make install' is done),
+this is not mandatory and /usr/local is default.
+For further details about configure, type :
+./configure -- help
+
+IMPORTANT : from this point, the package is configured and previous steps are
+no more required if no file is added or removed.
+
+
+Make the package and create the 'cluster' executable :
+make
+
+
+Install the package :
+make install
+
+
+Clean the source tree of the 'make' action :
+make clean
+
+
+Clean the source tree from all generated informations :
+make distclean
+
+WARNING : doing 'make distclean' makes to restart from first point
+to be able to compile the package again.

@@ -3,14 +3,13 @@
         implicit real*8 (a-h,o-z)
 ! atomic coordinates, forces
         real*8, allocatable, dimension(:,:) :: rxyz, fxyz
-        logical parallel
         character*20 tatonam
 ! atomic types
         integer, allocatable, dimension(:) :: iatype
         character*20 :: atomnames(100), units
         include 'mpif.h'
+        include 'parameters.h'
 
-        parallel=.true.
 
 ! For parallel MPI execution set parallel=.true., for serial parallel=.false.
 ! Start MPI in parallel version
