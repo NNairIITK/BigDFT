@@ -6,4 +6,4 @@ aclocal
 echo "Creating configure script  with 'autoconf'."
 autoconf
 echo "Creating required files for autotools."
-automake --add-missing
+automake --add-missing --copy

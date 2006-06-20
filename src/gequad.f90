@@ -36,9 +36,9 @@
 !!
 !! SOURCE
 
-#if defined HAVE_CONFIG_H
-#include "config.h"
-#endif
+!!#if defined HAVE_CONFIG_H
+!!#include "config.h"
+!!#endif
 
 subroutine gequad(nterms, p, w, urange, drange, acc)
 

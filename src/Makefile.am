@@ -1,6 +1,5 @@
 ## Process this file with automake to produce Makefile.in
 
-INCLUDES = @MPI_INCLUDE@
 #LIBS =
 
 EXTRA_DIST = \
@@ -9,8 +8,8 @@ EXTRA_DIST = \
 
 bin_PROGRAMS = cluster
 
-#SUBDIRS = \
-#	dumpModules
+SUBDIRS = \
+	ABINIT-common
 
 if USE_MPI
 mpi_source =
@@ -28,7 +27,13 @@ else
 convolution_source = convolut_simple.f90
 endif
 
-AM_FCFLAGS = -I@MPI_INCLUDE@
+INCLUDES = -I. \
+	@MPI_INCLUDE@ \
+	-I./ABINIT-common
+
+AM_FCFLAGS =  -I. \
+	@MPI_INCLUDE@ \
+	-I./ABINIT-common
 
 cluster_SOURCES = $(mpi_source) \
 	Build_Kernel.f90 \
@@ -52,7 +57,7 @@ cluster_SOURCES = $(mpi_source) \
 	scaling_function.f90 \
 	waveioput.f90 \
 	wavelib.f90 \
-	gequad.f
+	gequad.f90
 
 
 
@@ -60,7 +65,8 @@ cluster_SOURCES = $(mpi_source) \
 
 cluster_LDFLAGS = $(LMPI) $(lMPI)
 
-cluster_LDADD = @LAPACK_LIB@ @BLAS_LIB@
+cluster_LDADD = @LAPACK_LIB@ @BLAS_LIB@ \
+	ABINIT-common/libABINIT.a
 
 #dependencies
 MPIfake.f90: mpif.h
