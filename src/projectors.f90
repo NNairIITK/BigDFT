@@ -14,7 +14,7 @@
           enddo
 
         return
-        end
+        end subroutine numb_proj
 
 
         subroutine applyprojectors(iproc,nproc,ntypes,nat,iatype,psppar,occup, &
@@ -103,7 +103,7 @@
 100 continue
 
          return
-         end
+         end subroutine applyprojectors
 
 
 
@@ -233,4 +233,4 @@
           deallocate(wprojx,wprojy,wprojz,work)
 
 	return
-	end
+	end subroutine crtproj

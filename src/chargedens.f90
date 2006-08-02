@@ -118,7 +118,7 @@
         deallocate(psifscf,psir)
 
         return
-	end
+	end subroutine sumrho
 
 
 	subroutine addpartrho(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,const,psir,rho)
@@ -134,4 +134,4 @@
         enddo ; enddo ; enddo
 
         return
-        end
+        end subroutine addpartrho

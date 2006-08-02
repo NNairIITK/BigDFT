@@ -33,7 +33,7 @@
      enddo
 
      return
-     end
+     end subroutine preconditionall
 
 
      subroutine precondition_simple(mvctr_c,mvctr_f,hpsi_c,hpsi_f)
@@ -53,7 +53,7 @@
       enddo
 
      return
-     end
+     end subroutine precondition_simple
 
 
 
@@ -165,7 +165,7 @@
 
         deallocate(hpsip)
 
-       end         
+       end subroutine precondition    
 
        SUBROUTINE PRECOND_PROPER(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3,H0,H1,H2,H3,EPS)
        implicit real*8 (a-h,o-z)
@@ -248,7 +248,7 @@
 
        ENDDO
 
-       END
+       END SUBROUTINE PRECOND_PROPER
 
        SUBROUTINE MULTI_BACKWARD(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3)
        implicit real*8 (a-h,o-z)
@@ -319,7 +319,7 @@
 
        ENDIF
 
-       END
+       END SUBROUTINE MULTI_BACKWARD
 
 
 
@@ -387,7 +387,7 @@
          DEALLOCATE(YY,XX)         
        ENDIF 
 
-       END
+       END SUBROUTINE MULTI_FORWARD
 
 
 
@@ -411,7 +411,7 @@
         call  BACKWARD_FAST(nd3,nt,ww,y)
 
         return
-        end
+        end subroutine BACKWARD_3D
 
        subroutine BACKWARD_3D_SELF(nd1,nd2,nd3,x,y,ww)
 ! A periodic synthesis (BACKWARD) wavelet transformation
@@ -432,7 +432,7 @@
         call  BACKWARD_FAST(nd3,nt,ww,x)
 
         return
-        end
+        end subroutine BACKWARD_3D_SELF
 
 
         subroutine FORWARD_3D(nd1,nd2,nd3,y,x,ww)
@@ -454,7 +454,7 @@
         call  FORWARD_FAST(nd3,nt,ww,x)
 
         return
-        end
+        end subroutine FORWARD_3D
 
         subroutine FORWARD_3D_SELF(nd1,nd2,nd3,y,x,ww)
 ! An analysis (FORWARD) periodic wavelet transformation
@@ -475,7 +475,7 @@
         call  FORWARD_FAST(nd3,nt,ww,y)
 
         return
-        end
+        end subroutine FORWARD_3D_SELF
 
 
       SUBROUTINE FORWARD_FAST(RIGHT,NT,C,CD_1)
@@ -595,7 +595,7 @@
 
        DEALLOCATE(MOD_MY) 
 
-       END
+       END SUBROUTINE FORWARD_FAST
 
 
 
@@ -721,7 +721,7 @@
 
        DEALLOCATE(MOD_MY)
 
-      END
+      END SUBROUTINE BACKWARD_FAST
 
 
 

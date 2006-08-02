@@ -41,7 +41,7 @@
      enddo
 
         return
-        end
+        end subroutine crtinpwave
 
 
         subroutine crtonewave(n1,n2,n3, & 
@@ -129,4 +129,4 @@
           deallocate(wprojx,wprojy,wprojz,work,psig_c,psig_f)
 
 	return
-	end
+	end subroutine crtonewave

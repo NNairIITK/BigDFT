@@ -21,7 +21,7 @@
       czmax=czmax-eps_mach ; czmin=czmin+eps_mach
 
         return
-        end
+        end subroutine system_size
 
 
 	subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
@@ -60,7 +60,7 @@
         mseg=nend
 
 	return
-        end
+        end subroutine num_segkeys
 
 
 	subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
@@ -104,7 +104,7 @@
         mseg=nend
 
 	return
-        end
+        end subroutine segkeys
 
 
 
@@ -147,4 +147,4 @@
       enddo
 
         return
-        end
+        end subroutine fill_logrid

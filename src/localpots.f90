@@ -67,7 +67,7 @@
      enddo
 
 	return
-	end
+	end subroutine compresstest
 
 
         subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
@@ -127,7 +127,7 @@
 
         deallocate(psig,ww)
 
-	end
+	end subroutine compress
 
 
         subroutine uncompress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
@@ -190,7 +190,7 @@
 
         deallocate(psig,ww)
 
-	end
+	end subroutine uncompress
 
 
         subroutine applylocpotkin(iproc,nproc,norb,n1,n2,n3,nbox_c,hgrid,occup,  & 
@@ -277,7 +277,7 @@
         deallocate(psifscf,psifscfk,psir)
    
         return
-	end
+	end subroutine applylocpotkin
 
 
         subroutine potloc(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,pot,psir,epot)
@@ -301,7 +301,7 @@
 !        enddo
 
 	return
-        end
+        end subroutine potloc
 
 
 
@@ -328,7 +328,7 @@
         deallocate(ww)
 
 	return
-	end
+	end subroutine convolut_magic_n
 
 
         subroutine convolut_magic_t(n1,n2,n3,x,y)
@@ -354,7 +354,7 @@
         deallocate(ww)
 
 	return
-	end
+	end subroutine convolut_magic_t
 
 
 	subroutine synthese_grow(n1,n2,n3,ww,x,y)
@@ -376,7 +376,7 @@
         call  syn_rot_grow(n3,nt,ww,y)
 
 	return
-        end
+        end subroutine synthese_grow
 
 
         subroutine syn_rot_grow(n,nt,x,y)
@@ -411,7 +411,7 @@
 200     continue
 
         return
-        end
+        end subroutine syn_rot_grow
 
 
 	subroutine analyse_shrink(n1,n2,n3,ww,y,x)
@@ -433,7 +433,7 @@
         call  ana_rot_shrink(n3,nt,y,x)
 
 	return
-        end
+        end subroutine analyse_shrink
 
 
 
@@ -466,5 +466,5 @@
 200     continue
 
         return
-        end
+        end subroutine ana_rot_shrink
 

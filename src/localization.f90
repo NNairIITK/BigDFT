@@ -38,7 +38,7 @@
         if (iorb.ne.norb) stop 'wannier_par, iorb <> norb'
 
         return
-        end
+        end subroutine wannier_par
 
 
 
@@ -68,7 +68,7 @@
         enddo
 
         return
-        end
+        end subroutine localizationregion
 
 
         subroutine loregion_size(nat,rxyz,radii,rmult,iatype,ntypes,loregion, &
@@ -119,4 +119,4 @@
       if (nu3.gt.n3)   stop 'nu3: localization region outside cell'
 
         return
-        end
+        end subroutine loregion_size

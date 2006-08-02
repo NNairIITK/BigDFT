@@ -204,7 +204,7 @@
 100  continue
 
 
-	end
+	end subroutine readmywaves
 
 
         subroutine writemywaves(iproc,nproc,norb,n1,n2,n3,nbox_c,hgrid,  & 
@@ -238,7 +238,7 @@
                              psi(ipsi_c),psi(ipsi_f))
        enddo
        return
-       end
+       end subroutine writemywaves
 
 
 
@@ -309,4 +309,4 @@
 	write(*,*) iorb,'th wavefunction written'
 
 
-	end
+	end subroutine writeonewave

@@ -1,0 +1,61 @@
+## Process this file with automake to produce Makefile.in
+
+vpath %.f90 ../src
+
+modulelib_LIBRARIES = \
+	libbigdft.a
+
+modulemod_DATA = \
+	lib_bigdft.mod
+
+FCCOMPILE = $(FC) $(INCLUDES) $(AM_FCFLAGS) $(FCFLAGS)
+
+INCLUDES = \
+	-I../ \
+	-I../src
+
+clean-local: 
+	-rm -f mpif.h lib_bigdft.mod
+
+if USE_OPTI_CONVOLUT
+convolution_source = convolut_optim.f90
+else
+convolution_source = convolut_simple.f90
+endif
+
+if USE_MPI
+mpi_source =
+mpi_include =
+else
+mpi_source = MPIfake.f90
+mpi_include = mpif.h
+endif
+
+libbigdft_a_SOURCES = $(mpi_source)\
+	module_bigdft.f90
+
+#dependencies
+module_bigdft.o: $(mpi_include) \
+	chargedens.f90 \
+	$(convolution_source) \
+	fft3d.f90 \
+	gauss_to_daub.f90 \
+	gequad.f90 \
+	gridlib.f90 \
+	inputwaves.f90 \
+	ionicpots.f90 \
+	localization.f90 \
+	localpots.f90 \
+	orthonorm.f90 \
+	pfft3d.f90 \
+	plotting.f90 \
+	precond.f90 \
+	projectors.f90 \
+	waveioput.f90 \
+	wavelib.f90
+
+mpif.h:
+	touch mpif.h
+	echo "real*8 :: MPI_double_precision" >> mpif.h
+	echo "real*8 :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h
+

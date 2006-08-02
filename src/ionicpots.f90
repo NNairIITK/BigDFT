@@ -67,7 +67,7 @@
 	if (iproc.eq.0) write(*,'(a,e21.14,1x,e10.3)') 'total ionic charge,leaked charge: ',tt,rholeaked
 
         return
-	end
+	end subroutine input_rho_ion
 
 
         subroutine addlocgauspsp(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,n1,n2,n3,hgrid,pot)
@@ -140,4 +140,4 @@
     enddo
 
         return
-	end
+	end subroutine addlocgauspsp

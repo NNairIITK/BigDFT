@@ -35,4 +35,4 @@
         enddo
 
         return
-        end
+        end subroutine plot_psifscf

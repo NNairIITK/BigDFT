@@ -93,7 +93,7 @@
 !        write(*,*) 'llc,llf',llc,llf
 
 	return
-	end
+	end subroutine wdot
 
 
 
@@ -179,7 +179,7 @@
 !        write(*,*) 'waxpy,llc,llf',llc,llf
 
 	return
-	end
+	end subroutine waxpy
 
 
 
@@ -203,7 +203,7 @@
         enddo
 
 	return
-	end
+	end subroutine wcopy
 
 
 
@@ -235,7 +235,7 @@
         scpr=scpr+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
 
 	return
-	end
+	end subroutine wnrm
 
 
 
@@ -258,7 +258,7 @@
         enddo
 
 	return
-	end
+	end subroutine wscal
 
 
 	subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
@@ -280,7 +280,7 @@
         enddo
 
 	return
-	end
+	end subroutine wzero
 
 
 
@@ -336,7 +336,7 @@
      enddo
 
      return
-     end
+     end subroutine orthoconstraint
 
 
 
@@ -372,6 +372,6 @@
      enddo
 
      return
-     end
+     end subroutine update
 
 

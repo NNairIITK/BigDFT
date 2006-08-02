@@ -133,7 +133,7 @@
  endif
 
         return
-        end
+        end subroutine loewe
 
 
 
@@ -182,4 +182,4 @@
         write(*,*) 'Deviation from orthogonality ',iproc,dev
 
         return
-	end
+	end subroutine checkortho

@@ -1,0 +1,52 @@
+! This is a wrapper for routines in BigDFT.
+! It creates a static library libbigdft.a and
+! a .mod file to use it.
+
+module lib_BigDFT
+
+  ! Everything included from BigDFT is private.
+  private
+  
+  ! Except some versioning informations.
+  character(len = *), parameter :: bigdft_version = "@PACKAGE_VERSION@"
+  character(len = *), parameter :: bigdft_name    = "@PACKAGE_NAME@"
+  
+  ! Except following methods.
+  !- Compute the density from the wavefunctions.
+  public :: sumrho
+  !- Apply the kinetic operator and the local part of potential
+  public :: applylocpotkin
+  !- Apply the non local part of potential
+  public :: applyprojectors
+  !- Orthogonalize wavefunctions
+  public :: orthoconstraint
+  !- Precondition on wavefunctions
+  public :: preconditionall
+  !- Mixed wavefunctions with results from precondition
+  public :: update
+  !- Make some Loewdin orthogonalisations.
+  public :: loewe
+  !- Check orthogonality.
+  public :: checkortho
+
+contains
+
+  ! All BigDFT subroutines.
+  include "chargedens.f90"
+  include "@CONVOLUT_SOURCES@"
+  include "fft3d.f90"
+  include "gauss_to_daub.f90"
+  include "gridlib.f90"
+  include "inputwaves.f90"
+  include "ionicpots.f90"
+  include "localization.f90"
+  include "localpots.f90"
+  include "orthonorm.f90"
+  include "pfft3d.f90"
+  include "plotting.f90"
+  include "precond.f90"
+  include "projectors.f90"
+  include "waveioput.f90"
+  include "wavelib.f90"
+
+end module lib_BigDFT
