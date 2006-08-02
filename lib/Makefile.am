@@ -51,6 +51,7 @@ module_bigdft.o: $(mpi_include) \
 	plotting.f90 \
 	precond.f90 \
 	projectors.f90 \
+	scaling_function.f90 \
 	waveioput.f90 \
 	wavelib.f90
 

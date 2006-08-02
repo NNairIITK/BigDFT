@@ -4,7 +4,30 @@
 
 EXTRA_DIST = \
 	Trash \
-	Deprecated
+	Deprecated \
+	daub_8.inc \
+	gsint_x.inc \
+	gsints.inc \
+	intots.inc \
+	lazy_100.inc \
+	lazy_14.inc \
+	lazy_16.inc \
+	lazy_20.inc \
+	lazy_24.inc \
+	lazy_30.inc \
+	lazy_40.inc \
+	lazy_50.inc \
+	lazy_60.inc \
+	lazy_8.inc \
+	recd10.inc \
+	recd12.inc \
+	recd14.inc \
+	recd16.inc \
+	recd6.inc \
+	recd8.inc \
+	recs16.inc \
+	sym_16.inc
+
 
 bin_PROGRAMS = cluster
 

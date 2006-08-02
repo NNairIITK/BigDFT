@@ -1,7 +1,7 @@
 EXTRA_DIST = autogen.sh \
 	configure \
 	utils \
-	tests
+	test
 
 if BUILD_BINARY
 subdir_source = src

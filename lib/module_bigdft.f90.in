@@ -46,6 +46,7 @@ contains
   include "plotting.f90"
   include "precond.f90"
   include "projectors.f90"
+  include "scaling_function.f90"
   include "waveioput.f90"
   include "wavelib.f90"
 
