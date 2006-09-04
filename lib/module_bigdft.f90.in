@@ -32,22 +32,12 @@ module lib_BigDFT
 contains
 
   ! All BigDFT subroutines.
-  include "chargedens.f90"
   include "@CONVOLUT_SOURCES@"
   include "fft3d.f90"
   include "gauss_to_daub.f90"
-  include "gridlib.f90"
-  include "inputwaves.f90"
-  include "ionicpots.f90"
-  include "localization.f90"
-  include "localpots.f90"
-  include "orthonorm.f90"
   include "pfft3d.f90"
-  include "plotting.f90"
-  include "precond.f90"
-  include "projectors.f90"
+  include "precond_fb.f90"
   include "scaling_function.f90"
-  include "waveioput.f90"
-  include "wavelib.f90"
+  include "common_routines.f90"
 
 end module lib_BigDFT

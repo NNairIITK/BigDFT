@@ -833,7 +833,7 @@ end subroutine multkernel
 90	continue
 
 	return
-	end
+	end subroutine switch_upcorn
 
         
  	subroutine mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,md2,nd3,nproc,zmpi1,zw)
@@ -862,7 +862,7 @@ end subroutine multkernel
 200	continue
 	J2stb=1
 300	continue
-	end
+	end subroutine mpiswitch_upcorn
 
         subroutine halfill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
 	implicit real*8 (a-h,o-z)
@@ -886,7 +886,7 @@ end subroutine multkernel
 
 
 	return
-	end
+	end subroutine halfill_upcorn
 
 
 !!****h* BigDFT/scramble_unpack
@@ -1056,7 +1056,7 @@ end subroutine unscramble_pack
 	zt(2,i,j)=zw(2,j,i)
 100	continue
 	return
-	end
+	end subroutine unswitch_downcorn
 
 
  	subroutine unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,zmpi1)
@@ -1081,7 +1081,7 @@ end subroutine unscramble_pack
 200	continue
 	J2stf=1
 300	continue
-	end
+	end subroutine unmpiswitch_downcorn
 
 
 !!****h* BigDFT/unfill_downcorn
@@ -1548,7 +1548,7 @@ end subroutine kernelfft
 100        continue
 200        continue
         return
-        end
+        end subroutine switch
 
          subroutine mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
         implicit real(kind=8)        (a-h,o-z)
@@ -1570,7 +1570,7 @@ end subroutine kernelfft
 200        continue
         J2st=1
 300        continue
-        end
+        end subroutine mpiswitch
 
         subroutine inserthalf(nd1,nd3,lot,nfft,n3,zf,zw)
         implicit real(kind=8)        (a-h,o-z)
@@ -1583,7 +1583,7 @@ end subroutine kernelfft
 100     continue
 
         return
-        end
+        end subroutine inserthalf
 
 
 

@@ -42,7 +42,7 @@
       deallocate(psiw)
  
         return
-        end
+        end subroutine transallwaves
 
 
 	
@@ -78,7 +78,7 @@
         deallocate(psiw)
  
         return
-        end
+        end subroutine untransallwaves
  
 
 
@@ -152,7 +152,7 @@
 	if (iproc.eq.0) write(*,'(a,e21.14,1x,e10.3)') 'total ionic charge,leaked charge: ',tt,rholeaked
 
         return
-	end
+      end subroutine input_rho_ion
 
 
         subroutine addlocgauspsp(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,n1,n2,n3,hgrid,pot)
@@ -225,7 +225,7 @@
     enddo
 
         return
-	end
+      end subroutine addlocgauspsp
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
 
@@ -273,7 +273,7 @@
      enddo
 
 	return
-	end
+	end subroutine compresstest
 
 
         subroutine compress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -332,7 +332,7 @@
 
         deallocate(psig,ww)
 
-	end
+      end subroutine compress
 
 
         subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -394,7 +394,7 @@
 
         deallocate(psig,ww)
 
-	end
+      end subroutine uncompress
 
 
         subroutine applylocpotkin(iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
@@ -468,7 +468,7 @@
 
    
         return
-	end
+      end subroutine applylocpotkin
 
 
         subroutine convolut_magic_n(n1,n2,n3,x,y)
@@ -494,7 +494,7 @@
         deallocate(ww)
 
 	return
-	end
+      end subroutine convolut_magic_n
 
 
         subroutine convolut_magic_t(n1,n2,n3,x,y)
@@ -520,7 +520,7 @@
         deallocate(ww)
 
 	return
-	end
+      end subroutine convolut_magic_t
 
 
 	subroutine synthese_grow(n1,n2,n3,ww,x,y)
@@ -542,7 +542,7 @@
         call  syn_rot_grow(n3,nt,ww,y)
 
 	return
-        end
+      end subroutine synthese_grow
 
 
 
@@ -565,7 +565,7 @@
         call  ana_rot_shrink(n3,nt,y,x)
 
 	return
-        end
+      end subroutine analyse_shrink
 
 
 
@@ -660,7 +660,7 @@
        write(77,'(a40,i4,2(x,e10.3))') 'SUMRHO TIME',iproc,tr1-tr0,tel
 
         return
-	end
+      end subroutine sumrho
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 	
@@ -679,7 +679,7 @@
           enddo
 
         return
-        end
+      end subroutine numb_proj
 
 
         subroutine applyprojectors(iproc,ntypes,nat,iatype,psppar,occup, &
@@ -766,7 +766,7 @@
 
 
          return
-         end
+      end subroutine applyprojectors
 
 
         subroutine crtproj(iproc,nterm,n1,n2,n3, & 
@@ -890,7 +890,7 @@
           deallocate(wprojx,wprojy,wprojz,work)
 
 	return
-	end
+     end subroutine crtproj
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
 	subroutine wdot(  & 
@@ -987,7 +987,7 @@
 !        write(*,*) 'llc,llf',llc,llf
 
 	return
-	end
+      end subroutine wdot
 
 
 
@@ -1073,7 +1073,7 @@
 !        write(*,*) 'waxpy,llc,llf',llc,llf
 
 	return
-	end
+      end subroutine waxpy
 
 
 
@@ -1105,7 +1105,7 @@
         scpr=scpr+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
 
 	return
-	end
+      end subroutine wnrm
 
 
 
@@ -1128,7 +1128,7 @@
         enddo
 
 	return
-	end
+      end subroutine wscal
 
 
 	subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
@@ -1150,7 +1150,7 @@
         enddo
 
 	return
-	end
+      end subroutine wzero
 
 
         subroutine orthoconstraint_p(iproc,nproc,norb,norbp,occup,nvctrp,psit,hpsit,scprsum)
@@ -1203,8 +1203,8 @@
 
 
      return
-     end
-
+   end subroutine orthoconstraint_p
+     
 
 
         subroutine orthoconstraint(norb,norbp,occup,nvctrp,psi,hpsi,scprsum)
@@ -1236,7 +1236,7 @@
        write(77,'(a40,i4,2(x,e10.3))') 'ORTHOCONSTRAINT TIME',0,tr1-tr0,tel
 
      return
-     end
+   end subroutine orthoconstraint
 
 
 
@@ -1264,7 +1264,7 @@
       czmax=czmax-eps_mach ; czmin=czmin+eps_mach
 
         return
-        end
+      end subroutine system_size
 
 
         subroutine pregion_size(rxyz,radii,rmult,iatype,ntypes, &
@@ -1304,7 +1304,7 @@
       if (nu3.gt.n3)   stop 'nu3: projector region outside cell'
 
         return
-        end
+      end subroutine pregion_size
 
 
 	subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
@@ -1343,7 +1343,7 @@
         mseg=nend
 
 	return
-        end
+      end subroutine num_segkeys
 
 
 	subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
@@ -1387,7 +1387,7 @@
         mseg=nend
 
 	return
-        end
+      end subroutine segkeys
 
 
 
@@ -1428,7 +1428,7 @@
       enddo
 
         return
-        end
+     end subroutine fill_logrid
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
 	subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
@@ -1503,7 +1503,7 @@
        write(78,'(a40,i4,2(x,e10.3))') 'LOEWE TIME',iproc,tr2-tr1,tel
 
         return
-        end
+     end subroutine loewe_p
 
 
 
@@ -1574,7 +1574,7 @@
        write(77,'(a40,i4,2(x,e10.3))') 'LOEWE TIME',iproc,tr1-tr0,tel
 
         return
-        end
+     end subroutine loewe
 
 
 	subroutine checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
@@ -1611,7 +1611,7 @@
         deallocate(ovrlp)
 
         return
-	end
+     end subroutine checkortho_p
 
 
 	subroutine checkortho(norb,norbp,nvctrp,psi)
@@ -1646,7 +1646,7 @@
 
 
         return
-	end
+	end subroutine checkortho
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
@@ -1988,7 +1988,7 @@
         deallocate(hamovr,occupe)
 
 	return
-	end
+	end subroutine input_wf_diag
 
 
         logical function myorbital(iorb,norbe,iproc,nproc)
@@ -2004,7 +2004,7 @@
         endif
 
         return
-        end
+        end function myorbital
 
 
 	subroutine KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,  & 
@@ -2067,7 +2067,7 @@
         deallocate(psitt)
 
 	return
-        end
+        end subroutine KStrans_p
 
 
 
@@ -2127,7 +2127,7 @@
         deallocate(psitt)
 
 	return
-        end
+      end subroutine KStrans
 
 
 
@@ -2252,7 +2252,7 @@
           deallocate(wprojx,wprojy,wprojz,work,psig_c,psig_f)
 
 	return
-	end
+     end subroutine crtonewave
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
 
@@ -2461,7 +2461,7 @@
 
 
 
-	end
+	end subroutine readmywaves
 
 
 
@@ -2491,7 +2491,7 @@
 
 
        return
-       end
+     end subroutine writemywaves
 
 
 
@@ -2562,7 +2562,7 @@
 	write(*,*) iorb,'th wavefunction written'
 
 
-	end
+      end subroutine writeonewave
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
         subroutine plot_wf(n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, & 
@@ -2583,7 +2583,7 @@
 
         deallocate(psifscf,psir)
         return
-	end
+      end subroutine plot_wf
 
 
 
@@ -2626,7 +2626,7 @@
         close(iounit+2) 
 
         return
-        end
+      end subroutine plot_pot
 
 
 
@@ -2668,7 +2668,7 @@
 	enddo 
 
         return
-        end
+      end subroutine plot_psifscf
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
@@ -2725,5 +2725,5 @@
         enddo
 
         return
-        end
+      end subroutine atomkin
 

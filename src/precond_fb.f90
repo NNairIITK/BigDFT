@@ -25,7 +25,7 @@
 
 
       return
-      end
+      end subroutine preconditionall
 
 
 
@@ -193,7 +193,7 @@
         DEALLOCATE(HPSI_C_MOD,HPSI_F_MOD) 
         DEALLOCATE(PSI_C_NEW,PSI_F_NEW) 
           
-	end
+	end subroutine precondition
 
           
        SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,&
@@ -240,7 +240,7 @@
 
           deallocate(psig_stand1,psig_stand2)
 
-        END 
+        END SUBROUTINE CALC_GRAD_REZA
 
 
         subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
@@ -325,7 +325,7 @@
 
         deallocate(hpsip)
 
-       end         
+       end subroutine prec_diag  
 
        SUBROUTINE PRECOND_PROPER(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3,H0,H1,H2,H3,EPS)
        implicit real*8 (a-h,o-z)
@@ -410,7 +410,7 @@
 
        ENDDO
 
-       END
+       END SUBROUTINE PRECOND_PROPER
 
       FUNCTION PIECELINE(C)
       IMPLICIT REAL*8(A-H,O-Z)
@@ -429,7 +429,7 @@
            ENDIF        
       ENDIF
      
-      END 
+      END FUNCTION PIECELINE
 
 
 
@@ -474,7 +474,7 @@
         call convrot_shrink2(lowfil,lupfil,fil,n3,ndat,x,y)
 
 	return
-	end
+	end subroutine convolut_magic_t2
 
         subroutine convrot_shrink2(lowfil,lupfil,fil,n1,ndat,x,y)
         implicit real*8 (a-h,o-z)
@@ -494,7 +494,7 @@
         enddo
 
 	return
-	end
+	end subroutine convrot_shrink2
 
 
 
@@ -728,7 +728,7 @@ subroutine ConvolStand(n1,n2,n3,&
 !    WRITE(*,*) 'CONVOL_STAND ENDED'
 
     return
-end
+end subroutine ConvolStand
     
     
         subroutine uncompress_forstandard(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
@@ -790,7 +790,7 @@ end
 
         !deallocate(psig,ww)
 
-	end
+	end subroutine uncompress_forstandard
     
         subroutine compress_forstandard(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
                             mseg_c,mvctr_c,keyg_c,keyv_c,  & 
@@ -850,7 +850,7 @@ end
 
  !       deallocate(ww)
 
-	end
+	end subroutine compress_forstandard
 
 
 
@@ -925,7 +925,7 @@ end
 
        ENDIF
 
-       END
+       END SUBROUTINE MULTI_BACKWARD
 
 
 
@@ -993,7 +993,7 @@ end
          DEALLOCATE(YY,XX)         
        ENDIF 
 
-       END
+       END SUBROUTINE MULTI_FORWARD
 
 
 
@@ -1017,7 +1017,7 @@ end
         call  BACKWARD_FAST(nd3,nt,ww,y)
 
         return
-        end
+        end subroutine BACKWARD_3D
 
        subroutine BACKWARD_3D_SELF(nd1,nd2,nd3,x,y,ww)
 ! A periodic synthesis (BACKWARD) wavelet transformation
@@ -1038,7 +1038,7 @@ end
         call  BACKWARD_FAST(nd3,nt,ww,x)
 
         return
-        end
+        end subroutine BACKWARD_3D_SELF
 
 
         subroutine FORWARD_3D(nd1,nd2,nd3,y,x,ww)
@@ -1060,7 +1060,7 @@ end
         call  FORWARD_FAST(nd3,nt,ww,x)
 
         return
-        end
+        end subroutine FORWARD_3D
 
         subroutine FORWARD_3D_SELF(nd1,nd2,nd3,y,x,ww)
 ! An analysis (FORWARD) periodic wavelet transformation
@@ -1081,7 +1081,7 @@ end
         call  FORWARD_FAST(nd3,nt,ww,y)
 
         return
-        end
+        end subroutine FORWARD_3D_SELF
 
 
       SUBROUTINE FORWARD_FAST(RIGHT,NT,C,CD_1)
@@ -1201,7 +1201,7 @@ end
 
        DEALLOCATE(MOD_MY) 
 
-       END
+       END SUBROUTINE FORWARD_FAST
 
 
 
@@ -1327,7 +1327,7 @@ end
 
        DEALLOCATE(MOD_MY)
 
-      END
+      END SUBROUTINE BACKWARD_FAST
 
 
 

@@ -131,7 +131,7 @@
 
 !             WRITE(*,*)'N_LEFT=',N_LEFT,'        N_RIGHT=',N_RIGHT
 
-         END
+         END SUBROUTINE GAUSS_TO_DAUB
          
         SUBROUTINE APPLY_W(CX,C,LEFTX,RIGHTX,LEFT,RIGHT,H)
 !
@@ -152,7 +152,7 @@
           C(I)=CI*SQH
         ENDDO
         
-        END 
+        END SUBROUTINE APPLY_W
 
 
       SUBROUTINE FORWARD_C(C,C_1,LEFT,RIGHT,LEFT_1,RIGHT_1)
@@ -178,7 +178,7 @@
          C_1(I)=CI
        ENDDO
 
-       END
+       END SUBROUTINE FORWARD_C
 
       SUBROUTINE FORWARD(C,CD_1,LEFT,RIGHT,LEFT_1,RIGHT_1)
 !
@@ -206,9 +206,9 @@
          CD_1(I,2)=DI
        ENDDO
  
-       END
+       END SUBROUTINE FORWARD
 
        function psi(x,GAU_A,GAU_CEN,N_GAU)
        implicit real*8 (a-h,o-z)
          psi=(X-GAU_CEN)**N_GAU*exp(-0.5d0*((X-GAU_CEN)/GAU_A)**2)
-       end
+       end function psi

@@ -67,7 +67,7 @@ AM_CONDITIONAL(BUILD_BINARY, test "$ac_build_exec" = "yes")
 dnl Look if a binary must be compiled
 ac_build_lib="no"
 AC_ARG_ENABLE(build-library,
-              AS_HELP_STRING([--disable-build-library],
+              AS_HELP_STRING([--enable-build-library],
                              [Don't create a library (disable by default).]),
               ac_build_lib=$enableval, ac_build_lib="no")
 AM_CONDITIONAL(BUILD_LIBRARY, test "$ac_build_lib" = "yes")
@@ -111,7 +111,7 @@ AC_ARG_ENABLE(optimised-convolution, AS_HELP_STRING([--disable-optimised-convolu
 AM_CONDITIONAL(USE_OPTI_CONVOLUT, test "$ac_use_opti_convolut" = "yes")
 AC_MSG_RESULT([$ac_use_opti_convolut])
 if test "$ac_use_opti_convolut" = "yes" ; then
-  AC_SUBST(CONVOLUT_SOURCES, "convolut_optim.f90")
+  AC_SUBST(CONVOLUT_SOURCES, "convolut_optim_omp.f90")
 else
   AC_SUBST(CONVOLUT_SOURCES, "convolut_simple.f90")
 fi
