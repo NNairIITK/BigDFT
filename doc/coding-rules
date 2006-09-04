@@ -1,0 +1,3 @@
+This is a draft for common accepted rules on coding. Feel free to complete.
+
+- Write 'end subroutine foo' instead of just 'end' at the end of a routine (adapt for a function). This is because, the Fortran norm asks it for module integration (see the library part of the distribution).
