@@ -410,8 +410,7 @@ subroutine pconvxc_on(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
       call cpu_time(t1)
       call system_clock(count2,count_rate,count_max)
       tel=dble(count2-count1)/dble(count_rate)
-      write(78,*) 'PSOLVER: ALLREDUCE TIME',iproc,t1-t0,tel
-      write(78,*) '----------------------------------------------'
+      write(78,'(a40,i4,2(x,e10.3))') 'PSOLVER: ALLREDUCE TIME',iproc,t1-t0,tel
  else
     ehartree=ehartreeLOC
     eexcu=eexcuLOC
@@ -444,8 +443,7 @@ subroutine pconvxc_on(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
       call cpu_time(t1)
       call system_clock(count2,count_rate,count_max)
       tel=dble(count2-count1)/dble(count_rate)
-      write(78,*) 'PSolver: ALLGATHERV TIME',iproc,t1-t0,tel
-      write(78,*) '----------------------------------------------'
+      write(78,'(a40,i4,2(x,e10.3))') 'PSolver: ALLGATHERV TIME',iproc,t1-t0,tel
 
  deallocate(zf,gather_arr)
 
@@ -533,8 +531,7 @@ subroutine pconvxc_off(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
       call cpu_time(t1)
       call system_clock(count2,count_rate,count_max)
       tel=dble(count2-count1)/dble(count_rate)
-      write(78,*) 'PSolver: ALLREDUCE TIME',iproc,t1-t0,tel
-      write(78,*) '----------------------------------------------'
+      write(78,'(a40,i4,2(x,e10.3))') 'PSolver: ALLREDUCE TIME',iproc,t1-t0,tel
  else
     ehartree=ehartreeLOC
  end if
@@ -563,8 +560,7 @@ subroutine pconvxc_off(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
       call cpu_time(t1)
       call system_clock(count2,count_rate,count_max)
       tel=dble(count2-count1)/dble(count_rate)
-      write(78,*) 'PSolver: ALLGATHERV TIME',iproc,t1-t0,tel
-      write(78,*) '----------------------------------------------'
+      write(78,'(a40,i4,2(x,e10.3))') 'PSolver: ALLGATHERV TIME',iproc,t1-t0,tel
 
  deallocate(zf,gather_arr)
 

@@ -92,7 +92,7 @@ end subroutine fourier_dim
         z(2,i1,i2,i3) = zin(2,i1,i2,i3) 
 9763        continue
         return
-        end subroutine init
+        end
 
         subroutine vgl(n1,n2,n3,nd1,nd2,nd3,x,md1,md2,md3,y,scale,tta,ttm)
         implicit real*8 (a-h,o-z)
@@ -109,7 +109,7 @@ end subroutine fourier_dim
 976        continue
         tta=tta/(n1*n2*n3)
         return
-        end subroutine vgl
+        end
 
 
 ! FFT PART -----------------------------------------------------------------
@@ -419,7 +419,7 @@ end subroutine fourier_dim
 
       endif
         return
-        end subroutine FFT
+        end
 
 
 
@@ -579,7 +579,7 @@ end subroutine fourier_dim
 
 
         return
-        end subroutine ctrig
+        end
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccc
@@ -2027,7 +2027,7 @@ end subroutine fourier_dim
         endif
 
         return
-        end subroutine fftstp
+        end
 
 
 
@@ -3474,5 +3474,5 @@ end subroutine fourier_dim
        endif
 
         return
-        end subroutine fftrot
+        end
 

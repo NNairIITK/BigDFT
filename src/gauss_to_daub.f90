@@ -27,6 +27,7 @@
          SUBROUTINE GAUSS_TO_DAUB(HGRID,FACTOR,GAU_CEN,GAU_A,N_GAU,&!NO ERR, ERRSUC
               NMAX,N_LEFT,N_RIGHT,C,ERR_NORM,&              !NO ERR_WAV. NMAX INSTEAD OF N_INTVX
               WW,NWORK)                             !ADDED WORK ARRAYS WW WITH DIMENSION  NWORK
+! Gives the expansion coefficients of exp(-(1/2)*(x/gau_a)**2)
 !!  INPUT: hgrid
 !          FACTOR
 !!         gau_cen
@@ -130,7 +131,7 @@
 
 !             WRITE(*,*)'N_LEFT=',N_LEFT,'        N_RIGHT=',N_RIGHT
 
-         END SUBROUTINE GAUSS_TO_DAUB
+         END
          
         SUBROUTINE APPLY_W(CX,C,LEFTX,RIGHTX,LEFT,RIGHT,H)
 !
@@ -151,7 +152,7 @@
           C(I)=CI*SQH
         ENDDO
         
-        END SUBROUTINE APPLY_W
+        END 
 
 
       SUBROUTINE FORWARD_C(C,C_1,LEFT,RIGHT,LEFT_1,RIGHT_1)
@@ -177,7 +178,7 @@
          C_1(I)=CI
        ENDDO
 
-       END SUBROUTINE FORWARD_C
+       END
 
       SUBROUTINE FORWARD(C,CD_1,LEFT,RIGHT,LEFT_1,RIGHT_1)
 !
@@ -205,9 +206,9 @@
          CD_1(I,2)=DI
        ENDDO
  
-       END SUBROUTINE FORWARD
+       END
 
        function psi(x,GAU_A,GAU_CEN,N_GAU)
        implicit real*8 (a-h,o-z)
          psi=(X-GAU_CEN)**N_GAU*exp(-0.5d0*((X-GAU_CEN)/GAU_A)**2)
-       end function psi
+       end

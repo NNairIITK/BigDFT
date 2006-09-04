@@ -37,7 +37,7 @@ subroutine Build_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,hgrid,itype_scf,karrayout)
   !Arguments
   integer, intent(in) :: n01,n02,n03,nfft1,nfft2,nfft3,itype_scf
   real(kind=8), intent(in) :: hgrid
-  real(kind=8), intent(out) :: karrayout(nfft1/2+1,nfft2/2+1,nfft3/2+1)
+  real(kind=8), dimension(nfft1/2+1,nfft2/2+1,nfft3/2+1), intent(out) :: karrayout
   
   !Local variables 
   !Do not touch !!!!
@@ -48,11 +48,11 @@ subroutine Build_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,hgrid,itype_scf,karrayout)
   !Better p_gauss for calculation
   !(the support of the exponential should be inside [-n_range/2,n_range/2])
   real(kind=8), parameter :: p0_ref = 1.d0
-  real(kind=8) :: p_gauss(n_gauss),w_gauss(n_gauss)
+  real(kind=8), dimension(n_gauss) :: p_gauss,w_gauss
   
-  real(kind=8), allocatable :: kernel_scf(:),kern_1_scf(:)
-  real(kind=8), allocatable :: x_scf(:) ,y_scf(:)
-  real(kind=8), allocatable :: karrayhalf(:,:,:)
+  real(kind=8), dimension(:), allocatable :: kernel_scf,kern_1_scf
+  real(kind=8), dimension(:), allocatable :: x_scf ,y_scf
+  real(kind=8), dimension(:,:,:), allocatable :: karrayhalf
   
   real(kind=8) :: ur_gauss,dr_gauss,acc_gauss,pgauss,kern,a_range,kern_tot
   real(kind=8) :: pi,factor,factor2,urange,dx,absci,p0gauss,weight,p0_cell
@@ -61,8 +61,6 @@ subroutine Build_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,hgrid,itype_scf,karrayout)
   integer :: i_gauss,n_range,n_cell,ind1
   integer :: i,j,n_iter,i_iter,ind,i1,i2,i3,i_kern,i_stat,i_allocated
   integer :: i01,i02,i03,inkee,n1h,n2h,n3h,nd1h,j1,j2,j3
-  
-  character(len = 500) :: message
   
   !Number of integration points : 2*itype_scf*n_points
   n_scf=2*itype_scf*n_points
@@ -75,9 +73,8 @@ subroutine Build_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,hgrid,itype_scf,karrayout)
   
   !Half size for the half FFT
   nd1h=(nd1+1)/2
-  write(message, fmt="(1x,a,i0,a)") &
+  write(unit=*,fmt="(1x,a,i0,a)") &
        "Build the kernel using a sum of ",n_gauss," gaussians"
-  call wrtout(6, message, "COLL")
   
   !Allocations
   i_allocated = 0
@@ -86,9 +83,8 @@ subroutine Build_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,hgrid,itype_scf,karrayout)
   allocate(y_scf(0:n_scf),stat=i_stat)
   i_allocated = i_allocated + i_stat
   if (i_allocated /= 0) then
-     write(message, "(A)") "Build_Kernel: Problem of memory allocation"
-     call wrtout(6, message, "COLL")
-     call leave_new('COLL')
+     print *,"Build_Kernel: Problem of memory allocation"
+     stop
   end if
   
   !Build the scaling function
@@ -105,9 +101,8 @@ subroutine Build_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,hgrid,itype_scf,karrayout)
   allocate(kern_1_scf(-n_range:n_range),stat=i_stat)
   i_allocated = i_allocated + i_stat
   if (i_allocated /= 0) then
-     write(message, "(A)") "Build_Kernel: Problem of memory allocation"
-     call wrtout(6, message, "COLL")
-     call leave_new('COLL')
+     print *,"Build_Kernel: Problem of memory allocation"
+     stop
   end if
   
   !Lengthes of the box (use FFT dimension)
@@ -196,16 +191,14 @@ subroutine Build_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,hgrid,itype_scf,karrayout)
   !Set karray
   allocate(karrayhalf(2,nd1h*nd2*nd3,2),stat=i_stat)
   if (i_stat /= 0) then
-     write(message, "(A)") "Build_Kernel: Problem of memory allocation"
-     call wrtout(6, message, "COLL")
-     call leave_new('COLL')
+     print *,"Build_Kernel: Problem of memory allocation (karrayhalf)"
+     stop
   end if
   !Set karray : use mirror symmetries
   inkee=1
   call karrayhalf_in(n01,n02,n03,n1k,n2k,n3k,nfft1,nfft2,nfft3,nd1,nd2,nd3,&
        karrayout,karrayhalf)
-  write(message, "(A)") "Build_Kernel: Do a 3D HalFFT for the kernel"
-  call wrtout(6, message, "COLL")
+  print *,"Do a 3D HalFFT for the kernel"
   call fft(n1h,nfft2,nfft3,nd1h,nd2,nd3,karrayhalf,1,inkee)
   !Reconstruct the real kernel
   call kernel_recon(n1k,n2k,n3k,nfft1,nfft2,nfft3,nd1,nd2,nd3,&
@@ -281,22 +274,19 @@ subroutine karrayhalf_in(n01,n02,n03,n1k,n2k,n3k,nfft1,nfft2,nfft3,nd1,nd2,nd3,&
   implicit none
   !Arguments
   integer, intent(in) :: n01,n02,n03,n1k,n2k,n3k,nfft1,nfft2,nfft3,nd1,nd2,nd3
-  real(kind=8), intent(in) :: kernel(n1k,n2k,n3k)
-  real(kind=8), intent(out) :: karrayhalf(2,(nd1+1)/2,nd2,nd3)
+  real(kind=8), dimension(n1k,n2k,n3k), intent(in) :: kernel
+  real(kind=8), dimension(2,(nd1+1)/2,nd2,nd3), intent(out) :: karrayhalf
   !Local variables
-  real(kind=8), allocatable :: karray(:)
+  real(kind=8), dimension(:), allocatable :: karray
   integer :: i1,i2,i3,i_stat,nd1h,n1h,n2h,n3h
-  character(len = 500) :: message
-  
   !Body
   n1h=nfft1/2
   n2h=nfft2/2
   n3h=nfft3/2
   allocate(karray(nfft1),stat=i_stat)
   if (i_stat /= 0) then
-     write(message, "(A)") "karrayhalf_in: Problem of memory allocation"
-     call wrtout(6, message, "COLL")
-     call leave_new('COLL')
+     print *,"Problem of memory allocation"
+     stop
   end if
   nd1h=(nd1+1)/2
   karrayhalf(:,:,:,:) = 0.d0
@@ -348,10 +338,10 @@ subroutine kernel_recon(n1k,n2k,n3k,nfft1,nfft2,nfft3,nd1,nd2,nd3,zarray,karray)
   implicit none
   !Arguments
   integer, intent(in) :: n1k,n2k,n3k,nfft1,nfft2,nfft3,nd1,nd2,nd3
-  real(kind=8), intent(in) :: zarray(2,(nd1+1)/2*nd2*nd3)
-  real(kind=8), intent(out) :: karray(n1k,n2k,n3k)
+  real(kind=8), dimension(2,(nd1+1)/2*nd2*nd3), intent(in) :: zarray
+  real(kind=8), dimension(n1k,n2k,n3k), intent(out) :: karray
   !Local variables
-  real(kind=8), allocatable :: cos_array(:),sin_array(:)
+  real(kind=8), dimension(:), allocatable :: cos_array,sin_array
   integer :: i1,i2,i3,ind1,ind2,nd1h,n1h,n2h,n3h
   real(kind=8) :: rfe,ife,rfo,ifo,cp,sp,rk,ik,a,b,c,d,pi2
   !Body

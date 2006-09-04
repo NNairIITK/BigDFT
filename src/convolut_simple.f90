@@ -117,7 +117,7 @@
 
         subroutine convrot_shrink(n1,ndat,x,y)
         implicit real*8 (a-h,o-z)
-        parameter(lowfil=-8,lupfil=7)
+        parameter(lowfil=-7,lupfil=8)
         dimension x(lowfil:n1+lupfil,ndat),y(ndat,0:n1)
 ! the filtered output data structure has shrunk by the filter length
 
@@ -156,4 +156,72 @@
 
 	return
 	end
+
+
+        subroutine ana_rot_shrink(n,nt,x,y)
+        implicit real*8 (a-h,o-z)
+!  Daubechies_8 symetric
+!        parameter(chm3=.230377813308896501d0, chm2=.714846570552915647d0, &
+!                  chm1=.630880767929858908d0, ch00=-.279837694168598542d-1, &
+!                  chp1=-.187034811719093084d0, chp2=.308413818355607636d-1, &
+!                  chp3=.328830116668851997d-1, chp4=-.105974017850690321d-1)
+
+
+       dimension x(-7:2*n+8,nt),y(nt,0:2*n+1)
+       INCLUDE 'sym_16.inc'
+
+       do 200,l=1,nt
+
+       DO I=0,n
+         I2=2*I
+         CI=0.D0
+         DI=0.D0
+         DO J=-M+1,M
+           CI=CI+CHT(J)*x(J+I2,l)
+           DI=DI+CGT(J)*x(J+I2,l)
+         ENDDO
+         y(l,I)=CI
+         y(l,n+1+I)=DI
+       ENDDO
+
+200     continue
+
+        return
+        end
+
+
+        subroutine syn_rot_grow(n,nt,x,y)
+        implicit real*8 (a-h,o-z)
+!  Daubechies_16 symetric
+!        REAL*8 CH(-M:M)/0.d0,&
+!        -0.0033824159510050025955D0,-0.00054213233180001068935D0,&
+!        0.031695087811525991431D0,0.0076074873249766081919D0,&
+!        -0.14329423835127266284D0,-0.061273359067811077843D0,&
+!        0.48135965125905339159D0,0.77718575169962802862D0,0.36444189483617893676D0,&
+!        -0.051945838107881800736D0,-0.027219029917103486322D0,&
+!        0.049137179673730286787D0,0.0038087520138944894631D0,&
+!        -0.014952258337062199118D0,-0.00030292051472413308126D0,&
+!        0.0018899503327676891843D0&
+
+        dimension x(0:2*n+1,nt),y(nt,-7:2*n+8)
+        include 'sym_16.inc'
+
+        do 200,l=1,nt
+
+       DO I=-7,2*n+8
+         y(l,I)=0.D0
+       enddo
+
+       DO I=0,n
+         I2=2*I
+         DO J=-M+1,M
+           y(l,J+I2)=y(l,J+I2)+CH(J)*x(I,l)+CG(J)*x(n+1+I,l)
+         ENDDO
+       ENDDO
+
+200     continue
+
+        return
+        end
+
 
