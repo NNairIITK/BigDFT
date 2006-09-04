@@ -1,6 +1,7 @@
 # ==================================
 # "Basel" way to install the package
 # ==================================
+See also the doc/basel-make.sh script for an integrated script.
 
 Run autotools using :
 ./autogen.sh
@@ -49,3 +50,19 @@ make distclean
 
 WARNING : doing 'make distclean' makes to restart from first point
 to be able to compile the package again.
+
+
+Create a tar with all needed sources:
+make dist
+
+
+#===================
+# Building a library
+#===================
+
+It is possible to build a library in addition to the executable, that create
+a static library and a module interface for Fortran90 use.
+
+To do this, use the --enable-build-library option with the configure. This
+option is disabled by default. Moreover, to avoid to create the binary executable,
+use --disable--build-binary option.
