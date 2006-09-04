@@ -45,7 +45,7 @@ LMPI =
 endif
 
 if USE_OPTI_CONVOLUT
-convolution_source = convolut_optim.f90
+convolution_source = convolut_optim_omp.f90
 else
 convolution_source = convolut_simple.f90
 endif
@@ -60,27 +60,18 @@ AM_FCFLAGS =  -I. \
 
 cluster_SOURCES = $(mpi_source) \
 	Build_Kernel.f90 \
-	chargedens.f90 \
 	cluster.f90 \
+	common_routines.f90 \
 	$(convolution_source) \
 	fft3d.f90 \
+	forces.f90 \
 	gauss_to_daub.f90 \
-	gridlib.f90 \
-	inputwaves.f90 \
-	ionicpots.f90 \
-	localization.f90 \
-	localpots.f90 \
-	orthonorm.f90 \
+	gequad.f90 \
 	pconv.f90 \
 	pfft3d.f90 \
-	plotting.f90 \
-	precond.f90 \
-	projectors.f90 \
+	precond_fb.f90 \
 	PSolver_Kernel.f90 \
-	scaling_function.f90 \
-	waveioput.f90 \
-	wavelib.f90 \
-	gequad.f90
+	scaling_function.f90
 
 
 

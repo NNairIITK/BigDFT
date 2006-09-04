@@ -444,7 +444,8 @@
         dimension x(-lupfil:n1-lowfil,-lupfil:n2-lowfil,-lupfil:n3-lowfil),y(0:n1,0:n2,0:n3)
         dimension ww(0:n1,-lupfil:n2-lowfil,-lupfil:n3-lowfil)
 !          THE MAGIC FILTER FOR DAUBECHIES-16
-           REAL*8 fil(lowfil:lupfil)/0.D0,&
+           REAL*8 fil(lowfil:lupfil)
+           DATA fil /0.D0,&
          2.72734492911979659657715313017228D-6,&
        -0.5185986881173432922848639136911487D-4,&
         0.49443227688689919192282259476750972D-3,&
