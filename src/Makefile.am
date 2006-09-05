@@ -3,8 +3,6 @@
 #LIBS =
 
 EXTRA_DIST = \
-	Trash \
-	Deprecated \
 	daub_8.inc \
 	gsint_x.inc \
 	gsints.inc \

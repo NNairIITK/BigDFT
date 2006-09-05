@@ -1,0 +1,17 @@
+EXTRA_DIST = \
+	psppar.Al_lda \
+	psppar.Cl_lda \
+	psppar.Mg_lda \
+	psppar.P_lda \
+	psppar.Be_lda \
+	psppar.F_lda \
+	psppar.Na_lda \
+	psppar.Si_lda \
+	psppar.B_lda \
+	psppar.H_lda \
+	psppar.N_lda \
+	psppar.S_lda \
+	psppar.C_lda \
+	psppar.Li_lda \
+	psppar.O_lda \
+	psppar.Test

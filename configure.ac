@@ -140,6 +140,9 @@ src/ABINIT-common/Makefile
 src/parameters.h
 lib/Makefile
 lib/module_bigdft.f90
+utils/Makefile
+utils/PSPfiles/Makefile
+doc/Makefile
 ])
 AC_OUTPUT
 

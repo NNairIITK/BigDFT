@@ -1,7 +1,5 @@
 EXTRA_DIST = autogen.sh \
-	configure \
-	utils \
-	test
+	configure
 
 if BUILD_BINARY
 subdir_source = src
@@ -18,4 +16,6 @@ endif
 
 
 SUBDIRS = $(subdir_source) \
-	$(subdir_lib)
+	$(subdir_lib) \
+	utils \
+	doc
