@@ -11,7 +11,7 @@ module lib_BigDFT
   character(len = *), parameter :: bigdft_version = "@PACKAGE_VERSION@"
   character(len = *), parameter :: bigdft_name    = "@PACKAGE_NAME@"
   
-  ! Except following methods.
+  !- High level methods.
   !- Compute the density from the wavefunctions.
   public :: sumrho
   !- Apply the kinetic operator and the local part of potential
@@ -28,6 +28,50 @@ module lib_BigDFT
   public :: loewe
   !- Check orthogonality.
   public :: checkortho
+  !- Create a ionic density (without gaussian parts)
+  public :: input_rho_ion
+  !- Add gaussian part to local part of ionic potential
+  public :: addlocgauspsp
+  
+  !- Initialisation methods.
+  !- Find box size around an atom
+  public :: pregion_size
+  !- Find relevant coordinates
+  public :: fill_logrid
+  !- Compute access keys for compress data
+  public :: segkeys
+  !- Retrive the number of segments and elements
+  public :: num_segkeys
+  
+  !- Wavefunctions related methods.
+  !- Create wavefunctions from nothing
+  public :: crtinpwave
+  !- Read wavefunctions from disk
+  public :: readmywaves
+  !- Write wavefunctions to disk
+  public :: writemywaves
+  !- MPI communications for wavefunctions
+  public :: commallwaves
+  
+  !- Projectors methods
+  !- Count number of projectors.
+  public :: numb_proj
+  !- Create one projector
+  public :: crtproj
+  
+  !- localisation methods
+  !- Do something on Wannier stuff.
+  public :: wannier_par
+  !- Get a mask for localised region.
+  public :: localizationregion
+
+  !- Geometry method
+  !- Get a box that contains all atoms and their active area.
+  public :: system_size
+  
+  !- Linear algebra method
+  !- Compute a scalar product
+  public :: wnrm
 
 contains
 

@@ -60,6 +60,7 @@ cluster_SOURCES = $(mpi_source) \
 	Build_Kernel.f90 \
 	cluster.f90 \
 	common_routines.f90 \
+	input_wf_diag.f90 \
 	$(convolution_source) \
 	fft3d.f90 \
 	forces.f90 \
