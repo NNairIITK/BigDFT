@@ -78,8 +78,7 @@ cluster_SOURCES = $(mpi_source) \
 
 cluster_LDFLAGS = $(LMPI) $(lMPI)
 
-cluster_LDADD = @LAPACK_LIB@ @BLAS_LIB@ \
-	ABINIT-common/libABINIT.a
+cluster_LDADD = ABINIT-common/libABINIT.a
 
 #dependencies
 MPIfake.f90: mpif.h

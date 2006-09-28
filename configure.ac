@@ -18,6 +18,9 @@ AC_CONFIG_AUX_DIR(config)
 dnl Init something, don't know exactly what...
 AM_INIT_AUTOMAKE
 
+dnl Defining fortran language for tests.
+AC_LANG(Fortran)
+
 dnl If F77 environement variable is not already set, it
 dnl looks for a Fortran77 compiler and set F77 variable.
 dnl AC_PROG_F77()
@@ -29,10 +32,10 @@ dnl is set.
 AC_PROG_FC()
 
 dnl Set the FCFLAGS and FFLAGS variable
-if test -n "$FFLAGS"; then
+if test -z "$FFLAGS" ; then
   AC_SUBST(FFLAGS, "-O2")
 fi
-if test -n "$FCFLAGS"; then
+if test -z "$FCFLAGS" ; then
   AC_SUBST(FCFLAGS, "-O2")
 fi
 
@@ -117,14 +120,39 @@ else
 fi
 
 dnl Get the lapack library
-AC_ARG_WITH(lapack, AS_HELP_STRING([--with-lapack], [Give the filename of the Lapack library (default = /usr/lib/liblapack.a).]),
-            ac_lapack_dir=$withval, ac_lapack_dir="/usr/lib/liblapack.a")
-AC_SUBST(LAPACK_LIB, $ac_lapack_dir)
+AC_ARG_WITH(lapack-path, AS_HELP_STRING([--with-lapack-path], [Give the path of the Lapack library (default = /usr/lib).]),
+            ac_lapack_dir=$withval, ac_lapack_dir=)
+if test -n "$ac_lapack_dir" ; then
+  LDFLAGS="$LDFLAGS -L$ac_lapack_dir"
+fi
+AC_CHECK_LIB(lapack, dsysv, withlapack=yes, withlapack=no)
 
 dnl Get the Blas library
-AC_ARG_WITH(blas, AS_HELP_STRING([--with-blas], [Give the filename of Blas library (default = /usr/lib/libblas.a).]),
-            ac_blas_dir=$withval, ac_blas_dir="/usr/lib/libblas.a")
-AC_SUBST(BLAS_LIB, $ac_blas_dir)
+AC_ARG_WITH(blas-path, AS_HELP_STRING([--with-blas-path], [Give the path of the Blas library (default = /usr/lib).]),
+            ac_blas_dir=$withval, ac_blas_dir=)
+if test -n "$ac_blas_dir" ; then
+  LDFLAGS="$LDFLAGS -L$ac_blas_dir"
+fi
+AC_CHECK_LIB(blas, dcopy, withblas=yes, withblas=no)
+
+dnl Substitute Lapack and Blas by the linalg library used in ABINIT
+AC_ARG_WITH(linalg-path, AS_HELP_STRING([--with-linalg-path], [Give the path of the Linalg library (default = /usr/lib).]),
+            ac_linalg_dir=$withval, ac_linalg_dir=)
+if test -n "$ac_linalg_dir" ; then
+  LDFLAGS="$LDFLAGS -L$ac_linalg_dir"
+fi
+AC_CHECK_LIB(linalg, dsysv, withlinalg=yes, withlinalg=no)
+
+dnl Test for one linear algebra library
+if [ test -z $withlinalg && ( test -z $withlapack || test -z $withblas ) ] ; then
+AC_MSG_ERROR(["No linear algebra library."])
+else
+  if test -n $withlinalg ; then
+    LIBS="-llinalg  $LIBS"
+  else
+    LIBS="-lblas -llapack  $LIBS"
+  fi
+fi
 
 dnl variables for autoconf
 modulelibdir="$libdir"
@@ -152,6 +180,7 @@ Basics:
   Fortran90 compiler:     $FC
   Fortran90 flags:        $FCFLAGS
   Linker flags:           $LDFLAGS
+  Linked libraries:       $LIBS
   Binary build:           $ac_build_exec
   Library build:          $ac_build_lib
 
