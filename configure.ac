@@ -120,35 +120,52 @@ else
 fi
 
 dnl Get the lapack library
+lapack=yes
+AC_ARG_WITH(lapack, AS_HELP_STRING([--with-lapack], [Link with Lapack library (default = yes).]), lapack=$withval, lapack=no)
 AC_ARG_WITH(lapack-path, AS_HELP_STRING([--with-lapack-path], [Give the path of the Lapack library (default = /usr/lib).]),
             ac_lapack_dir=$withval, ac_lapack_dir=)
 if test -n "$ac_lapack_dir" ; then
   LDFLAGS="$LDFLAGS -L$ac_lapack_dir"
 fi
-AC_CHECK_LIB(lapack, dsysv, withlapack=yes, withlapack=no)
+withlapack=no
+if test "$lapack" = "yes" ; then
+  AC_CHECK_LIB(lapack, dsysv, withlapack=yes, withlapack=no)
+fi
 
 dnl Get the Blas library
+blas=yes
+AC_ARG_WITH(blas, AS_HELP_STRING([--with-blas], [Link with Blas library (default = yes).]), blas=$withval, blas=no)
 AC_ARG_WITH(blas-path, AS_HELP_STRING([--with-blas-path], [Give the path of the Blas library (default = /usr/lib).]),
             ac_blas_dir=$withval, ac_blas_dir=)
 if test -n "$ac_blas_dir" ; then
   LDFLAGS="$LDFLAGS -L$ac_blas_dir"
 fi
-AC_CHECK_LIB(blas, dcopy, withblas=yes, withblas=no)
+withblas=no
+if test "$blas" = "yes" ; then
+  AC_CHECK_LIB(blas, dcopy, withblas=yes, withblas=no)
+fi
 
-dnl Substitute Lapack and Blas by the linalg library used in ABINIT
-AC_ARG_WITH(linalg-path, AS_HELP_STRING([--with-linalg-path], [Give the path of the Linalg library (default = /usr/lib).]),
+dnl Substitute Lapack and Blas by another specific library
+withlinalg=no
+AC_ARG_WITH(ext-linalg, AS_HELP_STRING([--with-ext-linalg],
+            [Give the name of the library replacing Blas and Lapack (default = none sepcified).]),
+            ac_linalg=$withval, ac_linalg=)
+AC_ARG_WITH(ext-linalg-path, AS_HELP_STRING([--with-ext-linalg-path],
+            [Give the path of the Linalg library (default = /usr/lib).]),
             ac_linalg_dir=$withval, ac_linalg_dir=)
 if test -n "$ac_linalg_dir" ; then
   LDFLAGS="$LDFLAGS -L$ac_linalg_dir"
 fi
-AC_CHECK_LIB(linalg, dsysv, withlinalg=yes, withlinalg=no)
+if test -n "$ac_linalg" ; then
+  AC_CHECK_LIB($ac_linalg, dsysv, withlinalg=yes, withlinalg=no)
+fi
 
 dnl Test for one linear algebra library
-if [ test -z $withlinalg && ( test -z $withlapack || test -z $withblas ) ] ; then
-AC_MSG_ERROR(["No linear algebra library."])
+if [ test $withlinalg = "no" && ( test $withlapack = "no" || test $withblas = "no" ) ] ; then
+AC_MSG_ERROR(["No linear algebra library. Use --with-ext-linalg or check your Lapack installation."])
 else
   if test -n $withlinalg ; then
-    LIBS="-llinalg  $LIBS"
+    LIBS="-l$ac_linalg  $LIBS"
   else
     LIBS="-lblas -llapack  $LIBS"
   fi
@@ -189,6 +206,4 @@ Options:
    | include dir.:        $MPI_INCLUDE
    | lib. dir.:           $MPI_LDFLAGS
   With optimised conv.:   $ac_use_opti_convolut
-  Blas lib.:              $ac_blas_dir
-  Lapack lib.:            $ac_lapack_dir
 "
