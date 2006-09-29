@@ -6,3 +6,6 @@
  1.d-4   gnrm_cv: convergence criterion gradient
  100     itermax: maximum number of energy minimization steps
  .true.  calc_inp_wf: calculate input guess for wavefunction
+  6 6      NSTEP_MIN,NSTEP_MAX: NUMBER OF PRECONDITIONING STEPS
+  .9d0     C:  VALUE OF THE PRECONDITIONING CONSTANT (OR ITS LOWER BOUND)
+  .01D0    FAC_NORM2: MAX VALUE OF (RESIDUE SQUARED)/(RIGHT PART SQUARED)
