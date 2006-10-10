@@ -45,12 +45,11 @@
 
         hgridh=.5d0*hgrid
 
-    call createAtomicOrbitals(iproc, npsp, pspatomnames, atomnames, nat, rxyz, &
-  & norbe, norbep, occupe, ngx, xp, psiat, psiatn, ng, ns, np, nvctr_c, nvctr_f, &
+    call createAtomicOrbitals(iproc, nproc, npsp, pspatomnames, atomnames, nat, rxyz, &
+  & norbe, norbep, occupe, occupat, ngx, xp, psiat, psiatn, ng, ns, np, nvctr_c, nvctr_f, &
   & n1, n2, n3, hgrid, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, nseg_c, nseg_f, &
   & keyg, keyv, iatype, psi, eks)
   
-
 ! resulting charge density and potential
        call sumrho(parallel,iproc,norbe,norbeme,n1,n2,n3,hgrid,occupe,  & 
                    nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot)

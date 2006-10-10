@@ -159,13 +159,15 @@ subroutine readAtomicOrbitals(iproc, filename, ngx, npsp, xp, psiat, occupat, ng
 end subroutine readAtomicOrbitals
 
 
-subroutine createAtomicOrbitals(iproc, npsp, pspatomnames, atomnames, nat, rxyz, &
+subroutine createAtomicOrbitals(iproc, nproc, npsp, pspatomnames, atomnames, nat, rxyz, &
   & norbe, norbep, occupe, occupat, ngx, xp, psiat, psiatn, ng, ns, np, nvctr_c, nvctr_f, &
   & n1, n2, n3, hgrid, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, nseg_c, nseg_f, &
   & keyg, keyv, iatype, psi, eks)
 
-  integer, intent(in) :: npsp, nat, norbe, norbep, ngx
-  integer, intent(in) :: nvctr_c, nvctr_f, n1, n2, n3, nseg_c
+  implicit none
+
+  integer, intent(in) :: npsp, nat, norbe, norbep, ngx, iproc, nproc
+  integer, intent(in) :: nvctr_c, nvctr_f, n1, n2, n3, nseg_c, nseg_f
   integer, intent(in) :: nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
   integer, intent(in) :: keyg(2, nseg_c + nseg_f), keyv(nseg_c + nseg_f)
   integer, intent(in) :: iatype(nat)
@@ -1979,7 +1981,7 @@ end subroutine createAtomicOrbitals
 
         subroutine myorbital(myorb, iorb,norbe,iproc,nproc)
         implicit real*8 (a-h,o-z)
-        logical myorb
+        logical, intent(out) :: myorb
         parameter(eps_mach=1.d-12)
 
         tt=dble(norbe)/dble(nproc)
