@@ -161,13 +161,15 @@ if test -n "$ac_linalg" ; then
 fi
 
 dnl Test for one linear algebra library
-if [ test $withlinalg = "no" && ( test $withlapack = "no" || test $withblas = "no" ) ] ; then
-AC_MSG_ERROR(["No linear algebra library. Use --with-ext-linalg or check your Lapack installation."])
-else
-  if test -n $withlinalg ; then
-    LIBS="-l$ac_linalg  $LIBS"
+if [ test "$ac_build_exec" = "yes" ] ; then
+  if [ test $withlinalg = "no" && ( test $withlapack = "no" || test $withblas = "no" ) ] ; then
+  AC_MSG_ERROR(["No linear algebra library. Use --with-ext-linalg or check your Lapack installation."])
   else
-    LIBS="-lblas -llapack  $LIBS"
+    if test -n $withlinalg ; then
+      LIBS="-l$ac_linalg  $LIBS"
+    else
+      LIBS="-lblas -llapack  $LIBS"
+    fi
   fi
 fi
 
