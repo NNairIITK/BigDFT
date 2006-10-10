@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-vpath %.f90 ../src
+vpath %.f90 $(top_srcdir)/src
 
 modulelib_LIBRARIES = \
 	libbigdft.a
@@ -12,7 +12,7 @@ FCCOMPILE = $(FC) $(INCLUDES) $(AM_FCFLAGS) $(FCFLAGS)
 
 INCLUDES = \
 	-I../ \
-	-I../src
+	-I$(top_srcdir)/src
 
 clean-local: 
 	-rm -f mpif.h lib_bigdft.mod

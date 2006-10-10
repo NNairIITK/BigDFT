@@ -18,22 +18,22 @@ module lib_BigDFT
   public :: applylocpotkin
   !- Apply the non local part of potential
   public :: applyprojectors
-  !- Orthogonalize wavefunctions
-  public :: orthoconstraint
+  !- Orthogonalize wavefunctions (scalar and MPI routine)
+  public :: orthoconstraint, orthoconstraint_p
   !- Precondition on wavefunctions
   public :: preconditionall
-  !- Mixed wavefunctions with results from precondition
-  public :: update
-  !- Make some Loewdin orthogonalisations.
-  public :: loewe
-  !- Check orthogonality.
-  public :: checkortho
+  !- Make some Loewedin orthogonalisations (scalar and MPI).
+  public :: loewe, loewe_p
+  !- Control orthogonality (scalar and MPI).
+  public :: checkortho, checkortho_p
+  !- Solve a KS system (compute an hamiltonian, diagonalise it and return eigen vectors)
+  public :: solveKS
+  
+  !- Initialisation methods.
   !- Create a ionic density (without gaussian parts)
   public :: input_rho_ion
   !- Add gaussian part to local part of ionic potential
   public :: addlocgauspsp
-  
-  !- Initialisation methods.
   !- Find box size around an atom
   public :: pregion_size
   !- Find relevant coordinates
@@ -44,14 +44,18 @@ module lib_BigDFT
   public :: num_segkeys
   
   !- Wavefunctions related methods.
-  !- Create wavefunctions from nothing
-  public :: crtinpwave
+  !- Create wavefunctions from atomic orbitals
+  public :: createAtomicOrbitals
+  !- Read a file with description of atomic orbitals for all elements
+  public :: readAtomicOrbitals
   !- Read wavefunctions from disk
   public :: readmywaves
   !- Write wavefunctions to disk
   public :: writemywaves
   !- MPI communications for wavefunctions
   public :: commallwaves
+  public :: transallwaves
+  public :: untransallwaves
   
   !- Projectors methods
   !- Count number of projectors.
