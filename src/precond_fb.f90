@@ -1,6 +1,6 @@
 
         subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-                   hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,hpsi,cprec)
+                   hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,hpsi,cprec,nstep_min, nstep_max, fac_norm2)
 ! Calls the preconditioner for each orbital treated by the processor
         implicit real*8 (a-h,o-z)
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
@@ -14,7 +14,7 @@
       call precondition(cr,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,&
                         nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
                         nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),&
-                        hpsi(1,iorb-iproc*norbp),hpsi(nvctr_c+1,iorb-iproc*norbp),IORB)
+                        hpsi(1,iorb-iproc*norbp),hpsi(nvctr_c+1,iorb-iproc*norbp),IORB,nstep_min,nstep_max, fac_norm2)
 
       enddo
 
@@ -33,7 +33,7 @@
       subroutine precondition(C,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
                               hgrid,nseg_c,nvctr_c,keyg_c,&
                               keyv_c,nseg_f,nvctr_f,keyg_f,&
-                              keyv_f,psi_c,psi_f,IORB)
+                              keyv_f,psi_c,psi_f,IORB,nstep_min, nstep_max, fac_norm2)
         implicit real*8 (a-h,o-z)
         dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
         dimension psi_c(nvctr_c),psi_f(7,nvctr_f)
@@ -46,14 +46,14 @@
         
         PARAMETER(A2=3.55369228991319019D0,ALPHAMIN=.05d0,COSMIN=.5D0)
 
-        OPEN(10,FILE='input.dat') 
-          DO I=1,8
-            READ(10,*)
-          ENDDO
-          READ(10,*) NSTEP_MIN,NSTEP_MAX
-          READ(10,*) 
-          READ(10,*) FAC_NORM2          
-        CLOSE(10)
+!        OPEN(10,FILE='input.dat') 
+!          DO I=1,8
+!            READ(10,*)
+!          ENDDO
+!          READ(10,*) NSTEP_MIN,NSTEP_MAX
+!          READ(10,*) 
+!          READ(10,*) FAC_NORM2          
+!        CLOSE(10)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !       DETERMINE THE NUMBER OF SWEEPS ETC
 !

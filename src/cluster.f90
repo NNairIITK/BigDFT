@@ -74,7 +74,7 @@
         if (iproc.eq.0) write(*,*) 'atoms of type ',ityp,' are ',atomnames(ityp)
         enddo
 
-           ampl=2.d-1  ! amplitude for random displacement away from input file geometry (usually equilibrium geom.)
+           ampl=0.d0 !2.d-1  ! amplitude for random displacement away from input file geometry (usually equilibrium geom.)
            do iat=1,nat
               call random_number(tt)
               rxyz(1,iat)=rxyz(1,iat)+ampl*tt
@@ -210,6 +210,9 @@
 	read(1,*) gnrm_cv
 	read(1,*) itermax
 	read(1,*) calc_inp_wf
+          READ(1,*) NSTEP_MIN,NSTEP_MAX
+          READ(1,*) 
+          READ(1,*) FAC_NORM2          
         close(1)
 
         if (iproc.eq.0) then 
@@ -221,6 +224,8 @@
           write(*,*) 'gnrm_cv=',gnrm_cv
           write(*,*) 'itermax=',itermax
           write(*,*) 'calc_inp_wf=',calc_inp_wf
+          write(*,*) 'nstep precond=',nstep_min, nstep_max
+          write(*,*) 'fac_norm2 precond=',fac_norm2
         endif
 
 
@@ -595,7 +600,7 @@
            write(79,*) 'allocation done'
           call Build_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3, &
                hgridh,ndegree_ip,pkernel)
-          
+
           call test_kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,pot_ion,rhopot)
        end if
        
@@ -746,7 +751,7 @@
 
 ! Preconditions all orbitals belonging to iproc
         call preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,  & 
-                   nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,hpsi,cprec)
+                   nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,hpsi,cprec,nstep_min, nstep_max, fac_norm2)
       if (parallel) then
         allocate(hpsit(nvctrp,norbp*nproc))
         call transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)

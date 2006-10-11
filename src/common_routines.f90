@@ -120,8 +120,13 @@ subroutine readAtomicOrbitals(iproc, filename, ngx, npsp, xp, psiat, occupat, ng
 	integer :: ity, iat, i, j, ipsp
 	
 	! Read the data file.
+	ns(:) = 0
+	np(:) = 0
+	ng(:) = 0
+	xp(:, :) = 0.d0
+  psiat(:, :, :) = 0.d0
 	open(unit=24,file=trim(filename),form='formatted',status='unknown')
-	do ity=1,15
+	do ity=1,npsp
 33	format(30(e12.5))
 19	format(a)
 	read(24,19) pspatomnames(ity)
@@ -193,7 +198,7 @@ subroutine createAtomicOrbitals(iproc, nproc, npsp, pspatomnames, atomnames, nat
     rx=rxyz(1,iat) ; ry=rxyz(2,iat) ; rz=rxyz(3,iat)
 
 	  ity=iatype(iat)
-    do i=1,15
+    do i=1,npsp
       if (pspatomnames(i).eq.atomnames(ity)) then
         ipsp=i
         goto 444
