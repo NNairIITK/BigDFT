@@ -2256,18 +2256,12 @@ end subroutine createAtomicOrbitals
         implicit real*8 (a-h,o-z)
         character*50 filename
         character*4 f4
-        logical cif1,cif2,cif3
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         dimension psi(nvctr_c+7*nvctr_f,norbp)
-        dimension xya(-1:1,-1:1),xa(-1:1)
-        dimension rxyz(3),rxyz_old(3)
-        allocatable :: psifscf(:,:,:)
-        allocatable :: psigold(:,:,:,:,:,:),psifscfold(:,:,:),psifscfoex(:,:,:),wwold(:)
+        dimension rxyz(3)
 
        call cpu_time(tr0)
        call system_clock(ncount1,ncount_rate,ncount_max)
-
-        allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8))
 
   do 100,iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
@@ -2276,13 +2270,55 @@ end subroutine createAtomicOrbitals
         filename = 'wavefunction.'//f4
         open(unit=99,file=filename,status='unknown')
 
-         read(99,*) iorbold,cprec
+        call readonewave(iorb,iproc,norb,norbp,n1,n2,n3,hgrid,rxyz,nseg_c,nseg_f,&
+          & nvctr_c,nvctr_f,keyg,keyv,psi,cprec,99,.true.)
+        
+        close(99)
+  100  continue
+
+
+       call cpu_time(tr1)
+       call system_clock(ncount2,ncount_rate,ncount_max)
+       tel=dble(ncount2-ncount1)/dble(ncount_rate)
+       write(77,'(a40,i4,2(x,e10.3))') 'READING WAVES TIME',iproc,tr1-tr0,tel
+
+    end subroutine readmywaves
+    
+    subroutine readonewave(iorb,iproc,norb,norbp,n1,n2,n3,hgrid,rxyz,nseg_c,nseg_f, &
+      & nvctr_c,nvctr_f,keyg,keyv,psi,cprec,unitwf,useFormattedInput)
+! reads wavefunction from file and transforms it properly if hgrid or size of simulation cell have changed
+        implicit real*8 (a-h,o-z)
+        logical cif1,cif2,cif3
+        dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
+        dimension psi(nvctr_c+7*nvctr_f,norbp)
+        dimension xya(-1:1,-1:1),xa(-1:1)
+        dimension rxyz(3),rxyz_old(3)
+        allocatable :: psifscf(:,:,:)
+        allocatable :: psigold(:,:,:,:,:,:),psifscfold(:,:,:),psifscfoex(:,:,:),wwold(:)
+        integer unitwf
+        logical useFormattedInput
+      
+        if (useFormattedInput) then
+         read(unitwf,*) iorbold,cprec
+        else
+         read(unitwf) iorbold,cprec
+        end if
          if (iorbold.ne.iorb) stop 'readallwaves'
-         read(99,*) hgridold
-         read(99,*) nold1,nold2,nold3
-         read(99,*) (rxyz_old(j),j=1,3)
+        if (useFormattedInput) then
+         read(unitwf,*) hgridold
+         read(unitwf,*) nold1,nold2,nold3
+         read(unitwf,*) (rxyz_old(j),j=1,3)
+        else
+         read(unitwf) hgridold
+         read(unitwf) nold1,nold2,nold3
+         read(unitwf) (rxyz_old(j),j=1,3)
+        end if
          write(*,'(i2,6(x,e14.7))') iproc,(rxyz(j),j=1,3),(rxyz_old(j),j=1,3)
-         read(99,*) nvctrold_c, nvctrold_f
+        if (useFormattedInput) then
+         read(unitwf,*) nvctrold_c, nvctrold_f
+        else
+         read(unitwf) nvctrold_c, nvctrold_f
+        end if
 
 !        write(*,*) iorb,' hgridold,hgrid ',hgridold,hgrid
 !        write(*,*) iorb,' nvctrold_c,nvctr_c ',nvctrold_c,nvctr_c
@@ -2296,11 +2332,19 @@ end subroutine createAtomicOrbitals
 
        write(*,*) 'wavefunction ',iorb,' needs NO transformation on processor',iproc
 	do j=1,nvctrold_c
-            read(99,*) i1,i2,i3,tt
+        if (useFormattedInput) then
+            read(unitwf,*) i1,i2,i3,tt
+        else
+            read(unitwf) i1,i2,i3,tt
+        end if
             psi(j,iorb-iproc*norbp)=tt
          enddo
 	do j=1,7*nvctrold_f-6,7
-            read(99,*) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+        if (useFormattedInput) then
+            read(unitwf,*) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+        else
+            read(unitwf) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+        end if
             psi(nvctr_c+j+0,iorb-iproc*norbp)=t1
             psi(nvctr_c+j+1,iorb-iproc*norbp)=t2
             psi(nvctr_c+j+2,iorb-iproc*norbp)=t3
@@ -2313,22 +2357,32 @@ end subroutine createAtomicOrbitals
        else
        write(*,*) 'wavefunction ',iorb,' needs transformation on processor',iproc
        if (hgridold.ne.hgrid) write(*,*) 'because hgridold >< hgrid'
-       if (nvctrold_c.eq.nvctr_c) write(*,*) 'because nvctrold_c >< nvctr_c'
-       if (nvctrold_f.eq.nvctr_f) write(*,*) 'because nvctrold_f >< nvctr_f'
+       if (nvctrold_c.ne.nvctr_c) write(*,*) 'because nvctrold_c >< nvctr_c'
+       if (nvctrold_f.ne.nvctr_f) write(*,*) 'because nvctrold_f >< nvctr_f'
        if (nold1.ne.n1  .or. nold2.ne.n2 .or. nold3.ne.n3 ) write(*,*) 'because cell size has changed'
 
          allocate(psigold(0:nold1,2,0:nold2,2,0:nold3,2),  & 
                   psifscfold(-7:2*nold1+8,-7:2*nold2+8,-7:2*nold3+8), &
                   psifscfoex(-8:2*nold1+9,-8:2*nold2+9,-8:2*nold3+9), &
                    wwold((2*nold1+16)*(2*nold2+16)*(2*nold3+16)))
+        allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8))
+
 
          call zero(8*(nold1+1)*(nold2+1)*(nold3+1),psigold)
 	do iel=1,nvctrold_c
-            read(99,*) i1,i2,i3,tt
+        if (useFormattedInput) then
+            read(unitwf,*) i1,i2,i3,tt
+        else
+            read(unitwf) i1,i2,i3,tt
+        end if
             psigold(i1,1,i2,1,i3,1)=tt
          enddo
 	do iel=1,nvctrold_f
-            read(99,*) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+        if (useFormattedInput) then
+            read(unitwf,*) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+        else
+            read(unitwf) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
+        end if
             psigold(i1,2,i2,1,i3,1)=t1
             psigold(i1,1,i2,2,i3,1)=t2
             psigold(i1,2,i2,2,i3,1)=t3
@@ -2440,22 +2494,11 @@ end subroutine createAtomicOrbitals
                     psifscf,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp))
 
          deallocate(psigold,psifscfold,psifscfoex,wwold)
+         deallocate(psifscf)
 
       endif
 
-        close(99)
-  100  continue
-
-         deallocate(psifscf)
-
-       call cpu_time(tr1)
-       call system_clock(ncount2,ncount_rate,ncount_max)
-       tel=dble(ncount2-ncount1)/dble(ncount_rate)
-       write(77,'(a40,i4,2(x,e10.3))') 'READING WAVES TIME',iproc,tr1-tr0,tel
-
-
-
-	end subroutine readmywaves
+	end subroutine readonewave
 
 
 
@@ -2463,6 +2506,8 @@ end subroutine createAtomicOrbitals
                    rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,cprec)
 ! write all my wavefunctions in files by calling writeonewave
         implicit real*8 (a-h,o-z)
+        character*4 f4
+        character*50 filename
         dimension rxyz(3)
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         dimension psi(nvctr_c+7*nvctr_f,norbp)
@@ -2472,10 +2517,18 @@ end subroutine createAtomicOrbitals
 
        do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
+        write(f4,'(i4.4)') iorb
+!        filename = '/scratch/tmp/stefan/wavefunction.'//f4
+        filename = 'wavefunction.'//f4
+        write(*,*) 'opening ',filename
+        open(unit=99,file=filename,status='unknown')
+
        call writeonewave(iorb,n1,n2,n3,hgrid,rxyz,  & 
                          nseg_c,nvctr_c,keyg(1,1),keyv(1)  & 
                         ,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), & 
-                        psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),cprec)
+                        psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),cprec,99, .true.)
+          close(99)
+
        enddo
 
        call cpu_time(tr1)
@@ -2492,24 +2545,27 @@ end subroutine createAtomicOrbitals
         subroutine writeonewave(iorb,n1,n2,n3,hgrid,rxyz,  & 
                            nseg_c,nvctr_c,keyg_c,keyv_c,  & 
                            nseg_f,nvctr_f,keyg_f,keyv_f, & 
-                              psi_c,psi_f,cprec)
+                              psi_c,psi_f,cprec,unitwf,useFormattedOutput)
         implicit real*8 (a-h,o-z)
-        character*50 filename
-        character*4 f4
+        integer unitwf
+        logical useFormattedOutput
         dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
         dimension psi_c(nvctr_c),psi_f(7,nvctr_f),rxyz(3)
 
 
-        write(f4,'(i4.4)') iorb
-!        filename = '/scratch/tmp/stefan/wavefunction.'//f4
-        filename = 'wavefunction.'//f4
-        write(*,*) 'opening ',filename
-        open(unit=99,file=filename,status='unknown')
-         write(99,*) iorb,cprec
-         write(99,*) hgrid
-         write(99,*) n1,n2,n3
-         write(99,'(3(1x,e24.17))') (rxyz(j),j=1,3)
-         write(99,*) nvctr_c, nvctr_f
+        if (useFormattedOutput) then
+         write(unitwf,*) iorb,cprec
+         write(unitwf,*) hgrid
+         write(unitwf,*) n1,n2,n3
+         write(unitwf,'(3(1x,e24.17))') (rxyz(j),j=1,3)
+         write(unitwf,*) nvctr_c, nvctr_f
+        else
+         write(unitwf) iorb,cprec
+         write(unitwf) hgrid
+         write(unitwf) n1,n2,n3
+         write(unitwf) (rxyz(j),j=1,3)
+         write(unitwf) nvctr_c, nvctr_f
+        end if
 
 ! coarse part
         do iseg=1,nseg_c
@@ -2524,7 +2580,11 @@ end subroutine createAtomicOrbitals
              i1=i0+j1-j0
           do i=i0,i1
             tt=psi_c(i-i0+jj) 
-            write(99,'(3(i4),1x,e19.12)') i,i2,i3,tt
+            if (useFormattedOutput) then
+              write(unitwf,'(3(i4),1x,e19.12)') i,i2,i3,tt
+            else
+              write(unitwf) i,i2,i3,tt
+            end if
           enddo
          enddo
                                                                                                                              
@@ -2547,11 +2607,13 @@ end subroutine createAtomicOrbitals
             t5=psi_f(5,i-i0+jj)
             t6=psi_f(6,i-i0+jj)
             t7=psi_f(7,i-i0+jj)
-            write(99,'(3(i4),7(1x,e17.10))') i,i2,i3,t1,t2,t3,t4,t5,t6,t7
+            if (useFormattedOutput) then
+              write(unitwf,'(3(i4),7(1x,e17.10))') i,i2,i3,t1,t2,t3,t4,t5,t6,t7
+            else
+              write(unitwf) i,i2,i3,t1,t2,t3,t4,t5,t6,t7
+            end if
           enddo
          enddo
-
-          close(99)
 
 	write(*,*) iorb,'th wavefunction written'
 

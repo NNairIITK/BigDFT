@@ -28,6 +28,7 @@ module lib_BigDFT
   public :: checkortho, checkortho_p
   !- Solve a KS system (compute an hamiltonian, diagonalise it and return eigen vectors)
   public :: solveKS
+  public :: KStrans, KStrans_p
   
   !- Initialisation methods.
   !- Create a ionic density (without gaussian parts)
@@ -50,8 +51,12 @@ module lib_BigDFT
   public :: readAtomicOrbitals
   !- Read wavefunctions from disk
   public :: readmywaves
-  !- Write wavefunctions to disk
+  !- Atomic read for a given wavefunction
+  public :: readonewave
+  !- Write wavefunctions to disk using the BigDFT format
   public :: writemywaves
+  !- Atomic write for a given wavefunction
+  public :: writeonewave
   !- MPI communications for wavefunctions
   public :: commallwaves
   public :: transallwaves
