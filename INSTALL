@@ -11,20 +11,20 @@ Choose the right option for your compilation :
 export FC=/opt/intel/fc/9.0/bin/ifort   # Choose your Fortran Compiler
 export MPI_INCLUDE=/opt/scali/include   # Set the include directory for MPI
 export MPI_LDFLAGS=/opt/scali/lib       # Set the directory where to find MPI library
-export LDFLAGS="-L/opt/intel/mkl72/lib/32/ -lguide -lpthread -D_REENTRANT"
+export LDFLAGS="-L/opt/intel/mkl72/lib/32/ -lguide -lpthread -lmkl_ia32 -D_REENTRANT"
 
 If the build environement is standard, none of these export is required.
 They have to be adapted according to situation.
 
 
 Configure the source directory :
-./configure --enable-mpi --with-lapack=/opt/intel/mkl72/lib/32/libmkl_lapack.a --with-blas=/opt/intel/mkl72/lib/32/libmkl_ia32.a --prefix=/home/caliste/usr
+./configure --enable-mpi --with-ext-linalg=mkl_lapack --prefix=/home/caliste/usr
 
 The --enable-mpi option makes the source to compile with MPI support.
 This option is enable by default and can be omited (use --disable-mpi not to compile with mpi support).
 The --with-lapack and --with-blas option is to give the compiler the
 position of required linear geometry libraries.
-The --prefis option is to give the installation directory (when 'make install' is done),
+The --prefix option is to give the installation directory (when 'make install' is done),
 this is not mandatory and /usr/local is default.
 For further details about configure, type :
 ./configure -- help
@@ -60,9 +60,5 @@ make dist
 # Building a library
 #===================
 
-It is possible to build a library in addition to the executable, that create
-a static library and a module interface for Fortran90 use.
-
-To do this, use the --enable-build-library option with the configure. This
-option is disabled by default. Moreover, to avoid to create the binary executable,
+To avoid to create the binary executable,
 use --disable--build-binary option.

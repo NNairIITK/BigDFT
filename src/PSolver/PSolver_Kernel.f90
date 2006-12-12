@@ -15,7 +15,9 @@
 !!
 !!    Replaces the charge density contained in rhopot 
 !!    by the Hartree stored as well in rhopot.
-!!    If xc_on is true, it also adds the XC potential and 
+!!    The XC potential is chosen from the value of ixc, 
+!!    by following the same rules as ABINIT.
+!!    If ixc is 0, it also adds the XC potential and
 !!    ionic potential pot_ion
 !!
 !!    We double the size of the mesh except in one dimension
@@ -43,26 +45,23 @@
 !! SOURCE
 !!
 subroutine PSolver_Kernel(n01,n02,n03,nfft1,nfft2,nfft3, &
-     hgrid,karray,xc_on,pot_ion,rhopot,ehartree,eexcu,vexcu)
+     hgrid,karray,ixc,pot_ion,rhopot,ehartree,eexcu,vexcu)
    implicit none
    !Arguments
-   integer, intent(in)  :: n01,n02,n03,nfft1,nfft2,nfft3
+   integer, intent(in)  :: n01,n02,n03,nfft1,nfft2,nfft3,ixc
    real*8, intent(in) :: hgrid
-   logical, intent(in) :: xc_on
-   real*8, intent(in) :: karray(nfft1/2+1,nfft2/2+1,nfft3/2+1)
-   real*8, intent(in) :: pot_ion(n01,n02,n03)
-   real*8, intent(inout) :: rhopot(n01,n02,n03)
+   !logical, intent(in) :: xc_on
+   real*8, intent(in), dimension(nfft1/2+1,nfft2/2+1,nfft3/2+1) :: karray
+   real*8, intent(in), dimension(n01,n02,n03) :: pot_ion
+   real*8, intent(inout), dimension(n01,n02,n03) :: rhopot
    real*8, intent(out) :: ehartree,eexcu,vexcu
    !Local variables
-   real*8, allocatable :: zarray(:,:,:)
-   real*8 :: factor
+   real*8, dimension(:,:,:), allocatable :: zarray
+   real*8 :: factor,exc,vxc,eht
    integer :: n1,n2,n3,nd1,nd2,nd3,n1h,nd1h
    integer :: inzee,i_sign,i_allocated
-   character(len = 500) :: message
 
    !Dimension of the FFT
-   write(message, "(A,3I4)") "PSolver, sequential version: FFT dimensions=",nfft1,nfft2,nfft3
-   call wrtout(6, message, "COLL")
    call dimensions_FFT(n01,n02,n03,n1,n2,n3)
    !Half size of nd1
    n1h=n1/2
@@ -74,45 +73,43 @@ subroutine PSolver_Kernel(n01,n02,n03,nfft1,nfft2,nfft3, &
    i_allocated=0
    allocate(zarray(2,nd1h*nd2*nd3,2),stat=i_allocated)
    if (i_allocated /= 0) then
-     write(message, "(A)") "PSolver_Kernel: Problem of memory allocation"
-     call wrtout(6, message, "COLL")
-     call leave_new('COLL')
+      print *,"PSolver_Kernel:Problem of memory allocation"
+      stop
    end if
    !Set zarray
    call zarray_in(n01,n02,n03,nd1h,nd2,nd3,rhopot,zarray)
 
    !FFT
-   write(message, "(A,3I4)") "PSolver_Kernel: Do a 3D HalFFT for the density"
-   call wrtout(6, message, "COLL")
+   !print *,"Do a 3D HalFFT for the density"
    i_sign=1
    inzee=1
    call fft(n1h,n2,n3,nd1h,nd2,nd3,zarray,i_sign,inzee)
   
-   write(message, "(A,3I4)") "PSolver_Kernel: Apply the kernel"
-   call wrtout(6, message, "COLL")
+   !print *, "Apply the kernel"
    call kernel_application(n1,n2,n3,nd1h,nd2,nd3,nfft1,nfft2,nfft3,zarray,karray,inzee)
 
    !Inverse FFT
    i_sign=-1
-   write(message, "(A,3I4)") "PSolver_Kernel: Do a 3D inverse HalFFT"
-   call wrtout(6, message, "COLL")
+   !print *,"Do a 3D inverse HalFFT"
    call fft(n1h,n2,n3,nd1h,nd2,nd3,zarray,i_sign,inzee)
  
    !Recollect the result
    !We have to multiply by a factor
    factor = hgrid**3/(n1*n2*n3)
-   if (xc_on) then
-      write(message, "(A,3I4)") "PSolver_Kernel: Add XC and ionic potential"
-      call wrtout(6, message, "COLL")
-      call excpotu(n01,n02,n03,2*nd1h,nd2,nd3,&
-           rhopot,pot_ion,zarray(1,1,inzee),factor,hgrid,&
-           ehartree,eexcu,vexcu)
+
+
+   if (ixc /= 0) then
+
+      call xc_energy(n01,n02,n03,2*nd1h,nd2,nd3,ixc,factor,hgrid,rhopot,&
+           pot_ion,zarray(1,1,inzee),ehartree,eexcu,vexcu)
+
+      print *,"the xc energies are",eexcu,vexcu,"hartree",ehartree
+
    else
       ! Calling this routine gives only the Hartree potential
-      write(message, "(A,3I4)") "PSolver_Kernel: does not add XC and ionic potential"
-      call wrtout(6, message, "COLL")
       call zarray_out(n01,n02,n03,nd1h,nd2,nd3,&
            rhopot,zarray(1,1,inzee),factor,hgrid,ehartree)
+      print *,"The hartree energy is",ehartree
       eexcu=0.d0
       vexcu=0.d0
    endif
@@ -152,15 +149,14 @@ subroutine kernel_application(n1,n2,n3,nd1h,nd2,nd3,nfft1,nfft2,nfft3,zarray,kar
    implicit none
    !Arguments
    integer, intent(in)  :: n1,n2,n3,nd1h,nd2,nd3,nfft1,nfft2,nfft3,inzee
-   real*8, intent(in) :: karray(nfft1/2+1,nfft2/2+1,nfft3/2+1)
-   real*8, intent(inout) :: zarray(2,nd1h,nd2,nd3,2)
+   real*8, intent(in), dimension(nfft1/2+1,nfft2/2+1,nfft3/2+1) :: karray
+   real*8, intent(inout), dimension(2,nd1h,nd2,nd3,2) :: zarray
    !Local variables
-   real*8, allocatable :: cos_array(:),sin_array(:)
+   real*8, dimension(:), allocatable :: cos_array,sin_array
    real*8 :: a,b,c,d,pi2,g1,cp,sp
    real*8 :: rfe,ife,rfo,ifo,rk,ik,rk2,ik2,re,ro,ie,io,rhk,ihk
    integer :: i1,i2,i3,j1,j2,j3,i_allocated,i_stat,ouzee,n1h,n2h,n3h
    integer :: si1,si2,si3
-   character(len = 500) :: message
 
    !Body
    n1h=n1/2
@@ -173,9 +169,8 @@ subroutine kernel_application(n1,n2,n3,nd1h,nd2,nd3,nfft1,nfft2,nfft3,zarray,kar
    allocate(sin_array(n1h+1),stat=i_stat)
    i_allocated=i_allocated+i_stat
    if (i_allocated /= 0) then
-     write(message, "(A)") "kernel_application: Problem of memory allocation"
-     call wrtout(6, message, "COLL")
-     call leave_new('COLL')
+      print *,"kernel_application:Problem of memory allocation"
+      stop
    end if
 
    pi2=8.d0*datan(1.d0)
@@ -632,8 +627,8 @@ subroutine kernel_application(n1,n2,n3,nd1h,nd2,nd3,nfft1,nfft2,nfft3,zarray,kar
 subroutine norm_ind(nd1,nd2,nd3,i1,i2,i3,ind)
   implicit none
   !Arguments
-  integer, intent(in) :: nd1,nd2,nd3,i1,i2,i3
-  integer, intent(out) :: ind
+  integer :: nd1,nd2,nd3,i1,i2,i3
+  integer :: ind
   !Local variables
   integer :: a1,a2,a3
   if ( i1 == nd1 ) then
@@ -668,8 +663,8 @@ end subroutine norm_ind
 subroutine symm_ind(nd1,nd2,nd3,i1,i2,i3,ind)
   implicit none
   !Arguments
-  integer, intent(in) :: nd1,nd2,nd3,i1,i2,i3
-  integer, intent(out) :: ind
+  integer :: nd1,nd2,nd3,i1,i2,i3
+  integer :: ind
   !Local variables
   integer ::  a1,a2,a3
   if (i1 /= 1) then 
@@ -704,8 +699,8 @@ end subroutine symm_ind
 subroutine symm_ind3(nd1,nd2,nd3,i1,i2,i3,a1,a2,a3)
   implicit none
   !Arguments
-  integer, intent(in) :: nd1,nd2,nd3,i1,i2,i3
-  integer, intent(out) ::a1,a2,a3
+  integer :: nd1,nd2,nd3,i1,i2,i3
+  integer ::a1,a2,a3
   !Local variables
   if (i1 /= 1) then 
      a1=nd1+1-i1
@@ -738,9 +733,9 @@ end subroutine symm_ind3
 subroutine zarray_in(n01,n02,n03,nd1,nd2,nd3,density,zarray)
    implicit none
    !Arguments
-   integer, intent(in) :: n01,n02,n03,nd1,nd2,nd3
-   real*8, intent(in) :: density(n01,n02,n03)
-   real*8, intent(out) :: zarray(2,nd1,nd2,nd3)
+   integer :: n01,n02,n03,nd1,nd2,nd3
+   real*8, dimension(n01,n02,n03) :: density
+   real*8, dimension(2,nd1,nd2,nd3) :: zarray
    !Local variables
    integer :: i1,i2,i3,n01h,nd1hm,nd3hm,nd2hm
    !Half the size of n01
@@ -789,13 +784,13 @@ subroutine zarray_out(n01,n02,n03,nd1,nd2,nd3,&
      rhopot,zarray,factor,hgrid,ehartree)
   implicit none
   !Arguments
-  integer, intent(in) :: n01,n02,n03,nd1,nd2,nd3
-  real*8, intent(out) :: rhopot(n01,n02,n03)
+  integer :: n01,n02,n03,nd1,nd2,nd3
+  real*8, dimension(n01,n02,n03) :: rhopot
   !Convert zarray(2,nd1,nd2,nd3) -> zarray(2*nd1,nd2,nd3)
   !to use i1=1,n01 instead of i1=1,n1h + special case for modulo(n01,2)
-  real*8, intent(in) :: zarray(2*nd1,nd2,nd3)
-  real*8, intent(in) :: factor,hgrid
-  real*8, intent(out) :: ehartree
+  real*8, dimension(2*nd1,nd2,nd3) :: zarray
+  real*8 :: factor,hgrid
+  real*8 :: ehartree
   !Local variables
   real*8 :: pot1
   integer :: i1,i2,i3
@@ -840,14 +835,14 @@ subroutine excpotu(n01,n02,n03,nd1_2,nd2,nd3,&
      rhopot,pot_ion,zarray,factor,hgrid,ehartree,eexcu,vexcu)
   implicit none
   !Arguments
-  integer, intent(in) :: n01,n02,n03,nd1_2,nd2,nd3
-  real*8, intent(out) :: rhopot(n01,n02,n03)
-  real*8, intent(in) :: pot_ion(n01,n02,n03)
+  integer :: n01,n02,n03,nd1_2,nd2,nd3
+  real*8, dimension(n01,n02,n03) :: rhopot
+  real*8, dimension(n01,n02,n03) :: pot_ion
   !Convert zarray(2,nd1,nd2,nd3) -> zarray(2*nd1,nd2,nd3)
   !to use i1=1,n01 instead of i1=1,n1h + special case for modulo(n1,2)
-  real*8, intent(in) :: zarray(nd1_2,nd2,nd3)
-  real*8, intent(in) :: factor,hgrid
-  real*8, intent(out) :: ehartree,eexcu,vexcu
+  real*8, dimension(nd1_2,nd2,nd3) :: zarray
+  real*8 :: factor,hgrid
+  real*8 :: ehartree,eexcu,vexcu
   !Local variables
   real*8, parameter :: &
        a0u=.4581652932831429d0, &
@@ -873,8 +868,6 @@ subroutine excpotu(n01,n02,n03,nd1_2,nd2,nd3,&
   integer :: i3,i2,i1
   real*8 :: rhou1,pot1,rsu1,topu1,dtopu1,botu1,t1
   real*8 :: epsxcu1,p1
-   character(len = 500) :: message
-
   !Body
   eexcu=0.d0
   vexcu=0.d0
@@ -930,8 +923,7 @@ subroutine excpotu(n01,n02,n03,nd1_2,nd2,nd3,&
   eexcu=eexcu*hgrid**3
   vexcu=vexcu*hgrid**3
   ehartree=0.5d0*ehartree*hgrid**3
-  write(message, "(A,3F12.7)") "excpotu: ehartree,eexcu,vexcu", ehartree,eexcu,vexcu
-  call wrtout(6, message, "COLL")
+  write(6,*) 'ehartree,eexcu,vexcu',ehartree,eexcu,vexcu
   !write(6,*) 'average iterations for root in excpotu',2.d0*ic/(n01*n02*n03)
 end subroutine excpotu
 !!***
@@ -949,17 +941,13 @@ end subroutine excpotu
 subroutine check_symmetry(nd1,nd2,nd3,zarray,inzee)
   implicit none
   !Arguments
-  integer, intent(in) :: nd1,nd2,nd3
-  real*8, intent(in) :: zarray(2,nd1*nd2*nd3,2)
+  real*8, dimension(2,nd1*nd2*nd3,2) :: zarray
   !Local variables 
-  integer :: i1,i2,i3,ind1,ind2,inzee,f1,f2,f3
-   character(len = 500) :: message
-
+  integer :: i1,i2,i3,nd1,nd2,nd3,ind1,ind2,inzee,f1,f2,f3
   f1=nd1
   f2=nd2
   f3=nd3
-  write(message, "(A)") "check_symmetry: Checking proper symmetry..."
-  call wrtout(6, message, "COLL")
+  print *,"Checking proper symmetry..."
   do i3=1,f3
      do i2=1,f2
         do i1=1,f1
@@ -968,17 +956,15 @@ subroutine check_symmetry(nd1,nd2,nd3,zarray,inzee)
            if(abs(zarray(1,ind1,inzee)-zarray(1,ind2,inzee)) <= 1d-10 .and. &
                 abs(zarray(2,ind1,inzee)+zarray(2,ind2,inzee)) <= 1d-10 ) then
            else
-              write(message, "(A,6I5,2F12.7)") "no symmetry -> reality", &
-                                  & i1,i2,i3,nd1,nd2,nd3, &
-                                  & zarray(1,ind1,inzee),zarray(1,ind2,inzee) 
-              call wrtout(6, message, "COLL")
-              call leave_new("COLL")
+              print *,"no symmetry -> reality",&
+                   i1,i2,i3,nd1,nd2,nd3,&
+                   zarray(1,ind1,inzee),zarray(1,ind2,inzee) 
+              stop
            end if
         end do
      end do
   end do
-  write(message, "(A)") "check_symmetry: OK"
-  call wrtout(6, message, "COLL")
+  print *,"...ok."
 end subroutine check_symmetry
 !!***
 
@@ -996,23 +982,21 @@ subroutine test_kernel(n01,n02,n03,nfft1,nfft2,nfft3,&
      hgrid,karray,pot_ion,rhopot)
   implicit none
   !Arguments
-  integer, intent(in) :: n01,n02,n03,nfft1,nfft2,nfft3
-  real*8, intent(in) :: hgrid
-  real*8, intent(in) :: karray(nfft1/2+1,nfft2/2+1,nfft3/2+1)
-  real*8, intent(in) :: pot_ion(n01,n02,n03)
-  real*8, intent(out) :: rhopot(n01,n02,n03)
+  integer :: n01,n02,n03,nfft1,nfft2,nfft3
+  real*8 :: hgrid
+  real*8, dimension(nfft1/2+1,nfft2/2+1,nfft3/2+1) :: karray
+  real*8, dimension(n01,n02,n03) :: pot_ion
+  real*8, dimension(n01,n02,n03) :: rhopot
   !Local variables
   real*8 :: a_gauss,a2
   real*8 :: rhotot,shft1,shft2,shft3,ehart,eexcu,vexcu
   real*8 :: pi,x1,x2,x3,r,r2,factor,derf,max_diff,diff,tt
   integer :: i1,i2,i3,ii1,ii2,ii3
-   character(len = 500) :: message
   
   a_gauss=4.d0*hgrid
   a2 = a_gauss**2
 
-  write(message, "(A,3I4)") "test_kernel: dim kernel",nfft1/2+1,nfft2/2+1,nfft3/2+1
-  call wrtout(6, message, "COLL")
+  write(*,*) 'test_kernel, dim kernel',nfft1/2+1,nfft2/2+1,nfft3/2+1
   
   !Shift the center of the Gaussian 
   !away from central grid point to break symmetries
@@ -1056,10 +1040,9 @@ subroutine test_kernel(n01,n02,n03,nfft1,nfft2,nfft3,&
   !   close(unit=11)
   
    !Calculate potential using Poisson Solver
-      write(message, "(A,3I4)") "test_kernel: testing poisson solver"
-      call wrtout(6, message, "COLL")
+      write(*,*) 'testing poisson solver'
       call PSolver_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,&
-           hgrid,karray,.false.,pot_ion,rhopot,ehart,eexcu,vexcu)
+           hgrid,karray,0,pot_ion,rhopot,ehart,eexcu,vexcu)
    
    !! Plot values along x axis
    !   open(unit=11,file='pot.dat')
@@ -1109,17 +1092,11 @@ subroutine test_kernel(n01,n02,n03,nfft1,nfft2,nfft3,&
       end do
    end do
    
-    write(message, "(A,F12.7)") &
-        & "test_kernel: Testing Poisson Solver for a_gauss=",a_gauss
-    call wrtout(6, message, "COLL")
-    write(message, "(1x,a,f7.2,1x,e10.3,1x,e10.3)") &
-        & 'hgridh,Deltarho,max_diff',hgrid,rhotot-1.d0,max_diff
-    call wrtout(6, message, "COLL")
-    write(message, "(A,3I4)") &
-        & 'Max diff at : ',ii1,ii2,ii3
-    call wrtout(6, message, "COLL")
-    write(message, "(A,3I4)") 'Poisson Solver test finished'
-    call wrtout(6, message, "COLL")
+   write(*,*) 'Testing Poisson Solver for a_gauss=',a_gauss
+   write(*,'(1x,a,f7.2,1x,e10.3,1x,e10.3)') &
+        'hgridh,Deltarho,max_diff',hgrid,rhotot-1.d0,max_diff
+   write(*,*) 'Max diff at : ',ii1,ii2,ii3
+   write(*,*) 'Poisson Solver test finished'
 
 end subroutine test_kernel
 !!***

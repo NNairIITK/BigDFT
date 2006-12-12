@@ -1,6 +1,6 @@
 
-        subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-                   hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,hpsi,cprec,nstep_min, nstep_max, fac_norm2)
+        subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+                   hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,cprec,logrid_c,logrid_f,hpsi)
 ! Calls the preconditioner for each orbital treated by the processor
         implicit real*8 (a-h,o-z)
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
@@ -14,18 +14,18 @@
       call precondition(cr,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,&
                         nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
                         nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),&
-                        hpsi(1,iorb-iproc*norbp),hpsi(nvctr_c+1,iorb-iproc*norbp),IORB,nstep_min,nstep_max, fac_norm2)
+                        hpsi(1,iorb-iproc*norbp),hpsi(nvctr_c+1,iorb-iproc*norbp),IORB)
 
       enddo
 
        call cpu_time(tr1)
        call system_clock(ncount2,ncount_rate,ncount_max)
        tel=dble(ncount2-ncount1)/dble(ncount_rate)
-       write(77,'(a40,i4,2(x,e10.3))') 'PRECONDITIONING TIME',iproc,tr1-tr0,tel
+       write(77,'(a40,i4,2(1x,e10.3))') 'PRECONDITIONING TIME',iproc,tr1-tr0,tel
 
 
       return
-      end subroutine preconditionall
+      end
 
 
 
@@ -33,7 +33,7 @@
       subroutine precondition(C,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
                               hgrid,nseg_c,nvctr_c,keyg_c,&
                               keyv_c,nseg_f,nvctr_f,keyg_f,&
-                              keyv_f,psi_c,psi_f,IORB,nstep_min, nstep_max, fac_norm2)
+                              keyv_f,psi_c,psi_f,IORB)
         implicit real*8 (a-h,o-z)
         dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
         dimension psi_c(nvctr_c),psi_f(7,nvctr_f)
@@ -46,14 +46,14 @@
         
         PARAMETER(A2=3.55369228991319019D0,ALPHAMIN=.05d0,COSMIN=.5D0)
 
-!        OPEN(10,FILE='input.dat') 
-!          DO I=1,8
-!            READ(10,*)
-!          ENDDO
-!          READ(10,*) NSTEP_MIN,NSTEP_MAX
-!          READ(10,*) 
-!          READ(10,*) FAC_NORM2          
-!        CLOSE(10)
+        OPEN(10,FILE='input.dat') 
+          DO I=1,8
+            READ(10,*)
+          ENDDO
+          READ(10,*) NSTEP_MIN,NSTEP_MAX
+          READ(10,*) 
+          READ(10,*) FAC_NORM2          
+        CLOSE(10)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !       DETERMINE THE NUMBER OF SWEEPS ETC
 !
@@ -193,7 +193,7 @@
         DEALLOCATE(HPSI_C_MOD,HPSI_F_MOD) 
         DEALLOCATE(PSI_C_NEW,PSI_F_NEW) 
           
-	end subroutine precondition
+	end
 
           
        SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,&
@@ -240,7 +240,7 @@
 
           deallocate(psig_stand1,psig_stand2)
 
-        END SUBROUTINE CALC_GRAD_REZA
+        END 
 
 
         subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
@@ -325,7 +325,7 @@
 
         deallocate(hpsip)
 
-       end subroutine prec_diag  
+       end         
 
        SUBROUTINE PRECOND_PROPER(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3,H0,H1,H2,H3,EPS)
        implicit real*8 (a-h,o-z)
@@ -410,7 +410,7 @@
 
        ENDDO
 
-       END SUBROUTINE PRECOND_PROPER
+       END
 
       FUNCTION PIECELINE(C)
       IMPLICIT REAL*8(A-H,O-Z)
@@ -429,7 +429,7 @@
            ENDIF        
       ENDIF
      
-      END FUNCTION PIECELINE
+      END 
 
 
 
@@ -444,8 +444,7 @@
         dimension x(-lupfil:n1-lowfil,-lupfil:n2-lowfil,-lupfil:n3-lowfil),y(0:n1,0:n2,0:n3)
         dimension ww(0:n1,-lupfil:n2-lowfil,-lupfil:n3-lowfil)
 !          THE MAGIC FILTER FOR DAUBECHIES-16
-           REAL*8 fil(lowfil:lupfil)
-           DATA fil /0.D0,&
+           REAL*8, parameter :: fil(lowfil:lupfil)= (/0.D0,&
          2.72734492911979659657715313017228D-6,&
        -0.5185986881173432922848639136911487D-4,&
         0.49443227688689919192282259476750972D-3,&
@@ -461,7 +460,7 @@
        -0.30158038132690463167163703826169879D-3,&
         0.8762984476210559564689161894116397D-4,&
        -0.1290557201342060969516786758559028D-4,&
-        8.4334247333529341094733325815816D-7 /
+        8.4334247333529341094733325815816D-7 /)
 
 !  (I1,I2*I3) -> (I2*I3,i1)
         ndat=(n2+1+lupfil-lowfil)*(n3+1+lupfil-lowfil)
@@ -474,7 +473,7 @@
         call convrot_shrink2(lowfil,lupfil,fil,n3,ndat,x,y)
 
 	return
-	end subroutine convolut_magic_t2
+	end
 
         subroutine convrot_shrink2(lowfil,lupfil,fil,n1,ndat,x,y)
         implicit real*8 (a-h,o-z)
@@ -494,7 +493,7 @@
         enddo
 
 	return
-	end subroutine convrot_shrink2
+	end
 
 
 
@@ -728,7 +727,7 @@ subroutine ConvolStand(n1,n2,n3,&
 !    WRITE(*,*) 'CONVOL_STAND ENDED'
 
     return
-end subroutine ConvolStand
+end
     
     
         subroutine uncompress_forstandard(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
@@ -790,7 +789,7 @@ end subroutine ConvolStand
 
         !deallocate(psig,ww)
 
-	end subroutine uncompress_forstandard
+	end
     
         subroutine compress_forstandard(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
                             mseg_c,mvctr_c,keyg_c,keyv_c,  & 
@@ -850,7 +849,7 @@ end subroutine ConvolStand
 
  !       deallocate(ww)
 
-	end subroutine compress_forstandard
+	end
 
 
 
@@ -925,7 +924,7 @@ end subroutine ConvolStand
 
        ENDIF
 
-       END SUBROUTINE MULTI_BACKWARD
+       END
 
 
 
@@ -993,7 +992,7 @@ end subroutine ConvolStand
          DEALLOCATE(YY,XX)         
        ENDIF 
 
-       END SUBROUTINE MULTI_FORWARD
+       END
 
 
 
@@ -1017,7 +1016,7 @@ end subroutine ConvolStand
         call  BACKWARD_FAST(nd3,nt,ww,y)
 
         return
-        end subroutine BACKWARD_3D
+        end
 
        subroutine BACKWARD_3D_SELF(nd1,nd2,nd3,x,y,ww)
 ! A periodic synthesis (BACKWARD) wavelet transformation
@@ -1038,7 +1037,7 @@ end subroutine ConvolStand
         call  BACKWARD_FAST(nd3,nt,ww,x)
 
         return
-        end subroutine BACKWARD_3D_SELF
+        end
 
 
         subroutine FORWARD_3D(nd1,nd2,nd3,y,x,ww)
@@ -1060,7 +1059,7 @@ end subroutine ConvolStand
         call  FORWARD_FAST(nd3,nt,ww,x)
 
         return
-        end subroutine FORWARD_3D
+        end
 
         subroutine FORWARD_3D_SELF(nd1,nd2,nd3,y,x,ww)
 ! An analysis (FORWARD) periodic wavelet transformation
@@ -1081,7 +1080,7 @@ end subroutine ConvolStand
         call  FORWARD_FAST(nd3,nt,ww,y)
 
         return
-        end subroutine FORWARD_3D_SELF
+        end
 
 
       SUBROUTINE FORWARD_FAST(RIGHT,NT,C,CD_1)
@@ -1201,7 +1200,7 @@ end subroutine ConvolStand
 
        DEALLOCATE(MOD_MY) 
 
-       END SUBROUTINE FORWARD_FAST
+       END
 
 
 
@@ -1327,7 +1326,7 @@ end subroutine ConvolStand
 
        DEALLOCATE(MOD_MY)
 
-      END SUBROUTINE BACKWARD_FAST
+      END
 
 
 

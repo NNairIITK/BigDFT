@@ -52,6 +52,7 @@ subroutine convolxc_on(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
              ,zfpot_ion,scal,hgrid,ehartree,eexcu,vexcu)
   implicit none
   include 'mpif.h'
+  include 'perfdata.inc'
   !Arguments
   integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc
   real(kind=8), intent(in) :: scal,hgrid
@@ -91,7 +92,9 @@ subroutine convolxc_on(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   if (mod(md2,nproc).ne.0) stop 'Parallel convolution:ERROR:md2'
   
   !defining work arrays dimensions
-  ncache=32*1024
+  
+  ncache=ncache_optimal
+  if (ncache <= max(n1,n2,n3/2)*4) ncache=max(n1,n2,n3/2)*4
   lzt=n2/2
   if (mod(n2/2,2).eq.0) lzt=lzt+1
   if (mod(n2/2,4).eq.0) lzt=lzt+1
@@ -133,7 +136,7 @@ subroutine convolxc_on(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   vexcu=0.d0
 
   ! transform along z axis
-  lot=ncache/(4*n3)
+  lot=ncache/(2*n3)
   if (lot.lt.1) then  
      write(6,*) & 
           'convolxc_on:ncache has to be enlarged to be able to hold at' // &  
@@ -328,7 +331,7 @@ subroutine convolxc_on(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
 
   !transform along z axis
   !input: I1,J2,i3,(Jp2)
-  lot=ncache/(4*n3)
+  lot=ncache/(2*n3)
   do j2=1,md2/nproc
      !this condition ensures that we manage only the interesting part for the FFT
      if (iproc*(md2/nproc)+j2.le.n2/2) then
@@ -422,6 +425,7 @@ subroutine convolxc_off(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
              ,scal,hgrid,ehartree)
   implicit none
   include 'mpif.h'
+  include 'perfdata.inc'
   !Arguments
   integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc
   real(kind=8), intent(in) :: scal,hgrid
@@ -460,7 +464,11 @@ subroutine convolxc_off(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   if (mod(md2,nproc).ne.0) stop 'Parallel convolution:ERROR:md2'
   
   !defining work arrays dimensions
-  ncache=32*1024
+  ncache=ncache_optimal
+  if (ncache <= max(n1,n2,n3/2)*4) ncache=max(n1,n2,n3/2)*4
+
+  !print *,'ncache=',ncache
+
   lzt=n2/2
   if (mod(n2/2,2).eq.0) lzt=lzt+1
   if (mod(n2/2,4).eq.0) lzt=lzt+1
@@ -500,7 +508,7 @@ subroutine convolxc_off(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   ehartree=0.d0
 
   ! transform along z axis
-  lot=ncache/(4*n3)
+  lot=ncache/(2*n3)
   if (lot.lt.1) then  
      write(6,*) & 
           'convolxc_off:ncache has to be enlarged to be able to hold at' // &  
@@ -695,7 +703,7 @@ subroutine convolxc_off(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
 
   !transform along z axis
   !input: I1,J2,i3,(Jp2)
-  lot=ncache/(4*n3)
+  lot=ncache/(2*n3)
   do j2=1,md2/nproc
      !this condition ensures that we manage only the interesting part for the FFT
      if (iproc*(md2/nproc)+j2.le.n2/2) then
@@ -833,7 +841,7 @@ end subroutine multkernel
 90	continue
 
 	return
-	end subroutine switch_upcorn
+	end
 
         
  	subroutine mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,md2,nd3,nproc,zmpi1,zw)
@@ -862,7 +870,7 @@ end subroutine multkernel
 200	continue
 	J2stb=1
 300	continue
-	end subroutine mpiswitch_upcorn
+	end
 
         subroutine halfill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
 	implicit real*8 (a-h,o-z)
@@ -886,7 +894,7 @@ end subroutine multkernel
 
 
 	return
-	end subroutine halfill_upcorn
+	end
 
 
 !!****h* BigDFT/scramble_unpack
@@ -1056,7 +1064,7 @@ end subroutine unscramble_pack
 	zt(2,i,j)=zw(2,j,i)
 100	continue
 	return
-	end subroutine unswitch_downcorn
+	end
 
 
  	subroutine unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,zmpi1)
@@ -1081,7 +1089,7 @@ end subroutine unscramble_pack
 200	continue
 	J2stf=1
 300	continue
-	end subroutine unmpiswitch_downcorn
+	end
 
 
 !!****h* BigDFT/unfill_downcorn
@@ -1150,8 +1158,6 @@ subroutine unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
   
 end subroutine unfill_downcorn
 
-
-
 !!****h* BigDFT/unfill_downcornxc_on
 !! NAME
 !!   unfill_downcornxc_on
@@ -1159,7 +1165,8 @@ end subroutine unfill_downcorn
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Restore data into output array, calculating in the meanwhile
-!!     Hartree energy of the potential as well as exchange-correlation terms
+!!     Hartree energy of the potential and summing the ionization potential
+!!     Containing also the exchange-correlation part
 !!
 !! SYNOPSIS
 !!     zf:          Original distributed density as well as
@@ -1168,10 +1175,9 @@ end subroutine unfill_downcorn
 !!     n3:          (twice the) dimension of the last FFTtransform.
 !!     md1,md3:     Dimensions of the undistributed part of the real grid
 !!     nfft:        number of planes
-!!     zfpot_ion:   Distributed part of the ionization potential
+!!     zfpot_ion:   Distributed part of the ionization potential + xc potential
 !!     factor:      Needed to achieve unitarity and correct dimensions
 !!     ehartree:    Hartree energy
-!!     eexcu,vexcu: exchange-correlation terms
 !!
 !! WARNING
 !!     Assuming that high frequencies are in the corners 
@@ -1203,112 +1209,191 @@ subroutine unfill_downcornxc_on(md1,md3,lot,nfft,n3,zw,zf&
   real(kind=8), intent(in) :: factor
   real(kind=8), intent(out) :: ehartree,eexcu,vexcu
   !Local variables
-  real(kind=8), parameter :: &
-       a0u=.4581652932831429d0, &
-       a1u=2.217058676663745d0, & 
-       a2u=0.7405551735357053d0,&
-       a3u=0.01968227878617998d0
-  real(kind=8), parameter :: &
-       b1u=1.0d0, &
-       b2u=4.504130959426697d0, & 
-       b3u=1.110667363742916d0, &
-       b4u=0.02359291751427506d0
-  real(kind=8), parameter :: & 
-       c1u=4.d0*a0u*b1u/3.0d0, &
-       c2u=5.0d0*a0u*b2u/3.0d0+a1u*b1u, & 
-       c3u=2.0d0*a0u*b3u+4.0d0*a1u*b2u/3.0d0+2.0d0*a2u*b1u/3.0d0,  & 
-       c4u=7.0d0*a0u*b4u/3.0d0+5.0d0*a1u*b3u/3.0d0+a2u*b2u+a3u*b1u/3.0d0,  & 
-       c5u=2.0d0*a1u*b4u+4.0d0*a2u*b3u/3.0d0+2.0d0*a3u*b2u/3.0d0,  & 
-       c6u=5.0d0*a2u*b4u/3.0d0+a3u*b3u, &
-       c7u=4.0d0*a3u*b4u/3.0d0
-  real(kind=8), parameter :: rsfac=.6203504908994000d0
-  real(kind=8), parameter :: thirdm=-1.d0/3.d0
   integer :: i3,i2,i1
-  real(kind=8) :: rhou1,pot1,rsu1,topu1,dtopu1,botu1,t1
-  real(kind=8) :: epsxcu1,p1
+  real(kind=8) :: pot1,p1,rhou1
   !Body
 
   eexcu=0.d0
   vexcu=0.d0
   ehartree=0.d0
+
   do i3=1,n3/4
      do i1=1,nfft
         !case even p
         rhou1=zf(i1,2*i3-1)
-        if (rhou1 < 1.d-20) then
-           pot1=factor*zw(1,i1,i3)
-           ehartree=ehartree+rhou1*pot1
-           zf(i1,2*i3-1)=pot1+zfpot_ion(i1,2*i3-1)
-        else
-           rsu1=rsfac*exp(thirdm*log(rhou1))
-           topu1=a2u+rsu1*a3u
-           topu1=a1u+rsu1*topu1
-           topu1=a0u+rsu1*topu1
-           dtopu1=c6u+rsu1*c7u
-           dtopu1=c5u+rsu1*dtopu1
-           dtopu1=c4u+rsu1*dtopu1
-           dtopu1=c3u+rsu1*dtopu1
-           dtopu1=c2u+rsu1*dtopu1
-           dtopu1=c1u+rsu1*dtopu1
-           dtopu1=-rsu1*dtopu1
-           botu1=b3u+rsu1*b4u
-           botu1=b2u+rsu1*botu1
-           botu1=b1u+rsu1*botu1
-           botu1=rsu1*botu1
-           t1=1.d0/botu1
-           epsxcu1=-topu1*t1
-           
-           eexcu=eexcu+epsxcu1*rhou1
-           vexcu=vexcu+(dtopu1*t1*t1)*rhou1
-           pot1=factor*zw(1,i1,i3)
-           p1=zfpot_ion(i1,2*i3-1)
-           ehartree=ehartree+rhou1*pot1
-           zf(i1,2*i3-1)=pot1+(dtopu1*t1*t1)+p1
-           
-
-           
-        endif
-        
+        pot1=factor*zw(1,i1,i3)
+        p1=zfpot_ion(i1,2*i3-1)
+        ehartree=ehartree+rhou1*pot1
+        zf(i1,2*i3-1)=pot1+p1           
         !case odd p
         rhou1=zf(i1,2*i3)
-        if (rhou1 < 1.d-20) then
-           pot1=factor*zw(2,i1,i3)
-           ehartree=ehartree+rhou1*pot1
-           zf(i1,2*i3)=pot1+zfpot_ion(i1,2*i3)
-        else
-           rsu1=rsfac*exp(thirdm*log(rhou1))
-           topu1=a2u+rsu1*a3u
-           topu1=a1u+rsu1*topu1
-           topu1=a0u+rsu1*topu1
-           dtopu1=c6u+rsu1*c7u
-           dtopu1=c5u+rsu1*dtopu1
-           dtopu1=c4u+rsu1*dtopu1
-           dtopu1=c3u+rsu1*dtopu1
-           dtopu1=c2u+rsu1*dtopu1
-           dtopu1=c1u+rsu1*dtopu1
-           dtopu1=-rsu1*dtopu1
-           botu1=b3u+rsu1*b4u
-           botu1=b2u+rsu1*botu1
-           botu1=b1u+rsu1*botu1
-           botu1=rsu1*botu1
-           t1=1.d0/botu1
-           epsxcu1=-topu1*t1
-           
-           eexcu=eexcu+epsxcu1*rhou1
-           vexcu=vexcu+(dtopu1*t1*t1)*rhou1
-           pot1=factor*zw(2,i1,i3)
-           p1=zfpot_ion(i1,2*i3)
-           ehartree=ehartree+rhou1*pot1
-           zf(i1,2*i3)=pot1+(dtopu1*t1*t1)+p1
-           
-           
-           
-        endif
-        
+        pot1=factor*zw(2,i1,i3)
+        p1=zfpot_ion(i1,2*i3)
+        ehartree=ehartree+rhou1*pot1
+        zf(i1,2*i3)=pot1+p1
      end do
   end do
 end subroutine unfill_downcornxc_on
 !!***
+
+
+!!$!!****h* BigDFT/unfill_downcornxc_on
+!!$!! NAME
+!!$!!   unfill_downcornxc_on
+!!$!!
+!!$!! FUNCTION
+!!$!!     (Based on suitable modifications of S.Goedecker routines)
+!!$!!     Restore data into output array, calculating in the meanwhile
+!!$!!     Hartree energy of the potential as well as exchange-correlation terms
+!!$!!
+!!$!! SYNOPSIS
+!!$!!     zf:          Original distributed density as well as
+!!$!!                  Distributed solution of the poisson equation (inout)
+!!$!!     zw:          FFT work array
+!!$!!     n3:          (twice the) dimension of the last FFTtransform.
+!!$!!     md1,md3:     Dimensions of the undistributed part of the real grid
+!!$!!     nfft:        number of planes
+!!$!!     zfpot_ion:   Distributed part of the ionization potential
+!!$!!     factor:      Needed to achieve unitarity and correct dimensions
+!!$!!     ehartree:    Hartree energy
+!!$!!     eexcu,vexcu: exchange-correlation terms
+!!$!!
+!!$!! WARNING
+!!$!!     Assuming that high frequencies are in the corners 
+!!$!!     and that n3 is multiple of 4   
+!!$!!
+!!$!! RESTRICTIONS on USAGE
+!!$!!     Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
+!!$!!     Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
+!!$!!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
+!!$!!     This file is distributed under the terms of the
+!!$!!     GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+!!$!!
+!!$!! AUTHORS
+!!$!!    S. Goedecker, L. Genovese
+!!$!!
+!!$!! CREATION DATE
+!!$!!     February 2006
+!!$!!
+!!$!! SOURCE
+!!$!!
+!!$subroutine unfill_downcornxc_on(md1,md3,lot,nfft,n3,zw,zf&
+!!$     ,zfpot_ion,factor,ehartree,eexcu,vexcu)
+!!$  implicit none
+!!$  !Arguments
+!!$  integer, intent(in) :: md1,md3,lot,nfft,n3
+!!$  real(kind=8), dimension(2,lot,n3/2), intent(in) :: zw
+!!$  real(kind=8), dimension(md1,md3),intent(inout) :: zf
+!!$  real(kind=8), dimension(md1,md3),intent(in) :: zfpot_ion
+!!$  real(kind=8), intent(in) :: factor
+!!$  real(kind=8), intent(out) :: ehartree,eexcu,vexcu
+!!$  !Local variables
+!!$  real(kind=8), parameter :: &
+!!$       a0u=.4581652932831429d0, &
+!!$       a1u=2.217058676663745d0, & 
+!!$       a2u=0.7405551735357053d0,&
+!!$       a3u=0.01968227878617998d0
+!!$  real(kind=8), parameter :: &
+!!$       b1u=1.0d0, &
+!!$       b2u=4.504130959426697d0, & 
+!!$       b3u=1.110667363742916d0, &
+!!$       b4u=0.02359291751427506d0
+!!$  real(kind=8), parameter :: & 
+!!$       c1u=4.d0*a0u*b1u/3.0d0, &
+!!$       c2u=5.0d0*a0u*b2u/3.0d0+a1u*b1u, & 
+!!$       c3u=2.0d0*a0u*b3u+4.0d0*a1u*b2u/3.0d0+2.0d0*a2u*b1u/3.0d0,  & 
+!!$       c4u=7.0d0*a0u*b4u/3.0d0+5.0d0*a1u*b3u/3.0d0+a2u*b2u+a3u*b1u/3.0d0,  & 
+!!$       c5u=2.0d0*a1u*b4u+4.0d0*a2u*b3u/3.0d0+2.0d0*a3u*b2u/3.0d0,  & 
+!!$       c6u=5.0d0*a2u*b4u/3.0d0+a3u*b3u, &
+!!$       c7u=4.0d0*a3u*b4u/3.0d0
+!!$  real(kind=8), parameter :: rsfac=.6203504908994000d0
+!!$  real(kind=8), parameter :: thirdm=-1.d0/3.d0
+!!$  integer :: i3,i2,i1
+!!$  real(kind=8) :: rhou1,pot1,rsu1,topu1,dtopu1,botu1,t1
+!!$  real(kind=8) :: epsxcu1,p1
+!!$  !Body
+!!$
+!!$  eexcu=0.d0
+!!$  vexcu=0.d0
+!!$  ehartree=0.d0
+!!$  do i3=1,n3/4
+!!$     do i1=1,nfft
+!!$        !case even p
+!!$        rhou1=zf(i1,2*i3-1)
+!!$        if (rhou1 < 1.d-20) then
+!!$           pot1=factor*zw(1,i1,i3)
+!!$           ehartree=ehartree+rhou1*pot1
+!!$           zf(i1,2*i3-1)=pot1+zfpot_ion(i1,2*i3-1)
+!!$        else
+!!$           rsu1=rsfac*exp(thirdm*log(rhou1))
+!!$           topu1=a2u+rsu1*a3u
+!!$           topu1=a1u+rsu1*topu1
+!!$           topu1=a0u+rsu1*topu1
+!!$           dtopu1=c6u+rsu1*c7u
+!!$           dtopu1=c5u+rsu1*dtopu1
+!!$           dtopu1=c4u+rsu1*dtopu1
+!!$           dtopu1=c3u+rsu1*dtopu1
+!!$           dtopu1=c2u+rsu1*dtopu1
+!!$           dtopu1=c1u+rsu1*dtopu1
+!!$           dtopu1=-rsu1*dtopu1
+!!$           botu1=b3u+rsu1*b4u
+!!$           botu1=b2u+rsu1*botu1
+!!$           botu1=b1u+rsu1*botu1
+!!$           botu1=rsu1*botu1
+!!$           t1=1.d0/botu1
+!!$           epsxcu1=-topu1*t1
+!!$           
+!!$           eexcu=eexcu+epsxcu1*rhou1
+!!$           vexcu=vexcu+(dtopu1*t1*t1)*rhou1
+!!$           pot1=factor*zw(1,i1,i3)
+!!$           p1=zfpot_ion(i1,2*i3-1)
+!!$           ehartree=ehartree+rhou1*pot1
+!!$           zf(i1,2*i3-1)=pot1+p1!(dtopu1*t1*t1)+p1
+!!$           
+!!$
+!!$           
+!!$        endif
+!!$        
+!!$        !case odd p
+!!$        rhou1=zf(i1,2*i3)
+!!$        if (rhou1 < 1.d-20) then
+!!$           pot1=factor*zw(2,i1,i3)
+!!$           ehartree=ehartree+rhou1*pot1
+!!$           zf(i1,2*i3)=pot1+zfpot_ion(i1,2*i3)
+!!$        else
+!!$           rsu1=rsfac*exp(thirdm*log(rhou1))
+!!$           topu1=a2u+rsu1*a3u
+!!$           topu1=a1u+rsu1*topu1
+!!$           topu1=a0u+rsu1*topu1
+!!$           dtopu1=c6u+rsu1*c7u
+!!$           dtopu1=c5u+rsu1*dtopu1
+!!$           dtopu1=c4u+rsu1*dtopu1
+!!$           dtopu1=c3u+rsu1*dtopu1
+!!$           dtopu1=c2u+rsu1*dtopu1
+!!$           dtopu1=c1u+rsu1*dtopu1
+!!$           dtopu1=-rsu1*dtopu1
+!!$           botu1=b3u+rsu1*b4u
+!!$           botu1=b2u+rsu1*botu1
+!!$           botu1=b1u+rsu1*botu1
+!!$           botu1=rsu1*botu1
+!!$           t1=1.d0/botu1
+!!$           epsxcu1=-topu1*t1
+!!$           
+!!$           eexcu=eexcu+epsxcu1*rhou1
+!!$           vexcu=vexcu+(dtopu1*t1*t1)*rhou1
+!!$           pot1=factor*zw(2,i1,i3)
+!!$           p1=zfpot_ion(i1,2*i3)
+!!$           ehartree=ehartree+rhou1*pot1
+!!$           zf(i1,2*i3)=pot1+p1!(dtopu1*t1*t1)+p1
+!!$           
+!!$           
+!!$           
+!!$        endif
+!!$        
+!!$     end do
+!!$  end do
+!!$end subroutine unfill_downcornxc_on
+!!$!!***
 
 
 ! FFT PART RELATED TO THE KERNEL -----------------------------------------------------------------
@@ -1353,6 +1438,7 @@ end subroutine unfill_downcornxc_on
 subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nproc,iproc,zf,zr)
   implicit none
   include 'mpif.h'
+  include 'perfdata.inc'
   !Arguments
   integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,nproc,iproc
   real(kind=8), dimension(nd1,n3,nd2/nproc), intent(in) :: zf
@@ -1384,7 +1470,8 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nproc,iproc,zf,zr)
   if (mod(nd2,nproc).ne.0) stop 'ERROR:nd2'
   
   !defining work arrays dimensions
-  ncache=32*1024
+  ncache=ncache_optimal
+  if (ncache <= max(n1,n2,n3/2)*4) ncache=max(n1,n2,n3/2)*4
   lzt=n2
   if (mod(n2,2).eq.0) lzt=lzt+1
   if (mod(n2,4).eq.0) lzt=lzt+1
@@ -1411,7 +1498,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nproc,iproc,zf,zr)
   
   !transform along z axis
 
-  lot=ncache/(4*n3)
+  lot=ncache/(2*n3)
   if (lot.lt.1) stop 'kernelfft:enlarge ncache for z'
   
   do j2=1,nd2/nproc
@@ -1548,7 +1635,7 @@ end subroutine kernelfft
 100        continue
 200        continue
         return
-        end subroutine switch
+        end
 
          subroutine mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
         implicit real(kind=8)        (a-h,o-z)
@@ -1570,7 +1657,7 @@ end subroutine kernelfft
 200        continue
         J2st=1
 300        continue
-        end subroutine mpiswitch
+        end
 
         subroutine inserthalf(nd1,nd3,lot,nfft,n3,zf,zw)
         implicit real(kind=8)        (a-h,o-z)
@@ -1583,7 +1670,7 @@ end subroutine kernelfft
 100     continue
 
         return
-        end subroutine inserthalf
+        end
 
 
 

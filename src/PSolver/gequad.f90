@@ -1,61 +1,20 @@
-!{\src2tex{textfont=tt}}
-!!****f* ABINIT/gequad
-!! NAME
-!! gequad
-!!
-!! FUNCTION
-!! Given rho(G), compute Hartree potential considering the system as
-!! an isolated one. This potential is obtained from the convolution
-!! of 1/r and rho(r), treated in Fourier space. A kernel is built from
-!! the Fourier transform of 1/r, using a gaussian decomposition of 1/r
-!! and this kernel is applied on rho(g). This method is a wrapper around
-!! PSolver_Kernel developped for BigDFT.
-!!
-!! COPYRIGHT
-!!  This file is a part of                           
-!!  Fast Transform Library                           
-!!  Contains proprietary information                 
-!!  supplied by GB Consulting.                       
-!!  Copyright (C), 2002-2005 GB Consulting.          
-!!  All rights reserved                              
-!!
-!! INPUTS
-!!  nterms=number of gaussians.
-!!  
-!! OUTPUT
-!!  p(nterms)=prefactor for gaussians.
-!!  w(nterms)=width for gaussians.
-!!  urange=
-!!  drange=
-!!  acc=
-!!
-!! PARENTS
-!!      Build_Kernel
-!!
-!! CHILDREN
-!!
-!! SOURCE
-
-!!#if defined HAVE_CONFIG_H
-!!#include "config.h"
-!!#endif
-
-subroutine gequad(nterms, p, w, urange, drange, acc)
-
- use defs_basis
-
-  implicit none
-
-!Arguments ------------------------------------
-!scalars
-  integer, intent(in) :: nterms
-  real(dp), intent(out) :: urange, drange, acc
-!arrays
-  real(dp), intent(out) :: p(nterms), w(nterms)
-
-!Local variables-------------------------------
-
-
+!	$Log:	gequad.f
+! 
+!vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvc
+!                                                   c
+!  This file is a part of                           c
+!  Fast Transform Library                           c
+!  Contains proprietary information                 !
+!  supplied by GB Consulting.                       c
+!  Copyright (C), 2002-2005 GB Consulting.          c
+!  All rights reserved                              c
+!                                                   c
+!vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvc
+! 
+        subroutine gequad(nterms,p,w,urange,drange,acc)
+! 
+        implicit real *8 (a-h,o-z)
+        real *8 p(*),w(*)
 !
 !
 !       range [10^(-9),1] and accuracy ~10^(-8);
@@ -150,7 +109,7 @@ subroutine gequad(nterms, p, w, urange, drange, acc)
          p(87)=1.75371394604499472d0
          p(88)=0.64705932650658966d0
          p(89)=0.072765905943708247d0
-
+!
          w(1)=47.67445484528304247d10
          w(2)=11.37485774750442175d9
          w(3)=78.64340976880190239d8
@@ -240,9 +199,30 @@ subroutine gequad(nterms, p, w, urange, drange, acc)
          w(87)=0.576182522545327589d0
          w(88)=0.596688817388997178d0
          w(89)=0.607879901151108771d0
-
+!
+!
           urange = 1.d0
           drange=1d-08
           acc   =1d-08
-end subroutine gequad
- !!***
+!
+        return
+        end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

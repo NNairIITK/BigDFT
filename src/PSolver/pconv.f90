@@ -29,9 +29,9 @@ subroutine PARtest_kernel(n01,n02,n03,nfft1,nfft2,nfft3,&
  shft2=0.d0
  shft3=0.d0
 
- !Initialisation
+ !Initialization
  pi = 4.d0*atan(1.d0)
- !Normalisation
+ !Normalization
  factor = 1.d0/(a_gauss*a2*pi*sqrt(pi))
  !Gaussian function
  rhotot=0.d0
@@ -64,7 +64,7 @@ subroutine PARtest_kernel(n01,n02,n03,nfft1,nfft2,nfft3,&
   !Calculate potential using Poisson Solver
      write(*,*) 'testing poisson solver'
      call ParPSolver_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,&
-          hgrid,karray,.false.,pot_ion,rhopot,ehart,eexcu,vexcu,iproc,nproc)
+          hgrid,karray,0,pot_ion,rhopot,ehart,eexcu,vexcu,iproc,nproc)
 
   !! Plot values along x axis
   !   open(unit=11,file='pot.dat')
@@ -182,11 +182,8 @@ subroutine calculate_pardimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1
  l3=m3 !beware of the half dimension
  do
     !this is for the FFT of the kernel
-    !one can erase it when the kernel is parallelized
     call fourier_dim(l1,n1)
-    !call fourier_dim(n1/2,l1A)
-    if (modulo(n1,2) == 0&! .and. 2*l1A == n1
-         ) then
+    if (modulo(n1,2) == 0) then
        exit
     end if
     l1=l1+1
@@ -200,9 +197,7 @@ subroutine calculate_pardimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1
  end do
  do
     call fourier_dim(l3,n3)
-    !call fourier_dim(n3/2,l3A)
-    if (modulo(n3,2) == 0 &!.and. 2*l3A == n3 .and. modulo(l3A,2) == 0
-         ) then
+    if (modulo(n3,2) == 0) then
        exit
     end if
     l3=l3+1
@@ -219,19 +214,14 @@ subroutine calculate_pardimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1
     goto 151
  endif
 
-!!$        !this condition can be removed once the broadcast section is modified
-!!$        !
-!!$        if ((nproc-1)*(md2/nproc) .ge. m2) then
-!!$           print *,'the number of processes is too high!'
-!!$           stop
-!!$        end if
-
 
  !dimensions of the kernel, 1/8 of the total volume,
  !compatible with nproc
 
- nd1=n1/2+1;  nd2=n2/2+1
+ nd1=n1/2+1
+ nd2=n2/2+1
  nd3=n3/2+1
+
 250 if (modulo(nd3,nproc) .ne. 0) then
     nd3=nd3+1
     goto 250
@@ -259,7 +249,9 @@ end subroutine calculate_pardimensions
 !!
 !!    Replaces the charge density contained in rhopot
 !!    by the Hartree stored as well in rhopot.
-!!    If xc_on is true, it also adds the XC potential and
+!!    The XC potential is chosen from the value of ixc, 
+!!    by following the same rules as ABINIT.
+!!    If ixc is 0, it also adds the XC potential and
 !!    ionic potential pot_ion
 !!
 !!    kernelLOC: the kernel in fourier space, calculated from ParBuild_Kernel routine
@@ -277,12 +269,12 @@ end subroutine calculate_pardimensions
 !! SOURCE
 !!
 subroutine ParPSolver_Kernel(n01,n02,n03,nd1,nd2,nd3, &
-    hgrid,kernelLOC,xc_on,pot_ion,rhopot,ehartree,eexcu,vexcu,iproc,nproc)
+    hgrid,kernelLOC,ixc,pot_ion,rhopot,ehartree,eexcu,vexcu,iproc,nproc)
  implicit none
  !Arguments
- integer, intent(in)  :: n01,n02,n03,nd1,nd2,nd3,iproc,nproc
+ integer, intent(in)  :: n01,n02,n03,nd1,nd2,nd3,iproc,nproc,ixc
  real*8, intent(in) :: hgrid
- logical, intent(in) :: xc_on
+ !logical, intent(in) :: xc_on
  real*8, intent(in), dimension(nd1,nd2,nd3/nproc) :: kernelLOC
  real*8, intent(in), dimension(n01,n02,n03) :: pot_ion
  real*8, intent(inout), dimension(n01,n02,n03) :: rhopot
@@ -293,9 +285,9 @@ subroutine ParPSolver_Kernel(n01,n02,n03,nd1,nd2,nd3, &
  call calculate_pardimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
 
  !here we control if we need to calculate the exchange-correlation part
- if (xc_on) then
+ if (ixc /= 0 ) then
     call  pconvxc_on(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
-         rhopot,pot_ion,kernelLOC,hgrid,ehartree,eexcu,vexcu)
+         rhopot,pot_ion,kernelLOC,hgrid,ixc,ehartree,eexcu,vexcu)
     if (iproc.eq.0) print *,"ehartree is",ehartree
     if (iproc.eq.0) print *,"eexcu is",eexcu
     if (iproc.eq.0) print *,"vexcu is",vexcu
@@ -349,23 +341,25 @@ end subroutine ParPSolver_Kernel
 !! SOURCE
 !!
 subroutine pconvxc_on(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
-    rhopot,pot_ion,kernelloc,hgrid,ehartree,eexcu,vexcu)
+    rhopot,pot_ion,kernelloc,hgrid,ixc,ehartree,eexcu,vexcu)
  implicit none
  include 'mpif.h'
- integer, intent(in) :: m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc
+ integer, intent(in) :: m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,ixc,iproc,nproc
  real(kind=8), dimension(nd1,nd2,nd3/nproc), intent(in) :: kernelloc
  real(kind=8), dimension(m1,m3,m2), intent(in) :: pot_ion
  real(kind=8), dimension(m1,m3,m2), intent(inout) :: rhopot
  real(kind=8), intent(in) :: hgrid
  real(kind=8), intent(out) :: ehartree,eexcu,vexcu
  !Local variables
- integer :: ierr,istart,iend,jend,endproc,jproc,i_stat,i_allocated
+ integer :: ierr,istart,iend,jend,i3start,xcdim,jproc,i_stat,i_allocated,ordergrad,gradim
+ integer :: leftadd,rightadd,wbl,wbr,wbdim
  real(kind=8) :: ehartreeLOC,eexcuLOC,vexcuLOC,scal
  real(kind=8), dimension(:,:,:), allocatable :: zf,zfpot_ion
  real(kind=8), dimension(:), allocatable :: arr_mpi
  integer, dimension(:,:), allocatable :: gather_arr
  integer count1,count2,count_rate,count_max
- real(kind=8) t1,t0,tel
+ real(kind=8) t1,t0,tel,exc,vxc
+ logical :: left,right,center
 
  !factor to be used to keep unitarity
  scal=hgrid**3/real(n1*n2*n3,kind=8)
@@ -384,14 +378,89 @@ subroutine pconvxc_on(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
     stop
  end if
 
- !Here we insert the process-related values of the density, starting from the total density
- call enterdensity(rhopot(1,1,1),m1,m2,m3,md1,md2,md3,iproc,nproc,zf(1,1,1))
- !The same thing for pot_ion
- call enterdensity(pot_ion(1,1,1),m1,m2,m3,md1,md2,md3,iproc,nproc,zfpot_ion(1,1,1))
+
+ !let us calculate the dimension of the portion of the rhopot array to be passed 
+ !to the xc routine
+ !this portion will depend on the need of calculating the gradient or not, and whether the White-Bird correction must be inserted or not (absent only in the LB ixc=13 case)
+
+ !xcdim is the effective part of the third dimension that is being processed
+ !gradim is the dimension of the part of rhopot that must be passed to the gradient routine
+ !wbdim is the dimension of the part of rhopot in the wb-postprocessing routine
+ !note: xcdim <= wbdim <= gradim
+ !the dimension are related by the values of leftadd and rightadd
+ !             xcdim+wbl+wbr-2 = wbdim
+ !             wbdim+leftadd+rightadd = gradim
+
+
+ istart=iproc*(md2/nproc)
+ iend=min((iproc+1)*md2/nproc,m2)
+ xcdim=iend-istart
+ if (ixc >= 11 .and. ixc <= 16) then
+    ordergrad=4
+    if (ixc==13) then
+       !now the dimension of the part required for the gradient
+       if(istart<=ordergrad) then
+          leftadd=istart
+       else
+          leftadd=ordergrad
+       end if
+       if(iend>=m2-ordergrad+1) then
+          rightadd=m2-iend
+       else
+          rightadd=ordergrad
+       end if
+       i3start=istart+1-leftadd
+       gradim=leftadd+xcdim+rightadd
+       wbl=1
+       wbr=1
+       wbdim=xcdim
+    else
+       !now the dimension of the part required for the gradient
+       if(istart<=ordergrad) then
+          wbl=istart+1
+          leftadd=0
+          i3start=1
+       else
+          wbl=ordergrad+1
+          leftadd=min(ordergrad,istart-ordergrad)
+          i3start=istart+2-wbl-leftadd
+       end if
+       if(iend>=m2-ordergrad+1) then
+          wbr=m2-iend+1
+          rightadd=0
+       else
+          wbr=ordergrad+1
+          rightadd=min(ordergrad,m2-ordergrad-iend)
+       end if
+       wbdim=wbl+xcdim+wbr-2
+       gradim=rightadd+wbdim+leftadd
+    end if
+ else
+    ordergrad=0
+    leftadd=0
+    rightadd=0
+    gradim=xcdim
+    wbdim=xcdim
+    wbl=1
+    wbr=1
+    i3start=istart+1
+ end if
+
+ !temporary, only for testing purposes
+ !rhopot(:,:,:)=.5d0*rhopot(:,:,:)
+ !condition under which perform the xc calculation
+ if (istart+1 <= m2) then
+    call  Parxc_energy(m1,m2,m3,md1,md2,md3,xcdim,wbdim,gradim,leftadd,rightadd,wbl,wbr,ixc,&
+         hgrid,rhopot(1,1,i3start),pot_ion,zf,zfpot_ion,eexcuLOC,vexcuLOC,iproc,nproc)
+ else
+    eexcuLOC=0.d0
+    vexcuLOC=0.d0
+ end if
 
  !this routine builds the values for each process of the potential (zf), multiplying by the factor
+ !in the parallel case the array zfpot_ion is the sum of the ionic and vxc potential
  call convolxc_on(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,kernelloc,zf&
-      ,zfpot_ion,scal,hgrid,ehartreeLOC,eexcuLOC,vexcuLOC)
+      ,zfpot_ion,scal,hgrid,ehartreeLOC,exc,vxc)
 
  deallocate(zfpot_ion)
 
@@ -410,7 +479,8 @@ subroutine pconvxc_on(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
       call cpu_time(t1)
       call system_clock(count2,count_rate,count_max)
       tel=dble(count2-count1)/dble(count_rate)
-      write(78,'(a40,i4,2(x,e10.3))') 'PSOLVER: ALLREDUCE TIME',iproc,t1-t0,tel
+      write(78,*) 'PSOLVER: ALLREDUCE TIME',iproc,t1-t0,tel
+      write(78,*) '----------------------------------------------'
  else
     ehartree=ehartreeLOC
     eexcu=eexcuLOC
@@ -443,7 +513,8 @@ subroutine pconvxc_on(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
       call cpu_time(t1)
       call system_clock(count2,count_rate,count_max)
       tel=dble(count2-count1)/dble(count_rate)
-      write(78,'(a40,i4,2(x,e10.3))') 'PSolver: ALLGATHERV TIME',iproc,t1-t0,tel
+      write(78,*) 'PSolver: ALLGATHERV TIME',iproc,t1-t0,tel
+      write(78,*) '----------------------------------------------'
 
  deallocate(zf,gather_arr)
 
@@ -495,7 +566,7 @@ subroutine pconvxc_off(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
  real(kind=8), intent(in) :: hgrid
  real(kind=8), intent(out) :: ehartree
  !Local variables
- integer :: ierr,istart,iend,jend,endproc,jproc,i_allocated,i_stat
+ integer :: ierr,istart,iend,jend,jproc,i_allocated,i_stat
  real(kind=8) :: ehartreeLOC,scal
  real(kind=8), dimension(:,:,:), allocatable :: zf
  integer, dimension(:,:), allocatable :: gather_arr
@@ -531,7 +602,8 @@ subroutine pconvxc_off(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
       call cpu_time(t1)
       call system_clock(count2,count_rate,count_max)
       tel=dble(count2-count1)/dble(count_rate)
-      write(78,'(a40,i4,2(x,e10.3))') 'PSolver: ALLREDUCE TIME',iproc,t1-t0,tel
+      write(78,*) 'PSolver: ALLREDUCE TIME',iproc,t1-t0,tel
+      write(78,*) '----------------------------------------------'
  else
     ehartree=ehartreeLOC
  end if
@@ -560,7 +632,8 @@ subroutine pconvxc_off(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
       call cpu_time(t1)
       call system_clock(count2,count_rate,count_max)
       tel=dble(count2-count1)/dble(count_rate)
-      write(78,'(a40,i4,2(x,e10.3))') 'PSolver: ALLGATHERV TIME',iproc,t1-t0,tel
+      write(78,*) 'PSolver: ALLGATHERV TIME',iproc,t1-t0,tel
+      write(78,*) '----------------------------------------------'
 
  deallocate(zf,gather_arr)
 
@@ -736,13 +809,12 @@ subroutine ParBuild_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,hgrid,itype
  !local part of the kernel
 
  istart=iproc*nker2/nproc+1
- iend=(iproc+1)*nker2/nproc
+ iend=min((iproc+1)*nker2/nproc,n2h+n03)
 
  istart1=istart
  if(iproc .eq. 0) istart1=n2h-n03+2
 
  iend2=iend
- if(iproc .eq. nproc-1) iend2=n2h+n03
 
  iend1=n2h
  istart2=n2h+1
@@ -754,7 +826,6 @@ subroutine ParBuild_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,hgrid,itype
     istart2=iend2+1
     iend1=iend
  end if
-
 
 !!!!!START KERNEL CONSTRUCTION
  if(iproc .eq. 0) then

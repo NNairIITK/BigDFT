@@ -9,11 +9,16 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - cluster], [0.2], [caliste@pcpm.ucl.ac.be], [bigdft])
+AC_INIT([BigDFT - cluster], [0.9], [caliste@pcpm.ucl.ac.be], [bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
 AC_CONFIG_AUX_DIR(config)
+
+dnl We custom the module naming scheme depending on the compiler
+dnl and the platform.
+dnl Not done yet
+AC_SUBST(MODULE_EXT, "mod")
 
 dnl Init something, don't know exactly what...
 AM_INIT_AUTOMAKE
@@ -21,9 +26,8 @@ AM_INIT_AUTOMAKE
 dnl Defining fortran language for tests.
 AC_LANG(Fortran)
 
-dnl If F77 environement variable is not already set, it
-dnl looks for a Fortran77 compiler and set F77 variable.
-dnl AC_PROG_F77()
+dnl We defined CC for the ABINIT part.
+AC_PROG_CC()
 
 dnl If FC environement variable is not already set, it
 dnl looks for a modern Fortran compiler, prefering newest
@@ -59,26 +63,6 @@ if test "$ar" = ":" ; then
   AC_MSG_ERROR(["No 'ar' program found."])
 fi
 
-dnl Look if a binary must be compiled
-ac_build_exec="yes"
-AC_ARG_ENABLE(build-binary,
-              AS_HELP_STRING([--disable-build-binary],
-                             [Don't create a binary (enable by default).]),
-              ac_build_exec=$enableval, ac_build_exec="yes")
-AM_CONDITIONAL(BUILD_BINARY, test "$ac_build_exec" = "yes")
-
-dnl Look if a binary must be compiled
-ac_build_lib="no"
-AC_ARG_ENABLE(build-library,
-              AS_HELP_STRING([--enable-build-library],
-                             [Don't create a library (disable by default).]),
-              ac_build_lib=$enableval, ac_build_lib="no")
-AM_CONDITIONAL(BUILD_LIBRARY, test "$ac_build_lib" = "yes")
-
-if [ test "$ac_build_lib" = "no" && test "$ac_build_exec" = "no" ] ; then
-  AC_MSG_ERROR(["Nothing to build."])
-fi
-
 dnl Enable or not MPI.
 AC_MSG_CHECKING([for builtin MPI capabilities])
 ac_use_mpi="yes"
@@ -87,6 +71,11 @@ AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enable by def
 if test "$ac_use_mpi" = "yes"; then
   AC_DEFINE(USE_MPI)
   AC_SUBST(PARALLEL_OPTION, ".true.")
+  if test x"$MPI_NAME" = x ; then
+    MPI_NAME=mpi
+  fi
+  MPI_LIBS="-l$MPI_NAME -lf$MPI_NAME"
+  AC_SUBST(MPI_LIBS)
 else
   AC_SUBST(PARALLEL_OPTION, ".false.")
 fi
@@ -99,11 +88,6 @@ if ! test x"$MPI_LDFLAGS" = x ; then
 fi
 AC_SUBST(MPI_LDFLAGS)
 AM_CONDITIONAL(USE_MPI, test "$ac_use_mpi" = "yes")
-if test "$ac_use_mpi" = "yes" ; then
-  AC_SUBST(MPI_SOURCES, "")
-else
-  AC_SUBST(MPI_SOURCES, "  include \"MPIfake.f90\"")
-fi
 AC_MSG_RESULT([$ac_use_mpi])
 
 dnl Use the simple or the optimised convolution code.
@@ -113,11 +97,6 @@ AC_ARG_ENABLE(optimised-convolution, AS_HELP_STRING([--disable-optimised-convolu
                          ac_use_opti_convolut=$enableval, ac_use_opti_convolut="yes")
 AM_CONDITIONAL(USE_OPTI_CONVOLUT, test "$ac_use_opti_convolut" = "yes")
 AC_MSG_RESULT([$ac_use_opti_convolut])
-if test "$ac_use_opti_convolut" = "yes" ; then
-  AC_SUBST(CONVOLUT_SOURCES, "convolut_optim_omp.f90")
-else
-  AC_SUBST(CONVOLUT_SOURCES, "convolut_simple.f90")
-fi
 
 dnl Get the lapack library
 lapack=yes
@@ -158,35 +137,37 @@ if test -n "$ac_linalg_dir" ; then
 fi
 if test -n "$ac_linalg" ; then
   AC_CHECK_LIB($ac_linalg, dsysv, withlinalg=yes, withlinalg=no)
+  LIBS="-l$ac_linalg $LIBS"
 fi
 
-dnl Test for one linear algebra library
-if [ test "$ac_build_exec" = "yes" ] ; then
-  if [ test $withlinalg = "no" && ( test $withlapack = "no" || test $withblas = "no" ) ] ; then
-  AC_MSG_ERROR(["No linear algebra library. Use --with-ext-linalg or check your Lapack installation."])
-  else
-    if test -n $withlinalg ; then
-      LIBS="-l$ac_linalg  $LIBS"
-    else
-      LIBS="-lblas -llapack  $LIBS"
-    fi
+dnl Fallbacks for linear algebra libraries
+if [ test $withlinalg = "no" && test $withblas = "no" ] ; then
+  AC_CHECK_LIB(blas, dcopy, withblas=yes, withblas=no)
+  if test $withblas = "no" ; then
+    AC_MSG_ERROR(["No blas library. Use --with-blas-path or check your Blas installation."])
   fi
+  LIBS="-lblas $LIBS"
+fi
+if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
+  AC_CHECK_LIB(lapack, dsysv, withlapack=yes, withlapack=no)
+  if test $withlapack = "no" ; then
+    AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation."])
+  fi
+  LIBS="-llapack $LIBS"
 fi
 
-dnl variables for autoconf
-modulelibdir="$libdir"
-AC_SUBST(modulelibdir)
-modulemoddir="$includedir"
-AC_SUBST(modulemoddir)
+dnl default installation directories
+fc_basename=`echo $FC | cut -d" " -f1`
+moduledir=${includedir}/$fc_basename
+AC_SUBST(moduledir)
 
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
 src/ABINIT-common/Makefile
+src/PSolver/Makefile
 src/parameters.h
-lib/Makefile
-lib/module_bigdft.f90
 utils/Makefile
 utils/PSPfiles/Makefile
 doc/Makefile
@@ -200,12 +181,12 @@ Basics:
   Fortran90 flags:        $FCFLAGS
   Linker flags:           $LDFLAGS
   Linked libraries:       $LIBS
-  Binary build:           $ac_build_exec
-  Library build:          $ac_build_lib
 
 Options:
   With MPI:               $ac_use_mpi
+   | MPI implementation:  $MPI_NAME
    | include dir.:        $MPI_INCLUDE
-   | lib. dir.:           $MPI_LDFLAGS
+   | Linker flags:        $MPI_LDFLAGS
+   | linked libraries:    $MPI_LIBS
   With optimised conv.:   $ac_use_opti_convolut
 "
