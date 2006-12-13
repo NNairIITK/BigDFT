@@ -43,15 +43,6 @@ if test -z "$FCFLAGS" ; then
   AC_SUBST(FCFLAGS, "-O2")
 fi
 
-dnl Using libtool to handle libraries
-dnl AC_CHECK_TOOL(LIBTOOL, libtool, :)
-dnl if test "$libtool" = ":" ; then
-dnl   AC_MSG_ERROR(["No 'libtool' program found."])
-dnl fi
-dnl AC_PROG_LIBTOOL
-dnl AC_DEFUN([LT_SUPPORTED_TAG], [])
-dnl LT_SUPPORTED_TAG([C])
-dnl LT_SUPPORTED_TAG([FC])
 dnl Look for ranlib and canonicalize it with the $host variable
 AC_CHECK_TOOL(RANLIB, ranlib, :)
 if test "$ranlib" = ":" ; then
@@ -70,22 +61,33 @@ AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enable by def
               ac_use_mpi=$enableval, ac_use_mpi="yes")
 if test "$ac_use_mpi" = "yes"; then
   AC_DEFINE(USE_MPI)
+  case "$FC" in
+    mpi*)
+      dnl The compiler will pass everything needed
+      MPI_LIBS=
+      MPI_INCLUDE=
+      MPI_LDFLAGS=
+      ;;
+    *)
+      dnl We set all flags by hand
+      if test x"$MPI_NAME" = x ; then
+        MPI_NAME=mpi
+      fi
+      MPI_LIBS="-l$MPI_NAME -lf$MPI_NAME"
+      if ! test x"$MPI_INCLUDE" = x ; then
+        MPI_INCLUDE=-I$MPI_INCLUDE
+      fi
+      if ! test x"$MPI_LDFLAGS" = x ; then
+        MPI_LDFLAGS=-L$MPI_LDFLAGS
+      fi
+      ;;
+  esac
   AC_SUBST(PARALLEL_OPTION, ".true.")
-  if test x"$MPI_NAME" = x ; then
-    MPI_NAME=mpi
-  fi
-  MPI_LIBS="-l$MPI_NAME -lf$MPI_NAME"
-  AC_SUBST(MPI_LIBS)
 else
   AC_SUBST(PARALLEL_OPTION, ".false.")
 fi
-if ! test x"$MPI_INCLUDE" = x ; then
-  MPI_INCLUDE=-I$MPI_INCLUDE
-fi
+AC_SUBST(MPI_LIBS)
 AC_SUBST(MPI_INCLUDE)
-if ! test x"$MPI_LDFLAGS" = x ; then
-  MPI_LDFLAGS=-L$MPI_LDFLAGS
-fi
 AC_SUBST(MPI_LDFLAGS)
 AM_CONDITIONAL(USE_MPI, test "$ac_use_mpi" = "yes")
 AC_MSG_RESULT([$ac_use_mpi])
