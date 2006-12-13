@@ -1,4 +1,4 @@
-module lib_BigDFT
+module libBigDFT
 
   private
 
@@ -952,7 +952,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
         if (iproc.eq.0) call system("rm CPUlimit")
 
-	end subroutine
+	END SUBROUTINE
 
 
         subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
@@ -999,7 +999,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
       deallocate(psiw)
  
         return
-        end subroutine
+        END SUBROUTINE
 
 
 	
@@ -1035,7 +1035,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         deallocate(psiw)
  
         return
-        end subroutine
+        END SUBROUTINE
  
 
 
@@ -1110,7 +1110,7 @@ subroutine input_rho_ion(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
   if (iproc.eq.0) write(*,'(a,e21.14,1x,e10.3)') 'total ionic charge,leaked charge: ',tt,rholeaked
 
   return
-end subroutine input_rho_ion
+END SUBROUTINE input_rho_ion
 
 
         subroutine addlocgauspsp(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,n1,n2,n3,hgrid,pot)
@@ -1183,7 +1183,7 @@ end subroutine input_rho_ion
     enddo
 
         return
-	end subroutine
+	END SUBROUTINE
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
 
@@ -1231,7 +1231,7 @@ end subroutine input_rho_ion
      enddo
 
 	return
-	end subroutine
+	END SUBROUTINE
 
 
         subroutine compress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -1290,7 +1290,7 @@ end subroutine input_rho_ion
 
         deallocate(psig,ww)
 
-	end subroutine
+	END SUBROUTINE
 
 
         subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -1352,7 +1352,7 @@ end subroutine input_rho_ion
 
         deallocate(psig,ww)
 
-	end subroutine
+	END SUBROUTINE
 
 
         subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -1405,7 +1405,7 @@ end subroutine input_rho_ion
 
    
         return
-	end subroutine
+	END SUBROUTINE
 
 
         subroutine applylocpotkin(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -1456,7 +1456,7 @@ end subroutine input_rho_ion
                     psigp,hpsi(1),hpsi(nvctr_c+1))
 
         return
-	end subroutine
+	END SUBROUTINE
 
     
         subroutine uncompress_forstandardP(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
@@ -1510,7 +1510,7 @@ end subroutine input_rho_ion
           enddo
          enddo
 
-	end subroutine
+	END SUBROUTINE
 
     
         subroutine compress_forstandardP(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
@@ -1561,7 +1561,7 @@ end subroutine input_rho_ion
           enddo
         enddo
 
-	end subroutine
+	END SUBROUTINE
 
 
 
@@ -1588,7 +1588,7 @@ end subroutine input_rho_ion
         deallocate(ww)
 
 	return
-	end subroutine
+	END SUBROUTINE
 
 
         subroutine convolut_magic_t(n1,n2,n3,x,y)
@@ -1614,7 +1614,7 @@ end subroutine input_rho_ion
         deallocate(ww)
 
 	return
-	end subroutine
+	END SUBROUTINE
 
 
 	subroutine synthese_grow(n1,n2,n3,ww,x,y)
@@ -1636,7 +1636,7 @@ end subroutine input_rho_ion
         call  syn_rot_grow(n3,nt,ww,y)
 
 	return
-        end subroutine
+        END SUBROUTINE
 
 
 
@@ -1659,7 +1659,7 @@ end subroutine input_rho_ion
         call  ana_rot_shrink(n3,nt,y,x)
 
 	return
-        end subroutine
+        END SUBROUTINE
 
 
 
@@ -1760,7 +1760,7 @@ end subroutine input_rho_ion
        write(77,'(a40,i4,2(1x,e10.3))') 'SUMRHO TIME',iproc,tr1-tr0,tel
 
         return
-	end subroutine
+	END SUBROUTINE
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 	
@@ -1783,7 +1783,7 @@ subroutine tenmminustwenty(n,x)
   do i=1,n
      x(i)=1.d-20
   end do
-end subroutine tenmminustwenty
+END SUBROUTINE tenmminustwenty
 !!***
 
 
@@ -1802,7 +1802,7 @@ end subroutine tenmminustwenty
           enddo
 
         return
-        end subroutine
+        END SUBROUTINE
 
 
         subroutine applyprojectorsall(iproc,ntypes,nat,iatype,psppar,occup, &
@@ -1841,7 +1841,7 @@ end subroutine tenmminustwenty
 
 
          return
-         end subroutine
+         END SUBROUTINE
 
         subroutine applyprojectors(ntypes,nat,iatype,psppar, &
                     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
@@ -1909,7 +1909,7 @@ end subroutine tenmminustwenty
      if (iproj.ne.nproj) stop '1:applyprojectors'
      if (istart_c-1.ne.nprojel) stop '2:applyprojectors'
          return
-         end subroutine
+         END SUBROUTINE
 
 
         subroutine crtproj(nterm,n1,n2,n3, & 
@@ -2033,7 +2033,7 @@ end subroutine tenmminustwenty
           deallocate(wprojx,wprojy,wprojz,work)
 
 	return
-	end subroutine
+	END SUBROUTINE
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
 	subroutine wdot(  & 
@@ -2130,7 +2130,7 @@ end subroutine tenmminustwenty
 !        write(*,*) 'llc,llf',llc,llf
 
 	return
-	end subroutine
+	END SUBROUTINE
 
 
 
@@ -2216,7 +2216,7 @@ end subroutine tenmminustwenty
 !        write(*,*) 'waxpy,llc,llf',llc,llf
 
 	return
-	end subroutine
+	END SUBROUTINE
 
 
 
@@ -2248,7 +2248,7 @@ end subroutine tenmminustwenty
         scpr=scpr+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
 
 	return
-	end subroutine
+	END SUBROUTINE
 
 
 
@@ -2271,7 +2271,7 @@ end subroutine tenmminustwenty
         enddo
 
 	return
-	end subroutine
+	END SUBROUTINE
 
 
 	subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
@@ -2293,7 +2293,7 @@ end subroutine tenmminustwenty
         enddo
 
 	return
-	end subroutine
+	END SUBROUTINE
 
 
         subroutine orthoconstraint_p(iproc,nproc,norb,norbp,occup,nvctrp,psit,hpsit,scprsum)
@@ -2346,7 +2346,7 @@ end subroutine tenmminustwenty
 
 
      return
-     end subroutine
+     END SUBROUTINE
 
 
 
@@ -2379,7 +2379,7 @@ end subroutine tenmminustwenty
        write(77,'(a40,i4,2(1x,e10.3))') 'ORTHOCONSTRAINT TIME',0,tr1-tr0,tel
 
      return
-     end subroutine
+     END SUBROUTINE
 
 
 
@@ -2407,7 +2407,7 @@ end subroutine tenmminustwenty
       czmax=czmax-eps_mach ; czmin=czmin+eps_mach
 
         return
-        end subroutine
+        END SUBROUTINE
 
 
         subroutine pregion_size(rxyz,radii,rmult,iatype,ntypes, &
@@ -2447,7 +2447,7 @@ end subroutine tenmminustwenty
       if (nu3.gt.n3)   stop 'nu3: projector region outside cell'
 
         return
-        end subroutine
+        END SUBROUTINE
 
 
 	subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
@@ -2486,7 +2486,7 @@ end subroutine tenmminustwenty
         mseg=nend
 
 	return
-        end subroutine
+        END SUBROUTINE
 
 
 	subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
@@ -2530,7 +2530,7 @@ end subroutine tenmminustwenty
         mseg=nend
 
 	return
-        end subroutine
+        END SUBROUTINE
 
 
 
@@ -2571,7 +2571,7 @@ end subroutine tenmminustwenty
       enddo
 
         return
-        end subroutine
+        END SUBROUTINE
 
 
         subroutine bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
@@ -2650,7 +2650,7 @@ end subroutine tenmminustwenty
 300     continue
 
         return
-        end subroutine
+        END SUBROUTINE
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
@@ -2701,7 +2701,7 @@ end subroutine tenmminustwenty
        write(78,'(a40,i4,2(1x,e10.3))') 'GRAM_SCHMIDT TIME',iproc,tr2-tr1,tel
 
         return
-        end subroutine
+        END SUBROUTINE
 
 
         
@@ -2844,7 +2844,7 @@ subroutine createWavefunctionsArrays(parallel, iproc, nproc, idsx, n1, n2, n3, o
   !       call compresstest(iproc,n1,n2,n3,norb,norbp,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,hpsi)
   deallocate(logrid_c,logrid_f)
 
-end subroutine createWavefunctionsArrays
+END SUBROUTINE createWavefunctionsArrays
 
   subroutine createKernel(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
                        & ndegree_ip, iproc, nproc, pkernel)
@@ -2880,7 +2880,7 @@ end subroutine createWavefunctionsArrays
 !          call test_kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,pot_ion,rhopot)
        end if
 
-  end subroutine createKernel
+  END SUBROUTINE createKernel
 
   subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, atomnames, &
        & psppar, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
@@ -3071,7 +3071,7 @@ end subroutine createWavefunctionsArrays
     ! projector part finished
     deallocate(logrid)
 
-  end subroutine createProjectorsArrays
+  END SUBROUTINE createProjectorsArrays
 
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
@@ -3153,7 +3153,7 @@ end subroutine createWavefunctionsArrays
        write(78,'(a40,i4,2(1x,e10.3))') 'LOEWE TIME',iproc,tr2-tr1,tel
 
         return
-        end subroutine
+        END SUBROUTINE
 
 
 
@@ -3230,7 +3230,7 @@ end subroutine createWavefunctionsArrays
        write(77,'(a40,i4,2(1x,e10.3))') 'LOEWE TIME',iproc,tr1-tr0,tel
 
         return
-        end subroutine
+        END SUBROUTINE
 
 
 	subroutine checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
@@ -3267,7 +3267,7 @@ end subroutine createWavefunctionsArrays
         deallocate(ovrlp)
 
         return
-	end subroutine
+	END SUBROUTINE
 
 
 	subroutine checkortho(norb,norbp,nvctrp,psi)
@@ -3302,7 +3302,7 @@ end subroutine createWavefunctionsArrays
 
 
         return
-	end subroutine
+	END SUBROUTINE
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
@@ -3363,7 +3363,7 @@ subroutine readAtomicOrbitals(iproc, filename, ngx, npsp, xp, psiat, occupat, ng
   enddo
   if (iproc.eq.0) write(*,*) 'number of orbitals used in the construction of input guess ',norbe
 
-end subroutine readAtomicOrbitals
+END SUBROUTINE readAtomicOrbitals
 
 subroutine createAtomicOrbitals(iproc, nproc, npsp, pspatomnames, atomnames, nat, rxyz, &
      & norbe, norbep, occupe, occupat, ngx, xp, psiat, psiatn, ng, ns, np, nvctr_c, nvctr_f, &
@@ -3594,7 +3594,7 @@ subroutine createAtomicOrbitals(iproc, nproc, npsp, pspatomnames, atomnames, nat
      endif
   end do
 
-end subroutine createAtomicOrbitals
+END SUBROUTINE createAtomicOrbitals
 
 
 subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -3784,7 +3784,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         deallocate(hamovr,occupe)
 
 	return
-	end subroutine
+	END SUBROUTINE
 
 
         logical function myorbital(iorb,norbe,iproc,nproc)
@@ -3862,7 +3862,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         deallocate(psitt)
 
 	return
-        end subroutine
+        END SUBROUTINE
 
 
 
@@ -3921,7 +3921,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         deallocate(psitt)
 
 	return
-        end subroutine
+        END SUBROUTINE
 
 
 
@@ -4045,7 +4045,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
           deallocate(wprojx,wprojy,wprojz,work,psig_c,psig_f)
 
 	return
-	end subroutine
+	END SUBROUTINE
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
  subroutine reformatmywaves(iproc, norb, norbp, nat, &
@@ -4142,7 +4142,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
    
    deallocate(psifscf)  
 
- end subroutine reformatmywaves
+ END SUBROUTINE reformatmywaves
 
  subroutine reformatonewave(iproc, iorb, norbp, nat, hgrid_old, n1_old, n2_old, n3_old, &
       & rxyz_old, psigold, hgrid, nvctr_c, nvctr_f, n1, n2, n3, rxyz, nseg_c, nseg_f, &
@@ -4263,7 +4263,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         psifscf,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp))
 
    deallocate(psifscfold,psifscfoex,wwold)
- end subroutine reformatonewave
+ END SUBROUTINE reformatonewave
 
 
 
@@ -4303,7 +4303,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
    call system_clock(ncount2,ncount_rate,ncount_max)
    tel=dble(ncount2-ncount1)/dble(ncount_rate)
    write(77,'(a40,i4,2(1x,e10.3))') 'READING WAVES TIME',iproc,tr1-tr0,tel
- end subroutine readmywaves
+ END SUBROUTINE readmywaves
 
 
  subroutine readonewave(unitwf, useFormattedInput, iorb,iproc,norbp,n1,n2,n3, &
@@ -4414,7 +4414,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
       deallocate(psigold)
 
    endif
- end subroutine readonewave
+ END SUBROUTINE readonewave
 
 
 
@@ -4454,7 +4454,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
 
        return
-       end subroutine
+       END SUBROUTINE
 
 
 
@@ -4534,7 +4534,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 	write(*,*) iorb,'th wavefunction written'
 
 
-	end subroutine
+	END SUBROUTINE
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
         subroutine plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, & 
@@ -4555,7 +4555,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
         deallocate(psifscf,psir)
         return
-	end subroutine
+	END SUBROUTINE
 
 
 
@@ -4595,7 +4595,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         close(iounit+2) 
 
         return
-        end subroutine
+        END SUBROUTINE
 
 
 
@@ -4637,7 +4637,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 	enddo 
 
         return
-        end subroutine
+        END SUBROUTINE
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
@@ -4696,7 +4696,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         enddo
 
         return
-        end subroutine
+        END SUBROUTINE
 
 
 
@@ -4787,6 +4787,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         deallocate(ipiv,rds)
 
 	return
-	end subroutine
+	END SUBROUTINE
 
 end module

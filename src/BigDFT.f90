@@ -1,4 +1,4 @@
-  use lib_BigDFT
+  use libBigDFT
 
         implicit real*8 (a-h,o-z)
 

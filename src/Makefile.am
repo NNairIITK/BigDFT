@@ -23,7 +23,7 @@ AM_FCFLAGS = @MPI_INCLUDE@
 
 bin_PROGRAMS = cluster test_forces
 lib_LIBRARIES = libbigdft.a
-module_DATA = lib_bigdft.@MODULE_EXT@
+module_DATA = libbigdft.@MODULE_EXT@
 
 if USE_MPI
 mpi_source =
@@ -67,7 +67,7 @@ test_forces_LDADD = libbigdft.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
-CLEANFILES = $(mpi_include) lib_bigdft.@MODULE_EXT@
+CLEANFILES = $(mpi_include) libbigdft.@MODULE_EXT@
 
 #dependencies
 cluster_all.o: $(mpi_include)

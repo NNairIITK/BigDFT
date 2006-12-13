@@ -1,7 +1,7 @@
 subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
      n1,n2,n3,rho,pot,floc)
 ! Calculates the local forces acting on the atoms belonging to iproc
-  use lib_BigDFT
+  use libBigDFT
   
   implicit none
   !Arguments---------
@@ -153,7 +153,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
      iatype,psppar,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
      keyg,keyv,keyg_p,keyv_p,psi,rxyz,radii_cf,cpmult,fpmult,hgrid,fsep)
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and ads them to the force array
-  use lib_BigDFT
+  use libBigDFT
   
   implicit none
   !Arguments-------------
