@@ -21,7 +21,7 @@
 
        call cpu_time(tr1) ;  call system_clock(ncount2,ncount_rate,ncount_max)
        tel=dble(ncount2-ncount1)/dble(ncount_rate)
-       write(77,'(a40,i4,2(x,e10.3))') 'PRECONDITIONING TIME',iproc,tr1-tr0,tel
+       write(77,'(a40,i4,2(1x,e10.3))') 'PRECONDITIONING TIME',iproc,tr1-tr0,tel
 
       return
       end
@@ -34,10 +34,10 @@
                    ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
 ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 ! hpsi is the right hand side on input and the solution on output
-	implicit real*8 (a-h,o-z)
+        implicit real*8 (a-h,o-z)
         dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
         dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-	dimension hpsi(nvctr_c+7*nvctr_f),scal(0:3),residues(ncong)
+        dimension hpsi(nvctr_c+7*nvctr_f),scal(0:3),residues(ncong)
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         allocatable rpsi(:),ppsi(:),wpsi(:)
 !        allocatable spsi(:)
