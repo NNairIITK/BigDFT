@@ -308,7 +308,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   ! Create wavefunctions descriptors and allocate them
   allocate(ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2))
   allocate(ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2))
-  call createWavefunctionsArrays(parallel, iproc, nproc, idsx, n1, n2, n3, .true., hgrid, &
+  call createWavefunctionsArrays(parallel, iproc, nproc, idsx, n1, n2, n3, alat1, alat2, &
+       & alat3, .true., hgrid, &
        & nat, ntypes, iatype, atomnames, rxyz, radii_cf, crmult, frmult, ibyz_c,ibxz_c,ibxy_c, &
        & ibyz_f, ibxz_f, ibxy_f, nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp, keyg, &
        & keyv, norb, norbp, psi, hpsi, psit, psidst, hpsidst, ads)
@@ -2748,7 +2749,8 @@ END SUBROUTINE tenmminustwenty
         return
         end     subroutine    
 
-subroutine createWavefunctionsArrays(parallel, iproc, nproc, idsx, n1, n2, n3, outputGrid, &
+subroutine createWavefunctionsArrays(parallel, iproc, nproc, idsx, n1, n2, n3, alat1, &
+     & alat2, alat3, outputGrid, &
      & hgrid, nat, ntypes, iatype, atomnames, rxyz, radii_cf, crmult, frmult, &
      & ibyz_c,ibxz_c,ibxy_c, ibyz_f, ibxz_f, ibxy_f, nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp, &
      & keyg, keyv, norb, norbp, psi, hpsi, psit, psidst, hpsidst, ads)
