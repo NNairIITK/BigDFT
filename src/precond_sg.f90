@@ -216,9 +216,12 @@
         dimension psig_c(0:n1,0:n2,0:n3)
         dimension psig_fc(0:n1,0:n2,0:n3,3),psig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
 
-        call zero((n1+1)*(n2+1)*(n3+1),psig_c)
-        call zero(3*(n1+1)*(n2+1)*(n3+1),psig_fc)
-        call zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),psig_f)
+        psig_c = 0.d0
+        psig_fc = 0.d0
+        psig_f = 0.d0
+!        call zero((n1+1)*(n2+1)*(n3+1),psig_c)
+!        call zero(3*(n1+1)*(n2+1)*(n3+1),psig_fc)
+!        call zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),psig_f)
 
 ! coarse part
 	do iseg=1,mseg_c
