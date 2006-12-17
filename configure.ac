@@ -160,7 +160,7 @@ fi
 
 dnl default installation directories
 fc_basename=`echo $FC | cut -d" " -f1`
-moduledir=${includedir}/$fc_basename
+moduledir=${includedir}
 AC_SUBST(moduledir)
 
 dnl Give the name of file.in to transform to file
