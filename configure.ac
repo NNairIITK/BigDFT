@@ -159,7 +159,7 @@ if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
 fi
 
 dnl default installation directories
-fc_basename=`echo $FC | cut -d" " -f1`
+fc_basename=`echo $FC | sed "s/ *//" | sed 's,.*/,,'`
 moduledir=${includedir}/$fc_basename
 AC_SUBST(moduledir)
 
