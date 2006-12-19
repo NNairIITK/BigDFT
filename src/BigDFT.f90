@@ -4,7 +4,7 @@
 
 ! atomic coordinates, forces
         real*8, allocatable, dimension(:,:) :: rxyz, fxyz, rxyz_old
-        logical parallel,stopnow
+        logical parallel,output_wf,output_grid
         character*20 tatonam
 ! atomic types
         integer, allocatable, dimension(:) :: iatype
@@ -21,16 +21,15 @@
 !$      end interface
         include 'mpif.h'
 
-        parallel=.true.
-
-
 ! For parallel MPI execution set parallel=.true., for serial parallel=.false.
+        parallel=.true.
 ! Start MPI in parallel version
         if (parallel) then
         call MPI_INIT(ierr)
         call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
         call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
         write(6,*) 'mpi started',iproc,nproc
+        call system("hostname")
         else
         nproc=1
         iproc=0
@@ -77,7 +76,7 @@
         if (iproc.eq.0) write(*,*) 'atoms of type ',ityp,' are ',atomnames(ityp)
         enddo
 
-           ampl=0.d-1  ! amplitude for random displacement away from input file geometry (usually equilibrium geom.)
+           ampl=5.d-1  ! amplitude for random displacement away from input file geometry (usually equilibrium geom.)
            write(*,*) 'random displacemnt amplitude',ampl
            do iat=1,nat
               call random_number(tt)
@@ -88,22 +87,29 @@
               rxyz(3,iat)=rxyz(3,iat)+ampl*tt
            enddo
 ! geometry optimization
-        betax=2.d0  
+!        betax=2.d0   ! Cincodinine
 !        betax=4.d0  ! Si H_4
-!        betax=7.5d0  ! silicon systems
+        betax=7.5d0  ! silicon systems
 !         betax=10.d0  !  Na_Cl clusters
         beta=.75d0*betax
         energyold=1.d100
        fluct=0.d0
        flucto=0.d0
-       ngeostep=10
+       ngeostep=1!00
        do 500, igeostep=1,ngeostep
 
         if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
         
-        call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,stopnow, &
+        output_grid=.false. 
+        if (igeostep.eq.1) then 
+            inputPsiId=0
+        else
+            inputPsiId=1
+        endif
+        output_wf=.true. 
+        call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz, &
                    & psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-                   & min(2, igeostep), n1, n2, n3, hgrid, rxyz_old)
+                   & inputPsiId, output_grid, output_wf, n1, n2, n3, hgrid, rxyz_old)
         rxyz_old = rxyz
 
         if (iproc.eq.0) call wtposout(igeostep-1,nat,rxyz,atomnames,iatype)
@@ -157,14 +163,13 @@
         endif
         energyold=energy
 
-        if (stopnow) goto 501
 500 continue
 501 continue
 
-!  write all the wavefunctions into files
+!!  write all the wavefunctions into files
   call  writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,  & 
-       rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
-  write(*,*) iproc,' finished writing waves'
+       nat,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
+  write(*,*) iproc,' finished writing waves of relaxed geometry'
 
   deallocate(eval)
   deallocate(psi, keyg, keyv)

@@ -51,7 +51,8 @@ libbigdft_a_SOURCES = \
 	standconv_test.f90 \
 	gauss_to_daub.f90 \
 	precond_sg.f90 \
-	forces.f90 
+	forces.f90 \
+	timing.f90
 
 cluster_SOURCES = BigDFT.f90
 cluster_LDFLAGS = $(LMPI)

@@ -109,7 +109,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
 &                  dvxc,d2vxc,grho2_updn,vxcgr)    !Optional arguments 
 
  use defs_basis
- use defs_xc
+ use defs_xc, except_this_one => drivexc
 #if defined HAVE_NQXC
  use nqxc
 #endif

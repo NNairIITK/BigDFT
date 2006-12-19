@@ -8,20 +8,19 @@
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         dimension hpsi(nvctr_c+7*nvctr_f,norbp),eval(norb)
 
-       call cpu_time(tr0) ; call system_clock(ncount1,ncount_rate,ncount_max)
+       call timing(iproc,'Precondition  ','ON')
 
       do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
        cprecr=-eval(iorb)
+!       write(*,*) 'cprecr',iorb,cprecr
         call precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
                    nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
                    ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi(1,iorb-iproc*norbp))
 
       enddo
 
-       call cpu_time(tr1) ;  call system_clock(ncount2,ncount_rate,ncount_max)
-       tel=dble(ncount2-ncount1)/dble(ncount_rate)
-       write(77,'(a40,i4,2(1x,e10.3))') 'PRECONDITIONING TIME',iproc,tr1-tr0,tel
+       call timing(iproc,'Precondition  ','OF')
 
       return
       end
@@ -34,10 +33,10 @@
                    ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
 ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 ! hpsi is the right hand side on input and the solution on output
-        implicit real*8 (a-h,o-z)
+	implicit real*8 (a-h,o-z)
         dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
         dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-        dimension hpsi(nvctr_c+7*nvctr_f),scal(0:3),residues(ncong)
+	dimension hpsi(nvctr_c+7*nvctr_f),scal(0:3),residues(ncong)
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         allocatable rpsi(:),ppsi(:),wpsi(:)
 !        allocatable spsi(:)
@@ -122,7 +121,7 @@
 !  D^{-1/2} times solution
         call  wscalv(nvctr_c,nvctr_f,scal,hpsi,hpsi(nvctr_c+1))
 
-        write(*,'(i4,(100(1x,e8.2)))') iorb,(residues(icong),icong=2,ncong)
+!        write(*,'(i4,(100(1x,e8.2)))') iorb,(residues(icong),icong=2,ncong)
 
 !! check final residue of original equation
 !        do i=0,3
