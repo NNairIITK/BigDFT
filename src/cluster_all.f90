@@ -141,6 +141,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocatable :: psifscf(:),psir(:),psig(:),psigp(:),ww(:)
   allocatable :: rho(:),hartpot(:),rhopotb(:,:,:)
 
+  integer :: ierror
+
   include 'mpif.h'
 
   if (iproc.eq.0) write(*,*) 'CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER',inputPsiId
@@ -214,12 +216,19 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   do ityp=1,ntypes
      filename = 'psppar.'//atomnames(ityp)
      !        if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
-     open(unit=11,file=filename,status='old')
+     open(unit=11,file=filename,status='old',iostat=ierror)
+     !Check the open statement
+     if (ierror /= 0) then
+         write(*,*) 'Failed to open the file "',trim(filename),'"'
+         stop
+     end if
      read(11,'(a35)') label
      read(11,*) radii_cf(ityp,1),radii_cf(ityp,2)
      read(11,*) nelpsp(ityp)
-     if (iproc.eq.0) write(*,'(a,1x,a,a,i3,a,a)') 'atom type ',atomnames(ityp), & 
+     if (iproc.eq.0) then
+         write(*,'(a,1x,a,a,i3,a,a)') 'atom type ',atomnames(ityp), & 
           ' is described by a ',nelpsp(ityp),' electron',label
+     end if
      do i=0,2
         read(11,*) (psppar(i,j,ityp),j=0,4)
      enddo

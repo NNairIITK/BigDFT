@@ -173,6 +173,7 @@ src/parameters.h
 utils/Makefile
 utils/PSPfiles/Makefile
 doc/Makefile
+test/Makefile
 ])
 AC_OUTPUT
 

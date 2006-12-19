@@ -2,10 +2,12 @@
 
         implicit real*8 (a-h,o-z)
 
+! For parallel MPI execution set parallel=.true., for serial parallel=.false.
+        include 'parameters.h'
 ! atomic coordinates, forces
         real*8, allocatable, dimension(:,:) :: rxyz, fxyz, rxyz_old
-        logical parallel,output_wf,output_grid
-        character*20 tatonam
+        logical  :: output_wf,output_grid
+        character*20 :: tatonam
 ! atomic types
         integer, allocatable, dimension(:) :: iatype
         character*20 :: atomnames(100), units
@@ -21,18 +23,16 @@
 !$      end interface
         include 'mpif.h'
 
-! For parallel MPI execution set parallel=.true., for serial parallel=.false.
-        parallel=.true.
 ! Start MPI in parallel version
         if (parallel) then
-        call MPI_INIT(ierr)
-        call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-        call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-        write(6,*) 'mpi started',iproc,nproc
-        call system("hostname")
+          call MPI_INIT(ierr)
+          call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+          call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+          write(6,*) 'mpi started',iproc,nproc
+          call system("hostname")
         else
-        nproc=1
-        iproc=0
+          nproc=1
+          iproc=0
         endif
 
 !$omp parallel private(iam)  shared (npr)
