@@ -1,3 +1,3 @@
 SUBDIRS = PSPfiles
 
-EXTRA_DIST = inguess.dat
+EXTRA_DIST = 

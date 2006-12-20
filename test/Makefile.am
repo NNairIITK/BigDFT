@@ -8,8 +8,7 @@ SUBDIRS = \
 EXTRA_DIST = \
 	inguess.dat \
 	input.dat \
-	posinp \
-	SiH4
+	posinp
 
 CLEANFILES = wavefunction*
 
