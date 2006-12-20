@@ -1,24 +1,20 @@
 ## Process this file with automake to produce Makefile.in
 
+SUBDIRS = \
+		  SiH4 \
+		  NaCl \
+		  C
+
 EXTRA_DIST = \
 	inguess.dat \
 	input.dat \
-	posinp
-
-PPFILES = \
-	psppar.H_lda \
-	psppar.Si_lda
+	posinp \
+	SiH4
 
 CLEANFILES = wavefunction*
 
-#dependencies
-$(PPFILES):
-	ln -s ../utils/PSPfiles/$<
+all:
+	@echo "======================================="
+	@echo "Type 'make check' in the directory test"
+	@echo "======================================="
 
-mpif.h:
-	touch mpif.h
-	echo "real*8 :: MPI_double_precision" >> mpif.h
-	echo "real*8 :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h
-
-cluster.o: parameters.h
-test_forces.o: parameters.h

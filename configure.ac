@@ -174,6 +174,9 @@ utils/Makefile
 utils/PSPfiles/Makefile
 doc/Makefile
 test/Makefile
+test/SiH4/Makefile
+test/NaCl/Makefile
+test/C/Makefile
 ])
 AC_OUTPUT
 
