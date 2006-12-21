@@ -13,10 +13,10 @@ CLEANFILES = $(PPFILES) inguess.dat wavefunction* *.out posout* malloc *.out tim
 
 #dependencies
 $(PPFILES):
-	ln -s ../../utils/PSPfiles/$@
+	ln -s ../../utils/PSPfiles/$@ .
 
 inguess.dat:
-	ln -s ../inguess.dat
+	ln -s ../inguess.dat .
 
 check: $(PPFILES) inguess.dat
 	../../src/cluster > C.out

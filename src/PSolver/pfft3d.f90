@@ -62,7 +62,7 @@ subroutine convolxc_on(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   real(kind=8), dimension(md1,md3,md2/nproc), intent(in) :: zfpot_ion
   !Local variables
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
-  integer :: j1,j2,j3,i1,i2,i3,i,j,inzee,ierr
+  integer :: j2,j3,i1,i3,i,j,inzee,ierr
   real(kind=8) :: ehartreetmp,eexcutmp,vexcutmp,twopion
   !work arrays for transpositions
   real(kind=8), dimension(:,:,:), allocatable :: zt
