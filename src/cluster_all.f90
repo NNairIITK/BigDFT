@@ -152,7 +152,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      call timing(iproc,'             ','IN')
   end if
   if (iproc.eq.0) open(unit=79,file='malloc')
-  call cpu_time(tcpu0) ; call system_clock(ncount0,ncount_rate,ncount_max)
+  call cpu_time(tcpu0)
+  call system_clock(ncount0,ncount_rate,ncount_max)
 
   ! We save the variables that defined the previous psi if
   ! restartOnPsi is .true.
@@ -219,14 +220,14 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      open(unit=11,file=filename,status='old',iostat=ierror)
      !Check the open statement
      if (ierror /= 0) then
-         write(*,*) 'Failed to open the file "',trim(filename),'"'
-         stop
+        write(*,*) 'Failed to open the file "',trim(filename),'"'
+        stop
      end if
      read(11,'(a35)') label
      read(11,*) radii_cf(ityp,1),radii_cf(ityp,2)
      read(11,*) nelpsp(ityp)
      if (iproc.eq.0) then
-         write(*,'(a,1x,a,a,i3,a,a)') 'atom type ',atomnames(ityp), & 
+        write(*,'(a,1x,a,a,i3,a,a)') 'atom type ',atomnames(ityp), & 
           ' is described by a ',nelpsp(ityp),' electron',label
      end if
      do i=0,2
@@ -249,7 +250,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   norb=(nelec+1)/2+norb_vir
 
   allocate(occup(norb))
-  if (inputPsiId .ne. 1) allocate(eval(norb))
+  if (inputPsiId .ne. 1) then
+     allocate(eval(norb))
+  end if
 
   nt=0
   do iorb=1,norb
@@ -344,7 +347,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      allocate(psidst(nvctrp,norbp*nproc,idsx),hpsidst(nvctrp,norbp*nproc,idsx))
      if (iproc.eq.0) write(79,*) 'allocation done'
      allocate(ads(idsx+1,idsx+1,3))
-     call  zero(3*(idsx+1)**2,ads)
+     call zero(3*(idsx+1)**2,ads)
   endif
 
 ! Calculate all projectors
@@ -431,10 +434,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         if (idsx.gt.0) write(*,*) 'iter=',iter,mids
 
         if (gnrm.le.gnrm_cv) then
-           write(*,'(a,i3,3(1x,e18.11))') 'iproc,ehart,eexcu,vexcu',iproc,ehart,eexcu,vexcu
-           write(*,'(a,3(1x,e18.11))') 'final ekin_sum,epot_sum,eproj_sum',ekin_sum,epot_sum,eproj_sum
-           write(*,'(a,3(1x,e18.11))') 'final ehart,eexcu,vexcu',ehart,eexcu,vexcu
-           write(*,'(a,i6,2x,e19.12,1x,e9.2)') 'FINAL iter,total energy,gnrm',iter,energy,gnrm
+           write(*,'(a,i3,3(1x,1pe18.11))') 'iproc,ehart,eexcu,vexcu',iproc,ehart,eexcu,vexcu
+           write(*,'(a,3(1x,1pe18.11))') 'final ekin_sum,epot_sum,eproj_sum',ekin_sum,epot_sum,eproj_sum
+           write(*,'(a,3(1x,1pe18.11))') 'final ehart,eexcu,vexcu',ehart,eexcu,vexcu
+           write(*,'(a,i6,2x,1pe19.12,1x,1pe9.2)') 'FINAL iter,total energy,gnrm',iter,energy,gnrm
         endif
      endif
 
@@ -475,10 +478,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         if (iproc.eq.0) then 
            write(*,*) iter,' minimization iterations required'
         end if
-        goto 1010 
+        goto 1010
      endif
 
-     
+
      ! Apply  orthogonality constraints to all orbitals belonging to iproc
      if (parallel) then
         allocate(hpsit(nvctrp,norbp*nproc))
@@ -597,8 +600,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 1000 continue
   write(*,*) 'No convergence within the allowed number of minimization steps'
 1010 continue
-  if (idsx.gt.0) deallocate(psidst,hpsidst,ads)
-
+  if (idsx.gt.0) then
+     deallocate(psidst,hpsidst,ads)
+  end if
 
   !------------------------------------------------------------------------
   ! transform to KS orbitals

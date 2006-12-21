@@ -10,7 +10,7 @@ PPFILES = \
 	psppar.Na_lda \
 	psppar.Cl_lda
 
-CLEANFILES = $(PPFILES) inguess.dat wavefunction* posout* malloc time.prc
+CLEANFILES = $(PPFILES) inguess.dat wavefunction* *.out posout* malloc time.prc
 
 #dependencies
 $(PPFILES):
@@ -20,4 +20,5 @@ inguess.dat:
 	ln -s ../inguess.dat
 
 check: $(PPFILES) inguess.dat
-	../../src/cluster
+	../../src/cluster > NaCl.out
+	diff NaCl.out ../Refs/NaCl.out.refs | cat
