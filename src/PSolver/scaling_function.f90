@@ -39,8 +39,8 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   allocate(y(0:nd))
   
   ! plot scaling function
-  call zero(nd+1,x)
-  call zero(nd+1,y)
+  call dzero(nd+1,x)
+  call dzero(nd+1,y)
   nt=ni
   x(nt/2-1)=1.d0
   loop1: do
@@ -124,8 +124,8 @@ subroutine wavelet_function(itype,nd,a,x)
   allocate(y(0:nd))
   
   ! plot wavelet 
-  call zero(nd+1,x)
-  call zero(nd+1,y)
+  call dzero(nd+1,x)
+  call dzero(nd+1,y)
   nt=ni
   x(nt+nt/2-1)=1.d0
   loop3: do
@@ -226,16 +226,16 @@ end subroutine scf_recursion
 !!***
 
 
-!!****h* BigDFT/zero
+!!****h* BigDFT/dzero
 !! NAME
-!!   zero
+!!   dzero
 !!
 !! FUNCTION
 !!   Set to zero an array x(n)
 !!
 !! SOURCE
 !!
-subroutine zero(n,x)
+subroutine dzero(n,x)
   implicit none
   !Arguments
   integer, intent(in) :: n
@@ -245,7 +245,7 @@ subroutine zero(n,x)
   do i=1,n
      x(i)=0.d0
   end do
-end subroutine zero
+end subroutine dzero
 !!***
 
 

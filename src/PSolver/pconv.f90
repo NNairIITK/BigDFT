@@ -479,8 +479,8 @@ subroutine pconvxc_on(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
       call cpu_time(t1)
       call system_clock(count2,count_rate,count_max)
       tel=dble(count2-count1)/dble(count_rate)
-      write(78,*) 'PSOLVER: ALLREDUCE TIME',iproc,t1-t0,tel
-      write(78,*) '----------------------------------------------'
+      !write(78,*) 'PSOLVER: ALLREDUCE TIME',iproc,t1-t0,tel
+      !write(78,*) '----------------------------------------------'
  else
     ehartree=ehartreeLOC
     eexcu=eexcuLOC
@@ -595,15 +595,15 @@ subroutine pconvxc_off(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
 
  !evaluating the total ehartree
  if (nproc.gt.1) then
-      call cpu_time(t0)
-      call system_clock(count1,count_rate,count_max)
+    call cpu_time(t0)
+    call system_clock(count1,count_rate,count_max)
     call MPI_ALLREDUCE(ehartreeLOC,ehartree,1,MPI_double_precision,  &
          MPI_SUM,MPI_COMM_WORLD,ierr)
-      call cpu_time(t1)
-      call system_clock(count2,count_rate,count_max)
-      tel=dble(count2-count1)/dble(count_rate)
-      write(78,*) 'PSolver: ALLREDUCE TIME',iproc,t1-t0,tel
-      write(78,*) '----------------------------------------------'
+    call cpu_time(t1)
+    call system_clock(count2,count_rate,count_max)
+    tel=dble(count2-count1)/dble(count_rate)
+    write(78,*) 'PSolver: ALLREDUCE TIME',iproc,t1-t0,tel
+    write(78,*) '----------------------------------------------'
  else
     ehartree=ehartreeLOC
  end if
@@ -632,8 +632,8 @@ subroutine pconvxc_off(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
       call cpu_time(t1)
       call system_clock(count2,count_rate,count_max)
       tel=dble(count2-count1)/dble(count_rate)
-      write(78,*) 'PSolver: ALLGATHERV TIME',iproc,t1-t0,tel
-      write(78,*) '----------------------------------------------'
+      !write(78,*) 'PSolver: ALLGATHERV TIME',iproc,t1-t0,tel
+      !write(78,*) '----------------------------------------------'
 
  deallocate(zf,gather_arr)
 
