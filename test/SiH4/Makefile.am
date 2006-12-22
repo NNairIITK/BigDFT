@@ -4,8 +4,7 @@ SUBDIRS =
 
 EXTRA_DIST = \
 	input.dat \
-	posinp \
-	SiH4.out.ref
+	posinp 
 
 PPFILES = \
 	psppar.H_lda \

@@ -35,6 +35,8 @@ dnl fortran available (e. g. Fortran95). Then FC variable
 dnl is set.
 AC_PROG_FC()
 
+ABI_PROG_FC()
+
 dnl Set the FCFLAGS and FFLAGS variable
 if test -z "$FFLAGS" ; then
   AC_SUBST(FFLAGS, "-O2")
@@ -159,8 +161,7 @@ if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
 fi
 
 dnl default installation directories
-fc_basename=`echo $FC | cut -d" " -f1`
-moduledir=${includedir}
+moduledir=${includedir}/$fc_type
 AC_SUBST(moduledir)
 
 dnl Give the name of file.in to transform to file
