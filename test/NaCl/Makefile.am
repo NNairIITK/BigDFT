@@ -21,4 +21,4 @@ inguess.dat:
 
 check: $(PPFILES) inguess.dat
 	../../src/cluster > NaCl.out
-	diff NaCl.out ../Refs/NaCl.out.refs | cat
+	diff NaCl.out ../Refs/NaCl.out.ref | cat

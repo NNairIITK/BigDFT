@@ -30,7 +30,7 @@ module libBigDFT
   
   !- Initialisation methods.
   !- Create and allocate access arrays for wavefunctions.
-  public :: createWavefunctionDescriptors
+  public :: createWavefunctionArrays
   !- Create and allocate projectors (and their access arrays).
   public :: createProjectorsArrays
   public :: crtproj
@@ -319,11 +319,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      write(*,*) 'nfl3,nfu3 ',nfl3,nfu3
   endif
 
-
 ! Create wavefunctions descriptors and allocate them
   allocate(ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2))
   allocate(ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2))
-  call createWavefunctionDescriptors(parallel, iproc, nproc, n1, n2, n3, output_grid, hgrid, &
+  call createWavefunctionArrays(parallel, iproc, nproc, n1, n2, n3, output_grid, hgrid, &
        & nat, ntypes, iatype, atomnames, rxyz, radii_cf, crmult, frmult, ibyz_c,ibxz_c,ibxy_c, &
        & ibyz_f, ibxz_f, ibxy_f, nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp, alat1,alat2,alat3, keyg,  keyv)
 
@@ -351,7 +350,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      allocate(ads(idsx+1,idsx+1,3))
      call dzero(3*(idsx+1)**2,ads)
   endif
-
 ! Calculate all projectors
   allocate(nseg_p(0:2*nat))
   allocate(nvctr_p(0:2*nat))
@@ -2619,11 +2617,11 @@ END SUBROUTINE
        
        ! Cholesky factorization
         call dpotrf( 'L', norb, ovrlp, norb, info )
-		if (info.ne.0) write(6,*) 'info Cholesky factorization', info
+        if (info.ne.0) write(6,*) 'info Cholesky factorization', info
 
 ! calculate L^{-1}
-		call DTRTRI( 'L', 'N', norb, ovrlp, norb, info )
-		if (info.ne.0) write(6,*) 'info L^-1', info
+        call DTRTRI( 'L', 'N', norb, ovrlp, norb, info )
+        if (info.ne.0) write(6,*) 'info L^-1', info
 
 ! new vectors   
       call DTRMM ('R', 'L', 'T', 'N', nvctrp, norb, 1.d0, ovrlp, norb, psit, nvctrp)
@@ -2632,7 +2630,7 @@ END SUBROUTINE
 
        call timing(iproc,'GramS_comput  ','OF')
 
-        END SUBROUTINE
+    end subroutine orthon_p
 
 
         
@@ -2665,11 +2663,11 @@ END SUBROUTINE
 
 ! Cholesky factorization
         call dpotrf( 'L', norb, ovrlp, norb, info )
-		if (info.ne.0) write(6,*) 'info Cholesky factorization', info
+        if (info.ne.0) write(6,*) 'info Cholesky factorization', info
 
 ! calculate L^{-1}
-		call DTRTRI( 'L', 'N', norb, ovrlp, norb, info )
-		if (info.ne.0) write(6,*) 'info L^-1', info
+        call DTRTRI( 'L', 'N', norb, ovrlp, norb, info )
+        if (info.ne.0) write(6,*) 'info L^-1', info
 
 ! new vectors   
       call DTRMM ('R', 'L', 'T', 'N', nvctrp, norb, 1.d0, ovrlp, norb, psi, nvctrp)
@@ -2680,9 +2678,9 @@ END SUBROUTINE
 
        call timing(iproc,'GramS_comput  ','OF')
 
-        end  SUBROUTINE    
+end  subroutine orthon
 
-subroutine createWavefunctionDescriptors(parallel, iproc, nproc, n1, n2, n3, output_grid, &
+subroutine createWavefunctionArrays(parallel, iproc, nproc, n1, n2, n3, output_grid, &
      & hgrid, nat, ntypes, iatype, atomnames, rxyz, radii_cf, crmult, frmult, &
      & ibyz_c,ibxz_c,ibxy_c, ibyz_f, ibxz_f, ibxy_f, nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp, &
      & alat1,alat2,alat3, keyg, keyv)
@@ -2695,7 +2693,7 @@ subroutine createWavefunctionDescriptors(parallel, iproc, nproc, n1, n2, n3, out
   integer :: ibyz_f(2,0:n2,0:n3), ibxz_f(2,0:n1,0:n3), ibxy_f(2,0:n1,0:n2)
   integer :: iatype(nat)
   real*8 :: rxyz(3, nat), radii_cf(ntypes, 2)
-  character*20 :: atomnames(100)
+  character(len=20), intent(in) :: atomnames(100)
   integer, pointer :: keyg(:,:), keyv(:)
   ! Local variables
   logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
@@ -2703,7 +2701,8 @@ subroutine createWavefunctionDescriptors(parallel, iproc, nproc, n1, n2, n3, out
   call timing(iproc,'CrtDescriptors','ON')
 
   ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
-  allocate(logrid_c(0:n1,0:n2,0:n3),logrid_f(0:n1,0:n2,0:n3))
+  allocate(logrid_c(0:n1,0:n2,0:n3))
+  allocate(logrid_f(0:n1,0:n2,0:n3))
 
   ! coarse grid quantities
   call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
@@ -2739,7 +2738,8 @@ subroutine createWavefunctionDescriptors(parallel, iproc, nproc, n1, n2, n3, out
   if (iproc.eq.0 .and. output_grid) close(22)
 
   ! allocations for arrays holding the wavefunctions and their data descriptors
-  allocate(keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f))
+  allocate(keyg(2,nseg_c+nseg_f))
+  allocate(keyv(nseg_c+nseg_f))
 
   ! now fill the wavefunction descriptor arrays
   ! coarse grid quantities
@@ -2753,7 +2753,7 @@ subroutine createWavefunctionDescriptors(parallel, iproc, nproc, n1, n2, n3, out
 
   call timing(iproc,'CrtDescriptors','OF')
 
-END SUBROUTINE 
+end subroutine createWavefunctionArrays
 
 subroutine createKernel(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
      & ndegree_ip, iproc, nproc, pkernel)
@@ -2795,7 +2795,7 @@ subroutine createKernel(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
 
   call timing(iproc,'PSolvKernel   ','OF')
 
-END SUBROUTINE createKernel
+end subroutine createKernel
 
   subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, atomnames, &
        & psppar, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
@@ -2988,12 +2988,12 @@ END SUBROUTINE createKernel
     deallocate(logrid)
   call timing(iproc,'CrtProjectors ','OF')
 
-  END SUBROUTINE 
+end subroutine 
 
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
-	subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
+subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
 ! loewdin orthogonalisation
         implicit real*8 (a-h,o-z)
         logical, parameter :: parallel=.true.
