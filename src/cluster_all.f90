@@ -333,10 +333,11 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         write(22,'(3(1x,e12.5),3x,a20)') rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),atomnames(iatype(iat))
      enddo
   endif
-  
-  call createWavefunctionArrays(parallel, iproc, nproc, n1, n2, n3, output_grid, hgrid, &
+
+  call createWavefunctionArrays(parallel, iproc, nproc, idsx, n1, n2, n3, output_grid, hgrid, &
        & nat, ntypes, iatype, atomnames, rxyz, radii_cf, crmult, frmult, ibyz_c,ibxz_c,ibxy_c, &
-       & ibyz_f, ibxz_f, ibxy_f, nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp, keyg,  keyv)
+       & ibyz_f, ibxz_f, ibxy_f, nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp, keyg,  keyv, &
+       & norb,norbp,psi,hpsi,psit,psidst,hpsidst,ads)
 
 ! allocate wavefunction arrays
   tt=dble(norb)/dble(nproc)
@@ -2692,14 +2693,14 @@ END SUBROUTINE
 
 end  subroutine orthon
 
-subroutine createWavefunctionArrays(parallel, iproc, nproc, n1, n2, n3, output_grid, &
+subroutine createWavefunctionArrays(parallel, iproc, nproc, idsx, n1, n2, n3, output_grid, &
      & hgrid, nat, ntypes, iatype, atomnames, rxyz, radii_cf, crmult, frmult, &
      & ibyz_c,ibxz_c,ibxy_c, ibyz_f, ibxz_f, ibxy_f, nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp, &
-     & keyg, keyv)
+     & keyg, keyv,norb,norbp,psi,hpsi,psit,psidst,hpsidst,ads)
 !calculates the descriptor arrays keyg and keyv as well as nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp
 !calculates also the arrays ibyz_c,ibxz_c,ibxy_c, ibyz_f, ibxz_f, ibxy_f needed for convolut_standard
   implicit real*8 (a-h, o-z)
-  ! Aguments
+  !Arguments
   logical :: parallel, output_grid
   integer :: ibyz_c(2,0:n2,0:n3), ibxz_c(2,0:n1,0:n3), ibxy_c(2,0:n1,0:n2)
   integer :: ibyz_f(2,0:n2,0:n3), ibxz_f(2,0:n1,0:n3), ibxy_f(2,0:n1,0:n2)
@@ -2707,7 +2708,17 @@ subroutine createWavefunctionArrays(parallel, iproc, nproc, n1, n2, n3, output_g
   real*8 :: rxyz(3, nat), radii_cf(ntypes, 2)
   character(len=20), intent(in) :: atomnames(100)
   integer, pointer :: keyg(:,:), keyv(:)
-  ! Local variables
+  ! wavefunction 
+  real*8, pointer :: psi(:,:)
+  real*8, pointer :: psit(:,:)
+  ! wavefunction gradients
+  real*8, pointer :: hpsi(:,:),hpsit(:,:)
+  ! arrays for DIIS convergence accelerator
+  real*8, pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
+  !Local variables
+  integer, parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
+  integer :: iat,i1,i2,i3,norbme
+  real*8 :: tt
   logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
 
   call timing(iproc,'CrtDescriptors','ON')
