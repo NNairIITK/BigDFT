@@ -339,22 +339,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
        & ibyz_f, ibxz_f, ibxy_f, nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp, keyg,  keyv, &
        & norb,norbp,psi,hpsi,psit,psidst,hpsidst,ads)
 
-! allocate wavefunction arrays
-  tt=dble(norb)/dble(nproc)
-  norbp=int((1.d0-eps_mach*tt) + tt)
-  write(*,*) 'norbp=',norbp
-  allocate(psi(nvctr_c+7*nvctr_f,norbp),hpsi(nvctr_c+7*nvctr_f,norbp))
-  norbme=max(min((iproc+1)*norbp,norb)-iproc*norbp,0)
-  write(*,*) 'iproc ',iproc,' treats ',norbme,' orbitals '
-
-  tt=dble(nvctr_c+7*nvctr_f)/dble(nproc)
-  nvctrp=int((1.d0-eps_mach*tt) + tt)
-  if (parallel) then
-     if (iproc.eq.0) write(79,'(a40,i10)') 'words for psit',nvctrp*norbp*nproc
-     allocate(psit(nvctrp,norbp*nproc))
-     if (iproc.eq.0) write(79,*) 'allocation done'
-  endif
-
 ! allocate arrays necessary for DIIS convergence acceleration
   if (idsx.gt.0) then
      if (iproc.eq.0) write(79,'(a40,i10)') 'words for psidst and hpsidst',2*nvctrp*norbp*nproc*idsx
@@ -925,7 +909,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
         if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
-	END SUBROUTINE
+       end subroutine
 
 
         subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
@@ -969,7 +953,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         END SUBROUTINE
 
 
-	
         subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,psi)
         implicit real*8 (a-h,o-z)
         logical, parameter :: parallel=.true.
@@ -1123,7 +1106,7 @@ END SUBROUTINE
          arg=r2/rloc**2
         xp=exp(-.5d0*arg)
         tt=psppar(0,nloc,ityp)
-	do iloc=nloc-1,1,-1
+        do iloc=nloc-1,1,-1
         tt=arg*tt+psppar(0,iloc,ityp)
         enddo
         pot(i1,i2,i3)=pot(i1,i2,i3)+xp*tt
@@ -1158,7 +1141,7 @@ END SUBROUTINE
     enddo
 
         return
-	END SUBROUTINE
+    end subroutine
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
 
@@ -1175,7 +1158,7 @@ END SUBROUTINE
 
         allocate(psifscf((2*n1+16)*(2*n2+16)*(2*n3+16)) )
 
-	do i=1,nvctr_c+7*nvctr_f
+        do i=1,nvctr_c+7*nvctr_f
         call random_number(tt)
         psi(i,iorb-iproc*norbp)=tt
         hpsi(i,iorb-iproc*norbp)=tt
@@ -1189,13 +1172,13 @@ END SUBROUTINE
                     psifscf,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp))
 
         tc=0.d0
-	do i=1,nvctr_c
+        do i=1,nvctr_c
         tc=max(tc,abs(psi(i,iorb-iproc*norbp)-hpsi(i,iorb-iproc*norbp)))
         enddo
         if (tc.gt.1.d-10) stop 'coarse compress error'
 
         tf=0.d0
-	do i=1,7*nvctr_f
+        do i=1,7*nvctr_f
         tf=max(tf,abs(psi(nvctr_c+i,iorb-iproc*norbp)-hpsi(nvctr_c+i,iorb-iproc*norbp))) 
         enddo
         write(*,'(a,i4,2(1x,e9.2))') 'COMPRESSION TEST: iorb, coarse, fine error:',iorb,tc,tf
@@ -1205,8 +1188,8 @@ END SUBROUTINE
 
      enddo
 
-	return
-	END SUBROUTINE
+    return
+    end subroutine
 
 
         subroutine compress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -1223,10 +1206,10 @@ END SUBROUTINE
         allocate(psig(0:n1,2,0:n2,2,0:n3,2),  & 
                  ww((2*n1+16)*(2*n2+16)*(2*n3+16)))
 ! decompose wavelets into coarse scaling functions and wavelets
-	call analyse_shrink(n1,n2,n3,ww,psifscf,psig)
+        call analyse_shrink(n1,n2,n3,ww,psifscf,psig)
 
 ! coarse part
-	do iseg=1,nseg_c
+        do iseg=1,nseg_c
           jj=keyv_c(iseg)
           j0=keyg_c(1,iseg)
           j1=keyg_c(2,iseg)
@@ -1236,13 +1219,13 @@ END SUBROUTINE
              i2=ii/(n1+1)
              i0=ii-i2*(n1+1)
              i1=i0+j1-j0
-	  do i=i0,i1
+          do i=i0,i1
             psi_c(i-i0+jj)=psig(i,1,i2,1,i3,1)
           enddo
         enddo
 
 ! fine part
-	do iseg=1,nseg_f
+        do iseg=1,nseg_f
           jj=keyv_f(iseg)
           j0=keyg_f(1,iseg)
           j1=keyg_f(2,iseg)
@@ -1252,7 +1235,7 @@ END SUBROUTINE
              i2=ii/(n1+1)
              i0=ii-i2*(n1+1)
              i1=i0+j1-j0
-	  do i=i0,i1
+          do i=i0,i1
             psi_f(1,i-i0+jj)=psig(i,2,i2,1,i3,1)
             psi_f(2,i-i0+jj)=psig(i,1,i2,2,i3,1)
             psi_f(3,i-i0+jj)=psig(i,2,i2,2,i3,1)
@@ -1265,7 +1248,7 @@ END SUBROUTINE
 
         deallocate(psig,ww)
 
-	END SUBROUTINE
+    end subroutine
 
 
         subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -1285,7 +1268,7 @@ END SUBROUTINE
         call dzero(8*(n1+1)*(n2+1)*(n3+1),psig)
 
 ! coarse part
-	do iseg=1,nseg_c
+        do iseg=1,nseg_c
           jj=keyv_c(iseg)
           j0=keyg_c(1,iseg)
           j1=keyg_c(2,iseg)
@@ -1295,13 +1278,13 @@ END SUBROUTINE
              i2=ii/(n1+1)
              i0=ii-i2*(n1+1)
              i1=i0+j1-j0
-	  do i=i0,i1
+          do i=i0,i1
             psig(i,1,i2,1,i3,1)=psi_c(i-i0+jj)
           enddo
          enddo
 
 ! fine part
-	do iseg=1,nseg_f
+        do iseg=1,nseg_f
           jj=keyv_f(iseg)
           j0=keyg_f(1,iseg)
           j1=keyg_f(2,iseg)
@@ -1311,23 +1294,23 @@ END SUBROUTINE
              i2=ii/(n1+1)
              i0=ii-i2*(n1+1)
              i1=i0+j1-j0
-	  do i=i0,i1
-            psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)
-            psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)
-            psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)
-            psig(i,1,i2,1,i3,2)=psi_f(4,i-i0+jj)
-            psig(i,2,i2,1,i3,2)=psi_f(5,i-i0+jj)
-            psig(i,1,i2,2,i3,2)=psi_f(6,i-i0+jj)
-            psig(i,2,i2,2,i3,2)=psi_f(7,i-i0+jj)
-          enddo
-         enddo
+          do i=i0,i1
+                psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)
+                psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)
+                psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)
+                psig(i,1,i2,1,i3,2)=psi_f(4,i-i0+jj)
+                psig(i,2,i2,1,i3,2)=psi_f(5,i-i0+jj)
+                psig(i,1,i2,2,i3,2)=psi_f(6,i-i0+jj)
+                psig(i,2,i2,2,i3,2)=psi_f(7,i-i0+jj)
+              enddo
+             enddo
 
-! calculate fine scaling functions
-	call synthese_grow(n1,n2,n3,ww,psig,psifscf)
+    ! calculate fine scaling functions
+        call synthese_grow(n1,n2,n3,ww,psig,psifscf)
 
         deallocate(psig,ww)
 
-	END SUBROUTINE
+    end subroutine
 
 
         subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -1374,7 +1357,7 @@ END SUBROUTINE
 
       call timing(iproc,'ApplyLocPotKin','OF')
 
-	END SUBROUTINE
+    end subroutine
 
 
         subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -1425,7 +1408,7 @@ END SUBROUTINE
                     psigp,hpsi(1),hpsi(nvctr_c+1))
 
         return
-	END SUBROUTINE
+    end subroutine
 
     
         subroutine uncompress_forstandardP(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
@@ -1441,7 +1424,7 @@ END SUBROUTINE
         call dzero(8*(nu1-nl1+1)*(nu2-nl2+1)*(nu3-nl3+1),psig)
 
 ! coarse part
-	do iseg=1,mseg_c
+        do iseg=1,mseg_c
           jj=keyv_c(iseg)
           j0=keyg_c(1,iseg)
           j1=keyg_c(2,iseg)
@@ -1451,14 +1434,14 @@ END SUBROUTINE
              i2=ii/(n1+1)
              i0=ii-i2*(n1+1)
              i1=i0+j1-j0
-	  do i=i0,i1
+          do i=i0,i1
           ii=ii+1
             psig(i,1,i2,1,i3,1)=psi_c(i-i0+jj)
           enddo
          enddo
 
 ! fine part
-	do iseg=1,mseg_f
+        do iseg=1,mseg_f
           jj=keyv_f(iseg)
           j0=keyg_f(1,iseg)
           j1=keyg_f(2,iseg)
@@ -1468,7 +1451,7 @@ END SUBROUTINE
              i2=ii/(n1+1)
              i0=ii-i2*(n1+1)
              i1=i0+j1-j0
-	  do i=i0,i1
+          do i=i0,i1
             psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)
             psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)
             psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)
@@ -1479,7 +1462,7 @@ END SUBROUTINE
           enddo
          enddo
 
-	END SUBROUTINE
+        END SUBROUTINE
 
     
         subroutine compress_forstandardP(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
@@ -1493,7 +1476,7 @@ END SUBROUTINE
         dimension psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2)
         
 ! coarse part
-	do iseg=1,mseg_c
+        do iseg=1,mseg_c
           jj=keyv_c(iseg)
           j0=keyg_c(1,iseg)
           j1=keyg_c(2,iseg)
@@ -1503,13 +1486,13 @@ END SUBROUTINE
              i2=ii/(n1+1)
              i0=ii-i2*(n1+1)
              i1=i0+j1-j0
-	  do i=i0,i1
+          do i=i0,i1
             psi_c(i-i0+jj)=psig(i,1,i2,1,i3,1)
           enddo
         enddo
 
 ! fine part
-	do iseg=1,mseg_f
+        do iseg=1,mseg_f
           jj=keyv_f(iseg)
           j0=keyg_f(1,iseg)
           j1=keyg_f(2,iseg)
@@ -1519,7 +1502,7 @@ END SUBROUTINE
              i2=ii/(n1+1)
              i0=ii-i2*(n1+1)
              i1=i0+j1-j0
-	  do i=i0,i1
+          do i=i0,i1
             psi_f(1,i-i0+jj)=psig(i,2,i2,1,i3,1)
             psi_f(2,i-i0+jj)=psig(i,1,i2,2,i3,1)
             psi_f(3,i-i0+jj)=psig(i,2,i2,2,i3,1)
@@ -1530,7 +1513,7 @@ END SUBROUTINE
           enddo
         enddo
 
-	END SUBROUTINE
+        END SUBROUTINE
 
 
 
@@ -1556,8 +1539,8 @@ END SUBROUTINE
 
         deallocate(ww)
 
-	return
-	END SUBROUTINE
+        return
+        END SUBROUTINE
 
 
         subroutine convolut_magic_t(n1,n2,n3,x,y)
@@ -1582,11 +1565,11 @@ END SUBROUTINE
 
         deallocate(ww)
 
-	return
-	END SUBROUTINE
+        return
+        END SUBROUTINE
 
 
-	subroutine synthese_grow(n1,n2,n3,ww,x,y)
+        subroutine synthese_grow(n1,n2,n3,ww,x,y)
 ! A synthesis wavelet transformation where the size of the data is allowed to grow
 ! The input array x is not overwritten
         implicit real*8 (a-h,o-z)
@@ -1604,12 +1587,12 @@ END SUBROUTINE
         nt=(2*n1+16)*(2*n2+16)
         call  syn_rot_grow(n3,nt,ww,y)
 
-	return
+        return
         END SUBROUTINE
 
 
 
-	subroutine analyse_shrink(n1,n2,n3,ww,y,x)
+        subroutine analyse_shrink(n1,n2,n3,ww,y,x)
 ! A analysis wavelet transformation where the size of the data is forced to shrink
 ! The input array y is overwritten
         implicit real*8 (a-h,o-z)
@@ -1627,7 +1610,7 @@ END SUBROUTINE
         nt=(2*n1+2)*(2*n2+2)
         call  ana_rot_shrink(n3,nt,y,x)
 
-	return
+        return
         END SUBROUTINE
 
 
@@ -1643,7 +1626,7 @@ END SUBROUTINE
 ! Output: rho
         implicit real*8 (a-h,o-z)
         logical parallel
-	dimension rho((2*n1+31)*(2*n2+31)*(2*n3+31)),occup(norb)
+        dimension rho((2*n1+31)*(2*n2+31)*(2*n3+31)),occup(norb)
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         dimension psi(nvctr_c+7*nvctr_f,norbp)
         real*8, allocatable, dimension(:) :: psifscf,psir,rho_p
@@ -1662,8 +1645,8 @@ END SUBROUTINE
         allocate(rho_p((2*n1+31)*(2*n2+31)*(2*n3+31)))
 
    !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
-	call tenmminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho_p)
-	!call dzero((2*n1+31)*(2*n2+31)*(2*n3+31),rho_p)
+        call tenmminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho_p)
+        !call dzero((2*n1+31)*(2*n2+31)*(2*n3+31),rho_p)
 
       do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
@@ -1689,8 +1672,8 @@ END SUBROUTINE
 
       call timing(iproc,'Rho_comput    ','ON')
     !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
-	call tenmminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
-	!call dzero((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
+        call tenmminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
+        !call dzero((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
 
      do iorb=1,norb
 
@@ -1715,16 +1698,16 @@ END SUBROUTINE
         enddo
         !factor of two to restore the total charge
         tt=tt*hgridh**3
-	if (iproc.eq.0) write(*,*) 'Total charge from routine chargedens',tt,iproc
+        if (iproc.eq.0) write(*,*) 'Total charge from routine chargedens',tt,iproc
 
 
         deallocate(psifscf,psir)
 
 
-	END SUBROUTINE
+        END SUBROUTINE
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
-	
+        
 !!****h* BigDFT/tenmminustwenty
 !! NAME
 !!   tenmminustwenty
@@ -1991,11 +1974,11 @@ END SUBROUTINE
   
           deallocate(wprojx,wprojy,wprojz,work)
 
-	return
-	END SUBROUTINE
+    return
+    END SUBROUTINE
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
-	subroutine wdot(  & 
+    subroutine wdot(  & 
         mavctr_c,mavctr_f,maseg_c,maseg_f,keyav_c,keyav_f,keyag_c,keyag_f,apsi_c,apsi_f,  & 
         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f,scpr)
 ! calculates the dot product between two wavefunctions in compressed form
@@ -2088,12 +2071,12 @@ END SUBROUTINE
         scpr=scpr+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
 !        write(*,*) 'llc,llf',llc,llf
 
-	return
-	END SUBROUTINE
+    return
+    END SUBROUTINE
 
 
 
-	subroutine waxpy(  & 
+    subroutine waxpy(  & 
         scpr,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f, & 
         mavctr_c,mavctr_f,maseg_c,maseg_f,keyav_c,keyav_f,keyag_c,keyag_f,apsi_c,apsi_f)
 ! rank 1 update of wavefunction a with wavefunction b: apsi=apsi+scpr*bpsi
@@ -2174,18 +2157,18 @@ END SUBROUTINE
 222     continue
 !        write(*,*) 'waxpy,llc,llf',llc,llf
 
-	return
-	END SUBROUTINE
+    return
+    END SUBROUTINE
 
 
 
-	subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
+    subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
 ! calculates the norm SQUARED (scpr) of a wavefunction (in vector form)
         implicit real*8 (a-h,o-z)
         dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
 
         scpr=0.d0
-	do i=1,mvctr_c
+    do i=1,mvctr_c
            scpr=scpr+psi_c(i)**2
         enddo
         scpr1=0.d0
@@ -2195,7 +2178,7 @@ END SUBROUTINE
         scpr5=0.d0
         scpr6=0.d0
         scpr7=0.d0
-	do i=1,mvctr_f
+    do i=1,mvctr_f
            scpr1=scpr1+psi_f(1,i)**2
            scpr2=scpr2+psi_f(2,i)**2
            scpr3=scpr3+psi_f(3,i)**2
@@ -2206,20 +2189,20 @@ END SUBROUTINE
         enddo
         scpr=scpr+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
 
-	return
-	END SUBROUTINE
+    return
+    END SUBROUTINE
 
 
 
-	subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
+    subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
 ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scalar (scal)
         implicit real*8 (a-h,o-z)
         dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
 
-	do i=1,mvctr_c
+    do i=1,mvctr_c
            psi_c(i)=psi_c(i)*scal
         enddo
-	do i=1,mvctr_f
+    do i=1,mvctr_f
            psi_f(1,i)=psi_f(1,i)*scal
            psi_f(2,i)=psi_f(2,i)*scal
            psi_f(3,i)=psi_f(3,i)*scal
@@ -2229,19 +2212,19 @@ END SUBROUTINE
            psi_f(7,i)=psi_f(7,i)*scal
         enddo
 
-	return
-	END SUBROUTINE
+    return
+    END SUBROUTINE
 
 
-	subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
+    subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
 ! initializes a wavefunction to zero
         implicit real*8 (a-h,o-z)
         dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
 
-	do i=1,mvctr_c
+    do i=1,mvctr_c
            psi_c(i)=0.d0
         enddo
-	do i=1,mvctr_f
+    do i=1,mvctr_f
            psi_f(1,i)=0.d0
            psi_f(2,i)=0.d0
            psi_f(3,i)=0.d0
@@ -2251,8 +2234,8 @@ END SUBROUTINE
            psi_f(7,i)=0.d0
         enddo
 
-	return
-	END SUBROUTINE
+    return
+    END SUBROUTINE
 
 
         subroutine orthoconstraint_p(iproc,nproc,norb,norbp,occup,nvctrp,psit,hpsit,scprsum)
@@ -2393,7 +2376,7 @@ END SUBROUTINE
         END SUBROUTINE
 
 
-	subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
+    subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
 ! Calculates the length of the keys describing a wavefunction data structure
         implicit real*8 (a-h,o-z)
         logical logrid,plogrid
@@ -2428,11 +2411,11 @@ END SUBROUTINE
         endif
         mseg=nend
 
-	return
+    return
         END SUBROUTINE
 
 
-	subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
+    subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
 ! Calculates the keys describing a wavefunction data structure
         implicit real*8 (a-h,o-z)
         logical logrid,plogrid
@@ -2472,7 +2455,7 @@ END SUBROUTINE
         endif
         mseg=nend
 
-	return
+    return
         END SUBROUTINE
 
 
@@ -2720,7 +2703,7 @@ subroutine createWavefunctionArrays(parallel, iproc, nproc, idsx, n1, n2, n3, ou
   ! arrays for DIIS convergence accelerator
   real*8, pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
   !Local variables
-  integer, parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
+  real*8, parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
   integer :: iat,i1,i2,i3,norbme
   real*8 :: tt
   logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
@@ -2770,6 +2753,22 @@ subroutine createWavefunctionArrays(parallel, iproc, nproc, idsx, n1, n2, n3, ou
     & keyv(nseg_c+1:nseg_c+nseg_f))
 
   deallocate(logrid_c,logrid_f)
+
+! allocate wavefunction arrays
+  tt=dble(norb)/dble(nproc)
+  norbp=int((1.d0-eps_mach*tt) + tt)
+  write(*,*) 'norbp=',norbp
+  allocate(psi(nvctr_c+7*nvctr_f,norbp),hpsi(nvctr_c+7*nvctr_f,norbp))
+  norbme=max(min((iproc+1)*norbp,norb)-iproc*norbp,0)
+  write(*,*) 'iproc ',iproc,' treats ',norbme,' orbitals '
+
+  tt=dble(nvctr_c+7*nvctr_f)/dble(nproc)
+  nvctrp=int((1.d0-eps_mach*tt) + tt)
+  if (parallel) then
+     if (iproc.eq.0) write(79,'(a40,i10)') 'words for psit',nvctrp*norbp*nproc
+     allocate(psit(nvctrp,norbp*nproc))
+     if (iproc.eq.0) write(79,*) 'allocation done'
+  endif
 
   call timing(iproc,'CrtDescriptors','OF')
 
@@ -3078,7 +3077,7 @@ subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
 
 
-	subroutine loewe(norb,norbp,nvctrp,psi)
+    subroutine loewe(norb,norbp,nvctrp,psi)
 ! loewdin orthogonalisation
         implicit real*8 (a-h,o-z)
         dimension psi(nvctrp,norbp)
@@ -3145,7 +3144,7 @@ subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
         END SUBROUTINE
 
 
-	subroutine checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
+    subroutine checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
         implicit real*8 (a-h,o-z)
         dimension psit(nvctrp,norbp*nproc)
         real*8, allocatable :: ovrlp(:,:,:)
@@ -3179,10 +3178,10 @@ subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
         deallocate(ovrlp)
 
         return
-	END SUBROUTINE
+    END SUBROUTINE
 
 
-	subroutine checkortho(norb,norbp,nvctrp,psi)
+    subroutine checkortho(norb,norbp,nvctrp,psi)
         implicit real*8 (a-h,o-z)
         dimension psi(nvctrp,norbp)
         real*8, allocatable :: ovrlp(:,:,:)
@@ -3214,7 +3213,7 @@ subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
 
         return
-	END SUBROUTINE
+    END SUBROUTINE
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
@@ -3250,7 +3249,7 @@ subroutine readAtomicOrbitals(iproc, filename, ngx, npsp, xp, psiat, occupat, ng
      if (ng(ity).gt.ngx) stop 'enlarge ngx'
      read(24,33) (xp(i,ity)  ,i=1,ng(ity))
      do i=1,ng(ity) 
-	read(24,*) (psiat(i,j,ity),j=1,ns(ity)+np(ity))
+    read(24,*) (psiat(i,j,ity),j=1,ns(ity)+np(ity))
      enddo
   enddo
   close(unit=24)
@@ -3695,8 +3694,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
         deallocate(hamovr,occupe)
 
-	return
-	END SUBROUTINE
+    return
+    END SUBROUTINE
 
 
         logical function myorbital(iorb,norbe,iproc,nproc)
@@ -3715,7 +3714,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         end function
 
 
-	subroutine KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,  & 
+    subroutine KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,  & 
                            hpsit,psit,evsum,eval)
 ! at the start each processor has all the Psi's but only its part of the HPsi's
 ! at the end each processor has only its part of the Psi's
@@ -3731,8 +3730,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         do jorb=1,norb
         do iorb=1,norb
         hamks(iorb,jorb,2)=0.d0
-	enddo
-	enddo
+    enddo
+    enddo
         do iorb=1,norb
         do jorb=1,norb
         scpr=ddot(nvctrp,psit(1,jorb),1,hpsit(1,iorb),1)
@@ -3773,12 +3772,12 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         call DCOPY(nvctrp*norbp*nproc,psitt,1,psit,1)
         deallocate(psitt)
 
-	return
+    return
         END SUBROUTINE
 
 
 
-	subroutine KStrans(norb,norbp,nvctrp,occup,hpsi,psi,evsum,eval)
+    subroutine KStrans(norb,norbp,nvctrp,occup,hpsi,psi,evsum,eval)
 ! at the start each processor has all the Psi's but only its part of the HPsi's
 ! at the end each processor has only its part of the Psi's
         implicit real*8 (a-h,o-z)
@@ -3792,8 +3791,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         do jorb=1,norb
         do iorb=1,norb
         hamks(iorb,jorb,2)=0.d0
-	enddo
-	enddo
+    enddo
+    enddo
         do iorb=1,norb
         do jorb=1,norb
         scpr=ddot(nvctrp,psi(1,jorb),1,hpsi(1,iorb),1)
@@ -3832,7 +3831,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         call DCOPY(nvctrp*norbp,psitt,1,psi,1)
         deallocate(psitt)
 
-	return
+    return
         END SUBROUTINE
 
 
@@ -3914,10 +3913,10 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
             psig_f(7,i1,i2,i3)=psig_f(7,i1,i2,i3)+wprojx(i1,2)*wprojy(i2,2)*wprojz(i3,2)
           enddo ; enddo ; enddo
 
-100	continue
+100    continue
 
 ! coarse part
-	do iseg=1,nseg_c
+    do iseg=1,nseg_c
           jj=keyv_c(iseg)
           j0=keyg_c(1,iseg)
           j1=keyg_c(2,iseg)
@@ -3927,13 +3926,13 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
              i2=ii/(n1+1)
              i0=ii-i2*(n1+1)
              i1=i0+j1-j0
-	  do i=i0,i1
+      do i=i0,i1
             psi_c(i-i0+jj)=psig_c(i,i2,i3)
           enddo
         enddo
 
 ! fine part
-	do iseg=1,nseg_f
+    do iseg=1,nseg_f
           jj=keyv_f(iseg)
           j0=keyg_f(1,iseg)
           j1=keyg_f(2,iseg)
@@ -3943,7 +3942,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
              i2=ii/(n1+1)
              i0=ii-i2*(n1+1)
              i1=i0+j1-j0
-	  do i=i0,i1
+      do i=i0,i1
             psi_f(1,i-i0+jj)=psig_f(1,i,i2,i3)
             psi_f(2,i-i0+jj)=psig_f(2,i,i2,i3)
             psi_f(3,i-i0+jj)=psig_f(3,i,i2,i3)
@@ -3956,8 +3955,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   
           deallocate(wprojx,wprojy,wprojz,work,psig_c,psig_f)
 
-	return
-	END SUBROUTINE
+    return
+    END SUBROUTINE
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
  subroutine reformatmywaves(iproc, norb, norbp, nat, &
@@ -4139,7 +4138,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
       enddo
    enddo
 
-   ! transform to new structure	
+   ! transform to new structure    
    dx=center(1)-center_old(1)
    dy=center(2)-center_old(2)
    dz=center(3)-center_old(3)
@@ -4482,10 +4481,10 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
           enddo
          enddo
 
-	write(*,*) iorb,'th wavefunction written'
+    write(*,*) iorb,'th wavefunction written'
 
 
-	END SUBROUTINE
+    END SUBROUTINE
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
         subroutine plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, & 
@@ -4506,7 +4505,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
         deallocate(psifscf,psir)
         return
-	END SUBROUTINE
+    END SUBROUTINE
 
 
 
@@ -4554,38 +4553,38 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         implicit real*8 (a-h,o-z)
         dimension psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
 
-	hgridh=.5d0*hgrid
+    hgridh=.5d0*hgrid
 
 ! along x-axis
-	i3=n3
-	i2=n2
-	do i1=-7,2*n1+8
+    i3=n3
+    i2=n2
+    do i1=-7,2*n1+8
             write(iunit,'(3(1x,e10.3),1x,e12.5)') i1*hgridh,i2*hgridh,i3*hgridh,psifscf(i1,i2,i3)
-	enddo 
+    enddo 
 
 ! 111 diagonal
-	do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
+    do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
         i1=i ; i2=i ; i3=i
             write(iunit,'(3(1x,e10.3),1x,e12.5)') i1*hgridh,i2*hgridh,i3*hgridh,psifscf(i1,i2,i3)
-	enddo 
+    enddo 
 
 ! 1-1-1 diagonal
-	do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
+    do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
         i1=i ; i2=-i ; i3=-i
             write(iunit,'(3(1x,e10.3),1x,e12.5)') i1*hgridh,i2*hgridh,i3*hgridh,psifscf(i1,i2,i3)
-	enddo 
+    enddo 
 
 ! -11-1 diagonal
-	do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
+    do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
         i1=-i ; i2=i ; i3=-i
             write(iunit,'(3(1x,e10.3),1x,e12.5)') i1*hgridh,i2*hgridh,i3*hgridh,psifscf(i1,i2,i3)
-	enddo 
+    enddo 
 
 ! -1-11 diagonal
-	do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
+    do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
         i1=-i ; i2=-i ; i3=i
             write(iunit,'(3(1x,e10.3),1x,e12.5)') i1*hgridh,i2*hgridh,i3*hgridh,psifscf(i1,i2,i3)
-	enddo 
+    enddo 
 
         return
         END SUBROUTINE
@@ -4651,14 +4650,14 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
 
 
-	subroutine diisstp(parallel,norb,norbp,nproc,iproc,  & 
+    subroutine diisstp(parallel,norb,norbp,nproc,iproc,  & 
                    ads,ids,mids,idsx,nvctrp,psit,psidst,hpsidst)
 ! diis subroutine:
 ! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
 ! using  the previous iteration points phidst and the associated error 
 ! vectors (preconditione gradients) hpsidst
-	implicit real*8 (a-h,o-z)
-	include 'mpif.h'
+    implicit real*8 (a-h,o-z)
+    include 'mpif.h'
         logical parallel
         dimension psit(nvctrp,norbp*nproc),ads(idsx+1,idsx+1,3), &
         psidst(nvctrp,norbp*nproc,idsx),hpsidst(nvctrp,norbp*nproc,idsx)
