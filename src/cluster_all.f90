@@ -2699,12 +2699,16 @@ subroutine createWavefunctionArrays(parallel, iproc, nproc, idsx, n1, n2, n3, ou
      & keyg, keyv,norb,norbp,psi,hpsi,psit,psidst,hpsidst,ads)
 !calculates the descriptor arrays keyg and keyv as well as nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp
 !calculates also the arrays ibyz_c,ibxz_c,ibxy_c, ibyz_f, ibxz_f, ibxy_f needed for convolut_standard
-  implicit real*8 (a-h, o-z)
+  implicit none
   !Arguments
-  logical :: parallel, output_grid
-  integer :: ibyz_c(2,0:n2,0:n3), ibxz_c(2,0:n1,0:n3), ibxy_c(2,0:n1,0:n2)
-  integer :: ibyz_f(2,0:n2,0:n3), ibxz_f(2,0:n1,0:n3), ibxy_f(2,0:n1,0:n2)
-  integer :: iatype(nat)
+  integer, intent(in) :: iproc,nproc,idsx,n1,n2,n3,nat,ntypes,norb
+  integer, intent(in) :: nseg_c,nseg_f,nvctr_c,nvctr_f
+  integer, intent(out) :: norbp,nvctrp
+  logical, intent(in) :: parallel, output_grid
+  integer, intent(in) :: iatype(nat)
+  real*8, intent(in) :: hgrid,crmult,frmult
+  integer, intent(in) :: ibyz_c(2,0:n2,0:n3), ibxz_c(2,0:n1,0:n3), ibxy_c(2,0:n1,0:n2)
+  integer, intent(in) :: ibyz_f(2,0:n2,0:n3), ibxz_f(2,0:n1,0:n3), ibxy_f(2,0:n1,0:n2)
   real*8 :: rxyz(3, nat), radii_cf(ntypes, 2)
   character(len=20), intent(in) :: atomnames(100)
   integer, pointer :: keyg(:,:), keyv(:)
