@@ -76,7 +76,7 @@ contains
 subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energy, fxyz,  &
      & psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, inputPsiId, &
      & output_grid, output_wf, n1, n2, n3, hgrid, rxyz_old)
-  ! inputPsiId = 0 : compute psi with input guess (atomic orbitals)
+  ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
   ! inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
   !                  as definition of the previous system.
   ! inputPsiId = 2 : read waves from disk
@@ -97,7 +97,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
        ibyz_f(:,:,:),ibxz_f(:,:,:),ibxy_f(:,:,:)
   ! occupation numbers, eigenvalues
   allocatable :: occup(:)
-  real*8, pointer :: eval(:)
+  real*8, pointer :: eval(:),eval_old(:)
 
   ! wavefunction segments
   integer, pointer :: keyv(:)
@@ -166,14 +166,27 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      nvctr_f_old = nvctr_f
      nseg_c_old  = nseg_c
      nseg_f_old  = nseg_f
-     allocate(keyg_old(2,nseg_c_old+nseg_f_old),keyv_old(nseg_c_old+nseg_f_old))
+     allocate(keyg_old(2,nseg_c_old+nseg_f_old))
+     allocate(keyv_old(nseg_c_old+nseg_f_old))
      allocate(psi_old(nvctr_c_old+7*nvctr_f_old,norbp))
-     keyg_old    = keyg
-     keyv_old    = keyv
-     psi_old     = psi
+     allocate(eval_old(norb))
+     do iseg=1,nseg_c_old+nseg_f_old
+        keyg_old(1,iseg)    = keyg(1,iseg)
+        keyg_old(2,iseg)    = keyg(2,iseg)
+        keyv_old(iseg)    = keyv(iseg)
+     enddo
+     do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+        tt=0.d0
+        do j=1,nvctr_c_old+7*nvctr_f_old
+           psi_old(j,iorb-iproc*norbp)     = psi(j,iorb-iproc*norbp)
+           tt=tt+psi(j,iorb-iproc*norbp)**2
+        enddo
+        tt=sqrt(tt)
+        if (abs(tt-1.d0).gt.1.d-8) stop 'wrong psi_old'
+        eval_old(iorb)    = eval(iorb)
+     enddo
      deallocate(keyg, keyv)
-     deallocate(psi)
-!     deallocate(eval)
+     deallocate(psi, eval)
   end if
 
   ! Read the input variables.
@@ -250,10 +263,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   end if
   norb=(nelec+1)/2+norb_vir
 
-  allocate(occup(norb))
-  if (inputPsiId .ne. 1) then
-     allocate(eval(norb))
-  end if
+  allocate(occup(norb),eval(norb))
 
   nt=0
   do iorb=1,norb
@@ -393,8 +403,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           & nseg_c_old, nseg_f_old, keyg_old, keyv_old, psi_old, &
           & hgrid, nvctr_c, nvctr_f, n1, n2, n3, rxyz, &
           & nseg_c, nseg_f, keyg, keyv, psi)
+            eval=eval_old
      deallocate(keyg_old, keyv_old)
-     deallocate(psi_old)
+     deallocate(psi_old,eval_old)
 
   else if (inputPsiId == 2) then
      call readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
@@ -433,11 +444,13 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      call sumrho(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot)
 
+!     ixc=12   ! PBE functional
+     ixc=1   ! LDA functional
      if (parallel) then
-        call ParPSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,1, & 
+        call ParPSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,ixc, & 
              pot_ion,rhopot,ehart,eexcu,vexcu,iproc,nproc)
      else
-        call PSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,1, & 
+        call PSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,ixc, & 
              pot_ion,rhopot,ehart,eexcu,vexcu)
      end if
 
@@ -750,7 +763,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
            write(22,'(3(1x,e12.5),3x,a20)') txyz(1,iat),txyz(2,iat),txyz(3,iat),atomnames(iatype(iat))
         enddo
         do i3=0,nb3 ; do i2=0,nb2 ; do i1=0,nb1
-        if (logrid_c(i1,i2,i3)) write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  g '
+           if (logrid_c(i1,i2,i3)) write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  g '
         enddo ; enddo ; enddo 
      endif
      call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,nvctrb_c)
@@ -781,7 +794,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1))
 
      deallocate(logrid_c,logrid_f)
-     ! allocations for arrays holding the wavefunction
+!    allocations for arrays holding the wavefunction
      if (iproc.eq.0) write(79,'(a40,i10)') 'words for psib and hpsib ',2*(nvctrb_c+7*nvctrb_f)
      allocate(psib(nvctrb_c+7*nvctrb_f),hpsib(nvctrb_c+7*nvctrb_f))
      if (iproc.eq.0) write(79,*) 'allocation done'
@@ -903,7 +916,11 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   tel=dble(ncount1-ncount0)/dble(ncount_rate)
   write(*,'(a,1x,i4,2(1x,f12.2))') 'iproc, elapsed, CPU time ', iproc,tel,tcpu1-tcpu0
 
-  if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+  if (parallel) then
+     write(*,*) iproc,' befor barrier',parallel
+     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+     write(*,*) iproc,' after barrier',MPI_COMM_WORLD,ierr
+  end if
 
 end subroutine cluster
 
@@ -1284,7 +1301,7 @@ END SUBROUTINE
              i2=ii/(n1+1)
              i0=ii-i2*(n1+1)
              i1=i0+j1-j0
-          do i=i0,i1
+             do i=i0,i1
                 psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)
                 psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)
                 psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)
@@ -1292,7 +1309,7 @@ END SUBROUTINE
                 psig(i,2,i2,1,i3,2)=psi_f(5,i-i0+jj)
                 psig(i,1,i2,2,i3,2)=psi_f(6,i-i0+jj)
                 psig(i,2,i2,2,i3,2)=psi_f(7,i-i0+jj)
-              enddo
+             enddo
              enddo
 
     ! calculate fine scaling functions
@@ -3011,7 +3028,7 @@ end subroutine
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
-subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
+        subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
 ! loewdin orthogonalisation
         implicit real*8 (a-h,o-z)
         logical, parameter :: parallel=.true.
@@ -3076,7 +3093,7 @@ subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
 
 
-    subroutine loewe(norb,norbp,nvctrp,psi)
+        subroutine loewe(norb,norbp,nvctrp,psi)
 ! loewdin orthogonalisation
         implicit real*8 (a-h,o-z)
         dimension psi(nvctrp,norbp)
@@ -3143,7 +3160,7 @@ subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
         END SUBROUTINE
 
 
-    subroutine checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
+        subroutine checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
         implicit real*8 (a-h,o-z)
         dimension psit(nvctrp,norbp*nproc)
         real*8, allocatable :: ovrlp(:,:,:)
@@ -3177,10 +3194,10 @@ subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
         deallocate(ovrlp)
 
         return
-    END SUBROUTINE
+        END SUBROUTINE
 
 
-    subroutine checkortho(norb,norbp,nvctrp,psi)
+        subroutine checkortho(norb,norbp,nvctrp,psi)
         implicit real*8 (a-h,o-z)
         dimension psi(nvctrp,norbp)
         real*8, allocatable :: ovrlp(:,:,:)
@@ -3212,7 +3229,7 @@ subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
 
         return
-    END SUBROUTINE
+        END SUBROUTINE
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
@@ -3248,7 +3265,7 @@ subroutine readAtomicOrbitals(iproc, filename, ngx, npsp, xp, psiat, occupat, ng
      if (ng(ity).gt.ngx) stop 'enlarge ngx'
      read(24,33) (xp(i,ity)  ,i=1,ng(ity))
      do i=1,ng(ity) 
-    read(24,*) (psiat(i,j,ity),j=1,ns(ity)+np(ity))
+        read(24,*) (psiat(i,j,ity),j=1,ns(ity)+np(ity))
      enddo
   enddo
   close(unit=24)
@@ -3323,8 +3340,8 @@ subroutine createAtomicOrbitals(iproc, nproc, npsp, pspatomnames, atomnames, nat
      if (ns(ipsp).eq.1 .and. np(ipsp).eq.0) then
         iorb=iorb+1
         jorb=iorb-iproc*norbep
-     if (iorb.gt.norbe) stop 'transgpw occupe'
-     occupe(iorb)=occupat(1,ipsp)
+        if (iorb.gt.norbe) stop 'transgpw occupe'
+        occupe(iorb)=occupat(1,ipsp)
         call atomkin(0,ng(ipsp),xp(1,ipsp),psiat(1,1,ipsp),psiatn,ek) ; eks=eks+ek*occupe(iorb)
         if (myorbital(iorb,norbe,iproc,nproc)) then
            call crtonewave(n1,n2,n3,ng(ipsp),0,0,0,xp(1,ipsp),psiatn,rx,ry,rz,hgrid, & 
@@ -3563,14 +3580,14 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        & keyg, keyv, iatype, psi, eks)
 
 ! resulting charge density and potential
-!WARNING: Here the XC scheme chosen is LDA (ixc=1) in the arguments of PSolver
        call sumrho(parallel,iproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
                    nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot)
+      ixc=1   ! LDA functional
       if (parallel) then
-          call ParPSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,1, &
+          call ParPSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,ixc, &
                pot_ion,rhopot,ehart,eexcu,vexcu,iproc,nproc)
        else
-          call PSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,1, &
+          call PSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,ixc, &
                pot_ion,rhopot,ehart,eexcu,vexcu)
        end if
 
@@ -4757,14 +4774,14 @@ END SUBROUTINE
 
 
 
-    subroutine diisstp(parallel,norb,norbp,nproc,iproc,  & 
+        subroutine diisstp(parallel,norb,norbp,nproc,iproc,  & 
                    ads,ids,mids,idsx,nvctrp,psit,psidst,hpsidst)
 ! diis subroutine:
 ! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
 ! using  the previous iteration points phidst and the associated error 
 ! vectors (preconditione gradients) hpsidst
-    implicit real*8 (a-h,o-z)
-    include 'mpif.h'
+        implicit real*8 (a-h,o-z)
+        include 'mpif.h'
         logical parallel
         dimension psit(nvctrp,norbp*nproc),ads(idsx+1,idsx+1,3), &
         psidst(nvctrp,norbp*nproc,idsx),hpsidst(nvctrp,norbp*nproc,idsx)
@@ -4785,12 +4802,13 @@ END SUBROUTINE
 ! calculate new line, use rds as work array for summation
         call dzero(idsx,rds)
         ist=max(1,ids-idsx+1)
-        do 3953,i=ist,ids
+        do i=ist,ids
            mi=mod(i-1,idsx)+1
-           do 3953,iorb=1,norb
+           do iorb=1,norb
               tt=DDOT(nvctrp,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mi),1)
               rds(i-ist+1)=rds(i-ist+1)+tt
-3953    continue
+           end do
+        end do
 
         if (parallel) then
            call MPI_ALLREDUCE(rds,ads(1,min(idsx,ids),1),min(ids,idsx),  & 
