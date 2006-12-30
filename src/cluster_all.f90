@@ -1715,7 +1715,7 @@ END SUBROUTINE
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
         
-!!****h* BigDFT/tenmminustwenty
+!!****f* BigDFT/tenmminustwenty
 !! NAME
 !!   tenmminustwenty
 !!

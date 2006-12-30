@@ -100,7 +100,7 @@ program BigDFT
    energyold=1.d100
    fluct=0.d0
    flucto=0.d0
-   ngeostep=1!00
+   ngeostep=500
    do 500 igeostep=1,ngeostep
 
       output_grid=.false. 

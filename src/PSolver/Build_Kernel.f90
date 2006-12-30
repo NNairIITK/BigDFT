@@ -1,4 +1,4 @@
-!!****h* BigDFT/Build_Kernel
+!!****f* BigDFT/Build_Kernel
 !! NAME
 !!   Build_Kernel
 !!
@@ -209,7 +209,7 @@ end subroutine Build_Kernel
 !!***
 
 
-!!****h* BigDFT/Dimensions_FFT
+!!****f* BigDFT/Dimensions_FFT
 !! NAME
 !!   Dimensions_FFT
 !!
@@ -260,7 +260,7 @@ end subroutine Dimensions_FFT
 !!***
 
 
-!!****h* BigDFT/karrayhalf_in
+!!****f* BigDFT/karrayhalf_in
 !! NAME
 !!   karrayhalf_in
 !!
@@ -324,7 +324,7 @@ end subroutine karrayhalf_in
 !!***
 
 
-!!****h* BigDFT/kernel_recon
+!!****f* BigDFT/kernel_recon
 !! NAME
 !!   kernel_recon
 !!

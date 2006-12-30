@@ -124,7 +124,7 @@ subroutine PARtest_kernel(n01,n02,n03,nfft1,nfft2,nfft3,&
 end subroutine PARtest_kernel
 !!***
 
-!!****h* BigDFT/calculate_pardimensions
+!!****f* BigDFT/calculate_pardimensions
 !! NAME
 !!   calculate_pardimensions
 !!
@@ -231,7 +231,7 @@ end subroutine calculate_pardimensions
 !!***
 
 
-!!****h* BigDFT/ParPSolver_Kernel
+!!****f* BigDFT/ParPSolver_Kernel
 !! NAME
 !!   ParPSolver_Kernel
 !!
@@ -304,7 +304,7 @@ end subroutine ParPSolver_Kernel
 !!***
 
 
-!!****h* BigDFT/pconvxc_on
+!!****f* BigDFT/pconvxc_on
 !! NAME
 !!   pconvxc_on
 !!
@@ -522,7 +522,7 @@ end subroutine pconvxc_on
 !!***
 
 
-!!****h* BigDFT/pconvxc_off
+!!****f* BigDFT/pconvxc_off
 !! NAME
 !!   pconvxc_off
 !!
@@ -641,7 +641,7 @@ end subroutine pconvxc_off
 !!***
 
 
-!!****h* BigDFT/enterdensity
+!!****f* BigDFT/enterdensity
 !! NAME
 !!   enterdensity
 !!
@@ -698,7 +698,7 @@ end subroutine enterdensity
 !!***
 
 
-!!****h* BigDFT/ParBuild_Kernel
+!!****f* BigDFT/ParBuild_Kernel
 !! NAME
 !!   ParBuild_Kernel
 !!
