@@ -30,7 +30,7 @@ module libBigDFT
   
   !- Initialisation methods.
   !- Create and allocate access arrays for wavefunctions.
-  public :: createWavefunctionArrays
+  public :: createWavefunctionsDescriptors
   !- Create and allocate projectors (and their access arrays).
   public :: createProjectorsArrays
   public :: crtproj
@@ -183,7 +183,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         enddo
         tt=sqrt(tt)
         if (abs(tt-1.d0).gt.1.d-8) stop 'wrong psi_old'
-        eval_old(iorb)    = eval(iorb)
+        eval_old(iorb) = eval(iorb)
      enddo
      deallocate(keyg, keyv)
      deallocate(psi, eval)
@@ -218,7 +218,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      write(*,*) 'idsx=',idsx
      write(*,*) 'calc_tail',calc_tail
      write(*,*) 'rbuf=',rbuf
-     write(*,*)  'ncongt=',ncongt
+     write(*,*) 'ncongt=',ncongt
   endif
 
 ! grid spacing (same in x,y and z direction)
@@ -232,7 +232,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      open(unit=11,file=filename,status='old',iostat=ierror)
      !Check the open statement
      if (ierror /= 0) then
-        write(*,*) 'Failed to open the file "',trim(filename),'"'
+        write(*,*) 'iproc=',iproc,': Failed to open the file "',trim(filename),'"'
         stop
      end if
      read(11,'(a35)') label
@@ -343,7 +343,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      enddo
   endif
 
-  call createWavefunctionArrays(parallel, iproc, nproc, idsx, n1, n2, n3, output_grid, hgrid, &
+  call createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, n3, output_grid, hgrid, &
        & nat, ntypes, iatype, atomnames, rxyz, radii_cf, crmult, frmult, ibyz_c,ibxz_c,ibxy_c, &
        & ibyz_f, ibxz_f, ibxy_f, nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp, keyg,  keyv, &
        & norb,norbp,psi,hpsi,psit,psidst,hpsidst,ads)
@@ -361,7 +361,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 ! Charge density, Potential in real space
   if (iproc.eq.0) write(79,'(a40,i10)') 'words for rhopot and pot_ion ',2*(2*n1+31)*(2*n2+31)*(2*n3+31)
   allocate(rhopot((2*n1+31),(2*n2+31),(2*n3+31)),pot_ion((2*n1+31)*(2*n2+31)*(2*n3+31)))
-  call dzero((2*n1+31)*(2*n2+31)*(2*n3+31),pot_ion)
+  call razero((2*n1+31)*(2*n2+31)*(2*n3+31),pot_ion)
   if (iproc.eq.0) write(79,*) 'allocation done'
 ! Allocate and calculate the 1/|r-r'| kernel for the solution of Poisson's equation and test it
   ndegree_ip=14
@@ -700,7 +700,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      endif
 !    ---reformat potential
      allocate(rhopotb((2*nb1+31),(2*nb2+31),(2*nb3+31)))
-     call dzero((2*nb1+31)*(2*nb2+31)*(2*nb3+31),rhopotb)
+     call razero((2*nb1+31)*(2*nb2+31)*(2*nb3+31),rhopotb)
      do i3=1+2*nbuf,2*n3+31+2*nbuf
      do i2=1+2*nbuf,2*n2+31+2*nbuf
      do i1=1+2*nbuf,2*n1+31+2*nbuf
@@ -1015,7 +1015,7 @@ subroutine input_rho_ion(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
 
   hgridh=hgrid*.5d0 
   pi=4.d0*atan(1.d0)
-  call dzero((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
+  call razero((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
 
   ! Ionic charge 
   rholeaked=0.d0
@@ -1272,7 +1272,7 @@ END SUBROUTINE
         allocate(psig(0:n1,2,0:n2,2,0:n3,2),  & 
                  ww((2*n1+16)*(2*n2+16)*(2*n3+16)))
 
-        call dzero(8*(n1+1)*(n2+1)*(n3+1),psig)
+        call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
 
 ! coarse part
         do iseg=1,nseg_c
@@ -1428,7 +1428,7 @@ END SUBROUTINE
         dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
         dimension psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2)
 
-        call dzero(8*(nu1-nl1+1)*(nu2-nl2+1)*(nu3-nl3+1),psig)
+        call razero(8*(nu1-nl1+1)*(nu2-nl2+1)*(nu3-nl3+1),psig)
 
 ! coarse part
         do iseg=1,mseg_c
@@ -1653,7 +1653,7 @@ END SUBROUTINE
 
    !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
         call tenmminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho_p)
-        !call dzero((2*n1+31)*(2*n2+31)*(2*n3+31),rho_p)
+        !call razero((2*n1+31)*(2*n2+31)*(2*n3+31),rho_p)
 
       do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
@@ -1680,7 +1680,7 @@ END SUBROUTINE
       call timing(iproc,'Rho_comput    ','ON')
     !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
         call tenmminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
-        !call dzero((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
+        !call razero((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
 
      do iorb=1,norb
 
@@ -2683,7 +2683,7 @@ END SUBROUTINE
 
 end  subroutine orthon
 
-subroutine createWavefunctionArrays(parallel, iproc, nproc, idsx, n1, n2, n3, output_grid, &
+subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, n3, output_grid, &
      & hgrid, nat, ntypes, iatype, atomnames, rxyz, radii_cf, crmult, frmult, &
      & ibyz_c,ibxz_c,ibxy_c, ibyz_f, ibxz_f, ibxy_f, nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp, &
      & keyg, keyv,norb,norbp,psi,hpsi,psit,psidst,hpsidst,ads)
@@ -2783,12 +2783,12 @@ subroutine createWavefunctionArrays(parallel, iproc, nproc, idsx, n1, n2, n3, ou
      allocate(psidst(nvctrp,norbp*nproc,idsx),hpsidst(nvctrp,norbp*nproc,idsx))
      if (iproc.eq.0) write(79,*) 'allocation done'
      allocate(ads(idsx+1,idsx+1,3))
-     call dzero(3*(idsx+1)**2,ads)
+     call razero(3*(idsx+1)**2,ads)
   endif
 
   call timing(iproc,'CrtDescriptors','OF')
 
-end subroutine createWavefunctionArrays
+end subroutine createWavefunctionsDescriptors
 
 subroutine createKernel(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
      & ndegree_ip, iproc, nproc, pkernel)
@@ -3885,7 +3885,7 @@ END SUBROUTINE
         allocate(psitt(nvctrp,norbp*nproc))
 ! Transform to KS orbitals
       do iorb=1,norb
-        call dzero(nvctrp,psitt(1,iorb))
+        call razero(nvctrp,psitt(1,iorb))
         do jorb=1,norb
         alpha=hamks(jorb,iorb,1)
         call daxpy(nvctrp,alpha,psit(1,jorb),1,psitt(1,iorb),1)
@@ -3944,7 +3944,7 @@ END SUBROUTINE
         allocate(psitt(nvctrp,norbp))
 ! Transform to KS orbitals
       do iorb=1,norb
-        call dzero(nvctrp,psitt(1,iorb))
+        call razero(nvctrp,psitt(1,iorb))
         do jorb=1,norb
         alpha=hamks(jorb,iorb,1)
         call daxpy(nvctrp,alpha,psi(1,jorb),1,psitt(1,iorb),1)
@@ -4150,7 +4150,7 @@ END SUBROUTINE
 
          allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2))
 
-         call dzero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+         call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
 
          ! coarse part
@@ -4269,7 +4269,7 @@ END SUBROUTINE
 !   write(*,*) 'dxyz',dx,dy,dz
    hgridh=.5d0*hgrid
    hgridh_old=.5d0*hgrid_old
-   call dzero((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf)
+   call razero((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf)
    do i3=-7,2*n3+8
       z=i3*hgridh
       j3=nint((z-dz)/hgridh_old)
@@ -4449,7 +4449,7 @@ END SUBROUTINE
       
       allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2))
 
-      call dzero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+      call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
       do iel=1,nvctr_c_old
          if (useFormattedInput) then
             read(unitwf,*) i1,i2,i3,tt
@@ -4800,7 +4800,7 @@ END SUBROUTINE
         endif
 
 ! calculate new line, use rds as work array for summation
-        call dzero(idsx,rds)
+        call razero(idsx,rds)
         ist=max(1,ids-idsx+1)
         do i=ist,ids
            mi=mod(i-1,idsx)+1
@@ -4850,7 +4850,7 @@ END SUBROUTINE
 
 ! new guess
         do 6633,iorb=1,norb
-        call dzero(nvctrp,psit(1,iorb))
+        call razero(nvctrp,psit(1,iorb))
 
         jst=max(1,ids-idsx+1)
         jj=0

@@ -126,12 +126,12 @@ program BigDFT
       sumx=0.d0
       sumy=0.d0
       sumz=0.d0
-      sum=0.d0
+      sum2=0.d0
       do iat=1,nat
          rxyz(1,iat)=rxyz(1,iat)+beta*fxyz(1,iat)
          rxyz(2,iat)=rxyz(2,iat)+beta*fxyz(2,iat)
          rxyz(3,iat)=rxyz(3,iat)+beta*fxyz(3,iat)
-         sum=sum+fxyz(1,iat)**2+fxyz(2,iat)**2+fxyz(3,iat)**2
+         sum2=sum2+fxyz(1,iat)**2+fxyz(2,iat)**2+fxyz(3,iat)**2
          sumx=sumx+fxyz(1,iat)
          sumy=sumy+fxyz(2,iat)
          sumz=sumz+fxyz(3,iat)
@@ -142,16 +142,16 @@ program BigDFT
       fluct=sumx**2+sumy**2+sumz**2
       if (iproc.eq.0) then
          write(*,'(a,1x,e21.14,1x,e10.3)')'ANALYSIS OF FORCES energy, beta',energy,beta
-         write(*,'(a,3(1x,e11.4))')'the norm of the forces is', sqrt(sum),sqrt(sum/nat),sqrt(sum/(3*nat))
+         write(*,'(a,3(1x,e11.4))')'the norm of the forces is', sqrt(sum2),sqrt(sum2/nat),sqrt(sum2/(3*nat))
          write(*,*) 'fluct',fluct
-         write(*,*) 'stop comparison',sum,sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0
+         write(*,*) 'stop comparison',sum2,sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0
          write(*,*)'the sum of the forces is'
          write(*,'(a16,3x,e16.8)')'x direction',sumx
          write(*,'(a16,3x,e16.8)')'y direction',sumy
          write(*,'(a16,3x,e16.8)')'z direction',sumz
       endif
 
-      if (sum.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0) then   ! assume that fluct increases as sqrt(nat)
+      if (sum2.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0) then   ! assume that fluct increases as sqrt(nat)
          if (iproc.eq.0) then
             write(*,*) 'Final positions'
             do iat=1,nat

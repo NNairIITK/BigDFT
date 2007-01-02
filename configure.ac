@@ -179,6 +179,7 @@ test/C/Makefile
 test/H/Makefile
 test/NaCl/Makefile
 test/SiH4/Makefile
+test/Refs/Makefile
 ])
 AC_OUTPUT
 

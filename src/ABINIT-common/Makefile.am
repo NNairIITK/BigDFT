@@ -12,7 +12,7 @@ SUBDIRS =
 AM_FCFLAGS = @MPI_INCLUDE@
 
 libABINIT_a_SOURCES = \
-	defs_basis.F90 \
+		defs_basis.F90 \
         defs_datatypes.F90 \
         defs_xc.F90 \
         drivexc.F90 \
@@ -26,9 +26,9 @@ libABINIT_a_SOURCES = \
         xclb.F90 \
         xcpbe.F90 \
         invcb.F90 \
-	size_dvxc.F90
-	wrtout.f90 \
-	leave_new.f90
+		size_dvxc.F90
+		wrtout.f90 \
+		leave_new.f90
 
 CLEANFILES = defs_basis.@MODULE_EXT@ \
 	defs_datatypes.@MODULE_EXT@ \
