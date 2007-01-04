@@ -65,7 +65,7 @@ AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enable by def
 if test "$ac_use_mpi" = "yes"; then
   AC_DEFINE(USE_MPI)
   case "$FC" in
-    mpi*)
+    *mpi*)
       dnl The compiler will pass everything needed
       MPI_LIBS=
       MPI_INCLUDE=
