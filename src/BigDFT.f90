@@ -25,7 +25,6 @@ program BigDFT
 !$        end function omp_get_thread_num
 !$      end interface
    include 'mpif.h'
-   include 'parameters.h'
 
 ! Start MPI in parallel version
    if (parallel) then

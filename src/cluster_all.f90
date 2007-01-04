@@ -142,7 +142,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocatable :: rho(:),hartpot(:),rhopotb(:,:,:)
 
   integer :: ierror
-  
+
   include 'mpif.h'
 
   if (iproc.eq.0) write(*,*) 'CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER',inputPsiId
@@ -327,7 +327,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      write(*,*) 'nfl2,nfu2 ',nfl2,nfu2
      write(*,*) 'nfl3,nfu3 ',nfl3,nfu3
   endif
-
 
 ! Create wavefunctions descriptors and allocate them
   allocate(ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2))
@@ -2705,6 +2704,7 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
   integer, pointer :: keyg(:,:), keyv(:)
   ! wavefunction 
   real*8, pointer :: psi(:,:)
+  real*8, pointer :: psit(:,:)
   ! wavefunction gradients
   real*8, pointer :: hpsi(:,:),hpsit(:,:)
   ! arrays for DIIS convergence accelerator

@@ -1,16 +1,16 @@
 ## Process this file with automake to produce Makefile.in
 
 SUBDIRS = \
-		  Refs \
-		  H \
-		  SiH4 \
-		  NaCl \
-		  C
+	  H \
+	  SiH4 \
+	  NaCl \
+	  C
 
 EXTRA_DIST = \
 	inguess.dat \
 	input.dat \
-	posinp
+	posinp \
+	Refs
 
 CLEANFILES = wavefunction*
 
