@@ -17,7 +17,7 @@ noinst_LIBRARIES = libPoisson.a
 
 SUBDIRS =
 
-AM_FCFLAGS = @MPI_INCLUDE@ -I../ABINIT-common
+AM_FCFLAGS = @MPI_INCLUDE@ -I. -I../ABINIT-common
 
 if USE_MPI
 mpi_include =

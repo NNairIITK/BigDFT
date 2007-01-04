@@ -34,6 +34,7 @@ dnl looks for a modern Fortran compiler, prefering newest
 dnl fortran available (e. g. Fortran95). Then FC variable
 dnl is set.
 AC_PROG_FC()
+ABI_PROG_FC()
 
 dnl Set the FCFLAGS and FFLAGS variable
 if test -z "$FFLAGS" ; then
@@ -100,6 +101,18 @@ AC_ARG_ENABLE(optimised-convolution, AS_HELP_STRING([--disable-optimised-convolu
 AM_CONDITIONAL(USE_OPTI_CONVOLUT, test "$ac_use_opti_convolut" = "yes")
 AC_MSG_RESULT([$ac_use_opti_convolut])
 
+
+
+dnl If the library is built, we doesn't need to check for
+dnl libraries to link to (Lapack and Blas).
+AC_ARG_ENABLE(library-only, AS_HELP_STRING([--enable-library-only], [build the BigDFT library instead of the excecutable program (default = no).]), library=yes, library=no)
+AM_CONDITIONAL(BUILD_LIBRARY, test "$library" = "yes")
+AC_MSG_CHECKING([for library compilation only])
+if test "$library" = "yes" ; then
+  AC_MSG_RESULT([$library])
+else
+  AC_MSG_RESULT([$library])
+
 dnl Get the lapack library
 lapack=yes
 AC_ARG_WITH(lapack, AS_HELP_STRING([--with-lapack], [Link with Lapack library (default = yes).]), lapack=$withval, lapack=no)
@@ -158,9 +171,11 @@ if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
   LIBS="-llapack $LIBS"
 fi
 
+fi # End of the if library compilation
+
+
 dnl default installation directories
-fc_basename=`echo $FC | sed "s/ *//" | sed 's,.*/,,'`
-moduledir=${includedir}/$fc_basename
+moduledir=${includedir}/$fc_type
 AC_SUBST(moduledir)
 
 dnl Give the name of file.in to transform to file
@@ -185,6 +200,7 @@ Basics:
   Linked libraries:       $LIBS
 
 Options:
+  Library making only     $library
   With MPI:               $ac_use_mpi
    | MPI implementation:  $MPI_NAME
    | include dir.:        $MPI_INCLUDE
