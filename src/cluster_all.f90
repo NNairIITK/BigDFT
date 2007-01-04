@@ -26,7 +26,7 @@ module libBigDFT
   !- Control orthogonality (serial and parallel MPI).
   public :: checkortho, checkortho_p
   !- Solve a KS system (compute an hamiltonian, diagonalise it and return eigen vectors)
-  public :: KStrans, KStrans_p, solveKS
+  public :: KStrans, KStrans_p
   
   !- Initialisation methods.
   !- Create and allocate access arrays for wavefunctions.
@@ -173,7 +173,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      do iseg=1,nseg_c_old+nseg_f_old
         keyg_old(1,iseg)    = keyg(1,iseg)
         keyg_old(2,iseg)    = keyg(2,iseg)
-        keyv_old(iseg)    = keyv(iseg)
+        keyv_old(iseg)      = keyv(iseg)
      enddo
      do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
         tt=0.d0
@@ -922,7 +922,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      write(*,*) iproc,' after barrier',MPI_COMM_WORLD,ierr
   end if
 
-end subroutine cluster
+END SUBROUTINE cluster
 
 
 subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
@@ -962,7 +962,7 @@ subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
 
    deallocate(psiw)
 
-end subroutine transallwaves
+END SUBROUTINE transallwaves
 
 
 subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,psi)
@@ -999,7 +999,7 @@ subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,ps
    deallocate(psiw)
    call timing(iproc,'Un-Transall   ','OF')
  
-end subroutine untransallwaves
+END SUBROUTINE untransallwaves
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
         
@@ -1148,7 +1148,7 @@ END SUBROUTINE
     enddo
 
         return
-    end subroutine
+    END SUBROUTINE
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
 
@@ -1196,7 +1196,7 @@ END SUBROUTINE
      enddo
 
     return
-    end subroutine
+    END SUBROUTINE
 
 
         subroutine compress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -1255,7 +1255,7 @@ END SUBROUTINE
 
         deallocate(psig,ww)
 
-    end subroutine
+    END SUBROUTINE
 
 
         subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -1317,7 +1317,7 @@ END SUBROUTINE
 
         deallocate(psig,ww)
 
-    end subroutine
+    END SUBROUTINE
 
 
         subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -1364,7 +1364,7 @@ END SUBROUTINE
 
       call timing(iproc,'ApplyLocPotKin','OF')
 
-    end subroutine
+    END SUBROUTINE
 
 
         subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -1415,7 +1415,7 @@ END SUBROUTINE
                     psigp,hpsi(1),hpsi(nvctr_c+1))
 
         return
-    end subroutine
+    END SUBROUTINE
 
     
         subroutine uncompress_forstandardP(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
@@ -2633,7 +2633,7 @@ END SUBROUTINE
 
        call timing(iproc,'GramS_comput  ','OF')
 
-    end subroutine orthon_p
+    END SUBROUTINE orthon_p
 
 
         
@@ -2788,7 +2788,7 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
 
   call timing(iproc,'CrtDescriptors','OF')
 
-end subroutine createWavefunctionsDescriptors
+END SUBROUTINE createWavefunctionsDescriptors
 
 subroutine createKernel(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
      & ndegree_ip, iproc, nproc, pkernel)
@@ -2830,7 +2830,7 @@ subroutine createKernel(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
 
   call timing(iproc,'PSolvKernel   ','OF')
 
-end subroutine createKernel
+END SUBROUTINE createKernel
 
   subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, atomnames, &
        & psppar, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
@@ -3023,7 +3023,7 @@ end subroutine createKernel
     deallocate(logrid)
   call timing(iproc,'CrtProjectors ','OF')
 
-end subroutine 
+END SUBROUTINE 
 
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
@@ -3713,113 +3713,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
     return
     END SUBROUTINE
 
-subroutine solveKS(parallel, iproc, nproc, norb, norbp, norbe, norbep, nvctr_c, &
-  & nvctr_f, nvctrp, psi, hpsi, ppsi, eval)
-
-implicit real*8 (a-h,o-z)
-
-logical, intent(in) :: parallel
-integer, intent(in) :: nvctrp, norbe, norbep, nproc, iproc
-integer, intent(in) :: nvctr_c, nvctr_f, norb, norbp
-dimension psi(nvctr_c+7*nvctr_f,norbep), hpsi(nvctr_c+7*nvctr_f,norbep)
-real*8, intent(out) :: ppsi(nvctr_c+7*nvctr_f,norbp), eval(norb)
-        include 'mpif.h'
-
-allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale(:)
-
-        allocate(hamovr(norbe,norbe,4))
- if (parallel) then
-        write(79,'(a40,i10)') 'words for psit inguess',nvctrp*norbep*nproc
-        allocate(psit(nvctrp,norbep*nproc))
-        write(79,*) 'allocation done'
-
-        call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psit)
-
-        write(79,'(a40,i10)') 'words for hpsit inguess',2*nvctrp*norbep*nproc
-        allocate(hpsit(nvctrp,norbep*nproc))
-        write(79,*) 'allocation done'
-
-        call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
-
-!       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
-!       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
-      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,hamovr(1,1,3),norbe)
-      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp, psit,nvctrp,0.d0,hamovr(1,1,4),norbe)
-        deallocate(hpsit)
-
-        call MPI_ALLREDUCE (hamovr(1,1,3),hamovr(1,1,1),2*norbe**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-
-! calculate  KS orbitals
-!      if (iproc.eq.0) then
-!        write(*,*) 'KS Hamiltonian',iproc
-!        do iorb=1,norbe
-!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,1),jorb=1,norbe)
-!        enddo
-!        write(*,*) 'Overlap',iproc
-!        do iorb=1,norbe
-!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
-!        enddo
-!     endif
-
-        n_lp=5000
-        allocate(work_lp(n_lp),evale(norbe))
-        call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
-        if (info.ne.0) write(*,*) 'DSYGV ERROR',info
-        if (iproc.eq.0) then
-        do iorb=1,norbe
-        write(*,*) 'evale(',iorb,')=',evale(iorb)
-        enddo
-        endif
-        eval(1:norb) = evale(1:norb)
-        deallocate(work_lp,evale)
-
-        write(79,'(a40,i10)') 'words for ppsit ',nvctrp*norbep*nproc
-        allocate(ppsit(nvctrp,norbp*nproc))
-        write(79,*) 'allocation done'
-
-! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
-      call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psit,nvctrp,hamovr,norbe,0.d0,ppsit,nvctrp)
-
-       call  untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,ppsit,ppsi)
-
-        deallocate(psit,ppsit)
-
-        call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-
-  else !serial case
-!       hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
-      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,0.d0,hamovr(1,1,1),norbe)
-      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp, psi,nvctrp,0.d0,hamovr(1,1,2),norbe)
-
-! calculate  KS orbitals
-!        write(*,*) 'KS Hamiltonian'
-!        do iorb=1,norbe
-!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,1),jorb=1,norbe)
-!        enddo
-!        write(*,*) 'Overlap'
-!        do iorb=1,norbe
-!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
-!        enddo
-
-        n_lp=5000
-        allocate(work_lp(n_lp),evale(norbe))
-        call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
-        if (info.ne.0) write(*,*) 'DSYGV ERROR',info
-        if (iproc.eq.0) then
-        do iorb=1,norbe
-        write(*,*) 'evale(',iorb,')=',evale(iorb)
-        enddo
-        endif
-        eval(1:norb) = evale(1:norb)
-        deallocate(work_lp,evale)
-
-! ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
-        call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psi,nvctrp,hamovr,norbe,0.d0,ppsi,nvctrp)
-
-  endif
-  deallocate(hamovr)
-END SUBROUTINE
-
 
 
         logical function myorbital(iorb,norbe,iproc,nproc)
@@ -4353,7 +4246,6 @@ END SUBROUTINE
    do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
       write(f4,'(i4.4)') iorb
-      !        filename = '/scratch/tmp/stefan/wavefunction.'//f4
       filename = 'wavefunction.'//f4
       open(unit=99,file=filename,status='unknown')
 
@@ -4508,7 +4400,6 @@ END SUBROUTINE
        do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
         write(f4,'(i4.4)') iorb
-!        filename = '/scratch/tmp/stefan/wavefunction.'//f4
         filename = 'wavefunction.'//f4
         write(*,*) 'opening ',filename
         open(unit=99,file=filename,status='unknown')
@@ -4866,6 +4757,6 @@ END SUBROUTINE
         call timing(iproc,'Diis          ','OF')
 
         return
-        end subroutine
+        END SUBROUTINE
 
 end module

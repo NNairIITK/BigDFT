@@ -14,11 +14,17 @@ CLEANFILES = $(PPFILES) inguess.dat wavefunction* *.out posout* malloc time.prc
 
 #dependencies
 $(PPFILES):
-	ln -s ../../utils/PSPfiles/$@ .
+	ln -s $(top_srcdir)/utils/PSPfiles/$@ .
 
 inguess.dat:
-	ln -s ../inguess.dat .
+	ln -s $(top_srcdir)/test/inguess.dat .
 
-check: $(PPFILES) inguess.dat
-	../../src/cluster > NaCl.out
-	diff NaCl.out ../Refs/NaCl.out.ref | cat
+check: $(PPFILES) inguess.dat posinp input.dat
+	if test ! -f input.dat ; then \
+	  ln -s $(top_srcdir)/test/NaCl/input.dat ; \
+	fi
+	if test ! -f posinp ; then \
+	  ln -s $(top_srcdir)/test/NaCl/posinp ; \
+	fi
+	$(top_builddir)/src/cluster > NaCl.out
+	diff NaCl.out $(top_srcdir)/test/Refs/NaCl.out.ref | cat

@@ -229,7 +229,8 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1
                     lx(1)=1 ; ly(1)=0 ; lz(1)=0 
                     call crtproj(iproc,nterm,n1,n2,n3, & 
-                         nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
+                         & nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
+                         & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,1),derproj(istart_f,1))
 

@@ -34,6 +34,7 @@ dnl looks for a modern Fortran compiler, prefering newest
 dnl fortran available (e. g. Fortran95). Then FC variable
 dnl is set.
 AC_PROG_FC()
+ABI_PROG_FC()
 
 ABI_PROG_FC()
 
@@ -64,7 +65,7 @@ AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enable by def
 if test "$ac_use_mpi" = "yes"; then
   AC_DEFINE(USE_MPI)
   case "$FC" in
-    mpi*)
+    *mpi*)
       dnl The compiler will pass everything needed
       MPI_LIBS=
       MPI_INCLUDE=
@@ -101,6 +102,18 @@ AC_ARG_ENABLE(optimised-convolution, AS_HELP_STRING([--disable-optimised-convolu
                          ac_use_opti_convolut=$enableval, ac_use_opti_convolut="yes")
 AM_CONDITIONAL(USE_OPTI_CONVOLUT, test "$ac_use_opti_convolut" = "yes")
 AC_MSG_RESULT([$ac_use_opti_convolut])
+
+
+
+dnl If the library is built, we doesn't need to check for
+dnl libraries to link to (Lapack and Blas).
+AC_ARG_ENABLE(library-only, AS_HELP_STRING([--enable-library-only], [build the BigDFT library instead of the excecutable program (default = no).]), library=yes, library=no)
+AM_CONDITIONAL(BUILD_LIBRARY, test "$library" = "yes")
+AC_MSG_CHECKING([for library compilation only])
+if test "$library" = "yes" ; then
+  AC_MSG_RESULT([$library])
+else
+  AC_MSG_RESULT([$library])
 
 dnl Get the lapack library
 lapack=yes
@@ -160,6 +173,9 @@ if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
   LIBS="-llapack $LIBS"
 fi
 
+fi # End of the if library compilation
+
+
 dnl default installation directories
 moduledir=${includedir}/$fc_type
 AC_SUBST(moduledir)
@@ -179,23 +195,30 @@ test/C/Makefile
 test/H/Makefile
 test/NaCl/Makefile
 test/SiH4/Makefile
-test/Refs/Makefile
 ])
 AC_OUTPUT
 
 echo "
 Basics:
-  Prefix:                 $prefix
-  Fortran90 compiler:     $FC
-  Fortran90 flags:        $FCFLAGS
-  Linker flags:           $LDFLAGS
-  Linked libraries:       $LIBS
+  Fortran90 compiler:      $FC
+  Fortran90 compiler name: $fc_type
+  Fortran90 flags:         $FCFLAGS
+  Linker flags:            $LDFLAGS
+  Linked libraries:        $LIBS
 
 Options:
-  With MPI:               $ac_use_mpi
-   | MPI implementation:  $MPI_NAME
-   | include dir.:        $MPI_INCLUDE
-   | Linker flags:        $MPI_LDFLAGS
-   | linked libraries:    $MPI_LIBS
-  With optimised conv.:   $ac_use_opti_convolut
+  Library making only:     $library
+  With MPI:                $ac_use_mpi
+   | MPI implementation:   $MPI_NAME
+   | include dir.:         $MPI_INCLUDE
+   | Linker flags:         $MPI_LDFLAGS
+   | linked libraries:     $MPI_LIBS
+  With optimised conv.:    $ac_use_opti_convolut
+
+Installation paths:
+  Prefix:                  $prefix
+  Exec prefix:             $exec_prefix
+  Binaries:                $bindir
+  Static libraries:        $libdir
+  Fortran modules:         $moduledir
 "
