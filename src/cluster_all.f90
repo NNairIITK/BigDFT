@@ -922,7 +922,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      write(*,*) iproc,' after barrier',MPI_COMM_WORLD,ierr
   end if
 
-end subroutine cluster
+END SUBROUTINE cluster
 
 
 subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
@@ -962,7 +962,7 @@ subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
 
    deallocate(psiw)
 
-end subroutine transallwaves
+END SUBROUTINE transallwaves
 
 
 subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,psi)
@@ -999,7 +999,7 @@ subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,ps
    deallocate(psiw)
    call timing(iproc,'Un-Transall   ','OF')
  
-end subroutine untransallwaves
+END SUBROUTINE untransallwaves
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
         
@@ -1148,7 +1148,7 @@ END SUBROUTINE
     enddo
 
         return
-    end subroutine
+    END SUBROUTINE
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
 
@@ -1196,7 +1196,7 @@ END SUBROUTINE
      enddo
 
     return
-    end subroutine
+    END SUBROUTINE
 
 
         subroutine compress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -1255,7 +1255,7 @@ END SUBROUTINE
 
         deallocate(psig,ww)
 
-    end subroutine
+    END SUBROUTINE
 
 
         subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -1317,7 +1317,7 @@ END SUBROUTINE
 
         deallocate(psig,ww)
 
-    end subroutine
+    END SUBROUTINE
 
 
         subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -1364,7 +1364,7 @@ END SUBROUTINE
 
       call timing(iproc,'ApplyLocPotKin','OF')
 
-    end subroutine
+    END SUBROUTINE
 
 
         subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -1415,7 +1415,7 @@ END SUBROUTINE
                     psigp,hpsi(1),hpsi(nvctr_c+1))
 
         return
-    end subroutine
+    END SUBROUTINE
 
     
         subroutine uncompress_forstandardP(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
@@ -2633,7 +2633,7 @@ END SUBROUTINE
 
        call timing(iproc,'GramS_comput  ','OF')
 
-    end subroutine orthon_p
+    END SUBROUTINE orthon_p
 
 
         
@@ -2788,7 +2788,7 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
 
   call timing(iproc,'CrtDescriptors','OF')
 
-end subroutine createWavefunctionsDescriptors
+END SUBROUTINE createWavefunctionsDescriptors
 
 subroutine createKernel(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
      & ndegree_ip, iproc, nproc, pkernel)
@@ -3023,7 +3023,7 @@ END SUBROUTINE createKernel
     deallocate(logrid)
   call timing(iproc,'CrtProjectors ','OF')
 
-end subroutine 
+END SUBROUTINE 
 
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
@@ -4757,6 +4757,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         call timing(iproc,'Diis          ','OF')
 
         return
-        end subroutine
+        END SUBROUTINE
 
 end module
