@@ -1,8 +1,26 @@
-Damien Caliste
-Thierry Deutsch
-Alireza Ghasemi
-Luigi Genovese
-Stefan Goedecker
-Alexey Neelov
-Mark Rayson
+The BigDFT project is a european project (FP6-NEST).
+
+Four institutions are implicated in the BigDFT project :
+- le Commissariat a l'Energie Atomique (T. Deutsch),
+- University of Basel (S. Goedecker)
+- Université catholique de Louvain-la-Neuve (X. Gonze)
+- Christian-Albrechts Universität izu Kiel (R. Schneider)
+
+Coming now to individuals,
+
+direct contributors to BigDFT (version 1.0) are :
+name                      email
+Pierre-Matthieu Anglade anglade@pcpm.ucl.ac.be
+Anders Bergman          Anders.Bergman@cea.fr
+Damien Caliste          caliste@pcpm.ucl.ac.be
+Thierry Deutsch         Thierry.Deutsch@cea.fr
+Fritz Krüger            fkr@numerik.uni-kiel.de
+Alireza Ghasemi         alireza.ghasemi@unibas.ch
+Luigi Genovese          Luigi.Genovese@cea.fr
+Stefan Goedecker        Stefan.Goedecker@unibas.ch
+Xavier Gonze            gonze@pcpm.ucl.ac.be
+Alexey Neelov           alexey.neelov@unibas.ch
+Jaroslav Piwonski       jpi@numerik.uni-kiel.de
+Mark Rayson             Mark.Rayson@unibas.ch
+Reinhold Schneider      rs@numerik.uni-kiel.de
 Oded Zilberberg

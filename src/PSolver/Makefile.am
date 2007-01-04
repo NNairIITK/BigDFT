@@ -43,6 +43,6 @@ pconv.o: $(mpi_include)
 
 mpif.h:
 	touch mpif.h
-	echo "real*8 :: MPI_double_precision" >> mpif.h
-	echo "real*8 :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h
+	echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h
+	echo "integer :: MPI_DOUBLE_PRECISION,MPI_MAX,MPI_MIN" >> mpif.h
 

@@ -8,20 +8,19 @@
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         dimension hpsi(nvctr_c+7*nvctr_f,norbp),eval(norb)
 
-       call cpu_time(tr0) ; call system_clock(ncount1,ncount_rate,ncount_max)
+       call timing(iproc,'Precondition  ','ON')
 
       do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
        cprecr=-eval(iorb)
+!       write(*,*) 'cprecr',iorb,cprecr
         call precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
                    nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
                    ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi(1,iorb-iproc*norbp))
 
       enddo
 
-       call cpu_time(tr1) ;  call system_clock(ncount2,ncount_rate,ncount_max)
-       tel=dble(ncount2-ncount1)/dble(ncount_rate)
-       write(77,'(a40,i4,2(x,e10.3))') 'PRECONDITIONING TIME',iproc,tr1-tr0,tel
+       call timing(iproc,'Precondition  ','OF')
 
       return
       end
@@ -34,10 +33,10 @@
                    ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
 ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 ! hpsi is the right hand side on input and the solution on output
-	implicit real*8 (a-h,o-z)
+        implicit real*8 (a-h,o-z)
         dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
         dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-	dimension hpsi(nvctr_c+7*nvctr_f),scal(0:3),residues(ncong)
+        dimension hpsi(nvctr_c+7*nvctr_f),scal(0:3),residues(ncong)
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         allocatable rpsi(:),ppsi(:),wpsi(:)
 !        allocatable spsi(:)
@@ -78,51 +77,51 @@
         call  CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
               nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
               scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1))
-	do i=1,nvctr_c+7*nvctr_f
-	tt=wpsi(i)-hpsi(i)
-	rpsi(i)=tt
-	ppsi(i)=tt
+        do i=1,nvctr_c+7*nvctr_f
+           tt=wpsi(i)-hpsi(i)
+           rpsi(i)=tt
+           ppsi(i)=tt
         enddo
 
-	do 1000,icong=2,ncong
+        do 1000,icong=2,ncong
         call  CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
               nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
               scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,ppsi,ppsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1))
 
-        alpha1=0.d0 ; alpha2=0.d0
-	do i=1,nvctr_c+7*nvctr_f
-        alpha1=alpha1+rpsi(i)*rpsi(i)
-        alpha2=alpha2+rpsi(i)*wpsi(i)
-        enddo
-        residues(icong)=alpha1
-	alpha=alpha1/alpha2
+       alpha1=0.d0 ; alpha2=0.d0
+       do i=1,nvctr_c+7*nvctr_f
+          alpha1=alpha1+rpsi(i)*rpsi(i)
+          alpha2=alpha2+rpsi(i)*wpsi(i)
+       enddo
+       residues(icong)=alpha1
+       alpha=alpha1/alpha2
 
-	do 978,i=1,nvctr_c+7*nvctr_f
-	hpsi(i)=hpsi(i)-alpha*ppsi(i)
-	rpsi(i)=rpsi(i)-alpha*wpsi(i)
-978	continue
+       do i=1,nvctr_c+7*nvctr_f
+          hpsi(i)=hpsi(i)-alpha*ppsi(i)
+          rpsi(i)=rpsi(i)-alpha*wpsi(i)
+       end do
 
 !	if (alpha1.lt.tol) goto 1010
-	if (icong.ge.ncong) goto 1010
+       if (icong.ge.ncong) goto 1010
 
-        beta1=0.d0 ; beta2=0.d0
-	do i=1,nvctr_c+7*nvctr_f
-        beta1=beta1+rpsi(i)*wpsi(i)
-        beta2=beta2+ppsi(i)*wpsi(i)
-        enddo
-	beta=beta1/beta2
+       beta1=0.d0 ; beta2=0.d0
+       do i=1,nvctr_c+7*nvctr_f
+          beta1=beta1+rpsi(i)*wpsi(i)
+          beta2=beta2+ppsi(i)*wpsi(i)
+       enddo
+       beta=beta1/beta2
 
-	do 673,i=1,nvctr_c+7*nvctr_f
-	ppsi(i)=rpsi(i)-beta*ppsi(i)
-673	continue
+       do i=1,nvctr_c+7*nvctr_f
+          ppsi(i)=rpsi(i)-beta*ppsi(i)
+       end do
 
-1000	continue
-1010	continue
+1000 continue
+1010 continue
 
 !  D^{-1/2} times solution
         call  wscalv(nvctr_c,nvctr_f,scal,hpsi,hpsi(nvctr_c+1))
 
-        write(*,'(i4,(100(1x,e8.2)))') iorb,(residues(icong),icong=2,ncong)
+!        write(*,'(i4,(100(1x,e8.2)))') iorb,(residues(icong),icong=2,ncong)
 
 !! check final residue of original equation
 !        do i=0,3
@@ -219,9 +218,9 @@
         psig_c = 0.d0
         psig_fc = 0.d0
         psig_f = 0.d0
-!        call zero((n1+1)*(n2+1)*(n3+1),psig_c)
-!        call zero(3*(n1+1)*(n2+1)*(n3+1),psig_fc)
-!        call zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),psig_f)
+!        call dzero((n1+1)*(n2+1)*(n3+1),psig_c)
+!        call dzero(3*(n1+1)*(n2+1)*(n3+1),psig_fc)
+!        call dzero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),psig_f)
 
 ! coarse part
 	do iseg=1,mseg_c

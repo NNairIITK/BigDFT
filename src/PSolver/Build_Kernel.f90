@@ -1,4 +1,4 @@
-!!****h* BigDFT/Build_Kernel
+!!****f* BigDFT/Build_Kernel
 !! NAME
 !!   Build_Kernel
 !!
@@ -54,13 +54,13 @@ subroutine Build_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,hgrid,itype_scf,karrayout)
   real(kind=8), dimension(:), allocatable :: x_scf ,y_scf
   real(kind=8), dimension(:,:,:), allocatable :: karrayhalf
   
-  real(kind=8) :: ur_gauss,dr_gauss,acc_gauss,pgauss,kern,a_range,kern_tot
-  real(kind=8) :: pi,factor,factor2,urange,dx,absci,p0gauss,weight,p0_cell
-  real(kind=8) :: a1,a2,a3,amax
+  real(kind=8) :: ur_gauss,dr_gauss,acc_gauss,pgauss,kern,a_range
+  real(kind=8) :: factor,factor2,dx,absci,p0gauss,p0_cell
+  real(kind=8) :: a1,a2,a3
   integer :: nd1,nd2,nd3,n1k,n2k,n3k,n_scf
-  integer :: i_gauss,n_range,n_cell,ind1
-  integer :: i,j,n_iter,i_iter,ind,i1,i2,i3,i_kern,i_stat,i_allocated
-  integer :: i01,i02,i03,inkee,n1h,n2h,n3h,nd1h,j1,j2,j3
+  integer :: i_gauss,n_range,n_cell
+  integer :: i,n_iter,i1,i2,i3,i_kern,i_stat,i_allocated
+  integer :: i01,i02,i03,inkee,n1h,n2h,n3h,nd1h
   
   !Number of integration points : 2*itype_scf*n_points
   n_scf=2*itype_scf*n_points
@@ -209,7 +209,7 @@ end subroutine Build_Kernel
 !!***
 
 
-!!****h* BigDFT/Dimensions_FFT
+!!****f* BigDFT/Dimensions_FFT
 !! NAME
 !!   Dimensions_FFT
 !!
@@ -260,7 +260,7 @@ end subroutine Dimensions_FFT
 !!***
 
 
-!!****h* BigDFT/karrayhalf_in
+!!****f* BigDFT/karrayhalf_in
 !! NAME
 !!   karrayhalf_in
 !!
@@ -324,7 +324,7 @@ end subroutine karrayhalf_in
 !!***
 
 
-!!****h* BigDFT/kernel_recon
+!!****f* BigDFT/kernel_recon
 !! NAME
 !!   kernel_recon
 !!

@@ -36,6 +36,8 @@ dnl is set.
 AC_PROG_FC()
 ABI_PROG_FC()
 
+ABI_PROG_FC()
+
 dnl Set the FCFLAGS and FFLAGS variable
 if test -z "$FFLAGS" ; then
   AC_SUBST(FFLAGS, "-O2")
@@ -188,6 +190,12 @@ src/parameters.h
 utils/Makefile
 utils/PSPfiles/Makefile
 doc/Makefile
+test/Makefile
+test/C/Makefile
+test/H/Makefile
+test/NaCl/Makefile
+test/SiH4/Makefile
+test/Refs/Makefile
 ])
 AC_OUTPUT
 

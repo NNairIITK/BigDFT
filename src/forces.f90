@@ -303,7 +303,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                             derproj(istart_c-1+i_c,2)+auxproj_c(i_c)
                     end do
                     do i_f=1,7*mvctr_f
-                       derproj(istart_f-1+i_f,1)=&
+                       derproj(istart_f-1+i_f,2)=&
                             derproj(istart_f-1+i_c,2)+auxproj_f(i_f)
                     end do
 
@@ -472,7 +472,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                             derproj(istart_c-1+i_c,3)+auxproj_c(i_c)
                     end do
                     do i_f=1,7*mvctr_f
-                       derproj(istart_f-1+i_f,2)=&
+                       derproj(istart_f-1+i_f,3)=&
                             derproj(istart_f-1+i_c,3)+auxproj_f(i_f)
                     end do
 
@@ -495,7 +495,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
   ! projector part finished
 
   allocate(fxyz_orb(3,nat))
-  print *,'end of the projector part'
+!  print *,'end of the projector part'
 
 
 !  fsep(:,:)=0.d0
