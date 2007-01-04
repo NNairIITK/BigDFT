@@ -26,7 +26,7 @@ module libBigDFT
   !- Control orthogonality (serial and parallel MPI).
   public :: checkortho, checkortho_p
   !- Solve a KS system (compute an hamiltonian, diagonalise it and return eigen vectors)
-  public :: KStrans, KStrans_p
+  public :: KStrans, KStrans_p, solveKS
   
   !- Initialisation methods.
   !- Create and allocate access arrays for wavefunctions.
@@ -3713,6 +3713,112 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
     return
     END SUBROUTINE
 
+subroutine solveKS(parallel, iproc, nproc, norb, norbp, norbe, norbep, nvctr_c, &
+  & nvctr_f, nvctrp, psi, hpsi, ppsi, eval)
+
+implicit real*8 (a-h,o-z)
+
+logical, intent(in) :: parallel
+integer, intent(in) :: nvctrp, norbe, norbep, nproc, iproc
+integer, intent(in) :: nvctr_c, nvctr_f, norb, norbp
+dimension psi(nvctr_c+7*nvctr_f,norbep), hpsi(nvctr_c+7*nvctr_f,norbep)
+real*8, intent(out) :: ppsi(nvctr_c+7*nvctr_f,norbp), eval(norb)
+        include 'mpif.h'
+
+allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale(:)
+
+        allocate(hamovr(norbe,norbe,4))
+ if (parallel) then
+        write(79,'(a40,i10)') 'words for psit inguess',nvctrp*norbep*nproc
+        allocate(psit(nvctrp,norbep*nproc))
+        write(79,*) 'allocation done'
+
+        call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psit)
+
+        write(79,'(a40,i10)') 'words for hpsit inguess',2*nvctrp*norbep*nproc
+        allocate(hpsit(nvctrp,norbep*nproc))
+        write(79,*) 'allocation done'
+
+        call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
+
+!       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
+!       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
+      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,hamovr(1,1,3),norbe)
+      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp, psit,nvctrp,0.d0,hamovr(1,1,4),norbe)
+        deallocate(hpsit)
+
+        call MPI_ALLREDUCE (hamovr(1,1,3),hamovr(1,1,1),2*norbe**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+! calculate  KS orbitals
+!      if (iproc.eq.0) then
+!        write(*,*) 'KS Hamiltonian',iproc
+!        do iorb=1,norbe
+!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,1),jorb=1,norbe)
+!        enddo
+!        write(*,*) 'Overlap',iproc
+!        do iorb=1,norbe
+!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
+!        enddo
+!     endif
+
+        n_lp=5000
+        allocate(work_lp(n_lp),evale(norbe))
+        call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
+        if (info.ne.0) write(*,*) 'DSYGV ERROR',info
+        if (iproc.eq.0) then
+        do iorb=1,norbe
+        write(*,*) 'evale(',iorb,')=',evale(iorb)
+        enddo
+        endif
+        eval(1:norb) = evale(1:norb)
+        deallocate(work_lp,evale)
+
+        write(79,'(a40,i10)') 'words for ppsit ',nvctrp*norbep*nproc
+        allocate(ppsit(nvctrp,norbp*nproc))
+        write(79,*) 'allocation done'
+
+! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
+      call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psit,nvctrp,hamovr,norbe,0.d0,ppsit,nvctrp)
+
+       call  untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,ppsit,ppsi)
+
+        deallocate(psit,ppsit)
+
+        call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
+  else !serial case
+!       hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
+      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,0.d0,hamovr(1,1,1),norbe)
+      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp, psi,nvctrp,0.d0,hamovr(1,1,2),norbe)
+
+! calculate  KS orbitals
+!        write(*,*) 'KS Hamiltonian'
+!        do iorb=1,norbe
+!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,1),jorb=1,norbe)
+!        enddo
+!        write(*,*) 'Overlap'
+!        do iorb=1,norbe
+!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
+!        enddo
+
+        n_lp=5000
+        allocate(work_lp(n_lp),evale(norbe))
+        call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
+        if (info.ne.0) write(*,*) 'DSYGV ERROR',info
+        if (iproc.eq.0) then
+        do iorb=1,norbe
+        write(*,*) 'evale(',iorb,')=',evale(iorb)
+        enddo
+        endif
+        eval(1:norb) = evale(1:norb)
+        deallocate(work_lp,evale)
+
+! ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
+        call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psi,nvctrp,hamovr,norbe,0.d0,ppsi,nvctrp)
+
+  endif
+  deallocate(hamovr)
+END SUBROUTINE
 
 
         logical function myorbital(iorb,norbe,iproc,nproc)
