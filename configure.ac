@@ -193,18 +193,25 @@ AC_OUTPUT
 
 echo "
 Basics:
-  Prefix:                 $prefix
-  Fortran90 compiler:     $FC
-  Fortran90 flags:        $FCFLAGS
-  Linker flags:           $LDFLAGS
-  Linked libraries:       $LIBS
+  Fortran90 compiler:      $FC
+  Fortran90 compiler name: $fc_type
+  Fortran90 flags:         $FCFLAGS
+  Linker flags:            $LDFLAGS
+  Linked libraries:        $LIBS
 
 Options:
-  Library making only     $library
-  With MPI:               $ac_use_mpi
-   | MPI implementation:  $MPI_NAME
-   | include dir.:        $MPI_INCLUDE
-   | Linker flags:        $MPI_LDFLAGS
-   | linked libraries:    $MPI_LIBS
-  With optimised conv.:   $ac_use_opti_convolut
+  Library making only:     $library
+  With MPI:                $ac_use_mpi
+   | MPI implementation:   $MPI_NAME
+   | include dir.:         $MPI_INCLUDE
+   | Linker flags:         $MPI_LDFLAGS
+   | linked libraries:     $MPI_LIBS
+  With optimised conv.:    $ac_use_opti_convolut
+
+Installation paths:
+  Prefix:                  $prefix
+  Exec prefix:             $exec_prefix
+  Binaries:                $bindir
+  Static libraries:        $libdir
+  Fortran modules:         $moduledir
 "

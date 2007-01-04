@@ -228,15 +228,16 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     !derivative wrt x direction
                     nterm=1
                     lx(1)=1 ; ly(1)=0 ; lz(1)=0 
-                    call crtproj(nterm,n1,n2,n3, & 
-                         nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
+                         & nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
+                         & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,1),derproj(istart_f,1))
 
                     !derivative wrt y direction
                     nterm=1
                     lx(1)=0 ; ly(1)=1 ; lz(1)=0 
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,2),derproj(istart_f,2))
@@ -244,7 +245,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     !derivative wrt z direction
                     nterm=1
                     lx(1)=0 ; ly(1)=0 ; lz(1)=1 
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,3),derproj(istart_f,3))
@@ -256,7 +257,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     lx(2)=1 ; ly(2)=2 ; lz(2)=0 
                     lx(3)=1 ; ly(3)=0 ; lz(3)=2 
                     factor=-sqrt(4.d0/15.d0)*fpi/(sqrt(gau_a)**7)/gau_a**2
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,1),derproj(istart_f,1))
@@ -264,7 +265,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1 
                     lx(1)=1 ; ly(1)=0 ; lz(1)=0 
                     factor=2.d0*sqrt(4.d0/15.d0)*fpi/(sqrt(gau_a)**7)
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,auxproj_c,auxproj_f)
@@ -284,7 +285,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     lx(2)=0 ; ly(2)=3 ; lz(2)=0 
                     lx(3)=0 ; ly(3)=1 ; lz(3)=2 
                     factor=-sqrt(4.d0/15.d0)*fpi/(sqrt(gau_a)**7)/gau_a**2
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,2),derproj(istart_f,2))
@@ -292,7 +293,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1 
                     lx(1)=0 ; ly(1)=1 ; lz(1)=0 
                     factor=2.d0*sqrt(4.d0/15.d0)*fpi/(sqrt(gau_a)**7)
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,auxproj_c,auxproj_f)
@@ -312,7 +313,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     lx(2)=0 ; ly(2)=2 ; lz(2)=1 
                     lx(3)=0 ; ly(3)=0 ; lz(3)=3 
                     factor=-sqrt(4.d0/15.d0)*fpi/(sqrt(gau_a)**7)/gau_a**2
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,3),derproj(istart_f,3))
@@ -320,7 +321,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1 
                     lx(1)=0 ; ly(1)=0 ; lz(1)=1 
                     factor=2.d0*sqrt(4.d0/15.d0)*fpi/(sqrt(gau_a)**7)
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,auxproj_c,auxproj_f)
@@ -340,7 +341,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1 
                     lx(1)=2 ; ly(1)=0 ; lz(1)=0 
                     factor=-sqrt(2.d0)*fpi/(sqrt(gau_a)**5)/gau_a**2
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,1),derproj(istart_f,1))
@@ -348,7 +349,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1 
                     lx(1)=0 ; ly(1)=0 ; lz(1)=0 
                     factor=sqrt(2.d0)*fpi/(sqrt(gau_a)**5)
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,auxproj_c,auxproj_f)
@@ -366,7 +367,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1
                     lx(1)=1 ; ly(1)=1 ; lz(1)=0
                     factor=-sqrt(2.d0)*fpi/(sqrt(gau_a)**5)/gau_a**2
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,2),derproj(istart_f,2))
@@ -375,7 +376,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1
                     lx(1)=1 ; ly(1)=0 ; lz(1)=1
                     factor=-sqrt(2.d0)*fpi/(sqrt(gau_a)**5)/gau_a**2
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,3),derproj(istart_f,3))
@@ -387,7 +388,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1
                     lx(1)=1 ; ly(1)=1 ; lz(1)=0
                     factor=-sqrt(2.d0)*fpi/(sqrt(gau_a)**5)/gau_a**2
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,1),derproj(istart_f,1))
@@ -397,7 +398,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1 
                     lx(1)=0 ; ly(1)=2 ; lz(1)=0 
                     factor=-sqrt(2.d0)*fpi/(sqrt(gau_a)**5)/gau_a**2
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,2),derproj(istart_f,2))
@@ -405,7 +406,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1 
                     lx(1)=0 ; ly(1)=0 ; lz(1)=0 
                     factor=sqrt(2.d0)*fpi/(sqrt(gau_a)**5)
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,auxproj_c,auxproj_f)
@@ -423,7 +424,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1
                     lx(1)=0 ; ly(1)=1 ; lz(1)=1
                     factor=-sqrt(2.d0)*fpi/(sqrt(gau_a)**5)/gau_a**2
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,3),derproj(istart_f,3))
@@ -434,7 +435,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1
                     lx(1)=1 ; ly(1)=0 ; lz(1)=1
                     factor=-sqrt(2.d0)*fpi/(sqrt(gau_a)**5)/gau_a**2
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,1),derproj(istart_f,1))
@@ -443,7 +444,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1
                     lx(1)=0 ; ly(1)=1 ; lz(1)=1
                     factor=-sqrt(2.d0)*fpi/(sqrt(gau_a)**5)/gau_a**2
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,2),derproj(istart_f,2))
@@ -453,7 +454,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1 
                     lx(1)=0 ; ly(1)=0 ; lz(1)=2 
                     factor=-sqrt(2.d0)*fpi/(sqrt(gau_a)**5)/gau_a**2
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,3),derproj(istart_f,3))
@@ -461,7 +462,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1 
                     lx(1)=0 ; ly(1)=0 ; lz(1)=0 
                     factor=sqrt(2.d0)*fpi/(sqrt(gau_a)**5)
-                    call crtproj(nterm,n1,n2,n3, & 
+                    call crtproj(iproc,nterm,n1,n2,n3, & 
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,auxproj_c,auxproj_f)

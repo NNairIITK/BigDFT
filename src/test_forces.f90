@@ -92,9 +92,9 @@ program test_forces
 
   !calculate the starting point
   if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-  call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy0,fxyz,stopnow, &
+  call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy0,fxyz, &
              & psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-             & 0, n1, n2, n3, hgrid, rxyz_old)
+             & 0, .false., .false., n1, n2, n3, hgrid, rxyz_old)
   deallocate(psi, eval, keyg, keyv)
 
   allocate(weight(n))
@@ -124,9 +124,9 @@ program test_forces
 
 
      if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-     call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,stopnow, &
+     call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz, &
              & psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-             & 0, n1, n2, n3, hgrid, rxyz_old)
+             & 0, .false., .false., n1, n2, n3, hgrid, rxyz_old)
      deallocate(psi, eval, keyg, keyv)
      
 

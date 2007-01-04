@@ -60,7 +60,8 @@ libbigdft_a_SOURCES = \
 	standconv_test.f90 \
 	gauss_to_daub.f90 \
 	precond_sg.f90 \
-	forces.f90 
+	forces.f90 \
+	timing.f90
 
 cluster_SOURCES = BigDFT.f90
 cluster_LDFLAGS = $(LMPI)
@@ -80,18 +81,21 @@ CLEANFILES = $(mpi_include) libbigdft.@MODULE_EXT@
 
 #dependencies
 cluster_all.o: $(mpi_include)
+timing.o: $(mpi_include)
 
 mpif.h:
 	touch mpif.h
 	echo "real*8 :: MPI_double_precision" >> mpif.h
 	echo "real*8 :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h
+	echo "integer :: MPI_MIN, MPI_MAX" >> mpif.h
 
-cluster.o: parameters.h
-test_forces.o: parameters.h
+test_forces.o: parameters.h \
+	libbigdft.@MODULE_EXT@
 
 libbigdft.@MODULE_EXT@: cluster_all.o
 
 BigDFT.o: BigDFT.f90 \
+	parameters.h \
 	libbigdft.@MODULE_EXT@
 
 forces.o: forces.f90 \
