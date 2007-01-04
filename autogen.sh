@@ -2,7 +2,7 @@
 
 # Script used to generate configure script from directives.
 echo "Listing known macro with 'aclocal'."
-aclocal
+aclocal -I config/m4
 echo "Creating configure script  with 'autoconf'."
 autoconf
 echo "Creating required files for autotools."
