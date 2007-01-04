@@ -1,8 +1,12 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = \
-	ABINIT-common \
-	PSolver
+if BUILD_LIBRARY
+sub_dirs_list = 
+else
+sub_dirs_list = ABINIT-common PSolver
+endif
+
+SUBDIRS = $(sub_dirs_list)
 
 EXTRA_DIST = \
 	daub_8.inc \
@@ -18,10 +22,15 @@ EXTRA_DIST = \
 	recs16.inc \
 	sym_16.inc
 
-AM_FCFLAGS = @MPI_INCLUDE@
+AM_FCFLAGS = -I. @MPI_INCLUDE@
 
+if BUILD_LIBRARY
+binaries_sources = 
+else
+binaries_sources = cluster test_forces
+endif
 
-bin_PROGRAMS = cluster test_forces
+bin_PROGRAMS = $(binaries_sources)
 lib_LIBRARIES = libbigdft.a
 module_DATA = libbigdft.@MODULE_EXT@
 
@@ -79,3 +88,11 @@ mpif.h:
 
 cluster.o: parameters.h
 test_forces.o: parameters.h
+
+libbigdft.@MODULE_EXT@: cluster_all.o
+
+BigDFT.o: BigDFT.f90 \
+	libbigdft.@MODULE_EXT@
+
+forces.o: forces.f90 \
+	libbigdft.@MODULE_EXT@
