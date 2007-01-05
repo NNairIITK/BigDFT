@@ -17,14 +17,14 @@ $(PPFILES):
 	ln -s $(top_srcdir)/utils/PSPfiles/$@ .
 
 inguess.dat:
-	ln -s $(top_srcdir)/test/inguess.dat .
+	ln -s $(top_srcdir)/tests/inguess.dat .
 
 check: $(PPFILES) inguess.dat posinp input.dat
 	if test ! -f input.dat ; then \
-	  ln -s $(top_srcdir)/test/SiH4/input.dat ; \
+	  ln -s $(top_srcdir)/tests/SiH4/input.dat ; \
 	fi
 	if test ! -f posinp ; then \
-	  ln -s $(top_srcdir)/test/SiH4/posinp ; \
+	  ln -s $(top_srcdir)/tests/SiH4/posinp ; \
 	fi
 	$(top_builddir)/src/cluster > SiH4.out
-	diff SiH4.out $(top_srcdir)/test/Refs/SiH4.out.ref | cat
+	diff SiH4.out $(top_srcdir)/tests/Refs/SiH4.out.ref | cat

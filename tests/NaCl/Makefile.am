@@ -17,14 +17,14 @@ $(PPFILES):
 	ln -s $(top_srcdir)/utils/PSPfiles/$@ .
 
 inguess.dat:
-	ln -s $(top_srcdir)/test/inguess.dat .
+	ln -s $(top_srcdir)/tests/inguess.dat .
 
 check: $(PPFILES) inguess.dat posinp input.dat
 	if test ! -f input.dat ; then \
-	  ln -s $(top_srcdir)/test/NaCl/input.dat ; \
+	  ln -s $(top_srcdir)/tests/NaCl/input.dat ; \
 	fi
 	if test ! -f posinp ; then \
-	  ln -s $(top_srcdir)/test/NaCl/posinp ; \
+	  ln -s $(top_srcdir)/tests/NaCl/posinp ; \
 	fi
 	$(top_builddir)/src/cluster > NaCl.out
-	diff NaCl.out $(top_srcdir)/test/Refs/NaCl.out.ref | cat
+	diff NaCl.out $(top_srcdir)/tests/Refs/NaCl.out.ref | cat
