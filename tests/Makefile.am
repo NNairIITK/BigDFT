@@ -15,7 +15,7 @@ EXTRA_DIST = \
 CLEANFILES = wavefunction*
 
 all:
-	@echo "======================================="
-	@echo "Type 'make check' in the directory test"
-	@echo "======================================="
+	@echo "========================================"
+	@echo "Type 'make check' in the directory tests"
+	@echo "========================================"
 

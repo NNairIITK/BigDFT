@@ -33,3 +33,5 @@ Please see the file COPYING for copying conditions.
 
 See the file INSTALL for generic compilation and installation instructions.
 
+See the file tests/README (make check) for tests and examples of input files.
+

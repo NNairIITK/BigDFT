@@ -190,11 +190,11 @@ src/parameters.h
 utils/Makefile
 utils/PSPfiles/Makefile
 doc/Makefile
-test/Makefile
-test/C/Makefile
-test/H/Makefile
-test/NaCl/Makefile
-test/SiH4/Makefile
+tests/Makefile
+tests/C/Makefile
+tests/H/Makefile
+tests/NaCl/Makefile
+tests/SiH4/Makefile
 ])
 AC_OUTPUT
 
