@@ -10,7 +10,7 @@ program BigDFT
 ! atomic coordinates, forces
    real*8, allocatable, dimension(:,:) :: rxyz, fxyz, rxyz_old
    logical :: output_wf,output_grid
-   character*20 :: tatonam
+   character(len=20) :: tatonam
 ! atomic types
    integer, allocatable, dimension(:) :: iatype
    character*20 :: atomnames(100), units
@@ -46,51 +46,49 @@ program BigDFT
 
 
 ! read atomic positions
-   open(unit=9,file='posinp',status='old')
-   read(9,*) nat,units
-   if (iproc.eq.0) write(6,*) 'nat=',nat
-   allocate(rxyz_old(3,nat),rxyz(3,nat),iatype(nat),fxyz(3,nat))
-   ntypes=0
-   do iat=1,nat
-      read(9,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
-      do ityp=1,ntypes
-         if (tatonam.eq.atomnames(ityp)) then
-            iatype(iat)=ityp
-            goto 200
-         endif
-      enddo
-      ntypes=ntypes+1
-      if (ntypes.gt.100) stop 'more than 100 atomnames not permitted'
-      atomnames(ityp)=tatonam
-      iatype(iat)=ntypes
-200   continue
-      if (units.eq.'angstroem') then
-!        if Angstroem convert to Bohr
-         do i=1,3
-            rxyz(i,iat)=rxyz(i,iat)/.529177d0
+        open(unit=9,file='posinp',status='old')
+        read(9,*) nat,units
+        if (iproc.eq.0) write(6,*) 'nat=',nat
+        allocate(rxyz_old(3,nat),rxyz(3,nat),iatype(nat),fxyz(3,nat))
+        ntypes=0
+        do iat=1,nat
+        read(9,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
+         do ityp=1,ntypes
+           if (tatonam.eq.atomnames(ityp)) then
+              iatype(iat)=ityp
+              goto 200
+           endif
          enddo
-      else if  (units.eq.'atomic' .or. units.eq.'bohr') then
-      else
-         write(*,*) 'length units in input file unrecognized'
-         write(*,*) 'recognized units are angstroem or atomic = bohr'
-         stop 
-      endif
-   enddo
-   close(9)
-   do ityp=1,ntypes
-      if (iproc.eq.0) write(*,*) 'atoms of type ',ityp,' are ',atomnames(ityp)
-   enddo
+         ntypes=ntypes+1
+         if (ntypes.gt.100) stop 'more than 100 atomnames not permitted'
+         atomnames(ityp)=tatonam
+         iatype(iat)=ntypes
+200        continue
+        if (units.eq.'angstroem') then
+! if Angstroem convert to Bohr
+        do i=1,3 ;  rxyz(i,iat)=rxyz(i,iat)/.529177d0  ; enddo
+        else if  (units.eq.'atomic' .or. units.eq.'bohr') then
+        else
+        write(*,*) 'length units in input file unrecognized'
+        write(*,*) 'recognized units are angstroem or atomic = bohr'
+        stop 
+        endif
+        enddo
+        close(9)
+        do ityp=1,ntypes
+        if (iproc.eq.0) write(*,*) 'atoms of type ',ityp,' are ',atomnames(ityp)
+        enddo
 
-   ampl=5.d-1  ! amplitude for random displacement away from input file geometry (usually equilibrium geom.)
-   if (iproc.eq.0) write(*,*) 'random displacemnt amplitude',ampl
-   do iat=1,nat
-      call random_number(tt)
-      rxyz(1,iat)=rxyz(1,iat)+ampl*tt
-      call random_number(tt)
-      rxyz(2,iat)=rxyz(2,iat)+ampl*tt
-      call random_number(tt)
-      rxyz(3,iat)=rxyz(3,iat)+ampl*tt
-   enddo
+           ampl=2.d-2  ! amplitude for random displacement away from input file geometry (usually equilibrium geom.)
+           if (iproc.eq.0) write(*,*) 'random displacemnt amplitude',ampl
+           do iat=1,nat
+              call random_number(tt)
+              rxyz(1,iat)=rxyz(1,iat)+ampl*tt
+              call random_number(tt)
+              rxyz(2,iat)=rxyz(2,iat)+ampl*tt
+              call random_number(tt)
+              rxyz(3,iat)=rxyz(3,iat)+ampl*tt
+           enddo
 ! geometry optimization
 !    betax=2.d0   ! Cincodinine
 !    betax=4.d0  ! Si H_4
@@ -172,9 +170,8 @@ program BigDFT
            nat,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
    write(*,*) iproc,' finished writing waves of relaxed geometry'
 
-   deallocate(eval)
-   deallocate(psi, keyg, keyv)
-   deallocate(rxyz,rxyz_old,iatype,fxyz)
+  deallocate(psi, eval, keyg, keyv)
+  deallocate(rxyz,rxyz_old,iatype,fxyz)
 
    if (parallel) call MPI_FINALIZE(ierr)
 
@@ -183,8 +180,8 @@ end program BigDFT
 
 subroutine wtposout(igeostep,nat,rxyz,atomnames,iatype)
    implicit real*8 (a-h,o-z)
-   character*20 :: atomnames(100), filename
-   character*3  fn
+   character(len=20) :: atomnames(100), filename
+   character(len=3) :: fn
    dimension rxyz(3,nat),iatype(nat)
 
    write(fn,'(i3.3)') igeostep

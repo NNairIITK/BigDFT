@@ -26,7 +26,7 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
   pi=4.d0*atan(1.d0)
 
 
-
+     forceleaked=0.d0
   do iat=1,nat
   if (mod(iat-1,nproc).eq.iproc) then
   write(*,*) iproc,' calculates local force on atom ',iat
@@ -84,7 +84,6 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
      enddo
 
      !local part
-     forceleaked=0.d0
      rloc=psppar(0,0,ityp)
      prefactor=nelpsp(ityp)/(2.d0*pi*sqrt(2.d0*pi)*rloc**5)
      !maximum extension of the gaussian
@@ -122,7 +121,7 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
                  fyerf=fyerf+xp*Vel*y
                  fzerf=fzerf+xp*Vel*z
               else
-                 forceleaked=forceleaked+xp*(1+tt)
+                 forceleaked=forceleaked+xp*(1.d0+tt)
               endif
            end do
         end do
@@ -229,8 +228,7 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
                     nterm=1
                     lx(1)=1 ; ly(1)=0 ; lz(1)=0 
                     call crtproj(iproc,nterm,n1,n2,n3, & 
-                         & nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
-                         & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
+                         nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                          radii_cf(iatype(iat),2),cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
                          mvctr_c,mvctr_f,derproj(istart_c,1),derproj(istart_f,1))
 

@@ -2,7 +2,7 @@ module libBigDFT
 
   private
 
-  !- High level methods.
+!- High level methods.
   !- Do a minimisation loop to find forces and energy.
   public :: cluster
   !- Do a DIIS step on wavefunctions.
@@ -138,7 +138,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
        ibbyz_f(:,:,:),ibbxz_f(:,:,:),ibbxy_f(:,:,:)
   allocatable :: keybv(:),keybg(:,:),txyz(:,:)
   allocatable :: psib(:),hpsib(:)
-  allocatable :: psifscf(:),psir(:),psig(:),psigp(:),ww(:)
+  allocatable :: psifscf(:),psir(:),psig(:),psigp(:)
   allocatable :: rho(:),hartpot(:),rhopotb(:,:,:)
 
   integer :: ierror
@@ -430,8 +430,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      if (idsx.gt.0) mids=mod(iter-1,idsx)+1
      if (iproc.eq.0) then 
         write(*,*) '-------------------------------------- iter= ',iter
-        if (idsx.gt.0) write(*,*) 'iter=',iter,mids
-
         if (gnrm.le.gnrm_cv) then
            write(*,'(a,i3,3(1x,1pe18.11))') 'iproc,ehart,eexcu,vexcu',iproc,ehart,eexcu,vexcu
            write(*,'(a,3(1x,1pe18.11))') 'final ekin_sum,epot_sum,eproj_sum',ekin_sum,epot_sum,eproj_sum
@@ -483,7 +481,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      endif
 
 
-     ! Apply  orthogonality constraints to all orbitals belonging to iproc
+! Apply  orthogonality constraints to all orbitals belonging to iproc
      if (parallel) then
         allocate(hpsit(nvctrp,norbp*nproc))
         call transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
@@ -494,7 +492,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         call  orthoconstraint(norb,norbp,occup,nvctrp,psi,hpsi,scprsum)
      endif
      
-     ! norm of gradient
+! norm of gradient
      gnrm=0.d0
      do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
         scpr=dnrm2(nvctr_c+7*nvctr_f,hpsi(1,iorb-iproc*norbp),1) 
@@ -506,14 +504,14 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      endif
      gnrm=sqrt(gnrm/norb)
 
-     ! Preconditions all orbitals belonging to iproc
+! Preconditions all orbitals belonging to iproc
      call preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid, &
           ncong,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,eval,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
 
-     !       call plot_wf(10,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
-     !                       rxyz(1,1),rxyz(2,1),rxyz(3,1),psi,psi(nvctr_c+1,1))
-     !       call plot_wf(20,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
-     !                       rxyz(1,1),rxyz(2,1),rxyz(3,1),hpsi,hpsi(nvctr_c+1,1))
+     !       call plot_wf(10,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f, &
+     !                       rxyz(1,1),rxyz(2,1),rxyz(3,1),psi)
+     !       call plot_wf(20,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f, &
+     !                       rxyz(1,1),rxyz(2,1),rxyz(3,1),hpsi)
 
 
      if (parallel) then
@@ -552,7 +550,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
      else
 
-        ! update all wavefunctions with the preconditioned gradient
+! update all wavefunctions with the preconditioned gradient
         if (energy.gt.energy_old) then
            alpha=max(.125d0,.5d0*alpha)
            if (alpha.eq..125d0) write(*,*) 'Convergence problem or limit'
@@ -584,7 +582,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
 
      tt=energybs-scprsum
-     if (abs(tt).gt.1.d-10) then 
+     if (abs(tt).gt.1.d-8) then 
         write(*,*) 'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
      endif
      if (iproc.eq.0) then
@@ -605,8 +603,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      deallocate(psidst,hpsidst,ads)
   end if
 
-  !------------------------------------------------------------------------
-  ! transform to KS orbitals
+!------------------------------------------------------------------------
+! transform to KS orbitals
   if (parallel) then
      allocate(hpsit(nvctrp,norbp*nproc))
      call transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
@@ -776,47 +774,44 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      if (iproc.eq.0 .and. output_grid) then
         do i3=0,nb3 ; do i2=0,nb2 ; do i1=0,nb1
            if (logrid_f(i1,i2,i3)) write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  G '
-        enddo ; enddo ; enddo 
-     endif
+          enddo ; enddo ; enddo 
+         endif
+	 call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
+        if (iproc.eq.0) write(*,*) 'BIG:orbitals have fine   segment, elements',nsegb_f,7*nvctrb_f
+        call bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
 
-     call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
-     if (iproc.eq.0) write(*,*) 'BIG:orbitals have fine   segment, elements',nsegb_f,7*nvctrb_f
-     call bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
+        if (iproc.eq.0) close(22)
 
-     if (iproc.eq.0) close(22)
+! now fill the wavefunction descriptor arrays
+        allocate(keybg(2,nsegb_c+nsegb_f),keybv(nsegb_c+nsegb_f))
+! coarse grid quantities
+        call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,keybg(1,1),keybv(1))
 
-!    now fill the wavefunction descriptor arrays
-     allocate(keybg(2,nsegb_c+nsegb_f),keybv(nsegb_c+nsegb_f))
-!    coarse grid quantities
-     call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,keybg(1,1),keybv(1))
+! fine grid quantities
+        call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1))
 
-!    fine grid quantities
-     call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1))
+        deallocate(logrid_c,logrid_f)
+! allocations for arrays holding the wavefunction
+        if (iproc.eq.0) write(79,'(a40,i10)') 'words for psib and hpsib ',2*(nvctrb_c+7*nvctrb_f)
+        allocate(psib(nvctrb_c+7*nvctrb_f),hpsib(nvctrb_c+7*nvctrb_f))
+        if (iproc.eq.0) write(79,*) 'allocation done'
 
-     deallocate(logrid_c,logrid_f)
-!    allocations for arrays holding the wavefunction
-     if (iproc.eq.0) write(79,'(a40,i10)') 'words for psib and hpsib ',2*(nvctrb_c+7*nvctrb_f)
-     allocate(psib(nvctrb_c+7*nvctrb_f),hpsib(nvctrb_c+7*nvctrb_f))
-     if (iproc.eq.0) write(79,*) 'allocation done'
+! work arrays applylocpotkin
+        allocate(psig(8*(nb1+1)*(nb2+1)*(nb3+1)) )
+        allocate(psigp(8*(nb1+1)*(nb2+1)*(nb3+1)) )
+        allocate(psifscf((2*nb1+31)*(2*nb2+31)*(2*nb3+16)) )
+        allocate(psir((2*nb1+31)*(2*nb2+31)*(2*nb3+31)))
 
-!    work arrays applylocpotkin
-     allocate(psig(8*(nb1+1)*(nb2+1)*(nb3+1)) )
-     allocate(psigp(8*(nb1+1)*(nb2+1)*(nb3+1)) )
-     allocate(ww((2*nb1+16)*(2*nb2+16)*(2*nb3+16)))
-     allocate(psifscf((2*nb1+16)*(2*nb2+16)*(2*nb3+16)) )
-     allocate(psir((2*nb1+31)*(2*nb2+31)*(2*nb3+31)))
+      ekin_sum=0.d0
+      epot_sum=0.d0
+      eproj_sum=0.d0
+    do 2500 iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
-     ekin_sum=0.d0
-     epot_sum=0.d0
-     eproj_sum=0.d0
-     do 2500 iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-
-        call uncompress_forstandardP(n1,n2,n3,-nbuf,n1+nbuf,-nbuf,n2+nbuf,-nbuf,n3+nbuf, & 
-                    nseg_c,nvctr_c,keyg(:,1:nseg_c),              keyv(1:nseg_c),   &
-                    nseg_f,nvctr_f,keyg(:,nseg_c+1:nseg_c+nseg_f),keyv(nseg_c+1:nseg_c+nseg_f),   &
-                    psi(1:nvctr_c,iorb-iproc*norbp), &
-                    psi(nvctr_c+1:nvctr_c+nvctr_f,iorb-iproc*norbp),psig)
-        call compress_forstandardP(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,  &
+        call uncompress(n1,n2,n3,-nbuf,n1+nbuf,-nbuf,n2+nbuf,-nbuf,n3+nbuf, & 
+                    nseg_c,nvctr_c,keyg,              keyv,   &
+                    nseg_f,nvctr_f,keyg(:,nseg_c+1),keyv(nseg_c+1:),   &
+                    psi(:,iorb-iproc*norbp),psi(nvctr_c+1:,iorb-iproc*norbp),psig)
+        call compress(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,  &
                     nsegb_c,nvctrb_c,keybg(1,1),       keybv(1),   &
                     nsegb_f,nvctrb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1),   &
                     psig,psib(1),psib(nvctrb_c+1))
@@ -828,7 +823,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
            call applylocpotkinone(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, & 
                    hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  & 
                    ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f, & 
-                   psig,psigp,ww,psifscf,psir,  &
+                   psig,psigp,psifscf,psir,  &
                    psib,rhopotb,hpsib,epot,ekin)
            call applyprojectorsone(ntypes,nat,iatype,psppar, &
                     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
@@ -850,7 +845,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
                      ncongt,cprecr,hgrid,ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,hpsib)
            call timing(iproc,'Tail          ','ON')
 !          call plot_wf(10,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
-!                keybg(1,nsegb_c+1),keybv(nsegb_c+1),txyz(1,1),txyz(2,1),txyz(3,1),psib,psib(nvctrb_c+1))
+!                    txyz(1,1),txyz(2,1),txyz(3,1),psib)
 !          add tail
            sum=0.d0
            do i=1,nvctrb_c+7*nvctrb_f
@@ -860,7 +855,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
            sum=sqrt(sum)
            write(*,*) 'norm orbital + tail',iorb,sum
 !          call plot_wf(20,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
-!                keybg(1,nsegb_c+1),keybv(nsegb_c+1),txyz(1,1),txyz(2,1),txyz(3,1),psib,psib(nvctrb_c+1))
+!                    txyz(1,1),txyz(2,1),txyz(3,1),psib)
 
            sum=1.d0/sum
            do i=1,nvctrb_c+7*nvctrb_f
@@ -891,7 +886,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      endif
 
      deallocate(txyz)
-     deallocate(rhopotb,psig,psigp,ww,psifscf,psir)
+     deallocate(rhopotb,psig,psigp,psifscf,psir)
 
      deallocate(psib,hpsib)
      deallocate(keybg,keybv)
@@ -916,11 +911,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   tel=dble(ncount1-ncount0)/dble(ncount_rate)
   write(*,'(a,1x,i4,2(1x,f12.2))') 'iproc, elapsed, CPU time ', iproc,tel,tcpu1-tcpu0
 
-  if (parallel) then
-     write(*,*) iproc,' befor barrier',parallel
-     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-     write(*,*) iproc,' after barrier',MPI_COMM_WORLD,ierr
-  end if
+        if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
 END SUBROUTINE cluster
 
@@ -962,7 +953,7 @@ subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
 
    deallocate(psiw)
 
-END SUBROUTINE transallwaves
+end subroutine transallwaves
 
 
 subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,psi)
@@ -999,7 +990,7 @@ subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,ps
    deallocate(psiw)
    call timing(iproc,'Un-Transall   ','OF')
  
-END SUBROUTINE untransallwaves
+end subroutine untransallwaves
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
         
@@ -1148,176 +1139,8 @@ END SUBROUTINE
     enddo
 
         return
-    END SUBROUTINE
-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
+	END SUBROUTINE
 
-
-        subroutine compresstest(iproc,n1,n2,n3,norb,norbp,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,hpsi)
-! test compress-uncompress
-        implicit real*8 (a-h,o-z)
-        dimension psi(nvctr_c+7*nvctr_f,norbp),hpsi(nvctr_c+7*nvctr_f,norbp)
-        dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-        allocatable :: psifscf(:)
-
-
-! begin test compress-uncompress
-       do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-
-        allocate(psifscf((2*n1+16)*(2*n2+16)*(2*n3+16)) )
-
-        do i=1,nvctr_c+7*nvctr_f
-        call random_number(tt)
-        psi(i,iorb-iproc*norbp)=tt
-        hpsi(i,iorb-iproc*norbp)=tt
-        enddo
-
-        call uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
-                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
-                    psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psifscf)
-        call   compress(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
-                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
-                    psifscf,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp))
-
-        tc=0.d0
-        do i=1,nvctr_c
-        tc=max(tc,abs(psi(i,iorb-iproc*norbp)-hpsi(i,iorb-iproc*norbp)))
-        enddo
-        if (tc.gt.1.d-10) stop 'coarse compress error'
-
-        tf=0.d0
-        do i=1,7*nvctr_f
-        tf=max(tf,abs(psi(nvctr_c+i,iorb-iproc*norbp)-hpsi(nvctr_c+i,iorb-iproc*norbp))) 
-        enddo
-        write(*,'(a,i4,2(1x,e9.2))') 'COMPRESSION TEST: iorb, coarse, fine error:',iorb,tc,tf
-        if (tf.gt.1.d-10) stop 'fine compress error'
-
-        deallocate(psifscf)
-
-     enddo
-
-    return
-    END SUBROUTINE
-
-
-        subroutine compress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
-                            nseg_f,nvctr_f,keyg_f,keyv_f,  & 
-                            psifscf,psi_c,psi_f)
-! Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
-! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
-        implicit real*8 (a-h,o-z)
-        dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
-        dimension psi_c(nvctr_c),psi_f(7,nvctr_f)
-        dimension psifscf((2*n1+16)*(2*n2+16)*(2*n3+16))
-        real*8, allocatable :: psig(:,:,:,:,:,:),ww(:)
-
-        allocate(psig(0:n1,2,0:n2,2,0:n3,2),  & 
-                 ww((2*n1+16)*(2*n2+16)*(2*n3+16)))
-! decompose wavelets into coarse scaling functions and wavelets
-        call analyse_shrink(n1,n2,n3,ww,psifscf,psig)
-
-! coarse part
-        do iseg=1,nseg_c
-          jj=keyv_c(iseg)
-          j0=keyg_c(1,iseg)
-          j1=keyg_c(2,iseg)
-             ii=j0-1
-             i3=ii/((n1+1)*(n2+1))
-             ii=ii-i3*(n1+1)*(n2+1)
-             i2=ii/(n1+1)
-             i0=ii-i2*(n1+1)
-             i1=i0+j1-j0
-          do i=i0,i1
-            psi_c(i-i0+jj)=psig(i,1,i2,1,i3,1)
-          enddo
-        enddo
-
-! fine part
-        do iseg=1,nseg_f
-          jj=keyv_f(iseg)
-          j0=keyg_f(1,iseg)
-          j1=keyg_f(2,iseg)
-             ii=j0-1
-             i3=ii/((n1+1)*(n2+1))
-             ii=ii-i3*(n1+1)*(n2+1)
-             i2=ii/(n1+1)
-             i0=ii-i2*(n1+1)
-             i1=i0+j1-j0
-          do i=i0,i1
-            psi_f(1,i-i0+jj)=psig(i,2,i2,1,i3,1)
-            psi_f(2,i-i0+jj)=psig(i,1,i2,2,i3,1)
-            psi_f(3,i-i0+jj)=psig(i,2,i2,2,i3,1)
-            psi_f(4,i-i0+jj)=psig(i,1,i2,1,i3,2)
-            psi_f(5,i-i0+jj)=psig(i,2,i2,1,i3,2)
-            psi_f(6,i-i0+jj)=psig(i,1,i2,2,i3,2)
-            psi_f(7,i-i0+jj)=psig(i,2,i2,2,i3,2)
-          enddo
-        enddo
-
-        deallocate(psig,ww)
-
-    END SUBROUTINE
-
-
-        subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
-                              nseg_f,nvctr_f,keyg_f,keyv_f,  & 
-                              psi_c,psi_f,psifscf)
-! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
-! into fine scaling functions (psifscf)
-        implicit real*8 (a-h,o-z)
-        dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
-        dimension psi_c(nvctr_c),psi_f(7,nvctr_f)
-        dimension psifscf((2*n1+16)*(2*n2+16)*(2*n3+16))
-        real*8, allocatable :: psig(:,:,:,:,:,:),ww(:)
-
-        allocate(psig(0:n1,2,0:n2,2,0:n3,2),  & 
-                 ww((2*n1+16)*(2*n2+16)*(2*n3+16)))
-
-        call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
-
-! coarse part
-        do iseg=1,nseg_c
-          jj=keyv_c(iseg)
-          j0=keyg_c(1,iseg)
-          j1=keyg_c(2,iseg)
-             ii=j0-1
-             i3=ii/((n1+1)*(n2+1))
-             ii=ii-i3*(n1+1)*(n2+1)
-             i2=ii/(n1+1)
-             i0=ii-i2*(n1+1)
-             i1=i0+j1-j0
-          do i=i0,i1
-            psig(i,1,i2,1,i3,1)=psi_c(i-i0+jj)
-          enddo
-         enddo
-
-! fine part
-        do iseg=1,nseg_f
-          jj=keyv_f(iseg)
-          j0=keyg_f(1,iseg)
-          j1=keyg_f(2,iseg)
-             ii=j0-1
-             i3=ii/((n1+1)*(n2+1))
-             ii=ii-i3*(n1+1)*(n2+1)
-             i2=ii/(n1+1)
-             i0=ii-i2*(n1+1)
-             i1=i0+j1-j0
-             do i=i0,i1
-                psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)
-                psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)
-                psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)
-                psig(i,1,i2,1,i3,2)=psi_f(4,i-i0+jj)
-                psig(i,2,i2,1,i3,2)=psi_f(5,i-i0+jj)
-                psig(i,1,i2,2,i3,2)=psi_f(6,i-i0+jj)
-                psig(i,2,i2,2,i3,2)=psi_f(7,i-i0+jj)
-             enddo
-             enddo
-
-    ! calculate fine scaling functions
-        call synthese_grow(n1,n2,n3,ww,psig,psifscf)
-
-        deallocate(psig,ww)
-
-    END SUBROUTINE
 
 
         subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -1331,16 +1154,17 @@ END SUBROUTINE
         dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
         dimension occup(norb),pot((2*n1+31)*(2*n2+31)*(2*n3+31))
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-        dimension psi(nvctr_c+7*nvctr_f,norbp),hpsi(nvctr_c+7*nvctr_f,norbp)
-        real*8, allocatable, dimension(:) :: psifscf,psir,psig,psigp,ww
+        dimension  psi(nvctr_c+7*nvctr_f,norbp)
+        dimension hpsi(nvctr_c+7*nvctr_f,norbp)
+        real*8, allocatable, dimension(:) :: psifscf,psir,psig,psigp
 
       call timing(iproc,'ApplyLocPotKin','ON')
 
 ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
-        allocate(psig(8*(n1+1)*(n2+1)*(n3+1)) )
+        allocate( psig(8*(n1+1)*(n2+1)*(n3+1)) )
         allocate(psigp(8*(n1+1)*(n2+1)*(n3+1)) )
-        allocate(ww((2*n1+16)*(2*n2+16)*(2*n3+16)))
-        allocate(psifscf((2*n1+16)*(2*n2+16)*(2*n3+16)) )
+        allocate(psifscf(max( (2*n1+31)*(2*n2+31)*(2*n3+16),&
+                        &     (2*n1+16)*(2*n2+31)*(2*n3+31))) )
 ! Wavefunction in real space
         allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)))
 
@@ -1351,26 +1175,26 @@ END SUBROUTINE
         call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
                    hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
                    ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
-                   psig,psigp,ww,psifscf,psir,  &
+                   psig,psigp,psifscf,psir,  &
                    psi(1,iorb-iproc*norbp),pot,hpsi(1,iorb-iproc*norbp),epot,ekin)
         ekin_sum=ekin_sum+occup(iorb)*ekin
         epot_sum=epot_sum+occup(iorb)*epot
-        write(*,'(a,i5,2(1x,e17.10))') 'iorb,ekin,epot',iorb,ekin,epot
+!        write(*,'(a,i5,2(1x,e17.10))') 'iorb,ekin,epot',iorb,ekin,epot
 
      enddo
 
 
-        deallocate(psig,psigp,ww,psifscf,psir)
+        deallocate(psig,psigp,psifscf,psir)
 
       call timing(iproc,'ApplyLocPotKin','OF')
 
-    END SUBROUTINE
+        END SUBROUTINE
 
 
         subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
                    hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
                    ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
-                   psig,psigp,ww,psifscf,psir,  &
+                   psig,psigp,psifscf,psir,  &
                    psi,pot,hpsi,epot,ekin)
 !  Applies the local potential and kinetic energy operator to one wavefunction 
 ! Input: pot,psi
@@ -1380,20 +1204,23 @@ END SUBROUTINE
         dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
         dimension pot((2*n1+31)*(2*n2+31)*(2*n3+31))
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-        dimension psi(nvctr_c+7*nvctr_f),hpsi(nvctr_c+7*nvctr_f)
-        dimension psig(8*(n1+1)*(n2+1)*(n3+1)),psigp(8*(n1+1)*(n2+1)*(n3+1)),  & 
-        ww((2*n1+16)*(2*n2+16)*(2*n3+16)),psifscf((2*n1+16)*(2*n2+16)*(2*n3+16)),  & 
-        psir((2*n1+31)*(2*n2+31)*(2*n3+31))
+        dimension  psi(nvctr_c+7*nvctr_f)
+        dimension hpsi(nvctr_c+7*nvctr_f)
+        dimension   psig(8*(n1+1)*(n2+1)*(n3+1))
+        dimension psigp(8*(n1+1)*(n2+1)*(n3+1)) 
+        dimension psifscf(max( (2*n1+31)*(2*n2+31)*(2*n3+16), &
+                        &      (2*n1+16)*(2*n2+31)*(2*n3+31)) ) 
+        dimension psir((2*n1+31)*(2*n2+31)*(2*n3+31))
 
 
-        call uncompress_forstandardP(n1,n2,n3,0,n1,0,n2,0,n3, & 
+        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
                     nseg_c,nvctr_c,keyg(1,1),       keyv(1),   &
                     nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
                     psi(1),psi(nvctr_c+1),psig)
 
-        call synthese_grow(n1,n2,n3,ww,psig,psifscf)
+        call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n1+2))
 
-        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) 
+        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=psifscf and ww(((2*n1+31)*(2*n2+31)*(2*n1+16))
         epot=0.d0
         do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
           tt=pot(i)*psir(i)
@@ -1401,15 +1228,15 @@ END SUBROUTINE
           psir(i)=tt
         enddo
 
-        call convolut_magic_t(2*n1+15,2*n2+15,2*n3+15,psir,psifscf)
+        call convolut_magic_t(2*n1+15,2*n2+15,2*n3+15,psir,psifscf) !psifscf=ww((2*n1+16)*(2*n2+31)*(2*n1+31))
 
-        call analyse_shrink(n1,n2,n3,ww,psifscf,psigp)
+        call analyse_shrink(n1,n2,n3,psir,psifscf,psigp)  !psir=ww(((2*n1+31)*(2*n2+31)*(2*n1+16))
 
          call ConvolkineticP(n1,n2,n3,  &
               nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
               psig,psigp,ekin)
 
-        call compress_forstandardP(n1,n2,n3,0,n1,0,n2,0,n3,  &
+        call compress(n1,n2,n3,0,n1,0,n2,0,n3,  &
                     nseg_c,nvctr_c,keyg(1,1),       keyv(1),   &
                     nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
                     psigp,hpsi(1),hpsi(nvctr_c+1))
@@ -1418,7 +1245,7 @@ END SUBROUTINE
     END SUBROUTINE
 
     
-        subroutine uncompress_forstandardP(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+        subroutine uncompress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
                               mseg_c,mvctr_c,keyg_c,keyv_c,  & 
                               mseg_f,mvctr_f,keyg_f,keyv_f,  & 
                               psi_c,psi_f,psig)
@@ -1472,7 +1299,7 @@ END SUBROUTINE
         END SUBROUTINE
 
     
-        subroutine compress_forstandardP(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+        subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
                             mseg_c,mvctr_c,keyg_c,keyv_c,  & 
                             mseg_f,mvctr_f,keyg_f,keyv_f,  & 
                             psig,psi_c,psi_f)
@@ -1529,25 +1356,21 @@ END SUBROUTINE
 ! The input array x is not overwritten
         implicit real*8 (a-h,o-z)
         parameter(lowfil=-8,lupfil=7) ! has to be consistent with values in convrot
-        dimension x(0:n1,0:n2,0:n3),y(-lupfil:n1-lowfil,-lupfil:n2-lowfil,-lupfil:n3-lowfil)
-        real*8, allocatable :: ww(:,:,:)
-
-        allocate(ww(-lupfil:n1-lowfil,-lupfil:n2-lowfil,0:n3))
+        dimension x(0:n1,0:n2,0:n3)
+        dimension y(-lupfil:n1-lowfil,-lupfil:n2-lowfil,-lupfil:n3-lowfil)
  
 !  (i1,i2*i3) -> (i2*i3,I1)
         ndat=(n2+1)*(n3+1)
         call convrot_grow(n1,ndat,x,y)
 !  (i2,i3*I1) -> (i3*i1,I2)
         ndat=(n3+1)*(n1+1+lupfil-lowfil)
-        call convrot_grow(n2,ndat,y,ww)
+        call convrot_grow(n2,ndat,y,x)
 !  (i3,I1*I2) -> (iI*I2,I3)
         ndat=(n1+1+lupfil-lowfil)*(n2+1+lupfil-lowfil)
-        call convrot_grow(n3,ndat,ww,y)
+        call convrot_grow(n3,ndat,x,y)
 
-        deallocate(ww)
 
-        return
-        END SUBROUTINE
+        end subroutine convolut_magic_n
 
 
         subroutine convolut_magic_t(n1,n2,n3,x,y)
@@ -1556,24 +1379,18 @@ END SUBROUTINE
         implicit real*8 (a-h,o-z)
         parameter(lowfil=-8,lupfil=7) ! has to be consistent with values in convrot
         dimension x(-lupfil:n1-lowfil,-lupfil:n2-lowfil,-lupfil:n3-lowfil),y(0:n1,0:n2,0:n3)
-        real*8, allocatable :: ww(:,:,:)
-
-        allocate(ww(0:n1,-lupfil:n2-lowfil,-lupfil:n3-lowfil))
 
 !  (I1,I2*I3) -> (I2*I3,i1)
         ndat=(n2+1+lupfil-lowfil)*(n3+1+lupfil-lowfil)
-        call convrot_shrink(n1,ndat,x,ww)
+        call convrot_shrink(n1,ndat,x,y)
 !  (I2,I3*i1) -> (I3*i1,i2)
         ndat=(n3+1+lupfil-lowfil)*(n1+1)
-        call convrot_shrink(n2,ndat,ww,x)
+        call convrot_shrink(n2,ndat,y,x)
 !  (I3,i1*i2) -> (i1*i2,i3)
         ndat=(n1+1)*(n2+1)
         call convrot_shrink(n3,ndat,x,y)
 
-        deallocate(ww)
-
-        return
-        END SUBROUTINE
+        end subroutine convolut_magic_t
 
 
         subroutine synthese_grow(n1,n2,n3,ww,x,y)
@@ -1594,7 +1411,6 @@ END SUBROUTINE
         nt=(2*n1+16)*(2*n2+16)
         call  syn_rot_grow(n3,nt,ww,y)
 
-        return
         END SUBROUTINE
 
 
@@ -1636,14 +1452,15 @@ END SUBROUTINE
         dimension rho((2*n1+31)*(2*n2+31)*(2*n3+31)),occup(norb)
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         dimension psi(nvctr_c+7*nvctr_f,norbp)
-        real*8, allocatable, dimension(:) :: psifscf,psir,rho_p
+        real*8, allocatable :: psig(:,:,:,:,:,:),psifscf(:),psir(:),rho_p(:)
         include 'mpif.h'
 
 
         hgridh=hgrid*.5d0 
 
 ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
-        allocate(psifscf((2*n1+16)*(2*n2+16)*(2*n3+16)) )
+        allocate(psig(0:n1,2,0:n2,2,0:n3,2))
+        allocate( psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)) )
 ! Wavefunction in real space
         allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)))
 
@@ -1657,11 +1474,13 @@ END SUBROUTINE
 
       do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
-        call uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
-                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
-                    psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psifscf)
+        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
+                    nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+                    psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
+        call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n1+2))
 
-        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) 
+        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=ww(((2*n1+31)*(2*n2+31)*(2*n1+16))
 
        do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
          rho_p(i)=rho_p(i)+(occup(iorb)/hgridh**3)*psir(i)**2
@@ -1684,11 +1503,13 @@ END SUBROUTINE
 
      do iorb=1,norb
 
-        call uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
-                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
-                    psi(1,iorb),psi(nvctr_c+1,iorb),psifscf)
+        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
+                    nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+                    psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
+        call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n1+2))`
 
-        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) 
+        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=ww(((2*n1+31)*(2*n2+31)*(2*n1+16))
 
        do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
          rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
@@ -1708,7 +1529,7 @@ END SUBROUTINE
         if (iproc.eq.0) write(*,*) 'Total charge from routine chargedens',tt,iproc
 
 
-        deallocate(psifscf,psir)
+        deallocate(psig,psifscf,psir)
 
 
         END SUBROUTINE
@@ -1780,7 +1601,7 @@ END SUBROUTINE
                     nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,  & 
                     psi(1,iorb-iproc*norbp),hpsi(1,iorb-iproc*norbp),eproj)
      eproj_sum=eproj_sum+occup(iorb)*eproj
-     write(*,*) 'iorb,eproj',iorb,eproj
+!     write(*,*) 'iorb,eproj',iorb,eproj
   enddo
 
       call timing(iproc,'ApplyProj     ','OF')
@@ -2780,7 +2601,8 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
 ! allocate arrays necessary for DIIS convergence acceleration
   if (idsx.gt.0) then
      if (iproc.eq.0) write(79,'(a40,i10)') 'words for psidst and hpsidst',2*nvctrp*norbp*nproc*idsx
-     allocate(psidst(nvctrp,norbp*nproc,idsx),hpsidst(nvctrp,norbp*nproc,idsx))
+     allocate( psidst(nvctrp,norbp*nproc,idsx))
+     allocate(hpsidst(nvctrp,norbp*nproc,idsx))
      if (iproc.eq.0) write(79,*) 'allocation done'
      allocate(ads(idsx+1,idsx+1,3))
      call razero(3*(idsx+1)**2,ads)
@@ -2788,7 +2610,7 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
 
   call timing(iproc,'CrtDescriptors','OF')
 
-END SUBROUTINE createWavefunctionsDescriptors
+end subroutine createWavefunctionsDescriptors
 
 subroutine createKernel(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
      & ndegree_ip, iproc, nproc, pkernel)
@@ -4108,14 +3930,13 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
    dimension :: psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2), psi(nvctr_c + 7 * nvctr_f)
    dimension :: psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
 
-   allocatable :: psifscfold(:,:,:),psifscfoex(:,:,:),wwold(:)
+   allocatable :: psifscfold(:,:,:),psifscfoex(:,:,:),psig(:,:,:,:,:,:),ww(:)
 
    allocate(psifscfold(-7:2*n1_old+8,-7:2*n2_old+8,-7:2*n3_old+8), &
-        psifscfoex(-8:2*n1_old+9,-8:2*n2_old+9,-8:2*n3_old+9), &
-        wwold((2*n1_old+16)*(2*n2_old+16)*(2*n3_old+16)))
+        psifscfoex(-8:2*n1_old+9,-8:2*n2_old+9,-8:2*n3_old+9))
 
-   ! calculate fine scaling functions
-   call synthese_grow(n1_old,n2_old,n3_old,wwold,psigold,psifscfold)
+   ! calculate fine scaling functions, psifscfoex=wwold((2*n1_old+16)*(2*n2_old+16)*(2*n3_old+16))
+   call synthese_grow(n1_old,n2_old,n3_old,psifscfoex,psigold,psifscfold) 
 
    do i3=-7,2*n3_old+8
       do i2=-7,2*n2_old+8
@@ -4210,11 +4031,16 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
       enddo
    enddo
 
-   call   compress(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
-        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
-        psifscf,psi(1),psi(nvctr_c+1))
+   deallocate(psifscfold,psifscfoex)
+   allocate(psig(0:n1,2,0:n2,2,0:n3,2),ww((2*n1+16)*(2*n2+16)*(2*n3+16)))
 
-   deallocate(psifscfold,psifscfoex,wwold)
+        call analyse_shrink(n1,n2,n3,ww,psifscf,psig)
+        call compress(n1,n2,n3,0,n1,0,n2,0,n3,  &
+                    nseg_c,nvctr_c,keyg(1,1),       keyv(1),   &
+                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+                    psig,psi(1),psi(nvctr_c+1))
+
+   deallocate(psig,ww)
  END SUBROUTINE 
 
 
@@ -4502,23 +4328,26 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
     END SUBROUTINE
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
-        subroutine plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, & 
-                               rx,ry,rz,psi_c,psi_f)
+        subroutine plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,rx,ry,rz,psi)
         implicit real*8 (a-h,o-z)
-        dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
-        dimension psi_c(nvctr_c),psi_f(7,nvctr_f)
-        real*8, allocatable, dimension(:) :: psifscf,psir
+        dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
+        dimension psi(nvctr_c+7*nvctr_f)
+        real*8, allocatable :: psifscf(:),psir(:),psig(:,:,:,:,:,:)
 
-        allocate(psifscf((2*n1+16)*(2*n2+16)*(2*n3+16)))
+        allocate(psig(0:n1,2,0:n2,2,0:n3,2))
+        allocate( psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)) )
         allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)))
 
-        call uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, & 
-                        psi_c,psi_f,psifscf)
+        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
+                    nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+                    psi(1),psi(nvctr_c+1),psig)
+        call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n1+2))
         call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) 
 
         call plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,psir)
 
-        deallocate(psifscf,psir)
+        deallocate(psig,psifscf,psir)
         return
     END SUBROUTINE
 
