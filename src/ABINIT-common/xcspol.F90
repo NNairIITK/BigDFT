@@ -77,16 +77,21 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
 
  use defs_basis
 
+!This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
+#ifdef HAVE_FORTRAN_INTERFACES
+ use interfaces_01managempi
+#endif
+!End of the abilint section
+
  implicit none
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: npts,nspden,order
- integer,intent(in) :: ndvxc
+ integer,intent(in) :: ndvxc,npts,nspden,order
 !arrays
  real(dp),intent(in) :: rspts(npts),zeta(npts)
  real(dp),intent(out) :: exc(npts),vxc(npts,nspden)
- real(dp),intent(out), optional :: dvxc(npts,ndvxc)
+ real(dp),intent(out),optional :: dvxc(npts,ndvxc)
 
 !Local variables-------------------------------
 !The generation of density from rs needs rsfac and rsfac^(-3) :
@@ -111,9 +116,9 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
  real(dp) :: a0,a1,a2,a3,b1,b2,b3,b4,d1,d1m1,d2d1drs2,d2d1drsdf,d2excdf2
  real(dp) :: d2excdrs2,d2excdrsdf,d2excdz2,d2fxcdz2,d2n1drs2,d2n1drsdf,dd1df
  real(dp) :: dd1drs,delta,dexcdf,dexcdrs,dexcdz,dfxcdz,dn1df,dn1drs,dvxcdrs
- real(dp) :: dvxcpdrho,dvxcpdz,excipt,excunp,fact,fxc,n1,rho,rho_dn,rho_dnm
- real(dp) :: rho_dnp,rho_up,rho_upm,rho_upp,rhom1,rs,rsl,vxcp,vxcunp,zet
- real(dp) :: zeta_mean,zetm,zetm_third,zetp,zetp_third
+ real(dp) :: dvxcpdrho,dvxcpdz,excipt,fact,fxc,n1,rho,rho_dn,rho_dnm,rho_dnp
+ real(dp) :: rho_up,rho_upm,rho_upp,rhom1,rs,vxcp,zet,zeta_mean,zetm,zetm_third
+ real(dp) :: zetp,zetp_third
  character(len=500) :: message
 !no_abirules
 !Set a minimum rho below which terms are 0

@@ -69,7 +69,7 @@ module libBigDFT
   !- Linear algebra method
   !- Compute a scalar product
   public :: wnrm
-  public :: wdot
+  public :: wpdot
 
 contains
 
@@ -128,7 +128,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocatable :: nboxp_c(:,:,:),nboxp_f(:,:,:)
 
   ! pseudopotential parameters
-  allocatable :: psppar(:,:,:),nelpsp(:),radii_cf(:,:)
+  allocatable :: psppar(:,:,:),nelpsp(:),radii_cf(:,:),npspcode(:)
 
   ! arrays for DIIS convergence accelerator
   real*8, pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
@@ -225,29 +225,42 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   hgridh=.5d0*hgrid
 
 ! store PSP parameters
-  allocate(psppar(0:2,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2))
+! modified to accept both GTH and HGH pseudopotential types
+  allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntypes))
   do ityp=1,ntypes
      filename = 'psppar.'//atomnames(ityp)
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
      open(unit=11,file=filename,status='old',iostat=ierror)
      !Check the open statement
      if (ierror /= 0) then
-        write(*,*) 'iproc=',iproc,': Failed to open the file "',trim(filename),'"'
+        write(*,*) 'iproc=',iproc,': Failed to open the file (it must be in ABINIT format!) "',&
+             trim(filename),'"'
         stop
      end if
-     read(11,'(a35)') label
-     read(11,*) radii_cf(ityp,1),radii_cf(ityp,2)
-     read(11,*) nelpsp(ityp)
-     if (iproc.eq.0) then
-        write(*,'(a,1x,a,a,i3,a,a)') 'atom type ',atomnames(ityp), & 
-          ' is described by a ',nelpsp(ityp),' electron',label
+     read(11,*)
+     read(11,*) n_abinitzatom,nelpsp(ityp)
+     read(11,*) npspcode(ityp)
+     if (iproc.eq.0) write(*,'(a,1x,a,a,i3,a,i3)') 'atom type ',atomnames(ityp), & 
+          ' is described by a ',nelpsp(ityp),' electron, with pspcode=',npspcode(ityp)
+     psppar(:,:,ityp)=0.d0
+     read(11,*) (psppar(0,j,ityp),j=0,4)
+     if (npspcode(ityp) == 2) then !GTH case
+        do i=1,2
+           read(11,*) (psppar(i,j,ityp),j=0,3-i)
+        enddo
+        read(11,*) radii_cf(ityp,1),radii_cf(ityp,2)
+     else if (npspcode(ityp) == 3) then !HGH case
+        read(11,*) (psppar(1,j,ityp),j=0,3)
+        do i=2,4
+           read(11,*) (psppar(i,j,ityp),j=0,3)
+           read(11,*) !k coefficients, not used (no spin-orbit coupling)
+        enddo
+        read(11,*) radii_cf(ityp,1),radii_cf(ityp,2)
+     else
+        stop 'unrecognized pspcode (accepts only GTH and HGH pseudopotentials in ABINIT format)'
      end if
-     do i=0,2
-        read(11,*) (psppar(i,j,ityp),j=0,4)
-     enddo
      close(11)
   enddo
-
 
 ! Number of orbitals and their occupation number
   norb_vir=0
@@ -353,7 +366,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocate(nvctr_p(0:2*nat))
   allocate(nboxp_c(2,3,nat),nboxp_f(2,3,nat))
   call createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, atomnames, &
-       & psppar, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
+       & psppar, npspcode, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
        & keyg_p, keyv_p, nproj, nprojel, istart, nboxp_c, nboxp_f, proj)
 
 
@@ -389,7 +402,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           nat,norb,norbp,n1,n2,n3,nfft1,nfft2,nfft3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
           rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-          atomnames,ntypes,iatype,pkernel,psppar,psi,eval,accurex)
+          atomnames,ntypes,iatype,pkernel,psppar,npspcode,psi,eval,accurex)
      if (iproc.eq.0) then
         write(*,*) 'expected accuracy in total energy due to grid size',accurex
         write(*,*) 'suggested value for gnrm_cv ',accurex
@@ -459,7 +472,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           psi,rhopot,hpsi,epot_sum,ekin_sum)
 
 ! apply all PSP projectors for all orbitals belonging to iproc
-     call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,occup, &
+     call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
           nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
           norb,norbp,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
 
@@ -662,7 +675,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 ! calculating derivatives of the projectors (for the moment recalculate projectors)
   call nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
      ntypes,nat,norb,norbp,istart,nprojel,nproj,&
-     iatype,psppar,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
+     iatype,psppar,npspcode,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
      keyg,keyv,keyg_p,keyv_p,psi,rxyz,radii_cf,cpmult,fpmult,hgrid,gxyz)
 
 ! Add up all the force contributions
@@ -825,7 +838,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
                    ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f, & 
                    psig,psigp,psifscf,psir,  &
                    psib,rhopotb,hpsib,epot,ekin)
-           call applyprojectorsone(ntypes,nat,iatype,psppar, &
+           call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
                     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
                     nsegb_c,nsegb_f,keybg,keybv,nvctrb_c,nvctrb_f,  & 
                     psib,hpsib,eproj)
@@ -903,7 +916,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   deallocate(keyg_p,keyv_p,proj)
   deallocate(occup)
   deallocate(nvctr_p,nseg_p)
-  deallocate(psppar,nelpsp,radii_cf)
+  deallocate(psppar,nelpsp,radii_cf,npspcode)
 
   call timing(iproc,'              ','RE')
   call cpu_time(tcpu1)
@@ -999,7 +1012,7 @@ subroutine input_rho_ion(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
   ! Creates charge density arising from the ionoc PSP cores
   implicit real*8 (a-h,o-z)
   character*20 :: atomnames(100)
-  dimension psppar(0:2,0:4,ntypes),rxyz(3,nat),iatype(nat),nelpsp(ntypes)
+  dimension psppar(0:4,0:4,ntypes),rxyz(3,nat),iatype(nat),nelpsp(ntypes)
   dimension rho(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
 
   call timing(iproc,'CrtLocPot     ','ON')
@@ -1073,7 +1086,7 @@ END SUBROUTINE
 ! Add local Gaussian terms of the PSP to pot 
         implicit real*8 (a-h,o-z)
         character*20 :: atomnames(100)
-        dimension psppar(0:2,0:4,ntypes),rxyz(3,nat),iatype(nat)
+        dimension psppar(0:4,0:4,ntypes),rxyz(3,nat),iatype(nat)
         dimension pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
 
         hgridh=hgrid*.5d0 
@@ -1560,31 +1573,37 @@ END SUBROUTINE
 
 
 
-        subroutine numb_proj(ityp,ntypes,psppar,mproj)
-! Determines the number of projectors
+        subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
+! Determines the number of projectors (valid for GTH and HGH pseudopotentials)
         implicit real*8 (a-h,o-z)
-        dimension psppar(0:2,0:4,ntypes)
+        dimension psppar(0:4,0:4,ntypes),npspcode(ntypes)
 
         mproj=0
-! ONLY GTH PSP form (not HGH)
-          do i=1,2
-          do j=1,2
-            if (psppar(i,j,ityp).ne.0.d0) mproj=mproj+2*i-1
-          enddo
-          enddo
-
+        if (npspcode(ityp) == 2) then !GTH
+           do l=1,2 
+              do i=1,2 
+                 if (psppar(l,i,ityp).ne.0.d0) mproj=mproj+2*l-1
+              enddo
+           enddo
+        else if (npspcode(ityp) == 3) then !HGH
+              do l=1,4 
+                 do i=1,3 
+                 if (psppar(l,i,ityp).ne.0.d0) mproj=mproj+2*l-1
+              enddo
+           enddo
+        end if
         return
         END SUBROUTINE
 
 
-        subroutine applyprojectorsall(iproc,ntypes,nat,iatype,psppar,occup, &
+        subroutine applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
                     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
                     norb,norbp,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
 ! Applies all the projectors onto a wavefunction
 ! Input: psi_c,psi_f
 ! In/Output: hpsi_c,hpsi_f (both are updated, i.e. not initilized to zero at the beginning)
         implicit real*8 (a-h,o-z)
-        dimension psppar(0:2,0:4,ntypes),iatype(nat)
+        dimension psppar(0:4,0:4,ntypes),iatype(nat),npspcode(ntypes)
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         dimension psi(nvctr_c+7*nvctr_f,norbp),hpsi(nvctr_c+7*nvctr_f,norbp)
         dimension nseg_p(0:2*nat),nvctr_p(0:2*nat)
@@ -1596,7 +1615,7 @@ END SUBROUTINE
   eproj_sum=0.d0
 ! loop over all my orbitals
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-      call applyprojectorsone(ntypes,nat,iatype,psppar, &
+      call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
                     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
                     nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,  & 
                     psi(1,iorb-iproc*norbp),hpsi(1,iorb-iproc*norbp),eproj)
@@ -1608,14 +1627,14 @@ END SUBROUTINE
 
          END SUBROUTINE
 
-        subroutine applyprojectorsone(ntypes,nat,iatype,psppar, &
+        subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
                     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
                     nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj)
 ! Applies all the projectors onto a single wavefunction
 ! Input: psi_c,psi_f
 ! In/Output: hpsi_c,hpsi_f (both are updated, i.e. not initilized to zero at the beginning)
         implicit real*8 (a-h,o-z)
-        dimension psppar(0:2,0:4,ntypes),iatype(nat)
+        dimension psppar(0:4,0:4,ntypes),iatype(nat),npspcode(ntypes)
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         dimension psi(nvctr_c+7*nvctr_f),hpsi(nvctr_c+7*nvctr_f)
         dimension nseg_p(0:2*nat),nvctr_p(0:2*nat)
@@ -1634,43 +1653,121 @@ END SUBROUTINE
         mbvctr_c=nvctr_p(2*iat-1)-nvctr_p(2*iat-2)
         mbvctr_f=nvctr_p(2*iat  )-nvctr_p(2*iat-1)
      ityp=iatype(iat)
-! ONLY GTH PSP form (not HGH)
-     do i=1,2
-     do j=1,2
-     if (psppar(i,j,ityp).ne.0.d0) then
-     do l=1,2*i-1
-        iproj=iproj+1
-        istart_f=istart_c+mbvctr_c
-        call wdot(  &
-                   nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                   keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
-                   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
-                   keyg_p(1,jseg_c),keyg_p(1,jseg_f),proj(istart_c),proj(istart_f),scpr)
-! test (will sometimes give wrong result)
-        call wdot(  &
-                   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
-                   keyg_p(1,jseg_c),keyg_p(1,jseg_f),proj(istart_c),proj(istart_f),  &
-                   nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                   keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),tcpr)
-        if (scpr.ne.tcpr) stop 'projectors: scpr.ne.tcpr'
-! testend
+     !GTH and HGH pseudopotentials
+     do l=1,4
+        do i=1,3
+           if (psppar(l,i,ityp).ne.0.d0) then
+              do m=1,2*l-1
+                 iproj=iproj+1
+                 istart_f=istart_c+mbvctr_c
+                 call wpdot(  &
+                      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+                      keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
+                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
+                      keyg_p(1,jseg_c),keyg_p(1,jseg_f),proj(istart_c),proj(istart_f),scpr)
 
-        scprp=scpr*psppar(i,j,ityp)
-!        write(*,*) 'pdot scpr',scpr,psppar(i,j,ityp)
-        eproj=eproj+scprp*scpr
+                 ! test (will sometimes give wrong result)
+                 call wpdot(  &
+                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
+                      keyg_p(1,jseg_c),keyg_p(1,jseg_f),proj(istart_c),proj(istart_f),  &
+                      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+                      keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),tcpr)
+                 if (scpr.ne.tcpr) then
+                    print *,'projectors: scpr.ne.tcpr'
+                    print *,'l,i,m,h_i^l=',l,i,m,psppar(l,i,ityp)
+                    stop 
+                 end if
+                 ! testend
 
-        call waxpy(  &
-             scprp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
-                   keyg_p(1,jseg_c),keyg_p(1,jseg_f),proj(istart_c),proj(istart_f),  &
-                   nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                   keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
+                 scprp=scpr*psppar(l,i,ityp)
+                 eproj=eproj+scprp*scpr
 
-        istart_c=istart_f+7*mbvctr_f
+                 call waxpy(&
+                      scprp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
+                      keyg_p(1,jseg_c),keyg_p(1,jseg_f),proj(istart_c),proj(istart_f),  &
+                      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+                      keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
+
+                 istart_c=istart_f+7*mbvctr_f
+              enddo
+              if (npspcode(ityp) == 3 .and. l/=4 .and. i/=3) then !HGH case, offdiagonal terms
+                 loop_j: do j=i+1,3
+                    if (psppar(l,j,ityp) .eq. 0.d0) exit loop_j
+                    !calculate the coefficients for the off-diagonal terms
+                    if (l==1) then
+                       if (i==1) then
+                          if (j==2) offdiagcoeff=-0.5d0*sqrt(3.d0/5.d0)
+                          if (j==3) offdiagcoeff=0.5d0*sqrt(5.d0/21.d0)
+                       else
+                          offdiagcoeff=-0.5d0*sqrt(100.d0/63.d0)
+                       end if
+                    else if (l==2) then
+                       if (i==1) then
+                          if (j==2) offdiagcoeff=-0.5d0*sqrt(5.d0/7.d0)
+                          if (j==3) offdiagcoeff=1.d0/6.d0*sqrt(35.d0/11.d0)
+                       else
+                          offdiagcoeff=-7.d0/3.d0*sqrt(1.d0/11.d0)
+                       end if
+                    else if (l==3) then
+                       if (i==1) then
+                          if (j==2) offdiagcoeff=-0.5d0*sqrt(7.d0/9.d0)
+                          if (j==3) offdiagcoeff=0.5d0*sqrt(63.d0/143.d0)
+                       else
+                          offdiagcoeff=-9.d0*sqrt(1.d0/143.d0)
+                       end if
+                    end if
+                    istart_c_i=istart_c-(2*l-1)*(mbvctr_c+7*mbvctr_f)
+                    istart_c_j=istart_c_i+(j-i)*(2*l-1)*(mbvctr_c+7*mbvctr_f)
+                    do m=1,2*l-1
+                       !starting addresses of the projectors
+                       istart_f_j=istart_c_j+mbvctr_c
+                       istart_f_i=istart_c_i+mbvctr_c
+                       call wpdot(&
+                            nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+                            keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
+                            mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
+                            keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
+                            proj(istart_c_j),proj(istart_f_j),scpr_j)
+
+                       call wpdot(&
+                            nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+                            keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
+                            mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
+                            keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
+                            proj(istart_c_i),proj(istart_f_i),scpr_i)
+
+
+                       scprp_j=scpr_j*offdiagcoeff*psppar(l,j,ityp)
+                       scprp_i=scpr_i*offdiagcoeff*psppar(l,j,ityp)
+                       !scpr_i*h_ij*scpr_j+scpr_j*h_ij*scpr_i
+                       eproj=eproj+2.d0*scprp_j*scpr_i
+
+                       !|hpsi>=|hpsi>+h_ij (<p_i|psi>|p_j>+<p_j|psi>|p_i>)
+                       call waxpy(&
+                            scprp_j,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                            keyv_p(jseg_c),keyv_p(jseg_f),  &
+                            keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
+                            proj(istart_c_i),proj(istart_f_i),  &
+                            nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+                            keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
+
+                       call waxpy(&
+                            scprp_i,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                            keyv_p(jseg_c),keyv_p(jseg_f),  &
+                            keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
+                            proj(istart_c_j),proj(istart_f_j),  &
+                            nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+                            keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
+
+                       istart_c_j=istart_f_j+7*mbvctr_f
+                       istart_c_i=istart_f_i+7*mbvctr_f
+                    enddo
+                 end do loop_j
+              end if
+           end if
+        enddo
      enddo
-     endif
-     enddo
-     enddo
-   enddo
+  enddo
      if (iproj.ne.nproj) stop '1:applyprojectorsone'
      if (istart_c-1.ne.nprojel) stop '2:applyprojectorsone'
          return
@@ -1679,19 +1776,20 @@ END SUBROUTINE
 
         subroutine crtproj(iproc,nterm,n1,n2,n3, & 
                      nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,  & 
-                     radius_f,cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
+                     radius_f,cpmult,fpmult,hgrid,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
                      mvctr_c,mvctr_f,proj_c,proj_f)
 ! returns the compressed form of a Gaussian projector 
 ! x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-cntrx)^2 + (y-cntry)^2 + (z-cntrz)^2 ))
 ! in the arrays proj_c, proj_f
         implicit real*8 (a-h,o-z)
         parameter(ntermx=3,nw=16000)
-        dimension lx(3),ly(3),lz(3)
+        dimension lx(nterm),ly(nterm),lz(nterm)
+        dimension fac_arr(nterm)
         dimension proj_c(mvctr_c),proj_f(7,mvctr_f)
         real*8, allocatable, dimension(:,:,:) :: wprojx, wprojy, wprojz
         real*8, allocatable, dimension(:,:) :: work
 
-        allocate(wprojx(0:n1,2,ntermx),wprojy(0:n2,2,ntermx),wprojz(0:n3,2,ntermx),work(0:nw,2))
+        allocate(wprojx(0:n1,2,nterm),wprojy(0:n2,2,nterm),wprojz(0:n3,2,nterm),work(0:nw,2))
 
 
         rad_c=radius_f*cpmult
@@ -1700,6 +1798,7 @@ END SUBROUTINE
 ! make sure that the coefficients returned by CALL GAUSS_TO_DAUB are zero outside [ml:mr] 
         err_norm=0.d0 
       do 100,iterm=1,nterm
+        factor=fac_arr(iterm)
         n_gau=lx(iterm) 
         CALL GAUSS_TO_DAUB(hgrid,factor,rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1,iterm),te,work,nw)
         err_norm=max(err_norm,te) 
@@ -1806,10 +1905,12 @@ END SUBROUTINE
     END SUBROUTINE
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
-    subroutine wdot(  & 
-        mavctr_c,mavctr_f,maseg_c,maseg_f,keyav_c,keyav_f,keyag_c,keyag_f,apsi_c,apsi_f,  & 
-        mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f,scpr)
-! calculates the dot product between two wavefunctions in compressed form
+    subroutine wpdot(  &
+         mavctr_c,mavctr_f,maseg_c,maseg_f,keyav_c,keyav_f,keyag_c,keyag_f,apsi_c,apsi_f,  &
+         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f,scpr)
+! calculates the dot product between a wavefunctions apsi and a projector bpsi (both in compressed form)
+! Warning: the subroutine assumes that bpsi has only one segment along each line,
+! whereas apsi can have several segments. This assumption is true if bpsi is a projector 
         implicit real*8 (a-h,o-z)
         dimension keyav_c(maseg_c),keyag_c(2,maseg_c),keyav_f(maseg_f),keyag_f(2,maseg_f)
         dimension keybv_c(mbseg_c),keybg_c(2,mbseg_c),keybv_f(mbseg_f),keybg_f(2,mbseg_f)
@@ -2655,17 +2756,18 @@ subroutine createKernel(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
 END SUBROUTINE createKernel
 
   subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, atomnames, &
-       & psppar, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
+       & psppar, npspcode, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
        & keyg_p, keyv_p, nproj, nprojel, istart, nboxp_c, nboxp_f, proj)
     implicit real*8 (a-h,o-z)
     character*20 :: atomnames(100)
-    dimension rxyz(3,nat),iatype(nat),radii_cf(ntypes,2),psppar(0:2,0:4,ntypes)
+    dimension rxyz(3,nat),iatype(nat),radii_cf(ntypes,2),psppar(0:4,0:4,ntypes),npspcode(ntypes)
     integer :: nvctr_p(0:2*nat), nseg_p(0:2*nat)
     integer :: nboxp_c(2,3,nat), nboxp_f(2,3,nat)
     real*8, pointer :: proj(:)
     integer, pointer :: keyg_p(:,:), keyv_p(:)
+    real(kind=8), dimension(:), allocatable :: fac_arr
+    integer, dimension(:), allocatable :: lx,ly,lz
 
-    dimension lx(3),ly(3),lz(3)
     logical, allocatable :: logrid(:,:,:)
 
   call timing(iproc,'CrtProjectors ','ON')
@@ -2682,7 +2784,7 @@ END SUBROUTINE createKernel
 
        if (iproc.eq.0) write(*,*) '+++++++++++++++++++++++++++++++++++++++++++ iat=',iat
 
-       call numb_proj(iatype(iat),ntypes,psppar,mproj)
+       call numb_proj(iatype(iat),ntypes,psppar,npspcode,mproj)
        if (mproj.ne.0) then 
 
           if (iproc.eq.0) write(*,*) 'projector descriptors for atom with mproj ',iat,mproj
@@ -2740,7 +2842,7 @@ END SUBROUTINE createKernel
     ! After having determined the size of the projector descriptor arrays fill them
     istart_c=1
     do iat=1,nat
-       call numb_proj(iatype(iat),ntypes,psppar,mproj)
+       call numb_proj(iatype(iat),ntypes,psppar,npspcode,mproj)
        if (mproj.ne.0) then 
 
           ! coarse grid quantities
@@ -2771,40 +2873,24 @@ END SUBROUTINE createKernel
 
     if (iproc.eq.0) write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
 
+    !allocate these vectors up to the maximum size we can get
+    nterm_max=10 !if GTH nterm_max=3
+    allocate(fac_arr(nterm_max))
+    allocate(lx(nterm_max),ly(nterm_max),lz(nterm_max))
+
     iproj=0
     fpi=(4.d0*atan(1.d0))**(-.75d0)
     do iat=1,nat
        rx=rxyz(1,iat) ; ry=rxyz(2,iat) ; rz=rxyz(3,iat)
        ityp=iatype(iat)
 
-       ! ONLY GTH PSP form (not HGH)
-       do i=1,2
-          do j=1,2
-             !     if (iproc.eq.0) write(*,'(a,3(1x,i3),2(1x,e10.3))') 'iat,i,j,gau_a,ampl',iat,i,j,psppar(i,0,ityp),psppar(i,j,ityp)
-             if (psppar(i,j,ityp).ne.0.d0) then
-                gau_a=psppar(i,0,ityp)
-                do l=1,2*i-1
-                   if (i.eq.1 .and. j.eq.1) then    ! first s type projector
-                      nterm=1 ; lx(1)=0 ; ly(1)=0 ; lz(1)=0 
-                      factor=fpi/(sqrt(gau_a)**3)
-                   else if (i.eq.1 .and. j.eq.2) then   ! second s type projector
-                      nterm=3 ; lx(1)=2 ; ly(1)=0 ; lz(1)=0 
-                      lx(2)=0 ; ly(2)=2 ; lz(2)=0 
-                      lx(3)=0 ; ly(3)=0 ; lz(3)=2 
-                      factor=sqrt(4.d0/15.d0)*fpi/(sqrt(gau_a)**7)
-                   else if (i.eq.2 .and. l.eq.1) then  ! px type projector
-                      nterm=1 ; lx(1)=1 ; ly(1)=0 ; lz(1)=0
-                      factor=sqrt(2.d0)*fpi/(sqrt(gau_a)**5)
-                   else if (i.eq.2 .and. l.eq.2) then  ! py type projector
-                      nterm=1 ; lx(1)=0 ; ly(1)=1 ; lz(1)=0 
-                      factor=sqrt(2.d0)*fpi/(sqrt(gau_a)**5)
-                   else if (i.eq.2 .and. l.eq.3) then  ! pz type projector
-                      nterm=1 ; lx(1)=0 ; ly(1)=0 ; lz(1)=1 
-                      factor=sqrt(2.d0)*fpi/(sqrt(gau_a)**5)
-                   else
-                      stop 'PSP format error'
-                   endif
-
+       !decide the loop bounds
+       do l=1,4 !generic case, also for HGH (for GTH it will stop at l=2)
+          do i=1,3 !generic case, also for HGH (for GTH it will stop at i=2)
+             if (psppar(l,i,ityp).ne.0.d0) then
+                gau_a=psppar(l,0,ityp)
+                factor=sqrt(2.d0)*fpi/(sqrt(gau_a)**(2*(l-1)+4*i-1))
+                do m=1,2*l-1
                    mvctr_c=nvctr_p(2*iat-1)-nvctr_p(2*iat-2)
                    mvctr_f=nvctr_p(2*iat  )-nvctr_p(2*iat-1)
                    istart_f=istart_c+mvctr_c
@@ -2815,16 +2901,24 @@ END SUBROUTINE createKernel
                    nl2_f=nboxp_f(1,2,iat) ; nu2_f=nboxp_f(2,2,iat)
                    nl3_f=nboxp_f(1,3,iat) ; nu3_f=nboxp_f(2,3,iat)
 
+                   call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
+
+                   fac_arr(1:nterm)=factor*fac_arr(1:nterm)
+
                    call crtproj(iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
                      & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radii_cf(iatype(iat),2), & 
-                     & cpmult,fpmult,hgrid,gau_a,factor,rx,ry,rz,lx,ly,lz, & 
+                     & cpmult,fpmult,hgrid,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
                      & mvctr_c,mvctr_f,proj(istart_c:istart_c+mvctr_c-1), &
-                     & proj(istart_f:istart_f + 7 * mvctr_f - 1))
+                     & proj(istart_f:istart_f+7*mvctr_f-1))
+
                    iproj=iproj+1
                    ! testing
                    call wnrm(mvctr_c,mvctr_f,proj(istart_c:istart_c+mvctr_c-1), &
                      & proj(istart_f:istart_f + 7 * mvctr_f - 1),scpr)
-                   if (abs(1.d0-scpr).gt.1.d-1) stop 'norm projector'
+                   if (abs(1.d0-scpr).gt.1.d-1) then
+                      !print *,'norm projector','iproc=',iproc,i,j,scpr,nadd_arr,nterm
+                      stop 'norm projector'
+                   end if
                    ! testing end
                    istart_c=istart_f+7*mvctr_f
                    if (istart_c.gt.istart) stop 'istart_c > istart'
@@ -2843,9 +2937,548 @@ END SUBROUTINE createKernel
     if (iproj.ne.nproj) stop 'incorrect number of projectors created'
     ! projector part finished
     deallocate(logrid)
+    deallocate(fac_arr,lx,ly,lz)
   call timing(iproc,'CrtProjectors ','OF')
 
 END SUBROUTINE 
+
+
+subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
+  
+  implicit none
+  integer, intent(in) :: l,i,m,nterm_max
+  integer, intent(out) :: nterm
+  integer, dimension(nterm_max), intent(out) :: lx,ly,lz
+  real(kind=8), dimension(nterm_max), intent(out) :: fac_arr
+
+  if (l.eq.1 .and. i.eq.1 .and. m.eq.1) then
+     nterm=1
+     lx(1)=0 ; ly(1)=0 ; lz(1)=0
+     fac_arr(1)=0.7071067811865475244008444d0
+  else if (l.eq.1 .and. i.eq.2 .and. m.eq.1) then
+     nterm=3
+     lx(1)=2 ; ly(1)=0 ; lz(1)=0
+     lx(2)=0 ; ly(2)=2 ; lz(2)=0
+     lx(3)=0 ; ly(3)=0 ; lz(3)=2
+     fac_arr(1)=0.3651483716701107423046465d0
+     fac_arr(2)=0.3651483716701107423046465d0
+     fac_arr(3)=0.3651483716701107423046465d0
+  else if (l.eq.1 .and. i.eq.3 .and. m.eq.1) then
+     nterm=6
+     lx(1)=4 ; ly(1)=0 ; lz(1)=0
+     lx(2)=2 ; ly(2)=2 ; lz(2)=0
+     lx(3)=0 ; ly(3)=4 ; lz(3)=0
+     lx(4)=2 ; ly(4)=0 ; lz(4)=2
+     lx(5)=0 ; ly(5)=2 ; lz(5)=2
+     lx(6)=0 ; ly(6)=0 ; lz(6)=4
+     fac_arr(1)=0.09200874124564722903948358d0
+     fac_arr(2)=0.1840174824912944580789672d0
+     fac_arr(3)=0.09200874124564722903948358d0
+     fac_arr(4)=0.1840174824912944580789672d0
+     fac_arr(5)=0.1840174824912944580789672d0
+     fac_arr(6)=0.09200874124564722903948358d0
+  else if (l.eq.2 .and. i.eq.1 .and. m.eq.1) then
+     nterm=1
+     lx(1)=1 ; ly(1)=0 ; lz(1)=0
+     fac_arr(1)=1.000000000000000000000000d0
+  else if (l.eq.2 .and. i.eq.1 .and. m.eq.2) then
+     nterm=1
+     lx(1)=0 ; ly(1)=1 ; lz(1)=0
+     fac_arr(1)=1.000000000000000000000000d0
+  else if (l.eq.2 .and. i.eq.1 .and. m.eq.3) then
+     nterm=1
+     lx(1)=0 ; ly(1)=0 ; lz(1)=1
+     fac_arr(1)=1.000000000000000000000000d0
+  else if (l.eq.2 .and. i.eq.2 .and. m.eq.1) then
+     nterm=3
+     lx(1)=3 ; ly(1)=0 ; lz(1)=0
+     lx(2)=1 ; ly(2)=2 ; lz(2)=0
+     lx(3)=1 ; ly(3)=0 ; lz(3)=2
+     fac_arr(1)=0.3380617018914066310038473d0
+     fac_arr(2)=0.3380617018914066310038473d0
+     fac_arr(3)=0.3380617018914066310038473d0
+  else if (l.eq.2 .and. i.eq.2 .and. m.eq.2) then
+     nterm=3
+     lx(1)=2 ; ly(1)=1 ; lz(1)=0
+     lx(2)=0 ; ly(2)=3 ; lz(2)=0
+     lx(3)=0 ; ly(3)=1 ; lz(3)=2
+     fac_arr(1)=0.3380617018914066310038473d0
+     fac_arr(2)=0.3380617018914066310038473d0
+     fac_arr(3)=0.3380617018914066310038473d0
+  else if (l.eq.2 .and. i.eq.2 .and. m.eq.3) then
+     nterm=3
+     lx(1)=2 ; ly(1)=0 ; lz(1)=1
+     lx(2)=0 ; ly(2)=2 ; lz(2)=1
+     lx(3)=0 ; ly(3)=0 ; lz(3)=3
+     fac_arr(1)=0.3380617018914066310038473d0
+     fac_arr(2)=0.3380617018914066310038473d0
+     fac_arr(3)=0.3380617018914066310038473d0
+  else if (l.eq.2 .and. i.eq.3 .and. m.eq.1) then
+     nterm=6
+     lx(1)=5 ; ly(1)=0 ; lz(1)=0
+     lx(2)=3 ; ly(2)=2 ; lz(2)=0
+     lx(3)=1 ; ly(3)=4 ; lz(3)=0
+     lx(4)=3 ; ly(4)=0 ; lz(4)=2
+     lx(5)=1 ; ly(5)=2 ; lz(5)=2
+     lx(6)=1 ; ly(6)=0 ; lz(6)=4
+     fac_arr(1)=0.06795295885835007261827187d0
+     fac_arr(2)=0.1359059177167001452365437d0
+     fac_arr(3)=0.06795295885835007261827187d0
+     fac_arr(4)=0.1359059177167001452365437d0
+     fac_arr(5)=0.1359059177167001452365437d0
+     fac_arr(6)=0.06795295885835007261827187d0
+  else if (l.eq.2 .and. i.eq.3 .and. m.eq.2) then
+     nterm=6
+     lx(1)=4 ; ly(1)=1 ; lz(1)=0
+     lx(2)=2 ; ly(2)=3 ; lz(2)=0
+     lx(3)=0 ; ly(3)=5 ; lz(3)=0
+     lx(4)=2 ; ly(4)=1 ; lz(4)=2
+     lx(5)=0 ; ly(5)=3 ; lz(5)=2
+     lx(6)=0 ; ly(6)=1 ; lz(6)=4
+     fac_arr(1)=0.06795295885835007261827187d0
+     fac_arr(2)=0.1359059177167001452365437d0
+     fac_arr(3)=0.06795295885835007261827187d0
+     fac_arr(4)=0.1359059177167001452365437d0
+     fac_arr(5)=0.1359059177167001452365437d0
+     fac_arr(6)=0.06795295885835007261827187d0
+  else if (l.eq.2 .and. i.eq.3 .and. m.eq.3) then
+     nterm=6
+     lx(1)=4 ; ly(1)=0 ; lz(1)=1
+     lx(2)=2 ; ly(2)=2 ; lz(2)=1
+     lx(3)=0 ; ly(3)=4 ; lz(3)=1
+     lx(4)=2 ; ly(4)=0 ; lz(4)=3
+     lx(5)=0 ; ly(5)=2 ; lz(5)=3
+     lx(6)=0 ; ly(6)=0 ; lz(6)=5
+     fac_arr(1)=0.06795295885835007261827187d0
+     fac_arr(2)=0.1359059177167001452365437d0
+     fac_arr(3)=0.06795295885835007261827187d0
+     fac_arr(4)=0.1359059177167001452365437d0
+     fac_arr(5)=0.1359059177167001452365437d0
+     fac_arr(6)=0.06795295885835007261827187d0
+  else if (l.eq.3 .and. i.eq.1 .and. m.eq.1) then
+     nterm=1
+     lx(1)=0 ; ly(1)=1 ; lz(1)=1
+     fac_arr(1)=1.414213562373095048801689d0
+  else if (l.eq.3 .and. i.eq.1 .and. m.eq.2) then
+     nterm=1
+     lx(1)=1 ; ly(1)=0 ; lz(1)=1
+     fac_arr(1)=1.414213562373095048801689d0
+  else if (l.eq.3 .and. i.eq.1 .and. m.eq.3) then
+     nterm=1
+     lx(1)=1 ; ly(1)=1 ; lz(1)=0
+     fac_arr(1)=1.414213562373095048801689d0
+  else if (l.eq.3 .and. i.eq.1 .and. m.eq.4) then
+     nterm=2
+     lx(1)=2 ; ly(1)=0 ; lz(1)=0
+     lx(2)=0 ; ly(2)=2 ; lz(2)=0
+     fac_arr(1)=0.7071067811865475244008444d0
+     fac_arr(2)=-0.7071067811865475244008444d0
+  else if (l.eq.3 .and. i.eq.1 .and. m.eq.5) then
+     nterm=3
+     lx(1)=2 ; ly(1)=0 ; lz(1)=0
+     lx(2)=0 ; ly(2)=2 ; lz(2)=0
+     lx(3)=0 ; ly(3)=0 ; lz(3)=2
+     fac_arr(1)=-0.4082482904638630163662140d0
+     fac_arr(2)=-0.4082482904638630163662140d0
+     fac_arr(3)=0.8164965809277260327324280d0
+  else if (l.eq.3 .and. i.eq.2 .and. m.eq.1) then
+     nterm=3
+     lx(1)=2 ; ly(1)=1 ; lz(1)=1
+     lx(2)=0 ; ly(2)=3 ; lz(2)=1
+     lx(3)=0 ; ly(3)=1 ; lz(3)=3
+     fac_arr(1)=0.3563483225498991795794046d0
+     fac_arr(2)=0.3563483225498991795794046d0
+     fac_arr(3)=0.3563483225498991795794046d0
+  else if (l.eq.3 .and. i.eq.2 .and. m.eq.2) then
+     nterm=3
+     lx(1)=3 ; ly(1)=0 ; lz(1)=1
+     lx(2)=1 ; ly(2)=2 ; lz(2)=1
+     lx(3)=1 ; ly(3)=0 ; lz(3)=3
+     fac_arr(1)=0.3563483225498991795794046d0
+     fac_arr(2)=0.3563483225498991795794046d0
+     fac_arr(3)=0.3563483225498991795794046d0
+  else if (l.eq.3 .and. i.eq.2 .and. m.eq.3) then
+     nterm=3
+     lx(1)=3 ; ly(1)=1 ; lz(1)=0
+     lx(2)=1 ; ly(2)=3 ; lz(2)=0
+     lx(3)=1 ; ly(3)=1 ; lz(3)=2
+     fac_arr(1)=0.3563483225498991795794046d0
+     fac_arr(2)=0.3563483225498991795794046d0
+     fac_arr(3)=0.3563483225498991795794046d0
+  else if (l.eq.3 .and. i.eq.2 .and. m.eq.4) then
+     nterm=4
+     lx(1)=4 ; ly(1)=0 ; lz(1)=0
+     lx(2)=0 ; ly(2)=4 ; lz(2)=0
+     lx(3)=2 ; ly(3)=0 ; lz(3)=2
+     lx(4)=0 ; ly(4)=2 ; lz(4)=2
+     fac_arr(1)=0.1781741612749495897897023d0
+     fac_arr(2)=-0.1781741612749495897897023d0
+     fac_arr(3)=0.1781741612749495897897023d0
+     fac_arr(4)=-0.1781741612749495897897023d0
+  else if (l.eq.3 .and. i.eq.2 .and. m.eq.5) then
+     nterm=6
+     lx(1)=4 ; ly(1)=0 ; lz(1)=0
+     lx(2)=2 ; ly(2)=2 ; lz(2)=0
+     lx(3)=0 ; ly(3)=4 ; lz(3)=0
+     lx(4)=2 ; ly(4)=0 ; lz(4)=2
+     lx(5)=0 ; ly(5)=2 ; lz(5)=2
+     lx(6)=0 ; ly(6)=0 ; lz(6)=4
+     fac_arr(1)=-0.1028688999747279401740630d0
+     fac_arr(2)=-0.2057377999494558803481260d0
+     fac_arr(3)=-0.1028688999747279401740630d0
+     fac_arr(4)=0.1028688999747279401740630d0
+     fac_arr(5)=0.1028688999747279401740630d0
+     fac_arr(6)=0.2057377999494558803481260d0
+  else if (l.eq.3 .and. i.eq.3 .and. m.eq.1) then
+     nterm=6
+     lx(1)=4 ; ly(1)=1 ; lz(1)=1
+     lx(2)=2 ; ly(2)=3 ; lz(2)=1
+     lx(3)=0 ; ly(3)=5 ; lz(3)=1
+     lx(4)=2 ; ly(4)=1 ; lz(4)=3
+     lx(5)=0 ; ly(5)=3 ; lz(5)=3
+     lx(6)=0 ; ly(6)=1 ; lz(6)=5
+     fac_arr(1)=0.05959868750235655989526993d0
+     fac_arr(2)=0.1191973750047131197905399d0
+     fac_arr(3)=0.05959868750235655989526993d0
+     fac_arr(4)=0.1191973750047131197905399d0
+     fac_arr(5)=0.1191973750047131197905399d0
+     fac_arr(6)=0.05959868750235655989526993d0
+  else if (l.eq.3 .and. i.eq.3 .and. m.eq.2) then
+     nterm=6
+     lx(1)=5 ; ly(1)=0 ; lz(1)=1
+     lx(2)=3 ; ly(2)=2 ; lz(2)=1
+     lx(3)=1 ; ly(3)=4 ; lz(3)=1
+     lx(4)=3 ; ly(4)=0 ; lz(4)=3
+     lx(5)=1 ; ly(5)=2 ; lz(5)=3
+     lx(6)=1 ; ly(6)=0 ; lz(6)=5
+     fac_arr(1)=0.05959868750235655989526993d0
+     fac_arr(2)=0.1191973750047131197905399d0
+     fac_arr(3)=0.05959868750235655989526993d0
+     fac_arr(4)=0.1191973750047131197905399d0
+     fac_arr(5)=0.1191973750047131197905399d0
+     fac_arr(6)=0.05959868750235655989526993d0
+  else if (l.eq.3 .and. i.eq.3 .and. m.eq.3) then
+     nterm=6
+     lx(1)=5 ; ly(1)=1 ; lz(1)=0
+     lx(2)=3 ; ly(2)=3 ; lz(2)=0
+     lx(3)=1 ; ly(3)=5 ; lz(3)=0
+     lx(4)=3 ; ly(4)=1 ; lz(4)=2
+     lx(5)=1 ; ly(5)=3 ; lz(5)=2
+     lx(6)=1 ; ly(6)=1 ; lz(6)=4
+     fac_arr(1)=0.05959868750235655989526993d0
+     fac_arr(2)=0.1191973750047131197905399d0
+     fac_arr(3)=0.05959868750235655989526993d0
+     fac_arr(4)=0.1191973750047131197905399d0
+     fac_arr(5)=0.1191973750047131197905399d0
+     fac_arr(6)=0.05959868750235655989526993d0
+  else if (l.eq.3 .and. i.eq.3 .and. m.eq.4) then
+     nterm=8
+     lx(1)=6 ; ly(1)=0 ; lz(1)=0
+     lx(2)=4 ; ly(2)=2 ; lz(2)=0
+     lx(3)=2 ; ly(3)=4 ; lz(3)=0
+     lx(4)=0 ; ly(4)=6 ; lz(4)=0
+     lx(5)=4 ; ly(5)=0 ; lz(5)=2
+     lx(6)=0 ; ly(6)=4 ; lz(6)=2
+     lx(7)=2 ; ly(7)=0 ; lz(7)=4
+     lx(8)=0 ; ly(8)=2 ; lz(8)=4
+     fac_arr(1)=0.02979934375117827994763496d0
+     fac_arr(2)=0.02979934375117827994763496d0
+     fac_arr(3)=-0.02979934375117827994763496d0
+     fac_arr(4)=-0.02979934375117827994763496d0
+     fac_arr(5)=0.05959868750235655989526993d0
+     fac_arr(6)=-0.05959868750235655989526993d0
+     fac_arr(7)=0.02979934375117827994763496d0
+     fac_arr(8)=-0.02979934375117827994763496d0
+  else if (l.eq.3 .and. i.eq.3 .and. m.eq.5) then
+     nterm=7
+     lx(1)=6 ; ly(1)=0 ; lz(1)=0
+     lx(2)=4 ; ly(2)=2 ; lz(2)=0
+     lx(3)=2 ; ly(3)=4 ; lz(3)=0
+     lx(4)=0 ; ly(4)=6 ; lz(4)=0
+     lx(5)=2 ; ly(5)=0 ; lz(5)=4
+     lx(6)=0 ; ly(6)=2 ; lz(6)=4
+     lx(7)=0 ; ly(7)=0 ; lz(7)=6
+     fac_arr(1)=-0.01720465913641697233541246d0
+     fac_arr(2)=-0.05161397740925091700623738d0
+     fac_arr(3)=-0.05161397740925091700623738d0
+     fac_arr(4)=-0.01720465913641697233541246d0
+     fac_arr(5)=0.05161397740925091700623738d0
+     fac_arr(6)=0.05161397740925091700623738d0
+     fac_arr(7)=0.03440931827283394467082492d0
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.1) then
+     nterm=3
+     lx(1)=3 ; ly(1)=0 ; lz(1)=0
+     lx(2)=1 ; ly(2)=2 ; lz(2)=0
+     lx(3)=1 ; ly(3)=0 ; lz(3)=2
+     fac_arr(1)=0.3162277660168379331998894d0
+     fac_arr(2)=0.3162277660168379331998894d0
+     fac_arr(3)=-1.264911064067351732799557d0
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.2) then
+     nterm=3
+     lx(1)=2 ; ly(1)=1 ; lz(1)=0
+     lx(2)=0 ; ly(2)=3 ; lz(2)=0
+     lx(3)=0 ; ly(3)=1 ; lz(3)=2
+     fac_arr(1)=0.3162277660168379331998894d0
+     fac_arr(2)=0.3162277660168379331998894d0
+     fac_arr(3)=-1.264911064067351732799557d0
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.3) then
+     nterm=3
+     lx(1)=2 ; ly(1)=0 ; lz(1)=1
+     lx(2)=0 ; ly(2)=2 ; lz(2)=1
+     lx(3)=0 ; ly(3)=0 ; lz(3)=3
+     fac_arr(1)=0.7745966692414833770358531d0
+     fac_arr(2)=0.7745966692414833770358531d0
+     fac_arr(3)=-0.5163977794943222513572354d0
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.4) then
+     nterm=2
+     lx(1)=3 ; ly(1)=0 ; lz(1)=0
+     lx(2)=1 ; ly(2)=2 ; lz(2)=0
+     fac_arr(1)=0.4082482904638630163662140d0
+     fac_arr(2)=-1.224744871391589049098642d0
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.5) then
+     nterm=2
+     lx(1)=2 ; ly(1)=1 ; lz(1)=0
+     lx(2)=0 ; ly(2)=3 ; lz(2)=0
+     fac_arr(1)=-1.224744871391589049098642d0
+     fac_arr(2)=0.4082482904638630163662140d0
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.6) then
+     nterm=2
+     lx(1)=2 ; ly(1)=0 ; lz(1)=1
+     lx(2)=0 ; ly(2)=2 ; lz(2)=1
+     fac_arr(1)=1.000000000000000000000000d0
+     fac_arr(2)=-1.000000000000000000000000d0
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.7) then
+     nterm=1
+     lx(1)=1 ; ly(1)=1 ; lz(1)=1
+     fac_arr(1)=2.000000000000000000000000d0
+  else if (l.eq.4 .and. i.eq.2 .and. m.eq.1) then
+     nterm=6
+     lx(1)=5 ; ly(1)=0 ; lz(1)=0
+     lx(2)=3 ; ly(2)=2 ; lz(2)=0
+     lx(3)=1 ; ly(3)=4 ; lz(3)=0
+     lx(4)=3 ; ly(4)=0 ; lz(4)=2
+     lx(5)=1 ; ly(5)=2 ; lz(5)=2
+     lx(6)=1 ; ly(6)=0 ; lz(6)=4
+     fac_arr(1)=0.06356417261637282102978506d0
+     fac_arr(2)=0.1271283452327456420595701d0
+     fac_arr(3)=0.06356417261637282102978506d0
+     fac_arr(4)=-0.1906925178491184630893552d0
+     fac_arr(5)=-0.1906925178491184630893552d0
+     fac_arr(6)=-0.2542566904654912841191402d0
+  else if (l.eq.4 .and. i.eq.2 .and. m.eq.2) then
+     nterm=6
+     lx(1)=4 ; ly(1)=1 ; lz(1)=0
+     lx(2)=2 ; ly(2)=3 ; lz(2)=0
+     lx(3)=0 ; ly(3)=5 ; lz(3)=0
+     lx(4)=2 ; ly(4)=1 ; lz(4)=2
+     lx(5)=0 ; ly(5)=3 ; lz(5)=2
+     lx(6)=0 ; ly(6)=1 ; lz(6)=4
+     fac_arr(1)=0.06356417261637282102978506d0
+     fac_arr(2)=0.1271283452327456420595701d0
+     fac_arr(3)=0.06356417261637282102978506d0
+     fac_arr(4)=-0.1906925178491184630893552d0
+     fac_arr(5)=-0.1906925178491184630893552d0
+     fac_arr(6)=-0.2542566904654912841191402d0
+  else if (l.eq.4 .and. i.eq.2 .and. m.eq.3) then
+     nterm=6
+     lx(1)=4 ; ly(1)=0 ; lz(1)=1
+     lx(2)=2 ; ly(2)=2 ; lz(2)=1
+     lx(3)=0 ; ly(3)=4 ; lz(3)=1
+     lx(4)=2 ; ly(4)=0 ; lz(4)=3
+     lx(5)=0 ; ly(5)=2 ; lz(5)=3
+     lx(6)=0 ; ly(6)=0 ; lz(6)=5
+     fac_arr(1)=0.1556997888323045941832351d0
+     fac_arr(2)=0.3113995776646091883664703d0
+     fac_arr(3)=0.1556997888323045941832351d0
+     fac_arr(4)=0.05189992961076819806107838d0
+     fac_arr(5)=0.05189992961076819806107838d0
+     fac_arr(6)=-0.1037998592215363961221568d0
+  else if (l.eq.4 .and. i.eq.2 .and. m.eq.4) then
+     nterm=5
+     lx(1)=5 ; ly(1)=0 ; lz(1)=0
+     lx(2)=3 ; ly(2)=2 ; lz(2)=0
+     lx(3)=1 ; ly(3)=4 ; lz(3)=0
+     lx(4)=3 ; ly(4)=0 ; lz(4)=2
+     lx(5)=1 ; ly(5)=2 ; lz(5)=2
+     fac_arr(1)=0.08206099398622182182282711d0
+     fac_arr(2)=-0.1641219879724436436456542d0
+     fac_arr(3)=-0.2461829819586654654684813d0
+     fac_arr(4)=0.08206099398622182182282711d0
+     fac_arr(5)=-0.2461829819586654654684813d0
+  else if (l.eq.4 .and. i.eq.2 .and. m.eq.5) then
+     nterm=5
+     lx(1)=4 ; ly(1)=1 ; lz(1)=0
+     lx(2)=2 ; ly(2)=3 ; lz(2)=0
+     lx(3)=0 ; ly(3)=5 ; lz(3)=0
+     lx(4)=2 ; ly(4)=1 ; lz(4)=2
+     lx(5)=0 ; ly(5)=3 ; lz(5)=2
+     fac_arr(1)=-0.2461829819586654654684813d0
+     fac_arr(2)=-0.1641219879724436436456542d0
+     fac_arr(3)=0.08206099398622182182282711d0
+     fac_arr(4)=-0.2461829819586654654684813d0
+     fac_arr(5)=0.08206099398622182182282711d0
+  else if (l.eq.4 .and. i.eq.2 .and. m.eq.6) then
+     nterm=4
+     lx(1)=4 ; ly(1)=0 ; lz(1)=1
+     lx(2)=0 ; ly(2)=4 ; lz(2)=1
+     lx(3)=2 ; ly(3)=0 ; lz(3)=3
+     lx(4)=0 ; ly(4)=2 ; lz(4)=3
+     fac_arr(1)=0.2010075630518424150978747d0
+     fac_arr(2)=-0.2010075630518424150978747d0
+     fac_arr(3)=0.2010075630518424150978747d0
+     fac_arr(4)=-0.2010075630518424150978747d0
+  else if (l.eq.4 .and. i.eq.2 .and. m.eq.7) then
+     nterm=3
+     lx(1)=3 ; ly(1)=1 ; lz(1)=1
+     lx(2)=1 ; ly(2)=3 ; lz(2)=1
+     lx(3)=1 ; ly(3)=1 ; lz(3)=3
+     fac_arr(1)=0.4020151261036848301957494d0
+     fac_arr(2)=0.4020151261036848301957494d0
+     fac_arr(3)=0.4020151261036848301957494d0
+  else if (l.eq.4 .and. i.eq.3 .and. m.eq.1) then
+     nterm=10
+     lx(1)=7 ; ly(1)=0 ; lz(1)=0
+     lx(2)=5 ; ly(2)=2 ; lz(2)=0
+     lx(3)=3 ; ly(3)=4 ; lz(3)=0
+     lx(4)=1 ; ly(4)=6 ; lz(4)=0
+     lx(5)=5 ; ly(5)=0 ; lz(5)=2
+     lx(6)=3 ; ly(6)=2 ; lz(6)=2
+     lx(7)=1 ; ly(7)=4 ; lz(7)=2
+     lx(8)=3 ; ly(8)=0 ; lz(8)=4
+     lx(9)=1 ; ly(9)=2 ; lz(9)=4
+     lx(10)=1 ; ly(10)=0 ; lz(10)=6
+     fac_arr(1)=0.009103849893318918298413687d0
+     fac_arr(2)=0.02731154967995675489524106d0
+     fac_arr(3)=0.02731154967995675489524106d0
+     fac_arr(4)=0.009103849893318918298413687d0
+     fac_arr(5)=-0.01820769978663783659682737d0
+     fac_arr(6)=-0.03641539957327567319365475d0
+     fac_arr(7)=-0.01820769978663783659682737d0
+     fac_arr(8)=-0.06372694925323242808889581d0
+     fac_arr(9)=-0.06372694925323242808889581d0
+     fac_arr(10)=-0.03641539957327567319365475d0
+  else if (l.eq.4 .and. i.eq.3 .and. m.eq.2) then
+     nterm=10
+     lx(1)=6 ; ly(1)=1 ; lz(1)=0
+     lx(2)=4 ; ly(2)=3 ; lz(2)=0
+     lx(3)=2 ; ly(3)=5 ; lz(3)=0
+     lx(4)=0 ; ly(4)=7 ; lz(4)=0
+     lx(5)=4 ; ly(5)=1 ; lz(5)=2
+     lx(6)=2 ; ly(6)=3 ; lz(6)=2
+     lx(7)=0 ; ly(7)=5 ; lz(7)=2
+     lx(8)=2 ; ly(8)=1 ; lz(8)=4
+     lx(9)=0 ; ly(9)=3 ; lz(9)=4
+     lx(10)=0 ; ly(10)=1 ; lz(10)=6
+     fac_arr(1)=0.009103849893318918298413687d0
+     fac_arr(2)=0.02731154967995675489524106d0
+     fac_arr(3)=0.02731154967995675489524106d0
+     fac_arr(4)=0.009103849893318918298413687d0
+     fac_arr(5)=-0.01820769978663783659682737d0
+     fac_arr(6)=-0.03641539957327567319365475d0
+     fac_arr(7)=-0.01820769978663783659682737d0
+     fac_arr(8)=-0.06372694925323242808889581d0
+     fac_arr(9)=-0.06372694925323242808889581d0
+     fac_arr(10)=-0.03641539957327567319365475d0
+  else if (l.eq.4 .and. i.eq.3 .and. m.eq.3) then
+     nterm=10
+     lx(1)=6 ; ly(1)=0 ; lz(1)=1
+     lx(2)=4 ; ly(2)=2 ; lz(2)=1
+     lx(3)=2 ; ly(3)=4 ; lz(3)=1
+     lx(4)=0 ; ly(4)=6 ; lz(4)=1
+     lx(5)=4 ; ly(5)=0 ; lz(5)=3
+     lx(6)=2 ; ly(6)=2 ; lz(6)=3
+     lx(7)=0 ; ly(7)=4 ; lz(7)=3
+     lx(8)=2 ; ly(8)=0 ; lz(8)=5
+     lx(9)=0 ; ly(9)=2 ; lz(9)=5
+     lx(10)=0 ; ly(10)=0 ; lz(10)=7
+     fac_arr(1)=0.02229978693352242055222348d0
+     fac_arr(2)=0.06689936080056726165667044d0
+     fac_arr(3)=0.06689936080056726165667044d0
+     fac_arr(4)=0.02229978693352242055222348d0
+     fac_arr(5)=0.02973304924469656073629797d0
+     fac_arr(6)=0.05946609848939312147259594d0
+     fac_arr(7)=0.02973304924469656073629797d0
+     fac_arr(8)=-0.007433262311174140184074493d0
+     fac_arr(9)=-0.007433262311174140184074493d0
+     fac_arr(10)=-0.01486652462234828036814899d0
+  else if (l.eq.4 .and. i.eq.3 .and. m.eq.4) then
+     nterm=9
+     lx(1)=7 ; ly(1)=0 ; lz(1)=0
+     lx(2)=5 ; ly(2)=2 ; lz(2)=0
+     lx(3)=3 ; ly(3)=4 ; lz(3)=0
+     lx(4)=1 ; ly(4)=6 ; lz(4)=0
+     lx(5)=5 ; ly(5)=0 ; lz(5)=2
+     lx(6)=3 ; ly(6)=2 ; lz(6)=2
+     lx(7)=1 ; ly(7)=4 ; lz(7)=2
+     lx(8)=3 ; ly(8)=0 ; lz(8)=4
+     lx(9)=1 ; ly(9)=2 ; lz(9)=4
+     fac_arr(1)=0.01175301967439877980816756d0
+     fac_arr(2)=-0.01175301967439877980816756d0
+     fac_arr(3)=-0.05876509837199389904083778d0
+     fac_arr(4)=-0.03525905902319633942450267d0
+     fac_arr(5)=0.02350603934879755961633511d0
+     fac_arr(6)=-0.04701207869759511923267022d0
+     fac_arr(7)=-0.07051811804639267884900533d0
+     fac_arr(8)=0.01175301967439877980816756d0
+     fac_arr(9)=-0.03525905902319633942450267d0
+  else if (l.eq.4 .and. i.eq.3 .and. m.eq.5) then
+     nterm=9
+     lx(1)=6 ; ly(1)=1 ; lz(1)=0
+     lx(2)=4 ; ly(2)=3 ; lz(2)=0
+     lx(3)=2 ; ly(3)=5 ; lz(3)=0
+     lx(4)=0 ; ly(4)=7 ; lz(4)=0
+     lx(5)=4 ; ly(5)=1 ; lz(5)=2
+     lx(6)=2 ; ly(6)=3 ; lz(6)=2
+     lx(7)=0 ; ly(7)=5 ; lz(7)=2
+     lx(8)=2 ; ly(8)=1 ; lz(8)=4
+     lx(9)=0 ; ly(9)=3 ; lz(9)=4
+     fac_arr(1)=-0.03525905902319633942450267d0
+     fac_arr(2)=-0.05876509837199389904083778d0
+     fac_arr(3)=-0.01175301967439877980816756d0
+     fac_arr(4)=0.01175301967439877980816756d0
+     fac_arr(5)=-0.07051811804639267884900533d0
+     fac_arr(6)=-0.04701207869759511923267022d0
+     fac_arr(7)=0.02350603934879755961633511d0
+     fac_arr(8)=-0.03525905902319633942450267d0
+     fac_arr(9)=0.01175301967439877980816756d0
+  else if (l.eq.4 .and. i.eq.3 .and. m.eq.6) then
+     nterm=8
+     lx(1)=6 ; ly(1)=0 ; lz(1)=1
+     lx(2)=4 ; ly(2)=2 ; lz(2)=1
+     lx(3)=2 ; ly(3)=4 ; lz(3)=1
+     lx(4)=0 ; ly(4)=6 ; lz(4)=1
+     lx(5)=4 ; ly(5)=0 ; lz(5)=3
+     lx(6)=0 ; ly(6)=4 ; lz(6)=3
+     lx(7)=2 ; ly(7)=0 ; lz(7)=5
+     lx(8)=0 ; ly(8)=2 ; lz(8)=5
+     fac_arr(1)=0.02878890113916869875409405d0
+     fac_arr(2)=0.02878890113916869875409405d0
+     fac_arr(3)=-0.02878890113916869875409405d0
+     fac_arr(4)=-0.02878890113916869875409405d0
+     fac_arr(5)=0.05757780227833739750818811d0
+     fac_arr(6)=-0.05757780227833739750818811d0
+     fac_arr(7)=0.02878890113916869875409405d0
+     fac_arr(8)=-0.02878890113916869875409405d0
+  else if (l.eq.4 .and. i.eq.3 .and. m.eq.7) then
+     nterm=6
+     lx(1)=5 ; ly(1)=1 ; lz(1)=1
+     lx(2)=3 ; ly(2)=3 ; lz(2)=1
+     lx(3)=1 ; ly(3)=5 ; lz(3)=1
+     lx(4)=3 ; ly(4)=1 ; lz(4)=3
+     lx(5)=1 ; ly(5)=3 ; lz(5)=3
+     lx(6)=1 ; ly(6)=1 ; lz(6)=5
+     fac_arr(1)=0.05757780227833739750818811d0
+     fac_arr(2)=0.1151556045566747950163762d0
+     fac_arr(3)=0.05757780227833739750818811d0
+     fac_arr(4)=0.1151556045566747950163762d0
+     fac_arr(5)=0.1151556045566747950163762d0
+     fac_arr(6)=0.05757780227833739750818811d0
+
+  else
+     stop 'PSP format error'
+  endif
+  
+end subroutine calc_coeff_proj
 
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
@@ -3097,7 +3730,7 @@ subroutine readAtomicOrbitals(iproc, filename, ngx, npsp, xp, psiat, occupat, ng
   ipsp = 1
   do iat=1,nat
      ity=iatype(iat)
-     do i=1,15
+     do i=1,npsp
         if (pspatomnames(i).eq.atomnames(ity)) then
            ipsp=i
            goto 333
@@ -3148,7 +3781,7 @@ subroutine createAtomicOrbitals(iproc, nproc, npsp, pspatomnames, atomnames, nat
      rx=rxyz(1,iat) ; ry=rxyz(2,iat) ; rz=rxyz(3,iat)
 
      ity=iatype(iat)
-     do i=1,15
+     do i=1,npsp
         if (pspatomnames(i).eq.atomnames(ity)) then
            ipsp=i
            goto 444
@@ -3350,7 +3983,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nat,norb,norbp,n1,n2,n3,nfft1,nfft2,nfft3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
      rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-     atomnames,ntypes,iatype,pkernel,psppar,ppsi,eval,accurex)
+     atomnames,ntypes,iatype,pkernel,psppar,npspcode,ppsi,eval,accurex)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors writes its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -3367,7 +4000,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   dimension rxyz(3,nat),iatype(nat),eval(norb)
   dimension rhopot((2*n1+31)*(2*n2+31)*(2*n3+31)),pot_ion((2*n1+31)*(2*n2+31)*(2*n3+31))
   dimension pkernel(*)
-  dimension psppar(0:2,0:4,ntypes)
+  dimension psppar(0:4,0:4,ntypes),npspcode(ntypes)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension nseg_p(0:2*nat),nvctr_p(0:2*nat)
   dimension keyg_p(2,nseg_p(2*nat)),keyv_p(nseg_p(2*nat))
@@ -3428,7 +4061,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        accurex=abs(eks-ekin_sum)
        write(*,*) 'ekin_sum,eks',ekin_sum,eks
 
-        call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,occupe, &
+        call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occupe, &
                     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
                     norbe,norbep,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
 

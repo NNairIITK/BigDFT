@@ -21,6 +21,9 @@
 !! INPUTS
 !!  ixc=number of the XC functional
 !!   (to be described)
+!!  ndvxc= size of dvxc(npts,ndvxc)
+!!  ngr2= size of grho2_updn(npts,ngr2)
+!!  nvxcdgr= size of vxcgr(npts,nvxcdgr)
 !!  npts=number of real space points on which the density
 !!   (and its gradients, if needed) is provided
 !!  nspden=number of spin-density components (1 or 2)
@@ -36,7 +39,7 @@
 !!    and both are half the total density.
 !!    If nspden=2, the spin-up and spin-down density must be given
 !!  Optional inputs :
-!!  grho2_updn(npts,2*nspden-1)=the square of the gradients of
+!!  grho2_updn(npts,ngr2)=the square of the gradients of
 !!    spin-up, spin-down, and total density
 !!    If nspden=1, only the square of the gradient of the spin-up density
 !!     must be given. In the calling routine, the square of the gradient
@@ -105,37 +108,49 @@
 #include "config.h"
 #endif
 
-subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Mandatory arguments
+subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   & !Mandatory arguments
 &                  dvxc,d2vxc,grho2_updn,vxcgr)    !Optional arguments 
 
  use defs_basis
- use defs_xc, except_this_one => drivexc
 #if defined HAVE_NQXC
  use nqxc
 #endif
+
+!This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
+#ifdef HAVE_FORTRAN_INTERFACES
+ use interfaces_01managempi
+ use interfaces_03xc, except_this_one => drivexc
+#else
+ use defs_xc, except_this_one => drivexc
+#endif
+!End of the abilint section
 
  implicit none
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: ixc,npts,nspden,order
- integer,intent(in) :: ndvxc,nvxcdgr
+ integer,intent(in) :: ixc,ndvxc,ngr2,npts,nspden,nvxcdgr,order
 !arrays
  real(dp),intent(in) :: rho_updn(npts,nspden)
- real(dp),intent(in), optional :: grho2_updn(npts,2*nspden-1)
+ real(dp),intent(in),optional :: grho2_updn(npts,ngr2)
  real(dp),intent(out) :: exc(npts),vxc(npts,nspden)
- real(dp),intent(out), optional :: d2vxc(npts),dvxc(npts,ndvxc),vxcgr(npts,nvxcdgr)
+ real(dp),intent(out),optional :: d2vxc(npts),dvxc(npts,ndvxc)
+ real(dp),intent(out),optional :: vxcgr(npts,nvxcdgr)
 
 !Local variables-------------------------------
 !scalars
- integer :: ipts,ispden,libxc_info,libxc_ptr,optpbe,i_all
+ integer :: i_all,ipts,ispden,libxc_info,libxc_ptr,optpbe
  real(dp),parameter :: rsfac=0.6203504908994000d0
  character(len=500) :: message
 !arrays
  real(dp) :: exctmp(2),rhotmp(2),vxctmp(2)
- real(dp),allocatable :: exci_rpa(:)!,grho2_updn_fake(:,:)
+ real(dp),allocatable :: d2vxci(:),dvxci(:,:),exci_rpa(:),grho2_updn_fake(:,:)
  real(dp),allocatable :: rhotot(:),rspts(:),vxci_rpa(:,:),zeta(:)
-
+!no_abirules
+#if defined HAVE_XMLF90
+ integer :: ipts,ispden,libxc_info,libxc_ptr
+ real(dp) :: exctmp(2),rhotmp(2),vxctmp(2)
+#endif
 
 !  *************************************************************************
 
@@ -186,6 +201,13 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
  end if
 
  if(present(grho2_updn))then
+  if (ngr2/=2*nspden-1 ) then
+   write(message, '(4a)' ) ch10,&
+&    ' drivexc : BUG -',ch10,&
+&    '  ngr2 must be 2*nspden-1 !'
+!   call wrtout(06,message,'COLL')
+!   call leave_new('COLL')
+  end if
   if(ixc > 16 .or. ixc < 11 )then
    write(message, '(8a,i6)' )ch10,&
 &   ' drivexc : BUG -',ch10,&
@@ -228,7 +250,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
 
  if (ixc==1 .or. ixc==21 .or. ixc==22) then
 ! new Teter fit (4/93) to Ceperley-Alder data, with spin-pol option
-  if (order**2 <= 1) then      
+  if (order**2 <= 1) then
    call xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc)
   else
    if(ndvxc /= nspden + 1 )then
@@ -246,7 +268,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
 
  else if (ixc==2) then
 ! Perdew-Zunger fit to Ceperly-Alder data (no spin-pol)
-  if (order**2 <= 1) then      
+  if (order**2 <= 1) then
      call xcpzca(exc,npts,order,rhotot,rspts,vxc(:,1))
   else
      if(ndvxc /= 1 )then
@@ -262,7 +284,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
 
  else if (ixc==3) then
 ! Teter fit (4/91) to Ceperley-Alder values (no spin-pol)
-    if (order**2 <= 1) then      
+    if (order**2 <= 1) then
        call xctetr(exc,npts,order,rhotot,rspts,vxc(:,1))
     else if (order == 2) then
        if(ndvxc /= 1 )then
@@ -288,7 +310,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
 
  else if (ixc==4) then
 ! Wigner xc (no spin-pol)
-    if (order**2 <= 1) then    
+    if (order**2 <= 1) then
        call xcwign(exc,npts,order,rhotot,rspts,vxc(:,1))
     else
        if(ndvxc /= 1 )then
@@ -304,7 +326,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
 
  else if (ixc==5) then
 ! Hedin-Lundqvist xc (no spin-pol)
-    if (order**2 <= 1) then    
+    if (order**2 <= 1) then
        call xchelu(exc,npts,order,rspts,vxc(:,1))
     else
        if(ndvxc /= 1 )then
@@ -320,7 +342,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
 
  else if (ixc==6) then
 ! X-alpha (no spin-pol)
-    if (order**2 <= 1) then    
+    if (order**2 <= 1) then
        call xcxalp(exc,npts,order,rspts,vxc(:,1))
     else
        if(ndvxc /= 1 )then
@@ -352,8 +374,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
   if(ixc==15)optpbe=6
 
   if (ixc >= 7 .and. ixc <= 9) then
-     if (order**2 <= 1) then    
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc)
+     if (order**2 <= 1) then
+        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2)
      else if (order /=3) then
         if(ndvxc /= 1+nspden .or. nvxcdgr /=0)then
            write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
@@ -363,7 +385,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
            call wrtout(6,message,'COLL')
            call leave_new('COLL')
         end if
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,dvxci=dvxc)
+        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,dvxci=dvxc)
      else if (order ==3) then
         if(ndvxc /= 1+nspden .or. nvxcdgr /=0)then
            write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
@@ -373,11 +395,11 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
            call wrtout(6,message,'COLL')
            call leave_new('COLL')
         end if
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,d2vxci=d2vxc,dvxci=dvxc)
+        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,d2vxci=d2vxc,dvxci=dvxc)
      end if
   else if (ixc >= 11 .and. ixc <= 15) then
-    if (order**2 <= 1) then    
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,dvxcdgr=vxcgr,grho2_updn=grho2_updn)
+    if (order**2 <= 1) then
+        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,dvxcdgr=vxcgr,grho2_updn=grho2_updn)
      else if (order /=3) then
         if(ixc == 12 .and. ndvxc /=8  .or. ixc/=12 .and. ndvxc /= 15 .or. nvxcdgr /= 3)then
            write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
@@ -387,7 +409,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
            call wrtout(6,message,'COLL')
            call leave_new('COLL')
         end if
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,&
+        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,&
              dvxcdgr=vxcgr,dvxci=dvxc,grho2_updn=grho2_updn)
      else if (order ==3) then
         if(ixc == 12 .and. ndvxc /=8  .or. ixc/=12 .and. ndvxc /= 15 .or. nvxcdgr /=3)then
@@ -398,7 +420,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
            call wrtout(6,message,'COLL')
            call leave_new('COLL')
         end if
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,d2vxc,vxcgr,dvxc,grho2_updn)
+        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,d2vxc,vxcgr,dvxc,grho2_updn)
      end if
   end if
 
@@ -416,12 +438,12 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
 
   else if (ixc==10) then
       ! RPA correlation from Perdew-Wang
-     if (order**2 <= 1) then    
+     if (order**2 <= 1) then
         allocate(exci_rpa(npts),vxci_rpa(npts,2))
         optpbe=3
-        call xcpbe(exci_rpa,npts,nspden,optpbe,order,rho_updn,vxci_rpa,ndvxc)
+        call xcpbe(exci_rpa,npts,nspden,optpbe,order,rho_updn,vxci_rpa,ndvxc,ngr2)
         optpbe=1
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc)
+        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2)
         exc(:)=exc(:)-exci_rpa(:)
         vxc(:,:)=vxc(:,:)-vxci_rpa(:,:)
         deallocate(exci_rpa,vxci_rpa)
@@ -436,9 +458,9 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
         end if
         allocate(exci_rpa(npts),vxci_rpa(npts,2))
         optpbe=3
-        call xcpbe(exci_rpa,npts,nspden,optpbe,order,rho_updn,vxci_rpa,ndvxc,dvxci=dvxc)
+        call xcpbe(exci_rpa,npts,nspden,optpbe,order,rho_updn,vxci_rpa,ndvxc,ngr2,dvxci=dvxc)
         optpbe=1
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,dvxci=dvxc)
+        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,dvxci=dvxc)
         exc(:)=exc(:)-exci_rpa(:)
         vxc(:,:)=vxc(:,:)-vxci_rpa(:,:)
         deallocate(exci_rpa,vxci_rpa)
@@ -453,10 +475,10 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
         end if
         allocate(exci_rpa(npts),vxci_rpa(npts,2))
         optpbe=3
-        call xcpbe(exci_rpa,npts,nspden,optpbe,order,rho_updn,vxci_rpa,ndvxc,&
+        call xcpbe(exci_rpa,npts,nspden,optpbe,order,rho_updn,vxci_rpa,ndvxc,ngr2,&
              d2vxci=d2vxc,dvxci=dvxc)
         optpbe=1
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,&
+        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,&
              d2vxci=d2vxc,dvxci=dvxc)
         exc(:)=exc(:)-exci_rpa(:)
         vxc(:,:)=vxc(:,:)-vxci_rpa(:,:)
@@ -467,7 +489,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
 ! LDA xc energy like ixc==7, and Leeuwen-Baerends GGA xc potential
     if (order**2 <= 1) then 
        optpbe=1
-       call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc)
+       call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2)
        call xclb(grho2_updn,npts,nspden,rho_updn,vxc)   
      else if (order /=3) then
         if(ndvxc /= 1+nspden .or. nvxcdgr /= 0)then
@@ -479,7 +501,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
            call leave_new('COLL')
         end if
         optpbe=1
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,dvxci=dvxc)
+        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,dvxci=dvxc)
         call xclb(grho2_updn,npts,nspden,rho_updn,vxc)
      else if (order ==3) then
         if(ndvxc /= 1+nspden .or. nvxcdgr /=0)then
@@ -491,7 +513,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
            call leave_new('COLL')
         end if
         optpbe=1
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,d2vxci=d2vxc,dvxci=dvxc)
+        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,d2vxci=d2vxc,dvxci=dvxc)
         call xclb(grho2_updn,npts,nspden,rho_updn,vxc)
      end if
 
@@ -571,5 +593,4 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,nvxcdgr,   & !Ma
  if(allocated(zeta))deallocate(zeta)
 
 end subroutine drivexc
-
-
+!!***

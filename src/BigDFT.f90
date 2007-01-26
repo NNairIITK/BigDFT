@@ -79,16 +79,16 @@ program BigDFT
         if (iproc.eq.0) write(*,*) 'atoms of type ',ityp,' are ',atomnames(ityp)
         enddo
 
-           ampl=2.d-2  ! amplitude for random displacement away from input file geometry (usually equilibrium geom.)
-           if (iproc.eq.0) write(*,*) 'random displacemnt amplitude',ampl
-           do iat=1,nat
-              call random_number(tt)
-              rxyz(1,iat)=rxyz(1,iat)+ampl*tt
-              call random_number(tt)
-              rxyz(2,iat)=rxyz(2,iat)+ampl*tt
-              call random_number(tt)
-              rxyz(3,iat)=rxyz(3,iat)+ampl*tt
-           enddo
+        ampl=0.d0!2.d-2  ! amplitude for random displacement away from input file geometry (usually equilibrium geom.)
+        if (iproc.eq.0) write(*,*) 'random displacemnt amplitude',ampl
+        do iat=1,nat
+           call random_number(tt)
+           rxyz(1,iat)=rxyz(1,iat)+ampl*tt
+           call random_number(tt)
+           rxyz(2,iat)=rxyz(2,iat)+ampl*tt
+           call random_number(tt)
+           rxyz(3,iat)=rxyz(3,iat)+ampl*tt
+        enddo
 ! geometry optimization
 !    betax=2.d0   ! Cincodinine
 !    betax=4.d0  ! Si H_4
@@ -98,7 +98,7 @@ program BigDFT
    energyold=1.d100
    fluct=0.d0
    flucto=0.d0
-   ngeostep=500
+   ngeostep=1!500
    do 500 igeostep=1,ngeostep
 
       output_grid=.false. 

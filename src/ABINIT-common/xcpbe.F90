@@ -22,7 +22,7 @@
 !! If option==6, RPBE functional of Hammer, Hansen and Norskov, PRB 59, 7413 (1999)
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2006 ABINIT group (XG,MF)
+!! Copyright (C) 1998-2006 ABINIT group (XG,MF,LG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -31,13 +31,14 @@
 !! INPUTS
 !!  npts= number of points to be computed
 !!  nspden=1 for unpolarized, 2 for spin-polarized
-!!  grho2_updn(npts,2*nspden-1)=square of the gradient of the spin-up,
+!!  grho2_updn(npts,ngr2)=square of the gradient of the spin-up,
 !!     and, if nspden==2, spin-down, and total density (Hartree/Bohr**2),
 !!     only used if gradient corrected functional (option=2,-2 and 4 or beyond)
 !!  option= see above
 !!  order=its absolute value gives the maximal derivative of Exc to be computed.
 !!  rho_updn(npts,nspden)=spin-up and spin-down density (Hartree/bohr**3)
 !!  ndvxci= size of dvxci(npts,ndvxci)
+!!  ngr2= size of grho2_updn(npts,ngr2)
 !!
 !! OUTPUT
 !!
@@ -92,34 +93,43 @@
 !!      invcb
 !!
 !! SOURCE
-
 !!$#if defined HAVE_CONFIG_H
 !!$#include "config.h"
 !!$#endif
 
-subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,& !Mandatory Arguments
-&                d2vxci,dvxcdgr,dvxci,grho2_updn)                     !Optional Arguments
+#if defined HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mandatory Arguments
+&                d2vxci,dvxcdgr,dvxci,grho2_updn)                          !Optional Arguments
 
  use defs_basis
+
+!This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
+#ifdef HAVE_FORTRAN_INTERFACES
+ use interfaces_01managempi
+ use interfaces_03xc, except_this_one => xcpbe
+#endif
+!End of the abilint section
 
  implicit none
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: npts,nspden,option,order
- integer,intent(in) :: ndvxci
+ integer,intent(in) :: ndvxci,ngr2,npts,nspden,option,order
 !arrays
  real(dp),intent(in) :: rho_updn(npts,nspden)
- real(dp),intent(in), optional :: grho2_updn(npts,2*nspden-1)
- real(dp),intent(out) :: exci(npts)
- real(dp),intent(out), optional :: d2vxci(npts),dvxcdgr(npts,3),dvxci(npts,ndvxci)
- real(dp),intent(out) :: vxci(npts,nspden)
+ real(dp),intent(in),optional :: grho2_updn(npts,ngr2)
+ real(dp),intent(out) :: exci(npts),vxci(npts,nspden)
+ real(dp),intent(out),optional :: d2vxci(npts),dvxcdgr(npts,3)
+ real(dp),intent(out),optional :: dvxci(npts,ndvxci)
 
 !Local variables-------------------------------
 ! The "accurate" value of mu is taken from the PBE code
 !scalars
  integer,save :: initialized=0
- integer :: debug,ipts,ispden,nspden_origin
+ integer :: debug,ipts,ispden
  real(dp),parameter :: alpha_zeta2=1.0d0-1.0d-6,alpha_zeta=1.0d0-1.0d-6
  real(dp),parameter :: beta=0.066725d0,beta_inv=1.0d0/beta
  real(dp),parameter :: fsec_inv=1.0d0/1.709921d0,kappa_pbe=0.804d0
@@ -143,24 +153,24 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,& !Mandatory
  real(dp) :: d2rhohh_drhodg,d2rr_dqq2,d2rr_drs2,d2rr_drsdtt,d2rr_drsdzeta
  real(dp) :: d2rr_dtt2,d2rr_dttdzeta,d2rr_dzeta2,d2rs_dn2,d2ssdn2,d2ssdndg
  real(dp) :: d2vcrs_drs2,d2xx_drs2,d2xx_drsdtt,d2xx_drsdzeta,d2xx_dttdzeta
- real(dp) :: d2xx_dzeta2,d3ecrs0_drs3,daa_decrs,daa_drs,daa_dzeta,dbb_drs
- real(dp) :: dbb_dzeta,dcc_dbb,dcc_drs,dcc_dzeta,decrs0_drs,decrs1_drs
- real(dp) :: decrs_drs,decrs_dzeta,delta,dfxdg,dfxdn,dfxdss,dfzeta4_dzeta
- real(dp) :: dgcrs_drs,dhh_dpade,dhh_drs,dhh_dtt,dhh_dzeta,div_rr,divss
- real(dp) :: dmacrs_drs,dpade_drs,dpade_dtt,dpade_dxx,dpade_dzeta,dqq_drs
- real(dp) :: dqq_dtt,dqq_dzeta,drhohh_drho,drr_dqq,drr_drs,drr_dtt,drr_dzeta
- real(dp) :: drs_dn,dssdg,dssdn,dtt_dg,dvcrs_drs,dxx_drs,dxx_dtt,dxx_dzeta
- real(dp) :: ec0_a1,ec0_aa,ec0_b1,ec0_b2,ec0_b3,ec0_b4,ec0_den,ec0_f1,ec0_f2
- real(dp) :: ec0_log,ec0_q0,ec0_q1,ec0_q1p,ec0_q1pp,ec0_q1ppp,ec1_a1,ec1_aa
- real(dp) :: ec1_b1,ec1_b2,ec1_b3,ec1_b4,ec1_den,ec1_log,ec1_q0,ec1_q1,ec1_q1p
- real(dp) :: ec1_q1pp,ecrs,ecrs0,ecrs1,ex_gga,ex_lsd,exc,exp_pbe,f_zeta
- real(dp) :: factfpp_zeta,factor,fp_zeta,fpp_zeta,fx,gamphi3inv,gcrs,grr,grrho2
- real(dp) :: hh,kappa,mac_a1,mac_aa,mac_b1,mac_b2,mac_b3,mac_b4,mac_den,mac_log
- real(dp) :: mac_q0,mac_q1,mac_q1p,mac_q1pp,macrs,mu_divkappa,pade,pade_den
- real(dp) :: phi3_zeta,phi_logder,phi_zeta,phi_zeta_inv,phip_zeta,phipp_zeta,qq
- real(dp) :: rho,rho_dn,rho_dnm,rho_dnp,rho_inv,rho_up,rho_upm,rho_upp,rhomot
- real(dp) :: rhotmo6,rhotmot,rhoto6,rhotot,rhotot_inv,rr,rs,rsm1_2,sqr_rs
- real(dp) :: sqr_sqr_rs,ss,tt,vxcadd,xx,zeta,zeta4,zeta_mean,zetm_1_3,zetp_1_3
+ real(dp) :: d2xx_dzeta2,d3ecrs0_drs3,daa_drs,daa_dzeta,dbb_drs,dbb_dzeta
+ real(dp) :: dcc_dbb,dcc_drs,dcc_dzeta,decrs0_drs,decrs1_drs,decrs_drs
+ real(dp) :: decrs_dzeta,delta,dfxdg,dfxdn,dfxdss,dfzeta4_dzeta,dgcrs_drs
+ real(dp) :: dhh_drs,dhh_dtt,dhh_dzeta,div_rr,divss,dmacrs_drs,dpade_drs
+ real(dp) :: dpade_dtt,dpade_dxx,dpade_dzeta,dqq_drs,dqq_dtt,dqq_dzeta
+ real(dp) :: drhohh_drho,drr_dqq,drr_drs,drr_dtt,drr_dzeta,drs_dn,dssdg,dssdn
+ real(dp) :: dtt_dg,dvcrs_drs,dxx_drs,dxx_dtt,dxx_dzeta,ec0_a1,ec0_aa,ec0_b1
+ real(dp) :: ec0_b2,ec0_b3,ec0_b4,ec0_den,ec0_f1,ec0_f2,ec0_log,ec0_q0,ec0_q1
+ real(dp) :: ec0_q1p,ec0_q1pp,ec0_q1ppp,ec1_a1,ec1_aa,ec1_b1,ec1_b2,ec1_b3
+ real(dp) :: ec1_b4,ec1_den,ec1_log,ec1_q0,ec1_q1,ec1_q1p,ec1_q1pp,ecrs,ecrs0
+ real(dp) :: ecrs1,ex_gga,ex_lsd,exc,exp_pbe,f_zeta,factfpp_zeta,factor,fp_zeta
+ real(dp) :: fpp_zeta,fx,gamphi3inv,gcrs,grr,grrho2,hh,kappa,mac_a1,mac_aa
+ real(dp) :: mac_b1,mac_b2,mac_b3,mac_b4,mac_den,mac_log,mac_q0,mac_q1,mac_q1p
+ real(dp) :: mac_q1pp,macrs,mu_divkappa,pade,pade_den,phi3_zeta,phi_logder
+ real(dp) :: phi_zeta,phi_zeta_inv,phip_zeta,phipp_zeta,qq,rho,rho_dn,rho_dnm
+ real(dp) :: rho_dnp,rho_inv,rho_up,rho_upm,rho_upp,rhomot,rhotmo6,rhotmot
+ real(dp) :: rhoto6,rhotot,rhotot_inv,rr,rs,rsm1_2,sqr_rs,sqr_sqr_rs,ss,tt
+ real(dp) :: vxcadd,xx,zeta,zeta4,zeta_mean,zetm_1_3,zetp_1_3
  character(len=500) :: message
 !arrays
  real(dp),allocatable :: rho_updnm1_3(:,:),rhoarr(:),rhom1_3(:),zetm(:)
@@ -215,7 +225,15 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,& !Mandatory
   call wrtout(6,message,'COLL')
   call leave_new('COLL')
  end if
-
+ if (present(grho2_updn)) then
+  if (ngr2/=2*nspden-1 ) then
+   write(message, '(4a)' ) ch10,&
+&    ' xcpbe : BUG -',ch10,&
+&    '  ngr2 must be 2*nspden-1 !'
+   call wrtout(06,message,'COLL')
+   call leave_new('COLL')
+  end if
+ end if
 
  if ((option == 1 .or. option == -1 .or. option ==3) .and.  (present(grho2_updn) .or. present(dvxcdgr))) then
   write(message, '(a,a,a,a,a,a,i6,a)' )ch10,&
