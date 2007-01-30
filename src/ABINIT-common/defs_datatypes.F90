@@ -85,10 +85,6 @@
 module defs_datatypes
 
  use defs_basis
-#if defined MPIO
-#include 'mpif.h'
-#endif
-
 
  implicit none
 
@@ -165,9 +161,12 @@ module defs_datatypes
 ! Since all these input variables are described in the anaddb_help.html
 ! file, they are not described in length here ...
 ! Integer
-  integer :: alphon,asr,brav,chneut,dieflag,dipdip,eivec,elaflag,elphflag,enunit,ifcana
-  integer :: ifcflag,ifcout,instrflag,natfix,natifc,natom,nchan,nfreq,ngrids,nlflag,nph1l,nph2l,nqpath
-  integer :: nqshft,nsphere,nstrfix,ntemper,nwchan,piezoflag,polflag,prtmbm,ramansr
+integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphflag,enunit
+  integer :: gkk2exist,gkk2write,gkk_rptexist,gkk_rptwrite,gkqexist,gkqwrite
+  integer :: ifcana,ifcflag,ifcout,instrflag,natfix,natifc,natom
+  integer :: nchan,nfreq,ngrids,nlflag,nph1l,nph2l,nqpath
+  integer :: nqshft,nsphere,nstrfix,ntemper,nwchan
+  integer :: phfrqexist,phfrqwrite,piezoflag,polflag,prtmbm,prtfsurf,prtnest,ramansr
   integer :: relaxat,relaxstr,rfmeth,selectz,symdynmat,telphint,tkeepbands,thmflag
   integer :: ngqpt(9)             ! ngqpt(9) instead of ngqpt(3) is needed in wght9.f
   integer :: istrfix(6),ng2qpt(3),kptrlatt(3,3)
@@ -289,6 +288,8 @@ module defs_datatypes
 
  type datafiles_type
 
+  integer :: ireadden
+   !   ireadden non-zero  if the den file must be read
   integer :: ireadwf
    ! if(optdriver/=1), that is, no response-function computation,
    !   ireadwf non-zero  if the wffk file must be read
@@ -314,6 +315,7 @@ module defs_datatypes
   integer :: unpaw   ! unit number for temporary PAW data (for ex. rhoij_nk) (Paw only)
   integer :: ungsc1  ! unit number for <g|S|c> data (Paw only), temporary one
   integer :: ungsc2  ! unit number for <g|S|c> data (Paw only), temporary two
+  integer :: unpos   ! unit number for restart molecular dynamics
 
   character(len=fnlen) :: filnam_ds(5)
    ! if no dataset mode, the five names from the standard input :
@@ -409,7 +411,8 @@ module defs_datatypes
   integer :: accesswff,berryopt,brvltt,ceksph,chkexit,chkprim,&
 &  delayperm,enunit,exchn2n3,fft_opt_lob,freqremax,freqspmax,frzfermi,getacfd,&
 &  getcell,getddk,getden,getkss,getocc,getqps,getscr,getvel,getwfk,&
-&  getwfq,getxcart,getxred,get1den,get1wf,gpara,gwcalctyp,iboxcut,idyson,ikhxc,inclvkb,intexact,intxc,ionmov,&
+&  getwfq,getxcart,getxred,get1den,get1wf,gpara,gwcalctyp,iboxcut,&
+&  icoultrtmt,idyson,ikhxc,inclvkb,intexact,intxc,ionmov,&
 &  iprcch,iprcel,iprcfc,irdddk,irdkss,irdqps,irdscr,irdwfk,irdwfq,ird1wf,&
 &  iscf,isecur,istatr,istatshft,ixc,ixcpositron,&
 !  jdtset contains the actual number of the dataset
@@ -417,17 +420,19 @@ module defs_datatypes
 &  mkmem,mkqmem,mk1mem,mpw,mqgrid,mqgriddg,natom,natrd,natsph,nbandsus,nbdblock,nbdbuf,&
 &  nberry,nbandkss,ncenter,nconeq,nctime,ndtset,ndyson,&
 &  nfft,nfftdg,nfreqim,nfreqre,nfreqsp,nfreqsus,ngroup_rf,nkptgw,nkpt,nline,&
-&  nnsclo,nomegasrd,norb,npack,npara,npsp,npspalch,npulayit,npweps,npwkss,npwsigx,npwwfn,nqpt,nqptdm,&
+&  nnsclo,nomegasrd,norb,npack,npara,npband,npfft,npsp,npspalch,npulayit,&
+&  npweps,npwkss,npwsigx,npwwfn,nqpt,nqptdm,nscforder,&
 &  nsheps,nshiftk,nshsigx,nshwfn,nspden,nspinor,nsppol,nstep,nsym,ntime,&
-&  ntypalch,ntypat,ntyppure,occopt,optcell,optdriver,optforces,optfreqsus,optnlxccc,optstress,ortalg,&
-&  paral_rf,parareel,&
-&  pawlcutd,pawlmix,pawnphi,pawntheta,pawnzlm,pawoptmix,pawprtvol,pawxcdev,&
+&  ntypalch,ntypat,ntyppure,occopt,optcell,optdriver,&
+&  optforces,optfreqsus,optnlxccc,optstress,ortalg,&
+&  outputXML,paral_rf,parareel,&
+&  pawlcutd,pawlmix,pawmixdg,pawnphi,pawntheta,pawnzlm,pawoptmix,pawprtvol,pawxcdev,&
 &  positron,ppmodel,prepanl,prtacfd,prtbbb,prtcml,&
-&  prtden,prtdos,prteig,prtfsurf,prtgeo,prtgkk,prtkpt,prtpot,prtstm,prtvha,prtvhxc,prtvol,prtvxc,&
+&  prtden,prtdos,prteig,prtfsurf,prtgeo,prtgkk,prtkpt,prtnabla,prtpot,prtstm,prtvha,prtvhxc,prtvol,prtvxc,&
 &  prtwant,prtwf,prt1dm,ptgroupma,restartxf,rfasr,rfelfd,rfmeth,rfphon,rfstrs,rfthrd,&
 &  rfuser,rf1elfd,rf1phon,rf2elfd,rf2phon,rf3elfd,rf3phon,&
-&  signperm,spgaxor,spgorig,spgroup,splitsigc,suskxcrs,symmorphi,td_mexcit,tfkinfunc,timopt,usepaw,useria,&
-&  userib,useric,userid,userie,useylm,vacnum,wfoptalg
+&  signperm,spgaxor,spgorig,spgroup,splitsigc,suskxcrs,symmorphi,td_mexcit,tfkinfunc,timopt,usepaw,&
+&  usepawu,useria,userib,useric,userid,userie,useylm,vacnum,wfoptalg
 ! Integer arrays
   integer :: bdberry(4),dsifkpt(3),kptrlatt(3,3),ngfft(18),ngfftdg(18),nloalg(5),&
 &  qprtrb(3),rfatpol(2),rfdir(3),rf1atpol(2),rf1dir(3),&
@@ -439,6 +444,7 @@ module defs_datatypes
   integer, pointer ::  iatsph(:)     ! iatsph(natsph)
   integer, pointer ::  istwfk(:)     ! istwfk(nkpt)
   integer, pointer ::  kberry(:,:)   ! kberry(3,nberry)
+  integer, pointer ::  lpawu(:)      ! lpawu(ntypat)
   integer, pointer ::  ltypeorb(:)   ! ltypeorb(norb)
   integer, pointer ::  nband(:)      ! nband(nkpt*nsppol)
   integer, pointer ::  numorb(:)     ! numorb(ncenter)
@@ -462,6 +468,7 @@ module defs_datatypes
 ! Real pointers
   real(dp), pointer :: amu(:)         ! amu(ntypat)
   real(dp), pointer :: densty(:,:)    ! densty(ntypat,4)
+  real(dp), pointer :: jpaw(:)        ! jpaw(ntypat)
   real(dp), pointer :: kpt(:,:)       ! kpt(3,nkpt)
   real(dp), pointer :: kptgw(:,:)     ! kptgw(3,nkptgw)
   real(dp), pointer :: kptns(:,:)     ! kptns(3,nkpt)
@@ -473,6 +480,7 @@ module defs_datatypes
   real(dp), pointer :: shiftk(:,:)    ! shiftk(3,nshiftk)
   real(dp), pointer :: spinat(:,:)    ! spinat(3,natom)
   real(dp), pointer :: tnons(:,:)     ! tnons(3,nsym)
+  real(dp), pointer :: upaw(:)        ! upaw(ntypat)
   real(dp), pointer :: vel_orig(:,:)  ! vel_orig(3,natom)
   real(dp), pointer :: wtatcon(:,:,:) ! wtatcon(3,natom,nconeq)
   real(dp), pointer :: wtk(:)         ! wtk(nkpt)
@@ -1081,6 +1089,7 @@ module defs_datatypes
   integer :: me_group         ! number of my processor in my group of kpt
   integer :: nproc_group      ! number of processors in my group of kpt
   integer :: me_fft           ! number of my processor in my group of FFT
+  integer :: me_band           ! number of my processor in my group of bands
   integer :: nproc_fft        ! number of processors in my group of FFT
   integer :: master_fft       ! number of master of my fft group (in the world_group)
   integer :: paral_fft        ! set to 1 if the FFT parallelisation is active
@@ -1099,14 +1108,14 @@ module defs_datatypes
    ! fft_master_comm
    ! communicator on master processors
    ! (one processor per fft_group or all processors when paral_fft = 0)
-   
+
 integer :: fft_option_lob
    ! fft_option_lob
-   ! option for lob 
+   ! option for lob
    ! fft_option_lob=1 : old version of lob
    ! fft_option_lob=2 : new version of lob
    ! exists only when paral_fft = 1
-      
+
 
 ! Integer arrays
 
@@ -1163,6 +1172,8 @@ integer :: fft_option_lob
   integer :: nproc_respfn        ! number of processors in my group of perturbations
   integer :: my_respfn_group     ! my group for calculating perturbations
   integer :: my_respfn_comm      ! my communicator of my_respfn_group
+  integer :: respfn_master_group ! groups for masters of respfn_groups
+  integer :: respfn_master_comm  ! communicator for masters of respfn_groups
   integer :: ngroup_respfn       ! number of groups for calculating perturbations
   integer :: spaceComm           ! communicator for calculating responsefunction
                                  ! default is MPI_COMM_WORLD but may be changed in 08seqpar/loper3.F90
@@ -1180,10 +1191,10 @@ integer :: fft_option_lob
   integer :: gmax
   ! describes the end-G for each processor
   integer, pointer :: gmpigroup(:)
-  ! one processor group for each k-point 
+  ! one processor group for each k-point
   integer, pointer :: gmpicomm(:)
   ! one communicator for each k-point (each group)
-  integer :: ggroup 
+  integer :: ggroup
   ! my group (each k-point is processed in one group)
   integer :: gindex
   ! my group index
@@ -1191,6 +1202,24 @@ integer :: fft_option_lob
   ! my group master (reserved for future use)
   integer :: gngroup
   ! number of processors in my group
+
+!This is for the bandFFT case
+   character :: mode_para
+   !If mode_para=='bandFFT', we are in bandFFT mode
+   integer :: commcart
+   !This is the communicator for the full cartesian array
+   integer :: comm_band, comm_fft
+   !The communicators over bands and fft respectively
+   integer :: me_cart
+   !This is the rank of the proc in the full cartesian array
+   integer :: dimcart
+   !This is the dimension of the cartesian array (2 for 2-dim)
+   integer :: nproc_band
+   !This is the number of procs on which we distribute bands
+   integer, pointer :: sizecart(:)
+   !The first dimension is the number of fft processors, the second the number of bands
+   integer, pointer :: coords(:)
+   !The coordinate of the proc in the cartesian array
 
 ! Adds for parareel
   integer :: parareel
@@ -1254,6 +1283,9 @@ integer :: fft_option_lob
 
   integer :: l_size_max
    ! Maximum value of angular momentum l_size=2*l_max-1
+
+  integer :: lcutd
+   !  1+max. index (l) of the moments used in the develop. of densities
 
   integer :: ngnt
    ! Number of non zero Gaunt coefficients
@@ -1452,16 +1484,11 @@ integer :: fft_option_lob
 
 !Real (double precision) scalars
 
-  real(dp) :: factder
-   ! Factor that is useful to numerically evaluate the
-   ! Derivative of a function on a (generalized) radial grid
-   !                  yp(i-1)=y(i)+(y(i)-y(i+1))*factder
-
   real(dp) :: lstep
    ! Exponential step of the mesh (BB parameter above)
    ! Defined only if mesh type is logarithmic
 
-  real(dp) :: rcut
+  real(dp) :: rmax
    ! Max. value of r = rad(mesh_size)
 
   real(dp) :: rstep
@@ -1513,6 +1540,11 @@ integer :: fft_option_lob
   integer :: basis_size
    ! Number of elements for the paw nl basis on the considered atom type
 
+!lda+u
+  integer :: ij_proj
+   ! Number of (i,j) elements for the orbitals on which U acts (PAW+U only)
+   ! on the considered atom type (ij_proj=1 (1 projector), 3 (2 projectors)...)
+
   integer :: ij_size
    ! Number of (i,j) elements for the symetric paw basis
    ! on the considered atom type (ij_size=basis_size*(basis_size+1)/2)
@@ -1531,6 +1563,12 @@ integer :: fft_option_lob
   integer :: lmnmix_sz
    ! lmnmix_sz=number of klmn=(lmn,lmn_prime) verifying l<=lmix and l_prime<=lmix
 
+  integer :: lpawu
+   ! lpawu gives l on which U is applied for a given type of atom.
+
+  integer :: nproju
+   ! nproju is the number of projectors for orbitals on which paw+u acts.
+
   integer :: mesh_size
    ! Dimension of radial mesh
 
@@ -1544,19 +1582,41 @@ integer :: fft_option_lob
    ! shape_type= 2 ; g(r)=exp[-(r/sigma)**lambda]
    ! shape_type= 3 ; gl(r)=Alpha(1,l)*jl(q(1,l)*r)+Alpha(2,l)*jl(q(2,l)*r) for each l
 
+!lda+u
+  integer :: usepawu
+   ! usepawu=0 ; do not use PAW+U formalism
+   ! usepawu=1 ; use PAW+U formalism (Full localized limit)
+   ! usepawu=2 ; use PAW+U formalism (Around Mean Field)
+
   integer :: usetcore
    ! Flag controling use of pseudized core density (0 if tncore=zero)
+
+  integer :: vlocopt
+   ! 0 if Vloc in atomic data is Vbare    (Blochl's formulation)
+   ! 1 if Vloc in atomic data is VH(tnzc) (Kresse's formulation)
 
 !Real (double precision) scalars
 
   real(dp) :: exccore
    ! Exchange-correlation energy for the core density
 
+ real(dp) :: jpaw
+   ! jpaw
+   ! Value of J parameter for paw+u for a given type.
+
+  real(dp) :: rpaw
+   ! Radius of PAW sphere
+
   real(dp) :: rshp
    ! Compensation charge radius (if r>rshp, g(r)=zero)
 
   real(dp) :: shape_sigma
    ! Sigma parameter in gaussian shapefunction (shape_type=2)
+
+  real(dp) :: upaw
+   ! upaw
+   ! Value of U parameter for paw+u for a given type.
+
 
 !Integer arrays
 
@@ -1565,9 +1625,19 @@ integer :: fft_option_lob
    ! Array giving klm, kln, abs(il-jl) and (il+jl) for each klmn=(ilmn,jlmn)
    ! Note: ilmn=(il,im,in) and ilmn<=jlmn
 
+  integer, pointer :: klmntomn(:,:)
+   ! klmntomn(4,lmn2_size)
+   ! Array giving im, jm ,in, and jn for each klmn=(ilmn,jlmn)
+   ! Note: ilmn=(il,im,in) and ilmn<=jlmn
+   ! NB: klmntomn is an application and not a bijection
+
   integer, pointer :: kmix(:)
    ! kmix(lmnmix_sz)
    ! Indirect array selecting the klmn=(lmn,lmn_prime) verifying l<=lmix and l_prime<=lmix
+
+  integer, pointer :: lnproju(:)
+   ! lnproju(nproju) gives ln (index for phi) for each projectors on which U acts (PAW+U only)
+   ! nproju is 1 or 2 and  is the number of projectors for correlated orbitals
 
 !Real (double precision) arrays
 
@@ -1602,6 +1672,10 @@ integer :: fft_option_lob
   real(dp), pointer :: phiphj(:,:)
    ! phiphj(mesh_size,ij_size)
    ! Useful product Phi(:,i)*Phi(:,j)
+
+  real(dp), pointer :: phiphjint(:)
+   ! phiphjint(ij_proj)
+   ! Integration of Phi(:,i)*Phi(:,j) for LDA+U occupation matrix
 
   real(dp), pointer :: qijl(:,:)
    ! qijl(l_size**2,lmn2_size)
@@ -1640,6 +1714,11 @@ integer :: fft_option_lob
   real(dp), pointer :: tphitphj(:,:)
    ! tphitphj(mesh_size,ij_size)
    ! Useful product tPhi(:,i)*tPhi(:,j)
+
+! lda+u
+  real(dp), pointer :: Vee(:,:,:,:)
+   ! Screened interaction matrix  Deduced from U and J parameters
+   ! computed on the basis of orbitals on which U acts.
 
  end type pawtab_type
 
@@ -1684,14 +1763,6 @@ integer :: fft_option_lob
    ! lmselect(ilm,ispden)=select the non-zero LM-moments of spherical densities n1 and tn1
 
 !Real (double precision) arrays
-
-  real(dp), pointer :: rho1(:,:,:)
-   ! rho1(mesh_size,lm_size,nspden)
-   ! Gives LM-moments of onsite charge density
-
-  real(dp), pointer :: trho1hat(:,:,:)
-   ! trho1(mesh_size,lm_size,nspden)
-   ! Gives LM-moments of onsite pseudo charge density +compensation density
 
   real(dp), pointer :: vxc1 (:,:,:)
    ! vxc1(mesh_size,angl_size,nspden)
@@ -1778,6 +1849,15 @@ integer :: fft_option_lob
   real(dp), pointer :: grhoij (:,:,:)
    ! grhoij(ngrhoij,lmn2_size,nspden)
    ! Symetrized gradients of Rho_ij wrt xred, strains, ...
+
+  real(dp), pointer :: noccmmp(:,:,:)
+   ! noccmmp(2*lpawu+1,2*lpawu+1,nspden)
+   ! gives occupation matrix for lda+u (computed in pawdenpot)
+
+  real(dp), pointer :: nocctot(:)
+   ! nocctot(nspden)
+   ! gives trace of occupation matrix for lda+u (computed in pawdenpot)
+   ! for each value of ispden (1 or 2)
 
   real(dp), pointer :: rhoij (:,:)
    ! rhoij(lmn2_size,nspden)
@@ -1882,7 +1962,7 @@ integer :: fft_option_lob
    ! shifted by 1 : for all local psps, mpsang=0; for largest s, mpsang=1,
    ! for largest p, mpsang=2; for largest d, mpsang=3; for largest f, mpsang=4
    ! This gives also the number of non-local "channels"
-  
+
   integer :: mpspso
    ! mpspso is set to 1 if none of the psps is used with a spin-orbit part (that
    !  is, if the user input variable so_typat (new name of pspso) is not equal
@@ -1939,6 +2019,12 @@ integer :: fft_option_lob
    ! governs the way the nonlocal operator is to be applied:
    !   1=using Ylm, 0=using Legendre polynomials
 
+! Logical scalars
+
+  logical :: vlspl_recipSpace
+   ! governs if vlspl is compute in reciprocal space or in real
+   ! space (when available).
+
 ! Integer arrays
 
   integer, pointer :: algalch(:)   ! algalch(ntypalch)
@@ -1947,7 +2033,7 @@ integer :: fft_option_lob
   integer, pointer :: indlmn(:,:,:)
    ! indlmn(6,lmnmax,ntypat)
    ! For each type of psp,
-   ! array giving l,m,n,ln,lm,spin for i=ln  (if useylm=0)
+   ! array giving l,m,n,lm,ln,spin for i=ln  (if useylm=0)
    !                                or i=lmn (if useylm=1)
 
   integer, pointer :: pspdat(:)
@@ -2008,6 +2094,12 @@ integer :: fft_option_lob
   real(dp), pointer :: vlspl(:,:,:)
    ! vlspl(mqgrid_vl,2,ntypat)
    ! Gives, on the radial grid, the local part of each type of psp.
+
+  real(dp), pointer :: dvlspl(:,:,:)
+   ! dvlspl(mqgrid_vl,2,ntypat)
+   ! Gives, on the radial grid, the first derivative of the local
+   ! part of each type of psp (computed when the flag 'vlspl_recipSpace'
+   ! is true).
 
   real(dp), pointer :: ncspl(:,:,:)
    ! ncspl(mqgrid_vl,2,ntypat*usepaw)
@@ -2355,6 +2447,27 @@ integer :: fft_option_lob
 
 !----------------------------------------------------------------------
 
+!!****t* defs_datatypes/vardims_type
+!! NAME
+!!  vardims_type
+!!
+!! FUNCTION
+!!  Stores dimensions of dataset variables.
+!!
+!! SOURCE
+
+ type vardims_type
+
+  integer :: mband,ntypat,natom,natsph,nkpt,nkptgw,nshiftk,nsppol,nberry,&
+&            nsym,npsp,nconeq,ntypalch,npspalch,nfft,nspden,wfs_dim1,wfs_dim2,&
+&            nfreqsus,npw_tiny,nqptdm,norb,ncenter
+
+ end type vardims_type
+
+!!***
+
+!----------------------------------------------------------------------
+
 !!****t* defs_datatypes/wffile_type
 !! NAME
 !! wffile_type
@@ -2412,12 +2525,11 @@ integer :: fft_option_lob
    ! nbOct_dp octet number of dp value
    ! nbOct_ch octet number of character value
    ! lght_recs length of record
-#if defined MPIO
-         integer(MPI_OFFSET_KIND)  :: offwff,off_recs
-        ! offwff  offset position of unformatted wavefunction disk file
-        ! off_recs  offset position of start record
-        !             (use in parallel)
-#endif
+
+  integer(abinit_offset)  :: offwff,off_recs
+   ! offwff  offset position of unformatted wavefunction disk file
+   ! off_recs  offset position of start record
+   !             (use in parallel)
 
  end type wffile_type
 

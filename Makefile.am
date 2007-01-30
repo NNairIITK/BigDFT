@@ -3,4 +3,6 @@ EXTRA_DIST = autogen.sh \
 
 SUBDIRS = src \
 	utils \
+	tests \
 	doc
+

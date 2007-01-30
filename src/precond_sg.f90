@@ -8,20 +8,19 @@
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         dimension hpsi(nvctr_c+7*nvctr_f,norbp),eval(norb)
 
-       call cpu_time(tr0) ; call system_clock(ncount1,ncount_rate,ncount_max)
+       call timing(iproc,'Precondition  ','ON')
 
       do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
        cprecr=-eval(iorb)
+!       write(*,*) 'cprecr',iorb,cprecr
         call precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
                    nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
                    ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi(1,iorb-iproc*norbp))
 
       enddo
 
-       call cpu_time(tr1) ;  call system_clock(ncount2,ncount_rate,ncount_max)
-       tel=dble(ncount2-ncount1)/dble(ncount_rate)
-       write(77,'(a40,i4,2(x,e10.3))') 'PRECONDITIONING TIME',iproc,tr1-tr0,tel
+       call timing(iproc,'Precondition  ','OF')
 
       return
       end
@@ -122,7 +121,7 @@
 !  D^{-1/2} times solution
         call  wscalv(nvctr_c,nvctr_f,scal,hpsi,hpsi(nvctr_c+1))
 
-        write(*,'(i4,(100(1x,e8.2)))') iorb,(residues(icong),icong=2,ncong)
+!        write(*,'(i4,(100(1x,e8.2)))') iorb,(residues(icong),icong=2,ncong)
 
 !! check final residue of original equation
 !        do i=0,3
@@ -216,12 +215,9 @@
         dimension psig_c(0:n1,0:n2,0:n3)
         dimension psig_fc(0:n1,0:n2,0:n3,3),psig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
 
-        psig_c = 0.d0
-        psig_fc = 0.d0
-        psig_f = 0.d0
-!        call zero((n1+1)*(n2+1)*(n3+1),psig_c)
-!        call zero(3*(n1+1)*(n2+1)*(n3+1),psig_fc)
-!        call zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),psig_f)
+        call razero((n1+1)*(n2+1)*(n3+1),psig_c)
+        call razero(3*(n1+1)*(n2+1)*(n3+1),psig_fc)
+        call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),psig_f)
 
 ! coarse part
 	do iseg=1,mseg_c

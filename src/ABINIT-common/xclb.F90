@@ -17,7 +17,7 @@
 !! spin up and spin down.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2000-2006 ABINIT group (MF)
+!! Copyright (C) 2000-2006 ABINIT group (MF,LG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -44,10 +44,13 @@
 !! CHILDREN
 !!
 !! SOURCE
-
 !!$#if defined HAVE_CONFIG_H
 !!$#include "config.h"
 !!$#endif
+
+#if defined HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 subroutine xclb(grho2_updn,npts,nspden,rho_updn,vxci)
 

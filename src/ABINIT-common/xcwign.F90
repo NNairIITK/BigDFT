@@ -45,6 +45,12 @@ subroutine xcwign(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 
  use defs_basis
 
+!This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
+#ifdef HAVE_FORTRAN_INTERFACES
+ use interfaces_01managempi
+#endif
+!End of the abilint section
+
  implicit none
 
 !Arguments ------------------------------------
@@ -53,7 +59,7 @@ subroutine xcwign(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 !arrays
  real(dp),intent(in) :: rhor(npt),rspts(npt)
  real(dp),intent(out) :: exc(npt),vxc(npt)
- real(dp),intent(out), optional :: dvxc(npt)
+ real(dp),intent(out),optional :: dvxc(npt)
 
 !Local variables-------------------------------
 !c1 and c2 are the Wigner parameters in hartree and bohr resp.

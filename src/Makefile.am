@@ -1,12 +1,30 @@
 ## Process this file with automake to produce Makefile.in
 
-if BUILD_LIBRARY
-sub_dirs_list = 
+if BUILD_LIB_XC
+sub_dirs_xc = ABINIT-common
 else
-sub_dirs_list = ABINIT-common PSolver
+sub_dirs_xc = 
+endif
+if BUILD_LIB_PSOLVER
+sub_dirs_ps = PSolver
+else
+sub_dirs_ps = 
+endif
+if BUILD_LIB_BIGDFT
+lib_bigdft = libbigdft.a
+mod_bigdft = libbigdft.@MODULE_EXT@
+else
+lib_bigdft =
+mod_bigdft =
+endif
+if BUILD_BINARIES
+binaries_sources = cluster test_forces
+else
+binaries_sources = 
 endif
 
-SUBDIRS = $(sub_dirs_list)
+
+SUBDIRS = $(sub_dirs_xc) $(sub_dirs_ps)
 
 EXTRA_DIST = \
 	daub_8.inc \
@@ -22,17 +40,12 @@ EXTRA_DIST = \
 	recs16.inc \
 	sym_16.inc
 
-AM_FCFLAGS = -I. @MPI_INCLUDE@
-
-if BUILD_LIBRARY
-binaries_sources = 
-else
-binaries_sources = cluster test_forces
-endif
+AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@
 
 bin_PROGRAMS = $(binaries_sources)
-lib_LIBRARIES = libbigdft.a
-module_DATA = libbigdft.@MODULE_EXT@
+
+lib_LIBRARIES = $(lib_bigdft)
+module_DATA = $(mod_bigdft)
 
 if USE_MPI
 mpi_source =
@@ -66,14 +79,14 @@ libbigdft_a_SOURCES = \
 cluster_SOURCES = BigDFT.f90
 cluster_LDFLAGS = $(LMPI)
 cluster_LDADD = libbigdft.a \
-	PSolver/libPoisson.a \
+	PSolver/libpoissonsolver.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
 test_forces_SOURCES = test_forces.f90
 test_forces_LDFLAGS = $(LMPI)
 test_forces_LDADD = libbigdft.a \
-	PSolver/libPoisson.a \
+	PSolver/libpoissonsolver.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
@@ -85,8 +98,8 @@ timing.o: $(mpi_include)
 
 mpif.h:
 	touch mpif.h
-	echo "real*8 :: MPI_double_precision" >> mpif.h
-	echo "real*8 :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h
+	echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h
+	echo "integer :: MPI_DOUBLE_PRECISION" >> mpif.h
 	echo "integer :: MPI_MIN, MPI_MAX" >> mpif.h
 
 test_forces.o: parameters.h \

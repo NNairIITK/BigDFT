@@ -11,7 +11,7 @@
 !! L. Hedin and B.I. Lundqvist, J. Phys. C. 4, 2064 (1971).
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2006 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2006 ABINIT group (DCA, XG, GMR, LG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -43,6 +43,12 @@ subroutine xchelu(exc,npt,order,rspts,vxc,dvxc)  ! dvxc is optional
 
  use defs_basis
 
+!This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
+#ifdef HAVE_FORTRAN_INTERFACES
+ use interfaces_01managempi
+#endif
+!End of the abilint section
+
  implicit none
 
 !Arguments ------------------------------------
@@ -51,7 +57,7 @@ subroutine xchelu(exc,npt,order,rspts,vxc,dvxc)  ! dvxc is optional
 !arrays
  real(dp),intent(in) :: rspts(npt)
  real(dp),intent(out) :: exc(npt),vxc(npt)
- real(dp),intent(out), optional :: dvxc(npt)
+ real(dp),intent(out),optional :: dvxc(npt)
 
 !Local variables-------------------------------
 !aa and cc are H-L fitting parameters A and C (C in hartree)

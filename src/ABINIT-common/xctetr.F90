@@ -70,6 +70,12 @@ subroutine xctetr(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 
  use defs_basis
 
+!This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
+#ifdef HAVE_FORTRAN_INTERFACES
+ use interfaces_01managempi
+#endif
+!End of the abilint section
+
  implicit none
 
 !Arguments ------------------------------------
@@ -78,7 +84,7 @@ subroutine xctetr(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 !arrays
  real(dp),intent(in) :: rhor(npt),rspts(npt)
  real(dp),intent(out) :: exc(npt),vxc(npt)
- real(dp),intent(out), optional :: d2vxc(npt),dvxc(npt)
+ real(dp),intent(out),optional :: d2vxc(npt),dvxc(npt)
 
 !Local variables-------------------------------
 !rsfac=(3/(4 Pi))^(1/3)

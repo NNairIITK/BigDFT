@@ -1,3 +1,4 @@
+
 !!****f* ABINIT/size_dvxc
 !! NAME
 !! size_dvxc
@@ -24,12 +25,14 @@
 !!
 !! OUTPUT
 !!  ndvxc size of the array dvxc(npts,ndvxc) for allocation
+!!  ngr2 size of the array grho2_updn(npts,ngr2) for allocation
+!!  nvxcdgr size of the array dvxcdgr(npts,nvxcdgr) for allocation
 !!
 !! PARENTS
 !!      pawxc,pawxcm,rhohxc_coll
 !!
 !! CHILDREN
-!!      
+!!
 !!
 !! SOURCE
 
@@ -37,21 +40,27 @@
 #include "config.h"
 #endif
 
-subroutine size_dvxc(ixc,ndvxc,nspden,nvxcdgr,order)
+subroutine size_dvxc(ixc,ndvxc,ngr2,nspden,nvxcdgr,order)
+
+ use defs_basis
 
  implicit none
 
 !Arguments----------------------
  integer, intent(in) :: ixc,nspden,order
- integer, intent(out) :: ndvxc,nvxcdgr
+ integer, intent(out) :: ndvxc,ngr2,nvxcdgr
 
 !Local variables----------------
+
+! *************************************************************************
+
  nvxcdgr=0
  ndvxc=0
+ ngr2=2*nspden-1
  if (order**2 <= 1) then
     ndvxc=0
     nvxcdgr=0
-    if (ixc>=11 .and. ixc<=15 .and. ixc/=13) nvxcdgr=3 
+    if (ixc>=11 .and. ixc<=15 .and. ixc/=13) nvxcdgr=3
     if (ixc==16) nvxcdgr=2
  else
     if (ixc==1 .or. ixc==21 .or. ixc==22 .or. (ixc>=7 .and. ixc<=10) .or. ixc==13) then
@@ -66,7 +75,7 @@ subroutine size_dvxc(ixc,ndvxc,nspden,nvxcdgr,order)
        ! Hedin-Lundqvist xc (no spin-pol)           !routine xchelu
        ! X-alpha (no spin-pol)           !routine xcxalp
        ndvxc=1
-      
+
     else if (ixc==12) then
        !routine xcpbe, with optpbe=-2 and different orders (order)
        ndvxc=8

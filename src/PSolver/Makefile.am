@@ -13,11 +13,11 @@ EXTRA_DIST = \
 	lazy_8.inc \
 	perfdata.inc
 
-noinst_LIBRARIES = libPoisson.a
+lib_LIBRARIES = libpoissonsolver.a
 
 SUBDIRS =
 
-AM_FCFLAGS = @MPI_INCLUDE@ -I. -I../ABINIT-common
+AM_FCFLAGS = @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@
 
 if USE_MPI
 mpi_include =
@@ -25,7 +25,7 @@ else
 mpi_include = mpif.h
 endif
 
-libPoisson_a_SOURCES = \
+libpoissonsolver_a_SOURCES = \
 	Build_Kernel.f90 \
 	fft3d.f90 \
 	PSolver_Kernel.f90 \
@@ -43,6 +43,6 @@ pconv.o: $(mpi_include)
 
 mpif.h:
 	touch mpif.h
-	echo "real*8 :: MPI_double_precision" >> mpif.h
-	echo "real*8 :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h
+	echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h
+	echo "integer :: MPI_DOUBLE_PRECISION,MPI_MAX,MPI_MIN" >> mpif.h
 

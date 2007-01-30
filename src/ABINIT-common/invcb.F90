@@ -28,6 +28,7 @@
 !!      leave_new,wrtout
 !!
 !! SOURCE
+
 #if defined HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -35,16 +36,22 @@
  subroutine invcb(rhoarr,rspts,npts)
 
  use defs_basis
- 
+
+!This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
+#ifdef HAVE_FORTRAN_INTERFACES
+ use interfaces_01managempi
+#endif
+!End of the abilint section
+
  implicit none
- 
+
 !Arguments ------------------------------------
 !scalars
  integer,intent(in) :: npts
 !arrays
  real(dp),intent(in) :: rhoarr(npts)
  real(dp),intent(out) :: rspts(npts)
- 
+
 !Local variables-------------------------------
 !scalars
  integer :: ii,ipts
@@ -53,7 +60,7 @@
  real(dp) :: del,prod,rho,rhom1,rhomtrd
  logical :: test
  character(len=500) :: message
- 
+
 ! *************************************************************************
 
 !Loop over points : here, brute force algorithm
@@ -89,7 +96,7 @@
     if(test) exit
    end do
    if( .not. test) then
-    write(message,'(a,a,a,a))' ) ch10,&
+    write(message,'(a,a,a,a)' ) ch10,&
 &    ' invcb : BUG -',ch10,&
 &    '  Fast computation of inverse cubic root failed. '
     call wrtout(6,message,'COLL')

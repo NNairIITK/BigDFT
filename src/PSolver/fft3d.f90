@@ -1,4 +1,4 @@
-!!****h* BigDFT/fourier_dim
+!!****f* BigDFT/fourier_dim
 !! NAME
 !!   fourier_dim
 !!

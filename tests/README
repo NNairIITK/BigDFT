@@ -1,0 +1,18 @@
+'make check' is the command to perform the series of tests (optimisation of geometry):
+- C    carbon atom 
+- H    hydrogen atom
+- NaCl
+- SiH4
+
+The input files are:
+- input.dat for the parameters of calculations
+- posinp    for the atomic position
+            The format is the number of atoms + atomic, bohr or angstroem for units
+            and per line coordinates and name of each atoms
+- psppar.<name of atom> for the pseudopotentiel (ex, 'psppar.H_lda)
+            In this version only GTH pseudopotentials are used (PRB 54, 1703 (1996))
+            HGH will be available shortly
+- inguess.dat for the initial guess of wavefunctions (sum of gaussian functions)
+
+The directory 'Refs' contains the reference ouput files.
+A diff is performed after each calculations to check the accuracy.

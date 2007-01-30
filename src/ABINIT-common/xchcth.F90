@@ -13,7 +13,7 @@
 !! to build the XC kernel.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2002-2006 ABINIT group (XG)
+!! Copyright (C) 2002-2006 ABINIT group (XG,LG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -62,6 +62,13 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,npts,nspden,&
 
  use defs_basis
 
+!This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
+#ifdef HAVE_FORTRAN_INTERFACES
+ use interfaces_01managempi
+ use interfaces_03xc, except_this_one => xchcth
+#endif
+!End of the abilint section
+
  implicit none
 
 !Arguments ------------------------------------
@@ -86,25 +93,22 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,npts,nspden,&
  real(dp),parameter :: rsfac=0.6203504908994000d0
  real(dp),save :: factf_zeta,factfp_zeta,sixpi2_1_3,sixpi2m1_3,sq_rsfac
  real(dp),save :: sq_rsfac_inv,threefourth_divpi,twom1_3
- real(dp) :: coeffss,d2ecrs0_drs2,d2ecrs1_drs2,d2ecrs_drdn2,d2ecrs_drdndrup
- real(dp) :: d2ecrs_drho2,d2ecrs_drs2,d2ecrs_drsdzeta,d2ecrs_drup2
- real(dp) :: d2ecrs_dzeta2,d2fxdg2,d2fxdn2,d2fxdndg,d2fxdss2,d2fzeta4_dzeta2
- real(dp) :: d2gcrs_drs2,d2macrs_drs2,d2ssdn2,d2ssdndg,decrs0_drs,decrs1_drho
- real(dp) :: decrs1_drs,decrs_drs,decrs_dzeta,delta,dfxdg,dfxdn,dfxdss
- real(dp) :: dfzeta4_dzeta,dgcabdss,dgcrs_drs,dgcsigdss,dgxsigdss,divcab
- real(dp) :: divcsig,divss,divx,dmacrs_drs,drhoecab_drhodn,drhoecab_drhoup
- real(dp) :: drhoecrs1_drhodn,drhoecrs1_drhoup,drsdrho,dssdg,dssdndg,dssdndrho
- real(dp) :: dssdrho,dssupdg,dssupdrho,ducabdss,ducsigdss,duxsigdss,dvcrs_drs
- real(dp) :: ec0_a1,ec0_aa,ec0_b1,ec0_b2,ec0_b3,ec0_b4,ec0_den,ec0_log,ec0_q0
- real(dp) :: ec0_q1,ec0_q1p,ec0_q1pp,ec1_a1,ec1_aa,ec1_b1,ec1_b2,ec1_b3,ec1_b4
- real(dp) :: ec1_den,ec1_log,ec1_q0,ec1_q1,ec1_q1p,ec1_q1pp,ecrs,ecrs0,ecrs1
- real(dp) :: ex_gga,ex_lsd,exc,exp_pbe,f_zeta,factfpp_zeta,factor,fp_zeta
- real(dp) :: fpp_zeta,fx,gcab,gcrs,gcsig,grr,grrho2,gxsig,mac_a1,mac_aa,mac_b1
- real(dp) :: mac_b2,mac_b3,mac_b4,mac_den,mac_log,mac_q0,mac_q1,mac_q1p
- real(dp) :: mac_q1pp,macrs,rho,rho_dn,rho_dnm,rho_dnp,rho_inv,rho_up,rho_upm
- real(dp) :: rho_upp,rhoecab,rhoecrs1_dn,rhoecrs1_up,rhomo6,rhomot,rhoo6
- real(dp) :: rhotmo6,rhotmot,rhoto6,rhotot,rhotot_inv,rr,rs,rsm1_2,sqr_rs
- real(dp) :: sqr_sqr_rs,ss,ss_dn,ss_up,ssavg,ucab,ucsig,uxsig,vxcadd,zeta,zeta4
+ real(dp) :: coeffss,d2ecrs0_drs2,d2ecrs1_drs2,d2ecrs_drs2,d2ecrs_drsdzeta
+ real(dp) :: d2ecrs_dzeta2,d2fzeta4_dzeta2,d2gcrs_drs2,d2macrs_drs2,decrs0_drs
+ real(dp) :: decrs1_drho,decrs1_drs,decrs_drs,decrs_dzeta,delta,dfzeta4_dzeta
+ real(dp) :: dgcabdss,dgcrs_drs,dgcsigdss,dgxsigdss,divcab,divcsig,divx
+ real(dp) :: dmacrs_drs,drhoecab_drhodn,drhoecab_drhoup,drhoecrs1_drhodn
+ real(dp) :: drhoecrs1_drhoup,drsdrho,dssdg,dssdndg,dssdndrho,dssdrho,dssupdg
+ real(dp) :: dssupdrho,ducabdss,ducsigdss,duxsigdss,ec0_a1,ec0_aa,ec0_b1,ec0_b2
+ real(dp) :: ec0_b3,ec0_b4,ec0_den,ec0_log,ec0_q0,ec0_q1,ec0_q1p,ec0_q1pp
+ real(dp) :: ec1_a1,ec1_aa,ec1_b1,ec1_b2,ec1_b3,ec1_b4,ec1_den,ec1_log,ec1_q0
+ real(dp) :: ec1_q1,ec1_q1p,ec1_q1pp,ecrs,ecrs0,ecrs1,ex_lsd,exc,f_zeta
+ real(dp) :: factfpp_zeta,factor,fp_zeta,fpp_zeta,gcab,gcrs,gcsig,grr,gxsig
+ real(dp) :: mac_a1,mac_aa,mac_b1,mac_b2,mac_b3,mac_b4,mac_den,mac_log,mac_q0
+ real(dp) :: mac_q1,mac_q1p,mac_q1pp,macrs,rho,rho_dn,rho_dnm,rho_dnp,rho_inv
+ real(dp) :: rho_up,rho_upm,rho_upp,rhoecab,rhoecrs1_dn,rhoecrs1_up,rhomo6
+ real(dp) :: rhomot,rhoo6,rhotmo6,rhotmot,rhoto6,rhotot,rhotot_inv,rs,rsm1_2
+ real(dp) :: sqr_rs,ss,ss_dn,ss_up,ssavg,ucab,ucsig,uxsig,vxcadd,zeta,zeta4
  real(dp) :: zeta_mean,zetm_1_3,zetp_1_3
  character(len=500) :: message
 !arrays

@@ -36,6 +36,8 @@ dnl is set.
 AC_PROG_FC()
 ABI_PROG_FC()
 
+ABI_PROG_FC()
+
 dnl Set the FCFLAGS and FFLAGS variable
 if test -z "$FFLAGS" ; then
   AC_SUBST(FFLAGS, "-O2")
@@ -63,7 +65,7 @@ AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enable by def
 if test "$ac_use_mpi" = "yes"; then
   AC_DEFINE(USE_MPI)
   case "$FC" in
-    mpi*)
+    *mpi*)
       dnl The compiler will pass everything needed
       MPI_LIBS=
       MPI_INCLUDE=
@@ -102,16 +104,57 @@ AM_CONDITIONAL(USE_OPTI_CONVOLUT, test "$ac_use_opti_convolut" = "yes")
 AC_MSG_RESULT([$ac_use_opti_convolut])
 
 
+dnl AM_CONDITIONAL for the different libraries, set default values.
+dnl the common library for XC computation.
+ac_build_lib_ABINIT_common="yes"
+dnl the pure PSolver library.
+ac_build_lib_PSolver="yes"
+dnl the BigDFT library (without PSolver)
+ac_build_lib_BigDFT="yes"
+dnl the standalone executable (required linking tests)
+ac_build_bin_cluster="yes"
 
-dnl If the library is built, we doesn't need to check for
-dnl libraries to link to (Lapack and Blas).
-AC_ARG_ENABLE(library-only, AS_HELP_STRING([--enable-library-only], [build the BigDFT library instead of the excecutable program (default = no).]), library=yes, library=no)
-AM_CONDITIONAL(BUILD_LIBRARY, test "$library" = "yes")
-AC_MSG_CHECKING([for library compilation only])
-if test "$library" = "yes" ; then
-  AC_MSG_RESULT([$library])
-else
-  AC_MSG_RESULT([$library])
+
+dnl disable different build
+dnl The ABINIT common XC library
+AC_ARG_ENABLE(libxc, AS_HELP_STRING([--enable-libxc], [build the XC library from ABINIT code (default = yes).]), ac_build_lib_ABINIT_common=$enableval, ac_build_lib_ABINIT_common="yes")
+AM_CONDITIONAL(BUILD_LIB_XC, test "$ac_build_lib_ABINIT_common" = "yes")
+AC_MSG_CHECKING([for XC library internal build])
+AC_MSG_RESULT([$ac_build_lib_ABINIT_common])
+dnl The PSolver library
+AC_ARG_ENABLE(libpoissonsolver, AS_HELP_STRING([--enable-libpoissonsolver], [build the Poisson's solver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
+AM_CONDITIONAL(BUILD_LIB_PSOLVER, test "$ac_build_lib_PSolver" = "yes")
+AC_MSG_CHECKING([for Poisson's solver internal build])
+AC_MSG_RESULT([$ac_build_lib_PSolver])
+dnl The BigDFT library
+AC_ARG_ENABLE(libbigdft, AS_HELP_STRING([--enable-libbigdft], [build the BigDFT library (default = yes).]), ac_build_lib_BigDFT=$enableval, ac_build_lib_BigDFT="yes")
+AM_CONDITIONAL(BUILD_LIB_BIGDFT, test "$ac_build_lib_BigDFT" = "yes")
+AC_MSG_CHECKING([for BigDFT library build])
+AC_MSG_RESULT([$ac_build_lib_BigDFT])
+dnl The cluster executable
+AC_ARG_ENABLE(binaries, AS_HELP_STRING([--enable-binaries], [build the binaries (default = yes).]), ac_build_bin_cluster=$enableval, ac_build_bin_cluster="yes")
+AM_CONDITIONAL(BUILD_BINARIES, test "$ac_build_bin_cluster" = "yes")
+AC_MSG_CHECKING([for BigDFT binaries build])
+AC_MSG_RESULT([$ac_build_bin_cluster])
+
+dnl Required path for ABINIT module inclusion
+xc_path="../ABINIT-commmon"
+AC_ARG_WITH(xc-module-path, AS_HELP_STRING([--with-xc-module-path], [give the path to the module file defining fortran type for XC (see ABINIT) (default = ../ABINIT-common).]), xc_path=$withval, xc_path="../ABINIT-common")
+if test "$ac_build_lib_ABINIT_common" = "yes" ; then
+  xc_path="../ABINIT-common"
+fi
+AC_SUBST(XC_INCLUDE, "-I"$xc_path)
+
+dnl Required path for PSolver module inclusion
+dnl xc_path="../PSolver"
+dnl AC_ARG_WITH(xc-module-path, AS_HELP_STRING([--with-xc-module-path], [give the path to the module file defining fortran type for XC (see ABINIT) (default = ../ABINIT-common).]), xc_path=$withval, xc_path="../ABINIT-commmon")
+dnl AC_SUBST(XC_INCLUDE, $xc_path)
+
+
+
+dnl ---------------------------------------
+dnl Test the linking part only if required.
+if test "$ac_build_bin_cluster" = "yes" ; then
 
 dnl Get the lapack library
 lapack=yes
@@ -188,6 +231,11 @@ src/parameters.h
 utils/Makefile
 utils/PSPfiles/Makefile
 doc/Makefile
+tests/Makefile
+tests/C/Makefile
+tests/H/Makefile
+tests/NaCl/Makefile
+tests/SiH4/Makefile
 ])
 AC_OUTPUT
 
@@ -198,6 +246,12 @@ Basics:
   Fortran90 flags:         $FCFLAGS
   Linker flags:            $LDFLAGS
   Linked libraries:        $LIBS
+
+Build:
+  Library XC (from ABINIT) $ac_build_lib_ABINIT_common
+  Library PSolver          $ac_build_lib_PSolver
+  Library BigDFT           $ac_build_lib_BigDFT
+  Binaries (cluster...)    $ac_build_bin_cluster
 
 Options:
   Library making only:     $library

@@ -4,5 +4,4 @@ EXTRA_DIST = \
 	halFFT.tex \
 	cluster.tex \
 	compress.ps \
-	figrid.ps \
-	examples
+	figrid.ps

@@ -259,7 +259,7 @@
 
         allocate(hpsip(0:nd1,0:nd2,0:nd3))
 ! find leading dimensions that allow for a wavelet analysis
-        call zero((nd1+1)*(nd2+1)*(nd3+1),hpsip)
+        call dzero((nd1+1)*(nd2+1)*(nd3+1),hpsip)
 
 ! coarse part
 	do iseg=1,nseg_c
@@ -744,45 +744,45 @@ end
 
         !allocate(psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2),ww((2*(nu1-nl1)+16)*(2*(nu2-nl2)+16)*(2*(nu3-nl3)+16)))
 
-        call zero(8*(nu1-nl1+1)*(nu2-nl2+1)*(nu3-nl3+1),psig)
+        call dzero(8*(nu1-nl1+1)*(nu2-nl2+1)*(nu3-nl3+1),psig)
 
 ! coarse part
-	do iseg=1,mseg_c
-          jj=keyv_c(iseg)
-          j0=keyg_c(1,iseg)
-          j1=keyg_c(2,iseg)
-             ii=j0-1
-             i3=ii/((n1+1)*(n2+1))
-             ii=ii-i3*(n1+1)*(n2+1)
-             i2=ii/(n1+1)
-             i0=ii-i2*(n1+1)
-             i1=i0+j1-j0
-	  do i=i0,i1
-            psig(i,1,i2,1,i3,1)=psi_c(i-i0+jj)
-          enddo
-         enddo
+        do iseg=1,mseg_c
+           jj=keyv_c(iseg)
+           j0=keyg_c(1,iseg)
+           j1=keyg_c(2,iseg)
+           ii=j0-1
+           i3=ii/((n1+1)*(n2+1))
+           ii=ii-i3*(n1+1)*(n2+1)
+           i2=ii/(n1+1)
+           i0=ii-i2*(n1+1)
+           i1=i0+j1-j0
+           do i=i0,i1
+              psig(i,1,i2,1,i3,1)=psi_c(i-i0+jj)
+           enddo
+        enddo
 
 ! fine part
-	do iseg=1,mseg_f
-          jj=keyv_f(iseg)
-          j0=keyg_f(1,iseg)
-          j1=keyg_f(2,iseg)
-             ii=j0-1
-             i3=ii/((n1+1)*(n2+1))
-             ii=ii-i3*(n1+1)*(n2+1)
-             i2=ii/(n1+1)
-             i0=ii-i2*(n1+1)
-             i1=i0+j1-j0
-	  do i=i0,i1
-            psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)
-            psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)
-            psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)
-            psig(i,1,i2,1,i3,2)=psi_f(4,i-i0+jj)
-            psig(i,2,i2,1,i3,2)=psi_f(5,i-i0+jj)
-            psig(i,1,i2,2,i3,2)=psi_f(6,i-i0+jj)
-            psig(i,2,i2,2,i3,2)=psi_f(7,i-i0+jj)
-          enddo
-         enddo
+        do iseg=1,mseg_f
+           jj=keyv_f(iseg)
+           j0=keyg_f(1,iseg)
+           j1=keyg_f(2,iseg)
+           ii=j0-1
+           i3=ii/((n1+1)*(n2+1))
+           ii=ii-i3*(n1+1)*(n2+1)
+           i2=ii/(n1+1)
+           i0=ii-i2*(n1+1)
+           i1=i0+j1-j0
+           do i=i0,i1
+              psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)
+              psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)
+              psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)
+              psig(i,1,i2,1,i3,2)=psi_f(4,i-i0+jj)
+              psig(i,2,i2,1,i3,2)=psi_f(5,i-i0+jj)
+              psig(i,1,i2,2,i3,2)=psi_f(6,i-i0+jj)
+              psig(i,2,i2,2,i3,2)=psi_f(7,i-i0+jj)
+           enddo
+        enddo
 
         ! calculate fine scaling functions.  It is not needed for standard model.
         !call synthese_grow(nu1-nl1,nu2-nl2,nu3-nl3,ww,psig,psifscf)

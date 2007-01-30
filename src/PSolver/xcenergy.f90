@@ -1,6 +1,6 @@
 !!****f* BigDFT/Parxc_energy
 !! NAME
-!! xc_energy
+!! Parxc_energy
 !!
 !! FUNCTION
 !! Calculates the exchange-correlation energies, parallel case
@@ -53,7 +53,7 @@ subroutine Parxc_energy(m1,m2,m3,md1,md2,md3,xcdim,wbdim,mx2,deltaleft,deltarigh
   real(kind=8) :: elocal,vlocal,rho,pot,potion
   integer :: npts,i_all,nspden,order,offset
   integer :: i1,i2,i3,j1,j2,j3,jp2,jpp2,jppp2
-  integer :: ndvxc,nvxcdgr
+  integer :: ndvxc,nvxcdgr,ngr2
   
   !Body
 
@@ -70,7 +70,7 @@ subroutine Parxc_energy(m1,m2,m3,md1,md2,md3,xcdim,wbdim,mx2,deltaleft,deltarigh
   if (ixc >= 11 .and. ixc <= 16) allocate(gradient(m1,m3,wbdim,2*nspden-1,0:3),stat=i_all)   
   if (i_all /=0) stop 'allocation error, (gradient)'
 
-  call size_dvxc(ixc,ndvxc,nspden,nvxcdgr,order)
+  call size_dvxc(ixc,ndvxc,ngr2,nspden,nvxcdgr,order)
 
   if (ndvxc/=0) allocate(dvxci(m1,m3,wbdim,ndvxc),stat=i_all)
   if (i_all /=0) stop 'allocation error (dvxci)'
@@ -112,26 +112,26 @@ subroutine Parxc_energy(m1,m2,m3,md1,md2,md3,xcdim,wbdim,mx2,deltaleft,deltarigh
   if (ixc >= 11 .and. ixc <= 16) then
      if (order**2 <= 1 .or. ixc == 16) then
         if (ixc /= 13) then             
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,nvxcdgr,     & 
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,  &
                 &grho2_updn=gradient,vxcgr=dvxcdgr) 
         else
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,nvxcdgr,     & 
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,  &
                 &grho2_updn=gradient) 
         end if
      else if (order /= 3) then
         if (ixc /= 13) then             
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,nvxcdgr,     & 
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,  &
                 &dvxc=dvxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
         else
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,nvxcdgr,     & 
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,  &
                 &dvxc=dvxci,grho2_updn=gradient) 
         end if
      else if (order == 3) then
         if (ixc /= 13) then             
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,nvxcdgr,     & 
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,  &
                 &dvxci,d2vxci,gradient,dvxcdgr) 
         else
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,nvxcdgr,     & 
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,  &
                 &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient) 
         end if
      end if
@@ -143,12 +143,12 @@ subroutine Parxc_energy(m1,m2,m3,md1,md2,md3,xcdim,wbdim,mx2,deltaleft,deltarigh
      !cases without gradient
   else
      if (order**2 <=1 .or. ixc >= 31 .and. ixc<=34) then
-        call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,nvxcdgr)
+        call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr)
      else if (order==3 .and. (ixc==3 .or. ixc>=7 .and. ixc<=10)) then
-        call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,nvxcdgr,      &
+        call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,   &
              &dvxc=dvxci,d2vxc=d2vxci)
      else
-        call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,nvxcdgr,      &
+        call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,   &
              &dvxc=dvxci)
      end if
   end if
@@ -270,7 +270,7 @@ subroutine xc_energy(n01,n02,n03,nd1,nd2,nd3,ixc,factor,hgrid,rhopot,pot_ion,zar
   real(kind=8) :: elocal,vlocal,rho,pot,potion
   integer :: npts,i_all,nspden,order
   integer :: i1,i2,i3
-  integer :: ndvxc,nvxcdgr,order_grad
+  integer :: ndvxc,nvxcdgr,order_grad,ngr2
   
   !Body
 
@@ -291,7 +291,7 @@ subroutine xc_energy(n01,n02,n03,nd1,nd2,nd3,ixc,factor,hgrid,rhopot,pot_ion,zar
      allocate(gradient(n01,n02,n03,2*nspden-1,0:3),stat=i_all)  
   end if
   if (i_all /=0) stop 'allocation error, (gradient)'
-  call size_dvxc(ixc,ndvxc,nspden,nvxcdgr,order)
+  call size_dvxc(ixc,ndvxc,ngr2,nspden,nvxcdgr,order)
   if (ndvxc/=0) allocate(dvxci(n01,n02,n03,ndvxc),stat=i_all)
   if (i_all /=0) stop 'allocation error (dvxci)'
   if (nvxcdgr/=0) allocate(dvxcdgr(n01,n02,n03,nvxcdgr),stat=i_all)
@@ -326,26 +326,26 @@ subroutine xc_energy(n01,n02,n03,nd1,nd2,nd3,ixc,factor,hgrid,rhopot,pot_ion,zar
   if (ixc >= 11 .and. ixc <= 16) then
      if (order**2 <= 1 .or. ixc == 16) then
         if (ixc /= 13) then             
-           call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,nvxcdgr,     & 
+           call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,ngr2,nvxcdgr,     & 
                 &grho2_updn=gradient,vxcgr=dvxcdgr) 
         else
-           call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,nvxcdgr,     & 
+           call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,ngr2,nvxcdgr,     & 
                 &grho2_updn=gradient) 
         end if
      else if (order /= 3) then
         if (ixc /= 13) then             
-           call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,nvxcdgr,     & 
+           call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,ngr2,nvxcdgr,     & 
                 &dvxc=dvxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
         else
-           call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,nvxcdgr,     & 
+           call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,ngr2,nvxcdgr,     & 
                 &dvxc=dvxci,grho2_updn=gradient) 
         end if
      else if (order == 3) then
         if (ixc /= 13) then             
-           call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,nvxcdgr,     & 
+           call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,ngr2,nvxcdgr,     & 
                 &dvxci,d2vxci,gradient,dvxcdgr) 
         else
-           call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,nvxcdgr,     & 
+           call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,ngr2,nvxcdgr,     & 
                 &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient) 
         end if
      end if
@@ -357,12 +357,12 @@ subroutine xc_energy(n01,n02,n03,nd1,nd2,nd3,ixc,factor,hgrid,rhopot,pot_ion,zar
   !cases without gradient
   else
      if (order**2 <=1 .or. ixc >= 31 .and. ixc<=34) then
-        call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,nvxcdgr)
+        call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,ngr2,nvxcdgr)
      else if (order==3 .and. (ixc==3 .or. ixc>=7 .and. ixc<=10)) then
-        call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,nvxcdgr,      &
+        call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,ngr2,nvxcdgr,      &
              &dvxc=dvxci,d2vxc=d2vxci)
      else
-        call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,nvxcdgr,      &
+        call drivexc(exci,ixc,npts,nspden,order,rhopot,vxci,ndvxc,ngr2,nvxcdgr,      &
              &dvxc=dvxci)
      end if
   end if
@@ -599,7 +599,7 @@ subroutine compare(npts,vect1,vect2,sum)
 
 end subroutine compare
 
-!fake subroutines
+!fake ABINIT subroutines
 subroutine wrtout(unit,message,mode_paral)
   implicit none
 

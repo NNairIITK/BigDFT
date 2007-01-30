@@ -1,4 +1,4 @@
-!!****h* BigDFT/test_forces
+!!****f* BigDFT/test_forces
 !! NAME
 !!   test_forces
 !!
@@ -26,7 +26,6 @@ program test_forces
   
   implicit none
   include 'mpif.h'
-  include 'parameters.h'
   integer, parameter :: n=31
   real(kind=8), dimension(:,:), allocatable :: rxyz,fxyz,drxyz,rxyz_old
   real(kind=8), dimension(:), allocatable :: weight
@@ -35,7 +34,7 @@ program test_forces
   character*20 :: atomnames(100)
   integer :: nat,nproc,iproc,ntypes,ityp,iat,i,ierr
   real(kind=8) :: energy,energy0,FxdRx,FydRy,FzdRz,path,sumx,sumy,sumz,dx
-  logical :: stopnow
+  logical :: parallel=.true.
   real(kind=8), pointer :: psi(:,:), eval(:)
   integer, pointer :: keyg(:,:), keyv(:)
   integer :: nseg_c, nseg_f, nvctr_c, nvctr_f

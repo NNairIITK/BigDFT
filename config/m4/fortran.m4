@@ -227,37 +227,7 @@ AC_DEFUN([_ABI_CHECK_FC_IBM],
  AC_MSG_RESULT(${abi_result})
 ]) # _ABI_CHECK_FC_IBM
 
-# _ABI_CHECK_FC_SUN(COMPILER)
-# ---------------------------
-#
-# Checks whether the specified Fortran compiler is the Sun WorkShop Fortran compiler.
-# If yes, tries to determine its version number and sets the fc_type
-# and fc_version variables accordingly.
-#
-AC_DEFUN([_ABI_CHECK_FC_SUN],
-[dnl Do some sanity checking of the arguments
- m4_if([$1], , [AC_FATAL([$0: missing argument 1])])dnl
 
- AC_MSG_CHECKING([if we are using the Sun WorkShop Fortran compiler])
-
- fc_info_string=`$1 -V 2>&1`
- abi_result=`echo "${fc_info_string}" | grep 'Sun Fortran 95'`
- if test "${abi_result}" = ""; then
-  abi_result="no"
-  fc_info_string=""
-  fc_type="UNKNOWN"
-  fc_version="UNKNOWN"
- else
-  AC_DEFINE([SUN_FC],1,[Define to 1 if you are using the Sun WorkShop])
-  fc_type="sun"
-  fc_version="x"
-  if test "${fc_version}" = ""; then
-   fc_version="UNKNOWN"
-  fi
-  abi_result="yes"
- fi
- AC_MSG_RESULT(${abi_result})
-]) # _ABI_CHECK_FC_SUN
 
 # _ABI_CHECK_FC_INTEL(COMPILER)
 # -----------------------------
@@ -398,6 +368,40 @@ AC_DEFUN([_ABI_CHECK_FC_PGI],
 
 
 
+# _ABI_CHECK_FC_SUN(COMPILER)
+# ---------------------------
+#
+# Checks whether the specified Fortran compiler is the Sun WorkShop Fortran compiler.
+# If yes, tries to determine its version number and sets the fc_type
+# and fc_version variables accordingly.
+#
+AC_DEFUN([_ABI_CHECK_FC_SUN],
+[dnl Do some sanity checking of the arguments
+ m4_if([$1], , [AC_FATAL([$0: missing argument 1])])dnl
+
+ AC_MSG_CHECKING([if we are using the Sun WorkShop Fortran compiler])
+
+ fc_info_string=`$1 -V 2>&1`
+ abi_result=`echo "${fc_info_string}" | grep 'Sun Fortran 95'`
+ if test "${abi_result}" = ""; then
+  abi_result="no"
+  fc_info_string=""
+  fc_type="UNKNOWN"
+  fc_version="UNKNOWN"
+ else
+  AC_DEFINE([SUN_FC],1,[Define to 1 if you are using the Sun WorkShop])
+  fc_type="sun"
+  fc_version="x"
+  if test "${fc_version}" = ""; then
+   fc_version="UNKNOWN"
+  fi
+  abi_result="yes"
+ fi
+ AC_MSG_RESULT(${abi_result})
+]) # _ABI_CHECK_FC_SUN
+
+
+
  ##############################################################################
 
 
@@ -487,18 +491,3 @@ AC_DEFUN([ABI_PROG_FC],
  AC_SUBST(fc_version)
  AC_SUBST(fc_wrap)
 ]) # ABI_PROG_FC
-
-
-
- ##############################################################################
-
-
-
-# _ABI_TRICKS_LINALG()
-# --------------------
-#
-# Checks whether the Fortran compiler supports the exit() subroutine.
-#
-AC_DEFUN([_ABI_TRICKS_LINALG],
-[
-])

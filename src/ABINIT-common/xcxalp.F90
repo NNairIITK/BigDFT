@@ -43,6 +43,12 @@ subroutine xcxalp(exc,npt,order,rspts,vxc, dvxc)  ! dvxc is optional
 
  use defs_basis
 
+!This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
+#ifdef HAVE_FORTRAN_INTERFACES
+ use interfaces_01managempi
+#endif
+!End of the abilint section
+
  implicit none
 
 !Arguments ------------------------------------

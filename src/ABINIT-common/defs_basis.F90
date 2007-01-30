@@ -75,6 +75,7 @@ module defs_basis
  integer, parameter :: std_in=5,ab_in=5  ! generally, the number 5 is directly used
  integer, parameter :: std_out=6         ! generally, the number 6 is directly used
  integer, parameter :: ab_out=7
+ integer, parameter :: ab_xml_out = 50  ! this unit is used to print output into an XML file
  integer, parameter :: tmp_unit=9,tmp_unit2=10
 
 !The 3x3 identity matrix
@@ -106,7 +107,13 @@ module defs_basis
  real(dp), parameter :: ninth=one/nine
  real(dp), parameter :: two_thirds=two*third
  real(dp), parameter :: four_thirds=four*third
+ real(dp), parameter :: five_thirds=five*third
  real(dp), parameter :: three_quarters=0.75_dp
+ real(dp), parameter :: three_fifth=three/five
+
+!Real constants related to the golden number
+ real(dp), parameter :: gold=1.618033988749894848204586834365638117720309179_dp
+ real(dp), parameter :: goldenratio=two-gold
 
 !Real constants derived from pi
  real(dp), parameter :: pi=3.141592653589793238462643383279502884197_dp
@@ -158,6 +165,6 @@ module defs_basis
 
 !Define fake communicator for sequential abinit
  integer, parameter :: abinit_comm_serial = -12345
-
+ integer, parameter :: abinit_offset = 8
 end module defs_basis
 !!***

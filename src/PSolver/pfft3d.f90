@@ -2,7 +2,7 @@
 
 !!!HERE POT MUST BE THE KERNEL (BEWARE THE HALF DIMENSION)
 
-!!****h* BigDFT/convolxc_on
+!!****f* BigDFT/convolxc_on
 !! NAME
 !!   convolxc_on
 !!
@@ -62,7 +62,7 @@ subroutine convolxc_on(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   real(kind=8), dimension(md1,md3,md2/nproc), intent(in) :: zfpot_ion
   !Local variables
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
-  integer :: j1,j2,j3,i1,i2,i3,i,j,inzee,ierr
+  integer :: j2,j3,i1,i3,i,j,inzee,ierr
   real(kind=8) :: ehartreetmp,eexcutmp,vexcutmp,twopion
   !work arrays for transpositions
   real(kind=8), dimension(:,:,:), allocatable :: zt
@@ -377,7 +377,7 @@ subroutine convolxc_on(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
 end subroutine convolxc_on
 
 
-!!****h* BigDFT/convolxc_off
+!!****f* BigDFT/convolxc_off
 !! NAME
 !!   convolxc_off
 !!
@@ -747,7 +747,7 @@ subroutine convolxc_off(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
 end subroutine convolxc_off
 
 
-!!****h* BigDFT/multkernel
+!!****f* BigDFT/multkernel
 !! NAME
 !!   multkernel
 !!
@@ -897,7 +897,7 @@ end subroutine multkernel
 	end
 
 
-!!****h* BigDFT/scramble_unpack
+!!****f* BigDFT/scramble_unpack
 !! NAME
 !!   scramble_unpack
 !!
@@ -978,7 +978,7 @@ subroutine scramble_unpack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2,cosinarr)
 end subroutine scramble_unpack
 
  
-!!****h* BigDFT/unscramble_pack
+!!****f* BigDFT/unscramble_pack
 !! NAME
 !!   unscramble_pack
 !!
@@ -1092,7 +1092,7 @@ end subroutine unscramble_pack
 	end
 
 
-!!****h* BigDFT/unfill_downcorn
+!!****f* BigDFT/unfill_downcorn
 !! NAME
 !!   unfill_downcorn
 !!
@@ -1158,7 +1158,7 @@ subroutine unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
   
 end subroutine unfill_downcorn
 
-!!****h* BigDFT/unfill_downcornxc_on
+!!****f* BigDFT/unfill_downcornxc_on
 !! NAME
 !!   unfill_downcornxc_on
 !!
@@ -1237,7 +1237,7 @@ end subroutine unfill_downcornxc_on
 !!***
 
 
-!!$!!****h* BigDFT/unfill_downcornxc_on
+!!$!!****f* BigDFT/unfill_downcornxc_on
 !!$!! NAME
 !!$!!   unfill_downcornxc_on
 !!$!!
@@ -1397,7 +1397,7 @@ end subroutine unfill_downcornxc_on
 
 
 ! FFT PART RELATED TO THE KERNEL -----------------------------------------------------------------
-!!****h* BigDFT/kernelfft
+!!****f* BigDFT/kernelfft
 !! NAME
 !!   kernelfft
 !!
