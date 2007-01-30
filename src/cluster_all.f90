@@ -969,7 +969,7 @@ subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
 
    deallocate(psiw)
 
-end subroutine transallwaves
+END SUBROUTINE transallwaves
 
 
 subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,psi)
@@ -1006,7 +1006,7 @@ subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,ps
    deallocate(psiw)
    call timing(iproc,'Un-Transall   ','OF')
  
-end subroutine untransallwaves
+END SUBROUTINE untransallwaves
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
         
@@ -1386,7 +1386,7 @@ END SUBROUTINE
         call convrot_grow(n3,ndat,x,y)
 
 
-        end subroutine convolut_magic_n
+        END SUBROUTINE convolut_magic_n
 
 
         subroutine convolut_magic_t(n1,n2,n3,x,y)
@@ -1406,7 +1406,7 @@ END SUBROUTINE
         ndat=(n1+1)*(n2+1)
         call convrot_shrink(n3,ndat,x,y)
 
-        end subroutine convolut_magic_t
+        END SUBROUTINE convolut_magic_t
 
 
         subroutine synthese_grow(n1,n2,n3,ww,x,y)
@@ -2714,7 +2714,7 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
 
   call timing(iproc,'CrtDescriptors','OF')
 
-end subroutine createWavefunctionsDescriptors
+END SUBROUTINE createWavefunctionsDescriptors
 
 subroutine createKernel(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
      & ndegree_ip, iproc, nproc, pkernel)
@@ -3481,7 +3481,7 @@ subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
      stop 'PSP format error'
   endif
   
-end subroutine calc_coeff_proj
+END SUBROUTINE calc_coeff_proj
 
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
