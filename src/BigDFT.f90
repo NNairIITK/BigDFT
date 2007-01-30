@@ -79,26 +79,35 @@ program BigDFT
         if (iproc.eq.0) write(*,*) 'atoms of type ',ityp,' are ',atomnames(ityp)
         enddo
 
-        ampl=0.d0!2.d-2  ! amplitude for random displacement away from input file geometry (usually equilibrium geom.)
-        if (iproc.eq.0) write(*,*) 'random displacemnt amplitude',ampl
-        do iat=1,nat
-           call random_number(tt)
-           rxyz(1,iat)=rxyz(1,iat)+ampl*tt
-           call random_number(tt)
-           rxyz(2,iat)=rxyz(2,iat)+ampl*tt
-           call random_number(tt)
-           rxyz(3,iat)=rxyz(3,iat)+ampl*tt
-        enddo
-! geometry optimization
-!    betax=2.d0   ! Cincodinine
-!    betax=4.d0  ! Si H_4
-   betax=7.5d0  ! silicon systems
-!    betax=10.d0  !  Na_Cl clusters
+!  Read the first line of "input.dat"
+   open(unit=1,file='input.dat',status='old')
+   !Only the first line for the main routine (the program)
+   ! ngeostep Number of steps of geometry optimisation (default 500)
+   ! ampl     Amplitude for random displacement away from input file geometry (usually equilibrium geom.)
+   ! betax    Geometry optimisation
+   read(1,*) ngeostep, ampl, betax
+   close(unit=1)
+
+   !ampl=0.d0!2.d-2  
+   if (iproc.eq.0) write(*,*) 'random displacemnt amplitude',ampl
+   do iat=1,nat
+     call random_number(tt)
+     rxyz(1,iat)=rxyz(1,iat)+ampl*tt
+     call random_number(tt)
+     rxyz(2,iat)=rxyz(2,iat)+ampl*tt
+     call random_number(tt)
+     rxyz(3,iat)=rxyz(3,iat)+ampl*tt
+   enddo
+   ! geometry optimization
+   !    betax=2.d0   ! Cincodinine
+   !    betax=4.d0  ! Si H_4
+   !   betax=7.5d0  ! silicon systems
+   !    betax=10.d0  !  Na_Cl clusters
    beta=.75d0*betax
    energyold=1.d100
    fluct=0.d0
    flucto=0.d0
-   ngeostep=1!500
+   !ngeostep=500
    do 500 igeostep=1,ngeostep
 
       output_grid=.false. 

@@ -191,6 +191,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
   ! Read the input variables.
   open(unit=1,file='input.dat',status='old')
+  !First line for the main routine (the program)
+  read(1,*)
+  !Parameters 
   read(1,*) hgrid
   read(1,*) crmult
   read(1,*) frmult
