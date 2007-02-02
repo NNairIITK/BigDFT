@@ -319,7 +319,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
 ! grid sizes n1,n2,n3
   n1=int(alat1/hgrid)
+  if (mod(n1+1,4).eq.0) n1=n1+1
   n2=int(alat2/hgrid)
+  if (mod(n2+1,8).eq.0) n2=n2+1
   n3=int(alat3/hgrid)
   alat1=n1*hgrid ; alat2=n2*hgrid ; alat3=n3*hgrid
   if (iproc.eq.0) then 
@@ -790,9 +792,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      if (iproc.eq.0 .and. output_grid) then
         do i3=0,nb3 ; do i2=0,nb2 ; do i1=0,nb1
            if (logrid_f(i1,i2,i3)) write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  G '
-          enddo ; enddo ; enddo 
+        enddo ; enddo ; enddo 
          endif
-	 call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
+         call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
         if (iproc.eq.0) write(*,*) 'BIG:orbitals have fine   segment, elements',nsegb_f,7*nvctrb_f
         call bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
 
