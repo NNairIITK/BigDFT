@@ -34,19 +34,19 @@
 
 	do j=1,ndat-11,12
 	do i=-lupfil,n1-lowfil
-
-        t0=0.d0
-        t1=0.d0
-        t2=0.d0
-        t3=0.d0
-        t4=0.d0
-        t5=0.d0
-        t6=0.d0
-        t7=0.d0
-        t8=0.d0
-        t9=0.d0
-        t10=0.d0
-        t11=0.d0
+        
+        t0=0.d0  
+        t1=0.d0  
+        t2=0.d0  
+        t3=0.d0  
+        t4=0.d0  
+        t5=0.d0  
+        t6=0.d0  
+        t7=0.d0  
+        t8=0.d0  
+        t9=0.d0  
+        t10=0.d0  
+        t11=0.d0  
         do l=max(-i,lowfil),min(lupfil,n1-i)
 	t0=t0+x(i+l,j  )*fil(l)
 	t1=t1+x(i+l,j+1)*fil(l)
@@ -79,7 +79,7 @@
 
 	do j=j,ndat
 	do i=-lupfil,n1-lowfil
-
+        
         t0=0.d0
         do l=max(-i,lowfil),min(lupfil,n1-i)
 	t0=t0+x(i+l,j)*fil(l)
@@ -91,10 +91,9 @@
 
 !        call system_clock(ncount2,ncount_rate,ncount_max)
 !        tel=dble(ncount2-ncount1)/dble(ncount_rate)
-!        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)')
-'convrot_grow',tel,1.d-6*nflop/tel,nflop
+!        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'convrot_grow',tel,1.d-6*nflop/tel,nflop
 
-end subroutine
+end subroutine 
 
 
 
@@ -129,7 +128,7 @@ end subroutine
 
 	do j=1,ndat-11,12
 	do i=0,n1
-
+        
         t0=0.d0
         t1=0.d0
         t2=0.d0
@@ -174,7 +173,7 @@ end subroutine
 
 	do j=j,ndat
 	do i=0,n1
-
+        
         tt=0.d0
         do l=lowfil,lupfil
 	tt=tt+x(i+l,j)*fil(l)
@@ -186,10 +185,9 @@ end subroutine
 
 !        call system_clock(ncount2,ncount_rate,ncount_max)
 !        tel=dble(ncount2-ncount1)/dble(ncount_rate)
-!        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)')
-'convrot_shrink',tel,1.d-6*nflop/tel,nflop
+!        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'convrot_shrink',tel,1.d-6*nflop/tel,nflop
 
-end subroutine
+end subroutine 
 
 
         subroutine ana_rot_shrink(n,ndat,x,y)
@@ -197,10 +195,10 @@ end subroutine
         dimension x(-7:2*n+8,ndat),y(ndat,0:2*n+1)
         real*8 ch(-7:8) ,cg(-7:8)
 !       Daubechy S16
-        data ch  /  -0.0033824159510050025955D0, &
-                -0.00054213233180001068935D0, 0.031695087811525991431D0, &
-                 0.0076074873249766081919D0, -0.14329423835127266284D0, &
-                -0.061273359067811077843D0, 0.48135965125905339159D0,  &
+        data ch  /  -0.0033824159510050025955D0, & 
+                -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
+                 0.0076074873249766081919D0, -0.14329423835127266284D0, & 
+                -0.061273359067811077843D0, 0.48135965125905339159D0,  & 
                  0.77718575169962802862D0,0.36444189483617893676D0, &
                 -0.051945838107881800736D0,-0.027219029917103486322D0, &
                  0.049137179673730286787D0,0.0038087520138944894631D0, &
@@ -269,11 +267,10 @@ end subroutine
 
 !        call system_clock(ncount2,ncount_rate,ncount_max)
 !        tel=dble(ncount2-ncount1)/dble(ncount_rate)
-!        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)')
-'ana_rot_shrink',tel,1.d-6*nflop/tel,nflop
+!        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'ana_rot_shrink',tel,1.d-6*nflop/tel,nflop
 
 
-end subroutine
+end subroutine 
 
 
         subroutine syn_rot_grow(n,ndat,x,y)
@@ -281,10 +278,10 @@ end subroutine
         dimension x(0:2*n+1,ndat),y(ndat,-7:2*n+8)
         real*8 ch(-8:9) ,cg(-8:9)
 !       Daubechy S16
-        data ch  /  0.d0 , -0.0033824159510050025955D0, &
-                -0.00054213233180001068935D0, 0.031695087811525991431D0, &
-                 0.0076074873249766081919D0, -0.14329423835127266284D0, &
-                -0.061273359067811077843D0, 0.48135965125905339159D0,  &
+        data ch  /  0.d0 , -0.0033824159510050025955D0, & 
+                -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
+                 0.0076074873249766081919D0, -0.14329423835127266284D0, & 
+                -0.061273359067811077843D0, 0.48135965125905339159D0,  & 
                  0.77718575169962802862D0,0.36444189483617893676D0, &
                 -0.051945838107881800736D0,-0.027219029917103486322D0, &
                  0.049137179673730286787D0,0.0038087520138944894631D0, &
@@ -349,22 +346,14 @@ end subroutine
            se6=0.d0 ; so6=0.d0
            se7=0.d0 ; so7=0.d0
          do l=max(i-n,-4),min(i,4)
-           se0=se0+ch(2*l  )*x(i-l,j+0)+cg(2*l)*x(n+1+i-l,j+0) ;
-so0=so0+ch(2*l+1)*x(i-l,j+0)+cg(2*l+1)*x(n+1+i-l,j+0)
-           se1=se1+ch(2*l  )*x(i-l,j+1)+cg(2*l)*x(n+1+i-l,j+1) ;
-so1=so1+ch(2*l+1)*x(i-l,j+1)+cg(2*l+1)*x(n+1+i-l,j+1)
-           se2=se2+ch(2*l  )*x(i-l,j+2)+cg(2*l)*x(n+1+i-l,j+2) ;
-so2=so2+ch(2*l+1)*x(i-l,j+2)+cg(2*l+1)*x(n+1+i-l,j+2)
-           se3=se3+ch(2*l  )*x(i-l,j+3)+cg(2*l)*x(n+1+i-l,j+3) ;
-so3=so3+ch(2*l+1)*x(i-l,j+3)+cg(2*l+1)*x(n+1+i-l,j+3)
-           se4=se4+ch(2*l  )*x(i-l,j+4)+cg(2*l)*x(n+1+i-l,j+4) ;
-so4=so4+ch(2*l+1)*x(i-l,j+4)+cg(2*l+1)*x(n+1+i-l,j+4)
-           se5=se5+ch(2*l  )*x(i-l,j+5)+cg(2*l)*x(n+1+i-l,j+5) ;
-so5=so5+ch(2*l+1)*x(i-l,j+5)+cg(2*l+1)*x(n+1+i-l,j+5)
-           se6=se6+ch(2*l  )*x(i-l,j+6)+cg(2*l)*x(n+1+i-l,j+6) ;
-so6=so6+ch(2*l+1)*x(i-l,j+6)+cg(2*l+1)*x(n+1+i-l,j+6)
-           se7=se7+ch(2*l  )*x(i-l,j+7)+cg(2*l)*x(n+1+i-l,j+7) ;
-so7=so7+ch(2*l+1)*x(i-l,j+7)+cg(2*l+1)*x(n+1+i-l,j+7)
+           se0=se0+ch(2*l  )*x(i-l,j+0)+cg(2*l)*x(n+1+i-l,j+0) ; so0=so0+ch(2*l+1)*x(i-l,j+0)+cg(2*l+1)*x(n+1+i-l,j+0)
+           se1=se1+ch(2*l  )*x(i-l,j+1)+cg(2*l)*x(n+1+i-l,j+1) ; so1=so1+ch(2*l+1)*x(i-l,j+1)+cg(2*l+1)*x(n+1+i-l,j+1)
+           se2=se2+ch(2*l  )*x(i-l,j+2)+cg(2*l)*x(n+1+i-l,j+2) ; so2=so2+ch(2*l+1)*x(i-l,j+2)+cg(2*l+1)*x(n+1+i-l,j+2)
+           se3=se3+ch(2*l  )*x(i-l,j+3)+cg(2*l)*x(n+1+i-l,j+3) ; so3=so3+ch(2*l+1)*x(i-l,j+3)+cg(2*l+1)*x(n+1+i-l,j+3)
+           se4=se4+ch(2*l  )*x(i-l,j+4)+cg(2*l)*x(n+1+i-l,j+4) ; so4=so4+ch(2*l+1)*x(i-l,j+4)+cg(2*l+1)*x(n+1+i-l,j+4)
+           se5=se5+ch(2*l  )*x(i-l,j+5)+cg(2*l)*x(n+1+i-l,j+5) ; so5=so5+ch(2*l+1)*x(i-l,j+5)+cg(2*l+1)*x(n+1+i-l,j+5)
+           se6=se6+ch(2*l  )*x(i-l,j+6)+cg(2*l)*x(n+1+i-l,j+6) ; so6=so6+ch(2*l+1)*x(i-l,j+6)+cg(2*l+1)*x(n+1+i-l,j+6)
+           se7=se7+ch(2*l  )*x(i-l,j+7)+cg(2*l)*x(n+1+i-l,j+7) ; so7=so7+ch(2*l+1)*x(i-l,j+7)+cg(2*l+1)*x(n+1+i-l,j+7)
          enddo
            y(j+0,2*i  )=se0 ; y(j+0,2*i+1)=so0
            y(j+1,2*i  )=se1 ; y(j+1,2*i+1)=so1
@@ -404,7 +393,7 @@ so7=so7+ch(2*l+1)*x(i-l,j+7)+cg(2*l+1)*x(n+1+i-l,j+7)
            y(j+6,2*i  )=se6
            y(j+7,2*i  )=se7
 
-   enddo
+   enddo   
 
    do j=j,ndat
 
@@ -433,21 +422,19 @@ so7=so7+ch(2*l+1)*x(i-l,j+7)+cg(2*l+1)*x(n+1+i-l,j+7)
          enddo
            y(j,2*i  )=se
 
-   enddo
+   enddo   
 
 !        call system_clock(ncount2,ncount_rate,ncount_max)
 !        tel=dble(ncount2-ncount1)/dble(ncount_rate)
-!        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)')
-'syn_rot_grow',tel,1.d-6*nflop/tel,nflop
+!        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'syn_rot_grow',tel,1.d-6*nflop/tel,nflop
 
-end subroutine
+end subroutine 
 
 
          subroutine Convolkinetic(n1,n2,n3, &
                nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
-              
-cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_fc,x_f,y_c,y_f)
-!   y = (kinetic energy operator)x + (cprec*I)x
+               cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_fc,x_f,y_c,y_f)
+!   y = (kinetic energy operator)x + (cprec*I)x 
     implicit real*8 (a-h,o-z)
     integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
     dimension x_c(0:n1,0:n2,0:n3),y_c(0:n1,0:n2,0:n3)
@@ -458,8 +445,7 @@ cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_fc,x_f,y_c,y_f)
 
 
     parameter(lowfil=-14,lupfil=14)
-    dimension
-a(lowfil-3:lupfil+3),b(lowfil-3:lupfil+3),c(lowfil-3:lupfil+3),e(lowfil:lupfil)
+    dimension a(lowfil-3:lupfil+3),b(lowfil-3:lupfil+3),c(lowfil-3:lupfil+3),e(lowfil:lupfil)
     scale=-.5d0/hgrid**2
 !---------------------------------------------------------------------------
 ! second derivative filters for Daubechies 16
@@ -563,14 +549,12 @@ a(lowfil-3:lupfil+3),b(lowfil-3:lupfil+3),c(lowfil-3:lupfil+3),e(lowfil:lupfil)
 !    do i3=0,n3
 !    do i2=0,n2
 !        do i1=ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)
-!                   
-mflop1=mflop1+4*(min(lupfil,ibyz_c(2,i2,i3)-i1)-max(ibyz_c(1,i2,i3)-i1,lowfil)+1)
+!                    mflop1=mflop1+4*(min(lupfil,ibyz_c(2,i2,i3)-i1)-max(ibyz_c(1,i2,i3)-i1,lowfil)+1)
 !                    mflop1=mflop1+3
 !        enddo
 !
 !        do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
-!                   
-mflop1=mflop1+2*(min(lupfil,ibyz_c(2,i2,i3)-i1)-max(ibyz_c(1,i2,i3)-i1,lowfil)+1)
+!                    mflop1=mflop1+2*(min(lupfil,ibyz_c(2,i2,i3)-i1)-max(ibyz_c(1,i2,i3)-i1,lowfil)+1)
 !        enddo
 !    enddo
 !    enddo
@@ -580,14 +564,12 @@ mflop1=mflop1+2*(min(lupfil,ibyz_c(2,i2,i3)-i1)-max(ibyz_c(1,i2,i3)-i1,lowfil)+1
 !    do i3=0,n3
 !    do i1=0,n1
 !        do i2=ibxz_c(1,i1,i3),ibxz_c(2,i1,i3)
-!                   
-mflop2=mflop2+4*(min(lupfil,ibxz_c(2,i1,i3)-i2)-max(ibxz_c(1,i1,i3)-i2,lowfil)+1)
+!                    mflop2=mflop2+4*(min(lupfil,ibxz_c(2,i1,i3)-i2)-max(ibxz_c(1,i1,i3)-i2,lowfil)+1)
 !                    mflop2=mflop2+2
 !        enddo
 !
 !        do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
-!                   
-mflop2=mflop2+2*(min(lupfil,ibxz_c(2,i1,i3)-i2)-max(ibxz_c(1,i1,i3)-i2,lowfil)+1)
+!                    mflop2=mflop2+2*(min(lupfil,ibxz_c(2,i1,i3)-i2)-max(ibxz_c(1,i1,i3)-i2,lowfil)+1)
 !        enddo
 !    enddo
 !    enddo
@@ -598,14 +580,12 @@ mflop2=mflop2+2*(min(lupfil,ibxz_c(2,i1,i3)-i2)-max(ibxz_c(1,i1,i3)-i2,lowfil)+1
 !    do i2=0,n2
 !    do i1=0,n1
 !        do i3=ibxy_c(1,i1,i2),ibxy_c(2,i1,i2)
-!                   
-mflop3=mflop3+4*(min(lupfil,ibxy_c(2,i1,i2)-i3)-max(ibxy_c(1,i1,i2)-i3,lowfil)+1)
+!                    mflop3=mflop3+4*(min(lupfil,ibxy_c(2,i1,i2)-i3)-max(ibxy_c(1,i1,i2)-i3,lowfil)+1)
 !                    mflop3=mflop3+2
 !        enddo
 !
 !        do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
-!                   
-mflop3=mflop3+2*(min(lupfil,ibxy_c(2,i1,i2)-i3)-max(ibxy_c(1,i1,i2)-i3,lowfil)+1)
+!                    mflop3=mflop3+2*(min(lupfil,ibxy_c(2,i1,i2)-i3)-max(ibxy_c(1,i1,i2)-i3,lowfil)+1)
 !        enddo
 !    enddo
 !    enddo
@@ -616,8 +596,7 @@ mflop3=mflop3+2*(min(lupfil,ibxy_c(2,i1,i2)-i3)-max(ibxy_c(1,i1,i2)-i3,lowfil)+1
 !    do i3=nfl3,nfu3
 !        do i2=nfl2,nfu2
 !            do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
-!                   
-nflop1=nflop1+26*(min(lupfil,ibyz_f(2,i2,i3)-i1)-max(ibyz_f(1,i2,i3)-i1,lowfil)+1)
+!                    nflop1=nflop1+26*(min(lupfil,ibyz_f(2,i2,i3)-i1)-max(ibyz_f(1,i2,i3)-i1,lowfil)+1)
 !                    nflop1=nflop1+17
 !            enddo
 !        enddo
@@ -628,8 +607,7 @@ nflop1=nflop1+26*(min(lupfil,ibyz_f(2,i2,i3)-i1)-max(ibyz_f(1,i2,i3)-i1,lowfil)+
 !    do i3=nfl3,nfu3
 !    do i1=nfl1,nfu1
 !       do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
-!                   
-nflop2=nflop2+26*(min(lupfil,ibxz_f(2,i1,i3)-i2)-max(ibxz_f(1,i1,i3)-i2,lowfil)+1)
+!                    nflop2=nflop2+26*(min(lupfil,ibxz_f(2,i1,i3)-i2)-max(ibxz_f(1,i1,i3)-i2,lowfil)+1)
 !                    nflop2=nflop2+7
 !       enddo
 !    enddo
@@ -640,16 +618,15 @@ nflop2=nflop2+26*(min(lupfil,ibxz_f(2,i1,i3)-i2)-max(ibxz_f(1,i1,i3)-i2,lowfil)+
 !    do i2=nfl2,nfu2
 !    do i1=nfl1,nfu1
 !       do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
-!                   
-nflop3=nflop3+26*(min(lupfil,ibxy_f(2,i1,i2)-i3)-max(ibxy_f(1,i1,i2)-i3,lowfil)+1)
+!                    nflop3=nflop3+26*(min(lupfil,ibxy_f(2,i1,i2)-i3)-max(ibxy_f(1,i1,i2)-i3,lowfil)+1)
 !                    nflop3=nflop3+7
 !       enddo
 !    enddo
 !    enddo
-
+    
 
 !---------------------------------------------------------------------------
-
+                                                            
 ! Scaling function part
 
 !       call system_clock(ncount0,ncount_rate,ncount_max)
@@ -662,8 +639,7 @@ nflop3=nflop3+26*(min(lupfil,ibxy_f(2,i1,i2)-i3)-max(ibxy_f(1,i1,i2)-i3,lowfil)+
                 u111=0.d0 ; v111=0.d0
                 a111=0.d0 ; b111=0.d0
                 c111=0.d0 ; d111=0.d0
-                do
-ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+3+lupfil,ibyz_c(2,i2,i3))
+                do ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+3+lupfil,ibyz_c(2,i2,i3))
                     t111=t111 + x_c(ii,i2,i3)*a(ii-i1)
                     s111=s111 + x_fc(ii,i2,i3,1)*b(ii-i1)
                     u111=u111 + x_c(ii,i2,i3)*a(ii-i1-1)
@@ -680,8 +656,7 @@ ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+3+lupfil,ibyz_c(2,i2,i3))
         enddo
         do i1=i1,ibyz_c(2,i2,i3) ! remainder of unrolled loop
                 t111=0.d0 ; s111=0.d0
-                do
-ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+lupfil,ibyz_c(2,i2,i3))
+                do ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+lupfil,ibyz_c(2,i2,i3))
                     t111=t111 + x_c(ii,i2,i3)*a(ii-i1)
                     s111=s111 + x_fc(ii,i2,i3,1)*b(ii-i1)
                 enddo
@@ -689,9 +664,8 @@ ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+lupfil,ibyz_c(2,i2,i3))
         enddo
 
         do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)-3,4
-                t211=0.d0 ; s211=0.d0 ; u211=0.d0 ; v211=0.d0
-                do
-ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+3+lupfil,ibyz_c(2,i2,i3))
+                t211=0.d0 ; s211=0.d0 ; u211=0.d0 ; v211=0.d0 
+                do ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+3+lupfil,ibyz_c(2,i2,i3))
                     t211=t211 + x_c(ii,i2,i3)*c(ii-i1)
                     s211=s211 + x_c(ii,i2,i3)*c(ii-i1-1)
                     u211=u211 + x_c(ii,i2,i3)*c(ii-i1-2)
@@ -703,9 +677,8 @@ ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+3+lupfil,ibyz_c(2,i2,i3))
                 y_f(1,i1+3,i2,i3)=v211
         enddo
         do i1=i1,ibyz_f(2,i2,i3) ! remainder of unrolled loop
-                t211=0.d0
-                do
-ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+lupfil,ibyz_c(2,i2,i3))
+                t211=0.d0 
+                do ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+lupfil,ibyz_c(2,i2,i3))
                     t211=t211 + x_c(ii,i2,i3)*c(ii-i1)
                 enddo
                 y_f(1,i1,i2,i3)=t211
@@ -715,8 +688,7 @@ ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+lupfil,ibyz_c(2,i2,i3))
 
 !       call system_clock(ncount1,ncount_rate,ncount_max)
 !       tel=dble(ncount1-ncount0)/dble(ncount_rate)
-!       write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'FIRST
-PART:x',tel,1.d-6*mflop1/tel,n1+1,n2+1,n3+1
+!       write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'FIRST PART:x',tel,1.d-6*mflop1/tel,n1+1,n2+1,n3+1
 
 ! + (1/2) d^2/dy^2
     nb=16  ! nb has to be multiple of 4
@@ -728,8 +700,7 @@ PART:x',tel,1.d-6*mflop1/tel,n1+1,n2+1,n3+1
                 u111=0.d0 ; v111=0.d0
                 a111=0.d0 ; b111=0.d0
                 c111=0.d0 ; d111=0.d0
-                do
-ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+3+lupfil,ibxz_c(2,i1,i3))
+                do ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+3+lupfil,ibxz_c(2,i1,i3))
                     t111=t111 + x_c(i1,ii,i3)*a(ii-i2)
                     s111=s111 + x_fc(i1,ii,i3,2)*b(ii-i2)
                     u111=u111 + x_c(i1,ii,i3)*a(ii-i2-1)
@@ -746,8 +717,7 @@ ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+3+lupfil,ibxz_c(2,i1,i3))
         enddo
         do i2=i2,min(ii2+(nb-1),ibxz_c(2,i1,i3))
                 t111=0.d0 ; s111=0.d0
-                do
-ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+lupfil,ibxz_c(2,i1,i3))
+                do ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+lupfil,ibxz_c(2,i1,i3))
                     t111=t111 + x_c(i1,ii,i3)*a(ii-i2)
                     s111=s111 + x_fc(i1,ii,i3,2)*b(ii-i2)
                 enddo
@@ -755,9 +725,8 @@ ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+lupfil,ibxz_c(2,i1,i3))
         enddo
 
         do i2=max(ii2,ibxz_f(1,i1,i3)),min(ii2+(nb-1),ibxz_f(2,i1,i3))-3,4
-                t121=0.d0 ; s121=0.d0 ; u121=0.d0 ; v121=0.d0
-                do
-ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+3+lupfil,ibxz_c(2,i1,i3))
+                t121=0.d0 ; s121=0.d0 ; u121=0.d0 ; v121=0.d0 
+                do ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+3+lupfil,ibxz_c(2,i1,i3))
                     t121=t121 + x_c(i1,ii,i3)*c(ii-i2)
                     s121=s121 + x_c(i1,ii,i3)*c(ii-i2-1)
                     u121=u121 + x_c(i1,ii,i3)*c(ii-i2-2)
@@ -769,9 +738,8 @@ ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+3+lupfil,ibxz_c(2,i1,i3))
                 y_f(2,i1,i2+3,i3)=v121
         enddo
         do i2=i2,min(ii2+(nb-1),ibxz_f(2,i1,i3))
-                t121=0.d0
-                do
-ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+lupfil,ibxz_c(2,i1,i3))
+                t121=0.d0 
+                do ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+lupfil,ibxz_c(2,i1,i3))
                     t121=t121 + x_c(i1,ii,i3)*c(ii-i2)
                 enddo
                 y_f(2,i1,i2,i3)=t121
@@ -783,8 +751,7 @@ ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+lupfil,ibxz_c(2,i1,i3))
 
 !       call system_clock(ncount2,ncount_rate,ncount_max)
 !       tel=dble(ncount2-ncount1)/dble(ncount_rate)
-!       write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'FIRST
-PART:y',tel,1.d-6*mflop2/tel,n1+1,n2+1,n3+1
+!       write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'FIRST PART:y',tel,1.d-6*mflop2/tel,n1+1,n2+1,n3+1
 
 ! + (1/2) d^2/dz^2
     nb=16  ! nb has to be multiple of 4
@@ -796,8 +763,7 @@ PART:y',tel,1.d-6*mflop2/tel,n1+1,n2+1,n3+1
                 u111=0.d0 ; v111=0.d0
                 a111=0.d0 ; b111=0.d0
                 c111=0.d0 ; d111=0.d0
-                do
-ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+3+lupfil,ibxy_c(2,i1,i2))
+                do ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+3+lupfil,ibxy_c(2,i1,i2))
                     t111=t111 + x_c(i1,i2,ii)*a(ii-i3)
                     s111=s111 + x_fc(i1,i2,ii,3)*b(ii-i3)
                     u111=u111 + x_c(i1,i2,ii)*a(ii-i3-1)
@@ -814,8 +780,7 @@ ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+3+lupfil,ibxy_c(2,i1,i2))
         enddo
         do i3=i3,min(ii3+(nb-1),ibxy_c(2,i1,i2))
                 t111=0.d0 ; s111=0.d0
-                do
-ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+lupfil,ibxy_c(2,i1,i2))
+                do ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+lupfil,ibxy_c(2,i1,i2))
                     t111=t111 + x_c(i1,i2,ii)*a(ii-i3)
                     s111=s111 + x_fc(i1,i2,ii,3)*b(ii-i3)
                 enddo
@@ -823,9 +788,8 @@ ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+lupfil,ibxy_c(2,i1,i2))
         enddo
 
         do i3=max(ii3,ibxy_f(1,i1,i2)),min(ii3+(nb-1),ibxy_f(2,i1,i2))-3,4
-                t112=0.d0 ; s112=0.d0 ; u112=0.d0 ; v112=0.d0
-                do
-ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+3+lupfil,ibxy_c(2,i1,i2))
+                t112=0.d0 ; s112=0.d0 ; u112=0.d0 ; v112=0.d0 
+                do ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+3+lupfil,ibxy_c(2,i1,i2))
                     t112=t112 + x_c(i1,i2,ii)*c(ii-i3)
                     s112=s112 + x_c(i1,i2,ii)*c(ii-i3-1)
                     u112=u112 + x_c(i1,i2,ii)*c(ii-i3-2)
@@ -837,9 +801,8 @@ ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+3+lupfil,ibxy_c(2,i1,i2))
                 y_f(4,i1,i2,i3+3)=v112
         enddo
         do i3=i3,min(ii3+(nb-1),ibxy_f(2,i1,i2))
-                t112=0.d0
-                do
-ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+lupfil,ibxy_c(2,i1,i2))
+                t112=0.d0 
+                do ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+lupfil,ibxy_c(2,i1,i2))
                     t112=t112 + x_c(i1,i2,ii)*c(ii-i3)
                 enddo
                 y_f(4,i1,i2,i3)=t112
@@ -850,18 +813,15 @@ ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+lupfil,ibxy_c(2,i1,i2))
 
 !       call system_clock(ncount3,ncount_rate,ncount_max)
 !       tel=dble(ncount3-ncount2)/dble(ncount_rate)
-!       write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'FIRST
-PART:z',tel,1.d-6*mflop3/tel,n1+1,n2+1,n3+1
+!       write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'FIRST PART:z',tel,1.d-6*mflop3/tel,n1+1,n2+1,n3+1
 
 ! wavelet part
  ! (1/2) d^2/dx^2
     do i3=nfl3,nfu3
         do i2=nfl2,nfu2
             do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
-               
-t112=0.d0;t121=0.d0;t122=0.d0;t212=0.d0;t221=0.d0;t222=0.d0;t211=0.d0
-                do
-l=max(ibyz_f(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_f(2,i2,i3)-i1)
+                t112=0.d0;t121=0.d0;t122=0.d0;t212=0.d0;t221=0.d0;t222=0.d0;t211=0.d0 
+                do l=max(ibyz_f(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_f(2,i2,i3)-i1)
                     t112=t112 + x_f(4,i1+l,i2,i3)*a(l) + x_f(5,i1+l,i2,i3)*b(l)
                     t121=t121 + x_f(2,i1+l,i2,i3)*a(l) + x_f(3,i1+l,i2,i3)*b(l)
                     t122=t122 + x_f(6,i1+l,i2,i3)*a(l) + x_f(7,i1+l,i2,i3)*b(l)
@@ -884,20 +844,17 @@ l=max(ibyz_f(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_f(2,i2,i3)-i1)
 
 !       call system_clock(ncount4,ncount_rate,ncount_max)
 !       tel=dble(ncount4-ncount3)/dble(ncount_rate)
-!       write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'SECND
-PART:x',tel,1.d-6*nflop1/tel,n1+1,n2+1,n3+1
+!       write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'SECND PART:x',tel,1.d-6*nflop1/tel,n1+1,n2+1,n3+1
 
 
  ! + (1/2) d^2/dy^2
-    nb=4
+    nb=4  
     do i3=nfl3,nfu3
     do ii2=nfl2,nfu2,nb
     do i1=nfl1,nfu1
        do i2=max(ii2,ibxz_f(1,i1,i3)),min(ii2+(nb-1),ibxz_f(2,i1,i3))
-               
-t112=0.d0;t121=0.d0;t122=0.d0;t212=0.d0;t221=0.d0;t222=0.d0;t211=0.d0
-                do
-l=max(ibxz_f(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_f(2,i1,i3)-i2)
+                t112=0.d0;t121=0.d0;t122=0.d0;t212=0.d0;t221=0.d0;t222=0.d0;t211=0.d0 
+                do l=max(ibxz_f(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_f(2,i1,i3)-i2)
                     t112=t112 + x_f(4,i1,i2+l,i3)*a(l) + x_f(6,i1,i2+l,i3)*b(l)
                     t211=t211 + x_f(1,i1,i2+l,i3)*a(l) + x_f(3,i1,i2+l,i3)*b(l)
                     t122=t122 + x_f(4,i1,i2+l,i3)*c(l) + x_f(6,i1,i2+l,i3)*e(l)
@@ -921,19 +878,16 @@ l=max(ibxz_f(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_f(2,i1,i3)-i2)
 
 !       call system_clock(ncount5,ncount_rate,ncount_max)
 !       tel=dble(ncount5-ncount4)/dble(ncount_rate)
-!       write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'SECND
-PART:y',tel,1.d-6*nflop2/tel,n1+1,n2+1,n3+1
+!       write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'SECND PART:y',tel,1.d-6*nflop2/tel,n1+1,n2+1,n3+1
 
  ! + (1/2) d^2/dz^2
-    nb=4
+    nb=4  
     do i2=nfl2,nfu2
     do ii3=nfl3,nfu3,nb
     do i1=nfl1,nfu1
        do i3=max(ii3,ibxy_f(1,i1,i2)),min(ii3+(nb-1),ibxy_f(2,i1,i2))
-               
-t112=0.d0;t121=0.d0;t122=0.d0;t212=0.d0;t221=0.d0;t222=0.d0;t211=0.d0
-                do
-l=max(ibxy_f(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_f(2,i1,i2)-i3)
+                t112=0.d0;t121=0.d0;t122=0.d0;t212=0.d0;t221=0.d0;t222=0.d0;t211=0.d0 
+                do l=max(ibxy_f(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_f(2,i1,i2)-i3)
                     t121=t121 + x_f(2,i1,i2,i3+l)*a(l) + x_f(6,i1,i2,i3+l)*b(l)
                     t211=t211 + x_f(1,i1,i2,i3+l)*a(l) + x_f(5,i1,i2,i3+l)*b(l)
                     t122=t122 + x_f(2,i1,i2,i3+l)*c(l) + x_f(6,i1,i2,i3+l)*e(l)
@@ -958,21 +912,20 @@ l=max(ibxy_f(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_f(2,i1,i2)-i3)
 
 !       call system_clock(ncount6,ncount_rate,ncount_max)
 !       tel=dble(ncount6-ncount5)/dble(ncount_rate)
-!       write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'SECND
-PART:z',tel,1.d-6*nflop3/tel,n1+1,n2+1,n3+1
+!       write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'SECND PART:z',tel,1.d-6*nflop3/tel,n1+1,n2+1,n3+1
 
 !       tel=dble(ncount6-ncount0)/dble(ncount_rate)
-!       write(95,'(a40,1x,e11.4,1x,f10.1)') 'ALL   PART',  &
+!       write(95,'(a40,1x,e11.4,1x,f10.1)') 'ALL   PART',  & 
 !            tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-end subroutine
+end subroutine 
 
 
 
          subroutine ConvolkineticP(n1,n2,n3, &
                nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
                hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x,y,ekin)
-!   y = y + (kinetic energy operator)x
+!   y = y + (kinetic energy operator)x 
     implicit real*8 (a-h,o-z)
     integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
     dimension x(0:n1,2,0:n2,2,0:n3,2),y(0:n1,2,0:n2,2,0:n3,2)
@@ -981,8 +934,7 @@ end subroutine
 
 
     parameter(lowfil=-14,lupfil=14)
-    dimension
-a(lowfil-3:lupfil+3),b(lowfil-3:lupfil+3),c(lowfil-3:lupfil+3),e(lowfil:lupfil)
+    dimension a(lowfil-3:lupfil+3),b(lowfil-3:lupfil+3),c(lowfil-3:lupfil+3),e(lowfil:lupfil)
     scale=-.5d0/hgrid**2
 
 !---------------------------------------------------------------------------
@@ -1086,16 +1038,14 @@ a(lowfil-3:lupfil+3),b(lowfil-3:lupfil+3),c(lowfil-3:lupfil+3),e(lowfil:lupfil)
 !    do i3=0,n3
 !    do i2=0,n2
 !        do i1=ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)
-!                do
-l=max(ibyz_c(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_c(2,i2,i3)-i1)
+!                do l=max(ibyz_c(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_c(2,i2,i3)-i1)
 !                    mflop1=mflop1+4
 !                enddo
 !                    mflop1=mflop1+4
 !        enddo
 !
 !        do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
-!                do
-l=max(ibyz_c(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_c(2,i2,i3)-i1)
+!                do l=max(ibyz_c(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_c(2,i2,i3)-i1)
 !                    mflop1=mflop1+3
 !                enddo
 !                    mflop1=mflop1+3
@@ -1108,16 +1058,14 @@ l=max(ibyz_c(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_c(2,i2,i3)-i1)
 !    do i3=0,n3
 !    do i1=0,n1
 !        do i2=ibxz_c(1,i1,i3),ibxz_c(2,i1,i3)
-!                do
-l=max(ibxz_c(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_c(2,i1,i3)-i2)
+!                do l=max(ibxz_c(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_c(2,i1,i3)-i2)
 !                    mflop2=mflop2+4
 !                enddo
 !                    mflop2=mflop2+4
 !        enddo
 !
 !        do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
-!                do
-l=max(ibxz_c(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_c(2,i1,i3)-i2)
+!                do l=max(ibxz_c(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_c(2,i1,i3)-i2)
 !                    mflop2=mflop2+3
 !                enddo
 !                    mflop2=mflop2+3
@@ -1131,16 +1079,14 @@ l=max(ibxz_c(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_c(2,i1,i3)-i2)
 !    do i2=0,n2
 !    do i1=0,n1
 !        do i3=ibxy_c(1,i1,i2),ibxy_c(2,i1,i2)
-!                do
-l=max(ibxy_c(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_c(2,i1,i2)-i3)
+!                do l=max(ibxy_c(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_c(2,i1,i2)-i3)
 !                    mflop3=mflop3+4
 !                enddo
 !                    mflop3=mflop3+4
 !        enddo
 !
 !        do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
-!                do
-l=max(ibxy_c(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_c(2,i1,i2)-i3)
+!                do l=max(ibxy_c(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_c(2,i1,i2)-i3)
 !                    mflop3=mflop3+3
 !                enddo
 !                    mflop3=mflop3+3
@@ -1154,8 +1100,7 @@ l=max(ibxy_c(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_c(2,i1,i2)-i3)
 !    do i3=nfl3,nfu3
 !        do i2=nfl2,nfu2
 !            do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
-!                do
-l=max(ibyz_f(1,i2,i3)-i1,lowfil),min(ibyz_f(2,i2,i3),nfu1-i1)
+!                do l=max(ibyz_f(1,i2,i3)-i1,lowfil),min(ibyz_f(2,i2,i3),nfu1-i1)
 !                    nflop1=nflop1+26
 !                enddo
 !                    nflop1=nflop1+21
@@ -1168,8 +1113,7 @@ l=max(ibyz_f(1,i2,i3)-i1,lowfil),min(ibyz_f(2,i2,i3),nfu1-i1)
 !    do i3=nfl3,nfu3
 !    do i1=nfl1,nfu1
 !       do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
-!                do
-l=max(ibxz_f(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_f(2,i1,i3)-i2)
+!                do l=max(ibxz_f(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_f(2,i1,i3)-i2)
 !                    nflop2=nflop2+26
 !                enddo
 !                    nflop2=nflop2+21
@@ -1182,21 +1126,19 @@ l=max(ibxz_f(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_f(2,i1,i3)-i2)
 !    do i2=nfl2,nfu2
 !    do i1=nfl1,nfu1
 !       do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
-!                do
-l=max(ibxy_f(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_f(2,i1,i2)-i3)
+!                do l=max(ibxy_f(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_f(2,i1,i2)-i3)
 !                    nflop3=nflop3+26
 !                enddo
 !                    nflop3=nflop3+21
 !       enddo
 !    enddo
 !    enddo
-!
+!    
 
 !---------------------------------------------------------------------------
 
-     ekin1=0.d0 ; ekin2=0.d0 ; ekin3=0.d0 ; ekin4=0.d0 ; ekin5=0.d0 ; ekin6=0.d0
-; ekin7=0.d0
-
+     ekin1=0.d0 ; ekin2=0.d0 ; ekin3=0.d0 ; ekin4=0.d0 ; ekin5=0.d0 ; ekin6=0.d0 ; ekin7=0.d0 
+                                                            
 ! Scaling function part
 
 !      call system_clock(ncount0,ncount_rate,ncount_max)
@@ -1210,8 +1152,7 @@ l=max(ibxy_f(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_f(2,i1,i2)-i3)
                 u111=0.d0 ; v111=0.d0
                 a111=0.d0 ; b111=0.d0
                 c111=0.d0 ; d111=0.d0
-                do
-ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+3+lupfil,ibyz_c(2,i2,i3))
+                do ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+3+lupfil,ibyz_c(2,i2,i3))
                     t111=t111 + x(ii,1,i2,1,i3,1)*a(ii-i1)
                     s111=s111 + x(ii,2,i2,1,i3,1)*b(ii-i1)
                     u111=u111 + x(ii,1,i2,1,i3,1)*a(ii-i1-1)
@@ -1232,8 +1173,7 @@ ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+3+lupfil,ibyz_c(2,i2,i3))
         enddo
         do i1=i1,ibyz_c(2,i2,i3)  ! remainder of unrolled loop
                 t111=0.d0 ; s111=0.d0
-                do
-ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+lupfil,ibyz_c(2,i2,i3))
+                do ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+lupfil,ibyz_c(2,i2,i3))
                     t111=t111 + x(ii,1,i2,1,i3,1)*a(ii-i1)
                     s111=s111 + x(ii,2,i2,1,i3,1)*b(ii-i1)
                 enddo
@@ -1242,9 +1182,8 @@ ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+lupfil,ibyz_c(2,i2,i3))
         enddo
 
         do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)-3,4
-                t211=0.d0 ; s211=0.d0 ; u211=0.d0 ; v211=0.d0
-                do
-ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+3+lupfil,ibyz_c(2,i2,i3))
+                t211=0.d0 ; s211=0.d0 ; u211=0.d0 ; v211=0.d0 
+                do ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+3+lupfil,ibyz_c(2,i2,i3))
                     t211=t211 + x(ii,1,i2,1,i3,1)*c(ii-i1)
                     s211=s211 + x(ii,1,i2,1,i3,1)*c(ii-i1-1)
                     u211=u211 + x(ii,1,i2,1,i3,1)*c(ii-i1-2)
@@ -1260,9 +1199,8 @@ ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+3+lupfil,ibyz_c(2,i2,i3))
                 ekin4=ekin4+v211*x(i1+3,2,i2,1,i3,1)
         enddo
         do i1=i1,ibyz_f(2,i2,i3) ! remainder of unrolled loop
-                t211=0.d0
-                do
-ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+lupfil,ibyz_c(2,i2,i3))
+                t211=0.d0 
+                do ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+lupfil,ibyz_c(2,i2,i3))
                     t211=t211 + x(ii,1,i2,1,i3,1)*c(ii-i1)
                 enddo
                 y(i1,2,i2,1,i3,1)=y(i1,2,i2,1,i3,1)+t211
@@ -1273,21 +1211,19 @@ ii=max(i1+lowfil,ibyz_c(1,i2,i3)),min(i1+lupfil,ibyz_c(2,i2,i3))
 
 !      call system_clock(ncount1,ncount_rate,ncount_max)
 !      tel=dble(ncount1-ncount0)/dble(ncount_rate)
-!      write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'P:FIRST
-PART:x',tel,1.d-6*mflop1/tel,n1+1,n2+1,n3+1
+!      write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'P:FIRST PART:x',tel,1.d-6*mflop1/tel,n1+1,n2+1,n3+1
 
 ! + (1/2) d^2/dy^2
     nb=16  ! nb has to be multiple of 4
     do i3=0,n3
     do ii2=0,n2,nb
     do i1=0,n1
-        do i2=max(ii2,ibxz_c(1,i1,i3)),min(ii2+(nb-1),ibxz_c(2,i1,i3))-3,4
+        do i2=max(ii2,ibxz_c(1,i1,i3)),min(ii2+(nb-1),ibxz_c(2,i1,i3))-3,4 
                  t111=0.d0 ; s111=0.d0
                  u111=0.d0 ; v111=0.d0
                  a111=0.d0 ; b111=0.d0
                  c111=0.d0 ; d111=0.d0
-                 do
-ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+3+lupfil,ibxz_c(2,i1,i3))
+                 do ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+3+lupfil,ibxz_c(2,i1,i3))
                      t111=t111 + x(i1,1,ii,1,i3,1)*a(ii-i2)
                      s111=s111 + x(i1,1,ii,2,i3,1)*b(ii-i2)
                      u111=u111 + x(i1,1,ii,1,i3,1)*a(ii-i2-1)
@@ -1306,10 +1242,9 @@ ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+3+lupfil,ibxz_c(2,i1,i3))
                  ekin3=ekin3+(a111+b111)*x(i1,1,i2+2,1,i3,1)
                  ekin4=ekin4+(c111+d111)*x(i1,1,i2+3,1,i3,1)
         enddo
-        do i2=i2,min(ii2+(nb-1),ibxz_c(2,i1,i3))
+        do i2=i2,min(ii2+(nb-1),ibxz_c(2,i1,i3)) 
                 t111=0.d0 ; s111=0.d0
-                do
-ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+lupfil,ibxz_c(2,i1,i3))
+                do ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+lupfil,ibxz_c(2,i1,i3))
                     t111=t111 + x(i1,1,ii,1,i3,1)*a(ii-i2)
                     s111=s111 + x(i1,1,ii,2,i3,1)*b(ii-i2)
                 enddo
@@ -1318,9 +1253,8 @@ ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+lupfil,ibxz_c(2,i1,i3))
         enddo
 
         do i2=max(ii2,ibxz_f(1,i1,i3)),min(ii2+(nb-1),ibxz_f(2,i1,i3))-3,4
-                t121=0.d0 ; s121=0.d0 ; u121=0.d0 ; v121=0.d0
-                do
-ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+3+lupfil,ibxz_c(2,i1,i3))
+                t121=0.d0 ; s121=0.d0 ; u121=0.d0 ; v121=0.d0 
+                do ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+3+lupfil,ibxz_c(2,i1,i3))
                     t121=t121 + x(i1,1,ii,1,i3,1)*c(ii-i2)
                     s121=s121 + x(i1,1,ii,1,i3,1)*c(ii-i2-1)
                     u121=u121 + x(i1,1,ii,1,i3,1)*c(ii-i2-2)
@@ -1336,9 +1270,8 @@ ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+3+lupfil,ibxz_c(2,i1,i3))
                 ekin4=ekin4+v121*x(i1,1,i2+3,2,i3,1)
         enddo
         do i2=i2,min(ii2+(nb-1),ibxz_f(2,i1,i3))
-                t121=0.d0
-                do
-ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+lupfil,ibxz_c(2,i1,i3))
+                t121=0.d0 
+                do ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+lupfil,ibxz_c(2,i1,i3))
                     t121=t121 + x(i1,1,ii,1,i3,1)*c(ii-i2)
                 enddo
                 y(i1,1,i2,2,i3,1)=y(i1,1,i2,2,i3,1)+t121
@@ -1350,8 +1283,7 @@ ii=max(i2+lowfil,ibxz_c(1,i1,i3)),min(i2+lupfil,ibxz_c(2,i1,i3))
 
 !      call system_clock(ncount2,ncount_rate,ncount_max)
 !      tel=dble(ncount2-ncount1)/dble(ncount_rate)
-!      write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'P:FIRST
-PART:y',tel,1.d-6*mflop2/tel,n1+1,n2+1,n3+1
+!      write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'P:FIRST PART:y',tel,1.d-6*mflop2/tel,n1+1,n2+1,n3+1
 
 ! + (1/2) d^2/dz^2
     nb=16  ! nb has to be multiple of 4
@@ -1363,8 +1295,7 @@ PART:y',tel,1.d-6*mflop2/tel,n1+1,n2+1,n3+1
                 u111=0.d0 ; v111=0.d0
                 a111=0.d0 ; b111=0.d0
                 c111=0.d0 ; d111=0.d0
-                do
-ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+3+lupfil,ibxy_c(2,i1,i2))
+                do ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+3+lupfil,ibxy_c(2,i1,i2))
                     t111=t111 + x(i1,1,i2,1,ii,1)*a(ii-i3)
                     s111=s111 + x(i1,1,i2,1,ii,2)*b(ii-i3)
                     u111=u111 + x(i1,1,i2,1,ii,1)*a(ii-i3-1)
@@ -1385,8 +1316,7 @@ ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+3+lupfil,ibxy_c(2,i1,i2))
         enddo
         do i3=i3,min(ii3+(nb-1),ibxy_c(2,i1,i2))
                 t111=0.d0 ; s111=0.d0
-                do
-ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+lupfil,ibxy_c(2,i1,i2))
+                do ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+lupfil,ibxy_c(2,i1,i2))
                     t111=t111 + x(i1,1,i2,1,ii,1)*a(ii-i3)
                     s111=s111 + x(i1,1,i2,1,ii,2)*b(ii-i3)
                 enddo
@@ -1395,9 +1325,8 @@ ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+lupfil,ibxy_c(2,i1,i2))
         enddo
 
         do i3=max(ii3,ibxy_f(1,i1,i2)),min(ii3+(nb-1),ibxy_f(2,i1,i2))-3,4
-                t112=0.d0 ; s112=0.d0 ; u112=0.d0 ; v112=0.d0
-                do
-ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+3+lupfil,ibxy_c(2,i1,i2))
+                t112=0.d0 ; s112=0.d0 ; u112=0.d0 ; v112=0.d0 
+                do ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+3+lupfil,ibxy_c(2,i1,i2))
                     t112=t112 + x(i1,1,i2,1,ii,1)*c(ii-i3)
                     s112=s112 + x(i1,1,i2,1,ii,1)*c(ii-i3-1)
                     u112=u112 + x(i1,1,i2,1,ii,1)*c(ii-i3-2)
@@ -1412,10 +1341,9 @@ ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+3+lupfil,ibxy_c(2,i1,i2))
                 ekin3=ekin3+u112*x(i1,1,i2,1,i3+2,2)
                 ekin4=ekin4+v112*x(i1,1,i2,1,i3+3,2)
         enddo
-        do i3=i3,min(ii3+(nb-1),ibxy_f(2,i1,i2))
-                t112=0.d0
-                do
-ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+lupfil,ibxy_c(2,i1,i2))
+        do i3=i3,min(ii3+(nb-1),ibxy_f(2,i1,i2)) 
+                t112=0.d0 
+                do ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+lupfil,ibxy_c(2,i1,i2))
                     t112=t112 + x(i1,1,i2,1,ii,1)*c(ii-i3)
                 enddo
                 y(i1,1,i2,1,i3,2)=y(i1,1,i2,1,i3,2)+t112
@@ -1427,30 +1355,21 @@ ii=max(i3+lowfil,ibxy_c(1,i1,i2)),min(i3+lupfil,ibxy_c(2,i1,i2))
 
 !      call system_clock(ncount3,ncount_rate,ncount_max)
 !      tel=dble(ncount3-ncount2)/dble(ncount_rate)
-!      write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'P:FIRST
-PART:z',tel,1.d-6*mflop3/tel,n1+1,n2+1,n3+1
+!      write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'P:FIRST PART:z',tel,1.d-6*mflop3/tel,n1+1,n2+1,n3+1
 
 ! wavelet part
  ! (1/2) d^2/dx^2
     do i3=nfl3,nfu3
         do i2=nfl2,nfu2
             do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
-               
-t112=0.d0;t121=0.d0;t122=0.d0;t212=0.d0;t221=0.d0;t222=0.d0;t211=0.d0
-                do
-l=max(ibyz_f(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_f(2,i2,i3)-i1)
-                    t112=t112 + x(i1+l,1,i2,1,i3,2)*a(l) +
-x(i1+l,2,i2,1,i3,2)*b(l)
-                    t121=t121 + x(i1+l,1,i2,2,i3,1)*a(l) +
-x(i1+l,2,i2,2,i3,1)*b(l)
-                    t122=t122 + x(i1+l,1,i2,2,i3,2)*a(l) +
-x(i1+l,2,i2,2,i3,2)*b(l)
-                    t212=t212 + x(i1+l,1,i2,1,i3,2)*c(l) +
-x(i1+l,2,i2,1,i3,2)*e(l)
-                    t221=t221 + x(i1+l,1,i2,2,i3,1)*c(l) +
-x(i1+l,2,i2,2,i3,1)*e(l)
-                    t222=t222 + x(i1+l,1,i2,2,i3,2)*c(l) +
-x(i1+l,2,i2,2,i3,2)*e(l)
+                t112=0.d0;t121=0.d0;t122=0.d0;t212=0.d0;t221=0.d0;t222=0.d0;t211=0.d0 
+                do l=max(ibyz_f(1,i2,i3)-i1,lowfil),min(lupfil,ibyz_f(2,i2,i3)-i1)
+                    t112=t112 + x(i1+l,1,i2,1,i3,2)*a(l) + x(i1+l,2,i2,1,i3,2)*b(l)
+                    t121=t121 + x(i1+l,1,i2,2,i3,1)*a(l) + x(i1+l,2,i2,2,i3,1)*b(l)
+                    t122=t122 + x(i1+l,1,i2,2,i3,2)*a(l) + x(i1+l,2,i2,2,i3,2)*b(l)
+                    t212=t212 + x(i1+l,1,i2,1,i3,2)*c(l) + x(i1+l,2,i2,1,i3,2)*e(l)
+                    t221=t221 + x(i1+l,1,i2,2,i3,1)*c(l) + x(i1+l,2,i2,2,i3,1)*e(l)
+                    t222=t222 + x(i1+l,1,i2,2,i3,2)*c(l) + x(i1+l,2,i2,2,i3,2)*e(l)
                     t211=t211 + x(i1+l,2,i2,1,i3,1)*e(l)
                 enddo
 
@@ -1474,32 +1393,23 @@ x(i1+l,2,i2,2,i3,2)*e(l)
 
 !      call system_clock(ncount4,ncount_rate,ncount_max)
 !      tel=dble(ncount4-ncount3)/dble(ncount_rate)
-!      write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'P:SECND
-PART:x',tel,1.d-6*nflop1/tel,n1+1,n2+1,n3+1
+!      write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'P:SECND PART:x',tel,1.d-6*nflop1/tel,n1+1,n2+1,n3+1
 
 
  ! + (1/2) d^2/dy^2
-    nb=4
+    nb=4  
     do i3=nfl3,nfu3
     do ii2=nfl2,nfu2,nb
     do i1=nfl1,nfu1
        do i2=max(ii2,ibxz_f(1,i1,i3)),min(ii2+(nb-1),ibxz_f(2,i1,i3))
-               
-t112=0.d0;t121=0.d0;t122=0.d0;t212=0.d0;t221=0.d0;t222=0.d0;t211=0.d0
-                do
-l=max(ibxz_f(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_f(2,i1,i3)-i2)
-                    t112=t112 + x(i1,1,i2+l,1,i3,2)*a(l) +
-x(i1,1,i2+l,2,i3,2)*b(l)
-                    t211=t211 + x(i1,2,i2+l,1,i3,1)*a(l) +
-x(i1,2,i2+l,2,i3,1)*b(l)
-                    t122=t122 + x(i1,1,i2+l,1,i3,2)*c(l) +
-x(i1,1,i2+l,2,i3,2)*e(l)
-                    t212=t212 + x(i1,2,i2+l,1,i3,2)*a(l) +
-x(i1,2,i2+l,2,i3,2)*b(l)
-                    t221=t221 + x(i1,2,i2+l,1,i3,1)*c(l) +
-x(i1,2,i2+l,2,i3,1)*e(l)
-                    t222=t222 + x(i1,2,i2+l,1,i3,2)*c(l) +
-x(i1,2,i2+l,2,i3,2)*e(l)
+                t112=0.d0;t121=0.d0;t122=0.d0;t212=0.d0;t221=0.d0;t222=0.d0;t211=0.d0 
+                do l=max(ibxz_f(1,i1,i3)-i2,lowfil),min(lupfil,ibxz_f(2,i1,i3)-i2)
+                    t112=t112 + x(i1,1,i2+l,1,i3,2)*a(l) + x(i1,1,i2+l,2,i3,2)*b(l)
+                    t211=t211 + x(i1,2,i2+l,1,i3,1)*a(l) + x(i1,2,i2+l,2,i3,1)*b(l)
+                    t122=t122 + x(i1,1,i2+l,1,i3,2)*c(l) + x(i1,1,i2+l,2,i3,2)*e(l)
+                    t212=t212 + x(i1,2,i2+l,1,i3,2)*a(l) + x(i1,2,i2+l,2,i3,2)*b(l)
+                    t221=t221 + x(i1,2,i2+l,1,i3,1)*c(l) + x(i1,2,i2+l,2,i3,1)*e(l)
+                    t222=t222 + x(i1,2,i2+l,1,i3,2)*c(l) + x(i1,2,i2+l,2,i3,2)*e(l)
                     t121=t121 + x(i1,1,i2+l,2,i3,1)*e(l)
                 enddo
 
@@ -1524,31 +1434,22 @@ x(i1,2,i2+l,2,i3,2)*e(l)
 
 !      call system_clock(ncount5,ncount_rate,ncount_max)
 !      tel=dble(ncount5-ncount4)/dble(ncount_rate)
-!      write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'P:SECND
-PART:y',tel,1.d-6*nflop2/tel,n1+1,n2+1,n3+1
+!      write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'P:SECND PART:y',tel,1.d-6*nflop2/tel,n1+1,n2+1,n3+1
 
  ! + (1/2) d^2/dz^2
-    nb=4
+    nb=4  
     do i2=nfl2,nfu2
     do ii3=nfl3,nfu3,nb
     do i1=nfl1,nfu1
        do i3=max(ii3,ibxy_f(1,i1,i2)),min(ii3+(nb-1),ibxy_f(2,i1,i2))
-               
-t112=0.d0;t121=0.d0;t122=0.d0;t212=0.d0;t221=0.d0;t222=0.d0;t211=0.d0
-                do
-l=max(ibxy_f(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_f(2,i1,i2)-i3)
-                    t121=t121 + x(i1,1,i2,2,i3+l,1)*a(l) +
-x(i1,1,i2,2,i3+l,2)*b(l)
-                    t211=t211 + x(i1,2,i2,1,i3+l,1)*a(l) +
-x(i1,2,i2,1,i3+l,2)*b(l)
-                    t122=t122 + x(i1,1,i2,2,i3+l,1)*c(l) +
-x(i1,1,i2,2,i3+l,2)*e(l)
-                    t212=t212 + x(i1,2,i2,1,i3+l,1)*c(l) +
-x(i1,2,i2,1,i3+l,2)*e(l)
-                    t221=t221 + x(i1,2,i2,2,i3+l,1)*a(l) +
-x(i1,2,i2,2,i3+l,2)*b(l)
-                    t222=t222 + x(i1,2,i2,2,i3+l,1)*c(l) +
-x(i1,2,i2,2,i3+l,2)*e(l)
+                t112=0.d0;t121=0.d0;t122=0.d0;t212=0.d0;t221=0.d0;t222=0.d0;t211=0.d0 
+                do l=max(ibxy_f(1,i1,i2)-i3,lowfil),min(lupfil,ibxy_f(2,i1,i2)-i3)
+                    t121=t121 + x(i1,1,i2,2,i3+l,1)*a(l) + x(i1,1,i2,2,i3+l,2)*b(l)
+                    t211=t211 + x(i1,2,i2,1,i3+l,1)*a(l) + x(i1,2,i2,1,i3+l,2)*b(l)
+                    t122=t122 + x(i1,1,i2,2,i3+l,1)*c(l) + x(i1,1,i2,2,i3+l,2)*e(l)
+                    t212=t212 + x(i1,2,i2,1,i3+l,1)*c(l) + x(i1,2,i2,1,i3+l,2)*e(l)
+                    t221=t221 + x(i1,2,i2,2,i3+l,1)*a(l) + x(i1,2,i2,2,i3+l,2)*b(l)
+                    t222=t222 + x(i1,2,i2,2,i3+l,1)*c(l) + x(i1,2,i2,2,i3+l,2)*e(l)
                     t112=t112 + x(i1,1,i2,1,i3+l,2)*e(l)
                 enddo
 
@@ -1576,11 +1477,11 @@ x(i1,2,i2,2,i3+l,2)*e(l)
 
 !      call system_clock(ncount6,ncount_rate,ncount_max)
 !      tel=dble(ncount6-ncount5)/dble(ncount_rate)
-!      write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'P:SECND
-PART:z',tel,1.d-6*nflop3/tel,n1+1,n2+1,n3+1
+!      write(95,'(a40,1x,e11.4,1x,f10.1,3(i4))') 'P:SECND PART:z',tel,1.d-6*nflop3/tel,n1+1,n2+1,n3+1
 
 !      tel=dble(ncount6-ncount0)/dble(ncount_rate)
-!      write(95,'(a40,1x,e11.4,1x,f10.1)') 'P:ALL   PART',  &
+!      write(95,'(a40,1x,e11.4,1x,f10.1)') 'P:ALL   PART',  & 
 !           tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-end subroutine
+end subroutine 
+

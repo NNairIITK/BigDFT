@@ -175,9 +175,9 @@ program BigDFT
 501 continue
 
 !!  write all the wavefunctions into files
-   call  writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,  & 
-           nat,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
-   write(*,*) iproc,' finished writing waves of relaxed geometry'
+!  call  writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,  & 
+!       nat,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
+!  write(*,*) iproc,' finished writing waves of relaxed geometry'
 
   deallocate(psi, eval, keyg, keyv)
   deallocate(rxyz,rxyz_old,iatype,fxyz)

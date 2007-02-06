@@ -58,7 +58,7 @@ lMPI =
 endif
 
 if USE_OPTI_CONVOLUT
-convolution_source = convolut_optim_omp.f90 \
+convolution_source = convolut_optim.f90 \
 	standconv_optim.f90
 else
 convolution_source = convolut_simple.f90 \
