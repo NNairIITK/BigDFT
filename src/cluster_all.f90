@@ -199,6 +199,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   read(1,*) cpmult
   read(1,*) fpmult
   if (fpmult.gt.frmult) write(*,*) 'NONSENSE: fpmult > frmult'
+  read(1,*) ixc
   read(1,*) gnrm_cv
   read(1,*) itermax
   read(1,*) ncong
@@ -214,6 +215,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      write(*,*) 'frmult=',frmult
      write(*,*) 'cpmult=',cpmult
      write(*,*) 'fpmult=',fpmult
+     write(*,*) 'ixc=',ixc
      write(*,*) 'gnrm_cv=',gnrm_cv
      write(*,*) 'itermax=',itermax
      write(*,*) 'ncong=',ncong
@@ -407,7 +409,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           nat,norb,norbp,n1,n2,n3,nfft1,nfft2,nfft3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
           rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-          atomnames,ntypes,iatype,pkernel,psppar,npspcode,psi,eval,accurex)
+          atomnames,ntypes,iatype,pkernel,psppar,npspcode,ixc,psi,eval,accurex)
      if (iproc.eq.0) then
         write(*,*) 'expected accuracy in total energy due to grid size',accurex
         write(*,*) 'suggested value for gnrm_cv ',accurex
@@ -461,7 +463,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot)
 
 !     ixc=12   ! PBE functional
-     ixc=1   ! LDA functional
+!     ixc=1   ! LDA functional
      if (parallel) then
         call ParPSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,ixc, & 
              pot_ion,rhopot,ehart,eexcu,vexcu,iproc,nproc)
@@ -3990,7 +3992,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nat,norb,norbp,n1,n2,n3,nfft1,nfft2,nfft3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
      rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-     atomnames,ntypes,iatype,pkernel,psppar,npspcode,ppsi,eval,accurex)
+     atomnames,ntypes,iatype,pkernel,psppar,npspcode,ixc,ppsi,eval,accurex)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors writes its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -4001,6 +4003,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   parameter(eps_mach=1.d-12)
   parameter (ngx=31)
   parameter (npsp=15)
+  integer :: ixc !Exchange-correlation parameter
   dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
   dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
   dimension  xp(ngx,15),psiat(ngx,3,15),occupat(3,15),ng(15),ns(15),np(15),psiatn(ngx)
@@ -4044,7 +4047,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 ! resulting charge density and potential
        call sumrho(parallel,iproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
                    nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot)
-      ixc=1   ! LDA functional
+!      ixc=1   ! LDA functional
       if (parallel) then
           call ParPSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,ixc, &
                pot_ion,rhopot,ehart,eexcu,vexcu,iproc,nproc)
