@@ -7,6 +7,7 @@
  frmult= 8.
  cpmult= 8.
  fpmult= 8.
+ ixc= 1
  gnrm_cv= 0.0001
  itermax= 50
  ncong= 15
@@ -156,7 +157,7 @@ FINAL iter,total energy,gnrm    11  -4.448403758150E-01  4.16E-05
  eval( 1 )= -0.23059754488264833
  opening wavefunction.0001                                 
  1 th wavefunction written
-                        WRITE WAVES TIME   0  0.960E-01  0.930E-01
+                        WRITE WAVES TIME   0  0.920E-01  0.131E+00
  0  finished writing waves
  calculation of forces
  Total charge from routine chargedens 0.9999999871605357 0
@@ -180,7 +181,7 @@ BIG:iorb,ekin,epot,eproj,gnrm  1  0.42746469987020E+00 -0.65806224475274E+00  0.
 BIG:iorb,ekin,epot,eproj,gnrm  1  0.42262438029584E+00 -0.65384337424984E+00  0.00000000000000E+00  0.181E-02
  total energy with tail correction -0.445461824972623
  ekin,epot,eproj with tail correction 0.42262438029584226 -0.6538433742498431 0.
-iproc, elapsed, CPU time     0        59.12        49.60
+iproc, elapsed, CPU time     0        51.46        49.86
 fxyz   1 -0.4258996E-03 -0.4258996E-03 -0.4258996E-03
 ANALYSIS OF FORCES energy, beta -0.44546182497262E+00  0.315E+01
 the norm of the forces is  0.7377E-03  0.7377E-03  0.4259E-03

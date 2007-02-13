@@ -8,6 +8,7 @@
  frmult= 8.
  cpmult= 8.
  fpmult= 8.
+ ixc= 1
  gnrm_cv= 0.0001
  itermax= 50
  ncong= 15
@@ -40,6 +41,8 @@ simulation cell  0.17100E+02  0.17100E+02  0.17100E+02
  orbitals have fine   segment, elements 243 20615
  norbp= 4
  iproc  0  treats  4  orbitals 
+            words for psidst and hpsidst   2523216
+ allocation done
  +++++++++++++++++++++++++++++++++++++++++++ iat= 1
  projector descriptors for atom with mproj  1 5
  mseg,mvctr,coarse projectors  243 2945
@@ -49,6 +52,8 @@ simulation cell  0.17100E+02  0.17100E+02  0.17100E+02
  +++++++++++++++++++++++++++++++++++++++++++ iat= 4
  +++++++++++++++++++++++++++++++++++++++++++ iat= 5
  total number of projectors 5
+                         words for proj     117800
+ allocation done
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 projector: iat,atomname,gau_a,lx,ly,lz,err  1 Si_lda               0.424E+00 0 0 0
@@ -59,8 +64,12 @@ projector: iat,atomname,gau_a,lx,ly,lz,err  1 Si_lda               0.485E+00 1 0
 projector: iat,atomname,gau_a,lx,ly,lz,err  1 Si_lda               0.485E+00 0 1 0
 projector: iat,atomname,gau_a,lx,ly,lz,err  1 Si_lda               0.485E+00 0 0 1
  Size of real space grids 107 107 107
+           words for rhopot and pot_ion    2450086
+ allocation done
  dimension of FFT grid 216 216 216
  dimension of kernel 109 109 109
+                       words for kernel    1295029
+ allocation done
  Build the kernel using a sum of 89 gaussians
  Do a 3D HalFFT for the kernel
 total ionic charge,leaked charge: -0.80000010695536E+01  0.000E+00
@@ -72,6 +81,8 @@ total ionic charge,leaked charge: -0.80000010695536E+01  0.000E+00
  found input wavefunction data for  4 H_lda               
  found input wavefunction data for  5 H_lda               
  number of orbitals used in the construction of input guess  8
+                words for (h)psi inguess    841072
+ allocation done
  iproc  0  treats  8  inguess orbitals 
          valence s, ATOMIC INPUT ORBITAL iorb,norm   1  0.9999949E+00
         valence px, ATOMIC INPUT ORBITAL iorb,norm   2  0.9997484E+00
@@ -82,30 +93,30 @@ total ionic charge,leaked charge: -0.80000010695536E+01  0.000E+00
               H, s, ATOMIC INPUT ORBITAL iorb,norm   7  0.9999994E+00
               H, s, ATOMIC INPUT ORBITAL iorb,norm   8  0.9999994E+00
  Total charge from routine chargedens 7.999999894086275 0
- the xc energies are -2.5915123767801553 -3.3838019089633966 hartree 11.2509145583936
- ekin_sum,eks 5.054899372018009 5.052572373354114
+ the xc energies are -2.5915123767801544 -3.3838019089633966 hartree 11.250914558393603
+ ekin_sum,eks 5.054899372018031 5.052572373354114
  evale( 1 )= -0.4954283389106877
- evale( 2 )= -0.2919436141239289
+ evale( 2 )= -0.2919436141239287
  evale( 3 )= -0.29194361412392855
  evale( 4 )= -0.2919020017153351
  evale( 5 )= 0.22611156924076173
- evale( 6 )= 0.22611156924076253
- evale( 7 )= 0.22624197950480962
+ evale( 6 )= 0.2261115692407624
+ evale( 7 )= 0.22624197950480965
  evale( 8 )= 0.2930106250556299
- expected accuracy in total energy due to grid size 0.0023269986638947415
- suggested value for gnrm_cv  0.0023269986638947415
+ expected accuracy in total energy due to grid size 0.002326998663916946
+ suggested value for gnrm_cv  0.002326998663916946
  input wavefunction has been calculated
  -------------------------------------- iter=  1
- Total charge from routine chargedens 7.999999962143608 0
- the xc energies are -2.414873439718576 -3.1510470032459246 hartree 11.079332366851602
+ Total charge from routine chargedens 7.999999962143609 0
+ the xc energies are -2.4148734397185767 -3.1510470032459246 hartree 11.079332366851602
  DIIS weights
   0.10E+01  0.10E+01
 ekin_sum,epot_sum,eproj_sum  0.34985457133E+01 -0.72257080466E+01  0.90564173022E+00
 ehart,eexcu,vexcu  0.11079332367E+02 -0.24148734397E+01 -0.31510470032E+01
 iter,total energy,gnrm     1  -0.615299752337E+01  0.14E+00
  -------------------------------------- iter=  2
- Total charge from routine chargedens 7.999999942793182 0
- the xc energies are -2.4373658355530328 -3.1807309829423547 hartree 11.05887242789064
+ Total charge from routine chargedens 7.999999942793183 0
+ the xc energies are -2.4373658355530323 -3.1807309829423547 hartree 11.058872427890645
  DIIS weights
  -0.43E+00  0.14E+01 -0.23E-02
 ekin_sum,epot_sum,eproj_sum  0.35727772296E+01 -0.72994603160E+01  0.81616163578E+00
@@ -113,23 +124,23 @@ ehart,eexcu,vexcu  0.11058872428E+02 -0.24373658356E+01 -0.31807309829E+01
 iter,total energy,gnrm     2  -0.621434684800E+01  0.57E-01
  -------------------------------------- iter=  3
  Total charge from routine chargedens 7.99999992588221 0
- the xc energies are -2.4710475655511805 -3.225092021243378 hartree 11.120135494204263
+ the xc energies are -2.471047565551181 -3.225092021243379 hartree 11.120135494204266
  DIIS weights
  -0.27E-02 -0.25E+00  0.13E+01 -0.18E-03
 ekin_sum,epot_sum,eproj_sum  0.36940731163E+01 -0.73609587626E+01  0.79123537033E+00
 ehart,eexcu,vexcu  0.11120135494E+02 -0.24710475656E+01 -0.32250920212E+01
 iter,total energy,gnrm     3  -0.623005943136E+01  0.26E-01
  -------------------------------------- iter=  4
- Total charge from routine chargedens 7.9999999234300105 0
- the xc energies are -2.4788133930529814 -3.235329240406863 hartree 11.12734507557319
+ Total charge from routine chargedens 7.999999923430011 0
+ the xc energies are -2.4788133930529828 -3.2353292404068617 hartree 11.127345075573187
  DIIS weights
   0.19E-01 -0.62E-02 -0.78E+00  0.18E+01 -0.10E-04
 ekin_sum,epot_sum,eproj_sum  0.37257567547E+01 -0.73769848388E+01  0.77766230119E+00
 ehart,eexcu,vexcu  0.11127345076E+02 -0.24788133931E+01 -0.32353292404E+01
 iter,total energy,gnrm     4  -0.623271312804E+01  0.13E-01
  -------------------------------------- iter=  5
- Total charge from routine chargedens 7.999999922134598 0
- the xc energies are -2.4836225624218824 -3.2416656304164473 hartree 11.134348679524006
+ Total charge from routine chargedens 7.999999922134597 0
+ the xc energies are -2.483622562421882 -3.24166563041645 hartree 11.134348679524006
  DIIS weights
  -0.91E-02  0.18E-01  0.23E+00 -0.73E+00  0.15E+01 -0.87E-06
 ekin_sum,epot_sum,eproj_sum  0.37465468382E+01 -0.73848834964E+01  0.76946752391E+00
@@ -137,31 +148,31 @@ ehart,eexcu,vexcu  0.11134348680E+02 -0.24836225624E+01 -0.32416656304E+01
 iter,total energy,gnrm     5  -0.623349286272E+01  0.43E-02
  -------------------------------------- iter=  6
  Total charge from routine chargedens 7.999999922824997 0
- the xc energies are -2.4838072991788516 -3.2419085985354545 hartree 11.134818982063393
+ the xc energies are -2.4838072991788525 -3.2419085985354545 hartree 11.134818982063377
  DIIS weights
   0.30E-03  0.32E-03 -0.14E-01  0.90E-01 -0.49E+00  0.14E+01 -0.11E-06
 ekin_sum,epot_sum,eproj_sum  0.37482874531E+01 -0.73845017700E+01  0.76771369169E+00
 ehart,eexcu,vexcu  0.11134818982E+02 -0.24838072992E+01 -0.32419085985E+01
 iter,total energy,gnrm     6  -0.623353642487E+01  0.12E-02
  -------------------------------------- iter=  7
- Total charge from routine chargedens 7.9999999229631795 0
- the xc energies are -2.483585691229407 -3.2416167735790915 hartree 11.134529559599091
+ Total charge from routine chargedens 7.999999922963179 0
+ the xc energies are -2.483585691229397 -3.2416167735790866 hartree 11.134529559599088
  DIIS weights
  -0.10E-02  0.72E-03 -0.62E-02  0.71E-01 -0.44E+00  0.14E+01 -0.24E-07
 ekin_sum,epot_sum,eproj_sum  0.37480073092E+01 -0.73839908657E+01  0.76726050439E+00
 ehart,eexcu,vexcu  0.11134529560E+02 -0.24835856912E+01 -0.32416167736E+01
 iter,total energy,gnrm     7  -0.623353964635E+01  0.52E-03
  -------------------------------------- iter=  8
- Total charge from routine chargedens 7.999999922954843 0
- the xc energies are -2.4835908697629274 -3.241623602479798 hartree 11.134602502737188
+ Total charge from routine chargedens 7.999999922954842 0
+ the xc energies are -2.483590869762925 -3.241623602479794 hartree 11.134602502737177
  DIIS weights
  -0.29E-02  0.85E-02 -0.48E-02  0.50E-01 -0.62E+00  0.16E+01 -0.75E-08
 ekin_sum,epot_sum,eproj_sum  0.37483561838E+01 -0.73838691983E+01  0.76686062159E+00
 ehart,eexcu,vexcu  0.11134602503E+02 -0.24835908698E+01 -0.32416236025E+01
 iter,total energy,gnrm     8  -0.623354027993E+01  0.34E-03
  -------------------------------------- iter=  9
- Total charge from routine chargedens 7.999999922942073 0
- the xc energies are -2.4835988344400826 -3.2416340940409123 hartree 11.134594649512714
+ Total charge from routine chargedens 7.999999922942072 0
+ the xc energies are -2.4835988344400834 -3.241634094040906 hartree 11.134594649512714
  DIIS weights
   0.26E-02 -0.22E-01  0.53E-01  0.12E+00 -0.12E+01  0.21E+01 -0.79E-09
 ekin_sum,epot_sum,eproj_sum  0.37486394754E+01 -0.73837677200E+01  0.76646518069E+00
@@ -169,7 +180,7 @@ ehart,eexcu,vexcu  0.11134594650E+02 -0.24835988344E+01 -0.32416340940E+01
 iter,total energy,gnrm     9  -0.623354057080E+01  0.20E-03
  -------------------------------------- iter=  10
  Total charge from routine chargedens 7.999999922942046 0
- the xc energies are -2.4836059234387107 -3.241643405253285 hartree 11.1345982033032
+ the xc energies are -2.483605923438708 -3.241643405253285 hartree 11.134598203303195
  DIIS weights
   0.73E-04 -0.58E-02 -0.23E-01  0.39E+00 -0.95E+00  0.16E+01 -0.20E-09
 ekin_sum,epot_sum,eproj_sum  0.37489067162E+01 -0.73836603023E+01  0.76609172810E+00
@@ -180,13 +191,13 @@ iproc,ehart,eexcu,vexcu  0  1.11345982033E+01 -2.48360592344E+00 -3.24164340525E
 final ekin_sum,epot_sum,eproj_sum  3.74890671622E+00 -7.38366030227E+00  7.66091728102E-01
 final ehart,eexcu,vexcu  1.11345982033E+01 -2.48360592344E+00 -3.24164340525E+00
 FINAL iter,total energy,gnrm    11  -6.233540696353E+00  6.46E-05
- Total charge from routine chargedens 7.999999922945209 0
- the xc energies are -2.4836053833594773 -3.2416426815646076 hartree 11.134606592326286
+ Total charge from routine chargedens 7.99999992294521 0
+ the xc energies are -2.483605383359471 -3.241642681564619 hartree 11.134606592326238
  11  minimization iterations required
- eval( 1 )= -0.4964203375730843
- eval( 2 )= -0.3126361539118485
- eval( 3 )= -0.3126361539118484
- eval( 4 )= -0.31263400308145955
+ eval( 1 )= -0.496420337573084
+ eval( 2 )= -0.3126361539118482
+ eval( 3 )= -0.3126361539118481
+ eval( 4 )= -0.3126340030814593
  opening wavefunction.0001                                 
  1 th wavefunction written
  opening wavefunction.0002                                 
@@ -195,11 +206,11 @@ FINAL iter,total energy,gnrm    11  -6.233540696353E+00  6.46E-05
  3 th wavefunction written
  opening wavefunction.0004                                 
  4 th wavefunction written
-                        WRITE WAVES TIME   0  0.123E+01  0.154E+01
+                        WRITE WAVES TIME   0  0.113E+01  0.129E+01
  0  finished writing waves
  calculation of forces
- Total charge from routine chargedens 7.999999922945209 0
- The hartree energy is 11.134606592326286
+ Total charge from routine chargedens 7.999999922945211 0
+ The hartree energy is 11.134606592326238
  electronic potential calculated
  0  calculates local force on atom  1
  0  calculates local force on atom  2
@@ -216,48 +227,40 @@ BIG: simulation cell  0.27000E+02  0.27000E+02  0.27000E+02
  BIG:nfl3,nfu3  22 38
  BIG:orbitals have coarse segment, elements 2947 121806
  BIG:orbitals have fine   segment, elements 243 20615
+               words for psib and hpsib     284842
+ allocation done
 BIG:iorb,ekin,epot,eproj,gnrm  1  0.32369128307755E+00 -0.99803315715429E+00  0.17792153650385E+00  0.544E-02
  norm orbital + tail 1 1.000023712775716
 BIG:iorb,ekin,epot,eproj,gnrm  1  0.32364880531379E+00 -0.99798069333298E+00  0.17790527247368E+00  0.574E-04
-BIG:iorb,ekin,epot,eproj,gnrm  2  0.51696118616993E+00 -0.89795301919787E+00  0.68355679116282E-01  0.141E-01
- norm orbital + tail 2 1.0002613443970587
-BIG:iorb,ekin,epot,eproj,gnrm  2  0.51650199879235E+00 -0.89751045828394E+00  0.68320156441253E-01  0.303E-03
-BIG:iorb,ekin,epot,eproj,gnrm  3  0.51696118616993E+00 -0.89795301919788E+00  0.68355679116282E-01  0.141E-01
- norm orbital + tail 3 1.0002613443970645
-BIG:iorb,ekin,epot,eproj,gnrm  3  0.51650199879234E+00 -0.89751045828392E+00  0.68320156441253E-01  0.303E-03
-BIG:iorb,ekin,epot,eproj,gnrm  4  0.51687740779785E+00 -0.89786761466277E+00  0.68356203783590E-01  0.137E-01
+BIG:iorb,ekin,epot,eproj,gnrm  2  0.51696118616993E+00 -0.89795301919785E+00  0.68355679116282E-01  0.141E-01
+ norm orbital + tail 2 1.0002613443970614
+BIG:iorb,ekin,epot,eproj,gnrm  2  0.51650199879234E+00 -0.89751045828403E+00  0.68320156441253E-01  0.303E-03
+BIG:iorb,ekin,epot,eproj,gnrm  3  0.51696118616993E+00 -0.89795301919789E+00  0.68355679116282E-01  0.141E-01
+ norm orbital + tail 3 1.0002613443970618
+BIG:iorb,ekin,epot,eproj,gnrm  3  0.51650199879234E+00 -0.89751045828395E+00  0.68320156441253E-01  0.303E-03
+BIG:iorb,ekin,epot,eproj,gnrm  4  0.51687740779784E+00 -0.89786761466277E+00  0.68356203783590E-01  0.137E-01
  norm orbital + tail 4 1.000248551922845
-BIG:iorb,ekin,epot,eproj,gnrm  4  0.51644021475770E+00 -0.89744614855786E+00  0.68322430822276E-01  0.299E-03
- total energy with tail correction -6.2338608602867716
- ekin,epot,eproj with tail correction 3.746186035312355 -7.380895516917393 0.765736032356918
-iproc, elapsed, CPU time     0       136.82       135.78
+BIG:iorb,ekin,epot,eproj,gnrm  4  0.51644021475771E+00 -0.89744614855787E+00  0.68322430822276E-01  0.299E-03
+ total energy with tail correction -6.233860860286941
+ ekin,epot,eproj with tail correction 3.746186035312366 -7.380895516917638 0.7657360323569169
+iproc, elapsed, CPU time     0       143.36       141.14
 fxyz   1 -0.1086029E-04 -0.1086029E-04 -0.1086029E-04
 fxyz   2 -0.3414733E-03 -0.3414733E-03 -0.3414733E-03
 fxyz   3  0.6464699E-04  0.6464699E-04 -0.3763998E-03
 fxyz   4 -0.3763998E-03  0.6464699E-04  0.6464699E-04
 fxyz   5  0.6464699E-04 -0.3763998E-03  0.6464699E-04
-ANALYSIS OF FORCES energy, beta -0.62338608602868E+01  0.591E+01
+ANALYSIS OF FORCES energy, beta -0.62338608602869E+01  0.315E+01
 the norm of the forces is  0.8946E-03  0.4001E-03  0.2310E-03
- fluct 0.0000010779827132914562
- stop comparison 8.002716366369246E-7 8.034808751631206E-7
+ fluct 0.000001077982713289881
+ stop comparison 8.002716366371025E-7 8.034808751619465E-7
  the sum of the forces is
      x direction    -0.59943938E-03
      y direction    -0.59943938E-03
      z direction    -0.59943938E-03
  Final positions
-  0.8569396E+01  0.8569396E+01  0.8569396E+01  Si_lda              
-  0.1018744E+02  0.1018744E+02  0.1018744E+02  H_lda               
-  0.6949842E+01  0.6949842E+01  0.1018724E+02  H_lda               
-  0.1018724E+02  0.6949842E+01  0.6949842E+01  H_lda               
-  0.6949842E+01  0.1018724E+02  0.6949842E+01  H_lda               
+  0.8569426E+01  0.8569426E+01  0.8569426E+01  Si_lda              
+  0.1018838E+02  0.1018838E+02  0.1018838E+02  H_lda               
+  0.6949664E+01  0.6949664E+01  0.1018827E+02  H_lda               
+  0.1018827E+02  0.6949664E+01  0.6949664E+01  H_lda               
+  0.6949664E+01  0.1018827E+02  0.6949664E+01  H_lda               
  No better convergence possible
- opening wavefunction.0001                                 
- 1 th wavefunction written
- opening wavefunction.0002                                 
- 2 th wavefunction written
- opening wavefunction.0003                                 
- 3 th wavefunction written
- opening wavefunction.0004                                 
- 4 th wavefunction written
-                        WRITE WAVES TIME   0  0.104E+01  0.103E+01
- 0  finished writing waves of relaxed geometry
