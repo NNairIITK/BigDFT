@@ -124,7 +124,7 @@ subroutine PARtest_kernel(n01,n02,n03,nfft1,nfft2,nfft3,&
 end subroutine PARtest_kernel
 !!***
 
-!!****f* BigDFT/calculate_pardimensions
+!!****h* BigDFT/calculate_pardimensions
 !! NAME
 !!   calculate_pardimensions
 !!
@@ -231,7 +231,7 @@ end subroutine calculate_pardimensions
 !!***
 
 
-!!****f* BigDFT/ParPSolver_Kernel
+!!****h* BigDFT/ParPSolver_Kernel
 !! NAME
 !!   ParPSolver_Kernel
 !!
@@ -281,6 +281,7 @@ subroutine ParPSolver_Kernel(n01,n02,n03,nd1,nd2,nd3, &
  real*8, intent(out) :: ehartree,eexcu,vexcu
  !Local variables
  integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3
+     
 
  call calculate_pardimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
 
@@ -304,7 +305,7 @@ end subroutine ParPSolver_Kernel
 !!***
 
 
-!!****f* BigDFT/pconvxc_on
+!!****h* BigDFT/pconvxc_on
 !! NAME
 !!   pconvxc_on
 !!
@@ -391,6 +392,7 @@ subroutine pconvxc_on(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
  !             xcdim+wbl+wbr-2 = wbdim
  !             wbdim+leftadd+rightadd = gradim
 
+ call timing(iproc,'Exchangecorr  ','ON')
 
  istart=iproc*(md2/nproc)
  iend=min((iproc+1)*md2/nproc,m2)
@@ -456,6 +458,7 @@ subroutine pconvxc_on(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
     eexcuLOC=0.d0
     vexcuLOC=0.d0
  end if
+ call timing(iproc,'Exchangecorr  ','OF')
 
  !this routine builds the values for each process of the potential (zf), multiplying by the factor
  !in the parallel case the array zfpot_ion is the sum of the ionic and vxc potential
@@ -466,8 +469,9 @@ subroutine pconvxc_on(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
 
  !evaluating the total ehartree,eexcu,vexcu
  if (nproc.gt.1) then
-    call cpu_time(t0)
-    call system_clock(count1,count_rate,count_max)
+      !call cpu_time(t0)
+      !call system_clock(count1,count_rate,count_max)
+     call timing(iproc,'PSolv_commun  ','ON')
     arr_mpi(1)=ehartreeLOC
     arr_mpi(2)=eexcuLOC
     arr_mpi(3)=vexcuLOC
@@ -476,11 +480,12 @@ subroutine pconvxc_on(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
     ehartree=arr_mpi(4)
     eexcu=arr_mpi(5)
     vexcu=arr_mpi(6)
-    call cpu_time(t1)
-    call system_clock(count2,count_rate,count_max)
-    tel=dble(count2-count1)/dble(count_rate)
-    !write(78,*) 'PSOLVER: ALLREDUCE TIME',iproc,t1-t0,tel
-    !write(78,*) '----------------------------------------------'
+    call timing(iproc,'PSolv_commun  ','OF')
+      !call cpu_time(t1)
+      !call system_clock(count2,count_rate,count_max)
+      !tel=dble(count2-count1)/dble(count_rate)
+      !write(78,*) 'PSOLVER: ALLREDUCE TIME',iproc,t1-t0,tel
+      !write(78,*) '----------------------------------------------'
  else
     ehartree=ehartreeLOC
     eexcu=eexcuLOC
@@ -489,6 +494,7 @@ subroutine pconvxc_on(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
 
  deallocate(arr_mpi)
 
+ call timing(iproc,'PSolv_comput  ','ON')
  !building the array of the data to be sent from each process
  !and the array of the displacement
  do jproc=0,nproc-1
@@ -502,18 +508,22 @@ subroutine pconvxc_on(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
  istart=min(iproc*(md2/nproc),m2-1)
  jend=max(min(md2/nproc,m2-md2/nproc*iproc),0)
  iend=istart+jend
- rhopot(:,:,istart+1:iend) = zf(1:m1,1:m3,1:jend)
+ rhopot(:,:,istart+1:iend)=&
+      zf(1:m1,1:m3,1:jend)
+ call timing(iproc,'PSolv_comput  ','OF')
 
  !gather all the results in the same rhopot array
- call cpu_time(t0)
- call system_clock(count1,count_rate,count_max)
+      !call cpu_time(t0)
+      !call system_clock(count1,count_rate,count_max)
+ call timing(iproc,'PSolv_commun  ','ON')
  call MPI_ALLGATHERV(rhopot(1,1,istart+1),gather_arr(iproc,1),MPI_double_precision,rhopot,gather_arr(:,1),&
       gather_arr(:,2),MPI_double_precision,MPI_COMM_WORLD,ierr)
- call cpu_time(t1)
- call system_clock(count2,count_rate,count_max)
- tel=dble(count2-count1)/dble(count_rate)
- !write(78,*) 'PSolver: ALLGATHERV TIME',iproc,t1-t0,tel
- !write(78,*) '----------------------------------------------'
+ call timing(iproc,'PSolv_commun  ','OF')
+      !call cpu_time(t1)
+      !call system_clock(count2,count_rate,count_max)
+      !tel=dble(count2-count1)/dble(count_rate)
+      !write(78,*) 'PSolver: ALLGATHERV TIME',iproc,t1-t0,tel
+      !write(78,*) '----------------------------------------------'
 
  deallocate(zf,gather_arr)
 
@@ -521,7 +531,7 @@ end subroutine pconvxc_on
 !!***
 
 
-!!****f* BigDFT/pconvxc_off
+!!****h* BigDFT/pconvxc_off
 !! NAME
 !!   pconvxc_off
 !!
@@ -594,19 +604,21 @@ subroutine pconvxc_off(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
 
  !evaluating the total ehartree
  if (nproc.gt.1) then
-    call cpu_time(t0)
-    call system_clock(count1,count_rate,count_max)
+      !call cpu_time(t0)
+      !call system_clock(count1,count_rate,count_max)
+      call timing(iproc,'PSolv_commun  ','ON')
     call MPI_ALLREDUCE(ehartreeLOC,ehartree,1,MPI_double_precision,  &
          MPI_SUM,MPI_COMM_WORLD,ierr)
-    call cpu_time(t1)
-    call system_clock(count2,count_rate,count_max)
-    tel=dble(count2-count1)/dble(count_rate)
-    !write(78,*) 'PSolver: ALLREDUCE TIME',iproc,t1-t0,tel
-    !write(78,*) '----------------------------------------------'
+    call timing(iproc,'PSolv_commun  ','OF')
+      !call cpu_time(t1)
+      !call system_clock(count2,count_rate,count_max)
+      !tel=dble(count2-count1)/dble(count_rate)
+      !write(78,*) 'PSolver: ALLREDUCE TIME',iproc,t1-t0,tel
+      !write(78,*) '----------------------------------------------'
  else
     ehartree=ehartreeLOC
  end if
-
+ call timing(iproc,'PSolv_comput  ','ON')
  !building the array of the data to be sent from each process
  !and the array of the displacement
  do jproc=0,nproc-1
@@ -622,15 +634,17 @@ subroutine pconvxc_off(m1,m2,m3,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,iproc,nproc,&
  iend=istart+jend
  rhopot(:,:,istart+1:iend)=&
       zf(1:m1,1:m3,1:jend)
-
+ call timing(iproc,'PSolv_comput  ','OF')
  !gather all the results in the same rhopot array
-      call cpu_time(t0)
-      call system_clock(count1,count_rate,count_max)
+      !call cpu_time(t0)
+      !call system_clock(count1,count_rate,count_max)
+ call timing(iproc,'PSolv_commun  ','ON')
  call MPI_ALLGATHERV(rhopot(1,1,istart+1),gather_arr(iproc,1),MPI_double_precision,rhopot,gather_arr(:,1),&
       gather_arr(:,2),MPI_double_precision,MPI_COMM_WORLD,ierr)
-      call cpu_time(t1)
-      call system_clock(count2,count_rate,count_max)
-      tel=dble(count2-count1)/dble(count_rate)
+ call timing(iproc,'PSolv_commun  ','OF')
+      !call cpu_time(t1)
+      !call system_clock(count2,count_rate,count_max)
+      !tel=dble(count2-count1)/dble(count_rate)
       !write(78,*) 'PSolver: ALLGATHERV TIME',iproc,t1-t0,tel
       !write(78,*) '----------------------------------------------'
 
@@ -640,7 +654,7 @@ end subroutine pconvxc_off
 !!***
 
 
-!!****f* BigDFT/enterdensity
+!!****h* BigDFT/enterdensity
 !! NAME
 !!   enterdensity
 !!
@@ -697,7 +711,7 @@ end subroutine enterdensity
 !!***
 
 
-!!****f* BigDFT/ParBuild_Kernel
+!!****h* BigDFT/ParBuild_Kernel
 !! NAME
 !!   ParBuild_Kernel
 !!
