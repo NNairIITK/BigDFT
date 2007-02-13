@@ -2,7 +2,7 @@
 
 !!!HERE POT MUST BE THE KERNEL (BEWARE THE HALF DIMENSION)
 
-!!****f* BigDFT/convolxc_on
+!!****h* BigDFT/convolxc_on
 !! NAME
 !!   convolxc_on
 !!
@@ -62,7 +62,7 @@ subroutine convolxc_on(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   real(kind=8), dimension(md1,md3,md2/nproc), intent(in) :: zfpot_ion
   !Local variables
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
-  integer :: j2,j3,i1,i3,i,j,inzee,ierr
+  integer :: j1,j2,j3,i1,i2,i3,i,j,inzee,ierr
   real(kind=8) :: ehartreetmp,eexcutmp,vexcutmp,twopion
   !work arrays for transpositions
   real(kind=8), dimension(:,:,:), allocatable :: zt
@@ -76,6 +76,8 @@ subroutine convolxc_on(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
        ftrig1,ftrig2,ftrig3,cosinarr
   integer, dimension(:), allocatable :: after1,now1,before1, & 
        after2,now2,before2,after3,now3,before3
+
+  call timing(iproc,'PSolv_comput  ','ON')
   
   !Body
   ! check input
@@ -178,11 +180,17 @@ subroutine convolxc_on(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   !Interprocessor data transposition
   !input: I1,J2,j3,jp3,(Jp2)
   if (nproc.gt.1) then
+     call timing(iproc,'PSolv_comput  ','OF')
+
+     call timing(iproc,'PSolv_commun  ','ON')
      !communication scheduling
      call MPI_ALLTOALL(zmpi2,n1*(md2/nproc)*(nd3/nproc), &
           MPI_double_precision, &
           zmpi1,n1*(md2/nproc)*(nd3/nproc), &
           MPI_double_precision,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'PSolv_commun  ','OF')
+
+     call timing(iproc,'PSolv_comput  ','ON')
   endif
   !output: I1,J2,j3,Jp2,(jp3)
 
@@ -321,11 +329,17 @@ subroutine convolxc_on(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   !Interprocessor data transposition
   !input: I1,J2,j3,Jp2,(jp3)
   if (nproc.gt.1) then
+     call timing(iproc,'PSolv_comput  ','OF')
+
+     call timing(iproc,'PSolv_commun  ','ON')
      !communication scheduling
      call MPI_ALLTOALL(zmpi1,n1*(md2/nproc)*(nd3/nproc), &
           MPI_double_precision, &
           zmpi2,n1*(md2/nproc)*(nd3/nproc), &
           MPI_double_precision,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'PSolv_commun  ','OF')
+
+     call timing(iproc,'PSolv_comput  ','ON')
      !output: I1,J2,j3,jp3,(Jp2)
   endif
 
@@ -373,11 +387,13 @@ subroutine convolxc_on(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
        btrig3,ftrig3,after3,now3,before3, &
        zmpi2,zw,zt,cosinarr)
   if (nproc.gt.1) deallocate(zmpi1)
-  
+
+
+  call timing(iproc,'PSolv_comput  ','OF')
 end subroutine convolxc_on
 
 
-!!****f* BigDFT/convolxc_off
+!!****h* BigDFT/convolxc_off
 !! NAME
 !!   convolxc_off
 !!
@@ -449,6 +465,8 @@ subroutine convolxc_off(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   integer, dimension(:), allocatable :: after1,now1,before1, & 
        after2,now2,before2,after3,now3,before3
   
+  call timing(iproc,'PSolv_comput  ','ON')
+
   !Body
   ! check input
   if (mod(n1,2).ne.0) stop 'Parallel convolution:ERROR:n1'
@@ -550,11 +568,17 @@ subroutine convolxc_off(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   !Interprocessor data transposition
   !input: I1,J2,j3,jp3,(Jp2)
   if (nproc.gt.1) then
+     call timing(iproc,'PSolv_comput  ','OF')
+
+     call timing(iproc,'PSolv_commun  ','ON')
      !communication scheduling
      call MPI_ALLTOALL(zmpi2,n1*(md2/nproc)*(nd3/nproc), &
           MPI_double_precision, &
           zmpi1,n1*(md2/nproc)*(nd3/nproc), &
           MPI_double_precision,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'PSolv_commun  ','OF')
+
+     call timing(iproc,'PSolv_comput  ','ON')
   endif
   !output: I1,J2,j3,Jp2,(jp3)
 
@@ -693,11 +717,17 @@ subroutine convolxc_off(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   !Interprocessor data transposition
   !input: I1,J2,j3,Jp2,(jp3)
   if (nproc.gt.1) then
+     call timing(iproc,'PSolv_comput  ','OF')
+     
+     call timing(iproc,'PSolv_commun  ','ON')
      !communication scheduling
      call MPI_ALLTOALL(zmpi1,n1*(md2/nproc)*(nd3/nproc), &
           MPI_double_precision, &
           zmpi2,n1*(md2/nproc)*(nd3/nproc), &
           MPI_double_precision,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'PSolv_commun  ','OF')
+
+     call timing(iproc,'PSolv_comput  ','ON')     
      !output: I1,J2,j3,jp3,(Jp2)
   endif
 
@@ -744,10 +774,12 @@ subroutine convolxc_off(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
        zmpi2,zw,zt,cosinarr)
   if (nproc.gt.1) deallocate(zmpi1)
   
+  call timing(iproc,'PSolv_comput  ','OF')
+
 end subroutine convolxc_off
 
 
-!!****f* BigDFT/multkernel
+!!****h* BigDFT/multkernel
 !! NAME
 !!   multkernel
 !!
@@ -897,7 +929,7 @@ end subroutine multkernel
 	end
 
 
-!!****f* BigDFT/scramble_unpack
+!!****h* BigDFT/scramble_unpack
 !! NAME
 !!   scramble_unpack
 !!
@@ -978,7 +1010,7 @@ subroutine scramble_unpack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2,cosinarr)
 end subroutine scramble_unpack
 
  
-!!****f* BigDFT/unscramble_pack
+!!****h* BigDFT/unscramble_pack
 !! NAME
 !!   unscramble_pack
 !!
@@ -1092,7 +1124,7 @@ end subroutine unscramble_pack
 	end
 
 
-!!****f* BigDFT/unfill_downcorn
+!!****h* BigDFT/unfill_downcorn
 !! NAME
 !!   unfill_downcorn
 !!
@@ -1158,7 +1190,7 @@ subroutine unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
   
 end subroutine unfill_downcorn
 
-!!****f* BigDFT/unfill_downcornxc_on
+!!****h* BigDFT/unfill_downcornxc_on
 !! NAME
 !!   unfill_downcornxc_on
 !!
@@ -1237,7 +1269,7 @@ end subroutine unfill_downcornxc_on
 !!***
 
 
-!!$!!****f* BigDFT/unfill_downcornxc_on
+!!$!!****h* BigDFT/unfill_downcornxc_on
 !!$!! NAME
 !!$!!   unfill_downcornxc_on
 !!$!!
@@ -1397,7 +1429,7 @@ end subroutine unfill_downcornxc_on
 
 
 ! FFT PART RELATED TO THE KERNEL -----------------------------------------------------------------
-!!****f* BigDFT/kernelfft
+!!****h* BigDFT/kernelfft
 !! NAME
 !!   kernelfft
 !!
