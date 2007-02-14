@@ -3805,7 +3805,7 @@ END SUBROUTINE calc_coeff_inguess
 
 subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
      & nl, psppar, npspcode, norbe, atomnames, ntypes, iatype, nat)
- ! character(len = *), intent(in) :: filename
+! character(len = *), intent(in) :: filename
   integer, parameter :: npsp=15
   integer, intent(in) :: ngx, iproc, ntypes
   real*8, intent(in) :: psppar(0:4,0:4,ntypes)
@@ -3818,35 +3818,42 @@ subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
   integer, intent(in) :: iatype(nat)
 
   character(len = 20) :: pspatomname
-
-
+  logical :: exists,found
   integer :: ity, i, j, l, ipsp, ifile, ng_fake
 
-  ! Read the data file.
+! Read the data file.
   nl(1:4,1:ntypes) = 0
   ng(1:ntypes) = 0
   xp(1:ngx,1:ntypes) = 0.d0
   psiat(1:ngx,1:5,1:ntypes) = 0.d0
   occupat(1:5,1:ntypes)= 0.d0
-  open(unit=24,file='inguess.dat',form='formatted',status='unknown')
+
+! Test if the file 'inguess.dat exists
+  inquire(file='inguess.dat',exist=exists)
+  if (exists) then
+     open(unit=24,file='inguess.dat',form='formatted',action='read',status='old')
+  end if
 
   loop_assign: do ity=1,ntypes
 
-     rewind(24)
+     if (exists) then
+        rewind(24)
+     end if
+     found = .false.
 
      loop_find: do ifile=1,npsp
-33      format(30(e12.5))
-19      format(a)
-        read(24,19) pspatomname
+        if (.not.exists) then
+!          The file 'inguess.dat' does not exist: automatic generation
+           exit loop_find
+        end if
+        read(24,'(a)') pspatomname
 
         if (pspatomname .eq. atomnames(ity)) then
-
            if (iproc.eq.0) then
               write(*,*) 'input wavefunction data for atom ',atomnames(ity),&
                    '    found'
            end if
-
-
+           found = .true.
            read(24,*) nl(1,ity),(occupat(i,ity),i=1,nl(1,ity)),  &
                 nl(2,ity),(occupat(i,ity),i=1+nl(1,ity),nl(2,ity)+nl(1,ity)) ,&
                 nl(3,ity),(occupat(i,ity),i=1+nl(2,ity)+nl(1,ity),nl(3,ity)+nl(2,ity)+nl(1,ity)) ,&
@@ -3861,7 +3868,8 @@ subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
            read(24,*) ng(ity)
            !print *, pspatomnames(ity),(nl(l,ity),l=1,4),ng(ity),ngx,npsp
            if (ng(ity).gt.ngx) stop 'enlarge ngx'
-           read(24,33) (xp(i,ity)  ,i=1,ng(ity))
+           !read(24,'(30(e12.5))') (xp(i,ity)  ,i=1,ng(ity))
+           read(24,*) (xp(i,ity)  ,i=1,ng(ity))
            do i=1,ng(ity) 
               read(24,*) (psiat(i,j,ity),j=1,nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity))
            enddo
@@ -3881,7 +3889,7 @@ subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
 
      enddo loop_find
 
-     if (ifile == npsp+1) then
+     if (.not.found) then
 
         if (iproc.eq.0) then
            write(*,*) 'input wavefunction data for atom ',atomnames(ity),&
@@ -3907,7 +3915,6 @@ subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
 !!$           write(*,*)(psiat(j,i,ity),i=1,nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity))
 !!$        end do
 !!$        print *,'--------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------'
-
 
      end if
 
@@ -5480,6 +5487,7 @@ subroutine iguess_generator(atomname,psppar,npspcode,ng,nl,nmax_occ,occupat,expo
   real(kind=8), dimension(:,:,:), allocatable :: psi
   real(kind=8), dimension(:,:,:,:), allocatable :: rmt
   integer, dimension(:,:), allocatable :: neleconf
+  logical :: exists
   integer :: n_abinitzatom,nelpsp,npspcode_t,npspxc,lpx,ncount
   integer :: nzatom,nvalelec,l,i,j,iocc,il,lwrite
   real(kind=8) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt
@@ -5523,9 +5531,9 @@ subroutine iguess_generator(atomname,psppar,npspcode,ng,nl,nmax_occ,occupat,expo
      ofdcoef(2,3)=0.5d0*sqrt(63.d0/143.d0) !h4
      ofdcoef(3,3)=-9.d0*sqrt(1.d0/143.d0) !h5
 
-     ofdcoef(1,4)=0.d0	!h2
-     ofdcoef(2,4)=0.d0	!h4
-     ofdcoef(3,4)=0.d0	!h5
+     ofdcoef(1,4)=0.d0 !h2
+     ofdcoef(2,4)=0.d0 !h4
+     ofdcoef(3,4)=0.d0 !h5
   end if
   !define the values of hsep starting from the pseudopotential file
   do l=1,lpx+1
@@ -5538,7 +5546,12 @@ subroutine iguess_generator(atomname,psppar,npspcode,ng,nl,nmax_occ,occupat,expo
   end do
 
   !now the treatment of the occupation number
-  open(unit=12,file='eleconf.dat',form='formatted',status='unknown')
+  inquire(file='eleconf.dat',exist=exists)
+  if (.not.exists) then
+     write(*,*) "The file 'eleconf.dat' does not exist!"
+     stop
+  end if
+  open(unit=12,file='eleconf.dat',form='formatted',action='read',status='old')
   do
      read(12,*)string,ncount
      read(12,*)symbol, nzatom, nvalelec
