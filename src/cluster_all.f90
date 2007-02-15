@@ -191,7 +191,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   ! Read the input variables.
   open(unit=1,file='input.dat',status='old')
   !First line for the main routine (the program)
-  read(1,*)
+  read(1,*) 
   !Parameters 
   read(1,*) hgrid
   read(1,*) crmult
@@ -3846,7 +3846,6 @@ subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
            exit loop_find
         end if
         read(24,'(a)',iostat=ierror) pspatomname
-        print *,ierror,pspatomname
         if (ierror /= 0) then
 !          Read error or end of file
            exit loop_find
@@ -5549,27 +5548,30 @@ subroutine iguess_generator(atomname,psppar,npspcode,ng,nl,nmax_occ,occupat,expo
      hsep(6,l)=psppar(l,3)
   end do
 
-  !now the treatment of the occupation number
-  inquire(file='eleconf.dat',exist=exists)
-  if (.not.exists) then
-     write(*,*) "The file 'eleconf.dat' does not exist!"
-     stop
-  end if
-  open(unit=12,file='eleconf.dat',form='formatted',action='read',status='old')
-  do
-     read(12,*)string,ncount
-     read(12,*)symbol, nzatom, nvalelec
-     read(12,*)rcov,rprb
-     read(12,*)
-     do lwrite=0,3
-        read(12,*)(neleconf(i,lwrite+1),i=1,6)
-     end do
-     if (ncount==128 .or. nzatom==n_abinitzatom .and.&
-          nvalelec==nelpsp) then
-        exit
-     end if
-  end do
-  close(unit=12)
+  !Now the treatment of the occupation number
+  nzatom=n_abinitzatom
+  nvalelec=nelpsp
+  call eleconf(nzatom,nvalelec,symbol,rcov,rprb,neleconf)
+!!  inquire(file='eleconf.dat',exist=exists)
+!!  if (.not.exists) then
+!!     write(*,*) "The file 'eleconf.dat' does not exist!"
+!!     stop
+!!  end if
+!!  open(unit=12,file='eleconf.dat',form='formatted',action='read',status='old')
+!!  do
+!!     read(12,*)string,ncount
+!!     read(12,*)symbol, nzatom, nvalelec
+!!     read(12,*)rcov,rprb
+!!     read(12,*)
+!!     do lwrite=0,3
+!!        read(12,*)(neleconf(i,lwrite+1),i=1,6)
+!!     end do
+!!     if (ncount==128 .or. nzatom==n_abinitzatom .and.&
+!!          nvalelec==nelpsp) then
+!!        exit
+!!     end if
+!!  end do
+!!  close(unit=12)
 
   occup(:,:)=0.d0
    do l=0,lmax
@@ -5701,7 +5703,6 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
            gml3=sqrt( gamma(l+5.5d0) / (2.d0*alps(l+1)**(2*l+11)) )&
                /((l+3.5d0)*(l+4.5d0))
            tt=1.d0/(2.d0*alps(l+1)**2)
-           print *,'tt',tt
            do i=0,ng
               ttt=1.d0/(xp(i)+tt)
               pp1(i,l+1)=gml1*(sqrt(ttt)**(2*l+3))

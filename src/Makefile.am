@@ -70,6 +70,7 @@ libbigdft_a_SOURCES = \
 	$(mpi_source) \
 	$(convolution_source) \
 	cluster_all.f90 \
+	eleconf.f90 \
 	standconv_test.f90 \
 	gauss_to_daub.f90 \
 	precond_sg.f90 \

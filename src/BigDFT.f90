@@ -89,7 +89,11 @@ program BigDFT
    close(unit=1)
 
    !ampl=0.d0!2.d-2  
-   if (iproc.eq.0) write(*,*) 'random displacemnt amplitude',ampl
+   if (iproc.eq.0) then
+      write(*,*) 'Number of geometry steps',ngeostep
+      write(*,*) 'Random displacement amplitude',ampl
+      write(*,*) 'Steepest descent step',betax
+   end if
    do iat=1,nat
      call random_number(tt)
      rxyz(1,iat)=rxyz(1,iat)+ampl*tt
