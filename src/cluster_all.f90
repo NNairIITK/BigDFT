@@ -3806,7 +3806,7 @@ END SUBROUTINE calc_coeff_inguess
 subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
      & nl, psppar, npspcode, norbe, atomnames, ntypes, iatype, nat)
  ! character(len = *), intent(in) :: filename
-  integer, parameter :: npsp=15
+  integer, parameter :: npsp=3
   integer, intent(in) :: ngx, iproc, ntypes
   real*8, intent(in) :: psppar(0:4,0:4,ntypes)
   integer, intent(in) :: npspcode(ntypes)
@@ -3891,12 +3891,12 @@ subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
         !the default value for the gaussians is chosen to be 21
         ng(ity)=21
         call iguess_generator(atomnames(ity),psppar(0,0,ity),npspcode(ity),&
-             ng(ity)-1,nl(1,ity),5,occupat(1,ity),xp(1,ity),psiat(1:ng(ity),1:5,ity))
+             ng(ity)-1,nl(1,ity),5,occupat(1:5,ity),xp(1:ng(ity),ity),psiat(1:ng(ity),1:5,ity))
 
 !values obtained from the input guess generator in iguess.dat format
 
 !!$        print *,'--------COPY THESE VALUES INSIDE inguess.dat--------'
-!!$        write(*,*)trim(atomnames(ity))//'_lda'
+!!$        write(*,*)trim(atomnames(ity))//' (remove _lda)'
 !!$        write(*,*)nl(1,ity),(occupat(i,ity),i=1,nl(1,ity)),&
 !!$             nl(2,ity),(occupat(i+nl(1,ity),ity),i=1,nl(2,ity)),&
 !!$             nl(3,ity),(occupat(i+nl(1,ity)+nl(2,ity),ity),i=1,nl(3,ity)),&
@@ -5633,7 +5633,7 @@ subroutine iguess_generator(atomname,psppar,npspcode,ng,nl,nmax_occ,occupat,expo
   end do
 
   i=0
-  do l=1,lpx+1
+  do l=1,4
      do iocc=1,nl(l)
         i=i+1
         occupat(i)=occup(iocc,l)
@@ -5652,10 +5652,11 @@ end subroutine iguess_generator
         
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
      zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
-     aeval,ngp,psi,res,chrg)
+     aeval,ng,psi,res,chrg)
   implicit real*8 (a-h,o-z)
-  parameter(ng=20,nint=100)
-  dimension psi(0:ngp,noccmax,lmax+1),aeval(noccmax,lmax+1),&
+  logical noproj
+  parameter(nint=100)
+  dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
        hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
        aux(2*ng+2),&
        gpot(3),hsep(6,lpx+1),rmt(nint,0:ng,0:ng,lmax+1),&
@@ -5665,7 +5666,6 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
        occup(noccmax,lmax+1),chrg(noccmax,lmax+1),&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
        res(noccmax,lmax+1),xp(0:ng)
-  if (ngp.ne.ng) stop 'ng><ngp'
   if (nintp.ne.nint) stop 'nint><nintp'
   
   do l=0,lmax
@@ -5673,21 +5673,34 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
   end do
   !write(6,*) 'lcx',lcx
   
-  ! projectors
-  do l=0,lpx
-     gml1=sqrt( gamma(l+1.5d0) / (2.d0*alps(l+1)**(2*l+3)) )
-     gml2=sqrt( gamma(l+3.5d0) / (2.d0*alps(l+1)**(2*l+7)) )&
-            /(l+2.5d0)
-     gml3=sqrt( gamma(l+5.5d0) / (2.d0*alps(l+1)**(2*l+11)) )&
-            /((l+3.5d0)*(l+4.5d0))
-     tt=1.d0/(2.d0*alps(l+1)**2)
-     do i=0,ng
-        ttt=1.d0/(xp(i)+tt)
-        pp1(i,l+1)=gml1*(sqrt(ttt)**(2*l+3))
-        pp2(i,l+1)=gml2*ttt*(sqrt(ttt)**(2*l+3))
-        pp3(i,l+1)=gml3*ttt**2*(sqrt(ttt)**(2*l+3))
-     end do
+  noproj=.true.
+  do l=1,lpx+1
+     noproj = noproj .and. (alps(l) .eq. 0.d0)
   end do
+
+
+ ! projectors, just in case
+  if (.not. noproj) then
+     do l=0,lpx
+        gml1=sqrt( gamma(l+1.5d0) / (2.d0*alps(l+1)**(2*l+3)) )
+        gml2=sqrt( gamma(l+3.5d0) / (2.d0*alps(l+1)**(2*l+7)) )&
+             /(l+2.5d0)
+        gml3=sqrt( gamma(l+5.5d0) / (2.d0*alps(l+1)**(2*l+11)) )&
+             /((l+3.5d0)*(l+4.5d0))
+        tt=1.d0/(2.d0*alps(l+1)**2)
+        print *,'tt',tt
+        do i=0,ng
+           ttt=1.d0/(xp(i)+tt)
+           pp1(i,l+1)=gml1*(sqrt(ttt)**(2*l+3))
+           pp2(i,l+1)=gml2*ttt*(sqrt(ttt)**(2*l+3))
+           pp3(i,l+1)=gml3*ttt**2*(sqrt(ttt)**(2*l+3))
+        end do
+     end do
+  else
+     pp1(:,:)=0.d0
+     pp2(:,:)=0.d0
+     pp3(:,:)=0.d0
+  end if
 
      do l=0,lmax
         do j=0,ng
