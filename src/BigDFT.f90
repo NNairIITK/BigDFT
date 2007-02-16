@@ -146,20 +146,20 @@ program BigDFT
          sumx=sumx+fxyz(1,iat)
          sumy=sumy+fxyz(2,iat)
          sumz=sumz+fxyz(3,iat)
-         if (iproc.eq.0) write(*,'(a,i3,3(1x,e14.7))') 'fxyz ',iat,(fxyz(j,iat),j=1,3)
+         if (iproc.eq.0) write(*,'(1x,a,i3,3(1x,e14.7))') 'fxyz ',iat,(fxyz(j,iat),j=1,3)
       end do
       fluctoo=flucto
       flucto=fluct
       fluct=sumx**2+sumy**2+sumz**2
       if (iproc.eq.0) then
-         write(*,'(a,1x,e21.14,1x,e10.3)')'ANALYSIS OF FORCES energy, beta',energy,beta
-         write(*,'(a,3(1x,e11.4))')'the norm of the forces is', sqrt(sum2),sqrt(sum2/nat),sqrt(sum2/(3*nat))
+         write(*,'(1x,a,1x,e21.14,1x,e10.3)')'ANALYSIS OF FORCES energy, beta',energy,beta
+         write(*,'(1x,a,3(1x,e11.4))')'the norm of the forces is', sqrt(sum2),sqrt(sum2/nat),sqrt(sum2/(3*nat))
          write(*,*) 'fluct',fluct
          write(*,*) 'stop comparison',sum2,sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0
          write(*,*)'the sum of the forces is'
-         write(*,'(a16,3x,e16.8)')'x direction',sumx
-         write(*,'(a16,3x,e16.8)')'y direction',sumy
-         write(*,'(a16,3x,e16.8)')'z direction',sumz
+         write(*,'(1x,a16,3x,e16.8)')'x direction',sumx
+         write(*,'(1x,a16,3x,e16.8)')'y direction',sumy
+         write(*,'(1x,a16,3x,e16.8)')'z direction',sumz
       endif
 
       if (sum2.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0) then   ! assume that fluct increases as sqrt(nat)

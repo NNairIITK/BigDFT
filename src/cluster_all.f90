@@ -200,6 +200,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   read(1,*) fpmult
   if (fpmult.gt.frmult) write(*,*) 'NONSENSE: fpmult > frmult'
   read(1,*) ixc
+  read(1,*) ncharge
   read(1,*) gnrm_cv
   read(1,*) itermax
   read(1,*) ncong
@@ -216,6 +217,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      write(*,*) 'cpmult=',cpmult
      write(*,*) 'fpmult=',fpmult
      write(*,*) 'ixc=',ixc
+     write(*,*) 'ncharge=',ncharge
      write(*,*) 'gnrm_cv=',gnrm_cv
      write(*,*) 'itermax=',itermax
      write(*,*) 'ncong=',ncong
@@ -245,7 +247,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      read(11,*)
      read(11,*) n_abinitzatom,nelpsp(ityp)
      read(11,*) npspcode(ityp)
-     if (iproc.eq.0) write(*,'(a,1x,a,a,i3,a,i3)') 'atom type ',atomnames(ityp), & 
+     if (iproc.eq.0) write(*,'(1x,a,1x,a,a,i3,a,i3)') 'atom type ',atomnames(ityp), & 
           ' is described by a ',nelpsp(ityp),' electron, with pspcode=',npspcode(ityp)
      psppar(:,:,ityp)=0.d0
      read(11,*) (psppar(0,j,ityp),j=0,4)
@@ -270,12 +272,15 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 ! Number of orbitals and their occupation number
   norb_vir=0
 
+! Number of electrons
   nelec=0
   do iat=1,nat
      ityp=iatype(iat)
      nelec=nelec+nelpsp(ityp)
   enddo
+  nelec=nelec-ncharge
   if (iproc.eq.0) then
+     write(*,*) 'total charge (ions+electrons)',ncharge
      write(*,*) 'number of electrons',nelec
      if (mod(nelec,2).ne.0) write(*,*) 'WARNING: odd number of electrons, no closed shell system'
   end if
@@ -305,7 +310,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   alat3=(czmax-czmin)
 
 ! shift atomic positions such that molecule is inside cell
-  if (iproc.eq.0) write(*,'(a,3(1x,e14.7))') 'atomic positions shifted by',-cxmin,-cymin,-czmin
+  if (iproc.eq.0) write(*,'(1x,a,3(1x,e14.7))') 'atomic positions shifted by',-cxmin,-cymin,-czmin
   do iat=1,nat
      rxyz(1,iat)=rxyz(1,iat)-cxmin
      rxyz(2,iat)=rxyz(2,iat)-cymin
@@ -315,7 +320,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   if (iproc.eq.0) then
      write(*,*) 'Shifted atomic positions'
      do iat=1,nat
-        write(*,'(i3,3(1x,e14.7))') iat,(rxyz(j,iat),j=1,3)
+        write(*,'(1x,i3,3(1x,e14.7))') iat,(rxyz(j,iat),j=1,3)
      enddo
   endif
 
@@ -329,8 +334,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   if (iproc.eq.0) then 
      write(*,*) 'n1,n2,n3',n1,n2,n3
      write(*,*) 'total number of grid points',(n1+1)*(n2+1)*(n3+1)
-     write(*,'(a,3(1x,e12.5))') 'simulation cell',alat1,alat2,alat3
-     !           write(*,'(a,3(1x,e24.17))') 'simulation cell',alat1,alat2,alat3
+     write(*,'(1x,a,3(1x,e12.5))') 'simulation cell',alat1,alat2,alat3
   endif
 
 ! fine grid size (needed for creation of input wavefunction, preconditioning)
@@ -379,7 +383,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
   if (iproc.eq.0) write(*,*) 'Size of real space grids',(2*n1+31),(2*n2+31),(2*n3+31)
 ! Charge density, Potential in real space
-  if (iproc.eq.0) write(*,'(a40,i10)') 'words for rhopot and pot_ion ',2*(2*n1+31)*(2*n2+31)*(2*n3+31)
+  if (iproc.eq.0) write(*,'(1x,a40,i10)') 'words for rhopot and pot_ion ',2*(2*n1+31)*(2*n2+31)*(2*n3+31)
   allocate(rhopot((2*n1+31),(2*n2+31),(2*n3+31)),pot_ion((2*n1+31)*(2*n2+31)*(2*n3+31)))
   call razero((2*n1+31)*(2*n2+31)*(2*n3+31),pot_ion)
   if (iproc.eq.0) write(*,*) 'allocation done'
@@ -451,10 +455,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      if (iproc.eq.0) then 
         write(*,*) '-------------------------------------- iter= ',iter
         if (gnrm.le.gnrm_cv) then
-           write(*,'(a,i3,3(1x,1pe18.11))') 'iproc,ehart,eexcu,vexcu',iproc,ehart,eexcu,vexcu
-           write(*,'(a,3(1x,1pe18.11))') 'final ekin_sum,epot_sum,eproj_sum',ekin_sum,epot_sum,eproj_sum
-           write(*,'(a,3(1x,1pe18.11))') 'final ehart,eexcu,vexcu',ehart,eexcu,vexcu
-           write(*,'(a,i6,2x,1pe19.12,1x,1pe9.2)') 'FINAL iter,total energy,gnrm',iter,energy,gnrm
+           write(*,'(1x,a,i3,3(1x,1pe18.11))') 'iproc,ehart,eexcu,vexcu',iproc,ehart,eexcu,vexcu
+           write(*,'(1x,a,3(1x,1pe18.11))') 'final ekin_sum,epot_sum,eproj_sum',ekin_sum,epot_sum,eproj_sum
+           write(*,'(1x,a,3(1x,1pe18.11))') 'final ehart,eexcu,vexcu',ehart,eexcu,vexcu
+           write(*,'(1x,a,i6,2x,1pe19.12,1x,1pe9.2)') 'FINAL iter,total energy,gnrm',iter,energy,gnrm
         endif
      endif
 
@@ -606,10 +610,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         write(*,*) 'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
      endif
      if (iproc.eq.0) then
-        write(*,'(a,3(1x,e18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+        write(*,'(1x,a,3(1x,e18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
              ekin_sum,epot_sum,eproj_sum
-        write(*,'(a,3(1x,e18.11))') 'ehart,eexcu,vexcu',ehart,eexcu,vexcu
-        write(*,'(a,i6,2x,e19.12,1x,e9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
+        write(*,'(1x,a,3(1x,e18.11))') 'ehart,eexcu,vexcu',ehart,eexcu,vexcu
+        write(*,'(1x,a,i6,2x,e19.12,1x,e9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
      endif
 
      if (parallel) then
@@ -713,7 +717,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      if (iproc.eq.0) then 
         write(*,*) 'BIG: n1,n2,n3',nb1,nb2,nb3
         write(*,*) 'BIG: total number of grid points',(nb1+1)*(nb2+1)*(nb3+1)
-        write(*,'(a,3(1x,e12.5))') 'BIG: simulation cell',alatb1,alatb2,alatb3
+        write(*,'(1x,a,3(1x,e12.5))') 'BIG: simulation cell',alatb1,alatb2,alatb3
      endif
 !    ---reformat potential
      allocate(rhopotb((2*nb1+31),(2*nb2+31),(2*nb3+31)))
@@ -811,7 +815,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
         deallocate(logrid_c,logrid_f)
 ! allocations for arrays holding the wavefunction
-        if (iproc.eq.0) write(*,'(a40,i10)') 'words for psib and hpsib ',2*(nvctrb_c+7*nvctrb_f)
+        if (iproc.eq.0) write(*,'(1x,a40,i10)') 'words for psib and hpsib ',2*(nvctrb_c+7*nvctrb_f)
         allocate(psib(nvctrb_c+7*nvctrb_f),hpsib(nvctrb_c+7*nvctrb_f))
         if (iproc.eq.0) write(*,*) 'allocation done'
 
@@ -854,7 +858,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
               tt=tt+hpsib(i)**2
            enddo
            tt=sqrt(tt)
-           write(*,'(a,i3,3(1x,e21.14),1x,e10.3)') 'BIG:iorb,ekin,epot,eproj,gnrm',iorb,ekin,epot,eproj,tt
+           write(*,'(1x,a,i3,3(1x,e21.14),1x,e10.3)') 'BIG:iorb,ekin,epot,eproj,gnrm',iorb,ekin,epot,eproj,tt
            if (ipt.eq.npt) goto 1600
 !          calculate tail
            cprecr=-eval(iorb)
@@ -928,7 +932,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   call cpu_time(tcpu1)
   call system_clock(ncount1,ncount_rate,ncount_max)
   tel=dble(ncount1-ncount0)/dble(ncount_rate)
-  write(*,'(a,1x,i4,2(1x,f12.2))') 'iproc, elapsed, CPU time ', iproc,tel,tcpu1-tcpu0
+  write(*,'(a,1x,i4,2(1x,f12.2))') '- iproc, elapsed, CPU time ', iproc,tel,tcpu1-tcpu0
 
         if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
@@ -1083,7 +1087,7 @@ subroutine input_rho_ion(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
   enddo
   tt=tt*hgridh**3
   rholeaked=rholeaked*hgridh**3
-  if (iproc.eq.0) write(*,'(a,e21.14,1x,e10.3)') 'total ionic charge,leaked charge: ',tt,rholeaked
+  if (iproc.eq.0) write(*,'(1x,a,e21.14,1x,e10.3)') 'total ionic charge,leaked charge: ',tt,rholeaked
 
   call timing(iproc,'CrtLocPot     ','OF')
 
@@ -2703,14 +2707,14 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
   tt=dble(nvctr_c+7*nvctr_f)/dble(nproc)
   nvctrp=int((1.d0-eps_mach*tt) + tt)
   if (parallel) then
-     if (iproc.eq.0) write(*,'(a40,i10)') 'words for psit',nvctrp*norbp*nproc
+     if (iproc.eq.0) write(*,'(1x,a40,i10)') 'words for psit',nvctrp*norbp*nproc
      allocate(psit(nvctrp,norbp*nproc))
      if (iproc.eq.0) write(*,*) 'allocation done'
   endif
 
 ! allocate arrays necessary for DIIS convergence acceleration
   if (idsx.gt.0) then
-     if (iproc.eq.0) write(*,'(a40,i10)') 'words for psidst and hpsidst',2*nvctrp*norbp*nproc*idsx
+     if (iproc.eq.0) write(*,'(1x,a40,i10)') 'words for psidst and hpsidst',2*nvctrp*norbp*nproc*idsx
      allocate( psidst(nvctrp,norbp*nproc,idsx))
      allocate(hpsidst(nvctrp,norbp*nproc,idsx))
      if (iproc.eq.0) write(*,*) 'allocation done'
@@ -2737,21 +2741,21 @@ subroutine createKernel(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
      if (iproc.eq.0) then
         write(*,*) 'dimension of FFT grid',nf1,nf2,nf3
         write(*,*) 'dimension of kernel',nfft1,nfft2,nfft3/nproc
-        if (iproc.eq.0) write(*,'(a40,i10)') 'words for kernel ',nfft1*nfft2*nfft3/nproc
+        if (iproc.eq.0) write(*,'(1x,a40,i10)') 'words for kernel ',nfft1*nfft2*nfft3/nproc
      endif
      allocate(pkernel(nfft1*nfft2*nfft3/nproc))
      if (iproc.eq.0) write(*,*) 'allocation done'
      call MPI_BARRIER(MPI_COMM_WORLD,ierr)
      call ParBuild_Kernel(2*n1+31,2*n2+31,2*n3+31,nf1,nf2,nf3,nfft1,nfft2,nfft3, &
           hgridh,ndegree_ip,iproc,nproc,pkernel)
-     if (iproc.eq.0) print *,"Poisson Solver Kernel built!"
+     if (iproc.eq.0) write(*,*) "Poisson Solver Kernel built!"
      !          call PARtest_kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,pot_ion,rhopot,iproc,nproc) 
 
   else
      call Dimensions_FFT(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3)
      write(*,*) 'dimension of FFT grid',nfft1,nfft2,nfft3
      write(*,*) 'dimension of kernel',nfft1/2+1,nfft2/2+1,nfft3/2+1
-     if (iproc.eq.0) write(*,'(a40,i10)') 'words for kernel ',(nfft1/2+1)*(nfft2/2+1)*(nfft3/2+1)
+     if (iproc.eq.0) write(*,'(1x,a40,i10)') 'words for kernel ',(nfft1/2+1)*(nfft2/2+1)*(nfft3/2+1)
      allocate(pkernel((nfft1/2+1)*(nfft2/2+1)*(nfft3/2+1)))
      if (iproc.eq.0) write(*,*) 'allocation done'
      call Build_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3, &
@@ -2841,7 +2845,7 @@ END SUBROUTINE createKernel
     ! allocations for arrays holding the projectors and their data descriptors
     allocate(keyg_p(2,nseg_p(2*nat)),keyv_p(nseg_p(2*nat)))
     nprojel=istart-1
-    if (iproc.eq.0) write(*,'(a40,i10)') 'words for proj ',nprojel
+    if (iproc.eq.0) write(*,'(1x,a40,i10)') 'words for proj ',nprojel
     allocate(proj(nprojel))
     if (iproc.eq.0) write(*,*) 'allocation done'
 
@@ -2934,7 +2938,7 @@ END SUBROUTINE createKernel
                    if (istart_c.gt.istart) stop 'istart_c > istart'
 
                    do iterm=1,nterm
-                      if (iproc.eq.0) write(*,'(a,i3,1x,a,e10.3,3(i2))') 'projector: iat,atomname,gau_a,lx,ly,lz,err', & 
+                      if (iproc.eq.0) write(*,'(1x,a,i3,1x,a,e10.3,3(i2))') 'projector: iat,atomname,gau_a,lx,ly,lz,err', & 
                            iat,atomnames(iatype(iat)),gau_a,lx(iterm),ly(iterm),lz(iterm)
                    enddo
 
@@ -4050,7 +4054,7 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
                       keyg(1,nseg_c+1),keyv(nseg_c+1),&
                       psi(1,jorb),psi(nvctr_c+1,jorb))
                  call wnrm(nvctr_c,nvctr_f,psi(1,jorb),psi(nvctr_c+1,jorb),scpr) 
-                 write(*,'(a24,a7,2(a3,i1),a16,i4,i4,1x,e14.7)')&
+                 write(*,'(1x,a24,a7,2(a3,i1),a16,i4,i4,1x,e14.7)')&
                       'ATOMIC INPUT ORBITAL for atom',trim(atomnames(ity)),&
                       'l=',l,'m=',m,'iorb,jorb,norm',iorb,jorb,scpr 
                  scpr=1.d0/sqrt(scpr)
@@ -4110,7 +4114,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   allocate(occupe(norbe))
   tt=dble(norbe)/dble(nproc)
   norbep=int((1.d0-eps_mach*tt) + tt)
-  if (iproc.eq.0) write(*,'(a40,i10)') 'words for (h)psi inguess',2*(nvctr_c+7*nvctr_f)*norbep
+  if (iproc.eq.0) write(*,'(1x,a40,i10)') 'words for (h)psi inguess',2*(nvctr_c+7*nvctr_f)*norbep
   allocate(psi(nvctr_c+7*nvctr_f,norbep))
   allocate(hpsi(nvctr_c+7*nvctr_f,norbep))
   if (iproc.eq.0) write(*,*) 'allocation done'
@@ -4157,7 +4161,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
                     norbe,norbep,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
 
  if (parallel) then
-        if (iproc.eq.0) write(*,'(a40,i10)') 'words for psit inguess',nvctrp*norbep*nproc
+        if (iproc.eq.0) write(*,'(1x,a40,i10)') 'words for psit inguess',nvctrp*norbep*nproc
         allocate(psit(nvctrp,norbep*nproc))
         if (iproc.eq.0) write(*,*) 'allocation done'
 
@@ -4165,7 +4169,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
         deallocate(psi)
 
-        if (iproc.eq.0) write(*,'(a40,i10)') 'words for hpsit inguess',2*nvctrp*norbep*nproc
+        if (iproc.eq.0) write(*,'(1x,a40,i10)') 'words for hpsit inguess',2*nvctrp*norbep*nproc
         allocate(hpsit(nvctrp,norbep*nproc))
         if (iproc.eq.0) write(*,*) 'allocation done'
 
@@ -4207,7 +4211,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         enddo
         deallocate(work_lp,evale)
 
-        if (iproc.eq.0) write(*,'(a40,i10)') 'words for ppsit ',nvctrp*norbp*nproc
+        if (iproc.eq.0) write(*,'(1x,a40,i10)') 'words for ppsit ',nvctrp*norbp*nproc
         allocate(ppsit(nvctrp,norbp*nproc))
         if (iproc.eq.0) write(*,*) 'allocation done'
 
@@ -4275,13 +4279,13 @@ allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale
 
         allocate(hamovr(norbe,norbe,4))
  if (parallel) then
-        write(*,'(a40,i10)') 'words for psit inguess',nvctrp*norbep*nproc
+        write(*,'(1x,a40,i10)') 'words for psit inguess',nvctrp*norbep*nproc
         allocate(psit(nvctrp,norbep*nproc))
         write(*,*) 'allocation done'
 
         call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psit)
 
-        write(*,'(a40,i10)') 'words for hpsit inguess',2*nvctrp*norbep*nproc
+        write(*,'(1x,a40,i10)') 'words for hpsit inguess',2*nvctrp*norbep*nproc
         allocate(hpsit(nvctrp,norbep*nproc))
         write(*,*) 'allocation done'
 
@@ -4319,7 +4323,7 @@ allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale
         eval(1:norb) = evale(1:norb)
         deallocate(work_lp,evale)
 
-        write(*,'(a40,i10)') 'words for ppsit ',nvctrp*norbep*nproc
+        write(*,'(1x,a40,i10)') 'words for ppsit ',nvctrp*norbep*nproc
         allocate(ppsit(nvctrp,norbp*nproc))
         write(*,*) 'allocation done'
 
@@ -4967,7 +4971,7 @@ END SUBROUTINE
    call cpu_time(tr1)
    call system_clock(ncount2,ncount_rate,ncount_max)
    tel=dble(ncount2-ncount1)/dble(ncount_rate)
-   write(*,'(a40,i4,2(1x,e10.3))') 'READING WAVES TIME',iproc,tr1-tr0,tel
+   write(*,'(a,i4,2(1x,e10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
  END SUBROUTINE 
 
 
@@ -4997,7 +5001,7 @@ END SUBROUTINE
       read(unitwf) n1_old,n2_old,n3_old
       read(unitwf) (center_old(j),j=1,3)
    end if
-   write(*,'(i2,6(1x,e14.7))') iproc,(center(j),j=1,3),(center_old(j),j=1,3)
+   write(*,'(1x,i2,6(1x,e14.7))') iproc,(center(j),j=1,3),(center_old(j),j=1,3)
    if (useFormattedInput) then
       read(unitwf,*) nvctr_c_old, nvctr_f_old
    else
@@ -5122,7 +5126,7 @@ END SUBROUTINE
        call cpu_time(tr1)
        call system_clock(ncount2,ncount_rate,ncount_max)
        tel=dble(ncount2-ncount1)/dble(ncount_rate)
-       write(*,'(a40,i4,2(1x,e10.3))') 'WRITE WAVES TIME',iproc,tr1-tr0,tel
+       write(*,'(a,i4,2(1x,e10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
 
 
        return

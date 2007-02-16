@@ -143,7 +143,7 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
   end do
 
   forceleaked=forceleaked*prefactor*hgridh**3
-  if (iproc.eq.0) write(*,'(a,e21.14,1x,e10.3)') 'leaked force: ',forceleaked
+  if (iproc.eq.0) write(*,'(a,e21.14,1x,e10.3)') ' leaked force: ',forceleaked
 
 end subroutine local_forces
 

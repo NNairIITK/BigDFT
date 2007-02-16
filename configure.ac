@@ -234,6 +234,7 @@ doc/Makefile
 tests/Makefile
 tests/C/Makefile
 tests/H/Makefile
+tests/Li+/Makefile
 tests/NaCl/Makefile
 tests/SiH4/Makefile
 ])

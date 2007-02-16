@@ -26,4 +26,4 @@ check: $(PPFILES) inguess.dat posinp input.dat
 	  ln -s $(top_srcdir)/tests/C/posinp ; \
 	fi
 	$(top_builddir)/src/cluster > C.out
-	diff C.out $(top_srcdir)/tests/Refs/C.out.ref | cat
+	perl ../fldiff.pl C.out $(top_srcdir)/tests/Refs/C.out.ref | cat
