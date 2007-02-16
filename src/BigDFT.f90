@@ -31,7 +31,7 @@ program BigDFT
       call MPI_INIT(ierr)
       call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
       call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-      write(6,*) 'mpi started',iproc,nproc
+      write(*,'(1x,a,2(1x,i0))') 'mpi started',iproc,nproc
       call system("hostname")
    else
       nproc=1
@@ -48,7 +48,7 @@ program BigDFT
 ! read atomic positions
         open(unit=9,file='posinp',status='old')
         read(9,*) nat,units
-        if (iproc.eq.0) write(6,*) 'nat=',nat
+        if (iproc.eq.0) write(*,'(1x,a,i0)') 'nat= ',nat
         allocate(rxyz_old(3,nat),rxyz(3,nat),iatype(nat),fxyz(3,nat))
         ntypes=0
         do iat=1,nat
@@ -76,7 +76,7 @@ program BigDFT
         enddo
         close(9)
         do ityp=1,ntypes
-        if (iproc.eq.0) write(*,*) 'atoms of type ',ityp,' are ',atomnames(ityp)
+        if (iproc.eq.0) write(*,'(1x,a,i0,a,a)') 'atoms of type ',ityp,' are ',trim(atomnames(ityp))
         enddo
 
 !  Read the first line of "input.dat"
@@ -90,9 +90,9 @@ program BigDFT
 
    !ampl=0.d0!2.d-2  
    if (iproc.eq.0) then
-      write(*,*) 'Number of geometry steps',ngeostep
-      write(*,*) 'Random displacement amplitude',ampl
-      write(*,*) 'Steepest descent step',betax
+      write(*,'(1x,a,i0)') 'Number of geometry steps ',ngeostep
+      write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude',ampl
+      write(*,'(1x,a,1pe10.2)') 'Steepest descent step',betax
    end if
    do iat=1,nat
      call random_number(tt)
@@ -152,21 +152,21 @@ program BigDFT
       flucto=fluct
       fluct=sumx**2+sumy**2+sumz**2
       if (iproc.eq.0) then
-         write(*,'(1x,a,1x,e21.14,1x,e10.3)')'ANALYSIS OF FORCES energy, beta',energy,beta
-         write(*,'(1x,a,3(1x,e11.4))')'the norm of the forces is', sqrt(sum2),sqrt(sum2/nat),sqrt(sum2/(3*nat))
-         write(*,*) 'fluct',fluct
-         write(*,*) 'stop comparison',sum2,sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0
-         write(*,*)'the sum of the forces is'
-         write(*,'(1x,a16,3x,e16.8)')'x direction',sumx
-         write(*,'(1x,a16,3x,e16.8)')'y direction',sumy
-         write(*,'(1x,a16,3x,e16.8)')'z direction',sumz
+         write(*,'(1x,a,1x,1pe21.14,1x,1pe10.3)')'ANALYSIS OF FORCES energy, beta',energy,beta
+         write(*,'(1x,a,3(1x,1pe11.4))')'the norm of the forces is', sqrt(sum2),sqrt(sum2/nat),sqrt(sum2/(3*nat))
+         write(*,'(1x,a,1pe16.8)') 'fluct',fluct
+         write(*,'(1x,a,2(1pe16.8))') 'stop comparison',sum2,sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0
+         write(*,'(1x,a)')'the sum of the forces is'
+         write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
+         write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
+         write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
       endif
 
       if (sum2.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0) then   ! assume that fluct increases as sqrt(nat)
          if (iproc.eq.0) then
             write(*,*) 'Final positions'
             do iat=1,nat
-               write(*,'(3(1x,e14.7),2x,a20)') (rxyz(j,iat),j=1,3),atomnames(iatype(iat))
+               write(*,'(3(1x,1pe14.7),2x,a20)') (rxyz(j,iat),j=1,3),atomnames(iatype(iat))
             enddo
             call wtposout(igeostep,nat,rxyz,atomnames,iatype)
          endif

@@ -107,13 +107,13 @@ subroutine PSolver_Kernel(n01,n02,n03,nfft1,nfft2,nfft3, &
       call xc_energy(n01,n02,n03,2*nd1h,nd2,nd3,ixc,factor,hgrid,rhopot,&
            pot_ion,zarray(1,1,inzee),ehartree,eexcu,vexcu)
       call timing(0,'Exchangecorr  ','OF')
-      print *,"the xc energies are",eexcu,vexcu,"hartree",ehartree
+      write(*,'(1x,a,2(f20.12),3x,a,f20.12)') "The xc energies are",eexcu,vexcu,"Hartree",ehartree
 
    else
       ! Calling this routine gives only the Hartree potential
       call zarray_out(n01,n02,n03,nd1h,nd2,nd3,&
            rhopot,zarray(1,1,inzee),factor,hgrid,ehartree)
-      print *,"The hartree energy is",ehartree
+      write(*,'(1x,a,f20.12)') "The Hartree energy is",ehartree
       eexcu=0.d0
       vexcu=0.d0
          
