@@ -145,7 +145,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
   include 'mpif.h'
 
-  if (iproc.eq.0) write(*,*) 'CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER',inputPsiId
+  if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER',inputPsiId
   if (parallel) then
      call timing(iproc,'parallel     ','IN')
   else
@@ -453,7 +453,7 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
   do 1000, iter=1,itermax
      if (idsx.gt.0) mids=mod(iter-1,idsx)+1
      if (iproc.eq.0) then 
-        write(*,*) '-------------------------------------- iter= ',iter
+        write(*,'(1x,a,i0)') '-------------------------------------- iter= ',iter
         if (gnrm.le.gnrm_cv) then
            write(*,'(1x,a,i3,3(1x,1pe18.11))') 'iproc,ehart,eexcu,vexcu',iproc,ehart,eexcu,vexcu
            write(*,'(1x,a,3(1x,1pe18.11))') 'final ekin_sum,epot_sum,eproj_sum',ekin_sum,epot_sum,eproj_sum
@@ -1504,11 +1504,11 @@ END SUBROUTINE
                     nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
                     nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
                     psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
-	call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n3+2))
+        call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n3+2))
 
         call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=ww(((2*n1+31)*(2*n2+31)*(2*n3+16))
 
-       do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
+        do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
          rho_p(i)=rho_p(i)+(occup(iorb)/hgridh**3)*psir(i)**2
         enddo
 
@@ -1540,7 +1540,7 @@ END SUBROUTINE
        do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
          rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
         enddo
-
+     
      enddo
       call timing(iproc,'Rho_comput    ','OF')
  endif
@@ -3966,7 +3966,7 @@ subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
 !!$  end do
 
 
-  if (iproc.eq.0) write(*,*) 'number of orbitals used in the construction of input guess ',norbe
+  if (iproc.eq.0) write(*,'(1x,a,i0)') 'number of orbitals used in the construction of input guess ',norbe
 
 END SUBROUTINE 
 
@@ -4155,7 +4155,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        endif
 
        accurex=abs(eks-ekin_sum)
-       write(*,*) 'ekin_sum,eks',ekin_sum,eks
+       write(*,'(1x,a,2(f26.14))') 'ekin_sum,eks',ekin_sum,eks
 
         call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occupe, &
                     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &

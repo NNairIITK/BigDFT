@@ -86,7 +86,7 @@ subroutine PSolver_Kernel(n01,n02,n03,nfft1,nfft2,nfft3, &
    i_sign=1
    inzee=1
    call fft(n1h,n2,n3,nd1h,nd2,nd3,zarray,i_sign,inzee)
-  
+ 
    !print *, "Apply the kernel"
    call kernel_application(n1,n2,n3,nd1h,nd2,nd3,nfft1,nfft2,nfft3,zarray,karray,inzee)
 
