@@ -3805,8 +3805,7 @@ END SUBROUTINE calc_coeff_inguess
 
 subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
      & nl, psppar, npspcode, norbe, atomnames, ntypes, iatype, nat)
- ! character(len = *), intent(in) :: filename
-  integer, parameter :: npsp=3
+! character(len = *), intent(in) :: filename
   integer, intent(in) :: ngx, iproc, ntypes
   real*8, intent(in) :: psppar(0:4,0:4,ntypes)
   integer, intent(in) :: npspcode(ntypes)
@@ -3818,35 +3817,47 @@ subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
   integer, intent(in) :: iatype(nat)
 
   character(len = 20) :: pspatomname
-
-
+  logical :: exists,found
   integer :: ity, i, j, l, ipsp, ifile, ng_fake
 
-  ! Read the data file.
+! Read the data file.
   nl(1:4,1:ntypes) = 0
   ng(1:ntypes) = 0
   xp(1:ngx,1:ntypes) = 0.d0
   psiat(1:ngx,1:5,1:ntypes) = 0.d0
   occupat(1:5,1:ntypes)= 0.d0
-  open(unit=24,file='inguess.dat',form='formatted',status='unknown')
+
+! Test if the file 'inguess.dat exists
+  inquire(file='inguess.dat',exist=exists)
+  if (exists) then
+     open(unit=24,file='inguess.dat',form='formatted',action='read',status='old')
+  end if
 
   loop_assign: do ity=1,ntypes
 
-     rewind(24)
+     if (exists) then
+        rewind(24)
+     end if
+     found = .false.
 
-     loop_find: do ifile=1,npsp
-33      format(30(e12.5))
-19      format(a)
-        read(24,19) pspatomname
+     loop_find: do
+        if (.not.exists) then
+!          The file 'inguess.dat' does not exist: automatic generation
+           exit loop_find
+        end if
+        read(24,'(a)',iostat=ierror) pspatomname
+        print *,ierror,pspatomname
+        if (ierror /= 0) then
+!          Read error or end of file
+           exit loop_find
+        end if
 
         if (pspatomname .eq. atomnames(ity)) then
-
            if (iproc.eq.0) then
               write(*,*) 'input wavefunction data for atom ',atomnames(ity),&
                    '    found'
            end if
-
-
+           found = .true.
            read(24,*) nl(1,ity),(occupat(i,ity),i=1,nl(1,ity)),  &
                 nl(2,ity),(occupat(i,ity),i=1+nl(1,ity),nl(2,ity)+nl(1,ity)) ,&
                 nl(3,ity),(occupat(i,ity),i=1+nl(2,ity)+nl(1,ity),nl(3,ity)+nl(2,ity)+nl(1,ity)) ,&
@@ -3861,7 +3872,8 @@ subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
            read(24,*) ng(ity)
            !print *, pspatomnames(ity),(nl(l,ity),l=1,4),ng(ity),ngx,npsp
            if (ng(ity).gt.ngx) stop 'enlarge ngx'
-           read(24,33) (xp(i,ity)  ,i=1,ng(ity))
+           !read(24,'(30(e12.5))') (xp(i,ity)  ,i=1,ng(ity))
+           read(24,*) (xp(i,ity)  ,i=1,ng(ity))
            do i=1,ng(ity) 
               read(24,*) (psiat(i,j,ity),j=1,nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity))
            enddo
@@ -3881,7 +3893,7 @@ subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
 
      enddo loop_find
 
-     if (ifile == npsp+1) then
+     if (.not.found) then
 
         if (iproc.eq.0) then
            write(*,*) 'input wavefunction data for atom ',atomnames(ity),&
@@ -3907,7 +3919,6 @@ subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
 !!$           write(*,*)(psiat(j,i,ity),i=1,nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity))
 !!$        end do
 !!$        print *,'--------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------'
-
 
      end if
 
@@ -5480,6 +5491,7 @@ subroutine iguess_generator(atomname,psppar,npspcode,ng,nl,nmax_occ,occupat,expo
   real(kind=8), dimension(:,:,:), allocatable :: psi
   real(kind=8), dimension(:,:,:,:), allocatable :: rmt
   integer, dimension(:,:), allocatable :: neleconf
+  logical :: exists
   integer :: n_abinitzatom,nelpsp,npspcode_t,npspxc,lpx,ncount
   integer :: nzatom,nvalelec,l,i,j,iocc,il,lwrite
   real(kind=8) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt
@@ -5523,9 +5535,9 @@ subroutine iguess_generator(atomname,psppar,npspcode,ng,nl,nmax_occ,occupat,expo
      ofdcoef(2,3)=0.5d0*sqrt(63.d0/143.d0) !h4
      ofdcoef(3,3)=-9.d0*sqrt(1.d0/143.d0) !h5
 
-     ofdcoef(1,4)=0.d0	!h2
-     ofdcoef(2,4)=0.d0	!h4
-     ofdcoef(3,4)=0.d0	!h5
+     ofdcoef(1,4)=0.d0 !h2
+     ofdcoef(2,4)=0.d0 !h4
+     ofdcoef(3,4)=0.d0 !h5
   end if
   !define the values of hsep starting from the pseudopotential file
   do l=1,lpx+1
@@ -5538,7 +5550,12 @@ subroutine iguess_generator(atomname,psppar,npspcode,ng,nl,nmax_occ,occupat,expo
   end do
 
   !now the treatment of the occupation number
-  open(unit=12,file='eleconf.dat',form='formatted',status='unknown')
+  inquire(file='eleconf.dat',exist=exists)
+  if (.not.exists) then
+     write(*,*) "The file 'eleconf.dat' does not exist!"
+     stop
+  end if
+  open(unit=12,file='eleconf.dat',form='formatted',action='read',status='old')
   do
      read(12,*)string,ncount
      read(12,*)symbol, nzatom, nvalelec
@@ -5647,16 +5664,13 @@ subroutine iguess_generator(atomname,psppar,npspcode,ng,nl,nmax_occ,occupat,expo
 
 end subroutine iguess_generator
 
-
-        
-        
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
      zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
      aeval,ng,psi,res,chrg)
-  implicit real*8 (a-h,o-z)
-  logical noproj
-  parameter(nint=100)
-  dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
+     implicit real*8 (a-h,o-z)
+     logical noproj
+     parameter(nint=100)
+     dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
        hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
        aux(2*ng+2),&
        gpot(3),hsep(6,lpx+1),rmt(nint,0:ng,0:ng,lmax+1),&
@@ -5666,41 +5680,40 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
        occup(noccmax,lmax+1),chrg(noccmax,lmax+1),&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
        res(noccmax,lmax+1),xp(0:ng)
-  if (nintp.ne.nint) stop 'nint><nintp'
-  
-  do l=0,lmax
-     if (occup(1,l+1).gt.0.d0) lcx=l
-  end do
-  !write(6,*) 'lcx',lcx
-  
-  noproj=.true.
-  do l=1,lpx+1
-     noproj = noproj .and. (alps(l) .eq. 0.d0)
-  end do
+     if (nintp.ne.nint) stop 'nint><nintp'
 
-
- ! projectors, just in case
-  if (.not. noproj) then
-     do l=0,lpx
-        gml1=sqrt( gamma(l+1.5d0) / (2.d0*alps(l+1)**(2*l+3)) )
-        gml2=sqrt( gamma(l+3.5d0) / (2.d0*alps(l+1)**(2*l+7)) )&
-             /(l+2.5d0)
-        gml3=sqrt( gamma(l+5.5d0) / (2.d0*alps(l+1)**(2*l+11)) )&
-             /((l+3.5d0)*(l+4.5d0))
-        tt=1.d0/(2.d0*alps(l+1)**2)
-        print *,'tt',tt
-        do i=0,ng
-           ttt=1.d0/(xp(i)+tt)
-           pp1(i,l+1)=gml1*(sqrt(ttt)**(2*l+3))
-           pp2(i,l+1)=gml2*ttt*(sqrt(ttt)**(2*l+3))
-           pp3(i,l+1)=gml3*ttt**2*(sqrt(ttt)**(2*l+3))
-        end do
+     do l=0,lmax
+        if (occup(1,l+1).gt.0.d0) lcx=l
      end do
-  else
-     pp1(:,:)=0.d0
-     pp2(:,:)=0.d0
-     pp3(:,:)=0.d0
-  end if
+     !write(6,*) 'lcx',lcx
+ 
+     noproj=.true.
+     do l=1,lpx+1
+        noproj = noproj .and. (alps(l) .eq. 0.d0)
+     end do
+
+
+!    projectors, just in case
+     if (.not. noproj) then
+        do l=0,lpx
+           gml1=sqrt( gamma(l+1.5d0) / (2.d0*alps(l+1)**(2*l+3)) )
+           gml2=sqrt( gamma(l+3.5d0) / (2.d0*alps(l+1)**(2*l+7)) )&
+               /(l+2.5d0)
+           gml3=sqrt( gamma(l+5.5d0) / (2.d0*alps(l+1)**(2*l+11)) )&
+               /((l+3.5d0)*(l+4.5d0))
+           tt=1.d0/(2.d0*alps(l+1)**2)
+           do i=0,ng
+              ttt=1.d0/(xp(i)+tt)
+              pp1(i,l+1)=gml1*(sqrt(ttt)**(2*l+3))
+              pp2(i,l+1)=gml2*ttt*(sqrt(ttt)**(2*l+3))
+              pp3(i,l+1)=gml3*ttt**2*(sqrt(ttt)**(2*l+3))
+           end do
+        end do
+     else
+        pp1(:,:)=0.d0
+        pp2(:,:)=0.d0
+        pp3(:,:)=0.d0
+     end if
 
      do l=0,lmax
         do j=0,ng
