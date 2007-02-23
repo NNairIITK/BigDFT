@@ -26,15 +26,16 @@ mpi_include = mpif.h
 endif
 
 libpoissonsolver_a_SOURCES = \
-	Build_Kernel.f90 \
-	fft3d.f90 \
+	Build_Kernel_OLD.f90 \
+	fft3d_OLD.f90 \
 	PSolver_Kernel.f90 \
 	pconv.f90 \
 	pfft3d.f90 \
-	scaling_function.f90 \
+	scaling_function_OLD.f90 \
 	gequad.f90 \
-	xcenergy.f90 \
-	3Dgradient.f90
+	xcenergy_OLD.f90 \
+	3Dgradient_OLD.f90 \
+	Poisson_Solver.f90 
 
 CLEANFILES = $(mpi_include)
 
@@ -46,3 +47,12 @@ mpif.h:
 	echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h
 	echo "integer :: MPI_DOUBLE_PRECISION,MPI_MAX,MPI_MIN" >> mpif.h
 
+SOURCES_MOD = PSolver_launch.f90 \
+	Build_Kernel.f90 \
+	PSolver_Base.f90 \
+	xcenergy.f90 \
+	3Dgradient.f90 \
+	fft3d.f90 \
+	scaling_function.f90
+
+Poisson_Solver.o : $(SOURCES_MOD)

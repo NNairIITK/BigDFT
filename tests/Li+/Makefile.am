@@ -7,7 +7,7 @@ EXTRA_DIST = \
 	posinp
 
 PPFILES = \
-	psppar.H_lda 
+	psppar.Li_lda 
 
 CLEANFILES = $(PPFILES) inguess.dat wavefunction* *.out posout* malloc time.prc
 
@@ -20,10 +20,10 @@ $(PPFILES):
 
 check: $(PPFILES) posinp input.dat
 	if test ! -f input.dat ; then \
-	  ln -s $(top_srcdir)/tests/H/input.dat ; \
+	  ln -s $(top_srcdir)/tests/Li+/input.dat ; \
 	fi
 	if test ! -f posinp ; then \
-	  ln -s $(top_srcdir)/tests/H/posinp ; \
+	  ln -s $(top_srcdir)/tests/Li+/posinp ; \
 	fi
-	$(top_builddir)/src/cluster > H.out
-	perl ../fldiff.pl H.out $(top_srcdir)/tests/Refs/H.out.ref | cat
+	$(top_builddir)/src/cluster > Li+.out
+	perl ../fldiff.pl Li+.out $(top_srcdir)/tests/Refs/Li+.out.ref | cat

@@ -27,4 +27,4 @@ check: $(PPFILES) inguess.dat posinp input.dat
 	  ln -s $(top_srcdir)/tests/NaCl/posinp ; \
 	fi
 	$(top_builddir)/src/cluster > NaCl.out
-	diff NaCl.out $(top_srcdir)/tests/Refs/NaCl.out.ref | cat
+	perl ../fldiff.pl NaCl.out $(top_srcdir)/tests/Refs/NaCl.out.ref | cat

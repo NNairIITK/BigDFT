@@ -1,4 +1,4 @@
-!!****h* BigDFT/PSolver_Kernel
+!!****f* BigDFT/PSolver_Kernel
 !! NAME
 !!   PSolver_Kernel
 !!
@@ -86,7 +86,7 @@ subroutine PSolver_Kernel(n01,n02,n03,nfft1,nfft2,nfft3, &
    i_sign=1
    inzee=1
    call fft(n1h,n2,n3,nd1h,nd2,nd3,zarray,i_sign,inzee)
-  
+ 
    !print *, "Apply the kernel"
    call kernel_application(n1,n2,n3,nd1h,nd2,nd3,nfft1,nfft2,nfft3,zarray,karray,inzee)
 
@@ -107,13 +107,13 @@ subroutine PSolver_Kernel(n01,n02,n03,nfft1,nfft2,nfft3, &
       call xc_energy(n01,n02,n03,2*nd1h,nd2,nd3,ixc,factor,hgrid,rhopot,&
            pot_ion,zarray(1,1,inzee),ehartree,eexcu,vexcu)
       call timing(0,'Exchangecorr  ','OF')
-      print *,"the xc energies are",eexcu,vexcu,"hartree",ehartree
+      write(*,'(1x,a,2(f20.12),3x,a,f20.12)') "The xc energies are",eexcu,vexcu,"Hartree",ehartree
 
    else
       ! Calling this routine gives only the Hartree potential
       call zarray_out(n01,n02,n03,nd1h,nd2,nd3,&
            rhopot,zarray(1,1,inzee),factor,hgrid,ehartree)
-      print *,"The hartree energy is",ehartree
+      write(*,'(1x,a,f20.12)') "The Hartree energy is",ehartree
       eexcu=0.d0
       vexcu=0.d0
          
@@ -126,7 +126,7 @@ subroutine PSolver_Kernel(n01,n02,n03,nfft1,nfft2,nfft3, &
 end subroutine PSolver_Kernel
 !!***
 
-!!****h* BigDFT/kernel_application
+!!****f* BigDFT/kernel_application
 !! NAME
 !!   kernel_application
 !!
@@ -622,7 +622,7 @@ subroutine kernel_application(n1,n2,n3,nd1h,nd2,nd3,nfft1,nfft2,nfft3,zarray,kar
 
 
 
-!!****h* BigDFT/norm_ind
+!!****f* BigDFT/norm_ind
 !! NAME
 !!   norm_ind
 !!
@@ -658,7 +658,7 @@ end subroutine norm_ind
 !!***
 
 
-!!****h* BigDFT/symm_ind
+!!****f* BigDFT/symm_ind
 !! NAME
 !!   symm_ind
 !!
@@ -694,7 +694,7 @@ end subroutine symm_ind
 !!***
 
 
-!!****h* BigDFT/symm_ind3
+!!****f* BigDFT/symm_ind3
 !! NAME
 !!   symm_ind3
 !!
@@ -728,7 +728,7 @@ end subroutine symm_ind3
 !!***
 
 
-!!****h* BigDFT/zarray_in
+!!****f* BigDFT/zarray_in
 !! NAME
 !!   zarray_in
 !!
@@ -777,7 +777,7 @@ end subroutine zarray_in
 !!***
 
 
-!!****h* BigDFT/zarray_out
+!!****f* BigDFT/zarray_out
 !! NAME
 !!   zarray_out
 !!
@@ -818,7 +818,7 @@ end subroutine zarray_out
 !!***
 
 
-!!****h* BigDFT/excpotu
+!!****f* BigDFT/excpotu
 !! NAME
 !!   excpotu
 !!
@@ -936,7 +936,7 @@ end subroutine excpotu
 !!***
 
 
-!!****h* BigDFT/check_symmetry
+!!****f* BigDFT/check_symmetry
 !! NAME
 !!   check_symmetry
 !!
@@ -976,7 +976,7 @@ end subroutine check_symmetry
 !!***
 
 
-!!****h* BigDFT/test_kernel
+!!****f* BigDFT/test_kernel
 !! NAME
 !!   test_kernel
 !!

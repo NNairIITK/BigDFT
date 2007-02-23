@@ -40,7 +40,7 @@ EXTRA_DIST = \
 	recs16.inc \
 	sym_16.inc
 
-AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@
+AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ -IPSolver
 
 bin_PROGRAMS = $(binaries_sources)
 
@@ -70,6 +70,7 @@ libbigdft_a_SOURCES = \
 	$(mpi_source) \
 	$(convolution_source) \
 	cluster_all.f90 \
+	eleconf.f90 \
 	standconv_test.f90 \
 	gauss_to_daub.f90 \
 	precond_sg.f90 \

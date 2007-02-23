@@ -13,6 +13,7 @@ The input files are:
             In this version only GTH pseudopotentials are used (PRB 54, 1703 (1996))
             HGH will be available shortly
 - inguess.dat for the initial guess of wavefunctions (sum of gaussian functions)
+            IF THIS FILE IS NOT PRESENT, THE INPUT GUESS IS AUTOMATICALLY GENERATED.
 
 The directory 'Refs' contains the reference ouput files.
 A diff is performed after each calculations to check the accuracy.

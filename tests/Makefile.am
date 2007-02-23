@@ -2,6 +2,7 @@
 
 SUBDIRS = \
 	  H \
+	  Li+ \
 	  SiH4 \
 	  NaCl \
 	  C
