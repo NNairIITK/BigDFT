@@ -1,0 +1,12 @@
+Roundoff errors:
+----------------
+
+T.D. 25/02/2007
+
+- The routine Convolkinetic in the file convolut_optim.f90 is rather sensitive
+to roundoff errors. 
+This routine is by used  the routine preconditionall (precond_sg.f90)
+[ preconditionall -> precong -> CALC_GRAD_REZA -> Convolkinetic ]
+In this case, the xc energies are different up to 10^{-5} from the second iteration.
+To see the propagation of the roundoff errors, uncomment th print statements in 
+the routine precong (precond_sg.f90).
