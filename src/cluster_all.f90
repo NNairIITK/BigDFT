@@ -6208,15 +6208,12 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
 
       if (x.le.0.d0) stop 'wrong argument for gamma'
       if (mod(x,1.d0).eq.0.d0) then
-         !ii=x
-         ii=int(x)
-         gamma=1.d0
+         ii=x
          do i=2,ii
             gamma=gamma*(i-1)
          end do
       else if (mod(x,.5d0).eq.0.d0) then
-         !ii=x-.5d0
-         ii=int(xx-0.5d0)
+         ii=x-.5d0
 !         gamma=sqrt(3.14159265358979d0)
          gamma=1.772453850905516027d0
          do i=1,ii
