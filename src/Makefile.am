@@ -40,7 +40,7 @@ EXTRA_DIST = \
 	recs16.inc \
 	sym_16.inc
 
-AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@
+AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ -IPSolver
 
 bin_PROGRAMS = $(binaries_sources)
 

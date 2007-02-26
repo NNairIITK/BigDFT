@@ -33,10 +33,10 @@
                    ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
 ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 ! hpsi is the right hand side on input and the solution on output
-	implicit real*8 (a-h,o-z)
+        implicit real*8 (a-h,o-z)
         dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
         dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-	dimension hpsi(nvctr_c+7*nvctr_f),scal(0:3),residues(ncong)
+        dimension hpsi(nvctr_c+7*nvctr_f),scal(0:3),residues(ncong)
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         allocatable rpsi(:),ppsi(:),wpsi(:),spsi(:)
 
@@ -122,33 +122,33 @@
         ENDIF
 
 
-	do 1000,icong=2,ncong
+     do 1000,icong=2,ncong
         call  CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
               nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
               scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,ppsi,ppsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1))
 
         alpha1=0.d0 ; alpha2=0.d0
-	do i=1,nvctr_c+7*nvctr_f
+     do i=1,nvctr_c+7*nvctr_f
         alpha1=alpha1+rpsi(i)*rpsi(i)
         alpha2=alpha2+rpsi(i)*wpsi(i)
         enddo
         residues(icong)=alpha1
-	alpha=alpha1/alpha2
+        alpha=alpha1/alpha2
 
-	do 978,i=1,nvctr_c+7*nvctr_f
-	hpsi(i)=hpsi(i)-alpha*ppsi(i)
-	rpsi(i)=rpsi(i)-alpha*wpsi(i)
-978	continue
+    do 978,i=1,nvctr_c+7*nvctr_f
+        hpsi(i)=hpsi(i)-alpha*ppsi(i)
+        rpsi(i)=rpsi(i)-alpha*wpsi(i)
+978 continue
 
 !	if (alpha1.lt.tol) goto 1010
-	if (icong.ge.ncong) goto 1010
+        if (icong.ge.ncong) goto 1010
 
         beta1=0.d0 ; beta2=0.d0
-	do i=1,nvctr_c+7*nvctr_f
-        beta1=beta1+rpsi(i)*wpsi(i)
-        beta2=beta2+ppsi(i)*wpsi(i)
+        do i=1,nvctr_c+7*nvctr_f
+           beta1=beta1+rpsi(i)*wpsi(i)
+           beta2=beta2+ppsi(i)*wpsi(i)
         enddo
-	beta=beta1/beta2
+        beta=beta1/beta2
 
 	do 673,i=1,nvctr_c+7*nvctr_f
 	ppsi(i)=rpsi(i)-beta*ppsi(i)
@@ -173,7 +173,7 @@
 	do i=1,nvctr_c+7*nvctr_f
 	tt=tt+(wpsi(i)-spsi(i))**2
         enddo
-        write(*,'(1x,a,1x,i0,1x,1pe13.6)') 'Precond: final residue',iorb,sqrt(tt)
+        !write(*,'(1x,a,1x,i0,1x,1pe13.6)') 'Precond, final residue',iorb,sqrt(tt)
         deallocate(spsi)
 ! checkend
 
