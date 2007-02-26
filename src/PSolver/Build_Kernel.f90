@@ -82,6 +82,7 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
 
   if (iproc==0) then
      write(*,*)'done.'
+     write(*,'(1x,a,i0)') 'Allocate words for kernel ',nd1*nd2*nd3/nproc
      !print the load balancing of the different dimensions on screen
      write(*,'(1x,a,3(i5))')'Grid Dimensions:',n01,n02,n03
      if (nproc > 1) then

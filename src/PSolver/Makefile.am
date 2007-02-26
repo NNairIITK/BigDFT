@@ -11,7 +11,8 @@ EXTRA_DIST = \
 	lazy_50.inc \
 	lazy_60.inc \
 	lazy_8.inc \
-	perfdata.inc
+	perfdata.inc \
+	$(SOURCES_MOD)
 
 lib_LIBRARIES = libpoissonsolver.a
 

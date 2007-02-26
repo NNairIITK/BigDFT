@@ -390,9 +390,16 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
 
   if (iproc.eq.0) write(*,'(1x,a,3(1x,i0))') 'Size of real space grids',(2*n1+31),(2*n2+31),(2*n3+31)
   
+
+! Allocate and calculate the 1/|r-r'| kernel for the solution of Poisson's equation and test it
+  ndegree_ip=14
   if (new_psolver) then
      call PS_dim4allocation('F','G',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,&
           n3d,n3p,n3pi,i3xcsh,i3s)
+     if (n3pi == 0) then 
+        print *,'the pot_ion array is not to be allocated',iproc
+        stop
+     end if
      ! Charge density, Potential in real space
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for rhopot and pot_ion ',&
           (2*n1+31)*(2*n2+31)*(n3d+n3pi)
@@ -400,40 +407,35 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
      !we put the initial value to zero only for not adding something to pot_ion
      call razero((2*n1+31)*(2*n2+31)*n3pi,rhopot)
      if (iproc.eq.0) write(*,*) 'Allocation done'
+
+     call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
+          iproc,nproc,pkernel)
+
+     ! Precalculate ionic potential from PSP charge densities and local Gaussian terms
+     call input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
+          & nelpsp,n1,n2,n3,n3pi,i3s+i3xcsh,hgrid,pot_ion,eion)
+     if (iproc.eq.0) write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
+
+     call PSolver('F','D',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
+          pot_ion,pkernel,rhopot,ehart,eexcu,vexcu,0.d0)
+
+     print *,'ehartree',ehart
+
+     call addlocgauspsp(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,&
+          n1,n2,n3,n3pi,i3s+i3xcsh,hgrid,pot_ion)
+
   else
      ! Charge density, Potential in real space
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for rhopot and pot_ion ',&
           2*(2*n1+31)*(2*n2+31)*(2*n3+31)
      allocate(rhopot((2*n1+31),(2*n2+31),(2*n3+31)),pot_ion((2*n1+31)*(2*n2+31)*(2*n3+31)))
      if (iproc.eq.0) write(*,*) 'Allocation done'
-  end if
-! Allocate and calculate the 1/|r-r'| kernel for the solution of Poisson's equation and test it
-  ndegree_ip=14
 
-  call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
-       iproc,nproc,pkernel)
+     call createKernel_old(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
+          & ndegree_ip, iproc, nproc, pkernel)
 
-!!$  call createKernel(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
-!!$       & ndegree_ip, iproc, nproc, pkernel)
-  !call PARtest_kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,pot_ion,rhopot,iproc,nproc)
+     !call PARtest_kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,pot_ion,rhopot,iproc,nproc)
 
-  if (new_psolver) then
-     ! Precalculate ionic potential from PSP charge densities and local Gaussian terms
-     call input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
-     & nelpsp,n1,n2,n3,n3pi,i3s+i3xcsh,hgrid,pot_ion,eion)
-     if (iproc.eq.0) write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
-
-     call PSolver('F','D',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
-     pot_ion,pkernel,rhopot,ehart,eexcu,vexcu,0.d0)
-
-     print *,'ehartree',ehart
-
-     call addlocgauspsp(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,&
-     n1,n2,n3,n3pi,i3s+i3xcsh,hgrid,pot_ion)
-  
-!!$     call addlocgauspsp(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,n1,n2,n3,hgrid,pot_ion)
-
-  else
      ! Precalculate ionic potential from PSP charge densities and local Gaussian terms
      call input_rho_ion_old(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,&
           n1,n2,n3,hgrid,pot_ion,eion)
@@ -1161,8 +1163,8 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
   
   ! Check
   tt=0.d0
-  do i3= i3start,i3end
-     j3=i3+15-i3s+1
+  do j3= 1,n3pi!i3start,i3end
+     !j3=i3+15-i3s+1
      do i2= -14,2*n2+16
         do i1= -14,2*n1+16
            tt=tt+rho(i1,i2,j3)
@@ -1172,6 +1174,8 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
 
   tt=tt*hgridh**3
   rholeaked=rholeaked*hgridh**3
+
+  print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
 
   if (nproc > 1) then
      allocate(charges_mpi(4))
@@ -2969,47 +2973,47 @@ END SUBROUTINE createWavefunctionsDescriptors
 
 
 !obsolete, used in the Poisson Solver module
-!!$subroutine createKernel(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
-!!$     & ndegree_ip, iproc, nproc, pkernel)
-!!$  implicit real*8 (a-h,o-z)
-!!$  real*8, pointer :: pkernel(:)
-!!$  logical :: parallel
-!!$  include "mpif.h"
-!!$
-!!$  call timing(iproc,'PSolvKernel   ','ON')
-!!$
-!!$  if (parallel) then
-!!$     call calculate_pardimensions(2*n1+31,2*n2+31,2*n3+31,m1,m2,m3,nf1,nf2,nf3,md1,md2,md3,nfft1,nfft2,nfft3,nproc)
-!!$     !call Dimensions_FFT(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3)
-!!$     if (iproc.eq.0) then
-!!$        write(*,'(1x,a,3(1x,i0))') 'dimension of FFT grid',nf1,nf2,nf3
-!!$        write(*,'(1x,a,3(1x,i0))') 'dimension of kernel',nfft1,nfft2,nfft3/nproc
-!!$        if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for kernel ',nfft1*nfft2*nfft3/nproc
-!!$     endif
-!!$     allocate(pkernel(nfft1*nfft2*nfft3/nproc))
-!!$     if (iproc.eq.0) write(*,*) 'Allocation done'
-!!$     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-!!$     call ParBuild_Kernel(2*n1+31,2*n2+31,2*n3+31,nf1,nf2,nf3,nfft1,nfft2,nfft3, &
-!!$          hgridh,ndegree_ip,iproc,nproc,pkernel)
-!!$     if (iproc.eq.0) write(*,*) "Poisson Solver Kernel built!"
-!!$     !          call PARtest_kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,pot_ion,rhopot,iproc,nproc) 
-!!$
-!!$  else
-!!$     call Dimensions_FFT(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3)
-!!$     write(*,'(1x,a,3(1x,i0))') 'dimension of FFT grid',nfft1,nfft2,nfft3
-!!$     write(*,'(1x,a,3(1x,i0))') 'dimension of kernel',nfft1/2+1,nfft2/2+1,nfft3/2+1
-!!$     if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for kernel ',(nfft1/2+1)*(nfft2/2+1)*(nfft3/2+1)
-!!$     allocate(pkernel((nfft1/2+1)*(nfft2/2+1)*(nfft3/2+1)))
-!!$     if (iproc.eq.0) write(*,*) 'Allocation done'
-!!$     call Build_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3, &
-!!$          hgridh,ndegree_ip,pkernel)
-!!$
-!!$     !          call test_kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,pot_ion,rhopot)
-!!$  end if
-!!$
-!!$  call timing(iproc,'PSolvKernel   ','OF')
-!!$
-!!$END SUBROUTINE createKernel
+subroutine createKernel_old(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
+     & ndegree_ip, iproc, nproc, pkernel)
+  implicit real*8 (a-h,o-z)
+  real*8, pointer :: pkernel(:)
+  logical :: parallel
+  include "mpif.h"
+
+  call timing(iproc,'PSolvKernel   ','ON')
+
+  if (parallel) then
+     call calculate_pardimensions(2*n1+31,2*n2+31,2*n3+31,m1,m2,m3,nf1,nf2,nf3,md1,md2,md3,nfft1,nfft2,nfft3,nproc)
+     !call Dimensions_FFT(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3)
+     if (iproc.eq.0) then
+        write(*,'(1x,a,3(1x,i0))') 'dimension of FFT grid',nf1,nf2,nf3
+        write(*,'(1x,a,3(1x,i0))') 'dimension of kernel',nfft1,nfft2,nfft3/nproc
+        if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for kernel ',nfft1*nfft2*nfft3/nproc
+     endif
+     allocate(pkernel(nfft1*nfft2*nfft3/nproc))
+     if (iproc.eq.0) write(*,*) 'Allocation done'
+     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+     call ParBuild_Kernel(2*n1+31,2*n2+31,2*n3+31,nf1,nf2,nf3,nfft1,nfft2,nfft3, &
+          hgridh,ndegree_ip,iproc,nproc,pkernel)
+     if (iproc.eq.0) write(*,*) "Poisson Solver Kernel built!"
+     !          call PARtest_kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,pot_ion,rhopot,iproc,nproc) 
+
+  else
+     call Dimensions_FFT(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3)
+     write(*,'(1x,a,3(1x,i0))') 'dimension of FFT grid',nfft1,nfft2,nfft3
+     write(*,'(1x,a,3(1x,i0))') 'dimension of kernel',nfft1/2+1,nfft2/2+1,nfft3/2+1
+     if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for kernel ',(nfft1/2+1)*(nfft2/2+1)*(nfft3/2+1)
+     allocate(pkernel((nfft1/2+1)*(nfft2/2+1)*(nfft3/2+1)))
+     if (iproc.eq.0) write(*,*) 'Allocation done'
+     call Build_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3, &
+          hgridh,ndegree_ip,pkernel)
+
+     !          call test_kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,pot_ion,rhopot)
+  end if
+
+  call timing(iproc,'PSolvKernel   ','OF')
+
+END SUBROUTINE createKernel_old
 
   subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, atomnames, &
        & psppar, npspcode, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
@@ -4376,147 +4380,147 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        & nvctr_c, nvctr_f, n1, n2, n3, hgrid, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
        & nseg_c, nseg_f, keyg, keyv, iatype, ntypes, psi, eks)
 
-! resulting charge density and potential
-       call sumrho(parallel,iproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
-                   nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot)
-!      ixc=1   ! LDA functional
-       if (new_psolver) then
+  ! resulting charge density and potential
+  call sumrho(parallel,iproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
+       nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot)
+  !      ixc=1   ! LDA functional
+  if (new_psolver) then
 
-          call PSolver('F','G',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
-               rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0)
-               
-       else
+     call PSolver('F','G',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
+          rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0)
 
-          if (parallel) then
-             call ParPSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,ixc, &
-                  pot_ion,rhopot,ehart,eexcu,vexcu,iproc,nproc)
-          else
-             call PSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,ixc, &
-                  pot_ion,rhopot,ehart,eexcu,vexcu)
-          end if
-       end if
+  else
 
-! set up subspace Hamiltonian 
-        allocate(hamovr(norbe,norbe,4))
+     if (parallel) then
+        call ParPSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,ixc, &
+             pot_ion,rhopot,ehart,eexcu,vexcu,iproc,nproc)
+     else
+        call PSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,ixc, &
+             pot_ion,rhopot,ehart,eexcu,vexcu)
+     end if
+  end if
 
-        call applylocpotkinall(iproc,norbe,norbep,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
-                 hgrid,occupe,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-                 psi,rhopot,hpsi,epot_sum,ekin_sum)
+  ! set up subspace Hamiltonian 
+  allocate(hamovr(norbe,norbe,4))
 
-       if (parallel) then
-       tt=ekin_sum
-       call MPI_ALLREDUCE(tt,ekin_sum,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-       endif
+  call applylocpotkinall(iproc,norbe,norbep,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+       hgrid,occupe,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+       psi,rhopot,hpsi,epot_sum,ekin_sum)
 
-       accurex=abs(eks-ekin_sum)
-       write(*,'(1x,a,2(f26.14))') 'ekin_sum,eks',ekin_sum,eks
+  if (parallel) then
+     tt=ekin_sum
+     call MPI_ALLREDUCE(tt,ekin_sum,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+  endif
 
-        call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occupe, &
-                    nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-                    norbe,norbep,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
+  accurex=abs(eks-ekin_sum)
+  write(*,'(1x,a,2(f26.14))') 'ekin_sum,eks',ekin_sum,eks
 
- if (parallel) then
-        if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psit inguess ',nvctrp*norbep*nproc
-        allocate(psit(nvctrp,norbep*nproc))
-        if (iproc.eq.0) write(*,*) 'Allocation done'
+  call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occupe, &
+       nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
+       norbe,norbep,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
 
-        call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psit)
+  if (parallel) then
+     if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psit inguess ',nvctrp*norbep*nproc
+     allocate(psit(nvctrp,norbep*nproc))
+     if (iproc.eq.0) write(*,*) 'Allocation done'
 
-        deallocate(psi)
+     call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psit)
 
-        if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for hpsit inguess ',2*nvctrp*norbep*nproc
-        allocate(hpsit(nvctrp,norbep*nproc))
-        if (iproc.eq.0) write(*,*) 'Allocation done'
+     deallocate(psi)
 
-        call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
+     if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for hpsit inguess ',2*nvctrp*norbep*nproc
+     allocate(hpsit(nvctrp,norbep*nproc))
+     if (iproc.eq.0) write(*,*) 'Allocation done'
 
-        deallocate(hpsi)
+     call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
 
-!       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
-!       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
-      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,hamovr(1,1,3),norbe)
-      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp, psit,nvctrp,0.d0,hamovr(1,1,4),norbe)
-        deallocate(hpsit)
+     deallocate(hpsi)
 
-        call MPI_ALLREDUCE (hamovr(1,1,3),hamovr(1,1,1),2*norbe**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+     !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
+     !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
+     call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,hamovr(1,1,3),norbe)
+     call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp, psit,nvctrp,0.d0,hamovr(1,1,4),norbe)
+     deallocate(hpsit)
 
-! calculate  KS orbitals
-!      if (iproc.eq.0) then
-!        write(*,*) 'KS Hamiltonian',iproc
-!        do iorb=1,norbe
-!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,1),jorb=1,norbe)
-!        enddo
-!        write(*,*) 'Overlap',iproc
-!        do iorb=1,norbe
-!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
-!        enddo
-!     endif
+     call MPI_ALLREDUCE (hamovr(1,1,3),hamovr(1,1,1),2*norbe**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-        n_lp=5000
-        allocate(work_lp(n_lp),evale(norbe))
-        call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
-        if (info.ne.0) write(*,*) 'DSYGV ERROR',info
-        if (iproc.eq.0) then
+     ! calculate  KS orbitals
+     !      if (iproc.eq.0) then
+     !        write(*,*) 'KS Hamiltonian',iproc
+     !        do iorb=1,norbe
+     !        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,1),jorb=1,norbe)
+     !        enddo
+     !        write(*,*) 'Overlap',iproc
+     !        do iorb=1,norbe
+     !        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
+     !        enddo
+     !     endif
+
+     n_lp=5000
+     allocate(work_lp(n_lp),evale(norbe))
+     call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
+     if (info.ne.0) write(*,*) 'DSYGV ERROR',info
+     if (iproc.eq.0) then
         do iorb=1,norbe
-        write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb,')=',evale(iorb)
+           write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb,')=',evale(iorb)
         enddo
-        endif
-        do iorb=1,norb
+     endif
+     do iorb=1,norb
         eval(iorb)=evale(iorb)
-        enddo
-        deallocate(work_lp,evale)
+     enddo
+     deallocate(work_lp,evale)
 
-        if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for ppsit ',nvctrp*norbp*nproc
-        allocate(ppsit(nvctrp,norbp*nproc))
-        if (iproc.eq.0) write(*,*) 'Allocation done'
+     if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for ppsit ',nvctrp*norbp*nproc
+     allocate(ppsit(nvctrp,norbp*nproc))
+     if (iproc.eq.0) write(*,*) 'Allocation done'
 
-! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
-      call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psit,nvctrp,hamovr,norbe,0.d0,ppsit,nvctrp)
-       call  untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,ppsit,ppsi)
-        deallocate(psit,ppsit)
+     ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
+     call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psit,nvctrp,hamovr,norbe,0.d0,ppsit,nvctrp)
+     call  untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,ppsit,ppsi)
+     deallocate(psit,ppsit)
 
-        if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+     if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   else !serial case
-!       hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
-      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,0.d0,hamovr(1,1,1),norbe)
-      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp, psi,nvctrp,0.d0,hamovr(1,1,2),norbe)
-        deallocate(hpsi)
+     !       hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
+     call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,0.d0,hamovr(1,1,1),norbe)
+     call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp, psi,nvctrp,0.d0,hamovr(1,1,2),norbe)
+     deallocate(hpsi)
 
-! calculate  KS orbitals
-!        write(*,*) 'KS Hamiltonian'
-!        do iorb=1,norbe
-!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,1),jorb=1,norbe)
-!        enddo
-!        write(*,*) 'Overlap'
-!        do iorb=1,norbe
-!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
-!        enddo
+     ! calculate  KS orbitals
+     !        write(*,*) 'KS Hamiltonian'
+     !        do iorb=1,norbe
+     !        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,1),jorb=1,norbe)
+     !        enddo
+     !        write(*,*) 'Overlap'
+     !        do iorb=1,norbe
+     !        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
+     !        enddo
 
-        n_lp=5000
-        allocate(work_lp(n_lp),evale(norbe))
-        call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
-        if (info.ne.0) write(*,*) 'DSYGV ERROR',info
-        if (iproc.eq.0) then
+     n_lp=5000
+     allocate(work_lp(n_lp),evale(norbe))
+     call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
+     if (info.ne.0) write(*,*) 'DSYGV ERROR',info
+     if (iproc.eq.0) then
         do iorb=1,norbe
-        write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb,')=',evale(iorb)
+           write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb,')=',evale(iorb)
         enddo
-        endif
-        do iorb=1,norb
+     endif
+     do iorb=1,norb
         eval(iorb)=evale(iorb)
-        enddo
-        deallocate(work_lp,evale)
+     enddo
+     deallocate(work_lp,evale)
 
-! ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
-        call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psi,nvctrp,hamovr,norbe,0.d0,ppsi,nvctrp)
-        deallocate(psi)
+     ! ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
+     call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psi,nvctrp,hamovr,norbe,0.d0,ppsi,nvctrp)
+     deallocate(psi)
 
   endif
 
-        deallocate(hamovr,occupe)
+  deallocate(hamovr,occupe)
 
-    return
-    END SUBROUTINE
+  return
+END SUBROUTINE
 
 subroutine solveKS(parallel, iproc, nproc, norb, norbp, norbe, norbep, nvctr_c, &
   & nvctr_f, nvctrp, psi, hpsi, ppsi, eval)

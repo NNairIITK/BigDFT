@@ -6,8 +6,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   character(len=1), intent(in) :: datacode
   integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc
   real(kind=8), intent(in) :: hx,hy,hz,offset
-  real(kind=8), dimension(n01,n02,*), intent(in) :: pot_ion
-  real(kind=8), dimension(*), intent(in) :: karray
+  real(kind=8), dimension(*), intent(in) :: karray,pot_ion
   real(kind=8), intent(out) :: eh,exc,vxc
   real(kind=8), dimension(n01,n02,*), intent(inout) :: rhopot
   !local variables
@@ -209,7 +208,11 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      end do
   end do
 
-  ehartreeLOC=ehartreeLOC*factor
+  if (ixc==0) then
+     ehartreeLOC=ehartreeLOC*factor
+  else
+     ehartreeLOC=ehartreeLOC*2.d0*factor
+  end if
 
   deallocate(zf,zfionxc)
 
