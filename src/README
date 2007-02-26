@@ -1,0 +1,55 @@
+Preconditioner:
+ - The old preconditioner uses a simple conjugate gradient
+   (precond_sg.f90) 
+ - The new preconditioner :
+   (precond.f90 prec_diag.f90 conv_per_optim.f90)
+
+See the Mail from Alexey:
+
+   The input guess consists of diagonal preconditioning of the original gradient.
+In contrast to older version, not only the wavelet part and the scfunction
+part are multiplied by different factors, but the scfunction part is
+subjected to wavelet analysis with periodic boundaries. Then the wavelets
+on different scales are multiplied by different factors and backward wavelet
+transformed to scaling functions.
+
+The new input guess is turned on if the parameter INGUESS_ON
+has value .TRUE.
+
+The diagonal preconditioning is done by the subroutine PREC_DIAG in the file
+prec_diag.f90
+
+The 3d wavelet analysis and synthesis are done in the subroutines
+ANA_REPEATED_PER and SYN_REPEATED_PER in the file conv_per_optim.f90
+They aply 3d wavelet analysis and synthesis repeatedly, from the scale of usual
+scaling functions "hpsi_c"
+in the BigDFT code to the coarse scale specified by the parameter ATOMIC_LENGTH
+in the file prec_diag.f90.
+
+The actual 3d wavelet transforms are done by the subroutines
+SYNTHESE_PER and ANALYZE_PER in the file conv_per_optim.f90. They are very
+similar
+to the wavelet transforms SYNTHESE_GROW and ANALYZE_SHRINK in the
+cluster_all.f90 file,
+just the wavelet transforms are now in a periodic box that is somewhat bigger
+than the orbital.
+
+The 1d wavelet transforms are done in the subroutines ANA_ROT_PER and
+SYN_ROT_PER in conv_per_optim.f90
+
+They are again similar to ANA_ROT_SHRINK and SYN_ROT_GROW from the file
+convolut_optim.f90
+
+The 1d transforms are unrolled by the factor 12. They can write their
+performance to the file fort.95 if
+the corresponding output lines are uncommented.
+
+For completeness, I also attach the non-unrolled version of the subroutines. To
+use it, replace in the makefile
+conv_per_optim.f90 with conv_per_simple.f90
+
+There is also a version conv_per_8.f90 which is unrolled by the factor of 8,
+instead of 12. Its performance for the SiH4 system
+seemed to be just as good.
+
+
