@@ -27,7 +27,7 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
 
   do iat=1,nat
   if (mod(iat-1,nproc).eq.iproc) then
-  write(*,*) iproc,' calculates local force on atom ',iat
+     write(*,'(1x,i0,a,i0)') iproc,' calculates local force on atom ',iat
      ityp=iatype(iat)
      !coordinates of the center
      rx=rxyz(1,iat) 

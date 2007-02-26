@@ -503,7 +503,7 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
            write(*,'(1x,a,i3,3(1x,1pe18.11))') 'iproc,ehart,eexcu,vexcu',iproc,ehart,eexcu,vexcu
            write(*,'(1x,a,3(1x,1pe18.11))') 'final ekin_sum,epot_sum,eproj_sum',ekin_sum,epot_sum,eproj_sum
            write(*,'(1x,a,3(1x,1pe18.11))') 'final ehart,eexcu,vexcu',ehart,eexcu,vexcu
-           write(*,'(1x,a,i6,2x,f26.14,1x,1pe9.2)') 'FINAL iter,total energy,gnrm',iter,energy,gnrm
+           write(*,'(1x,a,i6,2x,1pe19.12,1x,1pe9.2)') 'FINAL iter,total energy,gnrm',iter,energy,gnrm
         endif
      endif
 
@@ -660,7 +660,7 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
 
      tt=energybs-scprsum
      if (abs(tt).gt.1.d-8) then 
-        write(*,*) 'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
+        write(*,'(1x,a,3(1pe22.14))') 'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
      endif
      if (iproc.eq.0) then
         write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
@@ -773,15 +773,15 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
      call timing(iproc,'Tail          ','ON')
 !    Calculate kinetic energy correction due to boundary conditions
      nbuf=nint(rbuf/hgrid)
-     if (iproc.eq.0) write(*,'(1x,a,i0,a)') 'tail requires ',nbuf,' additional grid points around cell'
+     if (iproc.eq.0) write(*,'(1x,a,i0,a)') 'BIG: tail requires ',nbuf,' additional grid points around cell'
 !    --- new grid sizes n1,n2,n3
      nb1=n1+2*nbuf
      nb2=n2+2*nbuf
      nb3=n3+2*nbuf
      alatb1=nb1*hgrid ; alatb2=nb2*hgrid ; alatb3=nb3*hgrid
      if (iproc.eq.0) then 
-        write(*,'(1x,a,3(1x,i0))') 'BIG: n1,n2,n3',nb1,nb2,nb3
-        write(*,'(1x,a,1x,i0)') 'BIG: total number of grid points',(nb1+1)*(nb2+1)*(nb3+1)
+        write(*,'(1x,a,3(1x,i0))')      'BIG: n1,n2,n3',nb1,nb2,nb3
+        write(*,'(1x,a,1x,i0)')         'BIG: total number of grid points',(nb1+1)*(nb2+1)*(nb3+1)
         write(*,'(1x,a,3(1x,1pe12.5))') 'BIG: simulation cell',alatb1,alatb2,alatb3
      endif
 !    ---reformat potential
@@ -4679,7 +4679,7 @@ END SUBROUTINE
 !        write(*,'(10(1x,e10.3))') (hamks(iorb,jorb,1),jorb=1,norb)
 !        enddo
 
-        n_lp=1000
+        n_lp=max(4*norb,1000)
         allocate(work_lp(n_lp))
         call  DSYEV('V','U',norb,hamks,norb,eval, work_lp, n_lp, info )
         evsum=0.d0
@@ -4738,7 +4738,7 @@ END SUBROUTINE
 !        write(*,'(10(1x,e10.3))') (hamks(iorb,jorb,1),jorb=1,norb)
 !        enddo
 
-        n_lp=1000
+        n_lp=max(4*norb,1000)
         allocate(work_lp(n_lp))
         call  DSYEV('V','U',norb,hamks,norb,eval, work_lp, n_lp, info )
         evsum=0.d0
@@ -5466,7 +5466,7 @@ END SUBROUTINE
           enddo
          enddo
 
-    write(*,*) iorb,'th wavefunction written'
+    write(*,'(1x,i0,a)') iorb,'th wavefunction written'
 
 
     END SUBROUTINE
@@ -6468,7 +6468,6 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
       if (x.le.0.d0) stop 'wrong argument for gamma'
       if (mod(x,1.d0).eq.0.d0) then
          ii=x
-         gamma=1.d0
          do i=2,ii
             gamma=gamma*(i-1)
          end do
