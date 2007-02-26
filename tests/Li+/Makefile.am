@@ -26,4 +26,4 @@ check: $(PPFILES) posinp input.dat
 	  ln -s $(top_srcdir)/tests/Li+/posinp ; \
 	fi
 	$(top_builddir)/src/cluster > Li+.out
-	perl ../fldiff.pl Li+.out $(top_srcdir)/tests/Refs/Li+.out.ref | cat
+	perl $(top_srcdir)/tests/fldiff.pl Li+.out $(top_srcdir)/tests/Refs/Li+.out.ref | cat
