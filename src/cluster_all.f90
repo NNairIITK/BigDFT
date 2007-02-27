@@ -419,7 +419,7 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
      call PSolver('F','D',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
           pot_ion,pkernel,rhopot,ehart,eexcu,vexcu,0.d0)
 
-     print *,'ehartree',ehart
+     !print *,'ehartree',ehart
 
      call addlocgauspsp(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,&
           n1,n2,n3,n3pi,i3s+i3xcsh,hgrid,pot_ion)
@@ -698,7 +698,7 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
   if (output_wf) then
      call  writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,  & 
               nat,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
-     write(*,'(1x,i0,a)') iproc,' finished writing waves'
+     write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
   end if
 
 
@@ -1175,7 +1175,7 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
   tt=tt*hgridh**3
   rholeaked=rholeaked*hgridh**3
 
-  print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
+  !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
 
   if (nproc > 1) then
      allocate(charges_mpi(4))
@@ -2944,10 +2944,10 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
 ! allocate wavefunction arrays
   tt=dble(norb)/dble(nproc)
   norbp=int((1.d0-eps_mach*tt) + tt)
-  write(*,'(1x,a,1x,i0)') 'norbp=',norbp
+  if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
   allocate(psi(nvctr_c+7*nvctr_f,norbp),hpsi(nvctr_c+7*nvctr_f,norbp))
   norbme=max(min((iproc+1)*norbp,norb)-iproc*norbp,0)
-  write(*,'(1x,a,i0,a,i0,a)') 'iproc ',iproc,' treats ',norbme,' orbitals '
+  write(*,'(a,i0,a,i0,a)') '- iproc ',iproc,' treats ',norbme,' orbitals '
 
   tt=dble(nvctr_c+7*nvctr_f)/dble(nproc)
   nvctrp=int((1.d0-eps_mach*tt) + tt)
@@ -3030,7 +3030,9 @@ END SUBROUTINE createKernel_old
 
     logical, allocatable :: logrid(:,:,:)
 
-  call timing(iproc,'CrtProjectors ','ON')
+    if (iproc.eq.0) write(*,'(1x,a)') '++++ Creation of projectors ++++'
+    
+    call timing(iproc,'CrtProjectors ','ON')
 
     ! determine localization region for all projectors, but do not yet fill the descriptor arrays
     allocate(logrid(0:n1,0:n2,0:n3))
@@ -3041,8 +3043,6 @@ END SUBROUTINE createKernel_old
     istart=1
     nproj=0
     do iat=1,nat
-
-       if (iproc.eq.0) write(*,'(1x,a,1x,i0)') '+++++++++++++++++++++++++++++++++++++++++++ iat=',iat
 
        call numb_proj(iatype(iat),ntypes,psppar,npspcode,mproj)
        if (mproj.ne.0) then 
@@ -3097,7 +3097,7 @@ END SUBROUTINE createKernel_old
     if (iproc.eq.0) write(*,*) 'Allocation done'
 
 
-    if (iproc.eq.0) write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+    if (iproc.eq.0) write(*,'(1x,a)') '++++++++++++++++++++++++++++++++'
 
     ! After having determined the size of the projector descriptor arrays fill them
     istart_c=1
@@ -4153,7 +4153,7 @@ subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
 
         !the default value for the gaussians is chosen to be 21
         ng(ity)=21
-        call iguess_generator(atomnames(ity),psppar(0,0,ity),npspcode(ity),&
+        call iguess_generator(iproc,atomnames(ity),psppar(0,0,ity),npspcode(ity),&
              ng(ity)-1,nl(1,ity),5,occupat(1:5,ity),xp(1:ng(ity),ity),psiat(1:ng(ity),1:5,ity))
 
 !values obtained from the input guess generator in iguess.dat format
@@ -4266,7 +4266,7 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
 !!$     ipsp=npsp+1
 !!$     !the default value for the gaussians is chosen to be 21
 !!$     ng(ipsp)=21
-!!$     call iguess_generator(atomnames(ity),psppar(0,0,ity),npspcode(ity),&
+!!$     call iguess_generator(iproc,atomnames(ity),psppar(0,0,ity),npspcode(ity),&
 !!$          ng(ipsp)-1,nl(1,ipsp),5,occupat(1,ipsp),xp(1,ipsp),psiat(1,1,ipsp))
 !!$
 !!$     !if (iproc.eq.0) write(*,*) 'no PSP for ',atomnames(ity)
@@ -4370,7 +4370,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   allocate(hpsi(nvctr_c+7*nvctr_f,norbep))
   if (iproc.eq.0) write(*,*) 'Allocation done'
   norbeme=max(min((iproc+1)*norbep,norbe)-iproc*norbep,0)
-  write(*,'(1x,a,i0,a,i0,a)') 'iproc ',iproc,' treats ',norbeme,' inguess orbitals '
+  write(*,'(a,i0,a,i0,a)') '- iproc ',iproc,' treats ',norbeme,' inguess orbitals '
 
   hgridh=.5d0*hgrid
 
@@ -4413,7 +4413,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   endif
 
   accurex=abs(eks-ekin_sum)
-  write(*,'(1x,a,2(f26.14))') 'ekin_sum,eks',ekin_sum,eks
+  if (iproc.eq.0) write(*,'(1x,a,2(f26.14))') 'ekin_sum,eks',ekin_sum,eks
 
   call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occupe, &
        nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
@@ -5733,10 +5733,10 @@ END SUBROUTINE
         return
         END SUBROUTINE
 
-subroutine iguess_generator(atomname,psppar,npspcode,ng,nl,nmax_occ,occupat,expo,psiat)
+subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupat,expo,psiat)
   implicit none
   character (len=*) :: atomname
-  integer, intent(in) :: ng,npspcode,nmax_occ
+  integer, intent(in) :: iproc,ng,npspcode,nmax_occ
   real(kind=8), dimension(0:4,0:4), intent(in) :: psppar
   integer, dimension(4), intent(out) :: nl
   real(kind=8), dimension(ng+1), intent(out) :: expo
@@ -5857,7 +5857,7 @@ subroutine iguess_generator(atomname,psppar,npspcode,ng,nl,nmax_occ,occupat,expo
 
   zion=real(nelpsp,kind=8)
 
-  write(6,'(a32,a6,a9,i3,i3,a9,i3,f5.2)')'Input Guess Generation for atom',trim(atomname),&
+  if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')'Input Guess Generation for atom',trim(atomname),&
        'Z,Zion=',nzatom,nvalelec,'ng,rprb=',ng+1,rprb
 
 !!$  write(6,*) zion,rcov
