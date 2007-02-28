@@ -25,6 +25,7 @@ AM_INIT_AUTOMAKE
 
 dnl Defining fortran language for tests.
 AC_LANG(Fortran)
+AC_FC_SRCEXT(f90)
 
 dnl We defined CC for the ABINIT part.
 AC_PROG_CC()
@@ -156,9 +157,38 @@ dnl ---------------------------------------
 dnl Test the linking part only if required.
 if test "$ac_build_bin_cluster" = "yes" ; then
 
+dnl Substitute Lapack and Blas by another specific library
+withlinalg=no
+AC_ARG_WITH(ext-linalg, AS_HELP_STRING([--with-ext-linalg],
+            [Give the name of the libraries replacing Blas and Lapack (default = none sepcified). Use the -l before the name(s).]),
+            ac_linalg=$withval, ac_linalg=)
+AC_ARG_WITH(ext-linalg-path, AS_HELP_STRING([--with-ext-linalg-path],
+            [Give the path of the other linear algebra libraries (default = -L/usr/lib). Use the -L before the path(es).]),
+            ac_linalg_dir=$withval, ac_linalg_dir=)
+if test -n "$ac_linalg_dir" ; then
+  LDFLAGS="$LDFLAGS $ac_linalg_dir"
+fi
+if test -n "$ac_linalg" ; then
+#  AC_LANG_CONFTEST([[program main
+#                     call dsysv
+#                     end program main]])
+  AC_MSG_CHECKING([for dsysv in $ac_linalg])
+  LIBS_OLD=$LIBS
+  LIBS="$ac_linalg $LIBS"
+  AC_LINK_IFELSE([[program main
+  call dsysv
+end]], withlinalg=yes, withlinalg=no)
+#  AC_CHECK_LIB($ac_linalg, dsysv, withlinalg=yes, withlinalg=no)
+  if test "$withlinalg" = "no"; then
+    LIBS=$LIBS_OLD
+  fi
+  AC_MSG_RESULT([$withlinalg])
+fi
+
+if test "$withlinalg" = "no" ; then
 dnl Get the lapack library
 lapack=yes
-AC_ARG_WITH(lapack, AS_HELP_STRING([--with-lapack], [Link with Lapack library (default = yes).]), lapack=$withval, lapack=no)
+AC_ARG_WITH(lapack, AS_HELP_STRING([--with-lapack], [Link with Lapack library (default = yes).]), lapack=$withval, lapack=yes)
 AC_ARG_WITH(lapack-path, AS_HELP_STRING([--with-lapack-path], [Give the path of the Lapack library (default = /usr/lib).]),
             ac_lapack_dir=$withval, ac_lapack_dir=)
 if test -n "$ac_lapack_dir" ; then
@@ -167,11 +197,14 @@ fi
 withlapack=no
 if test "$lapack" = "yes" ; then
   AC_CHECK_LIB(lapack, dsysv, withlapack=yes, withlapack=no)
+  if test "$withlapack" = "yes"; then
+    LIBS="-llapack $LIBS"
+  fi
 fi
 
 dnl Get the Blas library
 blas=yes
-AC_ARG_WITH(blas, AS_HELP_STRING([--with-blas], [Link with Blas library (default = yes).]), blas=$withval, blas=no)
+AC_ARG_WITH(blas, AS_HELP_STRING([--with-blas], [Link with Blas library (default = yes).]), blas=$withval, blas=yes)
 AC_ARG_WITH(blas-path, AS_HELP_STRING([--with-blas-path], [Give the path of the Blas library (default = /usr/lib).]),
             ac_blas_dir=$withval, ac_blas_dir=)
 if test -n "$ac_blas_dir" ; then
@@ -180,38 +213,19 @@ fi
 withblas=no
 if test "$blas" = "yes" ; then
   AC_CHECK_LIB(blas, dcopy, withblas=yes, withblas=no)
+  if test "$withblas" = "yes"; then
+    LIBS="-lblas $LIBS"
+  fi
 fi
 
-dnl Substitute Lapack and Blas by another specific library
-withlinalg=no
-AC_ARG_WITH(ext-linalg, AS_HELP_STRING([--with-ext-linalg],
-            [Give the name of the library replacing Blas and Lapack (default = none sepcified).]),
-            ac_linalg=$withval, ac_linalg=)
-AC_ARG_WITH(ext-linalg-path, AS_HELP_STRING([--with-ext-linalg-path],
-            [Give the path of the Linalg library (default = /usr/lib).]),
-            ac_linalg_dir=$withval, ac_linalg_dir=)
-if test -n "$ac_linalg_dir" ; then
-  LDFLAGS="$LDFLAGS -L$ac_linalg_dir"
-fi
-if test -n "$ac_linalg" ; then
-  AC_CHECK_LIB($ac_linalg, dsysv, withlinalg=yes, withlinalg=no)
-  LIBS="-l$ac_linalg $LIBS"
-fi
+fi #end $withlinalg = no
 
 dnl Fallbacks for linear algebra libraries
 if [ test $withlinalg = "no" && test $withblas = "no" ] ; then
-  AC_CHECK_LIB(blas, dcopy, withblas=yes, withblas=no)
-  if test $withblas = "no" ; then
-    AC_MSG_ERROR(["No blas library. Use --with-blas-path or check your Blas installation."])
-  fi
-  LIBS="-lblas $LIBS"
+  AC_MSG_ERROR(["No blas library. Use --with-blas-path or check your Blas installation."])
 fi
 if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
-  AC_CHECK_LIB(lapack, dsysv, withlapack=yes, withlapack=no)
-  if test $withlapack = "no" ; then
-    AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation."])
-  fi
-  LIBS="-llapack $LIBS"
+  AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation."])
 fi
 
 fi # End of the if library compilation
