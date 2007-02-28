@@ -171,8 +171,8 @@ program BigDFT
                write(*,'(3(1x,1pe14.7),2x,a20)') (rxyz(j,iat),j=1,3),atomnames(iatype(iat))
             enddo
             call wtposout(igeostep,nat,rxyz,atomnames,iatype)
+            write(*,'(1x,a)') 'No better convergence possible'
          endif
-         write(*,*) 'No better convergence possible'
          goto 501
       endif
       energyold=energy
