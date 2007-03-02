@@ -137,7 +137,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      call xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
           ixc,hx,hy,hz,rhopot(1,1,i3start),pot_ion,zf,zfionxc,eexcuLOC,vexcuLOC,iproc,nproc)
   else if (istart+1 <= nlim) then !this condition assures that we have perform good zero padding
-     do i2=istart+1,nlim
+     do i2=istart+1,min(nlim,istart+md2/nproc)
         j2=i2-istart
         do i3=1,md3
            do i1=1,md1

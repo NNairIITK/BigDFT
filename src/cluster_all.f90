@@ -398,12 +398,17 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
           n3d,n3p,n3pi,i3xcsh,i3s)
      if (n3pi == 0) then 
         print *,'the pot_ion array is not to be allocated',iproc
-        stop
+        !stop
      end if
      ! Charge density, Potential in real space
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for rhopot and pot_ion ',&
           (2*n1+31)*(2*n2+31)*(n3d+n3pi)
-     allocate(rhopot((2*n1+31),(2*n2+31),n3d),pot_ion((2*n1+31)*(2*n2+31)*n3pi))
+     allocate(rhopot((2*n1+31),(2*n2+31),n3d))
+     if (n3pi > 0) then
+        allocate(pot_ion((2*n1+31)*(2*n2+31)*n3pi))
+     else
+        allocate(pot_ion(1))
+     end if
      !we put the initial value to zero only for not adding something to pot_ion
      call razero((2*n1+31)*(2*n2+31)*n3pi,rhopot)
      if (iproc.eq.0) write(*,*) 'Allocation done'
@@ -420,9 +425,10 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
           pot_ion,pkernel,rhopot,ehart,eexcu,vexcu,0.d0)
 
      !print *,'ehartree',ehart
-
-     call addlocgauspsp(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,&
-          n1,n2,n3,n3pi,i3s+i3xcsh,hgrid,pot_ion)
+     if (n3pi > 0) then
+        call addlocgauspsp(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,&
+             n1,n2,n3,n3pi,i3s+i3xcsh,hgrid,pot_ion)
+     end if
 
   else
      ! Charge density, Potential in real space
@@ -1098,9 +1104,9 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
   integer, dimension(ntypes), intent(in) :: nelpsp
   real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(-14:2*n1+16,-14:2*n2+16,n3pi), intent(inout) :: rho
+  real(kind=8), dimension(*), intent(inout) :: rho
   !local variables
-  integer :: iat,jat,i1,i2,i3,j3,ii,ix,iy,iz,i3start,i3end,ierr,ityp,jtyp
+  integer :: iat,jat,i1,i2,i3,j3,ii,ix,iy,iz,i3start,i3end,ierr,ityp,jtyp,ind
   real(kind=8) :: hgridh,pi,rholeaked,dist,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot
   real(kind=8), dimension(:), allocatable :: charges_mpi
@@ -1109,65 +1115,70 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
 
   hgridh=hgrid*.5d0 
   pi=4.d0*atan(1.d0)
-  call razero((2*n1+31)*(2*n2+31)*n3pi,rho)
-
   ! Ionic charge 
   rholeaked=0.d0
   eion=0.d0
-  do iat=1,nat
-     ityp=iatype(iat)
-     rx=rxyz(1,iat) 
-     ry=rxyz(2,iat)
-     rz=rxyz(3,iat)
-     ix=nint(rx/hgridh) 
-     iy=nint(ry/hgridh) 
-     iz=nint(rz/hgridh)
-     !    ion-ion interaction
-     do jat=1,iat-1
-        dist=sqrt( (rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2 )
-        jtyp=iatype(jat)
-        eion=eion+nelpsp(jtyp)*nelpsp(ityp)/dist
-     enddo
 
-     rloc=psppar(0,0,ityp)
-     charge=nelpsp(ityp)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
-     cutoff=10.d0*rloc
-     ii=nint(cutoff/hgridh)
+  if (n3pi >0 ) then
+     call razero((2*n1+31)*(2*n2+31)*n3pi,rho)
 
-  !calculate start and end of the distributed pot
-     i3start=max(max(-14,iz-ii),i3s-15)
-     i3end=min(min(2*n3+16,iz+ii),i3s+n3pi-16)
+     do iat=1,nat
+        ityp=iatype(iat)
+        rx=rxyz(1,iat) 
+        ry=rxyz(2,iat)
+        rz=rxyz(3,iat)
+        ix=nint(rx/hgridh) 
+        iy=nint(ry/hgridh) 
+        iz=nint(rz/hgridh)
+        !    ion-ion interaction
+        do jat=1,iat-1
+           dist=sqrt( (rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2 )
+           jtyp=iatype(jat)
+           eion=eion+nelpsp(jtyp)*nelpsp(ityp)/dist
+        enddo
 
-     do i3=iz-ii,iz+ii
-        j3=i3+15-i3s+1
-        do i2=iy-ii,iy+ii
-           do i1=ix-ii,ix+ii
-              x=i1*hgridh-rx
-              y=i2*hgridh-ry
-              z=i3*hgridh-rz
-              r2=x**2+y**2+z**2
-              arg=r2/rloc**2
-              xp=exp(-.5d0*arg)
-              if (i3.ge.i3start .and. i3.le.i3end  .and.  & 
-                   i2.ge.-14 .and. i2.le.2*n2+16  .and.  & 
-                   i1.ge.-14 .and. i1.le.2*n1+16 ) then
-                 rho(i1,i2,j3)=rho(i1,i2,j3)-xp*charge
-              else if (i3.lt.-14 .or. i3.gt.2*n3+16 ) then
-                 rholeaked=rholeaked+xp*charge
-              endif
+        rloc=psppar(0,0,ityp)
+        charge=nelpsp(ityp)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
+        cutoff=10.d0*rloc
+        ii=nint(cutoff/hgridh)
+
+        !calculate start and end of the distributed pot
+        i3start=max(max(-14,iz-ii),i3s-15)
+        i3end=min(min(2*n3+16,iz+ii),i3s+n3pi-16)
+
+        do i3=iz-ii,iz+ii
+           j3=i3+15-i3s+1
+           do i2=iy-ii,iy+ii
+              do i1=ix-ii,ix+ii
+                 x=i1*hgridh-rx
+                 y=i2*hgridh-ry
+                 z=i3*hgridh-rz
+                 r2=x**2+y**2+z**2
+                 arg=r2/rloc**2
+                 xp=exp(-.5d0*arg)
+                 if (i3.ge.i3start .and. i3.le.i3end  .and.  & 
+                      i2.ge.-14 .and. i2.le.2*n2+16  .and.  & 
+                      i1.ge.-14 .and. i1.le.2*n1+16 ) then
+                    ind=i1+15+(i2+14)*(2*n1+31)+(j3-1)*(2*n1+31)*(2*n2+31)
+                    rho(ind)=rho(ind)-xp*charge
+                 else if (i3.lt.-14 .or. i3.gt.2*n3+16 ) then
+                    rholeaked=rholeaked+xp*charge
+                 endif
+              enddo
            enddo
         enddo
+
      enddo
 
-  enddo
-  
+  end if
   ! Check
   tt=0.d0
   do j3= 1,n3pi!i3start,i3end
      !j3=i3+15-i3s+1
      do i2= -14,2*n2+16
         do i1= -14,2*n1+16
-           tt=tt+rho(i1,i2,j3)
+           ind=i1+15+(i2+14)*(2*n1+31)+(j3-1)*(2*n1+31)*(2*n2+31)
+           tt=tt+rho(ind)
         enddo
      enddo
   enddo
