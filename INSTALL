@@ -1,6 +1,12 @@
 # ==================================
 # "Basel" way to install the package
 # ==================================
+First, you can copy:
+cd src
+cp Makefile.standalone Makefile
+make
+
+
 See also the doc/basel-make.sh script for an integrated script.
 
 Run autotools using :
