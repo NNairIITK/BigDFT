@@ -1197,6 +1197,9 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
      tt_tot=charges_mpi(3)
      rholeaked_tot=charges_mpi(4)
      deallocate(charges_mpi)
+  else
+     tt_tot=tt
+     rholeaked_tot=rholeaked
   end if
 
   if (iproc.eq.0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
@@ -3797,38 +3800,39 @@ subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
      lx(2)=0 ; ly(2)=2 ; lz(2)=0
      fac_arr(1)=0.5462742152960396d0
      fac_arr(2)=-0.5462742152960396d0
-  else if (l.eq.3  .and. m.eq.5) then !to be controlled, non normalized
+  else if (l.eq.3  .and. m.eq.5) then 
      nterm=3
      lx(1)=2 ; ly(1)=0 ; lz(1)=0
      lx(2)=0 ; ly(2)=2 ; lz(2)=0
      lx(3)=0 ; ly(3)=0 ; lz(3)=2
      fac_arr(1)=-0.3153915652525201d0
      fac_arr(2)=-0.3153915652525201d0
-     fac_arr(3)=3.d0*0.3153915652525201d0
-!!$     nterm=2
-!!$     lx(1)=0 ; ly(1)=0 ; lz(1)=0
-!!$     lx(2)=0 ; ly(2)=0 ; lz(2)=2
-!!$     fac_arr(1)=-0.3153915652525201d0
-!!$     fac_arr(2)=3.d0*0.3153915652525201d0
+     fac_arr(3)=2.d0*0.3153915652525201d0
 
   else if (l.eq.4  .and. m.eq.1) then
-     nterm=2
-     lx(1)=1 ; ly(1)=0 ; lz(1)=0
-     lx(2)=1 ; ly(2)=0 ; lz(2)=2
-     fac_arr(1)=-0.4570457994644658d0
-     fac_arr(2)=5.d0*0.4570457994644658d0
+     nterm=3
+     lx(1)=3 ; ly(1)=0 ; lz(1)=0
+     lx(2)=1 ; ly(2)=2 ; lz(2)=0
+     lx(3)=1 ; ly(3)=0 ; lz(3)=2
+     fac_arr(1)=0.4570457994644658d0
+     fac_arr(2)=0.4570457994644658d0
+     fac_arr(3)=-4.d0*0.4570457994644658d0
   else if (l.eq.4  .and. m.eq.2) then
-     nterm=2
-     lx(1)=0 ; ly(1)=1 ; lz(1)=0
-     lx(2)=0 ; ly(2)=1 ; lz(2)=2
-     fac_arr(1)=-0.4570457994644658d0
-     fac_arr(2)=5.d0*0.4570457994644658d0
+     nterm=3
+     lx(1)=2 ; ly(1)=1 ; lz(1)=0
+     lx(2)=0 ; ly(2)=3 ; lz(2)=0
+     lx(3)=0 ; ly(3)=1 ; lz(3)=2
+     fac_arr(1)=0.4570457994644658d0
+     fac_arr(2)=0.4570457994644658d0
+     fac_arr(3)=-4.d0*0.4570457994644658d0
   else if (l.eq.4  .and. m.eq.3) then
-     nterm=2
-     lx(1)=0 ; ly(1)=0 ; lz(1)=1
-     lx(2)=0 ; ly(2)=0 ; lz(2)=3
-     fac_arr(1)=-3.d0*0.3731763325901154d0
-     fac_arr(2)=5.d0*0.3731763325901154d0
+     nterm=3
+     lx(1)=2 ; ly(1)=0 ; lz(1)=1
+     lx(2)=0 ; ly(2)=2 ; lz(2)=1
+     lx(3)=0 ; ly(3)=0 ; lz(3)=3
+     fac_arr(1)=3.d0*0.3731763325901154d0
+     fac_arr(2)=3.d0*0.3731763325901154d0
+     fac_arr(3)=-2.d0*0.3731763325901154d0
   else if (l.eq.4  .and. m.eq.4) then
      nterm=2
      lx(1)=3 ; ly(1)=0 ; lz(1)=0
@@ -4168,19 +4172,23 @@ subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
              ng(ity)-1,nl(1,ity),5,occupat(1:5,ity),xp(1:ng(ity),ity),psiat(1:ng(ity),1:5,ity))
 
 !values obtained from the input guess generator in iguess.dat format
+        !write these values on a file
+        if (iproc .eq. 0) then
+        open(unit=12,file='inguess.new',status='unknown')
 
-!!$        print *,'--------COPY THESE VALUES INSIDE inguess.dat--------'
-!!$        write(*,*)trim(atomnames(ity))//' (remove _lda)'
-!!$        write(*,*)nl(1,ity),(occupat(i,ity),i=1,nl(1,ity)),&
-!!$             nl(2,ity),(occupat(i+nl(1,ity),ity),i=1,nl(2,ity)),&
-!!$             nl(3,ity),(occupat(i+nl(1,ity)+nl(2,ity),ity),i=1,nl(3,ity)),&
-!!$             nl(4,ity),(occupat(i+nl(1,ity)+nl(2,ity)+nl(3,ity),ity),i=1,nl(4,ity))
-!!$        write(*,*)ng(ity)
-!!$        write(*,'(30(e12.5))')xp(1:ng(ity),ity)
-!!$        do j=1,ng(ity)
-!!$           write(*,*)(psiat(j,i,ity),i=1,nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity))
-!!$        end do
-!!$        print *,'--------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------'
+        !write(*,*)' --------COPY THESE VALUES INSIDE inguess.dat--------'
+        write(12,*)trim(atomnames(ity))//' (remove _lda)'
+        write(12,*)nl(1,ity),(occupat(i,ity),i=1,nl(1,ity)),&
+             nl(2,ity),(occupat(i+nl(1,ity),ity),i=1,nl(2,ity)),&
+             nl(3,ity),(occupat(i+nl(1,ity)+nl(2,ity),ity),i=1,nl(3,ity)),&
+             nl(4,ity),(occupat(i+nl(1,ity)+nl(2,ity)+nl(3,ity),ity),i=1,nl(4,ity))
+        write(12,*)ng(ity)
+        write(12,'(30(e12.5))')xp(1:ng(ity),ity)
+        do j=1,ng(ity)
+           write(12,*)(psiat(j,i,ity),i=1,nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity))
+        end do
+        !print *,' --------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------'
+     end if
 
      end if
 
@@ -5632,7 +5640,7 @@ END SUBROUTINE
         if (abs(tt-1.d0).gt.1.d-2) write(*,*) 'presumably wrong inguess data',l,tt
 ! energy expectation value
         ek=ek/tt
-!        write(*,*) 'ek=',ek,tt,l,ng
+        !write(*,*) 'ek=',ek,tt,l,ng
 ! scale atomic wavefunction
         tt=sqrt(1.d0/tt)
 !!$        if (l.eq.0) then  ! multiply with 1/sqrt(4*pi)
@@ -5775,22 +5783,31 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   !Check the open statement
   read(11,*)
   read(11,*) n_abinitzatom,nelpsp
-  read(11,*) npspcode_t,npspxc,lpx
+  read(11,*) npspcode_t!,npspxc,lpx
   close(11)
 
-  allocate(gpot(3),hsep(6,lpx+1),alps(lpx+1),&
+  allocate(gpot(3),alps(lmax+1),&
      ott(6),occup(noccmax,lmax+1),&
      ofdcoef(3,4),neleconf(6,4))
 
   !assignation of radii and coefficients of the local part
   alpz=psppar(0,0)
   alpl=psppar(0,0)
-  do i=1,lpx+1
+  lpx=0
+  lpx_determination: do i=1,4
      alps(i)=psppar(i,0)
-  end do
+     if (alps(i) == 0.d0) then
+     exit lpx_determination
+     else
+        lpx=i-1
+     end if
+  end do lpx_determination
   do i=1,3
      gpot(i)=psppar(0,i)
   end do
+
+  allocate(hsep(6,lpx+1))
+
 
   !assignation of the coefficents for the nondiagonal terms
   if (npspcode == 2) then !GTH case
