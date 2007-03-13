@@ -1186,7 +1186,7 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
   tt=tt*hgridh**3
   rholeaked=rholeaked*hgridh**3
 
-  print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
+  !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
 
   if (nproc > 1) then
      allocate(charges_mpi(4))
@@ -1197,6 +1197,9 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
      tt_tot=charges_mpi(3)
      rholeaked_tot=charges_mpi(4)
      deallocate(charges_mpi)
+  else
+     tt_tot=tt
+     rholeaked_tot=rholeaked
   end if
 
   if (iproc.eq.0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
