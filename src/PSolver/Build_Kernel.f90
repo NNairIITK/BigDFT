@@ -104,10 +104,10 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
               exit load_balancing
            end if
         end do load_balancing
-        write(*,'(1x,a,i3,a)')'LB_den        : processors   0  -',jfd,' work at 100%'
-        if (jfd < nproc-1) write(*,'(1x,a,i3,a,i3,1a)')'                processor     ',jhd,&
+        write(*,'(a,i3,a)') '-LB_den        : processors   0  -',jfd,' work at 100%'
+        if (jfd < nproc-1) write(*,'(a,i3,a,i3,1a)') '-                processor     ',jhd,&
              '    work at ',npd,'%'
-        if (jhd < nproc-1) write(*,'(1x,a,i3,1a,i3,a)')'                processors ',&
+        if (jhd < nproc-1) write(*,'(a,i3,1a,i3,a)') '-                processors ',&
              jzd,'  -',nproc-1,' work at   0%'
         jhk=1000
         jzk=1000
@@ -125,10 +125,10 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
                  exit load_balancingk
               end if
            end do load_balancingk
-           write(*,'(1x,a,i3,a)')'LB_ker        : processors   0  -',jfk,' work at 100%'
-           if (jfk < nproc-1) write(*,'(1x,a,i3,a,i3,1a)')'                processor     ',jhk,&
+           write(*,'(a,i3,a)') '-LB_ker        : processors   0  -',jfk,' work at 100%'
+           if (jfk < nproc-1) write(*,'(a,i3,a,i3,1a)') '-                processor     ',jhk,&
                 '    work at ',npk,'%'
-           if (jhk < nproc-1) write(*,'(1x,a,i3,1a,i3,a)')'                processors ',jzk,'  -',nproc-1,&
+           if (jhk < nproc-1) write(*,'(a,i3,1a,i3,a)') '-                processors ',jzk,'  -',nproc-1,&
                 ' work at   0%'
         end if
         write(*,'(1x,a)')'The LB per processor is 1/3 LB_den + 2/3 LB_ker-----------'

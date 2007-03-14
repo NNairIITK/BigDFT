@@ -11,6 +11,7 @@ program BigDFT
    real*8, allocatable, dimension(:,:) :: rxyz, fxyz, rxyz_old
    logical :: output_wf,output_grid
    character(len=20) :: tatonam
+   character(len=80) :: line
 ! atomic types
    integer, allocatable, dimension(:) :: iatype
    character*20 :: atomnames(100), units
@@ -31,8 +32,9 @@ program BigDFT
       call MPI_INIT(ierr)
       call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
       call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-      write(*,'(1x,a,2(1x,i0))') 'mpi started',iproc,nproc
-      call system("hostname")
+      write(unit=line,fmt='(a,i0,a,i0,a)') &
+         'echo "- mpi started iproc=',iproc,'/',nproc,' host: `hostname`"'
+      call system(trim(line))
    else
       nproc=1
       iproc=0
@@ -169,8 +171,8 @@ program BigDFT
                write(*,'(3(1x,1pe14.7),2x,a20)') (rxyz(j,iat),j=1,3),atomnames(iatype(iat))
             enddo
             call wtposout(igeostep,nat,rxyz,atomnames,iatype)
+            write(*,'(1x,a)') 'No better convergence possible'
          endif
-         write(*,*) 'No better convergence possible'
          goto 501
       endif
       energyold=energy

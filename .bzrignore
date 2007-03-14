@@ -5,5 +5,9 @@ aclocal.m4
 autom4te.cache
 config/*
 configure
+config.log
+config.status
+mpif.h
 tests/*/wavefunction.*
 *.mod
+time.prc

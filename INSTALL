@@ -1,6 +1,12 @@
 # ==================================
 # "Basel" way to install the package
 # ==================================
+First, you can copy:
+cd src
+cp Makefile.standalone Makefile
+make
+
+
 See also the doc/basel-make.sh script for an integrated script.
 
 Run autotools using :
@@ -11,14 +17,15 @@ Choose the right option for your compilation :
 export FC=/opt/intel/fc/9.0/bin/ifort   # Choose your Fortran Compiler
 export MPI_INCLUDE=/opt/scali/include   # Set the include directory for MPI
 export MPI_LDFLAGS=/opt/scali/lib       # Set the directory where to find MPI library
-export LDFLAGS="-L/opt/intel/mkl72/lib/32/ -lguide -lpthread -lmkl_ia32 -D_REENTRANT"
+export LDFLAGS="-D_REENTRANT"
+export LIBS="-lguide -lpthread"
 
 If the build environement is standard, none of these export is required.
 They have to be adapted according to situation.
 
 
 Configure the source directory :
-./configure --enable-mpi --with-ext-linalg=mkl_lapack --prefix=/home/caliste/usr
+./configure --enable-mpi --with-ext-linalg="-lmkl_ia32 -lmkl_lapack" --with-ext-linalg-path="-L/opt/intel/mkl72/lib/32" --prefix=/home/caliste/usr
 
 The --enable-mpi option makes the source to compile with MPI support.
 This option is enable by default and can be omited (use --disable-mpi not to compile with mpi support).
