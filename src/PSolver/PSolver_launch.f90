@@ -157,7 +157,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !this routine builds the values for each process of the potential (zf), multiplying by scal 
   if(geocode == 'P') then
      !no powers of hgrid because they are incorporated in the plane wave treatment
-     scal=1.d0/real(n1*n2*n3,kind=8)
+     scal=-16.d0*datan(1.d0)/real(n1*n2*n3,kind=8) !factor of -4 pi added
      call P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
           scal,hx,hy,hz)
 
@@ -172,7 +172,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   else if (geocode == 'S') then
      !only one power of hgrid 
-     scal=hy/real(n1*n2*n3,kind=8)
+     scal=-16.d0*datan(1.d0)*hy/real(n1*n2*n3,kind=8) !factor of -4 pi added
      call S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf,&
           scal,hx,hy,hz)!,ehartreeLOC)
      correction=0.d0
