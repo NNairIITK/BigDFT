@@ -304,9 +304,24 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
 
   if (iproc.eq.0) then 
      write(*,'(1x,a,i0)') 'number of orbitals ',norb
+     iorb1=1
+     rocc=occup(1)
      do iorb=1,norb
-        write(*,'(1x,a,i0,a,f3.1)') 'occup(',iorb,')= ',occup(iorb)
+        if (occup(iorb) /= rocc) then
+           if (iorb1 == iorb-1) then
+              write(*,'(1x,a,i0,a,f3.1)') 'occup(',iorb1,')= ',rocc
+           else
+              write(*,'(1x,a,i0,a,i0,a,f3.1)') 'occup(',iorb1,':',iorb-1,')= ',rocc
+           end if
+           rocc=occup(iorb)
+           iorb1=iorb
+        end if
      enddo
+     if (iorb1 == norb) then
+        write(*,'(1x,a,i0,a,f3.1)') 'occup(',norb,')= ',occup(norb)
+     else
+        write(*,'(1x,a,i0,a,i0,a,f3.1)') 'occup(',iorb1,':',norb,')= ',occup(norb)
+     end if
   endif
 
 ! determine size alat of overall simulation cell
