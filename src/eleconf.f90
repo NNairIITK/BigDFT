@@ -159,7 +159,7 @@ rcov=1.80
 rprb=4.36
 neleconf(2,0)=2
 neleconf(2,1)=6
-neleconf(3,1)=1
+neleconf(3,1)=0
 
 case(12*1000+10)
 ! -----------------------          15

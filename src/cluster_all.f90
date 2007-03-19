@@ -207,7 +207,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   read(1,*) fpmult
   if (fpmult.gt.frmult) write(*,*) 'NONSENSE: fpmult > frmult'
   read(1,*) ixc
-  read(1,*) ncharge
+  read(1,*) ncharge,elecfield
   read(1,*) gnrm_cv
   read(1,*) itermax
   read(1,*) ncong
@@ -225,6 +225,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      write(*,'(1x,a,f6.3)')    'fpmult=',fpmult
      write(*,'(1x,a,i0)')      'ixc= ',ixc
      write(*,'(1x,a,i0)')      'ncharge= ',ncharge
+     write(*,'(1x,a,1pe9.2)')  'electric_field=',elecfield
      write(*,'(1x,a,1pe9.2)')  'gnrm_cv=',gnrm_cv
      write(*,'(1x,a,i0)')      'itermax= ',itermax
      write(*,'(1x,a,i0)')      'ncong= ',ncong
@@ -386,6 +387,7 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
      write(22,*) ' 0. ',' 0. ',alat3
      do iat=1,nat
         write(22,'(3(1x,e12.5),3x,a20)') rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),atomnames(iatype(iat))
+        write(*,'(3(1x,e12.5),3x,a20)') rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),atomnames(iatype(iat))
      enddo
   endif
 
@@ -411,10 +413,10 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
   if (new_psolver) then
      call PS_dim4allocation('F','G',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,&
           n3d,n3p,n3pi,i3xcsh,i3s)
-     if (n3pi == 0) then 
-        print *,'the pot_ion array is not to be allocated',iproc
-        !stop
-     end if
+!!$     if (n3pi == 0) then 
+!!$        print *,'the pot_ion array is not to be allocated',iproc
+!!$        !stop
+!!$     end if
      ! Charge density, Potential in real space
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for rhopot and pot_ion ',&
           (2*n1+31)*(2*n2+31)*(n3d+n3pi)
@@ -424,8 +426,11 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
      else
         allocate(pot_ion(1))
      end if
-     !we put the initial value to zero only for not adding something to pot_ion
-     call razero((2*n1+31)*(2*n2+31)*n3pi,rhopot)
+
+     
+
+!!$     !we put the initial value to zero only for not adding something to pot_ion
+!!$     call razero((2*n1+31)*(2*n2+31)*n3pi,rhopot)
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
      call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
@@ -445,6 +450,16 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
              n1,n2,n3,n3pi,i3s+i3xcsh,hgrid,pot_ion)
      end if
 
+     !use rhopot to calculate the potential from a constant electric field along x direction
+     if (elecfield /= 0.d0) then
+        if (iproc.eq.0) write(*,'(1x,a,1pe10.2)') &
+             'Adding constant electric field of intensity',elecfield,&
+             'Ha*Bohr'
+          
+        if (n3pi > 0) call pot_constantfield(iproc,n1,n2,n3,n3pi,pot_ion,hgrid,elecfield)
+
+     end if
+  
   else
      ! Charge density, Potential in real space
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for rhopot and pot_ion ',&
@@ -739,6 +754,25 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
   call sumrho(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
               nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho)
 
+  if (iproc.eq.0 .and. output_grid) then
+     open(unit=22,file='density.pot',status='unknown')
+     write(22,*)'density'
+     write(22,*) 2*n1,2*n2,2*n3
+     write(22,*) alat1,' 0. ',alat2
+     write(22,*) ' 0. ',' 0. ',alat3
+     write(22,*)'xyz'
+     do i3=1,2*n3
+        do i2=1,2*n2
+           do i1=1,2*n1
+              ind=i1+15+(i2+14)*(2*n1+31)+(i3+14)*(2*n1+31)*(2*n2+31)
+              write(22,*)rho(ind)
+           end do
+        end do
+     end do
+     close(22)
+  endif
+
+
 
   allocate(hartpot((2*n1+31)*(2*n2+31)*(2*n3+31)))
   call DCOPY((2*n1+31)*(2*n2+31)*(2*n3+31),rho,1,hartpot,1) 
@@ -862,7 +896,7 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
      call fill_logrid(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,nat,ntypes,iatype,txyz, & 
                      radii_cf(1,1),crmult,hgrid,logrid_c)
      if (iproc.eq.0 .and. output_grid) then
-        open(unit=22,file='grid.ascii',status='unknown')
+        open(unit=22,file='grid_tail.ascii',status='unknown')
         write(22,*) nat
         write(22,*) alat1,' 0. ',alat2
         write(22,*) ' 0. ',' 0. ',alat3
@@ -981,11 +1015,15 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
 
 2500 continue
      if (parallel) then
+        call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+        if (iproc.eq.0) then
+           write(*,'(1x,a,f27.14)')'Tail calculation ended'
+        endif
         wrkallred(1,2)=ekin_sum ; wrkallred(2,2)=epot_sum ; wrkallred(3,2)=eproj_sum 
         call MPI_ALLREDUCE(wrkallred(1,2),wrkallred(1,1),3,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         ekin_sum=wrkallred(1,1) ; epot_sum=wrkallred(2,1) ; eproj_sum=wrkallred(3,1)  
      endif
-
+      
      energybs=ekin_sum+epot_sum+eproj_sum
      energy=energybs-ehart+eexcu-vexcu+eion
 
@@ -1003,6 +1041,7 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
      call timing(iproc,'Tail          ','OF')
   else
 !    No tail calculation
+     if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
      deallocate(rhopot)
   endif
 ! --- End if of tail calculation
@@ -1020,7 +1059,7 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
   tel=dble(ncount1-ncount0)/dble(ncount_rate)
   write(*,'(a,1x,i4,2(1x,f12.2))') '- iproc, elapsed, CPU time ', iproc,tel,tcpu1-tcpu0
 
-        if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
 
 END SUBROUTINE cluster
 
@@ -1225,6 +1264,32 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
 
   return
 end subroutine input_rho_ion
+
+subroutine pot_constantfield(iproc,n1,n2,n3,n3pi,pot,hgrid,elecfield)
+  !Creates charge density arising from the ionic PSP cores
+  implicit none
+  include 'mpif.h'
+  integer, intent(in) :: iproc,n1,n2,n3,n3pi
+  real(kind=8), intent(in) :: hgrid,elecfield
+  real(kind=8), dimension(*), intent(inout) :: pot
+  !local variables
+  integer :: i1,i2,i3,ind
+  
+  call timing(iproc,'CrtLocPot     ','ON')
+
+  do i3=1,n3pi
+     do i2= -14,2*n2+16
+        do i1= -14,2*n1+16
+           ind=i1+15+(i2+14)*(2*n1+31)+(i3-1)*(2*n1+31)*(2*n2+31)
+           pot(ind)=pot(ind)+0.25d0*elecfield*hgrid*real(i1-n1,kind=8)
+        enddo
+     enddo
+  enddo
+
+  call timing(iproc,'CrtLocPot     ','OF')
+
+end subroutine pot_constantfield
+
 
 
 subroutine addlocgauspsp(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,&
@@ -1748,13 +1813,14 @@ subroutine addlocgauspsp_old(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,n1,n2
 ! Input: psi
 ! Output: rho
         implicit real*8 (a-h,o-z)
-        logical parallel
+        logical parallel,withmpi2
         dimension rho((2*n1+31)*(2*n2+31)*(2*n3+31)),occup(norb)
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         dimension psi(nvctr_c+7*nvctr_f,norbp)
         real*8, allocatable :: psig(:,:,:,:,:,:),psifscf(:),psir(:),rho_p(:)
         include 'mpif.h'
-
+        !flag indicating the MPI libraries used
+        withmpi2=.true.
 
         hgridh=hgrid*.5d0 
 
@@ -1765,6 +1831,34 @@ subroutine addlocgauspsp_old(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,n1,n2
         allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)))
 
  if (parallel) then
+    if (withmpi2) then
+      call timing(iproc,'Rho_comput    ','ON')
+      !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
+      call tenmminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
+
+      do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+
+        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
+                    nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+                    psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
+        call synthese_grow(n1,n2,n3,psir,psig,psifscf) 
+
+        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) 
+
+        do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
+         rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
+        enddo
+
+      enddo
+
+      call timing(iproc,'Rho_comput    ','OF')
+      call timing(iproc,'Rho_commun    ','ON')
+      call MPI_ALLREDUCE(MPI_IN_PLACE,rho,(2*n1+31)*(2*n2+31)*(2*n3+31),&
+           MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call timing(iproc,'Rho_commun    ','OF')
+
+    else
       call timing(iproc,'Rho_comput    ','ON')
         allocate(rho_p((2*n1+31)*(2*n2+31)*(2*n3+31)))
 
@@ -1794,6 +1888,7 @@ subroutine addlocgauspsp_old(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,n1,n2
       call timing(iproc,'Rho_commun    ','OF')
 
         deallocate(rho_p)
+     end if
  else
 
       call timing(iproc,'Rho_comput    ','ON')
@@ -4490,7 +4585,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      !        enddo
      !     endif
 
-     n_lp=5000
+     n_lp=5*norbe
      allocate(work_lp(n_lp),evale(norbe))
      call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
      if (info.ne.0) write(*,*) 'DSYGV ERROR',info
@@ -4531,7 +4626,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      !        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
      !        enddo
 
-     n_lp=5000
+     n_lp=5*norbe
      allocate(work_lp(n_lp),evale(norbe))
      call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
      if (info.ne.0) write(*,*) 'DSYGV ERROR',info
@@ -4604,7 +4699,7 @@ allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale
 !        enddo
 !     endif
 
-        n_lp=5000
+        n_lp=5*norbe
         allocate(work_lp(n_lp),evale(norbe))
         call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
         if (info.ne.0) write(*,*) 'DSYGV ERROR',info
@@ -4644,7 +4739,7 @@ allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale
 !        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
 !        enddo
 
-        n_lp=5000
+        n_lp=5*norbe
         allocate(work_lp(n_lp),evale(norbe))
         call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
         if (info.ne.0) write(*,*) 'DSYGV ERROR',info

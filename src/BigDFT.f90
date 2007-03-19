@@ -116,13 +116,13 @@ program BigDFT
    !ngeostep=500
    do 500 igeostep=1,ngeostep
 
-      output_grid=.false. 
+      output_grid=.true. 
       if (igeostep.eq.1) then 
          inputPsiId=0
       else
          inputPsiId=1
       endif
-      output_wf=.true. 
+      output_wf=.false. 
       call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz, &
                   & psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
                   & inputPsiId, output_grid, output_wf, n1, n2, n3, hgrid, rxyz_old)
