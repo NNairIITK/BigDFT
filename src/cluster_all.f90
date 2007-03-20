@@ -86,7 +86,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   use Poisson_Solver
 
   implicit real*8 (a-h,o-z)
-  character*30 label ; character*27 filename ; character*20 atomnames
+  character*30 label
+  character*27 filename
+  character*20 atomnames
+  character*2 symbol
   logical logrid_c,logrid_f,parallel,calc_tail,output_wf,output_grid,new_psolver
   parameter(eps_mach=1.d-12,onem=1.d0-eps_mach)
   ! work array for ALLREDUCE
@@ -255,26 +258,41 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
      read(11,*)
      read(11,*) n_abinitzatom,nelpsp(ityp)
      read(11,*) npspcode(ityp)
-     if (iproc.eq.0) write(*,'(1x,a,a,a,i0,a,i0)') 'atom type ',trim(atomnames(ityp)), & 
-          ' is described by ',nelpsp(ityp),' electrons, with pspcode= ',npspcode(ityp)
      psppar(:,:,ityp)=0.d0
      read(11,*) (psppar(0,j,ityp),j=0,4)
      if (npspcode(ityp) == 2) then !GTH case
         do i=1,2
            read(11,*) (psppar(i,j,ityp),j=0,3-i)
         enddo
-        read(11,*) radii_cf(ityp,1),radii_cf(ityp,2)
      else if (npspcode(ityp) == 3) then !HGH case
         read(11,*) (psppar(1,j,ityp),j=0,3)
         do i=2,4
            read(11,*) (psppar(i,j,ityp),j=0,3)
            read(11,*) !k coefficients, not used (no spin-orbit coupling)
         enddo
-        read(11,*) radii_cf(ityp,1),radii_cf(ityp,2)
      else
-        stop 'unrecognized pspcode (accepts only GTH and HGH pseudopotentials in ABINIT format)'
+        if (iproc == 0) then
+           write(*,'(1x,a,a)')trim(atomnames(ityp)),&
+                'unrecognized pspcode (accepts only GTH & HGH pseudopotentials in ABINIT format)'
+        end if
+        stop
      end if
+     !old way of calculatin the radii, requires modification of the PSP files
+     !read(11,*) radii_cf(ityp,1),radii_cf(ityp,2)
      close(11)
+     !new method for assigning the radii
+     call eleconf(n_abinitzatom,nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf)
+     radii_cf(ityp,1)=1.d0/sqrt(abs(2.d0*ehomo))
+     radfine=100.d0
+     do i=1,4
+        if (psppar(i,0,ityp)/=0.d0) then
+           radfine=min(radfine,psppar(i,0,ityp))
+        end if
+     end do
+     radii_cf(ityp,2)=radfine
+     if (iproc.eq.0) write(*,'(1x,a,a,a,i0,a,i0,a,2(f6.5))') 'atom type ',trim(atomnames(ityp)), & 
+          ' is described by ',nelpsp(ityp),' electrons, with pspcode= ',npspcode(ityp),&
+          ' and radii=',radii_cf(ityp,1),radii_cf(ityp,2)
   enddo
 
 ! Number of orbitals and their occupation number
@@ -414,8 +432,8 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
 
      
 
-!!$     !we put the initial value to zero only for not adding something to pot_ion
-!!$     call razero((2*n1+31)*(2*n2+31)*n3pi,rhopot)
+     !we put the initial value to zero only for not adding something to pot_ion
+     call razero((2*n1+31)*(2*n2+31)*n3pi,rhopot)
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
      call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
@@ -749,7 +767,7 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
      do i3=1,2*n3
         do i2=1,2*n2
            do i1=1,2*n1
-              ind=i1+15+(i2+14)*(2*n1+31)+(i3+14)*(2*n1+31)*(2*n2+31)
+              ind=i1+14+(i2+13)*(2*n1+31)+(i3+13)*(2*n1+31)*(2*n2+31)
               write(22,*)rho(ind)
            end do
         end do
@@ -5870,7 +5888,7 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   logical :: exists
   integer :: n_abinitzatom,nelpsp,npspcode_t,npspxc,lpx,ncount
   integer :: nzatom,nvalelec,l,i,j,iocc,il,lwrite
-  real(kind=8) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt
+  real(kind=8) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt,ehomo
 
   !filename = 'psppar.'//trim(atomname)
 
@@ -5881,28 +5899,25 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   read(11,*) npspcode_t!,npspxc,lpx
   close(11)
 
-  allocate(gpot(3),alps(lmax+1),&
+  lpx=0
+  lpx_determination: do i=1,4
+     if (psppar(i,0) == 0.d0) then
+     exit lpx_determination
+     else
+        lpx=i-1
+     end if
+  end do lpx_determination
+
+
+  allocate(gpot(3),alps(lpx+1),hsep(6,lpx+1),&
      ott(6),occup(noccmax,lmax+1),&
      ofdcoef(3,4),neleconf(6,4))
 
   !assignation of radii and coefficients of the local part
   alpz=psppar(0,0)
   alpl=psppar(0,0)
-  lpx=0
-  lpx_determination: do i=1,4
-     alps(i)=psppar(i,0)
-     if (alps(i) == 0.d0) then
-     exit lpx_determination
-     else
-        lpx=i-1
-     end if
-  end do lpx_determination
-  do i=1,3
-     gpot(i)=psppar(0,i)
-  end do
-
-  allocate(hsep(6,lpx+1))
-
+  alps(1:lpx+1)=psppar(1:lpx+1,0)
+  gpot(1:3)=psppar(0,1:3)
 
   !assignation of the coefficents for the nondiagonal terms
   if (npspcode == 2) then !GTH case
@@ -5937,7 +5952,7 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   !Now the treatment of the occupation number
   nzatom=n_abinitzatom
   nvalelec=nelpsp
-  call eleconf(nzatom,nvalelec,symbol,rcov,rprb,neleconf)
+  call eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf)
 !!  inquire(file='eleconf.dat',exist=exists)
 !!  if (.not.exists) then
 !!     write(*,*) "The file 'eleconf.dat' does not exist!"
