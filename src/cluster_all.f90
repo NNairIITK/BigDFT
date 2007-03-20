@@ -284,13 +284,13 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
      call eleconf(n_abinitzatom,nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf)
      radii_cf(ityp,1)=1.d0/sqrt(abs(2.d0*ehomo))
      radfine=100.d0
-     do i=1,4
+     do i=0,4
         if (psppar(i,0,ityp)/=0.d0) then
            radfine=min(radfine,psppar(i,0,ityp))
         end if
      end do
      radii_cf(ityp,2)=radfine
-     if (iproc.eq.0) write(*,'(1x,a,a,a,i0,a,i0,a,2(f6.5))') 'atom type ',trim(atomnames(ityp)), & 
+     if (iproc.eq.0) write(*,'(1x,a,a,a,i0,a,i0,a,2(f8.5))') 'atom type ',trim(atomnames(ityp)), & 
           ' is described by ',nelpsp(ityp),' electrons, with pspcode= ',npspcode(ityp),&
           ' and radii=',radii_cf(ityp,1),radii_cf(ityp,2)
   enddo
