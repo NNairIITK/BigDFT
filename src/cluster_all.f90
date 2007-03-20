@@ -146,6 +146,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocatable :: psib(:),hpsib(:)
   allocatable :: psifscf(:),psir(:),psig(:),psigp(:)
   allocatable :: rho(:),hartpot(:),rhopotb(:,:,:)
+  allocatable :: neleconf(:,:)
 
   integer :: ierror
 
@@ -244,7 +245,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
 ! store PSP parameters
 ! modified to accept both GTH and HGH pseudopotential types
-allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntypes))
+allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntypes),&
+     neleconf(6,0:3))
   do ityp=1,ntypes
      filename = 'psppar.'//atomnames(ityp)
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
@@ -294,6 +296,8 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
           ' is described by ',nelpsp(ityp),' electrons, with pspcode= ',npspcode(ityp),&
           ' and radii=',radii_cf(ityp,1),radii_cf(ityp,2)
   enddo
+
+  deallocate(neleconf)
 
 ! Number of orbitals and their occupation number
   norb_vir=0
