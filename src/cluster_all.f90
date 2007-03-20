@@ -4585,7 +4585,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      !        enddo
      !     endif
 
-     n_lp=5*norbe
+     n_lp=max(10,4*norbe)
      allocate(work_lp(n_lp),evale(norbe))
      call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
      if (info.ne.0) write(*,*) 'DSYGV ERROR',info
@@ -4626,7 +4626,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      !        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
      !        enddo
 
-     n_lp=5*norbe
+     n_lp=max(10,4*norbe)
      allocate(work_lp(n_lp),evale(norbe))
      call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
      if (info.ne.0) write(*,*) 'DSYGV ERROR',info
@@ -4699,7 +4699,7 @@ allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale
 !        enddo
 !     endif
 
-        n_lp=5*norbe
+        n_lp=max(10,4*norbe)
         allocate(work_lp(n_lp),evale(norbe))
         call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
         if (info.ne.0) write(*,*) 'DSYGV ERROR',info
@@ -4739,7 +4739,7 @@ allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale
 !        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
 !        enddo
 
-        n_lp=5*norbe
+        n_lp=max(10,4*norbe)
         allocate(work_lp(n_lp),evale(norbe))
         call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
         if (info.ne.0) write(*,*) 'DSYGV ERROR',info
