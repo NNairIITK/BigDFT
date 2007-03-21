@@ -17,12 +17,12 @@
 !!
 !! SOURCE
 !!
-subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,neleconf)
+subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf)
   implicit none
 ! Arguments
   integer, intent(in) :: nzatom,nvalelec
   character(len=2), intent(out) :: symbol
-  real(kind=8), intent(out) :: rcov,rprb
+  real(kind=8), intent(out) :: rcov,rprb,ehomo
   integer, parameter :: nmax=6,lmax=3
   integer, intent(out) :: neleconf(nmax,0:lmax)
 ! Local variables
@@ -45,6 +45,7 @@ case(1*1000+1)
 symbol = "H"
 rcov=0.75
 rprb=1.21
+ehomo=-0.233471
 neleconf(1,0)=1
 
 case(2*1000+2)
@@ -53,6 +54,7 @@ case(2*1000+2)
 symbol = "He"
 rcov=0.75
 rprb=1.50
+ehomo=-0.570425
 neleconf(1,0)=2
 
 case(3*1000+1)
@@ -61,6 +63,7 @@ case(3*1000+1)
 symbol = "Li"
 rcov=3.40
 rprb=6.80
+ehomo=-0.10554
 neleconf(2,0)=1
 
 case(3*1000+3)
@@ -69,6 +72,7 @@ case(3*1000+3)
 symbol = "Li"
 rcov=1.60
 rprb=3.61
+ehomo=-0.10554
 neleconf(1,0)=2
 neleconf(2,0)=1
 
@@ -78,6 +82,7 @@ case(4*1000+2)
 symbol = "Be"
 rcov=2.30
 rprb=4.60
+ehomo=-0.205744
 neleconf(2,0)=2
 
 case(4*1000+4)
@@ -86,6 +91,7 @@ case(4*1000+4)
 symbol = "Be"
 rcov=1.30
 rprb=3.60
+ehomo=-0.205744
 neleconf(1,0)=2
 neleconf(2,0)=2
 
@@ -95,6 +101,7 @@ case(5*1000+3)
 symbol = "B"
 rcov=1.55
 rprb=3.10
+ehomo=-0.136603
 neleconf(2,0)=2
 neleconf(2,1)=1
 
@@ -104,6 +111,7 @@ case(6*1000+4)
 symbol = "C"
 rcov=1.45
 rprb=2.90
+ehomo=-0.199186
 neleconf(2,0)=2
 neleconf(2,1)=2
 
@@ -113,6 +121,7 @@ case(7*1000+5)
 symbol = "N"
 rcov=1.42
 rprb=2.84
+ehomo=-0.266297
 neleconf(2,0)=2
 neleconf(2,1)=3
 
@@ -122,6 +131,7 @@ case(8*1000+6)
 symbol = "O"
 rcov=1.38
 rprb=2.75
+ehomo=-0.338381
 neleconf(2,0)=2
 neleconf(2,1)=4
 
@@ -131,6 +141,7 @@ case(9*1000+7)
 symbol = "F"
 rcov=1.35
 rprb=2.72
+ehomo=-0.415606
 neleconf(2,0)=2
 neleconf(2,1)=5
 
@@ -140,6 +151,7 @@ case(10*1000+8)
 symbol = "Ne"
 rcov=1.35
 rprb=2.70
+ehomo=-0.498034
 neleconf(2,0)=2
 neleconf(2,1)=6
 
@@ -149,6 +161,7 @@ case(11*1000+1)
 symbol = "Na"
 rcov=3.40
 rprb=6.80
+ehomo=-0.103415
 neleconf(3,0)=1
 
 case(11*1000+9)
@@ -157,9 +170,10 @@ case(11*1000+9)
 symbol = "Na"
 rcov=1.80
 rprb=4.36
+ehomo=-0.103415
 neleconf(2,0)=2
 neleconf(2,1)=6
-neleconf(3,1)=0
+neleconf(3,0)=1
 
 case(12*1000+10)
 ! -----------------------          15
@@ -167,6 +181,7 @@ case(12*1000+10)
 symbol = "Mg"
 rcov=1.20
 rprb=3.85
+ehomo=-0.175427
 neleconf(2,0)=2
 neleconf(2,1)=6
 neleconf(3,0)=2
@@ -177,6 +192,7 @@ case(12*1000+2)
 symbol = "Mg"
 rcov=2.65
 rprb=5.30
+ehomo=-0.175427
 neleconf(3,0)=2
 
 case(13*1000+3)
@@ -185,6 +201,7 @@ case(13*1000+3)
 symbol = "Al"
 rcov=2.23
 rprb=4.45
+ehomo=-0.102545
 neleconf(3,0)=2
 neleconf(3,1)=1
 
@@ -194,6 +211,7 @@ case(14*1000+4)
 symbol = "Si"
 rcov=2.09
 rprb=4.19
+ehomo=-0.153293
 neleconf(3,0)=2
 neleconf(3,1)=2
 
@@ -203,6 +221,7 @@ case(15*1000+5)
 symbol = "P"
 rcov=2.00
 rprb=4.00
+ehomo=-0.20608
 neleconf(3,0)=2
 neleconf(3,1)=3
 
@@ -212,6 +231,7 @@ case(16*1000+6)
 symbol = "S"
 rcov=1.92
 rprb=3.85
+ehomo=-0.261676
 neleconf(3,0)=2
 neleconf(3,1)=4
 
@@ -221,6 +241,7 @@ case(17*1000+7)
 symbol = "Cl"
 rcov=1.87
 rprb=3.74
+ehomo=-0.32038
 neleconf(3,0)=2
 neleconf(3,1)=5
 
@@ -230,6 +251,7 @@ case(18*1000+8)
 symbol = "Ar"
 rcov=1.80
 rprb=3.60
+ehomo=-0.38233
 neleconf(3,0)=2
 neleconf(3,1)=6
 
@@ -239,6 +261,7 @@ case(19*1000+1)
 symbol = "K"
 rcov=4.00
 rprb=7.00
+ehomo=-0.088815
 neleconf(4,0)=1
 
 case(19*1000+9)
@@ -247,6 +270,7 @@ case(19*1000+9)
 symbol = "K"
 rcov=3.00
 rprb=5.00
+ehomo=-0.088815
 neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(4,0)=1
@@ -257,6 +281,7 @@ case(20*1000+10)
 symbol = "Ca"
 rcov=3.00
 rprb=5.00
+ehomo=-0.141411
 neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(4,0)=2
@@ -267,6 +292,7 @@ case(20*1000+2)
 symbol = "Ca"
 rcov=3.80
 rprb=7.00
+ehomo=-0.141411
 neleconf(4,0)=2
 
 case(21*1000+11)
@@ -275,6 +301,7 @@ case(21*1000+11)
 symbol = "Sc"
 rcov=2.70
 rprb=5.40
+ehomo=-0.13108
 neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=1
@@ -286,6 +313,7 @@ case(21*1000+3)
 symbol = "Sc"
 rcov=2.70
 rprb=5.40
+ehomo=-0.13108
 neleconf(3,2)=1
 neleconf(4,0)=2
 
@@ -295,6 +323,7 @@ case(22*1000+12)
 symbol = "Ti"
 rcov=2.70
 rprb=5.40
+ehomo=-0.167106
 neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=2
@@ -306,6 +335,7 @@ case(22*1000+4)
 symbol = "Ti"
 rcov=2.70
 rprb=5.40
+ehomo=-0.167106
 neleconf(3,2)=2
 neleconf(4,0)=2
 
@@ -315,6 +345,7 @@ case(23*1000+13)
 symbol = "V"
 rcov=2.60
 rprb=5.20
+ehomo=-0.175968
 neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=3
@@ -326,6 +357,7 @@ case(23*1000+5)
 symbol = "V"
 rcov=2.60
 rprb=5.20
+ehomo=-0.175968
 neleconf(3,2)=3
 neleconf(4,0)=2
 
@@ -335,6 +367,7 @@ case(24*1000+14)
 symbol = "Cr"
 rcov=2.60
 rprb=5.20
+ehomo=-0.118123
 neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=5
@@ -346,6 +379,7 @@ case(24*1000+6)
 symbol = "Cr"
 rcov=2.60
 rprb=5.20
+ehomo=-0.118123
 neleconf(3,2)=5
 neleconf(4,0)=1
 
@@ -355,6 +389,7 @@ case(25*1000+15)
 symbol = "Mn"
 rcov=2.50
 rprb=5.00
+ehomo=-0.191136
 neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=5
@@ -366,6 +401,7 @@ case(25*1000+7)
 symbol = "Mn"
 rcov=2.50
 rprb=5.00
+ehomo=-0.191136
 neleconf(3,2)=5
 neleconf(4,0)=2
 
@@ -375,6 +411,7 @@ case(26*1000+16)
 symbol = "Fe"
 rcov=2.50
 rprb=5.00
+ehomo=-0.197978
 neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=6
@@ -386,6 +423,7 @@ case(26*1000+8)
 symbol = "Fe"
 rcov=2.50
 rprb=5.00
+ehomo=-0.197978
 neleconf(3,2)=6
 neleconf(4,0)=2
 
@@ -395,6 +433,7 @@ case(27*1000+17)
 symbol = "Co"
 rcov=2.40
 rprb=4.80
+ehomo=-0.204497
 neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=7
@@ -406,6 +445,7 @@ case(27*1000+9)
 symbol = "Co"
 rcov=2.40
 rprb=4.80
+ehomo=-0.204497
 neleconf(3,2)=7
 neleconf(4,0)=2
 
@@ -415,6 +455,7 @@ case(28*1000+10)
 symbol = "Ni"
 rcov=2.30
 rprb=4.60
+ehomo=-0.210764
 neleconf(3,2)=8
 neleconf(4,0)=2
 
@@ -424,6 +465,7 @@ case(28*1000+18)
 symbol = "Ni"
 rcov=2.30
 rprb=4.60
+ehomo=-0.210764
 neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=8
@@ -435,6 +477,7 @@ case(29*1000+11)
 symbol = "Cu"
 rcov=2.30
 rprb=4.60
+ehomo=-0.172056
 neleconf(3,2)=10
 neleconf(4,0)=1
 
@@ -444,6 +487,7 @@ case(29*1000+1)
 symbol = "Cu"
 rcov=2.80
 rprb=5.60
+ehomo=-0.172056
 neleconf(4,0)=1
 
 case(30*1000+12)
@@ -452,6 +496,7 @@ case(30*1000+12)
 symbol = "Zn"
 rcov=2.30
 rprb=4.60
+ehomo=-0.222725
 neleconf(3,2)=10
 neleconf(4,0)=2
 
@@ -461,6 +506,7 @@ case(30*1000+2)
 symbol = "Zn"
 rcov=2.70
 rprb=5.40
+ehomo=-0.222725
 neleconf(4,0)=2
 
 case(31*1000+13)
@@ -469,6 +515,7 @@ case(31*1000+13)
 symbol = "Ga"
 rcov=2.10
 rprb=4.20
+ehomo=-0.101634
 neleconf(3,2)=10
 neleconf(4,0)=2
 neleconf(5,0)=1
@@ -479,6 +526,7 @@ case(31*1000+3)
 symbol = "Ga"
 rcov=2.40
 rprb=4.80
+ehomo=-0.101634
 neleconf(4,0)=2
 neleconf(4,1)=1
 
@@ -488,6 +536,7 @@ case(32*1000+4)
 symbol = "Ge"
 rcov=2.40
 rprb=4.80
+ehomo=-0.149882
 neleconf(4,0)=2
 neleconf(4,1)=2
 
@@ -497,6 +546,7 @@ case(33*1000+5)
 symbol = "As"
 rcov=2.30
 rprb=4.60
+ehomo=-0.197497
 neleconf(4,0)=2
 neleconf(4,1)=3
 
@@ -506,6 +556,7 @@ case(34*1000+6)
 symbol = "Se"
 rcov=2.30
 rprb=4.60
+ehomo=-0.245806
 neleconf(4,0)=2
 neleconf(4,1)=4
 
@@ -515,6 +566,7 @@ case(35*1000+7)
 symbol = "Br"
 rcov=2.20
 rprb=4.40
+ehomo=-0.295334
 neleconf(4,0)=2
 neleconf(4,1)=5
 
@@ -524,6 +576,7 @@ case(36*1000+8)
 symbol = "Kr"
 rcov=2.20
 rprb=4.40
+ehomo=-0.34634
 neleconf(4,0)=2
 neleconf(4,1)=6
 
@@ -533,6 +586,7 @@ case(37*1000+1)
 symbol = "Rb"
 rcov=4.50
 rprb=7.00
+ehomo=-0.085375
 neleconf(5,0)=1
 
 case(37*1000+9)
@@ -541,6 +595,7 @@ case(37*1000+9)
 symbol = "Rb"
 rcov=3.30
 rprb=6.60
+ehomo=-0.085375
 neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(5,0)=1
@@ -551,6 +606,7 @@ case(38*1000+10)
 symbol = "Sr"
 rcov=3.30
 rprb=6.60
+ehomo=-0.131793
 neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(5,0)=2
@@ -561,6 +617,7 @@ case(38*1000+2)
 symbol = "Sr"
 rcov=4.00
 rprb=7.00
+ehomo=-0.131793
 neleconf(5,0)=2
 
 case(39*1000+11)
@@ -569,6 +626,7 @@ case(39*1000+11)
 symbol = "Y"
 rcov=3.30
 rprb=6.60
+ehomo=-0.108691
 neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=1
@@ -580,6 +638,7 @@ case(39*1000+3)
 symbol = "Y"
 rcov=3.50
 rprb=7.00
+ehomo=-0.108691
 neleconf(4,2)=1
 neleconf(5,0)=2
 
@@ -589,6 +648,7 @@ case(40*1000+12)
 symbol = "Zr"
 rcov=3.00
 rprb=6.00
+ehomo=-0.150673
 neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=2
@@ -600,6 +660,7 @@ case(40*1000+4)
 symbol = "Zr"
 rcov=3.00
 rprb=6.00
+ehomo=-0.150673
 neleconf(4,2)=2
 neleconf(5,0)=2
 
@@ -609,6 +670,7 @@ case(41*1000+13)
 symbol = "Nb"
 rcov=2.92
 rprb=5.84
+ehomo=-0.125252
 neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=4
@@ -620,6 +682,7 @@ case(41*1000+5)
 symbol = "Nb"
 rcov=2.70
 rprb=5.40
+ehomo=-0.125252
 neleconf(4,2)=4
 neleconf(5,0)=1
 
@@ -629,6 +692,7 @@ case(42*1000+14)
 symbol = "Mo"
 rcov=2.83
 rprb=5.66
+ehomo=-0.14788
 neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=5
@@ -640,6 +704,7 @@ case(42*1000+6)
 symbol = "Mo"
 rcov=2.60
 rprb=5.20
+ehomo=-0.14788
 neleconf(4,2)=5
 neleconf(5,0)=1
 
@@ -649,6 +714,7 @@ case(43*1000+15)
 symbol = "Tc"
 rcov=2.75
 rprb=5.50
+ehomo=-0.183636
 neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=6
@@ -660,6 +726,7 @@ case(43*1000+7)
 symbol = "Tc"
 rcov=2.60
 rprb=5.20
+ehomo=-0.183636
 neleconf(4,2)=6
 neleconf(5,0)=1
 
@@ -669,6 +736,7 @@ case(44*1000+16)
 symbol = "Ru"
 rcov=2.67
 rprb=5.34
+ehomo=-0.152834
 neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=7
@@ -680,6 +748,7 @@ case(44*1000+8)
 symbol = "Ru"
 rcov=2.50
 rprb=5.00
+ehomo=-0.152834
 neleconf(4,2)=7
 neleconf(5,0)=1
 
@@ -689,6 +758,7 @@ case(45*1000+17)
 symbol = "Rh"
 rcov=2.58
 rprb=5.16
+ehomo=-0.154624
 neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=8
@@ -700,6 +770,7 @@ case(45*1000+9)
 symbol = "Rh"
 rcov=2.50
 rprb=5.00
+ehomo=-0.154624
 neleconf(4,2)=8
 neleconf(5,0)=1
 
@@ -709,6 +780,7 @@ case(46*1000+10)
 symbol = "Pd"
 rcov=2.50
 rprb=5.00
+ehomo=-0.160771
 neleconf(4,2)=10
 
 case(46*1000+18)
@@ -717,6 +789,7 @@ case(46*1000+18)
 symbol = "Rh"
 rcov=2.50
 rprb=5.00
+ehomo=-0.154624
 neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=10
@@ -727,6 +800,7 @@ case(47*1000+11)
 symbol = "Ag"
 rcov=2.50
 rprb=5.00
+ehomo=-0.157407
 neleconf(4,2)=10
 neleconf(5,0)=1
 
@@ -736,6 +810,7 @@ case(47*1000+1)
 symbol = "Ag"
 rcov=2.90
 rprb=5.80
+ehomo=-0.157407
 neleconf(5,0)=1
 
 case(48*1000+12)
@@ -744,6 +819,7 @@ case(48*1000+12)
 symbol = "Cd"
 rcov=2.50
 rprb=5.00
+ehomo=-0.204228
 neleconf(4,2)=10
 neleconf(5,0)=2
 
@@ -753,6 +829,7 @@ case(48*1000+2)
 symbol = "Cd"
 rcov=2.80
 rprb=5.60
+ehomo=-0.204228
 neleconf(5,0)=2
 
 case(49*1000+13)
@@ -761,6 +838,7 @@ case(49*1000+13)
 symbol = "In"
 rcov=2.30
 rprb=4.60
+ehomo=-0.101782
 neleconf(4,2)=10
 neleconf(5,0)=2
 neleconf(5,1)=1
@@ -771,6 +849,7 @@ case(49*1000+3)
 symbol = "In"
 rcov=2.70
 rprb=5.40
+ehomo=-0.101782
 neleconf(5,0)=2
 neleconf(5,1)=1
 
@@ -780,6 +859,7 @@ case(50*1000+4)
 symbol = "Sn"
 rcov=2.66
 rprb=5.32
+ehomo=-0.14445
 neleconf(5,0)=2
 neleconf(5,1)=2
 
@@ -789,6 +869,7 @@ case(51*1000+5)
 symbol = "Sb"
 rcov=2.66
 rprb=5.32
+ehomo=-0.185623
 neleconf(5,0)=2
 neleconf(5,1)=3
 
@@ -798,6 +879,7 @@ case(52*1000+6)
 symbol = "Te"
 rcov=2.53
 rprb=5.06
+ehomo=-0.226594
 neleconf(5,0)=2
 neleconf(5,1)=4
 
@@ -807,6 +889,7 @@ case(53*1000+7)
 symbol = "I"
 rcov=2.50
 rprb=5.00
+ehomo=-0.267904
 neleconf(5,0)=2
 neleconf(5,1)=5
 
@@ -816,6 +899,7 @@ case(54*1000+8)
 symbol = "Xe"
 rcov=2.50
 rprb=5.00
+ehomo=-0.309835
 neleconf(5,0)=2
 neleconf(5,1)=6
 
@@ -825,6 +909,7 @@ case(55*1000+1)
 symbol = "Cs"
 rcov=4.50
 rprb=7.00
+ehomo=-0.078699
 neleconf(6,0)=1
 
 case(55*1000+9)
@@ -833,6 +918,7 @@ case(55*1000+9)
 symbol = "Cs"
 rcov=3.50
 rprb=7.00
+ehomo=-0.078699
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=1
@@ -843,6 +929,7 @@ case(56*1000+10)
 symbol = "Ba"
 rcov=3.50
 rprb=7.00
+ehomo=-0.118967
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
@@ -853,6 +940,7 @@ case(56*1000+2)
 symbol = "Ba"
 rcov=4.00
 rprb=7.00
+ehomo=-0.118967
 neleconf(6,0)=2
 
 case(57*1000+11)
@@ -861,6 +949,7 @@ case(57*1000+11)
 symbol = "La"
 rcov=3.50
 rprb=7.00
+ehomo=-0.132233
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(5,2)=1
@@ -872,6 +961,7 @@ case(58*1000+12)
 symbol = "Ce"
 rcov=3.50
 rprb=7.00
+ehomo=-0.133974
 neleconf(4,3)=2
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -883,6 +973,7 @@ case(59*1000+13)
 symbol = "Pr"
 rcov=3.44
 rprb=6.88
+ehomo=-0.124465
 neleconf(4,3)=3
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -894,6 +985,7 @@ case(60*1000+14)
 symbol = "Nd"
 rcov=3.38
 rprb=6.77
+ehomo=-0.125796
 neleconf(4,3)=4
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -905,6 +997,7 @@ case(61*1000+15)
 symbol = "Pm"
 rcov=3.33
 rprb=6.65
+ehomo=-0.127053
 neleconf(4,3)=5
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -916,6 +1009,7 @@ case(62*1000+16)
 symbol = "Sm"
 rcov=3.27
 rprb=6.53
+ehomo=-0.128259
 neleconf(4,3)=6
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -927,6 +1021,7 @@ case(63*1000+17)
 symbol = "Eu"
 rcov=3.21
 rprb=6.42
+ehomo=-0.129426
 neleconf(4,3)=7
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -938,6 +1033,7 @@ case(64*1000+18)
 symbol = "Gd"
 rcov=3.15
 rprb=6.30
+ehomo=-0.12722
 neleconf(4,3)=8
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -949,6 +1045,7 @@ case(65*1000+19)
 symbol = "Tb"
 rcov=3.09
 rprb=6.18
+ehomo=-0.131677
 neleconf(4,3)=9
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -960,6 +1057,7 @@ case(66*1000+20)
 symbol = "Dy"
 rcov=3.03
 rprb=6.07
+ehomo=-0.132769
 neleconf(4,3)=10
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -971,6 +1069,7 @@ case(67*1000+21)
 symbol = "Ho"
 rcov=2.97
 rprb=5.95
+ehomo=-0.133845
 neleconf(4,3)=11
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -982,6 +1081,7 @@ case(68*1000+22)
 symbol = "Er"
 rcov=2.92
 rprb=5.83
+ehomo=-0.134905
 neleconf(4,3)=12
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -993,6 +1093,7 @@ case(69*1000+23)
 symbol = "Tm"
 rcov=2.92
 rprb=5.83
+ehomo=-0.135953
 neleconf(4,3)=13
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -1004,6 +1105,7 @@ case(70*1000+24)
 symbol = "Yb"
 rcov=2.80
 rprb=5.60
+ehomo=-0.136989
 neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -1015,6 +1117,7 @@ case(71*1000+25)
 symbol = "Lu"
 rcov=2.80
 rprb=5.60
+ehomo=-0.103686
 neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -1027,6 +1130,7 @@ case(72*1000+26)
 symbol = "Hf"
 rcov=2.90
 rprb=5.80
+ehomo=-0.143805
 neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -1039,6 +1143,7 @@ case(73*1000+27)
 symbol = "Ta"
 rcov=2.70
 rprb=5.40
+ehomo=-0.174814
 neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -1051,6 +1156,7 @@ case(73*1000+5)
 symbol = "Ta"
 rcov=3.10
 rprb=6.20
+ehomo=-0.174814
 neleconf(5,2)=3
 neleconf(6,0)=2
 
@@ -1060,6 +1166,7 @@ case(74*1000+28)
 symbol = "W"
 rcov=2.60
 rprb=5.20
+ehomo=-0.181413
 neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -1072,6 +1179,7 @@ case(74*1000+6)
 symbol = "W"
 rcov=2.60
 rprb=5.20
+ehomo=-0.181413
 neleconf(5,2)=4
 neleconf(6,0)=2
 
@@ -1081,6 +1189,7 @@ case(75*1000+29)
 symbol = "Re"
 rcov=2.60
 rprb=5.20
+ehomo=-0.186859
 neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -1093,6 +1202,7 @@ case(75*1000+7)
 symbol = "Re"
 rcov=2.60
 rprb=5.20
+ehomo=-0.186859
 neleconf(5,2)=5
 neleconf(6,0)=2
 
@@ -1102,6 +1212,7 @@ case(76*1000+30)
 symbol = "Os"
 rcov=2.50
 rprb=5.00
+ehomo=-0.191489
 neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -1114,6 +1225,7 @@ case(76*1000+8)
 symbol = "Os"
 rcov=2.50
 rprb=5.00
+ehomo=-0.191489
 neleconf(5,2)=6
 neleconf(6,0)=2
 
@@ -1123,6 +1235,7 @@ case(77*1000+31)
 symbol = "Ir"
 rcov=2.50
 rprb=5.00
+ehomo=-0.195511
 neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -1135,6 +1248,7 @@ case(77*1000+9)
 symbol = "Ir"
 rcov=2.60
 rprb=5.20
+ehomo=-0.195511
 neleconf(5,2)=7
 neleconf(6,0)=2
 
@@ -1144,6 +1258,7 @@ case(78*1000+10)
 symbol = "Pt"
 rcov=2.60
 rprb=5.20
+ehomo=-0.161308
 neleconf(5,2)=9
 neleconf(6,0)=1
 
@@ -1153,6 +1268,7 @@ case(78*1000+32)
 symbol = "Pt"
 rcov=2.60
 rprb=5.20
+ehomo=-0.161308
 neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
@@ -1165,6 +1281,7 @@ case(79*1000+11)
 symbol = "Au"
 rcov=2.70
 rprb=5.40
+ehomo=-0.162334
 neleconf(5,2)=10
 neleconf(6,0)=1
 
@@ -1174,6 +1291,7 @@ case(79*1000+1)
 symbol = "Au"
 rcov=4.00
 rprb=6.40
+ehomo=-0.162334
 neleconf(6,0)=1
 
 case(80*1000+12)
@@ -1182,6 +1300,7 @@ case(80*1000+12)
 symbol = "Hg"
 rcov=2.80
 rprb=5.60
+ehomo=-0.205137
 neleconf(5,2)=10
 neleconf(6,0)=2
 
@@ -1191,6 +1310,7 @@ case(80*1000+2)
 symbol = "Hg"
 rcov=3.20
 rprb=6.40
+ehomo=-0.205137
 neleconf(6,0)=2
 
 case(81*1000+13)
@@ -1199,6 +1319,7 @@ case(81*1000+13)
 symbol = "Tl"
 rcov=2.50
 rprb=5.00
+ehomo=-0.101507
 neleconf(5,2)=10
 neleconf(6,0)=2
 neleconf(6,1)=1
@@ -1209,6 +1330,7 @@ case(81*1000+3)
 symbol = "Tl"
 rcov=3.20
 rprb=6.40
+ehomo=-0.101507
 neleconf(6,0)=2
 neleconf(6,1)=1
 
@@ -1218,6 +1340,7 @@ case(82*1000+4)
 symbol = "Pb"
 rcov=3.30
 rprb=6.60
+ehomo=-0.141831
 neleconf(6,0)=2
 neleconf(6,1)=2
 
@@ -1227,6 +1350,7 @@ case(83*1000+5)
 symbol = "Bi"
 rcov=2.90
 rprb=5.80
+ehomo=-0.180198
 neleconf(6,0)=2
 neleconf(6,1)=3
 
@@ -1236,6 +1360,7 @@ case(84*1000+6)
 symbol = "Po"
 rcov=2.80
 rprb=5.60
+ehomo=-0.217889
 neleconf(6,0)=2
 neleconf(6,1)=4
 
@@ -1245,6 +1370,7 @@ case(85*1000+7)
 symbol = "At"
 rcov=2.60
 rprb=5.20
+ehomo=-0.255453
 neleconf(6,0)=2
 neleconf(6,1)=5
 
@@ -1254,6 +1380,7 @@ case(86*1000+8)
 symbol = "Rn"
 rcov=2.60
 rprb=5.20
+ehomo=-0.29318
 neleconf(6,0)=2
 neleconf(6,1)=6
 
