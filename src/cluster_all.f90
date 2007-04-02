@@ -245,8 +245,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
 ! store PSP parameters
 ! modified to accept both GTH and HGH pseudopotential types
-allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntypes),&
-     neleconf(6,0:3))
+allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntypes))
+allocate(neleconf(6,0:3))
   do ityp=1,ntypes
      filename = 'psppar.'//atomnames(ityp)
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
@@ -279,19 +279,24 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
         end if
         stop
      end if
-     !old way of calculatin the radii, requires modification of the PSP files
-     !read(11,*) radii_cf(ityp,1),radii_cf(ityp,2)
+     !old way of calculating the radii, requires modification of the PSP files
+     read(11,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
+     if (ierror.eq.0) then
+        if (iproc.eq.0) write(*,'(1x,a,a)') &
+           'radii is given in the psp file for atom type ',trim(atomnames(ityp))
+     else
+        !new method for assigning the radii
+        call eleconf(n_abinitzatom,nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf)
+        radii_cf(ityp,1)=1.d0/sqrt(abs(2.d0*ehomo))
+        radfine=100.d0
+        do i=0,4
+           if (psppar(i,0,ityp)/=0.d0) then
+              radfine=min(radfine,psppar(i,0,ityp))
+           end if
+        end do
+        radii_cf(ityp,2)=radfine
+     end if
      close(11)
-     !new method for assigning the radii
-     call eleconf(n_abinitzatom,nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf)
-     radii_cf(ityp,1)=1.d0/sqrt(abs(2.d0*ehomo))
-     radfine=100.d0
-     do i=0,4
-        if (psppar(i,0,ityp)/=0.d0) then
-           radfine=min(radfine,psppar(i,0,ityp))
-        end if
-     end do
-     radii_cf(ityp,2)=radfine
      if (iproc.eq.0) write(*,'(1x,a,a,a,i0,a,i0,a,2(f8.5))') 'atom type ',trim(atomnames(ityp)), & 
           ' is described by ',nelpsp(ityp),' electrons, with pspcode= ',npspcode(ityp),&
           ' and radii=',radii_cf(ityp,1),radii_cf(ityp,2)
@@ -327,9 +332,24 @@ allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntype
 
   if (iproc.eq.0) then 
      write(*,'(1x,a,i0)') 'number of orbitals ',norb
+     iorb1=1
+     rocc=occup(1)
      do iorb=1,norb
-        write(*,'(1x,a,i0,a,f3.1)') 'occup(',iorb,')= ',occup(iorb)
+        if (occup(iorb) /= rocc) then
+           if (iorb1 == iorb-1) then
+              write(*,'(1x,a,i0,a,f3.1)') 'occup(',iorb1,')= ',rocc
+           else
+              write(*,'(1x,a,i0,a,i0,a,f3.1)') 'occup(',iorb1,':',iorb-1,')= ',rocc
+           end if
+           rocc=occup(iorb)
+           iorb1=iorb
+        end if
      enddo
+     if (iorb1 == norb) then
+        write(*,'(1x,a,i0,a,f3.1)') 'occup(',norb,')= ',occup(norb)
+     else
+        write(*,'(1x,a,i0,a,i0,a,f3.1)') 'occup(',iorb1,':',norb,')= ',occup(norb)
+     end if
   endif
 
 ! determine size alat of overall simulation cell
@@ -4592,7 +4612,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      !        enddo
      !     endif
 
-     n_lp=5000
+     n_lp=max(10,4*norbe)
      allocate(work_lp(n_lp),evale(norbe))
      call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
      if (info.ne.0) write(*,*) 'DSYGV ERROR',info
@@ -4633,7 +4653,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      !        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
      !        enddo
 
-     n_lp=5000
+     n_lp=max(10,4*norbe)
      allocate(work_lp(n_lp),evale(norbe))
      call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
      if (info.ne.0) write(*,*) 'DSYGV ERROR',info
@@ -4706,7 +4726,7 @@ allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale
 !        enddo
 !     endif
 
-        n_lp=5000
+        n_lp=max(10,4*norbe)
         allocate(work_lp(n_lp),evale(norbe))
         call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
         if (info.ne.0) write(*,*) 'DSYGV ERROR',info
@@ -4746,7 +4766,7 @@ allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale
 !        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
 !        enddo
 
-        n_lp=5000
+        n_lp=max(10,4*norbe)
         allocate(work_lp(n_lp),evale(norbe))
         call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
         if (info.ne.0) write(*,*) 'DSYGV ERROR',info

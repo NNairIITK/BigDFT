@@ -1,27 +1,27 @@
-#F95 = ifort -L/soft/intel/mkl/9.0/lib/em64t  -lmkl_lapack -lmkl_em64t 
--lguide -lpthread
+#F95 = ifort -L/soft/intel/mkl/9.0/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
 
 
-F95 = mpif90  -i_dynamic -L/soft/intel/mkl/9.0/lib/em64t  -lmkl_lapack 
--lmkl_em64t -lguide -lpthread
+#F95 = mpif90  -i_dynamic -L/soft/intel/mkl/9.0/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
 
-
-#F95 = mpif90   -I/soft/intel/mkl721/include  
--I/soft/mpich-1.2.7p1/intel_v9/include
-#-openmp
+#F95 = mpif90   -I/soft/intel/mkl721/include -I/soft/mpich-1.2.7p1/intel_v9/include -openmp
 F77 = mpif90  -i_dynamic
 FFLAGS =
 
-LIBRARIES = -L/soft/intel/mkl721/lib/em64t  -lmkl_lapack -lmkl_em64t 
--lguide -lpthread
+LIBRARIES = -L/soft/intel/mkl721/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
+
+#Values of the logical parallel (to create parameters.h)
+PARALLEL = .true.
 
 all: cluster test_forces
 
 SOURCES = \
         cluster_all.f90 \
         convolut_optim.f90 \
+        conv_per_optim.f90 \
+        eleconf.f90  \
         gauss_to_daub.f90 \
         precond_sg.f90 \
+        prec_diag.f90 \
         timing.f90 \
         forces.f90
 
@@ -43,55 +43,66 @@ SOURCES_ABINIT = ABINIT-common/defs_basis.F90 \
 
 
 SOURCES_POISSON = \
-        PSolver/Build_Kernel.f90 \
-        PSolver/fft3d.f90 \
-        PSolver/PSolver_Kernel.f90 \
-        PSolver/pconv.f90 \
-        PSolver/pfft3d.f90 \
-        PSolver/scaling_function.f90 \
-        PSolver/gequad.f90 \
-        PSolver/xcenergy.f90 \
-        PSolver/3Dgradient.f90
+   PSolver/Build_Kernel_OLD.f90 \
+   PSolver/fft3d_OLD.f90 \
+   PSolver/PSolver_Kernel.f90 \
+   PSolver/pconv.f90 \
+   PSolver/pfft3d.f90 \
+   PSolver/scaling_function_OLD.f90 \
+   PSolver/gequad.f90 \
+   PSolver/xcenergy_OLD.f90 \
+   PSolver/3Dgradient_OLD.f90 \
+   PSolver/Poisson_Solver.f90
+
+SOURCES_MOD = PSolver/PSolver_launch.f90 \
+   PSolver/Build_Kernel.f90 \
+   PSolver/PSolver_Base.f90 \
+   PSolver/xcenergy.f90 \
+   PSolver/3Dgradient.f90 \
+   PSolver/fft3d.f90 \
+   PSolver/scaling_function.f90
+
 
 OBJECTS_ABINIT_PP = $(SOURCES_ABINIT:.F90=.f90)
 
 $(OBJECTS_ABINIT_PP): %.f90: %.F90
-        cpp -P $< $@
-
+	cpp -P $< $@
 
 OBJECTS_F95 = $(SOURCES:.f90=.o)
 OBJECTS_ABINIT = $(OBJECTS_ABINIT_PP:.f90=.o)
 OBJECTS_POISSON = $(SOURCES_POISSON:.f90=.o)
 
-
-
 $(OBJECTS_F95): %.o: %.f90
-        $(F95) $(FFLAGS) -I.. -c $< -o $@
+	$(F95) $(FFLAGS) -I.. -c $< -o $@
 
 $(OBJECTS_ABINIT): %.o: %.f90
-        $(F95) -c $< -o $@
+	$(F95) -c $< -o $@
 
 $(OBJECTS_POISSON): %.o: %.f90
-        $(F95) $(FFLAGS) -c $< -o $@
+	$(F95) $(FFLAGS) -c $< -o $@
 
 
 OBJECTS = $(OBJECTS_ABINIT) $(OBJECTS_F95) $(OBJECTS_POISSON)  BigDFT.f90
-OBJECTS_TEST =  $(OBJECTS_ABINIT) $(OBJECTS_F95)  $(OBJECTS_POISSON) 
-test_forces.f90
+OBJECTS_TEST =  $(OBJECTS_ABINIT) $(OBJECTS_F95)  $(OBJECTS_POISSON) test_forces.f90
 
-cluster: $(OBJECTS)
-        $(F95) -o cluster $(OBJECTS) $(LIBRARIES)
+cluster: $(OBJECTS) parameters.h
+	$(F95) -o cluster $(OBJECTS) $(LIBRARIES)
 
 test_forces: $(OBJECTS_TEST)
-        $(F95) -o test_forces $(OBJECTS_TEST) $(LIBRARIES)
+		$(F95) -o test_forces $(OBJECTS_TEST) $(LIBRARIES)
 
+parameters.h:
+	echo "      logical, parameter :: parallel = $(PARALLEL)" > parameters.h
 
 clean:
-        \rm -f *.o cluster test_forces *.mod *~ PSolver/*.o PSolver/*~ 
-ABINIT-common/*.f90 ABINIT-common/*.o ABINIT-common/*~
+	\rm -f *.o cluster test_forces *.mod *~ PSolver/*.o PSolver/*~ parameters.h \
+		ABINIT-common/*.f90 ABINIT-common/*.o ABINIT-common/*~
 
 tar:
-        make clean
-        tar czvf all.tgz Makefile *.f *.f90 *.inc *.h posinp *.dat 
-psppar.* RE* PSolver/* doc/* ABINIT-common/*
+	make clean
+	tar czvf all.tgz Makefile *.f *.f90 *.inc *.h posinp *.dat psppar.* RE* PSolver/* doc/* ABINIT-common/*
+
+#Dependencies:
+cluster_all.o: PSolver/Poisson_Solver.o
+PSolver/Poisson_Solver.o: $(SOURCES_MOD)
 
