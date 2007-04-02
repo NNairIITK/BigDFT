@@ -855,202 +855,42 @@ allocate(neleconf(6,0:3))
      call timing(iproc,'Tail          ','ON')
 !    Calculate kinetic energy correction due to boundary conditions
      nbuf=nint(rbuf/hgrid)
-     if (iproc.eq.0) write(*,'(1x,a,i0,a)') 'BIG: tail requires ',nbuf,' additional grid points around cell'
+     if (iproc.eq.0) then
+        write(*,'(1x,a,i0,a)') 'BIG: tail requires ',nbuf,' additional grid points around cell'
+     end if
 !    --- new grid sizes n1,n2,n3
      nb1=n1+2*nbuf
      nb2=n2+2*nbuf
      nb3=n3+2*nbuf
-     alatb1=nb1*hgrid ; alatb2=nb2*hgrid ; alatb3=nb3*hgrid
+     alatb1=nb1*hgrid 
+     alatb2=nb2*hgrid 
+     alatb3=nb3*hgrid
      if (iproc.eq.0) then 
-        write(*,'(1x,a,3(1x,i0))')      'BIG: n1,n2,n3',nb1,nb2,nb3
-        write(*,'(1x,a,1x,i0)')         'BIG: total number of grid points',(nb1+1)*(nb2+1)*(nb3+1)
-        write(*,'(1x,a,3(1x,1pe12.5))') 'BIG: simulation cell',alatb1,alatb2,alatb3
+        write(*,'(1x,a,3(1x,i0))')     'BIG: n1,n2,n3',nb1,nb2,nb3
+        write(*,'(1x,a,1x,i0)')        'BIG: total number of grid points',(nb1+1)*(nb2+1)*(nb3+1)
+        write(*,'(1x,a,3(1x,1pe12.5))')'BIG: simulation cell',alatb1,alatb2,alatb3
      endif
-!    ---reformat potential
+     !    ---reformat potential
      allocate(rhopotb((2*nb1+31),(2*nb2+31),(2*nb3+31)))
      call razero((2*nb1+31)*(2*nb2+31)*(2*nb3+31),rhopotb)
      do i3=1+2*nbuf,2*n3+31+2*nbuf
-     do i2=1+2*nbuf,2*n2+31+2*nbuf
-     do i1=1+2*nbuf,2*n1+31+2*nbuf
-        rhopotb(i1,i2,i3)=rhopot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf)
-     enddo ; enddo ; enddo
-     deallocate(rhopot)
-
-!    ---reformat keyg_p
-     do iseg=1,nseg_p(2*nat)
-        j0=keyg_p(1,iseg)
-        j1=keyg_p(2,iseg)
-        ii=j0-1
-        i3=ii/((n1+1)*(n2+1))
-        ii=ii-i3*(n1+1)*(n2+1)
-        i2=ii/(n1+1)
-        i0=ii-i2*(n1+1)
-        i1=i0+j1-j0
-        i3=i3+nbuf
-        i2=i2+nbuf
-        i1=i1+nbuf
-        i0=i0+nbuf
-        j0=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i0+1
-        j1=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i1+1
-        keyg_p(1,iseg)=j0
-        keyg_p(2,iseg)=j1
-     enddo
-
-!    ---reformat wavefunctions
-
-!    fine grid size (needed for creation of input wavefunction, preconditioning)
-     nbfl1=nfl1+nbuf ; nbfl2=nfl2+nbuf ; nbfl3=nfl3+nbuf
-     nbfu1=nfu1+nbuf ; nbfu2=nfu2+nbuf ; nbfu3=nfu3+nbuf
-     if (iproc.eq.0) then
-        write(*,'(1x,a,2(1x,i0))') 'BIG: nfl1,nfu1',nbfl1,nbfu1
-        write(*,'(1x,a,2(1x,i0))') 'BIG: nfl2,nfu2',nbfl2,nbfu2
-        write(*,'(1x,a,2(1x,i0))') 'BIG: nfl3,nfu3',nbfl3,nbfu3
-     endif
-
-     allocate(txyz(3,nat))
-     do iat=1,nat
-        txyz(1,iat)=rxyz(1,iat)+nbuf*hgrid
-        txyz(2,iat)=rxyz(2,iat)+nbuf*hgrid
-        txyz(3,iat)=rxyz(3,iat)+nbuf*hgrid
-     enddo
-
-!    determine localization region for all orbitals, but do not yet fill the descriptor arrays
-     allocate(logrid_c(0:nb1,0:nb2,0:nb3),logrid_f(0:nb1,0:nb2,0:nb3))
-     allocate(ibbyz_c(2,0:nb2,0:nb3),ibbxz_c(2,0:nb1,0:nb3),ibbxy_c(2,0:nb1,0:nb2))
-     allocate(ibbyz_f(2,0:nb2,0:nb3),ibbxz_f(2,0:nb1,0:nb3),ibbxy_f(2,0:nb1,0:nb2))
-
-!    coarse grid quantities
-     call fill_logrid(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,nat,ntypes,iatype,txyz, & 
-                     radii_cf(1,1),crmult,hgrid,logrid_c)
-     if (iproc.eq.0 .and. output_grid) then
-        open(unit=22,file='grid_tail.ascii',status='unknown')
-        write(22,*) nat
-        write(22,*) alat1,' 0. ',alat2
-        write(22,*) ' 0. ',' 0. ',alat3
-        do iat=1,nat
-           write(22,'(3(1x,e12.5),3x,a20)') txyz(1,iat),txyz(2,iat),txyz(3,iat),atomnames(iatype(iat))
+        do i2=1+2*nbuf,2*n2+31+2*nbuf
+           do i1=1+2*nbuf,2*n1+31+2*nbuf
+              rhopotb(i1,i2,i3)=rhopot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf)
+           enddo
         enddo
-        do i3=0,nb3 ; do i2=0,nb2 ; do i1=0,nb1
-           if (logrid_c(i1,i2,i3)) write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  g '
-        enddo ; enddo ; enddo 
-     endif
-     call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,nvctrb_c)
-     if (iproc.eq.0) write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have coarse segment, elements',nsegb_c,nvctrb_c
-     call bounds(nb1,nb2,nb3,logrid_c,ibbyz_c,ibbxz_c,ibbxy_c)
+     enddo
+     deallocate(rhopot)
+     call timing(iproc,'Tail          ','OF')
 
-!    fine grid quantities
-     call fill_logrid(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,0,nat,ntypes,iatype,txyz, & 
-                     radii_cf(1,2),frmult,hgrid,logrid_f)
-     if (iproc.eq.0 .and. output_grid) then
-        do i3=0,nb3 ; do i2=0,nb2 ; do i1=0,nb1
-           if (logrid_f(i1,i2,i3)) write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  G '
-        enddo ; enddo ; enddo 
-         endif
-         call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
-        if (iproc.eq.0) write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have fine   segment, elements',nsegb_f,7*nvctrb_f
-        call bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
+     call CalculateTailCorrection(iproc,nproc,n1,n2,n3,nbuf,nb1,nb2,nb3,norb,norbp,nat,ntypes,&
+     nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
+     keyv,keyg,nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
+     rhopotb,hgrid,alatb1,alatb2,alatb3,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
+     proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
 
-        if (iproc.eq.0) close(22)
-
-! now fill the wavefunction descriptor arrays
-        allocate(keybg(2,nsegb_c+nsegb_f),keybv(nsegb_c+nsegb_f))
-! coarse grid quantities
-        call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,keybg(1,1),keybv(1))
-
-! fine grid quantities
-        call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1))
-
-        deallocate(logrid_c,logrid_f)
-! allocations for arrays holding the wavefunction
-        if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psib and hpsib ',2*(nvctrb_c+7*nvctrb_f)
-        allocate(psib(nvctrb_c+7*nvctrb_f),hpsib(nvctrb_c+7*nvctrb_f))
-        if (iproc.eq.0) write(*,*) 'Allocation done'
-
-! work arrays applylocpotkin
-       allocate(psig(8*(nb1+1)*(nb2+1)*(nb3+1)) )
-       allocate(psigp(8*(nb1+1)*(nb2+1)*(nb3+1)) )
-       allocate(psifscf(max((2*nb1+31)*(2*nb2+31)*(2*nb3+16),(2*nb1+16)*(2*nb2+31)*(2*nb3+31))))
-       allocate(psir((2*nb1+31)*(2*nb2+31)*(2*nb3+31)))
-
-      ekin_sum=0.d0
-      epot_sum=0.d0
-      eproj_sum=0.d0
-    do 2500 iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-
-        call uncompress(n1,n2,n3,-nbuf,n1+nbuf,-nbuf,n2+nbuf,-nbuf,n3+nbuf, & 
-                    nseg_c,nvctr_c,keyg,              keyv,   &
-                    nseg_f,nvctr_f,keyg(:,nseg_c+1),keyv(nseg_c+1:),   &
-                    psi(:,iorb-iproc*norbp),psi(nvctr_c+1:,iorb-iproc*norbp),psig)
-        call compress(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,  &
-                    nsegb_c,nvctrb_c,keybg(1,1),       keybv(1),   &
-                    nsegb_f,nvctrb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1),   &
-                    psig,psib(1),psib(nvctrb_c+1))
-
-        npt=2
-        do 1500 ipt=1,npt
-
-!          calculate gradient
-           call applylocpotkinone(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, & 
-                   hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  & 
-                   ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f, & 
-                   psig,psigp,psifscf,psir,  &
-                   psib,rhopotb,hpsib,epot,ekin)
-           call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
-                    nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-                    nsegb_c,nsegb_f,keybg,keybv,nvctrb_c,nvctrb_f,  & 
-                    psib,hpsib,eproj)
-           tt=0.d0
-           do i=1,nvctrb_c+7*nvctrb_f
-              hpsib(i)=hpsib(i)-eval(iorb)*psib(i)
-              tt=tt+hpsib(i)**2
-           enddo
-           tt=sqrt(tt)
-           write(*,'(1x,a,i3,3(1x,1pe21.14),1x,1pe10.3)') 'BIG: iorb,ekin,epot,eproj,gnrm',iorb,ekin,epot,eproj,tt
-           if (ipt.eq.npt) goto 1600
-!          calculate tail
-           cprecr=-eval(iorb)
-           call timing(iproc,'Tail          ','OF')
-           call precong(iorb,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, &
-                     nsegb_c,nvctrb_c,nsegb_f,nvctrb_f,keybg,keybv, &
-                     ncongt,cprecr,hgrid,ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,hpsib)
-           call timing(iproc,'Tail          ','ON')
-!          call plot_wf(10,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
-!                    txyz(1,1),txyz(2,1),txyz(3,1),psib)
-!          add tail
-           sum_tail=0.d0
-           do i=1,nvctrb_c+7*nvctrb_f
-              psib(i)=psib(i)-hpsib(i)
-              sum_tail=sum_tail+psib(i)**2
-           enddo
-           sum_tail=sqrt(sum_tail)
-           write(*,'(1x,a,1x,i0,f18.14)') 'norm orbital + tail',iorb,sum_tail
-!          call plot_wf(20,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
-!                    txyz(1,1),txyz(2,1),txyz(3,1),psib)
-
-           sum_tail=1.d0/sum_tail
-           do i=1,nvctrb_c+7*nvctrb_f
-              psib(i)=psib(i)*sum_tail
-           enddo
-
-1500    continue
-1600    continue
-
-        ekin_sum=ekin_sum+ekin*occup(iorb)
-        epot_sum=epot_sum+epot*occup(iorb)
-        eproj_sum=eproj_sum+eproj*occup(iorb)
-
-
-2500 continue
-     if (parallel) then
-        call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-        if (iproc.eq.0) then
-           write(*,'(1x,a,f27.14)')'Tail calculation ended'
-        endif
-        wrkallred(1,2)=ekin_sum ; wrkallred(2,2)=epot_sum ; wrkallred(3,2)=eproj_sum 
-        call MPI_ALLREDUCE(wrkallred(1,2),wrkallred(1,1),3,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        ekin_sum=wrkallred(1,1) ; epot_sum=wrkallred(2,1) ; eproj_sum=wrkallred(3,1)  
-     endif
-      
+     deallocate(rhopotb)
+    
      energybs=ekin_sum+epot_sum+eproj_sum
      energy=energybs-ehart+eexcu-vexcu+eion
 
@@ -1059,13 +899,7 @@ allocate(neleconf(6,0:3))
         write(*,'(1x,a,3(1x,f26.14))') 'ekin,epot,eproj with tail correction',ekin_sum,epot_sum,eproj_sum
      endif
 
-     deallocate(txyz)
-     deallocate(rhopotb,psig,psigp,psifscf,psir)
 
-     deallocate(psib,hpsib)
-     deallocate(keybg,keybv)
-     deallocate(ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f)
-     call timing(iproc,'Tail          ','OF')
   else
 !    No tail calculation
      if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
@@ -1086,9 +920,259 @@ allocate(neleconf(6,0:3))
   tel=dble(ncount1-ncount0)/dble(ncount_rate)
   write(*,'(a,1x,i4,2(1x,f12.2))') '- iproc, elapsed, CPU time ', iproc,tel,tcpu1-tcpu0
 
-
-
 END SUBROUTINE cluster
+
+subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,nbuf,nb1,nb2,nb3,norb,norbp,nat,ntypes,&
+     nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
+     keyv,keyg,nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
+     rhopotb,hgrid,alatb1,alatb2,alatb3,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
+     proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
+implicit none
+include 'mpif.h'
+logical, intent(in) :: output_grid,parallel
+character(len=20), dimension(100), intent(in) :: atomnames
+integer, intent(in) :: iproc,nproc,n1,n2,n3,nbuf,nb1,nb2,nb3,norb,norbp,nat,ntypes,ncongt
+integer, intent(in) :: nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel
+real(kind=8), intent(in) :: hgrid,crmult,frmult,alatb1,alatb2,alatb3
+real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
+integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
+integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
+integer, dimension(2,nseg_p(2*nat)), intent(inout) :: keyg_p
+integer, dimension(ntypes), intent(in) :: npspcode
+integer, dimension(nat), intent(in) :: iatype
+real(kind=8), dimension(norb), intent(in) :: occup,eval
+real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
+real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
+real(kind=8), dimension(3,nat), intent(in) :: rxyz
+real(kind=8), dimension(2*nb1+31,2*nb2+31,2*nb3+31), intent(in) :: rhopotb
+real(kind=8), dimension(nprojel), intent(in) :: proj
+real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
+!local variables
+logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
+integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr
+integer :: nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
+integer, dimension(:,:,:), allocatable :: ibbyz_c,ibbyz_f,ibbxz_c,ibbxz_f,ibbxy_c,ibbxy_f
+integer, dimension(:), allocatable :: keybv
+integer, dimension(:,:), allocatable :: keybg
+real(kind=8) :: ekin,epot,eproj,tt,cprecr,sum_tail
+real(kind=8), dimension(:,:), allocatable :: txyz,wrkallred
+real(kind=8), dimension(:), allocatable :: psib,hpsib,psig,psigp,psifscf,psir
+
+call timing(iproc,'Tail          ','ON')
+
+!---reformat keyg_p
+do iseg=1,nseg_p(2*nat)
+   j0=keyg_p(1,iseg)
+   j1=keyg_p(2,iseg)
+   ii=j0-1
+   i3=ii/((n1+1)*(n2+1))
+   ii=ii-i3*(n1+1)*(n2+1)
+   i2=ii/(n1+1)
+   i0=ii-i2*(n1+1)
+   i1=i0+j1-j0
+   i3=i3+nbuf
+   i2=i2+nbuf
+   i1=i1+nbuf
+   i0=i0+nbuf
+   j0=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i0+1
+   j1=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i1+1
+   keyg_p(1,iseg)=j0
+   keyg_p(2,iseg)=j1
+end do
+
+!---reformat wavefunctions
+
+! fine grid size (needed for creation of input wavefunction, preconditioning)
+nbfl1=nfl1+nbuf ; nbfl2=nfl2+nbuf ; nbfl3=nfl3+nbuf
+nbfu1=nfu1+nbuf ; nbfu2=nfu2+nbuf ; nbfu3=nfu3+nbuf
+if (iproc.eq.0) then
+   write(*,'(1x,a,2(1x,i0))') 'BIG: nfl1,nfu1',nbfl1,nbfu1
+   write(*,'(1x,a,2(1x,i0))') 'BIG: nfl2,nfu2',nbfl2,nbfu2
+   write(*,'(1x,a,2(1x,i0))') 'BIG: nfl3,nfu3',nbfl3,nbfu3
+endif
+
+! change atom coordinates according to the enlarged box
+allocate(txyz(3,nat))
+do iat=1,nat
+   txyz(1,iat)=rxyz(1,iat)+nbuf*hgrid
+   txyz(2,iat)=rxyz(2,iat)+nbuf*hgrid
+   txyz(3,iat)=rxyz(3,iat)+nbuf*hgrid
+enddo
+
+! determine localization region for all orbitals, but do not yet fill the descriptor arrays
+allocate(logrid_c(0:nb1,0:nb2,0:nb3),logrid_f(0:nb1,0:nb2,0:nb3))
+allocate(ibbyz_c(2,0:nb2,0:nb3),ibbxz_c(2,0:nb1,0:nb3),ibbxy_c(2,0:nb1,0:nb2))
+allocate(ibbyz_f(2,0:nb2,0:nb3),ibbxz_f(2,0:nb1,0:nb3),ibbxy_f(2,0:nb1,0:nb2))
+
+! coarse grid quantities
+call fill_logrid(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,nat,ntypes,iatype,txyz, & 
+     radii_cf(1,1),crmult,hgrid,logrid_c)
+if (iproc.eq.0 .and. output_grid) then
+   open(unit=22,file='grid_tail.ascii',status='unknown')
+   write(22,*) nat
+   write(22,*) alatb1,' 0. ',alatb2
+   write(22,*) ' 0. ',' 0. ',alatb3
+   do iat=1,nat
+      write(22,'(3(1x,e12.5),3x,a20)') txyz(1,iat),txyz(2,iat),txyz(3,iat),atomnames(iatype(iat))
+   end do
+   do i3=0,nb3
+      do i2=0,nb2
+         do i1=0,nb1
+            if (logrid_c(i1,i2,i3)) then
+               write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  g '
+            end if
+         enddo
+      enddo
+   end do
+endif
+call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,nvctrb_c)
+if (iproc.eq.0) then
+   write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have coarse segment, elements',nsegb_c,nvctrb_c
+end if
+call bounds(nb1,nb2,nb3,logrid_c,ibbyz_c,ibbxz_c,ibbxy_c)
+
+! fine grid quantities
+call fill_logrid(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,0,nat,ntypes,iatype,txyz, & 
+     radii_cf(1,2),frmult,hgrid,logrid_f)
+if (iproc.eq.0 .and. output_grid) then
+   do i3=0,nb3 
+      do i2=0,nb2 
+         do i1=0,nb1
+            if (logrid_f(i1,i2,i3)) then
+               write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  G '
+            end if
+         enddo
+      enddo
+   enddo
+   close(22)
+endif
+call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
+if (iproc.eq.0) then
+   write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have fine   segment, elements',nsegb_f,7*nvctrb_f
+end if
+call bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
+
+! now fill the wavefunction descriptor arrays
+allocate(keybg(2,nsegb_c+nsegb_f),keybv(nsegb_c+nsegb_f))
+! coarse grid quantities
+call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,keybg(1,1),keybv(1))
+
+! fine grid quantities
+call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1))
+
+deallocate(logrid_c,logrid_f)
+
+! allocations for arrays holding the wavefunction
+if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psib and hpsib ',2*(nvctrb_c+7*nvctrb_f)
+allocate(psib(nvctrb_c+7*nvctrb_f),hpsib(nvctrb_c+7*nvctrb_f))
+if (iproc.eq.0) write(*,*) 'Allocation done'
+
+! work arrays applylocpotkin
+allocate(psig(8*(nb1+1)*(nb2+1)*(nb3+1)) )
+allocate(psigp(8*(nb1+1)*(nb2+1)*(nb3+1)) )
+allocate(psifscf(max((2*nb1+31)*(2*nb2+31)*(2*nb3+16),(2*nb1+16)*(2*nb2+31)*(2*nb3+31))))
+allocate(psir((2*nb1+31)*(2*nb2+31)*(2*nb3+31)))
+
+ekin_sum=0.d0
+epot_sum=0.d0
+eproj_sum=0.d0
+do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+
+   !build the compressed wavefunction in the enlarged box
+   call uncompress(n1,n2,n3,-nbuf,n1+nbuf,-nbuf,n2+nbuf,-nbuf,n3+nbuf, & 
+        nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+        psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
+   call compress(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,  &
+        nsegb_c,nvctrb_c,keybg(1,1),keybv(1),   &
+        nsegb_f,nvctrb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1),   &
+        psig,psib(1),psib(nvctrb_c+1))
+
+   npt=2
+   tail_adding: do ipt=1,npt
+
+      !calculate gradient
+      call applylocpotkinone(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, & 
+           hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  & 
+           ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f, & 
+           psig,psigp,psifscf,psir,  &
+           psib,rhopotb,hpsib,epot,ekin)
+      call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
+           nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
+           nsegb_c,nsegb_f,keybg,keybv,nvctrb_c,nvctrb_f,  & 
+           psib,hpsib,eproj)
+      !calculate residue for the single orbital
+      tt=0.d0
+      do i=1,nvctrb_c+7*nvctrb_f
+         hpsib(i)=hpsib(i)-eval(iorb)*psib(i)
+         tt=tt+hpsib(i)**2
+      enddo
+      tt=sqrt(tt)
+      write(*,'(1x,a,i3,3(1x,1pe21.14),1x,1pe10.3)') &
+           'BIG: iorb,ekin,epot,eproj,gnrm',iorb,ekin,epot,eproj,tt
+      if (ipt.eq.npt) exit tail_adding
+
+      !calculate tail using the preconditioner as solver for the green function application
+      cprecr=-eval(iorb)
+      call timing(iproc,'Tail          ','OF')
+      call precong(iorb,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, &
+           nsegb_c,nvctrb_c,nsegb_f,nvctrb_f,keybg,keybv, &
+           ncongt,cprecr,hgrid,ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,hpsib)
+      call timing(iproc,'Tail          ','ON')
+      !call plot_wf(10,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
+      !      txyz(1,1),txyz(2,1),txyz(3,1),psib)
+
+      ! add tail to the bulk wavefunction
+      sum_tail=0.d0
+      do i=1,nvctrb_c+7*nvctrb_f
+         psib(i)=psib(i)-hpsib(i)
+         sum_tail=sum_tail+psib(i)**2
+      enddo
+      sum_tail=sqrt(sum_tail)
+      write(*,'(1x,a,1x,i0,f18.14)') 'norm orbital + tail',iorb,sum_tail
+      !call plot_wf(20,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
+      !      txyz(1,1),txyz(2,1),txyz(3,1),psib)
+
+      sum_tail=1.d0/sum_tail
+      do i=1,nvctrb_c+7*nvctrb_f
+         psib(i)=psib(i)*sum_tail
+      enddo
+
+   end do tail_adding
+
+   ekin_sum=ekin_sum+ekin*occup(iorb)
+   epot_sum=epot_sum+epot*occup(iorb)
+   eproj_sum=eproj_sum+eproj*occup(iorb)
+end do
+
+deallocate(txyz)
+deallocate(psig,psigp,psifscf,psir,psib,hpsib)
+deallocate(keybg,keybv)
+deallocate(ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f)
+
+
+if (parallel) then
+   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+   if (iproc.eq.0) then
+      write(*,'(1x,a,f27.14)')'Tail calculation ended'
+   endif
+   allocate(wrkallred(3,2))
+   wrkallred(1,2)=ekin_sum
+   wrkallred(2,2)=epot_sum 
+   wrkallred(3,2)=eproj_sum 
+   call MPI_ALLREDUCE(wrkallred(1,2),wrkallred(1,1),3,&
+        MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+   ekin_sum=wrkallred(1,1) 
+   epot_sum=wrkallred(2,1) 
+   eproj_sum=wrkallred(3,1)
+   deallocate(wrkallred)
+endif
+
+call timing(iproc,'Tail          ','OF')
+
+end subroutine CalculateTailCorrection
 
 
 subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
