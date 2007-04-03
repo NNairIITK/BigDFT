@@ -139,12 +139,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   ! arrays for DIIS convergence accelerator
   real*8, pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
 
-  ! arrays for correction to kinetic energy
-  allocatable :: ibbyz_c(:,:,:),ibbxz_c(:,:,:),ibbxy_c(:,:,:),  & 
-       ibbyz_f(:,:,:),ibbxz_f(:,:,:),ibbxy_f(:,:,:)
-  allocatable :: keybv(:),keybg(:,:),txyz(:,:)
-  allocatable :: psib(:),hpsib(:)
-  allocatable :: psifscf(:),psir(:),psig(:),psigp(:)
+  ! arrays for calculation of forces and tail correction to kinetic energy
   allocatable :: rho(:),hartpot(:),rhopotb(:,:,:)
   allocatable :: neleconf(:,:)
 
