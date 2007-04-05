@@ -556,7 +556,9 @@ allocate(neleconf(6,0:3))
   do 1000, iter=1,itermax
      if (idsx.gt.0) mids=mod(iter-1,idsx)+1
      if (iproc.eq.0) then 
-        write(*,'(1x,a,i0)') '-------------------------------------- iter= ',iter
+        write(*,'(1x,a,i0)')&
+         '---------------------------------------------------------------------------- iter= ',&
+         iter
         if (gnrm.le.gnrm_cv) then
            write(*,'(1x,a,i3,3(1x,1pe18.11))') 'iproc,ehart,eexcu,vexcu',iproc,ehart,eexcu,vexcu
            write(*,'(1x,a,3(1x,1pe18.11))') 'final ekin_sum,epot_sum,eproj_sum',ekin_sum,epot_sum,eproj_sum
@@ -588,6 +590,10 @@ allocate(neleconf(6,0:3))
      end if
 
 ! local potential and kinetic energy for all orbitals belonging to iproc
+     if (iproc==0) then
+        write(*,'(1x,a)',advance='no')&
+          'Hamiltonian application...'
+     end if
      call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
           hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
@@ -606,6 +612,12 @@ allocate(neleconf(6,0:3))
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
      energy=energybs-ehart+eexcu-vexcu+eion
+     if (iproc==0) then
+        write(*,'(1x,a)',advance='no')&
+          'done, orthogonalization...'
+     end if
+
+
 
      !check for convergence or whether max. numb. of iterations exceeded
      if (gnrm.le.gnrm_cv .or. iter.eq.itermax) then 
@@ -639,6 +651,12 @@ allocate(neleconf(6,0:3))
      endif
      gnrm=sqrt(gnrm/norb)
 
+     if (iproc==0) then
+        write(*,'(1x,a)',advance='no')&
+          'done, preconditioning...'
+     end if
+
+
 ! Preconditions all orbitals belonging to iproc
      call preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid, &
           ncong,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,eval,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
@@ -671,6 +689,11 @@ allocate(neleconf(6,0:3))
            enddo
         endif
      endif
+
+     if (iproc==0) then
+       write(*,'(1x,a)')&
+          'done.'
+     end if
 
 
      if (idsx.gt.0) then 
@@ -723,7 +746,7 @@ allocate(neleconf(6,0:3))
      if (iproc.eq.0) then
         write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
              ekin_sum,epot_sum,eproj_sum
-        write(*,'(1x,a,3(1x,1pe18.11))') 'ehart,eexcu,vexcu',ehart,eexcu,vexcu
+        write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
         write(*,'(1x,a,i6,2x,1pe19.12,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
      endif
 
@@ -5944,8 +5967,8 @@ END SUBROUTINE
         rds(1)=1.d0
         endif
         if (iproc.eq.0) then 
-           write(*,*) 'DIIS weights'
-           write(*,'(4x,12(1x,1pe9.2))') (rds(j),j=1,min(idsx,ids)+1)
+           !write(*,*) 'DIIS weights'
+           write(*,'(1x,a,2x,12(1x,1pe9.2))')'DIIS weights',(rds(j),j=1,min(idsx,ids)+1)
         endif
 
 ! new guess
