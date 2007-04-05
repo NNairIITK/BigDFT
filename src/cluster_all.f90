@@ -622,7 +622,7 @@ allocate(neleconf(6,0:3))
      !check for convergence or whether max. numb. of iterations exceeded
      if (gnrm.le.gnrm_cv .or. iter.eq.itermax) then 
         if (iproc.eq.0) then 
-           write(*,'(1x,i0,a)') iter,' minimization iterations required'
+           write(*,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
         end if
         goto 1010
      endif
@@ -1128,8 +1128,7 @@ do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
          tt=tt+hpsib(i)**2
       enddo
       tt=sqrt(tt)
-      write(*,'(1x,a,i3,3(1x,1pe21.14),1x,1pe10.3)') &
-           'BIG: iorb,ekin,epot,eproj,gnrm',iorb,ekin,epot,eproj,tt
+
       if (ipt.eq.npt) exit tail_adding
 
       !calculate tail using the preconditioner as solver for the green function application
@@ -1149,7 +1148,9 @@ do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
          sum_tail=sum_tail+psib(i)**2
       enddo
       sum_tail=sqrt(sum_tail)
-      write(*,'(1x,a,1x,i0,f18.14)') 'norm orbital + tail',iorb,sum_tail
+      write(*,'(1x,a,i3,3(1x,1pe13.6),2(1x,1pe9.2))') &
+           'BIG: iorb,ekin,epot,eproj,gnrm,dnorm',iorb,ekin,epot,eproj,tt,sum_tail-1.d0
+      !write(*,'(1x,a,1x,i0,f18.14)') 'norm orbital + tail',iorb,sum_tail
       !call plot_wf(20,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
       !      txyz(1,1),txyz(2,1),txyz(3,1),psib)
 
@@ -1159,6 +1160,10 @@ do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
       enddo
 
    end do tail_adding
+
+   write(*,'(1x,a,i3,3(1x,1pe13.6),1x,1pe9.2)') &
+        'BIG: iorb,ekin,epot,eproj,gnrm      ',iorb,ekin,epot,eproj,tt
+
 
    ekin_sum=ekin_sum+ekin*occup(iorb)
    epot_sum=epot_sum+epot*occup(iorb)
