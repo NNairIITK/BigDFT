@@ -847,7 +847,7 @@ allocate(neleconf(6,0:3))
    deallocate(rho,hartpot)
 
 ! Add the nonlocal part of the forces to gxyz
-! calculating derivatives of the projectors (for the moment recalculate projectors)
+! calculating derivatives of the projectors 
   call nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
      ntypes,nat,norb,norbp,istart,nprojel,nproj,&
      iatype,psppar,npspcode,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
@@ -974,7 +974,7 @@ integer :: nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
 integer, dimension(:,:,:), allocatable :: ibbyz_c,ibbyz_f,ibbxz_c,ibbxz_f,ibbxy_c,ibbxy_f
 integer, dimension(:), allocatable :: keybv
 integer, dimension(:,:), allocatable :: keybg
-real(kind=8) :: ekin,epot,eproj,tt,cprecr,sum_tail
+real(kind=8) :: ekin,epot,eproj,tt,cprecr,sum_tail,ekin1,epot1,eproj1
 real(kind=8), dimension(:,:), allocatable :: txyz,wrkallred
 real(kind=8), dimension(:), allocatable :: psib,hpsib,psig,psigp,psifscf,psir
 
@@ -1148,8 +1148,12 @@ do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
          sum_tail=sum_tail+psib(i)**2
       enddo
       sum_tail=sqrt(sum_tail)
-      write(*,'(1x,a,i3,3(1x,1pe13.6),2(1x,1pe9.2))') &
-           'BIG: iorb,ekin,epot,eproj,gnrm,dnorm',iorb,ekin,epot,eproj,tt,sum_tail-1.d0
+      write(*,'(1x,a,i3,3(1x,1pe13.6),1x,1pe9.2)') &
+           'BIG: iorb,ekin,epot,eproj,gnrm',iorb,ekin,epot,eproj,tt
+      !values of the energyes before tail application
+      ekin1=ekin
+      epot1=epot
+      eproj1=eproj
       !write(*,'(1x,a,1x,i0,f18.14)') 'norm orbital + tail',iorb,sum_tail
       !call plot_wf(20,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
       !      txyz(1,1),txyz(2,1),txyz(3,1),psib)
@@ -1161,8 +1165,9 @@ do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
    end do tail_adding
 
-   write(*,'(1x,a,i3,3(1x,1pe13.6),1x,1pe9.2)') &
-        'BIG: iorb,ekin,epot,eproj,gnrm      ',iorb,ekin,epot,eproj,tt
+   write(*,'(1x,a,i3,3(1x,1pe13.6),2(1x,1pe9.2))') &
+        'BIG: iorb,denergies,gnrm,dnorm',&
+        iorb,ekin-ekin1,epot-epot1,eproj-eproj1,tt,sum_tail-1.d0
 
 
    ekin_sum=ekin_sum+ekin*occup(iorb)
@@ -1964,6 +1969,12 @@ subroutine addlocgauspsp_old(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,n1,n2
 ! Wavefunction in real space
         allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)))
 
+        if (iproc==0) then
+           write(*,'(1x,a)',advance='no')&
+                'Calculation of charge density...'
+        end if
+
+
  if (parallel) then
     if (withmpi2) then
       call timing(iproc,'Rho_comput    ','ON')
@@ -2055,7 +2066,8 @@ subroutine addlocgauspsp_old(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,n1,n2
         enddo
         !factor of two to restore the total charge
         tt=tt*hgridh**3
-        if (iproc.eq.0) write(*,'(1x,a,f26.12)') 'Total charge from routine chargedens',tt
+        if (iproc.eq.0) write(*,'(1x,a,f21.12)')&
+             'done. Total electronic charge=',tt
 
 
         deallocate(psig,psifscf,psir)
@@ -3036,7 +3048,17 @@ END SUBROUTINE
 
       call timing(iproc,'GramS_comput  ','ON')
 
- if (norb.eq.1) stop 'more than one orbital needed for a parallel run'
+      if (norb.eq.1) then
+
+!!$         if (iproc .eq. 0) then
+!!$            tt=dnrm2(nvctrp,psi,1)
+!!$            tt=1.d0/tt
+!!$            call dscal(nvctrp,tt,psi,1)
+!!$         end if
+
+         stop 'more than one orbital needed for a parallel run'
+
+      else
 
         allocate(ovrlp(norb,norb,2))
 
@@ -3068,6 +3090,8 @@ END SUBROUTINE
       call DTRMM ('R', 'L', 'T', 'N', nvctrp, norb, 1.d0, ovrlp, norb, psit, nvctrp)
 
         deallocate(ovrlp)
+
+     end if
 
        call timing(iproc,'GramS_comput  ','OF')
 
