@@ -1,3 +1,71 @@
+!!****h* BigDFT/PSolver
+!! NAME
+!!    PSolver
+!!
+!! FUNCTION
+!!    Calculate the Poisson equation $\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$
+!!    from a given $\rho$, for different boundary conditions an for different data distributions.
+!!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
+!!
+!! SYNOPSIS
+!!    geocode  Indicates the boundary conditions (BC) of the problem:
+!!            'F' free BC, isolated systems.
+!!                The program calculates the solution as if the given density is
+!!                "alone" in R^3 space.
+!!            'S' surface BC, isolated in y direction, periodic in xz plane                
+!!                The given density is supposed to be periodic in the xz plane,
+!!                so the dimensions in these direction mus be compatible with the FFT
+!!                Beware of the fact that the isolated direction is y!
+!!            'P' periodic BC.
+!!                The density is supposed to be periodic in all the three directions,
+!!                then all the dimensions must be compatible with the FFT.
+!!                No need for setting up the kernel.
+!!    datacode Indicates the distribution of the data of the input/output array:
+!!            'G' global data. Each process has the whole array of the density 
+!!                which will be overwritten with the whole array of the potential
+!!            'D' distributed data. Each process has only the needed part of the density
+!!                and of the potential. The data distribution is such that each processor
+!!                has the xy planes needed for the calculation AND for the evaluation of the 
+!!                gradient, needed for XC part, and for the White-Bird correction, which
+!!                may lead up to 8 planes more on each side. Due to this fact, the information
+!!                between the processors may overlap.
+!!    nproc       number of processors
+!!    iproc       label of the process,from 0 to nproc-1
+!!    n01,n02,n03 global dimension in the three directions. They are the same no matter if the 
+!!                datacode is in 'G' or in 'D' position.
+!!    ixc         eXchange-Correlation code. Indicates the XC functional to be used 
+!!                for calculating XC energies and potential. 
+!!                ixc=0 indicates that no XC terms are computed. The XC functional codes follow
+!!                the ABINIT convention.
+!!    hx,hy,hz    grid spacings. For the isolated BC case for the moment they are supposed to 
+!!                be equal in the three directions
+!!    rhopot      main input/output array.
+!!                On input, it represents the density values on the grid points
+!!                On output, it is the Hartree potential, namely the solution of the Poisson 
+!!                equation PLUS (when ixc/=0) the XC potential PLUS (again for ixc/=0) the 
+!!                pot_ion array. The output is non overlapping, in the sense that it does not
+!!                consider the points that are related to gradient and WB calculation
+!!    karray      kernel of the poisson equation. It is provided in distributed case, with
+!!                dimensions that are related to the output of the PS_dim4allocation routine
+!!                it MUST be created by following the same geocode as the Poisson Solver.
+!!    pot_ion     additional external potential that is added to the output, 
+!!                when the XC parameter ixc/=0. It is always provided in the distributed form,
+!!                clearly without the overlapping terms which are needed only for the XC part
+!!    eh,exc,vxc  Hartree energy, XC energy and integral of $\rho V_{xc}$ respectively
+!!    offset      value of the potential at the point 1,1,1 of the grid.
+!!                To be used only in the periodic case, ignored for other boundary conditions.
+!! WARNING
+!!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
+!!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
+!!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
+!!
+!! AUTHOR
+!!    Luigi Genovese
+!! CREATION DATE
+!!    February 2007
+!!
+!! SOURCE
+!!
 subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset)
   implicit none
@@ -8,11 +76,11 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(kind=8), intent(in) :: hx,hy,hz,offset
   real(kind=8), dimension(*), intent(in) :: karray,pot_ion
   real(kind=8), intent(out) :: eh,exc,vxc
-  real(kind=8), dimension(n01,n02,*), intent(inout) :: rhopot
+  real(kind=8), dimension(*), intent(inout) :: rhopot
   !local variables
   integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
-  integer :: i_allocated,i_stat,ierr
+  integer :: i_allocated,i_stat,ierr,ind,ind2,ind3
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim
   real(kind=8) :: ehartreeLOC,eexcuLOC,vexcuLOC
@@ -26,17 +94,17 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if (geocode == 'P') then
      if (iproc==0) &
           write(*,'(1x,a,3(i5),a,i3,a,i3,a)',advance='no')&
-          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'  nproc',nproc,'   ixc:',ixc,' ...'
+          'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'S') then
      if (iproc==0) &
           write(*,'(1x,a,3(i5),a,i3,a,i3,a)',advance='no')&
-          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'  nproc',nproc,'   ixc:',ixc,' ...'
+          'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'F') then
      if (iproc==0) &
           write(*,'(1x,a,3(i5),a,i3,a,i3,a)',advance='no')&
-          'PSolver, free  BC, dimensions: ',n01,n02,n03,'  nproc',nproc,'   ixc:',ixc,' ...'
+          'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
      stop 'PSolver: geometry code not admitted'
@@ -135,7 +203,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   if (istart+1 <= m2) then 
      call xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-          ixc,hx,hy,hz,rhopot(1,1,i3start),pot_ion,zf,zfionxc,eexcuLOC,vexcuLOC,iproc,nproc)
+          ixc,hx,hy,hz,rhopot(1+n01*n02*(i3start-1)),pot_ion,zf,zfionxc,&
+          eexcuLOC,vexcuLOC,iproc,nproc)
   else if (istart+1 <= nlim) then !this condition assures that we have perform good zero padding
      do i2=istart+1,min(nlim,istart+md2/nproc)
         j2=i2-istart
@@ -157,7 +226,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !this routine builds the values for each process of the potential (zf), multiplying by scal 
   if(geocode == 'P') then
      !no powers of hgrid because they are incorporated in the plane wave treatment
-     scal=-16.d0*datan(1.d0)/real(n1*n2*n3,kind=8) !factor of -4 pi added
+     scal=1.d0/real(n1*n2*n3,kind=8)
      call P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
           scal,hx,hy,hz)
 
@@ -172,7 +241,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   else if (geocode == 'S') then
      !only one power of hgrid 
-     scal=-16.d0*datan(1.d0)*hy/real(n1*n2*n3,kind=8) !factor of -4 pi added
+     scal=hy/real(n1*n2*n3,kind=8)
      call S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf,&
           scal,hx,hy,hz)!,ehartreeLOC)
      correction=0.d0
@@ -199,11 +268,14 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   ehartreeLOC=0.d0
   do j2=1,nxc!i2=istart+1,iend !the index i2 must be changed in the distributed i/o case
      i2=j2+i3xcsh!j2=i2-istart
+     ind3=(i2-1)*n01*n02
      do i3=1,m3
+        ind2=(i3-1)*n01+ind3
         do i1=1,m1
+           ind=i1+ind2
            pot=zf(i1,i3,j2)+correction
-           ehartreeLOC=ehartreeLOC+rhopot(i1,i3,i2)*pot
-           rhopot(i1,i3,i2)=pot+zfionxc(i1,i3,j2)
+           ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
+           rhopot(ind)=pot+zfionxc(i1,i3,j2)
         end do
      end do
   end do
@@ -247,7 +319,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         !gather all the results in the same rhopot array
         istart=min(iproc*(md2/nproc),m2-1)
         call timing(iproc,'PSolv_commun  ','ON')
-        call MPI_ALLGATHERV(rhopot(1,1,istart+1),gather_arr(iproc,1),MPI_double_precision,&
+        call MPI_ALLGATHERV(rhopot(1+n01*n02*istart),gather_arr(iproc,1),MPI_double_precision,&
              rhopot,gather_arr(:,1),gather_arr(:,2),MPI_double_precision,MPI_COMM_WORLD,ierr)
         call timing(iproc,'PSolv_commun  ','OF')
      end if
@@ -267,6 +339,77 @@ end subroutine PSolver
 
 
 
+
+!!****h* BigDFT/PS_dim4allocation
+!! NAME
+!!    PS_dim4allocation
+!!
+!! FUNCTION
+!!    Calculate the dimensions needed for the allocation of the arrays 
+!!    related to the Poisson Solver
+!!
+!! SYNOPSIS
+!!    geocode  Indicates the boundary conditions (BC) of the problem:
+!!            'F' free BC, isolated systems.
+!!                The program calculates the solution as if the given density is
+!!                "alone" in R^3 space.
+!!            'S' surface BC, isolated in y direction, periodic in xz plane                
+!!                The given density is supposed to be periodic in the xz plane,
+!!                so the dimensions in these direction mus be compatible with the FFT
+!!                Beware of the fact that the isolated direction is y!
+!!            'P' periodic BC.
+!!                The density is supposed to be periodic in all the three directions,
+!!                then all the dimensions must be compatible with the FFT.
+!!                No need for setting up the kernel.
+!!    datacode Indicates the distribution of the data of the input/output array:
+!!            'G' global data. Each process has the whole array of the density 
+!!                which will be overwritten with the whole array of the potential
+!!            'D' distributed data. Each process has only the needed part of the density
+!!                and of the potential. The data distribution is such that each processor
+!!                has the xy planes needed for the calculation AND for the evaluation of the 
+!!                gradient, needed for XC part, and for the White-Bird correction, which
+!!                may lead up to 8 planes more on each side. Due to this fact, the information
+!!                between the processors may overlap.
+!!    iproc,nproc number of process, number of processes
+!!    n01,n02,n03 dimensions of the real space grid to be hit with the Poisson Solver
+!!    ixc         eXchange-Correlation code. Indicates the XC functional to be used 
+!!                for calculating XC energies and potential. 
+!!                ixc=0 indicates that no XC terms are computed. The XC functional codes follow
+!!                the ABINIT convention.
+!!    n3d         third dimension of the density. For distributed data, it takes into account 
+!!                the enlarging needed for calculating the XC functionals.
+!!                For global data it it simply equal to n03. 
+!!                When there are too many processes and there is no room for the density n3d=0
+!!    n3p         third dimension for the potential. The same as n3d, but without 
+!!                taking into account the enlargment for the XC part. For non-GGA XC, n3p=n3d.
+!!    n3pi        Dimension of the pot_ion array, always with distributed data. 
+!!                For distributed data n3pi=n3p
+!!    i3xcsh      Shift of the density that must be performed to enter in the 
+!!                non-overlapping region. Useful for recovering the values of the potential
+!!                when using GGA XC functionals. If the density starts from rhopot(1,1,1),
+!!                the potential starts from rhopot(1,1,i3xcsh+1). 
+!!                For non-GGA XCs and for global distribution data i3xcsh=0
+!!    i3s         Starting point of the density effectively treated by each processor 
+!!                in the third direction.
+!!                It takes into account also the XC enlarging. The array rhopot will correspond
+!!                To the planes of third coordinate from i3s to i3s+n3d. 
+!!                The potential to the planes from i3s+i3xcsh to i3s+i3xcsh+n3p
+!!                The array pot_ion to the planes from i3s+i3xcsh to i3s+i3xcsh+n3pi
+!!                For global disposition i3s is equal to distributed case with i3xcsh=0.
+!!
+!!
+!! WARNING
+!!    The XC enlarging due to GGA part is not present for surfaces and 
+!!    periodic boundary condition. This is related to the fact that the calculation of the
+!!    gradient and the White-Bird correction are not yet implemented for non-isolated systems
+!!
+!! AUTHOR
+!!    Luigi Genovese
+!! CREATION DATE
+!!    February 2007
+!!
+!! SOURCE
+!!
 subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
      n3d,n3p,n3pi,i3xcsh,i3s)
   implicit none

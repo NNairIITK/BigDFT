@@ -91,6 +91,7 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
      end if
 
+     !this part can be commented out if you don't want to use ABINIT modules
      npts=m1*m3*nwb
      !let us apply ABINIT routines
      !case with gradient
@@ -139,6 +140,7 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
                 &dvxc=dvxci)
         end if
      end if
+     !end of the part that can be commented out
 
   end if
 
@@ -225,25 +227,6 @@ end subroutine xc_energy
 !! Correct the XC potential with the White-Bird formula, to be used for the 
 !! GGA case. Works either in parallel of in serial, by proper change of the 
 !! arguments.
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2006 ABINIT group (TD)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.
-!! This routine has been written from rhohxc_coll(DCA, XG, GMR, MF, GZ)
-!!
-!! INPUTS
-!!  ixc= choice of exchange-correlation scheme
-!!  order=gives the maximal derivative of Exc computed.
-!!    1=usual value (return exc and vxc)
-!!    2=also computes the kernel (return exc,vxc,kxc)
-!!   -2=like 2, except (to be described)
-!!    3=also computes the derivative of the kernel (return exc,vxc,kxc,k3xc)
-!!
-!! OUTPUT
-!! 
 !!
 !! SOURCE
 subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,hx,hy,hz,dvxcdgr,wb_vxc)

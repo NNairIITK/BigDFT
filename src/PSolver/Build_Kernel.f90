@@ -1,3 +1,49 @@
+!!****h* BigDFT/createKernel
+!! NAME
+!!    createKernel
+!!
+!! FUNCTION
+!!    Allocate a pointer which corresponds to the zero-padded FFT slice needed for
+!!    calculating the convolution with the kernel expressed in the interpolating scaling
+!!    function basis. The kernel pointer is unallocated on input, allocated on output.
+!!
+!! SYNOPSIS
+!!    geocode  Indicates the boundary conditions (BC) of the problem:
+!!            'F' free BC, isolated systems.
+!!                The program calculates the solution as if the given density is
+!!                "alone" in R^3 space.
+!!            'S' surface BC, isolated in y direction, periodic in xz plane                
+!!                The given density is supposed to be periodic in the xz plane,
+!!                so the dimensions in these direction mus be compatible with the FFT
+!!                Beware of the fact that the isolated direction is y!
+!!            'P' periodic BC.
+!!                The density is supposed to be periodic in all the three directions,
+!!                then all the dimensions must be compatible with the FFT.
+!!                No need for setting up the kernel.
+!!    iproc,nproc number of process, number of processes
+!!    n01,n02,n03 dimensions of the real space grid to be hit with the Poisson Solver
+!!    itype_scf   order of the interpolating scaling functions used in the decomposition
+!!    hx,hy,hz    grid spacings. For the isolated BC case for the moment they are supposed to 
+!!                be equal in the three directions
+!!    kernel      pointer for the kernel FFT. Unallocated on input, allocated on output.
+!!                Its dimensions are equivalent to the region of the FFT space for which the
+!!                kernel is injective. This will divide by two each direction, 
+!!                since the kernel for the zero-padded convolution is real and symmetric.
+!!
+!! WARNING
+!!    Due to the fact that the kernel dimensions are unknown before the calling, the kernel
+!!    must be declared as pointer in input of this routine.
+!!    To avoid that, one can properly define the kernel dimensions by adding 
+!!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
+!!    declaration.
+!!
+!! AUTHOR
+!!    Luigi Genovese
+!! CREATION DATE
+!!    February 2007
+!!
+!! SOURCE
+!!
 subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kernel)
   implicit none
   include 'mpif.h'
@@ -104,10 +150,10 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
               exit load_balancing
            end if
         end do load_balancing
-        write(*,'(a,i3,a)') '-LB_den        : processors   0  -',jfd,' work at 100%'
-        if (jfd < nproc-1) write(*,'(a,i3,a,i3,1a)') '-                processor     ',jhd,&
+        write(*,'(1x,a,i3,a)')'LB_den        : processors   0  -',jfd,' work at 100%'
+        if (jfd < nproc-1) write(*,'(1x,a,i3,a,i3,1a)')'                processor     ',jhd,&
              '    work at ',npd,'%'
-        if (jhd < nproc-1) write(*,'(a,i3,1a,i3,a)') '-                processors ',&
+        if (jhd < nproc-1) write(*,'(1x,a,i3,1a,i3,a)')'                processors ',&
              jzd,'  -',nproc-1,' work at   0%'
         jhk=1000
         jzk=1000
@@ -125,10 +171,10 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
                  exit load_balancingk
               end if
            end do load_balancingk
-           write(*,'(a,i3,a)') '-LB_ker        : processors   0  -',jfk,' work at 100%'
-           if (jfk < nproc-1) write(*,'(a,i3,a,i3,1a)') '-                processor     ',jhk,&
+           write(*,'(1x,a,i3,a)')'LB_ker        : processors   0  -',jfk,' work at 100%'
+           if (jfk < nproc-1) write(*,'(1x,a,i3,a,i3,1a)')'                processor     ',jhk,&
                 '    work at ',npk,'%'
-           if (jhk < nproc-1) write(*,'(a,i3,1a,i3,a)') '-                processors ',jzk,'  -',nproc-1,&
+           if (jhk < nproc-1) write(*,'(1x,a,i3,1a,i3,a)')'                processors ',jzk,'  -',nproc-1,&
                 ' work at   0%'
         end if
         write(*,'(1x,a)')'The LB per processor is 1/3 LB_den + 2/3 LB_ker-----------'
@@ -145,26 +191,21 @@ end subroutine createKernel
 !!
 !! FUNCTION
 !!    Build the kernel of the Poisson operator with
-!!    mixed Boundary conditions
+!!    surfaces Boundary conditions
 !!    in an interpolating scaling functions basis.
+!!    Beware of the fact that the nonperiodic direction is y!
 !!
 !! SYNOPSIS
-!!    Build the kernel (karrayout) of a gaussian function 
-!!    for interpolating scaling functions
-!!    $$ K(j) = \int \int \phi(x) g_{p_x,p_y}(x'-x) \delta(x'- j) dx dx' $$
-!!
-!!    n1,n2,n3           Mesh dimensions, the BC for dimension n1 and n2
-!!                       are supposed to be periodic.
-!!                       the dimension n3 is doubled for the HalFFT procedure
+!!    n1,n2,n3           Dimensions for the FFT
 !!    m3                 Actual dimension in non-periodic direction
 !!    nker1,nker2,nker3  Dimensions of the kernel (nker3=n3/2+1) nker(1,2)=n(1,2)/2+1
 !!    h1,h2,h3           Mesh steps in the three dimensions
-!!    itype_scf          Order of the scaling function (8,14,16)
+!!    itype_scf          Order of the scaling function
+!!    iproc,nproc        Number of process, number of processes
+!!    karray             output array
 !!
 !! AUTHOR
 !!    L. Genovese
-!! COPYRIGHT
-!!    Copyright (C) 2006 CEA
 !! CREATION DATE
 !!    October 2006
 !!
@@ -352,9 +393,8 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
 
   diff=0.d0
   !order of the polynomial to be used for integration (must be a power of two)
-  ipolyord=8
+  ipolyord=8 !this part should be incorporated inside the numerical integration
   !here we have to choice the piece of the x-y grid to cover
-  !we assume here n1 and n2 to be even
 
   !let us now calculate the fraction of mu that will be considered 
   j2st=iproc*(nact2/nproc)
@@ -564,9 +604,6 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
         n_iter=n_iter+1
      end do loop_iter
   end if
-
-!!$  n_iter = 0
-!!$  mu0 = mu
 
   !dimension needed for the correct calculation of the recursion
   nrec=2**n_iter*n
@@ -838,22 +875,6 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  !Number of integration points : 2*itype_scf*n_points
  n_scf=2*itype_scf*n_points
  !Set karray
- !dimension test
-!!$  !Half size for the half FFT
-!!$  nd1h=(nd1+1)/2
-!!$  if (n1k < n1h) then
-!!$     print *,"Build_Kernel: Incoherent n01 and n1k"
-!!$     stop
-!!$  end if
-!!$  if (n2k < n2h) then
-!!$     print *,"Build_Kernel: Incoherent n02 and n2k"
-!!$     stop
-!!$  end if
-!!$  if (n3k < n3h) then
-!!$     print *,"Build_Kernel: Incoherent n03 and n3k"
-!!$     stop
-!!$  end if
-
 
  !here we must set the dimensions for the fft part, starting from the nfft
  !remember that actually nfft2 is associated to n03 and viceversa
@@ -889,14 +910,6 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 
  istart1=istart
  if(iproc .eq. 0) istart1=n2h-n03+2
-
-!!!!!START KERNEL CONSTRUCTION
-!!$ if(iproc .eq. 0) then
-!!$    write(unit=*,fmt="(1x,a,i0,a)") &
-!!$         "Build the kernel in parallel using a sum of ",n_gauss," gaussians"
-!!$    write(unit=*,fmt="(1x,a,i0,a)") &
-!!$         "Use interpolating scaling functions of ",itype_scf," order"
-!!$ end if
 
  !Allocations
  i_allocated = 0
@@ -1060,17 +1073,15 @@ end subroutine inserthalf
 !! SYNOPSIS
 !!     zf:          Real kernel (input)
 !!                  zf(i1,i2,i3)
-!!                  i1=1,nd1 , i2=1,nd2/nproc , i3=1,nd3 
 !!     zr:          Distributed Kernel FFT 
 !!                  zr(2,i1,i2,i3)
-!!                  i1=1,nd1 , i2=1,nd2 , i3=1,nd3/nproc
 !!     nproc:       number of processors used as returned by MPI_COMM_SIZE
 !!     iproc:       [0:nproc-1] number of processor as returned by MPI_COMM_RANK
 !!     n1,n2,n3:    logical dimension of the transform. As transform lengths 
 !!	            most products of the prime factors 2,3,5 are allowed.
 !!                  The detailed table with allowed transform lengths can 
 !!                  be found in subroutine CTRIG
-!!     nd1,nd2,nd3: Dimensions of zr
+!!     nd1,nd2,nd3: Dimensions of work arrays
 !!
 !! RESTRICTIONS on USAGE
 !!     Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994

@@ -1,0 +1,113 @@
+#***h* Poisson_Solver/Makefile
+# NAME
+#   Makefile
+#
+# FUNCTION
+#    Make everything
+#
+# SOURCE
+#
+F95 = ompif90 -fbounds-check -O 
+F77 = ompif90 -fbounds-check -O 
+
+all: PSolver
+
+clean:
+	\rm -f *.o ${PROGRAMS} *~ *.log *.aux fort.*
+
+cleanall:
+	make clean
+	\rm -rf *.dat *.pdf gmon.out
+
+tar:
+	tar czvf solver.tgz $(SOURCES_ABINIT) $(SOURCES_F77) $(SOURCES_F90) $(INCLUDES) $(OTHERS)
+
+PROGRAMS = \
+	PSolver 
+
+SOURCES_ABINIT = abinit/defs_basis.F90 \
+        abinit/defs_datatypes.F90 \
+        abinit/defs_xc.F90 \
+        abinit/drivexc.F90 \
+        abinit/xctetr.F90 \
+        abinit/xcwign.F90 \
+        abinit/xcxalp.F90 \
+        abinit/xchelu.F90 \
+        abinit/xcpzca.F90 \
+        abinit/xcspol.F90 \
+        abinit/xchcth.F90 \
+        abinit/xclb.F90 \
+        abinit/xcpbe.F90 \
+        abinit/invcb.F90
+
+SOURCES_F90 = \
+	Poisson_Solver.f90 \
+	PSolver.f90 \
+	timing.f90 
+
+
+SOURCES_F77 = \
+	dcopy.f
+
+INCLUDES = perfdata.inc \
+	lazy_100.inc \
+	lazy_16.inc \
+	lazy_24.inc \
+	lazy_40.inc \
+	lazy_60.inc \
+	lazy_14.inc \
+	lazy_20.inc \
+	lazy_30.inc \
+	lazy_50.inc \
+	lazy_8.inc
+
+SOURCES_MOD = 	PSolver_launch.f90 \
+	Build_Kernel.f90 \
+	PSolver_Base.f90 \
+	xcenergy.f90 \
+	3Dgradient.f90 \
+	fft3d.f90 \
+	scaling_function.f90
+
+OTHERS = Makefile \
+	bench.csh \
+	perfdata.t \
+	acc_F.20-100.ref \
+	acc_S-128.20-100.ref \
+	acc_P.20-100.ref \
+	README \
+	INSTALL \
+	COPYING \
+	TODO \
+	$(SOURCES_MOD)
+
+OBJECTS_ABINIT_PP = $(SOURCES_ABINIT:.F90=.f90)
+
+$(OBJECTS_ABINIT_PP): %.f90: %.F90
+	cpp -P $< $@
+
+OBJECTS_ABINIT = $(OBJECTS_ABINIT_PP:.f90=.o)
+
+OBJECTS_F90 = $(SOURCES_F90:.f90=.o) 
+
+OBJECTS_F77 = $(SOURCES_F77:.f=.o) 
+
+
+$(OBJECTS_F90): %.o: %.f90
+	$(F95) -c $< -o $@
+
+$(OBJECTS_F77): %.o: %.f
+	$(F95) -c $< -o $@
+
+
+$(OBJECTS_ABINIT): %.o: %.f90
+	$(F95) -c $< -o $@
+
+COMMON =  $(OBJECTS_ABINIT) \
+	$(OBJECTS_F90) \
+	dcopy.o
+
+PSolver: $(COMMON) $(INCLUDES) 
+	$(F95) -o $@ $(COMMON)
+
+Poisson_Solver.o : $(SOURCES_MOD)
