@@ -392,9 +392,9 @@ end subroutine PSolver
 !!    i3s         Starting point of the density effectively treated by each processor 
 !!                in the third direction.
 !!                It takes into account also the XC enlarging. The array rhopot will correspond
-!!                To the planes of third coordinate from i3s to i3s+n3d. 
-!!                The potential to the planes from i3s+i3xcsh to i3s+i3xcsh+n3p
-!!                The array pot_ion to the planes from i3s+i3xcsh to i3s+i3xcsh+n3pi
+!!                To the planes of third coordinate from i3s to i3s+n3d-1. 
+!!                The potential to the planes from i3s+i3xcsh to i3s+i3xcsh+n3p-1
+!!                The array pot_ion to the planes from i3s+i3xcsh to i3s+i3xcsh+n3pi-1
 !!                For global disposition i3s is equal to distributed case with i3xcsh=0.
 !!
 !!

@@ -90,6 +90,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   character*27 filename
   character*20 atomnames
   character*2 symbol
+  character*1 datacode
   logical logrid_c,logrid_f,parallel,calc_tail,output_wf,output_grid,new_psolver
   parameter(eps_mach=1.d-12,onem=1.d0-eps_mach)
   ! work array for ALLREDUCE
@@ -140,8 +141,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   real*8, pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
 
   ! arrays for calculation of forces and tail correction to kinetic energy
-  allocatable :: rho(:),hartpot(:),rhopotb(:,:,:)
-  allocatable :: neleconf(:,:)
+  allocatable :: rho(:),pot(:,:,:),rhopotb(:,:,:)
+  allocatable :: neleconf(:,:),nscatterarr(:,:)
 
   integer :: ierror
 
@@ -190,9 +191,11 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      deallocate(psi,eval)
   end if
 
-  !temporary, added for debugging purposes
-
+  !temporary flags, added for debugging purposes
+  !in case of doubts put these flags to the "robust" position .false., 'G'
   new_psolver=.true.
+  datacode='D'
+  if (.not. new_psolver) datacode='G'
 
   ! Read the input variables.
   open(unit=1,file='input.dat',status='old')
@@ -433,8 +436,36 @@ allocate(neleconf(6,0:3))
 ! Allocate and calculate the 1/|r-r'| kernel for the solution of Poisson's equation and test it
   ndegree_ip=14
   if (new_psolver) then
-     call PS_dim4allocation('F','G',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,&
+
+     !allocate values of the array for the data scattering in sumrho
+     !its values are ignored in the datacode='G' case
+     allocate(nscatterarr(0:nproc-1,4))
+     if (datacode == 'D') then
+        do jproc=0,iproc-1
+           call PS_dim4allocation('F',datacode,jproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,&
+                n3d,n3p,n3pi,i3xcsh,i3s)
+           nscatterarr(jproc,1)=n3d            !number of planes for the density
+           nscatterarr(jproc,2)=n3p            !number of planes for the potential
+           nscatterarr(jproc,3)=i3s+i3xcsh-1   !starting offset for the potential
+           nscatterarr(jproc,4)=i3xcsh         !GGA XC shift between density and potential
+        end do
+        do jproc=iproc+1,nproc-1
+           call PS_dim4allocation('F',datacode,jproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,&
+                n3d,n3p,n3pi,i3xcsh,i3s)
+           nscatterarr(jproc,1)=n3d
+           nscatterarr(jproc,2)=n3p
+           nscatterarr(jproc,3)=i3s+i3xcsh-1
+           nscatterarr(jproc,4)=i3xcsh
+       end do
+     end if
+
+     call PS_dim4allocation('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,&
           n3d,n3p,n3pi,i3xcsh,i3s)
+     nscatterarr(iproc,1)=n3d
+     nscatterarr(iproc,2)=n3p
+     nscatterarr(iproc,3)=i3s+i3xcsh-1
+     nscatterarr(iproc,4)=i3xcsh
+
 !!$     if (n3pi == 0) then 
 !!$        print *,'the pot_ion array is not to be allocated',iproc
 !!$        !stop
@@ -442,17 +473,20 @@ allocate(neleconf(6,0:3))
      ! Charge density, Potential in real space
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for rhopot and pot_ion ',&
           (2*n1+31)*(2*n2+31)*(n3d+n3pi)
-     allocate(rhopot((2*n1+31),(2*n2+31),n3d))
+     if (n3d >0) then
+        allocate(rhopot((2*n1+31),(2*n2+31),n3d))
+     else
+        allocate(rhopot(1,1,1))
+     end if
      if (n3pi > 0) then
         allocate(pot_ion((2*n1+31)*(2*n2+31)*n3pi))
      else
         allocate(pot_ion(1))
-     end if
-
-     
+     end if   
 
      !we put the initial value to zero only for not adding something to pot_ion
-     call razero((2*n1+31)*(2*n2+31)*n3pi,rhopot)
+     if (n3pi>0) call razero((2*n1+31)*(2*n2+31)*n3pi,rhopot)
+
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
      call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
@@ -463,6 +497,7 @@ allocate(neleconf(6,0:3))
           & nelpsp,n1,n2,n3,n3pi,i3s+i3xcsh,hgrid,pot_ion,eion)
      if (iproc.eq.0) write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
 
+     !here the value of the datacode must be kept fixed
      call PSolver('F','D',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
           pot_ion,pkernel,rhopot,ehart,eexcu,vexcu,0.d0)
 
@@ -516,7 +551,8 @@ allocate(neleconf(6,0:3))
           nat,norb,norbp,n1,n2,n3,nfft1,nfft2,nfft3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
           rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-          atomnames,ntypes,iatype,pkernel,psppar,npspcode,ixc,psi,eval,accurex,new_psolver)
+          atomnames,ntypes,iatype,pkernel,psppar,npspcode,ixc,psi,eval,accurex,&
+          new_psolver,datacode,nscatterarr)
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in total energy due to grid size',accurex
         write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex
@@ -567,15 +603,21 @@ allocate(neleconf(6,0:3))
         endif
      endif
 
-! Potential from electronic charge density
-     call sumrho(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot)
+     ! Potential from electronic charge density
+     if (datacode=='G') then
+        call sumrho_old(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+             nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot)
+     else
+        call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+             nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot, &
+             (2*n1+31)*(2*n2+31)*n3d,nscatterarr)
+     end if
 
 !     ixc=12   ! PBE functional
 !     ixc=1   ! LDA functional
      if (new_psolver) then
 
-        call PSolver('F','G',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
+        call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
              rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0)
 
      else
@@ -594,10 +636,34 @@ allocate(neleconf(6,0:3))
         write(*,'(1x,a)',advance='no')&
           'Hamiltonian application...'
      end if
+
+  if (datacode=='D') then
+     !allocate full potential
+     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)))
+
+     call timing(iproc,'ApplyLocPotKin','ON')
+
+     call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh),(2*n1+31)*(2*n2+31)*n3d,&
+          MPI_DOUBLE_PRECISION,pot,(2*n1+31)*(2*n2+31)*nscatterarr(:,2),&
+          (2*n1+31)*(2*n2+31)*nscatterarr(:,3),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+
+     call timing(iproc,'ApplyLocPotKin','OF')
+
      call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
-          hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+          hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
+          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+          psi,pot,hpsi,epot_sum,ekin_sum)
+
+     deallocate(pot)
+
+  else
+
+     call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+          hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           psi,rhopot,hpsi,epot_sum,ekin_sum)
+
+  end if
 
 ! apply all PSP projectors for all orbitals belonging to iproc
      call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
@@ -787,17 +853,40 @@ allocate(neleconf(6,0:3))
 ! here we start the calculation of the forces
   if (iproc.eq.0) write(*,*)'calculation of forces'
 
-! Selfconsistent potential is saved in rhopot, new arrays rho, hartpot for calculation of forces
-! ground state electronic density
+! Selfconsistent potential is saved in rhopot, 
+! new arrays rho,pot for calculation of forces ground state electronic density
 
-  if (new_psolver) then
-     call razero((2*n1+31)*(2*n2+31)*n3pi,pot_ion)
+  if ( .not. new_psolver) deallocate(pot_ion)
+
+  ! Potential from electronic charge density
+  if (datacode=='G') then
+     allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)))
+     call sumrho_old(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho)
   else
-     deallocate(pot_ion)
+
+     !manipulate scatter array for avoiding the GGA shift
+     do jproc=0,nproc-1
+        !n3d=n3p
+        nscatterarr(jproc,1)=nscatterarr(jproc,2)
+        !i3xcsh=0
+        nscatterarr(jproc,4)=0
+     end do
+
+     !use pot_ion array for building total rho
+     call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,pot_ion,&
+          (2*n1+31)*(2*n2+31)*n3p,nscatterarr)
+
+     !gather the result in the global array rho
+     allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)))
+     call MPI_ALLGATHERV(pot_ion,(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION,&
+          rho,(2*n1+31)*(2*n2+31)*nscatterarr(:,1),(2*n1+31)*(2*n2+31)*nscatterarr(:,3),&
+          MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+
+
   end if
-  allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)))
-  call sumrho(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
-              nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho)
+
 
   if (iproc.eq.0 .and. output_grid) then
      open(unit=22,file='density.pot',status='unknown')
@@ -818,33 +907,46 @@ allocate(neleconf(6,0:3))
   endif
 
 
-
-  allocate(hartpot((2*n1+31)*(2*n2+31)*(2*n3+31)))
-  call DCOPY((2*n1+31)*(2*n2+31)*(2*n3+31),rho,1,hartpot,1) 
-
-  if (new_psolver) then
-
-     call PSolver('F','G',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
-          hartpot,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0)
+  if (datacode == 'D') then
+     !using pot_ion for building potential
+     call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
+          pot_ion,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0)
+     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)))
+     call MPI_ALLGATHERV(pot_ion,(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION,&
+          pot,(2*n1+31)*(2*n2+31)*nscatterarr(:,2),(2*n1+31)*(2*n2+31)*nscatterarr(:,3),&
+          MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     deallocate(pot_ion)
   else
-     if (parallel) then
-        call ParPSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,0, &
-             hartpot,hartpot,ehart_fake,eexcu_fake,vexcu_fake,iproc,nproc)
+     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)))
+     call DCOPY((2*n1+31)*(2*n2+31)*(2*n3+31),rho,1,pot,1) 
+
+     if (new_psolver) then
+
+        call PSolver('F','G',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
+             pot,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0)
+        deallocate(pot_ion)
      else
-        call PSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,0, &
-             hartpot,hartpot,ehart_fake,eexcu_fake,vexcu_fake)
+        if (parallel) then
+           call ParPSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,0, &
+                pot,pot,ehart_fake,eexcu_fake,vexcu_fake,iproc,nproc)
+        else
+           call PSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,0, &
+                pot,pot,ehart_fake,eexcu_fake,vexcu_fake)
+        end if
      end if
   end if
+
+
   deallocate(pkernel)
 
   if (iproc.eq.0) write(*,*)'electronic potential calculated'
   allocate(gxyz(3,nat))
 
-        call timing(iproc,'Forces        ','ON')
+  call timing(iproc,'Forces        ','ON')
 ! calculate local part of the forces gxyz
    call local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
-                     n1,n2,n3,rho,hartpot,gxyz)
-   deallocate(rho,hartpot)
+                     n1,n2,n3,rho,pot,gxyz)
+   deallocate(rho,pot)
 
 ! Add the nonlocal part of the forces to gxyz
 ! calculating derivatives of the projectors 
@@ -889,15 +991,32 @@ allocate(neleconf(6,0:3))
         write(*,'(1x,a,3(1x,1pe12.5))')'BIG: simulation cell',alatb1,alatb2,alatb3
      endif
      !    ---reformat potential
-     allocate(rhopotb((2*nb1+31),(2*nb2+31),(2*nb3+31)))
-     call razero((2*nb1+31)*(2*nb2+31)*(2*nb3+31),rhopotb)
-     do i3=1+2*nbuf,2*n3+31+2*nbuf
-        do i2=1+2*nbuf,2*n2+31+2*nbuf
-           do i1=1+2*nbuf,2*n1+31+2*nbuf
-              rhopotb(i1,i2,i3)=rhopot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf)
+     if (datacode=='D') then
+        allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)))
+        call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh),(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION,&
+             pot,(2*n1+31)*(2*n2+31)*nscatterarr(:,2),(2*n1+31)*(2*n2+31)*nscatterarr(:,3),&
+             MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+        allocate(rhopotb((2*nb1+31),(2*nb2+31),(2*nb3+31)))
+        call razero((2*nb1+31)*(2*nb2+31)*(2*nb3+31),rhopotb)
+        do i3=1+2*nbuf,2*n3+31+2*nbuf
+           do i2=1+2*nbuf,2*n2+31+2*nbuf
+              do i1=1+2*nbuf,2*n1+31+2*nbuf
+                 rhopotb(i1,i2,i3)=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf)
+              enddo
            enddo
         enddo
-     enddo
+        deallocate(pot,nscatterarr)
+     else
+        allocate(rhopotb((2*nb1+31),(2*nb2+31),(2*nb3+31)))
+        call razero((2*nb1+31)*(2*nb2+31)*(2*nb3+31),rhopotb)
+        do i3=1+2*nbuf,2*n3+31+2*nbuf
+           do i2=1+2*nbuf,2*n2+31+2*nbuf
+              do i1=1+2*nbuf,2*n1+31+2*nbuf
+                 rhopotb(i1,i2,i3)=rhopot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf)
+              enddo
+           enddo
+        enddo
+     end if
      deallocate(rhopot)
      call timing(iproc,'Tail          ','OF')
 
@@ -921,7 +1040,7 @@ allocate(neleconf(6,0:3))
   else
 !    No tail calculation
      if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-     deallocate(rhopot)
+     deallocate(rhopot,nscatterarr)
   endif
 ! --- End if of tail calculation
 
@@ -1647,53 +1766,55 @@ subroutine addlocgauspsp_old(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,n1,n2
 
 
 
-        subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-                   hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
-                   psi,pot,hpsi,epot_sum,ekin_sum)
-!  Applies the local potential and kinetic energy operator to all wavefunctions belonging to processor
-! Input: pot,psi
-! Output: hpsi,epot,ekin
-        implicit real*8 (a-h,o-z)
-        dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
-        dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-        dimension occup(norb),pot((2*n1+31)*(2*n2+31)*(2*n3+31))
-        dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-        dimension  psi(nvctr_c+7*nvctr_f,norbp)
-        dimension hpsi(nvctr_c+7*nvctr_f,norbp)
-        real*8, allocatable, dimension(:) :: psifscf,psir,psig,psigp
+subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+     hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
+     ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
+     psi,pot,hpsi,epot_sum,ekin_sum)
+  !  Applies the local potential and kinetic energy operator to all wavefunctions belonging to processor
+  ! Input: pot,psi
+  ! Output: hpsi,epot,ekin
+  implicit real*8 (a-h,o-z)
+  dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
+  dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
+  dimension occup(norb),pot(*)
+  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
+  dimension  psi(nvctr_c+7*nvctr_f,norbp)
+  dimension hpsi(nvctr_c+7*nvctr_f,norbp)
+  real*8, allocatable, dimension(:) :: psifscf,psir,psig,psigp
 
-      call timing(iproc,'ApplyLocPotKin','ON')
+  call timing(iproc,'ApplyLocPotKin','ON')
 
-! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
-        allocate(psig(8*(n1+1)*(n2+1)*(n3+1)) )
-        allocate(psigp(8*(n1+1)*(n2+1)*(n3+1)) )
-        allocate(psifscf(max( (2*n1+31)*(2*n2+31)*(2*n3+16),&
-                        &     (2*n1+16)*(2*n2+31)*(2*n3+31))) )
-! Wavefunction in real space
-        allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)))
+  ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+  allocate(psig(8*(n1+1)*(n2+1)*(n3+1)) )
+  allocate(psigp(8*(n1+1)*(n2+1)*(n3+1)) )
+  allocate(psifscf(max( (2*n1+31)*(2*n2+31)*(2*n3+16),&
+       &     (2*n1+16)*(2*n2+31)*(2*n3+31))) )
+  ! Wavefunction in real space
+  allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)))
 
-        ekin_sum=0.d0
-        epot_sum=0.d0
-     do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+  ekin_sum=0.d0
+  epot_sum=0.d0
+  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+     
+     call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+          hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
+          psig,psigp,psifscf,psir,  &
+          psi(1,iorb-iproc*norbp),pot,hpsi(1,iorb-iproc*norbp),epot,ekin)
 
-        call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-                   hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
-                   ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
-                   psig,psigp,psifscf,psir,  &
-                   psi(1,iorb-iproc*norbp),pot,hpsi(1,iorb-iproc*norbp),epot,ekin)
-        ekin_sum=ekin_sum+occup(iorb)*ekin
-        epot_sum=epot_sum+occup(iorb)*epot
-!        write(*,'(a,i0,2(1x,1pe17.10))') 'iorb,ekin,epot',iorb,ekin,epot
-
-     enddo
+     ekin_sum=ekin_sum+occup(iorb)*ekin
+     epot_sum=epot_sum+occup(iorb)*epot
+     !        write(*,'(a,i0,2(1x,1pe17.10))') 'iorb,ekin,epot',iorb,ekin,epot
+        
+  enddo
 
 
-        deallocate(psig,psigp,psifscf,psir)
+  deallocate(psig,psigp,psifscf,psir)
 
-      call timing(iproc,'ApplyLocPotKin','OF')
+  call timing(iproc,'ApplyLocPotKin','OF')
 
-        END SUBROUTINE
-
+END SUBROUTINE applylocpotkinall
+ 
 
         subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
                    hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
@@ -1945,9 +2066,150 @@ subroutine addlocgauspsp_old(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,n1,n2
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
+subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+     nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,nrho,nscatterarr)
+! Calculates the charge density by summing the square of all orbitals
+! Input: psi
+! Output: rho
+  implicit real*8 (a-h,o-z)
+  logical parallel,withmpi2
+  dimension rho(nrho),occup(norb)
+  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
+  dimension psi(nvctr_c+7*nvctr_f,norbp)
+  dimension nscatterarr(0:nproc-1,4)!n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  real*8, allocatable :: psig(:,:,:,:,:,:),psifscf(:),psir(:),rho_p(:)
+  include 'mpif.h'
+  
+  hgridh=hgrid*.5d0 
+  
+  ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+  allocate(psig(0:n1,2,0:n2,2,0:n3,2))
+  allocate( psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)) )
+  ! Wavefunction in real space
+  allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)))
+  
+  if (iproc==0) then
+     write(*,'(1x,a)',advance='no')&
+          'Calculation of charge density...'
+  end if
+ 
+ if (parallel) then
+    call timing(iproc,'Rho_comput    ','ON')
+    !calculate dimensions of the complete array to be allocated before the reduction procedure
+    nrhotot=0
+    do jproc=0,nproc-1
+       nrhotot=nrhotot+nscatterarr(jproc,1)
+    end do
+    allocate(rho_p((2*n1+31)*(2*n2+31)*nrhotot))
 
-        subroutine sumrho(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-                              nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho)
+    !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
+    call tenmminustwenty((2*n1+31)*(2*n2+31)*nrhotot,rho_p)
+    !call razero((2*n1+31)*(2*n2+31)*(2*n3+31),rho_p)
+
+    do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+
+       call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
+            nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+            nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+            psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
+       call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n3+2))
+
+       call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=ww(((2*n1+31)*(2*n2+31)*(2*n3+16))
+
+       !sum different slices by taking into account the overlap
+       i3s=0
+       loop_xc_overlap: do jproc=0,nproc-1
+          i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
+          n3d=nscatterarr(jproc,1)
+          if (n3d==0) exit loop_xc_overlap
+          do i3=i3off+1,i3off+n3d
+             i3s=i3s+1
+             ind3=(i3-1)*(2*n1+31)*(2*n2+31)
+             ind3s=(i3s-1)*(2*n1+31)*(2*n2+31)
+             do i2=1,2*n2+31
+                ind2=(i2-1)*(2*n1+31)+ind3
+                ind2s=(i2-1)*(2*n1+31)+ind3s
+                do i1=1,2*n1+31
+                   ind1=i1+ind2
+                   ind1s=i1+ind2s
+                   !do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
+                   rho_p(ind1s)=rho_p(ind1s)+(occup(iorb)/hgridh**3)*psir(ind1)**2
+                end do
+             end do
+          end do
+       end do loop_xc_overlap
+
+       if (i3s /= nrhotot) then
+          print *,'problem with rhopot array in sumrho,i3s,nrhotot,',i3s,nrhotot
+          stop
+       end if
+
+    enddo
+
+    call timing(iproc,'Rho_comput    ','OF')
+    call timing(iproc,'Rho_commun    ','ON')
+    call MPI_REDUCE_SCATTER(rho_p,rho,(2*n1+31)*(2*n2+31)*nscatterarr(:,1),&
+         MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+    call timing(iproc,'Rho_commun    ','OF')
+
+    ! Check
+    call timing(iproc,'Rho_comput    ','ON')
+    tt=0.d0
+    i3off=(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)
+    do i=1,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,2)
+       tt=tt+rho(i+i3off)
+    enddo
+    call timing(iproc,'Rho_comput    ','OF')
+    call timing(iproc,'Rho_commun    ','ON')
+    call MPI_REDUCE(tt,charge,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+    if (iproc.eq.0) write(*,'(1x,a,f21.12)')&
+         'done. Total electronic charge=',charge*hgridh**3
+    call timing(iproc,'Rho_commun    ','OF')
+    deallocate(rho_p)
+
+ else
+    call timing(iproc,'Rho_comput    ','ON')
+    !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
+    call tenmminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
+    !call razero((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
+
+    do iorb=1,norb
+
+       call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
+            nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+            nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+            psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
+       call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n3+2))`
+
+       call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=ww(((2*n1+31)*(2*n2+31)*(2*n3+16))
+
+       do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
+          rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
+       enddo
+
+    enddo
+    ! Check
+    tt=0.d0
+    do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
+       tt=tt+rho(i)
+    enddo
+    tt=tt*hgridh**3
+    if (iproc.eq.0) write(*,'(1x,a,f21.12)')&
+         'done. Total electronic charge=',tt
+
+    call timing(iproc,'Rho_comput    ','OF')
+ endif
+
+ deallocate(psig,psifscf,psir)
+
+
+END SUBROUTINE
+
+
+
+        subroutine sumrho_old(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+             nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho)
 ! Calculates the charge density by summing the square of all orbitals
 ! Input: psi
 ! Output: rho
@@ -4612,7 +4874,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nat,norb,norbp,n1,n2,n3,nfft1,nfft2,nfft3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
      rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-     atomnames,ntypes,iatype,pkernel,psppar,npspcode,ixc,ppsi,eval,accurex,new_psolver)
+     atomnames,ntypes,iatype,pkernel,psppar,npspcode,ixc,ppsi,eval,accurex,&
+     new_psolver,datacode,nscatterarr)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors writes its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -4625,23 +4888,25 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   !parameter (npsp=15)
   logical parallel,new_psolver
   character*20 atomnames(100)
+  character*1 datacode
   !character*20 pspatomnames(npsp)
   integer :: ixc !Exchange-correlation parameter
   dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
   dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
   dimension xp(ngx,ntypes),psiat(ngx,5,ntypes),occupat(5,ntypes),ng(ntypes),nl(4,ntypes),psiatn(ngx)
   dimension rxyz(3,nat),iatype(nat),eval(norb)
-  dimension rhopot((2*n1+31)*(2*n2+31)*(2*n3+31)),pot_ion(*)
-  dimension pkernel(*)
+!  dimension rhopot((2*n1+31)*(2*n2+31)*(2*n3+31)),pot_ion(*)
+  dimension pkernel(*),rhopot(*),pot_ion(*)
   dimension psppar(0:4,0:4,ntypes),npspcode(ntypes)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension nseg_p(0:2*nat),nvctr_p(0:2*nat)
   dimension keyg_p(2,nseg_p(2*nat)),keyv_p(nseg_p(2*nat))
   dimension proj(nprojel)
   dimension ppsi(nvctr_c+7*nvctr_f,norbp)
+  dimension nscatterarr(0:nproc-1,4)!n3d,n3p,i3s+i3xcsh-1,i3xcsh
 
   allocatable :: psi(:,:),hpsi(:,:),psit(:,:),hpsit(:,:),ppsit(:,:),occupe(:)
-  allocatable :: hamovr(:,:,:),evale(:),work_lp(:)
+  allocatable :: hamovr(:,:,:),evale(:),work_lp(:),pot(:)
   include 'mpif.h'
 
   ! Read the inguess.dat file.
@@ -4668,12 +4933,18 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        & nseg_c, nseg_f, keyg, keyv, iatype, ntypes, psi, eks)
 
   ! resulting charge density and potential
-  call sumrho(parallel,iproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
-       nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot)
+  if (datacode=='G') then
+     call sumrho_old(parallel,iproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
+          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot)
+  else
+     call sumrho(parallel,iproc,nproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
+          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
+          (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr)
+  end if
   !      ixc=1   ! LDA functional
   if (new_psolver) then
 
-     call PSolver('F','G',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
+     call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
           rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0)
 
   else
@@ -4689,10 +4960,36 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   ! set up subspace Hamiltonian 
   allocate(hamovr(norbe,norbe,4))
+ 
+  if (datacode=='D') then
+     !allocate full potential
+     allocate(pot((2*n1+31)*(2*n2+31)*(2*n3+31)))
 
-  call applylocpotkinall(iproc,norbe,norbep,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
-       hgrid,occupe,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-       psi,rhopot,hpsi,epot_sum,ekin_sum)
+     call timing(iproc,'ApplyLocPotKin','ON')
+
+     call MPI_ALLGATHERV(rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
+          (2*n1+31)*(2*n2+31)*nscatterarr(iproc,2),MPI_DOUBLE_PRECISION,&
+          pot,(2*n1+31)*(2*n2+31)*nscatterarr(:,2),(2*n1+31)*(2*n2+31)*nscatterarr(:,3),&
+          MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,IERR)
+
+     CALL timing(iproc,'ApplyLocPotKin','OF')
+
+
+     call applylocpotkinall(iproc,norbe,norbep,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+          hgrid,occupe,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
+          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+          psi,pot,hpsi,epot_sum,ekin_sum)
+
+     deallocate(pot)
+
+  else
+
+     call applylocpotkinall(iproc,norbe,norbep,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+          hgrid,occupe,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
+          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+          psi,rhopot,hpsi,epot_sum,ekin_sum)
+
+  end if
 
   if (parallel) then
      tt=ekin_sum
