@@ -38,7 +38,7 @@ program PoissonSolver
   real(kind=8), pointer :: karray(:)
   real(kind=8) :: hx,hy,hz,max_diff,length,eh,exc,vxc,hgrid,diff_parser,offset
   real(kind=8) :: ehartree,eexcu,vexcu,diff_par,diff_ser
-  integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,n1,n2,n3,itype_scf
+  integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,n1,n2,n3,itype_scf,i_all,i_stat
   integer :: i1,i2,i3,j1,j2,j3,i1_max,i2_max,i3_max,iproc,nproc,ierr,i3sd,ncomp
   integer :: n_cell,i_allocated,l1,nsp1,nsp2,nsp3,ixc,n3d,n3p,n3pi,i3xcsh,i3s
   logical :: alsoserial
@@ -91,11 +91,24 @@ program PoissonSolver
   !hgrid=hx
   !Allocations
   !Density
-  allocate(density(n01,n02,n03))
+  allocate(density(n01,n02,n03),stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' Poisson_Solver: problem of memory allocation'
+     stop
+  end if
   !Density then potential
-  allocate(rhopot(n01,n02,n03),potential(n01,n02,n03))
+  allocate(rhopot(n01,n02,n03),stat=i_all)
+  allocate(potential(n01,n02,n03),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' Poisson_Solver: problem of memory allocation'
+     stop
+  end if
   !ionic potential
-  allocate(pot_ion(n01,n02,n03))
+  allocate(pot_ion(n01,n02,n03),stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' Poisson_Solver: problem of memory allocation'
+     stop
+  end if
 
   !we must choose properly a test case with a positive density
   itype_scf=14
@@ -128,7 +141,11 @@ program PoissonSolver
   call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      density(1,1,i3sd),karray,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset)
 
-  deallocate(karray)
+  deallocate(karray,stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' Poisson_Solver: problem of memory deallocation'
+     stop
+  end if
 
   call timing(iproc,'              ','RE')
 
@@ -168,7 +185,11 @@ program PoissonSolver
      call PSolver(geocode,'G',0,1,n01,n02,n03,ixc,hx,hy,hz,&
           rhopot,karray,pot_ion,eh,exc,vxc,offset)
 
-     deallocate(karray)  
+     deallocate(karray,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' Poisson_Solver: problem of memory deallocation'
+        stop
+     end if
 
      call timing(iproc,'              ','RE')
 
@@ -236,8 +257,16 @@ program PoissonSolver
 
   end if
 
-  deallocate(density)
-  deallocate(rhopot,potential,pot_ion)
+  deallocate(density,stat=i_all)
+  deallocate(rhopot,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(potential,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(pot_ion,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' Poisson_Solver: problem of memory deallocation'
+     stop
+  end if
 
   call MPI_FINALIZE(ierr)  
 

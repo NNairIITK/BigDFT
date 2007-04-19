@@ -19,7 +19,7 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   real(kind=8), dimension(:,:,:,:), allocatable :: vxci,dvxci,dvxcdgr
   real(kind=8), dimension(:,:,:,:,:), allocatable :: gradient
   real(kind=8) :: elocal,vlocal,rho,pot,potion,factor,hgrid,facpotion
-  integer :: npts,i_all,nspden,order,offset
+  integer :: npts,i_all,nspden,order,offset,i_stat
   integer :: i1,i2,i3,j1,j2,j3,jp2,jpp2,jppp2
   integer :: ndvxc,nvxcdgr,ngr2
 
@@ -211,11 +211,20 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   end if
 
   !De-allocations
-  deallocate(exci,vxci)
-  if (allocated(dvxci)) deallocate(dvxci)
-  if (allocated(dvxcdgr)) deallocate(dvxcdgr)
-  if (allocated(d2vxci)) deallocate(d2vxci)
-  if (allocated(gradient)) deallocate(gradient)
+  deallocate(exci,stat=i_all)
+  deallocate(vxci,stat=i_stat)
+  i_all=i_all+i_stat
+  if (allocated(dvxci)) deallocate(dvxci,stat=i_stat)
+  i_all=i_all+i_stat
+  if (allocated(dvxcdgr)) deallocate(dvxcdgr,stat=i_stat)
+  i_all=i_all+i_stat
+  if (allocated(d2vxci)) deallocate(d2vxci,stat=i_stat)
+  i_all=i_all+i_stat
+  if (allocated(gradient)) deallocate(gradient,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' xc_energy: problem of memory deallocation'
+     stop
+  end if
 
 end subroutine xc_energy
 
@@ -237,13 +246,17 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
   real(kind=8), dimension(n01,n02,n03,nvxcdgr), intent(in) :: dvxcdgr
   real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: wb_vxc
   !Local variables
-  integer :: i1,i2,i3,dir_i
+  integer :: i1,i2,i3,dir_i,i_all
   real(kind=8) :: dnexcdgog,grad_i
   real(kind=8), dimension(:,:,:,:), allocatable :: f_i
 
   !Body
 
-  allocate(f_i(n01,n02,n03,3))
+  allocate(f_i(n01,n02,n03,3),stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' vxcpostprocessing: problem of memory allocation'
+     stop
+  end if
   
   !let us first treat the case nspden=1
   if (nspden == 1) then
@@ -285,6 +298,12 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
      !!to be inserted later, when the non spin-pol case is verified
 
   !end of spin-polarized if statement
+  end if
+
+  deallocate(f_i,stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' vxcpostprocessing: problem of memory deallocation'
+     stop
   end if
 
 end subroutine vxcpostprocessing

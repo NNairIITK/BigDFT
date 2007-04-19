@@ -52,7 +52,7 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
   real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), pointer :: kernel(:)
   !local variables
-  integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_allocated
+  integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_all
   integer :: jproc,nlimd,nlimk,jfull,jhalf,jzero,nphalf,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
   real(kind=8) :: hgrid
 
@@ -65,8 +65,8 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
      
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
 
-     allocate(kernel(1),stat=i_allocated)
-     if (i_allocated /= 0) then
+     allocate(kernel(1),stat=i_all)
+     if (i_all /= 0) then
         print *,"Problem of memory allocation (parallel kernel) "
         stop
      end if
@@ -82,8 +82,8 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
      !Build the Kernel
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
 
-     allocate(kernel(nd1*nd2*nd3/nproc),stat=i_allocated)
-     if (i_allocated /= 0) then
+     allocate(kernel(nd1*nd2*nd3/nproc),stat=i_all)
+     if (i_all /= 0) then
         print *,"Problem of memory allocation (parallel kernel) "
         stop
      end if
@@ -104,8 +104,8 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
 
      !Build the Kernel
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
-     allocate(kernel(nd1*nd2*nd3/nproc),stat=i_allocated)
-     if (i_allocated /= 0) then
+     allocate(kernel(nd1*nd2*nd3/nproc),stat=i_all)
+     if (i_all /= 0) then
         print *,"Problem of memory allocation (parallel kernel) "
         stop
      end if
@@ -238,7 +238,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   real(kind=8) :: a,b,c,d,feR,feI,foR,foI,fR,fI,cp,sp,pion,x,factor,value,diff,max_diff
   integer :: n_scf,ncache,imu,ierr
   integer :: n_range,n_cell,num_of_mus,shift,istart,iend,ireim,jreim,j2st,j2nd,nact2
-  integer :: i,n_iter,i1,i2,i3,i_kern,i_stat,i_allocated,i1_max,i2_max,i3_max
+  integer :: i,n_iter,i1,i2,i3,i_kern,i_stat,i_all,i1_max,i2_max,i3_max
   integer :: i01,i02,i03,j1,j2,j3,ind1,ind2,jnd1,ic,inzee,nfft,ipolyord,jp2
 
   !coefficients for the polynomial interpolation
@@ -311,12 +311,12 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   !Number of integration points : 2*itype_scf*n_points
   n_scf=2*itype_scf*n_points
   !Allocations
-  i_allocated = 0
+  i_all = 0
   allocate(x_scf(0:n_scf),stat=i_stat)
-  i_allocated = i_allocated + i_stat
+  i_all = i_all + i_stat
   allocate(y_scf(0:n_scf),stat=i_stat)
-  i_allocated = i_allocated + i_stat
-  if (i_allocated /= 0) then
+  i_all = i_all + i_stat
+  if (i_all /= 0) then
      print *,"Build_Kernel: Problem of memory allocation"
      stop
   end if
@@ -347,25 +347,25 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
 
   !array for the MPI procedure
   allocate(kernel(nker1,nact2/nproc,nker3),stat=i_stat)
-  i_allocated = i_allocated + i_stat
+  i_all = i_all + i_stat
   allocate(kernel_mpi(nker1,nact2/nproc,nker3/nproc,nproc),stat=i_stat)
-  i_allocated = i_allocated + i_stat
+  i_all = i_all + i_stat
   allocate(kernel_scf(n_range),stat=i_stat)
-  i_allocated = i_allocated + i_stat
+  i_all = i_all + i_stat
   allocate(halfft_cache(2,ncache/4,2),stat=i_stat)
-  i_allocated = i_allocated + i_stat
+  i_all = i_all + i_stat
   allocate(cossinarr(2,n3/2-1),stat=i_stat)
-  i_allocated = i_allocated + i_stat
+  i_all = i_all + i_stat
   allocate(btrig(2,8192),stat=i_stat)
-  i_allocated = i_allocated + i_stat
+  i_all = i_all + i_stat
   allocate(after(7),stat=i_stat)
-  i_allocated = i_allocated + i_stat
+  i_all = i_all + i_stat
   allocate(now(7),stat=i_stat)
-  i_allocated = i_allocated + i_stat
+  i_all = i_all + i_stat
   allocate(before(7),stat=i_stat)
-  i_allocated = i_allocated + i_stat
+  i_all = i_all + i_stat
 
-  if (i_allocated /= 0) then
+  if (i_all /= 0) then
      print *,"Surfaces_Kernel: Problem of memory allocation"
      stop
   end if
@@ -565,12 +565,28 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
 
 
   !De-allocations
-  deallocate(kernel,kernel_mpi)
-  deallocate(btrig,after,now,before)
-  deallocate(halfft_cache)
-  deallocate(kernel_scf)
-  deallocate(x_scf)
-  deallocate(y_scf)
+  deallocate(kernel,stat=i_all)
+  deallocate(kernel_mpi,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(btrig,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(after,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(now,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(before,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(halfft_cache,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(kernel_scf,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(x_scf,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(y_scf,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' surfaces_kernel: problem of memory deallocation'
+     stop
+  end if
 
 end subroutine Surfaces_Kernel
 !!***
@@ -584,7 +600,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   real(kind=8), dimension(intorder+1), intent(in) :: c
   real(kind=8), dimension(n), intent(out) :: g_mu
   !local variables
-  integer :: izero,ivalue,i,iend,ikern,n_iter,nrec
+  integer :: izero,ivalue,i,iend,ikern,n_iter,nrec,i_all,i_stat
   real(kind=8) :: f,x,filter,gleft,gright,gltmp,grtmp,fl,fr,x0,x1,ratio,mu0
   real(kind=8), dimension(:), allocatable :: green,green1
 
@@ -608,7 +624,11 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   !dimension needed for the correct calculation of the recursion
   nrec=2**n_iter*n
 
-  allocate(green(-nrec:nrec))
+  allocate(green(-nrec:nrec),stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' calculates_green_opt: problem of memory allocation'
+     stop
+  end if
 
 
   !initialization of the branching value
@@ -688,7 +708,11 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
      !print *,ikern,izero,n_scf,gltmp,grtmp,gleft,gright,x0,x1,green(ikern)
   end do
   !now we must calculate the recursion
-  allocate(green1(-nrec:nrec))
+  allocate(green1(-nrec:nrec),stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' calculates_green_opt: problem of memory allocation'
+     stop
+  end if
   !Start the iteration to go from mu0 to mu
   call scf_recursion(itype_scf,n_iter,nrec,green(-nrec),green1(-nrec))
 
@@ -700,7 +724,12 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   end do
   
 
-  deallocate(green,green1)
+  deallocate(green,stat=i_all)
+  deallocate(green1,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' calculates_green_opt: problem of memory deallocation'
+     stop
+  end if
 
 end subroutine calculates_green_opt
 
@@ -869,7 +898,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  real(kind=8) :: a1,a2,a3,amax,ratio
  integer :: n_scf,nker1,nker2,nker3
  integer :: i_gauss,n_range,n_cell,istart,iend,istart1
- integer :: i,j,n_iter,i_iter,ind,i1,i2,i3,i_kern,i_stat,i_allocated
+ integer :: i,j,n_iter,i_iter,ind,i1,i2,i3,i_kern,i_stat,i_all
  integer :: i01,i02,i03,n1h,n2h,n3h
 
  !Number of integration points : 2*itype_scf*n_points
@@ -900,7 +929,11 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  end do
 
  !this will be the array of the kernel in the real space
- allocate(kp(n1h+1,n3h+1,nker2/nproc))
+ allocate(kp(n1h+1,n3h+1,nker2/nproc),stat=i_all)
+ if (i_all /= 0) then
+    write(*,*)' free_kernel: problem of memory allocation'
+    stop
+ end if
 
  !defining proper extremes for the calculation of the
  !local part of the kernel
@@ -912,12 +945,12 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  if(iproc .eq. 0) istart1=n2h-n03+2
 
  !Allocations
- i_allocated = 0
+ i_all = 0
  allocate(x_scf(0:n_scf),stat=i_stat)
- i_allocated = i_allocated + i_stat
+ i_all = i_all + i_stat
  allocate(y_scf(0:n_scf),stat=i_stat)
- i_allocated = i_allocated + i_stat
- if (i_allocated /= 0) then
+ i_all = i_all + i_stat
+ if (i_all /= 0) then
     print *,"Free_Kernel: Problem of memory allocation"
     stop
  end if
@@ -932,10 +965,10 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 
  !Allocations
  allocate(kernel_scf(-n_range:n_range),stat=i_stat)
- i_allocated = i_allocated + i_stat
+ i_all = i_all + i_stat
  allocate(kern_1_scf(-n_range:n_range),stat=i_stat)
- i_allocated = i_allocated + i_stat
- if (i_allocated /= 0) then
+ i_all = i_all + i_stat
+ if (i_all /= 0) then
     print *,"Free_Kernel: Problem of memory allocation"
     stop
  end if
@@ -1021,10 +1054,16 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  end do loop_gauss
 
  !De-allocations
- deallocate(kernel_scf)
- deallocate(kern_1_scf)
- deallocate(x_scf)
- deallocate(y_scf)
+ deallocate(kernel_scf,stat=i_all)
+ deallocate(kern_1_scf,stat=i_stat)
+ i_all=i_all+i_stat
+ deallocate(x_scf,stat=i_stat)
+ i_all=i_all+i_stat
+ deallocate(y_scf,stat=i_stat)
+ if (i_all+i_stat /= 0) then
+    write(*,*)' free_kernel: problem of memory deallocation'
+    stop
+ end if
 
 !!!!END KERNEL CONSTRUCTION
 
@@ -1034,7 +1073,11 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
       kp,karray)
 
  !De-allocations
- deallocate(kp)
+ deallocate(kp,stat=i_all)
+ if (i_all /= 0) then
+    write(*,*)' free_kernel: problem of memory deallocation'
+    stop
+ end if
 
 end subroutine Free_Kernel
 !!***
@@ -1108,7 +1151,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   real(kind=8), dimension(nk1,nk2,nk3/nproc), intent(inout) :: zr
   !Local variables
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2st,J2st
-  integer :: j2,j3,i1,i3,i,j,inzee,ierr
+  integer :: j2,j3,i1,i3,i,j,inzee,ierr,i_all,i_stat
   real(kind=8) :: twopion
   !work arrays for transpositions
   real(kind=8), dimension(:,:,:), allocatable :: zt
@@ -1139,12 +1182,43 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   if (mod(n2,4).eq.0) lzt=lzt+1
   
   !Allocations
-  allocate(trig1(2,8192),after1(7),now1(7),before1(7), &
-       trig2(2,8192),after2(7),now2(7),before2(7), &
-       trig3(2,8192),after3(7),now3(7),before3(7), &
-       zw(2,ncache/4,2),zt(2,lzt,n1), &
-       zmpi2(2,n1,nd2/nproc,nd3),cosinarr(2,n3/2))
-  if (nproc.gt.1) allocate(zmpi1(2,n1,nd2/nproc,nd3/nproc,nproc))
+  allocate(trig1(2,8192),stat=i_all)
+  allocate(after1(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(now1(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(before1(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(trig2(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(after2(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(now2(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(before2(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(trig3(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(after3(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(now3(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(before3(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(zw(2,ncache/4,2),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(zt(2,lzt,n1),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(zmpi2(2,n1,nd2/nproc,nd3),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(cosinarr(2,n3/2),stat=i_stat)
+  i_all=i_all+i_stat
+  if (nproc.gt.1) allocate(zmpi1(2,n1,nd2/nproc,nd3/nproc,nproc),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' kernelfft: problem of memory allocation'
+     stop
+  end if
+
   
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
   call ctrig(n3/2,trig3,after3,before3,now3,1,ic3)
@@ -1276,11 +1350,43 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   end do
 
   !De-allocations
-  deallocate(trig1,after1,now1,before1, &
-       trig2,after2,now2,before2, &
-       trig3,after3,now3,before3, &
-       zmpi2,zw,zt,cosinarr)
-  if (nproc.gt.1) deallocate(zmpi1)
+  deallocate(trig1,stat=i_all)
+  deallocate(after1,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(now1,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(before1,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(trig2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(after2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(now2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(before2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(trig3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(after3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(now3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(before3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(zmpi2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(zw,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(zt,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(cosinarr,stat=i_stat)
+  i_all=i_all+i_stat
+  if (nproc.gt.1) deallocate(zmpi1,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' kernelfft: problem of memory deallocation'
+     stop
+  end if
+
 
 end subroutine kernelfft
 

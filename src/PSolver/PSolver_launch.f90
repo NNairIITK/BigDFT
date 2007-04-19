@@ -80,7 +80,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !local variables
   integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
-  integer :: i_allocated,i_stat,ierr,ind,ind2,ind3
+  integer :: i_all,i_stat,ierr,ind,ind2,ind3
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim
   real(kind=8) :: ehartreeLOC,eexcuLOC,vexcuLOC
@@ -111,20 +111,20 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   end if
 
   !array allocations
-  i_allocated=0
+  i_all=0
   allocate(zf(md1,md3,md2/nproc),stat=i_stat)
-  i_allocated=i_allocated+i_stat
+  i_all=i_all+i_stat
   allocate(zfionxc(md1,md3,md2/nproc),stat=i_stat)
-  i_allocated=i_allocated+i_stat
+  i_all=i_all+i_stat
   if (nproc > 1) then
      if (datacode == 'G') then
         allocate(gather_arr(0:nproc-1,2),stat=i_stat)
-        i_allocated=i_allocated+i_stat
+        i_all=i_all+i_stat
      end if
      allocate(energies_mpi(6),stat=i_stat)
-     i_allocated=i_allocated+i_stat
+     i_all=i_all+i_stat
   end if
-  if (i_allocated /= 0) then
+  if (i_all /= 0) then
      print *,"PSolver: Problem of memory allocation"
      stop
   end if
@@ -286,7 +286,12 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      ehartreeLOC=ehartreeLOC*2.d0*factor
   end if
 
-  deallocate(zf,zfionxc)
+  deallocate(zf,stat=i_all)
+  deallocate(zfionxc,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' psolver: problem of memory deallocation'
+     stop
+  end if
 
   call timing(iproc,'PSolv_comput  ','OF')
 

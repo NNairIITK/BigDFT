@@ -10,7 +10,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf&
   real(kind=8), dimension(md1,md3,md2/nproc), intent(inout) :: zf
   !Local variables
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
-  integer :: j1,j2,j3,i1,i2,i3,i,j,inzee,ierr
+  integer :: j1,j2,j3,i1,i2,i3,i,j,inzee,ierr,i_all,i_stat
   !work arrays for transpositions
   real(kind=8), dimension(:,:,:), allocatable :: zt
   !work arrays for MPI
@@ -51,11 +51,47 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf&
   if (mod(n2,4).eq.0) lzt=lzt+1 !maybe this is useless
   
   !Allocations
-  allocate(btrig1(2,8192),ftrig1(2,8192),after1(7),now1(7),before1(7), &
-       btrig2(2,8192),ftrig2(2,8192),after2(7),now2(7),before2(7), &
-       btrig3(2,8192),ftrig3(2,8192),after3(7),now3(7),before3(7), &
-       zw(2,ncache/4,2),zt(2,lzt,n1),zmpi2(2,n1,md2/nproc,nd3))
-  if (nproc.gt.1) allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,nproc))
+  allocate(btrig1(2,8192),stat=i_all)
+  allocate(ftrig1(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(after1(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(now1(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(before1(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(btrig2(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(ftrig2(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(after2(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(now2(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(before2(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(btrig3(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(ftrig3(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(after3(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(now3(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(before3(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(zw(2,ncache/4,2),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(zt(2,lzt,n1),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(zmpi2(2,n1,md2/nproc,nd3),stat=i_stat)
+  i_all=i_all+i_stat
+  if (nproc.gt.1) allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,nproc),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' p_poissonsolver: problem of memory allocation'
+     stop
+  end if
+
 
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
   call ctrig(n3,btrig3,after3,before3,now3,1,ic3)
@@ -314,11 +350,46 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf&
   end do
 
   !De-allocations  
-  deallocate(btrig1,ftrig1,after1,now1,before1, &
-       btrig2,ftrig2,after2,now2,before2, &
-       btrig3,ftrig3,after3,now3,before3, &
-       zmpi2,zw,zt)
-  if (nproc.gt.1) deallocate(zmpi1)
+  deallocate(btrig1,stat=i_all)
+  deallocate(ftrig1,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(after1,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(now1,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(before1,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(btrig2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(ftrig2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(after2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(now2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(before2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(btrig3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(ftrig3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(after3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(now3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(before3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(zmpi2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(zw,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(zt,stat=i_stat)
+  i_all=i_all+i_stat
+  if (nproc.gt.1) deallocate(zmpi1,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' p_poissonsolver: problem of memory deallocation'
+     stop
+  end if
   call timing(iproc,'PSolv_comput  ','OF')
 end subroutine P_PoissonSolver
 
@@ -798,7 +869,7 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   real(kind=8), dimension(md1,md3,md2/nproc), intent(inout) :: zf
   !Local variables
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
-  integer :: j1,j2,j3,i1,i2,i3,i,j,inzee,ierr
+  integer :: j1,j2,j3,i1,i2,i3,i,j,inzee,ierr,i_all,i_stat
   real(kind=8) :: twopion!,ehartreetmp
   !work arrays for transpositions
   real(kind=8), dimension(:,:,:), allocatable :: zt
@@ -840,11 +911,49 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   if (mod(n2,4).eq.0) lzt=lzt+1 !maybe this is useless
   
   !Allocations
-  allocate(btrig1(2,8192),ftrig1(2,8192),after1(7),now1(7),before1(7), &
-       btrig2(2,8192),ftrig2(2,8192),after2(7),now2(7),before2(7), &
-       btrig3(2,8192),ftrig3(2,8192),after3(7),now3(7),before3(7), &
-       zw(2,ncache/4,2),zt(2,lzt,n1),zmpi2(2,n1,md2/nproc,nd3),cosinarr(2,n3/2))
-  if (nproc.gt.1) allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,nproc))
+  allocate(btrig1(2,8192),stat=i_all)
+  allocate(ftrig1(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(after1(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(now1(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(before1(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(btrig2(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(ftrig2(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(after2(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(now2(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(before2(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(btrig3(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(ftrig3(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(after3(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(now3(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(before3(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(zw(2,ncache/4,2),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(zt(2,lzt,n1),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(zmpi2(2,n1,md2/nproc,nd3),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(cosinarr(2,n3/2),stat=i_stat)
+  i_all=i_all+i_stat
+  if (nproc.gt.1) allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,nproc),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' s_poissonsolver: problem of memory allocation'
+     stop
+  end if
+
 
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
   call ctrig(n3/2,btrig3,after3,before3,now3,1,ic3)
@@ -1118,11 +1227,48 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   end do
 
   !De-allocations  
-  deallocate(btrig1,ftrig1,after1,now1,before1, &
-       btrig2,ftrig2,after2,now2,before2, &
-       btrig3,ftrig3,after3,now3,before3, &
-       zmpi2,zw,zt,cosinarr)
-  if (nproc.gt.1) deallocate(zmpi1)
+  deallocate(btrig1,stat=i_all)
+  deallocate(ftrig1,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(after1,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(now1,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(before1,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(btrig2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(ftrig2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(after2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(now2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(before2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(btrig3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(ftrig3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(after3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(now3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(before3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(zmpi2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(zw,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(zt,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(cosinarr,stat=i_stat)
+  i_all=i_all+i_stat
+  if (nproc.gt.1) deallocate(zmpi1,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' s_poissonsolver: problem of memory deallocation'
+     stop
+  end if
 
   call timing(iproc,'PSolv_comput  ','OF')
 
@@ -1520,7 +1666,7 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   real(kind=8), dimension(md1,md3,md2/nproc), intent(inout) :: zf
   !Local variables
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
-  integer :: j1,j2,j3,i1,i2,i3,i,j,inzee,ierr
+  integer :: j1,j2,j3,i1,i2,i3,i,j,inzee,ierr,i_all,i_stat
   real(kind=8) :: twopion!,ehartreetmp
   !work arrays for transpositions
   real(kind=8), dimension(:,:,:), allocatable :: zt
@@ -1560,11 +1706,49 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   if (mod(n2/2,4).eq.0) lzt=lzt+1
   
   !Allocations
-  allocate(btrig1(2,8192),ftrig1(2,8192),after1(7),now1(7),before1(7), &
-       btrig2(2,8192),ftrig2(2,8192),after2(7),now2(7),before2(7), &
-       btrig3(2,8192),ftrig3(2,8192),after3(7),now3(7),before3(7), &
-       zw(2,ncache/4,2),zt(2,lzt,n1),zmpi2(2,n1,md2/nproc,nd3),cosinarr(2,n3/2))
-  if (nproc.gt.1) allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,nproc))
+  allocate(btrig1(2,8192),stat=i_all)
+  allocate(ftrig1(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(after1(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(now1(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(before1(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(btrig2(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(ftrig2(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(after2(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(now2(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(before2(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(btrig3(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(ftrig3(2,8192),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(after3(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(now3(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(before3(7),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(zw(2,ncache/4,2),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(zt(2,lzt,n1),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(zmpi2(2,n1,md2/nproc,nd3),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(cosinarr(2,n3/2),stat=i_stat)
+  i_all=i_all+i_stat
+  if (nproc.gt.1) allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,nproc),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' f_poissonsolver: problem of memory allocation'
+     stop
+  end if
+
 
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
   call ctrig(n3/2,btrig3,after3,before3,now3,1,ic3)
@@ -1836,11 +2020,48 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   end do
   
   !De-allocations  
-  deallocate(btrig1,ftrig1,after1,now1,before1, &
-       btrig2,ftrig2,after2,now2,before2, &
-       btrig3,ftrig3,after3,now3,before3, &
-       zmpi2,zw,zt,cosinarr)
-  if (nproc.gt.1) deallocate(zmpi1)
+  deallocate(btrig1,stat=i_all)
+  deallocate(ftrig1,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(after1,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(now1,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(before1,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(btrig2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(ftrig2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(after2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(now2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(before2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(btrig3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(ftrig3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(after3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(now3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(before3,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(zmpi2,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(zw,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(zt,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(cosinarr,stat=i_stat)
+  i_all=i_all+i_stat
+  if (nproc.gt.1) deallocate(zmpi1,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' f_poissonsolver: problem of memory deallocation'
+     stop
+  end if
 
   call timing(iproc,'PSolv_comput  ','OF')
 end subroutine F_PoissonSolver
