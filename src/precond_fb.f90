@@ -82,11 +82,28 @@
           ENDDO
 
         ALLOCATE(AUX(NSTEP_MAX),ALPHAS_PR(NSTEP_MAX)) 
-        allocate(GG_c(nvctr_c),GG_f(7,nvctr_f))
-        allocate(PSI_c_NEW(nvctr_c),PSI_f_NEW(7,nvctr_f))
-        allocate(HPSI_c(nvctr_c),HPSI_f(7,nvctr_f))
-        allocate(HPSI_c_OLD(nvctr_c),HPSI_f_OLD(7,nvctr_f))
-        allocate(HPSI_c_MOD(nvctr_c),HPSI_f_MOD(7,nvctr_f))
+        allocate(GG_c(nvctr_c),stat=i_all)
+        allocate(GG_f(7,nvctr_f),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(PSI_c_NEW(nvctr_c),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(PSI_f_NEW(7,nvctr_f),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(HPSI_c(nvctr_c),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(HPSI_f(7,nvctr_f),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(HPSI_c_OLD(nvctr_c),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(HPSI_f_OLD(7,nvctr_f),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(HPSI_c_MOD(nvctr_c),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(HPSI_f_MOD(7,nvctr_f),stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' precondition: problem of memory allocation'
+           stop
+        end if
 
 
         GG_C=PSI_C
@@ -212,7 +229,12 @@
         dimension GG_c(nvctr_c),GG_f(7,nvctr_f)
         dimension hpsi_c(nvctr_c),hpsi_f(7,nvctr_f)
 
-        allocate(psig_stand1(0:n1,2,0:n2,2,0:n3,2),psig_stand2(0:n1,2,0:n2,2,0:n3,2))
+        allocate(psig_stand1(0:n1,2,0:n2,2,0:n3,2),stat=i_all)
+        allocate(psig_stand2(0:n1,2,0:n2,2,0:n3,2),stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' precondition: problem of memory allocation'
+           stop
+        end if
 
         call uncompress_forstandard(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
                               nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -238,7 +260,12 @@
             ENDDO
           ENDDO
 
-          deallocate(psig_stand1,psig_stand2)
+          deallocate(psig_stand1,stat=i_all)
+          deallocate(psig_stand2,stat=i_stat)
+          if (i_all+i_stat /= 0) then
+             write(*,*)' precondition: problem of memory deallocation'
+             stop
+          end if
 
         END 
 
@@ -257,7 +284,11 @@
 
 
 
-        allocate(hpsip(0:nd1,0:nd2,0:nd3))
+        allocate(hpsip(0:nd1,0:nd2,0:nd3),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' prec_diag: problem of memory allocation'
+           stop
+        end if
 ! find leading dimensions that allow for a wavelet analysis
         call dzero((nd1+1)*(nd2+1)*(nd3+1),hpsip)
 
@@ -323,7 +354,11 @@
           enddo
         enddo
 
-        deallocate(hpsip)
+        deallocate(hpsip,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' prec_diag: problem of memory deallocation'
+           stop
+        end if
 
        end         
 

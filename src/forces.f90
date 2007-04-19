@@ -18,7 +18,7 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
   real(kind=8) :: hgridh,pi,prefactor,cutoff,rloc,Vel,rhoel
   real(kind=8) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc
   real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,dist,tt
-  integer :: ii,ix,iy,iz,i1,i2,i3,iat,jat,ityp,jtyp,nloc,iloc,istat
+  integer :: ii,ix,iy,iz,i1,i2,i3,iat,jat,ityp,jtyp,nloc,iloc,i_all,i_stat
   !array of coefficients of the derivative
   real(kind=8), dimension(4) :: cprime 
 
@@ -189,13 +189,26 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
   real(kind=8) :: fpi,factor,gau_a,onem,scpr,scprp,tcprx,tcpry,tcprz,rx,ry,rz,eproj,fx,fy,fz
   real(kind=8) :: scpr_i,scpr_j,scprp_i,scprp_j,tcprx_i,tcprx_j,tcpry_i,tcpry_j,tcprz_i,tcprz_j
   real(kind=8) :: offdiagcoeff,hij
-  integer :: idir,iadd,iterm,nterm_max
+  integer :: idir,iadd,iterm,nterm_max,i_all,i_stat
   nterm_max=20 !if GTH nterm_max=4
-  allocate(derproj(nprojel,3))
-  allocate(fac_arr(nterm_max,3))
-  allocate(lxyz_arr(3,nterm_max,3),lx(nterm_max),ly(nterm_max),lz(nterm_max))
-  allocate(nterm_arr(3))
-  allocate(scalprod(0:3,4,3,7))
+  allocate(derproj(nprojel,3),stat=i_all)
+  allocate(fac_arr(nterm_max,3),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(lxyz_arr(3,nterm_max,3),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(lx(nterm_max),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(ly(nterm_max),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(lz(nterm_max),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(nterm_arr(3),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(scalprod(0:3,4,3,7),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' nonlocal_forces: problem of memory allocation'
+     stop
+  end if
 
   !create the derivative of the projectors
   istart_c=1
@@ -260,7 +273,11 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
   if (iproj.ne.nproj) stop 'incorrect number of projectors created'
   ! projector part finished
 
-  allocate(fxyz_orb(3,nat))
+  allocate(fxyz_orb(3,nat),stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' nonlocal_forces: problem of memory allocation'
+     stop
+  end if
 !  print *,'end of the projector part'
 
 
@@ -406,7 +423,26 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
   if (istart_c-1.ne.nprojel) stop '2:applyprojectors'
 end do
 
-  deallocate(fxyz_orb,derproj,lxyz_arr,nterm_arr,fac_arr,lx,ly,lz,scalprod)
+  deallocate(fxyz_orb,stat=i_all)
+  deallocate(derproj,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(lxyz_arr,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(nterm_arr,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(fac_arr,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(lx,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(ly,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(lz,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(scalprod,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' nonlocal_forces: problem of memory deallocation'
+     stop
+  end if
 end subroutine nonlocal_forces
 
 subroutine calc_coeff_derproj(l,i,m,nterm_max,rhol,nterm_arr,lxyz_arr,fac_arr)

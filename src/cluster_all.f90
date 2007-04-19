@@ -168,10 +168,18 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      nvctr_f_old = nvctr_f
      nseg_c_old  = nseg_c
      nseg_f_old  = nseg_f
-     allocate(keyg_old(2,nseg_c_old+nseg_f_old))
-     allocate(keyv_old(nseg_c_old+nseg_f_old))
-     allocate(psi_old(nvctr_c_old+7*nvctr_f_old,norbp))
-     allocate(eval_old(norb))
+     !allocations
+     allocate(keyg_old(2,nseg_c_old+nseg_f_old),stat=i_all)
+     allocate(keyv_old(nseg_c_old+nseg_f_old),stat=i_stat)
+     i_all=i_all+i_stat
+     allocate(psi_old(nvctr_c_old+7*nvctr_f_old,norbp),stat=i_stat)
+     i_all=i_all+i_stat
+     allocate(eval_old(norb),stat=i_stat)
+     if (i_all+i_stat /=0) then
+        write(*,*)' cluster: problem of memory allocation'
+        stop
+     end if
+
      do iseg=1,nseg_c_old+nseg_f_old
         keyg_old(1,iseg)    = keyg(1,iseg)
         keyg_old(2,iseg)    = keyg(2,iseg)
@@ -187,8 +195,18 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         if (abs(tt-1.d0).gt.1.d-8) stop 'wrong psi_old'
         eval_old(iorb) = eval(iorb)
      enddo
-     deallocate(keyg, keyv)
-     deallocate(psi,eval)
+     !deallocation
+     deallocate(keyg,stat=i_all)
+     deallocate(keyv,stat=i_stat)
+     i_all=i_all+i_stat
+     deallocate(psi,stat=i_stat)
+     i_all=i_all+i_stat
+     deallocate(eval,stat=i_stat)
+     if (i_all+i_stat /=0) then
+        write(*,*)' cluster: problem of memory deallocation'
+        stop
+     end if
+
   end if
 
   !temporary flags, added for debugging purposes
@@ -238,13 +256,25 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   endif
 
 
-! grid spacing (same in x,y and z direction)
+  ! grid spacing (same in x,y and z direction)
   hgridh=.5d0*hgrid
 
-! store PSP parameters
-! modified to accept both GTH and HGH pseudopotential types
-allocate(psppar(0:4,0:4,ntypes),nelpsp(ntypes),radii_cf(ntypes,2),npspcode(ntypes))
-allocate(neleconf(6,0:3))
+  ! store PSP parameters
+  ! modified to accept both GTH and HGH pseudopotential types
+  !allocation
+  allocate(psppar(0:4,0:4,ntypes),stat=i_all)
+  allocate(nelpsp(ntypes),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(radii_cf(ntypes,2),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(npspcode(ntypes),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(neleconf(6,0:3),stat=i_stat)
+  if (i_all+i_stat /=0) then
+     write(*,*)' cluster: problem of memory allocation'
+     stop
+  end if
+
   do ityp=1,ntypes
      filename = 'psppar.'//atomnames(ityp)
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
@@ -300,7 +330,13 @@ allocate(neleconf(6,0:3))
           ' and radii=',radii_cf(ityp,1),radii_cf(ityp,2)
   enddo
 
-  deallocate(neleconf)
+  !deallocation
+  deallocate(neleconf,stat=i_all)
+  if (i_all/=0) then
+     write(*,*)' cluster: problem of memory deallocation'
+     stop
+  end if
+
 
 ! Number of orbitals and their occupation number
   norb_vir=0
@@ -319,7 +355,13 @@ allocate(neleconf(6,0:3))
   end if
   norb=(nelec+1)/2+norb_vir
 
-  allocate(occup(norb),eval(norb))
+  allocate(occup(norb),stat=i_all)
+  allocate(eval(norb),stat=i_stat)
+  if (i_all+i_stat/=0) then
+     write(*,*)' cluster: problem of memory allocation'
+     stop
+  end if
+
 
   nt=0
   do iorb=1,norb
@@ -401,9 +443,23 @@ allocate(neleconf(6,0:3))
   endif
 
 ! Create wavefunctions descriptors and allocate them
-  allocate(ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2))
-  allocate(ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2))
 
+
+  allocate(ibyz_c(2,0:n2,0:n3),stat=i_all)
+  allocate(ibxz_c(2,0:n1,0:n3),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(ibxy_c(2,0:n1,0:n2),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(ibyz_f(2,0:n2,0:n3),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(ibxz_f(2,0:n1,0:n3),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(ibxy_f(2,0:n1,0:n2),stat=i_stat)
+  if (i_all+i_stat/=0) then
+     write(*,*)' cluster: problem of memory allocation'
+     stop
+  end if
+  
 ! Create the file grid.ascii to visualize the grid of functions
   if (iproc.eq.0 .and. output_grid) then
      open(unit=22,file='grid.ascii',status='unknown')
@@ -422,9 +478,16 @@ allocate(neleconf(6,0:3))
        & norb,norbp,psi,hpsi,psit,psidst,hpsidst,ads)
 
 ! Calculate all projectors
-  allocate(nseg_p(0:2*nat))
-  allocate(nvctr_p(0:2*nat))
-  allocate(nboxp_c(2,3,nat),nboxp_f(2,3,nat))
+  allocate(nseg_p(0:2*nat),stat=i_all)
+  allocate(nvctr_p(0:2*nat),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(nboxp_c(2,3,nat),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(nboxp_f(2,3,nat),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' cluster: problem of memory allocation'
+     stop
+  end if
   call createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, atomnames, &
        & psppar, npspcode, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
        & keyg_p, keyv_p, nproj, nprojel, istart, nboxp_c, nboxp_f, proj)
@@ -439,7 +502,11 @@ allocate(neleconf(6,0:3))
 
      !allocate values of the array for the data scattering in sumrho
      !its values are ignored in the datacode='G' case
-     allocate(nscatterarr(0:nproc-1,4))
+     allocate(nscatterarr(0:nproc-1,4),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' cluster: problem of memory allocation'
+        stop
+     end if
      if (datacode == 'D') then
         do jproc=0,iproc-1
            call PS_dim4allocation('F',datacode,jproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,&
@@ -474,14 +541,30 @@ allocate(neleconf(6,0:3))
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for rhopot and pot_ion ',&
           (2*n1+31)*(2*n2+31)*(n3d+n3pi)
      if (n3d >0) then
-        allocate(rhopot((2*n1+31),(2*n2+31),n3d))
+        allocate(rhopot((2*n1+31),(2*n2+31),n3d),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' cluster: problem of memory allocation'
+           stop
+        end if
      else
-        allocate(rhopot(1,1,1))
+        allocate(rhopot(1,1,1),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' cluster: problem of memory allocation'
+           stop
+        end if
      end if
      if (n3pi > 0) then
-        allocate(pot_ion((2*n1+31)*(2*n2+31)*n3pi))
+        allocate(pot_ion((2*n1+31)*(2*n2+31)*n3pi),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' cluster: problem of memory allocation'
+           stop
+        end if
      else
-        allocate(pot_ion(1))
+        allocate(pot_ion(1),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' cluster: problem of memory allocation'
+           stop
+        end if
      end if   
 
      !we put the initial value to zero only for not adding something to pot_ion
@@ -521,7 +604,12 @@ allocate(neleconf(6,0:3))
      ! Charge density, Potential in real space
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for rhopot and pot_ion ',&
           2*(2*n1+31)*(2*n2+31)*(2*n3+31)
-     allocate(rhopot((2*n1+31),(2*n2+31),(2*n3+31)),pot_ion((2*n1+31)*(2*n2+31)*(2*n3+31)))
+     allocate(rhopot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_all)
+     allocate(pot_ion((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+     if (i_all+i_stat /= 0) then
+        write(*,*)' cluster: problem of memory allocation'
+        stop
+     end if
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
      call createKernel_old(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
@@ -567,8 +655,16 @@ allocate(neleconf(6,0:3))
           & hgrid, nvctr_c, nvctr_f, n1, n2, n3, rxyz, &
           & nseg_c, nseg_f, keyg, keyv, psi)
             eval=eval_old
-     deallocate(keyg_old, keyv_old)
-     deallocate(psi_old,eval_old)
+     deallocate(keyg_old,stat=i_all)
+     deallocate(keyv_old,stat=i_stat)
+     i_all=i_all+i_stat
+     deallocate(psi_old,stat=i_stat)
+     i_all=i_all+i_stat
+     deallocate(eval_old,stat=i_stat)
+     if (i_all+i_stat /= 0) then
+        write(*,*)' cluster: problem of memory deallocation'
+        stop
+     end if
 
   else if (inputPsiId == 2) then
      call readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
@@ -639,7 +735,11 @@ allocate(neleconf(6,0:3))
 
   if (datacode=='D') then
      !allocate full potential
-     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)))
+     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' cluster: problem of memory allocation'
+        stop
+     end if
 
      call timing(iproc,'ApplyLocPotKin','ON')
 
@@ -654,7 +754,11 @@ allocate(neleconf(6,0:3))
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           psi,pot,hpsi,epot_sum,ekin_sum)
 
-     deallocate(pot)
+     deallocate(pot,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' cluster: problem of memory deallocation'
+        stop
+     end if
 
   else
 
@@ -696,11 +800,19 @@ allocate(neleconf(6,0:3))
 
 ! Apply  orthogonality constraints to all orbitals belonging to iproc
      if (parallel) then
-        allocate(hpsit(nvctrp,norbp*nproc))
+        allocate(hpsit(nvctrp,norbp*nproc),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' cluster: problem of memory allocation'
+           stop
+        end if
         call transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
         call  orthoconstraint_p(iproc,nproc,norb,norbp,occup,nvctrp,psit,hpsit,scprsum)
         call untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsit,hpsi)
-        deallocate(hpsit)
+        deallocate(hpsit,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' cluster: problem of memory deallocation'
+           stop
+        end if
      else
         call  orthoconstraint(norb,norbp,occup,nvctrp,psi,hpsi,scprsum)
      endif
@@ -742,7 +854,11 @@ allocate(neleconf(6,0:3))
               enddo
            enddo
         else
-           allocate(hpsit(nvctrp,norbp*nproc))
+           allocate(hpsit(nvctrp,norbp*nproc),stat=i_all)
+           if (i_all /= 0) then
+              write(*,*)' cluster: problem of memory allocation'
+              stop
+           end if
            call transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
         endif
      else
@@ -787,7 +903,11 @@ allocate(neleconf(6,0:3))
            do iorb=1,norb
               call DAXPY(nvctrp,-alpha,hpsit(1,iorb),1,psit(1,iorb),1)
            enddo
-           deallocate(hpsit)
+           deallocate(hpsit,stat=i_all)
+           if (i_all /= 0) then
+              write(*,*)' cluster: problem of memory deallocation'
+              stop
+           end if
         else
            do iorb=1,norb
               call DAXPY(nvctrp,-alpha,hpsi(1,iorb),1,psi(1,iorb),1)
@@ -829,15 +949,27 @@ allocate(neleconf(6,0:3))
 !------------------------------------------------------------------------
 ! transform to KS orbitals
   if (parallel) then
-     allocate(hpsit(nvctrp,norbp*nproc))
+     allocate(hpsit(nvctrp,norbp*nproc),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' cluster: problem of memory allocation'
+        stop
+     end if
      call transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
      call KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,hpsit,psit,evsum,eval)
-     deallocate(hpsit)
+     deallocate(hpsit,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' cluster: problem of memory deallocation'
+        stop
+     end if
      call untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,psi)
   else
      call KStrans(norb,norbp,nvctrp,occup,hpsi,psi,evsum,eval)
   endif
-  deallocate(hpsi)
+  deallocate(hpsi,stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' cluster: problem of memory deallocation'
+     stop
+  end if
   if (parallel) deallocate(psit)
   if (abs(evsum-energybs).gt.1.d-8) write(*,'(1x,a,2(1x,1pe12.5))') 'Difference:evsum,energybs',evsum,energybs
 
@@ -860,7 +992,11 @@ allocate(neleconf(6,0:3))
 
   ! Potential from electronic charge density
   if (datacode=='G') then
-     allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)))
+     allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' cluster: problem of memory allocation'
+        stop
+     end if
      call sumrho_old(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho)
   else
@@ -879,7 +1015,11 @@ allocate(neleconf(6,0:3))
           (2*n1+31)*(2*n2+31)*n3p,nscatterarr)
 
      !gather the result in the global array rho
-     allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)))
+     allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' cluster: problem of memory allocation'
+        stop
+     end if
      call MPI_ALLGATHERV(pot_ion,(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION,&
           rho,(2*n1+31)*(2*n2+31)*nscatterarr(:,1),(2*n1+31)*(2*n2+31)*nscatterarr(:,3),&
           MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
@@ -911,20 +1051,36 @@ allocate(neleconf(6,0:3))
      !using pot_ion for building potential
      call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
           pot_ion,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0)
-     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)))
+     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' cluster: problem of memory allocation'
+        stop
+     end if
      call MPI_ALLGATHERV(pot_ion,(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION,&
           pot,(2*n1+31)*(2*n2+31)*nscatterarr(:,2),(2*n1+31)*(2*n2+31)*nscatterarr(:,3),&
           MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     deallocate(pot_ion)
+     deallocate(pot_ion,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' cluster: problem of memory deallocation'
+        stop
+     end if
   else
-     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)))
+     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' cluster: problem of memory allocation'
+        stop
+     end if
      call DCOPY((2*n1+31)*(2*n2+31)*(2*n3+31),rho,1,pot,1) 
 
      if (new_psolver) then
 
         call PSolver('F','G',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
              pot,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0)
-        deallocate(pot_ion)
+        deallocate(pot_ion,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' cluster: problem of memory deallocation'
+           stop
+        end if
      else
         if (parallel) then
            call ParPSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,0, &
@@ -937,16 +1093,29 @@ allocate(neleconf(6,0:3))
   end if
 
 
-  deallocate(pkernel)
+  deallocate(pkernel,stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' cluster: problem of memory deallocation'
+     stop
+  end if
 
   if (iproc.eq.0) write(*,*)'electronic potential calculated'
-  allocate(gxyz(3,nat))
+  allocate(gxyz(3,nat),stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' cluster: problem of memory allocation'
+     stop
+  end if
 
   call timing(iproc,'Forces        ','ON')
 ! calculate local part of the forces gxyz
    call local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
                      n1,n2,n3,rho,pot,gxyz)
-   deallocate(rho,pot)
+   deallocate(rho,stat=i_all)
+   deallocate(pot,stat=i_stat)
+   if (i_all+i_stat /= 0) then
+      write(*,*)' cluster: problem of memory deallocation'
+      stop
+   end if
 
 ! Add the nonlocal part of the forces to gxyz
 ! calculating derivatives of the projectors 
@@ -966,7 +1135,11 @@ allocate(neleconf(6,0:3))
      enddo
   end if
 
-  deallocate(gxyz)
+  deallocate(gxyz,stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' cluster: problem of memory deallocation'
+     stop
+  end if
 
   call timing(iproc,'Forces        ','OF')
 
@@ -992,11 +1165,19 @@ allocate(neleconf(6,0:3))
      endif
      !    ---reformat potential
      if (datacode=='D') then
-        allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)))
+        allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' cluster: problem of memory allocation'
+           stop
+        end if
         call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh),(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION,&
              pot,(2*n1+31)*(2*n2+31)*nscatterarr(:,2),(2*n1+31)*(2*n2+31)*nscatterarr(:,3),&
              MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        allocate(rhopotb((2*nb1+31),(2*nb2+31),(2*nb3+31)))
+        allocate(rhopotb((2*nb1+31),(2*nb2+31),(2*nb3+31)),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' cluster: problem of memory allocation'
+           stop
+        end if
         call razero((2*nb1+31)*(2*nb2+31)*(2*nb3+31),rhopotb)
         do i3=1+2*nbuf,2*n3+31+2*nbuf
            do i2=1+2*nbuf,2*n2+31+2*nbuf
@@ -1005,9 +1186,18 @@ allocate(neleconf(6,0:3))
               enddo
            enddo
         enddo
-        deallocate(pot,nscatterarr)
+        deallocate(pot,stat=i_all)
+        deallocate(nscatterarr,stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' cluster: problem of memory deallocation'
+           stop
+        end if
      else
-        allocate(rhopotb((2*nb1+31),(2*nb2+31),(2*nb3+31)))
+        allocate(rhopotb((2*nb1+31),(2*nb2+31),(2*nb3+31)),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' cluster: problem of memory allocation'
+           stop
+        end if
         call razero((2*nb1+31)*(2*nb2+31)*(2*nb3+31),rhopotb)
         do i3=1+2*nbuf,2*n3+31+2*nbuf
            do i2=1+2*nbuf,2*n2+31+2*nbuf
@@ -1017,7 +1207,11 @@ allocate(neleconf(6,0:3))
            enddo
         enddo
      end if
-     deallocate(rhopot)
+     deallocate(rhopot,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' cluster: problem of memory deallocation'
+        stop
+     end if
      call timing(iproc,'Tail          ','OF')
 
      call CalculateTailCorrection(iproc,nproc,n1,n2,n3,nbuf,nb1,nb2,nb3,norb,norbp,nat,ntypes,&
@@ -1026,7 +1220,11 @@ allocate(neleconf(6,0:3))
      rhopotb,hgrid,alatb1,alatb2,alatb3,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
      proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
 
-     deallocate(rhopotb)
+     deallocate(rhopotb,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' cluster: problem of memory deallocation'
+        stop
+     end if
     
      energybs=ekin_sum+epot_sum+eproj_sum
      energy=energybs-ehart+eexcu-vexcu+eion
@@ -1040,16 +1238,52 @@ allocate(neleconf(6,0:3))
   else
 !    No tail calculation
      if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-     deallocate(rhopot,nscatterarr)
+     deallocate(rhopot,stat=i_all)
+     deallocate(nscatterarr,stat=i_stat)
+     if (i_all+i_stat /= 0) then
+        write(*,*)' cluster: problem of memory deallocation'
+        stop
+     end if
   endif
 ! --- End if of tail calculation
 
-  deallocate(ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f)
+  deallocate(ibyz_c,stat=i_all)
+  deallocate(ibxz_c,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(ibxy_c,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(ibyz_f,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(ibxz_f,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(ibxy_f,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' cluster: problem of memory deallocation'
+     stop
+  end if
 
-  deallocate(keyg_p,keyv_p,proj)
-  deallocate(occup)
-  deallocate(nvctr_p,nseg_p)
-  deallocate(psppar,nelpsp,radii_cf,npspcode)
+  deallocate(keyg_p,stat=i_all)
+  deallocate(keyv_p,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(proj,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(occup,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(nvctr_p,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(nseg_p,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(psppar,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(nelpsp,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(radii_cf,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(npspcode,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' cluster: problem of memory deallocation'
+     stop
+  end if
 
   call timing(iproc,'              ','RE')
   call cpu_time(tcpu1)
@@ -1088,7 +1322,7 @@ real(kind=8), dimension(nprojel), intent(in) :: proj
 real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
 !local variables
 logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
-integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr
+integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat
 integer :: nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
 integer, dimension(:,:,:), allocatable :: ibbyz_c,ibbyz_f,ibbxz_c,ibbxz_f,ibbxy_c,ibbxy_f
 integer, dimension(:), allocatable :: keybv
@@ -1131,7 +1365,11 @@ if (iproc.eq.0) then
 endif
 
 ! change atom coordinates according to the enlarged box
-allocate(txyz(3,nat))
+allocate(txyz(3,nat),stat=i_all)
+if (i_all /= 0) then
+   write(*,*)' calculatetailcorrection: problem of memory allocation'
+   stop
+end if
 do iat=1,nat
    txyz(1,iat)=rxyz(1,iat)+nbuf*hgrid
    txyz(2,iat)=rxyz(2,iat)+nbuf*hgrid
@@ -1139,9 +1377,24 @@ do iat=1,nat
 enddo
 
 ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
-allocate(logrid_c(0:nb1,0:nb2,0:nb3),logrid_f(0:nb1,0:nb2,0:nb3))
-allocate(ibbyz_c(2,0:nb2,0:nb3),ibbxz_c(2,0:nb1,0:nb3),ibbxy_c(2,0:nb1,0:nb2))
-allocate(ibbyz_f(2,0:nb2,0:nb3),ibbxz_f(2,0:nb1,0:nb3),ibbxy_f(2,0:nb1,0:nb2))
+allocate(logrid_c(0:nb1,0:nb2,0:nb3),stat=i_all)
+allocate(logrid_f(0:nb1,0:nb2,0:nb3),stat=i_stat)
+i_all=i_all+i_stat
+allocate(ibbyz_c(2,0:nb2,0:nb3),stat=i_stat)
+i_all=i_all+i_stat
+allocate(ibbxz_c(2,0:nb1,0:nb3),stat=i_stat)
+i_all=i_all+i_stat
+allocate(ibbxy_c(2,0:nb1,0:nb2),stat=i_stat)
+i_all=i_all+i_stat
+allocate(ibbyz_f(2,0:nb2,0:nb3),stat=i_stat)
+i_all=i_all+i_stat
+allocate(ibbxz_f(2,0:nb1,0:nb3),stat=i_stat)
+i_all=i_all+i_stat
+allocate(ibbxy_f(2,0:nb1,0:nb2),stat=i_stat)
+if (i_all+i_stat /= 0) then
+   write(*,*)' calculatetailcorrection: problem of memory allocation'
+   stop
+end if
 
 ! coarse grid quantities
 call fill_logrid(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,nat,ntypes,iatype,txyz, & 
@@ -1192,25 +1445,46 @@ end if
 call bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
 
 ! now fill the wavefunction descriptor arrays
-allocate(keybg(2,nsegb_c+nsegb_f),keybv(nsegb_c+nsegb_f))
+allocate(keybg(2,nsegb_c+nsegb_f),stat=i_all)
+allocate(keybv(nsegb_c+nsegb_f),stat=i_stat)
+if (i_all+i_stat /= 0) then
+   write(*,*)' calculatetailcorrection: problem of memory allocation'
+   stop
+end if
 ! coarse grid quantities
 call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,keybg(1,1),keybv(1))
 
 ! fine grid quantities
 call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1))
 
-deallocate(logrid_c,logrid_f)
+deallocate(logrid_c,stat=i_all)
+deallocate(logrid_f,stat=i_stat)
+if (i_all+i_stat /= 0) then
+   write(*,*)' calculatetailcorrection: problem of memory deallocation'
+   stop
+end if
 
 ! allocations for arrays holding the wavefunction
 if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psib and hpsib ',2*(nvctrb_c+7*nvctrb_f)
-allocate(psib(nvctrb_c+7*nvctrb_f),hpsib(nvctrb_c+7*nvctrb_f))
+allocate(psib(nvctrb_c+7*nvctrb_f),stat=i_all)
+allocate(hpsib(nvctrb_c+7*nvctrb_f),stat=i_stat)
+if (i_all+i_stat /= 0) then
+   write(*,*)' calculatetailcorrection: problem of memory allocation'
+   stop
+end if
 if (iproc.eq.0) write(*,*) 'Allocation done'
 
 ! work arrays applylocpotkin
-allocate(psig(8*(nb1+1)*(nb2+1)*(nb3+1)) )
-allocate(psigp(8*(nb1+1)*(nb2+1)*(nb3+1)) )
-allocate(psifscf(max((2*nb1+31)*(2*nb2+31)*(2*nb3+16),(2*nb1+16)*(2*nb2+31)*(2*nb3+31))))
-allocate(psir((2*nb1+31)*(2*nb2+31)*(2*nb3+31)))
+allocate(psig(8*(nb1+1)*(nb2+1)*(nb3+1)),stat=i_all)
+allocate(psigp(8*(nb1+1)*(nb2+1)*(nb3+1)),stat=i_stat)
+i_all=i_all+i_stat
+allocate(psifscf(max((2*nb1+31)*(2*nb2+31)*(2*nb3+16),(2*nb1+16)*(2*nb2+31)*(2*nb3+31))),stat=i_stat)
+i_all=i_all+i_stat
+allocate(psir((2*nb1+31)*(2*nb2+31)*(2*nb3+31)),stat=i_stat)
+if (i_all+i_stat /= 0) then
+   write(*,*)' calculatetailcorrection: problem of memory allocation'
+   stop
+end if
 
 ekin_sum=0.d0
 epot_sum=0.d0
@@ -1294,10 +1568,38 @@ do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
    eproj_sum=eproj_sum+eproj*occup(iorb)
 end do
 
-deallocate(txyz)
-deallocate(psig,psigp,psifscf,psir,psib,hpsib)
-deallocate(keybg,keybv)
-deallocate(ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f)
+deallocate(txyz,stat=i_all)
+deallocate(psig,stat=i_stat)
+i_all=i_all+i_stat
+deallocate(psigp,stat=i_stat)
+i_all=i_all+i_stat
+deallocate(psifscf,stat=i_stat)
+i_all=i_all+i_stat
+deallocate(psir,stat=i_stat)
+i_all=i_all+i_stat
+deallocate(psib,stat=i_stat)
+i_all=i_all+i_stat
+deallocate(hpsib,stat=i_stat)
+i_all=i_all+i_stat
+deallocate(keybg,stat=i_stat)
+i_all=i_all+i_stat
+deallocate(keybv,stat=i_stat)
+i_all=i_all+i_stat
+deallocate(ibbyz_c,stat=i_stat)
+i_all=i_all+i_stat
+deallocate(ibbxz_c,stat=i_stat)
+i_all=i_all+i_stat
+deallocate(ibbxy_c,stat=i_stat)
+i_all=i_all+i_stat
+deallocate(ibbyz_f,stat=i_stat)
+i_all=i_all+i_stat
+deallocate(ibbxz_f,stat=i_stat)
+i_all=i_all+i_stat
+deallocate(ibbxy_f,stat=i_stat)
+if (i_all+i_stat /= 0) then
+   write(*,*)' calculatetailcorrection: problem of memory deallocation'
+   stop
+end if
 
 
 if (parallel) then
@@ -1305,7 +1607,11 @@ if (parallel) then
    if (iproc.eq.0) then
       write(*,'(1x,a,f27.14)')'Tail calculation ended'
    endif
-   allocate(wrkallred(3,2))
+   allocate(wrkallred(3,2),stat=i_all)
+   if (i_all /= 0) then
+      write(*,*)' calculatetailcorrection: problem of memory allocation'
+      stop
+   end if
    wrkallred(1,2)=ekin_sum
    wrkallred(2,2)=epot_sum 
    wrkallred(3,2)=eproj_sum 
@@ -1314,7 +1620,11 @@ if (parallel) then
    ekin_sum=wrkallred(1,1) 
    epot_sum=wrkallred(2,1) 
    eproj_sum=wrkallred(3,1)
-   deallocate(wrkallred)
+   deallocate(wrkallred,stat=i_all)
+   if (i_all /= 0) then
+      write(*,*)' calculatetailcorrection: problem of memory deallocation'
+      stop
+   end if
 endif
 
 call timing(iproc,'Tail          ','OF')
@@ -1331,7 +1641,11 @@ subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
    include 'mpif.h'
  
    call timing(iproc,'Un-Transall   ','ON')
-   allocate(psiw(nvctrp,norbp,nproc))
+   allocate(psiw(nvctrp,norbp,nproc),stat=i_all)
+   if (i_all /= 0) then
+      write(*,*)' transallwaves: problem of memory allocation'
+      stop
+   end if
  
    sendcount=nvctrp*norbp
    recvcount=nvctrp*norbp
@@ -1357,7 +1671,11 @@ subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
  
    call timing(iproc,'Un-Transall   ','OF')
 
-   deallocate(psiw)
+   deallocate(psiw,stat=i_all)
+   if (i_all /= 0) then
+      write(*,*)' transallwaves: problem of memory deallocation'
+      stop
+   end if
 
 END SUBROUTINE transallwaves
 
@@ -1373,7 +1691,11 @@ END SUBROUTINE transallwaves
  
          call timing(iproc,'Un-Transall   ','ON')
 
-         allocate(psiw(nvctrp,norbp,nproc))
+         allocate(psiw(nvctrp,norbp,nproc),stat=i_all)
+         if (i_all /= 0) then
+            write(*,*)' untransallwaves: problem of memory allocation'
+            stop
+         end if
  
           sendcount=nvctrp*norbp
           recvcount=nvctrp*norbp
@@ -1395,7 +1717,11 @@ END SUBROUTINE transallwaves
 333     continue
       enddo
  
-        deallocate(psiw)
+        deallocate(psiw,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' untransallwaves: problem of memory deallocation'
+           stop
+        end if
         call timing(iproc,'Un-Transall   ','OF')
  
  
@@ -1418,7 +1744,7 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(*), intent(inout) :: rho
   !local variables
-  integer :: iat,jat,i1,i2,i3,j3,ii,ix,iy,iz,i3start,i3end,ierr,ityp,jtyp,ind
+  integer :: iat,jat,i1,i2,i3,j3,ii,ix,iy,iz,i3start,i3end,ierr,ityp,jtyp,ind,i_all
   real(kind=8) :: hgridh,pi,rholeaked,dist,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot
   real(kind=8), dimension(:), allocatable :: charges_mpi
@@ -1501,14 +1827,22 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
   !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
 
   if (nproc > 1) then
-     allocate(charges_mpi(4))
+     allocate(charges_mpi(4),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_rho_ion: problem of memory allocation'
+        stop
+     end if
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
      call MPI_ALLREDUCE(charges_mpi(1),charges_mpi(3),2,MPI_double_precision,  &
           MPI_SUM,MPI_COMM_WORLD,ierr)
      tt_tot=charges_mpi(3)
      rholeaked_tot=charges_mpi(4)
-     deallocate(charges_mpi)
+     deallocate(charges_mpi,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_rho_ion: problem of memory deallocation'
+        stop
+     end if
   else
      tt_tot=tt
      rholeaked_tot=rholeaked
@@ -1785,12 +2119,16 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   call timing(iproc,'ApplyLocPotKin','ON')
 
   ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
-  allocate(psig(8*(n1+1)*(n2+1)*(n3+1)) )
-  allocate(psigp(8*(n1+1)*(n2+1)*(n3+1)) )
-  allocate(psifscf(max( (2*n1+31)*(2*n2+31)*(2*n3+16),&
-       &     (2*n1+16)*(2*n2+31)*(2*n3+31))) )
-  ! Wavefunction in real space
-  allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)))
+  allocate(psig(8*(n1+1)*(n2+1)*(n3+1)),stat=i_all)
+  allocate(psigp(8*(n1+1)*(n2+1)*(n3+1)),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(psifscf(max( (2*n1+31)*(2*n2+31)*(2*n3+16),            (2*n1+16)*(2*n2+31)*(2*n3+31))),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' applylocpotkinall: problem of memory allocation'
+     stop
+  end if
 
   ekin_sum=0.d0
   epot_sum=0.d0
@@ -1809,7 +2147,16 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   enddo
 
 
-  deallocate(psig,psigp,psifscf,psir)
+  deallocate(psig,stat=i_all)
+  deallocate(psigp,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(psifscf,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(psir,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' applylocpotkinall: problem of memory deallocation'
+     stop
+  end if
 
   call timing(iproc,'ApplyLocPotKin','OF')
 
@@ -2083,10 +2430,18 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   hgridh=hgrid*.5d0 
   
   ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
-  allocate(psig(0:n1,2,0:n2,2,0:n3,2))
-  allocate( psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)) )
+  allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_all)
+  allocate(psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' sumrho: problem of memory allocation'
+     stop
+  end if
   ! Wavefunction in real space
-  allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)))
+  allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' sumrho: problem of memory allocation'
+     stop
+  end if
   
   if (iproc==0) then
      write(*,'(1x,a)',advance='no')&
@@ -2100,7 +2455,11 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
     do jproc=0,nproc-1
        nrhotot=nrhotot+nscatterarr(jproc,1)
     end do
-    allocate(rho_p((2*n1+31)*(2*n2+31)*nrhotot))
+    allocate(rho_p((2*n1+31)*(2*n2+31)*nrhotot),stat=i_all)
+    if (i_all /= 0) then
+       write(*,*)' sumrho: problem of memory allocation'
+       stop
+    end if
 
     !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
     call tenmminustwenty((2*n1+31)*(2*n2+31)*nrhotot,rho_p)
@@ -2166,7 +2525,11 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
     if (iproc.eq.0) write(*,'(1x,a,f21.12)')&
          'done. Total electronic charge=',charge*hgridh**3
     call timing(iproc,'Rho_commun    ','OF')
-    deallocate(rho_p)
+    deallocate(rho_p,stat=i_all)
+    if (i_all /= 0) then
+       write(*,*)' sumrho: problem of memory deallocation'
+       stop
+    end if
 
  else
     call timing(iproc,'Rho_comput    ','ON')
@@ -2201,7 +2564,14 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
     call timing(iproc,'Rho_comput    ','OF')
  endif
 
- deallocate(psig,psifscf,psir)
+ deallocate(psig,stat=i_all)
+ deallocate(psifscf,stat=i_stat)
+ i_all=i_all+i_stat
+ deallocate(psir,stat=i_stat)
+ if (i_all+i_stat /= 0) then
+    write(*,*)' sumrho: problem of memory deallocation'
+    stop
+ end if
 
 
 END SUBROUTINE
@@ -2226,10 +2596,18 @@ END SUBROUTINE
         hgridh=hgrid*.5d0 
 
 ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
-        allocate(psig(0:n1,2,0:n2,2,0:n3,2))
-        allocate( psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)) )
+        allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_all)
+        allocate(psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)),stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' sumrho_old: problem of memory allocation'
+           stop
+        end if
 ! Wavefunction in real space
-        allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)))
+        allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' sumrho_old: problem of memory allocation'
+           stop
+        end if
 
         if (iproc==0) then
            write(*,'(1x,a)',advance='no')&
@@ -2267,7 +2645,11 @@ END SUBROUTINE
 
     else
       call timing(iproc,'Rho_comput    ','ON')
-        allocate(rho_p((2*n1+31)*(2*n2+31)*(2*n3+31)))
+        allocate(rho_p((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' sumrho_old: problem of memory allocation'
+           stop
+        end if
 
    !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
         call tenmminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho_p)
@@ -2294,7 +2676,11 @@ END SUBROUTINE
         call MPI_ALLREDUCE(rho_p,rho,(2*n1+31)*(2*n2+31)*(2*n3+31),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call timing(iproc,'Rho_commun    ','OF')
 
-        deallocate(rho_p)
+        deallocate(rho_p,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' sumrho_old: problem of memory deallocation'
+           stop
+        end if
      end if
  else
 
@@ -2332,7 +2718,14 @@ END SUBROUTINE
              'done. Total electronic charge=',tt
 
 
-        deallocate(psig,psifscf,psir)
+        deallocate(psig,stat=i_all)
+        deallocate(psifscf,stat=i_stat)
+        i_all=i_all+i_stat
+        deallocate(psir,stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' sumrho_old: problem of memory deallocation'
+           stop
+        end if
 
 
         END SUBROUTINE
@@ -2579,7 +2972,16 @@ END SUBROUTINE
         real*8, allocatable, dimension(:,:,:) :: wprojx, wprojy, wprojz
         real*8, allocatable, dimension(:,:) :: work
 
-        allocate(wprojx(0:n1,2,nterm),wprojy(0:n2,2,nterm),wprojz(0:n3,2,nterm),work(0:nw,2))
+        allocate(wprojx(0:n1,2,nterm),stat=i_all)
+        allocate(wprojy(0:n2,2,nterm),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(wprojz(0:n3,2,nterm),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(work(0:nw,2),stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' crtproj: problem of memory allocation'
+           stop
+        end if
 
 
         rad_c=radius_f*cpmult
@@ -2689,7 +3091,16 @@ END SUBROUTINE
 
           enddo
   
-          deallocate(wprojx,wprojy,wprojz,work)
+          deallocate(wprojx,stat=i_all)
+          deallocate(wprojy,stat=i_stat)
+          i_all=i_all+i_stat
+          deallocate(wprojz,stat=i_stat)
+          i_all=i_all+i_stat
+          deallocate(work,stat=i_stat)
+          if (i_all+i_stat /= 0) then
+             write(*,*)' crtproj: problem of memory deallocation'
+             stop
+          end if
 
     return
     END SUBROUTINE
@@ -2967,7 +3378,11 @@ END SUBROUTINE
 
       call timing(iproc,'LagrM_comput  ','ON')
 
-      allocate(alag(norb,norb,2))
+      allocate(alag(norb,norb,2),stat=i_all)
+      if (i_all /= 0) then
+         write(*,*)' orthoconstraint_p: problem of memory allocation'
+         stop
+      end if
 !     alag(jorb,iorb,2)=+psit(k,jorb)*hpsit(k,iorb)
       call DGEMM('T','N',norb,norb,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,alag(1,1,2),norb)
 
@@ -2990,7 +3405,11 @@ END SUBROUTINE
 
 ! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
       call DGEMM('N','N',nvctrp,norb,norb,-1.d0,psit,nvctrp,alag,norb,1.d0,hpsit,nvctrp)
-     deallocate(alag)
+     deallocate(alag,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' orthoconstraint_p: problem of memory deallocation'
+        stop
+     end if
  
       call timing(iproc,'LagrM_comput  ','OF')
 
@@ -3007,7 +3426,11 @@ END SUBROUTINE
 
       call timing(iproc,'LagrM_comput  ','ON')
 
-     allocate(alag(norb,norb,2))
+     allocate(alag(norb,norb,2),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' orthoconstraint: problem of memory allocation'
+        stop
+     end if
  
 !     alag(jorb,iorb,2)=+psi(k,jorb)*hpsi(k,iorb)
       call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,0.d0,alag(1,1,1),norb)
@@ -3020,7 +3443,11 @@ END SUBROUTINE
 ! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
       call DGEMM('N','N',nvctrp,norb,norb,-1.d0,psi,nvctrp,alag,norb,1.d0,hpsi,nvctrp)
 
-     deallocate(alag)
+     deallocate(alag,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' orthoconstraint: problem of memory deallocation'
+        stop
+     end if
 
       call timing(iproc,'LagrM_comput  ','OF')
 
@@ -3322,7 +3749,11 @@ END SUBROUTINE
 
       else
 
-        allocate(ovrlp(norb,norb,2))
+        allocate(ovrlp(norb,norb,2),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' orthon_p: problem of memory allocation'
+           stop
+        end if
 
 ! Upper triangle of overlap matrix using BLAS
 !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; upper triangle
@@ -3351,7 +3782,11 @@ END SUBROUTINE
 ! new vectors   
       call DTRMM ('R', 'L', 'T', 'N', nvctrp, norb, 1.d0, ovrlp, norb, psit, nvctrp)
 
-        deallocate(ovrlp)
+        deallocate(ovrlp,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' orthon_p: problem of memory deallocation'
+           stop
+        end if
 
      end if
 
@@ -3377,7 +3812,11 @@ END SUBROUTINE
 
  else
 
-        allocate(ovrlp(norb,norb))
+        allocate(ovrlp(norb,norb),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' orthon: problem of memory allocation'
+           stop
+        end if
 
 ! Overlap matrix using BLAS
 !     ovrlp(iorb,jorb)=psi(k,iorb)*psi(k,jorb) ; upper triangle
@@ -3399,7 +3838,11 @@ END SUBROUTINE
 ! new vectors   
       call DTRMM ('R', 'L', 'T', 'N', nvctrp, norb, 1.d0, ovrlp, norb, psi, nvctrp)
 
-      deallocate(ovrlp)
+      deallocate(ovrlp,stat=i_all)
+      if (i_all /= 0) then
+         write(*,*)' orthon: problem of memory deallocation'
+         stop
+      end if
 
  endif
 
@@ -3435,15 +3878,19 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
   real*8, pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
   !Local variables
   real*8, parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
-  integer :: iat,i1,i2,i3,norbme
+  integer :: iat,i1,i2,i3,norbme,i_all,i_stat
   real*8 :: tt
   logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
 
   call timing(iproc,'CrtDescriptors','ON')
 
   ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
-  allocate(logrid_c(0:n1,0:n2,0:n3))
-  allocate(logrid_f(0:n1,0:n2,0:n3))
+  allocate(logrid_c(0:n1,0:n2,0:n3),stat=i_all)
+  allocate(logrid_f(0:n1,0:n2,0:n3),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' createwavefunctionsdescriptors: problem of memory allocation'
+     stop
+  end if
 
   ! coarse grid quantities
   call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
@@ -3472,8 +3919,12 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
   if (iproc.eq.0 .and. output_grid) close(22)
 
   ! allocations for arrays holding the wavefunctions and their data descriptors
-  allocate(keyg(2,nseg_c+nseg_f))
-  allocate(keyv(nseg_c+nseg_f))
+  allocate(keyg(2,nseg_c+nseg_f),stat=i_all)
+  allocate(keyv(nseg_c+nseg_f),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' createwavefunctionsdescriptors: problem of memory allocation'
+     stop
+  end if
 
   ! now fill the wavefunction descriptor arrays
   ! coarse grid quantities
@@ -3483,13 +3934,23 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
   call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,nseg_f,keyg(:,nseg_c+1:nseg_c+nseg_f), &
     & keyv(nseg_c+1:nseg_c+nseg_f))
 
-  deallocate(logrid_c,logrid_f)
+  deallocate(logrid_c,stat=i_all)
+  deallocate(logrid_f,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' createwavefunctionsdescriptors: problem of memory deallocation'
+     stop
+  end if
 
 ! allocate wavefunction arrays
   tt=dble(norb)/dble(nproc)
   norbp=int((1.d0-eps_mach*tt) + tt)
   if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
-  allocate(psi(nvctr_c+7*nvctr_f,norbp),hpsi(nvctr_c+7*nvctr_f,norbp))
+  allocate(psi(nvctr_c+7*nvctr_f,norbp),stat=i_all)
+  allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' createwavefunctionsdescriptors: problem of memory allocation'
+     stop
+  end if
   norbme=max(min((iproc+1)*norbp,norb)-iproc*norbp,0)
   write(*,'(a,i0,a,i0,a)') '- iproc ',iproc,' treats ',norbme,' orbitals '
 
@@ -3497,17 +3958,29 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
   nvctrp=int((1.d0-eps_mach*tt) + tt)
   if (parallel) then
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psit ',nvctrp*norbp*nproc
-     allocate(psit(nvctrp,norbp*nproc))
+     allocate(psit(nvctrp,norbp*nproc),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' createwavefunctionsdescriptors: problem of memory allocation'
+        stop
+     end if
      if (iproc.eq.0) write(*,*) 'Allocation done'
   endif
 
 ! allocate arrays necessary for DIIS convergence acceleration
   if (idsx.gt.0) then
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psidst and hpsidst ',2*nvctrp*norbp*nproc*idsx
-     allocate( psidst(nvctrp,norbp*nproc,idsx))
-     allocate(hpsidst(nvctrp,norbp*nproc,idsx))
+     allocate(psidst(nvctrp,norbp*nproc,idsx),stat=i_all)
+     allocate(hpsidst(nvctrp,norbp*nproc,idsx),stat=i_stat)
+     if (i_all+i_stat /= 0) then
+        write(*,*)' createwavefunctionsdescriptors: problem of memory allocation'
+        stop
+     end if
      if (iproc.eq.0) write(*,*) 'Allocation done'
-     allocate(ads(idsx+1,idsx+1,3))
+     allocate(ads(idsx+1,idsx+1,3),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' createwavefunctionsdescriptors: problem of memory allocation'
+        stop
+     end if
      call razero(3*(idsx+1)**2,ads)
   endif
 
@@ -3534,7 +4007,11 @@ subroutine createKernel_old(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
         write(*,'(1x,a,3(1x,i0))') 'dimension of kernel',nfft1,nfft2,nfft3/nproc
         if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for kernel ',nfft1*nfft2*nfft3/nproc
      endif
-     allocate(pkernel(nfft1*nfft2*nfft3/nproc))
+     allocate(pkernel(nfft1*nfft2*nfft3/nproc),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' createkernel_old: problem of memory allocation'
+        stop
+     end if
      if (iproc.eq.0) write(*,*) 'Allocation done'
      call MPI_BARRIER(MPI_COMM_WORLD,ierr)
      call ParBuild_Kernel(2*n1+31,2*n2+31,2*n3+31,nf1,nf2,nf3,nfft1,nfft2,nfft3, &
@@ -3547,7 +4024,11 @@ subroutine createKernel_old(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
      write(*,'(1x,a,3(1x,i0))') 'dimension of FFT grid',nfft1,nfft2,nfft3
      write(*,'(1x,a,3(1x,i0))') 'dimension of kernel',nfft1/2+1,nfft2/2+1,nfft3/2+1
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for kernel ',(nfft1/2+1)*(nfft2/2+1)*(nfft3/2+1)
-     allocate(pkernel((nfft1/2+1)*(nfft2/2+1)*(nfft3/2+1)))
+     allocate(pkernel((nfft1/2+1)*(nfft2/2+1)*(nfft3/2+1)),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' createkernel_old: problem of memory allocation'
+        stop
+     end if
      if (iproc.eq.0) write(*,*) 'Allocation done'
      call Build_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3, &
           hgridh,ndegree_ip,pkernel)
@@ -3579,7 +4060,11 @@ END SUBROUTINE createKernel_old
     call timing(iproc,'CrtProjectors ','ON')
 
     ! determine localization region for all projectors, but do not yet fill the descriptor arrays
-    allocate(logrid(0:n1,0:n2,0:n3))
+    allocate(logrid(0:n1,0:n2,0:n3),stat=i_all)
+    if (i_all /= 0) then
+       write(*,*)' createprojectorsarrays: problem of memory allocation'
+       stop
+    end if
 
     nseg_p(0)=0 
     nvctr_p(0)=0 
@@ -3634,10 +4119,19 @@ END SUBROUTINE createKernel_old
 
     if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'total number of projectors',nproj
     ! allocations for arrays holding the projectors and their data descriptors
-    allocate(keyg_p(2,nseg_p(2*nat)),keyv_p(nseg_p(2*nat)))
+    allocate(keyg_p(2,nseg_p(2*nat)),stat=i_all)
+    allocate(keyv_p(nseg_p(2*nat)),stat=i_stat)
+    if (i_all+i_stat /= 0) then
+       write(*,*)' createprojectorsarrays: problem of memory allocation'
+       stop
+    end if
     nprojel=istart-1
     if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for proj ',nprojel
-    allocate(proj(nprojel))
+    allocate(proj(nprojel),stat=i_all)
+    if (i_all /= 0) then
+       write(*,*)' createprojectorsarrays: problem of memory allocation'
+       stop
+    end if
     if (iproc.eq.0) write(*,*) 'Allocation done'
 
 
@@ -3679,8 +4173,16 @@ END SUBROUTINE createKernel_old
 
     !allocate these vectors up to the maximum size we can get
     nterm_max=10 !if GTH nterm_max=3
-    allocate(fac_arr(nterm_max))
-    allocate(lx(nterm_max),ly(nterm_max),lz(nterm_max))
+    allocate(fac_arr(nterm_max),stat=i_all)
+    allocate(lx(nterm_max),stat=i_stat)
+    i_all=i_all+i_stat
+    allocate(ly(nterm_max),stat=i_stat)
+    i_all=i_all+i_stat
+    allocate(lz(nterm_max),stat=i_stat)
+    if (i_all+i_stat /= 0) then
+       write(*,*)' createprojectorsarrays: problem of memory allocation'
+       stop
+    end if
 
     iproj=0
     fpi=(4.d0*atan(1.d0))**(-.75d0)
@@ -3742,8 +4244,18 @@ END SUBROUTINE createKernel_old
     enddo
     if (iproj.ne.nproj) stop 'incorrect number of projectors created'
     ! projector part finished
-    deallocate(logrid)
-    deallocate(fac_arr,lx,ly,lz)
+    deallocate(logrid,stat=i_all)
+    deallocate(fac_arr,stat=i_stat)
+    i_all=i_all+i_stat
+    deallocate(lx,stat=i_stat)
+    i_all=i_all+i_stat
+    deallocate(ly,stat=i_stat)
+    i_all=i_all+i_stat
+    deallocate(lz,stat=i_stat)
+    if (i_all+i_stat /= 0) then
+       write(*,*)' createprojectorsarrays: problem of memory deallocation'
+       stop
+    end if
   call timing(iproc,'CrtProjectors ','OF')
 
 END SUBROUTINE 
@@ -4405,7 +4917,12 @@ END SUBROUTINE calc_coeff_inguess
 
  if (norb.eq.1) stop 'more than one orbital needed for a parallel run'
 
-        allocate(ovrlp(norb,norb,3),evall(norb))
+        allocate(ovrlp(norb,norb,3),stat=i_all)
+        allocate(evall(norb),stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' loewe_p: problem of memory allocation'
+           stop
+        end if
 
 ! Upper triangle of overlap matrix using BLAS
 !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; upper triangle
@@ -4447,14 +4964,27 @@ END SUBROUTINE calc_coeff_inguess
 ! BLAS:
         call DGEMM('N','T',norb,norb,norb,1.d0,ovrlp(1,1,1),norb,ovrlp(1,1,2),norb,0.d0,ovrlp(1,1,3),norb)
 
-        allocate(psitt(nvctrp,norbp*nproc))
+        allocate(psitt(nvctrp,norbp*nproc),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' loewe_p: problem of memory allocation'
+           stop
+        end if
 ! new eigenvectors
 !   psitt(i,iorb)=psit(i,jorb)*ovrlp(jorb,iorb,3)
       call DGEMM('N','N',nvctrp,norb,norb,1.d0,psit,nvctrp,ovrlp(1,1,3),norb,0.d0,psitt,nvctrp)
       call DCOPY(nvctrp*norbp*nproc,psitt,1,psit,1)
-      deallocate(psitt)
+      deallocate(psitt,stat=i_all)
+      if (i_all /= 0) then
+         write(*,*)' loewe_p: problem of memory deallocation'
+         stop
+      end if
 
-        deallocate(ovrlp,evall)
+        deallocate(ovrlp,stat=i_all)
+        deallocate(evall,stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' loewe_p: problem of memory deallocation'
+           stop
+        end if
 
         END SUBROUTINE
 
@@ -4478,7 +5008,12 @@ END SUBROUTINE calc_coeff_inguess
 
  else
 
-        allocate(ovrlp(norb,norb,3),evall(norb))
+        allocate(ovrlp(norb,norb,3),stat=i_all)
+        allocate(evall(norb),stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' loewe: problem of memory allocation'
+           stop
+        end if
 
 ! Overlap matrix using BLAS
 !     ovrlp(iorb,jorb)=psi(k,iorb)*psi(k,jorb) ; upper triangle
@@ -4514,13 +5049,26 @@ END SUBROUTINE calc_coeff_inguess
         call DGEMM('N','T',norb,norb,norb,1.d0,ovrlp(1,1,1),norb,ovrlp(1,1,2),norb,0.d0,ovrlp(1,1,3),norb)
 
 ! new eigenvectors
-      allocate(tpsi(nvctrp,norb))
+      allocate(tpsi(nvctrp,norb),stat=i_all)
+      if (i_all /= 0) then
+         write(*,*)' loewe: problem of memory allocation'
+         stop
+      end if
 !   tpsi(i,iorb)=psi(i,jorb)*ovrlp(jorb,iorb,3)
       call DGEMM('N','N',nvctrp,norb,norb,1.d0,psi,nvctrp,ovrlp(1,1,3),norb,0.d0,tpsi,nvctrp)
       call DCOPY(nvctrp*norb,tpsi,1,psi,1)
-      deallocate(tpsi)
+      deallocate(tpsi,stat=i_all)
+      if (i_all /= 0) then
+         write(*,*)' loewe: problem of memory deallocation'
+         stop
+      end if
 
-        deallocate(ovrlp,evall)
+        deallocate(ovrlp,stat=i_all)
+        deallocate(evall,stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' loewe: problem of memory deallocation'
+           stop
+        end if
 
  endif
 
@@ -4533,7 +5081,11 @@ END SUBROUTINE calc_coeff_inguess
         real*8, allocatable :: ovrlp(:,:,:)
         include 'mpif.h'
 
-        allocate(ovrlp(norb,norb,2))
+        allocate(ovrlp(norb,norb,2),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' checkortho_p: problem of memory allocation'
+           stop
+        end if
 
      do 100,iorb=1,norb
         do 100,jorb=1,norb
@@ -4558,7 +5110,11 @@ END SUBROUTINE calc_coeff_inguess
 
         if (dev.gt.1.d-10) write(*,'(1x,a,i0,1pe13.5)') 'Deviation from orthogonality ',iproc,dev
 
-        deallocate(ovrlp)
+        deallocate(ovrlp,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' checkortho_p: problem of memory deallocation'
+           stop
+        end if
 
         return
         END SUBROUTINE
@@ -4569,7 +5125,11 @@ END SUBROUTINE calc_coeff_inguess
         dimension psi(nvctrp,norbp)
         real*8, allocatable :: ovrlp(:,:,:)
 
-        allocate(ovrlp(norb,norb,1))
+        allocate(ovrlp(norb,norb,1),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' checkortho: problem of memory allocation'
+           stop
+        end if
 
      do iorb=1,norb
      do jorb=1,norb
@@ -4592,7 +5152,11 @@ END SUBROUTINE calc_coeff_inguess
 
         if (dev.gt.1.d-10) write(*,'(1x,a,i0,1pe13.5)') 'Deviation from orthogonality ',0,dev
 
-        deallocate(ovrlp)
+        deallocate(ovrlp,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' checkortho: problem of memory deallocation'
+           stop
+        end if
 
 
         return
@@ -4914,12 +5478,20 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        & nl, psppar, npspcode, norbe, atomnames, ntypes, iatype, nat)
 
   !  allocate wavefunctions and their occupation numbers
-  allocate(occupe(norbe))
+  allocate(occupe(norbe),stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' input_wf_diag: problem of memory allocation'
+     stop
+  end if
   tt=dble(norbe)/dble(nproc)
   norbep=int((1.d0-eps_mach*tt) + tt)
   if (iproc.eq.0) write(*,'(1x,a,i10)') 'Allocate words for (h)psi inguess ',2*(nvctr_c+7*nvctr_f)*norbep
-  allocate(psi(nvctr_c+7*nvctr_f,norbep))
-  allocate(hpsi(nvctr_c+7*nvctr_f,norbep))
+  allocate(psi(nvctr_c+7*nvctr_f,norbep),stat=i_all)
+  allocate(hpsi(nvctr_c+7*nvctr_f,norbep),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' input_wf_diag: problem of memory allocation'
+     stop
+  end if
   if (iproc.eq.0) write(*,*) 'Allocation done'
   norbeme=max(min((iproc+1)*norbep,norbe)-iproc*norbep,0)
   write(*,'(a,i0,a,i0,a)') '- iproc ',iproc,' treats ',norbeme,' inguess orbitals '
@@ -4959,11 +5531,19 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   end if
 
   ! set up subspace Hamiltonian 
-  allocate(hamovr(norbe,norbe,4))
+  allocate(hamovr(norbe,norbe,4),stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' input_wf_diag: problem of memory allocation'
+     stop
+  end if
  
   if (datacode=='D') then
      !allocate full potential
-     allocate(pot((2*n1+31)*(2*n2+31)*(2*n3+31)))
+     allocate(pot((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_wf_diag: problem of memory allocation'
+        stop
+     end if
 
      call timing(iproc,'ApplyLocPotKin','ON')
 
@@ -4980,7 +5560,11 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           psi,pot,hpsi,epot_sum,ekin_sum)
 
-     deallocate(pot)
+     deallocate(pot,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_wf_diag: problem of memory deallocation'
+        stop
+     end if
 
   else
 
@@ -5005,28 +5589,49 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   if (parallel) then
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psit inguess ',nvctrp*norbep*nproc
-     allocate(psit(nvctrp,norbep*nproc))
+     allocate(psit(nvctrp,norbep*nproc),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_wf_diag: problem of memory allocation'
+        stop
+     end if
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
      call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psit)
 
-     deallocate(psi)
+     deallocate(psi,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_wf_diag: problem of memory deallocation'
+        stop
+     end if
 
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for hpsit inguess ',2*nvctrp*norbep*nproc
-     allocate(hpsit(nvctrp,norbep*nproc))
+     allocate(hpsit(nvctrp,norbep*nproc),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_wf_diag: problem of memory allocation'
+        stop
+     end if
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
      call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
 
-     deallocate(hpsi)
+     deallocate(hpsi,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_wf_diag: problem of memory deallocation'
+        stop
+     end if
 
      !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
      !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,hamovr(1,1,3),norbe)
      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp, psit,nvctrp,0.d0,hamovr(1,1,4),norbe)
-     deallocate(hpsit)
+     deallocate(hpsit,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_wf_diag: problem of memory deallocation'
+        stop
+     end if
 
-     call MPI_ALLREDUCE (hamovr(1,1,3),hamovr(1,1,1),2*norbe**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call MPI_ALLREDUCE(hamovr(1,1,3),hamovr(1,1,1),2*norbe**2,&
+          MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
      ! calculate  KS orbitals
      !      if (iproc.eq.0) then
@@ -5041,7 +5646,12 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      !     endif
 
      n_lp=max(10,4*norbe)
-     allocate(work_lp(n_lp),evale(norbe))
+     allocate(work_lp(n_lp),stat=i_all)
+     allocate(evale(norbe),stat=i_stat)
+     if (i_all+i_stat /= 0) then
+        write(*,*)' input_wf_diag: problem of memory allocation'
+        stop
+     end if
      call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
      if (info.ne.0) write(*,*) 'DSYGV ERROR',info
      if (iproc.eq.0) then
@@ -5052,16 +5662,30 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      do iorb=1,norb
         eval(iorb)=evale(iorb)
      enddo
-     deallocate(work_lp,evale)
+     deallocate(work_lp,stat=i_all)
+     deallocate(evale,stat=i_stat)
+     if (i_all+i_stat /= 0) then
+        write(*,*)' input_wf_diag: problem of memory deallocation'
+        stop
+     end if
 
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for ppsit ',nvctrp*norbp*nproc
-     allocate(ppsit(nvctrp,norbp*nproc))
+     allocate(ppsit(nvctrp,norbp*nproc),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_wf_diag: problem of memory allocation'
+        stop
+     end if
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
      ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
      call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psit,nvctrp,hamovr,norbe,0.d0,ppsit,nvctrp)
      call  untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,ppsit,ppsi)
-     deallocate(psit,ppsit)
+     deallocate(psit,stat=i_all)
+     deallocate(ppsit,stat=i_stat)
+     if (i_all+i_stat /= 0) then
+        write(*,*)' input_wf_diag: problem of memory deallocation'
+        stop
+     end if
 
      if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
@@ -5069,7 +5693,11 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      !       hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,0.d0,hamovr(1,1,1),norbe)
      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp, psi,nvctrp,0.d0,hamovr(1,1,2),norbe)
-     deallocate(hpsi)
+     deallocate(hpsi,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_wf_diag: problem of memory deallocation'
+        stop
+     end if
 
      ! calculate  KS orbitals
      !        write(*,*) 'KS Hamiltonian'
@@ -5082,7 +5710,12 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      !        enddo
 
      n_lp=max(10,4*norbe)
-     allocate(work_lp(n_lp),evale(norbe))
+     allocate(work_lp(n_lp),stat=i_all)
+     allocate(evale(norbe),stat=i_stat)
+     if (i_all+i_stat /= 0) then
+        write(*,*)' input_wf_diag: problem of memory allocation'
+        stop
+     end if
      call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
      if (info.ne.0) write(*,*) 'DSYGV ERROR',info
      if (iproc.eq.0) then
@@ -5093,15 +5726,29 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      do iorb=1,norb
         eval(iorb)=evale(iorb)
      enddo
-     deallocate(work_lp,evale)
+     deallocate(work_lp,stat=i_all)
+     deallocate(evale,stat=i_stat)
+     if (i_all+i_stat /= 0) then
+        write(*,*)' input_wf_diag: problem of memory deallocation'
+        stop
+     end if
 
      ! ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
      call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psi,nvctrp,hamovr,norbe,0.d0,ppsi,nvctrp)
-     deallocate(psi)
+     deallocate(psi,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_wf_diag: problem of memory deallocation'
+        stop
+     end if
 
   endif
 
-  deallocate(hamovr,occupe)
+  deallocate(hamovr,stat=i_all)
+  deallocate(occupe,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' input_wf_diag: problem of memory deallocation'
+     stop
+  end if
 
   return
 END SUBROUTINE
@@ -5120,16 +5767,28 @@ real*8, intent(out) :: ppsi(nvctr_c+7*nvctr_f,norbp), eval(norb)
 
 allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale(:)
 
-        allocate(hamovr(norbe,norbe,4))
+        allocate(hamovr(norbe,norbe,4),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' solveks: problem of memory allocation'
+           stop
+        end if
  if (parallel) then
         write(*,'(1x,a,i0)') 'Allocate words for psit inguess ',nvctrp*norbep*nproc
-        allocate(psit(nvctrp,norbep*nproc))
+        allocate(psit(nvctrp,norbep*nproc),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' solveks: problem of memory allocation'
+           stop
+        end if
         write(*,*) 'Allocation done'
 
         call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psit)
 
         write(*,'(1x,a,i0)') 'Allocate words for hpsit inguess',2*nvctrp*norbep*nproc
-        allocate(hpsit(nvctrp,norbep*nproc))
+        allocate(hpsit(nvctrp,norbep*nproc),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' solveks: problem of memory allocation'
+           stop
+        end if
         write(*,*) 'Allocation done'
 
         call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
@@ -5138,7 +5797,11 @@ allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale
 !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
       call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,hamovr(1,1,3),norbe)
       call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp, psit,nvctrp,0.d0,hamovr(1,1,4),norbe)
-        deallocate(hpsit)
+        deallocate(hpsit,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' solveks: problem of memory deallocation'
+           stop
+        end if
 
         call MPI_ALLREDUCE (hamovr(1,1,3),hamovr(1,1,1),2*norbe**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
@@ -5155,7 +5818,12 @@ allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale
 !     endif
 
         n_lp=max(10,4*norbe)
-        allocate(work_lp(n_lp),evale(norbe))
+        allocate(work_lp(n_lp),stat=i_all)
+        allocate(evale(norbe),stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' solveks: problem of memory allocation'
+           stop
+        end if
         call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
         if (info.ne.0) write(*,*) 'DSYGV ERROR',info
         if (iproc.eq.0) then
@@ -5164,10 +5832,19 @@ allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale
         enddo
         endif
         eval(1:norb) = evale(1:norb)
-        deallocate(work_lp,evale)
+        deallocate(work_lp,stat=i_all)
+        deallocate(evale,stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' solveks: problem of memory deallocation'
+           stop
+        end if
 
         write(*,'(1x,a,i0)') 'Allocate words for ppsit ',nvctrp*norbep*nproc
-        allocate(ppsit(nvctrp,norbp*nproc))
+        allocate(ppsit(nvctrp,norbp*nproc),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' solveks: problem of memory allocation'
+           stop
+        end if
         write(*,*) 'Allocation done'
 
 ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
@@ -5175,7 +5852,12 @@ allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale
 
        call  untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,ppsit,ppsi)
 
-        deallocate(psit,ppsit)
+        deallocate(psit,stat=i_all)
+        deallocate(ppsit,stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' solveks: problem of memory deallocation'
+           stop
+        end if
 
         call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
@@ -5195,7 +5877,12 @@ allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale
 !        enddo
 
         n_lp=max(10,4*norbe)
-        allocate(work_lp(n_lp),evale(norbe))
+        allocate(work_lp(n_lp),stat=i_all)
+        allocate(evale(norbe),stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' solveks: problem of memory allocation'
+           stop
+        end if
         call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
         if (info.ne.0) write(*,*) 'DSYGV ERROR',info
         if (iproc.eq.0) then
@@ -5204,13 +5891,22 @@ allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale
         enddo
         endif
         eval(1:norb) = evale(1:norb)
-        deallocate(work_lp,evale)
+        deallocate(work_lp,stat=i_all)
+        deallocate(evale,stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' solveks: problem of memory deallocation'
+           stop
+        end if
 
 ! ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
         call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psi,nvctrp,hamovr,norbe,0.d0,ppsi,nvctrp)
 
   endif
-  deallocate(hamovr)
+  deallocate(hamovr,stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' solveks: problem of memory deallocation'
+     stop
+  end if
 END SUBROUTINE
 
 
@@ -5242,7 +5938,11 @@ END SUBROUTINE
         include 'mpif.h'
 
 ! set up Hamiltonian matrix
-        allocate(hamks(norb,norb,2))
+        allocate(hamks(norb,norb,2),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' kstrans_p: problem of memory allocation'
+           stop
+        end if
         do jorb=1,norb
         do iorb=1,norb
         hamks(iorb,jorb,2)=0.d0
@@ -5264,17 +5964,29 @@ END SUBROUTINE
 !        enddo
 
         n_lp=max(4*norb,1000)
-        allocate(work_lp(n_lp))
+        allocate(work_lp(n_lp),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' kstrans_p: problem of memory allocation'
+           stop
+        end if
         call  DSYEV('V','U',norb,hamks,norb,eval, work_lp, n_lp, info )
         evsum=0.d0
         do iorb=1,norb
         evsum=evsum+eval(iorb)*occup(iorb)
         if (iproc.eq.0) write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
         enddo
-        deallocate(work_lp)
+        deallocate(work_lp,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' kstrans_p: problem of memory deallocation'
+           stop
+        end if
         if (info.ne.0) write(*,*) 'DSYEV ERROR',info
 
-        allocate(psitt(nvctrp,norbp*nproc))
+        allocate(psitt(nvctrp,norbp*nproc),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' kstrans_p: problem of memory allocation'
+           stop
+        end if
 ! Transform to KS orbitals
       do iorb=1,norb
         call razero(nvctrp,psitt(1,iorb))
@@ -5283,10 +5995,18 @@ END SUBROUTINE
         call daxpy(nvctrp,alpha,psit(1,jorb),1,psitt(1,iorb),1)
         enddo
       enddo
-        deallocate(hamks)
+        deallocate(hamks,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' kstrans_p: problem of memory deallocation'
+           stop
+        end if
 
         call DCOPY(nvctrp*norbp*nproc,psitt,1,psit,1)
-        deallocate(psitt)
+        deallocate(psitt,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' kstrans_p: problem of memory deallocation'
+           stop
+        end if
 
     return
         END SUBROUTINE
@@ -5303,7 +6023,11 @@ END SUBROUTINE
         allocatable :: hamks(:,:,:),work_lp(:),psitt(:,:)
 
 ! set up Hamiltonian matrix
-        allocate(hamks(norb,norb,2))
+        allocate(hamks(norb,norb,2),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' kstrans: problem of memory allocation'
+           stop
+        end if
         do jorb=1,norb
         do iorb=1,norb
         hamks(iorb,jorb,2)=0.d0
@@ -5323,17 +6047,29 @@ END SUBROUTINE
 !        enddo
 
         n_lp=max(4*norb,1000)
-        allocate(work_lp(n_lp))
+        allocate(work_lp(n_lp),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' kstrans: problem of memory allocation'
+           stop
+        end if
         call  DSYEV('V','U',norb,hamks,norb,eval, work_lp, n_lp, info )
         evsum=0.d0
         do iorb=1,norb
         evsum=evsum+eval(iorb)*occup(iorb)
         write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
         enddo
-        deallocate(work_lp)
+        deallocate(work_lp,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' kstrans: problem of memory deallocation'
+           stop
+        end if
         if (info.ne.0) write(*,*) 'DSYEV ERROR',info
 
-        allocate(psitt(nvctrp,norbp))
+        allocate(psitt(nvctrp,norbp),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' kstrans: problem of memory allocation'
+           stop
+        end if
 ! Transform to KS orbitals
       do iorb=1,norb
         call razero(nvctrp,psitt(1,iorb))
@@ -5342,10 +6078,18 @@ END SUBROUTINE
         call daxpy(nvctrp,alpha,psi(1,jorb),1,psitt(1,iorb),1)
         enddo
       enddo
-        deallocate(hamks)
+        deallocate(hamks,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' kstrans: problem of memory deallocation'
+           stop
+        end if
 
         call DCOPY(nvctrp*norbp,psitt,1,psi,1)
-        deallocate(psitt)
+        deallocate(psitt,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' kstrans: problem of memory deallocation'
+           stop
+        end if
 
     return
         END SUBROUTINE
@@ -5367,9 +6111,20 @@ END SUBROUTINE
         real*8, allocatable, dimension(:,:) :: work
         real*8, allocatable :: psig_c(:,:,:), psig_f(:,:,:,:)
 
-        allocate(wprojx(0:n1,2),wprojy(0:n2,2),wprojz(0:n3,2),work(0:nw,2))
-        allocate(psig_c(nl1_c:nu1_c,nl2_c:nu2_c,nl3_c:nu3_c))
-        allocate(psig_f(7,nl1_f:nu1_f,nl2_f:nu2_f,nl3_f:nu3_f))
+        allocate(wprojx(0:n1,2),stat=i_all)
+        allocate(wprojy(0:n2,2),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(wprojz(0:n3,2),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(work(0:nw,2),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(psig_c(nl1_c:nu1_c,nl2_c:nu2_c,nl3_c:nu3_c),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(psig_f(7,nl1_f:nu1_f,nl2_f:nu2_f,nl3_f:nu3_f),stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' crtonewave: problem of memory allocation'
+           stop
+        end if
 
       iterm=1
       itp=1
@@ -5520,7 +6275,20 @@ END SUBROUTINE
           enddo
         enddo
   
-          deallocate(wprojx,wprojy,wprojz,work,psig_c,psig_f)
+          deallocate(wprojx,stat=i_all)
+          deallocate(wprojy,stat=i_stat)
+          i_all=i_all+i_stat
+          deallocate(wprojz,stat=i_stat)
+          i_all=i_all+i_stat
+          deallocate(work,stat=i_stat)
+          i_all=i_all+i_stat
+          deallocate(psig_c,stat=i_stat)
+          i_all=i_all+i_stat
+          deallocate(psig_f,stat=i_stat)
+          if (i_all+i_stat /= 0) then
+             write(*,*)' crtonewave: problem of memory deallocation'
+             stop
+          end if
 
     return
     END SUBROUTINE
@@ -5539,7 +6307,11 @@ END SUBROUTINE
 
    allocatable :: psifscf(:,:,:), psigold(:,:,:,:,:,:)
 
-   allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8))
+   allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8),stat=i_all)
+   if (i_all /= 0) then
+      write(*,*)' reformatmywaves: problem of memory allocation'
+      stop
+   end if
 
 ! calculate center of molecule
         c1=0.d0 ; c2=0.d0 ; c3=0.d0
@@ -5591,7 +6363,11 @@ END SUBROUTINE
            write(*,*) 'molecule was shifted' 
          endif
 
-         allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2))
+         allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2),stat=i_all)
+         if (i_all /= 0) then
+            write(*,*)' reformatmywaves: problem of memory allocation'
+            stop
+         end if
 
          call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
@@ -5639,11 +6415,19 @@ END SUBROUTINE
               & nvctr_c, nvctr_f, n1, n2, n3, center, nseg_c, nseg_f, keyg, keyv, psifscf, & 
               & psi(1,iorb - iproc * norbp))
 
-         deallocate(psigold)
+         deallocate(psigold,stat=i_all)
+         if (i_all /= 0) then
+            write(*,*)' reformatmywaves: problem of memory deallocation'
+            stop
+         end if
       end if
    end do
    
-   deallocate(psifscf)  
+   deallocate(psifscf,stat=i_all)
+   if (i_all /= 0) then
+      write(*,*)' reformatmywaves: problem of memory deallocation'
+      stop
+   end if
 
  END SUBROUTINE 
 
@@ -5660,8 +6444,12 @@ END SUBROUTINE
 
    allocatable :: psifscfold(:,:,:),psifscfoex(:,:,:),psig(:,:,:,:,:,:),ww(:)
 
-   allocate(psifscfold(-7:2*n1_old+8,-7:2*n2_old+8,-7:2*n3_old+8), &
-        psifscfoex(-8:2*n1_old+9,-8:2*n2_old+9,-8:2*n3_old+9))
+   allocate(psifscfold(-7:2*n1_old+8,-7:2*n2_old+8,-7:2*n3_old+8),stat=i_all)
+   allocate(psifscfoex(-8:2*n1_old+9,-8:2*n2_old+9,-8:2*n3_old+9),stat=i_stat)
+   if (i_all+i_stat /= 0) then
+      write(*,*)' reformatonewave: problem of memory allocation'
+      stop
+   end if
 
    ! calculate fine scaling functions, psifscfoex=wwold((2*n1_old+16)*(2*n2_old+16)*(2*n3_old+16))
    call synthese_grow(n1_old,n2_old,n3_old,psifscfoex,psigold,psifscfold) 
@@ -5759,8 +6547,18 @@ END SUBROUTINE
       enddo
    enddo
 
-   deallocate(psifscfold,psifscfoex)
-   allocate(psig(0:n1,2,0:n2,2,0:n3,2),ww((2*n1+16)*(2*n2+16)*(2*n3+16)))
+   deallocate(psifscfold,stat=i_all)
+   deallocate(psifscfoex,stat=i_stat)
+   if (i_all+i_stat /= 0) then
+      write(*,*)' reformatonewave: problem of memory deallocation'
+      stop
+   end if
+   allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_all)
+   allocate(ww((2*n1+16)*(2*n2+16)*(2*n3+16)),stat=i_stat)
+   if (i_all+i_stat /= 0) then
+      write(*,*)' reformatonewave: problem of memory allocation'
+      stop
+   end if
 
         call analyse_shrink(n1,n2,n3,ww,psifscf,psig)
         call compress(n1,n2,n3,0,n1,0,n2,0,n3,  &
@@ -5768,7 +6566,12 @@ END SUBROUTINE
                     nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
                     psig,psi(1),psi(nvctr_c+1))
 
-   deallocate(psig,ww)
+   deallocate(psig,stat=i_all)
+   deallocate(ww,stat=i_stat)
+   if (i_all+i_stat /= 0) then
+      write(*,*)' reformatonewave: problem of memory deallocation'
+      stop
+   end if
  END SUBROUTINE 
 
 
@@ -5788,7 +6591,11 @@ END SUBROUTINE
    call cpu_time(tr0)
    call system_clock(ncount1,ncount_rate,ncount_max)
 
-   allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8))
+   allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8),stat=i_all)
+   if (i_all /= 0) then
+      write(*,*)' readmywaves: problem of memory allocation'
+      stop
+   end if
 
 ! calculate center of molecule
         c1=0.d0 ; c2=0.d0 ; c3=0.d0
@@ -5809,7 +6616,11 @@ END SUBROUTINE
       close(99)
    end do
 
-   deallocate(psifscf)
+   deallocate(psifscf,stat=i_all)
+   if (i_all /= 0) then
+      write(*,*)' readmywaves: problem of memory deallocation'
+      stop
+   end if
 
    call cpu_time(tr1)
    call system_clock(ncount2,ncount_rate,ncount_max)
@@ -5893,7 +6704,11 @@ END SUBROUTINE
       if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 ) &
            write(*,*) 'because cell size has changed',n1_old,n1  , n2_old,n2 , n3_old,n3
       
-      allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2))
+      allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2),stat=i_all)
+      if (i_all /= 0) then
+         write(*,*)' readonewave: problem of memory allocation'
+         stop
+      end if
 
       call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
       do iel=1,nvctr_c_old
@@ -5924,7 +6739,11 @@ END SUBROUTINE
            & center_old, psigold, hgrid, nvctr_c, nvctr_f, n1, n2, n3, center, nseg_c, nseg_f, &
            & keyg, keyv, psifscf, psi)
 
-      deallocate(psigold)
+      deallocate(psigold,stat=i_all)
+      if (i_all /= 0) then
+         write(*,*)' readonewave: problem of memory deallocation'
+         stop
+      end if
 
    endif
  END SUBROUTINE 
@@ -6062,9 +6881,14 @@ END SUBROUTINE
         dimension psi(nvctr_c+7*nvctr_f)
         real*8, allocatable :: psifscf(:),psir(:),psig(:,:,:,:,:,:)
 
-        allocate(psig(0:n1,2,0:n2,2,0:n3,2))
-        allocate( psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)) )
-        allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)))
+        allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_all)
+        allocate(psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' plot_wf: problem of memory allocation'
+           stop
+        end if
 
         call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
                     nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
@@ -6075,7 +6899,14 @@ END SUBROUTINE
 
         call plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,psir)
 
-        deallocate(psig,psifscf,psir)
+        deallocate(psig,stat=i_all)
+        deallocate(psifscf,stat=i_stat)
+        i_all=i_all+i_stat
+        deallocate(psir,stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' plot_wf: problem of memory deallocation'
+           stop
+        end if
         return
     END SUBROUTINE
 
@@ -6238,7 +7069,12 @@ END SUBROUTINE
 
         call timing(iproc,'Diis          ','ON')
 
-        allocate(ipiv(idsx+1),rds(idsx+1))
+        allocate(ipiv(idsx+1),stat=i_all)
+        allocate(rds(idsx+1),stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' diisstp: problem of memory allocation'
+           stop
+        end if
 
 ! set up DIIS matrix (upper triangle)
         if (ids.gt.idsx) then
@@ -6311,7 +7147,12 @@ END SUBROUTINE
 6612    continue
 6633    continue
 
-        deallocate(ipiv,rds)
+        deallocate(ipiv,stat=i_all)
+        deallocate(rds,stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' diisstp: problem of memory deallocation'
+           stop
+        end if
         call timing(iproc,'Diis          ','OF')
 
         return
@@ -6339,7 +7180,7 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   integer, dimension(:,:), allocatable :: neleconf
   logical :: exists
   integer :: n_abinitzatom,nelpsp,npspcode_t,npspxc,lpx,ncount
-  integer :: nzatom,nvalelec,l,i,j,iocc,il,lwrite
+  integer :: nzatom,nvalelec,l,i,j,iocc,il,lwrite,i_all,i_stat
   real(kind=8) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt,ehomo
 
   !filename = 'psppar.'//trim(atomname)
@@ -6361,9 +7202,22 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   end do lpx_determination
 
 
-  allocate(gpot(3),alps(lpx+1),hsep(6,lpx+1),&
-     ott(6),occup(noccmax,lmax+1),&
-     ofdcoef(3,4),neleconf(6,4))
+  allocate(gpot(3),stat=i_all)
+  allocate(alps(lpx+1),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(hsep(6,lpx+1),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(ott(6),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(occup(noccmax,lmax+1),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(ofdcoef(3,4),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(neleconf(6,4),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' iguess_generator: problem of memory allocation'
+     stop
+  end if
 
   !assignation of radii and coefficients of the local part
   alpz=psppar(0,0)
@@ -6441,9 +7295,22 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   end do
 
   !allocate arrays for the gatom routine
-  allocate(aeval(noccmax,lmax+1),chrg(noccmax,lmax+1),&
-     res(noccmax,lmax+1),vh(4*(ng+1)**2,4*(ng+1)**2),&
-     psi(0:ng,noccmax,lmax+1),xp(0:ng),rmt(nint,0:ng,0:ng,lmax+1))     
+  allocate(aeval(noccmax,lmax+1),stat=i_all)
+  allocate(chrg(noccmax,lmax+1),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(res(noccmax,lmax+1),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(vh(4*(ng+1)**2,4*(ng+1)**2),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(psi(0:ng,noccmax,lmax+1),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(xp(0:ng),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(rmt(nint,0:ng,0:ng,lmax+1),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' iguess_generator: problem of memory allocation'
+     stop
+  end if
 
   zion=real(nelpsp,kind=8)
 
@@ -6515,7 +7382,36 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
      end do
   end do
 
-  deallocate(aeval,chrg,res,vh,psi,xp,rmt,gpot,hsep,alps,ott,occup,ofdcoef,neleconf)
+  deallocate(aeval,stat=i_all)
+  deallocate(chrg,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(res,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(vh,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(psi,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(xp,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(rmt,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(gpot,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(hsep,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(alps,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(ott,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(occup,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(ofdcoef,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(neleconf,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' iguess_generator: problem of memory deallocation'
+     stop
+  end if
 
 end subroutine iguess_generator
 

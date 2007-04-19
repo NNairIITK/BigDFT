@@ -38,7 +38,7 @@ program test_forces
   real(kind=8), pointer :: psi(:,:), eval(:)
   integer, pointer :: keyg(:,:), keyv(:)
   integer :: nseg_c, nseg_f, nvctr_c, nvctr_f
-  integer :: norb, norbp, n1, n2, n3
+  integer :: norb, norbp, n1, n2, n3,i_all,i_stat
   real*8 :: hgrid
 
   !Body
@@ -57,7 +57,16 @@ program test_forces
   open(unit=9,file='posinp',status='old')
   read(9,*) nat,units
   if (iproc.eq.0) write(6,*) 'nat=',nat
-  allocate(rxyz(3,nat),iatype(nat),fxyz(3,nat),drxyz(3,nat))
+  allocate(rxyz(3,nat),stat=i_all)
+  allocate(iatype(nat),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(fxyz(3,nat),stat=i_stat)
+  i_all=i_all+i_stat
+  allocate(drxyz(3,nat),stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' test_forces: problem of memory allocation'
+     stop
+  end if
   ntypes=0
   do iat=1,nat
      read(9,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
@@ -94,9 +103,22 @@ program test_forces
   call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy0,fxyz, &
              & psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
              & 0, .false., .false., n1, n2, n3, hgrid, rxyz_old)
-  deallocate(psi, eval, keyg, keyv)
+  deallocate(psi,stat=i_all)
+  deallocate(eval,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(keyg,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(keyv,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' test_forces: problem of memory deallocation'
+     stop
+  end if
 
-  allocate(weight(n))
+  allocate(weight(n),stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' test_forces: problem of memory allocation'
+     stop
+  end if
   !prepare the array of the correct weights of the iteration steps
   if (mod(n,2).ne.1) stop 'the number of iteration steps has to be odd'
   weight(1)=1.d0/3.d0
@@ -126,7 +148,16 @@ program test_forces
      call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz, &
              & psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
              & 0, .false., .false., n1, n2, n3, hgrid, rxyz_old)
-     deallocate(psi, eval, keyg, keyv)
+     deallocate(psi,stat=i_all)
+     deallocate(eval,stat=i_stat)
+     i_all=i_all+i_stat
+     deallocate(keyg,stat=i_stat)
+     i_all=i_all+i_stat
+     deallocate(keyv,stat=i_stat)
+     if (i_all+i_stat /= 0) then
+        write(*,*)' test_forces: problem of memory deallocation'
+        stop
+     end if
      
 
 
@@ -168,7 +199,18 @@ program test_forces
 
   end do
 
-  deallocate(rxyz,iatype,fxyz,drxyz,weight)
+  deallocate(rxyz,stat=i_all)
+  deallocate(iatype,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(fxyz,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(drxyz,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(weight,stat=i_stat)
+  if (i_all+i_stat /= 0) then
+     write(*,*)' test_forces: problem of memory deallocation'
+     stop
+  end if
   
   if (parallel) call MPI_FINALIZE(ierr)
 

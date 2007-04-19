@@ -27,7 +27,11 @@
 
         !write(*,'(3(1x,a,i0))')'ND1=',ND1,'ND2=',ND2,'ND3=',ND3
 
-        allocate(hpsip(0:nd1,0:nd2,0:nd3))
+        allocate(hpsip(0:nd1,0:nd2,0:nd3),stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' prec_diag: problem of memory allocation'
+           stop
+        end if
 
         HPSIP=0.D0
 
@@ -94,7 +98,11 @@
           enddo
         enddo
 
-        deallocate(hpsip)
+        deallocate(hpsip,stat=i_all)
+        if (i_all /= 0) then
+           write(*,*)' prec_diag: problem of memory deallocation'
+           stop
+        end if
 
        end         
 

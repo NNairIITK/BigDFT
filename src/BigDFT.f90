@@ -51,7 +51,16 @@ program BigDFT
         open(unit=9,file='posinp',status='old')
         read(9,*) nat,units
         if (iproc.eq.0) write(*,'(1x,a,i0)') 'nat= ',nat
-        allocate(rxyz_old(3,nat),rxyz(3,nat),iatype(nat),fxyz(3,nat))
+        allocate(rxyz_old(3,nat),stat=i_all)
+        allocate(rxyz(3,nat),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(iatype(nat),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(fxyz(3,nat),stat=i_stat)
+        if (i_all+i_stat /=0) then
+           write(*,*)' BigDFT:problem of memory allocation'
+           stop
+        end if
         ntypes=0
         do iat=1,nat
         read(9,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
@@ -185,8 +194,26 @@ program BigDFT
 !       nat,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
 !  write(*,*) iproc,' finished writing waves of relaxed geometry'
 
-  deallocate(psi, eval, keyg, keyv)
-  deallocate(rxyz,rxyz_old,iatype,fxyz)
+  !deallocations
+  deallocate(psi,stat=i_all)
+  deallocate(eval,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(keyg,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(keyv,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(rxyz,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(rxyz_old,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(iatype,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(fxyz,stat=i_stat)
+  if (i_all+i_stat /=0) then
+     write(*,*)' BigDFT:problem of memory deallocation'
+     stop
+  end if
+
 
    if (parallel) call MPI_FINALIZE(ierr)
 

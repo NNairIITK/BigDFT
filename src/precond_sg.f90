@@ -41,9 +41,14 @@
         allocatable rpsi(:),ppsi(:),wpsi(:)
 !        allocatable spsi(:)
 
-        allocate(rpsi(nvctr_c+7*nvctr_f))
-        allocate(ppsi(nvctr_c+7*nvctr_f))
-        allocate(wpsi(nvctr_c+7*nvctr_f))
+        allocate(rpsi(nvctr_c+7*nvctr_f),stat=i_all)
+        allocate(ppsi(nvctr_c+7*nvctr_f),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(wpsi(nvctr_c+7*nvctr_f),stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' precong: problem of memory allocation'
+           stop
+        end if
 
 !! check initial residue of original equation
 !        allocate(spsi(nvctr_c+7*nvctr_f))
@@ -148,7 +153,14 @@
 !        deallocate(spsi)
 !! checkend
 
-        deallocate(rpsi,ppsi,wpsi)
+        deallocate(rpsi,stat=i_all)
+        deallocate(ppsi,stat=i_stat)
+        i_all=i_all+i_stat
+        deallocate(wpsi,stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' precong: problem of memory deallocation'
+           stop
+        end if
 
         end
 
@@ -191,11 +203,18 @@
         allocatable xpsig_fc(:,:,:,:)
         allocatable xpsig_f(:,:,:,:),ypsig_f(:,:,:,:)
 
-        allocate(xpsig_c(0:n1,0:n2,0:n3))
-        allocate(ypsig_c(0:n1,0:n2,0:n3))
-        allocate(xpsig_fc(0:n1,0:n2,0:n3,3))
-        allocate(xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3))
-        allocate(ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3))
+        allocate(xpsig_c(0:n1,0:n2,0:n3),stat=i_all)
+        allocate(ypsig_c(0:n1,0:n2,0:n3),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(xpsig_fc(0:n1,0:n2,0:n3,3),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+        i_all=i_all+i_stat
+        allocate(ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' wscalv: problem of memory allocation'
+           stop
+        end if
 
         call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
                               nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -210,7 +229,18 @@
                             nseg_f,nvctr_f,keyg_f,keyv_f,  & 
                             scal,ypsig_c,ypsig_f,ypsi_c,ypsi_f)
 
-        deallocate(xpsig_c,ypsig_c,xpsig_fc,xpsig_f,ypsig_f)
+        deallocate(xpsig_c,stat=i_all)
+        deallocate(ypsig_c,stat=i_stat)
+        i_all=i_all+i_stat
+        deallocate(xpsig_fc,stat=i_stat)
+        i_all=i_all+i_stat
+        deallocate(xpsig_f,stat=i_stat)
+        i_all=i_all+i_stat
+        deallocate(ypsig_f,stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' wscalv: problem of memory deallocation'
+           stop
+        end if
 
         END 
 
