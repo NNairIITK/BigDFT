@@ -141,7 +141,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   real*8, pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
 
   ! arrays for calculation of forces and tail correction to kinetic energy
-  allocatable :: rho(:),pot(:,:,:),rhopotb(:,:,:)
+  allocatable :: rho(:),pot(:,:,:)
   allocatable :: neleconf(:,:),nscatterarr(:,:)
 
   integer :: ierror
@@ -749,7 +749,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
      call timing(iproc,'ApplyLocPotKin','OF')
 
-     call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+     call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
           hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           psi,pot,hpsi,epot_sum,ekin_sum)
@@ -762,7 +762,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
   else
 
-     call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+     call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
           hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           psi,rhopot,hpsi,epot_sum,ekin_sum)
@@ -1170,39 +1170,20 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
            write(*,*)' cluster: problem of memory allocation'
            stop
         end if
-        call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh),(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION,&
-             pot,(2*n1+31)*(2*n2+31)*nscatterarr(:,2),(2*n1+31)*(2*n2+31)*nscatterarr(:,3),&
+       write(*,*) 'n3d,n3p,n3pi',n3d,n3p,n3pi
+        call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh),(2*n1+31)*(2*n2+31)*n3d,MPI_DOUBLE_PRECISION, &
+             pot,(2*n1+31)*(2*n2+31)*nscatterarr(:,2),(2*n1+31)*(2*n2+31)*nscatterarr(:,3), & 
              MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        allocate(rhopotb((2*nb1+31),(2*nb2+31),(2*nb3+31)),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' cluster: problem of memory allocation'
-           stop
-        end if
-        call razero((2*nb1+31)*(2*nb2+31)*(2*nb3+31),rhopotb)
-        do i3=1+2*nbuf,2*n3+31+2*nbuf
-           do i2=1+2*nbuf,2*n2+31+2*nbuf
-              do i1=1+2*nbuf,2*n1+31+2*nbuf
-                 rhopotb(i1,i2,i3)=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf)
-              enddo
-           enddo
-        enddo
-        deallocate(pot,stat=i_all)
         deallocate(nscatterarr,stat=i_stat)
         if (i_all+i_stat /= 0) then
            write(*,*)' cluster: problem of memory deallocation'
            stop
         end if
      else
-        allocate(rhopotb((2*nb1+31),(2*nb2+31),(2*nb3+31)),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' cluster: problem of memory allocation'
-           stop
-        end if
-        call razero((2*nb1+31)*(2*nb2+31)*(2*nb3+31),rhopotb)
-        do i3=1+2*nbuf,2*n3+31+2*nbuf
-           do i2=1+2*nbuf,2*n2+31+2*nbuf
-              do i1=1+2*nbuf,2*n1+31+2*nbuf
-                 rhopotb(i1,i2,i3)=rhopot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf)
+        do i3=1,2*n3+31
+           do i2=1,2*n2+31
+              do i1=1,2*n1+31
+                 pot(i1,i2,i3)=rhopot(i1,i2,i3)
               enddo
            enddo
         enddo
@@ -1217,10 +1198,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      call CalculateTailCorrection(iproc,nproc,n1,n2,n3,nbuf,nb1,nb2,nb3,norb,norbp,nat,ntypes,&
      nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
      keyv,keyg,nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
-     rhopotb,hgrid,alatb1,alatb2,alatb3,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
+     pot,hgrid,alatb1,alatb2,alatb3,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
      proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
 
-     deallocate(rhopotb,stat=i_all)
+     deallocate(pot,stat=i_all)
      if (i_all /= 0) then
         write(*,*)' cluster: problem of memory deallocation'
         stop
@@ -1296,7 +1277,7 @@ END SUBROUTINE cluster
 subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,nbuf,nb1,nb2,nb3,norb,norbp,nat,ntypes,&
      nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
      keyv,keyg,nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
-     rhopotb,hgrid,alatb1,alatb2,alatb3,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
+     pot,hgrid,alatb1,alatb2,alatb3,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
      proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
 implicit none
 include 'mpif.h'
@@ -1317,7 +1298,7 @@ real(kind=8), dimension(norb), intent(in) :: occup,eval
 real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
 real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
 real(kind=8), dimension(3,nat), intent(in) :: rxyz
-real(kind=8), dimension(2*nb1+31,2*nb2+31,2*nb3+31), intent(in) :: rhopotb
+real(kind=8), dimension(2*n1+31,2*n2+31,2*n3+31), intent(in) :: pot
 real(kind=8), dimension(nprojel), intent(in) :: proj
 real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
 !local variables
@@ -1505,11 +1486,11 @@ do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
    tail_adding: do ipt=1,npt
 
       !calculate gradient
-      call applylocpotkinone(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, & 
+      call applylocpotkinone(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nbuf, & 
            hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  & 
            ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f, & 
            psig,psigp,psifscf,psir,  &
-           psib,rhopotb,hpsib,epot,ekin)
+           psib,pot,hpsib,epot,ekin)
       call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
            nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
            nsegb_c,nsegb_f,keybg,keybv,nvctrb_c,nvctrb_f,  & 
@@ -2100,7 +2081,7 @@ subroutine addlocgauspsp_old(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,n1,n2
 
 
 
-subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
      hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
      ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
      psi,pot,hpsi,epot_sum,ekin_sum)
@@ -2134,7 +2115,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   epot_sum=0.d0
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
      
-     call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+     call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
           hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
           psig,psigp,psifscf,psir,  &
@@ -2163,7 +2144,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
 END SUBROUTINE applylocpotkinall
  
 
-        subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+        subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
                    hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
                    ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
                    psig,psigp,psifscf,psir,  &
@@ -2174,7 +2155,7 @@ END SUBROUTINE applylocpotkinall
         implicit real*8 (a-h,o-z)
         dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
         dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-        dimension pot((2*n1+31)*(2*n2+31)*(2*n3+31))
+        dimension pot((2*n1-4*nbuf+31)*(2*n2-4*nbuf+31)*(2*n3-4*nbuf+31))
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         dimension psi(nvctr_c+7*nvctr_f)
         dimension hpsi(nvctr_c+7*nvctr_f)
@@ -2193,12 +2174,16 @@ END SUBROUTINE applylocpotkinall
         call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n3+2))
 
         call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=psifscf and ww(((2*n1+31)*(2*n2+31)*(2*n3+16))
+     if (nbuf.eq.0) then
         epot=0.d0
         do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
           tt=pot(i)*psir(i)
           epot=epot+tt*psir(i)
           psir(i)=tt
         enddo
+     else
+        call psipotbuf(n1,n2,n3,nbuf,pot,psir,epot)
+     endif
 
         call convolut_magic_t(2*n1+15,2*n2+15,2*n3+15,psir,psifscf) !psifscf=ww((2*n1+16)*(2*n2+31)*(2*n3+31))
 
@@ -2215,6 +2200,32 @@ END SUBROUTINE applylocpotkinall
 
         return
     END SUBROUTINE
+
+     subroutine psipotbuf(n1,n2,n3,nbuf,pot,psir,epot)
+     implicit real*8 (a-h,o-z)
+     dimension pot(2*n1-4*nbuf+31,2*n2-4*nbuf+31,2*n3-4*nbuf+31),psir(2*n1+31,2*n2+31,2*n3+31)
+
+! if nbuf.ne.0 n1=nb1, np1=n1
+    epot=0.d0
+     np1=n1-2*nbuf
+     np2=n2-2*nbuf
+     np3=n3-2*nbuf
+!     write(*,*) 'size pot',2*n1-4*nbuf+31,2*n2-4*nbuf+31,2*n3-4*nbuf+31
+!     write(*,*) 'size psir',2*n1+31,2*n2+31,2*n3+31
+!     write(*,*) 'nbuf',nbuf
+!     write(*,*) 'np1,np2,np3',np1,np2,np3
+!     write(*,*) 'nb1,nb2,nb3',n1,n2,n3
+!     write(*,*) 'limits psir',1+2*nbuf,2*np3+31+2*nbuf
+     do i3=1,2*np3+31
+     do i2=1,2*np2+31
+     do i1=1,2*np1+31
+          tt=pot(i1,i2,i3)*psir(i1+2*nbuf,i2+2*nbuf,i3+2*nbuf)
+          epot=epot+tt*psir(i1+2*nbuf,i2+2*nbuf,i3+2*nbuf)
+          psir(i1+2*nbuf,i2+2*nbuf,i3+2*nbuf)=tt
+     enddo
+     enddo
+     enddo
+     END SUBROUTINE
 
     
         subroutine uncompress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
@@ -5555,7 +5566,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      CALL timing(iproc,'ApplyLocPotKin','OF')
 
 
-     call applylocpotkinall(iproc,norbe,norbep,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+     call applylocpotkinall(iproc,norbe,norbep,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
           hgrid,occupe,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           psi,pot,hpsi,epot_sum,ekin_sum)
@@ -5568,7 +5579,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   else
 
-     call applylocpotkinall(iproc,norbe,norbep,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+     call applylocpotkinall(iproc,norbe,norbep,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
           hgrid,occupe,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           psi,rhopot,hpsi,epot_sum,ekin_sum)
@@ -5596,7 +5607,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      end if
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
-     call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psit)
+     call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psit) !psi,hpsi,psit, overwrite psi
 
      deallocate(psi,stat=i_all)
      if (i_all /= 0) then
@@ -5612,7 +5623,11 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      end if
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
-     call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
+     if (allocated(psit)) write(*,*) 'INGUESS, trans2: ALLOC psit'
+     if (allocated(hpsit)) write(*,*) 'INGUESS, trans2: ALLOC hpsit'
+     if (allocated(hpsi)) write(*,*) 'INGUESS, trans2: ALLOC hpsi'
+     if (allocated(psi)) write(*,*) 'INGUESS, trans2: ALLOC psi'
+     call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit) !hpsi,psit,hpsit, overwrite hpsi
 
      deallocate(hpsi,stat=i_all)
      if (i_all /= 0) then
@@ -5679,8 +5694,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
      ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
      call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psit,nvctrp,hamovr,norbe,0.d0,ppsit,nvctrp)
-     call  untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,ppsit,ppsi)
      deallocate(psit,stat=i_all)
+     call  untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,ppsit,ppsi)   !ppsi ppsit
      deallocate(ppsit,stat=i_stat)
      if (i_all+i_stat /= 0) then
         write(*,*)' input_wf_diag: problem of memory deallocation'
