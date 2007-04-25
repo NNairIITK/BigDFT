@@ -14,10 +14,13 @@
 !!   rcov      Covalent radius
 !!   rprb      Parabolic radius for the input guess using the subroutines "gatom"
 !!   neleconf  Occupation number (electronic configuration of the atom)
+!!   nsccode    Semicore orbitals, indicated as an integer. Each digit indicates the value(s) 
+!!             of the angular momentum of the semicore orbital, increased by one
+!!             e.g. if semicore are l=0 and l=2, nsccode=13
 !!
 !! SOURCE
 !!
-subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf)
+subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode)
   implicit none
 ! Arguments
   integer, intent(in) :: nzatom,nvalelec
@@ -25,10 +28,12 @@ subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf)
   real(kind=8), intent(out) :: rcov,rprb,ehomo
   integer, parameter :: nmax=6,lmax=3
   integer, intent(out) :: neleconf(nmax,0:lmax)
+  integer, intent(out) :: nsccode
 ! Local variables
   integer :: n,l,nsum
 
   neleconf(:,:)=0
+  nsccode=0
 
 !Eah atomic configuration
 select case(nzatom*1000+nvalelec)
@@ -75,6 +80,7 @@ rprb=3.61
 ehomo=-0.10554
 neleconf(1,0)=2
 neleconf(2,0)=1
+nsccode=1
 
 case(4*1000+2)
 ! -----------------------           5
@@ -94,6 +100,7 @@ rprb=3.60
 ehomo=-0.205744
 neleconf(1,0)=2
 neleconf(2,0)=2
+nsccode=1
 
 case(5*1000+3)
 ! -----------------------           7
@@ -174,6 +181,7 @@ ehomo=-0.103415
 neleconf(2,0)=2
 neleconf(2,1)=6
 neleconf(3,0)=1
+nsccode=12
 
 case(12*1000+10)
 ! -----------------------          15
@@ -185,6 +193,7 @@ ehomo=-0.175427
 neleconf(2,0)=2
 neleconf(2,1)=6
 neleconf(3,0)=2
+nsccode=12
 
 case(12*1000+2)
 ! -----------------------          16
@@ -274,6 +283,7 @@ ehomo=-0.088815
 neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(4,0)=1
+nsccode=12
 
 case(20*1000+10)
 ! -----------------------          25
@@ -285,6 +295,7 @@ ehomo=-0.141411
 neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(4,0)=2
+nsccode=12
 
 case(20*1000+2)
 ! -----------------------          26
@@ -306,6 +317,7 @@ neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=1
 neleconf(4,0)=2
+nsccode=12
 
 case(21*1000+3)
 ! -----------------------          28
@@ -328,6 +340,7 @@ neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=2
 neleconf(4,0)=2
+nsccode=12
 
 case(22*1000+4)
 ! -----------------------          30
@@ -350,6 +363,7 @@ neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=3
 neleconf(4,0)=2
+nsccode=12
 
 case(23*1000+5)
 ! -----------------------          32
@@ -372,6 +386,7 @@ neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=5
 neleconf(4,0)=1
+nsccode=12
 
 case(24*1000+6)
 ! -----------------------          34
@@ -394,6 +409,7 @@ neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=5
 neleconf(4,0)=2
+nsccode=12
 
 case(25*1000+7)
 ! -----------------------          36
@@ -416,6 +432,7 @@ neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=6
 neleconf(4,0)=2
+nsccode=12
 
 case(26*1000+8)
 ! -----------------------          38
@@ -438,6 +455,7 @@ neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=7
 neleconf(4,0)=2
+nsccode=12
 
 case(27*1000+9)
 ! -----------------------          40
@@ -470,6 +488,7 @@ neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(3,2)=8
 neleconf(4,0)=2
+nsccode=12
 
 case(29*1000+11)
 ! -----------------------          43
@@ -480,6 +499,7 @@ rprb=4.60
 ehomo=-0.172056
 neleconf(3,2)=10
 neleconf(4,0)=1
+nsccode=3
 
 case(29*1000+1)
 ! -----------------------          44
@@ -499,6 +519,7 @@ rprb=4.60
 ehomo=-0.222725
 neleconf(3,2)=10
 neleconf(4,0)=2
+nsccode=3
 
 case(30*1000+2)
 ! -----------------------          46
@@ -518,7 +539,8 @@ rprb=4.20
 ehomo=-0.101634
 neleconf(3,2)=10
 neleconf(4,0)=2
-neleconf(5,0)=1
+neleconf(4,1)=1
+nsccode=3
 
 case(31*1000+3)
 ! -----------------------          48
@@ -599,6 +621,7 @@ ehomo=-0.085375
 neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(5,0)=1
+nsccode=12
 
 case(38*1000+10)
 ! -----------------------          56
@@ -610,6 +633,7 @@ ehomo=-0.131793
 neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(5,0)=2
+nsccode=12
 
 case(38*1000+2)
 ! -----------------------          57
@@ -631,6 +655,7 @@ neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=1
 neleconf(5,0)=2
+nsccode=12
 
 case(39*1000+3)
 ! -----------------------          59
@@ -653,6 +678,7 @@ neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=2
 neleconf(5,0)=2
+nsccode=12
 
 case(40*1000+4)
 ! -----------------------          61
@@ -675,6 +701,7 @@ neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=4
 neleconf(5,0)=1
+nsccode=12
 
 case(41*1000+5)
 ! -----------------------          63
@@ -697,6 +724,7 @@ neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=5
 neleconf(5,0)=1
+nsccode=12
 
 case(42*1000+6)
 ! -----------------------          65
@@ -707,6 +735,7 @@ rprb=5.20
 ehomo=-0.14788
 neleconf(4,2)=5
 neleconf(5,0)=1
+nsccode=12
 
 case(43*1000+15)
 ! -----------------------          66
@@ -719,6 +748,7 @@ neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=6
 neleconf(5,0)=1
+nsccode=12
 
 case(43*1000+7)
 ! -----------------------          67
@@ -741,6 +771,7 @@ neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=7
 neleconf(5,0)=1
+nsccode=12
 
 case(44*1000+8)
 ! -----------------------          69
@@ -763,6 +794,7 @@ neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=8
 neleconf(5,0)=1
+nsccode=12
 
 case(45*1000+9)
 ! -----------------------          71
@@ -793,6 +825,7 @@ ehomo=-0.154624
 neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=10
+nsccode=12
 
 case(47*1000+11)
 ! -----------------------          74
@@ -803,6 +836,7 @@ rprb=5.00
 ehomo=-0.157407
 neleconf(4,2)=10
 neleconf(5,0)=1
+nsccode=3
 
 case(47*1000+1)
 ! -----------------------          75
@@ -822,6 +856,7 @@ rprb=5.00
 ehomo=-0.204228
 neleconf(4,2)=10
 neleconf(5,0)=2
+nsccode=3
 
 case(48*1000+2)
 ! -----------------------          77
@@ -842,6 +877,7 @@ ehomo=-0.101782
 neleconf(4,2)=10
 neleconf(5,0)=2
 neleconf(5,1)=1
+nsccode=3
 
 case(49*1000+3)
 ! -----------------------          79
@@ -922,6 +958,7 @@ ehomo=-0.078699
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=1
+nsccode=12
 
 case(56*1000+10)
 ! -----------------------          87
@@ -933,6 +970,7 @@ ehomo=-0.118967
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
+nsccode=12
 
 case(56*1000+2)
 ! -----------------------          88
@@ -954,6 +992,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(5,2)=1
 neleconf(6,0)=2
+nsccode=12
 
 case(58*1000+12)
 ! -----------------------          90
@@ -966,6 +1005,7 @@ neleconf(4,3)=2
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
+nsccode=12
 
 case(59*1000+13)
 ! -----------------------          91
@@ -978,6 +1018,7 @@ neleconf(4,3)=3
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
+nsccode=12
 
 case(60*1000+14)
 ! -----------------------          92
@@ -990,6 +1031,7 @@ neleconf(4,3)=4
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
+nsccode=12
 
 case(61*1000+15)
 ! -----------------------          93
@@ -1002,6 +1044,7 @@ neleconf(4,3)=5
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
+nsccode=12
 
 case(62*1000+16)
 ! -----------------------          94
@@ -1014,6 +1057,7 @@ neleconf(4,3)=6
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
+nsccode=12
 
 case(63*1000+17)
 ! -----------------------          95
@@ -1026,6 +1070,7 @@ neleconf(4,3)=7
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
+nsccode=12
 
 case(64*1000+18)
 ! -----------------------          96
@@ -1038,6 +1083,7 @@ neleconf(4,3)=8
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
+nsccode=12
 
 case(65*1000+19)
 ! -----------------------          97
@@ -1050,6 +1096,7 @@ neleconf(4,3)=9
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
+nsccode=12
 
 case(66*1000+20)
 ! -----------------------          98
@@ -1062,6 +1109,7 @@ neleconf(4,3)=10
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
+nsccode=12
 
 case(67*1000+21)
 ! -----------------------          99
@@ -1074,6 +1122,7 @@ neleconf(4,3)=11
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
+nsccode=12
 
 case(68*1000+22)
 ! -----------------------         100
@@ -1086,6 +1135,7 @@ neleconf(4,3)=12
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
+nsccode=12
 
 case(69*1000+23)
 ! -----------------------         101
@@ -1098,6 +1148,7 @@ neleconf(4,3)=13
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
+nsccode=12
 
 case(70*1000+24)
 ! -----------------------         102
@@ -1110,6 +1161,7 @@ neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
+nsccode=12
 
 case(71*1000+25)
 ! -----------------------         103
@@ -1123,32 +1175,33 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(5,2)=1
 neleconf(6,0)=2
+nsccode=12
 
-case(72*1000+26)
+case(72*1000+12)
 ! -----------------------         104
-! Hf          72          26     Symbol, Z, Zion
+! Hf          72          12     Symbol, Z, Zion
 symbol = "Hf"
 rcov=2.90
 rprb=5.80
 ehomo=-0.143805
-neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(5,2)=2
 neleconf(6,0)=2
+nsccode=12
 
-case(73*1000+27)
+case(73*1000+13)
 ! -----------------------         105
-! Ta          73          27     Symbol, Z, Zion
+! Ta          73          13     Symbol, Z, Zion
 symbol = "Ta"
 rcov=2.70
 rprb=5.40
 ehomo=-0.174814
-neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(5,2)=3
 neleconf(6,0)=2
+nsccode=12
 
 case(73*1000+5)
 ! -----------------------         106
@@ -1160,18 +1213,18 @@ ehomo=-0.174814
 neleconf(5,2)=3
 neleconf(6,0)=2
 
-case(74*1000+28)
+case(74*1000+14)
 ! -----------------------         107
-! W           74          28     Symbol, Z, Zion
+! W           74          14     Symbol, Z, Zion
 symbol = "W"
 rcov=2.60
 rprb=5.20
 ehomo=-0.181413
-neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(5,2)=4
 neleconf(6,0)=2
+nsccode=12
 
 case(74*1000+6)
 ! -----------------------         108
@@ -1183,18 +1236,18 @@ ehomo=-0.181413
 neleconf(5,2)=4
 neleconf(6,0)=2
 
-case(75*1000+29)
+case(75*1000+15)
 ! -----------------------         109
-! Re          75          29     Symbol, Z, Zion
+! Re          75          15     Symbol, Z, Zion
 symbol = "Re"
 rcov=2.60
 rprb=5.20
 ehomo=-0.186859
-neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(5,2)=5
 neleconf(6,0)=2
+nsccode=12
 
 case(75*1000+7)
 ! -----------------------         110
@@ -1206,18 +1259,18 @@ ehomo=-0.186859
 neleconf(5,2)=5
 neleconf(6,0)=2
 
-case(76*1000+30)
+case(76*1000+16)
 ! -----------------------         111
-! Os          76          30     Symbol, Z, Zion
+! Os          76          16     Symbol, Z, Zion
 symbol = "Os"
 rcov=2.50
 rprb=5.00
 ehomo=-0.191489
-neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(5,2)=6
 neleconf(6,0)=2
+nsccode=12
 
 case(76*1000+8)
 ! -----------------------         112
@@ -1229,18 +1282,18 @@ ehomo=-0.191489
 neleconf(5,2)=6
 neleconf(6,0)=2
 
-case(77*1000+31)
+case(77*1000+17)
 ! -----------------------         113
-! Ir          77          31     Symbol, Z, Zion
+! Ir          77          17     Symbol, Z, Zion
 symbol = "Ir"
 rcov=2.50
 rprb=5.00
 ehomo=-0.195511
-neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(5,2)=7
 neleconf(6,0)=2
+nsccode=12
 
 case(77*1000+9)
 ! -----------------------         114
@@ -1262,18 +1315,18 @@ ehomo=-0.161308
 neleconf(5,2)=9
 neleconf(6,0)=1
 
-case(78*1000+32)
+case(78*1000+18)
 ! -----------------------         116
-! Pt          78          32     Symbol, Z, Zion
+! Pt          78          18     Symbol, Z, Zion
 symbol = "Pt"
 rcov=2.60
 rprb=5.20
 ehomo=-0.161308
-neleconf(4,3)=14
 neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(5,2)=9
 neleconf(6,0)=1
+nsccode=12
 
 case(79*1000+11)
 ! -----------------------         117
@@ -1284,6 +1337,7 @@ rprb=5.40
 ehomo=-0.162334
 neleconf(5,2)=10
 neleconf(6,0)=1
+nsccode=3
 
 case(79*1000+1)
 ! -----------------------         119
@@ -1303,6 +1357,7 @@ rprb=5.60
 ehomo=-0.205137
 neleconf(5,2)=10
 neleconf(6,0)=2
+nsccode=3
 
 case(80*1000+2)
 ! -----------------------         121
@@ -1323,6 +1378,7 @@ ehomo=-0.101507
 neleconf(5,2)=10
 neleconf(6,0)=2
 neleconf(6,1)=1
+nsccode=3
 
 case(81*1000+3)
 ! -----------------------         123

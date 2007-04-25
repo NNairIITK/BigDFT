@@ -53,3 +53,8 @@
         return
         end
 
+        subroutine  MPI_REDUCE_SCATTER()
+        stop 'REDUCE_SCATTER'
+        return
+        end
+

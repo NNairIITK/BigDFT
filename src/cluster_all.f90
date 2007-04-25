@@ -135,7 +135,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocatable :: nboxp_c(:,:,:),nboxp_f(:,:,:)
 
   ! pseudopotential parameters
-  allocatable :: psppar(:,:,:),nelpsp(:),radii_cf(:,:),npspcode(:)
+  allocatable :: psppar(:,:,:),nelpsp(:),radii_cf(:,:),npspcode(:),iasctype(:)
 
   ! arrays for DIIS convergence accelerator
   real*8, pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
@@ -213,7 +213,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   !in case of doubts put these flags to the "robust" position .false., 'G'
   new_psolver=.true.
   datacode='D'
-  if (.not. new_psolver) datacode='G'
+  if (.not. new_psolver .or. .not. parallel) datacode='G'
 
   ! Read the input variables.
   open(unit=1,file='input.dat',status='old')
@@ -269,6 +269,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   i_all=i_all+i_stat
   allocate(npspcode(ntypes),stat=i_stat)
   i_all=i_all+i_stat
+  allocate(iasctype(ntypes),stat=i_stat)
+  i_all=i_all+i_stat
   allocate(neleconf(6,0:3),stat=i_stat)
   if (i_all+i_stat /=0) then
      write(*,*)' cluster: problem of memory allocation'
@@ -307,6 +309,11 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         end if
         stop
      end if
+     !see whether the atom is semicore or not
+     call eleconf(n_abinitzatom,nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf,iasctype(ityp))
+     !if you want no semicore electrons, uncomment the following line
+     !iasctype(ityp)=0
+
      !old way of calculating the radii, requires modification of the PSP files
      read(11,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
      if (ierror.eq.0) then
@@ -314,7 +321,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
            'radii is given in the psp file for atom type ',trim(atomnames(ityp))
      else
         !new method for assigning the radii
-        call eleconf(n_abinitzatom,nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf)
         radii_cf(ityp,1)=1.d0/sqrt(abs(2.d0*ehomo))
         radfine=100.d0
         do i=0,4
@@ -341,11 +347,13 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 ! Number of orbitals and their occupation number
   norb_vir=0
 
-! Number of electrons
+! Number of electrons and number of semicore atoms
   nelec=0
+  natsc=0
   do iat=1,nat
      ityp=iatype(iat)
      nelec=nelec+nelpsp(ityp)
+     if (iasctype(ityp) /= 0) natsc=natsc+1
   enddo
   nelec=nelec-ncharge
   if (iproc.eq.0) then
@@ -636,10 +644,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      ! INPUT WAVEFUNCTIONS
   if (inputPsiId == 0) then
      call input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-          nat,norb,norbp,n1,n2,n3,nfft1,nfft2,nfft3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
+          nat,natsc,norb,norbp,n1,n2,n3,nfft1,nfft2,nfft3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
           rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-          atomnames,ntypes,iatype,pkernel,psppar,npspcode,ixc,psi,eval,accurex,&
+          atomnames,ntypes,iatype,iasctype,pkernel,psppar,npspcode,ixc,psi,eval,accurex,&
           new_psolver,datacode,nscatterarr)
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in total energy due to grid size',accurex
@@ -1276,6 +1284,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   deallocate(psppar,stat=i_stat)
   i_all=i_all+i_stat
   deallocate(nelpsp,stat=i_stat)
+  i_all=i_all+i_stat
+  deallocate(iasctype,stat=i_stat)
   i_all=i_all+i_stat
   deallocate(radii_cf,stat=i_stat)
   i_all=i_all+i_stat
@@ -5164,22 +5174,25 @@ END SUBROUTINE calc_coeff_inguess
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
-subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
-     & nl, psppar, npspcode, norbe, atomnames, ntypes, iatype, nat)
+subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng, &
+     & nl,psppar,npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb)
+  implicit none
 ! character(len = *), intent(in) :: filename
   integer, intent(in) :: ngx, iproc, ntypes
   real*8, intent(in) :: psppar(0:4,0:4,ntypes)
-  integer, intent(in) :: npspcode(ntypes)
+  integer, intent(in) :: npspcode(ntypes),iasctype(ntypes)
   real*8, intent(out) :: xp(ngx, ntypes), psiat(ngx, 5, ntypes), occupat(5, ntypes)
   integer, intent(out) :: ng(ntypes), nl(4,ntypes)
   character(len = 20), intent(in) :: atomnames(100)
-  integer, intent(out) :: norbe
-  integer, intent(in) :: nat
+  integer, intent(out) :: norbe,norbsc
+  integer, intent(in) :: nat,natsc
   integer, intent(in) :: iatype(nat)
+  logical, dimension(4,natsc), intent(out) :: scorb
 
   character(len = 20) :: pspatomname
   logical :: exists,found
-  integer :: ity, i, j, l, ipsp, ifile, ng_fake
+  integer :: ity, i, j, l, ipsp, ifile, ng_fake,ierror,iatsc,iat,ipow,lsc,inorbsc
+  real(kind=8) :: sccode
 
 ! Read the data file.
   nl(1:4,1:ntypes) = 0
@@ -5291,57 +5304,50 @@ subroutine readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
 
   close(unit=24)
 
-  ! number of orbitals 
+  ! number of orbitals, total and semicore
   norbe=0
+  norbsc=0
+  iatsc=0
   do iat=1,nat
      ity=iatype(iat)
      norbe=norbe+nl(1,ity)+3*nl(2,ity)+5*nl(3,ity)+7*nl(4,ity)
+      if (iasctype(ity)/=0) then !the atom has some semicore orbitals
+        iatsc=iatsc+1
+        sccode=real(iasctype(ity),kind=8)
+        inorbsc=ceiling(dlog(sccode)/dlog(10.d0))
+        ipow=inorbsc-1
+        scorb(:,iatsc)=.false.
+        do i=1,inorbsc
+           lsc=floor(sccode/10.d0**ipow)
+           norbsc=norbsc+(2*lsc-1)
+           scorb(lsc,iatsc)=.true.
+           ipow=ipow-1
+        end do
+     end if
   end do
 
+  if (iproc.eq.0) then
+     write(*,'(1x,a,i0,a,i0)')&
+          'number of orbitals used in the construction of input guess ',norbe,&
+          ', of which ',norbsc,'are semicore'
+  end if
 
-
-!!$  ! number of orbitals 
-!!$  norbe=0
-!!$  ipsp = 1
-!!$  do iat=1,nat
-!!$     ity=iatype(iat)
-!!$     do i=1,npsp
-!!$        if (pspatomnames(i).eq.atomnames(ity)) then
-!!$           ipsp=i
-!!$           goto 333
-!!$        endif
-!!$     enddo
-!!$     if (iproc.eq.0) then
-!!$        write(*,*) 'input wavefunction data for atom ',iat,atomnames(ity),&
-!!$          'NOT found, automatic generation...'
-!!$     end if
-!!$     !stop 
-!!$333  continue
-!!$     if (iproc.eq.0 .and. i .le. npsp) then
-!!$        write(*,*) 'input wavefunction data for atom ',iat,atomnames(ity),&
-!!$          '    found'
-!!$     end if
-!!$
-!!$     norbe=norbe+nl(1,ipsp)+3*nl(2,ipsp)+5*nl(3,ipsp)+7*nl(4,ipsp)
-!!$  end do
-
-
-  if (iproc.eq.0) write(*,'(1x,a,i0)') 'number of orbitals used in the construction of input guess ',norbe
 
 END SUBROUTINE 
 
 subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
-     & nat, rxyz, norbe, norbep, occupe, occupat, ngx, xp, psiat, psiatn, ng, nl, &
+     & nat, rxyz, norbe, norbep, norbsc, occupe, occupat, ngx, xp, psiat, psiatn, ng, nl, &
      & nvctr_c, nvctr_f, n1, n2, n3, hgrid, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, nseg_c, nseg_f, &
-     & keyg, keyv, iatype, ntypes, psi, eks)
+     & keyg, keyv, iatype, ntypes, iasctype, natsc, psi, eks, scorb)
 
   implicit none
-
+  logical, dimension(4,natsc), intent(in) :: scorb
   integer, intent(in) :: nat, norbe, norbep, ngx, iproc, nproc
   integer, intent(in) :: nvctr_c, nvctr_f, n1, n2, n3, nseg_c, nseg_f
   integer, intent(in) :: nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, ntypes
+  integer, intent(in) :: norbsc,natsc
   integer, intent(in) :: keyg(2, nseg_c + nseg_f), keyv(nseg_c + nseg_f)
-  integer, intent(in) :: iatype(nat)
+  integer, intent(in) :: iatype(nat),iasctype(ntypes)
   real*8, intent(in) :: hgrid
   real*8, intent(out) :: eks
   !character(len = 20), intent(in) :: pspatomnames(npsp)
@@ -5352,15 +5358,28 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
   real*8, intent(inout) :: occupat(5, ntypes), psiatn(ngx)
   real*8, intent(out) :: psi(nvctr_c + 7 * nvctr_f, norbep), occupe(norbe)
   integer, parameter :: nterm_max=3
+
+  integer :: iatsc,iorbsc,iorbv,inorbsc,ipow,lsc,i_all
+  real*8 :: sccode
   integer :: lx(nterm_max),ly(nterm_max),lz(nterm_max)
   real*8 :: fac_arr(nterm_max)
   integer :: iorb, jorb, iat, ity, ipsp, i, ictot, inl, l, m, nctot, nterm
   real*8 :: rx, ry, rz, ek, scpr
+  logical, dimension(:), allocatable :: semicore
 
+  allocate(semicore(4),stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' createAtomicOrbitals: problem of memory allocation'
+     stop
+  end if
   
+
   eks=0.d0
   iorb=0
   ipsp = 1
+  iatsc=0
+  iorbsc=0
+  iorbv=norbsc
 
   do iat=1,nat
 
@@ -5369,29 +5388,21 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
      rz=rxyz(3,iat)
 
      ity=iatype(iat)
-!!$     do i=1,npsp
-!!$        if (pspatomnames(i).eq.atomnames(ity)) then
-!!$           ipsp=i
-!!$           goto 444
-!!$        endif
-!!$     enddo
-!!$     
-!!$     ipsp=npsp+1
-!!$     !the default value for the gaussians is chosen to be 21
-!!$     ng(ipsp)=21
-!!$     call iguess_generator(iproc,atomnames(ity),psppar(0,0,ity),npspcode(ity),&
-!!$          ng(ipsp)-1,nl(1,ipsp),5,occupat(1,ipsp),xp(1,ipsp),psiat(1,1,ipsp))
-!!$
-!!$     !if (iproc.eq.0) write(*,*) 'no PSP for ',atomnames(ity)
-!!$     !stop 
-!!$444  continue
+
+     !here we can evaluate whether the atom has semicore orbitals and with
+     !which value(s) of l
+     semicore(:)=.false.
+     if (iasctype(ity)/=0) then !the atom has some semicore orbitals
+        iatsc=iatsc+1
+        semicore(:)=scorb(:,iatsc)
+     end if
 
      ipsp=ity
 
      !calculate the atomic input orbitals
      ictot=0
      nctot=nl(1,ipsp)+nl(2,ipsp)+nl(3,ipsp)+nl(4,ipsp)
-     if (iorb+nctot .gt.norbe) then
+     if (iorbsc+nctot .gt.norbe .and. iorbv+nctot .gt.norbe) then
         print *,'transgpw occupe',nl(:,ipsp),norbe
         stop
      end if
@@ -5400,6 +5411,16 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
            ictot=ictot+1
            call atomkin(l-1,ng(ipsp),xp(1,ipsp),psiat(1,ictot,ipsp),psiatn,ek)
            eks=eks+ek*occupat(ictot,ipsp)!occupe(iorb)*real(2*l-1,kind=8)
+           !the order of the orbitals (iorb,jorb) must put in the beginning
+           !the semicore orbitals
+           if (semicore(l) .and. inl==1) then
+              !the orbital is semi-core
+              iorb=iorbsc
+              print *,'iproc, SEMICORE orbital, iat,l',iproc,iat,l
+           else
+              !normal case, the orbital is a valence orbital
+              iorb=iorbv
+           end if
            do m=1,2*l-1
               iorb=iorb+1
               jorb=iorb-iproc*norbep
@@ -5424,21 +5445,37 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
                  !print *,'newnorm', scpr,occupe(iorb),occupat(ictot,ipsp),ictot
               endif
            end do
+           if (semicore(l) .and. inl==1) then
+              !increase semicore orbitals
+              iorbsc=iorb
+           else
+              !increase valence orbitals
+              iorbv=iorb
+           end if
         end do
      end do
-
+     
      if (ictot /= nctot) stop 'createAtomic orbitals: error (nctot)'
 
   end do
+   if (iorbsc /= norbsc) stop 'createAtomic orbitals: error (iorbsc)'
+  if (iorbv /= norbe) stop 'createAtomic orbitals: error (iorbv)'
+  if (iatsc /= natsc) stop 'createAtomic orbitals: error (iatsc)'
 
-END SUBROUTINE 
+  deallocate(semicore,stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' createAtomicOrbitals: problem of memory deallocation'
+     stop
+  end if
+
+END SUBROUTINE createAtomicOrbitals
 
 
 subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-     nat,norb,norbp,n1,n2,n3,nfft1,nfft2,nfft3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
+     nat,natsc,norb,norbp,n1,n2,n3,nfft1,nfft2,nfft3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
      rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-     atomnames,ntypes,iatype,pkernel,psppar,npspcode,ixc,ppsi,eval,accurex,&
+     atomnames,ntypes,iatype,iasctype,pkernel,psppar,npspcode,ixc,ppsi,eval,accurex,&
      new_psolver,datacode,nscatterarr)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors writes its initial wavefunctions into the wavefunction file
@@ -5461,7 +5498,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   dimension rxyz(3,nat),iatype(nat),eval(norb)
 !  dimension rhopot((2*n1+31)*(2*n2+31)*(2*n3+31)),pot_ion(*)
   dimension pkernel(*),rhopot(*),pot_ion(*)
-  dimension psppar(0:4,0:4,ntypes),npspcode(ntypes)
+  dimension psppar(0:4,0:4,ntypes),npspcode(ntypes),iasctype(ntypes)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension nseg_p(0:2*nat),nvctr_p(0:2*nat)
   dimension keyg_p(2,nseg_p(2*nat)),keyv_p(nseg_p(2*nat))
@@ -5470,12 +5507,20 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   dimension nscatterarr(0:nproc-1,4)!n3d,n3p,i3s+i3xcsh-1,i3xcsh
 
   allocatable :: psi(:,:),hpsi(:,:),psit(:,:),hpsit(:,:),ppsit(:,:),occupe(:)
-  allocatable :: hamovr(:,:,:),evale(:),work_lp(:),pot(:)
+  allocatable :: hamovr(:,:,:,:),evale(:),work_lp(:),pot(:)
+  logical, allocatable :: scorb(:,:)
   include 'mpif.h'
+
+  allocate(scorb(4,natsc),stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' input_wf_diag: problem of memory allocation'
+     stop
+  end if
+
 
   ! Read the inguess.dat file.
   call readAtomicOrbitals(iproc, ngx, xp, psiat, occupat, ng, &
-       & nl, psppar, npspcode, norbe, atomnames, ntypes, iatype, nat)
+       & nl, psppar, npspcode, norbe, norbsc, atomnames, ntypes, iatype, iasctype,nat, natsc, scorb)
 
   !  allocate wavefunctions and their occupation numbers
   allocate(occupe(norbe),stat=i_all)
@@ -5498,11 +5543,38 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   hgridh=.5d0*hgrid
 
+!!$  !number of semicore atoms
+!!$  !added norbsc,iasctype,natsc
+!!$  natsc=1
+!!$  norbsc=5
+!!$  if (natsc>0) then
+!!$     allocate(iasctype(2,natsc),stat=i_all)
+!!$  else
+!!$     natsc=1
+!!$     allocate(iasctype(1,natsc),stat=i_all)
+!!$     iasctype(1,1)=0
+!!$  end if
+!!$  if (i_all /= 0) then
+!!$     write(*,*)' input_wf_diag: problem of memory allocation'
+!!$     stop
+!!$  end if
+!!$
+!!$  !the Gallium is the first atom in posinp
+!!$  iasctype(1,1)=1
+!!$  !the semicore orbital is the d (l=2+1)
+!!$  iasctype(2,1)=3
+     
   ! Create input guess orbitals
   call createAtomicOrbitals(iproc, nproc, atomnames, &
-       & nat, rxyz, norbe, norbep, occupe, occupat, ngx, xp, psiat, psiatn, ng, nl, &
+       & nat, rxyz, norbe, norbep, norbsc, occupe, occupat, ngx, xp, psiat, psiatn, ng, nl, &
        & nvctr_c, nvctr_f, n1, n2, n3, hgrid, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
-       & nseg_c, nseg_f, keyg, keyv, iatype, ntypes, psi, eks)
+       & nseg_c, nseg_f, keyg, keyv, iatype, ntypes, iasctype, natsc, psi, eks, scorb)
+
+  deallocate(scorb,stat=i_all)
+  if (i_all /= 0) then
+     write(*,*)' input_wf_diag: problem of memory deallocation'
+     stop
+  end if
 
   ! resulting charge density and potential
   if (datacode=='G') then
@@ -5530,13 +5602,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      end if
   end if
 
-  ! set up subspace Hamiltonian 
-  allocate(hamovr(norbe,norbe,4),stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' input_wf_diag: problem of memory allocation'
-     stop
-  end if
- 
   if (datacode=='D') then
      !allocate full potential
      allocate(pot((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_all)
@@ -5587,6 +5652,12 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
        norbe,norbep,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
 
+  !after having applied the hamiltonian to all the atomic orbitals
+  !we should split the semicore orbitals from the valence ones
+  !this is possible since the semicore orbitals are the first in the 
+  !order, so the linear algebra on the transposed wavefunctions 
+  !may be splitted
+
   if (parallel) then
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psit inguess ',nvctrp*norbep*nproc
      allocate(psit(nvctrp,norbep*nproc),stat=i_all)
@@ -5620,54 +5691,91 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         stop
      end if
 
-     !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
-     !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
-     call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,hamovr(1,1,3),norbe)
-     call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp, psit,nvctrp,0.d0,hamovr(1,1,4),norbe)
+     !from here we can implement the different treatment of the semicore electrons
+     !let us imagine to have only one semicore atom with 
+     !norbsc semicore orbitals
+
+     ! set up subspace Hamiltonian 
+     allocate(hamovr(norbe,norbe,4,natsc+1),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_wf_diag: problem of memory allocation'
+        stop
+     end if
+
+     do i=1,natsc+1
+        if (i==1) then
+           norbi=norbsc
+           iorbst=1
+        end if
+        if (i==natsc+1) then
+           norbi=norbe-norbsc
+           iorbst=norbsc+1
+        end if
+
+        !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
+        !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
+        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,hpsit(1,iorbst),nvctrp,&
+             0.d0,hamovr(1,1,3,i),norbi)
+     end do
+
      deallocate(hpsit,stat=i_all)
      if (i_all /= 0) then
         write(*,*)' input_wf_diag: problem of memory deallocation'
         stop
      end if
 
-     call MPI_ALLREDUCE(hamovr(1,1,3),hamovr(1,1,1),2*norbe**2,&
-          MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+     do i=1,natsc+1
+        if (i==1) then
+           norbi=norbsc
+           iorbst=1
+        end if
+        if (i==natsc+1) then
+           norbi=norbe-norbsc
+           iorbst=norbsc+1
+        end if
 
-     ! calculate  KS orbitals
-     !      if (iproc.eq.0) then
-     !        write(*,*) 'KS Hamiltonian',iproc
-     !        do iorb=1,norbe
-     !        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,1),jorb=1,norbe)
-     !        enddo
-     !        write(*,*) 'Overlap',iproc
-     !        do iorb=1,norbe
-     !        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
-     !        enddo
-     !     endif
 
-     n_lp=max(10,4*norbe)
-     allocate(work_lp(n_lp),stat=i_all)
-     allocate(evale(norbe),stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' input_wf_diag: problem of memory allocation'
-        stop
-     end if
-     call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
-     if (info.ne.0) write(*,*) 'DSYGV ERROR',info
-     if (iproc.eq.0) then
-        do iorb=1,norbe
-           write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb,')=',evale(iorb)
+        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,psit(1,iorbst),nvctrp,&
+             0.d0,hamovr(1,1,4,i),norbi)
+        call MPI_ALLREDUCE(hamovr(1,1,3,i),hamovr(1,1,1,i),2*norbe**2,&
+             MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+        n_lp=max(10,4*norbi)
+        allocate(work_lp(n_lp),stat=i_all)
+        allocate(evale(norbi),stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' input_wf_diag: problem of memory allocation'
+           stop
+        end if
+        call DSYGV(1,'V','U',norbi,hamovr(1,1,1,i),norbi,hamovr(1,1,2,i),norbi,&
+             evale,work_lp,n_lp,info)
+        if (info.ne.0) write(*,*) 'DSYGV ERROR',info
+        if (iproc.eq.0) then
+        open(33)
+        do jjorb=1,norbi
+           write(33,'(2000(1pe10.2))')(hamovr(jiorb,jjorb,1,i),jiorb=1,norbi)
+        end do
+        close(33)
+        open(34)
+        do jjorb=1,norbi
+           write(34,'(2000(1pe10.2))')(hamovr(jjorb,jiorb,1,i),jiorb=1,norbi)
+        end do
+        close(34)
+           do iorb=1,norbi
+              write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb+iorbst-1,')=',evale(iorb)
+           enddo
+
+        endif
+        do iorb=iorbst,min(norbi+iorbst-1,norb)
+           eval(iorb)=evale(iorb-iorbst+1)
         enddo
-     endif
-     do iorb=1,norb
-        eval(iorb)=evale(iorb)
-     enddo
-     deallocate(work_lp,stat=i_all)
-     deallocate(evale,stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' input_wf_diag: problem of memory deallocation'
-        stop
-     end if
+        deallocate(work_lp,stat=i_all)
+        deallocate(evale,stat=i_stat)
+        if (i_all+i_stat /= 0) then
+           write(*,*)' input_wf_diag: problem of memory deallocation'
+           stop
+        end if
+     end do
 
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for ppsit ',nvctrp*norbp*nproc
      allocate(ppsit(nvctrp,norbp*nproc),stat=i_all)
@@ -5677,8 +5785,32 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      end if
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
-     ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
-     call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psit,nvctrp,hamovr,norbe,0.d0,ppsit,nvctrp)
+     do i=1,natsc+1
+        if (i==1) then
+           norbi=norbsc
+           iorbst=1
+           norbj=norbsc
+        end if
+        if (i==natsc+1) then
+           norbi=norbe-norbsc
+           iorbst=norbsc+1
+           norbj=norb-norbsc
+        end if
+
+        ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
+        call DGEMM('N','N',nvctrp,norbj,norbi,1.d0,psit(1,iorbst),nvctrp,hamovr(1,1,1,i),norbi,&
+             0.d0,ppsit(1,iorbst),nvctrp)
+
+     end do
+
+     deallocate(hamovr,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_wf_diag: problem of memory deallocation'
+        stop
+     end if
+
+     !end of the linear algebra part
+
      call  untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,ppsit,ppsi)
      deallocate(psit,stat=i_all)
      deallocate(ppsit,stat=i_stat)
@@ -5687,12 +5819,23 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         stop
      end if
 
-     if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+     !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   else !serial case
+
+     ! set up subspace Hamiltonian 
+     allocate(hamovr(norbe,norbe,2,1),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_wf_diag: problem of memory allocation'
+        stop
+     end if
+
+
      !       hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
-     call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,0.d0,hamovr(1,1,1),norbe)
-     call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp, psi,nvctrp,0.d0,hamovr(1,1,2),norbe)
+     call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,0.d0,&
+          hamovr(1,1,1,1),norbe)
+     call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp, psi,nvctrp,0.d0,&
+          hamovr(1,1,2,1),norbe)
      deallocate(hpsi,stat=i_all)
      if (i_all /= 0) then
         write(*,*)' input_wf_diag: problem of memory deallocation'
@@ -5716,7 +5859,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         write(*,*)' input_wf_diag: problem of memory allocation'
         stop
      end if
-     call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
+     call  DSYGV(1,'V','U',norbe,hamovr(1,1,1,1),norbe,hamovr(1,1,2,1),norbe,evale, work_lp, n_lp, info )
      if (info.ne.0) write(*,*) 'DSYGV ERROR',info
      if (iproc.eq.0) then
         do iorb=1,norbe
@@ -5735,6 +5878,13 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
      ! ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
      call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psi,nvctrp,hamovr,norbe,0.d0,ppsi,nvctrp)
+
+     deallocate(hamovr,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' input_wf_diag: problem of memory deallocation'
+        stop
+     end if
+
      deallocate(psi,stat=i_all)
      if (i_all /= 0) then
         write(*,*)' input_wf_diag: problem of memory deallocation'
@@ -5743,9 +5893,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   endif
 
-  deallocate(hamovr,stat=i_all)
-  deallocate(occupe,stat=i_stat)
-  if (i_all+i_stat /= 0) then
+  deallocate(occupe,stat=i_all)
+  if (i_all /= 0) then
      write(*,*)' input_wf_diag: problem of memory deallocation'
      stop
   end if
@@ -5753,177 +5902,255 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   return
 END SUBROUTINE
 
-subroutine solveKS(parallel, iproc, nproc, norb, norbp, norbe, norbep, nvctr_c, &
-  & nvctr_f, nvctrp, psi, hpsi, ppsi, eval)
+subroutine diag_wf(parallel,iproc,nproc,norb,norbp,norbe,norbep,natsc,norbsc_arr,&
+     nvctr_c,nvctr_f,nvctrp,psi,hpsi,ppsi,eval)
+  implicit none
+  logical, intent(in) :: parallel
+  integer, intent(in) :: nvctrp,norbe,norbep,nproc,iproc,natsc
+  integer, intent(in) :: nvctr_c,nvctr_f,norb,norbp
+  integer, dimension(natsc+1), intent(in) :: norbsc_arr
+  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbep), intent(in) :: psi,hpsi
+  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: ppsi
+  real(kind=8), dimension(norb), intent(out) :: eval
+  include 'mpif.h'
+  
+  !local variables
+  integer :: i_all,ierr,i,iorb,i_stat,info,n_lp,norbi_max
+  integer :: norbi,ndim_hamovr,norbsc,iorbst,imatrst,norbj
+  real(kind=8), dimension(:), allocatable :: evale,work_lp
+  real(kind=8), dimension(:,:), allocatable :: psit,hpsit,ppsit,hamovr
+  
+  norbi_max=maxval(norbsc_arr)
+  
+  !calculate the dimension of the overlap matrix
+  ndim_hamovr=0
+  do i=1,natsc+1
+     ndim_hamovr=ndim_hamovr+norbsc_arr(i)**2
+  end do
+  
+  if (parallel) then
 
-implicit real*8 (a-h,o-z)
+     !transpose all the wavefunctions for having a piece of all the orbitals 
+     !for each processor
+     write(*,'(1x,a,i0)') 'Allocate words for psit inguess ',nvctrp*norbep*nproc
+     allocate(psit(nvctrp,norbep*nproc),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' diag_wf: problem of memory allocation'
+        stop
+     end if
+     write(*,*) 'Allocation done'
 
-logical, intent(in) :: parallel
-integer, intent(in) :: nvctrp, norbe, norbep, nproc, iproc
-integer, intent(in) :: nvctr_c, nvctr_f, norb, norbp
-dimension psi(nvctr_c+7*nvctr_f,norbep), hpsi(nvctr_c+7*nvctr_f,norbep)
-real*8, intent(out) :: ppsi(nvctr_c+7*nvctr_f,norbp), eval(norb)
-        include 'mpif.h'
+     call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psit)
 
-allocatable :: ppsit(:,:), psit(:,:), hpsit(:,:), hamovr(:,:,:),work_lp(:),evale(:)
+     write(*,'(1x,a,i0)') 'Allocate words for hpsit inguess',2*nvctrp*norbep*nproc
+     allocate(hpsit(nvctrp,norbep*nproc),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' diag_wf: problem of memory allocation'
+        stop
+     end if
+     write(*,*) 'Allocation done'
 
-        allocate(hamovr(norbe,norbe,4),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' solveks: problem of memory allocation'
-           stop
-        end if
- if (parallel) then
-        write(*,'(1x,a,i0)') 'Allocate words for psit inguess ',nvctrp*norbep*nproc
-        allocate(psit(nvctrp,norbep*nproc),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' solveks: problem of memory allocation'
-           stop
-        end if
-        write(*,*) 'Allocation done'
+     call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
+     !end of transposition
 
-        call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psit)
-
-        write(*,'(1x,a,i0)') 'Allocate words for hpsit inguess',2*nvctrp*norbep*nproc
-        allocate(hpsit(nvctrp,norbep*nproc),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' solveks: problem of memory allocation'
-           stop
-        end if
-        write(*,*) 'Allocation done'
-
-        call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
-
+     !calculate the overlap matrix for each group of the semicore atoms
 !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
 !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
-      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,hamovr(1,1,3),norbe)
-      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psit,nvctrp, psit,nvctrp,0.d0,hamovr(1,1,4),norbe)
-        deallocate(hpsit,stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' solveks: problem of memory deallocation'
-           stop
-        end if
+     iorbst=1
+     imatrst=1
+     do i=1,natsc
+        norbi=norbsc_arr(i)
+        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,hpsit(1,iorbst),nvctrp,&
+             0.d0,hamovr(imatrst,3),norbi)
+        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,psit(1,iorbst),nvctrp,&
+             0.d0,hamovr(imatrst,4),norbi)
+        iorbst=iorbst+norbi
+        imatrst=imatrst+norbi**2
+     end do
+     norbi=norbsc_arr(natsc+1)
+     call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,hpsit(1,iorbst),nvctrp,&
+          0.d0,hamovr(imatrst,3),norbi)
 
-        call MPI_ALLREDUCE (hamovr(1,1,3),hamovr(1,1,1),2*norbe**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+     deallocate(hpsit,stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' diag_wf: problem of memory deallocation'
+        stop
+     end if
 
-! calculate  KS orbitals
-!      if (iproc.eq.0) then
-!        write(*,*) 'KS Hamiltonian',iproc
-!        do iorb=1,norbe
-!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,1),jorb=1,norbe)
-!        enddo
-!        write(*,*) 'Overlap',iproc
-!        do iorb=1,norbe
-!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
-!        enddo
-!     endif
+     call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,psit(1,iorbst),nvctrp,&
+          0.d0,hamovr(imatrst,4),norbi)
+     
+     !reduce the overlap matrix between all the processors
+     call MPI_ALLREDUCE (hamovr(1,3),hamovr(1,1),2*ndim_hamovr,&
+          MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-        n_lp=max(10,4*norbe)
-        allocate(work_lp(n_lp),stat=i_all)
-        allocate(evale(norbe),stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' solveks: problem of memory allocation'
-           stop
-        end if
-        call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
-        if (info.ne.0) write(*,*) 'DSYGV ERROR',info
+     !found the eigenfunctions for each group
+     n_lp=max(10,4*norbi_max)
+     allocate(work_lp(n_lp),stat=i_all)
+     allocate(evale(norbe),stat=i_stat)
+     if (i_all+i_stat /= 0) then
+        write(*,*)' diag_wf: problem of memory allocation'
+        stop
+     end if
+     
+     iorbst=1
+     imatrst=1
+     do i=1,natsc+1
+        norbi=norbsc_arr(i)
+        call DSYGV(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
+             norbi,evale(iorbst),work_lp,n_lp,info)
+
+        if (info.ne.0) write(*,*) 'DSYGV ERROR',info,i,natsc+1
         if (iproc.eq.0) then
-        do iorb=1,norbe
-        write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb,')=',evale(iorb)
+        do iorb=1,norbi
+        write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb+iorbst-1,')=',evale(iorb)
         enddo
         endif
-        eval(1:norb) = evale(1:norb)
-        deallocate(work_lp,stat=i_all)
-        deallocate(evale,stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' solveks: problem of memory deallocation'
-           stop
-        end if
+        do iorb=iorbst,min(norbi+iorbst-1,norb)
+           eval(iorb)=evale(iorb-iorbst+1)
+        enddo
+        iorbst=iorbst+norbi
+        imatrst=imatrst+norbi**2
+     end do
 
-        write(*,'(1x,a,i0)') 'Allocate words for ppsit ',nvctrp*norbep*nproc
-        allocate(ppsit(nvctrp,norbp*nproc),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' solveks: problem of memory allocation'
-           stop
-        end if
-        write(*,*) 'Allocation done'
+     deallocate(work_lp,stat=i_all)
+     deallocate(evale,stat=i_stat)
+     if (i_all+i_stat /= 0) then
+        write(*,*)' diag_wf: problem of memory deallocation'
+        stop
+     end if
 
-! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
-      call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psit,nvctrp,hamovr,norbe,0.d0,ppsit,nvctrp)
+     write(*,'(1x,a,i0)') 'Allocate words for ppsit ',nvctrp*norbep*nproc
+     allocate(ppsit(nvctrp,norbp*nproc),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' diag_wf: problem of memory allocation'
+        stop
+     end if
+     write(*,*) 'Allocation done'
 
-       call  untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,ppsit,ppsi)
+     !perform the vector-matrix multiplication for building the input wavefunctions
+     ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
+     iorbst=1
+     imatrst=1
+     norbsc=0
+     do i=1,natsc
+        norbi=norbsc_arr(i)
+        norbsc=norbsc+norbi
+        call DGEMM('N','N',nvctrp,norbi,norbi,1.d0,psit(1,iorbst),nvctrp,&
+             hamovr(imatrst,1),norbi,0.d0,ppsit(1,iorbst),nvctrp)
+        iorbst=iorbst+norbi
+        imatrst=imatrst+norbi**2
+     end do
+     norbi=norbsc_arr(natsc+1)
+     norbj=norb-norbsc
+     call DGEMM('N','N',nvctrp,norbj,norbi,1.d0,psit(1,iorbst),nvctrp,&
+          hamovr(imatrst,1),norbi,0.d0,ppsit(1,iorbst),nvctrp)
+     
+     !retranspose the wavefunctions
+     call untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,ppsit,ppsi)
 
-        deallocate(psit,stat=i_all)
-        deallocate(ppsit,stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' solveks: problem of memory deallocation'
-           stop
-        end if
-
-        call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+     deallocate(psit,stat=i_all)
+     deallocate(ppsit,stat=i_stat)
+     if (i_all+i_stat /= 0) then
+        write(*,*)' diag_wf: problem of memory deallocation'
+        stop
+     end if
+     
+     !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   else !serial case
-!       hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
-      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,0.d0,hamovr(1,1,1),norbe)
-      call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp, psi,nvctrp,0.d0,hamovr(1,1,2),norbe)
 
-! calculate  KS orbitals
-!        write(*,*) 'KS Hamiltonian'
-!        do iorb=1,norbe
-!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,1),jorb=1,norbe)
-!        enddo
-!        write(*,*) 'Overlap'
-!        do iorb=1,norbe
-!        write(*,'(10(1x,e10.3))') (hamovr(iorb,jorb,2),jorb=1,norbe)
-!        enddo
+     allocate(hamovr(ndim_hamovr,4),stat=i_all)
+     if (i_all /= 0) then
+        write(*,*)' diag_wf: problem of memory allocation'
+        stop
+     end if
+     !hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
+     iorbst=1
+     imatrst=1
+     do i=1,natsc+1
+        norbi=norbsc_arr(i)
+        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,hpsi(1,iorbst),nvctrp,&
+             0.d0,hamovr(imatrst,1),norbi)
+        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,psi(1,iorbst),nvctrp,&
+             0.d0,hamovr(imatrst,2),norbi)
+        iorbst=iorbst+norbi
+        imatrst=imatrst+norbi**2
+     end do
 
-        n_lp=max(10,4*norbe)
-        allocate(work_lp(n_lp),stat=i_all)
-        allocate(evale(norbe),stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' solveks: problem of memory allocation'
-           stop
-        end if
-        call  DSYGV(1,'V','U',norbe,hamovr(1,1,1),norbe,hamovr(1,1,2),norbe,evale, work_lp, n_lp, info )
-        if (info.ne.0) write(*,*) 'DSYGV ERROR',info
+     n_lp=max(10,4*norbi_max)
+     allocate(work_lp(n_lp),stat=i_all)
+     allocate(evale(norbe),stat=i_stat)
+     if (i_all+i_stat /= 0) then
+        write(*,*)' diag_wf: problem of memory allocation'
+        stop
+     end if
+     iorbst=1
+     imatrst=1
+     do i=1,natsc+1
+        norbi=norbsc_arr(i)
+        call DSYGV(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
+             norbi,evale(iorbst),work_lp,n_lp,info)
+
+        if (info.ne.0) write(*,*) 'DSYGV ERROR',info,i,natsc+1
         if (iproc.eq.0) then
-        do iorb=1,norbe
-        write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb,')=',evale(iorb)
+        do iorb=1,norbi
+        write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb+iorbst-1,')=',evale(iorb)
         enddo
         endif
-        eval(1:norb) = evale(1:norb)
-        deallocate(work_lp,stat=i_all)
-        deallocate(evale,stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' solveks: problem of memory deallocation'
-           stop
-        end if
+        do iorb=iorbst,min(norbi+iorbst-1,norb)
+           eval(iorb)=evale(iorb-iorbst+1)
+        enddo
+        iorbst=iorbst+norbi
+        imatrst=imatrst+norbi**2
+     end do
+     deallocate(work_lp,stat=i_all)
+     deallocate(evale,stat=i_stat)
+     if (i_all+i_stat /= 0) then
+        write(*,*)' diag_wf: problem of memory deallocation'
+        stop
+     end if
 
-! ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
-        call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psi,nvctrp,hamovr,norbe,0.d0,ppsi,nvctrp)
+     !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
+     iorbst=1
+     imatrst=1
+     norbsc=0
+     do i=1,natsc
+        norbi=norbsc_arr(i)
+        norbsc=norbsc+norbi
+        call DGEMM('N','N',nvctrp,norbi,norbi,1.d0,psi(1,iorbst),nvctrp,&
+             hamovr(imatrst,1),norbi,0.d0,ppsi(1,iorbst),nvctrp)
+        iorbst=iorbst+norbi
+        imatrst=imatrst+norbi**2
+     end do
+     norbi=norbsc_arr(natsc+1)
+     norbj=norb-norbsc
+     call DGEMM('N','N',nvctrp,norbj,norbi,1.d0,psi(1,iorbst),nvctrp,&
+          hamovr(imatrst,1),norbi,0.d0,ppsi(1,iorbst),nvctrp)
 
   endif
   deallocate(hamovr,stat=i_all)
   if (i_all /= 0) then
-     write(*,*)' solveks: problem of memory deallocation'
+     write(*,*)' diag_wf: problem of memory deallocation'
      stop
   end if
 END SUBROUTINE
 
 
-        logical function myorbital(iorb,norbe,iproc,nproc)
-        implicit real*8 (a-h,o-z)
-        parameter(eps_mach=1.d-12)
+logical function myorbital(iorb,norbe,iproc,nproc)
+  implicit real*8 (a-h,o-z)
+  parameter(eps_mach=1.d-12)
 
-        tt=dble(norbe)/dble(nproc)
-        norbep=int((1.d0-eps_mach*tt) + tt)
-        if (iorb .ge. iproc*norbep+1 .and. iorb .le. min((iproc+1)*norbep,norbe)) then
-        myorbital=.true.
-        else
-        myorbital=.false.
-        endif
+  tt=dble(norbe)/dble(nproc)
+  norbep=int((1.d0-eps_mach*tt) + tt)
+  if (iorb .ge. iproc*norbep+1 .and. iorb .le. min((iproc+1)*norbep,norbe)) then
+     myorbital=.true.
+  else
+     myorbital=.false.
+  endif
 
-        return
-        end function
+  return
+end function myorbital
 
 
     subroutine KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,  & 
@@ -7179,7 +7406,7 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   real(kind=8), dimension(:,:,:,:), allocatable :: rmt
   integer, dimension(:,:), allocatable :: neleconf
   logical :: exists
-  integer :: n_abinitzatom,nelpsp,npspcode_t,npspxc,lpx,ncount
+  integer :: n_abinitzatom,nelpsp,npspcode_t,npspxc,lpx,ncount,nsccode
   integer :: nzatom,nvalelec,l,i,j,iocc,il,lwrite,i_all,i_stat
   real(kind=8) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt,ehomo
 
@@ -7200,7 +7427,6 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
         lpx=i-1
      end if
   end do lpx_determination
-
 
   allocate(gpot(3),stat=i_all)
   allocate(alps(lpx+1),stat=i_stat)
@@ -7258,27 +7484,7 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   !Now the treatment of the occupation number
   nzatom=n_abinitzatom
   nvalelec=nelpsp
-  call eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf)
-!!  inquire(file='eleconf.dat',exist=exists)
-!!  if (.not.exists) then
-!!     write(*,*) "The file 'eleconf.dat' does not exist!"
-!!     stop
-!!  end if
-!!  open(unit=12,file='eleconf.dat',form='formatted',action='read',status='old')
-!!  do
-!!     read(12,*)string,ncount
-!!     read(12,*)symbol, nzatom, nvalelec
-!!     read(12,*)rcov,rprb
-!!     read(12,*)
-!!     do lwrite=0,3
-!!        read(12,*)(neleconf(i,lwrite+1),i=1,6)
-!!     end do
-!!     if (ncount==128 .or. nzatom==n_abinitzatom .and.&
-!!          nvalelec==nelpsp) then
-!!        exit
-!!     end if
-!!  end do
-!!  close(unit=12)
+  call eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode)
 
   occup(:,:)=0.d0
    do l=0,lmax
@@ -7316,29 +7522,6 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
 
   if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')'Input Guess Generation for atom',trim(atomname),&
        'Z,Zion=',nzatom,nvalelec,'ng,rprb=',ng+1,rprb
-
-!!$  write(6,*) zion,rcov
-!!$  write(6,*) alpz,alpl
-!!$  write(6,*) (alps(l+1),l=0,lpx)
-!!$  write(6,*) (gpot(i),i=1,3)
-!!$  do l=0,lpx
-!!$     write(6,*) (hsep(i,l+1),i=1,6)
-!!$  end do
-!!$  write(6,*)'-----------------------',ncount
-!!$  write(6,*)symbol, nzatom, nvalelec,'    Symbol, Z, Zion '
-!!$  write(6,'(2(f5.2),5x,a)')rcov,rprb,&
-!!$       'rad:  covalent, parab. potential'
-!!$  write(6,'(6(a7))')'n=1','n=2','n=3','n=4','n=5','n=6'
-!!$  do lwrite=0,3
-!!$     write(6,'(6(4x,i3),a4,i1)') &
-!!$          (neleconf(i,lwrite+1),i=1,6),'l=',lwrite
-!!$  end do
-!!$
-!!$6931 format(a,i3,4(e10.3))
-!!$  do l=0,lmax
-!!$     write(6,6931) 'occup',l,(occup(iocc,l+1),iocc=1,noccmax)
-!!$  end do
-
 
   rij=3.d0
   ! exponents of gaussians

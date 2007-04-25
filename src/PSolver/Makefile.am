@@ -43,6 +43,8 @@ CLEANFILES = $(mpi_include)
 #dependencies
 pconv.o: $(mpi_include)
 
+Poisson_Solver.o: $(mpi_include)
+
 mpif.h:
 	touch mpif.h
 	echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h
