@@ -11,6 +11,7 @@
  fpmult= 8.000
  ixc= 1
  ncharge= 0
+ electric_field= 0.00E+00
  gnrm_cv= 1.00E-04
  itermax= 50
  ncong= 15
@@ -18,7 +19,8 @@
  calc_tail T
  rbuf= 5.000
  ncongt= 30
- atom type H_lda is described by 1 electrons, with pspcode= 2
+ radii is given in the psp file for atom type H_lda
+ atom type H_lda is described by 1 electrons, with pspcode= 2 and radii= 1.36000 0.15000
  total charge (ions+electrons) 0
  number of electrons 1
  WARNING: odd number of electrons, no closed shell system
@@ -33,38 +35,35 @@
  nfl1,nfu1  13 17
  nfl2,nfu2  13 17
  nfl3,nfu3  13 17
+  0.68000E+01  0.68000E+01  0.68000E+01   H_lda               
  orbitals have coarse segment, elements        715      14423
  orbitals have fine   segment, elements         21        567
  norbp= 1
 - iproc 0 treats 1 orbitals 
- Allocate words for psidst and hpsidst 179880
- Allocation done
+ Allocate words for psidst and hpsidst 179880 ...done
  ++++ Creation of projectors ++++
  total number of projectors 0
- Allocate words for proj 0
- Allocation done
+ Allocate words for proj 0 ...done
  ++++++++++++++++++++++++++++++++
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  Size of real space grids 91 91 91
- Allocate words for rhopot and pot_ion 1507142
- Allocation done
+ Allocate words for rhopot and pot_ion 1507142 ...done
  Calculating Poisson solver kernel, free BC... done.
  Allocate words for kernel 912673
  Grid Dimensions:   91   91   91
- total ionic charge, leaked charge             0.000000000000   1.548-269
+ total ionic charge, leaked charge            -1.000000175544   0.000E+00
  ion-ion interaction energy  0.00000000000000E+00
  PSolver, free  BC, dimensions:    91   91   91  nproc  1   ixc:  0 ... done.
  input wavefunction data for atom H_lda NOT found, automatic generation...
  Input Guess Generation for atom  H_lda  Z,Zion=  1  1 ng,rprb= 21 1.21
  number of orbitals used in the construction of input guess 1
- Allocate words for (h)psi inguess      29980
- Allocation done
+ Allocate words for (h)psi inguess      29980 ...done
 - iproc 0 treats 1 inguess orbitals 
  ATOMIC INPUT ORBITAL for  H_lda l=1 m=1  iorb,jorb,norm   1   1  0.9999988E+00
  Total charge from routine chargedens            0.999999971607
  PSolver, free  BC, dimensions:    91   91   91  nproc  1   ixc:  1 ... done.
- ekin_sum,eks          0.91510074026354          0.91505000906122
- evale(1)=  9.94953120904180E-03
+ ekin_sum,eks          0.91510074026351          0.91505000906119
+ evale(1)=  9.94953120903094E-03
  expected accuracy in total energy due to grid size 5.07E-05
  suggested value for gnrm_cv  5.07E-05
  input wavefunction has been calculated
@@ -75,7 +74,7 @@
       1.00E+00  1.00E+00
  ekin_sum,epot_sum,eproj_sum  9.15100740264E-01 -9.05151209054E-01  0.00000000000E+00
  ehart,eexcu,vexcu  4.40093059598E-01 -3.46327907509E-01 -4.52492428360E-01
- iter,total energy,gnrm     1  -3.239790075375E-01  3.03E-01
+ iter,total energy,gnrm     1  -3.239790075378E-01  3.03E-01
  -------------------------------------- iter= 2
  Total charge from routine chargedens            0.999999993608
  PSolver, free  BC, dimensions:    91   91   91  nproc  1   ixc:  1 ... done.
@@ -91,7 +90,7 @@
       4.87E-02  1.55E-01  7.97E-01 -1.44E-03
  ekin_sum,epot_sum,eproj_sum  3.79038796810E-01 -6.15814028888E-01  0.00000000000E+00
  ehart,eexcu,vexcu  2.71135822948E-01 -2.23218935306E-01 -2.90796697023E-01
- iter,total energy,gnrm     3  -4.403332933082E-01  1.40E-01
+ iter,total energy,gnrm     3  -4.403332933083E-01  1.40E-01
  -------------------------------------- iter= 4
  Total charge from routine chargedens            0.999999989991
  PSolver, free  BC, dimensions:    91   91   91  nproc  1   ixc:  1 ... done.
@@ -99,7 +98,7 @@
       2.85E-02 -3.78E-02 -1.01E-02  1.02E+00 -4.52E-05
  ekin_sum,epot_sum,eproj_sum  4.00127354763E-01 -6.36314629221E-01  0.00000000000E+00
  ehart,eexcu,vexcu  2.77101329271E-01 -2.27851691500E-01 -2.96891896772E-01
- iter,total energy,gnrm     4  -4.442483984570E-01  4.77E-02
+ iter,total energy,gnrm     4  -4.442483984571E-01  4.77E-02
  -------------------------------------- iter= 5
  Total charge from routine chargedens            0.999999988079
  PSolver, free  BC, dimensions:    91   91   91  nproc  1   ixc:  1 ... done.
@@ -115,7 +114,7 @@
       2.19E-03  1.19E-03 -9.04E-03  4.33E-02 -5.57E-01  1.52E+00 -8.19E-07
  ekin_sum,epot_sum,eproj_sum  4.25149626635E-01 -6.56011133731E-01  0.00000000000E+00
  ehart,eexcu,vexcu  2.84830148694E-01 -2.33703933085E-01 -3.04572089348E-01
- iter,total energy,gnrm     6  -4.448234995263E-01  1.14E-02
+ iter,total energy,gnrm     6  -4.448234995264E-01  1.14E-02
  -------------------------------------- iter= 7
  Total charge from routine chargedens            0.999999987296
  PSolver, free  BC, dimensions:    91   91   91  nproc  1   ixc:  1 ... done.
@@ -131,7 +130,7 @@
      -4.07E-04 -8.45E-03 -3.74E-02  6.05E-02  2.92E-01  6.94E-01 -1.16E-09
  ekin_sum,epot_sum,eproj_sum  4.27312767225E-01 -6.57947410610E-01  0.00000000000E+00
  ehart,eexcu,vexcu  2.85164648291E-01 -2.33989070247E-01 -3.04948007965E-01
- iter,total energy,gnrm     8  -4.448403539576E-01  3.67E-04
+ iter,total energy,gnrm     8  -4.448403539577E-01  3.67E-04
  -------------------------------------- iter= 9
  Total charge from routine chargedens            0.999999987168
  PSolver, free  BC, dimensions:    91   91   91  nproc  1   ixc:  1 ... done.
@@ -156,10 +155,10 @@
  Total charge from routine chargedens            0.999999987161
  PSolver, free  BC, dimensions:    91   91   91  nproc  1   ixc:  1 ... done.
  11 minimization iterations required
- eval(1)= -2.30598635156404E-01
+ eval(1)= -2.30598635156405E-01
  opening wavefunction.0001                                 
  1th wavefunction written
-- WRITE WAVES TIME   0  0.112E+00  0.180E+00
+- WRITE WAVES TIME   0  0.144E+00  0.208E+00
 - iproc 0 finished writing waves
  calculation of forces
  Total charge from routine chargedens            0.999999987161
@@ -176,16 +175,15 @@
  BIG: nfl3,nfu3 24 28
  BIG: orbitals have coarse segment, elements       2139      74475
  BIG: orbitals have fine   segment, elements         21        567
- Allocate words for psib and hpsib 150084
- Allocation done
+ Allocate words for psib and hpsib 150084 ...done
  BIG: iorb,ekin,epot,eproj,gnrm  1  4.27460705149324E-01 -6.58059340305630E-01  0.00000000000000E+00  4.517E-02
  norm orbital + tail 1  1.00414997819638
  BIG: iorb,ekin,epot,eproj,gnrm  1  4.22362468053641E-01 -6.53582730176164E-01  0.00000000000000E+00  1.138E-03
- Total energy    with tail correction          -0.44546200284429
+ Total energy    with tail correction          -0.44546200284433
  ekin,epot,eproj with tail correction           0.42236246805364          -0.65358273017616           0.00000000000000
-- iproc, elapsed, CPU time     0       136.87        99.39
+- iproc, elapsed, CPU time     0        33.06        32.68
  fxyz   1 -0.4257500E-03 -0.4257500E-03 -0.4257500E-03
- ANALYSIS OF FORCES energy, beta -4.45462002844290E-01  3.150E+00
+ ANALYSIS OF FORCES energy, beta -4.45462002844328E-01  3.150E+00
  the norm of the forces is  7.3742E-04  7.3742E-04  4.2575E-04
  fluct  5.43789081E-07
  stop comparison  5.43789081E-07  1.81263027E-07
