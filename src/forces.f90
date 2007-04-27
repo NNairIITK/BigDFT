@@ -191,24 +191,22 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
   real(kind=8) :: offdiagcoeff,hij
   integer :: idir,iadd,iterm,nterm_max,i_all,i_stat
   nterm_max=20 !if GTH nterm_max=4
-  allocate(derproj(nprojel,3),stat=i_all)
+  allocate(derproj(nprojel,3),stat=i_stat)
+  call memocc(i_stat,product(shape(derproj))*kind(derproj),'derproj','nonlocal_forces')
   allocate(fac_arr(nterm_max,3),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(fac_arr))*kind(fac_arr),'fac_arr','nonlocal_forces')
   allocate(lxyz_arr(3,nterm_max,3),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(lxyz_arr))*kind(lxyz_arr),'lxyz_arr','nonlocal_forces')
   allocate(lx(nterm_max),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(lx))*kind(lx),'lx','nonlocal_forces')
   allocate(ly(nterm_max),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ly))*kind(ly),'ly','nonlocal_forces')
   allocate(lz(nterm_max),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(lz))*kind(lz),'lz','nonlocal_forces')
   allocate(nterm_arr(3),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(nterm_arr))*kind(nterm_arr),'nterm_arr','nonlocal_forces')
   allocate(scalprod(0:3,4,3,7),stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' nonlocal_forces: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(scalprod))*kind(scalprod),'scalprod','nonlocal_forces')
 
   !create the derivative of the projectors
   istart_c=1
@@ -273,11 +271,8 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
   if (iproj.ne.nproj) stop 'incorrect number of projectors created'
   ! projector part finished
 
-  allocate(fxyz_orb(3,nat),stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' nonlocal_forces: problem of memory allocation'
-     stop
-  end if
+  allocate(fxyz_orb(3,nat),stat=i_stat)
+  call memocc(i_stat,product(shape(fxyz_orb))*kind(fxyz_orb),'fxyz_orb','nonlocal_forces')
 !  print *,'end of the projector part'
 
 
@@ -423,26 +418,33 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
   if (istart_c-1.ne.nprojel) stop '2:applyprojectors'
 end do
 
-  deallocate(fxyz_orb,stat=i_all)
+  i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)
+  deallocate(fxyz_orb,stat=i_stat)
+  call memocc(i_stat,i_all,'fxyz_orb','nonlocal_forces')
+  i_all=-product(shape(derproj))*kind(derproj)
   deallocate(derproj,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'derproj','nonlocal_forces')
+  i_all=-product(shape(lxyz_arr))*kind(lxyz_arr)
   deallocate(lxyz_arr,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'lxyz_arr','nonlocal_forces')
+  i_all=-product(shape(nterm_arr))*kind(nterm_arr)
   deallocate(nterm_arr,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'nterm_arr','nonlocal_forces')
+  i_all=-product(shape(fac_arr))*kind(fac_arr)
   deallocate(fac_arr,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'fac_arr','nonlocal_forces')
+  i_all=-product(shape(lx))*kind(lx)
   deallocate(lx,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'lx','nonlocal_forces')
+  i_all=-product(shape(ly))*kind(ly)
   deallocate(ly,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ly','nonlocal_forces')
+  i_all=-product(shape(lz))*kind(lz)
   deallocate(lz,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'lz','nonlocal_forces')
+  i_all=-product(shape(scalprod))*kind(scalprod)
   deallocate(scalprod,stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' nonlocal_forces: problem of memory deallocation'
-     stop
-  end if
+  call memocc(i_stat,i_all,'scalprod','nonlocal_forces')
 end subroutine nonlocal_forces
 
 subroutine calc_coeff_derproj(l,i,m,nterm_max,rhol,nterm_arr,lxyz_arr,fac_arr)

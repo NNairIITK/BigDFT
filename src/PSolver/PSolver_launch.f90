@@ -113,20 +113,16 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !array allocations
   i_all=0
   allocate(zf(md1,md3,md2/nproc),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(zf))*kind(zf),'zf','psolver')
   allocate(zfionxc(md1,md3,md2/nproc),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(zfionxc))*kind(zfionxc),'zfionxc','psolver')
   if (nproc > 1) then
      if (datacode == 'G') then
         allocate(gather_arr(0:nproc-1,2),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(gather_arr))*kind(gather_arr),'gather_arr','psolver')
      end if
      allocate(energies_mpi(6),stat=i_stat)
-     i_all=i_all+i_stat
-  end if
-  if (i_all /= 0) then
-     print *,"PSolver: Problem of memory allocation"
-     stop
+     call memocc(i_stat,product(shape(energies_mpi))*kind(energies_mpi),'energies_mpi','psolver')
   end if
 
 
@@ -286,12 +282,12 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      ehartreeLOC=ehartreeLOC*2.d0*factor
   end if
 
-  deallocate(zf,stat=i_all)
+  i_all=-product(shape(zf))*kind(zf)
+  deallocate(zf,stat=i_stat)
+  call memocc(i_stat,i_all,'zf','psolver')
+  i_all=-product(shape(zfionxc))*kind(zfionxc)
   deallocate(zfionxc,stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' psolver: problem of memory deallocation'
-     stop
-  end if
+  call memocc(i_stat,i_all,'zfionxc','psolver')
 
   call timing(iproc,'PSolv_comput  ','OF')
 
@@ -335,8 +331,16 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      vxc=vexcuLOC
   end if
 
-  if (allocated(gather_arr)) deallocate(gather_arr)
-  if (allocated(energies_mpi)) deallocate(energies_mpi)
+  if (allocated(gather_arr)) then
+     i_all=-product(shape(gather_arr))*kind(gather_arr)
+     deallocate(gather_arr,stat=i_stat)
+     call memocc(i_stat,i_all,'gather_arr','psolver')
+  end if
+  if (allocated(energies_mpi)) then
+     i_all=-product(shape(energies_mpi))*kind(energies_mpi)
+     deallocate(energies_mpi,stat=i_stat)
+     call memocc(i_stat,i_all,'energies_mpi','psolver')
+  end if
 
   if (iproc==0) write(*,*)'done.'
 

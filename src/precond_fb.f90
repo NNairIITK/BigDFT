@@ -82,28 +82,26 @@
           ENDDO
 
         ALLOCATE(AUX(NSTEP_MAX),ALPHAS_PR(NSTEP_MAX)) 
-        allocate(GG_c(nvctr_c),stat=i_all)
+        allocate(GG_c(nvctr_c),stat=i_stat)
+        call memocc(i_stat,product(shape(gg_c))*kind(gg_c),'gg_c','precondition')
         allocate(GG_f(7,nvctr_f),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(gg_f))*kind(gg_f),'gg_f','precondition')
         allocate(PSI_c_NEW(nvctr_c),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(psi_c_new))*kind(psi_c_new),'psi_c_new','precondition')
         allocate(PSI_f_NEW(7,nvctr_f),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(psi_f_new))*kind(psi_f_new),'psi_f_new','precondition')
         allocate(HPSI_c(nvctr_c),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(hpsi_c))*kind(hpsi_c),'hpsi_c','precondition')
         allocate(HPSI_f(7,nvctr_f),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(hpsi_f))*kind(hpsi_f),'hpsi_f','precondition')
         allocate(HPSI_c_OLD(nvctr_c),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(hpsi_c_old))*kind(hpsi_c_old),'hpsi_c_old','precondition')
         allocate(HPSI_f_OLD(7,nvctr_f),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(hpsi_f_old))*kind(hpsi_f_old),'hpsi_f_old','precondition')
         allocate(HPSI_c_MOD(nvctr_c),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(hpsi_c_mod))*kind(hpsi_c_mod),'hpsi_c_mod','precondition')
         allocate(HPSI_f_MOD(7,nvctr_f),stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' precondition: problem of memory allocation'
-           stop
-        end if
+        call memocc(i_stat,product(shape(hpsi_f_mod))*kind(hpsi_f_mod),'hpsi_f_mod','precondition')
 
 
         GG_C=PSI_C
@@ -229,12 +227,10 @@
         dimension GG_c(nvctr_c),GG_f(7,nvctr_f)
         dimension hpsi_c(nvctr_c),hpsi_f(7,nvctr_f)
 
-        allocate(psig_stand1(0:n1,2,0:n2,2,0:n3,2),stat=i_all)
+        allocate(psig_stand1(0:n1,2,0:n2,2,0:n3,2),stat=i_stat)
+        call memocc(i_stat,product(shape(psig_stand1))*kind(psig_stand1),'psig_stand1','precondition')
         allocate(psig_stand2(0:n1,2,0:n2,2,0:n3,2),stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' precondition: problem of memory allocation'
-           stop
-        end if
+        call memocc(i_stat,product(shape(psig_stand2))*kind(psig_stand2),'psig_stand2','precondition')
 
         call uncompress_forstandard(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
                               nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -260,12 +256,12 @@
             ENDDO
           ENDDO
 
-          deallocate(psig_stand1,stat=i_all)
+          i_all=-product(shape(psig_stand1))*kind(psig_stand1)
+          deallocate(psig_stand1,stat=i_stat)
+          call memocc(i_stat,i_all,'psig_stand1','precondition')
+          i_all=-product(shape(psig_stand2))*kind(psig_stand2)
           deallocate(psig_stand2,stat=i_stat)
-          if (i_all+i_stat /= 0) then
-             write(*,*)' precondition: problem of memory deallocation'
-             stop
-          end if
+          call memocc(i_stat,i_all,'psig_stand2','precondition')
 
         END 
 
@@ -284,11 +280,8 @@
 
 
 
-        allocate(hpsip(0:nd1,0:nd2,0:nd3),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' prec_diag: problem of memory allocation'
-           stop
-        end if
+        allocate(hpsip(0:nd1,0:nd2,0:nd3),stat=i_stat)
+        call memocc(i_stat,product(shape(hpsip))*kind(hpsip),'hpsip','prec_diag')
 ! find leading dimensions that allow for a wavelet analysis
         call dzero((nd1+1)*(nd2+1)*(nd3+1),hpsip)
 
@@ -354,11 +347,9 @@
           enddo
         enddo
 
-        deallocate(hpsip,stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' prec_diag: problem of memory deallocation'
-           stop
-        end if
+        i_all=-product(shape(hpsip))*kind(hpsip)
+        deallocate(hpsip,stat=i_stat)
+        call memocc(i_stat,i_all,'hpsip','prec_diag')
 
        end         
 

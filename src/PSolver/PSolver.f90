@@ -58,7 +58,7 @@ program PoissonSolver
   read(unit=chain,fmt=*) datacode
 
   !perform also the comparison wit the serial case
-  alsoserial=.true.
+  alsoserial=.false.
   !code for the Poisson Solver in the parallel case
   !datacode='G'
 
@@ -80,6 +80,9 @@ program PoissonSolver
      
   end if
 
+  !initialize memory counting
+  call memocc(0,0,'count','start')
+
   !Step size
   n_cell = max(n01,n02,n03)
   hx=acell/real(n01,kind=8)
@@ -91,24 +94,16 @@ program PoissonSolver
   !hgrid=hx
   !Allocations
   !Density
-  allocate(density(n01,n02,n03),stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' Poisson_Solver: problem of memory allocation'
-     stop
-  end if
+  allocate(density(n01,n02,n03),stat=i_stat)
+  call memocc(i_stat,product(shape(density))*kind(density),'density','poisson_solver')
   !Density then potential
-  allocate(rhopot(n01,n02,n03),stat=i_all)
+  allocate(rhopot(n01,n02,n03),stat=i_stat)
+  call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','poisson_solver')
   allocate(potential(n01,n02,n03),stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' Poisson_Solver: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(potential))*kind(potential),'potential','poisson_solver')
   !ionic potential
-  allocate(pot_ion(n01,n02,n03),stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' Poisson_Solver: problem of memory allocation'
-     stop
-  end if
+  allocate(pot_ion(n01,n02,n03),stat=i_stat)
+  call memocc(i_stat,product(shape(pot_ion))*kind(pot_ion),'pot_ion','poisson_solver')
 
   !we must choose properly a test case with a positive density
   itype_scf=14
@@ -141,11 +136,9 @@ program PoissonSolver
   call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      density(1,1,i3sd),karray,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset)
 
-  deallocate(karray,stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' Poisson_Solver: problem of memory deallocation'
-     stop
-  end if
+  i_all=-product(shape(karray))*kind(karray)
+  deallocate(karray,stat=i_stat)
+  call memocc(i_stat,i_all,'karray','poisson_solver')
 
   call timing(iproc,'              ','RE')
 
@@ -185,11 +178,9 @@ program PoissonSolver
      call PSolver(geocode,'G',0,1,n01,n02,n03,ixc,hx,hy,hz,&
           rhopot,karray,pot_ion,eh,exc,vxc,offset)
 
-     deallocate(karray,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' Poisson_Solver: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(karray))*kind(karray)
+     deallocate(karray,stat=i_stat)
+     call memocc(i_stat,i_all,'karray','poisson_solver')
 
      call timing(iproc,'              ','RE')
 
@@ -257,16 +248,21 @@ program PoissonSolver
 
   end if
 
-  deallocate(density,stat=i_all)
+  i_all=-product(shape(density))*kind(density)
+  deallocate(density,stat=i_stat)
+  call memocc(i_stat,i_all,'density','poisson_solver')
+  i_all=-product(shape(rhopot))*kind(rhopot)
   deallocate(rhopot,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'rhopot','poisson_solver')
+  i_all=-product(shape(potential))*kind(potential)
   deallocate(potential,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'potential','poisson_solver')
+  i_all=-product(shape(pot_ion))*kind(pot_ion)
   deallocate(pot_ion,stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' Poisson_Solver: problem of memory deallocation'
-     stop
-  end if
+  call memocc(i_stat,i_all,'pot_ion','poisson_solver')
+
+  !finalize memory counting
+  call memocc(0,0,'count','stop')
 
   call MPI_FINALIZE(ierr)  
 

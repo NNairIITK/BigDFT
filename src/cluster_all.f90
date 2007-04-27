@@ -169,16 +169,14 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      nseg_c_old  = nseg_c
      nseg_f_old  = nseg_f
      !allocations
-     allocate(keyg_old(2,nseg_c_old+nseg_f_old),stat=i_all)
+     allocate(keyg_old(2,nseg_c_old+nseg_f_old),stat=i_stat)
+     call memocc(i_stat,product(shape(keyg_old))*kind(keyg_old),'keyg_old','cluster')
      allocate(keyv_old(nseg_c_old+nseg_f_old),stat=i_stat)
-     i_all=i_all+i_stat
+     call memocc(i_stat,product(shape(keyv_old))*kind(keyv_old),'keyv_old','cluster')
      allocate(psi_old(nvctr_c_old+7*nvctr_f_old,norbp),stat=i_stat)
-     i_all=i_all+i_stat
+     call memocc(i_stat,product(shape(psi_old))*kind(psi_old),'psi_old','cluster')
      allocate(eval_old(norb),stat=i_stat)
-     if (i_all+i_stat /=0) then
-        write(*,*)' cluster: problem of memory allocation'
-        stop
-     end if
+     call memocc(i_stat,product(shape(eval_old))*kind(eval_old),'eval_old','cluster')
 
      do iseg=1,nseg_c_old+nseg_f_old
         keyg_old(1,iseg)    = keyg(1,iseg)
@@ -196,16 +194,18 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         eval_old(iorb) = eval(iorb)
      enddo
      !deallocation
-     deallocate(keyg,stat=i_all)
+     i_all=-product(shape(keyg))*kind(keyg)
+     deallocate(keyg,stat=i_stat)
+     call memocc(i_stat,i_all,'keyg','cluster')
+     i_all=-product(shape(keyv))*kind(keyv)
      deallocate(keyv,stat=i_stat)
-     i_all=i_all+i_stat
+     call memocc(i_stat,i_all,'keyv','cluster')
+     i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)
-     i_all=i_all+i_stat
+     call memocc(i_stat,i_all,'psi','cluster')
+     i_all=-product(shape(eval))*kind(eval)
      deallocate(eval,stat=i_stat)
-     if (i_all+i_stat /=0) then
-        write(*,*)' cluster: problem of memory deallocation'
-        stop
-     end if
+     call memocc(i_stat,i_all,'eval','cluster')
 
   end if
 
@@ -262,20 +262,18 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   ! store PSP parameters
   ! modified to accept both GTH and HGH pseudopotential types
   !allocation
-  allocate(psppar(0:4,0:4,ntypes),stat=i_all)
+  allocate(psppar(0:4,0:4,ntypes),stat=i_stat)
+  call memocc(i_stat,product(shape(psppar))*kind(psppar),'psppar','cluster')
   allocate(nelpsp(ntypes),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(nelpsp))*kind(nelpsp),'nelpsp','cluster')
   allocate(radii_cf(ntypes,2),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(radii_cf))*kind(radii_cf),'radii_cf','cluster')
   allocate(npspcode(ntypes),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(npspcode))*kind(npspcode),'npspcode','cluster')
   allocate(iasctype(ntypes),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(iasctype))*kind(iasctype),'iasctype','cluster')
   allocate(neleconf(6,0:3),stat=i_stat)
-  if (i_all+i_stat /=0) then
-     write(*,*)' cluster: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(neleconf))*kind(neleconf),'neleconf','cluster')
 
   do ityp=1,ntypes
      filename = 'psppar.'//atomnames(ityp)
@@ -337,11 +335,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   enddo
 
   !deallocation
-  deallocate(neleconf,stat=i_all)
-  if (i_all/=0) then
-     write(*,*)' cluster: problem of memory deallocation'
-     stop
-  end if
+  i_all=-product(shape(neleconf))*kind(neleconf)
+  deallocate(neleconf,stat=i_stat)
+  call memocc(i_stat,i_all,'neleconf','cluster')
 
 
 ! Number of orbitals and their occupation number
@@ -363,12 +359,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   end if
   norb=(nelec+1)/2+norb_vir
 
-  allocate(occup(norb),stat=i_all)
+  allocate(occup(norb),stat=i_stat)
+  call memocc(i_stat,product(shape(occup))*kind(occup),'occup','cluster')
   allocate(eval(norb),stat=i_stat)
-  if (i_all+i_stat/=0) then
-     write(*,*)' cluster: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(eval))*kind(eval),'eval','cluster')
 
 
   nt=0
@@ -453,20 +447,18 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 ! Create wavefunctions descriptors and allocate them
 
 
-  allocate(ibyz_c(2,0:n2,0:n3),stat=i_all)
+  allocate(ibyz_c(2,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(ibyz_c))*kind(ibyz_c),'ibyz_c','cluster')
   allocate(ibxz_c(2,0:n1,0:n3),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ibxz_c))*kind(ibxz_c),'ibxz_c','cluster')
   allocate(ibxy_c(2,0:n1,0:n2),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ibxy_c))*kind(ibxy_c),'ibxy_c','cluster')
   allocate(ibyz_f(2,0:n2,0:n3),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ibyz_f))*kind(ibyz_f),'ibyz_f','cluster')
   allocate(ibxz_f(2,0:n1,0:n3),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ibxz_f))*kind(ibxz_f),'ibxz_f','cluster')
   allocate(ibxy_f(2,0:n1,0:n2),stat=i_stat)
-  if (i_all+i_stat/=0) then
-     write(*,*)' cluster: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(ibxy_f))*kind(ibxy_f),'ibxy_f','cluster')
   
 ! Create the file grid.ascii to visualize the grid of functions
   if (iproc.eq.0 .and. output_grid) then
@@ -480,22 +472,27 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      enddo
   endif
 
+!!$  !calculation of the kernel deplaced to reduce memory peak for small systems
+!!$  !proposed position, to be refined 
+!!$  ndegree_ip=14
+!!$  call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
+!!$       iproc,nproc,pkernel)
+
+
   call createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, n3, output_grid, hgrid, &
        & nat, ntypes, iatype, atomnames, rxyz, radii_cf, crmult, frmult, ibyz_c,ibxz_c,ibxy_c, &
        & ibyz_f, ibxz_f, ibxy_f, nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp, keyg,  keyv, &
        & norb,norbp,psi,hpsi,psit,psidst,hpsidst,ads)
 
 ! Calculate all projectors
-  allocate(nseg_p(0:2*nat),stat=i_all)
+  allocate(nseg_p(0:2*nat),stat=i_stat)
+  call memocc(i_stat,product(shape(nseg_p))*kind(nseg_p),'nseg_p','cluster')
   allocate(nvctr_p(0:2*nat),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(nvctr_p))*kind(nvctr_p),'nvctr_p','cluster')
   allocate(nboxp_c(2,3,nat),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(nboxp_c))*kind(nboxp_c),'nboxp_c','cluster')
   allocate(nboxp_f(2,3,nat),stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' cluster: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(nboxp_f))*kind(nboxp_f),'nboxp_f','cluster')
   call createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, atomnames, &
        & psppar, npspcode, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
        & keyg_p, keyv_p, nproj, nprojel, istart, nboxp_c, nboxp_f, proj)
@@ -510,11 +507,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
      !allocate values of the array for the data scattering in sumrho
      !its values are ignored in the datacode='G' case
-     allocate(nscatterarr(0:nproc-1,4),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' cluster: problem of memory allocation'
-        stop
-     end if
+     allocate(nscatterarr(0:nproc-1,4),stat=i_stat)
+     call memocc(i_stat,product(shape(nscatterarr))*kind(nscatterarr),'nscatterarr','cluster')
      if (datacode == 'D') then
         do jproc=0,iproc-1
            call PS_dim4allocation('F',datacode,jproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,&
@@ -549,30 +543,18 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for rhopot and pot_ion ',&
           (2*n1+31)*(2*n2+31)*(n3d+n3pi)
      if (n3d >0) then
-        allocate(rhopot((2*n1+31),(2*n2+31),n3d),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' cluster: problem of memory allocation'
-           stop
-        end if
+        allocate(rhopot((2*n1+31),(2*n2+31),n3d),stat=i_stat)
+        call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','cluster')
      else
-        allocate(rhopot(1,1,1),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' cluster: problem of memory allocation'
-           stop
-        end if
+        allocate(rhopot(1,1,1),stat=i_stat)
+        call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','cluster')
      end if
      if (n3pi > 0) then
-        allocate(pot_ion((2*n1+31)*(2*n2+31)*n3pi),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' cluster: problem of memory allocation'
-           stop
-        end if
+        allocate(pot_ion((2*n1+31)*(2*n2+31)*n3pi),stat=i_stat)
+        call memocc(i_stat,product(shape(pot_ion))*kind(pot_ion),'pot_ion','cluster')
      else
-        allocate(pot_ion(1),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' cluster: problem of memory allocation'
-           stop
-        end if
+        allocate(pot_ion(1),stat=i_stat)
+        call memocc(i_stat,product(shape(pot_ion))*kind(pot_ion),'pot_ion','cluster')
      end if   
 
      !we put the initial value to zero only for not adding something to pot_ion
@@ -580,6 +562,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
+     !the routine for calling the kernel can be conveniently deplaced to
+     !futher reduce the memory peak
      call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
           iproc,nproc,pkernel)
 
@@ -612,12 +596,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      ! Charge density, Potential in real space
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for rhopot and pot_ion ',&
           2*(2*n1+31)*(2*n2+31)*(2*n3+31)
-     allocate(rhopot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_all)
+     allocate(rhopot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_stat)
+     call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','cluster')
      allocate(pot_ion((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' cluster: problem of memory allocation'
-        stop
-     end if
+     call memocc(i_stat,product(shape(pot_ion))*kind(pot_ion),'pot_ion','cluster')
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
      call createKernel_old(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
@@ -663,16 +645,18 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           & hgrid, nvctr_c, nvctr_f, n1, n2, n3, rxyz, &
           & nseg_c, nseg_f, keyg, keyv, psi)
             eval=eval_old
-     deallocate(keyg_old,stat=i_all)
+     i_all=-product(shape(keyg_old))*kind(keyg_old)
+     deallocate(keyg_old,stat=i_stat)
+     call memocc(i_stat,i_all,'keyg_old','cluster')
+     i_all=-product(shape(keyv_old))*kind(keyv_old)
      deallocate(keyv_old,stat=i_stat)
-     i_all=i_all+i_stat
+     call memocc(i_stat,i_all,'keyv_old','cluster')
+     i_all=-product(shape(psi_old))*kind(psi_old)
      deallocate(psi_old,stat=i_stat)
-     i_all=i_all+i_stat
+     call memocc(i_stat,i_all,'psi_old','cluster')
+     i_all=-product(shape(eval_old))*kind(eval_old)
      deallocate(eval_old,stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' cluster: problem of memory deallocation'
-        stop
-     end if
+     call memocc(i_stat,i_all,'eval_old','cluster')
 
   else if (inputPsiId == 2) then
      call readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
@@ -743,11 +727,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
   if (datacode=='D') then
      !allocate full potential
-     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' cluster: problem of memory allocation'
-        stop
-     end if
+     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_stat)
+     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
 
      call timing(iproc,'ApplyLocPotKin','ON')
 
@@ -762,11 +743,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           psi,pot,hpsi,epot_sum,ekin_sum)
 
-     deallocate(pot,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' cluster: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(pot))*kind(pot)
+     deallocate(pot,stat=i_stat)
+     call memocc(i_stat,i_all,'pot','cluster')
 
   else
 
@@ -808,19 +787,14 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
 ! Apply  orthogonality constraints to all orbitals belonging to iproc
      if (parallel) then
-        allocate(hpsit(nvctrp,norbp*nproc),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' cluster: problem of memory allocation'
-           stop
-        end if
+        allocate(hpsit(nvctrp,norbp*nproc),stat=i_stat)
+        call memocc(i_stat,product(shape(hpsit))*kind(hpsit),'hpsit','cluster')
         call transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
         call  orthoconstraint_p(iproc,nproc,norb,norbp,occup,nvctrp,psit,hpsit,scprsum)
         call untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsit,hpsi)
-        deallocate(hpsit,stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' cluster: problem of memory deallocation'
-           stop
-        end if
+        i_all=-product(shape(hpsit))*kind(hpsit)
+        deallocate(hpsit,stat=i_stat)
+        call memocc(i_stat,i_all,'hpsit','cluster')
      else
         call orthoconstraint(norb,norbp,occup,nvctrp,psi,hpsi,scprsum)
      endif
@@ -863,11 +837,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
               enddo
            enddo
         else
-           allocate(hpsit(nvctrp,norbp*nproc),stat=i_all)
-           if (i_all /= 0) then
-              write(*,*)' cluster: problem of memory allocation'
-              stop
-           end if
+           allocate(hpsit(nvctrp,norbp*nproc),stat=i_stat)
+           call memocc(i_stat,product(shape(hpsit))*kind(hpsit),'hpsit','cluster')
            call transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
         endif
      else
@@ -912,11 +883,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
            do iorb=1,norb
               call DAXPY(nvctrp,-alpha,hpsit(1,iorb),1,psit(1,iorb),1)
            enddo
-           deallocate(hpsit,stat=i_all)
-           if (i_all /= 0) then
-              write(*,*)' cluster: problem of memory deallocation'
-              stop
-           end if
+           i_all=-product(shape(hpsit))*kind(hpsit)
+           deallocate(hpsit,stat=i_stat)
+           call memocc(i_stat,i_all,'hpsit','cluster')
         else
            do iorb=1,norb
               call DAXPY(nvctrp,-alpha,hpsi(1,iorb),1,psi(1,iorb),1)
@@ -952,34 +921,40 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 1000 continue
   write(*,*) 'No convergence within the allowed number of minimization steps'
 1010 continue
-  if (idsx.gt.0) deallocate(psidst,hpsidst,ads)
-
+  if (idsx.gt.0) then
+       i_all=-product(shape(psidst))*kind(psidst)
+       deallocate(psidst,stat=i_stat)
+       call memocc(i_stat,i_all,'psidst','cluster')
+       i_all=-product(shape(hpsidst))*kind(hpsidst)
+       deallocate(hpsidst,stat=i_stat)
+       call memocc(i_stat,i_all,'hpsidst','cluster')
+       i_all=-product(shape(ads))*kind(ads)
+       deallocate(ads,stat=i_stat)
+       call memocc(i_stat,i_all,'ads','cluster')
+  end if
 
 !------------------------------------------------------------------------
 ! transform to KS orbitals
   if (parallel) then
-     allocate(hpsit(nvctrp,norbp*nproc),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' cluster: problem of memory allocation'
-        stop
-     end if
+     allocate(hpsit(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(hpsit))*kind(hpsit),'hpsit','cluster')
      call transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
      call KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,hpsit,psit,evsum,eval)
-     deallocate(hpsit,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' cluster: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(hpsit))*kind(hpsit)
+     deallocate(hpsit,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsit','cluster')
      call untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,psi)
   else
      call KStrans(norb,norbp,nvctrp,occup,hpsi,psi,evsum,eval)
   endif
-  deallocate(hpsi,stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' cluster: problem of memory deallocation'
-     stop
+  i_all=-product(shape(hpsi))*kind(hpsi)
+  deallocate(hpsi,stat=i_stat)
+  call memocc(i_stat,i_all,'hpsi','cluster')
+  if (parallel) then
+     i_all=-product(shape(psit))*kind(psit)
+     deallocate(psit,stat=i_stat)
+     call memocc(i_stat,i_all,'psit','cluster')
   end if
-  if (parallel) deallocate(psit)
   if (abs(evsum-energybs).gt.1.d-8) write(*,'(1x,a,2(1x,1pe12.5))') 'Difference:evsum,energybs',evsum,energybs
 
 !  write all the wavefunctions into files
@@ -997,15 +972,16 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 ! Selfconsistent potential is saved in rhopot, 
 ! new arrays rho,pot for calculation of forces ground state electronic density
 
-  if ( .not. new_psolver) deallocate(pot_ion)
+  if ( .not. new_psolver) then
+     i_all=-product(shape(pot_ion))*kind(pot_ion)
+     deallocate(pot_ion,stat=i_stat)
+     call memocc(i_stat,i_all,'pot_ion','cluster')
+  end if
 
   ! Potential from electronic charge density
   if (datacode=='G') then
-     allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' cluster: problem of memory allocation'
-        stop
-     end if
+     allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+     call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
      call sumrho_old(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho)
   else
@@ -1024,11 +1000,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           (2*n1+31)*(2*n2+31)*n3p,nscatterarr)
 
      !gather the result in the global array rho
-     allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' cluster: problem of memory allocation'
-        stop
-     end if
+     allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+     call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
      call MPI_ALLGATHERV(pot_ion,(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION,&
           rho,(2*n1+31)*(2*n2+31)*nscatterarr(:,1),(2*n1+31)*(2*n2+31)*nscatterarr(:,3),&
           MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
@@ -1060,36 +1033,26 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      !using pot_ion for building potential
      call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
           pot_ion,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0)
-     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' cluster: problem of memory allocation'
-        stop
-     end if
+     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_stat)
+     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
      call MPI_ALLGATHERV(pot_ion,(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION,&
           pot,(2*n1+31)*(2*n2+31)*nscatterarr(:,2),(2*n1+31)*(2*n2+31)*nscatterarr(:,3),&
           MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     deallocate(pot_ion,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' cluster: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(pot_ion))*kind(pot_ion)
+     deallocate(pot_ion,stat=i_stat)
+     call memocc(i_stat,i_all,'pot_ion','cluster')
   else
-     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' cluster: problem of memory allocation'
-        stop
-     end if
+     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_stat)
+     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
      call DCOPY((2*n1+31)*(2*n2+31)*(2*n3+31),rho,1,pot,1) 
 
      if (new_psolver) then
 
         call PSolver('F','G',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
              pot,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0)
-        deallocate(pot_ion,stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' cluster: problem of memory deallocation'
-           stop
-        end if
+        i_all=-product(shape(pot_ion))*kind(pot_ion)
+        deallocate(pot_ion,stat=i_stat)
+        call memocc(i_stat,i_all,'pot_ion','cluster')
      else
         if (parallel) then
            call ParPSolver_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3,hgridh,pkernel,0, &
@@ -1102,29 +1065,24 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   end if
 
 
-  deallocate(pkernel,stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' cluster: problem of memory deallocation'
-     stop
-  end if
+  i_all=-product(shape(pkernel))*kind(pkernel)
+  deallocate(pkernel,stat=i_stat)
+  call memocc(i_stat,i_all,'pkernel','cluster')
 
   if (iproc.eq.0) write(*,*)'electronic potential calculated'
-  allocate(gxyz(3,nat),stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' cluster: problem of memory allocation'
-     stop
-  end if
+  allocate(gxyz(3,nat),stat=i_stat)
+  call memocc(i_stat,product(shape(gxyz))*kind(gxyz),'gxyz','cluster')
 
   call timing(iproc,'Forces        ','ON')
 ! calculate local part of the forces gxyz
    call local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
                      n1,n2,n3,rho,pot,gxyz)
-   deallocate(rho,stat=i_all)
+   i_all=-product(shape(rho))*kind(rho)
+   deallocate(rho,stat=i_stat)
+   call memocc(i_stat,i_all,'rho','cluster')
+   i_all=-product(shape(pot))*kind(pot)
    deallocate(pot,stat=i_stat)
-   if (i_all+i_stat /= 0) then
-      write(*,*)' cluster: problem of memory deallocation'
-      stop
-   end if
+   call memocc(i_stat,i_all,'pot','cluster')
 
 ! Add the nonlocal part of the forces to gxyz
 ! calculating derivatives of the projectors 
@@ -1132,6 +1090,13 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      ntypes,nat,norb,norbp,istart,nprojel,nproj,&
      iatype,psppar,npspcode,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
      keyg,keyv,keyg_p,keyv_p,psi,rxyz,radii_cf,cpmult,fpmult,hgrid,gxyz)
+
+  i_all=-product(shape(nboxp_c))*kind(nboxp_c)
+  deallocate(nboxp_c,stat=i_stat)
+  call memocc(i_stat,i_all,'nboxp_c','cluster')
+  i_all=-product(shape(nboxp_f))*kind(nboxp_f)
+  deallocate(nboxp_f,stat=i_stat)
+  call memocc(i_stat,i_all,'nboxp_f','cluster')
 
 ! Add up all the force contributions
   if (parallel) then
@@ -1144,11 +1109,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      enddo
   end if
 
-  deallocate(gxyz,stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' cluster: problem of memory deallocation'
-     stop
-  end if
+  i_all=-product(shape(gxyz))*kind(gxyz)
+  deallocate(gxyz,stat=i_stat)
+  call memocc(i_stat,i_all,'gxyz','cluster')
 
   call timing(iproc,'Forces        ','OF')
 
@@ -1173,21 +1136,16 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         write(*,'(1x,a,3(1x,1pe12.5))')'BIG: simulation cell',alatb1,alatb2,alatb3
      endif
      !    ---reformat potential
-     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' cluster: problem of memory allocation'
-        stop
-     end if
+     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_stat)
+     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
      if (datacode=='D') then
        write(*,*) 'n3d,n3p,n3pi',n3d,n3p,n3pi
         call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh),(2*n1+31)*(2*n2+31)*n3d,MPI_DOUBLE_PRECISION, &
              pot,(2*n1+31)*(2*n2+31)*nscatterarr(:,2),(2*n1+31)*(2*n2+31)*nscatterarr(:,3), & 
              MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+        i_all=-product(shape(nscatterarr))*kind(nscatterarr)
         deallocate(nscatterarr,stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' cluster: problem of memory deallocation'
-           stop
-        end if
+        call memocc(i_stat,i_all,'nscatterarr','cluster')
      else
         do i3=1,2*n3+31
            do i2=1,2*n2+31
@@ -1197,11 +1155,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
            enddo
         enddo
      end if
-     deallocate(rhopot,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' cluster: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(rhopot))*kind(rhopot)
+     deallocate(rhopot,stat=i_stat)
+     call memocc(i_stat,i_all,'rhopot','cluster')
      call timing(iproc,'Tail          ','OF')
 
      call CalculateTailCorrection(iproc,nproc,n1,n2,n3,nbuf,nb1,nb2,nb3,norb,norbp,nat,ntypes,&
@@ -1210,11 +1166,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      pot,hgrid,alatb1,alatb2,alatb3,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
      proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
 
-     deallocate(pot,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' cluster: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(pot))*kind(pot)
+     deallocate(pot,stat=i_stat)
+     call memocc(i_stat,i_all,'pot','cluster')
     
      energybs=ekin_sum+epot_sum+eproj_sum
      energy=energybs-ehart+eexcu-vexcu+eion
@@ -1228,54 +1182,67 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   else
 !    No tail calculation
      if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-     deallocate(rhopot,stat=i_all)
+     i_all=-product(shape(rhopot))*kind(rhopot)
+     deallocate(rhopot,stat=i_stat)
+     call memocc(i_stat,i_all,'rhopot','cluster')
+     i_all=-product(shape(nscatterarr))*kind(nscatterarr)
      deallocate(nscatterarr,stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' cluster: problem of memory deallocation'
-        stop
-     end if
+     call memocc(i_stat,i_all,'nscatterarr','cluster')
   endif
 ! --- End if of tail calculation
 
-  deallocate(ibyz_c,stat=i_all)
+  i_all=-product(shape(ibyz_c))*kind(ibyz_c)
+  deallocate(ibyz_c,stat=i_stat)
+  call memocc(i_stat,i_all,'ibyz_c','cluster')
+  i_all=-product(shape(ibxz_c))*kind(ibxz_c)
   deallocate(ibxz_c,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ibxz_c','cluster')
+  i_all=-product(shape(ibxy_c))*kind(ibxy_c)
   deallocate(ibxy_c,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ibxy_c','cluster')
+  i_all=-product(shape(ibyz_f))*kind(ibyz_f)
   deallocate(ibyz_f,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ibyz_f','cluster')
+  i_all=-product(shape(ibxz_f))*kind(ibxz_f)
   deallocate(ibxz_f,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ibxz_f','cluster')
+  i_all=-product(shape(ibxy_f))*kind(ibxy_f)
   deallocate(ibxy_f,stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' cluster: problem of memory deallocation'
-     stop
-  end if
+  call memocc(i_stat,i_all,'ibxy_f','cluster')
 
-  deallocate(keyg_p,stat=i_all)
+  i_all=-product(shape(keyg_p))*kind(keyg_p)
+  deallocate(keyg_p,stat=i_stat)
+  call memocc(i_stat,i_all,'keyg_p','cluster')
+  i_all=-product(shape(keyv_p))*kind(keyv_p)
   deallocate(keyv_p,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'keyv_p','cluster')
+  i_all=-product(shape(proj))*kind(proj)
   deallocate(proj,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'proj','cluster')
+  i_all=-product(shape(occup))*kind(occup)
   deallocate(occup,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'occup','cluster')
+  i_all=-product(shape(nvctr_p))*kind(nvctr_p)
   deallocate(nvctr_p,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'nvctr_p','cluster')
+  i_all=-product(shape(nseg_p))*kind(nseg_p)
   deallocate(nseg_p,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'nseg_p','cluster')
+  i_all=-product(shape(psppar))*kind(psppar)
   deallocate(psppar,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'psppar','cluster')
+  i_all=-product(shape(nelpsp))*kind(nelpsp)
   deallocate(nelpsp,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'nelpsp','cluster')
+  i_all=-product(shape(iasctype))*kind(iasctype)
   deallocate(iasctype,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'iasctype','cluster')
+  i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'radii_cf','cluster')
+  i_all=-product(shape(npspcode))*kind(npspcode)
   deallocate(npspcode,stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' cluster: problem of memory deallocation'
-     stop
-  end if
+  call memocc(i_stat,i_all,'npspcode','cluster')
 
   call timing(iproc,'              ','RE')
   call cpu_time(tcpu1)
@@ -1357,11 +1324,8 @@ if (iproc.eq.0) then
 endif
 
 ! change atom coordinates according to the enlarged box
-allocate(txyz(3,nat),stat=i_all)
-if (i_all /= 0) then
-   write(*,*)' calculatetailcorrection: problem of memory allocation'
-   stop
-end if
+allocate(txyz(3,nat),stat=i_stat)
+call memocc(i_stat,product(shape(txyz))*kind(txyz),'txyz','calculatetailcorrection')
 do iat=1,nat
    txyz(1,iat)=rxyz(1,iat)+nbuf*hgrid
    txyz(2,iat)=rxyz(2,iat)+nbuf*hgrid
@@ -1369,24 +1333,22 @@ do iat=1,nat
 enddo
 
 ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
-allocate(logrid_c(0:nb1,0:nb2,0:nb3),stat=i_all)
+allocate(logrid_c(0:nb1,0:nb2,0:nb3),stat=i_stat)
+call memocc(i_stat,product(shape(logrid_c))*kind(logrid_c),'logrid_c','calculatetailcorrection')
 allocate(logrid_f(0:nb1,0:nb2,0:nb3),stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,product(shape(logrid_f))*kind(logrid_f),'logrid_f','calculatetailcorrection')
 allocate(ibbyz_c(2,0:nb2,0:nb3),stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,product(shape(ibbyz_c))*kind(ibbyz_c),'ibbyz_c','calculatetailcorrection')
 allocate(ibbxz_c(2,0:nb1,0:nb3),stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,product(shape(ibbxz_c))*kind(ibbxz_c),'ibbxz_c','calculatetailcorrection')
 allocate(ibbxy_c(2,0:nb1,0:nb2),stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,product(shape(ibbxy_c))*kind(ibbxy_c),'ibbxy_c','calculatetailcorrection')
 allocate(ibbyz_f(2,0:nb2,0:nb3),stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,product(shape(ibbyz_f))*kind(ibbyz_f),'ibbyz_f','calculatetailcorrection')
 allocate(ibbxz_f(2,0:nb1,0:nb3),stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,product(shape(ibbxz_f))*kind(ibbxz_f),'ibbxz_f','calculatetailcorrection')
 allocate(ibbxy_f(2,0:nb1,0:nb2),stat=i_stat)
-if (i_all+i_stat /= 0) then
-   write(*,*)' calculatetailcorrection: problem of memory allocation'
-   stop
-end if
+call memocc(i_stat,product(shape(ibbxy_f))*kind(ibbxy_f),'ibbxy_f','calculatetailcorrection')
 
 ! coarse grid quantities
 call fill_logrid(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,nat,ntypes,iatype,txyz, & 
@@ -1437,46 +1399,40 @@ end if
 call bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
 
 ! now fill the wavefunction descriptor arrays
-allocate(keybg(2,nsegb_c+nsegb_f),stat=i_all)
+allocate(keybg(2,nsegb_c+nsegb_f),stat=i_stat)
+call memocc(i_stat,product(shape(keybg))*kind(keybg),'keybg','calculatetailcorrection')
 allocate(keybv(nsegb_c+nsegb_f),stat=i_stat)
-if (i_all+i_stat /= 0) then
-   write(*,*)' calculatetailcorrection: problem of memory allocation'
-   stop
-end if
+call memocc(i_stat,product(shape(keybv))*kind(keybv),'keybv','calculatetailcorrection')
 ! coarse grid quantities
 call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,keybg(1,1),keybv(1))
 
 ! fine grid quantities
 call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1))
 
-deallocate(logrid_c,stat=i_all)
+i_all=-product(shape(logrid_c))*kind(logrid_c)
+deallocate(logrid_c,stat=i_stat)
+call memocc(i_stat,i_all,'logrid_c','calculatetailcorrection')
+i_all=-product(shape(logrid_f))*kind(logrid_f)
 deallocate(logrid_f,stat=i_stat)
-if (i_all+i_stat /= 0) then
-   write(*,*)' calculatetailcorrection: problem of memory deallocation'
-   stop
-end if
+call memocc(i_stat,i_all,'logrid_f','calculatetailcorrection')
 
 ! allocations for arrays holding the wavefunction
 if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psib and hpsib ',2*(nvctrb_c+7*nvctrb_f)
-allocate(psib(nvctrb_c+7*nvctrb_f),stat=i_all)
+allocate(psib(nvctrb_c+7*nvctrb_f),stat=i_stat)
+call memocc(i_stat,product(shape(psib))*kind(psib),'psib','calculatetailcorrection')
 allocate(hpsib(nvctrb_c+7*nvctrb_f),stat=i_stat)
-if (i_all+i_stat /= 0) then
-   write(*,*)' calculatetailcorrection: problem of memory allocation'
-   stop
-end if
+call memocc(i_stat,product(shape(hpsib))*kind(hpsib),'hpsib','calculatetailcorrection')
 if (iproc.eq.0) write(*,*) 'Allocation done'
 
 ! work arrays applylocpotkin
-allocate(psig(8*(nb1+1)*(nb2+1)*(nb3+1)),stat=i_all)
+allocate(psig(8*(nb1+1)*(nb2+1)*(nb3+1)),stat=i_stat)
+call memocc(i_stat,product(shape(psig))*kind(psig),'psig','calculatetailcorrection')
 allocate(psigp(8*(nb1+1)*(nb2+1)*(nb3+1)),stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,product(shape(psigp))*kind(psigp),'psigp','calculatetailcorrection')
 allocate(psifscf(max((2*nb1+31)*(2*nb2+31)*(2*nb3+16),(2*nb1+16)*(2*nb2+31)*(2*nb3+31))),stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','calculatetailcorrection')
 allocate(psir((2*nb1+31)*(2*nb2+31)*(2*nb3+31)),stat=i_stat)
-if (i_all+i_stat /= 0) then
-   write(*,*)' calculatetailcorrection: problem of memory allocation'
-   stop
-end if
+call memocc(i_stat,product(shape(psir))*kind(psir),'psir','calculatetailcorrection')
 
 ekin_sum=0.d0
 epot_sum=0.d0
@@ -1560,38 +1516,51 @@ do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
    eproj_sum=eproj_sum+eproj*occup(iorb)
 end do
 
-deallocate(txyz,stat=i_all)
+i_all=-product(shape(txyz))*kind(txyz)
+deallocate(txyz,stat=i_stat)
+call memocc(i_stat,i_all,'txyz','calculatetailcorrection')
+i_all=-product(shape(psig))*kind(psig)
 deallocate(psig,stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,i_all,'psig','calculatetailcorrection')
+i_all=-product(shape(psigp))*kind(psigp)
 deallocate(psigp,stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,i_all,'psigp','calculatetailcorrection')
+i_all=-product(shape(psifscf))*kind(psifscf)
 deallocate(psifscf,stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,i_all,'psifscf','calculatetailcorrection')
+i_all=-product(shape(psir))*kind(psir)
 deallocate(psir,stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,i_all,'psir','calculatetailcorrection')
+i_all=-product(shape(psib))*kind(psib)
 deallocate(psib,stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,i_all,'psib','calculatetailcorrection')
+i_all=-product(shape(hpsib))*kind(hpsib)
 deallocate(hpsib,stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,i_all,'hpsib','calculatetailcorrection')
+i_all=-product(shape(keybg))*kind(keybg)
 deallocate(keybg,stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,i_all,'keybg','calculatetailcorrection')
+i_all=-product(shape(keybv))*kind(keybv)
 deallocate(keybv,stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,i_all,'keybv','calculatetailcorrection')
+i_all=-product(shape(ibbyz_c))*kind(ibbyz_c)
 deallocate(ibbyz_c,stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,i_all,'ibbyz_c','calculatetailcorrection')
+i_all=-product(shape(ibbxz_c))*kind(ibbxz_c)
 deallocate(ibbxz_c,stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,i_all,'ibbxz_c','calculatetailcorrection')
+i_all=-product(shape(ibbxy_c))*kind(ibbxy_c)
 deallocate(ibbxy_c,stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,i_all,'ibbxy_c','calculatetailcorrection')
+i_all=-product(shape(ibbyz_f))*kind(ibbyz_f)
 deallocate(ibbyz_f,stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,i_all,'ibbyz_f','calculatetailcorrection')
+i_all=-product(shape(ibbxz_f))*kind(ibbxz_f)
 deallocate(ibbxz_f,stat=i_stat)
-i_all=i_all+i_stat
+call memocc(i_stat,i_all,'ibbxz_f','calculatetailcorrection')
+i_all=-product(shape(ibbxy_f))*kind(ibbxy_f)
 deallocate(ibbxy_f,stat=i_stat)
-if (i_all+i_stat /= 0) then
-   write(*,*)' calculatetailcorrection: problem of memory deallocation'
-   stop
-end if
+call memocc(i_stat,i_all,'ibbxy_f','calculatetailcorrection')
 
 
 if (parallel) then
@@ -1599,11 +1568,8 @@ if (parallel) then
    if (iproc.eq.0) then
       write(*,'(1x,a,f27.14)')'Tail calculation ended'
    endif
-   allocate(wrkallred(3,2),stat=i_all)
-   if (i_all /= 0) then
-      write(*,*)' calculatetailcorrection: problem of memory allocation'
-      stop
-   end if
+   allocate(wrkallred(3,2),stat=i_stat)
+   call memocc(i_stat,product(shape(wrkallred))*kind(wrkallred),'wrkallred','calculatetailcorrection')
    wrkallred(1,2)=ekin_sum
    wrkallred(2,2)=epot_sum 
    wrkallred(3,2)=eproj_sum 
@@ -1612,11 +1578,9 @@ if (parallel) then
    ekin_sum=wrkallred(1,1) 
    epot_sum=wrkallred(2,1) 
    eproj_sum=wrkallred(3,1)
-   deallocate(wrkallred,stat=i_all)
-   if (i_all /= 0) then
-      write(*,*)' calculatetailcorrection: problem of memory deallocation'
-      stop
-   end if
+   i_all=-product(shape(wrkallred))*kind(wrkallred)
+   deallocate(wrkallred,stat=i_stat)
+   call memocc(i_stat,i_all,'wrkallred','calculatetailcorrection')
 endif
 
 call timing(iproc,'Tail          ','OF')
@@ -1633,11 +1597,8 @@ subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
    include 'mpif.h'
  
    call timing(iproc,'Un-Transall   ','ON')
-   allocate(psiw(nvctrp,norbp,nproc),stat=i_all)
-   if (i_all /= 0) then
-      write(*,*)' transallwaves: problem of memory allocation'
-      stop
-   end if
+   allocate(psiw(nvctrp,norbp,nproc),stat=i_stat)
+   call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','transallwaves')
  
    sendcount=nvctrp*norbp
    recvcount=nvctrp*norbp
@@ -1663,11 +1624,9 @@ subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
  
    call timing(iproc,'Un-Transall   ','OF')
 
-   deallocate(psiw,stat=i_all)
-   if (i_all /= 0) then
-      write(*,*)' transallwaves: problem of memory deallocation'
-      stop
-   end if
+   i_all=-product(shape(psiw))*kind(psiw)
+   deallocate(psiw,stat=i_stat)
+   call memocc(i_stat,i_all,'psiw','transallwaves')
 
 END SUBROUTINE transallwaves
 
@@ -1726,11 +1685,8 @@ subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,ps
 
   call timing(iproc,'Un-Transall   ','ON')
 
-  allocate(psiw(nvctrp,norbp,nproc),stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' untransallwaves: problem of memory allocation'
-     stop
-  end if
+  allocate(psiw(nvctrp,norbp,nproc),stat=i_stat)
+  call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','untransallwaves')
 
   sendcount=nvctrp*norbp
   recvcount=nvctrp*norbp
@@ -1752,11 +1708,9 @@ subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,ps
 333  continue
   enddo
 
-  deallocate(psiw,stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' untransallwaves: problem of memory deallocation'
-     stop
-  end if
+  i_all=-product(shape(psiw))*kind(psiw)
+  deallocate(psiw,stat=i_stat)
+  call memocc(i_stat,i_all,'psiw','untransallwaves')
   call timing(iproc,'Un-Transall   ','OF')
 
 
@@ -1779,7 +1733,7 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(*), intent(inout) :: rho
   !local variables
-  integer :: iat,jat,i1,i2,i3,j3,ii,ix,iy,iz,i3start,i3end,ierr,ityp,jtyp,ind,i_all
+  integer :: iat,jat,i1,i2,i3,j3,ii,ix,iy,iz,i3start,i3end,ierr,ityp,jtyp,ind,i_all,i_stat
   real(kind=8) :: hgridh,pi,rholeaked,dist,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot
   real(kind=8), dimension(:), allocatable :: charges_mpi
@@ -1862,22 +1816,17 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
   !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
 
   if (nproc > 1) then
-     allocate(charges_mpi(4),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' input_rho_ion: problem of memory allocation'
-        stop
-     end if
+     allocate(charges_mpi(4),stat=i_stat)
+     call memocc(i_stat,product(shape(charges_mpi))*kind(charges_mpi),'charges_mpi','input_rho_ion')
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
      call MPI_ALLREDUCE(charges_mpi(1),charges_mpi(3),2,MPI_double_precision,  &
           MPI_SUM,MPI_COMM_WORLD,ierr)
      tt_tot=charges_mpi(3)
      rholeaked_tot=charges_mpi(4)
-     deallocate(charges_mpi,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' input_rho_ion: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(charges_mpi))*kind(charges_mpi)
+     deallocate(charges_mpi,stat=i_stat)
+     call memocc(i_stat,i_all,'charges_mpi','input_rho_ion')
   else
      tt_tot=tt
      rholeaked_tot=rholeaked
@@ -2154,16 +2103,14 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   call timing(iproc,'ApplyLocPotKin','ON')
 
   ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
-  allocate(psig(8*(n1+1)*(n2+1)*(n3+1)),stat=i_all)
+  allocate(psig(8*(n1+1)*(n2+1)*(n3+1)),stat=i_stat)
+  call memocc(i_stat,product(shape(psig))*kind(psig),'psig','applylocpotkinall')
   allocate(psigp(8*(n1+1)*(n2+1)*(n3+1)),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(psigp))*kind(psigp),'psigp','applylocpotkinall')
   allocate(psifscf(max( (2*n1+31)*(2*n2+31)*(2*n3+16),            (2*n1+16)*(2*n2+31)*(2*n3+31))),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','applylocpotkinall')
   allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' applylocpotkinall: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(psir))*kind(psir),'psir','applylocpotkinall')
 
   ekin_sum=0.d0
   epot_sum=0.d0
@@ -2182,16 +2129,18 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   enddo
 
 
-  deallocate(psig,stat=i_all)
+  i_all=-product(shape(psig))*kind(psig)
+  deallocate(psig,stat=i_stat)
+  call memocc(i_stat,i_all,'psig','applylocpotkinall')
+  i_all=-product(shape(psigp))*kind(psigp)
   deallocate(psigp,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'psigp','applylocpotkinall')
+  i_all=-product(shape(psifscf))*kind(psifscf)
   deallocate(psifscf,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'psifscf','applylocpotkinall')
+  i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' applylocpotkinall: problem of memory deallocation'
-     stop
-  end if
+  call memocc(i_stat,i_all,'psir','applylocpotkinall')
 
   call timing(iproc,'ApplyLocPotKin','OF')
 
@@ -2495,18 +2444,13 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   hgridh=hgrid*.5d0 
   
   ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
-  allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_all)
+  allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_stat)
+  call memocc(i_stat,product(shape(psig))*kind(psig),'psig','sumrho')
   allocate(psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)),stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' sumrho: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','sumrho')
   ! Wavefunction in real space
-  allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' sumrho: problem of memory allocation'
-     stop
-  end if
+  allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+  call memocc(i_stat,product(shape(psir))*kind(psir),'psir','sumrho')
   
   if (iproc==0) then
      write(*,'(1x,a)',advance='no')&
@@ -2520,11 +2464,8 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
     do jproc=0,nproc-1
        nrhotot=nrhotot+nscatterarr(jproc,1)
     end do
-    allocate(rho_p((2*n1+31)*(2*n2+31)*nrhotot),stat=i_all)
-    if (i_all /= 0) then
-       write(*,*)' sumrho: problem of memory allocation'
-       stop
-    end if
+    allocate(rho_p((2*n1+31)*(2*n2+31)*nrhotot),stat=i_stat)
+    call memocc(i_stat,product(shape(rho_p))*kind(rho_p),'rho_p','sumrho')
 
     !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
     call tenmminustwenty((2*n1+31)*(2*n2+31)*nrhotot,rho_p)
@@ -2590,11 +2531,9 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
     if (iproc.eq.0) write(*,'(1x,a,f21.12)')&
          'done. Total electronic charge=',charge*hgridh**3
     call timing(iproc,'Rho_commun    ','OF')
-    deallocate(rho_p,stat=i_all)
-    if (i_all /= 0) then
-       write(*,*)' sumrho: problem of memory deallocation'
-       stop
-    end if
+    i_all=-product(shape(rho_p))*kind(rho_p)
+    deallocate(rho_p,stat=i_stat)
+    call memocc(i_stat,i_all,'rho_p','sumrho')
 
  else
     call timing(iproc,'Rho_comput    ','ON')
@@ -2629,14 +2568,15 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
     call timing(iproc,'Rho_comput    ','OF')
  endif
 
- deallocate(psig,stat=i_all)
+ i_all=-product(shape(psig))*kind(psig)
+ deallocate(psig,stat=i_stat)
+ call memocc(i_stat,i_all,'psig','sumrho')
+ i_all=-product(shape(psifscf))*kind(psifscf)
  deallocate(psifscf,stat=i_stat)
- i_all=i_all+i_stat
+ call memocc(i_stat,i_all,'psifscf','sumrho')
+ i_all=-product(shape(psir))*kind(psir)
  deallocate(psir,stat=i_stat)
- if (i_all+i_stat /= 0) then
-    write(*,*)' sumrho: problem of memory deallocation'
-    stop
- end if
+ call memocc(i_stat,i_all,'psir','sumrho')
 
 
 END SUBROUTINE
@@ -2661,18 +2601,13 @@ END SUBROUTINE
         hgridh=hgrid*.5d0 
 
 ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
-        allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_all)
+        allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_stat)
+        call memocc(i_stat,product(shape(psig))*kind(psig),'psig','sumrho_old')
         allocate(psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)),stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' sumrho_old: problem of memory allocation'
-           stop
-        end if
+        call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','sumrho_old')
 ! Wavefunction in real space
-        allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' sumrho_old: problem of memory allocation'
-           stop
-        end if
+        allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+        call memocc(i_stat,product(shape(psir))*kind(psir),'psir','sumrho_old')
 
         if (iproc==0) then
            write(*,'(1x,a)',advance='no')&
@@ -2710,11 +2645,8 @@ END SUBROUTINE
 
     else
       call timing(iproc,'Rho_comput    ','ON')
-        allocate(rho_p((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' sumrho_old: problem of memory allocation'
-           stop
-        end if
+        allocate(rho_p((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+        call memocc(i_stat,product(shape(rho_p))*kind(rho_p),'rho_p','sumrho_old')
 
    !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
         call tenmminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho_p)
@@ -2741,11 +2673,9 @@ END SUBROUTINE
         call MPI_ALLREDUCE(rho_p,rho,(2*n1+31)*(2*n2+31)*(2*n3+31),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call timing(iproc,'Rho_commun    ','OF')
 
-        deallocate(rho_p,stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' sumrho_old: problem of memory deallocation'
-           stop
-        end if
+        i_all=-product(shape(rho_p))*kind(rho_p)
+        deallocate(rho_p,stat=i_stat)
+        call memocc(i_stat,i_all,'rho_p','sumrho_old')
      end if
  else
 
@@ -2783,14 +2713,15 @@ END SUBROUTINE
              'done. Total electronic charge=',tt
 
 
-        deallocate(psig,stat=i_all)
+        i_all=-product(shape(psig))*kind(psig)
+        deallocate(psig,stat=i_stat)
+        call memocc(i_stat,i_all,'psig','sumrho_old')
+        i_all=-product(shape(psifscf))*kind(psifscf)
         deallocate(psifscf,stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,i_all,'psifscf','sumrho_old')
+        i_all=-product(shape(psir))*kind(psir)
         deallocate(psir,stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' sumrho_old: problem of memory deallocation'
-           stop
-        end if
+        call memocc(i_stat,i_all,'psir','sumrho_old')
 
 
         END SUBROUTINE
@@ -3037,16 +2968,14 @@ END SUBROUTINE
         real*8, allocatable, dimension(:,:,:) :: wprojx, wprojy, wprojz
         real*8, allocatable, dimension(:,:) :: work
 
-        allocate(wprojx(0:n1,2,nterm),stat=i_all)
+        allocate(wprojx(0:n1,2,nterm),stat=i_stat)
+        call memocc(i_stat,product(shape(wprojx))*kind(wprojx),'wprojx','crtproj')
         allocate(wprojy(0:n2,2,nterm),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(wprojy))*kind(wprojy),'wprojy','crtproj')
         allocate(wprojz(0:n3,2,nterm),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(wprojz))*kind(wprojz),'wprojz','crtproj')
         allocate(work(0:nw,2),stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' crtproj: problem of memory allocation'
-           stop
-        end if
+        call memocc(i_stat,product(shape(work))*kind(work),'work','crtproj')
 
 
         rad_c=radius_f*cpmult
@@ -3156,16 +3085,18 @@ END SUBROUTINE
 
           enddo
   
-          deallocate(wprojx,stat=i_all)
+          i_all=-product(shape(wprojx))*kind(wprojx)
+          deallocate(wprojx,stat=i_stat)
+          call memocc(i_stat,i_all,'wprojx','crtproj')
+          i_all=-product(shape(wprojy))*kind(wprojy)
           deallocate(wprojy,stat=i_stat)
-          i_all=i_all+i_stat
+          call memocc(i_stat,i_all,'wprojy','crtproj')
+          i_all=-product(shape(wprojz))*kind(wprojz)
           deallocate(wprojz,stat=i_stat)
-          i_all=i_all+i_stat
+          call memocc(i_stat,i_all,'wprojz','crtproj')
+          i_all=-product(shape(work))*kind(work)
           deallocate(work,stat=i_stat)
-          if (i_all+i_stat /= 0) then
-             write(*,*)' crtproj: problem of memory deallocation'
-             stop
-          end if
+          call memocc(i_stat,i_all,'work','crtproj')
 
     return
     END SUBROUTINE
@@ -3443,11 +3374,8 @@ END SUBROUTINE
 
       call timing(iproc,'LagrM_comput  ','ON')
 
-      allocate(alag(norb,norb,2),stat=i_all)
-      if (i_all /= 0) then
-         write(*,*)' orthoconstraint_p: problem of memory allocation'
-         stop
-      end if
+      allocate(alag(norb,norb,2),stat=i_stat)
+      call memocc(i_stat,product(shape(alag))*kind(alag),'alag','orthoconstraint_p')
 !     alag(jorb,iorb,2)=+psit(k,jorb)*hpsit(k,iorb)
       call DGEMM('T','N',norb,norb,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,alag(1,1,2),norb)
 
@@ -3470,11 +3398,9 @@ END SUBROUTINE
 
 ! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
       call DGEMM('N','N',nvctrp,norb,norb,-1.d0,psit,nvctrp,alag,norb,1.d0,hpsit,nvctrp)
-     deallocate(alag,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' orthoconstraint_p: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(alag))*kind(alag)
+     deallocate(alag,stat=i_stat)
+     call memocc(i_stat,i_all,'alag','orthoconstraint_p')
  
       call timing(iproc,'LagrM_comput  ','OF')
 
@@ -3491,11 +3417,8 @@ END SUBROUTINE
 
       call timing(iproc,'LagrM_comput  ','ON')
 
-     allocate(alag(norb,norb,2),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' orthoconstraint: problem of memory allocation'
-        stop
-     end if
+     allocate(alag(norb,norb,2),stat=i_stat)
+     call memocc(i_stat,product(shape(alag))*kind(alag),'alag','orthoconstraint')
  
 !     alag(jorb,iorb,2)=+psi(k,jorb)*hpsi(k,iorb)
       call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,0.d0,alag(1,1,1),norb)
@@ -3508,11 +3431,9 @@ END SUBROUTINE
 ! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
       call DGEMM('N','N',nvctrp,norb,norb,-1.d0,psi,nvctrp,alag,norb,1.d0,hpsi,nvctrp)
 
-     deallocate(alag,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' orthoconstraint: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(alag))*kind(alag)
+     deallocate(alag,stat=i_stat)
+     call memocc(i_stat,i_all,'alag','orthoconstraint')
 
       call timing(iproc,'LagrM_comput  ','OF')
 
@@ -3814,11 +3735,8 @@ END SUBROUTINE
 
       else
 
-        allocate(ovrlp(norb,norb,2),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' orthon_p: problem of memory allocation'
-           stop
-        end if
+        allocate(ovrlp(norb,norb,2),stat=i_stat)
+        call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','orthon_p')
 
 ! Upper triangle of overlap matrix using BLAS
 !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; upper triangle
@@ -3847,11 +3765,9 @@ END SUBROUTINE
 ! new vectors   
       call DTRMM ('R', 'L', 'T', 'N', nvctrp, norb, 1.d0, ovrlp, norb, psit, nvctrp)
 
-        deallocate(ovrlp,stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' orthon_p: problem of memory deallocation'
-           stop
-        end if
+        i_all=-product(shape(ovrlp))*kind(ovrlp)
+        deallocate(ovrlp,stat=i_stat)
+        call memocc(i_stat,i_all,'ovrlp','orthon_p')
 
      end if
 
@@ -3877,11 +3793,8 @@ END SUBROUTINE
 
  else
 
-        allocate(ovrlp(norb,norb),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' orthon: problem of memory allocation'
-           stop
-        end if
+        allocate(ovrlp(norb,norb),stat=i_stat)
+        call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','orthon')
 
 ! Overlap matrix using BLAS
 !     ovrlp(iorb,jorb)=psi(k,iorb)*psi(k,jorb) ; upper triangle
@@ -3903,11 +3816,9 @@ END SUBROUTINE
 ! new vectors   
       call DTRMM ('R', 'L', 'T', 'N', nvctrp, norb, 1.d0, ovrlp, norb, psi, nvctrp)
 
-      deallocate(ovrlp,stat=i_all)
-      if (i_all /= 0) then
-         write(*,*)' orthon: problem of memory deallocation'
-         stop
-      end if
+      i_all=-product(shape(ovrlp))*kind(ovrlp)
+      deallocate(ovrlp,stat=i_stat)
+      call memocc(i_stat,i_all,'ovrlp','orthon')
 
  endif
 
@@ -3950,12 +3861,10 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
   call timing(iproc,'CrtDescriptors','ON')
 
   ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
-  allocate(logrid_c(0:n1,0:n2,0:n3),stat=i_all)
+  allocate(logrid_c(0:n1,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(logrid_c))*kind(logrid_c),'logrid_c','createwavefunctionsdescriptors')
   allocate(logrid_f(0:n1,0:n2,0:n3),stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' createwavefunctionsdescriptors: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(logrid_f))*kind(logrid_f),'logrid_f','createwavefunctionsdescriptors')
 
   ! coarse grid quantities
   call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
@@ -3984,12 +3893,10 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
   if (iproc.eq.0 .and. output_grid) close(22)
 
   ! allocations for arrays holding the wavefunctions and their data descriptors
-  allocate(keyg(2,nseg_c+nseg_f),stat=i_all)
+  allocate(keyg(2,nseg_c+nseg_f),stat=i_stat)
+  call memocc(i_stat,product(shape(keyg))*kind(keyg),'keyg','createwavefunctionsdescriptors')
   allocate(keyv(nseg_c+nseg_f),stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' createwavefunctionsdescriptors: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(keyv))*kind(keyv),'keyv','createwavefunctionsdescriptors')
 
   ! now fill the wavefunction descriptor arrays
   ! coarse grid quantities
@@ -3999,23 +3906,21 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
   call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,nseg_f,keyg(:,nseg_c+1:nseg_c+nseg_f), &
     & keyv(nseg_c+1:nseg_c+nseg_f))
 
-  deallocate(logrid_c,stat=i_all)
+  i_all=-product(shape(logrid_c))*kind(logrid_c)
+  deallocate(logrid_c,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid_c','createwavefunctionsdescriptors')
+  i_all=-product(shape(logrid_f))*kind(logrid_f)
   deallocate(logrid_f,stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' createwavefunctionsdescriptors: problem of memory deallocation'
-     stop
-  end if
+  call memocc(i_stat,i_all,'logrid_f','createwavefunctionsdescriptors')
 
 ! allocate wavefunction arrays
   tt=dble(norb)/dble(nproc)
   norbp=int((1.d0-eps_mach*tt) + tt)
   if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
-  allocate(psi(nvctr_c+7*nvctr_f,norbp),stat=i_all)
+  allocate(psi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+  call memocc(i_stat,product(shape(psi))*kind(psi),'psi','createwavefunctionsdescriptors')
   allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' createwavefunctionsdescriptors: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','createwavefunctionsdescriptors')
   norbme=max(min((iproc+1)*norbp,norb)-iproc*norbp,0)
   write(*,'(a,i0,a,i0,a)') '- iproc ',iproc,' treats ',norbme,' orbitals '
 
@@ -4023,29 +3928,21 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
   nvctrp=int((1.d0-eps_mach*tt) + tt)
   if (parallel) then
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psit ',nvctrp*norbp*nproc
-     allocate(psit(nvctrp,norbp*nproc),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' createwavefunctionsdescriptors: problem of memory allocation'
-        stop
-     end if
+     allocate(psit(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(psit))*kind(psit),'psit','createwavefunctionsdescriptors')
      if (iproc.eq.0) write(*,*) 'Allocation done'
   endif
 
 ! allocate arrays necessary for DIIS convergence acceleration
   if (idsx.gt.0) then
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psidst and hpsidst ',2*nvctrp*norbp*nproc*idsx
-     allocate(psidst(nvctrp,norbp*nproc,idsx),stat=i_all)
+     allocate(psidst(nvctrp,norbp*nproc,idsx),stat=i_stat)
+     call memocc(i_stat,product(shape(psidst))*kind(psidst),'psidst','createwavefunctionsdescriptors')
      allocate(hpsidst(nvctrp,norbp*nproc,idsx),stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' createwavefunctionsdescriptors: problem of memory allocation'
-        stop
-     end if
+     call memocc(i_stat,product(shape(hpsidst))*kind(hpsidst),'hpsidst','createwavefunctionsdescriptors')
      if (iproc.eq.0) write(*,*) 'Allocation done'
-     allocate(ads(idsx+1,idsx+1,3),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' createwavefunctionsdescriptors: problem of memory allocation'
-        stop
-     end if
+     allocate(ads(idsx+1,idsx+1,3),stat=i_stat)
+     call memocc(i_stat,product(shape(ads))*kind(ads),'ads','createwavefunctionsdescriptors')
      call razero(3*(idsx+1)**2,ads)
   endif
 
@@ -4072,11 +3969,8 @@ subroutine createKernel_old(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
         write(*,'(1x,a,3(1x,i0))') 'dimension of kernel',nfft1,nfft2,nfft3/nproc
         if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for kernel ',nfft1*nfft2*nfft3/nproc
      endif
-     allocate(pkernel(nfft1*nfft2*nfft3/nproc),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' createkernel_old: problem of memory allocation'
-        stop
-     end if
+     allocate(pkernel(nfft1*nfft2*nfft3/nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(pkernel))*kind(pkernel),'pkernel','createkernel_old')
      if (iproc.eq.0) write(*,*) 'Allocation done'
      call MPI_BARRIER(MPI_COMM_WORLD,ierr)
      call ParBuild_Kernel(2*n1+31,2*n2+31,2*n3+31,nf1,nf2,nf3,nfft1,nfft2,nfft3, &
@@ -4089,11 +3983,8 @@ subroutine createKernel_old(parallel, nfft1, nfft2, nfft3, n1, n2, n3, hgridh, &
      write(*,'(1x,a,3(1x,i0))') 'dimension of FFT grid',nfft1,nfft2,nfft3
      write(*,'(1x,a,3(1x,i0))') 'dimension of kernel',nfft1/2+1,nfft2/2+1,nfft3/2+1
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for kernel ',(nfft1/2+1)*(nfft2/2+1)*(nfft3/2+1)
-     allocate(pkernel((nfft1/2+1)*(nfft2/2+1)*(nfft3/2+1)),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' createkernel_old: problem of memory allocation'
-        stop
-     end if
+     allocate(pkernel((nfft1/2+1)*(nfft2/2+1)*(nfft3/2+1)),stat=i_stat)
+     call memocc(i_stat,product(shape(pkernel))*kind(pkernel),'pkernel','createkernel_old')
      if (iproc.eq.0) write(*,*) 'Allocation done'
      call Build_Kernel(2*n1+31,2*n2+31,2*n3+31,nfft1,nfft2,nfft3, &
           hgridh,ndegree_ip,pkernel)
@@ -4125,11 +4016,8 @@ END SUBROUTINE createKernel_old
     call timing(iproc,'CrtProjectors ','ON')
 
     ! determine localization region for all projectors, but do not yet fill the descriptor arrays
-    allocate(logrid(0:n1,0:n2,0:n3),stat=i_all)
-    if (i_all /= 0) then
-       write(*,*)' createprojectorsarrays: problem of memory allocation'
-       stop
-    end if
+    allocate(logrid(0:n1,0:n2,0:n3),stat=i_stat)
+    call memocc(i_stat,product(shape(logrid))*kind(logrid),'logrid','createprojectorsarrays')
 
     nseg_p(0)=0 
     nvctr_p(0)=0 
@@ -4184,19 +4072,14 @@ END SUBROUTINE createKernel_old
 
     if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'total number of projectors',nproj
     ! allocations for arrays holding the projectors and their data descriptors
-    allocate(keyg_p(2,nseg_p(2*nat)),stat=i_all)
+    allocate(keyg_p(2,nseg_p(2*nat)),stat=i_stat)
+    call memocc(i_stat,product(shape(keyg_p))*kind(keyg_p),'keyg_p','createprojectorsarrays')
     allocate(keyv_p(nseg_p(2*nat)),stat=i_stat)
-    if (i_all+i_stat /= 0) then
-       write(*,*)' createprojectorsarrays: problem of memory allocation'
-       stop
-    end if
+    call memocc(i_stat,product(shape(keyv_p))*kind(keyv_p),'keyv_p','createprojectorsarrays')
     nprojel=istart-1
     if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for proj ',nprojel
-    allocate(proj(nprojel),stat=i_all)
-    if (i_all /= 0) then
-       write(*,*)' createprojectorsarrays: problem of memory allocation'
-       stop
-    end if
+    allocate(proj(nprojel),stat=i_stat)
+    call memocc(i_stat,product(shape(proj))*kind(proj),'proj','createprojectorsarrays')
     if (iproc.eq.0) write(*,*) 'Allocation done'
 
 
@@ -4238,16 +4121,14 @@ END SUBROUTINE createKernel_old
 
     !allocate these vectors up to the maximum size we can get
     nterm_max=10 !if GTH nterm_max=3
-    allocate(fac_arr(nterm_max),stat=i_all)
+    allocate(fac_arr(nterm_max),stat=i_stat)
+    call memocc(i_stat,product(shape(fac_arr))*kind(fac_arr),'fac_arr','createprojectorsarrays')
     allocate(lx(nterm_max),stat=i_stat)
-    i_all=i_all+i_stat
+    call memocc(i_stat,product(shape(lx))*kind(lx),'lx','createprojectorsarrays')
     allocate(ly(nterm_max),stat=i_stat)
-    i_all=i_all+i_stat
+    call memocc(i_stat,product(shape(ly))*kind(ly),'ly','createprojectorsarrays')
     allocate(lz(nterm_max),stat=i_stat)
-    if (i_all+i_stat /= 0) then
-       write(*,*)' createprojectorsarrays: problem of memory allocation'
-       stop
-    end if
+    call memocc(i_stat,product(shape(lz))*kind(lz),'lz','createprojectorsarrays')
 
     iproj=0
     fpi=(4.d0*atan(1.d0))**(-.75d0)
@@ -4309,18 +4190,21 @@ END SUBROUTINE createKernel_old
     enddo
     if (iproj.ne.nproj) stop 'incorrect number of projectors created'
     ! projector part finished
-    deallocate(logrid,stat=i_all)
+    i_all=-product(shape(logrid))*kind(logrid)
+    deallocate(logrid,stat=i_stat)
+    call memocc(i_stat,i_all,'logrid','createprojectorsarrays')
+    i_all=-product(shape(fac_arr))*kind(fac_arr)
     deallocate(fac_arr,stat=i_stat)
-    i_all=i_all+i_stat
+    call memocc(i_stat,i_all,'fac_arr','createprojectorsarrays')
+    i_all=-product(shape(lx))*kind(lx)
     deallocate(lx,stat=i_stat)
-    i_all=i_all+i_stat
+    call memocc(i_stat,i_all,'lx','createprojectorsarrays')
+    i_all=-product(shape(ly))*kind(ly)
     deallocate(ly,stat=i_stat)
-    i_all=i_all+i_stat
+    call memocc(i_stat,i_all,'ly','createprojectorsarrays')
+    i_all=-product(shape(lz))*kind(lz)
     deallocate(lz,stat=i_stat)
-    if (i_all+i_stat /= 0) then
-       write(*,*)' createprojectorsarrays: problem of memory deallocation'
-       stop
-    end if
+    call memocc(i_stat,i_all,'lz','createprojectorsarrays')
   call timing(iproc,'CrtProjectors ','OF')
 
 END SUBROUTINE 
@@ -4982,12 +4866,10 @@ END SUBROUTINE calc_coeff_inguess
 
  if (norb.eq.1) stop 'more than one orbital needed for a parallel run'
 
-        allocate(ovrlp(norb,norb,3),stat=i_all)
+        allocate(ovrlp(norb,norb,3),stat=i_stat)
+        call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','loewe_p')
         allocate(evall(norb),stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' loewe_p: problem of memory allocation'
-           stop
-        end if
+        call memocc(i_stat,product(shape(evall))*kind(evall),'evall','loewe_p')
 
 ! Upper triangle of overlap matrix using BLAS
 !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; upper triangle
@@ -5029,27 +4911,22 @@ END SUBROUTINE calc_coeff_inguess
 ! BLAS:
         call DGEMM('N','T',norb,norb,norb,1.d0,ovrlp(1,1,1),norb,ovrlp(1,1,2),norb,0.d0,ovrlp(1,1,3),norb)
 
-        allocate(psitt(nvctrp,norbp*nproc),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' loewe_p: problem of memory allocation'
-           stop
-        end if
+        allocate(psitt(nvctrp,norbp*nproc),stat=i_stat)
+        call memocc(i_stat,product(shape(psitt))*kind(psitt),'psitt','loewe_p')
 ! new eigenvectors
 !   psitt(i,iorb)=psit(i,jorb)*ovrlp(jorb,iorb,3)
       call DGEMM('N','N',nvctrp,norb,norb,1.d0,psit,nvctrp,ovrlp(1,1,3),norb,0.d0,psitt,nvctrp)
       call DCOPY(nvctrp*norbp*nproc,psitt,1,psit,1)
-      deallocate(psitt,stat=i_all)
-      if (i_all /= 0) then
-         write(*,*)' loewe_p: problem of memory deallocation'
-         stop
-      end if
+      i_all=-product(shape(psitt))*kind(psitt)
+      deallocate(psitt,stat=i_stat)
+      call memocc(i_stat,i_all,'psitt','loewe_p')
 
-        deallocate(ovrlp,stat=i_all)
+        i_all=-product(shape(ovrlp))*kind(ovrlp)
+        deallocate(ovrlp,stat=i_stat)
+        call memocc(i_stat,i_all,'ovrlp','loewe_p')
+        i_all=-product(shape(evall))*kind(evall)
         deallocate(evall,stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' loewe_p: problem of memory deallocation'
-           stop
-        end if
+        call memocc(i_stat,i_all,'evall','loewe_p')
 
         END SUBROUTINE
 
@@ -5073,12 +4950,10 @@ END SUBROUTINE calc_coeff_inguess
 
  else
 
-        allocate(ovrlp(norb,norb,3),stat=i_all)
+        allocate(ovrlp(norb,norb,3),stat=i_stat)
+        call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','loewe')
         allocate(evall(norb),stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' loewe: problem of memory allocation'
-           stop
-        end if
+        call memocc(i_stat,product(shape(evall))*kind(evall),'evall','loewe')
 
 ! Overlap matrix using BLAS
 !     ovrlp(iorb,jorb)=psi(k,iorb)*psi(k,jorb) ; upper triangle
@@ -5114,26 +4989,21 @@ END SUBROUTINE calc_coeff_inguess
         call DGEMM('N','T',norb,norb,norb,1.d0,ovrlp(1,1,1),norb,ovrlp(1,1,2),norb,0.d0,ovrlp(1,1,3),norb)
 
 ! new eigenvectors
-      allocate(tpsi(nvctrp,norb),stat=i_all)
-      if (i_all /= 0) then
-         write(*,*)' loewe: problem of memory allocation'
-         stop
-      end if
+      allocate(tpsi(nvctrp,norb),stat=i_stat)
+      call memocc(i_stat,product(shape(tpsi))*kind(tpsi),'tpsi','loewe')
 !   tpsi(i,iorb)=psi(i,jorb)*ovrlp(jorb,iorb,3)
       call DGEMM('N','N',nvctrp,norb,norb,1.d0,psi,nvctrp,ovrlp(1,1,3),norb,0.d0,tpsi,nvctrp)
       call DCOPY(nvctrp*norb,tpsi,1,psi,1)
-      deallocate(tpsi,stat=i_all)
-      if (i_all /= 0) then
-         write(*,*)' loewe: problem of memory deallocation'
-         stop
-      end if
+      i_all=-product(shape(tpsi))*kind(tpsi)
+      deallocate(tpsi,stat=i_stat)
+      call memocc(i_stat,i_all,'tpsi','loewe')
 
-        deallocate(ovrlp,stat=i_all)
+        i_all=-product(shape(ovrlp))*kind(ovrlp)
+        deallocate(ovrlp,stat=i_stat)
+        call memocc(i_stat,i_all,'ovrlp','loewe')
+        i_all=-product(shape(evall))*kind(evall)
         deallocate(evall,stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' loewe: problem of memory deallocation'
-           stop
-        end if
+        call memocc(i_stat,i_all,'evall','loewe')
 
  endif
 
@@ -5146,11 +5016,8 @@ END SUBROUTINE calc_coeff_inguess
         real*8, allocatable :: ovrlp(:,:,:)
         include 'mpif.h'
 
-        allocate(ovrlp(norb,norb,2),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' checkortho_p: problem of memory allocation'
-           stop
-        end if
+        allocate(ovrlp(norb,norb,2),stat=i_stat)
+        call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','checkortho_p')
 
      do 100,iorb=1,norb
         do 100,jorb=1,norb
@@ -5175,11 +5042,9 @@ END SUBROUTINE calc_coeff_inguess
 
         if (dev.gt.1.d-10) write(*,'(1x,a,i0,1pe13.5)') 'Deviation from orthogonality ',iproc,dev
 
-        deallocate(ovrlp,stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' checkortho_p: problem of memory deallocation'
-           stop
-        end if
+        i_all=-product(shape(ovrlp))*kind(ovrlp)
+        deallocate(ovrlp,stat=i_stat)
+        call memocc(i_stat,i_all,'ovrlp','checkortho_p')
 
         return
         END SUBROUTINE
@@ -5190,11 +5055,8 @@ END SUBROUTINE calc_coeff_inguess
         dimension psi(nvctrp,norbp)
         real*8, allocatable :: ovrlp(:,:,:)
 
-        allocate(ovrlp(norb,norb,1),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' checkortho: problem of memory allocation'
-           stop
-        end if
+        allocate(ovrlp(norb,norb,1),stat=i_stat)
+        call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','checkortho')
 
      do iorb=1,norb
      do jorb=1,norb
@@ -5217,11 +5079,9 @@ END SUBROUTINE calc_coeff_inguess
 
         if (dev.gt.1.d-10) write(*,'(1x,a,i0,1pe13.5)') 'Deviation from orthogonality ',0,dev
 
-        deallocate(ovrlp,stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' checkortho: problem of memory deallocation'
-           stop
-        end if
+        i_all=-product(shape(ovrlp))*kind(ovrlp)
+        deallocate(ovrlp,stat=i_stat)
+        call memocc(i_stat,i_all,'ovrlp','checkortho')
 
 
         return
@@ -5423,7 +5283,7 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
   real*8, intent(out) :: psi(nvctr_c + 7 * nvctr_f, norbep), occupe(norbe)
   integer, parameter :: nterm_max=3
 
-  integer :: iatsc,iorbsc,iorbv,inorbsc,ipow,lsc,i_all
+  integer :: iatsc,iorbsc,iorbv,inorbsc,ipow,lsc,i_all,i_stat
   real*8 :: sccode
   integer :: lx(nterm_max),ly(nterm_max),lz(nterm_max)
   real*8 :: fac_arr(nterm_max)
@@ -5431,11 +5291,8 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
   real*8 :: rx, ry, rz, ek, scpr
   logical, dimension(:), allocatable :: semicore
 
-  allocate(semicore(4),stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' createAtomicOrbitals: problem of memory allocation'
-     stop
-  end if
+  allocate(semicore(4),stat=i_stat)
+  call memocc(i_stat,product(shape(semicore))*kind(semicore),'semicore','createatomicorbitals')
   
 
   eks=0.d0
@@ -5526,11 +5383,9 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
   if (iorbv /= norbe) stop 'createAtomic orbitals: error (iorbv)'
   if (iatsc /= natsc) stop 'createAtomic orbitals: error (iatsc)'
 
-  deallocate(semicore,stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' createAtomicOrbitals: problem of memory deallocation'
-     stop
-  end if
+  i_all=-product(shape(semicore))*kind(semicore)
+  deallocate(semicore,stat=i_stat)
+  call memocc(i_stat,i_all,'semicore','createatomicorbitals')
 
 END SUBROUTINE createAtomicOrbitals
 
@@ -5575,12 +5430,10 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   logical, allocatable :: scorb(:,:)
   include 'mpif.h'
 
-  allocate(scorb(4,natsc),stat=i_all)
+  allocate(scorb(4,natsc),stat=i_stat)
+  call memocc(i_stat,product(shape(scorb))*kind(scorb),'scorb','input_wf_diag')
   allocate(norbsc_arr(natsc+1),stat=i_stat)
-  if (i_all +i_stat /= 0) then
-     write(*,*)' input_wf_diag: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(norbsc_arr))*kind(norbsc_arr),'norbsc_arr','input_wf_diag')
 
 
   ! Read the inguess.dat file.
@@ -5588,21 +5441,16 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,norbsc_arr)
 
   !  allocate wavefunctions and their occupation numbers
-  allocate(occupe(norbe),stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' input_wf_diag: problem of memory allocation'
-     stop
-  end if
+  allocate(occupe(norbe),stat=i_stat)
+  call memocc(i_stat,product(shape(occupe))*kind(occupe),'occupe','input_wf_diag')
   tt=dble(norbe)/dble(nproc)
   norbep=int((1.d0-eps_mach*tt) + tt)
   if (iproc.eq.0) write(*,'(1x,a,i10)') 'Allocate words for (h)psi inguess ',2*(nvctr_c+7*nvctr_f)*norbep
 
-  allocate(psi(nvctr_c+7*nvctr_f,norbep),stat=i_all)
+  allocate(psi(nvctr_c+7*nvctr_f,norbep),stat=i_stat)
+  call memocc(i_stat,product(shape(psi))*kind(psi),'psi','input_wf_diag')
   allocate(hpsi(nvctr_c+7*nvctr_f,norbep),stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' input_wf_diag: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
 
   if (iproc.eq.0) write(*,*) 'Allocation done'
   norbeme=max(min((iproc+1)*norbep,norbe)-iproc*norbep,0)
@@ -5622,10 +5470,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !!$     allocate(iasctype(1,natsc),stat=i_all)
 !!$     iasctype(1,1)=0
 !!$  end if
-!!$  if (i_all /= 0) then
-!!$     write(*,*)' input_wf_diag: problem of memory allocation'
-!!$     stop
-!!$  end if
 !!$
 !!$  !the Gallium is the first atom in posinp
 !!$  iasctype(1,1)=1
@@ -5638,11 +5482,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        & nvctr_c,nvctr_f,n1,n2,n3,hgrid,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        & nseg_c,nseg_f,keyg,keyv,iatype,ntypes,iasctype,natsc,psi,eks,scorb)
 
-  deallocate(scorb,stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' input_wf_diag: problem of memory deallocation'
-     stop
-  end if
+  i_all=-product(shape(scorb))*kind(scorb)
+  deallocate(scorb,stat=i_stat)
+  call memocc(i_stat,i_all,'scorb','input_wf_diag')
 
   ! resulting charge density and potential
   if (datacode=='G') then
@@ -5672,11 +5514,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   if (datacode=='D') then
      !allocate full potential
-     allocate(pot((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' input_wf_diag: problem of memory allocation'
-        stop
-     end if
+     allocate(pot((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','input_wf_diag')
 
      call timing(iproc,'ApplyLocPotKin','ON')
 
@@ -5693,11 +5532,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           psi,pot,hpsi,epot_sum,ekin_sum)
 
-     deallocate(pot,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' input_wf_diag: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(pot))*kind(pot)
+     deallocate(pot,stat=i_stat)
+     call memocc(i_stat,i_all,'pot','input_wf_diag')
 
   else
 
@@ -5739,63 +5576,45 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      !transpose all the wavefunctions for having a piece of all the orbitals 
      !for each processor
      call timing(iproc,'Un-Transall   ','ON')
-     allocate(psiw(nvctrp,norbep,nproc),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' diag_wf: problem of memory allocation'
-        stop
-     end if
+     allocate(psiw(nvctrp,norbep,nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','input_wf_diag')
 
      !call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psit)
 
      call switch_waves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psiw)
 
-     deallocate(psi,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' input_wf_diag: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(psi))*kind(psi)
+     deallocate(psi,stat=i_stat)
+     call memocc(i_stat,i_all,'psi','input_wf_diag')
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psit inguess ',nvctrp*norbep*nproc
-     allocate(psit(nvctrp,norbep*nproc),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' diag_wf: problem of memory allocation'
-        stop
-     end if
+     allocate(psit(nvctrp,norbep*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(psit))*kind(psit),'psit','input_wf_diag')
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
      call MPI_ALLTOALL(psiw,nvctrp*norbep,MPI_DOUBLE_PRECISION,  &
           psit,nvctrp*norbep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
 
-     deallocate(psiw,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' input_wf_diag: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(psiw))*kind(psiw)
+     deallocate(psiw,stat=i_stat)
+     call memocc(i_stat,i_all,'psiw','input_wf_diag')
      call timing(iproc,'Un-Transall   ','OF')
 
 
      if (iproc.eq.0) write(*,'(1x,a,i0)')&
           'Allocate words for hpsit inguess',2*nvctrp*norbep*nproc
-     allocate(hpsit(nvctrp,norbep*nproc),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' diag_wf: problem of memory allocation'
-        stop
-     end if
+     allocate(hpsit(nvctrp,norbep*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(hpsit))*kind(hpsit),'hpsit','input_wf_diag')
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
      call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
 
-     deallocate(hpsi,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' input_wf_diag: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(hpsi))*kind(hpsi)
+     deallocate(hpsi,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsi','input_wf_diag')
      !end of transposition
 
-     allocate(hamovr(ndim_hamovr,4),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' diag_wf: problem of memory allocation'
-        stop
-     end if
+     allocate(hamovr(ndim_hamovr,4),stat=i_stat)
+     call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','input_wf_diag')
 
      !calculate the overlap matrix for each group of the semicore atoms
 !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
@@ -5815,11 +5634,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,hpsit(1,iorbst),nvctrp,&
           0.d0,hamovr(imatrst,3),norbi)
 
-     deallocate(hpsit,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' diag_wf: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(hpsit))*kind(hpsit)
+     deallocate(hpsit,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsit','input_wf_diag')
 
      call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,psit(1,iorbst),nvctrp,&
           0.d0,hamovr(imatrst,4),norbi)
@@ -5830,12 +5647,10 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
      !found the eigenfunctions for each group
      n_lp=max(10,4*norbi_max)
-     allocate(work_lp(n_lp),stat=i_all)
+     allocate(work_lp(n_lp),stat=i_stat)
+     call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','input_wf_diag')
      allocate(evale(norbi_max),stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' diag_wf: problem of memory allocation'
-        stop
-     end if
+     call memocc(i_stat,product(shape(evale))*kind(evale),'evale','input_wf_diag')
      
      iorbst=1
      imatrst=1
@@ -5871,19 +5686,16 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         imatrst=imatrst+norbi**2
      end do
 
-     deallocate(work_lp,stat=i_all)
+     i_all=-product(shape(work_lp))*kind(work_lp)
+     deallocate(work_lp,stat=i_stat)
+     call memocc(i_stat,i_all,'work_lp','input_wf_diag')
+     i_all=-product(shape(evale))*kind(evale)
      deallocate(evale,stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' diag_wf: problem of memory deallocation'
-        stop
-     end if
+     call memocc(i_stat,i_all,'evale','input_wf_diag')
 
      if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for ppsit ',nvctrp*norbp*nproc
-     allocate(ppsit(nvctrp,norbp*nproc),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' diag_wf: problem of memory allocation'
-        stop
-     end if
+     allocate(ppsit(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(ppsit))*kind(ppsit),'ppsit','input_wf_diag')
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
      !perform the vector-matrix multiplication for building the input wavefunctions
@@ -5902,33 +5714,29 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      call DGEMM('N','N',nvctrp,norbj,norbi,1.d0,psit(1,iorbst),nvctrp,&
           hamovr(imatrst,1),norbi,0.d0,ppsit(1,iorbst),nvctrp)
 
-     deallocate(psit,stat=i_all)
+     i_all=-product(shape(psit))*kind(psit)
+     deallocate(psit,stat=i_stat)
+     call memocc(i_stat,i_all,'psit','input_wf_diag')
+     i_all=-product(shape(hamovr))*kind(hamovr)
      deallocate(hamovr,stat=i_stat)
-     i_all=i_all+i_stat
+     call memocc(i_stat,i_all,'hamovr','input_wf_diag')
+     i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
      deallocate(norbsc_arr,stat=i_stat)
-     if (i_all +i_stat /= 0) then
-        write(*,*)' diag_wf: problem of memory deallocation'
-        stop
-     end if
+     call memocc(i_stat,i_all,'norbsc_arr','input_wf_diag')
      
      !retranspose the wavefunctions
      call untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,ppsit,ppsi)
 
-     deallocate(ppsit,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' diag_wf: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(ppsit))*kind(ppsit)
+     deallocate(ppsit,stat=i_stat)
+     call memocc(i_stat,i_all,'ppsit','input_wf_diag')
      
      !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   else !serial case
 
-     allocate(hamovr(ndim_hamovr,4),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' diag_wf: problem of memory allocation'
-        stop
-     end if
+     allocate(hamovr(ndim_hamovr,4),stat=i_stat)
+     call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','input_wf_diag')
      !hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
      iorbst=1
      imatrst=1
@@ -5942,20 +5750,16 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         imatrst=imatrst+norbi**2
      end do
 
-     deallocate(hpsi,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' input_wf_diag: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(hpsi))*kind(hpsi)
+     deallocate(hpsi,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsi','input_wf_diag')
 
 
      n_lp=max(10,4*norbi_max)
-     allocate(work_lp(n_lp),stat=i_all)
+     allocate(work_lp(n_lp),stat=i_stat)
+     call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','input_wf_diag')
      allocate(evale(norbe),stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' diag_wf: problem of memory allocation'
-        stop
-     end if
+     call memocc(i_stat,product(shape(evale))*kind(evale),'evale','input_wf_diag')
      iorbst=1
      imatrst=1
      do i=1,natsc+1
@@ -5975,12 +5779,12 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         iorbst=iorbst+norbi
         imatrst=imatrst+norbi**2
      end do
-     deallocate(work_lp,stat=i_all)
+     i_all=-product(shape(work_lp))*kind(work_lp)
+     deallocate(work_lp,stat=i_stat)
+     call memocc(i_stat,i_all,'work_lp','input_wf_diag')
+     i_all=-product(shape(evale))*kind(evale)
      deallocate(evale,stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' diag_wf: problem of memory deallocation'
-        stop
-     end if
+     call memocc(i_stat,i_all,'evale','input_wf_diag')
 
      !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
      iorbst=1
@@ -5999,13 +5803,15 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      call DGEMM('N','N',nvctrp,norbj,norbi,1.d0,psi(1,iorbst),nvctrp,&
           hamovr(imatrst,1),norbi,0.d0,ppsi(1,iorbst),nvctrp)
 
-     deallocate(psi,stat=i_all)
+     i_all=-product(shape(psi))*kind(psi)
+     deallocate(psi,stat=i_stat)
+     call memocc(i_stat,i_all,'psi','input_wf_diag')
+     i_all=-product(shape(hamovr))*kind(hamovr)
      deallocate(hamovr,stat=i_stat)
+     call memocc(i_stat,i_all,'hamovr','input_wf_diag')
+     i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
      deallocate(norbsc_arr,stat=i_stat)
-     if (i_all + i_stat /= 0) then
-        write(*,*)' diag_wf: problem of memory deallocation'
-        stop
-     end if
+     call memocc(i_stat,i_all,'norbsc_arr','input_wf_diag')
 
 
   endif
@@ -6015,26 +5821,14 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !!$  if (parallel) then
 !!$     if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psit inguess ',nvctrp*norbep*nproc
 !!$     allocate(psit(nvctrp,norbep*nproc),stat=i_all)
-!!$     if (i_all /= 0) then
-!!$        write(*,*)' input_wf_diag: problem of memory allocation'
-!!$        stop
-!!$     end if
 !!$     if (iproc.eq.0) write(*,*) 'Allocation done'
 !!$
 !!$     call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psit) !psi,hpsi,psit, overwrite psi
 !!$
 !!$     deallocate(psi,stat=i_all)
-!!$     if (i_all /= 0) then
-!!$        write(*,*)' input_wf_diag: problem of memory deallocation'
-!!$        stop
-!!$     end if
 !!$
 !!$     if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for hpsit inguess ',2*nvctrp*norbep*nproc
 !!$     allocate(hpsit(nvctrp,norbep*nproc),stat=i_all)
-!!$     if (i_all /= 0) then
-!!$        write(*,*)' input_wf_diag: problem of memory allocation'
-!!$        stop
-!!$     end if
 !!$     if (iproc.eq.0) write(*,*) 'Allocation done'
 !!$
 !!$     if (allocated(psit)) write(*,*) 'INGUESS, trans2: ALLOC psit'
@@ -6044,10 +5838,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !!$     call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit) !hpsi,psit,hpsit, overwrite hpsi
 !!$
 !!$     deallocate(hpsi,stat=i_all)
-!!$     if (i_all /= 0) then
-!!$        write(*,*)' input_wf_diag: problem of memory deallocation'
-!!$        stop
-!!$     end if
 !!$
 !!$     !from here we can implement the different treatment of the semicore electrons
 !!$     !let us imagine to have only one semicore atom with 
@@ -6055,10 +5845,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !!$
 !!$     ! set up subspace Hamiltonian 
 !!$     allocate(hamovr(norbe,norbe,4,natsc+1),stat=i_all)
-!!$     if (i_all /= 0) then
-!!$        write(*,*)' input_wf_diag: problem of memory allocation'
-!!$        stop
-!!$     end if
 !!$
 !!$     do i=1,natsc+1
 !!$        if (i==1) then
@@ -6077,10 +5863,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !!$     end do
 !!$
 !!$     deallocate(hpsit,stat=i_all)
-!!$     if (i_all /= 0) then
-!!$        write(*,*)' input_wf_diag: problem of memory deallocation'
-!!$        stop
-!!$     end if
 !!$
 !!$     do i=1,natsc+1
 !!$        if (i==1) then
@@ -6101,10 +5883,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !!$        n_lp=max(10,4*norbi)
 !!$        allocate(work_lp(n_lp),stat=i_all)
 !!$        allocate(evale(norbi),stat=i_stat)
-!!$        if (i_all+i_stat /= 0) then
-!!$           write(*,*)' input_wf_diag: problem of memory allocation'
-!!$           stop
-!!$        end if
 !!$        call DSYGV(1,'V','U',norbi,hamovr(1,1,1,i),norbi,hamovr(1,1,2,i),norbi,&
 !!$             evale,work_lp,n_lp,info)
 !!$        if (info.ne.0) write(*,*) 'DSYGV ERROR',info
@@ -6129,18 +5907,10 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !!$        enddo
 !!$        deallocate(work_lp,stat=i_all)
 !!$        deallocate(evale,stat=i_stat)
-!!$        if (i_all+i_stat /= 0) then
-!!$           write(*,*)' input_wf_diag: problem of memory deallocation'
-!!$           stop
-!!$        end if
 !!$     end do
 !!$
 !!$     if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for ppsit ',nvctrp*norbp*nproc
 !!$     allocate(ppsit(nvctrp,norbp*nproc),stat=i_all)
-!!$     if (i_all /= 0) then
-!!$        write(*,*)' input_wf_diag: problem of memory allocation'
-!!$        stop
-!!$     end if
 !!$     if (iproc.eq.0) write(*,*) 'Allocation done'
 !!$
 !!$     do i=1,natsc+1
@@ -6162,20 +5932,12 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !!$     end do
 !!$
 !!$     deallocate(hamovr,stat=i_all)
-!!$     if (i_all /= 0) then
-!!$        write(*,*)' input_wf_diag: problem of memory deallocation'
-!!$        stop
-!!$     end if
 !!$
 !!$     !end of the linear algebra part
 !!$
 !!$     deallocate(psit,stat=i_all)
 !!$     call  untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,ppsit,ppsi)   !ppsi ppsit
 !!$     deallocate(ppsit,stat=i_stat)
-!!$     if (i_all+i_stat /= 0) then
-!!$        write(*,*)' input_wf_diag: problem of memory deallocation'
-!!$        stop
-!!$     end if
 !!$
 !!$     !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 !!$
@@ -6183,10 +5945,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !!$
 !!$     ! set up subspace Hamiltonian 
 !!$     allocate(hamovr(norbe,norbe,2,1),stat=i_all)
-!!$     if (i_all /= 0) then
-!!$        write(*,*)' input_wf_diag: problem of memory allocation'
-!!$        stop
-!!$     end if
 !!$
 !!$
 !!$     !       hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
@@ -6195,10 +5953,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !!$     call DGEMM('T','N',norbe,norbe,nvctrp,1.d0,psi,nvctrp, psi,nvctrp,0.d0,&
 !!$          hamovr(1,1,2,1),norbe)
 !!$     deallocate(hpsi,stat=i_all)
-!!$     if (i_all /= 0) then
-!!$        write(*,*)' input_wf_diag: problem of memory deallocation'
-!!$        stop
-!!$     end if
 !!$
 !!$     ! calculate  KS orbitals
 !!$     !        write(*,*) 'KS Hamiltonian'
@@ -6213,10 +5967,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !!$     n_lp=max(10,4*norbe)
 !!$     allocate(work_lp(n_lp),stat=i_all)
 !!$     allocate(evale(norbe),stat=i_stat)
-!!$     if (i_all+i_stat /= 0) then
-!!$        write(*,*)' input_wf_diag: problem of memory allocation'
-!!$        stop
-!!$     end if
 !!$     call  DSYGV(1,'V','U',norbe,hamovr(1,1,1,1),norbe,hamovr(1,1,2,1),norbe,evale, work_lp, n_lp, info )
 !!$     if (info.ne.0) write(*,*) 'DSYGV ERROR',info
 !!$     if (iproc.eq.0) then
@@ -6229,33 +5979,19 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !!$     enddo
 !!$     deallocate(work_lp,stat=i_all)
 !!$     deallocate(evale,stat=i_stat)
-!!$     if (i_all+i_stat /= 0) then
-!!$        write(*,*)' input_wf_diag: problem of memory deallocation'
-!!$        stop
-!!$     end if
 !!$
 !!$     ! ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
 !!$     call DGEMM('N','N',nvctrp,norb,norbe,1.d0,psi,nvctrp,hamovr,norbe,0.d0,ppsi,nvctrp)
 !!$
 !!$     deallocate(hamovr,stat=i_all)
-!!$     if (i_all /= 0) then
-!!$        write(*,*)' input_wf_diag: problem of memory deallocation'
-!!$        stop
-!!$     end if
 !!$
 !!$     deallocate(psi,stat=i_all)
-!!$     if (i_all /= 0) then
-!!$        write(*,*)' input_wf_diag: problem of memory deallocation'
-!!$        stop
-!!$     end if
 !!$
 !!$  endif
 
-  deallocate(occupe,stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' input_wf_diag: problem of memory deallocation'
-     stop
-  end if
+  i_all=-product(shape(occupe))*kind(occupe)
+  deallocate(occupe,stat=i_stat)
+  call memocc(i_stat,i_all,'occupe','input_wf_diag')
 
   return
 END SUBROUTINE
@@ -6291,31 +6027,22 @@ subroutine diag_wf(parallel,iproc,nproc,norb,norbp,norbe,norbep,natsc,norbsc_arr
      !transpose all the wavefunctions for having a piece of all the orbitals 
      !for each processor
      write(*,'(1x,a,i0)') 'Allocate words for psit inguess ',nvctrp*norbep*nproc
-     allocate(psit(nvctrp,norbep*nproc),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' diag_wf: problem of memory allocation'
-        stop
-     end if
+     allocate(psit(nvctrp,norbep*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(psit))*kind(psit),'psit','diag_wf')
      write(*,*) 'Allocation done'
 
      call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psit)
 
      write(*,'(1x,a,i0)') 'Allocate words for hpsit inguess',2*nvctrp*norbep*nproc
-     allocate(hpsit(nvctrp,norbep*nproc),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' diag_wf: problem of memory allocation'
-        stop
-     end if
+     allocate(hpsit(nvctrp,norbep*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(hpsit))*kind(hpsit),'hpsit','diag_wf')
      write(*,*) 'Allocation done'
 
      call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
      !end of transposition
 
-     allocate(hamovr(ndim_hamovr,4),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' diag_wf: problem of memory allocation'
-        stop
-     end if
+     allocate(hamovr(ndim_hamovr,4),stat=i_stat)
+     call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','diag_wf')
 
 
      !calculate the overlap matrix for each group of the semicore atoms
@@ -6336,11 +6063,9 @@ subroutine diag_wf(parallel,iproc,nproc,norb,norbp,norbe,norbep,natsc,norbsc_arr
      call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,hpsit(1,iorbst),nvctrp,&
           0.d0,hamovr(imatrst,3),norbi)
 
-     deallocate(hpsit,stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' diag_wf: problem of memory deallocation'
-        stop
-     end if
+     i_all=-product(shape(hpsit))*kind(hpsit)
+     deallocate(hpsit,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsit','diag_wf')
 
      call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,psit(1,iorbst),nvctrp,&
           0.d0,hamovr(imatrst,4),norbi)
@@ -6351,12 +6076,10 @@ subroutine diag_wf(parallel,iproc,nproc,norb,norbp,norbe,norbep,natsc,norbsc_arr
 
      !found the eigenfunctions for each group
      n_lp=max(10,4*norbi_max)
-     allocate(work_lp(n_lp),stat=i_all)
+     allocate(work_lp(n_lp),stat=i_stat)
+     call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','diag_wf')
      allocate(evale(norbe),stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' diag_wf: problem of memory allocation'
-        stop
-     end if
+     call memocc(i_stat,product(shape(evale))*kind(evale),'evale','diag_wf')
      
      iorbst=1
      imatrst=1
@@ -6378,19 +6101,16 @@ subroutine diag_wf(parallel,iproc,nproc,norb,norbp,norbe,norbep,natsc,norbsc_arr
         imatrst=imatrst+norbi**2
      end do
 
-     deallocate(work_lp,stat=i_all)
+     i_all=-product(shape(work_lp))*kind(work_lp)
+     deallocate(work_lp,stat=i_stat)
+     call memocc(i_stat,i_all,'work_lp','diag_wf')
+     i_all=-product(shape(evale))*kind(evale)
      deallocate(evale,stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' diag_wf: problem of memory deallocation'
-        stop
-     end if
+     call memocc(i_stat,i_all,'evale','diag_wf')
 
      write(*,'(1x,a,i0)') 'Allocate words for ppsit ',nvctrp*norbp*nproc
-     allocate(ppsit(nvctrp,norbp*nproc),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' diag_wf: problem of memory allocation'
-        stop
-     end if
+     allocate(ppsit(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(ppsit))*kind(ppsit),'ppsit','diag_wf')
      write(*,*) 'Allocation done'
 
      !perform the vector-matrix multiplication for building the input wavefunctions
@@ -6414,22 +6134,19 @@ subroutine diag_wf(parallel,iproc,nproc,norb,norbp,norbe,norbep,natsc,norbsc_arr
      !retranspose the wavefunctions
      call untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,ppsit,ppsi)
 
-     deallocate(psit,stat=i_all)
+     i_all=-product(shape(psit))*kind(psit)
+     deallocate(psit,stat=i_stat)
+     call memocc(i_stat,i_all,'psit','diag_wf')
+     i_all=-product(shape(ppsit))*kind(ppsit)
      deallocate(ppsit,stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' diag_wf: problem of memory deallocation'
-        stop
-     end if
+     call memocc(i_stat,i_all,'ppsit','diag_wf')
      
      !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   else !serial case
 
-     allocate(hamovr(ndim_hamovr,2),stat=i_all)
-     if (i_all /= 0) then
-        write(*,*)' diag_wf: problem of memory allocation'
-        stop
-     end if
+     allocate(hamovr(ndim_hamovr,2),stat=i_stat)
+     call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','diag_wf')
      !hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
      iorbst=1
      imatrst=1
@@ -6444,12 +6161,10 @@ subroutine diag_wf(parallel,iproc,nproc,norb,norbp,norbe,norbep,natsc,norbsc_arr
      end do
 
      n_lp=max(10,4*norbi_max)
-     allocate(work_lp(n_lp),stat=i_all)
+     allocate(work_lp(n_lp),stat=i_stat)
+     call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','diag_wf')
      allocate(evale(norbe),stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' diag_wf: problem of memory allocation'
-        stop
-     end if
+     call memocc(i_stat,product(shape(evale))*kind(evale),'evale','diag_wf')
      iorbst=1
      imatrst=1
      do i=1,natsc+1
@@ -6469,12 +6184,12 @@ subroutine diag_wf(parallel,iproc,nproc,norb,norbp,norbe,norbep,natsc,norbsc_arr
         iorbst=iorbst+norbi
         imatrst=imatrst+norbi**2
      end do
-     deallocate(work_lp,stat=i_all)
+     i_all=-product(shape(work_lp))*kind(work_lp)
+     deallocate(work_lp,stat=i_stat)
+     call memocc(i_stat,i_all,'work_lp','diag_wf')
+     i_all=-product(shape(evale))*kind(evale)
      deallocate(evale,stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' diag_wf: problem of memory deallocation'
-        stop
-     end if
+     call memocc(i_stat,i_all,'evale','diag_wf')
 
      !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
      iorbst=1
@@ -6494,11 +6209,9 @@ subroutine diag_wf(parallel,iproc,nproc,norb,norbp,norbe,norbep,natsc,norbsc_arr
           hamovr(imatrst,1),norbi,0.d0,ppsi(1,iorbst),nvctrp)
 
   endif
-  deallocate(hamovr,stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' diag_wf: problem of memory deallocation'
-     stop
-  end if
+  i_all=-product(shape(hamovr))*kind(hamovr)
+  deallocate(hamovr,stat=i_stat)
+  call memocc(i_stat,i_all,'hamovr','diag_wf')
 END SUBROUTINE
 
 
@@ -6530,11 +6243,8 @@ end function myorbital
         include 'mpif.h'
 
 ! set up Hamiltonian matrix
-        allocate(hamks(norb,norb,2),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' kstrans_p: problem of memory allocation'
-           stop
-        end if
+        allocate(hamks(norb,norb,2),stat=i_stat)
+        call memocc(i_stat,product(shape(hamks))*kind(hamks),'hamks','kstrans_p')
         do jorb=1,norb
         do iorb=1,norb
         hamks(iorb,jorb,2)=0.d0
@@ -6556,29 +6266,21 @@ end function myorbital
 !        enddo
 
         n_lp=max(4*norb,1000)
-        allocate(work_lp(n_lp),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' kstrans_p: problem of memory allocation'
-           stop
-        end if
+        allocate(work_lp(n_lp),stat=i_stat)
+        call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','kstrans_p')
         call  DSYEV('V','U',norb,hamks,norb,eval, work_lp, n_lp, info )
         evsum=0.d0
         do iorb=1,norb
         evsum=evsum+eval(iorb)*occup(iorb)
         if (iproc.eq.0) write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
         enddo
-        deallocate(work_lp,stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' kstrans_p: problem of memory deallocation'
-           stop
-        end if
+        i_all=-product(shape(work_lp))*kind(work_lp)
+        deallocate(work_lp,stat=i_stat)
+        call memocc(i_stat,i_all,'work_lp','kstrans_p')
         if (info.ne.0) write(*,*) 'DSYEV ERROR',info
 
-        allocate(psitt(nvctrp,norbp*nproc),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' kstrans_p: problem of memory allocation'
-           stop
-        end if
+        allocate(psitt(nvctrp,norbp*nproc),stat=i_stat)
+        call memocc(i_stat,product(shape(psitt))*kind(psitt),'psitt','kstrans_p')
 ! Transform to KS orbitals
       do iorb=1,norb
         call razero(nvctrp,psitt(1,iorb))
@@ -6587,18 +6289,14 @@ end function myorbital
         call daxpy(nvctrp,alpha,psit(1,jorb),1,psitt(1,iorb),1)
         enddo
       enddo
-        deallocate(hamks,stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' kstrans_p: problem of memory deallocation'
-           stop
-        end if
+        i_all=-product(shape(hamks))*kind(hamks)
+        deallocate(hamks,stat=i_stat)
+        call memocc(i_stat,i_all,'hamks','kstrans_p')
 
         call DCOPY(nvctrp*norbp*nproc,psitt,1,psit,1)
-        deallocate(psitt,stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' kstrans_p: problem of memory deallocation'
-           stop
-        end if
+        i_all=-product(shape(psitt))*kind(psitt)
+        deallocate(psitt,stat=i_stat)
+        call memocc(i_stat,i_all,'psitt','kstrans_p')
 
     return
         END SUBROUTINE
@@ -6615,11 +6313,8 @@ end function myorbital
         allocatable :: hamks(:,:,:),work_lp(:),psitt(:,:)
 
 ! set up Hamiltonian matrix
-        allocate(hamks(norb,norb,2),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' kstrans: problem of memory allocation'
-           stop
-        end if
+        allocate(hamks(norb,norb,2),stat=i_stat)
+        call memocc(i_stat,product(shape(hamks))*kind(hamks),'hamks','kstrans')
         do jorb=1,norb
         do iorb=1,norb
         hamks(iorb,jorb,2)=0.d0
@@ -6639,29 +6334,21 @@ end function myorbital
 !        enddo
 
         n_lp=max(4*norb,1000)
-        allocate(work_lp(n_lp),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' kstrans: problem of memory allocation'
-           stop
-        end if
+        allocate(work_lp(n_lp),stat=i_stat)
+        call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','kstrans')
         call  DSYEV('V','U',norb,hamks,norb,eval, work_lp, n_lp, info )
         evsum=0.d0
         do iorb=1,norb
         evsum=evsum+eval(iorb)*occup(iorb)
         write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
         enddo
-        deallocate(work_lp,stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' kstrans: problem of memory deallocation'
-           stop
-        end if
+        i_all=-product(shape(work_lp))*kind(work_lp)
+        deallocate(work_lp,stat=i_stat)
+        call memocc(i_stat,i_all,'work_lp','kstrans')
         if (info.ne.0) write(*,*) 'DSYEV ERROR',info
 
-        allocate(psitt(nvctrp,norbp),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' kstrans: problem of memory allocation'
-           stop
-        end if
+        allocate(psitt(nvctrp,norbp),stat=i_stat)
+        call memocc(i_stat,product(shape(psitt))*kind(psitt),'psitt','kstrans')
 ! Transform to KS orbitals
       do iorb=1,norb
         call razero(nvctrp,psitt(1,iorb))
@@ -6670,18 +6357,14 @@ end function myorbital
         call daxpy(nvctrp,alpha,psi(1,jorb),1,psitt(1,iorb),1)
         enddo
       enddo
-        deallocate(hamks,stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' kstrans: problem of memory deallocation'
-           stop
-        end if
+        i_all=-product(shape(hamks))*kind(hamks)
+        deallocate(hamks,stat=i_stat)
+        call memocc(i_stat,i_all,'hamks','kstrans')
 
         call DCOPY(nvctrp*norbp,psitt,1,psi,1)
-        deallocate(psitt,stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' kstrans: problem of memory deallocation'
-           stop
-        end if
+        i_all=-product(shape(psitt))*kind(psitt)
+        deallocate(psitt,stat=i_stat)
+        call memocc(i_stat,i_all,'psitt','kstrans')
 
     return
         END SUBROUTINE
@@ -6703,20 +6386,18 @@ end function myorbital
         real*8, allocatable, dimension(:,:) :: work
         real*8, allocatable :: psig_c(:,:,:), psig_f(:,:,:,:)
 
-        allocate(wprojx(0:n1,2),stat=i_all)
+        allocate(wprojx(0:n1,2),stat=i_stat)
+        call memocc(i_stat,product(shape(wprojx))*kind(wprojx),'wprojx','crtonewave')
         allocate(wprojy(0:n2,2),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(wprojy))*kind(wprojy),'wprojy','crtonewave')
         allocate(wprojz(0:n3,2),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(wprojz))*kind(wprojz),'wprojz','crtonewave')
         allocate(work(0:nw,2),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(work))*kind(work),'work','crtonewave')
         allocate(psig_c(nl1_c:nu1_c,nl2_c:nu2_c,nl3_c:nu3_c),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(psig_c))*kind(psig_c),'psig_c','crtonewave')
         allocate(psig_f(7,nl1_f:nu1_f,nl2_f:nu2_f,nl3_f:nu3_f),stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' crtonewave: problem of memory allocation'
-           stop
-        end if
+        call memocc(i_stat,product(shape(psig_f))*kind(psig_f),'psig_f','crtonewave')
 
       iterm=1
       itp=1
@@ -6867,20 +6548,24 @@ end function myorbital
           enddo
         enddo
   
-          deallocate(wprojx,stat=i_all)
+          i_all=-product(shape(wprojx))*kind(wprojx)
+          deallocate(wprojx,stat=i_stat)
+          call memocc(i_stat,i_all,'wprojx','crtonewave')
+          i_all=-product(shape(wprojy))*kind(wprojy)
           deallocate(wprojy,stat=i_stat)
-          i_all=i_all+i_stat
+          call memocc(i_stat,i_all,'wprojy','crtonewave')
+          i_all=-product(shape(wprojz))*kind(wprojz)
           deallocate(wprojz,stat=i_stat)
-          i_all=i_all+i_stat
+          call memocc(i_stat,i_all,'wprojz','crtonewave')
+          i_all=-product(shape(work))*kind(work)
           deallocate(work,stat=i_stat)
-          i_all=i_all+i_stat
+          call memocc(i_stat,i_all,'work','crtonewave')
+          i_all=-product(shape(psig_c))*kind(psig_c)
           deallocate(psig_c,stat=i_stat)
-          i_all=i_all+i_stat
+          call memocc(i_stat,i_all,'psig_c','crtonewave')
+          i_all=-product(shape(psig_f))*kind(psig_f)
           deallocate(psig_f,stat=i_stat)
-          if (i_all+i_stat /= 0) then
-             write(*,*)' crtonewave: problem of memory deallocation'
-             stop
-          end if
+          call memocc(i_stat,i_all,'psig_f','crtonewave')
 
     return
     END SUBROUTINE
@@ -6899,11 +6584,8 @@ end function myorbital
 
    allocatable :: psifscf(:,:,:), psigold(:,:,:,:,:,:)
 
-   allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8),stat=i_all)
-   if (i_all /= 0) then
-      write(*,*)' reformatmywaves: problem of memory allocation'
-      stop
-   end if
+   allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8),stat=i_stat)
+   call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','reformatmywaves')
 
 ! calculate center of molecule
         c1=0.d0 ; c2=0.d0 ; c3=0.d0
@@ -6955,11 +6637,8 @@ end function myorbital
            write(*,*) 'molecule was shifted' 
          endif
 
-         allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2),stat=i_all)
-         if (i_all /= 0) then
-            write(*,*)' reformatmywaves: problem of memory allocation'
-            stop
-         end if
+         allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2),stat=i_stat)
+         call memocc(i_stat,product(shape(psigold))*kind(psigold),'psigold','reformatmywaves')
 
          call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
@@ -7007,19 +6686,15 @@ end function myorbital
               & nvctr_c, nvctr_f, n1, n2, n3, center, nseg_c, nseg_f, keyg, keyv, psifscf, & 
               & psi(1,iorb - iproc * norbp))
 
-         deallocate(psigold,stat=i_all)
-         if (i_all /= 0) then
-            write(*,*)' reformatmywaves: problem of memory deallocation'
-            stop
-         end if
+         i_all=-product(shape(psigold))*kind(psigold)
+         deallocate(psigold,stat=i_stat)
+         call memocc(i_stat,i_all,'psigold','reformatmywaves')
       end if
    end do
    
-   deallocate(psifscf,stat=i_all)
-   if (i_all /= 0) then
-      write(*,*)' reformatmywaves: problem of memory deallocation'
-      stop
-   end if
+   i_all=-product(shape(psifscf))*kind(psifscf)
+   deallocate(psifscf,stat=i_stat)
+   call memocc(i_stat,i_all,'psifscf','reformatmywaves')
 
  END SUBROUTINE 
 
@@ -7036,12 +6711,10 @@ end function myorbital
 
    allocatable :: psifscfold(:,:,:),psifscfoex(:,:,:),psig(:,:,:,:,:,:),ww(:)
 
-   allocate(psifscfold(-7:2*n1_old+8,-7:2*n2_old+8,-7:2*n3_old+8),stat=i_all)
+   allocate(psifscfold(-7:2*n1_old+8,-7:2*n2_old+8,-7:2*n3_old+8),stat=i_stat)
+   call memocc(i_stat,product(shape(psifscfold))*kind(psifscfold),'psifscfold','reformatonewave')
    allocate(psifscfoex(-8:2*n1_old+9,-8:2*n2_old+9,-8:2*n3_old+9),stat=i_stat)
-   if (i_all+i_stat /= 0) then
-      write(*,*)' reformatonewave: problem of memory allocation'
-      stop
-   end if
+   call memocc(i_stat,product(shape(psifscfoex))*kind(psifscfoex),'psifscfoex','reformatonewave')
 
    ! calculate fine scaling functions, psifscfoex=wwold((2*n1_old+16)*(2*n2_old+16)*(2*n3_old+16))
    call synthese_grow(n1_old,n2_old,n3_old,psifscfoex,psigold,psifscfold) 
@@ -7139,18 +6812,16 @@ end function myorbital
       enddo
    enddo
 
-   deallocate(psifscfold,stat=i_all)
+   i_all=-product(shape(psifscfold))*kind(psifscfold)
+   deallocate(psifscfold,stat=i_stat)
+   call memocc(i_stat,i_all,'psifscfold','reformatonewave')
+   i_all=-product(shape(psifscfoex))*kind(psifscfoex)
    deallocate(psifscfoex,stat=i_stat)
-   if (i_all+i_stat /= 0) then
-      write(*,*)' reformatonewave: problem of memory deallocation'
-      stop
-   end if
-   allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_all)
+   call memocc(i_stat,i_all,'psifscfoex','reformatonewave')
+   allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_stat)
+   call memocc(i_stat,product(shape(psig))*kind(psig),'psig','reformatonewave')
    allocate(ww((2*n1+16)*(2*n2+16)*(2*n3+16)),stat=i_stat)
-   if (i_all+i_stat /= 0) then
-      write(*,*)' reformatonewave: problem of memory allocation'
-      stop
-   end if
+   call memocc(i_stat,product(shape(ww))*kind(ww),'ww','reformatonewave')
 
         call analyse_shrink(n1,n2,n3,ww,psifscf,psig)
         call compress(n1,n2,n3,0,n1,0,n2,0,n3,  &
@@ -7158,12 +6829,12 @@ end function myorbital
                     nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
                     psig,psi(1),psi(nvctr_c+1))
 
-   deallocate(psig,stat=i_all)
+   i_all=-product(shape(psig))*kind(psig)
+   deallocate(psig,stat=i_stat)
+   call memocc(i_stat,i_all,'psig','reformatonewave')
+   i_all=-product(shape(ww))*kind(ww)
    deallocate(ww,stat=i_stat)
-   if (i_all+i_stat /= 0) then
-      write(*,*)' reformatonewave: problem of memory deallocation'
-      stop
-   end if
+   call memocc(i_stat,i_all,'ww','reformatonewave')
  END SUBROUTINE 
 
 
@@ -7183,11 +6854,8 @@ end function myorbital
    call cpu_time(tr0)
    call system_clock(ncount1,ncount_rate,ncount_max)
 
-   allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8),stat=i_all)
-   if (i_all /= 0) then
-      write(*,*)' readmywaves: problem of memory allocation'
-      stop
-   end if
+   allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8),stat=i_stat)
+   call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','readmywaves')
 
 ! calculate center of molecule
         c1=0.d0 ; c2=0.d0 ; c3=0.d0
@@ -7208,11 +6876,9 @@ end function myorbital
       close(99)
    end do
 
-   deallocate(psifscf,stat=i_all)
-   if (i_all /= 0) then
-      write(*,*)' readmywaves: problem of memory deallocation'
-      stop
-   end if
+   i_all=-product(shape(psifscf))*kind(psifscf)
+   deallocate(psifscf,stat=i_stat)
+   call memocc(i_stat,i_all,'psifscf','readmywaves')
 
    call cpu_time(tr1)
    call system_clock(ncount2,ncount_rate,ncount_max)
@@ -7296,11 +6962,8 @@ end function myorbital
       if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 ) &
            write(*,*) 'because cell size has changed',n1_old,n1  , n2_old,n2 , n3_old,n3
       
-      allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2),stat=i_all)
-      if (i_all /= 0) then
-         write(*,*)' readonewave: problem of memory allocation'
-         stop
-      end if
+      allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2),stat=i_stat)
+      call memocc(i_stat,product(shape(psigold))*kind(psigold),'psigold','readonewave')
 
       call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
       do iel=1,nvctr_c_old
@@ -7331,11 +6994,9 @@ end function myorbital
            & center_old, psigold, hgrid, nvctr_c, nvctr_f, n1, n2, n3, center, nseg_c, nseg_f, &
            & keyg, keyv, psifscf, psi)
 
-      deallocate(psigold,stat=i_all)
-      if (i_all /= 0) then
-         write(*,*)' readonewave: problem of memory deallocation'
-         stop
-      end if
+      i_all=-product(shape(psigold))*kind(psigold)
+      deallocate(psigold,stat=i_stat)
+      call memocc(i_stat,i_all,'psigold','readonewave')
 
    endif
  END SUBROUTINE 
@@ -7473,14 +7134,12 @@ end function myorbital
         dimension psi(nvctr_c+7*nvctr_f)
         real*8, allocatable :: psifscf(:),psir(:),psig(:,:,:,:,:,:)
 
-        allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_all)
+        allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_stat)
+        call memocc(i_stat,product(shape(psig))*kind(psig),'psig','plot_wf')
         allocate(psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','plot_wf')
         allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' plot_wf: problem of memory allocation'
-           stop
-        end if
+        call memocc(i_stat,product(shape(psir))*kind(psir),'psir','plot_wf')
 
         call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
                     nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
@@ -7491,14 +7150,15 @@ end function myorbital
 
         call plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,psir)
 
-        deallocate(psig,stat=i_all)
+        i_all=-product(shape(psig))*kind(psig)
+        deallocate(psig,stat=i_stat)
+        call memocc(i_stat,i_all,'psig','plot_wf')
+        i_all=-product(shape(psifscf))*kind(psifscf)
         deallocate(psifscf,stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,i_all,'psifscf','plot_wf')
+        i_all=-product(shape(psir))*kind(psir)
         deallocate(psir,stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' plot_wf: problem of memory deallocation'
-           stop
-        end if
+        call memocc(i_stat,i_all,'psir','plot_wf')
         return
     END SUBROUTINE
 
@@ -7661,12 +7321,10 @@ end function myorbital
 
         call timing(iproc,'Diis          ','ON')
 
-        allocate(ipiv(idsx+1),stat=i_all)
+        allocate(ipiv(idsx+1),stat=i_stat)
+        call memocc(i_stat,product(shape(ipiv))*kind(ipiv),'ipiv','diisstp')
         allocate(rds(idsx+1),stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' diisstp: problem of memory allocation'
-           stop
-        end if
+        call memocc(i_stat,product(shape(rds))*kind(rds),'rds','diisstp')
 
 ! set up DIIS matrix (upper triangle)
         if (ids.gt.idsx) then
@@ -7739,12 +7397,12 @@ end function myorbital
 6612    continue
 6633    continue
 
-        deallocate(ipiv,stat=i_all)
+        i_all=-product(shape(ipiv))*kind(ipiv)
+        deallocate(ipiv,stat=i_stat)
+        call memocc(i_stat,i_all,'ipiv','diisstp')
+        i_all=-product(shape(rds))*kind(rds)
         deallocate(rds,stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' diisstp: problem of memory deallocation'
-           stop
-        end if
+        call memocc(i_stat,i_all,'rds','diisstp')
         call timing(iproc,'Diis          ','OF')
 
         return
@@ -7793,22 +7451,20 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
      end if
   end do lpx_determination
 
-  allocate(gpot(3),stat=i_all)
+  allocate(gpot(3),stat=i_stat)
+  call memocc(i_stat,product(shape(gpot))*kind(gpot),'gpot','iguess_generator')
   allocate(alps(lpx+1),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(alps))*kind(alps),'alps','iguess_generator')
   allocate(hsep(6,lpx+1),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(hsep))*kind(hsep),'hsep','iguess_generator')
   allocate(ott(6),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ott))*kind(ott),'ott','iguess_generator')
   allocate(occup(noccmax,lmax+1),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(occup))*kind(occup),'occup','iguess_generator')
   allocate(ofdcoef(3,4),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ofdcoef))*kind(ofdcoef),'ofdcoef','iguess_generator')
   allocate(neleconf(6,4),stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' iguess_generator: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(neleconf))*kind(neleconf),'neleconf','iguess_generator')
 
   !assignation of radii and coefficients of the local part
   alpz=psppar(0,0)
@@ -7866,22 +7522,20 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   end do
 
   !allocate arrays for the gatom routine
-  allocate(aeval(noccmax,lmax+1),stat=i_all)
+  allocate(aeval(noccmax,lmax+1),stat=i_stat)
+  call memocc(i_stat,product(shape(aeval))*kind(aeval),'aeval','iguess_generator')
   allocate(chrg(noccmax,lmax+1),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(chrg))*kind(chrg),'chrg','iguess_generator')
   allocate(res(noccmax,lmax+1),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(res))*kind(res),'res','iguess_generator')
   allocate(vh(4*(ng+1)**2,4*(ng+1)**2),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(vh))*kind(vh),'vh','iguess_generator')
   allocate(psi(0:ng,noccmax,lmax+1),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(psi))*kind(psi),'psi','iguess_generator')
   allocate(xp(0:ng),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(xp))*kind(xp),'xp','iguess_generator')
   allocate(rmt(nint,0:ng,0:ng,lmax+1),stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' iguess_generator: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(rmt))*kind(rmt),'rmt','iguess_generator')
 
   zion=real(nelpsp,kind=8)
 
@@ -7930,36 +7584,48 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
      end do
   end do
 
-  deallocate(aeval,stat=i_all)
+  i_all=-product(shape(aeval))*kind(aeval)
+  deallocate(aeval,stat=i_stat)
+  call memocc(i_stat,i_all,'aeval','iguess_generator')
+  i_all=-product(shape(chrg))*kind(chrg)
   deallocate(chrg,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'chrg','iguess_generator')
+  i_all=-product(shape(res))*kind(res)
   deallocate(res,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'res','iguess_generator')
+  i_all=-product(shape(vh))*kind(vh)
   deallocate(vh,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'vh','iguess_generator')
+  i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'psi','iguess_generator')
+  i_all=-product(shape(xp))*kind(xp)
   deallocate(xp,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'xp','iguess_generator')
+  i_all=-product(shape(rmt))*kind(rmt)
   deallocate(rmt,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'rmt','iguess_generator')
+  i_all=-product(shape(gpot))*kind(gpot)
   deallocate(gpot,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'gpot','iguess_generator')
+  i_all=-product(shape(hsep))*kind(hsep)
   deallocate(hsep,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'hsep','iguess_generator')
+  i_all=-product(shape(alps))*kind(alps)
   deallocate(alps,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'alps','iguess_generator')
+  i_all=-product(shape(ott))*kind(ott)
   deallocate(ott,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ott','iguess_generator')
+  i_all=-product(shape(occup))*kind(occup)
   deallocate(occup,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'occup','iguess_generator')
+  i_all=-product(shape(ofdcoef))*kind(ofdcoef)
   deallocate(ofdcoef,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ofdcoef','iguess_generator')
+  i_all=-product(shape(neleconf))*kind(neleconf)
   deallocate(neleconf,stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' iguess_generator: problem of memory deallocation'
-     stop
-  end if
+  call memocc(i_stat,i_all,'neleconf','iguess_generator')
 
 end subroutine iguess_generator
 

@@ -19,7 +19,7 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   real(kind=8), dimension(0:nd), intent(out) :: a,x
   !Local variables
   real(kind=8), dimension(:), allocatable :: y
-  integer :: i,nt,ni,i_all
+  integer :: i,nt,ni,i_all,i_stat
   
   !Only itype=8,14,16,20,24,30,40,50,60,100
   select case(itype)
@@ -36,11 +36,8 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   !from -itype to itype
   ni=2*itype
   nrange = ni
-  allocate(y(0:nd),stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' scaling_function: problem of memory allocation'
-     stop
-  end if
+  allocate(y(0:nd),stat=i_stat)
+  call memocc(i_stat,product(shape(y))*kind(y),'y','scaling_function')
   
   ! plot scaling function
   call zero(nd+1,x)
@@ -85,11 +82,9 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   end do
   !close(1)
 
-  deallocate(y,stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' scaling_function: problem of memory deallocation'
-     stop
-  end if
+  i_all=-product(shape(y))*kind(y)
+  deallocate(y,stat=i_stat)
+  call memocc(i_stat,i_all,'y','scaling_function')
 end subroutine scaling_function
 !!***
 
@@ -114,7 +109,7 @@ subroutine wavelet_function(itype,nd,a,x)
   real(kind=8), dimension(0:nd), intent(out) :: a,x
   !Local variables
   real(kind=8), dimension(:), allocatable :: y
-  integer :: i,nt,ni,i_all
+  integer :: i,nt,ni,i_all,i_stat
 
   !Only itype=8,14,16,20,24,30,40,50,60,100
   Select case(itype)
@@ -129,11 +124,8 @@ subroutine wavelet_function(itype,nd,a,x)
   !from -itype to itype
   ni=2*itype
 
-  allocate(y(0:nd),stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' wavelet_function: problem of memory allocation'
-     stop
-  end if
+  allocate(y(0:nd),stat=i_stat)
+  call memocc(i_stat,product(shape(y))*kind(y),'y','wavelet_function')
   
   ! plot wavelet 
   call zero(nd+1,x)
@@ -178,11 +170,9 @@ subroutine wavelet_function(itype,nd,a,x)
   end do
   !close(1)
 
-  deallocate(y,stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' wavelet_function: problem of memory deallocation'
-     stop
-  end if
+  i_all=-product(shape(y))*kind(y)
+  deallocate(y,stat=i_stat)
+  call memocc(i_stat,i_all,'y','wavelet_function')
  
 end subroutine wavelet_function
 !!***

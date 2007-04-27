@@ -40,6 +40,10 @@ program BigDFT
       iproc=0
    endif
 
+  !initialize memory counting
+  call memocc(0,0,'count','start')
+
+
 !$omp parallel private(iam)  shared (npr)
 !$       iam=omp_get_thread_num()
 !$       if (iam.eq.0) npr=omp_get_num_threads()
@@ -51,16 +55,14 @@ program BigDFT
         open(unit=9,file='posinp',status='old')
         read(9,*) nat,units
         if (iproc.eq.0) write(*,'(1x,a,i0)') 'nat= ',nat
-        allocate(rxyz_old(3,nat),stat=i_all)
+        allocate(rxyz_old(3,nat),stat=i_stat)
+        call memocc(i_stat,product(shape(rxyz_old))*kind(rxyz_old),'rxyz_old','BigDFT')
         allocate(rxyz(3,nat),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(rxyz))*kind(rxyz),'rxyz','BigDFT')
         allocate(iatype(nat),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(iatype))*kind(iatype),'iatype','BigDFT')
         allocate(fxyz(3,nat),stat=i_stat)
-        if (i_all+i_stat /=0) then
-           write(*,*)' BigDFT:problem of memory allocation'
-           stop
-        end if
+        call memocc(i_stat,product(shape(fxyz))*kind(fxyz),'fxyz','BigDFT')
         ntypes=0
         do iat=1,nat
         read(9,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
@@ -195,27 +197,35 @@ program BigDFT
 !  write(*,*) iproc,' finished writing waves of relaxed geometry'
 
   !deallocations
-  deallocate(psi,stat=i_all)
+  i_all=-product(shape(psi))*kind(psi)
+  deallocate(psi,stat=i_stat)
+  call memocc(i_stat,i_all,'psi','BigDFT')
+  i_all=-product(shape(eval))*kind(eval)
   deallocate(eval,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'eval','BigDFT')
+  i_all=-product(shape(keyg))*kind(keyg)
   deallocate(keyg,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'keyg','BigDFT')
+  i_all=-product(shape(keyv))*kind(keyv)
   deallocate(keyv,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'keyv','BigDFT')
+  i_all=-product(shape(rxyz))*kind(rxyz)
   deallocate(rxyz,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'rxyz','BigDFT')
+  i_all=-product(shape(rxyz_old))*kind(rxyz_old)
   deallocate(rxyz_old,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'rxyz_old','BigDFT')
+  i_all=-product(shape(iatype))*kind(iatype)
   deallocate(iatype,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'iatype','BigDFT')
+  i_all=-product(shape(fxyz))*kind(fxyz)
   deallocate(fxyz,stat=i_stat)
-  if (i_all+i_stat /=0) then
-     write(*,*)' BigDFT:problem of memory deallocation'
-     stop
-  end if
+  call memocc(i_stat,i_all,'fxyz','BigDFT')
 
+  !finalize memory counting
+  call memocc(0,0,'count','stop')
 
-   if (parallel) call MPI_FINALIZE(ierr)
+  if (parallel) call MPI_FINALIZE(ierr)
 
 end program BigDFT
 

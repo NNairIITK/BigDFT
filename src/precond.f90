@@ -54,22 +54,17 @@
 !       has value .TRUE.
 !       
 
-        allocate(rpsi(nvctr_c+7*nvctr_f),stat=i_all)
+        allocate(rpsi(nvctr_c+7*nvctr_f),stat=i_stat)
+        call memocc(i_stat,product(shape(rpsi))*kind(rpsi),'rpsi','precong')
         allocate(ppsi(nvctr_c+7*nvctr_f),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(ppsi))*kind(ppsi),'ppsi','precong')
         allocate(wpsi(nvctr_c+7*nvctr_f),stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' precong: problem of memory allocation'
-           stop
-        end if
+        call memocc(i_stat,product(shape(wpsi))*kind(wpsi),'wpsi','precong')
 
 
 !! check initial residue of original equation
-        allocate(spsi(nvctr_c+7*nvctr_f),stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' precong: problem of memory allocation'
-           stop
-        end if
+        allocate(spsi(nvctr_c+7*nvctr_f),stat=i_stat)
+        call memocc(i_stat,product(shape(spsi))*kind(spsi),'spsi','precong')
         do i=1,nvctr_c+7*nvctr_f
         spsi(i)=hpsi(i)
         enddo
@@ -185,21 +180,20 @@
 	tt=tt+(wpsi(i)-spsi(i))**2
         enddo
         !write(*,'(1x,a,1x,i0,1x,1pe13.6)') 'Precond, final residue',iorb,sqrt(tt)
-        deallocate(spsi,stat=i_all)
-        if (i_all /= 0) then
-           write(*,*)' precong: problem of memory deallocation'
-           stop
-        end if
+        i_all=-product(shape(spsi))*kind(spsi)
+        deallocate(spsi,stat=i_stat)
+        call memocc(i_stat,i_all,'spsi','precong')
 ! checkend
 
-        deallocate(rpsi,stat=i_all)
+        i_all=-product(shape(rpsi))*kind(rpsi)
+        deallocate(rpsi,stat=i_stat)
+        call memocc(i_stat,i_all,'rpsi','precong')
+        i_all=-product(shape(ppsi))*kind(ppsi)
         deallocate(ppsi,stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,i_all,'ppsi','precong')
+        i_all=-product(shape(wpsi))*kind(wpsi)
         deallocate(wpsi,stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' precong: problem of memory deallocation'
-           stop
-        end if
+        call memocc(i_stat,i_all,'wpsi','precong')
 
 	return
 	end
@@ -244,18 +238,16 @@
         allocatable xpsig_f(:,:,:,:),ypsig_f(:,:,:,:)
         allocatable xpsig_fc(:,:,:,:)
 
-        allocate(xpsig_c(0:n1,0:n2,0:n3),stat=i_all)
+        allocate(xpsig_c(0:n1,0:n2,0:n3),stat=i_stat)
+        call memocc(i_stat,product(shape(xpsig_c))*kind(xpsig_c),'xpsig_c','wscalv')
         allocate(xpsig_fc(0:n1,0:n2,0:n3,3),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(xpsig_fc))*kind(xpsig_fc),'xpsig_fc','wscalv')
         allocate(xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(xpsig_f))*kind(xpsig_f),'xpsig_f','wscalv')
         allocate(ypsig_c(0:n1,0:n2,0:n3),stat=i_stat)
-        i_all=i_all+i_stat
+        call memocc(i_stat,product(shape(ypsig_c))*kind(ypsig_c),'ypsig_c','wscalv')
         allocate(ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-        if (i_all+i_stat /= 0) then
-           write(*,*)' wscalv: problem of memory allocation'
-           stop
-        end if
+        call memocc(i_stat,product(shape(ypsig_f))*kind(ypsig_f),'ypsig_f','wscalv')
 
         call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
                               nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -270,18 +262,21 @@
                             nseg_f,nvctr_f,keyg_f,keyv_f,  & 
                             scal,ypsig_c,ypsig_f,ypsi_c,ypsi_f)
 
-          deallocate(xpsig_c,stat=i_all)
+          i_all=-product(shape(xpsig_c))*kind(xpsig_c)
+          deallocate(xpsig_c,stat=i_stat)
+          call memocc(i_stat,i_all,'xpsig_c','wscalv')
+          i_all=-product(shape(ypsig_c))*kind(ypsig_c)
           deallocate(ypsig_c,stat=i_stat)
-          i_all=i_all+i_stat
+          call memocc(i_stat,i_all,'ypsig_c','wscalv')
+          i_all=-product(shape(xpsig_f))*kind(xpsig_f)
           deallocate(xpsig_f,stat=i_stat)
-          i_all=i_all+i_stat
+          call memocc(i_stat,i_all,'xpsig_f','wscalv')
+          i_all=-product(shape(ypsig_f))*kind(ypsig_f)
           deallocate(ypsig_f,stat=i_stat)
-          i_all=i_all+i_stat
+          call memocc(i_stat,i_all,'ypsig_f','wscalv')
+          i_all=-product(shape(xpsig_fc))*kind(xpsig_fc)
           deallocate(xpsig_fc,stat=i_stat)
-          if (i_all+i_stat /= 0) then
-             write(*,*)' wscalv: problem of memory deallocation'
-             stop
-          end if
+          call memocc(i_stat,i_all,'xpsig_fc','wscalv')
 
         END 
 

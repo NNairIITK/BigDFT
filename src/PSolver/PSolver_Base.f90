@@ -51,45 +51,45 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf&
   if (mod(n2,4).eq.0) lzt=lzt+1 !maybe this is useless
   
   !Allocations
-  allocate(btrig1(2,8192),stat=i_all)
+  allocate(btrig1(2,8192),stat=i_stat)
+  call memocc(i_stat,product(shape(btrig1))*kind(btrig1),'btrig1','p_poissonsolver')
   allocate(ftrig1(2,8192),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ftrig1))*kind(ftrig1),'ftrig1','p_poissonsolver')
   allocate(after1(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(after1))*kind(after1),'after1','p_poissonsolver')
   allocate(now1(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(now1))*kind(now1),'now1','p_poissonsolver')
   allocate(before1(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(before1))*kind(before1),'before1','p_poissonsolver')
   allocate(btrig2(2,8192),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(btrig2))*kind(btrig2),'btrig2','p_poissonsolver')
   allocate(ftrig2(2,8192),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ftrig2))*kind(ftrig2),'ftrig2','p_poissonsolver')
   allocate(after2(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(after2))*kind(after2),'after2','p_poissonsolver')
   allocate(now2(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(now2))*kind(now2),'now2','p_poissonsolver')
   allocate(before2(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(before2))*kind(before2),'before2','p_poissonsolver')
   allocate(btrig3(2,8192),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(btrig3))*kind(btrig3),'btrig3','p_poissonsolver')
   allocate(ftrig3(2,8192),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ftrig3))*kind(ftrig3),'ftrig3','p_poissonsolver')
   allocate(after3(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(after3))*kind(after3),'after3','p_poissonsolver')
   allocate(now3(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(now3))*kind(now3),'now3','p_poissonsolver')
   allocate(before3(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(before3))*kind(before3),'before3','p_poissonsolver')
   allocate(zw(2,ncache/4,2),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(zw))*kind(zw),'zw','p_poissonsolver')
   allocate(zt(2,lzt,n1),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(zt))*kind(zt),'zt','p_poissonsolver')
   allocate(zmpi2(2,n1,md2/nproc,nd3),stat=i_stat)
-  i_all=i_all+i_stat
-  if (nproc.gt.1) allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,nproc),stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' p_poissonsolver: problem of memory allocation'
-     stop
+  call memocc(i_stat,product(shape(zmpi2))*kind(zmpi2),'zmpi2','p_poissonsolver')
+  if (nproc.gt.1) then
+     allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(zmpi1))*kind(zmpi1),'zmpi1','p_poissonsolver')
   end if
 
 
@@ -350,45 +350,64 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf&
   end do
 
   !De-allocations  
-  deallocate(btrig1,stat=i_all)
+  i_all=-product(shape(btrig1))*kind(btrig1)
+  deallocate(btrig1,stat=i_stat)
+  call memocc(i_stat,i_all,'btrig1','p_poissonsolver')
+  i_all=-product(shape(ftrig1))*kind(ftrig1)
   deallocate(ftrig1,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ftrig1','p_poissonsolver')
+  i_all=-product(shape(after1))*kind(after1)
   deallocate(after1,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'after1','p_poissonsolver')
+  i_all=-product(shape(now1))*kind(now1)
   deallocate(now1,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'now1','p_poissonsolver')
+  i_all=-product(shape(before1))*kind(before1)
   deallocate(before1,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'before1','p_poissonsolver')
+  i_all=-product(shape(btrig2))*kind(btrig2)
   deallocate(btrig2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'btrig2','p_poissonsolver')
+  i_all=-product(shape(ftrig2))*kind(ftrig2)
   deallocate(ftrig2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ftrig2','p_poissonsolver')
+  i_all=-product(shape(after2))*kind(after2)
   deallocate(after2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'after2','p_poissonsolver')
+  i_all=-product(shape(now2))*kind(now2)
   deallocate(now2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'now2','p_poissonsolver')
+  i_all=-product(shape(before2))*kind(before2)
   deallocate(before2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'before2','p_poissonsolver')
+  i_all=-product(shape(btrig3))*kind(btrig3)
   deallocate(btrig3,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'btrig3','p_poissonsolver')
+  i_all=-product(shape(ftrig3))*kind(ftrig3)
   deallocate(ftrig3,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ftrig3','p_poissonsolver')
+  i_all=-product(shape(after3))*kind(after3)
   deallocate(after3,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'after3','p_poissonsolver')
+  i_all=-product(shape(now3))*kind(now3)
   deallocate(now3,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'now3','p_poissonsolver')
+  i_all=-product(shape(before3))*kind(before3)
   deallocate(before3,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'before3','p_poissonsolver')
+  i_all=-product(shape(zmpi2))*kind(zmpi2)
   deallocate(zmpi2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'zmpi2','p_poissonsolver')
+  i_all=-product(shape(zw))*kind(zw)
   deallocate(zw,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'zw','p_poissonsolver')
+  i_all=-product(shape(zt))*kind(zt)
   deallocate(zt,stat=i_stat)
-  i_all=i_all+i_stat
-  if (nproc.gt.1) deallocate(zmpi1,stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' p_poissonsolver: problem of memory deallocation'
-     stop
+  call memocc(i_stat,i_all,'zt','p_poissonsolver')
+  if (nproc.gt.1) then
+     i_all=-product(shape(zmpi1))*kind(zmpi1)
+     deallocate(zmpi1,stat=i_stat)
+     call memocc(i_stat,i_all,'zmpi1','p_poissonsolver')
   end if
   call timing(iproc,'PSolv_comput  ','OF')
 end subroutine P_PoissonSolver
@@ -911,47 +930,47 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   if (mod(n2,4).eq.0) lzt=lzt+1 !maybe this is useless
   
   !Allocations
-  allocate(btrig1(2,8192),stat=i_all)
+  allocate(btrig1(2,8192),stat=i_stat)
+  call memocc(i_stat,product(shape(btrig1))*kind(btrig1),'btrig1','s_poissonsolver')
   allocate(ftrig1(2,8192),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ftrig1))*kind(ftrig1),'ftrig1','s_poissonsolver')
   allocate(after1(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(after1))*kind(after1),'after1','s_poissonsolver')
   allocate(now1(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(now1))*kind(now1),'now1','s_poissonsolver')
   allocate(before1(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(before1))*kind(before1),'before1','s_poissonsolver')
   allocate(btrig2(2,8192),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(btrig2))*kind(btrig2),'btrig2','s_poissonsolver')
   allocate(ftrig2(2,8192),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ftrig2))*kind(ftrig2),'ftrig2','s_poissonsolver')
   allocate(after2(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(after2))*kind(after2),'after2','s_poissonsolver')
   allocate(now2(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(now2))*kind(now2),'now2','s_poissonsolver')
   allocate(before2(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(before2))*kind(before2),'before2','s_poissonsolver')
   allocate(btrig3(2,8192),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(btrig3))*kind(btrig3),'btrig3','s_poissonsolver')
   allocate(ftrig3(2,8192),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ftrig3))*kind(ftrig3),'ftrig3','s_poissonsolver')
   allocate(after3(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(after3))*kind(after3),'after3','s_poissonsolver')
   allocate(now3(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(now3))*kind(now3),'now3','s_poissonsolver')
   allocate(before3(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(before3))*kind(before3),'before3','s_poissonsolver')
   allocate(zw(2,ncache/4,2),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(zw))*kind(zw),'zw','s_poissonsolver')
   allocate(zt(2,lzt,n1),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(zt))*kind(zt),'zt','s_poissonsolver')
   allocate(zmpi2(2,n1,md2/nproc,nd3),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(zmpi2))*kind(zmpi2),'zmpi2','s_poissonsolver')
   allocate(cosinarr(2,n3/2),stat=i_stat)
-  i_all=i_all+i_stat
-  if (nproc.gt.1) allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,nproc),stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' s_poissonsolver: problem of memory allocation'
-     stop
+  call memocc(i_stat,product(shape(cosinarr))*kind(cosinarr),'cosinarr','s_poissonsolver')
+  if (nproc.gt.1) then 
+     allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(zmpi1))*kind(zmpi1),'zmpi1','s_poissonsolver')
   end if
 
 
@@ -1227,47 +1246,67 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   end do
 
   !De-allocations  
-  deallocate(btrig1,stat=i_all)
+  i_all=-product(shape(btrig1))*kind(btrig1)
+  deallocate(btrig1,stat=i_stat)
+  call memocc(i_stat,i_all,'btrig1','s_poissonsolver')
+  i_all=-product(shape(ftrig1))*kind(ftrig1)
   deallocate(ftrig1,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ftrig1','s_poissonsolver')
+  i_all=-product(shape(after1))*kind(after1)
   deallocate(after1,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'after1','s_poissonsolver')
+  i_all=-product(shape(now1))*kind(now1)
   deallocate(now1,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'now1','s_poissonsolver')
+  i_all=-product(shape(before1))*kind(before1)
   deallocate(before1,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'before1','s_poissonsolver')
+  i_all=-product(shape(btrig2))*kind(btrig2)
   deallocate(btrig2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'btrig2','s_poissonsolver')
+  i_all=-product(shape(ftrig2))*kind(ftrig2)
   deallocate(ftrig2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ftrig2','s_poissonsolver')
+  i_all=-product(shape(after2))*kind(after2)
   deallocate(after2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'after2','s_poissonsolver')
+  i_all=-product(shape(now2))*kind(now2)
   deallocate(now2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'now2','s_poissonsolver')
+  i_all=-product(shape(before2))*kind(before2)
   deallocate(before2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'before2','s_poissonsolver')
+  i_all=-product(shape(btrig3))*kind(btrig3)
   deallocate(btrig3,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'btrig3','s_poissonsolver')
+  i_all=-product(shape(ftrig3))*kind(ftrig3)
   deallocate(ftrig3,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ftrig3','s_poissonsolver')
+  i_all=-product(shape(after3))*kind(after3)
   deallocate(after3,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'after3','s_poissonsolver')
+  i_all=-product(shape(now3))*kind(now3)
   deallocate(now3,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'now3','s_poissonsolver')
+  i_all=-product(shape(before3))*kind(before3)
   deallocate(before3,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'before3','s_poissonsolver')
+  i_all=-product(shape(zmpi2))*kind(zmpi2)
   deallocate(zmpi2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'zmpi2','s_poissonsolver')
+  i_all=-product(shape(zw))*kind(zw)
   deallocate(zw,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'zw','s_poissonsolver')
+  i_all=-product(shape(zt))*kind(zt)
   deallocate(zt,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'zt','s_poissonsolver')
+  i_all=-product(shape(cosinarr))*kind(cosinarr)
   deallocate(cosinarr,stat=i_stat)
-  i_all=i_all+i_stat
-  if (nproc.gt.1) deallocate(zmpi1,stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' s_poissonsolver: problem of memory deallocation'
-     stop
+  call memocc(i_stat,i_all,'cosinarr','s_poissonsolver')
+  if (nproc.gt.1) then
+     i_all=-product(shape(zmpi1))*kind(zmpi1)
+     deallocate(zmpi1,stat=i_stat)
+     call memocc(i_stat,i_all,'zmpi1','s_poissonsolver')
   end if
 
   call timing(iproc,'PSolv_comput  ','OF')
@@ -1706,47 +1745,47 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   if (mod(n2/2,4).eq.0) lzt=lzt+1
   
   !Allocations
-  allocate(btrig1(2,8192),stat=i_all)
+  allocate(btrig1(2,8192),stat=i_stat)
+  call memocc(i_stat,product(shape(btrig1))*kind(btrig1),'btrig1','f_poissonsolver')
   allocate(ftrig1(2,8192),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ftrig1))*kind(ftrig1),'ftrig1','f_poissonsolver')
   allocate(after1(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(after1))*kind(after1),'after1','f_poissonsolver')
   allocate(now1(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(now1))*kind(now1),'now1','f_poissonsolver')
   allocate(before1(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(before1))*kind(before1),'before1','f_poissonsolver')
   allocate(btrig2(2,8192),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(btrig2))*kind(btrig2),'btrig2','f_poissonsolver')
   allocate(ftrig2(2,8192),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ftrig2))*kind(ftrig2),'ftrig2','f_poissonsolver')
   allocate(after2(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(after2))*kind(after2),'after2','f_poissonsolver')
   allocate(now2(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(now2))*kind(now2),'now2','f_poissonsolver')
   allocate(before2(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(before2))*kind(before2),'before2','f_poissonsolver')
   allocate(btrig3(2,8192),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(btrig3))*kind(btrig3),'btrig3','f_poissonsolver')
   allocate(ftrig3(2,8192),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(ftrig3))*kind(ftrig3),'ftrig3','f_poissonsolver')
   allocate(after3(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(after3))*kind(after3),'after3','f_poissonsolver')
   allocate(now3(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(now3))*kind(now3),'now3','f_poissonsolver')
   allocate(before3(7),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(before3))*kind(before3),'before3','f_poissonsolver')
   allocate(zw(2,ncache/4,2),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(zw))*kind(zw),'zw','f_poissonsolver')
   allocate(zt(2,lzt,n1),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(zt))*kind(zt),'zt','f_poissonsolver')
   allocate(zmpi2(2,n1,md2/nproc,nd3),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(zmpi2))*kind(zmpi2),'zmpi2','f_poissonsolver')
   allocate(cosinarr(2,n3/2),stat=i_stat)
-  i_all=i_all+i_stat
-  if (nproc.gt.1) allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,nproc),stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' f_poissonsolver: problem of memory allocation'
-     stop
+  call memocc(i_stat,product(shape(cosinarr))*kind(cosinarr),'cosinarr','f_poissonsolver')
+  if (nproc.gt.1) then
+     allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(zmpi1))*kind(zmpi1),'zmpi1','f_poissonsolver')
   end if
 
 
@@ -2020,47 +2059,67 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   end do
   
   !De-allocations  
-  deallocate(btrig1,stat=i_all)
+  i_all=-product(shape(btrig1))*kind(btrig1)
+  deallocate(btrig1,stat=i_stat)
+  call memocc(i_stat,i_all,'btrig1','f_poissonsolver')
+  i_all=-product(shape(ftrig1))*kind(ftrig1)
   deallocate(ftrig1,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ftrig1','f_poissonsolver')
+  i_all=-product(shape(after1))*kind(after1)
   deallocate(after1,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'after1','f_poissonsolver')
+  i_all=-product(shape(now1))*kind(now1)
   deallocate(now1,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'now1','f_poissonsolver')
+  i_all=-product(shape(before1))*kind(before1)
   deallocate(before1,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'before1','f_poissonsolver')
+  i_all=-product(shape(btrig2))*kind(btrig2)
   deallocate(btrig2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'btrig2','f_poissonsolver')
+  i_all=-product(shape(ftrig2))*kind(ftrig2)
   deallocate(ftrig2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ftrig2','f_poissonsolver')
+  i_all=-product(shape(after2))*kind(after2)
   deallocate(after2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'after2','f_poissonsolver')
+  i_all=-product(shape(now2))*kind(now2)
   deallocate(now2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'now2','f_poissonsolver')
+  i_all=-product(shape(before2))*kind(before2)
   deallocate(before2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'before2','f_poissonsolver')
+  i_all=-product(shape(btrig3))*kind(btrig3)
   deallocate(btrig3,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'btrig3','f_poissonsolver')
+  i_all=-product(shape(ftrig3))*kind(ftrig3)
   deallocate(ftrig3,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'ftrig3','f_poissonsolver')
+  i_all=-product(shape(after3))*kind(after3)
   deallocate(after3,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'after3','f_poissonsolver')
+  i_all=-product(shape(now3))*kind(now3)
   deallocate(now3,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'now3','f_poissonsolver')
+  i_all=-product(shape(before3))*kind(before3)
   deallocate(before3,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'before3','f_poissonsolver')
+  i_all=-product(shape(zmpi2))*kind(zmpi2)
   deallocate(zmpi2,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'zmpi2','f_poissonsolver')
+  i_all=-product(shape(zw))*kind(zw)
   deallocate(zw,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'zw','f_poissonsolver')
+  i_all=-product(shape(zt))*kind(zt)
   deallocate(zt,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'zt','f_poissonsolver')
+  i_all=-product(shape(cosinarr))*kind(cosinarr)
   deallocate(cosinarr,stat=i_stat)
-  i_all=i_all+i_stat
-  if (nproc.gt.1) deallocate(zmpi1,stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' f_poissonsolver: problem of memory deallocation'
-     stop
+  call memocc(i_stat,i_all,'cosinarr','f_poissonsolver')
+  if (nproc.gt.1) then
+     i_all=-product(shape(zmpi1))*kind(zmpi1)
+     deallocate(zmpi1,stat=i_stat)
+     call memocc(i_stat,i_all,'zmpi1','f_poissonsolver')
   end if
 
   call timing(iproc,'PSolv_comput  ','OF')

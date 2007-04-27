@@ -1,6 +1,5 @@
 subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,zf,zfionxc,exc,vxc,iproc,nproc)
-  use defs_xc
 
   implicit none
 
@@ -23,6 +22,20 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   integer :: i1,i2,i3,j1,j2,j3,jp2,jpp2,jppp2
   integer :: ndvxc,nvxcdgr,ngr2
 
+  !interface with drivexc
+  interface
+     subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr, & !Mandatory 
+          & dvxc,d2vxc,grho2_updn,vxcgr) !Optional
+       use defs_basis
+       integer,intent(in) :: ixc,npts,nspden,order
+       integer,intent(in) :: ndvxc,ngr2,nvxcdgr
+       real(dp),intent(in) :: rho_updn(npts,nspden)
+       real(dp),intent(in), optional :: grho2_updn(npts,ngr2)
+       real(dp),intent(out) :: exc(npts),vxc(npts,nspden)
+       real(dp),intent(out), optional :: d2vxc(npts),dvxc(npts,ndvxc),vxcgr(npts,nvxcdgr)
+     end subroutine drivexc
+  end interface
+
   !Body
 
   !check for the dimensions
@@ -40,23 +53,30 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   hgrid=max(hx,hy,hz)
 
   !Allocations
-  allocate(exci(m1,m3,nwb),stat=i_all)
-  if (i_all /=0) stop 'allocation error (exci)'
-  allocate(vxci(m1,m3,nwb,nspden),stat=i_all)
-  if (i_all /=0) stop 'allocation error (vxci)'
+  allocate(exci(m1,m3,nwb),stat=i_stat)
+  call memocc(i_stat,product(shape(exci))*kind(exci),'exci','xc_energy')
+  allocate(vxci(m1,m3,nwb,nspden),stat=i_stat)
+  call memocc(i_stat,product(shape(vxci))*kind(vxci),'vxci','xc_energy')
   !Allocations of the exchange-correlation terms, depending on the ixc value
-  if (ixc >= 11 .and. ixc <= 16) allocate(gradient(m1,m3,nwb,2*nspden-1,0:3),stat=i_all)   
-  if (i_all /=0) stop 'allocation error, (gradient)'
+  if (ixc >= 11 .and. ixc <= 16) then
+     allocate(gradient(m1,m3,nwb,2*nspden-1,0:3),stat=i_stat)
+     call memocc(i_stat,product(shape(gradient))*kind(gradient),'gradient','xc_energy')
+  end if
 
   call size_dvxc(ixc,ndvxc,ngr2,nspden,nvxcdgr,order)
 
-  if (ndvxc/=0) allocate(dvxci(m1,m3,nwb,ndvxc),stat=i_all)
-  if (i_all /=0) stop 'allocation error (dvxci)'
-  if (nvxcdgr/=0) allocate(dvxcdgr(m1,m3,nwb,nvxcdgr),stat=i_all)
-  if (i_all /=0) stop 'allocation error (dvxcdgr)'
-  if ((ixc==3 .or. (ixc>=7 .and. ixc<=15)) .and. order==3) &
-       allocate(d2vxci(m1,m3,nwb),stat=i_all)
-  if (i_all /=0) stop 'allocation error, (d2vxci)'
+  if (ndvxc/=0) then
+     allocate(dvxci(m1,m3,nwb,ndvxc),stat=i_stat)
+     call memocc(i_stat,product(shape(dvxci))*kind(dvxci),'dvxci','xc_energy')
+  end if
+  if (nvxcdgr/=0) then
+     allocate(dvxcdgr(m1,m3,nwb,nvxcdgr),stat=i_stat)
+     call memocc(i_stat,product(shape(dvxcdgr))*kind(dvxcdgr),'dvxcdgr','xc_energy')
+  end if
+  if ((ixc==3 .or. (ixc>=7 .and. ixc<=15)) .and. order==3) then
+     allocate(d2vxci(m1,m3,nwb),stat=i_stat)
+     call memocc(i_stat,product(shape(d2vxci))*kind(d2vxci),'d2vxci','xc_energy')
+  end if
 
   if (.not.allocated(gradient) .and. nxc/=nxt ) then
      print *,'Parxc_energy: if nx2/=nxc the gradient must be allocated'
@@ -144,6 +164,27 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
   end if
 
+  if (allocated(dvxci)) then
+     i_all=-product(shape(dvxci))*kind(dvxci)
+     deallocate(dvxci,stat=i_stat)
+     call memocc(i_stat,i_all,'dvxci','xc_energy')
+  end if
+  if (allocated(dvxcdgr)) then
+     i_all=-product(shape(dvxcdgr))*kind(dvxcdgr)
+     deallocate(dvxcdgr,stat=i_stat)
+     call memocc(i_stat,i_all,'dvxcdgr','xc_energy')
+  end if
+  if (allocated(d2vxci)) then
+     i_all=-product(shape(d2vxci))*kind(d2vxci)
+     deallocate(d2vxci,stat=i_stat)
+     call memocc(i_stat,i_all,'d2vxci','xc_energy')
+  end if
+  if (allocated(gradient)) then
+     i_all=-product(shape(gradient))*kind(gradient)
+     deallocate(gradient,stat=i_stat)
+     call memocc(i_stat,i_all,'gradient','xc_energy')
+  end if
+
   !distributing the density in the zf array
   !calculating the xc integrated quantities
   !and summing the xc potential into the zfionxc array
@@ -211,20 +252,12 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   end if
 
   !De-allocations
-  deallocate(exci,stat=i_all)
+  i_all=-product(shape(exci))*kind(exci)
+  deallocate(exci,stat=i_stat)
+  call memocc(i_stat,i_all,'exci','xc_energy')
+  i_all=-product(shape(vxci))*kind(vxci)
   deallocate(vxci,stat=i_stat)
-  i_all=i_all+i_stat
-  if (allocated(dvxci)) deallocate(dvxci,stat=i_stat)
-  i_all=i_all+i_stat
-  if (allocated(dvxcdgr)) deallocate(dvxcdgr,stat=i_stat)
-  i_all=i_all+i_stat
-  if (allocated(d2vxci)) deallocate(d2vxci,stat=i_stat)
-  i_all=i_all+i_stat
-  if (allocated(gradient)) deallocate(gradient,stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' xc_energy: problem of memory deallocation'
-     stop
-  end if
+  call memocc(i_stat,i_all,'vxci','xc_energy')
 
 end subroutine xc_energy
 
@@ -246,17 +279,14 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
   real(kind=8), dimension(n01,n02,n03,nvxcdgr), intent(in) :: dvxcdgr
   real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: wb_vxc
   !Local variables
-  integer :: i1,i2,i3,dir_i,i_all
+  integer :: i1,i2,i3,dir_i,i_all,i_stat
   real(kind=8) :: dnexcdgog,grad_i
   real(kind=8), dimension(:,:,:,:), allocatable :: f_i
 
   !Body
 
-  allocate(f_i(n01,n02,n03,3),stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' vxcpostprocessing: problem of memory allocation'
-     stop
-  end if
+  allocate(f_i(n01,n02,n03,3),stat=i_stat)
+  call memocc(i_stat,product(shape(f_i))*kind(f_i),'f_i','vxcpostprocessing')
   
   !let us first treat the case nspden=1
   if (nspden == 1) then
@@ -300,10 +330,8 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
   !end of spin-polarized if statement
   end if
 
-  deallocate(f_i,stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' vxcpostprocessing: problem of memory deallocation'
-     stop
-  end if
+  i_all=-product(shape(f_i))*kind(f_i)
+  deallocate(f_i,stat=i_stat)
+  call memocc(i_stat,i_all,'f_i','vxcpostprocessing')
 
 end subroutine vxcpostprocessing

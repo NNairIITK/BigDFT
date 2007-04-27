@@ -334,7 +334,7 @@ subroutine calc_gradient(n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,h
  real(kind=8), dimension(n1,n2,n3,nspden), intent(in) :: rhoinp
  real(kind=8), dimension(n1,n2,n3grad,2*nspden-1,0:3), intent(out) :: gradient
  !Local variables
- integer :: i1,i2,i3,i_all
+ integer :: i1,i2,i3,i_all,i_stat
  !filters of finite difference derivative for order 4
  real(kind=8), parameter :: a1=0.8d0, a2=-0.2d0
  real(kind=8), parameter :: a3=0.038095238095238095238d0, a4=-0.0035714285714285714286d0
@@ -354,11 +354,8 @@ subroutine calc_gradient(n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,h
  end if
 
  !let us initialize the larger vector to calculate the gradient
- allocate(density(n1+8,n2+8,n3grad+8),stat=i_all)
- if (i_all /= 0) then
-    write(*,*)' calc_gradient: problem of memory allocation'
-    stop
- end if
+ allocate(density(n1+8,n2+8,n3grad+8),stat=i_stat)
+ call memocc(i_stat,product(shape(density))*kind(density),'density','calc_gradient')
 
   do i3=1,4-deltaleft
      do i2=5,n2+4
@@ -441,10 +438,8 @@ subroutine calc_gradient(n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,h
      end do
   end do
 
-  deallocate(density,stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' calc_gradient: problem of memory deallocation'
-     stop
-  end if
+  i_all=-product(shape(density))*kind(density)
+  deallocate(density,stat=i_stat)
+  call memocc(i_stat,i_all,'density','calc_gradient')
 
 end subroutine calc_gradient

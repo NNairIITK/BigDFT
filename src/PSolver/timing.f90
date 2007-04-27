@@ -117,3 +117,55 @@ subroutine timing(iproc,category,action)
 endif
 
 end subroutine timing
+
+
+subroutine memocc(istat,isize,array,routine)
+  implicit none
+  character(len=*), intent(in) :: array,routine
+  integer, intent(in) :: istat,isize
+  !local variables
+  character(len=36) :: maxroutine
+  character(len=36) :: maxarray
+  integer :: memory,nalloc,ndealloc,maxmemory
+  save :: memory,nalloc,ndealloc,maxroutine,maxarray,maxmemory
+
+
+  !control of the allocation/deallocation status
+  if (istat/=0) then
+     if (isize>=0) then
+        write(*,*)' subroutine ',routine,': problem of allocation of array ',array
+        stop
+     else if (isize<0) then
+        write(*,*)' subroutine ',routine,': problem of deallocation of array ',array
+        stop
+     end if
+  end if
+
+  !initialization of the counters
+  if (array=='count' .and. routine=='start') then
+     memory=0
+     maxmemory=0
+     nalloc=0
+     ndealloc=0
+  else if (array=='count' .and. routine=='stop') then
+     write(*,*) 'there were',nalloc,'allocations and',ndealloc,'deallocations'
+     write(*,*) 'memory occupation peak in bytes',maxmemory, 'remaining memory',memory
+     write(*,*) 'for the array ',trim(maxarray),'in the routine',trim(maxroutine)
+  else
+     memory=memory+isize
+     if (memory > maxmemory) then
+        maxmemory=memory
+        maxroutine=routine
+        maxarray=array
+     end if
+     if (isize>=0) then
+        nalloc=nalloc+1
+     else
+        ndealloc=ndealloc+1
+     end if
+
+     write(10,*)routine,' ',array,' ',isize,memory,maxmemory
+
+  end if
+
+end subroutine memocc

@@ -57,16 +57,14 @@ program test_forces
   open(unit=9,file='posinp',status='old')
   read(9,*) nat,units
   if (iproc.eq.0) write(6,*) 'nat=',nat
-  allocate(rxyz(3,nat),stat=i_all)
+  allocate(rxyz(3,nat),stat=i_stat)
+  call memocc(i_stat,product(shape(rxyz))*kind(rxyz),'rxyz','test_forces')
   allocate(iatype(nat),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(iatype))*kind(iatype),'iatype','test_forces')
   allocate(fxyz(3,nat),stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,product(shape(fxyz))*kind(fxyz),'fxyz','test_forces')
   allocate(drxyz(3,nat),stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' test_forces: problem of memory allocation'
-     stop
-  end if
+  call memocc(i_stat,product(shape(drxyz))*kind(drxyz),'drxyz','test_forces')
   ntypes=0
   do iat=1,nat
      read(9,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
@@ -103,22 +101,21 @@ program test_forces
   call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy0,fxyz, &
              & psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
              & 0, .false., .false., n1, n2, n3, hgrid, rxyz_old)
-  deallocate(psi,stat=i_all)
+  i_all=-product(shape(psi))*kind(psi)
+  deallocate(psi,stat=i_stat)
+  call memocc(i_stat,i_all,'psi','test_forces')
+  i_all=-product(shape(eval))*kind(eval)
   deallocate(eval,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'eval','test_forces')
+  i_all=-product(shape(keyg))*kind(keyg)
   deallocate(keyg,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'keyg','test_forces')
+  i_all=-product(shape(keyv))*kind(keyv)
   deallocate(keyv,stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' test_forces: problem of memory deallocation'
-     stop
-  end if
+  call memocc(i_stat,i_all,'keyv','test_forces')
 
-  allocate(weight(n),stat=i_all)
-  if (i_all /= 0) then
-     write(*,*)' test_forces: problem of memory allocation'
-     stop
-  end if
+  allocate(weight(n),stat=i_stat)
+  call memocc(i_stat,product(shape(weight))*kind(weight),'weight','test_forces')
   !prepare the array of the correct weights of the iteration steps
   if (mod(n,2).ne.1) stop 'the number of iteration steps has to be odd'
   weight(1)=1.d0/3.d0
@@ -148,16 +145,18 @@ program test_forces
      call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz, &
              & psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
              & 0, .false., .false., n1, n2, n3, hgrid, rxyz_old)
-     deallocate(psi,stat=i_all)
+     i_all=-product(shape(psi))*kind(psi)
+     deallocate(psi,stat=i_stat)
+     call memocc(i_stat,i_all,'psi','test_forces')
+     i_all=-product(shape(eval))*kind(eval)
      deallocate(eval,stat=i_stat)
-     i_all=i_all+i_stat
+     call memocc(i_stat,i_all,'eval','test_forces')
+     i_all=-product(shape(keyg))*kind(keyg)
      deallocate(keyg,stat=i_stat)
-     i_all=i_all+i_stat
+     call memocc(i_stat,i_all,'keyg','test_forces')
+     i_all=-product(shape(keyv))*kind(keyv)
      deallocate(keyv,stat=i_stat)
-     if (i_all+i_stat /= 0) then
-        write(*,*)' test_forces: problem of memory deallocation'
-        stop
-     end if
+     call memocc(i_stat,i_all,'keyv','test_forces')
      
 
 
@@ -199,18 +198,21 @@ program test_forces
 
   end do
 
-  deallocate(rxyz,stat=i_all)
+  i_all=-product(shape(rxyz))*kind(rxyz)
+  deallocate(rxyz,stat=i_stat)
+  call memocc(i_stat,i_all,'rxyz','test_forces')
+  i_all=-product(shape(iatype))*kind(iatype)
   deallocate(iatype,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'iatype','test_forces')
+  i_all=-product(shape(fxyz))*kind(fxyz)
   deallocate(fxyz,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'fxyz','test_forces')
+  i_all=-product(shape(drxyz))*kind(drxyz)
   deallocate(drxyz,stat=i_stat)
-  i_all=i_all+i_stat
+  call memocc(i_stat,i_all,'drxyz','test_forces')
+  i_all=-product(shape(weight))*kind(weight)
   deallocate(weight,stat=i_stat)
-  if (i_all+i_stat /= 0) then
-     write(*,*)' test_forces: problem of memory deallocation'
-     stop
-  end if
+  call memocc(i_stat,i_all,'weight','test_forces')
   
   if (parallel) call MPI_FINALIZE(ierr)
 
