@@ -1,11 +1,6 @@
-#F95 = ifort -L/soft/intel/mkl/9.0/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
-
-
-#F95 = mpif90  -i_dynamic -L/soft/intel/mkl/9.0/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
-
-#F95 = mpif90   -I/soft/intel/mkl721/include -I/soft/mpich-1.2.7p1/intel_v9/include -openmp
-F77 = mpif90  -i_dynamic
-FFLAGS =
+F95 = ompif90  
+F77 = ompif90  
+FFLAGS = -O2 -c
 
 LIBRARIES = -L/soft/intel/mkl721/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
 
@@ -20,7 +15,7 @@ SOURCES = \
         conv_per_optim.f90 \
         eleconf.f90  \
         gauss_to_daub.f90 \
-        precond_sg.f90 \
+        precond.f90 \
         prec_diag.f90 \
         timing.f90 \
         forces.f90

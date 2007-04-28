@@ -472,11 +472,11 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      enddo
   endif
 
-!!$  !calculation of the kernel deplaced to reduce memory peak for small systems
-!!$  !proposed position, to be refined 
-!!$  ndegree_ip=14
-!!$  call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
-!!$       iproc,nproc,pkernel)
+  !calculation of the kernel deplaced to reduce memory peak for small systems
+  !proposed position, to be refined 
+  ndegree_ip=14
+  call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
+       iproc,nproc,pkernel)
 
 
   call createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, n3, output_grid, hgrid, &
@@ -562,10 +562,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
-     !the routine for calling the kernel can be conveniently deplaced to
-     !futher reduce the memory peak
-     call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
-          iproc,nproc,pkernel)
+!!$     !the routine for calling the kernel can be conveniently deplaced to
+!!$     !futher reduce the memory peak
+!!$     call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
+!!$          iproc,nproc,pkernel)
 
      ! Precalculate ionic potential from PSP charge densities and local Gaussian terms
      call input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
@@ -5231,6 +5231,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,psppar,npspcode,&
         iatsc=iatsc+1
         sccode=real(iasctype(ity),kind=8)
         inorbsc=ceiling(dlog(sccode)/dlog(10.d0))
+        if (sccode==1.d0) inorbsc=1
         ipow=inorbsc-1
         scorb(:,iatsc)=.false.
         !count the semicore orbitals for this atom
@@ -5621,6 +5622,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
      iorbst=1
      imatrst=1
+     !print *,'norbi',norbi,natsc,norbsc_arr(natsc+1)
      do i=1,natsc
         norbi=norbsc_arr(i)
         call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,hpsit(1,iorbst),nvctrp,&
