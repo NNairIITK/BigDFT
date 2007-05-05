@@ -125,10 +125,10 @@ subroutine memocc(istat,isize,array,routine)
   character(len=*), intent(in) :: array,routine
   integer, intent(in) :: istat,isize
   !local variables
-  character(len=36) :: maxroutine
-  character(len=36) :: maxarray
-  integer :: memory,nalloc,ndealloc,maxmemory
-  save :: memory,nalloc,ndealloc,maxroutine,maxarray,maxmemory
+  character(len=36) :: maxroutine,locroutine
+  character(len=36) :: maxarray,locarray
+  integer :: memory,nalloc,ndealloc,maxmemory,locpeak,locmemory
+  save :: memory,nalloc,ndealloc,maxroutine,maxarray,maxmemory,locroutine,locarray,locpeak,locmemory
 
 
   !control of the allocation/deallocation status
@@ -148,6 +148,10 @@ subroutine memocc(istat,isize,array,routine)
      maxmemory=0
      nalloc=0
      ndealloc=0
+     locroutine='start'
+     locarray='array'
+     locmemory=0
+     locpeak=0
      !open the writing file
      open(unit=98,file='malloc.prc',status='unknown')
   else if (array=='count' .and. routine=='stop') then
@@ -159,20 +163,34 @@ subroutine memocc(istat,isize,array,routine)
      write(*,'(1x,a,i0)') 'memory occupation peak in bytes ',maxmemory
      write(*,'(4(1x,a))') 'for the array ',trim(maxarray),'in the routine',trim(maxroutine)
   else
+     if (trim(locroutine) /= routine) then
+        !write(98,'(a32,a14,3(1x,i12))')routine,array,isize,memory,maxmemory
+        write(98,'(a32,a14,3(1x,i12))')trim(locroutine),trim(locarray),locmemory,locpeak,maxmemory
+        locroutine=routine
+        locarray=array
+        locmemory=isize
+        locpeak=isize
+     else
+        locmemory=locmemory+isize
+        if (locmemory > locpeak) then
+           locpeak=locmemory
+           locarray=array
+        end if
+
+     end if
+
      memory=memory+isize
      if (memory > maxmemory) then
         maxmemory=memory
         maxroutine=routine
         maxarray=array
      end if
-     if (isize>=0) then
+     if (isize>0) then
         nalloc=nalloc+1
-     else
+     else if (isize<0) then
         ndealloc=ndealloc+1
      end if
-
-     write(98,'(a32,a14,3(1x,i12))')routine,array,isize,memory,maxmemory
-
+        
   end if
 
 end subroutine memocc
