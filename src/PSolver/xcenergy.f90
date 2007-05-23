@@ -1,15 +1,82 @@
+!!****h* BigDFT/xcenergy
+!! NAME
+!!    xcenergy
+!!
+!! FUNCTION
+!!    Calculate the XC terms from the given density in a distributed way.
+!!    it assign also the proper part of the density to the zf array 
+!!    which will be used for the core of the FFT procedure.
+!!    Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
+!!    to the XC potential, or even ignored.
+!!
+!! SYNOPSIS
+!!    geocode  Indicates the boundary conditions (BC) of the problem:
+!!            'F' free BC, isolated systems.
+!!                The program calculates the solution as if the given density is
+!!                "alone" in R^3 space.
+!!            'S' surface BC, isolated in y direction, periodic in xz plane                
+!!                The given density is supposed to be periodic in the xz plane,
+!!                so the dimensions in these direction mus be compatible with the FFT
+!!                Beware of the fact that the isolated direction is y!
+!!            'P' periodic BC.
+!!                The density is supposed to be periodic in all the three directions,
+!!                then all the dimensions must be compatible with the FFT.
+!!                No need for setting up the kernel.
+!!    m1,m2,m3    global dimensions in the three directions.
+!!    md1,md2,md3 dimensions of the arrays compatible with the FFT in the three directions.
+!!    nproc       number of processors
+!!    iproc       label of the process,from 0 to nproc-1
+!!    ixc         eXchange-Correlation code. Indicates the XC functional to be used 
+!!                for calculating XC energies and potential. 
+!!                ixc=0 indicates that no XC terms are computed. The XC functional codes follow
+!!                the ABINIT convention.
+!!    hx,hy,hz    grid spacings. 
+!!    rhopot      density in the distributed format.
+!!    karray      kernel of the poisson equation. It is provided in distributed case, with
+!!                dimensions that are related to the output of the PS_dim4allocation routine
+!!                it MUST be created by following the same geocode as the Poisson Solver.
+!!    pot_ion     additional external potential that is added to the output, 
+!!                when the XC parameter ixc/=0. It is always provided in the distributed form,
+!!                clearly without the overlapping terms which are needed only for the XC part
+!!    exc,vxc     XC energy and integral of $\rho V_{xc}$ respectively
+!!    nxc         value of the effective distributed dimension in the third direction
+!!    nwb         enlarged dimension for calculating the WB correction
+!!    nxt         enlarged dimension for calculating the GGA case 
+!!                (further enlarged for compatibility with WB correction if it is the case)
+!!    nwbl,nwbr
+!!    nxcl,nxcr   shifts in the three directions to be compatible with the relation
+!!                nxc+nxcl+nxcr-2=nwb, nwb+nwbl+nwbr=nxt.
+!!    sumpion     logical value which states whether to sum pot_ion to the final result or not
+!!                if sumpion==.true. zfionxc will be pot_ion+vxci
+!!                if sumpion==.false. zfionxc will be vxci
+!!                this value is ignored when ixc=0. In that case zfionxc is untouched
+!!    zf          output array corresponding to the density which can be passed to FFT part
+!!    zfionxc     output array which will contain pot_ion+vxci of vxci, following sumpion
+!! WARNING
+!!    The dimensions of pot_ion must be compatible with geocode, datacode, nproc, 
+!!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
+!!    is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
+!!
+!! AUTHOR
+!!    Luigi Genovese
+!! CREATION DATE
+!!    February 2007
+!!
+!! SOURCE
+!!
 subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
-     nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,zf,zfionxc,exc,vxc,iproc,nproc)
+     nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,iproc,nproc)
 
   implicit none
 
   !Arguments----------------------
   character(len=1), intent(in) :: geocode
+  logical, intent(in) :: sumpion
   integer, intent(in) :: m1,m2,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,iproc,nproc
   integer, intent(in) :: nwbl,nwbr
   real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), dimension(m1,m3,nxt), intent(inout) :: rhopot
-  real(kind=8), dimension(m1,m3,nxc), intent(in) :: pot_ion
+  real(kind=8), dimension(*), intent(in) :: pot_ion
   real(kind=8), dimension(md1,md3,md2/nproc), intent(out) :: zf,zfionxc
   real(kind=8), intent(out) :: exc,vxc
 
@@ -26,13 +93,12 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   interface
      subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr, & !Mandatory 
           & dvxc,d2vxc,grho2_updn,vxcgr) !Optional
-       use defs_basis
        integer,intent(in) :: ixc,npts,nspden,order
        integer,intent(in) :: ndvxc,ngr2,nvxcdgr
-       real(dp),intent(in) :: rho_updn(npts,nspden)
-       real(dp),intent(in), optional :: grho2_updn(npts,ngr2)
-       real(dp),intent(out) :: exc(npts),vxc(npts,nspden)
-       real(dp),intent(out), optional :: d2vxc(npts),dvxc(npts,ndvxc),vxcgr(npts,nvxcdgr)
+       real(kind=8),intent(in) :: rho_updn(npts,nspden)
+       real(kind=8),intent(in), optional :: grho2_updn(npts,ngr2)
+       real(kind=8),intent(out) :: exc(npts),vxc(npts,nspden)
+       real(kind=8),intent(out), optional :: d2vxc(npts),dvxc(npts,ndvxc),vxcgr(npts,nvxcdgr)
      end subroutine drivexc
   end interface
 
@@ -52,37 +118,6 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   !useful for the freeBC case
   hgrid=max(hx,hy,hz)
 
-  !Allocations
-  allocate(exci(m1,m3,nwb),stat=i_stat)
-  call memocc(i_stat,product(shape(exci))*kind(exci),'exci','xc_energy')
-  allocate(vxci(m1,m3,nwb,nspden),stat=i_stat)
-  call memocc(i_stat,product(shape(vxci))*kind(vxci),'vxci','xc_energy')
-  !Allocations of the exchange-correlation terms, depending on the ixc value
-  if (ixc >= 11 .and. ixc <= 16) then
-     allocate(gradient(m1,m3,nwb,2*nspden-1,0:3),stat=i_stat)
-     call memocc(i_stat,product(shape(gradient))*kind(gradient),'gradient','xc_energy')
-  end if
-
-  call size_dvxc(ixc,ndvxc,ngr2,nspden,nvxcdgr,order)
-
-  if (ndvxc/=0) then
-     allocate(dvxci(m1,m3,nwb,ndvxc),stat=i_stat)
-     call memocc(i_stat,product(shape(dvxci))*kind(dvxci),'dvxci','xc_energy')
-  end if
-  if (nvxcdgr/=0) then
-     allocate(dvxcdgr(m1,m3,nwb,nvxcdgr),stat=i_stat)
-     call memocc(i_stat,product(shape(dvxcdgr))*kind(dvxcdgr),'dvxcdgr','xc_energy')
-  end if
-  if ((ixc==3 .or. (ixc>=7 .and. ixc<=15)) .and. order==3) then
-     allocate(d2vxci(m1,m3,nwb),stat=i_stat)
-     call memocc(i_stat,product(shape(d2vxci))*kind(d2vxci),'d2vxci','xc_energy')
-  end if
-
-  if (.not.allocated(gradient) .and. nxc/=nxt ) then
-     print *,'Parxc_energy: if nx2/=nxc the gradient must be allocated'
-     stop
-  end if
-
  !divide by two the density to applicate it in the ABINIT xc routines
   offset=nwbl+1
   if (ixc/=0) then
@@ -95,10 +130,14 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         end do
      end do
 
-     !computation of the gradient
+     !Allocations of the exchange-correlation terms, depending on the ixc value
+     call size_dvxc(ixc,ndvxc,ngr2,nspden,nvxcdgr,order)
 
-     if (allocated(gradient)) then
-        
+     if (ixc >= 11 .and. ixc <= 16) then
+        !computation of the gradient
+        allocate(gradient(m1,m3,nwb,2*nspden-1,0:3),stat=i_stat)
+        call memocc(i_stat,product(shape(gradient))*kind(gradient),'gradient','xc_energy')
+
         !the calculation of the gradient will depend on the geometry code
         if (geocode=='F') then
            call calc_gradient(m1,m3,nxt,nwb,nwbl,nwbr,rhopot,nspden,&
@@ -111,7 +150,32 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
      end if
 
+     !Allocations
+     allocate(exci(m1,m3,nwb),stat=i_stat)
+     call memocc(i_stat,product(shape(exci))*kind(exci),'exci','xc_energy')
+     allocate(vxci(m1,m3,nwb,nspden),stat=i_stat)
+     call memocc(i_stat,product(shape(vxci))*kind(vxci),'vxci','xc_energy')
+
+     if (ndvxc/=0) then
+        allocate(dvxci(m1,m3,nwb,ndvxc),stat=i_stat)
+        call memocc(i_stat,product(shape(dvxci))*kind(dvxci),'dvxci','xc_energy')
+     end if
+     if (nvxcdgr/=0) then
+        allocate(dvxcdgr(m1,m3,nwb,nvxcdgr),stat=i_stat)
+        call memocc(i_stat,product(shape(dvxcdgr))*kind(dvxcdgr),'dvxcdgr','xc_energy')
+     end if
+     if ((ixc==3 .or. (ixc>=7 .and. ixc<=15)) .and. order==3) then
+        allocate(d2vxci(m1,m3,nwb),stat=i_stat)
+        call memocc(i_stat,product(shape(d2vxci))*kind(d2vxci),'d2vxci','xc_energy')
+     end if
+
+     if (.not.allocated(gradient) .and. nxc/=nxt ) then
+        print *,'xc_energy: if nxt/=nxc the gradient must be allocated'
+        stop
+     end if
+
      !this part can be commented out if you don't want to use ABINIT modules
+     !of course it must be substituted with an alternative XC calculation
      npts=m1*m3*nwb
      !let us apply ABINIT routines
      !case with gradient
@@ -162,84 +226,150 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      end if
      !end of the part that can be commented out
 
-  end if
+     if (allocated(dvxci)) then
+        i_all=-product(shape(dvxci))*kind(dvxci)
+        deallocate(dvxci,stat=i_stat)
+        call memocc(i_stat,i_all,'dvxci','xc_energy')
+     end if
+     if (allocated(dvxcdgr)) then
+        i_all=-product(shape(dvxcdgr))*kind(dvxcdgr)
+        deallocate(dvxcdgr,stat=i_stat)
+        call memocc(i_stat,i_all,'dvxcdgr','xc_energy')
+     end if
+     if (allocated(d2vxci)) then
+        i_all=-product(shape(d2vxci))*kind(d2vxci)
+        deallocate(d2vxci,stat=i_stat)
+        call memocc(i_stat,i_all,'d2vxci','xc_energy')
+     end if
+     if (allocated(gradient)) then
+        i_all=-product(shape(gradient))*kind(gradient)
+        deallocate(gradient,stat=i_stat)
+        call memocc(i_stat,i_all,'gradient','xc_energy')
+     end if
 
-  if (allocated(dvxci)) then
-     i_all=-product(shape(dvxci))*kind(dvxci)
-     deallocate(dvxci,stat=i_stat)
-     call memocc(i_stat,i_all,'dvxci','xc_energy')
-  end if
-  if (allocated(dvxcdgr)) then
-     i_all=-product(shape(dvxcdgr))*kind(dvxcdgr)
-     deallocate(dvxcdgr,stat=i_stat)
-     call memocc(i_stat,i_all,'dvxcdgr','xc_energy')
-  end if
-  if (allocated(d2vxci)) then
-     i_all=-product(shape(d2vxci))*kind(d2vxci)
-     deallocate(d2vxci,stat=i_stat)
-     call memocc(i_stat,i_all,'d2vxci','xc_energy')
-  end if
-  if (allocated(gradient)) then
-     i_all=-product(shape(gradient))*kind(gradient)
-     deallocate(gradient,stat=i_stat)
-     call memocc(i_stat,i_all,'gradient','xc_energy')
-  end if
 
-  !distributing the density in the zf array
-  !calculating the xc integrated quantities
-  !and summing the xc potential into the zfionxc array
+     !distributing the density in the zf array
+     !calculating the xc integrated quantities
+   
+     exc=0.d0
+     vxc=0.d0
+     if (sumpion) then
+        !summing the xc potential into the zfionxc array with pot_ion
+        do jp2=1,nxc
+           j2=offset+jp2+nxcl-2
+           !jpp2=jp2     
+           jppp2=jp2+nxcl-1
+           do j3=1,m3
+              do j1=1,m1
+                 jpp2=j1+(j3-1)*m1+(jp2-1)*m1*m3
+                 rho=rhopot(j1,j3,j2)
+                 potion=pot_ion(jpp2)!j1,j3,jpp2)
+                 if (rho < 5.d-21) then
+                    elocal=0.d0
+                    vlocal=0.d0
+                 else
+                    elocal=exci(j1,j3,jppp2)
+                    vlocal=vxci(j1,j3,jppp2,1)
+                 end if
+                 exc=exc+elocal*rho
+                 vxc=vxc+vlocal*rho
+                 zf(j1,j3,jp2)=2.d0*rhopot(j1,j3,j2)!restore the original normalization
+                 zfionxc(j1,j3,jp2)=potion+vlocal
+              end do
+              do j1=m1+1,md1
+                 zf(j1,j3,jp2)=0.d0
+                 zfionxc(j1,j3,jp2)=0.d0
+              end do
+           end do
+           do j3=m3+1,md3
+              do j1=1,md1
+                 zf(j1,j3,jp2)=0.d0
+                 zfionxc(j1,j3,jp2)=0.d0
+              end do
+           end do
+        end do
+     else
+        do jp2=1,nxc
+           j2=offset+jp2+nxcl-2
+           jppp2=jp2+nxcl-1
+           do j3=1,m3
+              do j1=1,m1
+                 rho=rhopot(j1,j3,j2)
+                 if (rho < 5.d-21) then
+                    elocal=0.d0
+                    vlocal=0.d0
+                 else
+                    elocal=exci(j1,j3,jppp2)
+                    vlocal=vxci(j1,j3,jppp2,1)
+                 end if
+                 exc=exc+elocal*rho
+                 vxc=vxc+vlocal*rho
+                 zf(j1,j3,jp2)=2.d0*rhopot(j1,j3,j2)!restore the original normalization
+                 zfionxc(j1,j3,jp2)=vlocal
+              end do
+              do j1=m1+1,md1
+                 zf(j1,j3,jp2)=0.d0
+                 zfionxc(j1,j3,jp2)=0.d0
+              end do
+           end do
+           do j3=m3+1,md3
+              do j1=1,md1
+                 zf(j1,j3,jp2)=0.d0
+                 zfionxc(j1,j3,jp2)=0.d0
+              end do
+           end do
+        end do
+     end if
+     do jp2=nxc+1,md2/nproc
+        do j3=1,md3
+           do j1=1,md1
+              zf(j1,j3,jp2)=0.d0
+              zfionxc(j1,j3,jp2)=0.d0
+           end do
+        end do
+     end do
 
-  if(ixc==0) then
-     factor=1.d0
-     facpotion=0.d0
+     !De-allocations
+     i_all=-product(shape(exci))*kind(exci)
+     deallocate(exci,stat=i_stat)
+     call memocc(i_stat,i_all,'exci','xc_energy')
+     i_all=-product(shape(vxci))*kind(vxci)
+     deallocate(vxci,stat=i_stat)
+     call memocc(i_stat,i_all,'vxci','xc_energy')
+
+
   else
-     factor=2.d0
-     facpotion=1.d0
+
+     !case without XC terms
+     !distributing the density in the zf array
+     exc=0.d0
+     vxc=0.d0
+     do jp2=1,nxc
+        j2=offset+jp2+nxcl-2
+        jpp2=jp2     
+        do j3=1,m3
+           do j1=1,m1
+              zf(j1,j3,jp2)=rhopot(j1,j3,j2)
+           end do
+           do j1=m1+1,md1
+              zf(j1,j3,jp2)=0.d0
+           end do
+        end do
+        do j3=m3+1,md3
+           do j1=1,md1
+              zf(j1,j3,jp2)=0.d0
+           end do
+        end do
+     end do
+     do jp2=nxc+1,md2/nproc
+        do j3=1,md3
+           do j1=1,md1
+              zf(j1,j3,jp2)=0.d0
+           end do
+        end do
+     end do
+
   end if
-
-
-  exc=0.d0
-  vxc=0.d0
-  do jp2=1,nxc
-     j2=offset+jp2+nxcl-2
-     jpp2=jp2     
-     jppp2=jp2+nxcl-1
-     do j3=1,m3
-        do j1=1,m1
-           rho=rhopot(j1,j3,j2)
-           potion=pot_ion(j1,j3,jpp2)
-           if (rho < 5.d-21 .or. ixc == 0) then
-              elocal=0.d0
-              vlocal=0.d0
-           else
-              elocal=exci(j1,j3,jppp2)
-              vlocal=vxci(j1,j3,jppp2,1)
-           end if
-           exc=exc+elocal*rho
-           vxc=vxc+vlocal*rho
-           zf(j1,j3,jp2)=factor*rhopot(j1,j3,j2)
-           zfionxc(j1,j3,jp2)=facpotion*potion+vlocal
-        end do
-        do j1=m1+1,md1
-           zf(j1,j3,jp2)=0.d0
-           zfionxc(j1,j3,jp2)=0.d0
-        end do
-     end do
-     do j3=m3+1,md3
-        do j1=1,md1
-           zf(j1,j3,jp2)=0.d0
-           zfionxc(j1,j3,jp2)=0.d0
-        end do
-     end do
-  end do
-  do jp2=nxc+1,md2/nproc
-     do j3=1,md3
-        do j1=1,md1
-           zf(j1,j3,jp2)=0.d0
-           zfionxc(j1,j3,jp2)=0.d0
-        end do
-     end do
-  end do
 
   !the two factor is due to the 
   !need of using the density of states in abinit routines
@@ -250,14 +380,6 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      exc=2.d0*hx*hy*hz*exc
      vxc=2.d0*hx*hy*hz*vxc
   end if
-
-  !De-allocations
-  i_all=-product(shape(exci))*kind(exci)
-  deallocate(exci,stat=i_stat)
-  call memocc(i_stat,i_all,'exci','xc_energy')
-  i_all=-product(shape(vxci))*kind(vxci)
-  deallocate(vxci,stat=i_stat)
-  call memocc(i_stat,i_all,'vxci','xc_energy')
 
 end subroutine xc_energy
 

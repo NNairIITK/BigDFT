@@ -42,18 +42,30 @@
 !!    rhopot      main input/output array.
 !!                On input, it represents the density values on the grid points
 !!                On output, it is the Hartree potential, namely the solution of the Poisson 
-!!                equation PLUS (when ixc/=0) the XC potential PLUS (again for ixc/=0) the 
-!!                pot_ion array. The output is non overlapping, in the sense that it does not
+!!                equation PLUS (when ixc/=0 sumpion=.true.) the XC potential 
+!!                PLUS (again for ixc/=0 and sumpion=.true.) the pot_ion array. 
+!!                The output is non overlapping, in the sense that it does not
 !!                consider the points that are related to gradient and WB calculation
 !!    karray      kernel of the poisson equation. It is provided in distributed case, with
 !!                dimensions that are related to the output of the PS_dim4allocation routine
 !!                it MUST be created by following the same geocode as the Poisson Solver.
 !!    pot_ion     additional external potential that is added to the output, 
-!!                when the XC parameter ixc/=0. It is always provided in the distributed form,
+!!                when the XC parameter ixc/=0 and sumpion=.true., otherwise it corresponds 
+!!                to the XC potential Vxc.
+!!                When sumpion=.true., it is always provided in the distributed form,
 !!                clearly without the overlapping terms which are needed only for the XC part
+!!                When sumpion=.false. it is the XC potential and therefore it has 
+!!                the same distribution of the data as the potential
+!!                Ignored when ixc=0.
 !!    eh,exc,vxc  Hartree energy, XC energy and integral of $\rho V_{xc}$ respectively
 !!    offset      value of the potential at the point 1,1,1 of the grid.
 !!                To be used only in the periodic case, ignored for other boundary conditions.
+!!    sumpion     logical value which states whether to sum pot_ion to the final result or not
+!!                if sumpion==.true. rhopot will be the Hartree potential + pot_ion+vxci
+!!                                   pot_ion will be untouched
+!!                if sumpion==.false. rhopot will be only the Hartree potential
+!!                                    pot_ion will be the XC potential vxci
+!!                this value is ignored when ixc=0. In that case pot_ion is untouched
 !! WARNING
 !!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
@@ -67,16 +79,17 @@
 !! SOURCE
 !!
 subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     rhopot,karray,pot_ion,eh,exc,vxc,offset)
+     rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion)
   implicit none
   include 'mpif.h'
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode
+  logical, intent(in) :: sumpion
   integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc
   real(kind=8), intent(in) :: hx,hy,hz,offset
-  real(kind=8), dimension(*), intent(in) :: karray,pot_ion
+  real(kind=8), dimension(*), intent(in) :: karray
   real(kind=8), intent(out) :: eh,exc,vxc
-  real(kind=8), dimension(*), intent(inout) :: rhopot
+  real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
   !local variables
   integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
@@ -116,15 +129,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   call memocc(i_stat,product(shape(zf))*kind(zf),'zf','psolver')
   allocate(zfionxc(md1,md3,md2/nproc),stat=i_stat)
   call memocc(i_stat,product(shape(zfionxc))*kind(zfionxc),'zfionxc','psolver')
-  if (nproc > 1) then
-     if (datacode == 'G') then
-        allocate(gather_arr(0:nproc-1,2),stat=i_stat)
-        call memocc(i_stat,product(shape(gather_arr))*kind(gather_arr),'gather_arr','psolver')
-     end if
-     allocate(energies_mpi(6),stat=i_stat)
-     call memocc(i_stat,product(shape(energies_mpi))*kind(energies_mpi),'energies_mpi','psolver')
-  end if
-
 
   call timing(iproc,'Exchangecorr  ','ON')
   !dimension for exchange-correlation (different in the global or distributed case)
@@ -199,7 +203,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   if (istart+1 <= m2) then 
      call xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-          ixc,hx,hy,hz,rhopot(1+n01*n02*(i3start-1)),pot_ion,zf,zfionxc,&
+          ixc,hx,hy,hz,rhopot(1+n01*n02*(i3start-1)),pot_ion,sumpion,zf,zfionxc,&
           eexcuLOC,vexcuLOC,iproc,nproc)
   else if (istart+1 <= nlim) then !this condition assures that we have perform good zero padding
      do i2=istart+1,min(nlim,istart+md2/nproc)
@@ -262,23 +266,51 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   end if
 
   ehartreeLOC=0.d0
-  do j2=1,nxc!i2=istart+1,iend !the index i2 must be changed in the distributed i/o case
-     i2=j2+i3xcsh!j2=i2-istart
-     ind3=(i2-1)*n01*n02
-     do i3=1,m3
-        ind2=(i3-1)*n01+ind3
-        do i1=1,m1
-           ind=i1+ind2
-           pot=zf(i1,i3,j2)+correction
-           ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-           rhopot(ind)=pot+zfionxc(i1,i3,j2)
+  if (ixc==0) then
+     do j2=1,nxc
+        i2=j2+i3xcsh
+        ind3=(i2-1)*n01*n02
+        do i3=1,m3
+           ind2=(i3-1)*n01+ind3
+           do i1=1,m1
+              ind=i1+ind2
+              pot=zf(i1,i3,j2)+correction
+              ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
+              rhopot(ind)=pot
+           end do
         end do
      end do
-  end do
-
-  if (ixc==0) then
      ehartreeLOC=ehartreeLOC*factor
+  else if (sumpion) then
+     do j2=1,nxc
+        i2=j2+i3xcsh
+        ind3=(i2-1)*n01*n02
+        do i3=1,m3
+           ind2=(i3-1)*n01+ind3
+           do i1=1,m1
+              ind=i1+ind2
+              pot=zf(i1,i3,j2)+correction
+              ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
+              rhopot(ind)=pot+zfionxc(i1,i3,j2)
+           end do
+        end do
+     end do
+     ehartreeLOC=ehartreeLOC*2.d0*factor
   else
+     do j2=1,nxc
+        i2=j2+i3xcsh
+        ind3=(i2-1)*n01*n02
+        do i3=1,m3
+           ind2=(i3-1)*n01+ind3
+           do i1=1,m1
+              ind=i1+ind2
+              pot=zf(i1,i3,j2)+correction
+              ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
+              rhopot(ind)=pot
+              pot_ion(ind)=zfionxc(i1,i3,j2)
+           end do
+        end do
+     end do
      ehartreeLOC=ehartreeLOC*2.d0*factor
   end if
 
@@ -294,7 +326,11 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree,eexcu,vexcu
   if (nproc.gt.1) then
+
      call timing(iproc,'PSolv_commun  ','ON')
+     allocate(energies_mpi(6),stat=i_stat)
+     call memocc(i_stat,product(shape(energies_mpi))*kind(energies_mpi),'energies_mpi','psolver')
+
      energies_mpi(1)=ehartreeLOC
      energies_mpi(2)=eexcuLOC
      energies_mpi(3)=vexcuLOC
@@ -303,11 +339,18 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      eh=energies_mpi(4)
      exc=energies_mpi(5)
      vxc=energies_mpi(6)
+
+     i_all=-product(shape(energies_mpi))*kind(energies_mpi)
+     deallocate(energies_mpi,stat=i_stat)
+     call memocc(i_stat,i_all,'energies_mpi','psolver')
      call timing(iproc,'PSolv_commun  ','OF')
 
      if (datacode == 'G') then
         !building the array of the data to be sent from each process
         !and the array of the displacement
+
+        allocate(gather_arr(0:nproc-1,2),stat=i_stat)
+        call memocc(i_stat,product(shape(gather_arr))*kind(gather_arr),'gather_arr','psolver')
         call timing(iproc,'PSolv_comput  ','ON')
         do jproc=0,nproc-1
            istart=min(jproc*(md2/nproc),m2-1)
@@ -321,25 +364,24 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         istart=min(iproc*(md2/nproc),m2-1)
         call timing(iproc,'PSolv_commun  ','ON')
         call MPI_ALLGATHERV(rhopot(1+n01*n02*istart),gather_arr(iproc,1),MPI_double_precision,&
-             rhopot,gather_arr(:,1),gather_arr(:,2),MPI_double_precision,MPI_COMM_WORLD,ierr)
+             rhopot,gather_arr(0,1),gather_arr(0,2),MPI_double_precision,MPI_COMM_WORLD,ierr)
+        !if it is the case gather also the results of the XC potential
+        if (ixc /=0 .and. .not. sumpion) then
+           call MPI_ALLGATHERV(pot_ion(1+n01*n02*istart),gather_arr(iproc,1),&
+                MPI_double_precision,pot_ion,gather_arr(0,1),gather_arr(0,2),&
+                MPI_double_precision,MPI_COMM_WORLD,ierr)
+        end if
         call timing(iproc,'PSolv_commun  ','OF')
+        i_all=-product(shape(gather_arr))*kind(gather_arr)
+        deallocate(gather_arr,stat=i_stat)
+        call memocc(i_stat,i_all,'gather_arr','psolver')
+
      end if
 
   else
      eh=ehartreeLOC
      exc=eexcuLOC
      vxc=vexcuLOC
-  end if
-
-  if (allocated(gather_arr)) then
-     i_all=-product(shape(gather_arr))*kind(gather_arr)
-     deallocate(gather_arr,stat=i_stat)
-     call memocc(i_stat,i_all,'gather_arr','psolver')
-  end if
-  if (allocated(energies_mpi)) then
-     i_all=-product(shape(energies_mpi))*kind(energies_mpi)
-     deallocate(energies_mpi,stat=i_stat)
-     call memocc(i_stat,i_all,'energies_mpi','psolver')
   end if
 
   if (iproc==0) write(*,*)'done.'

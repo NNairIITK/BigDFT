@@ -239,15 +239,15 @@
         allocatable xpsig_fc(:,:,:,:)
 
         allocate(xpsig_c(0:n1,0:n2,0:n3),stat=i_stat)
-        call memocc(i_stat,product(shape(xpsig_c))*kind(xpsig_c),'xpsig_c','wscalv')
+        call memocc(i_stat,product(shape(xpsig_c))*kind(xpsig_c),'xpsig_c','calc_grad_reza')
         allocate(xpsig_fc(0:n1,0:n2,0:n3,3),stat=i_stat)
-        call memocc(i_stat,product(shape(xpsig_fc))*kind(xpsig_fc),'xpsig_fc','wscalv')
+        call memocc(i_stat,product(shape(xpsig_fc))*kind(xpsig_fc),'xpsig_fc','calc_grad_reza')
         allocate(xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-        call memocc(i_stat,product(shape(xpsig_f))*kind(xpsig_f),'xpsig_f','wscalv')
+        call memocc(i_stat,product(shape(xpsig_f))*kind(xpsig_f),'xpsig_f','calc_grad_reza')
         allocate(ypsig_c(0:n1,0:n2,0:n3),stat=i_stat)
-        call memocc(i_stat,product(shape(ypsig_c))*kind(ypsig_c),'ypsig_c','wscalv')
+        call memocc(i_stat,product(shape(ypsig_c))*kind(ypsig_c),'ypsig_c','calc_grad_reza')
         allocate(ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-        call memocc(i_stat,product(shape(ypsig_f))*kind(ypsig_f),'ypsig_f','wscalv')
+        call memocc(i_stat,product(shape(ypsig_f))*kind(ypsig_f),'ypsig_f','calc_grad_reza')
 
         call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
                               nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -264,19 +264,19 @@
 
           i_all=-product(shape(xpsig_c))*kind(xpsig_c)
           deallocate(xpsig_c,stat=i_stat)
-          call memocc(i_stat,i_all,'xpsig_c','wscalv')
+          call memocc(i_stat,i_all,'xpsig_c','calc_grad_reza')
           i_all=-product(shape(ypsig_c))*kind(ypsig_c)
           deallocate(ypsig_c,stat=i_stat)
-          call memocc(i_stat,i_all,'ypsig_c','wscalv')
+          call memocc(i_stat,i_all,'ypsig_c','calc_grad_reza')
           i_all=-product(shape(xpsig_f))*kind(xpsig_f)
           deallocate(xpsig_f,stat=i_stat)
-          call memocc(i_stat,i_all,'xpsig_f','wscalv')
+          call memocc(i_stat,i_all,'xpsig_f','calc_grad_reza')
           i_all=-product(shape(ypsig_f))*kind(ypsig_f)
           deallocate(ypsig_f,stat=i_stat)
-          call memocc(i_stat,i_all,'ypsig_f','wscalv')
+          call memocc(i_stat,i_all,'ypsig_f','calc_grad_reza')
           i_all=-product(shape(xpsig_fc))*kind(xpsig_fc)
           deallocate(xpsig_fc,stat=i_stat)
-          call memocc(i_stat,i_all,'xpsig_fc','wscalv')
+          call memocc(i_stat,i_all,'xpsig_fc','calc_grad_reza')
 
         END 
 

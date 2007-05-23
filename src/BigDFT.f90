@@ -41,7 +41,7 @@ program BigDFT
    endif
 
   !initialize memory counting
-  call memocc(0,0,'count','start')
+  call memocc(0,iproc,'count','start')
 
 
 !$omp parallel private(iam)  shared (npr)
@@ -127,7 +127,7 @@ program BigDFT
    !ngeostep=500
    do 500 igeostep=1,ngeostep
 
-      output_grid=.true. 
+      output_grid=.false. 
       if (igeostep.eq.1) then 
          inputPsiId=0
       else
