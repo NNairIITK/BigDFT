@@ -526,11 +526,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
 
   if (iproc.eq.0) write(*,'(1x,a,3(1x,i0))') 'Size of real space grids',(2*n1+31),(2*n2+31),(2*n3+31)
-  
-
-! Allocate and calculate the 1/|r-r'| kernel for the solution of Poisson's equation and test it
-  ndegree_ip=14
-  
+    
   !allocate values of the array for the data scattering in sumrho
   !its values are ignored in the datacode='G' case
   allocate(nscatterarr(0:nproc-1,4),stat=i_stat)
@@ -761,173 +757,11 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         goto 1010
      endif
 
-     if (iproc==0) then
-        write(*,'(1x,a)',advance='no')&
-          'done, orthoconstraint...'
-     end if
-
-! Apply  orthogonality constraints to all orbitals belonging to iproc
-     if (parallel) then
-
-     !transpose the hpsi wavefunction
-     call timing(iproc,'Un-Transall   ','ON')
-     !here psi is used as a work array
-     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
-     !here hpsi is the transposed array
-     call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-Transall   ','OF')
-     !end of transposition
-
-     call  orthoconstraint_p(iproc,nproc,norb,norbp,occup,nvctrp,psit,hpsi,scprsum)
-
-     !retranspose the hpsi wavefunction
-     call timing(iproc,'Un-Transall   ','ON')
-     !here psi is used as a work array
-     call MPI_ALLTOALL(hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-          psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     !here hpsi is the direct array
-     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,hpsi)
-
-     call timing(iproc,'Un-Transall   ','OF')
-     !end of retransposition
-
-     else
-        call orthoconstraint(norb,norbp,occup,nvctrp,psi,hpsi,scprsum)
-     endif
-     
-! norm of gradient
-     gnrm=0.d0
-     do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-        !calculate the address to start from for calculating the 
-        !norm of the residue if hpsi is allocated in the transposed way
-        !it can be eliminated when including all this procedure in a subroutine
-        if (parallel) then
-           ind=1+(nvctr_c+7*nvctr_f)*(iorb-iproc*norbp-1)
-           i1=mod(ind,nvctrp)
-           i2=(ind-i1)/nvctrp+1
-        else
-           i1=1
-           i2=iorb-iproc*norbp
-        end if
-        scpr=dnrm2(nvctr_c+7*nvctr_f,hpsi(i1,i2),1)
-        !scpr=dnrm2(nvctr_c+7*nvctr_f,hpsi(1,iorb-iproc*norbp),1)
-        !lines for writing the residue following the orbitals
-        !if (iorb <=5) write(83,*)iter,iorb,scpr
-        gnrm=gnrm+scpr**2
-     enddo
-     if (parallel) then
-        tt=gnrm
-        call MPI_ALLREDUCE(tt,gnrm,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-     endif
-     gnrm=sqrt(gnrm/norb)
-
-     if (iproc==0) then
-        write(*,'(1x,a)',advance='no')&
-          'done, preconditioning...'
-     end if
-
-
-! Preconditions all orbitals belonging to iproc
-     call preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid, &
-          ncong,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,eval,&
-          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
-
-     !       call plot_wf(10,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f, &
-     !                       rxyz(1,1),rxyz(2,1),rxyz(3,1),psi)
-     !       call plot_wf(20,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f, &
-     !                       rxyz(1,1),rxyz(2,1),rxyz(3,1),hpsi)
-
-
-     if (iproc==0) then
-       write(*,'(1x,a)')&
-          'done.'
-     end if
-
-     if (idsx.gt.0) then
-        if (parallel) then
-           !transpose the hpsi wavefunction into the diis array
-           call timing(iproc,'Un-Transall   ','ON')
-           !here psi is used as a work array
-           call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
-           call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-                hpsidst(:,:,mids),nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-           call timing(iproc,'Un-Transall   ','OF')
-           !end of transposition
-
-           do iorb=1,norb
-              do k=1,nvctrp
-                 psidst(k,iorb,mids)= psit(k,iorb) 
-              enddo
-           enddo
-
-           call diisstp(parallel,norb,norbp,nproc,iproc,  &
-                ads,iter,mids,idsx,nvctrp,psit,psidst,hpsidst)
-        else
-           do iorb=1,norb
-              do k=1,nvctrp
-                 psidst(k,iorb,mids)= psi(k,iorb)
-                 hpsidst(k,iorb,mids)=hpsi(k,iorb)
-              enddo
-           enddo
-
-           call diisstp(parallel,norb,norbp,nproc,iproc,  &
-                ads,iter,mids,idsx,nvctrp,psi,psidst,hpsidst)
-
-        endif
-
-     else
-
-! update all wavefunctions with the preconditioned gradient
-        if (energy.gt.energy_old) then
-           alpha=max(.125d0,.5d0*alpha)
-           if (alpha.eq..125d0) write(*,*) 'Convergence problem or limit'
-        else
-           alpha=min(1.05d0*alpha,1.d0)
-        endif
-        if (iproc.eq.0) write(*,'(1x,a,1pe11.3)') 'alpha=',alpha
-
-        if (parallel) then
-           !transpose the hpsi wavefunction
-           call timing(iproc,'Un-Transall   ','ON')
-           !here psi is used as a work array
-           call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
-           !here hpsi is the transposed array
-           call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-                hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-           call timing(iproc,'Un-Transall   ','OF')
-           !end of transposition
-
-           do iorb=1,norb
-              call DAXPY(nvctrp,-alpha,hpsi(1,iorb),1,psit(1,iorb),1)
-           enddo
-        else
-           do iorb=1,norb
-              call DAXPY(nvctrp,-alpha,hpsi(1,iorb),1,psi(1,iorb),1)
-           enddo
-        endif
-
-
-     endif
-     
-     if (parallel) then
-        call orthon_p(iproc,nproc,norb,norbp,nvctrp,psit)
-        !       call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
-
-        !retranspose the psit wavefunction into psi
-        call timing(iproc,'Un-Transall   ','ON')
-        !here hpsi is used as a work array
-        call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-             hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
-        call timing(iproc,'Un-Transall   ','OF')
-        !end of retransposition
-
-     else
-        call orthon(norb,norbp,nvctrp,psi)
-        !       call checkortho(norb,norbp,nvctrp,psi)
-     endif
-
+     call hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nvctrp,nseg_c,nseg_f,&
+     keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
+     eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
+     psi,psit,hpsi,psidst,hpsidst)
 
      tt=energybs-scprsum
      if (abs(tt).gt.1.d-8) then 
@@ -1289,7 +1123,6 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
      nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,n3d,istartpot,&
      rhopot,psi,hpsi,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu)
-
   implicit none
   include 'mpif.h'
   logical, intent(in) :: parallel
@@ -1382,6 +1215,207 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
 
 end subroutine HamiltonianApplication
 
+
+subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nvctrp,nseg_c,nseg_f,&
+     keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
+     eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
+     psi,psit,hpsi,psidst,hpsidst)
+  implicit none
+  include 'mpif.h'
+  logical, intent(in) :: parallel
+  integer, intent(in) :: iter,iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids,idsx
+  integer, intent(in) :: nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nvctrp
+  real(kind=8), intent(in) :: hgrid,energy,energy_old
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+  real(kind=8), dimension(norb), intent(in) :: occup,eval
+  real(kind=8), intent(inout) :: alpha
+  real(kind=8), intent(inout) :: gnrm,scprsum
+  real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
+  real(kind=8), dimension(:,:,:), pointer :: psidst,hpsidst,ads
+  !local variables
+  integer :: ierr,ind,i1,i2,iorb,k
+  real(kind=8) :: tt,scpr,dnrm2
+
+  if (iproc==0) then
+     write(*,'(1x,a)',advance='no')&
+          'done, orthoconstraint...'
+  end if
+
+  ! Apply  orthogonality constraints to all orbitals belonging to iproc
+  if (parallel) then
+     !transpose the hpsi wavefunction
+     call timing(iproc,'Un-Transall   ','ON')
+     !here psi is used as a work array
+     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+     !here hpsi is the transposed array
+     call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'Un-Transall   ','OF')
+     !end of transposition
+
+     call  orthoconstraint_p(iproc,nproc,norb,norbp,occup,nvctrp,psit,hpsi,scprsum)
+
+     !retranspose the hpsi wavefunction
+     call timing(iproc,'Un-Transall   ','ON')
+     !here psi is used as a work array
+     call MPI_ALLTOALL(hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+          psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     !here hpsi is the direct array
+     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,hpsi)
+     call timing(iproc,'Un-Transall   ','OF')
+     !end of retransposition
+  else
+     call orthoconstraint(norb,norbp,occup,nvctrp,psi,hpsi,scprsum)
+  endif
+
+  ! norm of gradient
+  gnrm=0.d0
+  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+     !calculate the address to start from for calculating the 
+     !norm of the residue if hpsi is allocated in the transposed way
+     !it can be eliminated when including all this procedure in a subroutine
+     if (parallel) then
+        ind=1+(nvctr_c+7*nvctr_f)*(iorb-iproc*norbp-1)
+        i1=mod(ind,nvctrp)
+        i2=(ind-i1)/nvctrp+1
+     else
+        i1=1
+        i2=iorb-iproc*norbp
+     end if
+     scpr=dnrm2(nvctr_c+7*nvctr_f,hpsi(i1,i2),1)
+     !scpr=dnrm2(nvctr_c+7*nvctr_f,hpsi(1,iorb-iproc*norbp),1)
+     !lines for writing the residue following the orbitals
+     !if (iorb <=5) write(83,*)iter,iorb,scpr
+     gnrm=gnrm+scpr**2
+  enddo
+  if (parallel) then
+     tt=gnrm
+     call MPI_ALLREDUCE(tt,gnrm,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+  endif
+  gnrm=sqrt(gnrm/norb)
+
+  if (iproc==0) then
+     write(*,'(1x,a)',advance='no')&
+          'done, preconditioning...'
+  end if
+
+  ! Preconditions all orbitals belonging to iproc
+  call preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid, &
+       ncong,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,eval,&
+       ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
+
+  !       call plot_wf(10,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f, &
+  !                       rxyz(1,1),rxyz(2,1),rxyz(3,1),psi)
+  !       call plot_wf(20,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f, &
+  !                       rxyz(1,1),rxyz(2,1),rxyz(3,1),hpsi)
+
+
+  if (iproc==0) then
+     write(*,'(1x,a)')&
+          'done.'
+  end if
+
+  !apply the minimization method (DIIS or steepest descent)
+  if (idsx.gt.0) then
+     if (parallel) then
+        !transpose the hpsi wavefunction into the diis array
+        call timing(iproc,'Un-Transall   ','ON')
+        !here psi is used as a work array
+        call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+        call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+             hpsidst(:,:,mids),nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+        call timing(iproc,'Un-Transall   ','OF')
+        !end of transposition
+
+        do iorb=1,norb
+           do k=1,nvctrp
+              psidst(k,iorb,mids)= psit(k,iorb) 
+           enddo
+        enddo
+
+        call diisstp(parallel,norb,norbp,nproc,iproc,  &
+             ads,iter,mids,idsx,nvctrp,psit,psidst,hpsidst)
+     else
+        do iorb=1,norb
+           do k=1,nvctrp
+              psidst(k,iorb,mids)= psi(k,iorb)
+              hpsidst(k,iorb,mids)=hpsi(k,iorb)
+           enddo
+        enddo
+
+        call diisstp(parallel,norb,norbp,nproc,iproc,  &
+             ads,iter,mids,idsx,nvctrp,psi,psidst,hpsidst)
+
+     endif
+
+  else
+
+     ! update all wavefunctions with the preconditioned gradient
+     if (energy.gt.energy_old) then
+        alpha=max(.125d0,.5d0*alpha)
+        if (alpha.eq..125d0) write(*,*) 'Convergence problem or limit'
+     else
+        alpha=min(1.05d0*alpha,1.d0)
+     endif
+     if (iproc.eq.0) write(*,'(1x,a,1pe11.3)') 'alpha=',alpha
+
+     if (parallel) then
+        !transpose the hpsi wavefunction
+        call timing(iproc,'Un-Transall   ','ON')
+        !here psi is used as a work array
+        call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+        !here hpsi is the transposed array
+        call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+             hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+        call timing(iproc,'Un-Transall   ','OF')
+        !end of transposition
+
+        do iorb=1,norb
+           call DAXPY(nvctrp,-alpha,hpsi(1,iorb),1,psit(1,iorb),1)
+        enddo
+     else
+        do iorb=1,norb
+           call DAXPY(nvctrp,-alpha,hpsi(1,iorb),1,psi(1,iorb),1)
+        enddo
+     endif
+
+
+  endif
+
+ if (iproc==0) then
+     write(*,'(1x,a)',advance='no')&
+          'Orthogonalization...'
+  end if
+
+
+  if (parallel) then
+     call orthon_p(iproc,nproc,norb,norbp,nvctrp,psit)
+     !       call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
+
+     !retranspose the psit wavefunction into psi
+     call timing(iproc,'Un-Transall   ','ON')
+     !here hpsi is used as a work array
+     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+     call timing(iproc,'Un-Transall   ','OF')
+     !end of retransposition
+  else
+     call orthon(norb,norbp,nvctrp,psi)
+     !       call checkortho(norb,norbp,nvctrp,psi)
+  endif
+
+  if (iproc==0) then
+     write(*,'(1x,a)')&
+          'done.'
+  end if
+
+end subroutine hpsitopsi
 
 subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,nbuf,nb1,nb2,nb3,norb,norbp,nat,ntypes,&
      nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
@@ -5833,225 +5867,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   return
 END SUBROUTINE
-
-subroutine diag_wf(parallel,iproc,nproc,norb,norbp,norbe,norbep,natsc,norbsc_arr,&
-     nvctr_c,nvctr_f,nvctrp,psi,hpsi,ppsi,eval)
-  implicit none
-  logical, intent(in) :: parallel
-  integer, intent(in) :: nvctrp,norbe,norbep,nproc,iproc,natsc
-  integer, intent(in) :: nvctr_c,nvctr_f,norb,norbp
-  integer, dimension(natsc+1), intent(in) :: norbsc_arr
-  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbep), intent(in) :: psi,hpsi
-  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: ppsi
-  real(kind=8), dimension(norb), intent(out) :: eval
-  include 'mpif.h'
-  
-  !local variables
-  integer :: i_all,ierr,i,iorb,i_stat,info,n_lp,norbi_max
-  integer :: norbi,ndim_hamovr,norbsc,iorbst,imatrst,norbj
-  real(kind=8), dimension(:), allocatable :: evale,work_lp
-  real(kind=8), dimension(:,:), allocatable :: psit,hpsit,ppsit,hamovr
-  
-  norbi_max=maxval(norbsc_arr)
-  
-  !calculate the dimension of the overlap matrix
-  ndim_hamovr=0
-  do i=1,natsc+1
-     ndim_hamovr=ndim_hamovr+norbsc_arr(i)**2
-  end do
-  
-  if (parallel) then
-
-     !transpose all the wavefunctions for having a piece of all the orbitals 
-     !for each processor
-     write(*,'(1x,a,i0)') 'Allocate words for psit inguess ',nvctrp*norbep*nproc
-     allocate(psit(nvctrp,norbep*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psit))*kind(psit),'psit','diag_wf')
-     write(*,*) 'Allocation done'
-
-     call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psit)
-
-     write(*,'(1x,a,i0)') 'Allocate words for hpsit inguess',2*nvctrp*norbep*nproc
-     allocate(hpsit(nvctrp,norbep*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsit))*kind(hpsit),'hpsit','diag_wf')
-     write(*,*) 'Allocation done'
-
-     call  transallwaves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,hpsi,hpsit)
-     !end of transposition
-
-     allocate(hamovr(ndim_hamovr,4),stat=i_stat)
-     call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','diag_wf')
-
-
-     !calculate the overlap matrix for each group of the semicore atoms
-!       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
-!       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
-     iorbst=1
-     imatrst=1
-     do i=1,natsc
-        norbi=norbsc_arr(i)
-        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,hpsit(1,iorbst),nvctrp,&
-             0.d0,hamovr(imatrst,3),norbi)
-        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,psit(1,iorbst),nvctrp,&
-             0.d0,hamovr(imatrst,4),norbi)
-        iorbst=iorbst+norbi
-        imatrst=imatrst+norbi**2
-     end do
-     norbi=norbsc_arr(natsc+1)
-     call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,hpsit(1,iorbst),nvctrp,&
-          0.d0,hamovr(imatrst,3),norbi)
-
-     i_all=-product(shape(hpsit))*kind(hpsit)
-     deallocate(hpsit,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsit','diag_wf')
-
-     call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,psit(1,iorbst),nvctrp,&
-          0.d0,hamovr(imatrst,4),norbi)
-     
-     !reduce the overlap matrix between all the processors
-     call MPI_ALLREDUCE (hamovr(1,3),hamovr(1,1),2*ndim_hamovr,&
-          MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-
-     !found the eigenfunctions for each group
-     n_lp=max(10,4*norbi_max)
-     allocate(work_lp(n_lp),stat=i_stat)
-     call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','diag_wf')
-     allocate(evale(norbe),stat=i_stat)
-     call memocc(i_stat,product(shape(evale))*kind(evale),'evale','diag_wf')
-     
-     iorbst=1
-     imatrst=1
-     do i=1,natsc+1
-        norbi=norbsc_arr(i)
-        call DSYGV(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
-             norbi,evale(iorbst),work_lp,n_lp,info)
-
-        if (info.ne.0) write(*,*) 'DSYGV ERROR',info,i,natsc+1
-        if (iproc.eq.0) then
-        do iorb=1,norbi
-        write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb+iorbst-1,')=',evale(iorb)
-        enddo
-        endif
-        do iorb=iorbst,min(norbi+iorbst-1,norb)
-           eval(iorb)=evale(iorb-iorbst+1)
-        enddo
-        iorbst=iorbst+norbi
-        imatrst=imatrst+norbi**2
-     end do
-
-     i_all=-product(shape(work_lp))*kind(work_lp)
-     deallocate(work_lp,stat=i_stat)
-     call memocc(i_stat,i_all,'work_lp','diag_wf')
-     i_all=-product(shape(evale))*kind(evale)
-     deallocate(evale,stat=i_stat)
-     call memocc(i_stat,i_all,'evale','diag_wf')
-
-     write(*,'(1x,a,i0)') 'Allocate words for ppsit ',nvctrp*norbp*nproc
-     allocate(ppsit(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(ppsit))*kind(ppsit),'ppsit','diag_wf')
-     write(*,*) 'Allocation done'
-
-     !perform the vector-matrix multiplication for building the input wavefunctions
-     ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
-     iorbst=1
-     imatrst=1
-     norbsc=0
-     do i=1,natsc
-        norbi=norbsc_arr(i)
-        norbsc=norbsc+norbi
-        call DGEMM('N','N',nvctrp,norbi,norbi,1.d0,psit(1,iorbst),nvctrp,&
-             hamovr(imatrst,1),norbi,0.d0,ppsit(1,iorbst),nvctrp)
-        iorbst=iorbst+norbi
-        imatrst=imatrst+norbi**2
-     end do
-     norbi=norbsc_arr(natsc+1)
-     norbj=norb-norbsc
-     call DGEMM('N','N',nvctrp,norbj,norbi,1.d0,psit(1,iorbst),nvctrp,&
-          hamovr(imatrst,1),norbi,0.d0,ppsit(1,iorbst),nvctrp)
-     
-     !retranspose the wavefunctions
-     call untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,ppsit,ppsi)
-
-     i_all=-product(shape(psit))*kind(psit)
-     deallocate(psit,stat=i_stat)
-     call memocc(i_stat,i_all,'psit','diag_wf')
-     i_all=-product(shape(ppsit))*kind(ppsit)
-     deallocate(ppsit,stat=i_stat)
-     call memocc(i_stat,i_all,'ppsit','diag_wf')
-     
-     !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-
-  else !serial case
-
-     allocate(hamovr(ndim_hamovr,2),stat=i_stat)
-     call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','diag_wf')
-     !hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
-     iorbst=1
-     imatrst=1
-     do i=1,natsc+1
-        norbi=norbsc_arr(i)
-        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,hpsi(1,iorbst),nvctrp,&
-             0.d0,hamovr(imatrst,1),norbi)
-        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,psi(1,iorbst),nvctrp,&
-             0.d0,hamovr(imatrst,2),norbi)
-        iorbst=iorbst+norbi
-        imatrst=imatrst+norbi**2
-     end do
-
-     n_lp=max(10,4*norbi_max)
-     allocate(work_lp(n_lp),stat=i_stat)
-     call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','diag_wf')
-     allocate(evale(norbe),stat=i_stat)
-     call memocc(i_stat,product(shape(evale))*kind(evale),'evale','diag_wf')
-     iorbst=1
-     imatrst=1
-     do i=1,natsc+1
-        norbi=norbsc_arr(i)
-        call DSYGV(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
-             norbi,evale(iorbst),work_lp,n_lp,info)
-
-        if (info.ne.0) write(*,*) 'DSYGV ERROR',info,i,natsc+1
-        if (iproc.eq.0) then
-        do iorb=1,norbi
-        write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb+iorbst-1,')=',evale(iorb)
-        enddo
-        endif
-        do iorb=iorbst,min(norbi+iorbst-1,norb)
-           eval(iorb)=evale(iorb-iorbst+1)
-        enddo
-        iorbst=iorbst+norbi
-        imatrst=imatrst+norbi**2
-     end do
-     i_all=-product(shape(work_lp))*kind(work_lp)
-     deallocate(work_lp,stat=i_stat)
-     call memocc(i_stat,i_all,'work_lp','diag_wf')
-     i_all=-product(shape(evale))*kind(evale)
-     deallocate(evale,stat=i_stat)
-     call memocc(i_stat,i_all,'evale','diag_wf')
-
-     !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
-     iorbst=1
-     imatrst=1
-     norbsc=0
-     do i=1,natsc
-        norbi=norbsc_arr(i)
-        norbsc=norbsc+norbi
-        call DGEMM('N','N',nvctrp,norbi,norbi,1.d0,psi(1,iorbst),nvctrp,&
-             hamovr(imatrst,1),norbi,0.d0,ppsi(1,iorbst),nvctrp)
-        iorbst=iorbst+norbi
-        imatrst=imatrst+norbi**2
-     end do
-     norbi=norbsc_arr(natsc+1)
-     norbj=norb-norbsc
-     call DGEMM('N','N',nvctrp,norbj,norbi,1.d0,psi(1,iorbst),nvctrp,&
-          hamovr(imatrst,1),norbi,0.d0,ppsi(1,iorbst),nvctrp)
-
-  endif
-  i_all=-product(shape(hamovr))*kind(hamovr)
-  deallocate(hamovr,stat=i_stat)
-  call memocc(i_stat,i_all,'hamovr','diag_wf')
-END SUBROUTINE
-
 
 logical function myorbital(iorb,norbe,iproc,nproc)
   implicit real*8 (a-h,o-z)
