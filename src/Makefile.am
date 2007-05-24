@@ -82,6 +82,7 @@ cluster_SOURCES = BigDFT.f90
 cluster_LDFLAGS = $(LMPI)
 cluster_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
+	PSolver/libpsolver_OLD.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
@@ -89,6 +90,7 @@ test_forces_SOURCES = test_forces.f90
 test_forces_LDFLAGS = $(LMPI)
 test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
+	PSolver/libpsolver_OLD.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 

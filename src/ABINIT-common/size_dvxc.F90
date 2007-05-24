@@ -93,3 +93,26 @@ subroutine size_dvxc(ixc,ndvxc,ngr2,nspden,nvxcdgr,order)
 
 end subroutine size_dvxc
 !!***
+
+!fake ABINIT subroutines
+subroutine wrtout(unit,message,mode_paral)
+  implicit none
+
+  !Arguments ------------------------------------
+  integer,intent(in) :: unit
+  character(len=4),intent(in) :: mode_paral
+  character(len=500),intent(inout) :: message
+
+  print *,message
+end subroutine wrtout
+
+subroutine leave_new(mode_paral)
+
+  implicit none
+
+  !Arguments ------------------------------------
+  character(len=4),intent(in) :: mode_paral
+
+  print *,'exiting...'
+  stop
+end subroutine leave_new
