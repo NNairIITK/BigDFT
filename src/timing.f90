@@ -195,6 +195,8 @@ subroutine memocc(istat,isize,array,routine)
 
         select case(iproc)
            case (0)
+              !to be used for inspecting an array which is not deallocated
+              !write(98,'(a32,a14,4(1x,i12))')trim(routine),trim(array),isize,memory
               if (trim(locroutine) /= routine) then
                  write(98,'(a32,a14,4(1x,i12))')&
                       trim(locroutine),trim(locarray),locmemory,locpeak,memory,&
