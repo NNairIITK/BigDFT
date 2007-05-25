@@ -363,7 +363,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocate(eval(norb),stat=i_stat)
   call memocc(i_stat,product(shape(eval))*kind(eval),'eval','cluster')
 
-!!$  occup(1)=2.d0
+!!$  occup(1)=2.d0 !added for testing purposes
 !!$  do iorb=2,norb
 !!$     occup(iorb)=2.d0/3.d0
 !!$  enddo
@@ -405,7 +405,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   alat2=(cymax-cymin)
   alat3=(czmax-czmin)
 
-!!$! grid sizes n1,n2,n3
+!!$! grid sizes n1,n2,n3 !added for testing purposes
 !!$  n1=int(alat1/hgrid)
 !!$  if (mod(n1,2).eq.0) n1=n1+1
 !!$  n2=int(alat2/hgrid)
@@ -472,8 +472,13 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      write(*,'(1x,a,2(1x,i0))') 'nfl3,nfu3 ',nfl3,nfu3
   endif
 
-! Create wavefunctions descriptors and allocate them
+  !calculation of the kernel anticipated to reduce memory peak for small systems
+  !proposed position, to be refined 
+  ndegree_ip=14
+  call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
+       iproc,nproc,pkernel)
 
+! Create wavefunctions descriptors and allocate them
   allocate(ibyz_c(2,0:n2,0:n3),stat=i_stat)
   call memocc(i_stat,product(shape(ibyz_c))*kind(ibyz_c),'ibyz_c','cluster')
   allocate(ibxz_c(2,0:n1,0:n3),stat=i_stat)
@@ -487,29 +492,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocate(ibxy_f(2,0:n1,0:n2),stat=i_stat)
   call memocc(i_stat,product(shape(ibxy_f))*kind(ibxy_f),'ibxy_f','cluster')
   
-! Create the file grid.ascii to visualize the grid of functions
-  if (iproc.eq.0 .and. output_grid) then
-     open(unit=22,file='grid.ascii',status='unknown')
-     write(22,*) nat
-     write(22,*) alat1,' 0. ',alat2
-     write(22,*) ' 0. ',' 0. ',alat3
-     do iat=1,nat
-        write(22,'(3(1x,e12.5),3x,a20)') rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),atomnames(iatype(iat))
-        write(*,'(3(1x,e12.5),3x,a20)') rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),atomnames(iatype(iat))
-     enddo
-  endif
-
-  !calculation of the kernel deplaced to reduce memory peak for small systems
-  !proposed position, to be refined 
-  ndegree_ip=14
-  call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
-       iproc,nproc,pkernel)
-
-
   call createWavefunctionsDescriptors(parallel,iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,&
-       & nat,ntypes,iatype,atomnames,rxyz,radii_cf,crmult,frmult,ibyz_c,ibxz_c,ibxy_c,&
-       & ibyz_f,ibxz_f,ibxy_f,nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp,keyg,keyv,&
-       & norb,norbp)
+       nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
+       ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp,keyg,keyv,&
+       norb,norbp)
 
 ! Calculate all projectors
   allocate(nseg_p(0:2*nat),stat=i_stat)
@@ -520,12 +506,14 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   call memocc(i_stat,product(shape(nboxp_c))*kind(nboxp_c),'nboxp_c','cluster')
   allocate(nboxp_f(2,3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(nboxp_f))*kind(nboxp_f),'nboxp_f','cluster')
+
   call createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, atomnames, &
        & psppar, npspcode, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
        & keyg_p, keyv_p, nproj, nprojel, istart, nboxp_c, nboxp_f, proj)
 
 
-  if (iproc.eq.0) write(*,'(1x,a,3(1x,i0))') 'Size of real space grids',(2*n1+31),(2*n2+31),(2*n3+31)
+  if (iproc.eq.0) write(*,'(1x,a,3(1x,i0))') &
+       'Size of real space grids',(2*n1+31),(2*n2+31),(2*n3+31)
     
   !allocate values of the array for the data scattering in sumrho
   !its values are ignored in the datacode='G' case
@@ -742,8 +730,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
      psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
-     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,n3d,istartpot,&
-     rhopot,psi,hpsi,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu)
+     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,n3p,&
+     rhopot(1,1,1+i3xcsh),psi,hpsi,ekin_sum,epot_sum,eproj_sum)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
@@ -1002,7 +990,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
  
      if (datacode=='D') then
        write(*,*) 'n3d,n3p,n3pi',n3d,n3p,n3pi
-        call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh),(2*n1+31)*(2*n2+31)*n3d,MPI_DOUBLE_PRECISION, &
+        call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh),(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION, &
              pot,(2*n1+31)*(2*n2+31)*nscatterarr(:,2),(2*n1+31)*(2*n2+31)*nscatterarr(:,3), & 
              MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
         i_all=-product(shape(nscatterarr))*kind(nscatterarr)
@@ -1121,20 +1109,20 @@ END SUBROUTINE cluster
 subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
      psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
-     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,n3d,istartpot,&
-     rhopot,psi,hpsi,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu)
+     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,n3p,&
+     potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum)
   implicit none
   include 'mpif.h'
   logical, intent(in) :: parallel
   character(len=1), intent(in) :: datacode
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nat,ntypes,nproj,nprojel,n3d,istartpot
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nat,ntypes,nproj,nprojel,n3p
   integer, intent(in) :: nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f
   real(kind=8), intent(in) :: hgrid
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
   integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
-  integer, dimension(2,nseg_p(2*nat)), intent(inout) :: keyg_p
+  integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
   integer, dimension(ntypes), intent(in) :: npspcode
   integer, dimension(nat), intent(in) :: iatype
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
@@ -1143,11 +1131,11 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
   integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
   real(kind=8), dimension(norb), intent(in) :: occup
   real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
-  real(kind=8), dimension(*), intent(in) :: rhopot
+  real(kind=8), dimension(*), intent(in) :: potential
   real(kind=8), dimension(nprojel), intent(in) :: proj
   real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
   real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: hpsi
-  real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
+  real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
   !local variables
   integer :: i_all,i_stat,ierr
   real(kind=8), dimension(:), allocatable :: pot
@@ -1166,7 +1154,7 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
 
      call timing(iproc,'ApplyLocPotKin','ON')
 
-     call MPI_ALLGATHERV(rhopot(istartpot),(2*n1+31)*(2*n2+31)*n3d,&
+     call MPI_ALLGATHERV(potential,(2*n1+31)*(2*n2+31)*n3p,&
           MPI_DOUBLE_PRECISION,pot,ngatherarr(0,1),&
           ngatherarr(0,2),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
 
@@ -1186,7 +1174,7 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
      call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
           hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-          psi,rhopot,hpsi,epot_sum,ekin_sum)
+          psi,potential,hpsi,epot_sum,ekin_sum)
 
   end if
 
@@ -3897,14 +3885,14 @@ END SUBROUTINE
 
        call timing(iproc,'GramS_comput  ','OF')
 
-end  subroutine orthon
+end subroutine orthon
 
-subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, n3, output_grid, &
-     & hgrid, nat, ntypes, iatype, atomnames, rxyz, radii_cf, crmult, frmult, &
-     & ibyz_c,ibxz_c,ibxy_c, ibyz_f, ibxz_f, ibxy_f, nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp, &
-     & keyg, keyv,norb,norbp)
-!calculates the descriptor arrays keyg and keyv as well as nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp
-!calculates also the arrays ibyz_c,ibxz_c,ibxy_c, ibyz_f, ibxz_f, ibxy_f needed for convolut_standard
+subroutine createWavefunctionsDescriptors(parallel,iproc,nproc,idsx,n1,n2,n3,output_grid,&
+     & hgrid,nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
+     & ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp,&
+     & keyg,keyv,norb,norbp)
+!calculates the descriptor arrays keyg and keyv as well as nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp
+!calculates also the arrays ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f needed for convolut_standard
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,idsx,n1,n2,n3,nat,ntypes,norb
@@ -3912,7 +3900,7 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
   integer, intent(out) :: norbp,nvctrp
   logical, intent(in) :: parallel, output_grid
   integer, intent(in) :: iatype(nat)
-  real*8, intent(in) :: hgrid,crmult,frmult
+  real*8, intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
   integer, intent(in) :: ibyz_c(2,0:n2,0:n3), ibxz_c(2,0:n1,0:n3), ibxy_c(2,0:n1,0:n2)
   integer, intent(in) :: ibyz_f(2,0:n2,0:n3), ibxz_f(2,0:n1,0:n3), ibxy_f(2,0:n1,0:n2)
   real*8 :: rxyz(3, nat), radii_cf(ntypes, 2)
@@ -3926,6 +3914,18 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
   logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
 
   call timing(iproc,'CrtDescriptors','ON')
+
+! Create the file grid.ascii to visualize the grid of functions
+  if (iproc.eq.0 .and. output_grid) then
+     open(unit=22,file='grid.ascii',status='unknown')
+     write(22,*) nat
+     write(22,*) alat1,' 0. ',alat2
+     write(22,*) ' 0. ',' 0. ',alat3
+     do iat=1,nat
+        write(22,'(3(1x,e12.5),3x,a20)') rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),atomnames(iatype(iat))
+        write(*,'(3(1x,e12.5),3x,a20)') rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),atomnames(iatype(iat))
+     enddo
+  endif
 
   ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
   allocate(logrid_c(0:n1,0:n2,0:n3),stat=i_stat)
@@ -5553,49 +5553,59 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   allocate(hpsi(nvctr_c+7*nvctr_f,norbep),stat=i_stat)
   call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
 
-  if (datacode=='D') then
-     !allocate full potential
-     allocate(pot((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
-     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','input_wf_diag')
+  call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
+       psppar,npspcode,norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+       nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
+       nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,nscatterarr(iproc,2),&
+       rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
+       psi,hpsi,ekin_sum,epot_sum,eproj_sum)
 
-     call timing(iproc,'ApplyLocPotKin','ON')
-
-     call MPI_ALLGATHERV(rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
-          (2*n1+31)*(2*n2+31)*nscatterarr(iproc,2),MPI_DOUBLE_PRECISION,&
-          pot,ngatherarr(0,1),ngatherarr(0,2),&
-          MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,IERR)
-
-     call timing(iproc,'ApplyLocPotKin','OF')
-
-     call applylocpotkinall(iproc,norbe,norbep,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
-          hgrid,occupe,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
-          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-          psi,pot,hpsi,epot_sum,ekin_sum)
-
-     i_all=-product(shape(pot))*kind(pot)
-     deallocate(pot,stat=i_stat)
-     call memocc(i_stat,i_all,'pot','input_wf_diag')
-
-  else
-
-     call applylocpotkinall(iproc,norbe,norbep,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
-          hgrid,occupe,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
-          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-          psi,rhopot,hpsi,epot_sum,ekin_sum)
-
-  end if
-
-  if (parallel) then
-     tt=ekin_sum
-     call MPI_ALLREDUCE(tt,ekin_sum,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-  endif
+!!$  if (datacode=='D') then
+!!$     !allocate full potential
+!!$     allocate(pot((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+!!$     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','input_wf_diag')
+!!$
+!!$     call timing(iproc,'ApplyLocPotKin','ON')
+!!$
+!!$     call MPI_ALLGATHERV(rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
+!!$          (2*n1+31)*(2*n2+31)*nscatterarr(iproc,2),MPI_DOUBLE_PRECISION,&
+!!$          pot,ngatherarr(0,1),ngatherarr(0,2),&
+!!$          MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,IERR)
+!!$
+!!$     call timing(iproc,'ApplyLocPotKin','OF')
+!!$
+!!$     call applylocpotkinall(iproc,norbe,norbep,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
+!!$          hgrid,occupe,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
+!!$          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+!!$          psi,pot,hpsi,epot_sum,ekin_sum)
+!!$
+!!$     i_all=-product(shape(pot))*kind(pot)
+!!$     deallocate(pot,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'pot','input_wf_diag')
+!!$
+!!$  else
+!!$
+!!$     call applylocpotkinall(iproc,norbe,norbep,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
+!!$          hgrid,occupe,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
+!!$          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+!!$          psi,rhopot,hpsi,epot_sum,ekin_sum)
+!!$
+!!$  end if
+!!$
+!!$  call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occupe, &
+!!$       nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
+!!$       norbe,norbep,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
+!!$
+!!$
+!!$  if (parallel) then
+!!$     tt=ekin_sum
+!!$     call MPI_ALLREDUCE(tt,ekin_sum,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+!!$  endif
 
   accurex=abs(eks-ekin_sum)
-  if (iproc.eq.0) write(*,'(1x,a,2(f26.14))') 'ekin_sum,eks',ekin_sum,eks
+  if (iproc.eq.0) write(*,'(1x,a,2(f26.14))') 'done, ekin_sum,eks',ekin_sum,eks
 
-  call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occupe, &
-       nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-       norbe,norbep,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
+
 
   !after having applied the hamiltonian to all the atomic orbitals
   !we split the semicore orbitals from the valence ones
