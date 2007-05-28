@@ -432,10 +432,11 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   enddo
 
   if (iproc.eq.0) then
-     write(*,*) 'Shifted atomic positions, atomic and grid space units:'
+     write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
      do iat=1,nat
-        write(*,'(1x,i5,3(1x,1pe14.7),3(1x,0pf8.3))') &
-             iat,(rxyz(j,iat),j=1,3),rxyz(1,iat)/hgrid,rxyz(2,iat)/hgrid,rxyz(3,iat)/hgrid
+        write(*,'(1x,i5,1x,a6,3(1x,1pe12.5),3x,3(1x,0pf9.3))') &
+             iat,trim(atomnames(iatype(iat))),&
+             (rxyz(j,iat),j=1,3),rxyz(1,iat)/hgrid,rxyz(2,iat)/hgrid,rxyz(3,iat)/hgrid
      enddo
   endif
 
@@ -512,8 +513,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
        & keyg_p, keyv_p, nproj, nprojel, istart, nboxp_c, nboxp_f, proj)
 
 
-  if (iproc.eq.0) write(*,'(1x,a,3(1x,i0))') &
-       'Size of real space grids',(2*n1+31),(2*n2+31),(2*n3+31)
+  !if (iproc.eq.0) write(*,'(1x,a,3(1x,i0))') &
+  !     'Size of real space grids',(2*n1+31),(2*n2+31),(2*n3+31)
     
   !allocate values of the array for the data scattering in sumrho
   !its values are ignored in the datacode='G' case
@@ -1892,6 +1893,12 @@ subroutine createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz
   real(kind=8), dimension(*), intent(out) :: pot_ion
   !local variables
   real(kind=8) :: hgridh,ehart,eexcu,vexcu
+
+  if (iproc.eq.0) then
+     write(*,'(1x,a)')&
+          '----------------------------------------------------------- Ionic Potential Creation'
+  end if
+
 
   hgridh=0.5d0*hgrid
 
@@ -3913,9 +3920,15 @@ subroutine createWavefunctionsDescriptors(parallel,iproc,nproc,idsx,n1,n2,n3,out
 
   !Local variables
   real*8, parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
-  integer :: iat,i1,i2,i3,norbme,i_all,i_stat
+  integer :: iat,i1,i2,i3,norbme,norbyou,jpst,jproc,i_all,i_stat
   real*8 :: tt
   logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
+
+  if (iproc.eq.0) then
+     write(*,'(1x,a)')&
+          '------------------------------------------------- Wavefunctions Descriptors Creation'
+  end if
+
 
   call timing(iproc,'CrtDescriptors','ON')
 
@@ -3987,9 +4000,25 @@ subroutine createWavefunctionsDescriptors(parallel,iproc,nproc,idsx,n1,n2,n3,out
 ! allocate wavefunction arrays
   tt=dble(norb)/dble(nproc)
   norbp=int((1.d0-eps_mach*tt) + tt)
-  if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
+  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
   norbme=max(min((iproc+1)*norbp,norb)-iproc*norbp,0)
-  write(*,'(a,i0,a,i0,a)') '- iproc ',iproc,' treats ',norbme,' orbitals '
+  !write(*,'(a,i0,a,i0,a)') '- iproc ',iproc,' treats ',norbme,' orbitals '
+  if (iproc == 0 .and. nproc>1) then
+     jpst=0
+     do jproc=0,nproc-2
+        norbme=max(min((jproc+1)*norbp,norb)-jproc*norbp,0)
+        norbyou=max(min((jproc+2)*norbp,norb)-(jproc+1)*norbp,0)
+        if (norbme /= norbyou) then
+           !this is a screen output that must be modified
+           write(*,'(3(a,i0),a)')&
+                ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' orbitals '
+           jpst=jproc+1
+        end if
+     end do
+     write(*,'(3(a,i0),a)')&
+          ' Processes from ',jpst,' to ',nproc-1,' treat ',norbme,' orbitals '
+  end if
+
 
   tt=dble(nvctr_c+7*nvctr_f)/dble(nproc)
   nvctrp=int((1.d0-eps_mach*tt) + tt)
@@ -4018,10 +4047,15 @@ END SUBROUTINE createWavefunctionsDescriptors
 
     logical, allocatable :: logrid(:,:,:)
 
-    if (iproc.eq.0) write(*,'(1x,a)')&
+    if (iproc.eq.0) then
+       write(*,'(1x,a)')&
          '------------------------------------------------------------ PSP Projectors Creation'
-   
+       write(*,'(1x,a4,4x,a4,1x,a))')&
+            'Atom','Name','Number of projectors'
+    end if
+
     call timing(iproc,'CrtProjectors ','ON')
+
 
     ! determine localization region for all projectors, but do not yet fill the descriptor arrays
     allocate(logrid(0:n1,0:n2,0:n3),stat=i_stat)
@@ -4037,8 +4071,12 @@ END SUBROUTINE createWavefunctionsDescriptors
        call numb_proj(iatype(iat),ntypes,psppar,npspcode,mproj)
        if (mproj.ne.0) then 
 
-          if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))')&
-               'projector descriptors for atom with mproj ',iat,mproj
+          if (iproc.eq.0) write(*,'(1x,i4,2x,a6,1x,i20)')&
+               iat,trim(atomnames(iatype(iat))),mproj
+
+
+          !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))')&
+          !     'projector descriptors for atom with mproj ',iat,mproj
           nproj=nproj+mproj
 
           ! coarse grid quantities
@@ -4079,7 +4117,10 @@ END SUBROUTINE createWavefunctionsDescriptors
        endif
     enddo
 
-    if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'total number of projectors',nproj
+    if (iproc.eq.0) then
+       write(*,'(28x,a)') '------'
+       write(*,'(1x,a,i5)') 'Total number of projectors =',nproj
+    end if
 
     ! allocations for arrays holding the projectors and their data descriptors
     allocate(keyg_p(2,nseg_p(2*nat)),stat=i_stat)
@@ -4090,9 +4131,6 @@ END SUBROUTINE createWavefunctionsDescriptors
     allocate(proj(nprojel),stat=i_stat)
     call memocc(i_stat,product(shape(proj))*kind(proj),'proj','createprojectorsarrays')
 
-
-
-    if (iproc.eq.0) write(*,'(1x,a)') '++++++++++++++++++++++++++++++++'
 
     ! After having determined the size of the projector descriptor arrays fill them
     istart_c=1
@@ -4126,8 +4164,11 @@ END SUBROUTINE createWavefunctionsDescriptors
        endif
     enddo
 
-    if (iproc.eq.0) write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+    !if (iproc.eq.0) write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
 
+
+    if (iproc.eq.0) write(*,'(1x,a)',advance='no') &
+         'Calculating wavelets expansion of projectors...'
     !allocate these vectors up to the maximum size we can get
     nterm_max=10 !if GTH nterm_max=3
     allocate(fac_arr(nterm_max),stat=i_stat)
@@ -4197,11 +4238,11 @@ END SUBROUTINE createWavefunctionsDescriptors
                    istart_c=istart_f+7*mvctr_f
                    if (istart_c.gt.istart) stop 'istart_c > istart'
 
-                   do iterm=1,nterm
-                      if (iproc.eq.0) write(*,'(1x,a,i0,1x,a,1pe10.3,3(1x,i0))') &
-                           'projector: iat,atomname,gau_a,lx,ly,lz ', & 
-                           iat,trim(atomnames(iatype(iat))),gau_a,lx(iterm),ly(iterm),lz(iterm)
-                   enddo
+                   !do iterm=1,nterm
+                   !   if (iproc.eq.0) write(*,'(1x,a,i0,1x,a,1pe10.3,3(1x,i0))') &
+                   !        'projector: iat,atomname,gau_a,lx,ly,lz ', & 
+                   !        iat,trim(atomnames(iatype(iat))),gau_a,lx(iterm),ly(iterm),lz(iterm)
+                   !enddo
 
 
                 enddo
@@ -4211,6 +4252,8 @@ END SUBROUTINE createWavefunctionsDescriptors
     enddo
     if (iproj.ne.nproj) stop 'incorrect number of projectors created'
     ! projector part finished
+    if (iproc ==0) write(*,'(33x,a)')'done.'
+
     i_all=-product(shape(logrid))*kind(logrid)
     deallocate(logrid,stat=i_stat)
     call memocc(i_stat,i_all,'logrid','createprojectorsarrays')
@@ -5206,7 +5249,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,psppar,npspcode,&
      if (.not.found) then
 
         if (iproc.eq.0) then
-           write(*,'(1x,a,a,a)',advance='no')&
+           write(*,'(1x,a,a6,a)',advance='no')&
                 'Input wavefunction data for atom ',trim(atomnames(ity)),&
                 ' NOT found, automatic generation...'
         end if
@@ -5329,7 +5372,7 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
   iorbv=norbsc
 
   if (iproc ==0) then
-     write(*,'(1x,a,)',advance='no')'Calculating AIO wavefunctions...'
+     write(*,'(1x,a)',advance='no')'Calculating AIO wavefunctions...'
   end if
 
   do iat=1,nat
@@ -5497,6 +5540,12 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   allocate(norbsc_arr(natsc+1),stat=i_stat)
   call memocc(i_stat,product(shape(norbsc_arr))*kind(norbsc_arr),'norbsc_arr','input_wf_diag')
 
+  if (iproc.eq.0) then
+     write(*,'(1x,a)')&
+          '------------------------------------------------------- Input Wavefunctions Creation'
+  end if
+
+
 
   ! Read the inguess.dat file or generate the input guess via the inguess_generator
   call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,psppar,npspcode,&
@@ -5508,7 +5557,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   tt=dble(norbe)/dble(nproc)
   norbep=int((1.d0-eps_mach*tt) + tt)
 
-  if (iproc == 0) then
+  if (iproc == 0 .and. nproc>1) then
      jpst=0
      do jproc=0,nproc-2
         norbeme=max(min((jproc+1)*norbep,norbe)-jproc*norbep,0)
@@ -5602,7 +5651,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        psi,hpsi,ekin_sum,epot_sum,eproj_sum)
 
   accurex=abs(eks-ekin_sum)
-  if (iproc.eq.0) write(*,'(1x,a,2(f26.14))') 'done, ekin_sum,eks',ekin_sum,eks
+  if (iproc.eq.0) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
 
 
   !after having applied the hamiltonian to all the atomic orbitals
