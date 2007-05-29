@@ -29,6 +29,8 @@ module libBigDFT
   public :: KStrans, KStrans_p, solveKS
   
   !- Initialisation methods.
+  !- Create the ionic potential from the distribution of charges.
+  public :: createIonicPotential
   !- Create and allocate access arrays for wavefunctions.
   public :: createWavefunctionsDescriptors
   !- Create and allocate projectors (and their access arrays).
@@ -58,9 +60,14 @@ module libBigDFT
   public :: writeonewave
   !- Transform wavefunctions from old grid to new grid.
   public :: reformatmywaves
+  public :: reformatonewave
   !- MPI communications for wavefunctions
-  public :: transallwaves
-  public :: untransallwaves
+  public :: switch_waves
+  public :: unswitch_waves
+
+  !- SCF handling
+  public :: HamiltonianApplication
+  public :: hpsitopsi
 
   !- Geometry method
   !- Get a box that contains all atoms and their active grid points.

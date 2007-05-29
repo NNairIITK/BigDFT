@@ -76,7 +76,8 @@ libbigdft_a_SOURCES = \
 	precond.f90 \
 	prec_diag.f90\
 	forces.f90 \
-	timing.f90
+	timing.f90 \
+	razero.f90
 
 cluster_SOURCES = BigDFT.f90
 cluster_LDFLAGS = $(LMPI)
