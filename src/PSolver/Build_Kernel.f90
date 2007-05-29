@@ -58,6 +58,10 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
 
   hgrid=max(hx,hy,hz)
 
+  if (iproc==0) write(*,'(1x,a)')&
+          '------------------------------------------------------------ Poisson Kernel Creation'
+
+
   if (geocode == 'P') then
      
      if (iproc==0) write(*,'(1x,a)',advance='no')&
