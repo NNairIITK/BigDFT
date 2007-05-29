@@ -25,9 +25,11 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
   hgridh=hgrid*.5d0 
   pi=4.d0*atan(1.d0)
 
+  if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate local forces...'
+
   do iat=1,nat
   if (mod(iat-1,nproc).eq.iproc) then
-     write(*,'(1x,i0,a,i0)') iproc,' calculates local force on atom ',iat
+     !write(*,'(1x,i0,a,i0)') iproc,' calculates local force on atom ',iat
      ityp=iatype(iat)
      !coordinates of the center
      rx=rxyz(1,iat) 
@@ -143,7 +145,7 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
   end do
 
   forceleaked=forceleaked*prefactor*hgridh**3
-  if (iproc.eq.0) write(*,'(a,e21.14,1x,e10.3)') ' leaked force: ',forceleaked
+  if (iproc.eq.0) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
 
 end subroutine local_forces
 
@@ -208,6 +210,8 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
   allocate(scalprod(0:3,4,3,7),stat=i_stat)
   call memocc(i_stat,product(shape(scalprod))*kind(scalprod),'scalprod','nonlocal_forces')
 
+  if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate projectors derivatives...'
+
   !create the derivative of the projectors
   istart_c=1
   iproj=0
@@ -270,6 +274,8 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
   end do
   if (iproj.ne.nproj) stop 'incorrect number of projectors created'
   ! projector part finished
+
+  if (iproc == 0) write(*,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
 
   allocate(fxyz_orb(3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(fxyz_orb))*kind(fxyz_orb),'fxyz_orb','nonlocal_forces')
@@ -417,6 +423,8 @@ subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
   if (iproj.ne.nproj) stop '1:applyprojectors'
   if (istart_c-1.ne.nprojel) stop '2:applyprojectors'
 end do
+
+  if (iproc == 0) write(*,'(1x,a)')'done.'
 
   i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)
   deallocate(fxyz_orb,stat=i_stat)

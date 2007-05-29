@@ -244,21 +244,37 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   close(1)
 
   if (iproc.eq.0) then 
-     write(*,'(1x,a,f6.3)')    'hgrid=',hgrid
-     write(*,'(1x,a,f6.3)')    'crmult=',crmult
-     write(*,'(1x,a,f6.3)')    'frmult=',frmult
-     write(*,'(1x,a,f6.3)')    'cpmult=',cpmult
-     write(*,'(1x,a,f6.3)')    'fpmult=',fpmult
-     write(*,'(1x,a,i0)')      'ixc= ',ixc
-     write(*,'(1x,a,i0)')      'ncharge= ',ncharge
-     write(*,'(1x,a,1pe9.2)')  'electric_field=',elecfield
-     write(*,'(1x,a,1pe9.2)')  'gnrm_cv=',gnrm_cv
-     write(*,'(1x,a,i0)')      'itermax= ',itermax
-     write(*,'(1x,a,i0)')      'ncong= ',ncong
-     write(*,'(1x,a,i0)')      'idsx= ',idsx
-     write(*,*)                'calc_tail',calc_tail
-     write(*,'(1x,a,f6.3)')    'rbuf=',rbuf
-     write(*,'(1x,a,i0)')      'ncongt= ',ncongt
+     write(*,'(1x,a)')&
+          '------------------------------------------------------------------- Input Parameters'
+     write(*,'(1x,a)')&
+          '    System Choice       Resolution Radii     SCF Iteration         Finite Size Corr.'
+     write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
+          'Grid spacing=',hgrid,    '|  Coarse Wfs.=',crmult,'| Wavefns Conv.=',gnrm_cv,&
+          '| Calculate=',calc_tail
+     write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,f4.1)')&
+          '       XC id=',ixc,      '|    Fine Wfs.=',frmult,'| Max. N. Iter.=',itermax,&
+          '| Extension=',rbuf
+     write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,i4)')&
+          'total charge=',ncharge,  '| Coarse Proj.=',cpmult,'| CG Prec.Steps=',ncong,&
+          '|  CG Steps=',ncongt
+     write(*,'(1x,a,1pe7.1,1x,a,0pf5.2,1x,a,i8)')&
+          ' elec. field=',elecfield,'|   Fine Proj.=',fpmult,'| DIIS Hist. N.=',idsx
+
+!!$     write(*,'(1x,a,f6.3)')    'hgrid=',hgrid
+!!$     write(*,'(1x,a,f6.3)')    'crmult=',crmult
+!!$     write(*,'(1x,a,f6.3)')    'frmult=',frmult
+!!$     write(*,'(1x,a,f6.3)')    'cpmult=',cpmult
+!!$     write(*,'(1x,a,f6.3)')    'fpmult=',fpmult
+!!$     write(*,'(1x,a,i0)')      'ixc= ',ixc
+!!$     write(*,'(1x,a,i0)')      'ncharge= ',ncharge
+!!$     write(*,'(1x,a,1pe9.2)')  'electric_field=',elecfield
+!!$     write(*,'(1x,a,1pe9.2)')  'gnrm_cv=',gnrm_cv
+!!$     write(*,'(1x,a,i0)')      'itermax= ',itermax
+!!$     write(*,'(1x,a,i0)')      'ncong= ',ncong
+!!$     write(*,'(1x,a,i0)')      'idsx= ',idsx
+!!$     write(*,*)                'calc_tail',calc_tail
+!!$     write(*,'(1x,a,f6.3)')    'rbuf=',rbuf
+!!$     write(*,'(1x,a,i0)')      'ncongt= ',ncongt
   endif
 
 
@@ -280,6 +296,14 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   call memocc(i_stat,product(shape(iasctype))*kind(iasctype),'iasctype','cluster')
   allocate(neleconf(6,0:3),stat=i_stat)
   call memocc(i_stat,product(shape(neleconf))*kind(neleconf),'neleconf','cluster')
+
+  if (iproc==0) then
+     write(*,'(1x,a)')&
+          '------------------------------------------------------------------ System Properties'
+     write(*,'(1x,a)')&
+          'Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File'
+
+  end if
 
   do ityp=1,ntypes
      filename = 'psppar.'//atomnames(ityp)
@@ -321,8 +345,12 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      !old way of calculating the radii, requires modification of the PSP files
      read(11,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
      if (ierror.eq.0) then
-        if (iproc.eq.0) write(*,'(1x,a,a)') &
-           'radii is given in the psp file for atom type ',trim(atomnames(ityp))
+        if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
+             trim(atomnames(ityp)),nelpsp(ityp),npspcode(ityp),&
+             radii_cf(ityp,1),radii_cf(ityp,2),&
+             '                   X    '
+        !if (iproc.eq.0) write(*,'(1x,a,a)') &
+        !   'radii is given in the psp file for atom type ',trim(atomnames(ityp))
      else
         !new method for assigning the radii
         radii_cf(ityp,1)=1.d0/sqrt(abs(2.d0*ehomo))
@@ -333,11 +361,15 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
            end if
         end do
         radii_cf(ityp,2)=radfine
+        if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
+             trim(atomnames(ityp)),nelpsp(ityp),npspcode(ityp),&
+             radii_cf(ityp,1),radii_cf(ityp,2),&
+             '       X                '
      end if
      close(11)
-     if (iproc.eq.0) write(*,'(1x,a,a,a,i0,a,i0,a,2(f8.5))') 'atom type ',trim(atomnames(ityp)), & 
-          ' is described by ',nelpsp(ityp),' electrons, with pspcode= ',npspcode(ityp),&
-          ' and radii=',radii_cf(ityp,1),radii_cf(ityp,2)
+     !if (iproc.eq.0) write(*,'(1x,a,a,a,i0,a,i0,a,2(f8.5))') 'atom type ',trim(atomnames(ityp)), & 
+     !     ' is described by ',nelpsp(ityp),' electrons, with pspcode= ',npspcode(ityp),&
+     !     ' and radii=',radii_cf(ityp,1),radii_cf(ityp,2)
   enddo
 
   !deallocation
@@ -359,9 +391,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   enddo
   nelec=nelec-ncharge
   if (iproc.eq.0) then
-     write(*,'(1x,a,i0)') 'total charge (ions+electrons) ',ncharge
-     write(*,'(1x,a,i0)') 'number of electrons ',nelec
-     if (mod(nelec,2).ne.0) write(*,*) 'WARNING: odd number of electrons, no closed shell system'
+     write(*,'(1x,a,i8)') &
+          'Total Number of Electrons ',nelec
+     if (mod(nelec,2).ne.0) write(*,*) &
+          'WARNING: odd number of electrons, no closed shell system'
   end if
   norb=(nelec+1)/2+norb_vir
 
@@ -384,7 +417,11 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   enddo
 
   if (iproc.eq.0) then 
-     write(*,'(1x,a,i0)') 'number of orbitals ',norb
+     if (norb_vir /=0) write(*,'(1x,a,i8)') &
+          '         Virtual Orbitals ',norb_vir
+     write(*,'(1x,a,i8)') &
+          'Total Number of  Orbitals ',norb
+     !write(*,'(1x,a,i0)') 'number of orbitals ',norb
      iorb1=1
      rocc=occup(1)
      do iorb=1,norb
@@ -455,9 +492,11 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   n3=int(alat3/hgrid)
   alat1=n1*hgrid ; alat2=n2*hgrid ; alat3=n3*hgrid
   if (iproc.eq.0) then 
-     write(*,'(1x,a,3(1x,i0))') 'n1,n2,n3',n1,n2,n3
-     write(*,'(1x,a,3(1x,i0))') 'total number of grid points',(n1+1)*(n2+1)*(n3+1)
-     write(*,'(1x,a,3(1x,1pe12.5))') 'simulation cell',alat1,alat2,alat3
+     write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
+          ' Box Sizes=',alat1,alat2,alat3,n1,n2,n3
+     !write(*,'(1x,a,3(1x,i0))') 'n1,n2,n3',n1,n2,n3
+     !write(*,'(1x,a,3(1x,i0))') 'total number of grid points',(n1+1)*(n2+1)*(n3+1)
+     !write(*,'(1x,a,3(1x,1pe12.5))') 'simulation cell',alat1,alat2,alat3
   endif
 
 ! fine grid size (needed for creation of input wavefunction, preconditioning)
@@ -576,12 +615,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   if (n3d >0) then
      allocate(rhopot((2*n1+31),(2*n2+31),n3d),stat=i_stat)
      call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','cluster')
-     !starting address of the potential slice, 1 without the XC shift
-     istartpot=1+i3xcsh*(2*n1+31)*(2*n2+31)
   else
      allocate(rhopot(1,1,1),stat=i_stat)
      call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','cluster')
-     istartpot=1
   end if
 
   !allocate principal wavefunction
@@ -842,7 +878,11 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
 !------------------------------------------------------------------------
 ! here we start the calculation of the forces
-  if (iproc.eq.0) write(*,*)'calculation of forces'
+  !if (iproc.eq.0) write(*,*)'calculation of forces'
+  if (iproc.eq.0) then
+     write(*,'(1x,a)')&
+          '----------------------------------------------------------------- Forces Calculation'
+  end if
 
 ! Selfconsistent potential is saved in rhopot, 
 ! new arrays rho,pot for calculation of forces ground state electronic density
@@ -927,7 +967,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   deallocate(pkernel,stat=i_stat)
   call memocc(i_stat,i_all,'pkernel','cluster')
 
-  if (iproc.eq.0) write(*,*)'electronic potential calculated'
+  !if (iproc.eq.0) write(*,*)'electronic potential calculated'
   allocate(gxyz(3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(gxyz))*kind(gxyz),'gxyz','cluster')
 
@@ -3961,31 +4001,47 @@ subroutine createWavefunctionsDescriptors(parallel,iproc,nproc,idsx,n1,n2,n3,out
   call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
        radii_cf(1,1),crmult,hgrid,logrid_c)
   if (iproc.eq.0 .and. output_grid) then
-     do i3=0,n3 ; do i2=0,n2 ; do i1=0,n1
-        if (logrid_c(i1,i2,i3)) write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  g '
-     enddo; enddo ; enddo 
+     do i3=0,n3  
+        do i2=0,n2  
+           do i1=0,n1
+              if (logrid_c(i1,i2,i3))&
+                   write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  g '
+           enddo
+        enddo
+     end do
   endif
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,nseg_c,nvctr_c)
-  if (iproc.eq.0) write(*,'(1x,a,2(1x,i10))') 'orbitals have coarse segment, elements',nseg_c,nvctr_c
+  if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
+       'Coarse resolution grid: Number of segments= ',nseg_c,'points=',nvctr_c
+  !if (iproc.eq.0) write(*,'(1x,a,2(1x,i10))') &
+  !     'orbitals have coarse segment, elements',nseg_c,nvctr_c
   call bounds(n1,n2,n3,logrid_c,ibyz_c,ibxz_c,ibxy_c)
 
   ! fine grid quantities
   call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
        radii_cf(1,2),frmult,hgrid,logrid_f)
   if (iproc.eq.0 .and. output_grid) then
-     do i3=0,n3 ; do i2=0,n2 ; do i1=0,n1
-        if (logrid_f(i1,i2,i3)) write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  G '
-     enddo; enddo ; enddo 
+     do i3=0,n3 
+        do i2=0,n2 
+           do i1=0,n1
+              if (logrid_f(i1,i2,i3))&
+                   write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  G '
+           enddo
+        enddo
+     enddo
   endif
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,nseg_f,nvctr_f)
-  if (iproc.eq.0) write(*,'(1x,a,2(1x,i10))') 'orbitals have fine   segment, elements',nseg_f,7*nvctr_f
+  if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
+       '  Fine resolution grid: Number of segments= ',nseg_f,'points=',nvctr_f
+  !if (iproc.eq.0) write(*,'(1x,a,2(1x,i10))') &
+  !     'orbitals have fine   segment, elements',nseg_f,7*nvctr_f
   call bounds(n1,n2,n3,logrid_f,ibyz_f,ibxz_f,ibxy_f)
 
   if (iproc.eq.0 .and. output_grid) close(22)
 
   ! allocations for arrays holding the wavefunctions and their data descriptors
   allocate(keyg(2,nseg_c+nseg_f),stat=i_stat)
- call memocc(i_stat,product(shape(keyg))*kind(keyg),'keyg','createwavefunctionsdescriptors')
+  call memocc(i_stat,product(shape(keyg))*kind(keyg),'keyg','createwavefunctionsdescriptors')
   allocate(keyv(nseg_c+nseg_f),stat=i_stat)
   call memocc(i_stat,product(shape(keyv))*kind(keyv),'keyv','createwavefunctionsdescriptors')
 
@@ -4023,17 +4079,15 @@ subroutine createWavefunctionsDescriptors(parallel,iproc,nproc,idsx,n1,n2,n3,out
         end if
      end do
      write(*,'(3(a,i0),a)')&
-          ' Processes from ',jpst,' to ',nproc-1,' treat ',norbme,' orbitals '
+          ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
   end if
-
 
   tt=dble(nvctr_c+7*nvctr_f)/dble(nproc)
   nvctrp=int((1.d0-eps_mach*tt) + tt)
 
-  if (iproc.eq.0) write(*,'(1x,a,3(1x,i0))') &
-       'Percent difference between transpose and direct wavefunction ',&
-       nint(real(nvctrp*nproc,kind=8)/real((nvctr_c+7*nvctr_f),kind=8)*100.d0),&
-       nvctrp*nproc,nvctr_c+7*nvctr_f
+  if (iproc.eq.0) write(*,'(1x,a,i0))') &
+       'Wavefunction memory occupation per orbital (Bytes): ',&
+       nvctrp*nproc*8
 
   call timing(iproc,'CrtDescriptors','OF')
 
@@ -5577,7 +5631,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         end if
      end do
      write(*,'(3(a,i0),a)')&
-          ' Processes from ',jpst,' to ',nproc-1,' treat ',norbeme,' inguess orbitals '
+          ' Processes from ',jpst,' to ',nproc-1,' treat ',norbeyou,' inguess orbitals '
   end if
 
   hgridh=.5d0*hgrid
