@@ -123,13 +123,15 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
 
   if (iproc==0) then
      write(*,*)'done.'
-     write(*,'(1x,a,i0)') 'Allocate words for kernel ',nd1*nd2*nd3/nproc
+     write(*,'(1x,2(a,i0))')&
+          'Memory occ. per proc. (Bytes):  Density=',md1*md3*md2/nproc*8,&
+          '  Kernel=',nd1*nd2*nd3/nproc*8
+     write(*,'(1x,a,i0)')&
+          '                                Full Grid Arrays=',n01*n02*n03*8
      !print the load balancing of the different dimensions on screen
-     write(*,'(1x,a,3(i5))')'Grid Dimensions:',n01,n02,n03
      if (nproc > 1) then
-        write(*,'(1x,a,3(i5),a,3(i5),a,3(i5))')&
-             'Memory occ. per proc.  Density',md1,md3,md2/nproc,'   Kernel',nd1,nd2,nd3/nproc
-        write(*,'(1x,a)')'Load Balancing--------------------------------------------'
+        write(*,'(1x,a)')&
+             'Load Balancing for Poisson Solver related operations:'
         jhd=1000
         jzd=1000
         npd=0
@@ -145,10 +147,13 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
               exit load_balancing
            end if
         end do load_balancing
-        write(*,'(1x,a,i3,a)')'LB_den        : processors   0  -',jfd,' work at 100%'
-        if (jfd < nproc-1) write(*,'(1x,a,i3,a,i3,1a)')'                processor     ',jhd,&
-             '    work at ',npd,'%'
-        if (jhd < nproc-1) write(*,'(1x,a,i3,1a,i3,a)')'                processors ',&
+        write(*,'(1x,a,i3,a)')&
+             'LB_density        : processors   0  -',jfd,' work at 100%'
+        if (jfd < nproc-1) write(*,'(1x,a,i3,a,i3,1a)')&
+             '                    processor     ',jhd,&
+             '   works at ',npd,'%'
+        if (jhd < nproc-1) write(*,'(1x,a,i3,1a,i3,a)')&
+             '                    processors ',&
              jzd,'  -',nproc-1,' work at   0%'
         jhk=1000
         jzk=1000
@@ -166,13 +171,17 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
                  exit load_balancingk
               end if
            end do load_balancingk
-           write(*,'(1x,a,i3,a)')'LB_ker        : processors   0  -',jfk,' work at 100%'
-           if (jfk < nproc-1) write(*,'(1x,a,i3,a,i3,1a)')'                processor     ',jhk,&
-                '    work at ',npk,'%'
-           if (jhk < nproc-1) write(*,'(1x,a,i3,1a,i3,a)')'                processors ',jzk,'  -',nproc-1,&
+           write(*,'(1x,a,i3,a)')&
+                ' LB_kernel        : processors   0  -',jfk,' work at 100%'
+           if (jfk < nproc-1) write(*,'(1x,a,i3,a,i3,1a)')&
+                '                    processor     ',jhk,&
+                '   works at ',npk,'%'
+           if (jhk < nproc-1) write(*,'(1x,a,i3,1a,i3,a)')&
+                '                    processors ',jzk,'  -',nproc-1,&
                 ' work at   0%'
         end if
-        write(*,'(1x,a)')'The LB per processor is 1/3 LB_den + 2/3 LB_ker-----------'
+        write(*,'(1x,a)')&
+             'Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel'
      end if
 
   end if

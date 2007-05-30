@@ -240,7 +240,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      write(*,'(1x,a)')&
           '------------------------------------------------------------------- Input Parameters'
      write(*,'(1x,a)')&
-          '    System Choice       Resolution Radii     SCF Iteration         Finite Size Corr.'
+          '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
      write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
           'Grid spacing=',hgrid,    '|  Coarse Wfs.=',crmult,'| Wavefns Conv.=',gnrm_cv,&
           '| Calculate=',calc_tail
@@ -460,7 +460,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
 
 ! shift atomic positions such that molecule is inside cell
-  if (iproc.eq.0) write(*,'(1x,a,3(1x,1pe14.7))') 'Atomic positions shifted by',-cxmin,-cymin,-czmin
+  !if (iproc.eq.0) write(*,'(1x,a,3(1x,1pe14.7))') 'Atomic positions shifted by',-cxmin,-cymin,-czmin
 
   do iat=1,nat
      rxyz(1,iat)=rxyz(1,iat)-cxmin
@@ -485,8 +485,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   n3=int(alat3/hgrid)
   alat1=n1*hgrid ; alat2=n2*hgrid ; alat3=n3*hgrid
   if (iproc.eq.0) then 
+     write(*,'(1x,a,3(1x,1pe12.5))') &
+          '   Shift of=',-cxmin,-cymin,-czmin
      write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
-          ' Box Sizes=',alat1,alat2,alat3,n1,n2,n3
+          '  Box Sizes=',alat1,alat2,alat3,n1,n2,n3
      !write(*,'(1x,a,3(1x,i0))') 'n1,n2,n3',n1,n2,n3
      !write(*,'(1x,a,3(1x,i0))') 'total number of grid points',(n1+1)*(n2+1)*(n3+1)
      !write(*,'(1x,a,3(1x,1pe12.5))') 'simulation cell',alat1,alat2,alat3
@@ -507,13 +509,15 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      nfu3=max(nfu3,int((rxyz(3,iat)+rad)/hgrid))
   enddo
   if (iproc.eq.0) then
-     write(*,'(1x,a,2(1x,i0))') 'nfl1,nfu1 ',nfl1,nfu1
-     write(*,'(1x,a,2(1x,i0))') 'nfl2,nfu2 ',nfl2,nfu2
-     write(*,'(1x,a,2(1x,i0))') 'nfl3,nfu3 ',nfl3,nfu3
+     write(*,'(1x,a,3x,3(2x,i4,a1,i0))')&
+          '      Extremes for the high resolution grid points:',&
+          nfl1,'<',nfu1,nfl2,'<',nfu2,nfl3,'<',nfu3
+     !write(*,'(1x,a,2(1x,i0))') 'nfl1,nfu1 ',nfl1,nfu1
+     !write(*,'(1x,a,2(1x,i0))') 'nfl2,nfu2 ',nfl2,nfu2
+     !write(*,'(1x,a,2(1x,i0))') 'nfl3,nfu3 ',nfl3,nfu3
   endif
 
-  !calculation of the kernel anticipated to reduce memory peak for small systems
-  !proposed position, to be refined 
+  !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   ndegree_ip=14
   call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
        iproc,nproc,pkernel)
@@ -532,7 +536,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocate(ibxy_f(2,0:n1,0:n2),stat=i_stat)
   call memocc(i_stat,product(shape(ibxy_f))*kind(ibxy_f),'ibxy_f','cluster')
   
-  call createWavefunctionsDescriptors(parallel,iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,&
+  call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,&
        nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
        ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp,keyg,keyv,&
        norb,norbp)
@@ -636,7 +640,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in total energy due to grid size',accurex
         write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/norb
      endif
-     if (iproc.eq.0) write(*,*) 'input wavefunction has been calculated'
+     !if (iproc.eq.0) write(*,*) 'input wavefunction has been calculated'
 
   else if (inputPsiId == 1 ) then
      if (iproc.eq.0) write(*,*) 'START reformatting psi from old psi'
@@ -801,7 +805,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      endif
 
 1000 continue
-  write(*,*) 'No convergence within the allowed number of minimization steps'
+     write(*,'(1x,a)')'No convergence within the allowed number of minimization steps'
 1010 continue
   if (idsx.gt.0) then
        i_all=-product(shape(psidst))*kind(psidst)
@@ -3938,7 +3942,84 @@ END SUBROUTINE
 
 end subroutine orthon
 
-subroutine createWavefunctionsDescriptors(parallel,iproc,nproc,idsx,n1,n2,n3,output_grid,&
+subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,output_grid,&
+     & hgrid,nat,ntypes,iatype,rxyz,radii_cf,crmult,frmult,norb)
+  use PoissonSolver
+  implicit none
+  !Arguments
+  integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb
+  integer, intent(in) :: iatype(nat)
+  real(kind=8), intent(in) :: hgrid,crmult,frmult
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz(3,nat)
+  real(kind=8), dimension(ntypes,2), intent(in) ::  radii_cf
+  !local variables
+  integer :: nseg_c,nseg_f,nvctr_c,nvctr_f,norbp,nvctrp
+  integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,nproc
+  integer :: memwf,memker,
+  real(kind=8) :: tt
+  logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
+
+  ! determine localization region for all orbitals
+  allocate(logrid_c(0:n1,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(logrid_c))*kind(logrid_c),'logrid_c','memoryestimator')
+  allocate(logrid_f(0:n1,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(logrid_f))*kind(logrid_f),'logrid_f','memoryestimator')
+
+  ! coarse grid quantities
+  call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
+       radii_cf(1,1),crmult,hgrid,logrid_c)
+  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,nseg_c,nvctr_c)
+  ! fine grid quantities
+  call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
+       radii_cf(1,2),frmult,hgrid,logrid_f)
+  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,nseg_f,nvctr_f)
+
+  i_all=-product(shape(logrid_c))*kind(logrid_c)
+  deallocate(logrid_c,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid_c','memoryestimator')
+  i_all=-product(shape(logrid_f))*kind(logrid_f)
+  deallocate(logrid_f,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid_f','memoryestimator')
+
+  tt=dble(norb)/dble(nproc)
+  norbp=int((1.d0-eps_mach*tt) + tt)
+  tt=dble(nvctr_c+7*nvctr_f)/dble(nproc)
+  nvctrp=int((1.d0-eps_mach*tt) + tt)
+
+  if (iproc.eq.0) write(*,'(1x,a,i0))') &
+       'Wavefunction memory occupation per orbital (Bytes): ',&
+       nvctrp*nproc*8
+
+  if (geocode == 'P') then
+     call F_FFT_dimensions(n1,n2,n3,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
+     n01=n1
+     n02=n2
+     n03=n3
+  else if (geocode == 'S') then
+     call S_FFT_dimensions(n1,2*n2+31,n3,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
+     n01=n1
+     n02=2*n2+31
+     n03=n3
+  else if (geocode == 'F') then
+     call F_FFT_dimensions(2*n1+31,2*n2+31,2*n3+31,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
+     n01=2*n1+31
+     n02=2*n2+31
+     n03=2*n3+31
+  end if
+
+  if (iproc==0) then
+     write(*,*)'done.'
+     write(*,'(1x,2(a,i0))')&
+          'Memory occ. per proc. (Bytes):  Density=',md1*md3*md2/nproc*8,&
+          '  Kernel=',nd1*nd2*nd3/nproc*8
+     write(*,'(1x,a,i0)')&
+          '                                Full Grid Arrays=',n01*n02*n03*8
+
+
+end subroutine MemoryEstimator
+
+
+subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,&
      & hgrid,nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
      & ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp,&
      & keyg,keyv,norb,norbp)
@@ -3947,13 +4028,13 @@ subroutine createWavefunctionsDescriptors(parallel,iproc,nproc,idsx,n1,n2,n3,out
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,idsx,n1,n2,n3,nat,ntypes,norb
-  integer, intent(in) :: nseg_c,nseg_f,nvctr_c,nvctr_f
+  integer, intent(out) :: nseg_c,nseg_f,nvctr_c,nvctr_f
   integer, intent(out) :: norbp,nvctrp
-  logical, intent(in) :: parallel, output_grid
+  logical, intent(in) :: output_grid
   integer, intent(in) :: iatype(nat)
   real*8, intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
-  integer, intent(in) :: ibyz_c(2,0:n2,0:n3), ibxz_c(2,0:n1,0:n3), ibxy_c(2,0:n1,0:n2)
-  integer, intent(in) :: ibyz_f(2,0:n2,0:n3), ibxz_f(2,0:n1,0:n3), ibxy_f(2,0:n1,0:n2)
+  integer, intent(out) :: ibyz_c(2,0:n2,0:n3), ibxz_c(2,0:n1,0:n3), ibxy_c(2,0:n1,0:n2)
+  integer, intent(out) :: ibyz_f(2,0:n2,0:n3), ibxz_f(2,0:n1,0:n3), ibxy_f(2,0:n1,0:n2)
   real*8 :: rxyz(3, nat), radii_cf(ntypes, 2)
   character(len=20), intent(in) :: atomnames(100)
   integer, pointer :: keyg(:,:), keyv(:)
@@ -4306,7 +4387,7 @@ END SUBROUTINE createWavefunctionsDescriptors
     enddo
     if (iproj.ne.nproj) stop 'incorrect number of projectors created'
     ! projector part finished
-    if (iproc ==0) write(*,'(33x,a)')'done.'
+    if (iproc ==0) write(*,'(1x,a)')'done.'
 
     i_all=-product(shape(logrid))*kind(logrid)
     deallocate(logrid,stat=i_stat)
