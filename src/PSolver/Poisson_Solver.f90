@@ -44,6 +44,8 @@ module Poisson_Solver
   public :: createKernel
   !calculate the poisson solver
   public :: PSolver
+  !calculate the allocation dimensions
+  public :: P_FFT_dimensions,S_FFT_dimensions,F_FFT_dimensions
 
 contains
 

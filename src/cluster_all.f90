@@ -517,6 +517,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      !write(*,'(1x,a,2(1x,i0))') 'nfl3,nfu3 ',nfl3,nfu3
   endif
 
+!!$  !memory estimation
+!!$  call MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
+!!$     rxyz,radii_cf,crmult,frmult,norb)
+
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   ndegree_ip=14
   call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
@@ -3942,9 +3946,9 @@ END SUBROUTINE
 
 end subroutine orthon
 
-subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,output_grid,&
-     & hgrid,nat,ntypes,iatype,rxyz,radii_cf,crmult,frmult,norb)
-  use PoissonSolver
+subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
+     rxyz,radii_cf,crmult,frmult,norb)
+  use Poisson_Solver
   implicit none
   !Arguments
   integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb
@@ -3953,9 +3957,11 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,output_grid,&
   real(kind=8), dimension(3,nat), intent(in) :: rxyz(3,nat)
   real(kind=8), dimension(ntypes,2), intent(in) ::  radii_cf
   !local variables
-  integer :: nseg_c,nseg_f,nvctr_c,nvctr_f,norbp,nvctrp
-  integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,nproc
-  integer :: memwf,memker,
+  real(kind=8), parameter :: eps_mach=1.d-12
+  character(len=1) :: geocode
+  integer :: nseg_c,nseg_f,nvctr_c,nvctr_f,norbp,nvctrp,i_all,i_stat
+  integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3
+  integer :: memwf,memker,memden,mempot
   real(kind=8) :: tt
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
@@ -3986,35 +3992,55 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,output_grid,&
   tt=dble(nvctr_c+7*nvctr_f)/dble(nproc)
   nvctrp=int((1.d0-eps_mach*tt) + tt)
 
-  if (iproc.eq.0) write(*,'(1x,a,i0))') &
-       'Wavefunction memory occupation per orbital (Bytes): ',&
-       nvctrp*nproc*8
+  !wavefunction memory per orbitals
+  memwf=nvctrp*nproc*8
+  
+  geocode='F'
 
   if (geocode == 'P') then
      call F_FFT_dimensions(n1,n2,n3,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
      n01=n1
      n02=n2
      n03=n3
+     tt=1.d0
   else if (geocode == 'S') then
      call S_FFT_dimensions(n1,2*n2+31,n3,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
      n01=n1
      n02=2*n2+31
      n03=n3
+     tt=real(n02,kind=8)/real(2*n2,kind=8)
   else if (geocode == 'F') then
      call F_FFT_dimensions(2*n1+31,2*n2+31,2*n3+31,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
      n01=2*n1+31
      n02=2*n2+31
      n03=2*n3+31
+     tt=real(n01*n02*n03,kind=8)/real(8*n1*n2*n3,kind=8)
   end if
 
-  if (iproc==0) then
-     write(*,*)'done.'
-     write(*,'(1x,2(a,i0))')&
-          'Memory occ. per proc. (Bytes):  Density=',md1*md3*md2/nproc*8,&
-          '  Kernel=',nd1*nd2*nd3/nproc*8
-     write(*,'(1x,a,i0)')&
-          '                                Full Grid Arrays=',n01*n02*n03*8
+  !density memory
+  memden=md1*md3*md2/nproc*8
+  !kernel memory
+  memker=nd1*nd2*nd3/nproc*8
+  !memory of full grid arrays
+  mempot=n01*n02*n03*8
 
+  write(*,'(1x,a)')&
+       '------------------------------------------------------------------ Memory Estimation'
+  write(*,'(1x,a,i5,a,i6,a,3(i5))')&
+       'Number of atoms=',nat,' Number of orbitals=',norb,' Box Dimensions= ', n1,  n2,  n3
+  write(*,'(1x,a,i0,a)')&
+       'Estimation performed for ',nproc,' processors:'
+  write(*,'(1x,a)')&
+       'Memory required for principal arrays (MB):'
+  write(*,'(1x,a,i6)')&
+       '                    Poisson Solver Kernel:'
+  write(*,'(1x,a,i6)')&
+       '                   Poisson Solver Density:'
+
+
+  print *,'Rough estimation of the memory',19*memker,4*mempot+norbp*memwf*(2*idsx+3)
+
+  stop
 
 end subroutine MemoryEstimator
 
