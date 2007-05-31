@@ -29,6 +29,8 @@ module libBigDFT
   public :: KStrans, KStrans_p, solveKS
   
   !- Initialisation methods.
+  !- Create the ionic potential from the distribution of charges.
+  public :: createIonicPotential
   !- Create and allocate access arrays for wavefunctions.
   public :: createWavefunctionsDescriptors
   !- Create and allocate projectors (and their access arrays).
@@ -58,9 +60,14 @@ module libBigDFT
   public :: writeonewave
   !- Transform wavefunctions from old grid to new grid.
   public :: reformatmywaves
+  public :: reformatonewave
   !- MPI communications for wavefunctions
-  public :: transallwaves
-  public :: untransallwaves
+  public :: switch_waves
+  public :: unswitch_waves
+
+  !- SCF handling
+  public :: HamiltonianApplication
+  public :: hpsitopsi
 
   !- Geometry method
   !- Get a box that contains all atoms and their active grid points.
@@ -135,7 +142,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocatable :: nboxp_c(:,:,:),nboxp_f(:,:,:)
 
   ! pseudopotential parameters
-  allocatable :: psppar(:,:,:),nelpsp(:),radii_cf(:,:),npspcode(:),iasctype(:)
+  allocatable :: psppar(:,:,:),nelpsp(:),radii_cf(:,:),npspcode(:),nzatom(:),iasctype(:)
 
   ! arrays for DIIS convergence accelerator
   real*8, pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
@@ -285,6 +292,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   call memocc(i_stat,product(shape(radii_cf))*kind(radii_cf),'radii_cf','cluster')
   allocate(npspcode(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(npspcode))*kind(npspcode),'npspcode','cluster')
+  allocate(nzatom(ntypes),stat=i_stat)
+  call memocc(i_stat,product(shape(nzatom))*kind(nzatom),'nzatom','cluster')
   allocate(iasctype(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(iasctype))*kind(iasctype),'iasctype','cluster')
   allocate(neleconf(6,0:3),stat=i_stat)
@@ -309,7 +318,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         stop
      end if
      read(11,*)
-     read(11,*) n_abinitzatom,nelpsp(ityp)
+     read(11,*) nzatom(ityp),nelpsp(ityp)
      read(11,*) npspcode(ityp)
      psppar(:,:,ityp)=0.d0
      read(11,*) (psppar(0,j,ityp),j=0,4)
@@ -331,7 +340,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         stop
      end if
      !see whether the atom is semicore or not
-     call eleconf(n_abinitzatom,nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf,iasctype(ityp))
+     call eleconf(nzatom(ityp),nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf,iasctype(ityp))
      !if you want no semicore electrons, uncomment the following line
      !iasctype(ityp)=0
 
@@ -517,9 +526,13 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      !write(*,'(1x,a,2(1x,i0))') 'nfl3,nfu3 ',nfl3,nfu3
   endif
 
-!!$  !memory estimation
-!!$  call MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
-!!$     rxyz,radii_cf,crmult,frmult,norb)
+
+  !memory estimation
+  if (iproc==0) then
+     call MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
+          rxyz,radii_cf,crmult,frmult,norb)
+     stop
+  end if
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   ndegree_ip=14
@@ -638,7 +651,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
           rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-          atomnames,ntypes,iatype,iasctype,pkernel,psppar,npspcode,ixc,psi,eval,accurex,&
+          atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,psi,eval,accurex,&
           datacode,nscatterarr,ngatherarr)
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in total energy due to grid size',accurex
@@ -3962,7 +3975,7 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f,norbp,nvctrp,i_all,i_stat
   integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3
   integer :: memwf,memker,memden,mempot
-  real(kind=8) :: tt
+  real(kind=8) :: tt,tmemker,tmemden,tmemps,tmemha
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
   ! determine localization region for all orbitals
@@ -4008,13 +4021,13 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
      n01=n1
      n02=2*n2+31
      n03=n3
-     tt=real(n02,kind=8)/real(2*n2,kind=8)
+     tt=real(2*n2,kind=8)/real(n02,kind=8)
   else if (geocode == 'F') then
      call F_FFT_dimensions(2*n1+31,2*n2+31,2*n3+31,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
      n01=2*n1+31
      n02=2*n2+31
      n03=2*n3+31
-     tt=real(n01*n02*n03,kind=8)/real(8*n1*n2*n3,kind=8)
+     tt=real(8*n1*n2*n3,kind=8)/real(n01*n02*n03,kind=8)
   end if
 
   !density memory
@@ -4027,20 +4040,56 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ Memory Estimation'
   write(*,'(1x,a,i5,a,i6,a,3(i5))')&
-       'Number of atoms=',nat,' Number of orbitals=',norb,' Box Dimensions= ', n1,  n2,  n3
+       'Number of atoms=',nat,' Number of orbitals=',norb,' Sim. Box Dimensions= ', n1,n2,n3
   write(*,'(1x,a,i0,a)')&
-       'Estimation performed for ',nproc,' processors:'
+       'Estimation performed for ',nproc,' processors.'
   write(*,'(1x,a)')&
-       'Memory required for principal arrays (MB):'
-  write(*,'(1x,a,i6)')&
-       '                    Poisson Solver Kernel:'
-  write(*,'(1x,a,i6)')&
-       '                   Poisson Solver Density:'
+       'Memory occupation for principal arrays:'
+  write(*,'(1x,a,2(i6,a3))')&
+       '              Poisson Solver Kernel (K):',memker/1048576,'MB',&
+       ceiling(real(mod(memker,1048576),kind=8)/1024.d0),'KB'  
+  write(*,'(1x,a,2(i6,a3))')&
+       '             Poisson Solver Density (D):',memden/1048576 ,'MB',&
+       ceiling(real(mod(memden,1048576),kind=8)/1024.d0),'KB'  
+  write(*,'(1x,a,2(i6,a3))')&
+       '    Single Wavefunction for one orbital:',memwf/1048576,'MB',&
+       ceiling(real(mod(memwf,1048576),kind=8)/1024.d0),'KB'  
+  if(nproc > 1 ) memwf=3*norbp*nvctrp*nproc*8
+  if(nproc == 1 ) memwf=2*norbp*nvctrp*nproc*8
+  write(*,'(1x,a,2(i6,a3))')&
+       '   All Wavefunctions for each processor:',memwf/1048576,'MB',&
+       ceiling(real(mod(memwf,1048576),kind=8)/1024.d0),'KB'  
+  write(*,'(1x,a,2(i6,a3))')&
+       '   Arrays of full uncompressed grid (U):',mempot/1048576,'MB',&
+       ceiling(real(mod(mempot,1048576),kind=8)/1024.d0),'KB'  
+  if(nproc > 1 ) memwf=(2*idsx+3)*norbp*nvctrp*nproc*8
+  if(nproc == 1 ) memwf=(2*idsx+2)*norbp*nvctrp*nproc*8
+  write(*,'(1x,a,2(i6,a3))')&
+       '      Wavefunctions + DIIS per proc (W):',memwf/1048576,'MB',&
+       ceiling(real(mod(memwf,1048576),kind=8)/1024.d0),'KB'  
 
-
-  print *,'Rough estimation of the memory',19*memker,4*mempot+norbp*memwf*(2*idsx+3)
-
-  stop
+  write(*,'(1x,a)')&
+       'Estimation of Memory requirements for principal code sections:'
+  write(*,'(1x,a)')&
+       ' Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application'
+  if (nproc > 1) then 
+     write(*,'(1x,a)')&
+       '      ~19*K         |      W+(~4)*U+D      |    ~12*D+ W    |      ~*W+(~4)*U+D '
+     tmemker=real(19*memker,kind=8)
+     tmemden=real(memwf,kind=8)+(3.d0+tt)*real(mempot,kind=8)
+     tmemps=12.d0*real(memden,kind=8)+real(memwf,kind=8)
+     tmemha=(3.d0+2*tt)*real(mempot,kind=8)+real(memwf,kind=8)
+  else
+     write(*,'(1x,a)')&
+       '      ~11*K         |       ~W+(~3)*U      |     ~8*D+*W     |       ~W+(~3)*U '
+     tmemker=real(11*memker,kind=8)
+     tmemden=real(memwf,kind=8)+(2.d0+tt)*real(mempot,kind=8)
+     tmemps=8.d0*real(memden,kind=8)+real(memwf,kind=8)
+     tmemha=(2.d0+2*tt)*real(mempot,kind=8)+real(memwf,kind=8)
+  end if
+  write(*,'(1x,4(4x,i8,a))')&
+       int(tmemker/1048576.d0),'MB    |',int(tmemden/1048576.d0),'MB    |',&
+       int(tmemps/1048576.d0),'MB',int(tmemha/1048576.d0),'MB'
 
 end subroutine MemoryEstimator
 
@@ -5314,11 +5363,13 @@ END SUBROUTINE calc_coeff_inguess
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
-subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,psppar,npspcode,&
-     norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,norbsc_arr)
+subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
+     & psppar,npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,&
+     & scorb,norbsc_arr)
   implicit none
 ! character(len = *), intent(in) :: filename
   integer, intent(in) :: ngx, iproc, ntypes
+  integer, intent(in) :: nzatom(ntypes), nelpsp(ntypes)
   real*8, intent(in) :: psppar(0:4,0:4,ntypes)
   integer, intent(in) :: npspcode(ntypes),iasctype(ntypes)
   real*8, intent(out) :: xp(ngx, ntypes), psiat(ngx, 5, ntypes), occupat(5, ntypes)
@@ -5417,7 +5468,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,psppar,npspcode,&
 
         !the default value for the gaussians is chosen to be 21
         ng(ity)=21
-        call iguess_generator(iproc,atomnames(ity),psppar(0,0,ity),npspcode(ity),&
+        call iguess_generator(iproc, nzatom(ity), nelpsp(ity),psppar(0,0,ity),npspcode(ity),&
              ng(ity)-1,nl(1,ity),5,occupat(1:5,ity),xp(1:ng(ity),ity),psiat(1:ng(ity),1:5,ity))
 
 !values obtained from the input guess generator in iguess.dat format
@@ -5636,7 +5687,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
      rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-     atomnames,ntypes,iatype,iasctype,pkernel,psppar,npspcode,ixc,ppsi,eval,accurex,&
+     atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,ppsi,eval,accurex,&
      datacode,nscatterarr,ngatherarr)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors writes its initial wavefunctions into the wavefunction file
@@ -5654,7 +5705,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   real(kind=8), intent(in) :: hgrid
   real(kind=8), intent(out) :: accurex
   integer, dimension(nat), intent(in) :: iatype
-  integer, dimension(ntypes), intent(in) :: iasctype,npspcode
+  integer, dimension(ntypes), intent(in) :: iasctype,npspcode,nzatom,nelpsp
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
@@ -5709,8 +5760,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
 
   ! Read the inguess.dat file or generate the input guess via the inguess_generator
-  call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,psppar,npspcode,&
-       norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,norbsc_arr)
+  call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,psppar,&
+       & npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,&
+       & norbsc_arr)
 
   !  allocate wavefunctions and their occupation numbers
   allocate(occupe(norbe),stat=i_stat)
@@ -7263,10 +7315,9 @@ end function myorbital
         return
         END SUBROUTINE
 
-subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupat,expo,psiat)
+subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,occupat,expo,psiat)
   implicit none
-  character (len=*) :: atomname
-  integer, intent(in) :: iproc,ng,npspcode,nmax_occ
+  integer, intent(in) :: iproc,izatom,ielpsp,ng,npspcode,nmax_occ
   real(kind=8), dimension(0:4,0:4), intent(in) :: psppar
   integer, dimension(4), intent(out) :: nl
   real(kind=8), dimension(ng+1), intent(out) :: expo
@@ -7284,18 +7335,11 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   real(kind=8), dimension(:,:,:,:), allocatable :: rmt
   integer, dimension(:,:), allocatable :: neleconf
   logical :: exists
-  integer :: n_abinitzatom,nelpsp,npspcode_t,npspxc,lpx,ncount,nsccode
-  integer :: nzatom,nvalelec,l,i,j,iocc,il,lwrite,i_all,i_stat
+  integer :: lpx,ncount,nsccode
+  integer :: l,i,j,iocc,il,lwrite,i_all,i_stat
   real(kind=8) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt,ehomo
 
   !filename = 'psppar.'//trim(atomname)
-
-  open(unit=11,file='psppar.'//trim(atomname),form='formatted',status='unknown')
-  !Check the open statement
-  read(11,*)
-  read(11,*) n_abinitzatom,nelpsp
-  read(11,*) npspcode_t!,npspxc,lpx
-  close(11)
 
   lpx=0
   lpx_determination: do i=1,4
@@ -7358,9 +7402,7 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   end do
 
   !Now the treatment of the occupation number
-  nzatom=n_abinitzatom
-  nvalelec=nelpsp
-  call eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode)
+  call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode)
 
   occup(:,:)=0.d0
    do l=0,lmax
@@ -7392,12 +7434,12 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   allocate(rmt(nint,0:ng,0:ng,lmax+1),stat=i_stat)
   call memocc(i_stat,product(shape(rmt))*kind(rmt),'rmt','iguess_generator')
 
-  zion=real(nelpsp,kind=8)
+  zion=real(ielpsp,kind=8)
 
   !can be switched on for debugging
   !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
   !     'Input Guess Generation for atom',trim(atomname),&
-  !     'Z,Zion=',nzatom,nvalelec,'ng,rprb=',ng+1,rprb
+  !     'Z,Zion=',izatom,ielpsp,'ng,rprb=',ng+1,rprb
 
   rij=3.d0
   ! exponents of gaussians

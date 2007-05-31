@@ -46,6 +46,7 @@ CLEANFILES = $(mpi_include)
 
 #dependencies
 pconv.o: $(mpi_include)
+pfft3d.o: $(mpi_include)
 
 Poisson_Solver.o: $(mpi_include)
 
