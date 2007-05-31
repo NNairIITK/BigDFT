@@ -142,7 +142,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocatable :: nboxp_c(:,:,:),nboxp_f(:,:,:)
 
   ! pseudopotential parameters
-  allocatable :: psppar(:,:,:),nelpsp(:),radii_cf(:,:),npspcode(:),iasctype(:)
+  allocatable :: psppar(:,:,:),nelpsp(:),radii_cf(:,:),npspcode(:),nzatom(:),iasctype(:)
 
   ! arrays for DIIS convergence accelerator
   real*8, pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
@@ -292,6 +292,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   call memocc(i_stat,product(shape(radii_cf))*kind(radii_cf),'radii_cf','cluster')
   allocate(npspcode(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(npspcode))*kind(npspcode),'npspcode','cluster')
+  allocate(nzatom(ntypes),stat=i_stat)
+  call memocc(i_stat,product(shape(nzatom))*kind(nzatom),'nzatom','cluster')
   allocate(iasctype(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(iasctype))*kind(iasctype),'iasctype','cluster')
   allocate(neleconf(6,0:3),stat=i_stat)
@@ -316,7 +318,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         stop
      end if
      read(11,*)
-     read(11,*) n_abinitzatom,nelpsp(ityp)
+     read(11,*) nzatom(ityp),nelpsp(ityp)
      read(11,*) npspcode(ityp)
      psppar(:,:,ityp)=0.d0
      read(11,*) (psppar(0,j,ityp),j=0,4)
@@ -338,7 +340,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         stop
      end if
      !see whether the atom is semicore or not
-     call eleconf(n_abinitzatom,nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf,iasctype(ityp))
+     call eleconf(nzatom(ityp),nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf,iasctype(ityp))
      !if you want no semicore electrons, uncomment the following line
      !iasctype(ityp)=0
 
@@ -637,7 +639,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
           rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-          atomnames,ntypes,iatype,iasctype,pkernel,psppar,npspcode,ixc,psi,eval,accurex,&
+          atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,psi,eval,accurex,&
           datacode,nscatterarr,ngatherarr)
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in total energy due to grid size',accurex
@@ -5214,11 +5216,13 @@ END SUBROUTINE calc_coeff_inguess
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
-subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,psppar,npspcode,&
-     norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,norbsc_arr)
+subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
+     & psppar,npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,&
+     & scorb,norbsc_arr)
   implicit none
 ! character(len = *), intent(in) :: filename
   integer, intent(in) :: ngx, iproc, ntypes
+  integer, intent(in) :: nzatom(ntypes), nelpsp(ntypes)
   real*8, intent(in) :: psppar(0:4,0:4,ntypes)
   integer, intent(in) :: npspcode(ntypes),iasctype(ntypes)
   real*8, intent(out) :: xp(ngx, ntypes), psiat(ngx, 5, ntypes), occupat(5, ntypes)
@@ -5317,7 +5321,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,psppar,npspcode,&
 
         !the default value for the gaussians is chosen to be 21
         ng(ity)=21
-        call iguess_generator(iproc,atomnames(ity),psppar(0,0,ity),npspcode(ity),&
+        call iguess_generator(iproc, nzatom(ity), nelpsp(ity),psppar(0,0,ity),npspcode(ity),&
              ng(ity)-1,nl(1,ity),5,occupat(1:5,ity),xp(1:ng(ity),ity),psiat(1:ng(ity),1:5,ity))
 
 !values obtained from the input guess generator in iguess.dat format
@@ -5536,7 +5540,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
      rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-     atomnames,ntypes,iatype,iasctype,pkernel,psppar,npspcode,ixc,ppsi,eval,accurex,&
+     atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,ppsi,eval,accurex,&
      datacode,nscatterarr,ngatherarr)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors writes its initial wavefunctions into the wavefunction file
@@ -5554,7 +5558,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   real(kind=8), intent(in) :: hgrid
   real(kind=8), intent(out) :: accurex
   integer, dimension(nat), intent(in) :: iatype
-  integer, dimension(ntypes), intent(in) :: iasctype,npspcode
+  integer, dimension(ntypes), intent(in) :: iasctype,npspcode,nzatom,nelpsp
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
@@ -5609,8 +5613,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
 
   ! Read the inguess.dat file or generate the input guess via the inguess_generator
-  call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,psppar,npspcode,&
-       norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,norbsc_arr)
+  call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,psppar,&
+       & npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,&
+       & norbsc_arr)
 
   !  allocate wavefunctions and their occupation numbers
   allocate(occupe(norbe),stat=i_stat)
@@ -7163,10 +7168,9 @@ end function myorbital
         return
         END SUBROUTINE
 
-subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupat,expo,psiat)
+subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,occupat,expo,psiat)
   implicit none
-  character (len=*) :: atomname
-  integer, intent(in) :: iproc,ng,npspcode,nmax_occ
+  integer, intent(in) :: iproc,izatom,ielpsp,ng,npspcode,nmax_occ
   real(kind=8), dimension(0:4,0:4), intent(in) :: psppar
   integer, dimension(4), intent(out) :: nl
   real(kind=8), dimension(ng+1), intent(out) :: expo
@@ -7184,18 +7188,11 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   real(kind=8), dimension(:,:,:,:), allocatable :: rmt
   integer, dimension(:,:), allocatable :: neleconf
   logical :: exists
-  integer :: n_abinitzatom,nelpsp,npspcode_t,npspxc,lpx,ncount,nsccode
-  integer :: nzatom,nvalelec,l,i,j,iocc,il,lwrite,i_all,i_stat
+  integer :: lpx,ncount,nsccode
+  integer :: l,i,j,iocc,il,lwrite,i_all,i_stat
   real(kind=8) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt,ehomo
 
   !filename = 'psppar.'//trim(atomname)
-
-  open(unit=11,file='psppar.'//trim(atomname),form='formatted',status='unknown')
-  !Check the open statement
-  read(11,*)
-  read(11,*) n_abinitzatom,nelpsp
-  read(11,*) npspcode_t!,npspxc,lpx
-  close(11)
 
   lpx=0
   lpx_determination: do i=1,4
@@ -7258,9 +7255,7 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   end do
 
   !Now the treatment of the occupation number
-  nzatom=n_abinitzatom
-  nvalelec=nelpsp
-  call eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode)
+  call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode)
 
   occup(:,:)=0.d0
    do l=0,lmax
@@ -7292,12 +7287,12 @@ subroutine iguess_generator(iproc,atomname,psppar,npspcode,ng,nl,nmax_occ,occupa
   allocate(rmt(nint,0:ng,0:ng,lmax+1),stat=i_stat)
   call memocc(i_stat,product(shape(rmt))*kind(rmt),'rmt','iguess_generator')
 
-  zion=real(nelpsp,kind=8)
+  zion=real(ielpsp,kind=8)
 
   !can be switched on for debugging
   !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
   !     'Input Guess Generation for atom',trim(atomname),&
-  !     'Z,Zion=',nzatom,nvalelec,'ng,rprb=',ng+1,rprb
+  !     'Z,Zion=',izatom,ielpsp,'ng,rprb=',ng+1,rprb
 
   rij=3.d0
   ! exponents of gaussians
