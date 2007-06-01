@@ -58,7 +58,7 @@ program PoissonSolver
   read(unit=chain,fmt=*) datacode
 
   !perform also the comparison wit the serial case
-  alsoserial=.false.
+  alsoserial=.true.
   !code for the Poisson Solver in the parallel case
   !datacode='G'
 
@@ -81,7 +81,7 @@ program PoissonSolver
   end if
 
   !initialize memory counting
-  call memocc(0,0,'count','start')
+  call memocc(0,iproc,'count','start')
 
   !Step size
   n_cell = max(n01,n02,n03)
@@ -134,7 +134,7 @@ program PoissonSolver
 
   !apply the Poisson Solver (case with distributed potential
   call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     density(1,1,i3sd),karray,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset)
+     density(1,1,i3sd),karray,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.)
 
   i_all=-product(shape(karray))*kind(karray)
   deallocate(karray,stat=i_stat)
@@ -176,7 +176,7 @@ program PoissonSolver
 
      !apply the Poisson Solver (case with distributed potential
      call PSolver(geocode,'G',0,1,n01,n02,n03,ixc,hx,hy,hz,&
-          rhopot,karray,pot_ion,eh,exc,vxc,offset)
+          rhopot,karray,pot_ion,eh,exc,vxc,offset,.true.)
 
      i_all=-product(shape(karray))*kind(karray)
      deallocate(karray,stat=i_stat)
@@ -659,26 +659,26 @@ end subroutine functions
 
 !!***
 
-!fake ABINIT subroutines
-subroutine wrtout(unit,message,mode_paral)
-  implicit none
-
-  !Arguments ------------------------------------
-  integer,intent(in) :: unit
-  character(len=4),intent(in) :: mode_paral
-  character(len=500),intent(inout) :: message
-
-  print *,message
-end subroutine wrtout
-
-subroutine leave_new(mode_paral)
-  implicit none
-
-  !Arguments ------------------------------------
-  character(len=4),intent(in) :: mode_paral
-
-  print *,'exiting...'
-  stop
-end subroutine leave_new
+!!$!fake ABINIT subroutines
+!!$subroutine wrtout(unit,message,mode_paral)
+!!$  implicit none
+!!$
+!!$  !Arguments ------------------------------------
+!!$  integer,intent(in) :: unit
+!!$  character(len=4),intent(in) :: mode_paral
+!!$  character(len=500),intent(inout) :: message
+!!$
+!!$  print *,message
+!!$end subroutine wrtout
+!!$
+!!$subroutine leave_new(mode_paral)
+!!$  implicit none
+!!$
+!!$  !Arguments ------------------------------------
+!!$  character(len=4),intent(in) :: mode_paral
+!!$
+!!$  print *,'exiting...'
+!!$  stop
+!!$end subroutine leave_new
 
 

@@ -4,7 +4,7 @@ program memguess
 
   !implicit real*8 (a-h,o-z)
   implicit none
-  logical :: calc_tail
+  logical :: calc_tail,output_grid
   character(len=20) :: tatonam,units
   character(len=13) :: filename
   character(len=2) :: symbol
@@ -23,16 +23,34 @@ program memguess
 
   if(trim(tatonam)=='') then
      write(*,'(1x,a)')&
-          'Usage: ./memguess <nproc>'
+          'Usage: ./memguess <nproc> [y]'
      write(*,'(1x,a)')&
           'Indicate the number of processes after the executable'
+     write(*,'(1x,a)')&
+          'You can put a "y" in the second argument (optional) if you want the '
+     write(*,'(1x,a)')&
+          '  grid to be plotted with V_Sim'
      stop
   else
      read(unit=tatonam,fmt=*) nproc
+     call getarg(2,tatonam)
+     if(trim(tatonam)=='') then
+        output_grid=.false.
+     else if (trim(tatonam)=='y') then
+        output_grid=.true.
+        write(*,'(1x,a)')&
+             'The system grid will be displayed in the "grid.ascii" file'
+     else
+        write(*,'(1x,a)')&
+             'Usage: ./memguess <nproc> [y]'
+        write(*,'(1x,a)')&
+             'Indicate the number of processes after the executable'
+        write(*,'(1x,a)')&
+             'ERROR: The only second argument which is accepted is "y"'
+        stop
+     end if
   end if
 
-  
-  
   !initialize memory counting
   call memocc(0,0,'count','start')
 
@@ -117,13 +135,13 @@ program memguess
        ' elec. field=',elecfield,'|   Fine Proj.=',fpmult,'| DIIS Hist. N.=',idsx
 
   allocate(psppar(0:4,0:4,ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(psppar))*kind(psppar),'psppar','cluster')
+  call memocc(i_stat,product(shape(psppar))*kind(psppar),'psppar','memguess')
   allocate(nelpsp(ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(nelpsp))*kind(nelpsp),'nelpsp','cluster')
+  call memocc(i_stat,product(shape(nelpsp))*kind(nelpsp),'nelpsp','memguess')
   allocate(radii_cf(ntypes,2),stat=i_stat)
-  call memocc(i_stat,product(shape(radii_cf))*kind(radii_cf),'radii_cf','cluster')
+  call memocc(i_stat,product(shape(radii_cf))*kind(radii_cf),'radii_cf','memguess')
   allocate(neleconf(6,0:3),stat=i_stat)
-  call memocc(i_stat,product(shape(neleconf))*kind(neleconf),'neleconf','cluster')
+  call memocc(i_stat,product(shape(neleconf))*kind(neleconf),'neleconf','memguess')
   
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
@@ -188,9 +206,6 @@ program memguess
   enddo
 
   !deallocation
-  i_all=-product(shape(atomnames))*kind(atomnames)
-  deallocate(atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atomnames','memguess')
   i_all=-product(shape(neleconf))*kind(neleconf)
   deallocate(neleconf,stat=i_stat)
   call memocc(i_stat,i_all,'neleconf','memguess')
@@ -246,9 +261,13 @@ program memguess
   write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
        '  Box Sizes=',alat1,alat2,alat3,n1,n2,n3
 
-  call MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
-          rxyz,radii_cf,crmult,frmult,norb)
+  call MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
+          rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid)
 
+
+  i_all=-product(shape(atomnames))*kind(atomnames)
+  deallocate(atomnames,stat=i_stat)
+  call memocc(i_stat,i_all,'atomnames','memguess')
   i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)
   call memocc(i_stat,i_all,'radii_cf','memguess')

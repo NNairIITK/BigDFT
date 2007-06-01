@@ -532,8 +532,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
   !memory estimation
   if (iproc==0) then
-     call MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
-          rxyz,radii_cf,crmult,frmult,norb)
+     call MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
+          rxyz,radii_cf,crmult,frmult,norb,atomnames,.false.)
   end if
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
@@ -900,7 +900,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
 !------------------------------------------------------------------------
 ! here we start the calculation of the forces
-  !if (iproc.eq.0) write(*,*)'calculation of forces'
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
           '----------------------------------------------------------------- Forces Calculation'
@@ -1039,28 +1038,12 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   if (calc_tail) then
      call timing(iproc,'Tail          ','ON')
 !    Calculate kinetic energy correction due to boundary conditions
-     nbuf=nint(rbuf/hgrid)
-     if (iproc.eq.0) then
-        write(*,'(1x,a,i0,a)') 'BIG: tail requires ',nbuf,' additional grid points around cell'
-     end if
-!    --- new grid sizes n1,n2,n3
-     nb1=n1+2*nbuf
-     nb2=n2+2*nbuf
-     nb3=n3+2*nbuf
-     alatb1=nb1*hgrid 
-     alatb2=nb2*hgrid 
-     alatb3=nb3*hgrid
-     if (iproc.eq.0) then 
-        write(*,'(1x,a,3(1x,i0))')     'BIG: n1,n2,n3',nb1,nb2,nb3
-        write(*,'(1x,a,1x,i0)')        'BIG: total number of grid points',(nb1+1)*(nb2+1)*(nb3+1)
-        write(*,'(1x,a,3(1x,1pe12.5))')'BIG: simulation cell',alatb1,alatb2,alatb3
-     endif
+
      !    ---reformat potential
      allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_stat)
      call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
  
      if (datacode=='D') then
-       write(*,*) 'n3d,n3p,n3pi',n3d,n3p,n3pi
         call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh),(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION, &
              pot,(2*n1+31)*(2*n2+31)*nscatterarr(:,2),(2*n1+31)*(2*n2+31)*nscatterarr(:,3), & 
              MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
@@ -1084,10 +1067,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      call memocc(i_stat,i_all,'rhopot','cluster')
      call timing(iproc,'Tail          ','OF')
 
-     call CalculateTailCorrection(iproc,nproc,n1,n2,n3,nbuf,nb1,nb2,nb3,norb,norbp,nat,ntypes,&
+     call CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntypes,&
      nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
      keyv,keyg,nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
-     pot,hgrid,alatb1,alatb2,alatb3,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
+     pot,hgrid,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
      proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
 
      i_all=-product(shape(pot))*kind(pot)
@@ -1479,18 +1462,18 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
 end subroutine hpsitopsi
 
-subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,nbuf,nb1,nb2,nb3,norb,norbp,nat,ntypes,&
+subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntypes,&
      nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
      keyv,keyg,nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
-     pot,hgrid,alatb1,alatb2,alatb3,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
+     pot,hgrid,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
      proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
 implicit none
 include 'mpif.h'
 logical, intent(in) :: output_grid,parallel
 character(len=20), dimension(100), intent(in) :: atomnames
-integer, intent(in) :: iproc,nproc,n1,n2,n3,nbuf,nb1,nb2,nb3,norb,norbp,nat,ntypes,ncongt
+integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nat,ntypes,ncongt
 integer, intent(in) :: nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel
-real(kind=8), intent(in) :: hgrid,crmult,frmult,alatb1,alatb2,alatb3
+real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
 real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
 integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
 integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
@@ -1509,15 +1492,46 @@ real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
 !local variables
 logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat
-integer :: nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
+integer :: nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nbuf,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
 integer, dimension(:,:,:), allocatable :: ibbyz_c,ibbyz_f,ibbxz_c,ibbxz_f,ibbxy_c,ibbxy_f
 integer, dimension(:), allocatable :: keybv
 integer, dimension(:,:), allocatable :: keybg
-real(kind=8) :: ekin,epot,eproj,tt,cprecr,sum_tail,ekin1,epot1,eproj1
+real(kind=8) :: alatb1,alatb2,alatb3,ekin,epot,eproj,tt,cprecr,sum_tail,ekin1,epot1,eproj1
 real(kind=8), dimension(:,:), allocatable :: txyz,wrkallred
 real(kind=8), dimension(:), allocatable :: psib,hpsib,psig,psigp,psifscf,psir
 
 call timing(iproc,'Tail          ','ON')
+
+nbuf=nint(rbuf/hgrid)
+!    --- new grid sizes n1,n2,n3
+nb1=n1+2*nbuf
+nb2=n2+2*nbuf
+nb3=n3+2*nbuf
+alatb1=nb1*hgrid 
+alatb2=nb2*hgrid 
+alatb3=nb3*hgrid
+
+if (iproc.eq.0) then
+   write(*,'(1x,a)')&
+        '---------------------------------------------- Estimation of Finite-Size Corrections'
+   write(*,'(1x,a,f6.3,a)') &
+        'F-S Correction for an effective space of ',rbuf,' AU more around each external atom'
+   write(*,'(1x,a,i6,a)') &
+        '                  requires the adding of ',nbuf,' additional grid points around cell'
+   write(*,'(1x,a,19x,a)') &
+        '   Effective box size,   Atomic Units:','grid spacing units:'
+     write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
+          '            ',alatb1,alatb2,alatb3,nb1,nb2,nb3
+   !write(*,'(1x,a,i0,a)') &
+   !     'BIG: tail requires ',nbuf,' additional grid points around cell'
+   !write(*,'(1x,a,3(1x,i0))')     &
+   !     'BIG: n1,n2,n3',nb1,nb2,nb3
+   !write(*,'(1x,a,1x,i0)')        &
+   !     'BIG: total number of grid points',(nb1+1)*(nb2+1)*(nb3+1)
+   !write(*,'(1x,a,3(1x,1pe12.5))')&
+   !     'BIG: simulation cell',alatb1,alatb2,alatb3
+end if
+
 
 !---reformat keyg_p
 do iseg=1,nseg_p(2*nat)
@@ -1545,9 +1559,12 @@ end do
 nbfl1=nfl1+nbuf ; nbfl2=nfl2+nbuf ; nbfl3=nfl3+nbuf
 nbfu1=nfu1+nbuf ; nbfu2=nfu2+nbuf ; nbfu3=nfu3+nbuf
 if (iproc.eq.0) then
-   write(*,'(1x,a,2(1x,i0))') 'BIG: nfl1,nfu1',nbfl1,nbfu1
-   write(*,'(1x,a,2(1x,i0))') 'BIG: nfl2,nfu2',nbfl2,nbfu2
-   write(*,'(1x,a,2(1x,i0))') 'BIG: nfl3,nfu3',nbfl3,nbfu3
+     write(*,'(1x,a,3x,3(2x,i4,a1,i0))')&
+          '  Extremes for the new high resolution grid points:',&
+          nbfl1,'<',nbfu1,nbfl2,'<',nbfu2,nbfl3,'<',nbfu3
+   !write(*,'(1x,a,2(1x,i0))') 'BIG: nfl1,nfu1',nbfl1,nbfu1
+   !write(*,'(1x,a,2(1x,i0))') 'BIG: nfl2,nfu2',nbfl2,nbfu2
+   !write(*,'(1x,a,2(1x,i0))') 'BIG: nfl3,nfu3',nbfl3,nbfu3
 endif
 
 ! change atom coordinates according to the enlarged box
@@ -1581,6 +1598,8 @@ call memocc(i_stat,product(shape(ibbxy_f))*kind(ibbxy_f),'ibbxy_f','calculatetai
 call fill_logrid(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,nat,ntypes,iatype,txyz, & 
      radii_cf(1,1),crmult,hgrid,logrid_c)
 if (iproc.eq.0 .and. output_grid) then
+   write(*,'(1x,a)')&
+        'Writing the file describing the new atomic positions of the effective system'
    open(unit=22,file='grid_tail.ascii',status='unknown')
    write(22,*) nat
    write(22,*) alatb1,' 0. ',alatb2
@@ -1599,8 +1618,11 @@ if (iproc.eq.0 .and. output_grid) then
    end do
 endif
 call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,nvctrb_c)
+
 if (iproc.eq.0) then
-   write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have coarse segment, elements',nsegb_c,nvctrb_c
+   write(*,'(2(1x,a,i10))') &
+        'Coarse resolution grid: Number of segments= ',nsegb_c,'points=',nvctrb_c
+   !write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have coarse segment, elements',nsegb_c,nvctrb_c
 end if
 call bounds(nb1,nb2,nb3,logrid_c,ibbyz_c,ibbxz_c,ibbxy_c)
 
@@ -1621,7 +1643,9 @@ if (iproc.eq.0 .and. output_grid) then
 endif
 call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
 if (iproc.eq.0) then
-   write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have fine   segment, elements',nsegb_f,7*nvctrb_f
+   write(*,'(2(1x,a,i10))') &
+        '  Fine resolution grid: Number of segments= ',nsegb_f,'points=',nvctrb_f
+   !write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have fine   segment, elements',nsegb_f,7*nvctrb_f
 end if
 call bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
 
@@ -1644,12 +1668,13 @@ deallocate(logrid_f,stat=i_stat)
 call memocc(i_stat,i_all,'logrid_f','calculatetailcorrection')
 
 ! allocations for arrays holding the wavefunction
-if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psib and hpsib ',2*(nvctrb_c+7*nvctrb_f)
+!if (iproc.eq.0) &
+!     write(*,'(1x,a,i0)') 'Allocate words for psib and hpsib ',2*(nvctrb_c+7*nvctrb_f)
 allocate(psib(nvctrb_c+7*nvctrb_f),stat=i_stat)
 call memocc(i_stat,product(shape(psib))*kind(psib),'psib','calculatetailcorrection')
 allocate(hpsib(nvctrb_c+7*nvctrb_f),stat=i_stat)
 call memocc(i_stat,product(shape(hpsib))*kind(hpsib),'hpsib','calculatetailcorrection')
-if (iproc.eq.0) write(*,*) 'Allocation done'
+!if (iproc.eq.0) write(*,*) 'Allocation done'
 
 ! work arrays applylocpotkin
 allocate(psig(8*(nb1+1)*(nb2+1)*(nb3+1)),stat=i_stat)
@@ -1660,6 +1685,14 @@ allocate(psifscf(max((2*nb1+31)*(2*nb2+31)*(2*nb3+16),(2*nb1+16)*(2*nb2+31)*(2*n
 call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','calculatetailcorrection')
 allocate(psir((2*nb1+31)*(2*nb2+31)*(2*nb3+31)),stat=i_stat)
 call memocc(i_stat,product(shape(psir))*kind(psir),'psir','calculatetailcorrection')
+
+if (iproc.eq.0) then
+   write(*,'(1x,a,i0)') &
+        'Wavefunction memory occupation in the extended grid (Bytes): ',&
+        (nvctrb_c+7*nvctrb_f)*8
+   write(*,'(1x,a,i0)') &
+        'Wavefunction memory occupation in the extended grid (Bytes): '
+end if
 
 ekin_sum=0.d0
 epot_sum=0.d0
@@ -1791,10 +1824,9 @@ call memocc(i_stat,i_all,'ibbxy_f','calculatetailcorrection')
 
 
 if (parallel) then
-   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-   if (iproc.eq.0) then
-      write(*,'(1x,a,f27.14)')'Tail calculation ended'
-   endif
+   !if (iproc.eq.0) then
+   !   write(*,'(1x,a,f27.14)')'Tail calculation ended'
+   !endif
    allocate(wrkallred(3,2),stat=i_stat)
    call memocc(i_stat,product(shape(wrkallred))*kind(wrkallred),'wrkallred','calculatetailcorrection')
    wrkallred(1,2)=ekin_sum
@@ -3967,46 +3999,76 @@ END SUBROUTINE
 
 end subroutine orthon
 
-subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
-     rxyz,radii_cf,crmult,frmult,norb)
+subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
+     rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid)
   use Poisson_Solver
   implicit none
   !Arguments
+  logical, intent(in) :: output_grid
   integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb
-  integer, intent(in) :: iatype(nat)
-  real(kind=8), intent(in) :: hgrid,crmult,frmult
-  real(kind=8), dimension(3,nat), intent(in) :: rxyz(3,nat)
+  integer, dimension(nat), intent(in) :: iatype
+  character(len=20), dimension(100), intent(in) :: atomnames
+  real(kind=8), intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(ntypes,2), intent(in) ::  radii_cf
   !local variables
   real(kind=8), parameter :: eps_mach=1.d-12
   character(len=1) :: geocode
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f,norbp,nvctrp,i_all,i_stat
-  integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3
-  integer(kind=8) :: memwf,memker,memden,mempot
+  integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,iat,i1,i2,i3
+  real(kind=8) :: omemwf,omemker,omemden,omempot
   real(kind=8) :: tt,tmemker,tmemden,tmemps,tmemha,tminamount
-  logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
+  logical, dimension(:,:,:), allocatable :: logrid
+
+! Create the file grid.ascii to visualize the grid of functions
+  if (output_grid) then
+     open(unit=22,file='grid.ascii',status='unknown')
+     write(22,*) nat
+     write(22,*) alat1,' 0. ',alat2
+     write(22,*) ' 0. ',' 0. ',alat3
+     do iat=1,nat
+        write(22,'(3(1x,e12.5),3x,a20)') &
+             rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),atomnames(iatype(iat))
+     enddo
+  endif
 
   ! determine localization region for all orbitals
-  allocate(logrid_c(0:n1,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(logrid_c))*kind(logrid_c),'logrid_c','memoryestimator')
-  allocate(logrid_f(0:n1,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(logrid_f))*kind(logrid_f),'logrid_f','memoryestimator')
+  allocate(logrid(0:n1,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(logrid))*kind(logrid),'logrid','memoryestimator')
 
   ! coarse grid quantities
   call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
-       radii_cf(1,1),crmult,hgrid,logrid_c)
-  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,nseg_c,nvctr_c)
+       radii_cf(1,1),crmult,hgrid,logrid)
+  if (output_grid) then
+     do i3=0,n3  
+        do i2=0,n2  
+           do i1=0,n1
+              if (logrid(i1,i2,i3))&
+                   write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  g '
+           enddo
+        enddo
+     end do
+  endif
+  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid,nseg_c,nvctr_c)
+
   ! fine grid quantities
   call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
-       radii_cf(1,2),frmult,hgrid,logrid_f)
-  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,nseg_f,nvctr_f)
+       radii_cf(1,2),frmult,hgrid,logrid)
+  if (output_grid) then
+     do i3=0,n3 
+        do i2=0,n2 
+           do i1=0,n1
+              if (logrid(i1,i2,i3))&
+                   write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  G '
+           enddo
+        enddo
+     enddo
+  endif
+  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid,nseg_f,nvctr_f)
 
-  i_all=-product(shape(logrid_c))*kind(logrid_c)
-  deallocate(logrid_c,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_c','memoryestimator')
-  i_all=-product(shape(logrid_f))*kind(logrid_f)
-  deallocate(logrid_f,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_f','memoryestimator')
+  i_all=-product(shape(logrid))*kind(logrid)
+  deallocate(logrid,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid','memoryestimator')
 
   tt=dble(norb)/dble(nproc)
   norbp=int((1.d0-eps_mach*tt) + tt)
@@ -4014,7 +4076,7 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
   nvctrp=int((1.d0-eps_mach*tt) + tt)
 
   !wavefunction memory per orbitals
-  memwf=nvctrp*nproc*8
+  omemwf=real(nvctrp*nproc*8,kind=8)
   
   geocode='F'
 
@@ -4039,11 +4101,11 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
   end if
 
   !density memory
-  memden=md1*md3*md2/nproc*8
+  omemden=real(md1*md3*md2/nproc*8,kind=8)
   !kernel memory
-  memker=nd1*nd2*nd3/nproc*8
+  omemker=real(nd1*nd2*nd3/nproc*8,kind=8)
   !memory of full grid arrays
-  mempot=n01*n02*n03*8
+  omempot=real(n01*n02*n03*8,kind=8)
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ Memory Estimation'
@@ -4054,27 +4116,27 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
   write(*,'(1x,a)')&
        'Memory occupation for principal arrays:'
   write(*,'(1x,a,2(i6,a3))')&
-       '              Poisson Solver Kernel (K):',memker/1048576,'MB',&
-       ceiling(real(mod(memker,int(1048576,kind=8)),kind=8)/1024.d0),'KB'  
+       '              Poisson Solver Kernel (K):',int(omemker/1048576.d0),'MB',&
+       ceiling((omemker-aint(omemker/1048576.d0)*1048576.d0)/1024.d0),'KB'  
   write(*,'(1x,a,2(i6,a3))')&
-       '             Poisson Solver Density (D):',memden/1048576 ,'MB',&
-       ceiling(real(mod(memden,int(1048576,kind=8)),kind=8)/1024.d0),'KB'  
+       '             Poisson Solver Density (D):',int(omemden/1048576.d0),'MB',&
+       ceiling((omemden-aint(omemden/1048576.d0)*1048576.d0)/1024.d0),'KB'  
   write(*,'(1x,a,2(i6,a3))')&
-       '    Single Wavefunction for one orbital:',memwf/1048576,'MB',&
-       ceiling(real(mod(memwf,int(1048576,kind=8)),kind=8)/1024.d0),'KB'  
-  if(nproc > 1 ) memwf=int(3*norbp*nvctrp*nproc*8,kind=8)
-  if(nproc == 1 ) memwf=2*norbp*nvctrp*nproc*8
+       '    Single Wavefunction for one orbital:',int(omemwf/1048576.d0),'MB',&
+       ceiling((omemwf-aint(omemwf/1048576.d0)*1048576.d0)/1024.d0),'KB'  
+  if(nproc > 1 ) omemwf=24.d0*real(norbp*nvctrp*nproc,kind=8)
+  if(nproc == 1 ) omemwf=16.d0*real(norbp*nvctrp*nproc,kind=8)
   write(*,'(1x,a,2(i6,a3))')&
-       '   All Wavefunctions for each processor:',memwf/1048576,'MB',&
-       ceiling(real(mod(memwf,int(1048576,kind=8)),kind=8)/1024.d0),'KB'  
+       '   All Wavefunctions for each processor:',int(omemwf/1048576.d0),'MB',&
+       ceiling((omemwf-aint(omemwf/1048576.d0)*1048576.d0)/1024.d0),'KB'  
+  if(nproc > 1 ) omemwf=8.d0*real(2*idsx+3,kind=8)*real(norbp*nvctrp*nproc,kind=8)
+  if(nproc == 1 ) omemwf=8.d0*real(2*idsx+3,kind=8)*real(norbp*nvctrp*nproc,kind=8)
   write(*,'(1x,a,2(i6,a3))')&
-       '   Arrays of full uncompressed grid (U):',mempot/1048576,'MB',&
-       ceiling(real(mod(mempot,int(1048576,kind=8)),kind=8)/1024.d0),'KB'  
-  if(nproc > 1 ) memwf=(2*idsx+3)*norbp*nvctrp*nproc*8
-  if(nproc == 1 ) memwf=(2*idsx+2)*norbp*nvctrp*nproc*8
+       '      Wavefunctions + DIIS per proc (W):',int(omemwf/1048576.d0),'MB',&
+       ceiling((omemwf-aint(omemwf/1048576.d0)*1048576.d0)/1024.d0),'KB'  
   write(*,'(1x,a,2(i6,a3))')&
-       '      Wavefunctions + DIIS per proc (W):',memwf/1048576,'MB',&
-       ceiling(real(mod(memwf,int(1048576,kind=8)),kind=8)/1024.d0),'KB'  
+       '   Arrays of full uncompressed grid (U):',int(omempot/1048576.d0),'MB',&
+       ceiling((omempot-aint(omempot/1048576.d0)*1048576.d0)/1024.d0),'KB'  
 
   write(*,'(1x,a)')&
        'Estimation of Memory requirements for principal code sections:'
@@ -4083,17 +4145,17 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
   if (nproc > 1) then 
      write(*,'(1x,a)')&
        '      ~19*K         |      W+(~4)*U+D+K    |    ~12*D+K+W   |     ~*W+(~5)*U+D+K '
-     tmemker=real(19*memker,kind=8)
-     tmemden=real(memwf,kind=8)+(3.d0+tt)*real(mempot+memker,kind=8)
-     tmemps=12.d0*real(memden,kind=8)+real(memwf+memker,kind=8)
-     tmemha=(3.d0+2*tt)*real(mempot,kind=8)+real(memwf+memker,kind=8)
+     tmemker=19.d0*omemker
+     tmemden=omemwf+(3.d0+tt)*omempot+omemker
+     tmemps=12.d0*omemden+omemwf+omemker
+     tmemha=(3.d0+2*tt)*omempot+omemwf+omemker
   else
      write(*,'(1x,a)')&
        '      ~11*K         |       ~W+(~3)*U      |     ~8*D+*W     |       ~W+(~3)*U '
-     tmemker=real(11*memker,kind=8)
-     tmemden=real(memwf,kind=8)+(2.d0+tt)*real(mempot+memker,kind=8)
-     tmemps=8.d0*real(memden,kind=8)+real(memwf+memker,kind=8)
-     tmemha=(2.d0+2*tt)*real(mempot,kind=8)+real(memwf+memker,kind=8)
+     tmemker=11.d0*omemker
+     tmemden=omemwf+(2.d0+tt)*omempot+omemker
+     tmemps=8.d0*omemden+omemwf+omemker
+     tmemha=(2.d0+2*tt)*omempot+omemwf+omemker
   end if
   write(*,'(1x,4(1x,i8,a))')&
        int(tmemker/1048576.d0),'MB         | ',int(tmemden/1048576.d0),'MB          |',&
@@ -4102,15 +4164,12 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
        'The overall memory requirement needed for this calculation is thus: ',&
        int(max(tmemker,tmemden,tmemps,tmemha)/1048576.d0),' MB'
   tminamount=real(3*(nvctr_c+7*nvctr_f)*8,kind=8)+3.d0*n01*n02+&
-       (3.d0+2*tt)*real(mempot,kind=8)
+       (3.d0+2*tt)*omempot
   write(*,'(1x,a)')&
        'By reducing the DIIS history and/or decreasing the number of processors the amount of'
   write(*,'(1x,a,i0,a)')&
        ' memory can be reduced but for this system it will never be less than ',&
        int(tminamount/1048576.d0),' MB'
-
-
-
 
 end subroutine MemoryEstimator
 
@@ -4157,7 +4216,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
      write(22,*) ' 0. ',' 0. ',alat3
      do iat=1,nat
         write(22,'(3(1x,e12.5),3x,a20)') rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),atomnames(iatype(iat))
-        write(*,'(3(1x,e12.5),3x,a20)') rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),atomnames(iatype(iat))
+        !write(*,'(3(1x,e12.5),3x,a20)') rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),atomnames(iatype(iat))
      enddo
   endif
 
@@ -4255,7 +4314,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
   tt=dble(nvctr_c+7*nvctr_f)/dble(nproc)
   nvctrp=int((1.d0-eps_mach*tt) + tt)
 
-  if (iproc.eq.0) write(*,'(1x,a,i0))') &
+  if (iproc.eq.0) write(*,'(1x,a,i0)') &
        'Wavefunction memory occupation per orbital (Bytes): ',&
        nvctrp*nproc*8
 
@@ -4281,7 +4340,7 @@ END SUBROUTINE createWavefunctionsDescriptors
     if (iproc.eq.0) then
        write(*,'(1x,a)')&
          '------------------------------------------------------------ PSP Projectors Creation'
-       write(*,'(1x,a4,4x,a4,1x,a))')&
+       write(*,'(1x,a4,4x,a4,1x,a)')&
             'Atom','Name','Number of projectors'
     end if
 

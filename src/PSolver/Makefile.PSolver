@@ -38,7 +38,8 @@ SOURCES_ABINIT = abinit/defs_basis.F90 \
         abinit/xchcth.F90 \
         abinit/xclb.F90 \
         abinit/xcpbe.F90 \
-        abinit/invcb.F90
+        abinit/invcb.F90 \
+	abinit/size_dvxc.F90 
 
 SOURCES_F90 = \
 	Poisson_Solver.f90 \
