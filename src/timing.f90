@@ -149,7 +149,8 @@ subroutine memocc(istat,isize,array,routine)
   !local variables
   character(len=36) :: maxroutine,locroutine
   character(len=36) :: maxarray,locarray
-  integer :: memory,nalloc,ndealloc,maxmemory,locpeak,locmemory,iproc
+  integer :: nalloc,ndealloc,locpeak,locmemory,iproc
+  integer(kind=8) :: memory,maxmemory
   save :: memory,nalloc,ndealloc,maxroutine,maxarray,maxmemory
   save :: locroutine,locarray,locpeak,locmemory,iproc
 
@@ -168,16 +169,19 @@ subroutine memocc(istat,isize,array,routine)
            iproc=isize
            !open the writing file for the root process
            if (iproc == 0) open(unit=98,file='malloc.prc',status='unknown')
+           write(98,'(a32,a14,4(1x,a12))')&
+                '(Data in KB)             Routine','    Peak Array',&
+                'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
         else if (routine=='stop' .and. iproc==0) then
            write(98,'(a32,a14,4(1x,i12))')&
-                trim(locroutine),trim(locarray),locmemory,locpeak,memory,&
-                      memory+locpeak-locmemory
+                trim(locroutine),trim(locarray),locmemory/1024,locpeak/1024,memory/1024,&
+                      (memory+locpeak-locmemory)/1024
            close(98)
            write(*,'(1x,a)')&
                 '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
            write(*,'(1x,2(i0,a),i0)')&
                 nalloc,' allocations and ',ndealloc,' deallocations, remaining memory(B):',memory
-           write(*,'(1x,a,i0)') 'memory occupation peak in bytes ',maxmemory
+           write(*,'(1x,a,i0,a)') 'memory occupation peak: ',maxmemory/1048576,' MB'
            write(*,'(4(1x,a))') 'for the array ',trim(maxarray),'in the routine',trim(maxroutine)
         end if
         
@@ -199,8 +203,8 @@ subroutine memocc(istat,isize,array,routine)
               !write(98,'(a32,a14,4(1x,i12))')trim(routine),trim(array),isize,memory
               if (trim(locroutine) /= routine) then
                  write(98,'(a32,a14,4(1x,i12))')&
-                      trim(locroutine),trim(locarray),locmemory,locpeak,memory,&
-                      memory+locpeak-locmemory
+                      trim(locroutine),trim(locarray),locmemory/1024,locpeak/1024,memory/1024,&
+                      (memory+locpeak-locmemory)/1024
                  locroutine=routine
                  locarray=array
                  locmemory=isize

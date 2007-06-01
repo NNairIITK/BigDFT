@@ -18,7 +18,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces
+binaries_sources = cluster test_forces memguess
 else
 binaries_sources = 
 endif
@@ -95,6 +95,12 @@ test_forces_LDADD = libbigdft.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
+memguess_SOURCES = memguess.f90
+memguess_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
+	ABINIT-common/libABINIT.a 
+
+
 CLEANFILES = $(mpi_include) libbigdft.@MODULE_EXT@
 
 #dependencies
@@ -109,6 +115,9 @@ mpif.h:
 
 test_forces.o: parameters.h \
 	libbigdft.@MODULE_EXT@
+
+memguess.o: libbigdft.@MODULE_EXT@
+
 
 libbigdft.@MODULE_EXT@: cluster_all.o
 

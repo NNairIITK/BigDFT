@@ -78,6 +78,9 @@ module libBigDFT
   public :: wnrm
   public :: wpdot
 
+  !estimation of the memory
+  public :: MemoryEstimator
+
 contains
 
 subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energy, fxyz,  &
@@ -531,7 +534,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   if (iproc==0) then
      call MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
           rxyz,radii_cf,crmult,frmult,norb)
-     stop
   end if
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
@@ -651,8 +653,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
           rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-          atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,psi,eval,accurex,&
-          datacode,nscatterarr,ngatherarr)
+          atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,&
+          ixc,psi,eval,accurex,datacode,nscatterarr,ngatherarr)
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in total energy due to grid size',accurex
         write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/norb
@@ -683,6 +685,12 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   else if (inputPsiId == 2) then
      call readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
   end if
+
+  !no need of using nzatom array
+  i_all=-product(shape(nzatom))*kind(nzatom)
+  deallocate(nzatom,stat=i_stat)
+  call memocc(i_stat,i_all,'nzatom','cluster')
+
 
 !!$  !plot the initial wavefunctions before orthogonalization
 !!$  do i=2*iproc+1,2*iproc+2
@@ -3974,8 +3982,8 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
   character(len=1) :: geocode
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f,norbp,nvctrp,i_all,i_stat
   integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3
-  integer :: memwf,memker,memden,mempot
-  real(kind=8) :: tt,tmemker,tmemden,tmemps,tmemha
+  integer(kind=8) :: memwf,memker,memden,mempot
+  real(kind=8) :: tt,tmemker,tmemden,tmemps,tmemha,tminamount
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
   ! determine localization region for all orbitals
@@ -4047,26 +4055,26 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
        'Memory occupation for principal arrays:'
   write(*,'(1x,a,2(i6,a3))')&
        '              Poisson Solver Kernel (K):',memker/1048576,'MB',&
-       ceiling(real(mod(memker,1048576),kind=8)/1024.d0),'KB'  
+       ceiling(real(mod(memker,int(1048576,kind=8)),kind=8)/1024.d0),'KB'  
   write(*,'(1x,a,2(i6,a3))')&
        '             Poisson Solver Density (D):',memden/1048576 ,'MB',&
-       ceiling(real(mod(memden,1048576),kind=8)/1024.d0),'KB'  
+       ceiling(real(mod(memden,int(1048576,kind=8)),kind=8)/1024.d0),'KB'  
   write(*,'(1x,a,2(i6,a3))')&
        '    Single Wavefunction for one orbital:',memwf/1048576,'MB',&
-       ceiling(real(mod(memwf,1048576),kind=8)/1024.d0),'KB'  
-  if(nproc > 1 ) memwf=3*norbp*nvctrp*nproc*8
+       ceiling(real(mod(memwf,int(1048576,kind=8)),kind=8)/1024.d0),'KB'  
+  if(nproc > 1 ) memwf=int(3*norbp*nvctrp*nproc*8,kind=8)
   if(nproc == 1 ) memwf=2*norbp*nvctrp*nproc*8
   write(*,'(1x,a,2(i6,a3))')&
        '   All Wavefunctions for each processor:',memwf/1048576,'MB',&
-       ceiling(real(mod(memwf,1048576),kind=8)/1024.d0),'KB'  
+       ceiling(real(mod(memwf,int(1048576,kind=8)),kind=8)/1024.d0),'KB'  
   write(*,'(1x,a,2(i6,a3))')&
        '   Arrays of full uncompressed grid (U):',mempot/1048576,'MB',&
-       ceiling(real(mod(mempot,1048576),kind=8)/1024.d0),'KB'  
+       ceiling(real(mod(mempot,int(1048576,kind=8)),kind=8)/1024.d0),'KB'  
   if(nproc > 1 ) memwf=(2*idsx+3)*norbp*nvctrp*nproc*8
   if(nproc == 1 ) memwf=(2*idsx+2)*norbp*nvctrp*nproc*8
   write(*,'(1x,a,2(i6,a3))')&
        '      Wavefunctions + DIIS per proc (W):',memwf/1048576,'MB',&
-       ceiling(real(mod(memwf,1048576),kind=8)/1024.d0),'KB'  
+       ceiling(real(mod(memwf,int(1048576,kind=8)),kind=8)/1024.d0),'KB'  
 
   write(*,'(1x,a)')&
        'Estimation of Memory requirements for principal code sections:'
@@ -4074,22 +4082,35 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,hgrid,nat,ntypes,iatype,&
        ' Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application'
   if (nproc > 1) then 
      write(*,'(1x,a)')&
-       '      ~19*K         |      W+(~4)*U+D      |    ~12*D+ W    |      ~*W+(~4)*U+D '
+       '      ~19*K         |      W+(~4)*U+D+K    |    ~12*D+K+W   |     ~*W+(~5)*U+D+K '
      tmemker=real(19*memker,kind=8)
-     tmemden=real(memwf,kind=8)+(3.d0+tt)*real(mempot,kind=8)
-     tmemps=12.d0*real(memden,kind=8)+real(memwf,kind=8)
-     tmemha=(3.d0+2*tt)*real(mempot,kind=8)+real(memwf,kind=8)
+     tmemden=real(memwf,kind=8)+(3.d0+tt)*real(mempot+memker,kind=8)
+     tmemps=12.d0*real(memden,kind=8)+real(memwf+memker,kind=8)
+     tmemha=(3.d0+2*tt)*real(mempot,kind=8)+real(memwf+memker,kind=8)
   else
      write(*,'(1x,a)')&
        '      ~11*K         |       ~W+(~3)*U      |     ~8*D+*W     |       ~W+(~3)*U '
      tmemker=real(11*memker,kind=8)
-     tmemden=real(memwf,kind=8)+(2.d0+tt)*real(mempot,kind=8)
-     tmemps=8.d0*real(memden,kind=8)+real(memwf,kind=8)
-     tmemha=(2.d0+2*tt)*real(mempot,kind=8)+real(memwf,kind=8)
+     tmemden=real(memwf,kind=8)+(2.d0+tt)*real(mempot+memker,kind=8)
+     tmemps=8.d0*real(memden,kind=8)+real(memwf+memker,kind=8)
+     tmemha=(2.d0+2*tt)*real(mempot,kind=8)+real(memwf+memker,kind=8)
   end if
-  write(*,'(1x,4(4x,i8,a))')&
-       int(tmemker/1048576.d0),'MB    |',int(tmemden/1048576.d0),'MB    |',&
-       int(tmemps/1048576.d0),'MB',int(tmemha/1048576.d0),'MB'
+  write(*,'(1x,4(1x,i8,a))')&
+       int(tmemker/1048576.d0),'MB         | ',int(tmemden/1048576.d0),'MB          |',&
+       int(tmemps/1048576.d0),'MB     |     ',int(tmemha/1048576.d0),'MB'
+  write(*,'(1x,a,i0,a)')&
+       'The overall memory requirement needed for this calculation is thus: ',&
+       int(max(tmemker,tmemden,tmemps,tmemha)/1048576.d0),' MB'
+  tminamount=real(3*(nvctr_c+7*nvctr_f)*8,kind=8)+3.d0*n01*n02+&
+       (3.d0+2*tt)*real(mempot,kind=8)
+  write(*,'(1x,a)')&
+       'By reducing the DIIS history and/or decreasing the number of processors the amount of'
+  write(*,'(1x,a,i0,a)')&
+       ' memory can be reduced but for this system it will never be less than ',&
+       int(tminamount/1048576.d0),' MB'
+
+
+
 
 end subroutine MemoryEstimator
 
