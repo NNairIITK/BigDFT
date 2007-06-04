@@ -656,7 +656,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,&
           ixc,psi,eval,accurex,datacode,nscatterarr,ngatherarr)
      if (iproc.eq.0) then
-        write(*,'(1x,a,1pe9.2)') 'expected accuracy in total energy due to grid size',accurex
+        write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
         write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/norb
      endif
      !if (iproc.eq.0) write(*,*) 'input wavefunction has been calculated'
@@ -5965,6 +5965,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   !order, so the linear algebra on the transposed wavefunctions 
   !may be splitted
 
+  if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
+       'Input Wavefunctions Orthogonalization:'
+
   norbi_max=maxval(norbsc_arr)
   
   !calculate the dimension of the overlap matrix
@@ -6004,6 +6007,10 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      iorbst=1
      imatrst=1
      !print *,'norbi',norbi,natsc,norbsc_arr(natsc+1)
+
+     if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
+          'Overlap Matrix...'
+
      do i=1,natsc
         norbi=norbsc_arr(i)
         call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,hpsi(1,iorbst),nvctrp,&
@@ -6035,6 +6042,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      allocate(evale(norbi_max),stat=i_stat)
      call memocc(i_stat,product(shape(evale))*kind(evale),'evale','input_wf_diag')
      
+     if (iproc.eq.0) write(*,'(1x,a)')'Linear Algebra...'
+
      iorbst=1
      imatrst=1
      do i=1,natsc+1
@@ -6078,6 +6087,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
      allocate(ppsit(nvctrp,norbp*nproc),stat=i_stat)
      call memocc(i_stat,product(shape(ppsit))*kind(ppsit),'ppsit','input_wf_diag')
+
+     if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Input Wavefunctions...'
 
      !perform the vector-matrix multiplication for building the input wavefunctions
      ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
@@ -6127,6 +6138,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   else !serial case
 
+     write(*,'(1x,a)',advance='no')'Overlap Matrix...'
+
      allocate(hamovr(ndim_hamovr,4),stat=i_stat)
      call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','input_wf_diag')
      !hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
@@ -6152,6 +6165,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','input_wf_diag')
      allocate(evale(norbe),stat=i_stat)
      call memocc(i_stat,product(shape(evale))*kind(evale),'evale','input_wf_diag')
+
+     write(*,'(1x,a)')'Linear Algebra...'
      iorbst=1
      imatrst=1
      do i=1,natsc+1
@@ -6177,6 +6192,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      i_all=-product(shape(evale))*kind(evale)
      deallocate(evale,stat=i_stat)
      call memocc(i_stat,i_all,'evale','input_wf_diag')
+
+     write(*,'(1x,a)',advance='no')'Building orthogonal Input Wavefunctions...'
 
      !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
      iorbst=1
@@ -6206,6 +6223,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      call memocc(i_stat,i_all,'norbsc_arr','input_wf_diag')
 
   endif
+
+  if (iproc.eq.0) write(*,'(1x,a)')'done.'
 
   i_all=-product(shape(occupe))*kind(occupe)
   deallocate(occupe,stat=i_stat)
