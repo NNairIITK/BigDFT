@@ -1081,8 +1081,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      energy=energybs-ehart+eexcu-vexcu+eion
 
      if (iproc.eq.0) then
-        write(*,'(1x,a,f27.14)')       'Total energy    with tail correction',energy
-        write(*,'(1x,a,3(1x,f26.14))') 'ekin,epot,eproj with tail correction',ekin_sum,epot_sum,eproj_sum
+        write(*,'(1x,a,3(1x,1pe18.11))')&
+             '  Corrected ekin,epot,eproj',ekin_sum,epot_sum,eproj_sum
+        write(*,'(1x,a,1x,1pe19.12)')&
+             'Total energy with tail correction',energy
      endif
 
 
@@ -1690,8 +1692,10 @@ if (iproc.eq.0) then
    write(*,'(1x,a,i0)') &
         'Wavefunction memory occupation in the extended grid (Bytes): ',&
         (nvctrb_c+7*nvctrb_f)*8
-   write(*,'(1x,a,i0)') &
-        'Wavefunction memory occupation in the extended grid (Bytes): '
+   write(*,'(1x,a,i0,a)') &
+        'Calculating tail corrections on ',norbp,' orbitals per processor.'
+   write(*,'(1x,a)',advance='no') &
+        '     orbitals are processed separately'
 end if
 
 ekin_sum=0.d0
@@ -1749,8 +1753,8 @@ do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
          sum_tail=sum_tail+psib(i)**2
       enddo
       sum_tail=sqrt(sum_tail)
-      write(*,'(1x,a,i3,3(1x,1pe13.6),1x,1pe9.2)') &
-           'BIG: iorb,ekin,epot,eproj,gnrm',iorb,ekin,epot,eproj,tt
+      !write(*,'(1x,a,i3,3(1x,1pe13.6),1x,1pe9.2)') &
+      !     'BIG: iorb,ekin,epot,eproj,gnrm',iorb,ekin,epot,eproj,tt
       !values of the energyes before tail application
       ekin1=ekin
       epot1=epot
@@ -1766,15 +1770,23 @@ do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
    end do tail_adding
 
-   write(*,'(1x,a,i3,3(1x,1pe13.6),2(1x,1pe9.2))') &
-        'BIG: iorb,denergies,gnrm,dnorm',&
-        iorb,ekin-ekin1,epot-epot1,eproj-eproj1,tt,sum_tail-1.d0
+   !write(*,'(1x,a,i3,3(1x,1pe13.6),2(1x,1pe9.2))') &
+   !     'BIG: iorb,denergies,gnrm,dnorm',&
+   !     iorb,ekin-ekin1,epot-epot1,eproj-eproj1,tt,sum_tail-1.d0
 
-
+   if (iproc == 0) then
+         write(*,'(a)',advance='no') &
+           repeat('.',(iorb*40)/norbp-((iorb-1)*40)/norbp)
+   end if
    ekin_sum=ekin_sum+ekin*occup(iorb)
    epot_sum=epot_sum+epot*occup(iorb)
    eproj_sum=eproj_sum+eproj*occup(iorb)
 end do
+
+if (iproc == 0) then
+   write(*,'(1x,a)')'done.'
+end if
+
 
 i_all=-product(shape(txyz))*kind(txyz)
 deallocate(txyz,stat=i_stat)
