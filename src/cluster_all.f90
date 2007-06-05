@@ -636,17 +636,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','cluster')
   end if
 
-  !allocate principal wavefunction
-  if (parallel) then
-     !allocated in the transposed way such as 
-     !it can also be used as a work array for transposition
-     allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
-  else
-     allocate(psi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
-  end if
-
      ! INPUT WAVEFUNCTIONS
   if (inputPsiId == 0) then
      call input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -654,89 +643,110 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
           atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,&
-          ixc,psi,eval,accurex,datacode,nscatterarr,ngatherarr)
+          ixc,psi,psit,eval,accurex,datacode,nscatterarr,ngatherarr)
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
         write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/norb
      endif
-     !if (iproc.eq.0) write(*,*) 'input wavefunction has been calculated'
 
-  else if (inputPsiId == 1 ) then
-     if (iproc.eq.0) write(*,*) 'START reformatting psi from old psi'
-     call reformatmywaves(iproc, norb, norbp, nat, &
-          & hgrid_old, nvctr_c_old, nvctr_f_old, n1_old, n2_old, n3_old, rxyz_old, &
-          & nseg_c_old, nseg_f_old, keyg_old, keyv_old, psi_old, &
-          & hgrid, nvctr_c, nvctr_f, n1, n2, n3, rxyz, &
-          & nseg_c, nseg_f, keyg, keyv, psi)
-     eval=eval_old
-     i_all=-product(shape(keyg_old))*kind(keyg_old)
-     deallocate(keyg_old,stat=i_stat)
-     call memocc(i_stat,i_all,'keyg_old','cluster')
-     i_all=-product(shape(keyv_old))*kind(keyv_old)
-     deallocate(keyv_old,stat=i_stat)
-     call memocc(i_stat,i_all,'keyv_old','cluster')
-     i_all=-product(shape(psi_old))*kind(psi_old)
-     deallocate(psi_old,stat=i_stat)
-     call memocc(i_stat,i_all,'psi_old','cluster')
-     i_all=-product(shape(eval_old))*kind(eval_old)
-     deallocate(eval_old,stat=i_stat)
-     call memocc(i_stat,i_all,'eval_old','cluster')
+     if (parallel) then
+        !allocate hpsi array (used also as transposed)
+        !allocated in the transposed way such as 
+        !it can also be used as the transposed hpsi
+        allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
+        call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','cluster')
+     else
+        !allocate hpsi array
+        allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+        call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','cluster')
+     endif
 
-  else if (inputPsiId == 2) then
-     call readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
+  else 
+
+     !allocate principal wavefunction
+     if (parallel) then
+        !allocated in the transposed way such as 
+        !it can also be used as a work array for transposition
+        allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
+        call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
+     else
+        allocate(psi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+        call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
+     end if
+
+     if (inputPsiId == 1 ) then
+
+        if (iproc.eq.0) write(*,*) 'START reformatting psi from old psi'
+        call reformatmywaves(iproc, norb, norbp, nat, &
+             & hgrid_old, nvctr_c_old, nvctr_f_old, n1_old, n2_old, n3_old, rxyz_old, &
+             & nseg_c_old, nseg_f_old, keyg_old, keyv_old, psi_old, &
+             & hgrid, nvctr_c, nvctr_f, n1, n2, n3, rxyz, &
+             & nseg_c, nseg_f, keyg, keyv, psi)
+        eval=eval_old
+        i_all=-product(shape(keyg_old))*kind(keyg_old)
+        deallocate(keyg_old,stat=i_stat)
+        call memocc(i_stat,i_all,'keyg_old','cluster')
+        i_all=-product(shape(keyv_old))*kind(keyv_old)
+        deallocate(keyv_old,stat=i_stat)
+        call memocc(i_stat,i_all,'keyv_old','cluster')
+        i_all=-product(shape(psi_old))*kind(psi_old)
+        deallocate(psi_old,stat=i_stat)
+        call memocc(i_stat,i_all,'psi_old','cluster')
+        i_all=-product(shape(eval_old))*kind(eval_old)
+        deallocate(eval_old,stat=i_stat)
+        call memocc(i_stat,i_all,'eval_old','cluster')
+
+     else if (inputPsiId == 2) then
+        
+        call readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,&
+             nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
+        
+     end if
+
+     if (parallel) then
+        !allocate hpsi array (used also as transposed)
+        !allocated in the transposed way such as 
+        !it can also be used as the transposed hpsi
+        allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
+        call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','cluster')
+
+        !transpose the psi wavefunction
+        call timing(iproc,'Un-Transall   ','ON')
+        !here hpsi is used as a work array
+        call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,hpsi)
+        !allocate transposed principal wavefunction
+        allocate(psit(nvctrp,norbp*nproc),stat=i_stat)
+        call memocc(i_stat,product(shape(psit))*kind(psit),'psit','cluster')
+        call MPI_ALLTOALL(hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+             psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+        call timing(iproc,'Un-Transall   ','OF')
+        !end of transposition
+
+        call orthon_p(iproc,nproc,norb,norbp,nvctrp,psit)
+        !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
+
+        !retranspose the psit wavefunction into psi
+        call timing(iproc,'Un-Transall   ','ON')
+        !here hpsi is used as a work array
+        call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+             hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+        call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+        call timing(iproc,'Un-Transall   ','OF')
+        !end of retransposition
+     else
+        call orthon(norb,norbp,nvctrp,psi)
+        call checkortho(norb,norbp,nvctrp,psi)
+        !allocate hpsi array
+        allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+        call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','cluster')
+     endif
+
   end if
 
   !no need of using nzatom array
   i_all=-product(shape(nzatom))*kind(nzatom)
   deallocate(nzatom,stat=i_stat)
   call memocc(i_stat,i_all,'nzatom','cluster')
-
-
-!!$  !plot the initial wavefunctions before orthogonalization
-!!$  do i=2*iproc+1,2*iproc+2
-!!$     iounit=15+3*(i-1)
-!!$     print *,'iounit',iounit,'-',iounit+2
-!!$     call plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,  & 
-!!$          rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc))
-!!$  end do
-
-  if (parallel) then
-     !allocate hpsi array (used also as transposed)
-     !allocated in the transposed way such as 
-     !it can also be used as the transposed hpsi
-     allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','cluster')
-
-     !transpose the psi wavefunction
-     call timing(iproc,'Un-Transall   ','ON')
-     !here hpsi is used as a work array
-     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,hpsi)
-     !allocate transposed principal wavefunction
-     allocate(psit(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psit))*kind(psit),'psit','cluster')
-     call MPI_ALLTOALL(hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-          psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-Transall   ','OF')
-     !end of transposition
-
-     call orthon_p(iproc,nproc,norb,norbp,nvctrp,psit)
-     !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
-
-     !retranspose the psit wavefunction into psi
-     call timing(iproc,'Un-Transall   ','ON')
-     !here hpsi is used as a work array
-     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
-     call timing(iproc,'Un-Transall   ','OF')
-     !end of retransposition
-  else
-     call orthon(norb,norbp,nvctrp,psi)
-     call checkortho(norb,norbp,nvctrp,psi)
-     !allocate hpsi array
-     allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','cluster')
-  endif
 
 !!$  !plot the initial wavefunctions in the different orbitals
 !!$  do i=2*iproc+1,2*iproc+2
@@ -5779,8 +5789,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
      rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-     atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,ppsi,eval,accurex,&
-     datacode,nscatterarr,ngatherarr)
+     atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,&
+     ppsi,ppsit,eval,accurex,datacode,nscatterarr,ngatherarr)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors writes its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -5814,7 +5824,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   real(kind=8), dimension(*), intent(in) :: pkernel
   real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
   real(kind=8), dimension(norb), intent(out) :: eval
-  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: ppsi
+  real(kind=8), dimension(:,:), pointer :: ppsi,ppsit
+  !real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: ppsi
   !local variables
   real(kind=8), parameter :: eps_mach=1.d-12
   integer, parameter :: ngx=31
@@ -5825,7 +5836,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   integer, dimension(:), allocatable :: norbsc_arr,ng
   integer, dimension(:,:), allocatable :: nl
   real(kind=8), dimension(:), allocatable :: work_lp,pot,evale,occupe
-  real(kind=8), dimension(:,:), allocatable :: xp,occupat,hamovr,psi,hpsi,ppsit
+  real(kind=8), dimension(:,:), allocatable :: xp,occupat,hamovr,psi,hpsi
   real(kind=8), dimension(:,:,:), allocatable :: psiw,psiat
 
   allocate(xp(ngx,ntypes),stat=i_stat)
@@ -5848,8 +5859,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      write(*,'(1x,a)')&
           '------------------------------------------------------- Input Wavefunctions Creation'
   end if
-
-
 
   ! Read the inguess.dat file or generate the input guess via the inguess_generator
   call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,psppar,&
@@ -5954,6 +5963,11 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,nscatterarr(iproc,2),&
        rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum)
+
+  i_all=-product(shape(occupe))*kind(occupe)
+  deallocate(occupe,stat=i_stat)
+  call memocc(i_stat,i_all,'occupe','input_wf_diag')
+
 
   accurex=abs(eks-ekin_sum)
   if (iproc.eq.0) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
@@ -6085,6 +6099,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      deallocate(evale,stat=i_stat)
      call memocc(i_stat,i_all,'evale','input_wf_diag')
 
+     !allocate the transposed wavefunction
      allocate(ppsit(nvctrp,norbp*nproc),stat=i_stat)
      call memocc(i_stat,product(shape(ppsit))*kind(ppsit),'ppsit','input_wf_diag')
 
@@ -6124,9 +6139,13 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      call MPI_ALLTOALL(ppsit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
           psiw,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
 
-     i_all=-product(shape(ppsit))*kind(ppsit)
-     deallocate(ppsit,stat=i_stat)
-     call memocc(i_stat,i_all,'ppsit','input_wf_diag')
+!!$     i_all=-product(shape(ppsit))*kind(ppsit)
+!!$     deallocate(ppsit,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'ppsit','input_wf_diag')
+
+     !allocate the direct wavefunction
+     allocate(ppsi(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(ppsi))*kind(ppsi),'ppsi','input_wf_diag')
 
      call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psiw,ppsi)
 
@@ -6195,6 +6214,10 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
      write(*,'(1x,a)',advance='no')'Building orthogonal Input Wavefunctions...'
 
+     !allocate the wavefunction
+     allocate(ppsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+     call memocc(i_stat,product(shape(ppsi))*kind(ppsi),'ppsi','input_wf_diag')
+
      !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
      iorbst=1
      imatrst=1
@@ -6225,10 +6248,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   endif
 
   if (iproc.eq.0) write(*,'(1x,a)')'done.'
-
-  i_all=-product(shape(occupe))*kind(occupe)
-  deallocate(occupe,stat=i_stat)
-  call memocc(i_stat,i_all,'occupe','input_wf_diag')
 
   return
 END SUBROUTINE
