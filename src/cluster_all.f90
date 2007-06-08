@@ -779,10 +779,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
          '---------------------------------------------------------------------------- iter= ',&
          iter
         if (gnrm.le.gnrm_cv) then
-           write(*,'(1x,a,i3,3(1x,1pe18.11))') 'iproc,ehart,eexcu,vexcu',iproc,ehart,eexcu,vexcu
-           write(*,'(1x,a,3(1x,1pe18.11))') 'final ekin_sum,epot_sum,eproj_sum',ekin_sum,epot_sum,eproj_sum
-           write(*,'(1x,a,3(1x,1pe18.11))') 'final ehart,eexcu,vexcu',ehart,eexcu,vexcu
-           write(*,'(1x,a,i6,2x,1pe19.12,1x,1pe9.2)') 'FINAL iter,total energy,gnrm',iter,energy,gnrm
+!!$           write(*,'(1x,a,i3,3(1x,1pe18.11))') 'iproc,ehart,eexcu,vexcu',iproc,ehart,eexcu,vexcu
+!!$           write(*,'(1x,a,3(1x,1pe18.11))') 'final ekin_sum,epot_sum,eproj_sum',ekin_sum,epot_sum,eproj_sum
+!!$           write(*,'(1x,a,3(1x,1pe18.11))') 'final ehart,eexcu,vexcu',ehart,eexcu,vexcu
+!!$           write(*,'(1x,a,i6,2x,1pe19.12,1x,1pe9.2)') 'FINAL iter,total energy,gnrm',iter,energy,gnrm
            !write(61,*)hgrid,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
 
         endif
@@ -798,7 +798,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
              (2*n1+31)*(2*n2+31)*n3d,nscatterarr)
      end if
 
-!     ixc=12   ! PBE functional
+!     ixc=12  ! PBE functional
 !     ixc=1   ! LDA functional
      call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
           rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.)
@@ -817,6 +817,15 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      if (gnrm.le.gnrm_cv .or. iter.eq.itermax) then 
         if (iproc.eq.0) then 
            write(*,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
+           write(*,'(1x,a,i3,3(1x,1pe18.11))') &
+                'iproc,ehart,eexcu,vexcu',iproc,ehart,eexcu,vexcu
+           write(*,'(1x,a,3(1x,1pe18.11))') &
+                'final ekin_sum,epot_sum,eproj_sum',ekin_sum,epot_sum,eproj_sum
+           write(*,'(1x,a,3(1x,1pe18.11))') &
+                'final ehart,eexcu,vexcu',ehart,eexcu,vexcu
+           write(*,'(1x,a,i6,2x,1pe19.12,1x,1pe9.2)') &
+                'FINAL iter,total energy,gnrm',iter,energy,gnrm
+
         end if
         goto 1010
      endif
@@ -889,7 +898,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   i_all=-product(shape(hpsi))*kind(hpsi)
   deallocate(hpsi,stat=i_stat)
   call memocc(i_stat,i_all,'hpsi','cluster')
-  if (abs(evsum-energybs).gt.1.d-8) write(*,'(1x,a,2(1x,1pe20.13))')&
+  if (abs(evsum-energybs).gt.1.d-8 .and. iproc==0) write(*,'(1x,a,2(1x,1pe20.13))')&
        'Difference:evsum,energybs',evsum,energybs
 
 !!$  !plot the converged wavefunctions in the different orbitals
@@ -934,18 +943,30 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         nscatterarr(jproc,4)=0
      end do
 
+!!$     !use pot_ion array for building total rho
+!!$     call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+!!$          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,pot_ion,&
+!!$          (2*n1+31)*(2*n2+31)*n3p,nscatterarr)
+!!$
+!!$     !gather the result in the global array rho
+!!$     allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+!!$     call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
+!!$     call MPI_ALLGATHERV(pot_ion,(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION,&
+!!$          rho,ngatherarr(0,1),ngatherarr(0,2),&
+!!$          MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+
+     if (n3p>0) then
+        allocate(rho((2*n1+31)*(2*n2+31)*n3p),stat=i_stat)
+        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
+     else
+        allocate(rho(1),stat=i_stat)
+        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
+     end if
+
      !use pot_ion array for building total rho
      call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,pot_ion,&
+          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
           (2*n1+31)*(2*n2+31)*n3p,nscatterarr)
-
-     !gather the result in the global array rho
-     allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
-     call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
-     call MPI_ALLGATHERV(pot_ion,(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION,&
-          rho,(2*n1+31)*(2*n2+31)*nscatterarr(:,1),(2*n1+31)*(2*n2+31)*nscatterarr(:,3),&
-          MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-
 
   end if
 
@@ -970,17 +991,33 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
 
   if (datacode == 'D') then
-     !using pot_ion for building potential
-     call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
-          pot_ion,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.)
-     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_stat)
-     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
-     call MPI_ALLGATHERV(pot_ion,(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION,&
-          pot,(2*n1+31)*(2*n2+31)*nscatterarr(:,2),(2*n1+31)*(2*n2+31)*nscatterarr(:,3),&
-          MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+
      i_all=-product(shape(pot_ion))*kind(pot_ion)
      deallocate(pot_ion,stat=i_stat)
      call memocc(i_stat,i_all,'pot_ion','cluster')
+
+     if (n3p>0) then
+        allocate(pot((2*n1+31),(2*n2+31),n3p),stat=i_stat)
+        call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
+     else
+        allocate(pot(1,1,1),stat=i_stat)
+        call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
+     end if
+     call DCOPY((2*n1+31)*(2*n2+31)*n3p,rho,1,pot,1) 
+     call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
+          pot,pkernel,pot,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.)
+
+!!$     !using pot_ion for building potential
+!!$     call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
+!!$          pot_ion,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.)
+!!$     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_stat)
+!!$     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
+!!$     call MPI_ALLGATHERV(pot_ion,(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION,&
+!!$          pot,ngatherarr(0,1),ngatherarr(0,2),&
+!!$          MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+!!$     i_all=-product(shape(pot_ion))*kind(pot_ion)
+!!$     deallocate(pot_ion,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'pot_ion','cluster')
   else
      allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_stat)
      call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
@@ -1003,15 +1040,20 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   call memocc(i_stat,product(shape(gxyz))*kind(gxyz),'gxyz','cluster')
 
   call timing(iproc,'Forces        ','ON')
-! calculate local part of the forces gxyz
-   call local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
-                     n1,n2,n3,rho,pot,gxyz)
-   i_all=-product(shape(rho))*kind(rho)
-   deallocate(rho,stat=i_stat)
-   call memocc(i_stat,i_all,'rho','cluster')
-   i_all=-product(shape(pot))*kind(pot)
-   deallocate(pot,stat=i_stat)
-   call memocc(i_stat,i_all,'pot','cluster')
+  ! calculate local part of the forces gxyz
+  
+  call local_forces_new(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
+                     n1,n2,n3,n3p,i3s+i3xcsh,rho,pot,gxyz)
+
+!!$  ! calculate local part of the forces gxyz
+!!$  call local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
+!!$                     n1,n2,n3,rho,pot,gxyz)
+  i_all=-product(shape(rho))*kind(rho)
+  deallocate(rho,stat=i_stat)
+  call memocc(i_stat,i_all,'rho','cluster')
+  i_all=-product(shape(pot))*kind(pot)
+  deallocate(pot,stat=i_stat)
+  call memocc(i_stat,i_all,'pot','cluster')
 
 ! Add the nonlocal part of the forces to gxyz
 ! calculating derivatives of the projectors 
@@ -1047,8 +1089,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   !------------------------------------------------------------------------
   if (calc_tail) then
      call timing(iproc,'Tail          ','ON')
-!    Calculate kinetic energy correction due to boundary conditions
-
+!    Calculate energy correction due to finite size effects
      !    ---reformat potential
      allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_stat)
      call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
@@ -1086,9 +1127,20 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
      call memocc(i_stat,i_all,'pot','cluster')
+
+     if (iproc==0) then
+        open(61)
+        write(61,'(4(f9.3),1x,7(1pe19.11))',advance='no')&
+             hgrid,alat1,alat2,alat3,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
+     end if
     
      energybs=ekin_sum+epot_sum+eproj_sum
      energy=energybs-ehart+eexcu-vexcu+eion
+
+     if (iproc==0) then
+        write(61,'(1pe19.11)')energy
+        close(61)
+     end if
 
      if (iproc.eq.0) then
         write(*,'(1x,a,3(1x,1pe18.11))')&
@@ -1765,7 +1817,7 @@ do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
       sum_tail=sqrt(sum_tail)
       !write(*,'(1x,a,i3,3(1x,1pe13.6),1x,1pe9.2)') &
       !     'BIG: iorb,ekin,epot,eproj,gnrm',iorb,ekin,epot,eproj,tt
-      !values of the energyes before tail application
+      !values of the energies before tail application
       ekin1=ekin
       epot1=epot
       eproj1=eproj
