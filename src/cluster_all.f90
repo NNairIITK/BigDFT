@@ -146,7 +146,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
   ! pseudopotential parameters
   allocatable :: psppar(:,:,:),nelpsp(:),radii_cf(:,:),npspcode(:),nzatom(:),iasctype(:)
-
+  allocatable :: derproj(:)
   ! arrays for DIIS convergence accelerator
   real*8, pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
 
@@ -943,6 +943,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         nscatterarr(jproc,4)=0
      end do
 
+     !switch between the old and the new forces calculation
 !!$     !use pot_ion array for building total rho
 !!$     call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
 !!$          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,pot_ion,&
@@ -967,6 +968,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
           (2*n1+31)*(2*n2+31)*n3p,nscatterarr)
+     !end of switch
 
   end if
 
@@ -992,6 +994,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
   if (datacode == 'D') then
 
+     !switch between the old and the new forces calculation
      i_all=-product(shape(pot_ion))*kind(pot_ion)
      deallocate(pot_ion,stat=i_stat)
      call memocc(i_stat,i_all,'pot_ion','cluster')
@@ -1018,6 +1021,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 !!$     i_all=-product(shape(pot_ion))*kind(pot_ion)
 !!$     deallocate(pot_ion,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'pot_ion','cluster')
+     !end of switch
   else
      allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_stat)
      call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
@@ -1048,6 +1052,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 !!$  ! calculate local part of the forces gxyz
 !!$  call local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
 !!$                     n1,n2,n3,rho,pot,gxyz)
+
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)
   call memocc(i_stat,i_all,'rho','cluster')
@@ -1055,12 +1060,39 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   deallocate(pot,stat=i_stat)
   call memocc(i_stat,i_all,'pot','cluster')
 
-! Add the nonlocal part of the forces to gxyz
-! calculating derivatives of the projectors 
-  call nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
-     ntypes,nat,norb,norbp,istart,nprojel,nproj,&
-     iatype,psppar,npspcode,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
-     keyg,keyv,keyg_p,keyv_p,psi,rxyz,radii_cf,cpmult,fpmult,hgrid,gxyz)
+  allocate(derproj(3*nprojel),stat=i_stat)
+  call memocc(i_stat,product(shape(derproj))*kind(derproj),'derproj','cluster')
+
+  if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate projectors derivatives...'
+
+  call projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, & 
+     ntypes,nat,norb,nprojel,nproj,&
+     iatype,psppar,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
+     keyg,keyv,keyg_p,keyv_p,rxyz,radii_cf,cpmult,fpmult,hgrid,derproj)
+
+  if (iproc == 0) write(*,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
+
+  call nonlocal_forces_new(iproc,nproc,n1,n2,n3, & 
+       ntypes,nat,norb,norbp,nprojel,nproj,&
+       iatype,psppar,npspcode,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,derproj,  &
+       keyg,keyv,keyg_p,keyv_p,psi,rxyz,radii_cf,cpmult,fpmult,hgrid,gxyz)
+
+  if (iproc == 0) write(*,'(1x,a)')'done.'
+
+
+  if (.not. calc_tail) then
+     i_all=-product(shape(derproj))*kind(derproj)
+     deallocate(derproj,stat=i_stat)
+     call memocc(i_stat,i_all,'derproj','cluster')
+  end if
+  !traditional forces part, can be switched for comparison
+!!$
+!!$! Add the nonlocal part of the forces to gxyz
+!!$! calculating derivatives of the projectors 
+!!$  call nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
+!!$     ntypes,nat,norb,norbp,istart,nprojel,nproj,&
+!!$     iatype,psppar,npspcode,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
+!!$     keyg,keyv,keyg_p,keyv_p,psi,rxyz,radii_cf,cpmult,fpmult,hgrid,gxyz)
 
   i_all=-product(shape(nboxp_c))*kind(nboxp_c)
   deallocate(nboxp_c,stat=i_stat)
@@ -1122,11 +1154,15 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
      keyv,keyg,nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
      pot,hgrid,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
-     proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
+     proj,derproj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
 
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
      call memocc(i_stat,i_all,'pot','cluster')
+     i_all=-product(shape(derproj))*kind(derproj)
+     deallocate(derproj,stat=i_stat)
+     call memocc(i_stat,i_all,'derproj','cluster')
+
 
      if (iproc==0) then
         open(61)
@@ -1530,7 +1566,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
      nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
      keyv,keyg,nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
      pot,hgrid,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
-     proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
+     proj,derproj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
 implicit none
 include 'mpif.h'
 logical, intent(in) :: output_grid,parallel
@@ -1552,6 +1588,7 @@ real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
 real(kind=8), dimension(3,nat), intent(in) :: rxyz
 real(kind=8), dimension(2*n1+31,2*n2+31,2*n3+31), intent(in) :: pot
 real(kind=8), dimension(nprojel), intent(in) :: proj
+real(kind=8), dimension(nprojel,3), intent(in) :: derproj
 real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
 !local variables
 logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
@@ -1777,7 +1814,7 @@ do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
    npt=2
    tail_adding: do ipt=1,npt
-
+      
       !calculate gradient
       call applylocpotkinone(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nbuf, & 
            hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  & 

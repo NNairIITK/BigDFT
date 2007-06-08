@@ -303,7 +303,7 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
 end subroutine local_forces
 
 subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, & 
-     ntypes,nat,norb,norb_p,istart,nprojel,nproj,&
+     ntypes,nat,norb,nprojel,nproj,&
      iatype,psppar,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
      keyg,keyv,keyg_p,keyv_p,rxyz,radii_cf,cpmult,fpmult,hgrid,derproj)
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and ads them to the force array
@@ -311,7 +311,7 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, &
   
   implicit none
   !Arguments-------------
-  integer, intent(in) :: iproc,ntypes,nat,norb,norb_p,istart,nprojel,nproj
+  integer, intent(in) :: iproc,ntypes,nat,norb,nprojel,nproj
   integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f
   real(kind=8),intent(in) :: cpmult,fpmult,hgrid 
   integer, dimension(nat), intent(in) :: iatype
@@ -349,8 +349,6 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, &
   call memocc(i_stat,product(shape(lz))*kind(lz),'lz','nonlocal_forces')
   allocate(nterm_arr(3),stat=i_stat)
   call memocc(i_stat,product(shape(nterm_arr))*kind(nterm_arr),'nterm_arr','nonlocal_forces')
-
-  if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate projectors derivatives...'
 
   !create the derivative of the projectors
   istart_c=1
@@ -403,7 +401,7 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, &
                  iproj=iproj+1
 
                  istart_c=istart_f+7*mvctr_f
-                 if (istart_c.gt.istart) stop 'istart_c > istart'
+                 if (istart_c.gt.nprojel+1) stop 'projector derivatives: istart_c > nprojel+1'
                  
               end do
            end if
@@ -461,9 +459,10 @@ subroutine nonlocal_forces_new(iproc,nproc,n1,n2,n3, &
   real(kind=8), dimension(nprojel), intent(in) :: proj
   real(kind=8), dimension(nprojel,3), intent(in) :: derproj
   real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
-  real(kind=8), dimension(3,nat), intent(out) :: fsep
+  real(kind=8), dimension(3,nat), intent(inout) :: fsep
   !Local Variables--------------
   real(kind=8), dimension(:,:), allocatable :: fxyz_orb
+  real(kind=8), dimension(:,:,:), allocatable :: offdiagarr
   real(kind=8), dimension(:,:,:,:), allocatable :: scalprod
   integer :: istart_c,istart_f,iproj,iat,ityp,i,j,l,m
   integer :: istart_c_i,istart_f_i,istart_c_j,istart_f_j
@@ -472,20 +471,47 @@ subroutine nonlocal_forces_new(iproc,nproc,n1,n2,n3, &
   real(kind=8) :: fpi,factor,gau_a,scpr,scprp,tcprx,tcpry,tcprz,rx,ry,rz,fx,fy,fz
   real(kind=8) :: scpr_i,scpr_j,scprp_i,scprp_j,tcprx_i,tcprx_j,tcpry_i,tcpry_j,tcprz_i,tcprz_j
   real(kind=8) :: offdiagcoeff,hij
-  integer :: idir,iadd,iterm,nterm_max,i_all,i_stat
+  integer :: idir,i_all,i_stat
 
   allocate(scalprod(0:3,4,3,7),stat=i_stat)
   call memocc(i_stat,product(shape(scalprod))*kind(scalprod),'scalprod','nonlocal_forces')
-
-
-  if (iproc == 0) write(*,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
-
   allocate(fxyz_orb(3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(fxyz_orb))*kind(fxyz_orb),'fxyz_orb','nonlocal_forces')
-!  print *,'end of the projector part'
+  allocate(offdiagarr(2,2,3),stat=i_stat)
+  call memocc(i_stat,product(shape(offdiagarr))*kind(offdiagarr),'offdiagarr','nonlocal_forces')
 
+  !calculate the coefficients for the off-diagonal terms
+  do l=1,3
+     do i=1,2
+        do j=i+1,3
+           offdiagcoeff=0.d0
+           if (l==1) then
+              if (i==1) then
+                 if (j==2) offdiagcoeff=-0.5d0*sqrt(3.d0/5.d0)
+                 if (j==3) offdiagcoeff=0.5d0*sqrt(5.d0/21.d0)
+              else
+                 offdiagcoeff=-0.5d0*sqrt(100.d0/63.d0)
+              end if
+           else if (l==2) then
+              if (i==1) then
+                 if (j==2) offdiagcoeff=-0.5d0*sqrt(5.d0/7.d0)
+                 if (j==3) offdiagcoeff=1.d0/6.d0*sqrt(35.d0/11.d0)
+              else
+                 offdiagcoeff=-7.d0/3.d0*sqrt(1.d0/11.d0)
+              end if
+           else if (l==3) then
+              if (i==1) then
+                 if (j==2) offdiagcoeff=-0.5d0*sqrt(7.d0/9.d0)
+                 if (j==3) offdiagcoeff=0.5d0*sqrt(63.d0/143.d0)
+              else
+                 offdiagcoeff=-9.d0*sqrt(1.d0/143.d0)
+              end if
+           end if
+           offdiagarr(i,j-i,l)=offdiagcoeff
+        end do
+     end do
+  end do
 
-!  fsep(:,:)=0.d0
 
   ! loop over all my orbitals
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
@@ -512,6 +538,7 @@ subroutine nonlocal_forces_new(iproc,nproc,n1,n2,n3, &
               do m=1,2*l-1
                  iproj=iproj+1
                  istart_f=istart_c+mbvctr_c
+
                  call wpdot(  &
                       nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
                       keyg(1,1),keyg(1,nseg_c+1),&
@@ -546,42 +573,15 @@ subroutine nonlocal_forces_new(iproc,nproc,n1,n2,n3, &
               if (psppar(l,i,ityp).ne.0.d0) then 
                  loop_j: do j=i+1,3
                     if (psppar(l,j,ityp) .eq. 0.d0) exit loop_j
-                    !calculate the coefficients for the off-diagonal terms
-                    if (l==1) then
-                       if (i==1) then
-                          if (j==2) offdiagcoeff=-0.5d0*sqrt(3.d0/5.d0)
-                          if (j==3) offdiagcoeff=0.5d0*sqrt(5.d0/21.d0)
-                       else
-                          offdiagcoeff=-0.5d0*sqrt(100.d0/63.d0)
-                       end if
-                    else if (l==2) then
-                       if (i==1) then
-                          if (j==2) offdiagcoeff=-0.5d0*sqrt(5.d0/7.d0)
-                          if (j==3) offdiagcoeff=1.d0/6.d0*sqrt(35.d0/11.d0)
-                       else
-                          offdiagcoeff=-7.d0/3.d0*sqrt(1.d0/11.d0)
-                       end if
-                    else if (l==3) then
-                       if (i==1) then
-                          if (j==2) offdiagcoeff=-0.5d0*sqrt(7.d0/9.d0)
-                          if (j==3) offdiagcoeff=0.5d0*sqrt(63.d0/143.d0)
-                       else
-                          offdiagcoeff=-9.d0*sqrt(1.d0/143.d0)
-                       end if
-                    end if
-                    hij=offdiagcoeff*psppar(l,j,ityp)
-                    do m=1,2*l-1
 
+                    hij=offdiagarr(i,j-i,l)*psppar(l,j,ityp)
+                    do m=1,2*l-1
                        !F_t= 2.d0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
-                       fxyz_orb(1,iat)=fxyz_orb(1,iat)+&
-                            hij*(scalprod(0,l,i,m)*scalprod(1,l,j,m)+&
-                            scalprod(1,l,i,m)*scalprod(0,l,j,m))
-                       fxyz_orb(2,iat)=fxyz_orb(2,iat)+&
-                            hij*(scalprod(0,l,i,m)*scalprod(2,l,j,m)+&
-                            scalprod(2,l,i,m)*scalprod(0,l,j,m))
-                       fxyz_orb(3,iat)=fxyz_orb(3,iat)+&
-                            hij*(scalprod(0,l,i,m)*scalprod(3,l,j,m)+&
-                            scalprod(3,l,i,m)*scalprod(0,l,j,m))
+                       do idir=1,3
+                          fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
+                               hij*(scalprod(0,l,i,m)*scalprod(idir,l,j,m)+&
+                               scalprod(idir,l,i,m)*scalprod(0,l,j,m))
+                       end do
                     end do
                  end do loop_j
               end if
@@ -600,14 +600,16 @@ subroutine nonlocal_forces_new(iproc,nproc,n1,n2,n3, &
   if (istart_c-1.ne.nprojel) stop '2:applyprojectors'
 end do
 
-  if (iproc == 0) write(*,'(1x,a)')'done.'
-
   i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)
   deallocate(fxyz_orb,stat=i_stat)
   call memocc(i_stat,i_all,'fxyz_orb','nonlocal_forces')
   i_all=-product(shape(scalprod))*kind(scalprod)
   deallocate(scalprod,stat=i_stat)
   call memocc(i_stat,i_all,'scalprod','nonlocal_forces')
+  i_all=-product(shape(offdiagarr))*kind(offdiagarr)
+  deallocate(offdiagarr,stat=i_stat)
+  call memocc(i_stat,i_all,'offdiagarr','nonlocal_forces')
+
 end subroutine nonlocal_forces_new
 
 
