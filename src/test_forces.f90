@@ -38,7 +38,7 @@ program test_forces
   real(kind=8), pointer :: psi(:,:), eval(:)
   integer, pointer :: keyg(:,:), keyv(:)
   integer :: nseg_c, nseg_f, nvctr_c, nvctr_f
-  integer :: norb, norbp, n1, n2, n3,i_all,i_stat
+  integer :: norb, norbp, n1, n2, n3,i_all,i_stat,infocode
   real*8 :: hgrid
 
   !Body
@@ -100,7 +100,7 @@ program test_forces
   if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy0,fxyz, &
              & psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-             & 0, .false., .false., n1, n2, n3, hgrid, rxyz_old)
+             & 0, .false., .false., n1, n2, n3, hgrid, rxyz_old,infocode)
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
   call memocc(i_stat,i_all,'psi','test_forces')
@@ -144,7 +144,7 @@ program test_forces
      if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
      call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz, &
              & psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-             & 0, .false., .false., n1, n2, n3, hgrid, rxyz_old)
+             & 0, .false., .false., n1, n2, n3, hgrid, rxyz_old,infocode)
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)
      call memocc(i_stat,i_all,'psi','test_forces')

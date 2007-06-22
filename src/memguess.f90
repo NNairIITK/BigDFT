@@ -8,8 +8,8 @@ program memguess
   character(len=20) :: tatonam,units
   character(len=13) :: filename
   character(len=2) :: symbol
-  integer :: ierror,nat,ntypes,iat,ityp,nproc,n1,n2,n3,ixc,ncharge,itermax,i_stat,i_all,i,j
-  integer :: ncong,ncongt,idsx,nzatom,npspcode,iasctype,norb_vir,nelec,norb
+  integer :: ierror,nat,ntypes,iat,jat,ityp,nproc,n1,n2,n3,ixc,ncharge,itermax,i_stat,i_all,i,j
+  integer :: ncong,ncongt,idsx,nzatom,npspcode,iasctype,norb_vir,nelec,norb,nateq
   real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,elecfield
   real(kind=8) :: alat1,alat2,alat3,rcov,rprb,ehomo,radfine
   real(kind=8) :: cxmin,cxmax,cymin,cymax,czmin,czmax
@@ -95,6 +95,25 @@ program memguess
      write(*,'(1x,a,i0,a,a)') &
           'atoms of type ',ityp,' are ',trim(atomnames(ityp))
   enddo
+
+  !control atom positions
+  nateq=0
+  do iat=1,nat
+     do jat=iat+1,nat
+        if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
+             (rxyz(3,iat)-rxyz(3,jat))**2 ==0.d0) then
+           nateq=nateq+1
+           write(*,'(1x,a,2(i0,a,a6,a))')'ERROR: atoms ',iat,&
+                ' (',trim(atomnames(iatype(iat))),') and ',&
+                jat,' (',trim(atomnames(iatype(jat))),&
+                ') have the same positions'
+        end if
+     end do
+  end do
+  if (nateq /= 0) then
+     write(*,'(1x,a)')'Control your posinp file, cannot proceed'
+     stop
+  end if
 
   ! Read the input variables.
   open(unit=1,file='input.dat',status='old')

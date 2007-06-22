@@ -1,4 +1,4 @@
-subroutine local_forces_new(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
+subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
      n1,n2,n3,n3pi,i3s,rho,pot,floc)
 ! Calculates the local forces acting on the atoms belonging to iproc
   use libBigDFT
@@ -148,10 +148,10 @@ subroutine local_forces_new(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,
   forceleaked=forceleaked*prefactor*hgridh**3
   if (iproc.eq.0) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
 
-end subroutine local_forces_new
+end subroutine local_forces
 
 
-subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
+subroutine local_forces_old(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
      n1,n2,n3,rho,pot,floc)
 ! Calculates the local forces acting on the atoms belonging to iproc
   use libBigDFT
@@ -300,7 +300,7 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
   forceleaked=forceleaked*prefactor*hgridh**3
   if (iproc.eq.0) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
 
-end subroutine local_forces
+end subroutine local_forces_old
 
 subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, & 
      ntypes,nat,norb,nprojel,nproj,&
@@ -433,18 +433,16 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, &
 
 end subroutine projectors_derivatives
 
-subroutine nonlocal_forces_new(iproc,nproc,n1,n2,n3, & 
-     ntypes,nat,norb,norbp,nprojel,nproj,&
+subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
      iatype,psppar,npspcode,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,derproj,  &
-     keyg,keyv,keyg_p,keyv_p,psi,rxyz,radii_cf,cpmult,fpmult,hgrid,fsep)
+     keyg,keyv,keyg_p,keyv_p,psi,fsep)
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and adds them to the force array
   use libBigDFT
   
   implicit none
   !Arguments-------------
-  integer, intent(in) :: iproc,nproc,ntypes,nat,norb,norbp,nprojel,nproj
-  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f
-  real(kind=8),intent(in) :: cpmult,fpmult,hgrid 
+  integer, intent(in) :: iproc,ntypes,nat,norb,norbp,nprojel,nproj
+  integer, intent(in) :: nseg_c,nseg_f,nvctr_c,nvctr_f
   integer, dimension(nat), intent(in) :: iatype
   integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
@@ -453,8 +451,6 @@ subroutine nonlocal_forces_new(iproc,nproc,n1,n2,n3, &
   integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
   real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
   integer, dimension(ntypes), intent(in) :: npspcode
-  real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
   real(kind=8), dimension(norb), intent(in) :: occup
   real(kind=8), dimension(nprojel), intent(in) :: proj
   real(kind=8), dimension(nprojel,3), intent(in) :: derproj
@@ -610,11 +606,11 @@ end do
   deallocate(offdiagarr,stat=i_stat)
   call memocc(i_stat,i_all,'offdiagarr','nonlocal_forces')
 
-end subroutine nonlocal_forces_new
+end subroutine nonlocal_forces
 
 
 
-subroutine nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, & 
+subroutine nonlocal_forces_old(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, & 
      ntypes,nat,norb,norb_p,istart,nprojel,nproj,&
      iatype,psppar,npspcode,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
      keyg,keyv,keyg_p,keyv_p,psi,rxyz,radii_cf,cpmult,fpmult,hgrid,fsep)
@@ -918,7 +914,7 @@ end do
   i_all=-product(shape(scalprod))*kind(scalprod)
   deallocate(scalprod,stat=i_stat)
   call memocc(i_stat,i_all,'scalprod','nonlocal_forces')
-end subroutine nonlocal_forces
+end subroutine nonlocal_forces_old
 
 subroutine calc_coeff_derproj(l,i,m,nterm_max,rhol,nterm_arr,lxyz_arr,fac_arr)
   implicit none

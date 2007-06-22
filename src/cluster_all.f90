@@ -1,5 +1,5 @@
 module libBigDFT
-
+ 
   private
 
 !- High level methods.
@@ -85,14 +85,19 @@ contains
 
 subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energy, fxyz,  &
      & psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, inputPsiId, &
-     & output_grid, output_wf, n1, n2, n3, hgrid, rxyz_old)
+     & output_grid, output_wf, n1, n2, n3, hgrid, rxyz_old, infocode)
   ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
   ! inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
   !                  as definition of the previous system.
   ! inputPsiId = 2 : read waves from disk
   ! does an electronic structure calculation. Output is the total energy and the forces 
   ! psi, keyg, keyv and eval should be freed after use outside of the routine.
-
+  ! infocode -> encloses some information about the status of the run
+  !          =0 run succesfully succeded
+  !          =1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
+  !             forces may be meaningless   
+  !          =2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
+  !             the second iteration. Input wavefunctions need to be recalculated. Routine exits.
   use Poisson_Solver
 
   implicit real*8 (a-h,o-z)
@@ -178,6 +183,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      nvctr_f_old = nvctr_f
      nseg_c_old  = nseg_c
      nseg_f_old  = nseg_f
+     !add the number of distributed point for the compressed wavefunction
+     tt=dble(nvctr_c_old+7*nvctr_f_old)/dble(nproc)
+     nvctrp_old=int((1.d0-eps_mach*tt) + tt)
+
      !allocations
      allocate(keyg_old(2,nseg_c_old+nseg_f_old),stat=i_stat)
      call memocc(i_stat,product(shape(keyg_old))*kind(keyg_old),'keyg_old','cluster')
@@ -195,12 +204,22 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      enddo
      do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
         tt=0.d0
+        !the control between the different psi
+        !must be such that the allocation dimensions are respected
+        !(remember that the allocations are slightly enlarged to avoid
+        !allocation of work arrays for transposition in the parallel case)
         do j=1,nvctr_c_old+7*nvctr_f_old
-           psi_old(j,iorb-iproc*norbp)     = psi(j,iorb-iproc*norbp)
-           tt=tt+psi(j,iorb-iproc*norbp)**2
+           ind=j+(nvctr_c_old+7*nvctr_f_old)*(iorb-iproc*norbp-1)
+           i1=mod(ind,nvctrp_old)
+           i2=(ind-i1)/nvctrp_old+1
+           psi_old(j,iorb-iproc*norbp)     = psi(i1,i2)
+           tt=tt+psi(i1,i2)**2
         enddo
         tt=sqrt(tt)
-        if (abs(tt-1.d0).gt.1.d-8) stop 'wrong psi_old'
+        if (abs(tt-1.d0).gt.1.d-8) then
+           write(*,*)'wrong psi_old',iorb,tt
+           stop 
+        end if
         eval_old(iorb) = eval(iorb)
      enddo
      !deallocation
@@ -245,7 +264,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   read(1,*) rbuf
   read(1,*) ncongt
   close(1)
-
+ 
   if (iproc.eq.0) then 
      write(*,'(1x,a)')&
           '------------------------------------------------------------------- Input Parameters'
@@ -696,6 +715,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         deallocate(eval_old,stat=i_stat)
         call memocc(i_stat,i_all,'eval_old','cluster')
 
+        !initialise control value for gnrm in the case of a restart
+        gnrm_check=0.d0
+       
      else if (inputPsiId == 2) then
         
         call readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,&
@@ -827,6 +849,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
                 'FINAL iter,total energy,gnrm',iter,energy,gnrm
 
         end if
+        infocode=0
         goto 1010
      endif
 
@@ -835,6 +858,23 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
      eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
      psi,psit,hpsi,psidst,hpsidst)
+
+     if (inputPsiId == 1) then
+        if (iter == 1 .and. gnrm > 1.d0) then
+        !check the value of the first gnrm to see whether it is the case
+        !to recalculate input guess
+           gnrm_check=gnrm
+        else if (iter == 2 .and. gnrm_check > 1.d0) then
+           !control whether it is the case to exit the program
+           if (gnrm >= gnrm_check) then
+              write(*,'(1x,a)')&
+                   'The norm of the resisdue is growing, need to recalculate input wavefunctions'
+              infocode=2
+              return
+           end if
+        end if
+     end if
+
 
      tt=energybs-scprsum
      if (abs(tt).gt.1.d-8) then 
@@ -850,6 +890,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
 1000 continue
      write(*,'(1x,a)')'No convergence within the allowed number of minimization steps'
+     infocode=1
 1010 continue
   if (idsx.gt.0) then
        i_all=-product(shape(psidst))*kind(psidst)
@@ -943,19 +984,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         nscatterarr(jproc,4)=0
      end do
 
-     !switch between the old and the new forces calculation
-!!$     !use pot_ion array for building total rho
-!!$     call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-!!$          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,pot_ion,&
-!!$          (2*n1+31)*(2*n2+31)*n3p,nscatterarr)
-!!$
-!!$     !gather the result in the global array rho
-!!$     allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
-!!$     call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
-!!$     call MPI_ALLGATHERV(pot_ion,(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION,&
-!!$          rho,ngatherarr(0,1),ngatherarr(0,2),&
-!!$          MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-
      if (n3p>0) then
         allocate(rho((2*n1+31)*(2*n2+31)*n3p),stat=i_stat)
         call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
@@ -1010,18 +1038,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
           pot,pkernel,pot,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.)
 
-!!$     !using pot_ion for building potential
-!!$     call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
-!!$          pot_ion,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.)
-!!$     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_stat)
-!!$     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
-!!$     call MPI_ALLGATHERV(pot_ion,(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION,&
-!!$          pot,ngatherarr(0,1),ngatherarr(0,2),&
-!!$          MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-!!$     i_all=-product(shape(pot_ion))*kind(pot_ion)
-!!$     deallocate(pot_ion,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'pot_ion','cluster')
-     !end of switch
   else
      allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_stat)
      call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
@@ -1039,19 +1055,13 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   deallocate(pkernel,stat=i_stat)
   call memocc(i_stat,i_all,'pkernel','cluster')
 
-  !if (iproc.eq.0) write(*,*)'electronic potential calculated'
   allocate(gxyz(3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(gxyz))*kind(gxyz),'gxyz','cluster')
 
   call timing(iproc,'Forces        ','ON')
   ! calculate local part of the forces gxyz
-  
-  call local_forces_new(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
+  call local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
                      n1,n2,n3,n3p,i3s+i3xcsh,rho,pot,gxyz)
-
-!!$  ! calculate local part of the forces gxyz
-!!$  call local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
-!!$                     n1,n2,n3,rho,pot,gxyz)
 
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)
@@ -1065,6 +1075,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate projectors derivatives...'
 
+  !the calculation of the derivatives of the projectors has been decoupled
+  !from the one of nonlocal forces, in this way forces can be calculated
+  !diring the minimization if needed
   call projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, & 
      ntypes,nat,norb,nprojel,nproj,&
      iatype,psppar,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
@@ -1072,27 +1085,15 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
 
-  call nonlocal_forces_new(iproc,nproc,n1,n2,n3, & 
-       ntypes,nat,norb,norbp,nprojel,nproj,&
+  call nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
        iatype,psppar,npspcode,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,derproj,  &
-       keyg,keyv,keyg_p,keyv_p,psi,rxyz,radii_cf,cpmult,fpmult,hgrid,gxyz)
+       keyg,keyv,keyg_p,keyv_p,psi,gxyz)
 
   if (iproc == 0) write(*,'(1x,a)')'done.'
-
-
-  if (.not. calc_tail) then
-     i_all=-product(shape(derproj))*kind(derproj)
-     deallocate(derproj,stat=i_stat)
-     call memocc(i_stat,i_all,'derproj','cluster')
-  end if
-  !traditional forces part, can be switched for comparison
-!!$
-!!$! Add the nonlocal part of the forces to gxyz
-!!$! calculating derivatives of the projectors 
-!!$  call nonlocal_forces(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
-!!$     ntypes,nat,norb,norbp,istart,nprojel,nproj,&
-!!$     iatype,psppar,npspcode,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
-!!$     keyg,keyv,keyg_p,keyv_p,psi,rxyz,radii_cf,cpmult,fpmult,hgrid,gxyz)
+  
+  i_all=-product(shape(derproj))*kind(derproj)
+  deallocate(derproj,stat=i_stat)
+  call memocc(i_stat,i_all,'derproj','cluster')
 
   i_all=-product(shape(nboxp_c))*kind(nboxp_c)
   deallocate(nboxp_c,stat=i_stat)
@@ -1128,7 +1129,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
  
      if (datacode=='D') then
         call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh),(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION, &
-             pot,(2*n1+31)*(2*n2+31)*nscatterarr(:,2),(2*n1+31)*(2*n2+31)*nscatterarr(:,3), & 
+             pot,ngatherarr(0,1),ngatherarr(0,2), & 
              MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
         i_all=-product(shape(nscatterarr))*kind(nscatterarr)
         deallocate(nscatterarr,stat=i_stat)
@@ -1154,15 +1155,11 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
      keyv,keyg,nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
      pot,hgrid,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
-     proj,derproj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
+     proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
 
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
      call memocc(i_stat,i_all,'pot','cluster')
-     i_all=-product(shape(derproj))*kind(derproj)
-     deallocate(derproj,stat=i_stat)
-     call memocc(i_stat,i_all,'derproj','cluster')
-
 
      if (iproc==0) then
         open(61)
@@ -1566,7 +1563,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
      nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
      keyv,keyg,nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
      pot,hgrid,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
-     proj,derproj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
+     proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
 implicit none
 include 'mpif.h'
 logical, intent(in) :: output_grid,parallel
@@ -1588,7 +1585,6 @@ real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
 real(kind=8), dimension(3,nat), intent(in) :: rxyz
 real(kind=8), dimension(2*n1+31,2*n2+31,2*n3+31), intent(in) :: pot
 real(kind=8), dimension(nprojel), intent(in) :: proj
-real(kind=8), dimension(nprojel,3), intent(in) :: derproj
 real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
 !local variables
 logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
@@ -4106,7 +4102,7 @@ END SUBROUTINE
 
  endif
 
-       call timing(iproc,'GramS_comput  ','OF')
+       call timing(iproc,'Grams_comput  ','OF')
 
 end subroutine orthon
 
