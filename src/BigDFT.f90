@@ -15,6 +15,8 @@ program BigDFT
 ! atomic types
    integer, allocatable, dimension(:) :: iatype
    character*20 :: atomnames(100), units
+   character(len=6), dimension(:), allocatable :: frzsymb
+   logical, dimension(:), allocatable :: lfrztyp
    real*8, pointer :: psi(:,:), eval(:)
    integer, pointer :: keyv(:), keyg(:,:)
 !$      interface
@@ -97,9 +99,33 @@ program BigDFT
    ! ngeostep Number of steps of geometry optimisation (default 500)
    ! ampl     Amplitude for random displacement away from input file geometry (usually equilibrium geom.)
    ! betax    Geometry optimisation
-   read(1,*) ngeostep, ampl, betax
+   read(1,'(a80)')line
    close(unit=1)
 
+   allocate(lfrztyp(ntypes),stat=i_stat)
+   call memocc(i_stat,product(shape(lfrztyp))*kind(lfrztyp),'lfrztyp','BigDFT')
+
+   print *,line
+   read(line,*,iostat=ierror)ngeostep,ampl,betax,nfrztyp
+   if (ierror /= 0) then
+      read(line,*)ngeostep,ampl,betax
+   else
+      allocate(frzsymb(nfrztyp),stat=i_stat)
+      call memocc(i_stat,product(shape(frzsymb))*kind(frzsymb),'frzsymb','BigDFT')
+      read(line,*,iostat=ierror)ngeostep,ampl,betax,nfrztyp,(frzsymb(i),i=1,nfrztyp)
+      lfrztyp(:)=.false.
+      do ityp=1,nfrztyp
+         seek_frozen: do jtyp=1,ntypes
+            if (trim(frzsymb(ityp))==trim(atomnames(jtyp))) then
+               lfrztyp(jtyp)=.true.
+               exit seek_frozen
+            end if
+         end do seek_frozen
+      end do
+      i_all=-product(shape(frzsymb))*kind(frzsymb)
+      deallocate(frzsymb,stat=i_stat)
+      call memocc(i_stat,i_all,'frzsymb','BigDFT')
+   end if
    !ampl=0.d0!2.d-2  
    if (iproc.eq.0) then
       write(*,'(1x,a,i0)') 'Number of geometry steps ',ngeostep
@@ -107,18 +133,20 @@ program BigDFT
       write(*,'(1x,a,1pe10.2)') 'Steepest descent step',betax
    end if
    do iat=1,nat
-     call random_number(tt)
-     rxyz(1,iat)=rxyz(1,iat)+ampl*tt
-     call random_number(tt)
-     rxyz(2,iat)=rxyz(2,iat)+ampl*tt
-     call random_number(tt)
-     rxyz(3,iat)=rxyz(3,iat)+ampl*tt
+      if (.not. lfrztyp(iatype(iat))) then
+         call random_number(tt)
+         rxyz(1,iat)=rxyz(1,iat)+ampl*tt
+         call random_number(tt)
+         rxyz(2,iat)=rxyz(2,iat)+ampl*tt
+         call random_number(tt)
+         rxyz(3,iat)=rxyz(3,iat)+ampl*tt
+      end if
    enddo
 
    output_grid=.false. 
    inputPsiId=0
    output_wf=.false. 
-   call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz, &
+   call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz, &
         psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
         inputPsiId, output_grid, output_wf, n1, n2, n3, hgrid, rxyz_old,infocode)
    do iat=1,nat
@@ -139,7 +167,7 @@ program BigDFT
       energyold=1.d100
       fluct=-1.d100
       flucto=-1.d100
-      call conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,etot,fxyz, &
+      call conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,rxyz,etot,fxyz, &
            psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
            n1, n2, n3, hgrid, rxyz_old,betax,ncount_cluster,fluct,flucto,fluctoo)
    end if
@@ -165,6 +193,9 @@ program BigDFT
 
 
    !deallocations
+   i_all=-product(shape(lfrztyp))*kind(lfrztyp)
+   deallocate(lfrztyp,stat=i_stat)
+   call memocc(i_stat,i_all,'lfrztyp','BigDFT')
    i_all=-product(shape(psi))*kind(psi)
    deallocate(psi,stat=i_stat)
    call memocc(i_stat,i_all,'psi','BigDFT')
@@ -198,13 +229,14 @@ program BigDFT
  contains
 
 
-   subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,gg, &
+   subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg, &
         psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
         n1, n2, n3, hgrid, rxyz_old,betax,ncount_cluster,fluct,flucto,fluctoo)
      use libBigDFT
      implicit real*8 (a-h,o-z)
      logical :: parallel
      integer :: iatype(nat)
+     logical :: lfrztyp(ntypes)
      character*20 :: atomnames(100)
      real*8, pointer :: psi(:,:), eval(:)
      integer, pointer :: keyv(:), keyg(:,:)
@@ -214,7 +246,7 @@ program BigDFT
      anoise=1.d-4
      
      if (betax.le.0.d0) then
-        call detbetax(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos, &
+        call detbetax(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos, &
              psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
              n1, n2, n3, hgrid, rxyz_old,betax,ncount_cluster)
      endif
@@ -223,7 +255,7 @@ program BigDFT
      avnum=0.d0
      nfail=0
      !        call steepdes(nat,fnrmtol,betax,alat,wpos,gg,etot,count_sd)
-     call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,gg, &
+     call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg, &
           psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
           n1, n2, n3, hgrid, rxyz_old,betax,ncount_cluster,fluct,flucto,fluctoo,fnrm)
      if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0) then
@@ -247,19 +279,25 @@ program BigDFT
 !C line minimize along hh ----
 
      do iat=1,nat
-        tpos(1,iat)=wpos(1,iat)+beta0*hh(1,iat)
-        tpos(2,iat)=wpos(2,iat)+beta0*hh(2,iat)
-        tpos(3,iat)=wpos(3,iat)+beta0*hh(3,iat)
+        if (lfrztyp(iatype(iat))) then
+           tpos(1,iat)=wpos(1,iat)
+           tpos(2,iat)=wpos(2,iat)
+           tpos(3,iat)=wpos(3,iat)
+        else
+           tpos(1,iat)=wpos(1,iat)+beta0*hh(1,iat)
+           tpos(2,iat)=wpos(2,iat)+beta0*hh(2,iat)
+           tpos(3,iat)=wpos(3,iat)+beta0*hh(3,iat)
+        end if
      end do
      !        call energyandforces(nat,alat,tpos,gp,tetot,count_cg)
-     call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,tpos,tetot,gp, &
+     call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,tpos,tetot,gp, &
           psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
           1, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-     if (infocode==2) then
-        call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,tpos,tetot,gp, &
-             psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-             0, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-     end if
+!!$     if (infocode==2) then
+!!$        call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,tpos,tetot,gp, &
+!!$             psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
+!!$             0, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
+!!$     end if
      do iat=1,nat
         rxyz_old(1,iat) = tpos(1,iat) 
         rxyz_old(2,iat) = tpos(2,iat)
@@ -285,9 +323,15 @@ program BigDFT
         tpos(1,iat)=wpos(1,iat)
         tpos(2,iat)=wpos(2,iat)
         tpos(3,iat)=wpos(3,iat)
-        wpos(1,iat)=wpos(1,iat)+beta*hh(1,iat)
-        wpos(2,iat)=wpos(2,iat)+beta*hh(2,iat)
-        wpos(3,iat)=wpos(3,iat)+beta*hh(3,iat)
+        if (lfrztyp(iatype(iat))) then
+           wpos(1,iat)=wpos(1,iat)
+           wpos(2,iat)=wpos(2,iat)
+           wpos(3,iat)=wpos(3,iat)
+        else
+           wpos(1,iat)=wpos(1,iat)+beta*hh(1,iat)
+           wpos(2,iat)=wpos(2,iat)+beta*hh(2,iat)
+           wpos(3,iat)=wpos(3,iat)+beta*hh(3,iat)
+        end if
      end do
      avbeta=avbeta+beta/betax
      avnum=avnum+1.d0
@@ -300,14 +344,14 @@ program BigDFT
      end do
 
      !        call energyandforces(nat,alat,wpos,gg,etot,count_cg)
-     call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,gg, &
+     call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,gg, &
           psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
           1, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-     if (infocode==2) then
-        call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,gg, &
-             psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-             0, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-     end if
+!!$     if (infocode==2) then
+!!$        call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,gg, &
+!!$             psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
+!!$             0, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
+!!$     end if
 
      do iat=1,nat
         rxyz_old(1,iat) = wpos(1,iat) 
@@ -330,7 +374,7 @@ program BigDFT
            wpos(3,iat)=tpos(3,iat)
         end do
         !        call steepdes(nat,fnrmtol,betax,alat,wpos,gg,etot,count_sd)
-        call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,gg, &
+        call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg, &
              psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
              n1, n2, n3, hgrid, rxyz_old,betax,ncount_cluster,fluct,flucto,fluctoo,fnrm)
         goto 12345
@@ -365,7 +409,7 @@ program BigDFT
            wpos(3,iat)=tpos(3,iat)
         end do
         !        call steepdes(nat,fnrmtol,betax,alat,wpos,gg,etot,count_sd)
-        call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,gg, &
+        call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg, &
              psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
              n1, n2, n3, hgrid, rxyz_old,betax,ncount_cluster,fluct,flucto,fluctoo,fnrm)
         nfail=nfail+1
@@ -387,13 +431,14 @@ program BigDFT
      deallocate(tpos,gp,hh)
    end subroutine conjgrad
 
-   subroutine steepdes(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,ff, &
+   subroutine steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,ff, &
         psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
         n1, n2, n3, hgrid, rxyz_old,betax,ncount_cluster,fluct,flucto,fluctoo,fnrm)
      use libBigDFT
      implicit real*8 (a-h,o-z)
      logical :: parallel
      integer :: iatype(nat)
+     logical :: lfrztyp(ntypes)
      character*20 :: atomnames(100)
      real*8, pointer :: psi(:,:), eval(:)
      integer, pointer :: keyv(:), keyg(:,:)
@@ -424,14 +469,14 @@ program BigDFT
 1000 itsd=itsd+1
      itot=itot+1
      !        call energyandforces(nat,alat,wpos,ff,etot,count_sd)
-     call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,ff, &
+     call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,ff, &
           psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
           1, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-     if (infocode == 2) then
-        call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,ff, &
-             psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-             0, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-     end if
+!!$     if (infocode == 2) then
+!!$        call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,ff, &
+!!$             psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
+!!$             0, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
+!!$     end if
         
      ncount_cluster=ncount_cluster+1
      do iat=1,nat
@@ -503,33 +548,40 @@ program BigDFT
         fnrmitm2=fnrmitm1
         fnrmitm1=fnrm
         if (care) beta=min(1.02d0*beta,betax)
-        do 10,iat=1,nat
-        tpos(1,iat)=wpos(1,iat)
-        tpos(2,iat)=wpos(2,iat)
-        tpos(3,iat)=wpos(3,iat)
-        wpos(1,iat)=wpos(1,iat)+beta*ff(1,iat)
-        wpos(2,iat)=wpos(2,iat)+beta*ff(2,iat)
-10      wpos(3,iat)=wpos(3,iat)+beta*ff(3,iat)
-
+        do iat=1,nat
+           tpos(1,iat)=wpos(1,iat)
+           tpos(2,iat)=wpos(2,iat)
+           tpos(3,iat)=wpos(3,iat)
+           if (lfrztyp(iatype(iat))) then
+              wpos(1,iat)=wpos(1,iat)
+              wpos(2,iat)=wpos(2,iat)
+              wpos(3,iat)=wpos(3,iat)
+           else
+              wpos(1,iat)=wpos(1,iat)+beta*ff(1,iat)
+              wpos(2,iat)=wpos(2,iat)+beta*ff(2,iat)
+              wpos(3,iat)=wpos(3,iat)+beta*ff(3,iat)
+           end if
+        end do
         goto 1000
 2000        continue
         write(16,*) 'SD FINISHED',iproc
 
         deallocate(tpos)
-        end subroutine steepdes
+      end subroutine steepdes
 
 
-      subroutine detbetax(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,pos, &
+      subroutine detbetax(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,pos, &
                    psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
                    n1, n2, n3, hgrid, rxyz_old,betax,ncount_cluster)
 ! determines stepsize betax
-   use libBigDFT
+        use libBigDFT
         implicit real*8 (a-h,o-z)
-   logical :: parallel
-   integer :: iatype(nat)
-   character*20 :: atomnames(100)
-   real*8, pointer :: psi(:,:), eval(:)
-   integer, pointer :: keyv(:), keyg(:,:)
+        logical :: parallel
+        integer :: iatype(nat)
+        logical :: lfrztyp(ntypes)
+        character*20 :: atomnames(100)
+        real*8, pointer :: psi(:,:), eval(:)
+        integer, pointer :: keyv(:), keyg(:,:)
         dimension pos(3,nat),alat(3),rxyz_old(3,nat)
         real*8, allocatable, dimension(:,:) :: tpos,ff,gg
         allocate(tpos(3,nat),ff(3,nat),gg(3,nat))
@@ -541,97 +593,154 @@ program BigDFT
         nsuc=0
 100     continue
 !        call energyandforces(nat,alat,pos,ff,etotm1,count)
-      call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,pos,etotm1,ff, &
-                   psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-                   1, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-      if (infocode == 2) then
-      call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,pos,etotm1,ff, &
-                   psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-                   0, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-      end if
-      ncount_cluster=ncount_cluster+1
-     do iat=1,nat
-     rxyz_old(1,iat) = pos(1,iat) ; rxyz_old(2,iat) = pos(2,iat) ; rxyz_old(3,iat) = pos(3,iat)
-     enddo
-          sum=0.d0
-          do iat=1,nat
-          tpos(1,iat)=pos(1,iat)
-          tpos(2,iat)=pos(2,iat)
-          tpos(3,iat)=pos(3,iat)
-          t1=beta0*ff(1,iat)
-          t2=beta0*ff(2,iat)
-          t3=beta0*ff(3,iat)
-          sum=sum+t1**2+t2**2+t3**2
-          pos(1,iat)=pos(1,iat)+t1
-          pos(2,iat)=pos(2,iat)+t2
-          pos(3,iat)=pos(3,iat)+t3
-          enddo
-!        call energyandforces(nat,alat,pos,gg,etot0,count)
-      call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,pos,etot0,gg, &
-                   psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-                   1, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-      if (infocode == 2) then
-         call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,pos,etot0,gg, &
-              psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-              0, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-      end if
-      ncount_cluster=ncount_cluster+1
-     do iat=1,nat
-     rxyz_old(1,iat) = pos(1,iat) ; rxyz_old(2,iat) = pos(2,iat) ; rxyz_old(3,iat) = pos(3,iat)
-     enddo
-          if (etot0.gt.etotm1) then
-            do iat=1,nat
-            pos(1,iat)=tpos(1,iat)
-            pos(2,iat)=tpos(2,iat)
-            pos(3,iat)=tpos(3,iat)
-            enddo
-            beta0=.5d0*beta0
-            write(16,*) 'beta0 reset',beta0
-          goto 100
-          endif
-          do iat=1,nat
-          tpos(1,iat)=pos(1,iat)+beta0*ff(1,iat)
-          tpos(2,iat)=pos(2,iat)+beta0*ff(2,iat)
-          tpos(3,iat)=pos(3,iat)+beta0*ff(3,iat)
-          enddo
-!        call energyandforces(nat,alat,tpos,gg,etotp1,count)
-      call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,tpos,etotp1,gg, &
-                   psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-                   1, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-      if (infocode==2) then
-         call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,tpos,etotp1,gg, &
-              psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-              0, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-      end if
-      ncount_cluster=ncount_cluster+1
-     do iat=1,nat
-     rxyz_old(1,iat) = tpos(1,iat) ; rxyz_old(2,iat) = tpos(2,iat) ; rxyz_old(3,iat) = tpos(3,iat)
-     enddo
+        call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,pos,etotm1,ff, &
+             psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
+             1, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
+!!$        if (infocode == 2) then
+!!$           call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,pos,etotm1,ff, &
+!!$                psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
+!!$                0, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
+!!$        end if
+        ncount_cluster=ncount_cluster+1
+        do iat=1,nat
+           rxyz_old(1,iat) = pos(1,iat) ; rxyz_old(2,iat) = pos(2,iat) ; rxyz_old(3,iat) = pos(3,iat)
+        enddo
+        sum=0.d0
+        do iat=1,nat
+           tpos(1,iat)=pos(1,iat)
+           tpos(2,iat)=pos(2,iat)
+           tpos(3,iat)=pos(3,iat)
+           t1=beta0*ff(1,iat)
+           t2=beta0*ff(2,iat)
+           t3=beta0*ff(3,iat)
+           sum=sum+t1**2+t2**2+t3**2
+           if (.not. lfrztyp(iatype(iat))) then
+              pos(1,iat)=pos(1,iat)+t1
+              pos(2,iat)=pos(2,iat)+t2
+              pos(3,iat)=pos(3,iat)+t3
+           end if
+        enddo
+        !        call energyandforces(nat,alat,pos,gg,etot0,count)
+        call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,pos,etot0,gg, &
+             psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
+             1, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
+!!$        if (infocode == 2) then
+!!$           call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,pos,etot0,gg, &
+!!$                psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
+!!$                0, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
+!!$        end if
+        ncount_cluster=ncount_cluster+1
+        do iat=1,nat
+           rxyz_old(1,iat) = pos(1,iat) ; rxyz_old(2,iat) = pos(2,iat) ; rxyz_old(3,iat) = pos(3,iat)
+        enddo
+        if (etot0.gt.etotm1) then
+           do iat=1,nat
+              pos(1,iat)=tpos(1,iat)
+              pos(2,iat)=tpos(2,iat)
+              pos(3,iat)=tpos(3,iat)
+           enddo
+           beta0=.5d0*beta0
+           write(16,*) 'beta0 reset',beta0
+           goto 100
+        endif
+        do iat=1,nat
+           if (lfrztyp(iatype(iat))) then
+              tpos(1,iat)=pos(1,iat)
+              tpos(2,iat)=pos(2,iat)
+              tpos(3,iat)=pos(3,iat)
+           else
+              tpos(1,iat)=pos(1,iat)+beta0*ff(1,iat)
+              tpos(2,iat)=pos(2,iat)+beta0*ff(2,iat)
+              tpos(3,iat)=pos(3,iat)+beta0*ff(3,iat)
+           end if
+        enddo
+        !        call energyandforces(nat,alat,tpos,gg,etotp1,count)
+        call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,tpos,etotp1,gg, &
+             psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
+             1, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
+!!$        if (infocode==2) then
+!!$           call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,tpos,etotp1,gg, &
+!!$                psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
+!!$                0, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
+!!$        end if
+        ncount_cluster=ncount_cluster+1
+        do iat=1,nat
+           rxyz_old(1,iat) = tpos(1,iat) ; rxyz_old(2,iat) = tpos(2,iat) ; rxyz_old(3,iat) = tpos(3,iat)
+        enddo
         write(16,'(a,3(1x,e21.14))') 'etotm1,etot0,etotp1',etotm1,etot0,etotp1
         der2=(etotp1+etotm1-2.d0*etot0)/sum
         tt=.25d0/der2
         beta0=.125d0/der2
         write(16,*) 'der2,tt=',der2,tt
         if (der2.gt.0) then
-          nsuc=nsuc+1
-          beta=min(beta,.5d0/der2)
+           nsuc=nsuc+1
+           beta=min(beta,.5d0/der2)
         endif
-          do iat=1,nat
-          pos(1,iat)=pos(1,iat)+tt*ff(1,iat)
-          pos(2,iat)=pos(2,iat)+tt*ff(2,iat)
-          pos(3,iat)=pos(3,iat)+tt*ff(3,iat)
-          enddo
+        do iat=1,nat
+           if (lfrztyp(iatype(iat))) then
+              pos(1,iat)=pos(1,iat)
+              pos(2,iat)=pos(2,iat)
+              pos(3,iat)=pos(3,iat)
+           else
+              pos(1,iat)=pos(1,iat)+tt*ff(1,iat)
+              pos(2,iat)=pos(2,iat)+tt*ff(2,iat)
+              pos(3,iat)=pos(3,iat)+tt*ff(3,iat)
+           end if
+        enddo
         if (count.gt.100.d0) then
            write(16,*) 'CANNOT DETERMINE betax '
            stop
         endif
-       if (nsuc.lt.3) goto 100
-
-       betax=beta
-       write(16,*) 'betax=',betax
-
+        if (nsuc.lt.3) goto 100
+        
+        betax=beta
+        write(16,*) 'betax=',betax
+        
         deallocate(tpos,ff,gg)
-        end subroutine
+      end subroutine detbetax
+      
+      subroutine call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+           psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,inputPsiId,&
+           output_grid,output_wf,n1,n2,n3,hgrid,rxyz_old,infocode)
+        use libBigDFT
+        implicit none
+        logical, intent(in) :: parallel,output_grid,output_wf
+        integer, intent(in) :: iproc,nproc,nat,ntypes,norbp,norb
+        integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f
+        integer, intent(inout) :: infocode,n1,n2,n3
+        integer :: inputPsiId
+        real(kind=8), intent(inout) :: hgrid
+        real(kind=8), intent(out) :: energy
+        character(len=20), dimension(100), intent(in) :: atomnames
+        integer, dimension(nat), intent(in) :: iatype
+        real(kind=8), dimension(3,nat), intent(in) :: rxyz_old
+        real(kind=8), dimension(3,nat), intent(inout) :: rxyz
+        real(kind=8), dimension(3,nat), intent(out) :: fxyz
+        integer, dimension(:), pointer :: keyv
+        integer, dimension(:,:), pointer :: keyg
+        real(kind=8), dimension(:), pointer :: eval
+        real(kind=8), dimension(:,:), pointer :: psi
+
+        loop_cluster: do
+
+           call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+                psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,inputPsiId,&
+                output_grid,output_wf,n1,n2,n3,hgrid,rxyz_old,infocode)
+
+           if (inputPsiId==1 .and. infocode==2) then
+              inputPsiId=0
+           else if (inputPsiId == 0 .and. infocode==3) then
+              write(*,'(1x,a)')'Convergence error, cannot proceed.'
+              write(*,'(1x,a)')' writing positions in file posout_999.ascii then exiting'
+              if (iproc.eq.0) call wtposout(999,nat,rxyz,atomnames,iatype)
+              stop
+           else
+              exit loop_cluster
+           end if
+
+        end do loop_cluster
+        
+      end subroutine call_cluster
 
 
       end program BigDFT
@@ -657,5 +766,6 @@ subroutine wtposout(igeostep,nat,rxyz,atomnames,iatype)
    do iat=1,nat
       write(9,'(3(1x,e21.14),2x,a20)') (rxyz(j,iat),j=1,3),atomnames(iatype(iat))
    enddo
+   close(unit=9)
 
 end subroutine wtposout

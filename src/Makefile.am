@@ -77,6 +77,8 @@ libbigdft_a_SOURCES = \
 	prec_diag.f90\
 	forces.f90 \
 	timing.f90 \
+	wavelib.f90 \
+	gautowav.f90 \
 	razero.f90
 
 cluster_SOURCES = BigDFT.f90
