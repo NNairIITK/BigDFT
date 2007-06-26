@@ -16,32 +16,36 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
   logical :: myorbital
   character(len=5) :: string,symbol
   integer, parameter :: nterm_max=3
-  integer :: ngx,nbx,nbastot,npgf,nst,nend,ng,nshell,lshell,nco,isbas,icbas
-  integer :: iorb,iat,ityp,ipsp,i,l,m,nterm,i_all,i_stat,ibas,ig,iset,jbas,iterm,ishell
+  integer :: ngx,nbx,nbastot,npgf,nst,nend,ng,lshell,nco,isbas,icbas,nso,nbas,num,mmax
+  integer :: iorb,iat,ityp,ipsp,i,l,m,nterm,i_all,i_stat,ibas,ig,iset,jbas,iterm,ishell,lmax
   real(kind=8) :: rx,ry,rz,anorm,coeff,const0,const1,exponent,coefficient
-  integer, dimension(:), allocatable :: lx,ly,lz,nbasis
+  integer, dimension(:), allocatable :: lx,ly,lz,nshell
   integer, dimension(:,:), allocatable :: nam,ndoc
   real(kind=8), dimension(:), allocatable :: fac_arr,psiatn,xp,tpsi,ctmp
-  real(kind=8), dimension(:,:), allocatable :: cimu
   real(kind=8), dimension(:,:,:), allocatable :: contcoeff,expo
+  real(kind=8), dimension(:,:,:,:), allocatable :: cimu
   !read the basis set informations
 
   ngx=0
   nbx=0
+  lmax=0
   nbastot=0
 
-  allocate(nbasis(ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(nbasis))*kind(nbasis),'nbasis','gautowav')
+  allocate(nshell(ntypes),stat=i_stat)
+  call memocc(i_stat,product(shape(nshell))*kind(nshell),'nshell','gautowav')
 
   open(unit=35,file='def_gaubasis.dat',action='read')
   !insert a loop for counting the maximal numbers in view of arrays allocation
   do ityp=1,ntypes
   !read the number of basis functions for this atom type
-     read(35,*)nbasis(ityp)
+     ishell=0
+     read(35,*)nbas
      isbas=0
      icbas=0
      loop_basis: do
-        read(35,*)npgf,nshell,lshell
+        read(35,*)npgf,num,lshell
+        ishell=ishell+1
+        lmax=max(lmax,lshell)
         ngx=max(ngx,npgf)
         !evaluate the number of cartesian terms as a function of the shell
         if (lshell == 0) then
@@ -61,11 +65,13 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
         end do
         !number of the basis for spherical orbitals
         isbas=isbas+2*lshell+1
-        if (icbas == nbasis(ityp)) exit loop_basis
+        if (icbas == nbas) exit loop_basis
      end do loop_basis
-     nbastot=nbastot+isbas
-     nbx=max(nbx,isbas)
+     nshell(ityp)=ishell
+     nbx=max(nbx,ishell)
   end do
+  mmax=2*lmax+1
+  print *, 'number of shells',nshell(:),'nbx',nbx,'lmax',lmax,'ngx',ngx
 
   !here allocate arrays
   allocate(nam(nbx,ntypes),stat=i_stat)
@@ -76,20 +82,18 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
   call memocc(i_stat,product(shape(contcoeff))*kind(contcoeff),'contcoeff','gautowav')
   allocate(expo(ngx,nbx,ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(expo))*kind(expo),'expo','gautowav')
-  allocate(cimu(ngx,nbastot),stat=i_stat)
-  call memocc(i_stat,product(shape(cimu))*kind(cimu),'cimu','gautowav')
 
   rewind(35)
   ibas=0
   do ityp=1,ntypes
   !read the number of basis functions for this atom type
-     read(35,*)nbasis(ityp)
+     read(35,*)nbas
      isbas=0
      icbas=0
-     loop_basis2: do
-        read(35,*)npgf,nshell,lshell
-        ndoc(ibas,ityp)=npgf
-        nam(ibas,ityp)=lshell
+     do ishell=1,nshell(ityp)
+        read(35,*)npgf,num,lshell
+        ndoc(ishell,ityp)=npgf
+        nam(ishell,ityp)=lshell
         if (lshell == 0) then
            nco=1
         else if (lshell == 1) then
@@ -101,51 +105,59 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
         end if
         !use the first term of the cartesian orbitals to 
         !control whether the basis definition does not depend on m
-        isbas=isbas+1
-        read(35,*)anorm,iset,ishell,symbol,expo(1,isbas,ityp),coefficient
-        contcoeff(1,isbas,ityp)=coefficient/anorm
+        read(35,*)anorm,iset,num,symbol,expo(1,ishell,ityp),coefficient
+        contcoeff(1,ishell,ityp)=coefficient/anorm
         do ig=2,npgf
-           read(35,*)expo(ig,isbas,ityp),coefficient
-           contcoeff(ig,isbas,ityp)=coefficient/anorm
+           read(35,*)expo(ig,ishell,ityp),coefficient
+           contcoeff(ig,ishell,ityp)=coefficient/anorm
         end do
         !nw we can inspect the other basis of the lshell subspace
         do i=2,nco
-           icbas=icbas+1
-           read(35,*)anorm,iset,ishell,symbol,exponent,coefficient
-           print *,anorm,iset,ishell,symbol,exponent,coefficient
+           read(35,*)anorm,iset,num,symbol,exponent,coefficient
+           print *,anorm,iset,num,symbol,exponent,coefficient
            const0=coefficient/anorm
-           const1=contcoeff(1,isbas,ityp)
-           if (abs(const1-const0)>= 1.d-6 .or. exponent /= expo(1,isbas,ityp) ) then
+           const1=contcoeff(1,ishell,ityp)
+           if (abs(const1-const0)>= 1.d-5 .or. exponent /= expo(1,ishell,ityp) ) then
               write(*,*)'something was wrong: the basis definition depends on m',&
                    const1,const0,anorm,coefficient
            end if
            do ig=2,npgf
               read(35,*)exponent,coefficient
               const0=coefficient/anorm
-              const1=contcoeff(ig,isbas,ityp)
-              if (abs(const1-const0)>= 1.d-6 .or. exponent /= expo(ig,isbas,ityp) ) then
+              const1=contcoeff(ig,ishell,ityp)
+              if (abs(const1-const0)>= 1.d-5 .or. exponent /= expo(ig,ishell,ityp) ) then
                  write(*,*)'something was wrong: the basis definition depends on m',&
                       const1,const0,anorm,coefficient
               end if
               print *,'control',exponent,coefficient,const1,const0,anorm
            end do
         end do
-        !if the check passed assign the value of the exponent and coefficient to the
-        !whole shell of spherical orbitals
-!!$           expo(ig,isbas,ityp)=exponent
-!!$           contcoeff(ig,isbas,ityp)=coefficient
-
-        !number of the basis for spherical orbitals
-        isbas=isbas+2*lshell+1
-        if (icbas == nbasis(ityp)) exit loop_basis2
-     end do loop_basis2
+     end do
   end do
 
   close(35)
 
+  !here we can test the read coefficients.
+  ibas=0
+  do ityp=1,ntypes
+     print *,'nnumber of shells',nshell(ityp)
+     do ibas=1,nshell(ityp)
+        print *,'nam,ndoc',nam(ibas,ityp),ndoc(ibas,ityp)
+        do ig=1,ndoc(ibas,ityp)
+           print *,ityp,ishell,nam(ibas,ityp),expo(ig,ibas,ityp),contcoeff(ig,ibas,ityp)
+        end do
+     end do
+  end do
+
+  stop
+
+  allocate(cimu(mmax,nbx,nat,norb),stat=i_stat)
+  call memocc(i_stat,product(shape(cimu))*kind(cimu),'cimu','gautowav')
+  
+
   !now read the coefficients of the gaussian converged orbitals
   open(51)
-  !here there is the orbital label, for the moment it is assumet to vary between 1 and 4
+  !here there is the orbital label, for the moment it is assumed to vary between 1 and 4
   read(51,*)
   nst=1
   nend=4
@@ -155,18 +167,19 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
 
   do iat=1,nat
      ityp=iatype(iat)
-     do ibas=1,nbasis(ityp)
-        read(51,*)jbas,nshell,symbol,string,(ctmp(iorb),iorb=1,nend-nst+1)
-        !here follows the postreatment of the symbol
-        !order the basis following the order of the coefficients of the BigDFT input guess
-        symbol=trim(string)
-        if (symbol(2:2)=='s') then
-           do iorb=nst,nend
-              cimu(iorb,jbas)=ctmp(iorb-nst+1)
-           end do
-        else if (symbol(2:2)=='p') then
-           if( symbol(3:3)=='y') then
+     do ishell=1,nshell(ityp)
+        do jbas=1,2*nam(ishell,ityp)+1
+           read(51,*)jbas,num,symbol,string,(ctmp(iorb),iorb=1,nend-nst+1)
+           !here follows the postreatment of the symbol
+           !order the basis following the order of the coefficients of the BigDFT input guess
+           symbol=trim(string)
+           if (symbol(2:2)=='s') then
               do iorb=nst,nend
+                 cimu(jbas,ishell,iat,iorb)=ctmp(iorb-nst+1)
+              end do
+           else if (symbol(2:2)=='p') then
+              if( symbol(3:3)=='y') then
+                 do iorb=nst,nend
                  cimu(iorb,jbas+1)=ctmp(iorb-nst+1)
               end do
            else if( symbol(3:3)=='z') then
@@ -294,30 +307,30 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
               !the amplitude of this basis in that orbital)
               !exponents for the gaussian expansion adapted following the convention
               !of the routine gauss_to_daub
-              do ig=1,ng
-                 psiatn(ig)=contcoeff(ig,ibas,ityp)
-                 xp(ig)=sqrt(0.5d0/expo(ig,ibas,ityp))
-              end do
-              do m=1,2*l-1
-              jbas=jbas+1 !be aware on the correct basis numbering
-                 !this will calculate the proper spherical harmonics
-                 !the coefficient can be not the same of the case in the wavelet code
-                 !to be verified
-                 call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
-                 do iterm=1,nterm
-                    fac_arr(iterm)=cimu(iorb,jbas)*fac_arr(iterm)
-                 end do
-                 call crtonewave(n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiatn,&
-                      rx,ry,rz,hgrid,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-                      nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,&
-                      keyg(1,nseg_c+1),keyv(nseg_c+1),&
-                      tpsi(1),tpsi(nvctr_c+1))
-                 !sum the result inside the orbital wavefunction
-                 do i=1,nvctr_c+7*nvctr_f
-                    psi(i,iorb)=psi(i,iorb)+tpsi(i)
-                 end do
-              end do
-              if (ibas == nbasis(ityp)) exit create_basis
+!!$              do ig=1,ng
+!!$                 psiatn(ig)=contcoeff(ig,ibas,ityp)
+!!$                 xp(ig)=sqrt(0.5d0/expo(ig,ibas,ityp))
+!!$              end do
+!!$              do m=1,2*l-1
+!!$              jbas=jbas+1 !be aware on the correct basis numbering
+!!$                 !this will calculate the proper spherical harmonics
+!!$                 !the coefficient can be not the same of the case in the wavelet code
+!!$                 !to be verified
+!!$                 call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
+!!$                 do iterm=1,nterm
+!!$                    fac_arr(iterm)=cimu(iorb,jbas)*fac_arr(iterm)
+!!$                 end do
+!!$                 call crtonewave(n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiatn,&
+!!$                      rx,ry,rz,hgrid,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+!!$                      nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,&
+!!$                      keyg(1,nseg_c+1),keyv(nseg_c+1),&
+!!$                      tpsi(1),tpsi(nvctr_c+1))
+!!$                 !sum the result inside the orbital wavefunction
+!!$                 do i=1,nvctr_c+7*nvctr_f
+!!$                    psi(i,iorb)=psi(i,iorb)+tpsi(i)
+!!$                 end do
+!!$              end do
+              if (ibas == nshell(ityp)) exit create_basis
            end do create_basis
         end do
      end if
@@ -327,9 +340,9 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
   deallocate(tpsi,stat=i_stat)
   call memocc(i_stat,i_all,'tpsi','gautowav')
 
-  i_all=-product(shape(nbasis))*kind(nbasis)
-  deallocate(nbasis,stat=i_stat)
-  call memocc(i_stat,i_all,'nbasis','gautowav')
+  i_all=-product(shape(nshell))*kind(nshell)
+  deallocate(nshell,stat=i_stat)
+  call memocc(i_stat,i_all,'nshell','gautowav')
   i_all=-product(shape(nam))*kind(nam)
   deallocate(nam,stat=i_stat)
   call memocc(i_stat,i_all,'nam','gautowav')

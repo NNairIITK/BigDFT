@@ -659,7 +659,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   end if
 
      ! INPUT WAVEFUNCTIONS
-  if (inputPsiId == 0) then
+  if (inputPsiId == -1) then
      call input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
           rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
@@ -696,7 +696,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
      end if
 
-     if (inputPsiId == -1 ) then !WARNING TO BE CHANGED
+     if (inputPsiId == 0 ) then !WARNING TO BE CHANGED
         !apply the results of the gaussian wavefunctions
         call gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
              nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,rxyz,hgrid,psi)
