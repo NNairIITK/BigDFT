@@ -948,9 +948,10 @@ end subroutine excpotu
 subroutine check_symmetry(nd1,nd2,nd3,zarray,inzee)
   implicit none
   !Arguments
+  integer nd1,nd2,nd3
   real*8, dimension(2,nd1*nd2*nd3,2) :: zarray
   !Local variables 
-  integer :: i1,i2,i3,nd1,nd2,nd3,ind1,ind2,inzee,f1,f2,f3
+  integer :: i1,i2,i3,ind1,ind2,inzee,f1,f2,f3
   f1=nd1
   f2=nd2
   f3=nd3
