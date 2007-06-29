@@ -105,7 +105,6 @@ program BigDFT
    allocate(lfrztyp(ntypes),stat=i_stat)
    call memocc(i_stat,product(shape(lfrztyp))*kind(lfrztyp),'lfrztyp','BigDFT')
 
-   print *,line
    read(line,*,iostat=ierror)ngeostep,ampl,betax,nfrztyp
    if (ierror /= 0) then
       read(line,*)ngeostep,ampl,betax

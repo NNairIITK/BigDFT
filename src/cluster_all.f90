@@ -6,15 +6,12 @@ module libBigDFT
   !- Do a minimisation loop to find forces and energy.
   public :: cluster
   !- Do a DIIS step on wavefunctions.
-  public :: diisstp
 
   !- Compute the density from the wavefunctions.
   public :: sumrho
   !- Apply the kinetic operator and the local part of potential
-  public :: applylocpotkinone
   public :: applylocpotkinall
   !- Apply the non local part of potential
-  public :: applyprojectorsone
   public :: applyprojectorsall
   !- Orthogonalize wavefunctions (serial and parallel MPI routine)
   public :: orthoconstraint, orthoconstraint_p
@@ -35,7 +32,6 @@ module libBigDFT
   public :: createWavefunctionsDescriptors
   !- Create and allocate projectors (and their access arrays).
   public :: createProjectorsArrays
-  public :: crtproj
   !- Create a ionic density (without gaussian parts)
   public :: input_rho_ion
   !- Add gaussian part to local part of ionic potential
@@ -46,10 +42,6 @@ module libBigDFT
   public :: input_wf_diag
   
   !- Wavefunctions related methods.
-  !- Create wavefunctions from atomic orbitals
-  public :: createAtomicOrbitals
-  !- Read a file with description of atomic orbitals for all elements
-  public :: readAtomicOrbitals
   !- Read wavefunctions from disk
   public :: readmywaves
   !- Atomic read for a given wavefunction
@@ -73,11 +65,6 @@ module libBigDFT
   !- Get a box that contains all atoms and their active grid points.
   public :: system_size
   
-  !- Linear algebra method
-  !- Compute a scalar product
-!  public :: wnrm
-!  public :: wpdot
-
   !estimation of the memory
   public :: MemoryEstimator
 
@@ -659,7 +646,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   end if
 
      ! INPUT WAVEFUNCTIONS
-  if (inputPsiId == -1) then
+  if (inputPsiId == 0) then
      call input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
           rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
@@ -683,8 +670,58 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','cluster')
      endif
 
-  else 
+  else if (inputPsiId == -1 ) then !WARNING TO BE CHANGED
 
+     !import gaussians form CP2K (data in files def_gaubasis.dat and gaucoeff.dat)
+     !and calculate eigenvalues
+     call import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+          nat,norb,norbp,occup,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
+          rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+          nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
+          atomnames,ntypes,iatype,pkernel,psppar,npspcode,ixc,&
+          psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr)
+
+!!$     !allocate principal wavefunction
+!!$     if (parallel) then
+!!$        !allocated in the transposed way such as 
+!!$        !it can also be used as a work array for transposition
+!!$        allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
+!!$        call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
+!!$     else
+!!$        allocate(psi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+!!$        call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
+!!$     end if
+!!$
+!!$      !apply the results of the gaussian wavefunctions
+!!$      call gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+!!$           nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,occup,rxyz,hgrid,psi,eks)
+!!$
+!!$     if (parallel) then
+!!$        !allocate hpsi array (used also as transposed)
+!!$        !allocated in the transposed way such as 
+!!$        !it can also be used as the transposed hpsi
+!!$        allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
+!!$        call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','cluster')
+!!$
+!!$        !transpose the psi wavefunction
+!!$        call timing(iproc,'Un-Transall   ','ON')
+!!$        !here hpsi is used as a work array
+!!$        call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,hpsi)
+!!$        !allocate transposed principal wavefunction
+!!$        allocate(psit(nvctrp,norbp*nproc),stat=i_stat)
+!!$        call memocc(i_stat,product(shape(psit))*kind(psit),'psit','cluster')
+!!$        call MPI_ALLTOALL(hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+!!$             psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+!!$        call timing(iproc,'Un-Transall   ','OF')
+!!$        !end of transposition
+!!$
+!!$     else
+!!$        allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+!!$        call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','cluster')
+!!$     endif
+
+
+  else 
      !allocate principal wavefunction
      if (parallel) then
         !allocated in the transposed way such as 
@@ -696,12 +733,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
      end if
 
-     if (inputPsiId == 0 ) then !WARNING TO BE CHANGED
-        !apply the results of the gaussian wavefunctions
-        call gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,rxyz,hgrid,psi)
 
-     else if (inputPsiId == 1 ) then
+     if (inputPsiId == 1 ) then
 
         if (iproc.eq.0) write(*,*) 'START reformatting psi from old psi'
         call reformatmywaves(iproc, norb, norbp, nat, &
@@ -752,6 +785,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         call timing(iproc,'Un-Transall   ','OF')
         !end of transposition
 
+        !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
         call orthon_p(iproc,nproc,norb,norbp,nvctrp,psit)
         !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
@@ -764,8 +798,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         call timing(iproc,'Un-Transall   ','OF')
         !end of retransposition
      else
+        !call checkortho(norb,norbp,nvctrp,psi)
         call orthon(norb,norbp,nvctrp,psi)
-        call checkortho(norb,norbp,nvctrp,psi)
+        !call checkortho(norb,norbp,nvctrp,psi)
         !allocate hpsi array
         allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
         call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','cluster')
@@ -808,14 +843,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         write(*,'(1x,a,i0)')&
          '---------------------------------------------------------------------------- iter= ',&
          iter
-        if (gnrm.le.gnrm_cv) then
-!!$           write(*,'(1x,a,i3,3(1x,1pe18.11))') 'iproc,ehart,eexcu,vexcu',iproc,ehart,eexcu,vexcu
-!!$           write(*,'(1x,a,3(1x,1pe18.11))') 'final ekin_sum,epot_sum,eproj_sum',ekin_sum,epot_sum,eproj_sum
-!!$           write(*,'(1x,a,3(1x,1pe18.11))') 'final ehart,eexcu,vexcu',ehart,eexcu,vexcu
-!!$           write(*,'(1x,a,i6,2x,1pe19.12,1x,1pe9.2)') 'FINAL iter,total energy,gnrm',iter,energy,gnrm
-           !write(61,*)hgrid,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
-
-        endif
      endif
 
      ! Potential from electronic charge density
@@ -855,7 +882,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
                 'final ehart,eexcu,vexcu',ehart,eexcu,vexcu
            write(*,'(1x,a,i6,2x,1pe19.12,1x,1pe9.2)') &
                 'FINAL iter,total energy,gnrm',iter,energy,gnrm
-
+           write(61,*)hgrid,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
         end if
         infocode=0
         goto 1010
@@ -2156,220 +2183,7 @@ subroutine createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz
   end if
 
 end subroutine createIonicPotential
-
-
-        
-subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
-     & nelpsp,n1,n2,n3,n3pi,i3s,hgrid,rho,eion)
-  !Creates charge density arising from the ionic PSP cores
-  implicit none
-  include 'mpif.h'
-  integer, intent(in) :: iproc,nproc,ntypes,nat,n1,n2,n3,n3pi,i3s
-  real(kind=8), intent(in) :: hgrid
-  real(kind=8), intent(out) :: eion
-  integer, dimension(nat), intent(in) :: iatype
-  integer, dimension(ntypes), intent(in) :: nelpsp
-  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
-  real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(*), intent(inout) :: rho
-  !local variables
-  integer :: iat,jat,i1,i2,i3,j3,ii,ix,iy,iz,i3start,i3end,ierr,ityp,jtyp,ind,i_all,i_stat
-  real(kind=8) :: hgridh,pi,rholeaked,dist,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
-  real(kind=8) :: tt_tot,rholeaked_tot
-  real(kind=8), dimension(:), allocatable :: charges_mpi
-  
-  call timing(iproc,'CrtLocPot     ','ON')
-
-  hgridh=hgrid*.5d0 
-  pi=4.d0*atan(1.d0)
-  ! Ionic charge 
-  rholeaked=0.d0
-  eion=0.d0
-
-  if (n3pi >0 ) then
-     call razero((2*n1+31)*(2*n2+31)*n3pi,rho)
-
-     do iat=1,nat
-        ityp=iatype(iat)
-        rx=rxyz(1,iat) 
-        ry=rxyz(2,iat)
-        rz=rxyz(3,iat)
-        ix=nint(rx/hgridh) 
-        iy=nint(ry/hgridh) 
-        iz=nint(rz/hgridh)
-        !    ion-ion interaction
-        do jat=1,iat-1
-           dist=sqrt( (rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2 )
-           jtyp=iatype(jat)
-           eion=eion+nelpsp(jtyp)*nelpsp(ityp)/dist
-        enddo
-
-        rloc=psppar(0,0,ityp)
-        charge=nelpsp(ityp)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
-        cutoff=10.d0*rloc
-        ii=nint(cutoff/hgridh)
-
-        !calculate start and end of the distributed pot
-        i3start=max(max(-14,iz-ii),i3s-15)
-        i3end=min(min(2*n3+16,iz+ii),i3s+n3pi-16)
-
-        do i3=iz-ii,iz+ii
-           j3=i3+15-i3s+1
-           do i2=iy-ii,iy+ii
-              do i1=ix-ii,ix+ii
-                 x=i1*hgridh-rx
-                 y=i2*hgridh-ry
-                 z=i3*hgridh-rz
-                 r2=x**2+y**2+z**2
-                 arg=r2/rloc**2
-                 xp=exp(-.5d0*arg)
-                 if (i3.ge.i3start .and. i3.le.i3end  .and.  & 
-                      i2.ge.-14 .and. i2.le.2*n2+16  .and.  & 
-                      i1.ge.-14 .and. i1.le.2*n1+16 ) then
-                    ind=i1+15+(i2+14)*(2*n1+31)+(j3-1)*(2*n1+31)*(2*n2+31)
-                    rho(ind)=rho(ind)-xp*charge
-                 else if (i3.lt.-14 .or. i3.gt.2*n3+16 ) then
-                    rholeaked=rholeaked+xp*charge
-                 endif
-              enddo
-           enddo
-        enddo
-
-     enddo
-
-  end if
-  ! Check
-  tt=0.d0
-  do j3= 1,n3pi!i3start,i3end
-     !j3=i3+15-i3s+1
-     do i2= -14,2*n2+16
-        do i1= -14,2*n1+16
-           ind=i1+15+(i2+14)*(2*n1+31)+(j3-1)*(2*n1+31)*(2*n2+31)
-           tt=tt+rho(ind)
-        enddo
-     enddo
-  enddo
-
-  tt=tt*hgridh**3
-  rholeaked=rholeaked*hgridh**3
-
-  !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
-
-  if (nproc > 1) then
-     allocate(charges_mpi(4),stat=i_stat)
-     call memocc(i_stat,product(shape(charges_mpi))*kind(charges_mpi),'charges_mpi','input_rho_ion')
-     charges_mpi(1)=tt
-     charges_mpi(2)=rholeaked
-     call MPI_ALLREDUCE(charges_mpi(1),charges_mpi(3),2,MPI_double_precision,  &
-          MPI_SUM,MPI_COMM_WORLD,ierr)
-     tt_tot=charges_mpi(3)
-     rholeaked_tot=charges_mpi(4)
-     i_all=-product(shape(charges_mpi))*kind(charges_mpi)
-     deallocate(charges_mpi,stat=i_stat)
-     call memocc(i_stat,i_all,'charges_mpi','input_rho_ion')
-  else
-     tt_tot=tt
-     rholeaked_tot=rholeaked
-  end if
-
-  if (iproc.eq.0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
-       'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
-
-
-  call timing(iproc,'CrtLocPot     ','OF')
-
-end subroutine input_rho_ion
-
-subroutine pot_constantfield(iproc,n1,n2,n3,n3pi,pot,hgrid,elecfield)
-  !Creates charge density arising from the ionic PSP cores
-  implicit none
-  include 'mpif.h'
-  integer, intent(in) :: iproc,n1,n2,n3,n3pi
-  real(kind=8), intent(in) :: hgrid,elecfield
-  real(kind=8), dimension(*), intent(inout) :: pot
-  !local variables
-  integer :: i1,i2,i3,ind
-  
-  call timing(iproc,'CrtLocPot     ','ON')
-
-  do i3=1,n3pi
-     do i2= -14,2*n2+16
-        do i1= -14,2*n1+16
-           ind=i1+15+(i2+14)*(2*n1+31)+(i3-1)*(2*n1+31)*(2*n2+31)
-           pot(ind)=pot(ind)+0.25d0*elecfield*hgrid*real(i1-n1,kind=8)
-        enddo
-     enddo
-  enddo
-
-  call timing(iproc,'CrtLocPot     ','OF')
-
-end subroutine pot_constantfield
-
-
-
-subroutine addlocgauspsp(iproc,ntypes,nat,iatype,rxyz,psppar,&
-     n1,n2,n3,n3pi,i3s,hgrid,pot)
-  ! Add local Gaussian terms of the PSP to pot, where pot is distributed 
-  implicit none
-  integer, intent(in) :: ntypes,nat,n1,n2,n3,n3pi,iproc,i3s
-  real(kind=8), intent(in) :: hgrid
-  integer, dimension(nat), intent(in) :: iatype
-  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
-  real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(-14:2*n1+16,-14:2*n2+16,n3pi), intent(inout) :: pot
-  !local variables
-  integer :: iat,i1,i2,i3,ii,ix,iy,iz,ityp,iloc,nloc,i3start,i3end,j3
-  real(kind=8) :: hgridh,rloc,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
-  
-  hgridh=hgrid*.5d0 
-
-  do iat=1,nat
-     ityp=iatype(iat)
-
-     rx=rxyz(1,iat)
-     ry=rxyz(2,iat)
-     rz=rxyz(3,iat)
-     ix=nint(rx/hgridh)
-     iy=nint(ry/hgridh)
-     iz=nint(rz/hgridh)
-
-     ! determine number of local terms
-     nloc=0
-     do iloc=1,4
-        if (psppar(0,iloc,ityp).ne.0.d0) nloc=iloc
-     enddo
-     rloc=psppar(0,0,ityp)
-     cutoff=10.d0*rloc
-     ii=nint(cutoff/hgridh)
-
-     !calculate start and end of the distributed pot
-     i3start=max(max(-14,iz-ii),i3s-15)
-     i3end=min(min(2*n3+16,iz+ii),i3s+n3pi-16)
-
-     do i3=i3start,i3end
-        j3=i3+15-i3s+1
-        do i2=max(-14,iy-ii),min(2*n2+16,iy+ii)
-           do i1=max(-14,ix-ii),min(2*n1+16,ix+ii)
-              x=i1*hgridh-rx
-              y=i2*hgridh-ry
-              z=i3*hgridh-rz
-              r2=x**2+y**2+z**2
-              arg=r2/rloc**2
-              xp=exp(-.5d0*arg)
-              tt=psppar(0,nloc,ityp)
-              do iloc=nloc-1,1,-1
-                 tt=arg*tt+psppar(0,iloc,ityp)
-              enddo
-              pot(i1,i2,j3)=pot(i1,i2,j3)+xp*tt
-           enddo
-        enddo
-     enddo
-
-   enddo
-
-   return
- end subroutine addlocgauspsp
-
+       
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
         
@@ -2520,200 +2334,6 @@ END SUBROUTINE applylocpotkinall
      enddo
      END SUBROUTINE
 
-    
-        subroutine uncompress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-                              mseg_c,mvctr_c,keyg_c,keyv_c,  & 
-                              mseg_f,mvctr_f,keyg_f,keyv_f,  & 
-                              psi_c,psi_f,psig)
-! Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
-        implicit real*8 (a-h,o-z)
-        dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
-        dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
-        dimension psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2)
-
-        call razero(8*(nu1-nl1+1)*(nu2-nl2+1)*(nu3-nl3+1),psig)
-
-! coarse part
-        do iseg=1,mseg_c
-          jj=keyv_c(iseg)
-          j0=keyg_c(1,iseg)
-          j1=keyg_c(2,iseg)
-             ii=j0-1
-             i3=ii/((n1+1)*(n2+1))
-             ii=ii-i3*(n1+1)*(n2+1)
-             i2=ii/(n1+1)
-             i0=ii-i2*(n1+1)
-             i1=i0+j1-j0
-          do i=i0,i1
-          ii=ii+1
-            psig(i,1,i2,1,i3,1)=psi_c(i-i0+jj)
-          enddo
-         enddo
-
-! fine part
-        do iseg=1,mseg_f
-          jj=keyv_f(iseg)
-          j0=keyg_f(1,iseg)
-          j1=keyg_f(2,iseg)
-             ii=j0-1
-             i3=ii/((n1+1)*(n2+1))
-             ii=ii-i3*(n1+1)*(n2+1)
-             i2=ii/(n1+1)
-             i0=ii-i2*(n1+1)
-             i1=i0+j1-j0
-          do i=i0,i1
-            psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)
-            psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)
-            psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)
-            psig(i,1,i2,1,i3,2)=psi_f(4,i-i0+jj)
-            psig(i,2,i2,1,i3,2)=psi_f(5,i-i0+jj)
-            psig(i,1,i2,2,i3,2)=psi_f(6,i-i0+jj)
-            psig(i,2,i2,2,i3,2)=psi_f(7,i-i0+jj)
-          enddo
-         enddo
-
-        END SUBROUTINE
-
-    
-        subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-                            mseg_c,mvctr_c,keyg_c,keyv_c,  & 
-                            mseg_f,mvctr_f,keyg_f,keyv_f,  & 
-                            psig,psi_c,psi_f)
-! Compresses a psig wavefunction into psi_c,psi_f form
-        implicit real*8 (a-h,o-z)
-        dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
-        dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
-        dimension psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2)
-        
-! coarse part
-        do iseg=1,mseg_c
-          jj=keyv_c(iseg)
-          j0=keyg_c(1,iseg)
-          j1=keyg_c(2,iseg)
-             ii=j0-1
-             i3=ii/((n1+1)*(n2+1))
-             ii=ii-i3*(n1+1)*(n2+1)
-             i2=ii/(n1+1)
-             i0=ii-i2*(n1+1)
-             i1=i0+j1-j0
-          do i=i0,i1
-            psi_c(i-i0+jj)=psig(i,1,i2,1,i3,1)
-          enddo
-        enddo
-
-! fine part
-        do iseg=1,mseg_f
-          jj=keyv_f(iseg)
-          j0=keyg_f(1,iseg)
-          j1=keyg_f(2,iseg)
-             ii=j0-1
-             i3=ii/((n1+1)*(n2+1))
-             ii=ii-i3*(n1+1)*(n2+1)
-             i2=ii/(n1+1)
-             i0=ii-i2*(n1+1)
-             i1=i0+j1-j0
-          do i=i0,i1
-            psi_f(1,i-i0+jj)=psig(i,2,i2,1,i3,1)
-            psi_f(2,i-i0+jj)=psig(i,1,i2,2,i3,1)
-            psi_f(3,i-i0+jj)=psig(i,2,i2,2,i3,1)
-            psi_f(4,i-i0+jj)=psig(i,1,i2,1,i3,2)
-            psi_f(5,i-i0+jj)=psig(i,2,i2,1,i3,2)
-            psi_f(6,i-i0+jj)=psig(i,1,i2,2,i3,2)
-            psi_f(7,i-i0+jj)=psig(i,2,i2,2,i3,2)
-          enddo
-        enddo
-
-        END SUBROUTINE
-
-
-
-        subroutine convolut_magic_n(n1,n2,n3,x,y)
-! Applies the magic filter matrix ( no transposition) ; data set grows
-! The input array x is not overwritten
-        implicit real*8 (a-h,o-z)
-        parameter(lowfil=-8,lupfil=7) ! has to be consistent with values in convrot
-        dimension x(*)
-        dimension y(*)
- 
-!  (i1,i2*i3) -> (i2*i3,I1)
-        ndat=(n2+1)*(n3+1)
-        call convrot_grow(n1,ndat,x,y)
-!  (i2,i3*I1) -> (i3*I1,I2)
-        ndat=(n3+1)*(n1+1+lupfil-lowfil)
-        call convrot_grow(n2,ndat,y,x)
-!  (i3,I1*I2) -> (iI*I2,I3)
-        ndat=(n1+1+lupfil-lowfil)*(n2+1+lupfil-lowfil)
-        call convrot_grow(n3,ndat,x,y)
-
-
-        END SUBROUTINE convolut_magic_n
-
-
-        subroutine convolut_magic_t(n1,n2,n3,x,y)
-! Applies the magic filter matrix transposed ; data set shrinks
-! The input array x is overwritten
-        implicit real*8 (a-h,o-z)
-        parameter(lowfil=-8,lupfil=7) ! has to be consistent with values in convrot
-        dimension x(*),y(*)
-
-!  (I1,I2*I3) -> (I2*I3,i1)
-        ndat=(n2+1+lupfil-lowfil)*(n3+1+lupfil-lowfil)
-        call convrot_shrink(n1,ndat,x,y)
-!  (I2,I3*i1) -> (I3*i1,i2)
-        ndat=(n3+1+lupfil-lowfil)*(n1+1)
-        call convrot_shrink(n2,ndat,y,x)
-!  (I3,i1*i2) -> (i1*i2,i3)
-        ndat=(n1+1)*(n2+1)
-        call convrot_shrink(n3,ndat,x,y)
-
-        END SUBROUTINE convolut_magic_t
-
-
-        subroutine synthese_grow(n1,n2,n3,ww,x,y)
-! A synthesis wavelet transformation where the size of the data is allowed to grow
-! The input array x is not overwritten
-        implicit real*8 (a-h,o-z)
-        dimension x(0:n1,2,0:n2,2,0:n3,2)
-        dimension ww(-7:2*n2+8,-7:2*n3+8,-7:2*n1+8)
-        dimension  y(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
-
-! i1,i2,i3 -> i2,i3,I1
-        nt=(2*n2+2)*(2*n3+2)
-        call  syn_rot_grow(n1,nt,x,y)
-! i2,i3,I1 -> i3,I1,I2
-        nt=(2*n3+2)*(2*n1+16)
-        call  syn_rot_grow(n2,nt,y,ww)
-! i3,I1,I2  -> I1,I2,I3
-        nt=(2*n1+16)*(2*n2+16)
-        call  syn_rot_grow(n3,nt,ww,y)
-
-        END SUBROUTINE
-
-
-
-        subroutine analyse_shrink(n1,n2,n3,ww,y,x)
-! A analysis wavelet transformation where the size of the data is forced to shrink
-! The input array y is overwritten
-        implicit real*8 (a-h,o-z)
-        dimension ww(-7:2*n2+8,-7:2*n3+8,-7:2*n1+8)
-        dimension  y(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
-        dimension x(0:n1,2,0:n2,2,0:n3,2)
-
-! I1,I2,I3 -> I2,I3,i1
-        nt=(2*n2+16)*(2*n3+16)
-        call  ana_rot_shrink(n1,nt,y,ww)
-! I2,I3,i1 -> I3,i1,i2
-        nt=(2*n3+16)*(2*n1+2)
-        call  ana_rot_shrink(n2,nt,ww,y)
-! I3,i1,i2 -> i1,i2,i3
-        nt=(2*n1+2)*(2*n2+2)
-        call  ana_rot_shrink(n3,nt,y,x)
-
-        return
-        END SUBROUTINE
-
-
-
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
@@ -2758,7 +2378,7 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
     call memocc(i_stat,product(shape(rho_p))*kind(rho_p),'rho_p','sumrho')
 
     !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
-    call tenmminustwenty((2*n1+31)*(2*n2+31)*nrhotot,rho_p)
+    call tenminustwenty((2*n1+31)*(2*n2+31)*nrhotot,rho_p,nproc)
     !call razero((2*n1+31)*(2*n2+31)*(2*n3+31),rho_p)
 
     do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
@@ -2828,7 +2448,7 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
  else
     call timing(iproc,'Rho_comput    ','ON')
     !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
-    call tenmminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
+    call tenminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho,nproc)
     !call razero((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
 
     do iorb=1,norb
@@ -2909,7 +2529,7 @@ END SUBROUTINE
     if (withmpi2) then
       call timing(iproc,'Rho_comput    ','ON')
       !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
-      call tenmminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
+      call tenminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho,nproc)
 
       do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
@@ -2939,7 +2559,7 @@ END SUBROUTINE
         call memocc(i_stat,product(shape(rho_p))*kind(rho_p),'rho_p','sumrho_old')
 
    !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
-        call tenmminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho_p)
+        call tenminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho_p,nproc)
         !call razero((2*n1+31)*(2*n2+31)*(2*n3+31),rho_p)
 
       do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
@@ -2971,7 +2591,7 @@ END SUBROUTINE
 
       call timing(iproc,'Rho_comput    ','ON')
     !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
-        call tenmminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
+        call tenminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho,nproc)
         !call razero((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
 
      do iorb=1,norb
@@ -3018,52 +2638,6 @@ END SUBROUTINE
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
         
-!!****f* BigDFT/tenmminustwenty
-!! NAME
-!!   tenmminustwenty
-!!
-!! FUNCTION
-!!   Set to 10^-20 an array x(n)
-!!
-!! SOURCE
-!!
-subroutine tenmminustwenty(n,x)
-  implicit none
-! Arguments
-  integer :: n
-  real*8 :: x(n)
-! Local variables
-  integer :: i
-  do i=1,n
-     x(i)=1.d-20
-  end do
-END SUBROUTINE 
-!!***
-
-
-
-        subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
-! Determines the number of projectors (valid for GTH and HGH pseudopotentials)
-        implicit real*8 (a-h,o-z)
-        dimension psppar(0:4,0:4,ntypes),npspcode(ntypes)
-
-        mproj=0
-        if (npspcode(ityp) == 2) then !GTH
-           do l=1,2 
-              do i=1,2 
-                 if (psppar(l,i,ityp).ne.0.d0) mproj=mproj+2*l-1
-              enddo
-           enddo
-        else if (npspcode(ityp) == 3) then !HGH
-              do l=1,4 
-                 do i=1,3 
-                 if (psppar(l,i,ityp).ne.0.d0) mproj=mproj+2*l-1
-              enddo
-           enddo
-        end if
-        return
-        END SUBROUTINE
-
 
         subroutine applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
                     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
@@ -3243,230 +2817,8 @@ END SUBROUTINE
          END SUBROUTINE
 
 
-        subroutine crtproj(iproc,nterm,n1,n2,n3, & 
-                     nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,  & 
-                     radius_f,cpmult,fpmult,hgrid,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
-                     mvctr_c,mvctr_f,proj_c,proj_f)
-! returns the compressed form of a Gaussian projector 
-! x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-cntrx)^2 + (y-cntry)^2 + (z-cntrz)^2 ))
-! in the arrays proj_c, proj_f
-        implicit real*8 (a-h,o-z)
-        parameter(ntermx=3,nw=16000)
-        dimension lx(nterm),ly(nterm),lz(nterm)
-        dimension fac_arr(nterm)
-        dimension proj_c(mvctr_c),proj_f(7,mvctr_f)
-        real*8, allocatable, dimension(:,:,:) :: wprojx, wprojy, wprojz
-        real*8, allocatable, dimension(:,:) :: work
-
-        allocate(wprojx(0:n1,2,nterm),stat=i_stat)
-        call memocc(i_stat,product(shape(wprojx))*kind(wprojx),'wprojx','crtproj')
-        allocate(wprojy(0:n2,2,nterm),stat=i_stat)
-        call memocc(i_stat,product(shape(wprojy))*kind(wprojy),'wprojy','crtproj')
-        allocate(wprojz(0:n3,2,nterm),stat=i_stat)
-        call memocc(i_stat,product(shape(wprojz))*kind(wprojz),'wprojz','crtproj')
-        allocate(work(0:nw,2),stat=i_stat)
-        call memocc(i_stat,product(shape(work))*kind(work),'work','crtproj')
-
-
-        rad_c=radius_f*cpmult
-        rad_f=radius_f*fpmult
-
-! make sure that the coefficients returned by CALL GAUSS_TO_DAUB are zero outside [ml:mr] 
-        err_norm=0.d0 
-      do 100,iterm=1,nterm
-        factor=fac_arr(iterm)
-        n_gau=lx(iterm) 
-        CALL GAUSS_TO_DAUB(hgrid,factor,rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1,iterm),te,work,nw)
-        err_norm=max(err_norm,te) 
-        n_gau=ly(iterm) 
-        CALL GAUSS_TO_DAUB(hgrid,1.d0,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1,iterm),te,work,nw)
-        err_norm=max(err_norm,te) 
-        n_gau=lz(iterm) 
-        CALL GAUSS_TO_DAUB(hgrid,1.d0,rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1,iterm),te,work,nw)
-        err_norm=max(err_norm,te) 
-       if (iproc.eq.0)  then
-!       write(*,'(a,6(1x,i4))') 'Proj. box X: nl1_c,nl1_f,ml1,mu1,nu1_f,nu1_c',nl1_c,nl1_f,ml1,mu1,nu1_f,nu1_c
-!       write(*,'(a,6(1x,i4))') 'Proj. box Y: nl2_c,nl2_f,ml2,mu2,nu2_f,nu2_c',nl2_c,nl2_f,ml2,mu2,nu2_f,nu2_c
-!       write(*,'(a,6(1x,i4))') 'Proj. box Z: nl3_c,nl3_f,ml3,mu3,nu3_f,nu3_c',nl3_c,nl3_f,ml3,mu3,nu3_f,nu3_c
-       if (ml1.gt.min(nl1_c,nl1_f)) write(*,*) 'Projector box larger than needed: ml1'
-       if (ml2.gt.min(nl2_c,nl2_f)) write(*,*) 'Projector box larger than needed: ml2'
-       if (ml3.gt.min(nl3_c,nl3_f)) write(*,*) 'Projector box larger than needed: ml3'
-       if (mu1.lt.max(nu1_c,nu1_f)) write(*,*) 'Projector box larger than needed: mu1'
-       if (mu2.lt.max(nu2_c,nu2_f)) write(*,*) 'Projector box larger than needed: mu2'
-       if (mu3.lt.max(nu3_c,nu3_f)) write(*,*) 'Projector box larger than needed: mu3'
-       endif
-100   continue
-!        if (iproc.eq.0) write(*,*) 'max err_norm ',err_norm
-
-! First term: coarse projector components
-!          write(*,*) 'rad_c=',rad_c
-          mvctr=0
-          do i3=nl3_c,nu3_c
-          dz2=(i3*hgrid-rz)**2
-          do i2=nl2_c,nu2_c
-          dy2=(i2*hgrid-ry)**2
-          do i1=nl1_c,nu1_c
-          dx=i1*hgrid-rx
-          if (dx**2+(dy2+dz2).lt.rad_c**2) then
-            mvctr=mvctr+1
-            proj_c(mvctr)=wprojx(i1,1,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
-          endif
-          enddo ; enddo ; enddo
-          if (mvctr.ne.mvctr_c) stop 'mvctr >< mvctr_c'
-
-! First term: fine projector components
-          mvctr=0
-          do i3=nl3_f,nu3_f
-          dz2=(i3*hgrid-rz)**2
-          do i2=nl2_f,nu2_f
-          dy2=(i2*hgrid-ry)**2
-          do i1=nl1_f,nu1_f
-          dx=i1*hgrid-rx
-          if (dx**2+(dy2+dz2).lt.rad_f**2) then
-            mvctr=mvctr+1
-            proj_f(1,mvctr)=wprojx(i1,2,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
-            proj_f(2,mvctr)=wprojx(i1,1,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
-            proj_f(3,mvctr)=wprojx(i1,2,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
-            proj_f(4,mvctr)=wprojx(i1,1,1)*wprojy(i2,1,1)*wprojz(i3,2,1)
-            proj_f(5,mvctr)=wprojx(i1,2,1)*wprojy(i2,1,1)*wprojz(i3,2,1)
-            proj_f(6,mvctr)=wprojx(i1,1,1)*wprojy(i2,2,1)*wprojz(i3,2,1)
-            proj_f(7,mvctr)=wprojx(i1,2,1)*wprojy(i2,2,1)*wprojz(i3,2,1)
-          endif
-          enddo ; enddo ; enddo
-          if (mvctr.ne.mvctr_f) stop 'mvctr >< mvctr_f'
-  
-
-         do iterm=2,nterm
-
-! Other terms: coarse projector components
-         mvctr=0
-         do i3=nl3_c,nu3_c
-         dz2=(i3*hgrid-rz)**2
-         do i2=nl2_c,nu2_c
-         dy2=(i2*hgrid-ry)**2
-         do i1=nl1_c,nu1_c
-         dx=i1*hgrid-rx
-         if (dx**2+(dy2+dz2).lt.rad_c**2) then
-           mvctr=mvctr+1
-           proj_c(mvctr)=proj_c(mvctr)+wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
-         endif
-         enddo ; enddo ; enddo
-
-! Other terms: fine projector components
-         mvctr=0
-         do i3=nl3_f,nu3_f
-         dz2=(i3*hgrid-rz)**2
-         do i2=nl2_f,nu2_f
-         dy2=(i2*hgrid-ry)**2
-         do i1=nl1_f,nu1_f
-         dx=i1*hgrid-rx
-         if (dx**2+(dy2+dz2).lt.rad_f**2) then
-           mvctr=mvctr+1
-           proj_f(1,mvctr)=proj_f(1,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
-           proj_f(2,mvctr)=proj_f(2,mvctr)+wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
-           proj_f(3,mvctr)=proj_f(3,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,1,iterm)
-           proj_f(4,mvctr)=proj_f(4,mvctr)+wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
-           proj_f(5,mvctr)=proj_f(5,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,2,iterm)
-           proj_f(6,mvctr)=proj_f(6,mvctr)+wprojx(i1,1,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
-           proj_f(7,mvctr)=proj_f(7,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,2,iterm)*wprojz(i3,2,iterm)
-         endif
-         enddo ; enddo ; enddo
-          
-
-          enddo
-  
-          i_all=-product(shape(wprojx))*kind(wprojx)
-          deallocate(wprojx,stat=i_stat)
-          call memocc(i_stat,i_all,'wprojx','crtproj')
-          i_all=-product(shape(wprojy))*kind(wprojy)
-          deallocate(wprojy,stat=i_stat)
-          call memocc(i_stat,i_all,'wprojy','crtproj')
-          i_all=-product(shape(wprojz))*kind(wprojz)
-          deallocate(wprojz,stat=i_stat)
-          call memocc(i_stat,i_all,'wprojz','crtproj')
-          i_all=-product(shape(work))*kind(work)
-          deallocate(work,stat=i_stat)
-          call memocc(i_stat,i_all,'work','crtproj')
-
-    return
-    END SUBROUTINE
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
-
-        subroutine orthoconstraint_p(iproc,nproc,norb,norbp,occup,nvctrp,psit,hpsit,scprsum)
-!Effect of orthogonality constraints on gradient 
-        implicit real*8 (a-h,o-z)
-        logical, parameter :: parallel=.true.
-        dimension psit(nvctrp,norbp*nproc),hpsit(nvctrp,norbp*nproc),occup(norb)
-        allocatable :: alag(:,:,:)
-        include 'mpif.h'
-
-      call timing(iproc,'LagrM_comput  ','ON')
-
-      allocate(alag(norb,norb,2),stat=i_stat)
-      call memocc(i_stat,product(shape(alag))*kind(alag),'alag','orthoconstraint_p')
-!     alag(jorb,iorb,2)=+psit(k,jorb)*hpsit(k,iorb)
-      call DGEMM('T','N',norb,norb,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,alag(1,1,2),norb)
-
-      call timing(iproc,'LagrM_comput  ','OF')
-      call timing(iproc,'LagrM_commun  ','ON')
-     call MPI_ALLREDUCE(alag(1,1,2),alag(1,1,1),norb**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      call timing(iproc,'LagrM_commun  ','OF')
-      call timing(iproc,'LagrM_comput  ','ON')
-!        if (iproc.eq.0) then
-!        write(*,*) 'ALAG',iproc
-!        do iorb=1,norb
-!        write(*,'(10(1x,1pe10.3))') (alag(iorb,jorb,1),jorb=1,norb)
-!        enddo
-!        endif
-
-     scprsum=0.d0
-     do iorb=1,norb
-         scprsum=scprsum+occup(iorb)*alag(iorb,iorb,1)
-     enddo
-
-! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
-      call DGEMM('N','N',nvctrp,norb,norb,-1.d0,psit,nvctrp,alag,norb,1.d0,hpsit,nvctrp)
-     i_all=-product(shape(alag))*kind(alag)
-     deallocate(alag,stat=i_stat)
-     call memocc(i_stat,i_all,'alag','orthoconstraint_p')
- 
-      call timing(iproc,'LagrM_comput  ','OF')
-
-     END SUBROUTINE
-
-
-
-        subroutine orthoconstraint(norb,norbp,occup,nvctrp,psi,hpsi,scprsum)
-!Effect of orthogonality constraints on gradient 
-        implicit real*8 (a-h,o-z)
-        logical, parameter :: parallel=.false.
-        dimension psi(nvctrp,norbp),hpsi(nvctrp,norbp),occup(norb)
-        allocatable :: alag(:,:,:)
-
-      call timing(iproc,'LagrM_comput  ','ON')
-
-     allocate(alag(norb,norb,2),stat=i_stat)
-     call memocc(i_stat,product(shape(alag))*kind(alag),'alag','orthoconstraint')
- 
-!     alag(jorb,iorb,2)=+psi(k,jorb)*hpsi(k,iorb)
-      call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,0.d0,alag(1,1,1),norb)
-
-     scprsum=0.d0
-     do iorb=1,norb
-         scprsum=scprsum+occup(iorb)*alag(iorb,iorb,1)
-     enddo
-
-! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
-      call DGEMM('N','N',nvctrp,norb,norb,-1.d0,psi,nvctrp,alag,norb,1.d0,hpsi,nvctrp)
-
-     i_all=-product(shape(alag))*kind(alag)
-     deallocate(alag,stat=i_stat)
-     call memocc(i_stat,i_all,'alag','orthoconstraint')
-
-      call timing(iproc,'LagrM_comput  ','OF')
-
-     END SUBROUTINE
 
 
 
@@ -3497,44 +2849,6 @@ END SUBROUTINE
         END SUBROUTINE
 
 
-        subroutine pregion_size(rxyz,radii,rmult,iatype,ntypes, &
-                   hgrid,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
-! finds the size of the smallest subbox that contains a localization region made 
-! out of atom centered spheres
-        implicit real*8 (a-h,o-z)
-        parameter(eps_mach=1.d-12)
-        dimension rxyz(3),radii(ntypes)
-
-            rad=radii(iatype)*rmult
-            cxmax=rxyz(1)+rad ; cxmin=rxyz(1)-rad
-            cymax=rxyz(2)+rad ; cymin=rxyz(2)-rad
-            czmax=rxyz(3)+rad ; czmin=rxyz(3)-rad
-!        write(*,*) radii(iatype(iat)),rmult
-!        write(*,*) rxyz(1),rxyz(2),rxyz(3)
-  
-!!$      cxmax=cxmax-eps_mach ; cxmin=cxmin+eps_mach
-!!$      cymax=cymax-eps_mach ; cymin=cymin+eps_mach
-!!$      czmax=czmax-eps_mach ; czmin=czmin+eps_mach
-      onem=1.d0-eps_mach
-      nl1=int(onem+cxmin/hgrid)   
-      nl2=int(onem+cymin/hgrid)   
-      nl3=int(onem+czmin/hgrid)   
-      nu1=int(cxmax/hgrid)  
-      nu2=int(cymax/hgrid)  
-      nu3=int(czmax/hgrid)  
-!        write(*,'(a,6(i4))') 'projector region ',nl1,nu1,nl2,nu2,nl3,nu3
-!        write(*,*) ' projector region size ',cxmin,cxmax
-!        write(*,*) '             ',cymin,cymax
-!        write(*,*) '             ',czmin,czmax
-      if (nl1.lt.0)   stop 'nl1: projector region outside cell'
-      if (nl2.lt.0)   stop 'nl2: projector region outside cell'
-      if (nl3.lt.0)   stop 'nl3: projector region outside cell'
-      if (nu1.gt.n1)   stop 'nu1: projector region outside cell'
-      if (nu2.gt.n2)   stop 'nu2: projector region outside cell'
-      if (nu3.gt.n3)   stop 'nu3: projector region outside cell'
-
-        return
-        END SUBROUTINE
 
 
     subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
@@ -4430,543 +3744,6 @@ END SUBROUTINE createWavefunctionsDescriptors
 END SUBROUTINE 
 
 
-subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
-  
-  implicit none
-  integer, intent(in) :: l,i,m,nterm_max
-  integer, intent(out) :: nterm
-  integer, dimension(nterm_max), intent(out) :: lx,ly,lz
-  real(kind=8), dimension(nterm_max), intent(out) :: fac_arr
-
-  if (l.eq.1 .and. i.eq.1 .and. m.eq.1) then
-     nterm=1
-     lx(1)=0 ; ly(1)=0 ; lz(1)=0
-     fac_arr(1)=0.7071067811865475244008444d0
-  else if (l.eq.1 .and. i.eq.2 .and. m.eq.1) then
-     nterm=3
-     lx(1)=2 ; ly(1)=0 ; lz(1)=0
-     lx(2)=0 ; ly(2)=2 ; lz(2)=0
-     lx(3)=0 ; ly(3)=0 ; lz(3)=2
-     fac_arr(1)=0.3651483716701107423046465d0
-     fac_arr(2)=0.3651483716701107423046465d0
-     fac_arr(3)=0.3651483716701107423046465d0
-  else if (l.eq.1 .and. i.eq.3 .and. m.eq.1) then
-     nterm=6
-     lx(1)=4 ; ly(1)=0 ; lz(1)=0
-     lx(2)=2 ; ly(2)=2 ; lz(2)=0
-     lx(3)=0 ; ly(3)=4 ; lz(3)=0
-     lx(4)=2 ; ly(4)=0 ; lz(4)=2
-     lx(5)=0 ; ly(5)=2 ; lz(5)=2
-     lx(6)=0 ; ly(6)=0 ; lz(6)=4
-     fac_arr(1)=0.09200874124564722903948358d0
-     fac_arr(2)=0.1840174824912944580789672d0
-     fac_arr(3)=0.09200874124564722903948358d0
-     fac_arr(4)=0.1840174824912944580789672d0
-     fac_arr(5)=0.1840174824912944580789672d0
-     fac_arr(6)=0.09200874124564722903948358d0
-  else if (l.eq.2 .and. i.eq.1 .and. m.eq.1) then
-     nterm=1
-     lx(1)=1 ; ly(1)=0 ; lz(1)=0
-     fac_arr(1)=1.000000000000000000000000d0
-  else if (l.eq.2 .and. i.eq.1 .and. m.eq.2) then
-     nterm=1
-     lx(1)=0 ; ly(1)=1 ; lz(1)=0
-     fac_arr(1)=1.000000000000000000000000d0
-  else if (l.eq.2 .and. i.eq.1 .and. m.eq.3) then
-     nterm=1
-     lx(1)=0 ; ly(1)=0 ; lz(1)=1
-     fac_arr(1)=1.000000000000000000000000d0
-  else if (l.eq.2 .and. i.eq.2 .and. m.eq.1) then
-     nterm=3
-     lx(1)=3 ; ly(1)=0 ; lz(1)=0
-     lx(2)=1 ; ly(2)=2 ; lz(2)=0
-     lx(3)=1 ; ly(3)=0 ; lz(3)=2
-     fac_arr(1)=0.3380617018914066310038473d0
-     fac_arr(2)=0.3380617018914066310038473d0
-     fac_arr(3)=0.3380617018914066310038473d0
-  else if (l.eq.2 .and. i.eq.2 .and. m.eq.2) then
-     nterm=3
-     lx(1)=2 ; ly(1)=1 ; lz(1)=0
-     lx(2)=0 ; ly(2)=3 ; lz(2)=0
-     lx(3)=0 ; ly(3)=1 ; lz(3)=2
-     fac_arr(1)=0.3380617018914066310038473d0
-     fac_arr(2)=0.3380617018914066310038473d0
-     fac_arr(3)=0.3380617018914066310038473d0
-  else if (l.eq.2 .and. i.eq.2 .and. m.eq.3) then
-     nterm=3
-     lx(1)=2 ; ly(1)=0 ; lz(1)=1
-     lx(2)=0 ; ly(2)=2 ; lz(2)=1
-     lx(3)=0 ; ly(3)=0 ; lz(3)=3
-     fac_arr(1)=0.3380617018914066310038473d0
-     fac_arr(2)=0.3380617018914066310038473d0
-     fac_arr(3)=0.3380617018914066310038473d0
-  else if (l.eq.2 .and. i.eq.3 .and. m.eq.1) then
-     nterm=6
-     lx(1)=5 ; ly(1)=0 ; lz(1)=0
-     lx(2)=3 ; ly(2)=2 ; lz(2)=0
-     lx(3)=1 ; ly(3)=4 ; lz(3)=0
-     lx(4)=3 ; ly(4)=0 ; lz(4)=2
-     lx(5)=1 ; ly(5)=2 ; lz(5)=2
-     lx(6)=1 ; ly(6)=0 ; lz(6)=4
-     fac_arr(1)=0.06795295885835007261827187d0
-     fac_arr(2)=0.1359059177167001452365437d0
-     fac_arr(3)=0.06795295885835007261827187d0
-     fac_arr(4)=0.1359059177167001452365437d0
-     fac_arr(5)=0.1359059177167001452365437d0
-     fac_arr(6)=0.06795295885835007261827187d0
-  else if (l.eq.2 .and. i.eq.3 .and. m.eq.2) then
-     nterm=6
-     lx(1)=4 ; ly(1)=1 ; lz(1)=0
-     lx(2)=2 ; ly(2)=3 ; lz(2)=0
-     lx(3)=0 ; ly(3)=5 ; lz(3)=0
-     lx(4)=2 ; ly(4)=1 ; lz(4)=2
-     lx(5)=0 ; ly(5)=3 ; lz(5)=2
-     lx(6)=0 ; ly(6)=1 ; lz(6)=4
-     fac_arr(1)=0.06795295885835007261827187d0
-     fac_arr(2)=0.1359059177167001452365437d0
-     fac_arr(3)=0.06795295885835007261827187d0
-     fac_arr(4)=0.1359059177167001452365437d0
-     fac_arr(5)=0.1359059177167001452365437d0
-     fac_arr(6)=0.06795295885835007261827187d0
-  else if (l.eq.2 .and. i.eq.3 .and. m.eq.3) then
-     nterm=6
-     lx(1)=4 ; ly(1)=0 ; lz(1)=1
-     lx(2)=2 ; ly(2)=2 ; lz(2)=1
-     lx(3)=0 ; ly(3)=4 ; lz(3)=1
-     lx(4)=2 ; ly(4)=0 ; lz(4)=3
-     lx(5)=0 ; ly(5)=2 ; lz(5)=3
-     lx(6)=0 ; ly(6)=0 ; lz(6)=5
-     fac_arr(1)=0.06795295885835007261827187d0
-     fac_arr(2)=0.1359059177167001452365437d0
-     fac_arr(3)=0.06795295885835007261827187d0
-     fac_arr(4)=0.1359059177167001452365437d0
-     fac_arr(5)=0.1359059177167001452365437d0
-     fac_arr(6)=0.06795295885835007261827187d0
-  else if (l.eq.3 .and. i.eq.1 .and. m.eq.1) then
-     nterm=1
-     lx(1)=0 ; ly(1)=1 ; lz(1)=1
-     fac_arr(1)=1.414213562373095048801689d0
-  else if (l.eq.3 .and. i.eq.1 .and. m.eq.2) then
-     nterm=1
-     lx(1)=1 ; ly(1)=0 ; lz(1)=1
-     fac_arr(1)=1.414213562373095048801689d0
-  else if (l.eq.3 .and. i.eq.1 .and. m.eq.3) then
-     nterm=1
-     lx(1)=1 ; ly(1)=1 ; lz(1)=0
-     fac_arr(1)=1.414213562373095048801689d0
-  else if (l.eq.3 .and. i.eq.1 .and. m.eq.4) then
-     nterm=2
-     lx(1)=2 ; ly(1)=0 ; lz(1)=0
-     lx(2)=0 ; ly(2)=2 ; lz(2)=0
-     fac_arr(1)=0.7071067811865475244008444d0
-     fac_arr(2)=-0.7071067811865475244008444d0
-  else if (l.eq.3 .and. i.eq.1 .and. m.eq.5) then
-     nterm=3
-     lx(1)=2 ; ly(1)=0 ; lz(1)=0
-     lx(2)=0 ; ly(2)=2 ; lz(2)=0
-     lx(3)=0 ; ly(3)=0 ; lz(3)=2
-     fac_arr(1)=-0.4082482904638630163662140d0
-     fac_arr(2)=-0.4082482904638630163662140d0
-     fac_arr(3)=0.8164965809277260327324280d0
-  else if (l.eq.3 .and. i.eq.2 .and. m.eq.1) then
-     nterm=3
-     lx(1)=2 ; ly(1)=1 ; lz(1)=1
-     lx(2)=0 ; ly(2)=3 ; lz(2)=1
-     lx(3)=0 ; ly(3)=1 ; lz(3)=3
-     fac_arr(1)=0.3563483225498991795794046d0
-     fac_arr(2)=0.3563483225498991795794046d0
-     fac_arr(3)=0.3563483225498991795794046d0
-  else if (l.eq.3 .and. i.eq.2 .and. m.eq.2) then
-     nterm=3
-     lx(1)=3 ; ly(1)=0 ; lz(1)=1
-     lx(2)=1 ; ly(2)=2 ; lz(2)=1
-     lx(3)=1 ; ly(3)=0 ; lz(3)=3
-     fac_arr(1)=0.3563483225498991795794046d0
-     fac_arr(2)=0.3563483225498991795794046d0
-     fac_arr(3)=0.3563483225498991795794046d0
-  else if (l.eq.3 .and. i.eq.2 .and. m.eq.3) then
-     nterm=3
-     lx(1)=3 ; ly(1)=1 ; lz(1)=0
-     lx(2)=1 ; ly(2)=3 ; lz(2)=0
-     lx(3)=1 ; ly(3)=1 ; lz(3)=2
-     fac_arr(1)=0.3563483225498991795794046d0
-     fac_arr(2)=0.3563483225498991795794046d0
-     fac_arr(3)=0.3563483225498991795794046d0
-  else if (l.eq.3 .and. i.eq.2 .and. m.eq.4) then
-     nterm=4
-     lx(1)=4 ; ly(1)=0 ; lz(1)=0
-     lx(2)=0 ; ly(2)=4 ; lz(2)=0
-     lx(3)=2 ; ly(3)=0 ; lz(3)=2
-     lx(4)=0 ; ly(4)=2 ; lz(4)=2
-     fac_arr(1)=0.1781741612749495897897023d0
-     fac_arr(2)=-0.1781741612749495897897023d0
-     fac_arr(3)=0.1781741612749495897897023d0
-     fac_arr(4)=-0.1781741612749495897897023d0
-  else if (l.eq.3 .and. i.eq.2 .and. m.eq.5) then
-     nterm=6
-     lx(1)=4 ; ly(1)=0 ; lz(1)=0
-     lx(2)=2 ; ly(2)=2 ; lz(2)=0
-     lx(3)=0 ; ly(3)=4 ; lz(3)=0
-     lx(4)=2 ; ly(4)=0 ; lz(4)=2
-     lx(5)=0 ; ly(5)=2 ; lz(5)=2
-     lx(6)=0 ; ly(6)=0 ; lz(6)=4
-     fac_arr(1)=-0.1028688999747279401740630d0
-     fac_arr(2)=-0.2057377999494558803481260d0
-     fac_arr(3)=-0.1028688999747279401740630d0
-     fac_arr(4)=0.1028688999747279401740630d0
-     fac_arr(5)=0.1028688999747279401740630d0
-     fac_arr(6)=0.2057377999494558803481260d0
-  else if (l.eq.3 .and. i.eq.3 .and. m.eq.1) then
-     nterm=6
-     lx(1)=4 ; ly(1)=1 ; lz(1)=1
-     lx(2)=2 ; ly(2)=3 ; lz(2)=1
-     lx(3)=0 ; ly(3)=5 ; lz(3)=1
-     lx(4)=2 ; ly(4)=1 ; lz(4)=3
-     lx(5)=0 ; ly(5)=3 ; lz(5)=3
-     lx(6)=0 ; ly(6)=1 ; lz(6)=5
-     fac_arr(1)=0.05959868750235655989526993d0
-     fac_arr(2)=0.1191973750047131197905399d0
-     fac_arr(3)=0.05959868750235655989526993d0
-     fac_arr(4)=0.1191973750047131197905399d0
-     fac_arr(5)=0.1191973750047131197905399d0
-     fac_arr(6)=0.05959868750235655989526993d0
-  else if (l.eq.3 .and. i.eq.3 .and. m.eq.2) then
-     nterm=6
-     lx(1)=5 ; ly(1)=0 ; lz(1)=1
-     lx(2)=3 ; ly(2)=2 ; lz(2)=1
-     lx(3)=1 ; ly(3)=4 ; lz(3)=1
-     lx(4)=3 ; ly(4)=0 ; lz(4)=3
-     lx(5)=1 ; ly(5)=2 ; lz(5)=3
-     lx(6)=1 ; ly(6)=0 ; lz(6)=5
-     fac_arr(1)=0.05959868750235655989526993d0
-     fac_arr(2)=0.1191973750047131197905399d0
-     fac_arr(3)=0.05959868750235655989526993d0
-     fac_arr(4)=0.1191973750047131197905399d0
-     fac_arr(5)=0.1191973750047131197905399d0
-     fac_arr(6)=0.05959868750235655989526993d0
-  else if (l.eq.3 .and. i.eq.3 .and. m.eq.3) then
-     nterm=6
-     lx(1)=5 ; ly(1)=1 ; lz(1)=0
-     lx(2)=3 ; ly(2)=3 ; lz(2)=0
-     lx(3)=1 ; ly(3)=5 ; lz(3)=0
-     lx(4)=3 ; ly(4)=1 ; lz(4)=2
-     lx(5)=1 ; ly(5)=3 ; lz(5)=2
-     lx(6)=1 ; ly(6)=1 ; lz(6)=4
-     fac_arr(1)=0.05959868750235655989526993d0
-     fac_arr(2)=0.1191973750047131197905399d0
-     fac_arr(3)=0.05959868750235655989526993d0
-     fac_arr(4)=0.1191973750047131197905399d0
-     fac_arr(5)=0.1191973750047131197905399d0
-     fac_arr(6)=0.05959868750235655989526993d0
-  else if (l.eq.3 .and. i.eq.3 .and. m.eq.4) then
-     nterm=8
-     lx(1)=6 ; ly(1)=0 ; lz(1)=0
-     lx(2)=4 ; ly(2)=2 ; lz(2)=0
-     lx(3)=2 ; ly(3)=4 ; lz(3)=0
-     lx(4)=0 ; ly(4)=6 ; lz(4)=0
-     lx(5)=4 ; ly(5)=0 ; lz(5)=2
-     lx(6)=0 ; ly(6)=4 ; lz(6)=2
-     lx(7)=2 ; ly(7)=0 ; lz(7)=4
-     lx(8)=0 ; ly(8)=2 ; lz(8)=4
-     fac_arr(1)=0.02979934375117827994763496d0
-     fac_arr(2)=0.02979934375117827994763496d0
-     fac_arr(3)=-0.02979934375117827994763496d0
-     fac_arr(4)=-0.02979934375117827994763496d0
-     fac_arr(5)=0.05959868750235655989526993d0
-     fac_arr(6)=-0.05959868750235655989526993d0
-     fac_arr(7)=0.02979934375117827994763496d0
-     fac_arr(8)=-0.02979934375117827994763496d0
-  else if (l.eq.3 .and. i.eq.3 .and. m.eq.5) then
-     nterm=7
-     lx(1)=6 ; ly(1)=0 ; lz(1)=0
-     lx(2)=4 ; ly(2)=2 ; lz(2)=0
-     lx(3)=2 ; ly(3)=4 ; lz(3)=0
-     lx(4)=0 ; ly(4)=6 ; lz(4)=0
-     lx(5)=2 ; ly(5)=0 ; lz(5)=4
-     lx(6)=0 ; ly(6)=2 ; lz(6)=4
-     lx(7)=0 ; ly(7)=0 ; lz(7)=6
-     fac_arr(1)=-0.01720465913641697233541246d0
-     fac_arr(2)=-0.05161397740925091700623738d0
-     fac_arr(3)=-0.05161397740925091700623738d0
-     fac_arr(4)=-0.01720465913641697233541246d0
-     fac_arr(5)=0.05161397740925091700623738d0
-     fac_arr(6)=0.05161397740925091700623738d0
-     fac_arr(7)=0.03440931827283394467082492d0
-  else if (l.eq.4 .and. i.eq.1 .and. m.eq.1) then
-     nterm=3
-     lx(1)=3 ; ly(1)=0 ; lz(1)=0
-     lx(2)=1 ; ly(2)=2 ; lz(2)=0
-     lx(3)=1 ; ly(3)=0 ; lz(3)=2
-     fac_arr(1)=0.3162277660168379331998894d0
-     fac_arr(2)=0.3162277660168379331998894d0
-     fac_arr(3)=-1.264911064067351732799557d0
-  else if (l.eq.4 .and. i.eq.1 .and. m.eq.2) then
-     nterm=3
-     lx(1)=2 ; ly(1)=1 ; lz(1)=0
-     lx(2)=0 ; ly(2)=3 ; lz(2)=0
-     lx(3)=0 ; ly(3)=1 ; lz(3)=2
-     fac_arr(1)=0.3162277660168379331998894d0
-     fac_arr(2)=0.3162277660168379331998894d0
-     fac_arr(3)=-1.264911064067351732799557d0
-  else if (l.eq.4 .and. i.eq.1 .and. m.eq.3) then
-     nterm=3
-     lx(1)=2 ; ly(1)=0 ; lz(1)=1
-     lx(2)=0 ; ly(2)=2 ; lz(2)=1
-     lx(3)=0 ; ly(3)=0 ; lz(3)=3
-     fac_arr(1)=0.7745966692414833770358531d0
-     fac_arr(2)=0.7745966692414833770358531d0
-     fac_arr(3)=-0.5163977794943222513572354d0
-  else if (l.eq.4 .and. i.eq.1 .and. m.eq.4) then
-     nterm=2
-     lx(1)=3 ; ly(1)=0 ; lz(1)=0
-     lx(2)=1 ; ly(2)=2 ; lz(2)=0
-     fac_arr(1)=0.4082482904638630163662140d0
-     fac_arr(2)=-1.224744871391589049098642d0
-  else if (l.eq.4 .and. i.eq.1 .and. m.eq.5) then
-     nterm=2
-     lx(1)=2 ; ly(1)=1 ; lz(1)=0
-     lx(2)=0 ; ly(2)=3 ; lz(2)=0
-     fac_arr(1)=-1.224744871391589049098642d0
-     fac_arr(2)=0.4082482904638630163662140d0
-  else if (l.eq.4 .and. i.eq.1 .and. m.eq.6) then
-     nterm=2
-     lx(1)=2 ; ly(1)=0 ; lz(1)=1
-     lx(2)=0 ; ly(2)=2 ; lz(2)=1
-     fac_arr(1)=1.000000000000000000000000d0
-     fac_arr(2)=-1.000000000000000000000000d0
-  else if (l.eq.4 .and. i.eq.1 .and. m.eq.7) then
-     nterm=1
-     lx(1)=1 ; ly(1)=1 ; lz(1)=1
-     fac_arr(1)=2.000000000000000000000000d0
-  else if (l.eq.4 .and. i.eq.2 .and. m.eq.1) then
-     nterm=6
-     lx(1)=5 ; ly(1)=0 ; lz(1)=0
-     lx(2)=3 ; ly(2)=2 ; lz(2)=0
-     lx(3)=1 ; ly(3)=4 ; lz(3)=0
-     lx(4)=3 ; ly(4)=0 ; lz(4)=2
-     lx(5)=1 ; ly(5)=2 ; lz(5)=2
-     lx(6)=1 ; ly(6)=0 ; lz(6)=4
-     fac_arr(1)=0.06356417261637282102978506d0
-     fac_arr(2)=0.1271283452327456420595701d0
-     fac_arr(3)=0.06356417261637282102978506d0
-     fac_arr(4)=-0.1906925178491184630893552d0
-     fac_arr(5)=-0.1906925178491184630893552d0
-     fac_arr(6)=-0.2542566904654912841191402d0
-  else if (l.eq.4 .and. i.eq.2 .and. m.eq.2) then
-     nterm=6
-     lx(1)=4 ; ly(1)=1 ; lz(1)=0
-     lx(2)=2 ; ly(2)=3 ; lz(2)=0
-     lx(3)=0 ; ly(3)=5 ; lz(3)=0
-     lx(4)=2 ; ly(4)=1 ; lz(4)=2
-     lx(5)=0 ; ly(5)=3 ; lz(5)=2
-     lx(6)=0 ; ly(6)=1 ; lz(6)=4
-     fac_arr(1)=0.06356417261637282102978506d0
-     fac_arr(2)=0.1271283452327456420595701d0
-     fac_arr(3)=0.06356417261637282102978506d0
-     fac_arr(4)=-0.1906925178491184630893552d0
-     fac_arr(5)=-0.1906925178491184630893552d0
-     fac_arr(6)=-0.2542566904654912841191402d0
-  else if (l.eq.4 .and. i.eq.2 .and. m.eq.3) then
-     nterm=6
-     lx(1)=4 ; ly(1)=0 ; lz(1)=1
-     lx(2)=2 ; ly(2)=2 ; lz(2)=1
-     lx(3)=0 ; ly(3)=4 ; lz(3)=1
-     lx(4)=2 ; ly(4)=0 ; lz(4)=3
-     lx(5)=0 ; ly(5)=2 ; lz(5)=3
-     lx(6)=0 ; ly(6)=0 ; lz(6)=5
-     fac_arr(1)=0.1556997888323045941832351d0
-     fac_arr(2)=0.3113995776646091883664703d0
-     fac_arr(3)=0.1556997888323045941832351d0
-     fac_arr(4)=0.05189992961076819806107838d0
-     fac_arr(5)=0.05189992961076819806107838d0
-     fac_arr(6)=-0.1037998592215363961221568d0
-  else if (l.eq.4 .and. i.eq.2 .and. m.eq.4) then
-     nterm=5
-     lx(1)=5 ; ly(1)=0 ; lz(1)=0
-     lx(2)=3 ; ly(2)=2 ; lz(2)=0
-     lx(3)=1 ; ly(3)=4 ; lz(3)=0
-     lx(4)=3 ; ly(4)=0 ; lz(4)=2
-     lx(5)=1 ; ly(5)=2 ; lz(5)=2
-     fac_arr(1)=0.08206099398622182182282711d0
-     fac_arr(2)=-0.1641219879724436436456542d0
-     fac_arr(3)=-0.2461829819586654654684813d0
-     fac_arr(4)=0.08206099398622182182282711d0
-     fac_arr(5)=-0.2461829819586654654684813d0
-  else if (l.eq.4 .and. i.eq.2 .and. m.eq.5) then
-     nterm=5
-     lx(1)=4 ; ly(1)=1 ; lz(1)=0
-     lx(2)=2 ; ly(2)=3 ; lz(2)=0
-     lx(3)=0 ; ly(3)=5 ; lz(3)=0
-     lx(4)=2 ; ly(4)=1 ; lz(4)=2
-     lx(5)=0 ; ly(5)=3 ; lz(5)=2
-     fac_arr(1)=-0.2461829819586654654684813d0
-     fac_arr(2)=-0.1641219879724436436456542d0
-     fac_arr(3)=0.08206099398622182182282711d0
-     fac_arr(4)=-0.2461829819586654654684813d0
-     fac_arr(5)=0.08206099398622182182282711d0
-  else if (l.eq.4 .and. i.eq.2 .and. m.eq.6) then
-     nterm=4
-     lx(1)=4 ; ly(1)=0 ; lz(1)=1
-     lx(2)=0 ; ly(2)=4 ; lz(2)=1
-     lx(3)=2 ; ly(3)=0 ; lz(3)=3
-     lx(4)=0 ; ly(4)=2 ; lz(4)=3
-     fac_arr(1)=0.2010075630518424150978747d0
-     fac_arr(2)=-0.2010075630518424150978747d0
-     fac_arr(3)=0.2010075630518424150978747d0
-     fac_arr(4)=-0.2010075630518424150978747d0
-  else if (l.eq.4 .and. i.eq.2 .and. m.eq.7) then
-     nterm=3
-     lx(1)=3 ; ly(1)=1 ; lz(1)=1
-     lx(2)=1 ; ly(2)=3 ; lz(2)=1
-     lx(3)=1 ; ly(3)=1 ; lz(3)=3
-     fac_arr(1)=0.4020151261036848301957494d0
-     fac_arr(2)=0.4020151261036848301957494d0
-     fac_arr(3)=0.4020151261036848301957494d0
-  else if (l.eq.4 .and. i.eq.3 .and. m.eq.1) then
-     nterm=10
-     lx(1)=7 ; ly(1)=0 ; lz(1)=0
-     lx(2)=5 ; ly(2)=2 ; lz(2)=0
-     lx(3)=3 ; ly(3)=4 ; lz(3)=0
-     lx(4)=1 ; ly(4)=6 ; lz(4)=0
-     lx(5)=5 ; ly(5)=0 ; lz(5)=2
-     lx(6)=3 ; ly(6)=2 ; lz(6)=2
-     lx(7)=1 ; ly(7)=4 ; lz(7)=2
-     lx(8)=3 ; ly(8)=0 ; lz(8)=4
-     lx(9)=1 ; ly(9)=2 ; lz(9)=4
-     lx(10)=1 ; ly(10)=0 ; lz(10)=6
-     fac_arr(1)=0.009103849893318918298413687d0
-     fac_arr(2)=0.02731154967995675489524106d0
-     fac_arr(3)=0.02731154967995675489524106d0
-     fac_arr(4)=0.009103849893318918298413687d0
-     fac_arr(5)=-0.01820769978663783659682737d0
-     fac_arr(6)=-0.03641539957327567319365475d0
-     fac_arr(7)=-0.01820769978663783659682737d0
-     fac_arr(8)=-0.06372694925323242808889581d0
-     fac_arr(9)=-0.06372694925323242808889581d0
-     fac_arr(10)=-0.03641539957327567319365475d0
-  else if (l.eq.4 .and. i.eq.3 .and. m.eq.2) then
-     nterm=10
-     lx(1)=6 ; ly(1)=1 ; lz(1)=0
-     lx(2)=4 ; ly(2)=3 ; lz(2)=0
-     lx(3)=2 ; ly(3)=5 ; lz(3)=0
-     lx(4)=0 ; ly(4)=7 ; lz(4)=0
-     lx(5)=4 ; ly(5)=1 ; lz(5)=2
-     lx(6)=2 ; ly(6)=3 ; lz(6)=2
-     lx(7)=0 ; ly(7)=5 ; lz(7)=2
-     lx(8)=2 ; ly(8)=1 ; lz(8)=4
-     lx(9)=0 ; ly(9)=3 ; lz(9)=4
-     lx(10)=0 ; ly(10)=1 ; lz(10)=6
-     fac_arr(1)=0.009103849893318918298413687d0
-     fac_arr(2)=0.02731154967995675489524106d0
-     fac_arr(3)=0.02731154967995675489524106d0
-     fac_arr(4)=0.009103849893318918298413687d0
-     fac_arr(5)=-0.01820769978663783659682737d0
-     fac_arr(6)=-0.03641539957327567319365475d0
-     fac_arr(7)=-0.01820769978663783659682737d0
-     fac_arr(8)=-0.06372694925323242808889581d0
-     fac_arr(9)=-0.06372694925323242808889581d0
-     fac_arr(10)=-0.03641539957327567319365475d0
-  else if (l.eq.4 .and. i.eq.3 .and. m.eq.3) then
-     nterm=10
-     lx(1)=6 ; ly(1)=0 ; lz(1)=1
-     lx(2)=4 ; ly(2)=2 ; lz(2)=1
-     lx(3)=2 ; ly(3)=4 ; lz(3)=1
-     lx(4)=0 ; ly(4)=6 ; lz(4)=1
-     lx(5)=4 ; ly(5)=0 ; lz(5)=3
-     lx(6)=2 ; ly(6)=2 ; lz(6)=3
-     lx(7)=0 ; ly(7)=4 ; lz(7)=3
-     lx(8)=2 ; ly(8)=0 ; lz(8)=5
-     lx(9)=0 ; ly(9)=2 ; lz(9)=5
-     lx(10)=0 ; ly(10)=0 ; lz(10)=7
-     fac_arr(1)=0.02229978693352242055222348d0
-     fac_arr(2)=0.06689936080056726165667044d0
-     fac_arr(3)=0.06689936080056726165667044d0
-     fac_arr(4)=0.02229978693352242055222348d0
-     fac_arr(5)=0.02973304924469656073629797d0
-     fac_arr(6)=0.05946609848939312147259594d0
-     fac_arr(7)=0.02973304924469656073629797d0
-     fac_arr(8)=-0.007433262311174140184074493d0
-     fac_arr(9)=-0.007433262311174140184074493d0
-     fac_arr(10)=-0.01486652462234828036814899d0
-  else if (l.eq.4 .and. i.eq.3 .and. m.eq.4) then
-     nterm=9
-     lx(1)=7 ; ly(1)=0 ; lz(1)=0
-     lx(2)=5 ; ly(2)=2 ; lz(2)=0
-     lx(3)=3 ; ly(3)=4 ; lz(3)=0
-     lx(4)=1 ; ly(4)=6 ; lz(4)=0
-     lx(5)=5 ; ly(5)=0 ; lz(5)=2
-     lx(6)=3 ; ly(6)=2 ; lz(6)=2
-     lx(7)=1 ; ly(7)=4 ; lz(7)=2
-     lx(8)=3 ; ly(8)=0 ; lz(8)=4
-     lx(9)=1 ; ly(9)=2 ; lz(9)=4
-     fac_arr(1)=0.01175301967439877980816756d0
-     fac_arr(2)=-0.01175301967439877980816756d0
-     fac_arr(3)=-0.05876509837199389904083778d0
-     fac_arr(4)=-0.03525905902319633942450267d0
-     fac_arr(5)=0.02350603934879755961633511d0
-     fac_arr(6)=-0.04701207869759511923267022d0
-     fac_arr(7)=-0.07051811804639267884900533d0
-     fac_arr(8)=0.01175301967439877980816756d0
-     fac_arr(9)=-0.03525905902319633942450267d0
-  else if (l.eq.4 .and. i.eq.3 .and. m.eq.5) then
-     nterm=9
-     lx(1)=6 ; ly(1)=1 ; lz(1)=0
-     lx(2)=4 ; ly(2)=3 ; lz(2)=0
-     lx(3)=2 ; ly(3)=5 ; lz(3)=0
-     lx(4)=0 ; ly(4)=7 ; lz(4)=0
-     lx(5)=4 ; ly(5)=1 ; lz(5)=2
-     lx(6)=2 ; ly(6)=3 ; lz(6)=2
-     lx(7)=0 ; ly(7)=5 ; lz(7)=2
-     lx(8)=2 ; ly(8)=1 ; lz(8)=4
-     lx(9)=0 ; ly(9)=3 ; lz(9)=4
-     fac_arr(1)=-0.03525905902319633942450267d0
-     fac_arr(2)=-0.05876509837199389904083778d0
-     fac_arr(3)=-0.01175301967439877980816756d0
-     fac_arr(4)=0.01175301967439877980816756d0
-     fac_arr(5)=-0.07051811804639267884900533d0
-     fac_arr(6)=-0.04701207869759511923267022d0
-     fac_arr(7)=0.02350603934879755961633511d0
-     fac_arr(8)=-0.03525905902319633942450267d0
-     fac_arr(9)=0.01175301967439877980816756d0
-  else if (l.eq.4 .and. i.eq.3 .and. m.eq.6) then
-     nterm=8
-     lx(1)=6 ; ly(1)=0 ; lz(1)=1
-     lx(2)=4 ; ly(2)=2 ; lz(2)=1
-     lx(3)=2 ; ly(3)=4 ; lz(3)=1
-     lx(4)=0 ; ly(4)=6 ; lz(4)=1
-     lx(5)=4 ; ly(5)=0 ; lz(5)=3
-     lx(6)=0 ; ly(6)=4 ; lz(6)=3
-     lx(7)=2 ; ly(7)=0 ; lz(7)=5
-     lx(8)=0 ; ly(8)=2 ; lz(8)=5
-     fac_arr(1)=0.02878890113916869875409405d0
-     fac_arr(2)=0.02878890113916869875409405d0
-     fac_arr(3)=-0.02878890113916869875409405d0
-     fac_arr(4)=-0.02878890113916869875409405d0
-     fac_arr(5)=0.05757780227833739750818811d0
-     fac_arr(6)=-0.05757780227833739750818811d0
-     fac_arr(7)=0.02878890113916869875409405d0
-     fac_arr(8)=-0.02878890113916869875409405d0
-  else if (l.eq.4 .and. i.eq.3 .and. m.eq.7) then
-     nterm=6
-     lx(1)=5 ; ly(1)=1 ; lz(1)=1
-     lx(2)=3 ; ly(2)=3 ; lz(2)=1
-     lx(3)=1 ; ly(3)=5 ; lz(3)=1
-     lx(4)=3 ; ly(4)=1 ; lz(4)=3
-     lx(5)=1 ; ly(5)=3 ; lz(5)=3
-     lx(6)=1 ; ly(6)=1 ; lz(6)=5
-     fac_arr(1)=0.05757780227833739750818811d0
-     fac_arr(2)=0.1151556045566747950163762d0
-     fac_arr(3)=0.05757780227833739750818811d0
-     fac_arr(4)=0.1151556045566747950163762d0
-     fac_arr(5)=0.1151556045566747950163762d0
-     fac_arr(6)=0.05757780227833739750818811d0
-
-  else
-     stop 'PSP format error'
-  endif
-  
-END SUBROUTINE calc_coeff_proj
-
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
         subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
@@ -5149,11 +3926,15 @@ END SUBROUTINE calc_coeff_proj
         else
         dev=dev+scpr**2
         endif
-        if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler)  write(*,'(1x,a,3(1x,i0))') 'ERROR ORTHO',iorb,jorb,scpr
-        if (iorb.ne.jorb .and. abs(scpr).gt.toler)       write(*,'(1x,a,3(1x,i0))') 'ERROR ORTHO',iorb,jorb,scpr
+        if (iproc == 0) then
+           if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler) write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+                'ERROR ORTHO',iorb,jorb,scpr
+           if (iorb.ne.jorb .and. abs(scpr).gt.toler)      write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+                'ERROR ORTHO',iorb,jorb,scpr
+        end if
 110     continue
 
-        if (dev.gt.1.d-10) write(*,'(1x,a,i0,1pe13.5)') 'Deviation from orthogonality ',iproc,dev
+        if (dev.gt.toler) write(*,'(1x,a,i0,1pe13.5)') 'Deviation from orthogonality ',iproc,dev
 
         i_all=-product(shape(ovrlp))*kind(ovrlp)
         deallocate(ovrlp,stat=i_stat)
@@ -5186,9 +3967,11 @@ END SUBROUTINE calc_coeff_proj
         else
         dev=dev+scpr**2
         endif
-        if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler)  write(*,'(1x,a,3(1x,i0))') 'ERROR ORTHO',iorb,jorb,scpr
-        if (iorb.ne.jorb .and. abs(scpr).gt.toler)       write(*,'(1x,a,3(1x,i0))') 'ERROR ORTHO',iorb,jorb,scpr
-     enddo  ; enddo
+        if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler) write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+             'ERROR ORTHO',iorb,jorb,scpr
+        if (iorb.ne.jorb .and. abs(scpr).gt.toler)      write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+             'ERROR ORTHO',iorb,jorb,scpr
+     enddo; enddo
 
         if (dev.gt.1.d-10) write(*,'(1x,a,i0,1pe13.5)') 'Deviation from orthogonality ',0,dev
 
@@ -5202,179 +3985,274 @@ END SUBROUTINE calc_coeff_proj
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
-subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
-     & psppar,npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,&
-     & scorb,norbsc_arr)
+subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+     nat,norb,norbp,occup,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
+     rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
+     atomnames,ntypes,iatype,pkernel,psppar,npspcode,ixc,&
+     psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr)
+  ! Input wavefunctions are found by a diagonalization in a minimal basis set
+  ! Each processors writes its initial wavefunctions into the wavefunction file
+  ! The files are then read by readwave
+
+  use Poisson_Solver
+
   implicit none
-! character(len = *), intent(in) :: filename
-  integer, intent(in) :: ngx, iproc, ntypes
-  integer, intent(in) :: nzatom(ntypes), nelpsp(ntypes)
-  real*8, intent(in) :: psppar(0:4,0:4,ntypes)
-  integer, intent(in) :: npspcode(ntypes),iasctype(ntypes)
-  real*8, intent(out) :: xp(ngx, ntypes), psiat(ngx, 5, ntypes), occupat(5, ntypes)
-  integer, intent(out) :: ng(ntypes), nl(4,ntypes)
-  character(len = 20), intent(in) :: atomnames(100)
-  integer, intent(out) :: norbe,norbsc
-  integer, intent(in) :: nat,natsc
-  integer, intent(in) :: iatype(nat)
-  logical, dimension(4,natsc), intent(out) :: scorb
-  integer, dimension(natsc+1), intent(out) :: norbsc_arr
+  include 'mpif.h'
+  logical, intent(in) :: parallel
+  character(len=20), dimension(100), intent(in) :: atomnames
+  character(len=1), intent(in) :: datacode
+  integer, intent(in) :: iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nprojel,nproj,ixc
+  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nvctrp,nseg_c,nseg_f
+  real(kind=8), intent(in) :: hgrid
+  real(kind=8), intent(out) :: accurex
+  integer, dimension(nat), intent(in) :: iatype
+  integer, dimension(ntypes), intent(in) :: npspcode
+  integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+  integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
+  integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
+  integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
+  real(kind=8), dimension(norb), intent(in) :: occup
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(nprojel), intent(in) :: proj
+  real(kind=8), dimension(*), intent(in) :: pkernel
+  real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
+  real(kind=8), dimension(norb), intent(out) :: eval
+  real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
+  !real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: ppsi
+  !local variables
+  integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp
+  real(kind=8) :: hgridh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum
+  real(kind=8), dimension(:), allocatable :: work_lp,pot
+  real(kind=8), dimension(:,:), allocatable :: hamovr
 
-  character(len = 20) :: pspatomname
-  logical :: exists,found
-  integer :: ity,i,j,l,ipsp,ifile,ng_fake,ierror,iatsc,iat,ipow,lsc,inorbsc,iorbsc_count
-  real(kind=8) :: sccode
-
-! Read the data file.
-  nl(1:4,1:ntypes) = 0
-  ng(1:ntypes) = 0
-  xp(1:ngx,1:ntypes) = 0.d0
-  psiat(1:ngx,1:5,1:ntypes) = 0.d0
-  occupat(1:5,1:ntypes)= 0.d0
-
-! Test if the file 'inguess.dat exists
-  inquire(file='inguess.dat',exist=exists)
-  if (exists) then
-     open(unit=24,file='inguess.dat',form='formatted',action='read',status='old')
+  if (iproc.eq.0) then
+     write(*,'(1x,a)')&
+          '--------------------------------------------------------- Import Gaussians from CP2K'
   end if
 
-  loop_assign: do ity=1,ntypes
+  hgridh=.5d0*hgrid
 
-     if (exists) then
-        rewind(24)
-     end if
-     found = .false.
+  if (parallel) then
+     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+     allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','import_gaussians')
+  else
+     allocate(psi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','import_gaussians')
+  end if
 
-     loop_find: do
-        if (.not.exists) then
-!          The file 'inguess.dat' does not exist: automatic generation
-           exit loop_find
-        end if
-        read(24,'(a)',iostat=ierror) pspatomname
-        if (ierror /= 0) then
-!          Read error or end of file
-           exit loop_find
-        end if
+  !read the values for the gaussian code and insert them on psi 
+ call gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+       nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,occup,rxyz,hgrid,psi,eks)
 
-        if (pspatomname .eq. atomnames(ity)) then
-           if (iproc.eq.0) then
-              write(*,'(1x,a,a,a)') 'input wavefunction data for atom ',trim(atomnames(ity)),&
-                   ' found'
-           end if
-           found = .true.
-           read(24,*) nl(1,ity),(occupat(i,ity),i=1,nl(1,ity)),  &
-                nl(2,ity),(occupat(i,ity),i=1+nl(1,ity),nl(2,ity)+nl(1,ity)) ,&
-                nl(3,ity),(occupat(i,ity),i=1+nl(2,ity)+nl(1,ity),nl(3,ity)+nl(2,ity)+nl(1,ity)) ,&
-                nl(4,ity),(occupat(i,ity),&
-                i=1+nl(3,ity)+nl(2,ity)+nl(1,ity),nl(4,ity)+nl(3,ity)+nl(2,ity)+nl(1,ity))
-           !print *,nl(:,ity),occupat(:,ity)
-           if (nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity).gt.5) then
-              print *,'error: number of valence orbitals too big'
-              print *,nl(:,ity),occupat(:,ity)
-              stop
-           end if
-           read(24,*) ng(ity)
-           !print *, pspatomnames(ity),(nl(l,ity),l=1,4),ng(ity),ngx,npsp
-           if (ng(ity).gt.ngx) stop 'enlarge ngx'
-           !read(24,'(30(e12.5))') (xp(i,ity)  ,i=1,ng(ity))
-           read(24,*) (xp(i,ity)  ,i=1,ng(ity))
-           do i=1,ng(ity) 
-              read(24,*) (psiat(i,j,ity),j=1,nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity))
-           enddo
+!!$  !plot the initial gaussian wavefunctions
+!!$  do i=2*iproc+1,2*iproc+2
+!!$     iounit=15+3*(i-1)
+!!$     print *,'iounit',iounit,'-',iounit+2
+!!$     call plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,  & 
+!!$          rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc))
+!!$  end do
 
-           exit loop_find
-
-        else
-
-           read(24,*)
-           read(24,*)ng_fake
-           read(24,*) 
-           do i=1,ng_fake
-              read(24,*)
-           enddo
-
-        end if
-
-     enddo loop_find
-
-     if (.not.found) then
-
-        if (iproc.eq.0) then
-           write(*,'(1x,a,a6,a)',advance='no')&
-                'Input wavefunction data for atom ',trim(atomnames(ity)),&
-                ' NOT found, automatic generation...'
-        end if
-
-        !the default value for the gaussians is chosen to be 21
-        ng(ity)=21
-        call iguess_generator(iproc, nzatom(ity), nelpsp(ity),psppar(0,0,ity),npspcode(ity),&
-             ng(ity)-1,nl(1,ity),5,occupat(1:5,ity),xp(1:ng(ity),ity),psiat(1:ng(ity),1:5,ity))
-
-!values obtained from the input guess generator in iguess.dat format
-        !write these values on a file
-        if (iproc .eq. 0) then
-           open(unit=12,file='inguess.new',status='unknown')
-
-           !write(*,*)' --------COPY THESE VALUES INSIDE inguess.dat--------'
-           write(12,*)trim(atomnames(ity))//' (remove _lda)'
-           write(12,*)nl(1,ity),(occupat(i,ity),i=1,nl(1,ity)),&
-                nl(2,ity),(occupat(i+nl(1,ity),ity),i=1,nl(2,ity)),&
-                nl(3,ity),(occupat(i+nl(1,ity)+nl(2,ity),ity),i=1,nl(3,ity)),&
-                nl(4,ity),(occupat(i+nl(1,ity)+nl(2,ity)+nl(3,ity),ity),i=1,nl(4,ity))
-           write(12,*)ng(ity)
-           write(12,'(30(e12.5))')xp(1:ng(ity),ity)
-           do j=1,ng(ity)
-              write(12,*)(psiat(j,i,ity),i=1,nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity))
-           end do
-           !print *,' --------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------'
-           write(*,'(1x,a)')'done.'
-        end if
-
-     end if
+  ! resulting charge density and potential
+  if (datacode=='G') then
+     call sumrho_old(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot)
+  else
+     call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
+          (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr)
+  end if
+  !      ixc=1   ! LDA functional
+  call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
+       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.)
 
 
-  end do loop_assign
+  if (parallel) then
+     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+     allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','import_gaussians')
+  else
+     allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','import_gaussians')
+  end if
 
-  close(unit=24)
 
-  ! number of orbitals, total and semicore
-  norbe=0
-  norbsc=0
-  iatsc=0
-  do iat=1,nat
-     ity=iatype(iat)
-     norbe=norbe+nl(1,ity)+3*nl(2,ity)+5*nl(3,ity)+7*nl(4,ity)
-      if (iasctype(ity)/=0) then !the atom has some semicore orbitals
-        iatsc=iatsc+1
-        sccode=real(iasctype(ity),kind=8)
-        inorbsc=ceiling(dlog(sccode)/dlog(10.d0))
-        if (sccode==1.d0) inorbsc=1
-        ipow=inorbsc-1
-        scorb(:,iatsc)=.false.
-        !count the semicore orbitals for this atom
-        iorbsc_count=0
-        do i=1,inorbsc
-           lsc=floor(sccode/10.d0**ipow)
-           iorbsc_count=iorbsc_count+(2*lsc-1)
-           scorb(lsc,iatsc)=.true.
-           sccode=sccode-real(lsc,kind=8)*10.d0**ipow
-           ipow=ipow-1
-           !print *,iasctype(ity),inorbsc,lsc
+  call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
+       psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+       nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
+       nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,nscatterarr(iproc,2),&
+       rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
+       psi,hpsi,ekin_sum,epot_sum,eproj_sum)
+
+  accurex=abs(eks-ekin_sum)
+  if (iproc.eq.0) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
+
+
+  !after having applied the hamiltonian to all the atomic orbitals
+  !we split the semicore orbitals from the valence ones
+  !this is possible since the semicore orbitals are the first in the 
+  !order, so the linear algebra on the transposed wavefunctions 
+  !may be splitted
+
+  if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
+       'Imported Wavefunctions Orthogonalization:'
+
+  if (parallel) then
+
+     !transpose all the wavefunctions for having a piece of all the orbitals 
+     !for each processor
+     call timing(iproc,'Un-Transall   ','ON')
+     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+     allocate(psit(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(psit))*kind(psit),'psit','import_gaussians')
+
+     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
+     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+          psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+
+     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psit)
+     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+
+     call timing(iproc,'Un-Transall   ','OF')
+     !end of transposition
+
+     allocate(hamovr(norb**2,4),stat=i_stat)
+     call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','import_gaussians')
+
+     !calculate the overlap matrix for each group of the semicore atoms
+!       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
+!       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
+
+     if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
+          'Overlap Matrix...'
+
+     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,&
+          0.d0,hamovr(1,3),norb)
+
+     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,psi,nvctrp,&
+          0.d0,hamovr(1,4),norb)
+     
+     !reduce the overlap matrix between all the processors
+     call MPI_ALLREDUCE(hamovr(1,3),hamovr(1,1),2*norb**2,&
+          MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+     !found the eigenfunctions for each group
+     n_lp=max(10,4*norb)
+     allocate(work_lp(n_lp),stat=i_stat)
+     call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','import_gaussians')
+     
+     if (iproc.eq.0) write(*,'(1x,a)')'Linear Algebra...'
+
+     call DSYGV(1,'V','U',norb,hamovr(1,1),norb,hamovr(1,2),norb,eval,work_lp,n_lp,info)
+
+     if (info.ne.0) write(*,*) 'DSYGV ERROR',info
+!!$        !write the matrices on a file
+!!$        open(33+2*(i-1))
+!!$        do jjorb=1,norbi
+!!$           write(33+2*(i-1),'(2000(1pe10.2))')&
+!!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
+!!$        end do
+!!$        close(33+2*(i-1))
+!!$        open(34+2*(i-1))
+!!$        do jjorb=1,norbi
+!!$           write(34+2*(i-1),'(2000(1pe10.2))')&
+!!$                (hamovr(imatrst-1+jjorb+(jiorb-1)*norbi,1),jiorb=1,norbi)
+!!$        end do
+!!$        close(34+2*(i-1))
+
+     if (iproc.eq.0) then
+        do iorb=1,norb
+           write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
+        enddo
+     endif
+
+     i_all=-product(shape(work_lp))*kind(work_lp)
+     deallocate(work_lp,stat=i_stat)
+     call memocc(i_stat,i_all,'work_lp','import_gaussians')
+
+     if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Imported Wavefunctions...'
+
+     !perform the vector-matrix multiplication for building the input wavefunctions
+     ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
+
+     call DGEMM('N','N',nvctrp,norb,norb,1.d0,psi,nvctrp,&
+          hamovr(1,1),norb,0.d0,psit,nvctrp)
+
+     i_all=-product(shape(hamovr))*kind(hamovr)
+     deallocate(hamovr,stat=i_stat)
+     call memocc(i_stat,i_all,'hamovr','import_gaussians')
+   
+     !retranspose the wavefunctions
+     call timing(iproc,'Un-Transall   ','ON')
+     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+
+     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+
+     call timing(iproc,'Un-Transall   ','OF')
+
+  else !serial case
+
+     write(*,'(1x,a)',advance='no')'Overlap Matrix...'
+
+     allocate(hamovr(norb**2,4),stat=i_stat)
+     call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','import_gaussians')
+     !hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
+     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,&
+          0.d0,hamovr(1,1),norb)
+     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,psi,nvctrp,&
+             0.d0,hamovr(1,2),norb)
+
+     n_lp=max(10,4*norb)
+     allocate(work_lp(n_lp),stat=i_stat)
+     call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','import_gaussians')
+
+     write(*,'(1x,a)')'Linear Algebra...'
+     call DSYGV(1,'V','U',norb,hamovr(1,1),norb,hamovr(1,2),norb,eval,work_lp,n_lp,info)
+
+     if (info.ne.0) write(*,*) 'DSYGV ERROR',info
+     if (iproc.eq.0) then
+        do iorb=1,norb
+           write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb,')=',eval(iorb)
+        enddo
+     endif
+
+     i_all=-product(shape(work_lp))*kind(work_lp)
+     deallocate(work_lp,stat=i_stat)
+     call memocc(i_stat,i_all,'work_lp','import_gaussians')
+
+     write(*,'(1x,a)',advance='no')'Building orthogonal Imported Wavefunctions...'
+
+     !copy the values into hpsi
+     do iorb=1,norb
+        do i=1,nvctr_c+7*nvctr_f
+           hpsi(i,iorb)=psi(i,iorb)
         end do
-        norbsc_arr(iatsc)=iorbsc_count
-        norbsc=norbsc+iorbsc_count
-     end if
-  end do
-  !orbitals which are non semicore
-  norbsc_arr(natsc+1)=norbe-norbsc
+     end do
+     !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
+     call DGEMM('N','N',nvctrp,norb,norb,1.d0,hpsi,nvctrp,hamovr(1,1),norb,0.d0,psi,nvctrp)
 
-  if (iproc ==0) then
-     write(*,'(1x,a,i0,a)')'Generating ',norbe,' Atomic Input Orbitals'
-     if (norbsc /=0)   write(*,'(1x,a,i0,a)')'  of which ',norbsc,' are semicore orbitals'
-  end if
+     i_all=-product(shape(hamovr))*kind(hamovr)
+     deallocate(hamovr,stat=i_stat)
+     call memocc(i_stat,i_all,'hamovr','import_gaussians')
+
+  endif
+
+  if (iproc.eq.0) write(*,'(1x,a)')'done.'
+
+  return
+END SUBROUTINE import_gaussians
 
 
-END SUBROUTINE 
 
 subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
@@ -6541,121 +5419,8 @@ END SUBROUTINE
     END SUBROUTINE
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
-        subroutine plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,rx,ry,rz,psi)
-        implicit real*8 (a-h,o-z)
-        dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-        dimension psi(nvctr_c+7*nvctr_f)
-        real*8, allocatable :: psifscf(:),psir(:),psig(:,:,:,:,:,:)
-
-        allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_stat)
-        call memocc(i_stat,product(shape(psig))*kind(psig),'psig','plot_wf')
-        allocate(psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)),stat=i_stat)
-        call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','plot_wf')
-        allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
-        call memocc(i_stat,product(shape(psir))*kind(psir),'psir','plot_wf')
-
-        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
-                    nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-                    psi(1),psi(nvctr_c+1),psig)
-        call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n1+2))
-        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) 
-
-        call plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,psir)
-
-        i_all=-product(shape(psig))*kind(psig)
-        deallocate(psig,stat=i_stat)
-        call memocc(i_stat,i_all,'psig','plot_wf')
-        i_all=-product(shape(psifscf))*kind(psifscf)
-        deallocate(psifscf,stat=i_stat)
-        call memocc(i_stat,i_all,'psifscf','plot_wf')
-        i_all=-product(shape(psir))*kind(psir)
-        deallocate(psir,stat=i_stat)
-        call memocc(i_stat,i_all,'psir','plot_wf')
-        return
-    END SUBROUTINE
 
 
-
-
-        subroutine plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,pot)
-        implicit real*8 (a-h,o-z)
-        dimension pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
-
-        hgridh=.5d0*hgrid
-        open(iounit) 
-        open(iounit+1) 
-        open(iounit+2) 
-
-        i3=nint(rz/hgridh)
-        i2=nint(ry/hgridh)
-        write(*,*) 'plot_p, i2,i3,n2,n3 ',i2,i3,n2,n3
-        do i1=-14,2*n1+16
-        write(iounit,*) i1*hgridh,pot(i1,i2,i3)
-        enddo
-
-        i1=nint(rx/hgridh)
-        i2=nint(ry/hgridh)
-        write(*,*) 'plot_p, i1,i2 ',i1,i2
-        do i3=-14,2*n3+16
-        write(iounit+1,*) i3*hgridh,pot(i1,i2,i3)
-        enddo
-
-        i1=nint(rx/hgridh)
-        i3=nint(rz/hgridh)
-        write(*,*) 'plot_p, i1,i3 ',i1,i3
-        do i2=-14,2*n2+16
-        write(iounit+2,*) i2*hgridh,pot(i1,i2,i3)
-        enddo
-
-        close(iounit) 
-        close(iounit+1) 
-        close(iounit+2) 
-
-        return
-        END SUBROUTINE
-
-
-
-        subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
-        implicit real*8 (a-h,o-z)
-        dimension psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
-
-    hgridh=.5d0*hgrid
-
-! along x-axis
-    i3=n3
-    i2=n2
-    do i1=-7,2*n1+8
-            write(iunit,'(3(1x,e10.3),1x,e12.5)') i1*hgridh,i2*hgridh,i3*hgridh,psifscf(i1,i2,i3)
-    enddo 
-
-! 111 diagonal
-    do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
-        i1=i ; i2=i ; i3=i
-            write(iunit,'(3(1x,e10.3),1x,e12.5)') i1*hgridh,i2*hgridh,i3*hgridh,psifscf(i1,i2,i3)
-    enddo 
-
-! 1-1-1 diagonal
-    do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
-        i1=i ; i2=-i ; i3=-i
-            write(iunit,'(3(1x,e10.3),1x,e12.5)') i1*hgridh,i2*hgridh,i3*hgridh,psifscf(i1,i2,i3)
-    enddo 
-
-! -11-1 diagonal
-    do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
-        i1=-i ; i2=i ; i3=-i
-            write(iunit,'(3(1x,e10.3),1x,e12.5)') i1*hgridh,i2*hgridh,i3*hgridh,psifscf(i1,i2,i3)
-    enddo 
-
-! -1-11 diagonal
-    do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
-        i1=-i ; i2=-i ; i3=i
-            write(iunit,'(3(1x,e10.3),1x,e12.5)') i1*hgridh,i2*hgridh,i3*hgridh,psifscf(i1,i2,i3)
-    enddo 
-
-        return
-        END SUBROUTINE
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
@@ -6760,773 +5525,6 @@ END SUBROUTINE
 
         return
         END SUBROUTINE
-
-subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,occupat,expo,psiat)
-  implicit none
-  integer, intent(in) :: iproc,izatom,ielpsp,ng,npspcode,nmax_occ
-  real(kind=8), dimension(0:4,0:4), intent(in) :: psppar
-  integer, dimension(4), intent(out) :: nl
-  real(kind=8), dimension(ng+1), intent(out) :: expo
-  real(kind=8), dimension(nmax_occ), intent(out) :: occupat
-  real(kind=8), dimension(ng+1,nmax_occ), intent(out) :: psiat
-  
-  !local variables
-  character(len=27) :: string 
-  character(len=2) :: symbol
-  integer, parameter :: lmax=3,nint=100,noccmax=2
-  real(kind=8), parameter :: fact=4.d0
-  real(kind=8), dimension(:), allocatable :: xp,gpot,alps,ott
-  real(kind=8), dimension(:,:), allocatable :: aeval,chrg,res,vh,hsep,occup,ofdcoef
-  real(kind=8), dimension(:,:,:), allocatable :: psi
-  real(kind=8), dimension(:,:,:,:), allocatable :: rmt
-  integer, dimension(:,:), allocatable :: neleconf
-  logical :: exists
-  integer :: lpx,ncount,nsccode
-  integer :: l,i,j,iocc,il,lwrite,i_all,i_stat
-  real(kind=8) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt,ehomo
-
-  !filename = 'psppar.'//trim(atomname)
-
-  lpx=0
-  lpx_determination: do i=1,4
-     if (psppar(i,0) == 0.d0) then
-     exit lpx_determination
-     else
-        lpx=i-1
-     end if
-  end do lpx_determination
-
-  allocate(gpot(3),stat=i_stat)
-  call memocc(i_stat,product(shape(gpot))*kind(gpot),'gpot','iguess_generator')
-  allocate(alps(lpx+1),stat=i_stat)
-  call memocc(i_stat,product(shape(alps))*kind(alps),'alps','iguess_generator')
-  allocate(hsep(6,lpx+1),stat=i_stat)
-  call memocc(i_stat,product(shape(hsep))*kind(hsep),'hsep','iguess_generator')
-  allocate(ott(6),stat=i_stat)
-  call memocc(i_stat,product(shape(ott))*kind(ott),'ott','iguess_generator')
-  allocate(occup(noccmax,lmax+1),stat=i_stat)
-  call memocc(i_stat,product(shape(occup))*kind(occup),'occup','iguess_generator')
-  allocate(ofdcoef(3,4),stat=i_stat)
-  call memocc(i_stat,product(shape(ofdcoef))*kind(ofdcoef),'ofdcoef','iguess_generator')
-  allocate(neleconf(6,4),stat=i_stat)
-  call memocc(i_stat,product(shape(neleconf))*kind(neleconf),'neleconf','iguess_generator')
-
-  !assignation of radii and coefficients of the local part
-  alpz=psppar(0,0)
-  alpl=psppar(0,0)
-  alps(1:lpx+1)=psppar(1:lpx+1,0)
-  gpot(1:3)=psppar(0,1:3)
-
-  !assignation of the coefficents for the nondiagonal terms
-  if (npspcode == 2) then !GTH case
-     ofdcoef(:,:)=0.d0
-  else if (npspcode == 3) then !HGH case
-     ofdcoef(1,1)=-0.5d0*sqrt(3.d0/5.d0) !h2
-     ofdcoef(2,1)=0.5d0*sqrt(5.d0/21.d0) !h4
-     ofdcoef(3,1)=-0.5d0*sqrt(100.d0/63.d0) !h5
-
-     ofdcoef(1,2)=-0.5d0*sqrt(5.d0/7.d0) !h2
-     ofdcoef(2,2)=1.d0/6.d0*sqrt(35.d0/11.d0) !h4
-     ofdcoef(3,2)=-7.d0/3.d0*sqrt(1.d0/11.d0) !h5
-
-     ofdcoef(1,3)=-0.5d0*sqrt(7.d0/9.d0) !h2
-     ofdcoef(2,3)=0.5d0*sqrt(63.d0/143.d0) !h4
-     ofdcoef(3,3)=-9.d0*sqrt(1.d0/143.d0) !h5
-
-     ofdcoef(1,4)=0.d0 !h2
-     ofdcoef(2,4)=0.d0 !h4
-     ofdcoef(3,4)=0.d0 !h5
-  end if
-  !define the values of hsep starting from the pseudopotential file
-  do l=1,lpx+1
-     hsep(1,l)=psppar(l,1)
-     hsep(2,l)=psppar(l,2)*ofdcoef(1,l)
-     hsep(3,l)=psppar(l,2)
-     hsep(4,l)=psppar(l,3)*ofdcoef(2,l)
-     hsep(5,l)=psppar(l,3)*ofdcoef(3,l)
-     hsep(6,l)=psppar(l,3)
-  end do
-
-  !Now the treatment of the occupation number
-  call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode)
-
-  occup(:,:)=0.d0
-   do l=0,lmax
-     iocc=0
-     do i=1,6
-        ott(i)=real(neleconf(i,l+1),kind=8)
-        if (ott(i).gt.0.d0) then
-           iocc=iocc+1
-            if (iocc.gt.noccmax) stop 'iguess_generator: noccmax too small'
-           occup(iocc,l+1)=ott(i)
-        endif
-     end do
-     nl(l+1)=iocc
-  end do
-
-  !allocate arrays for the gatom routine
-  allocate(aeval(noccmax,lmax+1),stat=i_stat)
-  call memocc(i_stat,product(shape(aeval))*kind(aeval),'aeval','iguess_generator')
-  allocate(chrg(noccmax,lmax+1),stat=i_stat)
-  call memocc(i_stat,product(shape(chrg))*kind(chrg),'chrg','iguess_generator')
-  allocate(res(noccmax,lmax+1),stat=i_stat)
-  call memocc(i_stat,product(shape(res))*kind(res),'res','iguess_generator')
-  allocate(vh(4*(ng+1)**2,4*(ng+1)**2),stat=i_stat)
-  call memocc(i_stat,product(shape(vh))*kind(vh),'vh','iguess_generator')
-  allocate(psi(0:ng,noccmax,lmax+1),stat=i_stat)
-  call memocc(i_stat,product(shape(psi))*kind(psi),'psi','iguess_generator')
-  allocate(xp(0:ng),stat=i_stat)
-  call memocc(i_stat,product(shape(xp))*kind(xp),'xp','iguess_generator')
-  allocate(rmt(nint,0:ng,0:ng,lmax+1),stat=i_stat)
-  call memocc(i_stat,product(shape(rmt))*kind(rmt),'rmt','iguess_generator')
-
-  zion=real(ielpsp,kind=8)
-
-  !can be switched on for debugging
-  !if (iproc.eq.0) write(*,'(1x,a,a7,a9,i3,i3,a9,i3,f5.2)')&
-  !     'Input Guess Generation for atom',trim(atomname),&
-  !     'Z,Zion=',izatom,ielpsp,'ng,rprb=',ng+1,rprb
-
-  rij=3.d0
-  ! exponents of gaussians
-  a0in=alpz
-  a0=a0in/rij
-  !       tt=sqrt(sqrt(2.d0))
-  tt=2.d0**.3d0
-  do i=0,ng
-     a=a0*tt**i
-     xp(i)=.5d0/a**2
-  end do
-
-  ! initial guess
-  do l=0,lmax
-     do iocc=1,noccmax
-        do i=0,ng
-           psi(i,iocc,l+1)=0.d0
-        end do
-     end do
-  end do
-
-  call crtvh(ng,lmax,xp,vh,rprb,fact,nint,rmt)
-
-  call gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
-       zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nint,&
-       aeval,ng,psi,res,chrg)
-
-  !postreatment of the inguess data
-  do i=1,ng+1
-     expo(i)=sqrt(0.5/xp(i-1))
-  end do
-
-  i=0
-  do l=1,4
-     do iocc=1,nl(l)
-        i=i+1
-        occupat(i)=occup(iocc,l)
-        do j=1,ng+1
-           psiat(j,i)=psi(j-1,iocc,l)
-        end do
-     end do
-  end do
-
-  i_all=-product(shape(aeval))*kind(aeval)
-  deallocate(aeval,stat=i_stat)
-  call memocc(i_stat,i_all,'aeval','iguess_generator')
-  i_all=-product(shape(chrg))*kind(chrg)
-  deallocate(chrg,stat=i_stat)
-  call memocc(i_stat,i_all,'chrg','iguess_generator')
-  i_all=-product(shape(res))*kind(res)
-  deallocate(res,stat=i_stat)
-  call memocc(i_stat,i_all,'res','iguess_generator')
-  i_all=-product(shape(vh))*kind(vh)
-  deallocate(vh,stat=i_stat)
-  call memocc(i_stat,i_all,'vh','iguess_generator')
-  i_all=-product(shape(psi))*kind(psi)
-  deallocate(psi,stat=i_stat)
-  call memocc(i_stat,i_all,'psi','iguess_generator')
-  i_all=-product(shape(xp))*kind(xp)
-  deallocate(xp,stat=i_stat)
-  call memocc(i_stat,i_all,'xp','iguess_generator')
-  i_all=-product(shape(rmt))*kind(rmt)
-  deallocate(rmt,stat=i_stat)
-  call memocc(i_stat,i_all,'rmt','iguess_generator')
-  i_all=-product(shape(gpot))*kind(gpot)
-  deallocate(gpot,stat=i_stat)
-  call memocc(i_stat,i_all,'gpot','iguess_generator')
-  i_all=-product(shape(hsep))*kind(hsep)
-  deallocate(hsep,stat=i_stat)
-  call memocc(i_stat,i_all,'hsep','iguess_generator')
-  i_all=-product(shape(alps))*kind(alps)
-  deallocate(alps,stat=i_stat)
-  call memocc(i_stat,i_all,'alps','iguess_generator')
-  i_all=-product(shape(ott))*kind(ott)
-  deallocate(ott,stat=i_stat)
-  call memocc(i_stat,i_all,'ott','iguess_generator')
-  i_all=-product(shape(occup))*kind(occup)
-  deallocate(occup,stat=i_stat)
-  call memocc(i_stat,i_all,'occup','iguess_generator')
-  i_all=-product(shape(ofdcoef))*kind(ofdcoef)
-  deallocate(ofdcoef,stat=i_stat)
-  call memocc(i_stat,i_all,'ofdcoef','iguess_generator')
-  i_all=-product(shape(neleconf))*kind(neleconf)
-  deallocate(neleconf,stat=i_stat)
-  call memocc(i_stat,i_all,'neleconf','iguess_generator')
-
-end subroutine iguess_generator
-
-subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
-     zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
-     aeval,ng,psi,res,chrg)
-     implicit real*8 (a-h,o-z)
-     logical noproj
-     parameter(nint=100)
-     dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
-       hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
-       aux(2*ng+2),&
-       gpot(3),hsep(6,lpx+1),rmt(nint,0:ng,0:ng,lmax+1),&
-       pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),alps(lpx+1),&
-       potgrd(nint),&
-       rho(0:ng,0:ng,lmax+1),rhoold(0:ng,0:ng,lmax+1),xcgrd(nint),&
-       occup(noccmax,lmax+1),chrg(noccmax,lmax+1),&
-       vh(0:ng,0:ng,4,0:ng,0:ng,4),&
-       res(noccmax,lmax+1),xp(0:ng)
-     if (nintp.ne.nint) stop 'nint><nintp'
-
-     do l=0,lmax
-        if (occup(1,l+1).gt.0.d0) lcx=l
-     end do
-     !write(6,*) 'lcx',lcx
- 
-     noproj=.true.
-     do l=1,lpx+1
-        noproj = noproj .and. (alps(l) .eq. 0.d0)
-     end do
-
-
-!    projectors, just in case
-     if (.not. noproj) then
-        do l=0,lpx
-           gml1=sqrt( gamma(l+1.5d0) / (2.d0*alps(l+1)**(2*l+3)) )
-           gml2=sqrt( gamma(l+3.5d0) / (2.d0*alps(l+1)**(2*l+7)) )&
-               /(l+2.5d0)
-           gml3=sqrt( gamma(l+5.5d0) / (2.d0*alps(l+1)**(2*l+11)) )&
-               /((l+3.5d0)*(l+4.5d0))
-           tt=1.d0/(2.d0*alps(l+1)**2)
-           do i=0,ng
-              ttt=1.d0/(xp(i)+tt)
-              pp1(i,l+1)=gml1*(sqrt(ttt)**(2*l+3))
-              pp2(i,l+1)=gml2*ttt*(sqrt(ttt)**(2*l+3))
-              pp3(i,l+1)=gml3*ttt**2*(sqrt(ttt)**(2*l+3))
-           end do
-        end do
-     else
-        pp1(:,:)=0.d0
-        pp2(:,:)=0.d0
-        pp3(:,:)=0.d0
-     end if
-
-     do l=0,lmax
-        do j=0,ng
-           do i=0,ng
-              rho(i,j,l+1)=0.d0
-           end do
-        end do
-     end do
-
-     evsum=1.d30
-     do 2000,it=1,50
-        evsumold=evsum
-        evsum=0.d0
-        
-        ! coefficients of charge density
-        do l=0,lmax
-           do j=0,ng
-              do i=0,ng
-                 rhoold(i,j,l+1)=rho(i,j,l+1)
-                 rho(i,j,l+1)=0.d0        
-              end do
-           end do
-        end do
-
-        do l=0,lmax
-           do iocc=1,noccmax
-              if (occup(iocc,l+1).gt.0.d0) then
-                 do j=0,ng
-                    do i=0,ng
-                       rho(i,j,l+1)=rho(i,j,l+1) + &
-                            psi(i,iocc,l+1)*psi(j,iocc,l+1)*occup(iocc,l+1)
-                    end do
-                 end do
-              end if
-           end do
-        end do
-
-
-        rmix=.5d0
-        if (it.eq.1) rmix=1.d0
-        do 2834,l=0,lmax
-        do 2834,j=0,ng
-        do 2834,i=0,ng
-        tt=rmix*rho(i,j,l+1) + (1.d0-rmix)*rhoold(i,j,l+1)
-        rho(i,j,l+1)=tt
-2834        continue
-
-! XC potential on grid
-!        do 3728,k=1,nint
-!3728        xcgrd(k)=0.d0        
-!        do 3328,l=0,lmax
-!        do 3328,j=0,ng
-!        do 3328,i=0,ng
-!        do 3328,k=1,nint
-!3328        xcgrd(k)=xcgrd(k)+rmt(k,i,j,l+1)*rho(i,j,l+1)
-        call DGEMV('N',nint,(lcx+1)*(ng+1)**2,1.d0,&
-                   rmt,nint,rho,1,0.d0,xcgrd,1)
-
-        dr=fact*rprb/nint
-        do 3167,k=1,nint
-        r=(k-.5d0)*dr
-! divide by 4 pi
-        tt=xcgrd(k)*0.07957747154594768d0
-! multiply with r^2 to speed up calculation of matrix elements
-        xcgrd(k)=emuxc(tt)*r**2
-3167        continue
-
-        do 1000,l=0,lmax
-        gml=.5d0*gamma(.5d0+l)
-
-!  lower triangles only
-        do 100,i=0,ng
-        do 100,j=0,i
-        d=xp(i)+xp(j)
-        sxp=1.d0/d
-        const=gml*sqrt(sxp)**(2*l+1)
-! overlap        
-        ss(i,j)=const*sxp*(l+.5d0)
-! kinetic energy
-        hh(i,j)=.5d0*const*sxp**2* ( 3.d0*xp(i)*xp(j) +&
-             l*(6.d0*xp(i)*xp(j)-xp(i)**2-xp(j)**2) -&
-             l**2*(xp(i)-xp(j))**2  ) + .5d0*l*(l+1.d0)*const
-! potential energy from parabolic potential
-        hh(i,j)=hh(i,j) +&
-             .5d0*const*sxp**2*(l+.5d0)*(l+1.5d0)/rprb**4 
-! hartree potential from ionic core charge
-        tt=sqrt(1.d0+2.d0*alpz**2*d)
-        if (l.eq.0) then
-        hh(i,j)=hh(i,j) -zion/(2.d0*d*tt)
-        else if (l.eq.1) then
-        hh(i,j)=hh(i,j) -zion* &
-             (1.d0 + 3.d0*alpz**2*d)/(2.d0*d**2*tt**3)
-        else if (l.eq.2) then
-        hh(i,j)=hh(i,j) -zion* &
-             (2.d0 + 10.d0*alpz**2*d + 15.d0*alpz**4*d**2)/(2.d0*d**3*tt**5)
-        else if (l.eq.3) then
-        hh(i,j)=hh(i,j) -zion*3.d0* &
-             (2.d0 +14.d0*alpz**2*d +35.d0*alpz**4*d**2 +35.d0*alpz**6*d**3)/&
-             (2.d0*d**4*tt**7)
-        else 
-        stop 'l too big'
-        end if
-! potential from repulsive gauss potential
-        tt=alpl**2/(.5d0+d*alpl**2)
-        hh(i,j)=hh(i,j)  + gpot(1)*.5d0*gamma(1.5d0+l)*tt**(1.5d0+l)&
-             + (gpot(2)/alpl**2)*.5d0*gamma(2.5d0+l)*tt**(2.5d0+l)&
-             + (gpot(3)/alpl**4)*.5d0*gamma(3.5d0+l)*tt**(3.5d0+l)
-        ! separable terms
-        if (l.le.lpx) then
-           hh(i,j)=hh(i,j) + pp1(i,l+1)*hsep(1,l+1)*pp1(j,l+1)&
-                + pp1(i,l+1)*hsep(2,l+1)*pp2(j,l+1)&
-                + pp2(i,l+1)*hsep(2,l+1)*pp1(j,l+1)&
-                + pp2(i,l+1)*hsep(3,l+1)*pp2(j,l+1)&
-                + pp1(i,l+1)*hsep(4,l+1)*pp3(j,l+1)&
-                + pp3(i,l+1)*hsep(4,l+1)*pp1(j,l+1)&
-                + pp2(i,l+1)*hsep(5,l+1)*pp3(j,l+1)&
-                + pp3(i,l+1)*hsep(5,l+1)*pp2(j,l+1)&
-                + pp3(i,l+1)*hsep(6,l+1)*pp3(j,l+1)
-        end if
-! hartree potential from valence charge distribution
-!        tt=0.d0
-!        do 4982,lp=0,lcx
-!        do 4982,jp=0,ng
-!        do 4982,ip=0,ng
-!        tt=tt + vh(ip,jp,lp+1,i,j,l+1)*rho(ip,jp,lp+1)
-!4982        continue
-        tt=DDOT((lcx+1)*(ng+1)**2,vh(0,0,1,i,j,l+1),1,rho(0,0,1),1)
-        hh(i,j)=hh(i,j) + tt
-! potential from XC potential
-        dr=fact*rprb/nint
-!        tt=0.d0
-!        do 8049,k=1,nint
-!8049        tt=tt+xcgrd(k)*rmt(k,i,j,l+1)
-        tt=DDOT(nint,rmt(1,i,j,l+1),1,xcgrd(1),1)
-        hh(i,j)=hh(i,j)+tt*dr
-100        continue
- 
-! ESSL
-!        call DSYGV(1,hh,ng+1,ss,ng+1,eval,evec,ng+1,ng+1,aux,2*ng+2)
-! LAPACK
-        call DSYGV(1,'V','L',&
-             ng+1,hh,ng+1,ss,ng+1,eval,evec,(ng+1)**2,info)
-        if (info.ne.0) write(6,*) 'LAPACK',info
-        do 334,iocc=0,noccmax-1
-        do 334,i=0,ng
-334        evec(i,iocc)=hh(i,iocc)
-! end LAPACK
-        do 9134,iocc=1,noccmax
-        evsum=evsum+eval(iocc-1)
-        aeval(iocc,l+1)=eval(iocc-1)
-        do 9134,i=0,ng
-9134        psi(i,iocc,l+1)=evec(i,iocc-1)
-
-!        write(6,*) 'eval',l
-!55        format(5(e14.7))
-!        write(6,55) eval 
-!        write(6,*) 'diff eval'
-!        write(6,55) (eval(i)-eval(i-1),i=1,ng)
-        
-!        write(6,*) 'evec',l
-!        do i=0,ng
-!33        format(10(e9.2))
-!        write(6,33) (evec(i,iocc),iocc=0,noccmax-1)
-!        end do
-
-1000        continue
-
-        tt=abs(evsum-evsumold)
-!        write(6,*) 'evdiff',it,tt
-        if (tt.lt.1.d-12) goto 3000
-2000        continue
-3000        continue
-        call resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,ng,res,&
-             zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,nint,&
-             potgrd,xcgrd)
-
-! charge up to radius rcov
-        if (lmax.gt.3) stop 'cannot calculate chrg'
-        do 3754,l=0,lmax
-        do 3754,iocc=1,noccmax
-3754        chrg(iocc,l+1)=0.d0
-
-        do 3761,iocc=1,noccmax
-        do 3761,j=0,ng
-        do 3761,i=0,ng
-        d=xp(i)+xp(j)
-        sd=sqrt(d)
-        terf=erf(sd*rcov) 
-        texp=exp(-d*rcov**2)
-
-        tt=0.4431134627263791d0*terf/sd**3 - 0.5d0*rcov*texp/d
-        chrg(iocc,1)=chrg(iocc,1) + psi(i,iocc,1)*psi(j,iocc,1)*tt
-        if (lmax.eq.0) goto 3761
-        tt=0.6646701940895686d0*terf/sd**5 + &
-             (-0.75d0*rcov*texp - 0.5d0*d*rcov**3*texp)/d**2
-        chrg(iocc,2)=chrg(iocc,2) + psi(i,iocc,2)*psi(j,iocc,2)*tt
-        if (lmax.eq.1) goto 3761
-        tt=1.661675485223921d0*terf/sd**7 + &
-             (-1.875d0*rcov*texp-1.25d0*d*rcov**3*texp-.5d0*d**2*rcov**5*texp) &
-             /d**3
-        chrg(iocc,3)=chrg(iocc,3) + psi(i,iocc,3)*psi(j,iocc,3)*tt
-        if (lmax.eq.2) goto 3761
-        tt=5.815864198283725d0*terf/sd**9 + &
-             (-6.5625d0*rcov*texp - 4.375d0*d*rcov**3*texp - &
-             1.75d0*d**2*rcov**5*texp - .5d0*d**3*rcov**7*texp)/d**4
-        chrg(iocc,4)=chrg(iocc,4) + psi(i,iocc,4)*psi(j,iocc,4)*tt
-3761        continue
-
-
-        !writing lines suppressed
-!!$        write(66,*)  lmax+1
-!!$        write(66,*) ' #LINETYPE{1324}' 
-!!$        write(66,*) ' $' 
-        do l=0,lmax
-!!$           write(66,*) ' 161'
-           r=0.d0
-           do
-              tt= wave(ng,l,xp,psi(0,1,l+1),r)
-!!$              write(66,*) r,tt
-              r=r+.025d0
-              if(r > 4.00001d0) exit
-           end do
-        end do
-        !writing lines suppressed
-!!$        write(67,*) min(lmax+1,3)
-!!$        write(67,*) ' #LINETYPE{132}'
-!!$        write(67,*) ' #TITLE{FOURIER}' 
-!!$        write(67,*) ' $'
-        dr=6.28d0/rprb/200.d0
-!!$        write(67,*) ' 200'
-        rk=0.d0
-        loop_rk1: do 
-           tt=0.d0
-           do i=0,ng
-              texp=exp(-.25d0*rk**2/xp(i))
-!              texp=exp(-.5d0*energy/xp(i))
-              sd=sqrt(xp(i))
-              tt=tt+psi(i,1,1)*0.4431134627263791d0*texp/sd**3
-           end do
-!!$           write(67,*) rk,tt
-           rk=rk+dr
-           if(rk > 6.28d0/rprb-.5d0*dr) exit loop_rk1
-        end do loop_rk1
-        if (lmax.ge.1) then
-!!$           write(67,*) ' 200'
-           rk=0.d0
-           loop_rk2: do 
-              tt=0.d0
-              do i=0,ng
-                 texp=exp(-.25d0*rk**2/xp(i))
-                 sd=sqrt(xp(i))
-                 tt=tt+psi(i,1,2)*0.2215567313631895d0*rk*texp/sd**5
-              end do
-!!$              write(67,*) rk,tt
-              rk=rk+dr
-              if (rk > 6.28d0/rprb-.5d0*dr) exit loop_rk2
-           end do loop_rk2
-        end if
-        if (lmax.ge.2) then
-!!$           write(67,*) ' 200'
-           rk=0.d0
-           do 
-              tt=0.d0
-              do i=0,ng
-                 texp=exp(-.25d0*rk**2/xp(i))
-                 sd=sqrt(xp(i))
-              tt=tt+psi(i,1,3)*0.1107783656815948d0*rk**2*texp/sd**7
-              end do
-!!$              write(67,*) rk,tt
-              rk=rk+dr
-              if (rk > 6.28d0/rprb-.5d0*dr) exit
-           end do
-        end if
-
-
-      end subroutine gatom
-
-
-
-      subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
-           ng,res,zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,nint,&
-           potgrd,xcgrd)
-        implicit real*8 (a-h,o-z)
-        dimension psi(0:ng,noccmax,lmax+1),rho(0:ng,0:ng,lmax+1),&
-             gpot(3),pp1(0:ng,lmax+1),pp2(0:ng,lmax+1),pp3(0:ng,lmax+1),&
-             alps(lmax+1),hsep(6,lmax+1),res(noccmax,lmax+1),xp(0:ng),&
-             xcgrd(nint),aeval(noccmax,lmax+1),potgrd(nint)
-        
-!   potential on grid 
-        dr=fact*rprb/nint
-        do 9873,k=1,nint
-        r=(k-.5d0)*dr
-        potgrd(k)= .5d0*(r/rprb**2)**2 - &
-             zion*erf(r/(sqrt(2.d0)*alpz))/r &
-             + exp(-.5d0*(r/alpl)**2)*&
-             ( gpot(1) + gpot(2)*(r/alpl)**2 + gpot(3)*(r/alpl)**4 )&
-             + xcgrd(k)/r**2
-        do 2487,j=0,ng
-        do 2487,i=0,ng
-        spi=1.772453850905516d0
-        d=xp(i)+xp(j)
-        sd=sqrt(d)
-        tx=exp(-d*r**2)
-        tt=spi*erf(sd*r)
-           ud0=tt/(4.d0*sd**3*r)
-        potgrd(k)=potgrd(k)+ud0*rho(i,j,1)
-           ud1=-tx/(4.d0*d**2) + 3.d0*tt/(8.d0*sd**5*r)
-        if (lmax.ge.1) potgrd(k)=potgrd(k)+ud1*rho(i,j,2)
-        ud2=-tx*(7.d0 + 2.d0*d*r**2)/(8.d0*d**3) +&
-             15.d0*tt/(16.d0*sd**7*r)
-        if (lmax.ge.2) potgrd(k)=potgrd(k)+ud2*rho(i,j,3)
-        ud3=-tx*(57.d0+22.d0*d*r**2+4.d0*d**2*r**4)/(16.d0*d**4) + &
-             105.d0*tt/(32.d0*sd**9*r)
-        if (lmax.ge.3) potgrd(k)=potgrd(k)+ud3*rho(i,j,4)
-2487    continue
-9873        continue
-
-        do 1500,ll=0,lmax
-        if (ll.le.lpx) then
-        rnrm1=1.d0/sqrt(.5d0*gamma(ll+1.5d0)*alps(ll+1)**(2*ll+3))
-        rnrm2=1.d0/sqrt(.5d0*gamma(ll+3.5d0)*alps(ll+1)**(2*ll+7))
-        rnrm3=1.d0/sqrt(.5d0*gamma(ll+5.5d0)*alps(ll+1)**(2*ll+11))
-        end if
-        do 1500,iocc=1,noccmax
-! separabel part
-        if (ll.le.lpx) then
-        scpr1=DDOT(ng+1,psi(0,iocc,ll+1),1,pp1(0,ll+1),1)
-        scpr2=DDOT(ng+1,psi(0,iocc,ll+1),1,pp2(0,ll+1),1)
-        scpr3=DDOT(ng+1,psi(0,iocc,ll+1),1,pp3(0,ll+1),1)
-        end if
-        res(iocc,ll+1)=0.d0
-        do 1500,j=1,nint
-!  wavefunction on grid
-        r=(j-.5d0)*dr
-        psigrd = wave(ng,ll,xp,psi(0,iocc,ll+1),r)
-!   kinetic energy        
-        rkin=0.d0
-        do 5733,i=0,ng
-        rkin=rkin + psi(i,iocc,ll+1) *  (&
-             xp(i)*(3.d0+2.d0*ll-2.d0*xp(i)*r**2)*exp(-xp(i)*r**2) )
-5733        continue
-        rkin=rkin*r**ll
-!   separabel part
-        if (ll.le.lpx) then
-           sep =& 
-                (scpr1*hsep(1,ll+1) + scpr2*hsep(2,ll+1) + scpr3*hsep(4,ll+1))&
-                *rnrm1*r**ll*exp(-.5d0*(r/alps(ll+1))**2)   +&
-                (scpr1*hsep(2,ll+1) + scpr2*hsep(3,ll+1) + scpr3*hsep(5,ll+1))&
-                *rnrm2*r**(ll+2)*exp(-.5d0*(r/alps(ll+1))**2)   +&
-                (scpr1*hsep(4,ll+1) + scpr2*hsep(5,ll+1) + scpr3*hsep(6,ll+1))&
-                *rnrm3*r**(ll+4)*exp(-.5d0*(r/alps(ll+1))**2)
-        else
-        sep=0.d0
-        end if
-! resdidue
-        tt=rkin+sep+(potgrd(j)-aeval(iocc,ll+1))*psigrd
-!384        format(6(e12.5))
-!12        format(i2,i2,e9.2,3(e12.5),e10.3)
-        res(iocc,ll+1)=res(iocc,ll+1) + tt**2*dr
-1500        continue
-!        do 867,l=0,lmax
-!        do 867,iocc=1,noccmax
-!867        write(6,*) 'res',l,iocc,res(iocc,l+1)
-        return
-        end subroutine resid
-
-
-
-        subroutine crtvh(ng,lmax,xp,vh,rprb,fact,nint,rmt)
-        implicit real*8 (a-h,o-z)
-        dimension vh(0:ng,0:ng,0:3,0:ng,0:ng,0:3),xp(0:ng),&
-             rmt(nint,0:ng,0:ng,lmax+1)
-        if (lmax.gt.3) stop 'crtvh'
-
-        dr=fact*rprb/nint
-        do 8049,l=0,lmax
-        do 8049,k=1,nint
-        r=(k-.5d0)*dr
-        do 8049,j=0,ng
-        do 8049,i=0,ng
-8049        rmt(k,i,j,l+1)=(r**2)**l*exp(-(xp(i)+xp(j))*r**2)
-
-        do 100,j=0,ng
-        do 100,i=0,ng
-        c=xp(i)+xp(j)
-        do 100,jp=0,ng
-        do 100,ip=0,ng
-        d=xp(ip)+xp(jp)
-        scpd=sqrt(c+d)
-        vh(ip,jp,0,i,j,0)=0.2215567313631895d0/(c*d*scpd)
-        vh(ip,jp,1,i,j,0)=&
-             .1107783656815948d0*(2.d0*c+3.d0*d)/(c*d**2*scpd**3)
-        vh(ip,jp,2,i,j,0)=.05538918284079739d0*&
-             (8.d0*c**2+20.d0*c*d+15.d0*d**2)/(c*d**3*scpd**5)
-        vh(ip,jp,3,i,j,0)=.0830837742611961d0*&
-        (16.d0*c**3+56.d0*c**2*d+70.d0*c*d**2+35.d0*d**3)/&
-             (c*d**4*scpd**7)
-
-
-        vh(ip,jp,0,i,j,1)=&
-             .1107783656815948d0*(3.d0*c+2.d0*d)/(c**2*d*scpd**3)
-        vh(ip,jp,1,i,j,1)=&
-             .05538918284079739d0*(6.d0*c**2+15.d0*c*d+6.d0*d**2)/&
-             (c**2*d**2*scpd**5)
-        vh(ip,jp,2,i,j,1)=.02769459142039869d0*&
-             (24.d0*c**3+84.d0*c**2*d+105.d0*c*d**2+30.d0*d**3)/&
-             (c**2*d**3*scpd**7)
-        vh(ip,jp,3,i,j,1)=0.04154188713059803d0*&
-             (48.d0*c**4+216.d0*c**3*d+378.d0*c**2*d**2+&
-             315.d0*c*d**3+70.d0*d**4)/(c**2*d**4*scpd**9)
-
-        vh(ip,jp,0,i,j,2)=&
-             .05538918284079739d0*(15.d0*c**2+20.d0*c*d+8.d0*d**2)/&
-             (c**3*d*scpd**5)
-        vh(ip,jp,1,i,j,2)=.02769459142039869d0*&
-             (30.d0*c**3+105.d0*c**2*d+84.d0*c*d**2+24.d0*d**3)/&
-             (c**3*d**2*scpd**7)
-        vh(ip,jp,2,i,j,2)=&
-             .2077094356529901d0*(8.d0*c**4+36.d0*c**3*d+63.d0*c**2*d**2+&
-             36.d0*c*d**3+8.d0*d**4)/(c**3*d**3*scpd**9)
-        vh(ip,jp,3,i,j,2)=&
-             .1038547178264951d0*(48.d0*c**5+264.d0*c**4*d+594.d0*c**3*d**2+&
-             693.d0*c**2*d**3+308.d0*c*d**4+56.d0*d**5)/&
-             (c**3*d**4*scpd**11)
-
-        vh(ip,jp,0,i,j,3)=.0830837742611961d0*&
-             (35.d0*c**3+70.d0*c**2*d+56.d0*c*d**2+16.d0*d**3)/&
-             (c**4*d*scpd**7)
-        vh(ip,jp,1,i,j,3)=&
-             .04154188713059803d0*(70.d0*c**4+315.d0*c**3*d+378.d0*c**2*d**2+&
-             216.d0*c*d**3+48.d0*d**4)/(c**4*d**2*scpd**9)
-        vh(ip,jp,2,i,j,3)=&
-             .1038547178264951d0*(56.d0*c**5+308.d0*c**4*d+693.d0*c**3*d**2+&
-             594.d0*c**2*d**3+264.d0*c*d**4+48.d0*d**5)/&
-             (c**4*d**3*scpd**11)
-        vh(ip,jp,3,i,j,3)=&
-             1.090474537178198d0*(16.d0*c**6+104.d0*c**5*d+286.d0*c**4*d**2+&
-             429.d0*c**3*d**3+286.d0*c**2*d**4+104.d0*c*d**5+16.d0*d**6)/&
-             (c**4*d**4*scpd**13)
-100        continue
-        return
-        end subroutine crtvh
-
-        real*8 function wave(ng,ll,xp,psi,r)
-        implicit real*8 (a-h,o-z)
-        dimension psi(0:ng),xp(0:ng)
-
-        wave=0.d0
-        do 9373,i=0,ng
-9373    wave=wave + psi(i)*exp(-xp(i)*r**2)
-        wave=wave*r**ll
-        return
-        end function wave
-
-
-      real*8 function emuxc(rho)
-      implicit real*8 (a-h,o-z)
-      parameter (a0p=.4581652932831429d0,&
-           a1p=2.217058676663745d0,&
-           a2p=0.7405551735357053d0,&
-           a3p=0.01968227878617998d0)
-      parameter (b1p=1.0d0,&
-           b2p=4.504130959426697d0,&
-           b3p=1.110667363742916d0,&
-           b4p=0.02359291751427506d0)
-      parameter (rsfac=.6203504908994000d0,ot=1.d0/3.d0)
-      parameter (c1=4.d0*a0p*b1p/3.0d0,  c2=5.0d0*a0p*b2p/3.0d0+a1p*b1p,&
-           c3=2.0d0*a0p*b3p+4.0d0*a1p*b2p/3.0d0+2.0d0*a2p*b1p/3.0d0,&
-           c4=7.0d0*a0p*b4p/3.0d0+5.0d0*a1p*b3p/3.0d0+a2p*b2p+a3p*b1p/3.0d0,&
-           c5=2.0d0*a1p*b4p+4.0d0*a2p*b3p/3.0d0+2.0d0*a3p*b2p/3.0d0,&
-           c6=5.0d0*a2p*b4p/3.0d0+a3p*b3p,c7=4.0d0*a3p*b4p/3.0d0)
-      if(rho.lt.1.d-24) then
-        emuxc=0.d0
-      else
-        if(rho.lt.0.d0) write(6,*) ' rho less than zero',rho
-        rs=rsfac*rho**(-ot)
-        top=-rs*(c1+rs*(c2+rs*(c3+rs*(c4+rs*(c5+rs*(c6+rs*c7))))))
-        bot=rs*(b1p+rs*(b2p+rs*(b3p+rs*b4p)))
-        emuxc=top/(bot*bot)
-      end if
-      end function emuxc
-
-      real*8 function gamma(x)
-!     restricted version of the Gamma function
-      implicit real*8 (a-h,o-z)
-
-      if (x.le.0.d0) stop 'wrong argument for gamma'
-      if (mod(x,1.d0).eq.0.d0) then
-         ii=x
-         do i=2,ii
-            gamma=gamma*(i-1)
-         end do
-      else if (mod(x,.5d0).eq.0.d0) then
-         ii=x-.5d0
-!         gamma=sqrt(3.14159265358979d0)
-         gamma=1.772453850905516027d0
-         do i=1,ii
-            gamma=gamma*(i-.5d0)
-         end do
-      else
-         stop 'wrong argument for gamma'
-      end if
-      end function gamma
 
 
 end module

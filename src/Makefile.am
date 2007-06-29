@@ -79,6 +79,10 @@ libbigdft_a_SOURCES = \
 	timing.f90 \
 	wavelib.f90 \
 	gautowav.f90 \
+	ionicpot.f90 \
+	inputguess.f90 \
+	projectors.f90 \
+	orthogonality.f90 \
 	razero.f90
 
 cluster_SOURCES = BigDFT.f90
