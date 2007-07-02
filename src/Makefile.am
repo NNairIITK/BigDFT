@@ -58,25 +58,35 @@ lMPI =
 endif
 
 if USE_OPTI_CONVOLUT
-convolution_source = convolut_optim.f90 \
-	standconv_optim.f90 conv_per_optim.f90
+convolution_source = convolut_simple.f90 \
+	conv_per_optim.f90 \
+	combined_grow.f90\
+	combined_shrink.f90\
+	logrid.f90\
+	to_cf.f90
+
 else
 convolution_source = convolut_simple.f90 \
-	standconv_simple.f90 conv_per_simple.f90
+	conv_per_optim.f90 \
+	combined_grow.f90\
+	combined_shrink.f90\
+	logrid.f90\
+	to_cf.f90
 endif
 
 
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
 	$(convolution_source) \
-	cluster_all.f90 \
-	eleconf.f90 \
-	standconv_test.f90 \
-	gauss_to_daub.f90 \
-	precond.f90 \
-	prec_diag.f90\
-	forces.f90 \
-	timing.f90
+        cluster_all.f90 \
+        convolut_simple.f90 \
+        conv_per_optim.f90 \
+        eleconf.f90  \
+        gauss_to_daub.f90 \
+        precond.f90 \
+        prec_diag.f90 \
+        timing.f90 \
+        forces.f90
 
 cluster_SOURCES = BigDFT.f90
 cluster_LDFLAGS = $(LMPI)

@@ -71,6 +71,10 @@ module libBigDFT
   public :: wnrm
   public :: wpdot
 
+  public :: realspace
+  public :: realspace_buf
+  public :: transform_fortail
+
 contains
 
 subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energy, fxyz,  &
@@ -144,6 +148,21 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocatable :: rho(:),pot(:,:,:)
   allocatable :: neleconf(:,:),nscatterarr(:,:)
 
+!*****************************Alexey************************************************************
+!	for shrink:	
+	integer,allocatable,dimension(:,:,:)::ibzzx_c,ibyyzz_c
+	integer,allocatable,dimension(:,:,:)::ibxy_ff,ibzzx_f,ibyyzz_f
+
+!	for grow:
+	integer,allocatable,dimension(:,:,:)::ibzxx_c,ibxxyy_c
+	integer,allocatable,dimension(:,:,:)::ibyz_ff,ibzxx_f,ibxxyy_f
+!***********************************************************************************************
+	integer,allocatable,dimension(:,:,:)::ibyyzz_r ! real space border
+!*************Alexey***************************************************************************	
+!    real*8,allocatable,dimension(:,:,:)::xc!input 
+!	real*8,allocatable::xf(:,:,:,:)! input
+!	real*8,allocatable,dimension(:):: w1,w2
+!***********************************************************************************************
   integer :: ierror
 
   include 'mpif.h'
@@ -460,6 +479,35 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocate(ibxy_f(2,0:n1,0:n2),stat=i_stat)
   call memocc(i_stat,product(shape(ibxy_f))*kind(ibxy_f),'ibxy_f','cluster')
   
+!*********************************Alexey*********************************************************
+!   allocate for grow
+	allocate(ibzxx_c(2,0:n3,-14:2*n1+16),stat=i_stat)
+  call memocc(i_stat,product(shape(ibzxx_c))*kind(ibzxx_c),'ibzxx_c','cluster')
+	allocate(ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16),stat=i_stat)
+  call memocc(i_stat,product(shape(ibxxyy_c))*kind(ibxxyy_c),'ibxxyy_c','cluster')
+    allocate(ibyz_ff(2,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+  call memocc(i_stat,product(shape(ibyz_ff))*kind(ibyz_ff),'ibyz_ff','cluster')
+	allocate(ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16),stat=i_stat)
+  call memocc(i_stat,product(shape(ibzxx_f))*kind(ibzxx_f),'ibzxx_f','cluster')
+	allocate(ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16),stat=i_stat)
+  call memocc(i_stat,product(shape(ibxxyy_f))*kind(ibxxyy_f),'ibxxyy_f','cluster')
+
+!	allocate for shrink
+	allocate(ibzzx_c(2,-14:2*n3+16,0:n1),stat=i_stat)
+  call memocc(i_stat,product(shape(ibzzx_c))*kind(ibzzx_c),'ibzzx_c','cluster')
+	allocate(ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
+  call memocc(i_stat,product(shape(ibyyzz_c))*kind(ibyyzz_c),'ibyyzz_c','cluster')
+	allocate(ibxy_ff(2,nfl1:nfu1,nfl2:nfu2),stat=i_stat)
+  call memocc(i_stat,product(shape(ibxy_ff))*kind(ibxy_ff),'ibxy_ff','cluster')
+	allocate(ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1),stat=i_stat)
+  call memocc(i_stat,product(shape(ibzzx_f))*kind(ibzzx_f),'ibzzx_f','cluster')
+	allocate(ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16),stat=i_stat)
+  call memocc(i_stat,product(shape(ibyyzz_f))*kind(ibyyzz_f),'ibyyzz_f','cluster')
+
+!	allocate for real space
+	allocate(ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
+  call memocc(i_stat,product(shape(ibyyzz_r))*kind(ibyyzz_r),'ibyyzz_r','cluster')
+!***********************************************************************************************
 ! Create the file grid.ascii to visualize the grid of functions
   if (iproc.eq.0 .and. output_grid) then
      open(unit=22,file='grid.ascii',status='unknown')
@@ -472,17 +520,24 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      enddo
   endif
 
-!!$  !calculation of the kernel deplaced to reduce memory peak for small systems
-!!$  !proposed position, to be refined 
-!!$  ndegree_ip=14
-!!$  call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
-!!$       iproc,nproc,pkernel)
+  !calculation of the kernel deplaced to reduce memory peak for small systems
+  !proposed position, to be refined 
+  ndegree_ip=14
+  call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
+       iproc,nproc,pkernel)
+
+write(*,*) iproc,' created kernel' 
 
 
   call createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, n3, output_grid, hgrid, &
        & nat, ntypes, iatype, atomnames, rxyz, radii_cf, crmult, frmult, ibyz_c,ibxz_c,ibxy_c, &
        & ibyz_f, ibxz_f, ibxy_f, nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp, keyg,  keyv, &
-       & norb,norbp,psi,hpsi,psit,psidst,hpsidst,ads)
+       & norb,norbp,psi,hpsi,psit,psidst,hpsidst,ads,&
+	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+	ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+	ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+
+write(*,*) iproc,' created WavefunctionsDescriptors'
 
 ! Calculate all projectors
   allocate(nseg_p(0:2*nat),stat=i_stat)
@@ -562,10 +617,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
      if (iproc.eq.0) write(*,*) 'Allocation done'
 
-     !the routine for calling the kernel can be conveniently deplaced to
-     !futher reduce the memory peak
-     call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
-          iproc,nproc,pkernel)
+!!$     !the routine for calling the kernel can be conveniently deplaced to
+!!$     !futher reduce the memory peak
+!!$     call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
+!!$          iproc,nproc,pkernel)
 
      ! Precalculate ionic potential from PSP charge densities and local Gaussian terms
      call input_rho_ion(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar, &
@@ -630,7 +685,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
           nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
           atomnames,ntypes,iatype,iasctype,pkernel,psppar,npspcode,ixc,psi,eval,accurex,&
-          new_psolver,datacode,nscatterarr)
+          new_psolver,datacode,nscatterarr,&
+	ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+	ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in total energy due to grid size',accurex
         write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex
@@ -694,11 +751,15 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      ! Potential from electronic charge density
      if (datacode=='G') then
         call sumrho_old(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-             nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot)
+             nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
+	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+	 ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
      else
         call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
              nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot, &
-             (2*n1+31)*(2*n2+31)*n3d,nscatterarr)
+             (2*n1+31)*(2*n2+31)*n3d,nscatterarr,&
+	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+	 ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
      end if
 
 !     ixc=12   ! PBE functional
@@ -741,7 +802,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
           hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-          psi,pot,hpsi,epot_sum,ekin_sum)
+          psi,pot,hpsi,epot_sum,ekin_sum,&
+	ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+	ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
@@ -752,7 +815,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
           hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-          psi,rhopot,hpsi,epot_sum,ekin_sum)
+          psi,rhopot,hpsi,epot_sum,ekin_sum,&
+	ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+	ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
   end if
 
@@ -803,7 +868,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      gnrm=0.d0
      do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
         scpr=dnrm2(nvctr_c+7*nvctr_f,hpsi(1,iorb-iproc*norbp),1)
-        if (iorb <=5) write(83,*)iter,iorb,scpr
+!        if (iorb <=5) write(83,*)iter,iorb,scpr
         gnrm=gnrm+scpr**2
      enddo
      if (parallel) then
@@ -983,7 +1048,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
      call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
      call sumrho_old(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho)
+          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
+	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+	 ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
   else
 
      !manipulate scatter array for avoiding the GGA shift
@@ -997,7 +1064,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      !use pot_ion array for building total rho
      call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,pot_ion,&
-          (2*n1+31)*(2*n2+31)*n3p,nscatterarr)
+          (2*n1+31)*(2*n2+31)*n3p,nscatterarr,&
+	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+	 ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
 
      !gather the result in the global array rho
      allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
@@ -1210,6 +1279,46 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   deallocate(ibxy_f,stat=i_stat)
   call memocc(i_stat,i_all,'ibxy_f','cluster')
 
+!*****************************Alexey************************************************************
+  i_all=-product(shape(ibzzx_c))*kind(ibzzx_c)
+	deallocate(ibzzx_c,stat=i_stat)
+  call memocc(i_stat,i_all,'ibzzx_c','cluster')
+  i_all=-product(shape(ibyyzz_c))*kind(ibyyzz_c)
+	deallocate(ibyyzz_c,stat=i_stat)
+  call memocc(i_stat,i_all,'ibyyzz_c','cluster')
+  i_all=-product(shape(ibxy_ff))*kind(ibxy_ff)
+	deallocate(ibxy_ff,stat=i_stat)
+  call memocc(i_stat,i_all,'ibxy_ff','cluster')
+  i_all=-product(shape(ibzzx_f))*kind(ibzzx_f)
+	deallocate(ibzzx_f,stat=i_stat)
+  call memocc(i_stat,i_all,'ibzzx_f','cluster')
+  i_all=-product(shape(ibyyzz_f))*kind(ibyyzz_f)
+	deallocate(ibyyzz_f,stat=i_stat)
+  call memocc(i_stat,i_all,'ibyyzz_f','cluster')
+  i_all=-product(shape(ibzxx_c))*kind(ibzxx_c)
+	deallocate(ibzxx_c,stat=i_stat)
+  call memocc(i_stat,i_all,'ibzxx_c','cluster')
+  i_all=-product(shape(ibxxyy_c))*kind(ibxxyy_c)
+	deallocate(ibxxyy_c,stat=i_stat)
+  call memocc(i_stat,i_all,'ibxxyy_c','cluster')
+  i_all=-product(shape(ibyz_ff))*kind(ibyz_ff)
+	deallocate(ibyz_ff,stat=i_stat)
+  call memocc(i_stat,i_all,'ibyz_ff','cluster')
+  i_all=-product(shape(ibzxx_f))*kind(ibzxx_f)
+	deallocate(ibzxx_f,stat=i_stat)
+  call memocc(i_stat,i_all,'ibzxx_f','cluster')
+  i_all=-product(shape(ibxxyy_f))*kind(ibxxyy_f)
+	deallocate(ibxxyy_f,stat=i_stat)
+  call memocc(i_stat,i_all,'ibxxyy_f','cluster')
+  i_all=-product(shape(ibyyzz_r))*kind(ibyyzz_r)
+	deallocate(ibyyzz_r,stat=i_stat)
+  call memocc(i_stat,i_all,'ibyyzz_r','cluster')
+!***********************************************************************************************
+
+
+
+
+  
   i_all=-product(shape(keyg_p))*kind(keyg_p)
   deallocate(keyg_p,stat=i_stat)
   call memocc(i_stat,i_all,'keyg_p','cluster')
@@ -1252,341 +1361,516 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
 END SUBROUTINE cluster
 
-subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,nbuf,nb1,nb2,nb3,norb,norbp,nat,ntypes,&
-     nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
-     keyv,keyg,nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
-     pot,hgrid,alatb1,alatb2,alatb3,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
-     proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
-implicit none
-include 'mpif.h'
-logical, intent(in) :: output_grid,parallel
-character(len=20), dimension(100), intent(in) :: atomnames
-integer, intent(in) :: iproc,nproc,n1,n2,n3,nbuf,nb1,nb2,nb3,norb,norbp,nat,ntypes,ncongt
-integer, intent(in) :: nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel
-real(kind=8), intent(in) :: hgrid,crmult,frmult,alatb1,alatb2,alatb3
-real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
-integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
-integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
-integer, dimension(2,nseg_p(2*nat)), intent(inout) :: keyg_p
-integer, dimension(ntypes), intent(in) :: npspcode
-integer, dimension(nat), intent(in) :: iatype
-real(kind=8), dimension(norb), intent(in) :: occup,eval
-real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
-real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
-real(kind=8), dimension(3,nat), intent(in) :: rxyz
-real(kind=8), dimension(2*n1+31,2*n2+31,2*n3+31), intent(in) :: pot
-real(kind=8), dimension(nprojel), intent(in) :: proj
-real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
-!local variables
-logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
-integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat
-integer :: nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
-integer, dimension(:,:,:), allocatable :: ibbyz_c,ibbyz_f,ibbxz_c,ibbxz_f,ibbxy_c,ibbxy_f
-integer, dimension(:), allocatable :: keybv
-integer, dimension(:,:), allocatable :: keybg
-real(kind=8) :: ekin,epot,eproj,tt,cprecr,sum_tail,ekin1,epot1,eproj1
-real(kind=8), dimension(:,:), allocatable :: txyz,wrkallred
-real(kind=8), dimension(:), allocatable :: psib,hpsib,psig,psigp,psifscf,psir
-
-call timing(iproc,'Tail          ','ON')
-
-!---reformat keyg_p
-do iseg=1,nseg_p(2*nat)
-   j0=keyg_p(1,iseg)
-   j1=keyg_p(2,iseg)
-   ii=j0-1
-   i3=ii/((n1+1)*(n2+1))
-   ii=ii-i3*(n1+1)*(n2+1)
-   i2=ii/(n1+1)
-   i0=ii-i2*(n1+1)
-   i1=i0+j1-j0
-   i3=i3+nbuf
-   i2=i2+nbuf
-   i1=i1+nbuf
-   i0=i0+nbuf
-   j0=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i0+1
-   j1=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i1+1
-   keyg_p(1,iseg)=j0
-   keyg_p(2,iseg)=j1
-end do
-
-!---reformat wavefunctions
-
-! fine grid size (needed for creation of input wavefunction, preconditioning)
-nbfl1=nfl1+nbuf ; nbfl2=nfl2+nbuf ; nbfl3=nfl3+nbuf
-nbfu1=nfu1+nbuf ; nbfu2=nfu2+nbuf ; nbfu3=nfu3+nbuf
-if (iproc.eq.0) then
-   write(*,'(1x,a,2(1x,i0))') 'BIG: nfl1,nfu1',nbfl1,nbfu1
-   write(*,'(1x,a,2(1x,i0))') 'BIG: nfl2,nfu2',nbfl2,nbfu2
-   write(*,'(1x,a,2(1x,i0))') 'BIG: nfl3,nfu3',nbfl3,nbfu3
-endif
-
-! change atom coordinates according to the enlarged box
-allocate(txyz(3,nat),stat=i_stat)
-call memocc(i_stat,product(shape(txyz))*kind(txyz),'txyz','calculatetailcorrection')
-do iat=1,nat
-   txyz(1,iat)=rxyz(1,iat)+nbuf*hgrid
-   txyz(2,iat)=rxyz(2,iat)+nbuf*hgrid
-   txyz(3,iat)=rxyz(3,iat)+nbuf*hgrid
-enddo
-
-! determine localization region for all orbitals, but do not yet fill the descriptor arrays
-allocate(logrid_c(0:nb1,0:nb2,0:nb3),stat=i_stat)
-call memocc(i_stat,product(shape(logrid_c))*kind(logrid_c),'logrid_c','calculatetailcorrection')
-allocate(logrid_f(0:nb1,0:nb2,0:nb3),stat=i_stat)
-call memocc(i_stat,product(shape(logrid_f))*kind(logrid_f),'logrid_f','calculatetailcorrection')
-allocate(ibbyz_c(2,0:nb2,0:nb3),stat=i_stat)
-call memocc(i_stat,product(shape(ibbyz_c))*kind(ibbyz_c),'ibbyz_c','calculatetailcorrection')
-allocate(ibbxz_c(2,0:nb1,0:nb3),stat=i_stat)
-call memocc(i_stat,product(shape(ibbxz_c))*kind(ibbxz_c),'ibbxz_c','calculatetailcorrection')
-allocate(ibbxy_c(2,0:nb1,0:nb2),stat=i_stat)
-call memocc(i_stat,product(shape(ibbxy_c))*kind(ibbxy_c),'ibbxy_c','calculatetailcorrection')
-allocate(ibbyz_f(2,0:nb2,0:nb3),stat=i_stat)
-call memocc(i_stat,product(shape(ibbyz_f))*kind(ibbyz_f),'ibbyz_f','calculatetailcorrection')
-allocate(ibbxz_f(2,0:nb1,0:nb3),stat=i_stat)
-call memocc(i_stat,product(shape(ibbxz_f))*kind(ibbxz_f),'ibbxz_f','calculatetailcorrection')
-allocate(ibbxy_f(2,0:nb1,0:nb2),stat=i_stat)
-call memocc(i_stat,product(shape(ibbxy_f))*kind(ibbxy_f),'ibbxy_f','calculatetailcorrection')
-
-! coarse grid quantities
-call fill_logrid(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,nat,ntypes,iatype,txyz, & 
-     radii_cf(1,1),crmult,hgrid,logrid_c)
-if (iproc.eq.0 .and. output_grid) then
-   open(unit=22,file='grid_tail.ascii',status='unknown')
-   write(22,*) nat
-   write(22,*) alatb1,' 0. ',alatb2
-   write(22,*) ' 0. ',' 0. ',alatb3
-   do iat=1,nat
-      write(22,'(3(1x,e12.5),3x,a20)') txyz(1,iat),txyz(2,iat),txyz(3,iat),atomnames(iatype(iat))
-   end do
-   do i3=0,nb3
-      do i2=0,nb2
-         do i1=0,nb1
-            if (logrid_c(i1,i2,i3)) then
-               write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  g '
-            end if
-         enddo
-      enddo
-   end do
-endif
-call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,nvctrb_c)
-if (iproc.eq.0) then
-   write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have coarse segment, elements',nsegb_c,nvctrb_c
-end if
-call bounds(nb1,nb2,nb3,logrid_c,ibbyz_c,ibbxz_c,ibbxy_c)
-
-! fine grid quantities
-call fill_logrid(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,0,nat,ntypes,iatype,txyz, & 
-     radii_cf(1,2),frmult,hgrid,logrid_f)
-if (iproc.eq.0 .and. output_grid) then
-   do i3=0,nb3 
-      do i2=0,nb2 
-         do i1=0,nb1
-            if (logrid_f(i1,i2,i3)) then
-               write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  G '
-            end if
-         enddo
-      enddo
-   enddo
-   close(22)
-endif
-call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
-if (iproc.eq.0) then
-   write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have fine   segment, elements',nsegb_f,7*nvctrb_f
-end if
-call bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
-
-! now fill the wavefunction descriptor arrays
-allocate(keybg(2,nsegb_c+nsegb_f),stat=i_stat)
-call memocc(i_stat,product(shape(keybg))*kind(keybg),'keybg','calculatetailcorrection')
-allocate(keybv(nsegb_c+nsegb_f),stat=i_stat)
-call memocc(i_stat,product(shape(keybv))*kind(keybv),'keybv','calculatetailcorrection')
-! coarse grid quantities
-call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,keybg(1,1),keybv(1))
-
-! fine grid quantities
-call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1))
-
-i_all=-product(shape(logrid_c))*kind(logrid_c)
-deallocate(logrid_c,stat=i_stat)
-call memocc(i_stat,i_all,'logrid_c','calculatetailcorrection')
-i_all=-product(shape(logrid_f))*kind(logrid_f)
-deallocate(logrid_f,stat=i_stat)
-call memocc(i_stat,i_all,'logrid_f','calculatetailcorrection')
-
-! allocations for arrays holding the wavefunction
-if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psib and hpsib ',2*(nvctrb_c+7*nvctrb_f)
-allocate(psib(nvctrb_c+7*nvctrb_f),stat=i_stat)
-call memocc(i_stat,product(shape(psib))*kind(psib),'psib','calculatetailcorrection')
-allocate(hpsib(nvctrb_c+7*nvctrb_f),stat=i_stat)
-call memocc(i_stat,product(shape(hpsib))*kind(hpsib),'hpsib','calculatetailcorrection')
-if (iproc.eq.0) write(*,*) 'Allocation done'
-
-! work arrays applylocpotkin
-allocate(psig(8*(nb1+1)*(nb2+1)*(nb3+1)),stat=i_stat)
-call memocc(i_stat,product(shape(psig))*kind(psig),'psig','calculatetailcorrection')
-allocate(psigp(8*(nb1+1)*(nb2+1)*(nb3+1)),stat=i_stat)
-call memocc(i_stat,product(shape(psigp))*kind(psigp),'psigp','calculatetailcorrection')
-allocate(psifscf(max((2*nb1+31)*(2*nb2+31)*(2*nb3+16),(2*nb1+16)*(2*nb2+31)*(2*nb3+31))),stat=i_stat)
-call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','calculatetailcorrection')
-allocate(psir((2*nb1+31)*(2*nb2+31)*(2*nb3+31)),stat=i_stat)
-call memocc(i_stat,product(shape(psir))*kind(psir),'psir','calculatetailcorrection')
-
-ekin_sum=0.d0
-epot_sum=0.d0
-eproj_sum=0.d0
-do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-
-   !build the compressed wavefunction in the enlarged box
-   call uncompress(n1,n2,n3,-nbuf,n1+nbuf,-nbuf,n2+nbuf,-nbuf,n3+nbuf, & 
-        nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-        psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
-   call compress(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,  &
-        nsegb_c,nvctrb_c,keybg(1,1),keybv(1),   &
-        nsegb_f,nvctrb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1),   &
-        psig,psib(1),psib(nvctrb_c+1))
-
-   npt=2
-   tail_adding: do ipt=1,npt
-
-      !calculate gradient
-      call applylocpotkinone(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nbuf, & 
-           hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  & 
-           ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f, & 
-           psig,psigp,psifscf,psir,  &
-           psib,pot,hpsib,epot,ekin)
-      call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
-           nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-           nsegb_c,nsegb_f,keybg,keybv,nvctrb_c,nvctrb_f,  & 
-           psib,hpsib,eproj)
-      !calculate residue for the single orbital
-      tt=0.d0
-      do i=1,nvctrb_c+7*nvctrb_f
-         hpsib(i)=hpsib(i)-eval(iorb)*psib(i)
-         tt=tt+hpsib(i)**2
-      enddo
-      tt=sqrt(tt)
-
-      if (ipt.eq.npt) exit tail_adding
-
-      !calculate tail using the preconditioner as solver for the green function application
-      cprecr=-eval(iorb)
-      call timing(iproc,'Tail          ','OF')
-      call precong(iorb,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, &
-           nsegb_c,nvctrb_c,nsegb_f,nvctrb_f,keybg,keybv, &
-           ncongt,cprecr,hgrid,ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,hpsib)
-      call timing(iproc,'Tail          ','ON')
-      !call plot_wf(10,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
-      !      txyz(1,1),txyz(2,1),txyz(3,1),psib)
-
-      ! add tail to the bulk wavefunction
-      sum_tail=0.d0
-      do i=1,nvctrb_c+7*nvctrb_f
-         psib(i)=psib(i)-hpsib(i)
-         sum_tail=sum_tail+psib(i)**2
-      enddo
-      sum_tail=sqrt(sum_tail)
-      write(*,'(1x,a,i3,3(1x,1pe13.6),1x,1pe9.2)') &
-           'BIG: iorb,ekin,epot,eproj,gnrm',iorb,ekin,epot,eproj,tt
-      !values of the energyes before tail application
-      ekin1=ekin
-      epot1=epot
-      eproj1=eproj
-      !write(*,'(1x,a,1x,i0,f18.14)') 'norm orbital + tail',iorb,sum_tail
-      !call plot_wf(20,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
-      !      txyz(1,1),txyz(2,1),txyz(3,1),psib)
-
-      sum_tail=1.d0/sum_tail
-      do i=1,nvctrb_c+7*nvctrb_f
-         psib(i)=psib(i)*sum_tail
-      enddo
-
-   end do tail_adding
-
-   write(*,'(1x,a,i3,3(1x,1pe13.6),2(1x,1pe9.2))') &
-        'BIG: iorb,denergies,gnrm,dnorm',&
-        iorb,ekin-ekin1,epot-epot1,eproj-eproj1,tt,sum_tail-1.d0
-
-
-   ekin_sum=ekin_sum+ekin*occup(iorb)
-   epot_sum=epot_sum+epot*occup(iorb)
-   eproj_sum=eproj_sum+eproj*occup(iorb)
-end do
-
-i_all=-product(shape(txyz))*kind(txyz)
-deallocate(txyz,stat=i_stat)
-call memocc(i_stat,i_all,'txyz','calculatetailcorrection')
-i_all=-product(shape(psig))*kind(psig)
-deallocate(psig,stat=i_stat)
-call memocc(i_stat,i_all,'psig','calculatetailcorrection')
-i_all=-product(shape(psigp))*kind(psigp)
-deallocate(psigp,stat=i_stat)
-call memocc(i_stat,i_all,'psigp','calculatetailcorrection')
-i_all=-product(shape(psifscf))*kind(psifscf)
-deallocate(psifscf,stat=i_stat)
-call memocc(i_stat,i_all,'psifscf','calculatetailcorrection')
-i_all=-product(shape(psir))*kind(psir)
-deallocate(psir,stat=i_stat)
-call memocc(i_stat,i_all,'psir','calculatetailcorrection')
-i_all=-product(shape(psib))*kind(psib)
-deallocate(psib,stat=i_stat)
-call memocc(i_stat,i_all,'psib','calculatetailcorrection')
-i_all=-product(shape(hpsib))*kind(hpsib)
-deallocate(hpsib,stat=i_stat)
-call memocc(i_stat,i_all,'hpsib','calculatetailcorrection')
-i_all=-product(shape(keybg))*kind(keybg)
-deallocate(keybg,stat=i_stat)
-call memocc(i_stat,i_all,'keybg','calculatetailcorrection')
-i_all=-product(shape(keybv))*kind(keybv)
-deallocate(keybv,stat=i_stat)
-call memocc(i_stat,i_all,'keybv','calculatetailcorrection')
-i_all=-product(shape(ibbyz_c))*kind(ibbyz_c)
-deallocate(ibbyz_c,stat=i_stat)
-call memocc(i_stat,i_all,'ibbyz_c','calculatetailcorrection')
-i_all=-product(shape(ibbxz_c))*kind(ibbxz_c)
-deallocate(ibbxz_c,stat=i_stat)
-call memocc(i_stat,i_all,'ibbxz_c','calculatetailcorrection')
-i_all=-product(shape(ibbxy_c))*kind(ibbxy_c)
-deallocate(ibbxy_c,stat=i_stat)
-call memocc(i_stat,i_all,'ibbxy_c','calculatetailcorrection')
-i_all=-product(shape(ibbyz_f))*kind(ibbyz_f)
-deallocate(ibbyz_f,stat=i_stat)
-call memocc(i_stat,i_all,'ibbyz_f','calculatetailcorrection')
-i_all=-product(shape(ibbxz_f))*kind(ibbxz_f)
-deallocate(ibbxz_f,stat=i_stat)
-call memocc(i_stat,i_all,'ibbxz_f','calculatetailcorrection')
-i_all=-product(shape(ibbxy_f))*kind(ibbxy_f)
-deallocate(ibbxy_f,stat=i_stat)
-call memocc(i_stat,i_all,'ibbxy_f','calculatetailcorrection')
+ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,nbuf,nb1,nb2,nb3,norb,norbp,nat,ntypes,&
+      nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
+      keyv,keyg,nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
+      pot,hgrid,alatb1,alatb2,alatb3,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
+      proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
+ implicit none
+ include 'mpif.h'
+ logical, intent(in) :: output_grid,parallel
+ character(len=20), dimension(100), intent(in) :: atomnames
+ integer, intent(in) :: iproc,nproc,n1,n2,n3,nbuf,nb1,nb2,nb3,norb,norbp,nat,ntypes,ncongt
+ integer, intent(in) :: nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel
+ real(kind=8), intent(in) :: hgrid,crmult,frmult,alatb1,alatb2,alatb3
+ real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
+ integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+ integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+ integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
+ integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
+ integer, dimension(2,nseg_p(2*nat)), intent(inout) :: keyg_p
+ integer, dimension(ntypes), intent(in) :: npspcode
+ integer, dimension(nat), intent(in) :: iatype
+ real(kind=8), dimension(norb), intent(in) :: occup,eval
+ real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
+ real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
+ real(kind=8), dimension(3,nat), intent(in) :: rxyz
+ real(kind=8), dimension(2*n1+31,2*n2+31,2*n3+31), intent(in) :: pot
+ real(kind=8), dimension(nprojel), intent(in) :: proj
+ real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
+ !local variables
+ logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
+ integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat
+ integer :: nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
+ integer, dimension(:,:,:), allocatable :: ibbyz_c,ibbyz_f,ibbxz_c,ibbxz_f,ibbxy_c,ibbxy_f
+ integer, dimension(:), allocatable :: keybv
+ integer, dimension(:,:), allocatable :: keybg
+ real(kind=8) :: ekin,epot,eproj,tt,cprecr,sum_tail,ekin1,epot1,eproj1
+ real(kind=8), dimension(:,:), allocatable :: txyz,wrkallred
+ real(kind=8), dimension(:), allocatable :: psib,hpsib,psifscf,psir
+ !*****************************Alexey************************************************************
+ !	for shrink:	
+ 	integer,allocatable,dimension(:,:,:)::ibbzzx_c,ibbyyzz_c
+ 	integer,allocatable,dimension(:,:,:)::ibbxy_ff,ibbzzx_f,ibbyyzz_f
+ 
+ !	for grow:
+ 	integer,allocatable,dimension(:,:,:)::ibbzxx_c,ibbxxyy_c
+ 	integer,allocatable,dimension(:,:,:)::ibbyz_ff,ibbzxx_f,ibbxxyy_f
+ 	
+ !	real space border:
+ 	integer,allocatable,dimension(:,:,:)::ibbyyzz_r 
+ 
+ !***********************************************************************************************
+ integer nw1,nw2
+ 
+     real*8,allocatable,dimension(:,:,:)::x_c!input 
+ 	real*8,allocatable::x_fc(:,:,:,:),x_f(:,:,:,:)! input
+ 	real*8,allocatable,dimension(:):: w1,w2
+     real*8,allocatable,dimension(:,:,:)::y_c!output 
+ 	real*8,allocatable::y_f(:,:,:,:)! output
+ !***********************************************************************************************
+ 
+ call timing(iproc,'Tail          ','ON')
+ 
+ !---reformat keyg_p
+ do iseg=1,nseg_p(2*nat)
+    j0=keyg_p(1,iseg)
+    j1=keyg_p(2,iseg)
+    ii=j0-1
+    i3=ii/((n1+1)*(n2+1))
+    ii=ii-i3*(n1+1)*(n2+1)
+    i2=ii/(n1+1)
+    i0=ii-i2*(n1+1)
+    i1=i0+j1-j0
+    i3=i3+nbuf
+    i2=i2+nbuf
+    i1=i1+nbuf
+    i0=i0+nbuf
+    j0=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i0+1
+    j1=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i1+1
+    keyg_p(1,iseg)=j0
+    keyg_p(2,iseg)=j1
+ end do
+ 
+ !---reformat wavefunctions
+ 
+ ! fine grid size (needed for creation of input wavefunction, preconditioning)
+ nbfl1=nfl1+nbuf ; nbfl2=nfl2+nbuf ; nbfl3=nfl3+nbuf
+ nbfu1=nfu1+nbuf ; nbfu2=nfu2+nbuf ; nbfu3=nfu3+nbuf
+ if (iproc.eq.0) then
+    write(*,'(1x,a,2(1x,i0))') 'BIG: nfl1,nfu1',nbfl1,nbfu1
+    write(*,'(1x,a,2(1x,i0))') 'BIG: nfl2,nfu2',nbfl2,nbfu2
+    write(*,'(1x,a,2(1x,i0))') 'BIG: nfl3,nfu3',nbfl3,nbfu3
+ endif
+ 
+ ! change atom coordinates according to the enlarged box
+ allocate(txyz(3,nat),stat=i_stat)
+ call memocc(i_stat,product(shape(txyz))*kind(txyz),'txyz','calculatetailcorrection')
+ do iat=1,nat
+    txyz(1,iat)=rxyz(1,iat)+nbuf*hgrid
+    txyz(2,iat)=rxyz(2,iat)+nbuf*hgrid
+    txyz(3,iat)=rxyz(3,iat)+nbuf*hgrid
+ enddo
+ 
+ ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
+ allocate(logrid_c(0:nb1,0:nb2,0:nb3),stat=i_stat)
+ call memocc(i_stat,product(shape(logrid_c))*kind(logrid_c),'logrid_c','calculatetailcorrection')
+ allocate(logrid_f(0:nb1,0:nb2,0:nb3),stat=i_stat)
+ call memocc(i_stat,product(shape(logrid_f))*kind(logrid_f),'logrid_f','calculatetailcorrection')
+ allocate(ibbyz_c(2,0:nb2,0:nb3),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbyz_c))*kind(ibbyz_c),'ibbyz_c','calculatetailcorrection')
+ allocate(ibbxz_c(2,0:nb1,0:nb3),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbxz_c))*kind(ibbxz_c),'ibbxz_c','calculatetailcorrection')
+ allocate(ibbxy_c(2,0:nb1,0:nb2),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbxy_c))*kind(ibbxy_c),'ibbxy_c','calculatetailcorrection')
+ allocate(ibbyz_f(2,0:nb2,0:nb3),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbyz_f))*kind(ibbyz_f),'ibbyz_f','calculatetailcorrection')
+ allocate(ibbxz_f(2,0:nb1,0:nb3),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbxz_f))*kind(ibbxz_f),'ibbxz_f','calculatetailcorrection')
+ allocate(ibbxy_f(2,0:nb1,0:nb2),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbxy_f))*kind(ibbxy_f),'ibbxy_f','calculatetailcorrection')
+ 
+ !!*********************************Alexey*********************************************************
+ !   allocate for grow
+ 	allocate(ibbzxx_c(2,0:nb3,-14:2*nb1+16),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbzxx_c))*kind(ibbzxx_c),'ibbzxx_c','calculatetailcorrection')
+ 	allocate(ibbxxyy_c(2,-14:2*nb1+16,-14:2*nb2+16),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbxxyy_c))*kind(ibbxxyy_c),'ibbxxyy_c','calculatetailcorrection')
+     allocate(ibbyz_ff(2,0:nb2,0:nb3),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbyz_ff))*kind(ibbyz_ff),'ibbyz_ff','calculatetailcorrection')
+ 	allocate(ibbzxx_f(2,0:nb3,-14:2*nb1+16),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbzxx_f))*kind(ibbzxx_f),'ibbzxx_f','calculatetailcorrection')
+ 	allocate(ibbxxyy_f(2,-14:2*nb1+16,-14:2*nb2+16),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbxxyy_f))*kind(ibbxxyy_f),'ibbxxyy_f','calculatetailcorrection')
+ 
+ !	allocate for shrink
+ 	allocate(ibbzzx_c(2,-14:2*nb3+16,0:nb1),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbzzx_c))*kind(ibbzzx_c),'ibbzzx_c','calculatetailcorrection')
+ 	allocate(ibbyyzz_c(2,-14:2*nb2+16,-14:2*nb3+16),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbyyzz_c))*kind(ibbyyzz_c),'ibbyyzz_c','calculatetailcorrection')
+ 	allocate(ibbxy_ff(2,0:nb1,0:nb2),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbxy_ff))*kind(ibbxy_ff),'ibbxy_ff','calculatetailcorrection')
+ 	allocate(ibbzzx_f(2,-14:2*nb3+16,0:nb1),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbzzx_f))*kind(ibbzzx_f),'ibbzzx_f','calculatetailcorrection')
+ 	allocate(ibbyyzz_f(2,-14:2*nb2+16,-14:2*nb3+16),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbyyzz_f))*kind(ibbyyzz_f),'ibbyyzz_f','calculatetailcorrection')
+ 	
+ !	allocate for real space
+ 	allocate(ibbyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16),stat=i_stat)
+ call memocc(i_stat,product(shape(ibbyyzz_r))*kind(ibbyyzz_r),'ibbyyzz_r','calculatetailcorrection')
+ !***********************************************************************************************
+ ! coarse grid quantities
+ call fill_logrid(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,nat,ntypes,iatype,txyz, & 
+      radii_cf(1,1),crmult,hgrid,logrid_c)
+ if (iproc.eq.0 .and. output_grid) then
+    open(unit=22,file='grid_tail.ascii',status='unknown')
+    write(22,*) nat
+    write(22,*) alatb1,' 0. ',alatb2
+    write(22,*) ' 0. ',' 0. ',alatb3
+    do iat=1,nat
+       write(22,'(3(1x,e12.5),3x,a20)') txyz(1,iat),txyz(2,iat),txyz(3,iat),atomnames(iatype(iat))
+    end do
+    do i3=0,nb3
+       do i2=0,nb2
+          do i1=0,nb1
+             if (logrid_c(i1,i2,i3)) then
+                write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  g '
+             end if
+          enddo
+       enddo
+    end do
+ endif
+ call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,nvctrb_c)
+ if (iproc.eq.0) then
+    write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have coarse segment, elements',nsegb_c,nvctrb_c
+ end if
+ call bounds(nb1,nb2,nb3,logrid_c,ibbyz_c,ibbxz_c,ibbxy_c)
+ 
+ ! fine grid quantities
+ call fill_logrid(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,0,nat,ntypes,iatype,txyz, & 
+      radii_cf(1,2),frmult,hgrid,logrid_f)
+ if (iproc.eq.0 .and. output_grid) then
+    do i3=0,nb3 
+       do i2=0,nb2 
+          do i1=0,nb1
+             if (logrid_f(i1,i2,i3)) then
+                write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  G '
+             end if
+          enddo
+       enddo
+    enddo
+    close(22)
+ endif
+ call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
+ if (iproc.eq.0) then
+    write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have fine   segment, elements',nsegb_f,7*nvctrb_f
+ end if
+ call bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
+ 
+ !*********Alexey******************************************************************************
+  
+ 	call make_all_ib(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
+ 	ibbxy_c,ibbzzx_c,ibbyyzz_c,ibbxy_f,ibbxy_ff,ibbzzx_f,ibbyyzz_f,&
+ 	    ibbyz_c,ibbzxx_c,ibbxxyy_c,ibbyz_f,ibbyz_ff,ibbzxx_f,ibbxxyy_f,ibbyyzz_r)
+ 
+ !***********************************************************************************************
+ ! now fill the wavefunction descriptor arrays
+ allocate(keybg(2,nsegb_c+nsegb_f),stat=i_stat)
+ call memocc(i_stat,product(shape(keybg))*kind(keybg),'keybg','calculatetailcorrection')
+ allocate(keybv(nsegb_c+nsegb_f),stat=i_stat)
+ call memocc(i_stat,product(shape(keybv))*kind(keybv),'keybv','calculatetailcorrection')
+ ! coarse grid quantities
+ call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,keybg(1,1),keybv(1))
+ 
+ ! fine grid quantities
+ call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1))
+ 
+ i_all=-product(shape(logrid_c))*kind(logrid_c)
+ deallocate(logrid_c,stat=i_stat)
+ call memocc(i_stat,i_all,'logrid_c','calculatetailcorrection')
+ i_all=-product(shape(logrid_f))*kind(logrid_f)
+ deallocate(logrid_f,stat=i_stat)
+ call memocc(i_stat,i_all,'logrid_f','calculatetailcorrection')
+ 
+ ! allocations for arrays holding the wavefunction
+ if (iproc.eq.0) write(*,'(1x,a,i0)') 'Allocate words for psib and hpsib ',2*(nvctrb_c+7*nvctrb_f)
+ allocate(psib(nvctrb_c+7*nvctrb_f),stat=i_stat)
+ call memocc(i_stat,product(shape(psib))*kind(psib),'psib','calculatetailcorrection')
+ allocate(hpsib(nvctrb_c+7*nvctrb_f),stat=i_stat)
+ call memocc(i_stat,product(shape(hpsib))*kind(hpsib),'hpsib','calculatetailcorrection')
+ if (iproc.eq.0) write(*,*) 'Allocation done'
+ 
+ ! work arrays applylocpotkin
+ allocate(psifscf(max((2*nb1+31)*(2*nb2+31)*(2*nb3+16),(2*nb1+16)*(2*nb2+31)*(2*nb3+31))),stat=i_stat)
+ call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','calculatetailcorrection')
+ allocate(psir((2*nb1+31)*(2*nb2+31)*(2*nb3+31)),stat=i_stat)
+ call memocc(i_stat,product(shape(psir))*kind(psir),'psir','calculatetailcorrection')
+ 
+ !******************Alexey**********************************************************************
+ nw1=max(2*(nb3+1)*(2*nb1+31)*(2*nb2+31),&   ! shrink convention: nw1>nw2
+ 		2*(nb1+1)*(2*nb2+31)*(2*nb3+31))
+ nw2=max(4*(nb2+1)*(nb3+1)*(2*nb1+31),&
+ 		 4*(nb1+1)*(nb2+1)*(2*nb3+31))
+ 
+ allocate(x_c(0:nb1,0:nb2,0:nb3),stat=i_stat)
+ call memocc(i_stat,product(shape(x_c))*kind(x_c),'x_c','calculatetailcorrection')
+ allocate(y_c(0:nb1,0:nb2,0:nb3),stat=i_stat)
+ call memocc(i_stat,product(shape(y_c))*kind(y_c),'y_c','calculatetailcorrection')
+ allocate(x_fc(0:nb1,0:nb2,0:nb3,3),stat=i_stat)! work
+ call memocc(i_stat,product(shape(x_fc))*kind(x_fc),'x_fc','calculatetailcorrection')
+ allocate(x_f(7,0:nb1,0:nb2,0:nb3),stat=i_stat)! work
+ call memocc(i_stat,product(shape(x_f))*kind(x_f),'x_f','calculatetailcorrection')
+ allocate(y_f(7,0:nb1,0:nb2,0:nb3),stat=i_stat)! work
+ call memocc(i_stat,product(shape(y_f))*kind(y_f),'y_f','calculatetailcorrection')
+ allocate(w1(nw1),stat=i_stat)
+ call memocc(i_stat,product(shape(w1))*kind(w1),'w1','calculatetailcorrection')
+ allocate(w2(nw2),stat=i_stat) ! work
+ call memocc(i_stat,product(shape(w2))*kind(w2),'w2','calculatetailcorrection')
+ !***********************************************************************************************
+ 
+ 
+ ekin_sum=0.d0
+ epot_sum=0.d0
+ eproj_sum=0.d0
+ do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+ 
+    !build the compressed wavefunction in the enlarged box
+!    call uncompress(n1,n2,n3,-nbuf,n1+nbuf,-nbuf,n2+nbuf,-nbuf,n3+nbuf, & 
+!         nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+!         nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+!         psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
+!    call compress(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,  &
+!         nsegb_c,nvctrb_c,keybg(1,1),keybv(1),   &
+!         nsegb_f,nvctrb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1),   &
+!         psig,psib(1),psib(nvctrb_c+1))
 
 
-if (parallel) then
-   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-   if (iproc.eq.0) then
-      write(*,'(1x,a,f27.14)')'Tail calculation ended'
-   endif
-   allocate(wrkallred(3,2),stat=i_stat)
-   call memocc(i_stat,product(shape(wrkallred))*kind(wrkallred),'wrkallred','calculatetailcorrection')
-   wrkallred(1,2)=ekin_sum
-   wrkallred(2,2)=epot_sum 
-   wrkallred(3,2)=eproj_sum 
-   call MPI_ALLREDUCE(wrkallred(1,2),wrkallred(1,1),3,&
-        MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-   ekin_sum=wrkallred(1,1) 
-   epot_sum=wrkallred(2,1) 
-   eproj_sum=wrkallred(3,1)
-   i_all=-product(shape(wrkallred))*kind(wrkallred)
-   deallocate(wrkallred,stat=i_stat)
-   call memocc(i_stat,i_all,'wrkallred','calculatetailcorrection')
-endif
+    call transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
+      nseg_c,nvctr_c,keyg(1,1),keyv(1),nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),  &
+      nsegb_c,nvctrb_c,keybg(1,1),keybv(1),nsegb_f,nvctrb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1),  &
+     nbuf,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),  & 
+     x_c,x_fc,x_f,psib(1),psib(nvctrb_c+1))
 
-call timing(iproc,'Tail          ','OF')
+ write(*,*) 'transform_fortail finished',iproc,iorb
 
-end subroutine CalculateTailCorrection
+ 
+    npt=2
+    tail_adding: do ipt=1,npt
+ 
+       !calculate gradient
 
+!        call applylocpotkinone(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nbuf, &
+!                   hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  &
+!                   ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f, &
+!                   psig,psigp,psir,  &
+!                   psib,rhopotb,hpsib,epot,ekin,xc,xf,w1,w2,&
+!        ibbzzx_c,ibbyyzz_c,ibbxy_ff,ibbzzx_f,ibbyyzz_f,&
+!        ibbzxx_c,ibbxxyy_c,ibbyz_ff,ibbzxx_f,ibbxxyy_f,nw1,nw2,ibbyyzz_r)
+
+       call applylocpotkinone(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nbuf, &
+                   hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  &
+                   ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,y_c,y_f,psir,  &
+                   psib,pot,hpsib,epot,ekin, &
+                   x_c,x_fc,x_f,w1,w2,&
+                   ibbzzx_c,ibbyyzz_c,ibbxy_ff,ibbzzx_f,ibbyyzz_f,&
+                   ibbzxx_c,ibbxxyy_c,ibbyz_ff,ibbzxx_f,ibbxxyy_f,nw1,nw2,ibbyyzz_r)
+
+ write(*,*) 'applylocpotkinone finished',iproc,iorb
+
+
+!       call applylocpotkinone_old(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nbuf, & 
+!            hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  & 
+!            ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f, & 
+!            psig,psigp,psifscf,psir,  &
+!            psib,pot,hpsib,epot,ekin)
+
+       call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
+            nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
+            nsegb_c,nsegb_f,keybg,keybv,nvctrb_c,nvctrb_f,  & 
+            psib,hpsib,eproj)
+ write(*,*) 'applyprojectorsone finished',iproc,iorb
+       !calculate residue for the single orbital
+       tt=0.d0
+       do i=1,nvctrb_c+7*nvctrb_f
+          hpsib(i)=hpsib(i)-eval(iorb)*psib(i)
+          tt=tt+hpsib(i)**2
+       enddo
+       tt=sqrt(tt)
+ 
+       if (ipt.eq.npt) exit tail_adding
+ 
+       !calculate tail using the preconditioner as solver for the green function application
+       cprecr=-eval(iorb)
+       call timing(iproc,'Tail          ','OF')
+       call precong(iorb,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, &
+            nsegb_c,nvctrb_c,nsegb_f,nvctrb_f,keybg,keybv, &
+            ncongt,cprecr,hgrid,ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,hpsib)
+       call timing(iproc,'Tail          ','ON')
+       !call plot_wf(10,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
+       !      txyz(1,1),txyz(2,1),txyz(3,1),psib)
+ 
+       ! add tail to the bulk wavefunction
+       sum_tail=0.d0
+       do i=1,nvctrb_c+7*nvctrb_f
+          psib(i)=psib(i)-hpsib(i)
+          sum_tail=sum_tail+psib(i)**2
+       enddo
+       sum_tail=sqrt(sum_tail)
+       write(*,'(1x,a,i3,3(1x,1pe13.6),1x,1pe9.2)') &
+            'BIG: iorb,ekin,epot,eproj,gnrm',iorb,ekin,epot,eproj,tt
+       !values of the energyes before tail application
+       ekin1=ekin
+       epot1=epot
+       eproj1=eproj
+       !write(*,'(1x,a,1x,i0,f18.14)') 'norm orbital + tail',iorb,sum_tail
+       !call plot_wf(20,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
+       !      txyz(1,1),txyz(2,1),txyz(3,1),psib)
+ 
+       sum_tail=1.d0/sum_tail
+       do i=1,nvctrb_c+7*nvctrb_f
+          psib(i)=psib(i)*sum_tail
+       enddo
+ 
+    end do tail_adding
+ 
+    write(*,'(1x,a,i3,3(1x,1pe13.6),2(1x,1pe9.2))') &
+         'BIG: iorb,denergies,gnrm,dnorm',&
+         iorb,ekin-ekin1,epot-epot1,eproj-eproj1,tt,sum_tail-1.d0
+ 
+ 
+    ekin_sum=ekin_sum+ekin*occup(iorb)
+    epot_sum=epot_sum+epot*occup(iorb)
+    eproj_sum=eproj_sum+eproj*occup(iorb)
+ end do
+ 
+ i_all=-product(shape(txyz))*kind(txyz)
+ deallocate(txyz,stat=i_stat)
+ call memocc(i_stat,i_all,'txyz','calculatetailcorrection')
+ i_all=-product(shape(psifscf))*kind(psifscf)
+ deallocate(psifscf,stat=i_stat)
+ call memocc(i_stat,i_all,'psifscf','calculatetailcorrection')
+ i_all=-product(shape(psir))*kind(psir)
+ deallocate(psir,stat=i_stat)
+ call memocc(i_stat,i_all,'psir','calculatetailcorrection')
+ i_all=-product(shape(psib))*kind(psib)
+ deallocate(psib,stat=i_stat)
+ call memocc(i_stat,i_all,'psib','calculatetailcorrection')
+ i_all=-product(shape(hpsib))*kind(hpsib)
+ deallocate(hpsib,stat=i_stat)
+ call memocc(i_stat,i_all,'hpsib','calculatetailcorrection')
+ i_all=-product(shape(keybg))*kind(keybg)
+ deallocate(keybg,stat=i_stat)
+ call memocc(i_stat,i_all,'keybg','calculatetailcorrection')
+ i_all=-product(shape(keybv))*kind(keybv)
+ deallocate(keybv,stat=i_stat)
+ call memocc(i_stat,i_all,'keybv','calculatetailcorrection')
+ i_all=-product(shape(ibbyz_c))*kind(ibbyz_c)
+ deallocate(ibbyz_c,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbyz_c','calculatetailcorrection')
+ i_all=-product(shape(ibbxz_c))*kind(ibbxz_c)
+ deallocate(ibbxz_c,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbxz_c','calculatetailcorrection')
+ i_all=-product(shape(ibbxy_c))*kind(ibbxy_c)
+ deallocate(ibbxy_c,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbxy_c','calculatetailcorrection')
+ i_all=-product(shape(ibbyz_f))*kind(ibbyz_f)
+ deallocate(ibbyz_f,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbyz_f','calculatetailcorrection')
+ i_all=-product(shape(ibbxz_f))*kind(ibbxz_f)
+ deallocate(ibbxz_f,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbxz_f','calculatetailcorrection')
+ i_all=-product(shape(ibbxy_f))*kind(ibbxy_f)
+ deallocate(ibbxy_f,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbxy_f','calculatetailcorrection')
+ 
+ !!*****************************Alexey************************************************************
+ i_all=-product(shape(x_c))*kind(x_c)
+ deallocate(x_c,stat=i_stat)
+ call memocc(i_stat,i_all,'x_c','calculatetailcorrection')
+
+ i_all=-product(shape(y_c))*kind(y_c)
+ deallocate(y_c,stat=i_stat)
+ call memocc(i_stat,i_all,'y_c','calculatetailcorrection')
+ 
+ i_all=-product(shape(w1))*kind(w1)
+ deallocate(w1,stat=i_stat)
+ call memocc(i_stat,i_all,'w1','calculatetailcorrection')
+ 
+ i_all=-product(shape(w2))*kind(w2)
+ deallocate(w2,stat=i_stat)
+ call memocc(i_stat,i_all,'w2','calculatetailcorrection')
+ 
+ i_all=-product(shape(x_fc))*kind(x_fc)
+ deallocate(x_fc,stat=i_stat)
+ call memocc(i_stat,i_all,'x_fc','calculatetailcorrection')
+ 
+ i_all=-product(shape(x_f))*kind(x_f)
+ deallocate(x_f,stat=i_stat)
+ call memocc(i_stat,i_all,'x_f','calculatetailcorrection')
+
+ i_all=-product(shape(y_f))*kind(y_f)
+ deallocate(y_f,stat=i_stat)
+ call memocc(i_stat,i_all,'y_f','calculatetailcorrection')
+ 
+ i_all=-product(shape(ibbzzx_c))*kind(ibbzzx_c)
+ deallocate(ibbzzx_c,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbzzx_c','calculatetailcorrection')
+ 
+ i_all=-product(shape(ibbyyzz_c))*kind(ibbyyzz_c)
+ deallocate(ibbyyzz_c,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbyyzz_c','calculatetailcorrection')
+ 
+ i_all=-product(shape(ibbxy_ff))*kind(ibbxy_ff)
+ deallocate(ibbxy_ff,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbxy_ff','calculatetailcorrection')
+ 
+ i_all=-product(shape(ibbzzx_f))*kind(ibbzzx_f)
+ deallocate(ibbzzx_f,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbzzx_f','calculatetailcorrection')
+ 
+ i_all=-product(shape(ibbyyzz_f))*kind(ibbyyzz_f)
+ deallocate(ibbyyzz_f,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbyyzz_f','calculatetailcorrection')
+ 
+ i_all=-product(shape(ibbzxx_c))*kind(ibbzxx_c)
+ deallocate(ibbzxx_c,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbzxx_c','calculatetailcorrection')
+ 
+ i_all=-product(shape(ibbxxyy_c))*kind(ibbxxyy_c)
+ deallocate(ibbxxyy_c,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbxxyy_c','calculatetailcorrection')
+ 
+ i_all=-product(shape(ibbyz_ff))*kind(ibbyz_ff)
+ deallocate(ibbyz_ff,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbyz_ff','calculatetailcorrection')
+ 
+ i_all=-product(shape(ibbzxx_f))*kind(ibbzxx_f)
+ deallocate(ibbzxx_f,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbzxx_f','calculatetailcorrection')
+ 
+ i_all=-product(shape(ibbxxyy_f))*kind(ibbxxyy_f)
+ deallocate(ibbxxyy_f,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbxxyy_f','calculatetailcorrection')
+ 
+ i_all=-product(shape(ibbyyzz_r))*kind(ibbyyzz_r)
+ deallocate(ibbyyzz_r,stat=i_stat)
+ call memocc(i_stat,i_all,'ibbyyzz_r','calculatetailcorrection')
+ !!***********************************************************************************************
+ 
+ if (parallel) then
+    call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+    if (iproc.eq.0) then
+       write(*,'(1x,a,f27.14)')'Tail calculation ended'
+    endif
+    allocate(wrkallred(3,2),stat=i_stat)
+    call memocc(i_stat,product(shape(wrkallred))*kind(wrkallred),'wrkallred','calculatetailcorrection')
+    wrkallred(1,2)=ekin_sum
+    wrkallred(2,2)=epot_sum 
+    wrkallred(3,2)=eproj_sum 
+    call MPI_ALLREDUCE(wrkallred(1,2),wrkallred(1,1),3,&
+         MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+    ekin_sum=wrkallred(1,1) 
+    epot_sum=wrkallred(2,1) 
+    eproj_sum=wrkallred(3,1)
+    i_all=-product(shape(wrkallred))*kind(wrkallred)
+    deallocate(wrkallred,stat=i_stat)
+    call memocc(i_stat,i_all,'wrkallred','calculatetailcorrection')
+ endif
+ 
+ call timing(iproc,'Tail          ','OF')
+ 
+ end subroutine CalculateTailCorrection
+ 
 
 subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
    implicit real*8 (a-h,o-z)
@@ -2082,153 +2366,394 @@ subroutine addlocgauspsp_old(iproc,ntypes,nat,iatype,atomnames,rxyz,psppar,n1,n2
    return
  end subroutine addlocgauspsp_old
 
-
+!subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
+!     hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
+!     ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
+!     psi,pot,hpsi,epot_sum,ekin_sum)
 
 subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
-     hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
-     ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
-     psi,pot,hpsi,epot_sum,ekin_sum)
-  !  Applies the local potential and kinetic energy operator to all wavefunctions belonging to processor
-  ! Input: pot,psi
-  ! Output: hpsi,epot,ekin
-  implicit real*8 (a-h,o-z)
-  dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
-  dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-  dimension occup(norb),pot(*)
-  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-  dimension  psi(nvctr_c+7*nvctr_f,norbp)
-  dimension hpsi(nvctr_c+7*nvctr_f,norbp)
-  real*8, allocatable, dimension(:) :: psifscf,psir,psig,psigp
+	hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
+	ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
+    psi,pot,hpsi,epot_sum,ekin_sum,&
+	ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+	ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+!  Applies the local potential and kinetic energy operator to all wavefunctions belonging to processor
+! Input: pot,psi
+! Output: hpsi,epot,ekin
+        implicit real*8 (a-h,o-z)
+        dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
+        dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
+        dimension occup(norb),pot((2*n1+31)*(2*n2+31)*(2*n3+31))
+        dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
+        dimension  psi(nvctr_c+7*nvctr_f,norbp)
+        dimension hpsi(nvctr_c+7*nvctr_f,norbp)
+        real*8, allocatable :: psir(:),y_c(:,:,:),y_f(:,:,:,:)
+		
+!********************Alexey***************************************************************
+!	for shrink:	
+	integer ibzzx_c(2,-14:2*n3+16,0:n1) 
+	integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
 
-  call timing(iproc,'ApplyLocPotKin','ON')
+	integer ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
+	integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
+	integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
 
-  ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
-  allocate(psig(8*(n1+1)*(n2+1)*(n3+1)),stat=i_stat)
-  call memocc(i_stat,product(shape(psig))*kind(psig),'psig','applylocpotkinall')
-  allocate(psigp(8*(n1+1)*(n2+1)*(n3+1)),stat=i_stat)
-  call memocc(i_stat,product(shape(psigp))*kind(psigp),'psigp','applylocpotkinall')
-  allocate(psifscf(max( (2*n1+31)*(2*n2+31)*(2*n3+16),            (2*n1+16)*(2*n2+31)*(2*n3+31))),stat=i_stat)
-  call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','applylocpotkinall')
+!	for grow:
+	integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
+	integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
+
+    integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
+	integer ibzxx_f(2,          nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+	integer ibxxyy_f(2,                    2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+	
+!	for real space:
+	integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+!*************Alexey***************************************************************************	
+    real*8,allocatable,dimension(:,:,:)::x_c!input 
+	real*8,allocatable::x_f(:,:,:,:),x_fc(:,:,:,:) ! input
+	real*8,allocatable,dimension(:):: w1,w2
+!***********************************************************************************************
+      call timing(iproc,'ApplyLocPotKin','ON')
+
+!******************Alexey**********************************************************************
+
+! shrink convention: nw1>nw2
+nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&   		
+		(n1+1)*(2*n2+31)*(2*n3+31),&
+		2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+		2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+		
+nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+		4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+		  (n1+1)*(n2+1)*(2*n3+31))
+
+!***********************************************************************************************
+
+		
+  allocate(y_c(0:n1,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(y_c))*kind(y_c),'y_c','applylocpotkinall')
+  allocate(y_f(7,0:n1,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(y_f))*kind(y_f),'y_f','applylocpotkinall')
+! Wavefunction in real space
   allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
   call memocc(i_stat,product(shape(psir))*kind(psir),'psir','applylocpotkinall')
-
-  ekin_sum=0.d0
-  epot_sum=0.d0
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-     
-     call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
-          hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
-          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
-          psig,psigp,psifscf,psir,  &
-          psi(1,iorb-iproc*norbp),pot,hpsi(1,iorb-iproc*norbp),epot,ekin)
-
-     ekin_sum=ekin_sum+occup(iorb)*ekin
-     epot_sum=epot_sum+occup(iorb)*epot
-     !        write(*,'(a,i0,2(1x,1pe17.10))') 'iorb,ekin,epot',iorb,ekin,epot
-        
-  enddo
+  
+!*****************Alexey***********************************************************************  
+  allocate(x_c(0:n1,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(x_c))*kind(x_c),'x_c','applylocpotkinall')
+  allocate(x_fc(0:n1,0:n2,0:n3,3),stat=i_stat)
+  call memocc(i_stat,product(shape(x_fc))*kind(x_fc),'x_fc','applylocpotkinall')
+  allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)! work
+  call memocc(i_stat,product(shape(x_c))*kind(x_f),'x_f','applylocpotkinall')
+  allocate(w1(nw1),stat=i_stat)
+  call memocc(i_stat,product(shape(w1))*kind(w1),'w1','applylocpotkinall')
+  allocate(w2(nw2),stat=i_stat) ! work
+  call memocc(i_stat,product(shape(w2))*kind(w2),'w1','applylocpotkinall')
+!***********************************************************************************************
 
 
-  i_all=-product(shape(psig))*kind(psig)
-  deallocate(psig,stat=i_stat)
-  call memocc(i_stat,i_all,'psig','applylocpotkinall')
-  i_all=-product(shape(psigp))*kind(psigp)
-  deallocate(psigp,stat=i_stat)
-  call memocc(i_stat,i_all,'psigp','applylocpotkinall')
-  i_all=-product(shape(psifscf))*kind(psifscf)
-  deallocate(psifscf,stat=i_stat)
-  call memocc(i_stat,i_all,'psifscf','applylocpotkinall')
+
+        ekin_sum=0.d0
+        epot_sum=0.d0
+     do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+
+        call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
+                   hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+                   ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,y_c,y_f,psir,  &
+                   psi(1,iorb-iproc*norbp),pot,hpsi(1,iorb-iproc*norbp),epot,ekin, & 
+                   x_c,x_fc,x_f,w1,w2,&
+                   ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+                   ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r)
+        ekin_sum=ekin_sum+occup(iorb)*ekin
+        epot_sum=epot_sum+occup(iorb)*epot
+
+     enddo
+
+  i_all=-product(shape(y_c))*kind(y_c)
+  deallocate(y_c,stat=i_stat)
+  call memocc(i_stat,i_all,'y_c','applylocpotkinall')
+  i_all=-product(shape(y_f))*kind(y_f)
+  deallocate(y_f,stat=i_stat)
+  call memocc(i_stat,i_all,'y_f','applylocpotkinall')
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir','applylocpotkinall')
 
-  call timing(iproc,'ApplyLocPotKin','OF')
+!*********************Alexey*********************************************************************
+  i_all=-product(shape(x_c))*kind(x_c)
+  deallocate(x_c,stat=i_stat)
+  call memocc(i_stat,i_all,'x_c','applylocpotkinall')
 
-END SUBROUTINE applylocpotkinall
- 
+  i_all=-product(shape(x_fc))*kind(x_fc)
+  deallocate(x_fc,stat=i_stat)
+  call memocc(i_stat,i_all,'x_fc','applylocpotkinall')
+  
+  i_all=-product(shape(x_f))*kind(x_f)
+  deallocate(x_f,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f','applylocpotkinall')
+
+  i_all=-product(shape(w1))*kind(w1)
+  deallocate(w1,stat=i_stat)
+  call memocc(i_stat,i_all,'w1','applylocpotkinall')
+  
+  i_all=-product(shape(w2))*kind(w2)
+  deallocate(w2,stat=i_stat)
+  call memocc(i_stat,i_all,'w2','applylocpotkinall')
+!**********************************************************************************************
+
+      call timing(iproc,'ApplyLocPotKin','OF')
+
+        END SUBROUTINE
+
 
         subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
                    hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
                    ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
-                   psig,psigp,psifscf,psir,  &
-                   psi,pot,hpsi,epot,ekin)
+                   y_c,y_f,psir,  &
+                   psi,pot,hpsi,epot,ekin,x_c,x_fc,x_f,w1,w2,&
+	ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+	ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r)
 !  Applies the local potential and kinetic energy operator to one wavefunction 
 ! Input: pot,psi
 ! Output: hpsi,epot,ekin
         implicit real*8 (a-h,o-z)
         dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
         dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-        dimension pot((2*n1-4*nbuf+31)*(2*n2-4*nbuf+31)*(2*n3-4*nbuf+31))
+        dimension pot((2*n1+31)*(2*n2+31)*(2*n3+31))
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-        dimension psi(nvctr_c+7*nvctr_f)
+        dimension psi(nvctr_c+7*nvctr_f),scal(0:3)
         dimension hpsi(nvctr_c+7*nvctr_f)
-        dimension psig(8*(n1+1)*(n2+1)*(n3+1))
-        dimension psigp(8*(n1+1)*(n2+1)*(n3+1)) 
-        dimension psifscf(max( (2*n1+31)*(2*n2+31)*(2*n3+16), &
-                        &      (2*n1+16)*(2*n2+31)*(2*n3+31)) ) 
+        dimension y_c(0:n1,0:n2,0:n3)
+        dimension y_f(7,0:n1,0:n2,0:n3)
         dimension psir((2*n1+31)*(2*n2+31)*(2*n3+31))
+!********************Alexey***************************************************************
+!	for shrink:	
+	integer ibzzx_c(2,-14:2*n3+16,0:n1) 
+	integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
 
+	integer ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
+	integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
+	integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
 
-        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
-                    nseg_c,nvctr_c,keyg(1,1),       keyv(1),   &
-                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-                    psi(1),psi(nvctr_c+1),psig)
+!	for grow:
+	integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
+	integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
 
-        call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n3+2))
-
-        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=psifscf and ww(((2*n1+31)*(2*n2+31)*(2*n3+16))
-     if (nbuf.eq.0) then
-        epot=0.d0
-        do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
-          tt=pot(i)*psir(i)
-          epot=epot+tt*psir(i)
-          psir(i)=tt
+    integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
+	integer ibzxx_f(2,          nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+	integer ibxxyy_f(2,                    2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+	
+!	for real space:
+	integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+!*****************************************************************************************	
+		real*8 x_c(0:n1,0:n2,0:n3),  x_fc(0:n1,0:n2,0:n3,3), x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)! input
+		real*8 w1(nw1),w2(nw2) ! work
+!***********************************************************************************************
+        do i=0,3
+        scal(i)=1.d0
         enddo
-     else
-        call psipotbuf(n1,n2,n3,nbuf,pot,psir,epot)
-     endif
 
-        call convolut_magic_t(2*n1+15,2*n2+15,2*n3+15,psir,psifscf) !psifscf=ww((2*n1+16)*(2*n2+31)*(2*n3+31))
+        call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+                              nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
+                              nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+                              scal,psi(1),psi(nvctr_c+1),x_c,x_fc,x_f)
 
-        call analyse_shrink(n1,n2,n3,psir,psifscf,psigp)  !psir=ww(((2*n1+2)*(2*n2+16)*(2*n3+16))
+       call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
+             psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
 
-         call ConvolkineticP(n1,n2,n3,  &
-              nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
-              psig,psigp,ekin)
+       if (nbuf.eq.0) then
+       call realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
+       else
+       call realspace_nbuf(ibyyzz_r,pot,psir,epot,n1,n2,n3,nbuf)
+       endif
 
-        call compress(n1,n2,n3,0,n1,0,n2,0,n3,  &
+       call comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,psir,&
+            ibxy_c,ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,y_c,y_f,ibyz_c,ibyz_f)
+
+         call ConvolkineticT(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+               hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_fc,x_f,y_c,y_f,ekin)
+
+        call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
                     nseg_c,nvctr_c,keyg(1,1),       keyv(1),   &
                     nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-                    psigp,hpsi(1),hpsi(nvctr_c+1))
+                    scal,y_c,y_f,hpsi(1),hpsi(nvctr_c+1))
 
         return
     END SUBROUTINE
 
-     subroutine psipotbuf(n1,n2,n3,nbuf,pot,psir,epot)
-     implicit real*8 (a-h,o-z)
-     dimension pot(2*n1-4*nbuf+31,2*n2-4*nbuf+31,2*n3-4*nbuf+31),psir(2*n1+31,2*n2+31,2*n3+31)
 
-! if nbuf.ne.0 n1=nb1, np1=n1
-    epot=0.d0
-     np1=n1-2*nbuf
-     np2=n2-2*nbuf
-     np3=n3-2*nbuf
-!     write(*,*) 'size pot',2*n1-4*nbuf+31,2*n2-4*nbuf+31,2*n3-4*nbuf+31
-!     write(*,*) 'size psir',2*n1+31,2*n2+31,2*n3+31
-!     write(*,*) 'nbuf',nbuf
-!     write(*,*) 'np1,np2,np3',np1,np2,np3
-!     write(*,*) 'nb1,nb2,nb3',n1,n2,n3
-!     write(*,*) 'limits psir',1+2*nbuf,2*np3+31+2*nbuf
-     do i3=1,2*np3+31
-     do i2=1,2*np2+31
-     do i1=1,2*np1+31
-          tt=pot(i1,i2,i3)*psir(i1+2*nbuf,i2+2*nbuf,i3+2*nbuf)
-          epot=epot+tt*psir(i1+2*nbuf,i2+2*nbuf,i3+2*nbuf)
-          psir(i1+2*nbuf,i2+2*nbuf,i3+2*nbuf)=tt
-     enddo
-     enddo
-     enddo
-     END SUBROUTINE
+
+	
+subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
+	implicit none
+	integer,intent(in)::n1,n2,n3
+	integer,intent(in)::ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+	
+	real*8,intent(in)::pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+	real*8,intent(inout)::psir(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+	
+	real*8,intent(out)::epot
+	real*8 tt
+	integer i1,i2,i3
+
+	epot=0.d0	
+	do i3=-14,2*n3+16
+		do i2=-14,2*n2+16
+			do i1=ibyyzz_r(1,i2,i3),ibyyzz_r(2,i2,i3)
+				tt=pot(i1,i2,i3)*psir(i1,i2,i3)
+				epot=epot+tt*psir(i1,i2,i3)
+				psir(i1,i2,i3)=tt
+			enddo
+		enddo
+	enddo
+	
+end subroutine realspace
+
+    
+        subroutine transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,& 
+                        mseg_c,mvctr_c,keyg_c,keyv_c,mseg_f,mvctr_f,keyg_f,keyv_f,  & 
+                        msegb_c,mvctrb_c,keybg_c,keybv_c,msegb_f,mvctrb_f,keybg_f,keybv_f,  & 
+                        nbuf,psi_c,psi_f,psig_c,psig_fc,psig_f,psib_c,psib_f)
+        implicit real*8 (a-h,o-z)
+        dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
+        dimension keybg_c(2,msegb_c),keybv_c(msegb_c),keybg_f(2,msegb_f),keybv_f(msegb_f)
+        dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
+        dimension psib_c(mvctrb_c),psib_f(7,mvctrb_f)
+        dimension psig_c(0:n1+2*nbuf,0:n2+2*nbuf,0:n3+2*nbuf)
+        dimension psig_fc(0:n1+2*nbuf,0:n2+2*nbuf,0:n3+2*nbuf,3),  & 
+                  psig_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3)
+
+        call razero((n1+1+2*nbuf)*(n2+1+2*nbuf)*(n3+1+2*nbuf),psig_c)
+        call razero(3*(n1+1+2*nbuf)*(n2+1+2*nbuf)*(n3+1+2*nbuf),psig_fc)
+        call razero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),psig_f)
+
+! coarse part
+	do iseg=1,mseg_c
+          jj=keyv_c(iseg)
+          j0=keyg_c(1,iseg)
+          j1=keyg_c(2,iseg)
+             ii=j0-1
+             i3=ii/((n1+1)*(n2+1))
+             ii=ii-i3*(n1+1)*(n2+1)
+             i2=ii/(n1+1)
+             i0=ii-i2*(n1+1)
+             i1=i0+j1-j0
+	  do i=i0,i1
+            psig_c(i+nbuf,i2+nbuf,i3+nbuf)=psi_c(i-i0+jj)
+          enddo
+         enddo
+
+	do iseg=1,msegb_c
+          jj=keybv_c(iseg)
+          j0=keybg_c(1,iseg)
+          j1=keybg_c(2,iseg)
+             ii=j0-1
+             i3=ii/((nb1+1)*(nb2+1))
+             ii=ii-i3*(nb1+1)*(nb2+1)
+             i2=ii/(nb1+1)
+             i0=ii-i2*(nb1+1)
+             i1=i0+j1-j0
+	  do i=i0,i1
+            psib_c(i-i0+jj)=psig_c(i,i2,i3)
+          enddo
+        enddo
+
+
+! fine part
+	do iseg=1,mseg_f
+          jj=keyv_f(iseg)
+          j0=keyg_f(1,iseg)
+          j1=keyg_f(2,iseg)
+             ii=j0-1
+             i3=ii/((n1+1)*(n2+1))
+             ii=ii-i3*(n1+1)*(n2+1)
+             i2=ii/(n1+1)
+             i0=ii-i2*(n1+1)
+             i1=i0+j1-j0
+	  do i=i0,i1
+            psig_f(1,i+nbuf,i2+nbuf,i3+nbuf)=psi_f(1,i-i0+jj)
+            psig_fc(i+nbuf,i2+nbuf,i3+nbuf,1)=psig_f(1,i+nbuf,i2+nbuf,i3+nbuf)
+            psig_f(2,i+nbuf,i2+nbuf,i3+nbuf)=psi_f(2,i-i0+jj)
+            psig_fc(i+nbuf,i2+nbuf,i3+nbuf,2)=psig_f(2,i+nbuf,i2+nbuf,i3+nbuf)
+            psig_f(3,i+nbuf,i2+nbuf,i3+nbuf)=psi_f(3,i-i0+jj)
+            psig_f(4,i+nbuf,i2+nbuf,i3+nbuf)=psi_f(4,i-i0+jj)
+            psig_fc(i+nbuf,i2+nbuf,i3+nbuf,3)=psig_f(4,i+nbuf,i2+nbuf,i3+nbuf)
+            psig_f(5,i+nbuf,i2+nbuf,i3+nbuf)=psi_f(5,i-i0+jj)
+            psig_f(6,i+nbuf,i2+nbuf,i3+nbuf)=psi_f(6,i-i0+jj)
+            psig_f(7,i+nbuf,i2+nbuf,i3+nbuf)=psi_f(7,i-i0+jj)
+          enddo
+         enddo
+
+	do iseg=1,msegb_f
+          jj=keybv_f(iseg)
+          j0=keybg_f(1,iseg)
+          j1=keybg_f(2,iseg)
+             ii=j0-1
+             i3=ii/((nb1+1)*(nb2+1))
+             ii=ii-i3*(nb1+1)*(nb2+1)
+             i2=ii/(nb1+1)
+             i0=ii-i2*(nb1+1)
+             i1=i0+j1-j0
+	  do i=i0,i1
+            psib_f(1,i-i0+jj)=psig_f(1,i,i2,i3)
+            psib_f(2,i-i0+jj)=psig_f(2,i,i2,i3)
+            psib_f(3,i-i0+jj)=psig_f(3,i,i2,i3)
+            psib_f(4,i-i0+jj)=psig_f(4,i,i2,i3)
+            psib_f(5,i-i0+jj)=psig_f(5,i,i2,i3)
+            psib_f(6,i-i0+jj)=psig_f(6,i,i2,i3)
+            psib_f(7,i-i0+jj)=psig_f(7,i,i2,i3)
+          enddo
+        enddo
+
+	end subroutine transform_fortail
+
+
+
+subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
+        implicit none
+        integer,intent(in)::nb1,nb2,nb3,nbuf
+        integer,intent(in)::ibyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16)
+        real*8,intent(in)::pot(-14:2*nb1+16-4*nbuf,-14:2*nb2+16-4*nbuf,-14:2*nb3+16-4*nbuf)
+        real*8,intent(inout)::psir(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
+
+        real*8,intent(out)::epot
+        real*8 tt,dnrm2
+        integer i1,i2,i3
+
+        epot=0.d0
+        do i3=-14,2*nb3+16
+        if (i3.ge.-14+2*nbuf .and. i3.le.2*nb3+16-2*nbuf) then
+                do i2=-14,2*nb2+16
+                if (i2.ge.-14+2*nbuf .and. i2.le.2*nb2+16-2*nbuf) then
+                        do i1=-14+2*nbuf,ibyyzz_r(1,i2,i3)-1
+                                psir(i1,i2,i3)=0.d0
+                        enddo
+                        do i1=ibyyzz_r(1,i2,i3),ibyyzz_r(2,i2,i3)
+                                tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf)*psir(i1,i2,i3)
+                                epot=epot+tt*psir(i1,i2,i3)
+                                psir(i1,i2,i3)=tt
+                        enddo
+                        do i1=ibyyzz_r(2,i2,i3)+1,2*nb1+16-2*nbuf
+                                psir(i1,i2,i3)=0.d0
+                        enddo
+                else
+                        do i1=-14,2*nb1+16
+                                psir(i1,i2,i3)=0.d0
+                        enddo
+                endif
+                enddo
+        else
+                do i2=-14,2*nb2+16
+                        do i1=-14,2*nb1+16
+                                psir(i1,i2,i3)=0.d0
+                        enddo
+                enddo
+        endif
+        enddo
+
+end subroutine realspace_nbuf
+
+
 
     
         subroutine uncompress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
@@ -2428,7 +2953,9 @@ END SUBROUTINE applylocpotkinall
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
 
 subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-     nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,nrho,nscatterarr)
+     nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,nrho,nscatterarr,&
+	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+	 ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
 ! Calculates the charge density by summing the square of all orbitals
 ! Input: psi
 ! Output: rho
@@ -2438,15 +2965,54 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension psi(nvctr_c+7*nvctr_f,norbp)
   dimension nscatterarr(0:nproc-1,4)!n3d,n3p,i3s+i3xcsh-1,i3xcsh
-  real*8, allocatable :: psig(:,:,:,:,:,:),psifscf(:),psir(:),rho_p(:)
+  real*8, allocatable :: psir(:),rho_p(:)
+!***************Alexey**************************************************************************
+    real*8,allocatable,dimension(:,:,:)::x_c!input 
+	real*8,allocatable::x_f(:,:,:,:),x_fc(:,:,:,:) ! input
+	real*8,allocatable,dimension(:):: w1,w2
+	
+	real*8 scal(0:3)
+!	for grow:
+	integer ibyz_c(2,0:n2,0:n3)
+	integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
+	integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
+
+    integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
+	integer ibzxx_f(2,          nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+	integer ibxxyy_f(2,                    2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+!***********************************************************************************************
   include 'mpif.h'
   
   hgridh=hgrid*.5d0 
   
+!***************Alexey**************************************************************************
+
+! shrink convention: nw1>nw2
+nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&   		
+		(n1+1)*(2*n2+31)*(2*n3+31),&
+		2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+		2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+		
+nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+		4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+		  (n1+1)*(n2+1)*(2*n3+31))
+
+        do i=0,3
+        scal(i)=1.d0
+        enddo
+		
+  allocate(x_c(0:n1,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(x_c))*kind(x_c),'x_c','applylocpotkinall')
+  allocate(x_fc(0:n1,0:n2,0:n3,3),stat=i_stat)
+  call memocc(i_stat,product(shape(x_fc))*kind(x_fc),'x_fc','applylocpotkinall')
+  allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)! work
+  call memocc(i_stat,product(shape(x_c))*kind(x_f),'x_f','applylocpotkinall')
+  allocate(w1(nw1),stat=i_stat)
+  call memocc(i_stat,product(shape(w1))*kind(w1),'w1','applylocpotkinall')
+  allocate(w2(nw2),stat=i_stat) ! work
+  call memocc(i_stat,product(shape(w2))*kind(w2),'w1','applylocpotkinall')
+!***********************************************************************************************
   ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
-  allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_stat)
-  call memocc(i_stat,product(shape(psig))*kind(psig),'psig','sumrho')
-  allocate(psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)),stat=i_stat)
   call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','sumrho')
   ! Wavefunction in real space
   allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
@@ -2473,14 +3039,17 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
 
     do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
-       call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
-            nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-            nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-            psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
-       call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n3+2))
+!***************Alexey**************************************************************************
 
-       call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=ww(((2*n1+31)*(2*n2+31)*(2*n3+16))
+        call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+                              nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
+                              nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+                              scal,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),x_c,x_fc,x_f)
 
+       call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
+             psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+
+!***********************************************************************************************
        !sum different slices by taking into account the overlap
        i3s=0
        loop_xc_overlap: do jproc=0,nproc-1
@@ -2543,14 +3112,17 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
 
     do iorb=1,norb
 
-       call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
-            nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-            nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-            psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
-       call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n3+2))`
+!***************Alexey**************************************************************************
 
-       call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=ww(((2*n1+31)*(2*n2+31)*(2*n3+16))
+        call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+                              nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
+                              nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+                              scal,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),x_c,x_fc,x_f)
 
+       call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
+             psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+
+!***********************************************************************************************
        do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
           rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
        enddo
@@ -2568,23 +3140,40 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
     call timing(iproc,'Rho_comput    ','OF')
  endif
 
- i_all=-product(shape(psig))*kind(psig)
- deallocate(psig,stat=i_stat)
- call memocc(i_stat,i_all,'psig','sumrho')
- i_all=-product(shape(psifscf))*kind(psifscf)
- deallocate(psifscf,stat=i_stat)
- call memocc(i_stat,i_all,'psifscf','sumrho')
  i_all=-product(shape(psir))*kind(psir)
  deallocate(psir,stat=i_stat)
  call memocc(i_stat,i_all,'psir','sumrho')
 
 
+!*********************Alexey*********************************************************************
+  i_all=-product(shape(x_c))*kind(x_c)
+  deallocate(x_c,stat=i_stat)
+  call memocc(i_stat,i_all,'x_c','applylocpotkinall')
+
+  i_all=-product(shape(x_fc))*kind(x_fc)
+  deallocate(x_fc,stat=i_stat)
+  call memocc(i_stat,i_all,'x_fc','applylocpotkinall')
+  
+  i_all=-product(shape(x_f))*kind(x_f)
+  deallocate(x_f,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f','applylocpotkinall')
+
+  i_all=-product(shape(w1))*kind(w1)
+  deallocate(w1,stat=i_stat)
+  call memocc(i_stat,i_all,'w1','applylocpotkinall')
+  
+  i_all=-product(shape(w2))*kind(w2)
+  deallocate(w2,stat=i_stat)
+  call memocc(i_stat,i_all,'w2','applylocpotkinall')
+!**********************************************************************************************
 END SUBROUTINE
 
 
 
         subroutine sumrho_old(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-             nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho)
+             nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
+	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+	 ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
 ! Calculates the charge density by summing the square of all orbitals
 ! Input: psi
 ! Output: rho
@@ -2593,18 +3182,55 @@ END SUBROUTINE
         dimension rho((2*n1+31)*(2*n2+31)*(2*n3+31)),occup(norb)
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         dimension psi(nvctr_c+7*nvctr_f,norbp)
-        real*8, allocatable :: psig(:,:,:,:,:,:),psifscf(:),psir(:),rho_p(:)
+        real*8, allocatable :: psir(:),rho_p(:)
+!***************Alexey**************************************************************************
+    real*8,allocatable,dimension(:,:,:)::x_c!input 
+	real*8,allocatable::x_f(:,:,:,:),x_fc(:,:,:,:) ! input
+	real*8,allocatable,dimension(:):: w1,w2
+	
+	real*8 scal(0:3)
+!	for grow:
+	integer ibyz_c(2,0:n2,0:n3)
+	integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
+	integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
+
+    integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
+	integer ibzxx_f(2,          nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+	integer ibxxyy_f(2,                    2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+!***********************************************************************************************
         include 'mpif.h'
         !flag indicating the MPI libraries used
         withmpi2=.true.
 
         hgridh=hgrid*.5d0 
 
-! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
-        allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_stat)
-        call memocc(i_stat,product(shape(psig))*kind(psig),'psig','sumrho_old')
-        allocate(psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)),stat=i_stat)
-        call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','sumrho_old')
+!***************Alexey**************************************************************************
+
+! shrink convention: nw1>nw2
+nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&   		
+		(n1+1)*(2*n2+31)*(2*n3+31),&
+		2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+		2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+		
+nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+		4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+		  (n1+1)*(n2+1)*(2*n3+31))
+
+        do i=0,3
+        scal(i)=1.d0
+        enddo
+		
+  allocate(x_c(0:n1,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(x_c))*kind(x_c),'x_c','applylocpotkinall')
+  allocate(x_fc(0:n1,0:n2,0:n3,3),stat=i_stat)
+  call memocc(i_stat,product(shape(x_fc))*kind(x_fc),'x_fc','applylocpotkinall')
+  allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)! work
+  call memocc(i_stat,product(shape(x_c))*kind(x_f),'x_f','applylocpotkinall')
+  allocate(w1(nw1),stat=i_stat)
+  call memocc(i_stat,product(shape(w1))*kind(w1),'w1','applylocpotkinall')
+  allocate(w2(nw2),stat=i_stat) ! work
+  call memocc(i_stat,product(shape(w2))*kind(w2),'w1','applylocpotkinall')
+!***********************************************************************************************
 ! Wavefunction in real space
         allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
         call memocc(i_stat,product(shape(psir))*kind(psir),'psir','sumrho_old')
@@ -2623,14 +3249,25 @@ END SUBROUTINE
 
       do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
-        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
-                    nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-                    psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
-        call synthese_grow(n1,n2,n3,psir,psig,psifscf) 
+!        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
+!                    nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+!                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+!                    psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
+!        call synthese_grow(n1,n2,n3,psir,psig,psifscf) 
+!
+!        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) 
+!
+!***************Alexey**************************************************************************
 
-        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) 
+        call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+                              nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
+                              nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+                              scal,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),x_c,x_fc,x_f)
 
+       call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
+             psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+
+!***********************************************************************************************
         do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
          rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
         enddo
@@ -2654,14 +3291,25 @@ END SUBROUTINE
 
       do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
-        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
-                    nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-                    psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
-        call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n3+2))
+!        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
+!                    nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+!                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+!                    psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
+!        call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n3+2))
+!
+!        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=ww(((2*n1+31)*(2*n2+31)*(2*n3+16))
 
-        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=ww(((2*n1+31)*(2*n2+31)*(2*n3+16))
+!***************Alexey**************************************************************************
 
+        call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+                              nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
+                              nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+                              scal,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),x_c,x_fc,x_f)
+
+       call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
+             psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+
+!***********************************************************************************************
         do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
          rho_p(i)=rho_p(i)+(occup(iorb)/hgridh**3)*psir(i)**2
         enddo
@@ -2686,14 +3334,25 @@ END SUBROUTINE
 
      do iorb=1,norb
 
-        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
-                    nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-                    psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
-        call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n3+2))`
+!        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
+!                    nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+!                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+!                    psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
+!        call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n3+2))`
+!
+!        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=ww(((2*n1+31)*(2*n2+31)*(2*n3+16))
 
-        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=ww(((2*n1+31)*(2*n2+31)*(2*n3+16))
+!***************Alexey**************************************************************************
 
+        call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+                              nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
+                              nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+                              scal,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),x_c,x_fc,x_f)
+
+       call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
+             psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+
+!***********************************************************************************************
        do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
          rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
         enddo
@@ -2713,17 +3372,32 @@ END SUBROUTINE
              'done. Total electronic charge=',tt
 
 
-        i_all=-product(shape(psig))*kind(psig)
-        deallocate(psig,stat=i_stat)
-        call memocc(i_stat,i_all,'psig','sumrho_old')
-        i_all=-product(shape(psifscf))*kind(psifscf)
-        deallocate(psifscf,stat=i_stat)
-        call memocc(i_stat,i_all,'psifscf','sumrho_old')
         i_all=-product(shape(psir))*kind(psir)
         deallocate(psir,stat=i_stat)
         call memocc(i_stat,i_all,'psir','sumrho_old')
 
 
+!*********************Alexey*********************************************************************
+  i_all=-product(shape(x_c))*kind(x_c)
+  deallocate(x_c,stat=i_stat)
+  call memocc(i_stat,i_all,'x_c','applylocpotkinall')
+
+  i_all=-product(shape(x_fc))*kind(x_fc)
+  deallocate(x_fc,stat=i_stat)
+  call memocc(i_stat,i_all,'x_fc','applylocpotkinall')
+  
+  i_all=-product(shape(x_f))*kind(x_f)
+  deallocate(x_f,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f','applylocpotkinall')
+
+  i_all=-product(shape(w1))*kind(w1)
+  deallocate(w1,stat=i_stat)
+  call memocc(i_stat,i_all,'w1','applylocpotkinall')
+  
+  i_all=-product(shape(w2))*kind(w2)
+  deallocate(w2,stat=i_stat)
+  call memocc(i_stat,i_all,'w2','applylocpotkinall')
+!**********************************************************************************************
         END SUBROUTINE
 
 !-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!-!
@@ -3829,7 +4503,10 @@ end  subroutine orthon
 subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, n3, output_grid, &
      & hgrid, nat, ntypes, iatype, atomnames, rxyz, radii_cf, crmult, frmult, &
      & ibyz_c,ibxz_c,ibxy_c, ibyz_f, ibxz_f, ibxy_f, nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp, &
-     & keyg, keyv,norb,norbp,psi,hpsi,psit,psidst,hpsidst,ads)
+     & keyg, keyv,norb,norbp,psi,hpsi,psit,psidst,hpsidst,ads,&
+	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+	ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+	ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 !calculates the descriptor arrays keyg and keyv as well as nseg_c, nseg_f, nvctr_c, nvctr_f, nvctrp
 !calculates also the arrays ibyz_c,ibxz_c,ibxy_c, ibyz_f, ibxz_f, ibxy_f needed for convolut_standard
   implicit none
@@ -3857,6 +4534,28 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
   integer :: iat,i1,i2,i3,norbme,i_all,i_stat
   real*8 :: tt
   logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
+!**********************Alexey*************************************************************
+	integer,intent(in):: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+!**********************Alexey*************************************************************
+!	for shrink:	
+	integer ibzzx_c(2,-14:2*n3+16,0:n1) 
+	integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
+
+	integer ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
+	integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
+	integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
+
+!	for grow:
+	integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
+	integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
+
+    integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
+	integer ibzxx_f(2,          nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+	integer ibxxyy_f(2,                    2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+	
+!	for real space:
+	integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+!*****************************************************************************************	
 
   call timing(iproc,'CrtDescriptors','ON')
 
@@ -3948,6 +4647,13 @@ subroutine createWavefunctionsDescriptors(parallel, iproc, nproc, idsx, n1, n2, 
 
   call timing(iproc,'CrtDescriptors','OF')
 
+!*********Alexey******************************************************************************
+ 
+	call make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+	ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
+	    ibyz_c,ibzxx_c,ibxxyy_c,ibyz_f,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+
+!***********************************************************************************************
 END SUBROUTINE createWavefunctionsDescriptors
 
 
@@ -5231,6 +5937,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,psppar,npspcode,&
         iatsc=iatsc+1
         sccode=real(iasctype(ity),kind=8)
         inorbsc=ceiling(dlog(sccode)/dlog(10.d0))
+        if (sccode==1.d0) inorbsc=1
         ipow=inorbsc-1
         scorb(:,iatsc)=.false.
         !count the semicore orbitals for this atom
@@ -5395,7 +6102,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
      atomnames,ntypes,iatype,iasctype,pkernel,psppar,npspcode,ixc,ppsi,eval,accurex,&
-     new_psolver,datacode,nscatterarr)
+     new_psolver,datacode,nscatterarr,&
+	ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+	ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors writes its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -5428,6 +6137,26 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   allocatable :: psi(:,:),hpsi(:,:),psit(:,:),hpsit(:,:),ppsit(:,:),occupe(:),psiw(:,:,:)
   allocatable :: hamovr(:,:),evale(:),work_lp(:),pot(:),norbsc_arr(:)
   logical, allocatable :: scorb(:,:)
+!********************Alexey***************************************************************
+!	for shrink:	
+	integer ibzzx_c(2,-14:2*n3+16,0:n1) 
+	integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
+
+	integer ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
+	integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
+	integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
+
+!	for grow:
+	integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
+	integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
+
+    integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
+	integer ibzxx_f(2,          nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+	integer ibxxyy_f(2,                    2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+	
+!	for real space:
+	integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+!*****************************************************************************************	
   include 'mpif.h'
 
   allocate(scorb(4,natsc),stat=i_stat)
@@ -5489,11 +6218,15 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   ! resulting charge density and potential
   if (datacode=='G') then
      call sumrho_old(parallel,iproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
-          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot)
+          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
+	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+	 ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
   else
      call sumrho(parallel,iproc,nproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
-          (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr)
+          (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,&
+	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+	 ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
   end if
   !      ixc=1   ! LDA functional
   if (new_psolver) then
@@ -5530,7 +6263,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      call applylocpotkinall(iproc,norbe,norbep,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
           hgrid,occupe,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-          psi,pot,hpsi,epot_sum,ekin_sum)
+          psi,pot,hpsi,epot_sum,ekin_sum,&
+	ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+	ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
@@ -5541,7 +6276,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      call applylocpotkinall(iproc,norbe,norbep,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
           hgrid,occupe,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-          psi,rhopot,hpsi,epot_sum,ekin_sum)
+          psi,rhopot,hpsi,epot_sum,ekin_sum,&
+	ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+	ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
   end if
 
@@ -5621,6 +6358,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
      iorbst=1
      imatrst=1
+     !print *,'norbi',norbi,natsc,norbsc_arr(natsc+1)
      do i=1,natsc
         norbi=norbsc_arr(i)
         call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psit(1,iorbst),nvctrp,hpsit(1,iorbst),nvctrp,&
@@ -6634,7 +7372,8 @@ end function myorbital
          else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then  
            write(*,*) 'because cell size has changed',n1_old,n1  , n2_old,n2 , n3_old,n3
          else
-           write(*,*) 'molecule was shifted' 
+           write(*,*) 'molecule was shifted' , abs(center(1)-center_old(1)), & 
+                       abs(center(2)-center_old(2)),abs(center(3)-center_old(3))
          endif
 
          allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2),stat=i_stat)
