@@ -43,16 +43,22 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
         read(35,*,iostat=i_stat)tt,string,symbol
         if (i_stat == 0 .and. string=='Atomic' .and. symbol=='kind:') exit read_line
      end do read_line
-     do i=1,7
+     do i=1,5
         read(35,*)
      end do
      !start reading the number of shells
-     ishell=0
+     read(35,*,iostat=i_stat)num,num,num,num,exponent,coefficient
+     ishell=1
+     lmax=max(lmax,num)
      read_shells: do
-        read(35,*,iostat=i_stat)num,num,num,num,exponent,coefficient
+        read(35,*,iostat=i_stat)line
+        read(line,*,iostat=i_stat)num,num,num,num,exponent,coefficient
         if (i_stat == 0) then 
            ishell=ishell+1
-           num=max(lmax,num)
+           lmax=max(lmax,num)
+        else
+           read(line,*,iostat=i_stat)exponent,coefficient
+           
         end if
         
      end do read_shells
