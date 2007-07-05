@@ -334,7 +334,7 @@ subroutine calc_gradient(n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,h
  real(kind=8), dimension(n1,n2,n3,nspden), intent(in) :: rhoinp
  real(kind=8), dimension(n1,n2,n3grad,2*nspden-1,0:3), intent(out) :: gradient
  !Local variables
- integer :: i1,i2,i3,i_all,i_stat
+ integer :: i1,i2,i3,i_all,i_stat,ispden
  !filters of finite difference derivative for order 4
  real(kind=8), parameter :: a1=0.8d0, a2=-0.2d0
  real(kind=8), parameter :: a3=0.038095238095238095238d0, a4=-0.0035714285714285714286d0
@@ -350,93 +350,182 @@ subroutine calc_gradient(n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,h
     stop
  end if
  if (nspden /= 1) then
-    print *,'calc_gradient:case spin-polarized to be implemented'
+!    print *,'calc_gradient:case spin-polarized to be implemented'
+    print *,'calc_gradient:case spin-polarized currently beeing implemented'
  end if
 
  !let us initialize the larger vector to calculate the gradient
  allocate(density(n1+8,n2+8,n3grad+8),stat=i_stat)
  call memocc(i_stat,product(shape(density))*kind(density),'density','calc_gradient')
 
-  do i3=1,4-deltaleft
-     do i2=5,n2+4
-        do i1=5,n1+4
-           density(i1,i2,i3)=rhoinp(i1-4,i2-4,1,1)
-        end do
-     end do
-  end do
-  do i3=1,deltaleft
-     do i2=5,n2+4
-        do i1=5,n1+4
-           density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,1)
-        end do
-     end do
-  end do
-  do i3=deltaleft+1,n3grad+deltaleft
-     do i2=1,4
-        do i1=5,n1+4
-           density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,1,i3,1)
-        end do
-     end do
-     do i2=5,n2+4
-        do i1=1,4
-           density(i1,i2,i3+4-deltaleft)=rhoinp(1,i2-4,i3,1)
-        end do
-        do i1=5,n1+4
-           density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,1)
-        end do
-        do i1=n1+5,n1+8
-           density(i1,i2,i3+4-deltaleft)=rhoinp(n1,i2-4,i3,1)
-        end do
-     end do
-     do i2=n2+5,n2+8
-        do i1=5,n1+4
-           density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,n2,i3,1)
-        end do
-     end do
-  end do
-  do i3=n3grad+deltaleft+1,n3
-     do i2=5,n2+4
-        do i1=5,n1+4
-           density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,1)
-        end do
-     end do
-  end do
-  do i3=1,4-deltaright
-     do i2=5,n2+4
-        do i1=5,n1+4
-           density(i1,i2,i3+n3+4-deltaleft)=rhoinp(i1-4,i2-4,n3,1)
-        end do
-     end do
-  end do
-
-  !calculating the gradient by using the auxiliary array
-  do i3=5,n3grad+4 
-     do i2=5,n2+4
-        do i1=5,n1+4
-           !gradient in the x direction
-           derx=a1*(density(i1+1,i2,i3)-density(i1-1,i2,i3))&
-                +a2*(density(i1+2,i2,i3)-density(i1-2,i2,i3))&
-                +a3*(density(i1+3,i2,i3)-density(i1-3,i2,i3))&
-                +a4*(density(i1+4,i2,i3)-density(i1-4,i2,i3))
-           !gradient in the y direction
-           dery=a1*(density(i1,i2+1,i3)-density(i1,i2-1,i3))&
-                +a2*(density(i1,i2+2,i3)-density(i1,i2-2,i3))&
-                +a3*(density(i1,i2+3,i3)-density(i1,i2-3,i3))&
-                +a4*(density(i1,i2+4,i3)-density(i1,i2-4,i3))
-           !gradient in the z direction
-           derz=a1*(density(i1,i2,i3+1)-density(i1,i2,i3-1))&
-                +a2*(density(i1,i2,i3+2)-density(i1,i2,i3-2))&
-                +a3*(density(i1,i2,i3+3)-density(i1,i2,i3-3))&
-                +a4*(density(i1,i2,i3+4)-density(i1,i2,i3-4))
-           !square modulus
-           gradient(i1-4,i2-4,i3-4,1,0)=(derx/hx)**2+(dery/hy)**2+(derz/hz)**2
-           !different components
-           gradient(i1-4,i2-4,i3-4,1,1)=derx/hx
-           gradient(i1-4,i2-4,i3-4,1,2)=dery/hy
-           gradient(i1-4,i2-4,i3-4,1,3)=derz/hz
-        end do
-     end do
-  end do
+ do ispden=1,nspden !loop over up/dw densities
+    do i3=1,4-deltaleft
+       do i2=5,n2+4
+          do i1=5,n1+4
+             density(i1,i2,i3)=rhoinp(i1-4,i2-4,1,ispden)
+          end do
+       end do
+    end do
+    do i3=1,deltaleft
+       do i2=5,n2+4
+          do i1=5,n1+4
+             density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+          end do
+       end do
+    end do
+    do i3=deltaleft+1,n3grad+deltaleft
+       do i2=1,4
+          do i1=5,n1+4
+             density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,1,i3,ispden)
+          end do
+       end do
+       do i2=5,n2+4
+          do i1=1,4
+             density(i1,i2,i3+4-deltaleft)=rhoinp(1,i2-4,i3,ispden)
+          end do
+          do i1=5,n1+4
+             density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+          end do
+          do i1=n1+5,n1+8
+             density(i1,i2,i3+4-deltaleft)=rhoinp(n1,i2-4,i3,ispden)
+          end do
+       end do
+       do i2=n2+5,n2+8
+          do i1=5,n1+4
+             density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,n2,i3,ispden)
+          end do
+       end do
+    end do
+    do i3=n3grad+deltaleft+1,n3
+       do i2=5,n2+4
+          do i1=5,n1+4
+             density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+          end do
+       end do
+    end do
+    do i3=1,4-deltaright
+       do i2=5,n2+4
+          do i1=5,n1+4
+             density(i1,i2,i3+n3+4-deltaleft)=rhoinp(i1-4,i2-4,n3,ispden)
+          end do
+       end do
+    end do
+    
+    !calculating the gradient by using the auxiliary array
+    do i3=5,n3grad+4 
+       do i2=5,n2+4
+          do i1=5,n1+4
+             !gradient in the x direction
+             derx=a1*(density(i1+1,i2,i3)-density(i1-1,i2,i3))&
+                  +a2*(density(i1+2,i2,i3)-density(i1-2,i2,i3))&
+                  +a3*(density(i1+3,i2,i3)-density(i1-3,i2,i3))&
+                  +a4*(density(i1+4,i2,i3)-density(i1-4,i2,i3))
+             !gradient in the y direction
+             dery=a1*(density(i1,i2+1,i3)-density(i1,i2-1,i3))&
+                  +a2*(density(i1,i2+2,i3)-density(i1,i2-2,i3))&
+                  +a3*(density(i1,i2+3,i3)-density(i1,i2-3,i3))&
+                  +a4*(density(i1,i2+4,i3)-density(i1,i2-4,i3))
+             !gradient in the z direction
+             derz=a1*(density(i1,i2,i3+1)-density(i1,i2,i3-1))&
+                  +a2*(density(i1,i2,i3+2)-density(i1,i2,i3-2))&
+                  +a3*(density(i1,i2,i3+3)-density(i1,i2,i3-3))&
+                  +a4*(density(i1,i2,i3+4)-density(i1,i2,i3-4))
+             !square modulus
+             gradient(i1-4,i2-4,i3-4,ispden,0)=(derx/hx)**2+(dery/hy)**2+(derz/hz)**2
+             !different components
+             gradient(i1-4,i2-4,i3-4,ispden,1)=derx/hx
+             gradient(i1-4,i2-4,i3-4,ispden,2)=dery/hy
+             gradient(i1-4,i2-4,i3-4,ispden,3)=derz/hz
+          end do
+       end do
+    end do
+ end do
+ 
+ !Once again for total density 
+ !(adding up component only since density already contains dw component from above)
+ if(nspden==2) then
+      do i3=1,4-deltaleft
+       do i2=5,n2+4
+          do i1=5,n1+4
+             density(i1,i2,i3)=density(i1,i2,i3)+rhoinp(i1-4,i2-4,1,1)
+          end do
+       end do
+    end do
+    do i3=1,deltaleft
+       do i2=5,n2+4
+          do i1=5,n1+4
+             density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+rhoinp(i1-4,i2-4,i3,1)
+          end do
+       end do
+    end do
+    do i3=deltaleft+1,n3grad+deltaleft
+       do i2=1,4
+          do i1=5,n1+4
+             density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+rhoinp(i1-4,1,i3,1)
+          end do
+       end do
+       do i2=5,n2+4
+          do i1=1,4
+             density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+rhoinp(1,i2-4,i3,1)
+          end do
+          do i1=5,n1+4
+             density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+rhoinp(i1-4,i2-4,i3,1)
+          end do
+          do i1=n1+5,n1+8
+             density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+rhoinp(n1,i2-4,i3,1)
+          end do
+       end do
+       do i2=n2+5,n2+8
+          do i1=5,n1+4
+             density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+rhoinp(i1-4,n2,i3,1)
+          end do
+       end do
+    end do
+    do i3=n3grad+deltaleft+1,n3
+       do i2=5,n2+4
+          do i1=5,n1+4
+             density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+rhoinp(i1-4,i2-4,i3,1)
+          end do
+       end do
+    end do
+    do i3=1,4-deltaright
+       do i2=5,n2+4
+          do i1=5,n1+4
+             density(i1,i2,i3+n3+4-deltaleft)=density(i1,i2,i3+n3+4-deltaleft)+rhoinp(i1-4,i2-4,n3,1)
+          end do
+       end do
+    end do
+    
+    !calculating the gradient by using the auxiliary array
+    do i3=5,n3grad+4 
+       do i2=5,n2+4
+          do i1=5,n1+4
+             !gradient in the x direction
+             derx=a1*(density(i1+1,i2,i3)-density(i1-1,i2,i3))&
+                  +a2*(density(i1+2,i2,i3)-density(i1-2,i2,i3))&
+                  +a3*(density(i1+3,i2,i3)-density(i1-3,i2,i3))&
+                  +a4*(density(i1+4,i2,i3)-density(i1-4,i2,i3))
+             !gradient in the y direction
+             dery=a1*(density(i1,i2+1,i3)-density(i1,i2-1,i3))&
+                  +a2*(density(i1,i2+2,i3)-density(i1,i2-2,i3))&
+                  +a3*(density(i1,i2+3,i3)-density(i1,i2-3,i3))&
+                  +a4*(density(i1,i2+4,i3)-density(i1,i2-4,i3))
+             !gradient in the z direction
+             derz=a1*(density(i1,i2,i3+1)-density(i1,i2,i3-1))&
+                  +a2*(density(i1,i2,i3+2)-density(i1,i2,i3-2))&
+                  +a3*(density(i1,i2,i3+3)-density(i1,i2,i3-3))&
+                  +a4*(density(i1,i2,i3+4)-density(i1,i2,i3-4))
+             !square modulus
+             gradient(i1-4,i2-4,i3-4,3,0)=(derx/hx)**2+(dery/hy)**2+(derz/hz)**2
+             !different components
+             gradient(i1-4,i2-4,i3-4,3,1)=derx/hx
+             gradient(i1-4,i2-4,i3-4,3,2)=dery/hy
+             gradient(i1-4,i2-4,i3-4,3,3)=derz/hz
+          end do
+       end do
+    end do
+  
+ end if
 
   i_all=-product(shape(density))*kind(density)
   deallocate(density,stat=i_stat)
