@@ -107,9 +107,6 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
   return
 END SUBROUTINE segkeys
 
-
-
-
 subroutine fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
      ntypes,iatype,rxyz,radii,rmult,hgrid,logrid)
   ! set up an array logrid(i1,i2,i3) that specifies whether the grid point

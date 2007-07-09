@@ -35,73 +35,73 @@ implicit none
 end subroutine comb_grow_all
 
 
-
-
 subroutine comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
-			                 ,w1,w2,x,y,ibyz,ibzxx,ibxxyy)
-! In 3d,			
-! Applies synthesis wavelet transformation 
-! then convolves with magic filter
-!  the size of the data is allowed to grow
-! The input array x is not overwritten
+     ,w1,w2,x,y,ibyz,ibzxx,ibxxyy)
+  ! In 3d,			
+  ! Applies synthesis wavelet transformation 
+  ! then convolves with magic filter
+  !  the size of the data is allowed to grow
+  ! The input array x is not overwritten
 
-implicit real*8 (a-h,o-z)
+  implicit real*8 (a-h,o-z)
 
-real*8 x(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-real*8 w1(4,		   nfl2:nfu2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16)
-real*8 w2(2,         			 nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
-real*8 y(									  -14:2*n1+16  ,       -14:2*n2+16  ,-14:2*n3+16)
-integer ibyz(2,nfl2:nfu2,nfl3:nfu3)
-integer ibzxx( 2,        nfl3:nfu3,2*nfl1-14:2*nfu1+16)
-integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+  real*8 x(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
+  real*8 w1(4,nfl2:nfu2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16)
+  real*8 w2(2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
+  real*8 y(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+  integer ibyz(2,nfl2:nfu2,nfl3:nfu3)
+  integer ibzxx(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+  integer ibxxyy(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
-	  	m1=nfu1-nfl1;	m2=nfu2-nfl2;	m3=nfu3-nfl3
+  m1=nfu1-nfl1
+  m2=nfu2-nfl2
+  m3=nfu3-nfl3
 
-! i1,i2,i3 -> i2,i3,I1
-        nt=(nfu2-nfl2+1)*(nfu3-nfl3+1)
-        call  comb_rot_grow_loc_1(nfl1,nfu1,nt,x,w1,ibyz) 
+  ! i1,i2,i3 -> i2,i3,I1
+  nt=(nfu2-nfl2+1)*(nfu3-nfl3+1)
+  call comb_rot_grow_loc_1(nfl1,nfu1,nt,x,w1,ibyz) 
+  
+  ! i2,i3,I1 -> i3,I1,I2
+  nt=(nfu3-nfl3+1)*(2*m1+31)
+  call comb_rot_grow_loc_2(nfl2,nfu2,nt,w1,w2,ibzxx) 
+  
+  ! i3,I1,I2  -> I1,I2,I3: add the result to y
+  call comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w2,y,ibxxyy)
+  
+END SUBROUTINE comb_grow_tree
 
-! i2,i3,I1 -> i3,I1,I2
-        nt=(nfu3-nfl3+1)*(2*m1+31)
-        call  comb_rot_grow_loc_2(nfl2,nfu2,nt,w1,w2,ibzxx) 
-
-! i3,I1,I2  -> I1,I2,I3: add the result to y
-        call  comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w2,y,ibxxyy)
-
-        END SUBROUTINE
-
-        subroutine comb_grow_c(n1,n2,n3,ww,x,y,ibyz,ibzxx,ibxxyy)
-! In 3d,			
-! Applies synthesis wavelet transformation 
-! then convolves with magic filter
-!  the size of the data is allowed to grow
-! The input array x is not overwritten
-! However, the output array y contains nonphysical values
-! outside of the localization region
-! that remain from the first comb_grow
-
-        implicit real*8 (a-h,o-z)
-        real*8 x(0:n1,0:n2,0:n3)
-    	real*8 ww(         0:n3,-14:2*n1+16,-14:2*n2+16) ! work
-        real*8 y(               -14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
-	    integer ibyz  (    2,0:n2,0:n3)
-		integer ibzxx(       2,       0:n3,-14:2*n1+16)
-		integer ibxxyy(2       ,-14:2*n1+16,-14:2*n2+16)
-		
-! i1,i2,i3 -> i2,i3,I1
-        nt=(n2+1)*(n3+1)
-        call  comb_rot_grow_loc(0,n1,nt,x,y,1,ibyz) 
-
-! i2,i3,I1 -> i3,I1,I2
-        nt=(n3+1)*(2*n1+31)
-        call  comb_rot_grow_loc(0,n2,nt,y,ww,1,ibzxx) 
-		! dimension of ww: nt*(2*n2+31)=(n3+1)*(2*n1+31)*(2*n2+31)
-
-! i3,I1,I2  -> I1,I2,I3
-        nt=(2*n1+31)*(2*n2+31)
-        call  comb_rot_grow_loc(0,n3,nt,ww,y,1,ibxxyy)
-
-        END SUBROUTINE
+subroutine comb_grow_c(n1,n2,n3,ww,x,y,ibyz,ibzxx,ibxxyy)
+  ! In 3d,			
+  ! Applies synthesis wavelet transformation 
+  ! then convolves with magic filter
+  !  the size of the data is allowed to grow
+  ! The input array x is not overwritten
+  ! However, the output array y contains nonphysical values
+  ! outside of the localization region
+  ! that remain from the first comb_grow
+  
+  implicit real*8 (a-h,o-z)
+  real*8 x(0:n1,0:n2,0:n3)
+  real*8 ww(0:n3,-14:2*n1+16,-14:2*n2+16) ! work
+  real*8 y(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+  integer ibyz(2,0:n2,0:n3)
+  integer ibzxx(2,0:n3,-14:2*n1+16)
+  integer ibxxyy(2,-14:2*n1+16,-14:2*n2+16)
+  
+  ! i1,i2,i3 -> i2,i3,I1
+  nt=(n2+1)*(n3+1)
+  call comb_rot_grow_loc(0,n1,nt,x,y,1,ibyz) 
+  
+  ! i2,i3,I1 -> i3,I1,I2
+  nt=(n3+1)*(2*n1+31)
+  call comb_rot_grow_loc(0,n2,nt,y,ww,1,ibzxx) 
+  ! dimension of ww: nt*(2*n2+31)=(n3+1)*(2*n1+31)*(2*n2+31)
+  
+  ! i3,I1,I2  -> I1,I2,I3
+  nt=(2*n1+31)*(2*n2+31)
+  call comb_rot_grow_loc(0,n3,nt,ww,y,1,ibxxyy)
+  
+END SUBROUTINE comb_grow_c
 
 ! subroutine for scfunctions
 !include 'standard_grow.f90'

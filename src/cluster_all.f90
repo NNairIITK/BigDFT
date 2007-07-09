@@ -452,9 +452,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 !!$  enddo
 
 
-! shift atomic positions such that molecule is inside cell
-  !if (iproc.eq.0) write(*,'(1x,a,3(1x,1pe14.7))') 'Atomic positions shifted by',-cxmin,-cymin,-czmin
-
   do iat=1,nat
      rxyz(1,iat)=rxyz(1,iat)-cxmin
      rxyz(2,iat)=rxyz(2,iat)-cymin
@@ -476,7 +473,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   n2=int(alat2/hgrid)
   !if (mod(n2+1,8).eq.0) n2=n2+1
   n3=int(alat3/hgrid)
-  alat1=n1*hgrid ; alat2=n2*hgrid ; alat3=n3*hgrid
+  alat1=n1*hgrid 
+  alat2=n2*hgrid 
+  alat3=n3*hgrid
   if (iproc.eq.0) then 
      write(*,'(1x,a,3(1x,1pe12.5))') &
           '   Shift of=',-cxmin,-cymin,-czmin
@@ -537,32 +536,32 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   call memocc(i_stat,product(shape(ibxy_f))*kind(ibxy_f),'ibxy_f','cluster')
   
 !*********************************Alexey*********************************************************
-!   allocate for grow
-	allocate(ibzxx_c(2,0:n3,-14:2*n1+16),stat=i_stat)
+  !   allocate for grow
+  allocate(ibzxx_c(2,0:n3,-14:2*n1+16),stat=i_stat)
   call memocc(i_stat,product(shape(ibzxx_c))*kind(ibzxx_c),'ibzxx_c','cluster')
-	allocate(ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16),stat=i_stat)
+  allocate(ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16),stat=i_stat)
   call memocc(i_stat,product(shape(ibxxyy_c))*kind(ibxxyy_c),'ibxxyy_c','cluster')
-    allocate(ibyz_ff(2,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+  allocate(ibyz_ff(2,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
   call memocc(i_stat,product(shape(ibyz_ff))*kind(ibyz_ff),'ibyz_ff','cluster')
-	allocate(ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16),stat=i_stat)
+  allocate(ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16),stat=i_stat)
   call memocc(i_stat,product(shape(ibzxx_f))*kind(ibzxx_f),'ibzxx_f','cluster')
-	allocate(ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16),stat=i_stat)
+  allocate(ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16),stat=i_stat)
   call memocc(i_stat,product(shape(ibxxyy_f))*kind(ibxxyy_f),'ibxxyy_f','cluster')
 
-!	allocate for shrink
-	allocate(ibzzx_c(2,-14:2*n3+16,0:n1),stat=i_stat)
+  !	allocate for shrink
+  allocate(ibzzx_c(2,-14:2*n3+16,0:n1),stat=i_stat)
   call memocc(i_stat,product(shape(ibzzx_c))*kind(ibzzx_c),'ibzzx_c','cluster')
-	allocate(ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
+  allocate(ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
   call memocc(i_stat,product(shape(ibyyzz_c))*kind(ibyyzz_c),'ibyyzz_c','cluster')
-	allocate(ibxy_ff(2,nfl1:nfu1,nfl2:nfu2),stat=i_stat)
+  allocate(ibxy_ff(2,nfl1:nfu1,nfl2:nfu2),stat=i_stat)
   call memocc(i_stat,product(shape(ibxy_ff))*kind(ibxy_ff),'ibxy_ff','cluster')
-	allocate(ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1),stat=i_stat)
+  allocate(ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1),stat=i_stat)
   call memocc(i_stat,product(shape(ibzzx_f))*kind(ibzzx_f),'ibzzx_f','cluster')
-	allocate(ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16),stat=i_stat)
+  allocate(ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16),stat=i_stat)
   call memocc(i_stat,product(shape(ibyyzz_f))*kind(ibyyzz_f),'ibyyzz_f','cluster')
 
-!	allocate for real space
-	allocate(ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
+  !	allocate for real space
+  allocate(ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
   call memocc(i_stat,product(shape(ibyyzz_r))*kind(ibyyzz_r),'ibyyzz_r','cluster')
 !***********************************************************************************************
 
@@ -2593,12 +2592,12 @@ end subroutine MemoryEstimator
 
 
 subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,&
-     & hgrid,nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
-     & ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp,&
-     & keyg, keyv,norb,norbp,&
-	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-	ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-	ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+     hgrid,nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
+     ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp,&
+     keyg, keyv,norb,norbp,&
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+     ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+     ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 !calculates the descriptor arrays keyg and keyv as well as nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp
 !calculates also the arrays ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f needed for convolut_standard
   implicit none
@@ -2614,28 +2613,28 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
   real*8 :: rxyz(3, nat), radii_cf(ntypes, 2)
   character(len=20), intent(in) :: atomnames(100)
   integer, pointer :: keyg(:,:), keyv(:)
-!**********************Alexey*************************************************************
-	integer,intent(in):: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-!**********************Alexey*************************************************************
-!	for shrink:	
-	integer ibzzx_c(2,-14:2*n3+16,0:n1) 
-	integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
+  !**********************Alexey*************************************************************
+  integer,intent(in):: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  !**********************Alexey*************************************************************
+  !	for shrink:	
+  integer ibzzx_c(2,-14:2*n3+16,0:n1) 
+  integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
 
-	integer ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
-	integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
-	integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
+  integer ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
+  integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
+  integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
 
-!	for grow:
-	integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
-	integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
+  !	for grow:
+  integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
+  integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
 
-    integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
-	integer ibzxx_f(2,          nfl3:nfu3,2*nfl1-14:2*nfu1+16)
-	integer ibxxyy_f(2,                    2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
-	
-!	for real space:
-	integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
-!*****************************************************************************************	
+  integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
+  integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+  integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+
+  !	for real space:
+  integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+  !*****************************************************************************************	
 
 
   !Local variables

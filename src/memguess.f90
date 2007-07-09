@@ -274,7 +274,9 @@ program memguess
   n1=int(alat1/hgrid)
   n2=int(alat2/hgrid)
   n3=int(alat3/hgrid)
-  alat1=n1*hgrid ; alat2=n2*hgrid ; alat3=n3*hgrid
+  alat1=n1*hgrid 
+  alat2=n2*hgrid 
+  alat3=n3*hgrid
   write(*,'(1x,a,19x,a)') &
        '                                 Atomic Units:','grid spacing units:'
   write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
