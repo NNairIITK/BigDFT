@@ -1693,13 +1693,13 @@ end subroutine unscramble_pack
 !! SOURCE
 !!
 subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
-             ,scal,hgrid)!,ehartree)
+             ,scal)!,hgrid)!,ehartree)
   implicit none
   include 'mpif.h'
   include 'perfdata.inc'
   !Arguments
   integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc
-  real(kind=8), intent(in) :: scal,hgrid
+  real(kind=8), intent(in) :: scal!,hgrid
   !real(kind=8), intent(out) :: ehartree
   real(kind=8), dimension(nd1,nd2,nd3/nproc), intent(in) :: pot
   real(kind=8), dimension(md1,md3,md2/nproc), intent(inout) :: zf

@@ -15,7 +15,7 @@ EXTRA_DIST = \
 	$(SOURCES_MOD)
 
 lib_LIBRARIES = libpoissonsolver.a
-noinst_LIBRARIES = libpsolver_OLD.a
+#noinst_LIBRARIES = libpsolver_OLD.a
 module_DATA = poisson_solver.@MODULE_EXT@
 
 SUBDIRS =
@@ -31,16 +31,16 @@ endif
 libpoissonsolver_a_SOURCES = \
 	Poisson_Solver.f90 
 
-libpsolver_OLD_a_SOURCES = \
-	Build_Kernel_OLD.f90 \
-	fft3d_OLD.f90 \
-	PSolver_Kernel.f90 \
-	pconv.f90 \
-	pfft3d.f90 \
-	scaling_function_OLD.f90 \
-	gequad.f90 \
-	xcenergy_OLD.f90 \
-	3Dgradient_OLD.f90 
+#libpsolver_OLD_a_SOURCES = \
+#	Build_Kernel_OLD.f90 \
+#	fft3d_OLD.f90 \
+#	PSolver_Kernel.f90 \
+#	pconv.f90 \
+#	pfft3d.f90 \
+#	scaling_function_OLD.f90 \
+#	gequad.f90 \
+#	xcenergy_OLD.f90 \
+#	3Dgradient_OLD.f90 
 
 CLEANFILES = $(mpi_include)
 

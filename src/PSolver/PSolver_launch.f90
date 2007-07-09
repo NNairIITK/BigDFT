@@ -77,7 +77,7 @@
 !!    February 2007
 !!
 !! SOURCE
-!!
+!! 
 subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion)
   implicit none
@@ -247,12 +247,12 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      correction=0.d0
      factor=0.5d0*hx*hy*hz
   else if (geocode == 'F') then
-     hgrid=max(hx,hy,hz)
-     scal=hgrid**3/real(n1*n2*n3,kind=8)
+     !hgrid=max(hx,hy,hz)
+     scal=hx*hy*hz/real(n1*n2*n3,kind=8)
      call F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf,&
-          scal,hgrid)!,ehartreeLOC)
+          scal)!,hgrid)!,ehartreeLOC)
      correction=0.d0
-     factor=0.5d0*hgrid**3
+     factor=0.5d0*hx*hy*hz!hgrid**3
 
   end if
   

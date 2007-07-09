@@ -137,7 +137,7 @@
 
        call system_clock(ncount1,ncount_rate,ncount_max)
        tel=dble(ncount1-ncount0)/dble(ncount_rate)
-       write(99,'(a40,2(1x,e10.3))') 'P:FIRST PART:x',tel,1.d-6*mflop1/tel
+!       write(99,'(a40,2(1x,e10.3))') 'P:FIRST PART:x',tel,1.d-6*mflop1/tel
 
 ! + (1/2) d^2/dy^2
     nb=4
@@ -164,7 +164,7 @@
 
        call system_clock(ncount2,ncount_rate,ncount_max)
        tel=dble(ncount2-ncount1)/dble(ncount_rate)
-       write(99,'(a40,2(1x,e10.3))') 'P:FIRST PART:y',tel,1.d-6*mflop2/tel
+!       write(99,'(a40,2(1x,e10.3))') 'P:FIRST PART:y',tel,1.d-6*mflop2/tel
 
 ! + (1/2) d^2/dz^2
     nb=4
@@ -194,7 +194,7 @@
 
        call system_clock(ncount3,ncount_rate,ncount_max)
        tel=dble(ncount3-ncount2)/dble(ncount_rate)
-       write(99,'(a40,2(1x,e10.3))') 'P:FIRST PART:z',tel,1.d-6*mflop3/tel
+!       write(99,'(a40,2(1x,e10.3))') 'P:FIRST PART:z',tel,1.d-6*mflop3/tel
 
 ! wavelet part
  ! (1/2) d^2/dx^2
@@ -225,7 +225,7 @@
 
        call system_clock(ncount4,ncount_rate,ncount_max)
        tel=dble(ncount4-ncount3)/dble(ncount_rate)
-       write(99,'(a40,2(1x,e10.3))') 'P:SECND PART:x',tel,1.d-6*nflop1/tel
+!       write(99,'(a40,2(1x,e10.3))') 'P:SECND PART:x',tel,1.d-6*nflop1/tel
 
 
  ! + (1/2) d^2/dy^2
@@ -256,7 +256,7 @@
 
        call system_clock(ncount5,ncount_rate,ncount_max)
        tel=dble(ncount5-ncount4)/dble(ncount_rate)
-       write(99,'(a40,2(1x,e10.3))') 'P:SECND PART:y',tel,1.d-6*nflop2/tel
+!       write(99,'(a40,2(1x,e10.3))') 'P:SECND PART:y',tel,1.d-6*nflop2/tel
 
  ! + (1/2) d^2/dz^2
     do i2=nfl2,nfu2
@@ -289,10 +289,10 @@
 
        call system_clock(ncount6,ncount_rate,ncount_max)
        tel=dble(ncount6-ncount5)/dble(ncount_rate)
-       write(99,'(a40,2(1x,e10.3))') 'P:SECND PART:z',tel,1.d-6*nflop3/tel
+!       write(99,'(a40,2(1x,e10.3))') 'P:SECND PART:z',tel,1.d-6*nflop3/tel
 
        tel=dble(ncount6-ncount0)/dble(ncount_rate)
-       write(99,'(a40,2(1x,e10.3))') 'P:ALL   PART',  & 
+!       write(99,'(a40,2(1x,e10.3))') 'P:ALL   PART',  & 
             tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
     return

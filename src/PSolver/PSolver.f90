@@ -41,7 +41,7 @@ program PoissonSolver
   integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,n1,n2,n3,itype_scf,i_all,i_stat
   integer :: i1,i2,i3,j1,j2,j3,i1_max,i2_max,i3_max,iproc,nproc,ierr,i3sd,ncomp
   integer :: n_cell,i_allocated,l1,nsp1,nsp2,nsp3,ixc,n3d,n3p,n3pi,i3xcsh,i3s
-  logical :: alsoserial
+  logical :: alsoserial,onlykernel
   
   !Use arguments
   call getarg(1,chain)
@@ -58,7 +58,8 @@ program PoissonSolver
   read(unit=chain,fmt=*) datacode
 
   !perform also the comparison wit the serial case
-  alsoserial=.true.
+  alsoserial=.false.
+  onlykernel=.false.
   !code for the Poisson Solver in the parallel case
   !datacode='G'
 
@@ -92,49 +93,54 @@ program PoissonSolver
   !grid for the free BC case
   hgrid=max(hx,hy,hz)
   !hgrid=hx
-  !Allocations
-  !Density
-  allocate(density(n01,n02,n03),stat=i_stat)
-  call memocc(i_stat,product(shape(density))*kind(density),'density','poisson_solver')
-  !Density then potential
-  allocate(rhopot(n01,n02,n03),stat=i_stat)
-  call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','poisson_solver')
-  allocate(potential(n01,n02,n03),stat=i_stat)
-  call memocc(i_stat,product(shape(potential))*kind(potential),'potential','poisson_solver')
-  !ionic potential
-  allocate(pot_ion(n01,n02,n03),stat=i_stat)
-  call memocc(i_stat,product(shape(pot_ion))*kind(pot_ion),'pot_ion','poisson_solver')
 
   !we must choose properly a test case with a positive density
   itype_scf=14
-
-  call test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
-       density,potential,rhopot,pot_ion)
 
   call timing(iproc,'parallel      ','IN')
 
   call createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,karray)
 
-  !offset, used only for the periodic solver case
-  if (ixc==0) offset=potential(1,1,1)!-pot_ion(1,1,1)
+  if (.not. onlykernel) then
+     !Allocations
+     !Density
+     allocate(density(n01,n02,n03),stat=i_stat)
+     call memocc(i_stat,product(shape(density))*kind(density),'density','poisson_solver')
+     !Density then potential
+     allocate(rhopot(n01,n02,n03),stat=i_stat)
+     call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','poisson_solver')
+     allocate(potential(n01,n02,n03),stat=i_stat)
+     call memocc(i_stat,product(shape(potential))*kind(potential),'potential','poisson_solver')
+     !ionic potential
+     allocate(pot_ion(n01,n02,n03),stat=i_stat)
+     call memocc(i_stat,product(shape(pot_ion))*kind(pot_ion),'pot_ion','poisson_solver')
 
-  !dimension needed for allocations
-  call PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,n3d,n3p,n3pi,i3xcsh,i3s)
-  
-  !dimension for comparison in the global or distributed poisson solver
-  if (datacode == 'G') then
-     i3sd=1
-     ncomp=n03
-  else if (datacode == 'D') then
-     i3sd=i3s
-     ncomp=n3p
-  end if
+     call test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
+          density,potential,rhopot,pot_ion)
+
+
+     !offset, used only for the periodic solver case
+     if (ixc==0) offset=potential(1,1,1)!-pot_ion(1,1,1)
+
+     !dimension needed for allocations
+     call PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,n3d,n3p,n3pi,i3xcsh,i3s)
+
+     !dimension for comparison in the global or distributed poisson solver
+     if (datacode == 'G') then
+        i3sd=1
+        ncomp=n03
+     else if (datacode == 'D') then
+        i3sd=i3s
+        ncomp=n3p
+     end if
 
 !!$  print *,'iproc,i3xcsh,i3s',iproc,i3xcsh,i3s
 
-  !apply the Poisson Solver (case with distributed potential
-  call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     density(1,1,i3sd),karray,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.)
+     !apply the Poisson Solver (case with distributed potential
+     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+          density(1,1,i3sd),karray,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.)
+
+  end if
 
   i_all=-product(shape(karray))*kind(karray)
   deallocate(karray,stat=i_stat)
@@ -142,25 +148,30 @@ program PoissonSolver
 
   call timing(iproc,'              ','RE')
 
-  !comparison (each process compare its own part)
-  call compare(n01,n02,ncomp,potential(1,1,i3sd+i3xcsh),density(1,1,i3sd+i3xcsh),&
-       i1_max,i2_max,i3_max,max_diff)
+  if (.not. onlykernel) then
+
+     !comparison (each process compare its own part)
+     call compare(n01,n02,ncomp,potential(1,1,i3sd+i3xcsh),density(1,1,i3sd+i3xcsh),&
+          i1_max,i2_max,i3_max,max_diff)
 
 !!$  print *,'iproc,i3xcsh,i3s,max_diff',iproc,i3xcsh,i3s,max_diff
 
-  !extract the max
-  call MPI_ALLREDUCE(max_diff,diff_par,1,MPI_double_precision,  &
-       MPI_MAX,MPI_COMM_WORLD,ierr)
-  
+     !extract the max
+     call MPI_ALLREDUCE(max_diff,diff_par,1,MPI_double_precision,  &
+          MPI_MAX,MPI_COMM_WORLD,ierr)
 
-  if (iproc == 0) then
 
-     write(*,*) '--------------------'
-     write(*,*) 'Parallel calculation '
-     write(unit=*,fmt="(1x,a,3(1pe20.12))") "eht, exc, vxc:",ehartree,eexcu,vexcu
-     write(*,'(a,3(i0,1x))') '  Max diff at: ',i1_max,i2_max,i3_max
-     write(unit=*,fmt="(1x,a,1pe20.12)") '    Max diff:',diff_par,&
-          '      result:',density(i1_max,i2_max,i3_max),'    original:',potential(i1_max,i2_max,i3_max)
+     if (iproc == 0) then
+
+        write(*,*) '--------------------'
+        write(*,*) 'Parallel calculation '
+        write(unit=*,fmt="(1x,a,3(1pe20.12))") "eht, exc, vxc:",ehartree,eexcu,vexcu
+        write(*,'(a,3(i0,1x))') '  Max diff at: ',i1_max,i2_max,i3_max
+        write(unit=*,fmt="(1x,a,1pe20.12)") '    Max diff:',diff_par,&
+             '      result:',density(i1_max,i2_max,i3_max),&
+             '    original:',potential(i1_max,i2_max,i3_max)
+     end if
+
   end if
 
   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
@@ -171,12 +182,15 @@ program PoissonSolver
 
      call createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,0,1,karray)
 
-     !offset, used only for the periodic solver case
-     if(ixc==0) offset=potential(1,1,1)!-pot_ion(1,1,1)
-
-     !apply the Poisson Solver (case with distributed potential
-     call PSolver(geocode,'G',0,1,n01,n02,n03,ixc,hx,hy,hz,&
-          rhopot,karray,pot_ion,eh,exc,vxc,offset,.true.)
+     if (.not. onlykernel) then
+        !offset, used only for the periodic solver case
+        if(ixc==0) offset=potential(1,1,1)!-pot_ion(1,1,1)
+        
+        !apply the Poisson Solver (case with distributed potential
+        call PSolver(geocode,'G',0,1,n01,n02,n03,ixc,hx,hy,hz,&
+             rhopot,karray,pot_ion,eh,exc,vxc,offset,.true.)
+        
+     end if
 
      i_all=-product(shape(karray))*kind(karray)
      deallocate(karray,stat=i_stat)
@@ -184,44 +198,47 @@ program PoissonSolver
 
      call timing(iproc,'              ','RE')
 
-     !Maximum difference
-     call compare(n01,n02,n03,potential,rhopot,i1_max,i2_max,i3_max,diff_ser)
-     
+     if (.not. onlykernel) then
+        !Maximum difference
+        call compare(n01,n02,n03,potential,rhopot,i1_max,i2_max,i3_max,diff_ser)
+
 !!$     print *,'iproc,diff_ser',iproc,diff_ser
 
-     if (iproc==0) then
-        write(*,*) '------------------'
-        write(*,*) 'Serial Calculation'
-        write(*,"(1x,a,3(1pe20.12))") "eht, exc, vxc:",eh,exc,vxc
-        write(*,'(a,3(i0,1x))') '  Max diff at: ',i1_max,i2_max,i3_max
-        write(*,"(1x,a,1pe20.12)") '     Max diff:',diff_ser,&
-             '       result:',rhopot(i1_max,i2_max,i3_max),'     original:',potential(i1_max,i2_max,i3_max)
-     end if
+        if (iproc==0) then
+           write(*,*) '------------------'
+           write(*,*) 'Serial Calculation'
+           write(*,"(1x,a,3(1pe20.12))") "eht, exc, vxc:",eh,exc,vxc
+           write(*,'(a,3(i0,1x))') '  Max diff at: ',i1_max,i2_max,i3_max
+           write(*,"(1x,a,1pe20.12)") '     Max diff:',diff_ser,&
+                '       result:',rhopot(i1_max,i2_max,i3_max),&
+                '     original:',potential(i1_max,i2_max,i3_max)
+        end if
 
-     !Maximum difference, parallel-serial
-     call compare(n01,n02,ncomp,rhopot(1,1,i3sd+i3xcsh),density(1,1,i3sd+i3xcsh),&
-          i1_max,i2_max,i3_max,max_diff)
-     
+        !Maximum difference, parallel-serial
+        call compare(n01,n02,ncomp,rhopot(1,1,i3sd+i3xcsh),density(1,1,i3sd+i3xcsh),&
+             i1_max,i2_max,i3_max,max_diff)
+
 !!$     print *,'max_diff,i1_max,i2_max,i3_max,i3s,i3xcsh,n3p',max_diff,i1_max,i2_max,i3_max,&
 !!$          i3s,i3xcsh,n3p
 
-     !extract the max
-     call MPI_ALLREDUCE(max_diff,diff_parser,1,MPI_double_precision,  &
-          MPI_MAX,MPI_COMM_WORLD,ierr)
+        !extract the max
+        call MPI_ALLREDUCE(max_diff,diff_parser,1,MPI_double_precision,  &
+             MPI_MAX,MPI_COMM_WORLD,ierr)
 
-     if (iproc==0) then
-        write(*,*) '------------------'
-        write(*,'(a,3(i0,1x))')&
-             'difference parallel-serial, at',i1_max,i2_max,i3_max
-        write(*,"(1x,a,1pe12.4)")&
-             '    Max diff:',diff_parser,&
-             '    parallel:',density(i1_max,i2_max,i3_max),&
-             '      serial:',rhopot(i1_max,i2_max,i3_max)
-        write(*,"(1x,a,3(1pe12.4))")&
-             "energy_diffs:",ehartree-eh,eexcu-exc,vexcu-vxc
+        if (iproc==0) then
+           write(*,*) '------------------'
+           write(*,'(a,3(i0,1x))')&
+                'difference parallel-serial, at',i1_max,i2_max,i3_max
+           write(*,"(1x,a,1pe12.4)")&
+                '    Max diff:',diff_parser,&
+                '    parallel:',density(i1_max,i2_max,i3_max),&
+                '      serial:',rhopot(i1_max,i2_max,i3_max)
+           write(*,"(1x,a,3(1pe12.4))")&
+                "energy_diffs:",ehartree-eh,eexcu-exc,vexcu-vxc
+        end if
      end if
   end if
-  if (iproc==0) then
+  if (iproc==0 .and. .not. onlykernel) then
 
      call regroup_data(geocode,n01,n02,n03,hx,hy,hz,diff_par,diff_parser)
 
@@ -248,18 +265,20 @@ program PoissonSolver
 
   end if
 
-  i_all=-product(shape(density))*kind(density)
-  deallocate(density,stat=i_stat)
-  call memocc(i_stat,i_all,'density','poisson_solver')
-  i_all=-product(shape(rhopot))*kind(rhopot)
-  deallocate(rhopot,stat=i_stat)
-  call memocc(i_stat,i_all,'rhopot','poisson_solver')
-  i_all=-product(shape(potential))*kind(potential)
-  deallocate(potential,stat=i_stat)
-  call memocc(i_stat,i_all,'potential','poisson_solver')
-  i_all=-product(shape(pot_ion))*kind(pot_ion)
-  deallocate(pot_ion,stat=i_stat)
-  call memocc(i_stat,i_all,'pot_ion','poisson_solver')
+  if (.not. onlykernel) then
+     i_all=-product(shape(density))*kind(density)
+     deallocate(density,stat=i_stat)
+     call memocc(i_stat,i_all,'density','poisson_solver')
+     i_all=-product(shape(rhopot))*kind(rhopot)
+     deallocate(rhopot,stat=i_stat)
+     call memocc(i_stat,i_all,'rhopot','poisson_solver')
+     i_all=-product(shape(potential))*kind(potential)
+     deallocate(potential,stat=i_stat)
+     call memocc(i_stat,i_all,'potential','poisson_solver')
+     i_all=-product(shape(pot_ion))*kind(pot_ion)
+     deallocate(pot_ion,stat=i_stat)
+     call memocc(i_stat,i_all,'pot_ion','poisson_solver')
+  end if
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
@@ -492,7 +511,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   else if (trim(geocode) == 'F') then
 
      !grid for the free BC case
-     hgrid=max(hx,hy,hz)
+     !hgrid=max(hx,hy,hz)
 
      pi = 4.d0*atan(1.d0)
      a2 = a_gauss**2
@@ -501,11 +520,11 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      factor = 1.d0/(a_gauss*a2*pi*sqrt(pi))
      !gaussian function
      do i3=1,n03
-        x3 = hgrid*real(i3-n03/2,kind=8)
+        x3 = hz*real(i3-n03/2,kind=8)
         do i2=1,n02
-           x2 = hgrid*real(i2-n02/2,kind=8)
+           x2 = hy*real(i2-n02/2,kind=8)
            do i1=1,n01
-              x1 = hgrid*real(i1-n01/2,kind=8)
+              x1 = hx*real(i1-n01/2,kind=8)
               r2 = x1*x1+x2*x2+x3*x3
               density(i1,i2,i3) = factor*exp(-r2/a2)
               r = sqrt(r2)

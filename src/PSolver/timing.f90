@@ -7,7 +7,7 @@ subroutine timing(iproc,category,action)
   character(len=2), intent(in) :: action      ! possibilities: INitialize, ON, OFf, REsults
   !Local variables
   logical :: parallel,init
-  integer, parameter :: ncat=4   ! define timimg categories
+  integer, parameter :: ncat=7   ! define timimg categories
   integer :: i,ierr,ii
   !cputime routine gives a real
   real :: total,total0,time,time0
@@ -19,7 +19,10 @@ subroutine timing(iproc,category,action)
   character(len=14), dimension(ncat), parameter :: cats = (/ &
               'PSolv_comput  '    ,  &  !
               'PSolv_commun  '    ,  &  !
+              'KernelFFT     '    ,  &  !
+              'KernelIntegral'    ,  &  !
               'PSolvKernel   '    ,  &  !
+              'KernelComm    '    ,  &  !
               'Exchangecorr  '    /)    !
 
 

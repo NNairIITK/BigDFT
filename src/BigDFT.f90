@@ -1,5 +1,5 @@
 program BigDFT
-
+ 
    use libBigDFT
 
    implicit real*8 (a-h,o-z)
@@ -707,7 +707,7 @@ program BigDFT
         integer, intent(in) :: iproc,nproc,nat,ntypes,norbp,norb
         integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f
         integer, intent(inout) :: infocode,n1,n2,n3
-        integer :: inputPsiId
+        integer :: inputPsiId,i_stat,i_all
         real(kind=8), intent(inout) :: hgrid
         real(kind=8), intent(out) :: energy
         character(len=20), dimension(100), intent(in) :: atomnames
@@ -722,6 +722,12 @@ program BigDFT
 
         loop_cluster: do
 
+           if (inputPsiId == 0 .and. associated(psi)) then
+              i_all=-product(shape(psi))*kind(psi)
+              deallocate(psi,stat=i_stat)
+              call memocc(i_stat,i_all,'psi','call_cluster')
+           end if
+
            call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
                 psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,inputPsiId,&
                 output_grid,output_wf,n1,n2,n3,hgrid,rxyz_old,infocode)
@@ -729,9 +735,11 @@ program BigDFT
            if (inputPsiId==1 .and. infocode==2) then
               inputPsiId=0
            else if (inputPsiId == 0 .and. infocode==3) then
-              write(*,'(1x,a)')'Convergence error, cannot proceed.'
-              write(*,'(1x,a)')' writing positions in file posout_999.ascii then exiting'
-              if (iproc.eq.0) call wtposout(999,nat,rxyz,atomnames,iatype)
+              if (iproc.eq.0) then
+                 write(*,'(1x,a)')'Convergence error, cannot proceed.'
+                 write(*,'(1x,a)')' writing positions in file posout_999.ascii then exiting'
+                 call wtposout(999,nat,rxyz,atomnames,iatype)
+              end if
               stop
            else
               exit loop_cluster
