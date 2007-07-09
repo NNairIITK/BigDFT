@@ -18,7 +18,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces
+binaries_sources = cluster test_forces memguess
 else
 binaries_sources = 
 endif
@@ -38,7 +38,8 @@ EXTRA_DIST = \
 	recd6.inc \
 	recd8.inc \
 	recs16.inc \
-	sym_16.inc
+	sym_16.inc \
+	$(convolution_includes)
 
 AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ -IPSolver
 
@@ -68,25 +69,42 @@ convolution_source = convolut_simple.f90 \
 else
 convolution_source = convolut_simple.f90 \
 	conv_per_optim.f90 \
-	combined_grow.f90\
+	combined_grow.f90 \
 	combined_shrink.f90\
 	logrid.f90\
 	to_cf.f90
 endif
+
+convolution_includes = 	v.f90 \
+	v_long.f90 \
+	tree_long_shrink.f90 \
+	long_shrink.f90 \
+	tree_unrolled_grow.f90 \
+	long_grow.f90
 
 
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
 	$(convolution_source) \
         cluster_all.f90 \
-        convolut_simple.f90 \
-        conv_per_optim.f90 \
         eleconf.f90  \
         gauss_to_daub.f90 \
         precond.f90 \
         prec_diag.f90 \
-        timing.f90 \
-        forces.f90
+	timing.f90 \
+	wavelib.f90 \
+	gautowav.f90 \
+	ionicpot.f90 \
+	inputguess.f90 \
+	projectors.f90 \
+	orthogonality.f90 \
+	forces.f90 \
+	gridmanipulation.f90 \
+	applyh.f90 \
+	sumrho.f90 \
+	transwaves.f90 \
+	restart.f90 \
+	razero.f90
 
 cluster_SOURCES = BigDFT.f90
 cluster_LDFLAGS = $(LMPI)
@@ -101,6 +119,12 @@ test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
+
+memguess_SOURCES = memguess.f90
+memguess_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
+	ABINIT-common/libABINIT.a 
+
 
 CLEANFILES = $(mpi_include) libbigdft.@MODULE_EXT@
 
@@ -117,11 +141,25 @@ mpif.h:
 test_forces.o: parameters.h \
 	libbigdft.@MODULE_EXT@
 
+memguess.o: libbigdft.@MODULE_EXT@
+
+
 libbigdft.@MODULE_EXT@: cluster_all.o
 
 BigDFT.o: BigDFT.f90 \
 	parameters.h \
 	libbigdft.@MODULE_EXT@
 
-forces.o: forces.f90 \
-	libbigdft.@MODULE_EXT@
+#forces.o: forces.f90 \
+#	libbigdft.@MODULE_EXT@
+
+combined_grow.o: long_grow.f90 \
+	tree_unrolled_grow.f90 \
+	v.f90 \
+	v_long.f90
+
+combined_shrink.o: long_shrink.f90 \
+	tree_long_shrink.f90 \
+	v.f90 \
+	v_long.f90
+

@@ -11,7 +11,7 @@ subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
 	include 'v_long.f90'
 
 	nflop=0
-	open(unit=20,file='long.flop')
+	!open(unit=20,file='long.flop')
     call system_clock(ncount0,ncount_rate,ncount_max)
 
 	do j2=-14+2*nfl2,2*nfu2+16
@@ -73,7 +73,7 @@ subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
 
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
-	write(20,*) tel, 1.d-6*nflop/tel
+!	write(20,*) tel, 1.d-6*nflop/tel
 
 end
 
@@ -89,7 +89,7 @@ subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
 	include 'v_long.f90'
 
 	nflop=0
-	open(unit=20,file='long.flop')
+	!open(unit=20,file='long.flop')
     call system_clock(ncount0,ncount_rate,ncount_max)
 
 	do j=1,ndat
@@ -156,7 +156,7 @@ subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
 
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
-	write(20,*) tel, 1.d-6*nflop/tel
+!	write(20,*) tel, 1.d-6*nflop/tel
 	   
 end
 
@@ -173,7 +173,7 @@ subroutine comb_rot_shrink_loc_3(ndat,x,y,nfl,nfu,ib)
 	include 'v.f90'
 
 	nflop=0
-	open(unit=20,file='long.flop')
+	!open(unit=20,file='long.flop')
     call system_clock(ncount0,ncount_rate,ncount_max)
 
 	do j=1,ndat
@@ -208,7 +208,7 @@ subroutine comb_rot_shrink_loc_3(ndat,x,y,nfl,nfu,ib)
 
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
-	write(20,*) tel, 1.d-6*nflop/tel
+!	write(20,*) tel, 1.d-6*nflop/tel
 	   
 end
 
