@@ -184,7 +184,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if (datacode=='G') then
      !starting address of rhopot in the case of global i/o
      i3start=istart+2-nxcl-nwbl
-     if(nspin==2) then
+     if(nspin==2.and.nproc>1) then
         allocate(rhopot_G(m1*m3*nxt*2),stat=i_stat)
         call memocc(i_stat,product(shape(rhopot_G))*kind(rhopot_G),'rhopot_G','psolver')
         do i1=1,m1*m3*nxt
@@ -214,7 +214,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 !!$  print *,'        it goes from',i3start+nwbl+nxcl-1,'to',i3start+nxc-1
 
   if (istart+1 <= m2) then 
-       if(nspin==2.and.datacode=='G') then
+       if(nspin==2.and.datacode=='G'.and.nproc>1) then
           call xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
                ixc,hx,hy,hz,rhopot_G,pot_ion,sumpion,zf,zfionxc,&
                eexcuLOC,vexcuLOC,iproc,nproc,nspin)
@@ -306,6 +306,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 !        end do
 !     end do
 !  end do
+!
 !  i4=0
 !  rewind(304)
 !  do ispin=1,nspin
@@ -318,7 +319,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 !     end do
 !  end do
 !  end do
-
 
 
   call timing(iproc,'PSolv_comput  ','ON')
@@ -387,8 +387,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         ehartreeLOC=ehartreeLOC*factor
 !        ehartreeLOC=ehartreeLOC*2.d0*factor
      end if
+!     write(*,'(1x,a,i4,2f12.8)') 'EHarT:',ispin,ehartreeLOC,ehartreeLOCt
      ehartreeLOCt=ehartreeLOCt+ehartreeLOC
-!     write(*,*) 'EHarT:',ehartreeLOC,ehartreeLOCt,factor
   end do
   
   call timing(iproc,'PSolv_comput  ','OF')

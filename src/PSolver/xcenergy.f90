@@ -85,7 +85,7 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   real(kind=8), dimension(:,:,:), allocatable :: exci,d2vxci
   real(kind=8), dimension(:,:,:,:), allocatable :: vxci,dvxci,dvxcdgr
   real(kind=8), dimension(:,:,:,:,:), allocatable :: gradient
-  real(kind=8) :: elocal,vlocal,rho,pot,potion,factor,hgrid,facpotion,sfactor
+  real(kind=8) :: elocal,vlocal,rho,pot,potion,factor,hgrid,facpotion,sfactor,pfactor
   integer :: npts,i_all,order,offset,i_stat,ispden
   integer :: i1,i2,i3,j1,j2,j3,jp2,jpp2,jppp2
   integer :: ndvxc,nvxcdgr,ngr2
@@ -132,16 +132,16 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
            end do
         end do
      end if
-     rewind(301)
-     do ispden=1,nspden
-        do i3=1,nxt
-           do i2=1,m3
-              do i1=1,m1
-                 write(301,'(f18.12)') rhopot(i1,i2,i3,ispden)
-              end do
-           end do
-        end do
-     end do
+!     rewind(301)
+!     do ispden=1,nspden
+!        do i3=1,nxt
+!           do i2=1,m3
+!              do i1=1,m1
+!                 write(301,'(f18.12)') rhopot(i1,i2,i3,ispden)
+!              end do
+!           end do
+!        end do
+!     end do
 
      !Allocations of the exchange-correlation terms, depending on the ixc value
      call size_dvxc(ixc,ndvxc,ngr2,nspden,nvxcdgr,order)
@@ -260,23 +260,25 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         call memocc(i_stat,i_all,'gradient','xc_energy')
      end if
 
-     rewind(300)
-     do ispden=1,nspden
-        do i3=1,nxt
-           do i2=1,m3
-              do i1=1,m1
-                 write(300,'(f18.12)') rhopot(i1,i2,i3,ispden)
-              end do
-           end do
-        end do
-     end do
+!     rewind(300)
+!     do ispden=1,nspden
+!        do i3=1,nxt
+!           do i2=1,m3
+!              do i1=1,m1
+!                 write(300,'(f18.12)') rhopot(i1,i2,i3,ispden)
+!              end do
+!           end do
+!        end do
+!     end do
 
 
      exc=0.d0
      vxc=0.d0
      sfactor=1.0d0
+     pfactor=1.0d0
      do ispden=1,nspden
         if(nspden==1) sfactor=2.0d0
+        if(nspden==1) pfactor=1.0d0
      if (sumpion) then
         !summing the xc potential into the zfionxc array with pot_ion
         do jp2=1,nxc
@@ -297,7 +299,7 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
                  end if
                  exc=exc+elocal*rho
                  vxc=vxc+vlocal*rho
-                 zf(j1,j3,jp2)=zf(j1,j3,jp2)+sfactor*rhopot(j1,j3,j2,ispden)!restore the original normalization
+                 zf(j1,j3,jp2)=zf(j1,j3,jp2)+sfactor*rho !restore the original normalization
                  zfionxc(j1,j3,jp2,ispden)=potion+vlocal
               end do
               do j1=m1+1,md1
@@ -327,8 +329,8 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
                     vlocal=vxci(j1,j3,jppp2,ispden)
                  end if
                  exc=exc+elocal*rho
-                 vxc=vxc+vlocal*rho
-                 zf(j1,j3,jp2)=zf(j1,j3,jp2)+sfactor*rhopot(j1,j3,j2,ispden)!restore the original normalization
+                  vxc=vxc+vlocal*rho
+                 zf(j1,j3,jp2)=zf(j1,j3,jp2)+sfactor*rho!restore the original normalization
                  zfionxc(j1,j3,jp2,ispden)=vlocal
               end do
               do j1=m1+1,md1
