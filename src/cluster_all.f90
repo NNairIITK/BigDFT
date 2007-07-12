@@ -501,7 +501,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      nfu3=max(nfu3,int((rxyz(3,iat)+rad)/hgrid))
   enddo
   if (iproc.eq.0) then
-     write(*,'(1x,a,3x,3(2x,i4,a1,i0))')&
+     write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
           '      Extremes for the high resolution grid points:',&
           nfl1,'<',nfu1,nfl2,'<',nfu2,nfl3,'<',nfu3
      !write(*,'(1x,a,2(1x,i0))') 'nfl1,nfu1 ',nfl1,nfu1
@@ -856,16 +856,16 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
 
      ! Potential from electronic charge density
      if (datacode=='G') then
-        call sumrho_old(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+        call sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
              nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
-	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-	 ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+             nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
      else
         call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
              nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot, &
              (2*n1+31)*(2*n2+31)*n3d,nscatterarr,&
-	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-	 ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+             nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
      end if
 
 !     ixc=12  ! PBE functional
@@ -1039,7 +1039,7 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
   if (datacode=='G') then
      allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
      call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
-     call sumrho_old(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+     call sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
 	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 	 ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
@@ -1731,16 +1731,16 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
  real(kind=8), dimension(:), allocatable :: psib,hpsib,psifscf,psir
  !*****************************Alexey************************************************************
  !	for shrink:	
- 	integer,allocatable,dimension(:,:,:)::ibbzzx_c,ibbyyzz_c
- 	integer,allocatable,dimension(:,:,:)::ibbxy_ff,ibbzzx_f,ibbyyzz_f
- 
+ integer,allocatable,dimension(:,:,:)::ibbzzx_c,ibbyyzz_c
+ integer,allocatable,dimension(:,:,:)::ibbxy_ff,ibbzzx_f,ibbyyzz_f
+
  !	for grow:
- 	integer,allocatable,dimension(:,:,:)::ibbzxx_c,ibbxxyy_c
- 	integer,allocatable,dimension(:,:,:)::ibbyz_ff,ibbzxx_f,ibbxxyy_f
- 	
+ integer,allocatable,dimension(:,:,:)::ibbzxx_c,ibbxxyy_c
+ integer,allocatable,dimension(:,:,:)::ibbyz_ff,ibbzxx_f,ibbxxyy_f
+
  !	real space border:
- 	integer,allocatable,dimension(:,:,:)::ibbyyzz_r 
- 
+ integer,allocatable,dimension(:,:,:)::ibbyyzz_r 
+
  !***********************************************************************************************
  integer nw1,nw2
  
@@ -1809,7 +1809,7 @@ end if
  nbfl1=nfl1+nbuf ; nbfl2=nfl2+nbuf ; nbfl3=nfl3+nbuf
  nbfu1=nfu1+nbuf ; nbfu2=nfu2+nbuf ; nbfu3=nfu3+nbuf
  if (iproc.eq.0) then
-     write(*,'(1x,a,3x,3(2x,i4,a1,i0))')&
+     write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
           '  Extremes for the new high resolution grid points:',&
           nbfl1,'<',nbfu1,nbfl2,'<',nbfu2,nbfl3,'<',nbfu3
    !write(*,'(1x,a,2(1x,i0))') 'BIG: nfl1,nfu1',nbfl1,nbfu1
@@ -2023,7 +2023,7 @@ end if
          nbuf,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),  & 
          x_c,x_fc,x_f,psib(1),psib(nvctrb_c+1))
 
-    write(*,*) 'transform_fortail finished',iproc,iorb
+    !write(*,*) 'transform_fortail finished',iproc,iorb
 
  
     npt=2
@@ -2043,11 +2043,11 @@ end if
                    hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  &
                    ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,y_c,y_f,psir,  &
                    psib,pot,hpsib,epot,ekin, &
-                   x_c,x_fc,x_f,w1,w2,&
+                    x_c,x_fc,x_f,w1,w2,&
                    ibbzzx_c,ibbyyzz_c,ibbxy_ff,ibbzzx_f,ibbyyzz_f,&
                    ibbzxx_c,ibbxxyy_c,ibbyz_ff,ibbzxx_f,ibbxxyy_f,nw1,nw2,ibbyyzz_r)
 
- write(*,*) 'applylocpotkinone finished',iproc,iorb
+       !write(*,*) 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin,sum_tail
 
 
 !       call applylocpotkinone_old(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nbuf, & 
@@ -2060,7 +2060,7 @@ end if
             nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
             nsegb_c,nsegb_f,keybg,keybv,nvctrb_c,nvctrb_f,  & 
             psib,hpsib,eproj)
- write(*,*) 'applyprojectorsone finished',iproc,iorb
+       !write(*,*) 'applyprojectorsone finished',iproc,iorb
        !calculate residue for the single orbital
        tt=0.d0
        do i=1,nvctrb_c+7*nvctrb_f
@@ -2088,9 +2088,10 @@ end if
           sum_tail=sum_tail+psib(i)**2
        enddo
        sum_tail=sqrt(sum_tail)
-      !write(*,'(1x,a,i3,3(1x,1pe13.6),1x,1pe9.2)') &
-      !     'BIG: iorb,ekin,epot,eproj,gnrm',iorb,ekin,epot,eproj,tt
-      !values of the energies before tail application
+       !write(*,'(1x,a,i3,3(1x,1pe13.6),1x,1pe9.2)') &
+       !     'BIG: iorb,ekin,epot,eproj,gnrm',iorb,ekin,epot,eproj,tt
+
+       !values of the energies before tail application
        ekin1=ekin
        epot1=epot
        eproj1=eproj
@@ -3114,7 +3115,7 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 
   ! resulting charge density and potential
   if (datacode=='G') then
-     call sumrho_old(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+     call sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
@@ -3148,8 +3149,8 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
        nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,nscatterarr(iproc,2),&
        rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,&
-          ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-          ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+       ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+       ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
   accurex=abs(eks-ekin_sum)
   if (iproc.eq.0) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
@@ -3310,15 +3311,6 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 
   return
 END SUBROUTINE import_gaussians
-
-!!$     call input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-!!$          nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
-!!$          rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-!!$          nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-!!$          atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,&
-!!$          ixc,psi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,&
-!!$          ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-!!$          ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
 subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
@@ -3493,16 +3485,16 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   ! resulting charge density and potential
   if (datacode=='G') then
-     call sumrho_old(parallel,iproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
+     call sumrho_old(parallel,iproc,nproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
-	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-	 ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
   else
      call sumrho(parallel,iproc,nproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
           (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,&
-	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-	 ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
   end if
   !      ixc=1   ! LDA functional
   call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&

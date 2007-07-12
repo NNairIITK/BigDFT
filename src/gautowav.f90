@@ -1,7 +1,6 @@
 subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,occup,rxyz,hgrid,psi,eks)
 
-  use libBigDFT
   implicit none
   integer, intent(in) :: norb,norbp,iproc,nproc,nat,ntypes
   integer, intent(in) :: nvctr_c,nvctr_f,n1,n2,n3,nseg_c,nseg_f
@@ -19,10 +18,10 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
   character(len=6) :: string,symbol
   character(len=100) :: line
   integer, parameter :: nterm_max=3
-  integer :: ngx,nbx,npgf,nst,nend,ng,lshell,num,mmax,myshift,icbas,isbas,nbas,nco,i
+  integer :: ngx,nbx,npgf,nst,nend,ng,lshell,num,mmax,myshift,icbas,isbas,nbas,nco,i,ipar,ipg,jat
   integer :: iorb,jorb,iat,ityp,l,m,nterm,i_all,i_stat,ibas,ig,iset,jbas,iterm,ishell,lmax
   real(kind=8) :: rx,ry,rz,anorm,coeff,const0,const1,exponent,coefficient,scpr,ek,tt
-  integer, dimension(:), allocatable :: lx,ly,lz,nshell
+  integer, dimension(:), allocatable :: lx,ly,lz,nshell,iorbtmp
   integer, dimension(:,:), allocatable :: nam,ndoc
   real(kind=8), dimension(:), allocatable :: fac_arr,psiatn,xp,tpsi,ctmp
   real(kind=8), dimension(:,:,:), allocatable :: contcoeff,expo
@@ -38,108 +37,47 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
   call memocc(i_stat,product(shape(nshell))*kind(nshell),'nshell','gautowav')
 
   open(unit=35,file='gaubasis.dat',action='read')
-  do ityp=1,ntypes
-     read_line: do
-        read(35,*,iostat=i_stat)tt,string,symbol
-        if (i_stat == 0 .and. string=='Atomic' .and. symbol=='kind:') exit read_line
-     end do read_line
-     do i=1,5
-        read(35,*)
-     end do
-     !start reading the number of shells
-     read(35,*,iostat=i_stat)num,num,num,num,exponent,coefficient
-     ishell=1
-     lmax=max(lmax,num)
-     read_shells: do
-        read(35,*,iostat=i_stat)line
-        read(line,*,iostat=i_stat)num,num,num,num,exponent,coefficient
-        if (i_stat == 0) then 
-           ishell=ishell+1
-           lmax=max(lmax,num)
-        else
-           read(line,*,iostat=i_stat)exponent,coefficient
-           
+
+  !read the lines for analyzing the maximum number of primitive gaussian functions
+  !and als for the maximum angular momentum
+  ityp=0
+  ngx=0
+  nbx=0
+  lmax=0
+  ipg=0
+  for_ngx: do
+     if (ityp > ntypes) exit for_ngx
+     read(35,'(a100)')line
+     !analyzing the different possibilities
+     read(line,*,iostat=i_stat)tt,string,symbol
+     if (i_stat == 0 .and. string=='Atomic' .and. symbol=='kind:') then
+        ityp=ityp+1
+        if (ityp > 1) then
+           nshell(ityp-1)=ishell
+           nbx=max(nbx,ishell)
         end if
-        
-     end do read_shells
-     
-  end do
-  
-  !insert a loop for counting the maximal numbers in view of arrays allocation
-  do ityp=1,ntypes
-  !read the number of basis functions for this atom type
-     ishell=0
-     read(35,*)nbas
-     isbas=0
-     icbas=0
-     loop_basis: do
-        read(35,*)npgf,num,lshell
+        ishell=0
+        cycle for_ngx
+     end if
+     read(line,*,iostat=i_stat)iset,num,num,num,exponent,coefficient
+     if (i_stat==0) then
+        !print *,num,exponent,coefficient
         ishell=ishell+1
-        lmax=max(lmax,lshell)
-        ngx=max(ngx,npgf)
-        !evaluate the number of cartesian terms as a function of the shell
-        if (lshell == 0) then
-           nco=1
-        else if (lshell == 1) then
-           nco=3
-        else if (lshell == 2) then
-           nco=6
-        else if (lshell == 3) then
-           nco=10
-        end if
-        do i=1,nco
-           icbas=icbas+1
-           do ig=1,npgf
-              read(35,*)
-           end do
-        end do
-        !number of the basis for spherical orbitals
-        isbas=isbas+2*lshell+1
-        if (icbas == nbas) exit loop_basis
-     end do loop_basis
-     nshell(ityp)=ishell
-     nbx=max(nbx,ishell)
-  end do
+        lmax=max(lmax,num)
+        ngx=max(ngx,ipg)
+        !print *,ishell,ipg,lmax
+        ipg=1
+        cycle for_ngx
+     end if
+     read(line,*,iostat=i_stat)exponent,coefficient
+     if (i_stat==0) then
+        ipg=ipg+1
+        cycle for_ngx
+     end if
+  end do for_ngx
 
-
-
-!!$  open(unit=35,file='def_gaubasis.dat',action='read')
-!!$  !insert a loop for counting the maximal numbers in view of arrays allocation
-!!$  do ityp=1,ntypes
-!!$  !read the number of basis functions for this atom type
-!!$     ishell=0
-!!$     read(35,*)nbas
-!!$     isbas=0
-!!$     icbas=0
-!!$     loop_basis: do
-!!$        read(35,*)npgf,num,lshell
-!!$        ishell=ishell+1
-!!$        lmax=max(lmax,lshell)
-!!$        ngx=max(ngx,npgf)
-!!$        !evaluate the number of cartesian terms as a function of the shell
-!!$        if (lshell == 0) then
-!!$           nco=1
-!!$        else if (lshell == 1) then
-!!$           nco=3
-!!$        else if (lshell == 2) then
-!!$           nco=6
-!!$        else if (lshell == 3) then
-!!$           nco=10
-!!$        end if
-!!$        do i=1,nco
-!!$           icbas=icbas+1
-!!$           do ig=1,npgf
-!!$              read(35,*)
-!!$           end do
-!!$        end do
-!!$        !number of the basis for spherical orbitals
-!!$        isbas=isbas+2*lshell+1
-!!$        if (icbas == nbas) exit loop_basis
-!!$     end do loop_basis
-!!$     nshell(ityp)=ishell
-!!$     nbx=max(nbx,ishell)
-!!$  end do
-  mmax=2*lmax+1
+  !now store the values
+  rewind(35)
 
   !here allocate arrays
   allocate(nam(nbx,ntypes),stat=i_stat)
@@ -150,122 +88,157 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
   call memocc(i_stat,product(shape(contcoeff))*kind(contcoeff),'contcoeff','gautowav')
   allocate(expo(ngx,nbx,ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(expo))*kind(expo),'expo','gautowav')
-
-  rewind(35)
-  ibas=0
-  do ityp=1,ntypes
-  !read the number of basis functions for this atom type
-     read(35,*)nbas
-     isbas=0
-     icbas=0
-     do ishell=1,nshell(ityp)
-        read(35,*)npgf,num,lshell
-        ndoc(ishell,ityp)=npgf
-        nam(ishell,ityp)=lshell
-        if (lshell == 0) then
-           nco=1
-        else if (lshell == 1) then
-           nco=3
-        else if (lshell == 2) then
-           nco=6
-        else if (lshell == 3) then
-           nco=10
+  
+  ityp=0
+  ipg=0
+  store_basis: do
+     if (ityp > ntypes) exit store_basis
+     read(35,'(a100)')line
+     !analyzing the different possibilities
+     read(line,*,iostat=i_stat)tt,string,symbol
+     if (i_stat == 0 .and. string=='Atomic' .and. symbol=='kind:') then
+        ityp=ityp+1
+        if (ityp > 1) then 
+           ndoc(ishell,ityp-1)=ipg
         end if
-        !use the first term of the cartesian orbitals to 
-        !control whether the basis definition does not depend on m
-        read(35,*)anorm,iset,num,symbol,expo(1,ishell,ityp),coefficient
-        contcoeff(1,ishell,ityp)=coefficient/anorm
-        do ig=2,npgf
-           read(35,*)expo(ig,ishell,ityp),coefficient
-           contcoeff(ig,ishell,ityp)=coefficient/anorm
-        end do
-        !nw we can inspect the other basis of the lshell subspace
-        do i=2,nco
-           read(35,*)anorm,iset,num,symbol,exponent,coefficient
-           !print *,anorm,iset,num,symbol,exponent,coefficient
-           const0=coefficient/anorm
-           const1=contcoeff(1,ishell,ityp)
-           if (abs(const1-const0)>= 1.d-5 .or. exponent /= expo(1,ishell,ityp) ) then
-              write(*,*)'something was wrong: the basis definition depends on m',&
-                   const1,const0,anorm,coefficient
-           end if
-           do ig=2,npgf
-              read(35,*)exponent,coefficient
-              const0=coefficient/anorm
-              const1=contcoeff(ig,ishell,ityp)
-              if (abs(const1-const0)>= 1.d-5 .or. exponent /= expo(ig,ishell,ityp) ) then
-                 write(*,*)'something was wrong: the basis definition depends on m',&
-                      const1,const0,anorm,coefficient
-              end if
-              !print *,'control',exponent,coefficient,const1,const0,anorm
-           end do
-        end do
-     end do
-  end do
+        ishell=0
+        cycle store_basis
+     end if
+     read(line,*,iostat=i_stat)iset,num,num,num,exponent,coefficient
+     if (i_stat==0) then
+        !print *,num,exponent,coefficient
+        ishell=ishell+1
+        nam(ishell,ityp)=num
+        lmax=max(lmax,num)
+        if (ishell > 1) ndoc(ishell-1,ityp)=ipg
+        expo(1,ishell,ityp)=exponent
+        contcoeff(1,ishell,ityp)=coefficient
+        ipg=1
+        cycle store_basis
+     end if
+     read(line,*,iostat=i_stat)exponent,coefficient
+     if (i_stat==0) then
+        ipg=ipg+1
+        expo(ipg,ishell,ityp)=exponent
+        contcoeff(ipg,ishell,ityp)=coefficient
+        cycle store_basis
+     end if
+  end do store_basis
 
+  !close the file of the basis definition
   close(35)
 
-  allocate(cimu(mmax,nbx,nat,norb),stat=i_stat)
-  call memocc(i_stat,product(shape(cimu))*kind(cimu),'cimu','gautowav')
-
-  !now read the coefficients of the gaussian converged orbitals
-  open(unit=36,file='gaucoeff.dat',action='read')
-  !here there is the orbital label, for the moment it is assumed to vary between 1 and 4
-  read(36,*)
-  read(36,*)
-  nst=1
-  nend=4
-  allocate(ctmp(nend-nst+1),stat=i_stat)
-  call memocc(i_stat,product(shape(ctmp))*kind(ctmp),'ctmp','gautowav')
-
-  do iat=1,nat
-     ityp=iatype(iat)
-     do ishell=1,nshell(ityp)
-        do jbas=1,2*nam(ishell,ityp)+1
-           read(36,*)ibas,num,symbol,string,(ctmp(iorb),iorb=1,nend-nst+1)
-           !print *,iat,nshell(ityp),2*nam(ishell,ityp)+1,ishell,jbas,ibas
-           !here follows the postreatment of the symbol
-           !order the basis following the order of the coefficients of the BigDFT input guess
-           symbol=trim(string)
-           do iorb=nst,nend
-              cimu(jbas+myshift(symbol),ishell,iat,iorb)=ctmp(iorb-nst+1)
-           end do
-        end do
-     end do
-  end do
-  close(36)
-
-!!$  !here we can test the read coefficients.
-!!$  ibas=0
+!!$  !print the found values
 !!$  do ityp=1,ntypes
-!!$     print *,ityp,'number of shells',nshell(ityp)
-!!$     do ibas=1,nshell(ityp)
-!!$        print *,'nam,ndoc',nam(ibas,ityp),ndoc(ibas,ityp)
-!!$        do ig=1,ndoc(ibas,ityp)
-!!$           print *,ityp,ishell,nam(ibas,ityp),expo(ig,ibas,ityp),contcoeff(ig,ibas,ityp)
+!!$     do ishell=1,nshell(ityp)
+!!$        print *,'ityp=',ityp,'ishell=',ishell,'l=',nam(ishell,ityp),'ndoc=',ndoc(ishell,ityp)
+!!$        do ipg=1,ndoc(ishell,ityp)
+!!$           print *,'expo=',expo(ipg,ishell,ityp),'coeff=',contcoeff(ipg,ishell,ityp)
 !!$        end do
 !!$     end do
 !!$  end do
-!!$
-!!$  !orbital coefficients
-!!$  print *,'--------coefficients and norm of the linear combination'
-!!$  ctmp(:)=0.d0
+
+  mmax=2*lmax+1
+  !now read the coefficients of the gaussian converged orbitals
+  open(unit=36,file='gaucoeff.dat',action='read')
+  !here there is the orbital label, for the moment it is assumed to vary between 1 and 4
+  allocate(ctmp(10),stat=i_stat)
+  call memocc(i_stat,product(shape(ctmp))*kind(ctmp),'ctmp','gautowav')
+  allocate(iorbtmp(10),stat=i_stat)
+  call memocc(i_stat,product(shape(iorbtmp))*kind(iorbtmp),'iorbtmp','gautowav')
+  allocate(cimu(mmax,nbx,nat,norb),stat=i_stat)
+  call memocc(i_stat,product(shape(cimu))*kind(cimu),'cimu','gautowav')
+
+  read(36,*)
+  read_line1: do
+     read(36,'(a100)')line
+     !analyse how many orbitals are contained in a given line
+     read_orbitals1: do ipar=10,1,-1
+        read(line,*,iostat=i_stat)(iorbtmp(i),i=1,ipar)
+        if (i_stat==0) then
+           read(line,*)nst
+           exit read_line1
+        end if
+     end do read_orbitals1
+  end do read_line1
+  nend=nst+ipar-1
+
+!!$  nst=1
+!!$  nend=4
+  jat=0
+  ishell=1
+  jbas=0
+  iat=nat
+  !now read the data for assignating the coefficients
+  store_coeff: do
+     read(36,'(a100)')line
+     !choose between different cases
+     read(line,*,iostat=i_stat)ibas,iat,symbol,string,(ctmp(iorb),iorb=1,nend-nst+1)
+     if (i_stat==0) then
+        !print *,line,nst,nend
+        if (jat==iat) then
+           jbas=jbas+1
+           if (jbas > 2*nam(ishell,iatype(iat))+1) then
+              jbas=1
+              ishell=ishell+1
+              if (ishell > nshell(iatype(iat))) then
+                 if (iproc==0) write(*,'(1x,a,i0,a)')&
+                      'Problem in the gaucoeff.dat file, the number of shells of atom ',iat ,&
+                      ' is incoherent'
+                 stop
+              end if
+           end if
+        else
+           jbas=1
+           ishell=1
+        end if
+       symbol=trim(string)
+       do iorb=nst,nend
+          cimu(jbas+myshift(symbol),ishell,iat,iorb)=ctmp(iorb-nst+1)
+       end do
+       jat=iat
+       if (jbas==2*nam(ishell,iatype(iat))+1 .and. ishell==nshell(iatype(iat))&
+            .and. iat==nat .and. nend==norb) then
+          exit store_coeff
+       else
+          cycle store_coeff
+       end if
+     end if
+
+     read_orbitals: do ipar=10,1,-1
+        read(line,*,iostat=i_stat)(iorbtmp(i),i=1,ipar)
+        if (i_stat==0) then
+           read(line,*)nst
+           nend=nst+ipar-1
+           if (jat/=nat) then
+              if (iproc==0)write(*,'(1x,a,i0,a)')&
+                   'Problem in the gaucoeff.dat file, only ',iat ,' atoms processed'
+              stop
+           else
+              cycle store_coeff
+           end if
+        end if
+     end do read_orbitals
+
+  end do store_coeff
+  close(36)
+
+!!$  !print the found values
 !!$  do iat=1,nat
 !!$     ityp=iatype(iat)
 !!$     do ishell=1,nshell(ityp)
 !!$        do jbas=1,2*nam(ishell,ityp)+1
-!!$           print *,iat,ishell,jbas,(cimu(jbas,ishell,iat,iorb),iorb=nst,nend)
-!!$           do iorb=nst,nend
-!!$              ctmp(iorb)=ctmp(iorb)+cimu(jbas,ishell,iat,iorb)**2
-!!$           end do
+!!$           print *,iat,ishell,nam(ishell,ityp),jbas,(cimu(jbas,ishell,iat,iorb),iorb=1,norb)
 !!$        end do
 !!$     end do
 !!$  end do
-!!$  print *,'--------norm of orbitals',ctmp
 
   i_all=-product(shape(ctmp))*kind(ctmp)
   deallocate(ctmp,stat=i_stat)
   call memocc(i_stat,i_all,'ctmp','gautowav')
+  i_all=-product(shape(iorbtmp))*kind(iorbtmp)
+  deallocate(iorbtmp,stat=i_stat)
+  call memocc(i_stat,i_all,'iorbtmp','gautowav')
 
 
   !now apply this basis set information to construct the wavelets wavefunctions
@@ -285,61 +258,72 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
   allocate(tpsi(nvctr_c+7*nvctr_f),stat=i_stat)
   call memocc(i_stat,product(shape(tpsi))*kind(tpsi),'tpsi','gautowav')
 
+
+  !initialize the wavefunction
+  psi(:,:)=0.d0
+
   
-  !loop over the orbitals
+
+  !this can be changed to be passed only once to all the gaussian basis
   eks=0.d0
+  !loop over the atoms
+  do iat=1,nat
+     ityp=iatype(iat)
+     rx=rxyz(1,iat)
+     ry=rxyz(2,iat)
+     rz=rxyz(3,iat)
+     !loop over the number of shells of the atom type
+     do ishell=1,nshell(ityp)
+        !the degree of contraction of the basis function
+        !is the same as the ng value of the createAtomicOrbitals routine
+        ng=ndoc(ishell,ityp)
+        !angular momentum of the basis set(shifted for compatibility with BigDFT routines
+        l=nam(ishell,ityp)+1
+        !amplitude coefficients (contraction coefficients of the basis times
+        !the amplitude of this basis in that orbital)
+        !exponents for the gaussian expansion adapted following the convention
+        !of the routine gauss_to_daub
+        do ig=1,ng
+           psiatn(ig)=contcoeff(ig,ishell,ityp)
+           xp(ig)=sqrt(0.5d0/expo(ig,ishell,ityp))
+        end do
+        call atomkin(l-1,ng,xp,psiatn,psiatn,ek)
+        !multiply the values of the gaussian contraction times the orbital coefficient
+        do m=1,2*l-1
+           call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
+           !multiply the primitive gaussians for the orbital coeffiecnt
+!!$                 do iterm=1,nterm
+!!$                    fac_arr(iterm)=cimu(m,ishell,iat,iorb)*fac_arr(iterm)
+!!$                 end do
+           eks=eks+ek*occup(iorb)*cimu(m,ishell,iat,iorb)
+           call crtonewave(n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiatn,&
+                rx,ry,rz,hgrid,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+                nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,&
+                keyg(1,nseg_c+1),keyv(nseg_c+1),&
+                tpsi(1),tpsi(nvctr_c+1))
+           !sum the result inside the orbital wavefunction
+           !loop over the orbitals
+           do iorb=1,norb
+              if (myorbital(iorb,norb,iproc,nproc)) then
+                 jorb=iorb-iproc*norbp
+                 do i=1,nvctr_c+7*nvctr_f
+                    psi(i,jorb)=psi(i,jorb)+cimu(m,ishell,iat,iorb)*tpsi(i)
+                 end do
+              end if
+           end do
+
+        end do
+     end do
+     if (iproc == 0) then
+        write(*,'(a)',advance='no') &
+             repeat('.',(iat*40)/nat-((iat-1)*40)/nat)
+     end if
+  end do
+  !renormalize the orbitals
+  !write the norm of the orbital
   do iorb=1,norb
      if (myorbital(iorb,norb,iproc,nproc)) then
         jorb=iorb-iproc*norbp
-        !initialize the wavefunction
-        do i=1,nvctr_c+7*nvctr_f
-           psi(i,jorb)=0.d0
-        end do
-        !initialize the absolute basis number
-        jbas=1
-        !loop over the atoms
-        do iat=1,nat
-           ityp=iatype(iat)
-           rx=rxyz(1,iat)
-           ry=rxyz(2,iat)
-           rz=rxyz(3,iat)
-           !loop over the number of shells of the atom type
-           do ishell=1,nshell(ityp)
-              !the degree of contraction of the basis function
-              !is the same as the ng value of the createAtomicOrbitals routine
-              ng=ndoc(ishell,ityp)
-              !angular momentum of the basis set(shifted for compatibility with BigDFT routines
-              l=nam(ishell,ityp)+1
-              !amplitude coefficients (contraction coefficients of the basis times
-              !the amplitude of this basis in that orbital)
-              !exponents for the gaussian expansion adapted following the convention
-              !of the routine gauss_to_daub
-              do ig=1,ng
-                 psiatn(ig)=contcoeff(ig,ishell,ityp)
-                 xp(ig)=sqrt(0.5d0/expo(ig,ishell,ityp))
-              end do
-              call atomkin(l-1,ng,xp,psiatn,psiatn,ek)
-              !multiply the values of the gaussian contraction times the orbital coefficient
-              do m=1,2*l-1
-                 call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
-                 !multiply the primitive gaussians for the orbital coeffiecnt
-                 do iterm=1,nterm
-                    fac_arr(iterm)=cimu(m,ishell,iat,iorb)*fac_arr(iterm)
-                 end do
-                 eks=eks+ek*occup(iorb)*cimu(m,ishell,iat,iorb)
-                 call crtonewave(n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiatn,&
-                      rx,ry,rz,hgrid,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-                      nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,&
-                      keyg(1,nseg_c+1),keyv(nseg_c+1),&
-                      tpsi(1),tpsi(nvctr_c+1))
-                 !sum the result inside the orbital wavefunction
-                 do i=1,nvctr_c+7*nvctr_f
-                    psi(i,jorb)=psi(i,jorb)+tpsi(i)
-                 end do
-              end do
-           end do
-        end do
-        !write the norm of the orbital
         call wnrm(nvctr_c,nvctr_f,psi(1,jorb),psi(nvctr_c+1,jorb),scpr) 
         call wscal(nvctr_c,nvctr_f,1.d0/sqrt(scpr),psi(1,jorb),psi(nvctr_c+1,jorb))
         print *,'norm of orbital ',iorb,scpr

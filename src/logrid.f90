@@ -24,8 +24,8 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer,intent(out):: ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
 
   integer,intent(out):: ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
-  integer,intent(out):: ibzxx_f(2,          nfl3:nfu3,2*nfl1-14:2*nfu1+16)
-  integer,intent(out):: ibxxyy_f(2,                    2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+  integer,intent(out):: ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+  integer,intent(out):: ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
   integer,allocatable,dimension(:,:,:)::ibyx_c,ibxzz_c,ibzzyy_c
   integer,allocatable,dimension(:,:,:)::ibyx_f,ibxzz_f,ibzzyy_f

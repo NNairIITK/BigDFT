@@ -212,7 +212,7 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   !**********************************************************************************************
 END SUBROUTINE sumrho
 
-subroutine sumrho_old(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+subroutine sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
      nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
@@ -397,6 +397,9 @@ subroutine sumrho_old(parallel,iproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
         !***********************************************************************************************
         do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
            rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
+           if (rho(i) < 1.d-20) then
+              print *,'problems in rho',rho(i),(occup(iorb)/hgridh**3)*psir(i)**2,nproc
+           end if
         enddo
 
      enddo

@@ -180,7 +180,7 @@ subroutine orthon(norb,norbp,nvctrp,psi)
 
   endif
 
-  call timing(iproc,'Grams_comput  ','OF')
+  call timing(iproc,'GramS_comput  ','OF')
 
 end subroutine orthon
 
