@@ -898,7 +898,7 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
                 'final ehart,eexcu,vexcu',ehart,eexcu,vexcu
            write(*,'(1x,a,i6,2x,1pe19.12,1x,1pe9.2)') &
                 'FINAL iter,total energy,gnrm',iter,energy,gnrm
-           write(61,*)hgrid,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
+           !write(61,*)hgrid,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
         end if
         infocode=0
         goto 1010
@@ -1231,19 +1231,19 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
      deallocate(pot,stat=i_stat)
      call memocc(i_stat,i_all,'pot','cluster')
 
-     if (iproc==0) then
-        open(61)
-        write(61,'(4(f9.3),1x,7(1pe19.11))',advance='no')&
-             hgrid,alat1,alat2,alat3,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
-     end if
+     !if (iproc==0) then
+     !   open(61)
+     !   write(61,'(4(f9.3),1x,7(1pe19.11))',advance='no')&
+     !        hgrid,alat1,alat2,alat3,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
+     !end if
     
      energybs=ekin_sum+epot_sum+eproj_sum
      energy=energybs-ehart+eexcu-vexcu+eion
 
-     if (iproc==0) then
-        write(61,'(1pe19.11)')energy
-        close(61)
-     end if
+     !if (iproc==0) then
+     !   write(61,'(1pe19.11)')energy
+     !   close(61)
+     !end if
 
      if (iproc.eq.0) then
         write(*,'(1x,a,3(1x,1pe18.11))')&
@@ -3735,7 +3735,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      n_lp=max(10,4*norbi_max)
      allocate(work_lp(n_lp),stat=i_stat)
      call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','input_wf_diag')
-     allocate(evale(norbe),stat=i_stat)
+     allocate(evale(norbi_max),stat=i_stat)
      call memocc(i_stat,product(shape(evale))*kind(evale),'evale','input_wf_diag')
 
      write(*,'(1x,a)')'Linear Algebra...'
@@ -3744,7 +3744,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      do i=1,natsc+1
         norbi=norbsc_arr(i)
         call DSYGV(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
-             norbi,evale(iorbst),work_lp,n_lp,info)
+             norbi,evale,work_lp,n_lp,info)
 
         if (info.ne.0) write(*,*) 'DSYGV ERROR',info,i,natsc+1
         if (iproc.eq.0) then
