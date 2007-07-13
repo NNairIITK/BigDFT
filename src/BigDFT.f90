@@ -143,7 +143,7 @@ program BigDFT
    enddo
 
    output_grid=.false. 
-   inputPsiId=0
+   inputPsiId=-1
    output_wf=.false. 
    call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz, &
         psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
