@@ -207,6 +207,76 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   return
 END SUBROUTINE applylocpotkinone
 
+subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
+  implicit none
+  integer,intent(in)::n1,n2,n3
+  integer,intent(in)::ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+
+  real*8,intent(in)::pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+  real*8,intent(inout)::psir(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+
+  real*8,intent(out)::epot
+  real*8 tt
+  integer i1,i2,i3
+
+  epot=0.d0	
+  do i3=-14,2*n3+16
+     do i2=-14,2*n2+16
+        do i1=ibyyzz_r(1,i2,i3),ibyyzz_r(2,i2,i3)
+           tt=pot(i1,i2,i3)*psir(i1,i2,i3)
+           epot=epot+tt*psir(i1,i2,i3)
+           psir(i1,i2,i3)=tt
+        enddo
+     enddo
+  enddo
+
+end subroutine realspace
+
+subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
+  implicit none
+  integer,intent(in)::nb1,nb2,nb3,nbuf
+  integer,intent(in)::ibyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16)
+  real*8,intent(in)::pot(-14:2*nb1+16-4*nbuf,-14:2*nb2+16-4*nbuf,-14:2*nb3+16-4*nbuf)
+  real*8,intent(inout)::psir(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
+
+  real*8,intent(out)::epot
+  real*8 tt,dnrm2
+  integer i1,i2,i3
+
+  epot=0.d0
+  do i3=-14,2*nb3+16
+     if (i3.ge.-14+2*nbuf .and. i3.le.2*nb3+16-2*nbuf) then
+        do i2=-14,2*nb2+16
+           if (i2.ge.-14+2*nbuf .and. i2.le.2*nb2+16-2*nbuf) then
+              do i1=-14+2*nbuf,ibyyzz_r(1,i2,i3)-1
+                 psir(i1,i2,i3)=0.d0
+              enddo
+              do i1=max(ibyyzz_r(1,i2,i3),-14+2*nbuf),min(ibyyzz_r(2,i2,i3),2*nb1+16-2*nbuf)
+                 tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf)*psir(i1,i2,i3)
+                 epot=epot+tt*psir(i1,i2,i3)
+                 psir(i1,i2,i3)=tt
+              enddo
+              do i1=ibyyzz_r(2,i2,i3)+1,2*nb1+16-2*nbuf
+                 psir(i1,i2,i3)=0.d0
+              enddo
+           else
+              do i1=-14,2*nb1+16
+                 psir(i1,i2,i3)=0.d0
+              enddo
+           endif
+        enddo
+     else
+        do i2=-14,2*nb2+16
+           do i1=-14,2*nb1+16
+              psir(i1,i2,i3)=0.d0
+           enddo
+        enddo
+     endif
+  enddo
+
+end subroutine realspace_nbuf
+
+
 subroutine applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
      norb,norbp,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
@@ -384,71 +454,3 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
   return
 END SUBROUTINE applyprojectorsone
 
-subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
-  implicit none
-  integer,intent(in)::n1,n2,n3
-  integer,intent(in)::ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
-
-  real*8,intent(in)::pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
-  real*8,intent(inout)::psir(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
-
-  real*8,intent(out)::epot
-  real*8 tt
-  integer i1,i2,i3
-
-  epot=0.d0	
-  do i3=-14,2*n3+16
-     do i2=-14,2*n2+16
-        do i1=ibyyzz_r(1,i2,i3),ibyyzz_r(2,i2,i3)
-           tt=pot(i1,i2,i3)*psir(i1,i2,i3)
-           epot=epot+tt*psir(i1,i2,i3)
-           psir(i1,i2,i3)=tt
-        enddo
-     enddo
-  enddo
-
-end subroutine realspace
-
-subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
-  implicit none
-  integer,intent(in)::nb1,nb2,nb3,nbuf
-  integer,intent(in)::ibyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16)
-  real*8,intent(in)::pot(-14:2*nb1+16-4*nbuf,-14:2*nb2+16-4*nbuf,-14:2*nb3+16-4*nbuf)
-  real*8,intent(inout)::psir(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
-
-  real*8,intent(out)::epot
-  real*8 tt,dnrm2
-  integer i1,i2,i3
-
-  epot=0.d0
-  do i3=-14,2*nb3+16
-     if (i3.ge.-14+2*nbuf .and. i3.le.2*nb3+16-2*nbuf) then
-        do i2=-14,2*nb2+16
-           if (i2.ge.-14+2*nbuf .and. i2.le.2*nb2+16-2*nbuf) then
-              do i1=-14+2*nbuf,ibyyzz_r(1,i2,i3)-1
-                 psir(i1,i2,i3)=0.d0
-              enddo
-              do i1=ibyyzz_r(1,i2,i3),ibyyzz_r(2,i2,i3)
-                 tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf)*psir(i1,i2,i3)
-                 epot=epot+tt*psir(i1,i2,i3)
-                 psir(i1,i2,i3)=tt
-              enddo
-              do i1=ibyyzz_r(2,i2,i3)+1,2*nb1+16-2*nbuf
-                 psir(i1,i2,i3)=0.d0
-              enddo
-           else
-              do i1=-14,2*nb1+16
-                 psir(i1,i2,i3)=0.d0
-              enddo
-           endif
-        enddo
-     else
-        do i2=-14,2*nb2+16
-           do i1=-14,2*nb1+16
-              psir(i1,i2,i3)=0.d0
-           enddo
-        enddo
-     endif
-  enddo
-
-end subroutine realspace_nbuf
