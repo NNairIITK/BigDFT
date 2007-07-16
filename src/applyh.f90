@@ -1,3 +1,128 @@
+subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
+     psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+     nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
+     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,n3p,&
+     potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,&
+     ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+     ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+
+  implicit none
+  include 'mpif.h'
+  logical, intent(in) :: parallel
+  character(len=1), intent(in) :: datacode
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nat,ntypes,nproj,nprojel,n3p
+  integer, intent(in) :: nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f
+  real(kind=8), intent(in) :: hgrid
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
+  integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
+  integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
+  integer, dimension(ntypes), intent(in) :: npspcode
+  integer, dimension(nat), intent(in) :: iatype
+  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+  real(kind=8), dimension(norb), intent(in) :: occup
+  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(*), intent(in) :: potential
+  real(kind=8), dimension(nprojel), intent(in) :: proj
+  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
+  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: hpsi
+  real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
+  !********************Alexey***************************************************************
+  !for shrink:
+  integer ibzzx_c(2,-14:2*n3+16,0:n1) 
+  integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
+
+  integer ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
+  integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
+  integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
+
+  !for grow:
+  integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
+  integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
+
+  integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
+  integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+  integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+
+  !for real space:
+  integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+
+  !local variables
+  integer :: i_all,i_stat,ierr
+  real(kind=8), dimension(:), allocatable :: pot
+  real(kind=8), dimension(:,:), allocatable :: wrkallred
+
+  ! local potential and kinetic energy for all orbitals belonging to iproc
+  if (iproc==0) then
+     write(*,'(1x,a)',advance='no')&
+          'Hamiltonian application...'
+  end if
+
+  if (datacode=='D') then
+     !allocate full potential
+     allocate(pot((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','hamiltonianapplication')
+
+     call timing(iproc,'ApplyLocPotKin','ON')
+
+     call MPI_ALLGATHERV(potential,(2*n1+31)*(2*n2+31)*n3p,&
+          MPI_DOUBLE_PRECISION,pot,ngatherarr(0,1),&
+          ngatherarr(0,2),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+
+     call timing(iproc,'ApplyLocPotKin','OF')
+
+     call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
+          hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
+          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+          psi,pot,hpsi,epot_sum,ekin_sum,&
+          ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+          ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+
+     i_all=-product(shape(pot))*kind(pot)
+     deallocate(pot,stat=i_stat)
+     call memocc(i_stat,i_all,'pot','hamiltonianapplication')
+
+  else
+
+     call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
+          hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
+          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+          psi,potential,hpsi,epot_sum,ekin_sum,&
+          ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+          ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+
+  end if
+
+  ! apply all PSP projectors for all orbitals belonging to iproc
+  call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
+       nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
+       norb,norbp,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
+
+  if (parallel) then
+     allocate(wrkallred(3,2),stat=i_stat)
+     call memocc(i_stat,product(shape(wrkallred))*kind(wrkallred),'wrkallred','hamiltonianapplication')
+
+     wrkallred(1,2)=ekin_sum 
+     wrkallred(2,2)=epot_sum 
+     wrkallred(3,2)=eproj_sum
+     call MPI_ALLREDUCE(wrkallred(1,2),wrkallred(1,1),3,&
+          MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+     ekin_sum=wrkallred(1,1)
+     epot_sum=wrkallred(2,1)
+     eproj_sum=wrkallred(3,1) 
+
+     i_all=-product(shape(wrkallred))*kind(wrkallred)
+     deallocate(wrkallred,stat=i_stat)
+     call memocc(i_stat,i_all,'wrkallred','hamiltonianapplication')
+  endif
+
+end subroutine HamiltonianApplication
+
+
 subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
      hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
      ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 

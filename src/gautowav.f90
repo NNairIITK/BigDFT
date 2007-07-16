@@ -308,7 +308,6 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
                  end do
               end if
            end do
-
         end do
      end do
      if (iproc == 0) then

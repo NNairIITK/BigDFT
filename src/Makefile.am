@@ -24,7 +24,7 @@ binaries_sources =
 endif
 
 
-SUBDIRS = $(sub_dirs_xc) $(sub_dirs_ps)
+SUBDIRS = $(sub_dirs_xc) $(sub_dirs_ps) profiling
 
 EXTRA_DIST = \
 	daub_8.inc \
@@ -91,12 +91,11 @@ libbigdft_a_SOURCES = \
         gauss_to_daub.f90 \
         precond.f90 \
         prec_diag.f90 \
-	timing.f90 \
 	wavelib.f90 \
 	gautowav.f90 \
 	ionicpot.f90 \
 	inputguess.f90 \
-	projectors.f90 \
+	projectors/projectors.f90 \
 	orthogonality.f90 \
 	forces.f90 \
 	gridmanipulation.f90 \
@@ -104,7 +103,9 @@ libbigdft_a_SOURCES = \
 	sumrho.f90 \
 	transwaves.f90 \
 	restart.f90 \
+	tail.f90 \
 	razero.f90
+libbigdft_a_LIBADD = profiling/timing.o
 
 cluster_SOURCES = BigDFT.f90
 cluster_LDFLAGS = $(LMPI)
@@ -130,7 +131,6 @@ CLEANFILES = $(mpi_include) libbigdft.@MODULE_EXT@
 
 #dependencies
 cluster_all.o: $(mpi_include)
-timing.o: $(mpi_include)
 
 mpif.h:
 	touch mpif.h
@@ -149,9 +149,6 @@ libbigdft.@MODULE_EXT@: cluster_all.o
 BigDFT.o: BigDFT.f90 \
 	parameters.h \
 	libbigdft.@MODULE_EXT@
-
-#forces.o: forces.f90 \
-#	libbigdft.@MODULE_EXT@
 
 combined_grow.o: long_grow.f90 \
 	tree_unrolled_grow.f90 \

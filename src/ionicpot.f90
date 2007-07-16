@@ -1,3 +1,55 @@
+subroutine createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,hgrid,&
+     elecfield,n1,n2,n3,n3pi,i3s,pkernel,pot_ion,eion)
+
+  use Poisson_Solver
+  
+  implicit none
+  integer, intent(in) :: iproc,nproc,nat,ntypes,n1,n2,n3,n3pi,i3s
+  real(kind=8), intent(in) :: hgrid,elecfield
+  integer, dimension(nat), intent(in) :: iatype
+  integer, dimension(ntypes), intent(in) :: nelpsp
+  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(*), intent(in) :: pkernel
+  real(kind=8), intent(out) :: eion
+  real(kind=8), dimension(*), intent(out) :: pot_ion
+  !local variables
+  real(kind=8) :: hgridh,ehart,eexcu,vexcu
+
+  if (iproc.eq.0) then
+     write(*,'(1x,a)')&
+          '----------------------------------------------------------- Ionic Potential Creation'
+  end if
+
+  hgridh=0.5d0*hgrid
+
+  ! Precalculate ionic potential from PSP charge densities and local Gaussian terms
+  call input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
+       & nelpsp,n1,n2,n3,n3pi,i3s,hgrid,pot_ion,eion)
+  if (iproc.eq.0) write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
+
+  !here the value of the datacode must be kept fixed
+  call PSolver('F','D',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
+       pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.false.)
+
+  !print *,'ehartree',ehart
+  if (n3pi > 0) then
+     call addlocgauspsp(iproc,ntypes,nat,iatype,rxyz,psppar,&
+          n1,n2,n3,n3pi,i3s,hgrid,pot_ion)
+  end if
+
+  !use rhopot to calculate the potential from a constant electric field along x direction
+  if (elecfield /= 0.d0) then
+     if (iproc.eq.0) write(*,'(1x,a,1pe10.2)') &
+          'Adding constant electric field of intensity',elecfield,&
+          'Ha*Bohr'
+
+     if (n3pi > 0) call pot_constantfield(iproc,n1,n2,n3,n3pi,pot_ion,hgrid,elecfield)
+
+  end if
+
+end subroutine createIonicPotential
+       
 subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
      & nelpsp,n1,n2,n3,n3pi,i3s,hgrid,rho,eion)
   !Creates charge density arising from the ionic PSP cores
