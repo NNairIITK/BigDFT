@@ -141,9 +141,6 @@ mpif.h:
 test_forces.o: parameters.h \
 	libbigdft.@MODULE_EXT@
 
-memguess.o: libbigdft.@MODULE_EXT@
-
-
 libbigdft.@MODULE_EXT@: cluster_all.o
 
 BigDFT.o: BigDFT.f90 \

@@ -30,53 +30,53 @@ libABINIT_a_SOURCES = \
 
 CLEANFILES = defs_basis.@MODULE_EXT@ \
 	defs_datatypes.@MODULE_EXT@ \
-	defs_xc.@MODULE_EXT@
+	defs_xc.@MODULE_EXT@ \
+	DEFS_BASIS.@MODULE_EXT@ \
+	DEFS_DATATYPES.@MODULE_EXT@ \
+	DEFS_XC.@MODULE_EXT@
 
 #dependencies
-defs_basis.@MODULE_EXT@: defs_basis.o
-defs_xc.@MODULE_EXT@: defs_xc.o
-defs_datatypes.@MODULE_EXT@: defs_datatypes.o
-
 defs_datatypes.o: defs_datatypes.F90 \
-	defs_basis.@MODULE_EXT@
+	defs_basis.o
 
 defs_xc.o: defs_xc.F90 \
-	defs_basis.@MODULE_EXT@ \
-	defs_datatypes.@MODULE_EXT@
+	defs_basis.o \
+	defs_datatypes.o
 
 drivexc.o: drivexc.F90 \
-	defs_basis.@MODULE_EXT@ \
-	defs_xc.@MODULE_EXT@
+	defs_basis.o \
+	defs_xc.o
 
 invcb.o: invcb.F90 \
-	defs_basis.@MODULE_EXT@
+	defs_basis.o
 
 size_dvxc.o: size_dvxc.F90 \
-	defs_basis.@MODULE_EXT@
+	defs_basis.o
 
 xchcth.o: xchcth.F90 \
-	defs_basis.@MODULE_EXT@
+	defs_basis.o
 
 xchelu.o: xchelu.F90 \
-	defs_basis.@MODULE_EXT@
+	defs_basis.o
 
 xclb.o: xclb.F90 \
-	defs_basis.@MODULE_EXT@
+	defs_basis.o
 
 xcpbe.o: xcpbe.F90 \
-	defs_basis.@MODULE_EXT@
+	defs_basis.o
 
 xcpzca.o: xcpzca.F90 \
-	defs_basis.@MODULE_EXT@
+	defs_basis.o
 
 xcspol.o: xcspol.F90 \
-	defs_basis.@MODULE_EXT@
+	defs_basis.o \
+	defs_xc.o
 
 xctetr.o: xctetr.F90 \
-	defs_basis.@MODULE_EXT@
+	defs_basis.o
 
 xcwign.o: xcwign.F90 \
-	defs_basis.@MODULE_EXT@
+	defs_basis.o
 
 xcxalp.o: xcxalp.F90 \
-	defs_basis.@MODULE_EXT@
+	defs_basis.o

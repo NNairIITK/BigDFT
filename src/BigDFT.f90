@@ -108,6 +108,7 @@ program BigDFT
    read(line,*,iostat=ierror)ngeostep,ampl,betax,nfrztyp
    if (ierror /= 0) then
       read(line,*)ngeostep,ampl,betax
+      lfrztyp(:)=.false.
    else
       allocate(frzsymb(nfrztyp),stat=i_stat)
       call memocc(i_stat,product(shape(frzsymb))*kind(frzsymb),'frzsymb','BigDFT')
@@ -395,7 +396,9 @@ program BigDFT
         obeny=obeny+(gg(2,iat)-gp(2,iat))*gg(2,iat)
         obenz=obenz+(gg(3,iat)-gp(3,iat))*gg(3,iat)
         unten=unten+gp(1,iat)**2+gp(2,iat)**2+gp(3,iat)**2
-        fnrm=fnrm+gg(1,iat)**2+gg(2,iat)**2+gg(3,iat)**2
+        if (.not. lfrztyp(iatype(iat))) then
+           fnrm=fnrm+gg(1,iat)**2+gg(2,iat)**2+gg(3,iat)**2
+        end if
      end do
      write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)') it,fnrm,etot,' CG ',beta/betax
      write(16,*) 'fnrm,flucts',fnrm,sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0
@@ -503,9 +506,11 @@ program BigDFT
      t2=0.d0 
      t3=0.d0
      do iat=1,nat
-        t1=t1+ff(1,iat)**2 
-        t2=t2+ff(2,iat)**2 
-        t3=t3+ff(3,iat)**2
+        if (.not. lfrztyp(iatype(iat))) then
+           t1=t1+ff(1,iat)**2 
+           t2=t2+ff(2,iat)**2 
+           t3=t3+ff(3,iat)**2
+        end if
      enddo
      fnrm=t1+t2+t3
      de1=etot-etotitm1
@@ -527,7 +532,9 @@ program BigDFT
         flucto=fluct
         sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
         do iat=1,nat
-           sumx=sumx+ff(1,iat) ; sumy=sumy+ff(2,iat) ; sumz=sumz+ff(3,iat)
+           sumx=sumx+ff(1,iat) 
+           sumy=sumy+ff(2,iat) 
+           sumz=sumz+ff(3,iat)
         end do
         fluct=sumx**2+sumy**2+sumz**2
         write(16,*) 'fnrm,flucts',fnrm,sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0

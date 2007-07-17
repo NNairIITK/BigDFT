@@ -9,6 +9,8 @@ module libBigDFT
   !- Initialisation methods.
   !- Create and allocate access arrays for wavefunctions.
   public :: createWavefunctionsDescriptors
+  !-Crete and allocate data descriptors for nonlocal PSP projectors
+  public :: createProjectorsArrays
   !- Compute input guess wavefunctions from aatomic orbitals.
   public :: input_wf_diag
   
@@ -1663,6 +1665,247 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
 
 !***********************************************************************************************
 END SUBROUTINE createWavefunctionsDescriptors
+
+subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, atomnames, &
+     & psppar, npspcode, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
+     & keyg_p, keyv_p, nproj, nprojel, istart, nboxp_c, nboxp_f, proj)
+  implicit real*8 (a-h,o-z)
+  character*20 :: atomnames(100)
+  dimension rxyz(3,nat),iatype(nat),radii_cf(ntypes,2),psppar(0:4,0:4,ntypes),npspcode(ntypes)
+  integer :: nvctr_p(0:2*nat), nseg_p(0:2*nat)
+  integer :: nboxp_c(2,3,nat), nboxp_f(2,3,nat)
+  real*8, pointer :: proj(:)
+  integer, pointer :: keyg_p(:,:), keyv_p(:)
+  real(kind=8), dimension(:), allocatable :: fac_arr
+  integer, dimension(:), allocatable :: lx,ly,lz
+
+  logical, allocatable :: logrid(:,:,:)
+
+  if (iproc.eq.0) then
+     write(*,'(1x,a)')&
+          '------------------------------------------------------------ PSP Projectors Creation'
+     write(*,'(1x,a4,4x,a4,1x,a)')&
+          'Atom','Name','Number of projectors'
+  end if
+
+  call timing(iproc,'CrtProjectors ','ON')
+
+
+  ! determine localization region for all projectors, but do not yet fill the descriptor arrays
+  allocate(logrid(0:n1,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(logrid))*kind(logrid),'logrid','createprojectorsarrays')
+
+  nseg_p(0)=0 
+  nvctr_p(0)=0 
+
+  istart=1
+  nproj=0
+  do iat=1,nat
+
+     call numb_proj(iatype(iat),ntypes,psppar,npspcode,mproj)
+     if (mproj.ne.0) then 
+
+        if (iproc.eq.0) write(*,'(1x,i4,2x,a6,1x,i20)')&
+             iat,trim(atomnames(iatype(iat))),mproj
+
+
+        !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))')&
+        !     'projector descriptors for atom with mproj ',iat,mproj
+        nproj=nproj+mproj
+
+        ! coarse grid quantities
+        call  pregion_size(rxyz(1,iat),radii_cf(1,2),cpmult,iatype(iat),ntypes, &
+             hgrid,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+        !if (iproc.eq.0) write(*,'(a,6(i4))') 'coarse grid',nl1,nu1,nl2,nu2,nl3,nu3
+        nboxp_c(1,1,iat)=nl1 ; nboxp_c(2,1,iat)=nu1
+        nboxp_c(1,2,iat)=nl2 ; nboxp_c(2,2,iat)=nu2
+        nboxp_c(1,3,iat)=nl3 ; nboxp_c(2,3,iat)=nu3
+        call fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),cpmult,hgrid,logrid)
+        call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
+        !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr,coarse projectors ',mseg,mvctr
+        nseg_p(2*iat-1)=nseg_p(2*iat-2) + mseg
+        nvctr_p(2*iat-1)=nvctr_p(2*iat-2) + mvctr
+        istart=istart+mvctr*mproj
+
+        ! fine grid quantities
+        call  pregion_size(rxyz(1,iat),radii_cf(1,2),fpmult,iatype(iat),ntypes, &
+             hgrid,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+        !if (iproc.eq.0) write(*,'(a,6(i4))') 'fine   grid',nl1,nu1,nl2,nu2,nl3,nu3
+        nboxp_f(1,1,iat)=nl1 ; nboxp_f(2,1,iat)=nu1
+        nboxp_f(1,2,iat)=nl2 ; nboxp_f(2,2,iat)=nu2
+        nboxp_f(1,3,iat)=nl3 ; nboxp_f(2,3,iat)=nu3
+        call fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hgrid,logrid)
+        call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
+        !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr, fine  projectors ',mseg,mvctr
+        nseg_p(2*iat)=nseg_p(2*iat-1) + mseg
+        nvctr_p(2*iat)=nvctr_p(2*iat-1) + mvctr
+        istart=istart+7*mvctr*mproj
+
+     else  !(atom has no nonlocal PSP, e.g. H)
+        nseg_p(2*iat-1)=nseg_p(2*iat-2) 
+        nvctr_p(2*iat-1)=nvctr_p(2*iat-2) 
+        nseg_p(2*iat)=nseg_p(2*iat-1) 
+        nvctr_p(2*iat)=nvctr_p(2*iat-1) 
+     endif
+  enddo
+
+  if (iproc.eq.0) then
+     write(*,'(28x,a)') '------'
+     write(*,'(1x,a,i5)') 'Total number of projectors =',nproj
+  end if
+
+  ! allocations for arrays holding the projectors and their data descriptors
+  allocate(keyg_p(2,nseg_p(2*nat)),stat=i_stat)
+  call memocc(i_stat,product(shape(keyg_p))*kind(keyg_p),'keyg_p','createprojectorsarrays')
+  allocate(keyv_p(nseg_p(2*nat)),stat=i_stat)
+  call memocc(i_stat,product(shape(keyv_p))*kind(keyv_p),'keyv_p','createprojectorsarrays')
+  nprojel=istart-1
+  allocate(proj(nprojel),stat=i_stat)
+  call memocc(i_stat,product(shape(proj))*kind(proj),'proj','createprojectorsarrays')
+
+
+  ! After having determined the size of the projector descriptor arrays fill them
+  istart_c=1
+  do iat=1,nat
+     call numb_proj(iatype(iat),ntypes,psppar,npspcode,mproj)
+     if (mproj.ne.0) then 
+
+        ! coarse grid quantities
+        nl1=nboxp_c(1,1,iat) ; nu1=nboxp_c(2,1,iat)
+        nl2=nboxp_c(1,2,iat) ; nu2=nboxp_c(2,2,iat)
+        nl3=nboxp_c(1,3,iat) ; nu3=nboxp_c(2,3,iat)
+        call fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),cpmult,hgrid,logrid)
+
+        iseg=nseg_p(2*iat-2)+1
+        mseg=nseg_p(2*iat-1)-nseg_p(2*iat-2)
+        call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+             logrid,mseg,keyg_p(:,iseg:iseg+mseg-1),keyv_p(iseg:iseg+mseg-1))
+
+        ! fine grid quantities
+        nl1=nboxp_f(1,1,iat) ; nu1=nboxp_f(2,1,iat)
+        nl2=nboxp_f(1,2,iat) ; nu2=nboxp_f(2,2,iat)
+        nl3=nboxp_f(1,3,iat) ; nu3=nboxp_f(2,3,iat)
+        call fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hgrid,logrid)
+        iseg=nseg_p(2*iat-1)+1
+        mseg=nseg_p(2*iat)-nseg_p(2*iat-1)
+        call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+             logrid,mseg,keyg_p(:,iseg:iseg+mseg-1),keyv_p(iseg:iseg+mseg-1))
+
+     endif
+  enddo
+
+  !if (iproc.eq.0) write(*,*) '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'
+
+
+  if (iproc.eq.0) write(*,'(1x,a)',advance='no') &
+       'Calculating wavelets expansion of projectors...'
+  !allocate these vectors up to the maximum size we can get
+  nterm_max=10 !if GTH nterm_max=3
+  allocate(fac_arr(nterm_max),stat=i_stat)
+  call memocc(i_stat,product(shape(fac_arr))*kind(fac_arr),'fac_arr','createprojectorsarrays')
+  allocate(lx(nterm_max),stat=i_stat)
+  call memocc(i_stat,product(shape(lx))*kind(lx),'lx','createprojectorsarrays')
+  allocate(ly(nterm_max),stat=i_stat)
+  call memocc(i_stat,product(shape(ly))*kind(ly),'ly','createprojectorsarrays')
+  allocate(lz(nterm_max),stat=i_stat)
+  call memocc(i_stat,product(shape(lz))*kind(lz),'lz','createprojectorsarrays')
+
+  iproj=0
+  fpi=(4.d0*atan(1.d0))**(-.75d0)
+  do iat=1,nat
+     rx=rxyz(1,iat) ; ry=rxyz(2,iat) ; rz=rxyz(3,iat)
+     ityp=iatype(iat)
+
+     !decide the loop bounds
+     do l=1,4 !generic case, also for HGH (for GTH it will stop at l=2)
+        do i=1,3 !generic case, also for HGH (for GTH it will stop at i=2)
+           if (psppar(l,i,ityp).ne.0.d0) then
+              gau_a=psppar(l,0,ityp)
+              factor=sqrt(2.d0)*fpi/(sqrt(gau_a)**(2*(l-1)+4*i-1))
+              do m=1,2*l-1
+                 mvctr_c=nvctr_p(2*iat-1)-nvctr_p(2*iat-2)
+                 mvctr_f=nvctr_p(2*iat  )-nvctr_p(2*iat-1)
+                 istart_f=istart_c+mvctr_c
+                 nl1_c=nboxp_c(1,1,iat) ; nu1_c=nboxp_c(2,1,iat)
+                 nl2_c=nboxp_c(1,2,iat) ; nu2_c=nboxp_c(2,2,iat)
+                 nl3_c=nboxp_c(1,3,iat) ; nu3_c=nboxp_c(2,3,iat)
+                 nl1_f=nboxp_f(1,1,iat) ; nu1_f=nboxp_f(2,1,iat)
+                 nl2_f=nboxp_f(1,2,iat) ; nu2_f=nboxp_f(2,2,iat)
+                 nl3_f=nboxp_f(1,3,iat) ; nu3_f=nboxp_f(2,3,iat)
+
+                 call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
+
+                 fac_arr(1:nterm)=factor*fac_arr(1:nterm)
+
+                 call crtproj(iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
+                      & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radii_cf(iatype(iat),2), & 
+                      & cpmult,fpmult,hgrid,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
+                      & mvctr_c,mvctr_f,proj(istart_c:istart_c+mvctr_c-1), &
+                      & proj(istart_f:istart_f+7*mvctr_f-1))
+
+                 iproj=iproj+1
+                 ! testing
+                 call wnrm(mvctr_c,mvctr_f,proj(istart_c:istart_c+mvctr_c-1), &
+                      & proj(istart_f:istart_f + 7 * mvctr_f - 1),scpr)
+                 if (abs(1.d0-scpr).gt.1.d-1) then
+                    print *,'norm projector for atom ',trim(atomnames(iatype(iat))),&
+                         'iproc,l,i,rl,scpr=',iproc,l,i,gau_a,scpr
+                    stop 'norm projector'
+                 end if
+
+!!$                   !plot the p projector
+!!$                   if (l==2 .and. m==1) then
+!!$                      mbseg_c=nseg_p(2*iat-1)-nseg_p(2*iat-2)
+!!$                      mbseg_f=nseg_p(2*iat  )-nseg_p(2*iat-1)
+!!$                      jseg_c=nseg_p(2*iat-2)+1
+!!$                      call plot_wf(51,n1,n2,n3,hgrid,mbseg_c,mvctr_c,&
+!!$                           keyg_p(:,jseg_c:jseg_c+mbseg_c+mbseg_f-1),&
+!!$                           keyv_p(jseg_c:jseg_c+mbseg_c+mbseg_f-1),mbseg_f,nvctr_f, &
+!!$                           rx,ry,rz,proj(istart_c:istart_f+7*mvctr_f-1))
+!!$                   end if
+
+                 ! testing end
+                 istart_c=istart_f+7*mvctr_f
+                 if (istart_c.gt.istart) stop 'istart_c > istart'
+
+                 !do iterm=1,nterm
+                 !   if (iproc.eq.0) write(*,'(1x,a,i0,1x,a,1pe10.3,3(1x,i0))') &
+                 !        'projector: iat,atomname,gau_a,lx,ly,lz ', & 
+                 !        iat,trim(atomnames(iatype(iat))),gau_a,lx(iterm),ly(iterm),lz(iterm)
+                 !enddo
+
+
+              enddo
+           endif
+        enddo
+     enddo
+  enddo
+  if (iproj.ne.nproj) stop 'incorrect number of projectors created'
+  ! projector part finished
+  if (iproc ==0) write(*,'(1x,a)')'done.'
+
+  i_all=-product(shape(logrid))*kind(logrid)
+  deallocate(logrid,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid','createprojectorsarrays')
+  i_all=-product(shape(fac_arr))*kind(fac_arr)
+  deallocate(fac_arr,stat=i_stat)
+  call memocc(i_stat,i_all,'fac_arr','createprojectorsarrays')
+  i_all=-product(shape(lx))*kind(lx)
+  deallocate(lx,stat=i_stat)
+  call memocc(i_stat,i_all,'lx','createprojectorsarrays')
+  i_all=-product(shape(ly))*kind(ly)
+  deallocate(ly,stat=i_stat)
+  call memocc(i_stat,i_all,'ly','createprojectorsarrays')
+  i_all=-product(shape(lz))*kind(lz)
+  deallocate(lz,stat=i_stat)
+  call memocc(i_stat,i_all,'lz','createprojectorsarrays')
+  call timing(iproc,'CrtProjectors ','OF')
+
+END SUBROUTINE createProjectorsArrays
 
 subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      nat,norb,norbp,occup,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 

@@ -347,7 +347,7 @@ subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   epot=0.d0	
   do i3=-14,2*n3+16
      do i2=-14,2*n2+16
-        do i1=ibyyzz_r(1,i2,i3),ibyyzz_r(2,i2,i3)
+        do i1=max(ibyyzz_r(1,i2,i3),-14),min(ibyyzz_r(2,i2,i3),2*n1+16)
            tt=pot(i1,i2,i3)*psir(i1,i2,i3)
            epot=epot+tt*psir(i1,i2,i3)
            psir(i1,i2,i3)=tt

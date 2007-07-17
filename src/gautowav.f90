@@ -326,6 +326,8 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
      end if
   end do
 
+  stop
+
   !now we have to evaluate the eigenvalues of this hamiltonian
 
   i_all=-product(shape(tpsi))*kind(tpsi)
