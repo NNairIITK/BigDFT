@@ -851,7 +851,7 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
            return
         end if
      else if (inputPsiId == 1) then
-        if (gnrm > 2.d0) then
+        if (gnrm > 1.d0) then
            if (iproc == 0) then
               write(*,'(1x,a)')&
                 'The norm of the residue is too large, need to recalculate input wavefunctions'
@@ -1973,7 +1973,7 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
   !*****************************************************************************************
 
   !local variables
-  integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp
+  integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp,jorb
   real(kind=8) :: hgridh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum
   real(kind=8), dimension(:), allocatable :: work_lp,pot
   real(kind=8), dimension(:,:), allocatable :: hamovr
@@ -2097,6 +2097,17 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
      !reduce the overlap matrix between all the processors
      call MPI_ALLREDUCE(hamovr(1,3),hamovr(1,1),2*norb**2,&
           MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+     !print the overlap matrix in the wavelet case
+     print *,norb
+     open(33)
+     do iorb=1,norb
+        write(33,'(2000(1pe10.2))')&
+             (hamovr(jorb+(iorb-1)*norb,2),jorb=1,norb)
+     end do
+     close(33)
+
+     stop
 
      !found the eigenfunctions for each group
      n_lp=max(10,4*norb)

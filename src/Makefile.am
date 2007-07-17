@@ -92,9 +92,11 @@ libbigdft_a_SOURCES = \
         precond.f90 \
         prec_diag.f90 \
 	wavelib.f90 \
-	gautowav.f90 \
+	input/gautowav.f90 \
+	input/gauprod.f90 \
+	input/inputguess.f90 \
+	input/restart.f90 \
 	ionicpot.f90 \
-	inputguess.f90 \
 	projectors/projectors.f90 \
 	orthogonality.f90 \
 	forces.f90 \
@@ -102,7 +104,6 @@ libbigdft_a_SOURCES = \
 	applyh.f90 \
 	sumrho.f90 \
 	transwaves.f90 \
-	restart.f90 \
 	tail.f90 \
 	razero.f90
 libbigdft_a_LIBADD = profiling/timing.o

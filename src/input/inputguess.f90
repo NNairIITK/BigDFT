@@ -318,6 +318,168 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
 
 END SUBROUTINE createAtomicOrbitals
 
+subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
+  ! calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
+  ! the output psiatn is a normalized version of psiat
+  implicit real*8 (a-h,o-z)
+  dimension xp(ng),psiat(ng),psiatn(ng)
+
+  !        gml=.5d0*gamma(.5d0+l)
+  gml = 0.d0
+  if (l.eq.0) then 
+     gml=0.88622692545275801365d0
+  else if (l.eq.1) then 
+     gml=0.44311346272637900682d0
+  else if (l.eq.2) then 
+     gml=0.66467019408956851024d0
+  else if (l.eq.3) then 
+     gml=1.6616754852239212756d0
+  else
+     stop 'atomkin'
+  endif
+
+  ek=0.d0
+  tt=0.d0
+  do i=1,ng
+     xpi=.5d0/xp(i)**2
+     do j=1,ng
+        xpj=.5d0/xp(j)**2
+        d=xpi+xpj
+        sxp=1.d0/d
+        const=gml*sqrt(sxp)**(2*l+1)
+        ! kinetic energy  matrix element hij
+        hij=.5d0*const*sxp**2* ( 3.d0*xpi*xpj +                  &
+             l*(6.d0*xpi*xpj-xpi**2-xpj**2) -        &
+             l**2*(xpi-xpj)**2  ) + .5d0*l*(l+1.d0)*const
+        sij=const*sxp*(l+.5d0)
+        ek=ek+hij*psiat(i)*psiat(j)
+        tt=tt+sij*psiat(i)*psiat(j)
+     enddo
+  enddo
+
+  if (abs(tt-1.d0).gt.1.d-2) write(*,*) 'presumably wrong inguess data',l,tt
+  ! energy expectation value
+  ek=ek/tt
+  !write(*,*) 'ek=',ek,tt,l,ng
+  ! scale atomic wavefunction
+  tt=sqrt(1.d0/tt)
+!!$        if (l.eq.0) then  ! multiply with 1/sqrt(4*pi)
+!!$        tt=tt*0.28209479177387814347d0
+!!$        else if (l.eq.1) then  ! multiply with sqrt(3/(4*pi))
+!!$        tt=tt*0.48860251190291992159d0
+!!$        !decide the value of the normalization to be used
+!!$        endif
+  do i=1,ng
+     psiatn(i)=psiat(i)*tt
+  enddo
+
+  return
+end subroutine atomkin
+
+subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
+
+  implicit none
+  integer, intent(in) :: l,m,nterm_max
+  integer, intent(out) :: nterm
+  integer, dimension(nterm_max), intent(out) :: lx,ly,lz
+  real(kind=8), dimension(nterm_max), intent(out) :: fac_arr
+
+  if (l.eq.1 .and. m.eq.1) then
+     nterm=1
+     lx(1)=0 ; ly(1)=0 ; lz(1)=0
+     fac_arr(1)=0.28209479177387814347d0
+
+  else if (l.eq.2  .and. m.eq.1) then
+     nterm=1
+     lx(1)=1 ; ly(1)=0 ; lz(1)=0
+     fac_arr(1)=0.48860251190291992159d0
+  else if (l.eq.2  .and. m.eq.2) then
+     nterm=1
+     lx(1)=0 ; ly(1)=1 ; lz(1)=0
+     fac_arr(1)=0.48860251190291992159d0
+  else if (l.eq.2  .and. m.eq.3) then
+     nterm=1
+     lx(1)=0 ; ly(1)=0 ; lz(1)=1
+     fac_arr(1)=0.48860251190291992159d0
+
+  else if (l.eq.3  .and. m.eq.1) then
+     nterm=1
+     lx(1)=0 ; ly(1)=1 ; lz(1)=1
+     fac_arr(1)=1.092548430592079d0
+  else if (l.eq.3  .and. m.eq.2) then
+     nterm=1
+     lx(1)=1 ; ly(1)=0 ; lz(1)=1
+     fac_arr(1)=1.092548430592079d0
+  else if (l.eq.3  .and. m.eq.3) then
+     nterm=1
+     lx(1)=1 ; ly(1)=1 ; lz(1)=0
+     fac_arr(1)=1.092548430592079d0
+  else if (l.eq.3  .and. m.eq.4) then
+     nterm=2
+     lx(1)=2 ; ly(1)=0 ; lz(1)=0
+     lx(2)=0 ; ly(2)=2 ; lz(2)=0
+     fac_arr(1)=0.5462742152960396d0
+     fac_arr(2)=-0.5462742152960396d0
+  else if (l.eq.3  .and. m.eq.5) then 
+     nterm=3
+     lx(1)=2 ; ly(1)=0 ; lz(1)=0
+     lx(2)=0 ; ly(2)=2 ; lz(2)=0
+     lx(3)=0 ; ly(3)=0 ; lz(3)=2
+     fac_arr(1)=-0.3153915652525201d0
+     fac_arr(2)=-0.3153915652525201d0
+     fac_arr(3)=2.d0*0.3153915652525201d0
+
+  else if (l.eq.4  .and. m.eq.1) then
+     nterm=3
+     lx(1)=3 ; ly(1)=0 ; lz(1)=0
+     lx(2)=1 ; ly(2)=2 ; lz(2)=0
+     lx(3)=1 ; ly(3)=0 ; lz(3)=2
+     fac_arr(1)=0.4570457994644658d0
+     fac_arr(2)=0.4570457994644658d0
+     fac_arr(3)=-4.d0*0.4570457994644658d0
+  else if (l.eq.4  .and. m.eq.2) then
+     nterm=3
+     lx(1)=2 ; ly(1)=1 ; lz(1)=0
+     lx(2)=0 ; ly(2)=3 ; lz(2)=0
+     lx(3)=0 ; ly(3)=1 ; lz(3)=2
+     fac_arr(1)=0.4570457994644658d0
+     fac_arr(2)=0.4570457994644658d0
+     fac_arr(3)=-4.d0*0.4570457994644658d0
+  else if (l.eq.4  .and. m.eq.3) then
+     nterm=3
+     lx(1)=2 ; ly(1)=0 ; lz(1)=1
+     lx(2)=0 ; ly(2)=2 ; lz(2)=1
+     lx(3)=0 ; ly(3)=0 ; lz(3)=3
+     fac_arr(1)=3.d0*0.3731763325901154d0
+     fac_arr(2)=3.d0*0.3731763325901154d0
+     fac_arr(3)=-2.d0*0.3731763325901154d0
+  else if (l.eq.4  .and. m.eq.4) then
+     nterm=2
+     lx(1)=3 ; ly(1)=0 ; lz(1)=0
+     lx(2)=1 ; ly(2)=2 ; lz(2)=0
+     fac_arr(1)=0.5900435899266436d0
+     fac_arr(2)=-3.d0*0.5900435899266436d0
+  else if (l.eq.4  .and. m.eq.5) then
+     nterm=2
+     lx(1)=2 ; ly(1)=1 ; lz(1)=0
+     lx(2)=0 ; ly(2)=3 ; lz(2)=0
+     fac_arr(1)=-3.d0*0.5900435899266436d0
+     fac_arr(2)=0.5900435899266436d0
+  else if (l.eq.4  .and. m.eq.6) then
+     nterm=2
+     lx(1)=2 ; ly(1)=0 ; lz(1)=1
+     lx(2)=0 ; ly(2)=2 ; lz(2)=1
+     fac_arr(1)=1.445305721320277d0
+     fac_arr(2)=-1.445305721320277d0
+  else if (l.eq.4  .and. m.eq.7) then
+     nterm=1
+     lx(1)=1 ; ly(1)=1 ; lz(1)=1
+     fac_arr(1)=2.890611442640554d0
+  else
+     stop 'input guess format error'
+  endif
+
+END SUBROUTINE calc_coeff_inguess
 
 subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,occupat,expo,psiat)
   implicit none
