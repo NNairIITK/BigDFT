@@ -111,7 +111,6 @@ subroutine gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
 end subroutine gprod
 
 !calculates \int \exp^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx
-!valid only if d/=0.d0, if not use gauint0
 function govrlp(a1,a2,d,l1,l2)
   implicit none
   integer, intent(in) :: l1,l2
@@ -164,7 +163,7 @@ function govrlp(a1,a2,d,l1,l2)
 end function govrlp
 
 !calculates \int \exp^{-a*(x-c)^2} x^l dx
-!this works only when c/=0.d0
+!this works ALSO when c/=0.d0
 function gauint(a,c,l)
   implicit none
   integer, intent(in) :: l
@@ -176,16 +175,12 @@ function gauint(a,c,l)
   real(kind=8) :: rfac,prefac,xsum,stot,fsum,tt,firstprod
   !build the prefactor
   prefac=sqrt(a)
-  prefac=c**l/prefac
-!!$  prefac=1.d0/prefac
+  prefac=1.d0/prefac
   prefac=gammaonehalf*prefac
 
-  !object in the sum
-  xsum=a*c**2
-  xsum=1.d0/xsum
-
   !the first term of the sum is one
-  stot=1.d0
+  !but we have to multiply for the prefactor
+  stot=c**l
 
   !calculate the sum
   do p=1,l/4
@@ -194,11 +189,9 @@ function gauint(a,c,l)
      fsum=fsum/tt
      tt=firstprod(p)
      fsum=fsum*tt
-!!$     tt=c**(l-2*p)
-!!$     tt=tt/a**p
-!!$     !print *,tt
-!!$     fsum=fsum*tt
-     fsum=fsum*xsum**p
+     tt=c**(l-2*p)
+     tt=tt/a**p
+     fsum=fsum*tt
      stot=stot+fsum
   end do
   do p=l/4+1,l/3
@@ -207,11 +200,9 @@ function gauint(a,c,l)
      fsum=fsum/tt
      tt=firstprod(p)
      fsum=fsum*tt
-!!$     tt=c**(l-2*p)
-!!$     tt=tt/a**p
-!!$     !print *,tt
-!!$     fsum=fsum*tt
-     fsum=fsum*xsum**p
+     tt=c**(l-2*p)
+     tt=tt/a**p
+     fsum=fsum*tt
      stot=stot+fsum
   end do
   do p=l/3+1,l/2
@@ -220,11 +211,9 @@ function gauint(a,c,l)
      fsum=fsum*tt
      tt=firstprod(p)
      fsum=fsum*tt
-!!$     tt=c**(l-2*p)
-!!$     tt=tt/a**p
-!!$     !print *,tt
-!!$     fsum=fsum*tt
-     fsum=fsum*xsum**p
+     tt=c**(l-2*p)
+     tt=tt/a**p
+     fsum=fsum*tt
      stot=stot+fsum
   end do
 

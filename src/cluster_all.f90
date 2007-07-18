@@ -164,7 +164,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         !allocation of work arrays for transposition in the parallel case)
         do j=1,nvctr_c_old+7*nvctr_f_old
            ind=j+(nvctr_c_old+7*nvctr_f_old)*(iorb-iproc*norbp-1)
-           i1=mod(ind,nvctrp_old)
+           i1=mod(ind-1,nvctrp_old)+1
            i2=(ind-i1)/nvctrp_old+1
            psi_old(j,iorb-iproc*norbp)     = psi(i1,i2)
            tt=tt+psi(i1,i2)**2
@@ -666,11 +666,11 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
 
 
         if (iproc.eq.0) write(*,*) 'START reformatting psi from old psi'
-        call reformatmywaves(iproc, norb, norbp, nat, &
-             & hgrid_old, nvctr_c_old, nvctr_f_old, n1_old, n2_old, n3_old, rxyz_old, &
-             & nseg_c_old, nseg_f_old, keyg_old, keyv_old, psi_old, &
-             & hgrid, nvctr_c, nvctr_f, n1, n2, n3, rxyz, &
-             & nseg_c, nseg_f, keyg, keyv, psi)
+        call reformatmywaves(iproc,norb,norbp,nat, &
+             & hgrid_old,nvctr_c_old,nvctr_f_old,n1_old,n2_old,n3_old,rxyz_old, &
+             & nseg_c_old,nseg_f_old,keyg_old,keyv_old,psi_old, &
+             & hgrid,nvctr_c,nvctr_f,n1,n2,n3,rxyz, &
+             & nseg_c,nseg_f,keyg,keyv,psi)
         eval=eval_old
         i_all=-product(shape(keyg_old))*kind(keyg_old)
         deallocate(keyg_old,stat=i_stat)
@@ -848,6 +848,7 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
                 'Error: the norm of the residue is too large also with input wavefunctions.'
            end if
            infocode=3
+           call deallocate_before_exiting
            return
         end if
      else if (inputPsiId == 1) then
@@ -857,6 +858,8 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
                 'The norm of the residue is too large, need to recalculate input wavefunctions'
            end if
            infocode=2
+           if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+           call deallocate_before_exiting
            return
         else if (iter == 1 .and. gnrm > 1.d0) then
         !check the value of the first gnrm to see whether it is the case
@@ -868,6 +871,8 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
                if (iproc == 0) write(*,'(1x,a)')&
                    'The norm of the residue is growing, need to recalculate input wavefunctions'
               infocode=2
+              if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+              call deallocate_before_exiting
               return
            end if
         end if
@@ -958,6 +963,7 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
   if (datacode=='G') then
      allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
      call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
+
      call sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
              nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
              nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
@@ -1127,6 +1133,9 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
         deallocate(ngatherarr,stat=i_stat)
         call memocc(i_stat,i_all,'ngatherarr','cluster')
      else
+
+        !here one could have not allocated pot and: call move_alloc(rhopot,pot) 
+        !(but it is a Fortran 2003 spec)
         do i3=1,2*n3+31
            do i2=1,2*n2+31
               do i1=1,2*n1+31
@@ -1282,6 +1291,165 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
   tel=dble(ncount1-ncount0)/dble(ncount_rate)
   write(*,'(a,1x,i4,2(1x,f12.2))') '- iproc, elapsed, CPU time ', iproc,tel,tcpu1-tcpu0
 
+contains
+
+  !routine which deallocate the pointers and the arrays before exiting 
+  !in the case of anticipated return
+  !it may be also generalised to the normal run
+  subroutine deallocate_before_exiting
+    implicit real*8 (a-h,o-z)
+
+    !this statement is put only in view of a generalization inside the normal treatment
+    !when this condition is verified we are in the middle of the SCF cycle
+    if (infocode /=0 .and. infocode /=1) then
+
+       if (idsx.gt.0) then
+          i_all=-product(shape(psidst))*kind(psidst)
+          deallocate(psidst,stat=i_stat)
+          call memocc(i_stat,i_all,'psidst','cluster')
+          i_all=-product(shape(hpsidst))*kind(hpsidst)
+          deallocate(hpsidst,stat=i_stat)
+          call memocc(i_stat,i_all,'hpsidst','cluster')
+          i_all=-product(shape(ads))*kind(ads)
+          deallocate(ads,stat=i_stat)
+          call memocc(i_stat,i_all,'ads','cluster')
+       end if
+
+       if (parallel) then
+          i_all=-product(shape(psit))*kind(psit)
+          deallocate(psit,stat=i_stat)
+          call memocc(i_stat,i_all,'psit','cluster')
+       end if
+
+       i_all=-product(shape(hpsi))*kind(hpsi)
+       deallocate(hpsi,stat=i_stat)
+       call memocc(i_stat,i_all,'hpsi','cluster')
+
+       i_all=-product(shape(pot_ion))*kind(pot_ion)
+       deallocate(pot_ion,stat=i_stat)
+       call memocc(i_stat,i_all,'pot_ion','cluster')
+
+       i_all=-product(shape(pkernel))*kind(pkernel)
+       deallocate(pkernel,stat=i_stat)
+       call memocc(i_stat,i_all,'pkernel','cluster')
+
+       i_all=-product(shape(nboxp_c))*kind(nboxp_c)
+       deallocate(nboxp_c,stat=i_stat)
+       call memocc(i_stat,i_all,'nboxp_c','cluster')
+       i_all=-product(shape(nboxp_f))*kind(nboxp_f)
+       deallocate(nboxp_f,stat=i_stat)
+       call memocc(i_stat,i_all,'nboxp_f','cluster')
+
+       ! calc_tail false
+       i_all=-product(shape(rhopot))*kind(rhopot)
+       deallocate(rhopot,stat=i_stat)
+       call memocc(i_stat,i_all,'rhopot','cluster')
+       i_all=-product(shape(nscatterarr))*kind(nscatterarr)
+       deallocate(nscatterarr,stat=i_stat)
+       call memocc(i_stat,i_all,'nscatterarr','cluster')
+       i_all=-product(shape(ngatherarr))*kind(ngatherarr)
+       deallocate(ngatherarr,stat=i_stat)
+       call memocc(i_stat,i_all,'ngatherarr','cluster')
+
+    end if
+
+    i_all=-product(shape(ibyz_c))*kind(ibyz_c)
+    deallocate(ibyz_c,stat=i_stat)
+    call memocc(i_stat,i_all,'ibyz_c','cluster')
+    i_all=-product(shape(ibxz_c))*kind(ibxz_c)
+    deallocate(ibxz_c,stat=i_stat)
+    call memocc(i_stat,i_all,'ibxz_c','cluster')
+    i_all=-product(shape(ibxy_c))*kind(ibxy_c)
+    deallocate(ibxy_c,stat=i_stat)
+    call memocc(i_stat,i_all,'ibxy_c','cluster')
+    i_all=-product(shape(ibyz_f))*kind(ibyz_f)
+    deallocate(ibyz_f,stat=i_stat)
+    call memocc(i_stat,i_all,'ibyz_f','cluster')
+    i_all=-product(shape(ibxz_f))*kind(ibxz_f)
+    deallocate(ibxz_f,stat=i_stat)
+    call memocc(i_stat,i_all,'ibxz_f','cluster')
+    i_all=-product(shape(ibxy_f))*kind(ibxy_f)
+    deallocate(ibxy_f,stat=i_stat)
+    call memocc(i_stat,i_all,'ibxy_f','cluster')
+
+    !*****************************Alexey*************************
+    i_all=-product(shape(ibzzx_c))*kind(ibzzx_c)
+    deallocate(ibzzx_c,stat=i_stat)
+    call memocc(i_stat,i_all,'ibzzx_c','cluster')
+    i_all=-product(shape(ibyyzz_c))*kind(ibyyzz_c)
+    deallocate(ibyyzz_c,stat=i_stat)
+    call memocc(i_stat,i_all,'ibyyzz_c','cluster')
+    i_all=-product(shape(ibxy_ff))*kind(ibxy_ff)
+    deallocate(ibxy_ff,stat=i_stat)
+    call memocc(i_stat,i_all,'ibxy_ff','cluster')
+    i_all=-product(shape(ibzzx_f))*kind(ibzzx_f)
+    deallocate(ibzzx_f,stat=i_stat)
+    call memocc(i_stat,i_all,'ibzzx_f','cluster')
+    i_all=-product(shape(ibyyzz_f))*kind(ibyyzz_f)
+    deallocate(ibyyzz_f,stat=i_stat)
+    call memocc(i_stat,i_all,'ibyyzz_f','cluster')
+    i_all=-product(shape(ibzxx_c))*kind(ibzxx_c)
+    deallocate(ibzxx_c,stat=i_stat)
+    call memocc(i_stat,i_all,'ibzxx_c','cluster')
+    i_all=-product(shape(ibxxyy_c))*kind(ibxxyy_c)
+    deallocate(ibxxyy_c,stat=i_stat)
+    call memocc(i_stat,i_all,'ibxxyy_c','cluster')
+    i_all=-product(shape(ibyz_ff))*kind(ibyz_ff)
+    deallocate(ibyz_ff,stat=i_stat)
+    call memocc(i_stat,i_all,'ibyz_ff','cluster')
+    i_all=-product(shape(ibzxx_f))*kind(ibzxx_f)
+    deallocate(ibzxx_f,stat=i_stat)
+    call memocc(i_stat,i_all,'ibzxx_f','cluster')
+    i_all=-product(shape(ibxxyy_f))*kind(ibxxyy_f)
+    deallocate(ibxxyy_f,stat=i_stat)
+    call memocc(i_stat,i_all,'ibxxyy_f','cluster')
+    i_all=-product(shape(ibyyzz_r))*kind(ibyyzz_r)
+    deallocate(ibyyzz_r,stat=i_stat)
+    call memocc(i_stat,i_all,'ibyyzz_r','cluster')
+    !************************************************************
+
+    i_all=-product(shape(keyg_p))*kind(keyg_p)
+    deallocate(keyg_p,stat=i_stat)
+    call memocc(i_stat,i_all,'keyg_p','cluster')
+    i_all=-product(shape(keyv_p))*kind(keyv_p)
+    deallocate(keyv_p,stat=i_stat)
+    call memocc(i_stat,i_all,'keyv_p','cluster')
+    i_all=-product(shape(proj))*kind(proj)
+    deallocate(proj,stat=i_stat)
+    call memocc(i_stat,i_all,'proj','cluster')
+    i_all=-product(shape(occup))*kind(occup)
+    deallocate(occup,stat=i_stat)
+    call memocc(i_stat,i_all,'occup','cluster')
+    i_all=-product(shape(nvctr_p))*kind(nvctr_p)
+    deallocate(nvctr_p,stat=i_stat)
+    call memocc(i_stat,i_all,'nvctr_p','cluster')
+    i_all=-product(shape(nseg_p))*kind(nseg_p)
+    deallocate(nseg_p,stat=i_stat)
+    call memocc(i_stat,i_all,'nseg_p','cluster')
+    i_all=-product(shape(psppar))*kind(psppar)
+    deallocate(psppar,stat=i_stat)
+    call memocc(i_stat,i_all,'psppar','cluster')
+    i_all=-product(shape(nelpsp))*kind(nelpsp)
+    deallocate(nelpsp,stat=i_stat)
+    call memocc(i_stat,i_all,'nelpsp','cluster')
+    i_all=-product(shape(iasctype))*kind(iasctype)
+    deallocate(iasctype,stat=i_stat)
+    call memocc(i_stat,i_all,'iasctype','cluster')
+    i_all=-product(shape(radii_cf))*kind(radii_cf)
+    deallocate(radii_cf,stat=i_stat)
+    call memocc(i_stat,i_all,'radii_cf','cluster')
+    i_all=-product(shape(npspcode))*kind(npspcode)
+    deallocate(npspcode,stat=i_stat)
+    call memocc(i_stat,i_all,'npspcode','cluster')
+
+    call timing(iproc,'              ','RE')
+    call cpu_time(tcpu1)
+    call system_clock(ncount1,ncount_rate,ncount_max)
+    tel=dble(ncount1-ncount0)/dble(ncount_rate)
+    write(*,'(a,1x,i4,2(1x,f12.2))') '- iproc, elapsed, CPU time ', iproc,tel,tcpu1-tcpu0
+
+  end subroutine deallocate_before_exiting
+
 END SUBROUTINE cluster
 
 subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
@@ -1349,7 +1517,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      !it can be eliminated when including all this procedure in a subroutine
      if (parallel) then
         ind=1+(nvctr_c+7*nvctr_f)*(iorb-iproc*norbp-1)
-        i1=mod(ind,nvctrp)
+        i1=mod(ind-1,nvctrp)+1
         i2=(ind-i1)/nvctrp+1
      else
         i1=1

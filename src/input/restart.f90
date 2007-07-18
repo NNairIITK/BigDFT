@@ -83,7 +83,7 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
            i0=ii-i2*(n1_old+1)
            i1=i0+j1-j0
            do i=i0,i1
-              psigold(i, 1, i2, 1, i3, 1) = psi_old(i - i0 + jj, iorb - iproc * norbp)
+              psigold(i,1,i2,1,i3,1) = psi_old(i-i0+jj,iorb-iproc*norbp)
            enddo
         enddo
 
@@ -99,13 +99,13 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
            i0=ii-i2*(n1_old+1)
            i1=i0+j1-j0
            do i=i0,i1
-              psigold(i,2,i2,1,i3,1)=psi_old(nvctr_c_old + 1 + 7 * (i-i0+jj - 1), iorb - iproc * norbp)
-              psigold(i,1,i2,2,i3,1)=psi_old(nvctr_c_old + 2 + 7 * (i-i0+jj - 1), iorb - iproc * norbp)
-              psigold(i,2,i2,2,i3,1)=psi_old(nvctr_c_old + 3 + 7 * (i-i0+jj - 1), iorb - iproc * norbp)
-              psigold(i,1,i2,1,i3,2)=psi_old(nvctr_c_old + 4 + 7 * (i-i0+jj - 1), iorb - iproc * norbp)
-              psigold(i,2,i2,1,i3,2)=psi_old(nvctr_c_old + 5 + 7 * (i-i0+jj - 1), iorb - iproc * norbp)
-              psigold(i,1,i2,2,i3,2)=psi_old(nvctr_c_old + 6 + 7 * (i-i0+jj - 1), iorb - iproc * norbp)
-              psigold(i,2,i2,2,i3,2)=psi_old(nvctr_c_old + 7 + 7 * (i-i0+jj - 1), iorb - iproc * norbp)
+              psigold(i,2,i2,1,i3,1)=psi_old(nvctr_c_old+1+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,1,i2,2,i3,1)=psi_old(nvctr_c_old+2+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,2,i2,2,i3,1)=psi_old(nvctr_c_old+3+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,1,i2,1,i3,2)=psi_old(nvctr_c_old+4+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,2,i2,1,i3,2)=psi_old(nvctr_c_old+5+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,1,i2,2,i3,2)=psi_old(nvctr_c_old+6+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,2,i2,2,i3,2)=psi_old(nvctr_c_old+7+7*(i-i0+jj-1), iorb-iproc*norbp)
            enddo
         enddo
 
