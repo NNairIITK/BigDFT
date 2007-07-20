@@ -67,34 +67,165 @@ function gauinth(a,l)
   
 end function gauinth
 
+!calculates the scalar product between two shells
+!by considering only the nonzero coefficients
+!actual building block for calculating overlap matrix
+!inserted work arrays for calculation
+subroutine gbasovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
+     niw,nrw,iw,rw,ovrlp)
+  implicit none
+  integer, intent(in) :: ng1,ng2,l1,m1,l2,m2,niw,nrw
+  real(kind=8), intent(in) :: dx,dy,dz
+  integer, dimension(niw) :: iw
+  real(kind=8), dimension(nrw) :: rw
+  real(kind=8), dimension(ng1), intent(in) :: expo1,coeff1
+  real(kind=8), dimension(ng2), intent(in) :: expo2,coeff2
+  real(kind=8), intent(out) :: ovrlp
+  !local variables
+  integer :: i1,i2
+  real(kind=8) :: a1,a2,c1,c2,govrlpr
 
-!calculates a dot product between two differents gaussians times shperical harmonics
+  ovrlp=0.d0
+  do i1=1,ng1
+     a1=expo1(i1)
+     c1=coeff1(i1)
+     do i2=1,ng2
+        a2=expo2(i2)
+        c2=coeff2(i2)
+        call gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,govrlpr)
+        govrlpr=c1*govrlpr*c2
+        !print *,c1,c2,govrlpr
+        ovrlp=ovrlp+govrlpr
+     end do
+  end do
+  
+end subroutine gbasovrlp
+
+
+!calculates a dot product between two differents gaussians times spherical harmonics
 !vaild only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
 !to be rearranged when only some of them is zero
 subroutine gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
   implicit none
   integer, intent(in) :: l1,l2,m1,m2,niw,nrw
   real(kind=8), intent(in) :: a1,a2,dx,dy,dz
-  integer, dimension(niw) :: iw
-  real(kind=8), dimension(nrw) :: rw
+  integer, dimension(niw) :: iw !work array of the exponents of the two polynomials
+  real(kind=8), dimension(nrw) :: rw !work array of the polynomials coefficients 
   real(kind=8), intent(out) :: ovrlp
   !local variables
   integer, parameter :: nx=3
-  integer :: n1,n2,i1,i2,px,py,pz,qx,qy,qz
-  real(kind=8) :: fx,fy,fz,fa,fb,govrlp
+  integer :: n1,n2,i1,i2,px,py,pz,qx,qy,qz,i
+  integer :: lx1,lx2,lx3,ly1,ly2,ly3,lz1,lz2,lz3
+  integer :: mx1,mx2,mx3,my1,my2,my3,mz1,mz2,mz3
+  real(kind=8) :: fx,fy,fz,fa,fb,govrlp,f1,f2,f3,g1,g2,g3
 
+!!$  rw(1)=0.d0
+!!$  rw(2)=0.d0
+!!$  rw(3)=0.d0
+!!$
+!!$  do i=1,3*nx
+!!$     iw(i)=0
+!!$  end do
+  
+  
   !calculates the number of different couples
   call calc_coeff_inguess(l1,m1,nx,n1,&
        iw(1),iw(nx+1),iw(2*nx+1),rw(1))
+!!$  lx1=iw(1)
+!!$  lx2=iw(2)
+!!$  lx3=iw(3)
+!!$  ly1=iw(4)
+!!$  ly2=iw(5)
+!!$  ly3=iw(6)
+!!$  lz1=iw(7)
+!!$  lz2=iw(8)
+!!$  lz3=iw(9)
+!!$  
+!!$  f1=rw(1)
+!!$  f2=rw(2)
+!!$  f3=rw(3)
+
   call calc_coeff_inguess(l2,m2,nx,n2,&
        iw(3*nx+1),iw(4*nx+1),iw(5*nx+1),rw(n1+1))
+
+!!$  mx1=iw(1)
+!!$  mx2=iw(2)
+!!$  mx3=iw(3)
+!!$  my1=iw(4)
+!!$  my2=iw(5)
+!!$  my3=iw(6)
+!!$  mz1=iw(7)
+!!$  mz2=iw(8)
+!!$  mz3=iw(9)
+!!$  
+!!$  g1=rw(1)
+!!$  g2=rw(2)
+!!$  g3=rw(3)
+!!$
+!!$  !start unrolled loop
+!!$  ovrlp=0.d0
+!!$
+!!$  fx=govrlp(a1,a2,dx,lx1,mx1)
+!!$  fy=govrlp(a1,a2,dy,ly1,my1)
+!!$  fz=govrlp(a1,a2,dz,lz1,mz1)
+!!$
+!!$  ovrlp=ovrlp+f1*g1*fx*fy*fz
+!!$
+!!$  fx=govrlp(a1,a2,dx,lx1,mx2)
+!!$  fy=govrlp(a1,a2,dy,ly1,my2)
+!!$  fz=govrlp(a1,a2,dz,lz1,mz2)
+!!$
+!!$  ovrlp=ovrlp+f1*g2*fx*fy*fz
+!!$
+!!$  fx=govrlp(a1,a2,dx,lx1,mx3)
+!!$  fy=govrlp(a1,a2,dy,ly1,my3)
+!!$  fz=govrlp(a1,a2,dz,lz1,mz3)
+!!$
+!!$  ovrlp=ovrlp+f1*g3*fx*fy*fz
+!!$
+!!$  fx=govrlp(a1,a2,dx,lx2,mx1)
+!!$  fy=govrlp(a1,a2,dy,ly2,my1)
+!!$  fz=govrlp(a1,a2,dz,lz2,mz1)
+!!$
+!!$  ovrlp=ovrlp+f2*g1*fx*fy*fz
+!!$
+!!$  fx=govrlp(a1,a2,dx,lx2,mx2)
+!!$  fy=govrlp(a1,a2,dy,ly2,my2)
+!!$  fz=govrlp(a1,a2,dz,lz2,mz2)
+!!$
+!!$  ovrlp=ovrlp+f2*g2*fx*fy*fz
+!!$
+!!$  fx=govrlp(a1,a2,dx,lx2,mx3)
+!!$  fy=govrlp(a1,a2,dy,ly2,my3)
+!!$  fz=govrlp(a1,a2,dz,lz2,mz3)
+!!$
+!!$  ovrlp=ovrlp+f2*g3*fx*fy*fz
+!!$
+!!$  fx=govrlp(a1,a2,dx,lx3,mx1)
+!!$  fy=govrlp(a1,a2,dy,ly3,my1)
+!!$  fz=govrlp(a1,a2,dz,lz3,mz1)
+!!$
+!!$  ovrlp=ovrlp+f3*g1*fx*fy*fz
+!!$
+!!$  fx=govrlp(a1,a2,dx,lx3,mx2)
+!!$  fy=govrlp(a1,a2,dy,ly3,my2)
+!!$  fz=govrlp(a1,a2,dz,lz3,mz2)
+!!$
+!!$  ovrlp=ovrlp+f3*g2*fx*fy*fz
+!!$
+!!$  fx=govrlp(a1,a2,dx,lx3,mx3)
+!!$  fy=govrlp(a1,a2,dy,ly3,my3)
+!!$  fz=govrlp(a1,a2,dz,lz3,mz3)
+!!$
+!!$  ovrlp=ovrlp+f3*g3*fx*fy*fz
+
   ovrlp=0.d0
   do i2=1,n2
      qx=iw(3*nx+i2)
      qy=iw(4*nx+i2)
      qz=iw(5*nx+i2)
      fb=rw(n1+i2)
-     do i1=1,n2
+     do i1=1,n1
         px=iw(i1)
         py=iw(nx+i1)
         pz=iw(2*nx+i1)
@@ -105,9 +236,10 @@ subroutine gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
         fz=govrlp(a1,a2,dz,pz,qz)
 
         ovrlp=ovrlp+fa*fb*fx*fy*fz
+        !print *,i1,i2,fx,fy,fz,fa,fb
      end do
   end do
-  
+ 
 end subroutine gprod
 
 !calculates \int \exp^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx

@@ -137,6 +137,10 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
      i3off=(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)
      do i=1,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,2)
         tt=tt+rho(i+i3off)
+        !temporary check for debugging purposes
+        if (rho(i+i3off) < 1.d-20) then
+           print *,iproc,'error in density construction',rho(i+i3off)
+        end if
      enddo
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')

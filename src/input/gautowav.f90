@@ -2,6 +2,7 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,occup,rxyz,hgrid,psi,eks)
 
   implicit none
+  include 'mpif.h'
   integer, intent(in) :: norb,norbp,iproc,nproc,nat,ntypes
   integer, intent(in) :: nvctr_c,nvctr_f,n1,n2,n3,nseg_c,nseg_f
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
@@ -19,11 +20,13 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
   character(len=100) :: line
   integer, parameter :: nterm_max=3
   integer :: ngx,nbx,npgf,nst,nend,ng,lshell,num,mmax,myshift,icbas,isbas,nbas,nco,i,ipar,ipg,jat
-  integer :: iorb,jorb,iat,ityp,l,m,nterm,i_all,i_stat,ibas,ig,iset,jbas,iterm,ishell,lmax
-  real(kind=8) :: rx,ry,rz,anorm,coeff,const0,const1,exponent,coefficient,scpr,ek,tt
-  integer, dimension(:), allocatable :: lx,ly,lz,nshell,iorbtmp
+  integer :: iorb,jorb,iat,ityp,l,m,nterm,i_all,i_stat,ibas,ig,iset,jbas,iterm,ishell,lmax,m1,m2
+  integer :: ierr
+  real(kind=8) :: rx,ry,rz,anorm,coeff,const0,const1
+  real(kind=8) :: exponent,coefficient,scpr,ek,tt,ovrlp,normdev
+  integer, dimension(:), allocatable :: lx,ly,lz,nshell,iorbtmp,iw
   integer, dimension(:,:), allocatable :: nam,ndoc
-  real(kind=8), dimension(:), allocatable :: fac_arr,psiatn,xp,tpsi,ctmp
+  real(kind=8), dimension(:), allocatable :: fac_arr,psiatn,xp,tpsi,ctmp,rw
   real(kind=8), dimension(:,:,:), allocatable :: contcoeff,expo
   real(kind=8), dimension(:,:,:,:), allocatable :: cimu
 
@@ -146,6 +149,41 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
 !!$        end do
 !!$     end do
 !!$  end do
+
+!!$  !here we can start calculate the overlap matrix between the different basis functions
+!!$  !as an example we can try to calculate the overlap in one shell
+!!$  allocate(iw(18),stat=i_stat)
+!!$  call memocc(i_stat,product(shape(iw))*kind(iw),'iw','gautowav')
+!!$  allocate(rw(6),stat=i_stat)
+!!$  call memocc(i_stat,product(shape(rw))*kind(rw),'rw','gautowav')
+!!$
+!!$  do ityp=1,ntypes
+!!$     do ishell=1,nshell(ityp)
+!!$        !perform the scalar product internally to the shell
+!!$        do m1=1,2*nam(ishell,ityp)+1
+!!$           do m2=1,2*nam(ishell,ityp)+1
+!!$              call gbasovrlp(expo(1,ishell,ityp),contcoeff(1,ishell,ityp),&
+!!$                   expo(1,ishell,ityp),contcoeff(1,ishell,ityp),&
+!!$                   ndoc(ishell,ityp),ndoc(ishell,ityp),&
+!!$                   nam(ishell,ityp)+1,m1,nam(ishell,ityp)+1,m2,&
+!!$                   0.d0,0.d0,0.d0,&
+!!$                   18,6,iw,rw,ovrlp)
+!!$              if (iproc==0) then
+!!$                 print *,ityp,ishell,nam(ishell,ityp),m1,m2,ovrlp!&
+!!$                      !contcoeff(1:ndoc(ishell,ityp),ishell,ityp),ovrlp
+!!$              end if
+!!$           end do
+!!$        end do
+!!$     end do
+!!$  end do
+!!$
+!!$  i_all=-product(shape(iw))*kind(iw)
+!!$  deallocate(iw,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'iw','gautowav')
+!!$  i_all=-product(shape(rw))*kind(rw)
+!!$  deallocate(rw,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'rw','gautowav')
+
 
   mmax=2*lmax+1
   !now read the coefficients of the gaussian converged orbitals
@@ -323,16 +361,23 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
              repeat('.',(iat*40)/nat-((iat-1)*40)/nat)
      end if
   end do
+  if (iproc ==0 ) write(*,'(1x,a)')'done.'
   !renormalize the orbitals
-  !write the norm of the orbital
+  !calculate the deviation from 1 of the orbital norm
+  normdev=0.d0
+  tt=0.d0
   do iorb=1,norb
      if (myorbital(iorb,norb,iproc,nproc)) then
         jorb=iorb-iproc*norbp
         call wnrm(nvctr_c,nvctr_f,psi(1,jorb),psi(nvctr_c+1,jorb),scpr) 
         call wscal(nvctr_c,nvctr_f,1.d0/sqrt(scpr),psi(1,jorb),psi(nvctr_c+1,jorb))
-        print *,'norm of orbital ',iorb,scpr
+        !print *,'norm of orbital ',iorb,scpr
+        tt=max(tt,abs(1.d0-scpr))
      end if
   end do
+  call MPI_REDUCE(tt,normdev,1,MPI_DOUBLE_PRECISION,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  if (iproc ==0 ) write(*,'(1x,a,1pe12.2)')&
+       'Deviation from normalization of the imported orbitals',normdev
 
   !now we have to evaluate the eigenvalues of this hamiltonian
 

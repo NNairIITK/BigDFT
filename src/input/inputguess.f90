@@ -476,6 +476,7 @@ subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
      lx(1)=1 ; ly(1)=1 ; lz(1)=1
      fac_arr(1)=2.890611442640554d0
   else
+     print *,'l,m',l,m
      stop 'input guess format error'
   endif
 

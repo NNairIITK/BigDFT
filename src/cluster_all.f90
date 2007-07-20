@@ -548,9 +548,9 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
   allocate(nboxp_f(2,3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(nboxp_f))*kind(nboxp_f),'nboxp_f','cluster')
 
-  call createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, atomnames, &
-       & psppar, npspcode, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
-       & keyg_p, keyv_p, nproj, nprojel, istart, nboxp_c, nboxp_f, proj)
+  call createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomnames,&
+       & psppar,npspcode,radii_cf,cpmult,fpmult,hgrid,nvctr_p,nseg_p,&
+       & keyg_p,keyv_p,nproj,nprojel,istart,nboxp_c,nboxp_f,proj)
     
   !allocate values of the array for the data scattering in sumrho
   !its values are ignored in the datacode='G' case
@@ -1781,11 +1781,11 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
 
   ! now fill the wavefunction descriptor arrays
   ! coarse grid quantities
-  call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,nseg_c,keyg(:,1:nseg_c),keyv(1:nseg_c))
+  call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,nseg_c,keyg(1,1),keyv(1))
 
   ! fine grid quantities
-  call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,nseg_f,keyg(:,nseg_c+1:nseg_c+nseg_f), &
-    & keyv(nseg_c+1:nseg_c+nseg_f))
+  call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,nseg_f,keyg(1,nseg_c+1), &
+    & keyv(nseg_c+1))
 
   i_all=-product(shape(logrid_c))*kind(logrid_c)
   deallocate(logrid_c,stat=i_stat)
@@ -2275,7 +2275,7 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
      end do
      close(33)
 
-     stop
+     !stop
 
      !found the eigenfunctions for each group
      n_lp=max(10,4*norb)

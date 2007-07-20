@@ -67,175 +67,175 @@ end
 
 
 
-	subroutine  comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
+subroutine  comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
 ! In one dimesnion,	
 ! with optimised cycles
 ! Applies synthesis wavelet transformation 
 ! then convolves with magic filter
 !  the size of the data is allowed to grow
 
-    implicit real*8 (a-h,o-z)
-	integer t
-	integer,parameter:: lowfil=-7,lupfil=8
-	integer,parameter:: lowfil2=2*lowfil,lupfil2=2*lupfil
-    dimension x(nfl:nfu,ndat),y(ndat,-14+2*nfl:2*nfu+16)
-    integer ib(2,ndat)
+  implicit real*8 (a-h,o-z)
+  integer t
+  integer,parameter:: lowfil=-7,lupfil=8
+  integer,parameter:: lowfil2=2*lowfil,lupfil2=2*lupfil
+  dimension x(nfl:nfu,ndat),y(ndat,-14+2*nfl:2*nfu+16)
+  integer ib(2,ndat)
+  
+  include 'v_long.f90'
+  
+  y=0.d0
+  !open(unit=10,file='long.flop')
+  
+  nflop=0
+  do l=1,ndat	
+     if (ib(2,l).ge.ib(1,l)) nflop=nflop+(ib(2,l)-ib(1,l)+1)*31*2
+  enddo
+  
+  call system_clock(ncount0,ncount_rate,ncount_max)
+  
+  do l=1,ndat
+     
+     !       loop for smaller i
+     !       j=8 won't work : i-j would turn negative
+     if (ib(1,l).le.ib(2,l)) then
+        
+        if (ib(1,l)+7<ib(2,l)-7) then
+           do i=ib(1,l)-7,ib(1,l)+7
+              y2i=0.d0
+              y2i1=0.d0
+              !					i+7=<ib(1,l)+14<ib(2,l)
+              !					do t=        ib(1,l) ,min(i+7,ib(2,l))
+              do t=        ib(1,l) ,    i+7
+                 y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l)
+                 y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l)
+              enddo
+              
+              y(l,2*i)=y2i
+              y(l,2*i+1)=y2i1
+           enddo
+           !***********************************************************************************************
+           
+           !			loop for ordinary i		
+           
+           if (ib(2,l)-ib(1,l)-16.ge.4) then
+              do i=ib(1,l)+8,ib(2,l)-8-4,4
+                 
+                 y0=0.d0
+                 y1=0.d0
+                 y2=0.d0
+                 y3=0.d0
+                 y4=0.d0
+                 y5=0.d0
+                 y6=0.d0
+                 y7=0.d0
 
-	include 'v_long.f90'
+                 do t=i-8,i+7+3
+                    y0=y0+fil2(2*(i-t)+0,icf)*x(t,l)
+                    y1=y1+fil2(2*(i-t)+1,icf)*x(t,l)
+                    y2=y2+fil2(2*(i-t)+2,icf)*x(t,l)
+                    y3=y3+fil2(2*(i-t)+3,icf)*x(t,l)
+                    y4=y4+fil2(2*(i-t)+4,icf)*x(t,l)
+                    y5=y5+fil2(2*(i-t)+5,icf)*x(t,l)
+                    y6=y6+fil2(2*(i-t)+6,icf)*x(t,l)
+                    y7=y7+fil2(2*(i-t)+7,icf)*x(t,l)
+                 enddo
 
- 	y=0.d0
-	!open(unit=10,file='long.flop')
+                 y(l,2*i+0)=y0
+                 y(l,2*i+1)=y1
+                 y(l,2*i+2)=y2
+                 y(l,2*i+3)=y3
+                 y(l,2*i+4)=y4
+                 y(l,2*i+5)=y5
+                 y(l,2*i+6)=y6
+                 y(l,2*i+7)=y7
+              enddo
+              icur=i
+           else
+              icur=ib(1,l)+8
+           endif
 
-	nflop=0
-	do l=1,ndat	
-		if (ib(2,l).ge.ib(1,l)) nflop=nflop+(ib(2,l)-ib(1,l)+1)*31*2
-	enddo
+           !			loop for the "rigthmost of ordinary" i	
+           do i=icur,ib(2,l)-8
 
-    call system_clock(ncount0,ncount_rate,ncount_max)
+              !	j=8  works since i is big enough
+              y2i =fil2(16  ,icf)*x(i-8,l)
+              y2i1=0.d0
 
-	do l=1,ndat
+              do t=i-7,i+7 
+                 y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l)
+                 y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l)
+              enddo
 
-!       loop for smaller i
-!       j=8 won't work : i-j would turn negative
-		if (ib(1,l).le.ib(2,l)) then
+              y(l,2*i)=y2i
+              y(l,2*i+1)=y2i1
+           enddo
 
-			if (ib(1,l)+7<ib(2,l)-7) then
-		        do i=ib(1,l)-7,ib(1,l)+7
-					y2i=0.d0
-					y2i1=0.d0
-!					i+7=<ib(1,l)+14<ib(2,l)
-!					do t=        ib(1,l) ,min(i+7,ib(2,l))
-					do t=        ib(1,l) ,    i+7
-						y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l)
-						y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l)
-					enddo
-		
-					y(l,2*i)=y2i
-					y(l,2*i+1)=y2i1
-				enddo
-!***********************************************************************************************
+           !*****************************************************************************
+           !loop for the rightmost i
+           do i=ib(2,l)-7,ib(2,l)+7
 
-	!			loop for ordinary i		
+              y2i =fil2(16  ,icf)*x(i-8,l)
+              y2i1=0.d0
 
-				if (ib(2,l)-ib(1,l)-16.ge.4) then
-			        do i=ib(1,l)+8,ib(2,l)-8-4,4
-			
-						y0=0.d0
-						y1=0.d0
-						y2=0.d0
-						y3=0.d0
-						y4=0.d0
-						y5=0.d0
-						y6=0.d0
-						y7=0.d0
-	
-						do t=i-8,i+7+3
-							y0=y0+fil2(2*(i-t)+0,icf)*x(t,l)
-							y1=y1+fil2(2*(i-t)+1,icf)*x(t,l)
-							y2=y2+fil2(2*(i-t)+2,icf)*x(t,l)
-							y3=y3+fil2(2*(i-t)+3,icf)*x(t,l)
-							y4=y4+fil2(2*(i-t)+4,icf)*x(t,l)
-							y5=y5+fil2(2*(i-t)+5,icf)*x(t,l)
-							y6=y6+fil2(2*(i-t)+6,icf)*x(t,l)
-							y7=y7+fil2(2*(i-t)+7,icf)*x(t,l)
-						enddo
+              !  i+7=<ib(2,l)
+              !					do t=    i-7         ,min(i+7,ib(2,l)) ! i-7>ib(1,l) since i=ib(1,l)+8,..
+              do t=    i-7         ,		  ib(2,l) 
+                 y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l)
+                 y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l)
+              enddo
 
-						y(l,2*i+0)=y0
-						y(l,2*i+1)=y1
-						y(l,2*i+2)=y2
-						y(l,2*i+3)=y3
-						y(l,2*i+4)=y4
-						y(l,2*i+5)=y5
-						y(l,2*i+6)=y6
-						y(l,2*i+7)=y7
-					enddo
-					icur=i
-				else
-					icur=ib(1,l)+8
-				endif
+              y(l,2*i)=y2i
+              y(l,2*i+1)=y2i1
 
-	!			loop for the "rigthmost of ordinary" i	
-		        do i=icur,ib(2,l)-8
-		
-					!	j=8  works since i is big enough
-					y2i =fil2(16  ,icf)*x(i-8,l)
-					y2i1=0.d0
-		
-					do t=i-7,i+7 
-						y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l)
-						y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l)
-					enddo
-		
-					y(l,2*i)=y2i
-					y(l,2*i+1)=y2i1
-				enddo
+           enddo
 
-				!*****************************************************************************
-				!loop for the rightmost i
-				do i=ib(2,l)-7,ib(2,l)+7
-	
-					y2i =fil2(16  ,icf)*x(i-8,l)
-					y2i1=0.d0
+           t=ib(2,l);	i=t+8;	 ! to the rightmost element of y, only j=8 contributes
+           y(l,2*i)=fil2(16,icf)*x(t,l)
 
-					!  i+7=<ib(2,l)
-!					do t=    i-7         ,min(i+7,ib(2,l)) ! i-7>ib(1,l) since i=ib(1,l)+8,..
-					do t=    i-7         ,		  ib(2,l) 
-						y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l)
-						y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l)
-					enddo
-		
-					y(l,2*i)=y2i
-					y(l,2*i+1)=y2i1
-	
-				enddo
-	
-				t=ib(2,l);	i=t+8;	 ! to the rightmost element of y, only j=8 contributes
-				y(l,2*i)=fil2(16,icf)*x(t,l)
+        else!      ib(1,l)+7>=ib(2,l)-7!*****************************************************
+           do i=ib(1,l)-7,ib(1,l)+7
+              y2i=0.d0
+              y2i1=0.d0
 
-			else!      ib(1,l)+7>=ib(2,l)-7!*****************************************************
-		        do i=ib(1,l)-7,ib(1,l)+7
-					y2i=0.d0
-					y2i1=0.d0
-		
-					! i-7 =< ib(1,l)
-					do t=        ib(1,l) ,min(i+7,ib(2,l))
-						y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l)
-						y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l)
-					enddo
-		
-					y(l,2*i)=y2i
-					y(l,2*i+1)=y2i1
-				enddo
-				!loop for ordinary i		
-		        do i=ib(1,l)+8,ib(2,l)+7
-		
-					!	j=8  works since i is big enough
-					y2i =fil2(16  ,icf)*x(i-8,l)
-					y2i1=0.d0
-		
-!					do t=    i-7         ,min(i+7,ib(2,l)) 
-					do t=i-7,ib(2,l) ! i-7>ib(1,l) since i=ib(1,l)+8,..
-						y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l)
-						y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l)
-					enddo
-		
-					y(l,2*i)=y2i
-					y(l,2*i+1)=y2i1
-				enddo
-		
-				t=ib(2,l);	i=t+8;	 ! to the rightmost element of y, only j=8 contributes
-				y(l,2*i)=fil2(16,icf)*x(t,l)
+              ! i-7 =< ib(1,l)
+              do t=        ib(1,l) ,min(i+7,ib(2,l))
+                 y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l)
+                 y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l)
+              enddo
 
-			endif
-	
-		endif
-	enddo
+              y(l,2*i)=y2i
+              y(l,2*i+1)=y2i1
+           enddo
+           !loop for ordinary i		
+           do i=ib(1,l)+8,ib(2,l)+7
 
-    call system_clock(ncount1,ncount_rate,ncount_max)
-    tel=dble(ncount1-ncount0)/dble(ncount_rate)
+              !	j=8  works since i is big enough
+              y2i =fil2(16  ,icf)*x(i-8,l)
+              y2i1=0.d0
 
-	!write(10,*) tel, 1.d-6*nflop/tel
-end
+              !					do t=    i-7         ,min(i+7,ib(2,l)) 
+              do t=i-7,ib(2,l) ! i-7>ib(1,l) since i=ib(1,l)+8,..
+                 y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l)
+                 y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l)
+              enddo
+
+              y(l,2*i)=y2i
+              y(l,2*i+1)=y2i1
+           enddo
+
+           t=ib(2,l);	i=t+8;	 ! to the rightmost element of y, only j=8 contributes
+           y(l,2*i)=fil2(16,icf)*x(t,l)
+
+        endif
+
+     endif
+  enddo
+
+  call system_clock(ncount1,ncount_rate,ncount_max)
+  tel=dble(ncount1-ncount0)/dble(ncount_rate)
+
+  !write(10,*) tel, 1.d-6*nflop/tel
+end subroutine comb_rot_grow_loc
 
 
 
