@@ -24,7 +24,7 @@ binaries_sources =
 endif
 
 
-SUBDIRS = $(sub_dirs_xc) $(sub_dirs_ps) profiling
+SUBDIRS = $(sub_dirs_xc) $(sub_dirs_ps) convolutions profiling
 
 EXTRA_DIST = \
 	daub_8.inc \
@@ -38,8 +38,7 @@ EXTRA_DIST = \
 	recd6.inc \
 	recd8.inc \
 	recs16.inc \
-	sym_16.inc \
-	$(convolution_includes)
+	sym_16.inc 
 
 AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ -IPSolver
 
@@ -59,33 +58,23 @@ lMPI =
 endif
 
 if USE_OPTI_CONVOLUT
-convolution_source = convolut_simple.f90 \
-	conv_per_optim.f90 \
-	combined_grow.f90\
-	combined_shrink.f90\
-	logrid.f90\
-	to_cf.f90
+convolution_objects = convolutions/convolut_simple.o \
+	convolutions/conv_per_optim.o \
+	convolutions/combined_grow.o\
+	convolutions/combined_shrink.o
 
 else
-convolution_source = convolut_simple.f90 \
-	conv_per_optim.f90 \
-	combined_grow.f90 \
-	combined_shrink.f90\
-	logrid.f90\
-	to_cf.f90
+convolution_objects = convolutions/convolut_simple.o \
+	convolutions/conv_per_optim.o \
+	convolutions/combined_grow.o \
+	convolutions/combined_shrink.o
+
 endif
 
-convolution_includes = 	v.f90 \
-	v_long.f90 \
-	tree_long_shrink.f90 \
-	long_shrink.f90 \
-	tree_unrolled_grow.f90 \
-	long_grow.f90
 
 
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
-	$(convolution_source) \
         cluster_all.f90 \
         eleconf.f90  \
         gauss_to_daub.f90 \
@@ -101,12 +90,14 @@ libbigdft_a_SOURCES = \
 	orthogonality.f90 \
 	forces.f90 \
 	gridmanipulation.f90 \
+	logrid.f90 \
 	applyh.f90 \
 	sumrho.f90 \
 	transwaves.f90 \
 	tail.f90 \
 	razero.f90
-libbigdft_a_LIBADD = profiling/timing.o
+libbigdft_a_LIBADD = profiling/timing.o \
+	$(convolution_objects)
 
 cluster_SOURCES = BigDFT.f90
 cluster_LDFLAGS = $(LMPI)
@@ -147,14 +138,4 @@ libbigdft.@MODULE_EXT@: cluster_all.o
 BigDFT.o: BigDFT.f90 \
 	parameters.h \
 	libbigdft.@MODULE_EXT@
-
-combined_grow.o: long_grow.f90 \
-	tree_unrolled_grow.f90 \
-	v.f90 \
-	v_long.f90
-
-combined_shrink.o: long_shrink.f90 \
-	tree_long_shrink.f90 \
-	v.f90 \
-	v_long.f90
 
