@@ -1,73 +1,70 @@
+subroutine  comb_rot_grow_loc_plus(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,icf,ib)
+  ! In one dimesnion,	
+  ! with optimised cycles
+  ! Applies synthesis wavelet transformation 
+  ! then convolves with magic filter
+  ! then adds the result to y.
+  ! The size of the data is allowed to grow
 
+  implicit real*8 (a-h,o-z)
+  integer t
+  integer,parameter:: lowfil=-7,lupfil=8
+  integer,parameter:: lowfil2=2*lowfil,lupfil2=2*lupfil
 
+  dimension  x(nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
+  dimension  y(          -14       :2*n1  +16,-14       :2*n2  +16,-14:2*n3+16)
+  integer ib(2,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
 
-	subroutine  comb_rot_grow_loc_plus(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,icf,ib)
-! In one dimesnion,	
-! with optimised cycles
-! Applies synthesis wavelet transformation 
-! then convolves with magic filter
-! then adds the result to y.
-! The size of the data is allowed to grow
+  include 'v.f90'
 
-    implicit real*8 (a-h,o-z)
-	integer t
-	integer,parameter:: lowfil=-7,lupfil=8
-	integer,parameter:: lowfil2=2*lowfil,lupfil2=2*lupfil
-
-    dimension  x(nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
-    dimension  y(          -14       :2*n1  +16,-14       :2*n2  +16,-14:2*n3+16)
-    integer ib(2,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
-
-	include 'v.f90'
-
-	do l1=-14+2*nfl1,2*nfu1+16
-		do l2=-14+2*nfl2,2*nfu2+16
+  do l1=-14+2*nfl1,2*nfu1+16
+     do l2=-14+2*nfl2,2*nfu2+16
 	!       loop for smaller i
 	!       j=8 won't work : i-j would turn negative
-			if (ib(1,l1,l2).le.ib(2,l1,l2)) then
-		        do i=ib(1,l1,l2)-7,ib(1,l1,l2)+7
-					y2i=0.d0
-					y2i1=0.d0
+        if (ib(1,l1,l2).le.ib(2,l1,l2)) then
+           do i=ib(1,l1,l2)-7,ib(1,l1,l2)+7
+              y2i=0.d0
+              y2i1=0.d0
 
-					! i-7 =< ib(1,l1,l2)
-					do t=    	 ib(1,l1,l2) ,min(i+7,ib(2,l1,l2))
-						y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l1,l2)
-						y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l1,l2)
-					enddo
-		
-					y(l1,l2,2*i  )=y(l1,l2,2*i  )+y2i
-					y(l1,l2,2*i+1)=y(l1,l2,2*i+1)+y2i1
-				enddo
-	
-	!			loop for ordinary i		
-		        do i=ib(1,l1,l2)+8,ib(2,l1,l2)+7
-		
-					!	j=8  works since i is big enough
-					y2i =fil2(16  ,icf)*x(i-8,l1,l2)
-					y2i1=0.d0
-		
-					! i-7>ib(1,l) since i=ib(1,l)+8,..
-					do t=    i-7             ,min(i+7,ib(2,l1,l2)) 
-						y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l1,l2)
-						y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l1,l2)
-					enddo
-		
-					y(l1,l2,2*i  )=y(l1,l2,2*i  )+y2i
-					y(l1,l2,2*i+1)=y(l1,l2,2*i+1)+y2i1
-				enddo
-		
-				t=ib(2,l1,l2);	i=t+8;	 ! to the rightmost element of y, only j=8 contributes
-				y(l1,l2,2*i)=y(l1,l2,2*i)+fil2(16,icf)*x(t,l1,l2)
-	
-			endif
-		enddo
-	enddo
+              ! i-7 =< ib(1,l1,l2)
+              do t=    	 ib(1,l1,l2) ,min(i+7,ib(2,l1,l2))
+                 y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l1,l2)
+                 y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l1,l2)
+              enddo
 
-end
+              y(l1,l2,2*i  )=y(l1,l2,2*i  )+y2i
+              y(l1,l2,2*i+1)=y(l1,l2,2*i+1)+y2i1
+           enddo
+
+           !			loop for ordinary i		
+           do i=ib(1,l1,l2)+8,ib(2,l1,l2)+7
+
+              !	j=8  works since i is big enough
+              y2i =fil2(16  ,icf)*x(i-8,l1,l2)
+              y2i1=0.d0
+
+              ! i-7>ib(1,l) since i=ib(1,l)+8,..
+              do t=    i-7             ,min(i+7,ib(2,l1,l2)) 
+                 y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l1,l2)
+                 y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l1,l2)
+              enddo
+
+              y(l1,l2,2*i  )=y(l1,l2,2*i  )+y2i
+              y(l1,l2,2*i+1)=y(l1,l2,2*i+1)+y2i1
+           enddo
+
+           t=ib(2,l1,l2);	i=t+8;	 ! to the rightmost element of y, only j=8 contributes
+           y(l1,l2,2*i)=y(l1,l2,2*i)+fil2(16,icf)*x(t,l1,l2)
+
+        endif
+     enddo
+  enddo
+
+end subroutine comb_rot_grow_loc_plus
 
 
 
-subroutine  comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
+subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
 ! In one dimesnion,	
 ! with optimised cycles
 ! Applies synthesis wavelet transformation 
@@ -86,12 +83,12 @@ subroutine  comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
   y=0.d0
   !open(unit=10,file='long.flop')
   
-  nflop=0
-  do l=1,ndat	
-     if (ib(2,l).ge.ib(1,l)) nflop=nflop+(ib(2,l)-ib(1,l)+1)*31*2
-  enddo
+  !nflop=0
+  !do l=1,ndat	
+  !   if (ib(2,l).ge.ib(1,l)) nflop=nflop+(ib(2,l)-ib(1,l)+1)*31*2
+  !enddo
   
-  call system_clock(ncount0,ncount_rate,ncount_max)
+  !call system_clock(ncount0,ncount_rate,ncount_max)
   
   do l=1,ndat
      
@@ -105,7 +102,7 @@ subroutine  comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
               y2i1=0.d0
               !					i+7=<ib(1,l)+14<ib(2,l)
               !					do t=        ib(1,l) ,min(i+7,ib(2,l))
-              do t=        ib(1,l) ,    i+7
+              do t=ib(1,l),i+7
                  y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l)
                  y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l)
               enddo
@@ -231,8 +228,8 @@ subroutine  comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
      endif
   enddo
 
-  call system_clock(ncount1,ncount_rate,ncount_max)
-  tel=dble(ncount1-ncount0)/dble(ncount_rate)
+  !call system_clock(ncount1,ncount_rate,ncount_max)
+  !tel=dble(ncount1-ncount0)/dble(ncount_rate)
 
   !write(10,*) tel, 1.d-6*nflop/tel
 end subroutine comb_rot_grow_loc

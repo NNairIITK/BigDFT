@@ -1,37 +1,34 @@
-
-
-
 subroutine comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
-			                 ,w2,w1,xc,xf,y,ibyz_c,ibzxx_c,ibxxyy_c,&
-							 ibyz_f,ibzxx_f,ibxxyy_f)
-! w2 and w1 are switched because from shrink convention we go
-! to grow convention
-implicit none
-
-	integer n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-
-    real*8,intent(in)::xc(0:n1,0:n2,0:n3),  xf(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)! input
-    real*8,intent(out)::y(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)! output
-
-    real*8 w1(4,nfl2:nfu2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16)!work
-!   real*8 w2(0:n3,-14:2*n1+16,-14:2*n2+16) ! work
-!	real*8 w2(2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
-    real*8 w2(max((n3+1)*(2*n1+31)*(2*n2+31),&
-				2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))) ! work
-
-    integer,intent(in)::ibyz_c(2,0:n2,0:n3)
-	integer,intent(in)::ibzxx_c(2,	    0:n3,-14:2*n1+16)
-	integer,intent(in)::ibxxyy_c(2,	         -14:2*n1+16,-14:2*n2+16)
-
-    integer,intent(in)::ibyz_f(2,nfl2:nfu2,nfl3:nfu3) 
-	integer,intent(in)::ibzxx_f(2,          nfl3:nfu3,2*nfl1-14:2*nfu1+16)
-	integer,intent(in)::ibxxyy_f(2,                    2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
-
-    call comb_grow_c(n1,n2,n3,w2,xc,y,ibyz_c,ibzxx_c,ibxxyy_c)
-
-    call comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
-        	                  ,w1,w2,xf,y,ibyz_f,ibzxx_f,ibxxyy_f)				
-
+     ,w2,w1,xc,xf,y,ibyz_c,ibzxx_c,ibxxyy_c,&
+     ibyz_f,ibzxx_f,ibxxyy_f)
+  ! w2 and w1 are switched because from shrink convention we go
+  ! to grow convention
+  implicit none
+  
+  integer n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  
+  real*8,intent(in)::xc(0:n1,0:n2,0:n3),  xf(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)! input
+  real*8,intent(out)::y(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)! output
+  
+  real*8 w1(4,nfl2:nfu2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16)!work
+  !   real*8 w2(0:n3,-14:2*n1+16,-14:2*n2+16) ! work
+  !	real*8 w2(2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
+  real*8 w2(max((n3+1)*(2*n1+31)*(2*n2+31),&
+       2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))) ! work
+  
+  integer,intent(in)::ibyz_c(2,0:n2,0:n3)
+  integer,intent(in)::ibzxx_c(2,0:n3,-14:2*n1+16)
+  integer,intent(in)::ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
+  
+  integer,intent(in)::ibyz_f(2,nfl2:nfu2,nfl3:nfu3) 
+  integer,intent(in)::ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+  integer,intent(in)::ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+  
+  call comb_grow_c(n1,n2,n3,w2,xc,y,ibyz_c,ibzxx_c,ibxxyy_c)
+  
+  call comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
+       ,w1,w2,xf,y,ibyz_f,ibzxx_f,ibxxyy_f)				
+  
 end subroutine comb_grow_all
 
 

@@ -1,8 +1,6 @@
 subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
      n1,n2,n3,n3pi,i3s,rho,pot,floc)
 ! Calculates the local forces acting on the atoms belonging to iproc
-  use libBigDFT
-  
   implicit none
   !Arguments---------
   integer, intent(in) :: iproc,nproc,ntypes,nat,n1,n2,n3,n3pi,i3s
@@ -154,7 +152,6 @@ end subroutine local_forces
 subroutine local_forces_old(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
      n1,n2,n3,rho,pot,floc)
 ! Calculates the local forces acting on the atoms belonging to iproc
-  use libBigDFT
   
   implicit none
   !Arguments---------
@@ -307,7 +304,6 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, &
      iatype,psppar,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
      keyg,keyv,keyg_p,keyv_p,rxyz,radii_cf,cpmult,fpmult,hgrid,derproj)
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and ads them to the force array
-  use libBigDFT
   
   implicit none
   !Arguments-------------
@@ -437,7 +433,6 @@ subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
      iatype,psppar,npspcode,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,derproj,  &
      keyg,keyv,keyg_p,keyv_p,psi,fsep)
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and adds them to the force array
-  use libBigDFT
   
   implicit none
   !Arguments-------------
@@ -615,7 +610,6 @@ subroutine nonlocal_forces_old(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, &
      iatype,psppar,npspcode,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
      keyg,keyv,keyg_p,keyv_p,psi,rxyz,radii_cf,cpmult,fpmult,hgrid,fsep)
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and ads them to the force array
-  use libBigDFT
   
   implicit none
   !Arguments-------------
