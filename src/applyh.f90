@@ -291,8 +291,8 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
 
   integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
-  integer ibzxx_f(2,          nfl3:nfu3,2*nfl1-14:2*nfu1+16)
-  integer ibxxyy_f(2,                    2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+  integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+  integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
   !	for real space:
   integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)

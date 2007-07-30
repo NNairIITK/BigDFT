@@ -17,12 +17,12 @@ subroutine  comb_rot_grow_loc_1(nfl,nfu,ndat,x,y,ib)
   y=0.d0
   !open(unit=20,file='tree_unrolled.flop')
 
-  nflop=0
-  do l=1,ndat
-     if (ib(2,l).ge.ib(1,l)) nflop=nflop+(ib(2,l)-ib(1,l)+1)*31*2*7
-  enddo
+  !nflop=0
+  !do l=1,ndat
+  !   if (ib(2,l).ge.ib(1,l)) nflop=nflop+(ib(2,l)-ib(1,l)+1)*31*2*7
+  !enddo
 
-  call system_clock(ncount0,ncount_rate,ncount_max)
+  !call system_clock(ncount0,ncount_rate,ncount_max)
 
   do l=1,ndat
 
@@ -113,8 +113,8 @@ subroutine  comb_rot_grow_loc_1(nfl,nfu,ndat,x,y,ib)
      endif
   enddo
 
-  call system_clock(ncount1,ncount_rate,ncount_max)
-  tel=dble(ncount1-ncount0)/dble(ncount_rate)
+  !call system_clock(ncount1,ncount_rate,ncount_max)
+  !tel=dble(ncount1-ncount0)/dble(ncount_rate)
 
   !write(20,*) tel, 1.d-6*nflop/tel
 end subroutine comb_rot_grow_loc_1
@@ -216,7 +216,7 @@ end subroutine comb_rot_grow_loc_2
 
 
 
-subroutine  comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
+subroutine comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
 ! In one dimension,	
 ! with optimised cycles
 ! Applies synthesis wavelet transformation 
@@ -230,23 +230,23 @@ subroutine  comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
     integer,parameter:: lowfil2=2*lowfil,lupfil2=2*lupfil
 
     dimension  x(2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
-    dimension  y(          -14       :2*n1  +16,-14       :2*n2  +16,-14:2*n3+16)
+    dimension  y(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
     integer ib(2,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
 
     include 'v_long.f90'
 
     !open(unit=20,file='tree_unrolled.flop')
 
-    nflop=0
+    !nflop=0
 
-    do l1=-14+2*nfl1,2*nfu1+16
-        do l2=-14+2*nfl2,2*nfu2+16
-            if (ib(2,l1,l2).ge.ib(1,l1,l2)) nflop=nflop+(ib(2,l1,l2)-ib(1,l1,l2)+1)*31*2*2
+    !do l1=-14+2*nfl1,2*nfu1+16
+    !    do l2=-14+2*nfl2,2*nfu2+16
+    !        if (ib(2,l1,l2).ge.ib(1,l1,l2)) nflop=nflop+(ib(2,l1,l2)-ib(1,l1,l2)+1)*31*2*2
 !       additional 2 because of wavelet/scfunction pair
-        enddo
-    enddo
+    !    enddo
+    !enddo
 
-    call system_clock(ncount0,ncount_rate,ncount_max)
+    !call system_clock(ncount0,ncount_rate,ncount_max)
 
 do l1=-14+2*nfl1,2*nfu1+16
     do l2=-14+2*nfl2,2*nfu2+16
@@ -386,8 +386,8 @@ do l1=-14+2*nfl1,2*nfu1+16
     enddo
 enddo
 
-    call system_clock(ncount1,ncount_rate,ncount_max)
-    tel=dble(ncount1-ncount0)/dble(ncount_rate)
+    !call system_clock(ncount1,ncount_rate,ncount_max)
+    !tel=dble(ncount1-ncount0)/dble(ncount_rate)
 
     !write(20,*) tel, 1.d-6*nflop/tel
 
