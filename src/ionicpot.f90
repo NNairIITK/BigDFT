@@ -73,9 +73,23 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
 
   hgridh=hgrid*.5d0 
   pi=4.d0*atan(1.d0)
-  ! Ionic charge 
+  ! Ionic charge (must be calculated for the PS active processes)
   rholeaked=0.d0
+  ! Ionic energy (can be calculated for all the processors)
   eion=0.d0
+  do iat=1,nat
+     ityp=iatype(iat)
+     rx=rxyz(1,iat) 
+     ry=rxyz(2,iat)
+     rz=rxyz(3,iat)
+     !    ion-ion interaction
+     do jat=1,iat-1
+        dist=sqrt( (rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2 )
+        jtyp=iatype(jat)
+        eion=eion+nelpsp(jtyp)*nelpsp(ityp)/dist
+     enddo
+  end do
+
 
   if (n3pi >0 ) then
      call razero((2*n1+31)*(2*n2+31)*n3pi,rho)
@@ -88,12 +102,6 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
         ix=nint(rx/hgridh) 
         iy=nint(ry/hgridh) 
         iz=nint(rz/hgridh)
-        !    ion-ion interaction
-        do jat=1,iat-1
-           dist=sqrt( (rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2 )
-           jtyp=iatype(jat)
-           eion=eion+nelpsp(jtyp)*nelpsp(ityp)/dist
-        enddo
 
         rloc=psppar(0,0,ityp)
         charge=nelpsp(ityp)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
