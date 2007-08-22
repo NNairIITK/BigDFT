@@ -160,7 +160,7 @@ if test "$ac_build_bin_cluster" = "yes" ; then
 dnl Substitute Lapack and Blas by another specific library
 withlinalg=no
 AC_ARG_WITH(ext-linalg, AS_HELP_STRING([--with-ext-linalg],
-            [Give the name of the libraries replacing Blas and Lapack (default = none sepcified). Use the -l before the name(s).]),
+            [Give the name of the libraries replacing Blas and Lapack (default = none specified). Use the -l before the name(s).]),
             ac_linalg=$withval, ac_linalg=)
 AC_ARG_WITH(ext-linalg-path, AS_HELP_STRING([--with-ext-linalg-path],
             [Give the path of the other linear algebra libraries (default = -L/usr/lib). Use the -L before the path(es).]),
