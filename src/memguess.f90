@@ -1,7 +1,5 @@
 program memguess
 
-  use libBigDFT
-
   !implicit real*8 (a-h,o-z)
   implicit none
   logical :: calc_tail,output_grid

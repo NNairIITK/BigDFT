@@ -63,7 +63,7 @@ endif
 libpoissonsolver_a_SOURCES = \
 	Poisson_Solver.f90 
 
-PSolver_SOURCES = PSolver.f90 timing.f90
+PSolver_SOURCES = PSolver.f90 timing.f90 $(mpi_source)
 PSolver_LDFLAGS = $(LMPI)
 PSolver_LDADD = libpoissonsolver.a \
 	../ABINIT-common/libABINIT.a \

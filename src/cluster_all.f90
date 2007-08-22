@@ -1126,14 +1126,7 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
         call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh),(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION, &
              pot,ngatherarr(0,1),ngatherarr(0,2), & 
              MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        i_all=-product(shape(nscatterarr))*kind(nscatterarr)
-        deallocate(nscatterarr,stat=i_stat)
-        call memocc(i_stat,i_all,'nscatterarr','cluster')
-        i_all=-product(shape(ngatherarr))*kind(ngatherarr)
-        deallocate(ngatherarr,stat=i_stat)
-        call memocc(i_stat,i_all,'ngatherarr','cluster')
      else
-
         !here one could have not allocated pot and: call move_alloc(rhopot,pot) 
         !(but it is a Fortran 2003 spec)
         do i3=1,2*n3+31
@@ -1144,6 +1137,12 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
            enddo
         enddo
      end if
+     i_all=-product(shape(nscatterarr))*kind(nscatterarr)
+     deallocate(nscatterarr,stat=i_stat)
+     call memocc(i_stat,i_all,'nscatterarr','cluster')
+     i_all=-product(shape(ngatherarr))*kind(ngatherarr)
+     deallocate(ngatherarr,stat=i_stat)
+     call memocc(i_stat,i_all,'ngatherarr','cluster')
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
      call memocc(i_stat,i_all,'rhopot','cluster')

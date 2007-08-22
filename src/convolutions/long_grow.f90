@@ -114,8 +114,11 @@ subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
            
            !			loop for ordinary i		
            
-           if (ib(2,l)-ib(1,l)-16.ge.4) then
-              do i=ib(1,l)+8,ib(2,l)-8-4,4
+           if (ib(2,l)-ib(1,l)-16.ge.3) then
+              !for the asymmetry of the daubechies filters
+              !this loop can be unrolled with 3 units at most
+              !otherwise the filter will go out of bounds
+              do i=ib(1,l)+8,ib(2,l)-8-3,3
                  
                  y0=0.d0
                  y1=0.d0
@@ -123,18 +126,18 @@ subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
                  y3=0.d0
                  y4=0.d0
                  y5=0.d0
-                 y6=0.d0
-                 y7=0.d0
+!!$                 y6=0.d0
+!!$                 y7=0.d0
 
-                 do t=i-8,i+7+3
+                 do t=i-8,i+7+3 !this 3 must be discussed(does it depend on the loop unrolling?)
                     y0=y0+fil2(2*(i-t)+0,icf)*x(t,l)
                     y1=y1+fil2(2*(i-t)+1,icf)*x(t,l)
                     y2=y2+fil2(2*(i-t)+2,icf)*x(t,l)
                     y3=y3+fil2(2*(i-t)+3,icf)*x(t,l)
                     y4=y4+fil2(2*(i-t)+4,icf)*x(t,l)
                     y5=y5+fil2(2*(i-t)+5,icf)*x(t,l)
-                    y6=y6+fil2(2*(i-t)+6,icf)*x(t,l)
-                    y7=y7+fil2(2*(i-t)+7,icf)*x(t,l)
+!!$                    y6=y6+fil2(2*(i-t)+6,icf)*x(t,l)
+!!$                    y7=y7+fil2(2*(i-t)+7,icf)*x(t,l)
                  enddo
 
                  y(l,2*i+0)=y0
@@ -143,8 +146,8 @@ subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
                  y(l,2*i+3)=y3
                  y(l,2*i+4)=y4
                  y(l,2*i+5)=y5
-                 y(l,2*i+6)=y6
-                 y(l,2*i+7)=y7
+!!$                 y(l,2*i+6)=y6
+!!$                 y(l,2*i+7)=y7
               enddo
               icur=i
            else

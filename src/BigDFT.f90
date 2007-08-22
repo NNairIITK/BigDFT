@@ -246,9 +246,13 @@ program BigDFT
      integer, pointer :: keyv(:), keyg(:,:)
      dimension wpos(3,nat),gg(3,nat),rxyz_old(3,nat)
      real*8, allocatable, dimension(:,:) :: tpos,gp,hh
+
      allocate(tpos(3,nat),gp(3,nat),hh(3,nat))
      anoise=1.d-4
-     
+
+!    Open a log file for conjgrad
+     open(unit=16,file='conjgrad.prc',status='unknown')
+
      if (betax.le.0.d0) then
         call detbetax(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos, &
              psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
@@ -435,7 +439,11 @@ program BigDFT
      write(16,*) 'average CG stepsize in terms of betax',avbeta/avnum,iproc
      
      deallocate(tpos,gp,hh)
+
+!    Close the file
+     close(unit=16)
    end subroutine conjgrad
+
 
    subroutine steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,ff, &
         psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &

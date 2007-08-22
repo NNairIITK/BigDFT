@@ -10,7 +10,7 @@
 50       itermax: maximum number of energy minimization steps
 15       ncong: number of conjugate gradient iterations for the solution of the preconditioning equation
 6        idsx: length of the diis history. if =0 steepest descent
-.true.   calc_tail: calculate tail for better energy
+.false.   calc_tail: calculate tail for better energy
 5.       rbuf  : length of the tail to be added (in atomic units)
 30       ncongt: number of conjugate gradient iterations for the calculation of tail
 

@@ -1,8 +1,8 @@
 'make check' is the command to perform the series of tests (optimisation of geometry):
 - C    carbon atom 
 - H    hydrogen atom
-- NaCl
-- SiH4
+- NaCl sodium chloride
+- SiH4 silane
 
 The input files are:
 - input.dat for the parameters of calculations
@@ -15,5 +15,5 @@ The input files are:
 - inguess.dat for the initial guess of wavefunctions (sum of gaussian functions)
             IF THIS FILE IS NOT PRESENT, THE INPUT GUESS IS AUTOMATICALLY GENERATED.
 
-The directory 'Refs' contains the reference ouput files.
+The directory 'Refs' contains the reference ouput files (gfortran 4.1.2)
 A diff is performed after each calculations to check the accuracy.

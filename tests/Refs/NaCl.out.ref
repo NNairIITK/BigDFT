@@ -90,7 +90,7 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  4.27007522321E+01 -6.14961575281E+01  6.48546989763E+00
     ehart,   eexcu,    vexcu  6.70709448084E+01 -9.99853540959E+00 -1.31301564115E+01
- iter,total energy,gnrm     1  -6.212292403541E+01  2.62E-01
+ iter,total energy,gnrm     1  -6.212292403540E+01  2.62E-01
  ---------------------------------------------------------------------------- iter= 2
  Calculation of charge density... done. Total electronic charge=      15.999956878840
  PSolver, free  BC, dimensions:   123  123  123   proc  1   ixc:  1 ... done.
@@ -99,7 +99,7 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  4.20251137641E+01 -6.12557938423E+01  6.02119317270E+00
     ehart,   eexcu,    vexcu  6.61614134904E+01 -9.80477567435E+00 -1.28750205927E+01
- iter,total energy,gnrm     2  -6.217432030801E+01  4.94E-02
+ iter,total energy,gnrm     2  -6.217432030800E+01  4.94E-02
  ---------------------------------------------------------------------------- iter= 3
  Calculation of charge density... done. Total electronic charge=      15.999956857563
  PSolver, free  BC, dimensions:   123  123  123   proc  1   ixc:  1 ... done.
@@ -117,7 +117,7 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  4.19456011670E+01 -6.11619391043E+01  6.10409499852E+00
     ehart,   eexcu,    vexcu  6.62666132523E+01 -9.80025736366E+00 -1.28690884500E+01
- iter,total energy,gnrm     4  -6.218368993527E+01  5.83E-03
+ iter,total energy,gnrm     4  -6.218368993528E+01  5.83E-03
  ---------------------------------------------------------------------------- iter= 5
  Calculation of charge density... done. Total electronic charge=      15.999956780912
  PSolver, free  BC, dimensions:   123  123  123   proc  1   ixc:  1 ... done.
@@ -135,7 +135,7 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  4.19487619119E+01 -6.11638748094E+01  6.11141552600E+00
     ehart,   eexcu,    vexcu  6.62755473484E+01 -9.80070086756E+00 -1.28696799007E+01
- iter,total energy,gnrm     6  -6.218393051739E+01  8.88E-04
+ iter,total energy,gnrm     6  -6.218393051738E+01  8.88E-04
  ---------------------------------------------------------------------------- iter= 7
  Calculation of charge density... done. Total electronic charge=      15.999956769015
  PSolver, free  BC, dimensions:   123  123  123   proc  1   ixc:  1 ... done.
@@ -162,7 +162,7 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  4.19475758551E+01 -6.11641291445E+01  6.11214705788E+00
     ehart,   eexcu,    vexcu  6.62748077379E+01 -9.80057142096E+00 -1.28695103601E+01
- iter,total energy,gnrm     9  -6.218393986077E+01  7.10E-05
+ iter,total energy,gnrm     9  -6.218393986076E+01  7.10E-05
  ---------------------------------------------------------------------------- iter= 10
  Calculation of charge density... done. Total electronic charge=      15.999956770738
  PSolver, free  BC, dimensions:   123  123  123   proc  1   ixc:  1 ... done.
@@ -173,12 +173,12 @@
  FINAL iter,total energy,gnrm    10  -6.218393987595E+01  7.10E-05
  eval(1)= -2.07013888814462E+00
  eval(2)= -1.08516275865931E+00
- eval(3)= -1.08493916023393E+00
+ eval(3)= -1.08493916023392E+00
  eval(4)= -1.08291663702011E+00
- eval(5)= -6.19261721794751E-01
- eval(6)= -2.14789703329591E-01
- eval(7)= -1.97489408992178E-01
- eval(8)= -1.97489406660376E-01
+ eval(5)= -6.19261721794750E-01
+ eval(6)= -2.14789703329590E-01
+ eval(7)= -1.97489408992177E-01
+ eval(8)= -1.97489406660375E-01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=      15.999956770738
  PSolver, free  BC, dimensions:   123  123  123   proc  1   ixc:  0 ... done.
@@ -196,8 +196,8 @@
  Calculating tail corrections on 8 orbitals per processor.
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  4.19341651213E+01 -6.11474573491E+01  6.10792016246E+00
- Total energy with tail correction -6.218493657162E+01
-- iproc, elapsed, CPU time     0       182.22       179.11
+ Total energy with tail correction -6.218493657163E+01
+- iproc, elapsed, CPU time     0       173.59       167.37
  Final values of the Forces for each atom
      1 Na_lda -2.03902E-01 -2.03902E-01 -2.09849E-01
      2 Cl_lda -8.27532E-05 -8.27532E-05 -3.66766E-03
@@ -206,6 +206,6 @@
       y direction    -2.03984917E-01
       z direction    -2.13516885E-01
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 8200 allocations and 8198 deallocations, remaining memory(B):24
+ 8200 allocations and 8200 deallocations, remaining memory(B):0
  memory occupation peak: 211 MB
  for the array  ypsig_f in the routine calc_grad_reza
