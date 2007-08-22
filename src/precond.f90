@@ -3,7 +3,7 @@ subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,n
      ncong,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,eval,&
      ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
   ! Calls the preconditioner for each orbital treated by the processor
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
   dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
@@ -31,7 +31,7 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
   ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
   ! hpsi is the right hand side on input and the solution on output
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
   dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
   dimension hpsi(nvctr_c+7*nvctr_f),scal(0:3),residues(ncong)
@@ -201,7 +201,7 @@ SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsi_c,xpsi_f,ypsi_c,ypsi_f)
   ! ypsi = (1/2) \Nabla^2 xpsi
-  implicit real*8 (a-h,o-z)        
+  implicit real(kind=8) (a-h,o-z)        
   dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
   dimension xpsi_c(nvctr_c),xpsi_f(7,nvctr_f),scal(0:3)
   dimension ypsi_c(nvctr_c),ypsi_f(7,nvctr_f)

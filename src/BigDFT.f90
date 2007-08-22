@@ -2,22 +2,22 @@ program BigDFT
 
   use libBigDFT
 
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
 
   ! For parallel MPI execution set parallel=.true., for serial parallel=.false.
   include 'parameters.h'
 
   ! atomic coordinates, forces
-  real*8, allocatable, dimension(:,:) :: rxyz, fxyz, rxyz_old
+  real(kind=8), allocatable, dimension(:,:) :: rxyz, fxyz, rxyz_old
   logical :: output_wf,output_grid
   character(len=20) :: tatonam
   character(len=80) :: line
   ! atomic types
   integer, allocatable, dimension(:) :: iatype
-  character*20 :: atomnames(100), units
+  character(len=20) :: atomnames(100), units
   character(len=6), dimension(:), allocatable :: frzsymb
   logical, dimension(:), allocatable :: lfrztyp
-  real*8, pointer :: psi(:,:), eval(:)
+  real(kind=8), pointer :: psi(:,:), eval(:)
   integer, pointer :: keyv(:), keyg(:,:)
   !$      interface
   !$        integer ( kind=4 ) function omp_get_num_threads ( )
@@ -237,15 +237,15 @@ program BigDFT
         psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
         n1, n2, n3, hgrid, rxyz_old,betax,ncount_cluster,fluct,flucto,fluctoo)
      use libBigDFT
-     implicit real*8 (a-h,o-z)
+     implicit real(kind=8) (a-h,o-z)
      logical :: parallel
      integer :: iatype(nat)
      logical :: lfrztyp(ntypes)
-     character*20 :: atomnames(100)
-     real*8, pointer :: psi(:,:), eval(:)
+     character(len=20) :: atomnames(100)
+     real(kind=8), pointer :: psi(:,:), eval(:)
      integer, pointer :: keyv(:), keyg(:,:)
      dimension wpos(3,nat),gg(3,nat),rxyz_old(3,nat)
-     real*8, allocatable, dimension(:,:) :: tpos,gp,hh
+     real(kind=8), allocatable, dimension(:,:) :: tpos,gp,hh
 
      allocate(tpos(3,nat),gp(3,nat),hh(3,nat))
      anoise=1.d-4
@@ -449,15 +449,15 @@ program BigDFT
         psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
         n1, n2, n3, hgrid, rxyz_old,betax,ncount_cluster,fluct,flucto,fluctoo,fnrm)
      use libBigDFT
-     implicit real*8 (a-h,o-z)
+     implicit real(kind=8) (a-h,o-z)
      logical :: parallel
      integer :: iatype(nat)
      logical :: lfrztyp(ntypes)
-     character*20 :: atomnames(100)
-     real*8, pointer :: psi(:,:), eval(:)
+     character(len=20) :: atomnames(100)
+     real(kind=8), pointer :: psi(:,:), eval(:)
      integer, pointer :: keyv(:), keyg(:,:)
      dimension wpos(3,nat),ff(3,nat),rxyz_old(3,nat)
-     real*8, allocatable, dimension(:,:) :: tpos
+     real(kind=8), allocatable, dimension(:,:) :: tpos
      logical care
      allocate(tpos(3,nat))
      anoise=0.d-4
@@ -591,15 +591,15 @@ program BigDFT
                    n1, n2, n3, hgrid, rxyz_old,betax,ncount_cluster)
 ! determines stepsize betax
         use libBigDFT
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         logical :: parallel
         integer :: iatype(nat)
         logical :: lfrztyp(ntypes)
-        character*20 :: atomnames(100)
-        real*8, pointer :: psi(:,:), eval(:)
+        character(len=20) :: atomnames(100)
+        real(kind=8), pointer :: psi(:,:), eval(:)
         integer, pointer :: keyv(:), keyg(:,:)
         dimension pos(3,nat),alat(3),rxyz_old(3,nat)
-        real*8, allocatable, dimension(:,:) :: tpos,ff,gg
+        real(kind=8), allocatable, dimension(:,:) :: tpos,ff,gg
         allocate(tpos(3,nat),ff(3,nat),gg(3,nat))
 
         beta0=abs(betax)
@@ -800,7 +800,7 @@ program BigDFT
       end program BigDFT
 
 subroutine wtposout(igeostep,nat,rxyz,atomnames,iatype)
-   implicit real*8 (a-h,o-z)
+   implicit real(kind=8) (a-h,o-z)
    character(len=20) :: atomnames(100), filename
    character(len=3) :: fn
    dimension rxyz(3,nat),iatype(nat)

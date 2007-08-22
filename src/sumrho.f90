@@ -5,19 +5,19 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
   ! Output: rho
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   logical parallel,withmpi2
   dimension rho(nrho),occup(norb)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension psi(nvctr_c+7*nvctr_f,norbp)
   dimension nscatterarr(0:nproc-1,4)!n3d,n3p,i3s+i3xcsh-1,i3xcsh
-  real*8, allocatable :: psir(:),rho_p(:)
+  real(kind=8), allocatable :: psir(:),rho_p(:)
   !***************Alexey**************************************************************************
-  real*8,allocatable,dimension(:,:,:)::x_c!input 
-  real*8,allocatable::x_f(:,:,:,:),x_fc(:,:,:,:) ! input
-  real*8,allocatable,dimension(:):: w1,w2
+  real(kind=8),allocatable,dimension(:,:,:)::x_c!input 
+  real(kind=8),allocatable::x_f(:,:,:,:),x_fc(:,:,:,:) ! input
+  real(kind=8),allocatable,dimension(:):: w1,w2
 
-  real*8 scal(0:3)
+  real(kind=8) scal(0:3)
   !	for grow:
   integer ibyz_c(2,0:n2,0:n3)
   integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
@@ -223,18 +223,18 @@ subroutine sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
   ! Output: rho
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   logical parallel,withmpi2
   dimension rho((2*n1+31)*(2*n2+31)*(2*n3+31)),occup(norb)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension psi(nvctr_c+7*nvctr_f,norbp)
-  real*8, allocatable :: psir(:),rho_p(:)
+  real(kind=8), allocatable :: psir(:),rho_p(:)
   !***************Alexey**************************************************************************
-  real*8,allocatable,dimension(:,:,:)::x_c!input 
-  real*8,allocatable::x_f(:,:,:,:),x_fc(:,:,:,:) ! input
-  real*8,allocatable,dimension(:):: w1,w2
+  real(kind=8),allocatable,dimension(:,:,:)::x_c!input 
+  real(kind=8),allocatable::x_f(:,:,:,:),x_fc(:,:,:,:) ! input
+  real(kind=8),allocatable,dimension(:):: w1,w2
 
-  real*8 scal(0:3)
+  real(kind=8) scal(0:3)
   !	for grow:
   integer ibyz_c(2,0:n2,0:n3)
   integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
@@ -253,7 +253,7 @@ subroutine sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   !***************Alexey**************************************************************************
 
   ! shrink convention: nw1>nw2
-  nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&   		
+  nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
        (n1+1)*(2*n2+31)*(2*n3+31),&
        2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
        2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))

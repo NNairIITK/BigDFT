@@ -39,7 +39,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
   use Poisson_Solver
 
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   character*30 label
   character*27 filename
   character*20 atomnames
@@ -58,33 +58,33 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
        ibyz_f(:,:,:),ibxz_f(:,:,:),ibxy_f(:,:,:)
   ! occupation numbers, eigenvalues
   allocatable :: occup(:)
-  real*8, pointer :: eval(:),eval_old(:)
+  real(kind=8), pointer :: eval(:),eval_old(:)
 
   ! wavefunction segments
   integer, pointer :: keyv(:)
   ! wavefunction segments on real space grid
   integer, pointer :: keyg(:,:)
   ! wavefunction 
-  real*8, pointer :: psi(:,:)
-  real*8, pointer :: psit(:,:)
+  real(kind=8), pointer :: psi(:,:)
+  real(kind=8), pointer :: psit(:,:)
   ! wavefunction gradients
-  real*8, pointer :: hpsi(:,:)
+  real(kind=8), pointer :: hpsi(:,:)
 
   ! Pointers and variables to store the last psi
   ! before reformating if useFormattedInput is .true.
   integer :: nseg_c_old, nseg_f_old, nvctr_c_old, nvctr_f_old
   integer, pointer :: keyg_old(:,:), keyv_old(:)
-  real*8, pointer :: psi_old(:,:)
+  real(kind=8), pointer :: psi_old(:,:)
 
   ! Charge density/potential,ionic potential, pkernel
   allocatable :: rhopot(:,:,:),pot_ion(:)
-  real*8, pointer     :: pkernel(:)
+  real(kind=8), pointer     :: pkernel(:)
 
   ! projector segments on real space grid
   pointer :: keyg_p(:,:), keyv_p(:)
   allocatable :: nvctr_p(:), nseg_p(:)
   ! projectors 
-  real*8, pointer :: proj(:)
+  real(kind=8), pointer :: proj(:)
   ! Parameters for the boxes containing the projectors
   allocatable :: nboxp_c(:,:,:),nboxp_f(:,:,:)
 
@@ -92,7 +92,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocatable :: psppar(:,:,:),nelpsp(:),radii_cf(:,:),npspcode(:),nzatom(:),iasctype(:)
   allocatable :: derproj(:)
   ! arrays for DIIS convergence accelerator
-  real*8, pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
+  real(kind=8), pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
 
   ! arrays for calculation of forces and tail correction to kinetic energy
   allocatable :: rho(:),pot(:,:,:)
@@ -109,9 +109,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 !***********************************************************************************************
     integer,allocatable,dimension(:,:,:)::ibyyzz_r ! real space border
 !*************Alexey***************************************************************************
-!    real*8,allocatable,dimension(:,:,:)::xc!input 
-!    real*8,allocatable::xf(:,:,:,:)! input
-!    real*8,allocatable,dimension(:):: w1,w2
+!    real(kind=8),allocatable,dimension(:,:,:)::xc!input 
+!    real(kind=8),allocatable::xf(:,:,:,:)! input
+!    real(kind=8),allocatable,dimension(:):: w1,w2
 !***********************************************************************************************
   integer :: ierror
 
@@ -1296,7 +1296,7 @@ contains
   !in the case of anticipated return
   !it may be also generalised to the normal run
   subroutine deallocate_before_exiting
-    implicit real*8 (a-h,o-z)
+    implicit real(kind=8) (a-h,o-z)
 
     !this statement is put only in view of a generalization inside the normal treatment
     !when this condition is verified we are in the middle of the SCF cycle
@@ -1668,10 +1668,10 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
   integer, intent(out) :: norbp,nvctrp
   logical, intent(in) :: output_grid
   integer, intent(in) :: iatype(nat)
-  real*8, intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
+  real(kind=8), intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
   integer, intent(out) :: ibyz_c(2,0:n2,0:n3), ibxz_c(2,0:n1,0:n3), ibxy_c(2,0:n1,0:n2)
   integer, intent(out) :: ibyz_f(2,0:n2,0:n3), ibxz_f(2,0:n1,0:n3), ibxy_f(2,0:n1,0:n2)
-  real*8 :: rxyz(3, nat), radii_cf(ntypes, 2)
+  real(kind=8) :: rxyz(3, nat), radii_cf(ntypes, 2)
   character(len=20), intent(in) :: atomnames(100)
   integer, pointer :: keyg(:,:), keyv(:)
   !**********************Alexey*************************************************************
@@ -1699,9 +1699,9 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
 
 
   !Local variables
-  real*8, parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
+  real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
   integer :: iat,i1,i2,i3,norbme,norbyou,jpst,jproc,i_all,i_stat
-  real*8 :: tt
+  real(kind=8) :: tt
   logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
 
   if (iproc.eq.0) then
@@ -1836,12 +1836,12 @@ END SUBROUTINE createWavefunctionsDescriptors
 subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, atomnames, &
      & psppar, npspcode, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
      & keyg_p, keyv_p, nproj, nprojel, istart, nboxp_c, nboxp_f, proj)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   character*20 :: atomnames(100)
   dimension rxyz(3,nat),iatype(nat),radii_cf(ntypes,2),psppar(0:4,0:4,ntypes),npspcode(ntypes)
   integer :: nvctr_p(0:2*nat), nseg_p(0:2*nat)
   integer :: nboxp_c(2,3,nat), nboxp_f(2,3,nat)
-  real*8, pointer :: proj(:)
+  real(kind=8), pointer :: proj(:)
   integer, pointer :: keyg_p(:,:), keyv_p(:)
   real(kind=8), dimension(:), allocatable :: fac_arr
   integer, dimension(:), allocatable :: lx,ly,lz
@@ -2883,7 +2883,7 @@ END SUBROUTINE input_wf_diag
 ! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
 ! using  the previous iteration points phidst and the associated error 
 ! vectors (preconditione gradients) hpsidst
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         include 'mpif.h'
         logical parallel
         dimension psit(nvctrp,norbp*nproc),ads(idsx+1,idsx+1,3), &

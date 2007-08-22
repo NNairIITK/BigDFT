@@ -1,9 +1,9 @@
 subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.true.
   integer recvcount,sendcount
   dimension psi(nvctr_c+7*nvctr_f,norbp),psit(nvctrp,norbp*nproc)
-  real*8, allocatable :: psiw(:,:,:)
+  real(kind=8), allocatable :: psiw(:,:,:)
   include 'mpif.h'
 
   call timing(iproc,'Un-Transall   ','ON')
@@ -86,11 +86,11 @@ subroutine unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psiw,psi
 end subroutine unswitch_waves
 
 subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,psi)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.true.
   integer recvcount,sendcount
   dimension psi(nvctr_c+7*nvctr_f,norbp),psit(nvctrp,norbp*nproc)
-  real*8, allocatable :: psiw(:,:,:)
+  real(kind=8), allocatable :: psiw(:,:,:)
   include 'mpif.h'
 
   call timing(iproc,'Un-Transall   ','ON')

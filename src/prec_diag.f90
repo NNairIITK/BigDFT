@@ -2,11 +2,11 @@
          keyg_c,keyv_c,hpsi_c,hpsi_f,C,scal,A2,B2)
 ! 
 !
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension keyg_c(2,nseg_c),keyv_c(nseg_c),hpsi_c(nvctr_c),hpsi_f(7,nvctr_f)
-        real*8, allocatable, dimension(:,:,:) :: hpsip
-        real*8::scal(0:3) 
-       real*8,parameter::atomic_length=2.d0,FAC_LEN=2.D0
+        real(kind=8), allocatable, dimension(:,:,:) :: hpsip
+        real(kind=8)::scal(0:3) 
+       real(kind=8),parameter::atomic_length=2.d0,FAC_LEN=2.D0
 
 !      Number of sweeps in wavelet transformation
 !      THE BIGGEST SCALING FUNCTION STEP: atomic_length*FAC_LEN
@@ -33,22 +33,22 @@
         HPSIP=0.D0
 
 ! coarse part
-	do iseg=1,nseg_c
+        do iseg=1,nseg_c
           jj=keyv_c(iseg)
           j0=keyg_c(1,iseg)
           j1=keyg_c(2,iseg)
-             ii=j0-1
-             i3=ii/((n1+1)*(n2+1))
-             ii=ii-i3*(n1+1)*(n2+1)
-             i2=ii/(n1+1)
-             i0=ii-i2*(n1+1)
-             i1=i0+j1-j0
-	  do i=i0,i1
-            hpsip(i,i2,i3)=hpsi_c(i-i0+jj)
+            ii=j0-1
+            i3=ii/((n1+1)*(n2+1))
+            ii=ii-i3*(n1+1)*(n2+1)
+            i2=ii/(n1+1)
+            i0=ii-i2*(n1+1)
+            i1=i0+j1-j0
+          do i=i0,i1
+             hpsip(i,i2,i3)=hpsi_c(i-i0+jj)
           enddo
-         enddo
+        enddo
 
-          FAC_H=1.D0/((HGRID*N2_NT)**2)
+        FAC_H=1.D0/((HGRID*N2_NT)**2)
 
         H0=    1.5D0*A2*FAC_H;    H1=(A2+B2*.5D0)*FAC_H
         H2=(A2*.5D0+B2)*FAC_H;    H3=    1.5D0*B2*FAC_H
@@ -102,7 +102,7 @@
        end         
 
        SUBROUTINE PRECOND_PROPER(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3,H0,H1,H2,H3,EPS)
-       implicit real*8 (a-h,o-z)
+       implicit real(kind=8) (a-h,o-z)
        dimension  x(0:nd1,0:nd2,0:nd3)
 
 

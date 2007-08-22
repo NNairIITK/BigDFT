@@ -4,7 +4,7 @@
                ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,  &
                ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x,ekin)
 !   kinetic energy  with tail boundary conditions
-    implicit real*8 (a-h,o-z)
+    implicit real(kind=8) (a-h,o-z)
     logical :: firstcall=.true. 
     integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
     dimension x(0:nb1,2,0:nb2,2,0:nb3,2)

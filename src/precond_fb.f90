@@ -2,7 +2,7 @@
         subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
                    hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,cprec,logrid_c,logrid_f,hpsi)
 ! Calls the preconditioner for each orbital treated by the processor
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
         dimension hpsi(nvctr_c+7*nvctr_f,norbp)
 
@@ -34,15 +34,15 @@
                               hgrid,nseg_c,nvctr_c,keyg_c,&
                               keyv_c,nseg_f,nvctr_f,keyg_f,&
                               keyv_f,psi_c,psi_f,IORB)
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
         dimension psi_c(nvctr_c),psi_f(7,nvctr_f)
         
-        real*8,allocatable,dimension(:) ::   GG_C, HPSI_C, HPSI_C_OLD
-        real*8,allocatable,dimension(:) ::    HPSI_C_MOD, PSI_C_NEW
-        real*8,allocatable,dimension(:) ::    AUX,ALPHAS_PR
-        real*8,allocatable,dimension(:,:) :: GG_F, HPSI_F, HPSI_F_OLD
-        real*8,allocatable,dimension(:,:) ::  HPSI_F_MOD,   PSI_F_NEW
+        real(kind=8),allocatable,dimension(:) ::   GG_C, HPSI_C, HPSI_C_OLD
+        real(kind=8),allocatable,dimension(:) ::    HPSI_C_MOD, PSI_C_NEW
+        real(kind=8),allocatable,dimension(:) ::    AUX,ALPHAS_PR
+        real(kind=8),allocatable,dimension(:,:) :: GG_F, HPSI_F, HPSI_F_OLD
+        real(kind=8),allocatable,dimension(:,:) ::  HPSI_F_MOD,   PSI_F_NEW
         
         PARAMETER(A2=3.55369228991319019D0,ALPHAMIN=.05d0,COSMIN=.5D0)
 
@@ -218,7 +218,7 @@
                           psi_c,psi_f, &
                           hgrid,gg_c,gg_f,C, &
                            hpsi_c,hpsi_f,hpsi2) 
-        implicit real*8 (a-h,o-z)        
+        implicit real(kind=8) (a-h,o-z)        
 
         allocatable psig_stand1(:,:,:,:,:,:),psig_stand2(:,:,:,:,:,:)
                 
@@ -271,9 +271,9 @@
          NUM_TRANS,ND1,ND2,ND3,N2_NT)
 ! 
 !
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension keyg_c(2,nseg_c),keyv_c(nseg_c),hpsi_c(nvctr_c),hpsi_f(7,nvctr_f)
-        real*8, allocatable, dimension(:,:,:) :: hpsip
+        real(kind=8), allocatable, dimension(:,:,:) :: hpsip
 !
 !       WAVELET AND SCALING FUNCTION SECOND DERIVATIVE FILTERS
         PARAMETER(B2=24.8758460293923314D0,A2=3.55369228991319019D0)
@@ -354,7 +354,7 @@
        end         
 
        SUBROUTINE PRECOND_PROPER(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3,H0,H1,H2,H3,EPS)
-       implicit real*8 (a-h,o-z)
+       implicit real(kind=8) (a-h,o-z)
        dimension  x(0:nd1,0:nd2,0:nd3)
 
 
@@ -439,7 +439,7 @@
        END
 
       FUNCTION PIECELINE(C)
-      IMPLICIT REAL*8(A-H,O-Z)
+      IMPLICIT real(kind=8)(A-H,O-Z)
 
       PARAMETER(A=0.1086D0,B=.9895D0)
      
@@ -465,12 +465,12 @@
         subroutine convolut_magic_t2(n1,n2,n3,ww,x,y)
 ! Applies the magic filter matrix transposed ; data set shrinks
 ! The input array x is overwritten
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         parameter(lowfil=-8,lupfil=8)
         dimension x(-lupfil:n1-lowfil,-lupfil:n2-lowfil,-lupfil:n3-lowfil),y(0:n1,0:n2,0:n3)
         dimension ww(0:n1,-lupfil:n2-lowfil,-lupfil:n3-lowfil)
 !          THE MAGIC FILTER FOR DAUBECHIES-16
-           REAL*8, parameter :: fil(lowfil:lupfil)= (/0.D0,&
+           real(kind=8), parameter :: fil(lowfil:lupfil)= (/0.D0,&
          2.72734492911979659657715313017228D-6,&
        -0.5185986881173432922848639136911487D-4,&
         0.49443227688689919192282259476750972D-3,&
@@ -502,7 +502,7 @@
 	end
 
         subroutine convrot_shrink2(lowfil,lupfil,fil,n1,ndat,x,y)
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension fil(lowfil:lupfil),x(lowfil:n1+lupfil,ndat),y(ndat,0:n1)
 ! the filtered output data structure has shrunk by the filter length
 
@@ -531,7 +531,7 @@ subroutine ConvolStand(n1,n2,n3,&
                nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                hgrid,x,y)
     !applies the kinetic energy operator onto x to get y
-    implicit real*8 (a-h,o-z)
+    implicit real(kind=8) (a-h,o-z)
 !    dimension nbox_c(2,3),nbox_f(2,3)
     !dimension x(0:n1,2,0:n2,2,0:n3,2),y(0:n1,2,0:n2,2,0:n3,2)
     dimension x(nl1_c:nu1_c,2,nl2_c:nu2_c,2,nl3_c:nu3_c,2)
@@ -762,11 +762,11 @@ end
                               psi_c,psi_f,psig)
 ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
 ! into fine scaling functions (psifscf)
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
         dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
         dimension psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2)
-        !real*8, allocatable :: psig(:,:,:,:,:,:),ww(:)
+        !real(kind=8), allocatable :: psig(:,:,:,:,:,:),ww(:)
 
         !allocate(psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2),ww((2*(nu1-nl1)+16)*(2*(nu2-nl2)+16)*(2*(nu3-nl3)+16)))
 
@@ -823,11 +823,11 @@ end
                             psig,psi_c,psi_f)
 ! Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
 ! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
         dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
 !        dimension psifscf((2*(nu1-nl1)+16)*(2*(nu2-nl2)+16)*(2*(nu3-nl3)+16))
-        real*8, allocatable :: ww(:)
+        real(kind=8), allocatable :: ww(:)
 
         dimension psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2)
         
@@ -882,7 +882,7 @@ end
 
 
        SUBROUTINE MULTI_BACKWARD(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3)
-       implicit real*8 (a-h,o-z)
+       implicit real(kind=8) (a-h,o-z)
        dimension  x(0:nd1,0:nd2,0:nd3)
        ALLOCATABLE XX(:),YY(:),WW(:)
 
@@ -955,7 +955,7 @@ end
 
 
        SUBROUTINE MULTI_FORWARD(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3)
-       implicit real*8 (a-h,o-z)
+       implicit real(kind=8) (a-h,o-z)
        dimension  x(0:nd1,0:nd2,0:nd3)
        ALLOCATABLE XX(:),YY(:),WW(:) 
 
@@ -1026,7 +1026,7 @@ end
        subroutine BACKWARD_3D(nd1,nd2,nd3,x,y,ww)
 ! A periodic synthesis (BACKWARD) wavelet transformation
 ! The input array x is not overwritten
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension  x(0:nd1,0:nd2,0:nd3)
         dimension ww(0:nd1,0:nd2,0:nd3)
         dimension  y(0:nd1,0:nd2,0:nd3)
@@ -1047,7 +1047,7 @@ end
        subroutine BACKWARD_3D_SELF(nd1,nd2,nd3,x,y,ww)
 ! A periodic synthesis (BACKWARD) wavelet transformation
 ! The input array x is not overwritten
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension  x(0:nd1,0:nd2,0:nd3)
         dimension ww(0:nd1,0:nd2,0:nd3)
         dimension  y(0:nd1,0:nd2,0:nd3)
@@ -1069,7 +1069,7 @@ end
         subroutine FORWARD_3D(nd1,nd2,nd3,y,x,ww)
 ! An analysis (FORWARD) periodic wavelet transformation
 ! The input array y is NOT overwritten
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension  x(0:nd1,0:nd2,0:nd3)
         dimension ww(0:nd1,0:nd2,0:nd3)
         dimension  y(0:nd1,0:nd2,0:nd3)
@@ -1090,7 +1090,7 @@ end
         subroutine FORWARD_3D_SELF(nd1,nd2,nd3,y,x,ww)
 ! An analysis (FORWARD) periodic wavelet transformation
 ! The input array y is NOT overwritten
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension  x(0:nd1,0:nd2,0:nd3)
         dimension ww(0:nd1,0:nd2,0:nd3)
         dimension  y(0:nd1,0:nd2,0:nd3)
@@ -1113,7 +1113,7 @@ end
 !
 !      FORWARD WAVELET TRANSFORM, ANALYSIS, PERIODIC
 !
-       implicit real*8 (a-h,o-z)
+       implicit real(kind=8) (a-h,o-z)
        INTEGER RIGHT
        DIMENSION C(0:RIGHT,NT),CD_1(NT,0:RIGHT)
        ALLOCATABLE MOD_MY(:)
@@ -1236,7 +1236,7 @@ end
 !
 !     BACKWARD WAVELET TRANSFORM, SYNTHESIS, PERIODIC
 !
-      implicit real*8 (a-h,o-z)
+      implicit real(kind=8) (a-h,o-z)
       INTEGER RIGHT1
       DIMENSION CD(0:RIGHT1,NT),C1(NT,0:RIGHT1)
       ALLOCATABLE MOD_MY(:)

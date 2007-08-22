@@ -1,6 +1,6 @@
 program memguess
 
-  !implicit real*8 (a-h,o-z)
+  !implicit real(kind=8) (a-h,o-z)
   implicit none
   logical :: calc_tail,output_grid
   character(len=20) :: tatonam,units

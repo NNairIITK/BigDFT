@@ -3,7 +3,7 @@
                nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
                cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_fc,x_f,y_c,y_f)
 !   y = (kinetic energy operator)x + (cprec*I)x 
-    implicit real*8 (a-h,o-z)
+    implicit real(kind=8) (a-h,o-z)
     logical :: firstcall=.true. 
     integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
     dimension x_c(0:n1,0:n2,0:n3),y_c(0:n1,0:n2,0:n3)
@@ -389,7 +389,7 @@
                nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
                hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x,y,ekin)
 !   y = y + (kinetic energy operator)x 
-    implicit real*8 (a-h,o-z)
+    implicit real(kind=8) (a-h,o-z)
     logical :: firstcall=.true. 
     integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
     dimension x(0:n1,2,0:n2,2,0:n3,2),y(0:n1,2,0:n2,2,0:n3,2)

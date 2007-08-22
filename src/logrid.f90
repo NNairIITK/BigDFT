@@ -283,7 +283,7 @@ end subroutine ib_from_logrid
 
 
 !subroutine bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
-!	implicit real*8 (a-h,o-z)
+!	implicit real(kind=8) (a-h,o-z)
 !	logical logrid
 !	dimension logrid(0:n1,0:n2,0:n3)
 !	dimension ibyz(2,0:n2,0:n3),ibxz(2,0:n1,0:n3),ibxy(2,0:n1,0:n2)
