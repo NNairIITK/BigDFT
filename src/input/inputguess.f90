@@ -5,9 +5,9 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   ! character(len = *), intent(in) :: filename
   integer, intent(in) :: ngx, iproc, ntypes
   integer, intent(in) :: nzatom(ntypes), nelpsp(ntypes)
-  real*8, intent(in) :: psppar(0:4,0:4,ntypes)
+  real(kind=8), intent(in) :: psppar(0:4,0:4,ntypes)
   integer, intent(in) :: npspcode(ntypes),iasctype(ntypes)
-  real*8, intent(out) :: xp(ngx, ntypes), psiat(ngx, 5, ntypes), occupat(5, ntypes)
+  real(kind=8), intent(out) :: xp(ngx, ntypes), psiat(ngx, 5, ntypes), occupat(5, ntypes)
   integer, intent(out) :: ng(ntypes), nl(4,ntypes)
   character(len = 20), intent(in) :: atomnames(100)
   integer, intent(out) :: norbe,norbsc
@@ -169,8 +169,8 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
      if (norbsc /=0)   write(*,'(1x,a,i0,a)')'  of which ',norbsc,' are semicore orbitals'
   end if
 
-
 END SUBROUTINE readAtomicOrbitals
+
 
 subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
      & nat, rxyz, norbe, norbep, norbsc, occupe, occupat, ngx, xp, psiat, ng, nl, &
@@ -300,7 +300,7 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
      if (ictot /= nctot) stop 'createAtomic orbitals: error (nctot)'
 
   end do
-   if (iorbsc /= norbsc) stop 'createAtomic orbitals: error (iorbsc)'
+  if (iorbsc /= norbsc) stop 'createAtomic orbitals: error (iorbsc)'
   if (iorbv /= norbe) stop 'createAtomic orbitals: error (iorbv)'
   if (iatsc /= natsc) stop 'createAtomic orbitals: error (iatsc)'
 
@@ -315,13 +315,13 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
      write(*,'(1x,a)')'done.'
   end if
 
-
 END SUBROUTINE createAtomicOrbitals
+
 
 subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
   ! calculates the kinetic energy of an atomic wavefunction expressed in Gaussians
   ! the output psiatn is a normalized version of psiat
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension xp(ng),psiat(ng),psiatn(ng)
 
   !        gml=.5d0*gamma(.5d0+l)
@@ -374,7 +374,8 @@ subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
   enddo
 
   return
-end subroutine atomkin
+END SUBROUTINE atomkin
+
 
 subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 
@@ -481,6 +482,7 @@ subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
   endif
 
 END SUBROUTINE calc_coeff_inguess
+
 
 subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,occupat,expo,psiat)
   implicit none
@@ -693,15 +695,16 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   deallocate(neleconf,stat=i_stat)
   call memocc(i_stat,i_all,'neleconf','iguess_generator')
 
-end subroutine iguess_generator
+END SUBROUTINE iguess_generator
+
 
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
-     zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
-     aeval,ng,psi,res,chrg)
-     implicit real*8 (a-h,o-z)
-     logical noproj
-     parameter(nint=100)
-     dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
+                 zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
+                 aeval,ng,psi,res,chrg)
+  implicit real(kind=8) (a-h,o-z)
+  logical noproj
+  parameter(nint=100)
+  dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
        hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
        aux(2*ng+2),&
        gpot(3),hsep(6,lpx+1),rmt(nint,0:ng,0:ng,lmax+1),&
@@ -711,541 +714,576 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
        occup(noccmax,lmax+1),chrg(noccmax,lmax+1),&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
        res(noccmax,lmax+1),xp(0:ng)
-     if (nintp.ne.nint) stop 'nint><nintp'
+  if (nintp.ne.nint) stop 'nint><nintp'
 
-     do l=0,lmax
-        if (occup(1,l+1).gt.0.d0) lcx=l
-     end do
-     !write(6,*) 'lcx',lcx
+  do l=0,lmax
+     if (occup(1,l+1).gt.0.d0) lcx=l
+  end do
+  !write(6,*) 'lcx',lcx
  
-     noproj=.true.
-     do l=1,lpx+1
-        noproj = noproj .and. (alps(l) .eq. 0.d0)
-     end do
+  noproj=.true.
+  do l=1,lpx+1
+     noproj = noproj .and. (alps(l) .eq. 0.d0)
+  end do
 
 
-!    projectors, just in case
-     if (.not. noproj) then
-        do l=0,lpx
-           gml1=sqrt( gamma(l+1.5d0) / (2.d0*alps(l+1)**(2*l+3)) )
-           gml2=sqrt( gamma(l+3.5d0) / (2.d0*alps(l+1)**(2*l+7)) )&
-               /(l+2.5d0)
-           gml3=sqrt( gamma(l+5.5d0) / (2.d0*alps(l+1)**(2*l+11)) )&
-               /((l+3.5d0)*(l+4.5d0))
-           tt=1.d0/(2.d0*alps(l+1)**2)
-           do i=0,ng
-              ttt=1.d0/(xp(i)+tt)
-              pp1(i,l+1)=gml1*(sqrt(ttt)**(2*l+3))
-              pp2(i,l+1)=gml2*ttt*(sqrt(ttt)**(2*l+3))
-              pp3(i,l+1)=gml3*ttt**2*(sqrt(ttt)**(2*l+3))
-           end do
+! projectors, just in case
+  if (.not. noproj) then
+     do l=0,lpx
+        gml1=sqrt( gamma(l+1.5d0) / (2.d0*alps(l+1)**(2*l+3)) )
+        gml2=sqrt( gamma(l+3.5d0) / (2.d0*alps(l+1)**(2*l+7)) )&
+            /(l+2.5d0)
+        gml3=sqrt( gamma(l+5.5d0) / (2.d0*alps(l+1)**(2*l+11)) )&
+            /((l+3.5d0)*(l+4.5d0))
+        tt=1.d0/(2.d0*alps(l+1)**2)
+        do i=0,ng
+           ttt=1.d0/(xp(i)+tt)
+           pp1(i,l+1)=gml1*(sqrt(ttt)**(2*l+3))
+           pp2(i,l+1)=gml2*ttt*(sqrt(ttt)**(2*l+3))
+           pp3(i,l+1)=gml3*ttt**2*(sqrt(ttt)**(2*l+3))
         end do
-     else
-        pp1(:,:)=0.d0
-        pp2(:,:)=0.d0
-        pp3(:,:)=0.d0
-     end if
+     end do
+  else
+     pp1(:,:)=0.d0
+     pp2(:,:)=0.d0
+     pp3(:,:)=0.d0
+  end if
 
+  do l=0,lmax
+     do j=0,ng
+        do i=0,ng
+           rho(i,j,l+1)=0.d0
+        end do
+     end do
+  end do
+
+  evsum=1.d30
+  big_loop: do it=1,50
+     evsumold=evsum
+     evsum=0.d0
+     
+! coefficients of charge density
      do l=0,lmax
         do j=0,ng
            do i=0,ng
-              rho(i,j,l+1)=0.d0
+              rhoold(i,j,l+1)=rho(i,j,l+1)
+              rho(i,j,l+1)=0.d0        
            end do
         end do
      end do
 
-     evsum=1.d30
-     do 2000,it=1,50
-        evsumold=evsum
-        evsum=0.d0
-        
-        ! coefficients of charge density
-        do l=0,lmax
-           do j=0,ng
-              do i=0,ng
-                 rhoold(i,j,l+1)=rho(i,j,l+1)
-                 rho(i,j,l+1)=0.d0        
-              end do
-           end do
-        end do
-
-        do l=0,lmax
-           do iocc=1,noccmax
-              if (occup(iocc,l+1).gt.0.d0) then
-                 do j=0,ng
-                    do i=0,ng
-                       rho(i,j,l+1)=rho(i,j,l+1) + &
-                            psi(i,iocc,l+1)*psi(j,iocc,l+1)*occup(iocc,l+1)
-                    end do
+     do l=0,lmax
+        do iocc=1,noccmax
+           if (occup(iocc,l+1).gt.0.d0) then
+              do j=0,ng
+                 do i=0,ng
+                    rho(i,j,l+1)=rho(i,j,l+1) + &
+                         psi(i,iocc,l+1)*psi(j,iocc,l+1)*occup(iocc,l+1)
                  end do
-              end if
+              end do
+           end if
+        end do
+     end do
+
+
+     rmix=.5d0
+     if (it.eq.1) rmix=1.d0
+     do l=0,lmax
+        do j=0,ng
+           do i=0,ng
+              tt=rmix*rho(i,j,l+1) + (1.d0-rmix)*rhoold(i,j,l+1)
+              rho(i,j,l+1)=tt
            end do
         end do
-
-
-        rmix=.5d0
-        if (it.eq.1) rmix=1.d0
-        do 2834,l=0,lmax
-        do 2834,j=0,ng
-        do 2834,i=0,ng
-        tt=rmix*rho(i,j,l+1) + (1.d0-rmix)*rhoold(i,j,l+1)
-        rho(i,j,l+1)=tt
-2834        continue
+     end do
 
 ! XC potential on grid
-!        do 3728,k=1,nint
-!3728        xcgrd(k)=0.d0        
-!        do 3328,l=0,lmax
-!        do 3328,j=0,ng
-!        do 3328,i=0,ng
-!        do 3328,k=1,nint
-!3328        xcgrd(k)=xcgrd(k)+rmt(k,i,j,l+1)*rho(i,j,l+1)
-        call DGEMV('N',nint,(lcx+1)*(ng+1)**2,1.d0,&
-                   rmt,nint,rho,1,0.d0,xcgrd,1)
+!        do k=1,nint
+!           xcgrd(k)=0.d0
+!        end do
+!        do l=0,lmax
+!           do j=0,ng
+!              do i=0,ng
+!                 do k=1,nint
+!                    xcgrd(k)=xcgrd(k)+rmt(k,i,j,l+1)*rho(i,j,l+1)
+!                 end do
+!              end do
+!           end do
+!        end do
+     call DGEMV('N',nint,(lcx+1)*(ng+1)**2,1.d0,&
+                rmt,nint,rho,1,0.d0,xcgrd,1)
 
-        dr=fact*rprb/nint
-        do 3167,k=1,nint
+     dr=fact*rprb/nint
+     do k=1,nint
         r=(k-.5d0)*dr
 ! divide by 4 pi
         tt=xcgrd(k)*0.07957747154594768d0
 ! multiply with r^2 to speed up calculation of matrix elements
         xcgrd(k)=emuxc(tt)*r**2
-3167        continue
+     end do
 
-        do 1000,l=0,lmax
+     loop_l: do l=0,lmax
         gml=.5d0*gamma(.5d0+l)
 
 !  lower triangles only
-        do 100,i=0,ng
-        do 100,j=0,i
-        d=xp(i)+xp(j)
-        sxp=1.d0/d
-        const=gml*sqrt(sxp)**(2*l+1)
-! overlap        
-        ss(i,j)=const*sxp*(l+.5d0)
+        loop_i: do i=0,ng
+           loop_j: do j=0,i
+              d=xp(i)+xp(j)
+              sxp=1.d0/d
+              const=gml*sqrt(sxp)**(2*l+1)
+! overlap
+              ss(i,j)=const*sxp*(l+.5d0)
 ! kinetic energy
-        hh(i,j)=.5d0*const*sxp**2* ( 3.d0*xp(i)*xp(j) +&
-             l*(6.d0*xp(i)*xp(j)-xp(i)**2-xp(j)**2) -&
-             l**2*(xp(i)-xp(j))**2  ) + .5d0*l*(l+1.d0)*const
+              hh(i,j)=.5d0*const*sxp**2* ( 3.d0*xp(i)*xp(j) +&
+                   l*(6.d0*xp(i)*xp(j)-xp(i)**2-xp(j)**2) -&
+                   l**2*(xp(i)-xp(j))**2  ) + .5d0*l*(l+1.d0)*const
 ! potential energy from parabolic potential
-        hh(i,j)=hh(i,j) +&
-             .5d0*const*sxp**2*(l+.5d0)*(l+1.5d0)/rprb**4 
+              hh(i,j)=hh(i,j) +&
+                   .5d0*const*sxp**2*(l+.5d0)*(l+1.5d0)/rprb**4 
 ! hartree potential from ionic core charge
-        tt=sqrt(1.d0+2.d0*alpz**2*d)
-        if (l.eq.0) then
-        hh(i,j)=hh(i,j) -zion/(2.d0*d*tt)
-        else if (l.eq.1) then
-        hh(i,j)=hh(i,j) -zion* &
-             (1.d0 + 3.d0*alpz**2*d)/(2.d0*d**2*tt**3)
-        else if (l.eq.2) then
-        hh(i,j)=hh(i,j) -zion* &
-             (2.d0 + 10.d0*alpz**2*d + 15.d0*alpz**4*d**2)/(2.d0*d**3*tt**5)
-        else if (l.eq.3) then
-        hh(i,j)=hh(i,j) -zion*3.d0* &
-             (2.d0 +14.d0*alpz**2*d +35.d0*alpz**4*d**2 +35.d0*alpz**6*d**3)/&
-             (2.d0*d**4*tt**7)
-        else 
-        stop 'l too big'
-        end if
+              tt=sqrt(1.d0+2.d0*alpz**2*d)
+              if (l.eq.0) then
+                 hh(i,j)=hh(i,j) -zion/(2.d0*d*tt)
+              else if (l.eq.1) then
+                 hh(i,j)=hh(i,j) -zion* &
+                      (1.d0 + 3.d0*alpz**2*d)/(2.d0*d**2*tt**3)
+              else if (l.eq.2) then
+                 hh(i,j)=hh(i,j) -zion* &
+                      (2.d0 + 10.d0*alpz**2*d + 15.d0*alpz**4*d**2)/(2.d0*d**3*tt**5)
+              else if (l.eq.3) then
+                 hh(i,j)=hh(i,j) -zion*3.d0* &
+                      (2.d0 +14.d0*alpz**2*d +35.d0*alpz**4*d**2 +35.d0*alpz**6*d**3)/&
+                      (2.d0*d**4*tt**7)
+              else 
+                 stop 'l too big'
+              end if
 ! potential from repulsive gauss potential
-        tt=alpl**2/(.5d0+d*alpl**2)
-        hh(i,j)=hh(i,j)  + gpot(1)*.5d0*gamma(1.5d0+l)*tt**(1.5d0+l)&
-             + (gpot(2)/alpl**2)*.5d0*gamma(2.5d0+l)*tt**(2.5d0+l)&
-             + (gpot(3)/alpl**4)*.5d0*gamma(3.5d0+l)*tt**(3.5d0+l)
-        ! separable terms
-        if (l.le.lpx) then
-           hh(i,j)=hh(i,j) + pp1(i,l+1)*hsep(1,l+1)*pp1(j,l+1)&
-                + pp1(i,l+1)*hsep(2,l+1)*pp2(j,l+1)&
-                + pp2(i,l+1)*hsep(2,l+1)*pp1(j,l+1)&
-                + pp2(i,l+1)*hsep(3,l+1)*pp2(j,l+1)&
-                + pp1(i,l+1)*hsep(4,l+1)*pp3(j,l+1)&
-                + pp3(i,l+1)*hsep(4,l+1)*pp1(j,l+1)&
-                + pp2(i,l+1)*hsep(5,l+1)*pp3(j,l+1)&
-                + pp3(i,l+1)*hsep(5,l+1)*pp2(j,l+1)&
-                + pp3(i,l+1)*hsep(6,l+1)*pp3(j,l+1)
-        end if
+              tt=alpl**2/(.5d0+d*alpl**2)
+              hh(i,j)=hh(i,j)  + gpot(1)*.5d0*gamma(1.5d0+l)*tt**(1.5d0+l)&
+                   + (gpot(2)/alpl**2)*.5d0*gamma(2.5d0+l)*tt**(2.5d0+l)&
+                   + (gpot(3)/alpl**4)*.5d0*gamma(3.5d0+l)*tt**(3.5d0+l)
+! separable terms
+              if (l.le.lpx) then
+                 hh(i,j)=hh(i,j) + pp1(i,l+1)*hsep(1,l+1)*pp1(j,l+1)&
+                      + pp1(i,l+1)*hsep(2,l+1)*pp2(j,l+1)&
+                      + pp2(i,l+1)*hsep(2,l+1)*pp1(j,l+1)&
+                      + pp2(i,l+1)*hsep(3,l+1)*pp2(j,l+1)&
+                      + pp1(i,l+1)*hsep(4,l+1)*pp3(j,l+1)&
+                      + pp3(i,l+1)*hsep(4,l+1)*pp1(j,l+1)&
+                      + pp2(i,l+1)*hsep(5,l+1)*pp3(j,l+1)&
+                      + pp3(i,l+1)*hsep(5,l+1)*pp2(j,l+1)&
+                      + pp3(i,l+1)*hsep(6,l+1)*pp3(j,l+1)
+              end if
 ! hartree potential from valence charge distribution
-!        tt=0.d0
-!        do 4982,lp=0,lcx
-!        do 4982,jp=0,ng
-!        do 4982,ip=0,ng
-!        tt=tt + vh(ip,jp,lp+1,i,j,l+1)*rho(ip,jp,lp+1)
-!4982        continue
-        tt=DDOT((lcx+1)*(ng+1)**2,vh(0,0,1,i,j,l+1),1,rho(0,0,1),1)
-        hh(i,j)=hh(i,j) + tt
+!              tt=0.d0
+!              do lp=0,lcx
+!                 do jp=0,ng
+!                    do ip=0,ng
+!                       tt=tt + vh(ip,jp,lp+1,i,j,l+1)*rho(ip,jp,lp+1)
+!                    end do
+!                 end do
+!              end do
+              tt=DDOT((lcx+1)*(ng+1)**2,vh(0,0,1,i,j,l+1),1,rho(0,0,1),1)
+              hh(i,j)=hh(i,j) + tt
 ! potential from XC potential
-        dr=fact*rprb/nint
-!        tt=0.d0
-!        do 8049,k=1,nint
-!8049        tt=tt+xcgrd(k)*rmt(k,i,j,l+1)
-        tt=DDOT(nint,rmt(1,i,j,l+1),1,xcgrd(1),1)
-        hh(i,j)=hh(i,j)+tt*dr
-100        continue
- 
+              dr=fact*rprb/nint
+!              tt=0.d0
+!              do k=1,nint
+!                 tt=tt+xcgrd(k)*rmt(k,i,j,l+1)
+!              end do
+              tt=DDOT(nint,rmt(1,i,j,l+1),1,xcgrd(1),1)
+              hh(i,j)=hh(i,j)+tt*dr
+           end do loop_j
+        end do loop_i
+
 ! ESSL
 !        call DSYGV(1,hh,ng+1,ss,ng+1,eval,evec,ng+1,ng+1,aux,2*ng+2)
 ! LAPACK
-        call DSYGV(1,'V','L',&
-             ng+1,hh,ng+1,ss,ng+1,eval,evec,(ng+1)**2,info)
+        call DSYGV(1,'V','L',ng+1,hh,ng+1,ss,ng+1,eval,evec,(ng+1)**2,info)
         if (info.ne.0) write(6,*) 'LAPACK',info
-        do 334,iocc=0,noccmax-1
-        do 334,i=0,ng
-334        evec(i,iocc)=hh(i,iocc)
+        do iocc=0,noccmax-1
+           do i=0,ng
+              evec(i,iocc)=hh(i,iocc)
+           end do
+        end do
 ! end LAPACK
-        do 9134,iocc=1,noccmax
-        evsum=evsum+eval(iocc-1)
-        aeval(iocc,l+1)=eval(iocc-1)
-        do 9134,i=0,ng
-9134        psi(i,iocc,l+1)=evec(i,iocc-1)
-
+        do iocc=1,noccmax
+           evsum=evsum+eval(iocc-1)
+           aeval(iocc,l+1)=eval(iocc-1)
+           do i=0,ng
+              psi(i,iocc,l+1)=evec(i,iocc-1)
+           end do
+        end do
 !        write(6,*) 'eval',l
-!55        format(5(e14.7))
+!55      format(5(e14.7))
 !        write(6,55) eval 
 !        write(6,*) 'diff eval'
 !        write(6,55) (eval(i)-eval(i-1),i=1,ng)
-        
 !        write(6,*) 'evec',l
+!33      format(10(e9.2))
 !        do i=0,ng
-!33        format(10(e9.2))
-!        write(6,33) (evec(i,iocc),iocc=0,noccmax-1)
+!           write(6,33) (evec(i,iocc),iocc=0,noccmax-1)
 !        end do
 
-1000        continue
+     end do loop_l
 
-        tt=abs(evsum-evsumold)
-!        write(6,*) 'evdiff',it,tt
-        if (tt.lt.1.d-12) goto 3000
-2000        continue
-3000        continue
-        call resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,ng,res,&
+     tt=abs(evsum-evsumold)
+!     write(6,*) 'evdiff',it,tt
+     if (tt.lt.1.d-12) then
+         exit big_loop
+     end if
+  end do big_loop
+! End of the big loop
+
+  call resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,ng,res,&
              zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,nint,&
              potgrd,xcgrd)
 
 ! charge up to radius rcov
-        if (lmax.gt.3) stop 'cannot calculate chrg'
-        do 3754,l=0,lmax
-        do 3754,iocc=1,noccmax
-3754        chrg(iocc,l+1)=0.d0
+  if (lmax.gt.3) stop 'cannot calculate chrg'
+  do l=0,lmax
+     do iocc=1,noccmax
+        chrg(iocc,l+1)=0.d0
+     end do
+  end do
 
-        do 3761,iocc=1,noccmax
-        do 3761,j=0,ng
-        do 3761,i=0,ng
-        d=xp(i)+xp(j)
-        sd=sqrt(d)
-        terf=erf(sd*rcov) 
-        texp=exp(-d*rcov**2)
+  do iocc=1,noccmax
+     do j=0,ng
+        do i=0,ng
+           d=xp(i)+xp(j)
+           sd=sqrt(d)
+           terf=erf(sd*rcov) 
+           texp=exp(-d*rcov**2)
 
-        tt=0.4431134627263791d0*terf/sd**3 - 0.5d0*rcov*texp/d
-        chrg(iocc,1)=chrg(iocc,1) + psi(i,iocc,1)*psi(j,iocc,1)*tt
-        if (lmax.eq.0) goto 3761
-        tt=0.6646701940895686d0*terf/sd**5 + &
-             (-0.75d0*rcov*texp - 0.5d0*d*rcov**3*texp)/d**2
-        chrg(iocc,2)=chrg(iocc,2) + psi(i,iocc,2)*psi(j,iocc,2)*tt
-        if (lmax.eq.1) goto 3761
-        tt=1.661675485223921d0*terf/sd**7 + &
-             (-1.875d0*rcov*texp-1.25d0*d*rcov**3*texp-.5d0*d**2*rcov**5*texp) &
-             /d**3
-        chrg(iocc,3)=chrg(iocc,3) + psi(i,iocc,3)*psi(j,iocc,3)*tt
-        if (lmax.eq.2) goto 3761
-        tt=5.815864198283725d0*terf/sd**9 + &
-             (-6.5625d0*rcov*texp - 4.375d0*d*rcov**3*texp - &
-             1.75d0*d**2*rcov**5*texp - .5d0*d**3*rcov**7*texp)/d**4
-        chrg(iocc,4)=chrg(iocc,4) + psi(i,iocc,4)*psi(j,iocc,4)*tt
-3761        continue
+           tt=0.4431134627263791d0*terf/sd**3 - 0.5d0*rcov*texp/d
+           chrg(iocc,1)=chrg(iocc,1) + psi(i,iocc,1)*psi(j,iocc,1)*tt
+           if (lmax.eq.0) then
+              cycle
+           end if
+           tt=0.6646701940895686d0*terf/sd**5 + &
+              (-0.75d0*rcov*texp - 0.5d0*d*rcov**3*texp)/d**2
+           chrg(iocc,2)=chrg(iocc,2) + psi(i,iocc,2)*psi(j,iocc,2)*tt
+           if (lmax.eq.1) then
+               cycle
+           end if
+           tt=1.661675485223921d0*terf/sd**7 + &
+              (-1.875d0*rcov*texp-1.25d0*d*rcov**3*texp-.5d0*d**2*rcov**5*texp) &
+              /d**3
+           chrg(iocc,3)=chrg(iocc,3) + psi(i,iocc,3)*psi(j,iocc,3)*tt
+           if (lmax.eq.2) then
+              cycle
+           end if
+           tt=5.815864198283725d0*terf/sd**9 + &
+              (-6.5625d0*rcov*texp - 4.375d0*d*rcov**3*texp - &
+              1.75d0*d**2*rcov**5*texp - .5d0*d**3*rcov**7*texp)/d**4
+           chrg(iocc,4)=chrg(iocc,4) + psi(i,iocc,4)*psi(j,iocc,4)*tt
+        end do
+     end do
+  end do
 
-
-        !writing lines suppressed
+! writing lines suppressed
 !!$        write(66,*)  lmax+1
 !!$        write(66,*) ' #LINETYPE{1324}' 
 !!$        write(66,*) ' $' 
-        do l=0,lmax
+  do l=0,lmax
 !!$           write(66,*) ' 161'
-           r=0.d0
-           do
-              tt= wave(ng,l,xp,psi(0,1,l+1),r)
+     r=0.d0
+     do
+        tt= wave(ng,l,xp,psi(0,1,l+1),r)
 !!$              write(66,*) r,tt
-              r=r+.025d0
-              if(r > 4.00001d0) exit
-           end do
-        end do
-        !writing lines suppressed
+        r=r+.025d0
+        if(r > 4.00001d0) exit
+     end do
+  end do
+! writing lines suppressed
 !!$        write(67,*) min(lmax+1,3)
 !!$        write(67,*) ' #LINETYPE{132}'
 !!$        write(67,*) ' #TITLE{FOURIER}' 
 !!$        write(67,*) ' $'
-        dr=6.28d0/rprb/200.d0
+  dr=6.28d0/rprb/200.d0
 !!$        write(67,*) ' 200'
-        rk=0.d0
-        loop_rk1: do 
-           tt=0.d0
-           do i=0,ng
-              texp=exp(-.25d0*rk**2/xp(i))
-!              texp=exp(-.5d0*energy/xp(i))
-              sd=sqrt(xp(i))
-              tt=tt+psi(i,1,1)*0.4431134627263791d0*texp/sd**3
-           end do
+  rk=0.d0
+  loop_rk1: do 
+     tt=0.d0
+     do i=0,ng
+        texp=exp(-.25d0*rk**2/xp(i))
+!        texp=exp(-.5d0*energy/xp(i))
+        sd=sqrt(xp(i))
+        tt=tt+psi(i,1,1)*0.4431134627263791d0*texp/sd**3
+     end do
 !!$           write(67,*) rk,tt
-           rk=rk+dr
-           if(rk > 6.28d0/rprb-.5d0*dr) exit loop_rk1
-        end do loop_rk1
-        if (lmax.ge.1) then
+     rk=rk+dr
+     if(rk > 6.28d0/rprb-.5d0*dr) exit loop_rk1
+  end do loop_rk1
+  if (lmax.ge.1) then
 !!$           write(67,*) ' 200'
-           rk=0.d0
-           loop_rk2: do 
-              tt=0.d0
-              do i=0,ng
-                 texp=exp(-.25d0*rk**2/xp(i))
-                 sd=sqrt(xp(i))
-                 tt=tt+psi(i,1,2)*0.2215567313631895d0*rk*texp/sd**5
-              end do
+     rk=0.d0
+     loop_rk2: do 
+        tt=0.d0
+        do i=0,ng
+           texp=exp(-.25d0*rk**2/xp(i))
+           sd=sqrt(xp(i))
+           tt=tt+psi(i,1,2)*0.2215567313631895d0*rk*texp/sd**5
+        end do
 !!$              write(67,*) rk,tt
-              rk=rk+dr
-              if (rk > 6.28d0/rprb-.5d0*dr) exit loop_rk2
-           end do loop_rk2
-        end if
-        if (lmax.ge.2) then
+        rk=rk+dr
+        if (rk > 6.28d0/rprb-.5d0*dr) exit loop_rk2
+     end do loop_rk2
+  end if
+  if (lmax.ge.2) then
 !!$           write(67,*) ' 200'
-           rk=0.d0
-           do 
-              tt=0.d0
-              do i=0,ng
-                 texp=exp(-.25d0*rk**2/xp(i))
-                 sd=sqrt(xp(i))
-              tt=tt+psi(i,1,3)*0.1107783656815948d0*rk**2*texp/sd**7
-              end do
+     rk=0.d0
+     do 
+        tt=0.d0
+        do i=0,ng
+           texp=exp(-.25d0*rk**2/xp(i))
+           sd=sqrt(xp(i))
+           tt=tt+psi(i,1,3)*0.1107783656815948d0*rk**2*texp/sd**7
+        end do
 !!$              write(67,*) rk,tt
-              rk=rk+dr
-              if (rk > 6.28d0/rprb-.5d0*dr) exit
-           end do
-        end if
+        rk=rk+dr
+        if (rk > 6.28d0/rprb-.5d0*dr) exit
+     end do
+  end if
+
+END SUBROUTINE gatom
 
 
-      end subroutine gatom
 
-
-
-      subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
-           ng,res,zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,nint,&
-           potgrd,xcgrd)
-        implicit real*8 (a-h,o-z)
-        dimension psi(0:ng,noccmax,lmax+1),rho(0:ng,0:ng,lmax+1),&
-             gpot(3),pp1(0:ng,lmax+1),pp2(0:ng,lmax+1),pp3(0:ng,lmax+1),&
-             alps(lmax+1),hsep(6,lmax+1),res(noccmax,lmax+1),xp(0:ng),&
-             xcgrd(nint),aeval(noccmax,lmax+1),potgrd(nint)
-        
-!   potential on grid 
-        dr=fact*rprb/nint
-        do 9873,k=1,nint
-        r=(k-.5d0)*dr
-        potgrd(k)= .5d0*(r/rprb**2)**2 - &
-             zion*erf(r/(sqrt(2.d0)*alpz))/r &
-             + exp(-.5d0*(r/alpl)**2)*&
-             ( gpot(1) + gpot(2)*(r/alpl)**2 + gpot(3)*(r/alpl)**4 )&
-             + xcgrd(k)/r**2
-        do 2487,j=0,ng
-        do 2487,i=0,ng
-        spi=1.772453850905516d0
-        d=xp(i)+xp(j)
-        sd=sqrt(d)
-        tx=exp(-d*r**2)
-        tt=spi*erf(sd*r)
+subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
+                 ng,res,zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,nint,&
+                 potgrd,xcgrd)
+  implicit real(kind=8) (a-h,o-z)
+  dimension psi(0:ng,noccmax,lmax+1),rho(0:ng,0:ng,lmax+1),&
+       gpot(3),pp1(0:ng,lmax+1),pp2(0:ng,lmax+1),pp3(0:ng,lmax+1),&
+       alps(lmax+1),hsep(6,lmax+1),res(noccmax,lmax+1),xp(0:ng),&
+       xcgrd(nint),aeval(noccmax,lmax+1),potgrd(nint)
+  
+! potential on grid 
+  dr=fact*rprb/nint
+  do k=1,nint
+     r=(k-.5d0)*dr
+     potgrd(k)= .5d0*(r/rprb**2)**2 - &
+          zion*erf(r/(sqrt(2.d0)*alpz))/r &
+          + exp(-.5d0*(r/alpl)**2)*&
+          ( gpot(1) + gpot(2)*(r/alpl)**2 + gpot(3)*(r/alpl)**4 )&
+          + xcgrd(k)/r**2
+     do j=0,ng
+        do i=0,ng
+           spi=1.772453850905516d0
+           d=xp(i)+xp(j)
+           sd=sqrt(d)
+           tx=exp(-d*r**2)
+           tt=spi*erf(sd*r)
            ud0=tt/(4.d0*sd**3*r)
-        potgrd(k)=potgrd(k)+ud0*rho(i,j,1)
+           potgrd(k)=potgrd(k)+ud0*rho(i,j,1)
            ud1=-tx/(4.d0*d**2) + 3.d0*tt/(8.d0*sd**5*r)
-        if (lmax.ge.1) potgrd(k)=potgrd(k)+ud1*rho(i,j,2)
-        ud2=-tx*(7.d0 + 2.d0*d*r**2)/(8.d0*d**3) +&
-             15.d0*tt/(16.d0*sd**7*r)
-        if (lmax.ge.2) potgrd(k)=potgrd(k)+ud2*rho(i,j,3)
-        ud3=-tx*(57.d0+22.d0*d*r**2+4.d0*d**2*r**4)/(16.d0*d**4) + &
-             105.d0*tt/(32.d0*sd**9*r)
-        if (lmax.ge.3) potgrd(k)=potgrd(k)+ud3*rho(i,j,4)
-2487    continue
-9873        continue
+           if (lmax.ge.1) potgrd(k)=potgrd(k)+ud1*rho(i,j,2)
+           ud2=-tx*(7.d0 + 2.d0*d*r**2)/(8.d0*d**3) +&
+               15.d0*tt/(16.d0*sd**7*r)
+           if (lmax.ge.2) potgrd(k)=potgrd(k)+ud2*rho(i,j,3)
+           ud3=-tx*(57.d0+22.d0*d*r**2+4.d0*d**2*r**4)/(16.d0*d**4) + &
+               105.d0*tt/(32.d0*sd**9*r)
+           if (lmax.ge.3) potgrd(k)=potgrd(k)+ud3*rho(i,j,4)
+        end do
+     end do
+  end do
 
-        do 1500,ll=0,lmax
-        if (ll.le.lpx) then
+  loop_ll: do ll=0,lmax
+     if (ll.le.lpx) then
         rnrm1=1.d0/sqrt(.5d0*gamma(ll+1.5d0)*alps(ll+1)**(2*ll+3))
         rnrm2=1.d0/sqrt(.5d0*gamma(ll+3.5d0)*alps(ll+1)**(2*ll+7))
         rnrm3=1.d0/sqrt(.5d0*gamma(ll+5.5d0)*alps(ll+1)**(2*ll+11))
-        end if
-        do 1500,iocc=1,noccmax
-! separabel part
+     end if
+     loop_iocc: do iocc=1,noccmax
+! separable part
         if (ll.le.lpx) then
-        scpr1=DDOT(ng+1,psi(0,iocc,ll+1),1,pp1(0,ll+1),1)
-        scpr2=DDOT(ng+1,psi(0,iocc,ll+1),1,pp2(0,ll+1),1)
-        scpr3=DDOT(ng+1,psi(0,iocc,ll+1),1,pp3(0,ll+1),1)
+           scpr1=DDOT(ng+1,psi(0,iocc,ll+1),1,pp1(0,ll+1),1)
+           scpr2=DDOT(ng+1,psi(0,iocc,ll+1),1,pp2(0,ll+1),1)
+           scpr3=DDOT(ng+1,psi(0,iocc,ll+1),1,pp3(0,ll+1),1)
         end if
         res(iocc,ll+1)=0.d0
-        do 1500,j=1,nint
-!  wavefunction on grid
-        r=(j-.5d0)*dr
-        psigrd = wave(ng,ll,xp,psi(0,iocc,ll+1),r)
-!   kinetic energy        
-        rkin=0.d0
-        do 5733,i=0,ng
-        rkin=rkin + psi(i,iocc,ll+1) *  (&
-             xp(i)*(3.d0+2.d0*ll-2.d0*xp(i)*r**2)*exp(-xp(i)*r**2) )
-5733        continue
-        rkin=rkin*r**ll
-!   separabel part
-        if (ll.le.lpx) then
-           sep =& 
-                (scpr1*hsep(1,ll+1) + scpr2*hsep(2,ll+1) + scpr3*hsep(4,ll+1))&
-                *rnrm1*r**ll*exp(-.5d0*(r/alps(ll+1))**2)   +&
-                (scpr1*hsep(2,ll+1) + scpr2*hsep(3,ll+1) + scpr3*hsep(5,ll+1))&
-                *rnrm2*r**(ll+2)*exp(-.5d0*(r/alps(ll+1))**2)   +&
-                (scpr1*hsep(4,ll+1) + scpr2*hsep(5,ll+1) + scpr3*hsep(6,ll+1))&
-                *rnrm3*r**(ll+4)*exp(-.5d0*(r/alps(ll+1))**2)
-        else
-        sep=0.d0
-        end if
-! resdidue
-        tt=rkin+sep+(potgrd(j)-aeval(iocc,ll+1))*psigrd
+        loop_j: do j=1,nint
+! wavefunction on grid
+           r=(j-.5d0)*dr
+           psigrd = wave(ng,ll,xp,psi(0,iocc,ll+1),r)
+! kinetic energy        
+           rkin=0.d0
+           do i=0,ng
+              rkin=rkin + psi(i,iocc,ll+1) *  (&
+                   xp(i)*(3.d0+2.d0*ll-2.d0*xp(i)*r**2)*exp(-xp(i)*r**2) )
+           end do
+           rkin=rkin*r**ll
+! separable part
+           if (ll.le.lpx) then
+              sep =& 
+                   (scpr1*hsep(1,ll+1) + scpr2*hsep(2,ll+1) + scpr3*hsep(4,ll+1))&
+                   *rnrm1*r**ll*exp(-.5d0*(r/alps(ll+1))**2)   +&
+                   (scpr1*hsep(2,ll+1) + scpr2*hsep(3,ll+1) + scpr3*hsep(5,ll+1))&
+                   *rnrm2*r**(ll+2)*exp(-.5d0*(r/alps(ll+1))**2)   +&
+                   (scpr1*hsep(4,ll+1) + scpr2*hsep(5,ll+1) + scpr3*hsep(6,ll+1))&
+                   *rnrm3*r**(ll+4)*exp(-.5d0*(r/alps(ll+1))**2)
+           else
+              sep=0.d0
+           end if
+! residue
+           tt=rkin+sep+(potgrd(j)-aeval(iocc,ll+1))*psigrd
 !384        format(6(e12.5))
 !12        format(i2,i2,e9.2,3(e12.5),e10.3)
-        res(iocc,ll+1)=res(iocc,ll+1) + tt**2*dr
-1500        continue
-!        do 867,l=0,lmax
-!        do 867,iocc=1,noccmax
-!867        write(6,*) 'res',l,iocc,res(iocc,l+1)
-        return
-        end subroutine resid
+           res(iocc,ll+1)=res(iocc,ll+1) + tt**2*dr
+        end do loop_j
+     end do loop_iocc
+  end do loop_ll
+!  do l=0,lmax
+!     do iocc=1,noccmax
+!        write(6,*) 'res',l,iocc,res(iocc,l+1)
+!     end do
+!  end do
+
+END SUBROUTINE resid
 
 
+subroutine crtvh(ng,lmax,xp,vh,rprb,fact,nint,rmt)
+  implicit real(kind=8) (a-h,o-z)
+  dimension vh(0:ng,0:ng,0:3,0:ng,0:ng,0:3),xp(0:ng),&
+            rmt(nint,0:ng,0:ng,lmax+1)
+  if (lmax.gt.3) stop 'crtvh'
 
-        subroutine crtvh(ng,lmax,xp,vh,rprb,fact,nint,rmt)
-        implicit real*8 (a-h,o-z)
-        dimension vh(0:ng,0:ng,0:3,0:ng,0:ng,0:3),xp(0:ng),&
-             rmt(nint,0:ng,0:ng,lmax+1)
-        if (lmax.gt.3) stop 'crtvh'
-
-        dr=fact*rprb/nint
-        do 8049,l=0,lmax
-        do 8049,k=1,nint
+  dr=fact*rprb/nint
+  do l=0,lmax
+     do k=1,nint
         r=(k-.5d0)*dr
-        do 8049,j=0,ng
-        do 8049,i=0,ng
-8049        rmt(k,i,j,l+1)=(r**2)**l*exp(-(xp(i)+xp(j))*r**2)
+        do j=0,ng
+           do i=0,ng
+              rmt(k,i,j,l+1)=(r**2)**l*exp(-(xp(i)+xp(j))*r**2)
+           end do
+        end do
+     end do
+  end do
 
-        do 100,j=0,ng
-        do 100,i=0,ng
+  loop_j: do j=0,ng
+     loop_i: do i=0,ng
         c=xp(i)+xp(j)
-        do 100,jp=0,ng
-        do 100,ip=0,ng
-        d=xp(ip)+xp(jp)
-        scpd=sqrt(c+d)
-        vh(ip,jp,0,i,j,0)=0.2215567313631895d0/(c*d*scpd)
-        vh(ip,jp,1,i,j,0)=&
-             .1107783656815948d0*(2.d0*c+3.d0*d)/(c*d**2*scpd**3)
-        vh(ip,jp,2,i,j,0)=.05538918284079739d0*&
-             (8.d0*c**2+20.d0*c*d+15.d0*d**2)/(c*d**3*scpd**5)
-        vh(ip,jp,3,i,j,0)=.0830837742611961d0*&
-        (16.d0*c**3+56.d0*c**2*d+70.d0*c*d**2+35.d0*d**3)/&
-             (c*d**4*scpd**7)
+        loop_jp: do jp=0,ng
+           loop_ip: do ip=0,ng
+              d=xp(ip)+xp(jp)
+              scpd=sqrt(c+d)
+              vh(ip,jp,0,i,j,0)=0.2215567313631895d0/(c*d*scpd)
+              vh(ip,jp,1,i,j,0)=&
+                   .1107783656815948d0*(2.d0*c+3.d0*d)/(c*d**2*scpd**3)
+              vh(ip,jp,2,i,j,0)=.05538918284079739d0*&
+                   (8.d0*c**2+20.d0*c*d+15.d0*d**2)/(c*d**3*scpd**5)
+              vh(ip,jp,3,i,j,0)=.0830837742611961d0*&
+              (16.d0*c**3+56.d0*c**2*d+70.d0*c*d**2+35.d0*d**3)/&
+                   (c*d**4*scpd**7)
+
+              vh(ip,jp,0,i,j,1)=&
+                   .1107783656815948d0*(3.d0*c+2.d0*d)/(c**2*d*scpd**3)
+              vh(ip,jp,1,i,j,1)=&
+                   .05538918284079739d0*(6.d0*c**2+15.d0*c*d+6.d0*d**2)/&
+                   (c**2*d**2*scpd**5)
+              vh(ip,jp,2,i,j,1)=.02769459142039869d0*&
+                   (24.d0*c**3+84.d0*c**2*d+105.d0*c*d**2+30.d0*d**3)/&
+                   (c**2*d**3*scpd**7)
+              vh(ip,jp,3,i,j,1)=0.04154188713059803d0*&
+                   (48.d0*c**4+216.d0*c**3*d+378.d0*c**2*d**2+&
+                   315.d0*c*d**3+70.d0*d**4)/(c**2*d**4*scpd**9)
+
+              vh(ip,jp,0,i,j,2)=&
+                   .05538918284079739d0*(15.d0*c**2+20.d0*c*d+8.d0*d**2)/&
+                   (c**3*d*scpd**5)
+              vh(ip,jp,1,i,j,2)=.02769459142039869d0*&
+                   (30.d0*c**3+105.d0*c**2*d+84.d0*c*d**2+24.d0*d**3)/&
+                   (c**3*d**2*scpd**7)
+              vh(ip,jp,2,i,j,2)=&
+                   .2077094356529901d0*(8.d0*c**4+36.d0*c**3*d+63.d0*c**2*d**2+&
+                   36.d0*c*d**3+8.d0*d**4)/(c**3*d**3*scpd**9)
+              vh(ip,jp,3,i,j,2)=&
+                   .1038547178264951d0*(48.d0*c**5+264.d0*c**4*d+594.d0*c**3*d**2+&
+                   693.d0*c**2*d**3+308.d0*c*d**4+56.d0*d**5)/&
+                   (c**3*d**4*scpd**11)
+
+              vh(ip,jp,0,i,j,3)=.0830837742611961d0*&
+                   (35.d0*c**3+70.d0*c**2*d+56.d0*c*d**2+16.d0*d**3)/&
+                   (c**4*d*scpd**7)
+              vh(ip,jp,1,i,j,3)=&
+                   .04154188713059803d0*(70.d0*c**4+315.d0*c**3*d+378.d0*c**2*d**2+&
+                   216.d0*c*d**3+48.d0*d**4)/(c**4*d**2*scpd**9)
+              vh(ip,jp,2,i,j,3)=&
+                   .1038547178264951d0*(56.d0*c**5+308.d0*c**4*d+693.d0*c**3*d**2+&
+                   594.d0*c**2*d**3+264.d0*c*d**4+48.d0*d**5)/&
+                   (c**4*d**3*scpd**11)
+              vh(ip,jp,3,i,j,3)=&
+                   1.090474537178198d0*(16.d0*c**6+104.d0*c**5*d+286.d0*c**4*d**2+&
+                   429.d0*c**3*d**3+286.d0*c**2*d**4+104.d0*c*d**5+16.d0*d**6)/&
+                   (c**4*d**4*scpd**13)
+           end do loop_ip
+        end do loop_jp
+     end do loop_i
+  end do loop_j
+
+END SUBROUTINE crtvh
 
 
-        vh(ip,jp,0,i,j,1)=&
-             .1107783656815948d0*(3.d0*c+2.d0*d)/(c**2*d*scpd**3)
-        vh(ip,jp,1,i,j,1)=&
-             .05538918284079739d0*(6.d0*c**2+15.d0*c*d+6.d0*d**2)/&
-             (c**2*d**2*scpd**5)
-        vh(ip,jp,2,i,j,1)=.02769459142039869d0*&
-             (24.d0*c**3+84.d0*c**2*d+105.d0*c*d**2+30.d0*d**3)/&
-             (c**2*d**3*scpd**7)
-        vh(ip,jp,3,i,j,1)=0.04154188713059803d0*&
-             (48.d0*c**4+216.d0*c**3*d+378.d0*c**2*d**2+&
-             315.d0*c*d**3+70.d0*d**4)/(c**2*d**4*scpd**9)
+real(kind=8) function wave(ng,ll,xp,psi,r)
+  implicit real(kind=8) (a-h,o-z)
+  dimension psi(0:ng),xp(0:ng)
 
-        vh(ip,jp,0,i,j,2)=&
-             .05538918284079739d0*(15.d0*c**2+20.d0*c*d+8.d0*d**2)/&
-             (c**3*d*scpd**5)
-        vh(ip,jp,1,i,j,2)=.02769459142039869d0*&
-             (30.d0*c**3+105.d0*c**2*d+84.d0*c*d**2+24.d0*d**3)/&
-             (c**3*d**2*scpd**7)
-        vh(ip,jp,2,i,j,2)=&
-             .2077094356529901d0*(8.d0*c**4+36.d0*c**3*d+63.d0*c**2*d**2+&
-             36.d0*c*d**3+8.d0*d**4)/(c**3*d**3*scpd**9)
-        vh(ip,jp,3,i,j,2)=&
-             .1038547178264951d0*(48.d0*c**5+264.d0*c**4*d+594.d0*c**3*d**2+&
-             693.d0*c**2*d**3+308.d0*c*d**4+56.d0*d**5)/&
-             (c**3*d**4*scpd**11)
-
-        vh(ip,jp,0,i,j,3)=.0830837742611961d0*&
-             (35.d0*c**3+70.d0*c**2*d+56.d0*c*d**2+16.d0*d**3)/&
-             (c**4*d*scpd**7)
-        vh(ip,jp,1,i,j,3)=&
-             .04154188713059803d0*(70.d0*c**4+315.d0*c**3*d+378.d0*c**2*d**2+&
-             216.d0*c*d**3+48.d0*d**4)/(c**4*d**2*scpd**9)
-        vh(ip,jp,2,i,j,3)=&
-             .1038547178264951d0*(56.d0*c**5+308.d0*c**4*d+693.d0*c**3*d**2+&
-             594.d0*c**2*d**3+264.d0*c*d**4+48.d0*d**5)/&
-             (c**4*d**3*scpd**11)
-        vh(ip,jp,3,i,j,3)=&
-             1.090474537178198d0*(16.d0*c**6+104.d0*c**5*d+286.d0*c**4*d**2+&
-             429.d0*c**3*d**3+286.d0*c**2*d**4+104.d0*c*d**5+16.d0*d**6)/&
-             (c**4*d**4*scpd**13)
-100        continue
-        return
-        end subroutine crtvh
-
-        real*8 function wave(ng,ll,xp,psi,r)
-        implicit real*8 (a-h,o-z)
-        dimension psi(0:ng),xp(0:ng)
-
-        wave=0.d0
-        do 9373,i=0,ng
-9373    wave=wave + psi(i)*exp(-xp(i)*r**2)
-        wave=wave*r**ll
-        return
-        end function wave
+  wave=0.d0
+  do i=0,ng
+     wave=wave + psi(i)*exp(-xp(i)*r**2)
+  end do
+  wave=wave*r**ll
+end function wave
 
 
-      real*8 function emuxc(rho)
-      implicit real*8 (a-h,o-z)
-      parameter (a0p=.4581652932831429d0,&
-           a1p=2.217058676663745d0,&
-           a2p=0.7405551735357053d0,&
-           a3p=0.01968227878617998d0)
-      parameter (b1p=1.0d0,&
-           b2p=4.504130959426697d0,&
-           b3p=1.110667363742916d0,&
-           b4p=0.02359291751427506d0)
-      parameter (rsfac=.6203504908994000d0,ot=1.d0/3.d0)
-      parameter (c1=4.d0*a0p*b1p/3.0d0,  c2=5.0d0*a0p*b2p/3.0d0+a1p*b1p,&
-           c3=2.0d0*a0p*b3p+4.0d0*a1p*b2p/3.0d0+2.0d0*a2p*b1p/3.0d0,&
-           c4=7.0d0*a0p*b4p/3.0d0+5.0d0*a1p*b3p/3.0d0+a2p*b2p+a3p*b1p/3.0d0,&
-           c5=2.0d0*a1p*b4p+4.0d0*a2p*b3p/3.0d0+2.0d0*a3p*b2p/3.0d0,&
-           c6=5.0d0*a2p*b4p/3.0d0+a3p*b3p,c7=4.0d0*a3p*b4p/3.0d0)
-      if(rho.lt.1.d-24) then
-        emuxc=0.d0
-      else
-        if(rho.lt.0.d0) write(6,*) ' rho less than zero',rho
-        rs=rsfac*rho**(-ot)
-        top=-rs*(c1+rs*(c2+rs*(c3+rs*(c4+rs*(c5+rs*(c6+rs*c7))))))
-        bot=rs*(b1p+rs*(b2p+rs*(b3p+rs*b4p)))
-        emuxc=top/(bot*bot)
-      end if
-      end function emuxc
+real(kind=8) function emuxc(rho)
+  implicit real(kind=8) (a-h,o-z)
+  parameter (a0p=.4581652932831429d0,&
+       a1p=2.217058676663745d0,&
+       a2p=0.7405551735357053d0,&
+       a3p=0.01968227878617998d0)
+  parameter (b1p=1.0d0,&
+       b2p=4.504130959426697d0,&
+       b3p=1.110667363742916d0,&
+       b4p=0.02359291751427506d0)
+  parameter (rsfac=.6203504908994000d0,ot=1.d0/3.d0)
+  parameter (c1=4.d0*a0p*b1p/3.0d0,  c2=5.0d0*a0p*b2p/3.0d0+a1p*b1p,&
+       c3=2.0d0*a0p*b3p+4.0d0*a1p*b2p/3.0d0+2.0d0*a2p*b1p/3.0d0,&
+       c4=7.0d0*a0p*b4p/3.0d0+5.0d0*a1p*b3p/3.0d0+a2p*b2p+a3p*b1p/3.0d0,&
+       c5=2.0d0*a1p*b4p+4.0d0*a2p*b3p/3.0d0+2.0d0*a3p*b2p/3.0d0,&
+       c6=5.0d0*a2p*b4p/3.0d0+a3p*b3p,c7=4.0d0*a3p*b4p/3.0d0)
+  if(rho.lt.1.d-24) then
+    emuxc=0.d0
+  else
+    if(rho.lt.0.d0) write(6,*) ' rho less than zero',rho
+    rs=rsfac*rho**(-ot)
+    top=-rs*(c1+rs*(c2+rs*(c3+rs*(c4+rs*(c5+rs*(c6+rs*c7))))))
+    bot=rs*(b1p+rs*(b2p+rs*(b3p+rs*b4p)))
+    emuxc=top/(bot*bot)
+  end if
+end function emuxc
 
-      real*8 function gamma(x)
-!     restricted version of the Gamma function
-      implicit real*8 (a-h,o-z)
 
-      if (x.le.0.d0) stop 'wrong argument for gamma'
-      if (mod(x,1.d0).eq.0.d0) then
-         ii=x
-         do i=2,ii
-            gamma=gamma*(i-1)
-         end do
-      else if (mod(x,.5d0).eq.0.d0) then
-         ii=x-.5d0
-!         gamma=sqrt(3.14159265358979d0)
-         gamma=1.772453850905516027d0
-         do i=1,ii
-            gamma=gamma*(i-.5d0)
-         end do
-      else
-         stop 'wrong argument for gamma'
-      end if
-      end function gamma
+real(kind=8) function gamma(x)
+! restricted version of the Gamma function
+  implicit real(kind=8) (a-h,o-z)
+
+  if (x.le.0.d0) stop 'wrong argument for gamma'
+  if (mod(x,1.d0).eq.0.d0) then
+     ii=x
+     do i=2,ii
+        gamma=gamma*(i-1)
+     end do
+  else if (mod(x,.5d0).eq.0.d0) then
+     ii=x-.5d0
+!     gamma=sqrt(3.14159265358979d0)
+     gamma=1.772453850905516027d0
+     do i=1,ii
+        gamma=gamma*(i-.5d0)
+     end do
+  else
+     stop 'wrong argument for gamma'
+  end if
+end function gamma
 

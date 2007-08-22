@@ -142,7 +142,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   real(kind=8), allocatable :: psir(:),y_c(:,:,:),y_f(:,:,:,:)
 
   !********************Alexey***************************************************************
-  !	for shrink:	
+  ! for shrink:
   integer ibzzx_c(2,-14:2*n3+16,0:n1) 
   integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
 
@@ -150,7 +150,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
   integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
 
-  !	for grow:
+  ! for grow:
   integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
   integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
 
@@ -158,9 +158,9 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
   integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
-  !	for real space:
+  ! for real space:
   integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
-  !*************Alexey***************************************************************************	
+  !*************Alexey***************************************************************************
   real(kind=8),allocatable,dimension(:,:,:)::x_c!input 
   real(kind=8),allocatable::x_f(:,:,:,:),x_fc(:,:,:,:) ! input
   real(kind=8),allocatable,dimension(:):: w1,w2
@@ -170,7 +170,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   !******************Alexey**********************************************************************
 
   ! shrink convention: nw1>nw2
-  nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&   		
+  nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
        (n1+1)*(2*n2+31)*(2*n3+31),&
        2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
        2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
@@ -278,7 +278,7 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   dimension y_f(7,0:n1,0:n2,0:n3)
   dimension psir((2*n1+31)*(2*n2+31)*(2*n3+31))
   !********************Alexey***************************************************************
-  !	for shrink:	
+  ! for shrink:
   integer ibzzx_c(2,-14:2*n3+16,0:n1) 
   integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
 
@@ -286,7 +286,7 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
   integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
 
-  !	for grow:
+  ! for grow:
   integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
   integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
 
@@ -294,9 +294,9 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
   integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
-  !	for real space:
+  ! for real space:
   integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
-  !*****************************************************************************************	
+  !*****************************************************************************************
   real(kind=8) x_c(0:n1,0:n2,0:n3),  x_fc(0:n1,0:n2,0:n3,3), x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)! input
   real(kind=8) w1(nw1),w2(nw2) ! work
   !***********************************************************************************************
@@ -344,7 +344,7 @@ subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   real(kind=8) tt
   integer i1,i2,i3
 
-  epot=0.d0	
+  epot=0.d0
   do i3=-14,2*n3+16
      do i2=-14,2*n2+16
         do i1=max(ibyyzz_r(1,i2,i3),-14),min(ibyyzz_r(2,i2,i3),2*n1+16)

@@ -40,11 +40,11 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   use Poisson_Solver
 
   implicit real(kind=8) (a-h,o-z)
-  character*30 label
-  character*27 filename
-  character*20 atomnames
-  character*2 symbol
-  character*1 datacode
+  character(len=30) :: label
+  character(len=27) :: filename
+  character(len=20) :: atomnames
+  character(len=2) :: symbol
+  character(len=1) :: datacode
   logical logrid_c,logrid_f,parallel,calc_tail,output_wf,output_grid
   parameter(eps_mach=1.d-12,onem=1.d0-eps_mach)
   ! work array for ALLREDUCE
@@ -1837,7 +1837,7 @@ subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, 
      & psppar, npspcode, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
      & keyg_p, keyv_p, nproj, nprojel, istart, nboxp_c, nboxp_f, proj)
   implicit real(kind=8) (a-h,o-z)
-  character*20 :: atomnames(100)
+  character(len=20) :: atomnames(100)
   dimension rxyz(3,nat),iatype(nat),radii_cf(ntypes,2),psppar(0:4,0:4,ntypes),npspcode(ntypes)
   integer :: nvctr_p(0:2*nat), nseg_p(0:2*nat)
   integer :: nboxp_c(2,3,nat), nboxp_f(2,3,nat)
@@ -2383,6 +2383,7 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
   return
 END SUBROUTINE import_gaussians
 
+
 subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
      rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
@@ -2877,107 +2878,110 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 END SUBROUTINE input_wf_diag
 
 
-        subroutine diisstp(parallel,norb,norbp,nproc,iproc,  & 
+subroutine diisstp(parallel,norb,norbp,nproc,iproc,  & 
                    ads,ids,mids,idsx,nvctrp,psit,psidst,hpsidst)
 ! diis subroutine:
 ! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
 ! using  the previous iteration points phidst and the associated error 
 ! vectors (preconditione gradients) hpsidst
-        implicit real(kind=8) (a-h,o-z)
-        include 'mpif.h'
-        logical parallel
-        dimension psit(nvctrp,norbp*nproc),ads(idsx+1,idsx+1,3), &
-        psidst(nvctrp,norbp*nproc,idsx),hpsidst(nvctrp,norbp*nproc,idsx)
-        allocatable :: ipiv(:),rds(:)
+  implicit real(kind=8) (a-h,o-z)
+  include 'mpif.h'
+  logical parallel
+  dimension psit(nvctrp,norbp*nproc),ads(idsx+1,idsx+1,3), &
+  psidst(nvctrp,norbp*nproc,idsx),hpsidst(nvctrp,norbp*nproc,idsx)
+  allocatable :: ipiv(:),rds(:)
 
-        call timing(iproc,'Diis          ','ON')
+  call timing(iproc,'Diis          ','ON')
 
-        allocate(ipiv(idsx+1),stat=i_stat)
-        call memocc(i_stat,product(shape(ipiv))*kind(ipiv),'ipiv','diisstp')
-        allocate(rds(idsx+1),stat=i_stat)
-        call memocc(i_stat,product(shape(rds))*kind(rds),'rds','diisstp')
+  allocate(ipiv(idsx+1),stat=i_stat)
+  call memocc(i_stat,product(shape(ipiv))*kind(ipiv),'ipiv','diisstp')
+  allocate(rds(idsx+1),stat=i_stat)
+  call memocc(i_stat,product(shape(rds))*kind(rds),'rds','diisstp')
 
 ! set up DIIS matrix (upper triangle)
-        if (ids.gt.idsx) then
+  if (ids.gt.idsx) then
 ! shift left up matrix
-        do 3079,i=1,idsx-1
-        do 3079,j=1,i
-3079    ads(j,i,1)=ads(j+1,i+1,1)
-        endif
+     do i=1,idsx-1
+        do j=1,i
+           ads(j,i,1)=ads(j+1,i+1,1)
+        end do
+     end do
+  end if
 
 ! calculate new line, use rds as work array for summation
-        call razero(idsx,rds)
-        ist=max(1,ids-idsx+1)
-        do i=ist,ids
-           mi=mod(i-1,idsx)+1
-           do iorb=1,norb
-              tt=DDOT(nvctrp,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mi),1)
-              rds(i-ist+1)=rds(i-ist+1)+tt
-           end do
-        end do
+  call razero(idsx,rds)
+  ist=max(1,ids-idsx+1)
+  do i=ist,ids
+     mi=mod(i-1,idsx)+1
+     do iorb=1,norb
+        tt=DDOT(nvctrp,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mi),1)
+        rds(i-ist+1)=rds(i-ist+1)+tt
+     end do
+  end do
 
-        if (parallel) then
-           call MPI_ALLREDUCE(rds,ads(1,min(idsx,ids),1),min(ids,idsx),  & 
-                       MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        else
-           do i=1,min(ids,idsx)
-              ads(i,min(idsx,ids),1)=rds(i)
-           end do
-        endif
+  if (parallel) then
+     call MPI_ALLREDUCE(rds,ads(1,min(idsx,ids),1),min(ids,idsx),  & 
+                 MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+  else
+     do i=1,min(ids,idsx)
+        ads(i,min(idsx,ids),1)=rds(i)
+     end do
+  endif
 
 
 ! copy to work array, right hand side, boundary elements
-        do 3983,j=1,min(idsx,ids)
-        ads(j,min(idsx,ids)+1,2)=1.d0
-        rds(j)=0.d0
-        do 3983,i=j,min(idsx,ids)
+  do j=1,min(idsx,ids)
+     ads(j,min(idsx,ids)+1,2)=1.d0
+     rds(j)=0.d0
+     do i=j,min(idsx,ids)
         ads(j,i,2)=ads(j,i,1)
-3983    continue
-        ads(min(idsx,ids)+1,min(idsx,ids)+1,2)=0.d0
-        rds(min(idsx,ids)+1)=1.d0
+     end do
+  end do
+  ads(min(idsx,ids)+1,min(idsx,ids)+1,2)=0.d0
+  rds(min(idsx,ids)+1)=1.d0
 
-!        write(6,*) 'DIIS matrix'
-!        do i=1,min(idsx,ids)+1
-!        write(6,'(i3,12(1x,e9.2))') iproc,(ads(i,j,2),j=1,min(idsx,ids)+1),rds(i)
-!        enddo
-        if (ids.gt.1) then
+!  write(6,*) 'DIIS matrix'
+!  do i=1,min(idsx,ids)+1
+!  write(6,'(i3,12(1x,e9.2))') iproc,(ads(i,j,2),j=1,min(idsx,ids)+1),rds(i)
+!  enddo
+  if (ids.gt.1) then
 ! solve linear system:(LAPACK)
-        call DSYSV('U',min(idsx,ids)+1,1,ads(1,1,2),idsx+1,  & 
-                   ipiv,rds,idsx+1,ads(1,1,3),(idsx+1)**2,info)
-        if (info.ne.0) print*, 'DGESV',info
-        if (info.ne.0) stop 'DGESV'
-        else
-        rds(1)=1.d0
-        endif
-        if (iproc.eq.0) then 
-           !write(*,*) 'DIIS weights'
-           write(*,'(1x,a,2x,12(1x,1pe9.2))')'DIIS weights',(rds(j),j=1,min(idsx,ids)+1)
-        endif
+     call DSYSV('U',min(idsx,ids)+1,1,ads(1,1,2),idsx+1,  & 
+                ipiv,rds,idsx+1,ads(1,1,3),(idsx+1)**2,info)
+     if (info.ne.0) print*, 'DGESV',info
+     if (info.ne.0) stop 'DGESV'
+  else
+     rds(1)=1.d0
+  endif
+  if (iproc.eq.0) then 
+     !write(*,*) 'DIIS weights'
+     write(*,'(1x,a,2x,12(1x,1pe9.2))')'DIIS weights',(rds(j),j=1,min(idsx,ids)+1)
+  endif
 
 ! new guess
-        do 6633,iorb=1,norb
-        call razero(nvctrp,psit(1,iorb))
+  do iorb=1,norb
+     call razero(nvctrp,psit(1,iorb))
 
-        jst=max(1,ids-idsx+1)
-        jj=0
-        do 6612,j=jst,ids
+     jst=max(1,ids-idsx+1)
+     jj=0
+     do j=jst,ids
         jj=jj+1
         mj=mod(j-1,idsx)+1
-        do 6612,k=1,nvctrp
-        psit(k,iorb)=psit(k,iorb)+rds(jj)*(psidst(k,iorb,mj)-hpsidst(k,iorb,mj))
-6612    continue
-6633    continue
+        do k=1,nvctrp
+           psit(k,iorb)=psit(k,iorb)+rds(jj)*(psidst(k,iorb,mj)-hpsidst(k,iorb,mj))
+        end do
+     end do
+  end do
 
-        i_all=-product(shape(ipiv))*kind(ipiv)
-        deallocate(ipiv,stat=i_stat)
-        call memocc(i_stat,i_all,'ipiv','diisstp')
-        i_all=-product(shape(rds))*kind(rds)
-        deallocate(rds,stat=i_stat)
-        call memocc(i_stat,i_all,'rds','diisstp')
-        call timing(iproc,'Diis          ','OF')
+  i_all=-product(shape(ipiv))*kind(ipiv)
+  deallocate(ipiv,stat=i_stat)
+  call memocc(i_stat,i_all,'ipiv','diisstp')
+  i_all=-product(shape(rds))*kind(rds)
+  deallocate(rds,stat=i_stat)
+  call memocc(i_stat,i_all,'rds','diisstp')
+  call timing(iproc,'Diis          ','OF')
 
-        return
-        END SUBROUTINE
+END SUBROUTINE diisstp
 
 
-end module
+end module libBigDFT

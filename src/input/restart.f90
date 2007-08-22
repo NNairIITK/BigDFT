@@ -3,7 +3,7 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
      & nseg_c_old, nseg_f_old, keyg_old, keyv_old, psi_old, &
      & hgrid, nvctr_c, nvctr_f, n1, n2, n3, rxyz, &
      & nseg_c, nseg_f, keyg, keyv, psi)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension :: rxyz(3,nat), rxyz_old(3,nat), center(3), center_old(3)
   dimension :: keyg_old(2, nseg_c_old + nseg_f_old), keyv_old(nseg_c_old + nseg_f_old)
   dimension :: keyg(2, nseg_c + nseg_f), keyv(nseg_c + nseg_f)
@@ -129,7 +129,7 @@ END SUBROUTINE reformatmywaves
 subroutine reformatonewave(iproc, hgrid_old, n1_old, n2_old, n3_old, &
      & center_old, psigold, hgrid, nvctr_c, nvctr_f, n1, n2, n3, center, nseg_c, nseg_f, &
      & keyg, keyv, psifscf, psi)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   logical cif1,cif2,cif3
   dimension xya(-1:1,-1:1),xa(-1:1)
   dimension :: center(3), center_old(3)
@@ -268,9 +268,9 @@ END SUBROUTINE reformatonewave
 subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,  & 
      nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
   ! reads wavefunction from file and transforms it properly if hgrid or size of simulation cell have changed
-  implicit real*8 (a-h,o-z)
-  character*50 filename
-  character*4 f4
+  implicit real(kind=8) (a-h,o-z)
+  character(len=50) filename
+  character(len=4) f4
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension psi(nvctr_c+7*nvctr_f,norbp)
   dimension rxyz(3,nat),eval(norb),center(3)
@@ -314,7 +314,7 @@ END SUBROUTINE readmywaves
 
 subroutine readonewave(unitwf, useFormattedInput, iorb,iproc,n1,n2,n3, &
      & hgrid,center,nseg_c,nseg_f, nvctr_c,nvctr_f,keyg,keyv,psi,eval,psifscf)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension psi(nvctr_c+7*nvctr_f)
   dimension center(3),center_old(3)
@@ -431,9 +431,9 @@ END SUBROUTINE readonewave
 subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,  & 
      nat,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
   ! write all my wavefunctions in files by calling writeonewave
-  implicit real*8 (a-h,o-z)
-  character*4 f4
-  character*50 filename
+  implicit real(kind=8) (a-h,o-z)
+  character(len=4) f4
+  character(len=50) filename
   dimension rxyz(3,nat),eval(norb),center(3)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension psi(nvctr_c+7*nvctr_f,norbp)
@@ -478,7 +478,7 @@ subroutine writeonewave(unitwf, useFormattedOutput, iorb,n1,n2,n3,hgrid,center, 
      nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f, & 
      psi_c,psi_f,norb,eval)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   logical :: useFormattedOutput
   integer :: unitwf
   dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)

@@ -18,7 +18,7 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   real(kind=8),allocatable,dimension(:):: w1,w2
 
   real(kind=8) scal(0:3)
-  !	for grow:
+  ! for grow:
   integer ibyz_c(2,0:n2,0:n3)
   integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
   integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
@@ -34,7 +34,7 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
  !***************Alexey**************************************************************************
 
   ! shrink convention: nw1>nw2
-  nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&   		
+  nw1=max((n3+1)*(2*n1+31)*(2*n2+31),& 
        (n1+1)*(2*n2+31)*(2*n3+31),&
        2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
        2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
@@ -235,7 +235,7 @@ subroutine sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   real(kind=8),allocatable,dimension(:):: w1,w2
 
   real(kind=8) scal(0:3)
-  !	for grow:
+  ! for grow:
   integer ibyz_c(2,0:n2,0:n3)
   integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
   integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)

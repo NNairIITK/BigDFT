@@ -5,7 +5,7 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
   !Arguments---------
   integer, intent(in) :: iproc,nproc,ntypes,nat,n1,n2,n3,n3pi,i3s
   real(kind=8), intent(in) :: hgrid
-  character*20, dimension(100), intent(in) :: atomnames
+  character(len=20), dimension(100), intent(in) :: atomnames
   real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(*), intent(in) :: rho,pot
@@ -157,7 +157,7 @@ subroutine local_forces_old(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,
   !Arguments---------
   integer, intent(in) :: iproc,nproc,ntypes,nat,n1,n2,n3
   real(kind=8), intent(in) :: hgrid
-  character*20, dimension(100), intent(in) :: atomnames
+  character(len=20), dimension(100), intent(in) :: atomnames
   real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(in) :: rho,pot

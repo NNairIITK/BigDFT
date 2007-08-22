@@ -2,7 +2,7 @@
 subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
      ibyz_c,ibzxx_c,ibxxyy_c,ibyz_f,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
-  !	creates complicated ib arrays	
+  ! creates complicated ib arrays
   implicit none
   integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer i1,i2,i3,nt,m1,m2,m3,i_stat,i_all
@@ -11,7 +11,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer,intent(in):: ibyz_f(2,0:n2,0:n3),ibxy_f(2,0:n1,0:n2)
 
 
-  !	for shrink:	
+  ! for shrink:
   integer,intent(out):: ibzzx_c(2,-14:2*n3+16,0:n1) 
   integer,intent(out):: ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
 
@@ -19,7 +19,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer,intent(out):: ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
   integer,intent(out):: ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
 
-  !	for grow:	
+  ! for grow:
   integer,intent(out):: ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
   integer,intent(out):: ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
 
@@ -32,7 +32,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   logical,allocatable:: logrid_big(:)
 
-  !	for real space:
+  ! for real space:
   integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
 
   m1=nfu1-nfl1; m2=nfu2-nfl2; m3=nfu3-nfl3
@@ -57,7 +57,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   call memocc(i_stat,product(shape(ibzzyy_f))*kind(ibzzyy_f),'ibzzyy_f','make_all_ib')
 
 
-  !	transpose the original array	
+  ! transpose the original array
   call ib_transpose(ibxy_c,ibyx_c,n1,n2)
 
   do i2=nfl2,nfu2
@@ -67,18 +67,18 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      enddo
   enddo
 
-  !	create transposed arrays (dimensions 1 and 3 switched)
+  ! create transposed arrays (dimensions 1 and 3 switched)
   call make_ib(logrid_big,ibyx_c,ibxzz_c,ibzzyy_c,0,n3,0,n2,0,n1)
   call make_ib(logrid_big,ibyx_f,ibxzz_f,ibzzyy_f,nfl3,nfu3,nfl2,nfu2,nfl1,nfu1)
 
-  !	transpose them back
+  ! transpose them back
   call ib_transpose(ibxzz_c,ibzzx_c,n1,2*n3+30)
   call ib_transpose(ibzzyy_c,ibyyzz_c,2*n3+30,2*n2+30)
 
   call ib_transpose(ibxzz_f,ibzzx_f,m1,2*m3+30)
   call ib_transpose(ibzzyy_f,ibyyzz_f,2*m3+30,2*m2+30)
 
-  !	for grow:
+  ! for grow:
   do i2=nfl2,nfu2
      do i3=nfl3,nfu3
         ibyz_ff(:,i2,i3)=ibyz_f(:,i2,i3)
@@ -89,11 +89,11 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   call make_ib(logrid_big,ibyz_ff,ibzxx_f,ibxxyy_f,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 
-  !	make real space borders
+  ! make real space borders
   nt=(2*n1+31)*(2*n2+31)
   call ib_to_logrid_rot(ibxxyy_c,logrid_big,0,n3,nt)
 
-  nt=(2*n2+31)*(2*n3+31)		
+  nt=(2*n2+31)*(2*n3+31)
   call ib_from_logrid(ibyyzz_r,logrid_big,-14,2*n1+16,nt)
 
  
@@ -171,7 +171,7 @@ subroutine make_logrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,logrid)
   nrad=min(nd1,nd2,nd3)
   nrad2=nrad*nrad
 
-  do i1=nfl1,nfu1		
+  do i1=nfl1,nfu1
      do i2=nfl2,nfu2
         do i3=nfl3,nfu3
            j1=i1-nm1
@@ -188,13 +188,13 @@ end subroutine make_logrid
 
 
 subroutine make_ib(logrid_big,ibyz,ibzxx,ibxxyy,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
-  !	This subroutine mimics the comb_grow_f one
+  ! This subroutine mimics the comb_grow_f one
   implicit none
   integer nt,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer ibyz(  2,nfl2:nfu2,nfl3:nfu3)! input
   integer ibzxx( 2,          nfl3:nfu3,2*nfl1-14:2*nfu1+16)!output
   integer ibxxyy(2,                    2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)!output
-  logical logrid_big(		   nfl3:nfu3,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)! work array
+  logical logrid_big(        nfl3:nfu3,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)! work array
 
   ! i1,i2,i3 -> i2,i3,I1
   nt=(nfu2-nfl2+1)*(nfu3-nfl3+1)
@@ -253,7 +253,7 @@ end subroutine ibyz_to_logrid
 
 
 subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
-  ! mimics the bounds subroutine	
+  ! mimics the bounds subroutine
   implicit none
   integer i,i1
   integer ml1,mu1,ndat
@@ -283,80 +283,80 @@ end subroutine ib_from_logrid
 
 
 !subroutine bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
-!	implicit real(kind=8) (a-h,o-z)
-!	logical logrid
-!	dimension logrid(0:n1,0:n2,0:n3)
-!	dimension ibyz(2,0:n2,0:n3),ibxz(2,0:n1,0:n3),ibxy(2,0:n1,0:n2)
-!	
-!	
-!	do i3=0,n3 
-!	    do i2=0,n2 
-!			ibyz(1,i2,i3)= 1000
-!			ibyz(2,i2,i3)=-1000
-!			
-!			inner1:do i1=0,n1
-!			 if (logrid(i1,i2,i3)) then 
-!			    ibyz(1,i2,i3)=i1
-!			    exit inner1
-!			 endif
-!			enddo inner1
-!			
-!			inner2:do i1=n1,0,-1
-!			 if (logrid(i1,i2,i3)) then 
-!			    ibyz(2,i2,i3)=i1
-!			    exit inner2
-!			 endif
-!			enddo inner2
-!		enddo
-!	enddo
+! implicit real(kind=8) (a-h,o-z)
+! logical logrid
+! dimension logrid(0:n1,0:n2,0:n3)
+! dimension ibyz(2,0:n2,0:n3),ibxz(2,0:n1,0:n3),ibxy(2,0:n1,0:n2)
+! 
+! 
+! do i3=0,n3 
+!     do i2=0,n2 
+!   ibyz(1,i2,i3)= 1000
+!   ibyz(2,i2,i3)=-1000
+!   
+!   inner1:do i1=0,n1
+!    if (logrid(i1,i2,i3)) then 
+!       ibyz(1,i2,i3)=i1
+!       exit inner1
+!    endif
+!   enddo inner1
+!   
+!   inner2:do i1=n1,0,-1
+!    if (logrid(i1,i2,i3)) then 
+!       ibyz(2,i2,i3)=i1
+!       exit inner2
+!    endif
+!   enddo inner2
+!  enddo
+! enddo
 !
 !
-!	do i3=0,n3 
-!		do i1=0,n1
-!			ibxz(1,i1,i3)= 1000
-!			ibxz(2,i1,i3)=-1000
-!			
-!			inner3:do i2=0,n2 
-!			 if (logrid(i1,i2,i3)) then 
-!			     ibxz(1,i1,i3)=i2
-!			     exit inner3
-!			 endif
-!			enddo inner3
+! do i3=0,n3 
+!  do i1=0,n1
+!   ibxz(1,i1,i3)= 1000
+!   ibxz(2,i1,i3)=-1000
+!   
+!   inner3:do i2=0,n2 
+!    if (logrid(i1,i2,i3)) then 
+!        ibxz(1,i1,i3)=i2
+!        exit inner3
+!    endif
+!   enddo inner3
 !
-!			inner4:do i2=n2,0,-1
-!			 if (logrid(i1,i2,i3)) then 
-!			     ibxz(2,i1,i3)=i2
-!			     exit inner4
-!			 endif
-!			enddo inner4
+!   inner4:do i2=n2,0,-1
+!    if (logrid(i1,i2,i3)) then 
+!        ibxz(2,i1,i3)=i2
+!        exit inner4
+!    endif
+!   enddo inner4
 !
-!		enddo	
-!	enddo
+!  enddo 
+! enddo
 !
 !
-!	do i2=0,n2 
-!		do i1=0,n1 
-!			ibxy(1,i1,i2)= 1000
-!			ibxy(2,i1,i2)=-1000
-!			
-!			inner5: do i3=0,n3
-!			 if (logrid(i1,i2,i3)) then 
-!			     ibxy(1,i1,i2)=i3
-!			     exit inner5
-!			 endif
-!			enddo inner5
-!		
-!			inner6:do i3=n3,0,-1
-!			 if (logrid(i1,i2,i3)) then 
-!			     ibxy(2,i1,i2)=i3
-!			     exit inner6
-!			 endif
-!			enddo inner6
-!		
-!		enddo
-!	enddo
+! do i2=0,n2 
+!  do i1=0,n1 
+!   ibxy(1,i1,i2)= 1000
+!   ibxy(2,i1,i2)=-1000
+!   
+!   inner5: do i3=0,n3
+!    if (logrid(i1,i2,i3)) then 
+!        ibxy(1,i1,i2)=i3
+!        exit inner5
+!    endif
+!   enddo inner5
+!  
+!   inner6:do i3=n3,0,-1
+!    if (logrid(i1,i2,i3)) then 
+!        ibxy(2,i1,i2)=i3
+!        exit inner6
+!    endif
+!   enddo inner6
+!  
+!  enddo
+! enddo
 !
-!	return
+! return
 !END SUBROUTINE
 
 

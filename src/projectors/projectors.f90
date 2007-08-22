@@ -1,6 +1,6 @@
 subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
   ! Determines the number of projectors (valid for GTH and HGH pseudopotentials)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension psppar(0:4,0:4,ntypes),npspcode(ntypes)
 
   mproj=0
@@ -27,13 +27,13 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
   ! returns the compressed form of a Gaussian projector 
   ! x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-cntrx)^2 + (y-cntry)^2 + (z-cntrz)^2 ))
   ! in the arrays proj_c, proj_f
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   parameter(ntermx=3,nw=16000)
   dimension lx(nterm),ly(nterm),lz(nterm)
   dimension fac_arr(nterm)
   dimension proj_c(mvctr_c),proj_f(7,mvctr_f)
-  real*8, allocatable, dimension(:,:,:) :: wprojx, wprojy, wprojz
-  real*8, allocatable, dimension(:,:) :: work
+  real(kind=8), allocatable, dimension(:,:,:) :: wprojx, wprojy, wprojz
+  real(kind=8), allocatable, dimension(:,:) :: work
 
   allocate(wprojx(0:n1,2,nterm),stat=i_stat)
   call memocc(i_stat,product(shape(wprojx))*kind(wprojx),'wprojx','crtproj')
@@ -187,7 +187,7 @@ subroutine pregion_size(rxyz,radii,rmult,iatype,ntypes, &
      hgrid,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
   ! finds the size of the smallest subbox that contains a localization region made 
   ! out of atom centered spheres
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   parameter(eps_mach=1.d-12)
   dimension rxyz(3),radii(ntypes)
 
