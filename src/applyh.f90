@@ -62,18 +62,16 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
           'Hamiltonian application...'
   end if
 
+  call timing(iproc,'ApplyLocPotKin','ON')
+
   if (datacode=='D') then
      !allocate full potential
      allocate(pot((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
      call memocc(i_stat,product(shape(pot))*kind(pot),'pot','hamiltonianapplication')
 
-     call timing(iproc,'ApplyLocPotKin','ON')
-
      call MPI_ALLGATHERV(potential,(2*n1+31)*(2*n2+31)*n3p,&
           MPI_DOUBLE_PRECISION,pot,ngatherarr(0,1),&
           ngatherarr(0,2),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-
-     call timing(iproc,'ApplyLocPotKin','OF')
 
      call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
           hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
@@ -97,10 +95,16 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
 
   end if
 
+  call timing(iproc,'ApplyLocPotKin','OF')
+
   ! apply all PSP projectors for all orbitals belonging to iproc
+  call timing(iproc,'ApplyProj     ','ON')
+
   call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
        nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
        norb,norbp,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
+
+  call timing(iproc,'ApplyProj     ','OF')
 
   if (parallel) then
      allocate(wrkallred(3,2),stat=i_stat)
@@ -165,8 +169,6 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   real(kind=8),allocatable::x_f(:,:,:,:),x_fc(:,:,:,:) ! input
   real(kind=8),allocatable,dimension(:):: w1,w2
   !***********************************************************************************************
-  call timing(iproc,'ApplyLocPotKin','ON')
-
   !******************Alexey**********************************************************************
 
   ! shrink convention: nw1>nw2
@@ -252,8 +254,6 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   deallocate(w2,stat=i_stat)
   call memocc(i_stat,i_all,'w2','applylocpotkinall')
   !**********************************************************************************************
-
-  call timing(iproc,'ApplyLocPotKin','OF')
 
 END SUBROUTINE applylocpotkinall
 
@@ -416,8 +416,6 @@ subroutine applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
   dimension keyg_p(2,nseg_p(2*nat)),keyv_p(nseg_p(2*nat))
   dimension proj(nprojel),occup(norb)
 
-  call timing(iproc,'ApplyProj     ','ON')
-
   eproj_sum=0.d0
   ! loop over all my orbitals
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
@@ -428,8 +426,6 @@ subroutine applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
      eproj_sum=eproj_sum+occup(iorb)*eproj
      !     write(*,*) 'iorb,eproj',iorb,eproj
   enddo
-
-  call timing(iproc,'ApplyProj     ','OF')
 
 END SUBROUTINE applyprojectorsall
 

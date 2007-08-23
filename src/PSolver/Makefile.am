@@ -1,11 +1,5 @@
 ## Process this file with automake to produce Makefile.in
 
-if BUILD_BINARIES
-binaries_sources = PSolver
-else
-binaries_sources = 
-endif
-
 SOURCES_MOD = PSolver_launch.f90 \
 	Build_Kernel.f90 \
 	PSolver_Base.f90 \
@@ -46,7 +40,7 @@ module_DATA = poisson_solver.@MODULE_EXT@
 
 SUBDIRS =
 
-bin_PROGRAMS = $(binaries_sources)
+check_PROGRAMS = PSolver 
 
 AM_FCFLAGS = @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@
 

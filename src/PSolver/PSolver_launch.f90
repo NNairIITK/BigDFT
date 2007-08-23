@@ -102,7 +102,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer, dimension(:,:), allocatable :: gather_arr
   real(kind=8), dimension(:), allocatable :: energies_mpi
 
-
+  call timing(iproc,'Exchangecorr  ','ON')
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
      if (iproc==0) &
@@ -130,7 +130,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   allocate(zfionxc(md1,md3,md2/nproc),stat=i_stat)
   call memocc(i_stat,product(shape(zfionxc))*kind(zfionxc),'zfionxc','psolver')
 
-  call timing(iproc,'Exchangecorr  ','ON')
   !dimension for exchange-correlation (different in the global or distributed case)
   !let us calculate the dimension of the portion of the rhopot array to be passed 
   !to the xc routine
@@ -349,19 +348,20 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         !building the array of the data to be sent from each process
         !and the array of the displacement
 
+        call timing(iproc,'PSolv_comput  ','ON')
         allocate(gather_arr(0:nproc-1,2),stat=i_stat)
         call memocc(i_stat,product(shape(gather_arr))*kind(gather_arr),'gather_arr','psolver')
-        call timing(iproc,'PSolv_comput  ','ON')
         do jproc=0,nproc-1
            istart=min(jproc*(md2/nproc),m2-1)
            jend=max(min(md2/nproc,m2-md2/nproc*jproc),0)
            gather_arr(jproc,1)=m1*m3*jend
            gather_arr(jproc,2)=m1*m3*istart
         end do
-        call timing(iproc,'PSolv_comput  ','OF')
 
         !gather all the results in the same rhopot array
         istart=min(iproc*(md2/nproc),m2-1)
+
+        call timing(iproc,'PSolv_comput  ','OF')
         call timing(iproc,'PSolv_commun  ','ON')
         call MPI_ALLGATHERV(rhopot(1+n01*n02*istart),gather_arr(iproc,1),MPI_double_precision,&
              rhopot,gather_arr(0,1),gather_arr(0,2),MPI_double_precision,MPI_COMM_WORLD,ierr)
@@ -372,9 +372,13 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
                 MPI_double_precision,MPI_COMM_WORLD,ierr)
         end if
         call timing(iproc,'PSolv_commun  ','OF')
+        call timing(iproc,'PSolv_comput  ','ON')
+
         i_all=-product(shape(gather_arr))*kind(gather_arr)
         deallocate(gather_arr,stat=i_stat)
         call memocc(i_stat,i_all,'gather_arr','psolver')
+
+        call timing(iproc,'PSolv_comput  ','OF')
 
      end if
 

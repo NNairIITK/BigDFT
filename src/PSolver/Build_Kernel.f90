@@ -56,6 +56,8 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
   integer :: jproc,nlimd,nlimk,jfull,jhalf,jzero,nphalf,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
   real(kind=8) :: hgrid
 
+  call timing(iproc,'PSolvKernel   ','ON')
+
   hgrid=max(hx,hy,hz)
 
   if (iproc==0) write(*,'(1x,a)')&
@@ -87,9 +89,7 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
      call memocc(i_stat,product(shape(kernel))*kind(kernel),'kernel','createkernel')
 
      !the kernel must be built and scattered to all the processes
-     call timing(iproc,'PSolvKernel   ','ON')
      call Surfaces_Kernel(n1,n2,n3,m3,nd1,nd2,nd3,hx,hz,hy,itype_scf,kernel,iproc,nproc)
-     call timing(iproc,'PSolvKernel   ','OF')
 
      !last plane calculated for the density and the kernel
      nlimd=n2
@@ -106,9 +106,9 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
      call memocc(i_stat,product(shape(kernel))*kind(kernel),'kernel','createkernel')
 
      !the kernel must be built and scattered to all the processes
-     call timing(iproc,'PSolvKernel   ','ON')
+
      call Free_Kernel(n01,n02,n03,n1,n2,n3,nd1,nd2,nd3,hx,hy,hz,itype_scf,iproc,nproc,kernel)
-     call timing(iproc,'PSolvKernel   ','OF')
+
 
      !last plane calculated for the density and the kernel
      nlimd=n2/2
@@ -185,6 +185,7 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
      end if
 
   end if
+  call timing(iproc,'PSolvKernel   ','OF')
 
 end subroutine createKernel
 

@@ -29,6 +29,8 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   !***********************************************************************************************
   include 'mpif.h'
 
+  call timing(iproc,'Rho_comput    ','ON')
+
   hgridh=hgrid*.5d0 
 
  !***************Alexey**************************************************************************
@@ -68,7 +70,6 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   end if
 
   if (parallel) then
-     call timing(iproc,'Rho_comput    ','ON')
      !calculate dimensions of the complete array to be allocated before the reduction procedure
      nrhotot=0
      do jproc=0,nproc-1
@@ -128,19 +129,18 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
      call timing(iproc,'Rho_commun    ','ON')
      call MPI_REDUCE_SCATTER(rho_p,rho,(2*n1+31)*(2*n2+31)*nscatterarr(:,1),&
           MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-
      call timing(iproc,'Rho_commun    ','OF')
+     call timing(iproc,'Rho_comput    ','ON')
 
      ! Check
-     call timing(iproc,'Rho_comput    ','ON')
      tt=0.d0
      i3off=(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)
      do i=1,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,2)
         tt=tt+rho(i+i3off)
-        !temporary check for debugging purposes
-        if (rho(i+i3off) < 1.d-20) then
-           print *,iproc,'error in density construction',rho(i+i3off)
-        end if
+!!$        !temporary check for debugging purposes
+!!$        if (rho(i+i3off) < 9.d-21) then
+!!$           print *,iproc,'error in density construction',rho(i+i3off)
+!!$        end if
      enddo
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')
@@ -148,12 +148,12 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
      if (iproc.eq.0) write(*,'(1x,a,f21.12)')&
           'done. Total electronic charge=',charge*hgridh**3
      call timing(iproc,'Rho_commun    ','OF')
+     call timing(iproc,'Rho_comput    ','ON')
      i_all=-product(shape(rho_p))*kind(rho_p)
      deallocate(rho_p,stat=i_stat)
      call memocc(i_stat,i_all,'rho_p','sumrho')
 
   else
-     call timing(iproc,'Rho_comput    ','ON')
      !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
      call tenminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho,nproc)
      !call razero((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
@@ -185,7 +185,6 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
      if (iproc.eq.0) write(*,'(1x,a,f21.12)')&
           'done. Total electronic charge=',tt
 
-     call timing(iproc,'Rho_comput    ','OF')
   endif
 
   i_all=-product(shape(psir))*kind(psir)
@@ -214,6 +213,8 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   deallocate(w2,stat=i_stat)
   call memocc(i_stat,i_all,'w2','sumrho')
   !**********************************************************************************************
+  call timing(iproc,'Rho_comput    ','OF')
+
 END SUBROUTINE sumrho
 
 subroutine sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
@@ -241,8 +242,8 @@ subroutine sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
 
   integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
-  integer ibzxx_f(2,          nfl3:nfu3,2*nfl1-14:2*nfu1+16)
-  integer ibxxyy_f(2,                    2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+  integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+  integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
   !***********************************************************************************************
   include 'mpif.h'
   !flag indicating the MPI libraries used
@@ -412,7 +413,7 @@ subroutine sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
      tt=tt+rho(i)
   enddo
-  !factor of two to restore the total charge
+
   tt=tt*hgridh**3
   if (iproc.eq.0) write(*,'(1x,a,f21.12)')&
        'done. Total electronic charge=',tt

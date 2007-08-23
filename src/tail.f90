@@ -47,7 +47,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   !real space border:
   integer,allocatable,dimension(:,:,:)::ibbyyzz_r 
 
-  !***********************************************************************************************
+  !*****************************
   integer nw1,nw2
 
   real(kind=8),allocatable,dimension(:,:,:)::x_c!input 
@@ -56,8 +56,6 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   real(kind=8),allocatable,dimension(:,:,:)::y_c!output 
   real(kind=8),allocatable::y_f(:,:,:,:)! output
   !***********************************************************************************************
-
-  call timing(iproc,'Tail          ','ON')
 
   nbuf=nint(rbuf/hgrid)
   !    --- new grid sizes n1,n2,n3
@@ -224,13 +222,14 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   end if
   call bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
 
-  !*********Alexey******************************************************************************
+  !*********Alexey************
 
   call make_all_ib(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
        ibbxy_c,ibbzzx_c,ibbyyzz_c,ibbxy_f,ibbxy_ff,ibbzzx_f,ibbyyzz_f,&
        ibbyz_c,ibbzxx_c,ibbxxyy_c,ibbyz_f,ibbyz_ff,ibbzxx_f,ibbxxyy_f,ibbyyzz_r)
 
-  !***********************************************************************************************
+  !***************************
+
   ! now fill the wavefunction descriptor arrays
   allocate(keybg(2,nsegb_c+nsegb_f),stat=i_stat)
   call memocc(i_stat,product(shape(keybg))*kind(keybg),'keybg','calculatetailcorrection')
@@ -294,8 +293,6 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   allocate(w2(nw2),stat=i_stat) ! work
   call memocc(i_stat,product(shape(w2))*kind(w2),'w2','calculatetailcorrection')
   !***********************************************************************************************
-
-
   ekin_sum=0.d0
   epot_sum=0.d0
   eproj_sum=0.d0
@@ -344,11 +341,9 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
 
         !calculate tail using the preconditioner as solver for the green function application
         cprecr=-eval(iorb)
-        call timing(iproc,'Tail          ','OF')
         call precong(iorb,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, &
              nsegb_c,nvctrb_c,nsegb_f,nvctrb_f,keybg,keybv, &
              ncongt,cprecr,hgrid,ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,hpsib)
-        call timing(iproc,'Tail          ','ON')
         !call plot_wf(10,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
         !      txyz(1,1),txyz(2,1),txyz(3,1),psib)
 
@@ -393,7 +388,6 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   if (iproc == 0) then
      write(*,'(1x,a)')'done.'
   end if
-
 
   i_all=-product(shape(txyz))*kind(txyz)
   deallocate(txyz,stat=i_stat)
@@ -527,8 +521,6 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
      deallocate(wrkallred,stat=i_stat)
      call memocc(i_stat,i_all,'wrkallred','calculatetailcorrection')
   endif
-
-  call timing(iproc,'Tail          ','OF')
 
 end subroutine CalculateTailCorrection
 
