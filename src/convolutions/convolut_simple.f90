@@ -1,13 +1,13 @@
 ! Simple non-optimized version of the major convolution routines
 
 subroutine convrot_grow(n1,ndat,x,y)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   parameter(lowfil=-8,lupfil=7)
   dimension x(0:n1,ndat),y(ndat,-lupfil:n1-lowfil)
   ! the filtered output data structure has grown by the filter length
 
   !          THE MAGIC FILTER FOR DAUBECHIES-16
-  REAL*8 fil(lowfil:lupfil)
+  real(kind=8) fil(lowfil:lupfil)
   DATA fil / &
        8.4334247333529341094733325815816D-7,&
        -0.1290557201342060969516786758559028D-4,&
@@ -35,7 +35,7 @@ subroutine convrot_grow(n1,ndat,x,y)
         do l=max(-i,lowfil),min(lupfil,n1-i)
            tt=tt+x(i+l,j)*fil(l)
         enddo
-	y(j,i)=tt
+ y(j,i)=tt
 
      enddo
   enddo
@@ -45,13 +45,13 @@ end subroutine convrot_grow
 
 
 subroutine convrot_shrink(n1,ndat,x,y)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   parameter(lowfil=-7,lupfil=8)
   dimension x(lowfil:n1+lupfil,ndat),y(ndat,0:n1)
   ! the filtered output data structure has shrunk by the filter length
 
   !          THE MAGIC FILTER FOR DAUBECHIES-16
-  REAL*8 fil(lowfil:lupfil)
+  real(kind=8) fil(lowfil:lupfil)
   DATA fil / &
        2.72734492911979659657715313017228D-6,&
        -0.5185986881173432922848639136911487D-4,&
@@ -78,7 +78,7 @@ subroutine convrot_shrink(n1,ndat,x,y)
         do l=lowfil,lupfil
            tt=tt+x(i+l,j)*fil(l)
         enddo
-	y(j,i)=tt
+ y(j,i)=tt
 
      enddo
   enddo
@@ -88,9 +88,9 @@ end subroutine convrot_shrink
 
 
 subroutine ana_rot_shrink(n,ndat,x,y)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension x(-7:2*n+8,ndat),y(ndat,0:2*n+1)
-  real*8 ch(-7:8) ,cg(-7:8)
+  real(kind=8) ch(-7:8) ,cg(-7:8)
   !       Daubechy S16
   data ch  /  -0.0033824159510050025955D0, & 
        -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
@@ -131,9 +131,9 @@ end subroutine ana_rot_shrink
 
 
 subroutine syn_rot_grow(n,ndat,x,y)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension x(0:2*n+1,ndat),y(ndat,-7:2*n+8)
-  real*8 ch(-8:9) ,cg(-8:9)
+  real(kind=8) ch(-8:9) ,cg(-8:9)
   !       Daubechy S16
   data ch  /  0.d0 , -0.0033824159510050025955D0, & 
        -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
@@ -192,7 +192,7 @@ subroutine Convolkinetic(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_fc,x_f,y_c,y_f)
   !   y = (kinetic energy operator)x + (cprec*I)x 
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   logical :: firstcall=.true. 
   integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
   dimension x_c(0:n1,0:n2,0:n3),y_c(0:n1,0:n2,0:n3)
@@ -576,7 +576,7 @@ subroutine ConvolkineticP(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x,y,ekin)
   !   y = y + (kinetic energy operator)x 
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   logical :: firstcall=.true. 
   integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
   dimension x(0:n1,2,0:n2,2,0:n3,2),y(0:n1,2,0:n2,2,0:n3,2)
@@ -990,7 +990,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_fc,x_f,y_c,y_f,ekin)
   !   y = y+(kinetic energy operator)x 
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   logical :: firstcall=.true. 
   integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
   dimension x_c(0:n1,0:n2,0:n3),y_c(0:n1,0:n2,0:n3)

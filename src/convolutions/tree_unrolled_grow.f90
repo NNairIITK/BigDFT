@@ -1,11 +1,11 @@
 subroutine  comb_rot_grow_loc_1(nfl,nfu,ndat,x,y,ib)
-  ! In one dimesnion,	
+  ! In one dimesnion, 
   ! with optimised cycles
   ! Applies synthesis wavelet transformation 
   ! then convolves with magic filter
   !  the size of the data is allowed to grow
 
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   integer t
   integer,parameter:: lowfil=-7,lupfil=8
   integer,parameter:: lowfil2=2*lowfil,lupfil2=2*lupfil
@@ -65,10 +65,10 @@ subroutine  comb_rot_grow_loc_1(nfl,nfu,ndat,x,y,ib)
            y(2,2,l,2*i+1)=y2w22
         enddo
 
-        !			loop for ordinary i		
+        !   loop for ordinary i  
         do i=ib(1,l)+8,ib(2,l)+7
 
-           !	j=8  works since i is big enough
+           ! j=8  works since i is big enough
 
            y1w11=fil2(16  ,2)*x(1,i-8,l)
            y1w21=fil2(16  ,1)*x(2,i-8,l)+fil2(16  ,2)*x(3,i-8,l)
@@ -122,13 +122,13 @@ end subroutine comb_rot_grow_loc_1
 
 
 subroutine  comb_rot_grow_loc_2(nfl,nfu,ndat,x,y,ib)
-! In one dimesnion,	
+! In one dimesnion, 
 ! with optimised cycles
 ! Applies synthesis wavelet transformation 
 ! then convolves with magic filter
 ! the size of the data is allowed to grow
 
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   integer t
   integer,parameter:: lowfil=-7,lupfil=8
   integer,parameter:: lowfil2=2*lowfil,lupfil2=2*lupfil
@@ -176,10 +176,10 @@ subroutine  comb_rot_grow_loc_2(nfl,nfu,ndat,x,y,ib)
            y(2,l,2*i+1)=y2w2
         enddo
 
-        !			loop for ordinary i		
+        !   loop for ordinary i  
         do i=ib(1,l)+8,ib(2,l)+7
 
-           !	j=8  works since i is big enough
+           ! j=8  works since i is big enough
            y1w1=fil2(16  ,1)*x(1,1,i-8,l)+fil2(16  ,2)*x(2,1,i-8,l)
            y1w2=fil2(16  ,1)*x(1,2,i-8,l)+fil2(16  ,2)*x(2,2,i-8,l)
 
@@ -201,7 +201,7 @@ subroutine  comb_rot_grow_loc_2(nfl,nfu,ndat,x,y,ib)
            y(2,l,2*i+1)=y2w2
         enddo
 
-        t=ib(2,l);	i=t+8;	 ! to the rightmost element of y, only j=8 contributes
+        t=ib(2,l); i=t+8;  ! to the rightmost element of y, only j=8 contributes
         y(1,l,2*i)=fil2(16,1)*x(1,1,t,l)+fil2(16,2)*x(2,1,t,l)
         y(2,l,2*i)=fil2(16,1)*x(1,2,t,l)+fil2(16,2)*x(2,2,t,l)
 
@@ -217,14 +217,14 @@ end subroutine comb_rot_grow_loc_2
 
 
 subroutine comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
-! In one dimension,	
+! In one dimension, 
 ! with optimised cycles
 ! Applies synthesis wavelet transformation 
 ! then convolves with magic filter
 ! then adds the result to y.
 ! The size of the data is allowed to grow
 
-    implicit real*8 (a-h,o-z)
+    implicit real(kind=8) (a-h,o-z)
     integer t
     integer,parameter:: lowfil=-7,lupfil=8
     integer,parameter:: lowfil2=2*lowfil,lupfil2=2*lupfil
