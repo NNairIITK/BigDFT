@@ -486,7 +486,11 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
        iproc,nproc,pkernel)
 
+  
+
 ! Create wavefunctions descriptors and allocate them
+  call timing(iproc,'CrtDescriptors','ON')
+
   allocate(ibyz_c(2,0:n2,0:n3),stat=i_stat)
   call memocc(i_stat,product(shape(ibyz_c))*kind(ibyz_c),'ibyz_c','cluster')
   allocate(ibxz_c(2,0:n1,0:n3),stat=i_stat)
@@ -530,15 +534,18 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   call memocc(i_stat,product(shape(ibyyzz_r))*kind(ibyyzz_r),'ibyyzz_r','cluster')
 !***********************************************************************************************
 
-call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,&
+  call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,&
        & nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
        ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp,&
        keyg,keyv,norb,norbp,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
        ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+  call timing(iproc,'CrtDescriptors','OF')
 
 ! Calculate all projectors
+  call timing(iproc,'CrtProjectors ','ON')
+
   allocate(nseg_p(0:2*nat),stat=i_stat)
   call memocc(i_stat,product(shape(nseg_p))*kind(nseg_p),'nseg_p','cluster')
   allocate(nvctr_p(0:2*nat),stat=i_stat)
@@ -551,6 +558,7 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomnames,&
        & psppar,npspcode,radii_cf,cpmult,fpmult,hgrid,nvctr_p,nseg_p,&
        & keyg_p,keyv_p,nproj,nprojel,istart,nboxp_c,nboxp_f,proj)
+  call timing(iproc,'CrtProjectors ','OF')
     
   !allocate values of the array for the data scattering in sumrho
   !its values are ignored in the datacode='G' case
@@ -703,15 +711,17 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
         call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','cluster')
 
         !transpose the psi wavefunction
-        call timing(iproc,'Un-Transall   ','ON')
         !here hpsi is used as a work array
+        call timing(iproc,'Un-TransSwitch','ON')
         call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,hpsi)
+        call timing(iproc,'Un-TransSwitch','OF')
         !allocate transposed principal wavefunction
         allocate(psit(nvctrp,norbp*nproc),stat=i_stat)
         call memocc(i_stat,product(shape(psit))*kind(psit),'psit','cluster')
+        call timing(iproc,'Un-TransComm  ','ON')
         call MPI_ALLTOALL(hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
              psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        call timing(iproc,'Un-Transall   ','OF')
+        call timing(iproc,'Un-TransComm  ','OF')
         !end of transposition
 
         !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
@@ -719,12 +729,14 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
         !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
         !retranspose the psit wavefunction into psi
-        call timing(iproc,'Un-Transall   ','ON')
         !here hpsi is used as a work array
+        call timing(iproc,'Un-TransComm  ','ON')
         call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
              hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+        call timing(iproc,'Un-TransComm  ','OF')
+        call timing(iproc,'Un-TransSwitch','ON')
         call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
-        call timing(iproc,'Un-Transall   ','OF')
+        call timing(iproc,'Un-TransSwitch','OF')
         !end of retransposition
      else
         !call checkortho(norb,norbp,nvctrp,psi)
@@ -900,24 +912,28 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
   if (parallel) then
 
      !transpose the hpsi wavefunction
-     call timing(iproc,'Un-Transall   ','ON')
      !here psi is used as a work array
+     call timing(iproc,'Un-TransSwitch','ON')
      call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+     call timing(iproc,'Un-TransSwitch','OF')
      !here hpsi is the transposed array
+     call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
           hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-Transall   ','OF')
+     call timing(iproc,'Un-TransComm  ','OF')
      !end of transposition
 
      call KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,hpsi,psit,evsum,eval)
 
      !retranspose the psit wavefunction into psi
-     call timing(iproc,'Un-Transall   ','ON')
      !here hpsi is used as a work array
+     call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
           hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'Un-TransSwitch','ON')
      call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
-     call timing(iproc,'Un-Transall   ','OF')
+     call timing(iproc,'Un-TransSwitch','OF')
      !end of retransposition
 
      i_all=-product(shape(psit))*kind(psit)
@@ -939,7 +955,6 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
 !!$     call plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,  & 
 !!$          rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc))
 !!$  end do
-
 
 !  write all the wavefunctions into files
   if (output_wf) then
@@ -1056,7 +1071,7 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
   call timing(iproc,'Forces        ','ON')
   ! calculate local part of the forces gxyz
   call local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
-                     n1,n2,n3,n3p,i3s+i3xcsh,rho,pot,gxyz)
+       n1,n2,n3,n3p,i3s+i3xcsh,rho,pot,gxyz)
 
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)
@@ -1072,11 +1087,11 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
 
   !the calculation of the derivatives of the projectors has been decoupled
   !from the one of nonlocal forces, in this way forces can be calculated
-  !diring the minimization if needed
+  !diring the wavefunction minimization if needed
   call projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, & 
-     ntypes,nat,norb,nprojel,nproj,&
-     iatype,psppar,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
-     keyg,keyv,keyg_p,keyv_p,rxyz,radii_cf,cpmult,fpmult,hgrid,derproj)
+       ntypes,nat,norb,nprojel,nproj,&
+       iatype,psppar,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
+       keyg,keyv,keyg_p,keyv_p,rxyz,radii_cf,cpmult,fpmult,hgrid,derproj)
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
 
@@ -1147,7 +1162,6 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
      call memocc(i_stat,i_all,'rhopot','cluster')
-     call timing(iproc,'Tail          ','OF')
 
      call CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntypes,&
      nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
@@ -1180,7 +1194,7 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
              'Total energy with tail correction',energy
      endif
 
-
+     call timing(iproc,'Tail          ','OF')
   else
 !    No tail calculation
      if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
@@ -1485,25 +1499,29 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
   if (parallel) then
      !transpose the hpsi wavefunction
-     call timing(iproc,'Un-Transall   ','ON')
      !here psi is used as a work array
+     call timing(iproc,'Un-TransSwitch','ON')
      call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+     call timing(iproc,'Un-TransSwitch','OF')
      !here hpsi is the transposed array
+     call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
           hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-Transall   ','OF')
+     call timing(iproc,'Un-TransComm  ','OF')
      !end of transposition
 
      call  orthoconstraint_p(iproc,nproc,norb,norbp,occup,nvctrp,psit,hpsi,scprsum)
 
      !retranspose the hpsi wavefunction
-     call timing(iproc,'Un-Transall   ','ON')
      !here psi is used as a work array
+     call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALL(hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
           psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'Un-TransComm  ','OF')
      !here hpsi is the direct array
+     call timing(iproc,'Un-TransSwitch','ON')
      call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,hpsi)
-     call timing(iproc,'Un-Transall   ','OF')
+     call timing(iproc,'Un-TransSwitch','OF')
      !end of retransposition
   else
      call orthoconstraint(norb,norbp,occup,nvctrp,psi,hpsi,scprsum)
@@ -1535,6 +1553,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   endif
   gnrm=sqrt(gnrm/norb)
 
+  call timing(iproc,'Precondition  ','ON')
   if (iproc==0) then
      write(*,'(1x,a)',advance='no')&
           'done, preconditioning...'
@@ -1555,19 +1574,25 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      write(*,'(1x,a)')&
           'done.'
   end if
+  call timing(iproc,'Precondition  ','OF')
+
 
   !apply the minimization method (DIIS or steepest descent)
   if (idsx.gt.0) then
      if (parallel) then
         !transpose the hpsi wavefunction into the diis array
-        call timing(iproc,'Un-Transall   ','ON')
+
         !here psi is used as a work array
+        call timing(iproc,'Un-TransSwitch','ON')
         call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+        call timing(iproc,'Un-TransSwitch','OF')
+        call timing(iproc,'Un-TransComm  ','ON')
         call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
              hpsidst(:,:,mids),nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        call timing(iproc,'Un-Transall   ','OF')
+        call timing(iproc,'Un-TransComm  ','OF')
         !end of transposition
 
+        call timing(iproc,'Diis          ','ON')
         do iorb=1,norb
            do k=1,nvctrp
               psidst(k,iorb,mids)= psit(k,iorb) 
@@ -1577,6 +1602,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         call diisstp(parallel,norb,norbp,nproc,iproc,  &
              ads,iter,mids,idsx,nvctrp,psit,psidst,hpsidst)
      else
+        call timing(iproc,'Diis          ','ON')
         do iorb=1,norb
            do k=1,nvctrp
               psidst(k,iorb,mids)= psi(k,iorb)
@@ -1588,7 +1614,6 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
              ads,iter,mids,idsx,nvctrp,psi,psidst,hpsidst)
 
      endif
-
   else
 
      ! update all wavefunctions with the preconditioned gradient
@@ -1602,26 +1627,32 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
      if (parallel) then
         !transpose the hpsi wavefunction
-        call timing(iproc,'Un-Transall   ','ON')
+
         !here psi is used as a work array
+        call timing(iproc,'Un-TransSwitch','ON')
         call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+        call timing(iproc,'Un-TransSwitch','OF')
         !here hpsi is the transposed array
+        call timing(iproc,'Un-TransComm  ','ON')
         call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
              hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        call timing(iproc,'Un-Transall   ','OF')
+        call timing(iproc,'Un-TransComm  ','OF')
         !end of transposition
 
+        call timing(iproc,'Diis          ','ON')
         do iorb=1,norb
            call DAXPY(nvctrp,-alpha,hpsi(1,iorb),1,psit(1,iorb),1)
         enddo
      else
+        call timing(iproc,'Diis          ','ON')
         do iorb=1,norb
            call DAXPY(nvctrp,-alpha,hpsi(1,iorb),1,psi(1,iorb),1)
         enddo
      endif
 
-
   endif
+
+  call timing(iproc,'Diis          ','OF')
 
  if (iproc==0) then
      write(*,'(1x,a)',advance='no')&
@@ -1634,12 +1665,14 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      !       call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
      !retranspose the psit wavefunction into psi
-     call timing(iproc,'Un-Transall   ','ON')
      !here hpsi is used as a work array
+     call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
           hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'Un-TransSwitch','ON')
      call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
-     call timing(iproc,'Un-Transall   ','OF')
+     call timing(iproc,'Un-TransSwitch','OF')
      !end of retransposition
   else
      call orthon(norb,norbp,nvctrp,psi)
@@ -1709,9 +1742,6 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
      write(*,'(1x,a)')&
           '------------------------------------------------- Wavefunctions Descriptors Creation'
   end if
-
-
-  call timing(iproc,'CrtDescriptors','ON')
 
 ! Create the file grid.ascii to visualize the grid of functions
   if (iproc.eq.0 .and. output_grid) then
@@ -1823,8 +1853,6 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
        'Wavefunction memory occupation per orbital (Bytes): ',&
        nvctrp*nproc*8
 
-  call timing(iproc,'CrtDescriptors','OF')
-
 !*********Alexey******************************************************************************
  
   call make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
@@ -1855,9 +1883,6 @@ subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, 
      write(*,'(1x,a4,4x,a4,1x,a)')&
           'Atom','Name','Number of projectors'
   end if
-
-  call timing(iproc,'CrtProjectors ','ON')
-
 
   ! determine localization region for all projectors, but do not yet fill the descriptor arrays
   allocate(logrid(0:n1,0:n2,0:n3),stat=i_stat)
@@ -2071,7 +2096,6 @@ subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, 
   i_all=-product(shape(lz))*kind(lz)
   deallocate(lz,stat=i_stat)
   call memocc(i_stat,i_all,'lz','createprojectorsarrays')
-  call timing(iproc,'CrtProjectors ','OF')
 
 END SUBROUTINE createProjectorsArrays
 
@@ -2230,20 +2254,26 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 
      !transpose all the wavefunctions for having a piece of all the orbitals 
      !for each processor
-     call timing(iproc,'Un-Transall   ','ON')
      !allocate the wavefunction in the transposed way to avoid allocations/deallocations
      allocate(psit(nvctrp,norbp*nproc),stat=i_stat)
      call memocc(i_stat,product(shape(psit))*kind(psit),'psit','import_gaussians')
 
+     call timing(iproc,'Un-TransSwitch','ON')
      call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
+     call timing(iproc,'Un-TransSwitch','OF')
+     call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
           psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'Un-TransComm  ','OF')
 
+     call timing(iproc,'Un-TransSwitch','ON')
      call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psit)
+     call timing(iproc,'Un-TransSwitch','OF')
+     call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
           hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'Un-TransComm  ','OF')
 
-     call timing(iproc,'Un-Transall   ','OF')
      !end of transposition
 
      allocate(hamovr(norb**2,4),stat=i_stat)
@@ -2324,13 +2354,13 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
      call memocc(i_stat,i_all,'hamovr','import_gaussians')
    
      !retranspose the wavefunctions
-     call timing(iproc,'Un-Transall   ','ON')
+     call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
           hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'Un-TransSwitch','ON')
      call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
-
-     call timing(iproc,'Un-Transall   ','OF')
+     call timing(iproc,'Un-TransSwitch','OF')
 
   else !serial case
 
@@ -2381,7 +2411,6 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 
   if (iproc.eq.0) write(*,'(1x,a)')'done.'
 
-  return
 END SUBROUTINE import_gaussians
 
 subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
@@ -2619,7 +2648,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
      !transpose all the wavefunctions for having a piece of all the orbitals 
      !for each processor
-     call timing(iproc,'Un-Transall   ','ON')
+     !here the timing is related to the input guess part
      allocate(psiw(nvctrp,norbep,nproc),stat=i_stat)
      call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','input_wf_diag')
 
@@ -2634,7 +2663,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      i_all=-product(shape(psiw))*kind(psiw)
      deallocate(psiw,stat=i_stat)
      call memocc(i_stat,i_all,'psiw','input_wf_diag')
-     call timing(iproc,'Un-Transall   ','OF')
      !end of transposition
 
      allocate(hamovr(ndim_hamovr,4),stat=i_stat)
@@ -2757,28 +2785,25 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      call memocc(i_stat,i_all,'norbsc_arr','input_wf_diag')
      
      !retranspose the wavefunctions
-     call timing(iproc,'Un-Transall   ','ON')
      allocate(psiw(nvctrp,norbp,nproc),stat=i_stat)
      call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','input_wf_diag')
 
+     call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALL(ppsit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
           psiw,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-
-!!$     !i_all=-product(shape(ppsit))*kind(ppsit)
-!!$     !deallocate(ppsit,stat=i_stat)
-!!$     !call memocc(i_stat,i_all,'ppsit','input_wf_diag')
+     call timing(iproc,'Un-TransComm  ','OF')
 
      !allocate the direct wavefunction
      allocate(ppsi(nvctrp,norbp*nproc),stat=i_stat)
      call memocc(i_stat,product(shape(ppsi))*kind(ppsi),'ppsi','input_wf_diag')
 
+     call timing(iproc,'Un-TransSwitch','ON')
      call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psiw,ppsi)
+     call timing(iproc,'Un-TransSwitch','OF')
 
      i_all=-product(shape(psiw))*kind(psiw)
      deallocate(psiw,stat=i_stat)
      call memocc(i_stat,i_all,'psiw','input_wf_diag')
-
-     call timing(iproc,'Un-Transall   ','OF')
 
   else !serial case
 
@@ -2891,8 +2916,6 @@ END SUBROUTINE input_wf_diag
         psidst(nvctrp,norbp*nproc,idsx),hpsidst(nvctrp,norbp*nproc,idsx)
         allocatable :: ipiv(:),rds(:)
 
-        call timing(iproc,'Diis          ','ON')
-
         allocate(ipiv(idsx+1),stat=i_stat)
         call memocc(i_stat,product(shape(ipiv))*kind(ipiv),'ipiv','diisstp')
         allocate(rds(idsx+1),stat=i_stat)
@@ -2942,13 +2965,15 @@ END SUBROUTINE input_wf_diag
 !        write(6,'(i3,12(1x,e9.2))') iproc,(ads(i,j,2),j=1,min(idsx,ids)+1),rds(i)
 !        enddo
         if (ids.gt.1) then
-! solve linear system:(LAPACK)
-        call DSYSV('U',min(idsx,ids)+1,1,ads(1,1,2),idsx+1,  & 
-                   ipiv,rds,idsx+1,ads(1,1,3),(idsx+1)**2,info)
-        if (info.ne.0) print*, 'DGESV',info
-        if (info.ne.0) stop 'DGESV'
+           ! solve linear system:(LAPACK)
+           call DSYSV('U',min(idsx,ids)+1,1,ads(1,1,2),idsx+1,  & 
+                ipiv,rds,idsx+1,ads(1,1,3),(idsx+1)**2,info)
+           if (info.ne.0) then
+              print*, 'DGESV',info
+              stop
+           end if
         else
-        rds(1)=1.d0
+           rds(1)=1.d0
         endif
         if (iproc.eq.0) then 
            !write(*,*) 'DIIS weights'
@@ -2975,7 +3000,6 @@ END SUBROUTINE input_wf_diag
         i_all=-product(shape(rds))*kind(rds)
         deallocate(rds,stat=i_stat)
         call memocc(i_stat,i_all,'rds','diisstp')
-        call timing(iproc,'Diis          ','OF')
 
         return
         END SUBROUTINE

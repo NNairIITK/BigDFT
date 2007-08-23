@@ -9,8 +9,6 @@ subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,n
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension hpsi(nvctr_c+7*nvctr_f,norbp),eval(norb)
   
-  call timing(iproc,'Precondition  ','ON')
-  
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
      
      cprecr=-eval(iorb)
@@ -20,10 +18,7 @@ subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,n
           ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi(1,iorb-iproc*norbp))
      
   enddo
-  
-  call timing(iproc,'Precondition  ','OF')
-  
-  return
+
 end subroutine preconditionall
 
 subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
