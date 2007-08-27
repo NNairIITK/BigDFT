@@ -1,24 +1,51 @@
-F95 = ompif90  
-F77 = ompif90  
-FFLAGS = -O2 -c
+#F95 = ifort -L/soft/intel/mkl/9.0/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
 
-LIBRARIES = -L/soft/intel/mkl721/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
+
+#F95 = mpif90  -i_dynamic -p -C -g -L/soft/intel/mkl/9.0/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
+
+#F95 = mpif90   -I/soft/intel/mkl721/include -I/soft/mpich-1.2.7p1/intel_v9/include -openmp
+#F77 = mpif90  -i_dynamic -p 
+#FFLAGS =
+
+#LIBRARIES = -L/soft/intel/mkl721/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
 
 #Values of the logical parallel (to create parameters.h)
+#PARALLEL = .false.
 PARALLEL = .true.
+F95 =ompif90 -O2
+F77 =ompif90 -O2
+LIBRARIES = -L/usr/lib/lapack-g95  -llapack -lblas
 
 all: cluster test_forces
 
 SOURCES = \
+	convolutions/convolut_simple.f90	 \
+	convolutions/conv_per_optim.f90 \
+	convolutions/combined_grow.f90\
+	convolutions/combined_shrink.f90 \
         cluster_all.f90 \
-        convolut_optim.f90 \
-        conv_per_optim.f90 \
         eleconf.f90  \
         gauss_to_daub.f90 \
         precond.f90 \
         prec_diag.f90 \
-        timing.f90 \
-        forces.f90
+	wavelib.f90 \
+	input/gautowav.f90 \
+	input/gauprod.f90 \
+	input/inputguess.f90 \
+	input/restart.f90 \
+	ionicpot.f90 \
+	orthogonality.f90 \
+	forces.f90 \
+	gridmanipulation.f90 \
+	logrid.f90 \
+	applyh.f90 \
+	sumrho.f90 \
+	transwaves.f90 \
+	tail.f90 \
+	razero.f90 \
+
+SOURCES_TIME = profiling/timing.f90 
+SOURCES_PROJECTORS = projectors/projectors.f90 
 
 SOURCES_ABINIT = ABINIT-common/defs_basis.F90 \
         ABINIT-common/defs_datatypes.F90 \
@@ -38,15 +65,6 @@ SOURCES_ABINIT = ABINIT-common/defs_basis.F90 \
 
 
 SOURCES_POISSON = \
-   PSolver/Build_Kernel_OLD.f90 \
-   PSolver/fft3d_OLD.f90 \
-   PSolver/PSolver_Kernel.f90 \
-   PSolver/pconv.f90 \
-   PSolver/pfft3d.f90 \
-   PSolver/scaling_function_OLD.f90 \
-   PSolver/gequad.f90 \
-   PSolver/xcenergy_OLD.f90 \
-   PSolver/3Dgradient_OLD.f90 \
    PSolver/Poisson_Solver.f90
 
 SOURCES_MOD = PSolver/PSolver_launch.f90 \
@@ -64,10 +82,18 @@ $(OBJECTS_ABINIT_PP): %.f90: %.F90
 	cpp -P $< $@
 
 OBJECTS_F95 = $(SOURCES:.f90=.o)
+OBJECTS_TIME = $(SOURCES_TIME:.f90=.o)
+OBJECTS_PROJECTORS = $(SOURCES_PROJECTORS:.f90=.o)
 OBJECTS_ABINIT = $(OBJECTS_ABINIT_PP:.f90=.o)
 OBJECTS_POISSON = $(SOURCES_POISSON:.f90=.o)
 
 $(OBJECTS_F95): %.o: %.f90
+	$(F95) $(FFLAGS) -I.. -c $< -o $@
+
+$(OBJECTS_TIME): %.o: %.f90
+	$(F95) $(FFLAGS) -I.. -c $< -o $@
+
+$(OBJECTS_PROJECTORS): %.o: %.f90
 	$(F95) $(FFLAGS) -I.. -c $< -o $@
 
 $(OBJECTS_ABINIT): %.o: %.f90
@@ -77,11 +103,17 @@ $(OBJECTS_POISSON): %.o: %.f90
 	$(F95) $(FFLAGS) -c $< -o $@
 
 
-OBJECTS = $(OBJECTS_ABINIT) $(OBJECTS_F95) $(OBJECTS_POISSON)  BigDFT.f90
+#COBJECTS = 
+#COBJECTS = clsfunc.o  \
+#	minimize.o \
+#	nrutil.o \
+#	tblink.o \
+#	tbnorth.o
+OBJECTS = $(OBJECTS_ABINIT) $(OBJECTS_POISSON) $(OBJECTS_F95) $(OBJECTS_TIME) $(OBJECTS_PROJECTORS) $(COBJECTS) BigDFT.f90 
 OBJECTS_TEST =  $(OBJECTS_ABINIT) $(OBJECTS_F95)  $(OBJECTS_POISSON) test_forces.f90
 
-cluster: $(OBJECTS) parameters.h
-	$(F95) -o cluster $(OBJECTS) $(LIBRARIES)
+cluster: $(OBJECTS) parameters.h 
+	$(F95) -o cluster $(OBJECTS) $(LIBRARIES) 
 
 test_forces: $(OBJECTS_TEST)
 		$(F95) -o test_forces $(OBJECTS_TEST) $(LIBRARIES)
@@ -91,7 +123,7 @@ parameters.h:
 
 clean:
 	\rm -f *.o cluster test_forces *.mod *~ PSolver/*.o PSolver/*~ parameters.h \
-		ABINIT-common/*.f90 ABINIT-common/*.o ABINIT-common/*~
+		profiling/*.o projectors/*.o ABINIT-common/*.f90 ABINIT-common/*.o ABINIT-common/*~
 
 tar:
 	make clean
@@ -100,4 +132,13 @@ tar:
 #Dependencies:
 cluster_all.o: PSolver/Poisson_Solver.o
 PSolver/Poisson_Solver.o: $(SOURCES_MOD)
+convolutions/combined_grow.o: convolutions/long_grow.f90 \
+	convolutions/tree_unrolled_grow.f90 \
+	convolutions/v.f90 \
+	convolutions/v_long.f90
+
+convolutions/combined_shrink.o: convolutions/long_shrink.f90 \
+	convolutions/tree_long_shrink.f90 \
+	convolutions/v.f90 \
+	convolutions/v_long.f90
 

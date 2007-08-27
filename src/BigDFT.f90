@@ -1,185 +1,189 @@
 program BigDFT
 
-   use libBigDFT
+  use libBigDFT
 
-   implicit real*8 (a-h,o-z)
+  implicit real*8 (a-h,o-z)
 
-! For parallel MPI execution set parallel=.true., for serial parallel=.false.
-   include 'parameters.h'
+  ! For parallel MPI execution set parallel=.true., for serial parallel=.false.
+  include 'parameters.h'
 
-! atomic coordinates, forces
-   real*8, allocatable, dimension(:,:) :: rxyz, fxyz, rxyz_old
-   logical :: output_wf,output_grid
-   character(len=20) :: tatonam
-   character(len=80) :: line
-! atomic types
-   integer, allocatable, dimension(:) :: iatype
-   character*20 :: atomnames(100), units
-   character(len=6), dimension(:), allocatable :: frzsymb
-   logical, dimension(:), allocatable :: lfrztyp
-   real*8, pointer :: psi(:,:), eval(:)
-   integer, pointer :: keyv(:), keyg(:,:)
-!$      interface
-!$        integer ( kind=4 ) function omp_get_num_threads ( )
-!$        end function omp_get_num_threads
-!$      end interface
-!$      interface
-!$        integer ( kind=4 ) function omp_get_thread_num ( )
-!$        end function omp_get_thread_num
-!$      end interface
-   include 'mpif.h'
+  ! atomic coordinates, forces
+  real*8, allocatable, dimension(:,:) :: rxyz, fxyz, rxyz_old
+  logical :: output_wf,output_grid
+  character(len=20) :: tatonam
+  character(len=80) :: line
+  ! atomic types
+  integer, allocatable, dimension(:) :: iatype
+  character*20 :: atomnames(100), units
+  character(len=6), dimension(:), allocatable :: frzsymb
+  logical, dimension(:), allocatable :: lfrztyp
+  real*8, pointer :: psi(:,:), eval(:)
+  integer, pointer :: keyv(:), keyg(:,:)
+  !$      interface
+  !$        integer ( kind=4 ) function omp_get_num_threads ( )
+  !$        end function omp_get_num_threads
+  !$      end interface
+  !$      interface
+  !$        integer ( kind=4 ) function omp_get_thread_num ( )
+  !$        end function omp_get_thread_num
+  !$      end interface
+  include 'mpif.h'
 
-! Start MPI in parallel version
-   if (parallel) then
-      call MPI_INIT(ierr)
-      call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-      call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-      write(unit=line,fmt='(a,i0,a,i0,a)') &
-         'echo "- mpi started iproc=',iproc,'/',nproc,' host: `hostname`"'
-      call system(trim(line))
-   else
-      nproc=1
-      iproc=0
-   endif
+  ! Start MPI in parallel version
+  if (parallel) then
+     call MPI_INIT(ierr)
+     call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+     call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+     write(unit=line,fmt='(a,i0,a,i0,a)') &
+          'echo "- mpi started iproc=',iproc,'/',nproc,' host: `hostname`"'
+     call system(trim(line))
+  else
+     nproc=1
+     iproc=0
+  endif
 
   !initialize memory counting
   call memocc(0,iproc,'count','start')
 
-!$omp parallel private(iam)  shared (npr)
-!$       iam=omp_get_thread_num()
-!$       if (iam.eq.0) npr=omp_get_num_threads()
-!$       write(*,*) 'iproc,iam,npr',iproc,iam,npr
-!$omp end parallel
+  !$omp parallel private(iam)  shared (npr)
+  !$       iam=omp_get_thread_num()
+  !$       if (iam.eq.0) npr=omp_get_num_threads()
+  !$       write(*,*) 'iproc,iam,npr',iproc,iam,npr
+  !$omp end parallel
 
 
-! read atomic positions
-        open(unit=9,file='posinp',status='old')
-        read(9,*) nat,units
-        if (iproc.eq.0) write(*,'(1x,a,i0)') 'nat= ',nat
-        allocate(rxyz_old(3,nat),stat=i_stat)
-        call memocc(i_stat,product(shape(rxyz_old))*kind(rxyz_old),'rxyz_old','BigDFT')
-        allocate(rxyz(3,nat),stat=i_stat)
-        call memocc(i_stat,product(shape(rxyz))*kind(rxyz),'rxyz','BigDFT')
-        allocate(iatype(nat),stat=i_stat)
-        call memocc(i_stat,product(shape(iatype))*kind(iatype),'iatype','BigDFT')
-        allocate(fxyz(3,nat),stat=i_stat)
-        call memocc(i_stat,product(shape(fxyz))*kind(fxyz),'fxyz','BigDFT')
-        ntypes=0
-        do iat=1,nat
-        read(9,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
-         do ityp=1,ntypes
-           if (tatonam.eq.atomnames(ityp)) then
-              iatype(iat)=ityp
-              goto 200
-           endif
-         enddo
-         ntypes=ntypes+1
-         if (ntypes.gt.100) stop 'more than 100 atomnames not permitted'
-         atomnames(ityp)=tatonam
-         iatype(iat)=ntypes
-200        continue
-        if (units.eq.'angstroem') then
-! if Angstroem convert to Bohr
-        do i=1,3 ;  rxyz(i,iat)=rxyz(i,iat)/.529177d0  ; enddo
-        else if  (units.eq.'atomic' .or. units.eq.'bohr') then
-        else
+  ! read atomic positions
+  open(unit=9,file='posinp',status='old')
+  read(9,*) nat,units
+  if (iproc.eq.0) write(*,'(1x,a,i0)') 'nat= ',nat
+  allocate(rxyz_old(3,nat),stat=i_stat)
+  call memocc(i_stat,product(shape(rxyz_old))*kind(rxyz_old),'rxyz_old','BigDFT')
+  allocate(rxyz(3,nat),stat=i_stat)
+  call memocc(i_stat,product(shape(rxyz))*kind(rxyz),'rxyz','BigDFT')
+  allocate(iatype(nat),stat=i_stat)
+  call memocc(i_stat,product(shape(iatype))*kind(iatype),'iatype','BigDFT')
+  allocate(fxyz(3,nat),stat=i_stat)
+  call memocc(i_stat,product(shape(fxyz))*kind(fxyz),'fxyz','BigDFT')
+  ntypes=0
+  do iat=1,nat
+     read(9,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
+     do ityp=1,ntypes
+        if (tatonam.eq.atomnames(ityp)) then
+           iatype(iat)=ityp
+           goto 200
+        endif
+     enddo
+     ntypes=ntypes+1
+     if (ntypes.gt.100) stop 'more than 100 atomnames not permitted'
+     atomnames(ityp)=tatonam
+     iatype(iat)=ntypes
+200  continue
+     if (units.eq.'angstroem') then
+        ! if Angstroem convert to Bohr
+        do i=1,3 
+           rxyz(i,iat)=rxyz(i,iat)/.529177d0  
+        enddo
+     else if  (units.eq.'atomic' .or. units.eq.'bohr') then
+     else
         write(*,*) 'length units in input file unrecognized'
         write(*,*) 'recognized units are angstroem or atomic = bohr'
         stop 
-        endif
-        enddo
-        close(9)
-        do ityp=1,ntypes
-        if (iproc.eq.0) write(*,'(1x,a,i0,a,a)') 'atoms of type ',ityp,' are ',trim(atomnames(ityp))
-        enddo
-
-!  Read the first line of "input.dat"
-   open(unit=1,file='input.dat',status='old')
-   !Only the first line for the main routine (the program)
-   ! ngeostep Number of steps of geometry optimisation (default 500)
-   ! ampl     Amplitude for random displacement away from input file geometry (usually equilibrium geom.)
-   ! betax    Geometry optimisation
-   read(1,'(a80)')line
-   close(unit=1)
-
-   allocate(lfrztyp(ntypes),stat=i_stat)
-   call memocc(i_stat,product(shape(lfrztyp))*kind(lfrztyp),'lfrztyp','BigDFT')
-
-   print *,line
-   read(line,*,iostat=ierror)ngeostep,ampl,betax,nfrztyp
-   if (ierror /= 0) then
-      read(line,*)ngeostep,ampl,betax
-   else
-      allocate(frzsymb(nfrztyp),stat=i_stat)
-      call memocc(i_stat,product(shape(frzsymb))*kind(frzsymb),'frzsymb','BigDFT')
-      read(line,*,iostat=ierror)ngeostep,ampl,betax,nfrztyp,(frzsymb(i),i=1,nfrztyp)
-      lfrztyp(:)=.false.
-      do ityp=1,nfrztyp
-         seek_frozen: do jtyp=1,ntypes
-            if (trim(frzsymb(ityp))==trim(atomnames(jtyp))) then
-               lfrztyp(jtyp)=.true.
-               exit seek_frozen
-            end if
-         end do seek_frozen
-      end do
-      i_all=-product(shape(frzsymb))*kind(frzsymb)
-      deallocate(frzsymb,stat=i_stat)
-      call memocc(i_stat,i_all,'frzsymb','BigDFT')
-   end if
-   !ampl=0.d0!2.d-2  
-   if (iproc.eq.0) then
-      write(*,'(1x,a,i0)') 'Number of geometry steps ',ngeostep
-      write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude',ampl
-      write(*,'(1x,a,1pe10.2)') 'Steepest descent step',betax
-   end if
-   do iat=1,nat
-      if (.not. lfrztyp(iatype(iat))) then
-         call random_number(tt)
-         rxyz(1,iat)=rxyz(1,iat)+ampl*tt
-         call random_number(tt)
-         rxyz(2,iat)=rxyz(2,iat)+ampl*tt
-         call random_number(tt)
-         rxyz(3,iat)=rxyz(3,iat)+ampl*tt
-      end if
-   enddo
-
-   output_grid=.false. 
-   inputPsiId=0
-   output_wf=.false. 
-   call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz, &
-        psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-        inputPsiId, output_grid, output_wf, n1, n2, n3, hgrid, rxyz_old,infocode)
-   do iat=1,nat
-      rxyz_old(1,iat) = rxyz(1,iat) 
-      rxyz_old(2,iat) = rxyz(2,iat) 
-      rxyz_old(3,iat) = rxyz(3,iat)
-   enddo
+     endif
+  enddo
+  close(9)
+  do ityp=1,ntypes
+     if (iproc.eq.0) &
+          write(*,'(1x,a,i0,a,a)') 'atoms of type ',ityp,' are ',trim(atomnames(ityp))
+  enddo
+  
+  !  Read the first line of "input.dat"
+  open(unit=1,file='input.dat',status='old')
+  !Only the first line for the main routine (the program)
+  ! ngeostep Number of steps of geometry optimisation (default 500)
+  ! ampl     Amplitude for random displacement away from input file geometry 
+  ! (usually equilibrium geom.)
+  ! betax    Geometry optimisation
+  read(1,'(a80)')line
+  close(unit=1)
+  
+  allocate(lfrztyp(ntypes),stat=i_stat)
+  call memocc(i_stat,product(shape(lfrztyp))*kind(lfrztyp),'lfrztyp','BigDFT')
+  
+  read(line,*,iostat=ierror)ngeostep,ampl,betax,nfrztyp
+  if (ierror /= 0) then
+     read(line,*)ngeostep,ampl,betax
+     lfrztyp(:)=.false.
+  else
+     allocate(frzsymb(nfrztyp),stat=i_stat)
+     call memocc(i_stat,product(shape(frzsymb))*kind(frzsymb),'frzsymb','BigDFT')
+     read(line,*,iostat=ierror)ngeostep,ampl,betax,nfrztyp,(frzsymb(i),i=1,nfrztyp)
+     lfrztyp(:)=.false.
+     do ityp=1,nfrztyp
+        seek_frozen: do jtyp=1,ntypes
+           if (trim(frzsymb(ityp))==trim(atomnames(jtyp))) then
+              lfrztyp(jtyp)=.true.
+              exit seek_frozen
+           end if
+        end do seek_frozen
+     end do
+     i_all=-product(shape(frzsymb))*kind(frzsymb)
+     deallocate(frzsymb,stat=i_stat)
+     call memocc(i_stat,i_all,'frzsymb','BigDFT')
+  end if
+  !ampl=0.d0!2.d-2  
+  if (iproc.eq.0) then
+     write(*,'(1x,a,i0)') 'Number of geometry steps ',ngeostep
+     write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude',ampl
+     write(*,'(1x,a,1pe10.2)') 'Steepest descent step',betax
+  end if
+  do iat=1,nat
+     if (.not. lfrztyp(iatype(iat))) then
+        call random_number(tt)
+        rxyz(1,iat)=rxyz(1,iat)+ampl*tt
+        call random_number(tt)
+        rxyz(2,iat)=rxyz(2,iat)+ampl*tt
+        call random_number(tt)
+        rxyz(3,iat)=rxyz(3,iat)+ampl*tt
+     end if
+  enddo
+  
+  output_grid=.false. 
+  inputPsiId=0
+  output_wf=.false. 
+  call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz, &
+       psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
+       inputPsiId, output_grid, output_wf, n1, n2, n3, hgrid, rxyz_old,infocode)
+  do iat=1,nat
+     rxyz_old(1,iat) = rxyz(1,iat) 
+     rxyz_old(2,iat) = rxyz(2,iat) 
+     rxyz_old(3,iat) = rxyz(3,iat)
+  enddo
    
-   if (ngeostep > 1) then
-      write(*,*) 'FINISHED FIRST CLUSTER',iproc,infocode
-      ! geometry optimization
-      !    betax=2.d0   ! Cincodinine
-      !    betax=4.d0  ! Si H_4
-      !   betax=7.5d0  ! silicon systems
-      !    betax=10.d0  !  Na_Cl clusters
-      ncount_cluster=0
-      beta=.75d0*betax
-      energyold=1.d100
-      fluct=-1.d100
-      flucto=-1.d100
-      call conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,rxyz,etot,fxyz, &
-           psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-           n1, n2, n3, hgrid, rxyz_old,betax,ncount_cluster,fluct,flucto,fluctoo)
-   end if
-
-   if (iproc.eq.0) then
-      sumx=0.d0
-      sumy=0.d0
-      sumz=0.d0
-      write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
-      do iat=1,nat
-         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
-              iat,trim(atomnames(iatype(iat))),(fxyz(j,iat),j=1,3)
+  if (ngeostep > 1) then
+     write(*,*) 'FINISHED FIRST CLUSTER',iproc,infocode
+     ! geometry optimization
+     !    betax=2.d0   ! Cincodinine
+     !    betax=4.d0  ! Si H_4
+     !   betax=7.5d0  ! silicon systems
+     !    betax=10.d0  !  Na_Cl clusters
+     ncount_cluster=0
+     beta=.75d0*betax
+     energyold=1.d100
+     fluct=-1.d100
+     flucto=-1.d100
+     call conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,rxyz,etot,fxyz, &
+          psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
+          n1, n2, n3, hgrid, rxyz_old,betax,ncount_cluster,fluct,flucto,fluctoo)
+  end if
+  
+  if (iproc.eq.0) then
+     sumx=0.d0
+     sumy=0.d0
+     sumz=0.d0
+     write(*,'(1x,a,19x,a)') 'Final values of the Forces for each atom'
+     do iat=1,nat
+        write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
+             iat,trim(atomnames(iatype(iat))),(fxyz(j,iat),j=1,3)
          sumx=sumx+fxyz(1,iat)
          sumy=sumy+fxyz(2,iat)
          sumz=sumz+fxyz(3,iat)
@@ -189,8 +193,8 @@ program BigDFT
       write(*,'(1x,a16,3x,1pe16.8)')'y direction',sumy
       write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
    endif
-
-
+   
+   
 
    !deallocations
    i_all=-product(shape(lfrztyp))*kind(lfrztyp)
@@ -396,7 +400,9 @@ program BigDFT
         obeny=obeny+(gg(2,iat)-gp(2,iat))*gg(2,iat)
         obenz=obenz+(gg(3,iat)-gp(3,iat))*gg(3,iat)
         unten=unten+gp(1,iat)**2+gp(2,iat)**2+gp(3,iat)**2
-        fnrm=fnrm+gg(1,iat)**2+gg(2,iat)**2+gg(3,iat)**2
+        if (.not. lfrztyp(iatype(iat))) then
+           fnrm=fnrm+gg(1,iat)**2+gg(2,iat)**2+gg(3,iat)**2
+        end if
      end do
      write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)') it,fnrm,etot,' CG ',beta/betax
      write(16,*) 'fnrm,flucts',fnrm,sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0
@@ -472,11 +478,6 @@ program BigDFT
      call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,ff, &
           psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
           1, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-!!$     if (infocode == 2) then
-!!$        call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,ff, &
-!!$             psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-!!$             0, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-!!$     end if
         
      ncount_cluster=ncount_cluster+1
      do iat=1,nat
@@ -504,9 +505,11 @@ program BigDFT
      t2=0.d0 
      t3=0.d0
      do iat=1,nat
-        t1=t1+ff(1,iat)**2 
-        t2=t2+ff(2,iat)**2 
-        t3=t3+ff(3,iat)**2
+        if (.not. lfrztyp(iatype(iat))) then
+           t1=t1+ff(1,iat)**2 
+           t2=t2+ff(2,iat)**2 
+           t3=t3+ff(3,iat)**2
+        end if
      enddo
      fnrm=t1+t2+t3
      de1=etot-etotitm1
@@ -516,19 +519,24 @@ program BigDFT
      write(16,'(5(1x,e11.4),1x,i3)') fnrm/fnrmitm1, de1,de2,df1,df2,nsatur
      if (care .and. itsd.ge.3 .and. beta.eq.betax .and. fnrm/fnrmitm1.gt..8d0 .and. &
           de1.gt.-.1d0 .and. fnrm.le..1d0 .and. & 
-          de1.lt.anoise .and. df1.lt.anoise .and. de2.gt.-2.d0*anoise .and. df2.gt.-2.d0*anoise) then 
+          de1.lt.anoise .and. df1.lt.anoise .and. &
+          de2.gt.-2.d0*anoise .and. df2.gt.-2.d0*anoise) then 
         nsatur=nsatur+1
      else
         nsatur=0
      endif
-        write(16,'(i5,1x,e12.5,1x,e21.14,a)') itsd,fnrm,etot,' SD '
+     write(16,'(i5,1x,e12.5,1x,e21.14,a)') itsd,fnrm,etot,' SD '
 
         if (iproc.eq.0) call wtposout(ncount_cluster,nat,wpos,atomnames,iatype)
         fluctoo=flucto
         flucto=fluct
-        sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
+        sumx=0.d0 
+        sumy=0.d0 
+        sumz=0.d0
         do iat=1,nat
-           sumx=sumx+ff(1,iat) ; sumy=sumy+ff(2,iat) ; sumz=sumz+ff(3,iat)
+           sumx=sumx+ff(1,iat) 
+           sumy=sumy+ff(2,iat) 
+           sumz=sumz+ff(3,iat)
         end do
         fluct=sumx**2+sumy**2+sumz**2
         write(16,*) 'fnrm,flucts',fnrm,sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0
@@ -700,15 +708,15 @@ program BigDFT
       end subroutine detbetax
       
       subroutine call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
-           psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,inputPsiId,&
+           psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,inputPsiId_orig,&
            output_grid,output_wf,n1,n2,n3,hgrid,rxyz_old,infocode)
         use libBigDFT
         implicit none
         logical, intent(in) :: parallel,output_grid,output_wf
-        integer, intent(in) :: iproc,nproc,nat,ntypes,norbp,norb
+        integer, intent(in) :: iproc,nproc,nat,ntypes,norbp,norb,inputPsiId_orig
         integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f
         integer, intent(inout) :: infocode,n1,n2,n3
-        integer :: inputPsiId
+        integer :: inputPsiId,i_stat,i_all,ierr
         real(kind=8), intent(inout) :: hgrid
         real(kind=8), intent(out) :: energy
         character(len=20), dimension(100), intent(in) :: atomnames
@@ -721,7 +729,24 @@ program BigDFT
         real(kind=8), dimension(:), pointer :: eval
         real(kind=8), dimension(:,:), pointer :: psi
 
+        inputPsiId=inputPsiId_orig
+
         loop_cluster: do
+
+           if (inputPsiId == 0 .and. associated(psi)) then
+              i_all=-product(shape(psi))*kind(psi)
+              deallocate(psi,stat=i_stat)
+              call memocc(i_stat,i_all,'psi','call_cluster')
+              i_all=-product(shape(eval))*kind(eval)
+              deallocate(eval,stat=i_stat)
+              call memocc(i_stat,i_all,'eval','call_cluster')
+              i_all=-product(shape(keyg))*kind(keyg)
+              deallocate(keyg,stat=i_stat)
+              call memocc(i_stat,i_all,'keyg','call_cluster')
+              i_all=-product(shape(keyv))*kind(keyv)
+              deallocate(keyv,stat=i_stat)
+              call memocc(i_stat,i_all,'keyv','call_cluster')
+           end if
 
            call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
                 psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,inputPsiId,&
@@ -730,9 +755,30 @@ program BigDFT
            if (inputPsiId==1 .and. infocode==2) then
               inputPsiId=0
            else if (inputPsiId == 0 .and. infocode==3) then
-              write(*,'(1x,a)')'Convergence error, cannot proceed.'
-              write(*,'(1x,a)')' writing positions in file posout_999.ascii then exiting'
-              if (iproc.eq.0) call wtposout(999,nat,rxyz,atomnames,iatype)
+              if (iproc.eq.0) then
+                 write(*,'(1x,a)')'Convergence error, cannot proceed.'
+                 write(*,'(1x,a)')' writing positions in file posout_999.ascii then exiting'
+                 call wtposout(999,nat,rxyz,atomnames,iatype)
+              end if
+
+              i_all=-product(shape(psi))*kind(psi)
+              deallocate(psi,stat=i_stat)
+              call memocc(i_stat,i_all,'psi','call_cluster')
+              i_all=-product(shape(eval))*kind(eval)
+              deallocate(eval,stat=i_stat)
+              call memocc(i_stat,i_all,'eval','call_cluster')
+              i_all=-product(shape(keyg))*kind(keyg)
+              deallocate(keyg,stat=i_stat)
+              call memocc(i_stat,i_all,'keyg','call_cluster')
+              i_all=-product(shape(keyv))*kind(keyv)
+              deallocate(keyv,stat=i_stat)
+              call memocc(i_stat,i_all,'keyv','call_cluster')
+
+              !finalize memory counting (there are still the positions and the forces allocated)
+              call memocc(0,0,'count','stop')
+
+              if (parallel) call MPI_FINALIZE(ierr)
+
               stop
            else
               exit loop_cluster

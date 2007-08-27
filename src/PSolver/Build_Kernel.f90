@@ -56,6 +56,8 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
   integer :: jproc,nlimd,nlimk,jfull,jhalf,jzero,nphalf,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
   real(kind=8) :: hgrid
 
+  call timing(iproc,'PSolvKernel   ','ON')
+
   hgrid=max(hx,hy,hz)
 
   if (iproc==0) write(*,'(1x,a)')&
@@ -87,9 +89,7 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
      call memocc(i_stat,product(shape(kernel))*kind(kernel),'kernel','createkernel')
 
      !the kernel must be built and scattered to all the processes
-     call timing(iproc,'PSolvKernel   ','ON')
      call Surfaces_Kernel(n1,n2,n3,m3,nd1,nd2,nd3,hx,hz,hy,itype_scf,kernel,iproc,nproc)
-     call timing(iproc,'PSolvKernel   ','OF')
 
      !last plane calculated for the density and the kernel
      nlimd=n2
@@ -106,9 +106,9 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
      call memocc(i_stat,product(shape(kernel))*kind(kernel),'kernel','createkernel')
 
      !the kernel must be built and scattered to all the processes
-     call timing(iproc,'PSolvKernel   ','ON')
-     call Free_Kernel(n01,n02,n03,n1,n2,n3,nd1,nd2,nd3,hgrid,itype_scf,iproc,nproc,kernel)
-     call timing(iproc,'PSolvKernel   ','OF')
+
+     call Free_Kernel(n01,n02,n03,n1,n2,n3,nd1,nd2,nd3,hx,hy,hz,itype_scf,iproc,nproc,kernel)
+
 
      !last plane calculated for the density and the kernel
      nlimd=n2/2
@@ -185,6 +185,7 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
      end if
 
   end if
+  call timing(iproc,'PSolvKernel   ','OF')
 
 end subroutine createKernel
 
@@ -870,13 +871,13 @@ end subroutine indices
 !! SOURCE
 !!
 subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
-     hgrid,itype_scf,iproc,nproc,karray)
+     hx,hy,hz,itype_scf,iproc,nproc,karray)
 
  implicit none
 
  !Arguments
  integer, intent(in) :: n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,itype_scf,iproc,nproc
- real(kind=8), intent(in) :: hgrid
+ real(kind=8), intent(in) :: hx,hy,hz
  real(kind=8), dimension(n1k,n2k,n3k/nproc), intent(out) :: karray
 
  !Local variables
@@ -890,25 +891,28 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  real(kind=8), parameter :: p0_ref = 1.d0
  real(kind=8), dimension(n_gauss) :: p_gauss,w_gauss
 
- real(kind=8), dimension(:), allocatable :: kernel_scf,kern_1_scf,x_scf ,y_scf
+ real(kind=8), dimension(:), allocatable :: kern_1_scf,x_scf ,y_scf
+ real(kind=8), dimension(:,:), allocatable :: kernel_scf
  real(kind=8), dimension(:,:,:), allocatable :: kp
 
 
  real(kind=8) :: ur_gauss,dr_gauss,acc_gauss,pgauss,kern,a_range,kern_tot
- real(kind=8) :: pi,factor,factor2,urange,dx,absci,p0gauss,weight,p0_cell
- real(kind=8) :: a1,a2,a3,amax,ratio
+ real(kind=8) :: pi,factor,factor2,urange,dx,absci,p0gauss,weight,p0_cell,u1,u2,u3
+ real(kind=8) :: a1,a2,a3,amax,ratio,hgrid,pref1,pref2,pref3,p01,p02,p03,kern1,kern2,kern3
  integer :: n_scf,nker1,nker2,nker3
  integer :: i_gauss,n_range,n_cell,istart,iend,istart1
  integer :: i,j,n_iter,i_iter,ind,i1,i2,i3,i_kern,i_stat,i_all
- integer :: i01,i02,i03,n1h,n2h,n3h
+ integer :: i01,i02,i03,n1h,n2h,n3h,nit1,nit2,nit3
 
+ !grid spacing
+ hgrid=max(hx,hy,hz)
  !Number of integration points : 2*itype_scf*n_points
  n_scf=2*itype_scf*n_points
  !Set karray
 
  !here we must set the dimensions for the fft part, starting from the nfft
  !remember that actually nfft2 is associated to n03 and viceversa
-
+ 
  !dimensions that define the center of symmetry
  n1h=nfft1/2
  n2h=nfft2/2
@@ -939,8 +943,8 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  istart=iproc*nker2/nproc+1
  iend=min((iproc+1)*nker2/nproc,n2h+n03)
 
- istart1=istart
- if(iproc .eq. 0) istart1=n2h-n03+2
+ istart1=max(istart,n2h-n03+2)
+ !if(iproc .eq. 0) istart1=n2h-n03+2
 
  !Allocations
  allocate(x_scf(0:n_scf),stat=i_stat)
@@ -956,22 +960,11 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  n_cell = max(n01,n02,n03)
  n_range = max(n_cell,n_range)
 
- !Allocations
- allocate(kernel_scf(-n_range:n_range),stat=i_stat)
- call memocc(i_stat,product(shape(kernel_scf))*kind(kernel_scf),'kernel_scf','free_kernel')
- allocate(kern_1_scf(-n_range:n_range),stat=i_stat)
- call memocc(i_stat,product(shape(kern_1_scf))*kind(kern_1_scf),'kern_1_scf','free_kernel')
-
  !Lengthes of the box (use FFT dimension)
- a1 = hgrid * real(n01,kind=8)
- a2 = hgrid * real(n02,kind=8)
- a3 = hgrid * real(n03,kind=8)
+ a1 = hx * real(n01,kind=8)
+ a2 = hy * real(n02,kind=8)
+ a3 = hz * real(n03,kind=8)
 
- x_scf(:) = hgrid * x_scf(:)
- y_scf(:) = 1.d0/hgrid * y_scf(:)
- dx = hgrid * dx
- !To have a correct integration
- p0_cell = p0_ref/(hgrid*hgrid)
 
  !Initialization of the gaussian (Beylkin)
  call gequad(n_gauss,p_gauss,w_gauss,ur_gauss,dr_gauss,acc_gauss)
@@ -990,57 +983,146 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  end do
 
  kp(:,:,:)=0.d0
- !Use in this order (better for accuracy).
- loop_gauss: do i_gauss=n_gauss,1,-1
-    !Gaussian
-    pgauss = p_gauss(i_gauss)
 
-    !We calculate the number of iterations to go from pgauss to p0_ref
-    n_iter = nint((log(pgauss) - log(p0_cell))/log(4.d0))
-    if (n_iter <= 0)then
-       n_iter = 0
-       p0gauss = pgauss
-    else
-       p0gauss = pgauss/4.d0**n_iter
-    end if
+ !Allocations
+ allocate(kern_1_scf(-n_range:n_range),stat=i_stat)
+ call memocc(i_stat,product(shape(kern_1_scf))*kind(kern_1_scf),'kern_1_scf','free_kernel')
+ !add the treatment for inhomogeneous hgrids
+ if (hx == hy .and. hy == hz) then
+    allocate(kernel_scf(-n_range:n_range,1),stat=i_stat)
+    call memocc(i_stat,product(shape(kernel_scf))*kind(kernel_scf),'kernel_scf','free_kernel')
 
-    !Stupid integration
-    !Do the integration with the exponential centered in i_kern
-    kernel_scf(:) = 0.d0
-    do i_kern=0,n_range
-       kern = 0.d0
-       do i=0,n_scf
-          absci = x_scf(i) - real(i_kern,kind=8)*hgrid
-          absci = absci*absci
-          kern = kern + y_scf(i)*exp(-p0gauss*absci)*dx
-       end do
-       kernel_scf(i_kern) = kern
-       kernel_scf(-i_kern) = kern
-       if (abs(kern) < 1.d-18) then
-          !Too small not useful to calculate
-          exit
+    hgrid=hx
+
+    !To have a correct integration
+    p0_cell = p0_ref/(hgrid*hgrid)
+
+    !Use in this order (better for accuracy).
+    loop_gauss1: do i_gauss=n_gauss,1,-1
+       !Gaussian
+       pgauss = p_gauss(i_gauss)
+       !We calculate the number of iterations to go from pgauss to p0_ref
+       n_iter = nint((log(pgauss) - log(p0_cell))/log(4.d0))
+       if (n_iter <= 0)then
+          n_iter = 0
+          p0gauss = pgauss
+       else
+          p0gauss = pgauss/4.d0**n_iter
        end if
-    end do
 
-    !Start the iteration to go from p0gauss to pgauss
-    call scf_recursion(itype_scf,n_iter,n_range,kernel_scf,kern_1_scf)
+       !Stupid integration
+       !Do the integration with the exponential centered in i_kern
+       kernel_scf(:,1) = 0.d0
+       do i_kern=0,n_range
+          kern = 0.d0
+          do i=0,n_scf
+             absci = x_scf(i) - real(i_kern,kind=8)
+             absci = absci*absci*hgrid**2
+             kern = kern + y_scf(i)*dexp(-p0gauss*absci)
+          end do
+          kernel_scf(i_kern,1) = kern*dx
+          kernel_scf(-i_kern,1) = kern*dx
+          if (abs(kern) < 1.d-18) then
+             !Too small not useful to calculate
+             exit
+          end if
+       end do
 
-    !Add to the kernel (only the local part)
+       !Start the iteration to go from p0gauss to pgauss
+       call scf_recursion(itype_scf,n_iter,n_range,kernel_scf,kern_1_scf)
 
-    do i3=istart1,iend
-       i03 = i3 - n2h -1
-       do i2=1,n02
-          i02 = i2-1
-          do i1=1,n01
-             i01 = i1-1
-             kp(i1,i2,i3-istart+1) = kp(i1,i2,i3-istart+1) + w_gauss(i_gauss)* &
-                  kernel_scf(i01)*kernel_scf(i02)*kernel_scf(i03)
+       !Add to the kernel (only the local part)
+
+       do i3=istart1,iend
+          i03 = i3 - n2h -1
+          do i2=1,n02
+             i02 = i2-1
+             do i1=1,n01
+                i01 = i1-1
+                kp(i1,i2,i3-istart+1) = kp(i1,i2,i3-istart+1) + w_gauss(i_gauss)* &
+                     kernel_scf(i01,1)*kernel_scf(i02,1)*kernel_scf(i03,1)
+             end do
           end do
        end do
-    end do
 
 
- end do loop_gauss
+    end do loop_gauss1
+
+ else
+
+    allocate(kernel_scf(-n_range:n_range,3),stat=i_stat)
+    call memocc(i_stat,product(shape(kernel_scf))*kind(kernel_scf),'kernel_scf','free_kernel')
+
+    !To have a correct integration
+    pref1 = p0_ref/(hx*hx)
+    pref2 = p0_ref/(hy*hy)
+    pref3 = p0_ref/(hz*hz)
+
+    !Use in this order (better for accuracy).
+    loop_gauss: do i_gauss=n_gauss,1,-1
+       !Gaussian
+       pgauss = p_gauss(i_gauss)
+       !We calculate the number of iterations to go from pgauss to p0_ref
+       nit1 = max(nint((log(pgauss) - log(pref1))/log(4.d0)),0)
+       nit2 = max(nint((log(pgauss) - log(pref2))/log(4.d0)),0)
+       nit3 = max(nint((log(pgauss) - log(pref3))/log(4.d0)),0)
+       p01=pgauss/4.d0**nit1
+       p02=pgauss/4.d0**nit2
+       p03=pgauss/4.d0**nit3
+
+       !Stupid integration
+       !Do the integration with the exponential centered in i_kern
+       kernel_scf(:,:) = 0.d0
+       do i_kern=0,n_range
+          kern1=0.d0
+          kern2=0.d0
+          kern3=0.d0
+          do i=0,n_scf
+             absci = x_scf(i) - real(i_kern,kind=8)
+             u1=-p01*absci*absci*hx**2
+             u2=-p02*absci*absci*hy**2
+             u3=-p03*absci*absci*hz**2
+             u1=dexp(u1)
+             u2=dexp(u2)
+             u3=dexp(u3)
+             kern1=kern1+y_scf(i)*u1
+             kern2=kern2+y_scf(i)*u2
+             kern3=kern3+y_scf(i)*u3
+          end do
+          kernel_scf(i_kern,1) = kern1*dx
+          kernel_scf(-i_kern,1) = kern1*dx
+          kernel_scf(i_kern,2) = kern2*dx
+          kernel_scf(-i_kern,2) = kern2*dx
+          kernel_scf(i_kern,3) = kern3*dx
+          kernel_scf(-i_kern,3) = kern3*dx
+          if (abs(kern1)+abs(kern2)+abs(kern3) < 3.d-18) then
+             !Too small not useful to calculate
+             exit
+          end if
+       end do
+
+       !Start the iteration to go from p0gauss to pgauss
+       call scf_recursion(itype_scf,nit1,n_range,kernel_scf(-n_range,1),kern_1_scf)
+       call scf_recursion(itype_scf,nit2,n_range,kernel_scf(-n_range,2),kern_1_scf)
+       call scf_recursion(itype_scf,nit3,n_range,kernel_scf(-n_range,3),kern_1_scf)
+
+       !Add to the kernel (only the local part)
+
+       do i3=istart1,iend
+          i03 = i3 - n2h -1
+          do i2=1,n02
+             i02 = i2-1
+             do i1=1,n01
+                i01 = i1-1
+                kp(i1,i2,i3-istart+1) = kp(i1,i2,i3-istart+1) + w_gauss(i_gauss)* &
+                     kernel_scf(i01,1)*kernel_scf(i02,2)*kernel_scf(i03,3)
+             end do
+          end do
+       end do
+
+    end do loop_gauss
+
+ end if
 
  !De-allocations
  i_all=-product(shape(kernel_scf))*kind(kernel_scf)

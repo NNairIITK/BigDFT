@@ -241,6 +241,8 @@ Makefile
 src/Makefile
 src/ABINIT-common/Makefile
 src/PSolver/Makefile
+src/convolutions/Makefile
+src/profiling/Makefile
 src/parameters.h
 utils/Makefile
 utils/PSPfiles/Makefile

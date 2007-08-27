@@ -77,7 +77,7 @@
 !!    February 2007
 !!
 !! SOURCE
-!!
+!! 
 subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
   implicit none
@@ -103,7 +103,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer, dimension(:,:), allocatable :: gather_arr
   real(kind=8), dimension(:), allocatable :: energies_mpi,rhopot_G
 
-
+  call timing(iproc,'Exchangecorr  ','ON')
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
      if (iproc==0) &
@@ -132,7 +132,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   call memocc(i_stat,product(shape(zfionxc))*kind(zfionxc),'zfionxc','psolver')
   zf=0.0d0;zfionxc=0.0d0
 
-  call timing(iproc,'Exchangecorr  ','ON')
   !dimension for exchange-correlation (different in the global or distributed case)
   !let us calculate the dimension of the portion of the rhopot array to be passed 
   !to the xc routine
@@ -289,38 +288,15 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      correction=0.d0
      factor=0.5d0*hx*hy*hz
   else if (geocode == 'F') then
-     hgrid=max(hx,hy,hz)
-     scal=hgrid**3/real(n1*n2*n3,kind=8)
+     !hgrid=max(hx,hy,hz)
+     scal=hx*hy*hz/real(n1*n2*n3,kind=8)
      call F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
-          scal,hgrid)!,ehartreeLOC)
+          scal)!,hgrid)!,ehartreeLOC)
      correction=0.d0
-     factor=0.5d0*hgrid**3
+     factor=0.5d0*hx*hy*hz!hgrid**3
      
   end if
   
-!  rewind(303)
-!  do i3=1,md2/nproc
-!     do i2=1,md3
-!        do i1=1,md1
-!           write(303,'(f18.12)') zf(i1,i2,i3)
-!        end do
-!     end do
-!  end do
-!
-!  i4=0
-!  rewind(304)
-!  do ispin=1,nspin
-!  do i3=1,n03
-!     do i2=1,n02
-!        do i1=1,n01
-!           i4=i4+1
-!           write(304,'(f18.12)') rhopot(i4)
-!        end do
-!     end do
-!  end do
-!  end do
-
-
   call timing(iproc,'PSolv_comput  ','ON')
   
   !the value of the shift depends on the distributed i/o or not
@@ -391,8 +367,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      ehartreeLOCt=ehartreeLOCt+ehartreeLOC
   end do
   
-  call timing(iproc,'PSolv_comput  ','OF')
-
   i_all=-product(shape(zf))*kind(zf)
   deallocate(zf,stat=i_stat)
   call memocc(i_stat,i_all,'zf','psolver')
@@ -400,6 +374,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   deallocate(zfionxc,stat=i_stat)
   call memocc(i_stat,i_all,'zfionxc','psolver')
 
+  call timing(iproc,'PSolv_comput  ','OF')
 
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree,eexcu,vexcu
@@ -427,19 +402,20 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         !building the array of the data to be sent from each process
         !and the array of the displacement
 
+        call timing(iproc,'PSolv_comput  ','ON')
         allocate(gather_arr(0:nproc-1,2),stat=i_stat)
         call memocc(i_stat,product(shape(gather_arr))*kind(gather_arr),'gather_arr','psolver')
-        call timing(iproc,'PSolv_comput  ','ON')
         do jproc=0,nproc-1
            istart=min(jproc*(md2/nproc),m2-1)
            jend=max(min(md2/nproc,m2-md2/nproc*jproc),0)
            gather_arr(jproc,1)=m1*m3*jend
            gather_arr(jproc,2)=m1*m3*istart
         end do
-        call timing(iproc,'PSolv_comput  ','OF')
 
         !gather all the results in the same rhopot array
         istart=min(iproc*(md2/nproc),m2-1)
+
+        call timing(iproc,'PSolv_comput  ','OF')
         call timing(iproc,'PSolv_commun  ','ON')
         call MPI_ALLGATHERV(rhopot(1+n01*n02*istart),gather_arr(iproc,1),MPI_double_precision,&
              rhopot(1),gather_arr(0,1),gather_arr(0,2),MPI_double_precision,MPI_COMM_WORLD,ierr)
@@ -455,9 +431,13 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
                 MPI_double_precision,MPI_COMM_WORLD,ierr)
         end if
         call timing(iproc,'PSolv_commun  ','OF')
+        call timing(iproc,'PSolv_comput  ','ON')
+
         i_all=-product(shape(gather_arr))*kind(gather_arr)
         deallocate(gather_arr,stat=i_stat)
         call memocc(i_stat,i_all,'gather_arr','psolver')
+
+        call timing(iproc,'PSolv_comput  ','OF')
 
      end if
 
