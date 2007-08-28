@@ -3052,7 +3052,7 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
   !*****************************************************************************************
 
   !local variables
-  integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp,jorb
+  integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp,jorb,nspin
   real(kind=8) :: hgridh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum
   real(kind=8), dimension(:), allocatable :: work_lp,pot
   real(kind=8), dimension(:,:), allocatable :: hamovr
@@ -3062,6 +3062,7 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
           '--------------------------------------------------------- Import Gaussians from CP2K'
   end if
 
+  nspin=1
   hgridh=.5d0*hgrid
 
   if (parallel) then
@@ -3102,7 +3103,7 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
   end if
   !      ixc=1   ! LDA functional
   call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
-       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.)
+       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
 
 
   if (parallel) then
