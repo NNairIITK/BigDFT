@@ -136,17 +136,17 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   !  Applies the local potential and kinetic energy operator to all wavefunctions belonging to processor
   ! Input: pot,psi
   ! Output: hpsi,epot,ekin
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
   dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
   dimension occup(norb),pot((2*n1+31)*(2*n2+31)*(2*n3+31))
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension  psi(nvctr_c+7*nvctr_f,norbp)
   dimension hpsi(nvctr_c+7*nvctr_f,norbp)
-  real*8, allocatable :: psir(:),y_c(:,:,:),y_f(:,:,:,:)
+  real(kind=8), allocatable :: psir(:),y_c(:,:,:),y_f(:,:,:,:)
 
   !********************Alexey***************************************************************
-  !	for shrink:	
+  ! for shrink:
   integer ibzzx_c(2,-14:2*n3+16,0:n1) 
   integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
 
@@ -154,7 +154,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
   integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
 
-  !	for grow:
+  ! for grow:
   integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
   integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
 
@@ -162,17 +162,17 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
   integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
-  !	for real space:
+  ! for real space:
   integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
-  !*************Alexey***************************************************************************	
-  real*8,allocatable,dimension(:,:,:)::x_c!input 
-  real*8,allocatable::x_f(:,:,:,:),x_fc(:,:,:,:) ! input
-  real*8,allocatable,dimension(:):: w1,w2
+  !*************Alexey***************************************************************************
+  real(kind=8),allocatable,dimension(:,:,:)::x_c!input 
+  real(kind=8),allocatable::x_f(:,:,:,:),x_fc(:,:,:,:) ! input
+  real(kind=8),allocatable,dimension(:):: w1,w2
   !***********************************************************************************************
   !******************Alexey**********************************************************************
 
   ! shrink convention: nw1>nw2
-  nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&   		
+  nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
        (n1+1)*(2*n2+31)*(2*n3+31),&
        2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
        2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
@@ -267,7 +267,7 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   !  Applies the local potential and kinetic energy operator to one wavefunction 
   ! Input: pot,psi
   ! Output: hpsi,epot,ekin
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
   dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
   dimension pot((2*n1+31)*(2*n2+31)*(2*n3+31))
@@ -278,7 +278,7 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   dimension y_f(7,0:n1,0:n2,0:n3)
   dimension psir((2*n1+31)*(2*n2+31)*(2*n3+31))
   !********************Alexey***************************************************************
-  !	for shrink:	
+  ! for shrink:
   integer ibzzx_c(2,-14:2*n3+16,0:n1) 
   integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
 
@@ -286,7 +286,7 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
   integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
 
-  !	for grow:
+  ! for grow:
   integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
   integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
 
@@ -294,11 +294,11 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
   integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
-  !	for real space:
+  ! for real space:
   integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
-  !*****************************************************************************************	
-  real*8 x_c(0:n1,0:n2,0:n3),  x_fc(0:n1,0:n2,0:n3,3), x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)! input
-  real*8 w1(nw1),w2(nw2) ! work
+  !*****************************************************************************************
+  real(kind=8) x_c(0:n1,0:n2,0:n3),  x_fc(0:n1,0:n2,0:n3,3), x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)! input
+  real(kind=8) w1(nw1),w2(nw2) ! work
   !***********************************************************************************************
   do i=0,3
      scal(i)=1.d0
@@ -337,14 +337,14 @@ subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   integer,intent(in)::n1,n2,n3
   integer,intent(in)::ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
 
-  real*8,intent(in)::pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
-  real*8,intent(inout)::psir(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+  real(kind=8),intent(in)::pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+  real(kind=8),intent(inout)::psir(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
 
-  real*8,intent(out)::epot
-  real*8 tt
+  real(kind=8),intent(out)::epot
+  real(kind=8) tt
   integer i1,i2,i3
 
-  epot=0.d0	
+  epot=0.d0
   do i3=-14,2*n3+16
      do i2=-14,2*n2+16
         do i1=max(ibyyzz_r(1,i2,i3),-14),min(ibyyzz_r(2,i2,i3),2*n1+16)
@@ -361,11 +361,11 @@ subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
   implicit none
   integer,intent(in)::nb1,nb2,nb3,nbuf
   integer,intent(in)::ibyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16)
-  real*8,intent(in)::pot(-14:2*nb1+16-4*nbuf,-14:2*nb2+16-4*nbuf,-14:2*nb3+16-4*nbuf)
-  real*8,intent(inout)::psir(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
+  real(kind=8),intent(in)::pot(-14:2*nb1+16-4*nbuf,-14:2*nb2+16-4*nbuf,-14:2*nb3+16-4*nbuf)
+  real(kind=8),intent(inout)::psir(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
 
-  real*8,intent(out)::epot
-  real*8 tt,dnrm2
+  real(kind=8),intent(out)::epot
+  real(kind=8) tt,dnrm2
   integer i1,i2,i3
 
   epot=0.d0
@@ -408,7 +408,7 @@ subroutine applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
   ! Applies all the projectors onto a wavefunction
   ! Input: psi_c,psi_f
   ! In/Output: hpsi_c,hpsi_f (both are updated, i.e. not initilized to zero at the beginning)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension psppar(0:4,0:4,ntypes),iatype(nat),npspcode(ntypes)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension psi(nvctr_c+7*nvctr_f,norbp),hpsi(nvctr_c+7*nvctr_f,norbp)
@@ -435,7 +435,7 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
   ! Applies all the projectors onto a single wavefunction
   ! Input: psi_c,psi_f
   ! In/Output: hpsi_c,hpsi_f (both are updated, i.e. not initilized to zero at the beginning)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension psppar(0:4,0:4,ntypes),iatype(nat),npspcode(ntypes)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension psi(nvctr_c+7*nvctr_f),hpsi(nvctr_c+7*nvctr_f)

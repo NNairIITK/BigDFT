@@ -1,5 +1,5 @@
        SUBROUTINE SYN_REPEATED_PER(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3)
-       implicit real*8 (a-h,o-z)
+       implicit real(kind=8) (a-h,o-z)
        dimension  x(0:nd1,0:nd2,0:nd3)
        ALLOCATABLE XX(:),YY(:),WW(:)
 
@@ -72,7 +72,7 @@
 
 
        SUBROUTINE ANA_REPEATED_PER(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3)
-       implicit real*8 (a-h,o-z)
+       implicit real(kind=8) (a-h,o-z)
        dimension  x(0:nd1,0:nd2,0:nd3)
        ALLOCATABLE XX(:),YY(:),WW(:) 
 
@@ -143,7 +143,7 @@
        subroutine SYNTHESE_PER(nd1,nd2,nd3,x,y,ww)
 ! A periodic synthesis (BACKWARD) wavelet transformation
 ! The input array x is not overwritten
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension  x(0:nd1,0:nd2,0:nd3)
         dimension ww(0:nd1,0:nd2,0:nd3)
         dimension  y(0:nd1,0:nd2,0:nd3)
@@ -164,7 +164,7 @@
        subroutine SYNTHESE_PER_SELF(nd1,nd2,nd3,x,y,ww)
 ! A periodic synthesis (BACKWARD) wavelet transformation
 ! The input array x is not overwritten
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension  x(0:nd1,0:nd2,0:nd3)
         dimension ww(0:nd1,0:nd2,0:nd3)
         dimension  y(0:nd1,0:nd2,0:nd3)
@@ -186,7 +186,7 @@
         subroutine ANALYSE_PER(nd1,nd2,nd3,y,x,ww)
 ! An analysis (FORWARD) periodic wavelet transformation
 ! The input array y is NOT overwritten
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension  x(0:nd1,0:nd2,0:nd3)
         dimension ww(0:nd1,0:nd2,0:nd3)
         dimension  y(0:nd1,0:nd2,0:nd3)
@@ -207,7 +207,7 @@
         subroutine ANALYSE_PER_SELF(nd1,nd2,nd3,y,x,ww)
 ! An analysis (FORWARD) periodic wavelet transformation
 ! The input array y is NOT overwritten
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension  x(0:nd1,0:nd2,0:nd3)
         dimension ww(0:nd1,0:nd2,0:nd3)
         dimension  y(0:nd1,0:nd2,0:nd3)
@@ -230,12 +230,12 @@
 !
 !      FORWARD WAVELET TRANSFORM, ANALYSIS, PERIODIC
 !
-       implicit real*8 (a-h,o-z)
+       implicit real(kind=8) (a-h,o-z)
        INTEGER RIGHT
        DIMENSION C(0:RIGHT,NT),CD_1(NT,0:RIGHT)
        ALLOCATABLE MOD_MY(:)
         parameter(m=8)
-        real*8 ch(-8:9) ,cg(-8:9)
+        real(kind=8) ch(-8:9) ,cg(-8:9)
 !       Daubechy S16
         data ch  /  0.d0 , -0.0033824159510050025955D0, & 
                 -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
@@ -400,12 +400,12 @@
 !
 !     BACKWARD WAVELET TRANSFORM, SYNTHESIS, PERIODIC
 !
-      implicit real*8 (a-h,o-z)
+      implicit real(kind=8) (a-h,o-z)
       INTEGER RIGHT1
       DIMENSION CD(0:RIGHT1,NT),C1(NT,0:RIGHT1)
       ALLOCATABLE MOD_MY(:)
         parameter(m=8)
-        real*8 ch(-8:9) ,cg(-8:9)
+        real(kind=8) ch(-8:9) ,cg(-8:9)
 !       Daubechy S16
         data ch  /  0.d0 , -0.0033824159510050025955D0, & 
                 -0.00054213233180001068935D0, 0.031695087811525991431D0, & 

@@ -1,5 +1,5 @@
  !       PROGRAM MAIN
- !       implicit real*8 (a-h,o-z)          
+ !       implicit real(kind=8) (a-h,o-z)          
  !       PARAMETER(NMAX=1000,NWORK=10000)
  !       DIMENSION C(0:NMAX,2)
 !!
@@ -39,7 +39,7 @@
 !!         C(:,1) array of scaling function coefficients:
 !!         C(:,2) array of wavelet coefficients:
 !!         WW(:,1),WW(:,2): work arrays that have to be 16 times larger than C
-            implicit real*8 (a-h,o-z)
+            implicit real(kind=8) (a-h,o-z)
             INTEGER LEFTS(0:4),RIGHTS(0:4),RIGHTX,LEFTX,RIGHT_T
             DIMENSION C(0:NMAX,2)
             DIMENSION WW(0:NWORK,2)
@@ -137,7 +137,7 @@
 !
 !       APPLYING THE MAGIC FILTER ("SHRINK") 
 !
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         INTEGER RIGHT,RIGHTX
         DIMENSION CX(LEFTX:RIGHTX),C(LEFT:RIGHT)
         INCLUDE 'recs16.inc'
@@ -159,7 +159,7 @@
 !
 !      FORWARD WAVELET TRANSFORM WITHOUT WAVELETS ("SHRINK")
 !
-       implicit real*8 (a-h,o-z)
+       implicit real(kind=8) (a-h,o-z)
        INTEGER RIGHT,RIGHT_1
        DIMENSION C(LEFT:RIGHT)
        DIMENSION C_1(LEFT_1:RIGHT_1)
@@ -184,7 +184,7 @@
 !
 !      CONVENTIONAL FORWARD WAVELET TRANSFORM ("SHRINK")
 !
-       implicit real*8 (a-h,o-z)
+       implicit real(kind=8) (a-h,o-z)
        INTEGER RIGHT,RIGHT_1
        DIMENSION C(LEFT:RIGHT)
        DIMENSION CD_1(LEFT_1:RIGHT_1,2)
@@ -209,6 +209,6 @@
        END
 
        function psi(x,GAU_A,GAU_CEN,N_GAU)
-       implicit real*8 (a-h,o-z)
+       implicit real(kind=8) (a-h,o-z)
          psi=(X-GAU_CEN)**N_GAU*exp(-0.5d0*((X-GAU_CEN)/GAU_A)**2)
        end

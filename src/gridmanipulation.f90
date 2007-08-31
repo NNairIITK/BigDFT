@@ -1,7 +1,7 @@
 subroutine system_size(nat,rxyz,radii,rmult,iatype,ntypes, &
      cxmin,cxmax,cymin,cymax,czmin,czmax)
   ! calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   parameter(eps_mach=1.d-12)
   dimension rxyz(3,nat),radii(ntypes),iatype(nat)
 
@@ -27,7 +27,7 @@ END SUBROUTINE system_size
 
 subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
   ! Calculates the length of the keys describing a wavefunction data structure
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   logical logrid,plogrid
   dimension logrid(0:n1,0:n2,0:n3)
 
@@ -66,7 +66,7 @@ END SUBROUTINE num_segkeys
 
 subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
   ! Calculates the keys describing a wavefunction data structure
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   logical logrid,plogrid
   dimension logrid(0:n1,0:n2,0:n3),keyg(2,mseg),keyv(mseg)
 
@@ -111,7 +111,7 @@ subroutine fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
      ntypes,iatype,rxyz,radii,rmult,hgrid,logrid)
   ! set up an array logrid(i1,i2,i3) that specifies whether the grid point
   ! i1,i2,i3 is the center of a scaling function/wavelet
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   logical logrid
   parameter(eps_mach=1.d-12,onem=1.d0-eps_mach)
   dimension rxyz(3,nat),iatype(nat),radii(ntypes)
@@ -156,7 +156,7 @@ subroutine fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
 END SUBROUTINE fill_logrid
 
 subroutine bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   logical logrid
   dimension logrid(0:n1,0:n2,0:n3)
   dimension ibyz(2,0:n2,0:n3),ibxz(2,0:n1,0:n3),ibxy(2,0:n1,0:n2)

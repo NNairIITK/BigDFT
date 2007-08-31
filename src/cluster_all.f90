@@ -39,12 +39,12 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
   use Poisson_Solver
 
-  implicit real*8 (a-h,o-z)
-  character*30 label
-  character*27 filename
-  character*20 atomnames
-  character*2 symbol
-  character*1 datacode
+  implicit real(kind=8) (a-h,o-z)
+  character(len=30) :: label
+  character(len=27) :: filename
+  character(len=20) :: atomnames
+  character(len=2) :: symbol
+  character(len=1) :: datacode
   logical logrid_c,logrid_f,parallel,calc_tail,output_wf,output_grid
   parameter(eps_mach=1.d-12,onem=1.d0-eps_mach)
   ! work array for ALLREDUCE
@@ -58,33 +58,33 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
        ibyz_f(:,:,:),ibxz_f(:,:,:),ibxy_f(:,:,:)
   ! occupation numbers, eigenvalues
   allocatable :: occup(:)
-  real*8, pointer :: eval(:),eval_old(:)
+  real(kind=8), pointer :: eval(:),eval_old(:)
 
   ! wavefunction segments
   integer, pointer :: keyv(:)
   ! wavefunction segments on real space grid
   integer, pointer :: keyg(:,:)
   ! wavefunction 
-  real*8, pointer :: psi(:,:)
-  real*8, pointer :: psit(:,:)
+  real(kind=8), pointer :: psi(:,:)
+  real(kind=8), pointer :: psit(:,:)
   ! wavefunction gradients
-  real*8, pointer :: hpsi(:,:)
+  real(kind=8), pointer :: hpsi(:,:)
 
   ! Pointers and variables to store the last psi
   ! before reformating if useFormattedInput is .true.
   integer :: nseg_c_old, nseg_f_old, nvctr_c_old, nvctr_f_old
   integer, pointer :: keyg_old(:,:), keyv_old(:)
-  real*8, pointer :: psi_old(:,:)
+  real(kind=8), pointer :: psi_old(:,:)
 
   ! Charge density/potential,ionic potential, pkernel
   allocatable :: rhopot(:,:,:),pot_ion(:)
-  real*8, pointer     :: pkernel(:)
+  real(kind=8), pointer     :: pkernel(:)
 
   ! projector segments on real space grid
   pointer :: keyg_p(:,:), keyv_p(:)
   allocatable :: nvctr_p(:), nseg_p(:)
   ! projectors 
-  real*8, pointer :: proj(:)
+  real(kind=8), pointer :: proj(:)
   ! Parameters for the boxes containing the projectors
   allocatable :: nboxp_c(:,:,:),nboxp_f(:,:,:)
 
@@ -92,7 +92,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocatable :: psppar(:,:,:),nelpsp(:),radii_cf(:,:),npspcode(:),nzatom(:),iasctype(:)
   allocatable :: derproj(:)
   ! arrays for DIIS convergence accelerator
-  real*8, pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
+  real(kind=8), pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
 
   ! arrays for calculation of forces and tail correction to kinetic energy
   allocatable :: rho(:),pot(:,:,:)
@@ -109,9 +109,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 !***********************************************************************************************
     integer,allocatable,dimension(:,:,:)::ibyyzz_r ! real space border
 !*************Alexey***************************************************************************
-!    real*8,allocatable,dimension(:,:,:)::xc!input 
-!    real*8,allocatable::xf(:,:,:,:)! input
-!    real*8,allocatable,dimension(:):: w1,w2
+!    real(kind=8),allocatable,dimension(:,:,:)::xc!input 
+!    real(kind=8),allocatable::xf(:,:,:,:)! input
+!    real(kind=8),allocatable,dimension(:):: w1,w2
 !***********************************************************************************************
   integer :: ierror
 
@@ -787,19 +787,12 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      endif
 
      ! Potential from electronic charge density
-     if (datacode=='G') then
-        call sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-                nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
-                nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-                ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
-     else
-        call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-                nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot, &
-                (2*n1+31)*(2*n2+31)*n3d,nscatterarr,&
-                nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-                ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
-     end if
-
+     call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot, &
+          (2*n1+31)*(2*n2+31)*n3d,nscatterarr,&
+          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+     
 !     ixc=12  ! PBE functional
 !     ixc=1   ! LDA functional
      call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
@@ -975,41 +968,29 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 ! new arrays rho,pot for calculation of forces ground state electronic density
 
   ! Potential from electronic charge density
-  if (datacode=='G') then
-     allocate(rho((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+  
+  !manipulate scatter array for avoiding the GGA shift
+  do jproc=0,nproc-1
+     !n3d=n3p
+     nscatterarr(jproc,1)=nscatterarr(jproc,2)
+     !i3xcsh=0
+     nscatterarr(jproc,4)=0
+  end do
+
+  if (n3p>0) then
+     allocate(rho((2*n1+31)*(2*n2+31)*n3p),stat=i_stat)
      call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
-
-     call sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-             nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
-             nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
   else
-
-     !manipulate scatter array for avoiding the GGA shift
-     do jproc=0,nproc-1
-        !n3d=n3p
-        nscatterarr(jproc,1)=nscatterarr(jproc,2)
-        !i3xcsh=0
-        nscatterarr(jproc,4)=0
-     end do
-
-     if (n3p>0) then
-        allocate(rho((2*n1+31)*(2*n2+31)*n3p),stat=i_stat)
-        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
-     else
-        allocate(rho(1),stat=i_stat)
-        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
-     end if
-
-     !use pot_ion array for building total rho
-     call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-             nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
-             (2*n1+31)*(2*n2+31)*n3p,nscatterarr,&
-             nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
-
+     allocate(rho(1),stat=i_stat)
+     call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
   end if
 
+  !use pot_ion array for building total rho
+  call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+       nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
+       (2*n1+31)*(2*n2+31)*n3p,nscatterarr,&
+       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+       ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
 
   if (iproc.eq.0 .and. output_grid) then
      open(unit=22,file='density.pot',status='unknown')
@@ -1028,37 +1009,22 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      end do
      close(22)
   endif
+  
+  !switch between the old and the new forces calculation
+  i_all=-product(shape(pot_ion))*kind(pot_ion)
+  deallocate(pot_ion,stat=i_stat)
+  call memocc(i_stat,i_all,'pot_ion','cluster')
 
-
-  if (datacode == 'D') then
-
-     !switch between the old and the new forces calculation
-     i_all=-product(shape(pot_ion))*kind(pot_ion)
-     deallocate(pot_ion,stat=i_stat)
-     call memocc(i_stat,i_all,'pot_ion','cluster')
-
-     if (n3p>0) then
-        allocate(pot((2*n1+31),(2*n2+31),n3p),stat=i_stat)
-        call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
-     else
-        allocate(pot(1,1,1),stat=i_stat)
-        call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
-     end if
-     call DCOPY((2*n1+31)*(2*n2+31)*n3p,rho,1,pot,1) 
-     call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
-          pot,pkernel,pot,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.)
-
-  else
-     allocate(pot((2*n1+31),(2*n2+31),(2*n3+31)),stat=i_stat)
+  if (n3p>0) then
+     allocate(pot((2*n1+31),(2*n2+31),n3p),stat=i_stat)
      call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
-     call DCOPY((2*n1+31)*(2*n2+31)*(2*n3+31),rho,1,pot,1) 
-     
-     call PSolver('F','G',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
-          pot,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.)
-     i_all=-product(shape(pot_ion))*kind(pot_ion)
-     deallocate(pot_ion,stat=i_stat)
-     call memocc(i_stat,i_all,'pot_ion','cluster')
+  else
+     allocate(pot(1,1,1),stat=i_stat)
+     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
   end if
+  call DCOPY((2*n1+31)*(2*n2+31)*n3p,rho,1,pot,1) 
+  call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
+       pot,pkernel,pot,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.)
 
 
   i_all=-product(shape(pkernel))*kind(pkernel)
@@ -1141,14 +1107,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh),(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION, &
              pot,ngatherarr(0,1),ngatherarr(0,2), & 
              MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        i_all=-product(shape(nscatterarr))*kind(nscatterarr)
-        deallocate(nscatterarr,stat=i_stat)
-        call memocc(i_stat,i_all,'nscatterarr','cluster')
-        i_all=-product(shape(ngatherarr))*kind(ngatherarr)
-        deallocate(ngatherarr,stat=i_stat)
-        call memocc(i_stat,i_all,'ngatherarr','cluster')
      else
-
         !here one could have not allocated pot and: call move_alloc(rhopot,pot) 
         !(but it is a Fortran 2003 spec)
         do i3=1,2*n3+31
@@ -1159,6 +1118,12 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
            enddo
         enddo
      end if
+     i_all=-product(shape(nscatterarr))*kind(nscatterarr)
+     deallocate(nscatterarr,stat=i_stat)
+     call memocc(i_stat,i_all,'nscatterarr','cluster')
+     i_all=-product(shape(ngatherarr))*kind(ngatherarr)
+     deallocate(ngatherarr,stat=i_stat)
+     call memocc(i_stat,i_all,'ngatherarr','cluster')
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
      call memocc(i_stat,i_all,'rhopot','cluster')
@@ -1210,94 +1175,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   endif
 ! --- End if of tail calculation
 
-  i_all=-product(shape(ibyz_c))*kind(ibyz_c)
-  deallocate(ibyz_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ibyz_c','cluster')
-  i_all=-product(shape(ibxz_c))*kind(ibxz_c)
-  deallocate(ibxz_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ibxz_c','cluster')
-  i_all=-product(shape(ibxy_c))*kind(ibxy_c)
-  deallocate(ibxy_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ibxy_c','cluster')
-  i_all=-product(shape(ibyz_f))*kind(ibyz_f)
-  deallocate(ibyz_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ibyz_f','cluster')
-  i_all=-product(shape(ibxz_f))*kind(ibxz_f)
-  deallocate(ibxz_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ibxz_f','cluster')
-  i_all=-product(shape(ibxy_f))*kind(ibxy_f)
-  deallocate(ibxy_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ibxy_f','cluster')
-
-!*****************************Alexey************************************************************
-  i_all=-product(shape(ibzzx_c))*kind(ibzzx_c)
-  deallocate(ibzzx_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ibzzx_c','cluster')
-  i_all=-product(shape(ibyyzz_c))*kind(ibyyzz_c)
-  deallocate(ibyyzz_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ibyyzz_c','cluster')
-  i_all=-product(shape(ibxy_ff))*kind(ibxy_ff)
-  deallocate(ibxy_ff,stat=i_stat)
-  call memocc(i_stat,i_all,'ibxy_ff','cluster')
-  i_all=-product(shape(ibzzx_f))*kind(ibzzx_f)
-  deallocate(ibzzx_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ibzzx_f','cluster')
-  i_all=-product(shape(ibyyzz_f))*kind(ibyyzz_f)
-  deallocate(ibyyzz_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ibyyzz_f','cluster')
-  i_all=-product(shape(ibzxx_c))*kind(ibzxx_c)
-  deallocate(ibzxx_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ibzxx_c','cluster')
-  i_all=-product(shape(ibxxyy_c))*kind(ibxxyy_c)
-  deallocate(ibxxyy_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ibxxyy_c','cluster')
-  i_all=-product(shape(ibyz_ff))*kind(ibyz_ff)
-  deallocate(ibyz_ff,stat=i_stat)
-  call memocc(i_stat,i_all,'ibyz_ff','cluster')
-  i_all=-product(shape(ibzxx_f))*kind(ibzxx_f)
-  deallocate(ibzxx_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ibzxx_f','cluster')
-  i_all=-product(shape(ibxxyy_f))*kind(ibxxyy_f)
-  deallocate(ibxxyy_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ibxxyy_f','cluster')
-  i_all=-product(shape(ibyyzz_r))*kind(ibyyzz_r)
-  deallocate(ibyyzz_r,stat=i_stat)
-  call memocc(i_stat,i_all,'ibyyzz_r','cluster')
-!***********************************************************************************************
-  
-  i_all=-product(shape(keyg_p))*kind(keyg_p)
-  deallocate(keyg_p,stat=i_stat)
-  call memocc(i_stat,i_all,'keyg_p','cluster')
-  i_all=-product(shape(keyv_p))*kind(keyv_p)
-  deallocate(keyv_p,stat=i_stat)
-  call memocc(i_stat,i_all,'keyv_p','cluster')
-  i_all=-product(shape(proj))*kind(proj)
-  deallocate(proj,stat=i_stat)
-  call memocc(i_stat,i_all,'proj','cluster')
-  i_all=-product(shape(occup))*kind(occup)
-  deallocate(occup,stat=i_stat)
-  call memocc(i_stat,i_all,'occup','cluster')
-  i_all=-product(shape(nvctr_p))*kind(nvctr_p)
-  deallocate(nvctr_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nvctr_p','cluster')
-  i_all=-product(shape(nseg_p))*kind(nseg_p)
-  deallocate(nseg_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nseg_p','cluster')
-  i_all=-product(shape(psppar))*kind(psppar)
-  deallocate(psppar,stat=i_stat)
-  call memocc(i_stat,i_all,'psppar','cluster')
-  i_all=-product(shape(nelpsp))*kind(nelpsp)
-  deallocate(nelpsp,stat=i_stat)
-  call memocc(i_stat,i_all,'nelpsp','cluster')
-  i_all=-product(shape(iasctype))*kind(iasctype)
-  deallocate(iasctype,stat=i_stat)
-  call memocc(i_stat,i_all,'iasctype','cluster')
-  i_all=-product(shape(radii_cf))*kind(radii_cf)
-  deallocate(radii_cf,stat=i_stat)
-  call memocc(i_stat,i_all,'radii_cf','cluster')
-  i_all=-product(shape(npspcode))*kind(npspcode)
-  deallocate(npspcode,stat=i_stat)
-  call memocc(i_stat,i_all,'npspcode','cluster')
+  call deallocate_before_exiting
 
   call timing(iproc,'              ','RE')
   call cpu_time(tcpu1)
@@ -1311,9 +1189,8 @@ contains
   !in the case of anticipated return
   !it may be also generalised to the normal run
   subroutine deallocate_before_exiting
-    implicit real*8 (a-h,o-z)
+    implicit real(kind=8) (a-h,o-z)
 
-    !this statement is put only in view of a generalization inside the normal treatment
     !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1) then
 
@@ -1702,10 +1579,10 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
   integer, intent(out) :: norbp,nvctrp
   logical, intent(in) :: output_grid
   integer, intent(in) :: iatype(nat)
-  real*8, intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
+  real(kind=8), intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
   integer, intent(out) :: ibyz_c(2,0:n2,0:n3), ibxz_c(2,0:n1,0:n3), ibxy_c(2,0:n1,0:n2)
   integer, intent(out) :: ibyz_f(2,0:n2,0:n3), ibxz_f(2,0:n1,0:n3), ibxy_f(2,0:n1,0:n2)
-  real*8 :: rxyz(3, nat), radii_cf(ntypes, 2)
+  real(kind=8) :: rxyz(3, nat), radii_cf(ntypes, 2)
   character(len=20), intent(in) :: atomnames(100)
   integer, pointer :: keyg(:,:), keyv(:)
   !**********************Alexey*************************************************************
@@ -1733,9 +1610,9 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
 
 
   !Local variables
-  real*8, parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
+  real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
   integer :: iat,i1,i2,i3,norbme,norbyou,jpst,jproc,i_all,i_stat
-  real*8 :: tt
+  real(kind=8) :: tt
   logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
 
   if (iproc.eq.0) then
@@ -1865,12 +1742,12 @@ END SUBROUTINE createWavefunctionsDescriptors
 subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, atomnames, &
      & psppar, npspcode, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
      & keyg_p, keyv_p, nproj, nprojel, istart, nboxp_c, nboxp_f, proj)
-  implicit real*8 (a-h,o-z)
-  character*20 :: atomnames(100)
+  implicit real(kind=8) (a-h,o-z)
+  character(len=20) :: atomnames(100)
   dimension rxyz(3,nat),iatype(nat),radii_cf(ntypes,2),psppar(0:4,0:4,ntypes),npspcode(ntypes)
   integer :: nvctr_p(0:2*nat), nseg_p(0:2*nat)
   integer :: nboxp_c(2,3,nat), nboxp_f(2,3,nat)
-  real*8, pointer :: proj(:)
+  real(kind=8), pointer :: proj(:)
   integer, pointer :: keyg_p(:,:), keyv_p(:)
   real(kind=8), dimension(:), allocatable :: fac_arr
   integer, dimension(:), allocatable :: lx,ly,lz
@@ -2197,126 +2074,117 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 !!$  !   call plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,  & 
 !!$  !        rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc))
 !!$  !end do
+ 
+ ! resulting charge density and potential
+ call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
+      nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
+      (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,&
+      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+      ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
 
-  ! resulting charge density and potential
-  if (datacode=='G') then
-     call sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
-          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
-
-  else
-     call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
-          (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,&
-          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
-
-  end if
-  !      ixc=1   ! LDA functional
-  call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
-       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.)
+ call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
+      rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.)
 
 
-  if (parallel) then
-     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','import_gaussians')
-  else
-     allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','import_gaussians')
-  end if
+ if (parallel) then
+    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+    allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
+    call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','import_gaussians')
+ else
+    allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+    call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','import_gaussians')
+ end if
 
 
-  call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
-       psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
-       nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,nscatterarr(iproc,2),&
-       rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eproj_sum,&
+ call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
+      psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+      nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
+      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,nscatterarr(iproc,2),&
+      rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
+      psi,hpsi,ekin_sum,epot_sum,eproj_sum,&
        ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
        ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+ 
+ accurex=abs(eks-ekin_sum)
+ if (iproc.eq.0) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
 
-  accurex=abs(eks-ekin_sum)
-  if (iproc.eq.0) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
 
+ !after having applied the hamiltonian to all the atomic orbitals
+ !we split the semicore orbitals from the valence ones
+ !this is possible since the semicore orbitals are the first in the 
+ !order, so the linear algebra on the transposed wavefunctions 
+ !may be splitted
 
-  !after having applied the hamiltonian to all the atomic orbitals
-  !we split the semicore orbitals from the valence ones
-  !this is possible since the semicore orbitals are the first in the 
-  !order, so the linear algebra on the transposed wavefunctions 
-  !may be splitted
+ if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
+      'Imported Wavefunctions Orthogonalization:'
 
-  if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
-       'Imported Wavefunctions Orthogonalization:'
+ if (parallel) then
 
-  if (parallel) then
+    !transpose all the wavefunctions for having a piece of all the orbitals 
+    !for each processor
+    !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+    allocate(psit(nvctrp,norbp*nproc),stat=i_stat)
+    call memocc(i_stat,product(shape(psit))*kind(psit),'psit','import_gaussians')
 
-     !transpose all the wavefunctions for having a piece of all the orbitals 
-     !for each processor
-     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(psit(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psit))*kind(psit),'psit','import_gaussians')
+    call timing(iproc,'Un-TransSwitch','ON')
+    call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
+    call timing(iproc,'Un-TransSwitch','OF')
+    call timing(iproc,'Un-TransComm  ','ON')
+    call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+         psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+    call timing(iproc,'Un-TransComm  ','OF')
 
-     call timing(iproc,'Un-TransSwitch','ON')
-     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
-     call timing(iproc,'Un-TransSwitch','OF')
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-          psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
+    call timing(iproc,'Un-TransSwitch','ON')
+    call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psit)
+    call timing(iproc,'Un-TransSwitch','OF')
+    call timing(iproc,'Un-TransComm  ','ON')
+    call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+         hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+    call timing(iproc,'Un-TransComm  ','OF')
 
-     call timing(iproc,'Un-TransSwitch','ON')
-     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psit)
-     call timing(iproc,'Un-TransSwitch','OF')
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
+    !end of transposition
 
-     !end of transposition
+    allocate(hamovr(norb**2,4),stat=i_stat)
+    call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','import_gaussians')
 
-     allocate(hamovr(norb**2,4),stat=i_stat)
-     call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','import_gaussians')
+    !calculate the overlap matrix for each group of the semicore atoms
+    !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
+    !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
 
-     !calculate the overlap matrix for each group of the semicore atoms
-!       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
-!       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
+    if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
+         'Overlap Matrix...'
 
-     if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
-          'Overlap Matrix...'
+    call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,&
+         0.d0,hamovr(1,3),norb)
 
-     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,&
-          0.d0,hamovr(1,3),norb)
+    call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,psi,nvctrp,&
+         0.d0,hamovr(1,4),norb)
 
-     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,psi,nvctrp,&
-          0.d0,hamovr(1,4),norb)
-     
-     !reduce the overlap matrix between all the processors
-     call MPI_ALLREDUCE(hamovr(1,3),hamovr(1,1),2*norb**2,&
-          MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+    !reduce the overlap matrix between all the processors
+    call MPI_ALLREDUCE(hamovr(1,3),hamovr(1,1),2*norb**2,&
+         MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-     !print the overlap matrix in the wavelet case
-     print *,norb
-     open(33)
-     do iorb=1,norb
-        write(33,'(2000(1pe10.2))')&
-             (hamovr(jorb+(iorb-1)*norb,2),jorb=1,norb)
-     end do
-     close(33)
+    !print the overlap matrix in the wavelet case
+    print *,norb
+    open(33)
+    do iorb=1,norb
+       write(33,'(2000(1pe10.2))')&
+            (hamovr(jorb+(iorb-1)*norb,2),jorb=1,norb)
+    end do
+    close(33)
 
-     !stop
+    !stop
 
-     !found the eigenfunctions for each group
-     n_lp=max(10,4*norb)
-     allocate(work_lp(n_lp),stat=i_stat)
-     call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','import_gaussians')
-     
-     if (iproc.eq.0) write(*,'(1x,a)')'Linear Algebra...'
+    !found the eigenfunctions for each group
+    n_lp=max(10,4*norb)
+    allocate(work_lp(n_lp),stat=i_stat)
+    call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','import_gaussians')
 
-     call DSYGV(1,'V','U',norb,hamovr(1,1),norb,hamovr(1,2),norb,eval,work_lp,n_lp,info)
+    if (iproc.eq.0) write(*,'(1x,a)')'Linear Algebra...'
 
-     if (info.ne.0) write(*,*) 'DSYGV ERROR',info
+    call DSYGV(1,'V','U',norb,hamovr(1,1),norb,hamovr(1,2),norb,eval,work_lp,n_lp,info)
+
+    if (info.ne.0) write(*,*) 'DSYGV ERROR',info
 !!$        !!write the matrices on a file
 !!$        !open(33+2*(i-1))
 !!$        !do jjorb=1,norbi
@@ -2331,87 +2199,88 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 !!$        !end do
 !!$        !close(34+2*(i-1))
 
-     if (iproc.eq.0) then
-        do iorb=1,norb
-           write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
-        enddo
-     endif
+    if (iproc.eq.0) then
+       do iorb=1,norb
+          write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
+       enddo
+    endif
 
-     i_all=-product(shape(work_lp))*kind(work_lp)
-     deallocate(work_lp,stat=i_stat)
-     call memocc(i_stat,i_all,'work_lp','import_gaussians')
+    i_all=-product(shape(work_lp))*kind(work_lp)
+    deallocate(work_lp,stat=i_stat)
+    call memocc(i_stat,i_all,'work_lp','import_gaussians')
 
-     if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Imported Wavefunctions...'
+    if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Imported Wavefunctions...'
 
-     !perform the vector-matrix multiplication for building the input wavefunctions
-     ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
+    !perform the vector-matrix multiplication for building the input wavefunctions
+    ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
 
-     call DGEMM('N','N',nvctrp,norb,norb,1.d0,psi,nvctrp,&
-          hamovr(1,1),norb,0.d0,psit,nvctrp)
+    call DGEMM('N','N',nvctrp,norb,norb,1.d0,psi,nvctrp,&
+         hamovr(1,1),norb,0.d0,psit,nvctrp)
 
-     i_all=-product(shape(hamovr))*kind(hamovr)
-     deallocate(hamovr,stat=i_stat)
-     call memocc(i_stat,i_all,'hamovr','import_gaussians')
-   
-     !retranspose the wavefunctions
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
-     call timing(iproc,'Un-TransSwitch','ON')
-     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
-     call timing(iproc,'Un-TransSwitch','OF')
+    i_all=-product(shape(hamovr))*kind(hamovr)
+    deallocate(hamovr,stat=i_stat)
+    call memocc(i_stat,i_all,'hamovr','import_gaussians')
 
-  else !serial case
+    !retranspose the wavefunctions
+    call timing(iproc,'Un-TransComm  ','ON')
+    call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+         hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+    call timing(iproc,'Un-TransComm  ','OF')
+    call timing(iproc,'Un-TransSwitch','ON')
+    call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+    call timing(iproc,'Un-TransSwitch','OF')
 
-     write(*,'(1x,a)',advance='no')'Overlap Matrix...'
+ else !serial case
 
-     allocate(hamovr(norb**2,4),stat=i_stat)
-     call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','import_gaussians')
-     !hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
-     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,&
-          0.d0,hamovr(1,1),norb)
-     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,psi,nvctrp,&
-             0.d0,hamovr(1,2),norb)
+    write(*,'(1x,a)',advance='no')'Overlap Matrix...'
 
-     n_lp=max(10,4*norb)
-     allocate(work_lp(n_lp),stat=i_stat)
-     call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','import_gaussians')
+    allocate(hamovr(norb**2,4),stat=i_stat)
+    call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','import_gaussians')
+    !hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
+    call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,&
+         0.d0,hamovr(1,1),norb)
+    call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,psi,nvctrp,&
+         0.d0,hamovr(1,2),norb)
 
-     write(*,'(1x,a)')'Linear Algebra...'
-     call DSYGV(1,'V','U',norb,hamovr(1,1),norb,hamovr(1,2),norb,eval,work_lp,n_lp,info)
+    n_lp=max(10,4*norb)
+    allocate(work_lp(n_lp),stat=i_stat)
+    call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','import_gaussians')
 
-     if (info.ne.0) write(*,*) 'DSYGV ERROR',info
-     if (iproc.eq.0) then
-        do iorb=1,norb
-           write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb,')=',eval(iorb)
-        enddo
-     endif
+    write(*,'(1x,a)')'Linear Algebra...'
+    call DSYGV(1,'V','U',norb,hamovr(1,1),norb,hamovr(1,2),norb,eval,work_lp,n_lp,info)
 
-     i_all=-product(shape(work_lp))*kind(work_lp)
-     deallocate(work_lp,stat=i_stat)
-     call memocc(i_stat,i_all,'work_lp','import_gaussians')
+    if (info.ne.0) write(*,*) 'DSYGV ERROR',info
+    if (iproc.eq.0) then
+       do iorb=1,norb
+          write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb,')=',eval(iorb)
+       enddo
+    endif
 
-     write(*,'(1x,a)',advance='no')'Building orthogonal Imported Wavefunctions...'
+    i_all=-product(shape(work_lp))*kind(work_lp)
+    deallocate(work_lp,stat=i_stat)
+    call memocc(i_stat,i_all,'work_lp','import_gaussians')
 
-     !copy the values into hpsi
-     do iorb=1,norb
-        do i=1,nvctr_c+7*nvctr_f
-           hpsi(i,iorb)=psi(i,iorb)
-        end do
-     end do
-     !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
-     call DGEMM('N','N',nvctrp,norb,norb,1.d0,hpsi,nvctrp,hamovr(1,1),norb,0.d0,psi,nvctrp)
+    write(*,'(1x,a)',advance='no')'Building orthogonal Imported Wavefunctions...'
 
-     i_all=-product(shape(hamovr))*kind(hamovr)
-     deallocate(hamovr,stat=i_stat)
-     call memocc(i_stat,i_all,'hamovr','import_gaussians')
+    !copy the values into hpsi
+    do iorb=1,norb
+       do i=1,nvctr_c+7*nvctr_f
+          hpsi(i,iorb)=psi(i,iorb)
+       end do
+    end do
+    !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
+    call DGEMM('N','N',nvctrp,norb,norb,1.d0,hpsi,nvctrp,hamovr(1,1),norb,0.d0,psi,nvctrp)
 
-  endif
+    i_all=-product(shape(hamovr))*kind(hamovr)
+    deallocate(hamovr,stat=i_stat)
+    call memocc(i_stat,i_all,'hamovr','import_gaussians')
 
-  if (iproc.eq.0) write(*,'(1x,a)')'done.'
+ endif
+
+ if (iproc.eq.0) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE import_gaussians
+
 
 subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
@@ -2585,22 +2454,14 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
 
   ! resulting charge density and potential
-  if (datacode=='G') then
-     call sumrho_old(parallel,iproc,nproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
-             nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
-             nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
-  else
-     call sumrho(parallel,iproc,nproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
-             nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
-             (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,&
-             nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
-  end if
-  !      ixc=1   ! LDA functional
+  call sumrho(parallel,iproc,nproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
+       nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
+       (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,&
+       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+       ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+
   call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.)
-
 
   if (parallel) then
      !allocate the wavefunction in the transposed way to avoid allocations/deallocations
@@ -2903,68 +2764,71 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 END SUBROUTINE input_wf_diag
 
 
-        subroutine diisstp(parallel,norb,norbp,nproc,iproc,  & 
+subroutine diisstp(parallel,norb,norbp,nproc,iproc,  & 
                    ads,ids,mids,idsx,nvctrp,psit,psidst,hpsidst)
 ! diis subroutine:
 ! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
 ! using  the previous iteration points phidst and the associated error 
 ! vectors (preconditione gradients) hpsidst
-        implicit real*8 (a-h,o-z)
-        include 'mpif.h'
-        logical parallel
-        dimension psit(nvctrp,norbp*nproc),ads(idsx+1,idsx+1,3), &
-        psidst(nvctrp,norbp*nproc,idsx),hpsidst(nvctrp,norbp*nproc,idsx)
-        allocatable :: ipiv(:),rds(:)
+  implicit real(kind=8) (a-h,o-z)
+  include 'mpif.h'
+  logical parallel
+  dimension psit(nvctrp,norbp*nproc),ads(idsx+1,idsx+1,3), &
+  psidst(nvctrp,norbp*nproc,idsx),hpsidst(nvctrp,norbp*nproc,idsx)
+  allocatable :: ipiv(:),rds(:)
 
-        allocate(ipiv(idsx+1),stat=i_stat)
-        call memocc(i_stat,product(shape(ipiv))*kind(ipiv),'ipiv','diisstp')
-        allocate(rds(idsx+1),stat=i_stat)
-        call memocc(i_stat,product(shape(rds))*kind(rds),'rds','diisstp')
+  allocate(ipiv(idsx+1),stat=i_stat)
+  call memocc(i_stat,product(shape(ipiv))*kind(ipiv),'ipiv','diisstp')
+  allocate(rds(idsx+1),stat=i_stat)
+  call memocc(i_stat,product(shape(rds))*kind(rds),'rds','diisstp')
 
 ! set up DIIS matrix (upper triangle)
-        if (ids.gt.idsx) then
+  if (ids.gt.idsx) then
 ! shift left up matrix
-        do 3079,i=1,idsx-1
-        do 3079,j=1,i
-3079    ads(j,i,1)=ads(j+1,i+1,1)
-        endif
+     do i=1,idsx-1
+        do j=1,i
+           ads(j,i,1)=ads(j+1,i+1,1)
+        end do
+     end do
+  end if
 
 ! calculate new line, use rds as work array for summation
-        call razero(idsx,rds)
-        ist=max(1,ids-idsx+1)
-        do i=ist,ids
-           mi=mod(i-1,idsx)+1
-           do iorb=1,norb
-              tt=DDOT(nvctrp,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mi),1)
-              rds(i-ist+1)=rds(i-ist+1)+tt
-           end do
-        end do
+  call razero(idsx,rds)
+  ist=max(1,ids-idsx+1)
+  do i=ist,ids
+     mi=mod(i-1,idsx)+1
+     do iorb=1,norb
+        tt=DDOT(nvctrp,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mi),1)
+        rds(i-ist+1)=rds(i-ist+1)+tt
+     end do
+  end do
 
-        if (parallel) then
-           call MPI_ALLREDUCE(rds,ads(1,min(idsx,ids),1),min(ids,idsx),  & 
-                       MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        else
-           do i=1,min(ids,idsx)
-              ads(i,min(idsx,ids),1)=rds(i)
-           end do
-        endif
+  if (parallel) then
+     call MPI_ALLREDUCE(rds,ads(1,min(idsx,ids),1),min(ids,idsx),  & 
+                 MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+  else
+     do i=1,min(ids,idsx)
+        ads(i,min(idsx,ids),1)=rds(i)
+     end do
+  endif
 
 
 ! copy to work array, right hand side, boundary elements
-        do 3983,j=1,min(idsx,ids)
-        ads(j,min(idsx,ids)+1,2)=1.d0
-        rds(j)=0.d0
-        do 3983,i=j,min(idsx,ids)
+  do j=1,min(idsx,ids)
+     ads(j,min(idsx,ids)+1,2)=1.d0
+     rds(j)=0.d0
+     do i=j,min(idsx,ids)
         ads(j,i,2)=ads(j,i,1)
-3983    continue
-        ads(min(idsx,ids)+1,min(idsx,ids)+1,2)=0.d0
-        rds(min(idsx,ids)+1)=1.d0
+     end do
+  end do
+  ads(min(idsx,ids)+1,min(idsx,ids)+1,2)=0.d0
+  rds(min(idsx,ids)+1)=1.d0
 
-!        write(6,*) 'DIIS matrix'
-!        do i=1,min(idsx,ids)+1
-!        write(6,'(i3,12(1x,e9.2))') iproc,(ads(i,j,2),j=1,min(idsx,ids)+1),rds(i)
-!        enddo
-        if (ids.gt.1) then
+!  write(6,*) 'DIIS matrix'
+!  do i=1,min(idsx,ids)+1
+!  write(6,'(i3,12(1x,e9.2))') iproc,(ads(i,j,2),j=1,min(idsx,ids)+1),rds(i)
+!  enddo
+  if (ids.gt.1) then
            ! solve linear system:(LAPACK)
            call DSYSV('U',min(idsx,ids)+1,1,ads(1,1,2),idsx+1,  & 
                 ipiv,rds,idsx+1,ads(1,1,3),(idsx+1)**2,info)
@@ -2972,37 +2836,37 @@ END SUBROUTINE input_wf_diag
               print*, 'DGESV',info
               stop
            end if
-        else
-           rds(1)=1.d0
-        endif
-        if (iproc.eq.0) then 
-           !write(*,*) 'DIIS weights'
-           write(*,'(1x,a,2x,12(1x,1pe9.2))')'DIIS weights',(rds(j),j=1,min(idsx,ids)+1)
-        endif
+  else
+     rds(1)=1.d0
+  endif
+  if (iproc.eq.0) then 
+     !write(*,*) 'DIIS weights'
+     write(*,'(1x,a,2x,12(1x,1pe9.2))')'DIIS weights',(rds(j),j=1,min(idsx,ids)+1)
+  endif
 
 ! new guess
-        do 6633,iorb=1,norb
-        call razero(nvctrp,psit(1,iorb))
+  do iorb=1,norb
+     call razero(nvctrp,psit(1,iorb))
 
-        jst=max(1,ids-idsx+1)
-        jj=0
-        do 6612,j=jst,ids
+     jst=max(1,ids-idsx+1)
+     jj=0
+     do j=jst,ids
         jj=jj+1
         mj=mod(j-1,idsx)+1
-        do 6612,k=1,nvctrp
-        psit(k,iorb)=psit(k,iorb)+rds(jj)*(psidst(k,iorb,mj)-hpsidst(k,iorb,mj))
-6612    continue
-6633    continue
+        do k=1,nvctrp
+           psit(k,iorb)=psit(k,iorb)+rds(jj)*(psidst(k,iorb,mj)-hpsidst(k,iorb,mj))
+        end do
+     end do
+  end do
 
-        i_all=-product(shape(ipiv))*kind(ipiv)
-        deallocate(ipiv,stat=i_stat)
-        call memocc(i_stat,i_all,'ipiv','diisstp')
-        i_all=-product(shape(rds))*kind(rds)
-        deallocate(rds,stat=i_stat)
-        call memocc(i_stat,i_all,'rds','diisstp')
+  i_all=-product(shape(ipiv))*kind(ipiv)
+  deallocate(ipiv,stat=i_stat)
+  call memocc(i_stat,i_all,'ipiv','diisstp')
+  i_all=-product(shape(rds))*kind(rds)
+  deallocate(rds,stat=i_stat)
+  call memocc(i_stat,i_all,'rds','diisstp')
 
-        return
-        END SUBROUTINE
+END SUBROUTINE diisstp
 
 
-end module
+end module libBigDFT

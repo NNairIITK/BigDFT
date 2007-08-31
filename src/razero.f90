@@ -33,7 +33,7 @@ subroutine tenminustwenty(n,x,nproc)
   implicit none
 ! Arguments
   integer :: n,nproc
-  real*8 :: x(n)
+  real(kind=8) :: x(n)
 ! Local variables
   integer :: i
   do i=1,n

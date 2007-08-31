@@ -50,12 +50,12 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   !*****************************
   integer nw1,nw2
 
-  real*8,allocatable,dimension(:,:,:)::x_c!input 
-  real*8,allocatable::x_fc(:,:,:,:),x_f(:,:,:,:)! input
-  real*8,allocatable,dimension(:):: w1,w2
-  real*8,allocatable,dimension(:,:,:)::y_c!output 
-  real*8,allocatable::y_f(:,:,:,:)! output
-  !*****************************
+  real(kind=8),allocatable,dimension(:,:,:)::x_c!input 
+  real(kind=8),allocatable::x_fc(:,:,:,:),x_f(:,:,:,:)! input
+  real(kind=8),allocatable,dimension(:):: w1,w2
+  real(kind=8),allocatable,dimension(:,:,:)::y_c!output 
+  real(kind=8),allocatable::y_f(:,:,:,:)! output
+  !***********************************************************************************************
 
   nbuf=nint(rbuf/hgrid)
   !    --- new grid sizes n1,n2,n3
@@ -529,7 +529,7 @@ subroutine transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,
      mseg_c,mvctr_c,keyg_c,keyv_c,mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      msegb_c,mvctrb_c,keybg_c,keybv_c,msegb_f,mvctrb_f,keybg_f,keybv_f,  & 
      nbuf,psi_c,psi_f,psig_c,psig_fc,psig_f,psib_c,psib_f)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
   dimension keybg_c(2,msegb_c),keybv_c(msegb_c),keybg_f(2,msegb_f),keybv_f(msegb_f)
   dimension psi_c(mvctr_c),psi_f(7,mvctr_f)

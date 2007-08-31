@@ -1,23 +1,23 @@
 subroutine comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,&
      ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibzzx_f,ibyyzz_f,xc,xf,ibyz_c,ibyz_f)
-  ! In 3d,			
+  ! In 3d,   
   ! Applies the magic filter transposed, then analysis wavelet transformation.
   ! The size of the data is forced to shrink
   ! The input array y is not overwritten
 
   implicit none
   integer n1,n2,n3,i1,i2,i3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  real*8 y( -14:2*n1+16,-14:2*n2+16,-14:2*n3+16) ! input
-  !    real*8 w1( 2,           -14:2*n2+16,-14:2*n3+16,0:n1)!  work 
-  !	real*8 w2( 4,                       -14:2*n3+16,0:n1,0:n2)
-  real*8 w1(max(2*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31)*(nfu1-nfl1+1),&
+  real(kind=8) y( -14:2*n1+16,-14:2*n2+16,-14:2*n3+16) ! input
+  !    real(kind=8) w1( 2,           -14:2*n2+16,-14:2*n3+16,0:n1)!  work 
+  ! real(kind=8) w2( 4,                       -14:2*n3+16,0:n1,0:n2)
+  real(kind=8) w1(max(2*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31)*(nfu1-nfl1+1),&
        (2*n2+31)*(2*n3+31)*(n1+1)))
-  real*8 w2( max(4*(2*(nfu3-nfl3)+31)*(nfu1-nfl1+1)*(nfu2-nfl2+1),&
+  real(kind=8) w2( max(4*(2*(nfu3-nfl3)+31)*(nfu1-nfl1+1)*(nfu2-nfl2+1),&
        (2*n3+31)*(n1+1)*(n2+1)))
 
-  real*8 xf(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),xc(0:n1,0:n2,0:n3)! work arrays
+  real(kind=8) xf(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),xc(0:n1,0:n2,0:n3)! work arrays
 
-  !	boundary arrays
+  ! boundary arrays
   integer ibxy_c(2,0:n1,0:n2) 
   integer ibzzx_c(2,-14:2*n3+16,0:n1) 
   integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
@@ -28,10 +28,10 @@ subroutine comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,&
 
   integer,dimension(2,0:n2,0:n3)::ibyz_c,ibyz_f
 
-  !	perform the combined transform	
+  ! perform the combined transform 
   call comb_shrink_loc_c(0,n1,0,n2,0,n3,w1,w2,y,xc,1,1,1,&
        ibxy_c,ibzzx_c,ibyyzz_c) ! for scfunctions
-  !	for wavelets:
+  ! for wavelets:
 
   call comb_shrink_loc_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,xf,&
        ibxy_f,ibzzx_f,ibyyzz_f)
@@ -41,16 +41,16 @@ end subroutine comb_shrink
 
 subroutine comb_shrink_loc_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,x,&
      ibxy,ibzzx,ibyyzz)
-  ! In 3d,			
+  ! In 3d,   
   ! Applies the magic filter transposed, then analysis wavelet transformation.
   ! The output is only the l1,l2,l3 wavelet component
   ! The size of the data is forced to shrink
   ! The input array y is not overwritten
-  implicit real*8 (a-h,o-z)
-  real*8 y(-14:2*n1+16,-14:2*n2+16,         -14:2*n3+16) ! input
-  real*8 w1(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)!work
-  real*8 w2(4,-14+2*nfl3:2*nfu3+16,nfl1:nfu1,nfl2:nfu2)
-  real*8 x(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)!output
+  implicit real(kind=8) (a-h,o-z)
+  real(kind=8) y(-14:2*n1+16,-14:2*n2+16,         -14:2*n3+16) ! input
+  real(kind=8) w1(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)!work
+  real(kind=8) w2(4,-14+2*nfl3:2*nfu3+16,nfl1:nfu1,nfl2:nfu2)
+  real(kind=8) x(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)!output
 
   integer ibxy(2,nfl1:nfu1,nfl2:nfu2)
   integer ibzzx(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)
@@ -77,16 +77,16 @@ END SUBROUTINE comb_shrink_loc_f
 
 subroutine comb_shrink_loc_c(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,x,l1,l2,l3,&
      ibxy,ibzzx,ibyyzz)
-  ! In 3d,			
+  ! In 3d,   
   ! Applies the magic filter transposed, then analysis wavelet transformation.
   ! The output is only the l1,l2,l3 wavelet component
   ! The size of the data is forced to shrink
   ! The input array y is not overwritten
-  implicit real*8 (a-h,o-z)
-  real*8 y(-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)!input
-  real*8 w1(-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)!work
-  real*8 w2(-14+2*nfl3:2*nfu3+16,nfl1:nfu1,nfl2:nfu2)
-  real*8 x(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)!output
+  implicit real(kind=8) (a-h,o-z)
+  real(kind=8) y(-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)!input
+  real(kind=8) w1(-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)!work
+  real(kind=8) w2(-14+2*nfl3:2*nfu3+16,nfl1:nfu1,nfl2:nfu2)
+  real(kind=8) x(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)!output
 
   integer ibxy(2,nfl1:nfu1,nfl2:nfu2)
   integer ibzzx(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)

@@ -170,10 +170,10 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf&
   do j3=1,nd3/nproc
      !this condition ensures that we manage only the interesting part for the FFT
      if (iproc*(nd3/nproc)+j3.le.n3/2+1) then
-	Jp2stb=1
-	J2stb=1
-	Jp2stf=1
-	J2stf=1
+      Jp2stb=1
+      J2stb=1
+      Jp2stf=1
+      J2stf=1
         
         ! transform along x axis
         lot=ncache/(4*n1)
@@ -412,6 +412,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf&
   call timing(iproc,'PSolv_comput  ','OF')
 end subroutine P_PoissonSolver
 
+
 subroutine P_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,md2,nd3,nproc,zmpi1,zw)
   implicit none
   integer, intent(in) :: j3,nfft,lot,n1,md2,nd3,nproc
@@ -424,12 +425,12 @@ subroutine P_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,md2,nd3,nproc,zmpi1,zw
   mfft=0
   do Jp2=Jp2stb,nproc
      do J2=J2stb,md2/nproc
-	mfft=mfft+1
-	if (mfft.gt.nfft) then
+      mfft=mfft+1
+      if (mfft.gt.nfft) then
            Jp2stb=Jp2
            J2stb=J2
            return
-	end if
+      end if
         do I1=1,n1
            zw(1,mfft,I1)=zmpi1(1,I1,J2,j3,Jp2)
            zw(2,mfft,I1)=zmpi1(2,I1,J2,j3,Jp2)
@@ -439,6 +440,7 @@ subroutine P_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,md2,nd3,nproc,zmpi1,zw
   end do
 
 end subroutine P_mpiswitch_upcorn
+
 
 subroutine P_switch_upcorn(nfft,n2,lot,n1,lzt,zt,zw)
   implicit none
@@ -450,12 +452,13 @@ subroutine P_switch_upcorn(nfft,n2,lot,n1,lzt,zt,zw)
 
   do j=1,nfft
      do i=1,n2
-	zw(1,j,i)=zt(1,i,j)
-	zw(2,j,i)=zt(2,i,j)
+      zw(1,j,i)=zt(1,i,j)
+      zw(2,j,i)=zt(2,i,j)
      end do
   end do
 
 end subroutine P_switch_upcorn
+
 
 subroutine P_unswitch_downcorn(nfft,n2,lot,n1,lzt,zw,zt)
   implicit none
@@ -467,12 +470,13 @@ subroutine P_unswitch_downcorn(nfft,n2,lot,n1,lzt,zw,zt)
 
   do j=1,nfft
      do i=1,n2
-	zt(1,i,j)=zw(1,j,i)
-	zt(2,i,j)=zw(2,j,i)
+      zt(1,i,j)=zw(1,j,i)
+      zt(2,i,j)=zw(2,j,i)
      end do
   end do
 
 end subroutine P_unswitch_downcorn
+
 
 subroutine P_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,zmpi1)
   implicit none
@@ -486,12 +490,12 @@ subroutine P_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,z
   mfft=0
   do Jp2=Jp2stf,nproc
      do J2=J2stf,md2/nproc
-	mfft=mfft+1
-	if (mfft.gt.nfft) then
+      mfft=mfft+1
+      if (mfft.gt.nfft) then
            Jp2stf=Jp2
            J2stf=J2
            return
-	end if
+      end if
         do I1=1,n1
            zmpi1(1,I1,J2,j3,Jp2)=zw(1,mfft,I1)
            zmpi1(2,I1,J2,j3,Jp2)=zw(2,mfft,I1)
@@ -502,7 +506,7 @@ subroutine P_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,z
 end subroutine P_unmpiswitch_downcorn
 
 
-!!****h* BigDFT/P_fill_downcorn
+!!****f* BigDFT/P_fill_downcorn
 !! NAME
 !!   P_fill_downcorn
 !!
@@ -552,11 +556,12 @@ subroutine P_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
   do i3=1,n3
      do i1=1,nfft
         pot1 = scal*zw(1,i1,i3)
-	zf(i1,i3)= pot1 
+      zf(i1,i3)= pot1 
      end do
   end do
 
 end subroutine P_unfill_downcorn
+!!**
 
 subroutine P_fill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
   implicit none
@@ -568,15 +573,15 @@ subroutine P_fill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
 
   do i3=1,n3
      do i1=1,nfft
-	zw(1,i1,i3)=zf(i1,i3)
-	zw(2,i1,i3)=0.d0
+      zw(1,i1,i3)=zf(i1,i3)
+      zw(2,i1,i3)=0.d0
      end do
   end do
 
 end subroutine P_fill_upcorn
 
 
-!!****h* BigDFT/scramble_P
+!!****f* BigDFT/scramble_P
 !! NAME
 !!   scramble_P
 !!
@@ -624,9 +629,9 @@ subroutine scramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2)
   end do
 
 end subroutine scramble_P
-
+!!**
  
-!!****h* BigDFT/unscramble_P
+!!****f* BigDFT/unscramble_P
 !! NAME
 !!   unscramble_P
 !!
@@ -683,8 +688,10 @@ subroutine unscramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw)
   end do
 
 end subroutine unscramble_P
+!!**
 
-!!****h* BigDFT/P_multkernel
+
+!!****f* BigDFT/P_multkernel
 !! NAME
 !!   P_multkernel
 !!
@@ -746,8 +753,10 @@ subroutine P_multkernel(n1,n2,n3,lot,nfft,jS,i3,zw,hx,hy,hz)
   end do
 
 end subroutine P_multkernel
+!!**
 
-!!****h* BigDFT/multkernel
+
+!!****f* BigDFT/multkernel
 !! NAME
 !!   multkernel
 !!
@@ -825,13 +834,13 @@ subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
   end do
 
 end subroutine multkernel
-
-
+!!**
 
 
 !!!HERE POT MUST BE THE KERNEL (BEWARE THE HALF DIMENSION)
 
-!!****h* BigDFT/S_PoissonSolver
+
+!!****f* BigDFT/S_PoissonSolver
 !! NAME
 !!   PoissonSolver
 !!
@@ -850,7 +859,7 @@ end subroutine multkernel
 !!     nproc:       number of processors used as returned by MPI_COMM_SIZE
 !!     iproc:       [0:nproc-1] number of processor as returned by MPI_COMM_RANK
 !!     n1,n2,n3/2:  logical dimension of the transform. As transform lengths 
-!!	            most products of the prime factors 2,3,5 are allowed.
+!!                  most products of the prime factors 2,3,5 are allowed.
 !!                  The detailed table with allowed transform lengths can 
 !!                  be found in subroutine CTRIG
 !!     md1,md2,md3: Dimension of ZF
@@ -1063,10 +1072,10 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   do j3=1,nd3/nproc
      !this condition ensures that we manage only the interesting part for the FFT
      if (iproc*(nd3/nproc)+j3.le.n3/2+1) then
-	Jp2stb=1
-	J2stb=1
-	Jp2stf=1
-	J2stf=1
+      Jp2stb=1
+      J2stb=1
+      Jp2stf=1
+      J2stf=1
         
         ! transform along x axis
         lot=ncache/(4*n1)
@@ -1312,6 +1321,8 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   call timing(iproc,'PSolv_comput  ','OF')
 
 end subroutine S_PoissonSolver
+!!**
+
 
 subroutine S_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,md2,nd3,nproc,zmpi1,zw)
   implicit none
@@ -1325,12 +1336,12 @@ subroutine S_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,md2,nd3,nproc,zmpi1,zw
   mfft=0
   do Jp2=Jp2stb,nproc
      do J2=J2stb,md2/nproc
-	mfft=mfft+1
-	if (mfft.gt.nfft) then
+      mfft=mfft+1
+      if (mfft.gt.nfft) then
            Jp2stb=Jp2
            J2stb=J2
            return
-	end if
+      end if
         do I1=1,n1
            zw(1,mfft,I1)=zmpi1(1,I1,J2,j3,Jp2)
            zw(2,mfft,I1)=zmpi1(2,I1,J2,j3,Jp2)
@@ -1351,8 +1362,8 @@ subroutine S_switch_upcorn(nfft,n2,lot,n1,lzt,zt,zw)
 
   do j=1,nfft
      do i=1,n2
-	zw(1,j,i)=zt(1,i,j)
-	zw(2,j,i)=zt(2,i,j)
+      zw(1,j,i)=zt(1,i,j)
+      zw(2,j,i)=zt(2,i,j)
      end do
   end do
 
@@ -1368,8 +1379,8 @@ subroutine S_unswitch_downcorn(nfft,n2,lot,n1,lzt,zw,zt)
 
   do j=1,nfft
      do i=1,n2
-	zt(1,i,j)=zw(1,j,i)
-	zt(2,i,j)=zw(2,j,i)
+      zt(1,i,j)=zw(1,j,i)
+      zt(2,i,j)=zw(2,j,i)
      end do
   end do
 
@@ -1387,12 +1398,12 @@ subroutine S_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,z
   mfft=0
   do Jp2=Jp2stf,nproc
      do J2=J2stf,md2/nproc
-	mfft=mfft+1
-	if (mfft.gt.nfft) then
+      mfft=mfft+1
+      if (mfft.gt.nfft) then
            Jp2stf=Jp2
            J2stf=J2
            return
-	end if
+      end if
         do I1=1,n1
            zmpi1(1,I1,J2,j3,Jp2)=zw(1,mfft,I1)
            zmpi1(2,I1,J2,j3,Jp2)=zw(2,mfft,I1)
@@ -1403,7 +1414,7 @@ subroutine S_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,z
 end subroutine S_unmpiswitch_downcorn
 
 
-!!****h* BigDFT/unfill_downcorn
+!!****f* BigDFT/unfill_downcorn
 !! NAME
 !!   unfill_downcorn
 !!
@@ -1460,41 +1471,41 @@ subroutine unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
      do i1=1,nfft
         pot1 = scal*zw(1,i1,i3)
         !ehartreetmp =ehartreetmp + pot1* zf(i1,2*i3-1)
-	zf(i1,2*i3-1)= pot1 
-	pot1 = scal*zw(2,i1,i3)
+      zf(i1,2*i3-1)= pot1 
+      pot1 = scal*zw(2,i1,i3)
         !ehartreetmp =ehartreetmp + pot1* zf(i1,2*i3)
-	zf(i1,2*i3)= pot1 
+      zf(i1,2*i3)= pot1 
      enddo
   end do
   
 end subroutine unfill_downcorn
+!!**
 
-        subroutine halfill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
-	implicit real*8 (a-h,o-z)
-	dimension zw(2,lot,n3/2),zf(md1,md3)
+
+subroutine halfill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
+  implicit real(kind=8) (a-h,o-z)
+  dimension zw(2,lot,n3/2),zf(md1,md3)
 ! WARNING: Assuming that high frequencies are in the corners 
 !          and that n3 is multiple of 4
 !in principle we can relax this condition
-	
-        do 90,i3=1,n3/4
-	do i1=1,nfft
-	zw(1,i1,i3)=0.d0
-	zw(2,i1,i3)=0.d0
-	enddo
-90      continue
-        do 100,i3=n3/4+1,n3/2
-	do i1=1,nfft
-	zw(1,i1,i3)=zf(i1,2*i3-1-n3/2)
-	zw(2,i1,i3)=zf(i1,2*i3-n3/2)
-	enddo
-100     continue
+      
+  do i3=1,n3/4
+     do i1=1,nfft
+        zw(1,i1,i3)=0.d0
+        zw(2,i1,i3)=0.d0
+     end do
+  end do
+  do i3=n3/4+1,n3/2
+     do i1=1,nfft
+        zw(1,i1,i3)=zf(i1,2*i3-1-n3/2)
+        zw(2,i1,i3)=zf(i1,2*i3-n3/2)
+     end do
+  end do
+      
+end subroutine halfill_upcorn
 
 
-	return
-	end subroutine halfill_upcorn
-
-
-!!****h* BigDFT/scramble_unpack
+!!****f* BigDFT/scramble_unpack
 !! NAME
 !!   scramble_unpack
 !!
@@ -1573,9 +1584,10 @@ subroutine scramble_unpack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2,cosinarr)
   end do
 
 end subroutine scramble_unpack
+!!**
 
  
-!!****h* BigDFT/unscramble_pack
+!!****f* BigDFT/unscramble_pack
 !! NAME
 !!   unscramble_pack
 !!
@@ -1644,9 +1656,10 @@ subroutine unscramble_pack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw,cosinarr)
   end do
 
 end subroutine unscramble_pack
+!!**
 
 
-!!****h* BigDFT/F_PoissonSolver
+!!****f* BigDFT/F_PoissonSolver
 !! NAME
 !!   F_PoissonSolver
 !!
@@ -1666,7 +1679,7 @@ end subroutine unscramble_pack
 !!     nproc:       number of processors used as returned by MPI_COMM_SIZE
 !!     iproc:       [0:nproc-1] number of processor as returned by MPI_COMM_RANK
 !!     n1,n2,n3:    logical dimension of the transform. As transform lengths 
-!!	            most products of the prime factors 2,3,5 are allowed.
+!!                  most products of the prime factors 2,3,5 are allowed.
 !!                  The detailed table with allowed transform lengths can 
 !!                  be found in subroutine CTRIG
 !!     md1,md2,md3: Dimension of ZF
@@ -1877,10 +1890,10 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   do j3=1,nd3/nproc
      !this condition ensures that we manage only the interesting part for the FFT
      if (iproc*(nd3/nproc)+j3.le.n3/2+1) then
-	Jp2stb=1
-	J2stb=1
-	Jp2stf=1
-	J2stf=1
+      Jp2stb=1
+      J2stb=1
+      Jp2stf=1
+      J2stf=1
         
         ! transform along x axis
         lot=ncache/(4*n1)
@@ -2124,99 +2137,108 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
 
   call timing(iproc,'PSolv_comput  ','OF')
 end subroutine F_PoissonSolver
+!!**
 
- 	subroutine switch_upcorn(nfft,n2,lot,n1,lzt,zt,zw)
-	implicit real*8 (a-h,o-z)
-	dimension zw(2,lot,n2),zt(2,lzt,n1)
+
+subroutine switch_upcorn(nfft,n2,lot,n1,lzt,zt,zw)
+  implicit real(kind=8) (a-h,o-z)
+  dimension zw(2,lot,n2),zt(2,lzt,n1)
 ! WARNING: Assuming that high frequencies are in the corners 
 !          and that n2 is multiple of 2
 
 ! Low frequencies 
-	do 100,j=1,nfft
-        do 100,i=n2/2+1,n2
-	zw(1,j,i)=zt(1,i-n2/2,j)
-	zw(2,j,i)=zt(2,i-n2/2,j)
-100	continue
+  do j=1,nfft
+     do i=n2/2+1,n2
+        zw(1,j,i)=zt(1,i-n2/2,j)
+        zw(2,j,i)=zt(2,i-n2/2,j)
+     end do
+  end do
 
 ! High frequencies 
-        do 90,i=1,n2/2
-	do 90,j=1,nfft
-	zw(1,j,i)=0.d0
-	zw(2,j,i)=0.d0
-90	continue
+  do i=1,n2/2
+     do j=1,nfft
+        zw(1,j,i)=0.d0
+        zw(2,j,i)=0.d0
+     end do
+  end do
 
-	return
-	end subroutine switch_upcorn
+end subroutine switch_upcorn
 
         
- 	subroutine mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,md2,nd3,nproc,zmpi1,zw)
-	implicit real*8 (a-h,o-z)
-        dimension zmpi1(2,n1/2,md2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
+subroutine mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,md2,nd3,nproc,zmpi1,zw)
+  implicit real(kind=8) (a-h,o-z)
+  dimension zmpi1(2,n1/2,md2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
 ! WARNING: Assuming that high frequencies are in the corners 
 !          and that n1 is multiple of 2
 
-	mfft=0
-	do 300,Jp2=Jp2stb,nproc
-	do 200,J2=J2stb,md2/nproc
-	mfft=mfft+1
-	if (mfft.gt.nfft) then
-	Jp2stb=Jp2
-	J2stb=J2
-	return
-	endif
-        do 90,I1=1,n1/2
-	zw(1,mfft,I1)=0.d0
-	zw(2,mfft,I1)=0.d0
-90	continue
-        do 100,I1=n1/2+1,n1
-	zw(1,mfft,I1)=zmpi1(1,I1-n1/2,J2,j3,Jp2)
-	zw(2,mfft,I1)=zmpi1(2,I1-n1/2,J2,j3,Jp2)
-100	continue
-200	continue
-	J2stb=1
-300	continue
-	end subroutine mpiswitch_upcorn
+  mfft=0
+  do Jp2=Jp2stb,nproc
+     do J2=J2stb,md2/nproc
+        mfft=mfft+1
+        if (mfft.gt.nfft) then
+        Jp2stb=Jp2
+        J2stb=J2
+        return
+        endif
+        do I1=1,n1/2
+           zw(1,mfft,I1)=0.d0
+           zw(2,mfft,I1)=0.d0
+        end do
+        do I1=n1/2+1,n1
+           zw(1,mfft,I1)=zmpi1(1,I1-n1/2,J2,j3,Jp2)
+           zw(2,mfft,I1)=zmpi1(2,I1-n1/2,J2,j3,Jp2)
+        end do
+     end do
+     J2stb=1
+  end do
 
- 	subroutine unswitch_downcorn(nfft,n2,lot,n1,lzt,zw,zt)
-	implicit real*8 (a-h,o-z)
-	dimension zw(2,lot,n2),zt(2,lzt,n1)
+end subroutine mpiswitch_upcorn
+
+
+subroutine unswitch_downcorn(nfft,n2,lot,n1,lzt,zw,zt)
+  implicit real(kind=8) (a-h,o-z)
+  dimension zw(2,lot,n2),zt(2,lzt,n1)
 ! WARNING: Assuming that high frequencies are in the corners 
 !          and that n2 is multiple of 2
 
 ! Low frequencies
-	do 100,j=1,nfft
-        do 100,i=1,n2/2
-	zt(1,i,j)=zw(1,j,i)
-	zt(2,i,j)=zw(2,j,i)
-100	continue
-	return
-	end subroutine unswitch_downcorn
+  do j=1,nfft
+     do i=1,n2/2
+        zt(1,i,j)=zw(1,j,i)
+        zt(2,i,j)=zw(2,j,i)
+     end do
+  end do
 
- 	subroutine unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,zmpi1)
-	implicit real*8 (a-h,o-z)
-        dimension zmpi1(2,n1/2,md2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
+end subroutine unswitch_downcorn
+
+
+subroutine unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,zmpi1)
+  implicit real(kind=8) (a-h,o-z)
+  dimension zmpi1(2,n1/2,md2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
 ! WARNING: Assuming that high frequencies are in the corners 
 !          and that n1 is multiple of 2
 
-	mfft=0
-	do 300,Jp2=Jp2stf,nproc
-	do 200,J2=J2stf,md2/nproc
-	mfft=mfft+1
-	if (mfft.gt.nfft) then
-	Jp2stf=Jp2
-	J2stf=J2
-	return
-	endif
-        do 100,I1=1,n1/2
-	zmpi1(1,I1,J2,j3,Jp2)=zw(1,mfft,I1)
-	zmpi1(2,I1,J2,j3,Jp2)=zw(2,mfft,I1)
-100	continue
-200	continue
-	J2stf=1
-300	continue
-	end subroutine unmpiswitch_downcorn
+  mfft=0
+  do Jp2=Jp2stf,nproc
+     do J2=J2stf,md2/nproc
+        mfft=mfft+1
+        if (mfft.gt.nfft) then
+           Jp2stf=Jp2
+           J2stf=J2
+           return
+        endif
+        do I1=1,n1/2
+           zmpi1(1,I1,J2,j3,Jp2)=zw(1,mfft,I1)
+           zmpi1(2,I1,J2,j3,Jp2)=zw(2,mfft,I1)
+        end do
+     end do
+     J2stf=1
+  end do
 
-!!****h* BigDFT/F_unfill_downcorn
+end subroutine unmpiswitch_downcorn
+
+
+!!****f* BigDFT/F_unfill_downcorn
 !! NAME
 !!   F_unfill_downcorn
 !!
@@ -2273,11 +2295,12 @@ subroutine F_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
      do i1=1,nfft
         pot1 = scal*zw(1,i1,i3)
         ehartreetmp =ehartreetmp + pot1* zf(i1,2*i3-1)
-	zf(i1,2*i3-1)= pot1 
-	pot1 = scal*zw(2,i1,i3)
+        zf(i1,2*i3-1)= pot1 
+        pot1 = scal*zw(2,i1,i3)
         ehartreetmp =ehartreetmp + pot1* zf(i1,2*i3)
-	zf(i1,2*i3)= pot1 
+        zf(i1,2*i3)= pot1 
      enddo
   end do
   
 end subroutine F_unfill_downcorn
+!!**

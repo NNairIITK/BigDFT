@@ -1,12 +1,10 @@
 program memguess
 
-  use libBigDFT
-
-  !implicit real*8 (a-h,o-z)
+  !implicit real(kind=8) (a-h,o-z)
   implicit none
   logical :: calc_tail,output_grid
   character(len=20) :: tatonam,units
-  character(len=13) :: filename
+  character(len=30) :: filename
   character(len=2) :: symbol
   integer :: ierror,nat,ntypes,iat,jat,ityp,nproc,n1,n2,n3,ixc,ncharge,itermax,i_stat,i_all,i,j
   integer :: ncong,ncongt,idsx,nzatom,npspcode,iasctype,norb_vir,nelec,norb,nateq

@@ -478,7 +478,7 @@ function myshift(symbol)
 end function myshift
 
 logical function myorbital(iorb,norbe,iproc,nproc)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   parameter(eps_mach=1.d-12)
 
   tt=dble(norbe)/dble(nproc)
@@ -498,15 +498,15 @@ subroutine crtonewave(n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hgri
   ! returns an input guess orbital that is a Gaussian centered at a Wannier center
   ! exp (-1/(2*gau_a^2) *((x-cntrx)^2 + (y-cntry)^2 + (z-cntrz)^2 ))
   ! in the arrays psi_c, psi_f
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   parameter(nw=16000)
   dimension xp(nterm),psiat(nterm),fac_arr(ntp)
   dimension lx(ntp),ly(ntp),lz(ntp)
   dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
   dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
-  real*8, allocatable, dimension(:,:) :: wprojx, wprojy, wprojz
-  real*8, allocatable, dimension(:,:) :: work
-  real*8, allocatable :: psig_c(:,:,:), psig_f(:,:,:,:)
+  real(kind=8), allocatable, dimension(:,:) :: wprojx, wprojy, wprojz
+  real(kind=8), allocatable, dimension(:,:) :: work
+  real(kind=8), allocatable :: psig_c(:,:,:), psig_f(:,:,:,:)
 
   allocate(wprojx(0:n1,2),stat=i_stat)
   call memocc(i_stat,product(shape(wprojx))*kind(wprojx),'wprojx','crtonewave')

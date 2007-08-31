@@ -29,9 +29,9 @@ program test_forces
   integer, parameter :: n=31
   real(kind=8), dimension(:,:), allocatable :: rxyz,fxyz,drxyz,rxyz_old
   real(kind=8), dimension(:), allocatable :: weight
-  character*20 tatonam,units
+  character(len=20) :: tatonam,units
   integer, allocatable, dimension(:) :: iatype
-  character*20 :: atomnames(100)
+  character(len=20) :: atomnames(100)
   integer :: nat,nproc,iproc,ntypes,ityp,iat,i,ierr
   real(kind=8) :: energy,energy0,FxdRx,FydRy,FzdRz,path,sumx,sumy,sumz,dx
   logical :: parallel=.true.
@@ -39,7 +39,7 @@ program test_forces
   integer, pointer :: keyg(:,:), keyv(:)
   integer :: nseg_c, nseg_f, nvctr_c, nvctr_f
   integer :: norb, norbp, n1, n2, n3,i_all,i_stat,infocode
-  real*8 :: hgrid
+  real(kind=8) :: hgrid
 
   !Body
   !Start MPI in parallel version

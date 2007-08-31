@@ -1,6 +1,6 @@
 subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   ! calculates the norm SQUARED (scpr) of a wavefunction (in vector form)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
 
   scpr=0.d0
@@ -30,7 +30,7 @@ END SUBROUTINE wnrm
 
 subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scalar (scal)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
 
   do i=1,mvctr_c
@@ -51,7 +51,7 @@ END SUBROUTINE wscal
 
 subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension psi_c(mvctr_c),psi_f(7,mvctr_f),scal(0:3)
 
   do i=1,mvctr_c
@@ -72,7 +72,7 @@ end subroutine wscalv
 
 subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
   ! initializes a wavefunction to zero
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
 
   do i=1,mvctr_c
@@ -97,7 +97,7 @@ subroutine wpdot(  &
   ! calculates the dot product between a wavefunctions apsi and a projector bpsi (both in compressed form)
   ! Warning: the subroutine assumes that bpsi has only one segment along each line,
   ! whereas apsi can have several segments. This assumption is true if bpsi is a projector 
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension keyav_c(maseg_c),keyag_c(2,maseg_c),keyav_f(maseg_f),keyag_f(2,maseg_f)
   dimension keybv_c(mbseg_c),keybg_c(2,mbseg_c),keybv_f(mbseg_f),keybg_f(2,mbseg_f)
   dimension apsi_c(mavctr_c),apsi_f(7,mavctr_f),bpsi_c(mbvctr_c),bpsi_f(7,mbvctr_f)
@@ -194,7 +194,7 @@ subroutine waxpy(  &
      mavctr_c,mavctr_f,maseg_c,maseg_f,keyav_c,keyav_f,keyag_c,keyag_f,apsi_c,apsi_f)
   ! rank 1 update of wavefunction a with wavefunction b: apsi=apsi+scpr*bpsi
   ! The update is only done in the localization region of apsi
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension keyav_c(maseg_c),keyag_c(2,maseg_c),keyav_f(maseg_f),keyag_f(2,maseg_f)
   dimension keybv_c(mbseg_c),keybg_c(2,mbseg_c),keybv_f(mbseg_f),keybg_f(2,mbseg_f)
   dimension apsi_c(mavctr_c),apsi_f(7,mavctr_f),bpsi_c(mbvctr_c),bpsi_f(7,mbvctr_f)
@@ -278,7 +278,7 @@ subroutine uncompress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  &
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      psi_c,psi_f,psig)
   ! Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
   dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
   dimension psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2)
@@ -332,7 +332,7 @@ subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  &
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      psig,psi_c,psi_f)
   ! Compresses a psig wavefunction into psi_c,psi_f form
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
   dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
   dimension psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2)
@@ -383,7 +383,7 @@ subroutine uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      scal,psi_c,psi_f,psig_c,psig_fc,psig_f)
   ! Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
   dimension psi_c(mvctr_c),psi_f(7,mvctr_f),scal(0:3)
   dimension psig_c(0:n1,0:n2,0:n3)
@@ -443,7 +443,7 @@ subroutine compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      scal,psig_c,psig_f,psi_c,psi_f)
   ! Compresses a psig wavefunction into psi_c,psi_f form
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
   dimension psi_c(mvctr_c),psi_f(7,mvctr_f),scal(0:3)
   dimension psig_c(0:n1,0:n2,0:n3)
@@ -492,7 +492,7 @@ end subroutine compress_forstandard
 subroutine convolut_magic_n(n1,n2,n3,x,y)
   ! Applies the magic filter matrix ( no transposition) ; data set grows
   ! The input array x is not overwritten
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   parameter(lowfil=-8,lupfil=7) ! has to be consistent with values in convrot
   dimension x(*)
   dimension y(*)
@@ -514,7 +514,7 @@ END SUBROUTINE convolut_magic_n
 subroutine convolut_magic_t(n1,n2,n3,x,y)
   ! Applies the magic filter matrix transposed ; data set shrinks
   ! The input array x is overwritten
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   parameter(lowfil=-8,lupfil=7) ! has to be consistent with values in convrot
   dimension x(*),y(*)
 
@@ -534,7 +534,7 @@ END SUBROUTINE convolut_magic_t
 subroutine synthese_grow(n1,n2,n3,ww,x,y)
   ! A synthesis wavelet transformation where the size of the data is allowed to grow
   ! The input array x is not overwritten
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension x(0:n1,2,0:n2,2,0:n3,2)
   dimension ww(-7:2*n2+8,-7:2*n3+8,-7:2*n1+8)
   dimension  y(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
@@ -556,7 +556,7 @@ END SUBROUTINE synthese_grow
 subroutine analyse_shrink(n1,n2,n3,ww,y,x)
   ! A analysis wavelet transformation where the size of the data is forced to shrink
   ! The input array y is overwritten
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension ww(-7:2*n2+8,-7:2*n3+8,-7:2*n1+8)
   dimension  y(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
   dimension x(0:n1,2,0:n2,2,0:n3,2)
@@ -575,10 +575,10 @@ subroutine analyse_shrink(n1,n2,n3,ww,y,x)
 END SUBROUTINE analyse_shrink
 
 subroutine plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,rx,ry,rz,psi)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension psi(nvctr_c+7*nvctr_f)
-  real*8, allocatable :: psifscf(:),psir(:),psig(:,:,:,:,:,:)
+  real(kind=8), allocatable :: psifscf(:),psir(:),psig(:,:,:,:,:,:)
 
   allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_stat)
   call memocc(i_stat,product(shape(psig))*kind(psig),'psig','plot_wf')
@@ -609,7 +609,7 @@ subroutine plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f
 END SUBROUTINE plot_wf
 
 subroutine plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,pot)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
 
   hgridh=.5d0*hgrid
@@ -648,7 +648,7 @@ END SUBROUTINE plot_pot
 
 
 subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
 
   hgridh=.5d0*hgrid

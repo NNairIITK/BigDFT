@@ -1,14 +1,14 @@
 
         parameter(m=4)
-        dimension ch(-m:m),cg(-m:m),cht(-m:m),cgt(-m:m)
+        real(kind=8) :: ch(-m:m),cg(-m:m),cht(-m:m),cgt(-m:m)
 
 !******** coefficints for wavelet transform *********************
-	do i=-m,m
-	ch(i)=0.d0
-	cht(i)=0.d0
-	cg(i)=0.d0
-	cgt(i)=0.d0
-	enddo
+        do i=-m,m
+           ch(i)=0.d0
+           cht(i)=0.d0
+           cg(i)=0.d0
+           cgt(i)=0.d0
+        end do
 
 ! daubechy D8
         ch(-3)= .2303778133088964d0
@@ -21,12 +21,12 @@
         ch( 4)=-.0105974017850690d0
 
 ! orthonormal wavelet
-	do i=-m,m
-	cht(i)=ch(i)
-	enddo
+        do i=-m,m
+           cht(i)=ch(i)
+        end do
 
 ! g coefficients from h coefficients
         do i=-m,m-1
-        cg(i+1)=cht(-i)*(-1)**(i+1)
-        cgt(i+1)=ch(-i)*(-1)**(i+1)
-        enddo
+           cg(i+1)=cht(-i)*(-1)**(i+1)
+           cgt(i+1)=ch(-i)*(-1)**(i+1)
+        end do

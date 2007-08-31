@@ -1,12 +1,12 @@
 subroutine  comb_rot_grow_loc_plus(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,icf,ib)
-  ! In one dimesnion,	
+  ! In one dimesnion, 
   ! with optimised cycles
   ! Applies synthesis wavelet transformation 
   ! then convolves with magic filter
   ! then adds the result to y.
   ! The size of the data is allowed to grow
 
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   integer t
   integer,parameter:: lowfil=-7,lupfil=8
   integer,parameter:: lowfil2=2*lowfil,lupfil2=2*lupfil
@@ -19,15 +19,15 @@ subroutine  comb_rot_grow_loc_plus(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ic
 
   do l1=-14+2*nfl1,2*nfu1+16
      do l2=-14+2*nfl2,2*nfu2+16
-	!       loop for smaller i
-	!       j=8 won't work : i-j would turn negative
+ !       loop for smaller i
+ !       j=8 won't work : i-j would turn negative
         if (ib(1,l1,l2).le.ib(2,l1,l2)) then
            do i=ib(1,l1,l2)-7,ib(1,l1,l2)+7
               y2i=0.d0
               y2i1=0.d0
 
               ! i-7 =< ib(1,l1,l2)
-              do t=    	 ib(1,l1,l2) ,min(i+7,ib(2,l1,l2))
+              do t=      ib(1,l1,l2) ,min(i+7,ib(2,l1,l2))
                  y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l1,l2)
                  y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l1,l2)
               enddo
@@ -36,10 +36,10 @@ subroutine  comb_rot_grow_loc_plus(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ic
               y(l1,l2,2*i+1)=y(l1,l2,2*i+1)+y2i1
            enddo
 
-           !			loop for ordinary i		
+           !   loop for ordinary i  
            do i=ib(1,l1,l2)+8,ib(2,l1,l2)+7
 
-              !	j=8  works since i is big enough
+              ! j=8  works since i is big enough
               y2i =fil2(16  ,icf)*x(i-8,l1,l2)
               y2i1=0.d0
 
@@ -53,7 +53,7 @@ subroutine  comb_rot_grow_loc_plus(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ic
               y(l1,l2,2*i+1)=y(l1,l2,2*i+1)+y2i1
            enddo
 
-           t=ib(2,l1,l2);	i=t+8;	 ! to the rightmost element of y, only j=8 contributes
+           t=ib(2,l1,l2); i=t+8;  ! to the rightmost element of y, only j=8 contributes
            y(l1,l2,2*i)=y(l1,l2,2*i)+fil2(16,icf)*x(t,l1,l2)
 
         endif
@@ -65,13 +65,13 @@ end subroutine comb_rot_grow_loc_plus
 
 
 subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
-! In one dimesnion,	
+! In one dimesnion, 
 ! with optimised cycles
 ! Applies synthesis wavelet transformation 
 ! then convolves with magic filter
 !  the size of the data is allowed to grow
 
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   integer t
   integer,parameter:: lowfil=-7,lupfil=8
   integer,parameter:: lowfil2=2*lowfil,lupfil2=2*lupfil
@@ -84,7 +84,7 @@ subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
   !open(unit=10,file='long.flop')
   
   !nflop=0
-  !do l=1,ndat	
+  !do l=1,ndat 
   !   if (ib(2,l).ge.ib(1,l)) nflop=nflop+(ib(2,l)-ib(1,l)+1)*31*2
   !enddo
   
@@ -100,8 +100,8 @@ subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
            do i=ib(1,l)-7,ib(1,l)+7
               y2i=0.d0
               y2i1=0.d0
-              !					i+7=<ib(1,l)+14<ib(2,l)
-              !					do t=        ib(1,l) ,min(i+7,ib(2,l))
+              !     i+7=<ib(1,l)+14<ib(2,l)
+              !     do t=        ib(1,l) ,min(i+7,ib(2,l))
               do t=ib(1,l),i+7
                  y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l)
                  y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l)
@@ -112,7 +112,7 @@ subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
            enddo
            !***********************************************************************************************
            
-           !			loop for ordinary i		
+           !   loop for ordinary i  
            
            if (ib(2,l)-ib(1,l)-16.ge.3) then
               !for the asymmetry of the daubechies filters
@@ -154,10 +154,10 @@ subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
               icur=ib(1,l)+8
            endif
 
-           !			loop for the "rigthmost of ordinary" i	
+           !   loop for the "rigthmost of ordinary" i 
            do i=icur,ib(2,l)-8
 
-              !	j=8  works since i is big enough
+              ! j=8  works since i is big enough
               y2i =fil2(16  ,icf)*x(i-8,l)
               y2i1=0.d0
 
@@ -178,8 +178,8 @@ subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
               y2i1=0.d0
 
               !  i+7=<ib(2,l)
-              !					do t=    i-7         ,min(i+7,ib(2,l)) ! i-7>ib(1,l) since i=ib(1,l)+8,..
-              do t=    i-7         ,		  ib(2,l) 
+              !     do t=    i-7         ,min(i+7,ib(2,l)) ! i-7>ib(1,l) since i=ib(1,l)+8,..
+              do t=    i-7         ,    ib(2,l) 
                  y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l)
                  y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l)
               enddo
@@ -189,7 +189,7 @@ subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
 
            enddo
 
-           t=ib(2,l);	i=t+8;	 ! to the rightmost element of y, only j=8 contributes
+           t=ib(2,l); i=t+8;  ! to the rightmost element of y, only j=8 contributes
            y(l,2*i)=fil2(16,icf)*x(t,l)
 
         else!      ib(1,l)+7>=ib(2,l)-7!*****************************************************
@@ -206,14 +206,14 @@ subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
               y(l,2*i)=y2i
               y(l,2*i+1)=y2i1
            enddo
-           !loop for ordinary i		
+           !loop for ordinary i  
            do i=ib(1,l)+8,ib(2,l)+7
 
-              !	j=8  works since i is big enough
+              ! j=8  works since i is big enough
               y2i =fil2(16  ,icf)*x(i-8,l)
               y2i1=0.d0
 
-              !					do t=    i-7         ,min(i+7,ib(2,l)) 
+              !     do t=    i-7         ,min(i+7,ib(2,l)) 
               do t=i-7,ib(2,l) ! i-7>ib(1,l) since i=ib(1,l)+8,..
                  y2i =y2i +fil2(2*(i-t)  ,icf)*x(t,l)
                  y2i1=y2i1+fil2(2*(i-t)+1,icf)*x(t,l)
@@ -223,7 +223,7 @@ subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
               y(l,2*i+1)=y2i1
            enddo
 
-           t=ib(2,l);	i=t+8;	 ! to the rightmost element of y, only j=8 contributes
+           t=ib(2,l); i=t+8;  ! to the rightmost element of y, only j=8 contributes
            y(l,2*i)=fil2(16,icf)*x(t,l)
 
         endif
