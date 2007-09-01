@@ -266,7 +266,7 @@ program BigDFT
      call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg, &
           psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
           n1, n2, n3, hgrid, rxyz_old,betax,ncount_cluster,fluct,flucto,fluctoo,fnrm)
-     if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0) then
+     if (fnrm.lt.sqrt(real(nat,kind=8))*(fluct+flucto+fluctoo)/3.d0) then
         write(16,*) 'Converged before entering CG',iproc
         return
      endif
@@ -409,8 +409,8 @@ program BigDFT
         end if
      end do
      write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)') it,fnrm,etot,' CG ',beta/betax
-     write(16,*) 'fnrm,flucts',fnrm,sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0
-     if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0) goto 2000
+     write(16,*) 'fnrm,flucts',fnrm,sqrt(real(nat,kind=8))*(fluct+flucto+fluctoo)/3.d0
+     if (fnrm.lt.sqrt(real(nat,kind=8))*(fluct+flucto+fluctoo)/3.d0) goto 2000
      if (it.eq.500) then
         write(16,*) 'NO conv in CG after 500 its: switching back to SD',it,fnrm,etot
         do iat=1,nat
@@ -547,8 +547,8 @@ program BigDFT
            sumz=sumz+ff(3,iat)
         end do
         fluct=sumx**2+sumy**2+sumz**2
-        write(16,*) 'fnrm,flucts',fnrm,sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0
-        if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)/3.d0) goto 2000
+        write(16,*) 'fnrm,flucts',fnrm,sqrt(real(nat,kind=8))*(fluct+flucto+fluctoo)/3.d0
+        if (fnrm.lt.sqrt(real(nat,kind=8))*(fluct+flucto+fluctoo)/3.d0) goto 2000
         if (nsatur.gt.5) goto 2000
         if (itsd.ge.nitsd) then 
            write(16,'(a,i5,1x,e10.3,1x,e21.14)') 'SD: NO CONVERGENCE:itsd,fnrm,etot',itsd,fnrm,etot
@@ -688,7 +688,7 @@ program BigDFT
         tt=.25d0/der2
         beta0=.125d0/der2
         write(16,*) 'der2,tt=',der2,tt
-        if (der2.gt.0) then
+        if (der2.gt.0.d0) then
            nsuc=nsuc+1
            beta=min(beta,.5d0/der2)
         endif

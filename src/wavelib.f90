@@ -621,21 +621,21 @@ subroutine plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,pot)
   i2=nint(ry/hgridh)
   write(*,*) 'plot_p, i2,i3,n2,n3 ',i2,i3,n2,n3
   do i1=-14,2*n1+16
-     write(iounit,*) i1*hgridh,pot(i1,i2,i3)
+     write(iounit,*) real(i1,kind=8)*hgridh,pot(i1,i2,i3)
   enddo
 
   i1=nint(rx/hgridh)
   i2=nint(ry/hgridh)
   write(*,*) 'plot_p, i1,i2 ',i1,i2
   do i3=-14,2*n3+16
-     write(iounit+1,*) i3*hgridh,pot(i1,i2,i3)
+     write(iounit+1,*) real(i3,kind=8)*hgridh,pot(i1,i2,i3)
   enddo
 
   i1=nint(rx/hgridh)
   i3=nint(rz/hgridh)
   write(*,*) 'plot_p, i1,i3 ',i1,i3
   do i2=-14,2*n2+16
-     write(iounit+2,*) i2*hgridh,pot(i1,i2,i3)
+     write(iounit+2,*) real(i2,kind=8)*hgridh,pot(i1,i2,i3)
   enddo
 
   close(iounit) 
@@ -657,31 +657,36 @@ subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
   i3=n3
   i2=n2
   do i1=-7,2*n1+8
-     write(iunit,'(3(1x,e10.3),1x,e12.5)') i1*hgridh,i2*hgridh,i3*hgridh,psifscf(i1,i2,i3)
+     write(iunit,'(3(1x,e10.3),1x,e12.5)') &
+        real(i1,kind=8)*hgridh,real(i2,kind=8)*hgridh,real(i3,kind=8)*hgridh,psifscf(i1,i2,i3)
   enddo
 
   ! 111 diagonal
   do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
      i1=i ; i2=i ; i3=i
-     write(iunit,'(3(1x,e10.3),1x,e12.5)') i1*hgridh,i2*hgridh,i3*hgridh,psifscf(i1,i2,i3)
+     write(iunit,'(3(1x,e10.3),1x,e12.5)') &
+          real(i1,kind=8)*hgridh,real(i2,kind=8)*hgridh,real(i3,kind=8)*hgridh,psifscf(i1,i2,i3)
   enddo
 
   ! 1-1-1 diagonal
   do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
      i1=i ; i2=-i ; i3=-i
-     write(iunit,'(3(1x,e10.3),1x,e12.5)') i1*hgridh,i2*hgridh,i3*hgridh,psifscf(i1,i2,i3)
+     write(iunit,'(3(1x,e10.3),1x,e12.5)') &
+          real(i1,kind=8)*hgridh,real(i2,kind=8)*hgridh,real(i3,kind=8)*hgridh,psifscf(i1,i2,i3)
   enddo
 
   ! -11-1 diagonal
   do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
      i1=-i ; i2=i ; i3=-i
-     write(iunit,'(3(1x,e10.3),1x,e12.5)') i1*hgridh,i2*hgridh,i3*hgridh,psifscf(i1,i2,i3)
+     write(iunit,'(3(1x,e10.3),1x,e12.5)') &
+          real(i1,kind=8)*hgridh,real(i2,kind=8)*hgridh,real(i3,kind=8)*hgridh,psifscf(i1,i2,i3)
   enddo
 
   ! -1-11 diagonal
   do i=-7,min(2*n1+8,2*n2+8,2*n3+8)
      i1=-i ; i2=-i ; i3=i
-     write(iunit,'(3(1x,e10.3),1x,e12.5)') i1*hgridh,i2*hgridh,i3*hgridh,psifscf(i1,i2,i3)
+     write(iunit,'(3(1x,e10.3),1x,e12.5)') &
+          real(i1,kind=8)*hgridh,real(i2,kind=8)*hgridh,real(i3,kind=8)*hgridh,psifscf(i1,i2,i3)
   enddo
 
   return

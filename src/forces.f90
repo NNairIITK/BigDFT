@@ -58,16 +58,16 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
            dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
            jtyp=iatype(jat)
            !eion=eion+nelpsp(jtyp)*nelpsp(ityp)/dist
-           fxion=fxion+nelpsp(jtyp)*(nelpsp(ityp)/(dist**3))*(rx-rxyz(1,jat))
-           fyion=fyion+nelpsp(jtyp)*(nelpsp(ityp)/(dist**3))*(ry-rxyz(2,jat))
-           fzion=fzion+nelpsp(jtyp)*(nelpsp(ityp)/(dist**3))*(rz-rxyz(3,jat))
+           fxion=fxion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(rx-rxyz(1,jat))
+           fyion=fyion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(ry-rxyz(2,jat))
+           fzion=fzion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(rz-rxyz(3,jat))
         end do
         do jat=iat+1,nat
            dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
            jtyp=iatype(jat)
-           fxion=fxion+nelpsp(jtyp)*(nelpsp(ityp)/(dist**3))*(rx-rxyz(1,jat))
-           fyion=fyion+nelpsp(jtyp)*(nelpsp(ityp)/(dist**3))*(ry-rxyz(2,jat))
-           fzion=fzion+nelpsp(jtyp)*(nelpsp(ityp)/(dist**3))*(rz-rxyz(3,jat))
+           fxion=fxion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(rx-rxyz(1,jat))
+           fyion=fyion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(ry-rxyz(2,jat))
+           fzion=fzion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(rz-rxyz(3,jat))
         end do
      end if
 
@@ -85,7 +85,7 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
 
      !local part
      rloc=psppar(0,0,ityp)
-     prefactor=nelpsp(ityp)/(2.d0*pi*sqrt(2.d0*pi)*rloc**5)
+     prefactor=real(nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**5)
      !maximum extension of the gaussian
      cutoff=10.d0*rloc
      !nearest grid point to the cutoff
@@ -101,9 +101,9 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
         j3=i3+15-i3s+1
         do i2=iy-ii,iy+ii
            do i1=ix-ii,ix+ii
-              x=i1*hgridh-rx
-              y=i2*hgridh-ry
-              z=i3*hgridh-rz
+              x=real(i1,kind=8)*hgridh-rx
+              y=real(i2,kind=8)*hgridh-ry
+              z=real(i3,kind=8)*hgridh-rz
               r2=x**2+y**2+z**2
               arg=r2/rloc**2
               xp=exp(-.5d0*arg)
@@ -209,16 +209,16 @@ subroutine local_forces_old(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,
         dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
         jtyp=iatype(jat)
         !eion=eion+nelpsp(jtyp)*nelpsp(ityp)/dist
-        fxion=fxion+nelpsp(jtyp)*(nelpsp(ityp)/(dist**3))*(rx-rxyz(1,jat))
-        fyion=fyion+nelpsp(jtyp)*(nelpsp(ityp)/(dist**3))*(ry-rxyz(2,jat))
-        fzion=fzion+nelpsp(jtyp)*(nelpsp(ityp)/(dist**3))*(rz-rxyz(3,jat))
+        fxion=fxion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(rx-rxyz(1,jat))
+        fyion=fyion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(ry-rxyz(2,jat))
+        fzion=fzion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(rz-rxyz(3,jat))
      end do
      do jat=iat+1,nat
         dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
         jtyp=iatype(jat)
-        fxion=fxion+nelpsp(jtyp)*(nelpsp(ityp)/(dist**3))*(rx-rxyz(1,jat))
-        fyion=fyion+nelpsp(jtyp)*(nelpsp(ityp)/(dist**3))*(ry-rxyz(2,jat))
-        fzion=fzion+nelpsp(jtyp)*(nelpsp(ityp)/(dist**3))*(rz-rxyz(3,jat))
+        fxion=fxion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(rx-rxyz(1,jat))
+        fyion=fyion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(ry-rxyz(2,jat))
+        fzion=fzion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(rz-rxyz(3,jat))
      end do
 
      
@@ -236,7 +236,7 @@ subroutine local_forces_old(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,
 
      !local part
      rloc=psppar(0,0,ityp)
-     prefactor=nelpsp(ityp)/(2.d0*pi*sqrt(2.d0*pi)*rloc**5)
+     prefactor=real(nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**5)
      !maximum extension of the gaussian
      cutoff=10.d0*rloc
      !nearest grid point to the cutoff
@@ -245,9 +245,9 @@ subroutine local_forces_old(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,
      do i3=iz-ii,iz+ii
         do i2=iy-ii,iy+ii
            do i1=ix-ii,ix+ii
-              x=i1*hgridh-rx
-              y=i2*hgridh-ry
-              z=i3*hgridh-rz
+              x=real(i1,kind=8)*hgridh-rx
+              y=real(i2,kind=8)*hgridh-ry
+              z=real(i3,kind=8)*hgridh-rz
               r2=x**2+y**2+z**2
               arg=r2/rloc**2
               xp=exp(-.5d0*arg)
@@ -923,11 +923,11 @@ if (l.eq.1 .and. i.eq.1 .and. m.eq.1) then
    nterm_arr(2)=1
    nterm_arr(3)=1
    lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   fac_arr(1,1)=-0.7071067811865475244008444/rhol**2d0
+   fac_arr(1,1)=-0.7071067811865475244008444d0/rhol**2d0
    lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   fac_arr(1,2)=-0.7071067811865475244008444/rhol**2d0
+   fac_arr(1,2)=-0.7071067811865475244008444d0/rhol**2d0
    lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   fac_arr(1,3)=-0.7071067811865475244008444/rhol**2d0
+   fac_arr(1,3)=-0.7071067811865475244008444d0/rhol**2d0
 else if (l.eq.1 .and. i.eq.2 .and. m.eq.1) then
    nterm_arr(1)=4
    nterm_arr(2)=4
@@ -937,25 +937,25 @@ else if (l.eq.1 .and. i.eq.2 .and. m.eq.1) then
    lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=0
    lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=2
    fac_arr(1,1)=0.730296743340221484609293d0
-   fac_arr(2,1)=-0.3651483716701107423046465/rhol**2d0
-   fac_arr(3,1)=-0.3651483716701107423046465/rhol**2d0
-   fac_arr(4,1)=-0.3651483716701107423046465/rhol**2d0
+   fac_arr(2,1)=-0.3651483716701107423046465d0/rhol**2d0
+   fac_arr(3,1)=-0.3651483716701107423046465d0/rhol**2d0
+   fac_arr(4,1)=-0.3651483716701107423046465d0/rhol**2d0
    lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
    lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
    fac_arr(1,2)=0.730296743340221484609293d0
-   fac_arr(2,2)=-0.3651483716701107423046465/rhol**2d0
-   fac_arr(3,2)=-0.3651483716701107423046465/rhol**2d0
-   fac_arr(4,2)=-0.3651483716701107423046465/rhol**2d0
+   fac_arr(2,2)=-0.3651483716701107423046465d0/rhol**2d0
+   fac_arr(3,2)=-0.3651483716701107423046465d0/rhol**2d0
+   fac_arr(4,2)=-0.3651483716701107423046465d0/rhol**2d0
    lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=2 ; lxyz_arr(3,3,3)=1
    lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
    fac_arr(1,3)=0.730296743340221484609293d0
-   fac_arr(2,3)=-0.3651483716701107423046465/rhol**2d0
-   fac_arr(3,3)=-0.3651483716701107423046465/rhol**2d0
-   fac_arr(4,3)=-0.3651483716701107423046465/rhol**2d0
+   fac_arr(2,3)=-0.3651483716701107423046465d0/rhol**2d0
+   fac_arr(3,3)=-0.3651483716701107423046465d0/rhol**2d0
+   fac_arr(4,3)=-0.3651483716701107423046465d0/rhol**2d0
 else if (l.eq.1 .and. i.eq.3 .and. m.eq.1) then
    nterm_arr(1)=9
    nterm_arr(2)=9
@@ -972,12 +972,12 @@ else if (l.eq.1 .and. i.eq.3 .and. m.eq.1) then
    fac_arr(1,1)=0.3680349649825889161579343d0
    fac_arr(2,1)=0.3680349649825889161579343d0
    fac_arr(3,1)=0.3680349649825889161579343d0
-   fac_arr(4,1)=-0.09200874124564722903948358/rhol**2d0
-   fac_arr(5,1)=-0.1840174824912944580789672/rhol**2d0
-   fac_arr(6,1)=-0.09200874124564722903948358/rhol**2d0
-   fac_arr(7,1)=-0.1840174824912944580789672/rhol**2d0
-   fac_arr(8,1)=-0.1840174824912944580789672/rhol**2d0
-   fac_arr(9,1)=-0.09200874124564722903948358/rhol**2d0
+   fac_arr(4,1)=-0.09200874124564722903948358d0/rhol**2d0
+   fac_arr(5,1)=-0.1840174824912944580789672d0/rhol**2d0
+   fac_arr(6,1)=-0.09200874124564722903948358d0/rhol**2d0
+   fac_arr(7,1)=-0.1840174824912944580789672d0/rhol**2d0
+   fac_arr(8,1)=-0.1840174824912944580789672d0/rhol**2d0
+   fac_arr(9,1)=-0.09200874124564722903948358d0/rhol**2d0
    lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=2
@@ -990,12 +990,12 @@ else if (l.eq.1 .and. i.eq.3 .and. m.eq.1) then
    fac_arr(1,2)=0.3680349649825889161579343d0
    fac_arr(2,2)=0.3680349649825889161579343d0
    fac_arr(3,2)=0.3680349649825889161579343d0
-   fac_arr(4,2)=-0.09200874124564722903948358/rhol**2d0
-   fac_arr(5,2)=-0.1840174824912944580789672/rhol**2d0
-   fac_arr(6,2)=-0.09200874124564722903948358/rhol**2d0
-   fac_arr(7,2)=-0.1840174824912944580789672/rhol**2d0
-   fac_arr(8,2)=-0.1840174824912944580789672/rhol**2d0
-   fac_arr(9,2)=-0.09200874124564722903948358/rhol**2d0
+   fac_arr(4,2)=-0.09200874124564722903948358d0/rhol**2d0
+   fac_arr(5,2)=-0.1840174824912944580789672d0/rhol**2d0
+   fac_arr(6,2)=-0.09200874124564722903948358d0/rhol**2d0
+   fac_arr(7,2)=-0.1840174824912944580789672d0/rhol**2d0
+   fac_arr(8,2)=-0.1840174824912944580789672d0/rhol**2d0
+   fac_arr(9,2)=-0.09200874124564722903948358d0/rhol**2d0
    lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=3
@@ -1008,12 +1008,12 @@ else if (l.eq.1 .and. i.eq.3 .and. m.eq.1) then
    fac_arr(1,3)=0.3680349649825889161579343d0
    fac_arr(2,3)=0.3680349649825889161579343d0
    fac_arr(3,3)=0.3680349649825889161579343d0
-   fac_arr(4,3)=-0.09200874124564722903948358/rhol**2d0
-   fac_arr(5,3)=-0.1840174824912944580789672/rhol**2d0
-   fac_arr(6,3)=-0.09200874124564722903948358/rhol**2d0
-   fac_arr(7,3)=-0.1840174824912944580789672/rhol**2d0
-   fac_arr(8,3)=-0.1840174824912944580789672/rhol**2d0
-   fac_arr(9,3)=-0.09200874124564722903948358/rhol**2d0
+   fac_arr(4,3)=-0.09200874124564722903948358d0/rhol**2d0
+   fac_arr(5,3)=-0.1840174824912944580789672d0/rhol**2d0
+   fac_arr(6,3)=-0.09200874124564722903948358d0/rhol**2d0
+   fac_arr(7,3)=-0.1840174824912944580789672d0/rhol**2d0
+   fac_arr(8,3)=-0.1840174824912944580789672d0/rhol**2d0
+   fac_arr(9,3)=-0.09200874124564722903948358d0/rhol**2d0
 else if (l.eq.2 .and. i.eq.1 .and. m.eq.1) then
    nterm_arr(1)=2
    nterm_arr(2)=1
@@ -1021,35 +1021,35 @@ else if (l.eq.2 .and. i.eq.1 .and. m.eq.1) then
    lxyz_arr(1,1,1)=0 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
    lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=0
    fac_arr(1,1)=1.d0
-   fac_arr(2,1)=-1./rhol**2d0
+   fac_arr(2,1)=-1.d0/rhol**2d0
    lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   fac_arr(1,2)=-1./rhol**2d0
+   fac_arr(1,2)=-1.d0/rhol**2d0
    lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   fac_arr(1,3)=-1./rhol**2d0
+   fac_arr(1,3)=-1.d0/rhol**2d0
 else if (l.eq.2 .and. i.eq.1 .and. m.eq.2) then
    nterm_arr(1)=1
    nterm_arr(2)=2
    nterm_arr(3)=1
    lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
-   fac_arr(1,1)=-1./rhol**2d0
+   fac_arr(1,1)=-1.d0/rhol**2d0
    lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
    fac_arr(1,2)=1.d0
-   fac_arr(2,2)=-1./rhol**2d0
+   fac_arr(2,2)=-1.d0/rhol**2d0
    lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
-   fac_arr(1,3)=-1./rhol**2d0
+   fac_arr(1,3)=-1.d0/rhol**2d0
 else if (l.eq.2 .and. i.eq.1 .and. m.eq.3) then
    nterm_arr(1)=1
    nterm_arr(2)=1
    nterm_arr(3)=2
    lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
-   fac_arr(1,1)=-1./rhol**2d0
+   fac_arr(1,1)=-1.d0/rhol**2d0
    lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
-   fac_arr(1,2)=-1./rhol**2d0
+   fac_arr(1,2)=-1.d0/rhol**2d0
    lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=2
    fac_arr(1,3)=1.d0
-   fac_arr(2,3)=-1./rhol**2d0
+   fac_arr(2,3)=-1.d0/rhol**2d0
 else if (l.eq.2 .and. i.eq.2 .and. m.eq.1) then
    nterm_arr(1)=6
    nterm_arr(2)=4
@@ -1063,25 +1063,25 @@ else if (l.eq.2 .and. i.eq.2 .and. m.eq.1) then
    fac_arr(1,1)=1.014185105674219893011542d0
    fac_arr(2,1)=0.3380617018914066310038473d0
    fac_arr(3,1)=0.3380617018914066310038473d0
-   fac_arr(4,1)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(5,1)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(6,1)=-0.3380617018914066310038473/rhol**2d0
+   fac_arr(4,1)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(5,1)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(6,1)=-0.3380617018914066310038473d0/rhol**2d0
    lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
    lxyz_arr(1,4,2)=1 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
    fac_arr(1,2)=0.6761234037828132620076947d0
-   fac_arr(2,2)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(3,2)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(4,2)=-0.3380617018914066310038473/rhol**2d0
+   fac_arr(2,2)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(3,2)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(4,2)=-0.3380617018914066310038473d0/rhol**2d0
    lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=2 ; lxyz_arr(3,3,3)=1
    lxyz_arr(1,4,3)=1 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
    fac_arr(1,3)=0.6761234037828132620076947d0
-   fac_arr(2,3)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(3,3)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(4,3)=-0.3380617018914066310038473/rhol**2d0
+   fac_arr(2,3)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(3,3)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(4,3)=-0.3380617018914066310038473d0/rhol**2d0
 else if (l.eq.2 .and. i.eq.2 .and. m.eq.2) then
    nterm_arr(1)=4
    nterm_arr(2)=6
@@ -1091,9 +1091,9 @@ else if (l.eq.2 .and. i.eq.2 .and. m.eq.2) then
    lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=3 ; lxyz_arr(3,3,1)=0
    lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=2
    fac_arr(1,1)=0.6761234037828132620076947d0
-   fac_arr(2,1)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(3,1)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(4,1)=-0.3380617018914066310038473/rhol**2d0
+   fac_arr(2,1)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(3,1)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(4,1)=-0.3380617018914066310038473d0/rhol**2d0
    lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=0 ; lxyz_arr(3,3,2)=2
@@ -1103,17 +1103,17 @@ else if (l.eq.2 .and. i.eq.2 .and. m.eq.2) then
    fac_arr(1,2)=0.3380617018914066310038473d0
    fac_arr(2,2)=1.014185105674219893011542d0
    fac_arr(3,2)=0.3380617018914066310038473d0
-   fac_arr(4,2)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(5,2)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(6,2)=-0.3380617018914066310038473/rhol**2d0
+   fac_arr(4,2)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(5,2)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(6,2)=-0.3380617018914066310038473d0/rhol**2d0
    lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=1 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=3 ; lxyz_arr(3,3,3)=1
    lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=3
    fac_arr(1,3)=0.6761234037828132620076947d0
-   fac_arr(2,3)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(3,3)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(4,3)=-0.3380617018914066310038473/rhol**2d0
+   fac_arr(2,3)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(3,3)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(4,3)=-0.3380617018914066310038473d0/rhol**2d0
 else if (l.eq.2 .and. i.eq.2 .and. m.eq.3) then
    nterm_arr(1)=4
    nterm_arr(2)=4
@@ -1123,17 +1123,17 @@ else if (l.eq.2 .and. i.eq.2 .and. m.eq.3) then
    lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=1
    lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=3
    fac_arr(1,1)=0.6761234037828132620076947d0
-   fac_arr(2,1)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(3,1)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(4,1)=-0.3380617018914066310038473/rhol**2d0
+   fac_arr(2,1)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(3,1)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(4,1)=-0.3380617018914066310038473d0/rhol**2d0
    lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=1
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=1
    lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=3
    fac_arr(1,2)=0.6761234037828132620076947d0
-   fac_arr(2,2)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(3,2)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(4,2)=-0.3380617018914066310038473/rhol**2d0
+   fac_arr(2,2)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(3,2)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(4,2)=-0.3380617018914066310038473d0/rhol**2d0
    lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=2
@@ -1143,9 +1143,9 @@ else if (l.eq.2 .and. i.eq.2 .and. m.eq.3) then
    fac_arr(1,3)=0.3380617018914066310038473d0
    fac_arr(2,3)=0.3380617018914066310038473d0
    fac_arr(3,3)=1.014185105674219893011542d0
-   fac_arr(4,3)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(5,3)=-0.3380617018914066310038473/rhol**2d0
-   fac_arr(6,3)=-0.3380617018914066310038473/rhol**2d0
+   fac_arr(4,3)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(5,3)=-0.3380617018914066310038473d0/rhol**2d0
+   fac_arr(6,3)=-0.3380617018914066310038473d0/rhol**2d0
 else if (l.eq.2 .and. i.eq.3 .and. m.eq.1) then
    nterm_arr(1)=12
    nterm_arr(2)=9
@@ -1168,12 +1168,12 @@ else if (l.eq.2 .and. i.eq.3 .and. m.eq.1) then
    fac_arr(4,1)=0.4077177531501004357096312d0
    fac_arr(5,1)=0.1359059177167001452365437d0
    fac_arr(6,1)=0.06795295885835007261827187d0
-   fac_arr(7,1)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(8,1)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(9,1)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(10,1)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(11,1)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(12,1)=-0.06795295885835007261827187/rhol**2d0
+   fac_arr(7,1)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(8,1)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(9,1)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(10,1)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(11,1)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(12,1)=-0.06795295885835007261827187d0/rhol**2d0
    lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=2
@@ -1186,12 +1186,12 @@ else if (l.eq.2 .and. i.eq.3 .and. m.eq.1) then
    fac_arr(1,2)=0.2718118354334002904730875d0
    fac_arr(2,2)=0.2718118354334002904730875d0
    fac_arr(3,2)=0.2718118354334002904730875d0
-   fac_arr(4,2)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(5,2)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(6,2)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(7,2)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(8,2)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(9,2)=-0.06795295885835007261827187/rhol**2d0
+   fac_arr(4,2)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(5,2)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(6,2)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(7,2)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(8,2)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(9,2)=-0.06795295885835007261827187d0/rhol**2d0
    lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=3
@@ -1204,12 +1204,12 @@ else if (l.eq.2 .and. i.eq.3 .and. m.eq.1) then
    fac_arr(1,3)=0.2718118354334002904730875d0
    fac_arr(2,3)=0.2718118354334002904730875d0
    fac_arr(3,3)=0.2718118354334002904730875d0
-   fac_arr(4,3)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(5,3)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(6,3)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(7,3)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(8,3)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(9,3)=-0.06795295885835007261827187/rhol**2d0
+   fac_arr(4,3)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(5,3)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(6,3)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(7,3)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(8,3)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(9,3)=-0.06795295885835007261827187d0/rhol**2d0
 else if (l.eq.2 .and. i.eq.3 .and. m.eq.2) then
    nterm_arr(1)=9
    nterm_arr(2)=12
@@ -1226,12 +1226,12 @@ else if (l.eq.2 .and. i.eq.3 .and. m.eq.2) then
    fac_arr(1,1)=0.2718118354334002904730875d0
    fac_arr(2,1)=0.2718118354334002904730875d0
    fac_arr(3,1)=0.2718118354334002904730875d0
-   fac_arr(4,1)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(5,1)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(6,1)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(7,1)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(8,1)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(9,1)=-0.06795295885835007261827187/rhol**2d0
+   fac_arr(4,1)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(5,1)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(6,1)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(7,1)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(8,1)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(9,1)=-0.06795295885835007261827187d0/rhol**2d0
    lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
@@ -1250,12 +1250,12 @@ else if (l.eq.2 .and. i.eq.3 .and. m.eq.2) then
    fac_arr(4,2)=0.1359059177167001452365437d0
    fac_arr(5,2)=0.4077177531501004357096312d0
    fac_arr(6,2)=0.06795295885835007261827187d0
-   fac_arr(7,2)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(8,2)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(9,2)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(10,2)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(11,2)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(12,2)=-0.06795295885835007261827187/rhol**2d0
+   fac_arr(7,2)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(8,2)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(9,2)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(10,2)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(11,2)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(12,2)=-0.06795295885835007261827187d0/rhol**2d0
    lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=3
@@ -1268,12 +1268,12 @@ else if (l.eq.2 .and. i.eq.3 .and. m.eq.2) then
    fac_arr(1,3)=0.2718118354334002904730875d0
    fac_arr(2,3)=0.2718118354334002904730875d0
    fac_arr(3,3)=0.2718118354334002904730875d0
-   fac_arr(4,3)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(5,3)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(6,3)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(7,3)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(8,3)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(9,3)=-0.06795295885835007261827187/rhol**2d0
+   fac_arr(4,3)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(5,3)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(6,3)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(7,3)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(8,3)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(9,3)=-0.06795295885835007261827187d0/rhol**2d0
 else if (l.eq.2 .and. i.eq.3 .and. m.eq.3) then
    nterm_arr(1)=9
    nterm_arr(2)=9
@@ -1290,12 +1290,12 @@ else if (l.eq.2 .and. i.eq.3 .and. m.eq.3) then
    fac_arr(1,1)=0.2718118354334002904730875d0
    fac_arr(2,1)=0.2718118354334002904730875d0
    fac_arr(3,1)=0.2718118354334002904730875d0
-   fac_arr(4,1)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(5,1)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(6,1)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(7,1)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(8,1)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(9,1)=-0.06795295885835007261827187/rhol**2d0
+   fac_arr(4,1)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(5,1)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(6,1)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(7,1)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(8,1)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(9,1)=-0.06795295885835007261827187d0/rhol**2d0
    lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=1
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=3
@@ -1308,12 +1308,12 @@ else if (l.eq.2 .and. i.eq.3 .and. m.eq.3) then
    fac_arr(1,2)=0.2718118354334002904730875d0
    fac_arr(2,2)=0.2718118354334002904730875d0
    fac_arr(3,2)=0.2718118354334002904730875d0
-   fac_arr(4,2)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(5,2)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(6,2)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(7,2)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(8,2)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(9,2)=-0.06795295885835007261827187/rhol**2d0
+   fac_arr(4,2)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(5,2)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(6,2)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(7,2)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(8,2)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(9,2)=-0.06795295885835007261827187d0/rhol**2d0
    lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=0
@@ -1332,26 +1332,26 @@ else if (l.eq.2 .and. i.eq.3 .and. m.eq.3) then
    fac_arr(4,3)=0.4077177531501004357096312d0
    fac_arr(5,3)=0.4077177531501004357096312d0
    fac_arr(6,3)=0.3397647942917503630913594d0
-   fac_arr(7,3)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(8,3)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(9,3)=-0.06795295885835007261827187/rhol**2d0
-   fac_arr(10,3)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(11,3)=-0.1359059177167001452365437/rhol**2d0
-   fac_arr(12,3)=-0.06795295885835007261827187/rhol**2d0
+   fac_arr(7,3)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(8,3)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(9,3)=-0.06795295885835007261827187d0/rhol**2d0
+   fac_arr(10,3)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(11,3)=-0.1359059177167001452365437d0/rhol**2d0
+   fac_arr(12,3)=-0.06795295885835007261827187d0/rhol**2d0
 else if (l.eq.3 .and. i.eq.1 .and. m.eq.1) then
    nterm_arr(1)=1
    nterm_arr(2)=2
    nterm_arr(3)=2
    lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=1
-   fac_arr(1,1)=-1.414213562373095048801689/rhol**2d0
+   fac_arr(1,1)=-1.414213562373095048801689d0/rhol**2d0
    lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
    fac_arr(1,2)=1.414213562373095048801689d0
-   fac_arr(2,2)=-1.414213562373095048801689/rhol**2d0
+   fac_arr(2,2)=-1.414213562373095048801689d0/rhol**2d0
    lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=1 ; lxyz_arr(3,2,3)=2
    fac_arr(1,3)=1.414213562373095048801689d0
-   fac_arr(2,3)=-1.414213562373095048801689/rhol**2d0
+   fac_arr(2,3)=-1.414213562373095048801689d0/rhol**2d0
 else if (l.eq.3 .and. i.eq.1 .and. m.eq.2) then
    nterm_arr(1)=2
    nterm_arr(2)=1
@@ -1359,13 +1359,13 @@ else if (l.eq.3 .and. i.eq.1 .and. m.eq.2) then
    lxyz_arr(1,1,1)=0 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
    lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=1
    fac_arr(1,1)=1.414213562373095048801689d0
-   fac_arr(2,1)=-1.414213562373095048801689/rhol**2d0
+   fac_arr(2,1)=-1.414213562373095048801689d0/rhol**2d0
    lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
-   fac_arr(1,2)=-1.414213562373095048801689/rhol**2d0
+   fac_arr(1,2)=-1.414213562373095048801689d0/rhol**2d0
    lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=2
    fac_arr(1,3)=1.414213562373095048801689d0
-   fac_arr(2,3)=-1.414213562373095048801689/rhol**2d0
+   fac_arr(2,3)=-1.414213562373095048801689d0/rhol**2d0
 else if (l.eq.3 .and. i.eq.1 .and. m.eq.3) then
    nterm_arr(1)=2
    nterm_arr(2)=2
@@ -1373,13 +1373,13 @@ else if (l.eq.3 .and. i.eq.1 .and. m.eq.3) then
    lxyz_arr(1,1,1)=0 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
    lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=1 ; lxyz_arr(3,2,1)=0
    fac_arr(1,1)=1.414213562373095048801689d0
-   fac_arr(2,1)=-1.414213562373095048801689/rhol**2d0
+   fac_arr(2,1)=-1.414213562373095048801689d0/rhol**2d0
    lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
    fac_arr(1,2)=1.414213562373095048801689d0
-   fac_arr(2,2)=-1.414213562373095048801689/rhol**2d0
+   fac_arr(2,2)=-1.414213562373095048801689d0/rhol**2d0
    lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
-   fac_arr(1,3)=-1.414213562373095048801689/rhol**2d0
+   fac_arr(1,3)=-1.414213562373095048801689d0/rhol**2d0
 else if (l.eq.3 .and. i.eq.1 .and. m.eq.4) then
    nterm_arr(1)=3
    nterm_arr(2)=3
@@ -1388,18 +1388,18 @@ else if (l.eq.3 .and. i.eq.1 .and. m.eq.4) then
    lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=0
    lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=0
    fac_arr(1,1)=1.414213562373095048801689d0
-   fac_arr(2,1)=-0.7071067811865475244008444/rhol**2d0
-   fac_arr(3,1)=0.7071067811865475244008444/rhol**2d0
+   fac_arr(2,1)=-0.7071067811865475244008444d0/rhol**2d0
+   fac_arr(3,1)=0.7071067811865475244008444d0/rhol**2d0
    lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
    fac_arr(1,2)=-1.414213562373095048801689d0
-   fac_arr(2,2)=-0.7071067811865475244008444/rhol**2d0
-   fac_arr(3,2)=0.7071067811865475244008444/rhol**2d0
+   fac_arr(2,2)=-0.7071067811865475244008444d0/rhol**2d0
+   fac_arr(3,2)=0.7071067811865475244008444d0/rhol**2d0
    lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
-   fac_arr(1,3)=-0.7071067811865475244008444/rhol**2d0
-   fac_arr(2,3)=0.7071067811865475244008444/rhol**2d0
+   fac_arr(1,3)=-0.7071067811865475244008444d0/rhol**2d0
+   fac_arr(2,3)=0.7071067811865475244008444d0/rhol**2d0
 else if (l.eq.3 .and. i.eq.1 .and. m.eq.5) then
    nterm_arr(1)=4
    nterm_arr(2)=4
@@ -1409,25 +1409,25 @@ else if (l.eq.3 .and. i.eq.1 .and. m.eq.5) then
    lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=0
    lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=2
    fac_arr(1,1)=-0.816496580927726032732428d0
-   fac_arr(2,1)=0.408248290463863016366214/rhol**2d0
-   fac_arr(3,1)=0.408248290463863016366214/rhol**2d0
-   fac_arr(4,1)=-0.816496580927726032732428/rhol**2d0
+   fac_arr(2,1)=0.408248290463863016366214d0/rhol**2d0
+   fac_arr(3,1)=0.408248290463863016366214d0/rhol**2d0
+   fac_arr(4,1)=-0.816496580927726032732428d0/rhol**2d0
    lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
    lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
    fac_arr(1,2)=-0.816496580927726032732428d0
-   fac_arr(2,2)=0.408248290463863016366214/rhol**2d0
-   fac_arr(3,2)=0.408248290463863016366214/rhol**2d0
-   fac_arr(4,2)=-0.816496580927726032732428/rhol**2d0
+   fac_arr(2,2)=0.408248290463863016366214d0/rhol**2d0
+   fac_arr(3,2)=0.408248290463863016366214d0/rhol**2d0
+   fac_arr(4,2)=-0.816496580927726032732428d0/rhol**2d0
    lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=2 ; lxyz_arr(3,3,3)=1
    lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
    fac_arr(1,3)=1.632993161855452065464856d0
-   fac_arr(2,3)=0.408248290463863016366214/rhol**2d0
-   fac_arr(3,3)=0.408248290463863016366214/rhol**2d0
-   fac_arr(4,3)=-0.816496580927726032732428/rhol**2d0
+   fac_arr(2,3)=0.408248290463863016366214d0/rhol**2d0
+   fac_arr(3,3)=0.408248290463863016366214d0/rhol**2d0
+   fac_arr(4,3)=-0.816496580927726032732428d0/rhol**2d0
 else if (l.eq.3 .and. i.eq.2 .and. m.eq.1) then
    nterm_arr(1)=4
    nterm_arr(2)=6
@@ -1437,9 +1437,9 @@ else if (l.eq.3 .and. i.eq.2 .and. m.eq.1) then
    lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=3 ; lxyz_arr(3,3,1)=1
    lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=3
    fac_arr(1,1)=0.7126966450997983591588093d0
-   fac_arr(2,1)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(3,1)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(4,1)=-0.3563483225498991795794046/rhol**2d0
+   fac_arr(2,1)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(3,1)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(4,1)=-0.3563483225498991795794046d0/rhol**2d0
    lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=0 ; lxyz_arr(3,3,2)=3
@@ -1449,9 +1449,9 @@ else if (l.eq.3 .and. i.eq.2 .and. m.eq.1) then
    fac_arr(1,2)=0.3563483225498991795794046d0
    fac_arr(2,2)=1.069044967649697538738214d0
    fac_arr(3,2)=0.3563483225498991795794046d0
-   fac_arr(4,2)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(5,2)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(6,2)=-0.3563483225498991795794046/rhol**2d0
+   fac_arr(4,2)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(5,2)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(6,2)=-0.3563483225498991795794046d0/rhol**2d0
    lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=0
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=2
@@ -1461,9 +1461,9 @@ else if (l.eq.3 .and. i.eq.2 .and. m.eq.1) then
    fac_arr(1,3)=0.3563483225498991795794046d0
    fac_arr(2,3)=0.3563483225498991795794046d0
    fac_arr(3,3)=1.069044967649697538738214d0
-   fac_arr(4,3)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(5,3)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(6,3)=-0.3563483225498991795794046/rhol**2d0
+   fac_arr(4,3)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(5,3)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(6,3)=-0.3563483225498991795794046d0/rhol**2d0
 else if (l.eq.3 .and. i.eq.2 .and. m.eq.2) then
    nterm_arr(1)=6
    nterm_arr(2)=4
@@ -1477,17 +1477,17 @@ else if (l.eq.3 .and. i.eq.2 .and. m.eq.2) then
    fac_arr(1,1)=1.069044967649697538738214d0
    fac_arr(2,1)=0.3563483225498991795794046d0
    fac_arr(3,1)=0.3563483225498991795794046d0
-   fac_arr(4,1)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(5,1)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(6,1)=-0.3563483225498991795794046/rhol**2d0
+   fac_arr(4,1)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(5,1)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(6,1)=-0.3563483225498991795794046d0/rhol**2d0
    lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=1
    lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=1
    lxyz_arr(1,4,2)=1 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=3
    fac_arr(1,2)=0.7126966450997983591588093d0
-   fac_arr(2,2)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(3,2)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(4,2)=-0.3563483225498991795794046/rhol**2d0
+   fac_arr(2,2)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(3,2)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(4,2)=-0.3563483225498991795794046d0/rhol**2d0
    lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
    lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=2
@@ -1497,9 +1497,9 @@ else if (l.eq.3 .and. i.eq.2 .and. m.eq.2) then
    fac_arr(1,3)=0.3563483225498991795794046d0
    fac_arr(2,3)=0.3563483225498991795794046d0
    fac_arr(3,3)=1.069044967649697538738214d0
-   fac_arr(4,3)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(5,3)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(6,3)=-0.3563483225498991795794046/rhol**2d0
+   fac_arr(4,3)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(5,3)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(6,3)=-0.3563483225498991795794046d0/rhol**2d0
 else if (l.eq.3 .and. i.eq.2 .and. m.eq.3) then
    nterm_arr(1)=6
    nterm_arr(2)=6
@@ -1513,9 +1513,9 @@ else if (l.eq.3 .and. i.eq.2 .and. m.eq.3) then
    fac_arr(1,1)=1.069044967649697538738214d0
    fac_arr(2,1)=0.3563483225498991795794046d0
    fac_arr(3,1)=0.3563483225498991795794046d0
-   fac_arr(4,1)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(5,1)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(6,1)=-0.3563483225498991795794046/rhol**2d0
+   fac_arr(4,1)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(5,1)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(6,1)=-0.3563483225498991795794046d0/rhol**2d0
    lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=0 ; lxyz_arr(3,3,2)=2
@@ -1525,17 +1525,17 @@ else if (l.eq.3 .and. i.eq.2 .and. m.eq.3) then
    fac_arr(1,2)=0.3563483225498991795794046d0
    fac_arr(2,2)=1.069044967649697538738214d0
    fac_arr(3,2)=0.3563483225498991795794046d0
-   fac_arr(4,2)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(5,2)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(6,2)=-0.3563483225498991795794046/rhol**2d0
+   fac_arr(4,2)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(5,2)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(6,2)=-0.3563483225498991795794046d0/rhol**2d0
    lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=1 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=3 ; lxyz_arr(3,3,3)=1
    lxyz_arr(1,4,3)=1 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=3
    fac_arr(1,3)=0.7126966450997983591588093d0
-   fac_arr(2,3)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(3,3)=-0.3563483225498991795794046/rhol**2d0
-   fac_arr(4,3)=-0.3563483225498991795794046/rhol**2d0
+   fac_arr(2,3)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(3,3)=-0.3563483225498991795794046d0/rhol**2d0
+   fac_arr(4,3)=-0.3563483225498991795794046d0/rhol**2d0
 else if (l.eq.3 .and. i.eq.2 .and. m.eq.4) then
    nterm_arr(1)=6
    nterm_arr(2)=6
@@ -1548,10 +1548,10 @@ else if (l.eq.3 .and. i.eq.2 .and. m.eq.4) then
    lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=2 ; lxyz_arr(3,6,1)=2
    fac_arr(1,1)=0.7126966450997983591588093d0
    fac_arr(2,1)=0.3563483225498991795794046d0
-   fac_arr(3,1)=-0.1781741612749495897897023/rhol**2d0
-   fac_arr(4,1)=0.1781741612749495897897023/rhol**2d0
-   fac_arr(5,1)=-0.1781741612749495897897023/rhol**2d0
-   fac_arr(6,1)=0.1781741612749495897897023/rhol**2d0
+   fac_arr(3,1)=-0.1781741612749495897897023d0/rhol**2d0
+   fac_arr(4,1)=0.1781741612749495897897023d0/rhol**2d0
+   fac_arr(5,1)=-0.1781741612749495897897023d0/rhol**2d0
+   fac_arr(6,1)=0.1781741612749495897897023d0/rhol**2d0
    lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=3 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=2
    lxyz_arr(1,3,2)=4 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=0
@@ -1560,10 +1560,10 @@ else if (l.eq.3 .and. i.eq.2 .and. m.eq.4) then
    lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=3 ; lxyz_arr(3,6,2)=2
    fac_arr(1,2)=-0.7126966450997983591588093d0
    fac_arr(2,2)=-0.3563483225498991795794046d0
-   fac_arr(3,2)=-0.1781741612749495897897023/rhol**2d0
-   fac_arr(4,2)=0.1781741612749495897897023/rhol**2d0
-   fac_arr(5,2)=-0.1781741612749495897897023/rhol**2d0
-   fac_arr(6,2)=0.1781741612749495897897023/rhol**2d0
+   fac_arr(3,2)=-0.1781741612749495897897023d0/rhol**2d0
+   fac_arr(4,2)=0.1781741612749495897897023d0/rhol**2d0
+   fac_arr(5,2)=-0.1781741612749495897897023d0/rhol**2d0
+   fac_arr(6,2)=0.1781741612749495897897023d0/rhol**2d0
    lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=4 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=1
@@ -1572,10 +1572,10 @@ else if (l.eq.3 .and. i.eq.2 .and. m.eq.4) then
    lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=2 ; lxyz_arr(3,6,3)=3
    fac_arr(1,3)=0.3563483225498991795794046d0
    fac_arr(2,3)=-0.3563483225498991795794046d0
-   fac_arr(3,3)=-0.1781741612749495897897023/rhol**2d0
-   fac_arr(4,3)=0.1781741612749495897897023/rhol**2d0
-   fac_arr(5,3)=-0.1781741612749495897897023/rhol**2d0
-   fac_arr(6,3)=0.1781741612749495897897023/rhol**2d0
+   fac_arr(3,3)=-0.1781741612749495897897023d0/rhol**2d0
+   fac_arr(4,3)=0.1781741612749495897897023d0/rhol**2d0
+   fac_arr(5,3)=-0.1781741612749495897897023d0/rhol**2d0
+   fac_arr(6,3)=0.1781741612749495897897023d0/rhol**2d0
 else if (l.eq.3 .and. i.eq.2 .and. m.eq.5) then
    nterm_arr(1)=9
    nterm_arr(2)=9
@@ -1592,12 +1592,12 @@ else if (l.eq.3 .and. i.eq.2 .and. m.eq.5) then
    fac_arr(1,1)=-0.4114755998989117606962519d0
    fac_arr(2,1)=-0.4114755998989117606962519d0
    fac_arr(3,1)=0.205737799949455880348126d0
-   fac_arr(4,1)=0.102868899974727940174063/rhol**2d0
-   fac_arr(5,1)=0.205737799949455880348126/rhol**2d0
-   fac_arr(6,1)=0.102868899974727940174063/rhol**2d0
-   fac_arr(7,1)=-0.102868899974727940174063/rhol**2d0
-   fac_arr(8,1)=-0.102868899974727940174063/rhol**2d0
-   fac_arr(9,1)=-0.205737799949455880348126/rhol**2d0
+   fac_arr(4,1)=0.102868899974727940174063d0/rhol**2d0
+   fac_arr(5,1)=0.205737799949455880348126d0/rhol**2d0
+   fac_arr(6,1)=0.102868899974727940174063d0/rhol**2d0
+   fac_arr(7,1)=-0.102868899974727940174063d0/rhol**2d0
+   fac_arr(8,1)=-0.102868899974727940174063d0/rhol**2d0
+   fac_arr(9,1)=-0.205737799949455880348126d0/rhol**2d0
    lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=2
@@ -1610,12 +1610,12 @@ else if (l.eq.3 .and. i.eq.2 .and. m.eq.5) then
    fac_arr(1,2)=-0.4114755998989117606962519d0
    fac_arr(2,2)=-0.4114755998989117606962519d0
    fac_arr(3,2)=0.205737799949455880348126d0
-   fac_arr(4,2)=0.102868899974727940174063/rhol**2d0
-   fac_arr(5,2)=0.205737799949455880348126/rhol**2d0
-   fac_arr(6,2)=0.102868899974727940174063/rhol**2d0
-   fac_arr(7,2)=-0.102868899974727940174063/rhol**2d0
-   fac_arr(8,2)=-0.102868899974727940174063/rhol**2d0
-   fac_arr(9,2)=-0.205737799949455880348126/rhol**2d0
+   fac_arr(4,2)=0.102868899974727940174063d0/rhol**2d0
+   fac_arr(5,2)=0.205737799949455880348126d0/rhol**2d0
+   fac_arr(6,2)=0.102868899974727940174063d0/rhol**2d0
+   fac_arr(7,2)=-0.102868899974727940174063d0/rhol**2d0
+   fac_arr(8,2)=-0.102868899974727940174063d0/rhol**2d0
+   fac_arr(9,2)=-0.205737799949455880348126d0/rhol**2d0
    lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=3
@@ -1628,12 +1628,12 @@ else if (l.eq.3 .and. i.eq.2 .and. m.eq.5) then
    fac_arr(1,3)=0.205737799949455880348126d0
    fac_arr(2,3)=0.205737799949455880348126d0
    fac_arr(3,3)=0.8229511997978235213925038d0
-   fac_arr(4,3)=0.102868899974727940174063/rhol**2d0
-   fac_arr(5,3)=0.205737799949455880348126/rhol**2d0
-   fac_arr(6,3)=0.102868899974727940174063/rhol**2d0
-   fac_arr(7,3)=-0.102868899974727940174063/rhol**2d0
-   fac_arr(8,3)=-0.102868899974727940174063/rhol**2d0
-   fac_arr(9,3)=-0.205737799949455880348126/rhol**2d0
+   fac_arr(4,3)=0.102868899974727940174063d0/rhol**2d0
+   fac_arr(5,3)=0.205737799949455880348126d0/rhol**2d0
+   fac_arr(6,3)=0.102868899974727940174063d0/rhol**2d0
+   fac_arr(7,3)=-0.102868899974727940174063d0/rhol**2d0
+   fac_arr(8,3)=-0.102868899974727940174063d0/rhol**2d0
+   fac_arr(9,3)=-0.205737799949455880348126d0/rhol**2d0
 else if (l.eq.3 .and. i.eq.3 .and. m.eq.1) then
    nterm_arr(1)=9
    nterm_arr(2)=12
@@ -1650,12 +1650,12 @@ else if (l.eq.3 .and. i.eq.3 .and. m.eq.1) then
    fac_arr(1,1)=0.2383947500094262395810797d0
    fac_arr(2,1)=0.2383947500094262395810797d0
    fac_arr(3,1)=0.2383947500094262395810797d0
-   fac_arr(4,1)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(5,1)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(6,1)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(7,1)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(8,1)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(9,1)=-0.05959868750235655989526993/rhol**2d0
+   fac_arr(4,1)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(5,1)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(6,1)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(7,1)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(8,1)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(9,1)=-0.05959868750235655989526993d0/rhol**2d0
    lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=1
@@ -1674,12 +1674,12 @@ else if (l.eq.3 .and. i.eq.3 .and. m.eq.1) then
    fac_arr(4,2)=0.1191973750047131197905399d0
    fac_arr(5,2)=0.3575921250141393593716196d0
    fac_arr(6,2)=0.05959868750235655989526993d0
-   fac_arr(7,2)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(8,2)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(9,2)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(10,2)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(11,2)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(12,2)=-0.05959868750235655989526993/rhol**2d0
+   fac_arr(7,2)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(8,2)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(9,2)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(10,2)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(11,2)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(12,2)=-0.05959868750235655989526993d0/rhol**2d0
    lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=0
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=5 ; lxyz_arr(3,3,3)=0
@@ -1698,12 +1698,12 @@ else if (l.eq.3 .and. i.eq.3 .and. m.eq.1) then
    fac_arr(4,3)=0.3575921250141393593716196d0
    fac_arr(5,3)=0.3575921250141393593716196d0
    fac_arr(6,3)=0.2979934375117827994763496d0
-   fac_arr(7,3)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(8,3)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(9,3)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(10,3)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(11,3)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(12,3)=-0.05959868750235655989526993/rhol**2d0
+   fac_arr(7,3)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(8,3)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(9,3)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(10,3)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(11,3)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(12,3)=-0.05959868750235655989526993d0/rhol**2d0
 else if (l.eq.3 .and. i.eq.3 .and. m.eq.2) then
    nterm_arr(1)=12
    nterm_arr(2)=9
@@ -1726,12 +1726,12 @@ else if (l.eq.3 .and. i.eq.3 .and. m.eq.2) then
    fac_arr(4,1)=0.3575921250141393593716196d0
    fac_arr(5,1)=0.1191973750047131197905399d0
    fac_arr(6,1)=0.05959868750235655989526993d0
-   fac_arr(7,1)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(8,1)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(9,1)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(10,1)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(11,1)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(12,1)=-0.05959868750235655989526993/rhol**2d0
+   fac_arr(7,1)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(8,1)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(9,1)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(10,1)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(11,1)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(12,1)=-0.05959868750235655989526993d0/rhol**2d0
    lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=1
    lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=3
@@ -1744,12 +1744,12 @@ else if (l.eq.3 .and. i.eq.3 .and. m.eq.2) then
    fac_arr(1,2)=0.2383947500094262395810797d0
    fac_arr(2,2)=0.2383947500094262395810797d0
    fac_arr(3,2)=0.2383947500094262395810797d0
-   fac_arr(4,2)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(5,2)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(6,2)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(7,2)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(8,2)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(9,2)=-0.05959868750235655989526993/rhol**2d0
+   fac_arr(4,2)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(5,2)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(6,2)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(7,2)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(8,2)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(9,2)=-0.05959868750235655989526993d0/rhol**2d0
    lxyz_arr(1,1,3)=5 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
    lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=0
@@ -1768,12 +1768,12 @@ else if (l.eq.3 .and. i.eq.3 .and. m.eq.2) then
    fac_arr(4,3)=0.3575921250141393593716196d0
    fac_arr(5,3)=0.3575921250141393593716196d0
    fac_arr(6,3)=0.2979934375117827994763496d0
-   fac_arr(7,3)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(8,3)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(9,3)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(10,3)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(11,3)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(12,3)=-0.05959868750235655989526993/rhol**2d0
+   fac_arr(7,3)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(8,3)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(9,3)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(10,3)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(11,3)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(12,3)=-0.05959868750235655989526993d0/rhol**2d0
 else if (l.eq.3 .and. i.eq.3 .and. m.eq.3) then
    nterm_arr(1)=12
    nterm_arr(2)=12
@@ -1796,12 +1796,12 @@ else if (l.eq.3 .and. i.eq.3 .and. m.eq.3) then
    fac_arr(4,1)=0.3575921250141393593716196d0
    fac_arr(5,1)=0.1191973750047131197905399d0
    fac_arr(6,1)=0.05959868750235655989526993d0
-   fac_arr(7,1)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(8,1)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(9,1)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(10,1)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(11,1)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(12,1)=-0.05959868750235655989526993/rhol**2d0
+   fac_arr(7,1)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(8,1)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(9,1)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(10,1)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(11,1)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(12,1)=-0.05959868750235655989526993d0/rhol**2d0
    lxyz_arr(1,1,2)=5 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
@@ -1820,12 +1820,12 @@ else if (l.eq.3 .and. i.eq.3 .and. m.eq.3) then
    fac_arr(4,2)=0.1191973750047131197905399d0
    fac_arr(5,2)=0.3575921250141393593716196d0
    fac_arr(6,2)=0.05959868750235655989526993d0
-   fac_arr(7,2)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(8,2)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(9,2)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(10,2)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(11,2)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(12,2)=-0.05959868750235655989526993/rhol**2d0
+   fac_arr(7,2)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(8,2)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(9,2)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(10,2)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(11,2)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(12,2)=-0.05959868750235655989526993d0/rhol**2d0
    lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=3
@@ -1838,12 +1838,12 @@ else if (l.eq.3 .and. i.eq.3 .and. m.eq.3) then
    fac_arr(1,3)=0.2383947500094262395810797d0
    fac_arr(2,3)=0.2383947500094262395810797d0
    fac_arr(3,3)=0.2383947500094262395810797d0
-   fac_arr(4,3)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(5,3)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(6,3)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(7,3)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(8,3)=-0.1191973750047131197905399/rhol**2d0
-   fac_arr(9,3)=-0.05959868750235655989526993/rhol**2d0
+   fac_arr(4,3)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(5,3)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(6,3)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(7,3)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(8,3)=-0.1191973750047131197905399d0/rhol**2d0
+   fac_arr(9,3)=-0.05959868750235655989526993d0/rhol**2d0
 else if (l.eq.3 .and. i.eq.3 .and. m.eq.4) then
    nterm_arr(1)=13
    nterm_arr(2)=13
@@ -1866,14 +1866,14 @@ else if (l.eq.3 .and. i.eq.3 .and. m.eq.4) then
    fac_arr(3,1)=-0.05959868750235655989526993d0
    fac_arr(4,1)=0.2383947500094262395810797d0
    fac_arr(5,1)=0.05959868750235655989526993d0
-   fac_arr(6,1)=-0.02979934375117827994763496/rhol**2d0
-   fac_arr(7,1)=-0.02979934375117827994763496/rhol**2d0
-   fac_arr(8,1)=0.02979934375117827994763496/rhol**2d0
-   fac_arr(9,1)=0.02979934375117827994763496/rhol**2d0
-   fac_arr(10,1)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(11,1)=0.05959868750235655989526993/rhol**2d0
-   fac_arr(12,1)=-0.02979934375117827994763496/rhol**2d0
-   fac_arr(13,1)=0.02979934375117827994763496/rhol**2d0
+   fac_arr(6,1)=-0.02979934375117827994763496d0/rhol**2d0
+   fac_arr(7,1)=-0.02979934375117827994763496d0/rhol**2d0
+   fac_arr(8,1)=0.02979934375117827994763496d0/rhol**2d0
+   fac_arr(9,1)=0.02979934375117827994763496d0/rhol**2d0
+   fac_arr(10,1)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(11,1)=0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(12,1)=-0.02979934375117827994763496d0/rhol**2d0
+   fac_arr(13,1)=0.02979934375117827994763496d0/rhol**2d0
    lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=0
@@ -1892,14 +1892,14 @@ else if (l.eq.3 .and. i.eq.3 .and. m.eq.4) then
    fac_arr(3,2)=-0.1787960625070696796858098d0
    fac_arr(4,2)=-0.2383947500094262395810797d0
    fac_arr(5,2)=-0.05959868750235655989526993d0
-   fac_arr(6,2)=-0.02979934375117827994763496/rhol**2d0
-   fac_arr(7,2)=-0.02979934375117827994763496/rhol**2d0
-   fac_arr(8,2)=0.02979934375117827994763496/rhol**2d0
-   fac_arr(9,2)=0.02979934375117827994763496/rhol**2d0
-   fac_arr(10,2)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(11,2)=0.05959868750235655989526993/rhol**2d0
-   fac_arr(12,2)=-0.02979934375117827994763496/rhol**2d0
-   fac_arr(13,2)=0.02979934375117827994763496/rhol**2d0
+   fac_arr(6,2)=-0.02979934375117827994763496d0/rhol**2d0
+   fac_arr(7,2)=-0.02979934375117827994763496d0/rhol**2d0
+   fac_arr(8,2)=0.02979934375117827994763496d0/rhol**2d0
+   fac_arr(9,2)=0.02979934375117827994763496d0/rhol**2d0
+   fac_arr(10,2)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(11,2)=0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(12,2)=-0.02979934375117827994763496d0/rhol**2d0
+   fac_arr(13,2)=0.02979934375117827994763496d0/rhol**2d0
    lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=4 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=2 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=3
@@ -1916,14 +1916,14 @@ else if (l.eq.3 .and. i.eq.3 .and. m.eq.4) then
    fac_arr(2,3)=-0.1191973750047131197905399d0
    fac_arr(3,3)=0.1191973750047131197905399d0
    fac_arr(4,3)=-0.1191973750047131197905399d0
-   fac_arr(5,3)=-0.02979934375117827994763496/rhol**2d0
-   fac_arr(6,3)=-0.02979934375117827994763496/rhol**2d0
-   fac_arr(7,3)=0.02979934375117827994763496/rhol**2d0
-   fac_arr(8,3)=0.02979934375117827994763496/rhol**2d0
-   fac_arr(9,3)=-0.05959868750235655989526993/rhol**2d0
-   fac_arr(10,3)=0.05959868750235655989526993/rhol**2d0
-   fac_arr(11,3)=-0.02979934375117827994763496/rhol**2d0
-   fac_arr(12,3)=0.02979934375117827994763496/rhol**2d0
+   fac_arr(5,3)=-0.02979934375117827994763496d0/rhol**2d0
+   fac_arr(6,3)=-0.02979934375117827994763496d0/rhol**2d0
+   fac_arr(7,3)=0.02979934375117827994763496d0/rhol**2d0
+   fac_arr(8,3)=0.02979934375117827994763496d0/rhol**2d0
+   fac_arr(9,3)=-0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(10,3)=0.05959868750235655989526993d0/rhol**2d0
+   fac_arr(11,3)=-0.02979934375117827994763496d0/rhol**2d0
+   fac_arr(12,3)=0.02979934375117827994763496d0/rhol**2d0
 else if (l.eq.3 .and. i.eq.3 .and. m.eq.5) then
    nterm_arr(1)=11
    nterm_arr(2)=11
@@ -1943,13 +1943,13 @@ else if (l.eq.3 .and. i.eq.3 .and. m.eq.5) then
    fac_arr(2,1)=-0.2064559096370036680249495d0
    fac_arr(3,1)=-0.1032279548185018340124748d0
    fac_arr(4,1)=0.1032279548185018340124748d0
-   fac_arr(5,1)=0.01720465913641697233541246/rhol**2d0
-   fac_arr(6,1)=0.05161397740925091700623738/rhol**2d0
-   fac_arr(7,1)=0.05161397740925091700623738/rhol**2d0
-   fac_arr(8,1)=0.01720465913641697233541246/rhol**2d0
-   fac_arr(9,1)=-0.05161397740925091700623738/rhol**2d0
-   fac_arr(10,1)=-0.05161397740925091700623738/rhol**2d0
-   fac_arr(11,1)=-0.03440931827283394467082492/rhol**2d0
+   fac_arr(5,1)=0.01720465913641697233541246d0/rhol**2d0
+   fac_arr(6,1)=0.05161397740925091700623738d0/rhol**2d0
+   fac_arr(7,1)=0.05161397740925091700623738d0/rhol**2d0
+   fac_arr(8,1)=0.01720465913641697233541246d0/rhol**2d0
+   fac_arr(9,1)=-0.05161397740925091700623738d0/rhol**2d0
+   fac_arr(10,1)=-0.05161397740925091700623738d0/rhol**2d0
+   fac_arr(11,1)=-0.03440931827283394467082492d0/rhol**2d0
    lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=0
@@ -1965,13 +1965,13 @@ else if (l.eq.3 .and. i.eq.3 .and. m.eq.5) then
    fac_arr(2,2)=-0.2064559096370036680249495d0
    fac_arr(3,2)=-0.1032279548185018340124748d0
    fac_arr(4,2)=0.1032279548185018340124748d0
-   fac_arr(5,2)=0.01720465913641697233541246/rhol**2d0
-   fac_arr(6,2)=0.05161397740925091700623738/rhol**2d0
-   fac_arr(7,2)=0.05161397740925091700623738/rhol**2d0
-   fac_arr(8,2)=0.01720465913641697233541246/rhol**2d0
-   fac_arr(9,2)=-0.05161397740925091700623738/rhol**2d0
-   fac_arr(10,2)=-0.05161397740925091700623738/rhol**2d0
-   fac_arr(11,2)=-0.03440931827283394467082492/rhol**2d0
+   fac_arr(5,2)=0.01720465913641697233541246d0/rhol**2d0
+   fac_arr(6,2)=0.05161397740925091700623738d0/rhol**2d0
+   fac_arr(7,2)=0.05161397740925091700623738d0/rhol**2d0
+   fac_arr(8,2)=0.01720465913641697233541246d0/rhol**2d0
+   fac_arr(9,2)=-0.05161397740925091700623738d0/rhol**2d0
+   fac_arr(10,2)=-0.05161397740925091700623738d0/rhol**2d0
+   fac_arr(11,2)=-0.03440931827283394467082492d0/rhol**2d0
    lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=3
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=3
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=5
@@ -1985,13 +1985,13 @@ else if (l.eq.3 .and. i.eq.3 .and. m.eq.5) then
    fac_arr(1,3)=0.2064559096370036680249495d0
    fac_arr(2,3)=0.2064559096370036680249495d0
    fac_arr(3,3)=0.2064559096370036680249495d0
-   fac_arr(4,3)=0.01720465913641697233541246/rhol**2d0
-   fac_arr(5,3)=0.05161397740925091700623738/rhol**2d0
-   fac_arr(6,3)=0.05161397740925091700623738/rhol**2d0
-   fac_arr(7,3)=0.01720465913641697233541246/rhol**2d0
-   fac_arr(8,3)=-0.05161397740925091700623738/rhol**2d0
-   fac_arr(9,3)=-0.05161397740925091700623738/rhol**2d0
-   fac_arr(10,3)=-0.03440931827283394467082492/rhol**2d0
+   fac_arr(4,3)=0.01720465913641697233541246d0/rhol**2d0
+   fac_arr(5,3)=0.05161397740925091700623738d0/rhol**2d0
+   fac_arr(6,3)=0.05161397740925091700623738d0/rhol**2d0
+   fac_arr(7,3)=0.01720465913641697233541246d0/rhol**2d0
+   fac_arr(8,3)=-0.05161397740925091700623738d0/rhol**2d0
+   fac_arr(9,3)=-0.05161397740925091700623738d0/rhol**2d0
+   fac_arr(10,3)=-0.03440931827283394467082492d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.1 .and. m.eq.1) then
    nterm_arr(1)=6
    nterm_arr(2)=4
@@ -2005,25 +2005,25 @@ else if (l.eq.4 .and. i.eq.1 .and. m.eq.1) then
    fac_arr(1,1)=0.9486832980505137995996681d0
    fac_arr(2,1)=0.3162277660168379331998894d0
    fac_arr(3,1)=-1.264911064067351732799557d0
-   fac_arr(4,1)=-0.3162277660168379331998894/rhol**2d0
-   fac_arr(5,1)=-0.3162277660168379331998894/rhol**2d0
-   fac_arr(6,1)=1.264911064067351732799557/rhol**2d0
+   fac_arr(4,1)=-0.3162277660168379331998894d0/rhol**2d0
+   fac_arr(5,1)=-0.3162277660168379331998894d0/rhol**2d0
+   fac_arr(6,1)=1.264911064067351732799557d0/rhol**2d0
    lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
    lxyz_arr(1,4,2)=1 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
    fac_arr(1,2)=0.6324555320336758663997787d0
-   fac_arr(2,2)=-0.3162277660168379331998894/rhol**2d0
-   fac_arr(3,2)=-0.3162277660168379331998894/rhol**2d0
-   fac_arr(4,2)=1.264911064067351732799557/rhol**2d0
+   fac_arr(2,2)=-0.3162277660168379331998894d0/rhol**2d0
+   fac_arr(3,2)=-0.3162277660168379331998894d0/rhol**2d0
+   fac_arr(4,2)=1.264911064067351732799557d0/rhol**2d0
    lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=2 ; lxyz_arr(3,3,3)=1
    lxyz_arr(1,4,3)=1 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
    fac_arr(1,3)=-2.529822128134703465599115d0
-   fac_arr(2,3)=-0.3162277660168379331998894/rhol**2d0
-   fac_arr(3,3)=-0.3162277660168379331998894/rhol**2d0
-   fac_arr(4,3)=1.264911064067351732799557/rhol**2d0
+   fac_arr(2,3)=-0.3162277660168379331998894d0/rhol**2d0
+   fac_arr(3,3)=-0.3162277660168379331998894d0/rhol**2d0
+   fac_arr(4,3)=1.264911064067351732799557d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.1 .and. m.eq.2) then
    nterm_arr(1)=4
    nterm_arr(2)=6
@@ -2033,9 +2033,9 @@ else if (l.eq.4 .and. i.eq.1 .and. m.eq.2) then
    lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=3 ; lxyz_arr(3,3,1)=0
    lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=2
    fac_arr(1,1)=0.6324555320336758663997787d0
-   fac_arr(2,1)=-0.3162277660168379331998894/rhol**2d0
-   fac_arr(3,1)=-0.3162277660168379331998894/rhol**2d0
-   fac_arr(4,1)=1.264911064067351732799557/rhol**2d0
+   fac_arr(2,1)=-0.3162277660168379331998894d0/rhol**2d0
+   fac_arr(3,1)=-0.3162277660168379331998894d0/rhol**2d0
+   fac_arr(4,1)=1.264911064067351732799557d0/rhol**2d0
    lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=0 ; lxyz_arr(3,3,2)=2
@@ -2045,17 +2045,17 @@ else if (l.eq.4 .and. i.eq.1 .and. m.eq.2) then
    fac_arr(1,2)=0.3162277660168379331998894d0
    fac_arr(2,2)=0.9486832980505137995996681d0
    fac_arr(3,2)=-1.264911064067351732799557d0
-   fac_arr(4,2)=-0.3162277660168379331998894/rhol**2d0
-   fac_arr(5,2)=-0.3162277660168379331998894/rhol**2d0
-   fac_arr(6,2)=1.264911064067351732799557/rhol**2d0
+   fac_arr(4,2)=-0.3162277660168379331998894d0/rhol**2d0
+   fac_arr(5,2)=-0.3162277660168379331998894d0/rhol**2d0
+   fac_arr(6,2)=1.264911064067351732799557d0/rhol**2d0
    lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=1 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=3 ; lxyz_arr(3,3,3)=1
    lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=3
    fac_arr(1,3)=-2.529822128134703465599115d0
-   fac_arr(2,3)=-0.3162277660168379331998894/rhol**2d0
-   fac_arr(3,3)=-0.3162277660168379331998894/rhol**2d0
-   fac_arr(4,3)=1.264911064067351732799557/rhol**2d0
+   fac_arr(2,3)=-0.3162277660168379331998894d0/rhol**2d0
+   fac_arr(3,3)=-0.3162277660168379331998894d0/rhol**2d0
+   fac_arr(4,3)=1.264911064067351732799557d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.1 .and. m.eq.3) then
    nterm_arr(1)=4
    nterm_arr(2)=4
@@ -2065,17 +2065,17 @@ else if (l.eq.4 .and. i.eq.1 .and. m.eq.3) then
    lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=1
    lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=3
    fac_arr(1,1)=1.549193338482966754071706d0
-   fac_arr(2,1)=-0.7745966692414833770358531/rhol**2d0
-   fac_arr(3,1)=-0.7745966692414833770358531/rhol**2d0
-   fac_arr(4,1)=0.5163977794943222513572354/rhol**2d0
+   fac_arr(2,1)=-0.7745966692414833770358531d0/rhol**2d0
+   fac_arr(3,1)=-0.7745966692414833770358531d0/rhol**2d0
+   fac_arr(4,1)=0.5163977794943222513572354d0/rhol**2d0
    lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=1
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=1
    lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=3
    fac_arr(1,2)=1.549193338482966754071706d0
-   fac_arr(2,2)=-0.7745966692414833770358531/rhol**2d0
-   fac_arr(3,2)=-0.7745966692414833770358531/rhol**2d0
-   fac_arr(4,2)=0.5163977794943222513572354/rhol**2d0
+   fac_arr(2,2)=-0.7745966692414833770358531d0/rhol**2d0
+   fac_arr(3,2)=-0.7745966692414833770358531d0/rhol**2d0
+   fac_arr(4,2)=0.5163977794943222513572354d0/rhol**2d0
    lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=2
@@ -2085,9 +2085,9 @@ else if (l.eq.4 .and. i.eq.1 .and. m.eq.3) then
    fac_arr(1,3)=0.7745966692414833770358531d0
    fac_arr(2,3)=0.7745966692414833770358531d0
    fac_arr(3,3)=-1.549193338482966754071706d0
-   fac_arr(4,3)=-0.7745966692414833770358531/rhol**2d0
-   fac_arr(5,3)=-0.7745966692414833770358531/rhol**2d0
-   fac_arr(6,3)=0.5163977794943222513572354/rhol**2d0
+   fac_arr(4,3)=-0.7745966692414833770358531d0/rhol**2d0
+   fac_arr(5,3)=-0.7745966692414833770358531d0/rhol**2d0
+   fac_arr(6,3)=0.5163977794943222513572354d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.1 .and. m.eq.4) then
    nterm_arr(1)=4
    nterm_arr(2)=3
@@ -2098,18 +2098,18 @@ else if (l.eq.4 .and. i.eq.1 .and. m.eq.4) then
    lxyz_arr(1,4,1)=2 ; lxyz_arr(2,4,1)=2 ; lxyz_arr(3,4,1)=0
    fac_arr(1,1)=1.224744871391589049098642d0
    fac_arr(2,1)=-1.224744871391589049098642d0
-   fac_arr(3,1)=-0.408248290463863016366214/rhol**2d0
-   fac_arr(4,1)=1.224744871391589049098642/rhol**2d0
+   fac_arr(3,1)=-0.408248290463863016366214d0/rhol**2d0
+   fac_arr(4,1)=1.224744871391589049098642d0/rhol**2d0
    lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
    fac_arr(1,2)=-2.449489742783178098197284d0
-   fac_arr(2,2)=-0.408248290463863016366214/rhol**2d0
-   fac_arr(3,2)=1.224744871391589049098642/rhol**2d0
+   fac_arr(2,2)=-0.408248290463863016366214d0/rhol**2d0
+   fac_arr(3,2)=1.224744871391589049098642d0/rhol**2d0
    lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
-   fac_arr(1,3)=-0.408248290463863016366214/rhol**2d0
-   fac_arr(2,3)=1.224744871391589049098642/rhol**2d0
+   fac_arr(1,3)=-0.408248290463863016366214d0/rhol**2d0
+   fac_arr(2,3)=1.224744871391589049098642d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.1 .and. m.eq.5) then
    nterm_arr(1)=3
    nterm_arr(2)=4
@@ -2118,20 +2118,20 @@ else if (l.eq.4 .and. i.eq.1 .and. m.eq.5) then
    lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=1 ; lxyz_arr(3,2,1)=0
    lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=3 ; lxyz_arr(3,3,1)=0
    fac_arr(1,1)=-2.449489742783178098197284d0
-   fac_arr(2,1)=1.224744871391589049098642/rhol**2d0
-   fac_arr(3,1)=-0.408248290463863016366214/rhol**2d0
+   fac_arr(2,1)=1.224744871391589049098642d0/rhol**2d0
+   fac_arr(3,1)=-0.408248290463863016366214d0/rhol**2d0
    lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=2 ; lxyz_arr(2,3,2)=2 ; lxyz_arr(3,3,2)=0
    lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=4 ; lxyz_arr(3,4,2)=0
    fac_arr(1,2)=-1.224744871391589049098642d0
    fac_arr(2,2)=1.224744871391589049098642d0
-   fac_arr(3,2)=1.224744871391589049098642/rhol**2d0
-   fac_arr(4,2)=-0.408248290463863016366214/rhol**2d0
+   fac_arr(3,2)=1.224744871391589049098642d0/rhol**2d0
+   fac_arr(4,2)=-0.408248290463863016366214d0/rhol**2d0
    lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
-   fac_arr(1,3)=1.224744871391589049098642/rhol**2d0
-   fac_arr(2,3)=-0.408248290463863016366214/rhol**2d0
+   fac_arr(1,3)=1.224744871391589049098642d0/rhol**2d0
+   fac_arr(2,3)=-0.408248290463863016366214d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.1 .and. m.eq.6) then
    nterm_arr(1)=3
    nterm_arr(2)=3
@@ -2140,13 +2140,13 @@ else if (l.eq.4 .and. i.eq.1 .and. m.eq.6) then
    lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=1
    lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=1
    fac_arr(1,1)=2.d0
-   fac_arr(2,1)=-1./rhol**2d0
+   fac_arr(2,1)=-1.d0/rhol**2d0
    fac_arr(3,1)=rhol**(-2)
    lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=1
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=1
    fac_arr(1,2)=-2.d0
-   fac_arr(2,2)=-1./rhol**2d0
+   fac_arr(2,2)=-1.d0/rhol**2d0
    fac_arr(3,2)=rhol**(-2)
    lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
@@ -2154,7 +2154,7 @@ else if (l.eq.4 .and. i.eq.1 .and. m.eq.6) then
    lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=2 ; lxyz_arr(3,4,3)=2
    fac_arr(1,3)=1.d0
    fac_arr(2,3)=-1.d0
-   fac_arr(3,3)=-1./rhol**2d0
+   fac_arr(3,3)=-1.d0/rhol**2d0
    fac_arr(4,3)=rhol**(-2)
 else if (l.eq.4 .and. i.eq.1 .and. m.eq.7) then
    nterm_arr(1)=2
@@ -2163,15 +2163,15 @@ else if (l.eq.4 .and. i.eq.1 .and. m.eq.7) then
    lxyz_arr(1,1,1)=0 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=1
    lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=1 ; lxyz_arr(3,2,1)=1
    fac_arr(1,1)=2.d0
-   fac_arr(2,1)=-2./rhol**2d0
+   fac_arr(2,1)=-2.d0/rhol**2d0
    lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
    fac_arr(1,2)=2.d0
-   fac_arr(2,2)=-2./rhol**2d0
+   fac_arr(2,2)=-2.d0/rhol**2d0
    lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=1 ; lxyz_arr(3,2,3)=2
    fac_arr(1,3)=2.d0
-   fac_arr(2,3)=-2./rhol**2d0
+   fac_arr(2,3)=-2.d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.2 .and. m.eq.1) then
    nterm_arr(1)=12
    nterm_arr(2)=9
@@ -2194,12 +2194,12 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.1) then
    fac_arr(4,1)=-0.5720775535473553892680656d0
    fac_arr(5,1)=-0.1906925178491184630893552d0
    fac_arr(6,1)=-0.2542566904654912841191402d0
-   fac_arr(7,1)=-0.06356417261637282102978506/rhol**2d0
-   fac_arr(8,1)=-0.1271283452327456420595701/rhol**2d0
-   fac_arr(9,1)=-0.06356417261637282102978506/rhol**2d0
-   fac_arr(10,1)=0.1906925178491184630893552/rhol**2d0
-   fac_arr(11,1)=0.1906925178491184630893552/rhol**2d0
-   fac_arr(12,1)=0.2542566904654912841191402/rhol**2d0
+   fac_arr(7,1)=-0.06356417261637282102978506d0/rhol**2d0
+   fac_arr(8,1)=-0.1271283452327456420595701d0/rhol**2d0
+   fac_arr(9,1)=-0.06356417261637282102978506d0/rhol**2d0
+   fac_arr(10,1)=0.1906925178491184630893552d0/rhol**2d0
+   fac_arr(11,1)=0.1906925178491184630893552d0/rhol**2d0
+   fac_arr(12,1)=0.2542566904654912841191402d0/rhol**2d0
    lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=2
@@ -2212,12 +2212,12 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.1) then
    fac_arr(1,2)=0.2542566904654912841191402d0
    fac_arr(2,2)=0.2542566904654912841191402d0
    fac_arr(3,2)=-0.3813850356982369261787104d0
-   fac_arr(4,2)=-0.06356417261637282102978506/rhol**2d0
-   fac_arr(5,2)=-0.1271283452327456420595701/rhol**2d0
-   fac_arr(6,2)=-0.06356417261637282102978506/rhol**2d0
-   fac_arr(7,2)=0.1906925178491184630893552/rhol**2d0
-   fac_arr(8,2)=0.1906925178491184630893552/rhol**2d0
-   fac_arr(9,2)=0.2542566904654912841191402/rhol**2d0
+   fac_arr(4,2)=-0.06356417261637282102978506d0/rhol**2d0
+   fac_arr(5,2)=-0.1271283452327456420595701d0/rhol**2d0
+   fac_arr(6,2)=-0.06356417261637282102978506d0/rhol**2d0
+   fac_arr(7,2)=0.1906925178491184630893552d0/rhol**2d0
+   fac_arr(8,2)=0.1906925178491184630893552d0/rhol**2d0
+   fac_arr(9,2)=0.2542566904654912841191402d0/rhol**2d0
    lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=3
@@ -2230,12 +2230,12 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.1) then
    fac_arr(1,3)=-0.3813850356982369261787104d0
    fac_arr(2,3)=-0.3813850356982369261787104d0
    fac_arr(3,3)=-1.017026761861965136476561d0
-   fac_arr(4,3)=-0.06356417261637282102978506/rhol**2d0
-   fac_arr(5,3)=-0.1271283452327456420595701/rhol**2d0
-   fac_arr(6,3)=-0.06356417261637282102978506/rhol**2d0
-   fac_arr(7,3)=0.1906925178491184630893552/rhol**2d0
-   fac_arr(8,3)=0.1906925178491184630893552/rhol**2d0
-   fac_arr(9,3)=0.2542566904654912841191402/rhol**2d0
+   fac_arr(4,3)=-0.06356417261637282102978506d0/rhol**2d0
+   fac_arr(5,3)=-0.1271283452327456420595701d0/rhol**2d0
+   fac_arr(6,3)=-0.06356417261637282102978506d0/rhol**2d0
+   fac_arr(7,3)=0.1906925178491184630893552d0/rhol**2d0
+   fac_arr(8,3)=0.1906925178491184630893552d0/rhol**2d0
+   fac_arr(9,3)=0.2542566904654912841191402d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.2 .and. m.eq.2) then
    nterm_arr(1)=9
    nterm_arr(2)=12
@@ -2252,12 +2252,12 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.2) then
    fac_arr(1,1)=0.2542566904654912841191402d0
    fac_arr(2,1)=0.2542566904654912841191402d0
    fac_arr(3,1)=-0.3813850356982369261787104d0
-   fac_arr(4,1)=-0.06356417261637282102978506/rhol**2d0
-   fac_arr(5,1)=-0.1271283452327456420595701/rhol**2d0
-   fac_arr(6,1)=-0.06356417261637282102978506/rhol**2d0
-   fac_arr(7,1)=0.1906925178491184630893552/rhol**2d0
-   fac_arr(8,1)=0.1906925178491184630893552/rhol**2d0
-   fac_arr(9,1)=0.2542566904654912841191402/rhol**2d0
+   fac_arr(4,1)=-0.06356417261637282102978506d0/rhol**2d0
+   fac_arr(5,1)=-0.1271283452327456420595701d0/rhol**2d0
+   fac_arr(6,1)=-0.06356417261637282102978506d0/rhol**2d0
+   fac_arr(7,1)=0.1906925178491184630893552d0/rhol**2d0
+   fac_arr(8,1)=0.1906925178491184630893552d0/rhol**2d0
+   fac_arr(9,1)=0.2542566904654912841191402d0/rhol**2d0
    lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
@@ -2276,12 +2276,12 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.2) then
    fac_arr(4,2)=-0.1906925178491184630893552d0
    fac_arr(5,2)=-0.5720775535473553892680656d0
    fac_arr(6,2)=-0.2542566904654912841191402d0
-   fac_arr(7,2)=-0.06356417261637282102978506/rhol**2d0
-   fac_arr(8,2)=-0.1271283452327456420595701/rhol**2d0
-   fac_arr(9,2)=-0.06356417261637282102978506/rhol**2d0
-   fac_arr(10,2)=0.1906925178491184630893552/rhol**2d0
-   fac_arr(11,2)=0.1906925178491184630893552/rhol**2d0
-   fac_arr(12,2)=0.2542566904654912841191402/rhol**2d0
+   fac_arr(7,2)=-0.06356417261637282102978506d0/rhol**2d0
+   fac_arr(8,2)=-0.1271283452327456420595701d0/rhol**2d0
+   fac_arr(9,2)=-0.06356417261637282102978506d0/rhol**2d0
+   fac_arr(10,2)=0.1906925178491184630893552d0/rhol**2d0
+   fac_arr(11,2)=0.1906925178491184630893552d0/rhol**2d0
+   fac_arr(12,2)=0.2542566904654912841191402d0/rhol**2d0
    lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=3
@@ -2294,12 +2294,12 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.2) then
    fac_arr(1,3)=-0.3813850356982369261787104d0
    fac_arr(2,3)=-0.3813850356982369261787104d0
    fac_arr(3,3)=-1.017026761861965136476561d0
-   fac_arr(4,3)=-0.06356417261637282102978506/rhol**2d0
-   fac_arr(5,3)=-0.1271283452327456420595701/rhol**2d0
-   fac_arr(6,3)=-0.06356417261637282102978506/rhol**2d0
-   fac_arr(7,3)=0.1906925178491184630893552/rhol**2d0
-   fac_arr(8,3)=0.1906925178491184630893552/rhol**2d0
-   fac_arr(9,3)=0.2542566904654912841191402/rhol**2d0
+   fac_arr(4,3)=-0.06356417261637282102978506d0/rhol**2d0
+   fac_arr(5,3)=-0.1271283452327456420595701d0/rhol**2d0
+   fac_arr(6,3)=-0.06356417261637282102978506d0/rhol**2d0
+   fac_arr(7,3)=0.1906925178491184630893552d0/rhol**2d0
+   fac_arr(8,3)=0.1906925178491184630893552d0/rhol**2d0
+   fac_arr(9,3)=0.2542566904654912841191402d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.2 .and. m.eq.3) then
    nterm_arr(1)=9
    nterm_arr(2)=9
@@ -2316,12 +2316,12 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.3) then
    fac_arr(1,1)=0.6227991553292183767329405d0
    fac_arr(2,1)=0.6227991553292183767329405d0
    fac_arr(3,1)=0.1037998592215363961221568d0
-   fac_arr(4,1)=-0.1556997888323045941832351/rhol**2d0
-   fac_arr(5,1)=-0.3113995776646091883664703/rhol**2d0
-   fac_arr(6,1)=-0.1556997888323045941832351/rhol**2d0
-   fac_arr(7,1)=-0.05189992961076819806107838/rhol**2d0
-   fac_arr(8,1)=-0.05189992961076819806107838/rhol**2d0
-   fac_arr(9,1)=0.1037998592215363961221568/rhol**2d0
+   fac_arr(4,1)=-0.1556997888323045941832351d0/rhol**2d0
+   fac_arr(5,1)=-0.3113995776646091883664703d0/rhol**2d0
+   fac_arr(6,1)=-0.1556997888323045941832351d0/rhol**2d0
+   fac_arr(7,1)=-0.05189992961076819806107838d0/rhol**2d0
+   fac_arr(8,1)=-0.05189992961076819806107838d0/rhol**2d0
+   fac_arr(9,1)=0.1037998592215363961221568d0/rhol**2d0
    lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=1
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=3
@@ -2334,12 +2334,12 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.3) then
    fac_arr(1,2)=0.6227991553292183767329405d0
    fac_arr(2,2)=0.6227991553292183767329405d0
    fac_arr(3,2)=0.1037998592215363961221568d0
-   fac_arr(4,2)=-0.1556997888323045941832351/rhol**2d0
-   fac_arr(5,2)=-0.3113995776646091883664703/rhol**2d0
-   fac_arr(6,2)=-0.1556997888323045941832351/rhol**2d0
-   fac_arr(7,2)=-0.05189992961076819806107838/rhol**2d0
-   fac_arr(8,2)=-0.05189992961076819806107838/rhol**2d0
-   fac_arr(9,2)=0.1037998592215363961221568/rhol**2d0
+   fac_arr(4,2)=-0.1556997888323045941832351d0/rhol**2d0
+   fac_arr(5,2)=-0.3113995776646091883664703d0/rhol**2d0
+   fac_arr(6,2)=-0.1556997888323045941832351d0/rhol**2d0
+   fac_arr(7,2)=-0.05189992961076819806107838d0/rhol**2d0
+   fac_arr(8,2)=-0.05189992961076819806107838d0/rhol**2d0
+   fac_arr(9,2)=0.1037998592215363961221568d0/rhol**2d0
    lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=0
@@ -2358,12 +2358,12 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.3) then
    fac_arr(4,3)=0.1556997888323045941832351d0
    fac_arr(5,3)=0.1556997888323045941832351d0
    fac_arr(6,3)=-0.5189992961076819806107838d0
-   fac_arr(7,3)=-0.1556997888323045941832351/rhol**2d0
-   fac_arr(8,3)=-0.3113995776646091883664703/rhol**2d0
-   fac_arr(9,3)=-0.1556997888323045941832351/rhol**2d0
-   fac_arr(10,3)=-0.05189992961076819806107838/rhol**2d0
-   fac_arr(11,3)=-0.05189992961076819806107838/rhol**2d0
-   fac_arr(12,3)=0.1037998592215363961221568/rhol**2d0
+   fac_arr(7,3)=-0.1556997888323045941832351d0/rhol**2d0
+   fac_arr(8,3)=-0.3113995776646091883664703d0/rhol**2d0
+   fac_arr(9,3)=-0.1556997888323045941832351d0/rhol**2d0
+   fac_arr(10,3)=-0.05189992961076819806107838d0/rhol**2d0
+   fac_arr(11,3)=-0.05189992961076819806107838d0/rhol**2d0
+   fac_arr(12,3)=0.1037998592215363961221568d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.2 .and. m.eq.4) then
    nterm_arr(1)=10
    nterm_arr(2)=8
@@ -2383,11 +2383,11 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.4) then
    fac_arr(3,1)=-0.2461829819586654654684813d0
    fac_arr(4,1)=0.2461829819586654654684813d0
    fac_arr(5,1)=-0.2461829819586654654684813d0
-   fac_arr(6,1)=-0.08206099398622182182282711/rhol**2d0
-   fac_arr(7,1)=0.1641219879724436436456542/rhol**2d0
-   fac_arr(8,1)=0.2461829819586654654684813/rhol**2d0
-   fac_arr(9,1)=-0.08206099398622182182282711/rhol**2d0
-   fac_arr(10,1)=0.2461829819586654654684813/rhol**2d0
+   fac_arr(6,1)=-0.08206099398622182182282711d0/rhol**2d0
+   fac_arr(7,1)=0.1641219879724436436456542d0/rhol**2d0
+   fac_arr(8,1)=0.2461829819586654654684813d0/rhol**2d0
+   fac_arr(9,1)=-0.08206099398622182182282711d0/rhol**2d0
+   fac_arr(10,1)=0.2461829819586654654684813d0/rhol**2d0
    lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=2
@@ -2399,11 +2399,11 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.4) then
    fac_arr(1,2)=-0.3282439759448872872913084d0
    fac_arr(2,2)=-0.9847319278346618618739253d0
    fac_arr(3,2)=-0.4923659639173309309369626d0
-   fac_arr(4,2)=-0.08206099398622182182282711/rhol**2d0
-   fac_arr(5,2)=0.1641219879724436436456542/rhol**2d0
-   fac_arr(6,2)=0.2461829819586654654684813/rhol**2d0
-   fac_arr(7,2)=-0.08206099398622182182282711/rhol**2d0
-   fac_arr(8,2)=0.2461829819586654654684813/rhol**2d0
+   fac_arr(4,2)=-0.08206099398622182182282711d0/rhol**2d0
+   fac_arr(5,2)=0.1641219879724436436456542d0/rhol**2d0
+   fac_arr(6,2)=0.2461829819586654654684813d0/rhol**2d0
+   fac_arr(7,2)=-0.08206099398622182182282711d0/rhol**2d0
+   fac_arr(8,2)=0.2461829819586654654684813d0/rhol**2d0
    lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=5 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=1
@@ -2413,11 +2413,11 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.4) then
    lxyz_arr(1,7,3)=1 ; lxyz_arr(2,7,3)=2 ; lxyz_arr(3,7,3)=3
    fac_arr(1,3)=0.1641219879724436436456542d0
    fac_arr(2,3)=-0.4923659639173309309369626d0
-   fac_arr(3,3)=-0.08206099398622182182282711/rhol**2d0
-   fac_arr(4,3)=0.1641219879724436436456542/rhol**2d0
-   fac_arr(5,3)=0.2461829819586654654684813/rhol**2d0
-   fac_arr(6,3)=-0.08206099398622182182282711/rhol**2d0
-   fac_arr(7,3)=0.2461829819586654654684813/rhol**2d0
+   fac_arr(3,3)=-0.08206099398622182182282711d0/rhol**2d0
+   fac_arr(4,3)=0.1641219879724436436456542d0/rhol**2d0
+   fac_arr(5,3)=0.2461829819586654654684813d0/rhol**2d0
+   fac_arr(6,3)=-0.08206099398622182182282711d0/rhol**2d0
+   fac_arr(7,3)=0.2461829819586654654684813d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.2 .and. m.eq.5) then
    nterm_arr(1)=8
    nterm_arr(2)=10
@@ -2433,11 +2433,11 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.5) then
    fac_arr(1,1)=-0.9847319278346618618739253d0
    fac_arr(2,1)=-0.3282439759448872872913084d0
    fac_arr(3,1)=-0.4923659639173309309369626d0
-   fac_arr(4,1)=0.2461829819586654654684813/rhol**2d0
-   fac_arr(5,1)=0.1641219879724436436456542/rhol**2d0
-   fac_arr(6,1)=-0.08206099398622182182282711/rhol**2d0
-   fac_arr(7,1)=0.2461829819586654654684813/rhol**2d0
-   fac_arr(8,1)=-0.08206099398622182182282711/rhol**2d0
+   fac_arr(4,1)=0.2461829819586654654684813d0/rhol**2d0
+   fac_arr(5,1)=0.1641219879724436436456542d0/rhol**2d0
+   fac_arr(6,1)=-0.08206099398622182182282711d0/rhol**2d0
+   fac_arr(7,1)=0.2461829819586654654684813d0/rhol**2d0
+   fac_arr(8,1)=-0.08206099398622182182282711d0/rhol**2d0
    lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
@@ -2453,11 +2453,11 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.5) then
    fac_arr(3,2)=0.4103049699311091091141355d0
    fac_arr(4,2)=-0.2461829819586654654684813d0
    fac_arr(5,2)=0.2461829819586654654684813d0
-   fac_arr(6,2)=0.2461829819586654654684813/rhol**2d0
-   fac_arr(7,2)=0.1641219879724436436456542/rhol**2d0
-   fac_arr(8,2)=-0.08206099398622182182282711/rhol**2d0
-   fac_arr(9,2)=0.2461829819586654654684813/rhol**2d0
-   fac_arr(10,2)=-0.08206099398622182182282711/rhol**2d0
+   fac_arr(6,2)=0.2461829819586654654684813d0/rhol**2d0
+   fac_arr(7,2)=0.1641219879724436436456542d0/rhol**2d0
+   fac_arr(8,2)=-0.08206099398622182182282711d0/rhol**2d0
+   fac_arr(9,2)=0.2461829819586654654684813d0/rhol**2d0
+   fac_arr(10,2)=-0.08206099398622182182282711d0/rhol**2d0
    lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=4 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=1
@@ -2467,11 +2467,11 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.5) then
    lxyz_arr(1,7,3)=0 ; lxyz_arr(2,7,3)=3 ; lxyz_arr(3,7,3)=3
    fac_arr(1,3)=-0.4923659639173309309369626d0
    fac_arr(2,3)=0.1641219879724436436456542d0
-   fac_arr(3,3)=0.2461829819586654654684813/rhol**2d0
-   fac_arr(4,3)=0.1641219879724436436456542/rhol**2d0
-   fac_arr(5,3)=-0.08206099398622182182282711/rhol**2d0
-   fac_arr(6,3)=0.2461829819586654654684813/rhol**2d0
-   fac_arr(7,3)=-0.08206099398622182182282711/rhol**2d0
+   fac_arr(3,3)=0.2461829819586654654684813d0/rhol**2d0
+   fac_arr(4,3)=0.1641219879724436436456542d0/rhol**2d0
+   fac_arr(5,3)=-0.08206099398622182182282711d0/rhol**2d0
+   fac_arr(6,3)=0.2461829819586654654684813d0/rhol**2d0
+   fac_arr(7,3)=-0.08206099398622182182282711d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.2 .and. m.eq.6) then
    nterm_arr(1)=6
    nterm_arr(2)=6
@@ -2484,10 +2484,10 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.6) then
    lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=2 ; lxyz_arr(3,6,1)=3
    fac_arr(1,1)=0.8040302522073696603914988d0
    fac_arr(2,1)=0.4020151261036848301957494d0
-   fac_arr(3,1)=-0.2010075630518424150978747/rhol**2d0
-   fac_arr(4,1)=0.2010075630518424150978747/rhol**2d0
-   fac_arr(5,1)=-0.2010075630518424150978747/rhol**2d0
-   fac_arr(6,1)=0.2010075630518424150978747/rhol**2d0
+   fac_arr(3,1)=-0.2010075630518424150978747d0/rhol**2d0
+   fac_arr(4,1)=0.2010075630518424150978747d0/rhol**2d0
+   fac_arr(5,1)=-0.2010075630518424150978747d0/rhol**2d0
+   fac_arr(6,1)=0.2010075630518424150978747d0/rhol**2d0
    lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=3 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=3
    lxyz_arr(1,3,2)=4 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=1
@@ -2496,10 +2496,10 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.6) then
    lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=3 ; lxyz_arr(3,6,2)=3
    fac_arr(1,2)=-0.8040302522073696603914988d0
    fac_arr(2,2)=-0.4020151261036848301957494d0
-   fac_arr(3,2)=-0.2010075630518424150978747/rhol**2d0
-   fac_arr(4,2)=0.2010075630518424150978747/rhol**2d0
-   fac_arr(5,2)=-0.2010075630518424150978747/rhol**2d0
-   fac_arr(6,2)=0.2010075630518424150978747/rhol**2d0
+   fac_arr(3,2)=-0.2010075630518424150978747d0/rhol**2d0
+   fac_arr(4,2)=0.2010075630518424150978747d0/rhol**2d0
+   fac_arr(5,2)=-0.2010075630518424150978747d0/rhol**2d0
+   fac_arr(6,2)=0.2010075630518424150978747d0/rhol**2d0
    lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=4 ; lxyz_arr(3,2,3)=0
    lxyz_arr(1,3,3)=2 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=2
@@ -2512,10 +2512,10 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.6) then
    fac_arr(2,3)=-0.2010075630518424150978747d0
    fac_arr(3,3)=0.6030226891555272452936241d0
    fac_arr(4,3)=-0.6030226891555272452936241d0
-   fac_arr(5,3)=-0.2010075630518424150978747/rhol**2d0
-   fac_arr(6,3)=0.2010075630518424150978747/rhol**2d0
-   fac_arr(7,3)=-0.2010075630518424150978747/rhol**2d0
-   fac_arr(8,3)=0.2010075630518424150978747/rhol**2d0
+   fac_arr(5,3)=-0.2010075630518424150978747d0/rhol**2d0
+   fac_arr(6,3)=0.2010075630518424150978747d0/rhol**2d0
+   fac_arr(7,3)=-0.2010075630518424150978747d0/rhol**2d0
+   fac_arr(8,3)=0.2010075630518424150978747d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.2 .and. m.eq.7) then
    nterm_arr(1)=6
    nterm_arr(2)=6
@@ -2529,9 +2529,9 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.7) then
    fac_arr(1,1)=1.206045378311054490587248d0
    fac_arr(2,1)=0.4020151261036848301957494d0
    fac_arr(3,1)=0.4020151261036848301957494d0
-   fac_arr(4,1)=-0.4020151261036848301957494/rhol**2d0
-   fac_arr(5,1)=-0.4020151261036848301957494/rhol**2d0
-   fac_arr(6,1)=-0.4020151261036848301957494/rhol**2d0
+   fac_arr(4,1)=-0.4020151261036848301957494d0/rhol**2d0
+   fac_arr(5,1)=-0.4020151261036848301957494d0/rhol**2d0
+   fac_arr(6,1)=-0.4020151261036848301957494d0/rhol**2d0
    lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
    lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=0 ; lxyz_arr(3,3,2)=3
@@ -2541,9 +2541,9 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.7) then
    fac_arr(1,2)=0.4020151261036848301957494d0
    fac_arr(2,2)=1.206045378311054490587248d0
    fac_arr(3,2)=0.4020151261036848301957494d0
-   fac_arr(4,2)=-0.4020151261036848301957494/rhol**2d0
-   fac_arr(5,2)=-0.4020151261036848301957494/rhol**2d0
-   fac_arr(6,2)=-0.4020151261036848301957494/rhol**2d0
+   fac_arr(4,2)=-0.4020151261036848301957494d0/rhol**2d0
+   fac_arr(5,2)=-0.4020151261036848301957494d0/rhol**2d0
+   fac_arr(6,2)=-0.4020151261036848301957494d0/rhol**2d0
    lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=0
    lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=2
@@ -2553,9 +2553,9 @@ else if (l.eq.4 .and. i.eq.2 .and. m.eq.7) then
    fac_arr(1,3)=0.4020151261036848301957494d0
    fac_arr(2,3)=0.4020151261036848301957494d0
    fac_arr(3,3)=1.206045378311054490587248d0
-   fac_arr(4,3)=-0.4020151261036848301957494/rhol**2d0
-   fac_arr(5,3)=-0.4020151261036848301957494/rhol**2d0
-   fac_arr(6,3)=-0.4020151261036848301957494/rhol**2d0
+   fac_arr(4,3)=-0.4020151261036848301957494d0/rhol**2d0
+   fac_arr(5,3)=-0.4020151261036848301957494d0/rhol**2d0
+   fac_arr(6,3)=-0.4020151261036848301957494d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.3 .and. m.eq.1) then
    nterm_arr(1)=20
    nterm_arr(2)=16
@@ -2590,16 +2590,16 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.1) then
    fac_arr(8,1)=-0.1911808477596972842666874d0
    fac_arr(9,1)=-0.06372694925323242808889581d0
    fac_arr(10,1)=-0.03641539957327567319365475d0
-   fac_arr(11,1)=-0.009103849893318918298413687/rhol**2d0
-   fac_arr(12,1)=-0.02731154967995675489524106/rhol**2d0
-   fac_arr(13,1)=-0.02731154967995675489524106/rhol**2d0
-   fac_arr(14,1)=-0.009103849893318918298413687/rhol**2d0
-   fac_arr(15,1)=0.01820769978663783659682737/rhol**2d0
-   fac_arr(16,1)=0.03641539957327567319365475/rhol**2d0
-   fac_arr(17,1)=0.01820769978663783659682737/rhol**2d0
-   fac_arr(18,1)=0.06372694925323242808889581/rhol**2d0
-   fac_arr(19,1)=0.06372694925323242808889581/rhol**2d0
-   fac_arr(20,1)=0.03641539957327567319365475/rhol**2d0
+   fac_arr(11,1)=-0.009103849893318918298413687d0/rhol**2d0
+   fac_arr(12,1)=-0.02731154967995675489524106d0/rhol**2d0
+   fac_arr(13,1)=-0.02731154967995675489524106d0/rhol**2d0
+   fac_arr(14,1)=-0.009103849893318918298413687d0/rhol**2d0
+   fac_arr(15,1)=0.01820769978663783659682737d0/rhol**2d0
+   fac_arr(16,1)=0.03641539957327567319365475d0/rhol**2d0
+   fac_arr(17,1)=0.01820769978663783659682737d0/rhol**2d0
+   fac_arr(18,1)=0.06372694925323242808889581d0/rhol**2d0
+   fac_arr(19,1)=0.06372694925323242808889581d0/rhol**2d0
+   fac_arr(20,1)=0.03641539957327567319365475d0/rhol**2d0
    lxyz_arr(1,1,2)=5 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=0
@@ -2622,16 +2622,16 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.1) then
    fac_arr(4,2)=-0.0728307991465513463873095d0
    fac_arr(5,2)=-0.0728307991465513463873095d0
    fac_arr(6,2)=-0.1274538985064648561777916d0
-   fac_arr(7,2)=-0.009103849893318918298413687/rhol**2d0
-   fac_arr(8,2)=-0.02731154967995675489524106/rhol**2d0
-   fac_arr(9,2)=-0.02731154967995675489524106/rhol**2d0
-   fac_arr(10,2)=-0.009103849893318918298413687/rhol**2d0
-   fac_arr(11,2)=0.01820769978663783659682737/rhol**2d0
-   fac_arr(12,2)=0.03641539957327567319365475/rhol**2d0
-   fac_arr(13,2)=0.01820769978663783659682737/rhol**2d0
-   fac_arr(14,2)=0.06372694925323242808889581/rhol**2d0
-   fac_arr(15,2)=0.06372694925323242808889581/rhol**2d0
-   fac_arr(16,2)=0.03641539957327567319365475/rhol**2d0
+   fac_arr(7,2)=-0.009103849893318918298413687d0/rhol**2d0
+   fac_arr(8,2)=-0.02731154967995675489524106d0/rhol**2d0
+   fac_arr(9,2)=-0.02731154967995675489524106d0/rhol**2d0
+   fac_arr(10,2)=-0.009103849893318918298413687d0/rhol**2d0
+   fac_arr(11,2)=0.01820769978663783659682737d0/rhol**2d0
+   fac_arr(12,2)=0.03641539957327567319365475d0/rhol**2d0
+   fac_arr(13,2)=0.01820769978663783659682737d0/rhol**2d0
+   fac_arr(14,2)=0.06372694925323242808889581d0/rhol**2d0
+   fac_arr(15,2)=0.06372694925323242808889581d0/rhol**2d0
+   fac_arr(16,2)=0.03641539957327567319365475d0/rhol**2d0
    lxyz_arr(1,1,3)=5 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=1
@@ -2654,16 +2654,16 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.1) then
    fac_arr(4,3)=-0.2549077970129297123555832d0
    fac_arr(5,3)=-0.2549077970129297123555832d0
    fac_arr(6,3)=-0.2184923974396540391619285d0
-   fac_arr(7,3)=-0.009103849893318918298413687/rhol**2d0
-   fac_arr(8,3)=-0.02731154967995675489524106/rhol**2d0
-   fac_arr(9,3)=-0.02731154967995675489524106/rhol**2d0
-   fac_arr(10,3)=-0.009103849893318918298413687/rhol**2d0
-   fac_arr(11,3)=0.01820769978663783659682737/rhol**2d0
-   fac_arr(12,3)=0.03641539957327567319365475/rhol**2d0
-   fac_arr(13,3)=0.01820769978663783659682737/rhol**2d0
-   fac_arr(14,3)=0.06372694925323242808889581/rhol**2d0
-   fac_arr(15,3)=0.06372694925323242808889581/rhol**2d0
-   fac_arr(16,3)=0.03641539957327567319365475/rhol**2d0
+   fac_arr(7,3)=-0.009103849893318918298413687d0/rhol**2d0
+   fac_arr(8,3)=-0.02731154967995675489524106d0/rhol**2d0
+   fac_arr(9,3)=-0.02731154967995675489524106d0/rhol**2d0
+   fac_arr(10,3)=-0.009103849893318918298413687d0/rhol**2d0
+   fac_arr(11,3)=0.01820769978663783659682737d0/rhol**2d0
+   fac_arr(12,3)=0.03641539957327567319365475d0/rhol**2d0
+   fac_arr(13,3)=0.01820769978663783659682737d0/rhol**2d0
+   fac_arr(14,3)=0.06372694925323242808889581d0/rhol**2d0
+   fac_arr(15,3)=0.06372694925323242808889581d0/rhol**2d0
+   fac_arr(16,3)=0.03641539957327567319365475d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.3 .and. m.eq.2) then
    nterm_arr(1)=16
    nterm_arr(2)=20
@@ -2690,16 +2690,16 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.2) then
    fac_arr(4,1)=-0.0728307991465513463873095d0
    fac_arr(5,1)=-0.0728307991465513463873095d0
    fac_arr(6,1)=-0.1274538985064648561777916d0
-   fac_arr(7,1)=-0.009103849893318918298413687/rhol**2d0
-   fac_arr(8,1)=-0.02731154967995675489524106/rhol**2d0
-   fac_arr(9,1)=-0.02731154967995675489524106/rhol**2d0
-   fac_arr(10,1)=-0.009103849893318918298413687/rhol**2d0
-   fac_arr(11,1)=0.01820769978663783659682737/rhol**2d0
-   fac_arr(12,1)=0.03641539957327567319365475/rhol**2d0
-   fac_arr(13,1)=0.01820769978663783659682737/rhol**2d0
-   fac_arr(14,1)=0.06372694925323242808889581/rhol**2d0
-   fac_arr(15,1)=0.06372694925323242808889581/rhol**2d0
-   fac_arr(16,1)=0.03641539957327567319365475/rhol**2d0
+   fac_arr(7,1)=-0.009103849893318918298413687d0/rhol**2d0
+   fac_arr(8,1)=-0.02731154967995675489524106d0/rhol**2d0
+   fac_arr(9,1)=-0.02731154967995675489524106d0/rhol**2d0
+   fac_arr(10,1)=-0.009103849893318918298413687d0/rhol**2d0
+   fac_arr(11,1)=0.01820769978663783659682737d0/rhol**2d0
+   fac_arr(12,1)=0.03641539957327567319365475d0/rhol**2d0
+   fac_arr(13,1)=0.01820769978663783659682737d0/rhol**2d0
+   fac_arr(14,1)=0.06372694925323242808889581d0/rhol**2d0
+   fac_arr(15,1)=0.06372694925323242808889581d0/rhol**2d0
+   fac_arr(16,1)=0.03641539957327567319365475d0/rhol**2d0
    lxyz_arr(1,1,2)=6 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=4 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=2 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
@@ -2730,16 +2730,16 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.2) then
    fac_arr(8,2)=-0.06372694925323242808889581d0
    fac_arr(9,2)=-0.1911808477596972842666874d0
    fac_arr(10,2)=-0.03641539957327567319365475d0
-   fac_arr(11,2)=-0.009103849893318918298413687/rhol**2d0
-   fac_arr(12,2)=-0.02731154967995675489524106/rhol**2d0
-   fac_arr(13,2)=-0.02731154967995675489524106/rhol**2d0
-   fac_arr(14,2)=-0.009103849893318918298413687/rhol**2d0
-   fac_arr(15,2)=0.01820769978663783659682737/rhol**2d0
-   fac_arr(16,2)=0.03641539957327567319365475/rhol**2d0
-   fac_arr(17,2)=0.01820769978663783659682737/rhol**2d0
-   fac_arr(18,2)=0.06372694925323242808889581/rhol**2d0
-   fac_arr(19,2)=0.06372694925323242808889581/rhol**2d0
-   fac_arr(20,2)=0.03641539957327567319365475/rhol**2d0
+   fac_arr(11,2)=-0.009103849893318918298413687d0/rhol**2d0
+   fac_arr(12,2)=-0.02731154967995675489524106d0/rhol**2d0
+   fac_arr(13,2)=-0.02731154967995675489524106d0/rhol**2d0
+   fac_arr(14,2)=-0.009103849893318918298413687d0/rhol**2d0
+   fac_arr(15,2)=0.01820769978663783659682737d0/rhol**2d0
+   fac_arr(16,2)=0.03641539957327567319365475d0/rhol**2d0
+   fac_arr(17,2)=0.01820769978663783659682737d0/rhol**2d0
+   fac_arr(18,2)=0.06372694925323242808889581d0/rhol**2d0
+   fac_arr(19,2)=0.06372694925323242808889581d0/rhol**2d0
+   fac_arr(20,2)=0.03641539957327567319365475d0/rhol**2d0
    lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=5 ; lxyz_arr(3,3,3)=1
@@ -2762,16 +2762,16 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.2) then
    fac_arr(4,3)=-0.2549077970129297123555832d0
    fac_arr(5,3)=-0.2549077970129297123555832d0
    fac_arr(6,3)=-0.2184923974396540391619285d0
-   fac_arr(7,3)=-0.009103849893318918298413687/rhol**2d0
-   fac_arr(8,3)=-0.02731154967995675489524106/rhol**2d0
-   fac_arr(9,3)=-0.02731154967995675489524106/rhol**2d0
-   fac_arr(10,3)=-0.009103849893318918298413687/rhol**2d0
-   fac_arr(11,3)=0.01820769978663783659682737/rhol**2d0
-   fac_arr(12,3)=0.03641539957327567319365475/rhol**2d0
-   fac_arr(13,3)=0.01820769978663783659682737/rhol**2d0
-   fac_arr(14,3)=0.06372694925323242808889581/rhol**2d0
-   fac_arr(15,3)=0.06372694925323242808889581/rhol**2d0
-   fac_arr(16,3)=0.03641539957327567319365475/rhol**2d0
+   fac_arr(7,3)=-0.009103849893318918298413687d0/rhol**2d0
+   fac_arr(8,3)=-0.02731154967995675489524106d0/rhol**2d0
+   fac_arr(9,3)=-0.02731154967995675489524106d0/rhol**2d0
+   fac_arr(10,3)=-0.009103849893318918298413687d0/rhol**2d0
+   fac_arr(11,3)=0.01820769978663783659682737d0/rhol**2d0
+   fac_arr(12,3)=0.03641539957327567319365475d0/rhol**2d0
+   fac_arr(13,3)=0.01820769978663783659682737d0/rhol**2d0
+   fac_arr(14,3)=0.06372694925323242808889581d0/rhol**2d0
+   fac_arr(15,3)=0.06372694925323242808889581d0/rhol**2d0
+   fac_arr(16,3)=0.03641539957327567319365475d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.3 .and. m.eq.3) then
    nterm_arr(1)=16
    nterm_arr(2)=16
@@ -2798,16 +2798,16 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.3) then
    fac_arr(4,1)=0.1189321969787862429451919d0
    fac_arr(5,1)=0.1189321969787862429451919d0
    fac_arr(6,1)=-0.01486652462234828036814899d0
-   fac_arr(7,1)=-0.02229978693352242055222348/rhol**2d0
-   fac_arr(8,1)=-0.06689936080056726165667044/rhol**2d0
-   fac_arr(9,1)=-0.06689936080056726165667044/rhol**2d0
-   fac_arr(10,1)=-0.02229978693352242055222348/rhol**2d0
-   fac_arr(11,1)=-0.02973304924469656073629797/rhol**2d0
-   fac_arr(12,1)=-0.05946609848939312147259594/rhol**2d0
-   fac_arr(13,1)=-0.02973304924469656073629797/rhol**2d0
-   fac_arr(14,1)=0.007433262311174140184074493/rhol**2d0
-   fac_arr(15,1)=0.007433262311174140184074493/rhol**2d0
-   fac_arr(16,1)=0.01486652462234828036814899/rhol**2d0
+   fac_arr(7,1)=-0.02229978693352242055222348d0/rhol**2d0
+   fac_arr(8,1)=-0.06689936080056726165667044d0/rhol**2d0
+   fac_arr(9,1)=-0.06689936080056726165667044d0/rhol**2d0
+   fac_arr(10,1)=-0.02229978693352242055222348d0/rhol**2d0
+   fac_arr(11,1)=-0.02973304924469656073629797d0/rhol**2d0
+   fac_arr(12,1)=-0.05946609848939312147259594d0/rhol**2d0
+   fac_arr(13,1)=-0.02973304924469656073629797d0/rhol**2d0
+   fac_arr(14,1)=0.007433262311174140184074493d0/rhol**2d0
+   fac_arr(15,1)=0.007433262311174140184074493d0/rhol**2d0
+   fac_arr(16,1)=0.01486652462234828036814899d0/rhol**2d0
    lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=1
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=1
@@ -2830,16 +2830,16 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.3) then
    fac_arr(4,2)=0.1189321969787862429451919d0
    fac_arr(5,2)=0.1189321969787862429451919d0
    fac_arr(6,2)=-0.01486652462234828036814899d0
-   fac_arr(7,2)=-0.02229978693352242055222348/rhol**2d0
-   fac_arr(8,2)=-0.06689936080056726165667044/rhol**2d0
-   fac_arr(9,2)=-0.06689936080056726165667044/rhol**2d0
-   fac_arr(10,2)=-0.02229978693352242055222348/rhol**2d0
-   fac_arr(11,2)=-0.02973304924469656073629797/rhol**2d0
-   fac_arr(12,2)=-0.05946609848939312147259594/rhol**2d0
-   fac_arr(13,2)=-0.02973304924469656073629797/rhol**2d0
-   fac_arr(14,2)=0.007433262311174140184074493/rhol**2d0
-   fac_arr(15,2)=0.007433262311174140184074493/rhol**2d0
-   fac_arr(16,2)=0.01486652462234828036814899/rhol**2d0
+   fac_arr(7,2)=-0.02229978693352242055222348d0/rhol**2d0
+   fac_arr(8,2)=-0.06689936080056726165667044d0/rhol**2d0
+   fac_arr(9,2)=-0.06689936080056726165667044d0/rhol**2d0
+   fac_arr(10,2)=-0.02229978693352242055222348d0/rhol**2d0
+   fac_arr(11,2)=-0.02973304924469656073629797d0/rhol**2d0
+   fac_arr(12,2)=-0.05946609848939312147259594d0/rhol**2d0
+   fac_arr(13,2)=-0.02973304924469656073629797d0/rhol**2d0
+   fac_arr(14,2)=0.007433262311174140184074493d0/rhol**2d0
+   fac_arr(15,2)=0.007433262311174140184074493d0/rhol**2d0
+   fac_arr(16,2)=0.01486652462234828036814899d0/rhol**2d0
    lxyz_arr(1,1,3)=6 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=4 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
    lxyz_arr(1,3,3)=2 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=0
@@ -2870,16 +2870,16 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.3) then
    fac_arr(8,3)=-0.03716631155587070092037247d0
    fac_arr(9,3)=-0.03716631155587070092037247d0
    fac_arr(10,3)=-0.1040656723564379625770429d0
-   fac_arr(11,3)=-0.02229978693352242055222348/rhol**2d0
-   fac_arr(12,3)=-0.06689936080056726165667044/rhol**2d0
-   fac_arr(13,3)=-0.06689936080056726165667044/rhol**2d0
-   fac_arr(14,3)=-0.02229978693352242055222348/rhol**2d0
-   fac_arr(15,3)=-0.02973304924469656073629797/rhol**2d0
-   fac_arr(16,3)=-0.05946609848939312147259594/rhol**2d0
-   fac_arr(17,3)=-0.02973304924469656073629797/rhol**2d0
-   fac_arr(18,3)=0.007433262311174140184074493/rhol**2d0
-   fac_arr(19,3)=0.007433262311174140184074493/rhol**2d0
-   fac_arr(20,3)=0.01486652462234828036814899/rhol**2d0
+   fac_arr(11,3)=-0.02229978693352242055222348d0/rhol**2d0
+   fac_arr(12,3)=-0.06689936080056726165667044d0/rhol**2d0
+   fac_arr(13,3)=-0.06689936080056726165667044d0/rhol**2d0
+   fac_arr(14,3)=-0.02229978693352242055222348d0/rhol**2d0
+   fac_arr(15,3)=-0.02973304924469656073629797d0/rhol**2d0
+   fac_arr(16,3)=-0.05946609848939312147259594d0/rhol**2d0
+   fac_arr(17,3)=-0.02973304924469656073629797d0/rhol**2d0
+   fac_arr(18,3)=0.007433262311174140184074493d0/rhol**2d0
+   fac_arr(19,3)=0.007433262311174140184074493d0/rhol**2d0
+   fac_arr(20,3)=0.01486652462234828036814899d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.3 .and. m.eq.4) then
    nterm_arr(1)=18
    nterm_arr(2)=15
@@ -2911,15 +2911,15 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.4) then
    fac_arr(7,1)=-0.07051811804639267884900533d0
    fac_arr(8,1)=0.03525905902319633942450267d0
    fac_arr(9,1)=-0.03525905902319633942450267d0
-   fac_arr(10,1)=-0.01175301967439877980816756/rhol**2d0
-   fac_arr(11,1)=0.01175301967439877980816756/rhol**2d0
-   fac_arr(12,1)=0.05876509837199389904083778/rhol**2d0
-   fac_arr(13,1)=0.03525905902319633942450267/rhol**2d0
-   fac_arr(14,1)=-0.02350603934879755961633511/rhol**2d0
-   fac_arr(15,1)=0.04701207869759511923267022/rhol**2d0
-   fac_arr(16,1)=0.07051811804639267884900533/rhol**2d0
-   fac_arr(17,1)=-0.01175301967439877980816756/rhol**2d0
-   fac_arr(18,1)=0.03525905902319633942450267/rhol**2d0
+   fac_arr(10,1)=-0.01175301967439877980816756d0/rhol**2d0
+   fac_arr(11,1)=0.01175301967439877980816756d0/rhol**2d0
+   fac_arr(12,1)=0.05876509837199389904083778d0/rhol**2d0
+   fac_arr(13,1)=0.03525905902319633942450267d0/rhol**2d0
+   fac_arr(14,1)=-0.02350603934879755961633511d0/rhol**2d0
+   fac_arr(15,1)=0.04701207869759511923267022d0/rhol**2d0
+   fac_arr(16,1)=0.07051811804639267884900533d0/rhol**2d0
+   fac_arr(17,1)=-0.01175301967439877980816756d0/rhol**2d0
+   fac_arr(18,1)=0.03525905902319633942450267d0/rhol**2d0
    lxyz_arr(1,1,2)=5 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=0
@@ -2941,15 +2941,15 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.4) then
    fac_arr(4,2)=-0.09402415739519023846534044d0
    fac_arr(5,2)=-0.2820724721855707153960213d0
    fac_arr(6,2)=-0.07051811804639267884900533d0
-   fac_arr(7,2)=-0.01175301967439877980816756/rhol**2d0
-   fac_arr(8,2)=0.01175301967439877980816756/rhol**2d0
-   fac_arr(9,2)=0.05876509837199389904083778/rhol**2d0
-   fac_arr(10,2)=0.03525905902319633942450267/rhol**2d0
-   fac_arr(11,2)=-0.02350603934879755961633511/rhol**2d0
-   fac_arr(12,2)=0.04701207869759511923267022/rhol**2d0
-   fac_arr(13,2)=0.07051811804639267884900533/rhol**2d0
-   fac_arr(14,2)=-0.01175301967439877980816756/rhol**2d0
-   fac_arr(15,2)=0.03525905902319633942450267/rhol**2d0
+   fac_arr(7,2)=-0.01175301967439877980816756d0/rhol**2d0
+   fac_arr(8,2)=0.01175301967439877980816756d0/rhol**2d0
+   fac_arr(9,2)=0.05876509837199389904083778d0/rhol**2d0
+   fac_arr(10,2)=0.03525905902319633942450267d0/rhol**2d0
+   fac_arr(11,2)=-0.02350603934879755961633511d0/rhol**2d0
+   fac_arr(12,2)=0.04701207869759511923267022d0/rhol**2d0
+   fac_arr(13,2)=0.07051811804639267884900533d0/rhol**2d0
+   fac_arr(14,2)=-0.01175301967439877980816756d0/rhol**2d0
+   fac_arr(15,2)=0.03525905902319633942450267d0/rhol**2d0
    lxyz_arr(1,1,3)=5 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=1
@@ -2969,15 +2969,15 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.4) then
    fac_arr(3,3)=-0.1410362360927853576980107d0
    fac_arr(4,3)=0.04701207869759511923267022d0
    fac_arr(5,3)=-0.1410362360927853576980107d0
-   fac_arr(6,3)=-0.01175301967439877980816756/rhol**2d0
-   fac_arr(7,3)=0.01175301967439877980816756/rhol**2d0
-   fac_arr(8,3)=0.05876509837199389904083778/rhol**2d0
-   fac_arr(9,3)=0.03525905902319633942450267/rhol**2d0
-   fac_arr(10,3)=-0.02350603934879755961633511/rhol**2d0
-   fac_arr(11,3)=0.04701207869759511923267022/rhol**2d0
-   fac_arr(12,3)=0.07051811804639267884900533/rhol**2d0
-   fac_arr(13,3)=-0.01175301967439877980816756/rhol**2d0
-   fac_arr(14,3)=0.03525905902319633942450267/rhol**2d0
+   fac_arr(6,3)=-0.01175301967439877980816756d0/rhol**2d0
+   fac_arr(7,3)=0.01175301967439877980816756d0/rhol**2d0
+   fac_arr(8,3)=0.05876509837199389904083778d0/rhol**2d0
+   fac_arr(9,3)=0.03525905902319633942450267d0/rhol**2d0
+   fac_arr(10,3)=-0.02350603934879755961633511d0/rhol**2d0
+   fac_arr(11,3)=0.04701207869759511923267022d0/rhol**2d0
+   fac_arr(12,3)=0.07051811804639267884900533d0/rhol**2d0
+   fac_arr(13,3)=-0.01175301967439877980816756d0/rhol**2d0
+   fac_arr(14,3)=0.03525905902319633942450267d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.3 .and. m.eq.5) then
    nterm_arr(1)=15
    nterm_arr(2)=18
@@ -3003,15 +3003,15 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.5) then
    fac_arr(4,1)=-0.2820724721855707153960213d0
    fac_arr(5,1)=-0.09402415739519023846534044d0
    fac_arr(6,1)=-0.07051811804639267884900533d0
-   fac_arr(7,1)=0.03525905902319633942450267/rhol**2d0
-   fac_arr(8,1)=0.05876509837199389904083778/rhol**2d0
-   fac_arr(9,1)=0.01175301967439877980816756/rhol**2d0
-   fac_arr(10,1)=-0.01175301967439877980816756/rhol**2d0
-   fac_arr(11,1)=0.07051811804639267884900533/rhol**2d0
-   fac_arr(12,1)=0.04701207869759511923267022/rhol**2d0
-   fac_arr(13,1)=-0.02350603934879755961633511/rhol**2d0
-   fac_arr(14,1)=0.03525905902319633942450267/rhol**2d0
-   fac_arr(15,1)=-0.01175301967439877980816756/rhol**2d0
+   fac_arr(7,1)=0.03525905902319633942450267d0/rhol**2d0
+   fac_arr(8,1)=0.05876509837199389904083778d0/rhol**2d0
+   fac_arr(9,1)=0.01175301967439877980816756d0/rhol**2d0
+   fac_arr(10,1)=-0.01175301967439877980816756d0/rhol**2d0
+   fac_arr(11,1)=0.07051811804639267884900533d0/rhol**2d0
+   fac_arr(12,1)=0.04701207869759511923267022d0/rhol**2d0
+   fac_arr(13,1)=-0.02350603934879755961633511d0/rhol**2d0
+   fac_arr(14,1)=0.03525905902319633942450267d0/rhol**2d0
+   fac_arr(15,1)=-0.01175301967439877980816756d0/rhol**2d0
    lxyz_arr(1,1,2)=6 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
    lxyz_arr(1,2,2)=4 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
    lxyz_arr(1,3,2)=2 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
@@ -3039,15 +3039,15 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.5) then
    fac_arr(7,2)=0.1175301967439877980816756d0
    fac_arr(8,2)=-0.03525905902319633942450267d0
    fac_arr(9,2)=0.03525905902319633942450267d0
-   fac_arr(10,2)=0.03525905902319633942450267/rhol**2d0
-   fac_arr(11,2)=0.05876509837199389904083778/rhol**2d0
-   fac_arr(12,2)=0.01175301967439877980816756/rhol**2d0
-   fac_arr(13,2)=-0.01175301967439877980816756/rhol**2d0
-   fac_arr(14,2)=0.07051811804639267884900533/rhol**2d0
-   fac_arr(15,2)=0.04701207869759511923267022/rhol**2d0
-   fac_arr(16,2)=-0.02350603934879755961633511/rhol**2d0
-   fac_arr(17,2)=0.03525905902319633942450267/rhol**2d0
-   fac_arr(18,2)=-0.01175301967439877980816756/rhol**2d0
+   fac_arr(10,2)=0.03525905902319633942450267d0/rhol**2d0
+   fac_arr(11,2)=0.05876509837199389904083778d0/rhol**2d0
+   fac_arr(12,2)=0.01175301967439877980816756d0/rhol**2d0
+   fac_arr(13,2)=-0.01175301967439877980816756d0/rhol**2d0
+   fac_arr(14,2)=0.07051811804639267884900533d0/rhol**2d0
+   fac_arr(15,2)=0.04701207869759511923267022d0/rhol**2d0
+   fac_arr(16,2)=-0.02350603934879755961633511d0/rhol**2d0
+   fac_arr(17,2)=0.03525905902319633942450267d0/rhol**2d0
+   fac_arr(18,2)=-0.01175301967439877980816756d0/rhol**2d0
    lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
    lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
    lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=5 ; lxyz_arr(3,3,3)=1
@@ -3067,15 +3067,15 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.5) then
    fac_arr(3,3)=0.04701207869759511923267022d0
    fac_arr(4,3)=-0.1410362360927853576980107d0
    fac_arr(5,3)=0.04701207869759511923267022d0
-   fac_arr(6,3)=0.03525905902319633942450267/rhol**2d0
-   fac_arr(7,3)=0.05876509837199389904083778/rhol**2d0
-   fac_arr(8,3)=0.01175301967439877980816756/rhol**2d0
-   fac_arr(9,3)=-0.01175301967439877980816756/rhol**2d0
-   fac_arr(10,3)=0.07051811804639267884900533/rhol**2d0
-   fac_arr(11,3)=0.04701207869759511923267022/rhol**2d0
-   fac_arr(12,3)=-0.02350603934879755961633511/rhol**2d0
-   fac_arr(13,3)=0.03525905902319633942450267/rhol**2d0
-   fac_arr(14,3)=-0.01175301967439877980816756/rhol**2d0
+   fac_arr(6,3)=0.03525905902319633942450267d0/rhol**2d0
+   fac_arr(7,3)=0.05876509837199389904083778d0/rhol**2d0
+   fac_arr(8,3)=0.01175301967439877980816756d0/rhol**2d0
+   fac_arr(9,3)=-0.01175301967439877980816756d0/rhol**2d0
+   fac_arr(10,3)=0.07051811804639267884900533d0/rhol**2d0
+   fac_arr(11,3)=0.04701207869759511923267022d0/rhol**2d0
+   fac_arr(12,3)=-0.02350603934879755961633511d0/rhol**2d0
+   fac_arr(13,3)=0.03525905902319633942450267d0/rhol**2d0
+   fac_arr(14,3)=-0.01175301967439877980816756d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.3 .and. m.eq.6) then
    nterm_arr(1)=13
    nterm_arr(2)=13
@@ -3098,14 +3098,14 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.6) then
    fac_arr(3,1)=-0.05757780227833739750818811d0
    fac_arr(4,1)=0.2303112091133495900327524d0
    fac_arr(5,1)=0.05757780227833739750818811d0
-   fac_arr(6,1)=-0.02878890113916869875409405/rhol**2d0
-   fac_arr(7,1)=-0.02878890113916869875409405/rhol**2d0
-   fac_arr(8,1)=0.02878890113916869875409405/rhol**2d0
-   fac_arr(9,1)=0.02878890113916869875409405/rhol**2d0
-   fac_arr(10,1)=-0.05757780227833739750818811/rhol**2d0
-   fac_arr(11,1)=0.05757780227833739750818811/rhol**2d0
-   fac_arr(12,1)=-0.02878890113916869875409405/rhol**2d0
-   fac_arr(13,1)=0.02878890113916869875409405/rhol**2d0
+   fac_arr(6,1)=-0.02878890113916869875409405d0/rhol**2d0
+   fac_arr(7,1)=-0.02878890113916869875409405d0/rhol**2d0
+   fac_arr(8,1)=0.02878890113916869875409405d0/rhol**2d0
+   fac_arr(9,1)=0.02878890113916869875409405d0/rhol**2d0
+   fac_arr(10,1)=-0.05757780227833739750818811d0/rhol**2d0
+   fac_arr(11,1)=0.05757780227833739750818811d0/rhol**2d0
+   fac_arr(12,1)=-0.02878890113916869875409405d0/rhol**2d0
+   fac_arr(13,1)=0.02878890113916869875409405d0/rhol**2d0
    lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=1
    lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=1
@@ -3124,14 +3124,14 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.6) then
    fac_arr(3,2)=-0.1727334068350121925245643d0
    fac_arr(4,2)=-0.2303112091133495900327524d0
    fac_arr(5,2)=-0.05757780227833739750818811d0
-   fac_arr(6,2)=-0.02878890113916869875409405/rhol**2d0
-   fac_arr(7,2)=-0.02878890113916869875409405/rhol**2d0
-   fac_arr(8,2)=0.02878890113916869875409405/rhol**2d0
-   fac_arr(9,2)=0.02878890113916869875409405/rhol**2d0
-   fac_arr(10,2)=-0.05757780227833739750818811/rhol**2d0
-   fac_arr(11,2)=0.05757780227833739750818811/rhol**2d0
-   fac_arr(12,2)=-0.02878890113916869875409405/rhol**2d0
-   fac_arr(13,2)=0.02878890113916869875409405/rhol**2d0
+   fac_arr(6,2)=-0.02878890113916869875409405d0/rhol**2d0
+   fac_arr(7,2)=-0.02878890113916869875409405d0/rhol**2d0
+   fac_arr(8,2)=0.02878890113916869875409405d0/rhol**2d0
+   fac_arr(9,2)=0.02878890113916869875409405d0/rhol**2d0
+   fac_arr(10,2)=-0.05757780227833739750818811d0/rhol**2d0
+   fac_arr(11,2)=0.05757780227833739750818811d0/rhol**2d0
+   fac_arr(12,2)=-0.02878890113916869875409405d0/rhol**2d0
+   fac_arr(13,2)=0.02878890113916869875409405d0/rhol**2d0
    lxyz_arr(1,1,3)=6 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=4 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
    lxyz_arr(1,3,3)=2 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=0
@@ -3156,14 +3156,14 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.6) then
    fac_arr(6,3)=-0.1727334068350121925245643d0
    fac_arr(7,3)=0.1439445056958434937704703d0
    fac_arr(8,3)=-0.1439445056958434937704703d0
-   fac_arr(9,3)=-0.02878890113916869875409405/rhol**2d0
-   fac_arr(10,3)=-0.02878890113916869875409405/rhol**2d0
-   fac_arr(11,3)=0.02878890113916869875409405/rhol**2d0
-   fac_arr(12,3)=0.02878890113916869875409405/rhol**2d0
-   fac_arr(13,3)=-0.05757780227833739750818811/rhol**2d0
-   fac_arr(14,3)=0.05757780227833739750818811/rhol**2d0
-   fac_arr(15,3)=-0.02878890113916869875409405/rhol**2d0
-   fac_arr(16,3)=0.02878890113916869875409405/rhol**2d0
+   fac_arr(9,3)=-0.02878890113916869875409405d0/rhol**2d0
+   fac_arr(10,3)=-0.02878890113916869875409405d0/rhol**2d0
+   fac_arr(11,3)=0.02878890113916869875409405d0/rhol**2d0
+   fac_arr(12,3)=0.02878890113916869875409405d0/rhol**2d0
+   fac_arr(13,3)=-0.05757780227833739750818811d0/rhol**2d0
+   fac_arr(14,3)=0.05757780227833739750818811d0/rhol**2d0
+   fac_arr(15,3)=-0.02878890113916869875409405d0/rhol**2d0
+   fac_arr(16,3)=0.02878890113916869875409405d0/rhol**2d0
 else if (l.eq.4 .and. i.eq.3 .and. m.eq.7) then
    nterm_arr(1)=12
    nterm_arr(2)=12
@@ -3186,12 +3186,12 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.7) then
    fac_arr(4,1)=0.3454668136700243850491286d0
    fac_arr(5,1)=0.1151556045566747950163762d0
    fac_arr(6,1)=0.05757780227833739750818811d0
-   fac_arr(7,1)=-0.05757780227833739750818811/rhol**2d0
-   fac_arr(8,1)=-0.1151556045566747950163762/rhol**2d0
-   fac_arr(9,1)=-0.05757780227833739750818811/rhol**2d0
-   fac_arr(10,1)=-0.1151556045566747950163762/rhol**2d0
-   fac_arr(11,1)=-0.1151556045566747950163762/rhol**2d0
-   fac_arr(12,1)=-0.05757780227833739750818811/rhol**2d0
+   fac_arr(7,1)=-0.05757780227833739750818811d0/rhol**2d0
+   fac_arr(8,1)=-0.1151556045566747950163762d0/rhol**2d0
+   fac_arr(9,1)=-0.05757780227833739750818811d0/rhol**2d0
+   fac_arr(10,1)=-0.1151556045566747950163762d0/rhol**2d0
+   fac_arr(11,1)=-0.1151556045566747950163762d0/rhol**2d0
+   fac_arr(12,1)=-0.05757780227833739750818811d0/rhol**2d0
    lxyz_arr(1,1,2)=5 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
    lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
    lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=1
@@ -3210,12 +3210,12 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.7) then
    fac_arr(4,2)=0.1151556045566747950163762d0
    fac_arr(5,2)=0.3454668136700243850491286d0
    fac_arr(6,2)=0.05757780227833739750818811d0
-   fac_arr(7,2)=-0.05757780227833739750818811/rhol**2d0
-   fac_arr(8,2)=-0.1151556045566747950163762/rhol**2d0
-   fac_arr(9,2)=-0.05757780227833739750818811/rhol**2d0
-   fac_arr(10,2)=-0.1151556045566747950163762/rhol**2d0
-   fac_arr(11,2)=-0.1151556045566747950163762/rhol**2d0
-   fac_arr(12,2)=-0.05757780227833739750818811/rhol**2d0
+   fac_arr(7,2)=-0.05757780227833739750818811d0/rhol**2d0
+   fac_arr(8,2)=-0.1151556045566747950163762d0/rhol**2d0
+   fac_arr(9,2)=-0.05757780227833739750818811d0/rhol**2d0
+   fac_arr(10,2)=-0.1151556045566747950163762d0/rhol**2d0
+   fac_arr(11,2)=-0.1151556045566747950163762d0/rhol**2d0
+   fac_arr(12,2)=-0.05757780227833739750818811d0/rhol**2d0
    lxyz_arr(1,1,3)=5 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
    lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=0
    lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=5 ; lxyz_arr(3,3,3)=0
@@ -3234,12 +3234,12 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.7) then
    fac_arr(4,3)=0.3454668136700243850491286d0
    fac_arr(5,3)=0.3454668136700243850491286d0
    fac_arr(6,3)=0.2878890113916869875409405d0
-   fac_arr(7,3)=-0.05757780227833739750818811/rhol**2d0
-   fac_arr(8,3)=-0.1151556045566747950163762/rhol**2d0
-   fac_arr(9,3)=-0.05757780227833739750818811/rhol**2d0
-   fac_arr(10,3)=-0.1151556045566747950163762/rhol**2d0
-   fac_arr(11,3)=-0.1151556045566747950163762/rhol**2d0
-   fac_arr(12,3)=-0.05757780227833739750818811/rhol**2d0
+   fac_arr(7,3)=-0.05757780227833739750818811d0/rhol**2d0
+   fac_arr(8,3)=-0.1151556045566747950163762d0/rhol**2d0
+   fac_arr(9,3)=-0.05757780227833739750818811d0/rhol**2d0
+   fac_arr(10,3)=-0.1151556045566747950163762d0/rhol**2d0
+   fac_arr(11,3)=-0.1151556045566747950163762d0/rhol**2d0
+   fac_arr(12,3)=-0.05757780227833739750818811d0/rhol**2d0
 else
    stop 'PSP format error'
 end if

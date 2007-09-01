@@ -168,7 +168,7 @@ subroutine ctrig(n,trig,after,before,now,isign,ic)
 !  write(6,"(6(i3))") (before(i),i=1,ic)
 
   twopi=6.283185307179586d0
-  angle=isign*twopi/n
+  angle=real(isign,kind=8)*twopi/real(n,kind=8)
   if (mod(n,2).eq.0) then
      nh=n/2
      trig(1,1)=1.d0
@@ -176,8 +176,8 @@ subroutine ctrig(n,trig,after,before,now,isign,ic)
      trig(1,nh+1)=-1.d0
      trig(2,nh+1)=0.d0
      do i=1,nh-1
-        trigc=cos(i*angle)
-        trigs=sin(i*angle)
+        trigc=cos(real(i,kind=8)*angle)
+        trigs=sin(real(i,kind=8)*angle)
         trig(1,i+1)=trigc
         trig(2,i+1)=trigs
         trig(1,n-i+1)=trigc
@@ -188,8 +188,8 @@ subroutine ctrig(n,trig,after,before,now,isign,ic)
      trig(1,1)=1.d0
      trig(2,1)=0.d0
      do i=1,nh
-        trigc=cos(i*angle)
-        trigs=sin(i*angle)
+        trigc=cos(real(i,kind=8)*angle)
+        trigs=sin(real(i,kind=8)*angle)
         trig(1,i+1)=trigc
         trig(2,i+1)=trigs
         trig(1,n-i+1)=trigc
@@ -1134,7 +1134,7 @@ subroutine fftstp(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
 
   else if (now.eq.3) then
 !         .5d0*sqrt(3.d0)
-     bb=isign*0.8660254037844387d0
+     bb=real(isign,kind=8)*0.8660254037844387d0
      ia=1
      nin1=ia-after
      nout1=ia-atn
@@ -1352,9 +1352,9 @@ subroutine fftstp(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
 !     cos(4.d0*pi/5.d0)
      cos4=-0.8090169943749474d0
 !     sin(2.d0*pi/5.d0)
-     sin2=isign*0.9510565162951536d0
+     sin2=real(isign,kind=8)*0.9510565162951536d0
 !      sin(4.d0*pi/5.d0)
-     sin4=isign*0.5877852522924731d0
+     sin4=real(isign,kind=8)*0.5877852522924731d0
      ia=1
      nin1=ia-after
      nout1=ia-atn
@@ -1607,7 +1607,7 @@ subroutine fftstp(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
 
   else if (now.eq.6) then
 !     .5d0*sqrt(3.d0)
-     bb=isign*0.8660254037844387d0
+     bb=real(isign,kind=8)*0.8660254037844387d0
      ia=1
      nin1=ia-after
      nout1=ia-atn

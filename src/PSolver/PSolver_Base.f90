@@ -1003,8 +1003,8 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   !Calculating array of phases for HalFFT decoding
   twopion=8.d0*datan(1.d0)/real(n3,kind=8)
   do i3=1,n3/2
-     cosinarr(1,i3)=dcos(twopion*(i3-1))
-     cosinarr(2,i3)=-dsin(twopion*(i3-1))
+     cosinarr(1,i3)= dcos(twopion*real(i3-1,kind=8))
+     cosinarr(2,i3)=-dsin(twopion*real(i3-1,kind=8))
   end do
 
   !initializing integral
@@ -1822,8 +1822,8 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   !Calculating array of phases for HalFFT decoding
   twopion=8.d0*datan(1.d0)/real(n3,kind=8)
   do i3=1,n3/2
-     cosinarr(1,i3)=dcos(twopion*(i3-1))
-     cosinarr(2,i3)=-dsin(twopion*(i3-1))
+     cosinarr(1,i3)= dcos(twopion*real(i3-1,kind=8))
+     cosinarr(2,i3)=-dsin(twopion*real(i3-1,kind=8))
   end do
 
   !initializing integrals

@@ -153,7 +153,7 @@
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  3.35620101302E+00 -5.35043972467E+00  6.47617254442E-01
  Total energy with tail correction -5.318270575766E+00
-- iproc, elapsed, CPU time     0        23.76        22.61
+- iproc, elapsed, CPU time     0        24.04        23.36
  Final values of the Forces for each atom
      1  C_lda  1.01639E-03  1.11134E-03  1.13723E-03
  the sum of the forces is
@@ -161,6 +161,6 @@
       y direction     1.11133561E-03
       z direction     1.13723075E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1906 allocations and 1906 deallocations, remaining memory(B):0
+ 1908 allocations and 1908 deallocations, remaining memory(B):0
  memory occupation peak: 110 MB
  for the array  ypsig_f in the routine calc_grad_reza

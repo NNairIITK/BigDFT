@@ -369,7 +369,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   nt=0
   do iorb=1,norb
      it=min(2,nelec-nt)
-     occup(iorb)=it
+     occup(iorb)=real(it,kind=8)
      nt=nt+it
   enddo
 
@@ -444,9 +444,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   n2=int(alat2/hgrid)
   !if (mod(n2+1,8).eq.0) n2=n2+1
   n3=int(alat3/hgrid)
-  alat1=n1*hgrid 
-  alat2=n2*hgrid 
-  alat3=n3*hgrid
+  alat1=real(n1,kind=8)*hgrid 
+  alat2=real(n2,kind=8)*hgrid 
+  alat3=real(n3,kind=8)*hgrid
   if (iproc.eq.0) then 
      write(*,'(1x,a,3(1x,1pe12.5))') &
           '   Shift of=',-cxmin,-cymin,-czmin
@@ -630,7 +630,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
-        write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/norb
+        write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/real(norb,kind=8)
      endif
 
      if (parallel) then
@@ -1550,7 +1550,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      tt=gnrm
      call MPI_ALLREDUCE(tt,gnrm,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
   endif
-  gnrm=sqrt(gnrm/norb)
+  gnrm=sqrt(gnrm/real(norb,kind=8))
 
   call timing(iproc,'Precondition  ','ON')
   if (iproc==0) then
@@ -1768,7 +1768,8 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
         do i2=0,n2  
            do i1=0,n1
               if (logrid_c(i1,i2,i3))&
-                   write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  g '
+                   write(22,'(3(1x,e10.3),1x,a4)') &
+                        real(i1,kind=8)*hgrid,real(2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  g '
            enddo
         enddo
      end do
@@ -1788,7 +1789,8 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
         do i2=0,n2 
            do i1=0,n1
               if (logrid_f(i1,i2,i3))&
-                   write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  G '
+                   write(22,'(3(1x,e10.3),1x,a4)') &
+                        real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  G '
            enddo
         enddo
      enddo
@@ -2809,7 +2811,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
      write(*,'(1x,a)',advance='no')'Overlap Matrix...'
 
-     allocate(hamovr(ndim_hamovr,4),stat=i_stat)
+     allocate(hamovr(ndim_hamovr,2),stat=i_stat)
      call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','input_wf_diag')
      !hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
      iorbst=1
@@ -2899,7 +2901,6 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   if (iproc.eq.0) write(*,'(1x,a)')'done.'
 
-  return
 END SUBROUTINE input_wf_diag
 
 

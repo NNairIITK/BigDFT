@@ -62,9 +62,9 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   nb1=n1+2*nbuf
   nb2=n2+2*nbuf
   nb3=n3+2*nbuf
-  alatb1=nb1*hgrid 
-  alatb2=nb2*hgrid 
-  alatb3=nb3*hgrid
+  alatb1=real(nb1,kind=8)*hgrid 
+  alatb2=real(nb2,kind=8)*hgrid 
+  alatb3=real(nb3,kind=8)*hgrid
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -115,9 +115,9 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   allocate(txyz(3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(txyz))*kind(txyz),'txyz','calculatetailcorrection')
   do iat=1,nat
-     txyz(1,iat)=rxyz(1,iat)+nbuf*hgrid
-     txyz(2,iat)=rxyz(2,iat)+nbuf*hgrid
-     txyz(3,iat)=rxyz(3,iat)+nbuf*hgrid
+     txyz(1,iat)=rxyz(1,iat)+real(nbuf,kind=8)*hgrid
+     txyz(2,iat)=rxyz(2,iat)+real(nbuf,kind=8)*hgrid
+     txyz(3,iat)=rxyz(3,iat)+real(nbuf,kind=8)*hgrid
   enddo
 
   ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
@@ -184,7 +184,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
         do i2=0,nb2
            do i1=0,nb1
               if (logrid_c(i1,i2,i3)) then
-                 write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  g '
+                 write(22,'(3(1x,e10.3),1x,a4)') real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  g '
               end if
            enddo
         enddo
@@ -207,7 +207,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
         do i2=0,nb2 
            do i1=0,nb1
               if (logrid_f(i1,i2,i3)) then
-                 write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  G '
+                 write(22,'(3(1x,e10.3),1x,a4)') real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  G '
               end if
            enddo
         enddo
