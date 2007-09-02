@@ -636,7 +636,7 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
        zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
        aeval,ng,psi,res,chrg)
 
-  !postreatment of the inguess data
+  !post-treatment of the inguess data
   do i=1,ng+1
      expo(i)=sqrt(0.5d0/xp(i-1))
   end do

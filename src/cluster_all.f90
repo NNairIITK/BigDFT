@@ -9,9 +9,9 @@ module libBigDFT
   !- Initialisation methods.
   !- Create and allocate access arrays for wavefunctions.
   public :: createWavefunctionsDescriptors
-  !-Crete and allocate data descriptors for nonlocal PSP projectors
+  !-Create and allocate data descriptors for nonlocal PSP projectors
   public :: createProjectorsArrays
-  !- Compute input guess wavefunctions from aatomic orbitals.
+  !- Compute input guess wavefunctions from atomic orbitals.
   public :: input_wf_diag
   
   !- SCF handling

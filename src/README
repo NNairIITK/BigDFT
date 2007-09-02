@@ -1,23 +1,17 @@
+There are two programs:
+- cluster (file BigDFT.f90)
+- memguess (file memguess.f90) to estimate the necessary memory
+  ex: memguess nproc
 
-In this version the application of the local potential on the wavefunction 
-is done in a more efficient way. The wavefunction on the real space grid 'psir' 
-is calculated directly from the scaling function and wavelet coefficients 
-of the wavefunction without calculating an intermediate 'psifscf' (representation 
-of the wavefunction in fine scaling functions). In addition the convolutions 
-are now all done only for the nonzero coefficients and not over the entire 
-rectangular box. THis required the introduction of additional 'ib....' arrays.
-For the moment I send you only the routine 'convolut_simple.f90'. When I am back 
-from holidays I will send you the optimized OpenMP version 'convolut_optim_omp.f90'
-as well as OpenmP versions for other routines.
-All the new routines were written by Alexey. So please contact him if you have questions. 
+cluster and memguess read the input files (input.dat, posinp and psppar.<name of atom>) in the corresponding directory.
 
-In the Bigdft.f90 main program I have at present commented out the geometry optimization 
-part (call to call conjgrad).
+BigDFT.f90 performs a geometry optimization using a conjugate gradient algorithm and calls
+the routine cluster (cluster_all.f90).
 
-In case you want to contact me, you can reach me during my holidays most of the time 
-at 0049-8841-90179.
+The file cluster_all.f90 contains the routine cluster and all routines called by ABINIT as BigDFT is interfaced.
 
+Sub-directories:
 
-Stefan
-
-
+- "profiling" contains routines to profile times and memories
+- "PSolver" contains all routines for the different Poisson solver (isolated systems, surfaces, 3D periodic)
+- "convolutions" contains the routine performing the convolution
