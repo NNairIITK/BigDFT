@@ -10,7 +10,7 @@ PPFILES = \
 	psppar.H_lda \
 	psppar.Si_lda
 
-CLEANFILES = $(PPFILES) inguess.dat wavefunction* *.out posout* malloc time.prc
+CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* *.out posout* *.prc
 
 #dependencies
 $(PPFILES):

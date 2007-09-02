@@ -14,7 +14,7 @@ EXTRA_DIST = \
 	posinp \
 	Refs
 
-CLEANFILES = wavefunction*
+CLEANFILES =  
 
 all:
 	@echo "========================================"
