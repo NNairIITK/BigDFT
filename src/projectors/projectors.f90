@@ -79,11 +79,11 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
   !          write(*,*) 'rad_c=',rad_c
   mvctr=0
   do i3=nl3_c,nu3_c
-     dz2=(i3*hgrid-rz)**2
+     dz2=(real(i3,kind=8)*hgrid-rz)**2
      do i2=nl2_c,nu2_c
-        dy2=(i2*hgrid-ry)**2
+        dy2=(real(i2,kind=8)*hgrid-ry)**2
         do i1=nl1_c,nu1_c
-           dx=i1*hgrid-rx
+           dx=real(i1,kind=8)*hgrid-rx
            if (dx**2+(dy2+dz2).lt.rad_c**2) then
               mvctr=mvctr+1
               proj_c(mvctr)=wprojx(i1,1,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
@@ -96,11 +96,11 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
   ! First term: fine projector components
   mvctr=0
   do i3=nl3_f,nu3_f
-     dz2=(i3*hgrid-rz)**2
+     dz2=(real(i3,kind=8)*hgrid-rz)**2
      do i2=nl2_f,nu2_f
-        dy2=(i2*hgrid-ry)**2
+        dy2=(real(i2,kind=8)*hgrid-ry)**2
         do i1=nl1_f,nu1_f
-           dx=i1*hgrid-rx
+           dx=real(i1,kind=8)*hgrid-rx
            if (dx**2+(dy2+dz2).lt.rad_f**2) then
               mvctr=mvctr+1
               proj_f(1,mvctr)=wprojx(i1,2,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
@@ -122,11 +122,11 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
      ! Other terms: coarse projector components
      mvctr=0
      do i3=nl3_c,nu3_c
-        dz2=(i3*hgrid-rz)**2
+        dz2=(real(i3,kind=8)*hgrid-rz)**2
         do i2=nl2_c,nu2_c
-           dy2=(i2*hgrid-ry)**2
+           dy2=(real(i2,kind=8)*hgrid-ry)**2
            do i1=nl1_c,nu1_c
-              dx=i1*hgrid-rx
+              dx=real(i1,kind=8)*hgrid-rx
               if (dx**2+(dy2+dz2).lt.rad_c**2) then
                  mvctr=mvctr+1
                  proj_c(mvctr)=proj_c(mvctr)+wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
@@ -138,11 +138,11 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
      ! Other terms: fine projector components
      mvctr=0
      do i3=nl3_f,nu3_f
-        dz2=(i3*hgrid-rz)**2
+        dz2=(real(i3,kind=8)*hgrid-rz)**2
         do i2=nl2_f,nu2_f
-           dy2=(i2*hgrid-ry)**2
+           dy2=(real(i2,kind=8)*hgrid-ry)**2
            do i1=nl1_f,nu1_f
-              dx=i1*hgrid-rx
+              dx=real(i1,kind=8)*hgrid-rx
               if (dx**2+(dy2+dz2).lt.rad_f**2) then
                  mvctr=mvctr+1
                  proj_f(1,mvctr)=&

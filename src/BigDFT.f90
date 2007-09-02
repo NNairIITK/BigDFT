@@ -160,7 +160,7 @@ program BigDFT
   enddo
    
   if (ngeostep > 1) then
-     write(*,*) 'FINISHED FIRST CLUSTER',iproc,infocode
+     write(*,"(a,2i5)") 'FINISHED FIRST CLUSTER',iproc,infocode
      ! geometry optimization
      !    betax=2.d0   ! Cincodinine
      !    betax=4.d0  ! Si H_4

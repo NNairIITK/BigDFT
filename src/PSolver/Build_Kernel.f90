@@ -230,6 +230,8 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   !Local variables 
   !Better if higher (1024 points are enough 10^{-14}: 2*itype_scf*n_points)
   integer, parameter :: n_points = 2**6
+  !Maximum number of points for FFT (should be same number in fft3d routine)
+  integer, parameter :: nfft_max=24000
   
   real(kind=8), dimension(:), allocatable :: kernel_scf
   real(kind=8), dimension(:), allocatable :: x_scf ,y_scf
@@ -356,7 +358,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   call memocc(i_stat,product(shape(halfft_cache))*kind(halfft_cache),'halfft_cache','surfaces_kernel')
   allocate(cossinarr(2,n3/2-1),stat=i_stat)
   call memocc(i_stat,product(shape(cossinarr))*kind(cossinarr),'cossinarr','surfaces_kernel')
-  allocate(btrig(2,8192),stat=i_stat)
+  allocate(btrig(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(btrig))*kind(btrig),'btrig','surfaces_kernel')
   allocate(after(7),stat=i_stat)
   call memocc(i_stat,product(shape(after))*kind(after),'after','surfaces_kernel')
@@ -1221,6 +1223,8 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   real(kind=8), dimension(n1/2+1,n3/2+1,nd2/nproc), intent(in) :: zf
   real(kind=8), dimension(nk1,nk2,nk3/nproc), intent(inout) :: zr
   !Local variables
+  !Maximum number of points for FFT (should be same number in fft3d routine)
+  integer, parameter :: nfft_max=24000
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2st,J2st
   integer :: j2,j3,i1,i3,i,j,inzee,ierr,i_all,i_stat
   real(kind=8) :: twopion
@@ -1253,7 +1257,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   if (mod(n2,4).eq.0) lzt=lzt+1
   
   !Allocations
-  allocate(trig1(2,8192),stat=i_stat)
+  allocate(trig1(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(trig1))*kind(trig1),'trig1','kernelfft')
   allocate(after1(7),stat=i_stat)
   call memocc(i_stat,product(shape(after1))*kind(after1),'after1','kernelfft')
@@ -1261,7 +1265,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   call memocc(i_stat,product(shape(now1))*kind(now1),'now1','kernelfft')
   allocate(before1(7),stat=i_stat)
   call memocc(i_stat,product(shape(before1))*kind(before1),'before1','kernelfft')
-  allocate(trig2(2,8192),stat=i_stat)
+  allocate(trig2(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(trig2))*kind(trig2),'trig2','kernelfft')
   allocate(after2(7),stat=i_stat)
   call memocc(i_stat,product(shape(after2))*kind(after2),'after2','kernelfft')
@@ -1269,7 +1273,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   call memocc(i_stat,product(shape(now2))*kind(now2),'now2','kernelfft')
   allocate(before2(7),stat=i_stat)
   call memocc(i_stat,product(shape(before2))*kind(before2),'before2','kernelfft')
-  allocate(trig3(2,8192),stat=i_stat)
+  allocate(trig3(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(trig3))*kind(trig3),'trig3','kernelfft')
   allocate(after3(7),stat=i_stat)
   call memocc(i_stat,product(shape(after3))*kind(after3),'after3','kernelfft')

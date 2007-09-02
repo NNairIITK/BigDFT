@@ -187,7 +187,7 @@ subroutine timing(iproc,category,action)
      !total elapsed time
      call cpu_time(total)
      total=total-total0
-     timesum(ncat+1)=total
+     timesum(ncat+1)=real(total,kind=8)
 
      !time for other categories
      call system_clock(iend,count_rate,count_max)
@@ -209,7 +209,7 @@ subroutine timing(iproc,category,action)
            timemin(i)=timesum(i)
         enddo
      endif
-     total=timemax(ncat+1)
+     total=real(timemax(ncat+1),kind=4)
 
      if (iproc.eq.0) then
         open(unit=60,file='time.prc',status='unknown')
@@ -321,8 +321,8 @@ subroutine memocc(istat,isize,array,routine)
   select case(array)
      case('count')
         if (routine=='start') then
-           memory=0
-           maxmemory=0
+           memory=int(0,kind=8)
+           maxmemory=int(0,kind=8)
            nalloc=0
            ndealloc=0
            locroutine='routine'
@@ -337,14 +337,15 @@ subroutine memocc(istat,isize,array,routine)
                 'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
         else if (routine=='stop' .and. iproc==0) then
            write(98,'(a32,a14,4(1x,i12))')&
-                trim(locroutine),trim(locarray),locmemory/1024,locpeak/1024,memory/1024,&
-                      (memory+locpeak-locmemory)/1024
+                trim(locroutine),trim(locarray),&
+                locmemory/1024,locpeak/1024,memory/int(1024,kind=8),&
+                (memory+int(locpeak-locmemory,kind=8))/int(1024,kind=8)
            close(98)
            write(*,'(1x,a)')&
                 '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
            write(*,'(1x,2(i0,a),i0)')&
                 nalloc,' allocations and ',ndealloc,' deallocations, remaining memory(B):',memory
-           write(*,'(1x,a,i0,a)') 'memory occupation peak: ',maxmemory/1048576,' MB'
+           write(*,'(1x,a,i0,a)') 'memory occupation peak: ',maxmemory/int(1048576,kind=8),' MB'
            write(*,'(4(1x,a))') 'for the array ',trim(maxarray),'in the routine',trim(maxroutine)
         end if
         
@@ -366,8 +367,9 @@ subroutine memocc(istat,isize,array,routine)
               !write(98,'(a32,a14,4(1x,i12))')trim(routine),trim(array),isize,memory
               if (trim(locroutine) /= routine) then
                  write(98,'(a32,a14,4(1x,i12))')&
-                      trim(locroutine),trim(locarray),locmemory/1024,locpeak/1024,memory/1024,&
-                      (memory+locpeak-locmemory)/1024
+                      trim(locroutine),trim(locarray),&
+                      locmemory/1024,locpeak/1024,memory/int(1024,kind=8),&
+                      (memory+int(locpeak-locmemory,kind=8))/int(1024,kind=8)
                  locroutine=routine
                  locarray=array
                  locmemory=isize
@@ -381,7 +383,7 @@ subroutine memocc(istat,isize,array,routine)
 
               end if
 
-              memory=memory+isize
+              memory=memory+int(isize,kind=8)
               if (memory > maxmemory) then
                  maxmemory=memory
                  maxroutine=routine
@@ -449,7 +451,8 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
         do i2=0,n2  
            do i1=0,n1
               if (logrid(i1,i2,i3))&
-                   write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  g '
+                   write(22,'(3(1x,e10.3),1x,a4)') &
+                        real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  g '
            enddo
         enddo
      end do
@@ -464,7 +467,8 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
         do i2=0,n2 
            do i1=0,n1
               if (logrid(i1,i2,i3))&
-                   write(22,'(3(1x,e10.3),1x,a4)') i1*hgrid,i2*hgrid,i3*hgrid,'  G '
+                   write(22,'(3(1x,e10.3),1x,a4)') &
+                        real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  G '
            enddo
         enddo
      enddo
@@ -553,14 +557,14 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
      tmemker=19.d0*omemker
      tmemden=omemwf+(3.d0+tt)*omempot+omemker
      tmemps=12.d0*omemden+omemwf+omemker
-     tmemha=(3.d0+2*tt)*omempot+omemwf+omemker
+     tmemha=(3.d0+2.d0*tt)*omempot+omemwf+omemker
   else
      write(*,'(1x,a)')&
        '      ~11*K         |       ~W+(~3)*U      |     ~8*D+*W     |       ~W+(~3)*U '
      tmemker=11.d0*omemker
      tmemden=omemwf+(2.d0+tt)*omempot+omemker
      tmemps=8.d0*omemden+omemwf+omemker
-     tmemha=(2.d0+2*tt)*omempot+omemwf+omemker
+     tmemha=(2.d0+2.d0*tt)*omempot+omemwf+omemker
   end if
   write(*,'(1x,4(1x,i8,a))')&
        int(tmemker/1048576.d0),'MB         | ',int(tmemden/1048576.d0),'MB          |',&
@@ -568,8 +572,8 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
   write(*,'(1x,a,i0,a)')&
        'The overall memory requirement needed for this calculation is thus: ',&
        int(max(tmemker,tmemden,tmemps,tmemha)/1048576.d0),' MB'
-  tminamount=real(3*(nvctr_c+7*nvctr_f)*8,kind=8)+3.d0*n01*n02+&
-       (3.d0+2*tt)*omempot
+  tminamount=real(3*(nvctr_c+7*nvctr_f)*8,kind=8)+3.d0*real(n01*n02,kind=8)+&
+       (3.d0+2.d0*tt)*omempot
   write(*,'(1x,a)')&
        'By reducing the DIIS history and/or decreasing the number of processors the amount of'
   write(*,'(1x,a,i0,a)')&
