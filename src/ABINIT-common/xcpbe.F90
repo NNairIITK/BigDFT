@@ -383,7 +383,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
  end if
 
 
- if (order==3 .and. nspden == 1) d2vxci(:)=0_dp
+ if (order==3 .and. nspden == 1) d2vxci(:)=zero
 
 !!!Loop unrolling summary
 ! Completely unrolled for spin non-polarized case
@@ -467,7 +467,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -634,7 +634,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -786,7 +786,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
           end do
 
@@ -830,7 +830,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
 
              ! Correlation has been added
@@ -866,7 +866,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -923,7 +923,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -1023,7 +1023,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -1047,13 +1047,13 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
                   &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
              ec0_q1ppp = 0.75_dp*ec0_aa*(rsm1_2**5)*(ec0_b1-ec0_b3*rs)
-             ec0_f1 = 1_dp/(ec0_q1*ec0_q1*(1_dp + ec0_q1))
-             ec0_f2 = 1_dp/(ec0_q1*(1+ec0_q1))
-             d3ecrs0_drs3 = 6_dp*ec0_q1p*ec0_f1*(-2_dp*ec0_aa*ec0_a1*ec0_q1p + &
+             ec0_f1 = one/(ec0_q1*ec0_q1*(one + ec0_q1))
+             ec0_f2 = one/(ec0_q1*(1._dp+ec0_q1))
+             d3ecrs0_drs3 = 6._dp*ec0_q1p*ec0_f1*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + &
                   &        ec0_q0*ec0_q1pp) - &
-                  &        ec0_f2*(-6_dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
-                  &        ec0_f2*(3_dp*ec0_q1p*(-2_dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
-                  &        ec0_f2*2_dp*ec0_q0*(ec0_q1p**3)*(1_dp + 3_dp*ec0_q1*(1_dp + ec0_q1))))
+                  &        ec0_f2*(-6._dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
+                  &        ec0_f2*(3._dp*ec0_q1p*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
+                  &        ec0_f2*2._dp*ec0_q0*(ec0_q1p**3)*(one + 3._dp*ec0_q1*(one + ec0_q1))))
 
              mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
              mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
@@ -1322,7 +1322,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -1346,13 +1346,13 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
                   &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
              ec0_q1ppp = 0.75_dp*ec0_aa*(rsm1_2**5)*(ec0_b1-ec0_b3*rs)
-             ec0_f1 = 1_dp/(ec0_q1*ec0_q1*(1_dp + ec0_q1))
-             ec0_f2 = 1_dp/(ec0_q1*(1+ec0_q1))
-             d3ecrs0_drs3 = 6_dp*ec0_q1p*ec0_f1*(-2_dp*ec0_aa*ec0_a1*ec0_q1p + &
+             ec0_f1 = one/(ec0_q1*ec0_q1*(one + ec0_q1))
+             ec0_f2 = one/(ec0_q1*(1._dp+ec0_q1))
+             d3ecrs0_drs3 = 6._dp*ec0_q1p*ec0_f1*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + &
                   &        ec0_q0*ec0_q1pp) - &
-                  &        ec0_f2*(-6_dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
-                  &        ec0_f2*(3_dp*ec0_q1p*(-2_dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
-                  &        ec0_f2*2_dp*ec0_q0*(ec0_q1p**3)*(1_dp + 3_dp*ec0_q1*(1_dp + ec0_q1))))
+                  &        ec0_f2*(-6._dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
+                  &        ec0_f2*(3._dp*ec0_q1p*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
+                  &        ec0_f2*2._dp*ec0_q0*(ec0_q1p**3)*(one + 3._dp*ec0_q1*(one + ec0_q1))))
 
              mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
              mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
@@ -1587,10 +1587,10 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxci(ipts,1)=dvxci(ipts,1)*half
              ! Compute the second derivative of vx
              ! vx^(2) = -2*vx^(1)/(3*rhotot)
-             d2vxci(ipts) = -2_dp*dvxci(ipts,1)/(3_dp*rhotot)
+             d2vxci(ipts) = -2._dp*dvxci(ipts,1)/(3._dp*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -1659,7 +1659,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -1703,10 +1703,10 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxci(ipts,1)=dvxci(ipts,1)*half
              ! Compute the second derivative of vx
              ! vx^(2) = -2*vx^(1)/(3*rhotot)
-             d2vxci(ipts) = -2_dp*dvxci(ipts,1)/(3_dp*rhotot)
+             d2vxci(ipts) = -2._dp*dvxci(ipts,1)/(3._dp*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -1729,13 +1729,13 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
                   &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
              ec0_q1ppp = 0.75_dp*ec0_aa*(rsm1_2**5)*(ec0_b1-ec0_b3*rs)
-             ec0_f1 = 1_dp/(ec0_q1*ec0_q1*(1_dp + ec0_q1))
-             ec0_f2 = 1_dp/(ec0_q1*(1+ec0_q1))
-             d3ecrs0_drs3 = 6_dp*ec0_q1p*ec0_f1*(-2_dp*ec0_aa*ec0_a1*ec0_q1p + &
+             ec0_f1 = one/(ec0_q1*ec0_q1*(one + ec0_q1))
+             ec0_f2 = one/(ec0_q1*(1._dp+ec0_q1))
+             d3ecrs0_drs3 = 6._dp*ec0_q1p*ec0_f1*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + &
                   &        ec0_q0*ec0_q1pp) - &
-                  &        ec0_f2*(-6_dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
-                  &        ec0_f2*(3_dp*ec0_q1p*(-2_dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
-                  &        ec0_f2*2_dp*ec0_q0*(ec0_q1p**3)*(1_dp + 3_dp*ec0_q1*(1_dp + ec0_q1))))
+                  &        ec0_f2*(-6._dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
+                  &        ec0_f2*(3._dp*ec0_q1p*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
+                  &        ec0_f2*2._dp*ec0_q0*(ec0_q1p**3)*(one + 3._dp*ec0_q1*(one + ec0_q1))))
 
              mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
              mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
@@ -1763,8 +1763,8 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              d2ecrs_drho2= -rs**4*(four_pi*third)*third*dvcrs_drs
              dvxci(ipts,1)=dvxci(ipts,1)+d2ecrs_drho2
              d2vcrs_drs2 = third*(d2ecrs_drs2 - rs*d3ecrs0_drs3)
-             drs_dn = -1_dp*four_pi*ninth*rs**4
-             d2rs_dn2 = 64_dp*pi*pi*(rs**7)/81_dp
+             drs_dn = -one*four_pi*ninth*rs**4
+             d2rs_dn2 = 64._dp*pi*pi*(rs**7)/81._dp
              d2vxci(ipts) = d2vxci(ipts) + d2vcrs_drs2*drs_dn*drs_dn + &
                   &        dvcrs_drs*d2rs_dn2
 
@@ -1809,10 +1809,10 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxci(ipts,1)=dvxci(ipts,1)*half
              ! Compute the second derivative of vx
              ! vx^(2) = -2*vx^(1)/(3*rhotot)
-             d2vxci(ipts) = -2_dp*dvxci(ipts,1)/(3_dp*rhotot)
+             d2vxci(ipts) = -2._dp*dvxci(ipts,1)/(3._dp*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -1836,13 +1836,13 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
                   &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
              ec0_q1ppp = 0.75_dp*ec0_aa*(rsm1_2**5)*(ec0_b1-ec0_b3*rs)
-             ec0_f1 = 1_dp/(ec0_q1*ec0_q1*(1_dp + ec0_q1))
-             ec0_f2 = 1_dp/(ec0_q1*(1+ec0_q1))
-             d3ecrs0_drs3 = 6_dp*ec0_q1p*ec0_f1*(-2_dp*ec0_aa*ec0_a1*ec0_q1p + &
+             ec0_f1 = one/(ec0_q1*ec0_q1*(one + ec0_q1))
+             ec0_f2 = one/(ec0_q1*(1._dp+ec0_q1))
+             d3ecrs0_drs3 = 6._dp*ec0_q1p*ec0_f1*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + &
                   &        ec0_q0*ec0_q1pp) - &
-                  &        ec0_f2*(-6_dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
-                  &        ec0_f2*(3_dp*ec0_q1p*(-2_dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
-                  &        ec0_f2*2_dp*ec0_q0*(ec0_q1p**3)*(1_dp + 3_dp*ec0_q1*(1_dp + ec0_q1))))
+                  &        ec0_f2*(-6._dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
+                  &        ec0_f2*(3._dp*ec0_q1p*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
+                  &        ec0_f2*2._dp*ec0_q0*(ec0_q1p**3)*(one + 3._dp*ec0_q1*(one + ec0_q1))))
 
              mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
              mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
@@ -1871,8 +1871,8 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              dvxci(ipts,1)=dvxci(ipts,1)+d2ecrs_drho2
              d2vcrs_drs2 = third*(d2ecrs_drs2 - rs*d3ecrs0_drs3)
-             drs_dn = -1_dp*four_pi*ninth*rs**4
-             d2rs_dn2 = 64_dp*pi*pi*(rs**7)/81_dp
+             drs_dn = -one*four_pi*ninth*rs**4
+             d2rs_dn2 = 64._dp*pi*pi*(rs**7)/81._dp
              d2vxci(ipts) = d2vxci(ipts) + d2vcrs_drs2*drs_dn*drs_dn + &
                   &        dvcrs_drs*d2rs_dn2
 
@@ -1940,7 +1940,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxci(ipts,8)=dvxci(ipts,7)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -2226,7 +2226,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxci(ipts,8)=dvxci(ipts,7)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -2485,7 +2485,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              ! vx^(2) = -2*vx^(1)/(3*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
 
 
@@ -2553,7 +2553,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxci(ipts,8)=dvxci(ipts,7)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -2600,7 +2600,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              ! vx^(2) = -2*vx^(1)/(3*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -2690,7 +2690,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              ! vx^(2) = -2*vx^(1)/(3*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -2812,7 +2812,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxci(ipts,8)=dvxci(ipts,7)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -3099,7 +3099,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxci(ipts,8)=dvxci(ipts,7)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -3358,7 +3358,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              ! vx^(2) = -2*vx^(1)/(3*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -3423,7 +3423,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxci(ipts,8)=dvxci(ipts,7)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -3467,7 +3467,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              ! vx^(2) = -2*vx^(1)/(3*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -3548,7 +3548,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              ! vx^(2) = -2*vx^(1)/(3*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*2
+             exc=exc*two
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -3942,13 +3942,13 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
                   &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
              if (order==3) then
                 ec0_q1ppp = 0.75_dp*ec0_aa*(rsm1_2**5)*(ec0_b1-ec0_b3*rs)
-                ec0_f1 = 1_dp/(ec0_q1*ec0_q1*(1_dp + ec0_q1))
-                ec0_f2 = 1_dp/(ec0_q1*(1+ec0_q1))
-                d3ecrs0_drs3 = 6_dp*ec0_q1p*ec0_f1*(-2_dp*ec0_aa*ec0_a1*ec0_q1p + &
+                ec0_f1 = one/(ec0_q1*ec0_q1*(one + ec0_q1))
+                ec0_f2 = one/(ec0_q1*(1._dp+ec0_q1))
+                d3ecrs0_drs3 = 6._dp*ec0_q1p*ec0_f1*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + &
                      &        ec0_q0*ec0_q1pp) - &
-                     &        ec0_f2*(-6_dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
-                     &        ec0_f2*(3_dp*ec0_q1p*(-2_dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
-                     &        ec0_f2*2_dp*ec0_q0*(ec0_q1p**3)*(1_dp + 3_dp*ec0_q1*(1_dp + ec0_q1))))
+                     &        ec0_f2*(-6._dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
+                     &        ec0_f2*(3._dp*ec0_q1p*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
+                     &        ec0_f2*2._dp*ec0_q0*(ec0_q1p**3)*(one + 3._dp*ec0_q1*(one + ec0_q1))))
              end if
 
              mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)

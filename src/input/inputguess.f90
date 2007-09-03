@@ -349,9 +349,9 @@ subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
         const=gml*sqrt(sxp)**(2*l+1)
         ! kinetic energy  matrix element hij
         hij=.5d0*const*sxp**2* ( 3.d0*xpi*xpj +                  &
-             l*(6.d0*xpi*xpj-xpi**2-xpj**2) -        &
-             l**2*(xpi-xpj)**2  ) + .5d0*l*(l+1.d0)*const
-        sij=const*sxp*(l+.5d0)
+             real(l,kind=8)*(6.d0*xpi*xpj-xpi**2-xpj**2) -        &
+             real(l**2,kind=8)*(xpi-xpj)**2  ) + .5d0*real(l,kind=8)*(real(l,kind=8)+1.d0)*const
+        sij=const*sxp*(real(l,kind=8)+.5d0)
         ek=ek+hij*psiat(i)*psiat(j)
         tt=tt+sij*psiat(i)*psiat(j)
      enddo
@@ -496,7 +496,7 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   !local variables
   character(len=27) :: string 
   character(len=2) :: symbol
-  integer, parameter :: lmax=3,nint=100,noccmax=2
+  integer, parameter :: lmax=3,n_int=100,noccmax=2
   real(kind=8), parameter :: fact=4.d0
   real(kind=8), dimension(:), allocatable :: xp,gpot,alps,ott
   real(kind=8), dimension(:,:), allocatable :: aeval,chrg,res,vh,hsep,occup,ofdcoef
@@ -600,7 +600,7 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   call memocc(i_stat,product(shape(psi))*kind(psi),'psi','iguess_generator')
   allocate(xp(0:ng),stat=i_stat)
   call memocc(i_stat,product(shape(xp))*kind(xp),'xp','iguess_generator')
-  allocate(rmt(nint,0:ng,0:ng,lmax+1),stat=i_stat)
+  allocate(rmt(n_int,0:ng,0:ng,lmax+1),stat=i_stat)
   call memocc(i_stat,product(shape(rmt))*kind(rmt),'rmt','iguess_generator')
 
   zion=real(ielpsp,kind=8)
@@ -630,15 +630,15 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
      end do
   end do
 
-  call crtvh(ng,lmax,xp,vh,rprb,fact,nint,rmt)
+  call crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
 
   call gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
-       zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nint,&
+       zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
        aeval,ng,psi,res,chrg)
 
-  !postreatment of the inguess data
+  !post-treatment of the inguess data
   do i=1,ng+1
-     expo(i)=sqrt(0.5/xp(i-1))
+     expo(i)=sqrt(0.5d0/xp(i-1))
   end do
 
   i=0
@@ -702,19 +702,19 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg)
   implicit real(kind=8) (a-h,o-z)
-  logical noproj
-  parameter(nint=100)
+  logical :: noproj
+  integer, parameter :: n_int=100
   dimension psi(0:ng,noccmax,lmax+1),aeval(noccmax,lmax+1),&
        hh(0:ng,0:ng),ss(0:ng,0:ng),eval(0:ng),evec(0:ng,0:ng),&
        aux(2*ng+2),&
-       gpot(3),hsep(6,lpx+1),rmt(nint,0:ng,0:ng,lmax+1),&
+       gpot(3),hsep(6,lpx+1),rmt(n_int,0:ng,0:ng,lmax+1),&
        pp1(0:ng,lpx+1),pp2(0:ng,lpx+1),pp3(0:ng,lpx+1),alps(lpx+1),&
-       potgrd(nint),&
-       rho(0:ng,0:ng,lmax+1),rhoold(0:ng,0:ng,lmax+1),xcgrd(nint),&
+       potgrd(n_int),&
+       rho(0:ng,0:ng,lmax+1),rhoold(0:ng,0:ng,lmax+1),xcgrd(n_int),&
        occup(noccmax,lmax+1),chrg(noccmax,lmax+1),&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
        res(noccmax,lmax+1),xp(0:ng)
-  if (nintp.ne.nint) stop 'nint><nintp'
+  if (nintp.ne.n_int) stop 'n_int><nintp'
 
   do l=0,lmax
      if (occup(1,l+1).gt.0.d0) lcx=l
@@ -730,11 +730,11 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
 ! projectors, just in case
   if (.not. noproj) then
      do l=0,lpx
-        gml1=sqrt( gamma(l+1.5d0) / (2.d0*alps(l+1)**(2*l+3)) )
-        gml2=sqrt( gamma(l+3.5d0) / (2.d0*alps(l+1)**(2*l+7)) )&
-            /(l+2.5d0)
-        gml3=sqrt( gamma(l+5.5d0) / (2.d0*alps(l+1)**(2*l+11)) )&
-            /((l+3.5d0)*(l+4.5d0))
+        gml1=sqrt( gamma(real(l,kind=8)+1.5d0) / (2.d0*alps(l+1)**(2*l+3)) )
+        gml2=sqrt( gamma(real(l,kind=8)+3.5d0) / (2.d0*alps(l+1)**(2*l+7)) )&
+            /(real(l,kind=8)+2.5d0)
+        gml3=sqrt( gamma(real(l,kind=8)+5.5d0) / (2.d0*alps(l+1)**(2*l+11)) )&
+            /((real(l,kind=8)+3.5d0)*(real(l,kind=8)+4.5d0))
         tt=1.d0/(2.d0*alps(l+1)**2)
         do i=0,ng
            ttt=1.d0/(xp(i)+tt)
@@ -798,24 +798,24 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
      end do
 
 ! XC potential on grid
-!        do k=1,nint
+!        do k=1,n_int
 !           xcgrd(k)=0.d0
 !        end do
 !        do l=0,lmax
 !           do j=0,ng
 !              do i=0,ng
-!                 do k=1,nint
+!                 do k=1,n_int
 !                    xcgrd(k)=xcgrd(k)+rmt(k,i,j,l+1)*rho(i,j,l+1)
 !                 end do
 !              end do
 !           end do
 !        end do
-     call DGEMV('N',nint,(lcx+1)*(ng+1)**2,1.d0,&
-                rmt,nint,rho,1,0.d0,xcgrd,1)
+     call DGEMV('N',n_int,(lcx+1)*(ng+1)**2,1.d0,&
+                rmt,n_int,rho,1,0.d0,xcgrd,1)
 
-     dr=fact*rprb/nint
-     do k=1,nint
-        r=(k-.5d0)*dr
+     dr=fact*rprb/real(n_int,kind=8)
+     do k=1,n_int
+        r=(real(k,kind=8)-.5d0)*dr
 ! divide by 4 pi
         tt=xcgrd(k)*0.07957747154594768d0
 ! multiply with r^2 to speed up calculation of matrix elements
@@ -823,7 +823,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
      end do
 
      loop_l: do l=0,lmax
-        gml=.5d0*gamma(.5d0+l)
+        gml=.5d0*gamma(.5d0+real(l,kind=8))
 
 !  lower triangles only
         loop_i: do i=0,ng
@@ -832,14 +832,14 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
               sxp=1.d0/d
               const=gml*sqrt(sxp)**(2*l+1)
 ! overlap
-              ss(i,j)=const*sxp*(l+.5d0)
+              ss(i,j)=const*sxp*(real(l,kind=8)+.5d0)
 ! kinetic energy
               hh(i,j)=.5d0*const*sxp**2* ( 3.d0*xp(i)*xp(j) +&
-                   l*(6.d0*xp(i)*xp(j)-xp(i)**2-xp(j)**2) -&
-                   l**2*(xp(i)-xp(j))**2  ) + .5d0*l*(l+1.d0)*const
+                   real(l,kind=8)*(6.d0*xp(i)*xp(j)-xp(i)**2-xp(j)**2) -&
+                   real(l,kind=8)**2*(xp(i)-xp(j))**2  ) + .5d0*real(l,kind=8)*(real(l,kind=8)+1.d0)*const
 ! potential energy from parabolic potential
               hh(i,j)=hh(i,j) +&
-                   .5d0*const*sxp**2*(l+.5d0)*(l+1.5d0)/rprb**4 
+                   .5d0*const*sxp**2*(real(l,kind=8)+.5d0)*(real(l,kind=8)+1.5d0)/rprb**4 
 ! hartree potential from ionic core charge
               tt=sqrt(1.d0+2.d0*alpz**2*d)
               if (l.eq.0) then
@@ -859,9 +859,9 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
               end if
 ! potential from repulsive gauss potential
               tt=alpl**2/(.5d0+d*alpl**2)
-              hh(i,j)=hh(i,j)  + gpot(1)*.5d0*gamma(1.5d0+l)*tt**(1.5d0+l)&
-                   + (gpot(2)/alpl**2)*.5d0*gamma(2.5d0+l)*tt**(2.5d0+l)&
-                   + (gpot(3)/alpl**4)*.5d0*gamma(3.5d0+l)*tt**(3.5d0+l)
+              hh(i,j)=hh(i,j)+ gpot(1)*.5d0*gamma(1.5d0+real(l,kind=8))*tt**(1.5d0+real(l,kind=8))&
+                   + (gpot(2)/alpl**2)*.5d0*gamma(2.5d0+real(l,kind=8))*tt**(2.5d0+real(l,kind=8))&
+                   + (gpot(3)/alpl**4)*.5d0*gamma(3.5d0+real(l,kind=8))*tt**(3.5d0+real(l,kind=8))
 ! separable terms
               if (l.le.lpx) then
                  hh(i,j)=hh(i,j) + pp1(i,l+1)*hsep(1,l+1)*pp1(j,l+1)&
@@ -886,12 +886,12 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
               tt=DDOT((lcx+1)*(ng+1)**2,vh(0,0,1,i,j,l+1),1,rho(0,0,1),1)
               hh(i,j)=hh(i,j) + tt
 ! potential from XC potential
-              dr=fact*rprb/nint
+              dr=fact*rprb/real(n_int,kind=8)
 !              tt=0.d0
-!              do k=1,nint
+!              do k=1,n_int
 !                 tt=tt+xcgrd(k)*rmt(k,i,j,l+1)
 !              end do
-              tt=DDOT(nint,rmt(1,i,j,l+1),1,xcgrd(1),1)
+              tt=DDOT(n_int,rmt(1,i,j,l+1),1,xcgrd(1),1)
               hh(i,j)=hh(i,j)+tt*dr
            end do loop_j
         end do loop_i
@@ -936,7 +936,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
 ! End of the big loop
 
   call resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,ng,res,&
-             zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,nint,&
+             zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
              potgrd,xcgrd)
 
 ! charge up to radius rcov
@@ -1051,18 +1051,18 @@ END SUBROUTINE gatom
 
 
 subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
-                 ng,res,zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,nint,&
+                 ng,res,zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
                  potgrd,xcgrd)
   implicit real(kind=8) (a-h,o-z)
   dimension psi(0:ng,noccmax,lmax+1),rho(0:ng,0:ng,lmax+1),&
        gpot(3),pp1(0:ng,lmax+1),pp2(0:ng,lmax+1),pp3(0:ng,lmax+1),&
        alps(lmax+1),hsep(6,lmax+1),res(noccmax,lmax+1),xp(0:ng),&
-       xcgrd(nint),aeval(noccmax,lmax+1),potgrd(nint)
+       xcgrd(n_int),aeval(noccmax,lmax+1),potgrd(n_int)
   
 ! potential on grid 
-  dr=fact*rprb/nint
-  do k=1,nint
-     r=(k-.5d0)*dr
+  dr=fact*rprb/real(n_int,kind=8)
+  do k=1,n_int
+     r=(real(k,kind=8)-.5d0)*dr
      potgrd(k)= .5d0*(r/rprb**2)**2 - &
           zion*erf(r/(sqrt(2.d0)*alpz))/r &
           + exp(-.5d0*(r/alpl)**2)*&
@@ -1091,9 +1091,9 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
 
   loop_ll: do ll=0,lmax
      if (ll.le.lpx) then
-        rnrm1=1.d0/sqrt(.5d0*gamma(ll+1.5d0)*alps(ll+1)**(2*ll+3))
-        rnrm2=1.d0/sqrt(.5d0*gamma(ll+3.5d0)*alps(ll+1)**(2*ll+7))
-        rnrm3=1.d0/sqrt(.5d0*gamma(ll+5.5d0)*alps(ll+1)**(2*ll+11))
+        rnrm1=1.d0/sqrt(.5d0*gamma(real(ll,kind=8)+1.5d0)*alps(ll+1)**(2*ll+3))
+        rnrm2=1.d0/sqrt(.5d0*gamma(real(ll,kind=8)+3.5d0)*alps(ll+1)**(2*ll+7))
+        rnrm3=1.d0/sqrt(.5d0*gamma(real(ll,kind=8)+5.5d0)*alps(ll+1)**(2*ll+11))
      end if
      loop_iocc: do iocc=1,noccmax
 ! separable part
@@ -1103,15 +1103,15 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
            scpr3=DDOT(ng+1,psi(0,iocc,ll+1),1,pp3(0,ll+1),1)
         end if
         res(iocc,ll+1)=0.d0
-        loop_j: do j=1,nint
+        loop_j: do j=1,n_int
 ! wavefunction on grid
-           r=(j-.5d0)*dr
+           r=(real(j,kind=8)-.5d0)*dr
            psigrd = wave(ng,ll,xp,psi(0,iocc,ll+1),r)
 ! kinetic energy        
            rkin=0.d0
            do i=0,ng
               rkin=rkin + psi(i,iocc,ll+1) *  (&
-                   xp(i)*(3.d0+2.d0*ll-2.d0*xp(i)*r**2)*exp(-xp(i)*r**2) )
+                   xp(i)*(3.d0+2.d0*real(ll,kind=8)-2.d0*xp(i)*r**2)*exp(-xp(i)*r**2) )
            end do
            rkin=rkin*r**ll
 ! separable part
@@ -1143,16 +1143,16 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
 END SUBROUTINE resid
 
 
-subroutine crtvh(ng,lmax,xp,vh,rprb,fact,nint,rmt)
+subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
   implicit real(kind=8) (a-h,o-z)
   dimension vh(0:ng,0:ng,0:3,0:ng,0:ng,0:3),xp(0:ng),&
-            rmt(nint,0:ng,0:ng,lmax+1)
+            rmt(n_int,0:ng,0:ng,lmax+1)
   if (lmax.gt.3) stop 'crtvh'
 
-  dr=fact*rprb/nint
+  dr=fact*rprb/real(n_int,kind=8)
   do l=0,lmax
-     do k=1,nint
-        r=(k-.5d0)*dr
+     do k=1,n_int
+        r=(real(k,kind=8)-.5d0)*dr
         do j=0,ng
            do i=0,ng
               rmt(k,i,j,l+1)=(r**2)**l*exp(-(xp(i)+xp(j))*r**2)
@@ -1271,16 +1271,16 @@ real(kind=8) function gamma(x)
 
   if (x.le.0.d0) stop 'wrong argument for gamma'
   if (mod(x,1.d0).eq.0.d0) then
-     ii=x
+     ii=int(x)
      do i=2,ii
-        gamma=gamma*(i-1)
+        gamma=gamma*real(i-1,kind=8)
      end do
   else if (mod(x,.5d0).eq.0.d0) then
-     ii=x-.5d0
+     ii=int(x-.5d0)
 !     gamma=sqrt(3.14159265358979d0)
      gamma=1.772453850905516027d0
      do i=1,ii
-        gamma=gamma*(i-.5d0)
+        gamma=gamma*(real(i,kind=8)-.5d0)
      end do
   else
      stop 'wrong argument for gamma'

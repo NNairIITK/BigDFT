@@ -9,7 +9,7 @@ EXTRA_DIST = \
 PPFILES = \
 	psppar.Li_lda 
 
-CLEANFILES = $(PPFILES) inguess.dat wavefunction* *.out posout* malloc time.prc
+CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* *.out posout* malloc *.prc
 
 #dependencies
 $(PPFILES):

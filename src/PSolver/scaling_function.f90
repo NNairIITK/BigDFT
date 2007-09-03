@@ -77,8 +77,8 @@ subroutine scaling_function(itype,nd,nrange,a,x)
 
   !open (unit=1,file='scfunction',status='unknown')
   do i=0,nd
-     a(i) = 1.d0*i*ni/nd-(.5d0*ni-1.d0)
-     !write(1,*) 1.d0*i*ni/nd-(.5d0*ni-1.d0),x(i)
+     a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-1.d0)
+     !write(1,*) a(i),x(i)
   end do
   !close(1)
 
@@ -165,8 +165,8 @@ subroutine wavelet_function(itype,nd,a,x)
 
   !open (unit=1,file='wavelet',status='unknown')
   do i=0,nd-1
-     a(i) = 1.d0*i*ni/nd-(.5d0*ni-.5d0)
-     !write(1,*) 1.d0*i*ni/nd-(.5d0*ni-.5d0),x(i)
+     a(i) = real(i*ni,kind=8)/real(nd,kind=8)-(.5d0*real(ni,kind=8)-.5d0)
+     !write(1,*) a(i),x(i)
   end do
   !close(1)
 

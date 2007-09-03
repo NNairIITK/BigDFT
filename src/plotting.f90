@@ -2,7 +2,7 @@
 
         subroutine plot_psifscf(iunit,hgrid,nl1,nu1,nl2,nu2,nl3,nu3,psifscf)
 ! plots psifscf
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension psifscf(-7+2*nl1:2*nu1+8,-7+2*nl2:2*nu2+8,-7+2*nl3:2*nu3+8)
 
         hgridh=.5d0*hgrid

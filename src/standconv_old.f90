@@ -5,7 +5,7 @@
                nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,&
                cprecr,hgrid,logrid_c,logrid_f,x,y)
 !   y = (kinetic energy operator)x + (cprec*I)x 
-    implicit real*8 (a-h,o-z)
+    implicit real(kind=8) (a-h,o-z)
     dimension x(nl1_c:nu1_c,2,nl2_c:nu2_c,2,nl3_c:nu3_c,2)
     dimension y(nl1_c:nu1_c,2,nl2_c:nu2_c,2,nl3_c:nu3_c,2)
     logical logrid_c(0:n1,0:n2,0:n3),logrid_f(0:n1,0:n2,0:n3)
@@ -198,7 +198,7 @@ end
                nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f, &
                hgrid,logrid_c,logrid_f,x,y,ekin)
 !   y = y + (kinetic energy operator)x 
-    implicit real*8 (a-h,o-z)
+    implicit real(kind=8) (a-h,o-z)
     dimension x(nl1_c:nu1_c,2,nl2_c:nu2_c,2,nl3_c:nu3_c,2)
     dimension y(nl1_c:nu1_c,2,nl2_c:nu2_c,2,nl3_c:nu3_c,2)
     logical logrid_c(0:n1,0:n2,0:n3),logrid_f(0:n1,0:n2,0:n3)

@@ -20,10 +20,10 @@
         
 !       ND1+1 IS THE MULTIPLE OF N2_N
 !       WHICH IS CLOSEST TO N1+1 FROM ABOVE. 
-        ND1=CEILING( ((N1+1)*1.D0)/(N2_NT*1.D0) ) *N2_NT-1
+        ND1=CEILING( REAL(N1+1,KIND=8)/REAL(N2_NT,KIND=8) ) *N2_NT-1
 !       THE SAME FOR ND2,ND3.
-        ND2=CEILING( ((N2+1)*1.D0)/(N2_NT*1.D0) ) *N2_NT-1
-        ND3=CEILING( ((N3+1)*1.D0)/(N2_NT*1.D0) ) *N2_NT-1
+        ND2=CEILING( REAL(N2+1,KIND=8)/REAL(N2_NT,KIND=8) ) *N2_NT-1
+        ND3=CEILING( REAL(N3+1,KIND=8)/REAL(N2_NT,KIND=8) ) *N2_NT-1
 
         !write(*,'(3(1x,a,i0))')'ND1=',ND1,'ND2=',ND2,'ND3=',ND3
 
@@ -48,7 +48,7 @@
           enddo
         enddo
 
-        FAC_H=1.D0/((HGRID*N2_NT)**2)
+        FAC_H=1.D0/((HGRID*REAL(N2_NT,KIND=8))**2)
 
         H0=    1.5D0*A2*FAC_H;    H1=(A2+B2*.5D0)*FAC_H
         H2=(A2*.5D0+B2)*FAC_H;    H3=    1.5D0*B2*FAC_H

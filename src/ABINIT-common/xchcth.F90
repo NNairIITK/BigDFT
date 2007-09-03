@@ -313,7 +313,7 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,npts,nspden,&
           ss_dn=ss_up
           dssdndrho=dssupdrho
           dssdndg=dssupdg
-          exc=exc*2
+          exc=exc*two
 
           ! -----------------------------------------------------------------------------
           ! Then takes care of the LSD correlation part of the functional
@@ -477,7 +477,7 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,npts,nspden,&
           ss_dn=ss_up
           dssdndrho=dssupdrho
           dssdndg=dssupdg
-          exc=exc*2
+          exc=exc*two
 
           ! -----------------------------------------------------------------------------
           ! Then takes care of the LSD correlation part of the functional
@@ -625,7 +625,7 @@ subroutine xchcth(dvxcdgr,exci,grho2_updn,npts,nspden,&
           ss_dn=ss_up
           dssdndrho=dssupdrho
           dssdndg=dssupdg
-          exc=exc*2
+          exc=exc*two
 
           ! -----------------------------------------------------------------------------
           ! Then takes care of the LSD correlation part of the functional

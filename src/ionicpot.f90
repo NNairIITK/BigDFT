@@ -86,7 +86,7 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
      do jat=1,iat-1
         dist=sqrt( (rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2 )
         jtyp=iatype(jat)
-        eion=eion+nelpsp(jtyp)*nelpsp(ityp)/dist
+        eion=eion+real(nelpsp(jtyp)*nelpsp(ityp),kind=8)/dist
      enddo
   end do
 
@@ -104,7 +104,7 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
         iz=nint(rz/hgridh)
 
         rloc=psppar(0,0,ityp)
-        charge=nelpsp(ityp)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
+        charge=real(nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
         cutoff=10.d0*rloc
         ii=nint(cutoff/hgridh)
 
@@ -116,9 +116,9 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
            j3=i3+15-i3s+1
            do i2=iy-ii,iy+ii
               do i1=ix-ii,ix+ii
-                 x=i1*hgridh-rx
-                 y=i2*hgridh-ry
-                 z=i3*hgridh-rz
+                 x=real(i1,kind=8)*hgridh-rx
+                 y=real(i2,kind=8)*hgridh-ry
+                 z=real(i3,kind=8)*hgridh-rz
                  r2=x**2+y**2+z**2
                  arg=r2/rloc**2
                  xp=exp(-.5d0*arg)
@@ -247,9 +247,9 @@ subroutine addlocgauspsp(iproc,ntypes,nat,iatype,rxyz,psppar,&
         j3=i3+15-i3s+1
         do i2=max(-14,iy-ii),min(2*n2+16,iy+ii)
            do i1=max(-14,ix-ii),min(2*n1+16,ix+ii)
-              x=i1*hgridh-rx
-              y=i2*hgridh-ry
-              z=i3*hgridh-rz
+              x=real(i1,kind=8)*hgridh-rx
+              y=real(i2,kind=8)*hgridh-ry
+              z=real(i3,kind=8)*hgridh-rz
               r2=x**2+y**2+z**2
               arg=r2/rloc**2
               xp=exp(-.5d0*arg)

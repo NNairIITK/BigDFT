@@ -97,7 +97,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim
   real(kind=8) :: ehartreeLOC,eexcuLOC,vexcuLOC
-  real(kind=8) :: hgrid,scal,newoffset,correction,pot,factor
+  real(kind=8) :: scal,newoffset,correction,pot,factor
   real(kind=8), dimension(:,:,:), allocatable :: zf,zfionxc
   integer, dimension(:,:), allocatable :: gather_arr
   real(kind=8), dimension(:), allocatable :: energies_mpi
@@ -106,17 +106,17 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
      if (iproc==0) &
-          write(*,'(1x,a,3(i5),a,i3,a,i3,a)',advance='no')&
+          write(*,'(1x,a,3(i5),a,i5,a,i3,a)',advance='no')&
           'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'S') then
      if (iproc==0) &
-          write(*,'(1x,a,3(i5),a,i3,a,i3,a)',advance='no')&
+          write(*,'(1x,a,3(i5),a,i5,a,i3,a)',advance='no')&
           'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'F') then
      if (iproc==0) &
-          write(*,'(1x,a,3(i5),a,i3,a,i3,a)',advance='no')&
+          write(*,'(1x,a,3(i5),a,i5,a,i3,a)',advance='no')&
           'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else
@@ -195,6 +195,9 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      nlim=n2
   else if (geocode == 'F') then
      nlim=n2/2
+  else
+     !never used
+     nlim=0
   end if
 
 !!$  print *,'density must go from',min(istart+1,m2),'to',iend,'with n2/2=',n2/2
@@ -253,6 +256,9 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      correction=0.d0
      factor=0.5d0*hx*hy*hz!hgrid**3
 
+  else
+      !Never used
+      factor=0.d0
   end if
   
   call timing(iproc,'PSolv_comput  ','ON')
@@ -598,7 +604,7 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  implicit none
  integer, intent(in) :: n01,n02,n03,nproc
  integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
- integer :: l1,l2,l3,l1A,l3A
+ integer :: l1,l2,l3
 
  !dimensions of the density in the real space
  m1=n01
@@ -699,7 +705,7 @@ subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  implicit none
  integer, intent(in) :: n01,n02,n03,nproc
  integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
- integer :: l1,l2,l3,l1A,l3A
+ integer :: l1,l2,l3
 
  !dimensions of the density in the real space
  m1=n01
@@ -802,7 +808,7 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  implicit none
  integer, intent(in) :: n01,n02,n03,nproc
  integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
- integer :: l1,l2,l3,l1A,l3A
+ integer :: l1,l2,l3
 
  !dimensions of the density in the real space, inverted for convenience
  m1=n01

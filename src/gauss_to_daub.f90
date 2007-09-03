@@ -52,7 +52,7 @@
 !                   
              A=GAU_A/HGRID
              I0=NINT(GAU_CEN/HGRID) ! THE ARRAY IS CENTERED AT I0
-             Z0=GAU_CEN/HGRID-I0
+             Z0=GAU_CEN/HGRID-REAL(I0,KIND=8)
          
              H=.125D0*.5d0
 !
@@ -86,7 +86,7 @@
 !            AT LEVEL 4, POSITIONS SHIFTED BY 16*I0 
 !         
              DO I=LEFTX,RIGHTX
-               WW(I-LEFTX,1)=PSI((I-I0*16)*H,A,Z0,N_GAU)
+               WW(I-LEFTX,1)=PSI(REAL(I-I0*16,KIND=8)*H,A,Z0,N_GAU)
              ENDDO 
 
              CALL APPLY_W(WW(:,1),WW(:,2),&
@@ -118,7 +118,7 @@
              
              THEOR_NORM2=VALINTS(N_GAU)*A**(2*N_GAU+1)
 
-             ERROR=SQRT(ABS(1-CN2/THEOR_NORM2))
+             ERROR=SQRT(ABS(1.D0-CN2/THEOR_NORM2))
 !
 !            RESCALE BACK THE COEFFICIENTS AND THE ERROR
 !

@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - cluster], [0.9], [caliste@pcpm.ucl.ac.be], [bigdft])
+AC_INIT([BigDFT - cluster], [0.9], [Damien.Caliste@cea.fr], [bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -160,7 +160,7 @@ if test "$ac_build_bin_cluster" = "yes" ; then
 dnl Substitute Lapack and Blas by another specific library
 withlinalg=no
 AC_ARG_WITH(ext-linalg, AS_HELP_STRING([--with-ext-linalg],
-            [Give the name of the libraries replacing Blas and Lapack (default = none sepcified). Use the -l before the name(s).]),
+            [Give the name of the libraries replacing Blas and Lapack (default = none specified). Use the -l before the name(s).]),
             ac_linalg=$withval, ac_linalg=)
 AC_ARG_WITH(ext-linalg-path, AS_HELP_STRING([--with-ext-linalg-path],
             [Give the path of the other linear algebra libraries (default = -L/usr/lib). Use the -L before the path(es).]),

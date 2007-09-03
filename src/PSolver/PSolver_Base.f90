@@ -9,6 +9,8 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf&
   real(kind=8), intent(in) :: scal,hx,hy,hz
   real(kind=8), dimension(md1,md3,md2/nproc), intent(inout) :: zf
   !Local variables
+  !Maximum number of points for FFT (should be same number in fft3d routine)
+  integer, parameter :: nfft_max=24000
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
   integer :: j1,j2,j3,i1,i2,i3,i,j,inzee,ierr,i_all,i_stat
   !work arrays for transpositions
@@ -51,9 +53,9 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf&
   if (mod(n2,4).eq.0) lzt=lzt+1 !maybe this is useless
   
   !Allocations
-  allocate(btrig1(2,8192),stat=i_stat)
+  allocate(btrig1(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(btrig1))*kind(btrig1),'btrig1','p_poissonsolver')
-  allocate(ftrig1(2,8192),stat=i_stat)
+  allocate(ftrig1(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(ftrig1))*kind(ftrig1),'ftrig1','p_poissonsolver')
   allocate(after1(7),stat=i_stat)
   call memocc(i_stat,product(shape(after1))*kind(after1),'after1','p_poissonsolver')
@@ -61,9 +63,9 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf&
   call memocc(i_stat,product(shape(now1))*kind(now1),'now1','p_poissonsolver')
   allocate(before1(7),stat=i_stat)
   call memocc(i_stat,product(shape(before1))*kind(before1),'before1','p_poissonsolver')
-  allocate(btrig2(2,8192),stat=i_stat)
+  allocate(btrig2(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(btrig2))*kind(btrig2),'btrig2','p_poissonsolver')
-  allocate(ftrig2(2,8192),stat=i_stat)
+  allocate(ftrig2(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(ftrig2))*kind(ftrig2),'ftrig2','p_poissonsolver')
   allocate(after2(7),stat=i_stat)
   call memocc(i_stat,product(shape(after2))*kind(after2),'after2','p_poissonsolver')
@@ -71,9 +73,9 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf&
   call memocc(i_stat,product(shape(now2))*kind(now2),'now2','p_poissonsolver')
   allocate(before2(7),stat=i_stat)
   call memocc(i_stat,product(shape(before2))*kind(before2),'before2','p_poissonsolver')
-  allocate(btrig3(2,8192),stat=i_stat)
+  allocate(btrig3(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(btrig3))*kind(btrig3),'btrig3','p_poissonsolver')
-  allocate(ftrig3(2,8192),stat=i_stat)
+  allocate(ftrig3(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(ftrig3))*kind(ftrig3),'ftrig3','p_poissonsolver')
   allocate(after3(7),stat=i_stat)
   call memocc(i_stat,product(shape(after3))*kind(after3),'after3','p_poissonsolver')
@@ -896,6 +898,8 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   real(kind=8), dimension(nd1,nd2,nd3/nproc), intent(in) :: pot
   real(kind=8), dimension(md1,md3,md2/nproc), intent(inout) :: zf
   !Local variables
+  !Maximum number of points for FFT (should be same number in fft3d routine)
+  integer, parameter :: nfft_max=24000
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
   integer :: j1,j2,j3,i1,i2,i3,i,j,inzee,ierr,i_all,i_stat
   real(kind=8) :: twopion!,ehartreetmp
@@ -939,9 +943,9 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   if (mod(n2,4).eq.0) lzt=lzt+1 !maybe this is useless
   
   !Allocations
-  allocate(btrig1(2,8192),stat=i_stat)
+  allocate(btrig1(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(btrig1))*kind(btrig1),'btrig1','s_poissonsolver')
-  allocate(ftrig1(2,8192),stat=i_stat)
+  allocate(ftrig1(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(ftrig1))*kind(ftrig1),'ftrig1','s_poissonsolver')
   allocate(after1(7),stat=i_stat)
   call memocc(i_stat,product(shape(after1))*kind(after1),'after1','s_poissonsolver')
@@ -949,9 +953,9 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   call memocc(i_stat,product(shape(now1))*kind(now1),'now1','s_poissonsolver')
   allocate(before1(7),stat=i_stat)
   call memocc(i_stat,product(shape(before1))*kind(before1),'before1','s_poissonsolver')
-  allocate(btrig2(2,8192),stat=i_stat)
+  allocate(btrig2(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(btrig2))*kind(btrig2),'btrig2','s_poissonsolver')
-  allocate(ftrig2(2,8192),stat=i_stat)
+  allocate(ftrig2(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(ftrig2))*kind(ftrig2),'ftrig2','s_poissonsolver')
   allocate(after2(7),stat=i_stat)
   call memocc(i_stat,product(shape(after2))*kind(after2),'after2','s_poissonsolver')
@@ -959,9 +963,9 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   call memocc(i_stat,product(shape(now2))*kind(now2),'now2','s_poissonsolver')
   allocate(before2(7),stat=i_stat)
   call memocc(i_stat,product(shape(before2))*kind(before2),'before2','s_poissonsolver')
-  allocate(btrig3(2,8192),stat=i_stat)
+  allocate(btrig3(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(btrig3))*kind(btrig3),'btrig3','s_poissonsolver')
-  allocate(ftrig3(2,8192),stat=i_stat)
+  allocate(ftrig3(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(ftrig3))*kind(ftrig3),'ftrig3','s_poissonsolver')
   allocate(after3(7),stat=i_stat)
   call memocc(i_stat,product(shape(after3))*kind(after3),'after3','s_poissonsolver')
@@ -1003,8 +1007,8 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   !Calculating array of phases for HalFFT decoding
   twopion=8.d0*datan(1.d0)/real(n3,kind=8)
   do i3=1,n3/2
-     cosinarr(1,i3)=dcos(twopion*(i3-1))
-     cosinarr(2,i3)=-dsin(twopion*(i3-1))
+     cosinarr(1,i3)= dcos(twopion*real(i3-1,kind=8))
+     cosinarr(2,i3)=-dsin(twopion*real(i3-1,kind=8))
   end do
 
   !initializing integral
@@ -1717,6 +1721,8 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   real(kind=8), dimension(nd1,nd2,nd3/nproc), intent(in) :: pot
   real(kind=8), dimension(md1,md3,md2/nproc), intent(inout) :: zf
   !Local variables
+  !Maximum number of points for FFT (should be same number in fft3d routine)
+  integer, parameter :: nfft_max=24000
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
   integer :: j1,j2,j3,i1,i2,i3,i,j,inzee,ierr,i_all,i_stat
   real(kind=8) :: twopion!,ehartreetmp
@@ -1758,9 +1764,9 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   if (mod(n2/2,4).eq.0) lzt=lzt+1
   
   !Allocations
-  allocate(btrig1(2,8192),stat=i_stat)
+  allocate(btrig1(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(btrig1))*kind(btrig1),'btrig1','f_poissonsolver')
-  allocate(ftrig1(2,8192),stat=i_stat)
+  allocate(ftrig1(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(ftrig1))*kind(ftrig1),'ftrig1','f_poissonsolver')
   allocate(after1(7),stat=i_stat)
   call memocc(i_stat,product(shape(after1))*kind(after1),'after1','f_poissonsolver')
@@ -1768,9 +1774,9 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   call memocc(i_stat,product(shape(now1))*kind(now1),'now1','f_poissonsolver')
   allocate(before1(7),stat=i_stat)
   call memocc(i_stat,product(shape(before1))*kind(before1),'before1','f_poissonsolver')
-  allocate(btrig2(2,8192),stat=i_stat)
+  allocate(btrig2(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(btrig2))*kind(btrig2),'btrig2','f_poissonsolver')
-  allocate(ftrig2(2,8192),stat=i_stat)
+  allocate(ftrig2(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(ftrig2))*kind(ftrig2),'ftrig2','f_poissonsolver')
   allocate(after2(7),stat=i_stat)
   call memocc(i_stat,product(shape(after2))*kind(after2),'after2','f_poissonsolver')
@@ -1778,9 +1784,9 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   call memocc(i_stat,product(shape(now2))*kind(now2),'now2','f_poissonsolver')
   allocate(before2(7),stat=i_stat)
   call memocc(i_stat,product(shape(before2))*kind(before2),'before2','f_poissonsolver')
-  allocate(btrig3(2,8192),stat=i_stat)
+  allocate(btrig3(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(btrig3))*kind(btrig3),'btrig3','f_poissonsolver')
-  allocate(ftrig3(2,8192),stat=i_stat)
+  allocate(ftrig3(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(ftrig3))*kind(ftrig3),'ftrig3','f_poissonsolver')
   allocate(after3(7),stat=i_stat)
   call memocc(i_stat,product(shape(after3))*kind(after3),'after3','f_poissonsolver')
@@ -1822,8 +1828,8 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   !Calculating array of phases for HalFFT decoding
   twopion=8.d0*datan(1.d0)/real(n3,kind=8)
   do i3=1,n3/2
-     cosinarr(1,i3)=dcos(twopion*(i3-1))
-     cosinarr(2,i3)=-dsin(twopion*(i3-1))
+     cosinarr(1,i3)= dcos(twopion*real(i3-1,kind=8))
+     cosinarr(2,i3)=-dsin(twopion*real(i3-1,kind=8))
   end do
 
   !initializing integrals

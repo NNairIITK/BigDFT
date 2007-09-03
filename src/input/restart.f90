@@ -19,12 +19,12 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
   do iat=1,nat
      c1=c1+rxyz(1,iat) ; c2=c2+rxyz(2,iat) ; c3=c3+rxyz(3,iat)
   enddo
-  center(1)=c1/nat ; center(2)=c2/nat ; center(3)=c3/nat
+  center(1)=c1/real(nat,kind=8) ; center(2)=c2/real(nat,kind=8) ; center(3)=c3/real(nat,kind=8)
   c1=0.d0 ; c2=0.d0 ; c3=0.d0
   do iat=1,nat
      c1=c1+rxyz_old(1,iat) ; c2=c2+rxyz_old(2,iat) ; c3=c3+rxyz_old(3,iat)
   enddo
-  center_old(1)=c1/nat ; center_old(2)=c2/nat ; center_old(3)=c3/nat
+  center_old(1)=c1/real(nat,kind=8) ; center_old(2)=c2/real(nat,kind=8) ; center_old(3)=c3/real(nat,kind=8)
 
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
@@ -36,7 +36,7 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
           abs(center(3)-center_old(3)).lt.1.d-3  ) then
 
 
-        write(*,*) 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
+        write(*,"(a,i5,a,i6)") 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
         do j=1,nvctr_c_old
            psi(j,iorb-iproc*norbp)=psi_old(j, iorb - iproc * norbp)
         enddo
@@ -51,17 +51,17 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
         enddo
 
      else
-        write(*,*) 'wavefunction ',iorb,' needs reformatting on processor',iproc
+        write(*,"(a,i5,a,i6)") 'wavefunction ',iorb,' needs reformatting on processor',iproc
         if (hgrid_old.ne.hgrid) then 
-           write(*,*) 'because hgrid_old >< hgrid',hgrid_old, hgrid
+           write(*,"(a,1pe20.12)") 'because hgrid_old >< hgrid',hgrid_old, hgrid
         else if (nvctr_c_old.ne.nvctr_c) then
-           write(*,*) 'because nvctr_c_old >< nvctr_c',nvctr_c_old,nvctr_c
+           write(*,"(a,2i8)") 'because nvctr_c_old >< nvctr_c',nvctr_c_old,nvctr_c
         else if (nvctr_f_old.ne.nvctr_f)  then
-           write(*,*) 'because nvctr_f_old >< nvctr_f',nvctr_f_old,nvctr_f
+           write(*,"(a,2i8)") 'because nvctr_f_old >< nvctr_f',nvctr_f_old,nvctr_f
         else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then  
-           write(*,*) 'because cell size has changed',n1_old,n1  , n2_old,n2 , n3_old,n3
+           write(*,"(a,6i5)") 'because cell size has changed',n1_old,n1  , n2_old,n2 , n3_old,n3
         else
-           write(*,*) 'molecule was shifted' , abs(center(1)-center_old(1)), & 
+           write(*,"(a,3(1pe19.12))") 'molecule was shifted' , abs(center(1)-center_old(1)), & 
                 abs(center(2)-center_old(2)),abs(center(3)-center_old(3))
         endif
 
@@ -194,15 +194,15 @@ subroutine reformatonewave(iproc, hgrid_old, n1_old, n2_old, n3_old, &
   hgridh_old=.5d0*hgrid_old
   call razero((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf)
   do i3=-7,2*n3+8
-     z=i3*hgridh
+     z=real(i3,kind=8)*hgridh
      j3=nint((z-dz)/hgridh_old)
      cif3=(j3.ge.-7 .and. j3.le.2*n3_old+8)
      do i2=-7,2*n2+8
-        y=i2*hgridh
+        y=real(i2,kind=8)*hgridh
         j2=nint((y-dy)/hgridh_old)
         cif2=(j2.ge.-7 .and. j2.le.2*n2_old+8)
         do i1=-7,2*n1+8
-           x=i1*hgridh
+           x=real(i1,kind=8)*hgridh
            j1=nint((x-dx)/hgridh_old)
            cif1=(j1.ge.-7 .and. j1.le.2*n1_old+8)
 
@@ -210,7 +210,7 @@ subroutine reformatonewave(iproc, hgrid_old, n1_old, n2_old, n3_old, &
            !        if (cif1 .and. cif2 .and. cif3) psifscf(i1,i2,i3)=psifscfoex(j1,j2,j3)
 
            if (cif1 .and. cif2 .and. cif3) then 
-              zr = ((z-dz)-j3*hgridh_old)/hgridh_old
+              zr = ((z-dz)-real(j3,kind=8)*hgridh_old)/hgridh_old
               do l2=-1,1
                  do l1=-1,1
                     ym1=psifscfoex(j1+l1,j2+l2,j3-1)
@@ -220,7 +220,7 @@ subroutine reformatonewave(iproc, hgrid_old, n1_old, n2_old, n3_old, &
                  enddo
               enddo
 
-              yr = ((y-dy)-j2*hgridh_old)/hgridh_old
+              yr = ((y-dy)-real(j2,kind=8)*hgridh_old)/hgridh_old
               do l1=-1,1
                  ym1=xya(l1,-1)
                  y00=xya(l1,0)
@@ -228,7 +228,7 @@ subroutine reformatonewave(iproc, hgrid_old, n1_old, n2_old, n3_old, &
                  xa(l1)=ym1 + (1.d0 + yr)*(y00 - ym1 + yr*(.5d0*ym1 - y00  + .5d0*yp1))
               enddo
 
-              xr = ((x-dx)-j1*hgridh_old)/hgridh_old
+              xr = ((x-dx)-real(j1,kind=8)*hgridh_old)/hgridh_old
               ym1=xa(-1)
               y00=xa(0)
               yp1=xa(1)
@@ -287,7 +287,7 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,  &
   do iat=1,nat
      c1=c1+rxyz(1,iat) ; c2=c2+rxyz(2,iat) ; c3=c3+rxyz(3,iat)
   enddo
-  center(1)=c1/nat ; center(2)=c2/nat ; center(3)=c3/nat
+  center(1)=c1/real(nat,kind=8) ; center(2)=c2/real(nat,kind=8) ; center(3)=c3/real(nat,kind=8)
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
@@ -446,7 +446,7 @@ subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,  &
   do iat=1,nat
      c1=c1+rxyz(1,iat) ; c2=c2+rxyz(2,iat) ; c3=c3+rxyz(3,iat)
   enddo
-  center(1)=c1/nat ; center(2)=c2/nat ; center(3)=c3/nat
+  center(1)=c1/real(nat,kind=8) ; center(2)=c2/real(nat,kind=8) ; center(3)=c3/real(nat,kind=8)
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 

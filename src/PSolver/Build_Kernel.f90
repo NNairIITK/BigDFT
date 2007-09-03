@@ -52,8 +52,8 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
   real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), pointer :: kernel(:)
   !local variables
-  integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_all,i_stat
-  integer :: jproc,nlimd,nlimk,jfull,jhalf,jzero,nphalf,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
+  integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_stat
+  integer :: jproc,nlimd,nlimk,jhalf,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
   real(kind=8) :: hgrid
 
   call timing(iproc,'PSolvKernel   ','ON')
@@ -230,6 +230,8 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   !Local variables 
   !Better if higher (1024 points are enough 10^{-14}: 2*itype_scf*n_points)
   integer, parameter :: n_points = 2**6
+  !Maximum number of points for FFT (should be same number in fft3d routine)
+  integer, parameter :: nfft_max=24000
   
   real(kind=8), dimension(:), allocatable :: kernel_scf
   real(kind=8), dimension(:), allocatable :: x_scf ,y_scf
@@ -239,7 +241,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   real(kind=8), dimension(:,:), allocatable :: cossinarr,btrig
   integer, dimension(:), allocatable :: after,now,before
   
-  real(kind=8) :: pi,dx,absci,mu0,mu0_cell,mu1,kern,ratio,ponx,pony
+  real(kind=8) :: pi,dx,absci,mu0,mu1,kern,ratio,ponx,pony
   real(kind=8) :: a,b,c,d,feR,feI,foR,foI,fR,fI,cp,sp,pion,x,factor,value,diff,max_diff
   integer :: n_scf,ncache,imu,ierr
   integer :: n_range,n_cell,num_of_mus,shift,istart,iend,ireim,jreim,j2st,j2nd,nact2
@@ -356,7 +358,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   call memocc(i_stat,product(shape(halfft_cache))*kind(halfft_cache),'halfft_cache','surfaces_kernel')
   allocate(cossinarr(2,n3/2-1),stat=i_stat)
   call memocc(i_stat,product(shape(cossinarr))*kind(cossinarr),'cossinarr','surfaces_kernel')
-  allocate(btrig(2,8192),stat=i_stat)
+  allocate(btrig(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(btrig))*kind(btrig),'btrig','surfaces_kernel')
   allocate(after(7),stat=i_stat)
   call memocc(i_stat,product(shape(after))*kind(after),'after','surfaces_kernel')
@@ -652,7 +654,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
      do i=1,intorder+1
         x=xval(ivalue)-real(ikern,kind=8)
         f=yval(ivalue)*dexp(-mu0*x)
-        filter=intorder*c(i)
+        filter=real(intorder,kind=8)*c(i)
         gright=gright+filter*f
         ivalue=ivalue+1
      end do
@@ -662,7 +664,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   do i=1,iend
      x=xval(ivalue)-real(ikern,kind=8)
      f=yval(ivalue)*dexp(-mu0*x)
-     filter=intorder*c(i)
+     filter=real(intorder,kind=8)*c(i)
      gright=gright+filter*f
      ivalue=ivalue+1
   end do
@@ -685,7 +687,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
            x=xval(ivalue)
            fl=yval(ivalue)*dexp(mu0*x)
            fr=yval(ivalue)*dexp(-mu0*x)
-           filter=intorder*c(i)
+           filter=real(intorder,kind=8)*c(i)
            gltmp=gltmp+filter*fl
            grtmp=grtmp+filter*fr
            ivalue=ivalue+1
@@ -763,7 +765,7 @@ subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
      do i=1,intorder+1
         x=xval(ivalue)
         y=yval(ivalue)
-        filter=intorder*c(i)
+        filter=real(intorder,kind=8)*c(i)
         gr1=gr1+filter*x*y
         ivalue=ivalue+1
      end do
@@ -773,7 +775,7 @@ subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
   do i=1,iend
      x=xval(ivalue)
      y=yval(ivalue)
-     filter=intorder*c(i)
+     filter=real(intorder,kind=8)*c(i)
      gr1=gr1+filter*x*y
      ivalue=ivalue+1
   end do
@@ -795,7 +797,7 @@ subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
         do i=1,intorder+1
            x=xval(ivalue)
            y=yval(ivalue)
-           filter=intorder*c(i)
+           filter=real(intorder,kind=8)*c(i)
            c0=c0+filter*y
            c1=c1+filter*y*x
            ivalue=ivalue+1
@@ -1221,6 +1223,8 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   real(kind=8), dimension(n1/2+1,n3/2+1,nd2/nproc), intent(in) :: zf
   real(kind=8), dimension(nk1,nk2,nk3/nproc), intent(inout) :: zr
   !Local variables
+  !Maximum number of points for FFT (should be same number in fft3d routine)
+  integer, parameter :: nfft_max=24000
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2st,J2st
   integer :: j2,j3,i1,i3,i,j,inzee,ierr,i_all,i_stat
   real(kind=8) :: twopion
@@ -1253,7 +1257,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   if (mod(n2,4).eq.0) lzt=lzt+1
   
   !Allocations
-  allocate(trig1(2,8192),stat=i_stat)
+  allocate(trig1(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(trig1))*kind(trig1),'trig1','kernelfft')
   allocate(after1(7),stat=i_stat)
   call memocc(i_stat,product(shape(after1))*kind(after1),'after1','kernelfft')
@@ -1261,7 +1265,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   call memocc(i_stat,product(shape(now1))*kind(now1),'now1','kernelfft')
   allocate(before1(7),stat=i_stat)
   call memocc(i_stat,product(shape(before1))*kind(before1),'before1','kernelfft')
-  allocate(trig2(2,8192),stat=i_stat)
+  allocate(trig2(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(trig2))*kind(trig2),'trig2','kernelfft')
   allocate(after2(7),stat=i_stat)
   call memocc(i_stat,product(shape(after2))*kind(after2),'after2','kernelfft')
@@ -1269,7 +1273,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   call memocc(i_stat,product(shape(now2))*kind(now2),'now2','kernelfft')
   allocate(before2(7),stat=i_stat)
   call memocc(i_stat,product(shape(before2))*kind(before2),'before2','kernelfft')
-  allocate(trig3(2,8192),stat=i_stat)
+  allocate(trig3(2,nfft_max),stat=i_stat)
   call memocc(i_stat,product(shape(trig3))*kind(trig3),'trig3','kernelfft')
   allocate(after3(7),stat=i_stat)
   call memocc(i_stat,product(shape(after3))*kind(after3),'after3','kernelfft')
@@ -1299,8 +1303,8 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   !Calculating array of phases for HalFFT decoding
   twopion=8.d0*datan(1.d0)/real(n3,kind=8)
   do i3=1,n3/2
-     cosinarr(1,i3)=dcos(twopion*(i3-1))
-     cosinarr(2,i3)=-dsin(twopion*(i3-1))
+     cosinarr(1,i3)= dcos(twopion*real(i3-1,kind=8))
+     cosinarr(2,i3)=-dsin(twopion*real(i3-1,kind=8))
   end do
   
   !transform along z axis
