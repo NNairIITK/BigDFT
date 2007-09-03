@@ -113,6 +113,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 !    real(kind=8),allocatable::xf(:,:,:,:)! input
 !    real(kind=8),allocatable,dimension(:):: w1,w2
 !***********************************************************************************************
+  logical :: exists
   integer :: ierror
 
   include 'mpif.h'
@@ -335,9 +336,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   call memocc(i_stat,i_all,'neleconf','cluster')
 
 
-! Number of orbitals and their occupation number
-  norb_vir=0!2 !modified for testing purposes
-
 ! Number of electrons and number of semicore atoms
   nelec=0
   natsc=0
@@ -350,56 +348,118 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   if (iproc.eq.0) then
      write(*,'(1x,a,i8)') &
           'Total Number of Electrons ',nelec
-     if (mod(nelec,2).ne.0) write(*,*) &
+     if (mod(nelec,2).ne.0) write(*,'(1x,a)') &
           'WARNING: odd number of electrons, no closed shell system'
   end if
-  norb=(nelec+1)/2+norb_vir
+
+! Number of orbitals
+  norb=(nelec+1)/2
+
+! Test if the file 'occup.dat exists
+  inquire(file='occup.dat',exist=exists)
+  if (exists) then
+     open(unit=24,file='occup.dat',form='formatted',action='read',status='old')
+     !The first line gives the number of orbitals
+     read(24,*,iostat=ierror) nt
+     if (ierror /=0) then
+         if (iproc==0) write(*,'(1x,a)') 'ERROR reading the number of orbitals in the file "occup.dat"'
+        stop
+     end if
+     if (nt<=norb) then
+        if (iproc==0) then
+           write(*,'(1x,a,i0,a,i0)') &
+                'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
+                ' should be strictly greater than (nelec+1)/2=',norb
+        end if
+        stop
+     else
+        norb=nt
+     end if
+  end if
 
   allocate(occup(norb),stat=i_stat)
   call memocc(i_stat,product(shape(occup))*kind(occup),'occup','cluster')
   allocate(eval(norb),stat=i_stat)
   call memocc(i_stat,product(shape(eval))*kind(eval),'eval','cluster')
 
-!!$  occup(1)=2.d0 !added for testing purposes
-!!$  do iorb=2,norb
-!!$     occup(iorb)=2.d0/3.d0
-!!$  enddo
-!!$  nt=4
-
+! First fill the occupation numbers by default
+  ne=(nelec+1)/2
   nt=0
-  do iorb=1,norb
+  do iorb=1,ne
      it=min(2,nelec-nt)
      occup(iorb)=real(it,kind=8)
      nt=nt+it
   enddo
+  do iorb=ne+1,norb
+     occup(iorb)=0.d0
+  end do
+
+! Then read the file "occup.dat" if does exist
+  if (exists) then
+     nt=0
+     do
+        read(24,*,iostat=ierror) iorb,rocc
+        if (ierror/=0) then
+           exit
+        else
+           nt=nt+1
+           if (iorb<0 .or. iorb>norb) then
+              if (iproc==0) then
+                 write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
+                 write(*,'(10x,a,i0,a)')     'The orbital index ',i0,' is incorrect'
+              end if
+              stop
+           elseif (rocc<0.d0 .or. rocc>2.d0) then
+              if (iproc==0) then
+                 write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
+                 write(*,'(10x,a,f5.2,a)')     'The occupation number ',rocc,' is not between 0. and 2.'
+              end if
+              stop
+           else
+              occup(iorb)=rocc
+           end if
+        end if
+     end do
+     if (iproc==0) then
+        write(*,'(1x,a,i0,a)') &
+             'The occupation numbers are read from the file "occup.dat" (',nt,' lines read)'
+     end if
+     close(unit=24)
+     !Check if sum(occup)=nelec
+     rocc=sum(occup)
+     if (abs(rocc-real(nelec,kind=8))>1.d-6) then
+        if (iproc==0) then
+           write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the total number of electrons ',rocc,&
+                          ' is not equal to ',nelec
+        end if
+        stop
+     end if
+  end if
 
   if (iproc.eq.0) then 
-     if (norb_vir /=0) write(*,'(1x,a,i8)') &
-          '         Virtual Orbitals ',norb_vir
      write(*,'(1x,a,i8)') &
           'Total Number of  Orbitals ',norb
-     !write(*,'(1x,a,i0)') 'number of orbitals ',norb
      iorb1=1
      rocc=occup(1)
      do iorb=1,norb
         if (occup(iorb) /= rocc) then
            if (iorb1 == iorb-1) then
-              write(*,'(1x,a,i0,a,f3.1)') 'occup(',iorb1,')= ',rocc
+              write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
            else
-              write(*,'(1x,a,i0,a,i0,a,f3.1)') 'occup(',iorb1,':',iorb-1,')= ',rocc
+              write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
            end if
            rocc=occup(iorb)
            iorb1=iorb
         end if
      enddo
      if (iorb1 == norb) then
-        write(*,'(1x,a,i0,a,f3.1)') 'occup(',norb,')= ',occup(norb)
+        write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
      else
-        write(*,'(1x,a,i0,a,i0,a,f3.1)') 'occup(',iorb1,':',norb,')= ',occup(norb)
+        write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
      end if
   endif
 
-! determine size alat of overall simulation cell
+! Determine size alat of overall simulation cell
   call system_size(nat,rxyz,radii_cf(1,1),crmult,iatype,ntypes, &
        cxmin,cxmax,cymin,cymax,czmin,czmax)
   alat1=(cxmax-cxmin)

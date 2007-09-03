@@ -12,8 +12,11 @@ The input files are:
 - psppar.<name of atom> for the pseudopotentiel (ex, 'psppar.H_lda)
             In this version only GTH pseudopotentials are used (PRB 54, 1703 (1996))
             HGH will be available shortly
+
 - inguess.dat for the initial guess of wavefunctions (sum of gaussian functions)
             IF THIS FILE IS NOT PRESENT, THE INPUT GUESS IS AUTOMATICALLY GENERATED.
+- occup.dat for the occupation numbers (see C directory as example)
+            IF THIS FILE IS NOT PRESENT, the orbital number is (nelec+1)/2 with 2.0 as occupation numbers
 
 The directory 'Refs' contains the reference ouput files (gfortran 4.1.2)
 A diff is performed after each calculations to check the accuracy.

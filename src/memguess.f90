@@ -7,7 +7,8 @@ program memguess
   character(len=30) :: filename
   character(len=2) :: symbol
   integer :: ierror,nat,ntypes,iat,jat,ityp,nproc,n1,n2,n3,ixc,ncharge,itermax,i_stat,i_all,i,j
-  integer :: ncong,ncongt,idsx,nzatom,npspcode,iasctype,norb_vir,nelec,norb,nateq
+  integer :: ncong,ncongt,idsx,nzatom,npspcode,iasctype,nelec,norb,nateq,nt
+  logical :: exists
   real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,elecfield
   real(kind=8) :: alat1,alat2,alat3,rcov,rprb,ehomo,radfine
   real(kind=8) :: cxmin,cxmax,cymin,cymax,czmin,czmax
@@ -230,8 +231,6 @@ program memguess
   deallocate(psppar,stat=i_stat)
   call memocc(i_stat,i_all,'psppar','memguess')
 
-! Number of orbitals and their occupation number
-  norb_vir=0
 ! Number of electrons and number of semicore atoms
   nelec=0
   do iat=1,nat
@@ -248,12 +247,39 @@ program memguess
        'Total Number of Electrons ',nelec
   if (mod(nelec,2).ne.0) write(*,*) &
        'WARNING: odd number of electrons, no closed shell system'
-  norb=(nelec+1)/2+norb_vir
+  norb=(nelec+1)/2
 
-  if (norb_vir /=0) write(*,'(1x,a,i8)') &
-       '         Virtual Orbitals ',norb_vir
-  write(*,'(1x,a,i8)') &
-       'Total Number of  Orbitals ',norb
+! Number of orbitals
+  norb=(nelec+1)/2
+
+! Test if the file 'occup.dat exists
+  inquire(file='occup.dat',exist=exists)
+  if (exists) then
+     open(unit=24,file='occup.dat',form='formatted',action='read',status='old')
+     !The first line gives the number of orbitals
+     read(24,*,iostat=ierror) nt
+     if (ierror /=0) then
+         write(*,'(1x,a)') 'ERROR reading the number of orbitals in the file "occup.dat"'
+        stop
+     end if
+     if (nt<=norb) then
+        write(*,'(1x,a,i0,a,i0)') &
+                'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
+                ' should be strictly greater than (nelec+1)/2=',norb
+        stop
+     else
+        norb=nt
+     end if
+     close(unit=24)
+  end if
+
+  if (exists) then
+     write(*,'(1x,a,i8,a)') &
+          'Total Number of  Orbitals ',norb,' (read from the file "occup.dat")'
+  else
+     write(*,'(1x,a,i8)') &
+          'Total Number of  Orbitals ',norb
+  end if
 
 ! determine size alat of overall simulation cell
   call system_size(nat,rxyz,radii_cf(1,1),crmult,iatype,ntypes, &
