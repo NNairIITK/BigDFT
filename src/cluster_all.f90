@@ -1177,17 +1177,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
   call deallocate_before_exiting
 
-  call timing(iproc,'              ','RE')
-  call cpu_time(tcpu1)
-  call system_clock(ncount1,ncount_rate,ncount_max)
-  tel=dble(ncount1-ncount0)/dble(ncount_rate)
-  write(*,'(a,1x,i4,2(1x,f12.2))') '- iproc, elapsed, CPU time ', iproc,tel,tcpu1-tcpu0
-
 contains
 
   !routine which deallocate the pointers and the arrays before exiting 
-  !in the case of anticipated return
-  !it may be also generalised to the normal run
   subroutine deallocate_before_exiting
     implicit real(kind=8) (a-h,o-z)
 
