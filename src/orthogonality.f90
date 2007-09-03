@@ -40,6 +40,7 @@ subroutine orthoconstraint_p(iproc,nproc,norb,norbp,occup,nvctrp,psit,hpsit,scpr
 
 END SUBROUTINE orthoconstraint_p
 
+
 subroutine orthoconstraint(norb,norbp,occup,nvctrp,psi,hpsi,scprsum)
   !Effect of orthogonality constraints on gradient 
   implicit real(kind=8) (a-h,o-z)
@@ -70,6 +71,7 @@ subroutine orthoconstraint(norb,norbp,occup,nvctrp,psi,hpsi,scprsum)
   call timing(iproc,'LagrM_comput  ','OF')
 
 END SUBROUTINE orthoconstraint
+
 
 subroutine orthon_p(iproc,nproc,norb,norbp,nvctrp,psit)
   ! Gram-Schmidt orthogonalisation
@@ -134,7 +136,6 @@ subroutine orthon_p(iproc,nproc,norb,norbp,nvctrp,psit)
 END SUBROUTINE orthon_p
 
 
-
 subroutine orthon(norb,norbp,nvctrp,psi)
   ! Gram-Schmidt orthogonalisation
   implicit real(kind=8) (a-h,o-z)
@@ -183,6 +184,7 @@ subroutine orthon(norb,norbp,nvctrp,psi)
   call timing(iproc,'GramS_comput  ','OF')
 
 end subroutine orthon
+
 
 subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
   ! loewdin orthogonalisation
@@ -259,6 +261,7 @@ subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
   call memocc(i_stat,i_all,'evall','loewe_p')
 
 END SUBROUTINE loewe_p
+
 
 subroutine loewe(norb,norbp,nvctrp,psi)
   ! loewdin orthogonalisation
@@ -382,7 +385,6 @@ subroutine checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
   deallocate(ovrlp,stat=i_stat)
   call memocc(i_stat,i_all,'ovrlp','checkortho_p')
 
-  return
 END SUBROUTINE checkortho_p
 
 
@@ -424,8 +426,8 @@ subroutine checkortho(norb,norbp,nvctrp,psi)
   call memocc(i_stat,i_all,'ovrlp','checkortho')
 
 
-  return
 END SUBROUTINE checkortho
+
 
 subroutine KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,  & 
      hpsit,psit,evsum,eval)
@@ -452,7 +454,6 @@ subroutine KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,  &
         hamks(iorb,jorb,2)=scpr
      enddo
   enddo
-
 
   call MPI_ALLREDUCE (hamks(1,1,2),hamks(1,1,1),norb**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
@@ -494,9 +495,7 @@ subroutine KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,  &
   deallocate(psitt,stat=i_stat)
   call memocc(i_stat,i_all,'psitt','kstrans_p')
 
-  return
 END SUBROUTINE KStrans_p
-
 
 
 subroutine KStrans(norb,norbp,nvctrp,occup,hpsi,psi,evsum,eval)
@@ -522,7 +521,6 @@ subroutine KStrans(norb,norbp,nvctrp,occup,hpsi,psi,evsum,eval)
         hamks(iorb,jorb,1)=scpr
      enddo
   enddo
-
 
   !        write(*,*) 'KS Hamiltonian',0
   !        do iorb=1,norb
@@ -562,5 +560,4 @@ subroutine KStrans(norb,norbp,nvctrp,occup,hpsi,psi,evsum,eval)
   deallocate(psitt,stat=i_stat)
   call memocc(i_stat,i_all,'psitt','kstrans')
 
-  return
 END SUBROUTINE KStrans
