@@ -439,7 +439,7 @@ end subroutine PSolver
 !!                the ABINIT convention.
 !!    n3d         third dimension of the density. For distributed data, it takes into account 
 !!                the enlarging needed for calculating the XC functionals.
-!!                For global data it it simply equal to n03. 
+!!                For global data it is simply equal to n03. 
 !!                When there are too many processes and there is no room for the density n3d=0
 !!    n3p         third dimension for the potential. The same as n3d, but without 
 !!                taking into account the enlargment for the XC part. For non-GGA XC, n3p=n3d.
