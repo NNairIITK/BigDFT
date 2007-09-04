@@ -2,7 +2,7 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
      psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,n3p,&
-     potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,&
+     potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar,&
      ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
      ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
@@ -11,7 +11,7 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
   logical, intent(in) :: parallel
   character(len=1), intent(in) :: datacode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nat,ntypes,nproj,nprojel,n3p
-  integer, intent(in) :: nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f
+  integer, intent(in) :: nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nspin
   real(kind=8), intent(in) :: hgrid
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
@@ -24,7 +24,7 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
   integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
   integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
   integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
-  real(kind=8), dimension(norb), intent(in) :: occup
+  real(kind=8), dimension(norb), intent(in) :: occup,spinar
   real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
   real(kind=8), dimension(*), intent(in) :: potential
   real(kind=8), dimension(nprojel), intent(in) :: proj
@@ -66,17 +66,22 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
 
   if (datacode=='D') then
      !allocate full potential
-     allocate(pot((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+     allocate(pot((2*n1+31)*(2*n2+31)*(2*n3+31)*nspin),stat=i_stat)
      call memocc(i_stat,product(shape(pot))*kind(pot),'pot','hamiltonianapplication')
 
      call MPI_ALLGATHERV(potential,(2*n1+31)*(2*n2+31)*n3p,&
           MPI_DOUBLE_PRECISION,pot,ngatherarr(0,1),&
           ngatherarr(0,2),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
 
+     if(nspin==2) then
+        call MPI_ALLGATHERV(potential((2*n1+31)*(2*n2+31)*n3p+1),(2*n1+31)*(2*n2+31)*n3p,&
+             MPI_DOUBLE_PRECISION,pot((2*n1+31)*(2*n2+31)*(2*n3+31)+1),ngatherarr(0,1),&
+             ngatherarr(0,2),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     end if
      call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
           hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-          psi,pot,hpsi,epot_sum,ekin_sum,&
+          psi,pot,hpsi,epot_sum,ekin_sum,nspin,spinar,&
           ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
           ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
@@ -89,7 +94,7 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
      call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
           hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-          psi,potential,hpsi,epot_sum,ekin_sum,&
+          psi,potential,hpsi,epot_sum,ekin_sum,nspin,spinar,&
           ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
           ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
@@ -130,7 +135,7 @@ end subroutine HamiltonianApplication
 subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
      hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
      ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
-     psi,pot,hpsi,epot_sum,ekin_sum,&
+     psi,pot,hpsi,epot_sum,ekin_sum,nspin,spinar,&
      ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
      ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
   !  Applies the local potential and kinetic energy operator to all wavefunctions belonging to processor
@@ -139,7 +144,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   implicit real(kind=8) (a-h,o-z)
   dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
   dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-  dimension occup(norb),pot((2*n1+31)*(2*n2+31)*(2*n3+31))
+  dimension occup(norb),pot((2*n1+31)*(2*n2+31)*(2*n3+31)*nspin),spinar(norb)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension  psi(nvctr_c+7*nvctr_f,norbp)
   dimension hpsi(nvctr_c+7*nvctr_f,norbp)
@@ -211,10 +216,15 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   epot_sum=0.d0
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
+     if(spinar(iorb)>0.0d0) then
+        nsoffset=1
+     else
+        nsoffset=(2*n1+31)*(2*n2+31)*(2*n3+31)+1
+     end if
      call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
           hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
           ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,y_c,y_f,psir,  &
-          psi(1,iorb-iproc*norbp),pot,hpsi(1,iorb-iproc*norbp),epot,ekin, & 
+          psi(1,iorb-iproc*norbp),pot(nsoffset),hpsi(1,iorb-iproc*norbp),epot,ekin, & 
           x_c,x_fc,x_f,w1,w2,&
           ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
           ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r)

@@ -15,12 +15,14 @@ subroutine createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz
   real(kind=8), dimension(*), intent(out) :: pot_ion
   !local variables
   real(kind=8) :: hgridh,ehart,eexcu,vexcu
+  integer :: nspin
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
           '----------------------------------------------------------- Ionic Potential Creation'
   end if
 
+  nspin=1
   hgridh=0.5d0*hgrid
 
   ! Precalculate ionic potential from PSP charge densities and local Gaussian terms
@@ -30,7 +32,7 @@ subroutine createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz
 
   !here the value of the datacode must be kept fixed
   call PSolver('F','D',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
-       pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.false.)
+       pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.false.,nspin)
 
   !print *,'ehartree',ehart
   if (n3pi > 0) then
