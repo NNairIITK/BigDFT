@@ -403,14 +403,14 @@ subroutine memocc(istat,isize,array,routine)
 end subroutine memocc
 
 subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
-     rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid)
+     rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid,nspin)
 
   use Poisson_Solver
 
   implicit none
   !Arguments
   logical, intent(in) :: output_grid
-  integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb
+  integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin
   integer, dimension(nat), intent(in) :: iatype
   character(len=20), dimension(100), intent(in) :: atomnames
   real(kind=8), intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
@@ -506,11 +506,11 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
   end if
 
   !density memory
-  omemden=real(md1*md3*md2/nproc*8,kind=8)
+  omemden=real(md1*md3*md2/nproc*8*nspin,kind=8)
   !kernel memory
   omemker=real(nd1*nd2*nd3/nproc*8,kind=8)
   !memory of full grid arrays
-  omempot=real(n01*n02*n03*8,kind=8)
+  omempot=real(n01*n02*n03*8*nspin,kind=8)
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ Memory Estimation'

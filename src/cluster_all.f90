@@ -515,7 +515,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   !memory estimation
   if (iproc==0) then
      call MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
-          rxyz,radii_cf,crmult,frmult,norb,atomnames,.false.) ! add NSPIN
+          rxyz,radii_cf,crmult,frmult,norb,atomnames,.false.,nspin) 
   end if
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems

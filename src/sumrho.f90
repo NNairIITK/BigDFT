@@ -17,7 +17,7 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   real*8,allocatable::x_f(:,:,:,:),x_fc(:,:,:,:) ! input
   real*8,allocatable,dimension(:):: w1,w2
 
-  real*8 scal(0:3)
+  real*8 scal(0:3),hfac
   !	for grow:
   integer ibyz_c(2,0:n2,0:n3)
   integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
@@ -83,7 +83,7 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
      !call razero((2*n1+31)*(2*n2+31)*(2*n3+31),rho_p)
 
      do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-
+        hfac=(occup(iorb)/hgridh**3)
 !***************Alexey**************************************************************************
 
         call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
@@ -118,7 +118,7 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
                     ind1s=i1+ind2s
                     !do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
 !                    rho_p(ind1s)=rho_p(ind1s)+(occup(iorb)/hgridh**3)*psir(ind1)**2
-                   rho_p(ind1s+isjmp)=rho_p(ind1s+isjmp)+(occup(iorb)/hgridh**3)*psir(ind1)**2
+                   rho_p(ind1s+isjmp)=rho_p(ind1s+isjmp)+hfac*psir(ind1)**2
                  end do
               end do
            end do
