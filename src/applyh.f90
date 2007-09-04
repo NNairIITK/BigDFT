@@ -52,7 +52,7 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
   integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
 
   !local variables
-  integer :: i_all,i_stat,ierr
+  integer :: i_all,i_stat,ierr,iorb
   real(kind=8), dimension(:), allocatable :: pot
   real(kind=8), dimension(:,:), allocatable :: wrkallred
 
@@ -100,9 +100,20 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
   ! apply all PSP projectors for all orbitals belonging to iproc
   call timing(iproc,'ApplyProj     ','ON')
 
-  call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
-       nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-       norb,norbp,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
+  eproj_sum=0.d0
+  ! loop over all my orbitals
+  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+     call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
+          nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
+          nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,  & 
+          psi(1,iorb-iproc*norbp),hpsi(1,iorb-iproc*norbp),eproj)
+     eproj_sum=eproj_sum+occup(iorb)*eproj
+     !     write(*,*) 'iorb,eproj',iorb,eproj
+  enddo
+
+!!$  call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
+!!$       nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
+!!$       norb,norbp,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
 
   call timing(iproc,'ApplyProj     ','OF')
 

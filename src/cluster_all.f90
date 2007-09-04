@@ -312,7 +312,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
              radii_cf(ityp,1),radii_cf(ityp,2),&
              '                   X    '
      else
-        !new method for assigning the radii
+        !assigning the radii by calculating physical parameters
         radii_cf(ityp,1)=1.d0/sqrt(abs(2.d0*ehomo))
         radfine=100.d0
         do i=0,4
