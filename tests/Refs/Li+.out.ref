@@ -15,7 +15,7 @@
    Li_lda               3       2            2.07000  0.40000                   X    
  Total Number of Electrons        2
  Total Number of  Orbitals        1
- occup(1)= 2.0
+ occup(1)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1 Li_lda  1.03500E+01  1.03500E+01  1.03500E+01       23.000    23.000    23.000
     Shift of=  1.03500E+01  1.03500E+01  1.03500E+01
@@ -54,14 +54,14 @@
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -3.000000000000   0.000E+00
  ion-ion interaction energy  0.00000000000000E+00
- PSolver, free  BC, dimensions:   121  121  121   proc  1   ixc:  0 ... done.
+ PSolver, free  BC, dimensions:   121  121  121   proc    1   ixc:  0 ... done.
  ------------------------------------------------------- Input Wavefunctions Creation
  Input wavefunction data for atom Li_lda NOT found, automatic generation... done.
  Generating 2 Atomic Input Orbitals
    of which 1 are semicore orbitals
  Calculating AIO wavefunctions... done.
  Calculation of charge density... done. Total electronic charge=       2.999998921422
- PSolver, free  BC, dimensions:   121  121  121   proc  1   ixc:  1 ... done.
+ PSolver, free  BC, dimensions:   121  121  121   proc    1   ixc:  1 ... done.
  Hamiltonian application... done. ekin_sum,eks:       6.0811799486       6.0786638687
  Input Wavefunctions Orthogonalization: Overlap Matrix... Linear Algebra...
  evale(1)= -1.85044523096715E+00
@@ -71,7 +71,7 @@
  suggested value for gnrm_cv  2.52E-03
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       1.999998973969
- PSolver, free  BC, dimensions:   121  121  121   proc  1   ixc:  1 ... done.
+ PSolver, free  BC, dimensions:   121  121  121   proc    1   ixc:  1 ... done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    1.00E+00  1.00E+00
  Orthogonalization... done.
@@ -80,7 +80,7 @@
  iter,total energy,gnrm     1  -7.063296979706E+00  3.35E-01
  ---------------------------------------------------------------------------- iter= 2
  Calculation of charge density... done. Total electronic charge=       1.999998922248
- PSolver, free  BC, dimensions:   121  121  121   proc  1   ixc:  1 ... done.
+ PSolver, free  BC, dimensions:   121  121  121   proc    1   ixc:  1 ... done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -2.59E-01  1.26E+00 -4.24E-06
  Orthogonalization... done.
@@ -89,7 +89,7 @@
  iter,total energy,gnrm     2  -7.094083859828E+00  7.20E-02
  ---------------------------------------------------------------------------- iter= 3
  Calculation of charge density... done. Total electronic charge=       1.999998866776
- PSolver, free  BC, dimensions:   121  121  121   proc  1   ixc:  1 ... done.
+ PSolver, free  BC, dimensions:   121  121  121   proc    1   ixc:  1 ... done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    3.14E-02 -1.18E-01  1.09E+00 -6.08E-08
  Orthogonalization... done.
@@ -98,7 +98,7 @@
  iter,total energy,gnrm     3  -7.095377035502E+00  8.96E-03
  ---------------------------------------------------------------------------- iter= 4
  Calculation of charge density... done. Total electronic charge=       1.999998853592
- PSolver, free  BC, dimensions:   121  121  121   proc  1   ixc:  1 ... done.
+ PSolver, free  BC, dimensions:   121  121  121   proc    1   ixc:  1 ... done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    1.34E-03 -1.64E-02 -6.33E-02  1.08E+00 -2.95E-10
  Orthogonalization... done.
@@ -107,7 +107,7 @@
  iter,total energy,gnrm     4  -7.095382085674E+00  1.47E-03
  ---------------------------------------------------------------------------- iter= 5
  Calculation of charge density... done. Total electronic charge=       1.999998850885
- PSolver, free  BC, dimensions:   121  121  121   proc  1   ixc:  1 ... done.
+ PSolver, free  BC, dimensions:   121  121  121   proc    1   ixc:  1 ... done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -2.19E-05  6.75E-04  3.46E-03 -8.95E-02  1.09E+00 -1.43E-13
  Orthogonalization... done.
@@ -116,7 +116,7 @@
  iter,total energy,gnrm     5  -7.095382262317E+00  8.88E-05
  ---------------------------------------------------------------------------- iter= 6
  Calculation of charge density... done. Total electronic charge=       1.999998850716
- PSolver, free  BC, dimensions:   121  121  121   proc  1   ixc:  1 ... done.
+ PSolver, free  BC, dimensions:   121  121  121   proc    1   ixc:  1 ... done.
  Hamiltonian application... done. 6 minimization iterations required
  iproc,ehart,eexcu,vexcu  0  3.19008986860E+00 -1.49983468334E+00 -1.97193729909E+00
  final ekin_sum,epot_sum,eproj_sum  6.30255147968E+00 -1.06799464895E+01  0.00000000000E+00
@@ -125,7 +125,7 @@
  eval(1)= -2.18869750489397E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=       1.999998850716
- PSolver, free  BC, dimensions:   121  121  121   proc  1   ixc:  0 ... done.
+ PSolver, free  BC, dimensions:   121  121  121   proc    1   ixc:  0 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
  ---------------------------------------------- Estimation of Finite-Size Corrections
@@ -141,7 +141,7 @@
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  6.30255182306E+00 -1.06799468328E+01  0.00000000000E+00
  Total energy with tail correction -7.095382262645E+00
-- iproc, elapsed, CPU time     0        45.65        40.69
+- iproc, elapsed, CPU time     0        46.24        38.04
  Final values of the Forces for each atom
      1 Li_lda  1.34717E-06  1.34717E-06  1.34717E-06
  the sum of the forces is

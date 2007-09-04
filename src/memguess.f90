@@ -7,17 +7,18 @@ program memguess
   character(len=30) :: filename
   character(len=2) :: symbol
   integer :: ierror,nat,ntypes,iat,jat,ityp,nproc,n1,n2,n3,ixc,ncharge,itermax,i_stat,i_all,i,j
-  integer :: ncong,ncongt,idsx,nzatom,npspcode,iasctype,nelec,norb,nateq,nt
+  integer :: ncong,ncongt,idsx,nzatom,npspcode,iasctype,nelec,norb,nateq,nt,it,iorb,iorb1,ne
   logical :: exists
   real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,elecfield
-  real(kind=8) :: alat1,alat2,alat3,rcov,rprb,ehomo,radfine
+  real(kind=8) :: alat1,alat2,alat3,rcov,rprb,ehomo,radfine,rocc
   real(kind=8) :: cxmin,cxmax,cymin,cymax,czmin,czmax
   character(len=20), dimension(:), allocatable :: atomnames
   integer, dimension(:), allocatable :: iatype,nelpsp
   integer, dimension(:,:), allocatable :: neleconf
   real(kind=8), dimension(:,:), allocatable :: rxyz,radii_cf
   real(kind=8), dimension(:,:,:), allocatable :: psppar
- 
+  real(kind=8), dimension(:), allocatable :: occup 
+
   call getarg(1,tatonam)
 
   if(trim(tatonam)=='') then
@@ -247,7 +248,6 @@ program memguess
        'Total Number of Electrons ',nelec
   if (mod(nelec,2).ne.0) write(*,*) &
        'WARNING: odd number of electrons, no closed shell system'
-  norb=(nelec+1)/2
 
 ! Number of orbitals
   norb=(nelec+1)/2
@@ -270,7 +270,6 @@ program memguess
      else
         norb=nt
      end if
-     close(unit=24)
   end if
 
   if (exists) then
@@ -280,6 +279,78 @@ program memguess
      write(*,'(1x,a,i8)') &
           'Total Number of  Orbitals ',norb
   end if
+
+! Read the file "occup.dat" and test it
+  if (exists) then
+     allocate(occup(norb),stat=i_stat)
+     call memocc(i_stat,product(shape(occup))*kind(occup),'occup','memguess')
+     ! First fill the occupation numbers by default
+     ne=(nelec+1)/2
+     nt=0
+     do iorb=1,ne
+        it=min(2,nelec-nt)
+        occup(iorb)=real(it,kind=8)
+        nt=nt+it
+     enddo
+     do iorb=ne+1,norb
+        occup(iorb)=0.d0
+     end do
+     ! Then read the file "occup.dat" if does exist
+     nt=0
+     do
+        read(24,*,iostat=ierror) iorb,rocc
+        if (ierror/=0) then
+           exit
+        else
+           nt=nt+1
+           if (iorb<0 .or. iorb>norb) then
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
+              write(*,'(10x,a,i0,a)')     'The orbital index ',iorb,' is incorrect'
+              stop
+           elseif (rocc<0.d0 .or. rocc>2.d0) then
+              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
+              write(*,'(10x,a,f5.2,a)')     'The occupation number ',rocc,' is not between 0. and 2.'
+              stop
+           else
+              occup(iorb)=rocc
+           end if
+        end if
+     end do
+     write(*,'(1x,a,i0,a)') &
+             'The occupation numbers are read from the file "occup.dat" (',nt,' lines read)'
+     close(unit=24)
+  end if
+
+  !Check if sum(occup)=nelec
+  rocc=sum(occup)
+  if (abs(rocc-real(nelec,kind=8))>1.d-6) then
+     write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the total number of electrons ',rocc,&
+             ' is not equal to ',nelec
+     stop
+  end if
+  write(*,'(1x,a,i8)') &
+       'Total Number of  Orbitals ',norb
+  iorb1=1
+  rocc=occup(1)
+  do iorb=1,norb
+     if (occup(iorb) /= rocc) then
+        if (iorb1 == iorb-1) then
+           write(*,'(4x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
+        else
+           write(*,'(4x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
+        end if
+        rocc=occup(iorb)
+        iorb1=iorb
+     end if
+  enddo
+  if (iorb1 == norb) then
+     write(*,'(4x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
+  else
+     write(*,'(4x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
+  end if
+! De-allocation of occup
+  deallocate(occup,stat=i_stat)
+  call memocc(i_stat,i_all,'occup','cluster')
 
 ! determine size alat of overall simulation cell
   call system_size(nat,rxyz,radii_cf(1,1),crmult,iatype,ntypes, &

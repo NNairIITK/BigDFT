@@ -57,7 +57,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocatable :: ibyz_c(:,:,:),ibxz_c(:,:,:),ibxy_c(:,:,:),  & 
        ibyz_f(:,:,:),ibxz_f(:,:,:),ibxy_f(:,:,:)
   ! occupation numbers, eigenvalues
-  allocatable :: occup(:)
+  real(kind=8), allocatable :: occup(:)
   real(kind=8), pointer :: eval(:),eval_old(:)
 
   ! wavefunction segments
@@ -406,7 +406,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
            if (iorb<0 .or. iorb>norb) then
               if (iproc==0) then
                  write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
-                 write(*,'(10x,a,i0,a)')     'The orbital index ',i0,' is incorrect'
+                 write(*,'(10x,a,i0,a)')     'The orbital index ',iorb,' is incorrect'
               end if
               stop
            elseif (rocc<0.d0 .or. rocc>2.d0) then
@@ -2760,9 +2760,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
         if (info.ne.0) write(*,*) 'DSYGV ERROR',info,i,natsc+1
         if (iproc.eq.0) then
-        do iorb=1,norbi
-        write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb+iorbst-1,')=',evale(iorb)
-        enddo
+           do iorb=1,norbi
+              write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb+iorbst-1,')=',evale(iorb)
+           enddo
         endif
         do iorb=iorbst,min(norbi+iorbst-1,norb)
            eval(iorb)=evale(iorb-iorbst+1)

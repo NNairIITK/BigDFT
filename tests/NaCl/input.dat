@@ -1,5 +1,5 @@
 1 0.0d0 10.d0  (for main) ngeometry step, random amplitude for atoms, steepest descent step   
-.45      hgrid: grid spacing
+.55      hgrid: grid spacing
 5.0      crmult:   crmult*radii_cf(*,1) gives the coarse radius around each atom
 8.       frmult:   frmult*radii_cf(*,2) gives the fine   radius around each atom
 8.       cpmult:   cpmult*radii_cf(*,2) region for coarse projectors around each atom
