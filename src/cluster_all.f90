@@ -374,30 +374,23 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 ! Test if the file 'occup.dat exists
   inquire(file='occup.dat',exist=exists)
 ! Not implemented fo npsin==2: At the present stage, this feature is broken
-  if (nspin==1) exists=.false.
+  if (nspin==2.and.exists) then
+     write(*,'(1x,a)') 'ERROR: It is not possible to use the file occup.dat with spin-polarization'
+     stop
+  end if
   if (exists) then
      open(unit=24,file='occup.dat',form='formatted',action='read',status='old')
      !The first line gives the number of orbitals
-     if (nspin==1) then
-        read(24,*,iostat=ierror) nt
-     else
-        read(24,*,iostat=ierror) nt
-     end if
+     read(24,*,iostat=ierror) nt
      if (ierror /=0) then
          if (iproc==0) write(*,'(1x,a)') 'ERROR reading the number of orbitals in the file "occup.dat"'
         stop
      end if
      if (nt<=norb) then
         if (iproc==0) then
-           if (nspin==1) then
-              write(*,'(1x,a,i0,a,i0)') &
+           write(*,'(1x,a,i0,a,i0)') &
                    'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
                    ' should be strictly greater than (nelec+1)/2=',norb
-           else
-              write(*,'(1x,a,i0,a,i0)') &
-                   'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
-                   ' should be strictly greater than nelec=',norb
-           end if
         end if
         stop
      else
@@ -531,7 +524,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 !!$     rxyz(2,iat)=(real(n1/2,kind=8)+0.5)*hgrid 
 !!$     rxyz(3,iat)=(real(n1/2,kind=8)+0.5)*hgrid 
 !!$  enddo
-
 
   do iat=1,nat
      rxyz(1,iat)=rxyz(1,iat)-cxmin
@@ -706,7 +698,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   ngatherarr(:,1)=(2*n1+31)*(2*n2+31)*nscatterarr(:,2)
   ngatherarr(:,2)=(2*n1+31)*(2*n2+31)*nscatterarr(:,3)
 
-
   !allocate ionic potential
   if (n3pi > 0) then
      allocate(pot_ion((2*n1+31)*(2*n2+31)*n3pi),stat=i_stat)
@@ -728,7 +719,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','cluster')
   end if
 
-     ! INPUT WAVEFUNCTIONS
+! INPUT WAVEFUNCTIONS
   if (inputPsiId == 0) then
      call input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
@@ -785,11 +776,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         allocate(psi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
         call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
      end if
-     
-        
+
      if (inputPsiId == 1 ) then
 
-        
         if (iproc.eq.0) write(*,*) 'START reformatting psi from old psi'
         call reformatmywaves(iproc,norb,norbp,nat, &
              & hgrid_old,nvctr_c_old,nvctr_f_old,n1_old,n2_old,n3_old,rxyz_old, &
@@ -820,7 +809,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         
      end if
      
-     !
      if (parallel) then
         !allocate hpsi array (used also as transposed)
         !allocated in the transposed way such as 
