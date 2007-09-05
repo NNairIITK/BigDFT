@@ -25,7 +25,7 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
   integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
   integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
   real(kind=8), dimension(norb), intent(in) :: occup
-  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(*), intent(in) :: potential
   real(kind=8), dimension(nprojel), intent(in) :: proj
   real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
@@ -53,6 +53,7 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
 
   !local variables
   integer :: i_all,i_stat,ierr,iorb
+  real(kind=8) :: eproj
   real(kind=8), dimension(:), allocatable :: pot
   real(kind=8), dimension(:,:), allocatable :: wrkallred
 
@@ -420,7 +421,7 @@ subroutine applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
   ! Input: psi_c,psi_f
   ! In/Output: hpsi_c,hpsi_f (both are updated, i.e. not initilized to zero at the beginning)
   implicit real(kind=8) (a-h,o-z)
-  dimension psppar(0:4,0:4,ntypes),iatype(nat),npspcode(ntypes)
+  dimension psppar(0:4,0:6,ntypes),iatype(nat),npspcode(ntypes)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension psi(nvctr_c+7*nvctr_f,norbp),hpsi(nvctr_c+7*nvctr_f,norbp)
   dimension nseg_p(0:2*nat),nvctr_p(0:2*nat)
@@ -447,7 +448,7 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
   ! Input: psi_c,psi_f
   ! In/Output: hpsi_c,hpsi_f (both are updated, i.e. not initilized to zero at the beginning)
   implicit real(kind=8) (a-h,o-z)
-  dimension psppar(0:4,0:4,ntypes),iatype(nat),npspcode(ntypes)
+  dimension psppar(0:4,0:6,ntypes),iatype(nat),npspcode(ntypes)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension psi(nvctr_c+7*nvctr_f),hpsi(nvctr_c+7*nvctr_f)
   dimension nseg_p(0:2*nat),nvctr_p(0:2*nat)
@@ -576,6 +577,53 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
                        istart_c_i=istart_f_i+7*mbvctr_f
                     enddo
                  end do loop_j
+              else if (npspcode(ityp) == 10) then !HGH-K case, offdiagonal terms
+                 loop_jK: do j=i+1,3
+                    if (psppar(l,j,ityp) .eq. 0.d0) exit loop_jK
+                    istart_c_i=istart_c-(2*l-1)*(mbvctr_c+7*mbvctr_f)
+                    istart_c_j=istart_c_i+(j-i)*(2*l-1)*(mbvctr_c+7*mbvctr_f)
+                    do m=1,2*l-1
+                       !starting addresses of the projectors
+                       istart_f_j=istart_c_j+mbvctr_c
+                       istart_f_i=istart_c_i+mbvctr_c
+                       call wpdot(&
+                            nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+                            keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
+                            mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
+                            keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
+                            proj(istart_c_j),proj(istart_f_j),scpr_j)
+
+                       call wpdot(&
+                            nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+                            keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),  &
+                            mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
+                            keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
+                            proj(istart_c_i),proj(istart_f_i),scpr_i)
+
+                       !scpr_i*h_ij*scpr_j+scpr_j*h_ij*scpr_i (with symmetric h_ij)
+                       eproj=eproj+2.d0*scpr_i*psppar(l,i+j+1,ityp)*scpr_j
+
+                       !|hpsi>=|hpsi>+h_ij (<p_i|psi>|p_j>+<p_j|psi>|p_i>)
+                       call waxpy(&
+                            scprp_j,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                            keyv_p(jseg_c),keyv_p(jseg_f),  &
+                            keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
+                            proj(istart_c_i),proj(istart_f_i),  &
+                            nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+                            keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
+
+                       call waxpy(&
+                            scprp_i,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                            keyv_p(jseg_c),keyv_p(jseg_f),  &
+                            keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
+                            proj(istart_c_j),proj(istart_f_j),  &
+                            nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+                            keyg(1,1),keyg(1,nseg_c+1),hpsi(1),hpsi(nvctr_c+1))
+
+                       istart_c_j=istart_f_j+7*mbvctr_f
+                       istart_c_i=istart_f_i+7*mbvctr_f
+                    enddo
+                 end do loop_jK
               end if
            end if
         enddo

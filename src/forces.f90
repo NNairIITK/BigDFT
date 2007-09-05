@@ -6,7 +6,7 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
   integer, intent(in) :: iproc,nproc,ntypes,nat,n1,n2,n3,n3pi,i3s
   real(kind=8), intent(in) :: hgrid
   character(len=20), dimension(100), intent(in) :: atomnames
-  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(*), intent(in) :: rho,pot
   integer, dimension(nat), intent(in) :: iatype
@@ -148,157 +148,6 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
 
 end subroutine local_forces
 
-
-subroutine local_forces_old(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
-     n1,n2,n3,rho,pot,floc)
-! Calculates the local forces acting on the atoms belonging to iproc
-  
-  implicit none
-  !Arguments---------
-  integer, intent(in) :: iproc,nproc,ntypes,nat,n1,n2,n3
-  real(kind=8), intent(in) :: hgrid
-  character(len=20), dimension(100), intent(in) :: atomnames
-  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
-  real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(in) :: rho,pot
-  integer, dimension(nat), intent(in) :: iatype
-  integer, dimension(ntypes), intent(in) :: nelpsp
-  real(kind=8), dimension(3,nat), intent(out) :: floc
-  !Local variables---------
-  real(kind=8) :: hgridh,pi,prefactor,cutoff,rloc,Vel,rhoel
-  real(kind=8) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc
-  real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,dist,tt
-  integer :: ii,ix,iy,iz,i1,i2,i3,iat,jat,ityp,jtyp,nloc,iloc,i_all,i_stat
-  !array of coefficients of the derivative
-  real(kind=8), dimension(4) :: cprime 
-
-  hgridh=hgrid*.5d0 
-  pi=4.d0*atan(1.d0)
-
-  if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate local forces...'
-  forceleaked=0.d0
-
-  do iat=1,nat
-  if (mod(iat-1,nproc).eq.iproc .and. iproc < nat) then
-     !write(*,'(1x,i0,a,i0)') iproc,' calculates local force on atom ',iat
-     ityp=iatype(iat)
-     !coordinates of the center
-     rx=rxyz(1,iat) 
-     ry=rxyz(2,iat) 
-     rz=rxyz(3,iat)
-     !nearest grid points to the center
-     ix=nint(rx/hgridh)
-     iy=nint(ry/hgridh)
-     iz=nint(rz/hgridh)
-     !inizialization of the forces
-     !ion-ion term
-     fxion=0.d0
-     fyion=0.d0
-     fzion=0.d0
-     !ion-electron term, error function part
-     fxerf=0.d0
-     fyerf=0.d0
-     fzerf=0.d0
-     !ion-electron term, gaussian part
-     fxgau=0.d0
-     fygau=0.d0
-     fzgau=0.d0
-
-     !Derivative of the ion-ion energy
-     do jat=1,iat-1
-        dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-        jtyp=iatype(jat)
-        !eion=eion+nelpsp(jtyp)*nelpsp(ityp)/dist
-        fxion=fxion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(rx-rxyz(1,jat))
-        fyion=fyion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(ry-rxyz(2,jat))
-        fzion=fzion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(rz-rxyz(3,jat))
-     end do
-     do jat=iat+1,nat
-        dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-        jtyp=iatype(jat)
-        fxion=fxion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(rx-rxyz(1,jat))
-        fyion=fyion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(ry-rxyz(2,jat))
-        fzion=fzion+real(nelpsp(jtyp),kind=8)*(real(nelpsp(ityp),kind=8)/(dist**3))*(rz-rxyz(3,jat))
-     end do
-
-     
-     !building array of coefficients of the derivative of the gaussian part
-     cprime(1)=2.d0*psppar(0,2,ityp)-psppar(0,1,ityp)
-     cprime(2)=4.d0*psppar(0,3,ityp)-psppar(0,2,ityp)
-     cprime(3)=6.d0*psppar(0,4,ityp)-psppar(0,3,ityp)
-     cprime(4)=-psppar(0,4,ityp)
-
-     ! determine number of local terms
-     nloc=0
-     do iloc=1,4
-        if (psppar(0,iloc,ityp).ne.0.d0) nloc=iloc
-     enddo
-
-     !local part
-     rloc=psppar(0,0,ityp)
-     prefactor=real(nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**5)
-     !maximum extension of the gaussian
-     cutoff=10.d0*rloc
-     !nearest grid point to the cutoff
-     ii=nint(cutoff/hgridh)
-     !calculate the forces near the atom due to the error function part of the potential
-     do i3=iz-ii,iz+ii
-        do i2=iy-ii,iy+ii
-           do i1=ix-ii,ix+ii
-              x=real(i1,kind=8)*hgridh-rx
-              y=real(i2,kind=8)*hgridh-ry
-              z=real(i3,kind=8)*hgridh-rz
-              r2=x**2+y**2+z**2
-              arg=r2/rloc**2
-              xp=exp(-.5d0*arg)
-              if (i3.ge.-14 .and. i3.le.2*n3+16  .and.  & 
-                   i2.ge.-14 .and. i2.le.2*n2+16  .and.  & 
-                   i1.ge.-14 .and. i1.le.2*n1+16 ) then
-                 !gaussian part
-                 if (nloc /= 0) then
-                    tt=cprime(nloc)
-                    do iloc=nloc-1,1,-1
-                       tt=arg*tt+cprime(iloc)
-                    enddo
-                    rhoel=rho(i1,i2,i3)
-                    forceloc=xp*tt*rhoel
-                    fxgau=fxgau+forceloc*x
-                    fygau=fygau+forceloc*y
-                    fzgau=fzgau+forceloc*z
-                 end if
-                 !error function part
-                 Vel=pot(i1,i2,i3)
-                 fxerf=fxerf+xp*Vel*x
-                 fyerf=fyerf+xp*Vel*y
-                 fzerf=fzerf+xp*Vel*z
-              else
-                 forceleaked=forceleaked+xp*(1.d0+tt)
-              endif
-           end do
-        end do
-     end do
-
-     !final result of the forces
-     
-    floc(1,iat)=fxion+(hgridh**3*prefactor)*fxerf+(hgridh**3/rloc**2)*fxgau
-    floc(2,iat)=fyion+(hgridh**3*prefactor)*fyerf+(hgridh**3/rloc**2)*fygau
-    floc(3,iat)=fzion+(hgridh**3*prefactor)*fzerf+(hgridh**3/rloc**2)*fzgau
-
-
-  else
-
-    floc(1,iat)=0.d0
-    floc(2,iat)=0.d0
-    floc(3,iat)=0.d0
-
-  endif
-  end do
-
-  forceleaked=forceleaked*prefactor*hgridh**3
-  if (iproc.eq.0) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
-
-end subroutine local_forces_old
-
 subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, & 
      ntypes,nat,norb,nprojel,nproj,&
      iatype,psppar,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
@@ -317,7 +166,7 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, &
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
   integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
-  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
   real(kind=8), dimension(nprojel), intent(in) :: proj
@@ -334,17 +183,17 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, &
   integer :: idir,iterm,i_all,i_stat
 
   allocate(fac_arr(nterm_max,3),stat=i_stat)
-  call memocc(i_stat,product(shape(fac_arr))*kind(fac_arr),'fac_arr','nonlocal_forces')
+  call memocc(i_stat,product(shape(fac_arr))*kind(fac_arr),'fac_arr','projectors_derivatives')
   allocate(lxyz_arr(3,nterm_max,3),stat=i_stat)
-  call memocc(i_stat,product(shape(lxyz_arr))*kind(lxyz_arr),'lxyz_arr','nonlocal_forces')
+  call memocc(i_stat,product(shape(lxyz_arr))*kind(lxyz_arr),'lxyz_arr','projectors_derivatives')
   allocate(lx(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(lx))*kind(lx),'lx','nonlocal_forces')
+  call memocc(i_stat,product(shape(lx))*kind(lx),'lx','projectors_derivatives')
   allocate(ly(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(ly))*kind(ly),'ly','nonlocal_forces')
+  call memocc(i_stat,product(shape(ly))*kind(ly),'ly','projectors_derivatives')
   allocate(lz(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(lz))*kind(lz),'lz','nonlocal_forces')
+  call memocc(i_stat,product(shape(lz))*kind(lz),'lz','projectors_derivatives')
   allocate(nterm_arr(3),stat=i_stat)
-  call memocc(i_stat,product(shape(nterm_arr))*kind(nterm_arr),'nterm_arr','nonlocal_forces')
+  call memocc(i_stat,product(shape(nterm_arr))*kind(nterm_arr),'nterm_arr','projectors_derivatives')
 
   !create the derivative of the projectors
   istart_c=1
@@ -410,22 +259,22 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, &
 
   i_all=-product(shape(lxyz_arr))*kind(lxyz_arr)
   deallocate(lxyz_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'lxyz_arr','nonlocal_forces')
+  call memocc(i_stat,i_all,'lxyz_arr','projectors_derivatives')
   i_all=-product(shape(nterm_arr))*kind(nterm_arr)
   deallocate(nterm_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'nterm_arr','nonlocal_forces')
+  call memocc(i_stat,i_all,'nterm_arr','projectors_derivatives')
   i_all=-product(shape(fac_arr))*kind(fac_arr)
   deallocate(fac_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'fac_arr','nonlocal_forces')
+  call memocc(i_stat,i_all,'fac_arr','projectors_derivatives')
   i_all=-product(shape(lx))*kind(lx)
   deallocate(lx,stat=i_stat)
-  call memocc(i_stat,i_all,'lx','nonlocal_forces')
+  call memocc(i_stat,i_all,'lx','projectors_derivatives')
   i_all=-product(shape(ly))*kind(ly)
   deallocate(ly,stat=i_stat)
-  call memocc(i_stat,i_all,'ly','nonlocal_forces')
+  call memocc(i_stat,i_all,'ly','projectors_derivatives')
   i_all=-product(shape(lz))*kind(lz)
   deallocate(lz,stat=i_stat)
-  call memocc(i_stat,i_all,'lz','nonlocal_forces')
+  call memocc(i_stat,i_all,'lz','projectors_derivatives')
 
 end subroutine projectors_derivatives
 
@@ -444,7 +293,7 @@ subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
   integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
-  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   integer, dimension(ntypes), intent(in) :: npspcode
   real(kind=8), dimension(norb), intent(in) :: occup
   real(kind=8), dimension(nprojel), intent(in) :: proj
@@ -558,16 +407,21 @@ subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
         end do
      end do
      !HGH case, offdiagonal terms
-     if (npspcode(ityp) == 3) then
+     if (npspcode(ityp) == 3 .or. npspcode(ityp) == 10) then
         do l=1,3
            do i=1,2
               if (psppar(l,i,ityp).ne.0.d0) then 
                  loop_j: do j=i+1,3
                     if (psppar(l,j,ityp) .eq. 0.d0) exit loop_j
-
-                    hij=offdiagarr(i,j-i,l)*psppar(l,j,ityp)
+                    !offdiagonal HGH term
+                    if (npspcode(ityp) == 3) then !traditional HGH convention
+                       hij=offdiagarr(i,j-i,l)*psppar(l,j,ityp)
+                    else !HGH-K convention
+                       hij=psppar(l,i+j+1,ityp)
+                    end if
                     do m=1,2*l-1
                        !F_t= 2.d0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
+                       !(the two factor is below)
                        do idir=1,3
                           fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
                                hij*(scalprod(0,l,i,m)*scalprod(idir,l,j,m)+&
@@ -602,313 +456,6 @@ end do
   call memocc(i_stat,i_all,'offdiagarr','nonlocal_forces')
 
 end subroutine nonlocal_forces
-
-
-
-subroutine nonlocal_forces_old(iproc,nproc,n1,n2,n3,nboxp_c,nboxp_f, & 
-     ntypes,nat,norb,norb_p,istart,nprojel,nproj,&
-     iatype,psppar,npspcode,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
-     keyg,keyv,keyg_p,keyv_p,psi,rxyz,radii_cf,cpmult,fpmult,hgrid,fsep)
-!Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and ads them to the force array
-  
-  implicit none
-  !Arguments-------------
-  integer, intent(in) :: iproc,nproc,ntypes,nat,norb,norb_p,istart,nprojel,nproj,nseg_c,nseg_f,nvctr_c,nvctr_f
-  integer, intent(in) :: n1,n2,n3
-  real(kind=8),intent(in) :: cpmult,fpmult,hgrid 
-  integer, dimension(nat), intent(in) :: iatype
-  integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
-  integer, dimension(2,3,nat), intent(in) :: nboxp_c,nboxp_f
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
-  integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
-  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
-  integer, dimension(ntypes), intent(in) :: npspcode
-  real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
-  real(kind=8), dimension(norb), intent(in) :: occup
-  real(kind=8), dimension(nprojel), intent(in) :: proj
-  real(kind=8), dimension(nvctr_c+7*nvctr_f,norb_p), intent(in) :: psi
-  real(kind=8), dimension(3,nat), intent(out) :: fsep
-  !Local Variables--------------
-  real(kind=8), parameter :: eps_mach=1.d-12
-  real(kind=8), dimension(:,:), allocatable :: derproj,fxyz_orb,fac_arr
-  real(kind=8), dimension(:), allocatable :: auxproj_c,auxproj_f
-  real(kind=8), dimension(:,:,:,:), allocatable :: scalprod
-  integer, dimension(:,:,:), allocatable :: lxyz_arr
-  integer, dimension(:), allocatable :: nterm_arr,lx,ly,lz
-  integer :: istart_c,istart_f,iproj,iat,ityp,i,j,l,m,nterm
-  integer :: istart_c_i,istart_f_i,istart_c_j,istart_f_j
-  integer :: mvctr_c,mvctr_f,mbseg_c,mbseg_f,maseg_c,maseg_f,iseg_c,iseg_f,jseg_c,jseg_f
-  integer :: nl1_c,nl2_c,nl3_c,nl1_f,nl2_f,nl3_f,nu1_c,nu2_c,nu3_c,nu1_f,nu2_f,nu3_f
-  integer :: mavctr_c,mavctr_f,mbvctr_c,mbvctr_f,ipsi_c,ipsi_f,iorb,i_c,i_f
-  real(kind=8) :: fpi,factor,gau_a,onem,scpr,scprp,tcprx,tcpry,tcprz,rx,ry,rz,eproj,fx,fy,fz
-  real(kind=8) :: scpr_i,scpr_j,scprp_i,scprp_j,tcprx_i,tcprx_j,tcpry_i,tcpry_j,tcprz_i,tcprz_j
-  real(kind=8) :: offdiagcoeff,hij
-  integer :: idir,iadd,iterm,nterm_max,i_all,i_stat
-  nterm_max=20 !if GTH nterm_max=4
-  allocate(derproj(nprojel,3),stat=i_stat)
-  call memocc(i_stat,product(shape(derproj))*kind(derproj),'derproj','nonlocal_forces')
-  allocate(fac_arr(nterm_max,3),stat=i_stat)
-  call memocc(i_stat,product(shape(fac_arr))*kind(fac_arr),'fac_arr','nonlocal_forces')
-  allocate(lxyz_arr(3,nterm_max,3),stat=i_stat)
-  call memocc(i_stat,product(shape(lxyz_arr))*kind(lxyz_arr),'lxyz_arr','nonlocal_forces')
-  allocate(lx(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(lx))*kind(lx),'lx','nonlocal_forces')
-  allocate(ly(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(ly))*kind(ly),'ly','nonlocal_forces')
-  allocate(lz(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(lz))*kind(lz),'lz','nonlocal_forces')
-  allocate(nterm_arr(3),stat=i_stat)
-  call memocc(i_stat,product(shape(nterm_arr))*kind(nterm_arr),'nterm_arr','nonlocal_forces')
-  allocate(scalprod(0:3,4,3,7),stat=i_stat)
-  call memocc(i_stat,product(shape(scalprod))*kind(scalprod),'scalprod','nonlocal_forces')
-
-  if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate projectors derivatives...'
-
-  !create the derivative of the projectors
-  istart_c=1
-  iproj=0
-  fpi=(4.d0*atan(1.d0))**(-.75d0)
-  do iat=1,nat
-     rx=rxyz(1,iat)
-     ry=rxyz(2,iat)
-     rz=rxyz(3,iat)
-     ityp=iatype(iat)
-
-     
-     mvctr_c=nvctr_p(2*iat-1)-nvctr_p(2*iat-2)
-     mvctr_f=nvctr_p(2*iat  )-nvctr_p(2*iat-1)
-
-     nl1_c=nboxp_c(1,1,iat) ; nu1_c=nboxp_c(2,1,iat)
-     nl2_c=nboxp_c(1,2,iat) ; nu2_c=nboxp_c(2,2,iat)
-     nl3_c=nboxp_c(1,3,iat) ; nu3_c=nboxp_c(2,3,iat)
-     nl1_f=nboxp_f(1,1,iat) ; nu1_f=nboxp_f(2,1,iat)
-     nl2_f=nboxp_f(1,2,iat) ; nu2_f=nboxp_f(2,2,iat)
-     nl3_f=nboxp_f(1,3,iat) ; nu3_f=nboxp_f(2,3,iat)
-
-
-     do l=1,4!compatibility between GTH and HGH form
-        do i=1,3
-           if (psppar(l,i,ityp).ne.0.d0) then
-              gau_a=psppar(l,0,ityp)
-              factor=sqrt(2.d0)*fpi/(sqrt(gau_a)**(2*(l-1)+4*i-1))
-              do m=1,2*l-1
-
-                 istart_f=istart_c+mvctr_c
-
-                 call calc_coeff_derproj(l,i,m,nterm_max,gau_a,nterm_arr,lxyz_arr,fac_arr)
-
-                 do idir=1,3
-                    nterm=nterm_arr(idir)
-                    fac_arr(1:nterm,idir)=factor*fac_arr(1:nterm,idir)
-                    do iterm=1,nterm
-                       lx(iterm)=lxyz_arr(1,iterm,idir)
-                       ly(iterm)=lxyz_arr(2,iterm,idir)
-                       lz(iterm)=lxyz_arr(3,iterm,idir)
-                    end do
-
-                    call crtproj(iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,&
-                         nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radii_cf(iatype(iat),2),&
-                         cpmult,fpmult,hgrid,gau_a,fac_arr(1,idir),rx,ry,rz,lx,ly,lz,&
-                         mvctr_c,mvctr_f,derproj(istart_c,idir),derproj(istart_f,idir))
-
-                 end do
-                 
-                 iproj=iproj+1
-
-                 istart_c=istart_f+7*mvctr_f
-                 if (istart_c.gt.istart) stop 'istart_c > istart'
-                 
-              end do
-           end if
-        end do
-     end do
-
-  end do
-  if (iproj.ne.nproj) stop 'incorrect number of projectors created'
-  ! projector part finished
-
-  if (iproc == 0) write(*,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
-
-  allocate(fxyz_orb(3,nat),stat=i_stat)
-  call memocc(i_stat,product(shape(fxyz_orb))*kind(fxyz_orb),'fxyz_orb','nonlocal_forces')
-!  print *,'end of the projector part'
-
-
-!  fsep(:,:)=0.d0
-
-  onem=1.d0-eps_mach
-  ! loop over all my orbitals
-  do iorb=iproc*norb_p+1,min((iproc+1)*norb_p,norb)
-
-     ! loop over all projectors
-     fxyz_orb(:,:)=0.d0
-     iproj=0
-     eproj=0.d0
-     istart_c=1
-     do iat=1,nat
-     fx=0.d0
-     fy=0.d0
-     fz=0.d0
-     mbseg_c=nseg_p(2*iat-1)-nseg_p(2*iat-2)
-     mbseg_f=nseg_p(2*iat  )-nseg_p(2*iat-1)
-     jseg_c=nseg_p(2*iat-2)+1
-     jseg_f=nseg_p(2*iat-1)+1
-     mbvctr_c=nvctr_p(2*iat-1)-nvctr_p(2*iat-2)
-     mbvctr_f=nvctr_p(2*iat  )-nvctr_p(2*iat-1)
-     ityp=iatype(iat)
-     scalprod(:,:,:,:)=0.d0
-     do l=1,4
-        do i=1,3
-           if (psppar(l,i,ityp).ne.0.d0) then
-              do m=1,2*l-1
-                 iproj=iproj+1
-                 istart_f=istart_c+mbvctr_c
-                 call wpdot(  &
-                      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                      keyg(1,1),keyg(1,nseg_c+1),&
-                      psi(1,iorb-iproc*norb_p),psi(nvctr_c+1,iorb-iproc*norb_p),  &
-                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
-                      keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
-                      proj(istart_c),proj(istart_f),scpr)
-
-                 ! case with derivative in the x direction
-                 call wpdot(  &
-                      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                      keyg(1,1),keyg(1,nseg_c+1),&
-                      psi(1,iorb-iproc*norb_p),psi(nvctr_c+1,iorb-iproc*norb_p), &
-                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
-                      keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
-                      derproj(istart_c,1),derproj(istart_f,1),tcprx)
-
-                 ! case with derivative in the y direction
-                 call wpdot(  &
-                      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                      keyg(1,1),keyg(1,nseg_c+1),&
-                      psi(1,iorb-iproc*norb_p),psi(nvctr_c+1,iorb-iproc*norb_p), &
-                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
-                      keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
-                      derproj(istart_c,2),derproj(istart_f,2),tcpry)
-
-                 ! case with derivative in the z direction
-                 call wpdot(  &
-                      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                      keyg(1,1),keyg(1,nseg_c+1),&
-                      psi(1,iorb-iproc*norb_p),psi(nvctr_c+1,iorb-iproc*norb_p), &
-                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
-                      keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
-                      derproj(istart_c,3),derproj(istart_f,3),tcprz)
-
-
-                 scalprod(0,l,i,m)=scpr
-                 scalprod(1,l,i,m)=tcprx
-                 scalprod(2,l,i,m)=tcpry
-                 scalprod(3,l,i,m)=tcprz
-
-                 scprp=scpr*psppar(l,i,ityp)
-
-                 fxyz_orb(1,iat)=fxyz_orb(1,iat)+scprp*tcprx
-                 fxyz_orb(2,iat)=fxyz_orb(2,iat)+scprp*tcpry
-                 fxyz_orb(3,iat)=fxyz_orb(3,iat)+scprp*tcprz
-
-                 istart_c=istart_f+7*mbvctr_f
-              end do
-           end if
-        end do
-     end do
-     !HGH case, offdiagonal terms
-     if (npspcode(ityp) == 3) then
-        do l=1,3
-           do i=1,2
-              if (psppar(l,i,ityp).ne.0.d0) then 
-                 loop_j: do j=i+1,3
-                    if (psppar(l,j,ityp) .eq. 0.d0) exit loop_j
-                    !calculate the coefficients for the off-diagonal terms
-                    if (l==1) then
-                       if (i==1) then
-                          if (j==2) offdiagcoeff=-0.5d0*sqrt(3.d0/5.d0)
-                          if (j==3) offdiagcoeff=0.5d0*sqrt(5.d0/21.d0)
-                       else
-                          offdiagcoeff=-0.5d0*sqrt(100.d0/63.d0)
-                       end if
-                    else if (l==2) then
-                       if (i==1) then
-                          if (j==2) offdiagcoeff=-0.5d0*sqrt(5.d0/7.d0)
-                          if (j==3) offdiagcoeff=1.d0/6.d0*sqrt(35.d0/11.d0)
-                       else
-                          offdiagcoeff=-7.d0/3.d0*sqrt(1.d0/11.d0)
-                       end if
-                    else if (l==3) then
-                       if (i==1) then
-                          if (j==2) offdiagcoeff=-0.5d0*sqrt(7.d0/9.d0)
-                          if (j==3) offdiagcoeff=0.5d0*sqrt(63.d0/143.d0)
-                       else
-                          offdiagcoeff=-9.d0*sqrt(1.d0/143.d0)
-                       end if
-                    end if
-                    hij=offdiagcoeff*psppar(l,j,ityp)
-                    do m=1,2*l-1
-
-                       !F_t= 2.d0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
-                       fxyz_orb(1,iat)=fxyz_orb(1,iat)+&
-                            hij*(scalprod(0,l,i,m)*scalprod(1,l,j,m)+&
-                            scalprod(1,l,i,m)*scalprod(0,l,j,m))
-                       fxyz_orb(2,iat)=fxyz_orb(2,iat)+&
-                            hij*(scalprod(0,l,i,m)*scalprod(2,l,j,m)+&
-                            scalprod(2,l,i,m)*scalprod(0,l,j,m))
-                       fxyz_orb(3,iat)=fxyz_orb(3,iat)+&
-                            hij*(scalprod(0,l,i,m)*scalprod(3,l,j,m)+&
-                            scalprod(3,l,i,m)*scalprod(0,l,j,m))
-                    end do
-                 end do loop_j
-              end if
-           end do
-        end do
-     end if
-  end do
-
-  do iat=1,nat
-     fsep(1,iat)=fsep(1,iat)+occup(iorb)*2.d0*fxyz_orb(1,iat)
-     fsep(2,iat)=fsep(2,iat)+occup(iorb)*2.d0*fxyz_orb(2,iat)
-     fsep(3,iat)=fsep(3,iat)+occup(iorb)*2.d0*fxyz_orb(3,iat)
-  end do
-
-  if (iproj.ne.nproj) stop '1:applyprojectors'
-  if (istart_c-1.ne.nprojel) stop '2:applyprojectors'
-end do
-
-  if (iproc == 0) write(*,'(1x,a)')'done.'
-
-  i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)
-  deallocate(fxyz_orb,stat=i_stat)
-  call memocc(i_stat,i_all,'fxyz_orb','nonlocal_forces')
-  i_all=-product(shape(derproj))*kind(derproj)
-  deallocate(derproj,stat=i_stat)
-  call memocc(i_stat,i_all,'derproj','nonlocal_forces')
-  i_all=-product(shape(lxyz_arr))*kind(lxyz_arr)
-  deallocate(lxyz_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'lxyz_arr','nonlocal_forces')
-  i_all=-product(shape(nterm_arr))*kind(nterm_arr)
-  deallocate(nterm_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'nterm_arr','nonlocal_forces')
-  i_all=-product(shape(fac_arr))*kind(fac_arr)
-  deallocate(fac_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'fac_arr','nonlocal_forces')
-  i_all=-product(shape(lx))*kind(lx)
-  deallocate(lx,stat=i_stat)
-  call memocc(i_stat,i_all,'lx','nonlocal_forces')
-  i_all=-product(shape(ly))*kind(ly)
-  deallocate(ly,stat=i_stat)
-  call memocc(i_stat,i_all,'ly','nonlocal_forces')
-  i_all=-product(shape(lz))*kind(lz)
-  deallocate(lz,stat=i_stat)
-  call memocc(i_stat,i_all,'lz','nonlocal_forces')
-  i_all=-product(shape(scalprod))*kind(scalprod)
-  deallocate(scalprod,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod','nonlocal_forces')
-end subroutine nonlocal_forces_old
 
 subroutine calc_coeff_derproj(l,i,m,nterm_max,rhol,nterm_arr,lxyz_arr,fac_arr)
   implicit none

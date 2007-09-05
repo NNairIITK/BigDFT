@@ -8,7 +8,7 @@ subroutine createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz
   real(kind=8), intent(in) :: hgrid,elecfield
   integer, dimension(nat), intent(in) :: iatype
   integer, dimension(ntypes), intent(in) :: nelpsp
-  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(*), intent(in) :: pkernel
   real(kind=8), intent(out) :: eion
@@ -60,7 +60,7 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
   real(kind=8), intent(out) :: eion
   integer, dimension(nat), intent(in) :: iatype
   integer, dimension(ntypes), intent(in) :: nelpsp
-  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(*), intent(inout) :: rho
   !local variables
@@ -211,7 +211,7 @@ subroutine addlocgauspsp(iproc,ntypes,nat,iatype,rxyz,psppar,&
   integer, intent(in) :: ntypes,nat,n1,n2,n3,n3pi,iproc,i3s
   real(kind=8), intent(in) :: hgrid
   integer, dimension(nat), intent(in) :: iatype
-  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(-14:2*n1+16,-14:2*n2+16,n3pi), intent(inout) :: pot
   !local variables

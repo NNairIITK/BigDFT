@@ -244,7 +244,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   ! store PSP parameters
   ! modified to accept both GTH and HGH pseudopotential types
   !allocation
-  allocate(psppar(0:4,0:4,ntypes),stat=i_stat)
+  allocate(psppar(0:4,0:6,ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(psppar))*kind(psppar),'psppar','cluster')
   allocate(nelpsp(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(nelpsp))*kind(nelpsp),'nelpsp','cluster')
@@ -281,21 +281,36 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      read(11,*) nzatom(ityp),nelpsp(ityp)
      read(11,*) npspcode(ityp)
      psppar(:,:,ityp)=0.d0
-     read(11,*) (psppar(0,j,ityp),j=0,4)
      if (npspcode(ityp) == 2) then !GTH case
+        read(11,*) (psppar(0,j,ityp),j=0,4)
         do i=1,2
            read(11,*) (psppar(i,j,ityp),j=0,3-i)
         enddo
      else if (npspcode(ityp) == 3) then !HGH case
+        read(11,*) (psppar(0,j,ityp),j=0,4)
         read(11,*) (psppar(1,j,ityp),j=0,3)
         do i=2,4
            read(11,*) (psppar(i,j,ityp),j=0,3)
-           read(11,*) !k coefficients, not used (no spin-orbit coupling)
+           read(11,*) !k coefficients, not used for the moment (no spin-orbit coupling)
         enddo
+     else if (npspcode(ityp) == 10) then !HGH-K case
+         read(11,*) psppar(0,0,ityp),nn,(psppar(0,j,ityp),j=1,nn) !local PSP parameters
+         read(11,*) nlterms !number of channels of the pseudo
+         prjloop: do l=1,nlterms
+            read(11,*) psppar(l,0,ityp),nprl,psppar(l,1,ityp),&
+                 (psppar(l,j+2,ityp),j=2,nprl) !h_ij terms
+            do i=2,nprl
+               read(11,*) psppar(l,i,ityp),(psppar(l,i+j+1,ityp),j=i+1,nprl) !h_ij terms
+            end do
+            if (l==1) cycle
+            do i=1,nprl
+               read(11,*) !k coefficients, not used
+            end do
+         end do prjloop
      else
         if (iproc == 0) then
            write(*,'(1x,a,a)')trim(atomnames(ityp)),&
-                'unrecognized pspcode (accepts only GTH & HGH pseudopotentials in ABINIT format)'
+                'unrecognized pspcode: only GTH, HGH & HGH-K pseudos (ABINIT format)'
         end if
         stop
      end if
@@ -1738,7 +1753,7 @@ subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, 
      & keyg_p, keyv_p, nproj, nprojel, istart, nboxp_c, nboxp_f, proj)
   implicit real(kind=8) (a-h,o-z)
   character(len=20) :: atomnames(100)
-  dimension rxyz(3,nat),iatype(nat),radii_cf(ntypes,2),psppar(0:4,0:4,ntypes),npspcode(ntypes)
+  dimension rxyz(3,nat),iatype(nat),radii_cf(ntypes,2),psppar(0:4,0:6,ntypes),npspcode(ntypes)
   integer :: nvctr_p(0:2*nat), nseg_p(0:2*nat)
   integer :: nboxp_c(2,3,nat), nboxp_f(2,3,nat)
   real(kind=8), pointer :: proj(:)
@@ -1885,8 +1900,8 @@ subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, 
      ityp=iatype(iat)
 
      !decide the loop bounds
-     do l=1,4 !generic case, also for HGH (for GTH it will stop at l=2)
-        do i=1,3 !generic case, also for HGH (for GTH it will stop at i=2)
+     do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
+        do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
            if (psppar(l,i,ityp).ne.0.d0) then
               gau_a=psppar(l,0,ityp)
               factor=sqrt(2.d0)*fpi/(sqrt(gau_a)**(2*(l-1)+4*i-1))
@@ -2007,7 +2022,7 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
   integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
   real(kind=8), dimension(norb), intent(in) :: occup
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(nprojel), intent(in) :: proj
   real(kind=8), dimension(*), intent(in) :: pkernel
   real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
@@ -2312,7 +2327,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
   integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(nprojel), intent(in) :: proj
   real(kind=8), dimension(*), intent(in) :: pkernel
   real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion

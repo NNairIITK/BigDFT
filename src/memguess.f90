@@ -6,8 +6,8 @@ program memguess
   character(len=20) :: tatonam,units
   character(len=30) :: filename
   character(len=2) :: symbol
-  integer :: ierror,nat,ntypes,iat,jat,ityp,nproc,n1,n2,n3,ixc,ncharge,itermax,i_stat,i_all,i,j
-  integer :: ncong,ncongt,idsx,nzatom,npspcode,iasctype,norb_vir,nelec,norb,nateq
+  integer :: ierror,nat,ntypes,iat,jat,ityp,nproc,n1,n2,n3,ixc,ncharge,itermax,i_stat,i_all,i,j,l
+  integer :: ncong,ncongt,idsx,nzatom,npspcode,iasctype,norb_vir,nelec,norb,nateq,nn,nlterms,nprl
   real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,elecfield
   real(kind=8) :: alat1,alat2,alat3,rcov,rprb,ehomo,radfine
   real(kind=8) :: cxmin,cxmax,cymin,cymax,czmin,czmax
@@ -151,7 +151,7 @@ program memguess
   write(*,'(1x,a,1pe7.1,1x,a,0pf5.2,1x,a,i8)')&
        ' elec. field=',elecfield,'|   Fine Proj.=',fpmult,'| DIIS Hist. N.=',idsx
 
-  allocate(psppar(0:4,0:4,ntypes),stat=i_stat)
+  allocate(psppar(0:4,0:6,ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(psppar))*kind(psppar),'psppar','memguess')
   allocate(nelpsp(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(nelpsp))*kind(nelpsp),'nelpsp','memguess')
@@ -178,17 +178,32 @@ program memguess
      read(11,*) nzatom,nelpsp(ityp)
      read(11,*) npspcode
      psppar(:,:,ityp)=0.d0
-     read(11,*) (psppar(0,j,ityp),j=0,4)
      if (npspcode == 2) then !GTH case
+        read(11,*) (psppar(0,j,ityp),j=0,4)
         do i=1,2
            read(11,*) (psppar(i,j,ityp),j=0,3-i)
         enddo
      else if (npspcode == 3) then !HGH case
+        read(11,*) (psppar(0,j,ityp),j=0,4)
         read(11,*) (psppar(1,j,ityp),j=0,3)
         do i=2,4
            read(11,*) (psppar(i,j,ityp),j=0,3)
            read(11,*) !k coefficients, not used (no spin-orbit coupling)
         enddo
+     else if (npspcode == 10) then !HGH-K case
+         read(11,*) psppar(0,0,ityp),nn,(psppar(0,j,ityp),j=1,nn) !local PSP parameters
+         read(11,*) nlterms !number of channels of the pseudo
+         prjloop: do l=1,nlterms
+            read(11,*) psppar(l,0,ityp),nprl,psppar(l,1,ityp),&
+                 (psppar(l,j+2,ityp),j=2,nprl) !h_ij terms
+            do i=2,nprl
+               read(11,*) psppar(l,i,ityp),(psppar(l,i+j+1,ityp),j=i+1,nprl) !h_ij terms
+            end do
+            if (l==1) cycle
+            do i=1,nprl
+               read(11,*) !k coefficients, not used
+            end do
+         end do prjloop
      else
         write(*,'(1x,a,a)')trim(atomnames(ityp)),&
              'unrecognized pspcode (accepts only GTH & HGH pseudopotentials in ABINIT format)'
