@@ -13,4 +13,4 @@
 .true.   calc_tail: calculate tail for better energy
 5.       rbuf  : length of the tail to be added (in atomic units)
 30       ncongt: number of conjugate gradient iterations for the calculation of tail
-1 0      nspin=1 non-spin polarization, mpol=total magnetic moment
+2 1      nspin=1 non-spin polarization, mpol=total magnetic moment
