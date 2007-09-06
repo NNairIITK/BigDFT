@@ -1,0 +1,208 @@
+ nat= 1
+ atoms of type 1 are H_lda
+ Number of geometry steps 1
+ Random displacement amplitude  0.00E+00
+ Steepest descent step  4.00E+00
+ CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER 0
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Grid spacing=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=      50 | Extension= 5.0
+ total charge=      0 | Coarse Proj.= 8.00 | CG Prec.Steps=      15 |  CG Steps=  30
+  elec. field=0.0E+00 |   Fine Proj.= 8.00 | DIIS Hist. N.=       6
+ ------------------------------------------------------------------ System Properties
+ Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File
+    H_lda               1       2            1.36000  0.15000                   X    
+ Total Number of Electrons        1
+ WARNING: odd number of electrons, no closed shell system
+ Spin-polarized calculation
+ Total Number of  Orbitals        1
+ occup(1)= 1.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1  H_lda  6.80000E+00  6.80000E+00  6.80000E+00       15.111    15.111    15.111
+    Shift of=  6.80000E+00  6.80000E+00  6.80000E+00
+   Box Sizes=  1.35000E+01  1.35000E+01  1.35000E+01           30        30        30
+       Extremes for the high resolution grid points:        13<17     13<17     13<17
+ ------------------------------------------------------------------ Memory Estimation
+ Number of atoms=    1 Number of orbitals=     1 Sim. Box Dimensions=    30   30   30
+ Estimation performed for 1 processors.
+ Memory occupation for principal arrays:
+               Poisson Solver Kernel (K):     6 MB   987 KB
+              Poisson Solver Density (D):    13 MB   512 KB
+     Single Wavefunction for one orbital:     0 MB   118 KB
+    All Wavefunctions for each processor:     0 MB   235 KB
+       Wavefunctions + DIIS per proc (W):     1 MB   733 KB
+    Arrays of full uncompressed grid (U):    11 MB   511 KB
+ Estimation of Memory requirements for principal code sections:
+  Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
+       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W     |       ~W+(~3)*U 
+        76MB         |        34MB          |      116MB     |            38MB
+ The overall memory requirement needed for this calculation is thus: 116 MB
+ By reducing the DIIS history and/or decreasing the number of processors the amount of
+  memory can be reduced but for this system it will never be less than 41 MB
+ ------------------------------------------------------------ Poisson Kernel Creation
+ Calculating Poisson solver kernel, free BC... done.
+ Memory occ. per proc. (Bytes):  Density=7077888  Kernel=7301384
+                                 Full Grid Arrays=6028568
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        715 points=     14423
+   Fine resolution grid: Number of segments=         21 points=        81
+ Wavefunction memory occupation per orbital (Bytes): 119920
+ ------------------------------------------------------------ PSP Projectors Creation
+ Atom    Name Number of projectors
+                            ------
+ Total number of projectors =    0
+ Calculating wavelets expansion of projectors... done.
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -1.000000175544   0.000E+00
+ ion-ion interaction energy  0.00000000000000E+00
+ PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  0 ... done.
+ ------------------------------------------------------- Input Wavefunctions Creation
+ Input wavefunction data for atom  H_lda NOT found, automatic generation... done.
+ Generating 1 Atomic Input Orbitals
+ Calculating AIO wavefunctions... done.
+ Calculation of charge density... done. Total electronic charge=       0.999999971607
+ PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ... done.
+ Hamiltonian application... done. ekin_sum,eks:       0.9151007766       0.9150500454
+ Input Wavefunctions Orthogonalization: Overlap Matrix... Linear Algebra...
+ evale(1)=  9.94955217657788E-03
+ Building orthogonal Input Wavefunctions... done.
+ expected accuracy in kinetic energy due to grid size 5.07E-05
+ suggested value for gnrm_cv  5.07E-05
+ ---------------------------------------------------------------------------- iter= 1
+ Calculation of charge density... done. Total electronic charge=       0.999999971607
+ PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ... done.
+ Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
+ DIIS weights    1.00E+00  1.00E+00
+ Orthogonalization... done.
+ ekin_sum,epot_sum,eproj_sum  9.15100776582E-01 -9.82546549580E-01  0.00000000000E+00
+    ehart,   eexcu,    vexcu  4.40093068754E-01 -4.01265428063E-01 -5.29887762241E-01
+ iter,total energy,gnrm     1  -3.789165075735E-01  2.73E-01
+ ---------------------------------------------------------------------------- iter= 2
+ Calculation of charge density... done. Total electronic charge=       0.999999992992
+ PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ... done.
+ Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
+ DIIS weights    2.21E-01  7.79E-01 -3.40E-02
+ Orthogonalization... done.
+ ekin_sum,epot_sum,eproj_sum  2.75273105793E-01 -5.63989839840E-01  0.00000000000E+00
+    ehart,   eexcu,    vexcu  2.19244391892E-01 -2.08269673214E-01 -2.74358556874E-01
+ iter,total energy,gnrm     2  -4.418722422777E-01  1.94E-01
+ ---------------------------------------------------------------------------- iter= 3
+ Calculation of charge density... done. Total electronic charge=       0.999999990367
+ PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ... done.
+ Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
+ DIIS weights    6.30E-02  1.72E-01  7.65E-01 -1.69E-03
+ Orthogonalization... done.
+ ekin_sum,epot_sum,eproj_sum  4.14130651476E-01 -6.87316251639E-01  0.00000000000E+00
+    ehart,   eexcu,    vexcu  2.84103573187E-01 -2.64883190103E-01 -3.49227691023E-01
+ iter,total energy,gnrm     3  -4.729446724307E-01  1.51E-01
+ ---------------------------------------------------------------------------- iter= 4
+ Calculation of charge density... done. Total electronic charge=       0.999999988791
+ PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ... done.
+ Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
+ DIIS weights    3.60E-02 -3.04E-02 -1.03E-03  9.95E-01 -8.74E-05
+ Orthogonalization... done.
+ ekin_sum,epot_sum,eproj_sum  4.36398494160E-01 -7.09596471959E-01  0.00000000000E+00
+    ehart,   eexcu,    vexcu  2.90753291512E-01 -2.71059607943E-01 -3.57415476721E-01
+ iter,total energy,gnrm     4  -4.775954005335E-01  5.18E-02
+ ---------------------------------------------------------------------------- iter= 5
+ Calculation of charge density... done. Total electronic charge=       0.999999986773
+ PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ... done.
+ Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
+ DIIS weights    1.64E-02 -1.42E-02 -2.41E-02  4.42E-01  5.80E-01 -1.73E-05
+ Orthogonalization... done.
+ ekin_sum,epot_sum,eproj_sum  4.62532556744E-01 -7.30436704006E-01  0.00000000000E+00
+    ehart,   eexcu,    vexcu  2.99052106629E-01 -2.78498144093E-01 -3.67265112149E-01
+ iter,total energy,gnrm     5  -4.781892858357E-01  2.51E-02
+ ---------------------------------------------------------------------------- iter= 6
+ Calculation of charge density... done. Total electronic charge=       0.999999986331
+ PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ... done.
+ Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
+ DIIS weights    4.15E-03 -4.81E-04 -7.88E-03  7.68E-02 -4.22E-01  1.35E+00 -1.38E-06
+ Orthogonalization... done.
+ ekin_sum,epot_sum,eproj_sum  4.64467025621E-01 -7.32247810985E-01  0.00000000000E+00
+    ehart,   eexcu,    vexcu  2.99349520541E-01 -2.78803629857E-01 -3.67670554095E-01
+ iter,total energy,gnrm     6  -4.782633816668E-01  1.21E-02
+ ---------------------------------------------------------------------------- iter= 7
+ Calculation of charge density... done. Total electronic charge=       0.999999985911
+ PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ... done.
+ Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
+ DIIS weights   -6.04E-05 -1.76E-03 -1.51E-02 -1.46E-01  1.32E-01  1.03E+00 -3.05E-08
+ Orthogonalization... done.
+ ekin_sum,epot_sum,eproj_sum  4.66323788850E-01 -7.33912479693E-01  0.00000000000E+00
+    ehart,   eexcu,    vexcu  2.99663524724E-01 -2.79118752278E-01 -3.68088618314E-01
+ iter,total energy,gnrm     7  -4.782823495304E-01  3.13E-03
+ ---------------------------------------------------------------------------- iter= 8
+ Calculation of charge density... done. Total electronic charge=       0.999999985728
+ PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ... done.
+ Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
+ DIIS weights    1.26E-04 -1.17E-02 -5.27E-02  6.25E-02  3.47E-01  6.55E-01 -4.73E-09
+ Orthogonalization... done.
+ ekin_sum,epot_sum,eproj_sum  4.67337929890E-01 -7.34768981327E-01  0.00000000000E+00
+    ehart,   eexcu,    vexcu  2.99893459483E-01 -2.79335491493E-01 -3.68375865607E-01
+ iter,total energy,gnrm     8  -4.782841368071E-01  5.23E-04
+ ---------------------------------------------------------------------------- iter= 9
+ Calculation of charge density... done. Total electronic charge=       0.999999985712
+ PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ... done.
+ Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
+ DIIS weights   -3.67E-03 -1.77E-02  3.43E-02  4.33E-02  9.57E-03  9.34E-01 -1.46E-09
+ Orthogonalization... done.
+ ekin_sum,epot_sum,eproj_sum  4.67471694031E-01 -7.34871964253E-01  0.00000000000E+00
+    ehart,   eexcu,    vexcu  2.99936692931E-01 -2.79373829562E-01 -3.68426618181E-01
+ iter,total energy,gnrm     9  -4.782841745342E-01  3.00E-04
+ ---------------------------------------------------------------------------- iter= 10
+ Calculation of charge density... done. Total electronic charge=       0.999999985703
+ PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ... done.
+ Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
+ DIIS weights    3.32E-03  9.78E-03 -6.57E-02 -4.35E-02  2.70E-01  8.26E-01 -4.93E-10
+ Orthogonalization... done.
+ ekin_sum,epot_sum,eproj_sum  4.67536318071E-01 -7.34922685589E-01  0.00000000000E+00
+    ehart,   eexcu,    vexcu  2.99956284633E-01 -2.79391361988E-01 -3.68449831679E-01
+ iter,total energy,gnrm    10  -4.782841824604E-01  1.16E-04
+ ---------------------------------------------------------------------------- iter= 11
+ Calculation of charge density... done. Total electronic charge=       0.999999985699
+ PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ... done.
+ Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
+ DIIS weights    7.24E-04 -1.90E-03 -2.34E-02  9.70E-02 -9.72E-02  1.02E+00 -8.64E-11
+ Orthogonalization... done.
+ ekin_sum,epot_sum,eproj_sum  4.67561855237E-01 -7.34942856324E-01  0.00000000000E+00
+    ehart,   eexcu,    vexcu  2.99963858285E-01 -2.79398165583E-01 -3.68458840801E-01
+ iter,total energy,gnrm    11  -4.782841841545E-01  4.14E-05
+ ---------------------------------------------------------------------------- iter= 12
+ Calculation of charge density... done. Total electronic charge=       0.999999985699
+ PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ... done.
+ Hamiltonian application... done. 12 minimization iterations required
+ iproc,ehart,eexcu,vexcu  0  2.99964572949E-01 -2.79398810324E-01 -3.68459695012E-01
+ final ekin_sum,epot_sum,eproj_sum  4.67564071517E-01 -7.34944567567E-01  0.00000000000E+00
+ final ehart,eexcu,vexcu  2.99964572949E-01 -2.79398810324E-01 -3.68459695012E-01
+ FINAL iter,total energy,gnrm    12  -4.782841843104E-01  4.14E-05
+ eval(1)= -2.67380496050034E-01
+ ----------------------------------------------------------------- Forces Calculation
+ Calculation of charge density... done. Total electronic charge=       0.999999985699
+ PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  0 ... done.
+ Calculate local forces...done. Leaked force:  0.00000E+00
+ Calculate projectors derivatives... done, calculate nonlocal forces... done.
+ ---------------------------------------------- Estimation of Finite-Size Corrections
+ F-S Correction for an effective space of  5.000 AU more around each external atom
+                   requires the adding of     11 additional grid points around cell
+    Effective box size,   Atomic Units:                   grid spacing units:
+               2.34000E+01  2.34000E+01  2.34000E+01           52        52        52
+   Extremes for the new high resolution grid points:        24<28     24<28     24<28
+ Coarse resolution grid: Number of segments=       2139 points=     74475
+   Fine resolution grid: Number of segments=         21 points=        81
+ Wavefunction memory occupation in the extended grid (Bytes): 600336
+ Calculating tail corrections on 1 orbitals per processor.
+      orbitals are processed separately........................................ done.
+   Corrected ekin,epot,eproj  4.64275674139E-01 -7.32033093113E-01  0.00000000000E+00
+ Total energy with tail correction -4.786611072340E-01
+- iproc, elapsed, CPU time     0        33.32        30.02
+ Final values of the Forces for each atom
+     1  H_lda -4.87405E-04 -4.87405E-04 -4.87405E-04
+ the sum of the forces is
+      x direction    -4.87405385E-04
+      y direction    -4.87405385E-04
+      z direction    -4.87405385E-04
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 1836 allocations and 1835 deallocations, remaining memory(B):4
+ memory occupation peak: 105 MB
+ for the array  ypsig_f in the routine calc_grad_reza
