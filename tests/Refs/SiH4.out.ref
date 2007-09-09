@@ -189,7 +189,7 @@
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
-- iproc, elapsed, CPU time     0        75.10        57.09
+- iproc, elapsed, CPU time     0        57.63        57.44
 FINISHED FIRST CLUSTER    0    0
  CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER 1
  ------------------------------------------------------------------- Input Parameters
@@ -250,10 +250,10 @@ FINISHED FIRST CLUSTER    0    0
  ion-ion interaction energy  7.01168188308251E+00
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ... done.
  START reformatting psi from old psi
-wavefunction     1 needs NO reformatting on processor     0
-wavefunction     2 needs NO reformatting on processor     0
-wavefunction     3 needs NO reformatting on processor     0
-wavefunction     4 needs NO reformatting on processor     0
+ wavefunction     1 needs NO reformatting on processor     0
+ wavefunction     2 needs NO reformatting on processor     0
+ wavefunction     3 needs NO reformatting on processor     0
+ wavefunction     4 needs NO reformatting on processor     0
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999922945
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  1 ... done.
@@ -280,7 +280,7 @@ wavefunction     4 needs NO reformatting on processor     0
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
-- iproc, elapsed, CPU time     0        19.29        14.05
+- iproc, elapsed, CPU time     0        14.17        14.16
  CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -337,17 +337,17 @@ wavefunction     4 needs NO reformatting on processor     0
  Calculating wavelets expansion of projectors... done.
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001157908   0.000E+00
- ion-ion interaction energy  7.01536806347944E+00
+ ion-ion interaction energy  7.01536806347943E+00
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ... done.
  START reformatting psi from old psi
-wavefunction     1 needs reformatting on processor     0
-because nvctr_c_old >< nvctr_c   31952   31946
-wavefunction     2 needs reformatting on processor     0
-because nvctr_c_old >< nvctr_c   31952   31946
-wavefunction     3 needs reformatting on processor     0
-because nvctr_c_old >< nvctr_c   31952   31946
-wavefunction     4 needs reformatting on processor     0
-because nvctr_c_old >< nvctr_c   31952   31946
+ wavefunction     1 needs reformatting on processor     0
+    because nvctr_c_old >< nvctr_c   31952   31946
+ wavefunction     2 needs reformatting on processor     0
+    because nvctr_c_old >< nvctr_c   31952   31946
+ wavefunction     3 needs reformatting on processor     0
+    because nvctr_c_old >< nvctr_c   31952   31946
+ wavefunction     4 needs reformatting on processor     0
+    because nvctr_c_old >< nvctr_c   31952   31946
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999922946
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  1 ... done.
@@ -392,16 +392,16 @@ because nvctr_c_old >< nvctr_c   31952   31946
  final ekin_sum,epot_sum,eproj_sum  3.75081866044E+00 -7.38634548949E+00  7.66305696459E-01
  final ehart,eexcu,vexcu  1.11379236728E+01 -2.48422807986E+00 -3.24246214806E+00
  FINAL iter,total energy,gnrm     5  -6.233542673696E+00  3.49E-05
- eval(1)= -4.96531560155104E-01
- eval(2)= -3.12774773242555E-01
- eval(3)= -3.12652116448572E-01
- eval(4)= -3.12652116448238E-01
+ eval(1)= -4.96531560155111E-01
+ eval(2)= -3.12774773242560E-01
+ eval(3)= -3.12652116448591E-01
+ eval(4)= -3.12652116448229E-01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=       7.999999922491
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
-- iproc, elapsed, CPU time     0        37.63        28.95
+- iproc, elapsed, CPU time     0        28.90        28.87
  CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -458,13 +458,13 @@ because nvctr_c_old >< nvctr_c   31952   31946
  Calculating wavelets expansion of projectors... done.
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001176911   0.000E+00
- ion-ion interaction energy  7.01639937226029E+00
+ ion-ion interaction energy  7.01639937226021E+00
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ... done.
  START reformatting psi from old psi
-wavefunction     1 needs NO reformatting on processor     0
-wavefunction     2 needs NO reformatting on processor     0
-wavefunction     3 needs NO reformatting on processor     0
-wavefunction     4 needs NO reformatting on processor     0
+ wavefunction     1 needs NO reformatting on processor     0
+ wavefunction     2 needs NO reformatting on processor     0
+ wavefunction     3 needs NO reformatting on processor     0
+ wavefunction     4 needs NO reformatting on processor     0
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999922491
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  1 ... done.
@@ -496,20 +496,20 @@ wavefunction     4 needs NO reformatting on processor     0
  Calculation of charge density... done. Total electronic charge=       7.999999922394
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  1 ... done.
  Hamiltonian application... done. 4 minimization iterations required
- iproc,ehart,eexcu,vexcu  0  1.11388528132E+01 -2.48440349942E+00 -3.24269300243E+00
- final ekin_sum,epot_sum,eproj_sum  3.75133336528E+00 -7.38711742468E+00  7.66405393051E-01
- final ehart,eexcu,vexcu  1.11388528132E+01 -2.48440349942E+00 -3.24269300243E+00
+ iproc,ehart,eexcu,vexcu  0  1.11388528135E+01 -2.48440349946E+00 -3.24269300249E+00
+ final ekin_sum,epot_sum,eproj_sum  3.75133336538E+00 -7.38711742453E+00  7.66405393053E-01
+ final ehart,eexcu,vexcu  1.11388528135E+01 -2.48440349946E+00 -3.24269300249E+00
  FINAL iter,total energy,gnrm     4  -6.233542604294E+00  3.22E-05
- eval(1)= -4.96562609952453E-01
- eval(2)= -3.12759873237460E-01
- eval(3)= -3.12683425027087E-01
- eval(4)= -3.12683424958291E-01
+ eval(1)= -4.96562609915840E-01
+ eval(2)= -3.12759873204626E-01
+ eval(3)= -3.12683425003310E-01
+ eval(4)= -3.12683424927730E-01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=       7.999999922394
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
-- iproc, elapsed, CPU time     0        33.04        22.60
+- iproc, elapsed, CPU time     0        22.94        22.88
  CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -566,30 +566,30 @@ wavefunction     4 needs NO reformatting on processor     0
  Calculating wavelets expansion of projectors... done.
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001157908   0.000E+00
- ion-ion interaction energy  7.01536806347944E+00
+ ion-ion interaction energy  7.01536806347943E+00
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ... done.
  START reformatting psi from old psi
-wavefunction     1 needs NO reformatting on processor     0
-wavefunction     2 needs NO reformatting on processor     0
-wavefunction     3 needs NO reformatting on processor     0
-wavefunction     4 needs NO reformatting on processor     0
+ wavefunction     1 needs NO reformatting on processor     0
+ wavefunction     2 needs NO reformatting on processor     0
+ wavefunction     3 needs NO reformatting on processor     0
+ wavefunction     4 needs NO reformatting on processor     0
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999999922394
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  1 ... done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    1.00E+00  1.00E+00
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  3.75133336528E+00 -7.38608532317E+00  7.66405393051E-01
-    ehart,   eexcu,    vexcu  1.11388528132E+01 -2.48440349942E+00 -3.24269300243E+00
- iter,total energy,gnrm     1  -6.233541811562E+00  9.59E-04
+ ekin_sum,epot_sum,eproj_sum  3.75133336538E+00 -7.38608532302E+00  7.66405393053E-01
+    ehart,   eexcu,    vexcu  1.11388528135E+01 -2.48440349946E+00 -3.24269300249E+00
+ iter,total energy,gnrm     1  -6.233541811561E+00  9.59E-04
  ---------------------------------------------------------------------------- iter= 2
  Calculation of charge density... done. Total electronic charge=       7.999999922477
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  1 ... done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -1.09E-01  1.11E+00 -5.36E-09
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  3.75080482613E+00 -7.38625327140E+00  7.66221488213E-01
-    ehart,   eexcu,    vexcu  1.11379159767E+01 -2.48422195402E+00 -3.24245419877E+00
+ ekin_sum,epot_sum,eproj_sum  3.75080482598E+00 -7.38625327141E+00  7.66221488173E-01
+    ehart,   eexcu,    vexcu  1.11379159764E+01 -2.48422195397E+00 -3.24245419870E+00
  iter,total energy,gnrm     2  -6.233542625487E+00  1.86E-04
  ---------------------------------------------------------------------------- iter= 3
  Calculation of charge density... done. Total electronic charge=       7.999999922491
@@ -597,27 +597,27 @@ wavefunction     4 needs NO reformatting on processor     0
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -1.02E-02 -2.56E-01  1.27E+00 -1.25E-10
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  3.75083362094E+00 -7.38632214836E+00  7.66279706649E-01
+ ekin_sum,epot_sum,eproj_sum  3.75083362093E+00 -7.38632214827E+00  7.66279706656E-01
     ehart,   eexcu,    vexcu  1.11379368757E+01 -2.48423084307E+00 -3.24246580491E+00
  iter,total energy,gnrm     3  -6.233542671117E+00  3.00E-05
  ---------------------------------------------------------------------------- iter= 4
  Calculation of charge density... done. Total electronic charge=       7.999999922492
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  1 ... done.
  Hamiltonian application... done. 4 minimization iterations required
- iproc,ehart,eexcu,vexcu  0  1.11379284097E+01 -2.48423085552E+00 -3.24246580353E+00
- final ekin_sum,epot_sum,eproj_sum  3.75083747583E+00 -7.38634417462E+00  7.66289423176E-01
- final ehart,eexcu,vexcu  1.11379284097E+01 -2.48423085552E+00 -3.24246580353E+00
+ iproc,ehart,eexcu,vexcu  0  1.11379284096E+01 -2.48423085550E+00 -3.24246580351E+00
+ final ekin_sum,epot_sum,eproj_sum  3.75083747579E+00 -7.38634417463E+00  7.66289423171E-01
+ final ehart,eexcu,vexcu  1.11379284096E+01 -2.48423085550E+00 -3.24246580351E+00
  FINAL iter,total energy,gnrm     4  -6.233542673819E+00  3.00E-05
- eval(1)= -4.96531171535184E-01
- eval(2)= -3.12773132672484E-01
- eval(3)= -3.12652166887842E-01
- eval(4)= -3.12652166712530E-01
+ eval(1)= -4.96531171542121E-01
+ eval(2)= -3.12773132678387E-01
+ eval(3)= -3.12652166898881E-01
+ eval(4)= -3.12652166713469E-01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=       7.999999922492
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
-- iproc, elapsed, CPU time     0        28.47        22.55
+- iproc, elapsed, CPU time     0        22.91        22.88
  Final values of the Forces for each atom
      1 Si_lda -1.50963E-04 -1.50963E-04 -1.50964E-04
      2  H_lda -1.14266E-04 -1.14266E-04 -1.14266E-04
@@ -625,10 +625,10 @@ wavefunction     4 needs NO reformatting on processor     0
      4  H_lda -2.37844E-04 -5.68836E-05 -5.68836E-05
      5  H_lda -5.68836E-05 -2.37844E-04 -5.68836E-05
  the sum of the forces is
-      x direction    -6.16840176E-04
-      y direction    -6.16840114E-04
-      z direction    -6.16840649E-04
+      x direction    -6.16840173E-04
+      y direction    -6.16840142E-04
+      z direction    -6.16840688E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 9474 allocations and 9474 deallocations, remaining memory(B):0
+ 9485 allocations and 9485 deallocations, remaining memory(B):0
  memory occupation peak: 113 MB
  for the array  cosinarr in the routine f_poissonsolver

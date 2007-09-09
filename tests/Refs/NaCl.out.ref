@@ -73,7 +73,7 @@
  evale(1)= -2.00116626754383E+00
  evale(2)= -9.96379993982037E-01
  evale(3)= -9.94145424587851E-01
- evale(4)= -9.91846813706802E-01
+ evale(4)= -9.91846813706801E-01
  evale(5)= -7.60365594345106E-01
  evale(6)= -3.48473660658967E-01
  evale(7)= -3.23379702338336E-01
@@ -175,10 +175,10 @@
  eval(2)= -1.08127237811908E+00
  eval(3)= -1.07932137683540E+00
  eval(4)= -1.07778585521933E+00
- eval(5)= -6.20550261732146E-01
- eval(6)= -2.16606841248562E-01
- eval(7)= -1.98505240286877E-01
- eval(8)= -1.98502933800482E-01
+ eval(5)= -6.20550261732147E-01
+ eval(6)= -2.16606841248563E-01
+ eval(7)= -1.98505240286878E-01
+ eval(8)= -1.98502933800483E-01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=      15.999811051004
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ... done.
@@ -197,7 +197,7 @@
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  4.13193238902E+01 -6.05329715848E+01  6.11134520876E+00
  Total energy with tail correction -6.196199848993E+01
-- iproc, elapsed, CPU time     0       118.34        94.57
+- iproc, elapsed, CPU time     0        95.41        95.31
  Final values of the Forces for each atom
      1 Na_lda  1.80710E+00  1.80710E+00  1.85401E+00
      2 Cl_lda  2.75750E-04  2.75750E-04 -4.87353E-03
@@ -206,6 +206,6 @@
       y direction     1.80737989E+00
       z direction     1.84913710E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 8202 allocations and 8202 deallocations, remaining memory(B):0
+ 8205 allocations and 8205 deallocations, remaining memory(B):0
  memory occupation peak: 126 MB
  for the array  ypsig_f in the routine calc_grad_reza

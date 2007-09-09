@@ -1,15 +1,16 @@
 program memguess
 
-  !implicit real(kind=8) (a-h,o-z)
   implicit none
+  real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
   logical :: calc_tail,output_grid
   character(len=20) :: tatonam,units
   character(len=30) :: filename
   character(len=2) :: symbol
   integer :: ierror,nat,ntypes,iat,jat,ityp,nproc,n1,n2,n3,ixc,ncharge,itermax,i_stat,i_all,i,j
   integer :: ncong,ncongt,idsx,nzatom,npspcode,iasctype,nelec,norb,nateq,nt,it,iorb,iorb1,ne
+  integer :: mpol,nspin,norbu,norbd,norbup,norbdp,iunit
   logical :: exists
-  real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,elecfield
+  real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,elecfield,tt
   real(kind=8) :: alat1,alat2,alat3,rcov,rprb,ehomo,radfine,rocc
   real(kind=8) :: cxmin,cxmax,cymin,cymax,czmin,czmax
   character(len=20), dimension(:), allocatable :: atomnames
@@ -17,7 +18,7 @@ program memguess
   integer, dimension(:,:), allocatable :: neleconf
   real(kind=8), dimension(:,:), allocatable :: rxyz,radii_cf
   real(kind=8), dimension(:,:,:), allocatable :: psppar
-  real(kind=8), dimension(:), allocatable :: occup 
+  real(kind=8), dimension(:), allocatable :: occup,spinar
 
   call getarg(1,tatonam)
 
@@ -56,7 +57,11 @@ program memguess
 
   ! read atomic positions
   open(unit=9,file='posinp',status='old')
-  read(9,*) nat,units
+  read(9,*,iostat=ierror) nat,units
+  if (ierror/=0) then
+     write(*,'(1x,a)') 'Error in the first line (<number of atoms> <units>) of the file "posinp"'
+     stop
+  end if
   allocate(rxyz(3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(rxyz))*kind(rxyz),'rxyz','memguess')
   allocate(iatype(nat),stat=i_stat)
@@ -66,7 +71,12 @@ program memguess
 
   ntypes=0
   do iat=1,nat
-     read(9,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
+     read(9,*,iostat=ierror) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
+     if (ierror/=0) then
+        write(*,'(1x,a,i0,a)') &
+           'Error in the ',iat+1,'th line (rx ry rz type) of the file "posinp"'
+        stop
+     end if
      do ityp=1,ntypes
         if (tatonam.eq.atomnames(ityp)) then
            iatype(iat)=ityp
@@ -118,25 +128,30 @@ program memguess
   ! Read the input variables.
   open(unit=1,file='input.dat',status='old')
   !First line for the main routine (the program)
-  read(1,*) 
+  read(1,*,iostat=ierror) 
   !Parameters 
-  read(1,*) hgrid
-  read(1,*) crmult
-  read(1,*) frmult
-  read(1,*) cpmult
-  read(1,*) fpmult
+  read(1,*,iostat=ierror) hgrid
+  read(1,*,iostat=ierror) crmult
+  read(1,*,iostat=ierror) frmult
+  read(1,*,iostat=ierror) cpmult
+  read(1,*,iostat=ierror) fpmult
   if (fpmult.gt.frmult) write(*,*) 'NONSENSE: fpmult > frmult'
-  read(1,*) ixc
-  read(1,*) ncharge,elecfield
-  read(1,*) gnrm_cv
-  read(1,*) itermax
-  read(1,*) ncong
-  read(1,*) idsx
-  read(1,*) calc_tail
-  read(1,*) rbuf
-  read(1,*) ncongt
-  close(1)
- 
+  read(1,*,iostat=ierror) ixc
+  read(1,*,iostat=ierror) ncharge,elecfield
+  read(1,*,iostat=ierror) gnrm_cv
+  read(1,*,iostat=ierror) itermax
+  read(1,*,iostat=ierror) ncong
+  read(1,*,iostat=ierror) idsx
+  read(1,*,iostat=ierror) calc_tail
+  read(1,*,iostat=ierror) rbuf
+  read(1,*,iostat=ierror) ncongt
+  read(1,*,iostat=ierror) nspin,mpol
+  close(1,iostat=ierror)
+
+  if (ierror/=0) then
+     write(*,'(1x,a)') 'Error in the file "input.dat"'
+  end if 
+
   write(*,'(1x,a)')&
        '------------------------------------------------------------------- Input Parameters'
   write(*,'(1x,a)')&
@@ -250,14 +265,29 @@ program memguess
        'WARNING: odd number of electrons, no closed shell system'
 
 ! Number of orbitals
-  norb=(nelec+1)/2
+  if (nspin==1) then
+     norb=(nelec+1)/2
+     norbu=norb
+     norbd=0
+  else
+     write(*,'(1x,a)') 'Spin-polarized calculation'
+     norb=nelec
+     norbu=min(norb/2+mpol,norb)
+     norbd=norb-norbu
+     tt=real(norbu,kind=8)/real(nproc,kind=8)
+     norbup=int((1.d0-eps_mach*tt) + tt)
+     tt=real(norbd,kind=8)/real(nproc,kind=8)
+     norbdp=int((1.d0-eps_mach*tt) + tt)
+  end if
 
 ! Test if the file 'occup.dat exists
   inquire(file='occup.dat',exist=exists)
+  iunit=0
   if (exists) then
-     open(unit=24,file='occup.dat',form='formatted',action='read',status='old')
+     iunit=24
+     open(unit=iunit,file='occup.dat',form='formatted',action='read',status='old')
      !The first line gives the number of orbitals
-     read(24,*,iostat=ierror) nt
+     read(unit=iunit,fmt=*,iostat=ierror) nt
      if (ierror /=0) then
          write(*,'(1x,a)') 'ERROR reading the number of orbitals in the file "occup.dat"'
         stop
@@ -280,77 +310,19 @@ program memguess
           'Total Number of  Orbitals ',norb
   end if
 
-! Read the file "occup.dat" and test it
-  if (exists) then
-     allocate(occup(norb),stat=i_stat)
-     call memocc(i_stat,product(shape(occup))*kind(occup),'occup','memguess')
-     ! First fill the occupation numbers by default
-     ne=(nelec+1)/2
-     nt=0
-     do iorb=1,ne
-        it=min(2,nelec-nt)
-        occup(iorb)=real(it,kind=8)
-        nt=nt+it
-     enddo
-     do iorb=ne+1,norb
-        occup(iorb)=0.d0
-     end do
-     ! Then read the file "occup.dat" if does exist
-     nt=0
-     do
-        read(24,*,iostat=ierror) iorb,rocc
-        if (ierror/=0) then
-           exit
-        else
-           nt=nt+1
-           if (iorb<0 .or. iorb>norb) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
-              write(*,'(10x,a,i0,a)')     'The orbital index ',iorb,' is incorrect'
-              stop
-           elseif (rocc<0.d0 .or. rocc>2.d0) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
-              write(*,'(10x,a,f5.2,a)')     'The occupation number ',rocc,' is not between 0. and 2.'
-              stop
-           else
-              occup(iorb)=rocc
-           end if
-        end if
-     end do
-     write(*,'(1x,a,i0,a)') &
-             'The occupation numbers are read from the file "occup.dat" (',nt,' lines read)'
-     close(unit=24)
-  end if
-
-  !Check if sum(occup)=nelec
-  rocc=sum(occup)
-  if (abs(rocc-real(nelec,kind=8))>1.d-6) then
-     write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the total number of electrons ',rocc,&
-             ' is not equal to ',nelec
-     stop
-  end if
-  write(*,'(1x,a,i8)') &
-       'Total Number of  Orbitals ',norb
-  iorb1=1
-  rocc=occup(1)
-  do iorb=1,norb
-     if (occup(iorb) /= rocc) then
-        if (iorb1 == iorb-1) then
-           write(*,'(4x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
-        else
-           write(*,'(4x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
-        end if
-        rocc=occup(iorb)
-        iorb1=iorb
-     end if
-  enddo
-  if (iorb1 == norb) then
-     write(*,'(4x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
-  else
-     write(*,'(4x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
-  end if
-! De-allocation of occup
+  allocate(occup(norb),stat=i_stat)
+  call memocc(i_stat,product(shape(occup))*kind(occup),'occup','memguess')
+  allocate(spinar(norb),stat=i_stat)
+  call memocc(i_stat,product(shape(spinar))*kind(spinar),'occup','memguess')
+! Occupation numbers
+  call input_occup(0,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
+! De-allocation of occup and spinar
+  i_all=-product(shape(occup))*kind(occup)
   deallocate(occup,stat=i_stat)
-  call memocc(i_stat,i_all,'occup','cluster')
+  call memocc(i_stat,i_all,'occup','memguess')
+  i_all=-product(shape(spinar))*kind(spinar)
+  deallocate(spinar,stat=i_stat)
+  call memocc(i_stat,i_all,'spinar','memguess')
 
 ! determine size alat of overall simulation cell
   call system_size(nat,rxyz,radii_cf(1,1),crmult,iatype,ntypes, &
@@ -378,7 +350,7 @@ program memguess
        '  Box Sizes=',alat1,alat2,alat3,n1,n2,n3
 
   call MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
-          rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid)
+          rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid,nspin)
 
 
   i_all=-product(shape(atomnames))*kind(atomnames)

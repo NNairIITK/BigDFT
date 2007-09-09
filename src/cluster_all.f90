@@ -46,7 +46,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   character(len=2) :: symbol
   character(len=1) :: datacode
   logical logrid_c,logrid_f,parallel,calc_tail,output_wf,output_grid
-  parameter(eps_mach=1.d-12,onem=1.d0-eps_mach)
+  real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
   ! work array for ALLREDUCE
   dimension wrkallred(5,2) 
   ! atomic coordinates
@@ -219,10 +219,11 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   read(1,*) rbuf
   read(1,*) ncongt
   read(1,*) nspin,mpol
-  if(nspin<1.or.nspin>2) nspin=1
-  if(nspin==1) mpol=0
   close(1)
  
+  if(nspin<1.or.nspin>2) nspin=1
+  if(nspin==1) mpol=0
+
   if (iproc.eq.0) then 
      write(*,'(1x,a)')&
           '------------------------------------------------------------------- Input Parameters'
@@ -356,8 +357,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   end if
 
 ! Number of orbitals
-  norb=(nelec+1)/2
   if (nspin==1) then
+     norb=(nelec+1)/2
      norbu=norb
      norbd=0
   else
@@ -378,10 +379,12 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      write(*,'(1x,a)') 'ERROR: It is not possible to use the file occup.dat with spin-polarization'
      stop
   end if
+  iunit=0
   if (exists) then
-     open(unit=24,file='occup.dat',form='formatted',action='read',status='old')
+     iunit=24
+     open(unit=iunit,file='occup.dat',form='formatted',action='read',status='old')
      !The first line gives the number of orbitals
-     read(24,*,iostat=ierror) nt
+     read(unit=iunit,fmt=*,iostat=ierror) nt
      if (ierror /=0) then
          if (iproc==0) write(*,'(1x,a)') 'ERROR reading the number of orbitals in the file "occup.dat"'
         stop
@@ -405,102 +408,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   allocate(eval(norb),stat=i_stat)
   call memocc(i_stat,product(shape(eval))*kind(eval),'eval','cluster')
   
-  do iorb=1,norb
-     spinar(iorb)=1.0d0
-  end do
-  if (nspin/=1) then
-     do iorb=1,norbu
-        spinar(iorb)=1.0d0
-     end do
-     do iorb=norbu+1,norb
-        spinar(iorb)=-1.0d0
-     end do
-  end if
-!  write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinar(iorb),iorb=1,norb)
-
-! First fill the occupation numbers by default
-  nt=0
-  if (nspin==1) then
-     ne=(nelec+1)/2
-     do iorb=1,ne
-        it=min(2,nelec-nt)
-        occup(iorb)=real(it,kind=8)
-        nt=nt+it
-     enddo
-     do iorb=ne+1,norb
-        occup(iorb)=0.d0
-     end do
-  else
-     do iorb=1,norb
-        it=min(1,nelec-nt)
-        occup(iorb)=real(it,kind=8)
-        nt=nt+it
-     enddo
-  end if
-
-! Then read the file "occup.dat" if does exist
-  if (exists) then
-     nt=0
-     do
-        read(24,*,iostat=ierror) iorb,rocc
-        if (ierror/=0) then
-           exit
-        else
-           nt=nt+1
-           if (iorb<0 .or. iorb>norb) then
-              if (iproc==0) then
-                 write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
-                 write(*,'(10x,a,i0,a)')     'The orbital index ',iorb,' is incorrect'
-              end if
-              stop
-           elseif (rocc<0.d0 .or. rocc>2.d0) then
-              if (iproc==0) then
-                 write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
-                 write(*,'(10x,a,f5.2,a)')     'The occupation number ',rocc,' is not between 0. and 2.'
-              end if
-              stop
-           else
-              occup(iorb)=rocc
-           end if
-        end if
-     end do
-     if (iproc==0) then
-        write(*,'(1x,a,i0,a)') &
-             'The occupation numbers are read from the file "occup.dat" (',nt,' lines read)'
-     end if
-     close(unit=24)
-     !Check if sum(occup)=nelec
-     rocc=sum(occup)
-     if (abs(rocc-real(nelec,kind=8))>1.d-6) then
-        if (iproc==0) then
-           write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the total number of electrons ',rocc,&
-                          ' is not equal to ',nelec
-        end if
-        stop
-     end if
-  end if
-  if (iproc.eq.0) then 
-     write(*,'(1x,a,i8)') &
-          'Total Number of  Orbitals ',norb
-     iorb1=1
-     rocc=occup(1)
-     do iorb=1,norb
-        if (occup(iorb) /= rocc) then
-           if (iorb1 == iorb-1) then
-              write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
-           else
-              write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
-           end if
-           rocc=occup(iorb)
-           iorb1=iorb
-        end if
-     enddo
-     if (iorb1 == norb) then
-        write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
-     else
-        write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
-     end if
-  endif
+! Occupation numbers
+  call input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
 
 ! Determine size alat of overall simulation cell
   call system_size(nat,rxyz,radii_cf(1,1),crmult,iatype,ntypes, &
@@ -1498,6 +1407,9 @@ contains
     i_all=-product(shape(occup))*kind(occup)
     deallocate(occup,stat=i_stat)
     call memocc(i_stat,i_all,'occup','cluster')
+    i_all=-product(shape(spinar))*kind(spinar)
+    deallocate(spinar,stat=i_stat)
+    call memocc(i_stat,i_all,'spinar','cluster')
     i_all=-product(shape(nvctr_p))*kind(nvctr_p)
     deallocate(nvctr_p,stat=i_stat)
     call memocc(i_stat,i_all,'nvctr_p','cluster')
@@ -2438,8 +2350,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   ! resulting charge density and potential
   allocate(ones(norbe),stat=i_stat)
-  call memocc(i_stat,product(shape(norbe))*kind(norbe),'norbe','input_wf_diag')
-  ones=1.0d0
+  call memocc(i_stat,product(shape(ones))*kind(ones),'ones','input_wf_diag')
+  ones(:)=1.0d0
 
   call sumrho(parallel,iproc,nproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&

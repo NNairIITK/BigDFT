@@ -25,5 +25,7 @@ check: $(PPFILES) posinp input.dat
 	if test ! -f posinp ; then \
 	  ln -s $(top_srcdir)/tests/H/posinp ; \
 	fi
+	$(top_builddir)/src/memguess 1 > H.memguess
+	diff H.memguess $(top_srcdir)/tests/Refs/H.memguess.ref | cat
 	$(top_builddir)/src/cluster > H.out
 	perl $(top_srcdir)/tests/fldiff.pl H.out $(top_srcdir)/tests/Refs/H.out.ref | cat
