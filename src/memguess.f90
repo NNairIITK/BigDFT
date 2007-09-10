@@ -146,11 +146,13 @@ program memguess
   read(1,*,iostat=ierror) rbuf
   read(1,*,iostat=ierror) ncongt
   read(1,*,iostat=ierror) nspin,mpol
-  close(1,iostat=ierror)
 
   if (ierror/=0) then
-     write(*,'(1x,a)') 'Error in the file "input.dat"'
+     write(*,'(1x,a)') 'Error when reading the file "input.dat"'
+     stop
   end if 
+
+  close(1,iostat=ierror)
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------- Input Parameters'
