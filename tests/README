@@ -1,9 +1,10 @@
 'make check' is the command to perform the series of tests (optimisation of geometry):
-- C    carbon atom
-- H    hydrogen atom
-- Li+  lithium ion
-- NaCl sodium chloride
-- SiH4 silane
+- C      carbon atom
+- H      hydrogen atom
+- H-spin hydrogen atom with Local Spin Density
+- Li+    lithium ion
+- NaCl   sodium chloride
+- SiH4   silane
 
 This call the program "cluster" in the src directories.
 The program "memguess" followed by the number of processors checks the input files and estimates the required memory.

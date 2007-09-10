@@ -314,9 +314,11 @@ program memguess
   call memocc(i_stat,product(shape(occup))*kind(occup),'occup','memguess')
   allocate(spinar(norb),stat=i_stat)
   call memocc(i_stat,product(shape(spinar))*kind(spinar),'occup','memguess')
+
 ! Occupation numbers
   call input_occup(0,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
-! De-allocation of occup and spinar
+
+  ! De-allocation of occup and spinar
   i_all=-product(shape(occup))*kind(occup)
   deallocate(occup,stat=i_stat)
   call memocc(i_stat,i_all,'occup','memguess')
