@@ -577,7 +577,7 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
                        istart_c_i=istart_f_i+7*mbvctr_f
                     enddo
                  end do loop_j
-              else if (npspcode(ityp) == 10) then !HGH-K case, offdiagonal terms
+              else if (npspcode(ityp) == 10 .and. i/=3) then !HGH-K case, offdiagonal terms
                  loop_jK: do j=i+1,3
                     if (psppar(l,j,ityp) .eq. 0.d0) exit loop_jK
                     istart_c_i=istart_c-(2*l-1)*(mbvctr_c+7*mbvctr_f)
@@ -602,6 +602,8 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
 
                        !scpr_i*h_ij*scpr_j+scpr_j*h_ij*scpr_i (with symmetric h_ij)
                        eproj=eproj+2.d0*scpr_i*psppar(l,i+j+1,ityp)*scpr_j
+                       scprp_j=scpr_j*psppar(l,i+j+1,ityp)
+                       scprp_i=scpr_i*psppar(l,i+j+1,ityp)
 
                        !|hpsi>=|hpsi>+h_ij (<p_i|psi>|p_j>+<p_j|psi>|p_i>)
                        call waxpy(&
