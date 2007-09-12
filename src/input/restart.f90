@@ -36,7 +36,7 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
           abs(center(3)-center_old(3)).lt.1.d-3  ) then
 
 
-        write(*,"(a,i5,a,i6)") 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
+        write(*,"(1x,a,i5,a,i6)") 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
         do j=1,nvctr_c_old
            psi(j,iorb-iproc*norbp)=psi_old(j, iorb - iproc * norbp)
         enddo
@@ -51,17 +51,17 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
         enddo
 
      else
-        write(*,"(a,i5,a,i6)") 'wavefunction ',iorb,' needs reformatting on processor',iproc
+        write(*,"(1x,a,i5,a,i6)") 'wavefunction ',iorb,' needs reformatting on processor',iproc
         if (hgrid_old.ne.hgrid) then 
-           write(*,"(a,1pe20.12)") 'because hgrid_old >< hgrid',hgrid_old, hgrid
+           write(*,"(4x,a,1pe20.12)") 'because hgrid_old >< hgrid',hgrid_old, hgrid
         else if (nvctr_c_old.ne.nvctr_c) then
-           write(*,"(a,2i8)") 'because nvctr_c_old >< nvctr_c',nvctr_c_old,nvctr_c
+           write(*,"(4x,a,2i8)") 'because nvctr_c_old >< nvctr_c',nvctr_c_old,nvctr_c
         else if (nvctr_f_old.ne.nvctr_f)  then
-           write(*,"(a,2i8)") 'because nvctr_f_old >< nvctr_f',nvctr_f_old,nvctr_f
+           write(*,"(4x,a,2i8)") 'because nvctr_f_old >< nvctr_f',nvctr_f_old,nvctr_f
         else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then  
-           write(*,"(a,6i5)") 'because cell size has changed',n1_old,n1  , n2_old,n2 , n3_old,n3
+           write(*,"(4x,a,6i5)") 'because cell size has changed',n1_old,n1  , n2_old,n2 , n3_old,n3
         else
-           write(*,"(a,3(1pe19.12))") 'molecule was shifted' , abs(center(1)-center_old(1)), & 
+           write(*,"(4x,a,3(1pe19.12))") 'molecule was shifted' , abs(center(1)-center_old(1)), & 
                 abs(center(2)-center_old(2)),abs(center(3)-center_old(3))
         endif
 

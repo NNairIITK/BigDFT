@@ -84,6 +84,7 @@ libbigdft_a_SOURCES = \
 	input/gautowav.f90 \
 	input/gauprod.f90 \
 	input/inputguess.f90 \
+	input/input_occup.f90 \
 	input/restart.f90 \
 	ionicpot.f90 \
 	projectors/projectors.f90 \

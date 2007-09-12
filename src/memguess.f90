@@ -1,22 +1,25 @@
 program memguess
 
-  !implicit real(kind=8) (a-h,o-z)
   implicit none
+  real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
   logical :: calc_tail,output_grid
   character(len=20) :: tatonam,units
   character(len=30) :: filename
   character(len=2) :: symbol
   integer :: ierror,nat,ntypes,iat,jat,ityp,nproc,n1,n2,n3,ixc,ncharge,itermax,i_stat,i_all,i,j,l
-  integer :: ncong,ncongt,idsx,nzatom,npspcode,iasctype,norb_vir,nelec,norb,nateq,nn,nlterms,nprl
-  real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,elecfield
-  real(kind=8) :: alat1,alat2,alat3,rcov,rprb,ehomo,radfine
+  integer :: ncong,ncongt,idsx,nzatom,npspcode,iasctype,nelec,norb,nateq,nt,it,iorb,iorb1,ne
+  integer :: mpol,nspin,norbu,norbd,norbup,norbdp,iunit,norb_vir,nn,nlterms,nprl
+  logical :: exists
+  real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,elecfield,tt
+  real(kind=8) :: alat1,alat2,alat3,rcov,rprb,ehomo,radfine,rocc
   real(kind=8) :: cxmin,cxmax,cymin,cymax,czmin,czmax
   character(len=20), dimension(:), allocatable :: atomnames
   integer, dimension(:), allocatable :: iatype,nelpsp
   integer, dimension(:,:), allocatable :: neleconf
   real(kind=8), dimension(:,:), allocatable :: rxyz,radii_cf
   real(kind=8), dimension(:,:,:), allocatable :: psppar
- 
+  real(kind=8), dimension(:), allocatable :: occup,spinar
+
   call getarg(1,tatonam)
 
   if(trim(tatonam)=='') then
@@ -54,7 +57,11 @@ program memguess
 
   ! read atomic positions
   open(unit=9,file='posinp',status='old')
-  read(9,*) nat,units
+  read(9,*,iostat=ierror) nat,units
+  if (ierror/=0) then
+     write(*,'(1x,a)') 'Error in the first line (<number of atoms> <units>) of the file "posinp"'
+     stop
+  end if
   allocate(rxyz(3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(rxyz))*kind(rxyz),'rxyz','memguess')
   allocate(iatype(nat),stat=i_stat)
@@ -64,7 +71,12 @@ program memguess
 
   ntypes=0
   do iat=1,nat
-     read(9,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
+     read(9,*,iostat=ierror) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
+     if (ierror/=0) then
+        write(*,'(1x,a,i0,a)') &
+           'Error in the ',iat+1,'th line (rx ry rz type) of the file "posinp"'
+        stop
+     end if
      do ityp=1,ntypes
         if (tatonam.eq.atomnames(ityp)) then
            iatype(iat)=ityp
@@ -116,25 +128,32 @@ program memguess
   ! Read the input variables.
   open(unit=1,file='input.dat',status='old')
   !First line for the main routine (the program)
-  read(1,*) 
+  read(1,*,iostat=ierror) 
   !Parameters 
-  read(1,*) hgrid
-  read(1,*) crmult
-  read(1,*) frmult
-  read(1,*) cpmult
-  read(1,*) fpmult
+  read(1,*,iostat=ierror) hgrid
+  read(1,*,iostat=ierror) crmult
+  read(1,*,iostat=ierror) frmult
+  read(1,*,iostat=ierror) cpmult
+  read(1,*,iostat=ierror) fpmult
   if (fpmult.gt.frmult) write(*,*) 'NONSENSE: fpmult > frmult'
-  read(1,*) ixc
-  read(1,*) ncharge,elecfield
-  read(1,*) gnrm_cv
-  read(1,*) itermax
-  read(1,*) ncong
-  read(1,*) idsx
-  read(1,*) calc_tail
-  read(1,*) rbuf
-  read(1,*) ncongt
-  close(1)
- 
+  read(1,*,iostat=ierror) ixc
+  read(1,*,iostat=ierror) ncharge,elecfield
+  read(1,*,iostat=ierror) gnrm_cv
+  read(1,*,iostat=ierror) itermax
+  read(1,*,iostat=ierror) ncong
+  read(1,*,iostat=ierror) idsx
+  read(1,*,iostat=ierror) calc_tail
+  read(1,*,iostat=ierror) rbuf
+  read(1,*,iostat=ierror) ncongt
+  read(1,*,iostat=ierror) nspin,mpol
+
+  if (ierror/=0) then
+     write(*,'(1x,a)') 'Error when reading the file "input.dat"'
+     stop
+  end if 
+
+  close(1,iostat=ierror)
+
   write(*,'(1x,a)')&
        '------------------------------------------------------------------- Input Parameters'
   write(*,'(1x,a)')&
@@ -245,8 +264,6 @@ program memguess
   deallocate(psppar,stat=i_stat)
   call memocc(i_stat,i_all,'psppar','memguess')
 
-! Number of orbitals and their occupation number
-  norb_vir=0
 ! Number of electrons and number of semicore atoms
   nelec=0
   do iat=1,nat
@@ -263,12 +280,68 @@ program memguess
        'Total Number of Electrons ',nelec
   if (mod(nelec,2).ne.0) write(*,*) &
        'WARNING: odd number of electrons, no closed shell system'
-  norb=(nelec+1)/2+norb_vir
 
-  if (norb_vir /=0) write(*,'(1x,a,i8)') &
-       '         Virtual Orbitals ',norb_vir
-  write(*,'(1x,a,i8)') &
-       'Total Number of  Orbitals ',norb
+! Number of orbitals
+  if (nspin==1) then
+     norb=(nelec+1)/2
+     norbu=norb
+     norbd=0
+  else
+     write(*,'(1x,a)') 'Spin-polarized calculation'
+     norb=nelec
+     norbu=min(norb/2+mpol,norb)
+     norbd=norb-norbu
+     tt=real(norbu,kind=8)/real(nproc,kind=8)
+     norbup=int((1.d0-eps_mach*tt) + tt)
+     tt=real(norbd,kind=8)/real(nproc,kind=8)
+     norbdp=int((1.d0-eps_mach*tt) + tt)
+  end if
+
+! Test if the file 'occup.dat exists
+  inquire(file='occup.dat',exist=exists)
+  iunit=0
+  if (exists) then
+     iunit=24
+     open(unit=iunit,file='occup.dat',form='formatted',action='read',status='old')
+     !The first line gives the number of orbitals
+     read(unit=iunit,fmt=*,iostat=ierror) nt
+     if (ierror /=0) then
+         write(*,'(1x,a)') 'ERROR reading the number of orbitals in the file "occup.dat"'
+        stop
+     end if
+     if (nt<=norb) then
+        write(*,'(1x,a,i0,a,i0)') &
+                'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
+                ' should be strictly greater than (nelec+1)/2=',norb
+        stop
+     else
+        norb=nt
+     end if
+  end if
+
+  if (exists) then
+     write(*,'(1x,a,i8,a)') &
+          'Total Number of  Orbitals ',norb,' (read from the file "occup.dat")'
+  else
+     write(*,'(1x,a,i8)') &
+          'Total Number of  Orbitals ',norb
+  end if
+
+  allocate(occup(norb),stat=i_stat)
+  call memocc(i_stat,product(shape(occup))*kind(occup),'occup','memguess')
+  allocate(spinar(norb),stat=i_stat)
+  call memocc(i_stat,product(shape(spinar))*kind(spinar),'occup','memguess')
+
+! Occupation numbers
+  call input_occup(0,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
+
+  ! De-allocation of occup and spinar
+  i_all=-product(shape(occup))*kind(occup)
+  deallocate(occup,stat=i_stat)
+  call memocc(i_stat,i_all,'occup','memguess')
+  i_all=-product(shape(spinar))*kind(spinar)
+  deallocate(spinar,stat=i_stat)
+  call memocc(i_stat,i_all,'spinar','memguess')
 
 ! determine size alat of overall simulation cell
   call system_size(nat,rxyz,radii_cf(1,1),crmult,iatype,ntypes, &
@@ -296,7 +369,7 @@ program memguess
        '  Box Sizes=',alat1,alat2,alat3,n1,n2,n3
 
   call MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
-          rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid)
+          rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid,nspin)
 
 
   i_all=-product(shape(atomnames))*kind(atomnames)
