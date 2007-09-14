@@ -296,6 +296,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   ekin_sum=0.d0
   epot_sum=0.d0
   eproj_sum=0.d0
+
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
      !build the compressed wavefunction in the enlarged box
@@ -307,19 +308,15 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
           x_c,x_fc,x_f,psib(1),psib(nvctrb_c+1))
 
      !write(*,*) 'transform_fortail finished',iproc,iorb
-
+     
 
      npt=2
      tail_adding: do ipt=1,npt
 
-        if(nspin==1) then
+        if(spinar(iorb)>0.0d0) then
            ispin=1
         else
-           if(spinar(iorb)>0.0d0) then
-              ispin=1
-           else
-              ispin=2
-           end if
+           ispin=2
         end if
         !calculate gradient
         call applylocpotkinone(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nbuf, &
@@ -330,13 +327,13 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
              ibbzzx_c,ibbyyzz_c,ibbxy_ff,ibbzzx_f,ibbyyzz_f,&
              ibbzxx_c,ibbxxyy_c,ibbyz_ff,ibbzxx_f,ibbxxyy_f,nw1,nw2,ibbyyzz_r)
 
-        !write(*,*) 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin,sum_tail
-
+        !write(*,'(a,3i3,2f12.8)') 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin
         call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
              nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
              nsegb_c,nsegb_f,keybg,keybv,nvctrb_c,nvctrb_f,  & 
              psib,hpsib,eproj)
-        !write(*,*) 'applyprojectorsone finished',iproc,iorb
+        !write(*,'(a,2i3,2f12.8)') 'applyprojectorsone finished',iproc,iorb,eproj,sum_tail
+
 
         !calculate residue for the single orbital
         tt=0.d0
