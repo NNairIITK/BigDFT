@@ -34,7 +34,7 @@
     Arrays of full uncompressed grid (U):     5 MB   768 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W     |       ~W+(~3)*U 
+       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W    |       ~W+(~3)*U 
         76MB         |        21MB          |       62MB     |            23MB
  The overall memory requirement needed for this calculation is thus: 76 MB
  By reducing the DIIS history and/or decreasing the number of processors the amount of
@@ -185,7 +185,7 @@
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  4.22362468056E-01 -6.53582730176E-01  0.00000000000E+00
  Total energy with tail correction -4.454620028442E-01
-- iproc, elapsed, CPU time     0        21.19        21.10
+- iproc, elapsed, CPU time     0        30.70        22.14
  Final values of the Forces for each atom
      1  H_lda -4.25750E-04 -4.25750E-04 -4.25750E-04
  the sum of the forces is

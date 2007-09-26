@@ -39,7 +39,7 @@
     Arrays of full uncompressed grid (U):     9 MB   355 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W     |       ~W+(~3)*U 
+       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W    |       ~W+(~3)*U 
        108MB         |        55MB          |      110MB     |            59MB
  The overall memory requirement needed for this calculation is thus: 110 MB
  By reducing the DIIS history and/or decreasing the number of processors the amount of
@@ -189,7 +189,7 @@
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
-- iproc, elapsed, CPU time     0        57.63        57.44
+- iproc, elapsed, CPU time     0        69.37        57.28
 FINISHED FIRST CLUSTER    0    0
  CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER 1
  ------------------------------------------------------------------- Input Parameters
@@ -226,7 +226,7 @@ FINISHED FIRST CLUSTER    0    0
     Arrays of full uncompressed grid (U):     9 MB   355 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W     |       ~W+(~3)*U 
+       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W    |       ~W+(~3)*U 
        108MB         |        55MB          |      110MB     |            59MB
  The overall memory requirement needed for this calculation is thus: 110 MB
  By reducing the DIIS history and/or decreasing the number of processors the amount of
@@ -280,7 +280,7 @@ FINISHED FIRST CLUSTER    0    0
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
-- iproc, elapsed, CPU time     0        14.17        14.16
+- iproc, elapsed, CPU time     0        17.39        14.16
  CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -316,7 +316,7 @@ FINISHED FIRST CLUSTER    0    0
     Arrays of full uncompressed grid (U):     9 MB   355 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W     |       ~W+(~3)*U 
+       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W    |       ~W+(~3)*U 
        108MB         |        55MB          |      110MB     |            59MB
  The overall memory requirement needed for this calculation is thus: 110 MB
  By reducing the DIIS history and/or decreasing the number of processors the amount of
@@ -401,7 +401,7 @@ FINISHED FIRST CLUSTER    0    0
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
-- iproc, elapsed, CPU time     0        28.90        28.87
+- iproc, elapsed, CPU time     0        35.08        28.77
  CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -437,7 +437,7 @@ FINISHED FIRST CLUSTER    0    0
     Arrays of full uncompressed grid (U):     9 MB   355 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W     |       ~W+(~3)*U 
+       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W    |       ~W+(~3)*U 
        108MB         |        55MB          |      110MB     |            59MB
  The overall memory requirement needed for this calculation is thus: 110 MB
  By reducing the DIIS history and/or decreasing the number of processors the amount of
@@ -509,7 +509,7 @@ FINISHED FIRST CLUSTER    0    0
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
-- iproc, elapsed, CPU time     0        22.94        22.88
+- iproc, elapsed, CPU time     0        27.23        22.79
  CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -545,7 +545,7 @@ FINISHED FIRST CLUSTER    0    0
     Arrays of full uncompressed grid (U):     9 MB   355 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W     |       ~W+(~3)*U 
+       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W    |       ~W+(~3)*U 
        108MB         |        55MB          |      110MB     |            59MB
  The overall memory requirement needed for this calculation is thus: 110 MB
  By reducing the DIIS history and/or decreasing the number of processors the amount of
@@ -617,7 +617,7 @@ FINISHED FIRST CLUSTER    0    0
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ... done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
-- iproc, elapsed, CPU time     0        22.91        22.88
+- iproc, elapsed, CPU time     0        27.09        22.78
  Final values of the Forces for each atom
      1 Si_lda -1.50963E-04 -1.50963E-04 -1.50964E-04
      2  H_lda -1.14266E-04 -1.14266E-04 -1.14266E-04
