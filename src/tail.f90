@@ -1,13 +1,13 @@
 subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntypes,&
      nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
      keyv,keyg,nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
-     pot,hgrid,rxyz,radii_cf,crmult,frmult,iatype,atomnames,nspin,spinar,&
+     pot,hgrid,rxyz,radii_cf,crmult,frmult,iatype,atomnames,&
      proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
   implicit none
   include 'mpif.h'   
   logical, intent(in) :: output_grid,parallel
   character(len=20), dimension(100), intent(in) :: atomnames
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nat,ntypes,ncongt,nspin
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nat,ntypes,ncongt
   integer, intent(in) :: nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
@@ -18,21 +18,16 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   integer, dimension(2,nseg_p(2*nat)), intent(inout) :: keyg_p
   integer, dimension(ntypes), intent(in) :: npspcode
   integer, dimension(nat), intent(in) :: iatype
-<<<<<<< TREE
   real(kind=8), dimension(norb), intent(in) :: occup,eval
   real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
-=======
-  real(kind=8), dimension(norb), intent(in) :: occup,eval,spinar
-  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
->>>>>>> MERGE-SOURCE
   real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(2*n1+31,2*n2+31,2*n3+31,nspin), intent(in) :: pot
+  real(kind=8), dimension(2*n1+31,2*n2+31,2*n3+31), intent(in) :: pot
   real(kind=8), dimension(nprojel), intent(in) :: proj
   real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
   !local variables
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
-  integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat,nbuf,ispin
+  integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat,nbuf
   integer :: nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
   integer, dimension(:,:,:), allocatable :: ibbyz_c,ibbyz_f,ibbxz_c,ibbxz_f,ibbxy_c,ibbxy_f
   integer, dimension(:), allocatable :: keybv
@@ -301,7 +296,6 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   ekin_sum=0.d0
   epot_sum=0.d0
   eproj_sum=0.d0
-
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
      !build the compressed wavefunction in the enlarged box
@@ -313,32 +307,27 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
           x_c,x_fc,x_f,psib(1),psib(nvctrb_c+1))
 
      !write(*,*) 'transform_fortail finished',iproc,iorb
-     
+
 
      npt=2
      tail_adding: do ipt=1,npt
 
-        if(spinar(iorb)>0.0d0) then
-           ispin=1
-        else
-           ispin=2
-        end if
         !calculate gradient
         call applylocpotkinone(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nbuf, &
              hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  &
              ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,y_c,y_f,psir,  &
-             psib,pot(1,1,1,ispin),hpsib,epot,ekin, &
+             psib,pot,hpsib,epot,ekin, &
              x_c,x_fc,x_f,w1,w2,&
              ibbzzx_c,ibbyyzz_c,ibbxy_ff,ibbzzx_f,ibbyyzz_f,&
              ibbzxx_c,ibbxxyy_c,ibbyz_ff,ibbzxx_f,ibbxxyy_f,nw1,nw2,ibbyyzz_r)
 
-        !write(*,'(a,3i3,2f12.8)') 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin
+        !write(*,*) 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin,sum_tail
+
         call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
              nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
              nsegb_c,nsegb_f,keybg,keybv,nvctrb_c,nvctrb_f,  & 
              psib,hpsib,eproj)
-        !write(*,'(a,2i3,2f12.8)') 'applyprojectorsone finished',iproc,iorb,eproj,sum_tail
-
+        !write(*,*) 'applyprojectorsone finished',iproc,iorb
 
         !calculate residue for the single orbital
         tt=0.d0
