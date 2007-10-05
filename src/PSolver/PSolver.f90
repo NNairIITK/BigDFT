@@ -138,7 +138,7 @@ program PoissonSolver
 
      !apply the Poisson Solver (case with distributed potential
      call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-          density(1,1,i3sd),karray,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.)
+          density(1,1,i3sd),karray,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.,1)
 
   end if
 
@@ -188,7 +188,7 @@ program PoissonSolver
         
         !apply the Poisson Solver (case with distributed potential
         call PSolver(geocode,'G',0,1,n01,n02,n03,ixc,hx,hy,hz,&
-             rhopot,karray,pot_ion,eh,exc,vxc,offset,.true.)
+             rhopot,karray,pot_ion,eh,exc,vxc,offset,.true.,1)
         
      end if
 

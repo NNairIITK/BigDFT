@@ -178,11 +178,11 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
      & keyg, keyv, iatype, ntypes, iasctype, natsc, psi, eks, scorb)
 
   implicit none
-  logical, dimension(4,natsc), intent(in) :: scorb
   integer, intent(in) :: nat, norbe, norbep, ngx, iproc, nproc
   integer, intent(in) :: nvctr_c, nvctr_f, n1, n2, n3, nseg_c, nseg_f
   integer, intent(in) :: nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, ntypes
   integer, intent(in) :: norbsc,natsc
+  logical, dimension(4,natsc), intent(in) :: scorb
   integer, intent(in) :: keyg(2, nseg_c + nseg_f), keyv(nseg_c + nseg_f)
   integer, intent(in) :: iatype(nat),iasctype(ntypes)
   real(kind=8), intent(in) :: hgrid

@@ -2,6 +2,7 @@
 
 SUBDIRS = \
 	  H \
+	  H-spin \
 	  Li+ \
 	  SiH4 \
 	  NaCl \

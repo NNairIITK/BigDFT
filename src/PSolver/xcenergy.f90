@@ -51,7 +51,7 @@
 !!                if sumpion==.false. zfionxc will be vxci
 !!                this value is ignored when ixc=0. In that case zfionxc is untouched
 !!    zf          output array corresponding to the density which can be passed to FFT part
-!!    zfionxc     output array which will contain pot_ion+vxci of vxci, following sumpion
+!!    zfionxc     output array which will contain pot_ion+vxci or vxci, following sumpion
 !! WARNING
 !!    The dimensions of pot_ion must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
@@ -65,27 +65,28 @@
 !! SOURCE
 !!
 subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
-     nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,iproc,nproc)
+     nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,iproc,nproc,nspden)
 
   implicit none
 
   !Arguments----------------------
   character(len=1), intent(in) :: geocode
   logical, intent(in) :: sumpion
-  integer, intent(in) :: m1,m2,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,iproc,nproc
+  integer, intent(in) :: m1,m2,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,iproc,nproc,nspden
   integer, intent(in) :: nwbl,nwbr
   real(kind=8), intent(in) :: hx,hy,hz
-  real(kind=8), dimension(m1,m3,nxt), intent(inout) :: rhopot
+  real(kind=8), dimension(m1,m3,nxt,nspden), intent(inout) :: rhopot
   real(kind=8), dimension(*), intent(in) :: pot_ion
-  real(kind=8), dimension(md1,md3,md2/nproc), intent(out) :: zf,zfionxc
+  real(kind=8), dimension(md1,md3,md2/nproc), intent(out) :: zf
+  real(kind=8), dimension(md1,md3,md2/nproc,nspden), intent(out) :: zfionxc
   real(kind=8), intent(out) :: exc,vxc
 
   !Local variables----------------
   real(kind=8), dimension(:,:,:), allocatable :: exci,d2vxci
   real(kind=8), dimension(:,:,:,:), allocatable :: vxci,dvxci,dvxcdgr
   real(kind=8), dimension(:,:,:,:,:), allocatable :: gradient
-  real(kind=8) :: elocal,vlocal,rho,pot,potion,factor,hgrid,facpotion
-  integer :: npts,i_all,nspden,order,offset,i_stat
+  real(kind=8) :: elocal,vlocal,rho,pot,potion,factor,hgrid,facpotion,sfactor,pfactor
+  integer :: npts,i_all,order,offset,i_stat,ispden
   integer :: i1,i2,i3,j1,j2,j3,jp2,jpp2,jppp2
   integer :: ndvxc,nvxcdgr,ngr2
 
@@ -112,7 +113,7 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   end if
 
   !these are always the same
-  nspden=1
+!  nspden=1
   order=1
   
   !useful for the freeBC case
@@ -122,13 +123,25 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   offset=nwbl+1
   if (ixc/=0) then
      !divide by two the density to applicate it in the ABINIT xc routines
-     do i3=1,nxt
-        do i2=1,m3
-           do i1=1,m1
-              rhopot(i1,i2,i3)=.5d0*rhopot(i1,i2,i3)
+     if(nspden==1) then
+        do i3=1,nxt
+           do i2=1,m3
+              do i1=1,m1
+                 rhopot(i1,i2,i3,nspden)=.5d0*rhopot(i1,i2,i3,nspden)
+              end do
            end do
         end do
-     end do
+     end if
+!     rewind(301)
+!     do ispden=1,nspden
+!        do i3=1,nxt
+!           do i2=1,m3
+!              do i1=1,m1
+!                 write(301,'(f18.12)') rhopot(i1,i2,i3,ispden)
+!              end do
+!           end do
+!        end do
+!     end do
 
      !Allocations of the exchange-correlation terms, depending on the ixc value
      call size_dvxc(ixc,ndvxc,ngr2,nspden,nvxcdgr,order)
@@ -182,26 +195,26 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      if (ixc >= 11 .and. ixc <= 16) then
         if (order**2 <= 1 .or. ixc == 16) then
            if (ixc /= 13) then             
-             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,&
+             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
                    &grho2_updn=gradient,vxcgr=dvxcdgr) 
            else
-             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,&
+             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
                    &grho2_updn=gradient) 
            end if
         else if (order /= 3) then
            if (ixc /= 13) then             
-             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,&
+             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
                    &dvxc=dvxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
            else
-             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,&
+             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
                    &dvxc=dvxci,grho2_updn=gradient) 
            end if
         else if (order == 3) then
            if (ixc /= 13) then             
-             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,&
+             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
                    &dvxci,d2vxci,gradient,dvxcdgr) 
            else
-             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,&
+             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
                    &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient) 
            end if
         end if
@@ -215,12 +228,12 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         !cases without gradient
      else
         if (order**2 <=1 .or. ixc >= 31 .and. ixc<=34) then
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr)
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr)
         else if (order==3 .and. (ixc==3 .or. ixc>=7 .and. ixc<=10)) then
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,&
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
                 &dvxc=dvxci,d2vxc=d2vxci)
         else
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset),vxci,ndvxc,ngr2,nvxcdgr,&
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
                 &dvxc=dvxci)
         end if
      end if
@@ -247,12 +260,25 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         call memocc(i_stat,i_all,'gradient','xc_energy')
      end if
 
+!     rewind(300)
+!     do ispden=1,nspden
+!        do i3=1,nxt
+!           do i2=1,m3
+!              do i1=1,m1
+!                 write(300,'(f18.12)') rhopot(i1,i2,i3,ispden)
+!              end do
+!           end do
+!        end do
+!     end do
 
-     !distributing the density in the zf array
-     !calculating the xc integrated quantities
-   
+
      exc=0.d0
      vxc=0.d0
+     sfactor=1.0d0
+     pfactor=1.0d0
+     do ispden=1,nspden
+        if(nspden==1) sfactor=2.0d0
+        if(nspden==1) pfactor=1.0d0
      if (sumpion) then
         !summing the xc potential into the zfionxc array with pot_ion
         do jp2=1,nxc
@@ -262,29 +288,29 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
            do j3=1,m3
               do j1=1,m1
                  jpp2=j1+(j3-1)*m1+(jp2-1)*m1*m3
-                 rho=rhopot(j1,j3,j2)
+                 rho=rhopot(j1,j3,j2,ispden)
                  potion=pot_ion(jpp2)!j1,j3,jpp2)
                  if (rho < 5.d-21) then
                     elocal=0.d0
                     vlocal=0.d0
                  else
                     elocal=exci(j1,j3,jppp2)
-                    vlocal=vxci(j1,j3,jppp2,1)
+                    vlocal=vxci(j1,j3,jppp2,ispden)
                  end if
                  exc=exc+elocal*rho
                  vxc=vxc+vlocal*rho
-                 zf(j1,j3,jp2)=2.d0*rhopot(j1,j3,j2)!restore the original normalization
-                 zfionxc(j1,j3,jp2)=potion+vlocal
+                 zf(j1,j3,jp2)=zf(j1,j3,jp2)+sfactor*rho !restore the original normalization
+                 zfionxc(j1,j3,jp2,ispden)=potion+vlocal
               end do
               do j1=m1+1,md1
                  zf(j1,j3,jp2)=0.d0
-                 zfionxc(j1,j3,jp2)=0.d0
+                 zfionxc(j1,j3,jp2,ispden)=0.d0
               end do
            end do
            do j3=m3+1,md3
               do j1=1,md1
                  zf(j1,j3,jp2)=0.d0
-                 zfionxc(j1,j3,jp2)=0.d0
+                 zfionxc(j1,j3,jp2,ispden)=0.d0
               end do
            end do
         end do
@@ -294,28 +320,28 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
            jppp2=jp2+nxcl-1
            do j3=1,m3
               do j1=1,m1
-                 rho=rhopot(j1,j3,j2)
+                 rho=rhopot(j1,j3,j2,ispden)
                  if (rho < 5.d-21) then
                     elocal=0.d0
                     vlocal=0.d0
                  else
                     elocal=exci(j1,j3,jppp2)
-                    vlocal=vxci(j1,j3,jppp2,1)
+                    vlocal=vxci(j1,j3,jppp2,ispden)
                  end if
                  exc=exc+elocal*rho
-                 vxc=vxc+vlocal*rho
-                 zf(j1,j3,jp2)=2.d0*rhopot(j1,j3,j2)!restore the original normalization
-                 zfionxc(j1,j3,jp2)=vlocal
+                  vxc=vxc+vlocal*rho
+                 zf(j1,j3,jp2)=zf(j1,j3,jp2)+sfactor*rho!restore the original normalization
+                 zfionxc(j1,j3,jp2,ispden)=vlocal
               end do
               do j1=m1+1,md1
                  zf(j1,j3,jp2)=0.d0
-                 zfionxc(j1,j3,jp2)=0.d0
+                 zfionxc(j1,j3,jp2,ispden)=0.d0
               end do
            end do
            do j3=m3+1,md3
               do j1=1,md1
                  zf(j1,j3,jp2)=0.d0
-                 zfionxc(j1,j3,jp2)=0.d0
+                 zfionxc(j1,j3,jp2,ispden)=0.d0
               end do
            end do
         end do
@@ -324,9 +350,10 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         do j3=1,md3
            do j1=1,md1
               zf(j1,j3,jp2)=0.d0
-              zfionxc(j1,j3,jp2)=0.d0
+              zfionxc(j1,j3,jp2,ispden)=0.d0
            end do
         end do
+     end do
      end do
 
      !De-allocations
@@ -349,8 +376,13 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         jpp2=jp2     
         do j3=1,m3
            do j1=1,m1
-              zf(j1,j3,jp2)=rhopot(j1,j3,j2)
+              zf(j1,j3,jp2)=rhopot(j1,j3,j2,1)
            end do
+!           if(nspden==2) then
+!              do j1=1,m1
+!                 zf(j1,j3,jp2)=zf(j1,j3,jp2)+rhopot(j1,j3,j2,2)
+!              end do
+!           end if
            do j1=m1+1,md1
               zf(j1,j3,jp2)=0.d0
            end do
@@ -373,12 +405,23 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
   !the two factor is due to the 
   !need of using the density of states in abinit routines
-  if (geocode== 'F') then
-     exc=2.d0*hgrid**3*exc
-     vxc=2.d0*hgrid**3*vxc
+  if(nspden==1) then                
+     !Remember to check if this works when nspin is really 2 but ixc=0
+     if (geocode== 'F') then
+        exc=2.d0*hgrid**3*exc
+        vxc=2.d0*hgrid**3*vxc
+     else
+        exc=2.d0*hx*hy*hz*exc
+        vxc=2.d0*hx*hy*hz*vxc
+     end if
   else
-     exc=2.d0*hx*hy*hz*exc
-     vxc=2.d0*hx*hy*hz*vxc
+     if (geocode== 'F') then
+        exc=1.d0*hgrid**3*exc
+        vxc=1.d0*hgrid**3*vxc
+     else
+        exc=1.d0*hx*hy*hz*exc
+        vxc=1.d0*hx*hy*hz*vxc
+     end if
   end if
 
 end subroutine xc_energy

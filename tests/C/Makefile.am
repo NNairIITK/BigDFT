@@ -4,6 +4,7 @@ SUBDIRS =
 
 EXTRA_DIST = \
 	input.dat \
+	occup.dat \
 	posinp
 
 PPFILES = \
