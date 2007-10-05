@@ -22,9 +22,6 @@ subroutine system_size(nat,rxyz,radii,rmult,iatype,ntypes, &
   return
 END SUBROUTINE system_size
 
-
-
-
 subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
   ! Calculates the length of the keys describing a wavefunction data structure
   implicit real(kind=8) (a-h,o-z)
@@ -62,7 +59,6 @@ subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
 
   return
 END SUBROUTINE num_segkeys
-
 
 subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
   ! Calculates the keys describing a wavefunction data structure
@@ -154,7 +150,6 @@ subroutine fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
 
   return
 END SUBROUTINE fill_logrid
-
 
 subroutine bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
   implicit real(kind=8) (a-h,o-z)
