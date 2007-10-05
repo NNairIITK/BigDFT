@@ -5,7 +5,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   ! character(len = *), intent(in) :: filename
   integer, intent(in) :: ngx, iproc, ntypes
   integer, intent(in) :: nzatom(ntypes), nelpsp(ntypes)
-  real(kind=8), intent(in) :: psppar(0:4,0:4,ntypes)
+  real(kind=8), intent(in) :: psppar(0:4,0:6,ntypes)
   integer, intent(in) :: npspcode(ntypes),iasctype(ntypes)
   real(kind=8), intent(out) :: xp(ngx, ntypes), psiat(ngx, 5, ntypes), occupat(5, ntypes)
   integer, intent(out) :: ng(ntypes), nl(4,ntypes)
@@ -107,8 +107,8 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
              ng(ity)-1,nl(1,ity),5,occupat(1:5,ity),xp(1:ng(ity),ity),psiat(1:ng(ity),1:5,ity))
 
         !values obtained from the input guess generator in iguess.dat format
-        !write these values on a file
-        if (iproc .eq. 0) then
+        !write these values on a file in the case of the HGH-K pseudo, for check
+        if (iproc .eq. 0 .and. npspcode(ity)==10) then
            open(unit=12,file='inguess.new',status='unknown')
 
            !write(*,*)' --------COPY THESE VALUES INSIDE inguess.dat--------'
@@ -123,8 +123,8 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
               write(12,*)(psiat(j,i,ity),i=1,nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity))
            end do
            !print *,' --------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------'
-           write(*,'(1x,a)')'done.'
         end if
+        if (iproc.eq.0) write(*,'(1x,a)')'done.'
 
      end if
 
@@ -487,7 +487,7 @@ END SUBROUTINE calc_coeff_inguess
 subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,occupat,expo,psiat)
   implicit none
   integer, intent(in) :: iproc,izatom,ielpsp,ng,npspcode,nmax_occ
-  real(kind=8), dimension(0:4,0:4), intent(in) :: psppar
+  real(kind=8), dimension(0:4,0:6), intent(in) :: psppar
   integer, dimension(4), intent(out) :: nl
   real(kind=8), dimension(ng+1), intent(out) :: expo
   real(kind=8), dimension(nmax_occ), intent(out) :: occupat
@@ -529,8 +529,6 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   call memocc(i_stat,product(shape(ott))*kind(ott),'ott','iguess_generator')
   allocate(occup(noccmax,lmax+1),stat=i_stat)
   call memocc(i_stat,product(shape(occup))*kind(occup),'occup','iguess_generator')
-  allocate(ofdcoef(3,4),stat=i_stat)
-  call memocc(i_stat,product(shape(ofdcoef))*kind(ofdcoef),'ofdcoef','iguess_generator')
   allocate(neleconf(6,4),stat=i_stat)
   call memocc(i_stat,product(shape(neleconf))*kind(neleconf),'neleconf','iguess_generator')
 
@@ -542,8 +540,18 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
 
   !assignation of the coefficents for the nondiagonal terms
   if (npspcode == 2) then !GTH case
-     ofdcoef(:,:)=0.d0
+     do l=1,lpx+1
+        hsep(1,l)=psppar(l,1)
+        hsep(2,l)=0.d0
+        hsep(3,l)=psppar(l,2)
+        hsep(4,l)=0.d0
+        hsep(5,l)=0.d0
+        hsep(6,l)=psppar(l,3)
+     end do
   else if (npspcode == 3) then !HGH case
+     allocate(ofdcoef(3,4),stat=i_stat)
+     call memocc(i_stat,product(shape(ofdcoef))*kind(ofdcoef),'ofdcoef','iguess_generator')
+
      ofdcoef(1,1)=-0.5d0*sqrt(3.d0/5.d0) !h2
      ofdcoef(2,1)=0.5d0*sqrt(5.d0/21.d0) !h4
      ofdcoef(3,1)=-0.5d0*sqrt(100.d0/63.d0) !h5
@@ -559,16 +567,29 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
      ofdcoef(1,4)=0.d0 !h2
      ofdcoef(2,4)=0.d0 !h4
      ofdcoef(3,4)=0.d0 !h5
+
+     !define the values of hsep starting from the pseudopotential file
+     do l=1,lpx+1
+        hsep(1,l)=psppar(l,1)
+        hsep(2,l)=psppar(l,2)*ofdcoef(1,l)
+        hsep(3,l)=psppar(l,2)
+        hsep(4,l)=psppar(l,3)*ofdcoef(2,l)
+        hsep(5,l)=psppar(l,3)*ofdcoef(3,l)
+        hsep(6,l)=psppar(l,3)
+     end do
+     i_all=-product(shape(ofdcoef))*kind(ofdcoef)
+     deallocate(ofdcoef,stat=i_stat)
+     call memocc(i_stat,i_all,'ofdcoef','iguess_generator')
+  else if (npspcode == 10) then !HGH-K case
+     do l=1,lpx+1
+        hsep(1,l)=psppar(l,1) !h11
+        hsep(2,l)=psppar(l,4) !h12
+        hsep(3,l)=psppar(l,2) !h22
+        hsep(4,l)=psppar(l,5) !h13
+        hsep(5,l)=psppar(l,6) !h23
+        hsep(6,l)=psppar(l,3) !h33
+     end do
   end if
-  !define the values of hsep starting from the pseudopotential file
-  do l=1,lpx+1
-     hsep(1,l)=psppar(l,1)
-     hsep(2,l)=psppar(l,2)*ofdcoef(1,l)
-     hsep(3,l)=psppar(l,2)
-     hsep(4,l)=psppar(l,3)*ofdcoef(2,l)
-     hsep(5,l)=psppar(l,3)*ofdcoef(3,l)
-     hsep(6,l)=psppar(l,3)
-  end do
 
   !Now the treatment of the occupation number
   call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode)
@@ -688,9 +709,6 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   i_all=-product(shape(occup))*kind(occup)
   deallocate(occup,stat=i_stat)
   call memocc(i_stat,i_all,'occup','iguess_generator')
-  i_all=-product(shape(ofdcoef))*kind(ofdcoef)
-  deallocate(ofdcoef,stat=i_stat)
-  call memocc(i_stat,i_all,'ofdcoef','iguess_generator')
   i_all=-product(shape(neleconf))*kind(neleconf)
   deallocate(neleconf,stat=i_stat)
   call memocc(i_stat,i_all,'neleconf','iguess_generator')

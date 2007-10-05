@@ -19,7 +19,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   integer, dimension(ntypes), intent(in) :: npspcode
   integer, dimension(nat), intent(in) :: iatype
   real(kind=8), dimension(norb), intent(in) :: occup,eval,spinar
-  real(kind=8), dimension(0:4,0:4,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(2*n1+31,2*n2+31,2*n3+31,nspin), intent(in) :: pot

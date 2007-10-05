@@ -302,7 +302,7 @@ case(20*1000+2)
 ! Ca          20           2     Symbol, Z, Zion
 symbol = "Ca"
 rcov=3.80d0
-rprb=7.00d0
+rprb=7000.00d0
 ehomo=-0.141411d0
 neleconf(4,0)=2
 

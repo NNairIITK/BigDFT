@@ -1,7 +1,7 @@
 subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
   ! Determines the number of projectors (valid for GTH and HGH pseudopotentials)
   implicit real(kind=8) (a-h,o-z)
-  dimension psppar(0:4,0:4,ntypes),npspcode(ntypes)
+  dimension psppar(0:4,0:6,ntypes),npspcode(ntypes)
 
   mproj=0
   if (npspcode(ityp) == 2) then !GTH
@@ -10,14 +10,13 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
            if (psppar(l,i,ityp).ne.0.d0) mproj=mproj+2*l-1
         enddo
      enddo
-  else if (npspcode(ityp) == 3) then !HGH
+  else if (npspcode(ityp) == 3 .or. npspcode(ityp) == 10) then !HGH and HGH-K
      do l=1,4 
         do i=1,3 
            if (psppar(l,i,ityp).ne.0.d0) mproj=mproj+2*l-1
         enddo
      enddo
   end if
-  return
 END SUBROUTINE numb_proj
 
 subroutine crtproj(iproc,nterm,n1,n2,n3, & 

@@ -27,7 +27,7 @@
     Arrays of full uncompressed grid (U):     5 MB   768 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W    |       ~W+(~3)*U 
+       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W    |         ~W+(~3)*U 
         76MB         |        21MB          |       62MB     |            23MB
  The overall memory requirement needed for this calculation is thus: 76 MB
  By reducing the DIIS history and/or decreasing the number of processors the amount of

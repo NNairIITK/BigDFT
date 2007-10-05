@@ -6,7 +6,8 @@ SUBDIRS = \
 	  Li+ \
 	  SiH4 \
 	  NaCl \
-	  C
+	  C \
+	  Ca2
 
 EXTRA_DIST = \
 	fldiff.pl \
