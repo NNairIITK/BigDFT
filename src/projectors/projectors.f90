@@ -83,7 +83,7 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
         dy2=(real(i2,kind=8)*hgrid-ry)**2
         do i1=nl1_c,nu1_c
            dx=real(i1,kind=8)*hgrid-rx
-           if (dx**2+(dy2+dz2).lt.rad_c**2) then
+           if (dx**2+(dy2+dz2).le.rad_c**2) then
               mvctr=mvctr+1
               proj_c(mvctr)=wprojx(i1,1,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
            endif
@@ -100,7 +100,7 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
         dy2=(real(i2,kind=8)*hgrid-ry)**2
         do i1=nl1_f,nu1_f
            dx=real(i1,kind=8)*hgrid-rx
-           if (dx**2+(dy2+dz2).lt.rad_f**2) then
+           if (dx**2+(dy2+dz2).le.rad_f**2) then
               mvctr=mvctr+1
               proj_f(1,mvctr)=wprojx(i1,2,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
               proj_f(2,mvctr)=wprojx(i1,1,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
@@ -126,7 +126,7 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
            dy2=(real(i2,kind=8)*hgrid-ry)**2
            do i1=nl1_c,nu1_c
               dx=real(i1,kind=8)*hgrid-rx
-              if (dx**2+(dy2+dz2).lt.rad_c**2) then
+              if (dx**2+(dy2+dz2).le.rad_c**2) then
                  mvctr=mvctr+1
                  proj_c(mvctr)=proj_c(mvctr)+wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
               endif
@@ -142,7 +142,7 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
            dy2=(real(i2,kind=8)*hgrid-ry)**2
            do i1=nl1_f,nu1_f
               dx=real(i1,kind=8)*hgrid-rx
-              if (dx**2+(dy2+dz2).lt.rad_f**2) then
+              if (dx**2+(dy2+dz2).le.rad_f**2) then
                  mvctr=mvctr+1
                  proj_f(1,mvctr)=&
                       proj_f(1,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)

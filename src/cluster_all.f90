@@ -307,7 +307,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
             do i=2,nprl
                read(11,*) psppar(l,i,ityp),(psppar(l,i+j+1,ityp),j=i+1,nprl) !h_ij terms
             end do
-            end do
             if (l==1) cycle
             do i=1,nprl
                read(11,*) !k coefficients, not used
