@@ -421,6 +421,31 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   alat2=(cymax-cymin)
   alat3=(czmax-czmin)
 
+! grid sizes n1,n2,n3
+  n1=int(alat1/hgrid)
+  !if (mod(n1+1,4).eq.0) n1=n1+1
+  n2=int(alat2/hgrid)
+  !if (mod(n2+1,8).eq.0) n2=n2+1
+  n3=int(alat3/hgrid)
+  alatrue1=real(n1,kind=8)*hgrid 
+  alatrue2=real(n2,kind=8)*hgrid 
+  alatrue3=real(n3,kind=8)*hgrid
+
+  !balanced shift taking into account the missing space
+  cxmin=cxmin+0.5d0*(alat1-alatrue1)
+  cymin=cymin+0.5d0*(alat2-alatrue2)
+  czmin=czmin+0.5d0*(alat3-alatrue3)
+
+  alat1=alatrue1
+  alat2=alatrue2
+  alat3=alatrue3
+
+  do iat=1,nat
+     rxyz(1,iat)=rxyz(1,iat)-cxmin
+     rxyz(2,iat)=rxyz(2,iat)-cymin
+     rxyz(3,iat)=rxyz(3,iat)-czmin
+  enddo
+
 !!$! grid sizes n1,n2,n3 !added for testing purposes
 !!$  n1=int(alat1/hgrid)
 !!$  if (mod(n1,2).eq.0) n1=n1+1
@@ -437,13 +462,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 !!$     rxyz(3,iat)=(real(n1/2,kind=8)+0.5)*hgrid 
 !!$  enddo
 
-
-  do iat=1,nat
-     rxyz(1,iat)=rxyz(1,iat)-cxmin
-     rxyz(2,iat)=rxyz(2,iat)-cymin
-     rxyz(3,iat)=rxyz(3,iat)-czmin
-  enddo
-
   if (iproc.eq.0) then
      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
      do iat=1,nat
@@ -453,15 +471,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      enddo
   endif
 
-! grid sizes n1,n2,n3
-  n1=int(alat1/hgrid)
-  !if (mod(n1+1,4).eq.0) n1=n1+1
-  n2=int(alat2/hgrid)
-  !if (mod(n2+1,8).eq.0) n2=n2+1
-  n3=int(alat3/hgrid)
-  alat1=real(n1,kind=8)*hgrid 
-  alat2=real(n2,kind=8)*hgrid 
-  alat3=real(n3,kind=8)*hgrid
   if (iproc.eq.0) then 
      write(*,'(1x,a,3(1x,1pe12.5))') &
           '   Shift of=',-cxmin,-cymin,-czmin
@@ -1930,7 +1939,7 @@ subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, 
                  ! testing
                  call wnrm(mvctr_c,mvctr_f,proj(istart_c:istart_c+mvctr_c-1), &
                       & proj(istart_f:istart_f + 7 * mvctr_f - 1),scpr)
-                 if (abs(1.d0-scpr).gt.1.d-1) then
+                 if (abs(1.d0-scpr).gt.1.d-2) then
                     print *,'norm projector for atom ',trim(atomnames(iatype(iat))),&
                          'iproc,l,i,rl,scpr=',iproc,l,i,gau_a,scpr
                     stop 'norm projector'

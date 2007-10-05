@@ -123,8 +123,8 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
               write(12,*)(psiat(j,i,ity),i=1,nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity))
            end do
            !print *,' --------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------'
-           write(*,'(1x,a)')'done.'
         end if
+        if (iproc.eq.0) write(*,'(1x,a)')'done.'
 
      end if
 
