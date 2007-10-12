@@ -34,9 +34,9 @@ program BigDFT
      call MPI_INIT(ierr)
      call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
      call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-     write(unit=line,fmt='(a,i0,a,i0,a)') &
-          'echo "- mpi started iproc=',iproc,'/',nproc,' host: `hostname`"'
-     call system(trim(line))
+!!$     write(unit=line,fmt='(a,i0,a,i0,a)') &
+!!$          'echo "- mpi started iproc=',iproc,'/',nproc,' host: `hostname`"'
+!!$     call system(trim(line))
   else
      nproc=1
      iproc=0
@@ -160,7 +160,7 @@ program BigDFT
   enddo
    
   if (ngeostep > 1) then
-     write(*,"(a,2i5)") 'FINISHED FIRST CLUSTER',iproc,infocode
+     if (iproc ==0 ) write(*,"(a,2i5)") 'FINISHED FIRST CLUSTER, exit signal=',infocode
      ! geometry optimization
      !    betax=2.d0   ! Cincodinine
      !    betax=4.d0  ! Si H_4
@@ -301,11 +301,7 @@ program BigDFT
      call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,tpos,tetot,gp, &
           psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
           1, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-!!$     if (infocode==2) then
-!!$        call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,tpos,tetot,gp, &
-!!$             psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-!!$             0, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-!!$     end if
+
      do iat=1,nat
         rxyz_old(1,iat) = tpos(1,iat) 
         rxyz_old(2,iat) = tpos(2,iat)
@@ -355,11 +351,6 @@ program BigDFT
      call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,gg, &
           psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
           1, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-!!$     if (infocode==2) then
-!!$        call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,gg, &
-!!$             psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-!!$             0, .false., .false., n1, n2, n3, hgrid, rxyz_old, infocode)
-!!$     end if
 
      do iat=1,nat
         rxyz_old(1,iat) = wpos(1,iat) 

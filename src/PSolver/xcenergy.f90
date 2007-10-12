@@ -444,13 +444,13 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
   real(kind=8), dimension(n01,n02,n03,nvxcdgr), intent(in) :: dvxcdgr
   real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: wb_vxc
   !Local variables
-  integer :: i1,i2,i3,dir_i,i_all,i_stat
-  real(kind=8) :: dnexcdgog,grad_i
-  real(kind=8), dimension(:,:,:,:), allocatable :: f_i
+  integer :: i1,i2,i3,dir_i,i_all,i_stat,ispden
+  real(kind=8) :: dnexcdgog,grad_i,rho_up,rho_down,rho_tot
+  real(kind=8), dimension(:,:,:,:,:), allocatable :: f_i
 
   !Body
 
-  allocate(f_i(n01,n02,n03,3),stat=i_stat)
+  allocate(f_i(n01,n02,n03,3,nspden),stat=i_stat)
   call memocc(i_stat,product(shape(f_i))*kind(f_i),'f_i','vxcpostprocessing')
   
   !let us first treat the case nspden=1
@@ -464,7 +464,7 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
                  do i1=1,n01
                     dnexcdgog=0.5d0*dvxcdgr(i1,i2,i3,1) + dvxcdgr(i1,i2,i3,3)
                     grad_i=2.d0*gradient(i1,i2,i3,1,dir_i)
-                    f_i(i1,i2,i3,dir_i)=dnexcdgog*grad_i
+                    f_i(i1,i2,i3,dir_i,1)=dnexcdgog*grad_i
                  end do
               end do
            end do
@@ -477,23 +477,54 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
                  do i1=1,n01
                     dnexcdgog=0.5d0*dvxcdgr(i1,i2,i3,1)
                     grad_i=2.d0*gradient(i1,i2,i3,1,dir_i)
-                    f_i(i1,i2,i3,dir_i)=dnexcdgog*grad_i
+                    f_i(i1,i2,i3,dir_i,1)=dnexcdgog*grad_i
                  end do
               end do
            end do
         end do
      end if
-     !let us now calculate the gradient and correct the result
-     call wb_correction(n01,n02,n03,n3eff,wbl,wbr,f_i,&
-          hx,hy,hz,nspden,wb_vxc)
 
   !then the spin-polarized case
   else
 
-     !!to be inserted later, when the non spin-pol case is verified
+     if (nvxcdgr == 3) then
+        do dir_i=1,3
+           do i3=1,n03
+              do i2=1,n02
+                 do i1=1,n01
+                    rho_up=gradient(i1,i2,i3,1,dir_i)  !rho_ instead of grad_ for ABINIT comp.
+                    rho_down=gradient(i1,i2,i3,2,dir_i)
+                    rho_tot=gradient(i1,i2,i3,3,dir_i)
+                    f_i(i1,i2,i3,dir_i,1)=rho_up*dvxcdgr(i1,i2,i3,1)+&
+                         rho_tot*dvxcdgr(i1,i2,i3,3)
+                    f_i(i1,i2,i3,dir_i,2)=rho_down*dvxcdgr(i1,i2,i3,2)+&
+                         rho_tot*dvxcdgr(i1,i2,i3,3)
+                 end do
+              end do
+           end do
+        end do
+     else
+        do dir_i=1,3
+           do i3=1,n03
+              do i2=1,n02
+                 do i1=1,n01
+                    rho_up=gradient(i1,i2,i3,1,dir_i)
+                    rho_down=gradient(i1,i2,i3,2,dir_i)
+                    f_i(i1,i2,i3,dir_i,1)=rho_up*dvxcdgr(i1,i2,i3,1)
+                    f_i(i1,i2,i3,dir_i,2)=rho_down*dvxcdgr(i1,i2,i3,2)
+                 end do
+              end do
+           end do
+        end do
+     end if
 
   !end of spin-polarized if statement
   end if
+
+  !let us now calculate the gradient and correct the result
+  call wb_correction(n01,n02,n03,n3eff,wbl,wbr,f_i,&
+       hx,hy,hz,nspden,wb_vxc)
+
 
   i_all=-product(shape(f_i))*kind(f_i)
   deallocate(f_i,stat=i_stat)

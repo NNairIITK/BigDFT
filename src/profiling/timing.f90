@@ -331,10 +331,12 @@ subroutine memocc(istat,isize,array,routine)
            locpeak=0
            iproc=isize
            !open the writing file for the root process
-           if (iproc == 0) open(unit=98,file='malloc.prc',status='unknown')
-           write(98,'(a32,a14,4(1x,a12))')&
-                '(Data in KB)             Routine','    Peak Array',&
-                'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
+           if (iproc == 0) then
+              open(unit=98,file='malloc.prc',status='unknown')
+              write(98,'(a32,a14,4(1x,a12))')&
+                   '(Data in KB)             Routine','    Peak Array',&
+                   'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
+           end if
         else if (routine=='stop' .and. iproc==0) then
            write(98,'(a32,a14,4(1x,i12))')&
                 trim(locroutine),trim(locarray),&

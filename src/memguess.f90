@@ -310,10 +310,10 @@ program memguess
          write(*,'(1x,a)') 'ERROR reading the number of orbitals in the file "occup.dat"'
         stop
      end if
-     if (nt<=norb) then
+     if (nt<norb) then
         write(*,'(1x,a,i0,a,i0)') &
                 'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
-                ' should be strictly greater than (nelec+1)/2=',norb
+                ' should be greater or equal to (nelec+1)/2=',norb
         stop
      else
         norb=nt

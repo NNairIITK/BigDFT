@@ -8,6 +8,7 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
   dimension :: keyg_old(2, nseg_c_old + nseg_f_old), keyv_old(nseg_c_old + nseg_f_old)
   dimension :: keyg(2, nseg_c + nseg_f), keyv(nseg_c + nseg_f)
   dimension :: psi_old(nvctr_c_old + 7 * nvctr_f_old, norbp), psi(nvctr_c + 7 * nvctr_f, norbp)
+  logical :: reformat
 
   allocatable :: psifscf(:,:,:), psigold(:,:,:,:,:,:)
 
@@ -26,17 +27,50 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
   enddo
   center_old(1)=c1/real(nat,kind=8) ; center_old(2)=c2/real(nat,kind=8) ; center_old(3)=c3/real(nat,kind=8)
 
+  !reformatting criterion
+  if (hgrid_old.eq. hgrid .and. nvctr_c_old.eq.nvctr_c .and. nvctr_f_old.eq.nvctr_f  & 
+       .and. n1_old.eq.n1  .and. n2_old.eq.n2 .and. n3_old.eq.n3  .and.  &
+       abs(center(1)-center_old(1)).lt.1.d-3 .and. &
+       abs(center(2)-center_old(2)).lt.1.d-3 .and. &
+       abs(center(3)-center_old(3)).lt.1.d-3  ) then
+     reformat=.false.
+     if (iproc==0) then
+        write(*,'(1x,a)',advance='NO')&
+         'The wavefunctions do not need reformatting and can be imported directly...   '
+       !  '-------------------------------------------------------------- Wavefunctions Restart'
+     end if
+  else
+     reformat=.true.
+     if (iproc==0) then
+        write(*,'(1x,a)')&
+         'The wavefunctions need reformatting beacuse:                                 '
+        if (hgrid_old.ne.hgrid) then 
+           write(*,"(4x,a,1pe20.12)") &
+                '  hgrid_old >< hgrid  ',hgrid_old, hgrid
+        else if (nvctr_c_old.ne.nvctr_c) then
+           write(*,"(4x,a,2i8)") &
+                'nvctr_c_old >< nvctr_c',nvctr_c_old,nvctr_c
+        else if (nvctr_f_old.ne.nvctr_f)  then
+           write(*,"(4x,a,2i8)") &
+                'nvctr_f_old >< nvctr_f',nvctr_f_old,nvctr_f
+        else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then  
+           write(*,"(4x,a,6i5)") &
+                'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
+        else
+           write(*,"(4x,a,3(1pe19.12))") &
+                'molecule was shifted  ' , abs(center(1)-center_old(1)), & 
+                abs(center(2)-center_old(2)),abs(center(3)-center_old(3))
+        endif
+           write(*,"(1x,a)",advance='NO')& 
+                'Reformatting...'
+     end if
+  end if
+
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
-     if (hgrid_old.eq. hgrid .and. nvctr_c_old.eq.nvctr_c .and. nvctr_f_old.eq.nvctr_f  & 
-          .and. n1_old.eq.n1  .and. n2_old.eq.n2 .and. n3_old.eq.n3  .and.  &
-          abs(center(1)-center_old(1)).lt.1.d-3 .and. &
-          abs(center(2)-center_old(2)).lt.1.d-3 .and. &
-          abs(center(3)-center_old(3)).lt.1.d-3  ) then
+     if (.not. reformat) then
 
-
-        write(*,"(1x,a,i5,a,i6)") 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
         do j=1,nvctr_c_old
            psi(j,iorb-iproc*norbp)=psi_old(j, iorb - iproc * norbp)
         enddo
@@ -51,19 +85,6 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
         enddo
 
      else
-        write(*,"(1x,a,i5,a,i6)") 'wavefunction ',iorb,' needs reformatting on processor',iproc
-        if (hgrid_old.ne.hgrid) then 
-           write(*,"(4x,a,1pe20.12)") 'because hgrid_old >< hgrid',hgrid_old, hgrid
-        else if (nvctr_c_old.ne.nvctr_c) then
-           write(*,"(4x,a,2i8)") 'because nvctr_c_old >< nvctr_c',nvctr_c_old,nvctr_c
-        else if (nvctr_f_old.ne.nvctr_f)  then
-           write(*,"(4x,a,2i8)") 'because nvctr_f_old >< nvctr_f',nvctr_f_old,nvctr_f
-        else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then  
-           write(*,"(4x,a,6i5)") 'because cell size has changed',n1_old,n1  , n2_old,n2 , n3_old,n3
-        else
-           write(*,"(4x,a,3(1pe19.12))") 'molecule was shifted' , abs(center(1)-center_old(1)), & 
-                abs(center(2)-center_old(2)),abs(center(3)-center_old(3))
-        endif
 
         allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2),stat=i_stat)
         call memocc(i_stat,product(shape(psigold))*kind(psigold),'psigold','reformatmywaves')
@@ -123,6 +144,8 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
   i_all=-product(shape(psifscf))*kind(psifscf)
   deallocate(psifscf,stat=i_stat)
   call memocc(i_stat,i_all,'psifscf','reformatmywaves')
+
+  if (iproc==0) write(*,"(1x,a)")'done.'
 
 END SUBROUTINE reformatmywaves
 

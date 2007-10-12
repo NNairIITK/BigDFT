@@ -389,7 +389,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
 ! Test if the file 'occup.dat exists
   inquire(file='occup.dat',exist=exists)
-! Not implemented fo npsin==2: At the present stage, this feature is broken
+! Not implemented for npsin==2: At the present stage, this feature is broken
   if (nspin==2.and.exists) then
      write(*,'(1x,a)') 'ERROR: It is not possible to use the file occup.dat with spin-polarization'
      stop
@@ -404,11 +404,11 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
          if (iproc==0) write(*,'(1x,a)') 'ERROR reading the number of orbitals in the file "occup.dat"'
         stop
      end if
-     if (nt<=norb) then
+     if (nt<norb) then
         if (iproc==0) then
            write(*,'(1x,a,i0,a,i0)') &
                    'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
-                   ' should be strictly greater than (nelec+1)/2=',norb
+                   ' should be greater or equal than (nelec+1)/2=',norb
         end if
         stop
      else
@@ -714,7 +714,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
      if (inputPsiId == 1 ) then
 
-        if (iproc.eq.0) write(*,*) 'START reformatting psi from old psi'
+        if (iproc.eq.0) then
+           write(*,'(1x,a)')&
+          '-------------------------------------------------------------- Wavefunctions Restart'
+        end if
         call reformatmywaves(iproc,norb,norbp,nat, &
              & hgrid_old,nvctr_c_old,nvctr_f_old,n1_old,n2_old,n3_old,rxyz_old, &
              & nseg_c_old,nseg_f_old,keyg_old,keyv_old,psi_old, &
@@ -848,24 +851,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
              nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
              ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
 
-
-!!$!     rewind(302)
-!!$     if(iter==1) then
-!!$        if(iproc==0.and.iter==1) then
-!!$           do ispin=1,nspin
-!!$              do i3=1,n3d !(2*n3+31)
-!!$                 do i2=1,(2*n2+31)
-!!$                    do i1=1,(2*n1+31)
-!!$!                       write(300+iproc,'(f18.12)') rhopot(i1,i2,i3,ispin)
-!!$                    end do
-!!$                 end do
-!!$              end do
-!!$           end do
-!!$        end if
-!!$     end if
-!!$!
-!!$!     stop
-!     ixc=12  ! PBE functional
+!     ixc=11  ! PBE functional
 !     ixc=1   ! LDA functional
      call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
           rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin) !add NSPIN
@@ -963,25 +949,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         end if
      end if
 
-
-!     rewind(305)
-!     do i3=1,(2*n3+31)
-!        do i2=1,(2*n2+31)
-!           do i1=1,(2*n1+31)
-!              write(305,'(f18.12)') rhopot(i1,i2,i3,1)-rhopot(i1,i2,i3,2)
-!           end do
-!        end do
-!     end do
-!     rewind(306)
-!     do ispin=1,nspin
-!        do i3=1,(2*n3+31)
-!           do i2=1,(2*n2+31)
-!              do i1=1,(2*n1+31)
-!                 write(306,'(f18.12)') rhopot(i1,i2,i3,ispin)
-!              end do
-!           end do
-!        end do
-!     end do
 1000 continue
      write(*,'(1x,a)')'No convergence within the allowed number of minimization steps'
      infocode=1
@@ -1020,7 +987,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         call KStrans_p(iproc,nproc,norbu,norbup,nvctrp,occup,hpsi,psit,evsum,eval)
         evpart=evsum
         if(norbd>0) then
-           call KStrans_p(iproc,nproc,norbd,norbdp,nvctrp,occup,hpsi(1,norbu+1),psit(1,norbu+1),evsum,eval(norbu+1))
+           call KStrans_p(iproc,nproc,norbd,norbdp,nvctrp,occup,&
+                psi(1,norbu+1),psit(1,norbu+1),evsum,eval(norbu+1))
            evsum=evsum+evpart
         end if
      end if
@@ -1147,7 +1115,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   call DCOPY((2*n1+31)*(2*n2+31)*n3p,rho,1,pot,1) 
   call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
           pot,pkernel,pot,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1)
-     !here nspin=1 since icx=0
+     !here nspin=1 since ixc=0
 
 
   i_all=-product(shape(pkernel))*kind(pkernel)
@@ -1230,9 +1198,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh,1),(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION, &
              pot(1,1,1,1),ngatherarr(0,1),ngatherarr(0,2), & 
              MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
+        !print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
         if(nspin==2) then
-           print '(a,2f12.6)','RHOdw',sum(abs(rhopot(:,:,:,2))),sum(abs(pot(:,:,:,2)))
+           !print '(a,2f12.6)','RHOdw',sum(abs(rhopot(:,:,:,2))),sum(abs(pot(:,:,:,2)))
            call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh,2),(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION, &
                 pot(1,1,1,2),ngatherarr(0,1),ngatherarr(0,2), & 
                 MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
@@ -1464,7 +1432,8 @@ contains
     call cpu_time(tcpu1)
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
-    write(*,'(a,1x,i4,2(1x,f12.2))') '- iproc, elapsed, CPU time ', iproc,tel,tcpu1-tcpu0
+    if (iproc == 0) &
+         write(*,'(a,1x,i4,2(1x,f12.2))') 'CPU time for root process ', iproc,tel,tcpu1-tcpu0
 
   end subroutine deallocate_before_exiting
 
