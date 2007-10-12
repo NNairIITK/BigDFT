@@ -663,12 +663,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           ixc,psi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar,&
           ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
           ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
-!       do iorb=1,norb
-!        do i1=1,nvctr_c+7*nvctr_f
-!          write(220,'(f12.8)') psi(i1,iorb)
-!        end do
-!       end do
-!     end if
 
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
@@ -773,7 +767,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         else
            call orthon_p(iproc,nproc,norbu,norbup,nvctrp,psit) !CHANGE
            if(norbd>0) then
-              call orthon_p(iproc,nproc,nordb,norbdp,nvctrp,psit(1:,norbu+1:)) !CHANGE
+              call orthon_p(iproc,nproc,nordb,norbdp,nvctrp,psit(1,norbu+1)) !CHANGE
            end if
         end if
         !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
@@ -796,8 +790,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
            call orthon(norbu,norbup,nvctrp,psi)
            call checkortho(norbu,norbup,nvctrp,psi)
            if(norbd>0) then
-              call orthon(norbd,norbdp,nvctrp,psi(1:,norbu+1:))
-              call checkortho(norbd,norbdp,nvctrp,psi(1:,norbu+1:))
+              call orthon(norbd,norbdp,nvctrp,psi(1,norbu+1))
+              call checkortho(norbd,norbdp,nvctrp,psi(1,norbu+1))
            end if
         end if
         !allocate hpsi array
@@ -885,14 +879,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         infocode=0
         goto 1010
      endif
-     if(iproc==0.and.iter==1) then
-        do iorb=1,norb
-           do i=1,nvctr_c+7*nvctr_f
-!              write(200,'(f12.8)') psi(i,iorb)
-!              write(210,'(f12.8)') hpsi(i,iorb)
-           end do
-        end do
-     end if
 
      call hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nvctrp,nseg_c,nseg_f,&
@@ -1507,7 +1493,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         scprpart=0.0d0
         if(norbd>0) then
            scprpart=scprsum 
-           call  orthoconstraint_p(iproc,nproc,norbd,norbdp,occup,nvctrp,psit(1:,norbu+1:),hpsi(1:,norbu+1:),scprsum)
+           call  orthoconstraint_p(iproc,nproc,norbd,norbdp,occup,nvctrp,psit(1,norbu+1),hpsi(1,norbu+1),scprsum)
         end if
         scprsum=scprsum+scprpart
      end if
@@ -1531,7 +1517,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
            scprpart=0.0d0
            if(norbd>0) then
               scprpart=scprsum 
-              call orthoconstraint(norbd,norbd,occup,nvctrp,psi(1:,norbu+1:),hpsi(1:,norbu+1:),scprsum)
+              call orthoconstraint(norbd,norbd,occup,nvctrp,psi(1,norbu+1),hpsi(1,norbu+1),scprsum)
            end if
            scprsum=scprsum+scprpart
         end if
@@ -1693,7 +1679,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      else
         call orthon_p(iproc,nproc,norbu,norbup,nvctrp,psit)
         if(norbd>0) then
-           call orthon_p(iproc,nproc,norbd,norbdp,nvctrp,psit(1:,norbu+1:))
+           call orthon_p(iproc,nproc,norbd,norbdp,nvctrp,psit(1,norbu+1))
         end if
      end if
      !       call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
@@ -1716,7 +1702,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         call orthon(norbu,norbup,nvctrp,psi)
         !          call checkortho(norbu,norbup,nvctrp,psi)
         if(norbd>0) then
-           call orthon(norbd,norbdp,nvctrp,psi(1:,norbu+1:))
+           call orthon(norbd,norbdp,nvctrp,psi(1,norbu+1))
         end if
         !          call checkortho(norbd,norbdp,nvctrp,psi(1,norbu+1))
      end if
