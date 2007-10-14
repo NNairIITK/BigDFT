@@ -12,8 +12,6 @@ SUBDIRS = \
 EXTRA_DIST = \
 	fldiff.pl \
 	inguess.dat \
-	input.dat \
-	posinp \
 	Refs
 
 CLEANFILES =  

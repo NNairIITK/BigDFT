@@ -122,7 +122,7 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
   end if
 
   if (iproc==0) then
-     write(*,*)'done.'
+     write(*,'(a)')'done.'
      write(*,'(1x,2(a,i0))')&
           'Memory occ. per proc. (Bytes):  Density=',md1*md3*md2/nproc*8,&
           '  Kernel=',nd1*nd2*nd3/nproc*8

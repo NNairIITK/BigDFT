@@ -454,7 +454,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   end if
 
   if(nspin==1) eh=eh*2.0d0
-  if (iproc==0) write(*,*)'done.'
+  if (iproc==0) write(*,'(a)')'done.'
 
 end subroutine PSolver
 
