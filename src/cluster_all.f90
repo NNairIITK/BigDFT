@@ -19,9 +19,11 @@ module libBigDFT
 
 contains
 
-subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energy, fxyz,  &
-     & psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, inputPsiId, &
-     & output_grid, output_wf, n1, n2, n3, hgrid, rxyz_old, infocode)
+      subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz, &
+                   psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
+                   inputPsiId, output_grid, output_wf, n1, n2, n3, hgrid, rxyz_old, &
+                   crmult, frmult, cpmult, fpmult, ixc, ncharge,elecfield, gnrm_cv, &
+                   itermax, ncong, idsx, calc_tail, rbuf, ncongt, infocode)
   ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
   ! inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
   !                  as definition of the previous system.
@@ -164,7 +166,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         !allocation of work arrays for transposition in the parallel case)
         do j=1,nvctr_c_old+7*nvctr_f_old
            ind=j+(nvctr_c_old+7*nvctr_f_old)*(iorb-iproc*norbp-1)
-           i1=mod(ind,nvctrp_old)
+           i1=mod(ind-1,nvctrp_old)+1
            i2=(ind-i1)/nvctrp_old+1
            psi_old(j,iorb-iproc*norbp)     = psi(i1,i2)
            tt=tt+psi(i1,i2)**2
@@ -197,28 +199,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   datacode='D'
   if (.not. parallel) datacode='G'
 
-  ! Read the input variables.
-  open(unit=1,file='input.dat',status='old')
-  !First line for the main routine (the program)
-  read(1,*) 
-  !Parameters 
-  read(1,*) hgrid
-  read(1,*) crmult
-  read(1,*) frmult
-  read(1,*) cpmult
-  read(1,*) fpmult
-  if (fpmult.gt.frmult) write(*,*) 'NONSENSE: fpmult > frmult'
-  read(1,*) ixc
-  read(1,*) ncharge,elecfield
-  read(1,*) gnrm_cv
-  read(1,*) itermax
-  read(1,*) ncong
-  read(1,*) idsx
-  read(1,*) calc_tail
-  read(1,*) rbuf
-  read(1,*) ncongt
-  close(1)
- 
   if (iproc.eq.0) then 
      write(*,'(1x,a)')&
           '------------------------------------------------------------------- Input Parameters'
@@ -440,9 +420,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 
 ! grid sizes n1,n2,n3
   n1=int(alat1/hgrid)
-  !if (mod(n1+1,4).eq.0) n1=n1+1
+  if (mod(n1+1,4).eq.0) n1=n1+1
   n2=int(alat2/hgrid)
-  !if (mod(n2+1,8).eq.0) n2=n2+1
+  if (mod(n2+1,8).eq.0) n2=n2+1
   n3=int(alat3/hgrid)
   alat1=n1*hgrid 
   alat2=n2*hgrid 
@@ -482,7 +462,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   end if
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-  ndegree_ip=14
+  ndegree_ip=16
   call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
        iproc,nproc,pkernel)
 
@@ -620,6 +600,15 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
           ixc,psi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,&
           ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
           ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+
+!      if (iproc.eq.0) write(11,*) (psi(i,1),i=1,nvctr_c+7*nvctr_f)
+!      if (iproc.eq.1) write(22,*) (psi(i,1),i=1,nvctr_c+7*nvctr_f)
+!      if (iproc.eq.2) write(33,*) (psi(i,1),i=1,nvctr_c+7*nvctr_f)
+!      if (iproc.eq.3) write(44,*) (psi(i,1),i=1,nvctr_c+7*nvctr_f)
+!      write(1,*) (psi(i,1),i=1,nvctr_c+7*nvctr_f)
+!      write(2,*) (psi(i,2),i=1,nvctr_c+7*nvctr_f)
+!      write(3,*) (psi(i,3),i=1,nvctr_c+7*nvctr_f)
+!      write(4,*) (psi(i,4),i=1,nvctr_c+7*nvctr_f)
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
         write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/norb
@@ -742,14 +731,6 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
   deallocate(nzatom,stat=i_stat)
   call memocc(i_stat,i_all,'nzatom','cluster')
 
-!!$  !plot the initial wavefunctions in the different orbitals
-!!$  do i=2*iproc+1,2*iproc+2
-!!$     iounit=27+3*(i-1)
-!!$     print *,'iounit',iounit,'-',iounit+2
-!!$     call plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,  & 
-!!$          rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc))
-!!$  end do
-
 ! allocate arrays necessary for DIIS convergence acceleration
   if (idsx.gt.0) then
      allocate(psidst(nvctrp,norbp*nproc,idsx),stat=i_stat)
@@ -779,13 +760,13 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
         call sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
                 nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
                 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-                ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+                ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
      else
         call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
                 nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot, &
                 (2*n1+31)*(2*n2+31)*n3d,nscatterarr,&
                 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-                ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+                ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
      end if
 
 !     ixc=12  ! PBE functional
@@ -932,7 +913,9 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
 !!$  do i=2*iproc+1,2*iproc+2
 !!$     iounit=39+3*(i-1)
 !!$     call plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,  & 
-!!$          rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc))
+!!$          rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc),&
+!!$          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r,&
+!!$          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 !!$  end do
 
 
@@ -961,7 +944,7 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
      call sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
              nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
              nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
   else
 
      !manipulate scatter array for avoiding the GGA shift
@@ -985,7 +968,7 @@ call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,
              nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
              (2*n1+31)*(2*n2+31)*n3p,nscatterarr,&
              nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
   end if
 
@@ -1349,7 +1332,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      !it can be eliminated when including all this procedure in a subroutine
      if (parallel) then
         ind=1+(nvctr_c+7*nvctr_f)*(iorb-iproc*norbp-1)
-        i1=mod(ind,nvctrp)
+        i1=mod(ind-1,nvctrp)+1
         i2=(ind-i1)/nvctrp+1
      else
         i1=1
@@ -1376,11 +1359,6 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   call preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid, &
        ncong,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,eval,&
        ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
-
-  !       call plot_wf(10,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f, &
-  !                       rxyz(1,1),rxyz(2,1),rxyz(3,1),psi)
-  !       call plot_wf(20,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f, &
-  !                       rxyz(1,1),rxyz(2,1),rxyz(3,1),hpsi)
 
 
   if (iproc==0) then
@@ -1421,6 +1399,8 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
      endif
 
+!    write(*,*) 'psi update done',iproc
+
   else
 
      ! update all wavefunctions with the preconditioned gradient
@@ -1455,6 +1435,8 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
   endif
 
+!    write(*,*) 'Entering orhogonalization',iproc
+
  if (iproc==0) then
      write(*,'(1x,a)',advance='no')&
           'Orthogonalization...'
@@ -1477,6 +1459,8 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      call orthon(norb,norbp,nvctrp,psi)
      !       call checkortho(norb,norbp,nvctrp,psi)
   endif
+
+!    write(*,*) 'leaving orhogonalization',iproc
 
   if (iproc==0) then
      write(*,'(1x,a)')&
@@ -1857,17 +1841,6 @@ subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, 
                     stop 'norm projector'
                  end if
 
-!!$                   !plot the p projector
-!!$                   if (l==2 .and. m==1) then
-!!$                      mbseg_c=nseg_p(2*iat-1)-nseg_p(2*iat-2)
-!!$                      mbseg_f=nseg_p(2*iat  )-nseg_p(2*iat-1)
-!!$                      jseg_c=nseg_p(2*iat-2)+1
-!!$                      call plot_wf(51,n1,n2,n3,hgrid,mbseg_c,mvctr_c,&
-!!$                           keyg_p(:,jseg_c:jseg_c+mbseg_c+mbseg_f-1),&
-!!$                           keyv_p(jseg_c:jseg_c+mbseg_c+mbseg_f-1),mbseg_f,nvctr_f, &
-!!$                           rx,ry,rz,proj(istart_c:istart_f+7*mvctr_f-1))
-!!$                   end if
-
                  ! testing end
                  istart_c=istart_f+7*mvctr_f
                  if (istart_c.gt.istart) stop 'istart_c > istart'
@@ -2003,7 +1976,9 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 !!$  !   iounit=15+3*(i-1)
 !!$  !   print *,'iounit',iounit,'-',iounit+2
 !!$  !   call plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,  & 
-!!$  !        rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc))
+!!$  !        rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc), & 
+!!$          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r,&
+!!$          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 !!$  !end do
 
   ! resulting charge density and potential
@@ -2011,14 +1986,14 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
      call sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
   else
      call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
           (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
   end if
   !      ixc=1   ! LDA functional
@@ -2352,7 +2327,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 !!$  !   iounit=15+3*(i-1)
 !!$  !   print *,'iounit',iounit,'-',iounit+2
 !!$  !   call plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,  & 
-!!$  !        rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc))
+!!$  !        rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc), &
+!!$          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r,&
+!!$          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 !!$  !end do
 
 
@@ -2381,13 +2358,13 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      call sumrho_old(parallel,iproc,nproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
              nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
              nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
   else
      call sumrho(parallel,iproc,nproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
              nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
              (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,&
              nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
   end if
   !      ixc=1   ! LDA functional
   call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&

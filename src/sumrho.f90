@@ -1,7 +1,7 @@
 subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
      nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,nrho,nscatterarr,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+     ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
   ! Output: rho
@@ -14,7 +14,7 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   real*8, allocatable :: psir(:),rho_p(:)
   !***************Alexey**************************************************************************
   real*8,allocatable,dimension(:,:,:)::x_c!input 
-  real*8,allocatable::x_f(:,:,:,:),x_fc(:,:,:,:) ! input
+  real*8,allocatable::x_f(:,:,:,:)
   real*8,allocatable,dimension(:):: w1,w2
 
   real*8 scal(0:3)
@@ -26,6 +26,9 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
   integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
   integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+  !	for real space:
+!  integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+  integer,intent(in):: ibyyzz_r(2,2*n2+31,2*n3+31)
   !***********************************************************************************************
   include 'mpif.h'
 
@@ -49,14 +52,19 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
 
   allocate(x_c(0:n1,0:n2,0:n3),stat=i_stat)
   call memocc(i_stat,product(shape(x_c))*kind(x_c),'x_c','sumrho')
-  allocate(x_fc(0:n1,0:n2,0:n3,3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_fc))*kind(x_fc),'x_fc','sumrho')
+  
   allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)! work
   call memocc(i_stat,product(shape(x_f))*kind(x_f),'x_f','sumrho')
   allocate(w1(nw1),stat=i_stat)
   call memocc(i_stat,product(shape(w1))*kind(w1),'w1','sumrho')
   allocate(w2(nw2),stat=i_stat) ! work
   call memocc(i_stat,product(shape(w2))*kind(w2),'w2','sumrho')
+
+  call razero((n1+1)*(n2+1)*(n3+1),x_c)
+  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f)
+  
+!  call razero(nw1,w1)
+!  call razero(nw2,w2)
  !***********************************************************************************************
   ! Wavefunction in real space
   allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
@@ -85,13 +93,13 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
 
 !***************Alexey**************************************************************************
 
-        call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+        call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
              nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
              nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-             scal,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),x_c,x_fc,x_f)
+             scal,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),x_c,x_f)
 
         call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
-             psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+             psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
 !**********************************************************************************************
         !sum different slices by taking into account the overlap
@@ -107,10 +115,12 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
               do i2=1,2*n2+31
                  ind2=(i2-1)*(2*n1+31)+ind3
                  ind2s=(i2-1)*(2*n1+31)+ind3s
-                 do i1=1,2*n1+31
+!                 do i1=1,2*n1+31
+				 do	i1=ibyyzz_r(1,i2,i3)+1,ibyyzz_r(2,i2,i3)+1
                     ind1=i1+ind2
                     ind1s=i1+ind2s
                     !do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
+!					if (i1.ge.ibyyzz_r(1,i2,i3)+1 .and. i1.le.ibyyzz_r(2,i2,i3)+1)   &
                     rho_p(ind1s)=rho_p(ind1s)+(occup(iorb)/hgridh**3)*psir(ind1)**2
                  end do
               end do
@@ -152,25 +162,35 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
      call timing(iproc,'Rho_comput    ','ON')
      !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
      call tenminustwenty((2*n1+31)*(2*n2+31)*(2*n3+31),rho,nproc)
-     !call razero((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
+!     call razero((2*n1+31)*(2*n2+31)*(2*n3+31),rho)
 
      do iorb=1,norb
 
 !***************Alexey**************************************************************************
 
-        call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+        call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
              nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
              nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-             scal,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),x_c,x_fc,x_f)
+             scal,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),x_c,x_f)
 
         call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
-             psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+             psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
 !***********************************************************************************************
-        do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
-           rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
-        enddo
-
+! i=(i3-1)*(2*n2+31)*(2*n1+31)+(i2-1)*(2*n1+31)+i1
+! i1=1,2*n1+31
+! i2=1,2*n2+31
+! i3=1,2*n3+31
+			do i3=1,2*n3+31
+				i00=(i3-1)*(2*n2+31)*(2*n1+31)+1
+				do i2=1,2*n2+31
+					i0=i00+(i2-1)*(2*n1+31)
+					do i=i0+ibyyzz_r(1,i2,i3),i0+ibyyzz_r(2,i2,i3)
+	           			rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
+					enddo
+				enddo
+			enddo
+					
      enddo
      ! Check
      tt=0.d0
@@ -194,10 +214,6 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   deallocate(x_c,stat=i_stat)
   call memocc(i_stat,i_all,'x_c','sumrho')
 
-  i_all=-product(shape(x_fc))*kind(x_fc)
-  deallocate(x_fc,stat=i_stat)
-  call memocc(i_stat,i_all,'x_fc','sumrho')
-
   i_all=-product(shape(x_f))*kind(x_f)
   deallocate(x_f,stat=i_stat)
   call memocc(i_stat,i_all,'x_f','sumrho')
@@ -215,7 +231,7 @@ END SUBROUTINE sumrho
 subroutine sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
      nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+     ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
   ! Output: rho
@@ -227,7 +243,7 @@ subroutine sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   real*8, allocatable :: psir(:),rho_p(:)
   !***************Alexey**************************************************************************
   real*8,allocatable,dimension(:,:,:)::x_c!input 
-  real*8,allocatable::x_f(:,:,:,:),x_fc(:,:,:,:) ! input
+  real*8,allocatable::x_f(:,:,:,:)
   real*8,allocatable,dimension(:):: w1,w2
 
   real*8 scal(0:3)
@@ -239,6 +255,9 @@ subroutine sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
   integer ibzxx_f(2,          nfl3:nfu3,2*nfl1-14:2*nfu1+16)
   integer ibxxyy_f(2,                    2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+  !	for real space:
+!  integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+  integer,intent(in):: ibyyzz_r(2,2*n2+31,2*n3+31)
   !***********************************************************************************************
   include 'mpif.h'
   !flag indicating the MPI libraries used
@@ -264,14 +283,19 @@ subroutine sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
 
   allocate(x_c(0:n1,0:n2,0:n3),stat=i_stat)
   call memocc(i_stat,product(shape(x_c))*kind(x_c),'x_c','sumrho_old')
-  allocate(x_fc(0:n1,0:n2,0:n3,3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_fc))*kind(x_fc),'x_fc','sumrho_old')
+  
   allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)! work
   call memocc(i_stat,product(shape(x_f))*kind(x_f),'x_f','sumrho_old')
   allocate(w1(nw1),stat=i_stat)
   call memocc(i_stat,product(shape(w1))*kind(w1),'w1','sumrho_old')
   allocate(w2(nw2),stat=i_stat) ! work
   call memocc(i_stat,product(shape(w2))*kind(w2),'w2','sumrho_old')
+
+  call razero((n1+1)*(n2+1)*(n3+1),x_c)
+  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f)
+  
+!  call razero(nw1,w1)
+!  call razero(nw2,w2)
   !***********************************************************************************************
   ! Wavefunction in real space
   allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
@@ -291,29 +315,30 @@ subroutine sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
 
         do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
-           !        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
-           !                    nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-           !                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-           !                    psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
-           !        call synthese_grow(n1,n2,n3,psir,psig,psifscf) 
-           !
-           !        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) 
-           !
            !***************Alexey**************************************************************************
 
-           call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+           call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
                 nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
                 nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-                scal,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),x_c,x_fc,x_f)
+                scal,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),x_c,x_f)
 
            call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
-                psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+                psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
            !***********************************************************************************************
-           do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
-              rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
-           enddo
+!           do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
+!              rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
+!           enddo
 
+			do i3=1,2*n3+31
+				i00=(i3-1)*(2*n2+31)*(2*n1+31)+1
+				do i2=1,2*n2+31
+					i0=i00+(i2-1)*(2*n1+31)
+					do i=i0+ibyyzz_r(1,i2,i3),i0+ibyyzz_r(2,i2,i3)
+	           			rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
+					enddo
+				enddo
+			enddo
         enddo
 
         call timing(iproc,'Rho_comput    ','OF')
@@ -333,29 +358,31 @@ subroutine sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
 
         do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
-           !        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
-           !                    nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-           !                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-           !                    psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
-           !        call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n3+2))
-           !
-           !        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=ww(((2*n1+31)*(2*n2+31)*(2*n3+16))
-
            !***************Alexey**************************************************************************
 
-           call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+           call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
                 nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
                 nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-                scal,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),x_c,x_fc,x_f)
+                scal,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),x_c,x_f)
 
            call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
-                psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+                psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
            !***********************************************************************************************
-           do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
-              rho_p(i)=rho_p(i)+(occup(iorb)/hgridh**3)*psir(i)**2
-           enddo
+!           do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
+!              rho_p(i)=rho_p(i)+(occup(iorb)/hgridh**3)*psir(i)**2
+!           enddo
 
+
+			do i3=1,2*n3+31
+				i00=(i3-1)*(2*n2+31)*(2*n1+31)+1
+				do i2=1,2*n2+31
+					i0=i00+(i2-1)*(2*n1+31)
+					do i=i0+ibyyzz_r(1,i2,i3),i0+ibyyzz_r(2,i2,i3)
+	           			rho_p(i)=rho_p(i)+(occup(iorb)/hgridh**3)*psir(i)**2
+					enddo
+				enddo
+			enddo
         enddo
 
         call timing(iproc,'Rho_comput    ','OF')
@@ -376,29 +403,29 @@ subroutine sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
 
      do iorb=1,norb
 
-        !        call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
-        !                    nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-        !                    nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-        !                    psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),psig)
-        !        call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n3+2))`
-        !
-        !        call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) !psifscf=ww(((2*n1+31)*(2*n2+31)*(2*n3+16))
-
         !***************Alexey**************************************************************************
 
-        call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+        call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
              nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
              nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-             scal,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),x_c,x_fc,x_f)
+             scal,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),x_c,x_f)
 
         call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
-             psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+             psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
         !***********************************************************************************************
-        do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
-           rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
-        enddo
-
+!        do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
+!           rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
+!        enddo
+			do i3=1,2*n3+31
+				i00=(i3-1)*(2*n2+31)*(2*n1+31)+1
+				do i2=1,2*n2+31
+					i0=i00+(i2-1)*(2*n1+31)
+					do i=i0+ibyyzz_r(1,i2,i3),i0+ibyyzz_r(2,i2,i3)
+	           			rho(i)=rho(i)+(occup(iorb)/hgridh**3)*psir(i)**2
+					enddo
+				enddo
+			enddo
      enddo
      call timing(iproc,'Rho_comput    ','OF')
   endif
@@ -423,10 +450,6 @@ subroutine sumrho_old(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   i_all=-product(shape(x_c))*kind(x_c)
   deallocate(x_c,stat=i_stat)
   call memocc(i_stat,i_all,'x_c','sumrho_old')
-
-  i_all=-product(shape(x_fc))*kind(x_fc)
-  deallocate(x_fc,stat=i_stat)
-  call memocc(i_stat,i_all,'x_fc','sumrho_old')
 
   i_all=-product(shape(x_f))*kind(x_f)
   deallocate(x_f,stat=i_stat)
