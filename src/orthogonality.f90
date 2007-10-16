@@ -429,13 +429,13 @@ subroutine checkortho(norb,norbp,nvctrp,psi)
 END SUBROUTINE checkortho
 
 
-subroutine KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,  & 
+subroutine KStrans_p(iproc,nproc,norb,ndim,nvctrp,occup,  & 
      hpsit,psit,evsum,eval)
   ! at the start each processor has all the Psi's but only its part of the HPsi's
   ! at the end each processor has only its part of the Psi's
   implicit real(kind=8) (a-h,o-z)
   dimension occup(norb),eval(norb)
-  dimension psit(nvctrp,norbp*nproc),hpsit(nvctrp,norbp*nproc)
+  dimension psit(nvctrp,ndim),hpsit(nvctrp,ndim)
   ! arrays for KS orbitals
   allocatable :: hamks(:,:,:),work_lp(:),psitt(:,:)
   include 'mpif.h'
@@ -455,7 +455,8 @@ subroutine KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,  &
      enddo
   enddo
 
-  call MPI_ALLREDUCE (hamks(1,1,2),hamks(1,1,1),norb**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+  call MPI_ALLREDUCE(hamks(1,1,2),hamks(1,1,1),norb**2,MPI_DOUBLE_PRECISION,&
+       MPI_SUM,MPI_COMM_WORLD,ierr)
 
   !        write(*,*) 'KS Hamiltonian',iproc
   !        do iorb=1,norb
@@ -476,7 +477,7 @@ subroutine KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,  &
   call memocc(i_stat,i_all,'work_lp','kstrans_p')
   if (info.ne.0) write(*,*) 'DSYEV ERROR',info
 
-  allocate(psitt(nvctrp,norbp*nproc),stat=i_stat)
+  allocate(psitt(nvctrp,ndim),stat=i_stat)
   call memocc(i_stat,product(shape(psitt))*kind(psitt),'psitt','kstrans_p')
   ! Transform to KS orbitals
   do iorb=1,norb
@@ -490,7 +491,7 @@ subroutine KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,  &
   deallocate(hamks,stat=i_stat)
   call memocc(i_stat,i_all,'hamks','kstrans_p')
 
-  call DCOPY(nvctrp*norbp*nproc,psitt,1,psit,1)
+  call DCOPY(nvctrp*ndim,psitt,1,psit,1)
   i_all=-product(shape(psitt))*kind(psitt)
   deallocate(psitt,stat=i_stat)
   call memocc(i_stat,i_all,'psitt','kstrans_p')

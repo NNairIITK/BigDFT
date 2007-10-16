@@ -342,10 +342,10 @@ subroutine calc_gradient(n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,h
  !Arguments
  integer, intent(in) :: n1,n2,n3,n3grad,deltaleft,deltaright,nspden
  real(kind=8), intent(in) :: hx,hy,hz
- real(kind=8), dimension(n1,n2,n3,nspden), intent(in) :: rhoinp
+ real(kind=8), dimension(n1,n2,n3,nspden), intent(inout) :: rhoinp
  real(kind=8), dimension(n1,n2,n3grad,2*nspden-1,0:3), intent(out) :: gradient
  !Local variables
- integer :: i1,i2,i3,i_all,i_stat,ispden
+ integer :: i1,i2,i3,j3,i_all,i_stat,ispden
  !filters of finite difference derivative for order 4
  real(kind=8), parameter :: a1=0.8d0, a2=-0.2d0
  real(kind=8), parameter :: a3=0.038095238095238095238d0, a4=-0.0035714285714285714286d0
@@ -531,6 +531,30 @@ subroutine calc_gradient(n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,h
           end do
        end do
     end do
+
+    !if n3 /= n3grad (which can appear only in parallel) translate the density to be contiguous
+    !such as it can be passed to the ABINIT XC routines (drivexc)
+    if (n3/=n3grad) then
+       j3=0
+       do i3=n3grad+deltaleft+1,n3 !we have deltaright points
+          j3=j3+1
+          do i2=1,n2
+             do i1=1,n1
+                rhoinp(i1,i2,i3,1)=rhoinp(i1,i2,deltaleft+j3,2)
+             end do
+          end do
+       end do
+       do i3=1,n3grad-deltaright
+          j3=j3+1
+          do i2=1,n2
+             do i1=1,n1
+                rhoinp(i1,i2,i3,2)=rhoinp(i1,i2,deltaleft+j3,2)
+             end do
+          end do
+       end do
+
+    end if
+
   
  end if
 

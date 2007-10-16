@@ -367,8 +367,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   if (iproc.eq.0) then
      write(*,'(1x,a,i8)') &
           'Total Number of Electrons ',nelec
-     if (mod(nelec,2).ne.0) write(*,'(1x,a)') &
-          'WARNING: odd number of electrons, no closed shell system'
   end if
 
 ! Number of orbitals
@@ -376,8 +374,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      norb=(nelec+1)/2
      norbu=norb
      norbd=0
+     if (mod(nelec,2).ne.0 .and. iproc==0) write(*,'(1x,a)') &
+          'WARNING: odd number of electrons, no closed shell system'
   else
-     write(*,'(1x,a)') 'Spin-polarized calculation'
+     if (iproc==0) write(*,'(1x,a)') 'Spin-polarized calculation'
      norb=nelec
      norbu=min(norb/2+mpol,norb)
      norbd=norb-norbu
@@ -854,7 +854,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
              psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
              nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
              nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,n3p,&
-             rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar, &
+             rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar,&
              ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
              ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
@@ -968,13 +968,13 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      !end of transposition
 
      if(nspin==1) then
-        call KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,hpsi,psit,evsum,eval)
+        call KStrans_p(iproc,nproc,norb,norbp*nproc,nvctrp,occup,hpsi,psit,evsum,eval)
      else
-        call KStrans_p(iproc,nproc,norbu,norbup,nvctrp,occup,hpsi,psit,evsum,eval)
+        call KStrans_p(iproc,nproc,norbu,norbu,nvctrp,occup,hpsi,psit,evsum,eval)
         evpart=evsum
         if(norbd>0) then
-           call KStrans_p(iproc,nproc,norbd,norbdp,nvctrp,occup,&
-                psi(1,norbu+1),psit(1,norbu+1),evsum,eval(norbu+1))
+           call KStrans_p(iproc,nproc,norbd,norbd,nvctrp,occup,&
+                hpsi(1,norbu+1),psit(1,norbu+1),evsum,eval(norbu+1))
            evsum=evsum+evpart
         end if
      end if
@@ -1001,8 +1001,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         call KStrans(norbu,norbup,nvctrp,occup,hpsi,psi,evsum,eval)
         evpart=evsum
         if(norbd>0) then
-           call KStrans(norbd,norbdp,nvctrp,occup,hpsi(1,norbu+1),psi(1,norbu+1),evsum,eval(norbu+1))
-           evpart=evsum
+           call KStrans(norbd,norbdp,nvctrp,occup,hpsi(1,norbu+1),psi(1,norbu+1),&
+                evsum,eval(norbu+1))
+           evsum=evsum+evpart
         end if
      end if
   endif
@@ -1181,14 +1182,21 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
      call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
 
      if (datacode=='D') then
-        call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh,1),(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION, &
-             pot(1,1,1,1),ngatherarr(0,1),ngatherarr(0,2), & 
+        call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh,1),(2*n1+31)*(2*n2+31)*n3p,&
+             MPI_DOUBLE_PRECISION,pot(1,1,1,1),ngatherarr(0,1),ngatherarr(0,2), & 
              MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
         !print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
         if(nspin==2) then
            !print '(a,2f12.6)','RHOdw',sum(abs(rhopot(:,:,:,2))),sum(abs(pot(:,:,:,2)))
-           call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh,2),(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION, &
-                pot(1,1,1,2),ngatherarr(0,1),ngatherarr(0,2), & 
+           if (n3d /= n3p) then
+              i03=1+i3xcsh+n3p
+              i04=1
+           else
+              i03=1
+              i04=2
+           end if
+           call MPI_ALLGATHERV(rhopot(1,1,i03,i04),(2*n1+31)*(2*n2+31)*n3p,&
+                MPI_DOUBLE_PRECISION,pot(1,1,1,2),ngatherarr(0,1),ngatherarr(0,2), & 
                 MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
         end if
      else
