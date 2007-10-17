@@ -1,4 +1,7 @@
-1 0.d0 4.d0  (for main) ngeometry step, random amplitude for atoms, steepest descent step   
+1
+1.d0
+0.d0 
+4.d0  (for main) ngeometry step, random amplitude for atoms, steepest descent step   
 .45      hgrid: grid spacing
 5.0      crmult:   crmult*radii_cf(*,1) gives the coarse radius around each atom
 8.       frmult:   frmult*radii_cf(*,2) gives the fine   radius around each atom

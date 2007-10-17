@@ -206,9 +206,10 @@ subroutine pot_constantfield(iproc,n1,n2,n3,n3pi,pot,hgrid,elecfield)
 
 end subroutine pot_constantfield
 
+
 subroutine addlocgauspsp(iproc,ntypes,nat,iatype,rxyz,psppar,&
      n1,n2,n3,n3pi,i3s,hgrid,pot)
-  ! Add local Gaussian terms of the PSP to pot, where pot is distributed 
+  ! Add local Gaussian terms of the PSP to pot, where pot is distributed
   implicit none
   integer, intent(in) :: ntypes,nat,n1,n2,n3,n3pi,iproc,i3s
   real(kind=8), intent(in) :: hgrid
@@ -219,8 +220,8 @@ subroutine addlocgauspsp(iproc,ntypes,nat,iatype,rxyz,psppar,&
   !local variables
   integer :: iat,i1,i2,i3,ii,ix,iy,iz,ityp,iloc,nloc,i3start,i3end,j3
   real(kind=8) :: hgridh,rloc,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
-  
-  hgridh=hgrid*.5d0 
+ 
+  hgridh=hgrid*.5d0
 
   do iat=1,nat
      ityp=iatype(iat)

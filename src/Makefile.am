@@ -58,20 +58,30 @@ lMPI =
 endif
 
 if USE_OPTI_CONVOLUT
-convolution_objects = convolutions/convolut_simple.o \
-	convolutions/conv_per_optim.o \
-	convolutions/combined_grow.o\
-	convolutions/combined_shrink.o
+convolution_source = convolutions/combined_shrink_optim.f90 \
+	convolutions/combined_grow_optim.f90 \
+	convolutions/combined_shrink_optim.f90 \
+	convolutions/convolut_ib_optim.f90 \
+	convolutions/conv_per_optim.f90
+#	convolut_simple.f90 \
+#	conv_per_optim.f90 \
+#	combined_grow.f90 \
+#	combined_shrink.f90 
 
 else
-convolution_objects = convolutions/convolut_simple.o \
-	convolutions/conv_per_optim.o \
-	convolutions/combined_grow.o \
-	convolutions/combined_shrink.o
+convolution_source = convolutions/combined_shrink_simple.f90 \
+	convolutions/combined_grow_simple.f90 \
+	convolutions/combined_shrink_simple.f90 \
+	convolutions/convolut_ib_simple.f90 \
+	convolutions/conv_per_simple.f90
+#	convolut_simple.f90 \
+#	conv_per_optim.f90 \
+#	combined_grow.f90 \
+#	combined_shrink.f90
 
 endif
 
-
+convolution_objects = $(convolution_source:.f90=.o)
 
 libbigdft_a_SOURCES = \
 	$(mpi_source) \

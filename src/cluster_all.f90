@@ -19,9 +19,11 @@ module libBigDFT
 
 contains
 
-subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energy, fxyz,  &
-     & psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, inputPsiId, &
-     & output_grid, output_wf, n1, n2, n3, hgrid, rxyz_old, infocode)
+      subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz, &
+                   psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
+                   inputPsiId, output_grid, output_wf, n1, n2, n3, hgrid, rxyz_old, &
+                   crmult, frmult, cpmult, fpmult, ixc, ncharge,elecfield, gnrm_cv, &
+                   itermax, ncong, idsx, calc_tail, rbuf, ncongt,nspin,mpol, infocode)
   ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
   ! inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
   !                  as definition of the previous system.
@@ -198,29 +200,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   datacode='D'
   if (.not. parallel) datacode='G'
 
-  ! Read the input variables.
-  open(unit=1,file='input.dat',status='old')
-  !First line for the main routine (the program)
-  read(1,*) 
-  !Parameters 
-  read(1,*) hgrid
-  read(1,*) crmult
-  read(1,*) frmult
-  read(1,*) cpmult
-  read(1,*) fpmult
-  if (fpmult.gt.frmult) write(*,*) 'NONSENSE: fpmult > frmult'
-  read(1,*) ixc
-  read(1,*) ncharge,elecfield
-  read(1,*) gnrm_cv
-  read(1,*) itermax
-  read(1,*) ncong
-  read(1,*) idsx
-  read(1,*) calc_tail
-  read(1,*) rbuf
-  read(1,*) ncongt
-  read(1,*) nspin,mpol
-  close(1)
- 
   if(nspin<1.or.nspin>2) nspin=1
   if(nspin==1) mpol=0
 
@@ -518,7 +497,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   end if
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-  ndegree_ip=14
+  ndegree_ip=16
   call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
        iproc,nproc,pkernel)
 
@@ -664,6 +643,14 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
           ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
           ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
+!      if (iproc.eq.0) write(11,*) (psi(i,1),i=1,nvctr_c+7*nvctr_f)
+!      if (iproc.eq.1) write(22,*) (psi(i,1),i=1,nvctr_c+7*nvctr_f)
+!      if (iproc.eq.2) write(33,*) (psi(i,1),i=1,nvctr_c+7*nvctr_f)
+!      if (iproc.eq.3) write(44,*) (psi(i,1),i=1,nvctr_c+7*nvctr_f)
+!      write(1,*) (psi(i,1),i=1,nvctr_c+7*nvctr_f)
+!      write(2,*) (psi(i,2),i=1,nvctr_c+7*nvctr_f)
+!      write(3,*) (psi(i,3),i=1,nvctr_c+7*nvctr_f)
+!      write(4,*) (psi(i,4),i=1,nvctr_c+7*nvctr_f)
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
         write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/real(norb,kind=8)
@@ -767,7 +754,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         else
            call orthon_p(iproc,nproc,norbu,norbup,nvctrp,psit) !CHANGE
            if(norbd>0) then
-              call orthon_p(iproc,nproc,nordb,norbdp,nvctrp,psit(1,norbu+1)) !CHANGE
+              call orthon_p(iproc,nproc,norbd,norbdp,nvctrp,psit(1,norbu+1)) !CHANGE
            end if
         end if
         !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
@@ -806,14 +793,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
   deallocate(nzatom,stat=i_stat)
   call memocc(i_stat,i_all,'nzatom','cluster')
 
-!!$  !plot the initial wavefunctions in the different orbitals
-!!$  do i=2*iproc+1,2*iproc+2
-!!$     iounit=27+3*(i-1)
-!!$     print *,'iounit',iounit,'-',iounit+2
-!!$     call plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,  & 
-!!$          rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc))
-!!$  end do
-
 ! allocate arrays necessary for DIIS convergence acceleration
   if (idsx.gt.0) then
      allocate(psidst(nvctrp,norbp*nproc,idsx),stat=i_stat)
@@ -843,7 +822,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
              nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot, &
              (2*n1+31)*(2*n2+31)*n3d,nscatterarr,nspin,spinar,&
              nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
 !     ixc=11  ! PBE functional
 !     ixc=1   ! LDA functional
@@ -1017,7 +996,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
 !!$  do i=2*iproc+1,2*iproc+2
 !!$     iounit=39+3*(i-1)
 !!$     call plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,  & 
-!!$          rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc))
+!!$          rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc),&
+!!$          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r,&
+!!$          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 !!$  end do
 
 !  write all the wavefunctions into files
@@ -1064,7 +1045,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
        nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
        (2*n1+31)*(2*n2+31)*n3p,nscatterarr,1,spinar_foo,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
   i_all=-product(shape(spinar_foo))*kind(spinar_foo)
   deallocate(spinar_foo,stat=i_stat)
@@ -1570,11 +1551,6 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
        ncong,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,eval,&
        ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
 
-  !       call plot_wf(10,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f, &
-  !                       rxyz(1,1),rxyz(2,1),rxyz(3,1),psi)
-  !       call plot_wf(20,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f, &
-  !                       rxyz(1,1),rxyz(2,1),rxyz(3,1),hpsi)
-
 
 
   if (iproc==0) then
@@ -1630,6 +1606,8 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
              ads,iter,mids,idsx,nvctrp,psi,psidst,hpsidst)
 
      endif
+!    write(*,*) 'psi update done',iproc
+
   else
 
      ! update all wavefunctions with the preconditioned gradient
@@ -2096,17 +2074,6 @@ subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, 
                     stop 'norm projector'
                  end if
 
-!!$                   !plot the p projector
-!!$                   if (l==2 .and. m==1) then
-!!$                      mbseg_c=nseg_p(2*iat-1)-nseg_p(2*iat-2)
-!!$                      mbseg_f=nseg_p(2*iat  )-nseg_p(2*iat-1)
-!!$                      jseg_c=nseg_p(2*iat-2)+1
-!!$                      call plot_wf(51,n1,n2,n3,hgrid,mbseg_c,mvctr_c,&
-!!$                           keyg_p(:,jseg_c:jseg_c+mbseg_c+mbseg_f-1),&
-!!$                           keyv_p(jseg_c:jseg_c+mbseg_c+mbseg_f-1),mbseg_f,nvctr_f, &
-!!$                           rx,ry,rz,proj(istart_c:istart_f+7*mvctr_f-1))
-!!$                   end if
-
                  ! testing end
                  istart_c=istart_f+7*mvctr_f
                  if (istart_c.gt.istart) stop 'istart_c > istart'
@@ -2240,7 +2207,9 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 !!$  !   iounit=15+3*(i-1)
 !!$  !   print *,'iounit',iounit,'-',iounit+2
 !!$  !   call plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,  & 
-!!$  !        rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc))
+!!$  !        rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc), & 
+!!$          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r,&
+!!$          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 !!$  !end do
  
 
@@ -2253,7 +2222,7 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
       nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
       (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,1,ones,&
       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-      ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
  call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,1)
@@ -2623,7 +2592,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 !!$  !   iounit=15+3*(i-1)
 !!$  !   print *,'iounit',iounit,'-',iounit+2
 !!$  !   call plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,  & 
-!!$  !        rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc))
+!!$  !        rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc), &
+!!$          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r,&
+!!$          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 !!$  !end do
 
 
@@ -2656,7 +2627,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
           (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,1,ones, &
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f)
+             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
   call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,1)

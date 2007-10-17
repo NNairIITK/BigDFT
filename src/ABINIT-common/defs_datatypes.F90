@@ -1592,8 +1592,8 @@ integer :: fft_option_lob
    ! Flag controling use of pseudized core density (0 if tncore=zero)
 
   integer :: vlocopt
-   ! 0 if Vloc in atomic data is Vbare    (Blochl's formulation)
-   ! 1 if Vloc in atomic data is VH(tnzc) (Kresse's formulation)
+   ! 0 if Vloc in atomic data is Vbare    (Blochl s formulation)
+   ! 1 if Vloc in atomic data is VH(tnzc) (Kresse s formulation)
 
 !Real (double precision) scalars
 
