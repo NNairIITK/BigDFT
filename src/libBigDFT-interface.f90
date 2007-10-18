@@ -27,6 +27,7 @@ interface
      real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
    end subroutine CalculateTailCorrection
 end interface
+public :: CalculateTailCorrection
 
 !!$interface
 !!$   subroutine orthon_p(iproc,nproc,norb,norbp,nvctrp,psit)
@@ -54,6 +55,7 @@ interface
      real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: psi
    end subroutine gautowav
 end interface
+public :: gautowav
 
 interface
    subroutine system_size(nat,rxyz,radii,rmult,iatype,ntypes, &
@@ -63,6 +65,7 @@ interface
      dimension rxyz(3,nat),radii(ntypes),iatype(nat)
    end subroutine system_size
 end interface
+public :: system_size
 
 interface
    subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
@@ -103,6 +106,7 @@ interface
 
    end subroutine make_all_ib
 end interface
+public :: make_all_ib
 
 interface
    subroutine pregion_size(rxyz,radii,rmult,iatype,ntypes, &
@@ -113,6 +117,7 @@ interface
      dimension rxyz(3),radii(ntypes)
    end subroutine pregion_size
 end interface
+public :: pregion_size
 
 interface
    subroutine bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
@@ -122,6 +127,7 @@ interface
      dimension ibyz(2,0:n2,0:n3),ibxz(2,0:n1,0:n3),ibxy(2,0:n1,0:n2)
    end subroutine bounds
 end interface
+public :: bounds
 
 interface
    subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode)
@@ -135,6 +141,7 @@ interface
      integer, intent(out) :: nsccode
    end subroutine eleconf
 end interface
+public :: eleconf
 
 interface
    subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,  & 
@@ -146,6 +153,7 @@ interface
      dimension rxyz(3,nat),eval(norb),center(3)
    end subroutine readmywaves
 end interface
+public :: readmywaves
 
 interface
    subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
@@ -155,6 +163,7 @@ interface
      real(kind=8), intent(out) :: occup(norb),spinar(norb)
    end subroutine input_occup
 end interface
+public :: input_occup
 
 interface
    subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,&
@@ -168,6 +177,7 @@ interface
      dimension hpsi(nvctr_c+7*nvctr_f,norbp),eval(norb)
    end subroutine preconditionall
 end interface
+public :: preconditionall
 
 interface
    subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
@@ -195,6 +205,7 @@ interface
      !***********************************************************************************************
    end subroutine sumrho
 end interface
+public :: sumrho
 
 !!$interface
 !!$   subroutine KStrans_p(iproc,nproc,norb,ndim,nvctrp,occup,  & 
@@ -243,6 +254,7 @@ interface
      integer, dimension(natsc+1), intent(out) :: norbsc_arr
    end subroutine readAtomicOrbitals
 end interface
+public :: readAtomicOrbitals
 
 !!$interface
 !!$   subroutine checkortho(norb,norbp,nvctrp,psi)
@@ -305,6 +317,7 @@ interface
      integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
    end subroutine HamiltonianApplication
 end interface
+public :: HamiltonianApplication
 
 interface
    subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
@@ -313,6 +326,7 @@ interface
      dimension psppar(0:4,0:6,ntypes),npspcode(ntypes)
    end subroutine numb_proj
 end interface
+public :: numb_proj
 
 interface
    subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
@@ -328,6 +342,7 @@ interface
      real(kind=8), dimension(ntypes,2), intent(in) ::  radii_cf
    end subroutine MemoryEstimator
 end interface
+public :: MemoryEstimator
 
 interface
    subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelpsp,hgrid,&
@@ -346,6 +361,7 @@ interface
      real(kind=8), dimension(3,nat), intent(out) :: floc
    end subroutine local_forces
 end interface
+public :: local_forces
 
 interface
    subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, & 
@@ -373,6 +389,7 @@ interface
      real(kind=8), dimension(nprojel,3), intent(out) :: derproj
    end subroutine projectors_derivatives
 end interface
+public :: projectors_derivatives
 
 !!$interface
 !!$   subroutine KStrans(norb,norbp,nvctrp,occup,hpsi,psi,evsum,eval)
@@ -409,6 +426,7 @@ interface
      real(kind=8), intent(out) :: psi(nvctr_c + 7 * nvctr_f, norbep), occupe(norbe)
    end subroutine createAtomicOrbitals
 end interface
+public :: createAtomicOrbitals
 
 interface
    subroutine switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psiw)
@@ -418,6 +436,7 @@ interface
      real(kind=8), dimension(nvctrp,norbp,nproc), intent(out) :: psiw
    end subroutine switch_waves
 end interface
+public :: switch_waves
 
 interface
    subroutine createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,hgrid,&
@@ -434,6 +453,7 @@ interface
      real(kind=8), dimension(*), intent(out) :: pot_ion
    end subroutine createIonicPotential
 end interface
+public :: createIonicPotential
 
 interface
    subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
@@ -460,6 +480,7 @@ interface
      real(kind=8), dimension(3,nat), intent(inout) :: fsep
    end subroutine nonlocal_forces
 end interface
+public nonlocal_forces
 
 !!$interface
 !!$   subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
@@ -478,6 +499,7 @@ interface
      real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: psi
    end subroutine unswitch_waves
 end interface
+public unswitch_waves
 
 !!$interface
 !!$   subroutine orthoconstraint(norb,norbp,occup,nvctrp,psi,hpsi,scprsum)
@@ -501,6 +523,7 @@ interface
      dimension :: psi_old(nvctr_c_old + 7 * nvctr_f_old, norbp), psi(nvctr_c + 7 * nvctr_f, norbp)
    end subroutine reformatmywaves
 end interface
+public :: reformatmywaves
 
 interface
    subroutine crtproj(iproc,nterm,n1,n2,n3, & 
@@ -517,6 +540,7 @@ interface
      dimension proj_c(mvctr_c),proj_f(7,mvctr_f)
    end subroutine crtproj
 end interface
+public :: crtproj
 
 interface
    subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,  & 
@@ -530,6 +554,7 @@ interface
      dimension psi(nvctr_c+7*nvctr_f,norbp)
    end subroutine writemywaves
 end interface
+public :: writemywaves
 
 interface
    subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
@@ -540,6 +565,7 @@ interface
      real(kind=8), dimension(nterm_max), intent(out) :: fac_arr
    end subroutine calc_coeff_proj
 end interface
+public :: calc_coeff_proj
 
 interface
    subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
@@ -548,6 +574,7 @@ interface
      dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
    end subroutine wnrm
 end interface
+public :: wnrm
 
 interface
    subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
@@ -557,6 +584,7 @@ interface
      dimension logrid(0:n1,0:n2,0:n3)
    end subroutine num_segkeys
 end interface
+public :: num_segkeys
 
 interface
    subroutine fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
@@ -570,3 +598,4 @@ interface
      dimension logrid(0:n1,0:n2,0:n3)
    end subroutine fill_logrid
 end interface
+public fill_logrid
