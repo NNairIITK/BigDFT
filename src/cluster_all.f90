@@ -2,7 +2,7 @@ module libBigDFT
   
   private
 
-!- High level methods.
+  !- High level methods.
   !- Do a minimisation loop to find forces and energy.
   public :: cluster
   
@@ -16,6 +16,9 @@ module libBigDFT
   
   !- SCF handling
   public :: hpsitopsi
+
+  !- Interfaces for all outside public routines.
+  include "libBigDFT-interface.f90"
 
 contains
 
