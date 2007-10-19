@@ -1,27 +1,3 @@
-subroutine system_size(nat,rxyz,radii,rmult,iatype,ntypes, &
-     cxmin,cxmax,cymin,cymax,czmin,czmax)
-  ! calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
-  implicit real(kind=8) (a-h,o-z)
-  parameter(eps_mach=1.d-12)
-  dimension rxyz(3,nat),radii(ntypes),iatype(nat)
-
-  cxmax=-1.d10 ; cxmin=1.d10
-  cymax=-1.d10 ; cymin=1.d10
-  czmax=-1.d10 ; czmin=1.d10
-  do iat=1,nat
-     rad=radii(iatype(iat))*rmult
-     cxmax=max(cxmax,rxyz(1,iat)+rad) ; cxmin=min(cxmin,rxyz(1,iat)-rad)
-     cymax=max(cymax,rxyz(2,iat)+rad) ; cymin=min(cymin,rxyz(2,iat)-rad)
-     czmax=max(czmax,rxyz(3,iat)+rad) ; czmin=min(czmin,rxyz(3,iat)-rad)
-  enddo
-
-  cxmax=cxmax-eps_mach ; cxmin=cxmin+eps_mach
-  cymax=cymax-eps_mach ; cymin=cymin+eps_mach
-  czmax=czmax-eps_mach ; czmin=czmin+eps_mach
-
-  return
-END SUBROUTINE system_size
-
 subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
   ! Calculates the length of the keys describing a wavefunction data structure
   implicit real(kind=8) (a-h,o-z)

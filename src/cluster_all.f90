@@ -51,11 +51,10 @@ contains
 
   implicit real(kind=8) (a-h,o-z)
   character(len=30) :: label
-  character(len=27) :: filename
   character(len=20), dimension(100) :: atomnames
   character(len=1) :: datacode
   logical logrid_c,logrid_f,parallel,calc_tail,output_wf,output_grid
-  real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
+  real(kind=8), parameter :: eps_mach=1.d-12
   ! work array for ALLREDUCE
   dimension wrkallred(5,2) 
   ! atomic coordinates
@@ -122,7 +121,6 @@ contains
 !    real(kind=8),allocatable::xf(:,:,:,:)! input
 !    real(kind=8),allocatable,dimension(:):: w1,w2
 !***********************************************************************************************
-  logical :: exists
   integer :: ierror
 
   !input variables
@@ -285,72 +283,12 @@ contains
   allocate(iasctype(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(iasctype))*kind(iasctype),'iasctype','cluster')
 
+  call read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomnames,iatype,&
+       psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp)
 
-  call read_system_variables(iproc,ntypes,atomnames,psppar,radii_cf,&
-       npspcode,iasctype,nelpsp,nzatom)
-
-! Number of electrons and number of semicore atoms
-  nelec=0
-  natsc=0
-  do iat=1,nat
-     ityp=iatype(iat)
-     nelec=nelec+nelpsp(ityp)
-     if (iasctype(ityp) /= 0) natsc=natsc+1
-  enddo
-  nelec=nelec-ncharge
-  if (iproc.eq.0) then
-     write(*,'(1x,a,i8)') &
-          'Total Number of Electrons ',nelec
-  end if
-
-! Number of orbitals
-  if (nspin==1) then
-     norb=(nelec+1)/2
-     norbu=norb
-     norbd=0
-     if (mod(nelec,2).ne.0 .and. iproc==0) write(*,'(1x,a)') &
-          'WARNING: odd number of electrons, no closed shell system'
-  else
-     if (iproc==0) write(*,'(1x,a)') 'Spin-polarized calculation'
-     norb=nelec
-     norbu=min(norb/2+mpol,norb)
-     norbd=norb-norbu
-     tt=real(norbu,kind=8)/real(nproc,kind=8)
-     norbup=int((1.d0-eps_mach*tt) + tt)
-     tt=real(norbd,kind=8)/real(nproc,kind=8)
-     norbdp=int((1.d0-eps_mach*tt) + tt)
-  end if
-
-! Test if the file 'occup.dat exists
-  inquire(file='occup.dat',exist=exists)
-! Not implemented for npsin==2: At the present stage, this feature is broken
-  if (nspin==2.and.exists) then
-     write(*,'(1x,a)') &
-          'ERROR: It is not possible to use the file occup.dat with spin-polarization'
-     stop
-  end if
-  iunit=0
-  if (exists) then
-     iunit=24
-     open(unit=iunit,file='occup.dat',form='formatted',action='read',status='old')
-     !The first line gives the number of orbitals
-     read(unit=iunit,fmt=*,iostat=ierror) nt
-     if (ierror /=0) then
-         if (iproc==0) write(*,'(1x,a)') &
-              'ERROR reading the number of orbitals in the file "occup.dat"'
-        stop
-     end if
-     if (nt<norb) then
-        if (iproc==0) then
-           write(*,'(1x,a,i0,a,i0)') &
-                   'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
-                   ' should be greater or equal than (nelec+1)/2=',norb
-        end if
-        stop
-     else
-        norb=nt
-     end if
-  end if
+  !useless values, must be cleaned from the code
+  norbup=norbu
+  norbdp=norbd
 
   allocate(occup(norb),stat=i_stat)
   call memocc(i_stat,product(shape(occup))*kind(occup),'occup','cluster')
@@ -362,87 +300,10 @@ contains
 ! Occupation numbers
   call input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
 
-! Determine size alat of overall simulation cell
-  call system_size(nat,rxyz,radii_cf(1,1),crmult,iatype,ntypes, &
-       cxmin,cxmax,cymin,cymax,czmin,czmax)
-  alat1=(cxmax-cxmin)
-  alat2=(cymax-cymin)
-  alat3=(czmax-czmin)
-
-! grid sizes n1,n2,n3
-  n1=int(alat1/hgrid)
-  !if (mod(n1+1,4).eq.0) n1=n1+1
-  n2=int(alat2/hgrid)
-  !if (mod(n2+1,8).eq.0) n2=n2+1
-  n3=int(alat3/hgrid)
-  alatrue1=real(n1,kind=8)*hgrid 
-  alatrue2=real(n2,kind=8)*hgrid 
-  alatrue3=real(n3,kind=8)*hgrid
-
-  !balanced shift taking into account the missing space
-  cxmin=cxmin+0.5d0*(alat1-alatrue1)
-  cymin=cymin+0.5d0*(alat2-alatrue2)
-  czmin=czmin+0.5d0*(alat3-alatrue3)
-
-  alat1=alatrue1
-  alat2=alatrue2
-  alat3=alatrue3
-
-  do iat=1,nat
-     rxyz(1,iat)=rxyz(1,iat)-cxmin
-     rxyz(2,iat)=rxyz(2,iat)-cymin
-     rxyz(3,iat)=rxyz(3,iat)-czmin
-  enddo
-
-!!$! grid sizes n1,n2,n3 !added for testing purposes
-!!$  n1=int(alat1/hgrid)
-!!$  if (mod(n1,2).eq.0) n1=n1+1
-!!$  n2=int(alat2/hgrid)
-!!$  if (mod(n2,2).eq.0) n2=n2+1
-!!$  n3=int(alat3/hgrid)
-!!$  if (mod(n3,2).eq.0) n3=n3+1
-!!$  alat1=n1*hgrid 
-!!$  alat2=n2*hgrid 
-!!$  alat3=n3*hgrid
-!!$  do iat=1,nat
-!!$     rxyz(1,iat)=(real(n1/2,kind=8)+0.5)*hgrid 
-!!$     rxyz(2,iat)=(real(n1/2,kind=8)+0.5)*hgrid 
-!!$     rxyz(3,iat)=(real(n1/2,kind=8)+0.5)*hgrid 
-!!$  enddo
-
-  if (iproc.eq.0) then
-     write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
-     do iat=1,nat
-        write(*,'(1x,i5,1x,a6,3(1x,1pe12.5),3x,3(1x,0pf9.3))') &
-             iat,trim(atomnames(iatype(iat))),&
-             (rxyz(j,iat),j=1,3),rxyz(1,iat)/hgrid,rxyz(2,iat)/hgrid,rxyz(3,iat)/hgrid
-     enddo
-     write(*,'(1x,a,3(1x,1pe12.5))') &
-          '   Shift of=',-cxmin,-cymin,-czmin
-     write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
-          '  Box Sizes=',alat1,alat2,alat3,n1,n2,n3
-  endif
-
-! fine grid size (needed for creation of input wavefunction, preconditioning)
-  nfl1=n1 ; nfl2=n2 ; nfl3=n3
-  nfu1=0 ; nfu2=0 ; nfu3=0
-  do iat=1,nat
-     rad=radii_cf(iatype(iat),2)*frmult
-     nfl1=min(nfl1,int(onem+(rxyz(1,iat)-rad)/hgrid))
-     nfu1=max(nfu1,int((rxyz(1,iat)+rad)/hgrid))
-
-     nfl2=min(nfl2,int(onem+(rxyz(2,iat)-rad)/hgrid))
-     nfu2=max(nfu2,int((rxyz(2,iat)+rad)/hgrid))
-
-     nfl3=min(nfl3,int(onem+(rxyz(3,iat)-rad)/hgrid)) 
-     nfu3=max(nfu3,int((rxyz(3,iat)+rad)/hgrid))
-  enddo
-  if (iproc.eq.0) then
-     write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
-          '      Extremes for the high resolution grid points:',&
-          nfl1,'<',nfu1,nfl2,'<',nfu2,nfl3,'<',nfu3
-  endif
-
+! Determine size alat of overall simulation cell and shift atom positions
+! then calculate the size in units of the grid space
+  call system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
+       alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
 
   !memory estimation
   if (iproc==0) then
@@ -454,8 +315,6 @@ contains
   ndegree_ip=14
   call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
        iproc,nproc,pkernel)
-
-  
 
 ! Create wavefunctions descriptors and allocate them
   call timing(iproc,'CrtDescriptors','ON')
@@ -597,14 +456,6 @@ contains
           ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
           ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
-!      if (iproc.eq.0) write(11,*) (psi(i,1),i=1,nvctr_c+7*nvctr_f)
-!      if (iproc.eq.1) write(22,*) (psi(i,1),i=1,nvctr_c+7*nvctr_f)
-!      if (iproc.eq.2) write(33,*) (psi(i,1),i=1,nvctr_c+7*nvctr_f)
-!      if (iproc.eq.3) write(44,*) (psi(i,1),i=1,nvctr_c+7*nvctr_f)
-!      write(1,*) (psi(i,1),i=1,nvctr_c+7*nvctr_f)
-!      write(2,*) (psi(i,2),i=1,nvctr_c+7*nvctr_f)
-!      write(3,*) (psi(i,3),i=1,nvctr_c+7*nvctr_f)
-!      write(4,*) (psi(i,4),i=1,nvctr_c+7*nvctr_f)
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
         write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/real(norb,kind=8)
@@ -761,7 +612,9 @@ contains
   alpha=1.d0
   energy=1.d100
   gnrm=1.d100
-  ekin_sum=0.d0 ; epot_sum=0.d0 ; eproj_sum=0.d0
+  ekin_sum=0.d0 
+  epot_sum=0.d0 
+  eproj_sum=0.d0
 ! loop for wavefunction minimization
   do 1000, iter=1,itermax
      if (idsx.gt.0) mids=mod(iter-1,idsx)+1
@@ -1375,7 +1228,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      psi,psit,hpsi,psidst,hpsidst,nspin,spinar)
   implicit none
   include 'mpif.h'
-  real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
+  real(kind=8), parameter :: eps_mach=1.d-12
   logical, intent(in) :: parallel
   integer, intent(in) :: iter,iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids,idsx
   integer, intent(in) :: nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nvctrp
@@ -1673,9 +1526,9 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
 !calculates also the arrays ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f needed for convolut_standard
   implicit none
   !Arguments
-  integer, intent(in) :: iproc,nproc,idsx,n1,n2,n3,nat,ntypes,norb
+  integer, intent(in) :: iproc,nproc,idsx,n1,n2,n3,nat,ntypes,norb,norbp
   integer, intent(out) :: nseg_c,nseg_f,nvctr_c,nvctr_f
-  integer, intent(out) :: norbp,nvctrp
+  integer, intent(out) :: nvctrp
   logical, intent(in) :: output_grid
   integer, intent(in) :: iatype(nat)
   real(kind=8), intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
@@ -1709,7 +1562,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
 
 
   !Local variables
-  real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
+  real(kind=8), parameter :: eps_mach=1.d-12
   integer :: iat,i1,i2,i3,norbme,norbyou,jpst,jproc,i_all,i_stat
   real(kind=8) :: tt
   logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
@@ -1803,9 +1656,6 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
   call memocc(i_stat,i_all,'logrid_f','createwavefunctionsdescriptors')
 
 ! allocate wavefunction arrays
-  tt=dble(norb)/dble(nproc)
-  norbp=int((1.d0-eps_mach*tt) + tt)
-  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
   norbme=max(min((iproc+1)*norbp,norb)-iproc*norbp,0)
   !write(*,'(a,i0,a,i0,a)') '- iproc ',iproc,' treats ',norbme,' orbitals '
   if (iproc == 0 .and. nproc>1) then
