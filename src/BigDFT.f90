@@ -213,8 +213,6 @@ program BigDFT
      write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
   endif
 
-
-
   !deallocations
   !the lfrztyp must be restored in the same way as before
   i_all=-product(shape(lfrztyp))*kind(lfrztyp)

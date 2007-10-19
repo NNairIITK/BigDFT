@@ -341,7 +341,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      !in the spin-polarised case the potential is given contiguously
      if (nspin==2) then
         !this start the count in the other component of the global array
-        if (datacode=='G') ind=i3xcsh*n01*n02
+        if (datacode=='G') ind=i3xcsh*n01*n02+n01*n02*n03
         do j2=1,nxc
            i2=j2+i3xcsh
            ind3=(i2-1)*n01*n02
