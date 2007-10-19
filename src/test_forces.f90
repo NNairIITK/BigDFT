@@ -43,6 +43,7 @@ program test_forces
   real(kind=8) :: hgrid
   integer :: ixc,ncharge,itermax,ncong,idsx,ncongt
   real(kind=8) :: crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf
+  type(input_variables) :: inputs
 
 
   !Body
@@ -102,12 +103,17 @@ program test_forces
 
   !calculate the starting point
   if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-     call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
-          psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,0,&
-          .false.,.false.,n1,n2,n3,hgrid,rxyz_old,& 
-          crmult,frmult,cpmult,fpmult,ixc,ncharge,elecfield,gnrm_cv,&
-          itermax,ncong,idsx,.false.,0.d0,1,1,0,infocode)
 
+  !some input variablesm to be completed
+  inputs%inputPsiId=0
+  inputs%output_grid=.false.
+  inputs%output_wf=.false.
+  inputs%calc_tail=.false.
+  inputs%calc_tail=.false.
+  call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+       psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
+       n1,n2,n3,rxyz_old,inputs,infocode)
+  
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
   call memocc(i_stat,i_all,'psi','test_forces')
@@ -150,11 +156,9 @@ program test_forces
 
      if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
-     call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
-          psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,0,&
-          .false.,.false.,n1,n2,n3,hgrid,rxyz_old,& 
-          crmult,frmult,cpmult,fpmult,ixc,ncharge,elecfield,gnrm_cv,&
-          itermax,ncong,idsx,.false.,0.d0,1,1,0,infocode)
+  call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+       psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
+       n1,n2,n3,rxyz_old,inputs,infocode)
 
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)

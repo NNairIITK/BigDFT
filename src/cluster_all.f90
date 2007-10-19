@@ -17,13 +17,21 @@ module libBigDFT
   !- SCF handling
   public :: hpsitopsi
 
-contains
+  !-Input variable structure
+  !structure of the variables read by input.dat file
+  type, public :: input_variables
+     integer :: ncount_cluster_x
+     real(kind=8) :: frac_fluct,randdis,betax
+     integer :: ixc,ncharge,itermax,ncong,idsx,ncongt,inputPsiId,nspin,mpol
+     real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf
+     logical :: output_grid,output_wf,calc_tail
+  end type input_variables
 
-      subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz, &
-                   psi, keyg, keyv, nvctr_c, nvctr_f, nseg_c, nseg_f, norbp, norb, eval, &
-                   inputPsiId, output_grid, output_wf, n1, n2, n3, hgrid, rxyz_old, &
-                   crmult, frmult, cpmult, fpmult, ixc, ncharge,elecfield, gnrm_cv, &
-                   itermax, ncong, idsx, calc_tail, rbuf, ncongt,nspin,mpol, infocode)
+contains
+ 
+      subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+                   psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
+                   n1,n2,n3,rxyz_old,in,infocode)
   ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
   ! inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
   !                  as definition of the previous system.
@@ -118,9 +126,41 @@ contains
   logical :: exists
   integer :: ierror
 
+  !input variables
+  type(input_variables), intent(in) :: in
+
   include 'mpif.h'
 
-  if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER',inputPsiId
+  !copying the input variables for readability
+  !this section is of course not needed
+  !note that this procedure is convenient ONLY in the case of scalar variables
+  !an array would have been copied, thus occupying more memory space
+
+  hgrid=in%hgrid
+  crmult=in%crmult
+  frmult=in%frmult
+  cpmult=in%cpmult
+  fpmult=in%fpmult
+  ixc=in%ixc
+  ncharge=in%ncharge
+  elecfield=in%elecfield
+  gnrm_cv=in%gnrm_cv
+  itermax=in%itermax
+  ncong=in%ncong
+  idsx=in%idsx
+  calc_tail=in%calc_tail
+  rbuf=in%rbuf
+  ncongt=in%ncongt
+  nspin=in%nspin
+  mpol=in%mpol
+
+  inputPsiId=in%inputPsiId
+  output_grid=in%output_grid
+  output_wf=in%output_wf
+
+
+  if (iproc.eq.0) write(*,'(1x,a,1x,i0)') &
+       '                               BigDFT Wavefunction Optimization',inputPsiId
   if (parallel) then
      call timing(iproc,'parallel     ','IN')
   else
@@ -460,9 +500,6 @@ contains
              iat,trim(atomnames(iatype(iat))),&
              (rxyz(j,iat),j=1,3),rxyz(1,iat)/hgrid,rxyz(2,iat)/hgrid,rxyz(3,iat)/hgrid
      enddo
-  endif
-
-  if (iproc.eq.0) then 
      write(*,'(1x,a,3(1x,1pe12.5))') &
           '   Shift of=',-cxmin,-cymin,-czmin
      write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
@@ -497,7 +534,7 @@ contains
   end if
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-  ndegree_ip=16
+  ndegree_ip=14
   call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
        iproc,nproc,pkernel)
 
@@ -1408,7 +1445,7 @@ contains
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
     if (iproc == 0) &
-         write(*,'(a,1x,i4,2(1x,f12.2))') 'CPU time for root process ', iproc,tel,tcpu1-tcpu0
+         write(*,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time for root process ', iproc,tel,tcpu1-tcpu0
 
   end subroutine deallocate_before_exiting
 
@@ -1560,14 +1597,14 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   call timing(iproc,'Precondition  ','OF')
 
 
-  if (iproc==0) then
-       do iorb=1,norb
-        do i1=1,nvctr_c+7*nvctr_f
-!          write(200,'(f12.8)') psi(i1,iorb)
-!          write(220,'(f12.8)') hpsi(i1,iorb)
-        end do
-     end do
-  end if
+!!$  if (iproc==0) then
+!!$       do iorb=1,norb
+!!$        do i1=1,nvctr_c+7*nvctr_f
+!!$!          write(200,'(f12.8)') psi(i1,iorb)
+!!$!          write(220,'(f12.8)') hpsi(i1,iorb)
+!!$        end do
+!!$     end do
+!!$  end if
 
   !apply the minimization method (DIIS or steepest descent)
   if (idsx.gt.0) then
@@ -1580,7 +1617,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         call timing(iproc,'Un-TransSwitch','OF')
         call timing(iproc,'Un-TransComm  ','ON')
         call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-             hpsidst(:,:,mids),nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+             hpsidst(1,1,mids),nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
         call timing(iproc,'Un-TransComm  ','OF')
         !end of transposition
 

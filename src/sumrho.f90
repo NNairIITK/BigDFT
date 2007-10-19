@@ -121,12 +121,12 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
               do i2=1,2*n2+31
                  ind2=(i2-1)*(2*n1+31)+ind3
                  ind2s=(i2-1)*(2*n1+31)+ind3s
-!                 do i1=1,2*n1+31
-				 do	i1=ibyyzz_r(1,i2,i3)+1,ibyyzz_r(2,i2,i3)+1
+                 !                 do i1=1,2*n1+31
+                 do i1=ibyyzz_r(1,i2,i3)+1,ibyyzz_r(2,i2,i3)+1
                     ind1=i1+ind2
                     ind1s=i1+ind2s
                     !do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
-                   rho_p(ind1s+isjmp)=rho_p(ind1s+isjmp)+hfac*psir(ind1)**2
+                    rho_p(ind1s+isjmp)=rho_p(ind1s+isjmp)+hfac*psir(ind1)**2
                  end do
               end do
            end do
@@ -200,15 +200,15 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
 ! i1=1,2*n1+31
 ! i2=1,2*n2+31
 ! i3=1,2*n3+31
-			do i3=1,2*n3+31
-				i00=(i3-1)*(2*n2+31)*(2*n1+31)+1
-				do i2=1,2*n2+31
-					i0=i00+(i2-1)*(2*n1+31)
-					do i=i0+ibyyzz_r(1,i2,i3),i0+ibyyzz_r(2,i2,i3)
-                                           rho(i,ispin)=rho(i,ispin)+(occup(iorb)/hgridh**3)*psir(i)**2
-					enddo
-				enddo
-			enddo
+        do i3=1,2*n3+31
+           i00=(i3-1)*(2*n2+31)*(2*n1+31)+1
+           do i2=1,2*n2+31
+              i0=i00+(i2-1)*(2*n1+31)
+              do i=i0+ibyyzz_r(1,i2,i3),i0+ibyyzz_r(2,i2,i3)
+                 rho(i,ispin)=rho(i,ispin)+(occup(iorb)/hgridh**3)*psir(i)**2
+              enddo
+           enddo
+        enddo
      enddo
      ! Check
      tt=0.d0

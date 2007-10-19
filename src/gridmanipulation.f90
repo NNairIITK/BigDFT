@@ -5,9 +5,9 @@ subroutine system_size(nat,rxyz,radii,rmult,iatype,ntypes, &
   parameter(eps_mach=1.d-12)
   dimension rxyz(3,nat),radii(ntypes),iatype(nat)
 
-  cxmax=-1.d100 ; cxmin=1.d100
-  cymax=-1.d100 ; cymin=1.d100
-  czmax=-1.d100 ; czmin=1.d100
+  cxmax=-1.d10 ; cxmin=1.d10
+  cymax=-1.d10 ; cymin=1.d10
+  czmax=-1.d10 ; czmin=1.d10
   do iat=1,nat
      rad=radii(iatype(iat))*rmult
      cxmax=max(cxmax,rxyz(1,iat)+rad) ; cxmin=min(cxmin,rxyz(1,iat)-rad)
