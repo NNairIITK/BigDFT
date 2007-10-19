@@ -52,15 +52,14 @@ contains
   implicit real(kind=8) (a-h,o-z)
   character(len=30) :: label
   character(len=27) :: filename
-  character(len=20) :: atomnames
-  character(len=2) :: symbol
+  character(len=20), dimension(100) :: atomnames
   character(len=1) :: datacode
   logical logrid_c,logrid_f,parallel,calc_tail,output_wf,output_grid
   real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
   ! work array for ALLREDUCE
   dimension wrkallred(5,2) 
   ! atomic coordinates
-  dimension rxyz(3,nat),rxyz_old(3,nat),fxyz(3,nat),iatype(nat),atomnames(100)
+  dimension rxyz(3,nat),rxyz_old(3,nat),fxyz(3,nat),iatype(nat)
   allocatable :: gxyz(:,:)
   ! active grid points, segments of real space grid
   allocatable :: logrid_c(:,:,:) ,  logrid_f(:,:,:)
@@ -265,6 +264,11 @@ contains
   ! grid spacing (same in x,y and z direction)
   hgridh=.5d0*hgrid
 
+  if (iproc==0) then
+     write(*,'(1x,a)')&
+          '------------------------------------------------------------------ System Properties'
+  end if
+
   ! store PSP parameters
   ! modified to accept both GTH and HGH pseudopotential types
   !allocation
@@ -280,99 +284,10 @@ contains
   call memocc(i_stat,product(shape(nzatom))*kind(nzatom),'nzatom','cluster')
   allocate(iasctype(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(iasctype))*kind(iasctype),'iasctype','cluster')
-  allocate(neleconf(6,0:3),stat=i_stat)
-  call memocc(i_stat,product(shape(neleconf))*kind(neleconf),'neleconf','cluster')
 
-  if (iproc==0) then
-     write(*,'(1x,a)')&
-          '------------------------------------------------------------------ System Properties'
-     write(*,'(1x,a)')&
-          'Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File'
 
-  end if
-
-  do ityp=1,ntypes
-     filename = 'psppar.'//atomnames(ityp)
-     ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
-     open(unit=11,file=filename,status='old',iostat=ierror)
-     !Check the open statement
-     if (ierror /= 0) then
-        write(*,*) 'iproc=',iproc,': Failed to open the file (it must be in ABINIT format!) "',&
-             trim(filename),'"'
-        stop
-     end if
-     read(11,*)
-     read(11,*) nzatom(ityp),nelpsp(ityp)
-     read(11,*) npspcode(ityp)
-     psppar(:,:,ityp)=0.d0
-     if (npspcode(ityp) == 2) then !GTH case
-        read(11,*) (psppar(0,j,ityp),j=0,4)
-        do i=1,2
-           read(11,*) (psppar(i,j,ityp),j=0,3-i)
-        enddo
-     else if (npspcode(ityp) == 3) then !HGH case
-        read(11,*) (psppar(0,j,ityp),j=0,4)
-        read(11,*) (psppar(1,j,ityp),j=0,3)
-        do i=2,4
-           read(11,*) (psppar(i,j,ityp),j=0,3)
-           read(11,*) !k coefficients, not used for the moment (no spin-orbit coupling)
-        enddo
-     else if (npspcode(ityp) == 10) then !HGH-K case
-         read(11,*) psppar(0,0,ityp),nn,(psppar(0,j,ityp),j=1,nn) !local PSP parameters
-         read(11,*) nlterms !number of channels of the pseudo
-         prjloop: do l=1,nlterms
-            read(11,*) psppar(l,0,ityp),nprl,psppar(l,1,ityp),&
-                 (psppar(l,j+2,ityp),j=2,nprl) !h_ij terms
-            do i=2,nprl
-               read(11,*) psppar(l,i,ityp),(psppar(l,i+j+1,ityp),j=i+1,nprl) !h_ij terms
-            end do
-            if (l==1) cycle
-            do i=1,nprl
-               read(11,*) !k coefficients, not used
-            end do
-         end do prjloop
-     else
-        if (iproc == 0) then
-           write(*,'(1x,a,a)')trim(atomnames(ityp)),&
-                'unrecognized pspcode: only GTH, HGH & HGH-K pseudos (ABINIT format)'
-        end if
-        stop
-     end if
-     !see whether the atom is semicore or not
-     call eleconf(nzatom(ityp),nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf,iasctype(ityp))
-     !if you want no semicore electrons, uncomment the following line
-     !iasctype(ityp)=0
-
-     !old way of calculating the radii, requires modification of the PSP files
-     read(11,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
-     if (ierror.eq.0) then
-        if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
-             trim(atomnames(ityp)),nelpsp(ityp),npspcode(ityp),&
-             radii_cf(ityp,1),radii_cf(ityp,2),&
-             '                   X    '
-     else
-        !assigning the radii by calculating physical parameters
-        radii_cf(ityp,1)=1.d0/sqrt(abs(2.d0*ehomo))
-        radfine=100.d0
-        do i=0,4
-           if (psppar(i,0,ityp)/=0.d0) then
-              radfine=min(radfine,psppar(i,0,ityp))
-           end if
-        end do
-        radii_cf(ityp,2)=radfine
-        if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
-             trim(atomnames(ityp)),nelpsp(ityp),npspcode(ityp),&
-             radii_cf(ityp,1),radii_cf(ityp,2),&
-             '       X                '
-     end if
-     close(11)
-  enddo
-
-  !deallocation
-  i_all=-product(shape(neleconf))*kind(neleconf)
-  deallocate(neleconf,stat=i_stat)
-  call memocc(i_stat,i_all,'neleconf','cluster')
-
+  call read_system_variables(iproc,ntypes,atomnames,psppar,radii_cf,&
+       npspcode,iasctype,nelpsp,nzatom)
 
 ! Number of electrons and number of semicore atoms
   nelec=0
@@ -410,7 +325,8 @@ contains
   inquire(file='occup.dat',exist=exists)
 ! Not implemented for npsin==2: At the present stage, this feature is broken
   if (nspin==2.and.exists) then
-     write(*,'(1x,a)') 'ERROR: It is not possible to use the file occup.dat with spin-polarization'
+     write(*,'(1x,a)') &
+          'ERROR: It is not possible to use the file occup.dat with spin-polarization'
      stop
   end if
   iunit=0
@@ -420,7 +336,8 @@ contains
      !The first line gives the number of orbitals
      read(unit=iunit,fmt=*,iostat=ierror) nt
      if (ierror /=0) then
-         if (iproc==0) write(*,'(1x,a)') 'ERROR reading the number of orbitals in the file "occup.dat"'
+         if (iproc==0) write(*,'(1x,a)') &
+              'ERROR reading the number of orbitals in the file "occup.dat"'
         stop
      end if
      if (nt<norb) then

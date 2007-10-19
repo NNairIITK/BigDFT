@@ -163,11 +163,11 @@ program BigDFT
   do iat=1,nat
      if (.not. lfrztyp(iatype(iat))) then
         call random_number(tt)
-        rxyz(1,iat)=rxyz(1,iat)+randdis*tt
+        rxyz(1,iat)=rxyz(1,iat)+inputs%randdis*tt
         call random_number(tt)
-        rxyz(2,iat)=rxyz(2,iat)+randdis*tt
+        rxyz(2,iat)=rxyz(2,iat)+inputs%randdis*tt
         call random_number(tt)
-        rxyz(3,iat)=rxyz(3,iat)+randdis*tt
+        rxyz(3,iat)=rxyz(3,iat)+inputs%randdis*tt
      end if
   enddo
 

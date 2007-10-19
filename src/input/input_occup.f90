@@ -108,3 +108,115 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
   endif
 
 end subroutine input_occup
+
+subroutine read_system_variables(iproc,ntypes,atomnames,psppar,radii_cf,&
+     npspcode,iasctype,nelpsp,nzatom)
+  implicit none
+  integer, intent(in) :: iproc,ntypes
+  character(len=20), dimension(ntypes), intent(in) :: atomnames
+  integer, dimension(ntypes), intent(out) :: npspcode,iasctype,nelpsp,nzatom
+  real(kind=8), dimension(ntypes,2), intent(out) :: radii_cf
+  real(kind=8), dimension(0:4,0:6,ntypes), intent(out) :: psppar
+  !local variables
+  character(len=2) :: symbol
+  character(len=27) :: filename
+  real(kind=8) :: rcov,rprb,ehomo,radfine
+  integer :: i,j,l,nlterms,nprl,nn,ityp,ierror,i_stat,i_all
+  integer, dimension(:,:), allocatable :: neleconf
+
+  if (iproc == 0) then
+     write(*,'(1x,a)')&
+          'Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File'
+  end if
+
+  allocate(neleconf(6,0:3),stat=i_stat)
+  call memocc(i_stat,product(shape(neleconf))*kind(neleconf),'neleconf','read_PSP_variables')
+
+
+  do ityp=1,ntypes
+     filename = 'psppar.'//atomnames(ityp)
+     ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
+     open(unit=11,file=filename,status='old',iostat=ierror)
+     !Check the open statement
+     if (ierror /= 0) then
+        write(*,*) 'iproc=',iproc,': Failed to open the file (it must be in ABINIT format!) "',&
+             trim(filename),'"'
+        stop
+     end if
+     read(11,*)
+     read(11,*) nzatom(ityp),nelpsp(ityp)
+     read(11,*) npspcode(ityp)
+     psppar(:,:,ityp)=0.d0
+     if (npspcode(ityp) == 2) then !GTH case
+        read(11,*) (psppar(0,j,ityp),j=0,4)
+        do i=1,2
+           read(11,*) (psppar(i,j,ityp),j=0,3-i)
+        enddo
+     else if (npspcode(ityp) == 3) then !HGH case
+        read(11,*) (psppar(0,j,ityp),j=0,4)
+        read(11,*) (psppar(1,j,ityp),j=0,3)
+        do i=2,4
+           read(11,*) (psppar(i,j,ityp),j=0,3)
+           read(11,*) !k coefficients, not used for the moment (no spin-orbit coupling)
+        enddo
+     else if (npspcode(ityp) == 10) then !HGH-K case
+        read(11,*) psppar(0,0,ityp),nn,(psppar(0,j,ityp),j=1,nn) !local PSP parameters
+        read(11,*) nlterms !number of channels of the pseudo
+        prjloop: do l=1,nlterms
+           read(11,*) psppar(l,0,ityp),nprl,psppar(l,1,ityp),&
+                (psppar(l,j+2,ityp),j=2,nprl) !h_ij terms
+           do i=2,nprl
+              read(11,*) psppar(l,i,ityp),(psppar(l,i+j+1,ityp),j=i+1,nprl) !h_ij terms
+           end do
+           if (l==1) cycle
+           do i=1,nprl
+              read(11,*) !k coefficients, not used
+           end do
+        end do prjloop
+     else
+        if (iproc == 0) then
+           write(*,'(1x,a,a)')trim(atomnames(ityp)),&
+                'unrecognized pspcode: only GTH, HGH & HGH-K pseudos (ABINIT format)'
+        end if
+        stop
+       end if
+       !see whether the atom is semicore or not
+       call eleconf(nzatom(ityp),nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf,iasctype(ityp))
+       !if you want no semicore electrons, uncomment the following line
+       !iasctype(ityp)=0
+
+       !old way of calculating the radii, requires modification of the PSP files
+       read(11,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
+       if (ierror.eq.0) then
+          if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
+               trim(atomnames(ityp)),nelpsp(ityp),npspcode(ityp),&
+               radii_cf(ityp,1),radii_cf(ityp,2),&
+               '                   X    '
+       else
+          !assigning the radii by calculating physical parameters
+          radii_cf(ityp,1)=1.d0/sqrt(abs(2.d0*ehomo))
+          radfine=100.d0
+          do i=0,4
+             if (psppar(i,0,ityp)/=0.d0) then
+                radfine=min(radfine,psppar(i,0,ityp))
+             end if
+          end do
+          radii_cf(ityp,2)=radfine
+          if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
+               trim(atomnames(ityp)),nelpsp(ityp),npspcode(ityp),&
+               radii_cf(ityp,1),radii_cf(ityp,2),&
+               '       X                '
+       end if
+       close(11)
+    enddo
+
+    !deallocation
+    i_all=-product(shape(neleconf))*kind(neleconf)
+    deallocate(neleconf,stat=i_stat)
+    call memocc(i_stat,i_all,'neleconf','read_PSP_variables')
+
+
+    !calculate number of electrons and orbitals
+
+
+  end subroutine read_system_variables
