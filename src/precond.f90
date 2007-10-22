@@ -87,6 +87,10 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   
   call razero((n1+1)*(n2+1)*(n3+1),xpsig_c)
   call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),xpsig_f)
+
+  call razero((n1+1)*(n2+1)*(n3+1),ypsig_c)
+  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),ypsig_f)
+
 !***********************************************************************************************
   do i=1,nvctr_c+7*nvctr_f
      spsi(i)=hpsi(i)
@@ -258,7 +262,7 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   deallocate(x_f3,stat=i_stat)
   call memocc(i_stat,i_all,'x_f3','applylocpotkinall')
 !***********************************************************************************************
-  return
+
 end subroutine precong
 
 SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -285,6 +289,8 @@ SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
        scal,xpsi_c,xpsi_f,xpsig_c,xpsig_f,x_f1,x_f2,x_f3)
 
+!!$  ypsig_c=xpsig_c
+!!$  ypsig_f=xpsig_f
   call Convolkinetic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
        cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
 	   xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3)

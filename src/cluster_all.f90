@@ -284,7 +284,7 @@ contains
   call memocc(i_stat,product(shape(iasctype))*kind(iasctype),'iasctype','cluster')
 
   call read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomnames,iatype,&
-       psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp)
+       psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
 
   !useless values, must be cleaned from the code
   norbup=norbu
@@ -392,37 +392,13 @@ contains
   !its values are ignored in the datacode='G' case
   allocate(nscatterarr(0:nproc-1,4),stat=i_stat)
   call memocc(i_stat,product(shape(nscatterarr))*kind(nscatterarr),'nscatterarr','cluster')
-  if (datacode == 'D') then
-     do jproc=0,iproc-1
-        call PS_dim4allocation('F',datacode,jproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,&
-             n3d,n3p,n3pi,i3xcsh,i3s)
-        nscatterarr(jproc,1)=n3d            !number of planes for the density
-        nscatterarr(jproc,2)=n3p            !number of planes for the potential
-        nscatterarr(jproc,3)=i3s+i3xcsh-1   !starting offset for the potential
-        nscatterarr(jproc,4)=i3xcsh         !GGA XC shift between density and potential
-     end do
-     do jproc=iproc+1,nproc-1
-        call PS_dim4allocation('F',datacode,jproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,&
-             n3d,n3p,n3pi,i3xcsh,i3s)
-        nscatterarr(jproc,1)=n3d
-        nscatterarr(jproc,2)=n3p
-        nscatterarr(jproc,3)=i3s+i3xcsh-1
-        nscatterarr(jproc,4)=i3xcsh
-     end do
-  end if
-
-  call PS_dim4allocation('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,&
-       n3d,n3p,n3pi,i3xcsh,i3s)
-  nscatterarr(iproc,1)=n3d
-  nscatterarr(iproc,2)=n3p
-  nscatterarr(iproc,3)=i3s+i3xcsh-1
-  nscatterarr(iproc,4)=i3xcsh
-
   !allocate array for the communications of the potential
   allocate(ngatherarr(0:nproc-1,2),stat=i_stat)
   call memocc(i_stat,product(shape(ngatherarr))*kind(ngatherarr),'ngatherarr','cluster')
-  ngatherarr(:,1)=(2*n1+31)*(2*n2+31)*nscatterarr(:,2)
-  ngatherarr(:,2)=(2*n1+31)*(2*n2+31)*nscatterarr(:,3)
+
+  !create the descriptors for the density and the potential
+  call createDensPotDescriptors(iproc,nproc,'F',datacode,n1,n2,n3,ixc,&
+       n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
 
   !allocate ionic potential
   if (n3pi > 0) then
@@ -532,64 +508,10 @@ contains
              nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
         
      end if
-     
-     if (parallel) then
-        !allocate hpsi array (used also as transposed)
-        !allocated in the transposed way such as 
-        !it can also be used as the transposed hpsi
-        allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
-        call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','cluster')
-        
-        !transpose the psi wavefunction
-        !here hpsi is used as a work array
-        call timing(iproc,'Un-TransSwitch','ON')
-        call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,hpsi)
-        call timing(iproc,'Un-TransSwitch','OF')
-        !allocate transposed principal wavefunction
-        allocate(psit(nvctrp,norbp*nproc),stat=i_stat)
-        call memocc(i_stat,product(shape(psit))*kind(psit),'psit','cluster')
-        call timing(iproc,'Un-TransComm  ','ON')
-        call MPI_ALLTOALL(hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-             psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        call timing(iproc,'Un-TransComm  ','OF')
-        !end of transposition
-        
-        if(nspin==1) then
-           call orthon_p(iproc,nproc,norb,norbp,nvctrp,psit) !CHANGE
-        else
-           call orthon_p(iproc,nproc,norbu,norbup,nvctrp,psit) !CHANGE
-           if(norbd>0) then
-              call orthon_p(iproc,nproc,norbd,norbdp,nvctrp,psit(1,norbu+1)) !CHANGE
-           end if
-        end if
-        !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
-        
-        !retranspose the psit wavefunction into psi
-        !here hpsi is used as a work array
-        call timing(iproc,'Un-TransComm  ','ON')
-        call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-             hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        call timing(iproc,'Un-TransComm  ','OF')
-        call timing(iproc,'Un-TransSwitch','ON')
-        call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
-        call timing(iproc,'Un-TransSwitch','OF')
-        !end of retransposition
-     else
-        if(nspin==1) then
-           call orthon(norb,norbp,nvctrp,psi)
-        !call checkortho(norb,norbp,nvctrp,psi)
-        else
-           call orthon(norbu,norbup,nvctrp,psi)
-           call checkortho(norbu,norbup,nvctrp,psi)
-           if(norbd>0) then
-              call orthon(norbd,norbdp,nvctrp,psi(1,norbu+1))
-              call checkortho(norbd,norbdp,nvctrp,psi(1,norbu+1))
-           end if
-        end if
-        !allocate hpsi array
-        allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
-        call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','cluster')
-     endif
+
+     !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
+     call first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
+          nspin,psi,hpsi,psit)
      
   end if
 
@@ -633,6 +555,7 @@ contains
 
 !     ixc=11  ! PBE functional
 !     ixc=1   ! LDA functional
+
      call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
           rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin) !add NSPIN
 
@@ -737,65 +660,10 @@ contains
        call memocc(i_stat,i_all,'ads','cluster')
   end if
 
-!------------------------------------------------------------------------
-! transform to KS orbitals
-  if (parallel) then
+! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
+  call last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
+       nspin,psi,hpsi,psit,occup,evsum,eval)
 
-     !transpose the hpsi wavefunction
-     !here psi is used as a work array
-     call timing(iproc,'Un-TransSwitch','ON')
-     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
-     call timing(iproc,'Un-TransSwitch','OF')
-     !here hpsi is the transposed array
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
-     !end of transposition
-
-     if(nspin==1) then
-        call KStrans_p(iproc,nproc,norb,norbp*nproc,nvctrp,occup,hpsi,psit,evsum,eval)
-     else
-        call KStrans_p(iproc,nproc,norbu,norbu,nvctrp,occup,hpsi,psit,evsum,eval)
-        evpart=evsum
-        if(norbd>0) then
-           call KStrans_p(iproc,nproc,norbd,norbd,nvctrp,occup,&
-                hpsi(1,norbu+1),psit(1,norbu+1),evsum,eval(norbu+1))
-           evsum=evsum+evpart
-        end if
-     end if
-
-     !retranspose the psit wavefunction into psi
-     !here hpsi is used as a work array
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
-     call timing(iproc,'Un-TransSwitch','ON')
-     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
-     call timing(iproc,'Un-TransSwitch','OF')
-     !end of retransposition
-
-     i_all=-product(shape(psit))*kind(psit)
-     deallocate(psit,stat=i_stat)
-     call memocc(i_stat,i_all,'psit','cluster')
-
-  else
-     if(nspin==1) then
-        call KStrans(norb,norbp,nvctrp,occup,hpsi,psi,evsum,eval)
-     else
-        call KStrans(norbu,norbup,nvctrp,occup,hpsi,psi,evsum,eval)
-        evpart=evsum
-        if(norbd>0) then
-           call KStrans(norbd,norbdp,nvctrp,occup,hpsi(1,norbu+1),psi(1,norbu+1),&
-                evsum,eval(norbu+1))
-           evsum=evsum+evpart
-        end if
-     end if
-  endif
-  i_all=-product(shape(hpsi))*kind(hpsi)
-  deallocate(hpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsi','cluster')
   if (abs(evsum-energybs).gt.1.d-8 .and. iproc==0) write(*,'(1x,a,2(1x,1pe20.13))')&
        'Difference:evsum,energybs',evsum,energybs
 
@@ -852,7 +720,7 @@ contains
        nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
        (2*n1+31)*(2*n2+31)*n3p,nscatterarr,1,spinar_foo,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+       ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
   i_all=-product(shape(spinar_foo))*kind(spinar_foo)
   deallocate(spinar_foo,stat=i_stat)
@@ -990,7 +858,7 @@ contains
      else
         do ispin=1,nspin
         !here one could have not allocated pot and: call move_alloc(rhopot,pot) 
-        !(but it is a Fortran 2003 spec)
+        !(but it is a Fortran 95/2003 spec)
            do i3=1,2*n3+31
               do i2=1,2*n2+31
                  do i1=1,2*n1+31
@@ -1283,13 +1151,13 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
 
      if(nspin==1) then
-        call  orthoconstraint_p(iproc,nproc,norb,norbp,occup,nvctrp,psit,hpsi,scprsum)
+        call  orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsi,scprsum)
      else
-        call  orthoconstraint_p(iproc,nproc,norbu,norbup,occup,nvctrp,psit,hpsi,scprsum)
+        call  orthoconstraint_p(iproc,nproc,norbu,occup,nvctrp,psit,hpsi,scprsum)
         scprpart=0.0d0
         if(norbd>0) then
            scprpart=scprsum 
-           call  orthoconstraint_p(iproc,nproc,norbd,norbdp,occup,nvctrp,psit(1,norbu+1),hpsi(1,norbu+1),scprsum)
+           call  orthoconstraint_p(iproc,nproc,norbd,occup,nvctrp,psit(1,norbu+1),hpsi(1,norbu+1),scprsum)
         end if
         scprsum=scprsum+scprpart
      end if
@@ -1307,13 +1175,13 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      !end of retransposition
   else
         if(nspin==1) then
-           call orthoconstraint(norb,norbp,occup,nvctrp,psi,hpsi,scprsum)
+           call orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum)
         else
-           call orthoconstraint(norbu,norbu,occup,nvctrp,psi,hpsi,scprsum)
+           call orthoconstraint(norbu,occup,nvctrp,psi,hpsi,scprsum)
            scprpart=0.0d0
            if(norbd>0) then
               scprpart=scprsum 
-              call orthoconstraint(norbd,norbd,occup,nvctrp,psi(1,norbu+1),hpsi(1,norbu+1),scprsum)
+              call orthoconstraint(norbd,occup,nvctrp,psi(1,norbu+1),hpsi(1,norbu+1),scprsum)
            end if
            scprsum=scprsum+scprpart
         end if
@@ -1468,14 +1336,14 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
   if (parallel) then
      if(nspin==1) then
-        call orthon_p(iproc,nproc,norb,norbp,nvctrp,psit)
+        call orthon_p(iproc,nproc,norb,nvctrp,psit)
      else
-        call orthon_p(iproc,nproc,norbu,norbup,nvctrp,psit)
+        call orthon_p(iproc,nproc,norbu,nvctrp,psit)
         if(norbd>0) then
-           call orthon_p(iproc,nproc,norbd,norbdp,nvctrp,psit(1,norbu+1))
+           call orthon_p(iproc,nproc,norbd,nvctrp,psit(1,norbu+1))
         end if
      end if
-     !       call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
+     !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
 
      !here hpsi is used as a work array
      call timing(iproc,'Un-TransComm  ','ON')
@@ -1488,16 +1356,16 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      !end of retransposition
   else
      if(nspin==1) then
-        call orthon(norb,norbp,nvctrp,psi)
-        !          call checkortho(norb,norbp,nvctrp,psi)
+        call orthon(norb,nvctrp,psi)
+        !          call checkortho(norb,nvctrp,psi)
      else
         !        write(*,*) "NORBS",norbu,norbd,norbup,norbdp
-        call orthon(norbu,norbup,nvctrp,psi)
-        !          call checkortho(norbu,norbup,nvctrp,psi)
+        call orthon(norbu,nvctrp,psi)
+        !          call checkortho(norbu,nvctrp,psi)
         if(norbd>0) then
-           call orthon(norbd,norbdp,nvctrp,psi(1,norbu+1))
+           call orthon(norbd,nvctrp,psi(1,norbu+1))
         end if
-        !          call checkortho(norbd,norbdp,nvctrp,psi(1,norbu+1))
+        !          call checkortho(norbd,nvctrp,psi(1,norbu+1))
      end if
   endif
   
@@ -1514,6 +1382,199 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   end if
 
 end subroutine hpsitopsi
+
+subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
+     nspin,psi,hpsi,psit)
+  implicit none
+  include 'mpif.h'
+  logical, intent(in) :: parallel
+  integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
+  real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
+  !local variables
+  integer :: i_all,i_stat,ierr
+
+  if (parallel) then
+     !allocate hpsi array (used also as transposed)
+     !allocated in the transposed way such as 
+     !it can also be used as the transposed hpsi
+     allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','first_orthon')
+
+     !transpose the psi wavefunction
+     !here hpsi is used as a work array
+     call timing(iproc,'Un-TransSwitch','ON')
+     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,hpsi)
+     call timing(iproc,'Un-TransSwitch','OF')
+     !allocate transposed principal wavefunction
+     allocate(psit(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(psit))*kind(psit),'psit','first_orthon')
+     call timing(iproc,'Un-TransComm  ','ON')
+     call MPI_ALLTOALL(hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+          psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'Un-TransComm  ','OF')
+     !end of transposition
+
+     if(nspin==1) then
+        call orthon_p(iproc,nproc,norb,nvctrp,psit) !CHANGE
+     else
+        call orthon_p(iproc,nproc,norbu,nvctrp,psit) !CHANGE
+        if(norbd>0) then
+           call orthon_p(iproc,nproc,norbd,nvctrp,psit(1,norbu+1)) !CHANGE
+        end if
+     end if
+     !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
+
+     !retranspose the psit wavefunction into psi
+     !here hpsi is used as a work array
+     call timing(iproc,'Un-TransComm  ','ON')
+     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'Un-TransSwitch','ON')
+     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+     call timing(iproc,'Un-TransSwitch','OF')
+     !end of retransposition
+  else
+     if(nspin==1) then
+        call orthon(norb,nvctrp,psi)
+        !call checkortho(norb,norbp,nvctrp,psi)
+     else
+        call orthon(norbu,nvctrp,psi)
+        !call checkortho(norbu,nvctrp,psi)
+        if(norbd>0) then
+           call orthon(norbd,nvctrp,psi(1,norbu+1))
+           !call checkortho(norbd,nvctrp,psi(1,norbu+1))
+        end if
+     end if
+     !allocate hpsi array
+     allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+     call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','first_orthon')
+  endif
+
+end subroutine first_orthon
+
+! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
+subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
+     nspin,psi,hpsi,psit,occup,evsum,eval)
+  implicit none
+  include 'mpif.h'
+  logical, intent(in) :: parallel
+  integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
+  real(kind=8), dimension(norb), intent(in) :: occup
+  real(kind=8), intent(out) :: evsum
+  real(kind=8), dimension(norb), intent(out) :: eval
+  real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
+  !local variables
+  integer :: i_all,i_stat,ierr
+  real(kind=8) :: evpart
+
+  if (parallel) then
+
+     !transpose the hpsi wavefunction
+     !here psi is used as a work array
+     call timing(iproc,'Un-TransSwitch','ON')
+     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+     call timing(iproc,'Un-TransSwitch','OF')
+     !here hpsi is the transposed array
+     call timing(iproc,'Un-TransComm  ','ON')
+     call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'Un-TransComm  ','OF')
+     !end of transposition
+
+     if(nspin==1) then
+        call KStrans_p(iproc,nproc,norb,norbp*nproc,nvctrp,occup,hpsi,psit,evsum,eval)
+     else
+        call KStrans_p(iproc,nproc,norbu,norbu,nvctrp,occup,hpsi,psit,evsum,eval)
+        evpart=evsum
+        if(norbd>0) then
+           call KStrans_p(iproc,nproc,norbd,norbd,nvctrp,occup,&
+                hpsi(1,norbu+1),psit(1,norbu+1),evsum,eval(norbu+1))
+           evsum=evsum+evpart
+        end if
+     end if
+
+     !retranspose the psit wavefunction into psi
+     !here hpsi is used as a work array
+     call timing(iproc,'Un-TransComm  ','ON')
+     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
+          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'Un-TransSwitch','ON')
+     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+     call timing(iproc,'Un-TransSwitch','OF')
+     !end of retransposition
+
+     i_all=-product(shape(psit))*kind(psit)
+     deallocate(psit,stat=i_stat)
+     call memocc(i_stat,i_all,'psit','last_orthon')
+
+  else
+     if(nspin==1) then
+        call KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval)
+     else
+        call KStrans(norbu,nvctrp,occup,hpsi,psi,evsum,eval)
+        evpart=evsum
+        if(norbd>0) then
+           call KStrans(norbd,nvctrp,occup,hpsi(1,norbu+1),psi(1,norbu+1),&
+                evsum,eval(norbu+1))
+           evsum=evsum+evpart
+        end if
+     end if
+  endif
+  i_all=-product(shape(hpsi))*kind(hpsi)
+  deallocate(hpsi,stat=i_stat)
+  call memocc(i_stat,i_all,'hpsi','last_orthon')
+
+end subroutine last_orthon
+
+
+!create the descriptors for the density and the potential
+subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1,n2,n3,ixc,&
+     n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
+
+  use Poisson_Solver
+
+  implicit none
+  character(len=1), intent(in) :: geocode,datacode
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,ixc
+  integer, intent(out) ::  n3d,n3p,n3pi,i3xcsh,i3s
+  integer, dimension(0:nproc-1,4), intent(out) :: nscatterarr
+  integer, dimension(0:nproc-1,2), intent(out) :: ngatherarr
+  !local variables
+  integer :: jproc
+
+  if (datacode == 'D') then
+     do jproc=0,iproc-1
+        call PS_dim4allocation('F',datacode,jproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,&
+             n3d,n3p,n3pi,i3xcsh,i3s)
+        nscatterarr(jproc,1)=n3d            !number of planes for the density
+        nscatterarr(jproc,2)=n3p            !number of planes for the potential
+        nscatterarr(jproc,3)=i3s+i3xcsh-1   !starting offset for the potential
+        nscatterarr(jproc,4)=i3xcsh         !GGA XC shift between density and potential
+     end do
+     do jproc=iproc+1,nproc-1
+        call PS_dim4allocation('F',datacode,jproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,&
+             n3d,n3p,n3pi,i3xcsh,i3s)
+        nscatterarr(jproc,1)=n3d
+        nscatterarr(jproc,2)=n3p
+        nscatterarr(jproc,3)=i3s+i3xcsh-1
+        nscatterarr(jproc,4)=i3xcsh
+     end do
+  end if
+
+  call PS_dim4allocation('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,&
+       n3d,n3p,n3pi,i3xcsh,i3s)
+  nscatterarr(iproc,1)=n3d
+  nscatterarr(iproc,2)=n3p
+  nscatterarr(iproc,3)=i3s+i3xcsh-1
+  nscatterarr(iproc,4)=i3xcsh
+
+  ngatherarr(:,1)=(2*n1+31)*(2*n2+31)*nscatterarr(:,2)
+  ngatherarr(:,2)=(2*n1+31)*(2*n2+31)*nscatterarr(:,3)
+
+end subroutine createDensPotDescriptors
+
 
 subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,&
      hgrid,nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&

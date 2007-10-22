@@ -1,4 +1,6 @@
 
+
+
 subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
     ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
         ibyz_c,ibzxx_c,ibxxyy_c,ibyz_f,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
@@ -200,7 +202,7 @@ subroutine make_logrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,logrid)
                 j1=i1-nm1
                 j2=i2-nm2
                 j3=i3-nm3
-                if (j1*j1+j2*j2+j3*j3.lt.nrad2) logrid(i1,i2,i3)=.true.
+                if (j1*j1+j2*j2+j3*j3.le.nrad2) logrid(i1,i2,i3)=.true.
             enddo
         enddo
     enddo

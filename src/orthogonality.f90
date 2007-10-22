@@ -1,8 +1,8 @@
-subroutine orthoconstraint_p(iproc,nproc,norb,norbp,occup,nvctrp,psit,hpsit,scprsum)
+subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum)
   !Effect of orthogonality constraints on gradient 
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.true.
-  dimension psit(nvctrp,norbp*nproc),hpsit(nvctrp,norbp*nproc),occup(norb)
+  dimension psit(nvctrp,norb),hpsit(nvctrp,norb),occup(norb)
   allocatable :: alag(:,:,:)
   include 'mpif.h'
 
@@ -41,11 +41,11 @@ subroutine orthoconstraint_p(iproc,nproc,norb,norbp,occup,nvctrp,psit,hpsit,scpr
 END SUBROUTINE orthoconstraint_p
 
 
-subroutine orthoconstraint(norb,norbp,occup,nvctrp,psi,hpsi,scprsum)
+subroutine orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum)
   !Effect of orthogonality constraints on gradient 
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.false.
-  dimension psi(nvctrp,norbp),hpsi(nvctrp,norbp),occup(norb)
+  dimension psi(nvctrp,norb),hpsi(nvctrp,norb),occup(norb)
   allocatable :: alag(:,:,:)
 
   call timing(iproc,'LagrM_comput  ','ON')
@@ -73,11 +73,11 @@ subroutine orthoconstraint(norb,norbp,occup,nvctrp,psi,hpsi,scprsum)
 END SUBROUTINE orthoconstraint
 
 
-subroutine orthon_p(iproc,nproc,norb,norbp,nvctrp,psit)
+subroutine orthon_p(iproc,nproc,norb,nvctrp,psit)
   ! Gram-Schmidt orthogonalisation
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.true.
-  dimension psit(nvctrp,norbp*nproc)
+  dimension psit(nvctrp,norb)
   real(kind=8), allocatable :: ovrlp(:,:,:)
   include 'mpif.h'
 
@@ -136,11 +136,11 @@ subroutine orthon_p(iproc,nproc,norb,norbp,nvctrp,psit)
 END SUBROUTINE orthon_p
 
 
-subroutine orthon(norb,norbp,nvctrp,psi)
+subroutine orthon(norb,nvctrp,psi)
   ! Gram-Schmidt orthogonalisation
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.false.
-  dimension psi(nvctrp,norbp)
+  dimension psi(nvctrp,norb)
   real(kind=8), allocatable :: ovrlp(:,:)
 
   call timing(iproc,'GramS_comput  ','ON')
@@ -186,11 +186,11 @@ subroutine orthon(norb,norbp,nvctrp,psi)
 end subroutine orthon
 
 
-subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
+subroutine loewe_p(iproc,nproc,norb,ndim,nvctrp,psit)
   ! loewdin orthogonalisation
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.true.
-  dimension psit(nvctrp,norbp*nproc)
+  dimension psit(nvctrp,ndim)
   real(kind=8), allocatable :: ovrlp(:,:,:),evall(:),psitt(:,:)
   include 'mpif.h'
 
@@ -243,12 +243,12 @@ subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
   ! BLAS:
   call DGEMM('N','T',norb,norb,norb,1.d0,ovrlp(1,1,1),norb,ovrlp(1,1,2),norb,0.d0,ovrlp(1,1,3),norb)
 
-  allocate(psitt(nvctrp,norbp*nproc),stat=i_stat)
+  allocate(psitt(nvctrp,ndim),stat=i_stat)
   call memocc(i_stat,product(shape(psitt))*kind(psitt),'psitt','loewe_p')
   ! new eigenvectors
   !   psitt(i,iorb)=psit(i,jorb)*ovrlp(jorb,iorb,3)
   call DGEMM('N','N',nvctrp,norb,norb,1.d0,psit,nvctrp,ovrlp(1,1,3),norb,0.d0,psitt,nvctrp)
-  call DCOPY(nvctrp*norbp*nproc,psitt,1,psit,1)
+  call DCOPY(nvctrp*ndim,psitt,1,psit,1)
   i_all=-product(shape(psitt))*kind(psitt)
   deallocate(psitt,stat=i_stat)
   call memocc(i_stat,i_all,'psitt','loewe_p')
@@ -263,10 +263,10 @@ subroutine loewe_p(iproc,nproc,norb,norbp,nvctrp,psit)
 END SUBROUTINE loewe_p
 
 
-subroutine loewe(norb,norbp,nvctrp,psi)
+subroutine loewe(norb,nvctrp,psi)
   ! loewdin orthogonalisation
   implicit real(kind=8) (a-h,o-z)
-  dimension psi(nvctrp,norbp)
+  dimension psi(nvctrp,norb)
   real(kind=8), allocatable :: ovrlp(:,:,:),evall(:),tpsi(:,:)
 
   if (norb.eq.1) then
@@ -343,9 +343,9 @@ subroutine loewe(norb,norbp,nvctrp,psi)
 END SUBROUTINE loewe
 
 
-subroutine checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
+subroutine checkortho_p(iproc,nproc,norb,nvctrp,psit)
   implicit real(kind=8) (a-h,o-z)
-  dimension psit(nvctrp,norbp*nproc)
+  dimension psit(nvctrp,norb)
   real(kind=8), allocatable :: ovrlp(:,:,:)
   include 'mpif.h'
 
@@ -388,9 +388,9 @@ subroutine checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 END SUBROUTINE checkortho_p
 
 
-subroutine checkortho(norb,norbp,nvctrp,psi)
+subroutine checkortho(norb,nvctrp,psi)
   implicit real(kind=8) (a-h,o-z)
-  dimension psi(nvctrp,norbp)
+  dimension psi(nvctrp,norb)
   real(kind=8), allocatable :: ovrlp(:,:,:)
 
   allocate(ovrlp(norb,norb,1),stat=i_stat)
@@ -499,12 +499,12 @@ subroutine KStrans_p(iproc,nproc,norb,ndim,nvctrp,occup,  &
 END SUBROUTINE KStrans_p
 
 
-subroutine KStrans(norb,norbp,nvctrp,occup,hpsi,psi,evsum,eval)
+subroutine KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval)
   ! at the start each processor has all the Psi's but only its part of the HPsi's
   ! at the end each processor has only its part of the Psi's
   implicit real(kind=8) (a-h,o-z)
   dimension occup(norb),eval(norb)
-  dimension psi(nvctrp,norbp),hpsi(nvctrp,norbp)
+  dimension psi(nvctrp,norb),hpsi(nvctrp,norb)
   ! arrays for KS orbitals
   allocatable :: hamks(:,:,:),work_lp(:),psitt(:,:)
 
@@ -542,7 +542,7 @@ subroutine KStrans(norb,norbp,nvctrp,occup,hpsi,psi,evsum,eval)
   call memocc(i_stat,i_all,'work_lp','kstrans')
   if (info.ne.0) write(*,*) 'DSYEV ERROR',info
 
-  allocate(psitt(nvctrp,norbp),stat=i_stat)
+  allocate(psitt(nvctrp,norb),stat=i_stat)
   call memocc(i_stat,product(shape(psitt))*kind(psitt),'psitt','kstrans')
   ! Transform to KS orbitals
   do iorb=1,norb
@@ -556,7 +556,7 @@ subroutine KStrans(norb,norbp,nvctrp,occup,hpsi,psi,evsum,eval)
   deallocate(hamks,stat=i_stat)
   call memocc(i_stat,i_all,'hamks','kstrans')
 
-  call DCOPY(nvctrp*norbp,psitt,1,psi,1)
+  call DCOPY(nvctrp*norb,psitt,1,psi,1)
   i_all=-product(shape(psitt))*kind(psitt)
   deallocate(psitt,stat=i_stat)
   call memocc(i_stat,i_all,'psitt','kstrans')

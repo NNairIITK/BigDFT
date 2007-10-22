@@ -238,92 +238,92 @@ subroutine Convolkinetic(n1,n2,n3, &
 !  call system_clock(ncount0,ncount_rate,ncount_max)
 
   ! (1/2) d^2/dx^2
+  
+  do i3=0,n3
+     do i2=0,n2
+        if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
+           do i1=ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)-4,4
+              dyi0=0.d0 
+              dyi1=0.d0 
+              dyi2=0.d0 
+              dyi3=0.d0 
+              do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
+                 dyi0=dyi0 + x_c(t,i2,i3)*a(t-i1-0)
+                 dyi1=dyi1 + x_c(t,i2,i3)*a(t-i1-1)
+                 dyi2=dyi2 + x_c(t,i2,i3)*a(t-i1-2)
+                 dyi3=dyi3 + x_c(t,i2,i3)*a(t-i1-3)
+              enddo
+              y_c(i1+0,i2,i3)=dyi0+cprecr*x_c(i1+0,i2,i3)
+              y_c(i1+1,i2,i3)=dyi1+cprecr*x_c(i1+1,i2,i3)
+              y_c(i1+2,i2,i3)=dyi2+cprecr*x_c(i1+2,i2,i3)
+              y_c(i1+3,i2,i3)=dyi3+cprecr*x_c(i1+3,i2,i3)
 
-	do i3=0,n3
-		do i2=0,n2
-     		if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
-				do i1=ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)-4,4
-					dyi0=0.d0 
-					dyi1=0.d0 
-					dyi2=0.d0 
-					dyi3=0.d0 
-					do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
-          		 	   dyi0=dyi0 + x_c(t,i2,i3)*a(t-i1-0)
-          		 	   dyi1=dyi1 + x_c(t,i2,i3)*a(t-i1-1)
-          		 	   dyi2=dyi2 + x_c(t,i2,i3)*a(t-i1-2)
-          		 	   dyi3=dyi3 + x_c(t,i2,i3)*a(t-i1-3)
-          		 	enddo
-          		 	y_c(i1+0,i2,i3)=dyi0+cprecr*x_c(i1+0,i2,i3)
-          		 	y_c(i1+1,i2,i3)=dyi1+cprecr*x_c(i1+1,i2,i3)
-          		 	y_c(i1+2,i2,i3)=dyi2+cprecr*x_c(i1+2,i2,i3)
-          		 	y_c(i1+3,i2,i3)=dyi3+cprecr*x_c(i1+3,i2,i3)
-					
-	        	enddo
-				icur=i1
-			else
-  				icur=ibyz_c(1,i2,i3)
-			endif
-			
-			do i1=icur,ibyz_c(2,i2,i3)
-				dyi=0.d0 
-				do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
-          	 	   dyi=dyi + x_c(t,i2,i3)*a(t-i1)
-          	 	enddo
-          	 	y_c(i1,i2,i3)=dyi+cprecr*x_c(i1,i2,i3)
-	        enddo
-			
-			istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
-			iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
+           enddo
+           icur=i1
+        else
+           icur=ibyz_c(1,i2,i3)
+        endif
 
-			if (istart-iend.ge.4) then
-	    	    do i1=istart,iend-4,4
-	        	   	dyi0=0.d0
-	        	   	dyi1=0.d0
-	        	   	dyi2=0.d0
-	        	   	dyi3=0.d0
-		        	do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_f(2,i2,i3))
-						dyi0=dyi0 + x_f1(t,i2,i3)*b(t-i1-0)
-						dyi1=dyi1 + x_f1(t,i2,i3)*b(t-i1-1)
-						dyi2=dyi2 + x_f1(t,i2,i3)*b(t-i1-2)
-						dyi3=dyi3 + x_f1(t,i2,i3)*b(t-i1-3)
-					enddo
-	           		y_c(i1+0,i2,i3)=y_c(i1+0,i2,i3)+dyi0
-	           		y_c(i1+1,i2,i3)=y_c(i1+1,i2,i3)+dyi1
-	           		y_c(i1+2,i2,i3)=y_c(i1+2,i2,i3)+dyi2
-	           		y_c(i1+3,i2,i3)=y_c(i1+3,i2,i3)+dyi3
-				enddo
-				istart=i1
-			endif
+        do i1=icur,ibyz_c(2,i2,i3)
+           dyi=0.d0 
+           do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
+              dyi=dyi + x_c(t,i2,i3)*a(t-i1)
+           enddo
+           y_c(i1,i2,i3)=dyi+cprecr*x_c(i1,i2,i3)
+        enddo
 
-    	    do i1=istart,iend
-        	   	dyi=0.d0
-	        	do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_f(2,i2,i3))
-					dyi=dyi + x_f1(t,i2,i3)*b(t-i1)
-				enddo
-           		y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-			enddo
-			
+        istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
+        iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
+
+        if (istart-iend.ge.4) then
+           do i1=istart,iend-4,4
+              dyi0=0.d0
+              dyi1=0.d0
+              dyi2=0.d0
+              dyi3=0.d0
+              do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_f(2,i2,i3))
+                 dyi0=dyi0 + x_f1(t,i2,i3)*b(t-i1-0)
+                 dyi1=dyi1 + x_f1(t,i2,i3)*b(t-i1-1)
+                 dyi2=dyi2 + x_f1(t,i2,i3)*b(t-i1-2)
+                 dyi3=dyi3 + x_f1(t,i2,i3)*b(t-i1-3)
+              enddo
+              y_c(i1+0,i2,i3)=y_c(i1+0,i2,i3)+dyi0
+              y_c(i1+1,i2,i3)=y_c(i1+1,i2,i3)+dyi1
+              y_c(i1+2,i2,i3)=y_c(i1+2,i2,i3)+dyi2
+              y_c(i1+3,i2,i3)=y_c(i1+3,i2,i3)+dyi3
+           enddo
+           istart=i1
+        endif
+
+        do i1=istart,iend
+           dyi=0.d0
+           do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_f(2,i2,i3))
+              dyi=dyi + x_f1(t,i2,i3)*b(t-i1)
+           enddo
+           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+        enddo
+
      	if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
-	        do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)-4,4
-				dyi0=0.d0 
-				dyi1=0.d0 
-				dyi2=0.d0 
-				dyi3=0.d0 
-	           do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
-	              dyi0=dyi0 + x_c(t,i2,i3)*c(t-i1-0)
-	              dyi1=dyi1 + x_c(t,i2,i3)*c(t-i1-1)
-	              dyi2=dyi2 + x_c(t,i2,i3)*c(t-i1-2)
-	              dyi3=dyi3 + x_c(t,i2,i3)*c(t-i1-3)
-	           enddo
-	           y_f(1,i1+0,i2,i3)=dyi0
-	           y_f(1,i1+1,i2,i3)=dyi1
-	           y_f(1,i1+2,i2,i3)=dyi2
-	           y_f(1,i1+3,i2,i3)=dyi3
-	        enddo
-			icur=i1
-		else
-	   		icur=ibyz_f(1,i2,i3)
-		endif
+           do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)-4,4
+              dyi0=0.d0 
+              dyi1=0.d0 
+              dyi2=0.d0 
+              dyi3=0.d0 
+              do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
+                 dyi0=dyi0 + x_c(t,i2,i3)*c(t-i1-0)
+                 dyi1=dyi1 + x_c(t,i2,i3)*c(t-i1-1)
+                 dyi2=dyi2 + x_c(t,i2,i3)*c(t-i1-2)
+                 dyi3=dyi3 + x_c(t,i2,i3)*c(t-i1-3)
+              enddo
+              y_f(1,i1+0,i2,i3)=dyi0
+              y_f(1,i1+1,i2,i3)=dyi1
+              y_f(1,i1+2,i2,i3)=dyi2
+              y_f(1,i1+3,i2,i3)=dyi3
+           enddo
+           icur=i1
+        else
+           icur=ibyz_f(1,i2,i3)
+        endif
         do i1=icur,ibyz_f(2,i2,i3)
            dyi=0.d0 
            do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
@@ -333,96 +333,96 @@ subroutine Convolkinetic(n1,n2,n3, &
         enddo
      enddo
   enddo
-!  call system_clock(ncount1,ncount_rate,ncount_max)
-!  tel=dble(ncount1-ncount0)/dble(ncount_rate)
-!  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:x',tel,1.d-6*mflop1/tel
+  !  call system_clock(ncount1,ncount_rate,ncount_max)
+  !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
+  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:x',tel,1.d-6*mflop1/tel
 
   ! + (1/2) d^2/dy^2
-	do i3=0,n3
-		do i1=0,n1
-     		if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
-				do i2=ibxz_c(1,i1,i3),ibxz_c(2,i1,i3)-4,4
-					dyi0=0.d0 
-					dyi1=0.d0 
-					dyi2=0.d0 
-					dyi3=0.d0 
-	           		do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
-	           		   dyi0=dyi0 + x_c(i1,t,i3)*a(t-i2-0)
-	           		   dyi1=dyi1 + x_c(i1,t,i3)*a(t-i2-1)
-	           		   dyi2=dyi2 + x_c(i1,t,i3)*a(t-i2-2)
-	           		   dyi3=dyi3 + x_c(i1,t,i3)*a(t-i2-3)
-	           		enddo
-	           		y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
-	           		y_c(i1,i2+1,i3)=y_c(i1,i2+1,i3)+dyi1
-	           		y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
-	           		y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
-		        enddo
-				icur=i2
-			else
-				icur=ibxz_c(1,i1,i3)
-			endif
-			
-			do i2=icur,ibxz_c(2,i1,i3)
-				dyi=0.d0 
-           		do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
-           		   dyi=dyi + x_c(i1,t,i3)*a(t-i2)
-           		enddo
-           		y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-	        enddo
-			istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
-			iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
-			
-			if (istart-iend.ge.4) then
-		        do i2=istart,iend-4,4
-		           dyi0=0.d0
-                   dyi1=0.d0
-                   dyi2=0.d0
-                   dyi3=0.d0
-				   
-		           do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_f(2,i1,i3))
-		              dyi0=dyi0 + x_f2(t,i1,i3)*b(t-i2-0)
-		              dyi1=dyi1 + x_f2(t,i1,i3)*b(t-i2-1)
-		              dyi2=dyi2 + x_f2(t,i1,i3)*b(t-i2-2)
-		              dyi3=dyi3 + x_f2(t,i1,i3)*b(t-i2-3)
-		           enddo
-		           y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
-		           y_c(i1,i2+1,i3)=y_c(i1,i2+1,i3)+dyi1
-		           y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
-		           y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
-		        enddo
-				istart=i2
-			endif
-			
-	        do i2=istart,iend
-	           dyi=0.d0
-	           do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_f(2,i1,i3))
-	              dyi=dyi + x_f2(t,i1,i3)*b(t-i2)
-	           enddo
-	           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-	        enddo
+  do i3=0,n3
+     do i1=0,n1
+        if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
+           do i2=ibxz_c(1,i1,i3),ibxz_c(2,i1,i3)-4,4
+              dyi0=0.d0 
+              dyi1=0.d0 
+              dyi2=0.d0 
+              dyi3=0.d0 
+              do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
+                 dyi0=dyi0 + x_c(i1,t,i3)*a(t-i2-0)
+                 dyi1=dyi1 + x_c(i1,t,i3)*a(t-i2-1)
+                 dyi2=dyi2 + x_c(i1,t,i3)*a(t-i2-2)
+                 dyi3=dyi3 + x_c(i1,t,i3)*a(t-i2-3)
+              enddo
+              y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
+              y_c(i1,i2+1,i3)=y_c(i1,i2+1,i3)+dyi1
+              y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
+              y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
+           enddo
+           icur=i2
+        else
+           icur=ibxz_c(1,i1,i3)
+        endif
+
+        do i2=icur,ibxz_c(2,i1,i3)
+           dyi=0.d0 
+           do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
+              dyi=dyi + x_c(i1,t,i3)*a(t-i2)
+           enddo
+           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+        enddo
+        istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
+        iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
+
+        if (istart-iend.ge.4) then
+           do i2=istart,iend-4,4
+              dyi0=0.d0
+              dyi1=0.d0
+              dyi2=0.d0
+              dyi3=0.d0
+
+              do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_f(2,i1,i3))
+                 dyi0=dyi0 + x_f2(t,i1,i3)*b(t-i2-0)
+                 dyi1=dyi1 + x_f2(t,i1,i3)*b(t-i2-1)
+                 dyi2=dyi2 + x_f2(t,i1,i3)*b(t-i2-2)
+                 dyi3=dyi3 + x_f2(t,i1,i3)*b(t-i2-3)
+              enddo
+              y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
+              y_c(i1,i2+1,i3)=y_c(i1,i2+1,i3)+dyi1
+              y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
+              y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
+           enddo
+           istart=i2
+        endif
+
+        do i2=istart,iend
+           dyi=0.d0
+           do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_f(2,i1,i3))
+              dyi=dyi + x_f2(t,i1,i3)*b(t-i2)
+           enddo
+           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+        enddo
 
      	if (ibxz_f(2,i1,i3)-ibxz_f(1,i1,i3).ge.4) then
-	        do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)-4,4
-				dyi0=0.d0 
-				dyi1=0.d0 
-				dyi2=0.d0 
-				dyi3=0.d0 
-	           do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
-	              dyi0=dyi0 + x_c(i1,t,i3)*c(t-i2-0)
-	              dyi1=dyi1 + x_c(i1,t,i3)*c(t-i2-1)
-	              dyi2=dyi2 + x_c(i1,t,i3)*c(t-i2-2)
-	              dyi3=dyi3 + x_c(i1,t,i3)*c(t-i2-3)
-	           enddo
-	           y_f(2,i1,i2+0,i3)=dyi0
-	           y_f(2,i1,i2+1,i3)=dyi1
-	           y_f(2,i1,i2+2,i3)=dyi2
-	           y_f(2,i1,i2+3,i3)=dyi3
-	        enddo
-			icur=i2
-		else
-	   		icur=ibxz_f(1,i1,i3)
-		endif
-		
+           do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)-4,4
+              dyi0=0.d0 
+              dyi1=0.d0 
+              dyi2=0.d0 
+              dyi3=0.d0 
+              do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
+                 dyi0=dyi0 + x_c(i1,t,i3)*c(t-i2-0)
+                 dyi1=dyi1 + x_c(i1,t,i3)*c(t-i2-1)
+                 dyi2=dyi2 + x_c(i1,t,i3)*c(t-i2-2)
+                 dyi3=dyi3 + x_c(i1,t,i3)*c(t-i2-3)
+              enddo
+              y_f(2,i1,i2+0,i3)=dyi0
+              y_f(2,i1,i2+1,i3)=dyi1
+              y_f(2,i1,i2+2,i3)=dyi2
+              y_f(2,i1,i2+3,i3)=dyi3
+           enddo
+           icur=i2
+        else
+           icur=ibxz_f(1,i1,i3)
+        endif
+
         do i2=icur,ibxz_f(2,i1,i3)
            dyi=0.d0 
            do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
@@ -434,96 +434,96 @@ subroutine Convolkinetic(n1,n2,n3, &
   enddo
 
 
-!  call system_clock(ncount2,ncount_rate,ncount_max)
-!  tel=dble(ncount2-ncount1)/dble(ncount_rate)
-!  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:y',tel,1.d-6*mflop2/tel
+  !  call system_clock(ncount2,ncount_rate,ncount_max)
+  !  tel=dble(ncount2-ncount1)/dble(ncount_rate)
+  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:y',tel,1.d-6*mflop2/tel
 
   ! + (1/2) d^2/dz^2
 
-	do i2=0,n2
-		do i1=0,n1
-     		if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
-		        do i3=ibxy_c(1,i1,i2),ibxy_c(2,i1,i2)-4,4
-					dyi0=0.d0 
-					dyi1=0.d0 
-					dyi2=0.d0 
-					dyi3=0.d0 
-		        	do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
-		            	dyi0=dyi0 + x_c(i1,i2,t)*a(t-i3-0)
-		            	dyi1=dyi1 + x_c(i1,i2,t)*a(t-i3-1)
-		            	dyi2=dyi2 + x_c(i1,i2,t)*a(t-i3-2)
-		            	dyi3=dyi3 + x_c(i1,i2,t)*a(t-i3-3)
-		           	enddo
-		           	y_c(i1,i2,i3+0)=y_c(i1,i2,i3+0)+dyi0
-		           	y_c(i1,i2,i3+1)=y_c(i1,i2,i3+1)+dyi1
-		           	y_c(i1,i2,i3+2)=y_c(i1,i2,i3+2)+dyi2
-		           	y_c(i1,i2,i3+3)=y_c(i1,i2,i3+3)+dyi3
-		        enddo
-				icur=i3
-			else
-				icur=ibxy_c(1,i1,i2)
-			endif
-			
-	        do i3=icur,ibxy_c(2,i1,i2)
-	        	dyi=0.d0
-	        	do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
-	            	dyi=dyi + x_c(i1,i2,t)*a(t-i3)
-	           	enddo
-	           	y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-	        enddo
-			istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
-			iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
-			
-			if (istart-iend.ge.4) then
-		        do i3=istart,iend-4,4
-		           dyi0=0.d0
-                   dyi1=0.d0
-                   dyi2=0.d0
-                   dyi3=0.d0
-	        	   do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_f(2,i1,i2))
-	        	      dyi0=dyi0 + x_f3(t,i1,i2)*b(t-i3-0)
-	        	      dyi1=dyi1 + x_f3(t,i1,i2)*b(t-i3-1)
-	        	      dyi2=dyi2 + x_f3(t,i1,i2)*b(t-i3-2)
-	        	      dyi3=dyi3 + x_f3(t,i1,i2)*b(t-i3-3)
-	        	   enddo
-	        	   y_c(i1,i2,i3+0)=y_c(i1,i2,i3+0)+dyi0
-	        	   y_c(i1,i2,i3+1)=y_c(i1,i2,i3+1)+dyi1
-	        	   y_c(i1,i2,i3+2)=y_c(i1,i2,i3+2)+dyi2
-	        	   y_c(i1,i2,i3+3)=y_c(i1,i2,i3+3)+dyi3
-			   enddo
-			   istart=i2
-		    endif
-		   
-        	do i3=istart,iend
-        	   dyi=0.d0
-        	   do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_f(2,i1,i2))
-        	      dyi=dyi + x_f3(t,i1,i2)*b(t-i3)
-        	   enddo
-        	   y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-        	enddo
-			
+  do i2=0,n2
+     do i1=0,n1
+        if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
+           do i3=ibxy_c(1,i1,i2),ibxy_c(2,i1,i2)-4,4
+              dyi0=0.d0 
+              dyi1=0.d0 
+              dyi2=0.d0 
+              dyi3=0.d0 
+              do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
+                 dyi0=dyi0 + x_c(i1,i2,t)*a(t-i3-0)
+                 dyi1=dyi1 + x_c(i1,i2,t)*a(t-i3-1)
+                 dyi2=dyi2 + x_c(i1,i2,t)*a(t-i3-2)
+                 dyi3=dyi3 + x_c(i1,i2,t)*a(t-i3-3)
+              enddo
+              y_c(i1,i2,i3+0)=y_c(i1,i2,i3+0)+dyi0
+              y_c(i1,i2,i3+1)=y_c(i1,i2,i3+1)+dyi1
+              y_c(i1,i2,i3+2)=y_c(i1,i2,i3+2)+dyi2
+              y_c(i1,i2,i3+3)=y_c(i1,i2,i3+3)+dyi3
+           enddo
+           icur=i3
+        else
+           icur=ibxy_c(1,i1,i2)
+        endif
+
+        do i3=icur,ibxy_c(2,i1,i2)
+           dyi=0.d0
+           do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
+              dyi=dyi + x_c(i1,i2,t)*a(t-i3)
+           enddo
+           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+        enddo
+        istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
+        iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
+
+        if (istart-iend.ge.4) then
+           do i3=istart,iend-4,4
+              dyi0=0.d0
+              dyi1=0.d0
+              dyi2=0.d0
+              dyi3=0.d0
+              do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_f(2,i1,i2))
+                 dyi0=dyi0 + x_f3(t,i1,i2)*b(t-i3-0)
+                 dyi1=dyi1 + x_f3(t,i1,i2)*b(t-i3-1)
+                 dyi2=dyi2 + x_f3(t,i1,i2)*b(t-i3-2)
+                 dyi3=dyi3 + x_f3(t,i1,i2)*b(t-i3-3)
+              enddo
+              y_c(i1,i2,i3+0)=y_c(i1,i2,i3+0)+dyi0
+              y_c(i1,i2,i3+1)=y_c(i1,i2,i3+1)+dyi1
+              y_c(i1,i2,i3+2)=y_c(i1,i2,i3+2)+dyi2
+              y_c(i1,i2,i3+3)=y_c(i1,i2,i3+3)+dyi3
+           enddo
+           istart=i2
+        endif
+
+        do i3=istart,iend
+           dyi=0.d0
+           do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_f(2,i1,i2))
+              dyi=dyi + x_f3(t,i1,i2)*b(t-i3)
+           enddo
+           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+        enddo
+
      	if (ibxy_f(2,i1,i2)-ibxy_f(1,i1,i2).ge.4) then
-	        do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)-4,4
-	           dyi0=0.d0 
-	           dyi1=0.d0 
-	           dyi2=0.d0 
-	           dyi3=0.d0 
-	           do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
-	              dyi0=dyi0 + x_c(i1,i2,t)*c(t-i3-0)
-	              dyi1=dyi1 + x_c(i1,i2,t)*c(t-i3-1)
-	              dyi2=dyi2 + x_c(i1,i2,t)*c(t-i3-2)
-	              dyi3=dyi3 + x_c(i1,i2,t)*c(t-i3-3)
-	           enddo
-	           y_f(4,i1,i2,i3+0)=dyi0
-	           y_f(4,i1,i2,i3+1)=dyi1
-	           y_f(4,i1,i2,i3+2)=dyi2
-	           y_f(4,i1,i2,i3+3)=dyi3
-	        enddo
-			icur=i3
-		else
-			icur=ibxy_f(1,i1,i2)
-		endif
-		
+           do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)-4,4
+              dyi0=0.d0 
+              dyi1=0.d0 
+              dyi2=0.d0 
+              dyi3=0.d0 
+              do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
+                 dyi0=dyi0 + x_c(i1,i2,t)*c(t-i3-0)
+                 dyi1=dyi1 + x_c(i1,i2,t)*c(t-i3-1)
+                 dyi2=dyi2 + x_c(i1,i2,t)*c(t-i3-2)
+                 dyi3=dyi3 + x_c(i1,i2,t)*c(t-i3-3)
+              enddo
+              y_f(4,i1,i2,i3+0)=dyi0
+              y_f(4,i1,i2,i3+1)=dyi1
+              y_f(4,i1,i2,i3+2)=dyi2
+              y_f(4,i1,i2,i3+3)=dyi3
+           enddo
+           icur=i3
+        else
+           icur=ibxy_f(1,i1,i2)
+        endif
+
         do i3=icur,ibxy_f(2,i1,i2)
            dyi=0.d0 
            do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
@@ -534,9 +534,9 @@ subroutine Convolkinetic(n1,n2,n3, &
      enddo
   enddo
 
-!  call system_clock(ncount3,ncount_rate,ncount_max)
-!  tel=dble(ncount3-ncount2)/dble(ncount_rate)
-!  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:z',tel,1.d-6*mflop3/tel
+  !  call system_clock(ncount3,ncount_rate,ncount_max)
+  !  tel=dble(ncount3-ncount2)/dble(ncount_rate)
+  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:z',tel,1.d-6*mflop3/tel
 
   ! wavelet part
   ! (1/2) d^2/dx^2
@@ -565,9 +565,9 @@ subroutine Convolkinetic(n1,n2,n3, &
      enddo
   enddo
 
-!  call system_clock(ncount4,ncount_rate,ncount_max)
-!  tel=dble(ncount4-ncount3)/dble(ncount_rate)
-!  write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:x',tel,1.d-6*nflop1/tel
+  !  call system_clock(ncount4,ncount_rate,ncount_max)
+  !  tel=dble(ncount4-ncount3)/dble(ncount_rate)
+  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:x',tel,1.d-6*nflop1/tel
 
 
   ! + (1/2) d^2/dy^2
@@ -596,9 +596,9 @@ subroutine Convolkinetic(n1,n2,n3, &
      enddo
   enddo
 
-!  call system_clock(ncount5,ncount_rate,ncount_max)
-!  tel=dble(ncount5-ncount4)/dble(ncount_rate)
-!  write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:y',tel,1.d-6*nflop2/tel
+  !  call system_clock(ncount5,ncount_rate,ncount_max)
+  !  tel=dble(ncount5-ncount4)/dble(ncount_rate)
+  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:y',tel,1.d-6*nflop2/tel
 
   ! + (1/2) d^2/dz^2
   do i2=nfl2,nfu2
@@ -883,107 +883,116 @@ subroutine ConvolkineticT(n1,n2,n3, &
 !  ! (1/2) d^2/dx^2
 !
 
-	do i3=0,n3
-		do i2=0,n2
-     		if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
-				do i1=ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)-4,4
-					dyi0=0.d0 
-					dyi1=0.d0 
-					dyi2=0.d0 
-					dyi3=0.d0 
-					do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
-          		 	   dyi0=dyi0 + x_c(t,i2,i3)*a(t-i1-0)
-          		 	   dyi1=dyi1 + x_c(t,i2,i3)*a(t-i1-1)
-          		 	   dyi2=dyi2 + x_c(t,i2,i3)*a(t-i1-2)
-          		 	   dyi3=dyi3 + x_c(t,i2,i3)*a(t-i1-3)
-          		 	enddo
-          		 	y_c(i1+0,i2,i3)=y_c(i1+0,i2,i3)+dyi0
-          		 	y_c(i1+1,i2,i3)=y_c(i1+1,i2,i3)+dyi1
-          		 	y_c(i1+2,i2,i3)=y_c(i1+2,i2,i3)+dyi2
-          		 	y_c(i1+3,i2,i3)=y_c(i1+3,i2,i3)+dyi3
-					
-          		 	ekin=ekin+dyi0*x_c(i1+0,i2,i3)
-          		 	ekin=ekin+dyi1*x_c(i1+1,i2,i3)
-          		 	ekin=ekin+dyi2*x_c(i1+2,i2,i3)
-          		 	ekin=ekin+dyi3*x_c(i1+3,i2,i3)
-	        	enddo
-				icur=i1
-			else
-  				icur=ibyz_c(1,i2,i3)
-			endif
-			
-			do i1=icur,ibyz_c(2,i2,i3)
-				dyi=0.d0 
-				do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
-          	 	   dyi=dyi + x_c(t,i2,i3)*a(t-i1)
-          	 	enddo
-          	 	y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-          	 	ekin=ekin+dyi*x_c(i1,i2,i3)
-	        enddo
-			
-			istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
-			iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
+!!$  open(11)
+!!$  do i3=0,n3
+!!$     do i2=0,n2
+!!$        write(11,'(1x,4(i8))')i2,i3,ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)
+!!$     end do
+!!$  end do
+!!$  close(11)
+!!$  stop
+  
+  do i3=0,n3
+     do i2=0,n2
+        if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
+           do i1=ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)-4,4
+              dyi0=0.d0 
+              dyi1=0.d0 
+              dyi2=0.d0 
+              dyi3=0.d0 
+              do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
+                 dyi0=dyi0 + x_c(t,i2,i3)*a(t-i1-0)
+                 dyi1=dyi1 + x_c(t,i2,i3)*a(t-i1-1)
+                 dyi2=dyi2 + x_c(t,i2,i3)*a(t-i1-2)
+                 dyi3=dyi3 + x_c(t,i2,i3)*a(t-i1-3)
+              enddo
+              y_c(i1+0,i2,i3)=y_c(i1+0,i2,i3)+dyi0
+              y_c(i1+1,i2,i3)=y_c(i1+1,i2,i3)+dyi1
+              y_c(i1+2,i2,i3)=y_c(i1+2,i2,i3)+dyi2
+              y_c(i1+3,i2,i3)=y_c(i1+3,i2,i3)+dyi3
 
-			if (istart-iend.ge.4) then
-	    	    do i1=istart,iend-4,4
-	        	   	dyi0=0.d0
-	        	   	dyi1=0.d0
-	        	   	dyi2=0.d0
-	        	   	dyi3=0.d0
-		        	do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_f(2,i2,i3))
-						dyi0=dyi0 + x_f1(t,i2,i3)*b(t-i1-0)
-						dyi1=dyi1 + x_f1(t,i2,i3)*b(t-i1-1)
-						dyi2=dyi2 + x_f1(t,i2,i3)*b(t-i1-2)
-						dyi3=dyi3 + x_f1(t,i2,i3)*b(t-i1-3)
-					enddo
-	           		y_c(i1+0,i2,i3)=y_c(i1+0,i2,i3)+dyi0
-	           		y_c(i1+1,i2,i3)=y_c(i1+1,i2,i3)+dyi1
-	           		y_c(i1+2,i2,i3)=y_c(i1+2,i2,i3)+dyi2
-	           		y_c(i1+3,i2,i3)=y_c(i1+3,i2,i3)+dyi3
-					
-	           		ekin=ekin+dyi0*x_c(i1+0,i2,i3)
-	           		ekin=ekin+dyi1*x_c(i1+1,i2,i3)
-	           		ekin=ekin+dyi2*x_c(i1+2,i2,i3)
-	           		ekin=ekin+dyi3*x_c(i1+3,i2,i3)
-				enddo
-				istart=i1
-			endif
+              ekin=ekin+dyi0*x_c(i1+0,i2,i3)
+              ekin=ekin+dyi1*x_c(i1+1,i2,i3)
+              ekin=ekin+dyi2*x_c(i1+2,i2,i3)
+              ekin=ekin+dyi3*x_c(i1+3,i2,i3)
+           enddo
+           icur=i1
+        else
+           icur=ibyz_c(1,i2,i3)
+        endif
 
-    	    do i1=istart,iend
-        	   	dyi=0.d0
-	        	do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_f(2,i2,i3))
-					dyi=dyi + x_f1(t,i2,i3)*b(t-i1)
-				enddo
-           		y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-           		ekin=ekin+dyi*x_c(i1,i2,i3)
-			enddo
-			
+        do i1=icur,ibyz_c(2,i2,i3)
+           dyi=0.d0 
+           do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
+              dyi=dyi + x_c(t,i2,i3)*a(t-i1)
+           enddo
+           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+           ekin=ekin+dyi*x_c(i1,i2,i3)
+        enddo
+
+        istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
+        iend=min(ibyz_c(2,i2,i3),ibyz_f(2,i2,i3)-lowfil)
+
+        if (istart-iend.ge.4) then
+           do i1=istart,iend-4,4
+              dyi0=0.d0
+              dyi1=0.d0
+              dyi2=0.d0
+              dyi3=0.d0
+              do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_f(2,i2,i3))
+                 dyi0=dyi0 + x_f1(t,i2,i3)*b(t-i1-0)
+                 dyi1=dyi1 + x_f1(t,i2,i3)*b(t-i1-1)
+                 dyi2=dyi2 + x_f1(t,i2,i3)*b(t-i1-2)
+                 dyi3=dyi3 + x_f1(t,i2,i3)*b(t-i1-3)
+              enddo
+              y_c(i1+0,i2,i3)=y_c(i1+0,i2,i3)+dyi0
+              y_c(i1+1,i2,i3)=y_c(i1+1,i2,i3)+dyi1
+              y_c(i1+2,i2,i3)=y_c(i1+2,i2,i3)+dyi2
+              y_c(i1+3,i2,i3)=y_c(i1+3,i2,i3)+dyi3
+
+              ekin=ekin+dyi0*x_c(i1+0,i2,i3)
+              ekin=ekin+dyi1*x_c(i1+1,i2,i3)
+              ekin=ekin+dyi2*x_c(i1+2,i2,i3)
+              ekin=ekin+dyi3*x_c(i1+3,i2,i3)
+           enddo
+           istart=i1
+        endif
+
+        do i1=istart,iend
+           dyi=0.d0
+           do t=max(ibyz_f(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_f(2,i2,i3))
+              dyi=dyi + x_f1(t,i2,i3)*b(t-i1)
+           enddo
+           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+           ekin=ekin+dyi*x_c(i1,i2,i3)
+        enddo
+
      	if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
-	        do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)-4,4
-				dyi0=0.d0 
-				dyi1=0.d0 
-				dyi2=0.d0 
-				dyi3=0.d0 
-	           do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
-	              dyi0=dyi0 + x_c(t,i2,i3)*c(t-i1-0)
-	              dyi1=dyi1 + x_c(t,i2,i3)*c(t-i1-1)
-	              dyi2=dyi2 + x_c(t,i2,i3)*c(t-i1-2)
-	              dyi3=dyi3 + x_c(t,i2,i3)*c(t-i1-3)
-	           enddo
-	           y_f(1,i1+0,i2,i3)=y_f(1,i1+0,i2,i3)+dyi0
-	           y_f(1,i1+1,i2,i3)=y_f(1,i1+1,i2,i3)+dyi1
-	           y_f(1,i1+2,i2,i3)=y_f(1,i1+2,i2,i3)+dyi2
-	           y_f(1,i1+3,i2,i3)=y_f(1,i1+3,i2,i3)+dyi3
-			   
-	           ekin=ekin+dyi0*x_f(1,i1+0,i2,i3)
-	           ekin=ekin+dyi1*x_f(1,i1+1,i2,i3)
-	           ekin=ekin+dyi2*x_f(1,i1+2,i2,i3)
-	           ekin=ekin+dyi3*x_f(1,i1+3,i2,i3)
-	        enddo
-			icur=i1
-		else
-	   		icur=ibyz_f(1,i2,i3)
-		endif
+           do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)-4,4
+              dyi0=0.d0 
+              dyi1=0.d0 
+              dyi2=0.d0 
+              dyi3=0.d0 
+              do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1+3,ibyz_c(2,i2,i3))
+                 dyi0=dyi0 + x_c(t,i2,i3)*c(t-i1-0)
+                 dyi1=dyi1 + x_c(t,i2,i3)*c(t-i1-1)
+                 dyi2=dyi2 + x_c(t,i2,i3)*c(t-i1-2)
+                 dyi3=dyi3 + x_c(t,i2,i3)*c(t-i1-3)
+              enddo
+              y_f(1,i1+0,i2,i3)=y_f(1,i1+0,i2,i3)+dyi0
+              y_f(1,i1+1,i2,i3)=y_f(1,i1+1,i2,i3)+dyi1
+              y_f(1,i1+2,i2,i3)=y_f(1,i1+2,i2,i3)+dyi2
+              y_f(1,i1+3,i2,i3)=y_f(1,i1+3,i2,i3)+dyi3
+
+              ekin=ekin+dyi0*x_f(1,i1+0,i2,i3)
+              ekin=ekin+dyi1*x_f(1,i1+1,i2,i3)
+              ekin=ekin+dyi2*x_f(1,i1+2,i2,i3)
+              ekin=ekin+dyi3*x_f(1,i1+3,i2,i3)
+           enddo
+           icur=i1
+        else
+           icur=ibyz_f(1,i2,i3)
+        endif
         do i1=icur,ibyz_f(2,i2,i3)
            dyi=0.d0 
            do t=max(ibyz_c(1,i2,i3),lowfil+i1),min(lupfil+i1,ibyz_c(2,i2,i3))
@@ -994,115 +1003,115 @@ subroutine ConvolkineticT(n1,n2,n3, &
         enddo
      enddo
   enddo
-!  call system_clock(ncount1,ncount_rate,ncount_max)
-!  tel=dble(ncount1-ncount0)/dble(ncount_rate)
-!  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:x',tel,1.d-6*mflop1/tel
-!!
-!!  ! + (1/2) d^2/dy^2
-!!
-	do i3=0,n3
-		do i1=0,n1
-     		if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
-				do i2=ibxz_c(1,i1,i3),ibxz_c(2,i1,i3)-4,4
-					dyi0=0.d0 
-					dyi1=0.d0 
-					dyi2=0.d0 
-					dyi3=0.d0 
-	           		do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
-	           		   dyi0=dyi0 + x_c(i1,t,i3)*a(t-i2-0)
-	           		   dyi1=dyi1 + x_c(i1,t,i3)*a(t-i2-1)
-	           		   dyi2=dyi2 + x_c(i1,t,i3)*a(t-i2-2)
-	           		   dyi3=dyi3 + x_c(i1,t,i3)*a(t-i2-3)
-	           		enddo
-	           		y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
-	           		y_c(i1,i2+1,i3)=y_c(i1,i2+1,i3)+dyi1
-	           		y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
-	           		y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
-					
-	           		ekin=ekin+dyi0*x_c(i1,i2+0,i3)
-	           		ekin=ekin+dyi1*x_c(i1,i2+1,i3)
-	           		ekin=ekin+dyi2*x_c(i1,i2+2,i3)
-	           		ekin=ekin+dyi3*x_c(i1,i2+3,i3)
-		        enddo
-				icur=i2
-			else
-				icur=ibxz_c(1,i1,i3)
-			endif
-			
-			do i2=icur,ibxz_c(2,i1,i3)
-				dyi=0.d0 
-           		do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
-           		   dyi=dyi + x_c(i1,t,i3)*a(t-i2)
-           		enddo
-           		y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-           		ekin=ekin+dyi*x_c(i1,i2,i3)
-	        enddo
-			
-			istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
-			iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
-			
-			if (istart-iend.ge.4) then
-		        do i2=istart,iend-4,4
-		           dyi0=0.d0
-                   dyi1=0.d0
-                   dyi2=0.d0
-                   dyi3=0.d0
-				   
-		           do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_f(2,i1,i3))
-		              dyi0=dyi0 + x_f2(t,i1,i3)*b(t-i2-0)
-		              dyi1=dyi1 + x_f2(t,i1,i3)*b(t-i2-1)
-		              dyi2=dyi2 + x_f2(t,i1,i3)*b(t-i2-2)
-		              dyi3=dyi3 + x_f2(t,i1,i3)*b(t-i2-3)
-		           enddo
-		           y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
-		           y_c(i1,i2+1,i3)=y_c(i1,i2+1,i3)+dyi1
-		           y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
-		           y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
-				   
-		           ekin=ekin+dyi0*x_c(i1,i2+0,i3)
-		           ekin=ekin+dyi1*x_c(i1,i2+1,i3)
-		           ekin=ekin+dyi2*x_c(i1,i2+2,i3)
-		           ekin=ekin+dyi3*x_c(i1,i2+3,i3)
-		        enddo
-				istart=i2
-			endif
-			
-	        do i2=istart,iend
-	           dyi=0.d0
-	           do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_f(2,i1,i3))
-	              dyi=dyi + x_f2(t,i1,i3)*b(t-i2)
-	           enddo
-	           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-	           ekin=ekin+dyi*x_c(i1,i2,i3)
-	        enddo
-			
+  !  call system_clock(ncount1,ncount_rate,ncount_max)
+  !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
+  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:x',tel,1.d-6*mflop1/tel
+  !!
+  !!  ! + (1/2) d^2/dy^2
+  !!
+  do i3=0,n3
+     do i1=0,n1
+        if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
+           do i2=ibxz_c(1,i1,i3),ibxz_c(2,i1,i3)-4,4
+              dyi0=0.d0 
+              dyi1=0.d0 
+              dyi2=0.d0 
+              dyi3=0.d0 
+              do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
+                 dyi0=dyi0 + x_c(i1,t,i3)*a(t-i2-0)
+                 dyi1=dyi1 + x_c(i1,t,i3)*a(t-i2-1)
+                 dyi2=dyi2 + x_c(i1,t,i3)*a(t-i2-2)
+                 dyi3=dyi3 + x_c(i1,t,i3)*a(t-i2-3)
+              enddo
+              y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
+              y_c(i1,i2+1,i3)=y_c(i1,i2+1,i3)+dyi1
+              y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
+              y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
+
+              ekin=ekin+dyi0*x_c(i1,i2+0,i3)
+              ekin=ekin+dyi1*x_c(i1,i2+1,i3)
+              ekin=ekin+dyi2*x_c(i1,i2+2,i3)
+              ekin=ekin+dyi3*x_c(i1,i2+3,i3)
+           enddo
+           icur=i2
+        else
+           icur=ibxz_c(1,i1,i3)
+        endif
+
+        do i2=icur,ibxz_c(2,i1,i3)
+           dyi=0.d0 
+           do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
+              dyi=dyi + x_c(i1,t,i3)*a(t-i2)
+           enddo
+           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+           ekin=ekin+dyi*x_c(i1,i2,i3)
+        enddo
+
+        istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
+        iend= min(ibxz_c(2,i1,i3),ibxz_f(2,i1,i3)-lowfil)
+
+        if (istart-iend.ge.4) then
+           do i2=istart,iend-4,4
+              dyi0=0.d0
+              dyi1=0.d0
+              dyi2=0.d0
+              dyi3=0.d0
+
+              do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_f(2,i1,i3))
+                 dyi0=dyi0 + x_f2(t,i1,i3)*b(t-i2-0)
+                 dyi1=dyi1 + x_f2(t,i1,i3)*b(t-i2-1)
+                 dyi2=dyi2 + x_f2(t,i1,i3)*b(t-i2-2)
+                 dyi3=dyi3 + x_f2(t,i1,i3)*b(t-i2-3)
+              enddo
+              y_c(i1,i2+0,i3)=y_c(i1,i2+0,i3)+dyi0
+              y_c(i1,i2+1,i3)=y_c(i1,i2+1,i3)+dyi1
+              y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
+              y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
+
+              ekin=ekin+dyi0*x_c(i1,i2+0,i3)
+              ekin=ekin+dyi1*x_c(i1,i2+1,i3)
+              ekin=ekin+dyi2*x_c(i1,i2+2,i3)
+              ekin=ekin+dyi3*x_c(i1,i2+3,i3)
+           enddo
+           istart=i2
+        endif
+
+        do i2=istart,iend
+           dyi=0.d0
+           do t=max(ibxz_f(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_f(2,i1,i3))
+              dyi=dyi + x_f2(t,i1,i3)*b(t-i2)
+           enddo
+           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+           ekin=ekin+dyi*x_c(i1,i2,i3)
+        enddo
+
      	if (ibxz_f(2,i1,i3)-ibxz_f(1,i1,i3).ge.4) then
-	        do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)-4,4
-				dyi0=0.d0 
-				dyi1=0.d0 
-				dyi2=0.d0 
-				dyi3=0.d0 
-	           do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
-	              dyi0=dyi0 + x_c(i1,t,i3)*c(t-i2-0)
-	              dyi1=dyi1 + x_c(i1,t,i3)*c(t-i2-1)
-	              dyi2=dyi2 + x_c(i1,t,i3)*c(t-i2-2)
-	              dyi3=dyi3 + x_c(i1,t,i3)*c(t-i2-3)
-	           enddo
-	           y_f(2,i1,i2+0,i3)=y_f(2,i1,i2+0,i3)+dyi0
-	           y_f(2,i1,i2+1,i3)=y_f(2,i1,i2+1,i3)+dyi1
-	           y_f(2,i1,i2+2,i3)=y_f(2,i1,i2+2,i3)+dyi2
-	           y_f(2,i1,i2+3,i3)=y_f(2,i1,i2+3,i3)+dyi3
-			   
-	           ekin=ekin+dyi0*x_f(2,i1,i2+0,i3)
-	           ekin=ekin+dyi1*x_f(2,i1,i2+1,i3)
-	           ekin=ekin+dyi2*x_f(2,i1,i2+2,i3)
-	           ekin=ekin+dyi3*x_f(2,i1,i2+3,i3)
-	        enddo
-			icur=i2
-		else
-	   		icur=ibxz_f(1,i1,i3)
-		endif
-		
+           do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)-4,4
+              dyi0=0.d0 
+              dyi1=0.d0 
+              dyi2=0.d0 
+              dyi3=0.d0 
+              do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2+3,ibxz_c(2,i1,i3))
+                 dyi0=dyi0 + x_c(i1,t,i3)*c(t-i2-0)
+                 dyi1=dyi1 + x_c(i1,t,i3)*c(t-i2-1)
+                 dyi2=dyi2 + x_c(i1,t,i3)*c(t-i2-2)
+                 dyi3=dyi3 + x_c(i1,t,i3)*c(t-i2-3)
+              enddo
+              y_f(2,i1,i2+0,i3)=y_f(2,i1,i2+0,i3)+dyi0
+              y_f(2,i1,i2+1,i3)=y_f(2,i1,i2+1,i3)+dyi1
+              y_f(2,i1,i2+2,i3)=y_f(2,i1,i2+2,i3)+dyi2
+              y_f(2,i1,i2+3,i3)=y_f(2,i1,i2+3,i3)+dyi3
+
+              ekin=ekin+dyi0*x_f(2,i1,i2+0,i3)
+              ekin=ekin+dyi1*x_f(2,i1,i2+1,i3)
+              ekin=ekin+dyi2*x_f(2,i1,i2+2,i3)
+              ekin=ekin+dyi3*x_f(2,i1,i2+3,i3)
+           enddo
+           icur=i2
+        else
+           icur=ibxz_f(1,i1,i3)
+        endif
+
         do i2=icur,ibxz_f(2,i1,i3)
            dyi=0.d0 
            do t=max(ibxz_c(1,i1,i3),lowfil+i2),min(lupfil+i2,ibxz_c(2,i1,i3))
@@ -1113,116 +1122,116 @@ subroutine ConvolkineticT(n1,n2,n3, &
         enddo
      enddo
   enddo
-!	
-!!
-!  call system_clock(ncount2,ncount_rate,ncount_max)
-!  tel=dble(ncount2-ncount1)/dble(ncount_rate)
-!  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:y',tel,1.d-6*mflop2/tel
-!!
-!!  ! + (1/2) d^2/dz^2
-!!
-	do i2=0,n2
-		do i1=0,n1
-     		if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
-		        do i3=ibxy_c(1,i1,i2),ibxy_c(2,i1,i2)-4,4
-					dyi0=0.d0 
-					dyi1=0.d0 
-					dyi2=0.d0 
-					dyi3=0.d0 
-		        	do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
-		            	dyi0=dyi0 + x_c(i1,i2,t)*a(t-i3-0)
-		            	dyi1=dyi1 + x_c(i1,i2,t)*a(t-i3-1)
-		            	dyi2=dyi2 + x_c(i1,i2,t)*a(t-i3-2)
-		            	dyi3=dyi3 + x_c(i1,i2,t)*a(t-i3-3)
-		           	enddo
-		           	y_c(i1,i2,i3+0)=y_c(i1,i2,i3+0)+dyi0
-		           	y_c(i1,i2,i3+1)=y_c(i1,i2,i3+1)+dyi1
-		           	y_c(i1,i2,i3+2)=y_c(i1,i2,i3+2)+dyi2
-		           	y_c(i1,i2,i3+3)=y_c(i1,i2,i3+3)+dyi3
-					
-		           	ekin=ekin+dyi0*x_c(i1,i2,i3+0)
-		           	ekin=ekin+dyi1*x_c(i1,i2,i3+1)
-		           	ekin=ekin+dyi2*x_c(i1,i2,i3+2)
-		           	ekin=ekin+dyi3*x_c(i1,i2,i3+3)
-		        enddo
-				icur=i3
-			else
-				icur=ibxy_c(1,i1,i2)
-			endif
-			
-	        do i3=icur,ibxy_c(2,i1,i2)
-	        	dyi=0.d0
-	        	do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
-	            	dyi=dyi + x_c(i1,i2,t)*a(t-i3)
-	           	enddo
-	           	y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-	           	ekin=ekin+dyi*x_c(i1,i2,i3)
-	        enddo
-			
-			istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
-			iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
-			
-			if (istart-iend.ge.4) then
-		        do i3=istart,iend-4,4
-		           dyi0=0.d0
-                   dyi1=0.d0
-                   dyi2=0.d0
-                   dyi3=0.d0
-	        	   do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_f(2,i1,i2))
-	        	      dyi0=dyi0 + x_f3(t,i1,i2)*b(t-i3-0)
-	        	      dyi1=dyi1 + x_f3(t,i1,i2)*b(t-i3-1)
-	        	      dyi2=dyi2 + x_f3(t,i1,i2)*b(t-i3-2)
-	        	      dyi3=dyi3 + x_f3(t,i1,i2)*b(t-i3-3)
-	        	   enddo
-	        	   y_c(i1,i2,i3+0)=y_c(i1,i2,i3+0)+dyi0
-	        	   y_c(i1,i2,i3+1)=y_c(i1,i2,i3+1)+dyi1
-	        	   y_c(i1,i2,i3+2)=y_c(i1,i2,i3+2)+dyi2
-	        	   y_c(i1,i2,i3+3)=y_c(i1,i2,i3+3)+dyi3
-				   
-	        	   ekin=ekin+dyi0*x_c(i1,i2,i3+0)
-	        	   ekin=ekin+dyi1*x_c(i1,i2,i3+1)
-	        	   ekin=ekin+dyi2*x_c(i1,i2,i3+2)
-	        	   ekin=ekin+dyi3*x_c(i1,i2,i3+3)
-			   enddo
-			   istart=i2
-		    endif
-		   
-        	do i3=istart,iend
-        	   dyi=0.d0
-        	   do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_f(2,i1,i2))
-        	      dyi=dyi + x_f3(t,i1,i2)*b(t-i3)
-        	   enddo
-        	   y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-        	   ekin=ekin+dyi*x_c(i1,i2,i3)
-        	enddo
+  !	
+  !!
+  !  call system_clock(ncount2,ncount_rate,ncount_max)
+  !  tel=dble(ncount2-ncount1)/dble(ncount_rate)
+  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:y',tel,1.d-6*mflop2/tel
+  !!
+  !!  ! + (1/2) d^2/dz^2
+  !!
+  do i2=0,n2
+     do i1=0,n1
+        if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
+           do i3=ibxy_c(1,i1,i2),ibxy_c(2,i1,i2)-4,4
+              dyi0=0.d0 
+              dyi1=0.d0 
+              dyi2=0.d0 
+              dyi3=0.d0 
+              do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
+                 dyi0=dyi0 + x_c(i1,i2,t)*a(t-i3-0)
+                 dyi1=dyi1 + x_c(i1,i2,t)*a(t-i3-1)
+                 dyi2=dyi2 + x_c(i1,i2,t)*a(t-i3-2)
+                 dyi3=dyi3 + x_c(i1,i2,t)*a(t-i3-3)
+              enddo
+              y_c(i1,i2,i3+0)=y_c(i1,i2,i3+0)+dyi0
+              y_c(i1,i2,i3+1)=y_c(i1,i2,i3+1)+dyi1
+              y_c(i1,i2,i3+2)=y_c(i1,i2,i3+2)+dyi2
+              y_c(i1,i2,i3+3)=y_c(i1,i2,i3+3)+dyi3
+
+              ekin=ekin+dyi0*x_c(i1,i2,i3+0)
+              ekin=ekin+dyi1*x_c(i1,i2,i3+1)
+              ekin=ekin+dyi2*x_c(i1,i2,i3+2)
+              ekin=ekin+dyi3*x_c(i1,i2,i3+3)
+           enddo
+           icur=i3
+        else
+           icur=ibxy_c(1,i1,i2)
+        endif
+
+        do i3=icur,ibxy_c(2,i1,i2)
+           dyi=0.d0
+           do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
+              dyi=dyi + x_c(i1,i2,t)*a(t-i3)
+           enddo
+           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+           ekin=ekin+dyi*x_c(i1,i2,i3)
+        enddo
+
+        istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
+        iend=min(ibxy_c(2,i1,i2),ibxy_f(2,i1,i2)-lowfil)
+
+        if (istart-iend.ge.4) then
+           do i3=istart,iend-4,4
+              dyi0=0.d0
+              dyi1=0.d0
+              dyi2=0.d0
+              dyi3=0.d0
+              do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_f(2,i1,i2))
+                 dyi0=dyi0 + x_f3(t,i1,i2)*b(t-i3-0)
+                 dyi1=dyi1 + x_f3(t,i1,i2)*b(t-i3-1)
+                 dyi2=dyi2 + x_f3(t,i1,i2)*b(t-i3-2)
+                 dyi3=dyi3 + x_f3(t,i1,i2)*b(t-i3-3)
+              enddo
+              y_c(i1,i2,i3+0)=y_c(i1,i2,i3+0)+dyi0
+              y_c(i1,i2,i3+1)=y_c(i1,i2,i3+1)+dyi1
+              y_c(i1,i2,i3+2)=y_c(i1,i2,i3+2)+dyi2
+              y_c(i1,i2,i3+3)=y_c(i1,i2,i3+3)+dyi3
+
+              ekin=ekin+dyi0*x_c(i1,i2,i3+0)
+              ekin=ekin+dyi1*x_c(i1,i2,i3+1)
+              ekin=ekin+dyi2*x_c(i1,i2,i3+2)
+              ekin=ekin+dyi3*x_c(i1,i2,i3+3)
+           enddo
+           istart=i2
+        endif
+
+        do i3=istart,iend
+           dyi=0.d0
+           do t=max(ibxy_f(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_f(2,i1,i2))
+              dyi=dyi + x_f3(t,i1,i2)*b(t-i3)
+           enddo
+           y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
+           ekin=ekin+dyi*x_c(i1,i2,i3)
+        enddo
 
      	if (ibxy_f(2,i1,i2)-ibxy_f(1,i1,i2).ge.4) then
-	        do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)-4,4
-	           dyi0=0.d0 
-	           dyi1=0.d0 
-	           dyi2=0.d0 
-	           dyi3=0.d0 
-	           do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
-	              dyi0=dyi0 + x_c(i1,i2,t)*c(t-i3-0)
-	              dyi1=dyi1 + x_c(i1,i2,t)*c(t-i3-1)
-	              dyi2=dyi2 + x_c(i1,i2,t)*c(t-i3-2)
-	              dyi3=dyi3 + x_c(i1,i2,t)*c(t-i3-3)
-	           enddo
-	           y_f(4,i1,i2,i3+0)=y_f(4,i1,i2,i3+0)+dyi0
-	           y_f(4,i1,i2,i3+1)=y_f(4,i1,i2,i3+1)+dyi1
-	           y_f(4,i1,i2,i3+2)=y_f(4,i1,i2,i3+2)+dyi2
-	           y_f(4,i1,i2,i3+3)=y_f(4,i1,i2,i3+3)+dyi3
-			   
-	           ekin=ekin+dyi0*x_f(4,i1,i2,i3+0)
-	           ekin=ekin+dyi1*x_f(4,i1,i2,i3+1)
-	           ekin=ekin+dyi2*x_f(4,i1,i2,i3+2)
-	           ekin=ekin+dyi3*x_f(4,i1,i2,i3+3)
-	        enddo
-			icur=i3
-		else
-			icur=ibxy_f(1,i1,i2)
-		endif
-		
+           do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)-4,4
+              dyi0=0.d0 
+              dyi1=0.d0 
+              dyi2=0.d0 
+              dyi3=0.d0 
+              do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3+3,ibxy_c(2,i1,i2))
+                 dyi0=dyi0 + x_c(i1,i2,t)*c(t-i3-0)
+                 dyi1=dyi1 + x_c(i1,i2,t)*c(t-i3-1)
+                 dyi2=dyi2 + x_c(i1,i2,t)*c(t-i3-2)
+                 dyi3=dyi3 + x_c(i1,i2,t)*c(t-i3-3)
+              enddo
+              y_f(4,i1,i2,i3+0)=y_f(4,i1,i2,i3+0)+dyi0
+              y_f(4,i1,i2,i3+1)=y_f(4,i1,i2,i3+1)+dyi1
+              y_f(4,i1,i2,i3+2)=y_f(4,i1,i2,i3+2)+dyi2
+              y_f(4,i1,i2,i3+3)=y_f(4,i1,i2,i3+3)+dyi3
+
+              ekin=ekin+dyi0*x_f(4,i1,i2,i3+0)
+              ekin=ekin+dyi1*x_f(4,i1,i2,i3+1)
+              ekin=ekin+dyi2*x_f(4,i1,i2,i3+2)
+              ekin=ekin+dyi3*x_f(4,i1,i2,i3+3)
+           enddo
+           icur=i3
+        else
+           icur=ibxy_f(1,i1,i2)
+        endif
+
         do i3=icur,ibxy_f(2,i1,i2)
            dyi=0.d0 
            do t=max(ibxy_c(1,i1,i2),lowfil+i3),min(lupfil+i3,ibxy_c(2,i1,i2))
@@ -1233,9 +1242,9 @@ subroutine ConvolkineticT(n1,n2,n3, &
         enddo
      enddo
   enddo
-! call system_clock(ncount3,ncount_rate,ncount_max)
-! tel=dble(ncount3-ncount2)/dble(ncount_rate)
-! write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:z',tel,1.d-6*mflop3/tel
+  ! call system_clock(ncount3,ncount_rate,ncount_max)
+  ! tel=dble(ncount3-ncount2)/dble(ncount_rate)
+  ! write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:z',tel,1.d-6*mflop3/tel
 
   ! wavelet part
   ! (1/2) d^2/dx^2
@@ -1271,9 +1280,9 @@ subroutine ConvolkineticT(n1,n2,n3, &
      enddo
   enddo
 
-!  call system_clock(ncount4,ncount_rate,ncount_max)
-!  tel=dble(ncount4-ncount3)/dble(ncount_rate)
-!  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:x',tel,1.d-6*nflop1/tel
+  !  call system_clock(ncount4,ncount_rate,ncount_max)
+  !  tel=dble(ncount4-ncount3)/dble(ncount_rate)
+  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:x',tel,1.d-6*nflop1/tel
 
 
   ! + (1/2) d^2/dy^2
@@ -1310,9 +1319,9 @@ subroutine ConvolkineticT(n1,n2,n3, &
      enddo
   enddo
 
-!  call system_clock(ncount5,ncount_rate,ncount_max)
-!  tel=dble(ncount5-ncount4)/dble(ncount_rate)
-!  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:y',tel,1.d-6*nflop2/tel
+  !  call system_clock(ncount5,ncount_rate,ncount_max)
+  !  tel=dble(ncount5-ncount4)/dble(ncount_rate)
+  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:y',tel,1.d-6*nflop2/tel
 
   ! + (1/2) d^2/dz^2
   nb=16
@@ -1348,13 +1357,13 @@ subroutine ConvolkineticT(n1,n2,n3, &
      enddo
   enddo
 
-!  call system_clock(ncount6,ncount_rate,ncount_max)
-!  tel=dble(ncount6-ncount5)/dble(ncount_rate)
-!  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:z',tel,1.d-6*nflop3/tel
+  !  call system_clock(ncount6,ncount_rate,ncount_max)
+  !  tel=dble(ncount6-ncount5)/dble(ncount_rate)
+  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:z',tel,1.d-6*nflop3/tel
 
-!  tel=dble(ncount6-ncount0)/dble(ncount_rate)
-!  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:ALL   PART',  & 
-!  tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
+  !  tel=dble(ncount6-ncount0)/dble(ncount_rate)
+  !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:ALL   PART',  & 
+  !  tel,1.d-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
   return
 end subroutine ConvolkineticT

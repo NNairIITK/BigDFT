@@ -110,10 +110,10 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
 end subroutine input_occup
 
 subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomnames,iatype,&
-     psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp)
+     psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
   implicit none
   integer, intent(in) :: iproc,nproc,nat,ntypes,nspin,ncharge,mpol
-  integer, intent(out) :: nelec,natsc,norb,norbu,norbd,norbp
+  integer, intent(out) :: nelec,natsc,norb,norbu,norbd,norbp,iunit
   character(len=20), dimension(ntypes), intent(in) :: atomnames
   integer, dimension(ntypes), intent(in) :: iatype
   integer, dimension(ntypes), intent(out) :: npspcode,iasctype,nelpsp,nzatom
@@ -124,7 +124,7 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomn
   logical :: exists
   character(len=2) :: symbol
   character(len=27) :: filename
-  integer :: i,j,l,iat,nlterms,nprl,nn,nt,ityp,ierror,i_stat,i_all,iunit
+  integer :: i,j,l,iat,nlterms,nprl,nn,nt,ityp,ierror,i_stat,i_all
   real(kind=8) :: rcov,rprb,ehomo,radfine,tt
   integer, dimension(:,:), allocatable :: neleconf
 

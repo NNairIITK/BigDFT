@@ -204,7 +204,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
 
   allocate(y_c(0:n1,0:n2,0:n3),stat=i_stat)
   call memocc(i_stat,product(shape(y_c))*kind(y_c),'y_c','applylocpotkinall')
-  allocate(y_f(7,0:n1,0:n2,0:n3),stat=i_stat)
+  allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
   call memocc(i_stat,product(shape(y_f))*kind(y_f),'y_f','applylocpotkinall')
   ! Wavefunction in real space
   allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
@@ -238,6 +238,12 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   
   call razero((n1+1)*(n2+1)*(n3+1),x_c)
   call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f)
+
+  !to be initialised
+  call razero((n1+1)*(n2+1)*(n3+1),y_c)
+  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f)
+
+
   call razero((2*n1+31)*(2*n2+31)*(2*n3+31),psir)
   
   ekin_sum=0.d0
@@ -323,7 +329,7 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   dimension psi(nvctr_c+7*nvctr_f),scal(0:3)
   dimension hpsi(nvctr_c+7*nvctr_f)
   dimension y_c(0:n1,0:n2,0:n3)
-  dimension y_f(7,0:n1,0:n2,0:n3)
+  dimension y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
   dimension psir((2*n1+31)*(2*n2+31)*(2*n3+31))
   !********************Alexey***************************************************************
   ! for shrink:
@@ -355,6 +361,12 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
      scal(i)=1.d0
   enddo
 
+!!$  tt=0.d0
+!!$  do i=1,nvctr_c+7*nvctr_f
+!!$     tt=tt+psi(i)**2
+!!$  end do
+!!$  print *,'before applylocpotkinone',tt
+
   
   call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
        nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
@@ -364,24 +376,100 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
        psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
+!!$  tt=0.d0
+!!$  do i3=0,n3
+!!$     do i2=0,n2
+!!$        do i1=0,n1
+!!$           tt=tt+x_c(i1,i2,i3)**2
+!!$        end do
+!!$     end do
+!!$  end do
+!!$  do i3=nfl3,nfu3
+!!$     do i2=nfl2,nfu2
+!!$        do i1=nfl1,nfu1
+!!$           do i=1,7
+!!$              tt=tt+x_f(i,i1,i2,i3)**2
+!!$           end do
+!!$        end do
+!!$     end do
+!!$  end do
+!!$
+!!$  print *,'grow',tt,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
+
+
+
   if (nbuf.eq.0) then
      call realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   else
      call realspace_nbuf(ibyyzz_r,pot,psir,epot,n1,n2,n3,nbuf)
   endif
 
+!!$  tt=0.d0
+!!$  do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
+!!$     tt=tt+psir(i)**2
+!!$  end do
+!!$  print *,'psir',tt
+
   call comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,psir,&
-       ibxy_c,ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,y_c,y_f,ibyz_c,ibyz_f)
+       ibxy_c,ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,y_c,y_f)!,ibyz_c,ibyz_f)
+
+!!$  tt=0.d0
+!!$  do i3=0,n3
+!!$     do i2=0,n2
+!!$        do i1=0,n1
+!!$           tt=tt+y_c(i1,i2,i3)**2
+!!$        end do
+!!$     end do
+!!$  end do
+!!$  do i3=nfl3,nfu3
+!!$     do i2=nfl2,nfu2
+!!$        do i1=nfl1,nfu1
+!!$           do i=1,7
+!!$              tt=tt+y_f(i,i1,i2,i3)**2
+!!$           end do
+!!$        end do
+!!$     end do
+!!$  end do
+!!$  print *,'shrink',tt
 
 
-
+!!$  ekin=0.d0
   call ConvolkineticT(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,ekin,x_f1,x_f2,x_f3)
+
+
+!!$  tt=0.d0
+!!$  do i3=0,n3
+!!$     do i2=0,n2
+!!$        do i1=0,n1
+!!$           tt=tt+y_c(i1,i2,i3)**2
+!!$        end do
+!!$     end do
+!!$  end do
+!!$  do i3=nfl3,nfu3
+!!$     do i2=nfl2,nfu2
+!!$        do i1=nfl1,nfu1
+!!$           do i=1,7
+!!$              tt=tt+y_f(i,i1,i2,i3)**2
+!!$           end do
+!!$        end do
+!!$     end do
+!!$  end do
+!!$  print *,'kinetic',tt
+
 	 
   call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
        nseg_c,nvctr_c,keyg(1,1),       keyv(1),   &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
        scal,y_c,y_f,hpsi(1),hpsi(nvctr_c+1))
+
+
+!!$  tt=0.d0
+!!$  do i=1,nvctr_c+7*nvctr_f
+!!$     tt=tt+hpsi(i)**2
+!!$  end do
+!!$  print *,'after applylocpotkinone',tt
+
 
   return
 END SUBROUTINE applylocpotkinone

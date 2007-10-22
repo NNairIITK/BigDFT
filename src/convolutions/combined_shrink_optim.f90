@@ -1,5 +1,5 @@
 subroutine comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,&
-     ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibzzx_f,ibyyzz_f,xc,xf,ibyz_c,ibyz_f)
+     ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibzzx_f,ibyyzz_f,xc,xf)!,ibyz_c,ibyz_f)
   ! In 3d,			
   ! Applies the magic filter transposed, then analysis wavelet transformation.
   ! The size of the data is forced to shrink
@@ -26,7 +26,7 @@ subroutine comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,&
   integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)
   integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
 
-  integer,dimension(2,0:n2,0:n3)::ibyz_c,ibyz_f
+!  integer,dimension(2,0:n2,0:n3)::ibyz_c,ibyz_f !unused (?)
 
   !	perform the combined transform	
   call comb_shrink_loc_c(0,n1,0,n2,0,n3,w1,w2,y,xc,1,1,1,&
