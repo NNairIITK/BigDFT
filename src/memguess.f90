@@ -78,8 +78,6 @@ program memguess
   !new way of reading the input variables, use structures
   call read_input_variables(0,in)
 
-  call print_input_variables(in)
- 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
  

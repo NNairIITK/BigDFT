@@ -28,9 +28,9 @@ module libBigDFT
 
 contains
  
-      subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
-                   psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-                   n1,n2,n3,rxyz_old,in,infocode)
+  subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+       psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
+       n1,n2,n3,rxyz_old,in,infocode)
   ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
   ! inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
   !                  as definition of the previous system.
@@ -131,6 +131,8 @@ contains
   !this section is of course not needed
   !note that this procedure is convenient ONLY in the case of scalar variables
   !an array would have been copied, thus occupying more memory space
+  !Hence WARNING: these variables are copied, in case of an update the new value should be 
+  !inserted inside the structure
 
   hgrid=in%hgrid
   crmult=in%crmult
@@ -239,25 +241,6 @@ contains
   if(nspin<1.or.nspin>2) nspin=1
   if(nspin==1) mpol=0
 
-  if (iproc.eq.0) then 
-     write(*,'(1x,a)')&
-          '------------------------------------------------------------------- Input Parameters'
-     write(*,'(1x,a)')&
-          '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
-     write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
-          'Grid spacing=',hgrid,    '|  Coarse Wfs.=',crmult,'| Wavefns Conv.=',gnrm_cv,&
-          '| Calculate=',calc_tail
-     write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,f4.1)')&
-          '       XC id=',ixc,      '|    Fine Wfs.=',frmult,'| Max. N. Iter.=',itermax,&
-          '| Extension=',rbuf
-     write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,i4)')&
-          'total charge=',ncharge,  '| Coarse Proj.=',cpmult,'| CG Prec.Steps=',ncong,&
-          '|  CG Steps=',ncongt
-     write(*,'(1x,a,1pe7.1,1x,a,0pf5.2,1x,a,i8)')&
-          ' elec. field=',elecfield,'|   Fine Proj.=',fpmult,'| DIIS Hist. N.=',idsx
-  endif
-
-
   ! grid spacing (same in x,y and z direction)
   hgridh=.5d0*hgrid
 
@@ -304,7 +287,7 @@ contains
   end if
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-  ndegree_ip=14
+  ndegree_ip=16 !default value
   call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
        iproc,nproc,pkernel)
 
@@ -430,7 +413,6 @@ contains
           ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
           ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
-     
   else if (inputPsiId == 0) then
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
@@ -544,7 +526,7 @@ contains
     
   end if
 
-  !no need of using nzatom array
+  !no need of using nzatom array, semicores useful only for the input guess
   i_all=-product(shape(nzatom))*kind(nzatom)
   deallocate(nzatom,stat=i_stat)
   call memocc(i_stat,i_all,'nzatom','cluster')
@@ -1490,7 +1472,7 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
   real(kind=8), dimension(norb), intent(out) :: eval
   real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
   !local variables
-  integer :: i_all,i_stat,ierr
+  integer :: i_all,i_stat,ierr,iorb,jorb
   real(kind=8) :: evpart
 
   if (parallel) then
@@ -1547,6 +1529,38 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
         end if
      end if
   endif
+
+  !print the found eigenvalues
+  if (iproc == 0) then
+     write(*,'(1x,a)')&
+          '-------------------------------------------------------------- Kohn-Sham Eigenvalues'
+     if (nspin==1) then
+        do iorb=1,norb/2
+           jorb=norb/2+iorb
+           write(*,'(1x,a,i4,a,1x,1pe21.14,17x,a,i4,a,1x,1pe21.14)') &
+                'eval(',iorb,')=',eval(iorb),'eval(',jorb,')=',eval(jorb)
+        end do
+        if (2*norb/2 /= norb) then
+           write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',norb/2+1,')=',eval(norb/2+1)
+        end if
+     else
+        do iorb=1,min(norbu,norbd)
+           jorb=norbu+iorb
+           write(*,'(1x,a,i4,a,1x,1pe21.14,17x,a,i4,a,1x,1pe21.14)') &
+                'eval(',iorb,',u)=',eval(iorb),'eval(',iorb,',d)=',eval(jorb)
+        end do
+        if (norbu > norbd) then
+           do iorb=norbd+1,norbu
+              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,',u)=',eval(iorb)
+           end do
+        else if (norbd > norbu) then
+           do iorb=2*norbu+1,norbu+norbd
+              write(*,'(51x,a,i0,a,1x,1pe21.14)') 'eval(',iorb-norbu,',d)=',eval(iorb)
+           end do
+        end if
+     end if
+  end if
+
   i_all=-product(shape(hpsi))*kind(hpsi)
   deallocate(hpsi,stat=i_stat)
   call memocc(i_stat,i_all,'hpsi','last_orthon')

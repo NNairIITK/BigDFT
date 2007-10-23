@@ -15,12 +15,12 @@ program BigDFT
   logical :: output_wf,output_grid,calc_tail
   character(len=20) :: units
   character(len=80) :: line
-  integer :: iproc,nproc,nat,ntypes,n1,n2,n3,iat,ityp,j,i_stat,i_all,ierr
+  integer :: iproc,nproc,nat,ntypes,n1,n2,n3,iat,ityp,j,i_stat,i_all,ierr,infocode
   integer :: ncount_cluster
   !wavefunction data descriptors
   integer :: nvctr_c,nvctr_f,nseg_c,nseg_f
   integer :: norb,norbp
-  real(kind=8) :: energy,etot,energyold,beta,sumx,sumy,sumz
+  real(kind=8) :: energy,etot,energyold,beta,sumx,sumy,sumz,tt
   !input variables
   type(input_variables) :: inputs
 
@@ -142,11 +142,6 @@ program BigDFT
 !!$     deallocate(frzsymb,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'frzsymb','BigDFT')
 !!$  end if
-
-
-  if (iproc.eq.0) then
-     call print_input_variables(inputs)
-  end if
 
   do iat=1,nat
      if (.not. lfrztyp(iatype(iat))) then
@@ -281,7 +276,7 @@ program BigDFT
           psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
           n1,n2,n3,rxyz_old,ncount_cluster,fluct,flucto,fluctoo,fnrm,in)
 
-     if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*frac_fluct/3.d0) then
+     if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) then
         if (iproc.eq.0) write(16,*) 'Converged before entering CG',iproc
         return
      endif
@@ -426,10 +421,10 @@ program BigDFT
      if (iproc.eq.0) then
         write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)')it,sqrt(fnrm),etot,' CG ',beta/betax
         write(16,*) 'fnrm2,flucts',&
-             fnrm,sqrt(real(nat,kind=8))*(fluct+flucto+fluctoo)*frac_fluct/3.d0
+             fnrm,sqrt(real(nat,kind=8))*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0
      end if
 
-     if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*frac_fluct/3.d0) goto 2000
+     if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) goto 2000
 
      if (ncount_cluster.gt.in%ncount_cluster_x) then 
         if (iproc.eq.0) write(*,*) 'ncount_cluster in CG',ncount_cluster
@@ -600,9 +595,9 @@ program BigDFT
      end do
      fluct=sumx**2+sumy**2+sumz**2
      if (iproc.eq.0) write(16,*) &
-          'fnrm2,flucts',fnrm,sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*frac_fluct/3.d0
+          'fnrm2,flucts',fnrm,sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0
 
-     if (fnrm < sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*frac_fluct/3.d0 .or. nsatur > 5 ) &
+     if (fnrm < sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0 .or. nsatur > 5 ) &
           goto 2000
 
      if (ncount_cluster > in%ncount_cluster_x) then 
