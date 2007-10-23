@@ -1,3 +1,191 @@
+subroutine print_input_variables(in)
+
+  use libBigDFT
+
+  implicit none
+  type(input_variables), intent(out) :: in
+
+  write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
+  write(*,'(1x,a,1pe10.2)') 'Convergence criterion for forces: fraction of noise ',&
+       in%frac_fluct
+  write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
+  write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
+
+  write(*,'(1x,a)')&
+       '------------------------------------------------------------------- Input Parameters'
+  write(*,'(1x,a)')&
+       '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
+  write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
+       'Grid spacing=',in%hgrid,    '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
+       '| Calculate=',in%calc_tail
+  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,f4.1)')&
+       '       XC id=',in%ixc,      '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
+       '| Extension=',in%rbuf
+  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,i4)')&
+       'total charge=',in%ncharge,  '| Coarse Proj.=',in%cpmult,'| CG Prec.Steps=',in%ncong,&
+       '|  CG Steps=',in%ncongt
+  write(*,'(1x,a,1pe7.1,1x,a,0pf5.2,1x,a,i8)')&
+       ' elec. field=',in%elecfield,'|   Fine Proj.=',in%fpmult,'| DIIS Hist. N.=',in%idsx
+  
+
+end subroutine print_input_variables
+
+
+subroutine read_input_variables(iproc,in)
+
+  use libBigDFT
+
+  implicit none
+  integer, intent(in) :: iproc
+  type(input_variables), intent(out) :: in
+  !local variables
+  integer :: ierror
+
+  if (iproc == 0) then
+     write(*,'(23x,a)')'      ****         *       *****    '
+     write(*,'(23x,a)')'     *    *               *         '
+     write(*,'(23x,a)')'    *     *        *     *          '
+     write(*,'(23x,a)')'    *    *         *     *        * '
+     write(*,'(23x,a)')'    *****          *     *         *'
+     write(*,'(23x,a)')'    *    *         *     *         *'
+     write(*,'(23x,a)')'    *     *        *     *         *'
+     write(*,'(23x,a)')'    *      *       *     *         *'
+     write(*,'(23x,a)')'    *     *     ****     *         *'
+     write(*,'(23x,a)')'    * ****         *      *        *'
+     write(*,'(23x,a)')'    *             *        *      * '
+     write(*,'(23x,a)')'*********    *****          ******  ' 
+     !write(*,'(23x,a)')'---------------------------------------'
+     write(*,'(23x,a)')'  ******          *****    *********'
+     write(*,'(23x,a)')' *      *        *             *    '
+     write(*,'(23x,a)')'*        *      *         **** *    '
+     write(*,'(23x,a)')'*         *     ****     *     *    '
+     write(*,'(23x,a)')'*         *     *       *      *    '
+     write(*,'(23x,a)')'*         *     *        *     *    '
+     write(*,'(23x,a)')'*         *     *         *    *    '
+     write(*,'(23x,a)')'*         *     *          *****    '
+     write(*,'(23x,a)')' *        *     *         *    *    '  
+     write(*,'(23x,a)')'          *     *        *     *    ' 
+     write(*,'(23x,a)')'         *               *    *     '
+     write(*,'(23x,a)')'    *****       *         ****                       (Ver 1.0)'
+     write(*,'(1x,a)')&
+       '------------------------------------------------------------------------------------'
+     write(*,'(1x,a)')&
+       '|              Daubechies Wavelets for DFT Pseudopotential Calculations            |'
+     write(*,'(1x,a)')&
+       '------------------------------------------------------------------------------------'
+
+  end if
+
+  ! Read the input variables.
+  open(unit=1,file='input.dat',status='old')
+  read(1,*,iostat=ierror) in%ncount_cluster_x
+  read(1,*,iostat=ierror) in%frac_fluct
+  read(1,*,iostat=ierror) in%randdis
+  read(1,*,iostat=ierror) in%betax
+  read(1,*,iostat=ierror) in%hgrid
+  read(1,*,iostat=ierror) in%crmult
+  read(1,*,iostat=ierror) in%frmult
+  read(1,*,iostat=ierror) in%cpmult
+  read(1,*,iostat=ierror) in%fpmult
+  if (in%fpmult.gt.in%frmult) write(*,*) ' NONSENSE: fpmult > frmult'
+  read(1,*,iostat=ierror) in%ixc
+  read(1,*,iostat=ierror) in%ncharge,in%elecfield
+  read(1,*,iostat=ierror) in%gnrm_cv
+  read(1,*,iostat=ierror) in%itermax
+  read(1,*,iostat=ierror) in%ncong
+  read(1,*,iostat=ierror) in%idsx
+  read(1,*,iostat=ierror) in%calc_tail
+  read(1,*,iostat=ierror) in%rbuf
+  read(1,*,iostat=ierror) in%ncongt
+  read(1,*,iostat=ierror) in%nspin,in%mpol
+
+  if (ierror/=0) then
+     write(*,'(1x,a)') 'Error while reading the file "input.dat"'
+     stop
+  end if 
+
+  close(1,iostat=ierror)
+
+  !these values are hard-coded for the moment but they can be entered in the input file
+  !in case of need also other variables can be entered without any changements
+  in%output_grid=.false. 
+  in%inputPsiId=0
+  in%output_wf=.false. 
+
+end subroutine read_input_variables
+
+
+! read atomic positions
+subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,rxyz)
+  implicit none
+  character(len=20), intent(in) :: units
+  integer, intent(in) :: iproc,ifile,nat
+  integer, intent(out) :: ntypes
+  character(len=20), dimension(100), intent(out) :: atomnames
+  integer, dimension(nat), intent(out) :: iatype
+  real(kind=8), dimension(3,nat), intent(out) :: rxyz
+  !local variables
+  character(len=20) :: tatonam
+  integer :: nateq,iat,jat,ityp,i
+  ntypes=0
+  do iat=1,nat
+     read(ifile,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
+     !! For reading in saddle points
+     !!        open(unit=83,file='step',status='old')
+     !!        read(83,*) step
+     !!        close(83)
+     !        step= .5d0
+     !        if (iproc.eq.0) write(*,*) 'step=',step
+     !        read(99,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam,t1,t2,t3
+     !        rxyz(1,iat)=rxyz(1,iat)+step*t1
+     !        rxyz(2,iat)=rxyz(2,iat)+step*t2
+     !        rxyz(3,iat)=rxyz(3,iat)+step*t3
+
+     do ityp=1,ntypes
+        if (tatonam.eq.atomnames(ityp)) then
+           iatype(iat)=ityp
+           goto 200
+        endif
+     enddo
+     ntypes=ntypes+1
+     if (ntypes.gt.100) stop 'more than 100 atomnames not permitted'
+     atomnames(ityp)=tatonam
+     iatype(iat)=ntypes
+200  continue
+     if (units.eq.'angstroem') then
+        ! if Angstroem convert to Bohr
+        do i=1,3 
+           rxyz(i,iat)=rxyz(i,iat)/.5291772108d0  
+        enddo
+     else if  (units.eq.'atomic' .or. units.eq.'bohr') then
+     else
+        write(*,*) 'length units in input file unrecognized'
+        write(*,*) 'recognized units are angstroem or atomic = bohr'
+        stop 
+     endif
+  enddo
+
+  !control atom positions
+  nateq=0
+  do iat=1,nat
+     do jat=iat+1,nat
+        if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
+             (rxyz(3,iat)-rxyz(3,jat))**2 ==0.d0) then
+           nateq=nateq+1
+           write(*,'(1x,a,2(i0,a,a6,a))')'ERROR: atoms ',iat,&
+                ' (',trim(atomnames(iatype(iat))),') and ',&
+                jat,' (',trim(atomnames(iatype(jat))),&
+                ') have the same positions'
+        end if
+     end do
+  end do
+  if (nateq /= 0) then
+     write(*,'(1x,a)')'Control your posinp file, cannot proceed'
+     stop
+  end if
+
+end subroutine read_atomic_positions
+
 
 ! Fill the arrays occup and spinar
 ! if iunit /=0 this means that the file occup.dat does exist and it opens

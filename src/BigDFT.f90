@@ -2,24 +2,42 @@ program BigDFT
 
   use libBigDFT
 
-  implicit real(kind=8) (a-h,o-z)
+  !implicit real(kind=8) (a-h,o-z)
+  !as a general policy, I will put "implicit none" by assuming the same
+  !name convention as "implicit real(kind=8) (a-h,o-z)"
+  !such that the implicit statement can be commented at will
 
+  implicit none
+  include 'mpif.h'
   ! For parallel MPI execution set parallel=.true., for serial parallel=.false.
+  ! this statement wil be changed by using the MPIfake.f90 file
   include 'parameters.h'
-
-  ! atomic coordinates, forces
-  real(kind=8), allocatable, dimension(:,:) :: rxyz, fxyz, rxyz_old
-   logical :: output_wf,output_grid,calc_tail
-  character(len=20) :: tatonam
+  logical :: output_wf,output_grid,calc_tail
+  character(len=20) :: units
   character(len=80) :: line
-  ! atomic types
-  integer, allocatable, dimension(:) :: iatype
-  character(len=20) :: atomnames(100), units
-  character(len=6), dimension(:), allocatable :: frzsymb
-  logical, dimension(:), allocatable :: lfrztyp
-  real(kind=8), pointer :: psi(:,:), eval(:)
-  integer, pointer :: keyv(:), keyg(:,:)
+  integer :: iproc,nproc,nat,ntypes,n1,n2,n3,iat,ityp,j,i_stat,i_all,ierr
+  integer :: ncount_cluster
+  !wavefunction data descriptors
+  integer :: nvctr_c,nvctr_f,nseg_c,nseg_f
+  integer :: norb,norbp
+  real(kind=8) :: energy,etot,energyold,beta,sumx,sumy,sumz
+  !input variables
   type(input_variables) :: inputs
+
+  logical, dimension(:), allocatable :: lfrztyp
+  character(len=6), dimension(:), allocatable :: frzsymb
+  character(len=20), dimension(:), allocatable :: atomnames
+  ! atomic types
+  integer, dimension(:), allocatable :: iatype
+  ! atomic coordinates, forces
+  real(kind=8), dimension(:,:), allocatable :: rxyz,fxyz,rxyz_old
+ 
+  !pointer variables, some of them can be easily put into structures at this level
+  integer, dimension(:), pointer :: keyv
+  integer, dimension(:,:), pointer :: keyg
+  real(kind=8), dimension(:), pointer :: eval
+  real(kind=8), dimension(:,:), pointer :: psi
+
   !$      interface
   !$        integer ( kind=4 ) function omp_get_num_threads ( )
   !$        end function omp_get_num_threads
@@ -28,7 +46,7 @@ program BigDFT
   !$        integer ( kind=4 ) function omp_get_thread_num ( )
   !$        end function omp_get_thread_num
   !$      end interface
-  include 'mpif.h'
+
 
   ! Start MPI in parallel version
   if (parallel) then
@@ -52,13 +70,11 @@ program BigDFT
   !$       write(*,*) 'iproc,iam,npr',iproc,iam,npr
   !$omp end parallel
 
-  !new way of reading the input variables, use structures
-  call read_input_variables(iproc,inputs)
-
-  ! read atomic positions
+  !read number of atoms
   open(unit=99,file='posinp',status='old')
   read(99,*) nat,units
   if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',nat
+
   allocate(rxyz_old(3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(rxyz_old))*kind(rxyz_old),'rxyz_old','BigDFT')
   allocate(rxyz(3,nat),stat=i_stat)
@@ -67,43 +83,12 @@ program BigDFT
   call memocc(i_stat,product(shape(iatype))*kind(iatype),'iatype','BigDFT')
   allocate(fxyz(3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(fxyz))*kind(fxyz),'fxyz','BigDFT')
-  ntypes=0
-  do iat=1,nat
-     read(99,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
-     !! For reading in saddle points
-     !!        open(unit=83,file='step',status='old')
-     !!        read(83,*) step
-     !!        close(83)
-     !        step= .5d0
-     !        if (iproc.eq.0) write(*,*) 'step=',step
-     !        read(99,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam,t1,t2,t3
-     !        rxyz(1,iat)=rxyz(1,iat)+step*t1
-     !        rxyz(2,iat)=rxyz(2,iat)+step*t2
-     !        rxyz(3,iat)=rxyz(3,iat)+step*t3
+  allocate(atomnames(100),stat=i_stat) 
+  call memocc(i_stat,product(shape(atomnames))*kind(atomnames),'atomnames','BigDFT')
 
-     do ityp=1,ntypes
-        if (tatonam.eq.atomnames(ityp)) then
-           iatype(iat)=ityp
-           goto 200
-        endif
-     enddo
-     ntypes=ntypes+1
-     if (ntypes.gt.100) stop 'more than 100 atomnames not permitted'
-     atomnames(ityp)=tatonam
-     iatype(iat)=ntypes
-200  continue
-     if (units.eq.'angstroem') then
-        ! if Angstroem convert to Bohr
-        do i=1,3 
-           rxyz(i,iat)=rxyz(i,iat)/.5291772108d0  
-        enddo
-     else if  (units.eq.'atomic' .or. units.eq.'bohr') then
-     else
-        write(*,*) 'length units in input file unrecognized'
-        write(*,*) 'recognized units are angstroem or atomic = bohr'
-        stop 
-     endif
-  enddo
+  ! read atomic positions
+  call read_atomic_positions(iproc,99,units,nat,ntypes,iatype,atomnames,rxyz)
+
   close(99)
 
   if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atom types= ',ntypes
@@ -112,7 +97,12 @@ program BigDFT
      if (iproc.eq.0) &
           write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ',trim(atomnames(ityp))
   enddo
-  
+
+  !new way of reading the input variables, use structures
+  call read_input_variables(iproc,inputs)
+ 
+  !this array is useful for frozen atoms
+  !we should modify the way in which they must be entrered
   allocate(lfrztyp(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(lfrztyp))*kind(lfrztyp),'lfrztyp','BigDFT')
   lfrztyp(:)=.false.
@@ -153,13 +143,11 @@ program BigDFT
 !!$     call memocc(i_stat,i_all,'frzsymb','BigDFT')
 !!$  end if
 
+
   if (iproc.eq.0) then
-     write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',inputs%ncount_cluster_x
-     write(*,'(1x,a,1pe10.2)') 'Convergence criterion for forces: fraction of noise ',&
-          inputs%frac_fluct
-     write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',inputs%randdis
-     write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',inputs%betax
+     call print_input_variables(inputs)
   end if
+
   do iat=1,nat
      if (.not. lfrztyp(iatype(iat))) then
         call random_number(tt)
@@ -219,6 +207,9 @@ program BigDFT
   deallocate(lfrztyp,stat=i_stat)
   call memocc(i_stat,i_all,'lfrztyp','BigDFT')
 
+  i_all=-product(shape(atomnames))*kind(atomnames)
+  deallocate(atomnames,stat=i_stat)
+  call memocc(i_stat,i_all,'atomnames','BigDFT')
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
   call memocc(i_stat,i_all,'psi','BigDFT')
@@ -257,6 +248,7 @@ program BigDFT
          n1,n2,n3,rxyz_old,ncount_cluster,in)
      use libBigDFT
      implicit real(kind=8) (a-h,o-z)
+     implicit integer (i-n) !this line is added in view of the changement to implicit none
      logical :: parallel
      integer :: iatype(nat)
      logical :: lfrztyp(ntypes)
@@ -492,6 +484,7 @@ program BigDFT
              n1,n2,n3,rxyz_old,ncount_cluster,fluct,flucto,fluctoo,fnrm,in)
      use libBigDFT
      implicit real(kind=8) (a-h,o-z)
+     implicit integer (i-n) !this line is added in view of the changement to implicit none
      logical :: parallel
      integer :: iatype(nat)
      logical :: lfrztyp(ntypes)
@@ -663,6 +656,7 @@ program BigDFT
      ! determines stepsize betax
      use libBigDFT
      implicit real(kind=8) (a-h,o-z)
+     implicit integer (i-n) !this line is added in view of the changement to implicit none
      logical :: parallel
      integer :: iatype(nat)
      logical :: lfrztyp(ntypes)
@@ -875,10 +869,17 @@ program BigDFT
 
 subroutine wtposout(igeostep,energy,nat,rxyz,atomnames,iatype)
 
-   implicit real(kind=8) (a-h,o-z)
-   character(len=20) :: atomnames(100), filename
+   implicit none
+   integer, intent(in) :: igeostep,nat
+   real(kind=8), intent(in) :: energy
+   character(len=20), dimension(100), intent(in) :: atomnames(100)
+   integer, dimension(nat), intent(in) :: iatype
+   real(kind=8), dimension(3,nat), intent(in) :: rxyz
+   !local variables
    character(len=3) :: fn
-   dimension rxyz(3,nat),iatype(nat)
+   character(len=20) :: filename
+   integer :: iat,j
+   real(kind=8) :: xmax,ymax,zmax
 
    write(fn,'(i3.3)') igeostep
    filename = 'posout_'//fn//'.ascii'
@@ -898,73 +899,3 @@ subroutine wtposout(igeostep,energy,nat,rxyz,atomnames,iatype)
    close(unit=9)
 
 end subroutine wtposout
-
-subroutine read_input_variables(iproc,in)
-
-  use libBigDFT
-
-  implicit none
-  integer, intent(in) :: iproc
-  type(input_variables), intent(out) :: in
-
-  if (iproc == 0) then
-     write(*,'(1x,a)')'      ****          *        ******    '
-     write(*,'(1x,a)')'     *    *                 *          '
-     write(*,'(1x,a)')'    *     *         *      *           '
-     write(*,'(1x,a)')'    *    *          *      *         * '
-     write(*,'(1x,a)')'    *****           *      *          *'
-     write(*,'(1x,a)')'    *    *          *      *          *'
-     write(*,'(1x,a)')'    *     *         *      *          *'
-     write(*,'(1x,a)')'    *      *        *      *          *'
-     write(*,'(1x,a)')'    *     *      ****      *          *'
-     write(*,'(1x,a)')'    * ****          *       *         *'
-     write(*,'(1x,a)')'    *              *         *       * '
-     write(*,'(1x,a)')'*********     *****           *******  ' 
-     !write(*,'(1x,a)')'---------------------------------------'
-     write(*,'(1x,a)')'  *******           *****     *********'
-     write(*,'(1x,a)')' *       *         *              *    '
-     write(*,'(1x,a)')'*         *       *          **** *    '
-     write(*,'(1x,a)')'*          *      ****      *     *    '
-     write(*,'(1x,a)')'*          *      *        *      *    '
-     write(*,'(1x,a)')'*          *      *         *     *    '
-     write(*,'(1x,a)')'*          *      *          *    *    '
-     write(*,'(1x,a)')'*          *      *           *****    '
-     write(*,'(1x,a)')' *         *      *          *    *    '  
-     write(*,'(1x,a)')'           *      *         *     *    ' 
-     write(*,'(1x,a)')'          *                 *    *     '
-     write(*,'(1x,a)')'    ******        *          ****      (Ver 1.0)'
-  end if
-
-  ! Read the input variables.
-  open(unit=1,file='input.dat',status='old')
-  read(1,*) in%ncount_cluster_x
-  read(1,*) in%frac_fluct
-  read(1,*) in%randdis
-  read(1,*) in%betax
-  read(1,*) in%hgrid
-  read(1,*) in%crmult
-  read(1,*) in%frmult
-  read(1,*) in%cpmult
-  read(1,*) in%fpmult
-  if (in%fpmult.gt.in%frmult) write(*,*) 'NONSENSE: fpmult > frmult'
-  read(1,*) in%ixc
-  read(1,*) in%ncharge,in%elecfield
-  read(1,*) in%gnrm_cv
-  read(1,*) in%itermax
-  read(1,*) in%ncong
-  read(1,*) in%idsx
-  read(1,*) in%calc_tail
-  read(1,*) in%rbuf
-  read(1,*) in%ncongt
-  read(1,*) in%nspin,in%mpol
-  close(1)
-
-  !these values are hard-coded for the moment but they can be entered in the input file
-  !in case of need also other variables can be entered without any changements
-  in%output_grid=.false. 
-  in%inputPsiId=0
-  in%output_wf=.false. 
-
-end subroutine read_input_variables
-
-

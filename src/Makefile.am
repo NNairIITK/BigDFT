@@ -94,7 +94,7 @@ libbigdft_a_SOURCES = \
 	input/gautowav.f90 \
 	input/gauprod.f90 \
 	input/inputguess.f90 \
-	input/input_occup.f90 \
+	input/input_variables.f90 \
 	input/restart.f90 \
 	ionicpot.f90 \
 	projectors/projectors.f90 \
@@ -124,7 +124,7 @@ test_forces_LDADD = libbigdft.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
-memguess_SOURCES = memguess.f90
+memguess_SOURCES = memguess.f90 
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	ABINIT-common/libABINIT.a 
@@ -146,7 +146,7 @@ test_forces.o: parameters.h \
 
 libbigdft.@MODULE_EXT@: cluster_all.o
 
-BigDFT.o: BigDFT.f90 \
-	parameters.h \
+BigDFT.o: parameters.h \
 	libbigdft.@MODULE_EXT@
 
+memguess.o: libbigdft.@MODULE_EXT@
