@@ -70,6 +70,9 @@ program BigDFT
   !$       write(*,*) 'iproc,iam,npr',iproc,iam,npr
   !$omp end parallel
 
+  !welcome screen
+  if (iproc==0) call print_logo()
+
   !read number of atoms
   open(unit=99,file='posinp',status='old')
   read(99,*) nat,units

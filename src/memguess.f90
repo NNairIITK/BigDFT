@@ -52,6 +52,9 @@ program memguess
   !initialize memory counting
   call memocc(0,0,'count','start')
 
+  !welcome screen
+  call print_logo()
+
   !read number of atoms
   open(unit=99,file='posinp',status='old')
   read(99,*) nat,units
@@ -116,6 +119,9 @@ program memguess
   i_all=-product(shape(psppar))*kind(psppar)
   deallocate(psppar,stat=i_stat)
   call memocc(i_stat,i_all,'psppar','memguess')
+  i_all=-product(shape(npspcode))*kind(npspcode)
+  deallocate(npspcode,stat=i_stat)
+  call memocc(i_stat,i_all,'npspcode','memguess')
   i_all=-product(shape(nelpsp))*kind(nelpsp)
   deallocate(nelpsp,stat=i_stat)
   call memocc(i_stat,i_all,'nelpsp','memguess')

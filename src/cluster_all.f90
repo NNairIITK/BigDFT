@@ -1535,18 +1535,20 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
      write(*,'(1x,a)')&
           '-------------------------------------------------------------- Kohn-Sham Eigenvalues'
      if (nspin==1) then
-        do iorb=1,norb/2
-           jorb=norb/2+iorb
-           write(*,'(1x,a,i4,a,1x,1pe21.14,17x,a,i4,a,1x,1pe21.14)') &
-                'eval(',iorb,')=',eval(iorb),'eval(',jorb,')=',eval(jorb)
+        do iorb=1,norb!/2
+!!$           jorb=norb/2+iorb
+!!$           write(*,'(1x,a,i4,a,1x,1pe21.14,17x,a,i4,a,1x,1pe21.14)') &
+!!$                'eval(',iorb,')=',eval(iorb),'eval(',jorb,')=',eval(jorb)
+!!$        end do
+!!$        if (2*norb/2 /= norb) then
+!!$           write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',norb/2+1,')=',eval(norb/2+1)
+!!$        end if
+           write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
         end do
-        if (2*norb/2 /= norb) then
-           write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',norb/2+1,')=',eval(norb/2+1)
-        end if
      else
         do iorb=1,min(norbu,norbd)
            jorb=norbu+iorb
-           write(*,'(1x,a,i4,a,1x,1pe21.14,17x,a,i4,a,1x,1pe21.14)') &
+           write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
                 'eval(',iorb,',u)=',eval(iorb),'eval(',iorb,',d)=',eval(jorb)
         end do
         if (norbu > norbd) then
@@ -1555,7 +1557,7 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
            end do
         else if (norbd > norbu) then
            do iorb=2*norbu+1,norbu+norbd
-              write(*,'(51x,a,i0,a,1x,1pe21.14)') 'eval(',iorb-norbu,',d)=',eval(iorb)
+              write(*,'(48x,a,i0,a,1x,1pe21.14)') 'eval(',iorb-norbu,',d)=',eval(iorb)
            end do
         end if
      end if

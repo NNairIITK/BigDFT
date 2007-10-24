@@ -1,14 +1,4 @@
-subroutine read_input_variables(iproc,in)
-
-  use libBigDFT
-
-  implicit none
-  integer, intent(in) :: iproc
-  type(input_variables), intent(out) :: in
-  !local variables
-  integer :: ierror
-
-  if (iproc == 0) then
+subroutine print_logo()
      write(*,'(23x,a)')'      ****         *       *****    '
      write(*,'(23x,a)')'     *    *               *         '
      write(*,'(23x,a)')'    *     *        *     *          '
@@ -35,13 +25,22 @@ subroutine read_input_variables(iproc,in)
      write(*,'(23x,a)')'         *               *    *     '
      write(*,'(23x,a)')'    *****       *         ****                       (Ver 1.0)'
      write(*,'(1x,a)')&
-       '------------------------------------------------------------------------------------'
+          '------------------------------------------------------------------------------------'
      write(*,'(1x,a)')&
-       '|              Daubechies Wavelets for DFT Pseudopotential Calculations            |'
+          '|              Daubechies Wavelets for DFT Pseudopotential Calculations            |'
      write(*,'(1x,a)')&
-       '------------------------------------------------------------------------------------'
+          '------------------------------------------------------------------------------------'
+end subroutine print_logo
 
-  end if
+subroutine read_input_variables(iproc,in)
+
+  use libBigDFT
+
+  implicit none
+  integer, intent(in) :: iproc
+  type(input_variables), intent(out) :: in
+  !local variables
+  integer :: ierror
 
   ! Read the input variables.
   open(unit=1,file='input.dat',status='old')
@@ -69,7 +68,7 @@ subroutine read_input_variables(iproc,in)
   if (ierror/=0) then
      write(*,'(1x,a)') 'Error while reading the file "input.dat"'
      stop
-  end if 
+  end if
 
   close(1,iostat=ierror)
 
@@ -79,27 +78,29 @@ subroutine read_input_variables(iproc,in)
   in%inputPsiId=0
   in%output_wf=.false. 
 
-  write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
-  write(*,'(1x,a,1pe10.2)') 'Convergence criterion for forces: fraction of noise ',&
-       in%frac_fluct
-  write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
-  write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
+  if (iproc == 0) then
+     write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
+     write(*,'(1x,a,1pe10.2)') 'Convergence criterion for forces: fraction of noise ',&
+          in%frac_fluct
+     write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
+     write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
 
-  write(*,'(1x,a)')&
-       '------------------------------------------------------------------- Input Parameters'
-  write(*,'(1x,a)')&
-       '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
-  write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
-       'Grid spacing=',in%hgrid,    '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
-       '| Calculate=',in%calc_tail
-  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,f4.1)')&
-       '       XC id=',in%ixc,      '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
-       '| Extension=',in%rbuf
-  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,i4)')&
-       'total charge=',in%ncharge,  '| Coarse Proj.=',in%cpmult,'| CG Prec.Steps=',in%ncong,&
-       '|  CG Steps=',in%ncongt
-  write(*,'(1x,a,1pe7.1,1x,a,0pf5.2,1x,a,i8)')&
-       ' elec. field=',in%elecfield,'|   Fine Proj.=',in%fpmult,'| DIIS Hist. N.=',in%idsx
+     write(*,'(1x,a)')&
+          '------------------------------------------------------------------- Input Parameters'
+     write(*,'(1x,a)')&
+          '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
+     write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
+          'Grid spacing=',in%hgrid,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
+          '| Calculate=',in%calc_tail
+     write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,f4.1)')&
+          '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
+          '| Extension=',in%rbuf
+     write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,i4)')&
+          'total charge=',in%ncharge, '| Coarse Proj.=',in%cpmult,'| CG Prec.Steps=',in%ncong,&
+          '|  CG Steps=',in%ncongt
+     write(*,'(1x,a,1pe7.1,1x,a,0pf5.2,1x,a,i8)')&
+          ' elec. field=',in%elecfield,'|   Fine Proj.=',in%fpmult,'| DIIS Hist. N.=',in%idsx
+  end if
 
 end subroutine read_input_variables
 
