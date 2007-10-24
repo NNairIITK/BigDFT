@@ -110,7 +110,7 @@ libbigdft_a_SOURCES = \
 libbigdft_a_LIBADD = profiling/timing.o \
 	$(convolution_objects)
 
-cluster_SOURCES = BigDFT.f90
+cluster_SOURCES = BigDFT.f90 
 cluster_LDFLAGS = $(LMPI)
 cluster_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \

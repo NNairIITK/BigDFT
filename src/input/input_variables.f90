@@ -32,79 +32,6 @@ subroutine print_logo()
           '------------------------------------------------------------------------------------'
 end subroutine print_logo
 
-subroutine read_input_variables(iproc,in)
-
-  use libBigDFT
-
-  implicit none
-  integer, intent(in) :: iproc
-  type(input_variables), intent(out) :: in
-  !local variables
-  integer :: ierror
-
-  ! Read the input variables.
-  open(unit=1,file='input.dat',status='old')
-  read(1,*,iostat=ierror) in%ncount_cluster_x
-  read(1,*,iostat=ierror) in%frac_fluct
-  read(1,*,iostat=ierror) in%randdis
-  read(1,*,iostat=ierror) in%betax
-  read(1,*,iostat=ierror) in%hgrid
-  read(1,*,iostat=ierror) in%crmult
-  read(1,*,iostat=ierror) in%frmult
-  read(1,*,iostat=ierror) in%cpmult
-  read(1,*,iostat=ierror) in%fpmult
-  if (in%fpmult.gt.in%frmult) write(*,*) ' NONSENSE: fpmult > frmult'
-  read(1,*,iostat=ierror) in%ixc
-  read(1,*,iostat=ierror) in%ncharge,in%elecfield
-  read(1,*,iostat=ierror) in%gnrm_cv
-  read(1,*,iostat=ierror) in%itermax
-  read(1,*,iostat=ierror) in%ncong
-  read(1,*,iostat=ierror) in%idsx
-  read(1,*,iostat=ierror) in%calc_tail
-  read(1,*,iostat=ierror) in%rbuf
-  read(1,*,iostat=ierror) in%ncongt
-  read(1,*,iostat=ierror) in%nspin,in%mpol
-
-  if (ierror/=0) then
-     write(*,'(1x,a)') 'Error while reading the file "input.dat"'
-     stop
-  end if
-
-  close(1,iostat=ierror)
-
-  !these values are hard-coded for the moment but they can be entered in the input file
-  !in case of need also other variables can be entered without any changements
-  in%output_grid=.false. 
-  in%inputPsiId=0
-  in%output_wf=.false. 
-
-  if (iproc == 0) then
-     write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
-     write(*,'(1x,a,1pe10.2)') 'Convergence criterion for forces: fraction of noise ',&
-          in%frac_fluct
-     write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
-     write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
-
-     write(*,'(1x,a)')&
-          '------------------------------------------------------------------- Input Parameters'
-     write(*,'(1x,a)')&
-          '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
-     write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
-          'Grid spacing=',in%hgrid,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
-          '| Calculate=',in%calc_tail
-     write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,f4.1)')&
-          '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
-          '| Extension=',in%rbuf
-     write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,i4)')&
-          'total charge=',in%ncharge, '| Coarse Proj.=',in%cpmult,'| CG Prec.Steps=',in%ncong,&
-          '|  CG Steps=',in%ncongt
-     write(*,'(1x,a,1pe7.1,1x,a,0pf5.2,1x,a,i8)')&
-          ' elec. field=',in%elecfield,'|   Fine Proj.=',in%fpmult,'| DIIS Hist. N.=',in%idsx
-  end if
-
-end subroutine read_input_variables
-
-
 ! read atomic positions
 subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,rxyz)
   implicit none
@@ -427,10 +354,6 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomn
        norbd=norb-norbu
     end if
 
-    tt=dble(norb)/dble(nproc)
-    norbp=int((1.d0-eps_mach*tt) + tt)
-    !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
-
     ! Test if the file 'occup.dat exists
     inquire(file='occup.dat',exist=exists)
     ! Not implemented for npsin==2: At the present stage, this feature is broken
@@ -461,6 +384,10 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomn
           norb=nt
        end if
     end if
+
+    tt=dble(norb)/dble(nproc)
+    norbp=int((1.d0-eps_mach*tt) + tt)
+    !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
 
   end subroutine read_system_variables
 

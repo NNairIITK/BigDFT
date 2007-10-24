@@ -4,6 +4,9 @@ module libBigDFT
 
   !- Do a minimisation loop to find forces and energy.
   public :: cluster
+
+  !input variables
+  public :: read_input_variables
   
   !- Initialisation methods.
   !- Create and allocate access arrays for wavefunctions.
@@ -2663,9 +2666,10 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 !!$        !close(34+2*(i-1))
 
         if (iproc.eq.0) then
-        do iorb=1,norbi
+!!$        do iorb=1,norbi
+!!$           if (nspin==1) 
         write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb+iorbst-1,')=',evale(iorb)
-        enddo
+!!$        enddo
         endif
         do iorb=iorbst,min(norbi+iorbst-1,norb)
            eval(iorb)=evale(iorb-iorbst+1)
@@ -2996,5 +3000,76 @@ subroutine diisstp(parallel,norb,norbp,nproc,iproc,  &
   call memocc(i_stat,i_all,'rds','diisstp')
 
 END SUBROUTINE diisstp
+
+subroutine read_input_variables(iproc,in)
+
+  implicit none
+  integer, intent(in) :: iproc
+  type(input_variables), intent(out) :: in
+  !local variables
+  integer :: ierror
+
+  ! Read the input variables.
+  open(unit=1,file='input.dat',status='old')
+  read(1,*,iostat=ierror) in%ncount_cluster_x
+  read(1,*,iostat=ierror) in%frac_fluct
+  read(1,*,iostat=ierror) in%randdis
+  read(1,*,iostat=ierror) in%betax
+  read(1,*,iostat=ierror) in%hgrid
+  read(1,*,iostat=ierror) in%crmult
+  read(1,*,iostat=ierror) in%frmult
+  read(1,*,iostat=ierror) in%cpmult
+  read(1,*,iostat=ierror) in%fpmult
+  if (in%fpmult.gt.in%frmult) write(*,*) ' NONSENSE: fpmult > frmult'
+  read(1,*,iostat=ierror) in%ixc
+  read(1,*,iostat=ierror) in%ncharge,in%elecfield
+  read(1,*,iostat=ierror) in%gnrm_cv
+  read(1,*,iostat=ierror) in%itermax
+  read(1,*,iostat=ierror) in%ncong
+  read(1,*,iostat=ierror) in%idsx
+  read(1,*,iostat=ierror) in%calc_tail
+  read(1,*,iostat=ierror) in%rbuf
+  read(1,*,iostat=ierror) in%ncongt
+  read(1,*,iostat=ierror) in%nspin,in%mpol
+
+  if (ierror/=0) then
+     write(*,'(1x,a)') 'Error while reading the file "input.dat"'
+     stop
+  end if
+
+  close(1,iostat=ierror)
+
+  !these values are hard-coded for the moment but they can be entered in the input file
+  !in case of need also other variables can be entered without any changements
+  in%output_grid=.false. 
+  in%inputPsiId=0
+  in%output_wf=.false. 
+
+  if (iproc == 0) then
+     write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
+     write(*,'(1x,a,1pe10.2)') 'Convergence criterion for forces: fraction of noise ',&
+          in%frac_fluct
+     write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
+     write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
+
+     write(*,'(1x,a)')&
+          '------------------------------------------------------------------- Input Parameters'
+     write(*,'(1x,a)')&
+          '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
+     write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
+          'Grid spacing=',in%hgrid,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
+          '| Calculate=',in%calc_tail
+     write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,f4.1)')&
+          '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
+          '| Extension=',in%rbuf
+     write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,i4)')&
+          'total charge=',in%ncharge, '| Coarse Proj.=',in%cpmult,'| CG Prec.Steps=',in%ncong,&
+          '|  CG Steps=',in%ncongt
+     write(*,'(1x,a,1pe7.1,1x,a,0pf5.2,1x,a,i8)')&
+          ' elec. field=',in%elecfield,'|   Fine Proj.=',in%fpmult,'| DIIS Hist. N.=',in%idsx
+  end if
+
+end subroutine read_input_variables
+
 
 end module libBigDFT
