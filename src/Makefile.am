@@ -12,7 +12,11 @@ sub_dirs_ps =
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft.a
+if CAPITALIZE
+mod_bigdft = LIBBIGDFT.@MODULE_EXT@
+else
 mod_bigdft = libbigdft.@MODULE_EXT@
+endif
 else
 lib_bigdft =
 mod_bigdft =
@@ -130,7 +134,7 @@ memguess_LDADD = libbigdft.a \
 	ABINIT-common/libABINIT.a 
 
 
-CLEANFILES = $(mpi_include) libbigdft.@MODULE_EXT@
+CLEANFILES = $(mpi_include) libbigdft.@MODULE_EXT@ LIBBIGDFT.@MODULE_EXT@
 
 #dependencies
 cluster_all.o: $(mpi_include)

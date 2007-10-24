@@ -2666,10 +2666,42 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 !!$        !close(34+2*(i-1))
 
         if (iproc.eq.0) then
-!!$        do iorb=1,norbi
-!!$           if (nspin==1) 
-        write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb+iorbst-1,')=',evale(iorb)
-!!$        enddo
+        do iorb=1,norbi
+           if (nspin==1) then
+              if (iorb+iorbst-1 == norb) then
+                 write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
+                      'evale(',iorb+iorbst-1,')=',evale(iorb),&
+                      ' <- Last eigenvalue for input wavefncts'
+              else
+                 write(*,'(1x,a,i0,a,1x,1pe21.14)') &
+                      'evale(',iorb+iorbst-1,')=',evale(iorb)
+              end if
+           else
+              if (norbu==norbd) then
+                 if (iorb+iorbst-1 == norbu) then
+                    write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
+                         'evale(',iorb+iorbst-1,')=',evale(iorb),&
+                         ' <- Last eigenvalue for input wavefncts of both spins'
+                 else
+                    write(*,'(1x,a,i0,a,1x,1pe21.14)') &
+                         'evale(',iorb+iorbst-1,')=',evale(iorb)
+                 end if
+              else
+                 if (iorb+iorbst-1 == norbu) then
+                    write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
+                         'evale(',iorb+iorbst-1,')=',evale(iorb),&
+                         ' <- Last eigenvalue for input wavefncts of spin up'
+                 else if (iorb+iorbst-1 == norbd) then
+                    write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
+                         'evale(',iorb+iorbst-1,')=',evale(iorb),&
+                         ' <- Last eigenvalue for input wavefncts of spin down'
+                 else
+                    write(*,'(1x,a,i0,a,1x,1pe21.14)') &
+                         'evale(',iorb+iorbst-1,')=',evale(iorb)
+                 end if
+              end if
+           end if
+        enddo
         endif
         do iorb=iorbst,min(norbi+iorbst-1,norb)
            eval(iorb)=evale(iorb-iorbst+1)
@@ -2819,7 +2851,40 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
         if (info.ne.0) write(*,*) 'DSYGV ERROR',info,i,natsc+1
         if (iproc.eq.0) then
            do iorb=1,norbi
-              write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb+iorbst-1,')=',evale(iorb)
+              if (nspin==1) then
+                 if (iorb+iorbst-1 == norb) then
+                    write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
+                         'evale(',iorb+iorbst-1,')=',evale(iorb),&
+                         ' <- Last eigenvalue for input wavefncts'
+                 else
+                    write(*,'(1x,a,i0,a,1x,1pe21.14)') &
+                         'evale(',iorb+iorbst-1,')=',evale(iorb)
+                 end if
+              else
+                 if (norbu==norbd) then
+                    if (iorb+iorbst-1 == norbu) then
+                       write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
+                            'evale(',iorb+iorbst-1,')=',evale(iorb),&
+                            ' <- Last eigenvalue for input wavefncts of both spins'
+                    else
+                       write(*,'(1x,a,i0,a,1x,1pe21.14)') &
+                            'evale(',iorb+iorbst-1,')=',evale(iorb)
+                    end if
+                 else
+                    if (iorb+iorbst-1 == norbu) then
+                       write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
+                            'evale(',iorb+iorbst-1,')=',evale(iorb),&
+                            ' <- Last eigenvalue for input wavefncts of spin up'
+                    else if (iorb+iorbst-1 == norbd) then
+                       write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
+                            'evale(',iorb+iorbst-1,')=',evale(iorb),&
+                            ' <- Last eigenvalue for input wavefncts of spin down'
+                    else
+                       write(*,'(1x,a,i0,a,1x,1pe21.14)') &
+                            'evale(',iorb+iorbst-1,')=',evale(iorb)
+                    end if
+                 end if
+              end if
            enddo
         endif
         do iorb=iorbst,min(norbi+iorbst-1,norb)
