@@ -26,4 +26,4 @@ check: $(PPFILES) inguess.dat posinp input.dat
 	  ln -s $(top_srcdir)/tests/Ca2/posinp ; \
 	fi
 	$(top_builddir)/src/cluster > Ca2.out
-	perl $(top_srcdir)/tests/fldiff.pl Ca2.out $(top_srcdir)/tests/Refs/Ca2.out.ref | cat
+	python $(top_srcdir)/tests/fldiff.py Ca2.out $(top_srcdir)/tests/Refs/Ca2.out.ref | cat
