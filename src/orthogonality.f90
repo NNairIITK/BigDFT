@@ -73,25 +73,38 @@ subroutine orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum)
 END SUBROUTINE orthoconstraint
 
 
-subroutine orthon_p(iproc,nproc,norb,nvctrp,psit)
+subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit)
   ! Gram-Schmidt orthogonalisation
-  implicit real(kind=8) (a-h,o-z)
-  logical, parameter :: parallel=.true.
-  dimension psit(nvctrp,norb)
-  real(kind=8), allocatable :: ovrlp(:,:,:)
+  implicit none
+  integer, intent(in) :: iproc,nproc,norb,nvctrp,nvctr_tot
+  real(kind=8), dimension(nvctrp,norb) :: psit
+  !local variables
+  integer :: info,i_all,i_stat,nvctr_eff,ierr
+  real(kind=8) :: tt,ttLOC,dnrm2
+  real(kind=8), dimension(:,:,:), allocatable :: ovrlp(:,:,:)
   include 'mpif.h'
 
   call timing(iproc,'GramS_comput  ','ON')
 
-  if (norb.eq.1) then
+  if (norb.eq.1) then 
 
-!!$         if (iproc .eq. 0) then
-!!$            tt=dnrm2(nvctrp,psi,1)
-!!$            tt=1.d0/tt
-!!$            call dscal(nvctrp,tt,psi,1)
-!!$         end if
+     nvctr_eff=min(nvctr_tot-iproc*nvctrp,nvctrp)
 
-     stop 'more than one orbital needed for a parallel run'
+     if (nvctr_eff > 0) then
+     !parallel treatment of a run with only one orbital
+     tt=dnrm2(nvctr_eff,psit,1)     
+     ttLOC=tt**2
+
+     else
+        ttLOC =0.d0
+     end if
+     
+     call MPI_ALLREDUCE(ttLOC,tt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+     tt=1.d0/sqrt(tt)
+     call dscal(nvctr_eff,tt,psit,1)
+
+     !stop 'more than one orbital needed for a parallel run'
 
   else
 
@@ -194,71 +207,89 @@ subroutine loewe_p(iproc,nproc,norb,ndim,nvctrp,psit)
   real(kind=8), allocatable :: ovrlp(:,:,:),evall(:),psitt(:,:)
   include 'mpif.h'
 
-  if (norb.eq.1) stop 'more than one orbital needed for a parallel run'
+  if (norb.eq.1) then
+     !parallel treatment of a run with only one orbital
+     tt=dnrm2(nvctrp,psit,1)     
 
-  allocate(ovrlp(norb,norb,3),stat=i_stat)
-  call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','loewe_p')
-  allocate(evall(norb),stat=i_stat)
-  call memocc(i_stat,product(shape(evall))*kind(evall),'evall','loewe_p')
+     ttLOC=tt**2
 
-  ! Upper triangle of overlap matrix using BLAS
-  !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; upper triangle
-  call DSYRK('U','T',norb,nvctrp,1.d0,psit,nvctrp,0.d0,ovrlp(1,1,2),norb)
+     call MPI_ALLREDUCE(ttLOC,tt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-  ! Full overlap matrix using  BLAS
-  !     ovrlap(jorb,iorb,2)=+psit(k,jorb)*psit(k,iorb)
-  !      call DGEMM('T','N',norb,norb,nvctrp,1.d0,psit,nvctrp,psit,nvctrp,0.d0,ovrlp(1,1,2),norb)
+     tt=1.d0/sqrt(tt)
+     call dscal(nvctrp,tt,psit,1)
 
-  call MPI_ALLREDUCE (ovrlp(1,1,2),ovrlp(1,1,1),norb**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+     !stop 'more than one orbital needed for a parallel run'
 
-  !       write(*,*) 'OVERLAP',iproc
-  !       do i=1,norb
-  !       write(*,'(10(x,e17.10))') (ovrlp(i,j,1),j=1,norb)
-  !       enddo
+  else
 
-  ! LAPACK
-  call DSYEV('V','U',norb,ovrlp(1,1,1),norb,evall,ovrlp(1,1,3),norb**2,info)
-  if (info.ne.0) write(6,*) 'info loewe', info
-  !        if (iproc.eq.0) then 
-  !          write(6,*) 'overlap eigenvalues'
-  !77        format(8(1x,e10.3))
-  !          if (norb.le.16) then
-  !          write(6,77) evall
-  !          else
-  !          write(6,77) (evall(i),i=1,4), (evall(i),i=norb-3,norb)
-  !          endif
-  !        endif
+     allocate(ovrlp(norb,norb,3),stat=i_stat)
+     call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','loewe_p')
+     allocate(evall(norb),stat=i_stat)
+     call memocc(i_stat,product(shape(evall))*kind(evall),'evall','loewe_p')
 
-  ! calculate S^{-1/2} ovrlp(*,*,3)
-  do lorb=1,norb
-     do jorb=1,norb
-        ovrlp(jorb,lorb,2)=ovrlp(jorb,lorb,1)*sqrt(1.d0/evall(lorb))
+     ! Upper triangle of overlap matrix using BLAS
+     !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; upper triangle
+     call DSYRK('U','T',norb,nvctrp,1.d0,psit,nvctrp,0.d0,ovrlp(1,1,2),norb)
+
+     ! Full overlap matrix using  BLAS
+     !     ovrlap(jorb,iorb,2)=+psit(k,jorb)*psit(k,iorb)
+     !      call DGEMM('T','N',norb,norb,nvctrp,1.d0,psit,&
+     !                     nvctrp,psit,nvctrp,0.d0,ovrlp(1,1,2),norb)
+
+     call MPI_ALLREDUCE(ovrlp(1,1,2),ovrlp(1,1,1),norb**2,&
+          MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+     !       write(*,*) 'OVERLAP',iproc
+     !       do i=1,norb
+     !       write(*,'(10(x,e17.10))') (ovrlp(i,j,1),j=1,norb)
+     !       enddo
+
+     ! LAPACK
+     call DSYEV('V','U',norb,ovrlp(1,1,1),norb,evall,ovrlp(1,1,3),norb**2,info)
+     if (info.ne.0) write(6,*) 'info loewe', info
+     !        if (iproc.eq.0) then 
+     !          write(6,*) 'overlap eigenvalues'
+     !77        format(8(1x,e10.3))
+     !          if (norb.le.16) then
+     !          write(6,77) evall
+     !          else
+     !          write(6,77) (evall(i),i=1,4), (evall(i),i=norb-3,norb)
+     !          endif
+     !        endif
+
+     ! calculate S^{-1/2} ovrlp(*,*,3)
+     do lorb=1,norb
+        do jorb=1,norb
+           ovrlp(jorb,lorb,2)=ovrlp(jorb,lorb,1)*sqrt(1.d0/evall(lorb))
+        end do
      end do
-  end do
-  !        do 3985,j=1,norb
-  !        do 3985,i=1,norb
-  !        ovrlp(i,j,3)=0.d0
-  !        do 3985,l=1,norb
-  !3985    ovrlp(i,j,3)=ovrlp(i,j,3)+ovrlp(i,l,1)*ovrlp(j,l,2)
-  ! BLAS:
-  call DGEMM('N','T',norb,norb,norb,1.d0,ovrlp(1,1,1),norb,ovrlp(1,1,2),norb,0.d0,ovrlp(1,1,3),norb)
+     !        do 3985,j=1,norb
+     !        do 3985,i=1,norb
+     !        ovrlp(i,j,3)=0.d0
+     !        do 3985,l=1,norb
+     !3985    ovrlp(i,j,3)=ovrlp(i,j,3)+ovrlp(i,l,1)*ovrlp(j,l,2)
+     ! BLAS:
+     call DGEMM('N','T',norb,norb,norb,1.d0,ovrlp(1,1,1),norb,&
+          ovrlp(1,1,2),norb,0.d0,ovrlp(1,1,3),norb)
 
-  allocate(psitt(nvctrp,ndim),stat=i_stat)
-  call memocc(i_stat,product(shape(psitt))*kind(psitt),'psitt','loewe_p')
-  ! new eigenvectors
-  !   psitt(i,iorb)=psit(i,jorb)*ovrlp(jorb,iorb,3)
-  call DGEMM('N','N',nvctrp,norb,norb,1.d0,psit,nvctrp,ovrlp(1,1,3),norb,0.d0,psitt,nvctrp)
-  call DCOPY(nvctrp*ndim,psitt,1,psit,1)
-  i_all=-product(shape(psitt))*kind(psitt)
-  deallocate(psitt,stat=i_stat)
-  call memocc(i_stat,i_all,'psitt','loewe_p')
+     allocate(psitt(nvctrp,ndim),stat=i_stat)
+     call memocc(i_stat,product(shape(psitt))*kind(psitt),'psitt','loewe_p')
+     ! new eigenvectors
+     !   psitt(i,iorb)=psit(i,jorb)*ovrlp(jorb,iorb,3)
+     call DGEMM('N','N',nvctrp,norb,norb,1.d0,psit,nvctrp,ovrlp(1,1,3),norb,0.d0,psitt,nvctrp)
+     call DCOPY(nvctrp*ndim,psitt,1,psit,1)
+     i_all=-product(shape(psitt))*kind(psitt)
+     deallocate(psitt,stat=i_stat)
+     call memocc(i_stat,i_all,'psitt','loewe_p')
 
-  i_all=-product(shape(ovrlp))*kind(ovrlp)
-  deallocate(ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ovrlp','loewe_p')
-  i_all=-product(shape(evall))*kind(evall)
-  deallocate(evall,stat=i_stat)
-  call memocc(i_stat,i_all,'evall','loewe_p')
+     i_all=-product(shape(ovrlp))*kind(ovrlp)
+     deallocate(ovrlp,stat=i_stat)
+     call memocc(i_stat,i_all,'ovrlp','loewe_p')
+     i_all=-product(shape(evall))*kind(evall)
+     deallocate(evall,stat=i_stat)
+     call memocc(i_stat,i_all,'evall','loewe_p')
+
+  end if
 
 END SUBROUTINE loewe_p
 

@@ -301,6 +301,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   ekin_sum=0.d0
   epot_sum=0.d0
   eproj_sum=0.d0
+  !print *,'now'
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
@@ -383,9 +384,9 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
 
      end do tail_adding
 
-     !write(*,'(1x,a,i3,3(1x,1pe13.6),2(1x,1pe9.2))') &
-     !     'BIG: iorb,denergies,gnrm,dnorm',&
-     !     iorb,ekin-ekin1,epot-epot1,eproj-eproj1,tt,sum_tail-1.d0
+!!$     write(*,'(1x,a,i3,3(1x,1pe13.6),2(1x,1pe9.2))') &
+!!$          'BIG: iorb,denergies,gnrm,dnorm',&
+!!$          iorb,ekin-ekin1,epot-epot1,eproj-eproj1,tt,sum_tail-1.d0
 
      if (iproc == 0) then
         write(*,'(a)',advance='no') &

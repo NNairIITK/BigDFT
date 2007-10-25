@@ -219,7 +219,7 @@
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        52.58        49.25
+ CPU time for root process     0        49.26        49.05
 Wavefunction Optimization Finished, exit signal=    0
                                 BigDFT Wavefunction Optimization 1
  ------------------------------------------------------------------ System Properties
@@ -235,7 +235,7 @@ Wavefunction Optimization Finished, exit signal=    0
      3  H_lda  6.93000E+00  6.93000E+00  1.01700E+01       15.400    15.400    22.600
      4  H_lda  1.01700E+01  6.93000E+00  6.93000E+00       22.600    15.400    15.400
      5  H_lda  6.93000E+00  1.01700E+01  6.93000E+00       15.400    22.600    15.400
-    Shift of=  3.46945E-17  3.46945E-17 -2.76688E-16
+    Shift of= -1.45717E-16 -1.45717E-16 -5.00468E-16
    Box Sizes=  1.71000E+01  1.71000E+01  1.71000E+01           38        38        38
        Extremes for the high resolution grid points:        11<27     11<27     11<27
  ------------------------------------------------------------------ Memory Estimation
@@ -302,7 +302,7 @@ Wavefunction Optimization Finished, exit signal=    0
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        13.69        13.26
+ CPU time for root process     0        13.29        13.24
                                 BigDFT Wavefunction Optimization 1
  ------------------------------------------------------------------ System Properties
  Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File
@@ -353,7 +353,7 @@ Wavefunction Optimization Finished, exit signal=    0
  Calculating wavelets expansion of projectors... done.
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001383346   0.000E+00
- ion-ion interaction energy  7.01710980557931E+00
+ ion-ion interaction energy  7.01710980557929E+00
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ...done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions do not need reformatting and can be imported directly...    done.
@@ -403,15 +403,15 @@ Wavefunction Optimization Finished, exit signal=    0
  FINAL iter,total energy,gnrm     5  -6.233563274461E+00  3.92E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1)= -4.96586762153926E-01
- eval(   2)= -3.12724078955378E-01
+ eval(   2)= -3.12724078955377E-01
  eval(   3)= -3.12724078955367E-01
  eval(   4)= -3.12722116753267E-01
  ----------------------------------------------------------------- Forces Calculation
- Calculation of charge density... done. Total electronic charge=       7.999999921171
+ Calculation of charge density... done. Total electronic charge=       7.999999921172
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        24.90        23.97
+ CPU time for root process     0        23.89        23.85
                                 BigDFT Wavefunction Optimization 1
  ------------------------------------------------------------------ System Properties
  Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File
@@ -462,7 +462,7 @@ Wavefunction Optimization Finished, exit signal=    0
  Calculating wavelets expansion of projectors... done.
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001416182   0.000E+00
- ion-ion interaction energy  7.01845365256750E+00
+ ion-ion interaction energy  7.01845365256749E+00
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ...done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions do not need reformatting and can be imported directly...    done.
@@ -503,15 +503,15 @@ Wavefunction Optimization Finished, exit signal=    0
  FINAL iter,total energy,gnrm     4  -6.233563456519E+00  3.96E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1)= -4.96627249563472E-01
- eval(   2)= -3.12749025256641E-01
- eval(   3)= -3.12741680671681E-01
- eval(   4)= -3.12741680671585E-01
+ eval(   2)= -3.12749025256639E-01
+ eval(   3)= -3.12741680671682E-01
+ eval(   4)= -3.12741680671584E-01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=       7.999999921005
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        21.22        20.47
+ CPU time for root process     0        23.80        20.45
                                 BigDFT Wavefunction Optimization 1
  ------------------------------------------------------------------ System Properties
  Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File
@@ -562,7 +562,7 @@ Wavefunction Optimization Finished, exit signal=    0
  Calculating wavelets expansion of projectors... done.
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -8.000001424851   0.000E+00
- ion-ion interaction energy  7.01880929240896E+00
+ ion-ion interaction energy  7.01880929240897E+00
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ...done.
  -------------------------------------------------------------- Wavefunctions Restart
  The wavefunctions do not need reformatting and can be imported directly...    done.
@@ -591,28 +591,28 @@ Wavefunction Optimization Finished, exit signal=    0
  iproc,ehart,eexcu,vexcu  0  1.11410167637E+01 -2.48481507638E+00 -3.24323467980E+00
  final ekin_sum,epot_sum,eproj_sum  3.75257262174E+00 -7.38899153777E+00  7.66643313909E-01
  final ehart,eexcu,vexcu  1.11410167637E+01 -2.48481507638E+00 -3.24323467980E+00
- FINAL iter,total energy,gnrm     3  -6.233563469982E+00  4.73E-05
+ FINAL iter,total energy,gnrm     3  -6.233563469981E+00  4.73E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1)= -4.96638383615143E-01
- eval(   2)= -3.12752150817711E-01
- eval(   3)= -3.12748633357144E-01
- eval(   4)= -3.12748633269610E-01
+ eval(   1)= -4.96638383615311E-01
+ eval(   2)= -3.12752150817621E-01
+ eval(   3)= -3.12748633358451E-01
+ eval(   4)= -3.12748633269056E-01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=       7.999999920964
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        17.06        16.84
+ CPU time for root process     0        18.39        16.33
  Final values of the Forces for each atom
      1 Si_lda  1.05124E-05  1.05124E-05  1.05123E-05
-     2  H_lda  2.41434E-06  2.41434E-06  2.41436E-06
+     2  H_lda  2.41433E-06  2.41434E-06  2.41436E-06
      3  H_lda  2.34286E-06  2.34286E-06  4.34581E-06
      4  H_lda  4.34570E-06  2.34284E-06  2.34282E-06
      5  H_lda  2.34284E-06  4.34572E-06  2.34282E-06
  the sum of the forces is
-      x direction     2.19581687E-05
-      y direction     2.19581652E-05
-      z direction     2.19581055E-05
+      x direction     2.19581711E-05
+      y direction     2.19581663E-05
+      z direction     2.19581061E-05
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
  3231 allocations and 3231 deallocations, remaining memory(B):0
  memory occupation peak: 113 MB

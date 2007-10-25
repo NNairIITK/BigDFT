@@ -100,10 +100,12 @@ subroutine fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
   do iat=1,nat
      rad=radii(iatype(iat))*rmult+real(nbuf,kind=8)*hgrid
      !        write(*,*) 'iat,nat,rad',iat,nat,rad
-     ml1=int(onem+(rxyz(1,iat)-rad)/hgrid)  ; mu1=int((rxyz(1,iat)+rad)/hgrid)
-     ml2=int(onem+(rxyz(2,iat)-rad)/hgrid)  ; mu2=int((rxyz(2,iat)+rad)/hgrid)
-     ml3=int(onem+(rxyz(3,iat)-rad)/hgrid)  ; mu3=int((rxyz(3,iat)+rad)/hgrid)
- 
+     ml1=ceiling((rxyz(1,iat)-rad)/hgrid - eps_mach)  
+     ml2=ceiling((rxyz(2,iat)-rad)/hgrid - eps_mach)   
+     ml3=ceiling((rxyz(3,iat)-rad)/hgrid - eps_mach)   
+     mu1=floor((rxyz(1,iat)+rad)/hgrid + eps_mach)
+     mu2=floor((rxyz(2,iat)+rad)/hgrid + eps_mach)
+     mu3=floor((rxyz(3,iat)+rad)/hgrid + eps_mach)
      if (ml1.lt.nl1) stop 'ml1 < nl1' ; if (mu1.gt.nu1) stop 'mu1 > nu1'
      if (ml2.lt.nl2) stop 'ml2 < nl2' ; if (mu2.gt.nu2) stop 'mu2 > nu2'
      if (ml3.lt.nl3) stop 'ml3 < nl3' ; if (mu3.gt.nu3) stop 'mu3 > nu3'

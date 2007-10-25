@@ -11,7 +11,7 @@ import getopt
 import re
 import sys
 
-re_float = re.compile("([-]?[0-9]+[.][0-9]+([EDed][-]?[0-9]+)?)")
+re_float = re.compile("([-]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
 
 def give_text_floats(text):
     floats = list()

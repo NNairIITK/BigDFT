@@ -239,9 +239,9 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   call razero((n1+1)*(n2+1)*(n3+1),x_c)
   call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f)
 
-  !to be initialised
-  call razero((n1+1)*(n2+1)*(n3+1),y_c)
-  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f)
+!!$  !to be initialised
+!!$  call razero((n1+1)*(n2+1)*(n3+1),y_c)
+!!$  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f)
 
 
   call razero((2*n1+31)*(2*n2+31)*(2*n3+31),psir)

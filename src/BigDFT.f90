@@ -160,11 +160,6 @@ program BigDFT
   call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
        psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
        n1,n2,n3,rxyz_old,inputs,infocode)
-  do iat=1,nat
-     rxyz_old(1,iat) = rxyz(1,iat) 
-     rxyz_old(2,iat) = rxyz(2,iat) 
-     rxyz_old(3,iat) = rxyz(3,iat)
-  enddo
 
   if (inputs%ncount_cluster_x > 1) then
      if (iproc ==0 ) write(*,"(a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
