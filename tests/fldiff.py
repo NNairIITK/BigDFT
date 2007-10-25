@@ -2,9 +2,11 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # 1 - read the output
-# 2 - search all floating point expression
+# 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
+# Date: 31/10/2006
+#----------------------------------------------------------------------------
 
 import difflib
 import getopt
@@ -15,16 +17,18 @@ re_float = re.compile("([-]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
 
 def give_text_floats(text):
     floats = list()
+    new = ""
     for line in text.splitlines(1):
-        if "CPU time" in line:
+        if "CPU time" in line or "MB" in line or "proc" in line or "Processes" in line:
             continue
+        new += line
         search = re_float.findall(line)
         for (one,two) in search:
             floats.append(one)
     #Replace all floating point by XXX
-    text = re_float.sub('XXX',text).splitlines(1)
+    new = re_float.sub('XXX',new).splitlines(1)
     floats = map(lambda x: float(x),floats)
-    return (text,floats)
+    return (new,floats)
 
 def usage():
     print "fldiff.py file1 file2"

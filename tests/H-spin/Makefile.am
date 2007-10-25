@@ -25,5 +25,5 @@ check: $(PPFILES) posinp input.dat
 	if test ! -f posinp ; then \
 	  ln -s $(top_srcdir)/tests/H-spin/posinp ; \
 	fi
-	$(top_builddir)/src/cluster > H-spin.out
+	$(run_parallel) $(top_builddir)/src/cluster > H-spin.out
 	python $(top_srcdir)/tests/fldiff.py H-spin.out $(top_srcdir)/tests/Refs/H-spin.out.ref | cat

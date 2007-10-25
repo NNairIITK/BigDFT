@@ -26,5 +26,5 @@ check: $(PPFILES) inguess.dat posinp input.dat
 	if test ! -f posinp ; then \
 	  ln -s $(top_srcdir)/tests/NaCl/posinp ; \
 	fi
-	$(top_builddir)/src/cluster > NaCl.out
+	$(run_parallel) $(top_builddir)/src/cluster > NaCl.out
 	python $(top_srcdir)/tests/fldiff.py NaCl.out $(top_srcdir)/tests/Refs/NaCl.out.ref | cat

@@ -10,7 +10,7 @@ noinst_LIBRARIES = libprofiling.a
 
 libprofiling_a_SOURCES = timing.f90
 
-CLEANFILES = $(mpi_include)
+CLEANFILES = mpif.h
 
 #dependencies
 timing.o: $(mpi_include)

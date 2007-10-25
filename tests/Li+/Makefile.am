@@ -25,5 +25,5 @@ check: $(PPFILES) posinp input.dat
 	if test ! -f posinp ; then \
 	  ln -s $(top_srcdir)/tests/Li+/posinp ; \
 	fi
-	$(top_builddir)/src/cluster > Li+.out
+	$(run_parallel) $(top_builddir)/src/cluster > Li+.out
 	python $(top_srcdir)/tests/fldiff.py Li+.out $(top_srcdir)/tests/Refs/Li+.out.ref | cat
