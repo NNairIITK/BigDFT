@@ -283,6 +283,13 @@ contains
   call system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
        alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
 
+  !save the new atomic positions in the rxyz_old array
+   do iat=1,nat
+     rxyz_old(1,iat)=rxyz(1,iat)
+     rxyz_old(2,iat)=rxyz(2,iat)
+     rxyz_old(3,iat)=rxyz(3,iat)
+   enddo
+
   !memory estimation
   if (iproc==0) then
      call MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
@@ -438,11 +445,11 @@ contains
         !allocated in the transposed way such as 
         !it can also be used as the transposed hpsi
         allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
-        call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','cluster')
+        call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','cluster')
      else
         !allocate hpsi array
-        allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
-        call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','cluster')
+        allocate(hpsi(nvctr_c+7*nvctr_f,norb),stat=i_stat)
+        call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','cluster')
      endif
      
   else if (inputPsiId == 1 ) then 
@@ -455,7 +462,7 @@ contains
         allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
         call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
      else
-        allocate(psi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+        allocate(psi(nvctr_c+7*nvctr_f,norb),stat=i_stat)
         call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
      end if
      
@@ -550,8 +557,8 @@ contains
   endif
 
   alpha=1.d0
-  energy=1.d100
-  gnrm=1.d100
+  energy=1.d10
+  gnrm=1.d10
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
@@ -2526,7 +2533,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
           (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,1,ones, &
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
   call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,1)
@@ -2548,6 +2555,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,ones,&
        ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
        ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+
   i_all=-product(shape(ones))*kind(ones)
   deallocate(ones,stat=i_stat)
   call memocc(i_stat,i_all,'ones','input_wf_diag')
