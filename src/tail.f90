@@ -301,7 +301,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   ekin_sum=0.d0
   epot_sum=0.d0
   eproj_sum=0.d0
-  print *,'now'
+  !print *,'now'
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
@@ -333,12 +333,12 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
              ibbzzx_c,ibbyyzz_c,ibbxy_ff,ibbzzx_f,ibbyyzz_f,&
              ibbzxx_c,ibbxxyy_c,ibbyz_ff,ibbzxx_f,ibbxxyy_f,nw1,nw2,ibbyyzz_r)
 
-        write(*,'(a,3i3,2f12.8)') 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin
+        !write(*,'(a,3i3,2f12.8)') 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin
         call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
              nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
              nsegb_c,nsegb_f,keybg,keybv,nvctrb_c,nvctrb_f,  & 
              psib,hpsib,eproj)
-        write(*,'(a,2i3,2f12.8)') 'applyprojectorsone finished',iproc,iorb,eproj,sum_tail
+        !write(*,'(a,2i3,2f12.8)') 'applyprojectorsone finished',iproc,iorb,eproj,sum_tail
 
 
         !calculate residue for the single orbital
@@ -384,9 +384,9 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
 
      end do tail_adding
 
-     write(*,'(1x,a,i3,3(1x,1pe13.6),2(1x,1pe9.2))') &
-          'BIG: iorb,denergies,gnrm,dnorm',&
-          iorb,ekin-ekin1,epot-epot1,eproj-eproj1,tt,sum_tail-1.d0
+!!$     write(*,'(1x,a,i3,3(1x,1pe13.6),2(1x,1pe9.2))') &
+!!$          'BIG: iorb,denergies,gnrm,dnorm',&
+!!$          iorb,ekin-ekin1,epot-epot1,eproj-eproj1,tt,sum_tail-1.d0
 
      if (iproc == 0) then
         write(*,'(a)',advance='no') &

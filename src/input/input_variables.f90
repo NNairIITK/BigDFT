@@ -419,13 +419,13 @@ subroutine system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype
      czmax=max(czmax,rxyz(3,iat)+rad) ; czmin=min(czmin,rxyz(3,iat)-rad)
   enddo
 
-  cxmax=cxmax-eps_mach 
-  cymax=cymax-eps_mach  
-  czmax=czmax-eps_mach  
+  cxmax=cxmax+eps_mach 
+  cymax=cymax+eps_mach  
+  czmax=czmax+eps_mach  
 
-  cxmin=cxmin+eps_mach
-  cymin=cymin+eps_mach
-  czmin=czmin+eps_mach
+  cxmin=cxmin-eps_mach
+  cymin=cymin-eps_mach
+  czmin=czmin-eps_mach
 
   alat1=(cxmax-cxmin)
   alat2=(cymax-cymin)
@@ -477,14 +477,24 @@ subroutine system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype
   nfu1=0 ; nfu2=0 ; nfu3=0
   do iat=1,nat
      rad=radii_cf(iatype(iat),2)*frmult
-     nfl1=min(nfl1,int(onem+(rxyz(1,iat)-rad)/hgrid))
-     nfu1=max(nfu1,int((rxyz(1,iat)+rad)/hgrid))
+     nfl1=min(nfl1,ceiling((rxyz(1,iat)-rad)/hgrid - eps_mach))
+     nfu1=max(nfu1,floor((rxyz(1,iat)+rad)/hgrid + eps_mach))
 
-     nfl2=min(nfl2,int(onem+(rxyz(2,iat)-rad)/hgrid))
-     nfu2=max(nfu2,int((rxyz(2,iat)+rad)/hgrid))
+     nfl2=min(nfl2,ceiling((rxyz(2,iat)-rad)/hgrid - eps_mach))
+     nfu2=max(nfu2,floor((rxyz(2,iat)+rad)/hgrid + eps_mach))
 
-     nfl3=min(nfl3,int(onem+(rxyz(3,iat)-rad)/hgrid)) 
-     nfu3=max(nfu3,int((rxyz(3,iat)+rad)/hgrid))
+     nfl3=min(nfl3,ceiling((rxyz(3,iat)-rad)/hgrid - eps_mach)) 
+     nfu3=max(nfu3,floor((rxyz(3,iat)+rad)/hgrid + eps_mach))
+
+!!$     nfl1=min(nfl1,int(onem+(rxyz(1,iat)-rad)/hgrid))
+!!$     nfu1=max(nfu1,int((rxyz(1,iat)+rad)/hgrid))
+!!$
+!!$     nfl2=min(nfl2,int(onem+(rxyz(2,iat)-rad)/hgrid))
+!!$     nfu2=max(nfu2,int((rxyz(2,iat)+rad)/hgrid))
+!!$
+!!$     nfl3=min(nfl3,int(onem+(rxyz(3,iat)-rad)/hgrid)) 
+!!$     nfu3=max(nfu3,int((rxyz(3,iat)+rad)/hgrid))
+
   enddo
 
   if (iproc.eq.0) then

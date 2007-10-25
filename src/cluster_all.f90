@@ -297,7 +297,7 @@ contains
   end if
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-  ndegree_ip=16 !default value
+  ndegree_ip=14 !default value
   call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
        iproc,nproc,pkernel)
 
@@ -562,8 +562,10 @@ contains
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
+  !set the infocode to the value it would have in the case of no convergence
+  infocode=1
 ! loop for wavefunction minimization
-  do 1000, iter=1,itermax
+  wfn_loop: do iter=1,itermax
      if (idsx.gt.0) mids=mod(iter-1,idsx)+1
      if (iproc.eq.0) then 
         write(*,'(1x,a,i0)')&
@@ -611,7 +613,7 @@ contains
            !write(61,*)hgrid,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
         end if
         infocode=0
-        goto 1010
+        exit wfn_loop 
      endif
 
      call hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
@@ -669,10 +671,10 @@ contains
         end if
      end if
 
-1000 continue
-     write(*,'(1x,a)')'No convergence within the allowed number of minimization steps'
-     infocode=1
-1010 continue
+  end do wfn_loop
+     if (iter == itermax+1 .and. iproc == 0 ) &
+          write(*,'(1x,a)')'No convergence within the allowed number of minimization steps'
+
   if (idsx.gt.0) then
        i_all=-product(shape(psidst))*kind(psidst)
        deallocate(psidst,stat=i_stat)
@@ -1354,11 +1356,11 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
   if (parallel) then
      if(nspin==1) then
-        call orthon_p(iproc,nproc,norb,nvctrp,psit)
+        call orthon_p(iproc,nproc,norb,nvctrp,nvctr_c+7*nvctr_f,psit)
      else
-        call orthon_p(iproc,nproc,norbu,nvctrp,psit)
+        call orthon_p(iproc,nproc,norbu,nvctrp,nvctr_c+7*nvctr_f,psit)
         if(norbd>0) then
-           call orthon_p(iproc,nproc,norbd,nvctrp,psit(1,norbu+1))
+           call orthon_p(iproc,nproc,norbd,nvctrp,nvctr_c+7*nvctr_f,psit(1,norbu+1))
         end if
      end if
      !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
@@ -1432,11 +1434,11 @@ subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvct
      !end of transposition
 
      if(nspin==1) then
-        call orthon_p(iproc,nproc,norb,nvctrp,psit) !CHANGE
+        call orthon_p(iproc,nproc,norb,nvctrp,nvctr_c+7*nvctr_f,psit) 
      else
-        call orthon_p(iproc,nproc,norbu,nvctrp,psit) !CHANGE
+        call orthon_p(iproc,nproc,norbu,nvctrp,nvctr_c+7*nvctr_f,psit) 
         if(norbd>0) then
-           call orthon_p(iproc,nproc,norbd,nvctrp,psit(1,norbu+1)) !CHANGE
+           call orthon_p(iproc,nproc,norbd,nvctrp,nvctr_c+7*nvctr_f,psit(1,norbu+1)) 
         end if
      end if
      !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)

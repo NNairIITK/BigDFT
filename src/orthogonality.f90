@@ -73,27 +73,36 @@ subroutine orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum)
 END SUBROUTINE orthoconstraint
 
 
-subroutine orthon_p(iproc,nproc,norb,nvctrp,psit)
+subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit)
   ! Gram-Schmidt orthogonalisation
-  implicit real(kind=8) (a-h,o-z)
-  logical, parameter :: parallel=.true.
-  dimension psit(nvctrp,norb)
-  real(kind=8), allocatable :: ovrlp(:,:,:)
+  implicit none
+  integer, intent(in) :: iproc,nproc,norb,nvctrp,nvctr_tot
+  real(kind=8), dimension(nvctrp,norb) :: psit
+  !local variables
+  integer :: info,i_all,i_stat,nvctr_eff,ierr
+  real(kind=8) :: tt,ttLOC,dnrm2
+  real(kind=8), dimension(:,:,:), allocatable :: ovrlp(:,:,:)
   include 'mpif.h'
 
   call timing(iproc,'GramS_comput  ','ON')
 
-  if (norb.eq.1) then
+  if (norb.eq.1) then 
 
+     nvctr_eff=min(nvctr_tot-iproc*nvctrp,nvctrp)
+
+     if (nvctr_eff > 0) then
      !parallel treatment of a run with only one orbital
-     tt=dnrm2(nvctrp,psi,1)     
-
+     tt=dnrm2(nvctr_eff,psit,1)     
      ttLOC=tt**2
+
+     else
+        ttLOC =0.d0
+     end if
      
      call MPI_ALLREDUCE(ttLOC,tt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
      tt=1.d0/sqrt(tt)
-     call dscal(nvctrp,tt,psi,1)
+     call dscal(nvctr_eff,tt,psit,1)
 
      !stop 'more than one orbital needed for a parallel run'
 
@@ -200,14 +209,14 @@ subroutine loewe_p(iproc,nproc,norb,ndim,nvctrp,psit)
 
   if (norb.eq.1) then
      !parallel treatment of a run with only one orbital
-     tt=dnrm2(nvctrp,psi,1)     
+     tt=dnrm2(nvctrp,psit,1)     
 
      ttLOC=tt**2
 
      call MPI_ALLREDUCE(ttLOC,tt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
      tt=1.d0/sqrt(tt)
-     call dscal(nvctrp,tt,psi,1)
+     call dscal(nvctrp,tt,psit,1)
 
      !stop 'more than one orbital needed for a parallel run'
 

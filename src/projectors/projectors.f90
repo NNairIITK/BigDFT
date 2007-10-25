@@ -201,12 +201,13 @@ subroutine pregion_size(rxyz,radii,rmult,iatype,ntypes, &
 !!$      cymax=cymax-eps_mach ; cymin=cymin+eps_mach
 !!$      czmax=czmax-eps_mach ; czmin=czmin+eps_mach
   onem=1.d0-eps_mach
-  nl1=int(onem+cxmin/hgrid)   
-  nl2=int(onem+cymin/hgrid)   
-  nl3=int(onem+czmin/hgrid)   
-  nu1=int(cxmax/hgrid)  
-  nu2=int(cymax/hgrid)  
-  nu3=int(czmax/hgrid)  
+
+  nl1=ceiling(cxmin/hgrid - eps_mach)   
+  nl2=ceiling(cymin/hgrid - eps_mach)   
+  nl3=ceiling(czmin/hgrid - eps_mach)   
+  nu1=floor(cxmax/hgrid + eps_mach)  
+  nu2=floor(cymax/hgrid + eps_mach)  
+  nu3=floor(czmax/hgrid + eps_mach)  
   !        write(*,'(a,6(i4))') 'projector region ',nl1,nu1,nl2,nu2,nl3,nu3
   !        write(*,*) ' projector region size ',cxmin,cxmax
   !        write(*,*) '             ',cymin,cymax
