@@ -12,7 +12,11 @@ sub_dirs_ps =
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft.a
+if CAPITALIZE
+mod_bigdft = LIBBIGDFT.@MODULE_EXT@
+else
 mod_bigdft = libbigdft.@MODULE_EXT@
+endif
 else
 lib_bigdft =
 mod_bigdft =
@@ -58,20 +62,30 @@ lMPI =
 endif
 
 if USE_OPTI_CONVOLUT
-convolution_objects = convolutions/convolut_simple.o \
-	convolutions/conv_per_optim.o \
-	convolutions/combined_grow.o\
-	convolutions/combined_shrink.o
+convolution_source = convolutions/combined_shrink_optim.f90 \
+	convolutions/combined_grow_optim.f90 \
+	convolutions/combined_shrink_optim.f90 \
+	convolutions/convolut_ib_optim.f90 \
+	convolutions/conv_per_optim.f90
+#	convolut_simple.f90 \
+#	conv_per_optim.f90 \
+#	combined_grow.f90 \
+#	combined_shrink.f90 
 
 else
-convolution_objects = convolutions/convolut_simple.o \
-	convolutions/conv_per_optim.o \
-	convolutions/combined_grow.o \
-	convolutions/combined_shrink.o
+convolution_source = convolutions/combined_shrink_simple.f90 \
+	convolutions/combined_grow_simple.f90 \
+	convolutions/combined_shrink_simple.f90 \
+	convolutions/convolut_ib_simple.f90 \
+	convolutions/conv_per_simple.f90
+#	convolut_simple.f90 \
+#	conv_per_optim.f90 \
+#	combined_grow.f90 \
+#	combined_shrink.f90
 
 endif
 
-
+convolution_objects = $(convolution_source:.f90=.o)
 
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
@@ -84,7 +98,7 @@ libbigdft_a_SOURCES = \
 	input/gautowav.f90 \
 	input/gauprod.f90 \
 	input/inputguess.f90 \
-	input/input_occup.f90 \
+	input/input_variables.f90 \
 	input/restart.f90 \
 	ionicpot.f90 \
 	projectors/projectors.f90 \
@@ -100,7 +114,7 @@ libbigdft_a_SOURCES = \
 libbigdft_a_LIBADD = profiling/timing.o \
 	$(convolution_objects)
 
-cluster_SOURCES = BigDFT.f90
+cluster_SOURCES = BigDFT.f90 
 cluster_LDFLAGS = $(LMPI)
 cluster_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
@@ -114,13 +128,13 @@ test_forces_LDADD = libbigdft.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
-memguess_SOURCES = memguess.f90
+memguess_SOURCES = memguess.f90 
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	ABINIT-common/libABINIT.a 
 
 
-CLEANFILES = $(mpi_include) libbigdft.@MODULE_EXT@
+CLEANFILES = $(mpi_include) libbigdft.@MODULE_EXT@ LIBBIGDFT.@MODULE_EXT@
 
 #dependencies
 cluster_all.o: $(mpi_include)
@@ -136,7 +150,7 @@ test_forces.o: parameters.h \
 
 libbigdft.@MODULE_EXT@: cluster_all.o
 
-BigDFT.o: BigDFT.f90 \
-	parameters.h \
+BigDFT.o: parameters.h \
 	libbigdft.@MODULE_EXT@
 
+memguess.o: libbigdft.@MODULE_EXT@

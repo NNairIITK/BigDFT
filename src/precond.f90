@@ -33,6 +33,11 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   allocatable rpsi(:),ppsi(:),wpsi(:),spsi(:)
 
+!***********************************************************************************************
+  allocatable xpsig_c(:,:,:),ypsig_c(:,:,:)
+  allocatable xpsig_f(:,:,:,:),ypsig_f(:,:,:,:)
+  real*8,allocatable,dimension(:,:,:)::x_f1,x_f2,x_f3 ! input
+!***********************************************************************************************
   !       WAVELET AND SCALING FUNCTION SECOND DERIVATIVE FILTERS
   PARAMETER(B2=24.8758460293923314D0,A2=3.55369228991319019D0)
   LOGICAL,PARAMETER::INGUESS_ON=.TRUE.
@@ -58,6 +63,35 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   !! check initial residue of original equation
   allocate(spsi(nvctr_c+7*nvctr_f),stat=i_stat)
   call memocc(i_stat,product(shape(spsi))*kind(spsi),'spsi','precong')
+!***********************************************************************************************
+  allocate(xpsig_c(0:n1,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(xpsig_c))*kind(xpsig_c),'xpsig_c','calc_grad_reza')
+  allocate(xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+  call memocc(i_stat,product(shape(xpsig_f))*kind(xpsig_f),'xpsig_f','calc_grad_reza')
+  allocate(ypsig_c(0:n1,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(ypsig_c))*kind(ypsig_c),'ypsig_c','calc_grad_reza')
+  allocate(ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+  call memocc(i_stat,product(shape(ypsig_f))*kind(ypsig_f),'ypsig_f','calc_grad_reza')
+
+  allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+  call memocc(i_stat,product(shape(x_f1))*kind(x_f1),'x_f1','applylocpotkinall')
+  allocate(x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),stat=i_stat)
+  call memocc(i_stat,product(shape(x_f2))*kind(x_f2),'x_f2','applylocpotkinall')
+  allocate(x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),stat=i_stat)
+  call memocc(i_stat,product(shape(x_f3))*kind(x_f3),'x_f3','applylocpotkinall')
+
+
+  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1)
+  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f2)
+  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f3)
+  
+  call razero((n1+1)*(n2+1)*(n3+1),xpsig_c)
+  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),xpsig_f)
+
+  call razero((n1+1)*(n2+1)*(n3+1),ypsig_c)
+  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),ypsig_f)
+
+!***********************************************************************************************
   do i=1,nvctr_c+7*nvctr_f
      spsi(i)=hpsi(i)
   enddo
@@ -103,7 +137,10 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   call  CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
-       scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1))
+       scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi,&
+	   hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
+		 xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
+		 x_f1,x_f2,x_f3)
 
   IF (INGUESS_ON) THEN 
      do i=1,nvctr_c+7*nvctr_f
@@ -124,8 +161,10 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   do icong=2,ncong
      call CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
           nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
-          scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,ppsi,ppsi(nvctr_c+1),&
-          wpsi,wpsi(nvctr_c+1))
+          scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
+		  ibxy_f,ppsi,ppsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
+		 xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
+		 x_f1,x_f2,x_f3)
      
      alpha1=0.d0 ; alpha2=0.d0
      do i=1,nvctr_c+7*nvctr_f
@@ -168,7 +207,12 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   enddo
   call  CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
-       scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1))
+       scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
+	   ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
+	 xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
+	 x_f1,x_f2,x_f3)
+
+	 
   tt=0.d0
   do i=1,nvctr_c+7*nvctr_f
      tt=tt+(wpsi(i)-spsi(i))**2
@@ -189,12 +233,43 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   deallocate(wpsi,stat=i_stat)
   call memocc(i_stat,i_all,'wpsi','precong')
 
-  return
+!***********************************************************************************************
+  i_all=-product(shape(xpsig_c))*kind(xpsig_c)
+  deallocate(xpsig_c,stat=i_stat)
+  call memocc(i_stat,i_all,'xpsig_c','calc_grad_reza')
+  
+  i_all=-product(shape(ypsig_c))*kind(ypsig_c)
+  deallocate(ypsig_c,stat=i_stat)
+  call memocc(i_stat,i_all,'ypsig_c','calc_grad_reza')
+  
+  i_all=-product(shape(xpsig_f))*kind(xpsig_f)
+  deallocate(xpsig_f,stat=i_stat)
+  call memocc(i_stat,i_all,'xpsig_f','calc_grad_reza')
+  
+  i_all=-product(shape(ypsig_f))*kind(ypsig_f)
+  deallocate(ypsig_f,stat=i_stat)
+  call memocc(i_stat,i_all,'ypsig_f','calc_grad_reza')
+  
+  i_all=-product(shape(x_f1))*kind(x_f1)
+  deallocate(x_f1,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f1','applylocpotkinall')
+  
+  i_all=-product(shape(x_f2))*kind(x_f2)
+  deallocate(x_f2,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f2','applylocpotkinall')
+
+  i_all=-product(shape(x_f3))*kind(x_f3)
+  deallocate(x_f3,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f3','applylocpotkinall')
+!***********************************************************************************************
+
 end subroutine precong
 
 SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
-     scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsi_c,xpsi_f,ypsi_c,ypsi_f)
+     scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsi_c,xpsi_f,ypsi_c,ypsi_f,&
+ xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
+ x_f1,x_f2,x_f3)
   ! ypsi = (1/2) \Nabla^2 xpsi
   implicit real(kind=8) (a-h,o-z)        
   dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
@@ -202,48 +277,27 @@ SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   dimension ypsi_c(nvctr_c),ypsi_f(7,nvctr_f)
   dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
   dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-  allocatable xpsig_c(:,:,:),ypsig_c(:,:,:)
-  allocatable xpsig_f(:,:,:,:),ypsig_f(:,:,:,:)
-  allocatable xpsig_fc(:,:,:,:)
-
-  allocate(xpsig_c(0:n1,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(xpsig_c))*kind(xpsig_c),'xpsig_c','calc_grad_reza')
-  allocate(xpsig_fc(0:n1,0:n2,0:n3,3),stat=i_stat)
-  call memocc(i_stat,product(shape(xpsig_fc))*kind(xpsig_fc),'xpsig_fc','calc_grad_reza')
-  allocate(xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(xpsig_f))*kind(xpsig_f),'xpsig_f','calc_grad_reza')
-  allocate(ypsig_c(0:n1,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(ypsig_c))*kind(ypsig_c),'ypsig_c','calc_grad_reza')
-  allocate(ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(ypsig_f))*kind(ypsig_f),'ypsig_f','calc_grad_reza')
+!***********************************************************************************************
+   dimension  xpsig_c(0:n1,0:n2,0:n3),xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
+   dimension  ypsig_c(0:n1,0:n2,0:n3),ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
+   dimension  x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3)
+   dimension  x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2)
+!***********************************************************************************************
 
   call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
        nseg_c,nvctr_c,keyg_c,keyv_c,  & 
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
-       scal,xpsi_c,xpsi_f,xpsig_c,xpsig_fc,xpsig_f)
+       scal,xpsi_c,xpsi_f,xpsig_c,xpsig_f,x_f1,x_f2,x_f3)
 
+!!$  ypsig_c=xpsig_c
+!!$  ypsig_f=xpsig_f
   call Convolkinetic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-       cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,xpsig_fc,xpsig_f,ypsig_c,ypsig_f)
+       cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
+	   xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3)
 
   call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
        nseg_c,nvctr_c,keyg_c,keyv_c,  & 
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
        scal,ypsig_c,ypsig_f,ypsi_c,ypsi_f)
-
-  i_all=-product(shape(xpsig_c))*kind(xpsig_c)
-  deallocate(xpsig_c,stat=i_stat)
-  call memocc(i_stat,i_all,'xpsig_c','calc_grad_reza')
-  i_all=-product(shape(ypsig_c))*kind(ypsig_c)
-  deallocate(ypsig_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ypsig_c','calc_grad_reza')
-  i_all=-product(shape(xpsig_f))*kind(xpsig_f)
-  deallocate(xpsig_f,stat=i_stat)
-  call memocc(i_stat,i_all,'xpsig_f','calc_grad_reza')
-  i_all=-product(shape(ypsig_f))*kind(ypsig_f)
-  deallocate(ypsig_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ypsig_f','calc_grad_reza')
-  i_all=-product(shape(xpsig_fc))*kind(xpsig_fc)
-  deallocate(xpsig_fc,stat=i_stat)
-  call memocc(i_stat,i_all,'xpsig_fc','calc_grad_reza')
 
 END SUBROUTINE CALC_GRAD_REZA

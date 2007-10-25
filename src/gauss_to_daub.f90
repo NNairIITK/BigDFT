@@ -85,9 +85,31 @@
 !            EIGENTLICH, CALCULATE THE EXPANSION COEFFICIENTS
 !            AT LEVEL 4, POSITIONS SHIFTED BY 16*I0 
 !         
-             DO I=LEFTX,RIGHTX
-               WW(I-LEFTX,1)=PSI(REAL(I-I0*16,KIND=8)*H,A,Z0,N_GAU)
-             ENDDO 
+             !corrected for avoiding 0**0 problem
+             if (n_gau == 0) then
+                DO I=LEFTX,RIGHTX
+                   x=REAL(I-I0*16,KIND=8)*H
+                   r=x-z0
+                   r2=r/a
+                   r2=r2*r2
+                   r2=0.5d0*r2
+                   func=dexp(-r2)
+                   WW(I-LEFTX,1)=func
+                ENDDO
+             else
+                DO I=LEFTX,RIGHTX
+                   x=REAL(I-I0*16,KIND=8)*H
+                   r=x-z0
+                   coeff=r**n_gau
+                   r2=r/a
+                   r2=r2*r2
+                   r2=0.5d0*r2
+                   func=dexp(-r2)
+                   func=coeff*func
+                   WW(I-LEFTX,1)=func
+                   !PSI(REAL(I-I0*16,KIND=8)*H,A,Z0,N_GAU)
+                ENDDO
+             end if
 
              CALL APPLY_W(WW(:,1),WW(:,2),&
                                 LEFTX   ,RIGHTX   ,LEFTS(4),RIGHTS(4),H)

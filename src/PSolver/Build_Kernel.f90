@@ -946,7 +946,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  iend=min((iproc+1)*nker2/nproc,n2h+n03)
 
  istart1=max(istart,n2h-n03+2)
- !if(iproc .eq. 0) istart1=n2h-n03+2
+ if(iproc .eq. 0) istart1=n2h-n03+2
 
  !Allocations
  allocate(x_scf(0:n_scf),stat=i_stat)

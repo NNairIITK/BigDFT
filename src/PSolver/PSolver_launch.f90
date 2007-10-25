@@ -70,6 +70,8 @@
 !!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
+!!    Moreover, for the cases with the exchange and correlation the density must be initialised
+!!    to 10^-20 and not to zero.
 !!
 !! AUTHOR
 !!    Luigi Genovese
@@ -94,9 +96,9 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
   integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4
-  integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,i_jmp,is_step,ispin,i4
+  integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,i4,ind2nd
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim
-  real(kind=8) :: ehartreeLOC,eexcuLOC,vexcuLOC,ehartreeLOCt
+  real(kind=8) :: ehartreeLOC,eexcuLOC,vexcuLOC
   real(kind=8) :: scal,newoffset,correction,pot,factor
   real(kind=8), dimension(:,:,:), allocatable :: zf
   real(kind=8), dimension(:,:,:,:), allocatable :: zfionxc
@@ -130,7 +132,10 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   call memocc(i_stat,product(shape(zf))*kind(zf),'zf','psolver')
   allocate(zfionxc(md1,md3,md2/nproc,nspin),stat=i_stat)
   call memocc(i_stat,product(shape(zfionxc))*kind(zfionxc),'zfionxc','psolver')
-  zf=0.0d0;zfionxc=0.0d0
+
+  !these MUST be eliminated in order to speed up the calculation
+!!$  zf=0.0d0
+!!$  zfionxc=0.0d0
 
   !dimension for exchange-correlation (different in the global or distributed case)
   !let us calculate the dimension of the portion of the rhopot array to be passed 
@@ -184,6 +189,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      !starting address of rhopot in the case of global i/o
      i3start=istart+2-nxcl-nwbl
      if(nspin==2.and.nproc>1) then
+        !allocation of an auxiliary array for avoiding the shift of the density
         allocate(rhopot_G(m1*m3*nxt*2),stat=i_stat)
         call memocc(i_stat,product(shape(rhopot_G))*kind(rhopot_G),'rhopot_G','psolver')
         do i1=1,m1*m3*nxt
@@ -234,24 +240,13 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
                ixc,hx,hy,hz,rhopot(1+n01*n02*(i3start-1)),pot_ion,sumpion,zf,zfionxc,&
                eexcuLOC,vexcuLOC,iproc,nproc,nspin)
        end if
-  else if (istart+1 <= nlim) then !this condition assures that we have perform good zero padding
-     do ispin=1,nspin
-        do i2=istart+1,min(nlim,istart+md2/nproc)
-           j2=i2-istart
-           do i3=1,md3
-              do i1=1,md1
-                 zf(i1,i3,j2)=0.d0
-                 zfionxc(i1,i3,j2,ispin)=0.d0 !this is not needed, only if pot is updated in Solver
-              end do
-           end do
-        end do
-        eexcuLOC=0.d0
-     end do
+  else if (istart+1 <= nlim) then !this condition ensures we have performed good zero padding
      do i2=istart+1,min(nlim,istart+md2/nproc)
         j2=i2-istart
         do i3=1,md3
            do i1=1,md1
               zf(i1,i3,j2)=0.d0
+!             zfionxc(i1,i3,j2,ispin)=0.d0 !this is not needed, only if pot is updated in Solver
            end do
         end do
      end do
@@ -314,64 +309,148 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      is_step=m1*m3*nxt
   end if
 
-  ehartreeLOCt=0.0d0
-  i_jmp=0
-  do ispin=1,nspin
-     ehartreeLOC=0.d0
-     if(ispin==2) i_jmp=is_step
-     if (ixc==0) then
+  ehartreeLOC=0.d0
+  !recollect the final data
+  if (ixc==0) then !without XC the spin does not exist
+     do j2=1,nxc
+        i2=j2+i3xcsh !in this case the shift is always zero for a parallel run
+        ind3=(i2-1)*n01*n02
+        do i3=1,m3
+           ind2=(i3-1)*n01+ind3
+           do i1=1,m1
+              ind=i1+ind2
+              pot=zf(i1,i3,j2)+correction
+              ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
+              rhopot(ind)=pot
+           end do
+        end do
+     end do
+  else if (sumpion) then
+     do j2=1,nxc
+        i2=j2+i3xcsh
+        ind3=(i2-1)*n01*n02
+        do i3=1,m3
+           ind2=(i3-1)*n01+ind3
+           do i1=1,m1
+              ind=i1+ind2
+              pot=zf(i1,i3,j2)+correction
+              ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
+              rhopot(ind)=pot+zfionxc(i1,i3,j2,1)
+           end do
+        end do
+     end do
+     !in the spin-polarised case the potential is given contiguously
+     if (nspin==2) then
+        !this start the count in the other component of the global array
+        if (datacode=='G') ind=i3xcsh*n01*n02+n01*n02*n03
         do j2=1,nxc
            i2=j2+i3xcsh
            ind3=(i2-1)*n01*n02
            do i3=1,m3
               ind2=(i3-1)*n01+ind3
               do i1=1,m1
-                 ind=i1+ind2+i_jmp
+                 ind2nd=i1+ind2+is_step
+                 ind=ind+1
                  pot=zf(i1,i3,j2)+correction
-                 ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-                 rhopot(ind)=pot
+                 ehartreeLOC=ehartreeLOC+rhopot(ind2nd)*pot
+                 rhopot(ind)=pot+zfionxc(i1,i3,j2,2)
               end do
            end do
         end do
-        ehartreeLOC=ehartreeLOC*factor
-     else if (sumpion) then
-        do j2=1,nxc
-           i2=j2+i3xcsh
-           ind3=(i2-1)*n01*n02
-           do i3=1,m3
-              ind2=(i3-1)*n01+ind3
-              do i1=1,m1
-                 ind=i1+ind2+i_jmp
-                 pot=zf(i1,i3,j2)+correction
-                 ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-                 rhopot(ind)=pot+zfionxc(i1,i3,j2,ispin)
-              end do
-           end do
-        end do
-        ehartreeLOC=ehartreeLOC*factor
-!        ehartreeLOC=ehartreeLOC*2.d0*factor
-     else
-        do j2=1,nxc
-           i2=j2+i3xcsh
-           ind3=(i2-1)*n01*n02
-           do i3=1,m3
-              ind2=(i3-1)*n01+ind3
-              do i1=1,m1
-                 ind=i1+ind2+i_jmp
-                 ind4=i1+ind2
-                 pot=zf(i1,i3,j2)+correction
-                 ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-                 rhopot(ind)=pot
-                 pot_ion(ind4)=pot_ion(ind4)+zfionxc(i1,i3,j2,ispin)
-              end do
-           end do
-        end do
-        ehartreeLOC=ehartreeLOC*factor
-!        ehartreeLOC=ehartreeLOC*2.d0*factor
      end if
-!     write(*,'(1x,a,i4,2f12.8)') 'EHarT:',ispin,ehartreeLOC,ehartreeLOCt
-     ehartreeLOCt=ehartreeLOCt+ehartreeLOC
-  end do
+  else
+     do j2=1,nxc
+        i2=j2+i3xcsh
+        ind3=(i2-1)*n01*n02
+        do i3=1,m3
+           ind2=(i3-1)*n01+ind3
+           do i1=1,m1
+              ind=i1+(i3-1)*n01+(i2-1)*n01*n02
+              ind4=i1+(i3-1)*n01+(j2-1)*n01*n02
+              pot=zf(i1,i3,j2)+correction
+              ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
+              rhopot(ind)=pot
+              pot_ion(ind4)=zfionxc(i1,i3,j2,1)
+           end do
+        end do
+     end do
+     !in the spin-polarised (distributed) case the potential is given contiguously
+     if (nspin==2) then
+        do j2=1,nxc
+           i2=j2+i3xcsh
+           ind3=(i2-1)*n01*n02
+           do i3=1,m3
+              ind2=(i3-1)*n01+ind3
+              do i1=1,m1
+                 ind=i1+(i3-1)*n01+(i2-1)*n01*n02+is_step
+                 ind4=i1+(i3-1)*n01+(j2-1)*n01*n02+is_step
+                 pot=zf(i1,i3,j2)+correction
+                 ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
+                 pot_ion(ind4)=zfionxc(i1,i3,j2,2)
+              end do
+           end do
+        end do
+     end if
+  end if
+  ehartreeLOC=ehartreeLOC*factor
+
+
+
+!!$  ehartreeLOCt=0.0d0
+!!$  i_jmp=0
+!!$  do ispin=1,nspin
+!!$     ehartreeLOC=0.d0
+!!$     if(ispin==2) i_jmp=is_step
+!!$     if (ixc==0) then
+!!$        do j2=1,nxc
+!!$           i2=j2+i3xcsh
+!!$           ind3=(i2-1)*n01*n02
+!!$           do i3=1,m3
+!!$              ind2=(i3-1)*n01+ind3
+!!$              do i1=1,m1
+!!$                 ind=i1+ind2+i_jmp
+!!$                 pot=zf(i1,i3,j2)+correction
+!!$                 ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
+!!$                 rhopot(ind)=pot
+!!$              end do
+!!$           end do
+!!$        end do
+!!$        ehartreeLOC=ehartreeLOC*factor
+!!$     else if (sumpion) then
+!!$        do j2=1,nxc
+!!$           i2=j2+i3xcsh
+!!$           ind3=(i2-1)*n01*n02
+!!$           do i3=1,m3
+!!$              ind2=(i3-1)*n01+ind3
+!!$              do i1=1,m1
+!!$                 ind=i1+ind2+i_jmp
+!!$                 pot=zf(i1,i3,j2)+correction
+!!$                 ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
+!!$                 rhopot(ind)=pot+zfionxc(i1,i3,j2,ispin)
+!!$              end do
+!!$           end do
+!!$        end do
+!!$        ehartreeLOC=ehartreeLOC*factor
+!!$     else
+!!$        do j2=1,nxc
+!!$           i2=j2+i3xcsh
+!!$           ind3=(i2-1)*n01*n02
+!!$           do i3=1,m3
+!!$              ind2=(i3-1)*n01+ind3
+!!$              do i1=1,m1
+!!$                 ind=i1+ind2+i_jmp
+!!$                 ind4=i1+ind2
+!!$                 pot=zf(i1,i3,j2)+correction
+!!$                 ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
+!!$                 rhopot(ind)=pot
+!!$                 pot_ion(ind4)=pot_ion(ind4)+zfionxc(i1,i3,j2,ispin)
+!!$              end do
+!!$           end do
+!!$        end do
+!!$        ehartreeLOC=ehartreeLOC*factor
+!!$     end if
+!!$     ehartreeLOCt=ehartreeLOCt+ehartreeLOC
+!!$  end do
   
   i_all=-product(shape(zf))*kind(zf)
   deallocate(zf,stat=i_stat)
@@ -390,7 +469,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      allocate(energies_mpi(6),stat=i_stat)
      call memocc(i_stat,product(shape(energies_mpi))*kind(energies_mpi),'energies_mpi','psolver')
 
-     energies_mpi(1)=ehartreeLOCt
+     energies_mpi(1)=ehartreeLOC
      energies_mpi(2)=eexcuLOC
      energies_mpi(3)=vexcuLOC
      call MPI_ALLREDUCE(energies_mpi(1),energies_mpi(4),3,MPI_double_precision,  &
@@ -427,8 +506,9 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
              rhopot(1),gather_arr(0,1),gather_arr(0,2),MPI_double_precision,MPI_COMM_WORLD,ierr)
         !second spin
         if(nspin==2) then
-           call MPI_ALLGATHERV(rhopot(1+n01*n02*istart+n01*n02*n03),gather_arr(iproc,1),MPI_double_precision,&
-                rhopot(n01*n02*n03+1),gather_arr(0,1),gather_arr(0,2),MPI_double_precision,MPI_COMM_WORLD,ierr)
+           call MPI_ALLGATHERV(rhopot(1+n01*n02*istart+n01*n02*n03),gather_arr(iproc,1),&
+                MPI_double_precision,rhopot(n01*n02*n03+1),gather_arr(0,1),gather_arr(0,2),&
+                MPI_double_precision,MPI_COMM_WORLD,ierr)
         end if
         !if it is the case gather also the results of the XC potential
         if (ixc /=0 .and. .not. sumpion) then
@@ -448,7 +528,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      end if
 
   else
-     eh=ehartreeLOCt
+     eh=ehartreeLOC
      exc=eexcuLOC
      vxc=vexcuLOC
   end if
