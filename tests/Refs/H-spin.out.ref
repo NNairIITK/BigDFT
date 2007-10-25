@@ -1,20 +1,48 @@
- nat= 1
- atoms of type 1 are H_lda
- Number of geometry steps 1
- Random displacement amplitude  0.00E+00
- Steepest descent step  4.00E+00
- CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER CLUSTER 0
+                             ****         *       *****    
+                            *    *               *         
+                           *     *        *     *          
+                           *    *         *     *        * 
+                           *****          *     *         *
+                           *    *         *     *         *
+                           *     *        *     *         *
+                           *      *       *     *         *
+                           *     *     ****     *         *
+                           * ****         *      *        *
+                           *             *        *      * 
+                       *********    *****          ******  
+                         ******          *****    *********
+                        *      *        *             *    
+                       *        *      *         **** *    
+                       *         *     ****     *     *    
+                       *         *     *       *      *    
+                       *         *     *        *     *    
+                       *         *     *         *    *    
+                       *         *     *          *****    
+                        *        *     *         *    *    
+                                 *     *        *     *    
+                                *               *    *     
+                           *****       *         ****                       (Ver 1.0)
+ ------------------------------------------------------------------------------------
+ |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
+ ------------------------------------------------------------------------------------
+ Number of atoms     = 1
+ Number of atom types= 1
+ Atoms of type 1 are H_lda
+ Max. number of wavefnctn optim 1
+ Convergence criterion for forces: fraction of noise   1.00E+00
+ Random displacement amplitude   0.00E+00
+ Steepest descent step   4.00E+00
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Grid spacing=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=      50 | Extension= 5.0
  total charge=      0 | Coarse Proj.= 8.00 | CG Prec.Steps=      15 |  CG Steps=  30
   elec. field=0.0E+00 |   Fine Proj.= 8.00 | DIIS Hist. N.=       6
+                                BigDFT Wavefunction Optimization 0
  ------------------------------------------------------------------ System Properties
  Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File
     H_lda               1       2            1.36000  0.15000                   X    
  Total Number of Electrons        1
- WARNING: odd number of electrons, no closed shell system
  Spin-polarized calculation
  Total Number of  Orbitals        1
  occup(1)= 1.0000
@@ -65,7 +93,7 @@
  PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ...done.
  Hamiltonian application... done. ekin_sum,eks:       0.9151455470       0.9150500454
  Input Wavefunctions Orthogonalization: Overlap Matrix... Linear Algebra...
- evale(1)=  9.86995318343775E-03
+ evale(1)=  9.86995318342826E-03 <- Last eigenvalue for input wavefncts of spin up
  Building orthogonal Input Wavefunctions... done.
  expected accuracy in kinetic energy due to grid size 9.55E-05
  suggested value for gnrm_cv  9.55E-05
@@ -77,14 +105,14 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  9.15145546998E-01 -9.82670870689E-01  0.00000000000E+00
     ehart,   eexcu,    vexcu  4.40092479278E-01 -4.01265230191E-01 -5.29887499442E-01
- iter,total energy,gnrm     1  -3.789955337175E-01  2.72E-01
+ iter,total energy,gnrm     1  -3.789955337177E-01  2.72E-01
  ---------------------------------------------------------------------------- iter= 2
  Calculation of charge density... done. Total electronic charge=       0.999999991265
  PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    2.22E-01  7.78E-01 -3.37E-02
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  2.75740327545E-01 -5.64431941191E-01  0.00000000000E+00
+ ekin_sum,epot_sum,eproj_sum  2.75740327545E-01 -5.64431941192E-01  0.00000000000E+00
     ehart,   eexcu,    vexcu  2.19394523053E-01 -2.08401442526E-01 -2.74532276471E-01
  iter,total energy,gnrm     2  -4.419553027548E-01  1.93E-01
  ---------------------------------------------------------------------------- iter= 3
@@ -104,23 +132,23 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  4.37313528881E-01 -7.10371573455E-01  0.00000000000E+00
     ehart,   eexcu,    vexcu  2.91042492606E-01 -2.71316960340E-01 -3.57756113984E-01
- iter,total energy,gnrm     4  -4.776613835366E-01  5.02E-02
+ iter,total energy,gnrm     4  -4.776613835367E-01  5.02E-02
  ---------------------------------------------------------------------------- iter= 5
  Calculation of charge density... done. Total electronic charge=       0.999999983862
  PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    1.47E-02 -1.15E-02 -2.66E-02  3.96E-01  6.27E-01 -1.60E-05
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  4.62066383690E-01 -7.30180317763E-01  0.00000000000E+00
+ ekin_sum,epot_sum,eproj_sum  4.62066383690E-01 -7.30180317762E-01  0.00000000000E+00
     ehart,   eexcu,    vexcu  2.98822374402E-01 -2.78301519782E-01 -3.67004974327E-01
- iter,total energy,gnrm     5  -4.782328539298E-01  2.47E-02
+ iter,total energy,gnrm     5  -4.782328539299E-01  2.47E-02
  ---------------------------------------------------------------------------- iter= 6
  Calculation of charge density... done. Total electronic charge=       0.999999983256
  PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    3.95E-03 -1.55E-03 -7.37E-03  7.61E-02 -3.44E-01  1.27E+00 -1.28E-06
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  4.64471790046E-01 -7.32350612330E-01  0.00000000000E+00
+ ekin_sum,epot_sum,eproj_sum  4.64471790045E-01 -7.32350612330E-01  0.00000000000E+00
     ehart,   eexcu,    vexcu  2.99273220314E-01 -2.78743555830E-01 -3.67591205622E-01
  iter,total energy,gnrm     6  -4.783043928063E-01  1.11E-02
  ---------------------------------------------------------------------------- iter= 7
@@ -140,7 +168,7 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  4.67514804544E-01 -7.34959815912E-01  0.00000000000E+00
     ehart,   eexcu,    vexcu  2.99927035555E-01 -2.79366041105E-01 -3.68416318097E-01
- iter,total energy,gnrm     8  -4.783217699303E-01  5.85E-04
+ iter,total energy,gnrm     8  -4.783217699304E-01  5.85E-04
  ---------------------------------------------------------------------------- iter= 9
  Calculation of charge density... done. Total electronic charge=       0.999999982505
  PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ...done.
@@ -149,7 +177,7 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  4.67673052573E-01 -7.35082096949E-01  0.00000000000E+00
     ehart,   eexcu,    vexcu  2.99977599974E-01 -2.79410980208E-01 -3.68475813227E-01
- iter,total energy,gnrm     9  -4.783218113305E-01  2.66E-04
+ iter,total energy,gnrm     9  -4.783218113306E-01  2.66E-04
  ---------------------------------------------------------------------------- iter= 10
  Calculation of charge density... done. Total electronic charge=       0.999999982494
  PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ...done.
@@ -158,7 +186,7 @@
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  4.67733865804E-01 -7.35130112319E-01  0.00000000000E+00
     ehart,   eexcu,    vexcu  2.99995661764E-01 -2.79427200148E-01 -3.68497290803E-01
- iter,total energy,gnrm    10  -4.783218176242E-01  6.39E-05
+ iter,total energy,gnrm    10  -4.783218176243E-01  6.39E-05
  ---------------------------------------------------------------------------- iter= 11
  Calculation of charge density... done. Total electronic charge=       0.999999982492
  PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ...done.
@@ -166,8 +194,9 @@
  iproc,ehart,eexcu,vexcu  0  2.99997699430E-01 -2.79429104516E-01 -3.68499814523E-01
  final ekin_sum,epot_sum,eproj_sum  4.67742461184E-01 -7.35137289716E-01  0.00000000000E+00
  final ehart,eexcu,vexcu  2.99997699430E-01 -2.79429104516E-01 -3.68499814523E-01
- FINAL iter,total energy,gnrm    11  -4.783218179547E-01  6.39E-05
- eval(1)= -2.67394828532241E-01
+ FINAL iter,total energy,gnrm    11  -4.783218179548E-01  6.39E-05
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1,u)= -2.67394828532241E-01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=       0.999999982492
  PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  0 ...done.
@@ -185,8 +214,8 @@
  Calculating tail corrections on 1 orbitals per processor.
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  4.64438610501E-01 -7.32211721532E-01  0.00000000000E+00
- Total energy with tail correction -4.787001004536E-01
-- iproc, elapsed, CPU time     0        60.78        60.46
+ Total energy with tail correction -4.787001004537E-01
+ CPU time for root process     0        25.89        24.77
  Final values of the Forces for each atom
      1  H_lda  1.30063E-04  1.30063E-04  1.30063E-04
  the sum of the forces is
@@ -194,6 +223,6 @@
       y direction     1.30063262E-04
       z direction     1.30063262E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1710 allocations and 1710 deallocations, remaining memory(B):0
- memory occupation peak: 105 MB
- for the array  ypsig_f in the routine calc_grad_reza
+ 832 allocations and 832 deallocations, remaining memory(B):0
+ memory occupation peak: 100 MB
+ for the array  hpsip in the routine prec_diag

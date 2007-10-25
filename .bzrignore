@@ -8,6 +8,13 @@ configure
 config.log
 config.status
 mpif.h
+src/cluster
+src/memguess
 tests/*/wavefunction.*
+tests/*/*.out
+tests/*/*.ascii
+tests/*/*.memguess
+tests/*/psppar.*
+tests/*/*.prc
 *.mod
 time.prc
