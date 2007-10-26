@@ -31,6 +31,9 @@ endif
 SUBDIRS = $(sub_dirs_xc) $(sub_dirs_ps) convolutions profiling
 
 EXTRA_DIST = \
+	interface.f90 \
+	input/interface.f90 \
+	profiling/interface.f90 \
 	daub_8.inc \
 	gsint_x.inc \
 	gsints.inc \
@@ -137,7 +140,8 @@ memguess_LDADD = libbigdft.a \
 CLEANFILES = mpif.h libbigdft.@MODULE_EXT@ LIBBIGDFT.@MODULE_EXT@
 
 #dependencies
-cluster_all.o: $(mpi_include)
+cluster_all.o: $(mpi_include) \
+	interface.f90 input/interface.f90 profiling/interface.f90
 
 mpif.h:
 	touch mpif.h

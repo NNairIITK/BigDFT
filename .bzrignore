@@ -11,8 +11,10 @@ config.h
 config.h.in
 stamp-h1
 mpif.h
+src/parameters.h
 src/cluster
 src/memguess
+src/test_forces
 tests/*/wavefunction.*
 tests/*/*.out
 tests/*/*.ascii
