@@ -293,7 +293,7 @@ contains
   !memory estimation
   if (iproc==0) then
      call MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
-          rxyz,radii_cf,crmult,frmult,norb,atomnames,.false.,nspin) 
+          rxyz,radii_cf,crmult,frmult,norb,atomnames,.false.,nspin,peakmem) 
   end if
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems

@@ -8,7 +8,7 @@ program memguess
   integer :: ierror,nat,ntypes,nproc,n1,n2,n3,i_stat,i_all
   integer :: nelec,norb,natsc,norbp,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
   integer :: norbu,norbd,iunit,ityp
-  real(kind=8) :: alat1,alat2,alat3
+  real(kind=8) :: alat1,alat2,alat3,peakmem
   type(input_variables) :: in
   character(len=20), dimension(:), allocatable :: atomnames
   integer, dimension(:), allocatable :: iatype,nelpsp,nzatom,npspcode,iasctype
@@ -140,7 +140,7 @@ program memguess
   call memocc(i_stat,i_all,'iasctype','memguess')
 
   call MemoryEstimator(nproc,in%idsx,n1,n2,n3,alat1,alat2,alat3,in%hgrid,nat,ntypes,iatype,&
-          rxyz,radii_cf,in%crmult,in%frmult,norb,atomnames,output_grid,in%nspin)
+          rxyz,radii_cf,in%crmult,in%frmult,norb,atomnames,output_grid,in%nspin,peakmem)
 
   i_all=-product(shape(atomnames))*kind(atomnames)
   deallocate(atomnames,stat=i_stat)

@@ -25,8 +25,8 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
     integer,intent(out):: ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
 
     integer,intent(out):: ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
-    integer,intent(out):: ibzxx_f(2,          nfl3:nfu3,2*nfl1-14:2*nfu1+16)
-    integer,intent(out):: ibxxyy_f(2,                    2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+    integer,intent(out):: ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+    integer,intent(out):: ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
     integer,allocatable,dimension(:,:,:)::ibyx_c,ibxzz_c,ibzzyy_c
     integer,allocatable,dimension(:,:,:)::ibyx_f,ibxzz_f,ibzzyy_f
@@ -36,20 +36,34 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 !    for real space:
     integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
 
-    m1=nfu1-nfl1; m2=nfu2-nfl2; m3=nfu3-nfl3
+    !local variables
+    integer :: i_stat,i_all
+
+    m1=nfu1-nfl1
+    m2=nfu2-nfl2
+    m3=nfu3-nfl3
 
     
 !   (0:n3,-14:2*n1+16,-14:2*n2+16) from grow
 !   (-14:2*n2+16,-14:2*n3+16,0:n1) from shrink
 !   (-14:2*n1+16,-14:2*n2+16,-14:2*n3+16) from real space
 
-    allocate(logrid_big((2*n1+31)*(2*n2+31)*(2*n3+31)))
+    allocate(logrid_big((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+    call memocc(i_stat,product(shape(logrid_big))*kind(logrid_big),'logrid_big','make_all_ib')
 
-    allocate(ibyx_c(2,0:n2,0:n1),ibxzz_c(2,-14:2*n3+16,0:n1))
-    allocate(ibzzyy_c(2,-14:2*n2+16,-14:2*n3+16))
+    allocate(ibyx_c(2,0:n2,0:n1),stat=i_stat)
+    call memocc(i_stat,product(shape(ibyx_c))*kind(ibyx_c),'ibyx_c','make_all_ib')
+    allocate(ibxzz_c(2,-14:2*n3+16,0:n1),stat=i_stat)
+    call memocc(i_stat,product(shape(ibxzz_c))*kind(ibxzz_c),'ibxzz_c','make_all_ib')
+    allocate(ibzzyy_c(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
+    call memocc(i_stat,product(shape(ibzzyy_c))*kind(ibzzyy_c),'ibzzyy_c','make_all_ib')
 
-    allocate(ibyx_f(2,nfl2:nfu2,nfl1:nfu1),ibxzz_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1))
-    allocate(ibzzyy_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16))
+    allocate(ibyx_f(2,nfl2:nfu2,nfl1:nfu1),stat=i_stat)
+    call memocc(i_stat,product(shape(ibyx_f))*kind(ibyx_f),'ibyx_f','make_all_ib')
+    allocate(ibxzz_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1),stat=i_stat)
+    call memocc(i_stat,product(shape(ibxzz_f))*kind(ibxzz_f),'ibxzz_f','make_all_ib')
+    allocate(ibzzyy_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16),stat=i_stat)
+    call memocc(i_stat,product(shape(ibzzyy_f))*kind(ibzzyy_f),'ibzzyy_f','make_all_ib')
 
 
 !    transpose the original array    
@@ -95,9 +109,30 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 !    call ib_from_logrid(ibyyzz_r,logrid_big,-14,2*n1+16,nt)
     call ib_from_logrid(ibyyzz_r,logrid_big,0,2*n1+30,nt)
             
-    deallocate(logrid_big,ibyx_c,ibzzyy_c,ibyx_f,ibzzyy_f)
+    i_all=-product(shape(logrid_big))*kind(logrid_big)
+    deallocate(logrid_big,stat=i_stat)
+    call memocc(i_stat,i_all,'logrid_big','make_all_ib')
 
-    
+    i_all=-product(shape(ibyx_c))*kind(ibyx_c)
+    deallocate(ibyx_c,stat=i_stat)
+    call memocc(i_stat,i_all,'ibyx_c','make_all_ib')
+    i_all=-product(shape(ibxzz_c))*kind(ibxzz_c)
+    deallocate(ibxzz_c,stat=i_stat)
+    call memocc(i_stat,i_all,'ibxzz_c','make_all_ib')
+    i_all=-product(shape(ibzzyy_c))*kind(ibzzyy_c)
+    deallocate(ibzzyy_c,stat=i_stat)
+    call memocc(i_stat,i_all,'ibzzyy_c','make_all_ib')
+
+    i_all=-product(shape(ibyx_f))*kind(ibyx_f)
+    deallocate(ibyx_f,stat=i_stat)
+    call memocc(i_stat,i_all,'ibyx_f','make_all_ib')
+    i_all=-product(shape(ibxzz_f))*kind(ibxzz_f)
+    deallocate(ibxzz_f,stat=i_stat)
+    call memocc(i_stat,i_all,'ibxzz_f','make_all_ib')
+    i_all=-product(shape(ibzzyy_f))*kind(ibzzyy_f)
+    deallocate(ibzzyy_f,stat=i_stat)
+    call memocc(i_stat,i_all,'ibzzyy_f','make_all_ib')
+
 end subroutine make_all_ib
 
 subroutine make_ib_c(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,n3)

@@ -47,15 +47,11 @@ program BigDFT
   !$        end function omp_get_thread_num
   !$      end interface
 
-
   ! Start MPI in parallel version
   if (parallel) then
      call MPI_INIT(ierr)
      call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
      call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-!!$     write(unit=line,fmt='(a,i0,a,i0,a)') &
-!!$          'echo "- mpi started iproc=',iproc,'/',nproc,' host: `hostname`"'
-!!$     call system(trim(line))
   else
      nproc=1
      iproc=0
@@ -252,7 +248,15 @@ program BigDFT
      dimension wpos(3,nat),gg(3,nat),rxyz_old(3,nat)
      real(kind=8), allocatable, dimension(:,:) :: tpos,gp,hh
 
-     allocate(tpos(3,nat),gp(3,nat),hh(3,nat))
+     allocate(tpos(3,nat),stat=i_stat)
+     call memocc(i_stat,product(shape(tpos))*kind(tpos),'tpos','conjgrad')
+     allocate(gp(3,nat),stat=i_stat)
+     call memocc(i_stat,product(shape(gp))*kind(gp),'gp','conjgrad')
+     allocate(hh(3,nat),stat=i_stat)
+     call memocc(i_stat,product(shape(hh))*kind(hh),'hh','conjgrad')
+
+
+
      anoise=1.d-4
      fluct=-1.d100
      flucto=-1.d100
@@ -465,10 +469,20 @@ program BigDFT
            write(*,*) 'average CG stepsize in terms of betax',avbeta/avnum,iproc
         end if
 
-        deallocate(tpos,gp,hh)
 
 !    Close the file
      close(unit=16)
+
+     i_all=-product(shape(tpos))*kind(tpos)
+     deallocate(tpos,stat=i_stat)
+     call memocc(i_stat,i_all,'tpos','conjgrad')
+     i_all=-product(shape(gp))*kind(gp)
+     deallocate(gp,stat=i_stat)
+     call memocc(i_stat,i_all,'gp','conjgrad')
+     i_all=-product(shape(hh))*kind(hh)
+     deallocate(hh,stat=i_stat)
+     call memocc(i_stat,i_all,'hh','conjgrad')
+
    end subroutine conjgrad
 
 
@@ -488,7 +502,10 @@ program BigDFT
      dimension wpos(3,nat),ff(3,nat),rxyz_old(3,nat)
      real(kind=8), allocatable, dimension(:,:) :: tpos
      logical care
-     allocate(tpos(3,nat))
+
+     allocate(tpos(3,nat),stat=i_stat)
+     call memocc(i_stat,product(shape(tpos))*kind(tpos),'tpos','steepdes')
+
      anoise=0.d-4
 
      beta=in%betax
@@ -640,7 +657,10 @@ program BigDFT
 2000        continue
      if (iproc.eq.0) write(16,*) 'SD FINISHED',iproc
      
-     deallocate(tpos)
+     i_all=-product(shape(tpos))*kind(tpos)
+     deallocate(tpos,stat=i_stat)
+     call memocc(i_stat,i_all,'tpos','steepdes')
+
    end subroutine steepdes
 
    subroutine detbetax(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,pos,&
@@ -659,8 +679,14 @@ program BigDFT
      integer, pointer :: keyv(:), keyg(:,:)
      dimension pos(3,nat),alat(3),rxyz_old(3,nat)
      real(kind=8), allocatable, dimension(:,:) :: tpos,ff,gg
-     allocate(tpos(3,nat),ff(3,nat),gg(3,nat))
-     
+
+     allocate(tpos(3,nat),stat=i_stat)
+     call memocc(i_stat,product(shape(tpos))*kind(tpos),'tpos','detbetax')
+     allocate(ff(3,nat),stat=i_stat)
+     call memocc(i_stat,product(shape(ff))*kind(ff),'ff','detbetax')
+     allocate(gg(3,nat),stat=i_stat)
+     call memocc(i_stat,product(shape(gg))*kind(gg),'gg','detbetax')
+    
      beta0=abs(in%betax)
      beta=1.d100
 
@@ -769,98 +795,107 @@ program BigDFT
         
      if (iproc.eq.0) write(16,*) 'betax=',in%betax
         
-     deallocate(tpos,ff,gg)
+     i_all=-product(shape(tpos))*kind(tpos)
+     deallocate(tpos,stat=i_stat)
+     call memocc(i_stat,i_all,'tpos','detbetax')
+     i_all=-product(shape(ff))*kind(ff)
+     deallocate(ff,stat=i_stat)
+     call memocc(i_stat,i_all,'ff','detbetax')
+     i_all=-product(shape(gg))*kind(gg)
+     deallocate(gg,stat=i_stat)
+     call memocc(i_stat,i_all,'gg','detbetax')
+
    end subroutine detbetax
 
+   
+   subroutine call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+        psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
+        n1,n2,n3,rxyz_old,in,infocode)
+     use libBigDFT
+     implicit none
+     type(input_variables) :: in
+     logical, intent(in) :: parallel
+     integer, intent(in) :: iproc,nproc,nat,ntypes,norbp,norb
+     integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f
+     integer, intent(inout) :: infocode,n1,n2,n3
+     integer :: i_stat,i_all,ierr,inputPsiId_orig
+     real(kind=8), intent(out) :: energy
+     character(len=20), dimension(100), intent(in) :: atomnames
+     integer, dimension(nat), intent(in) :: iatype
+     real(kind=8), dimension(3,nat), intent(in) :: rxyz_old
+     real(kind=8), dimension(3,nat), intent(inout) :: rxyz
+     real(kind=8), dimension(3,nat), intent(out) :: fxyz
+     integer, dimension(:), pointer :: keyv
+     integer, dimension(:,:), pointer :: keyg
+     real(kind=8), dimension(:), pointer :: eval
+     real(kind=8), dimension(:,:), pointer :: psi
 
-      subroutine call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
-           psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-           n1,n2,n3,rxyz_old,in,infocode)
-        use libBigDFT
-        implicit none
-        type(input_variables) :: in
-        logical, intent(in) :: parallel
-        integer, intent(in) :: iproc,nproc,nat,ntypes,norbp,norb
-        integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f
-        integer, intent(inout) :: infocode,n1,n2,n3
-        integer :: i_stat,i_all,ierr,inputPsiId_orig
-        real(kind=8), intent(out) :: energy
-        character(len=20), dimension(100), intent(in) :: atomnames
-        integer, dimension(nat), intent(in) :: iatype
-        real(kind=8), dimension(3,nat), intent(in) :: rxyz_old
-        real(kind=8), dimension(3,nat), intent(inout) :: rxyz
-        real(kind=8), dimension(3,nat), intent(out) :: fxyz
-        integer, dimension(:), pointer :: keyv
-        integer, dimension(:,:), pointer :: keyg
-        real(kind=8), dimension(:), pointer :: eval
-        real(kind=8), dimension(:,:), pointer :: psi
+     inputPsiId_orig=in%inputPsiId
 
-        inputPsiId_orig=in%inputPsiId
+     loop_cluster: do
 
-        loop_cluster: do
+        if (inputPsiId_orig == 0 .and. associated(psi)) then
+           i_all=-product(shape(psi))*kind(psi)
+           deallocate(psi,stat=i_stat)
+           call memocc(i_stat,i_all,'psi','call_cluster')
+           i_all=-product(shape(eval))*kind(eval)
+           deallocate(eval,stat=i_stat)
+           call memocc(i_stat,i_all,'eval','call_cluster')
+           i_all=-product(shape(keyg))*kind(keyg)
+           deallocate(keyg,stat=i_stat)
+           call memocc(i_stat,i_all,'keyg','call_cluster')
+           i_all=-product(shape(keyv))*kind(keyv)
+           deallocate(keyv,stat=i_stat)
+           call memocc(i_stat,i_all,'keyv','call_cluster')
+        end if
 
-           if (inputPsiId_orig == 0 .and. associated(psi)) then
-              i_all=-product(shape(psi))*kind(psi)
-              deallocate(psi,stat=i_stat)
-              call memocc(i_stat,i_all,'psi','call_cluster')
-              i_all=-product(shape(eval))*kind(eval)
-              deallocate(eval,stat=i_stat)
-              call memocc(i_stat,i_all,'eval','call_cluster')
-              i_all=-product(shape(keyg))*kind(keyg)
-              deallocate(keyg,stat=i_stat)
-              call memocc(i_stat,i_all,'keyg','call_cluster')
-              i_all=-product(shape(keyv))*kind(keyv)
-              deallocate(keyv,stat=i_stat)
-              call memocc(i_stat,i_all,'keyv','call_cluster')
+        call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+             psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
+             n1,n2,n3,rxyz_old,in,infocode)
+
+        if (in%inputPsiId==1 .and. infocode==2) then
+           in%inputPsiId=0
+        else if (in%inputPsiId == 0 .and. infocode==3) then
+           if (iproc.eq.0) then
+              write(*,'(1x,a)')'Convergence error, cannot proceed.'
+              write(*,'(1x,a)')' writing positions in file posout_999.ascii then exiting'
+              call wtposout(999,energy,nat,rxyz,atomnames,iatype)
            end if
 
-           call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
-                psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-                n1,n2,n3,rxyz_old,in,infocode)
+           i_all=-product(shape(psi))*kind(psi)
+           deallocate(psi,stat=i_stat)
+           call memocc(i_stat,i_all,'psi','call_cluster')
+           i_all=-product(shape(eval))*kind(eval)
+           deallocate(eval,stat=i_stat)
+           call memocc(i_stat,i_all,'eval','call_cluster')
+           i_all=-product(shape(keyg))*kind(keyg)
+           deallocate(keyg,stat=i_stat)
+           call memocc(i_stat,i_all,'keyg','call_cluster')
+           i_all=-product(shape(keyv))*kind(keyv)
+           deallocate(keyv,stat=i_stat)
+           call memocc(i_stat,i_all,'keyv','call_cluster')
 
-           if (in%inputPsiId==1 .and. infocode==2) then
-              in%inputPsiId=0
-           else if (in%inputPsiId == 0 .and. infocode==3) then
-              if (iproc.eq.0) then
-                 write(*,'(1x,a)')'Convergence error, cannot proceed.'
-                 write(*,'(1x,a)')' writing positions in file posout_999.ascii then exiting'
-                 call wtposout(999,energy,nat,rxyz,atomnames,iatype)
-              end if
+           !finalize memory counting (there are still the positions and the forces allocated)
+           call memocc(0,0,'count','stop')
 
-              i_all=-product(shape(psi))*kind(psi)
-              deallocate(psi,stat=i_stat)
-              call memocc(i_stat,i_all,'psi','call_cluster')
-              i_all=-product(shape(eval))*kind(eval)
-              deallocate(eval,stat=i_stat)
-              call memocc(i_stat,i_all,'eval','call_cluster')
-              i_all=-product(shape(keyg))*kind(keyg)
-              deallocate(keyg,stat=i_stat)
-              call memocc(i_stat,i_all,'keyg','call_cluster')
-              i_all=-product(shape(keyv))*kind(keyv)
-              deallocate(keyv,stat=i_stat)
-              call memocc(i_stat,i_all,'keyv','call_cluster')
+           if (parallel) call MPI_FINALIZE(ierr)
 
-              !finalize memory counting (there are still the positions and the forces allocated)
-              call memocc(0,0,'count','stop')
+           stop
+        else
+           exit loop_cluster
+        end if
 
-              if (parallel) call MPI_FINALIZE(ierr)
+     end do loop_cluster
 
-              stop
-           else
-              exit loop_cluster
-           end if
+     !preserve the previous value
+     inputPsiId_orig=in%inputPsiId
 
-        end do loop_cluster
+   end subroutine call_cluster
 
-        !preserve the previous value
-        inputPsiId_orig=in%inputPsiId
-
-      end subroutine call_cluster
-
-    end program BigDFT
+ end program BigDFT
 
 
-subroutine wtposout(igeostep,energy,nat,rxyz,atomnames,iatype)
+ subroutine wtposout(igeostep,energy,nat,rxyz,atomnames,iatype)
 
    implicit none
    integer, intent(in) :: igeostep,nat
@@ -891,4 +926,4 @@ subroutine wtposout(igeostep,energy,nat,rxyz,atomnames,iatype)
    enddo
    close(unit=9)
 
-end subroutine wtposout
+ end subroutine wtposout
