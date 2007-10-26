@@ -1,6 +1,6 @@
 !      DAUBECHIES-16 DOUBLE DENSITY MAGIC FILTER
 !      FOR SCFUNCTIONS AND WAVELETS
-       REAL*8::fil2(-14:17,2)
+       real(kind=8)::fil2(-14:17,2)
         
        fil2(:,1)=(/-9.2250149921474082015D-9,&
        1.739330656197903949D-7,&
