@@ -6,7 +6,8 @@ subroutine comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,&
   ! The input array y is not overwritten
 
   implicit none
-  integer n1,n2,n3,i1,i2,i3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer n1,n2,n3,i1,i2,i3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i
+  real(kind=8) :: tt
   real(kind=8) y( -14:2*n1+16,-14:2*n2+16,-14:2*n3+16) ! input
   !    real(kind=8) w1( 2,           -14:2*n2+16,-14:2*n3+16,0:n1)!  work 
   !    real(kind=8) w2( 4,                       -14:2*n3+16,0:n1,0:n2)

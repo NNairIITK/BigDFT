@@ -34,7 +34,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   integer, dimension(:,:), allocatable :: keybg
   real(kind=8) :: alatb1,alatb2,alatb3,ekin,epot,eproj,tt,cprecr,sum_tail,ekin1,epot1,eproj1
   real(kind=8), dimension(:,:), allocatable :: txyz,wrkallred
-  real(kind=8), dimension(:), allocatable :: psib,hpsib,psifscf,psir
+  real(kind=8), dimension(:), allocatable :: psib,hpsib,psir
   !*****************************Alexey************************************************************
   !for shrink:
   integer,allocatable,dimension(:,:,:)::ibbzzx_c,ibbyyzz_c
@@ -259,8 +259,6 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   !if (iproc.eq.0) write(*,*) 'Allocation done'
 
   ! work arrays applylocpotkin
-  allocate(psifscf(max((2*nb1+31)*(2*nb2+31)*(2*nb3+16),(2*nb1+16)*(2*nb2+31)*(2*nb3+31))),stat=i_stat)
-  call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','calculatetailcorrection')
   allocate(psir((2*nb1+31)*(2*nb2+31)*(2*nb3+31)),stat=i_stat)
   call memocc(i_stat,product(shape(psir))*kind(psir),'psir','calculatetailcorrection')
 
@@ -289,19 +287,28 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   call memocc(i_stat,product(shape(x_f2))*kind(x_f2),'x_f2','calculatetailcorrection')
   allocate(x_f3(nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)
   call memocc(i_stat,product(shape(x_f3))*kind(x_f3),'x_f3','calculatetailcorrection')
-  allocate(x_f(7,0:nb1,0:nb2,0:nb3),stat=i_stat)! work
+  allocate(x_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)! work
   call memocc(i_stat,product(shape(x_f))*kind(x_f),'x_f','calculatetailcorrection')
-  allocate(y_f(7,0:nb1,0:nb2,0:nb3),stat=i_stat)! work
+  allocate(y_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)! work
   call memocc(i_stat,product(shape(y_f))*kind(y_f),'y_f','calculatetailcorrection')
   allocate(w1(nw1),stat=i_stat)
   call memocc(i_stat,product(shape(w1))*kind(w1),'w1','calculatetailcorrection')
   allocate(w2(nw2),stat=i_stat) ! work
   call memocc(i_stat,product(shape(w2))*kind(w2),'w2','calculatetailcorrection')
   !***********************************************************************************************
+  !put to zero the arrays for the hamiltonian procedure
+  call razero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f1)
+  call razero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f2)
+  call razero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f3)
+  call razero((nb1+1)*(nb2+1)*(nb3+1),x_c)
+  call razero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f)
+  call razero((nb1+1)*(nb2+1)*(nb3+1),y_c)
+  call razero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),y_f)
+  call razero((2*nb1+31)*(2*nb2+31)*(2*nb3+31),psir)
+
   ekin_sum=0.d0
   epot_sum=0.d0
   eproj_sum=0.d0
-  !print *,'now'
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
@@ -324,6 +331,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
         else
            ispin=2
         end if
+
         !calculate gradient
         call applylocpotkinone(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nbuf, &
              hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  &
@@ -404,9 +412,6 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   i_all=-product(shape(txyz))*kind(txyz)
   deallocate(txyz,stat=i_stat)
   call memocc(i_stat,i_all,'txyz','calculatetailcorrection')
-  i_all=-product(shape(psifscf))*kind(psifscf)
-  deallocate(psifscf,stat=i_stat)
-  call memocc(i_stat,i_all,'psifscf','calculatetailcorrection')
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir','calculatetailcorrection')

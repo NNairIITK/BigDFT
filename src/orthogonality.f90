@@ -199,7 +199,7 @@ subroutine orthon(norb,nvctrp,psi)
 end subroutine orthon
 
 
-subroutine loewe_p(iproc,nproc,norb,ndim,nvctrp,psit)
+subroutine loewe_p(iproc,nproc,norb,ndim,nvctrp,nvctr_tot,psit)
   ! loewdin orthogonalisation
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.true.
@@ -208,15 +208,22 @@ subroutine loewe_p(iproc,nproc,norb,ndim,nvctrp,psit)
   include 'mpif.h'
 
   if (norb.eq.1) then
-     !parallel treatment of a run with only one orbital
-     tt=dnrm2(nvctrp,psit,1)     
 
+     nvctr_eff=min(nvctr_tot-iproc*nvctrp,nvctrp)
+
+     if (nvctr_eff > 0) then
+     !parallel treatment of a run with only one orbital
+     tt=dnrm2(nvctr_eff,psit,1)     
      ttLOC=tt**2
 
+     else
+        ttLOC =0.d0
+     end if
+     
      call MPI_ALLREDUCE(ttLOC,tt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
      tt=1.d0/sqrt(tt)
-     call dscal(nvctrp,tt,psit,1)
+     call dscal(nvctr_eff,tt,psit,1)
 
      !stop 'more than one orbital needed for a parallel run'
 

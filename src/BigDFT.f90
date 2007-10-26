@@ -288,7 +288,7 @@ program BigDFT
         hh(3,iat)=gg(3,iat)
      end do
 
-     beta0=4.d0*betax
+     beta0=4.d0*in%betax
      it=0
 1000 it=it+1
 
@@ -347,7 +347,7 @@ program BigDFT
            wpos(3,iat)=wpos(3,iat)+beta*hh(3,iat)
         end if
      end do
-     avbeta=avbeta+beta/betax
+     avbeta=avbeta+beta/in%betax
      avnum=avnum+1.d0
 
      !C new gradient
@@ -417,7 +417,7 @@ program BigDFT
         end if
      end do
      if (iproc.eq.0) then
-        write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)')it,sqrt(fnrm),etot,' CG ',beta/betax
+        write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)')it,sqrt(fnrm),etot,' CG ',beta/in%betax
         write(16,*) 'fnrm2,flucts',&
              fnrm,sqrt(real(nat,kind=8))*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0
      end if
@@ -542,7 +542,7 @@ program BigDFT
         beta=.5d0*beta
         if (iproc.eq.0) write(16,'(a,1x,e9.2,1x,i5,2(1x,e21.14))') &
              'SD reset, beta,itsd,etot,etotitm1= ',beta,itsd,etot,etotitm1
-        if (beta.le.1.d-1*betax) then
+        if (beta.le.1.d-1*in%betax) then
            if (iproc.eq.0) write(16,*) &
            'beta getting too small, do not care anymore if energy goes up'
            care=.false.
@@ -568,7 +568,7 @@ program BigDFT
      df2=fnrm-2.d0*fnrmitm1+fnrmitm2
      if (iproc.eq.0) write(16,'(5(1x,e11.4),1x,i3)') fnrm/fnrmitm1, de1,de2,df1,df2,nsatur
 
-     if (care .and. itsd.ge.3 .and. beta.eq.betax .and. fnrm/fnrmitm1.gt..8d0 .and. &
+     if (care .and. itsd.ge.3 .and. beta.eq.in%betax .and. fnrm/fnrmitm1.gt..8d0 .and. &
           de1.gt.-.1d0 .and. fnrm.le..1d0 .and. & 
           de1.lt.anoise .and. df1.lt.anoise .and. &
           de2.gt.-2.d0*anoise .and. df2.gt.-2.d0*anoise) then 
@@ -767,7 +767,7 @@ program BigDFT
         
      in%betax=beta
         
-     if (iproc.eq.0) write(16,*) 'betax=',betax
+     if (iproc.eq.0) write(16,*) 'betax=',in%betax
         
      deallocate(tpos,ff,gg)
    end subroutine detbetax
