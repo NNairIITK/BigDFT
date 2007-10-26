@@ -215,7 +215,7 @@
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  4.64438610501E-01 -7.32211721532E-01  0.00000000000E+00
  Total energy with tail correction -4.787001004537E-01
- CPU time for root process     0        25.89        24.77
+ CPU time for root process     0        25.28        24.79
  Final values of the Forces for each atom
      1  H_lda  1.30063E-04  1.30063E-04  1.30063E-04
  the sum of the forces is
@@ -223,6 +223,6 @@
       y direction     1.30063262E-04
       z direction     1.30063262E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 832 allocations and 832 deallocations, remaining memory(B):0
- memory occupation peak: 100 MB
- for the array  hpsip in the routine prec_diag
+ 831 allocations and 831 deallocations, remaining memory(B):0
+ memory occupation peak: 77 MB
+ for the array  cosinarr in the routine kernelfft
