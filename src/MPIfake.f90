@@ -33,7 +33,7 @@
         return
         end
 
-        subroutine MPI_REDUCE (t1,t2,norbe,MPI_DOUBLE_PRECISION,MPI_SUM,j,MPI_COMM_WORLD,ierr)
+        subroutine MPI_REDUCE()
         stop 'REDUCE'
         return
         end

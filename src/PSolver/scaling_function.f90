@@ -46,7 +46,7 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   x(nt/2-1)=1.d0
   loop1: do
      nt=2*nt
-     !	write(6,*) 'nd,nt',nd,nt
+     ! write(6,*) 'nd,nt',nd,nt
      select case(itype)
      case(8)
         call back_trans_8(nd,nt,x,y)

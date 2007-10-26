@@ -240,7 +240,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
                ixc,hx,hy,hz,rhopot(1+n01*n02*(i3start-1)),pot_ion,sumpion,zf,zfionxc,&
                eexcuLOC,vexcuLOC,iproc,nproc,nspin)
        end if
-  else if (istart+1 <= nlim) then !this condition assures that we have perform good zero padding
+  else if (istart+1 <= nlim) then !this condition ensures we have performed good zero padding
      do i2=istart+1,min(nlim,istart+md2/nproc)
         j2=i2-istart
         do i3=1,md3
@@ -309,6 +309,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      is_step=m1*m3*nxt
   end if
 
+  ehartreeLOC=0.d0
   !recollect the final data
   if (ixc==0) then !without XC the spin does not exist
      do j2=1,nxc
@@ -341,7 +342,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      !in the spin-polarised case the potential is given contiguously
      if (nspin==2) then
         !this start the count in the other component of the global array
-        if (datacode=='G') ind=i3xcsh*n01*n02
+        if (datacode=='G') ind=i3xcsh*n01*n02+n01*n02*n03
         do j2=1,nxc
            i2=j2+i3xcsh
            ind3=(i2-1)*n01*n02
@@ -533,7 +534,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   end if
 
   if(nspin==1) eh=eh*2.0d0
-  if (iproc==0) write(*,*)'done.'
+  if (iproc==0) write(*,'(a)')'done.'
 
 end subroutine PSolver
 

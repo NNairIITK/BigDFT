@@ -1,5 +1,6 @@
 'make check' is the command to perform the series of tests (optimisation of geometry):
 - C      carbon atom
+- Ca2    dimer of Ca
 - H      hydrogen atom
 - H-spin hydrogen atom with Local Spin Density
 - Li+    lithium ion

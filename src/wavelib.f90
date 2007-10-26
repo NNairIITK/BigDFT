@@ -258,13 +258,13 @@ subroutine waxpy(  &
      endif
      do i=0,length
         !          llf=llf+1
-        apsi_f(1,jaj+iaoff+i)=apsi_f(1,jaj+iaoff+i)+scpr*bpsi_f(1,jbj+iboff+i) 
-        apsi_f(2,jaj+iaoff+i)=apsi_f(2,jaj+iaoff+i)+scpr*bpsi_f(2,jbj+iboff+i) 
-        apsi_f(3,jaj+iaoff+i)=apsi_f(3,jaj+iaoff+i)+scpr*bpsi_f(3,jbj+iboff+i) 
-        apsi_f(4,jaj+iaoff+i)=apsi_f(4,jaj+iaoff+i)+scpr*bpsi_f(4,jbj+iboff+i) 
-        apsi_f(5,jaj+iaoff+i)=apsi_f(5,jaj+iaoff+i)+scpr*bpsi_f(5,jbj+iboff+i) 
-        apsi_f(6,jaj+iaoff+i)=apsi_f(6,jaj+iaoff+i)+scpr*bpsi_f(6,jbj+iboff+i) 
-        apsi_f(7,jaj+iaoff+i)=apsi_f(7,jaj+iaoff+i)+scpr*bpsi_f(7,jbj+iboff+i) 
+        apsi_f(1,jaj+iaoff+i)=apsi_f(1,jaj+iaoff+i)+scpr*bpsi_f(1,jbj+iboff+i)
+        apsi_f(2,jaj+iaoff+i)=apsi_f(2,jaj+iaoff+i)+scpr*bpsi_f(2,jbj+iboff+i)
+        apsi_f(3,jaj+iaoff+i)=apsi_f(3,jaj+iaoff+i)+scpr*bpsi_f(3,jbj+iboff+i)
+        apsi_f(4,jaj+iaoff+i)=apsi_f(4,jaj+iaoff+i)+scpr*bpsi_f(4,jbj+iboff+i)
+        apsi_f(5,jaj+iaoff+i)=apsi_f(5,jaj+iaoff+i)+scpr*bpsi_f(5,jbj+iboff+i)
+        apsi_f(6,jaj+iaoff+i)=apsi_f(6,jaj+iaoff+i)+scpr*bpsi_f(6,jbj+iboff+i)
+        apsi_f(7,jaj+iaoff+i)=apsi_f(7,jaj+iaoff+i)+scpr*bpsi_f(7,jbj+iboff+i)
      enddo
   enddo
 222 continue
@@ -273,125 +273,68 @@ subroutine waxpy(  &
   return
 END SUBROUTINE waxpy
 
-subroutine uncompress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+
+
+!subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+!     mseg_c,mvctr_c,keyg_c,keyv_c,  & 
+!     mseg_f,mvctr_f,keyg_f,keyv_f,  & 
+!     psig,psi_c,psi_f)
+!  ! Compresses a psig wavefunction into psi_c,psi_f form
+!  implicit real(kind=8) (a-h,o-z)
+!  dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
+!  dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
+!  dimension psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2)
+!
+!  ! coarse part
+!  do iseg=1,mseg_c
+!     jj=keyv_c(iseg)
+!     j0=keyg_c(1,iseg)
+!     j1=keyg_c(2,iseg)
+!     ii=j0-1
+!     i3=ii/((n1+1)*(n2+1))
+!     ii=ii-i3*(n1+1)*(n2+1)
+!     i2=ii/(n1+1)
+!     i0=ii-i2*(n1+1)
+!     i1=i0+j1-j0
+!     do i=i0,i1
+!        psi_c(i-i0+jj)=psig(i,1,i2,1,i3,1)
+!     enddo
+!  enddo
+!
+!  ! fine part
+!  do iseg=1,mseg_f
+!     jj=keyv_f(iseg)
+!     j0=keyg_f(1,iseg)
+!     j1=keyg_f(2,iseg)
+!     ii=j0-1
+!     i3=ii/((n1+1)*(n2+1))
+!     ii=ii-i3*(n1+1)*(n2+1)
+!     i2=ii/(n1+1)
+!     i0=ii-i2*(n1+1)
+!     i1=i0+j1-j0
+!     do i=i0,i1
+!        psi_f(1,i-i0+jj)=psig(i,2,i2,1,i3,1)
+!        psi_f(2,i-i0+jj)=psig(i,1,i2,2,i3,1)
+!        psi_f(3,i-i0+jj)=psig(i,2,i2,2,i3,1)
+!        psi_f(4,i-i0+jj)=psig(i,1,i2,1,i3,2)
+!        psi_f(5,i-i0+jj)=psig(i,2,i2,1,i3,2)
+!        psi_f(6,i-i0+jj)=psig(i,1,i2,2,i3,2)
+!        psi_f(7,i-i0+jj)=psig(i,2,i2,2,i3,2)
+!     enddo
+!  enddo
+!
+!END SUBROUTINE compress
+
+subroutine uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
      mseg_c,mvctr_c,keyg_c,keyv_c,  & 
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
-     psi_c,psi_f,psig)
-  ! Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
-  implicit real(kind=8) (a-h,o-z)
-  dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
-  dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
-  dimension psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2)
-
-  call razero(8*(nu1-nl1+1)*(nu2-nl2+1)*(nu3-nl3+1),psig)
-
-  ! coarse part
-  do iseg=1,mseg_c
-     jj=keyv_c(iseg)
-     j0=keyg_c(1,iseg)
-     j1=keyg_c(2,iseg)
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-     do i=i0,i1
-        ii=ii+1
-        psig(i,1,i2,1,i3,1)=psi_c(i-i0+jj)
-     enddo
-  enddo
-
-  ! fine part
-  do iseg=1,mseg_f
-     jj=keyv_f(iseg)
-     j0=keyg_f(1,iseg)
-     j1=keyg_f(2,iseg)
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-     do i=i0,i1
-        psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)
-        psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)
-        psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)
-        psig(i,1,i2,1,i3,2)=psi_f(4,i-i0+jj)
-        psig(i,2,i2,1,i3,2)=psi_f(5,i-i0+jj)
-        psig(i,1,i2,2,i3,2)=psi_f(6,i-i0+jj)
-        psig(i,2,i2,2,i3,2)=psi_f(7,i-i0+jj)
-     enddo
-  enddo
-
-END SUBROUTINE uncompress
-
-
-subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
-     mseg_c,mvctr_c,keyg_c,keyv_c,  & 
-     mseg_f,mvctr_f,keyg_f,keyv_f,  & 
-     psig,psi_c,psi_f)
-  ! Compresses a psig wavefunction into psi_c,psi_f form
-  implicit real(kind=8) (a-h,o-z)
-  dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
-  dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
-  dimension psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2)
-
-  ! coarse part
-  do iseg=1,mseg_c
-     jj=keyv_c(iseg)
-     j0=keyg_c(1,iseg)
-     j1=keyg_c(2,iseg)
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-     do i=i0,i1
-        psi_c(i-i0+jj)=psig(i,1,i2,1,i3,1)
-     enddo
-  enddo
-
-  ! fine part
-  do iseg=1,mseg_f
-     jj=keyv_f(iseg)
-     j0=keyg_f(1,iseg)
-     j1=keyg_f(2,iseg)
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-     do i=i0,i1
-        psi_f(1,i-i0+jj)=psig(i,2,i2,1,i3,1)
-        psi_f(2,i-i0+jj)=psig(i,1,i2,2,i3,1)
-        psi_f(3,i-i0+jj)=psig(i,2,i2,2,i3,1)
-        psi_f(4,i-i0+jj)=psig(i,1,i2,1,i3,2)
-        psi_f(5,i-i0+jj)=psig(i,2,i2,1,i3,2)
-        psi_f(6,i-i0+jj)=psig(i,1,i2,2,i3,2)
-        psi_f(7,i-i0+jj)=psig(i,2,i2,2,i3,2)
-     enddo
-  enddo
-
-END SUBROUTINE compress
-
-
-subroutine uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-     mseg_c,mvctr_c,keyg_c,keyv_c,  & 
-     mseg_f,mvctr_f,keyg_f,keyv_f,  & 
-     scal,psi_c,psi_f,psig_c,psig_fc,psig_f)
+     scal,psi_c,psi_f,psig_c,psig_f)
   ! Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
   implicit real(kind=8) (a-h,o-z)
   dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
   dimension psi_c(mvctr_c),psi_f(7,mvctr_f),scal(0:3)
   dimension psig_c(0:n1,0:n2,0:n3)
-  dimension psig_fc(0:n1,0:n2,0:n3,3),psig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-
-  call razero((n1+1)*(n2+1)*(n3+1),psig_c)
-  call razero(3*(n1+1)*(n2+1)*(n3+1),psig_fc)
-  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),psig_f)
+  dimension psig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
 
   ! coarse part
   do iseg=1,mseg_c
@@ -422,12 +365,76 @@ subroutine uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      i1=i0+j1-j0
      do i=i0,i1
         psig_f(1,i,i2,i3)=psi_f(1,i-i0+jj)*scal(1)
-        psig_fc(i,i2,i3,1)=psig_f(1,i,i2,i3)
+        
         psig_f(2,i,i2,i3)=psi_f(2,i-i0+jj)*scal(1)
-        psig_fc(i,i2,i3,2)=psig_f(2,i,i2,i3)
+        
         psig_f(3,i,i2,i3)=psi_f(3,i-i0+jj)*scal(2)
         psig_f(4,i,i2,i3)=psi_f(4,i-i0+jj)*scal(1)
-        psig_fc(i,i2,i3,3)=psig_f(4,i,i2,i3)
+        
+        psig_f(5,i,i2,i3)=psi_f(5,i-i0+jj)*scal(2)
+        psig_f(6,i,i2,i3)=psi_f(6,i-i0+jj)*scal(2)
+        psig_f(7,i,i2,i3)=psi_f(7,i-i0+jj)*scal(3)
+     enddo
+  enddo
+
+
+end subroutine uncompress_forstandard_short
+
+subroutine uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+     mseg_c,mvctr_c,keyg_c,keyv_c,  & 
+     mseg_f,mvctr_f,keyg_f,keyv_f,  & 
+     scal,psi_c,psi_f,psig_c,psig_f,&
+      x_f1,x_f2,x_f3)
+  ! Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
+  implicit real(kind=8) (a-h,o-z)
+  dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
+  dimension psi_c(mvctr_c),psi_f(7,mvctr_f),scal(0:3)
+  dimension psig_c(0:n1,0:n2,0:n3)
+  dimension psig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
+    real(kind=8) :: x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
+    real(kind=8) :: x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3)
+    real(kind=8) :: x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2)
+
+  
+
+  ! coarse part
+  do iseg=1,mseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psig_c(i,i2,i3)=psi_c(i-i0+jj)*scal(0)
+     enddo
+  enddo
+
+  ! fine part
+  do iseg=1,mseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psig_f(1,i,i2,i3)=psi_f(1,i-i0+jj)*scal(1)
+        x_f1(i,i2,i3)=psig_f(1,i,i2,i3)
+        
+        psig_f(2,i,i2,i3)=psi_f(2,i-i0+jj)*scal(1)
+        x_f2(i2,i,i3)=psig_f(2,i,i2,i3)
+        
+        psig_f(3,i,i2,i3)=psi_f(3,i-i0+jj)*scal(2)
+        psig_f(4,i,i2,i3)=psi_f(4,i-i0+jj)*scal(1)
+        x_f3(i3,i,i2)=psig_f(4,i,i2,i3)
+        
         psig_f(5,i,i2,i3)=psi_f(5,i-i0+jj)*scal(2)
         psig_f(6,i,i2,i3)=psi_f(6,i-i0+jj)*scal(2)
         psig_f(7,i,i2,i3)=psi_f(7,i-i0+jj)*scal(3)
@@ -489,122 +496,87 @@ subroutine compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
 
 end subroutine compress_forstandard
 
-subroutine convolut_magic_n(n1,n2,n3,x,y)
-  ! Applies the magic filter matrix ( no transposition) ; data set grows
-  ! The input array x is not overwritten
-  implicit real(kind=8) (a-h,o-z)
-  parameter(lowfil=-8,lupfil=7) ! has to be consistent with values in convrot
-  dimension x(*)
-  dimension y(*)
 
-  !  (i1,i2*i3) -> (i2*i3,I1)
-  ndat=(n2+1)*(n3+1)
-  call convrot_grow(n1,ndat,x,y)
-  !  (i2,i3*I1) -> (i3*I1,I2)
-  ndat=(n3+1)*(n1+1+lupfil-lowfil)
-  call convrot_grow(n2,ndat,y,x)
-  !  (i3,I1*I2) -> (iI*I2,I3)
-  ndat=(n1+1+lupfil-lowfil)*(n2+1+lupfil-lowfil)
-  call convrot_grow(n3,ndat,x,y)
-
-
-END SUBROUTINE convolut_magic_n
-
-
-subroutine convolut_magic_t(n1,n2,n3,x,y)
-  ! Applies the magic filter matrix transposed ; data set shrinks
-  ! The input array x is overwritten
-  implicit real(kind=8) (a-h,o-z)
-  parameter(lowfil=-8,lupfil=7) ! has to be consistent with values in convrot
-  dimension x(*),y(*)
-
-  !  (I1,I2*I3) -> (I2*I3,i1)
-  ndat=(n2+1+lupfil-lowfil)*(n3+1+lupfil-lowfil)
-  call convrot_shrink(n1,ndat,x,y)
-  !  (I2,I3*i1) -> (I3*i1,i2)
-  ndat=(n3+1+lupfil-lowfil)*(n1+1)
-  call convrot_shrink(n2,ndat,y,x)
-  !  (I3,i1*i2) -> (i1*i2,i3)
-  ndat=(n1+1)*(n2+1)
-  call convrot_shrink(n3,ndat,x,y)
-
-END SUBROUTINE convolut_magic_t
-
-
-subroutine synthese_grow(n1,n2,n3,ww,x,y)
-  ! A synthesis wavelet transformation where the size of the data is allowed to grow
-  ! The input array x is not overwritten
-  implicit real(kind=8) (a-h,o-z)
-  dimension x(0:n1,2,0:n2,2,0:n3,2)
-  dimension ww(-7:2*n2+8,-7:2*n3+8,-7:2*n1+8)
-  dimension  y(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
-
-  ! i1,i2,i3 -> i2,i3,I1
-  nt=(2*n2+2)*(2*n3+2)
-  call  syn_rot_grow(n1,nt,x,y)
-  ! i2,i3,I1 -> i3,I1,I2
-  nt=(2*n3+2)*(2*n1+16)
-  call  syn_rot_grow(n2,nt,y,ww)
-  ! i3,I1,I2  -> I1,I2,I3
-  nt=(2*n1+16)*(2*n2+16)
-  call  syn_rot_grow(n3,nt,ww,y)
-
-END SUBROUTINE synthese_grow
-
-
-
-subroutine analyse_shrink(n1,n2,n3,ww,y,x)
-  ! A analysis wavelet transformation where the size of the data is forced to shrink
-  ! The input array y is overwritten
-  implicit real(kind=8) (a-h,o-z)
-  dimension ww(-7:2*n2+8,-7:2*n3+8,-7:2*n1+8)
-  dimension  y(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
-  dimension x(0:n1,2,0:n2,2,0:n3,2)
-
-  ! I1,I2,I3 -> I2,I3,i1
-  nt=(2*n2+16)*(2*n3+16)
-  call  ana_rot_shrink(n1,nt,y,ww)
-  ! I2,I3,i1 -> I3,i1,i2
-  nt=(2*n3+16)*(2*n1+2)
-  call  ana_rot_shrink(n2,nt,ww,y)
-  ! I3,i1,i2 -> i1,i2,i3
-  nt=(2*n1+2)*(2*n2+2)
-  call  ana_rot_shrink(n3,nt,y,x)
-
-  return
-END SUBROUTINE analyse_shrink
-
-subroutine plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,rx,ry,rz,psi)
+subroutine plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,rx,ry,rz,psi,&
+ ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r,&
+ nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
   implicit real(kind=8) (a-h,o-z)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension psi(nvctr_c+7*nvctr_f)
-  real(kind=8), allocatable :: psifscf(:),psir(:),psig(:,:,:,:,:,:)
+  !    for grow:
+  integer ibyz_c(2,0:n2,0:n3)
+  integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
+  integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
 
-  allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_stat)
-  call memocc(i_stat,product(shape(psig))*kind(psig),'psig','plot_wf')
-  allocate(psifscf((2*n1+31)*(2*n2+31)*(2*n3+16)),stat=i_stat)
-  call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','plot_wf')
+  integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
+  integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+  integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+  !    for real space:
+  integer,intent(in):: ibyyzz_r(2,2*n2+31,2*n3+31)
+  real(kind=8) scal(0:3)
+  real(kind=8), allocatable :: psir(:)
+
+  real(kind=8), allocatable, dimension(:,:,:)::x_c!input 
+  real(kind=8), allocatable :: x_f(:,:,:,:)
+  real(kind=8), allocatable, dimension(:) :: w1,w2
+
+  nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
+       (n1+1)*(2*n2+31)*(2*n3+31),&
+       2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+       2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+
+  nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+       4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+       (n1+1)*(n2+1)*(2*n3+31))
+
+  do i=0,3
+     scal(i)=1.d0
+  enddo
+
+  allocate(x_c(0:n1,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(x_c))*kind(x_c),'x_c','plot_wf')
+  
+  allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)! work
+  call memocc(i_stat,product(shape(x_f))*kind(x_f),'x_f','plot_wf')
+  allocate(w1(nw1),stat=i_stat)
+  call memocc(i_stat,product(shape(w1))*kind(w1),'w1','plot_wf')
+  allocate(w2(nw2),stat=i_stat) ! work
+  call memocc(i_stat,product(shape(w2))*kind(w2),'w2','plot_wf')
   allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
   call memocc(i_stat,product(shape(psir))*kind(psir),'psir','plot_wf')
 
-  call uncompress(n1,n2,n3,0,n1,0,n2,0,n3, & 
-       nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-       psi(1),psi(nvctr_c+1),psig)
-  call synthese_grow(n1,n2,n3,psir,psig,psifscf)  !psir=ww(((2*n1+16)*(2*n2+16)*(2*n1+2))
-  call convolut_magic_n(2*n1+15,2*n2+15,2*n3+15,psifscf,psir) 
+  call razero((n1+1)*(n2+1)*(n3+1),x_c)
+  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f)
+
+        call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+             nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
+             nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+             scal,psi(1),psi(nvctr_c+1),x_c,x_f)
+
+        call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
+             psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
   call plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,psir)
 
-  i_all=-product(shape(psig))*kind(psig)
-  deallocate(psig,stat=i_stat)
-  call memocc(i_stat,i_all,'psig','plot_wf')
-  i_all=-product(shape(psifscf))*kind(psifscf)
-  deallocate(psifscf,stat=i_stat)
-  call memocc(i_stat,i_all,'psifscf','plot_wf')
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir','plot_wf')
+
+  i_all=-product(shape(x_c))*kind(x_c)
+  deallocate(x_c,stat=i_stat)
+  call memocc(i_stat,i_all,'x_c','plot_wf')
+
+  i_all=-product(shape(x_f))*kind(x_f)
+  deallocate(x_f,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f','plot_wf')
+
+  i_all=-product(shape(w1))*kind(w1)
+  deallocate(w1,stat=i_stat)
+  call memocc(i_stat,i_all,'w1','plot_wf')
+
+  i_all=-product(shape(w2))*kind(w2)
+  deallocate(w2,stat=i_stat)
+  call memocc(i_stat,i_all,'w2','plot_wf')
   return
 END SUBROUTINE plot_wf
 

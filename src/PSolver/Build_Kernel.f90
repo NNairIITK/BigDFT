@@ -122,7 +122,7 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
   end if
 
   if (iproc==0) then
-     write(*,*)'done.'
+     write(*,'(a)')'done.'
      write(*,'(1x,2(a,i0))')&
           'Memory occ. per proc. (Bytes):  Density=',md1*md3*md2/nproc*8,&
           '  Kernel=',nd1*nd2*nd3/nproc*8
@@ -946,7 +946,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  iend=min((iproc+1)*nker2/nproc,n2h+n03)
 
  istart1=max(istart,n2h-n03+2)
- !if(iproc .eq. 0) istart1=n2h-n03+2
+ if(iproc .eq. 0) istart1=n2h-n03+2
 
  !Allocations
  allocate(x_scf(0:n_scf),stat=i_stat)
@@ -1194,7 +1194,7 @@ end subroutine inserthalf
 !!     nproc:       number of processors used as returned by MPI_COMM_SIZE
 !!     iproc:       [0:nproc-1] number of processor as returned by MPI_COMM_RANK
 !!     n1,n2,n3:    logical dimension of the transform. As transform lengths 
-!!	            most products of the prime factors 2,3,5 are allowed.
+!!                  most products of the prime factors 2,3,5 are allowed.
 !!                  The detailed table with allowed transform lengths can 
 !!                  be found in subroutine CTRIG
 !!     nd1,nd2,nd3: Dimensions of work arrays

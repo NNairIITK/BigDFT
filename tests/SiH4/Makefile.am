@@ -26,5 +26,5 @@ check: $(PPFILES) inguess.dat posinp input.dat
 	if test ! -f posinp ; then \
 	  ln -s $(top_srcdir)/tests/SiH4/posinp ; \
 	fi
-	$(top_builddir)/src/cluster > SiH4.out
-	perl $(top_srcdir)/tests/fldiff.pl SiH4.out $(top_srcdir)/tests/Refs/SiH4.out.ref | cat
+	$(run_parallel) $(top_builddir)/src/cluster > SiH4.out
+	python $(top_srcdir)/tests/fldiff.py SiH4.out $(top_srcdir)/tests/Refs/SiH4.out.ref | cat

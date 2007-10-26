@@ -955,7 +955,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
 
   call resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,ng,res,&
              zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
-             potgrd,xcgrd)
+             potgrd,xcgrd,noproj)
 
 ! charge up to radius rcov
   if (lmax.gt.3) stop 'cannot calculate chrg'
@@ -970,7 +970,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
         do i=0,ng
            d=xp(i)+xp(j)
            sd=sqrt(d)
-           terf=erf(sd*rcov) 
+           terf=derf(sd*rcov) 
            texp=exp(-d*rcov**2)
 
            tt=0.4431134627263791d0*terf/sd**3 - 0.5d0*rcov*texp/d
@@ -1003,16 +1003,16 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
 !!$        write(66,*)  lmax+1
 !!$        write(66,*) ' #LINETYPE{1324}' 
 !!$        write(66,*) ' $' 
-  do l=0,lmax
+!!$  do l=0,lmax
 !!$           write(66,*) ' 161'
-     r=0.d0
-     do
-        tt= wave(ng,l,xp,psi(0,1,l+1),r)
+!!$     r=0.d0
+!!$     do
+!!$        tt= wave(ng,l,xp,psi(0,1,l+1),r)
 !!$              write(66,*) r,tt
-        r=r+.025d0
-        if(r > 4.00001d0) exit
-     end do
-  end do
+!!$        r=r+.025d0
+!!$        if(r > 4.00001d0) exit
+!!$     end do
+!!$  end do
 ! writing lines suppressed
 !!$        write(67,*) min(lmax+1,3)
 !!$        write(67,*) ' #LINETYPE{132}'
@@ -1070,8 +1070,9 @@ END SUBROUTINE gatom
 
 subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
                  ng,res,zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
-                 potgrd,xcgrd)
+                 potgrd,xcgrd,noproj)
   implicit real(kind=8) (a-h,o-z)
+  logical :: noproj
   dimension psi(0:ng,noccmax,lmax+1),rho(0:ng,0:ng,lmax+1),&
        gpot(3),pp1(0:ng,lmax+1),pp2(0:ng,lmax+1),pp3(0:ng,lmax+1),&
        alps(lmax+1),hsep(6,lmax+1),res(noccmax,lmax+1),xp(0:ng),&
@@ -1082,7 +1083,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
   do k=1,n_int
      r=(real(k,kind=8)-.5d0)*dr
      potgrd(k)= .5d0*(r/rprb**2)**2 - &
-          zion*erf(r/(sqrt(2.d0)*alpz))/r &
+          zion*derf(r/(sqrt(2.d0)*alpz))/r &
           + exp(-.5d0*(r/alpl)**2)*&
           ( gpot(1) + gpot(2)*(r/alpl)**2 + gpot(3)*(r/alpl)**4 )&
           + xcgrd(k)/r**2
@@ -1092,7 +1093,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
            d=xp(i)+xp(j)
            sd=sqrt(d)
            tx=exp(-d*r**2)
-           tt=spi*erf(sd*r)
+           tt=spi*derf(sd*r)
            ud0=tt/(4.d0*sd**3*r)
            potgrd(k)=potgrd(k)+ud0*rho(i,j,1)
            ud1=-tx/(4.d0*d**2) + 3.d0*tt/(8.d0*sd**5*r)
@@ -1108,7 +1109,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
   end do
 
   loop_ll: do ll=0,lmax
-     if (ll.le.lpx) then
+     if (ll.le.lpx .and. .not. noproj) then
         rnrm1=1.d0/sqrt(.5d0*gamma(real(ll,kind=8)+1.5d0)*alps(ll+1)**(2*ll+3))
         rnrm2=1.d0/sqrt(.5d0*gamma(real(ll,kind=8)+3.5d0)*alps(ll+1)**(2*ll+7))
         rnrm3=1.d0/sqrt(.5d0*gamma(real(ll,kind=8)+5.5d0)*alps(ll+1)**(2*ll+11))
@@ -1133,7 +1134,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
            end do
            rkin=rkin*r**ll
 ! separable part
-           if (ll.le.lpx) then
+           if (ll.le.lpx .and. .not. noproj) then
               sep =& 
                    (scpr1*hsep(1,ll+1) + scpr2*hsep(2,ll+1) + scpr3*hsep(4,ll+1))&
                    *rnrm1*r**ll*exp(-.5d0*(r/alps(ll+1))**2)   +&

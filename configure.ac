@@ -9,19 +9,24 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - cluster], [0.9], [Damien.Caliste@cea.fr], [bigdft])
+AC_INIT([BigDFT - DFT over wavelets], [0.9], [Damien.Caliste@cea.fr], [bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
 AC_CONFIG_AUX_DIR(config)
-
-dnl We custom the module naming scheme depending on the compiler
-dnl and the platform.
-dnl Not done yet
-AC_SUBST(MODULE_EXT, "mod")
+dnl Use a config.h file to store macro definitions
+AM_CONFIG_HEADER(config.h)
 
 dnl Init something, don't know exactly what...
 AM_INIT_AUTOMAKE
+
+dnl This is a hack for usage inside ABINIT.
+if test -n "$FCFLAGS" ; then
+  FCFLAGS=`echo $FCFLAGS | sed 's/-qsuffix=[[a-zA-Z:0-9=]]*//'`
+fi
+if test -n "$F90FLAGS" ; then
+  F90FLAGS=`echo $F90FLAGS | sed 's/-qsuffix=[[a-zA-Z:0-9=]]*//'`
+fi
 
 dnl Defining fortran language for tests.
 AC_LANG(Fortran)
@@ -35,13 +40,36 @@ dnl looks for a modern Fortran compiler, prefering newest
 dnl fortran available (e. g. Fortran95). Then FC variable
 dnl is set.
 AC_PROG_FC()
-ABI_PROG_FC()
 
 ABI_PROG_FC()
+
+dnl Set if the module name are capitalized or not with the FC compiler.
+AC_MSG_CHECKING([for module extension for compiler '$fc_type'])
+case "$fc_type" in
+  "pathscale")
+     capitalize_module=yes
+     capitalize_module_ext="mod" ;;
+  "mipspro")
+     capitalize_module=yes
+     capitalize_module_ext="mod" ;;
+  *)
+     capitalize_module=no
+     capitalize_module_ext="mod" ;;
+esac
+AC_MSG_RESULT([$capitalize_module_ext])
+
+dnl We custom the module naming scheme depending on the compiler
+dnl and the platform.
+dnl Not done yet
+AM_CONDITIONAL(CAPITALIZE, test "$capitalize_module" = "yes")
+AC_SUBST(MODULE_EXT, $capitalize_module_ext)
 
 dnl Set the FCFLAGS and FFLAGS variable
 if test -z "$FFLAGS" ; then
   AC_SUBST(FFLAGS, "-O2")
+fi
+if test -n "$FCFLAGS_f90" ; then
+  FCFLAGS="$FCFLAGS $FCFLAGS_f90"
 fi
 if test -z "$FCFLAGS" ; then
   AC_SUBST(FCFLAGS, "-O2")
@@ -64,7 +92,6 @@ ac_use_mpi="yes"
 AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enable by default).]),
               ac_use_mpi=$enableval, ac_use_mpi="yes")
 if test "$ac_use_mpi" = "yes"; then
-  AC_DEFINE(USE_MPI)
   case "$FC" in
     *mpi*)
       dnl The compiler will pass everything needed
@@ -90,6 +117,7 @@ if test "$ac_use_mpi" = "yes"; then
 else
   AC_SUBST(PARALLEL_OPTION, ".false.")
 fi
+AM_CONDITIONAL(USE_MPI, test "$ac_use_mpi" = "yes")
 AC_SUBST(MPI_LIBS)
 AC_SUBST(MPI_INCLUDE)
 AC_SUBST(MPI_LDFLAGS)
@@ -249,6 +277,7 @@ utils/PSPfiles/Makefile
 doc/Makefile
 tests/Makefile
 tests/C/Makefile
+tests/Ca2/Makefile
 tests/H/Makefile
 tests/H-spin/Makefile
 tests/Li+/Makefile
