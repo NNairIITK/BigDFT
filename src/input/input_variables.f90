@@ -42,11 +42,15 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,r
   integer, dimension(nat), intent(out) :: iatype
   real(kind=8), dimension(3,nat), intent(out) :: rxyz
   !local variables
+  real(kind=4) :: rx,ry,rz
   character(len=20) :: tatonam
   integer :: nateq,iat,jat,ityp,i
   ntypes=0
   do iat=1,nat
-     read(ifile,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
+     read(ifile,*) rx,ry,rz,tatonam
+     rxyz(1,iat)=real(rx,kind=8)
+     rxyz(2,iat)=real(ry,kind=8)
+     rxyz(3,iat)=real(rz,kind=8)
      !! For reading in saddle points
      !!        open(unit=83,file='step',status='old')
      !!        read(83,*) step

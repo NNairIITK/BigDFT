@@ -13,6 +13,13 @@ import getopt
 import re
 import sys
 
+#Check the version of python
+version = map(int,sys.version_info[0:3])
+if  version < [2,3,0]:
+    sys.stderr.write("Detected version %d.%d.%d\n" % tuple(version))
+    sys.stderr.write("Minimal required version is python 2.3.0")
+    sys.exit(1)
+
 re_float = re.compile("([-]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
 
 def give_text_floats(text):
@@ -48,7 +55,7 @@ if __name__ == "__main__":
     original2 = open(sys.argv[2]).read()
     (text1,floats1) = give_text_floats(original1)
     (text2,floats2) = give_text_floats(original2)
-    diff = difflib.unified_diff(text1,text2) 
+    diff = difflib.unified_diff(text1,text2,n=0) 
     print ''.join(diff)
     n = len(floats1)
     if n == len(floats2):

@@ -3082,6 +3082,7 @@ subroutine read_input_variables(iproc,in)
   integer, intent(in) :: iproc
   type(input_variables), intent(out) :: in
   !local variables
+  real(kind=4) :: hgrid,crmult,frmult,cpmult,fpmult
   integer :: ierror
 
   ! Read the input variables.
@@ -3090,11 +3091,16 @@ subroutine read_input_variables(iproc,in)
   read(1,*,iostat=ierror) in%frac_fluct
   read(1,*,iostat=ierror) in%randdis
   read(1,*,iostat=ierror) in%betax
-  read(1,*,iostat=ierror) in%hgrid
-  read(1,*,iostat=ierror) in%crmult
-  read(1,*,iostat=ierror) in%frmult
-  read(1,*,iostat=ierror) in%cpmult
-  read(1,*,iostat=ierror) in%fpmult
+  read(1,*,iostat=ierror) hgrid
+  read(1,*,iostat=ierror) crmult
+  read(1,*,iostat=ierror) frmult
+  read(1,*,iostat=ierror) cpmult
+  read(1,*,iostat=ierror) fpmult
+  in%hgrid  = real(hgrid,kind=8)
+  in%crmult = real(crmult,kind=8)
+  in%frmult = real(frmult,kind=8)
+  in%cpmult = real(cpmult,kind=8)
+  in%fpmult = real(fpmult,kind=8)
   if (in%fpmult.gt.in%frmult) write(*,*) ' NONSENSE: fpmult > frmult'
   read(1,*,iostat=ierror) in%ixc
   read(1,*,iostat=ierror) in%ncharge,in%elecfield
