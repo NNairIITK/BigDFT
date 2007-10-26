@@ -69,7 +69,7 @@ PSolver_LDADD = libpoissonsolver.a \
 	@MPI_LIBS@
 
 
-CLEANFILES = $(mpi_include) POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@
+CLEANFILES = mpif.h POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@
 
 #dependencies
 mpif.h:

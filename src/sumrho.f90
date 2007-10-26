@@ -14,7 +14,7 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   real(kind=8), allocatable :: psir(:),rho_p(:)
   !***************Alexey**************************************************************************
   real(kind=8), allocatable, dimension(:,:,:) :: x_c!input 
-  real*8,allocatable::x_f(:,:,:,:)
+  real(kind=8), allocatable :: x_f(:,:,:,:)
   real(kind=8), allocatable, dimension(:) :: w1,w2
 
   real(kind=8) :: scal(0:3),hfac
@@ -26,7 +26,7 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
   integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
   integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
-  !	for real space:
+  ! for real space:
 !  integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
   integer,intent(in):: ibyyzz_r(2,2*n2+31,2*n3+31)
   !***********************************************************************************************

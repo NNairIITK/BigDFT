@@ -223,7 +223,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   call memocc(i_stat,product(shape(x_f))*kind(x_f),'x_f','applylocpotkinall')
   allocate(w1(nw1),stat=i_stat)
   call memocc(i_stat,product(shape(w1))*kind(w1),'w1','applylocpotkinall')
-	
+    
 !  w1=sqrt(-1.d0)
   
   allocate(w2(nw2),stat=i_stat) ! work
@@ -239,9 +239,9 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   call razero((n1+1)*(n2+1)*(n3+1),x_c)
   call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f)
 
-!!$  !to be initialised
-!!$  call razero((n1+1)*(n2+1)*(n3+1),y_c)
-!!$  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f)
+  !to be initialised
+  call razero((n1+1)*(n2+1)*(n3+1),y_c)
+  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f)
 
 
   call razero((2*n1+31)*(2*n2+31)*(2*n3+31),psir)
@@ -352,9 +352,9 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
   !*****************************************************************************************
   real(kind=8) x_c(0:n1,0:n2,0:n3),x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)! input
-	real(kind=8)::x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-	real(kind=8)::x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3)
-	real(kind=8)::x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2)
+    real(kind=8)::x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
+    real(kind=8)::x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3)
+    real(kind=8)::x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2)
   real(kind=8) w1(nw1),w2(nw2) ! work
   !***********************************************************************************************
   do i=0,3
@@ -432,8 +432,6 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
 !!$  end do
 !!$  print *,'shrink',tt
 
-
-!!$  ekin=0.d0
   call ConvolkineticT(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,ekin,x_f1,x_f2,x_f3)
 
@@ -457,7 +455,7 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
 !!$  end do
 !!$  print *,'kinetic',tt
 
-	 
+     
   call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
        nseg_c,nvctr_c,keyg(1,1),       keyv(1),   &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
@@ -471,7 +469,6 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
 !!$  print *,'after applylocpotkinone',tt
 
 
-  return
 END SUBROUTINE applylocpotkinone
 
 subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
@@ -619,6 +616,7 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
                  if (scpr.ne.tcpr) then
                     print *,'projectors: scpr.ne.tcpr'
                     print *,'l,i,m,h_i^l=',l,i,m,psppar(l,i,ityp)
+                    print *,'scpr,tcpr',scpr,tcpr
                     stop 
                  end if
                  ! testend

@@ -208,7 +208,7 @@
         DEALLOCATE(HPSI_C_MOD,HPSI_F_MOD) 
         DEALLOCATE(PSI_C_NEW,PSI_F_NEW) 
           
-	end
+    end
 
           
        SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,&
@@ -286,7 +286,7 @@
         call dzero((nd1+1)*(nd2+1)*(nd3+1),hpsip)
 
 ! coarse part
-	do iseg=1,nseg_c
+    do iseg=1,nseg_c
           jj=keyv_c(iseg)
           j0=keyg_c(1,iseg)
           j1=keyg_c(2,iseg)
@@ -296,7 +296,7 @@
              i2=ii/(n1+1)
              i0=ii-i2*(n1+1)
              i1=i0+j1-j0
-	  do i=i0,i1
+      do i=i0,i1
             hpsip(i,i2,i3)=hpsi_c(i-i0+jj)
           enddo
          enddo
@@ -329,7 +329,7 @@
         ENDDO
 
 
-!	write(90,*) hpsip
+!    write(90,*) hpsip
 
 ! coarse part
         do iseg=1,nseg_c
@@ -498,28 +498,28 @@
         ndat=(n1+1)*(n2+1)
         call convrot_shrink2(lowfil,lupfil,fil,n3,ndat,x,y)
 
-	return
-	end
+    return
+    end
 
         subroutine convrot_shrink2(lowfil,lupfil,fil,n1,ndat,x,y)
         implicit real(kind=8) (a-h,o-z)
         dimension fil(lowfil:lupfil),x(lowfil:n1+lupfil,ndat),y(ndat,0:n1)
 ! the filtered output data structure has shrunk by the filter length
 
-	do j=1,ndat
-	do i=0,n1
+    do j=1,ndat
+    do i=0,n1
         
         tt=0.d0
         do l=lowfil,lupfil
-	tt=tt+x(i+l,j)*(fil(l))**2
+    tt=tt+x(i+l,j)*(fil(l))**2
         enddo
-	y(j,i)=tt
+    y(j,i)=tt
 
         enddo
         enddo
 
-	return
-	end
+    return
+    end
 
 
 
@@ -815,7 +815,7 @@ end
 
         !deallocate(psig,ww)
 
-	end
+    end
     
         subroutine compress_forstandard(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
                             mseg_c,mvctr_c,keyg_c,keyv_c,  & 
@@ -833,10 +833,10 @@ end
         
 !        allocate(ww((2*(nu1-nl1)+16)*(2*(nu2-nl2)+16)*(2*(nu3-nl3)+16)))
 ! decompose wavelets into coarse scaling functions and wavelets
-!	call analyse_shrink(nu1-nl1,nu2-nl2,nu3-nl3,ww,psifscf,psig)
+!    call analyse_shrink(nu1-nl1,nu2-nl2,nu3-nl3,ww,psifscf,psig)
 
 ! coarse part
-	do iseg=1,mseg_c
+    do iseg=1,mseg_c
           jj=keyv_c(iseg)
           j0=keyg_c(1,iseg)
           j1=keyg_c(2,iseg)
@@ -846,13 +846,13 @@ end
              i2=ii/(n1+1)
              i0=ii-i2*(n1+1)
              i1=i0+j1-j0
-	  do i=i0,i1
+      do i=i0,i1
             psi_c(i-i0+jj)=psig(i,1,i2,1,i3,1)
           enddo
         enddo
 
 ! fine part
-	do iseg=1,mseg_f
+    do iseg=1,mseg_f
           jj=keyv_f(iseg)
           j0=keyg_f(1,iseg)
           j1=keyg_f(2,iseg)
@@ -862,7 +862,7 @@ end
              i2=ii/(n1+1)
              i0=ii-i2*(n1+1)
              i1=i0+j1-j0
-	  do i=i0,i1
+      do i=i0,i1
             psi_f(1,i-i0+jj)=psig(i,2,i2,1,i3,1)
             psi_f(2,i-i0+jj)=psig(i,1,i2,2,i3,1)
             psi_f(3,i-i0+jj)=psig(i,2,i2,2,i3,1)
@@ -875,7 +875,7 @@ end
 
  !       deallocate(ww)
 
-	end
+    end
 
 
 

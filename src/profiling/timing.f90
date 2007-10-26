@@ -555,7 +555,7 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
        ' Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application'
   if (nproc > 1) then 
      write(*,'(1x,a)')&
-       '      ~19*K         |      W+(~4)*U+D+K    |    ~12*D+K+W   |     ~*W+(~5)*U+D+K '
+       '      ~19*K         |      W+(~4)*U+D+K    |    ~12*D+K+W   |      ~W+(~5)*U+D+K '
      tmemker=19.d0*omemker
      tmemden=omemwf+(3.d0+tt)*omempot+omemker
      tmemps=12.d0*omemden+omemwf+omemker

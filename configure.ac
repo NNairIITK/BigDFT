@@ -277,6 +277,7 @@ utils/PSPfiles/Makefile
 doc/Makefile
 tests/Makefile
 tests/C/Makefile
+tests/Ca2/Makefile
 tests/H/Makefile
 tests/H-spin/Makefile
 tests/Li+/Makefile

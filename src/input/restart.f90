@@ -578,7 +578,7 @@ END SUBROUTINE writeonewave
 subroutine analyse_shrink(n1,n2,n3,ww,y,x)
   ! A analysis wavelet transformation where the size of the data is forced to shrink
   ! The input array y is overwritten
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension ww(-7:2*n2+8,-7:2*n3+8,-7:2*n1+8)
   dimension  y(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
   dimension x(0:n1,2,0:n2,2,0:n3,2)
@@ -599,7 +599,7 @@ END SUBROUTINE analyse_shrink
 subroutine synthese_grow(n1,n2,n3,ww,x,y)
   ! A synthesis wavelet transformation where the size of the data is allowed to grow
   ! The input array x is not overwritten
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension x(0:n1,2,0:n2,2,0:n3,2)
   dimension ww(-7:2*n2+8,-7:2*n3+8,-7:2*n1+8)
   dimension  y(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
@@ -619,9 +619,9 @@ END SUBROUTINE synthese_grow
 
 
 subroutine ana_rot_shrink(n,ndat,x,y)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension x(-7:2*n+8,ndat),y(ndat,0:2*n+1)
-  real*8 ch(-7:8) ,cg(-7:8)
+  real(kind=8) ch(-7:8) ,cg(-7:8)
   !       Daubechy S16
   data ch  /  -0.0033824159510050025955D0, & 
        -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
@@ -662,9 +662,9 @@ end subroutine ana_rot_shrink
 
 
 subroutine syn_rot_grow(n,ndat,x,y)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension x(0:2*n+1,ndat),y(ndat,-7:2*n+8)
-  real*8 ch(-8:9) ,cg(-8:9)
+  real(kind=8) ch(-8:9) ,cg(-8:9)
   !       Daubechy S16
   data ch  /  0.d0 , -0.0033824159510050025955D0, & 
        -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
@@ -723,7 +723,7 @@ subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  &
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      psig,psi_c,psi_f)
   ! Compresses a psig wavefunction into psi_c,psi_f form
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
   dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
   dimension psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2)

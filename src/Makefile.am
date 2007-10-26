@@ -134,7 +134,7 @@ memguess_LDADD = libbigdft.a \
 	ABINIT-common/libABINIT.a 
 
 
-CLEANFILES = $(mpi_include) libbigdft.@MODULE_EXT@ LIBBIGDFT.@MODULE_EXT@
+CLEANFILES = mpif.h libbigdft.@MODULE_EXT@ LIBBIGDFT.@MODULE_EXT@
 
 #dependencies
 cluster_all.o: $(mpi_include)
