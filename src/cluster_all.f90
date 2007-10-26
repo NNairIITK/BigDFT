@@ -11,11 +11,19 @@ module libBigDFT
   !- Initialisation methods.
   !- Create and allocate access arrays for wavefunctions.
   public :: createWavefunctionsDescriptors
-  !-Create and allocate data descriptors for nonlocal PSP projectors
+  !- Create and allocate data descriptors for nonlocal PSP projectors
   public :: createProjectorsArrays
+  !- Create the descriptors for the density and the potential
+  public :: createDensPotDescriptors
+  !- Import CP2K files
+  public :: import_gaussians
   !- Compute input guess wavefunctions from atomic orbitals.
   public :: input_wf_diag
   
+  !- Orthogonalise after restart (reformat or read)
+  public :: first_orthon
+  !- KS transformation after minimisation
+  public :: last_orthon
   !- SCF handling
   public :: hpsitopsi
 
@@ -30,7 +38,9 @@ module libBigDFT
   end type input_variables
 
   !- Interfaces for all outside public routines.
-  include "libBigDFT-interface.f90"
+  include "input/interface.f90"
+  include "profiling/interface.f90"
+  include "interface.f90"
 
 contains
  
