@@ -223,7 +223,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   call memocc(i_stat,product(shape(x_f))*kind(x_f),'x_f','applylocpotkinall')
   allocate(w1(nw1),stat=i_stat)
   call memocc(i_stat,product(shape(w1))*kind(w1),'w1','applylocpotkinall')
-	
+    
 !  w1=sqrt(-1.d0)
   
   allocate(w2(nw2),stat=i_stat) ! work
@@ -352,9 +352,9 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
   !*****************************************************************************************
   real(kind=8) x_c(0:n1,0:n2,0:n3),x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)! input
-	real(kind=8)::x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-	real(kind=8)::x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3)
-	real(kind=8)::x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2)
+    real(kind=8)::x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
+    real(kind=8)::x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3)
+    real(kind=8)::x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2)
   real(kind=8) w1(nw1),w2(nw2) ! work
   !***********************************************************************************************
   do i=0,3
@@ -457,7 +457,7 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
 !!$  end do
 !!$  print *,'kinetic',tt
 
-	 
+     
   call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
        nseg_c,nvctr_c,keyg(1,1),       keyv(1),   &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &

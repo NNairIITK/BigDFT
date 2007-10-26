@@ -384,63 +384,63 @@ subroutine check_ibyz(n1,n2,n3,logrid,logrid1,ibyz)
 end subroutine check_ibyz
 
 subroutine squares_1d(ib,nfl2,nfu2,nfl3,nfu3)
-	! modifies the ib array 
-	! so that it is made up of blocks of size 2
-	! the localization region is enlarged as a result
+    ! modifies the ib array 
+    ! so that it is made up of blocks of size 2
+    ! the localization region is enlarged as a result
 
-	! works for even nfl2 only
-	implicit none
-	integer,intent(in)::nfl2,nfu2,nfl3,nfu3
-   	integer,intent(inout)::ib(2,nfl2:nfu2,nfl3:nfu3)
+    ! works for even nfl2 only
+    implicit none
+    integer,intent(in)::nfl2,nfu2,nfl3,nfu3
+       integer,intent(inout)::ib(2,nfl2:nfu2,nfl3:nfu3)
 
-	integer i2,i3,ii2,ii3,ibmin,ibmax
+    integer i2,i3,ii2,ii3,ibmin,ibmax
 
-	 do i3=nfl3,nfu3
-		 do i2=nfl2/2,(nfu2-1)/2
-			ii2=2*i2
-			ibmin=min(ib(1,ii2,i3),ib(1,ii2+1,i3))
+     do i3=nfl3,nfu3
+         do i2=nfl2/2,(nfu2-1)/2
+            ii2=2*i2
+            ibmin=min(ib(1,ii2,i3),ib(1,ii2+1,i3))
 
-			ib(1,ii2,i3)=ibmin
-			ib(1,ii2+1,i3)=ibmin
+            ib(1,ii2,i3)=ibmin
+            ib(1,ii2+1,i3)=ibmin
 
-			ibmax=max(ib(2,ii2,i3),ib(2,ii2+1,i3))
+            ibmax=max(ib(2,ii2,i3),ib(2,ii2+1,i3))
 
-			ib(2,ii2,i3)=ibmax
-			ib(2,ii2+1,i3)=ibmax
-		 enddo
-	 enddo
+            ib(2,ii2,i3)=ibmax
+            ib(2,ii2+1,i3)=ibmax
+         enddo
+     enddo
 end subroutine squares_1d
 
 
 subroutine squares(ib,n2,n3)
-	! modifies the ib array 
-	! so that it is made up of squares 2x2
-	! the localization region is enlarged as a result
-	implicit none
-	integer,intent(in)::n2,n3
-   	integer,intent(inout)::ib(2,0:n2,0:n3)
+    ! modifies the ib array 
+    ! so that it is made up of squares 2x2
+    ! the localization region is enlarged as a result
+    implicit none
+    integer,intent(in)::n2,n3
+       integer,intent(inout)::ib(2,0:n2,0:n3)
 
-	integer i2,i3,ii2,ii3,ibmin,ibmax
+    integer i2,i3,ii2,ii3,ibmin,ibmax
 
-	 do i3=0,(n3-1)/2
-		 do i2=0,(n2-1)/2
-			ii3=2*i3
-			ii2=2*i2
-			ibmin=min(ib(1,ii2,ii3),ib(1,ii2+1,ii3),&
-			ib(1,ii2,ii3+1),ib(1,ii2+1,ii3+1))
+     do i3=0,(n3-1)/2
+         do i2=0,(n2-1)/2
+            ii3=2*i3
+            ii2=2*i2
+            ibmin=min(ib(1,ii2,ii3),ib(1,ii2+1,ii3),&
+            ib(1,ii2,ii3+1),ib(1,ii2+1,ii3+1))
 
-			ib(1,ii2,ii3)=ibmin
-			ib(1,ii2+1,ii3)=ibmin
-			ib(1,ii2,ii3+1)=ibmin
-			ib(1,ii2+1,ii3+1)=ibmin
+            ib(1,ii2,ii3)=ibmin
+            ib(1,ii2+1,ii3)=ibmin
+            ib(1,ii2,ii3+1)=ibmin
+            ib(1,ii2+1,ii3+1)=ibmin
 
-			ibmax=max(ib(2,ii2,ii3),ib(2,ii2+1,ii3),&
-			ib(2,ii2,ii3+1),ib(2,ii2+1,ii3+1))
+            ibmax=max(ib(2,ii2,ii3),ib(2,ii2+1,ii3),&
+            ib(2,ii2,ii3+1),ib(2,ii2+1,ii3+1))
 
-			ib(2,ii2,ii3)=ibmax
-			ib(2,ii2+1,ii3)=ibmax
-			ib(2,ii2,ii3+1)=ibmax
-			ib(2,ii2+1,ii3+1)=ibmax
-		 enddo
-	 enddo
+            ib(2,ii2,ii3)=ibmax
+            ib(2,ii2+1,ii3)=ibmax
+            ib(2,ii2,ii3+1)=ibmax
+            ib(2,ii2+1,ii3+1)=ibmax
+         enddo
+     enddo
 end subroutine squares

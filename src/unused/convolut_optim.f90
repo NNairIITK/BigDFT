@@ -1,11 +1,11 @@
         subroutine convrot_grow(n1,ndat,x,y)
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         parameter(lowfil=-8,lupfil=7)
         dimension x(0:n1,ndat),y(ndat,-lupfil:n1-lowfil)
 ! the filtered output data structure has grown by the filter length
 
 !          THE MAGIC FILTER FOR DAUBECHIES-16
-        REAL*8 fil(lowfil:lupfil)
+        real(kind=8) fil(lowfil:lupfil)
         DATA fil / &
         8.4334247333529341094733325815816D-7,&
        -0.1290557201342060969516786758559028D-4,&
@@ -25,15 +25,15 @@
          2.72734492911979659657715313017228D-6 /
 
 !        nflop=0
-!	do j=1,ndat
-!	do i=-lupfil,n1-lowfil
-!	nflop=nflop+2*(min(lupfil,n1-i)-max(-i,lowfil)+1)
+!    do j=1,ndat
+!    do i=-lupfil,n1-lowfil
+!    nflop=nflop+2*(min(lupfil,n1-i)-max(-i,lowfil)+1)
 !        enddo
 !        enddo
 !       call system_clock(ncount1,ncount_rate,ncount_max)
 
-	do j=1,ndat-11,12
-	do i=-lupfil,n1-lowfil
+    do j=1,ndat-11,12
+    do i=-lupfil,n1-lowfil
         
         t0=0.d0  
         t1=0.d0  
@@ -48,43 +48,43 @@
         t10=0.d0  
         t11=0.d0  
         do l=max(-i,lowfil),min(lupfil,n1-i)
-	t0=t0+x(i+l,j  )*fil(l)
-	t1=t1+x(i+l,j+1)*fil(l)
-	t2=t2+x(i+l,j+2)*fil(l)
-	t3=t3+x(i+l,j+3)*fil(l)
-	t4=t4+x(i+l,j+4)*fil(l)
-	t5=t5+x(i+l,j+5)*fil(l)
-	t6=t6+x(i+l,j+6)*fil(l)
-	t7=t7+x(i+l,j+7)*fil(l)
-	t8=t8+x(i+l,j+8)*fil(l)
-	t9=t9+x(i+l,j+9)*fil(l)
-	t10=t10+x(i+l,j+10)*fil(l)
-	t11=t11+x(i+l,j+11)*fil(l)
+    t0=t0+x(i+l,j  )*fil(l)
+    t1=t1+x(i+l,j+1)*fil(l)
+    t2=t2+x(i+l,j+2)*fil(l)
+    t3=t3+x(i+l,j+3)*fil(l)
+    t4=t4+x(i+l,j+4)*fil(l)
+    t5=t5+x(i+l,j+5)*fil(l)
+    t6=t6+x(i+l,j+6)*fil(l)
+    t7=t7+x(i+l,j+7)*fil(l)
+    t8=t8+x(i+l,j+8)*fil(l)
+    t9=t9+x(i+l,j+9)*fil(l)
+    t10=t10+x(i+l,j+10)*fil(l)
+    t11=t11+x(i+l,j+11)*fil(l)
         enddo
-	y(j  ,i)=t0
-	y(j+1,i)=t1
-	y(j+2,i)=t2
-	y(j+3,i)=t3
-	y(j+4,i)=t4
-	y(j+5,i)=t5
-	y(j+6,i)=t6
-	y(j+7,i)=t7
-	y(j+8,i)=t8
-	y(j+9,i)=t9
-	y(j+10,i)=t10
-	y(j+11,i)=t11
+    y(j  ,i)=t0
+    y(j+1,i)=t1
+    y(j+2,i)=t2
+    y(j+3,i)=t3
+    y(j+4,i)=t4
+    y(j+5,i)=t5
+    y(j+6,i)=t6
+    y(j+7,i)=t7
+    y(j+8,i)=t8
+    y(j+9,i)=t9
+    y(j+10,i)=t10
+    y(j+11,i)=t11
 
         enddo
         enddo
 
-	do j=j,ndat
-	do i=-lupfil,n1-lowfil
+    do j=j,ndat
+    do i=-lupfil,n1-lowfil
         
         t0=0.d0
         do l=max(-i,lowfil),min(lupfil,n1-i)
-	t0=t0+x(i+l,j)*fil(l)
+    t0=t0+x(i+l,j)*fil(l)
         enddo
-	y(j,i)=t0
+    y(j,i)=t0
 
         enddo
         enddo
@@ -98,13 +98,13 @@ end subroutine
 
 
         subroutine convrot_shrink(n1,ndat,x,y)
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         parameter(lowfil=-7,lupfil=8)
         dimension x(lowfil:n1+lupfil,ndat),y(ndat,0:n1)
 ! the filtered output data structure has shrunk by the filter length
 
 !          THE MAGIC FILTER FOR DAUBECHIES-16
-        REAL*8 fil(lowfil:lupfil)
+        real(kind=8) fil(lowfil:lupfil)
         DATA fil / &
          2.72734492911979659657715313017228D-6,&
        -0.5185986881173432922848639136911487D-4,&
@@ -126,8 +126,8 @@ end subroutine
 !        nflop=2*ndat*(n1+1)*(lupfil-lowfil+1)
 !       call system_clock(ncount1,ncount_rate,ncount_max)
 
-	do j=1,ndat-11,12
-	do i=0,n1
+    do j=1,ndat-11,12
+    do i=0,n1
         
         t0=0.d0
         t1=0.d0
@@ -142,43 +142,43 @@ end subroutine
         t10=0.d0
         t11=0.d0
         do l=lowfil,lupfil
-	t0=t0+x(i+l,j  )*fil(l)
-	t1=t1+x(i+l,j+1)*fil(l)
-	t2=t2+x(i+l,j+2)*fil(l)
-	t3=t3+x(i+l,j+3)*fil(l)
-	t4=t4+x(i+l,j+4)*fil(l)
-	t5=t5+x(i+l,j+5)*fil(l)
-	t6=t6+x(i+l,j+6)*fil(l)
-	t7=t7+x(i+l,j+7)*fil(l)
-	t8=t8+x(i+l,j+8)*fil(l)
-	t9=t9+x(i+l,j+9)*fil(l)
-	t10=t10+x(i+l,j+10)*fil(l)
-	t11=t11+x(i+l,j+11)*fil(l)
+    t0=t0+x(i+l,j  )*fil(l)
+    t1=t1+x(i+l,j+1)*fil(l)
+    t2=t2+x(i+l,j+2)*fil(l)
+    t3=t3+x(i+l,j+3)*fil(l)
+    t4=t4+x(i+l,j+4)*fil(l)
+    t5=t5+x(i+l,j+5)*fil(l)
+    t6=t6+x(i+l,j+6)*fil(l)
+    t7=t7+x(i+l,j+7)*fil(l)
+    t8=t8+x(i+l,j+8)*fil(l)
+    t9=t9+x(i+l,j+9)*fil(l)
+    t10=t10+x(i+l,j+10)*fil(l)
+    t11=t11+x(i+l,j+11)*fil(l)
         enddo
-	y(j  ,i)=t0
-	y(j+1,i)=t1
-	y(j+2,i)=t2
-	y(j+3,i)=t3
-	y(j+4,i)=t4
-	y(j+5,i)=t5
-	y(j+6,i)=t6
-	y(j+7,i)=t7
-	y(j+8,i)=t8
-	y(j+9,i)=t9
-	y(j+10,i)=t10
-	y(j+11,i)=t11
+    y(j  ,i)=t0
+    y(j+1,i)=t1
+    y(j+2,i)=t2
+    y(j+3,i)=t3
+    y(j+4,i)=t4
+    y(j+5,i)=t5
+    y(j+6,i)=t6
+    y(j+7,i)=t7
+    y(j+8,i)=t8
+    y(j+9,i)=t9
+    y(j+10,i)=t10
+    y(j+11,i)=t11
 
         enddo
         enddo
 
-	do j=j,ndat
-	do i=0,n1
+    do j=j,ndat
+    do i=0,n1
         
         tt=0.d0
         do l=lowfil,lupfil
-	tt=tt+x(i+l,j)*fil(l)
+    tt=tt+x(i+l,j)*fil(l)
         enddo
-	y(j,i)=tt
+    y(j,i)=tt
 
         enddo
         enddo
@@ -191,9 +191,9 @@ end subroutine
 
 
         subroutine ana_rot_shrink(n,ndat,x,y)
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension x(-7:2*n+8,ndat),y(ndat,0:2*n+1)
-        real*8 ch(-7:8) ,cg(-7:8)
+        real(kind=8) ch(-7:8) ,cg(-7:8)
 !       Daubechy S16
         data ch  /  -0.0033824159510050025955D0, & 
                 -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
@@ -274,9 +274,9 @@ end subroutine
 
 
         subroutine syn_rot_grow(n,ndat,x,y)
-        implicit real*8 (a-h,o-z)
+        implicit real(kind=8) (a-h,o-z)
         dimension x(0:2*n+1,ndat),y(ndat,-7:2*n+8)
-        real*8 ch(-8:9) ,cg(-8:9)
+        real(kind=8) ch(-8:9) ,cg(-8:9)
 !       Daubechy S16
         data ch  /  0.d0 , -0.0033824159510050025955D0, & 
                 -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
@@ -435,7 +435,7 @@ end subroutine
                nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
                cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_fc,x_f,y_c,y_f)
 !   y = (kinetic energy operator)x + (cprec*I)x 
-    implicit real*8 (a-h,o-z)
+    implicit real(kind=8) (a-h,o-z)
     integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
     dimension x_c(0:n1,0:n2,0:n3),y_c(0:n1,0:n2,0:n3)
     dimension x_fc(0:n1,0:n2,0:n3,3),x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
@@ -926,7 +926,7 @@ end subroutine
                nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
                hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x,y,ekin)
 !   y = y + (kinetic energy operator)x 
-    implicit real*8 (a-h,o-z)
+    implicit real(kind=8) (a-h,o-z)
     integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
     dimension x(0:n1,2,0:n2,2,0:n3,2),y(0:n1,2,0:n2,2,0:n3,2)
     dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)

@@ -1,23 +1,23 @@
 subroutine comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,&
      ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibzzx_f,ibyyzz_f,xc,xf)!,ibyz_c,ibyz_f)
-  ! In 3d,			
+  ! In 3d,            
   ! Applies the magic filter transposed, then analysis wavelet transformation.
   ! The size of the data is forced to shrink
   ! The input array y is not overwritten
 
   implicit none
   integer n1,n2,n3,i1,i2,i3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  real*8 y( -14:2*n1+16,-14:2*n2+16,-14:2*n3+16) ! input
-  !    real*8 w1( 2,           -14:2*n2+16,-14:2*n3+16,0:n1)!  work 
-  !	real*8 w2( 4,                       -14:2*n3+16,0:n1,0:n2)
-  real*8 w1(max(2*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31)*(nfu1-nfl1+1),&
+  real(kind=8) y( -14:2*n1+16,-14:2*n2+16,-14:2*n3+16) ! input
+  !    real(kind=8) w1( 2,           -14:2*n2+16,-14:2*n3+16,0:n1)!  work 
+  !    real(kind=8) w2( 4,                       -14:2*n3+16,0:n1,0:n2)
+  real(kind=8) w1(max(2*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31)*(nfu1-nfl1+1),&
        (2*n2+31)*(2*n3+31)*(n1+1)))
-  real*8 w2( max(4*(2*(nfu3-nfl3)+31)*(nfu1-nfl1+1)*(nfu2-nfl2+1),&
+  real(kind=8) w2( max(4*(2*(nfu3-nfl3)+31)*(nfu1-nfl1+1)*(nfu2-nfl2+1),&
        (2*n3+31)*(n1+1)*(n2+1)))
 
-  real*8 xf(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),xc(0:n1,0:n2,0:n3)! work arrays
+  real(kind=8) xf(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),xc(0:n1,0:n2,0:n3)! work arrays
 
-  !	boundary arrays
+  !    boundary arrays
   integer ibxy_c(2,0:n1,0:n2) 
   integer ibzzx_c(2,-14:2*n3+16,0:n1) 
   integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
@@ -28,10 +28,10 @@ subroutine comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,&
 
 !  integer,dimension(2,0:n2,0:n3)::ibyz_c,ibyz_f !unused (?)
 
-  !	perform the combined transform	
+  !    perform the combined transform    
   call comb_shrink_loc_c(0,n1,0,n2,0,n3,w1,w2,y,xc,1,1,1,&
        ibxy_c,ibzzx_c,ibyyzz_c) ! for scfunctions
-  !	for wavelets:
+  !    for wavelets:
 
   call comb_shrink_loc_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,xf,&
        ibxy_f,ibzzx_f,ibyyzz_f)
@@ -41,16 +41,16 @@ end subroutine comb_shrink
 
 subroutine comb_shrink_loc_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,x,&
      ibxy,ibzzx,ibyyzz)
-  ! In 3d,			
+  ! In 3d,            
   ! Applies the magic filter transposed, then analysis wavelet transformation.
   ! The output is only the l1,l2,l3 wavelet component
   ! The size of the data is forced to shrink
   ! The input array y is not overwritten
-  implicit real*8 (a-h,o-z)
-  real*8 y(-14:2*n1+16,-14:2*n2+16,         -14:2*n3+16) ! input
-  real*8 w1(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)!work
-  real*8 w2(4,-14+2*nfl3:2*nfu3+16,nfl1:nfu1,nfl2:nfu2)
-  real*8 x(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)!output
+  implicit real(kind=8) (a-h,o-z)
+  real(kind=8) y(-14:2*n1+16,-14:2*n2+16,         -14:2*n3+16) ! input
+  real(kind=8) w1(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)!work
+  real(kind=8) w2(4,-14+2*nfl3:2*nfu3+16,nfl1:nfu1,nfl2:nfu2)
+  real(kind=8) x(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)!output
 
   integer ibxy(2,nfl1:nfu1,nfl2:nfu2)
   integer ibzzx(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)
@@ -77,16 +77,16 @@ END SUBROUTINE comb_shrink_loc_f
 
 subroutine comb_shrink_loc_c(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,x,l1,l2,l3,&
      ibxy,ibzzx,ibyyzz)
-  ! In 3d,			
+  ! In 3d,            
   ! Applies the magic filter transposed, then analysis wavelet transformation.
   ! The output is only the l1,l2,l3 wavelet component
   ! The size of the data is forced to shrink
   ! The input array y is not overwritten
-  implicit real*8 (a-h,o-z)
-  real*8 y(-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)!input
-  real*8 w1(-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)!work
-  real*8 w2(-14+2*nfl3:2*nfu3+16,nfl1:nfu1,nfl2:nfu2)
-  real*8 x(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)!output
+  implicit real(kind=8) (a-h,o-z)
+  real(kind=8) y(-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)!input
+  real(kind=8) w1(-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)!work
+  real(kind=8) w2(-14+2*nfl3:2*nfu3+16,nfl1:nfu1,nfl2:nfu2)
+  real(kind=8) x(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)!output
 
   integer ibxy(2,nfl1:nfu1,nfl2:nfu2)
   integer ibzzx(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)
@@ -112,10 +112,10 @@ subroutine comb_shrink_loc_c(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,x,l1,l2,l3,&
 END SUBROUTINE comb_shrink_loc_c
 
 subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
-  ! In one dimension,	
+  ! In one dimension,    
   ! Applies the magic filter transposed, then analysis wavelet transformation.
   ! The size of the data is forced to shrink
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   integer,parameter:: lowfil2=-14,lupfil2=16
   dimension x(lowfil2+2*nfl:2*nfu+lupfil2,ndat),y(ndat,nfl:nfu)
   integer ib(2,ndat)
@@ -142,24 +142,24 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
            ci2=0.d0
            ci3=0.d0
 
-           !				l=lowfil2+2*i+0
-           !				  ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
-           !				l=lowfil2+2*i+1
-           !				  ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
-           !				l=lowfil2+2*i+2
-           !				  ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
-           !				  ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j)
-           !				l=lowfil2+2*i+3
-           !				  ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
-           !				  ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j)
-           !				l=lowfil2+2*i+4
-           !				  ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
-           !				  ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j)
-           !				  ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j)
-           !				l=lowfil2+2*i+5
-           !				  ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
-           !				  ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j)
-           !				  ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j)
+           !                l=lowfil2+2*i+0
+           !                  ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
+           !                l=lowfil2+2*i+1
+           !                  ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
+           !                l=lowfil2+2*i+2
+           !                  ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
+           !                  ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j)
+           !                l=lowfil2+2*i+3
+           !                  ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
+           !                  ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j)
+           !                l=lowfil2+2*i+4
+           !                  ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
+           !                  ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j)
+           !                  ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j)
+           !                l=lowfil2+2*i+5
+           !                  ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
+           !                  ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j)
+           !                  ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j)
 
            do l=lowfil2+2*i,lupfil2+2*i+6
               ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
@@ -168,24 +168,24 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
               ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j)
            enddo
 
-           !				l=lupfil2+2*i+1
-           !				  ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j)
-           !				  ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j)
-           !				  ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j)
-           !				l=lupfil2+2*i+2
-           !				  ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j)
-           !				  ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j)
-           !				  ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j)
-           !				l=lupfil2+2*i+3
-           !				  ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j)
-           !				  ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j)
-           !				l=lupfil2+2*i+4
-           !				  ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j)
-           !				  ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j)
-           !				l=lupfil2+2*i+5
-           !				  ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j)
-           !				l=lupfil2+2*i+6
-           !				  ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j)
+           !                l=lupfil2+2*i+1
+           !                  ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j)
+           !                  ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j)
+           !                  ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j)
+           !                l=lupfil2+2*i+2
+           !                  ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j)
+           !                  ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j)
+           !                  ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j)
+           !                l=lupfil2+2*i+3
+           !                  ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j)
+           !                  ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j)
+           !                l=lupfil2+2*i+4
+           !                  ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j)
+           !                  ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j)
+           !                l=lupfil2+2*i+5
+           !                  ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j)
+           !                l=lupfil2+2*i+6
+           !                  ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j)
 
            y(j,i+0)=ci0
            y(j,i+1)=ci1
@@ -214,17 +214,17 @@ end subroutine comb_rot_shrink_loc
 
 
 subroutine comb_rot_shrink_loc_first(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,icf,ib)
-  ! In one dimension,	
+  ! In one dimension,    
   ! Applies the magic filter transposed, then analysis wavelet transformation.
   ! The size of the data is forced to shrink
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   integer,parameter:: lowfil2=-14,lupfil2=16
-  real*8 x(-14:2*n1+16,-14:2*n2+16,         -14:2*n3+16) ! input
-  real*8 y(     -14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)! output
+  real(kind=8) x(-14:2*n1+16,-14:2*n2+16,         -14:2*n3+16) ! input
+  real(kind=8) y(     -14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)! output
   integer ib(2, -14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
   include 'v_long.f90'
 
-  !	open(unit=10,file='comb_shrink.unrolled')
+  !    open(unit=10,file='comb_shrink.unrolled')
   nflop=0
   ! count the flops:
   do j2=-14+2*nfl2,2*nfu2+16
@@ -249,24 +249,24 @@ subroutine comb_rot_shrink_loc_first(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,
               ci2=0.d0
               ci3=0.d0
 
-              !				  l=lowfil2+2*i+0
-              !				    ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j2,j3)
-              !				  l=lowfil2+2*i+1
-              !				    ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j2,j3)
-              !				  l=lowfil2+2*i+2
-              !				    ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j2,j3)
-              !				    ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j2,j3)
-              !				  l=lowfil2+2*i+3
-              !				    ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j2,j3)
-              !				    ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j2,j3)
-              !				  l=lowfil2+2*i+4
-              !				    ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j2,j3)
-              !				    ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j2,j3)
-              !				    ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j2,j3)
-              !				  l=lowfil2+2*i+5
-              !				    ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j2,j3)
-              !				    ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j2,j3)
-              !				    ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j2,j3)
+              !                  l=lowfil2+2*i+0
+              !                    ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j2,j3)
+              !                  l=lowfil2+2*i+1
+              !                    ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j2,j3)
+              !                  l=lowfil2+2*i+2
+              !                    ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j2,j3)
+              !                    ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j2,j3)
+              !                  l=lowfil2+2*i+3
+              !                    ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j2,j3)
+              !                    ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j2,j3)
+              !                  l=lowfil2+2*i+4
+              !                    ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j2,j3)
+              !                    ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j2,j3)
+              !                    ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j2,j3)
+              !                  l=lowfil2+2*i+5
+              !                    ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j2,j3)
+              !                    ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j2,j3)
+              !                    ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j2,j3)
 
               do l=lowfil2+2*i,lupfil2+2*i+6
                  ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j2,j3)
@@ -275,24 +275,24 @@ subroutine comb_rot_shrink_loc_first(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,
                  ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j2,j3)
               enddo
 
-              !				  l=lupfil2+2*i+1
-              !				    ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j2,j3)
-              !				    ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j2,j3)
-              !				    ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j2,j3)
-              !				  l=lupfil2+2*i+2
-              !				    ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j2,j3)
-              !				    ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j2,j3)
-              !				    ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j2,j3)
-              !				  l=lupfil2+2*i+3
-              !				    ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j2,j3)
-              !				    ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j2,j3)
-              !				  l=lupfil2+2*i+4
-              !				    ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j2,j3)
-              !				    ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j2,j3)
-              !				  l=lupfil2+2*i+5
-              !				    ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j2,j3)
-              !				  l=lupfil2+2*i+6
-              !				    ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j2,j3)
+              !                  l=lupfil2+2*i+1
+              !                    ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j2,j3)
+              !                    ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j2,j3)
+              !                    ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j2,j3)
+              !                  l=lupfil2+2*i+2
+              !                    ci1=ci1+fil2(l-2*(i+1),icf)*x(l,j2,j3)
+              !                    ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j2,j3)
+              !                    ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j2,j3)
+              !                  l=lupfil2+2*i+3
+              !                    ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j2,j3)
+              !                    ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j2,j3)
+              !                  l=lupfil2+2*i+4
+              !                    ci2=ci2+fil2(l-2*(i+2),icf)*x(l,j2,j3)
+              !                    ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j2,j3)
+              !                  l=lupfil2+2*i+5
+              !                    ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j2,j3)
+              !                  l=lupfil2+2*i+6
+              !                    ci3=ci3+fil2(l-2*(i+3),icf)*x(l,j2,j3)
 
               y(j2,j3,i+0)=ci0
               y(j2,j3,i+1)=ci1
@@ -324,13 +324,13 @@ end subroutine comb_rot_shrink_loc_first
 
 
 subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
-  ! In one dimension,	
+  ! In one dimension,    
   ! Applies the magic filter transposed, then analysis wavelet transformation.
   ! The size of the data is forced to shrink
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   integer,parameter:: lowfil2=-14,lupfil2=16
-  real*8 x(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16) ! input
-  real*8 y(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)! output
+  real(kind=8) x(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16) ! input
+  real(kind=8) y(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)! output
   integer ib(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
   include 'v_long.f90'
 
@@ -397,16 +397,16 @@ subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
 
   call system_clock(ncount1,ncount_rate,ncount_max)
   tel=dble(ncount1-ncount0)/dble(ncount_rate)
-  !	write(20,*) tel, 1.d-6*nflop/tel
+  !    write(20,*) tel, 1.d-6*nflop/tel
 
 end subroutine comb_rot_shrink_loc_1
 
 
 subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
-  ! In one dimension,	
+  ! In one dimension,    
   ! Applies the magic filter transposed, then analysis wavelet transformation.
   ! The size of the data is forced to shrink
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   integer,parameter:: lowfil2=-14,lupfil2=16
   dimension x(2,lowfil2+2*nfl:2*nfu+lupfil2,ndat),y(2,2,ndat,nfl:nfu)
   integer ib(2,ndat)
@@ -480,17 +480,17 @@ subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
 
   call system_clock(ncount1,ncount_rate,ncount_max)
   tel=dble(ncount1-ncount0)/dble(ncount_rate)
-  !	write(20,*) tel, 1.d-6*nflop/tel
+  !    write(20,*) tel, 1.d-6*nflop/tel
 
 end subroutine comb_rot_shrink_loc_2
 
 
 
 subroutine comb_rot_shrink_loc_3(ndat,x,y,nfl,nfu,ib)
-  ! In one dimension,	
+  ! In one dimension,    
   ! Applies the magic filter transposed, then analysis wavelet transformation.
   ! The size of the data is forced to shrink
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   integer,parameter:: lowfil2=-14,lupfil2=16
   dimension x(2,2,lowfil2+2*nfl:2*nfu+lupfil2,ndat),y(7,ndat,nfl:nfu)
   integer ib(2,ndat)
@@ -521,18 +521,18 @@ subroutine comb_rot_shrink_loc_3(ndat,x,y,nfl,nfu,ib)
            ci222=ci222+fil2(l-2*i,2)*x(2,2,l,j)
         enddo
         y(1,j,i)=ci211
-        y(2,j,i)=ci121	
-        y(3,j,i)=ci221	
-        y(4,j,i)=ci112	
-        y(5,j,i)=ci212	
-        y(6,j,i)=ci122	
-        y(7,j,i)=ci222	
+        y(2,j,i)=ci121    
+        y(3,j,i)=ci221    
+        y(4,j,i)=ci112    
+        y(5,j,i)=ci212    
+        y(6,j,i)=ci122    
+        y(7,j,i)=ci222    
      enddo
   enddo
 
   call system_clock(ncount1,ncount_rate,ncount_max)
   tel=dble(ncount1-ncount0)/dble(ncount_rate)
-  !	write(20,*) tel, 1.d-6*nflop/tel
+  ! write(20,*) tel, 1.d-6*nflop/tel
 
 end subroutine comb_rot_shrink_loc_3
 

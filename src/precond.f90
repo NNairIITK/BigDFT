@@ -34,9 +34,9 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   allocatable rpsi(:),ppsi(:),wpsi(:),spsi(:)
 
 !***********************************************************************************************
-  allocatable xpsig_c(:,:,:),ypsig_c(:,:,:)
-  allocatable xpsig_f(:,:,:,:),ypsig_f(:,:,:,:)
-  real*8,allocatable,dimension(:,:,:)::x_f1,x_f2,x_f3 ! input
+  allocatable :: xpsig_c(:,:,:), ypsig_c(:,:,:)
+  allocatable :: xpsig_f(:,:,:,:), ypsig_f(:,:,:,:)
+  real(kind=8), allocatable, dimension(:,:,:) :: x_f1,x_f2,x_f3 ! input
 !***********************************************************************************************
   !       WAVELET AND SCALING FUNCTION SECOND DERIVATIVE FILTERS
   PARAMETER(B2=24.8758460293923314D0,A2=3.55369228991319019D0)
@@ -138,9 +138,9 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   call  CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
        scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi,&
-	   hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
-		 xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
-		 x_f1,x_f2,x_f3)
+       hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
+         xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
+         x_f1,x_f2,x_f3)
 
   IF (INGUESS_ON) THEN 
      do i=1,nvctr_c+7*nvctr_f
@@ -162,9 +162,9 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      call CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
           nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
           scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
-		  ibxy_f,ppsi,ppsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
-		 xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
-		 x_f1,x_f2,x_f3)
+          ibxy_f,ppsi,ppsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
+         xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
+         x_f1,x_f2,x_f3)
      
      alpha1=0.d0 ; alpha2=0.d0
      do i=1,nvctr_c+7*nvctr_f
@@ -208,11 +208,11 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   call  CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
        scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
-	   ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
-	 xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
-	 x_f1,x_f2,x_f3)
+       ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
+     xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
+     x_f1,x_f2,x_f3)
 
-	 
+     
   tt=0.d0
   do i=1,nvctr_c+7*nvctr_f
      tt=tt+(wpsi(i)-spsi(i))**2
@@ -293,7 +293,7 @@ SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !!$  ypsig_f=xpsig_f
   call Convolkinetic(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
        cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsig_c,&
-	   xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3)
+       xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3)
 
   call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
        nseg_c,nvctr_c,keyg_c,keyv_c,  & 

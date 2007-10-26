@@ -1194,7 +1194,7 @@ end subroutine inserthalf
 !!     nproc:       number of processors used as returned by MPI_COMM_SIZE
 !!     iproc:       [0:nproc-1] number of processor as returned by MPI_COMM_RANK
 !!     n1,n2,n3:    logical dimension of the transform. As transform lengths 
-!!	            most products of the prime factors 2,3,5 are allowed.
+!!                  most products of the prime factors 2,3,5 are allowed.
 !!                  The detailed table with allowed transform lengths can 
 !!                  be found in subroutine CTRIG
 !!     nd1,nd2,nd3: Dimensions of work arrays

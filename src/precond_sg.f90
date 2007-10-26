@@ -60,8 +60,8 @@
 !              nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
 !              scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1))
 !        tt=0.d0
-!	do i=1,nvctr_c+7*nvctr_f
-!	tt=tt+(wpsi(i)-spsi(i))**2
+!    do i=1,nvctr_c+7*nvctr_f
+!    tt=tt+(wpsi(i)-spsi(i))**2
 !        enddo
 !        write(*,*) 'initial residue',iorb,sqrt(tt)
 !! checkend
@@ -112,7 +112,7 @@
         !print "(1x,a,i0,a,1pe26.14)","residues(",icong,")=",residues(icong)
         !print "(1x,a,3(1pe26.14))","alpha",alpha1,alpha2,alpha
 
-!	    if (alpha1.lt.tol) goto 1010
+!        if (alpha1.lt.tol) goto 1010
         if (icong.ge.ncong) goto 1010
 
         beta1=0.d0 ; beta2=0.d0
@@ -144,8 +144,8 @@
 !              nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
 !              scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1))
 !        tt=0.d0
-!	do i=1,nvctr_c+7*nvctr_f
-!	tt=tt+(wpsi(i)-spsi(i))**2
+!    do i=1,nvctr_c+7*nvctr_f
+!    tt=tt+(wpsi(i)-spsi(i))**2
 !        enddo
 !        write(*,*) 'final residue',iorb,sqrt(tt)
 !        deallocate(spsi)

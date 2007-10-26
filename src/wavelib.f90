@@ -258,13 +258,13 @@ subroutine waxpy(  &
      endif
      do i=0,length
         !          llf=llf+1
-        apsi_f(1,jaj+iaoff+i)=apsi_f(1,jaj+iaoff+i)+scpr*bpsi_f(1,jbj+iboff+i) 
-        apsi_f(2,jaj+iaoff+i)=apsi_f(2,jaj+iaoff+i)+scpr*bpsi_f(2,jbj+iboff+i) 
-        apsi_f(3,jaj+iaoff+i)=apsi_f(3,jaj+iaoff+i)+scpr*bpsi_f(3,jbj+iboff+i) 
-        apsi_f(4,jaj+iaoff+i)=apsi_f(4,jaj+iaoff+i)+scpr*bpsi_f(4,jbj+iboff+i) 
-        apsi_f(5,jaj+iaoff+i)=apsi_f(5,jaj+iaoff+i)+scpr*bpsi_f(5,jbj+iboff+i) 
-        apsi_f(6,jaj+iaoff+i)=apsi_f(6,jaj+iaoff+i)+scpr*bpsi_f(6,jbj+iboff+i) 
-        apsi_f(7,jaj+iaoff+i)=apsi_f(7,jaj+iaoff+i)+scpr*bpsi_f(7,jbj+iboff+i) 
+        apsi_f(1,jaj+iaoff+i)=apsi_f(1,jaj+iaoff+i)+scpr*bpsi_f(1,jbj+iboff+i)
+        apsi_f(2,jaj+iaoff+i)=apsi_f(2,jaj+iaoff+i)+scpr*bpsi_f(2,jbj+iboff+i)
+        apsi_f(3,jaj+iaoff+i)=apsi_f(3,jaj+iaoff+i)+scpr*bpsi_f(3,jbj+iboff+i)
+        apsi_f(4,jaj+iaoff+i)=apsi_f(4,jaj+iaoff+i)+scpr*bpsi_f(4,jbj+iboff+i)
+        apsi_f(5,jaj+iaoff+i)=apsi_f(5,jaj+iaoff+i)+scpr*bpsi_f(5,jbj+iboff+i)
+        apsi_f(6,jaj+iaoff+i)=apsi_f(6,jaj+iaoff+i)+scpr*bpsi_f(6,jbj+iboff+i)
+        apsi_f(7,jaj+iaoff+i)=apsi_f(7,jaj+iaoff+i)+scpr*bpsi_f(7,jbj+iboff+i)
      enddo
   enddo
 222 continue
@@ -280,7 +280,7 @@ END SUBROUTINE waxpy
 !     mseg_f,mvctr_f,keyg_f,keyv_f,  & 
 !     psig,psi_c,psi_f)
 !  ! Compresses a psig wavefunction into psi_c,psi_f form
-!  implicit real*8 (a-h,o-z)
+!  implicit real(kind=8) (a-h,o-z)
 !  dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
 !  dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
 !  dimension psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2)
@@ -365,12 +365,12 @@ subroutine uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
      i1=i0+j1-j0
      do i=i0,i1
         psig_f(1,i,i2,i3)=psi_f(1,i-i0+jj)*scal(1)
-		
+        
         psig_f(2,i,i2,i3)=psi_f(2,i-i0+jj)*scal(1)
-		
+        
         psig_f(3,i,i2,i3)=psi_f(3,i-i0+jj)*scal(2)
         psig_f(4,i,i2,i3)=psi_f(4,i-i0+jj)*scal(1)
-		
+        
         psig_f(5,i,i2,i3)=psi_f(5,i-i0+jj)*scal(2)
         psig_f(6,i,i2,i3)=psi_f(6,i-i0+jj)*scal(2)
         psig_f(7,i,i2,i3)=psi_f(7,i-i0+jj)*scal(3)
@@ -384,16 +384,16 @@ subroutine uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      mseg_c,mvctr_c,keyg_c,keyv_c,  & 
      mseg_f,mvctr_f,keyg_f,keyv_f,  & 
      scal,psi_c,psi_f,psig_c,psig_f,&
-	 x_f1,x_f2,x_f3)
+      x_f1,x_f2,x_f3)
   ! Expands the compressed wavefunction in vector form (psi_c,psi_f) into the psig format
   implicit real(kind=8) (a-h,o-z)
   dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
   dimension psi_c(mvctr_c),psi_f(7,mvctr_f),scal(0:3)
   dimension psig_c(0:n1,0:n2,0:n3)
   dimension psig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-	real*8::x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-	real*8::x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3)
-	real*8::x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2)
+    real(kind=8) :: x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
+    real(kind=8) :: x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3)
+    real(kind=8) :: x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2)
 
   
 
@@ -426,15 +426,15 @@ subroutine uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      i1=i0+j1-j0
      do i=i0,i1
         psig_f(1,i,i2,i3)=psi_f(1,i-i0+jj)*scal(1)
-		x_f1(i,i2,i3)=psig_f(1,i,i2,i3)
-		
+        x_f1(i,i2,i3)=psig_f(1,i,i2,i3)
+        
         psig_f(2,i,i2,i3)=psi_f(2,i-i0+jj)*scal(1)
-		x_f2(i2,i,i3)=psig_f(2,i,i2,i3)
-		
+        x_f2(i2,i,i3)=psig_f(2,i,i2,i3)
+        
         psig_f(3,i,i2,i3)=psi_f(3,i-i0+jj)*scal(2)
         psig_f(4,i,i2,i3)=psi_f(4,i-i0+jj)*scal(1)
-		x_f3(i3,i,i2)=psig_f(4,i,i2,i3)
-		
+        x_f3(i3,i,i2)=psig_f(4,i,i2,i3)
+        
         psig_f(5,i,i2,i3)=psi_f(5,i-i0+jj)*scal(2)
         psig_f(6,i,i2,i3)=psi_f(6,i-i0+jj)*scal(2)
         psig_f(7,i,i2,i3)=psi_f(7,i-i0+jj)*scal(3)
@@ -503,7 +503,7 @@ subroutine plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f
   implicit real(kind=8) (a-h,o-z)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension psi(nvctr_c+7*nvctr_f)
-  !	for grow:
+  !    for grow:
   integer ibyz_c(2,0:n2,0:n3)
   integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
   integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
@@ -511,16 +511,16 @@ subroutine plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f
   integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
   integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
   integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
-  !	for real space:
+  !    for real space:
   integer,intent(in):: ibyyzz_r(2,2*n2+31,2*n3+31)
-  real*8 scal(0:3)
-  real*8, allocatable :: psir(:)
+  real(kind=8) scal(0:3)
+  real(kind=8), allocatable :: psir(:)
 
-  real*8,allocatable,dimension(:,:,:)::x_c!input 
-  real*8,allocatable::x_f(:,:,:,:)
-  real*8,allocatable,dimension(:):: w1,w2
+  real(kind=8), allocatable, dimension(:,:,:)::x_c!input 
+  real(kind=8), allocatable :: x_f(:,:,:,:)
+  real(kind=8), allocatable, dimension(:) :: w1,w2
 
-  nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&   		
+  nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
        (n1+1)*(2*n2+31)*(2*n3+31),&
        2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
        2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))

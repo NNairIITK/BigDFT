@@ -10,7 +10,7 @@ SUBDIRS = \
 	  Ca2
 
 EXTRA_DIST = \
-	fldiff.pl \
+	fldiff.py \
 	inguess.dat \
 	Refs
 
