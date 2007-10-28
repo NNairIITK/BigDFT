@@ -43,7 +43,7 @@
  Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File
    Li_lda               3       2            2.07000  0.40000                   X    
  Total Number of Electrons        2
- Total Number of  Orbitals        1
+ Total Number of Orbitals        1
  occup(1)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1 Li_lda  1.03500E+01  1.03500E+01  1.03500E+01       23.000    23.000    23.000

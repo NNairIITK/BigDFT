@@ -276,7 +276,7 @@ contains
   call memocc(i_stat,product(shape(spinar))*kind(spinar),'occup','cluster')
   
 ! Occupation numbers
-  call input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
+  call input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinar)
 
 ! Determine size alat of overall simulation cell and shift atom positions
 ! then calculate the size in units of the grid space

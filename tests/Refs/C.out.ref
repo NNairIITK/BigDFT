@@ -45,7 +45,7 @@
     C_lda               4       2            1.48231  0.25000                   X    
  Total Number of Electrons        4
  The occupation numbers are read from the file "occup.dat" (4 lines read)
- Total Number of  Orbitals        4
+ Total Number of Orbitals        4
  occup(1)= 2.0000
  occup(2:4)= 0.6667
  Shifted atomic positions, Atomic Units:                   grid spacing units:

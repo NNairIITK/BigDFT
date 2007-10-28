@@ -45,7 +45,7 @@
    Na_lda               9       2            2.10161  0.25000                   X    
    Cl_lda               7       2            1.22389  0.41000                   X    
  Total Number of Electrons       16
- Total Number of  Orbitals        8
+ Total Number of Orbitals        8
  occup(1:8)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1 Na_lda  1.04500E+01  1.04500E+01  1.04144E+01       19.000    19.000    18.935
