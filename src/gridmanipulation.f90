@@ -126,7 +126,7 @@ subroutine fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
   return
 END SUBROUTINE fill_logrid
 
-subroutine bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
+subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
   implicit real(kind=8) (a-h,o-z)
   logical logrid
   dimension logrid(0:n1,0:n2,0:n3)
@@ -205,4 +205,4 @@ subroutine bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
   end do
 
   return
-END SUBROUTINE bounds
+END SUBROUTINE make_bounds

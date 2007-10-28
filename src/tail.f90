@@ -1,18 +1,20 @@
 subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntypes,&
-     nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
-     keyv,keyg,nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nproj,nprojel,ncongt,&
+     nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
      pot,hgrid,rxyz,radii_cf,crmult,frmult,iatype,atomnames,nspin,spinar,&
      proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
+
+  use libBigDFT
+
   implicit none
-  include 'mpif.h'   
+  include 'mpif.h' 
+  type(wavefunctions_descriptors), intent(in) :: wfd
   logical, intent(in) :: output_grid,parallel
   character(len=20), dimension(100), intent(in) :: atomnames
   integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nat,ntypes,ncongt,nspin
-  integer, intent(in) :: nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel
+  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nproj,nprojel
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
   integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
   integer, dimension(2,nseg_p(2*nat)), intent(inout) :: keyg_p
@@ -24,7 +26,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(2*n1+31,2*n2+31,2*n3+31,nspin), intent(in) :: pot
   real(kind=8), dimension(nprojel), intent(in) :: proj
-  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
+  real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
   !local variables
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
   integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat,nbuf,ispin
@@ -35,7 +37,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   real(kind=8) :: alatb1,alatb2,alatb3,ekin,epot,eproj,tt,cprecr,sum_tail,ekin1,epot1,eproj1
   real(kind=8), dimension(:,:), allocatable :: txyz,wrkallred
   real(kind=8), dimension(:), allocatable :: psib,hpsib,psir
-  !*****************************Alexey************************************************************
+
   !for shrink:
   integer,allocatable,dimension(:,:,:)::ibbzzx_c,ibbyyzz_c
   integer,allocatable,dimension(:,:,:)::ibbxy_ff,ibbzzx_f,ibbyyzz_f
@@ -47,7 +49,6 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   !real space border:
   integer,allocatable,dimension(:,:,:)::ibbyyzz_r 
 
-  !*****************************
   integer nw1,nw2
 
   real(kind=8),allocatable,dimension(:,:,:)::x_c!input 
@@ -56,7 +57,6 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   real(kind=8),allocatable,dimension(:):: w1,w2
   real(kind=8),allocatable,dimension(:,:,:)::y_c!output 
   real(kind=8),allocatable::y_f(:,:,:,:)! output
-  !***********************************************************************************************
 
   nbuf=nint(rbuf/hgrid)
   !    --- new grid sizes n1,n2,n3
@@ -198,7 +198,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
           'Coarse resolution grid: Number of segments= ',nsegb_c,'points=',nvctrb_c
      !write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have coarse segment, elements',nsegb_c,nvctrb_c
   end if
-  call bounds(nb1,nb2,nb3,logrid_c,ibbyz_c,ibbxz_c,ibbxy_c)
+  call make_bounds(nb1,nb2,nb3,logrid_c,ibbyz_c,ibbxz_c,ibbxy_c)
 
   ! fine grid quantities
   call fill_logrid(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,0,nat,ntypes,iatype,txyz, & 
@@ -221,7 +221,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
           '  Fine resolution grid: Number of segments= ',nsegb_f,'points=',nvctrb_f
      !write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have fine   segment, elements',nsegb_f,7*nvctrb_f
   end if
-  call bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
+  call make_bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
 
   !*********Alexey************
 
@@ -314,10 +314,11 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
 
      !build the compressed wavefunction in the enlarged box
      call transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
-          nseg_c,nvctr_c,keyg(1,1),keyv(1),nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),  &
+          wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),&
+          wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),  &
           nsegb_c,nvctrb_c,keybg(1,1),keybv(1),nsegb_f,nvctrb_f,&
           keybg(1,nsegb_c+1),keybv(nsegb_c+1),&
-          nbuf,psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),  & 
+          nbuf,psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),  & 
           x_c,x_f,psib(1),psib(nvctrb_c+1))
 
      !write(*,*) 'transform_fortail finished',iproc,iorb

@@ -102,7 +102,7 @@ libbigdft_a_SOURCES = \
 	input/gauprod.f90 \
 	input/inputguess.f90 \
 	input/input_variables.f90 \
-	input/restart.f90 \
+	restart.f90 \
 	ionicpot.f90 \
 	projectors/projectors.f90 \
 	orthogonality.f90 \
@@ -142,6 +142,16 @@ CLEANFILES = mpif.h libbigdft.@MODULE_EXT@ LIBBIGDFT.@MODULE_EXT@
 #dependencies
 cluster_all.o: $(mpi_include) \
 	interface.f90 input/interface.f90 profiling/interface.f90
+
+sumrho.o: cluster_all.o
+
+applyh.o: cluster_all.o
+
+forces.o: cluster_all.o
+
+restart.o: cluster_all.o
+
+tail.o: cluster_all.o
 
 mpif.h:
 	touch mpif.h
