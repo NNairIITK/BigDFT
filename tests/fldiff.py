@@ -47,8 +47,10 @@ original1 = open(file1).read().splitlines(1)
 #Read the second file
 original2 = open(file2).read().splitlines(1)
 
-max_discrepancy = 0.0
+max_discrepancy = 1.e-11
+maximum = 0.0
 context_discrepancy = ""
+context_lines = ""
 
 compare = difflib.unified_diff(original1,original2,n=0)
 
@@ -106,17 +108,26 @@ while not EOF:
         #Replace all floating point by XXX
         new1 = re_float.sub('XXX',line1[2:])
         new2 = re_float.sub('XXX',line2[2:])
-        if new1 != new2:
+        if new1 != new2 and i1 == 0:
+            #For the first difference, we display the context
             print context,
+        if new1 != new2:
             print line1,
             print line2,
         n = len(floats1)
         if n == len(floats2):
+            diff_discrepancy = False
             for i in range(n):
                 tt = abs(floats1[i]-floats2[i])
-                if max_discrepancy < tt:
+                if maximum < tt:
                     context_discrepancy = " (line %s)" % context.split(",")[0][4:]
-                    max_discrepancy = max(max_discrepancy,tt)
+                    context_lines = "\n"+context_discrepancy[1:]+"\n"+line1+line2
+                    maximum = max(maximum,tt)
+                if tt > max_discrepancy:
+                    diff_discrepancy = True
+            if diff_discrepancy and new1 == new2:
+                print line1,
+                print line2,
         else:
             print "%s the number of floating point differs" % context[:-1]
     #Add lines if necessary
@@ -129,6 +140,6 @@ while not EOF:
         i2 += 1
         print right[i2],
 
-
-print "Max Discrepancy%s:" % context_discrepancy,max_discrepancy
+print context_lines,
+print "Max Discrepancy%s:" % context_discrepancy,maximum
 

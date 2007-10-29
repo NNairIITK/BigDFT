@@ -15,11 +15,13 @@ src/parameters.h
 src/cluster
 src/memguess
 src/test_forces
+src/PSolver/PSolver
 tests/*/wavefunction.*
 tests/*/*.out
 tests/*/*.ascii
 tests/*/*.memguess
 tests/*/psppar.*
 tests/*/*.prc
+tests/*/*.report
 *.mod
 time.prc

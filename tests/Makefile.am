@@ -12,6 +12,7 @@ SUBDIRS = \
 EXTRA_DIST = \
 	fldiff.py \
 	inguess.dat \
+	report.py \
 	Refs
 
 CLEANFILES =  
