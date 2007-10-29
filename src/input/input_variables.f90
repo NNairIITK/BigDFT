@@ -120,6 +120,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spina
 ! Local variables
   integer :: iorb,nt,ne,it,ierror,iorb1
   real(kind=8) :: rocc,rup,rdown
+  character(len=100) :: line
 
   do iorb=1,norb
      spinar(iorb)=1.0d0
@@ -384,7 +385,7 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomn
     inquire(file='occup.dat',exist=exists)
     iunit=0
     if (exists) then
-       iunit=24
+       iunit=25
        open(unit=iunit,file='occup.dat',form='formatted',action='read',status='old')
        if (nspin==1) then
            !The first line gives the number of orbitals

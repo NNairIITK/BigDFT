@@ -29,4 +29,4 @@ check: $(PPFILES) posinp input.dat
 	$(top_builddir)/src/memguess 1 > H.memguess
 	python $(top_srcdir)/tests/fldiff.py H.memguess $(top_srcdir)/tests/Refs/H.memguess.ref | cat
 	$(run_parallel) $(top_builddir)/src/cluster > H.out
-	python $(top_srcdir)/tests/fldiff.py H.out $(top_srcdir)/tests/Refs/H.out.ref | cat
+	python $(top_srcdir)/tests/fldiff.py H.out $(top_srcdir)/tests/Refs/H.out.ref | tee fldiff.report

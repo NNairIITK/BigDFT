@@ -23,3 +23,5 @@ all:
 	@echo "     ex: export run_parallel='ompirun -np 2'  "
 	@echo "=============================================="
 
+check:
+	@python report.py

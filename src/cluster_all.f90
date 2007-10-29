@@ -11,11 +11,19 @@ module libBigDFT
   !- Initialisation methods.
   !- Create and allocate access arrays for wavefunctions.
   public :: createWavefunctionsDescriptors
-  !-Create and allocate data descriptors for nonlocal PSP projectors
+  !- Create and allocate data descriptors for nonlocal PSP projectors
   public :: createProjectorsArrays
+  !- Create the descriptors for the density and the potential
+  public :: createDensPotDescriptors
+  !- Import CP2K files
+  public :: import_gaussians
   !- Compute input guess wavefunctions from atomic orbitals.
   public :: input_wf_diag
   
+  !- Orthogonalise after restart (reformat or read)
+  public :: first_orthon
+  !- KS transformation after minimisation
+  public :: last_orthon
   !- SCF handling
   public :: hpsitopsi
 
@@ -29,11 +37,43 @@ module libBigDFT
      logical :: output_grid,output_wf,calc_tail
   end type input_variables
 
+  type, public :: kinetic_bounds
+     integer, dimension(:,:,:), pointer :: ibyz_c,ibxz_c,ibxy_c
+     integer, dimension(:,:,:), pointer :: ibyz_f,ibxz_f,ibxy_f
+  end type kinetic_bounds
+
+  type, public :: shrink_bounds
+     integer, dimension(:,:,:), pointer :: ibzzx_c,ibyyzz_c
+     integer, dimension(:,:,:), pointer :: ibxy_ff,ibzzx_f,ibyyzz_f
+  end type shrink_bounds
+
+  type, public :: grow_bounds
+     integer, dimension(:,:,:), pointer :: ibzxx_c,ibxxyy_c
+     integer, dimension(:,:,:), pointer :: ibyz_ff,ibzxx_f,ibxxyy_f
+  end type grow_bounds
+
+  type, public :: convolutions_bounds
+     type(kinetic_bounds) :: kb
+     type(shrink_bounds) :: sb
+     type(grow_bounds) :: gb
+     integer, dimension(:,:,:), pointer ::ibyyzz_r ! real space border
+  end type convolutions_bounds
+
+  type, public :: wavefunctions_descriptors
+     integer :: nvctr_c,nvctr_f,nseg_c,nseg_f
+     integer, dimension(:,:), pointer :: keyg
+     integer, dimension(:), pointer :: keyv
+  end type wavefunctions_descriptors
+
+  !- Interfaces for all outside public routines.
+!!$  include "input/interface.f90"
+!!$  include "profiling/interface.f90"
+!!$  include "interface.f90"
+
 contains
  
   subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
-       psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-       n1,n2,n3,rxyz_old,in,infocode)
+       psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
   ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
   ! inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
   !                  as definition of the previous system.
@@ -55,18 +95,14 @@ contains
   character(len=30) :: label
   character(len=20), dimension(100) :: atomnames
   character(len=1) :: datacode
-  logical logrid_c,logrid_f,parallel,calc_tail,output_wf,output_grid
+  logical parallel,calc_tail,output_wf,output_grid
   real(kind=8), parameter :: eps_mach=1.d-12
   ! work array for ALLREDUCE
   dimension wrkallred(5,2) 
   ! atomic coordinates
   dimension rxyz(3,nat),rxyz_old(3,nat),fxyz(3,nat),iatype(nat)
   allocatable :: gxyz(:,:)
-  ! active grid points, segments of real space grid
-  allocatable :: logrid_c(:,:,:) ,  logrid_f(:,:,:)
-  allocatable :: ibyz_c(:,:,:),ibxz_c(:,:,:),ibxy_c(:,:,:),  & 
-       ibyz_f(:,:,:),ibxz_f(:,:,:),ibxy_f(:,:,:)
-  ! occupation numbers, eigenvalues
+
   real(kind=8), allocatable :: occup(:),spinar(:),spinar_foo(:)
   real(kind=8), pointer :: eval(:),eval_old(:)
 
@@ -108,25 +144,13 @@ contains
   allocatable :: rho(:),pot(:,:,:,:)
   allocatable :: neleconf(:,:),nscatterarr(:,:),ngatherarr(:,:)
 
-!*****************************Alexey************************************************************
-!for shrink:
-    integer,allocatable,dimension(:,:,:)::ibzzx_c,ibyyzz_c
-    integer,allocatable,dimension(:,:,:)::ibxy_ff,ibzzx_f,ibyyzz_f
-
-!for grow:
-    integer,allocatable,dimension(:,:,:)::ibzxx_c,ibxxyy_c
-    integer,allocatable,dimension(:,:,:)::ibyz_ff,ibzxx_f,ibxxyy_f
-!***********************************************************************************************
-    integer,allocatable,dimension(:,:,:)::ibyyzz_r ! real space border
-!*************Alexey***************************************************************************
-!    real(kind=8),allocatable,dimension(:,:,:)::xc!input 
-!    real(kind=8),allocatable::xf(:,:,:,:)! input
-!    real(kind=8),allocatable,dimension(:):: w1,w2
-!***********************************************************************************************
   integer :: ierror
 
   !input variables
   type(input_variables), intent(in) :: in
+  type(wavefunctions_descriptors), intent(inout) :: wfd
+
+  type(convolutions_bounds) :: bounds
 
   include 'mpif.h'
 
@@ -173,14 +197,15 @@ contains
   ! We save the variables that defined the previous psi if
   ! restartOnPsi is .true.
   if (inputPsiId == 1) then
+     !this part can be inserted into a procedure
      hgrid_old   = hgrid
      n1_old      = n1
      n2_old      = n2
      n3_old      = n3
-     nvctr_c_old = nvctr_c
-     nvctr_f_old = nvctr_f
-     nseg_c_old  = nseg_c
-     nseg_f_old  = nseg_f
+     nvctr_c_old = wfd%nvctr_c
+     nvctr_f_old = wfd%nvctr_f
+     nseg_c_old  = wfd%nseg_c
+     nseg_f_old  = wfd%nseg_f
      !add the number of distributed point for the compressed wavefunction
      tt=dble(nvctr_c_old+7*nvctr_f_old)/dble(nproc)
      nvctrp_old=int((1.d0-eps_mach*tt) + tt)
@@ -196,9 +221,9 @@ contains
      call memocc(i_stat,product(shape(eval_old))*kind(eval_old),'eval_old','cluster')
 
      do iseg=1,nseg_c_old+nseg_f_old
-        keyg_old(1,iseg)    = keyg(1,iseg)
-        keyg_old(2,iseg)    = keyg(2,iseg)
-        keyv_old(iseg)      = keyv(iseg)
+        keyg_old(1,iseg)    = wfd%keyg(1,iseg)
+        keyg_old(2,iseg)    = wfd%keyg(2,iseg)
+        keyv_old(iseg)      = wfd%keyv(iseg)
      enddo
      do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
         tt=0.d0
@@ -221,11 +246,11 @@ contains
         eval_old(iorb) = eval(iorb)
      enddo
      !deallocation
-     i_all=-product(shape(keyg))*kind(keyg)
-     deallocate(keyg,stat=i_stat)
+     i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
+     deallocate(wfd%keyg,stat=i_stat)
      call memocc(i_stat,i_all,'keyg','cluster')
-     i_all=-product(shape(keyv))*kind(keyv)
-     deallocate(keyv,stat=i_stat)
+     i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
+     deallocate(wfd%keyv,stat=i_stat)
      call memocc(i_stat,i_all,'keyv','cluster')
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)
@@ -293,7 +318,7 @@ contains
   !memory estimation
   if (iproc==0) then
      call MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
-          rxyz,radii_cf,crmult,frmult,norb,atomnames,.false.,nspin) 
+          rxyz,radii_cf,crmult,frmult,norb,atomnames,.false.,nspin,peakmem) 
   end if
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
@@ -303,57 +328,9 @@ contains
 
 ! Create wavefunctions descriptors and allocate them
   call timing(iproc,'CrtDescriptors','ON')
-
-  allocate(ibyz_c(2,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(ibyz_c))*kind(ibyz_c),'ibyz_c','cluster')
-  allocate(ibxz_c(2,0:n1,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(ibxz_c))*kind(ibxz_c),'ibxz_c','cluster')
-  allocate(ibxy_c(2,0:n1,0:n2),stat=i_stat)
-  call memocc(i_stat,product(shape(ibxy_c))*kind(ibxy_c),'ibxy_c','cluster')
-  allocate(ibyz_f(2,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(ibyz_f))*kind(ibyz_f),'ibyz_f','cluster')
-  allocate(ibxz_f(2,0:n1,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(ibxz_f))*kind(ibxz_f),'ibxz_f','cluster')
-  allocate(ibxy_f(2,0:n1,0:n2),stat=i_stat)
-  call memocc(i_stat,product(shape(ibxy_f))*kind(ibxy_f),'ibxy_f','cluster')
-  
-!*********************************Alexey*********************************************************
-  !   allocate for grow
-  allocate(ibzxx_c(2,0:n3,-14:2*n1+16),stat=i_stat)
-  call memocc(i_stat,product(shape(ibzxx_c))*kind(ibzxx_c),'ibzxx_c','cluster')
-  allocate(ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16),stat=i_stat)
-  call memocc(i_stat,product(shape(ibxxyy_c))*kind(ibxxyy_c),'ibxxyy_c','cluster')
-  allocate(ibyz_ff(2,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(ibyz_ff))*kind(ibyz_ff),'ibyz_ff','cluster')
-  allocate(ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16),stat=i_stat)
-  call memocc(i_stat,product(shape(ibzxx_f))*kind(ibzxx_f),'ibzxx_f','cluster')
-  allocate(ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16),stat=i_stat)
-  call memocc(i_stat,product(shape(ibxxyy_f))*kind(ibxxyy_f),'ibxxyy_f','cluster')
-
-  !allocate for shrink
-  allocate(ibzzx_c(2,-14:2*n3+16,0:n1),stat=i_stat)
-  call memocc(i_stat,product(shape(ibzzx_c))*kind(ibzzx_c),'ibzzx_c','cluster')
-  allocate(ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
-  call memocc(i_stat,product(shape(ibyyzz_c))*kind(ibyyzz_c),'ibyyzz_c','cluster')
-  allocate(ibxy_ff(2,nfl1:nfu1,nfl2:nfu2),stat=i_stat)
-  call memocc(i_stat,product(shape(ibxy_ff))*kind(ibxy_ff),'ibxy_ff','cluster')
-  allocate(ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1),stat=i_stat)
-  call memocc(i_stat,product(shape(ibzzx_f))*kind(ibzzx_f),'ibzzx_f','cluster')
-  allocate(ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16),stat=i_stat)
-  call memocc(i_stat,product(shape(ibyyzz_f))*kind(ibyyzz_f),'ibyyzz_f','cluster')
-
-  !allocate for real space
-  allocate(ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
-  call memocc(i_stat,product(shape(ibyyzz_r))*kind(ibyyzz_r),'ibyyzz_r','cluster')
-!***********************************************************************************************
-
   call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,&
        & nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
-       ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp,&
-       keyg,keyv,norb,norbp,&
-       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-       ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+       wfd,nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
   call timing(iproc,'CrtDescriptors','OF')
 
 ! Calculate all projectors
@@ -415,25 +392,21 @@ contains
      !import gaussians form CP2K (data in files def_gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
      call import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-          nat,norb,norbp,occup,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
-          rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+          nat,norb,norbp,occup,n1,n2,n3,nvctrp,hgrid,rxyz, & 
+          rhopot,pot_ion,wfd,bounds, &
           nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
           atomnames,ntypes,iatype,pkernel,psppar,npspcode,ixc,&
-          psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar,&
-          ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-          ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+          psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
 
   else if (inputPsiId == 0) then
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-          nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
-          rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+          nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hgrid,rxyz, & 
+          rhopot,pot_ion,wfd,bounds, &
           nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
           atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,&
-          ixc,psi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar,&
-          ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-          ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+          ixc,psi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
 
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
@@ -448,7 +421,7 @@ contains
         call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','cluster')
      else
         !allocate hpsi array
-        allocate(hpsi(nvctr_c+7*nvctr_f,norb),stat=i_stat)
+        allocate(hpsi(nvctrp,norb),stat=i_stat)
         call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','cluster')
      endif
      
@@ -462,7 +435,7 @@ contains
         allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
         call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
      else
-        allocate(psi(nvctr_c+7*nvctr_f,norb),stat=i_stat)
+        allocate(psi(nvctrp,norb),stat=i_stat)
         call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
      end if
      
@@ -473,8 +446,7 @@ contains
      call reformatmywaves(iproc,norb,norbp,nat, &
           & hgrid_old,nvctr_c_old,nvctr_f_old,n1_old,n2_old,n3_old,rxyz_old, &
           & nseg_c_old,nseg_f_old,keyg_old,keyv_old,psi_old, &
-          & hgrid,nvctr_c,nvctr_f,n1,n2,n3,rxyz, &
-          & nseg_c,nseg_f,keyg,keyv,psi)
+          & hgrid,n1,n2,n3,rxyz,wfd,psi)
      eval=eval_old
      i_all=-product(shape(keyg_old))*kind(keyg_old)
      deallocate(keyg_old,stat=i_stat)
@@ -493,8 +465,8 @@ contains
      gnrm_check=0.d0
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
-          nspin,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,&
+          wfd%nvctr_c,wfd%nvctr_f,nvctrp,nspin,psi,hpsi,psit)
      
   else if (inputPsiId == 2 ) then 
      !restart from previously calculated wavefunctions, on disk
@@ -506,7 +478,7 @@ contains
         allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
         call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
      else
-        allocate(psi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+        allocate(psi(nvctrp,norb),stat=i_stat)
         call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
      end if
 
@@ -516,15 +488,14 @@ contains
      end if
 
 
-     call readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,&
-          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
+     call readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,wfd,psi,eval)
   
      !initialise control value for gnrm in the case of a restart
      gnrm_check=0.d0
  
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
-          nspin,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,&
+          wfd%nvctr_c,wfd%nvctr_f,nvctrp,nspin,psi,hpsi,psit)
 
   else
      
@@ -575,10 +546,8 @@ contains
 
      ! Potential from electronic charge density
      call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-             nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot, &
-             (2*n1+31)*(2*n2+31)*n3d,nscatterarr,nspin,spinar,&
-             nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+             wfd,psi,rhopot,(2*n1+31)*(2*n2+31)*n3d,nscatterarr,nspin,spinar,&
+             nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
 !     ixc=11  ! PBE functional
 !     ixc=1   ! LDA functional
@@ -588,12 +557,8 @@ contains
 
      call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
              psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
-             nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,n3p,&
-             rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar,&
-             ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-             ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
-
+             wfd,bounds,nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,n3p,&
+             rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
      energy=energybs-ehart+eexcu-vexcu+eion
@@ -617,8 +582,7 @@ contains
      endif
 
      call hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
-     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nvctrp,nseg_c,nseg_f,&
-     keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,bounds%kb,&
      eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
      psi,psit,hpsi,psidst,hpsidst,nspin,spinar)! add NSPIN
 
@@ -688,7 +652,7 @@ contains
   end if
 
 ! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
-  call last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
+  call last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
        nspin,psi,hpsi,psit,occup,evsum,eval)
 
   if (abs(evsum-energybs).gt.1.d-8 .and. iproc==0) write(*,'(1x,a,2(1x,1pe20.13))')&
@@ -706,7 +670,7 @@ contains
 !  write all the wavefunctions into files
   if (output_wf) then
      call  writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,  & 
-              nat,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
+              nat,rxyz,wfd,psi,eval)
      write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
   end if
 
@@ -744,10 +708,8 @@ contains
 
   !use pot_ion array for building total rho
   call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-       nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rho,&
-       (2*n1+31)*(2*n2+31)*n3p,nscatterarr,1,spinar_foo,&
-       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+       wfd,psi,rho,(2*n1+31)*(2*n2+31)*n3p,nscatterarr,1,spinar_foo,&
+       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
   i_all=-product(shape(spinar_foo))*kind(spinar_foo)
   deallocate(spinar_foo,stat=i_stat)
@@ -816,15 +778,14 @@ contains
   !from the one of nonlocal forces, in this way forces can be calculated
   !diring the wavefunction minimization if needed
   call projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, & 
-       ntypes,nat,norb,nprojel,nproj,&
-       iatype,psppar,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
-       keyg,keyv,keyg_p,keyv_p,rxyz,radii_cf,cpmult,fpmult,hgrid,derproj)
+       ntypes,nat,norb,nprojel,nproj,iatype,psppar,nseg_p,nvctr_p,proj,  &
+       keyg_p,keyv_p,rxyz,radii_cf,cpmult,fpmult,hgrid,derproj)
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
 
   call nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
-       iatype,psppar,npspcode,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,derproj,  &
-       keyg,keyv,keyg_p,keyv_p,psi,gxyz)
+       iatype,psppar,npspcode,occup,nseg_p,nvctr_p,proj,derproj,  &
+       keyg_p,keyv_p,wfd,psi,gxyz)
 
   if (iproc == 0) write(*,'(1x,a)')'done.'
   
@@ -906,8 +867,8 @@ contains
      call memocc(i_stat,i_all,'rhopot','cluster')
 
      call CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntypes,&
-     nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nproj,nprojel,ncongt,&
-     keyv,keyg,nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nproj,nprojel,ncongt,&
+     nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
      pot,hgrid,rxyz,radii_cf,crmult,frmult,iatype,atomnames,nspin,spinar,&
      proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
 
@@ -1013,60 +974,60 @@ contains
 
     end if
 
-    i_all=-product(shape(ibyz_c))*kind(ibyz_c)
-    deallocate(ibyz_c,stat=i_stat)
+    i_all=-product(shape(bounds%kb%ibyz_c))*kind(bounds%kb%ibyz_c)
+    deallocate(bounds%kb%ibyz_c,stat=i_stat)
     call memocc(i_stat,i_all,'ibyz_c','cluster')
-    i_all=-product(shape(ibxz_c))*kind(ibxz_c)
-    deallocate(ibxz_c,stat=i_stat)
+    i_all=-product(shape(bounds%kb%ibxz_c))*kind(bounds%kb%ibxz_c)
+    deallocate(bounds%kb%ibxz_c,stat=i_stat)
     call memocc(i_stat,i_all,'ibxz_c','cluster')
-    i_all=-product(shape(ibxy_c))*kind(ibxy_c)
-    deallocate(ibxy_c,stat=i_stat)
+    i_all=-product(shape(bounds%kb%ibxy_c))*kind(bounds%kb%ibxy_c)
+    deallocate(bounds%kb%ibxy_c,stat=i_stat)
     call memocc(i_stat,i_all,'ibxy_c','cluster')
-    i_all=-product(shape(ibyz_f))*kind(ibyz_f)
-    deallocate(ibyz_f,stat=i_stat)
+    i_all=-product(shape(bounds%kb%ibyz_f))*kind(bounds%kb%ibyz_f)
+    deallocate(bounds%kb%ibyz_f,stat=i_stat)
     call memocc(i_stat,i_all,'ibyz_f','cluster')
-    i_all=-product(shape(ibxz_f))*kind(ibxz_f)
-    deallocate(ibxz_f,stat=i_stat)
+    i_all=-product(shape(bounds%kb%ibxz_f))*kind(bounds%kb%ibxz_f)
+    deallocate(bounds%kb%ibxz_f,stat=i_stat)
     call memocc(i_stat,i_all,'ibxz_f','cluster')
-    i_all=-product(shape(ibxy_f))*kind(ibxy_f)
-    deallocate(ibxy_f,stat=i_stat)
+    i_all=-product(shape(bounds%kb%ibxy_f))*kind(bounds%kb%ibxy_f)
+    deallocate(bounds%kb%ibxy_f,stat=i_stat)
     call memocc(i_stat,i_all,'ibxy_f','cluster')
 
-    !*****************************Alexey*************************
-    i_all=-product(shape(ibzzx_c))*kind(ibzzx_c)
-    deallocate(ibzzx_c,stat=i_stat)
+    i_all=-product(shape(bounds%sb%ibzzx_c))*kind(bounds%sb%ibzzx_c)
+    deallocate(bounds%sb%ibzzx_c,stat=i_stat)
     call memocc(i_stat,i_all,'ibzzx_c','cluster')
-    i_all=-product(shape(ibyyzz_c))*kind(ibyyzz_c)
-    deallocate(ibyyzz_c,stat=i_stat)
+    i_all=-product(shape(bounds%sb%ibyyzz_c))*kind(bounds%sb%ibyyzz_c)
+    deallocate(bounds%sb%ibyyzz_c,stat=i_stat)
     call memocc(i_stat,i_all,'ibyyzz_c','cluster')
-    i_all=-product(shape(ibxy_ff))*kind(ibxy_ff)
-    deallocate(ibxy_ff,stat=i_stat)
+    i_all=-product(shape(bounds%sb%ibxy_ff))*kind(bounds%sb%ibxy_ff)
+    deallocate(bounds%sb%ibxy_ff,stat=i_stat)
     call memocc(i_stat,i_all,'ibxy_ff','cluster')
-    i_all=-product(shape(ibzzx_f))*kind(ibzzx_f)
-    deallocate(ibzzx_f,stat=i_stat)
+    i_all=-product(shape(bounds%sb%ibzzx_f))*kind(bounds%sb%ibzzx_f)
+    deallocate(bounds%sb%ibzzx_f,stat=i_stat)
     call memocc(i_stat,i_all,'ibzzx_f','cluster')
-    i_all=-product(shape(ibyyzz_f))*kind(ibyyzz_f)
-    deallocate(ibyyzz_f,stat=i_stat)
+    i_all=-product(shape(bounds%sb%ibyyzz_f))*kind(bounds%sb%ibyyzz_f)
+    deallocate(bounds%sb%ibyyzz_f,stat=i_stat)
     call memocc(i_stat,i_all,'ibyyzz_f','cluster')
-    i_all=-product(shape(ibzxx_c))*kind(ibzxx_c)
-    deallocate(ibzxx_c,stat=i_stat)
+
+    i_all=-product(shape(bounds%gb%ibzxx_c))*kind(bounds%gb%ibzxx_c)
+    deallocate(bounds%gb%ibzxx_c,stat=i_stat)
     call memocc(i_stat,i_all,'ibzxx_c','cluster')
-    i_all=-product(shape(ibxxyy_c))*kind(ibxxyy_c)
-    deallocate(ibxxyy_c,stat=i_stat)
+    i_all=-product(shape(bounds%gb%ibxxyy_c))*kind(bounds%gb%ibxxyy_c)
+    deallocate(bounds%gb%ibxxyy_c,stat=i_stat)
     call memocc(i_stat,i_all,'ibxxyy_c','cluster')
-    i_all=-product(shape(ibyz_ff))*kind(ibyz_ff)
-    deallocate(ibyz_ff,stat=i_stat)
+    i_all=-product(shape(bounds%gb%ibyz_ff))*kind(bounds%gb%ibyz_ff)
+    deallocate(bounds%gb%ibyz_ff,stat=i_stat)
     call memocc(i_stat,i_all,'ibyz_ff','cluster')
-    i_all=-product(shape(ibzxx_f))*kind(ibzxx_f)
-    deallocate(ibzxx_f,stat=i_stat)
+    i_all=-product(shape(bounds%gb%ibzxx_f))*kind(bounds%gb%ibzxx_f)
+    deallocate(bounds%gb%ibzxx_f,stat=i_stat)
     call memocc(i_stat,i_all,'ibzxx_f','cluster')
-    i_all=-product(shape(ibxxyy_f))*kind(ibxxyy_f)
-    deallocate(ibxxyy_f,stat=i_stat)
+    i_all=-product(shape(bounds%gb%ibxxyy_f))*kind(bounds%gb%ibxxyy_f)
+    deallocate(bounds%gb%ibxxyy_f,stat=i_stat)
     call memocc(i_stat,i_all,'ibxxyy_f','cluster')
-    i_all=-product(shape(ibyyzz_r))*kind(ibyyzz_r)
-    deallocate(ibyyzz_r,stat=i_stat)
+
+    i_all=-product(shape(bounds%ibyyzz_r))*kind(bounds%ibyyzz_r)
+    deallocate(bounds%ibyyzz_r,stat=i_stat)
     call memocc(i_stat,i_all,'ibyyzz_r','cluster')
-    !************************************************************
 
     i_all=-product(shape(keyg_p))*kind(keyg_p)
     deallocate(keyg_p,stat=i_stat)
@@ -1114,8 +1075,7 @@ contains
 END SUBROUTINE cluster
 
 subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
-     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nvctrp,nseg_c,nseg_f,&
-     keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
      eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
      psi,psit,hpsi,psidst,hpsidst,nspin,spinar)
   implicit none
@@ -1123,20 +1083,15 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   real(kind=8), parameter :: eps_mach=1.d-12
   logical, intent(in) :: parallel
   integer, intent(in) :: iter,iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids,idsx
-  integer, intent(in) :: nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nvctrp
+  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
   real(kind=8), intent(in) :: hgrid,energy,energy_old
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
-  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
-  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
   real(kind=8), dimension(norb), intent(in) :: occup,eval,spinar
   real(kind=8), intent(inout) :: alpha
   real(kind=8), intent(inout) :: gnrm,scprsum
   real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
-! real(kind=8), dimension(:,:), pointer :: psit
-! real(kind=8), dimension(nvctr_c+7*nvctr_f,norb) :: psi,hpsi
   real(kind=8), dimension(:,:,:), pointer :: psidst,hpsidst,ads
+  type(kinetic_bounds), intent(in) :: kbounds
+  type(wavefunctions_descriptors), intent(in) :: wfd
   !local variables
   integer :: ierr,ind,i1,i2,iorb,k,norbu,norbd,nspin
   real(kind=8) :: tt,scpr,dnrm2,scprpart
@@ -1160,7 +1115,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      !transpose the hpsi wavefunction
      !here psi is used as a work array
      call timing(iproc,'Un-TransSwitch','ON')
-     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+     call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi)
      call timing(iproc,'Un-TransSwitch','OF')
      !here hpsi is the transposed array
      call timing(iproc,'Un-TransComm  ','ON')
@@ -1190,7 +1145,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      call timing(iproc,'Un-TransComm  ','OF')
      !here hpsi is the direct array
      call timing(iproc,'Un-TransSwitch','ON')
-     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,hpsi)
+     call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,hpsi)
      call timing(iproc,'Un-TransSwitch','OF')
      !end of retransposition
   else
@@ -1215,14 +1170,14 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      !norm of the residue if hpsi is allocated in the transposed way
      !it can be eliminated when including all this procedure in a subroutine
      if (parallel) then
-        ind=1+(nvctr_c+7*nvctr_f)*(iorb-iproc*norbp-1)
+        ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-iproc*norbp-1)
         i1=mod(ind-1,nvctrp)+1
         i2=(ind-i1)/nvctrp+1
      else
         i1=1
         i2=iorb-iproc*norbp
      end if
-     scpr=dnrm2(nvctr_c+7*nvctr_f,hpsi(i1,i2),1)
+     scpr=dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,hpsi(i1,i2),1)
      !scpr=dnrm2(nvctr_c+7*nvctr_f,hpsi(1,iorb-iproc*norbp),1)
      !lines for writing the residue following the orbitals
      !if (iorb <=5) write(83,*)iter,iorb,scpr
@@ -1243,26 +1198,15 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   !   write(*,'(10f10.6)') (eval(iorb),iorb=1,norb)
   ! Preconditions all orbitals belonging to iproc
   call preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid, &
-       ncong,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,eval,&
-       ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
-
-
+       ncong,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,eval,&
+       kbounds%ibyz_c,kbounds%ibxz_c,kbounds%ibxy_c,&
+       kbounds%ibyz_f,kbounds%ibxz_f,kbounds%ibxy_f,hpsi)
 
   if (iproc==0) then
      write(*,'(1x,a)')&
           'done.'
   end if
   call timing(iproc,'Precondition  ','OF')
-
-
-!!$  if (iproc==0) then
-!!$       do iorb=1,norb
-!!$        do i1=1,nvctr_c+7*nvctr_f
-!!$!          write(200,'(f12.8)') psi(i1,iorb)
-!!$!          write(220,'(f12.8)') hpsi(i1,iorb)
-!!$        end do
-!!$     end do
-!!$  end if
 
   !apply the minimization method (DIIS or steepest descent)
   if (idsx.gt.0) then
@@ -1271,7 +1215,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
         !here psi is used as a work array
         call timing(iproc,'Un-TransSwitch','ON')
-        call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+        call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi)
         call timing(iproc,'Un-TransSwitch','OF')
         call timing(iproc,'Un-TransComm  ','ON')
         call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
@@ -1319,7 +1263,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
         !here psi is used as a work array
         call timing(iproc,'Un-TransSwitch','ON')
-        call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+        call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi)
         call timing(iproc,'Un-TransSwitch','OF')
         !here hpsi is the transposed array
         call timing(iproc,'Un-TransComm  ','ON')
@@ -1347,20 +1291,14 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      write(*,'(1x,a)',advance='no')&
           'Orthogonalization...'
   end if
-       do iorb=1,norb
-        do i1=1,nvctr_c+7*nvctr_f
-!          write(201,'(f12.8)') psi(i1,iorb)
-!          write(210,'(f12.8)') hpsi(i1,iorb)
-        end do
-     end do
 
   if (parallel) then
      if(nspin==1) then
-        call orthon_p(iproc,nproc,norb,nvctrp,nvctr_c+7*nvctr_f,psit)
+        call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit)
      else
-        call orthon_p(iproc,nproc,norbu,nvctrp,nvctr_c+7*nvctr_f,psit)
+        call orthon_p(iproc,nproc,norbu,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit)
         if(norbd>0) then
-           call orthon_p(iproc,nproc,norbd,nvctrp,nvctr_c+7*nvctr_f,psit(1,norbu+1))
+           call orthon_p(iproc,nproc,norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit(1,norbu+1))
         end if
      end if
      !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
@@ -1371,7 +1309,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
           hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
-     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+     call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi)
      call timing(iproc,'Un-TransSwitch','OF')
      !end of retransposition
   else
@@ -1388,13 +1326,6 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      end if
   endif
   
-       do iorb=1,norb
-        do i1=1,nvctr_c+7*nvctr_f
-!           write(200,'(f12.8)') psi(i1,iorb)
-!          write(210,'(f12.8)') hpsi(i1,iorb)
-        end do
-     end do
-
   if (iproc==0) then
      write(*,'(1x,a)')&
           'done.'
@@ -1631,49 +1562,22 @@ end subroutine createDensPotDescriptors
 
 subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,&
      hgrid,nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
-     ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp,&
-     keyg, keyv,norb,norbp,&
-     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-     ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+     wfd,nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 !calculates the descriptor arrays keyg and keyv as well as nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp
 !calculates also the arrays ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f needed for convolut_standard
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,idsx,n1,n2,n3,nat,ntypes,norb,norbp
-  integer, intent(out) :: nseg_c,nseg_f,nvctr_c,nvctr_f
   integer, intent(out) :: nvctrp
   logical, intent(in) :: output_grid
   integer, intent(in) :: iatype(nat)
   real(kind=8), intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
-  integer, intent(out) :: ibyz_c(2,0:n2,0:n3), ibxz_c(2,0:n1,0:n3), ibxy_c(2,0:n1,0:n2)
-  integer, intent(out) :: ibyz_f(2,0:n2,0:n3), ibxz_f(2,0:n1,0:n3), ibxy_f(2,0:n1,0:n2)
   real(kind=8) :: rxyz(3, nat), radii_cf(ntypes, 2)
   character(len=20), intent(in) :: atomnames(100)
-  integer, pointer :: keyg(:,:), keyv(:)
-  !**********************Alexey*************************************************************
   integer,intent(in):: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  !**********************Alexey*************************************************************
-  !for shrink:
-  integer ibzzx_c(2,-14:2*n3+16,0:n1) 
-  integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
-
-  integer ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
-  integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
-  integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
-
-  !for grow:
-  integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
-  integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
-
-  integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
-  integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
-  integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
-
-  !for real space:
-  integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
-  !*****************************************************************************************
-
+  type(wavefunctions_descriptors) , intent(out) :: wfd
+  !boundary arrays
+  type(convolutions_bounds), intent(out) :: bounds
 
   !Local variables
   real(kind=8), parameter :: eps_mach=1.d-12
@@ -1681,6 +1585,20 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
   real(kind=8) :: tt
   logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
 
+  !allocate kinetic bounds
+  allocate(bounds%kb%ibyz_c(2,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%kb%ibyz_c))*kind(bounds%kb%ibyz_c),'ibyz_c','crtwvfnctsdescriptors')
+  allocate(bounds%kb%ibxz_c(2,0:n1,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%kb%ibxz_c))*kind(bounds%kb%ibxz_c),'ibxz_c','crtwvfnctsdescriptors')
+  allocate(bounds%kb%ibxy_c(2,0:n1,0:n2),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%kb%ibxy_c))*kind(bounds%kb%ibxy_c),'ibxy_c','crtwvfnctsdescriptors')
+  allocate(bounds%kb%ibyz_f(2,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%kb%ibyz_f))*kind(bounds%kb%ibyz_f),'ibyz_f','crtwvfnctsdescriptors')
+  allocate(bounds%kb%ibxz_f(2,0:n1,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%kb%ibxz_f))*kind(bounds%kb%ibxz_f),'ibxz_f','crtwvfnctsdescriptors')
+  allocate(bounds%kb%ibxy_f(2,0:n1,0:n2),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%kb%ibxy_f))*kind(bounds%kb%ibxy_f),'ibxy_f','crtwvfnctsdescriptors')
+   
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
           '------------------------------------------------- Wavefunctions Descriptors Creation'
@@ -1700,9 +1618,9 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
 
   ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
   allocate(logrid_c(0:n1,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(logrid_c))*kind(logrid_c),'logrid_c','createwavefunctionsdescriptors')
+  call memocc(i_stat,product(shape(logrid_c))*kind(logrid_c),'logrid_c','crtwvfnctsdescriptors')
   allocate(logrid_f(0:n1,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(logrid_f))*kind(logrid_f),'logrid_f','createwavefunctionsdescriptors')
+  call memocc(i_stat,product(shape(logrid_f))*kind(logrid_f),'logrid_f','crtwvfnctsdescriptors')
 
   ! coarse grid quantities
   call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
@@ -1718,10 +1636,10 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
         enddo
      end do
   endif
-  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,nseg_c,nvctr_c)
+  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,wfd%nseg_c,wfd%nvctr_c)
   if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
-       'Coarse resolution grid: Number of segments= ',nseg_c,'points=',nvctr_c
-  call bounds(n1,n2,n3,logrid_c,ibyz_c,ibxz_c,ibxy_c)
+       'Coarse resolution grid: Number of segments= ',wfd%nseg_c,'points=',wfd%nvctr_c
+  call make_bounds(n1,n2,n3,logrid_c,bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c)
 
   ! fine grid quantities
   call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
@@ -1737,33 +1655,33 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
         enddo
      enddo
   endif
-  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,nseg_f,nvctr_f)
+  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,wfd%nseg_f,wfd%nvctr_f)
   if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
-       '  Fine resolution grid: Number of segments= ',nseg_f,'points=',nvctr_f
-  call bounds(n1,n2,n3,logrid_f,ibyz_f,ibxz_f,ibxy_f)
+       '  Fine resolution grid: Number of segments= ',wfd%nseg_f,'points=',wfd%nvctr_f
+  call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
 
   if (iproc.eq.0 .and. output_grid) close(22)
 
   ! allocations for arrays holding the wavefunctions and their data descriptors
-  allocate(keyg(2,nseg_c+nseg_f),stat=i_stat)
-  call memocc(i_stat,product(shape(keyg))*kind(keyg),'keyg','createwavefunctionsdescriptors')
-  allocate(keyv(nseg_c+nseg_f),stat=i_stat)
-  call memocc(i_stat,product(shape(keyv))*kind(keyv),'keyv','createwavefunctionsdescriptors')
+  allocate(wfd%keyg(2,wfd%nseg_c+wfd%nseg_f),stat=i_stat)
+  call memocc(i_stat,product(shape(wfd%keyg))*kind(wfd%keyg),'keyg','crtwvfnctsdescriptors')
+  allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f),stat=i_stat)
+  call memocc(i_stat,product(shape(wfd%keyv))*kind(wfd%keyv),'keyv','crtwvfnctsdescriptors')
 
   ! now fill the wavefunction descriptor arrays
   ! coarse grid quantities
-  call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,nseg_c,keyg(1,1),keyv(1))
+  call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,wfd%nseg_c,wfd%keyg(1,1),wfd%keyv(1))
 
   ! fine grid quantities
-  call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,nseg_f,keyg(1,nseg_c+1), &
-    & keyv(nseg_c+1))
+  call segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,wfd%nseg_f,wfd%keyg(1,wfd%nseg_c+1), &
+    & wfd%keyv(wfd%nseg_c+1))
 
   i_all=-product(shape(logrid_c))*kind(logrid_c)
   deallocate(logrid_c,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_c','createwavefunctionsdescriptors')
+  call memocc(i_stat,i_all,'logrid_c','crtwvfnctsdescriptors')
   i_all=-product(shape(logrid_f))*kind(logrid_f)
   deallocate(logrid_f,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_f','createwavefunctionsdescriptors')
+  call memocc(i_stat,i_all,'logrid_f','crtwvfnctsdescriptors')
 
 ! allocate wavefunction arrays
   norbme=max(min((iproc+1)*norbp,norb)-iproc*norbp,0)
@@ -1784,7 +1702,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
           ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
   end if
 
-  tt=dble(nvctr_c+7*nvctr_f)/dble(nproc)
+  tt=dble(wfd%nvctr_c+7*wfd%nvctr_f)/dble(nproc)
   nvctrp=int((1.d0-eps_mach*tt) + tt)
 
   if (iproc.eq.0) write(*,'(1x,a,i0)') &
@@ -1793,9 +1711,39 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
 
 !*********Alexey******************************************************************************
  
+  !allocate grow, shrink and real bounds
+  allocate(bounds%gb%ibzxx_c(2,0:n3,-14:2*n1+16),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%gb%ibzxx_c))*kind(bounds%gb%ibzxx_c),'ibzxx_c','crtwvfnctsdescriptors')
+  allocate(bounds%gb%ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%gb%ibxxyy_c))*kind(bounds%gb%ibxxyy_c),'ibxxyy_c','crtwvfnctsdescriptors')
+  allocate(bounds%gb%ibyz_ff(2,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%gb%ibyz_ff))*kind(bounds%gb%ibyz_ff),'ibyz_ff','crtwvfnctsdescriptors')
+  allocate(bounds%gb%ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%gb%ibzxx_f))*kind(bounds%gb%ibzxx_f),'ibzxx_f','crtwvfnctsdescriptors')
+  allocate(bounds%gb%ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%gb%ibxxyy_f))*kind(bounds%gb%ibxxyy_f),'ibxxyy_f','crtwvfnctsdescriptors')
+
+  allocate(bounds%sb%ibzzx_c(2,-14:2*n3+16,0:n1),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%sb%ibzzx_c))*kind(bounds%sb%ibzzx_c),'ibzzx_c','crtwvfnctsdescriptors')
+  allocate(bounds%sb%ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%sb%ibyyzz_c))*kind(bounds%sb%ibyyzz_c),'ibyyzz_c','crtwvfnctsdescriptors')
+  allocate(bounds%sb%ibxy_ff(2,nfl1:nfu1,nfl2:nfu2),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%sb%ibxy_ff))*kind(bounds%sb%ibxy_ff),'ibxy_ff','crtwvfnctsdescriptors')
+  allocate(bounds%sb%ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%sb%ibzzx_f))*kind(bounds%sb%ibzzx_f),'ibzzx_f','crtwvfnctsdescriptors')
+  allocate(bounds%sb%ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%sb%ibyyzz_f))*kind(bounds%sb%ibyyzz_f),'ibyyzz_f','crtwvfnctsdescriptors')
+
+  allocate(bounds%ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
+  call memocc(i_stat,product(shape(bounds%ibyyzz_r))*kind(bounds%ibyyzz_r),'ibyyzz_r','crtwvfnctsdescriptors')
+
+
   call make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
-       ibyz_c,ibzxx_c,ibxxyy_c,ibyz_f,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+       bounds%kb%ibxy_c,bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
+       bounds%kb%ibxy_f,bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
+       bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
+       bounds%kb%ibyz_f,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,&
+       bounds%ibyyzz_r)
 
 !***********************************************************************************************
 END SUBROUTINE createWavefunctionsDescriptors
@@ -2027,13 +1975,10 @@ subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, 
 END SUBROUTINE createProjectorsArrays
 
 subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-     nat,norb,norbp,occup,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
-     rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
+     nat,norb,norbp,occup,n1,n2,n3,nvctrp,hgrid,rxyz, & 
+     rhopot,pot_ion,wfd,bounds,nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
      atomnames,ntypes,iatype,pkernel,psppar,npspcode,ixc,&
-     psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar, &
-     ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-     ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+     psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
 
   use Poisson_Solver
 
@@ -2043,7 +1988,7 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
   character(len=20), dimension(100), intent(in) :: atomnames
   character(len=1), intent(in) :: datacode
   integer, intent(in) :: iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nprojel,nproj,ixc
-  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nvctrp,nseg_c,nseg_f
+  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
   integer, intent(in) :: nspin
   real(kind=8), dimension(norb), intent(in) :: spinar
   real(kind=8), intent(in) :: hgrid
@@ -2052,11 +1997,6 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
   integer, dimension(ntypes), intent(in) :: npspcode
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
-  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
-  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
   integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
   integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
   integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
@@ -2064,31 +2004,12 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(nprojel), intent(in) :: proj
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(convolutions_bounds), intent(in) :: bounds
   real(kind=8), dimension(*), intent(in) :: pkernel
   real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
   real(kind=8), dimension(norb), intent(out) :: eval
   real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
-  !real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: ppsi
-  !********************Alexey***************************************************************
-  !for shrink:
-  integer ibzzx_c(2,-14:2*n3+16,0:n1) 
-  integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
-
-  integer ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
-  integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
-  integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
-
-  !for grow:
-  integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
-  integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
-
-  integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
-  integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
-  integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
-
-  !for real space:
-  integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
-  !*****************************************************************************************
 
   !local variables
   integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp,jorb
@@ -2108,13 +2029,14 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
      allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
      call memocc(i_stat,product(shape(psi))*kind(psi),'psi','import_gaussians')
   else
-     allocate(psi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+     allocate(psi(nvctrp,norb),stat=i_stat)
      call memocc(i_stat,product(shape(psi))*kind(psi),'psi','import_gaussians')
   end if
 
   !read the values for the gaussian code and insert them on psi 
  call gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,occup,rxyz,hgrid,psi,eks)
+       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,&
+       iatype,occup,rxyz,hgrid,psi,eks)
 
 !!$  !!plot the initial gaussian wavefunctions
 !!$  !do i=2*iproc+1,2*iproc+2
@@ -2133,33 +2055,27 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
  ones(:)=1.0d0
 
  call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-      nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
-      (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,1,ones,&
-      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+      wfd,psi,rhopot,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,1,ones,&
+      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
  call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,1)
-
 
  if (parallel) then
     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
     allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','import_gaussians')
  else
-    allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+    allocate(hpsi(nvctrp,norbp),stat=i_stat)
     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','import_gaussians')
  end if
 
 
  call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
       psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-      nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
-      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,nscatterarr(iproc,2),&
-      rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
-      psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,ones,&
-      ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-      ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+      wfd,bounds,nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,&
+      ngatherarr,nscatterarr(iproc,2),rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
+      psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,ones)
 
   i_all=-product(shape(ones))*kind(ones)
   deallocate(ones,stat=i_stat)
@@ -2188,7 +2104,7 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
     call memocc(i_stat,product(shape(psit))*kind(psit),'psit','import_gaussians')
 
     call timing(iproc,'Un-TransSwitch','ON')
-    call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
+    call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,psit)
     call timing(iproc,'Un-TransSwitch','OF')
     call timing(iproc,'Un-TransComm  ','ON')
     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
@@ -2196,7 +2112,7 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
     call timing(iproc,'Un-TransComm  ','OF')
 
     call timing(iproc,'Un-TransSwitch','ON')
-    call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psit)
+    call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psit)
     call timing(iproc,'Un-TransSwitch','OF')
     call timing(iproc,'Un-TransComm  ','ON')
     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
@@ -2288,7 +2204,7 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
     call timing(iproc,'Un-TransComm  ','OF')
     call timing(iproc,'Un-TransSwitch','ON')
-    call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+    call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi)
     call timing(iproc,'Un-TransSwitch','OF')
 
  else !serial case
@@ -2325,7 +2241,7 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 
     !copy the values into hpsi
     do iorb=1,norb
-       do i=1,nvctr_c+7*nvctr_f
+       do i=1,wfd%nvctr_c+7*wfd%nvctr_f
           hpsi(i,iorb)=psi(i,iorb)
        end do
     end do
@@ -2343,13 +2259,10 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 END SUBROUTINE import_gaussians
 
 subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     nat,natsc,norb,norbp,n1,n2,n3,nvctr_c,nvctr_f,nvctrp,hgrid,rxyz, & 
-     rhopot,pot_ion,nseg_c,nseg_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
+     nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hgrid,rxyz, & 
+     rhopot,pot_ion,wfd,bounds,nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
      atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,&
-     ppsi,ppsit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar, &
-     ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-     ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+     ppsi,ppsit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors writes its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -2362,7 +2275,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   character(len=20), dimension(100), intent(in) :: atomnames
   character(len=1), intent(in) :: datacode
   integer, intent(in) :: iproc,nproc,nat,natsc,ntypes,norb,norbp,n1,n2,n3,nprojel,nproj,ixc
-  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nvctrp,nseg_c,nseg_f
+  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
   integer, intent(in) :: nspin
   real(kind=8), dimension(norb), intent(in) :: spinar
   real(kind=8), intent(in) :: hgrid
@@ -2371,42 +2284,18 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer, dimension(ntypes), intent(in) :: iasctype,npspcode,nzatom,nelpsp
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
-  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
-  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
   integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
   integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
   integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(nprojel), intent(in) :: proj
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(convolutions_bounds), intent(in) :: bounds
   real(kind=8), dimension(*), intent(in) :: pkernel
   real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
   real(kind=8), dimension(norb), intent(out) :: eval
   real(kind=8), dimension(:,:), pointer :: ppsi,ppsit
-  !real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: ppsi
-  !********************Alexey***************************************************************
-  !for shrink:
-  integer ibzzx_c(2,-14:2*n3+16,0:n1) 
-  integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
-
-  integer ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
-  integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
-  integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
-
-  !for grow:
-  integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
-  integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
-
-  integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
-  integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
-  integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
-
-  !for real space:
-  integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
-!*****************************************************************************************
 
   !local variables
   real(kind=8), parameter :: eps_mach=1.d-12
@@ -2456,7 +2345,30 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        & npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,&
        & norbsc_arr)
 
-  !  allocate wavefunctions and their occupation numbers
+  ! Check the number of orbitals
+  if (nspin==1) then
+     if (norb>norbe) then
+       if (iproc==0) write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',norb,&
+              ') must not be greater than the number of orbitals (',norbe,&
+              ') generated from the input guess.'
+       stop
+     end if
+  else
+     if (norbu>norbe) then
+       if (iproc==0) write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',norbu,&
+              ') must not be greater than the number of orbitals (',norbe,&
+              ') generated from the input guess.'
+       stop
+     end if
+     if (norbd>norbe) then
+       if (iproc==0) write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',norbd,&
+              ') must not be greater than the number of orbitals (',norbe,&
+              ') generated from the input guess.'
+       stop
+     end if
+  end if
+
+! Allocate wavefunctions and their occupation numbers
   allocate(occupe(norbe),stat=i_stat)
   call memocc(i_stat,product(shape(occupe))*kind(occupe),'occupe','input_wf_diag')
   tt=dble(norbe)/dble(nproc)
@@ -2485,15 +2397,15 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      allocate(psi(nvctrp,norbep*nproc),stat=i_stat)
      call memocc(i_stat,product(shape(psi))*kind(psi),'psi','input_wf_diag')
   else
-     allocate(psi(nvctr_c+7*nvctr_f,norbep),stat=i_stat)
+     allocate(psi(nvctrp,norbe),stat=i_stat)
      call memocc(i_stat,product(shape(psi))*kind(psi),'psi','input_wf_diag')
   end if
 
   ! Create input guess orbitals
   call createAtomicOrbitals(iproc,nproc,atomnames,&
        nat,rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
-       nvctr_c,nvctr_f,n1,n2,n3,hgrid,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       nseg_c,nseg_f,keyg,keyv,iatype,ntypes,iasctype,natsc,psi,eks,scorb)
+       wfd%nvctr_c,wfd%nvctr_f,n1,n2,n3,hgrid,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+       wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,iatype,ntypes,iasctype,natsc,psi,eks,scorb)
 
 !!$  !!plot the initial LCAO wavefunctions
 !!$  !do i=2*iproc+1,2*iproc+2
@@ -2532,10 +2444,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   ones(:)=1.0d0
 
   call sumrho(parallel,iproc,nproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
-          nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,rhopot,&
-          (2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,1,ones, &
-          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+          wfd,psi,rhopot,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,1,ones, &
+          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
   call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,1)
@@ -2545,18 +2455,15 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      allocate(hpsi(nvctrp,norbep*nproc),stat=i_stat)
      call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
   else
-     allocate(hpsi(nvctr_c+7*nvctr_f,norbep),stat=i_stat)
+     allocate(hpsi(nvctrp,norbe),stat=i_stat)
      call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
   end if
 
   call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
        psppar,npspcode,norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
-       nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,nscatterarr(iproc,2),&
-       rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,ones,&
-       ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-       ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+       wfd,bounds,nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,&
+       ngatherarr,nscatterarr(iproc,2),rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
+       psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,ones)
 
   i_all=-product(shape(ones))*kind(ones)
   deallocate(ones,stat=i_stat)
@@ -2594,11 +2501,11 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      allocate(psiw(nvctrp,norbep,nproc),stat=i_stat)
      call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','input_wf_diag')
 
-     call switch_waves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,psi,psiw)
+     call switch_waves(iproc,nproc,norbe,norbep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,psiw)
      call MPI_ALLTOALL(psiw,nvctrp*norbep,MPI_DOUBLE_PRECISION,  &
           psi,nvctrp*norbep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
 
-     call switch_waves(iproc,nproc,norbe,norbep,nvctr_c,nvctr_f,nvctrp,hpsi,psiw)
+     call switch_waves(iproc,nproc,norbe,norbep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psiw)
      call MPI_ALLTOALL(psiw,nvctrp*norbep,MPI_DOUBLE_PRECISION,  &
           hpsi,nvctrp*norbep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
 
@@ -2813,7 +2720,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      call memocc(i_stat,product(shape(ppsi))*kind(ppsi),'ppsi','input_wf_diag')
 
      call timing(iproc,'Un-TransSwitch','ON')
-     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psiw,ppsi)
+     call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psiw,ppsi)
      call timing(iproc,'Un-TransSwitch','OF')
 
      i_all=-product(shape(psiw))*kind(psiw)
@@ -2927,7 +2834,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      write(*,'(1x,a)',advance='no')'Building orthogonal Input Wavefunctions...'
 
      !allocate the wavefunction
-     allocate(ppsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+     allocate(ppsi(nvctrp,norb),stat=i_stat)
      call memocc(i_stat,product(shape(ppsi))*kind(ppsi),'ppsi','input_wf_diag')
 
      !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
@@ -3101,7 +3008,6 @@ subroutine read_input_variables(iproc,in)
   in%frmult = real(frmult,kind=8)
   in%cpmult = real(cpmult,kind=8)
   in%fpmult = real(fpmult,kind=8)
-  if (in%fpmult.gt.in%frmult) write(*,*) ' NONSENSE: fpmult > frmult'
   read(1,*,iostat=ierror) in%ixc
   read(1,*,iostat=ierror) in%ncharge,in%elecfield
   read(1,*,iostat=ierror) in%gnrm_cv
@@ -3112,6 +3018,7 @@ subroutine read_input_variables(iproc,in)
   read(1,*,iostat=ierror) in%rbuf
   read(1,*,iostat=ierror) in%ncongt
   read(1,*,iostat=ierror) in%nspin,in%mpol
+  read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
 
   if (ierror/=0) then
      write(*,'(1x,a)') 'Error while reading the file "input.dat"'
@@ -3122,11 +3029,17 @@ subroutine read_input_variables(iproc,in)
 
   !these values are hard-coded for the moment but they can be entered in the input file
   !in case of need also other variables can be entered without any changements
-  in%output_grid=.false. 
-  in%inputPsiId=0
-  in%output_wf=.false. 
 
-  if (iproc == 0) then
+!Check some parameters
+  if (in%ixc<=0) then
+     write(*,'(1x,a)') 'The parameter "ixc" (exchange-correlation) should be strictly greater than 0'
+     stop
+  end if
+
+  if (iproc==0) then
+     !Warning
+     if (in%fpmult > in%frmult) write(*,*) ' NONSENSE: fpmult > frmult'
+     !Display
      write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
      write(*,'(1x,a,1pe10.2)') 'Convergence criterion for forces: fraction of noise ',&
           in%frac_fluct

@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 26/10/2006
+# Date: 29/10/2007
 #----------------------------------------------------------------------------
 
 import difflib
@@ -14,9 +14,6 @@ import re
 import sys
 
 re_float = re.compile("([- ]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
-
-def give_text_floats(text):
-    return (new,floats)
 
 def usage():
     print "fldiff.py file1 file2"
@@ -110,11 +107,17 @@ while not EOF:
                     context_discrepancy = " (line %s)" % context.split(",")[0][4:]
                     max_discrepancy = max(max_discrepancy,tt)
         else:
-            print "The number of floating point differs"
-#
-#if n1 > n2:
-#    print "The file '%s' has more lines (%d) than the file '%s'." % (file1,n1-n2,file2) 
-#elif n2 > n1:
-#    print "The file '%s' has more lines (%d) than the file '%s'." % (file2,n2-n1,file1) 
-#
-print "Max Discrepancy%s: " % context_discrepancy,max_discrepancy
+            print "%s the number of floating point differs" % context[:-1]
+    #Add lines if necessary
+    if (n1 == 0 and n2 != 0) or (n1 != 0 and n2 == 0):
+        print context,
+    while i1 < n1-1:
+        i1 += 1
+        print left[i1],
+    while i2 < n2-1:
+        i2 += 1
+        print right[i2],
+
+
+print "Max Discrepancy%s:" % context_discrepancy,max_discrepancy
+
