@@ -1009,7 +1009,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         call KStrans_p(iproc,nproc,norbu,norbup,nvctrp,occup,hpsi,psit,evsum,eval)
         evpart=evsum
         if(norbd>0) then
-           call KStrans_p(iproc,nproc,norbd,norbdp,nvctrp,occup,hpsi(1:,norbu+1:),psit(1:,norbu+1:),evsum,eval)
+           call KStrans_p(iproc,nproc,norbd,norbdp,nvctrp,occup,hpsi(1,norbu+1),psit(1,norbu+1),evsum,eval(norbu+1))
            evsum=evsum+evpart
         end if
      end if
@@ -1036,7 +1036,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
         call KStrans(norbu,norbup,nvctrp,occup,hpsi,psi,evsum,eval)
         evpart=evsum
         if(norbd>0) then
-           call KStrans(norbd,norbdp,nvctrp,occup,hpsi(1:,norbu+1:),psi(1:,norbu+1:),evsum,eval(norbu+1:))
+           call KStrans(norbd,norbdp,nvctrp,occup,hpsi(1,norbu+1),psi(1,norbu+1),evsum,eval(norbu+1))
            evpart=evsum
         end if
      end if
@@ -1221,7 +1221,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames, rxyz, energ
              MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
         if(npsin==2) then
            call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh,2),(2*n1+31)*(2*n2+31)*n3p,MPI_DOUBLE_PRECISION, &
-                pot(1,1,1,1),ngatherarr(0,1),ngatherarr(0,2), & 
+                pot(1,1,1,2),ngatherarr(0,1),ngatherarr(0,2), & 
                 MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
         end if
      else
