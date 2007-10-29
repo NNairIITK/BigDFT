@@ -149,21 +149,18 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
 end subroutine local_forces
 
 subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, & 
-     ntypes,nat,norb,nprojel,nproj,&
-     iatype,psppar,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,  &
-     keyg,keyv,keyg_p,keyv_p,rxyz,radii_cf,cpmult,fpmult,hgrid,derproj)
+     ntypes,nat,norb,nprojel,nproj,iatype,psppar,nseg_p,nvctr_p,proj,  &
+     keyg_p,keyv_p,rxyz,radii_cf,cpmult,fpmult,hgrid,derproj)
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and ads them to the force array
   
   implicit none
   !Arguments-------------
   integer, intent(in) :: iproc,ntypes,nat,norb,nprojel,nproj
-  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f
+  integer, intent(in) :: n1,n2,n3
   real(kind=8),intent(in) :: cpmult,fpmult,hgrid 
   integer, dimension(nat), intent(in) :: iatype
   integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
   integer, dimension(2,3,nat), intent(in) :: nboxp_c,nboxp_f
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
   integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
   real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
@@ -279,18 +276,18 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, &
 end subroutine projectors_derivatives
 
 subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
-     iatype,psppar,npspcode,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,nseg_p,nvctr_p,proj,derproj,  &
-     keyg,keyv,keyg_p,keyv_p,psi,fsep)
+     iatype,psppar,npspcode,occup,nseg_p,nvctr_p,proj,derproj,  &
+     keyg_p,keyv_p,wfd,psi,fsep)
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and adds them to the force array
   
+  use libBigDFT
+
   implicit none
   !Arguments-------------
+  type(wavefunctions_descriptors), intent(in) :: wfd
   integer, intent(in) :: iproc,ntypes,nat,norb,norbp,nprojel,nproj
-  integer, intent(in) :: nseg_c,nseg_f,nvctr_c,nvctr_f
   integer, dimension(nat), intent(in) :: iatype
   integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
   integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
   real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
@@ -298,7 +295,7 @@ subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
   real(kind=8), dimension(norb), intent(in) :: occup
   real(kind=8), dimension(nprojel), intent(in) :: proj
   real(kind=8), dimension(nprojel,3), intent(in) :: derproj
-  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
+  real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
   real(kind=8), dimension(3,nat), intent(inout) :: fsep
   !Local Variables--------------
   real(kind=8), dimension(:,:), allocatable :: fxyz_orb
@@ -380,9 +377,10 @@ subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
                  istart_f=istart_c+mbvctr_c
 
                  call wpdot(  &
-                      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                      keyg(1,1),keyg(1,nseg_c+1),&
-                      psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),  &
+                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
+                      wfd%keyv(1),wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,1),&
+                      wfd%keyg(1,wfd%nseg_c+1),&
+                      psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),  &
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
                       keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
                       proj(istart_c),proj(istart_f),scalprod(0,l,i,m))
@@ -390,9 +388,10 @@ subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
                  ! scalar product with the derivatives in all the directions
                  do idir=1,3
                     call wpdot(  &
-                         nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                         keyg(1,1),keyg(1,nseg_c+1),&
-                         psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp), &
+                         wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
+                         wfd%keyv(1),wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,1),&
+                         wfd%keyg(1,wfd%nseg_c+1),&
+                         psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp), &
                          mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
                          keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
                          derproj(istart_c,idir),derproj(istart_f,idir),scalprod(idir,l,i,m))

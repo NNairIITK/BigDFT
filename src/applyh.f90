@@ -1,55 +1,33 @@
 subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
      psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
-     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,n3p,&
-     potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar,&
-     ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-     ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+     wfd,bounds,nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,n3p,&
+     potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)
+
+  use libBigDFT
 
   implicit none
   include 'mpif.h'
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(convolutions_bounds), intent(in) :: bounds
   logical, intent(in) :: parallel
   character(len=1), intent(in) :: datacode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nat,ntypes,nproj,nprojel,n3p
-  integer, intent(in) :: nseg_c,nseg_f,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctr_c,nvctr_f,nspin
+  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin
   real(kind=8), intent(in) :: hgrid
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
   integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
   integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
   integer, dimension(ntypes), intent(in) :: npspcode
   integer, dimension(nat), intent(in) :: iatype
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
-  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
-  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
   real(kind=8), dimension(norb), intent(in) :: occup,spinar
   real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
-  real(kind=8), dimension(*), intent(in) :: potential
   real(kind=8), dimension(nprojel), intent(in) :: proj
-  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
-  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: hpsi
+  real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
+  real(kind=8), dimension(*), intent(in) :: potential
+  real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: hpsi
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
-  !********************Alexey***************************************************************
-  !for shrink:
-  integer ibzzx_c(2,-14:2*n3+16,0:n1) 
-  integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
 
-  integer ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
-  integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
-  integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
-
-  !for grow:
-  integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
-  integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
-
-  integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
-  integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
-  integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
-
-  !for real space:
-  integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
 
   !local variables
   integer :: i_all,i_stat,ierr,iorb
@@ -80,11 +58,14 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
              ngatherarr(0,2),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
      end if
      call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
-          hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
-          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+          hgrid,occup,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
+          bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c,&
+          bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f, &
           psi,pot,hpsi,epot_sum,ekin_sum,nspin,spinar,&
-          ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-          ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+          bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
+          bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
+          bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
+          bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,bounds%ibyyzz_r)
 
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
@@ -93,12 +74,14 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
   else
 
      call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
-          hgrid,occup,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,&
-          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+          hgrid,occup,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
+          bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c,&
+          bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f, &
           psi,potential,hpsi,epot_sum,ekin_sum,nspin,spinar,&
-          ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-          ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
-
+          bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
+          bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
+          bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
+          bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,bounds%ibyyzz_r)
   end if
 
   call timing(iproc,'ApplyLocPotKin','OF')
@@ -111,15 +94,11 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
      call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
           nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-          nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,  & 
+          wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,wfd%nvctr_c,wfd%nvctr_f,  & 
           psi(1,iorb-iproc*norbp),hpsi(1,iorb-iproc*norbp),eproj)
      eproj_sum=eproj_sum+occup(iorb)*eproj
      !     write(*,*) 'iorb,eproj',iorb,eproj
   enddo
-
-!!$  call applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
-!!$       nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-!!$       norb,norbp,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
 
   call timing(iproc,'ApplyProj     ','OF')
 

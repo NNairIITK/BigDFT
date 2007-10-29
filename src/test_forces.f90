@@ -37,14 +37,12 @@ program test_forces
   real(kind=8) :: energy,energy0,FxdRx,FydRy,FzdRz,path,sumx,sumy,sumz,dx
   logical :: parallel=.true.
   real(kind=8), pointer :: psi(:,:), eval(:)
-  integer, pointer :: keyg(:,:), keyv(:)
-  integer :: nseg_c, nseg_f, nvctr_c, nvctr_f
   integer :: norb, norbp, n1, n2, n3,i_all,i_stat,infocode
   real(kind=8) :: hgrid
   integer :: ixc,ncharge,itermax,ncong,idsx,ncongt
   real(kind=8) :: crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf
   type(input_variables) :: inputs
-
+  type(wavefunctions_descriptors) :: wfd
 
   !Body
   !Start MPI in parallel version
@@ -111,8 +109,7 @@ program test_forces
   inputs%calc_tail=.false.
   inputs%calc_tail=.false.
   call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
-       psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-       n1,n2,n3,rxyz_old,inputs,infocode)
+       psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs,infocode)
   
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
@@ -120,11 +117,11 @@ program test_forces
   i_all=-product(shape(eval))*kind(eval)
   deallocate(eval,stat=i_stat)
   call memocc(i_stat,i_all,'eval','test_forces')
-  i_all=-product(shape(keyg))*kind(keyg)
-  deallocate(keyg,stat=i_stat)
+  i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
+  deallocate(wfd%keyg,stat=i_stat)
   call memocc(i_stat,i_all,'keyg','test_forces')
-  i_all=-product(shape(keyv))*kind(keyv)
-  deallocate(keyv,stat=i_stat)
+  i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
+  deallocate(wfd%keyv,stat=i_stat)
   call memocc(i_stat,i_all,'keyv','test_forces')
 
   allocate(weight(n),stat=i_stat)
@@ -157,8 +154,7 @@ program test_forces
      if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
-       psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-       n1,n2,n3,rxyz_old,inputs,infocode)
+       psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs,infocode)
 
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)
@@ -166,11 +162,11 @@ program test_forces
      i_all=-product(shape(eval))*kind(eval)
      deallocate(eval,stat=i_stat)
      call memocc(i_stat,i_all,'eval','test_forces')
-     i_all=-product(shape(keyg))*kind(keyg)
-     deallocate(keyg,stat=i_stat)
+     i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
+     deallocate(wfd%keyg,stat=i_stat)
      call memocc(i_stat,i_all,'keyg','test_forces')
-     i_all=-product(shape(keyv))*kind(keyv)
-     deallocate(keyv,stat=i_stat)
+     i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
+     deallocate(wfd%keyv,stat=i_stat)
      call memocc(i_stat,i_all,'keyv','test_forces')
      
 

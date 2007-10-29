@@ -17,12 +17,11 @@ program BigDFT
   character(len=80) :: line
   integer :: iproc,nproc,nat,ntypes,n1,n2,n3,iat,ityp,j,i_stat,i_all,ierr,infocode
   integer :: ncount_cluster
-  !wavefunction data descriptors
-  integer :: nvctr_c,nvctr_f,nseg_c,nseg_f
   integer :: norb,norbp
   real(kind=8) :: energy,etot,energyold,beta,sumx,sumy,sumz,tt
   !input variables
   type(input_variables) :: inputs
+  type(wavefunctions_descriptors) :: wfd
 
   logical, dimension(:), allocatable :: lfrztyp
   character(len=6), dimension(:), allocatable :: frzsymb
@@ -32,9 +31,6 @@ program BigDFT
   ! atomic coordinates, forces
   real(kind=8), dimension(:,:), allocatable :: rxyz,fxyz,rxyz_old
  
-  !pointer variables, some of them can be easily put into structures at this level
-  integer, dimension(:), pointer :: keyv
-  integer, dimension(:,:), pointer :: keyg
   real(kind=8), dimension(:), pointer :: eval
   real(kind=8), dimension(:,:), pointer :: psi
 
@@ -154,8 +150,7 @@ program BigDFT
   enddo
 
   call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
-       psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-       n1,n2,n3,rxyz_old,inputs,infocode)
+       psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs,infocode)
 
   if (inputs%ncount_cluster_x > 1) then
      if (iproc ==0 ) write(*,"(a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
@@ -168,8 +163,7 @@ program BigDFT
      beta=inputs%betax
      energyold=1.d100
      call conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,rxyz,etot,fxyz,&
-          psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-          n1,n2,n3,rxyz_old,ncount_cluster,inputs)
+          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,inputs)
   end if
 
   if (iproc.eq.0) then
@@ -196,6 +190,8 @@ program BigDFT
   deallocate(lfrztyp,stat=i_stat)
   call memocc(i_stat,i_all,'lfrztyp','BigDFT')
 
+  call deallocate_wfd(wfd,'BigDFT')
+
   i_all=-product(shape(atomnames))*kind(atomnames)
   deallocate(atomnames,stat=i_stat)
   call memocc(i_stat,i_all,'atomnames','BigDFT')
@@ -205,12 +201,6 @@ program BigDFT
   i_all=-product(shape(eval))*kind(eval)
   deallocate(eval,stat=i_stat)
   call memocc(i_stat,i_all,'eval','BigDFT')
-  i_all=-product(shape(keyg))*kind(keyg)
-  deallocate(keyg,stat=i_stat)
-  call memocc(i_stat,i_all,'keyg','BigDFT')
-  i_all=-product(shape(keyv))*kind(keyv)
-  deallocate(keyv,stat=i_stat)
-  call memocc(i_stat,i_all,'keyv','BigDFT')
   i_all=-product(shape(rxyz))*kind(rxyz)
   deallocate(rxyz,stat=i_stat)
   call memocc(i_stat,i_all,'rxyz','BigDFT')
@@ -233,11 +223,11 @@ program BigDFT
  contains
 
    subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg, &
-         psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-         n1,n2,n3,rxyz_old,ncount_cluster,in)
+         psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,in)
      use libBigDFT
      implicit real(kind=8) (a-h,o-z)
      implicit integer (i-n) !this line is added in view of the changement to implicit none
+     type(wavefunctions_descriptors) :: wfd
      logical :: parallel
      integer :: iatype(nat)
      logical :: lfrztyp(ntypes)
@@ -266,8 +256,7 @@ program BigDFT
 
      if (in%betax <= 0.d0) then
         call detbetax(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,&
-             psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-             n1,n2,n3,rxyz_old,in)
+             psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in)
      endif
 
      avbeta=0.d0
@@ -275,8 +264,7 @@ program BigDFT
      nfail=0
      !        call steepdes(nat,fnrmtol,betax,alat,wpos,gg,etot,count_sd)
      call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg,&
-          psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-          n1,n2,n3,rxyz_old,ncount_cluster,fluct,flucto,fluctoo,fnrm,in)
+          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,fluct,flucto,fluctoo,fnrm,in)
 
      if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) then
         if (iproc.eq.0) write(16,*) 'Converged before entering CG',iproc
@@ -314,8 +302,7 @@ program BigDFT
      in%output_grid=.false.
      in%output_wf=.false.
      call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,tpos,tetot,gp,&
-          psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-          n1,n2,n3,rxyz_old,in,infocode)
+          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
      do iat=1,nat
         rxyz_old(1,iat)=tpos(1,iat) 
@@ -363,8 +350,7 @@ program BigDFT
 
 !        call energyandforces(nat,alat,wpos,gg,etot,count_cg)
      call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,gg,&
-          psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-          n1,n2,n3,rxyz_old,in,infocode)
+          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
      do iat=1,nat
         rxyz_old(1,iat) = wpos(1,iat) 
@@ -394,8 +380,7 @@ program BigDFT
         end do
 
      call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg,&
-          psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-          n1,n2,n3,rxyz_old,ncount_cluster,fluct,flucto,fluctoo,fnrm,in)
+          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,fluct,flucto,fluctoo,fnrm,in)
 
         goto 12345
 
@@ -446,8 +431,8 @@ program BigDFT
         end do
 
         call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg,&
-             psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-             n1,n2,n3,rxyz_old,ncount_cluster,fluct,flucto,fluctoo,fnrm,in)
+             psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,&
+             fluct,flucto,fluctoo,fnrm,in)
         
         nfail=nfail+1
         if (nfail.ge.100) stop 'too many failures of CONJG'
@@ -487,8 +472,8 @@ program BigDFT
 
 
    subroutine steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,ff,&
-             psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-             n1,n2,n3,rxyz_old,ncount_cluster,fluct,flucto,fluctoo,fnrm,in)
+             psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,&
+             fluct,flucto,fluctoo,fnrm,in)
      use libBigDFT
      implicit real(kind=8) (a-h,o-z)
      implicit integer (i-n) !this line is added in view of the changement to implicit none
@@ -496,6 +481,7 @@ program BigDFT
      integer :: iatype(nat)
      logical :: lfrztyp(ntypes)
      type(input_variables) :: in
+     type(wavefunctions_descriptors) :: wfd
      character(len=20) :: atomnames(100)
      real(kind=8), pointer :: psi(:,:), eval(:)
      integer, pointer :: keyv(:), keyg(:,:)
@@ -541,8 +527,7 @@ program BigDFT
      in%output_grid=.false.
      in%output_wf=.false.
      call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,ff,&
-          psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-          n1,n2,n3,rxyz_old,in,infocode)
+          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
      ncount_cluster=ncount_cluster+1
      do iat=1,nat
@@ -664,8 +649,7 @@ program BigDFT
    end subroutine steepdes
 
    subroutine detbetax(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,pos,&
-        psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-        n1,n2,n3,rxyz_old,in)
+        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in)
      ! determines stepsize betax
      use libBigDFT
      implicit real(kind=8) (a-h,o-z)
@@ -674,6 +658,7 @@ program BigDFT
      integer :: iatype(nat)
      logical :: lfrztyp(ntypes)
      type(input_variables) :: in
+     type(wavefunctions_descriptors) :: wfd
      character(len=20) :: atomnames(100)
      real(kind=8), pointer :: psi(:,:), eval(:)
      integer, pointer :: keyv(:), keyg(:,:)
@@ -698,8 +683,7 @@ program BigDFT
      in%output_grid=.false.
      in%output_wf=.false.
      call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,pos,etotm1,ff,&
-          psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-          n1,n2,n3,rxyz_old,in,infocode)
+          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
      ncount_cluster=ncount_cluster+1
      do iat=1,nat
         rxyz_old(1,iat) = pos(1,iat)
@@ -725,8 +709,7 @@ program BigDFT
         !        call energyandforces(nat,alat,pos,gg,etot0,count)
 
      call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,pos,etot0,gg,&
-          psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-          n1,n2,n3,rxyz_old,in,infocode)
+          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
      ncount_cluster=ncount_cluster+1
      do iat=1,nat
@@ -758,8 +741,7 @@ program BigDFT
      enddo
         !        call energyandforces(nat,alat,tpos,gg,etotp1,count)
      call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,tpos,etotp1,gg,&
-          psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-          n1,n2,n3,rxyz_old,in,infocode)
+          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
      ncount_cluster=ncount_cluster+1
      do iat=1,nat
@@ -809,14 +791,13 @@ program BigDFT
 
    
    subroutine call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
-        psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
-        n1,n2,n3,rxyz_old,in,infocode)
+        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
      use libBigDFT
      implicit none
      type(input_variables) :: in
+     type(wavefunctions_descriptors) :: wfd
      logical, intent(in) :: parallel
      integer, intent(in) :: iproc,nproc,nat,ntypes,norbp,norb
-     integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f
      integer, intent(inout) :: infocode,n1,n2,n3
      integer :: i_stat,i_all,ierr,inputPsiId_orig
      real(kind=8), intent(out) :: energy
@@ -825,8 +806,6 @@ program BigDFT
      real(kind=8), dimension(3,nat), intent(in) :: rxyz_old
      real(kind=8), dimension(3,nat), intent(inout) :: rxyz
      real(kind=8), dimension(3,nat), intent(out) :: fxyz
-     integer, dimension(:), pointer :: keyv
-     integer, dimension(:,:), pointer :: keyg
      real(kind=8), dimension(:), pointer :: eval
      real(kind=8), dimension(:,:), pointer :: psi
 
@@ -841,16 +820,12 @@ program BigDFT
            i_all=-product(shape(eval))*kind(eval)
            deallocate(eval,stat=i_stat)
            call memocc(i_stat,i_all,'eval','call_cluster')
-           i_all=-product(shape(keyg))*kind(keyg)
-           deallocate(keyg,stat=i_stat)
-           call memocc(i_stat,i_all,'keyg','call_cluster')
-           i_all=-product(shape(keyv))*kind(keyv)
-           deallocate(keyv,stat=i_stat)
-           call memocc(i_stat,i_all,'keyv','call_cluster')
+
+           call deallocate_wfd(wfd,'call_cluster')
         end if
 
         call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
-             psi,keyg,keyv,nvctr_c,nvctr_f,nseg_c,nseg_f,norbp,norb,eval,&
+             psi,wfd,norbp,norb,eval,&
              n1,n2,n3,rxyz_old,in,infocode)
 
         if (in%inputPsiId==1 .and. infocode==2) then
@@ -868,13 +843,8 @@ program BigDFT
            i_all=-product(shape(eval))*kind(eval)
            deallocate(eval,stat=i_stat)
            call memocc(i_stat,i_all,'eval','call_cluster')
-           i_all=-product(shape(keyg))*kind(keyg)
-           deallocate(keyg,stat=i_stat)
-           call memocc(i_stat,i_all,'keyg','call_cluster')
-           i_all=-product(shape(keyv))*kind(keyv)
-           deallocate(keyv,stat=i_stat)
-           call memocc(i_stat,i_all,'keyv','call_cluster')
 
+           call deallocate_wfd(wfd,'call_cluster')
            !finalize memory counting (there are still the positions and the forces allocated)
            call memocc(0,0,'count','stop')
 

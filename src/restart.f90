@@ -1,13 +1,14 @@
-subroutine reformatmywaves(iproc, norb, norbp, nat, &
-     & hgrid_old, nvctr_c_old, nvctr_f_old, n1_old, n2_old, n3_old, rxyz_old, &
-     & nseg_c_old, nseg_f_old, keyg_old, keyv_old, psi_old, &
-     & hgrid, nvctr_c, nvctr_f, n1, n2, n3, rxyz, &
-     & nseg_c, nseg_f, keyg, keyv, psi)
+subroutine reformatmywaves(iproc,norb,norbp,nat,&
+     & hgrid_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
+     & hgrid,n1,n2,n3,rxyz,wfd,psi)
+
+  use libBigDFT
+
   implicit real(kind=8) (a-h,o-z)
+  type(wavefunctions_descriptors), intent(in) :: wfd,wfd_old
   dimension :: rxyz(3,nat), rxyz_old(3,nat), center(3), center_old(3)
-  dimension :: keyg_old(2, nseg_c_old + nseg_f_old), keyv_old(nseg_c_old + nseg_f_old)
-  dimension :: keyg(2, nseg_c + nseg_f), keyv(nseg_c + nseg_f)
-  dimension :: psi_old(nvctr_c_old + 7 * nvctr_f_old, norbp), psi(nvctr_c + 7 * nvctr_f, norbp)
+  dimension :: psi_old(wfd_old%nvctr_c + 7 * wfd_old%nvctr_f, norbp), &
+       psi(wfd%nvctr_c + 7 * wfd%nvctr_f, norbp)
   logical :: reformat
 
   allocatable :: psifscf(:,:,:), psigold(:,:,:,:,:,:)
@@ -16,20 +17,34 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
   call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','reformatmywaves')
 
   ! calculate center of molecule
-  c1=0.d0 ; c2=0.d0 ; c3=0.d0
+  c1=0.d0 
+  c2=0.d0 
+  c3=0.d0
   do iat=1,nat
-     c1=c1+rxyz(1,iat) ; c2=c2+rxyz(2,iat) ; c3=c3+rxyz(3,iat)
+     c1=c1+rxyz(1,iat) 
+     c2=c2+rxyz(2,iat) 
+     c3=c3+rxyz(3,iat)
   enddo
-  center(1)=c1/real(nat,kind=8) ; center(2)=c2/real(nat,kind=8) ; center(3)=c3/real(nat,kind=8)
-  c1=0.d0 ; c2=0.d0 ; c3=0.d0
+  center(1)=c1/real(nat,kind=8) 
+  center(2)=c2/real(nat,kind=8)
+  center(3)=c3/real(nat,kind=8)
+
+  c1=0.d0 
+  c2=0.d0 
+  c3=0.d0
   do iat=1,nat
-     c1=c1+rxyz_old(1,iat) ; c2=c2+rxyz_old(2,iat) ; c3=c3+rxyz_old(3,iat)
+     c1=c1+rxyz_old(1,iat) 
+     c2=c2+rxyz_old(2,iat) 
+     c3=c3+rxyz_old(3,iat)
   enddo
-  center_old(1)=c1/real(nat,kind=8) ; center_old(2)=c2/real(nat,kind=8) ; center_old(3)=c3/real(nat,kind=8)
+  center_old(1)=c1/real(nat,kind=8) 
+  center_old(2)=c2/real(nat,kind=8) 
+  center_old(3)=c3/real(nat,kind=8)
 
   !reformatting criterion
-  if (hgrid_old.eq. hgrid .and. nvctr_c_old.eq.nvctr_c .and. nvctr_f_old.eq.nvctr_f  & 
-       .and. n1_old.eq.n1  .and. n2_old.eq.n2 .and. n3_old.eq.n3  .and.  &
+  if (hgrid_old.eq. hgrid .and. wfd_old%nvctr_c.eq.wfd%nvctr_c .and. &
+       wfd_old%nvctr_f .eq. wfd%nvctr_f .and.&
+       n1_old.eq.n1  .and. n2_old.eq.n2 .and. n3_old.eq.n3  .and.  &
        abs(center(1)-center_old(1)).lt.1.d-3 .and. &
        abs(center(2)-center_old(2)).lt.1.d-3 .and. &
        abs(center(3)-center_old(3)).lt.1.d-3  ) then
@@ -47,12 +62,12 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
         if (hgrid_old.ne.hgrid) then 
            write(*,"(4x,a,1pe20.12)") &
                 '  hgrid_old >< hgrid  ',hgrid_old, hgrid
-        else if (nvctr_c_old.ne.nvctr_c) then
+        else if (wfd_old%nvctr_c.ne.wfd%nvctr_c) then
            write(*,"(4x,a,2i8)") &
-                'nvctr_c_old >< nvctr_c',nvctr_c_old,nvctr_c
-        else if (nvctr_f_old.ne.nvctr_f)  then
+                'nvctr_c_old >< nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
+        else if (wfd_old%nvctr_f.ne.wfd%nvctr_f)  then
            write(*,"(4x,a,2i8)") &
-                'nvctr_f_old >< nvctr_f',nvctr_f_old,nvctr_f
+                'nvctr_f_old >< nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
         else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then  
            write(*,"(4x,a,6i5)") &
                 'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
@@ -71,17 +86,17 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
 
      if (.not. reformat) then
 
-        do j=1,nvctr_c_old
+        do j=1,wfd_old%nvctr_c
            psi(j,iorb-iproc*norbp)=psi_old(j, iorb - iproc * norbp)
         enddo
         do j=1,7*nvctr_f_old-6,7
-           psi(nvctr_c+j+0,iorb-iproc*norbp)=psi_old(nvctr_c+j+0,iorb-iproc*norbp)
-           psi(nvctr_c+j+1,iorb-iproc*norbp)=psi_old(nvctr_c+j+1,iorb-iproc*norbp)
-           psi(nvctr_c+j+2,iorb-iproc*norbp)=psi_old(nvctr_c+j+2,iorb-iproc*norbp)
-           psi(nvctr_c+j+3,iorb-iproc*norbp)=psi_old(nvctr_c+j+3,iorb-iproc*norbp)
-           psi(nvctr_c+j+4,iorb-iproc*norbp)=psi_old(nvctr_c+j+4,iorb-iproc*norbp)
-           psi(nvctr_c+j+5,iorb-iproc*norbp)=psi_old(nvctr_c+j+5,iorb-iproc*norbp)
-           psi(nvctr_c+j+6,iorb-iproc*norbp)=psi_old(nvctr_c+j+6,iorb-iproc*norbp)
+           psi(wfd%nvctr_c+j+0,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+0,iorb-iproc*norbp)
+           psi(wfd%nvctr_c+j+1,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+1,iorb-iproc*norbp)
+           psi(wfd%nvctr_c+j+2,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+2,iorb-iproc*norbp)
+           psi(wfd%nvctr_c+j+3,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+3,iorb-iproc*norbp)
+           psi(wfd%nvctr_c+j+4,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+4,iorb-iproc*norbp)
+           psi(wfd%nvctr_c+j+5,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+5,iorb-iproc*norbp)
+           psi(wfd%nvctr_c+j+6,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+6,iorb-iproc*norbp)
         enddo
 
      else
@@ -93,10 +108,10 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
 
 
         ! coarse part
-        do iseg=1,nseg_c_old
-           jj=keyv_old(iseg)
-           j0=keyg_old(1,iseg)
-           j1=keyg_old(2,iseg)
+        do iseg=1,wfd_old%nseg_c
+           jj=wfd_old%keyv(iseg)
+           j0=wfd_old%keyg(1,iseg)
+           j1=wfd_old%keyg(2,iseg)
            ii=j0-1
            i3=ii/((n1_old+1)*(n2_old+1))
            ii=ii-i3*(n1_old+1)*(n2_old+1)
@@ -109,10 +124,10 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
         enddo
 
         ! fine part
-        do iseg=1,nseg_f_old
-           jj=keyv_old(nseg_c_old + iseg)
-           j0=keyg_old(1,nseg_c_old + iseg)
-           j1=keyg_old(2,nseg_c_old + iseg)
+        do iseg=1,wfd_old%nseg_f
+           jj=wfd_old%keyv(wfd_old%nseg_c + iseg)
+           j0=wfd_old%keyg(1,wfd_old%nseg_c + iseg)
+           j1=wfd_old%keyg(2,wfd_old%nseg_c + iseg)
            ii=j0-1
            i3=ii/((n1_old+1)*(n2_old+1))
            ii=ii-i3*(n1_old+1)*(n2_old+1)
@@ -120,19 +135,20 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
            i0=ii-i2*(n1_old+1)
            i1=i0+j1-j0
            do i=i0,i1
-              psigold(i,2,i2,1,i3,1)=psi_old(nvctr_c_old+1+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,1,i2,2,i3,1)=psi_old(nvctr_c_old+2+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,2,i2,2,i3,1)=psi_old(nvctr_c_old+3+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,1,i2,1,i3,2)=psi_old(nvctr_c_old+4+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,2,i2,1,i3,2)=psi_old(nvctr_c_old+5+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,1,i2,2,i3,2)=psi_old(nvctr_c_old+6+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,2,i2,2,i3,2)=psi_old(nvctr_c_old+7+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,2,i2,1,i3,1)=psi_old(wfd_old%nvctr_c+1+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,1,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+2+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,2,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+3+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,1,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+4+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,2,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+5+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,1,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+6+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,2,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+7+7*(i-i0+jj-1), iorb-iproc*norbp)
            enddo
         enddo
 
         call reformatonewave(iproc, hgrid_old, &
              & n1_old, n2_old, n3_old, center_old, psigold, hgrid, &
-             & nvctr_c, nvctr_f, n1, n2, n3, center, nseg_c, nseg_f, keyg, keyv, psifscf, & 
+             & wfd%nvctr_c, wfd%nvctr_f, n1, n2, n3, center, &
+             & wfd%nseg_c, wfd%nseg_f, wfd%keyg, wfd%keyv, psifscf, & 
              & psi(1,iorb - iproc * norbp))
 
         i_all=-product(shape(psigold))*kind(psigold)
@@ -289,13 +305,16 @@ subroutine reformatonewave(iproc, hgrid_old, n1_old, n2_old, n3_old, &
 END SUBROUTINE reformatonewave
 
 subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,  & 
-     nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
+     wfd,psi,eval)
   ! reads wavefunction from file and transforms it properly if hgrid or size of simulation cell have changed
+
+  use libBigDFT
+
   implicit real(kind=8) (a-h,o-z)
+  type(wavefunctions_descriptors), intent(in) :: wfd
   character(len=50) filename
   character(len=4) f4
-  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-  dimension psi(nvctr_c+7*nvctr_f,norbp)
+  dimension psi(wfd%nvctr_c+7*wfd%nvctr_f,norbp)
   dimension rxyz(3,nat),eval(norb),center(3)
   allocatable :: psifscf(:,:,:)
 
@@ -306,11 +325,17 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,  &
   call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','readmywaves')
 
   ! calculate center of molecule
-  c1=0.d0 ; c2=0.d0 ; c3=0.d0
+  c1=0.d0 
+  c2=0.d0 
+  c3=0.d0
   do iat=1,nat
-     c1=c1+rxyz(1,iat) ; c2=c2+rxyz(2,iat) ; c3=c3+rxyz(3,iat)
+     c1=c1+rxyz(1,iat) 
+     c2=c2+rxyz(2,iat) 
+     c3=c3+rxyz(3,iat)
   enddo
-  center(1)=c1/real(nat,kind=8) ; center(2)=c2/real(nat,kind=8) ; center(3)=c3/real(nat,kind=8)
+  center(1)=c1/real(nat,kind=8) 
+  center(2)=c2/real(nat,kind=8) 
+  center(3)=c3/real(nat,kind=8)
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
@@ -319,8 +344,8 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,  &
      open(unit=99,file=filename,status='unknown')
 
      call readonewave(99, .true., iorb,iproc,n1,n2,n3, &
-          & hgrid,center,nseg_c,nseg_f, nvctr_c,nvctr_f,keyg,keyv,psi(1,iorb-iproc*norbp),eval(iorb),psifscf)
-
+          & hgrid,center,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
+          psi(1,iorb-iproc*norbp),eval(iorb),psifscf)
      close(99)
   end do
 
@@ -451,15 +476,17 @@ END SUBROUTINE readonewave
 
 
 
-subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,  & 
-     nat,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
+subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,wfd,psi,eval)
   ! write all my wavefunctions in files by calling writeonewave
+  
+  use libBigDFT
+
   implicit real(kind=8) (a-h,o-z)
+  type(wavefunctions_descriptors), intent(in) :: wfd
   character(len=4) f4
   character(len=50) filename
   dimension rxyz(3,nat),eval(norb),center(3)
-  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-  dimension psi(nvctr_c+7*nvctr_f,norbp)
+  dimension psi(wfd%nvctr_c+7*wfd%nvctr_f,norbp)
 
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
@@ -479,9 +506,9 @@ subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,  &
      open(unit=99,file=filename,status='unknown')
 
      call writeonewave(99, .true., iorb,n1,n2,n3,hgrid,center,  & 
-          nseg_c,nvctr_c,keyg(1,1),keyv(1)  & 
-          ,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), & 
-          psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),norb,eval)
+          wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1)  & 
+          ,wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
+          psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),norb,eval)
      close(99)
 
   enddo
