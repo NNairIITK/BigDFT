@@ -219,7 +219,7 @@
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        56.40        50.28
+ CPU time for root process     0        51.30        49.70
 Wavefunction Optimization Finished, exit signal=    0
                                 BigDFT Wavefunction Optimization 1
  ------------------------------------------------------------------ System Properties
@@ -227,7 +227,7 @@ Wavefunction Optimization Finished, exit signal=    0
    Si_lda               4       2            1.71389  0.50000                   X    
     H_lda               1       2            1.36000  0.15000                   X    
  Total Number of Electrons        8
- Total Number of  Orbitals        4
+ Total Number of Orbitals        4
  occup(1:4)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1 Si_lda  8.55000E+00  8.55000E+00  8.55000E+00       19.000    19.000    19.000
@@ -302,14 +302,14 @@ Wavefunction Optimization Finished, exit signal=    0
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        13.78        13.52
+ CPU time for root process     0        13.45        13.30
                                 BigDFT Wavefunction Optimization 1
  ------------------------------------------------------------------ System Properties
  Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File
    Si_lda               4       2            1.71389  0.50000                   X    
     H_lda               1       2            1.36000  0.15000                   X    
  Total Number of Electrons        8
- Total Number of  Orbitals        4
+ Total Number of Orbitals        4
  occup(1:4)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1 Si_lda  8.55000E+00  8.55000E+00  8.55000E+00       19.000    19.000    19.000
@@ -411,14 +411,14 @@ Wavefunction Optimization Finished, exit signal=    0
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        27.16        24.72
+ CPU time for root process     0        24.25        24.11
                                 BigDFT Wavefunction Optimization 1
  ------------------------------------------------------------------ System Properties
  Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File
    Si_lda               4       2            1.71389  0.50000                   X    
     H_lda               1       2            1.36000  0.15000                   X    
  Total Number of Electrons        8
- Total Number of  Orbitals        4
+ Total Number of Orbitals        4
  occup(1:4)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1 Si_lda  8.55000E+00  8.55000E+00  8.55000E+00       19.000    19.000    19.000
@@ -511,14 +511,14 @@ Wavefunction Optimization Finished, exit signal=    0
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        21.57        20.41
+ CPU time for root process     0        20.71        20.40
                                 BigDFT Wavefunction Optimization 1
  ------------------------------------------------------------------ System Properties
  Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File
    Si_lda               4       2            1.71389  0.50000                   X    
     H_lda               1       2            1.36000  0.15000                   X    
  Total Number of Electrons        8
- Total Number of  Orbitals        4
+ Total Number of Orbitals        4
  occup(1:4)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1 Si_lda  8.55000E+00  8.55000E+00  8.55000E+00       19.000    19.000    19.000
@@ -602,7 +602,7 @@ Wavefunction Optimization Finished, exit signal=    0
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        17.27        16.29
+ CPU time for root process     0        17.49        16.66
  Final values of the Forces for each atom
      1 Si_lda  1.05125E-05  1.05124E-05  1.05124E-05
      2  H_lda  2.41434E-06  2.41435E-06  2.41436E-06
@@ -614,6 +614,6 @@ Wavefunction Optimization Finished, exit signal=    0
       y direction     2.19582378E-05
       z direction     2.19581997E-05
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 3231 allocations and 3231 deallocations, remaining memory(B):0
+ 3270 allocations and 3267 deallocations, remaining memory(B):360
  memory occupation peak: 113 MB
  for the array  cosinarr in the routine f_poissonsolver

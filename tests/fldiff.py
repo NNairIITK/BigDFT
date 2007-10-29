@@ -10,6 +10,7 @@
 
 import difflib
 import getopt
+import os
 import re
 import sys
 
@@ -29,8 +30,18 @@ if len(sys.argv) != 3:
     sys.stderr.write("Error in arguments\n")
     usage()
 
+#Arguments
 file1 = sys.argv[1]
 file2 = sys.argv[2]
+
+#Check the version of python
+version = map(int,sys.version_info[0:3])
+if  version < [2,3,0]:
+    sys.stderr.write("Detected version %d.%d.%d\n" % tuple(version))
+    sys.stderr.write("Minimal required version is python 2.3.0: Use the command diff\n")
+    os.system("diff %s %s" % (file1,file2))
+    sys.exit(1)
+
 #Read the first file
 original1 = open(file1).read().splitlines(1)
 #Read the second file

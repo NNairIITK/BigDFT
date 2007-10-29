@@ -192,7 +192,7 @@ program memguess
   call memocc(i_stat,product(shape(spinar))*kind(spinar),'occup','memguess')
   
 ! Occupation numbers
-  call input_occup(0,iunit,nelec,norb,norbu,norbd,in%nspin,occup,spinar)
+  call input_occup(0,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,occup,spinar)
 
 ! Check the maximum number of orbitals
   if (in%nspin==1) then
@@ -251,3 +251,4 @@ program memguess
   call memocc(0,0,'count','stop')
 
 end program memguess
+!!***
