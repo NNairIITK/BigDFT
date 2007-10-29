@@ -1,30 +1,3 @@
-subroutine system_size(nat,rxyz,radii,rmult,iatype,ntypes, &
-     cxmin,cxmax,cymin,cymax,czmin,czmax)
-  ! calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
-  implicit real(kind=8) (a-h,o-z)
-  parameter(eps_mach=1.d-12)
-  dimension rxyz(3,nat),radii(ntypes),iatype(nat)
-
-  cxmax=-1.d100 ; cxmin=1.d100
-  cymax=-1.d100 ; cymin=1.d100
-  czmax=-1.d100 ; czmin=1.d100
-  do iat=1,nat
-     rad=radii(iatype(iat))*rmult
-     cxmax=max(cxmax,rxyz(1,iat)+rad) ; cxmin=min(cxmin,rxyz(1,iat)-rad)
-     cymax=max(cymax,rxyz(2,iat)+rad) ; cymin=min(cymin,rxyz(2,iat)-rad)
-     czmax=max(czmax,rxyz(3,iat)+rad) ; czmin=min(czmin,rxyz(3,iat)-rad)
-  enddo
-
-  cxmax=cxmax-eps_mach ; cxmin=cxmin+eps_mach
-  cymax=cymax-eps_mach ; cymin=cymin+eps_mach
-  czmax=czmax-eps_mach ; czmin=czmin+eps_mach
-
-  return
-END SUBROUTINE system_size
-
-
-
-
 subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
   ! Calculates the length of the keys describing a wavefunction data structure
   implicit real(kind=8) (a-h,o-z)
@@ -34,35 +7,34 @@ subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
   mvctr=0
   nsrt=0
   nend=0
-  do i3=nl3,nu3 ; do i2=nl2,nu2
-
-     plogrid=.false.
-     do i1=nl1,nu1
-        if (logrid(i1,i2,i3)) then
-           mvctr=mvctr+1
-           if (plogrid .eqv. .false.) then
-              nsrt=nsrt+1
+  do i3=nl3,nu3 
+     do i2=nl2,nu2
+        plogrid=.false.
+        do i1=nl1,nu1
+           if (logrid(i1,i2,i3)) then
+              mvctr=mvctr+1
+              if (plogrid .eqv. .false.) then
+                 nsrt=nsrt+1
+              endif
+           else
+              if (plogrid .eqv. .true.) then
+                 nend=nend+1
+              endif
            endif
-        else
-           if (plogrid .eqv. .true.) then
-              nend=nend+1
-           endif
+           plogrid=logrid(i1,i2,i3)
+        enddo
+        if (plogrid .eqv. .true.) then
+           nend=nend+1
         endif
-        plogrid=logrid(i1,i2,i3)
      enddo
-     if (plogrid .eqv. .true.) then
-        nend=nend+1
-     endif
-  enddo; enddo
+  enddo
   if (nend.ne.nsrt) then 
      write(*,*) 'nend , nsrt',nend,nsrt
      stop 'nend <> nsrt'
   endif
   mseg=nend
-
-  return
-END SUBROUTINE num_segkeys
-
+  
+end subroutine num_segkeys
 
 subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
   ! Calculates the keys describing a wavefunction data structure
@@ -73,8 +45,8 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
   mvctr=0
   nsrt=0
   nend=0
-  do i3=nl3,nu3 ; do i2=nl2,nu2
-
+  do i3=nl3,nu3 
+     do i2=nl2,nu2
      plogrid=.false.
      do i1=nl1,nu1
         ngridp=i3*((n1+1)*(n2+1)) + i2*(n1+1) + i1+1
@@ -128,13 +100,12 @@ subroutine fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
   do iat=1,nat
      rad=radii(iatype(iat))*rmult+real(nbuf,kind=8)*hgrid
      !        write(*,*) 'iat,nat,rad',iat,nat,rad
-     ml1=int(onem+(rxyz(1,iat)-rad)/hgrid)  ; mu1=int((rxyz(1,iat)+rad)/hgrid)
-     ml2=int(onem+(rxyz(2,iat)-rad)/hgrid)  ; mu2=int((rxyz(2,iat)+rad)/hgrid)
-     ml3=int(onem+(rxyz(3,iat)-rad)/hgrid)  ; mu3=int((rxyz(3,iat)+rad)/hgrid)
-
-!!$       print *,'values of the mls',ml1,nl1,ml2,nl2,ml3,nl3,nbuf,rmult,rad
-!!$       print *,'values of the mus',mu1,nu1,mu2,nu2,mu3,nu3,nbuf,hgrid,rxyz(1,iat)
-
+     ml1=ceiling((rxyz(1,iat)-rad)/hgrid - eps_mach)  
+     ml2=ceiling((rxyz(2,iat)-rad)/hgrid - eps_mach)   
+     ml3=ceiling((rxyz(3,iat)-rad)/hgrid - eps_mach)   
+     mu1=floor((rxyz(1,iat)+rad)/hgrid + eps_mach)
+     mu2=floor((rxyz(2,iat)+rad)/hgrid + eps_mach)
+     mu3=floor((rxyz(3,iat)+rad)/hgrid + eps_mach)
      if (ml1.lt.nl1) stop 'ml1 < nl1' ; if (mu1.gt.nu1) stop 'mu1 > nu1'
      if (ml2.lt.nl2) stop 'ml2 < nl2' ; if (mu2.gt.nu2) stop 'mu2 > nu2'
      if (ml3.lt.nl3) stop 'ml3 < nl3' ; if (mu3.gt.nu3) stop 'mu3 > nu3'
@@ -155,8 +126,7 @@ subroutine fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
   return
 END SUBROUTINE fill_logrid
 
-
-subroutine bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
+subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
   implicit real(kind=8) (a-h,o-z)
   logical logrid
   dimension logrid(0:n1,0:n2,0:n3)
@@ -235,4 +205,4 @@ subroutine bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
   end do
 
   return
-END SUBROUTINE bounds
+END SUBROUTINE make_bounds

@@ -1,13 +1,15 @@
-subroutine reformatmywaves(iproc, norb, norbp, nat, &
-     & hgrid_old, nvctr_c_old, nvctr_f_old, n1_old, n2_old, n3_old, rxyz_old, &
-     & nseg_c_old, nseg_f_old, keyg_old, keyv_old, psi_old, &
-     & hgrid, nvctr_c, nvctr_f, n1, n2, n3, rxyz, &
-     & nseg_c, nseg_f, keyg, keyv, psi)
+subroutine reformatmywaves(iproc,norb,norbp,nat,&
+     & hgrid_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
+     & hgrid,n1,n2,n3,rxyz,wfd,psi)
+
+  use libBigDFT
+
   implicit real(kind=8) (a-h,o-z)
+  type(wavefunctions_descriptors), intent(in) :: wfd,wfd_old
   dimension :: rxyz(3,nat), rxyz_old(3,nat), center(3), center_old(3)
-  dimension :: keyg_old(2, nseg_c_old + nseg_f_old), keyv_old(nseg_c_old + nseg_f_old)
-  dimension :: keyg(2, nseg_c + nseg_f), keyv(nseg_c + nseg_f)
-  dimension :: psi_old(nvctr_c_old + 7 * nvctr_f_old, norbp), psi(nvctr_c + 7 * nvctr_f, norbp)
+  dimension :: psi_old(wfd_old%nvctr_c + 7 * wfd_old%nvctr_f, norbp), &
+       psi(wfd%nvctr_c + 7 * wfd%nvctr_f, norbp)
+  logical :: reformat
 
   allocatable :: psifscf(:,:,:), psigold(:,:,:,:,:,:)
 
@@ -15,55 +17,89 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
   call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','reformatmywaves')
 
   ! calculate center of molecule
-  c1=0.d0 ; c2=0.d0 ; c3=0.d0
+  c1=0.d0 
+  c2=0.d0 
+  c3=0.d0
   do iat=1,nat
-     c1=c1+rxyz(1,iat) ; c2=c2+rxyz(2,iat) ; c3=c3+rxyz(3,iat)
+     c1=c1+rxyz(1,iat) 
+     c2=c2+rxyz(2,iat) 
+     c3=c3+rxyz(3,iat)
   enddo
-  center(1)=c1/real(nat,kind=8) ; center(2)=c2/real(nat,kind=8) ; center(3)=c3/real(nat,kind=8)
-  c1=0.d0 ; c2=0.d0 ; c3=0.d0
+  center(1)=c1/real(nat,kind=8) 
+  center(2)=c2/real(nat,kind=8)
+  center(3)=c3/real(nat,kind=8)
+
+  c1=0.d0 
+  c2=0.d0 
+  c3=0.d0
   do iat=1,nat
-     c1=c1+rxyz_old(1,iat) ; c2=c2+rxyz_old(2,iat) ; c3=c3+rxyz_old(3,iat)
+     c1=c1+rxyz_old(1,iat) 
+     c2=c2+rxyz_old(2,iat) 
+     c3=c3+rxyz_old(3,iat)
   enddo
-  center_old(1)=c1/real(nat,kind=8) ; center_old(2)=c2/real(nat,kind=8) ; center_old(3)=c3/real(nat,kind=8)
+  center_old(1)=c1/real(nat,kind=8) 
+  center_old(2)=c2/real(nat,kind=8) 
+  center_old(3)=c3/real(nat,kind=8)
+
+  !reformatting criterion
+  if (hgrid_old.eq. hgrid .and. wfd_old%nvctr_c.eq.wfd%nvctr_c .and. &
+       wfd_old%nvctr_f .eq. wfd%nvctr_f .and.&
+       n1_old.eq.n1  .and. n2_old.eq.n2 .and. n3_old.eq.n3  .and.  &
+       abs(center(1)-center_old(1)).lt.1.d-3 .and. &
+       abs(center(2)-center_old(2)).lt.1.d-3 .and. &
+       abs(center(3)-center_old(3)).lt.1.d-3  ) then
+     reformat=.false.
+     if (iproc==0) then
+        write(*,'(1x,a)',advance='NO')&
+         'The wavefunctions do not need reformatting and can be imported directly...   '
+       !  '-------------------------------------------------------------- Wavefunctions Restart'
+     end if
+  else
+     reformat=.true.
+     if (iproc==0) then
+        write(*,'(1x,a)')&
+         'The wavefunctions need reformatting beacuse:                                 '
+        if (hgrid_old.ne.hgrid) then 
+           write(*,"(4x,a,1pe20.12)") &
+                '  hgrid_old >< hgrid  ',hgrid_old, hgrid
+        else if (wfd_old%nvctr_c.ne.wfd%nvctr_c) then
+           write(*,"(4x,a,2i8)") &
+                'nvctr_c_old >< nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
+        else if (wfd_old%nvctr_f.ne.wfd%nvctr_f)  then
+           write(*,"(4x,a,2i8)") &
+                'nvctr_f_old >< nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
+        else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then  
+           write(*,"(4x,a,6i5)") &
+                'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
+        else
+           write(*,"(4x,a,3(1pe19.12))") &
+                'molecule was shifted  ' , abs(center(1)-center_old(1)), & 
+                abs(center(2)-center_old(2)),abs(center(3)-center_old(3))
+        endif
+           write(*,"(1x,a)",advance='NO')& 
+                'Reformatting...'
+     end if
+  end if
 
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
-     if (hgrid_old.eq. hgrid .and. nvctr_c_old.eq.nvctr_c .and. nvctr_f_old.eq.nvctr_f  & 
-          .and. n1_old.eq.n1  .and. n2_old.eq.n2 .and. n3_old.eq.n3  .and.  &
-          abs(center(1)-center_old(1)).lt.1.d-3 .and. &
-          abs(center(2)-center_old(2)).lt.1.d-3 .and. &
-          abs(center(3)-center_old(3)).lt.1.d-3  ) then
+     if (.not. reformat) then
 
-
-        write(*,"(1x,a,i5,a,i6)") 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
-        do j=1,nvctr_c_old
+        do j=1,wfd_old%nvctr_c
            psi(j,iorb-iproc*norbp)=psi_old(j, iorb - iproc * norbp)
         enddo
-        do j=1,7*nvctr_f_old-6,7
-           psi(nvctr_c+j+0,iorb-iproc*norbp)=psi_old(nvctr_c+j+0,iorb-iproc*norbp)
-           psi(nvctr_c+j+1,iorb-iproc*norbp)=psi_old(nvctr_c+j+1,iorb-iproc*norbp)
-           psi(nvctr_c+j+2,iorb-iproc*norbp)=psi_old(nvctr_c+j+2,iorb-iproc*norbp)
-           psi(nvctr_c+j+3,iorb-iproc*norbp)=psi_old(nvctr_c+j+3,iorb-iproc*norbp)
-           psi(nvctr_c+j+4,iorb-iproc*norbp)=psi_old(nvctr_c+j+4,iorb-iproc*norbp)
-           psi(nvctr_c+j+5,iorb-iproc*norbp)=psi_old(nvctr_c+j+5,iorb-iproc*norbp)
-           psi(nvctr_c+j+6,iorb-iproc*norbp)=psi_old(nvctr_c+j+6,iorb-iproc*norbp)
+        do j=1,7*wfd_old%nvctr_f-6,7
+           psi(wfd%nvctr_c+j+0,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+0,iorb-iproc*norbp)
+           psi(wfd%nvctr_c+j+1,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+1,iorb-iproc*norbp)
+           psi(wfd%nvctr_c+j+2,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+2,iorb-iproc*norbp)
+           psi(wfd%nvctr_c+j+3,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+3,iorb-iproc*norbp)
+           psi(wfd%nvctr_c+j+4,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+4,iorb-iproc*norbp)
+           psi(wfd%nvctr_c+j+5,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+5,iorb-iproc*norbp)
+           psi(wfd%nvctr_c+j+6,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+6,iorb-iproc*norbp)
         enddo
 
      else
-        write(*,"(1x,a,i5,a,i6)") 'wavefunction ',iorb,' needs reformatting on processor',iproc
-        if (hgrid_old.ne.hgrid) then 
-           write(*,"(4x,a,1pe20.12)") 'because hgrid_old >< hgrid',hgrid_old, hgrid
-        else if (nvctr_c_old.ne.nvctr_c) then
-           write(*,"(4x,a,2i8)") 'because nvctr_c_old >< nvctr_c',nvctr_c_old,nvctr_c
-        else if (nvctr_f_old.ne.nvctr_f)  then
-           write(*,"(4x,a,2i8)") 'because nvctr_f_old >< nvctr_f',nvctr_f_old,nvctr_f
-        else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then  
-           write(*,"(4x,a,6i5)") 'because cell size has changed',n1_old,n1  , n2_old,n2 , n3_old,n3
-        else
-           write(*,"(4x,a,3(1pe19.12))") 'molecule was shifted' , abs(center(1)-center_old(1)), & 
-                abs(center(2)-center_old(2)),abs(center(3)-center_old(3))
-        endif
 
         allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2),stat=i_stat)
         call memocc(i_stat,product(shape(psigold))*kind(psigold),'psigold','reformatmywaves')
@@ -72,10 +108,10 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
 
 
         ! coarse part
-        do iseg=1,nseg_c_old
-           jj=keyv_old(iseg)
-           j0=keyg_old(1,iseg)
-           j1=keyg_old(2,iseg)
+        do iseg=1,wfd_old%nseg_c
+           jj=wfd_old%keyv(iseg)
+           j0=wfd_old%keyg(1,iseg)
+           j1=wfd_old%keyg(2,iseg)
            ii=j0-1
            i3=ii/((n1_old+1)*(n2_old+1))
            ii=ii-i3*(n1_old+1)*(n2_old+1)
@@ -88,10 +124,10 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
         enddo
 
         ! fine part
-        do iseg=1,nseg_f_old
-           jj=keyv_old(nseg_c_old + iseg)
-           j0=keyg_old(1,nseg_c_old + iseg)
-           j1=keyg_old(2,nseg_c_old + iseg)
+        do iseg=1,wfd_old%nseg_f
+           jj=wfd_old%keyv(wfd_old%nseg_c + iseg)
+           j0=wfd_old%keyg(1,wfd_old%nseg_c + iseg)
+           j1=wfd_old%keyg(2,wfd_old%nseg_c + iseg)
            ii=j0-1
            i3=ii/((n1_old+1)*(n2_old+1))
            ii=ii-i3*(n1_old+1)*(n2_old+1)
@@ -99,19 +135,20 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
            i0=ii-i2*(n1_old+1)
            i1=i0+j1-j0
            do i=i0,i1
-              psigold(i,2,i2,1,i3,1)=psi_old(nvctr_c_old+1+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,1,i2,2,i3,1)=psi_old(nvctr_c_old+2+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,2,i2,2,i3,1)=psi_old(nvctr_c_old+3+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,1,i2,1,i3,2)=psi_old(nvctr_c_old+4+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,2,i2,1,i3,2)=psi_old(nvctr_c_old+5+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,1,i2,2,i3,2)=psi_old(nvctr_c_old+6+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,2,i2,2,i3,2)=psi_old(nvctr_c_old+7+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,2,i2,1,i3,1)=psi_old(wfd_old%nvctr_c+1+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,1,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+2+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,2,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+3+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,1,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+4+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,2,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+5+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,1,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+6+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,2,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+7+7*(i-i0+jj-1), iorb-iproc*norbp)
            enddo
         enddo
 
         call reformatonewave(iproc, hgrid_old, &
              & n1_old, n2_old, n3_old, center_old, psigold, hgrid, &
-             & nvctr_c, nvctr_f, n1, n2, n3, center, nseg_c, nseg_f, keyg, keyv, psifscf, & 
+             & wfd%nvctr_c, wfd%nvctr_f, n1, n2, n3, center, &
+             & wfd%nseg_c, wfd%nseg_f, wfd%keyg, wfd%keyv, psifscf, & 
              & psi(1,iorb - iproc * norbp))
 
         i_all=-product(shape(psigold))*kind(psigold)
@@ -123,6 +160,8 @@ subroutine reformatmywaves(iproc, norb, norbp, nat, &
   i_all=-product(shape(psifscf))*kind(psifscf)
   deallocate(psifscf,stat=i_stat)
   call memocc(i_stat,i_all,'psifscf','reformatmywaves')
+
+  if (iproc==0) write(*,"(1x,a)")'done.'
 
 END SUBROUTINE reformatmywaves
 
@@ -266,13 +305,16 @@ subroutine reformatonewave(iproc, hgrid_old, n1_old, n2_old, n3_old, &
 END SUBROUTINE reformatonewave
 
 subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,  & 
-     nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
+     wfd,psi,eval)
   ! reads wavefunction from file and transforms it properly if hgrid or size of simulation cell have changed
+
+  use libBigDFT
+
   implicit real(kind=8) (a-h,o-z)
+  type(wavefunctions_descriptors), intent(in) :: wfd
   character(len=50) filename
   character(len=4) f4
-  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-  dimension psi(nvctr_c+7*nvctr_f,norbp)
+  dimension psi(wfd%nvctr_c+7*wfd%nvctr_f,norbp)
   dimension rxyz(3,nat),eval(norb),center(3)
   allocatable :: psifscf(:,:,:)
 
@@ -283,11 +325,17 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,  &
   call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','readmywaves')
 
   ! calculate center of molecule
-  c1=0.d0 ; c2=0.d0 ; c3=0.d0
+  c1=0.d0 
+  c2=0.d0 
+  c3=0.d0
   do iat=1,nat
-     c1=c1+rxyz(1,iat) ; c2=c2+rxyz(2,iat) ; c3=c3+rxyz(3,iat)
+     c1=c1+rxyz(1,iat) 
+     c2=c2+rxyz(2,iat) 
+     c3=c3+rxyz(3,iat)
   enddo
-  center(1)=c1/real(nat,kind=8) ; center(2)=c2/real(nat,kind=8) ; center(3)=c3/real(nat,kind=8)
+  center(1)=c1/real(nat,kind=8) 
+  center(2)=c2/real(nat,kind=8) 
+  center(3)=c3/real(nat,kind=8)
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
@@ -296,8 +344,8 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,  &
      open(unit=99,file=filename,status='unknown')
 
      call readonewave(99, .true., iorb,iproc,n1,n2,n3, &
-          & hgrid,center,nseg_c,nseg_f, nvctr_c,nvctr_f,keyg,keyv,psi(1,iorb-iproc*norbp),eval(iorb),psifscf)
-
+          & hgrid,center,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
+          psi(1,iorb-iproc*norbp),eval(iorb),psifscf)
      close(99)
   end do
 
@@ -428,15 +476,17 @@ END SUBROUTINE readonewave
 
 
 
-subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,  & 
-     nat,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval)
+subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,wfd,psi,eval)
   ! write all my wavefunctions in files by calling writeonewave
+  
+  use libBigDFT
+
   implicit real(kind=8) (a-h,o-z)
+  type(wavefunctions_descriptors), intent(in) :: wfd
   character(len=4) f4
   character(len=50) filename
   dimension rxyz(3,nat),eval(norb),center(3)
-  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-  dimension psi(nvctr_c+7*nvctr_f,norbp)
+  dimension psi(wfd%nvctr_c+7*wfd%nvctr_f,norbp)
 
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
@@ -456,9 +506,9 @@ subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,  &
      open(unit=99,file=filename,status='unknown')
 
      call writeonewave(99, .true., iorb,n1,n2,n3,hgrid,center,  & 
-          nseg_c,nvctr_c,keyg(1,1),keyv(1)  & 
-          ,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), & 
-          psi(1,iorb-iproc*norbp),psi(nvctr_c+1,iorb-iproc*norbp),norb,eval)
+          wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1)  & 
+          ,wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
+          psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),norb,eval)
      close(99)
 
   enddo
@@ -551,3 +601,196 @@ subroutine writeonewave(unitwf, useFormattedOutput, iorb,n1,n2,n3,hgrid,center, 
 
 
 END SUBROUTINE writeonewave
+
+subroutine analyse_shrink(n1,n2,n3,ww,y,x)
+  ! A analysis wavelet transformation where the size of the data is forced to shrink
+  ! The input array y is overwritten
+  implicit real(kind=8) (a-h,o-z)
+  dimension ww(-7:2*n2+8,-7:2*n3+8,-7:2*n1+8)
+  dimension  y(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
+  dimension x(0:n1,2,0:n2,2,0:n3,2)
+
+  ! I1,I2,I3 -> I2,I3,i1
+  nt=(2*n2+16)*(2*n3+16)
+  call  ana_rot_shrink(n1,nt,y,ww)
+  ! I2,I3,i1 -> I3,i1,i2
+  nt=(2*n3+16)*(2*n1+2)
+  call  ana_rot_shrink(n2,nt,ww,y)
+  ! I3,i1,i2 -> i1,i2,i3
+  nt=(2*n1+2)*(2*n2+2)
+  call  ana_rot_shrink(n3,nt,y,x)
+
+  return
+END SUBROUTINE analyse_shrink
+
+subroutine synthese_grow(n1,n2,n3,ww,x,y)
+  ! A synthesis wavelet transformation where the size of the data is allowed to grow
+  ! The input array x is not overwritten
+  implicit real(kind=8) (a-h,o-z)
+  dimension x(0:n1,2,0:n2,2,0:n3,2)
+  dimension ww(-7:2*n2+8,-7:2*n3+8,-7:2*n1+8)
+  dimension  y(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
+
+  ! i1,i2,i3 -> i2,i3,I1
+  nt=(2*n2+2)*(2*n3+2)
+  call  syn_rot_grow(n1,nt,x,y)
+  ! i2,i3,I1 -> i3,I1,I2
+  nt=(2*n3+2)*(2*n1+16)
+  call  syn_rot_grow(n2,nt,y,ww)
+  ! i3,I1,I2  -> I1,I2,I3
+  nt=(2*n1+16)*(2*n2+16)
+  call  syn_rot_grow(n3,nt,ww,y)
+
+END SUBROUTINE synthese_grow
+
+
+
+subroutine ana_rot_shrink(n,ndat,x,y)
+  implicit real(kind=8) (a-h,o-z)
+  dimension x(-7:2*n+8,ndat),y(ndat,0:2*n+1)
+  real(kind=8) ch(-7:8) ,cg(-7:8)
+  !       Daubechy S16
+  data ch  /  -0.0033824159510050025955D0, & 
+       -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
+       0.0076074873249766081919D0, -0.14329423835127266284D0, & 
+       -0.061273359067811077843D0, 0.48135965125905339159D0,  & 
+       0.77718575169962802862D0,0.36444189483617893676D0, &
+       -0.051945838107881800736D0,-0.027219029917103486322D0, &
+       0.049137179673730286787D0,0.0038087520138944894631D0, &
+       -0.014952258337062199118D0,-0.00030292051472413308126D0, &
+       0.0018899503327676891843D0 /
+  data cg  / -0.0018899503327676891843D0, &
+       -0.00030292051472413308126D0, 0.014952258337062199118D0, &
+       0.0038087520138944894631D0, -0.049137179673730286787D0, &
+       -0.027219029917103486322D0, 0.051945838107881800736D0, &
+       0.36444189483617893676D0, -0.77718575169962802862D0, &
+       0.48135965125905339159D0, 0.061273359067811077843D0, &
+       -0.14329423835127266284D0, -0.0076074873249766081919D0, &
+       0.031695087811525991431D0, 0.00054213233180001068935D0, &
+       -0.0033824159510050025955D0  /
+
+  do j=1,ndat
+
+     do i=0,n
+        ci=0.d0
+        di=0.d0
+        do l=-7,8
+           ci=ci+ch(l)*x(l+2*i,j)
+           di=di+cg(l)*x(l+2*i,j)
+        enddo
+        y(j,i)=ci
+        y(j,n+1+i)=di
+     enddo
+
+  enddo
+
+  return
+end subroutine ana_rot_shrink
+
+
+subroutine syn_rot_grow(n,ndat,x,y)
+  implicit real(kind=8) (a-h,o-z)
+  dimension x(0:2*n+1,ndat),y(ndat,-7:2*n+8)
+  real(kind=8) ch(-8:9) ,cg(-8:9)
+  !       Daubechy S16
+  data ch  /  0.d0 , -0.0033824159510050025955D0, & 
+       -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
+       0.0076074873249766081919D0, -0.14329423835127266284D0, & 
+       -0.061273359067811077843D0, 0.48135965125905339159D0,  & 
+       0.77718575169962802862D0,0.36444189483617893676D0, &
+       -0.051945838107881800736D0,-0.027219029917103486322D0, &
+       0.049137179673730286787D0,0.0038087520138944894631D0, &
+       -0.014952258337062199118D0,-0.00030292051472413308126D0, &
+       0.0018899503327676891843D0 , 0.d0 /
+  data cg  / 0.d0 , -0.0018899503327676891843D0, &
+       -0.00030292051472413308126D0, 0.014952258337062199118D0, &
+       0.0038087520138944894631D0, -0.049137179673730286787D0, &
+       -0.027219029917103486322D0, 0.051945838107881800736D0, &
+       0.36444189483617893676D0, -0.77718575169962802862D0, &
+       0.48135965125905339159D0, 0.061273359067811077843D0, &
+       -0.14329423835127266284D0, -0.0076074873249766081919D0, &
+       0.031695087811525991431D0, 0.00054213233180001068935D0, &
+       -0.0033824159510050025955D0 , 0.d0 /
+
+  do j=1,ndat
+
+     i=-4
+     so=0.d0
+     do l=max(i-n,-4),min(i,4)
+        so=so+ch(2*l+1)*x(i-l,j)+cg(2*l+1)*x(n+1+i-l,j)
+     enddo
+     y(j,2*i+1)=so
+
+     do i=-3,n+3
+        se=0.d0
+        so=0.d0
+        do l=max(i-n,-4),min(i,4)
+           se=se+ch(2*l  )*x(i-l,j)+cg(2*l  )*x(n+1+i-l,j)
+           so=so+ch(2*l+1)*x(i-l,j)+cg(2*l+1)*x(n+1+i-l,j)
+        enddo
+        y(j,2*i  )=se
+        y(j,2*i+1)=so
+     enddo
+
+     i=n+4
+     se=0.d0
+     do l=max(i-n,-4),min(i,4)
+        se=se+ch(2*l  )*x(i-l,j)+cg(2*l  )*x(n+1+i-l,j)
+     enddo
+     y(j,2*i  )=se
+
+  enddo
+
+  return
+end subroutine syn_rot_grow
+
+
+subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
+     mseg_c,mvctr_c,keyg_c,keyv_c,  & 
+     mseg_f,mvctr_f,keyg_f,keyv_f,  & 
+     psig,psi_c,psi_f)
+  ! Compresses a psig wavefunction into psi_c,psi_f form
+  implicit real(kind=8) (a-h,o-z)
+  dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
+  dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
+  dimension psig(nl1:nu1,2,nl2:nu2,2,nl3:nu3,2)
+
+  ! coarse part
+  do iseg=1,mseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi_c(i-i0+jj)=psig(i,1,i2,1,i3,1)
+     enddo
+  enddo
+
+  ! fine part
+  do iseg=1,mseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi_f(1,i-i0+jj)=psig(i,2,i2,1,i3,1)
+        psi_f(2,i-i0+jj)=psig(i,1,i2,2,i3,1)
+        psi_f(3,i-i0+jj)=psig(i,2,i2,2,i3,1)
+        psi_f(4,i-i0+jj)=psig(i,1,i2,1,i3,2)
+        psi_f(5,i-i0+jj)=psig(i,2,i2,1,i3,2)
+        psi_f(6,i-i0+jj)=psig(i,1,i2,2,i3,2)
+        psi_f(7,i-i0+jj)=psig(i,2,i2,2,i3,2)
+     enddo
+  enddo
+
+END SUBROUTINE compress

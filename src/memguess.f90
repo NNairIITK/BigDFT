@@ -1,20 +1,17 @@
 program memguess
 
+  use libBigDFT
+
   implicit none
-  real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
   logical :: calc_tail,output_grid
   character(len=20) :: tatonam,units
-  character(len=30) :: filename
-  character(len=2) :: symbol
-  integer :: ierror,nat,ntypes,iat,jat,ityp,nproc,n1,n2,n3,ixc,ncharge,itermax,i_stat,i_all,i,j,l
-  integer :: ncong,ncongt,idsx,nzatom,npspcode,iasctype,nelec,norb,nateq,nt,it,iorb,iorb1,ne
-  integer :: mpol,nspin,norbu,norbd,norbup,norbdp,iunit,norb_vir,nn,nlterms,nprl
-  logical :: exists
-  real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,elecfield,tt
-  real(kind=8) :: alat1,alat2,alat3,rcov,rprb,ehomo,radfine,rocc
-  real(kind=8) :: cxmin,cxmax,cymin,cymax,czmin,czmax
+  integer :: ierror,nat,ntypes,nproc,n1,n2,n3,i_stat,i_all
+  integer :: nelec,norb,natsc,norbp,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
+  integer :: norbu,norbd,iunit,ityp
+  real(kind=8) :: alat1,alat2,alat3,peakmem
+  type(input_variables) :: in
   character(len=20), dimension(:), allocatable :: atomnames
-  integer, dimension(:), allocatable :: iatype,nelpsp
+  integer, dimension(:), allocatable :: iatype,nelpsp,nzatom,npspcode,iasctype
   integer, dimension(:,:), allocatable :: neleconf
   real(kind=8), dimension(:,:), allocatable :: rxyz,radii_cf
   real(kind=8), dimension(:,:,:), allocatable :: psppar
@@ -55,322 +52,95 @@ program memguess
   !initialize memory counting
   call memocc(0,0,'count','start')
 
-  ! read atomic positions
-  open(unit=9,file='posinp',status='old')
-  read(9,*,iostat=ierror) nat,units
-  if (ierror/=0) then
-     write(*,'(1x,a)') 'Error in the first line (<number of atoms> <units>) of the file "posinp"'
-     stop
-  end if
+  !welcome screen
+  call print_logo()
+
+  !read number of atoms
+  open(unit=99,file='posinp',status='old')
+  read(99,*) nat,units
+  write(*,'(1x,a,i0)') 'Number of atoms     = ',nat
+
   allocate(rxyz(3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(rxyz))*kind(rxyz),'rxyz','memguess')
   allocate(iatype(nat),stat=i_stat)
   call memocc(i_stat,product(shape(iatype))*kind(iatype),'iatype','memguess')
-  allocate(atomnames(100),stat=i_stat)
+  allocate(atomnames(100),stat=i_stat) 
   call memocc(i_stat,product(shape(atomnames))*kind(atomnames),'atomnames','memguess')
 
-  ntypes=0
-  do iat=1,nat
-     read(9,*,iostat=ierror) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
-     if (ierror/=0) then
-        write(*,'(1x,a,i0,a)') &
-           'Error in the ',iat+1,'th line (rx ry rz type) of the file "posinp"'
-        stop
-     end if
-     do ityp=1,ntypes
-        if (tatonam.eq.atomnames(ityp)) then
-           iatype(iat)=ityp
-           goto 200
-        endif
-     enddo
-     ntypes=ntypes+1
-     if (ntypes.gt.100) stop 'more than 100 atomnames not permitted'
-     atomnames(ityp)=tatonam
-     iatype(iat)=ntypes
-200  continue
-     if (units.eq.'angstroem') then
-        ! if Angstroem convert to Bohr
-        do i=1,3 
-           rxyz(i,iat)=rxyz(i,iat)/.529177d0  
-        enddo
-     else if  (units.eq.'atomic' .or. units.eq.'bohr') then
-     else
-        write(*,*) 'length units in input file unrecognized'
-        write(*,*) 'recognized units are angstroem or atomic = bohr'
-        stop 
-     endif
-  enddo
-  close(9)
+  ! read atomic positions
+  call read_atomic_positions(0,99,units,nat,ntypes,iatype,atomnames,rxyz)
+
+  close(99)
+
+  write(*,'(1x,a,i0)') 'Number of atom types= ',ntypes
+
   do ityp=1,ntypes
-     write(*,'(1x,a,i0,a,a)') &
-          'atoms of type ',ityp,' are ',trim(atomnames(ityp))
+     write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ',trim(atomnames(ityp))
   enddo
 
-  !control atom positions
-  nateq=0
-  do iat=1,nat
-     do jat=iat+1,nat
-        if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
-             (rxyz(3,iat)-rxyz(3,jat))**2 ==0.d0) then
-           nateq=nateq+1
-           write(*,'(1x,a,2(i0,a,a6,a))')'ERROR: atoms ',iat,&
-                ' (',trim(atomnames(iatype(iat))),') and ',&
-                jat,' (',trim(atomnames(iatype(jat))),&
-                ') have the same positions'
-        end if
-     end do
-  end do
-  if (nateq /= 0) then
-     write(*,'(1x,a)')'Control your posinp file, cannot proceed'
-     stop
-  end if
-
-  ! Read the input variables.
-  open(unit=1,file='input.dat',status='old')
-  !First line for the main routine (the program)
-  read(1,*,iostat=ierror) 
-  !Parameters 
-  read(1,*,iostat=ierror) hgrid
-  read(1,*,iostat=ierror) crmult
-  read(1,*,iostat=ierror) frmult
-  read(1,*,iostat=ierror) cpmult
-  read(1,*,iostat=ierror) fpmult
-  if (fpmult.gt.frmult) write(*,*) 'NONSENSE: fpmult > frmult'
-  read(1,*,iostat=ierror) ixc
-  read(1,*,iostat=ierror) ncharge,elecfield
-  read(1,*,iostat=ierror) gnrm_cv
-  read(1,*,iostat=ierror) itermax
-  read(1,*,iostat=ierror) ncong
-  read(1,*,iostat=ierror) idsx
-  read(1,*,iostat=ierror) calc_tail
-  read(1,*,iostat=ierror) rbuf
-  read(1,*,iostat=ierror) ncongt
-  read(1,*,iostat=ierror) nspin,mpol
-
-  if (ierror/=0) then
-     write(*,'(1x,a)') 'Error when reading the file "input.dat"'
-     stop
-  end if 
-
-  close(1,iostat=ierror)
+  !new way of reading the input variables, use structures
+  call read_input_variables(0,in)
 
   write(*,'(1x,a)')&
-       '------------------------------------------------------------------- Input Parameters'
-  write(*,'(1x,a)')&
-       '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
-  write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
-       'Grid spacing=',hgrid,    '|  Coarse Wfs.=',crmult,'| Wavefns Conv.=',gnrm_cv,&
-       '| Calculate=',calc_tail
-  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,f4.1)')&
-       '       XC id=',ixc,      '|    Fine Wfs.=',frmult,'| Max. N. Iter.=',itermax,&
-       '| Extension=',rbuf
-  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,i4)')&
-       'total charge=',ncharge,  '| Coarse Proj.=',cpmult,'| CG Prec.Steps=',ncong,&
-       '|  CG Steps=',ncongt
-  write(*,'(1x,a,1pe7.1,1x,a,0pf5.2,1x,a,i8)')&
-       ' elec. field=',elecfield,'|   Fine Proj.=',fpmult,'| DIIS Hist. N.=',idsx
-
+       '------------------------------------------------------------------ System Properties'
+ 
+  ! store PSP parameters
+  ! modified to accept both GTH and HGHs pseudopotential types
   allocate(psppar(0:4,0:6,ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(psppar))*kind(psppar),'psppar','memguess')
   allocate(nelpsp(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(nelpsp))*kind(nelpsp),'nelpsp','memguess')
   allocate(radii_cf(ntypes,2),stat=i_stat)
   call memocc(i_stat,product(shape(radii_cf))*kind(radii_cf),'radii_cf','memguess')
-  allocate(neleconf(6,0:3),stat=i_stat)
-  call memocc(i_stat,product(shape(neleconf))*kind(neleconf),'neleconf','memguess')
-  
-  write(*,'(1x,a)')&
-       '------------------------------------------------------------------ System Properties'
-  write(*,'(1x,a)')&
-       'Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File'
+  allocate(npspcode(ntypes),stat=i_stat)
+  call memocc(i_stat,product(shape(npspcode))*kind(npspcode),'npspcode','memguess')
+  allocate(nzatom(ntypes),stat=i_stat)
+  call memocc(i_stat,product(shape(nzatom))*kind(nzatom),'nzatom','memguess')
+  allocate(iasctype(ntypes),stat=i_stat)
+  call memocc(i_stat,product(shape(iasctype))*kind(iasctype),'iasctype','memguess')
 
-  do ityp=1,ntypes
-     filename = 'psppar.'//atomnames(ityp)
-     open(unit=11,file=filename,status='old',iostat=ierror)
-     !Check the open statement
-     if (ierror /= 0) then
-        write(*,*)': Failed to open the file (it must be in ABINIT format!) "',&
-             trim(filename),'"'
-        stop
-     end if
-     read(11,*)
-     read(11,*) nzatom,nelpsp(ityp)
-     read(11,*) npspcode
-     psppar(:,:,ityp)=0.d0
-     if (npspcode == 2) then !GTH case
-        read(11,*) (psppar(0,j,ityp),j=0,4)
-        do i=1,2
-           read(11,*) (psppar(i,j,ityp),j=0,3-i)
-        enddo
-     else if (npspcode == 3) then !HGH case
-        read(11,*) (psppar(0,j,ityp),j=0,4)
-        read(11,*) (psppar(1,j,ityp),j=0,3)
-        do i=2,4
-           read(11,*) (psppar(i,j,ityp),j=0,3)
-           read(11,*) !k coefficients, not used (no spin-orbit coupling)
-        enddo
-     else if (npspcode == 10) then !HGH-K case
-         read(11,*) psppar(0,0,ityp),nn,(psppar(0,j,ityp),j=1,nn) !local PSP parameters
-         read(11,*) nlterms !number of channels of the pseudo
-         prjloop: do l=1,nlterms
-            read(11,*) psppar(l,0,ityp),nprl,psppar(l,1,ityp),&
-                 (psppar(l,j+2,ityp),j=2,nprl) !h_ij terms
-            do i=2,nprl
-               read(11,*) psppar(l,i,ityp),(psppar(l,i+j+1,ityp),j=i+1,nprl) !h_ij terms
-            end do
-            if (l==1) cycle
-            do i=1,nprl
-               read(11,*) !k coefficients, not used
-            end do
-         end do prjloop
-     else
-        write(*,'(1x,a,a)')trim(atomnames(ityp)),&
-             'unrecognized pspcode (accepts only GTH & HGH pseudopotentials in ABINIT format)'
-        stop
-     end if
-     !see whether the atom is semicore or not
-     call eleconf(nzatom,nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf,iasctype)
-
-     !old way of calculating the radii, requires modification of the PSP files
-     read(11,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
-     if (ierror.eq.0) then
-        write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
-             trim(atomnames(ityp)),nelpsp(ityp),npspcode,&
-             radii_cf(ityp,1),radii_cf(ityp,2),&
-             '                   X    '
-     else
-        !new method for assigning the radii
-        radii_cf(ityp,1)=1.d0/sqrt(abs(2.d0*ehomo))
-        radfine=100.d0
-        do i=0,4
-           if (psppar(i,0,ityp)/=0.d0) then
-              radfine=min(radfine,psppar(i,0,ityp))
-           end if
-        end do
-        radii_cf(ityp,2)=radfine
-        write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
-             trim(atomnames(ityp)),nelpsp(ityp),npspcode,&
-             radii_cf(ityp,1),radii_cf(ityp,2),&
-             '       X                '
-     end if
-     close(11)
-  enddo
-
-  !deallocation
-  i_all=-product(shape(neleconf))*kind(neleconf)
-  deallocate(neleconf,stat=i_stat)
-  call memocc(i_stat,i_all,'neleconf','memguess')
-  i_all=-product(shape(psppar))*kind(psppar)
-  deallocate(psppar,stat=i_stat)
-  call memocc(i_stat,i_all,'psppar','memguess')
-
-! Number of electrons and number of semicore atoms
-  nelec=0
-  do iat=1,nat
-     ityp=iatype(iat)
-     nelec=nelec+nelpsp(ityp)
-  enddo
-
-  i_all=-product(shape(nelpsp))*kind(nelpsp)
-  deallocate(nelpsp,stat=i_stat)
-  call memocc(i_stat,i_all,'nelpsp','memguess')
-
-  nelec=nelec-ncharge
-  write(*,'(1x,a,i8)') &
-       'Total Number of Electrons ',nelec
-  if (mod(nelec,2).ne.0) write(*,*) &
-       'WARNING: odd number of electrons, no closed shell system'
-
-! Number of orbitals
-  if (nspin==1) then
-     norb=(nelec+1)/2
-     norbu=norb
-     norbd=0
-  else
-     write(*,'(1x,a)') 'Spin-polarized calculation'
-     norb=nelec
-     norbu=min(norb/2+mpol,norb)
-     norbd=norb-norbu
-     tt=real(norbu,kind=8)/real(nproc,kind=8)
-     norbup=int((1.d0-eps_mach*tt) + tt)
-     tt=real(norbd,kind=8)/real(nproc,kind=8)
-     norbdp=int((1.d0-eps_mach*tt) + tt)
-  end if
-
-! Test if the file 'occup.dat exists
-  inquire(file='occup.dat',exist=exists)
-  iunit=0
-  if (exists) then
-     iunit=24
-     open(unit=iunit,file='occup.dat',form='formatted',action='read',status='old')
-     !The first line gives the number of orbitals
-     read(unit=iunit,fmt=*,iostat=ierror) nt
-     if (ierror /=0) then
-         write(*,'(1x,a)') 'ERROR reading the number of orbitals in the file "occup.dat"'
-        stop
-     end if
-     if (nt<=norb) then
-        write(*,'(1x,a,i0,a,i0)') &
-                'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
-                ' should be strictly greater than (nelec+1)/2=',norb
-        stop
-     else
-        norb=nt
-     end if
-  end if
-
-  if (exists) then
-     write(*,'(1x,a,i8,a)') &
-          'Total Number of  Orbitals ',norb,' (read from the file "occup.dat")'
-  else
-     write(*,'(1x,a,i8)') &
-          'Total Number of  Orbitals ',norb
-  end if
+  call read_system_variables(0,nproc,nat,ntypes,in%nspin,in%ncharge,in%mpol,atomnames,iatype,&
+       psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
 
   allocate(occup(norb),stat=i_stat)
   call memocc(i_stat,product(shape(occup))*kind(occup),'occup','memguess')
   allocate(spinar(norb),stat=i_stat)
   call memocc(i_stat,product(shape(spinar))*kind(spinar),'occup','memguess')
-
+  
 ! Occupation numbers
-  call input_occup(0,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
+  call input_occup(0,iunit,nelec,norb,norbu,norbd,in%nspin,occup,spinar)
 
-  ! De-allocation of occup and spinar
+! Determine size alat of overall simulation cell and shift atom positions
+! then calculate the size in units of the grid space
+  call system_size(0,nat,ntypes,rxyz,radii_cf,in%crmult,in%frmult,in%hgrid,iatype,atomnames, &
+       alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
+
+
+  i_all=-product(shape(psppar))*kind(psppar)
+  deallocate(psppar,stat=i_stat)
+  call memocc(i_stat,i_all,'psppar','memguess')
+  i_all=-product(shape(npspcode))*kind(npspcode)
+  deallocate(npspcode,stat=i_stat)
+  call memocc(i_stat,i_all,'npspcode','memguess')
+  i_all=-product(shape(nelpsp))*kind(nelpsp)
+  deallocate(nelpsp,stat=i_stat)
+  call memocc(i_stat,i_all,'nelpsp','memguess')
   i_all=-product(shape(occup))*kind(occup)
   deallocate(occup,stat=i_stat)
   call memocc(i_stat,i_all,'occup','memguess')
   i_all=-product(shape(spinar))*kind(spinar)
   deallocate(spinar,stat=i_stat)
   call memocc(i_stat,i_all,'spinar','memguess')
+  !no need of using nzatom array
+  i_all=-product(shape(nzatom))*kind(nzatom)
+  deallocate(nzatom,stat=i_stat)
+  call memocc(i_stat,i_all,'nzatom','memguess')
+  i_all=-product(shape(iasctype))*kind(iasctype)
+  deallocate(iasctype,stat=i_stat)
+  call memocc(i_stat,i_all,'iasctype','memguess')
 
-! determine size alat of overall simulation cell
-  call system_size(nat,rxyz,radii_cf(1,1),crmult,iatype,ntypes, &
-       cxmin,cxmax,cymin,cymax,czmin,czmax)
-  alat1=(cxmax-cxmin)
-  alat2=(cymax-cymin)
-  alat3=(czmax-czmin)
-
-  do iat=1,nat
-     rxyz(1,iat)=rxyz(1,iat)-cxmin
-     rxyz(2,iat)=rxyz(2,iat)-cymin
-     rxyz(3,iat)=rxyz(3,iat)-czmin
-  enddo
-
-! grid sizes n1,n2,n3
-  n1=int(alat1/hgrid)
-  n2=int(alat2/hgrid)
-  n3=int(alat3/hgrid)
-  alat1=real(n1,kind=8)*hgrid 
-  alat2=real(n2,kind=8)*hgrid 
-  alat3=real(n3,kind=8)*hgrid
-  write(*,'(1x,a,19x,a)') &
-       '                                 Atomic Units:','grid spacing units:'
-  write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
-       '  Box Sizes=',alat1,alat2,alat3,n1,n2,n3
-
-  call MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
-          rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid,nspin)
-
+  call MemoryEstimator(nproc,in%idsx,n1,n2,n3,alat1,alat2,alat3,in%hgrid,nat,ntypes,iatype,&
+          rxyz,radii_cf,in%crmult,in%frmult,norb,atomnames,output_grid,in%nspin,peakmem)
 
   i_all=-product(shape(atomnames))*kind(atomnames)
   deallocate(atomnames,stat=i_stat)

@@ -12,7 +12,11 @@ sub_dirs_ps =
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft.a
+if CAPITALIZE
+mod_bigdft = LIBBIGDFT.@MODULE_EXT@
+else
 mod_bigdft = libbigdft.@MODULE_EXT@
+endif
 else
 lib_bigdft =
 mod_bigdft =
@@ -27,6 +31,9 @@ endif
 SUBDIRS = $(sub_dirs_xc) $(sub_dirs_ps) convolutions profiling
 
 EXTRA_DIST = \
+	interface.f90 \
+	input/interface.f90 \
+	profiling/interface.f90 \
 	daub_8.inc \
 	gsint_x.inc \
 	gsints.inc \
@@ -58,23 +65,34 @@ lMPI =
 endif
 
 if USE_OPTI_CONVOLUT
-convolution_objects = convolutions/convolut_simple.o \
-	convolutions/conv_per_optim.o \
-	convolutions/combined_grow.o\
-	convolutions/combined_shrink.o
+convolution_source = convolutions/combined_shrink_optim.f90 \
+	convolutions/combined_grow_optim.f90 \
+	convolutions/combined_shrink_optim.f90 \
+	convolutions/convolut_ib_optim.f90 \
+	convolutions/conv_per_optim.f90
+#	convolut_simple.f90 \
+#	conv_per_optim.f90 \
+#	combined_grow.f90 \
+#	combined_shrink.f90 
 
 else
-convolution_objects = convolutions/convolut_simple.o \
-	convolutions/conv_per_optim.o \
-	convolutions/combined_grow.o \
-	convolutions/combined_shrink.o
+convolution_source = convolutions/combined_shrink_simple.f90 \
+	convolutions/combined_grow_simple.f90 \
+	convolutions/combined_shrink_simple.f90 \
+	convolutions/convolut_ib_simple.f90 \
+	convolutions/conv_per_simple.f90
+#	convolut_simple.f90 \
+#	conv_per_optim.f90 \
+#	combined_grow.f90 \
+#	combined_shrink.f90
 
 endif
 
-
+convolution_objects = $(convolution_source:.f90=.o)
 
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
+	types.f90 \
         cluster_all.f90 \
         eleconf.f90  \
         gauss_to_daub.f90 \
@@ -84,8 +102,8 @@ libbigdft_a_SOURCES = \
 	input/gautowav.f90 \
 	input/gauprod.f90 \
 	input/inputguess.f90 \
-	input/input_occup.f90 \
-	input/restart.f90 \
+	input/input_variables.f90 \
+	restart.f90 \
 	ionicpot.f90 \
 	projectors/projectors.f90 \
 	orthogonality.f90 \
@@ -100,7 +118,7 @@ libbigdft_a_SOURCES = \
 libbigdft_a_LIBADD = profiling/timing.o \
 	$(convolution_objects)
 
-cluster_SOURCES = BigDFT.f90
+cluster_SOURCES = BigDFT.f90 
 cluster_LDFLAGS = $(LMPI)
 cluster_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
@@ -114,29 +132,42 @@ test_forces_LDADD = libbigdft.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
-memguess_SOURCES = memguess.f90
+memguess_SOURCES = memguess.f90 
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	ABINIT-common/libABINIT.a 
 
 
-CLEANFILES = $(mpi_include) libbigdft.@MODULE_EXT@
+CLEANFILES = mpif.h libbigdft.@MODULE_EXT@ LIBBIGDFT.@MODULE_EXT@
 
 #dependencies
-cluster_all.o: $(mpi_include)
+cluster_all.o: $(mpi_include) \
+	interface.f90 input/interface.f90 profiling/interface.f90
+
+sumrho.o: cluster_all.o
+
+applyh.o: cluster_all.o
+
+forces.o: cluster_all.o
+
+restart.o: cluster_all.o
+
+tail.o: cluster_all.o
+
+types.o: cluster_all.o
 
 mpif.h:
-	touch mpif.h
-	echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h
-	echo "integer :: MPI_DOUBLE_PRECISION" >> mpif.h
-	echo "integer :: MPI_MIN, MPI_MAX" >> mpif.h
+	touch mpif.h &&\
+	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
+	 echo "integer :: MPI_DOUBLE_PRECISION" >> mpif.h &&\
+	 echo "integer :: MPI_MIN, MPI_MAX" >> mpif.h
 
 test_forces.o: parameters.h \
 	libbigdft.@MODULE_EXT@
 
 libbigdft.@MODULE_EXT@: cluster_all.o
 
-BigDFT.o: BigDFT.f90 \
-	parameters.h \
+BigDFT.o: parameters.h \
 	libbigdft.@MODULE_EXT@
 
+memguess.o: libbigdft.@MODULE_EXT@

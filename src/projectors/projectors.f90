@@ -83,7 +83,7 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
         dy2=(real(i2,kind=8)*hgrid-ry)**2
         do i1=nl1_c,nu1_c
            dx=real(i1,kind=8)*hgrid-rx
-           if (dx**2+(dy2+dz2).lt.rad_c**2) then
+           if (dx**2+(dy2+dz2).le.rad_c**2) then
               mvctr=mvctr+1
               proj_c(mvctr)=wprojx(i1,1,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
            endif
@@ -100,7 +100,7 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
         dy2=(real(i2,kind=8)*hgrid-ry)**2
         do i1=nl1_f,nu1_f
            dx=real(i1,kind=8)*hgrid-rx
-           if (dx**2+(dy2+dz2).lt.rad_f**2) then
+           if (dx**2+(dy2+dz2).le.rad_f**2) then
               mvctr=mvctr+1
               proj_f(1,mvctr)=wprojx(i1,2,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
               proj_f(2,mvctr)=wprojx(i1,1,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
@@ -126,7 +126,7 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
            dy2=(real(i2,kind=8)*hgrid-ry)**2
            do i1=nl1_c,nu1_c
               dx=real(i1,kind=8)*hgrid-rx
-              if (dx**2+(dy2+dz2).lt.rad_c**2) then
+              if (dx**2+(dy2+dz2).le.rad_c**2) then
                  mvctr=mvctr+1
                  proj_c(mvctr)=proj_c(mvctr)+wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
               endif
@@ -142,7 +142,7 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
            dy2=(real(i2,kind=8)*hgrid-ry)**2
            do i1=nl1_f,nu1_f
               dx=real(i1,kind=8)*hgrid-rx
-              if (dx**2+(dy2+dz2).lt.rad_f**2) then
+              if (dx**2+(dy2+dz2).le.rad_f**2) then
                  mvctr=mvctr+1
                  proj_f(1,mvctr)=&
                       proj_f(1,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
@@ -201,12 +201,13 @@ subroutine pregion_size(rxyz,radii,rmult,iatype,ntypes, &
 !!$      cymax=cymax-eps_mach ; cymin=cymin+eps_mach
 !!$      czmax=czmax-eps_mach ; czmin=czmin+eps_mach
   onem=1.d0-eps_mach
-  nl1=int(onem+cxmin/hgrid)   
-  nl2=int(onem+cymin/hgrid)   
-  nl3=int(onem+czmin/hgrid)   
-  nu1=int(cxmax/hgrid)  
-  nu2=int(cymax/hgrid)  
-  nu3=int(czmax/hgrid)  
+
+  nl1=ceiling(cxmin/hgrid - eps_mach)   
+  nl2=ceiling(cymin/hgrid - eps_mach)   
+  nl3=ceiling(czmin/hgrid - eps_mach)   
+  nu1=floor(cxmax/hgrid + eps_mach)  
+  nu2=floor(cymax/hgrid + eps_mach)  
+  nu3=floor(czmax/hgrid + eps_mach)  
   !        write(*,'(a,6(i4))') 'projector region ',nl1,nu1,nl2,nu2,nl3,nu3
   !        write(*,*) ' projector region size ',cxmin,cxmax
   !        write(*,*) '             ',cymin,cymax

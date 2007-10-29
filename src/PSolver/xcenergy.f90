@@ -119,7 +119,7 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   !useful for the freeBC case
   hgrid=max(hx,hy,hz)
 
- !divide by two the density to applicate it in the ABINIT xc routines
+  !starting point of the density array for the GGA cases in parallel
   offset=nwbl+1
   if (ixc/=0) then
      !divide by two the density to applicate it in the ABINIT xc routines
@@ -225,6 +225,27 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
                 hgrid,hgrid,hgrid,dvxcdgr,vxci)
         end if
 
+        !restore the density array in the good position if it was shifted for the parallel GGA
+        if (nspden==2 .and. nxt /= nwb) then
+           j3=nwb+1
+           do i3=nwb-nwbr,1,-1
+              j3=j3-1
+              do i2=1,m3
+                 do i1=1,m1
+                    rhopot(i1,i2,nwbl+j3,2)=rhopot(i1,i2,i3,2)
+                 end do
+              end do
+           end do
+           do i3=nxt,nwb+nwbl+1,-1 !we have nwbr points
+              j3=j3-1
+              do i2=1,m3
+                 do i1=1,m1
+                    rhopot(i1,i2,nwbl+j3,2)=rhopot(i1,i2,i3,1)
+                 end do
+              end do
+           end do
+        end if
+
         !cases without gradient
      else
         if (order**2 <=1 .or. ixc >= 31 .and. ixc<=34) then
@@ -275,31 +296,23 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      exc=0.d0
      vxc=0.d0
      sfactor=1.0d0
-     pfactor=1.0d0
-     do ispden=1,nspden
-        if(nspden==1) sfactor=2.0d0
-        if(nspden==1) pfactor=1.0d0
+     if(nspden==1) sfactor=2.0d0
      if (sumpion) then
         !summing the xc potential into the zfionxc array with pot_ion
+        ispden=1
         do jp2=1,nxc
            j2=offset+jp2+nxcl-2
-           !jpp2=jp2     
            jppp2=jp2+nxcl-1
            do j3=1,m3
               do j1=1,m1
                  jpp2=j1+(j3-1)*m1+(jp2-1)*m1*m3
                  rho=rhopot(j1,j3,j2,ispden)
-                 potion=pot_ion(jpp2)!j1,j3,jpp2)
-                 if (rho < 5.d-21) then
-                    elocal=0.d0
-                    vlocal=0.d0
-                 else
-                    elocal=exci(j1,j3,jppp2)
-                    vlocal=vxci(j1,j3,jppp2,ispden)
-                 end if
+                 potion=pot_ion(jpp2)
+                 elocal=exci(j1,j3,jppp2)
+                 vlocal=vxci(j1,j3,jppp2,ispden)
                  exc=exc+elocal*rho
                  vxc=vxc+vlocal*rho
-                 zf(j1,j3,jp2)=zf(j1,j3,jp2)+sfactor*rho !restore the original normalization
+                 zf(j1,j3,jp2)=sfactor*rho !restore the original normalization
                  zfionxc(j1,j3,jp2,ispden)=potion+vlocal
               end do
               do j1=m1+1,md1
@@ -314,23 +327,64 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
               end do
            end do
         end do
+        do jp2=nxc+1,md2/nproc
+           do j3=1,md3
+              do j1=1,md1
+                 zf(j1,j3,jp2)=0.d0
+                 zfionxc(j1,j3,jp2,ispden)=0.d0
+              end do
+           end do
+        end do
+        !spin-polarised case
+        if (nspden==2) then
+           ispden=2
+           do jp2=1,nxc
+              j2=offset+jp2+nxcl-2
+              jppp2=jp2+nxcl-1
+              do j3=1,m3
+                 do j1=1,m1
+                    jpp2=j1+(j3-1)*m1+(jp2-1)*m1*m3
+                    rho=rhopot(j1,j3,j2,ispden)
+                    potion=pot_ion(jpp2)
+                    elocal=exci(j1,j3,jppp2)
+                    vlocal=vxci(j1,j3,jppp2,ispden)
+                    exc=exc+elocal*rho
+                    vxc=vxc+vlocal*rho
+                    zf(j1,j3,jp2)=zf(j1,j3,jp2)+sfactor*rho !restore original normalization
+                    zfionxc(j1,j3,jp2,ispden)=potion+vlocal
+                 end do
+                 do j1=m1+1,md1
+                    zfionxc(j1,j3,jp2,ispden)=0.d0
+                 end do
+              end do
+              do j3=m3+1,md3
+                 do j1=1,md1
+                    zfionxc(j1,j3,jp2,ispden)=0.d0
+                 end do
+              end do
+           end do
+           do jp2=nxc+1,md2/nproc
+              do j3=1,md3
+                 do j1=1,md1
+                    zfionxc(j1,j3,jp2,ispden)=0.d0
+                 end do
+              end do
+           end do
+        end if
      else
+        !the zfionxc aray contain only the XC potential. pot_ion is ignored
+        ispden=1
         do jp2=1,nxc
            j2=offset+jp2+nxcl-2
            jppp2=jp2+nxcl-1
            do j3=1,m3
               do j1=1,m1
                  rho=rhopot(j1,j3,j2,ispden)
-                 if (rho < 5.d-21) then
-                    elocal=0.d0
-                    vlocal=0.d0
-                 else
-                    elocal=exci(j1,j3,jppp2)
-                    vlocal=vxci(j1,j3,jppp2,ispden)
-                 end if
+                 elocal=exci(j1,j3,jppp2)
+                 vlocal=vxci(j1,j3,jppp2,ispden)
                  exc=exc+elocal*rho
-                  vxc=vxc+vlocal*rho
-                 zf(j1,j3,jp2)=zf(j1,j3,jp2)+sfactor*rho!restore the original normalization
+                 vxc=vxc+vlocal*rho
+                 zf(j1,j3,jp2)=sfactor*rho!restore the original normalization
                  zfionxc(j1,j3,jp2,ispden)=vlocal
               end do
               do j1=m1+1,md1
@@ -345,16 +399,49 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
               end do
            end do
         end do
-     end if
-     do jp2=nxc+1,md2/nproc
-        do j3=1,md3
-           do j1=1,md1
-              zf(j1,j3,jp2)=0.d0
-              zfionxc(j1,j3,jp2,ispden)=0.d0
+        do jp2=nxc+1,md2/nproc
+           do j3=1,md3
+              do j1=1,md1
+                 zf(j1,j3,jp2)=0.d0
+                 zfionxc(j1,j3,jp2,ispden)=0.d0
+              end do
            end do
         end do
-     end do
-     end do
+        !spin-polarised case
+        if (nspden==2) then
+           ispden=2
+           do jp2=1,nxc
+              j2=offset+jp2+nxcl-2
+              jppp2=jp2+nxcl-1
+              do j3=1,m3
+                 do j1=1,m1
+                    rho=rhopot(j1,j3,j2,ispden)
+                    elocal=exci(j1,j3,jppp2)
+                    vlocal=vxci(j1,j3,jppp2,ispden)
+                    exc=exc+elocal*rho
+                    vxc=vxc+vlocal*rho
+                    zf(j1,j3,jp2)=zf(j1,j3,jp2)+sfactor*rho!restore the original normalization
+                    zfionxc(j1,j3,jp2,ispden)=vlocal
+                 end do
+                 do j1=m1+1,md1
+                    zfionxc(j1,j3,jp2,ispden)=0.d0
+                 end do
+              end do
+              do j3=m3+1,md3
+                 do j1=1,md1
+                    zfionxc(j1,j3,jp2,ispden)=0.d0
+                 end do
+              end do
+           end do
+           do jp2=nxc+1,md2/nproc
+              do j3=1,md3
+                 do j1=1,md1
+                    zfionxc(j1,j3,jp2,ispden)=0.d0
+                 end do
+              end do
+           end do
+        end if
+     end if
 
      !De-allocations
      i_all=-product(shape(exci))*kind(exci)
@@ -378,11 +465,6 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
            do j1=1,m1
               zf(j1,j3,jp2)=rhopot(j1,j3,j2,1)
            end do
-!           if(nspden==2) then
-!              do j1=1,m1
-!                 zf(j1,j3,jp2)=zf(j1,j3,jp2)+rhopot(j1,j3,j2,2)
-!              end do
-!           end if
            do j1=m1+1,md1
               zf(j1,j3,jp2)=0.d0
            end do
@@ -405,24 +487,8 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
   !the two factor is due to the 
   !need of using the density of states in abinit routines
-  if(nspden==1) then                
-     !Remember to check if this works when nspin is really 2 but ixc=0
-     if (geocode== 'F') then
-        exc=2.d0*hgrid**3*exc
-        vxc=2.d0*hgrid**3*vxc
-     else
-        exc=2.d0*hx*hy*hz*exc
-        vxc=2.d0*hx*hy*hz*vxc
-     end if
-  else
-     if (geocode== 'F') then
-        exc=1.d0*hgrid**3*exc
-        vxc=1.d0*hgrid**3*vxc
-     else
-        exc=1.d0*hx*hy*hz*exc
-        vxc=1.d0*hx*hy*hz*vxc
-     end if
-  end if
+  exc=sfactor*hx*hy*hz*exc
+  vxc=sfactor*hx*hy*hz*vxc
 
 end subroutine xc_energy
 
@@ -444,13 +510,13 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
   real(kind=8), dimension(n01,n02,n03,nvxcdgr), intent(in) :: dvxcdgr
   real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: wb_vxc
   !Local variables
-  integer :: i1,i2,i3,dir_i,i_all,i_stat
-  real(kind=8) :: dnexcdgog,grad_i
-  real(kind=8), dimension(:,:,:,:), allocatable :: f_i
+  integer :: i1,i2,i3,dir_i,i_all,i_stat,ispden
+  real(kind=8) :: dnexcdgog,grad_i,rho_up,rho_down,rho_tot
+  real(kind=8), dimension(:,:,:,:,:), allocatable :: f_i
 
   !Body
 
-  allocate(f_i(n01,n02,n03,3),stat=i_stat)
+  allocate(f_i(n01,n02,n03,3,nspden),stat=i_stat)
   call memocc(i_stat,product(shape(f_i))*kind(f_i),'f_i','vxcpostprocessing')
   
   !let us first treat the case nspden=1
@@ -464,7 +530,7 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
                  do i1=1,n01
                     dnexcdgog=0.5d0*dvxcdgr(i1,i2,i3,1) + dvxcdgr(i1,i2,i3,3)
                     grad_i=2.d0*gradient(i1,i2,i3,1,dir_i)
-                    f_i(i1,i2,i3,dir_i)=dnexcdgog*grad_i
+                    f_i(i1,i2,i3,dir_i,1)=dnexcdgog*grad_i
                  end do
               end do
            end do
@@ -477,23 +543,54 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
                  do i1=1,n01
                     dnexcdgog=0.5d0*dvxcdgr(i1,i2,i3,1)
                     grad_i=2.d0*gradient(i1,i2,i3,1,dir_i)
-                    f_i(i1,i2,i3,dir_i)=dnexcdgog*grad_i
+                    f_i(i1,i2,i3,dir_i,1)=dnexcdgog*grad_i
                  end do
               end do
            end do
         end do
      end if
-     !let us now calculate the gradient and correct the result
-     call wb_correction(n01,n02,n03,n3eff,wbl,wbr,f_i,&
-          hx,hy,hz,nspden,wb_vxc)
 
   !then the spin-polarized case
   else
 
-     !!to be inserted later, when the non spin-pol case is verified
+     if (nvxcdgr == 3) then
+        do dir_i=1,3
+           do i3=1,n03
+              do i2=1,n02
+                 do i1=1,n01
+                    rho_up=gradient(i1,i2,i3,1,dir_i)  !rho_ instead of grad_ for ABINIT comp.
+                    rho_down=gradient(i1,i2,i3,2,dir_i)
+                    rho_tot=gradient(i1,i2,i3,3,dir_i)
+                    f_i(i1,i2,i3,dir_i,1)=rho_up*dvxcdgr(i1,i2,i3,1)+&
+                         rho_tot*dvxcdgr(i1,i2,i3,3)
+                    f_i(i1,i2,i3,dir_i,2)=rho_down*dvxcdgr(i1,i2,i3,2)+&
+                         rho_tot*dvxcdgr(i1,i2,i3,3)
+                 end do
+              end do
+           end do
+        end do
+     else
+        do dir_i=1,3
+           do i3=1,n03
+              do i2=1,n02
+                 do i1=1,n01
+                    rho_up=gradient(i1,i2,i3,1,dir_i)
+                    rho_down=gradient(i1,i2,i3,2,dir_i)
+                    f_i(i1,i2,i3,dir_i,1)=rho_up*dvxcdgr(i1,i2,i3,1)
+                    f_i(i1,i2,i3,dir_i,2)=rho_down*dvxcdgr(i1,i2,i3,2)
+                 end do
+              end do
+           end do
+        end do
+     end if
 
   !end of spin-polarized if statement
   end if
+
+  !let us now calculate the gradient and correct the result
+  call wb_correction(n01,n02,n03,n3eff,wbl,wbr,f_i,&
+       hx,hy,hz,nspden,wb_vxc)
+
 
   i_all=-product(shape(f_i))*kind(f_i)
   deallocate(f_i,stat=i_stat)

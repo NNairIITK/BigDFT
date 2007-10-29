@@ -284,9 +284,6 @@ subroutine timing(iproc,category,action)
 end subroutine timing
 
 
-
-
-
 !control the memory occupation by calculating the overall size in bytes of the allocated arrays
 !usage: 
 ! when allocating allocating an array "stuff" of dimension n in the routine "dosome"
@@ -317,7 +314,6 @@ subroutine memocc(istat,isize,array,routine)
   save :: memory,nalloc,ndealloc,maxroutine,maxarray,maxmemory
   save :: locroutine,locarray,locpeak,locmemory,iproc
 
-
   select case(array)
      case('count')
         if (routine=='start') then
@@ -331,10 +327,12 @@ subroutine memocc(istat,isize,array,routine)
            locpeak=0
            iproc=isize
            !open the writing file for the root process
-           if (iproc == 0) open(unit=98,file='malloc.prc',status='unknown')
-           write(98,'(a32,a14,4(1x,a12))')&
-                '(Data in KB)             Routine','    Peak Array',&
-                'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
+           if (iproc == 0) then
+              open(unit=98,file='malloc.prc',status='unknown')
+              write(98,'(a32,a14,4(1x,a12))')&
+                   '(Data in KB)             Routine','    Peak Array',&
+                   'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
+           end if
         else if (routine=='stop' .and. iproc==0) then
            write(98,'(a32,a14,4(1x,i12))')&
                 trim(locroutine),trim(locarray),&
@@ -405,7 +403,7 @@ subroutine memocc(istat,isize,array,routine)
 end subroutine memocc
 
 subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
-     rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid,nspin)
+     rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid,nspin,peakmem)
 
   use Poisson_Solver
 
@@ -418,6 +416,7 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
   real(kind=8), intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(ntypes,2), intent(in) ::  radii_cf
+  real(kind=8), intent(out) :: peakmem
   !local variables
   real(kind=8), parameter :: eps_mach=1.d-12
   character(len=1) :: geocode
@@ -553,14 +552,14 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
        ' Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application'
   if (nproc > 1) then 
      write(*,'(1x,a)')&
-       '      ~19*K         |      W+(~4)*U+D+K    |    ~12*D+K+W   |     ~*W+(~5)*U+D+K '
+       '      ~19*K         |      W+(~4)*U+D+K    |    ~12*D+K+W   |      ~W+(~5)*U+D+K '
      tmemker=19.d0*omemker
      tmemden=omemwf+(3.d0+tt)*omempot+omemker
      tmemps=12.d0*omemden+omemwf+omemker
      tmemha=(3.d0+2.d0*tt)*omempot+omemwf+omemker
   else
      write(*,'(1x,a)')&
-       '      ~11*K         |       ~W+(~3)*U      |     ~8*D+*W    |       ~W+(~3)*U '
+       '      ~11*K         |       ~W+(~3)*U      |     ~8*D+*W    |         ~W+(~3)*U '
      tmemker=11.d0*omemker
      tmemden=omemwf+(2.d0+tt)*omempot+omemker
      tmemps=8.d0*omemden+omemwf+omemker
@@ -569,6 +568,8 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
   write(*,'(1x,4(1x,i8,a))')&
        int(tmemker/1048576.d0),'MB         | ',int(tmemden/1048576.d0),'MB          |',&
        int(tmemps/1048576.d0),'MB     |     ',int(tmemha/1048576.d0),'MB'
+  !estimation of the memory peak
+  peakmem=max(tmemker,tmemden,tmemps,tmemha)
   write(*,'(1x,a,i0,a)')&
        'The overall memory requirement needed for this calculation is thus: ',&
        int(max(tmemker,tmemden,tmemps,tmemha)/1048576.d0),' MB'

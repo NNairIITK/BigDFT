@@ -184,6 +184,12 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
 !!$  deallocate(rw,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'rw','gautowav')
 
+!!$subroutine basis_ovrlp(nat,norb,nbx,ngx,lmax,ntypes,nam,ndoc,contcoeff,expo,cimu)
+!!$  
+!!$  
+!!$end subroutine basis_ovrlp
+
+
 
   mmax=2*lmax+1
   !now read the coefficients of the gaussian converged orbitals

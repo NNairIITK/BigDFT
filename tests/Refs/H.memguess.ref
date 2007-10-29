@@ -1,4 +1,37 @@
- atoms of type 1 are H_lda
+                             ****         *       *****    
+                            *    *               *         
+                           *     *        *     *          
+                           *    *         *     *        * 
+                           *****          *     *         *
+                           *    *         *     *         *
+                           *     *        *     *         *
+                           *      *       *     *         *
+                           *     *     ****     *         *
+                           * ****         *      *        *
+                           *             *        *      * 
+                       *********    *****          ******  
+                         ******          *****    *********
+                        *      *        *             *    
+                       *        *      *         **** *    
+                       *         *     ****     *     *    
+                       *         *     *       *      *    
+                       *         *     *        *     *    
+                       *         *     *         *    *    
+                       *         *     *          *****    
+                        *        *     *         *    *    
+                                 *     *        *     *    
+                                *               *    *     
+                           *****       *         ****                       (Ver 1.0)
+ ------------------------------------------------------------------------------------
+ |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
+ ------------------------------------------------------------------------------------
+ Number of atoms     = 1
+ Number of atom types= 1
+ Atoms of type 1 are H_lda
+ Max. number of wavefnctn optim 1
+ Convergence criterion for forces: fraction of noise   1.00E+00
+ Random displacement amplitude   0.00E+00
+ Steepest descent step   4.00E+00
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Grid spacing=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
@@ -11,10 +44,12 @@
  Total Number of Electrons        1
  WARNING: odd number of electrons, no closed shell system
  Total Number of  Orbitals        1
- Total Number of  Orbitals        1
  occup(1)= 1.0000
-                                  Atomic Units:                   grid spacing units:
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1  H_lda  6.75000E+00  6.75000E+00  6.75000E+00       15.000    15.000    15.000
+    Shift of=  6.75000E+00  6.75000E+00  6.75000E+00
    Box Sizes=  1.35000E+01  1.35000E+01  1.35000E+01           30        30        30
+       Extremes for the high resolution grid points:        13<17     13<17     13<17
  ------------------------------------------------------------------ Memory Estimation
  Number of atoms=    1 Number of orbitals=     1 Sim. Box Dimensions=    30   30   30
  Estimation performed for 1 processors.
@@ -23,16 +58,16 @@
               Poisson Solver Density (D):     6 MB   768 KB
      Single Wavefunction for one orbital:     0 MB   118 KB
     All Wavefunctions for each processor:     0 MB   235 KB
-       Wavefunctions + DIIS per proc (W):     1 MB   733 KB
+       Wavefunctions + DIIS per proc (W):     1 MB   732 KB
     Arrays of full uncompressed grid (U):     5 MB   768 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W     |       ~W+(~3)*U 
+       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W    |         ~W+(~3)*U 
         76MB         |        21MB          |       62MB     |            23MB
  The overall memory requirement needed for this calculation is thus: 76 MB
  By reducing the DIIS history and/or decreasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 20 MB
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 10 allocations and 10 deallocations, remaining memory(B):0
+ 13 allocations and 13 deallocations, remaining memory(B):0
  memory occupation peak: 0 MB
  for the array  logrid in the routine memoryestimator

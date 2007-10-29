@@ -2,7 +2,7 @@
         PROGRAM TR_ROT_TRANSF
 
         implicit real(kind=8) (a-h,o-z)
-        character(len=20) atomname(1000)	
+        character(len=20) atomname(1000)    
         dimension pos(3,1000),pos_n(3,1000),pos_s(3),alat(3)
         dimension theta(3,3)
         parameter(PI=3.141592654d0)       

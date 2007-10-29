@@ -2,22 +2,24 @@
 
 SUBDIRS = \
 	  H \
+	  H-spin \
 	  Li+ \
 	  SiH4 \
 	  NaCl \
-	  C
+	  C \
+	  Ca2
 
 EXTRA_DIST = \
-	fldiff.pl \
+	fldiff.py \
 	inguess.dat \
-	input.dat \
-	posinp \
 	Refs
 
 CLEANFILES =  
 
 all:
-	@echo "========================================"
-	@echo "Type 'make check' in the directory tests"
-	@echo "========================================"
+	@echo "=============================================="
+	@echo "Type 'make check' in the directory tests      "
+	@echo "     Use the environment variable run_parallel"
+	@echo "     ex: export run_parallel='ompirun -np 2'  "
+	@echo "=============================================="
 

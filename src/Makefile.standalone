@@ -23,11 +23,11 @@ SOURCES = \
 	convolutions/conv_per_optim.f90 \
 	convolutions/combined_grow.f90\
 	convolutions/combined_shrink.f90 \
-        cluster_all.f90 \
-        eleconf.f90  \
-        gauss_to_daub.f90 \
-        precond.f90 \
-        prec_diag.f90 \
+    cluster_all.f90 \
+    eleconf.f90  \
+    gauss_to_daub.f90 \
+    precond.f90 \
+    prec_diag.f90 \
 	wavelib.f90 \
 	input/gautowav.f90 \
 	input/gauprod.f90 \
@@ -110,8 +110,13 @@ $(OBJECTS_POISSON): %.o: %.f90
 #	nrutil.o \
 #	tblink.o \
 #	tbnorth.o
-OBJECTS = $(OBJECTS_ABINIT) $(OBJECTS_POISSON) $(OBJECTS_F95) $(OBJECTS_TIME) $(OBJECTS_PROJECTORS) $(COBJECTS) BigDFT.f90 
-OBJECTS_TEST =  $(OBJECTS_ABINIT) $(OBJECTS_F95)  $(OBJECTS_POISSON) test_forces.f90
+OBJECTS = $(OBJECTS_ABINIT) $(OBJECTS_POISSON) \
+		  $(OBJECTS_F95) $(OBJECTS_TIME) \
+		  $(OBJECTS_PROJECTORS) $(COBJECTS) BigDFT.f90
+
+OBJECTS_TEST =  $(OBJECTS_ABINIT) $(OBJECTS_POISSON) \
+				$(OBJECTS_F95) $(OBJECTS_TIME) \
+				$(OBJECTS_PROJECTORS) test_forces.f90
 
 cluster: $(OBJECTS) parameters.h 
 	$(F95) -o cluster $(OBJECTS) $(LIBRARIES) 

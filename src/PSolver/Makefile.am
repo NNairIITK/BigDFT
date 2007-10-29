@@ -36,7 +36,12 @@ EXTRA_DIST = \
 
 lib_LIBRARIES = libpoissonsolver.a
 
+
+if CAPITALIZE
+module_DATA = POISSON_SOLVER.@MODULE_EXT@
+else
 module_DATA = poisson_solver.@MODULE_EXT@
+endif
 
 SUBDIRS =
 
@@ -64,13 +69,13 @@ PSolver_LDADD = libpoissonsolver.a \
 	@MPI_LIBS@
 
 
-CLEANFILES = $(mpi_include)
+CLEANFILES = mpif.h POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@
 
 #dependencies
 mpif.h:
-	touch mpif.h
-	echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h
-	echo "integer :: MPI_DOUBLE_PRECISION,MPI_MAX,MPI_MIN" >> mpif.h
+	touch mpif.h && \
+	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h && \
+	 echo "integer :: MPI_DOUBLE_PRECISION,MPI_MAX,MPI_MIN" >> mpif.h
 
 poisson_solver.@MODULE_EXT@: Poisson_Solver.o
 

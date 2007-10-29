@@ -1,7 +1,7 @@
 subroutine convolut_kinetic(n1,n2,n3,hgrid,x,y)
   !use module_profile
   !   applies the kinetic energy operator onto x to get y
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   parameter(lowfil=-14,lupfil=14)
   dimension fil(lowfil:lupfil),x(0:n1,0:n2,0:n3),y(0:n1,0:n2,0:n3)
 
@@ -18,7 +18,7 @@ subroutine convolut_kinetic(n1,n2,n3,hgrid,x,y)
   
   ! Routine works only for n > 26 because it is unrolled according to 2*(filter length)
   if (n1 .lt. 27 .or. n2 .lt. 27 .or. n3 .lt. 27) then
-	stop 'In convolut_kinetic optimized routines it is required that: n1 > 26 ,n2 > 26 ,n3 > 26. Please run convolut_simple routines.'
+    stop 'In convolut_kinetic optimized routines it is required that: n1 > 26 ,n2 > 26 ,n3 > 26. Please run convolut_simple routines.'
   endif
 
   ! second derivative filters for Daubechies 16
@@ -316,12 +316,12 @@ end subroutine convolut_kinetic
 
 
 subroutine convrot_grow(n1,ndat,x,y)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   parameter(lowfil=-8,lupfil=7)
   dimension x(0:n1,ndat),y(ndat,-lupfil:n1-lowfil)    
 
   !          THE MAGIC FILTER FOR DAUBECHIES-16
-  REAL*8 fil(lowfil:lupfil)
+  real(kind=8) fil(lowfil:lupfil)
   DATA fil / &
        8.4334247333529341094733325815816D-7,&
        -0.1290557201342060969516786758559028D-4,&
@@ -342,7 +342,7 @@ subroutine convrot_grow(n1,ndat,x,y)
        
   ! Routine works only for n1 > 13 because it is unrolled according to 2*(filter length)
   if (n1 .lt. 14) then
-	stop 'In convrot_grow optimized routines it is required that n1 > 13. Please run convolut_simple routines.'
+    stop 'In convrot_grow optimized routines it is required that n1 > 13. Please run convolut_simple routines.'
   endif
 
 !$omp  parallel do default(private) shared(x,y,fil,ndat,n1)
@@ -435,12 +435,12 @@ end subroutine convrot_grow
 
 
 subroutine convrot_shrink(n1,ndat,x,y)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   parameter(lowfil=-8,lupfil=7)
   dimension x(lowfil:n1+lupfil,ndat),y(ndat,0:n1)
 
   !          THE MAGIC FILTER FOR DAUBECHIES-16
-  REAL*8 fil(lowfil:lupfil)
+  real(kind=8) fil(lowfil:lupfil)
   DATA fil / &
        2.72734492911979659657715313017228D-6,&
        -0.5185986881173432922848639136911487D-4,&
@@ -461,7 +461,7 @@ subroutine convrot_shrink(n1,ndat,x,y)
        
   ! Routine works only for n1 > 2 because it is unrolled by 4
   if (n1 .lt. 3) then
-	stop 'In convrot_shrink optimized routines it is required that n1 > 2. Please run convolut_simple routines.'
+    stop 'In convrot_shrink optimized routines it is required that n1 > 2. Please run convolut_simple routines.'
   endif
 
 !$omp  parallel do default(private) shared(x,y,fil,n1,ndat)
@@ -497,9 +497,9 @@ end subroutine convrot_shrink
 
 
 subroutine syn_rot_grow(n,nt,x,y)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   !  Daubechies_16 symetric 
-  !        REAL*8 CH(-M:M)/0.d0,&
+  !        real(kind=8) CH(-M:M)/0.d0,&
   !        -0.0033824159510050025955D0,-0.00054213233180001068935D0,&
   !        0.031695087811525991431D0,0.0076074873249766081919D0,&
   !        -0.14329423835127266284D0,-0.061273359067811077843D0,&
@@ -515,11 +515,11 @@ subroutine syn_rot_grow(n,nt,x,y)
           
     !******** coefficints for wavelet transform *********************
     ! h coefficients
-	REAL*8 ch(-mm:mm)
-	DATA ch / &
-	0.D0, & 
-	0.D0, &
-	0.d0, &
+    real(kind=8) ch(-mm:mm)
+    DATA ch / &
+    0.D0, & 
+    0.D0, &
+    0.d0, &
     -0.0033824159510050025955D0, &
     -0.00054213233180001068935D0, &
     0.031695087811525991431D0, &
@@ -540,11 +540,11 @@ subroutine syn_rot_grow(n,nt,x,y)
     0.D0 /
 
 ! g coefficients
-	REAL*8 cg(-mm:mm)
-	DATA cg / &
-	0.D0, & 
-	0.D0, &
-	0.d0, &
+    real(kind=8) cg(-mm:mm)
+    DATA cg / &
+    0.D0, & 
+    0.D0, &
+    0.d0, &
     -0.0018899503327676891843D0, &
     -0.00030292051472413308126D0, &
     0.014952258337062199118D0, &
@@ -566,7 +566,7 @@ subroutine syn_rot_grow(n,nt,x,y)
     
   ! Routine works only for n > 5 because it is unrolled according to 2*(filter length)
   if (n .lt. 6) then
-	stop 'In syn_rot_grow optimized routines it is required that n > 5. Please run convolut_simple routines.'
+    stop 'In syn_rot_grow optimized routines it is required that n > 5. Please run convolut_simple routines.'
   endif
 
 
@@ -664,7 +664,7 @@ end subroutine syn_rot_grow
 
 
 subroutine ana_rot_shrink(n,nt,x,y)
-  implicit real*8 (a-h,o-z)
+  implicit real(kind=8) (a-h,o-z)
   !  Daubechies_8 symetric 
   !        parameter(chm3=.230377813308896501d0, chm2=.714846570552915647d0, & 
   !                  chm1=.630880767929858908d0, ch00=-.279837694168598542d-1, & 
@@ -679,11 +679,11 @@ subroutine ana_rot_shrink(n,nt,x,y)
         
     !******** coefficints for wavelet transform *********************
     ! h coefficients
-	REAL*8 ch(-mm:mm)
-	DATA ch / &
-	0.D0, & 
-	0.D0, &
-	0.d0, &
+    real(kind=8) ch(-mm:mm)
+    DATA ch / &
+    0.D0, & 
+    0.D0, &
+    0.d0, &
     -0.0033824159510050025955D0, &
     -0.00054213233180001068935D0, &
     0.031695087811525991431D0, &
@@ -704,11 +704,11 @@ subroutine ana_rot_shrink(n,nt,x,y)
     0.D0 /
 
 ! g coefficients
-	REAL*8 cg(-mm:mm)
-	DATA cg / &
-	0.D0, & 
-	0.D0, &
-	0.d0, &
+    real(kind=8) cg(-mm:mm)
+    DATA cg / &
+    0.D0, & 
+    0.D0, &
+    0.d0, &
     -0.0018899503327676891843D0, &
     -0.00030292051472413308126D0, &
     0.014952258337062199118D0, &
@@ -730,7 +730,7 @@ subroutine ana_rot_shrink(n,nt,x,y)
     
   ! Routine works only for n > 0 because it is unrolled by 2
   if (n .lt. 1) then
-	stop 'In syn_rot_grow optimized routines it is required that n > 0. Please run convolut_simple routines.'
+    stop 'In syn_rot_grow optimized routines it is required that n > 0. Please run convolut_simple routines.'
   endif
 
 !$omp  parallel do default(private) shared(x,y,ch,cg,n,nt)

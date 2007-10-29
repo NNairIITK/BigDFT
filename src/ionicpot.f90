@@ -206,9 +206,10 @@ subroutine pot_constantfield(iproc,n1,n2,n3,n3pi,pot,hgrid,elecfield)
 
 end subroutine pot_constantfield
 
+
 subroutine addlocgauspsp(iproc,ntypes,nat,iatype,rxyz,psppar,&
      n1,n2,n3,n3pi,i3s,hgrid,pot)
-  ! Add local Gaussian terms of the PSP to pot, where pot is distributed 
+  ! Add local Gaussian terms of the PSP to pot, where pot is distributed
   implicit none
   integer, intent(in) :: ntypes,nat,n1,n2,n3,n3pi,iproc,i3s
   real(kind=8), intent(in) :: hgrid
@@ -219,8 +220,8 @@ subroutine addlocgauspsp(iproc,ntypes,nat,iatype,rxyz,psppar,&
   !local variables
   integer :: iat,i1,i2,i3,ii,ix,iy,iz,ityp,iloc,nloc,i3start,i3end,j3
   real(kind=8) :: hgridh,rloc,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
-  
-  hgridh=hgrid*.5d0 
+ 
+  hgridh=hgrid*.5d0
 
   do iat=1,nat
      ityp=iatype(iat)
@@ -241,29 +242,33 @@ subroutine addlocgauspsp(iproc,ntypes,nat,iatype,rxyz,psppar,&
      cutoff=10.d0*rloc
      ii=nint(cutoff/hgridh)
 
-     !calculate start and end of the distributed pot
-     i3start=max(max(-14,iz-ii),i3s-15)
-     i3end=min(min(2*n3+16,iz+ii),i3s+n3pi-16)
+     if (nloc /= 0) then
 
-     do i3=i3start,i3end
-        j3=i3+15-i3s+1
-        do i2=max(-14,iy-ii),min(2*n2+16,iy+ii)
-           do i1=max(-14,ix-ii),min(2*n1+16,ix+ii)
-              x=real(i1,kind=8)*hgridh-rx
-              y=real(i2,kind=8)*hgridh-ry
-              z=real(i3,kind=8)*hgridh-rz
-              r2=x**2+y**2+z**2
-              arg=r2/rloc**2
-              xp=exp(-.5d0*arg)
-              tt=psppar(0,nloc,ityp)
-              do iloc=nloc-1,1,-1
-                 tt=arg*tt+psppar(0,iloc,ityp)
+        !calculate start and end of the distributed pot
+        i3start=max(max(-14,iz-ii),i3s-15)
+        i3end=min(min(2*n3+16,iz+ii),i3s+n3pi-16)
+
+        do i3=i3start,i3end
+           j3=i3+15-i3s+1
+           do i2=max(-14,iy-ii),min(2*n2+16,iy+ii)
+              do i1=max(-14,ix-ii),min(2*n1+16,ix+ii)
+                 x=real(i1,kind=8)*hgridh-rx
+                 y=real(i2,kind=8)*hgridh-ry
+                 z=real(i3,kind=8)*hgridh-rz
+                 r2=x**2+y**2+z**2
+                 arg=r2/rloc**2
+                 xp=exp(-.5d0*arg)
+                 tt=psppar(0,nloc,ityp)
+                 do iloc=nloc-1,1,-1
+                    tt=arg*tt+psppar(0,iloc,ityp)
+                 enddo
+                 pot(i1,i2,j3)=pot(i1,i2,j3)+xp*tt
               enddo
-              pot(i1,i2,j3)=pot(i1,i2,j3)+xp*tt
            enddo
         enddo
-     enddo
 
-   enddo
+     end if
+
+  enddo
  end subroutine addlocgauspsp
 
