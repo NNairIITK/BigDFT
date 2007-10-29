@@ -1,3 +1,14 @@
+subroutine deallocate_nlpspd(nlpspd,routine)
+  
+  use libBigDFT
+  type(nonlocal_psp_descriptors) :: nlpspd
+  character(len=*), intent(in) :: routine
+  !local variables
+  integer :: i_stat,i_all
+
+ 
+end subroutine allocate_nlpspd
+
 subroutine allocate_wfd(wfd,routine)
   
   use libBigDFT

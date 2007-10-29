@@ -66,7 +66,13 @@ module libBigDFT
   end type wavefunctions_descriptors
 
   type, public :: nonlocal_psp_descriptors
+     !number of projectors and number of elements
      integer :: nproj,nprojel
+     ! projector segments on real space grid
+     integer, dimension(:), pointer :: nvctr_p,nseg_p,keyv_p
+     integer, dimension(:,:), pointer :: keyg_p 
+     ! Parameters for the boxes containing the projectors
+     integer, dimension(:,:,:), pointer :: nboxp_c,nboxp_f
   end type nonlocal_psp_descriptors
 
   !- Interfaces for all outside public routines.
@@ -124,13 +130,8 @@ contains
   real(kind=8), allocatable :: rhopot(:,:,:,:),pot_ion(:)
   real(kind=8), pointer     :: pkernel(:)
 
-  ! projector segments on real space grid
-  pointer :: keyg_p(:,:), keyv_p(:)
-  allocatable :: nvctr_p(:), nseg_p(:)
   ! projectors 
   real(kind=8), pointer :: proj(:)
-  ! Parameters for the boxes containing the projectors
-  allocatable :: nboxp_c(:,:,:),nboxp_f(:,:,:)
 
   ! pseudopotential parameters
   allocatable :: psppar(:,:,:),nelpsp(:),radii_cf(:,:),npspcode(:),nzatom(:),iasctype(:)
@@ -150,6 +151,7 @@ contains
 
   type(wavefunctions_descriptors) :: wfd_old
   type(convolutions_bounds) :: bounds
+  type(nonlocal_psp_descriptors) :: nlpspd
 
   include 'mpif.h'
 
@@ -274,18 +276,8 @@ contains
 ! Calculate all projectors
   call timing(iproc,'CrtProjectors ','ON')
 
-  allocate(nseg_p(0:2*nat),stat=i_stat)
-  call memocc(i_stat,product(shape(nseg_p))*kind(nseg_p),'nseg_p','cluster')
-  allocate(nvctr_p(0:2*nat),stat=i_stat)
-  call memocc(i_stat,product(shape(nvctr_p))*kind(nvctr_p),'nvctr_p','cluster')
-  allocate(nboxp_c(2,3,nat),stat=i_stat)
-  call memocc(i_stat,product(shape(nboxp_c))*kind(nboxp_c),'nboxp_c','cluster')
-  allocate(nboxp_f(2,3,nat),stat=i_stat)
-  call memocc(i_stat,product(shape(nboxp_f))*kind(nboxp_f),'nboxp_f','cluster')
-
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomnames,&
-       & psppar,npspcode,radii_cf,cpmult,fpmult,hgrid,nvctr_p,nseg_p,&
-       & keyg_p,keyv_p,nproj,nprojel,istart,nboxp_c,nboxp_f,proj)
+       & psppar,npspcode,radii_cf,cpmult,fpmult,hgrid,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
     
   !allocate values of the array for the data scattering in sumrho
@@ -331,8 +323,7 @@ contains
      !and calculate eigenvalues
      call import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           nat,norb,norbp,occup,n1,n2,n3,nvctrp,hgrid,rxyz, & 
-          rhopot,pot_ion,wfd,bounds, &
-          nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
+          rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
           atomnames,ntypes,iatype,pkernel,psppar,npspcode,ixc,&
           psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
 
@@ -341,8 +332,7 @@ contains
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hgrid,rxyz, & 
-          rhopot,pot_ion,wfd,bounds, &
-          nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
+          rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
           atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,&
           ixc,psi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
 
@@ -491,7 +481,7 @@ contains
 
      call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
              psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             wfd,bounds,nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,ngatherarr,n3p,&
+             wfd,bounds,nlpspd,proj,ngatherarr,n3p,&
              rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
@@ -603,8 +593,7 @@ contains
 
 !  write all the wavefunctions into files
   if (output_wf) then
-     call  writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,  & 
-              nat,rxyz,wfd,psi,eval)
+     call  writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,wfd,psi,eval)
      write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
   end if
 
@@ -711,15 +700,13 @@ contains
   !the calculation of the derivatives of the projectors has been decoupled
   !from the one of nonlocal forces, in this way forces can be calculated
   !diring the wavefunction minimization if needed
-  call projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, & 
-       ntypes,nat,norb,nprojel,nproj,iatype,psppar,nseg_p,nvctr_p,proj,  &
-       keyg_p,keyv_p,rxyz,radii_cf,cpmult,fpmult,hgrid,derproj)
+  call projectors_derivatives(iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,nlpspd,proj,  &
+       rxyz,radii_cf,cpmult,fpmult,hgrid,derproj)
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
 
-  call nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
-       iatype,psppar,npspcode,occup,nseg_p,nvctr_p,proj,derproj,  &
-       keyg_p,keyv_p,wfd,psi,gxyz)
+  call nonlocal_forces(iproc,ntypes,nat,norb,norbp,iatype,psppar,npspcode,occup,&
+       nlpspd,proj,derproj,wfd,psi,gxyz)
 
   if (iproc == 0) write(*,'(1x,a)')'done.'
   
@@ -801,8 +788,7 @@ contains
      call memocc(i_stat,i_all,'rhopot','cluster')
 
      call CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntypes,&
-     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nproj,nprojel,ncongt,&
-     nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,psppar,npspcode,eval,&
      pot,hgrid,rxyz,radii_cf,crmult,frmult,iatype,atomnames,nspin,spinar,&
      proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
 
@@ -1587,8 +1573,6 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
        'Wavefunction memory occupation per orbital (Bytes): ',&
        nvctrp*nproc*8
 
-!*********Alexey******************************************************************************
- 
   !allocate grow, shrink and real bounds
   allocate(bounds%gb%ibzxx_c(2,0:n3,-14:2*n1+16),stat=i_stat)
   call memocc(i_stat,product(shape(bounds%gb%ibzxx_c))*kind(bounds%gb%ibzxx_c),'ibzxx_c','crtwvfnctsdescriptors')
@@ -1626,9 +1610,10 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
 !***********************************************************************************************
 END SUBROUTINE createWavefunctionsDescriptors
 
+!pass to implicit none while inserting types on this routine
 subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, atomnames, &
      & psppar, npspcode, radii_cf, cpmult, fpmult, hgrid, nvctr_p, nseg_p, &
-     & keyg_p, keyv_p, nproj, nprojel, istart, nboxp_c, nboxp_f, proj)
+     & keyg_p, keyv_p, nproj, nprojel, nboxp_c, nboxp_f, proj)
   implicit real(kind=8) (a-h,o-z)
   character(len=20) :: atomnames(100)
   dimension rxyz(3,nat),iatype(nat),radii_cf(ntypes,2),psppar(0:4,0:6,ntypes),npspcode(ntypes)
@@ -1722,7 +1707,7 @@ subroutine createProjectorsArrays(iproc, n1, n2, n3, rxyz, nat, ntypes, iatype, 
   allocate(proj(nprojel),stat=i_stat)
   call memocc(i_stat,product(shape(proj))*kind(proj),'proj','createprojectorsarrays')
 
-
+ 
   ! After having determined the size of the projector descriptor arrays fill them
   istart_c=1
   do iat=1,nat
