@@ -24,4 +24,4 @@ for file in glob.glob("*/fldiff.report"):
             state = "succeeded"
         else:
             state = "failed"
-        print "%-9s %s (%7.1e)" % (dir,state,discrepancy)
+        print "%-9s %-9s (%7.1e)" % (dir,state,discrepancy)
