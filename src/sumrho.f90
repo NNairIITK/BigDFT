@@ -5,7 +5,7 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   ! Input: psi
   ! Output: rho
 
-  use libBigDFT
+  use module_types
 
   implicit real(kind=8) (a-h,o-z)
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -15,7 +15,6 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   dimension psi(wfd%nvctr_c+7*wfd%nvctr_f,norbp)
   dimension nscatterarr(0:nproc-1,4)!n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(kind=8), allocatable :: psir(:),rho_p(:)
-  !***************Alexey**************************************************************************
   real(kind=8), allocatable, dimension(:,:,:) :: x_c!input 
   real(kind=8), allocatable :: x_f(:,:,:,:)
   real(kind=8), allocatable, dimension(:) :: w1,w2

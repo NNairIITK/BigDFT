@@ -1,6 +1,7 @@
 program memguess
 
-  use libBigDFT
+  use module_types
+  !use libBigDFT
 
   implicit none
   logical :: calc_tail,output_grid

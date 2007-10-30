@@ -1,23 +1,20 @@
 subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntypes,&
-     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nproj,nprojel,ncongt,&
-     nseg_p,keyv_p,keyg_p,nvctr_p,psppar,npspcode,eval,&
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,psppar,npspcode,eval,&
      pot,hgrid,rxyz,radii_cf,crmult,frmult,iatype,atomnames,nspin,spinar,&
      proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
 
-  use libBigDFT
+  use module_types
 
   implicit none
   include 'mpif.h' 
   type(wavefunctions_descriptors), intent(in) :: wfd
+  type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
   logical, intent(in) :: output_grid,parallel
   character(len=20), dimension(100), intent(in) :: atomnames
   integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nat,ntypes,ncongt,nspin
-  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nproj,nprojel
+  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
-  integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
-  integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
-  integer, dimension(2,nseg_p(2*nat)), intent(inout) :: keyg_p
   integer, dimension(ntypes), intent(in) :: npspcode
   integer, dimension(nat), intent(in) :: iatype
   real(kind=8), dimension(norb), intent(in) :: occup,eval,spinar
@@ -25,7 +22,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(2*n1+31,2*n2+31,2*n3+31,nspin), intent(in) :: pot
-  real(kind=8), dimension(nprojel), intent(in) :: proj
+  real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
   !local variables
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
@@ -82,9 +79,9 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
 
 
   !---reformat keyg_p
-  do iseg=1,nseg_p(2*nat)
-     j0=keyg_p(1,iseg)
-     j1=keyg_p(2,iseg)
+  do iseg=1,nlpspd%nseg_p(2*nat)
+     j0=nlpspd%keyg_p(1,iseg)
+     j1=nlpspd%keyg_p(2,iseg)
      ii=j0-1
      i3=ii/((n1+1)*(n2+1))
      ii=ii-i3*(n1+1)*(n2+1)
@@ -97,8 +94,8 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
      i0=i0+nbuf
      j0=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i0+1
      j1=i3*((nb1+1)*(nb2+1)) + i2*(nb1+1) + i1+1
-     keyg_p(1,iseg)=j0
-     keyg_p(2,iseg)=j1
+     nlpspd%keyg_p(1,iseg)=j0
+     nlpspd%keyg_p(2,iseg)=j1
   end do
 
   !---reformat wavefunctions
@@ -223,13 +220,9 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   end if
   call make_bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
 
-  !*********Alexey************
-
   call make_all_ib(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
        ibbxy_c,ibbzzx_c,ibbyyzz_c,ibbxy_f,ibbxy_ff,ibbzzx_f,ibbyyzz_f,&
        ibbyz_c,ibbzxx_c,ibbxxyy_c,ibbyz_f,ibbyz_ff,ibbzxx_f,ibbxxyy_f,ibbyyzz_r)
-
-  !***************************
 
   ! now fill the wavefunction descriptor arrays
   allocate(keybg(2,nsegb_c+nsegb_f),stat=i_stat)
@@ -271,7 +264,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
      write(*,'(1x,a)',advance='no') &
           '     orbitals are processed separately'
   end if
-  !******************Alexey**********************************************************************
+
   nw1=max(2*(nb3+1)*(2*nb1+31)*(2*nb2+31),&   ! shrink convention: nw1>nw2
        2*(nb1+1)*(2*nb2+31)*(2*nb3+31))
   nw2=max(4*(nb2+1)*(nb3+1)*(2*nb1+31),&
@@ -295,7 +288,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   call memocc(i_stat,product(shape(w1))*kind(w1),'w1','calculatetailcorrection')
   allocate(w2(nw2),stat=i_stat) ! work
   call memocc(i_stat,product(shape(w2))*kind(w2),'w2','calculatetailcorrection')
-  !***********************************************************************************************
+
   !put to zero the arrays for the hamiltonian procedure
   call razero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f1)
   call razero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f2)
@@ -344,7 +337,8 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
 
         !write(*,'(a,3i3,2f12.8)') 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin
         call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
-             nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
+             nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,&
+             nlpspd%keyg_p,nlpspd%keyv_p,nlpspd%nvctr_p,proj,  &
              nsegb_c,nsegb_f,keybg,keybv,nvctrb_c,nvctrb_f,  & 
              psib,hpsib,eproj)
         !write(*,'(a,2i3,2f12.8)') 'applyprojectorsone finished',iproc,iorb,eproj,sum_tail

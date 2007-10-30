@@ -1,6 +1,3 @@
-
-
-
 subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
     ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
         ibyz_c,ibzxx_c,ibxxyy_c,ibyz_f,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
@@ -188,9 +185,6 @@ subroutine make_ib(logrid_big,ibyz,ibzxx,ibxxyy,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
     
 end subroutine make_ib
 
-
-
-
 subroutine ib_transpose(ib,ib_t,n1,n2)
     implicit none
     integer n1,n2
@@ -204,8 +198,6 @@ subroutine ib_transpose(ib,ib_t,n1,n2)
     enddo
 
 end subroutine ib_transpose
-
-
 
 subroutine make_logrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,logrid)
     implicit none
@@ -244,8 +236,6 @@ subroutine make_logrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,logrid)
     
 end subroutine make_logrid
 
-
-
 subroutine ib_to_logrid_rot(ib,logrid,nfl,nfu,ndat)
 ! This one mimics the comb_rot_grow_f_loc
     implicit none
@@ -262,8 +252,6 @@ subroutine ib_to_logrid_rot(ib,logrid,nfl,nfu,ndat)
     enddo
 
 end subroutine ib_to_logrid_rot
-
-
 
 subroutine ibyz_to_logrid(n1,n2,n3,logrid,ibyz)
     implicit none
@@ -283,7 +271,6 @@ subroutine ibyz_to_logrid(n1,n2,n3,logrid,ibyz)
     enddo
 
 end subroutine ibyz_to_logrid
-
 
 subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
     ! mimics the bounds subroutine    
@@ -313,86 +300,6 @@ subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
     enddo
 
 end subroutine ib_from_logrid
-
-
-!subroutine bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
-!    implicit real(kind=8) (a-h,o-z)
-!    logical logrid
-!    dimension logrid(0:n1,0:n2,0:n3)
-!    dimension ibyz(2,0:n2,0:n3),ibxz(2,0:n1,0:n3),ibxy(2,0:n1,0:n2)
-!    
-!    
-!    do i3=0,n3 
-!        do i2=0,n2 
-!            ibyz(1,i2,i3)= 1000
-!            ibyz(2,i2,i3)=-1000
-!            
-!            inner1:do i1=0,n1
-!             if (logrid(i1,i2,i3)) then 
-!                ibyz(1,i2,i3)=i1
-!                exit inner1
-!             endif
-!            enddo inner1
-!            
-!            inner2:do i1=n1,0,-1
-!             if (logrid(i1,i2,i3)) then 
-!                ibyz(2,i2,i3)=i1
-!                exit inner2
-!             endif
-!            enddo inner2
-!        enddo
-!    enddo
-!
-!
-!    do i3=0,n3 
-!        do i1=0,n1
-!            ibxz(1,i1,i3)= 1000
-!            ibxz(2,i1,i3)=-1000
-!            
-!            inner3:do i2=0,n2 
-!             if (logrid(i1,i2,i3)) then 
-!                 ibxz(1,i1,i3)=i2
-!                 exit inner3
-!             endif
-!            enddo inner3
-!
-!            inner4:do i2=n2,0,-1
-!             if (logrid(i1,i2,i3)) then 
-!                 ibxz(2,i1,i3)=i2
-!                 exit inner4
-!             endif
-!            enddo inner4
-!
-!        enddo    
-!    enddo
-!
-!
-!    do i2=0,n2 
-!        do i1=0,n1 
-!            ibxy(1,i1,i2)= 1000
-!            ibxy(2,i1,i2)=-1000
-!            
-!            inner5: do i3=0,n3
-!             if (logrid(i1,i2,i3)) then 
-!                 ibxy(1,i1,i2)=i3
-!                 exit inner5
-!             endif
-!            enddo inner5
-!        
-!            inner6:do i3=n3,0,-1
-!             if (logrid(i1,i2,i3)) then 
-!                 ibxy(2,i1,i2)=i3
-!                 exit inner6
-!             endif
-!            enddo inner6
-!        
-!        enddo
-!    enddo
-!
-!    return
-!END SUBROUTINE
-
-
 
 subroutine check_ibyz(n1,n2,n3,logrid,logrid1,ibyz)
     implicit none

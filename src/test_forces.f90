@@ -23,7 +23,9 @@
 !! SOURCE
 !!
 program test_forces
-  use libBigDFT
+  
+  use module_types
+  !use libBigDFT
   
   implicit none
   include 'mpif.h'
