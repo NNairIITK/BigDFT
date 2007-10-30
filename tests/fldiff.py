@@ -5,22 +5,26 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 26/10/2006
+# Date: 29/10/2007
 #----------------------------------------------------------------------------
 
 import difflib
 import getopt
+import os
 import re
 import sys
 
 re_float = re.compile("([- ]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
 
-def give_text_floats(text):
-    return (new,floats)
-
 def usage():
     print "fldiff.py file1 file2"
     sys.exit(1)
+
+def line_junk(line):
+    "True if the line must not be compared"
+    return "CPU time" in line or "Load" in line or "memory" in line \
+       or "MB" in line or "proc" in line or "Processes" in line \
+       or "allocation" in line or "~W" in line or "for the array" in line
 
 #Check arguments
 try:
@@ -32,15 +36,27 @@ if len(sys.argv) != 3:
     sys.stderr.write("Error in arguments\n")
     usage()
 
+#Arguments
 file1 = sys.argv[1]
 file2 = sys.argv[2]
+
+#Check the version of python
+version = map(int,sys.version_info[0:3])
+if  version < [2,3,0]:
+    sys.stderr.write("Detected version %d.%d.%d\n" % tuple(version))
+    sys.stderr.write("Minimal required version is python 2.3.0: Use the command diff\n")
+    os.system("diff %s %s" % (file1,file2))
+    sys.exit(1)
+
 #Read the first file
 original1 = open(file1).read().splitlines(1)
 #Read the second file
 original2 = open(file2).read().splitlines(1)
 
-max_discrepancy = 0.0
+max_discrepancy = 1.e-11
+maximum = 0.0
 context_discrepancy = ""
+context_lines = ""
 
 compare = difflib.unified_diff(original1,original2,n=0)
 
@@ -61,6 +77,7 @@ while not EOF:
         sys.exit(1)
     #A new context is detected
     context = line
+    print_context = False
     left = list()
     line = compare.next()
     while line[0] == "-":
@@ -86,8 +103,7 @@ while not EOF:
         line1 = left[i1]
         line2 = right[i2]
         #We avoid some lines
-        if "CPU time" in line1 or "MB" in line1 or "proc" in line1 or "Processes" in line1 \
-                or "allocation" in line1 or "~W" in line1 or "for the array" in line1:
+	if line_junk(line1) or line_junk(line2):
             continue
         floats1 = list()
         for (one,two) in re_float.findall(line1):
@@ -98,23 +114,48 @@ while not EOF:
         #Replace all floating point by XXX
         new1 = re_float.sub('XXX',line1[2:])
         new2 = re_float.sub('XXX',line2[2:])
-        if new1 != new2:
+        if new1 != new2 and i1 == 0:
+            #For the first difference, we display the context
             print context,
+	    print_context = True
+        if new1 != new2:
             print line1,
             print line2,
         n = len(floats1)
         if n == len(floats2):
+            diff_discrepancy = False
             for i in range(n):
                 tt = abs(floats1[i]-floats2[i])
-                if max_discrepancy < tt:
+                if maximum < tt:
                     context_discrepancy = " (line %s)" % context.split(",")[0][4:]
-                    max_discrepancy = max(max_discrepancy,tt)
+                    context_lines = "\n"+context_discrepancy[1:]+"\n"+line1+line2
+                    maximum = max(maximum,tt)
+                if tt > max_discrepancy:
+                    diff_discrepancy = True
+            if diff_discrepancy and new1 == new2:
+                if not print_context:
+                    print context,
+                    print_context = True
+                print line1,
+                print line2,
         else:
-            print "The number of floating point differs"
-#
-#if n1 > n2:
-#    print "The file '%s' has more lines (%d) than the file '%s'." % (file1,n1-n2,file2) 
-#elif n2 > n1:
-#    print "The file '%s' has more lines (%d) than the file '%s'." % (file2,n2-n1,file1) 
-#
-print "Max Discrepancy%s: " % context_discrepancy,max_discrepancy
+            print "%s the number of floating point differs" % context[:-1]
+    #Add lines if necessary
+    while i1 < n1-1:
+        i1 += 1
+	if not line_junk(left[i1]):
+	    if not print_context:
+                print context,
+		print_context = True
+            print left[i1],
+    while i2 < n2-1:
+        i2 += 1
+	if not line_junk(right[i2]):
+	    if not print_context:
+                print context,
+		print_context = True
+            print right[i2],
+
+print context_lines,
+print "Max Discrepancy%s:" % context_discrepancy,maximum
+

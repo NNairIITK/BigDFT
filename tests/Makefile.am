@@ -12,6 +12,7 @@ SUBDIRS = \
 EXTRA_DIST = \
 	fldiff.py \
 	inguess.dat \
+	report.py \
 	Refs
 
 CLEANFILES =  
@@ -23,3 +24,5 @@ all:
 	@echo "     ex: export run_parallel='ompirun -np 2'  "
 	@echo "=============================================="
 
+check:
+	@python report.py
