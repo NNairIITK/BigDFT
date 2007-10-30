@@ -121,6 +121,8 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,r
   integer, dimension(nat), intent(out) :: iatype
   real(kind=8), dimension(3,nat), intent(out) :: rxyz
   !local variables
+  real(kind=8), parameter :: bohr=0.5291772108d0
+! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz
   character(len=20) :: tatonam
   integer :: nateq,iat,jat,ityp,i
@@ -155,7 +157,7 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,r
      if (units.eq.'angstroem') then
         ! if Angstroem convert to Bohr
         do i=1,3 
-           rxyz(i,iat)=rxyz(i,iat)/.5291772108d0  
+           rxyz(i,iat)=rxyz(i,iat)/bohr
         enddo
      else if  (units.eq.'atomic' .or. units.eq.'bohr') then
      else
@@ -189,14 +191,15 @@ end subroutine read_atomic_positions
 
 ! Fill the arrays occup and spinar
 ! if iunit /=0 this means that the file occup.dat does exist and it opens
-subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
+subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinar)
   implicit none
 ! Arguments
-  integer, intent(in) :: nelec,nspin,iproc,norb,norbu,norbd,iunit
+  integer, intent(in) :: nelec,nspin,mpol,iproc,norb,norbu,norbd,iunit
   real(kind=8), intent(out) :: occup(norb),spinar(norb)
 ! Local variables
   integer :: iorb,nt,ne,it,ierror,iorb1
-  real(kind=8) :: rocc
+  real(kind=8) :: rocc,rup,rdown
+  character(len=100) :: line
 
   do iorb=1,norb
      spinar(iorb)=1.0d0
@@ -243,13 +246,13 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
            if (iorb<0 .or. iorb>norb) then
               if (iproc==0) then
                  write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
-                 write(*,'(10x,a,i0,a)')     'The orbital index ',iorb,' is incorrect'
+                 write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
               end if
               stop
            elseif (rocc<0.d0 .or. rocc>2.d0) then
               if (iproc==0) then
                  write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
-                 write(*,'(10x,a,f5.2,a)')     'The occupation number ',rocc,' is not between 0. and 2.'
+                 write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
               end if
               stop
            else
@@ -271,10 +274,29 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
         end if
         stop
      end if
+     if (nspin/=1) then
+        !Check if the polarisation is respected (mpol)
+        rup=sum(occup(1:norbu))
+        rdown=sum(occup(norbu+1:norb))
+        if (abs(rup-rdown-real(mpol,kind=8))>1.d-6) then
+           if (iproc==0) then
+              write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the polarization ',rup-rdown,&
+                             ' is not equal to ',mpol
+           end if
+           stop
+        end if
+        !Fill spinar
+        do iorb=1,norbu
+           spinar(iorb)=1.0d0
+        end do
+        do iorb=norbu+1,norb
+           spinar(iorb)=-1.0d0
+        end do
+      end if
   end if
-  if (iproc.eq.0) then 
+  if (iproc==0) then 
      write(*,'(1x,a,i8)') &
-          'Total Number of  Orbitals ',norb
+          'Total Number of Orbitals ',norb
      iorb1=1
      rocc=occup(1)
      do iorb=1,norb
@@ -297,6 +319,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
 
 end subroutine input_occup
 
+
 subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomnames,iatype,&
      psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
   implicit none
@@ -312,7 +335,7 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomn
   logical :: exists
   character(len=2) :: symbol
   character(len=27) :: filename
-  integer :: i,j,l,iat,nlterms,nprl,nn,nt,ityp,ierror,i_stat,i_all
+  integer :: i,j,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all
   real(kind=8) :: rcov,rprb,ehomo,radfine,tt
   integer, dimension(:,:), allocatable :: neleconf
 
@@ -323,7 +346,6 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomn
 
   allocate(neleconf(6,0:3),stat=i_stat)
   call memocc(i_stat,product(shape(neleconf))*kind(neleconf),'neleconf','read_PSP_variables')
-
 
   do ityp=1,ntypes
      filename = 'psppar.'//atomnames(ityp)
@@ -428,8 +450,9 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomn
        norb=(nelec+1)/2
        norbu=norb
        norbd=0
-       if (mod(nelec,2).ne.0 .and. iproc==0) write(*,'(1x,a)') &
-            'WARNING: odd number of electrons, no closed shell system'
+       if (mod(nelec,2).ne.0 .and. iproc==0) then
+          write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
+       end if
     else
        if (iproc==0) write(*,'(1x,a)') 'Spin-polarized calculation'
        norb=nelec
@@ -439,32 +462,58 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomn
 
     ! Test if the file 'occup.dat exists
     inquire(file='occup.dat',exist=exists)
-    ! Not implemented for npsin==2: At the present stage, this feature is broken
-    if (nspin==2.and.exists) then
-       write(*,'(1x,a)') &
-            'ERROR: It is not possible to use the file occup.dat with spin-polarization'
-       stop
-    end if
     iunit=0
     if (exists) then
-       iunit=24
+       iunit=25
        open(unit=iunit,file='occup.dat',form='formatted',action='read',status='old')
-       !The first line gives the number of orbitals
-       read(unit=iunit,fmt=*,iostat=ierror) nt
+       if (nspin==1) then
+           !The first line gives the number of orbitals
+           read(unit=iunit,fmt=*,iostat=ierror) nt
+       else
+           !The first line gives the number of orbitals
+           read(unit=iunit,fmt=*,iostat=ierror) ntu,ntd
+       end if
        if (ierror /=0) then
           if (iproc==0) write(*,'(1x,a)') &
                'ERROR reading the number of orbitals in the file "occup.dat"'
           stop
        end if
-       if (nt<norb) then
-          if (iproc==0) then
-             write(*,'(1x,a,i0,a,i0)') &
+       !Check
+       if (nspin==1) then
+          if (nt<norb) then
+              if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
                   'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
                   ' should be greater or equal than (nelec+1)/2=',norb
+             stop
+          else
+             norb=nt
           end if
-          stop
        else
-          norb=nt
+          nt=ntu+ntd
+          if (nt<norb) then
+              if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
+                  'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
+                  ' should be greater or equal than nelec=',norb
+             stop
+          else
+             norb=nt
+          end if
+          if (ntu<norbu) then
+              if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
+                  'ERROR: In the file "occup.dat", the number of orbitals up norbu=',ntu,&
+                  ' should be greater or equal than min(nelec/2+mpol,nelec)=',norbu
+             stop
+          else
+             norbu=ntu
+          end if
+          if (ntd<norbd) then
+              if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
+              'ERROR: In the file "occup.dat", the number of orbitals down norbd=',ntd,&
+                  ' should be greater or equal than min(nelec/2-mpol,0)=',norbd
+             stop
+          else
+             norbd=ntd
+          end if
        end if
     end if
 
@@ -472,7 +521,8 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomn
     norbp=int((1.d0-eps_mach*tt) + tt)
     !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
 
-  end subroutine read_system_variables
+end subroutine read_system_variables
+
 
 subroutine system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
        alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)

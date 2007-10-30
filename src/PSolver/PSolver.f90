@@ -1,4 +1,4 @@
-!!****h* BigDFT/Poisson_Solver
+!!****p* BigDFT/Poisson_Solver
 !! NAME
 !!   Poisson_Solver
 !!

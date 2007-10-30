@@ -30,4 +30,4 @@ check: $(PPFILES) inguess.dat posinp input.dat occup.dat
 	  ln -s $(top_srcdir)/tests/C/occup.dat ; \
 	fi
 	$(run_parallel) $(top_builddir)/src/cluster > C.out
-	python $(top_srcdir)/tests/fldiff.py C.out $(top_srcdir)/tests/Refs/C.out.ref | cat
+	python $(top_srcdir)/tests/fldiff.py C.out $(top_srcdir)/tests/Refs/C.out.ref | tee fldiff.report

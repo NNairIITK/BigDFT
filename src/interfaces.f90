@@ -1,3 +1,5 @@
+module module_interfaces
+
 interface
 
    subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,hgrid,n1,n2,n3,eval,wfd,psi,&
@@ -25,10 +27,10 @@ interface
      real(kind=8), dimension(0:4,0:6,ntypes), intent(out) :: psppar
    end subroutine read_system_variables
 
-   subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
+   subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinar)
      implicit none
      ! Arguments
-     integer, intent(in) :: nelec,nspin,iproc,norb,norbu,norbd,iunit
+     integer, intent(in) :: nelec,nspin,mpol,iproc,norb,norbu,norbd,iunit
      real(kind=8), intent(out) :: occup(norb),spinar(norb)
    end subroutine input_occup
 
@@ -322,3 +324,5 @@ interface
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
    end subroutine CalculateTailCorrection
 end interface
+
+end module module_interfaces

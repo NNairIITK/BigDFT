@@ -16,6 +16,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   !          =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
 
   use module_types
+  use module_interfaces
   use Poisson_Solver
 
   implicit real(kind=8) (a-h,o-z)
@@ -76,7 +77,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   !- Interfaces for all outside public routines.
 !!$  include "input/interface.f90"
 !!$  include "profiling/interface.f90"
-  include "interface.f90"
+  !include "interface.f90"
 
 
   !copying the input variables for readability
@@ -165,7 +166,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   call memocc(i_stat,product(shape(spinar))*kind(spinar),'occup','cluster')
 
   ! Occupation numbers
-  call input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
+  call input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinar)
 
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
@@ -186,7 +187,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   end if
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-  ndegree_ip=14 !default value to be put to 16 and update references for test
+  ndegree_ip=16 !default value to be put to 16 and update references for test
   call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
        iproc,nproc,pkernel)
 
