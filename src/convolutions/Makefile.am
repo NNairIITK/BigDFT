@@ -14,8 +14,8 @@ convolution_source = combined_shrink_optim.f90 \
 	combined_grow_optim.f90 \
 	combined_shrink_optim.f90 \
 	convolut_ib_optim.f90 \
-	conv_per_optim.f90
-#	convolut_simple.f90 \
+	conv_per_optim.f90 \
+	convolut_simple.f90 
 #	conv_per_optim.f90 \
 #	combined_grow.f90 \
 #	combined_shrink.f90 
@@ -25,8 +25,8 @@ convolution_source = combined_shrink_simple.f90 \
 	combined_grow_simple.f90 \
 	combined_shrink_simple.f90 \
 	convolut_ib_simple.f90 \
-	conv_per_simple.f90
-#	convolut_simple.f90 \
+	conv_per_simple.f90 \
+	convolut_simple.f90 
 #	conv_per_optim.f90 \
 #	combined_grow.f90 \
 #	combined_shrink.f90

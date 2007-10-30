@@ -16,7 +16,8 @@
 !!
 program memguess
 
-  use libBigDFT
+  use module_types
+  !use libBigDFT
 
   implicit none
   integer, parameter :: ngx=31

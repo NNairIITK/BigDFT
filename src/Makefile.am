@@ -69,8 +69,8 @@ convolution_source = convolutions/combined_shrink_optim.f90 \
 	convolutions/combined_grow_optim.f90 \
 	convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_ib_optim.f90 \
-	convolutions/conv_per_optim.f90
-#	convolut_simple.f90 \
+	convolutions/conv_per_optim.f90 \
+	convolutions/convolut_simple.f90 
 #	conv_per_optim.f90 \
 #	combined_grow.f90 \
 #	combined_shrink.f90 
@@ -80,8 +80,8 @@ convolution_source = convolutions/combined_shrink_simple.f90 \
 	convolutions/combined_grow_simple.f90 \
 	convolutions/combined_shrink_simple.f90 \
 	convolutions/convolut_ib_simple.f90 \
-	convolutions/conv_per_simple.f90
-#	convolut_simple.f90 \
+	convolutions/conv_per_simple.f90 \
+	convolutions/convolut_simple.f90 
 #	conv_per_optim.f90 \
 #	combined_grow.f90 \
 #	combined_shrink.f90
@@ -90,31 +90,46 @@ endif
 
 convolution_objects = $(convolution_source:.f90=.o)
 
+#objects which depends from module_types
+high_level = cluster.f90 \
+	input_variables.f90 \
+	init.f90 \
+	sumrho.f90 \
+	hpsiortho.f90 \
+	forces.f90 \
+	tail.f90 \
+	restart.f90
+
+#objects which can be compiled whithout any dependence
+low_level = init/projectors.f90  \
+	init/ionicpot.f90 \
+	init/gridmanipulation.f90 \
+	init/gauprod.f90 \
+	init/denspotd.f90 \
+	init/logrid.f90 \
+	init/inputguess.f90 \
+	init/gautowav.f90 \
+	init/eleconf.f90 \
+	wfn_opt/precond.f90 \
+	wfn_opt/orthogonality.f90 \
+	wfn_opt/diis.f90 \
+	wfn_opt/applyh.f90 \
+	wavelib/transwaves.f90 \
+	wavelib/scalprod.f90 \
+	wavelib/plotting.f90 \
+	wavelib/i-o.f90 \
+	wavelib/un-compress.f90 \
+	wavelib/razero.f90 \
+	wavelib/gauss_to_daub.f90 
+
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
-        cluster_all.f90 \
-        eleconf.f90  \
-        gauss_to_daub.f90 \
-        precond.f90 \
-        prec_diag.f90 \
-	wavelib.f90 \
-	input/gautowav.f90 \
-	input/gauprod.f90 \
-	input/inputguess.f90 \
-	input/input_variables.f90 \
-	restart.f90 \
-	ionicpot.f90 \
-	projectors/projectors.f90 \
-	orthogonality.f90 \
-	forces.f90 \
-	gridmanipulation.f90 \
-	logrid.f90 \
-	applyh.f90 \
-	sumrho.f90 \
-	transwaves.f90 \
-	tail.f90 \
-	razero.f90
-libbigdft_a_LIBADD = profiling/timing.o \
+	types.f90 \
+	$(high_level) \
+	$(low_level)
+
+libbigdft_a_LIBADD = profiling/timem.o \
+	profiling/memoryestimator.o \
 	$(convolution_objects)
 
 cluster_SOURCES = BigDFT.f90 
@@ -141,23 +156,26 @@ CLEANFILES = mpif.h libbigdft.@MODULE_EXT@ LIBBIGDFT.@MODULE_EXT@
 
 #dependencies
 cluster_all.o: $(mpi_include) \
-	interface.f90 input/interface.f90 profiling/interface.f90
+	types.o \
+	interface.f90 
 
-sumrho.o: cluster_all.o
+$(high_level:.f90=.o) : types.o
 
-applyh.o: cluster_all.o
+#sumrho.o: types.o
 
-forces.o: cluster_all.o
+#applyh.o: types.o
 
-restart.o: cluster_all.o
+#forces.o: types.o
 
-tail.o: cluster_all.o
+#restart.o: types.o
+
+#tail.o: types.o
 
 mpif.h:
-	touch mpif.h
-	echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h
-	echo "integer :: MPI_DOUBLE_PRECISION" >> mpif.h
-	echo "integer :: MPI_MIN, MPI_MAX" >> mpif.h
+	touch mpif.h &&\
+	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
+	 echo "integer :: MPI_DOUBLE_PRECISION" >> mpif.h &&\
+	 echo "integer :: MPI_MIN, MPI_MAX" >> mpif.h
 
 test_forces.o: parameters.h \
 	libbigdft.@MODULE_EXT@

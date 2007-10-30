@@ -8,7 +8,8 @@ AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ -I../PSolver
 
 noinst_LIBRARIES = libprofiling.a
 
-libprofiling_a_SOURCES = timing.f90
+libprofiling_a_SOURCES = timem.f90 \
+	memoryestimator.f90
 
 CLEANFILES = mpif.h
 

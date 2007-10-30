@@ -148,26 +148,24 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
 
 end subroutine local_forces
 
-subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, & 
-     ntypes,nat,norb,nprojel,nproj,iatype,psppar,nseg_p,nvctr_p,proj,  &
-     keyg_p,keyv_p,rxyz,radii_cf,cpmult,fpmult,hgrid,derproj)
+subroutine projectors_derivatives(iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,nlpspd,proj,  &
+     rxyz,radii_cf,cpmult,fpmult,hgrid,derproj)
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and ads them to the force array
+
+  use module_types
   
   implicit none
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   !Arguments-------------
-  integer, intent(in) :: iproc,ntypes,nat,norb,nprojel,nproj
+  integer, intent(in) :: iproc,ntypes,nat,norb
   integer, intent(in) :: n1,n2,n3
   real(kind=8),intent(in) :: cpmult,fpmult,hgrid 
   integer, dimension(nat), intent(in) :: iatype
-  integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
-  integer, dimension(2,3,nat), intent(in) :: nboxp_c,nboxp_f
-  integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
-  integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
   real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
-  real(kind=8), dimension(nprojel), intent(in) :: proj
-  real(kind=8), dimension(nprojel,3), intent(out) :: derproj
+  real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(kind=8), dimension(nlpspd%nprojel,3), intent(out) :: derproj
   !Local Variables--------------
   real(kind=8), dimension(:,:), allocatable :: fac_arr
   integer, parameter :: nterm_max=20 !if GTH nterm_max=4
@@ -202,16 +200,22 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, &
      rz=rxyz(3,iat)
      ityp=iatype(iat)
 
-     mvctr_c=nvctr_p(2*iat-1)-nvctr_p(2*iat-2)
-     mvctr_f=nvctr_p(2*iat  )-nvctr_p(2*iat-1)
+     mvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
+     mvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
 
-     nl1_c=nboxp_c(1,1,iat) ; nu1_c=nboxp_c(2,1,iat)
-     nl2_c=nboxp_c(1,2,iat) ; nu2_c=nboxp_c(2,2,iat)
-     nl3_c=nboxp_c(1,3,iat) ; nu3_c=nboxp_c(2,3,iat)
-     nl1_f=nboxp_f(1,1,iat) ; nu1_f=nboxp_f(2,1,iat)
-     nl2_f=nboxp_f(1,2,iat) ; nu2_f=nboxp_f(2,2,iat)
-     nl3_f=nboxp_f(1,3,iat) ; nu3_f=nboxp_f(2,3,iat)
+     nl1_c=nlpspd%nboxp_c(1,1,iat)
+     nl2_c=nlpspd%nboxp_c(1,2,iat)
+     nl3_c=nlpspd%nboxp_c(1,3,iat)
+     nl1_f=nlpspd%nboxp_f(1,1,iat)
+     nl2_f=nlpspd%nboxp_f(1,2,iat)
+     nl3_f=nlpspd%nboxp_f(1,3,iat)
 
+     nu1_c=nlpspd%nboxp_c(2,1,iat)
+     nu2_c=nlpspd%nboxp_c(2,2,iat)
+     nu3_c=nlpspd%nboxp_c(2,3,iat)
+     nu1_f=nlpspd%nboxp_f(2,1,iat)
+     nu2_f=nlpspd%nboxp_f(2,2,iat)
+     nu3_f=nlpspd%nboxp_f(2,3,iat)
 
      do l=1,4!compatibility between GTH and HGH form
         do i=1,3
@@ -243,7 +247,8 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, &
                  iproj=iproj+1
 
                  istart_c=istart_f+7*mvctr_f
-                 if (istart_c.gt.nprojel+1) stop 'projector derivatives: istart_c > nprojel+1'
+                 if (istart_c.gt.nlpspd%nprojel+1) &
+                      stop 'projector derivatives: istart_c > nprojel+1'
                  
               end do
            end if
@@ -251,7 +256,7 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, &
      end do
 
   end do
-  if (iproj.ne.nproj) stop 'incorrect number of projectors created'
+  if (iproj.ne.nlpspd%nproj) stop 'incorrect number of projectors created'
   ! projector part finished
 
   i_all=-product(shape(lxyz_arr))*kind(lxyz_arr)
@@ -275,26 +280,23 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,nboxp_c,nboxp_f, &
 
 end subroutine projectors_derivatives
 
-subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
-     iatype,psppar,npspcode,occup,nseg_p,nvctr_p,proj,derproj,  &
-     keyg_p,keyv_p,wfd,psi,fsep)
+subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,iatype,psppar,npspcode,occup,&
+     nlpspd,proj,derproj,wfd,psi,fsep)
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and adds them to the force array
   
-  use libBigDFT
+  use module_types
 
   implicit none
   !Arguments-------------
   type(wavefunctions_descriptors), intent(in) :: wfd
-  integer, intent(in) :: iproc,ntypes,nat,norb,norbp,nprojel,nproj
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  integer, intent(in) :: iproc,ntypes,nat,norb,norbp
   integer, dimension(nat), intent(in) :: iatype
-  integer, dimension(0:2*nat), intent(in) :: nseg_p,nvctr_p
-  integer, dimension(2,nseg_p(2*nat)), intent(in) :: keyg_p
-  integer, dimension(nseg_p(2*nat)), intent(in) :: keyv_p
   real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   integer, dimension(ntypes), intent(in) :: npspcode
   real(kind=8), dimension(norb), intent(in) :: occup
-  real(kind=8), dimension(nprojel), intent(in) :: proj
-  real(kind=8), dimension(nprojel,3), intent(in) :: derproj
+  real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(kind=8), dimension(nlpspd%nprojel,3), intent(in) :: derproj
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
   real(kind=8), dimension(3,nat), intent(inout) :: fsep
   !Local Variables--------------
@@ -361,12 +363,12 @@ subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
      fx=0.d0
      fy=0.d0
      fz=0.d0
-     mbseg_c=nseg_p(2*iat-1)-nseg_p(2*iat-2)
-     mbseg_f=nseg_p(2*iat  )-nseg_p(2*iat-1)
-     jseg_c=nseg_p(2*iat-2)+1
-     jseg_f=nseg_p(2*iat-1)+1
-     mbvctr_c=nvctr_p(2*iat-1)-nvctr_p(2*iat-2)
-     mbvctr_f=nvctr_p(2*iat  )-nvctr_p(2*iat-1)
+     mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
+     mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
+     jseg_c=nlpspd%nseg_p(2*iat-2)+1
+     jseg_f=nlpspd%nseg_p(2*iat-1)+1
+     mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
+     mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
      ityp=iatype(iat)
      scalprod(:,:,:,:)=0.d0
      do l=1,4
@@ -381,8 +383,9 @@ subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
                       wfd%keyv(1),wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,1),&
                       wfd%keyg(1,wfd%nseg_c+1),&
                       psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),  &
-                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
-                      keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
+                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                      nlpspd%keyv_p(jseg_c),nlpspd%keyv_p(jseg_f),  &
+                      nlpspd%keyg_p(1,jseg_c),nlpspd%keyg_p(1,jseg_f),&
                       proj(istart_c),proj(istart_f),scalprod(0,l,i,m))
 
                  ! scalar product with the derivatives in all the directions
@@ -392,8 +395,9 @@ subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
                          wfd%keyv(1),wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,1),&
                          wfd%keyg(1,wfd%nseg_c+1),&
                          psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp), &
-                         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
-                         keyg_p(1,jseg_c),keyg_p(1,jseg_f),&
+                         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                         nlpspd%keyv_p(jseg_c),nlpspd%keyv_p(jseg_f),  &
+                         nlpspd%keyg_p(1,jseg_c),nlpspd%keyg_p(1,jseg_f),&
                          derproj(istart_c,idir),derproj(istart_f,idir),scalprod(idir,l,i,m))
 
                     fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
@@ -440,8 +444,8 @@ subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,nprojel,nproj,&
      fsep(3,iat)=fsep(3,iat)+occup(iorb)*2.d0*fxyz_orb(3,iat)
   end do
 
-  if (iproj.ne.nproj) stop '1:applyprojectors'
-  if (istart_c-1.ne.nprojel) stop '2:applyprojectors'
+  if (iproj.ne.nlpspd%nproj) stop '1:applyprojectors'
+  if (istart_c-1.ne.nlpspd%nprojel) stop '2:applyprojectors'
 end do
 
   i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)

@@ -1,6 +1,8 @@
 program BigDFT
 
-  use libBigDFT
+  use module_types
+!  use libBigDFT
+
 
   !implicit real(kind=8) (a-h,o-z)
   !as a general policy, I will put "implicit none" by assuming the same
@@ -190,6 +192,8 @@ program BigDFT
   deallocate(lfrztyp,stat=i_stat)
   call memocc(i_stat,i_all,'lfrztyp','BigDFT')
 
+  call deallocate_wfd(wfd,'BigDFT')
+
   i_all=-product(shape(atomnames))*kind(atomnames)
   deallocate(atomnames,stat=i_stat)
   call memocc(i_stat,i_all,'atomnames','BigDFT')
@@ -199,12 +203,6 @@ program BigDFT
   i_all=-product(shape(eval))*kind(eval)
   deallocate(eval,stat=i_stat)
   call memocc(i_stat,i_all,'eval','BigDFT')
-  i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
-  deallocate(wfd%keyg,stat=i_stat)
-  call memocc(i_stat,i_all,'keyg','BigDFT')
-  i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
-  deallocate(wfd%keyv,stat=i_stat)
-  call memocc(i_stat,i_all,'keyv','BigDFT')
   i_all=-product(shape(rxyz))*kind(rxyz)
   deallocate(rxyz,stat=i_stat)
   call memocc(i_stat,i_all,'rxyz','BigDFT')
@@ -228,7 +226,7 @@ program BigDFT
 
    subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg, &
          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,in)
-     use libBigDFT
+     use module_types
      implicit real(kind=8) (a-h,o-z)
      implicit integer (i-n) !this line is added in view of the changement to implicit none
      type(wavefunctions_descriptors) :: wfd
@@ -478,7 +476,7 @@ program BigDFT
    subroutine steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,ff,&
              psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,&
              fluct,flucto,fluctoo,fnrm,in)
-     use libBigDFT
+     use module_types
      implicit real(kind=8) (a-h,o-z)
      implicit integer (i-n) !this line is added in view of the changement to implicit none
      logical :: parallel
@@ -655,7 +653,7 @@ program BigDFT
    subroutine detbetax(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,pos,&
         psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in)
      ! determines stepsize betax
-     use libBigDFT
+     use module_types
      implicit real(kind=8) (a-h,o-z)
      implicit integer (i-n) !this line is added in view of the changement to implicit none
      logical :: parallel
@@ -796,7 +794,7 @@ program BigDFT
    
    subroutine call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
         psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
-     use libBigDFT
+     use module_types
      implicit none
      type(input_variables) :: in
      type(wavefunctions_descriptors) :: wfd
@@ -824,12 +822,8 @@ program BigDFT
            i_all=-product(shape(eval))*kind(eval)
            deallocate(eval,stat=i_stat)
            call memocc(i_stat,i_all,'eval','call_cluster')
-           i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
-           deallocate(wfd%keyg,stat=i_stat)
-           call memocc(i_stat,i_all,'keyg','call_cluster')
-           i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
-           deallocate(wfd%keyv,stat=i_stat)
-           call memocc(i_stat,i_all,'keyv','call_cluster')
+
+           call deallocate_wfd(wfd,'call_cluster')
         end if
 
         call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
@@ -851,13 +845,8 @@ program BigDFT
            i_all=-product(shape(eval))*kind(eval)
            deallocate(eval,stat=i_stat)
            call memocc(i_stat,i_all,'eval','call_cluster')
-           i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
-           deallocate(wfd%keyg,stat=i_stat)
-           call memocc(i_stat,i_all,'keyg','call_cluster')
-           i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
-           deallocate(wfd%keyv,stat=i_stat)
-           call memocc(i_stat,i_all,'keyv','call_cluster')
 
+           call deallocate_wfd(wfd,'call_cluster')
            !finalize memory counting (there are still the positions and the forces allocated)
            call memocc(0,0,'count','stop')
 
