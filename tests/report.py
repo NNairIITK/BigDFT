@@ -14,7 +14,7 @@ max_discrepancy = 1.e-11
 #Regular expression
 re_discrepancy = re.compile("Max Discrepancy[^:]*:[ ]+(.*)")
 
-print "Final report:"
+print "Final report (max discrepancy=%7.1e):" % max_discrepancy
 for file in glob.glob("*/fldiff.report"):
     dir = file.split("/")[0]
     discrepancy = re_discrepancy.findall(open(file).read())
@@ -24,4 +24,4 @@ for file in glob.glob("*/fldiff.report"):
             state = "succeeded"
         else:
             state = "failed"
-        print "%-9s %s (%7.2e)" % (dir,state,discrepancy)
+        print "%-9s %s (%7.1e)" % (dir,state,discrepancy)
