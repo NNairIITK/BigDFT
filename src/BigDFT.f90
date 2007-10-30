@@ -36,6 +36,27 @@ program BigDFT
   real(kind=8), dimension(:), pointer :: eval
   real(kind=8), dimension(:,:), pointer :: psi
 
+  !temporary interface
+  interface
+     subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
+       use module_types
+       use Poisson_Solver
+       implicit real(kind=8) (a-h,o-z)
+       !input variables
+       type(input_variables), intent(in) :: in
+    type(wavefunctions_descriptors), intent(inout) :: wfd
+    character(len=30) :: label
+    character(len=20), dimension(100) :: atomnames
+    logical parallel
+    ! atomic coordinates
+    dimension rxyz(3,nat),rxyz_old(3,nat),fxyz(3,nat),iatype(nat)
+    real(kind=8), pointer :: eval(:)
+  !wwavefunction
+    real(kind=8), pointer :: psi(:,:)
+  end subroutine cluster
+end interface
+
   !$      interface
   !$        integer ( kind=4 ) function omp_get_num_threads ( )
   !$        end function omp_get_num_threads

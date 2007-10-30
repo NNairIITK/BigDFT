@@ -51,7 +51,7 @@ subroutine createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz
   end if
 
 end subroutine createIonicPotential
-       
+
 subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
      & nelpsp,n1,n2,n3,n3pi,i3s,hgrid,rho,eion)
   !Creates charge density arising from the ionic PSP cores

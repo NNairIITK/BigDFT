@@ -1,37 +1,5 @@
-!!$module libBigDFT
-!!$  
-!!$  private
-!!$
-!!$  !- Do a minimisation loop to find forces and energy.
-!!$  public :: cluster
-!!$
-!!$  !input variables
-!!$  public :: read_input_variables
-!!$  
-!!$  !- Initialisation methods.
-!!$  !- Create and allocate access arrays for wavefunctions.
-!!$  public :: createWavefunctionsDescriptors
-!!$  !- Create and allocate data descriptors for nonlocal PSP projectors
-!!$  public :: createProjectorsArrays
-!!$  !- Create the descriptors for the density and the potential
-!!$  public :: createDensPotDescriptors
-!!$  !- Import CP2K files
-!!$  public :: import_gaussians
-!!$  !- Compute input guess wavefunctions from atomic orbitals.
-!!$  public :: input_wf_diag
-!!$  
-!!$  !- Orthogonalise after restart (reformat or read)
-!!$  public :: first_orthon
-!!$  !- KS transformation after minimisation
-!!$  public :: last_orthon
-!!$  !- SCF handling
-!!$  public :: hpsitopsi
-!!$
-!!$
-!!$contains
- 
-  subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
-       psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
+subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+     psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
   ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
   ! inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
   !                  as definition of the previous system.
@@ -195,21 +163,21 @@
   call memocc(i_stat,product(shape(occup))*kind(occup),'occup','cluster')
   allocate(spinar(norb),stat=i_stat)
   call memocc(i_stat,product(shape(spinar))*kind(spinar),'occup','cluster')
-  
-! Occupation numbers
+
+  ! Occupation numbers
   call input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,occup,spinar)
 
-! Determine size alat of overall simulation cell and shift atom positions
-! then calculate the size in units of the grid space
+  ! Determine size alat of overall simulation cell and shift atom positions
+  ! then calculate the size in units of the grid space
   call system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
        alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
 
   !save the new atomic positions in the rxyz_old array
-   do iat=1,nat
+  do iat=1,nat
      rxyz_old(1,iat)=rxyz(1,iat)
      rxyz_old(2,iat)=rxyz(2,iat)
      rxyz_old(3,iat)=rxyz(3,iat)
-   enddo
+  enddo
 
   !memory estimation
   if (iproc==0) then
@@ -222,20 +190,20 @@
   call createKernel('F',2*n1+31,2*n2+31,2*n3+31,hgridh,hgridh,hgridh,ndegree_ip,&
        iproc,nproc,pkernel)
 
-! Create wavefunctions descriptors and allocate them
+  ! Create wavefunctions descriptors and allocate them
   call timing(iproc,'CrtDescriptors','ON')
   call createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,hgrid,&
        & nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
        wfd,nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
   call timing(iproc,'CrtDescriptors','OF')
 
-! Calculate all projectors
+  ! Calculate all projectors
   call timing(iproc,'CrtProjectors ','ON')
 
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomnames,&
        & psppar,npspcode,radii_cf,cpmult,fpmult,hgrid,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
-    
+
   !allocate values of the array for the data scattering in sumrho
   !its values are ignored in the datacode='G' case
   allocate(nscatterarr(0:nproc-1,4),stat=i_stat)
@@ -258,7 +226,7 @@
   end if
 
   call createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,hgrid,&
-     elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,pkernel,pot_ion,eion)
+       elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,pkernel,pot_ion,eion)
 
   !Allocate Charge density, Potential in real space
   if (n3d >0) then
@@ -272,7 +240,7 @@
   allocate(eval(norb),stat=i_stat)
   call memocc(i_stat,product(shape(eval))*kind(eval),'eval','cluster')
 
-! INPUT WAVEFUNCTIONS
+  ! INPUT WAVEFUNCTIONS
   if (inputPsiId == -1) then
 
      !import gaussians form CP2K (data in files def_gaubasis.dat and gaucoeff.dat)
@@ -285,12 +253,15 @@
 
   else if (inputPsiId == 0) then
 
+
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hgrid,rxyz, & 
           rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
           atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,&
           ixc,psi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
+
+
 
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
@@ -308,7 +279,7 @@
         allocate(hpsi(nvctrp,norb),stat=i_stat)
         call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','cluster')
      endif
-     
+
   else if (inputPsiId == 1 ) then 
      !restart from previously calculated wavefunctions, in memory
 
@@ -322,10 +293,10 @@
         allocate(psi(nvctrp,norb),stat=i_stat)
         call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
      end if
-     
+
      if (iproc.eq.0) then
         write(*,'(1x,a)')&
-          '-------------------------------------------------------------- Wavefunctions Restart'
+             '-------------------------------------------------------------- Wavefunctions Restart'
      end if
      call reformatmywaves(iproc,norb,norbp,nat, &
           & hgrid_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old, &
@@ -347,7 +318,7 @@
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,&
           wfd%nvctr_c,wfd%nvctr_f,nvctrp,nspin,psi,hpsi,psit)
-     
+
   else if (inputPsiId == 2 ) then 
      !restart from previously calculated wavefunctions, on disk
 
@@ -364,27 +335,27 @@
 
      if (iproc.eq.0) then
         write(*,'(1x,a)')&
-          '---------------------------------------------------- Reading Wavefunctions from disk'
+             '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
 
 
      call readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,wfd,psi,eval)
-  
+
      !initialise control value for gnrm in the case of a restart
      gnrm_check=0.d0
- 
+
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,&
           wfd%nvctr_c,wfd%nvctr_f,nvctrp,nspin,psi,hpsi,psit)
 
   else
-     
+
      if (iproc == 0) then
         write(*,'(1x,a)')'The supported values of inputPsiId are integers from -1 to 2'
         write(*,'(1x,a,i0)')'                        while we found',inputPsiId
      end if
      stop
-    
+
   end if
 
   !no need of using nzatom array, semicores useful only for the input guess
@@ -396,7 +367,7 @@
   call memocc(i_stat,i_all,'iasctype','cluster')
 
 
-! allocate arrays necessary for DIIS convergence acceleration
+  ! allocate arrays necessary for DIIS convergence acceleration
   if (idsx.gt.0) then
      allocate(psidst(nvctrp,norbp*nproc,idsx),stat=i_stat)
      call memocc(i_stat,product(shape(psidst))*kind(psidst),'psidst','cluster')
@@ -415,30 +386,30 @@
   eproj_sum=0.d0
   !set the infocode to the value it would have in the case of no convergence
   infocode=1
-! loop for wavefunction minimization
+  ! loop for wavefunction minimization
   wfn_loop: do iter=1,itermax
      if (idsx.gt.0) mids=mod(iter-1,idsx)+1
      if (iproc.eq.0) then 
         write(*,'(1x,a,i0)')&
-         '---------------------------------------------------------------------------- iter= ',&
-         iter
+             '---------------------------------------------------------------------------- iter= ',&
+             iter
      endif
 
      ! Potential from electronic charge density
      call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-             wfd,psi,rhopot,(2*n1+31)*(2*n2+31)*n3d,nscatterarr,nspin,spinar,&
-             nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
+          wfd,psi,rhopot,(2*n1+31)*(2*n2+31)*n3d,nscatterarr,nspin,spinar,&
+          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
-!     ixc=11  ! PBE functional
-!     ixc=1   ! LDA functional
+     !     ixc=11  ! PBE functional
+     !     ixc=1   ! LDA functional
 
      call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
           rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin) !add NSPIN
 
      call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
-             psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             wfd,bounds,nlpspd,proj,ngatherarr,n3p,&
-             rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)
+          psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+          wfd,bounds,nlpspd,proj,ngatherarr,n3p,&
+          rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
      energy=energybs-ehart+eexcu-vexcu+eion
@@ -462,9 +433,9 @@
      endif
 
      call hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
-     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,bounds%kb,&
-     eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
-     psi,psit,hpsi,psidst,hpsidst,nspin,spinar)! add NSPIN
+          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,bounds%kb,&
+          eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
+          psi,psit,hpsi,psidst,hpsidst,nspin,spinar)! add NSPIN
 
      tt=energybs-scprsum
      if (abs(tt).gt.1.d-8 .and. iproc==0) then 
@@ -482,7 +453,7 @@
         if (gnrm > 4.d0) then
            if (iproc == 0) then
               write(*,'(1x,a)')&
-                'Error: the norm of the residue is too large also with input wavefunctions.'
+                   'Error: the norm of the residue is too large also with input wavefunctions.'
            end if
            infocode=3
            call deallocate_before_exiting
@@ -492,20 +463,20 @@
         if (gnrm > 1.d0) then
            if (iproc == 0) then
               write(*,'(1x,a)')&
-                'The norm of the residue is too large, need to recalculate input wavefunctions'
+                   'The norm of the residue is too large, need to recalculate input wavefunctions'
            end if
            infocode=2
            if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
            call deallocate_before_exiting
            return
         else if (iter == 1 .and. gnrm > 1.d0) then
-        !check the value of the first gnrm to see whether it is the case
-        !to recalculate input guess
+           !check the value of the first gnrm to see whether it is the case
+           !to recalculate input guess
            gnrm_check=gnrm
         else if (iter == 2 .and. gnrm_check > 1.d0) then
            !control whether it is the case to exit the program
-            if (gnrm >= gnrm_check) then
-               if (iproc == 0) write(*,'(1x,a)')&
+           if (gnrm >= gnrm_check) then
+              if (iproc == 0) write(*,'(1x,a)')&
                    'The norm of the residue is growing, need to recalculate input wavefunctions'
               infocode=2
               if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
@@ -516,22 +487,22 @@
      end if
 
   end do wfn_loop
-     if (iter == itermax+1 .and. iproc == 0 ) &
-          write(*,'(1x,a)')'No convergence within the allowed number of minimization steps'
+  if (iter == itermax+1 .and. iproc == 0 ) &
+       write(*,'(1x,a)')'No convergence within the allowed number of minimization steps'
 
   if (idsx.gt.0) then
-       i_all=-product(shape(psidst))*kind(psidst)
-       deallocate(psidst,stat=i_stat)
-       call memocc(i_stat,i_all,'psidst','cluster')
-       i_all=-product(shape(hpsidst))*kind(hpsidst)
-       deallocate(hpsidst,stat=i_stat)
-       call memocc(i_stat,i_all,'hpsidst','cluster')
-       i_all=-product(shape(ads))*kind(ads)
-       deallocate(ads,stat=i_stat)
-       call memocc(i_stat,i_all,'ads','cluster')
+     i_all=-product(shape(psidst))*kind(psidst)
+     deallocate(psidst,stat=i_stat)
+     call memocc(i_stat,i_all,'psidst','cluster')
+     i_all=-product(shape(hpsidst))*kind(hpsidst)
+     deallocate(hpsidst,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsidst','cluster')
+     i_all=-product(shape(ads))*kind(ads)
+     deallocate(ads,stat=i_stat)
+     call memocc(i_stat,i_all,'ads','cluster')
   end if
 
-! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
+  ! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
   call last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
        nspin,psi,hpsi,psit,occup,evsum,eval)
 
@@ -547,28 +518,28 @@
 !!$          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 !!$  end do
 
-!  write all the wavefunctions into files
+  !  write all the wavefunctions into files
   if (output_wf) then
      call  writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,wfd,psi,eval)
      write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
   end if
 
 
-!------------------------------------------------------------------------
-! here we start the calculation of the forces
+  !------------------------------------------------------------------------
+  ! here we start the calculation of the forces
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
           '----------------------------------------------------------------- Forces Calculation'
   end if
 
-! Selfconsistent potential is saved in rhopot, 
-! new arrays rho,pot for calculation of forces ground state electronic density
+  ! Selfconsistent potential is saved in rhopot, 
+  ! new arrays rho,pot for calculation of forces ground state electronic density
 
   allocate(spinar_foo(norb),stat=i_stat)
   call memocc(i_stat,product(shape(spinar_foo))*kind(spinar_foo),'spinar_foo','cluster')
   spinar_foo(:)=1.0d0
   ! Potential from electronic charge density
-  
+
   !manipulate scatter array for avoiding the GGA shift
   do jproc=0,nproc-1
      !n3d=n3p
@@ -610,7 +581,7 @@
      end do
      close(22)
   endif
-  
+
   !switch between the old and the new forces calculation
   i_all=-product(shape(pot_ion))*kind(pot_ion)
   deallocate(pot_ion,stat=i_stat)
@@ -625,8 +596,8 @@
   end if
   call DCOPY((2*n1+31)*(2*n2+31)*n3p,rho,1,pot,1) 
   call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
-          pot,pkernel,pot,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1)
-     !here nspin=1 since ixc=0
+       pot,pkernel,pot,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1)
+  !here nspin=1 since ixc=0
 
 
   i_all=-product(shape(pkernel))*kind(pkernel)
@@ -665,7 +636,7 @@
        nlpspd,proj,derproj,wfd,psi,gxyz)
 
   if (iproc == 0) write(*,'(1x,a)')'done.'
-  
+
   i_all=-product(shape(derproj))*kind(derproj)
   deallocate(derproj,stat=i_stat)
   call memocc(i_stat,i_all,'derproj','cluster')
@@ -677,7 +648,7 @@
   deallocate(nlpspd%nboxp_f,stat=i_stat)
   call memocc(i_stat,i_all,'nboxp_f','cluster')
 
-! Add up all the force contributions
+  ! Add up all the force contributions
   if (parallel) then
      call MPI_ALLREDUCE(gxyz,fxyz,3*nat,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
   else
@@ -697,7 +668,7 @@
   !------------------------------------------------------------------------
   if (calc_tail) then
      call timing(iproc,'Tail          ','ON')
-!    Calculate energy correction due to finite size effects
+     !    Calculate energy correction due to finite size effects
      !    ---reformat potential
      allocate(pot((2*n1+31),(2*n2+31),(2*n3+31),nspin),stat=i_stat)
      call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
@@ -722,8 +693,8 @@
         end if
      else
         do ispin=1,nspin
-        !here one could have not allocated pot and: call move_alloc(rhopot,pot) 
-        !(but it is a Fortran 95/2003 spec)
+           !here one could have not allocated pot and: call move_alloc(rhopot,pot) 
+           !(but it is a Fortran 95/2003 spec)
            do i3=1,2*n3+31
               do i2=1,2*n2+31
                  do i1=1,2*n1+31
@@ -744,9 +715,9 @@
      call memocc(i_stat,i_all,'rhopot','cluster')
 
      call CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntypes,&
-     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,psppar,npspcode,eval,&
-     pot,hgrid,rxyz,radii_cf,crmult,frmult,iatype,atomnames,nspin,spinar,&
-     proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
+          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,psppar,npspcode,eval,&
+          pot,hgrid,rxyz,radii_cf,crmult,frmult,iatype,atomnames,nspin,spinar,&
+          proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
 
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
@@ -757,7 +728,7 @@
      !   write(61,'(4(f9.3),1x,7(1pe19.11))',advance='no')&
      !        hgrid,alat1,alat2,alat3,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
      !end if
-    
+
      energybs=ekin_sum+epot_sum+eproj_sum
      energy=energybs-ehart+eexcu-vexcu+eion
 
@@ -775,7 +746,7 @@
 
      call timing(iproc,'Tail          ','OF')
   else
-!    No tail calculation
+     !    No tail calculation
      if (parallel) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
@@ -787,7 +758,7 @@
      deallocate(ngatherarr,stat=i_stat)
      call memocc(i_stat,i_all,'ngatherarr','cluster')
   endif
-! --- End if of tail calculation
+  ! --- End if of tail calculation
 
   call deallocate_before_exiting
 
@@ -897,4 +868,4 @@ contains
 
 END SUBROUTINE cluster
 
-!!$end module libBigDFT
+
