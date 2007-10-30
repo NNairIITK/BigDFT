@@ -32,20 +32,9 @@ SUBDIRS = $(sub_dirs_xc) $(sub_dirs_ps) convolutions profiling
 
 EXTRA_DIST = \
 	interface.f90 \
-	input/interface.f90 \
-	profiling/interface.f90 \
-	daub_8.inc \
-	gsint_x.inc \
-	gsints.inc \
-	intots.inc \
-	recd10.inc \
-	recd12.inc \
-	recd14.inc \
-	recd16.inc \
-	recd6.inc \
-	recd8.inc \
-	recs16.inc \
-	sym_16.inc 
+	wavelib/intots.inc \
+	wavelib/recs16.inc \
+	wavelib/sym_16.inc 
 
 AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ -IPSolver
 
@@ -180,7 +169,7 @@ mpif.h:
 test_forces.o: parameters.h \
 	libbigdft.@MODULE_EXT@
 
-libbigdft.@MODULE_EXT@: cluster_all.o
+libbigdft.@MODULE_EXT@ LIBBIGDFT.@MODULE_EXT@: cluster_all.o
 
 BigDFT.o: parameters.h \
 	libbigdft.@MODULE_EXT@
