@@ -173,6 +173,17 @@ interface
      real(kind=8), dimension(:,:), pointer :: ppsi,ppsit
    end subroutine input_wf_diag
 
+   subroutine reformatmywaves(iproc,norb,norbp,nat,&
+        & hgrid_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
+        & hgrid,n1,n2,n3,rxyz,wfd,psi)
+     use module_types
+     implicit real(kind=8) (a-h,o-z)
+     type(wavefunctions_descriptors), intent(in) :: wfd,wfd_old
+     dimension :: rxyz(3,nat), rxyz_old(3,nat), center(3), center_old(3)
+     dimension :: psi_old(wfd_old%nvctr_c + 7 * wfd_old%nvctr_f, norbp), &
+          psi(wfd%nvctr_c + 7 * wfd%nvctr_f, norbp)
+   end subroutine reformatmywaves
+
    subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
         nspin,psi,hpsi,psit)
      implicit none
@@ -226,8 +237,6 @@ interface
         psi,psit,hpsi,psidst,hpsidst,nspin,spinar)
      use module_types               
      implicit none
-     include 'mpif.h'
-     real(kind=8), parameter :: eps_mach=1.d-12
      logical, intent(in) :: parallel
      integer, intent(in) :: iter,iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids,idsx
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
