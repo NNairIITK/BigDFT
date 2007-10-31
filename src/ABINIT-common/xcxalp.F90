@@ -11,11 +11,11 @@
 !! rs = $(3/(4\pi))^{1/3}* \rho (r)^{-1/3}$.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2006 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2007 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors .
+!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 !!
 !! INPUTS
 !!  npt=number of real space points on which density is provided
@@ -45,7 +45,7 @@ subroutine xcxalp(exc,npt,order,rspts,vxc, dvxc)  ! dvxc is optional
 
 !This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
 #ifdef HAVE_FORTRAN_INTERFACES
- use interfaces_01managempi
+ use interfaces_01manage_mpi
 #endif
 !End of the abilint section
 
@@ -63,7 +63,7 @@ subroutine xcxalp(exc,npt,order,rspts,vxc, dvxc)  ! dvxc is optional
 !Set value of alpha in "X-alpha" method
 !scalars
  integer :: ipt
- real(dp),parameter :: alpha=1.0d0
+ real(dp),parameter :: alpha=1.0_dp
  real(dp) :: dfac,efac,rs,rsm1,vfac
  character(len=500) :: message
 
@@ -81,18 +81,18 @@ subroutine xcxalp(exc,npt,order,rspts,vxc, dvxc)  ! dvxc is optional
  end if
 
 !Compute vfac=(3/(2*Pi))^(2/3)
- vfac=(1.5d0/pi)**(2.0d0/3.0d0)
+ vfac=(1.5_dp/pi)**(2.0_dp/3.0_dp)
 !Compute efac=(3/4)*vfac
- efac=0.75d0*vfac
+ efac=0.75_dp*vfac
 !Compute dfac=(4*Pi/9)*vfac
- dfac=(4.0d0*pi/9.0d0)*vfac
+ dfac=(4.0_dp*pi/9.0_dp)*vfac
 
 !separate cases with respect to order
  if(order==2) then
     !Loop over grid points
     do ipt=1,npt
        rs=rspts(ipt)
-       rsm1=1.0d0/rs
+       rsm1=1.0_dp/rs
        ! compute energy density (hartree)
        exc(ipt)=-alpha*efac*rsm1
        ! compute potential (hartree)
@@ -104,7 +104,7 @@ subroutine xcxalp(exc,npt,order,rspts,vxc, dvxc)  ! dvxc is optional
     !Loop over grid points
     do ipt=1,npt
        rs=rspts(ipt)
-       rsm1=1.0d0/rs
+       rsm1=1.0_dp/rs
        ! compute energy density (hartree)
        exc(ipt)=-alpha*efac*rsm1
        ! compute potential (hartree)

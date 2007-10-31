@@ -49,9 +49,9 @@ if  version < [2,3,0]:
     sys.exit(1)
 
 #Read the first file
-original1 = open(file1).read().splitlines(1)
+original1 = open(file1).read().replace('\r','').splitlines(1)
 #Read the second file
-original2 = open(file2).read().splitlines(1)
+original2 = open(file2).read().replace('\r','').splitlines(1)
 
 max_discrepancy = 1.1e-11
 maximum = 0.0

@@ -1,4 +1,3 @@
-
 !!****f* ABINIT/size_dvxc
 !! NAME
 !! size_dvxc
@@ -8,11 +7,11 @@
 !! needed for the allocations depending on the routine which is called from the drivexc routine
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2006 ABINIT group (TD)
+!! Copyright (C) 1998-2007 ABINIT group (TD)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.
+!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
 !! This routine has been written from rhohxc_coll(DCA, XG, GMR, MF, GZ)
 !!
 !! INPUTS
@@ -60,8 +59,8 @@ subroutine size_dvxc(ixc,ndvxc,ngr2,nspden,nvxcdgr,order)
  if (order**2 <= 1) then
     ndvxc=0
     nvxcdgr=0
-    if (ixc>=11 .and. ixc<=15 .and. ixc/=13) nvxcdgr=3
-    if (ixc==16) nvxcdgr=2
+    if (((ixc>=11 .and. ixc<=15) .or. (ixc==23)) .and. ixc/=13) nvxcdgr=3
+    if (ixc==16.or.ixc==17.or.ixc==26.or.ixc==27) nvxcdgr=2
  else
     if (ixc==1 .or. ixc==21 .or. ixc==22 .or. (ixc>=7 .and. ixc<=10) .or. ixc==13) then
        ! new Teter fit (4/93) to Ceperley-Alder data, with spin-pol option    !routine xcspol
@@ -80,14 +79,14 @@ subroutine size_dvxc(ixc,ndvxc,ngr2,nspden,nvxcdgr,order)
        !routine xcpbe, with optpbe=-2 and different orders (order)
        ndvxc=8
        nvxcdgr=3
-    else if (ixc>=11 .and. ixc<=15 .and. ixc/=13) then
+    else if ((ixc>=11 .and. ixc<=15 .and. ixc/=13) .or. (ixc==23)) then
        !routine xcpbe, with different options (optpbe) and orders (order)
        ndvxc=15
        nvxcdgr=3
-    else if(ixc==16 .or. ((ixc>=30).and.(ixc<=34)) ) then
+    else if(ixc==16 .or. ixc==17 .or. ixc==26 .or. ixc==27 .or. ((ixc>=30).and.(ixc<=34)) ) then
        !Should be 0
        ndvxc=0
-       if (ixc==16) nvxcdgr=2
+       if (ixc==16 .or. ixc==17 .or. ixc==26 .or. ixc==27) nvxcdgr=2
     end if
  end if
 

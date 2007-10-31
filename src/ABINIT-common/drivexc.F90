@@ -12,11 +12,11 @@
 !!
 !!
 !! COPYRIGHT
-!! Copyright (C) 2002-2006 ABINIT group (XG)
+!! Copyright (C) 2002-2007 ABINIT group (XG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors .
+!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 !!
 !! INPUTS
 !!  ixc=number of the XC functional
@@ -39,6 +39,7 @@
 !!    and both are half the total density.
 !!    If nspden=2, the spin-up and spin-down density must be given
 !!  Optional inputs :
+!!  exexch= choice of local exact exchange. Active if exexch=3
 !!  grho2_updn(npts,ngr2)=the square of the gradients of
 !!    spin-up, spin-down, and total density
 !!    If nspden=1, only the square of the gradient of the spin-up density
@@ -74,7 +75,7 @@
 !!     if(nspden=2): dvxc(:,1)=dvxc($\uparrow$)/d$\rho(\downarrow)$,
 !!                   dvxc(:,2)=dvxc($\uparrow$)/d$\rho(\downarrow)$,
 !!                   dvxc(:,3)=dvxc($\downarrow$)/d$\rho(\downarrow)$
-!!   In case of gradient corrected functional (option=2,-2, 4, 5, 6):
+!!   In case of gradient corrected functional (option=2,-2, 4, 5, 6, 7):
 !!    dvxc(npts,15)=
 !!     dvxc(:,1)= d2Ex/drho_up drho_up
 !!     dvxc(:,2)= d2Ex/drho_dn drho_dn
@@ -109,17 +110,18 @@
 #endif
 
 subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   & !Mandatory arguments
-&                  dvxc,d2vxc,grho2_updn,vxcgr)    !Optional arguments 
+&                  dvxc,d2vxc,grho2_updn,vxcgr,exexch)    !Optional arguments 
 
  use defs_basis
-#if defined HAVE_NQXC
- use nqxc
+#if defined HAVE_ETSF_XC
+ use xc_types
+ use libxc
 #endif
 
-!This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
+!!$!This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
 #ifdef HAVE_FORTRAN_INTERFACES
- use interfaces_01managempi
- use interfaces_03xc, except_this_one => drivexc
+ use interfaces_01manage_mpi
+ use interfaces_13xc, except_this_one => drivexc
 #else
  use defs_xc, except_this_one => drivexc
 #endif
@@ -130,6 +132,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   
 !Arguments ------------------------------------
 !scalars
  integer,intent(in) :: ixc,ndvxc,ngr2,npts,nspden,nvxcdgr,order
+integer,intent(in),optional :: exexch
 !arrays
  real(dp),intent(in) :: rho_updn(npts,nspden)
  real(dp),intent(in),optional :: grho2_updn(npts,ngr2)
@@ -139,17 +142,17 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   
 
 !Local variables-------------------------------
 !scalars
- integer :: i_all,ipts,ispden,libxc_info,libxc_ptr,optpbe
- real(dp),parameter :: rsfac=0.6203504908994000d0
+ integer :: i_all,ipts,ispden,optpbe,xclevel
+ real(dp),parameter :: rsfac=0.6203504908994000e0_dp
  character(len=500) :: message
 !arrays
  real(dp) :: exctmp(2),rhotmp(2),vxctmp(2)
  real(dp),allocatable :: d2vxci(:),dvxci(:,:),exci_rpa(:),grho2_updn_fake(:,:)
  real(dp),allocatable :: rhotot(:),rspts(:),vxci_rpa(:,:),zeta(:)
 !no_abirules
-#if defined HAVE_XMLF90
- integer :: ipts,ispden,libxc_info,libxc_ptr
- real(dp) :: exctmp(2),rhotmp(2),vxctmp(2)
+#if defined HAVE_ETSF_XC
+ type(xc_info) :: libxc_info
+ type(xc_func) :: libxc_ptr
 #endif
 
 !  *************************************************************************
@@ -163,7 +166,14 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   
   call wrtout(6,message,'COLL')
   call leave_new('COLL')
  end if
+
+ xclevel=0
+ if( ( 1<=ixc .and. ixc<=10).or.(30<=ixc .and. ixc<=39) )xclevel=1 ! LDA
+ if( (11<=ixc .and. ixc<=19).or.(23<=ixc .and. ixc<=29) )xclevel=2 ! GGA
+ if( 20<=ixc .and. ixc<=22 )xclevel=3 ! ixc for TDDFT kernel tests
+
 !Checks the compatibility between the inputs and the presence of the optional arguments
+
  if(present(dvxc))then
   if(order**2 <= 1 .or. ixc==16 .or. ((ixc>=30).and.(ixc<=34)) )then
    write(message, '(8a,i6,a,i6)' )ch10,&
@@ -177,7 +187,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   
  end if
 
  if(present(d2vxc))then
-  if(order /= 3 .or. (ixc /= 3 .and.  (ixc > 15 .or. ixc < 7)) )then
+  if(order /= 3 .or. (ixc /= 3 .and.  (((ixc > 15) .and. (ixc /=23)) .or. ixc < 7)) )then
    write(message, '(8a,i6,a,i6)' )ch10,&
 &   ' drivexc : BUG -',ch10,&
 &   '  The value of the number of the XC functional ixc',ch10,&
@@ -189,12 +199,12 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   
  end if
 
  if(present(vxcgr))then
-  if(nvxcdgr == 0 .or. (((ixc > 16 .or. ixc < 7 ) .and. nvxcdgr /=3 ))) then
+  if(nvxcdgr == 0 .or. ((((ixc > 16 .and. ixc /= 23) .or. ixc < 7 ) .and. nvxcdgr /=3 ))) then
    write(message, '(8a,i6,a,i6)' )ch10,&
 &   ' drivexc : BUG -',ch10,&
 &   '  The value of the number of the XC functional ixc',ch10,&
-&   '  or the value of nvxcgdr is not compatible with the presence of the array vxcgr',ch10,&
-&   '  ixc=',ixc,'nvxcdgr=',nvxcdgr
+&   '  or the value of nvxcdgr is not compatible with the presence of the array vxcgr',ch10,&
+&   '  ixc=',ixc,'  nvxcdgr=',nvxcdgr
    call wrtout(6,message,'COLL')
    call leave_new('COLL')
   end if
@@ -208,7 +218,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   
 !   call wrtout(06,message,'COLL')
 !   call leave_new('COLL')
   end if
-  if(ixc > 16 .or. ixc < 11 )then
+  if((ixc > 16 .and. ixc /= 23) .or. ixc < 11)then
    write(message, '(8a,i6)' )ch10,&
 &   ' drivexc : BUG -',ch10,&
 &   '  The value of the number of the XC functional ixc',ch10,&
@@ -356,7 +366,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   
        call xcxalp(exc,npts,order,rspts,vxc(:,1),dvxc)
     end if
 
- else if (ixc>=7 .and. ixc<=15 .and. ixc/=10 .and. ixc/=13) then
+ else if (((ixc>=7 .and. ixc<=15) .or. (ixc==23)) .and. ixc/=10 .and. ixc/=13) then
 
 ! Perdew-Wang LSD is coded in Perdew-Burke-Ernzerhof GGA, with optpbe=1
   if(ixc==7)optpbe=1
@@ -372,6 +382,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   
   if(ixc==14)optpbe=5
 ! RPBE of Hammer, Hansen and Norskov
   if(ixc==15)optpbe=6
+! Wu and Cohen
+  if(ixc==23)optpbe=7
 
   if (ixc >= 7 .and. ixc <= 9) then
      if (order**2 <= 1) then
@@ -397,9 +409,10 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   
         end if
         call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,d2vxci=d2vxc,dvxci=dvxc)
      end if
-  else if (ixc >= 11 .and. ixc <= 15) then
+  else if ((ixc >= 11 .and. ixc <= 15) .or. (ixc==23)) then
     if (order**2 <= 1) then
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,dvxcdgr=vxcgr,grho2_updn=grho2_updn)
+        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,dvxcdgr=vxcgr,exexch=exexch,&
+&                  grho2_updn=grho2_updn)
      else if (order /=3) then
         if(ixc == 12 .and. ndvxc /=8  .or. ixc/=12 .and. ndvxc /= 15 .or. nvxcdgr /= 3)then
            write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
@@ -420,7 +433,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   
            call wrtout(6,message,'COLL')
            call leave_new('COLL')
         end if
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,d2vxc,vxcgr,dvxc,grho2_updn)
+        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,d2vxci=d2vxc,dvxcdgr=vxcgr,dvxci=dvxc,&
+&                  grho2_updn=grho2_updn)
      end if
   end if
 
@@ -445,7 +459,8 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   
         optpbe=1
         call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2)
         exc(:)=exc(:)-exci_rpa(:)
-        vxc(:,:)=vxc(:,:)-vxci_rpa(:,:)
+        !PMA: second index of vxc is nspden while that of rpa is 2 they can mismatch
+        vxc(:,1:min(nspden,2))=vxc(:,1:min(nspden,2))-vxci_rpa(:,1:min(nspden,2))
         deallocate(exci_rpa,vxci_rpa)
      else if (order /=3) then
         if(ndvxc /= 1+nspden .or. nvxcdgr /= 0)then
@@ -517,7 +532,7 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   
         call xclb(grho2_updn,npts,nspden,rho_updn,vxc)
      end if
 
- else if(ixc==16) then
+ else if(ixc==16 .or. ixc==17 .or. ixc==26 .or. ixc==27) then
      if(nvxcdgr /= 2 )then
           write(message, '(6a,i6,a,i6)' )ch10,&
                &   ' drivexc : BUG -',ch10,&
@@ -526,49 +541,49 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   
           call wrtout(6,message,'COLL')
           call leave_new('COLL')
        end if
-  call xchcth(vxcgr,exc,grho2_updn,npts,nspden,&
-&  order,rho_updn,vxc)
+  call xchcth(vxcgr,exc,grho2_updn,ixc,npts,nspden,order,rho_updn,vxc)
 
-#if defined HAVE_NQXC
+#if defined HAVE_ETSF_XC
  else if((ixc>=30).and.(ixc<=34)) then
-  ! LIBXC: exchange
-  call xc_lda_init(libxc_ptr,libxc_info,XC_LDA_X,nspden,3,XC_NON_RELATIVISTIC)
+  ! ETSF_XC: exchange
+  call xc_f90_lda_init(libxc_ptr,libxc_info,XC_LDA_X,nspden,3,&
+  & XC_NON_RELATIVISTIC)
   do ipts=1,npts
    rhotmp(1:nspden)=rho_updn(ipts,1:nspden)
-   call xc_lda(libxc_ptr,rhotmp(1),exc(ipts),vxctmp(1))
+   call xc_f90_lda_vxc(libxc_ptr,rhotmp(1),exc(ipts),vxctmp(1))
    vxc(ipts,1:nspden)=vxctmp(1:nspden)
   end do
-  call xc_lda_end(libxc_ptr)
+  call xc_f90_lda_end(libxc_ptr)
 
   if ( ixc > 30 ) then
    select case (ixc)
 
     case (31)
-     ! LIBXC: correlation (Vosko, Wilk, Nussair)
-     call xc_lda_init(libxc_ptr,libxc_info,XC_LDA_C_VWN,nspden)
+     ! ETSF_XC: correlation (Vosko, Wilk, Nussair)
+     call xc_f90_lda_init(libxc_ptr,libxc_info,XC_LDA_C_VWN,nspden)
 
     case (32)
-     ! LIBXC: correlation (Perdew, Zunger)
-     call xc_lda_init(libxc_ptr,libxc_info,XC_LDA_C_PZ,nspden)
+     ! ETSF_XC: correlation (Perdew, Zunger)
+     call xc_f90_lda_init(libxc_ptr,libxc_info,XC_LDA_C_PZ,nspden)
 
     case (33)
-     ! LIBXC: correlation (Perdew, Wang)
-     call xc_lda_init(libxc_ptr,libxc_info,XC_LDA_C_PW,nspden)
+     ! ETSF_XC: correlation (Perdew, Wang)
+     call xc_f90_lda_init(libxc_ptr,libxc_info,XC_LDA_C_PW,nspden)
 
     case (34)
-     ! LIBXC: correlation (Attacalite, Moroni, Gori-Giorgi, Bachelet)
-     call xc_lda_init(libxc_ptr,libxc_info,XC_LDA_C_AMGB,nspden)
+     ! ETSF_XC: correlation (Random-Phase Approximation)
+     call xc_f90_lda_init(libxc_ptr,libxc_info,XC_LDA_C_RPA,nspden)
 
    end select
 
    do ipts=1,npts
     rhotmp(1:nspden)=rho_updn(ipts,1:nspden)
-    call xc_lda(libxc_ptr,rhotmp(1),exctmp(1),vxctmp(1))
+    call xc_f90_lda_vxc(libxc_ptr,rhotmp(1),exctmp(1),vxctmp(1))
     exc(ipts)=exc(ipts)+exctmp(1)
     vxc(ipts,1:nspden)=vxc(ipts,1:nspden)+vxctmp(1:nspden)
    end do
 
-   call xc_lda_end(libxc_ptr)
+   call xc_f90_lda_end(libxc_ptr)
   end if
 #endif
 

@@ -13,11 +13,11 @@
 !! D.M. Ceperly and B.J. Alder, Phys. Rev. Lett. 45, 566 (1980).
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2006 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2007 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors .
+!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 !!
 !! INPUTS
 !!  npt=number of real space points on which density is provided
@@ -49,7 +49,7 @@ subroutine xcpzca(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
 
 !This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
 #ifdef HAVE_FORTRAN_INTERFACES
- use interfaces_01managempi
+ use interfaces_01manage_mpi
 #endif
 !End of the abilint section
 
@@ -67,20 +67,20 @@ subroutine xcpzca(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
 !Perdew-Zunger parameters a, b, b1, b2, c, d, gamma
 !scalars
  integer :: ipt
- real(dp),parameter :: aa=0.0311d0,b1=1.0529d0,b2=0.3334d0,bb=-0.048d0
- real(dp),parameter :: c4_3=4.0d0/3.0d0,c7_6=7.0d0/6.0d0,cc=0.0020d0
- real(dp),parameter :: dd=-0.0116d0,ga=-0.1423d0
+ real(dp),parameter :: aa=0.0311_dp,b1=1.0529_dp,b2=0.3334_dp,bb=-0.048_dp
+ real(dp),parameter :: c4_3=4.0_dp/3.0_dp,c7_6=7.0_dp/6.0_dp,cc=0.0020_dp
+ real(dp),parameter :: dd=-0.0116_dp,ga=-0.1423_dp
  real(dp) :: den,den3,dfac,efac,logrs,rs,rsm1,t1,t2,vfac
  character(len=500) :: message
 
 ! *************************************************************************
 
 !Compute vfac=(3/(2*Pi))^(2/3)
- vfac=(1.5d0/pi)**(2.0d0/3.0d0)
+ vfac=(1.5_dp/pi)**(2.0_dp/3.0_dp)
 !Compute efac=(3/4)*vfac
- efac=0.75d0*vfac
+ efac=0.75_dp*vfac
 !Compute dfac=(4*Pi/9)*vfac
- dfac=(4.0d0*pi/9.0d0)*vfac
+ dfac=(4.0_dp*pi/9.0_dp)*vfac
 
 !Checks the values of order
  if(order<0 .or. order>2)then
@@ -108,9 +108,9 @@ subroutine xcpzca(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
     !Loop over grid points
     do ipt=1,npt
        rs=rspts(ipt)
-       rsm1=1.0d0/rs
+       rsm1=1.0_dp/rs
        ! Consider two regimes: rs<1 or rs>=0
-       if (rs<1.d0) then
+       if (rs<1._dp) then
           logrs=log(rs)
           !  compute energy density exc (hartree)
           exc(ipt)=(aa+cc*rs)*logrs+dd*rs+bb-efac*rsm1
@@ -118,26 +118,26 @@ subroutine xcpzca(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
           vxc(ipt)=(aa+two_thirds*cc*rs)*logrs+(dd+dd-cc)*rs*third+&
                &        (bb-aa*third)-vfac*rsm1
           !  compute d(vxc)/d(rho) (hartree*bohr^3)
-          dvxc(ipt)=-(3.d0*aa+(cc+dd+dd)*rs+2.d0*cc*rs*logrs)&
-               &   /(9.d0*rhor(ipt))-dfac*rs**2
+          dvxc(ipt)=-(3._dp*aa+(cc+dd+dd)*rs+2._dp*cc*rs*logrs)&
+               &   /(9._dp*rhor(ipt))-dfac*rs**2
        else
           t1=b1*sqrt(rs)
           t2=b2*rs
-          den=1.d0/(1.d0+t1+t2)
+          den=1._dp/(1._dp+t1+t2)
           exc(ipt)=ga*den-efac*rsm1
-          vxc(ipt)=ga*(1.d0+c7_6*t1+c4_3*t2)*den**2-vfac*rsm1
+          vxc(ipt)=ga*(1._dp+c7_6*t1+c4_3*t2)*den**2-vfac*rsm1
           den3=den**3
-          dvxc(ipt)=(ga*den3/(36.d0*rhor(ipt)))*(5.d0*t1+8.d0*t2+&
-               &     7.d0*t1**2+16.d0*t2**2+21.d0*t1*t2)-dfac*rs**2
+          dvxc(ipt)=(ga*den3/(36._dp*rhor(ipt)))*(5._dp*t1+8._dp*t2+&
+               &     7._dp*t1**2+16._dp*t2**2+21._dp*t1*t2)-dfac*rs**2
        end if
     end do
  else
     !Loop over grid points
     do ipt=1,npt
        rs=rspts(ipt)
-       rsm1=1.0d0/rs
+       rsm1=1.0_dp/rs
        ! Consider two regimes: rs<1 or rs>=0
-       if (rs<1.d0) then
+       if (rs<1._dp) then
           logrs=log(rs)
           !  compute energy density exc (hartree)
           exc(ipt)=(aa+cc*rs)*logrs+dd*rs+bb-efac*rsm1
@@ -148,9 +148,9 @@ subroutine xcpzca(exc,npt,order,rhor,rspts,vxc,&  !Mandatory arguments
        else
           t1=b1*sqrt(rs)
           t2=b2*rs
-          den=1.d0/(1.d0+t1+t2)
+          den=1._dp/(1._dp+t1+t2)
           exc(ipt)=ga*den-efac*rsm1
-          vxc(ipt)=ga*(1.d0+c7_6*t1+c4_3*t2)*den**2-vfac*rsm1
+          vxc(ipt)=ga*(1._dp+c7_6*t1+c4_3*t2)*den**2-vfac*rsm1
        end if
     end do   
 end if

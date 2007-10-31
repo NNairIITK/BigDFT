@@ -1,5 +1,6 @@
 !{\src2tex{textfont=tt}}
 !!****f* ABINIT/xcspol
+!!
 !! NAME
 !! xcspol
 !!
@@ -8,11 +9,11 @@
 !! of Corning Incorporated.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2006 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2007 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors .
+!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 !!
 !! INPUTS
 !!  nspden=number of spin-density components
@@ -79,7 +80,7 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
 
 !This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
 #ifdef HAVE_FORTRAN_INTERFACES
- use interfaces_01managempi
+ use interfaces_01manage_mpi
 #endif
 !End of the abilint section
 
@@ -103,16 +104,16 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
 !Differences, ferromagnetic - paramagnetic (delta params):da1,da2,da3,db1,db2,db3,db4
 !scalars
  integer :: debug,ipts
- real(dp),parameter :: a0p=.4581652932831429d0,a1p=2.217058676663745d0
- real(dp),parameter :: a2p=0.7405551735357053d0,a3p=0.01968227878617998d0
- real(dp),parameter :: alpha_zeta=1.0d0-1.0d-6,b1p=1.0d0
- real(dp),parameter :: b2p=4.504130959426697d0,b3p=1.110667363742916d0
- real(dp),parameter :: b4p=0.02359291751427506d0,da0=.119086804055547d0
- real(dp),parameter :: da1=0.6157402568883345d0,da2=0.1574201515892867d0
- real(dp),parameter :: da3=0.003532336663397157d0,db1=0.0d0
- real(dp),parameter :: db2=0.2673612973836267d0,db3=0.2052004607777787d0
- real(dp),parameter :: db4=0.004200005045691381d0,ft=4.d0/3.d0
- real(dp),parameter :: rsfac=0.6203504908994000d0,rsfacm3=rsfac**(-3)
+ real(dp),parameter :: a0p=.4581652932831429_dp,a1p=2.217058676663745_dp
+ real(dp),parameter :: a2p=0.7405551735357053_dp,a3p=0.01968227878617998_dp
+ real(dp),parameter :: alpha_zeta=one-1.0d-6,b1p=one,b2p=4.504130959426697_dp
+ real(dp),parameter :: b3p=1.110667363742916_dp,b4p=0.02359291751427506_dp
+ real(dp),parameter :: da0=.119086804055547_dp,da1=0.6157402568883345_dp
+ real(dp),parameter :: da2=0.1574201515892867_dp,da3=0.003532336663397157_dp
+ real(dp),parameter :: db1=zero,db2=0.2673612973836267_dp
+ real(dp),parameter :: db3=0.2052004607777787_dp,db4=0.004200005045691381_dp
+ real(dp),parameter :: ft=4._dp/3._dp,rsfac=0.6203504908994000_dp
+ real(dp),parameter :: rsfacm3=rsfac**(-3)
  real(dp) :: a0,a1,a2,a3,b1,b2,b3,b4,d1,d1m1,d2d1drs2,d2d1drsdf,d2excdf2
  real(dp) :: d2excdrs2,d2excdrsdf,d2excdz2,d2fxcdz2,d2n1drs2,d2n1drsdf,dd1df
  real(dp) :: dd1drs,delta,dexcdf,dexcdrs,dexcdz,dfxcdz,dn1df,dn1drs,dvxcdrs
@@ -169,13 +170,13 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
 !DEBUG
 !Finite-difference debugging, do not take away
 ! debug=1
-! zeta_mean=0.1d0
+! zeta_mean=0.1_dp
 ! delta=0.0001
 ! if(debug==1)then
 !  do ipts=1,npts,5
-!   rho=ipts*0.01d0
-!   rho_up=rho*(1.0d0+zeta_mean)*0.5d0
-!   rho_dn=rho*(1.0d0-zeta_mean)*0.5d0
+!   rho=ipts*0.01_dp
+!   rho_up=rho*(one+zeta_mean)*half
+!   rho_dn=rho*(one-zeta_mean)*half
 !   rho_upp=rho_up+delta
 !   rho_upm=rho_up-delta
 !   rho_dnp=rho_dn+delta
@@ -216,15 +217,15 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
           rs=rspts(ipts)
           n1=a0p+rs*(a1p+rs*(a2p+rs*a3p))
           d1=rs*(b1p+rs*(b2p+rs*(b3p+rs*b4p)))
-          d1m1=1.0d0/d1
+          d1m1=one/d1
 
           !  Exchange-correlation energy
           excipt=-n1*d1m1
           exc(ipts)=excipt
 
           !  Exchange-correlation potential
-          dn1drs=a1p+rs*(2.d0*a2p+rs*(3.d0*a3p))
-          dd1drs=b1p+rs*(2.d0*b2p+rs*(3.d0*b3p+rs*(4.d0*b4p)))
+          dn1drs=a1p+rs*(2._dp*a2p+rs*(3._dp*a3p))
+          dd1drs=b1p+rs*(2._dp*b2p+rs*(3._dp*b3p+rs*(4._dp*b4p)))
 
           !  dexcdrs is d(exc)/d(rs)
           dexcdrs=-(dn1drs+excipt*dd1drs)*d1m1
@@ -232,11 +233,11 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
 
           !  If the exchange-correlation kernel is needed
 
-          d2n1drs2=2.d0*a2p+rs*(6.d0*a3p)
-          d2d1drs2=2.d0*b2p+rs*(6.d0*b3p+rs*(12.d0*b4p))
+          d2n1drs2=2._dp*a2p+rs*(6._dp*a3p)
+          d2d1drs2=2._dp*b2p+rs*(6._dp*b3p+rs*(12._dp*b4p))
           !   d2excdrs2 is d2(exc)/d(rs)2
-          d2excdrs2=-(d2n1drs2+2.d0*dexcdrs*dd1drs+excipt*d2d1drs2)*d1m1
-          dvxcdrs=third*(2.0d0*dexcdrs-rs*d2excdrs2)
+          d2excdrs2=-(d2n1drs2+2._dp*dexcdrs*dd1drs+excipt*d2d1drs2)*d1m1
+          dvxcdrs=third*(2.0_dp*dexcdrs-rs*d2excdrs2)
           !   And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
           dvxc(ipts,1)= -rs**4*rsfacm3*third*dvxcdrs
 
@@ -245,7 +246,7 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
           dd1df=rs*(db1+rs*(db2+rs*(db3+rs*db4)))
           dexcdf=-(dn1df+excipt*dd1df)*d1m1
           !    d2(fxc)/d(zeta)2
-          d2fxcdz2=ft*third*(alpha_zeta**2)*2.d0*fact
+          d2fxcdz2=ft*third*(alpha_zeta**2)*2._dp*fact
           !    d2(exc)/d(zeta)2
           d2excdz2=d2fxcdz2*dexcdf
           rhom1=rsfacm3*rs**3
@@ -258,26 +259,26 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
           rs=rspts(ipts)
           n1=a0p+rs*(a1p+rs*(a2p+rs*a3p))
           d1=rs*(b1p+rs*(b2p+rs*(b3p+rs*b4p)))
-          d1m1=1.0d0/d1
+          d1m1=one/d1
 
           !  Exchange-correlation energy
           excipt=-n1*d1m1
           exc(ipts)=excipt
 
           !  Exchange-correlation potential
-          dn1drs=a1p+rs*(2.d0*a2p+rs*(3.d0*a3p))
-          dd1drs=b1p+rs*(2.d0*b2p+rs*(3.d0*b3p+rs*(4.d0*b4p)))
+          dn1drs=a1p+rs*(2._dp*a2p+rs*(3._dp*a3p))
+          dd1drs=b1p+rs*(2._dp*b2p+rs*(3._dp*b3p+rs*(4._dp*b4p)))
 
           !  dexcdrs is d(exc)/d(rs)
           dexcdrs=-(dn1drs+excipt*dd1drs)*d1m1
           vxc(ipts,1)=excipt-third*rs*dexcdrs
 
           !  If the exchange-correlation kernel is needed
-          d2n1drs2=2.d0*a2p+rs*(6.d0*a3p)
-          d2d1drs2=2.d0*b2p+rs*(6.d0*b3p+rs*(12.d0*b4p))
+          d2n1drs2=2._dp*a2p+rs*(6._dp*a3p)
+          d2d1drs2=2._dp*b2p+rs*(6._dp*b3p+rs*(12._dp*b4p))
           !   d2excdrs2 is d2(exc)/d(rs)2
-          d2excdrs2=-(d2n1drs2+2.d0*dexcdrs*dd1drs+excipt*d2d1drs2)*d1m1
-          dvxcdrs=third*(2.0d0*dexcdrs-rs*d2excdrs2)
+          d2excdrs2=-(d2n1drs2+2._dp*dexcdrs*dd1drs+excipt*d2d1drs2)*d1m1
+          dvxcdrs=third*(2.0_dp*dexcdrs-rs*d2excdrs2)
           !   And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
           dvxc(ipts,1)= -rs**4*rsfacm3*third*dvxcdrs
 
@@ -289,15 +290,15 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
           rs=rspts(ipts)
           n1=a0p+rs*(a1p+rs*(a2p+rs*a3p))
           d1=rs*(b1p+rs*(b2p+rs*(b3p+rs*b4p)))
-          d1m1=1.0d0/d1
+          d1m1=one/d1
 
           !  Exchange-correlation energy
           excipt=-n1*d1m1
           exc(ipts)=excipt
 
           !  Exchange-correlation potential
-          dn1drs=a1p+rs*(2.d0*a2p+rs*(3.d0*a3p))
-          dd1drs=b1p+rs*(2.d0*b2p+rs*(3.d0*b3p+rs*(4.d0*b4p)))
+          dn1drs=a1p+rs*(2._dp*a2p+rs*(3._dp*a3p))
+          dd1drs=b1p+rs*(2._dp*b2p+rs*(3._dp*b3p+rs*(4._dp*b4p)))
 
           !  dexcdrs is d(exc)/d(rs)
           dexcdrs=-(dn1drs+excipt*dd1drs)*d1m1
@@ -324,8 +325,8 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
 
           rs=rspts(ipts)
           zet=zeta(ipts)
-          zetp=1.d0+zet*alpha_zeta
-          zetm=1.d0-zet*alpha_zeta
+          zetp=one+zet*alpha_zeta
+          zetm=one-zet*alpha_zeta
           zetp_third=zetp**third
           zetm_third=zetm**third
           !  Exchange energy spin interpolation function f(zeta)
@@ -349,8 +350,8 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
           exc(ipts)=excipt
 
           !  Exchange-correlation potential
-          dn1drs=a1+rs*(2.d0*a2+rs*(3.d0*a3))
-          dd1drs=b1+rs*(2.d0*b2+rs*(3.d0*b3+rs*(4.d0*b4)))
+          dn1drs=a1+rs*(2._dp*a2+rs*(3._dp*a3))
+          dd1drs=b1+rs*(2._dp*b2+rs*(3._dp*b3+rs*(4._dp*b4)))
           !  dexcdrs is d(exc)/d(rs)
           dexcdrs=-(dn1drs+excipt*dd1drs)*d1m1
 
@@ -378,8 +379,8 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
           !  vxc(ipts,2)=dexcdz
           !ENDDEBUG
           !   Compute second derivative with respect to rho
-          d2n1drs2=2.d0*a2+rs*(6.d0*a3)
-          d2d1drs2=2.d0*b2+rs*(6.d0*b3+rs*(12.d0*b4))
+          d2n1drs2=2._dp*a2+rs*(6._dp*a3)
+          d2d1drs2=2._dp*b2+rs*(6._dp*b3+rs*(12._dp*b4))
           !   d2excdrs2 is d2(exc)/d(rs)2
           d2excdrs2=-(d2n1drs2+two*dexcdrs*dd1drs+excipt*d2d1drs2)*d1m1
           dvxcdrs=third*(two*dexcdrs-rs*d2excdrs2)
@@ -389,8 +390,8 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
           dvxcpdrho= -rs*rhom1*third * dvxcdrs
 
           !   Compute mixed second derivative with respect to rho and zeta
-          d2n1drsdf=da1+rs*(2.d0*da2+rs*(3.d0*da3))
-          d2d1drsdf=db1+rs*(2.d0*db2+rs*(3.d0*db3+rs*(4.d0*db4)))
+          d2n1drsdf=da1+rs*(2._dp*da2+rs*(3._dp*da3))
+          d2d1drsdf=db1+rs*(2._dp*db2+rs*(3._dp*db3+rs*(4._dp*db4)))
           !   d2excdrsdf is d2(exc)/d(rs)df
           d2excdrsdf=-(d2n1drsdf+dexcdrs*dd1df+dexcdf*dd1drs+excipt*d2d1drsdf)*d1m1
           !   d(vxc)/d(zeta) paramagnetic
@@ -433,8 +434,8 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
 
           rs=rspts(ipts)
           zet=zeta(ipts)
-          zetp=1.d0+zet*alpha_zeta
-          zetm=1.d0-zet*alpha_zeta
+          zetp=one+zet*alpha_zeta
+          zetm=one-zet*alpha_zeta
           zetp_third=zetp**third
           zetm_third=zetm**third
           !  Exchange energy spin interpolation function f(zeta)
@@ -458,8 +459,8 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
           exc(ipts)=excipt
 
           !  Exchange-correlation potential
-          dn1drs=a1+rs*(2.d0*a2+rs*(3.d0*a3))
-          dd1drs=b1+rs*(2.d0*b2+rs*(3.d0*b3+rs*(4.d0*b4)))
+          dn1drs=a1+rs*(2._dp*a2+rs*(3._dp*a3))
+          dd1drs=b1+rs*(2._dp*b2+rs*(3._dp*b3+rs*(4._dp*b4)))
           !  dexcdrs is d(exc)/d(rs)
           dexcdrs=-(dn1drs+excipt*dd1drs)*d1m1
 
@@ -509,13 +510,13 @@ subroutine xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,& !Mandatory argume
 !  write(6, '(3es16.8)' )exc(ipts)*rho,vxc(ipts,1),vxc(ipts,2)
 !  write(6, '(3es16.8)' )dvxc(ipts,1),dvxc(ipts,3),dvxc(ipts,2)
 !  write(6, '(3es16.8)' )exc(ipts)*rho,&
-!&      ( exc(ipts+1)*(rho+delta) - exc(ipts+2)*(rho-delta) )/2.d0/delta,&
-!&      ( exc(ipts+3)*(rho+delta) - exc(ipts+4)*(rho-delta) )/2.d0/delta
+!&      ( exc(ipts+1)*(rho+delta) - exc(ipts+2)*(rho-delta) )/2._dp/delta,&
+!&      ( exc(ipts+3)*(rho+delta) - exc(ipts+4)*(rho-delta) )/2._dp/delta
 !   write(6, '(4es16.8)' )&
-!&    ( vxc(ipts+1,1) - vxc(ipts+2,1) )/2.d0/delta,&
-!&    ( vxc(ipts+3,2) - vxc(ipts+4,2) )/2.d0/delta,&
-!&    ( vxc(ipts+3,1) - vxc(ipts+4,1) )/2.d0/delta,&
-!&    ( vxc(ipts+1,2) - vxc(ipts+2,2) )/2.d0/delta
+!&    ( vxc(ipts+1,1) - vxc(ipts+2,1) )/2._dp/delta,&
+!&    ( vxc(ipts+3,2) - vxc(ipts+4,2) )/2._dp/delta,&
+!&    ( vxc(ipts+3,1) - vxc(ipts+4,1) )/2._dp/delta,&
+!&    ( vxc(ipts+1,2) - vxc(ipts+2,2) )/2._dp/delta
 !  end do
 !  stop
 ! end if
