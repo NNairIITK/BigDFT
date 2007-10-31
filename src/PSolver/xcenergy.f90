@@ -1,3 +1,11 @@
+
+!! Copyright (C) 2002-2007 BigDFT group 
+!! This file is distributed under the terms of the
+!! GNU General Public License, see ~/COPYING file
+!! or http://www.gnu.org/copyleft/gpl.txt .
+!! For the list of contributors, see ~/AUTHORS 
+
+
 !!****h* BigDFT/xcenergy
 !! NAME
 !!    xcenergy
@@ -92,14 +100,19 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
   !interface with drivexc
   interface
-     subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr, & !Mandatory 
-          & dvxc,d2vxc,grho2_updn,vxcgr) !Optional
-       integer,intent(in) :: ixc,npts,nspden,order
-       integer,intent(in) :: ndvxc,ngr2,nvxcdgr
+     subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,&
+          dvxc,d2vxc,grho2_updn,vxcgr,exexch)    !Optional arguments 
+       implicit none
+       !Arguments ------------------------------------
+       !scalars
+       integer,intent(in) :: ixc,ndvxc,ngr2,npts,nspden,nvxcdgr,order
+       integer,intent(in),optional :: exexch
+       !arrays
        real(kind=8),intent(in) :: rho_updn(npts,nspden)
-       real(kind=8),intent(in), optional :: grho2_updn(npts,ngr2)
+       real(kind=8),intent(in),optional :: grho2_updn(npts,ngr2)
        real(kind=8),intent(out) :: exc(npts),vxc(npts,nspden)
-       real(kind=8),intent(out), optional :: d2vxc(npts),dvxc(npts,ndvxc),vxcgr(npts,nvxcdgr)
+       real(kind=8),intent(out),optional :: d2vxc(npts),dvxc(npts,ndvxc)
+       real(kind=8),intent(out),optional :: vxcgr(npts,nvxcdgr)
      end subroutine drivexc
   end interface
 
@@ -193,31 +206,31 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      !let us apply ABINIT routines
      !case with gradient
      if (ixc >= 11 .and. ixc <= 16) then
-        if (order**2 <= 1 .or. ixc == 16) then
-           if (ixc /= 13) then             
-             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
-                   &grho2_updn=gradient,vxcgr=dvxcdgr) 
-           else
-             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
-                   &grho2_updn=gradient) 
-           end if
-        else if (order /= 3) then
-           if (ixc /= 13) then             
-             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
-                   &dvxc=dvxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
-           else
-             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
-                   &dvxc=dvxci,grho2_updn=gradient) 
-           end if
-        else if (order == 3) then
-           if (ixc /= 13) then             
-             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
-                   &dvxci,d2vxci,gradient,dvxcdgr) 
-           else
-             call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
-                   &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient) 
-           end if
-        end if
+      if (order**2 <= 1 .or. ixc == 16) then
+         if (ixc /= 13) then             
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
+                 &grho2_updn=gradient,vxcgr=dvxcdgr) 
+         else
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
+                 &grho2_updn=gradient) 
+         end if
+      else if (order /= 3) then
+         if (ixc /= 13) then             
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
+                 &dvxc=dvxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
+         else
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
+                 &dvxc=dvxci,grho2_updn=gradient) 
+         end if
+      else if (order == 3) then
+         if (ixc /= 13) then             
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
+                 &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
+         else
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
+                 &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient) 
+         end if
+      end if
 
      !do not calculate the White-Bird term in the Leeuwen Baerends XC case
         if (ixc/=13 .and. geocode == 'F') then

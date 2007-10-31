@@ -346,6 +346,18 @@ interface
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
    end subroutine CalculateTailCorrection
+
+   !added for abinit compatilbility
+   subroutine reformatonewave(iproc, hgrid_old, n1_old, n2_old, n3_old, &
+        & center_old, psigold, hgrid, nvctr_c, nvctr_f, n1, n2, n3, center, nseg_c, nseg_f, &
+        & keyg, keyv, psifscf, psi)
+     implicit real(kind=8) (a-h,o-z)
+     dimension :: center(3), center_old(3)
+     dimension :: keyg(2, nseg_c + nseg_f), keyv(nseg_c + nseg_f)
+     dimension :: psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2), psi(nvctr_c + 7 * nvctr_f)
+     dimension :: psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
+   end subroutine reformatonewave
+
 end interface
 
 end module module_interfaces

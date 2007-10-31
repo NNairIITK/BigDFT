@@ -1,3 +1,11 @@
+
+!! Copyright (C) 2002-2007 BigDFT group 
+!! This file is distributed under the terms of the
+!! GNU General Public License, see ~/COPYING file
+!! or http://www.gnu.org/copyleft/gpl.txt .
+!! For the list of contributors, see ~/AUTHORS 
+
+
 subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf&
              ,scal,hx,hy,hz)
   implicit none

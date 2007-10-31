@@ -17,11 +17,11 @@
 !! spin up and spin down.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2000-2006 ABINIT group (MF,LG)
+!! Copyright (C) 2000-2007 ABINIT group (MF,LG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors .
+!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 !!
 !! INPUTS
 !!  npts= number of points to be computed
@@ -68,7 +68,7 @@ subroutine xclb(grho2_updn,npts,nspden,rho_updn,vxci)
 !Local variables-------------------------------
 !scalars
  integer :: ipts,ispden
- real(dp),parameter :: beta=0.5d-1
+ real(dp),parameter :: beta=0.05_dp
  real(dp) :: density,density_gradient,density_t13,s_g_sq,scaled_gradient
  real(dp) :: scaling_factor,vx_lb
 
@@ -79,8 +79,8 @@ subroutine xclb(grho2_updn,npts,nspden,rho_updn,vxci)
 !ENDDEBUG
 
 !scale the spin densities for evaluating spin up or down exchange
- scaling_factor=1.d0
- if(nspden == 2) scaling_factor=2.d0
+ scaling_factor=one
+ if(nspden == 2) scaling_factor=two
 
  do ispden=1,nspden
 
@@ -90,12 +90,12 @@ subroutine xclb(grho2_updn,npts,nspden,rho_updn,vxci)
    density_gradient= scaling_factor * sqrt(grho2_updn(ipts,ispden))
 
    density_t13= density**third
-   scaled_gradient= density_gradient/max(density*density_t13,1.d-12)
+   scaled_gradient= density_gradient/max(density*density_t13,1.e-12_dp)
 
    s_g_sq= scaled_gradient*scaled_gradient
 
    vx_lb= -beta*density_t13 * s_g_sq/ &
-&         (1.d0+3.d0*beta* scaled_gradient*log(scaled_gradient+sqrt(1.d0+s_g_sq*s_g_sq)))
+&         (one+3.d0*beta* scaled_gradient*log(scaled_gradient+sqrt(one+s_g_sq*s_g_sq)))
 
    vxci(ipts,ispden)=vxci(ipts,ispden)+vx_lb
   end do
