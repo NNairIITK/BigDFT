@@ -49,8 +49,10 @@ low_level = init/projectors.f90  \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 
 
-SOURCES = types.o \
-	interfaces.o \
+SOURCES = types.f90 \
+	interfaces.f90 \
+	$(low_level) \
+	$(high_level) 
 	
 
 #profiling sources
@@ -126,18 +128,19 @@ $(OBJECTS_POISSON): %.o: %.f90
 #	nrutil.o \
 #	tblink.o \
 #	tbnorth.o
+
 OBJECTS = $(OBJECTS_ABINIT) $(OBJECTS_POISSON) \
 		  $(OBJECTS_F95) $(OBJECTS_TIME) \
 		  $(OBJECTS_PROJECTORS) $(COBJECTS) BigDFT.f90
 
 OBJECTS_TEST =  $(OBJECTS_ABINIT) $(OBJECTS_POISSON) \
 				$(OBJECTS_F95) $(OBJECTS_TIME) \
-				$(OBJECTS_PROJECTORS) test_forces.f90
+				$(OBJECTS_PROJECTORS) memeguess.f90
 
 cluster: $(OBJECTS) parameters.h 
 	$(F95) -o cluster $(OBJECTS) $(LIBRARIES) 
 
-test_forces: $(OBJECTS_TEST)
+memguess: $(OBJECTS_TEST)
 		$(F95) -o test_forces $(OBJECTS_TEST) $(LIBRARIES)
 
 parameters.h:
@@ -160,4 +163,17 @@ convolutions/combined_grow_optim.o : convolutions/v_17.f90
 convolutions/combined_shrink_simple.o : convolutions/v.f90
 convolutions/combined_shrink_optim.o : convolutions/v.f90 \
 	convolutions/v_long.f90
+
+interfaces.o: types.o
+
+$(high_level:.f90=.o) : types.o
+
+test_forces.o: parameters.h \
+	$(mod_bigdft)
+
+BigDFT.o: parameters.h \
+	types.o
+
+memguess.o: types.o
+
 
