@@ -31,7 +31,6 @@ endif
 SUBDIRS = $(sub_dirs_xc) $(sub_dirs_ps) convolutions profiling
 
 EXTRA_DIST = \
-	interface.f90 \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc 
