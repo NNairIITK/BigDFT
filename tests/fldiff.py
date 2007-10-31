@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 29/10/2007
+# Date: 31/10/2007
 #----------------------------------------------------------------------------
 
 import difflib
@@ -53,11 +53,34 @@ original1 = open(file1).read().splitlines(1)
 #Read the second file
 original2 = open(file2).read().splitlines(1)
 
-max_discrepancy = 1.e-11
+max_discrepancy = 1.1e-11
 maximum = 0.0
 context_discrepancy = ""
 context_lines = ""
 
+#First we compare the first two lines in the case of an added prefix (see platine CCRT)
+#We detect a pattern
+pattern='                             ****         *       *****    '
+try:
+    p1 = original1[0].index(pattern)
+    p2 = original2[0].index(pattern)
+except ValueError:
+    #First line not found ??
+    p1 = -1
+    p2 = -1
+
+if p1 >= 0 and p2 >= 0 and p1 != p2:
+    #we try something
+    prefix1 = original1[0].replace(pattern,'')[:-1]
+    prefix2 = original2[0].replace(pattern,'')[:-1]
+    if prefix1 != '':
+       #We remove the prefix
+       original1 = map(lambda x: x.replace(prefix1,''), original1)
+    if prefix2 != '':
+       #We remove the prefix
+       original2 = map(lambda x: x.replace(prefix2,''), original2)
+
+#Compare both files
 compare = difflib.unified_diff(original1,original2,n=0)
 
 try:
