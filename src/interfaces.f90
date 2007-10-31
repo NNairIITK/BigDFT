@@ -1,3 +1,5 @@
+module module_interfaces
+
 interface
 
    subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,hgrid,n1,n2,n3,eval,wfd,psi,&
@@ -322,3 +324,5 @@ interface
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
    end subroutine CalculateTailCorrection
 end interface
+
+end module module_interfaces

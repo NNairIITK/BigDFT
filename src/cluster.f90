@@ -16,6 +16,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   !          =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
 
   use module_types
+  use module_interfaces
   use Poisson_Solver
 
   implicit real(kind=8) (a-h,o-z)
@@ -76,7 +77,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   !- Interfaces for all outside public routines.
 !!$  include "input/interface.f90"
 !!$  include "profiling/interface.f90"
-  include "interface.f90"
+  !include "interface.f90"
 
 
   !copying the input variables for readability
