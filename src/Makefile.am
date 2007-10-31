@@ -13,9 +13,9 @@ endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft.a
 if CAPITALIZE
-mod_bigdft = LIBBIGDFT.@MODULE_EXT@
+mod_bigdft = BIGDFT_API.@MODULE_EXT@
 else
-mod_bigdft = libbigdft.@MODULE_EXT@
+mod_bigdft = bigdft_api.@MODULE_EXT@
 endif
 else
 lib_bigdft =
@@ -31,7 +31,6 @@ endif
 SUBDIRS = $(sub_dirs_xc) $(sub_dirs_ps) convolutions profiling
 
 EXTRA_DIST = \
-	interface.f90 \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc 
@@ -60,9 +59,6 @@ convolution_source = convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_ib_optim.f90 \
 	convolutions/conv_per_optim.f90 \
 	convolutions/convolut_simple.f90 
-#	conv_per_optim.f90 \
-#	combined_grow.f90 \
-#	combined_shrink.f90 
 
 else
 convolution_source = convolutions/combined_shrink_simple.f90 \
@@ -71,9 +67,6 @@ convolution_source = convolutions/combined_shrink_simple.f90 \
 	convolutions/convolut_ib_simple.f90 \
 	convolutions/conv_per_simple.f90 \
 	convolutions/convolut_simple.f90 
-#	conv_per_optim.f90 \
-#	combined_grow.f90 \
-#	combined_shrink.f90
 
 endif
 
@@ -114,6 +107,8 @@ low_level = init/projectors.f90  \
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
 	types.f90 \
+	interfaces.f90 \
+	BigDFT_API.f90 \
 	$(high_level) \
 	$(low_level)
 
@@ -144,21 +139,14 @@ memguess_LDADD = libbigdft.a \
 CLEANFILES = mpif.h libbigdft.@MODULE_EXT@ LIBBIGDFT.@MODULE_EXT@
 
 #dependencies
-cluster_all.o: $(mpi_include) \
-	types.o \
-	interface.f90 
+cluster.o: $(mpi_include) \
+	interfaces.o
+
+interfaces.o: types.o
+
+BigDFT_API.o: types.o interfaces.o
 
 $(high_level:.f90=.o) : types.o
-
-#sumrho.o: types.o
-
-#applyh.o: types.o
-
-#forces.o: types.o
-
-#restart.o: types.o
-
-#tail.o: types.o
 
 mpif.h:
 	touch mpif.h &&\
@@ -167,11 +155,11 @@ mpif.h:
 	 echo "integer :: MPI_MIN, MPI_MAX" >> mpif.h
 
 test_forces.o: parameters.h \
-	libbigdft.@MODULE_EXT@
+	$(mod_bigdft)
 
-libbigdft.@MODULE_EXT@ LIBBIGDFT.@MODULE_EXT@: cluster_all.o
+$(mod_bigdft) : BigDFT_API.o
 
 BigDFT.o: parameters.h \
-	libbigdft.@MODULE_EXT@
+	types.o
 
-memguess.o: libbigdft.@MODULE_EXT@
+memguess.o: types.o

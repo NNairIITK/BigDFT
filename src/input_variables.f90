@@ -488,6 +488,8 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomn
              stop
           else
              norb=nt
+             norbu=norb
+             norbd=0
           end if
        else
           nt=ntu+ntd

@@ -1,3 +1,5 @@
+module module_interfaces
+
 interface
 
    subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,hgrid,n1,n2,n3,eval,wfd,psi,&
@@ -46,6 +48,20 @@ interface
      integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
      real(kind=8), intent(out) :: alat1,alat2,alat3
    end subroutine system_size
+
+   subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
+        rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid,nspin,peakmem)
+     implicit none
+     !Arguments
+     logical, intent(in) :: output_grid
+     integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin
+     integer, dimension(nat), intent(in) :: iatype
+     character(len=20), dimension(100), intent(in) :: atomnames
+     real(kind=8), intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
+     real(kind=8), dimension(3,nat), intent(in) :: rxyz
+     real(kind=8), dimension(ntypes,2), intent(in) ::  radii_cf
+     real(kind=8), intent(out) :: peakmem
+   end subroutine MemoryEstimator
 
    subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,&
         hgrid,nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
@@ -171,6 +187,17 @@ interface
      real(kind=8), dimension(:,:), pointer :: ppsi,ppsit
    end subroutine input_wf_diag
 
+   subroutine reformatmywaves(iproc,norb,norbp,nat,&
+        & hgrid_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
+        & hgrid,n1,n2,n3,rxyz,wfd,psi)
+     use module_types
+     implicit real(kind=8) (a-h,o-z)
+     type(wavefunctions_descriptors), intent(in) :: wfd,wfd_old
+     dimension :: rxyz(3,nat), rxyz_old(3,nat), center(3), center_old(3)
+     dimension :: psi_old(wfd_old%nvctr_c + 7 * wfd_old%nvctr_f, norbp), &
+          psi(wfd%nvctr_c + 7 * wfd%nvctr_f, norbp)
+   end subroutine reformatmywaves
+
    subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
         nspin,psi,hpsi,psit)
      implicit none
@@ -224,8 +251,6 @@ interface
         psi,psit,hpsi,psidst,hpsidst,nspin,spinar)
      use module_types               
      implicit none
-     include 'mpif.h'
-     real(kind=8), parameter :: eps_mach=1.d-12
      logical, intent(in) :: parallel
      integer, intent(in) :: iter,iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids,idsx
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
@@ -321,4 +346,18 @@ interface
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
    end subroutine CalculateTailCorrection
+
+   !added for abinit compatilbility
+   subroutine reformatonewave(iproc, hgrid_old, n1_old, n2_old, n3_old, &
+        & center_old, psigold, hgrid, nvctr_c, nvctr_f, n1, n2, n3, center, nseg_c, nseg_f, &
+        & keyg, keyv, psifscf, psi)
+     implicit real(kind=8) (a-h,o-z)
+     dimension :: center(3), center_old(3)
+     dimension :: keyg(2, nseg_c + nseg_f), keyv(nseg_c + nseg_f)
+     dimension :: psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2), psi(nvctr_c + 7 * nvctr_f)
+     dimension :: psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
+   end subroutine reformatonewave
+
 end interface
+
+end module module_interfaces

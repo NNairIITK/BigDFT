@@ -16,43 +16,61 @@ F95 =ompif90 -O2
 F77 =ompif90 -O2
 LIBRARIES = -L/usr/lib/lapack-g95  -llapack -lblas
 
-all: cluster test_forces
+all: cluster memguess
 
-SOURCES = \
-	convolutions/convolut_simple.f90	 \
-	convolutions/conv_per_optim.f90 \
-	convolutions/combined_grow.f90\
-	convolutions/combined_shrink.f90 \
-    cluster_all.f90 \
-    eleconf.f90  \
-    gauss_to_daub.f90 \
-    precond.f90 \
-    prec_diag.f90 \
-	wavelib.f90 \
-	input/gautowav.f90 \
-	input/gauprod.f90 \
-	input/inputguess.f90 \
-	input/input_occup.f90 \
-	input/restart.f90 \
-	ionicpot.f90 \
-	orthogonality.f90 \
-	forces.f90 \
-	gridmanipulation.f90 \
-	logrid.f90 \
-	applyh.f90 \
+high_level = cluster.f90 \
+	input_variables.f90 \
+	init.f90 \
 	sumrho.f90 \
-	transwaves.f90 \
+	hpsiortho.f90 \
+	forces.f90 \
 	tail.f90 \
-	razero.f90 \
+	restart.f90
 
-SOURCES_TIME = profiling/timing.f90 
-SOURCES_PROJECTORS = projectors/projectors.f90 
+#objects which can be compiled whithout any dependence
+low_level = init/projectors.f90  \
+	init/ionicpot.f90 \
+	init/gridmanipulation.f90 \
+	init/gauprod.f90 \
+	init/denspotd.f90 \
+	init/logrid.f90 \
+	init/inputguess.f90 \
+	init/gautowav.f90 \
+	init/eleconf.f90 \
+	wfn_opt/precond.f90 \
+	wfn_opt/orthogonality.f90 \
+	wfn_opt/diis.f90 \
+	wfn_opt/applyh.f90 \
+	wavelib/transwaves.f90 \
+	wavelib/scalprod.f90 \
+	wavelib/plotting.f90 \
+	wavelib/i-o.f90 \
+	wavelib/un-compress.f90 \
+	wavelib/razero.f90 \
+	wavelib/gauss_to_daub.f90 
 
-SOURCES_ABINIT = ABINIT-common/defs_basis.F90 \
+SOURCES = types.f90 \
+	interfaces.f90 \
+	$(low_level) \
+	$(high_level) 
+	
+
+#profiling sources
+SOURCES_TIME = profiling/timem.f90 \
+	profiling/memoryestimator.f90
+	
+#convolutions libraries
+SOURCES_CONVOLUTIONS = convolutions/combined_shrink_optim.f90 \
+	convolutions/combined_grow_optim.f90 \
+	convolutions/convolut_ib_optim.f90 \
+	convolutions/conv_per_optim.f90 \
+	convolutions/convolut_simple.f90 
+
+MODULES_ABINIT= ABINIT-common/defs_basis.F90 \
         ABINIT-common/defs_datatypes.F90 \
-        ABINIT-common/defs_xc.F90 \
-        ABINIT-common/drivexc.F90 \
-        ABINIT-common/xctetr.F90 \
+        ABINIT-common/defs_xc.F90  \
+	ABINIT-common/drivexc.F90 
+XC_ABINIT = ABINIT-common/xctetr.F90 \
         ABINIT-common/xcwign.F90 \
         ABINIT-common/xcxalp.F90 \
         ABINIT-common/xchelu.F90 \
@@ -64,6 +82,7 @@ SOURCES_ABINIT = ABINIT-common/defs_basis.F90 \
         ABINIT-common/invcb.F90 \
         ABINIT-common/size_dvxc.F90
 
+SOURCES_ABINIT = $(MODULES_ABINIT) $(XC_ABINIT)
 
 SOURCES_POISSON = \
    PSolver/Poisson_Solver.f90
@@ -84,9 +103,9 @@ $(OBJECTS_ABINIT_PP): %.f90: %.F90
 
 OBJECTS_F95 = $(SOURCES:.f90=.o)
 OBJECTS_TIME = $(SOURCES_TIME:.f90=.o)
-OBJECTS_PROJECTORS = $(SOURCES_PROJECTORS:.f90=.o)
 OBJECTS_ABINIT = $(OBJECTS_ABINIT_PP:.f90=.o)
 OBJECTS_POISSON = $(SOURCES_POISSON:.f90=.o)
+OBJECTS_CONVOLUTIONS = $(SOURCES_CONVOLUTIONS:.f90=.o)
 
 $(OBJECTS_F95): %.o: %.f90
 	$(F95) $(FFLAGS) -I.. -c $< -o $@
@@ -103,6 +122,10 @@ $(OBJECTS_ABINIT): %.o: %.f90
 $(OBJECTS_POISSON): %.o: %.f90
 	$(F95) $(FFLAGS) -c $< -o $@
 
+$(OBJECTS_CONVOLUTIONS): %.o: %.f90
+	$(F95) $(FFLAGS) -I.. -c $< -o $@
+
+
 
 #COBJECTS = 
 #COBJECTS = clsfunc.o  \
@@ -110,41 +133,66 @@ $(OBJECTS_POISSON): %.o: %.f90
 #	nrutil.o \
 #	tblink.o \
 #	tbnorth.o
+
 OBJECTS = $(OBJECTS_ABINIT) $(OBJECTS_POISSON) \
-		  $(OBJECTS_F95) $(OBJECTS_TIME) \
+		  $(OBJECTS_CONVOLUTIONS) $(OBJECTS_F95) $(OBJECTS_TIME) \
 		  $(OBJECTS_PROJECTORS) $(COBJECTS) BigDFT.f90
 
 OBJECTS_TEST =  $(OBJECTS_ABINIT) $(OBJECTS_POISSON) \
-				$(OBJECTS_F95) $(OBJECTS_TIME) \
-				$(OBJECTS_PROJECTORS) test_forces.f90
+				$(OBJECTS_CONVOLUTIONS) $(OBJECTS_F95) $(OBJECTS_TIME) \
+				$(OBJECTS_PROJECTORS) memguess.f90
 
 cluster: $(OBJECTS) parameters.h 
 	$(F95) -o cluster $(OBJECTS) $(LIBRARIES) 
 
-test_forces: $(OBJECTS_TEST)
-		$(F95) -o test_forces $(OBJECTS_TEST) $(LIBRARIES)
+memguess: $(OBJECTS_TEST)
+		$(F95) -o memguess $(OBJECTS_TEST) $(LIBRARIES)
 
 parameters.h:
 	echo "      logical, parameter :: parallel = $(PARALLEL)" > parameters.h
 
 clean:
-	\rm -f *.o cluster test_forces *.mod *~ PSolver/*.o PSolver/*~ parameters.h \
-		profiling/*.o projectors/*.o ABINIT-common/*.f90 ABINIT-common/*.o ABINIT-common/*~
+	rm -f *.o cluster memguess *.mod *~ PSolver/*.o PSolver/*~ parameters.h \
+		profiling/*.o init/*.o wfn_opt/*.o wavelib/*.o \
+	 ABINIT-common/*.f90 ABINIT-common/*.o ABINIT-common/*~
 
 tar:
 	make clean
-	tar czvf all.tgz Makefile *.f *.f90 *.inc *.h posinp *.dat psppar.* RE* PSolver/* doc/* ABINIT-common/*
+	tar czvf all.tgz Makefile *.f90 RE* PSolver/* ABINIT-common/*.F90 init/* convolutions/*.f90 wfn_opt/* wavelib/* profiling/*.f90
 
 #Dependencies:
-cluster_all.o: PSolver/Poisson_Solver.o
-PSolver/Poisson_Solver.o: $(SOURCES_MOD)
-convolutions/combined_grow.o: convolutions/long_grow.f90 \
-	convolutions/tree_unrolled_grow.f90 \
-	convolutions/v.f90 \
+cluster.o: PSolver/Poisson_Solver.o
+PSolver/Poisson_Solver.o: $(SOURCES_MOD) $(SOURCES_ABINIT)
+
+convolutions/combined_grow_simple.o : convolutions/v_17.f90
+convolutions/combined_grow_optim.o : convolutions/v_17.f90
+convolutions/combined_shrink_simple.o : convolutions/v.f90
+convolutions/combined_shrink_optim.o : convolutions/v.f90 \
 	convolutions/v_long.f90
 
-convolutions/combined_shrink.o: convolutions/long_shrink.f90 \
-	convolutions/tree_long_shrink.f90 \
-	convolutions/v.f90 \
-	convolutions/v_long.f90
+interfaces.o: types.o
+
+$(high_level:.f90=.o) : types.o
+
+test_forces.o: parameters.h \
+	$(mod_bigdft)
+
+BigDFT.o: parameters.h \
+	types.o \
+	PSolver/Poisson_Solver.o 
+	
+
+memguess.o: types.o
+
+init/denspotd.o init/ionicpot.o init.o : PSolver/Poisson_Solver.o 
+
+profiling/memoryestimator.o : PSolver/Poisson_Solver.o 
+
+$(XC_ABINIT:.f90=.o) : ABINIT-common/defs_basis.o
+
+ABINIT-common/defs_datatypes.o: ABINIT-common/defs_basis.o
+
+ABINIT-common/defs_xc.o: ABINIT-common/defs_datatypes.o
+
+ABINIT-common/drivexc.o: ABINIT-common/defs_basis.o ABINIT-common/defs_xc.o
 

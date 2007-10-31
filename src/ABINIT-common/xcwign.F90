@@ -11,11 +11,11 @@
 !! rs = $(3/(4\pi))^{1/3}* \rho (r)^{-1/3}$.
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2006 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2007 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors .
+!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 !!
 !! INPUTS
 !!  npt=number of real space points on which density is provided
@@ -47,7 +47,7 @@ subroutine xcwign(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 
 !This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
 #ifdef HAVE_FORTRAN_INTERFACES
- use interfaces_01managempi
+ use interfaces_01manage_mpi
 #endif
 !End of the abilint section
 
@@ -65,7 +65,8 @@ subroutine xcwign(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
 !c1 and c2 are the Wigner parameters in hartree and bohr resp.
 !scalars
  integer :: ipt
- real(dp),parameter :: c1=0.44d0,c2=7.8d0,c4_3=4.0d0/3.0d0,c8_27=8.0d0/27.0d0
+ real(dp),parameter :: c1=0.44_dp,c2=7.8_dp,c4_3=4.0_dp/3.0_dp
+ real(dp),parameter :: c8_27=8.0_dp/27.0_dp
  real(dp) :: dfac,efac,rs,rsc2m1,rsm1,vfac,vxcnum
  character(len=500) :: message
 
@@ -93,11 +94,11 @@ subroutine xcwign(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
  end if
 
 !Compute vfac=(3/(2*Pi))^(2/3)
- vfac=(1.5d0/pi)**(2.0d0/3.0d0)
+ vfac=(1.5_dp/pi)**(2.0_dp/3.0_dp)
 !Compute efac=(3/4)*vfac
- efac=0.75d0*vfac
+ efac=0.75_dp*vfac
 !Compute dfac=(4*Pi/9)*vfac
- dfac=(4.0d0*pi/9.0d0)*vfac
+ dfac=(4.0_dp*pi/9.0_dp)*vfac
 
 !separate cases with respect to order
  if (order==2) then
@@ -105,8 +106,8 @@ subroutine xcwign(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
     !Loop over grid points
     do ipt=1,npt
        rs=rspts(ipt)
-       rsm1=1.0d0/rs
-       rsc2m1=1.0d0/(rs+c2)
+       rsm1=1.0_dp/rs
+       rsc2m1=1.0_dp/(rs+c2)
        ! compute energy density (hartree)
        exc(ipt)=-c1*rsc2m1-efac*rsm1
        vxcnum=-(c4_3*rs+c2)*c1
@@ -120,8 +121,8 @@ subroutine xcwign(exc,npt,order,rhor,rspts,vxc,& !Mandatory arguments
     !Loop over grid points
     do ipt=1,npt
        rs=rspts(ipt)
-       rsm1=1.0d0/rs
-       rsc2m1=1.0d0/(rs+c2)
+       rsm1=1.0_dp/rs
+       rsc2m1=1.0_dp/(rs+c2)
        ! compute energy density (hartree)
        exc(ipt)=-c1*rsc2m1-efac*rsm1
        vxcnum=-(c4_3*rs+c2)*c1

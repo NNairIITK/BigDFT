@@ -20,15 +20,17 @@
 !!   part of LSD PW (3) or GGA PBE (4) functionals.
 !! If option==5, revPBE functional of Zhang and Yang, PRL 80, 890 (1998)
 !! If option==6, RPBE functional of Hammer, Hansen and Norskov, PRB 59, 7413 (1999)
+!! If option==7, WC functional of Wu and Cohen, PRB 73, 235116 (2006)
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2006 ABINIT group (XG,MF,LG)
+!! Copyright (C) 1998-2007 ABINIT group (XG,MF,LG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors .
+!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 !!
 !! INPUTS
+!!  exexch= choice of local exact exchange. Active if exexch=3
 !!  npts= number of points to be computed
 !!  nspden=1 for unpolarized, 2 for spin-polarized
 !!  grho2_updn(npts,ngr2)=square of the gradient of the spin-up,
@@ -102,14 +104,14 @@
 #endif
 
 subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mandatory Arguments
-&                d2vxci,dvxcdgr,dvxci,grho2_updn)                          !Optional Arguments
+&                d2vxci,dvxcdgr,dvxci,exexch,grho2_updn)                          !Optional Arguments
 
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
 #ifdef HAVE_FORTRAN_INTERFACES
- use interfaces_01managempi
- use interfaces_03xc, except_this_one => xcpbe
+ use interfaces_01manage_mpi
+ use interfaces_13xc, except_this_one => xcpbe
 #endif
 !End of the abilint section
 
@@ -118,6 +120,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 !Arguments ------------------------------------
 !scalars
  integer,intent(in) :: ndvxci,ngr2,npts,nspden,option,order
+ integer,intent(in),optional :: exexch
 !arrays
  real(dp),intent(in) :: rho_updn(npts,nspden)
  real(dp),intent(in),optional :: grho2_updn(npts,ngr2)
@@ -130,18 +133,19 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 !scalars
  integer,save :: initialized=0
  integer :: debug,ipts,ispden
- real(dp),parameter :: alpha_zeta2=1.0d0-1.0d-6,alpha_zeta=1.0d0-1.0d-6
- real(dp),parameter :: beta=0.066725d0,beta_inv=1.0d0/beta
- real(dp),parameter :: fsec_inv=1.0d0/1.709921d0,kappa_pbe=0.804d0
- real(dp),parameter :: kappa_revpbe=1.245d0,mu=0.2195149727645171d0
- real(dp),parameter :: mu_divkappa_pbe=mu/kappa_pbe
+ real(dp),parameter :: alpha_zeta2=1.0_dp-1.0e-6_dp,alpha_zeta=1.0_dp-1.0e-6_dp
+ real(dp),parameter :: b_wc=0.123456790123_dp,beta=0.066725_dp
+ real(dp),parameter :: beta_inv=1.0_dp/beta,c_wc=0.00793746933516_dp
+ real(dp),parameter :: fsec_inv=1.0_dp/1.709921_dp
+ real(dp),parameter :: kappa_pbe=0.804_dp,kappa_revpbe=1.245_dp
+ real(dp),parameter :: mu=0.2195149727645171_dp,mu_divkappa_pbe=mu/kappa_pbe
  real(dp),parameter :: mu_divkappa_revpbe=mu/kappa_revpbe
- real(dp),parameter :: rsfac=0.6203504908994000d0,tolgrad=tol10
+ real(dp),parameter :: rsfac=0.6203504908994000_dp,tolgrad=tol10
  real(dp),save :: beta_gamma,coeff_tt,factf_zeta,factfp_zeta,gamma,gamma_inv
  real(dp),save :: sixpi2_1_3,sixpi2m1_3,sq_rsfac,sq_rsfac_inv,threefourth_divpi
  real(dp),save :: twom1_3
  real(dp) :: aa,arg_rr,bb,cc,coeff_aa,coeff_qq,coeffss,d2aa_drs2,d2aa_drsdzeta
- real(dp) :: d2aa_dzeta2,d2bb_drs2,d2bb_drsdzeta,d2bb_dzeta2,d2cc_dbb2
+ real(dp) :: d2aa_dzeta2,d2bb_drs2,d2bb_drsdzeta,d2bb_dzeta2,d2cc_dbb2,d_wc
  real(dp) :: d2cc_drs2,d2cc_drsdzeta,d2cc_dzeta2,d2ecrs0_drs2,d2ecrs1_drs2
  real(dp) :: d2ecrs_drdn2,d2ecrs_drdndrup,d2ecrs_drho2,d2ecrs_drs2
  real(dp) :: d2ecrs_drsdzeta,d2ecrs_drup2,d2ecrs_dzeta2,d2fxdg2,d2fxdn2
@@ -163,14 +167,14 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
  real(dp) :: ec0_b2,ec0_b3,ec0_b4,ec0_den,ec0_f1,ec0_f2,ec0_log,ec0_q0,ec0_q1
  real(dp) :: ec0_q1p,ec0_q1pp,ec0_q1ppp,ec1_a1,ec1_aa,ec1_b1,ec1_b2,ec1_b3
  real(dp) :: ec1_b4,ec1_den,ec1_log,ec1_q0,ec1_q1,ec1_q1p,ec1_q1pp,ecrs,ecrs0
- real(dp) :: ecrs1,ex_gga,ex_lsd,exc,exp_pbe,f_zeta,factfpp_zeta,factor,fp_zeta
- real(dp) :: fpp_zeta,fx,gamphi3inv,gcrs,grr,grrho2,hh,kappa,mac_a1,mac_aa
- real(dp) :: mac_b1,mac_b2,mac_b3,mac_b4,mac_den,mac_log,mac_q0,mac_q1,mac_q1p
- real(dp) :: mac_q1pp,macrs,mu_divkappa,pade,pade_den,phi3_zeta,phi_logder
- real(dp) :: phi_zeta,phi_zeta_inv,phip_zeta,phipp_zeta,qq,rho,rho_dn,rho_dnm
- real(dp) :: rho_dnp,rho_inv,rho_up,rho_upm,rho_upp,rhomot,rhotmo6,rhotmot
- real(dp) :: rhoto6,rhotot,rhotot_inv,rr,rs,rsm1_2,sqr_rs,sqr_sqr_rs,ss,tt
- real(dp) :: vxcadd,xx,zeta,zeta4,zeta_mean,zetm_1_3,zetp_1_3
+ real(dp) :: ecrs1,ex_gga,ex_lsd,exc,exp_pbe,expss,f_zeta,factfpp_zeta,factor
+ real(dp) :: fp_zeta,fpp_zeta,fx,gamphi3inv,gcrs,grr,grrho2,hh,kappa,mac_a1
+ real(dp) :: mac_aa,mac_b1,mac_b2,mac_b3,mac_b4,mac_den,mac_log,mac_q0,mac_q1
+ real(dp) :: mac_q1p,mac_q1pp,macrs,mu_divkappa,p1_wc,p2_wc,pade,pade_den
+ real(dp) :: phi3_zeta,phi_logder,phi_zeta,phi_zeta_inv,phip_zeta,phipp_zeta,qq
+ real(dp) :: rho,rho_dn,rho_dnm,rho_dnp,rho_inv,rho_up,rho_upm,rho_upp,rhomot
+ real(dp) :: rhotmo6,rhotmot,rhoto6,rhotot,rhotot_inv,rr,rs,rsm1_2,sqr_rs
+ real(dp) :: sqr_sqr_rs,ss,tt,vxcadd,xx,zeta,zeta4,zeta_mean,zetm_1_3,zetp_1_3
  character(len=500) :: message
 !arrays
  real(dp),allocatable :: rho_updnm1_3(:,:),rhoarr(:),rhom1_3(:),zetm(:)
@@ -183,10 +187,12 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 !write(6,*)' nspden=',nspden
 !ENDDEBUG
 
- if (option<=-3 .or. option==0 .or. option==4 .or. option>=7 ) then
+ d_wc=mu-b_wc
+
+ if (option<=-3 .or. option==0 .or. option==4 .or. option>=8 ) then
   write(message, '(a,a,a,a,i12,a)' ) ch10,&
 &   ' xcpbe : BUG -',ch10,&
-&   '  Option must be 1, 2, 3, 5, 6, -1 or -2 ; argument was ',option,'.'
+&   '  Option must be 1, 2, 3, 5, 6, 7, -1 or -2 ; argument was ',option,'.'
 !  call wrtout(06,message,'COLL')
 !  call leave_new('COLL')
  end if
@@ -211,7 +217,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
  if(ndvxci /= 0 .and. (&
 &      ((option == 1 .or. option == -1 .or. option == 3) .and. ndvxci /= nspden + 1)&
 &      .or. (option == -2 .and. ndvxci /= 8)&
-&      .or. ((option == 2 .or. option == 5 .or. option == 6) .and. ndvxci /= 15)& 
+&      .or. ((option == 2 .or. option == 5 .or. option == 6 .or. option == 7) .and. ndvxci /= 15)&
 &   ))then
   write(message, '(16a,i8,a,i8,a,i8)' )ch10,&
 &  ' xcpbe : BUG -',ch10,&
@@ -220,7 +226,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 &  '  ndvxci     option',ch10,&
 &  ' nspden+1    1,-1,3',ch10,&
 &  '    8          -2',ch10,&
-&  '    15       2, 5,6',ch10,&
+&  '    15       2, 5,6,7',ch10,&
 &  '  While we have: order=',order,'option=',option,'nspden=',nspden
   call wrtout(6,message,'COLL')
   call leave_new('COLL')
@@ -254,7 +260,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
   call leave_new('COLL')
  end if
 
- 
+
  if(initialized==0)then
     twom1_3=two**(-third)
     sixpi2_1_3=(six*pi**2)**third
@@ -274,19 +280,19 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
  !Parameters for the Perdew-Wang 92 LSD as well as LSD-RPA,
  !see Table I of Phys.Rev.B 45,13244 (1992)
- ec0_aa=0.031091d0  ; ec1_aa=0.015545d0 ; mac_aa=0.016887d0
+ ec0_aa=0.031091_dp  ; ec1_aa=0.015545_dp ; mac_aa=0.016887_dp
  if(option/=3 .and. option/=4)then
-    ec0_a1=0.21370d0  ; ec1_a1=0.20548d0  ; mac_a1=0.11125d0
-    ec0_b1=7.5957d0   ; ec1_b1=14.1189d0  ; mac_b1=10.357d0
-    ec0_b2=3.5876d0   ; ec1_b2=6.1977d0   ; mac_b2=3.6231d0
-    ec0_b3=1.6382d0   ; ec1_b3=3.3662d0   ; mac_b3=0.88026d0
-    ec0_b4=0.49294d0  ; ec1_b4=0.62517d0  ; mac_b4=0.49671d0
+    ec0_a1=0.21370_dp  ; ec1_a1=0.20548_dp  ; mac_a1=0.11125_dp
+    ec0_b1=7.5957_dp   ; ec1_b1=14.1189_dp  ; mac_b1=10.357_dp
+    ec0_b2=3.5876_dp   ; ec1_b2=6.1977_dp   ; mac_b2=3.6231_dp
+    ec0_b3=1.6382_dp   ; ec1_b3=3.3662_dp   ; mac_b3=0.88026_dp
+    ec0_b4=0.49294_dp  ; ec1_b4=0.62517_dp  ; mac_b4=0.49671_dp
  else  ! RPA values
-    ec0_a1=0.082477d0 ; ec1_a1=0.035374d0 ; mac_a1=0.028829d0
-    ec0_b1=5.1486d0   ; ec1_b1=6.4869d0   ; mac_b1=10.357d0
-    ec0_b2=1.6483d0   ; ec1_b2=1.3083d0   ; mac_b2=3.6231d0
-    ec0_b3=0.23647d0  ; ec1_b3=0.11518d0  ; mac_b3=0.479d0
-    ec0_b4=0.20614d0  ; ec1_b4=0.082349d0 ; mac_b4=0.112279d0
+    ec0_a1=0.082477_dp ; ec1_a1=0.035374_dp ; mac_a1=0.028829_dp
+    ec0_b1=5.1486_dp   ; ec1_b1=6.4869_dp   ; mac_b1=10.357_dp
+    ec0_b2=1.6483_dp   ; ec1_b2=1.3083_dp   ; mac_b2=3.6231_dp
+    ec0_b3=0.23647_dp  ; ec1_b3=0.11518_dp  ; mac_b3=0.479_dp
+    ec0_b4=0.20614_dp  ; ec1_b4=0.082349_dp ; mac_b4=0.112279_dp
  end if
 
  if(option/=5)then
@@ -302,16 +308,16 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
  !Finite-difference debugging, do not take away
  !Note : here work with collinear gradients. Might be generalized ...
  !debug=2  ! Choose 1 (rho grads) or 2 (grho grads)
- !factor=1.0d0
- !zeta_mean=0.98d0
+ !factor=1.0_dp
+ !zeta_mean=0.98_dp
  !zeta_mean=zero
  !delta=0.000025*factor
  !delta=0.0000125*factor
  !if(debug/=0)then
  ! do ipts=1,npts,5
- !  rho=ipts*0.01d0*factor
- !  rho_up=rho*(1.0d0+zeta_mean)*0.5d0
- !  rho_dn=rho*(1.0d0-zeta_mean)*0.5d0
+ !  rho=ipts*0.01_dp*factor
+ !  rho_up=rho*(1.0_dp+zeta_mean)*0.5_dp
+ !  rho_dn=rho*(1.0_dp-zeta_mean)*0.5_dp
  !  rho_upp=rho_up+delta
  !  rho_upm=rho_up-delta
  !  rho_dnp=rho_dn+delta
@@ -323,9 +329,9 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
  !   rho_updn(ipts+2,1)=rho_upm; rho_updn(ipts+2,2)=rho_dn
  !   rho_updn(ipts+3,1)=rho_up ; rho_updn(ipts+3,2)=rho_dnp
  !   rho_updn(ipts+4,1)=rho_up ; rho_updn(ipts+4,2)=rho_dnm
- !   grho2_updn(ipts:ipts+4,1)=(0.2d0*factor)**2     ! grad2 of spin up density
- !   grho2_updn(ipts:ipts+4,2)=(0.2d0*factor)**2     ! grad2 of spin down density
- !   grho2_updn(ipts:ipts+4,3)=(0.3d0*factor)**2     ! grad2 of total density
+ !   grho2_updn(ipts:ipts+4,1)=(0.2_dp*factor)**2     ! grad2 of spin up density
+ !   grho2_updn(ipts:ipts+4,2)=(0.2_dp*factor)**2     ! grad2 of spin down density
+ !   grho2_updn(ipts:ipts+4,3)=(0.3_dp*factor)**2     ! grad2 of total density
  !  else
  !!  Here, vary grho (interchange rho and grho)
  !   grho2_updn(ipts  ,1)=rho_up**2 ; grho2_updn(ipts  ,2)=rho_dn**2
@@ -333,13 +339,13 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
  !   grho2_updn(ipts+2,1)=rho_upm**2; grho2_updn(ipts+2,2)=rho_dn**2
  !   grho2_updn(ipts+3,1)=rho_up**2 ; grho2_updn(ipts+3,2)=rho_dnp**2
  !   grho2_updn(ipts+4,1)=rho_up**2 ; grho2_updn(ipts+4,2)=rho_dnm**2
- !   grho2_updn(ipts  ,3)=(ipts*0.01d0*factor)**2
- !   grho2_updn(ipts+1,3)=(ipts*0.01d0*factor+delta)**2
- !   grho2_updn(ipts+2,3)=(ipts*0.01d0*factor-delta)**2
- !   grho2_updn(ipts+3,3)=(ipts*0.01d0*factor+delta)**2   ! identical to ipts+1
- !   grho2_updn(ipts+4,3)=(ipts*0.01d0*factor-delta)**2   ! identical to ipts+2
- !   rho_updn(ipts:ipts+4,1)=0.2d0*factor*(1.0d0+zeta_mean)*0.5d0    ! spin up density
- !   rho_updn(ipts:ipts+4,2)=0.2d0*factor*(1.0d0-zeta_mean)*0.5d0    ! spin down density
+ !   grho2_updn(ipts  ,3)=(ipts*0.01_dp*factor)**2
+ !   grho2_updn(ipts+1,3)=(ipts*0.01_dp*factor+delta)**2
+ !   grho2_updn(ipts+2,3)=(ipts*0.01_dp*factor-delta)**2
+ !   grho2_updn(ipts+3,3)=(ipts*0.01_dp*factor+delta)**2   ! identical to ipts+1
+ !   grho2_updn(ipts+4,3)=(ipts*0.01_dp*factor-delta)**2   ! identical to ipts+2
+ !   rho_updn(ipts:ipts+4,1)=0.2_dp*factor*(1.0_dp+zeta_mean)*0.5_dp    ! spin up density
+ !   rho_updn(ipts:ipts+4,2)=0.2_dp*factor*(1.0_dp-zeta_mean)*0.5_dp    ! spin down density
  !  end if
  ! end do
  !end if
@@ -375,15 +381,15 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
        rhotmot=rhom1_3(ipts)
        rhotot_inv=rhotmot*rhotmot*rhotmot
        zeta=(rho_updn(ipts,1)-rho_updn(ipts,2))*rhotot_inv
-       zetp(ipts)=1.0d0+zeta*alpha_zeta
-       zetm(ipts)=1.0d0-zeta*alpha_zeta
+       zetp(ipts)=1.0_dp+zeta*alpha_zeta
+       zetm(ipts)=1.0_dp-zeta*alpha_zeta
     end do
     call invcb(zetp,zetpm1_3,npts)
     call invcb(zetm,zetmm1_3,npts)
  end if
 
 
- if (order==3 .and. nspden == 1) d2vxci(:)=zero
+ if (order==3 .and. nspden == 1) d2vxci(:)=0._dp
 
 !!!Loop unrolling summary
 ! Completely unrolled for spin non-polarized case
@@ -411,7 +417,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 !             option=-2
 !             option=1
 !             option=3
-!       order^2>1 
+!       order^2>1
 !             option=2,5
 !             option=6
 !             option=-1
@@ -420,7 +426,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 !             option=3
 ! nspden=2
 !       order^2<=1
-!       order^2>1 (with if statements inside distinguishing between order=3 or -2) 
+!       order^2>1 (with if statements inside distinguishing between order=3 or -2)
 !!!End loop unrolling summary
 
 !we separate different cases, depending on nspden
@@ -467,8 +473,9 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
+	     if(present(exexch).and.exexch==1) cycle
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
 
@@ -478,19 +485,19 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+4.d0*ec0_b4*rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+4._dp*ec0_b4*rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
 
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
-             zeta=0.0d0
+             decrs_dzeta=0.0_dp
+             zeta=0.0_dp
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
@@ -502,11 +509,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !  Note : the computation of the potential in the spin-unpolarized
              !  case could be optimized much further. Other optimizations are left to do.
 
-             phi_zeta=1.0d0
-             phip_zeta=0.0d0
-             phi_zeta_inv=1.0d0
-             phi_logder=0.0d0
-             phi3_zeta=1.0d0
+             phi_zeta=1.0_dp
+             phip_zeta=0.0_dp
+             phi_zeta_inv=1.0_dp
+             phi_logder=0.0_dp
+             phi3_zeta=1.0_dp
              gamphi3inv=gamma_inv
              phipp_zeta=-two*ninth*alpha_zeta*alpha_zeta
 
@@ -593,7 +600,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxcdgr(ipts,2)=dvxcdgr(ipts,1)
 
           end do
-       else if(option==6) then
+       else if((option==6) .or. (option==7)) then
 
           do ipts=1,npts
 
@@ -616,25 +623,48 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rho_inv=rhomot*rhomot*rhomot
              coeffss=quarter*sixpi2m1_3*sixpi2m1_3*rho_inv*rho_inv*rhomot*rhomot
              ss=grho2_updn(ipts,ispden)*coeffss
-             ! This is RPBE modification
-             divss=exp(-mu_divkappa*ss)
-             dfxdss= mu*divss
-             d2fxdss2=-mu*mu_divkappa*divss
 
-             fx    = one+kappa*(one-divss)
-             ex_gga= ex_lsd*fx
-             dssdn=-eight*third*ss*rho_inv
-             dfxdn  = dfxdss*dssdn
-             vxci(ipts,ispden)=ex_lsd*(four_thirds*fx+rho*dfxdn)
-             !   The new definition (v3.3) includes the division by the norm of the gradient
-             dssdg =two*coeffss
-             dfxdg=dfxdss*dssdg
-             dvxcdgr(ipts,ispden)=ex_lsd*rho*dfxdg
-             exc=exc+ex_gga*rho
+             ! This is RPBE modification
+             if (option==6) then
+                divss=exp(-mu_divkappa*ss)
+                dfxdss= mu*divss
+                d2fxdss2=-mu*mu_divkappa*divss
+
+                fx    = one+kappa*(one-divss)
+                ex_gga= ex_lsd*fx
+                dssdn=-eight*third*ss*rho_inv
+                dfxdn  = dfxdss*dssdn
+                vxci(ipts,ispden)=ex_lsd*(four_thirds*fx+rho*dfxdn)
+                !   The new definition (v3.3) includes the division by the norm of the gradient
+                dssdg =two*coeffss
+                dfxdg=dfxdss*dssdg
+                dvxcdgr(ipts,ispden)=ex_lsd*rho*dfxdg
+                exc=exc+ex_gga*rho
+             ! This is the Wu and Cohen modification
+             else
+                expss=exp(-ss)
+                p1_wc=b_wc+(mu-b_wc)*(one-ss)*expss+two*c_wc*ss/(one+c_wc*ss*ss)
+                p2_wc=d_wc*(ss-two)*expss+two*c_wc/(one+c_wc*ss*ss)-&
+&                     four*c_wc*c_wc*ss*ss/((one+c_wc*ss*ss)*(one+c_wc*ss*ss))
+                divss=one/(one+(b_wc*ss+d_wc*ss*expss+log(one+c_wc*ss*ss))/kappa)
+                dfxdss=p1_wc*divss*divss
+                d2fxdss2=p2_wc*divss*divss-two*divss*divss*divss*p1_wc*p1_wc/kappa
+
+                fx    = one+kappa*(one-divss)
+                ex_gga= ex_lsd*fx
+                dssdn=-eight*third*ss*rho_inv
+                dfxdn  = dfxdss*dssdn
+                vxci(ipts,ispden)=ex_lsd*(four_thirds*fx+rho*dfxdn)
+                !   The new definition (v3.3) includes the division by the norm of the gradient
+                dssdg =two*coeffss
+                dfxdg=dfxdss*dssdg
+                dvxcdgr(ipts,ispden)=ex_lsd*rho*dfxdg
+                exc=exc+ex_gga*rho
+             end if
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -645,19 +675,19 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+4.d0*ec0_b4*rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+4._dp*ec0_b4*rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
 
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
-             zeta=0.0d0
+             decrs_dzeta=0.0_dp
+             zeta=0.0_dp
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
@@ -669,11 +699,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !  Note : the computation of the potential in the spin-unpolarized
              !  case could be optimized much further. Other optimizations are left to do.
 
-             phi_zeta=1.0d0
-             phip_zeta=0.0d0
-             phi_zeta_inv=1.0d0
-             phi_logder=0.0d0
-             phi3_zeta=1.0d0
+             phi_zeta=1.0_dp
+             phip_zeta=0.0_dp
+             phi_zeta_inv=1.0_dp
+             phi_logder=0.0_dp
+             phi3_zeta=1.0_dp
              gamphi3inv=gamma_inv
              phipp_zeta=-two*ninth*alpha_zeta*alpha_zeta
 
@@ -786,7 +816,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
           end do
 
@@ -830,7 +860,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
 
              ! Correlation has been added
@@ -866,7 +896,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -877,19 +907,19 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+4.d0*ec0_b4*rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+4._dp*ec0_b4*rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
 
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
-             zeta=0.0d0
+             decrs_dzeta=0.0_dp
+             zeta=0.0_dp
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
@@ -923,7 +953,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -934,20 +964,20 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
-             sqr_sqr_rs=max(1.d-15,sqrt(sqr_rs))
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs/sqr_sqr_rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+3.5d0*ec0_b4*rs/sqr_sqr_rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
+             sqr_sqr_rs=max(1.e-15_dp,sqrt(sqr_rs))
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs/sqr_sqr_rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+3.5_dp*ec0_b4*rs/sqr_sqr_rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
 
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
-             zeta=0.0d0
+             decrs_dzeta=0.0_dp
+             zeta=0.0_dp
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
@@ -1004,7 +1034,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !    Components 3 or 4
              dvxci(ipts,2+ispden)=dvxcdgr(ipts,ispden)
              !    Components 1 or 2
-             d2ssdn2=-11.0d0*third*dssdn*rho_inv
+             d2ssdn2=-11.0_dp*third*dssdn*rho_inv
              d2fxdn2=d2fxdss2*dssdn**2+dfxdss*d2ssdn2
              dvxci(ipts,ispden)=third*rho_inv*vxci(ipts,ispden)+&
                   &     ex_lsd*(seven*third*dfxdn+rho*d2fxdn2)
@@ -1023,7 +1053,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -1034,49 +1064,49 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+4.d0*ec0_b4*rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+4._dp*ec0_b4*rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
-             ec0_q1pp=0.5d0*ec0_aa*(-ec0_b1*rsm1_2**3+3.d0*ec0_b3*rsm1_2+8.d0*ec0_b4)
-             d2ecrs0_drs2= 4.0d0*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             ec0_q1pp=0.5_dp*ec0_aa*(-ec0_b1*rsm1_2**3+3._dp*ec0_b3*rsm1_2+8._dp*ec0_b4)
+             d2ecrs0_drs2= 4.0_dp*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
-                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
+                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2._dp*ec0_q1+1.0_dp)
              ec0_q1ppp = 0.75_dp*ec0_aa*(rsm1_2**5)*(ec0_b1-ec0_b3*rs)
-             ec0_f1 = one/(ec0_q1*ec0_q1*(one + ec0_q1))
-             ec0_f2 = one/(ec0_q1*(1._dp+ec0_q1))
+             ec0_f1 = 1._dp/(ec0_q1*ec0_q1*(1._dp + ec0_q1))
+             ec0_f2 = 1._dp/(ec0_q1*(1+ec0_q1))
              d3ecrs0_drs3 = 6._dp*ec0_q1p*ec0_f1*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + &
                   &        ec0_q0*ec0_q1pp) - &
                   &        ec0_f2*(-6._dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
                   &        ec0_f2*(3._dp*ec0_q1p*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
-                  &        ec0_f2*2._dp*ec0_q0*(ec0_q1p**3)*(one + 3._dp*ec0_q1*(one + ec0_q1))))
+                  &        ec0_f2*2._dp*ec0_q0*(ec0_q1p**3)*(1._dp + 3._dp*ec0_q1*(1._dp + ec0_q1))))
 
-             mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
-             mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
-             mac_q1p=mac_aa*(mac_b1*rsm1_2+2.d0*mac_b2+3.d0*mac_b3*sqr_rs+4.d0*mac_b4*rs)
-             mac_den=1.0d0/(mac_q1*mac_q1+mac_q1)
+             mac_q0=-2.0_dp*mac_aa*(1.0_dp+mac_a1*rs)
+             mac_q1=2.0_dp*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
+             mac_q1p=mac_aa*(mac_b1*rsm1_2+2._dp*mac_b2+3._dp*mac_b3*sqr_rs+4._dp*mac_b4*rs)
+             mac_den=1.0_dp/(mac_q1*mac_q1+mac_q1)
              mac_log=-log( mac_q1*mac_q1*mac_den )
              macrs=mac_q0*mac_log
-             dmacrs_drs= -2.0d0*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
+             dmacrs_drs= -2.0_dp*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
 
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
+             decrs_dzeta=0.0_dp
              d2ecrs_drs2=d2ecrs0_drs2
              d2ecrs_dzeta2=alpha_zeta**2*(-macrs)
              d2ecrs_drsdzeta=zero
-             zeta=0.0d0
+             zeta=0.0_dp
 
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
              vxci(ipts,1)=vxci(ipts,1)+ecrs-rs*third*decrs_drs
 
-             dvcrs_drs=third*(2.d0*decrs_drs-rs*d2ecrs_drs2)
+             dvcrs_drs=third*(2._dp*decrs_drs-rs*d2ecrs_drs2)
              !   And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
              d2ecrs_drho2= -rs**4*(four_pi*third)*third*dvcrs_drs
              dvxci(ipts,9)=d2ecrs_drho2
@@ -1088,11 +1118,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !  Note : the computation of the potential in the spin-unpolarized
              !  case could be optimized much further. Other optimizations are left to do.
 
-             phi_zeta=1.0d0
-             phip_zeta=0.0d0
-             phi_zeta_inv=1.0d0
-             phi_logder=0.0d0
-             phi3_zeta=1.0d0
+             phi_zeta=1.0_dp
+             phip_zeta=0.0_dp
+             phi_zeta_inv=1.0_dp
+             phi_logder=0.0_dp
+             phi3_zeta=1.0_dp
              gamphi3inv=gamma_inv
              phipp_zeta=-two*ninth*alpha_zeta*alpha_zeta
 
@@ -1103,7 +1133,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              d2bb_drs2=d2ecrs_drs2*gamphi3inv
              d2bb_drsdzeta=gamphi3inv*(d2ecrs_drsdzeta-three*decrs_drs*phi_logder)
              d2bb_dzeta2=gamphi3inv*(d2ecrs_dzeta2-six*decrs_dzeta*phi_logder+&
-                  &     12.0d0*ecrs*phi_logder*phi_logder-three*ecrs*phi_zeta_inv*phipp_zeta)
+                  &     12.0_dp*ecrs*phi_logder*phi_logder-three*ecrs*phi_zeta_inv*phipp_zeta)
 
              !   From bb to cc
              exp_pbe=exp(-bb)
@@ -1236,11 +1266,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !    Note that there is already a contribution from LSDA
              dvxci(ipts,9)=dvxci(ipts,9)+d2rhohh_drho2+rhotot_inv*           &
                   &     ( d2hh_dzeta2*(one-two*zeta) &
-                  &      -two*third*rs*d2hh_drsdzeta-14.0d0*third*tt*d2hh_dttdzeta)
+                  &      -two*third*rs*d2hh_drsdzeta-14.0_dp*third*tt*d2hh_dttdzeta)
              dvxci(ipts,10)=dvxci(ipts,10)+d2rhohh_drho2-rhotot_inv*d2hh_dzeta2
              dvxci(ipts,11)=dvxci(ipts,11)+d2rhohh_drho2+rhotot_inv*           &
                   &     ( d2hh_dzeta2*(one+two*zeta) &
-                  &      +two*third*rs*d2hh_drsdzeta+14.0d0*third*tt*d2hh_dttdzeta)
+                  &      +two*third*rs*d2hh_drsdzeta+14.0_dp*third*tt*d2hh_dttdzeta)
              !    Components 13 and 14 : second derivatives with respect to spin density
              !    and gradient, divided by the gradient
              dvxci(ipts,13)=d2rhohh_drhodg+dtt_dg*d2hh_dttdzeta
@@ -1259,7 +1289,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxcdgr(ipts,2)=dvxcdgr(ipts,1)
 
           end do
-       else if (option==6) then
+       else if ((option==6) .or. (option==7)) then
 
           do ipts=1,npts
 
@@ -1282,28 +1312,49 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rho_inv=rhomot*rhomot*rhomot
              coeffss=quarter*sixpi2m1_3*sixpi2m1_3*rho_inv*rho_inv*rhomot*rhomot
              ss=grho2_updn(ipts,ispden)*coeffss
-             ! This is RPBE modification
-             divss=exp(-mu_divkappa*ss)
-             dfxdss= mu*divss
-             d2fxdss2=-mu*mu_divkappa*divss
 
-             fx    = one+kappa*(one-divss)
-             ex_gga= ex_lsd*fx
-             dssdn=-eight*third*ss*rho_inv
-             dfxdn  = dfxdss*dssdn
-             vxci(ipts,ispden)=ex_lsd*(four_thirds*fx+rho*dfxdn)
-             !   The new definition (v3.3) includes the division by the norm of the gradient
-             dssdg =two*coeffss
-             dfxdg=dfxdss*dssdg
-             dvxcdgr(ipts,ispden)=ex_lsd*rho*dfxdg
-             exc=exc+ex_gga*rho
+             if (option==6) then
+                divss=exp(-mu_divkappa*ss)
+                dfxdss= mu*divss
+                d2fxdss2=-mu*mu_divkappa*divss
 
+                fx    = one+kappa*(one-divss)
+                ex_gga= ex_lsd*fx
+                dssdn=-eight*third*ss*rho_inv
+                dfxdn  = dfxdss*dssdn
+                vxci(ipts,ispden)=ex_lsd*(four_thirds*fx+rho*dfxdn)
+                !   The new definition (v3.3) includes the division by the norm of the gradient
+                dssdg =two*coeffss
+                dfxdg=dfxdss*dssdg
+                dvxcdgr(ipts,ispden)=ex_lsd*rho*dfxdg
+                exc=exc+ex_gga*rho
+             ! This is the Wu and Cohen modification
+             else
+                expss=exp(-ss)
+                p1_wc=b_wc+(mu-b_wc)*(one-ss)*expss+two*c_wc*ss/(one+c_wc*ss*ss)
+                p2_wc=d_wc*(ss-two)*expss+two*c_wc/(one+c_wc*ss*ss)-&
+&                     four*c_wc*c_wc*ss*ss/((one+c_wc*ss*ss)*(one+c_wc*ss*ss))
+                divss=one/(one+(b_wc*ss+d_wc*ss*expss+log(one+c_wc*ss*ss))/kappa)
+                dfxdss=p1_wc*divss*divss
+                d2fxdss2=p2_wc*divss*divss-two*divss*divss*divss*p1_wc*p1_wc/kappa
+
+                fx    = one+kappa*(one-divss)
+                ex_gga= ex_lsd*fx
+                dssdn=-eight*third*ss*rho_inv
+                dfxdn  = dfxdss*dssdn
+                vxci(ipts,ispden)=ex_lsd*(four_thirds*fx+rho*dfxdn)
+                !   The new definition (v3.3) includes the division by the norm of the gradient
+                dssdg =two*coeffss
+                dfxdg=dfxdss*dssdg
+                dvxcdgr(ipts,ispden)=ex_lsd*rho*dfxdg
+                exc=exc+ex_gga*rho
+             end if
 
              !    Perdew-Burke-Ernzerhof GGA, exchange part
              !    Components 3 or 4
              dvxci(ipts,2+ispden)=dvxcdgr(ipts,ispden)
              !    Components 1 or 2
-             d2ssdn2=-11.0d0*third*dssdn*rho_inv
+             d2ssdn2=-11.0_dp*third*dssdn*rho_inv
              d2fxdn2=d2fxdss2*dssdn**2+dfxdss*d2ssdn2
              dvxci(ipts,ispden)=third*rho_inv*vxci(ipts,ispden)+&
                   &     ex_lsd*(seven*third*dfxdn+rho*d2fxdn2)
@@ -1322,7 +1373,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -1333,49 +1384,49 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+4.d0*ec0_b4*rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+4._dp*ec0_b4*rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
-             ec0_q1pp=0.5d0*ec0_aa*(-ec0_b1*rsm1_2**3+3.d0*ec0_b3*rsm1_2+8.d0*ec0_b4)
-             d2ecrs0_drs2= 4.0d0*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             ec0_q1pp=0.5_dp*ec0_aa*(-ec0_b1*rsm1_2**3+3._dp*ec0_b3*rsm1_2+8._dp*ec0_b4)
+             d2ecrs0_drs2= 4.0_dp*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
-                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
+                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2._dp*ec0_q1+1.0_dp)
              ec0_q1ppp = 0.75_dp*ec0_aa*(rsm1_2**5)*(ec0_b1-ec0_b3*rs)
-             ec0_f1 = one/(ec0_q1*ec0_q1*(one + ec0_q1))
-             ec0_f2 = one/(ec0_q1*(1._dp+ec0_q1))
+             ec0_f1 = 1._dp/(ec0_q1*ec0_q1*(1._dp + ec0_q1))
+             ec0_f2 = 1._dp/(ec0_q1*(1+ec0_q1))
              d3ecrs0_drs3 = 6._dp*ec0_q1p*ec0_f1*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + &
                   &        ec0_q0*ec0_q1pp) - &
                   &        ec0_f2*(-6._dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
                   &        ec0_f2*(3._dp*ec0_q1p*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
-                  &        ec0_f2*2._dp*ec0_q0*(ec0_q1p**3)*(one + 3._dp*ec0_q1*(one + ec0_q1))))
+                  &        ec0_f2*2._dp*ec0_q0*(ec0_q1p**3)*(1._dp + 3._dp*ec0_q1*(1._dp + ec0_q1))))
 
-             mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
-             mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
-             mac_q1p=mac_aa*(mac_b1*rsm1_2+2.d0*mac_b2+3.d0*mac_b3*sqr_rs+4.d0*mac_b4*rs)
-             mac_den=1.0d0/(mac_q1*mac_q1+mac_q1)
+             mac_q0=-2.0_dp*mac_aa*(1.0_dp+mac_a1*rs)
+             mac_q1=2.0_dp*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
+             mac_q1p=mac_aa*(mac_b1*rsm1_2+2._dp*mac_b2+3._dp*mac_b3*sqr_rs+4._dp*mac_b4*rs)
+             mac_den=1.0_dp/(mac_q1*mac_q1+mac_q1)
              mac_log=-log( mac_q1*mac_q1*mac_den )
              macrs=mac_q0*mac_log
-             dmacrs_drs= -2.0d0*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
+             dmacrs_drs= -2.0_dp*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
 
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
+             decrs_dzeta=0.0_dp
              d2ecrs_drs2=d2ecrs0_drs2
              d2ecrs_dzeta2=alpha_zeta**2*(-macrs)
              d2ecrs_drsdzeta=zero
-             zeta=0.0d0
+             zeta=0.0_dp
 
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
              vxci(ipts,1)=vxci(ipts,1)+ecrs-rs*third*decrs_drs
 
-             dvcrs_drs=third*(2.d0*decrs_drs-rs*d2ecrs_drs2)
+             dvcrs_drs=third*(2._dp*decrs_drs-rs*d2ecrs_drs2)
              !   And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
              d2ecrs_drho2= -rs**4*(four_pi*third)*third*dvcrs_drs
              dvxci(ipts,9)=d2ecrs_drho2
@@ -1387,11 +1438,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !  Note : the computation of the potential in the spin-unpolarized
              !  case could be optimized much further. Other optimizations are left to do.
 
-             phi_zeta=1.0d0
-             phip_zeta=0.0d0
-             phi_zeta_inv=1.0d0
-             phi_logder=0.0d0
-             phi3_zeta=1.0d0
+             phi_zeta=1.0_dp
+             phip_zeta=0.0_dp
+             phi_zeta_inv=1.0_dp
+             phi_logder=0.0_dp
+             phi3_zeta=1.0_dp
              gamphi3inv=gamma_inv
              phipp_zeta=-two*ninth*alpha_zeta*alpha_zeta
 
@@ -1402,7 +1453,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              d2bb_drs2=d2ecrs_drs2*gamphi3inv
              d2bb_drsdzeta=gamphi3inv*(d2ecrs_drsdzeta-three*decrs_drs*phi_logder)
              d2bb_dzeta2=gamphi3inv*(d2ecrs_dzeta2-six*decrs_dzeta*phi_logder+&
-                  &     12.0d0*ecrs*phi_logder*phi_logder-three*ecrs*phi_zeta_inv*phipp_zeta)
+                  &     12.0_dp*ecrs*phi_logder*phi_logder-three*ecrs*phi_zeta_inv*phipp_zeta)
 
              !   From bb to cc
              exp_pbe=exp(-bb)
@@ -1533,11 +1584,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !    Note that there is already a contribution from LSDA
              dvxci(ipts,9)=dvxci(ipts,9)+d2rhohh_drho2+rhotot_inv*           &
                   &     ( d2hh_dzeta2*(one-two*zeta) &
-                  &      -two*third*rs*d2hh_drsdzeta-14.0d0*third*tt*d2hh_dttdzeta)
+                  &      -two*third*rs*d2hh_drsdzeta-14.0_dp*third*tt*d2hh_dttdzeta)
              dvxci(ipts,10)=dvxci(ipts,10)+d2rhohh_drho2-rhotot_inv*d2hh_dzeta2
              dvxci(ipts,11)=dvxci(ipts,11)+d2rhohh_drho2+rhotot_inv*           &
                   &     ( d2hh_dzeta2*(one+two*zeta) &
-                  &      +two*third*rs*d2hh_drsdzeta+14.0d0*third*tt*d2hh_dttdzeta)
+                  &      +two*third*rs*d2hh_drsdzeta+14.0_dp*third*tt*d2hh_dttdzeta)
              !    Components 13 and 14 : second derivatives with respect to spin density
              !    and gradient, divided by the gradient
              dvxci(ipts,13)=d2rhohh_drhodg+dtt_dg*d2hh_dttdzeta
@@ -1590,7 +1641,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              d2vxci(ipts) = -2._dp*dvxci(ipts,1)/(3._dp*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -1640,7 +1691,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !    Components 3 or 4
              dvxci(ipts,2+ispden)=dvxcdgr(ipts,ispden)
              !    Components 1 or 2
-             d2ssdn2=-11.0d0*third*dssdn*rho_inv
+             d2ssdn2=-11.0_dp*third*dssdn*rho_inv
              d2fxdn2=d2fxdss2*dssdn**2+dfxdss*d2ssdn2
              dvxci(ipts,ispden)=third*rho_inv*vxci(ipts,ispden)+&
                   &     ex_lsd*(seven*third*dfxdn+rho*d2fxdn2)
@@ -1659,7 +1710,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -1706,7 +1757,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              d2vxci(ipts) = -2._dp*dvxci(ipts,1)/(3._dp*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -1716,54 +1767,54 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+4.d0*ec0_b4*rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+4._dp*ec0_b4*rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
-             ec0_q1pp=0.5d0*ec0_aa*(-ec0_b1*rsm1_2**3+3.d0*ec0_b3*rsm1_2+8.d0*ec0_b4)
-             d2ecrs0_drs2= 4.0d0*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             ec0_q1pp=0.5_dp*ec0_aa*(-ec0_b1*rsm1_2**3+3._dp*ec0_b3*rsm1_2+8._dp*ec0_b4)
+             d2ecrs0_drs2= 4.0_dp*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
-                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
+                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2._dp*ec0_q1+1.0_dp)
              ec0_q1ppp = 0.75_dp*ec0_aa*(rsm1_2**5)*(ec0_b1-ec0_b3*rs)
-             ec0_f1 = one/(ec0_q1*ec0_q1*(one + ec0_q1))
-             ec0_f2 = one/(ec0_q1*(1._dp+ec0_q1))
+             ec0_f1 = 1._dp/(ec0_q1*ec0_q1*(1._dp + ec0_q1))
+             ec0_f2 = 1._dp/(ec0_q1*(1+ec0_q1))
              d3ecrs0_drs3 = 6._dp*ec0_q1p*ec0_f1*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + &
                   &        ec0_q0*ec0_q1pp) - &
                   &        ec0_f2*(-6._dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
                   &        ec0_f2*(3._dp*ec0_q1p*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
-                  &        ec0_f2*2._dp*ec0_q0*(ec0_q1p**3)*(one + 3._dp*ec0_q1*(one + ec0_q1))))
+                  &        ec0_f2*2._dp*ec0_q0*(ec0_q1p**3)*(1._dp + 3._dp*ec0_q1*(1._dp + ec0_q1))))
 
-             mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
-             mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
-             mac_q1p=mac_aa*(mac_b1*rsm1_2+2.d0*mac_b2+3.d0*mac_b3*sqr_rs+4.d0*mac_b4*rs)
-             mac_den=1.0d0/(mac_q1*mac_q1+mac_q1)
+             mac_q0=-2.0_dp*mac_aa*(1.0_dp+mac_a1*rs)
+             mac_q1=2.0_dp*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
+             mac_q1p=mac_aa*(mac_b1*rsm1_2+2._dp*mac_b2+3._dp*mac_b3*sqr_rs+4._dp*mac_b4*rs)
+             mac_den=1.0_dp/(mac_q1*mac_q1+mac_q1)
              mac_log=-log( mac_q1*mac_q1*mac_den )
              macrs=mac_q0*mac_log
-             dmacrs_drs= -2.0d0*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
+             dmacrs_drs= -2.0_dp*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
 
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
+             decrs_dzeta=0.0_dp
              d2ecrs_drs2=d2ecrs0_drs2
              d2ecrs_dzeta2=alpha_zeta**2*(-macrs)
              d2ecrs_drsdzeta=zero
-             zeta=0.0d0
+             zeta=0.0_dp
 
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
              vxci(ipts,1)=vxci(ipts,1)+ecrs-rs*third*decrs_drs
 
-             dvcrs_drs=third*(2.d0*decrs_drs-rs*d2ecrs_drs2)
+             dvcrs_drs=third*(2._dp*decrs_drs-rs*d2ecrs_drs2)
              !   And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
              d2ecrs_drho2= -rs**4*(four_pi*third)*third*dvcrs_drs
              dvxci(ipts,1)=dvxci(ipts,1)+d2ecrs_drho2
              d2vcrs_drs2 = third*(d2ecrs_drs2 - rs*d3ecrs0_drs3)
-             drs_dn = -one*four_pi*ninth*rs**4
+             drs_dn = -1._dp*four_pi*ninth*rs**4
              d2rs_dn2 = 64._dp*pi*pi*(rs**7)/81._dp
              d2vxci(ipts) = d2vxci(ipts) + d2vcrs_drs2*drs_dn*drs_dn + &
                   &        dvcrs_drs*d2rs_dn2
@@ -1812,7 +1863,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              d2vxci(ipts) = -2._dp*dvxci(ipts,1)/(3._dp*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -1822,56 +1873,56 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
-             sqr_sqr_rs=max(1.d-15,sqrt(sqr_rs))
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs/sqr_sqr_rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+3.5d0*ec0_b4*rs/sqr_sqr_rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
+             sqr_sqr_rs=max(1.e-15_dp,sqrt(sqr_rs))
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs/sqr_sqr_rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+3.5_dp*ec0_b4*rs/sqr_sqr_rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
-             ec0_q1pp=0.5d0*ec0_aa*(-ec0_b1*rsm1_2**3+3.d0*ec0_b3*rsm1_2+8.d0*ec0_b4)
-             d2ecrs0_drs2= 4.0d0*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             ec0_q1pp=0.5_dp*ec0_aa*(-ec0_b1*rsm1_2**3+3._dp*ec0_b3*rsm1_2+8._dp*ec0_b4)
+             d2ecrs0_drs2= 4.0_dp*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
-                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
+                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2._dp*ec0_q1+1.0_dp)
              ec0_q1ppp = 0.75_dp*ec0_aa*(rsm1_2**5)*(ec0_b1-ec0_b3*rs)
-             ec0_f1 = one/(ec0_q1*ec0_q1*(one + ec0_q1))
-             ec0_f2 = one/(ec0_q1*(1._dp+ec0_q1))
+             ec0_f1 = 1._dp/(ec0_q1*ec0_q1*(1._dp + ec0_q1))
+             ec0_f2 = 1._dp/(ec0_q1*(1+ec0_q1))
              d3ecrs0_drs3 = 6._dp*ec0_q1p*ec0_f1*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + &
                   &        ec0_q0*ec0_q1pp) - &
                   &        ec0_f2*(-6._dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
                   &        ec0_f2*(3._dp*ec0_q1p*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
-                  &        ec0_f2*2._dp*ec0_q0*(ec0_q1p**3)*(one + 3._dp*ec0_q1*(one + ec0_q1))))
+                  &        ec0_f2*2._dp*ec0_q0*(ec0_q1p**3)*(1._dp + 3._dp*ec0_q1*(1._dp + ec0_q1))))
 
-             mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
-             mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
-             mac_q1p=mac_aa*(mac_b1*rsm1_2+2.d0*mac_b2+3.d0*mac_b3*sqr_rs+4.d0*mac_b4*rs)
-             mac_den=1.0d0/(mac_q1*mac_q1+mac_q1)
+             mac_q0=-2.0_dp*mac_aa*(1.0_dp+mac_a1*rs)
+             mac_q1=2.0_dp*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
+             mac_q1p=mac_aa*(mac_b1*rsm1_2+2._dp*mac_b2+3._dp*mac_b3*sqr_rs+4._dp*mac_b4*rs)
+             mac_den=1.0_dp/(mac_q1*mac_q1+mac_q1)
              mac_log=-log( mac_q1*mac_q1*mac_den )
              macrs=mac_q0*mac_log
-             dmacrs_drs= -2.0d0*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
+             dmacrs_drs= -2.0_dp*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
 
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
+             decrs_dzeta=0.0_dp
              d2ecrs_drs2=d2ecrs0_drs2
              d2ecrs_dzeta2=alpha_zeta**2*(-macrs)
              d2ecrs_drsdzeta=zero
-             zeta=0.0d0
+             zeta=0.0_dp
 
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
              vxci(ipts,1)=vxci(ipts,1)+ecrs-rs*third*decrs_drs
 
-             dvcrs_drs=third*(2.d0*decrs_drs-rs*d2ecrs_drs2)
+             dvcrs_drs=third*(2._dp*decrs_drs-rs*d2ecrs_drs2)
              !   And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
              d2ecrs_drho2= -rs**4*(four_pi*third)*third*dvcrs_drs
 
              dvxci(ipts,1)=dvxci(ipts,1)+d2ecrs_drho2
              d2vcrs_drs2 = third*(d2ecrs_drs2 - rs*d3ecrs0_drs3)
-             drs_dn = -one*four_pi*ninth*rs**4
+             drs_dn = -1._dp*four_pi*ninth*rs**4
              d2rs_dn2 = 64._dp*pi*pi*(rs**7)/81._dp
              d2vxci(ipts) = d2vxci(ipts) + d2vcrs_drs2*drs_dn*drs_dn + &
                   &        dvcrs_drs*d2rs_dn2
@@ -1922,7 +1973,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !    Components 3 or 4
              dvxci(ipts,2+ispden)=dvxcdgr(ipts,ispden)
              !    Components 1 or 2
-             d2ssdn2=-11.0d0*third*dssdn*rho_inv
+             d2ssdn2=-11.0_dp*third*dssdn*rho_inv
              d2fxdn2=d2fxdss2*dssdn**2+dfxdss*d2ssdn2
              dvxci(ipts,ispden)=third*rho_inv*vxci(ipts,ispden)+&
                   &     ex_lsd*(seven*third*dfxdn+rho*d2fxdn2)
@@ -1940,7 +1991,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxci(ipts,8)=dvxci(ipts,7)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -1951,41 +2002,41 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+4.d0*ec0_b4*rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+4._dp*ec0_b4*rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
-             ec0_q1pp=0.5d0*ec0_aa*(-ec0_b1*rsm1_2**3+3.d0*ec0_b3*rsm1_2+8.d0*ec0_b4)
-             d2ecrs0_drs2= 4.0d0*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             ec0_q1pp=0.5_dp*ec0_aa*(-ec0_b1*rsm1_2**3+3._dp*ec0_b3*rsm1_2+8._dp*ec0_b4)
+             d2ecrs0_drs2= 4.0_dp*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
-                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
+                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2._dp*ec0_q1+1.0_dp)
 
-             mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
-             mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
-             mac_q1p=mac_aa*(mac_b1*rsm1_2+2.d0*mac_b2+3.d0*mac_b3*sqr_rs+4.d0*mac_b4*rs)
-             mac_den=1.0d0/(mac_q1*mac_q1+mac_q1)
+             mac_q0=-2.0_dp*mac_aa*(1.0_dp+mac_a1*rs)
+             mac_q1=2.0_dp*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
+             mac_q1p=mac_aa*(mac_b1*rsm1_2+2._dp*mac_b2+3._dp*mac_b3*sqr_rs+4._dp*mac_b4*rs)
+             mac_den=1.0_dp/(mac_q1*mac_q1+mac_q1)
              mac_log=-log( mac_q1*mac_q1*mac_den )
              macrs=mac_q0*mac_log
-             dmacrs_drs= -2.0d0*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
+             dmacrs_drs= -2.0_dp*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
 
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
+             decrs_dzeta=0.0_dp
              d2ecrs_drs2=d2ecrs0_drs2
              d2ecrs_dzeta2=alpha_zeta**2*(-macrs)
              d2ecrs_drsdzeta=zero
-             zeta=0.0d0
+             zeta=0.0_dp
 
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
              vxci(ipts,1)=vxci(ipts,1)+ecrs-rs*third*decrs_drs
 
-             dvcrs_drs=third*(2.d0*decrs_drs-rs*d2ecrs_drs2)
+             dvcrs_drs=third*(2._dp*decrs_drs-rs*d2ecrs_drs2)
              !   And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
              d2ecrs_drho2= -rs**4*(four_pi*third)*third*dvcrs_drs
              dvxci(ipts,9)=d2ecrs_drho2
@@ -1997,11 +2048,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !  Note : the computation of the potential in the spin-unpolarized
              !  case could be optimized much further. Other optimizations are left to do.
 
-             phi_zeta=1.0d0
-             phip_zeta=0.0d0
-             phi_zeta_inv=1.0d0
-             phi_logder=0.0d0
-             phi3_zeta=1.0d0
+             phi_zeta=1.0_dp
+             phip_zeta=0.0_dp
+             phi_zeta_inv=1.0_dp
+             phi_logder=0.0_dp
+             phi3_zeta=1.0_dp
              gamphi3inv=gamma_inv
              phipp_zeta=-two*ninth*alpha_zeta*alpha_zeta
 
@@ -2012,7 +2063,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              d2bb_drs2=d2ecrs_drs2*gamphi3inv
              d2bb_drsdzeta=gamphi3inv*(d2ecrs_drsdzeta-three*decrs_drs*phi_logder)
              d2bb_dzeta2=gamphi3inv*(d2ecrs_dzeta2-six*decrs_dzeta*phi_logder+&
-                  &     12.0d0*ecrs*phi_logder*phi_logder-three*ecrs*phi_zeta_inv*phipp_zeta)
+                  &     12.0_dp*ecrs*phi_logder*phi_logder-three*ecrs*phi_zeta_inv*phipp_zeta)
 
              !   From bb to cc
              exp_pbe=exp(-bb)
@@ -2142,11 +2193,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !    Note that there is already a contribution from LSDA
              dvxci(ipts,9)=dvxci(ipts,9)+d2rhohh_drho2+rhotot_inv*           &
                   &     ( d2hh_dzeta2*(one-two*zeta) &
-                  &      -two*third*rs*d2hh_drsdzeta-14.0d0*third*tt*d2hh_dttdzeta)
+                  &      -two*third*rs*d2hh_drsdzeta-14.0_dp*third*tt*d2hh_dttdzeta)
              dvxci(ipts,10)=dvxci(ipts,10)+d2rhohh_drho2-rhotot_inv*d2hh_dzeta2
              dvxci(ipts,11)=dvxci(ipts,11)+d2rhohh_drho2+rhotot_inv*           &
                   &     ( d2hh_dzeta2*(one+two*zeta) &
-                  &      +two*third*rs*d2hh_drsdzeta+14.0d0*third*tt*d2hh_dttdzeta)
+                  &      +two*third*rs*d2hh_drsdzeta+14.0_dp*third*tt*d2hh_dttdzeta)
              !    Components 13 and 14 : second derivatives with respect to spin density
              !    and gradient, divided by the gradient
              dvxci(ipts,13)=d2rhohh_drhodg+dtt_dg*d2hh_dttdzeta
@@ -2167,7 +2218,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
           end do
 
-       else if (option==6) then
+       else if ((option==6) .or. (option==7)) then
           do ipts=1,npts
 
              rhotot=rhoarr(ipts)
@@ -2189,26 +2240,49 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rho_inv=rhomot*rhomot*rhomot
              coeffss=quarter*sixpi2m1_3*sixpi2m1_3*rho_inv*rho_inv*rhomot*rhomot
              ss=grho2_updn(ipts,ispden)*coeffss
-             ! This is RPBE modification
-             divss=exp(-mu_divkappa*ss)
-             dfxdss= mu*divss
-             d2fxdss2=-mu*mu_divkappa*divss
-             fx    = one+kappa*(one-divss)
-             ex_gga= ex_lsd*fx
-             dssdn=-eight*third*ss*rho_inv
-             dfxdn  = dfxdss*dssdn
-             vxci(ipts,ispden)=ex_lsd*(four_thirds*fx+rho*dfxdn)
-             !   The new definition (v3.3) includes the division by the norm of the gradient
-             dssdg =two*coeffss
-             dfxdg=dfxdss*dssdg
-             dvxcdgr(ipts,ispden)=ex_lsd*rho*dfxdg
-             exc=exc+ex_gga*rho
+
+             if (option==6) then
+                divss=exp(-mu_divkappa*ss)
+                dfxdss= mu*divss
+                d2fxdss2=-mu*mu_divkappa*divss
+
+                fx    = one+kappa*(one-divss)
+                ex_gga= ex_lsd*fx
+                dssdn=-eight*third*ss*rho_inv
+                dfxdn  = dfxdss*dssdn
+                vxci(ipts,ispden)=ex_lsd*(four_thirds*fx+rho*dfxdn)
+                !   The new definition (v3.3) includes the division by the norm of the gradient
+                dssdg =two*coeffss
+                dfxdg=dfxdss*dssdg
+                dvxcdgr(ipts,ispden)=ex_lsd*rho*dfxdg
+                exc=exc+ex_gga*rho
+             ! This is the Wu and Cohen modification
+             else
+                expss=exp(-ss)
+                p1_wc=b_wc+(mu-b_wc)*(one-ss)*expss+two*c_wc*ss/(one+c_wc*ss*ss)
+                p2_wc=d_wc*(ss-two)*expss+two*c_wc/(one+c_wc*ss*ss)-&
+&                     four*c_wc*c_wc*ss*ss/((one+c_wc*ss*ss)*(one+c_wc*ss*ss))
+                divss=one/(one+(b_wc*ss+d_wc*ss*expss+log(one+c_wc*ss*ss))/kappa)
+                dfxdss=p1_wc*divss*divss
+                d2fxdss2=p2_wc*divss*divss-two*divss*divss*divss*p1_wc*p1_wc/kappa
+
+                fx    = one+kappa*(one-divss)
+                ex_gga= ex_lsd*fx
+                dssdn=-eight*third*ss*rho_inv
+                dfxdn  = dfxdss*dssdn
+                vxci(ipts,ispden)=ex_lsd*(four_thirds*fx+rho*dfxdn)
+                !   The new definition (v3.3) includes the division by the norm of the gradient
+                dssdg =two*coeffss
+                dfxdg=dfxdss*dssdg
+                dvxcdgr(ipts,ispden)=ex_lsd*rho*dfxdg
+                exc=exc+ex_gga*rho
+             end if
 
              !    Perdew-Burke-Ernzerhof GGA, exchange part
              !    Components 3 or 4
              dvxci(ipts,2+ispden)=dvxcdgr(ipts,ispden)
              !    Components 1 or 2
-             d2ssdn2=-11.0d0*third*dssdn*rho_inv
+             d2ssdn2=-11.0_dp*third*dssdn*rho_inv
              d2fxdn2=d2fxdss2*dssdn**2+dfxdss*d2ssdn2
              dvxci(ipts,ispden)=third*rho_inv*vxci(ipts,ispden)+&
                   &     ex_lsd*(seven*third*dfxdn+rho*d2fxdn2)
@@ -2226,7 +2300,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxci(ipts,8)=dvxci(ipts,7)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -2237,41 +2311,41 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+4.d0*ec0_b4*rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+4._dp*ec0_b4*rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
-             ec0_q1pp=0.5d0*ec0_aa*(-ec0_b1*rsm1_2**3+3.d0*ec0_b3*rsm1_2+8.d0*ec0_b4)
-             d2ecrs0_drs2= 4.0d0*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             ec0_q1pp=0.5_dp*ec0_aa*(-ec0_b1*rsm1_2**3+3._dp*ec0_b3*rsm1_2+8._dp*ec0_b4)
+             d2ecrs0_drs2= 4.0_dp*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
-                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
+                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2._dp*ec0_q1+1.0_dp)
 
-             mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
-             mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
-             mac_q1p=mac_aa*(mac_b1*rsm1_2+2.d0*mac_b2+3.d0*mac_b3*sqr_rs+4.d0*mac_b4*rs)
-             mac_den=1.0d0/(mac_q1*mac_q1+mac_q1)
+             mac_q0=-2.0_dp*mac_aa*(1.0_dp+mac_a1*rs)
+             mac_q1=2.0_dp*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
+             mac_q1p=mac_aa*(mac_b1*rsm1_2+2._dp*mac_b2+3._dp*mac_b3*sqr_rs+4._dp*mac_b4*rs)
+             mac_den=1.0_dp/(mac_q1*mac_q1+mac_q1)
              mac_log=-log( mac_q1*mac_q1*mac_den )
              macrs=mac_q0*mac_log
-             dmacrs_drs= -2.0d0*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
+             dmacrs_drs= -2.0_dp*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
 
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
+             decrs_dzeta=0.0_dp
              d2ecrs_drs2=d2ecrs0_drs2
              d2ecrs_dzeta2=alpha_zeta**2*(-macrs)
              d2ecrs_drsdzeta=zero
-             zeta=0.0d0
+             zeta=0.0_dp
 
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
              vxci(ipts,1)=vxci(ipts,1)+ecrs-rs*third*decrs_drs
 
-             dvcrs_drs=third*(2.d0*decrs_drs-rs*d2ecrs_drs2)
+             dvcrs_drs=third*(2._dp*decrs_drs-rs*d2ecrs_drs2)
              !   And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
              d2ecrs_drho2= -rs**4*(four_pi*third)*third*dvcrs_drs
              dvxci(ipts,9)=d2ecrs_drho2
@@ -2283,11 +2357,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !  Note : the computation of the potential in the spin-unpolarized
              !  case could be optimized much further. Other optimizations are left to do.
 
-             phi_zeta=1.0d0
-             phip_zeta=0.0d0
-             phi_zeta_inv=1.0d0
-             phi_logder=0.0d0
-             phi3_zeta=1.0d0
+             phi_zeta=1.0_dp
+             phip_zeta=0.0_dp
+             phi_zeta_inv=1.0_dp
+             phi_logder=0.0_dp
+             phi3_zeta=1.0_dp
              gamphi3inv=gamma_inv
              phipp_zeta=-two*ninth*alpha_zeta*alpha_zeta
 
@@ -2298,7 +2372,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              d2bb_drs2=d2ecrs_drs2*gamphi3inv
              d2bb_drsdzeta=gamphi3inv*(d2ecrs_drsdzeta-three*decrs_drs*phi_logder)
              d2bb_dzeta2=gamphi3inv*(d2ecrs_dzeta2-six*decrs_dzeta*phi_logder+&
-                  &     12.0d0*ecrs*phi_logder*phi_logder-three*ecrs*phi_zeta_inv*phipp_zeta)
+                  &     12.0_dp*ecrs*phi_logder*phi_logder-three*ecrs*phi_zeta_inv*phipp_zeta)
 
              !   From bb to cc
              exp_pbe=exp(-bb)
@@ -2428,11 +2502,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !    Note that there is already a contribution from LSDA
              dvxci(ipts,9)=dvxci(ipts,9)+d2rhohh_drho2+rhotot_inv*           &
                   &     ( d2hh_dzeta2*(one-two*zeta) &
-                  &      -two*third*rs*d2hh_drsdzeta-14.0d0*third*tt*d2hh_dttdzeta)
+                  &      -two*third*rs*d2hh_drsdzeta-14.0_dp*third*tt*d2hh_dttdzeta)
              dvxci(ipts,10)=dvxci(ipts,10)+d2rhohh_drho2-rhotot_inv*d2hh_dzeta2
              dvxci(ipts,11)=dvxci(ipts,11)+d2rhohh_drho2+rhotot_inv*           &
                   &     ( d2hh_dzeta2*(one+two*zeta) &
-                  &      +two*third*rs*d2hh_drsdzeta+14.0d0*third*tt*d2hh_dttdzeta)
+                  &      +two*third*rs*d2hh_drsdzeta+14.0_dp*third*tt*d2hh_dttdzeta)
              !    Components 13 and 14 : second derivatives with respect to spin density
              !    and gradient, divided by the gradient
              dvxci(ipts,13)=d2rhohh_drhodg+dtt_dg*d2hh_dttdzeta
@@ -2485,7 +2559,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              ! vx^(2) = -2*vx^(1)/(3*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
 
 
@@ -2535,7 +2609,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !    Components 3 or 4
              dvxci(ipts,2+ispden)=dvxcdgr(ipts,ispden)
              !    Components 1 or 2
-             d2ssdn2=-11.0d0*third*dssdn*rho_inv
+             d2ssdn2=-11.0_dp*third*dssdn*rho_inv
              d2fxdn2=d2fxdss2*dssdn**2+dfxdss*d2ssdn2
              dvxci(ipts,ispden)=third*rho_inv*vxci(ipts,ispden)+&
                   &     ex_lsd*(seven*third*dfxdn+rho*d2fxdn2)
@@ -2553,7 +2627,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxci(ipts,8)=dvxci(ipts,7)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -2600,7 +2674,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              ! vx^(2) = -2*vx^(1)/(3*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -2610,42 +2684,42 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
 
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+4.d0*ec0_b4*rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+4._dp*ec0_b4*rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
-             ec0_q1pp=0.5d0*ec0_aa*(-ec0_b1*rsm1_2**3+3.d0*ec0_b3*rsm1_2+8.d0*ec0_b4)
-             d2ecrs0_drs2= 4.0d0*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             ec0_q1pp=0.5_dp*ec0_aa*(-ec0_b1*rsm1_2**3+3._dp*ec0_b3*rsm1_2+8._dp*ec0_b4)
+             d2ecrs0_drs2= 4.0_dp*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
-                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
+                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2._dp*ec0_q1+1.0_dp)
 
-             mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
-             mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
-             mac_q1p=mac_aa*(mac_b1*rsm1_2+2.d0*mac_b2+3.d0*mac_b3*sqr_rs+4.d0*mac_b4*rs)
-             mac_den=1.0d0/(mac_q1*mac_q1+mac_q1)
+             mac_q0=-2.0_dp*mac_aa*(1.0_dp+mac_a1*rs)
+             mac_q1=2.0_dp*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
+             mac_q1p=mac_aa*(mac_b1*rsm1_2+2._dp*mac_b2+3._dp*mac_b3*sqr_rs+4._dp*mac_b4*rs)
+             mac_den=1.0_dp/(mac_q1*mac_q1+mac_q1)
              mac_log=-log( mac_q1*mac_q1*mac_den )
              macrs=mac_q0*mac_log
-             dmacrs_drs= -2.0d0*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
+             dmacrs_drs= -2.0_dp*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
 
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
+             decrs_dzeta=0.0_dp
              d2ecrs_drs2=d2ecrs0_drs2
              d2ecrs_dzeta2=alpha_zeta**2*(-macrs)
              d2ecrs_drsdzeta=zero
-             zeta=0.0d0
+             zeta=0.0_dp
 
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
              vxci(ipts,1)=vxci(ipts,1)+ecrs-rs*third*decrs_drs
 
-             dvcrs_drs=third*(2.d0*decrs_drs-rs*d2ecrs_drs2)
+             dvcrs_drs=third*(2._dp*decrs_drs-rs*d2ecrs_drs2)
              !   And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
              d2ecrs_drho2= -rs**4*(four_pi*third)*third*dvcrs_drs
 
@@ -2690,7 +2764,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              ! vx^(2) = -2*vx^(1)/(3*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -2701,42 +2775,42 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
-             sqr_sqr_rs=max(1.d-15,sqrt(sqr_rs))
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs/sqr_sqr_rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+3.5d0*ec0_b4*rs/sqr_sqr_rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
+             sqr_sqr_rs=max(1.e-15_dp,sqrt(sqr_rs))
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs/sqr_sqr_rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+3.5_dp*ec0_b4*rs/sqr_sqr_rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
-             ec0_q1pp=0.5d0*ec0_aa*(-ec0_b1*rsm1_2**3+3.d0*ec0_b3*rsm1_2+8.d0*ec0_b4)
-             d2ecrs0_drs2= 4.0d0*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             ec0_q1pp=0.5_dp*ec0_aa*(-ec0_b1*rsm1_2**3+3._dp*ec0_b3*rsm1_2+8._dp*ec0_b4)
+             d2ecrs0_drs2= 4.0_dp*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
-                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
+                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2._dp*ec0_q1+1.0_dp)
 
-             mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
-             mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
-             mac_q1p=mac_aa*(mac_b1*rsm1_2+2.d0*mac_b2+3.d0*mac_b3*sqr_rs+4.d0*mac_b4*rs)
-             mac_den=1.0d0/(mac_q1*mac_q1+mac_q1)
+             mac_q0=-2.0_dp*mac_aa*(1.0_dp+mac_a1*rs)
+             mac_q1=2.0_dp*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
+             mac_q1p=mac_aa*(mac_b1*rsm1_2+2._dp*mac_b2+3._dp*mac_b3*sqr_rs+4._dp*mac_b4*rs)
+             mac_den=1.0_dp/(mac_q1*mac_q1+mac_q1)
              mac_log=-log( mac_q1*mac_q1*mac_den )
              macrs=mac_q0*mac_log
-             dmacrs_drs= -2.0d0*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
+             dmacrs_drs= -2.0_dp*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
 
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
+             decrs_dzeta=0.0_dp
              d2ecrs_drs2=d2ecrs0_drs2
              d2ecrs_dzeta2=alpha_zeta**2*(-macrs)
              d2ecrs_drsdzeta=zero
-             zeta=0.0d0
+             zeta=0.0_dp
 
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
              vxci(ipts,1)=vxci(ipts,1)+ecrs-rs*third*decrs_drs
 
-             dvcrs_drs=third*(2.d0*decrs_drs-rs*d2ecrs_drs2)
+             dvcrs_drs=third*(2._dp*decrs_drs-rs*d2ecrs_drs2)
              !   And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
              d2ecrs_drho2= -rs**4*(four_pi*third)*third*dvcrs_drs
              dvxci(ipts,1)=dvxci(ipts,1)+d2ecrs_drho2
@@ -2751,7 +2825,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
 
     else if (order**2>1) then
-       !separate cases depending to option 
+       !separate cases depending to option
        if(option==2 .or. option==5) then
           do ipts=1,npts
 
@@ -2794,7 +2868,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !    Components 3 or 4
              dvxci(ipts,2+ispden)=dvxcdgr(ipts,ispden)
              !    Components 1 or 2
-             d2ssdn2=-11.0d0*third*dssdn*rho_inv
+             d2ssdn2=-11.0_dp*third*dssdn*rho_inv
              d2fxdn2=d2fxdss2*dssdn**2+dfxdss*d2ssdn2
              dvxci(ipts,ispden)=third*rho_inv*vxci(ipts,ispden)+&
                   &     ex_lsd*(seven*third*dfxdn+rho*d2fxdn2)
@@ -2812,7 +2886,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxci(ipts,8)=dvxci(ipts,7)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -2822,38 +2896,38 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+4.d0*ec0_b4*rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+4._dp*ec0_b4*rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
-             ec0_q1pp=0.5d0*ec0_aa*(-ec0_b1*rsm1_2**3+3.d0*ec0_b3*rsm1_2+8.d0*ec0_b4)
-             d2ecrs0_drs2= 4.0d0*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             ec0_q1pp=0.5_dp*ec0_aa*(-ec0_b1*rsm1_2**3+3._dp*ec0_b3*rsm1_2+8._dp*ec0_b4)
+             d2ecrs0_drs2= 4.0_dp*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
-                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
-             mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
-             mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
-             mac_q1p=mac_aa*(mac_b1*rsm1_2+2.d0*mac_b2+3.d0*mac_b3*sqr_rs+4.d0*mac_b4*rs)
-             mac_den=1.0d0/(mac_q1*mac_q1+mac_q1)
+                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2._dp*ec0_q1+1.0_dp)
+             mac_q0=-2.0_dp*mac_aa*(1.0_dp+mac_a1*rs)
+             mac_q1=2.0_dp*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
+             mac_q1p=mac_aa*(mac_b1*rsm1_2+2._dp*mac_b2+3._dp*mac_b3*sqr_rs+4._dp*mac_b4*rs)
+             mac_den=1.0_dp/(mac_q1*mac_q1+mac_q1)
              mac_log=-log( mac_q1*mac_q1*mac_den )
              macrs=mac_q0*mac_log
-             dmacrs_drs= -2.0d0*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
+             dmacrs_drs= -2.0_dp*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
+             decrs_dzeta=0.0_dp
              d2ecrs_drs2=d2ecrs0_drs2
              d2ecrs_dzeta2=alpha_zeta**2*(-macrs)
              d2ecrs_drsdzeta=zero
-             zeta=0.0d0
+             zeta=0.0_dp
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
              vxci(ipts,1)=vxci(ipts,1)+ecrs-rs*third*decrs_drs
 
-             dvcrs_drs=third*(2.d0*decrs_drs-rs*d2ecrs_drs2)
+             dvcrs_drs=third*(2._dp*decrs_drs-rs*d2ecrs_drs2)
              !   And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
              d2ecrs_drho2= -rs**4*(four_pi*third)*third*dvcrs_drs
              dvxci(ipts,9)=d2ecrs_drho2
@@ -2866,11 +2940,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !  Note : the computation of the potential in the spin-unpolarized
              !  case could be optimized much further. Other optimizations are left to do.
 
-             phi_zeta=1.0d0
-             phip_zeta=0.0d0
-             phi_zeta_inv=1.0d0
-             phi_logder=0.0d0
-             phi3_zeta=1.0d0
+             phi_zeta=1.0_dp
+             phip_zeta=0.0_dp
+             phi_zeta_inv=1.0_dp
+             phi_logder=0.0_dp
+             phi3_zeta=1.0_dp
              gamphi3inv=gamma_inv
              phipp_zeta=-two*ninth*alpha_zeta*alpha_zeta
 
@@ -2881,7 +2955,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              d2bb_drs2=d2ecrs_drs2*gamphi3inv
              d2bb_drsdzeta=gamphi3inv*(d2ecrs_drsdzeta-three*decrs_drs*phi_logder)
              d2bb_dzeta2=gamphi3inv*(d2ecrs_dzeta2-six*decrs_dzeta*phi_logder+&
-                  &     12.0d0*ecrs*phi_logder*phi_logder-three*ecrs*phi_zeta_inv*phipp_zeta)
+                  &     12.0_dp*ecrs*phi_logder*phi_logder-three*ecrs*phi_zeta_inv*phipp_zeta)
 
              !   From bb to cc
              exp_pbe=exp(-bb)
@@ -3014,11 +3088,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !    Note that there is already a contribution from LSDA
              dvxci(ipts,9)=dvxci(ipts,9)+d2rhohh_drho2+rhotot_inv*           &
                   &     ( d2hh_dzeta2*(one-two*zeta) &
-                  &      -two*third*rs*d2hh_drsdzeta-14.0d0*third*tt*d2hh_dttdzeta)
+                  &      -two*third*rs*d2hh_drsdzeta-14.0_dp*third*tt*d2hh_dttdzeta)
              dvxci(ipts,10)=dvxci(ipts,10)+d2rhohh_drho2-rhotot_inv*d2hh_dzeta2
              dvxci(ipts,11)=dvxci(ipts,11)+d2rhohh_drho2+rhotot_inv*           &
                   &     ( d2hh_dzeta2*(one+two*zeta) &
-                  &      +two*third*rs*d2hh_drsdzeta+14.0d0*third*tt*d2hh_dttdzeta)
+                  &      +two*third*rs*d2hh_drsdzeta+14.0_dp*third*tt*d2hh_dttdzeta)
              !    Components 13 and 14 : second derivatives with respect to spin density
              !    and gradient, divided by the gradient
              dvxci(ipts,13)=d2rhohh_drhodg+dtt_dg*d2hh_dttdzeta
@@ -3038,7 +3112,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
           end do
 
-       else if (option==6) then
+       else if ((option==6) .or. (option==7)) then
           do ipts=1,npts
 
              rhotot=rhoarr(ipts)
@@ -3061,27 +3135,48 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              coeffss=quarter*sixpi2m1_3*sixpi2m1_3*rho_inv*rho_inv*rhomot*rhomot
              ss=grho2_updn(ipts,ispden)*coeffss
 
-             ! This is RPBE modification
-             divss=exp(-mu_divkappa*ss)
-             dfxdss= mu*divss
-             d2fxdss2=-mu*mu_divkappa*divss
+             if (option==6) then
+                divss=exp(-mu_divkappa*ss)
+                dfxdss= mu*divss
+                d2fxdss2=-mu*mu_divkappa*divss
 
-             fx    = one+kappa*(one-divss)
-             ex_gga= ex_lsd*fx
-             dssdn=-eight*third*ss*rho_inv
-             dfxdn  = dfxdss*dssdn
-             vxci(ipts,ispden)=ex_lsd*(four_thirds*fx+rho*dfxdn)
-             !   The new definition (v3.3) includes the division by the norm of the gradient
-             dssdg =two*coeffss
-             dfxdg=dfxdss*dssdg
-             dvxcdgr(ipts,ispden)=ex_lsd*rho*dfxdg
-             exc=exc+ex_gga*rho
+                fx    = one+kappa*(one-divss)
+                ex_gga= ex_lsd*fx
+                dssdn=-eight*third*ss*rho_inv
+                dfxdn  = dfxdss*dssdn
+                vxci(ipts,ispden)=ex_lsd*(four_thirds*fx+rho*dfxdn)
+                !   The new definition (v3.3) includes the division by the norm of the gradient
+                dssdg =two*coeffss
+                dfxdg=dfxdss*dssdg
+                dvxcdgr(ipts,ispden)=ex_lsd*rho*dfxdg
+                exc=exc+ex_gga*rho
+             ! This is the Wu and Cohen modification
+             else
+                expss=exp(-ss)
+                p1_wc=b_wc+(mu-b_wc)*(one-ss)*expss+two*c_wc*ss/(one+c_wc*ss*ss)
+                p2_wc=d_wc*(ss-two)*expss+two*c_wc/(one+c_wc*ss*ss)-&
+&                     four*c_wc*c_wc*ss*ss/((one+c_wc*ss*ss)*(one+c_wc*ss*ss))
+                divss=one/(one+(b_wc*ss+d_wc*ss*expss+log(one+c_wc*ss*ss))/kappa)
+                dfxdss=p1_wc*divss*divss
+                d2fxdss2=p2_wc*divss*divss-two*divss*divss*divss*p1_wc*p1_wc/kappa
+
+                fx    = one+kappa*(one-divss)
+                ex_gga= ex_lsd*fx
+                dssdn=-eight*third*ss*rho_inv
+                dfxdn  = dfxdss*dssdn
+                vxci(ipts,ispden)=ex_lsd*(four_thirds*fx+rho*dfxdn)
+                !   The new definition (v3.3) includes the division by the norm of the gradient
+                dssdg =two*coeffss
+                dfxdg=dfxdss*dssdg
+                dvxcdgr(ipts,ispden)=ex_lsd*rho*dfxdg
+                exc=exc+ex_gga*rho
+             end if
 
              !    Perdew-Burke-Ernzerhof GGA, exchange part
              !    Components 3 or 4
              dvxci(ipts,2+ispden)=dvxcdgr(ipts,ispden)
              !    Components 1 or 2
-             d2ssdn2=-11.0d0*third*dssdn*rho_inv
+             d2ssdn2=-11.0_dp*third*dssdn*rho_inv
              d2fxdn2=d2fxdss2*dssdn**2+dfxdss*d2ssdn2
              dvxci(ipts,ispden)=third*rho_inv*vxci(ipts,ispden)+&
                   &     ex_lsd*(seven*third*dfxdn+rho*d2fxdn2)
@@ -3099,7 +3194,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxci(ipts,8)=dvxci(ipts,7)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -3110,38 +3205,38 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+4.d0*ec0_b4*rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+4._dp*ec0_b4*rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
-             ec0_q1pp=0.5d0*ec0_aa*(-ec0_b1*rsm1_2**3+3.d0*ec0_b3*rsm1_2+8.d0*ec0_b4)
-             d2ecrs0_drs2= 4.0d0*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             ec0_q1pp=0.5_dp*ec0_aa*(-ec0_b1*rsm1_2**3+3._dp*ec0_b3*rsm1_2+8._dp*ec0_b4)
+             d2ecrs0_drs2= 4.0_dp*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
-                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
-             mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
-             mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
-             mac_q1p=mac_aa*(mac_b1*rsm1_2+2.d0*mac_b2+3.d0*mac_b3*sqr_rs+4.d0*mac_b4*rs)
-             mac_den=1.0d0/(mac_q1*mac_q1+mac_q1)
+                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2._dp*ec0_q1+1.0_dp)
+             mac_q0=-2.0_dp*mac_aa*(1.0_dp+mac_a1*rs)
+             mac_q1=2.0_dp*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
+             mac_q1p=mac_aa*(mac_b1*rsm1_2+2._dp*mac_b2+3._dp*mac_b3*sqr_rs+4._dp*mac_b4*rs)
+             mac_den=1.0_dp/(mac_q1*mac_q1+mac_q1)
              mac_log=-log( mac_q1*mac_q1*mac_den )
              macrs=mac_q0*mac_log
-             dmacrs_drs= -2.0d0*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
+             dmacrs_drs= -2.0_dp*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
+             decrs_dzeta=0.0_dp
              d2ecrs_drs2=d2ecrs0_drs2
              d2ecrs_dzeta2=alpha_zeta**2*(-macrs)
              d2ecrs_drsdzeta=zero
-             zeta=0.0d0
+             zeta=0.0_dp
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
              vxci(ipts,1)=vxci(ipts,1)+ecrs-rs*third*decrs_drs
 
-             dvcrs_drs=third*(2.d0*decrs_drs-rs*d2ecrs_drs2)
+             dvcrs_drs=third*(2._dp*decrs_drs-rs*d2ecrs_drs2)
              !   And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
              d2ecrs_drho2= -rs**4*(four_pi*third)*third*dvcrs_drs
              dvxci(ipts,9)=d2ecrs_drho2
@@ -3154,11 +3249,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !  Note : the computation of the potential in the spin-unpolarized
              !  case could be optimized much further. Other optimizations are left to do.
 
-             phi_zeta=1.0d0
-             phip_zeta=0.0d0
-             phi_zeta_inv=1.0d0
-             phi_logder=0.0d0
-             phi3_zeta=1.0d0
+             phi_zeta=1.0_dp
+             phip_zeta=0.0_dp
+             phi_zeta_inv=1.0_dp
+             phi_logder=0.0_dp
+             phi3_zeta=1.0_dp
              gamphi3inv=gamma_inv
              phipp_zeta=-two*ninth*alpha_zeta*alpha_zeta
 
@@ -3169,7 +3264,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              d2bb_drs2=d2ecrs_drs2*gamphi3inv
              d2bb_drsdzeta=gamphi3inv*(d2ecrs_drsdzeta-three*decrs_drs*phi_logder)
              d2bb_dzeta2=gamphi3inv*(d2ecrs_dzeta2-six*decrs_dzeta*phi_logder+&
-                  &     12.0d0*ecrs*phi_logder*phi_logder-three*ecrs*phi_zeta_inv*phipp_zeta)
+                  &     12.0_dp*ecrs*phi_logder*phi_logder-three*ecrs*phi_zeta_inv*phipp_zeta)
 
              !   From bb to cc
              exp_pbe=exp(-bb)
@@ -3302,11 +3397,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !    Note that there is already a contribution from LSDA
              dvxci(ipts,9)=dvxci(ipts,9)+d2rhohh_drho2+rhotot_inv*           &
                   &     ( d2hh_dzeta2*(one-two*zeta) &
-                  &      -two*third*rs*d2hh_drsdzeta-14.0d0*third*tt*d2hh_dttdzeta)
+                  &      -two*third*rs*d2hh_drsdzeta-14.0_dp*third*tt*d2hh_dttdzeta)
              dvxci(ipts,10)=dvxci(ipts,10)+d2rhohh_drho2-rhotot_inv*d2hh_dzeta2
              dvxci(ipts,11)=dvxci(ipts,11)+d2rhohh_drho2+rhotot_inv*           &
                   &     ( d2hh_dzeta2*(one+two*zeta) &
-                  &      +two*third*rs*d2hh_drsdzeta+14.0d0*third*tt*d2hh_dttdzeta)
+                  &      +two*third*rs*d2hh_drsdzeta+14.0_dp*third*tt*d2hh_dttdzeta)
              !    Components 13 and 14 : second derivatives with respect to spin density
              !    and gradient, divided by the gradient
              dvxci(ipts,13)=d2rhohh_drhodg+dtt_dg*d2hh_dttdzeta
@@ -3358,7 +3453,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              ! vx^(2) = -2*vx^(1)/(3*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -3405,7 +3500,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !    Components 3 or 4
              dvxci(ipts,2+ispden)=dvxcdgr(ipts,ispden)
              !    Components 1 or 2
-             d2ssdn2=-11.0d0*third*dssdn*rho_inv
+             d2ssdn2=-11.0_dp*third*dssdn*rho_inv
              d2fxdn2=d2fxdss2*dssdn**2+dfxdss*d2ssdn2
              dvxci(ipts,ispden)=third*rho_inv*vxci(ipts,ispden)+&
                   &     ex_lsd*(seven*third*dfxdn+rho*d2fxdn2)
@@ -3423,7 +3518,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              dvxci(ipts,8)=dvxci(ipts,7)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -3467,7 +3562,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              ! vx^(2) = -2*vx^(1)/(3*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -3478,38 +3573,38 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+4.d0*ec0_b4*rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+4._dp*ec0_b4*rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
-             ec0_q1pp=0.5d0*ec0_aa*(-ec0_b1*rsm1_2**3+3.d0*ec0_b3*rsm1_2+8.d0*ec0_b4)
-             d2ecrs0_drs2= 4.0d0*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             ec0_q1pp=0.5_dp*ec0_aa*(-ec0_b1*rsm1_2**3+3._dp*ec0_b3*rsm1_2+8._dp*ec0_b4)
+             d2ecrs0_drs2= 4.0_dp*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
-                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
-             mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
-             mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
-             mac_q1p=mac_aa*(mac_b1*rsm1_2+2.d0*mac_b2+3.d0*mac_b3*sqr_rs+4.d0*mac_b4*rs)
-             mac_den=1.0d0/(mac_q1*mac_q1+mac_q1)
+                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2._dp*ec0_q1+1.0_dp)
+             mac_q0=-2.0_dp*mac_aa*(1.0_dp+mac_a1*rs)
+             mac_q1=2.0_dp*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
+             mac_q1p=mac_aa*(mac_b1*rsm1_2+2._dp*mac_b2+3._dp*mac_b3*sqr_rs+4._dp*mac_b4*rs)
+             mac_den=1.0_dp/(mac_q1*mac_q1+mac_q1)
              mac_log=-log( mac_q1*mac_q1*mac_den )
              macrs=mac_q0*mac_log
-             dmacrs_drs= -2.0d0*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
+             dmacrs_drs= -2.0_dp*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
+             decrs_dzeta=0.0_dp
              d2ecrs_drs2=d2ecrs0_drs2
              d2ecrs_dzeta2=alpha_zeta**2*(-macrs)
              d2ecrs_drsdzeta=zero
-             zeta=0.0d0
+             zeta=0.0_dp
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
              vxci(ipts,1)=vxci(ipts,1)+ecrs-rs*third*decrs_drs
 
-             dvcrs_drs=third*(2.d0*decrs_drs-rs*d2ecrs_drs2)
+             dvcrs_drs=third*(2._dp*decrs_drs-rs*d2ecrs_drs2)
              !   And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
              d2ecrs_drho2= -rs**4*(four_pi*third)*third*dvcrs_drs
 
@@ -3548,7 +3643,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              ! vx^(2) = -2*vx^(1)/(3*rhotot)
              !end of loop over the spin
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
-             exc=exc*two
+             exc=exc*2
              exci(ipts)=exc*rhotot_inv
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
@@ -3559,39 +3654,39 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
-             sqr_sqr_rs=max(1.d-15,sqrt(sqr_rs))
-             ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs/sqr_sqr_rs)
-             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+3.5d0*ec0_b4*rs/sqr_sqr_rs)
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
+             sqr_sqr_rs=max(1.e-15_dp,sqrt(sqr_rs))
+             ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs/sqr_sqr_rs)
+             ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+3.5_dp*ec0_b4*rs/sqr_sqr_rs)
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
-             ec0_q1pp=0.5d0*ec0_aa*(-ec0_b1*rsm1_2**3+3.d0*ec0_b3*rsm1_2+8.d0*ec0_b4)
-             d2ecrs0_drs2= 4.0d0*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             ec0_q1pp=0.5_dp*ec0_aa*(-ec0_b1*rsm1_2**3+3._dp*ec0_b3*rsm1_2+8._dp*ec0_b4)
+             d2ecrs0_drs2= 4.0_dp*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
-                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
-             mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
-             mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
-             mac_q1p=mac_aa*(mac_b1*rsm1_2+2.d0*mac_b2+3.d0*mac_b3*sqr_rs+4.d0*mac_b4*rs)
-             mac_den=1.0d0/(mac_q1*mac_q1+mac_q1)
+                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2._dp*ec0_q1+1.0_dp)
+             mac_q0=-2.0_dp*mac_aa*(1.0_dp+mac_a1*rs)
+             mac_q1=2.0_dp*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
+             mac_q1p=mac_aa*(mac_b1*rsm1_2+2._dp*mac_b2+3._dp*mac_b3*sqr_rs+4._dp*mac_b4*rs)
+             mac_den=1.0_dp/(mac_q1*mac_q1+mac_q1)
              mac_log=-log( mac_q1*mac_q1*mac_den )
              macrs=mac_q0*mac_log
-             dmacrs_drs= -2.0d0*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
+             dmacrs_drs= -2.0_dp*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
              ecrs=ecrs0
              decrs_drs=decrs0_drs
-             decrs_dzeta=0.0d0
+             decrs_dzeta=0.0_dp
              d2ecrs_drs2=d2ecrs0_drs2
              d2ecrs_dzeta2=alpha_zeta**2*(-macrs)
              d2ecrs_drsdzeta=zero
-             zeta=0.0d0
+             zeta=0.0_dp
 
              !  Add LSD correlation functional to GGA exchange functional
              exci(ipts)=exci(ipts)+ecrs
              vxci(ipts,1)=vxci(ipts,1)+ecrs-rs*third*decrs_drs
 
-             dvcrs_drs=third*(2.d0*decrs_drs-rs*d2ecrs_drs2)
+             dvcrs_drs=third*(2._dp*decrs_drs-rs*d2ecrs_drs2)
              !   And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
              d2ecrs_drho2= -rs**4*(four_pi*third)*third*dvcrs_drs
              dvxci(ipts,1)=dvxci(ipts,1)+d2ecrs_drho2
@@ -3625,7 +3720,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              if(option==1 .or. option==-1 .or. option==3)then
                 !   Perdew_Wang 91 LSD
                 vxci(ipts,ispden)=four_thirds*ex_lsd
-                if(present(dvxcdgr)) dvxcdgr(ipts,ispden)=0.0d0
+                if(present(dvxcdgr)) dvxcdgr(ipts,ispden)=0.0_dp
                 exc=exc+ex_lsd*rho
              else
                 !   Perdew-Burke-Ernzerhof GGA, exchange part
@@ -3655,6 +3750,8 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
           end do
           exci(ipts)=exc*rhotot_inv
+          if(present(exexch).and.exexch==1)cycle
+
           ! -----------------------------------------------------------------------------
           ! Then takes care of the LSD correlation part of the functional
 
@@ -3665,63 +3762,63 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
              if(option/=3 .and. option/=4)then
-                ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
-                ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+4.d0*ec0_b4*rs)
+                ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
+                ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+4._dp*ec0_b4*rs)
              else
-                sqr_sqr_rs=max(1.d-15,sqrt(sqr_rs))
-                ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs/sqr_sqr_rs)
-                ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+3.5d0*ec0_b4*rs/sqr_sqr_rs)
+                sqr_sqr_rs=max(1.e-15_dp,sqrt(sqr_rs))
+                ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs/sqr_sqr_rs)
+                ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+3.5_dp*ec0_b4*rs/sqr_sqr_rs)
              end if
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
 
-             mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
-             mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
-             mac_q1p=mac_aa*(mac_b1*rsm1_2+2.d0*mac_b2+3.d0*mac_b3*sqr_rs+4.d0*mac_b4*rs)
-             mac_den=1.0d0/(mac_q1*mac_q1+mac_q1)
+             mac_q0=-2.0_dp*mac_aa*(1.0_dp+mac_a1*rs)
+             mac_q1=2.0_dp*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
+             mac_q1p=mac_aa*(mac_b1*rsm1_2+2._dp*mac_b2+3._dp*mac_b3*sqr_rs+4._dp*mac_b4*rs)
+             mac_den=1.0_dp/(mac_q1*mac_q1+mac_q1)
              mac_log=-log( mac_q1*mac_q1*mac_den )
              macrs=mac_q0*mac_log
-             dmacrs_drs= -2.0d0*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
+             dmacrs_drs= -2.0_dp*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
 
              zeta=(rho_updn(ipts,1)-rho_updn(ipts,2))*rhotot_inv
-             ec1_q0=-2.0d0*ec1_aa*(1.0d0+ec1_a1*rs)
+             ec1_q0=-2.0_dp*ec1_aa*(1.0_dp+ec1_a1*rs)
              if(option/=3 .and. option/=4)then
-                ec1_q1=2.0d0*ec1_aa*(ec1_b1*sqr_rs+ec1_b2*rs+ec1_b3*rs*sqr_rs+ec1_b4*rs*rs)
-                ec1_q1p=ec1_aa*(ec1_b1*rsm1_2+2.d0*ec1_b2+3.d0*ec1_b3*sqr_rs+4.d0*ec1_b4*rs)
+                ec1_q1=2.0_dp*ec1_aa*(ec1_b1*sqr_rs+ec1_b2*rs+ec1_b3*rs*sqr_rs+ec1_b4*rs*rs)
+                ec1_q1p=ec1_aa*(ec1_b1*rsm1_2+2._dp*ec1_b2+3._dp*ec1_b3*sqr_rs+4._dp*ec1_b4*rs)
              else
-                ec1_q1=2.0d0*ec1_aa*(ec1_b1*sqr_rs+ec1_b2*rs+ec1_b3*rs*sqr_rs+ec1_b4*rs*rs/sqr_sqr_rs)
-                ec1_q1p=ec1_aa*(ec1_b1*rsm1_2+2.d0*ec1_b2+3.d0*ec1_b3*sqr_rs+3.5d0*ec1_b4*rs/sqr_sqr_rs)
+                ec1_q1=2.0_dp*ec1_aa*(ec1_b1*sqr_rs+ec1_b2*rs+ec1_b3*rs*sqr_rs+ec1_b4*rs*rs/sqr_sqr_rs)
+                ec1_q1p=ec1_aa*(ec1_b1*rsm1_2+2._dp*ec1_b2+3._dp*ec1_b3*sqr_rs+3.5_dp*ec1_b4*rs/sqr_sqr_rs)
              end if
-             ec1_den=1.0d0/(ec1_q1*ec1_q1+ec1_q1)
-             !   ec1_log=log( 1.0d0 + 1.0d0 / ec1_q1 )
+             ec1_den=1.0_dp/(ec1_q1*ec1_q1+ec1_q1)
+             !   ec1_log=log( 1.0_dp + 1.0_dp / ec1_q1 )
              ec1_log=-log( ec1_q1*ec1_q1*ec1_den )
              ecrs1=ec1_q0*ec1_log
-             decrs1_drs= -2.0d0*ec1_aa*ec1_a1*ec1_log - ec1_q0*ec1_q1p *ec1_den
+             decrs1_drs= -2.0_dp*ec1_aa*ec1_a1*ec1_log - ec1_q0*ec1_q1p *ec1_den
 
              !   alpha_zeta is introduced in order to remove singularities for fully
              !   polarized systems.
-             zetp_1_3=(1.0d0+zeta*alpha_zeta)*zetpm1_3(ipts)**2
-             zetm_1_3=(1.0d0-zeta*alpha_zeta)*zetmm1_3(ipts)**2
+             zetp_1_3=(1.0_dp+zeta*alpha_zeta)*zetpm1_3(ipts)**2
+             zetm_1_3=(1.0_dp-zeta*alpha_zeta)*zetmm1_3(ipts)**2
 
-             f_zeta=( (1.0d0+zeta*alpha_zeta2)*zetp_1_3 +                      &
-                  &            (1.0d0-zeta*alpha_zeta2)*zetm_1_3 - 2.0d0 ) * factf_zeta
+             f_zeta=( (1.0_dp+zeta*alpha_zeta2)*zetp_1_3 +                      &
+                  &            (1.0_dp-zeta*alpha_zeta2)*zetm_1_3 - 2.0_dp ) * factf_zeta
              fp_zeta=( zetp_1_3 - zetm_1_3 ) * factfp_zeta
              zeta4=zeta**4
 
              gcrs=ecrs1-ecrs0+macrs*fsec_inv
-             !   ecrs=ecrs0+f_zeta*(-macrs*(1.0d0-zeta4)*fsec_inv+(ecrs1-ecrs0)*zeta4)
+             !   ecrs=ecrs0+f_zeta*(-macrs*(1.0_dp-zeta4)*fsec_inv+(ecrs1-ecrs0)*zeta4)
              ecrs=ecrs0+f_zeta*(zeta4*gcrs-macrs*fsec_inv)
 
              dgcrs_drs=decrs1_drs-decrs0_drs+dmacrs_drs*fsec_inv
              !    decrs_drs=decrs0_drs+f_zeta*&
-             !&        (-dmacrs_drs*(1.0d0-zeta4)*fsec_inv+(decrs1_drs-decrs0_drs)*zeta4)
+             !&        (-dmacrs_drs*(1.0_dp-zeta4)*fsec_inv+(decrs1_drs-decrs0_drs)*zeta4)
              decrs_drs=decrs0_drs+f_zeta*(zeta4*dgcrs_drs-dmacrs_drs*fsec_inv)
-             dfzeta4_dzeta=4.0d0*zeta**3*f_zeta+fp_zeta*zeta4
+             dfzeta4_dzeta=4.0_dp*zeta**3*f_zeta+fp_zeta*zeta4
              decrs_dzeta=dfzeta4_dzeta*gcrs-fp_zeta*macrs*fsec_inv
 
              !  Add LSD correlation functional to GGA exchange functional
@@ -3735,16 +3832,16 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !  Note : the computation of the potential in the spin-unpolarized
              !  case could be optimized much further. Other optimizations are left to do.
 
-             if(option==2 .or. option==5 .or. option==6)then
+             if(option==2 .or. option==5 .or. option==6 .or. option==7)then
                 !    The definition of phi has been slightly changed, because
                 !    the original PBE one gives divergent behaviour for fully
                 !    polarized points
-                !    zetpm1_3=(1.0d0+zeta*alpha_zeta)**(-third)
-                !    zetmm1_3=(1.0d0-zeta*alpha_zeta)**(-third)
-                phi_zeta=( zetpm1_3(ipts)*(1.0d0+zeta*alpha_zeta)+ &
-                     &               zetmm1_3(ipts)*(1.0d0-zeta*alpha_zeta)   )*0.5d0
+                !    zetpm1_3=(1.0_dp+zeta*alpha_zeta)**(-third)
+                !    zetmm1_3=(1.0_dp-zeta*alpha_zeta)**(-third)
+                phi_zeta=( zetpm1_3(ipts)*(1.0_dp+zeta*alpha_zeta)+ &
+                     &               zetmm1_3(ipts)*(1.0_dp-zeta*alpha_zeta)   )*0.5_dp
                 phip_zeta=(zetpm1_3(ipts)-zetmm1_3(ipts))*third*alpha_zeta
-                phi_zeta_inv=1.0d0/phi_zeta
+                phi_zeta_inv=1.0_dp/phi_zeta
                 phi_logder=phip_zeta*phi_zeta_inv
                 phi3_zeta=phi_zeta*phi_zeta*phi_zeta
                 gamphi3inv=gamma_inv*phi_zeta_inv*phi_zeta_inv*phi_zeta_inv
@@ -3855,7 +3952,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              if(option==1 .or. option==-1 .or. option==3)then
                 !   Perdew_Wang 91 LSD
                 vxci(ipts,ispden)=four_thirds*ex_lsd
-                if(present(dvxcdgr)) dvxcdgr(ipts,ispden)=0.0d0
+                if(present(dvxcdgr)) dvxcdgr(ipts,ispden)=0.0_dp
                 exc=exc+ex_lsd*rho
              else
                 !   Perdew-Burke-Ernzerhof GGA, exchange part
@@ -3897,7 +3994,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
                 !    Components 3 or 4
                 dvxci(ipts,2+ispden)=dvxcdgr(ipts,ispden)
                 !    Components 1 or 2
-                d2ssdn2=-11.0d0*third*dssdn*rho_inv
+                d2ssdn2=-11.0_dp*third*dssdn*rho_inv
                 d2fxdn2=d2fxdss2*dssdn**2+dfxdss*d2ssdn2
                 dvxci(ipts,ispden)=third*rho_inv*vxci(ipts,ispden)+&
                      &     ex_lsd*(seven*third*dfxdn+rho*d2fxdn2)
@@ -3922,93 +4019,93 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              rsm1_2=sq_rsfac_inv*rhoto6
 
              !  Formulas A6-A8 of PW92LSD
-             ec0_q0=-2.0d0*ec0_aa*(1.0d0+ec0_a1*rs)
+             ec0_q0=-2.0_dp*ec0_aa*(1.0_dp+ec0_a1*rs)
              if(option/=3 .and. option/=4)then
-                ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
-                ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+4.d0*ec0_b4*rs)
+                ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs)
+                ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+4._dp*ec0_b4*rs)
              else
-                sqr_sqr_rs=max(1.d-15,sqrt(sqr_rs))
-                ec0_q1=2.0d0*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs/sqr_sqr_rs)
-                ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2.d0*ec0_b2+3.d0*ec0_b3*sqr_rs+3.5d0*ec0_b4*rs/sqr_sqr_rs)
+                sqr_sqr_rs=max(1.e-15_dp,sqrt(sqr_rs))
+                ec0_q1=2.0_dp*ec0_aa*(ec0_b1*sqr_rs+ec0_b2*rs+ec0_b3*rs*sqr_rs+ec0_b4*rs*rs/sqr_sqr_rs)
+                ec0_q1p=ec0_aa*(ec0_b1*rsm1_2+2._dp*ec0_b2+3._dp*ec0_b3*sqr_rs+3.5_dp*ec0_b4*rs/sqr_sqr_rs)
              end if
-             ec0_den=1.0d0/(ec0_q1*ec0_q1+ec0_q1)
-             !  ec0_log=log( 1.0d0 + 1.0d0 / ec0_q1 )
+             ec0_den=1.0_dp/(ec0_q1*ec0_q1+ec0_q1)
+             !  ec0_log=log( 1.0_dp + 1.0_dp / ec0_q1 )
              ec0_log=-log( ec0_q1*ec0_q1*ec0_den )
              ecrs0=ec0_q0*ec0_log
-             decrs0_drs= -2.0d0*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
-             ec0_q1pp=0.5d0*ec0_aa*(-ec0_b1*rsm1_2**3+3.d0*ec0_b3*rsm1_2+8.d0*ec0_b4)
-             d2ecrs0_drs2= 4.0d0*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
+             decrs0_drs= -2.0_dp*ec0_aa*ec0_a1*ec0_log - ec0_q0*ec0_q1p *ec0_den
+             ec0_q1pp=0.5_dp*ec0_aa*(-ec0_b1*rsm1_2**3+3._dp*ec0_b3*rsm1_2+8._dp*ec0_b4)
+             d2ecrs0_drs2= 4.0_dp*ec0_aa*ec0_a1*ec0_q1p*ec0_den            &
                   &                -ec0_q0*ec0_q1pp*ec0_den                        &
-                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2.d0*ec0_q1+1.0d0)
+                  &                +ec0_q0*ec0_q1p**2*ec0_den**2*(2._dp*ec0_q1+1.0_dp)
              if (order==3) then
                 ec0_q1ppp = 0.75_dp*ec0_aa*(rsm1_2**5)*(ec0_b1-ec0_b3*rs)
-                ec0_f1 = one/(ec0_q1*ec0_q1*(one + ec0_q1))
-                ec0_f2 = one/(ec0_q1*(1._dp+ec0_q1))
+                ec0_f1 = 1._dp/(ec0_q1*ec0_q1*(1._dp + ec0_q1))
+                ec0_f2 = 1._dp/(ec0_q1*(1+ec0_q1))
                 d3ecrs0_drs3 = 6._dp*ec0_q1p*ec0_f1*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + &
-                     &        ec0_q0*ec0_q1pp) - &
-                     &        ec0_f2*(-6._dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
-                     &        ec0_f2*(3._dp*ec0_q1p*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
-                     &        ec0_f2*2._dp*ec0_q0*(ec0_q1p**3)*(one + 3._dp*ec0_q1*(one + ec0_q1))))
+                 &        ec0_q0*ec0_q1pp) - &
+                 &        ec0_f2*(-6._dp*ec0_aa*ec0_a1*ec0_q1pp + ec0_q0*ec0_q1ppp + &
+                 &        ec0_f2*(3._dp*ec0_q1p*(-2._dp*ec0_aa*ec0_a1*ec0_q1p + ec0_q0*ec0_q1pp) + &
+                 &        ec0_f2*2._dp*ec0_q0*(ec0_q1p**3)*(1._dp + 3._dp*ec0_q1*(1._dp + ec0_q1))))
              end if
 
-             mac_q0=-2.0d0*mac_aa*(1.0d0+mac_a1*rs)
-             mac_q1=2.0d0*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
-             mac_q1p=mac_aa*(mac_b1*rsm1_2+2.d0*mac_b2+3.d0*mac_b3*sqr_rs+4.d0*mac_b4*rs)
-             mac_den=1.0d0/(mac_q1*mac_q1+mac_q1)
+             mac_q0=-2.0_dp*mac_aa*(1.0_dp+mac_a1*rs)
+             mac_q1=2.0_dp*mac_aa*(mac_b1*sqr_rs+mac_b2*rs+mac_b3*rs*sqr_rs+mac_b4*rs*rs)
+             mac_q1p=mac_aa*(mac_b1*rsm1_2+2._dp*mac_b2+3._dp*mac_b3*sqr_rs+4._dp*mac_b4*rs)
+             mac_den=1.0_dp/(mac_q1*mac_q1+mac_q1)
              mac_log=-log( mac_q1*mac_q1*mac_den )
              macrs=mac_q0*mac_log
-             dmacrs_drs= -2.0d0*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
+             dmacrs_drs= -2.0_dp*mac_aa*mac_a1*mac_log - mac_q0*mac_q1p*mac_den
 
              zeta=(rho_updn(ipts,1)-rho_updn(ipts,2))*rhotot_inv
-             ec1_q0=-2.0d0*ec1_aa*(1.0d0+ec1_a1*rs)
+             ec1_q0=-2.0_dp*ec1_aa*(1.0_dp+ec1_a1*rs)
              if(option/=3 .and. option/=4)then
-                ec1_q1=2.0d0*ec1_aa*(ec1_b1*sqr_rs+ec1_b2*rs+ec1_b3*rs*sqr_rs+ec1_b4*rs*rs)
-                ec1_q1p=ec1_aa*(ec1_b1*rsm1_2+2.d0*ec1_b2+3.d0*ec1_b3*sqr_rs+4.d0*ec1_b4*rs)
+                ec1_q1=2.0_dp*ec1_aa*(ec1_b1*sqr_rs+ec1_b2*rs+ec1_b3*rs*sqr_rs+ec1_b4*rs*rs)
+                ec1_q1p=ec1_aa*(ec1_b1*rsm1_2+2._dp*ec1_b2+3._dp*ec1_b3*sqr_rs+4._dp*ec1_b4*rs)
              else
-                ec1_q1=2.0d0*ec1_aa*(ec1_b1*sqr_rs+ec1_b2*rs+ec1_b3*rs*sqr_rs+ec1_b4*rs*rs/sqr_sqr_rs)
-                ec1_q1p=ec1_aa*(ec1_b1*rsm1_2+2.d0*ec1_b2+3.d0*ec1_b3*sqr_rs+3.5d0*ec1_b4*rs/sqr_sqr_rs)
+                ec1_q1=2.0_dp*ec1_aa*(ec1_b1*sqr_rs+ec1_b2*rs+ec1_b3*rs*sqr_rs+ec1_b4*rs*rs/sqr_sqr_rs)
+                ec1_q1p=ec1_aa*(ec1_b1*rsm1_2+2._dp*ec1_b2+3._dp*ec1_b3*sqr_rs+3.5_dp*ec1_b4*rs/sqr_sqr_rs)
              end if
-             ec1_den=1.0d0/(ec1_q1*ec1_q1+ec1_q1)
-             !   ec1_log=log( 1.0d0 + 1.0d0 / ec1_q1 )
+             ec1_den=1.0_dp/(ec1_q1*ec1_q1+ec1_q1)
+             !   ec1_log=log( 1.0_dp + 1.0_dp / ec1_q1 )
              ec1_log=-log( ec1_q1*ec1_q1*ec1_den )
              ecrs1=ec1_q0*ec1_log
-             decrs1_drs= -2.0d0*ec1_aa*ec1_a1*ec1_log - ec1_q0*ec1_q1p *ec1_den
+             decrs1_drs= -2.0_dp*ec1_aa*ec1_a1*ec1_log - ec1_q0*ec1_q1p *ec1_den
 
              !   alpha_zeta is introduced in order to remove singularities for fully
              !   polarized systems.
-             zetp_1_3=(1.0d0+zeta*alpha_zeta)*zetpm1_3(ipts)**2
-             zetm_1_3=(1.0d0-zeta*alpha_zeta)*zetmm1_3(ipts)**2
+             zetp_1_3=(1.0_dp+zeta*alpha_zeta)*zetpm1_3(ipts)**2
+             zetm_1_3=(1.0_dp-zeta*alpha_zeta)*zetmm1_3(ipts)**2
 
-             f_zeta=( (1.0d0+zeta*alpha_zeta2)*zetp_1_3 +                      &
-                  &            (1.0d0-zeta*alpha_zeta2)*zetm_1_3 - 2.0d0 ) * factf_zeta
+             f_zeta=( (1.0_dp+zeta*alpha_zeta2)*zetp_1_3 +                      &
+                  &            (1.0_dp-zeta*alpha_zeta2)*zetm_1_3 - 2.0_dp ) * factf_zeta
              fp_zeta=( zetp_1_3 - zetm_1_3 ) * factfp_zeta
              zeta4=zeta**4
 
              gcrs=ecrs1-ecrs0+macrs*fsec_inv
-             !   ecrs=ecrs0+f_zeta*(-macrs*(1.0d0-zeta4)*fsec_inv+(ecrs1-ecrs0)*zeta4)
+             !   ecrs=ecrs0+f_zeta*(-macrs*(1.0_dp-zeta4)*fsec_inv+(ecrs1-ecrs0)*zeta4)
              ecrs=ecrs0+f_zeta*(zeta4*gcrs-macrs*fsec_inv)
 
              dgcrs_drs=decrs1_drs-decrs0_drs+dmacrs_drs*fsec_inv
              !    decrs_drs=decrs0_drs+f_zeta*&
-             !&        (-dmacrs_drs*(1.0d0-zeta4)*fsec_inv+(decrs1_drs-decrs0_drs)*zeta4)
+             !&        (-dmacrs_drs*(1.0_dp-zeta4)*fsec_inv+(decrs1_drs-decrs0_drs)*zeta4)
              decrs_drs=decrs0_drs+f_zeta*(zeta4*dgcrs_drs-dmacrs_drs*fsec_inv)
-             dfzeta4_dzeta=4.0d0*zeta**3*f_zeta+fp_zeta*zeta4
+             dfzeta4_dzeta=4.0_dp*zeta**3*f_zeta+fp_zeta*zeta4
              decrs_dzeta=dfzeta4_dzeta*gcrs-fp_zeta*macrs*fsec_inv
 
-             ec1_q1pp=0.5d0*ec1_aa*(-ec1_b1*rsm1_2**3+3.d0*ec1_b3*rsm1_2+8.d0*ec1_b4)
-             d2ecrs1_drs2= 4.0d0*ec1_aa*ec1_a1*ec1_q1p*ec1_den            &
+             ec1_q1pp=0.5_dp*ec1_aa*(-ec1_b1*rsm1_2**3+3._dp*ec1_b3*rsm1_2+8._dp*ec1_b4)
+             d2ecrs1_drs2= 4.0_dp*ec1_aa*ec1_a1*ec1_q1p*ec1_den            &
                   &                 -ec1_q0*ec1_q1pp*ec1_den                        &
-                  &                 +ec1_q0*ec1_q1p**2*ec1_den**2*(2.d0*ec1_q1+1.0d0)
+                  &                 +ec1_q0*ec1_q1p**2*ec1_den**2*(2._dp*ec1_q1+1.0_dp)
 
-             mac_q1pp=0.5d0*mac_aa*(-mac_b1*rsm1_2**3+3.d0*mac_b3*rsm1_2+8.d0*mac_b4)
-             d2macrs_drs2= 4.0d0*mac_aa*mac_a1*mac_q1p*mac_den            &
+             mac_q1pp=0.5_dp*mac_aa*(-mac_b1*rsm1_2**3+3._dp*mac_b3*rsm1_2+8._dp*mac_b4)
+             d2macrs_drs2= 4.0_dp*mac_aa*mac_a1*mac_q1p*mac_den            &
                   &                 -mac_q0*mac_q1pp*mac_den                        &
-                  &                 +mac_q0*mac_q1p**2*mac_den**2*(2.d0*mac_q1+1.0d0)
+                  &                 +mac_q0*mac_q1p**2*mac_den**2*(2._dp*mac_q1+1.0_dp)
 
              d2gcrs_drs2=d2ecrs1_drs2-d2ecrs0_drs2+d2macrs_drs2*fsec_inv
              fpp_zeta=(zetpm1_3(ipts)**2+zetmm1_3(ipts)**2) * factfpp_zeta
-             d2fzeta4_dzeta2=12.0d0*zeta**2*f_zeta  &
-                  &                   + 8.0d0*zeta**3*fp_zeta &
+             d2fzeta4_dzeta2=12.0_dp*zeta**2*f_zeta  &
+                  &                   + 8.0_dp*zeta**3*fp_zeta &
                   &                   +       zeta4  *fpp_zeta
 
              d2ecrs_drs2=d2ecrs0_drs2+&
@@ -4023,18 +4120,18 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              vxci(ipts,1)=vxci(ipts,1)+vxcadd+decrs_dzeta
              vxci(ipts,2)=vxci(ipts,2)+vxcadd-decrs_dzeta
 
-             dvcrs_drs=third*(2.d0*decrs_drs-rs*d2ecrs_drs2)
+             dvcrs_drs=third*(2._dp*decrs_drs-rs*d2ecrs_drs2)
              !   And d(vxc)/d(rho)=(-rs/(3*rho))*d(vxc)/d(rs)
              d2ecrs_drho2= -rs**4*(four_pi*third)*third*dvcrs_drs
              d2ecrs_drup2=d2ecrs_drho2+&
-                  &       two*(-third*rs*d2ecrs_drsdzeta)*(1.d0-zeta)*rhotot_inv+ &
-                  &       d2ecrs_dzeta2*(1.d0-zeta)**2*rhotot_inv
+                  &       two*(-third*rs*d2ecrs_drsdzeta)*(1._dp-zeta)*rhotot_inv+ &
+                  &       d2ecrs_dzeta2*(1._dp-zeta)**2*rhotot_inv
              d2ecrs_drdndrup=d2ecrs_drho2+&
-                  &       2.0d0*(-third*rs*d2ecrs_drsdzeta)*(-zeta)*rhotot_inv+ &
-                  &       d2ecrs_dzeta2*(1.d0-zeta)*(-1.d0-zeta)*rhotot_inv
+                  &       2.0_dp*(-third*rs*d2ecrs_drsdzeta)*(-zeta)*rhotot_inv+ &
+                  &       d2ecrs_dzeta2*(1._dp-zeta)*(-1._dp-zeta)*rhotot_inv
              d2ecrs_drdn2=d2ecrs_drho2+&
-                  &       2.0d0*(-third*rs*d2ecrs_drsdzeta)*(-1.d0-zeta)*rhotot_inv+ &
-                  &       d2ecrs_dzeta2*(-1.d0-zeta)**2*rhotot_inv
+                  &       2.0_dp*(-third*rs*d2ecrs_drsdzeta)*(-1._dp-zeta)*rhotot_inv+ &
+                  &       d2ecrs_dzeta2*(-1._dp-zeta)**2*rhotot_inv
              if(option==1 .or. option==-1 .or. option==3)then
                 dvxci(ipts,1)=dvxci(ipts,1)+d2ecrs_drup2
                 dvxci(ipts,2)=dvxci(ipts,2)+d2ecrs_drdndrup
@@ -4050,16 +4147,16 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !  Note : the computation of the potential in the spin-unpolarized
              !  case could be optimized much further. Other optimizations are left to do.
 
-             if(option==2 .or. option==5 .or. option==6)then
+             if(option==2 .or. option==5 .or. option==6 .or. option==7)then
                 !    The definition of phi has been slightly changed, because
                 !    the original PBE one gives divergent behaviour for fully
                 !    polarized points
-                !    zetpm1_3=(1.0d0+zeta*alpha_zeta)**(-third)
-                !    zetmm1_3=(1.0d0-zeta*alpha_zeta)**(-third)
-                phi_zeta=( zetpm1_3(ipts)*(1.0d0+zeta*alpha_zeta)+ &
-                     &               zetmm1_3(ipts)*(1.0d0-zeta*alpha_zeta)   )*0.5d0
+                !    zetpm1_3=(1.0_dp+zeta*alpha_zeta)**(-third)
+                !    zetmm1_3=(1.0_dp-zeta*alpha_zeta)**(-third)
+                phi_zeta=( zetpm1_3(ipts)*(1.0_dp+zeta*alpha_zeta)+ &
+                     &               zetmm1_3(ipts)*(1.0_dp-zeta*alpha_zeta)   )*0.5_dp
                 phip_zeta=(zetpm1_3(ipts)-zetmm1_3(ipts))*third*alpha_zeta
-                phi_zeta_inv=1.0d0/phi_zeta
+                phi_zeta_inv=1.0_dp/phi_zeta
                 phi_logder=phip_zeta*phi_zeta_inv
                 phi3_zeta=phi_zeta*phi_zeta*phi_zeta
                 gamphi3inv=gamma_inv*phi_zeta_inv*phi_zeta_inv*phi_zeta_inv
@@ -4074,7 +4171,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
                 d2bb_drs2=d2ecrs_drs2*gamphi3inv
                 d2bb_drsdzeta=gamphi3inv*(d2ecrs_drsdzeta-three*decrs_drs*phi_logder)
                 d2bb_dzeta2=gamphi3inv*(d2ecrs_dzeta2-six*decrs_dzeta*phi_logder+&
-                     &     12.0d0*ecrs*phi_logder*phi_logder-three*ecrs*phi_zeta_inv*phipp_zeta)
+                     &     12.0_dp*ecrs*phi_logder*phi_logder-three*ecrs*phi_zeta_inv*phipp_zeta)
 
                 !   From bb to cc
                 exp_pbe=exp(-bb)
@@ -4207,11 +4304,11 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
                 !    Note that there is already a contribution from LSDA
                 dvxci(ipts,9)=dvxci(ipts,9)+d2rhohh_drho2+rhotot_inv*           &
                      &     ( d2hh_dzeta2*(one-two*zeta) &
-                     &      -two*third*rs*d2hh_drsdzeta-14.0d0*third*tt*d2hh_dttdzeta)
+                     &      -two*third*rs*d2hh_drsdzeta-14.0_dp*third*tt*d2hh_dttdzeta)
                 dvxci(ipts,10)=dvxci(ipts,10)+d2rhohh_drho2-rhotot_inv*d2hh_dzeta2
                 dvxci(ipts,11)=dvxci(ipts,11)+d2rhohh_drho2+rhotot_inv*           &
                      &     ( d2hh_dzeta2*(one+two*zeta) &
-                     &      +two*third*rs*d2hh_drsdzeta+14.0d0*third*tt*d2hh_dttdzeta)
+                     &      +two*third*rs*d2hh_drsdzeta+14.0_dp*third*tt*d2hh_dttdzeta)
                 !    Components 13 and 14 : second derivatives with respect to spin density
                 !    and gradient, divided by the gradient
                 dvxci(ipts,13)=d2rhohh_drhodg+dtt_dg*d2hh_dttdzeta
@@ -4273,33 +4370,33 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 !  if(debug==1)then
 !!  For rho
 !   write(6, '(3es16.8)' )exci(ipts)*rho,&
-!&      ( exci(ipts+1)*(rho+delta) - exci(ipts+2)*(rho-delta) )/2.d0/delta,&
-!&      ( exci(ipts+3)*(rho+delta) - exci(ipts+4)*(rho-delta) )/2.d0/delta
+!&      ( exci(ipts+1)*(rho+delta) - exci(ipts+2)*(rho-delta) )/2._dp/delta,&
+!&      ( exci(ipts+3)*(rho+delta) - exci(ipts+4)*(rho-delta) )/2._dp/delta
 !   write(6, '(3es16.8)' )&
-!&    ( vxci(ipts+1,1) - vxci(ipts+2,1) )/2.d0/delta,&
-!&    ( vxci(ipts+3,1) - vxci(ipts+4,1) )/2.d0/delta,&
-!&    ( vxci(ipts+3,2) - vxci(ipts+4,2) )/2.d0/delta
+!&    ( vxci(ipts+1,1) - vxci(ipts+2,1) )/2._dp/delta,&
+!&    ( vxci(ipts+3,1) - vxci(ipts+4,1) )/2._dp/delta,&
+!&    ( vxci(ipts+3,2) - vxci(ipts+4,2) )/2._dp/delta
 !   write(6, '(4es16.8)' )&
-!&    ( dvxcdgr(ipts+1,1) - dvxcdgr(ipts+2,1) )/2.d0/delta,&
-!&    ( dvxcdgr(ipts+3,2) - dvxcdgr(ipts+4,2) )/2.d0/delta,&
-!&    ( dvxcdgr(ipts+1,3) - dvxcdgr(ipts+2,3) )/2.d0/delta,&
-!&    ( dvxcdgr(ipts+3,3) - dvxcdgr(ipts+4,3) )/2.d0/delta
+!&    ( dvxcdgr(ipts+1,1) - dvxcdgr(ipts+2,1) )/2._dp/delta,&
+!&    ( dvxcdgr(ipts+3,2) - dvxcdgr(ipts+4,2) )/2._dp/delta,&
+!&    ( dvxcdgr(ipts+1,3) - dvxcdgr(ipts+2,3) )/2._dp/delta,&
+!&    ( dvxcdgr(ipts+3,3) - dvxcdgr(ipts+4,3) )/2._dp/delta
 !  else
 !!  For grho2  (should distinguish exchange and correlation ...)
 !   grr=sqrt(grho2_updn(ipts,1)) ! Analysis of exchange
 !   grr=sqrt(grho2_updn(ipts,3)) ! Analysis of correlation
 !   write(6, '(3es16.8)' )exci(ipts)*rho,&
-!&      ( exci(ipts+1)*rho - exci(ipts+2)*rho )/2.d0/delta/grr,&
-!&      ( exci(ipts+3)*rho - exci(ipts+4)*rho )/2.d0/delta/grr
+!&      ( exci(ipts+1)*rho - exci(ipts+2)*rho )/2._dp/delta/grr,&
+!&      ( exci(ipts+3)*rho - exci(ipts+4)*rho )/2._dp/delta/grr
 !   write(6, '(3es16.8)' )&
-! &    ( vxci(ipts+1,1) - vxci(ipts+2,1) )/2.d0/delta/grr,&
-! &    ( vxci(ipts+3,1) - vxci(ipts+4,1) )/2.d0/delta/grr,&
-! &    ( vxci(ipts+3,2) - vxci(ipts+4,2) )/2.d0/delta/grr
+! &    ( vxci(ipts+1,1) - vxci(ipts+2,1) )/2._dp/delta/grr,&
+! &    ( vxci(ipts+3,1) - vxci(ipts+4,1) )/2._dp/delta/grr,&
+! &    ( vxci(ipts+3,2) - vxci(ipts+4,2) )/2._dp/delta/grr
 !   write(6, '(4es16.8)' )&
-! &    ( dvxcdgr(ipts+1,1) - dvxcdgr(ipts+2,1) )/2.d0/delta/grr,&
-! &    ( dvxcdgr(ipts+3,2) - dvxcdgr(ipts+4,2) )/2.d0/delta/grr,&
-! &    ( dvxcdgr(ipts+1,3) - dvxcdgr(ipts+2,3) )/2.d0/delta/grr,&
-! &    ( dvxcdgr(ipts+3,3) - dvxcdgr(ipts+4,3) )/2.d0/delta/grr
+! &    ( dvxcdgr(ipts+1,1) - dvxcdgr(ipts+2,1) )/2._dp/delta/grr,&
+! &    ( dvxcdgr(ipts+3,2) - dvxcdgr(ipts+4,2) )/2._dp/delta/grr,&
+! &    ( dvxcdgr(ipts+1,3) - dvxcdgr(ipts+2,3) )/2._dp/delta/grr,&
+! &    ( dvxcdgr(ipts+3,3) - dvxcdgr(ipts+4,3) )/2._dp/delta/grr
 !  end if
 ! end do
 ! stop

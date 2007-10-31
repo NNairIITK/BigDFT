@@ -126,49 +126,6 @@ program memguess
   call read_system_variables(0,nproc,nat,ntypes,in%nspin,in%ncharge,in%mpol,atomnames,iatype,&
        psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
 
-! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
-  allocate(xp(ngx,ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(xp))*kind(xp),'xp','memguess')
-  allocate(psiat(ngx,5,ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(psiat))*kind(psiat),'psiat','memguess')
-  allocate(occupat(5,ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(occupat))*kind(occupat),'occupat','memguess')
-  allocate(ng(ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(ng))*kind(ng),'ng','memguess')
-  allocate(nl(4,ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(nl))*kind(nl),'nl','memguess')
-  allocate(scorb(4,natsc),stat=i_stat)
-  call memocc(i_stat,product(shape(scorb))*kind(scorb),'scorb','memguess')
-  allocate(norbsc_arr(natsc+1),stat=i_stat)
-  call memocc(i_stat,product(shape(norbsc_arr))*kind(norbsc_arr),'norbsc_arr','memguess')
-
-  ! Read the inguess.dat file or generate the input guess via the inguess_generator
-  call readAtomicOrbitals(0,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,psppar,&
-       & npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,&
-       & norbsc_arr)
-
-! De-allocations
-  i_all=-product(shape(xp))*kind(xp)
-  deallocate(xp,stat=i_stat)
-  call memocc(i_stat,i_all,'xp','memguess')
-  i_all=-product(shape(psiat))*kind(psiat)
-  deallocate(psiat,stat=i_stat)
-  call memocc(i_stat,i_all,'psiat','memguess')
-  i_all=-product(shape(occupat))*kind(occupat)
-  deallocate(occupat,stat=i_stat)
-  call memocc(i_stat,i_all,'occupat','memguess')
-  i_all=-product(shape(ng))*kind(ng)
-  deallocate(ng,stat=i_stat)
-  call memocc(i_stat,i_all,'ng','memguess')
-  i_all=-product(shape(nl))*kind(nl)
-  deallocate(nl,stat=i_stat)
-  call memocc(i_stat,i_all,'nl','memguess')
-  i_all=-product(shape(scorb))*kind(scorb)
-  deallocate(scorb,stat=i_stat)
-  call memocc(i_stat,i_all,'scorb','memguess')
-  i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-  deallocate(norbsc_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'norbsc_arr','memguess')
   i_all=-product(shape(psppar))*kind(psppar)
   deallocate(psppar,stat=i_stat)
   call memocc(i_stat,i_all,'psppar','memguess')
@@ -195,29 +152,6 @@ program memguess
 ! Occupation numbers
   call input_occup(0,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,occup,spinar)
 
-! Check the maximum number of orbitals
-  if (in%nspin==1) then
-     if (norb>norbe) then
-       write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',norb,&
-              ') must not be greater than the number of orbitals (',norbe,&
-              ') generated from the input guess.'
-       stop
-     end if
-  else
-     if (norbu>norbe) then
-       write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',norbu,&
-              ') must not be greater than the number of orbitals (',norbe,&
-              ') generated from the input guess.'
-       stop
-     end if
-     if (norbd>norbe) then
-       write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',norbd,&
-              ') must not be greater than the number of orbitals (',norbe,&
-              ') generated from the input guess.'
-       stop
-     end if
-  end if
-
 ! De-allocations
   i_all=-product(shape(occup))*kind(occup)
   deallocate(occup,stat=i_stat)
@@ -225,6 +159,77 @@ program memguess
   i_all=-product(shape(spinar))*kind(spinar)
   deallocate(spinar,stat=i_stat)
   call memocc(i_stat,i_all,'spinar','memguess')
+  
+  !in the case in which the number of orbitals is not "trivial" check whether they are too many
+  if ( max(norbu,norbd) /= ceiling(real(nelec,kind=4)/2.0) ) then
+     ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
+     allocate(xp(ngx,ntypes),stat=i_stat)
+     call memocc(i_stat,product(shape(xp))*kind(xp),'xp','memguess')
+     allocate(psiat(ngx,5,ntypes),stat=i_stat)
+     call memocc(i_stat,product(shape(psiat))*kind(psiat),'psiat','memguess')
+     allocate(occupat(5,ntypes),stat=i_stat)
+     call memocc(i_stat,product(shape(occupat))*kind(occupat),'occupat','memguess')
+     allocate(ng(ntypes),stat=i_stat)
+     call memocc(i_stat,product(shape(ng))*kind(ng),'ng','memguess')
+     allocate(nl(4,ntypes),stat=i_stat)
+     call memocc(i_stat,product(shape(nl))*kind(nl),'nl','memguess')
+     allocate(scorb(4,natsc),stat=i_stat)
+     call memocc(i_stat,product(shape(scorb))*kind(scorb),'scorb','memguess')
+     allocate(norbsc_arr(natsc+1),stat=i_stat)
+     call memocc(i_stat,product(shape(norbsc_arr))*kind(norbsc_arr),'norbsc_arr','memguess')
+
+     ! Read the inguess.dat file or generate the input guess via the inguess_generator
+     call readAtomicOrbitals(0,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,psppar,&
+          & npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,&
+          & norbsc_arr)
+
+     ! De-allocations
+     i_all=-product(shape(xp))*kind(xp)
+     deallocate(xp,stat=i_stat)
+     call memocc(i_stat,i_all,'xp','memguess')
+     i_all=-product(shape(psiat))*kind(psiat)
+     deallocate(psiat,stat=i_stat)
+     call memocc(i_stat,i_all,'psiat','memguess')
+     i_all=-product(shape(occupat))*kind(occupat)
+     deallocate(occupat,stat=i_stat)
+     call memocc(i_stat,i_all,'occupat','memguess')
+     i_all=-product(shape(ng))*kind(ng)
+     deallocate(ng,stat=i_stat)
+     call memocc(i_stat,i_all,'ng','memguess')
+     i_all=-product(shape(nl))*kind(nl)
+     deallocate(nl,stat=i_stat)
+     call memocc(i_stat,i_all,'nl','memguess')
+     i_all=-product(shape(scorb))*kind(scorb)
+     deallocate(scorb,stat=i_stat)
+     call memocc(i_stat,i_all,'scorb','memguess')
+     i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
+     deallocate(norbsc_arr,stat=i_stat)
+     call memocc(i_stat,i_all,'norbsc_arr','memguess')
+
+     ! Check the maximum number of orbitals
+     if (in%nspin==1) then
+        if (norb>norbe) then
+           write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',norb,&
+                ') must not be greater than the number of orbitals (',norbe,&
+                ') generated from the input guess.'
+           stop
+        end if
+     else
+        if (norbu>norbe) then
+           write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',norbu,&
+                ') must not be greater than the number of orbitals (',norbe,&
+                ') generated from the input guess.'
+           stop
+        end if
+        if (norbd>norbe) then
+           write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',norbd,&
+                ') must not be greater than the number of orbitals (',norbe,&
+                ') generated from the input guess.'
+           stop
+        end if
+     end if
+
+  end if
 
 ! Determine size alat of overall simulation cell and shift atom positions
 ! then calculate the size in units of the grid space
