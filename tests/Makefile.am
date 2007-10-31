@@ -25,4 +25,4 @@ all:
 	@echo "=============================================="
 
 check:
-	@python report.py
+	@python $(top_srcdir)/tests/report.py
