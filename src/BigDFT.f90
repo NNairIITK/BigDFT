@@ -836,7 +836,7 @@ end interface
 
      loop_cluster: do
 
-        if (inputPsiId_orig == 0 .and. associated(psi)) then
+        if (in%inputPsiId == 0 .and. associated(psi)) then
            i_all=-product(shape(psi))*kind(psi)
            deallocate(psi,stat=i_stat)
            call memocc(i_stat,i_all,'psi','call_cluster')

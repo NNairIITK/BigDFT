@@ -59,9 +59,6 @@ convolution_source = convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_ib_optim.f90 \
 	convolutions/conv_per_optim.f90 \
 	convolutions/convolut_simple.f90 
-#	conv_per_optim.f90 \
-#	combined_grow.f90 \
-#	combined_shrink.f90 
 
 else
 convolution_source = convolutions/combined_shrink_simple.f90 \
@@ -70,15 +67,12 @@ convolution_source = convolutions/combined_shrink_simple.f90 \
 	convolutions/convolut_ib_simple.f90 \
 	convolutions/conv_per_simple.f90 \
 	convolutions/convolut_simple.f90 
-#	conv_per_optim.f90 \
-#	combined_grow.f90 \
-#	combined_shrink.f90
 
 endif
 
 convolution_objects = $(convolution_source:.f90=.o)
 
-#objects which depends from BigDFT_API
+#objects which depends from module_types
 high_level = cluster.f90 \
 	input_variables.f90 \
 	init.f90 \
@@ -161,11 +155,11 @@ mpif.h:
 	 echo "integer :: MPI_MIN, MPI_MAX" >> mpif.h
 
 test_forces.o: parameters.h \
-	bigdft_api.@MODULE_EXT@
+	$(mod_bigdft)
 
-bigdft_api.@MODULE_EXT@ BIGDFT_API.@MODULE_EXT@: BigDFT_API.o
+$(mod_bigdft) : BigDFT_API.o
 
 BigDFT.o: parameters.h \
-	bigdft_api.@MODULE_EXT@
+	types.o
 
-memguess.o: bigdft_api.@MODULE_EXT@
+memguess.o: types.o

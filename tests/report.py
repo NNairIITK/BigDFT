@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Final report
-# Date: 29/10/2007
+# Date: 31/10/2007
 #----------------------------------------------------------------------------
 
 import glob
@@ -10,7 +10,7 @@ import re
 import sys
 
 #Max value
-max_discrepancy = 1.e-11
+max_discrepancy = 1.2e-10
 #Regular expression
 re_discrepancy = re.compile("Max Discrepancy[^:]*:[ ]+(.*)")
 
