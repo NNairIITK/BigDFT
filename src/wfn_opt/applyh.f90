@@ -14,6 +14,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension  psi(nvctr_c+7*nvctr_f,norbp)
   dimension hpsi(nvctr_c+7*nvctr_f,norbp)
+  logical :: parameter, newmethod=.false.
   real(kind=8), allocatable :: psir(:),y_c(:,:,:),y_f(:,:,:,:)
 
   !********************Alexey***************************************************************
@@ -35,13 +36,11 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
 
   ! for real space:
   integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
-  !*************Alexey***************************************************************************
-  real(kind=8),allocatable,dimension(:,:,:)::x_c!input 
-  real(kind=8),allocatable::x_f(:,:,:,:) ! input
-  real(kind=8),allocatable,dimension(:,:,:)::x_f1,x_f2,x_f3 ! input
-  real(kind=8),allocatable,dimension(:):: w1,w2 
-  !***********************************************************************************************
-  !******************Alexey**********************************************************************
+
+  real(kind=8), dimension(:,:,:), allocatable ::x_c !input 
+  real(kind=8), dimension(:,:,:,:), allocatable::x_f,x_fc ! input
+  real(kind=8), dimension(:,:,:), allocatable :: x_f1,x_f2,x_f3 ! input
+  real(kind=8), dimension(:), allocatable :: w1,w2 
 
   ! shrink convention: nw1>nw2
   nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
@@ -53,9 +52,6 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
        4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
        (n1+1)*(n2+1)*(2*n3+31))
 
-  !***********************************************************************************************
-
-
   allocate(y_c(0:n1,0:n2,0:n3),stat=i_stat)
   call memocc(i_stat,product(shape(y_c))*kind(y_c),'y_c','applylocpotkinall')
   allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
@@ -64,63 +60,103 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
   call memocc(i_stat,product(shape(psir))*kind(psir),'psir','applylocpotkinall')
 
-  !*****************Alexey***********************************************************************  
   allocate(x_c(0:n1,0:n2,0:n3),stat=i_stat)
   call memocc(i_stat,product(shape(x_c))*kind(x_c),'x_c','applylocpotkinall')
-  allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_f1))*kind(x_f1),'x_f1','applylocpotkinall')
-  allocate(x_f2(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_f2))*kind(x_f2),'x_f2','applylocpotkinall')
-  allocate(x_f3(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_f3))*kind(x_f3),'x_f3','applylocpotkinall')
   allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)! work
   call memocc(i_stat,product(shape(x_f))*kind(x_f),'x_f','applylocpotkinall')
   allocate(w1(nw1),stat=i_stat)
   call memocc(i_stat,product(shape(w1))*kind(w1),'w1','applylocpotkinall')
     
-!  w1=sqrt(-1.d0)
-  
   allocate(w2(nw2),stat=i_stat) ! work
   call memocc(i_stat,product(shape(w2))*kind(w2),'w2','applylocpotkinall')
-  !***********************************************************************************************
-
-!  w2=sqrt(-1.d0)
-
-  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1)
-  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f2)
-  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f3)
-  
-  call razero((n1+1)*(n2+1)*(n3+1),x_c)
-  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f)
-
-  !to be initialised
-  call razero((n1+1)*(n2+1)*(n3+1),y_c)
-  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f)
 
 
-  call razero((2*n1+31)*(2*n2+31)*(2*n3+31),psir)
-  
-  ekin_sum=0.d0
-  epot_sum=0.d0
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+  if (newmethod) then
+     allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+     call memocc(i_stat,product(shape(x_f1))*kind(x_f1),'x_f1','applylocpotkinall')
+     allocate(x_f2(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+     call memocc(i_stat,product(shape(x_f2))*kind(x_f2),'x_f2','applylocpotkinall')
+     allocate(x_f3(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+     call memocc(i_stat,product(shape(x_f3))*kind(x_f3),'x_f3','applylocpotkinall')
 
-     if(spinar(iorb)>0.0d0) then
-        nsoffset=1
-     else
-        nsoffset=(2*n1+31)*(2*n2+31)*(2*n3+31)+1
-     end if
-     call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
-          hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
-          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,y_c,y_f,psir,  &
-          psi(1,iorb-iproc*norbp),pot(nsoffset),hpsi(1,iorb-iproc*norbp),epot,ekin, & 
-          x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
-          ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-          ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r)
-     ekin_sum=ekin_sum+occup(iorb)*ekin
-     epot_sum=epot_sum+occup(iorb)*epot
+     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1)
+     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f2)
+     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f3)
 
-  enddo
+     call razero((n1+1)*(n2+1)*(n3+1),x_c)
+     call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f)
 
+     !to be initialised
+     call razero((n1+1)*(n2+1)*(n3+1),y_c)
+     call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f)
+
+
+     call razero((2*n1+31)*(2*n2+31)*(2*n3+31),psir)
+
+     ekin_sum=0.d0
+     epot_sum=0.d0
+     do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+
+        if(spinar(iorb)>0.0d0) then
+           nsoffset=1
+        else
+           nsoffset=(2*n1+31)*(2*n2+31)*(2*n3+31)+1
+        end if
+        call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
+             hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+             ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,y_c,y_f,psir,  &
+             psi(1,iorb-iproc*norbp),pot(nsoffset),hpsi(1,iorb-iproc*norbp),epot,ekin, & 
+             x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
+             ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+             ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r)
+        ekin_sum=ekin_sum+occup(iorb)*ekin
+        epot_sum=epot_sum+occup(iorb)*epot
+
+     enddo
+
+     i_all=-product(shape(x_f1))*kind(x_f1)
+     deallocate(x_f1,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f1','applylocpotkinall')
+
+     i_all=-product(shape(x_f2))*kind(x_f2)
+     deallocate(x_f2,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f2','applylocpotkinall')
+
+     i_all=-product(shape(x_f3))*kind(x_f3)
+     deallocate(x_f3,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f3','applylocpotkinall')
+
+  else
+
+     allocate(x_fc(0:n1,0:n2,0:n3,3),stat=i_stat)
+     call memocc(i_stat,product(shape(x_fc))*kind(x_fc),'x_fc','applylocpotkinall')
+
+     ekin_sum=0.d0
+     epot_sum=0.d0
+     do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+
+        if(spinar(iorb)>0.0d0) then
+           nsoffset=1
+        else
+           nsoffset=(2*n1+31)*(2*n2+31)*(2*n3+31)+1
+        end if
+        call applylocpotkinone_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
+             hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+             ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,y_c,y_f,psir,  &
+             psi(1,iorb-iproc*norbp),pot(nsoffset),hpsi(1,iorb-iproc*norbp),epot,ekin, & 
+             x_c,x_fc,x_f,w1,w2,&
+             ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+             ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r)
+        ekin_sum=ekin_sum+occup(iorb)*ekin
+        epot_sum=epot_sum+occup(iorb)*epot
+
+     enddo
+
+     i_all=-product(shape(x_fc))*kind(x_fc)
+     deallocate(x_fc,stat=i_stat)
+     call memocc(i_stat,i_all,'x_fc','applylocpotkinall')
+
+  end if
   i_all=-product(shape(y_c))*kind(y_c)
   deallocate(y_c,stat=i_stat)
   call memocc(i_stat,i_all,'y_c','applylocpotkinall')
@@ -133,23 +169,10 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir','applylocpotkinall')
 
-  !*********************Alexey*********************************************************************
   i_all=-product(shape(x_c))*kind(x_c)
   deallocate(x_c,stat=i_stat)
   call memocc(i_stat,i_all,'x_c','applylocpotkinall')
-
-  i_all=-product(shape(x_f1))*kind(x_f1)
-  deallocate(x_f1,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f1','applylocpotkinall')
-  
-  i_all=-product(shape(x_f2))*kind(x_f2)
-  deallocate(x_f2,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f2','applylocpotkinall')
-
-  i_all=-product(shape(x_f3))*kind(x_f3)
-  deallocate(x_f3,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f3','applylocpotkinall')
-  
+ 
   i_all=-product(shape(x_f))*kind(x_f)
   deallocate(x_f,stat=i_stat)
   call memocc(i_stat,i_all,'x_f','applylocpotkinall')
@@ -161,7 +184,6 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   i_all=-product(shape(w2))*kind(w2)
   deallocate(w2,stat=i_stat)
   call memocc(i_stat,i_all,'w2','applylocpotkinall')
-  !**********************************************************************************************
 
 END SUBROUTINE applylocpotkinall
 
