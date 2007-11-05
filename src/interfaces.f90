@@ -214,6 +214,7 @@ interface
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(convolutions_bounds), intent(in) :: bounds
      logical parallel
+     integer, intent(in) :: nrho
      dimension rho(max(nrho,1),nspin),occup(norb),spinar(norb)
      dimension psi(wfd%nvctr_c+7*wfd%nvctr_f,norbp)
      dimension nscatterarr(0:nproc-1,4)!n3d,n3p,i3s+i3xcsh-1,i3xcsh
