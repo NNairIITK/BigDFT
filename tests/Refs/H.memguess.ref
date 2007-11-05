@@ -43,8 +43,6 @@
     H_lda               1       2            1.36000  0.15000                   X    
  Total Number of Electrons        1
  WARNING: odd number of electrons, no closed shell system
- Input wavefunction data for atom  H_lda NOT found, automatic generation... done.
- Generating 1 Atomic Input Orbitals
  Total Number of Orbitals        1
  occup(1)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
@@ -70,6 +68,6 @@
  By reducing the DIIS history and/or decreasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 20 MB
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 32 allocations and 32 deallocations, remaining memory(B):0
- memory occupation peak: 25 MB
- for the array  rmt in the routine iguess_generator
+ 13 allocations and 13 deallocations, remaining memory(B):0
+ memory occupation peak: 0 MB
+ for the array  logrid in the routine memoryestimator

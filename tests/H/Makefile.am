@@ -16,9 +16,6 @@ CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* *.out posout* \
 $(PPFILES):
 	ln -s $(top_srcdir)/utils/PSPfiles/$@ .
 
-#inguess.dat:
-#	ln -s $(top_srcdir)/tests/inguess.dat .
-
 check: $(PPFILES) posinp input.dat
 	if test ! -f input.dat ; then \
 	  ln -s $(top_srcdir)/tests/H/input.dat ; \
