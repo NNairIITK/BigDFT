@@ -1,3 +1,5 @@
+!switch between the new and the old method possible
+
 subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
     ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
         ibyz_c,ibzxx_c,ibxxyy_c,ibyz_f,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
@@ -29,6 +31,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
     integer,allocatable,dimension(:,:,:)::ibyx_f,ibxzz_f,ibzzyy_f
 
     logical,allocatable:: logrid_big(:)
+    logical, parameter :: newmethod=.false.
     
 !    for real space:
     integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
@@ -92,19 +95,27 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
         enddo
     enddo
 
-    call make_ib_c(logrid_big,ibyz_c,ibzxx_c,ibxxyy_c,n1,n2,n3)
+    if (newmethod) then
+       call make_ib_c(logrid_big,ibyz_c,ibzxx_c,ibxxyy_c,n1,n2,n3)
+    else
+       call make_ib(logrid_big,ibyz_c,ibzxx_c,ibxxyy_c,0,n1,0,n2,0,n3)
+    end if
     
     call make_ib(logrid_big,ibyz_ff,ibzxx_f,ibxxyy_f,&
     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
-    call squares_1d(ibxxyy_f,2*nfl1-14,2*nfu1+16,2*nfl2-14,2*nfu2+16)
+
+    if (newmethod) call squares_1d(ibxxyy_f,2*nfl1-14,2*nfu1+16,2*nfl2-14,2*nfu2+16)
     
 !    make real space borders
     nt=(2*n1+31)*(2*n2+31)
     call ib_to_logrid_rot(ibxxyy_c,logrid_big,0,n3,nt)
     
     nt=(2*n2+31)*(2*n3+31)        
-!    call ib_from_logrid(ibyyzz_r,logrid_big,-14,2*n1+16,nt)
-    call ib_from_logrid(ibyyzz_r,logrid_big,0,2*n1+30,nt)
+    if (newmethod) then
+       call ib_from_logrid(ibyyzz_r,logrid_big,0,2*n1+30,nt)
+    else
+       call ib_from_logrid(ibyyzz_r,logrid_big,-14,2*n1+16,nt)
+    end if
             
     i_all=-product(shape(logrid_big))*kind(logrid_big)
     deallocate(logrid_big,stat=i_stat)
@@ -199,42 +210,42 @@ subroutine ib_transpose(ib,ib_t,n1,n2)
 
 end subroutine ib_transpose
 
-subroutine make_logrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,logrid)
-    implicit none
-    integer n1,n2,n3
-    integer i1,i2,i3 ! counters
-    integer j1,j2,j3 ! positions relative to box center
-    integer nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-    integer nm1,nm2,nm3 ! medium point of the box
-    integer nd1,nd2,nd3 ! dimension of the box
-    integer nrad,nrad2  ! internal sphere radius and radius squared
-    logical logrid(0:n1,0:n2,0:n3)
-
-    logrid=.false.
-
-    nm1=(nfl1+nfu1)/2
-    nm2=(nfl2+nfu2)/2
-    nm3=(nfl3+nfu3)/2
-
-    nd1=nm1-nfl1
-    nd2=nm2-nfl2
-    nd3=nm3-nfl3
-
-    nrad=min(nd1,nd2,nd3)
-    nrad2=nrad*nrad
-
-    do i1=nfl1,nfu1        
-        do i2=nfl2,nfu2
-            do i3=nfl3,nfu3
-                j1=i1-nm1
-                j2=i2-nm2
-                j3=i3-nm3
-                if (j1*j1+j2*j2+j3*j3.le.nrad2) logrid(i1,i2,i3)=.true.
-            enddo
-        enddo
-    enddo
-    
-end subroutine make_logrid
+!!$subroutine make_logrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,logrid)
+!!$    implicit none
+!!$    integer n1,n2,n3
+!!$    integer i1,i2,i3 ! counters
+!!$    integer j1,j2,j3 ! positions relative to box center
+!!$    integer nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+!!$    integer nm1,nm2,nm3 ! medium point of the box
+!!$    integer nd1,nd2,nd3 ! dimension of the box
+!!$    integer nrad,nrad2  ! internal sphere radius and radius squared
+!!$    logical logrid(0:n1,0:n2,0:n3)
+!!$
+!!$    logrid=.false.
+!!$
+!!$    nm1=(nfl1+nfu1)/2
+!!$    nm2=(nfl2+nfu2)/2
+!!$    nm3=(nfl3+nfu3)/2
+!!$
+!!$    nd1=nm1-nfl1
+!!$    nd2=nm2-nfl2
+!!$    nd3=nm3-nfl3
+!!$
+!!$    nrad=min(nd1,nd2,nd3)
+!!$    nrad2=nrad*nrad
+!!$
+!!$    do i1=nfl1,nfu1        
+!!$        do i2=nfl2,nfu2
+!!$            do i3=nfl3,nfu3
+!!$                j1=i1-nm1
+!!$                j2=i2-nm2
+!!$                j3=i3-nm3
+!!$                if (j1*j1+j2*j2+j3*j3.le.nrad2) logrid(i1,i2,i3)=.true.
+!!$            enddo
+!!$        enddo
+!!$    enddo
+!!$    
+!!$end subroutine make_logrid
 
 subroutine ib_to_logrid_rot(ib,logrid,nfl,nfu,ndat)
 ! This one mimics the comb_rot_grow_f_loc

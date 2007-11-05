@@ -58,7 +58,8 @@ convolution_source = convolutions/combined_shrink_optim.f90 \
 	convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_ib_optim.f90 \
 	convolutions/conv_per_optim.f90 \
-	convolutions/convolut_simple.f90 
+	convolutions/convolut_simple.f90 \
+	convolutions/convolution_prev.f90 
 
 else
 convolution_source = convolutions/combined_shrink_simple.f90 \
@@ -66,7 +67,8 @@ convolution_source = convolutions/combined_shrink_simple.f90 \
 	convolutions/combined_shrink_simple.f90 \
 	convolutions/convolut_ib_simple.f90 \
 	convolutions/conv_per_simple.f90 \
-	convolutions/convolut_simple.f90 
+	convolutions/convolut_simple.f90 \
+	convolutions/convolution_prev.f90 
 
 endif
 
@@ -96,6 +98,7 @@ low_level = init/projectors.f90  \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
+	wfn_opt/applyh_prev.f90 \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
 	wavelib/plotting.f90 \

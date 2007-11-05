@@ -25,35 +25,36 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
   !local variables
-  logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
+  logical, parameter :: newmethod=.false.
   integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat,nbuf,ispin
   integer :: nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
+  real(kind=8) :: alatb1,alatb2,alatb3,ekin,epot,eproj,tt,cprecr,sum_tail,ekin1,epot1,eproj1
+  logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
   integer, dimension(:,:,:), allocatable :: ibbyz_c,ibbyz_f,ibbxz_c,ibbxz_f,ibbxy_c,ibbxy_f
   integer, dimension(:), allocatable :: keybv
   integer, dimension(:,:), allocatable :: keybg
-  real(kind=8) :: alatb1,alatb2,alatb3,ekin,epot,eproj,tt,cprecr,sum_tail,ekin1,epot1,eproj1
   real(kind=8), dimension(:,:), allocatable :: txyz,wrkallred
   real(kind=8), dimension(:), allocatable :: psib,hpsib,psir
 
   !for shrink:
-  integer,allocatable,dimension(:,:,:)::ibbzzx_c,ibbyyzz_c
-  integer,allocatable,dimension(:,:,:)::ibbxy_ff,ibbzzx_f,ibbyyzz_f
+  integer, allocatable, dimension(:,:,:) :: ibbzzx_c,ibbyyzz_c
+  integer, allocatable, dimension(:,:,:) :: ibbxy_ff,ibbzzx_f,ibbyyzz_f
 
   !for grow:
-  integer,allocatable,dimension(:,:,:)::ibbzxx_c,ibbxxyy_c
-  integer,allocatable,dimension(:,:,:)::ibbyz_ff,ibbzxx_f,ibbxxyy_f
+  integer, allocatable, dimension(:,:,:) :: ibbzxx_c,ibbxxyy_c
+  integer, allocatable, dimension(:,:,:) :: ibbyz_ff,ibbzxx_f,ibbxxyy_f
 
   !real space border:
-  integer,allocatable,dimension(:,:,:)::ibbyyzz_r 
+  integer, allocatable, dimension(:,:,:) :: ibbyyzz_r 
 
   integer nw1,nw2
 
-  real(kind=8),allocatable,dimension(:,:,:)::x_c!input 
-  real(kind=8),allocatable::x_f(:,:,:,:)! input
-  real(kind=8),allocatable,dimension(:,:,:)::x_f1,x_f2,x_f3 ! internal
-  real(kind=8),allocatable,dimension(:):: w1,w2
-  real(kind=8),allocatable,dimension(:,:,:)::y_c!output 
-  real(kind=8),allocatable::y_f(:,:,:,:)! output
+  real(kind=8), dimension(:,:,:), allocatable::x_c!input 
+  real(kind=8), dimension(:,:,:,:), allocatable :: x_f,x_fc! input
+  real(kind=8), dimension(:,:,:), allocatable :: x_f1,x_f2,x_f3 ! internal
+  real(kind=8), dimension(:), allocatable :: w1,w2
+  real(kind=8), dimension(:,:,:), allocatable::y_c!output 
+  real(kind=8), dimension(:,:,:,:), allocatable :: y_f! output
 
   nbuf=nint(rbuf/hgrid)
   !    --- new grid sizes n1,n2,n3
@@ -274,12 +275,6 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   call memocc(i_stat,product(shape(x_c))*kind(x_c),'x_c','calculatetailcorrection')
   allocate(y_c(0:nb1,0:nb2,0:nb3),stat=i_stat)
   call memocc(i_stat,product(shape(y_c))*kind(y_c),'y_c','calculatetailcorrection')
-  allocate(x_f1(nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_f1))*kind(x_f1),'x_f1','calculatetailcorrection')
-  allocate(x_f2(nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_f2))*kind(x_f2),'x_f2','calculatetailcorrection')
-  allocate(x_f3(nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_f3))*kind(x_f3),'x_f3','calculatetailcorrection')
   allocate(x_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)! work
   call memocc(i_stat,product(shape(x_f))*kind(x_f),'x_f','calculatetailcorrection')
   allocate(y_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)! work
@@ -289,16 +284,26 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   allocate(w2(nw2),stat=i_stat) ! work
   call memocc(i_stat,product(shape(w2))*kind(w2),'w2','calculatetailcorrection')
 
-  !put to zero the arrays for the hamiltonian procedure
-  call razero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f1)
-  call razero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f2)
-  call razero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f3)
-  call razero((nb1+1)*(nb2+1)*(nb3+1),x_c)
-  call razero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f)
-  call razero((nb1+1)*(nb2+1)*(nb3+1),y_c)
-  call razero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),y_f)
-  call razero((2*nb1+31)*(2*nb2+31)*(2*nb3+31),psir)
-
+  if (newmethod) then
+     allocate(x_f1(nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)
+     call memocc(i_stat,product(shape(x_f1))*kind(x_f1),'x_f1','calculatetailcorrection')
+     allocate(x_f2(nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)
+     call memocc(i_stat,product(shape(x_f2))*kind(x_f2),'x_f2','calculatetailcorrection')
+     allocate(x_f3(nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)
+     call memocc(i_stat,product(shape(x_f3))*kind(x_f3),'x_f3','calculatetailcorrection')
+     !put to zero the arrays for the hamiltonian procedure
+     call razero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f1)
+     call razero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f2)
+     call razero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f3)
+     call razero((nb1+1)*(nb2+1)*(nb3+1),x_c)
+     call razero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f)
+     call razero((nb1+1)*(nb2+1)*(nb3+1),y_c)
+     call razero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),y_f)
+     call razero((2*nb1+31)*(2*nb2+31)*(2*nb3+31),psir)
+  else
+      allocate(x_fc(0:nb1,0:nb2,0:nb3,3),stat=i_stat)! work
+      call memocc(i_stat,product(shape(x_fc))*kind(x_fc),'x_fc','calculatetailcorrection')
+  end if
   ekin_sum=0.d0
   epot_sum=0.d0
   eproj_sum=0.d0
@@ -306,16 +311,26 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
      !build the compressed wavefunction in the enlarged box
-     call transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
-          wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),&
-          wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),  &
-          nsegb_c,nvctrb_c,keybg(1,1),keybv(1),nsegb_f,nvctrb_f,&
-          keybg(1,nsegb_c+1),keybv(nsegb_c+1),&
-          nbuf,psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),  & 
-          x_c,x_f,psib(1),psib(nvctrb_c+1))
+     if (newmethod) then
+        call transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
+             wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),&
+             wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),  &
+             nsegb_c,nvctrb_c,keybg(1,1),keybv(1),nsegb_f,nvctrb_f,&
+             keybg(1,nsegb_c+1),keybv(nsegb_c+1),&
+             nbuf,psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),  & 
+             x_c,x_f,psib(1),psib(nvctrb_c+1))
+     else
+        call transform_fortail_prev(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
+             wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),&
+             wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),  &
+             nsegb_c,nvctrb_c,keybg(1,1),keybv(1),nsegb_f,nvctrb_f,&
+             keybg(1,nsegb_c+1),keybv(nsegb_c+1),&
+             nbuf,psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),  & 
+             x_c,x_fc,x_f,psib(1),psib(nvctrb_c+1))
+     end if
 
      !write(*,*) 'transform_fortail finished',iproc,iorb
-     
+
 
      npt=2
      tail_adding: do ipt=1,npt
@@ -327,13 +342,23 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
         end if
 
         !calculate gradient
-        call applylocpotkinone(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nbuf, &
-             hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  &
-             ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,y_c,y_f,psir,  &
-             psib,pot(1,1,1,ispin),hpsib,epot,ekin, &
-             x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
-             ibbzzx_c,ibbyyzz_c,ibbxy_ff,ibbzzx_f,ibbyyzz_f,&
-             ibbzxx_c,ibbxxyy_c,ibbyz_ff,ibbzxx_f,ibbxxyy_f,nw1,nw2,ibbyyzz_r)
+        if (newmethod) then
+           call applylocpotkinone(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nbuf, &
+                hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  &
+                ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,y_c,y_f,psir,  &
+                psib,pot(1,1,1,ispin),hpsib,epot,ekin, &
+                x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
+                ibbzzx_c,ibbyyzz_c,ibbxy_ff,ibbzzx_f,ibbyyzz_f,&
+                ibbzxx_c,ibbxxyy_c,ibbyz_ff,ibbzxx_f,ibbxxyy_f,nw1,nw2,ibbyyzz_r)
+        else
+           call applylocpotkinone_prev(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nbuf, &
+                hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  &
+                ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,y_c,y_f,psir,  &
+                psib,pot(1,1,1,ispin),hpsib,epot,ekin, &
+                x_c,x_fc,x_f,w1,w2,&
+                ibbzzx_c,ibbyyzz_c,ibbxy_ff,ibbzzx_f,ibbyyzz_f,&
+                ibbzxx_c,ibbxxyy_c,ibbyz_ff,ibbzxx_f,ibbxxyy_f,nw1,nw2,ibbyyzz_r)
+        end if
 
         !write(*,'(a,3i3,2f12.8)') 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin
         call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
@@ -458,17 +483,21 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   deallocate(w2,stat=i_stat)
   call memocc(i_stat,i_all,'w2','calculatetailcorrection')
 
-  i_all=-product(shape(x_f1))*kind(x_f1)
-  deallocate(x_f1,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f1','calculatetailcorrection')
-  
-  i_all=-product(shape(x_f2))*kind(x_f2)
-  deallocate(x_f2,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f2','calculatetailcorrection')
-
-  i_all=-product(shape(x_f3))*kind(x_f3)
-  deallocate(x_f3,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f3','calculatetailcorrection')
+  if (newmethod) then
+     i_all=-product(shape(x_f1))*kind(x_f1)
+     deallocate(x_f1,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f1','calculatetailcorrection')
+     i_all=-product(shape(x_f2))*kind(x_f2)
+     deallocate(x_f2,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f2','calculatetailcorrection')
+     i_all=-product(shape(x_f3))*kind(x_f3)
+     deallocate(x_f3,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f3','calculatetailcorrection')
+  else
+     i_all=-product(shape(x_fc))*kind(x_fc)
+     deallocate(x_fc,stat=i_stat)
+     call memocc(i_stat,i_all,'x_fc','calculatetailcorrection')
+  end if
   
   i_all=-product(shape(x_f))*kind(x_f)
   deallocate(x_f,stat=i_stat)
@@ -636,3 +665,100 @@ subroutine transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,
   enddo
 
 end subroutine transform_fortail
+
+subroutine transform_fortail_prev(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,& 
+     mseg_c,mvctr_c,keyg_c,keyv_c,mseg_f,mvctr_f,keyg_f,keyv_f,  & 
+     msegb_c,mvctrb_c,keybg_c,keybv_c,msegb_f,mvctrb_f,keybg_f,keybv_f,  & 
+     nbuf,psi_c,psi_f,psig_c,psig_fc,psig_f,psib_c,psib_f)
+  implicit real(kind=8) (a-h,o-z)
+  dimension keyg_c(2,mseg_c),keyv_c(mseg_c),keyg_f(2,mseg_f),keyv_f(mseg_f)
+  dimension keybg_c(2,msegb_c),keybv_c(msegb_c),keybg_f(2,msegb_f),keybv_f(msegb_f)
+  dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
+  dimension psib_c(mvctrb_c),psib_f(7,mvctrb_f)
+  dimension psig_c(0:n1+2*nbuf,0:n2+2*nbuf,0:n3+2*nbuf)
+  dimension psig_fc(0:n1+2*nbuf,0:n2+2*nbuf,0:n3+2*nbuf,3),  & 
+       psig_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3)
+
+  call razero((n1+1+2*nbuf)*(n2+1+2*nbuf)*(n3+1+2*nbuf),psig_c)
+  call razero(3*(n1+1+2*nbuf)*(n2+1+2*nbuf)*(n3+1+2*nbuf),psig_fc)
+  call razero(7*(nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),psig_f)
+
+  ! coarse part
+  do iseg=1,mseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psig_c(i+nbuf,i2+nbuf,i3+nbuf)=psi_c(i-i0+jj)
+     enddo
+  enddo
+
+  do iseg=1,msegb_c
+     jj=keybv_c(iseg)
+     j0=keybg_c(1,iseg)
+     j1=keybg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((nb1+1)*(nb2+1))
+     ii=ii-i3*(nb1+1)*(nb2+1)
+     i2=ii/(nb1+1)
+     i0=ii-i2*(nb1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psib_c(i-i0+jj)=psig_c(i,i2,i3)
+     enddo
+  enddo
+
+
+  ! fine part
+  do iseg=1,mseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psig_f(1,i+nbuf,i2+nbuf,i3+nbuf)=psi_f(1,i-i0+jj)
+        psig_fc(i+nbuf,i2+nbuf,i3+nbuf,1)=psig_f(1,i+nbuf,i2+nbuf,i3+nbuf)
+        psig_f(2,i+nbuf,i2+nbuf,i3+nbuf)=psi_f(2,i-i0+jj)
+        psig_fc(i+nbuf,i2+nbuf,i3+nbuf,2)=psig_f(2,i+nbuf,i2+nbuf,i3+nbuf)
+        psig_f(3,i+nbuf,i2+nbuf,i3+nbuf)=psi_f(3,i-i0+jj)
+        psig_f(4,i+nbuf,i2+nbuf,i3+nbuf)=psi_f(4,i-i0+jj)
+        psig_fc(i+nbuf,i2+nbuf,i3+nbuf,3)=psig_f(4,i+nbuf,i2+nbuf,i3+nbuf)
+        psig_f(5,i+nbuf,i2+nbuf,i3+nbuf)=psi_f(5,i-i0+jj)
+        psig_f(6,i+nbuf,i2+nbuf,i3+nbuf)=psi_f(6,i-i0+jj)
+        psig_f(7,i+nbuf,i2+nbuf,i3+nbuf)=psi_f(7,i-i0+jj)
+     enddo
+  enddo
+
+  do iseg=1,msegb_f
+     jj=keybv_f(iseg)
+     j0=keybg_f(1,iseg)
+     j1=keybg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((nb1+1)*(nb2+1))
+     ii=ii-i3*(nb1+1)*(nb2+1)
+     i2=ii/(nb1+1)
+     i0=ii-i2*(nb1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psib_f(1,i-i0+jj)=psig_f(1,i,i2,i3)
+        psib_f(2,i-i0+jj)=psig_f(2,i,i2,i3)
+        psib_f(3,i-i0+jj)=psig_f(3,i,i2,i3)
+        psib_f(4,i-i0+jj)=psig_f(4,i,i2,i3)
+        psib_f(5,i-i0+jj)=psig_f(5,i,i2,i3)
+        psib_f(6,i-i0+jj)=psig_f(6,i,i2,i3)
+        psib_f(7,i-i0+jj)=psig_f(7,i,i2,i3)
+     enddo
+  enddo
+
+end subroutine transform_fortail_prev
