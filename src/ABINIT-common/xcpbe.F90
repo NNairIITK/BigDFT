@@ -475,7 +475,7 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
              !  If non spin-polarized, treat spin down contribution now, similar to spin up
              exc=exc*2
              exci(ipts)=exc*rhotot_inv
-	     if(present(exexch).and.exexch==1) cycle
+             if(present(exexch).and.exexch==1) cycle
              ! -----------------------------------------------------------------------------
              ! Then takes care of the LSD correlation part of the functional
 

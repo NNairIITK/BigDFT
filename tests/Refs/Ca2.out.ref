@@ -196,7 +196,7 @@
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    1.63E+00 -3.54E+00  3.59E+00 -2.61E+00 -1.07E+00  3.01E+00 -5.30E-05
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  7.06349222496E-01 -1.33105728580E+00  4.92432448056E-02
+ ekin_sum,epot_sum,eproj_sum  7.06349222496E-01 -1.33105728580E+00  4.92432448057E-02
     ehart,   eexcu,    vexcu  1.60759877674E+00 -5.84712254109E-01 -7.59828877462E-01
  iter,total energy,gnrm    11  -1.302377357491E+00  1.24E-02
  ---------------------------------------------------------------------------- iter= 12
@@ -205,7 +205,7 @@
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -1.55E+00  1.59E+00  1.36E+00 -7.31E-01 -2.87E+00  3.19E+00 -3.74E-05
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  8.62843243962E-01 -1.35907659762E+00 -6.97428405263E-02
+ ekin_sum,epot_sum,eproj_sum  8.62843243962E-01 -1.35907659762E+00 -6.97428405262E-02
     ehart,   eexcu,    vexcu  1.62147193232E+00 -5.89255507190E-01 -7.65778017726E-01
  iter,total energy,gnrm    12  -1.305356001569E+00  1.05E-02
  ---------------------------------------------------------------------------- iter= 13
@@ -268,7 +268,7 @@
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    1.00E+00 -1.17E+01  8.28E+00  3.53E+00  2.55E+00 -2.70E+00 -1.13E-05
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.13588512056E+00 -1.40696548406E+00 -2.76218767691E-01
+ ekin_sum,epot_sum,eproj_sum  1.13588512056E+00 -1.40696548406E+00 -2.76218767690E-01
     ehart,   eexcu,    vexcu  1.64485403411E+00 -5.98563066014E-01 -7.77968561429E-01
  iter,total energy,gnrm    19  -1.307178055483E+00  3.97E-03
  ---------------------------------------------------------------------------- iter= 20
@@ -286,7 +286,7 @@
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -3.09E-01 -7.34E-01 -1.33E+00  8.37E-01  1.14E+00  1.40E+00 -1.66E-06
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.22169169028E+00 -1.42083104690E+00 -3.40836850813E-01
+ ekin_sum,epot_sum,eproj_sum  1.22169169028E+00 -1.42083104690E+00 -3.40836850815E-01
     ehart,   eexcu,    vexcu  1.65304987583E+00 -5.99333714109E-01 -7.78968809804E-01
  iter,total energy,gnrm    21  -1.307821373169E+00  4.27E-03
  ---------------------------------------------------------------------------- iter= 22
@@ -295,7 +295,7 @@
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -5.59E-01 -3.22E-01  1.42E+00 -6.69E-01  1.74E-02  1.11E+00 -6.10E-07
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.29071511403E+00 -1.43238717635E+00 -3.92835131245E-01
+ ekin_sum,epot_sum,eproj_sum  1.29071511402E+00 -1.43238717635E+00 -3.92835131243E-01
     ehart,   eexcu,    vexcu  1.65913990475E+00 -6.01044449001E-01 -7.81206139320E-01
  iter,total energy,gnrm    22  -1.307915793603E+00  1.25E-03
  ---------------------------------------------------------------------------- iter= 23
@@ -313,7 +313,7 @@
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    1.77E-01 -2.18E-01 -7.03E-02  1.61E-01  2.35E-01  7.16E-01 -2.41E-08
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  1.29493683637E+00 -1.43310640833E+00 -3.96564726154E-01
+ ekin_sum,epot_sum,eproj_sum  1.29493683637E+00 -1.43310640833E+00 -3.96564726155E-01
     ehart,   eexcu,    vexcu  1.65886856502E+00 -6.00889094610E-01 -7.81003975575E-01
  iter,total energy,gnrm    24  -1.307918367773E+00  2.39E-04
  ---------------------------------------------------------------------------- iter= 25
@@ -343,14 +343,14 @@
  final ehart,eexcu,vexcu  1.65945373401E+00 -6.01097805481E-01 -7.81277081502E-01
  FINAL iter,total energy,gnrm    27  -1.307918852724E+00  4.77E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1)= -1.67656908121393E-01
- eval(   2)= -9.94500964454441E-02
+ eval(   1)= -1.67656908121394E-01
+ eval(   2)= -9.94500964454448E-02
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=       3.999999998817
  PSolver, free  BC, dimensions:   105  105  127   proc    1   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        98.11        97.93
+ CPU time for root process     0       140.53       116.32
  Final values of the Forces for each atom
      1 Ca_lda  7.94020E-05  7.94020E-05 -3.36998E-02
      2 Ca_lda  8.09908E-05  8.09908E-05  3.38244E-02
@@ -359,6 +359,6 @@
       y direction     1.60392825E-04
       z direction     1.24655754E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 2436 allocations and 2436 deallocations, remaining memory(B):0
+ 6234 allocations and 6234 deallocations, remaining memory(B):0
  memory occupation peak: 128 MB
  for the array  cosinarr in the routine kernelfft

@@ -148,7 +148,7 @@
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    2.27E-03  2.90E-04 -8.98E-03  4.92E-02 -4.34E-01  1.39E+00 -7.86E-07
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  4.25349681472E-01 -6.56251432496E-01  0.00000000000E+00
+ ekin_sum,epot_sum,eproj_sum  4.25349681473E-01 -6.56251432496E-01  0.00000000000E+00
     ehart,   eexcu,    vexcu  2.84829757613E-01 -2.33708402568E-01 -3.04578208217E-01
  iter,total energy,gnrm     6  -4.448617029870E-01  9.94E-03
  ---------------------------------------------------------------------------- iter= 7
@@ -194,7 +194,7 @@
  iproc,ehart,eexcu,vexcu  0  2.85244339879E-01 -2.34049303762E-01 -3.05027023755E-01
  final ekin_sum,epot_sum,eproj_sum  4.27627046837E-01 -6.58235092217E-01  0.00000000000E+00
  final ehart,eexcu,vexcu  2.85244339879E-01 -2.34049303762E-01 -3.05027023755E-01
- FINAL iter,total energy,gnrm    11  -4.448746652663E-01  6.43E-05
+ FINAL iter,total energy,gnrm    11  -4.448746652664E-01  6.43E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1)= -2.30608045379945E-01
  ----------------------------------------------------------------- Forces Calculation
@@ -215,7 +215,7 @@
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  4.22510786377E-01 -6.53742549995E-01  0.00000000000E+00
  Total energy with tail correction -4.454983835043E-01
- CPU time for root process     0        19.62        18.97
+ CPU time for root process     0        26.63        21.98
  Final values of the Forces for each atom
      1  H_lda  1.27540E-04  1.27540E-04  1.27540E-04
  the sum of the forces is
@@ -223,6 +223,6 @@
       y direction     1.27539553E-04
       z direction     1.27539553E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 845 allocations and 845 deallocations, remaining memory(B):0
+ 1723 allocations and 1723 deallocations, remaining memory(B):0
  memory occupation peak: 77 MB
  for the array  cosinarr in the routine kernelfft
