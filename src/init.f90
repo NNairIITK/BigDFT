@@ -753,7 +753,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,&
      ppsi,ppsit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
-  ! Each processors writes its initial wavefunctions into the wavefunction file
+  ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
 
   use module_types
@@ -799,7 +799,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   real(kind=8), dimension(:,:), allocatable :: xp,occupat,hamovr,psi,hpsi
   real(kind=8), dimension(:,:,:), allocatable :: psiw,psiat
 
-  !Calculate no. up and dw orbitals for spin-polarized starting guess
+  !Calculate no. up and down orbitals for spin-polarized starting guess
   norbu=0
   norbd=0
   do iorb=1,norb

@@ -4,12 +4,19 @@ subroutine diisstp(parallel,norb,norbp,nproc,iproc,  &
 ! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
 ! using  the previous iteration points phidst and the associated error 
 ! vectors (preconditione gradients) hpsidst
-  implicit real(kind=8) (a-h,o-z)
+  implicit none
   include 'mpif.h'
-  logical parallel
-  dimension psit(nvctrp,norbp*nproc),ads(idsx+1,idsx+1,3), &
-  psidst(nvctrp,norbp*nproc,idsx),hpsidst(nvctrp,norbp*nproc,idsx)
-  allocatable :: ipiv(:),rds(:)
+! Arguments
+  logical, intent(in) :: parallel
+  integer, intent(in) :: norb,norbp,nproc,iproc,ids,mids,idsx,nvctrp
+  real(kind=8) :: psit(nvctrp,norbp*nproc),ads(idsx+1,idsx+1,3)
+  real(kind=8) :: psidst(nvctrp,norbp*nproc,idsx),hpsidst(nvctrp,norbp*nproc,idsx)
+! Local variables
+  real(kind=8), allocatable :: rds(:)
+  integer, allocatable :: ipiv(:)
+  real(kind=8) :: tt
+  real(kind=8) :: DDOT
+  integer :: i,j,ist,jst,mi,iorb,info,jj,mj,k,i_all,i_stat,ierr
 
   allocate(ipiv(idsx+1),stat=i_stat)
   call memocc(i_stat,product(shape(ipiv))*kind(ipiv),'ipiv','diisstp')
@@ -67,7 +74,7 @@ subroutine diisstp(parallel,norb,norbp,nproc,iproc,  &
            call DSYSV('U',min(idsx,ids)+1,1,ads(1,1,2),idsx+1,  & 
                 ipiv,rds,idsx+1,ads(1,1,3),(idsx+1)**2,info)
            if (info.ne.0) then
-              print*, 'DGESV',info
+              print*, 'diisstp: DSYSV',info
               stop
            end if
   else

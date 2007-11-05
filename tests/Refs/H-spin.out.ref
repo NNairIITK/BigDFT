@@ -196,7 +196,7 @@
  final ehart,eexcu,vexcu  2.99998732280E-01 -2.79430078243E-01 -3.68501104761E-01
  FINAL iter,total energy,gnrm    11  -4.783233256756E-01  6.35E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -2.67395619913963E-01
+ eval(   1,u)= -2.67395619913962E-01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=       0.999999982476
  PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  0 ...done.
@@ -215,7 +215,7 @@
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  4.64444226937E-01 -7.32218123504E-01  0.00000000000E+00
  Total energy with tail correction -4.787016023287E-01
- CPU time for root process     0        24.93        24.86
+ CPU time for root process     0        32.99        27.42
  Final values of the Forces for each atom
      1  H_lda  1.29991E-04  1.29991E-04  1.29991E-04
  the sum of the forces is
@@ -223,6 +223,6 @@
       y direction     1.29990985E-04
       z direction     1.29990985E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 845 allocations and 845 deallocations, remaining memory(B):0
+ 1723 allocations and 1723 deallocations, remaining memory(B):0
  memory occupation peak: 77 MB
  for the array  cosinarr in the routine kernelfft

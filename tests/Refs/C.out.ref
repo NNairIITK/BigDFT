@@ -167,7 +167,7 @@
  FINAL iter,total energy,gnrm     7  -5.338579762190E+00  5.34E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
  eval(   1)= -4.98160618102502E-01
- eval(   2)= -1.96290488671851E-01
+ eval(   2)= -1.96290488671850E-01
  eval(   3)= -1.96290488671850E-01
  eval(   4)= -1.96288759270049E-01
  ----------------------------------------------------------------- Forces Calculation
@@ -188,7 +188,7 @@
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  3.38031847768E+00 -5.41961180767E+00  6.49652946078E-01
  Total energy with tail correction -5.339319085520E+00
- CPU time for root process     0        26.41        26.33
+ CPU time for root process     0        44.23        36.13
  Final values of the Forces for each atom
      1  C_lda  3.69473E-05  3.69473E-05  3.69473E-05
  the sum of the forces is
@@ -196,6 +196,6 @@
       y direction     3.69473000E-05
       z direction     3.69473000E-05
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 916 allocations and 916 deallocations, remaining memory(B):0
+ 3260 allocations and 3260 deallocations, remaining memory(B):0
  memory occupation peak: 77 MB
  for the array  cosinarr in the routine kernelfft
