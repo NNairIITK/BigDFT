@@ -511,6 +511,14 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
           '--------------------------------------------------------- Import Gaussians from CP2K'
   end if
 
+
+  if (nspin /= 1) then
+     if (iproc==0) write(*,'(1x,a)')&
+          'Gaussian importing is possible only for non-spin polarised calculations'
+     stop
+  end if
+
+
   hgridh=.5d0*hgrid
 
   if (parallel) then
@@ -630,16 +638,16 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
      call MPI_ALLREDUCE(hamovr(1,3),hamovr(1,1),2*norb**2,&
           MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-     !print the overlap matrix in the wavelet case
-     print *,norb
-     open(33)
-     do iorb=1,norb
-        write(33,'(2000(1pe10.2))')&
-             (hamovr(jorb+(iorb-1)*norb,2),jorb=1,norb)
-     end do
-     close(33)
-
-     !stop
+!!$     !print the overlap matrix in the wavelet case
+!!$     print *,norb
+!!$     open(33)
+!!$     do iorb=1,norb
+!!$        write(33,'(2000(1pe10.2))')&
+!!$             (hamovr(jorb+(iorb-1)*norb,2),jorb=1,norb)
+!!$     end do
+!!$     close(33)
+!!$
+!!$     !stop
 
      !found the eigenfunctions for each group
      n_lp=max(10,4*norb)

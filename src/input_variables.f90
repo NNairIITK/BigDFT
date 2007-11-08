@@ -77,13 +77,16 @@ subroutine read_input_variables(iproc,in)
      stop
   end if
 
+  !add optional line for the restart option
+  read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
+
   close(1,iostat=ierror)
 
-  !these values are hard-coded for the moment but they can be entered in the input file
-  !in case of need also other variables can be entered without any changements
-  in%output_grid=.false. 
-  in%inputPsiId=0
-  in%output_wf=.false. 
+!!$  !these values are hard-coded for the moment but they can be entered in the input file
+!!$  !in case of need also other variables can be entered without any changements
+!!$  in%output_grid=.false. 
+!!$  in%inputPsiId=0
+!!$  in%output_wf=.false. 
 
   if (iproc == 0) then
      write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x

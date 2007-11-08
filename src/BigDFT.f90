@@ -178,7 +178,7 @@ end interface
   if (inputs%ncount_cluster_x > 1) then
      if (iproc ==0 ) write(*,"(a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
      ! geometry optimization
-     !    betax=2.d0   ! Cincodinine
+     !    betax=2.d0   ! Cinchonidine
      !    betax=4.d0  ! Si H_4
      !   betax=7.5d0  ! silicon systems
      !    betax=10.d0  !  Na_Cl clusters

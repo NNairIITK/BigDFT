@@ -103,6 +103,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
 
         !the default value for the gaussians is chosen to be 21
         ng(ity)=21
+
         call iguess_generator(iproc, nzatom(ity), nelpsp(ity),psppar(0,0,ity),npspcode(ity),&
              ng(ity)-1,nl(1,ity),5,occupat(1:5,ity),xp(1:ng(ity),ity),psiat(1:ng(ity),1:5,ity))
 
@@ -1252,7 +1253,9 @@ real(kind=8) function wave(ng,ll,xp,psi,r)
   do i=0,ng
      wave=wave + psi(i)*exp(-xp(i)*r**2)
   end do
-  wave=wave*r**ll
+  if(ll>0)then
+     wave=wave*r**ll
+  endif
 end function wave
 
 
