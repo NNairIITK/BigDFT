@@ -10,7 +10,8 @@ PPFILES = \
 	psppar.H_lda \
 	psppar.Si_lda
 
-CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* *.out posout* *.prc
+CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* SiH4.out posout* *.prc\
+			 fldiff.report
 
 #dependencies
 $(PPFILES):

@@ -9,8 +9,8 @@ EXTRA_DIST = \
 PPFILES = \
 	psppar.H_lda 
 
-CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* *.out posout* \
-			 *.prc *.memguess
+CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* H.out posout* \
+			 *.prc H.memguess fldiff.report 
 
 #dependencies
 $(PPFILES):

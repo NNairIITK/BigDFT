@@ -9,7 +9,8 @@ EXTRA_DIST = \
 PPFILES = \
 	psppar.Ca_lda
 
-CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* *.out posout* *.prc
+CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* Ca2.out posout* *.prc\
+			 fldiff.report
 
 #dependencies
 $(PPFILES):
