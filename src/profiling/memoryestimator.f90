@@ -155,7 +155,7 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
      tmemha=(3.d0+2.d0*tt)*omempot+omemwf+omemker
   else
      write(*,'(1x,a)')&
-       '      ~11*K         |       ~W+(~3)*U      |     ~8*D+*W    |         ~W+(~3)*U '
+       '      ~11*K         |       ~W+(~3)*U      |    ~8*D+K+W    |         ~W+(~3)*U '
      tmemker=11.d0*omemker
      tmemden=omemwf+(2.d0+tt)*omempot+omemker
      tmemps=8.d0*omemden+omemwf+omemker

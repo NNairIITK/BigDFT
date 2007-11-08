@@ -19,7 +19,7 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
   real(kind=8), dimension(max(nrho,1),nspin), intent(out) :: rho
   !local variables
-  logical, parameter :: newmethod=.false.
+  logical, parameter :: newmethod=.true.
   integer :: nw1,nw2,nrhotot,n3d
   integer :: ind1,ind2,ind3,ind1s,ind2s,ind3s
   integer :: i00,i0,i1,i2,i3,i3off,i3s,isjmp,i,ispin,iorb,jproc,i_all,i_stat,ierr
