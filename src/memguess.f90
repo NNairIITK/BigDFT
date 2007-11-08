@@ -126,23 +126,6 @@ program memguess
   call read_system_variables(0,nproc,nat,ntypes,in%nspin,in%ncharge,in%mpol,atomnames,iatype,&
        psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
 
-  i_all=-product(shape(psppar))*kind(psppar)
-  deallocate(psppar,stat=i_stat)
-  call memocc(i_stat,i_all,'psppar','memguess')
-  i_all=-product(shape(npspcode))*kind(npspcode)
-  deallocate(npspcode,stat=i_stat)
-  call memocc(i_stat,i_all,'npspcode','memguess')
-  i_all=-product(shape(nelpsp))*kind(nelpsp)
-  deallocate(nelpsp,stat=i_stat)
-  call memocc(i_stat,i_all,'nelpsp','memguess')
-  !no need of using nzatom array
-  i_all=-product(shape(nzatom))*kind(nzatom)
-  deallocate(nzatom,stat=i_stat)
-  call memocc(i_stat,i_all,'nzatom','memguess')
-  i_all=-product(shape(iasctype))*kind(iasctype)
-  deallocate(iasctype,stat=i_stat)
-  call memocc(i_stat,i_all,'iasctype','memguess')
-
 ! Allocations for the occupation numbers
   allocate(occup(norb),stat=i_stat)
   call memocc(i_stat,product(shape(occup))*kind(occup),'occup','memguess')
@@ -230,6 +213,24 @@ program memguess
      end if
 
   end if
+
+  i_all=-product(shape(psppar))*kind(psppar)
+  deallocate(psppar,stat=i_stat)
+  call memocc(i_stat,i_all,'psppar','memguess')
+  i_all=-product(shape(npspcode))*kind(npspcode)
+  deallocate(npspcode,stat=i_stat)
+  call memocc(i_stat,i_all,'npspcode','memguess')
+  i_all=-product(shape(nelpsp))*kind(nelpsp)
+  deallocate(nelpsp,stat=i_stat)
+  call memocc(i_stat,i_all,'nelpsp','memguess')
+  !no need of using nzatom array
+  i_all=-product(shape(nzatom))*kind(nzatom)
+  deallocate(nzatom,stat=i_stat)
+  call memocc(i_stat,i_all,'nzatom','memguess')
+  i_all=-product(shape(iasctype))*kind(iasctype)
+  deallocate(iasctype,stat=i_stat)
+  call memocc(i_stat,i_all,'iasctype','memguess')
+
 
 ! Determine size alat of overall simulation cell and shift atom positions
 ! then calculate the size in units of the grid space

@@ -32,6 +32,9 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
 
   !parse the output of CP2K to read the basis set information
 
+  if (iproc==0) write(*,'(1x,a)',advance='no')&
+       'Reading Basis Set information and wavefunctions coefficients...'
+
   ngx=0
   nbx=0
   lmax=0
@@ -295,6 +298,12 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
 
 
   !now apply this basis set information to construct the wavelets wavefunctions
+
+  if (iproc==0) then
+     write(*,'(1x,a)')'done.'
+     write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
+  end if
+
   allocate(lx(nterm_max),stat=i_stat)
   call memocc(i_stat,product(shape(lx))*kind(lx),'lx','gautowav')
   allocate(ly(nterm_max),stat=i_stat)
@@ -311,12 +320,8 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
   allocate(tpsi(nvctr_c+7*nvctr_f),stat=i_stat)
   call memocc(i_stat,product(shape(tpsi))*kind(tpsi),'tpsi','gautowav')
 
-
   !initialize the wavefunction
   psi(:,:)=0.d0
-
-  
-
   !this can be changed to be passed only once to all the gaussian basis
   eks=0.d0
   !loop over the atoms
