@@ -53,13 +53,13 @@ end subroutine comb_grow_all
     integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)! boundaries of the real space array
         
 ! i1,i2,i3 -> i2,i3,I1
-        call  comb_rot_grow_loc_square_1(n1,n2,n3,x,y,ibyz,ibzxx,.true.) 
+        call comb_rot_grow_loc_square_1(n1,n2,n3,x,y,ibyz,ibzxx,.true.) 
 
 ! i2,i3,I1 -> i3,I1,I2
-        call  comb_rot_grow_loc_square_1(n2,n3,2*n1+30,y,ww,ibzxx,ibxxyy,.true.) 
+        call comb_rot_grow_loc_square_1(n2,n3,2*n1+30,y,ww,ibzxx,ibxxyy,.true.) 
 
 ! i3,I1,I2  -> I1,I2,I3
-           call  comb_rot_grow_loc_square_1(n3,2*n1+30,2*n2+30,ww,y,ibxxyy,ibyyzz_r,.true.) 
+        call comb_rot_grow_loc_square_1(n3,2*n1+30,2*n2+30,ww,y,ibxxyy,ibyyzz_r,.false.) 
 
         END SUBROUTINE
 

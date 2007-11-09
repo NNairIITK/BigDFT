@@ -87,6 +87,25 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
     call ib_transpose(ibxzz_f,ibzzx_f,m1,2*m3+30)
     call ib_transpose(ibzzyy_f,ibyyzz_f,2*m3+30,2*m2+30)
 
+    if (newmethod) then
+       !	for realspace:
+       !-14:2*n2+16,-14:2*n3+16
+       do i3=-14,2*n3+16
+          do i2=-14,2*n2+16
+             if (ibyyzz_c(1,i2,i3).ne.1000) then
+                ibyyzz_r(1,i2,i3)=2*ibyyzz_c(1,i2,i3)
+                ibyyzz_r(2,i2,i3)=2*ibyyzz_c(2,i2,i3)+30
+             else
+                ibyyzz_r(1,i2,i3)=1000
+                ibyyzz_r(2,i2,i3)=-1000
+             endif
+          enddo
+       enddo
+       call squares(ibyyzz_r,2*n2+30,2*n3+30)
+    end if
+
+
+
 !    for grow:
 
     do i2=nfl2,nfu2
@@ -104,16 +123,14 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
     call make_ib(logrid_big,ibyz_ff,ibzxx_f,ibxxyy_f,&
     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 
-    if (newmethod) call squares_1d(ibxxyy_f,2*nfl1-14,2*nfu1+16,2*nfl2-14,2*nfu2+16)
-    
-!    make real space borders
-    nt=(2*n1+31)*(2*n2+31)
-    call ib_to_logrid_rot(ibxxyy_c,logrid_big,0,n3,nt)
-    
-    nt=(2*n2+31)*(2*n3+31)        
     if (newmethod) then
-       call ib_from_logrid(ibyyzz_r,logrid_big,0,2*n1+30,nt)
+       call squares_1d(ibxxyy_f,2*nfl1-14,2*nfu1+16,2*nfl2-14,2*nfu2+16)
+       !call ib_from_logrid(ibyyzz_r,logrid_big,0,2*n1+30,nt)
     else
+       !    make real space borders
+       nt=(2*n1+31)*(2*n2+31)
+       call ib_to_logrid_rot(ibxxyy_c,logrid_big,0,n3,nt)
+       nt=(2*n2+31)*(2*n3+31)        
        call ib_from_logrid(ibyyzz_r,logrid_big,-14,2*n1+16,nt)
     end if
             
