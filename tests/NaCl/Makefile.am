@@ -10,7 +10,8 @@ PPFILES = \
 	psppar.Na_lda \
 	psppar.Cl_lda
 
-CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* *.out posout* *.prc
+CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* NaCl.out posout* *.prc\
+			 fldiff.report
 
 #dependencies
 $(PPFILES):
