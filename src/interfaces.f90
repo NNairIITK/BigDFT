@@ -2,6 +2,44 @@ module module_interfaces
 
 interface
 
+   subroutine call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
+     use module_types
+     implicit none
+     type(input_variables) :: in
+     type(wavefunctions_descriptors) :: wfd
+     logical, intent(in) :: parallel
+     integer, intent(in) :: iproc,nproc,nat,ntypes,norbp,norb
+     integer, intent(inout) :: infocode,n1,n2,n3
+     real(kind=8), intent(out) :: energy
+     character(len=20), dimension(100), intent(in) :: atomnames
+     integer, dimension(nat), intent(in) :: iatype
+     real(kind=8), dimension(3,nat), intent(in) :: rxyz_old
+     real(kind=8), dimension(3,nat), intent(inout) :: rxyz
+     real(kind=8), dimension(3,nat), intent(out) :: fxyz
+     real(kind=8), dimension(:), pointer :: eval
+     real(kind=8), dimension(:,:), pointer :: psi
+   end subroutine call_cluster
+
+   subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg, &
+        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,in)
+     use module_types
+     implicit none
+     logical, intent(in) :: parallel
+     integer, intent(in) :: nproc,iproc,nat,ntypes,norbp,norb
+     integer, intent(inout) :: n1,n2,n3,ncount_cluster
+     real(kind=8), intent(out) :: etot
+     type(input_variables), intent(inout) :: in
+     type(wavefunctions_descriptors), intent(inout) :: wfd
+     character(len=20), dimension(100), intent(in) :: atomnames
+     logical, dimension(ntypes), intent(in) :: lfrztyp
+     integer, dimension(nat), intent(in) :: iatype
+     real(kind=8), dimension(3,nat), intent(inout) :: wpos
+     real(kind=8), dimension(3,nat), intent(out) :: rxyz_old,gg
+     real(kind=8), dimension(:), pointer :: eval
+     real(kind=8), dimension(:,:), pointer :: psi
+   end subroutine conjgrad
+
    subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,hgrid,n1,n2,n3,eval,wfd,psi,&
         hgrid_old,n1_old,n2_old,n3_old,eval_old,wfd_old,psi_old)
      use module_types     

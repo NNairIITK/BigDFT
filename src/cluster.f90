@@ -1,3 +1,99 @@
+subroutine call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+     psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
+  use module_types
+  implicit none
+  type(input_variables) :: in
+  type(wavefunctions_descriptors) :: wfd
+  logical, intent(in) :: parallel
+  integer, intent(in) :: iproc,nproc,nat,ntypes
+  integer, intent(inout) :: infocode,n1,n2,n3,norbp,norb
+  real(kind=8), intent(out) :: energy
+  character(len=20), dimension(100), intent(in) :: atomnames
+  integer, dimension(nat), intent(in) :: iatype
+  real(kind=8), dimension(3,nat), intent(inout) :: rxyz
+  real(kind=8), dimension(3,nat), intent(out) :: fxyz,rxyz_old
+  real(kind=8), dimension(:), pointer :: eval
+  real(kind=8), dimension(:,:), pointer :: psi
+  !local variables
+  integer :: i_stat,i_all,ierr,inputPsiId_orig
+  !temporary interface
+  interface
+     subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
+       use module_types
+       use module_interfaces
+       use Poisson_Solver
+       implicit none
+       !implicit real(kind=8) (a-h,o-z)
+       logical, intent(in) :: parallel
+       integer, intent(in) :: nproc,iproc,nat,ntypes
+       integer, intent(inout) :: n1,n2,n3,norbp,norb
+       integer, intent(out) :: infocode
+       type(input_variables), intent(in) :: in
+       type(wavefunctions_descriptors), intent(inout) :: wfd
+       real(kind=8), intent(out) :: energy
+       character(len=20), dimension(100), intent(in) :: atomnames
+       integer, dimension(nat), intent(in) :: iatype
+       real(kind=8), dimension(3,nat), intent(inout) :: rxyz
+       real(kind=8), dimension(3,nat), intent(out) :: rxyz_old,fxyz
+       real(kind=8), dimension(:), pointer :: eval
+       real(kind=8), dimension(:,:), pointer :: psi
+     end subroutine cluster
+  end interface
+
+  inputPsiId_orig=in%inputPsiId
+
+  loop_cluster: do
+
+     if (in%inputPsiId == 0 .and. associated(psi)) then
+        i_all=-product(shape(psi))*kind(psi)
+        deallocate(psi,stat=i_stat)
+        call memocc(i_stat,i_all,'psi','call_cluster')
+        i_all=-product(shape(eval))*kind(eval)
+        deallocate(eval,stat=i_stat)
+        call memocc(i_stat,i_all,'eval','call_cluster')
+
+        call deallocate_wfd(wfd,'call_cluster')
+     end if
+
+     call cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+          psi,wfd,norbp,norb,eval,&
+          n1,n2,n3,rxyz_old,in,infocode)
+
+     if (in%inputPsiId==1 .and. infocode==2) then
+        in%inputPsiId=0
+     else if (in%inputPsiId == 0 .and. infocode==3) then
+        if (iproc.eq.0) then
+           write(*,'(1x,a)')'Convergence error, cannot proceed.'
+           write(*,'(1x,a)')' writing positions in file posout_999.ascii then exiting'
+           call wtposout(999,energy,nat,rxyz,atomnames,iatype)
+        end if
+
+        i_all=-product(shape(psi))*kind(psi)
+        deallocate(psi,stat=i_stat)
+        call memocc(i_stat,i_all,'psi','call_cluster')
+        i_all=-product(shape(eval))*kind(eval)
+        deallocate(eval,stat=i_stat)
+        call memocc(i_stat,i_all,'eval','call_cluster')
+
+        call deallocate_wfd(wfd,'call_cluster')
+        !finalize memory counting (there are still the positions and the forces allocated)
+        call memocc(0,0,'count','stop')
+
+        if (parallel) call MPI_FINALIZE(ierr)
+
+        stop
+     else
+        exit loop_cluster
+     end if
+
+  end do loop_cluster
+
+  !preserve the previous value
+  inputPsiId_orig=in%inputPsiId
+
+end subroutine call_cluster
+
 subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
      psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
   ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
@@ -18,67 +114,57 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   use module_types
   use module_interfaces
   use Poisson_Solver
-
-  implicit real(kind=8) (a-h,o-z)
-  character(len=30) :: label
-  character(len=20), dimension(100) :: atomnames
-  character(len=1) :: datacode
-  logical parallel,calc_tail,output_wf,output_grid
-  real(kind=8), parameter :: eps_mach=1.d-12
-  ! work array for ALLREDUCE
-  dimension wrkallred(5,2) 
-  ! atomic coordinates
-  dimension rxyz(3,nat),rxyz_old(3,nat),fxyz(3,nat),iatype(nat)
-  allocatable :: gxyz(:,:)
-
-  real(kind=8), allocatable :: occup(:),spinar(:),spinar_foo(:)
-  real(kind=8), pointer :: eval(:),eval_old(:)
-
-  !wwavefunction
-  real(kind=8), pointer :: psi(:,:)
-  !transposed  wavefunction
-  real(kind=8), pointer :: psit(:,:)
-  ! wavefunction gradients, hamiltonian on vavefunction
-  real(kind=8), pointer :: hpsi(:,:)
-
-  ! Pointers and variables to store the last psi
-  ! before reformating if useFormattedInput is .true.
-  real(kind=8), pointer :: psi_old(:,:)
-
-  ! Charge density/potential,ionic potential, pkernel
-  real(kind=8), allocatable :: rhopot(:,:,:,:),pot_ion(:)
-  real(kind=8), pointer     :: pkernel(:)
-
-  ! projectors 
-  real(kind=8), pointer :: proj(:)
-
-  ! pseudopotential parameters
-  allocatable :: psppar(:,:,:),nelpsp(:),radii_cf(:,:),npspcode(:),nzatom(:),iasctype(:)
-  allocatable :: derproj(:)
-  ! arrays for DIIS convergence accelerator
-  real(kind=8), pointer :: ads(:,:,:),psidst(:,:,:),hpsidst(:,:,:)
-
-  ! arrays for calculation of forces and tail correction to kinetic energy
-  allocatable :: rho(:),pot(:,:,:,:)
-  allocatable :: neleconf(:,:),nscatterarr(:,:),ngatherarr(:,:)
-
-  integer :: ierror
-
-  !input variables
+  implicit none
+  include 'mpif.h'
+  !implicit real(kind=8) (a-h,o-z)
+  logical, intent(in) :: parallel
+  integer, intent(in) :: nproc,iproc,nat,ntypes
+  integer, intent(inout) :: n1,n2,n3,norbp,norb
+  integer, intent(out) :: infocode
   type(input_variables), intent(in) :: in
   type(wavefunctions_descriptors), intent(inout) :: wfd
-
+  real(kind=8), intent(out) :: energy
+  character(len=20), dimension(100), intent(in) :: atomnames
+  integer, dimension(nat), intent(in) :: iatype
+  real(kind=8), dimension(3,nat), intent(inout) :: rxyz
+  real(kind=8), dimension(3,nat), intent(out) :: rxyz_old,fxyz
+  real(kind=8), dimension(:), pointer :: eval
+  real(kind=8), dimension(:,:), pointer :: psi
+  !local variables
+  character(len=1) :: datacode
+  logical :: calc_tail,output_wf,output_grid
+  integer :: ixc,ncharge,ncong,idsx,ncongt,nspin,mpol,inputPsiId,itermax
+  integer :: nelec,natsc,norbu,norbd,ndegree_ip,nvctrp,mids
+  integer :: n1_old,n2_old,n3_old,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n3d,n3p,n3pi,i3xcsh,i3s
+  integer :: ncount0,ncount1,ncount_rate,ncount_max,iunit
+  integer :: i1,i2,i3,ind,iat,ierror,i_all,i_stat,iter,ierr,i03,i04,jproc,ispin
+  real :: tcpu0,tcpu1
+  real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf
+  real(kind=8) :: hgridh,peakmem,alat1,alat2,alat3,accurex,gnrm_check,hgrid_old,energy_old
+  real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum
+  real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min
   type(wavefunctions_descriptors) :: wfd_old
   type(convolutions_bounds) :: bounds
   type(nonlocal_psp_descriptors) :: nlpspd
-
-  include 'mpif.h'
-
-  !- Interfaces for all outside public routines.
-!!$  include "input/interface.f90"
-!!$  include "profiling/interface.f90"
-  !include "interface.f90"
-
+  integer, dimension(:), allocatable :: nelpsp,npspcode,nzatom,iasctype
+  integer, dimension(:,:), allocatable :: neleconf,nscatterarr,ngatherarr
+  real(kind=8), dimension(:), allocatable :: occup,spinar,spinar_foo,derproj,rho
+  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz
+  real(kind=8), dimension(:,:,:), allocatable :: psppar
+  ! Charge density/potential,ionic potential, pkernel
+  real(kind=8), dimension(:), allocatable :: pot_ion
+  real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot
+  real(kind=8), dimension(:), pointer :: pkernel
+  real(kind=8), dimension(:), pointer :: eval_old !should be removed from copy_old_wavefunctions
+  !wavefunction gradients, hamiltonian on vavefunction
+  !transposed  wavefunction
+  ! Pointers and variables to store the last psi
+  ! before reformating if useFormattedInput is .true.
+  real(kind=8), dimension(:,:), pointer :: hpsi,psit,psi_old
+  ! PSP projectors 
+  real(kind=8), dimension(:), pointer :: proj
+  ! arrays for DIIS convergence accelerator
+  real(kind=8), dimension(:,:,:), pointer :: ads,psidst,hpsidst
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -163,7 +249,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   allocate(occup(norb),stat=i_stat)
   call memocc(i_stat,product(shape(occup))*kind(occup),'occup','cluster')
   allocate(spinar(norb),stat=i_stat)
-  call memocc(i_stat,product(shape(spinar))*kind(spinar),'occup','cluster')
+  call memocc(i_stat,product(shape(spinar))*kind(spinar),'spinar','cluster')
 
   ! Occupation numbers
   call input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinar)
@@ -385,6 +471,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   ekin_sum=0.d0 
   epot_sum=0.d0 
   eproj_sum=0.d0
+  !minimum value of the energy during the minimisation procedure
+  energy_min=1.d10
   !set the infocode to the value it would have in the case of no convergence
   infocode=1
   ! loop for wavefunction minimization
@@ -414,20 +502,23 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
      energy=energybs-ehart+eexcu-vexcu+eion
+     energy_min=min(energy_min,energy)
 
      !check for convergence or whether max. numb. of iterations exceeded
      if (gnrm.le.gnrm_cv .or. iter.eq.itermax) then 
         if (iproc.eq.0) then 
            write(*,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
-           write(*,'(1x,a,i3,3(1x,1pe18.11))') &
-                'iproc,ehart,eexcu,vexcu',iproc,ehart,eexcu,vexcu
+           write(*,'(1x,a)') &
+                '--------------------------------------------------- End of Wavefunction Optimisation'
            write(*,'(1x,a,3(1x,1pe18.11))') &
-                'final ekin_sum,epot_sum,eproj_sum',ekin_sum,epot_sum,eproj_sum
+                'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
            write(*,'(1x,a,3(1x,1pe18.11))') &
-                'final ehart,eexcu,vexcu',ehart,eexcu,vexcu
+                'final ehart, eexcu,  vexcu ',ehart,eexcu,vexcu
            write(*,'(1x,a,i6,2x,1pe19.12,1x,1pe9.2)') &
                 'FINAL iter,total energy,gnrm',iter,energy,gnrm
            !write(61,*)hgrid,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
+           if (energy > energy_min) write(*,'(1x,a,1pe9.2)')&
+                'WARNING: Found an energy value lower than the FINAL energy, delta:',energy-energy_min
         end if
         infocode=0
         exit wfn_loop 
@@ -767,7 +858,7 @@ contains
 
   !routine which deallocate the pointers and the arrays before exiting 
   subroutine deallocate_before_exiting
-    implicit real(kind=8) (a-h,o-z)
+    !implicit real(kind=8) (a-h,o-z)
 
     !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1) then
