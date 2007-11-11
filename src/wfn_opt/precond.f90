@@ -32,7 +32,7 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   dimension hpsi(nvctr_c+7*nvctr_f),scal(0:3),residues(ncong)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   allocatable rpsi(:),ppsi(:),wpsi(:),spsi(:)
-  logical, parameter :: newmethod=.true.
+  logical, parameter :: newmethod=.false.
 
 !***********************************************************************************************
   allocatable :: xpsig_c(:,:,:), ypsig_c(:,:,:)

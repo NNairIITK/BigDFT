@@ -31,7 +31,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
     integer,allocatable,dimension(:,:,:)::ibyx_f,ibxzz_f,ibzzyy_f
 
     logical,allocatable:: logrid_big(:)
-    logical, parameter :: newmethod=.true.
+    logical, parameter :: newmethod=.false.
     
 !    for real space:
     integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)

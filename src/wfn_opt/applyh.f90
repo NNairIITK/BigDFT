@@ -14,7 +14,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension  psi(nvctr_c+7*nvctr_f,norbp)
   dimension hpsi(nvctr_c+7*nvctr_f,norbp)
-  logical :: parameter, newmethod=.true.
+  logical :: parameter, newmethod=.false.
   real(kind=8), allocatable :: psir(:),y_c(:,:,:),y_f(:,:,:,:)
 
   !********************Alexey***************************************************************
@@ -157,6 +157,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
      call memocc(i_stat,i_all,'x_fc','applylocpotkinall')
 
   end if
+
   i_all=-product(shape(y_c))*kind(y_c)
   deallocate(y_c,stat=i_stat)
   call memocc(i_stat,i_all,'y_c','applylocpotkinall')
