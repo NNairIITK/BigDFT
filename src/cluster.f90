@@ -1,4 +1,5 @@
-subroutine call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+
+ subroutine call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
      psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
   use module_types
   implicit none
@@ -197,7 +198,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
 
 
   if (iproc.eq.0) write(*,'(1x,a,1x,i0)') &
-       '                               BigDFT Wavefunction Optimization',inputPsiId
+       '--------------------- BigDFT Wavefunction Optimization --------------- inputPsiId=',inputPsiId
+       !'                               BigDFT Wavefunction Optimization',inputPsiId
   if (parallel) then
      call timing(iproc,'parallel     ','IN')
   else
