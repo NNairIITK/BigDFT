@@ -17,7 +17,7 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
   real(kind=8), dimension(:), pointer :: eval
   real(kind=8), dimension(:,:), pointer :: psi
   !local variables
-  integer :: nfail,it,iat,i_all,i_stat
+  integer :: nfail,it,iat,i_all,i_stat,infocode
   real(kind=8) :: anoise,fluct,flucto,fluctoo,avbeta,avnum,fnrm,etotprec,beta0,beta
   real(kind=8) :: y0,y1,tt,sumx,sumy,sumz,obenx,obeny,obenz,unten,rlambda,tetot
   real(kind=8), dimension(:,:), allocatable :: tpos,gp,hh
