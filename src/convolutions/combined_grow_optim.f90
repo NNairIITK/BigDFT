@@ -59,7 +59,7 @@ end subroutine comb_grow_all
         call  comb_rot_grow_loc_square_1(n2,n3,2*n1+30,y,ww,ibzxx,ibxxyy,.true.) 
 
 ! i3,I1,I2  -> I1,I2,I3
-           call  comb_rot_grow_loc_square_1(n3,2*n1+30,2*n2+30,ww,y,ibxxyy,ibyyzz_r,.false.) 
+        call  comb_rot_grow_loc_square_1(n3,2*n1+30,2*n2+30,ww,y,ibxxyy,ibyyzz_r,.false.) 
 
         END SUBROUTINE
 
