@@ -63,6 +63,8 @@
 
      if (in%inputPsiId==1 .and. infocode==2) then
         in%inputPsiId=0
+     else if (in%inputPsiId==1 .and. infocode==1) then
+        in%inputPsiId=0
      else if (in%inputPsiId == 0 .and. infocode==3) then
         if (iproc.eq.0) then
            write(*,'(1x,a)')'Convergence error, cannot proceed.'

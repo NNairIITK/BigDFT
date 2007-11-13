@@ -1054,6 +1054,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      call MPI_ALLREDUCE(hamovr(1,3),hamovr(1,1),2*ndim_hamovr,&
           MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
+!subroutine solve_eigensystem(iproc,norb,norbi_max,ndim_hamovr,natsc,norbsc_arr,hamovr,&
+     
+
      !found the eigenfunctions for each group
      n_lp=max(10,4*norbi_max)
      allocate(work_lp(n_lp),stat=i_stat)
