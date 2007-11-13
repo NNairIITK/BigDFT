@@ -204,8 +204,8 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
   !local variables
   integer :: nl1,nl2,nl3,nu1,nu2,nu3,mseg,mvctr,mproj,istart,istart_c,istart_f,mvctr_c,mvctr_f
   integer :: nl1_c,nl1_f,nl2_c,nl2_f,nl3_c,nl3_f,nu1_c,nu1_f,nu2_c,nu2_f,nu3_c,nu3_f
-  integer :: iat,i_stat,i_all,nterm_max,i,l,m,iproj,ityp,nterm,iseg
-  real(kind=8) :: fpi,factor,scpr,gau_a,rx,ry,rz
+  integer :: iat,i_stat,i_all,nterm_max,i,l,m,iproj,ityp,nterm,iseg,nwarnings
+  real(kind=8) :: fpi,factor,scpr,gau_a,rx,ry,rz,radmin
   logical, dimension(:,:,:), allocatable :: logrid
   real(kind=8), dimension(:), allocatable :: fac_arr
   integer, dimension(:), allocatable :: lx,ly,lz
@@ -363,6 +363,9 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
 
   if (iproc.eq.0) write(*,'(1x,a)',advance='no') &
        'Calculating wavelets expansion of projectors...'
+  !warnings related to the projectors norm
+  nwarnings=0
+  radmin=1.d10
   !allocate these vectors up to the maximum size we can get
   nterm_max=10 !if GTH nterm_max=3
   allocate(fac_arr(nterm_max),stat=i_stat)
@@ -421,9 +424,27 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
                  call wnrm(mvctr_c,mvctr_f,proj(istart_c), &
                       & proj(istart_f),scpr)
                  if (abs(1.d0-scpr).gt.1.d-2) then
-                    print *,'norm projector for atom ',trim(atomnames(iatype(iat))),&
-                         'iproc,l,i,rl,scpr=',iproc,l,i,gau_a,scpr
-                    stop 'norm projector'
+                    if (abs(1.d0-scpr).gt.1.d-1) then
+                       if (iproc == 0) then
+                          write(*,'(1x,a)')'error found!'
+                          write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
+                               'The norm of the nonlocal PSP for atom n=',iat,&
+                               ' (',trim(atomnames(iatype(iat))),&
+                               ') labeled by l=',l,' m=',m,' is ',scpr
+                          write(*,'(1x,a)')&
+                               'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
+!!$                          write(*,'(1x,a,f6.3,a)')&
+!!$                               'It should be of the order of the hardest PSP radius (here',&
+!!$                               gau_a,').'
+                       end if
+                       stop
+                    else
+                       nwarnings=nwarnings+1
+                       radmin=min(radmin,gau_a)
+                    end if
+!!$                    print *,'norm projector for atom ',trim(atomnames(iatype(iat))),&
+!!$                         'iproc,l,i,rl,scpr=',iproc,l,i,gau_a,scpr
+!!$                    stop 'norm projector'
                  end if
 
                  ! testing end
@@ -444,7 +465,16 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
   enddo
   if (iproj.ne.nlpspd%nproj) stop 'incorrect number of projectors created'
   ! projector part finished
-  if (iproc ==0) write(*,'(1x,a)')'done.'
+  if (iproc == 0) then
+     if (nwarnings == 0) then
+        write(*,'(1x,a)')'done.'
+     else
+        write(*,'(1x,a,i0,a)')'found ',nwarnings,' warnings.'
+        write(*,'(1x,a)')'Some projectors may be too rough.'
+        write(*,'(1x,a,f6.3)')&
+             'Consider the possibility of reducing hgrid for having a more accurate run.'
+     end if
+  end if
 
   i_all=-product(shape(logrid))*kind(logrid)
   deallocate(logrid,stat=i_stat)
@@ -1100,15 +1130,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
         imatrst=imatrst+norbi**2
      end do
 
-     !     write(*,*) "NORBO",norb,norbe,norbu,norbd,norbu+norbd,norbp
      ! Copy eigenvalues from NM to spin-polarized channels
      if(nspin>1) then
-        !        do iorb=1,norbu
-        !!           write(*,*) 'jorb:',iorb,norbi_max,norbe,norb,product(shape(eval)),product(shape(evale))
-        !           evale(iorb)=eval(iorb)
-        !        end do
         do iorb=1,norbd
-           !           write(*,*) 'korb:',iorb,iorb+norbu,norbi_max,norbe,norb,product(shape(evale))
            eval(iorb+norbu)=eval(iorb)
         end do
      end if
