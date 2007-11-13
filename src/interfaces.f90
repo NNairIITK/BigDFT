@@ -59,7 +59,7 @@ interface
      integer, intent(in) :: iproc,nproc,nat,ntypes,nspin,ncharge,mpol
      integer, intent(out) :: nelec,natsc,norb,norbu,norbd,norbp,iunit
      character(len=20), dimension(ntypes), intent(in) :: atomnames
-     integer, dimension(ntypes), intent(in) :: iatype
+     integer, dimension(nat), intent(in) :: iatype
      integer, dimension(ntypes), intent(out) :: npspcode,iasctype,nelpsp,nzatom
      real(kind=8), dimension(ntypes,2), intent(out) :: radii_cf
      real(kind=8), dimension(0:4,0:6,ntypes), intent(out) :: psppar

@@ -1054,6 +1054,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      call MPI_ALLREDUCE(hamovr(1,3),hamovr(1,1),2*ndim_hamovr,&
           MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
+!subroutine solve_eigensystem(iproc,norb,norbi_max,ndim_hamovr,natsc,norbsc_arr,hamovr,&
+     
+
      !found the eigenfunctions for each group
      n_lp=max(10,4*norbi_max)
      allocate(work_lp(n_lp),stat=i_stat)
@@ -1130,15 +1133,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
         imatrst=imatrst+norbi**2
      end do
 
-     !     write(*,*) "NORBO",norb,norbe,norbu,norbd,norbu+norbd,norbp
      ! Copy eigenvalues from NM to spin-polarized channels
      if(nspin>1) then
-        !        do iorb=1,norbu
-        !!           write(*,*) 'jorb:',iorb,norbi_max,norbe,norb,product(shape(eval)),product(shape(evale))
-        !           evale(iorb)=eval(iorb)
-        !        end do
         do iorb=1,norbd
-           !           write(*,*) 'korb:',iorb,iorb+norbu,norbi_max,norbe,norb,product(shape(evale))
            eval(iorb+norbu)=eval(iorb)
         end do
      end if
