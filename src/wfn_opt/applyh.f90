@@ -484,19 +484,19 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
                       keyg_p(1,jseg_c),keyg_p(1,jseg_f),proj(istart_c),proj(istart_f),scpr)
 
-                 ! test (will sometimes give wrong result)
-                 call wpdot(  &
-                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
-                      keyg_p(1,jseg_c),keyg_p(1,jseg_f),proj(istart_c),proj(istart_f),  &
-                      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                      keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),tcpr)
-                 if (scpr.ne.tcpr) then
-                    print *,'projectors: scpr.ne.tcpr'
-                    print *,'l,i,m,h_i^l=',l,i,m,psppar(l,i,ityp)
-                    print *,'scpr,tcpr',scpr,tcpr
-                    stop 
-                 end if
-                 ! testend
+!!$                 ! test (will sometimes give wrong result)
+!!$                 call wpdot(  &
+!!$                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
+!!$                      keyg_p(1,jseg_c),keyg_p(1,jseg_f),proj(istart_c),proj(istart_f),  &
+!!$                      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+!!$                      keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),tcpr)
+!!$                 if (scpr.ne.tcpr) then
+!!$                    print *,'projectors: scpr.ne.tcpr'
+!!$                    print *,'l,i,m,h_i^l=',l,i,m,psppar(l,i,ityp)
+!!$                    print *,'scpr,tcpr',scpr,tcpr
+!!$                    stop 
+!!$                 end if
+!!$                 ! testend
 
                  scprp=scpr*psppar(l,i,ityp)
                  eproj=eproj+scprp*scpr
