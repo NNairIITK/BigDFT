@@ -87,7 +87,8 @@ high_level = cluster.f90 \
 	hpsiortho.f90 \
 	forces.f90 \
 	tail.f90 \
-	restart.f90
+	restart.f90 \
+	geometry.f90
 
 #objects which can be compiled whithout any dependence
 low_level = init/projectors.f90  \
@@ -150,7 +151,7 @@ CLEANFILES = mpif.h \
 			 module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@
 
 #dependencies
-cluster.o: $(mpi_include) \
+cluster.o geometry.o: $(mpi_include) \
 	interfaces.o
 
 interfaces.o: types.o
@@ -171,6 +172,6 @@ test_forces.o: parameters.h \
 $(mod_bigdft) : BigDFT_API.o
 
 BigDFT.o: parameters.h \
-	types.o
+	interfaces.o
 
 memguess.o: types.o
