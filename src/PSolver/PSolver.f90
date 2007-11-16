@@ -165,8 +165,12 @@ program PoissonSolver
 !!$  print *,'iproc,i3xcsh,i3s,max_diff',iproc,i3xcsh,i3s,max_diff
 
      !extract the max
-     call MPI_ALLREDUCE(max_diff,diff_par,1,MPI_double_precision,  &
-          MPI_MAX,MPI_COMM_WORLD,ierr)
+     if (nproc > 1) then
+        call MPI_ALLREDUCE(max_diff,diff_par,1,MPI_double_precision,  &
+             MPI_MAX,MPI_COMM_WORLD,ierr)
+     else
+        diff_par=max_diff
+     end if
 
 
      if (iproc == 0) then
@@ -229,9 +233,13 @@ program PoissonSolver
 !!$     print *,'max_diff,i1_max,i2_max,i3_max,i3s,i3xcsh,n3p',max_diff,i1_max,i2_max,i3_max,&
 !!$          i3s,i3xcsh,n3p
 
-        !extract the max
-        call MPI_ALLREDUCE(max_diff,diff_parser,1,MPI_double_precision,  &
-             MPI_MAX,MPI_COMM_WORLD,ierr)
+        if (nproc > 1) then
+           !extract the max
+           call MPI_ALLREDUCE(max_diff,diff_parser,1,MPI_double_precision,  &
+                MPI_MAX,MPI_COMM_WORLD,ierr)
+        else
+           diff_parser=max_diff
+        end if
 
         if (iproc==0) then
            write(*,*) '------------------'

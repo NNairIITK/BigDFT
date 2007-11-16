@@ -7,13 +7,27 @@
 #
 # SOURCE
 #
-F95 = ompif90 -fbounds-check -O 
-F77 = ompif90 -fbounds-check -O 
+#switch between a parallel and a serial approach
+
+#sequential treatment
+mpi_source = MPIfake.f90
+mpi_include = mpif.h
+
+F95 = g95 -fbounds-check -O 
+F77 = g95 -fbounds-check -O 
+
+#parallel treatment
+#mpi_source = 
+#mpi_include = 
+
+#F95 = ompif90 -fbounds-check -O 
+#F77 = ompif90 -fbounds-check -O 
 
 all: PSolver
 
 clean:
-	\rm -f *.o ${PROGRAMS} *~ *.log *.aux fort.*
+	\rm -f *.o ${PROGRAMS} *~ *.log *.aux fort.* mpif.h *.mod \
+	ABINIT-common/*.f90 ABINIT-common/*.o ABINIT-common/*.mod
 
 cleanall:
 	make clean
@@ -23,28 +37,32 @@ tar:
 	tar czvf solver.tgz $(SOURCES_ABINIT) $(SOURCES_F77) $(SOURCES_F90) $(INCLUDES) $(OTHERS)
 
 PROGRAMS = \
-	PSolver 
+	PSolver
 
-SOURCES_ABINIT = abinit/defs_basis.F90 \
-        abinit/defs_datatypes.F90 \
-        abinit/defs_xc.F90 \
-        abinit/drivexc.F90 \
-        abinit/xctetr.F90 \
-        abinit/xcwign.F90 \
-        abinit/xcxalp.F90 \
-        abinit/xchelu.F90 \
-        abinit/xcpzca.F90 \
-        abinit/xcspol.F90 \
-        abinit/xchcth.F90 \
-        abinit/xclb.F90 \
-        abinit/xcpbe.F90 \
-        abinit/invcb.F90 \
-	abinit/size_dvxc.F90 
+
+
+
+SOURCES_ABINIT = ABINIT-common/defs_basis.F90 \
+        ABINIT-common/defs_datatypes.F90 \
+        ABINIT-common/defs_xc.F90 \
+        ABINIT-common/drivexc.F90 \
+        ABINIT-common/xctetr.F90 \
+        ABINIT-common/xcwign.F90 \
+        ABINIT-common/xcxalp.F90 \
+        ABINIT-common/xchelu.F90 \
+        ABINIT-common/xcpzca.F90 \
+        ABINIT-common/xcspol.F90 \
+        ABINIT-common/xchcth.F90 \
+        ABINIT-common/xclb.F90 \
+        ABINIT-common/xcpbe.F90 \
+        ABINIT-common/invcb.F90 \
+	ABINIT-common/size_dvxc.F90 
 
 SOURCES_F90 = \
 	Poisson_Solver.f90 \
 	PSolver.f90 \
-	timing.f90 
+	timing.f90 \
+	$(mpi_source)
 
 
 SOURCES_F77 = \
@@ -62,7 +80,7 @@ INCLUDES = perfdata.inc \
 	lazy_50.inc \
 	lazy_8.inc
 
-SOURCES_MOD = 	PSolver_launch.f90 \
+SOURCES_MOD = PSolver_Main.f90 \
 	Build_Kernel.f90 \
 	PSolver_Base.f90 \
 	xcenergy.f90 \
@@ -71,6 +89,8 @@ SOURCES_MOD = 	PSolver_launch.f90 \
 	scaling_function.f90
 
 OTHERS = Makefile \
+	PSchk.f90 \
+	MPIfake.f90 \
 	bench.csh \
 	perfdata.t \
 	acc_F.20-100.ref \
@@ -111,4 +131,20 @@ COMMON =  $(OBJECTS_ABINIT) \
 PSolver: $(COMMON) $(INCLUDES) 
 	$(F95) -o $@ $(COMMON)
 
-Poisson_Solver.o : $(SOURCES_MOD)
+PSolver.o : Poisson_Solver.o
+
+Poisson_Solver.o : $(mpi_include) $(SOURCES_MOD)
+
+mpif.h:
+	touch mpif.h &&\
+	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
+	 echo "integer :: MPI_DOUBLE_PRECISION" >> mpif.h &&\
+	 echo "integer :: MPI_MIN, MPI_MAX" >> mpif.h
+
+$(SOURCES_ABINIT:.f90=.o) : ABINIT-common/defs_basis.o
+
+ABINIT-common/defs_datatypes.o: ABINIT-common/defs_basis.o
+
+ABINIT-common/defs_xc.o: ABINIT-common/defs_datatypes.o
+
+ABINIT-common/drivexc.o: ABINIT-common/defs_basis.o ABINIT-common/defs_xc.o

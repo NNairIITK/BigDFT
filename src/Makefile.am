@@ -1,10 +1,5 @@
 ## Process this file with automake to produce Makefile.in
 
-if BUILD_LIB_XC
-sub_dirs_xc = ABINIT-common
-else
-sub_dirs_xc = 
-endif
 if BUILD_LIB_PSOLVER
 sub_dirs_ps = PSolver
 else
@@ -32,7 +27,7 @@ binaries_sources =
 endif
 
 
-SUBDIRS = $(sub_dirs_xc) $(sub_dirs_ps) convolutions profiling
+SUBDIRS = $(sub_dirs_ps) convolutions profiling
 
 EXTRA_DIST = \
 	Makefile.standalone \
@@ -129,26 +124,26 @@ cluster_SOURCES = BigDFT.f90
 cluster_LDFLAGS = $(LMPI)
 cluster_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	ABINIT-common/libABINIT.a \
+	PSolver/ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
 test_forces_SOURCES = test_forces.f90
 test_forces_LDFLAGS = $(LMPI)
 test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	ABINIT-common/libABINIT.a \
+	PSolver/ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
 memguess_SOURCES = memguess.f90 
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	ABINIT-common/libABINIT.a 
+	PSolver/ABINIT-common/libABINIT.a 
 
 
 CLEANFILES = mpif.h \
-			 bigdft_api.@MODULE_EXT@ BIGDFT_API.@MODULE_EXT@ \
-			 module_interfaces.@MODULE_EXT@ MODULE_INTERFACES.@MODULE_EXT@ \
-			 module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@
+	bigdft_api.@MODULE_EXT@ BIGDFT_API.@MODULE_EXT@ \
+	module_interfaces.@MODULE_EXT@ MODULE_INTERFACES.@MODULE_EXT@ \
+	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@
 
 #dependencies
 cluster.o geometry.o: $(mpi_include) \
