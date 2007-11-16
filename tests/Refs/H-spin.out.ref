@@ -32,13 +32,15 @@
  Convergence criterion for forces: fraction of noise   1.00E+00
  Random displacement amplitude   0.00E+00
  Steepest descent step   4.00E+00
+ Spin-polarised calculation: YES (Collinear)
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Grid spacing=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=      50 | Extension= 5.0
  total charge=      0 | Coarse Proj.= 8.00 | CG Prec.Steps=      15 |  CG Steps=  30
   elec. field=0.0E+00 |   Fine Proj.= 8.00 | DIIS Hist. N.=       6
-                                BigDFT Wavefunction Optimization 0
+ Polarisation=      2 |
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------ System Properties
  Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File
     H_lda               1       2            1.36000  0.15000                   X    
@@ -63,7 +65,7 @@
     Arrays of full uncompressed grid (U):    11 MB   511 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W    |         ~W+(~3)*U 
+       ~11*K         |       ~W+(~3)*U      |    ~8*D+K+W    |         ~W+(~3)*U 
         76MB         |        34MB          |      116MB     |            38MB
  The overall memory requirement needed for this calculation is thus: 116 MB
  By reducing the DIIS history and/or decreasing the number of processors the amount of
@@ -191,12 +193,12 @@
  Calculation of charge density... done. Total electronic charge=       0.999999982476
  PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  1 ...done.
  Hamiltonian application... done. 11 minimization iterations required
- iproc,ehart,eexcu,vexcu  0  2.99998732280E-01 -2.79430078243E-01 -3.68501104761E-01
- final ekin_sum,epot_sum,eproj_sum  4.67748099287E-01 -7.35143719201E-01  0.00000000000E+00
- final ehart,eexcu,vexcu  2.99998732280E-01 -2.79430078243E-01 -3.68501104761E-01
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   4.67748099287E-01 -7.35143719201E-01  0.00000000000E+00
+ final ehart, eexcu,  vexcu   2.99998732280E-01 -2.79430078243E-01 -3.68501104761E-01
  FINAL iter,total energy,gnrm    11  -4.783233256756E-01  6.35E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1,u)= -2.67395619913962E-01
+ eval(   1,u)= -2.67395619913963E-01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=       0.999999982476
  PSolver, free  BC, dimensions:    91   91   91   proc    1   ixc:  0 ...done.
@@ -215,7 +217,7 @@
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  4.64444226937E-01 -7.32218123504E-01  0.00000000000E+00
  Total energy with tail correction -4.787016023287E-01
- CPU time for root process     0        32.99        27.42
+ CPU time for root process     0        32.44        25.22
  Final values of the Forces for each atom
      1  H_lda  1.29991E-04  1.29991E-04  1.29991E-04
  the sum of the forces is
@@ -223,6 +225,6 @@
       y direction     1.29990985E-04
       z direction     1.29990985E-04
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1723 allocations and 1723 deallocations, remaining memory(B):0
+ 858 allocations and 858 deallocations, remaining memory(B):0
  memory occupation peak: 77 MB
  for the array  cosinarr in the routine kernelfft
