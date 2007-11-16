@@ -94,7 +94,17 @@ subroutine read_input_variables(iproc,in)
           in%frac_fluct
      write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
      write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
+  end if
 
+     if (in%nspin==2) then
+        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Collinear)'
+     else if (in%nspin==1) then
+        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation:  NO '
+     else
+        if (iproc == 0) write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
+        stop
+     end if
+  if (iproc == 0) then
      write(*,'(1x,a)')&
           '------------------------------------------------------------------- Input Parameters'
      write(*,'(1x,a)')&
@@ -110,6 +120,10 @@ subroutine read_input_variables(iproc,in)
           '|  CG Steps=',in%ncongt
      write(*,'(1x,a,1pe7.1,1x,a,0pf5.2,1x,a,i8)')&
           ' elec. field=',in%elecfield,'|   Fine Proj.=',in%fpmult,'| DIIS Hist. N.=',in%idsx
+     if (in%nspin==2) then
+        write(*,'(1x,a,i7,1x,a)')&
+          'Polarisation=',2*in%mpol, '|'
+     end if
   end if
 
 end subroutine read_input_variables

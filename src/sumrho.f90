@@ -42,7 +42,8 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
 
   nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
        4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
-       (n1+1)*(n2+1)*(2*n3+31))
+       (n1+1)*(n2+1)*(2*n3+31),&
+	   (2*n1+31)*(n2+1)*(n3+1))
 
   allocate(scal(0:3),stat=i_stat)
   call memocc(i_stat,product(shape(scal))*kind(scal),'scal','sumrho')
@@ -78,6 +79,8 @@ subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  &
 
   !switch between the old and the new method
   if (newmethod) then
+	  
+     call razero((2*n1+31)*(2*n2+31)*(2*n3+31),psir)
      if (parallel) then
         !calculate dimensions of the complete array to be allocated before the reduction procedure
         nrhotot=0
