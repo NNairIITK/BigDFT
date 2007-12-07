@@ -164,12 +164,17 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
 
      call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg,&
           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,fluct,flucto,fluctoo,fnrm,in)
-
+     if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) then
+        if (iproc.eq.0) write(16,*) 'Converged in switch back SD',iproc
+        call close_and_deallocate
+        return
+     endif
      goto 12345
 
   endif
   etotprec=etot
   if (iproc.eq.0) call wtposout(ncount_cluster,etot,nat,wpos,atomnames,iatype)
+  !if (iproc.eq.0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_cluster,etot,sqrt(fnrm)
   fluctoo=flucto
   flucto=fluct
   fluct=sumx**2+sumy**2+sumz**2
@@ -221,6 +226,11 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
      call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg,&
           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,&
           fluct,flucto,fluctoo,fnrm,in)
+     if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) then
+        if (iproc.eq.0) write(16,*) 'Converged in back up SD',iproc
+        call close_and_deallocate
+        return
+     endif
 
      nfail=nfail+1
      if (nfail.ge.100) stop 'too many failures of CONJG'
@@ -377,6 +387,7 @@ contains
     if (iproc.eq.0) then 
        write(16,'(i5,1x,e12.5,1x,e21.14,a)') itsd,sqrt(fnrm),etot,' SD '
        call wtposout(ncount_cluster,etot,nat,wpos,atomnames,iatype)
+       !write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'SD ',ncount_cluster,etot,sqrt(fnrm)
     end if
 
     fluctoo=flucto

@@ -57,7 +57,8 @@ subroutine plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f
         call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
              psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
 
-  call plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,psir)
+  !call plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,psir)
+  call plot_pot_full(rx,ry,rz,hgrid,n1,n2,n3,iounit,psir)
 
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
@@ -118,7 +119,38 @@ subroutine plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,pot)
   return
 END SUBROUTINE plot_pot
 
+subroutine plot_pot_full(rx,ry,rz,hgrid,n1,n2,n3,iounit,pot)
+  implicit real(kind=8) (a-h,o-z)
+  character(len=1) :: orbname
+  dimension pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
 
+  write(*,'(1x,a,i0)')'printing orbital number= ',iounit
+  hgridh=.5d0*hgrid
+  write(orbname,'(i0)')iounit
+  open(unit=22,file='psi'//orbname//'.pot',status='unknown')
+  write(22,*)'orbital'//orbname
+  write(22,*) 2*n1+1,2*n2+1,2*n3+1
+  write(22,*) n1*hgrid,' 0. ',n2*hgrid
+  write(22,*) ' 0. ',' 0. ',n3*hgrid
+  write(22,*)'xyz'
+  open(unit=23,file='den'//orbname//'.pot',status='unknown')
+  write(23,*)'orbital'//orbname
+  write(23,*) 2*n1+1,2*n2+1,2*n3+1
+  write(23,*) n1*hgrid,' 0. ',n2*hgrid
+  write(23,*) ' 0. ',' 0. ',n3*hgrid
+  write(23,*)'xyz'
+  do i3=0,2*n3
+     do i2=0,2*n2
+        do i1=0,2*n1
+           write(22,*)pot(i1,i2,i3)
+           write(23,*)pot(i1,i2,i3)**2
+        end do
+     end do
+  end do
+  close(unit=22) 
+  close(unit=23) 
+
+END SUBROUTINE plot_pot_full
 
 subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
   implicit real(kind=8) (a-h,o-z)
