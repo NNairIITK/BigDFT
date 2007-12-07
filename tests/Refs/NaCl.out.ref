@@ -33,13 +33,14 @@
  Convergence criterion for forces: fraction of noise   1.00E+00
  Random displacement amplitude   0.00E+00
  Steepest descent step   4.00E+00
+ Spin-polarised calculation:  NO 
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Grid spacing=  0.550 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=      50 | Extension= 5.0
  total charge=      0 | Coarse Proj.= 8.00 | CG Prec.Steps=      15 |  CG Steps=  30
   elec. field=0.0E+00 |   Fine Proj.= 8.00 | DIIS Hist. N.=       6
-                                BigDFT Wavefunction Optimization 0
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------ System Properties
  Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File
    Na_lda               9       2            2.10161  0.25000                   X    
@@ -65,7 +66,7 @@
     Arrays of full uncompressed grid (U):     9 MB   355 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~11*K         |       ~W+(~3)*U      |     ~8*D+*W    |         ~W+(~3)*U 
+       ~11*K         |       ~W+(~3)*U      |    ~8*D+K+W    |         ~W+(~3)*U 
        108MB         |        65MB          |      120MB     |            68MB
  The overall memory requirement needed for this calculation is thus: 120 MB
  By reducing the DIIS history and/or decreasing the number of processors the amount of
@@ -102,12 +103,12 @@
  evale(1)= -2.05189184855650E+00
  evale(2)= -9.70181085590685E-01
  evale(3)= -9.40396504299001E-01
- evale(4)= -9.40356713849581E-01
+ evale(4)= -9.40356713849582E-01
  evale(5)= -7.60389232425406E-01
  evale(6)= -3.48498351629214E-01
- evale(7)= -3.23399063303916E-01
- evale(8)= -3.23398661204566E-01 <- Last eigenvalue for input wavefncts
- evale(9)= -7.22393230162597E-02
+ evale(7)= -3.23399063303917E-01
+ evale(8)= -3.23398661204567E-01 <- Last eigenvalue for input wavefunctions
+ evale(9)= -7.22393230162598E-02
  Building orthogonal Input Wavefunctions... done.
  expected accuracy in kinetic energy due to grid size 1.47E-01
  suggested value for gnrm_cv  1.83E-02
@@ -196,19 +197,19 @@
  Calculation of charge density... done. Total electronic charge=      15.999839410724
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  1 ...done.
  Hamiltonian application... done. 10 minimization iterations required
- iproc,ehart,eexcu,vexcu  0  6.58440216544E+01 -9.74535289857E+00 -1.27963662690E+01
- final ekin_sum,epot_sum,eproj_sum  4.05126464883E+01 -5.97060124303E+01  6.04881983143E+00
- final ehart,eexcu,vexcu  6.58440216544E+01 -9.74535289857E+00 -1.27963662690E+01
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   4.05126464883E+01 -5.97060124303E+01  6.04881983143E+00
+ final ehart, eexcu,  vexcu   6.58440216544E+01 -9.74535289857E+00 -1.27963662690E+01
  FINAL iter,total energy,gnrm    10  -6.181121154266E+01  9.20E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1)= -2.15140654535924E+00
+ eval(   1)= -2.15140654535925E+00
  eval(   2)= -1.07879328871095E+00
  eval(   3)= -1.05478633140831E+00
  eval(   4)= -1.05475611727202E+00
- eval(   5)= -6.20164652936605E-01
- eval(   6)= -2.16025356267080E-01
- eval(   7)= -1.98170675401247E-01
- eval(   8)= -1.98170087924727E-01
+ eval(   5)= -6.20164652936395E-01
+ eval(   6)= -2.16025356266917E-01
+ eval(   7)= -1.98170675401044E-01
+ eval(   8)= -1.98170087924551E-01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=      15.999839410724
  PSolver, free  BC, dimensions:   107  107  107   proc    1   ixc:  0 ...done.
@@ -227,7 +228,7 @@
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  4.04994441175E+01 -5.96895446317E+01  6.04459559322E+00
  Total energy with tail correction -6.181217035304E+01
- CPU time for root process     0       124.71       102.73
+ CPU time for root process     0        97.99        71.22
  Final values of the Forces for each atom
      1 Na_lda -1.15693E-01 -1.15693E-01 -1.54079E+00
      2 Cl_lda -2.03110E-04 -2.03110E-04 -3.76779E-03
@@ -236,6 +237,6 @@
       y direction    -1.15895682E-01
       z direction    -1.54455660E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 8218 allocations and 8218 deallocations, remaining memory(B):0
+ 1790 allocations and 1790 deallocations, remaining memory(B):0
  memory occupation peak: 121 MB
  for the array  cosinarr in the routine f_poissonsolver

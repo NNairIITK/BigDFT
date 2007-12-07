@@ -27,20 +27,20 @@ README for PSolver
 This Poisson Solver is part of the BigDFT project but can also be used separately.
 All the source files of this directory
 
-abinit/defs_basis.F90 
-abinit/defs_datatypes.F90 
-abinit/defs_xc.F90 
-abinit/drivexc.F90 
-abinit/xctetr.F90 
-abinit/xcwign.F90 
-abinit/xcxalp.F90 
-abinit/xchelu.F90 
-abinit/xcpzca.F90 
-abinit/xcspol.F90 
-abinit/xchcth.F90 
-abinit/xclb.F90 
-abinit/xcpbe.F90 
-abinit/invcb.F90
+ABINIT-common/defs_basis.F90 
+ABINIT-common/defs_datatypes.F90 
+ABINIT-common/defs_xc.F90 
+ABINIT-common/drivexc.F90 
+ABINIT-common/xctetr.F90 
+ABINIT-common/xcwign.F90 
+ABINIT-common/xcxalp.F90 
+ABINIT-common/xchelu.F90 
+ABINIT-common/xcpzca.F90 
+ABINIT-common/xcspol.F90 
+ABINIT-common/xchcth.F90 
+ABINIT-common/xclb.F90 
+ABINIT-common/xcpbe.F90 
+ABINIT-common/invcb.F90
 Poisson_Solver.f90 
 PSolver.f90 
 timing.f90
@@ -56,7 +56,7 @@ lazy_20.inc
 lazy_30.inc 
 lazy_50.inc 
 lazy_8.inc
-PSolver_launch.f90 
+PSolver_Main.f90 
 Build_Kernel.f90 
 PSolver_Base.f90 
 xcenergy.f90 
@@ -71,3 +71,19 @@ are delivered under the GNU General Public License; please see the file COPYING
 for copying conditions.
 
 See the file INSTALL for generic compilation and installation instructions.
+
+This Poisson Solver code is built following the method described in the papers
+
+ Genovese, L; Deutsch, T; Goedecker, S.
+ Journal of Chemical Physics, 127 (5), 054704 (2007).
+ Efficient and accurate three-dimensional Poisson solver for surface
+ problems.
+ http://dx.doi.org/10.1063/1.2754685
+
+ Genovese, L; Deutsch, T; Neelov, A; Goedecker, S; Beylkin, G.
+ Journal of Chemical Physics, 125 (7), 074105 (2006).
+ Efficient solution of Poisson's equation with free boundary conditions
+ http://dx.doi.org/10.1063/1.2335442
+
+Citing of this references is greatly appreciated if the routines are used 
+for scientific work.

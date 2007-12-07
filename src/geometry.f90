@@ -19,7 +19,7 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
   !local variables
   integer :: nfail,it,iat,i_all,i_stat,infocode
   real(kind=8) :: anoise,fluct,flucto,fluctoo,avbeta,avnum,fnrm,etotprec,beta0,beta
-  real(kind=8) :: y0,y1,tt,sumx,sumy,sumz,obenx,obeny,obenz,unten,rlambda,tetot
+  real(kind=8) :: y0,y1,tt,sumx,sumy,sumz,obenx,obeny,obenz,unten,rlambda,tetot,forcemax
   real(kind=8), dimension(:,:), allocatable :: tpos,gp,hh
 
   allocate(tpos(3,nat),stat=i_stat)
@@ -155,7 +155,7 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
   if (etot.gt.etotprec+anoise) then
 
      if (iproc.eq.0) write(16,*) 'switching back to SD:etot,etotprec',it,etot,etotprec
-     if (iproc.eq.0) write(*,*) 'switching back to SD:etot,etotprec',it,etot,etotprec
+     if (iproc.eq.0) write(*,*) ' switching back to SD:etot,etotprec',it,etot,etotprec
      do iat=1,nat
         wpos(1,iat)=tpos(1,iat)
         wpos(2,iat)=tpos(2,iat)
@@ -179,6 +179,7 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
   obenz=0.d0
   unten=0.d0
   fnrm=0.d0
+  forcemax=0.d0
   do iat=1,nat
      obenx=obenx+(gg(1,iat)-gp(1,iat))*gg(1,iat)
      obeny=obeny+(gg(2,iat)-gp(2,iat))*gg(2,iat)
@@ -186,12 +187,16 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
      unten=unten+gp(1,iat)**2+gp(2,iat)**2+gp(3,iat)**2
      if (.not. lfrztyp(iatype(iat))) then
         fnrm=fnrm+gg(1,iat)**2+gg(2,iat)**2+gg(3,iat)**2
+        forcemax=max(forcemax,abs(gg(1,iat)),abs(gg(2,iat)),abs(gg(3,iat)))
      end if
   end do
   if (iproc.eq.0) then
      write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)')it,sqrt(fnrm),etot,' CG ',beta/in%betax
      write(16,*) 'fnrm2,flucts',&
           fnrm,sqrt(real(nat,kind=8))*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0
+     write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
+          'FORCES norm(Ha/Bohr): maxval=',    forcemax,'fnrm=',    fnrm    ,'fluct=',           &
+               sqrt(real(nat,kind=8))*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0
   end if
 
   if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) goto 2000
@@ -339,11 +344,13 @@ contains
     t1=0.d0 
     t2=0.d0 
     t3=0.d0
+    forcemax=0.d0
     do iat=1,nat
        if (.not. lfrztyp(iatype(iat))) then
           t1=t1+ff(1,iat)**2 
           t2=t2+ff(2,iat)**2 
           t3=t3+ff(3,iat)**2
+          forcemax=max(forcemax,abs(ff(1,iat)),abs(ff(2,iat)),abs(ff(3,iat)))
        end if
     enddo
 
@@ -352,7 +359,12 @@ contains
     de2=etot-2.d0*etotitm1+etotitm2
     df1=fnrm-fnrmitm1
     df2=fnrm-2.d0*fnrmitm1+fnrmitm2
-    if (iproc.eq.0) write(16,'(5(1x,e11.4),1x,i3)') fnrm/fnrmitm1, de1,de2,df1,df2,nsatur
+    if (iproc.eq.0) then
+       write(16,'(5(1x,e11.4),1x,i3)') fnrm/fnrmitm1, de1,de2,df1,df2,nsatur
+       write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
+            'FORCES norm(Ha/Bohr): maxval=',    forcemax,'fnrm=',    fnrm    ,'fluct=', &
+            sqrt(real(nat,kind=8))*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0
+    end if
 
     if (care .and. itsd.ge.3 .and. beta.eq.in%betax .and. fnrm/fnrmitm1.gt..8d0 .and. &
          de1.gt.-.1d0 .and. fnrm.le..1d0 .and. & 

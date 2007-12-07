@@ -167,16 +167,16 @@ AC_MSG_CHECKING([for BigDFT binaries build])
 AC_MSG_RESULT([$ac_build_bin_cluster])
 
 dnl Required path for ABINIT module inclusion
-xc_path="../ABINIT-commmon"
-AC_ARG_WITH(xc-module-path, AS_HELP_STRING([--with-xc-module-path], [give the path to the module file defining fortran type for XC (see ABINIT) (default = ../ABINIT-common).]), xc_path=$withval, xc_path="../ABINIT-common")
+xc_path="ABINIT-commmon"
+AC_ARG_WITH(xc-module-path, AS_HELP_STRING([--with-xc-module-path], [give the path to the module file defining fortran type for XC (see ABINIT) (default = ABINIT-common).]), xc_path=$withval, xc_path="ABINIT-common")
 if test "$ac_build_lib_ABINIT_common" = "yes" ; then
-  xc_path="../ABINIT-common"
+  xc_path="ABINIT-common"
 fi
 AC_SUBST(XC_INCLUDE, "-I"$xc_path)
 
 dnl Required path for PSolver module inclusion
 dnl xc_path="../PSolver"
-dnl AC_ARG_WITH(xc-module-path, AS_HELP_STRING([--with-xc-module-path], [give the path to the module file defining fortran type for XC (see ABINIT) (default = ../ABINIT-common).]), xc_path=$withval, xc_path="../ABINIT-commmon")
+dnl AC_ARG_WITH(xc-module-path, AS_HELP_STRING([--with-xc-module-path], [give the path to the module file defining fortran type for XC (see ABINIT) (default = ABINIT-common).]), xc_path=$withval, xc_path="ABINIT-commmon")
 dnl AC_SUBST(XC_INCLUDE, $xc_path)
 
 
@@ -267,7 +267,7 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
-src/ABINIT-common/Makefile
+src/PSolver/ABINIT-common/Makefile
 src/PSolver/Makefile
 src/convolutions/Makefile
 src/profiling/Makefile

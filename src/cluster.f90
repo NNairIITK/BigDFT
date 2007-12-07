@@ -63,6 +63,8 @@
 
      if (in%inputPsiId==1 .and. infocode==2) then
         in%inputPsiId=0
+     else if (in%inputPsiId==1 .and. infocode==1) then
+        in%inputPsiId=0
      else if (in%inputPsiId == 0 .and. infocode==3) then
         if (iproc.eq.0) then
            write(*,'(1x,a)')'Convergence error, cannot proceed.'
@@ -197,8 +199,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   output_wf=in%output_wf
 
 
-  if (iproc.eq.0) write(*,'(1x,a,1x,i0)') &
-       '--------------------- BigDFT Wavefunction Optimization --------------- inputPsiId=',inputPsiId
+  if (iproc.eq.0) then
+     write(*,'(1x,a,1x,i0)') &
+       '===================== BigDFT Wavefunction Optimization =============== inputPsiId=',inputPsiId
+  end if
        !'                               BigDFT Wavefunction Optimization',inputPsiId
   if (parallel) then
      call timing(iproc,'parallel     ','IN')

@@ -1,6 +1,13 @@
 ## Process this file with automake to produce Makefile.in
 
-SOURCES_MOD = PSolver_launch.f90 \
+if BUILD_LIB_XC
+sub_dirs_xc = ABINIT-common
+else
+sub_dirs_xc = 
+endif
+
+
+SOURCES_MOD = PSolver_Main.f90 \
 	Build_Kernel.f90 \
 	PSolver_Base.f90 \
 	xcenergy.f90 \
@@ -43,7 +50,7 @@ else
 module_DATA = poisson_solver.@MODULE_EXT@
 endif
 
-SUBDIRS =
+SUBDIRS = $(sub_dirs_xc) 
 
 check_PROGRAMS = PSolver 
 
@@ -65,7 +72,7 @@ libpoissonsolver_a_SOURCES = \
 PSolver_SOURCES = PSolver.f90 timing.f90 $(mpi_source)
 PSolver_LDFLAGS = $(LMPI)
 PSolver_LDADD = libpoissonsolver.a \
-	../ABINIT-common/libABINIT.a \
+	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
 

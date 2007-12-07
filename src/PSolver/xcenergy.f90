@@ -455,6 +455,11 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
            end do
         end if
      end if
+     !the two factor is due to the 
+     !need of using the density of states in abinit routines
+     exc=sfactor*hx*hy*hz*exc
+     vxc=sfactor*hx*hy*hz*vxc
+
 
      !De-allocations
      i_all=-product(shape(exci))*kind(exci)
@@ -497,11 +502,6 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      end do
 
   end if
-
-  !the two factor is due to the 
-  !need of using the density of states in abinit routines
-  exc=sfactor*hx*hy*hz*exc
-  vxc=sfactor*hx*hy*hz*vxc
 
 end subroutine xc_energy
 

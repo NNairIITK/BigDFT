@@ -50,7 +50,8 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
 
   nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
        4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
-       (n1+1)*(n2+1)*(2*n3+31))
+       (n1+1)*(n2+1)*(2*n3+31),&
+	   (2*n1+31)*(n2+1)*(n3+1))
 
   allocate(y_c(0:n1,0:n2,0:n3),stat=i_stat)
   call memocc(i_stat,product(shape(y_c))*kind(y_c),'y_c','applylocpotkinall')
@@ -89,7 +90,6 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
      !to be initialised
      call razero((n1+1)*(n2+1)*(n3+1),y_c)
      call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f)
-
 
      call razero((2*n1+31)*(2*n2+31)*(2*n3+31),psir)
 
@@ -484,19 +484,19 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
                       keyg_p(1,jseg_c),keyg_p(1,jseg_f),proj(istart_c),proj(istart_f),scpr)
 
-                 ! test (will sometimes give wrong result)
-                 call wpdot(  &
-                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
-                      keyg_p(1,jseg_c),keyg_p(1,jseg_f),proj(istart_c),proj(istart_f),  &
-                      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
-                      keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),tcpr)
-                 if (scpr.ne.tcpr) then
-                    print *,'projectors: scpr.ne.tcpr'
-                    print *,'l,i,m,h_i^l=',l,i,m,psppar(l,i,ityp)
-                    print *,'scpr,tcpr',scpr,tcpr
-                    stop 
-                 end if
-                 ! testend
+!!$                 ! test (will sometimes give wrong result)
+!!$                 call wpdot(  &
+!!$                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p(jseg_c),keyv_p(jseg_f),  &
+!!$                      keyg_p(1,jseg_c),keyg_p(1,jseg_f),proj(istart_c),proj(istart_f),  &
+!!$                      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv(1),keyv(nseg_c+1),  &
+!!$                      keyg(1,1),keyg(1,nseg_c+1),psi(1),psi(nvctr_c+1),tcpr)
+!!$                 if (scpr.ne.tcpr) then
+!!$                    print *,'projectors: scpr.ne.tcpr'
+!!$                    print *,'l,i,m,h_i^l=',l,i,m,psppar(l,i,ityp)
+!!$                    print *,'scpr,tcpr',scpr,tcpr
+!!$                    stop 
+!!$                 end if
+!!$                 ! testend
 
                  scprp=scpr*psppar(l,i,ityp)
                  eproj=eproj+scprp*scpr
