@@ -548,7 +548,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
      endif
 
      if (inputPsiId == 0) then
-        if (gnrm > 4.d0) then
+        if (gnrm > 4.d0 .or. (norbu==norbd .and. gnrm > 10.d0)) then
            if (iproc == 0) then
               write(*,'(1x,a)')&
                    'Error: the norm of the residue is too large also with input wavefunctions.'

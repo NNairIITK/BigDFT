@@ -52,7 +52,7 @@ contains
 
 
   subroutine allocate_wfd(wfd,routine)
-
+    implicit none
     type(wavefunctions_descriptors), intent(inout) :: wfd
     character(len=*), intent(in) :: routine
     !local variables
@@ -66,7 +66,7 @@ contains
   end subroutine allocate_wfd
 
   subroutine deallocate_wfd(wfd,routine)
-
+    implicit none
     type(wavefunctions_descriptors) :: wfd
     character(len=*), intent(in) :: routine
     !local variables
@@ -82,7 +82,7 @@ contains
   end subroutine deallocate_wfd
 
   subroutine deallocate_bounds(bounds,routine)
-
+    implicit none
     type(convolutions_bounds) :: bounds
     character(len=*), intent(in) :: routine
     !local variables

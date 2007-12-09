@@ -96,7 +96,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit)
      ttLOC=tt**2
 
      else
-        ttLOC =0.d0
+        ttLOC=0.d0
      end if
      
      call MPI_ALLREDUCE(ttLOC,tt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)

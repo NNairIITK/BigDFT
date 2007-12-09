@@ -165,7 +165,6 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,r
         if (iat /= 1) read(ifile,*) rx,ry,rz,tatonam
      else
         read(ifile,'(a100)')line 
-        print *,line
         read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,suffix
         if (ierrsfx ==0) then
            tatonam=trim(symbol)//'_'//trim(suffix)
