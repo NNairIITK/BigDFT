@@ -250,7 +250,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
            if (iatype(iat) == ityp) natyp=natyp+1
         end do
         write(*,'(1x,i4,2x,a6,1x,i15,i21)')&
-             iat,trim(atomnames(ityp)),natyp,mproj
+             ityp,trim(atomnames(ityp)),natyp,mproj
      end do
   end if
 

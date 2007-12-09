@@ -143,16 +143,37 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,r
   integer, dimension(nat), intent(out) :: iatype
   real(kind=8), dimension(3,nat), intent(out) :: rxyz
   !local variables
-  real(kind=8), parameter :: bohr=0.5291772108d0
+  character(len=2) :: symbol
+  character(len=3) :: suffix
+  character(len=20) :: tatonam
+  character(len=100) :: line
+  integer :: nateq,iat,jat,ityp,i,ierror,ierrsfx
+  real(kind=8), parameter :: bohr=0.5291772108d0 !1 AU in angstroem
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz
-  character(len=20) :: tatonam
-  integer :: nateq,iat,jat,ityp,i
 
   if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',nat
+
+  !read from positions of .xyz format, but accepts also the old .ascii format
+  read(ifile,'(a100)')line
+
+  read(line,*,iostat=ierror) rx,ry,rz,tatonam
+
   ntypes=0
   do iat=1,nat
-     read(ifile,*) rx,ry,rz,tatonam
+     if (ierror == 0) then
+        if (iat /= 1) read(ifile,*) rx,ry,rz,tatonam
+     else
+        read(ifile,'(a100)')line 
+        print *,line
+        read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,suffix
+        if (ierrsfx ==0) then
+           tatonam=trim(symbol)//'_'//trim(suffix)
+        else
+           read(line,*)symbol,rx,ry,rz
+           tatonam=trim(symbol)
+        end if
+     end if
      rxyz(1,iat)=real(rx,kind=8)
      rxyz(2,iat)=real(ry,kind=8)
      rxyz(3,iat)=real(rz,kind=8)

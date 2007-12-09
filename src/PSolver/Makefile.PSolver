@@ -13,8 +13,8 @@
 mpi_source = MPIfake.f90
 mpi_include = mpif.h
 
-F95 = g95 -fbounds-check -O 
-F77 = g95 -fbounds-check -O 
+F95 = $(FC) -O2 
+F77 = $(FC) -O2 
 
 #parallel treatment
 #mpi_source = 
@@ -23,11 +23,12 @@ F77 = g95 -fbounds-check -O
 #F95 = ompif90 -fbounds-check -O 
 #F77 = ompif90 -fbounds-check -O 
 
-all: PSolver
+all: PSolver PSex PSchk
 
 clean:
 	\rm -f *.o ${PROGRAMS} *~ *.log *.aux fort.* mpif.h *.mod \
-	ABINIT-common/*.f90 ABINIT-common/*.o ABINIT-common/*.mod
+	ABINIT-common/*.f90 ABINIT-common/*.o ABINIT-common/*.mod PSexercise/*.aux PSexercise/*.log \
+	PSexercise/PSexercise.pdf
 
 cleanall:
 	make clean
@@ -37,16 +38,17 @@ tar:
 	tar czvf solver.tgz $(SOURCES_ABINIT) $(SOURCES_F77) $(SOURCES_F90) $(INCLUDES) $(OTHERS)
 
 PROGRAMS = \
-	PSolver
-
-
-
+	PSolver \
+	PSexercise \
+	PSchk
 
 SOURCES_ABINIT = ABINIT-common/defs_basis.F90 \
         ABINIT-common/defs_datatypes.F90 \
         ABINIT-common/defs_xc.F90 \
         ABINIT-common/drivexc.F90 \
-        ABINIT-common/xctetr.F90 \
+	$(OTHER_ABINIT)
+
+OTHER_ABINIT=  ABINIT-common/xctetr.F90 \
         ABINIT-common/xcwign.F90 \
         ABINIT-common/xcxalp.F90 \
         ABINIT-common/xchelu.F90 \
@@ -60,10 +62,8 @@ SOURCES_ABINIT = ABINIT-common/defs_basis.F90 \
 
 SOURCES_F90 = \
 	Poisson_Solver.f90 \
-	PSolver.f90 \
 	timing.f90 \
 	$(mpi_source)
-
 
 SOURCES_F77 = \
 	dcopy.f
@@ -91,6 +91,8 @@ SOURCES_MOD = PSolver_Main.f90 \
 OTHERS = Makefile \
 	PSchk.f90 \
 	MPIfake.f90 \
+	PSolver.f90 \
+	PSexercise.f90 \
 	bench.csh \
 	perfdata.t \
 	acc_F.20-100.ref \
@@ -100,7 +102,19 @@ OTHERS = Makefile \
 	INSTALL \
 	COPYING \
 	TODO \
-	$(SOURCES_MOD)
+	$(SOURCES_MOD) \
+	$(EXERCISE)
+
+EXERCISE = Exercise/plot.gnuplot \
+	Exercise/PSexercise.tex \
+	Exercise/accF.pdf \
+	Exercise/accS.pdf \
+	Exercise/fandg.pdf \
+	Exercise/PvsF.pdf \
+	Exercise/rhoSpotS.pdf \
+	Exercise/accP.pdf \
+	Exercise/emepot.pdf \
+	Exercise/rhoFpotF.pdf
 
 OBJECTS_ABINIT_PP = $(SOURCES_ABINIT:.F90=.f90)
 
@@ -128,10 +142,20 @@ COMMON =  $(OBJECTS_ABINIT) \
 	$(OBJECTS_F90) \
 	dcopy.o
 
-PSolver: $(COMMON) $(INCLUDES) 
-	$(F95) -o $@ $(COMMON)
+PSolver: $(COMMON) $(INCLUDES) PSolver.f90 
+	$(F95) -o $@ $(COMMON) PSolver.f90
 
-PSolver.o : Poisson_Solver.o
+PSexercise: $(COMMON) $(INCLUDES) PSexercise.f90
+	$(F95) -o $@ $(COMMON) PSexercise.f90
+	cd Exercise &&	pdflatex PSexercise.tex && pdflatex PSexercise.tex && rm *.aux *.log && mv ../$@ .
+	@echo "#-To better understand how the Poisson Solver works-#"
+	@echo "# To do the exercise, type:                         #"
+	@echo "#  > cd Exercise                                    #"
+	@echo "# And follow the instructions in PSexercise.pdf     #"
+	@echo "#####################################################"
+
+PSchk: $(COMMON) $(INCLUDES) PSchk.f90
+	$(F95) -o $@ $(COMMON) PSchk.f90
 
 Poisson_Solver.o : $(mpi_include) $(SOURCES_MOD)
 
@@ -141,7 +165,7 @@ mpif.h:
 	 echo "integer :: MPI_DOUBLE_PRECISION" >> mpif.h &&\
 	 echo "integer :: MPI_MIN, MPI_MAX" >> mpif.h
 
-$(SOURCES_ABINIT:.f90=.o) : ABINIT-common/defs_basis.o
+$(OTHER_ABINIT:.f90=.o) : ABINIT-common/defs_basis.o
 
 ABINIT-common/defs_datatypes.o: ABINIT-common/defs_basis.o
 

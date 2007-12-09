@@ -147,7 +147,7 @@ program BigDFT
        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs,infocode)
 
   if (inputs%ncount_cluster_x > 1) then
-     if (iproc ==0 ) write(*,"(a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+     if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
      ! geometry optimization
      !    betax=2.d0   ! Cinchonidine
      !    betax=4.d0  ! Si H_4
