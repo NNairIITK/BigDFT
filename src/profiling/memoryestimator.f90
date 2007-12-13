@@ -8,7 +8,7 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
   logical, intent(in) :: output_grid
   integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin
   integer, dimension(nat), intent(in) :: iatype
-  character(len=20), dimension(100), intent(in) :: atomnames
+  character(len=20), dimension(ntypes), intent(in) :: atomnames
   real(kind=8), intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(ntypes,2), intent(in) ::  radii_cf
@@ -22,15 +22,16 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
   real(kind=8) :: tt,tmemker,tmemden,tmemps,tmemha,tminamount
   logical, dimension(:,:,:), allocatable :: logrid
 
-! Create the file grid.ascii to visualize the grid of functions
+! Create the file grid.xyz to visualize the grid of functions
   if (output_grid) then
-     open(unit=22,file='grid.ascii',status='unknown')
+     open(unit=22,file='grid.xyz',status='unknown')
      write(22,*) nat
-     write(22,*) alat1,' 0. ',alat2
-     write(22,*) ' 0. ',' 0. ',alat3
+     !write(22,*) alat1,' 0. ',alat2
+     !write(22,*) ' 0. ',' 0. ',alat3
+     write(22,*)'complete grid with high and low resolution points' 
      do iat=1,nat
-        write(22,'(3(1x,e12.5),3x,a20)') &
-             rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),atomnames(iatype(iat))
+        write(22,'(a8,1x,3(1x,e12.5))') &
+             atomnames(iatype(iat)),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
      enddo
   endif
 
@@ -46,8 +47,8 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
         do i2=0,n2  
            do i1=0,n1
               if (logrid(i1,i2,i3))&
-                   write(22,'(3(1x,e10.3),1x,a4)') &
-                        real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  g '
+                   write(22,'(a8,1x,3(1x,e12.5))') &
+                   '  g ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
            enddo
         enddo
      end do
@@ -62,8 +63,8 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
         do i2=0,n2 
            do i1=0,n1
               if (logrid(i1,i2,i3))&
-                   write(22,'(3(1x,e10.3),1x,a4)') &
-                        real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  G '
+                   write(22,'(a8,1x,3(1x,e12.5))') &
+                   '  G ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
            enddo
         enddo
      enddo
