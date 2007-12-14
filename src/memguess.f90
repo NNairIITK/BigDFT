@@ -271,14 +271,14 @@ end program memguess
 subroutine optimise_volume(nat,ntypes,iatype,atomnames,crmult,frmult,hgrid,rxyz,radii_cf)
   implicit none
   integer, intent(in) :: nat,ntypes
-  real(kind=8), intent(in) :: crmult,frmult
+  real(kind=8), intent(in) :: crmult,frmult,hgrid
   character(len=20), dimension(ntypes), intent(in) :: atomnames
-  integer(kind=8), dimension(nat), intent(in) :: iatype
+  integer, dimension(nat), intent(in) :: iatype
   real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
   real(kind=8), dimension(3,nat), intent(inout) :: rxyz
   !local variables
-  integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
-  real(kind=8) :: x,y,z,vol,tx,ty,tz
+  integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1,n2,n3,iat,i_all,i_stat,it,i
+  real(kind=8) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax,alat1,alat2,alat3
   real(kind=8), dimension(3,3) :: urot
   real(kind=8), dimension(:,:), allocatable :: txyz
 
