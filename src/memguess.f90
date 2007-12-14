@@ -82,8 +82,7 @@ program memguess
   !read number of atoms
   open(unit=99,file='posinp',status='old')
   read(99,*) nat,units
-  write(*,'(1x,a,i0)') 'Number of atoms     = ',nat
-
+ 
   allocate(rxyz(3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(rxyz))*kind(rxyz),'rxyz','memguess')
   allocate(iatype(nat),stat=i_stat)
@@ -96,14 +95,9 @@ program memguess
 
   close(99)
 
-  write(*,'(1x,a,i0)') 'Number of atom types= ',ntypes
-
-  do ityp=1,ntypes
-     write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ',trim(atomnames(ityp))
-  enddo
-
   !new way of reading the input variables, use structures
   call read_input_variables(0,in)
+  call print_input_parameters(in)
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
@@ -123,8 +117,9 @@ program memguess
   allocate(iasctype(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(iasctype))*kind(iasctype),'iasctype','memguess')
 
-  call read_system_variables(0,nproc,nat,ntypes,in%nspin,in%ncharge,in%mpol,atomnames,iatype,&
-       psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
+  call read_system_variables(0,nproc,nat,ntypes,in%nspin,in%ncharge,in%mpol,in%hgrid,&
+       atomnames,iatype,psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,&
+       norb,norbu,norbd,norbp,iunit)
 
 ! Allocations for the occupation numbers
   allocate(occup(norb),stat=i_stat)

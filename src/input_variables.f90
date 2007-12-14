@@ -104,30 +104,34 @@ subroutine read_input_variables(iproc,in)
         if (iproc == 0) write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
         stop
      end if
-  if (iproc == 0) then
-     write(*,'(1x,a)')&
-          '------------------------------------------------------------------- Input Parameters'
-     write(*,'(1x,a)')&
-          '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
-     write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
-          'Grid spacing=',in%hgrid,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
-          '| Calculate=',in%calc_tail
-     write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,f4.1)')&
-          '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
-          '| Extension=',in%rbuf
-     write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,i4)')&
-          'total charge=',in%ncharge, '| Coarse Proj.=',in%cpmult,'| CG Prec.Steps=',in%ncong,&
-          '|  CG Steps=',in%ncongt
-     write(*,'(1x,a,1pe7.1,1x,a,0pf5.2,1x,a,i8)')&
-          ' elec. field=',in%elecfield,'|   Fine Proj.=',in%fpmult,'| DIIS Hist. N.=',in%idsx
-     if (in%nspin==2) then
-        write(*,'(1x,a,i7,1x,a)')&
-          'Polarisation=',2*in%mpol, '|'
-     end if
-  end if
 
 end subroutine read_input_variables
 
+subroutine print_input_parameters(in)
+  use module_types
+  implicit none
+  type(input_variables), intent(in) :: in
+
+  write(*,'(1x,a)')&
+       '------------------------------------------------------------------- Input Parameters'
+  write(*,'(1x,a)')&
+       '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
+  write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
+       'Grid spacing=',in%hgrid,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
+       '| Calculate=',in%calc_tail
+  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,f4.1)')&
+       '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
+       '| Extension=',in%rbuf
+  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,i4)')&
+       'total charge=',in%ncharge, '| Coarse Proj.=',in%cpmult,'| CG Prec.Steps=',in%ncong,&
+       '|  CG Steps=',in%ncongt
+  write(*,'(1x,a,1pe7.1,1x,a,0pf5.2,1x,a,i8)')&
+       ' elec. field=',in%elecfield,'|   Fine Proj.=',in%fpmult,'| DIIS Hist. N.=',in%idsx
+  if (in%nspin==2) then
+     write(*,'(1x,a,i7,1x,a)')&
+          'Polarisation=',2*in%mpol, '|'
+  end if
+end subroutine print_input_parameters
 
 ! read atomic positions
 subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,rxyz)
@@ -139,14 +143,36 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,r
   integer, dimension(nat), intent(out) :: iatype
   real(kind=8), dimension(3,nat), intent(out) :: rxyz
   !local variables
-  real(kind=8), parameter :: bohr=0.5291772108d0
+  character(len=2) :: symbol
+  character(len=3) :: suffix
+  character(len=20) :: tatonam
+  character(len=100) :: line
+  integer :: nateq,iat,jat,ityp,i,ierror,ierrsfx
+  real(kind=8), parameter :: bohr=0.5291772108d0 !1 AU in angstroem
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz
-  character(len=20) :: tatonam
-  integer :: nateq,iat,jat,ityp,i
+
+  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',nat
+
+  !read from positions of .xyz format, but accepts also the old .ascii format
+  read(ifile,'(a100)')line
+
+  read(line,*,iostat=ierror) rx,ry,rz,tatonam
+
   ntypes=0
   do iat=1,nat
-     read(ifile,*) rx,ry,rz,tatonam
+     if (ierror == 0) then
+        if (iat /= 1) read(ifile,*) rx,ry,rz,tatonam
+     else
+        read(ifile,'(a100)')line 
+        read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,suffix
+        if (ierrsfx ==0) then
+           tatonam=trim(symbol)//'_'//trim(suffix)
+        else
+           read(line,*)symbol,rx,ry,rz
+           tatonam=trim(symbol)
+        end if
+     end if
      rxyz(1,iat)=real(rx,kind=8)
      rxyz(2,iat)=real(ry,kind=8)
      rxyz(3,iat)=real(rz,kind=8)
@@ -203,6 +229,13 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,r
      write(*,'(1x,a)')'Control your posinp file, cannot proceed'
      stop
   end if
+
+  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atom types= ',ntypes
+
+  do ityp=1,ntypes
+     if (iproc.eq.0) &
+          write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ',trim(atomnames(ityp))
+  enddo
 
 end subroutine read_atomic_positions
 
@@ -337,14 +370,14 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spina
 
 end subroutine input_occup
 
-
-subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomnames,iatype,&
+subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,hgrid,atomnames,iatype,&
      psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
   implicit none
   integer, intent(in) :: iproc,nproc,nat,ntypes,nspin,ncharge,mpol
-  integer, intent(out) :: nelec,natsc,norb,norbu,norbd,norbp,iunit
+  real(kind=8), intent(in) :: hgrid
   character(len=20), dimension(ntypes), intent(in) :: atomnames
   integer, dimension(nat), intent(in) :: iatype
+  integer, intent(out) :: nelec,natsc,norb,norbu,norbd,norbp,iunit
   integer, dimension(ntypes), intent(out) :: npspcode,iasctype,nelpsp,nzatom
   real(kind=8), dimension(ntypes,2), intent(out) :: radii_cf
   real(kind=8), dimension(0:4,0:6,ntypes), intent(out) :: psppar
@@ -354,7 +387,7 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomn
   character(len=2) :: symbol
   character(len=27) :: filename
   integer :: i,j,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all
-  real(kind=8) :: rcov,rprb,ehomo,radfine,tt
+  real(kind=8) :: rcov,rprb,ehomo,radfine,tt,minrad
   integer, dimension(:,:), allocatable :: neleconf
 
   if (iproc == 0) then
@@ -440,6 +473,19 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomn
                '       X                '
        end if
        close(11)
+       !control the hardest gaussian
+       minrad=1.d10
+       do i=0,4
+          if (psppar(i,0,ityp)/=0.d0) then
+             minrad=min(minrad,psppar(i,0,ityp))
+          end if
+       end do
+       !control whether the grid spacing is too high or not
+       if (iproc == 0 .and. hgrid > 2.5d0*minrad) then
+          write(*,'(1x,a)')'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
+          write(*,'(1x,a,f5.2,a)')'         Results can be meaningless if hgrid is bigger than',2.5d0*minrad,'. At your own risk!'
+       end if
+
     enddo
 
     !deallocation

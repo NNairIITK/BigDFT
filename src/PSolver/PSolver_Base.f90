@@ -6,15 +6,15 @@
 !! For the list of contributors, see ~/AUTHORS 
 
 
-subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf&
-             ,scal,hx,hy,hz)
+subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
+             scal,hx,hy,hz,offset)
   implicit none
   !to be preprocessed
   include 'mpif.h'
   include 'perfdata.inc'
   !Arguments
   integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc
-  real(kind=8), intent(in) :: scal,hx,hy,hz
+  real(kind=8), intent(in) :: scal,hx,hy,hz,offset
   real(kind=8), dimension(md1,md3,md2/nproc), intent(inout) :: zf
   !Local variables
   !Maximum number of points for FFT (should be same number in fft3d routine)
@@ -258,7 +258,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf&
 
            !Multiply with kernel in fourier space
            i3=iproc*(nd3/nproc)+j3
-           call P_multkernel(n1,n2,n3,lot,nfft,j,i3,zw(1,1,inzee),hx,hy,hz)
+           call P_multkernel(n1,n2,n3,lot,nfft,j,i3,zw(1,1,inzee),hx,hy,hz,offset)
            
            !TRANSFORM BACK IN REAL SPACE
            
@@ -731,11 +731,11 @@ end subroutine unscramble_P
 !!
 !! SOURCE
 !!
-subroutine P_multkernel(n1,n2,n3,lot,nfft,jS,i3,zw,hx,hy,hz)
+subroutine P_multkernel(n1,n2,n3,lot,nfft,jS,i3,zw,hx,hy,hz,offset)
   implicit none
   !Argments
   integer, intent(in) :: n1,n2,n3,lot,nfft,jS,i3
-  real(kind=8), intent(in) :: hx,hy,hz
+  real(kind=8), intent(in) :: hx,hy,hz,offset
   real(kind=8), dimension(2,lot,n2), intent(inout) :: zw
   !Local variables
   integer :: i1,j1,i2,j2,j3
@@ -755,10 +755,15 @@ subroutine P_multkernel(n1,n2,n3,lot,nfft,jS,i3,zw,hx,hy,hz)
         j2=i2-(i2/(n2/2+2))*n2 !n2/2+1-abs(n2/2+1-i2)
         p1=real(j1-1,kind=8)/real(n1,kind=8)
         p2=real(j2-1,kind=8)/real(n2,kind=8)
-        ker=-fourpi2*((p1/hx)**2+(p2/hz)**2+mu3)!beware of the exchanged dimension
-        if (ker/=0.d0) ker=1.d0/ker
-        zw(1,i1,i2)=zw(1,i1,i2)*ker
-        zw(2,i1,i2)=zw(2,i1,i2)*ker
+        ker=pi*((p1/hx)**2+(p2/hz)**2+mu3)!beware of the exchanged dimension
+        if (ker/=0.d0) then
+           ker=1.d0/ker
+           zw(1,i1,i2)=zw(1,i1,i2)*ker
+           zw(2,i1,i2)=zw(2,i1,i2)*ker
+        else
+           zw(1,i1,i2)=offset/(hx*hy*hz)
+           zw(2,i1,i2)=0.d0
+        end if
      end do
   end do
 

@@ -137,7 +137,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   character(len=1) :: datacode
   logical :: calc_tail,output_wf,output_grid
   integer :: ixc,ncharge,ncong,idsx,ncongt,nspin,mpol,inputPsiId,itermax
-  integer :: nelec,natsc,norbu,norbd,ndegree_ip,nvctrp,mids
+  integer :: nelec,natsc,norbu,norbd,ndegree_ip,nvctrp,mids,iorb,iounit
   integer :: n1_old,n2_old,n3_old,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n3d,n3p,n3pi,i3xcsh,i3s
   integer :: ncount0,ncount1,ncount_rate,ncount_max,iunit
   integer :: i1,i2,i3,ind,iat,ierror,i_all,i_stat,iter,ierr,i03,i04,jproc,ispin
@@ -202,8 +202,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   if (iproc.eq.0) then
      write(*,'(1x,a,1x,i0)') &
        '===================== BigDFT Wavefunction Optimization =============== inputPsiId=',inputPsiId
+     call print_input_parameters(in)
   end if
-       !'                               BigDFT Wavefunction Optimization',inputPsiId
   if (parallel) then
      call timing(iproc,'parallel     ','IN')
   else
@@ -249,7 +249,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   allocate(iasctype(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(iasctype))*kind(iasctype),'iasctype','cluster')
 
-  call read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,atomnames,iatype,&
+  call read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,hgrid,atomnames,iatype,&
        psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
 
   allocate(occup(norb),stat=i_stat)
@@ -548,7 +548,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
      endif
 
      if (inputPsiId == 0) then
-        if (gnrm > 4.d0) then
+        if (gnrm > 4.d0 .or. (norbu==norbd .and. gnrm > 10.d0)) then
            if (iproc == 0) then
               write(*,'(1x,a)')&
                    'Error: the norm of the residue is too large also with input wavefunctions.'
@@ -607,13 +607,13 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   if (abs(evsum-energybs).gt.1.d-8 .and. iproc==0) write(*,'(1x,a,2(1x,1pe20.13))')&
        'Difference:evsum,energybs',evsum,energybs
 
-!!$  !plot the converged wavefunctions in the different orbitals
-!!$  do i=2*iproc+1,2*iproc+2
-!!$     iounit=39+3*(i-1)
-!!$     call plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,  & 
-!!$          rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc),&
-!!$          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r,&
-!!$          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+  !plot the converged wavefunctions in the different orbitals
+!!$  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+!!$     iounit=iorb
+!!$     call plot_wf(iounit,n1,n2,n3,hgrid,wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,wfd%nseg_f,wfd%nvctr_f,  & 
+!!$          rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(1,iorb-iproc*norbp),&
+!!$          bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,&
+!!$          bounds%gb%ibxxyy_f,bounds%ibyyzz_r,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 !!$  end do
 
   !  write all the wavefunctions into files
@@ -665,13 +665,13 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   if (iproc.eq.0 .and. output_grid) then
      open(unit=22,file='density.pot',status='unknown')
      write(22,*)'density'
-     write(22,*) 2*n1,2*n2,2*n3
+     write(22,*) 2*n1+1,2*n2+1,2*n3+1
      write(22,*) alat1,' 0. ',alat2
      write(22,*) ' 0. ',' 0. ',alat3
      write(22,*)'xyz'
-     do i3=1,2*n3
-        do i2=1,2*n2
-           do i1=1,2*n1
+     do i3=1,2*n3+1
+        do i2=1,2*n2+1
+           do i1=1,2*n1+1
               ind=i1+14+(i2+13)*(2*n1+31)+(i3+13)*(2*n1+31)*(2*n2+31)
               write(22,*)rho(ind)
            end do

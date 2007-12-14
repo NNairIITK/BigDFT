@@ -70,7 +70,6 @@ program BigDFT
   !read number of atoms
   open(unit=99,file='posinp',status='old')
   read(99,*) nat,units
-  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',nat
 
   allocate(rxyz_old(3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(rxyz_old))*kind(rxyz_old),'rxyz_old','BigDFT')
@@ -87,13 +86,6 @@ program BigDFT
   call read_atomic_positions(iproc,99,units,nat,ntypes,iatype,atomnames,rxyz)
 
   close(99)
-
-  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atom types= ',ntypes
-
-  do ityp=1,ntypes
-     if (iproc.eq.0) &
-          write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ',trim(atomnames(ityp))
-  enddo
 
   !new way of reading the input variables, use structures
   call read_input_variables(iproc,inputs)
@@ -155,7 +147,7 @@ program BigDFT
        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs,infocode)
 
   if (inputs%ncount_cluster_x > 1) then
-     if (iproc ==0 ) write(*,"(a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+     if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
      ! geometry optimization
      !    betax=2.d0   ! Cinchonidine
      !    betax=4.d0  ! Si H_4
