@@ -68,7 +68,7 @@
      else if (in%inputPsiId == 0 .and. infocode==3) then
         if (iproc.eq.0) then
            write(*,'(1x,a)')'Convergence error, cannot proceed.'
-           write(*,'(1x,a)')' writing positions in file posout_999.ascii then exiting'
+           write(*,'(1x,a)')' writing positions in file posout_999.xyz then exiting'
            call wtposout(999,energy,nat,rxyz,atomnames,iatype)
         end if
 

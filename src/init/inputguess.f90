@@ -29,8 +29,8 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   occupat(1:5,1:ntypes)= 0.d0
 
   ! Test if the file 'inguess.dat exists (no more used)
-  ! inquire(file='inguess.dat',exist=exists)
-  exists=.false.
+  inquire(file='inguess.dat',exist=exists)
+  !exists=.false.
   if (exists) then
      open(unit=24,file='inguess.dat',form='formatted',action='read',status='old')
   end if

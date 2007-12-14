@@ -172,18 +172,19 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   if (iproc.eq.0 .and. output_grid) then
      write(*,'(1x,a)')&
           'Writing the file describing the new atomic positions of the effective system'
-     open(unit=22,file='grid_tail.ascii',status='unknown')
+     open(unit=22,file='grid_tail.xyz',status='unknown')
      write(22,*) nat
-     write(22,*) alatb1,' 0. ',alatb2
-     write(22,*) ' 0. ',' 0. ',alatb3
+     !write(22,*) alatb1,' 0. ',alatb2
+     !write(22,*) ' 0. ',' 0. ',alatb3
+     write(22,*)'complete grid used for the estimation of the finite-size corrections'
      do iat=1,nat
-        write(22,'(3(1x,e12.5),3x,a20)') txyz(1,iat),txyz(2,iat),txyz(3,iat),atomnames(iatype(iat))
+        write(22,'(a8,1x,3(1x,e12.5))') atomnames(iatype(iat)),txyz(1,iat),txyz(2,iat),txyz(3,iat)
      end do
      do i3=0,nb3
         do i2=0,nb2
            do i1=0,nb1
               if (logrid_c(i1,i2,i3)) then
-                 write(22,'(3(1x,e10.3),1x,a4)') real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  g '
+                 write(22,'(a8,1x,3(1x,e12.5))')'  g ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
               end if
            enddo
         enddo
@@ -206,7 +207,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
         do i2=0,nb2 
            do i1=0,nb1
               if (logrid_f(i1,i2,i3)) then
-                 write(22,'(3(1x,e10.3),1x,a4)') real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  G '
+                 write(22,'(a8,1x,3(1x,e12.5))')'  G ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
               end if
            enddo
         enddo

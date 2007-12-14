@@ -45,15 +45,16 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
           '------------------------------------------------- Wavefunctions Descriptors Creation'
   end if
 
-  ! Create the file grid.ascii to visualize the grid of functions
+  ! Create the file grid.xyz to visualize the grid of functions
   if (iproc.eq.0 .and. output_grid) then
-     open(unit=22,file='grid.ascii',status='unknown')
+     open(unit=22,file='grid.xyz',status='unknown')
      write(22,*) nat
-     write(22,*) alat1,' 0. ',alat2
-     write(22,*) ' 0. ',' 0. ',alat3
+     !write(22,*) alat1,' 0. ',alat2
+     !write(22,*) ' 0. ',' 0. ',alat3
+     write(22,*)'complete grid with high and low resolution points' 
      do iat=1,nat
-        write(22,'(3(1x,e12.5),3x,a20)') &
-             rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),atomnames(iatype(iat))
+        write(22,'(a8,1x,3(1x,e12.5))') &
+             atomnames(iatype(iat)),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
      enddo
   endif
 
@@ -71,8 +72,8 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
         do i2=0,n2  
            do i1=0,n1
               if (logrid_c(i1,i2,i3))&
-                   write(22,'(3(1x,e10.3),1x,a4)') &
-                   real(i1,kind=8)*hgrid,real(2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  g '
+                   write(22,'(a8,1x,3(1x,e12.5))') &
+                   '  g ',real(i1,kind=8)*hgrid,real(2,kind=8)*hgrid,real(i3,kind=8)*hgrid
            enddo
         enddo
      end do
@@ -90,8 +91,8 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
         do i2=0,n2 
            do i1=0,n1
               if (logrid_f(i1,i2,i3))&
-                   write(22,'(3(1x,e10.3),1x,a4)') &
-                   real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  G '
+                   write(22,'(a8,1x,3(1x,e12.5))') &
+                   '  G ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
            enddo
         enddo
      enddo
