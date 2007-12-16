@@ -29,110 +29,106 @@
   !         rxyz(3,iat)=rxyz(3,iat)-.5d0*(zmax+zmin)
   !         enddo
 
-  call volume(nat,rxyz,vol)
-  write(*,*) 'initial volume',vol
+  !rotate the molecule via an orthogonal matrix in order to minimise the
+  !volume of the cubic cell
+  subroutine optimise_volume(nat,ntypes,iatype,atomnames,crmult,frmult,hgrid,rxyz,radii_cf)
+    implicit none
+    integer, intent(in) :: nat,ntypes
+    real(kind=8), intent(in) :: crmult,frmult
+    character(len=20), dimension(ntypes), intent(in) :: atomnames
+    integer(kind=8), dimension(nat), intent(in) :: iatype
+    real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
+    real(kind=8), dimension(3,nat), intent(inout) :: rxyz
+    !local variables
+    integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
+    real(kind=8) :: x,y,z,vol,tx,ty,tz
+    real(kind=8), dimension(3,3) :: urot
+    real(kind=8), dimension(:,:), allocatable :: txyz
 
-  it=0
-  diag=1.d-2 ! initial small diagonal element allows for search over all angles
-100 continue  ! loop over all trial rotations
-  diag=diag*1.0001d0 ! increase diag to search over smaller angles
-  it=it+1
-  if (diag.gt.100.d0) stop ! smaller angle rotations do not make sense
+    allocate(txyz(3,nat),stat=i_stat)
+    call memocc(i_stat,product(shape(txyz))*kind(txyz),'txyz','optimise_volume')
+    
+    call system_size(1,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
+         alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
+    !call volume(nat,rxyz,vol)
+    vol=alat1*alat2*alat3
+    write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
 
-  ! create a random orthogonal (rotation) matrix
-  call random_number(urot)
-  urot(:,:)=urot(:,:)-.5d0
-  do i=1,3
-     urot(i,i)=urot(i,i)+diag
-  enddo
+    it=0
+    diag=1.d-2 ! initial small diagonal element allows for search over all angles
+    loop_rotations: do  ! loop over all trial rotations
+       diag=diag*1.0001d0 ! increase diag to search over smaller angles
+       it=it+1
+       if (diag.gt.100.d0) exit loop_rotations ! smaller angle rotations do not make sense
 
-  s=urot(1,1)**2+urot(2,1)**2+urot(3,1)**2
-  s=1.d0/sqrt(s)
-  urot(:,1)=s*urot(:,1) 
+       ! create a random orthogonal (rotation) matrix
+       call random_number(urot)
+       urot(:,:)=urot(:,:)-.5d0
+       do i=1,3
+          urot(i,i)=urot(i,i)+diag
+       enddo
 
-  s=urot(1,1)*urot(1,2)+urot(2,1)*urot(2,2)+urot(3,1)*urot(3,2)
-  urot(:,2)=urot(:,2)-s*urot(:,1)
-  s=urot(1,2)**2+urot(2,2)**2+urot(3,2)**2
-  s=1.d0/sqrt(s)
-  urot(:,2)=s*urot(:,2) 
+       s=urot(1,1)**2+urot(2,1)**2+urot(3,1)**2
+       s=1.d0/sqrt(s)
+       urot(:,1)=s*urot(:,1) 
 
-  s=urot(1,1)*urot(1,3)+urot(2,1)*urot(2,3)+urot(3,1)*urot(3,3)
-  urot(:,3)=urot(:,3)-s*urot(:,1)
-  s=urot(1,2)*urot(1,3)+urot(2,2)*urot(2,3)+urot(3,2)*urot(3,3)
-  urot(:,3)=urot(:,3)-s*urot(:,2)
-  s=urot(1,3)**2+urot(2,3)**2+urot(3,3)**2
-  s=1.d0/sqrt(s)
-  urot(:,3)=s*urot(:,3) 
+       s=urot(1,1)*urot(1,2)+urot(2,1)*urot(2,2)+urot(3,1)*urot(3,2)
+       urot(:,2)=urot(:,2)-s*urot(:,1)
+       s=urot(1,2)**2+urot(2,2)**2+urot(3,2)**2
+       s=1.d0/sqrt(s)
+       urot(:,2)=s*urot(:,2) 
 
-  ! eliminate reflections
-  if (urot(1,1).le.0.d0) urot(:,1)=-urot(:,1)
-  if (urot(2,2).le.0.d0) urot(:,2)=-urot(:,2)
-  if (urot(3,3).le.0.d0) urot(:,3)=-urot(:,3)
+       s=urot(1,1)*urot(1,3)+urot(2,1)*urot(2,3)+urot(3,1)*urot(3,3)
+       urot(:,3)=urot(:,3)-s*urot(:,1)
+       s=urot(1,2)*urot(1,3)+urot(2,2)*urot(2,3)+urot(3,2)*urot(3,3)
+       urot(:,3)=urot(:,3)-s*urot(:,2)
+       s=urot(1,3)**2+urot(2,3)**2+urot(3,3)**2
+       s=1.d0/sqrt(s)
+       urot(:,3)=s*urot(:,3) 
 
-  ! apply the rotation to all atomic positions! 
-  do iat=1,nat
-     x=rxyz(1,iat) ; y=rxyz(2,iat) ; z=rxyz(3,iat)
-     txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
-  enddo
-  call volume(nat,txyz,tvol)
-  if (tvol.lt.vol) then
-     write(*,*) 'new best volume',tvol,it,diag
-     rxyz(:,:)=txyz(:,:)
-     vol=tvol
-     ! write positions into output file
-     xmin=1.d100 ; xmax=-1.d100
-     ymin=1.d100 ; ymax=-1.d100
-     zmin=1.d100 ; zmax=-1.d100
-     do iat=1,nat
-        xmin=min(xmin,rxyz(1,iat)) ; xmax=max(xmax,rxyz(1,iat)) 
-        ymin=min(ymin,rxyz(2,iat)) ; ymax=max(ymax,rxyz(2,iat)) 
-        zmin=min(zmin,rxyz(3,iat)) ; zmax=max(zmax,rxyz(3,iat)) 
-     enddo
-     ! Switch coordinates such that box is longest along z
-     dmax=max(xmax-xmin,ymax-ymin,zmax-zmin)
-     ! if box longest along x switch x and z
-     if (xmax-xmin == dmax)  then
-        do  iat=1,nat
-           tx=rxyz(1,iat)
-           tz=rxyz(3,iat)
+       ! eliminate reflections
+       if (urot(1,1).le.0.d0) urot(:,1)=-urot(:,1)
+       if (urot(2,2).le.0.d0) urot(:,2)=-urot(:,2)
+       if (urot(3,3).le.0.d0) urot(:,3)=-urot(:,3)
 
-           rxyz(1,iat)=tz
-           rxyz(3,iat)=tx
-        enddo
-        tmin=xmin   
-        xmin=zmin   
-        zmin=tmin   
-  
-        tmax=xmax
-        xmax=zmax
-        zmax=tmax
-     endif
-     ! if box longest along y switch y and z
-     if (ymax-ymin == dmax)  then
-        do  iat=1,nat
-           ty=rxyz(1,iat) ; tz=rxyz(3,iat)
-           rxyz(1,iat)=tz ; rxyz(3,iat)=ty
-        enddo
-        tmin=ymin   
-        ymin=zmin   
-        zmin=tmin   
+       ! apply the rotation to all atomic positions! 
+       do iat=1,nat
+          x=rxyz(1,iat) ; y=rxyz(2,iat) ; z=rxyz(3,iat)
+          txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
+       enddo
 
-        tmax=ymax
-        ymax=zmax
-        zmax=tmax
-     endif
+       call system_size(1,nat,ntypes,txyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
+            alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
+       tvol=alat1*alat2*alat3
+       !call volume(nat,txyz,tvol)
+       if (tvol.lt.vol) then
+          write(*,'(1x,a,1pe16.8,1x,i0,1x,f15.5)')'Found new best volume: ',tvol,it,diag
+          rxyz(:,:)=txyz(:,:)
+          vol=tvol
+          dmax=max(alat1,alat2,alat3)
+          ! if box longest along x switch x and z
+          if (alat1 == dmax)  then
+             do  iat=1,nat
+                tx=rxyz(1,iat)
+                tz=rxyz(3,iat)
 
-     open(unit=2,file='rotpos.ascii')
-     write(2,*) nat
-     write(2,*) xmax-xmin+2*rad,' 0. ',ymax-ymin+2.d0*rad
-     write(2,*) ' 0.  ',' 0. ',zmax-zmin+2.d0*rad
-     do iat=1,nat
-        write(2,'(3(1x,e17.10),1x,a20)') rxyz(1,iat)-xmin+rad,rxyz(2,iat)-ymin+rad,rxyz(3,iat)-zmin+rad,atomnames(iat)
-     enddo
-     close(2)
-  endif
-  goto 100
-end program
+                rxyz(1,iat)=tz
+                rxyz(3,iat)=tx
+             enddo
+             ! if box longest along y switch y and z
+          else if (alat2 == dmax)  then
+             do  iat=1,nat
+                ty=rxyz(1,iat) ; tz=rxyz(3,iat)
+                rxyz(1,iat)=tz ; rxyz(3,iat)=ty
+             enddo
+          endif
+       endif
+    end do loop_rotations
+
+    i_all=-product(shape(txyz))*kind(txyz)
+    deallocate(txyz,stat=i_stat)
+    call memocc(i_stat,i_all,'txyz','optimise_volume')
+  end subroutine optimise_volume
 
 
 

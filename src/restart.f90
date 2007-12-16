@@ -55,7 +55,7 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,hgrid,n1,n2,n3,eval,wfd
         ind=j+(wfd_old%nvctr_c+7*wfd_old%nvctr_f)*(iorb-iproc*norbp-1)
         i1=mod(ind-1,nvctrp_old)+1
         i2=(ind-i1)/nvctrp_old+1
-        psi_old(j,iorb-iproc*norbp)     = psi(i1,i2)
+        psi_old(j,iorb-iproc*norbp) = psi(i1,i2)
         tt=tt+psi(i1,i2)**2
      enddo
      tt=sqrt(tt)

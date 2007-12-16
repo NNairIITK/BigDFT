@@ -45,18 +45,6 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
           '------------------------------------------------- Wavefunctions Descriptors Creation'
   end if
 
-  ! Create the file grid.ascii to visualize the grid of functions
-  if (iproc.eq.0 .and. output_grid) then
-     open(unit=22,file='grid.ascii',status='unknown')
-     write(22,*) nat
-     write(22,*) alat1,' 0. ',alat2
-     write(22,*) ' 0. ',' 0. ',alat3
-     do iat=1,nat
-        write(22,'(3(1x,e12.5),3x,a20)') &
-             rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),atomnames(iatype(iat))
-     enddo
-  endif
-
   ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
   allocate(logrid_c(0:n1,0:n2,0:n3),stat=i_stat)
   call memocc(i_stat,product(shape(logrid_c))*kind(logrid_c),'logrid_c','crtwvfnctsdescriptors')
@@ -66,17 +54,6 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
   ! coarse grid quantities
   call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
        radii_cf(1,1),crmult,hgrid,logrid_c)
-  if (iproc.eq.0 .and. output_grid) then
-     do i3=0,n3  
-        do i2=0,n2  
-           do i1=0,n1
-              if (logrid_c(i1,i2,i3))&
-                   write(22,'(3(1x,e10.3),1x,a4)') &
-                   real(i1,kind=8)*hgrid,real(2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  g '
-           enddo
-        enddo
-     end do
-  endif
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,wfd%nseg_c,wfd%nvctr_c)
   if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
        'Coarse resolution grid: Number of segments= ',wfd%nseg_c,'points=',wfd%nvctr_c
@@ -85,23 +62,40 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
   ! fine grid quantities
   call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
        radii_cf(1,2),frmult,hgrid,logrid_f)
-  if (iproc.eq.0 .and. output_grid) then
-     do i3=0,n3 
-        do i2=0,n2 
-           do i1=0,n1
-              if (logrid_f(i1,i2,i3))&
-                   write(22,'(3(1x,e10.3),1x,a4)') &
-                   real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  G '
-           enddo
-        enddo
-     enddo
-  endif
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,wfd%nseg_f,wfd%nvctr_f)
   if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
        '  Fine resolution grid: Number of segments= ',wfd%nseg_f,'points=',wfd%nvctr_f
   call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
 
-  if (iproc.eq.0 .and. output_grid) close(22)
+! Create the file grid.xyz to visualize the grid of functions
+  if (iproc ==0 .and. output_grid) then
+     open(unit=22,file='grid.xyz',status='unknown')
+     write(22,*) wfd%nvctr_c+wfd%nvctr_f,' atomic'
+     write(22,*)'complete simulation grid with low ang high resolution points'
+     do iat=1,nat
+        write(22,'(a6,2x,3(1x,e12.5),3x)') &
+             trim(atomnames(iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
+     enddo
+     do i3=0,n3  
+        do i2=0,n2  
+           do i1=0,n1
+              if (logrid_c(i1,i2,i3))&
+                   write(22,'(a4,2x,3(1x,e10.3))') &
+                   '  g ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
+           enddo
+        enddo
+     end do
+     do i3=0,n3 
+        do i2=0,n2 
+           do i1=0,n1
+              if (logrid_f(i1,i2,i3))&
+                   write(22,'(a4,2x,3(1x,e10.3))') &
+                   '  G ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
+           enddo
+        enddo
+     enddo
+     close(22)
+  endif
 
   ! allocations for arrays holding the wavefunctions and their data descriptors
   call allocate_wfd(wfd,'crtwvfnctsdescriptors')

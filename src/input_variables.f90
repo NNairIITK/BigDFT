@@ -488,8 +488,6 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,hgrid
 
     enddo
 
-
-
     !deallocation
     i_all=-product(shape(neleconf))*kind(neleconf)
     deallocate(neleconf,stat=i_stat)
