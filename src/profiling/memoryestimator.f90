@@ -8,7 +8,7 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
   logical, intent(in) :: output_grid
   integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin
   integer, dimension(nat), intent(in) :: iatype
-  character(len=20), dimension(ntypes), intent(in) :: atomnames
+  character(len=20), dimension(100), intent(in) :: atomnames
   real(kind=8), intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(ntypes,2), intent(in) ::  radii_cf
@@ -16,75 +16,65 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
   !local variables
   real(kind=8), parameter :: eps_mach=1.d-12
   character(len=1) :: geocode
-  character(len=48) :: firstline
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f,norbp,nvctrp,i_all,i_stat
-  integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,iat,i1,i2,i3,ncount
+  integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,iat,i1,i2,i3
   real(kind=8) :: omemwf,omemker,omemden,omempot
   real(kind=8) :: tt,tmemker,tmemden,tmemps,tmemha,tminamount
-  logical, dimension(:,:,:), allocatable :: logrid
-
-! Create the file grid.xyz to visualize the grid of functions
-  if (output_grid) then
-     open(unit=22,file='grid.xyz',status='unknown',access='direct',recl=48,form='formatted')
-     write(firstline,'(a30)')'12345678901234567890 atomic   '
-     ncount=0
-     write(22,'(a48)') firstline
-     !write(22,*) alat1,' 0. ',alat2
-     !write(22,*) ' 0. ',' 0. ',alat3
-     write(22,*)'complete grid with high and low resolution points' 
-     do iat=1,nat
-        ncount=ncount+1
-        write(22,rec=21,'(a8,1x,3(1x,e12.5))') &
-             atomnames(iatype(iat)),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
-     enddo
-  endif
+  logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
   ! determine localization region for all orbitals
-  allocate(logrid(0:n1,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(logrid))*kind(logrid),'logrid','memoryestimator')
+  allocate(logrid_c(0:n1,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(logrid_c))*kind(logrid_c),'logrid_c','memoryestimator')
+  allocate(logrid_f(0:n1,0:n2,0:n3),stat=i_stat)
+  call memocc(i_stat,product(shape(logrid_f))*kind(logrid_f),'logrid_f','memoryestimator')
 
   ! coarse grid quantities
   call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
-       radii_cf(1,1),crmult,hgrid,logrid)
+       radii_cf(1,1),crmult,hgrid,logrid_c)
+  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,nseg_c,nvctr_c)
+
+  ! fine grid quantities
+  call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
+       radii_cf(1,2),frmult,hgrid,logrid_f)
+  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,nseg_f,nvctr_f)
+
+! Create the file grid.xyz to visualize the grid of functions
   if (output_grid) then
+     open(unit=22,file='grid.xyz',status='unknown')
+     write(22,*) nvctr_c+nvctr_f,' atomic'
+     write(22,*)'complete simulation grid with low ang high resolution points'
+     do iat=1,nat
+        write(22,'(a6,2x,3(1x,e12.5),3x)') &
+             trim(atomnames(iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
+     enddo
      do i3=0,n3  
         do i2=0,n2  
            do i1=0,n1
-              if (logrid(i1,i2,i3))&
-                   ncount=ncount+1
-                   write(22,rec=21,'(a8,1x,3(1x,e12.5))',rec=21) &
+              if (logrid_c(i1,i2,i3))&
+                   write(22,'(a4,2x,3(1x,e10.3))') &
                    '  g ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
            enddo
         enddo
      end do
-  endif
-  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid,nseg_c,nvctr_c)
-
-  ! fine grid quantities
-  call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
-       radii_cf(1,2),frmult,hgrid,logrid)
-  if (output_grid) then
      do i3=0,n3 
         do i2=0,n2 
            do i1=0,n1
-              if (logrid(i1,i2,i3))&
-                   ncount=ncount+1
-                   write(22,rec=21,'(a8,1x,3(1x,e12.5))',rec=21) &
+              if (logrid_f(i1,i2,i3))&
+                   write(22,'(a4,2x,3(1x,e10.3))') &
                    '  G ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
            enddo
         enddo
      enddo
-     rewind(22)
-     write(firstline,'(i20,a)')ncount,' atomic   '
-     write(22,rec=21,'(a48)') firstline
-     !endfile(22)
      close(22)
   endif
-  call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid,nseg_f,nvctr_f)
 
-  i_all=-product(shape(logrid))*kind(logrid)
-  deallocate(logrid,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid','memoryestimator')
+  i_all=-product(shape(logrid_c))*kind(logrid_c)
+  deallocate(logrid_c,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid_c','memoryestimator')
+  i_all=-product(shape(logrid_f))*kind(logrid_f)
+  deallocate(logrid_f,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid_f','memoryestimator')
+
 
   tt=dble(norb)/dble(nproc)
   norbp=int((1.d0-eps_mach*tt) + tt)
