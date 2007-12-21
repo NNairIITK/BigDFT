@@ -16,6 +16,10 @@ SOURCES_MOD = PSolver_Main.f90 \
 	scaling_function.f90
 
 OTHERS = Makefile.PSolver \
+	PSchk.f90 \
+	MPIfake.f90 \
+	PSolver.f90 \
+	PSexercise.f90 \
 	bench.csh \
 	perfdata.t \
 	acc_F.20-100.ref \
@@ -24,7 +28,19 @@ OTHERS = Makefile.PSolver \
 	README \
 	INSTALL \
 	COPYING \
-	TODO 
+	TODO \
+	$(EXERCISE)
+
+EXERCISE = Exercise/plot.gnuplot \
+	Exercise/PSexercise.tex \
+	Exercise/accF.pdf \
+	Exercise/accS.pdf \
+	Exercise/fandg.pdf \
+	Exercise/PvsF.pdf \
+	Exercise/rhoSpotS.pdf \
+	Exercise/accP.pdf \
+	Exercise/emepot.pdf \
+	Exercise/rhoFpotF.pdf
 
 EXTRA_DIST = \
 	lazy_100.inc \

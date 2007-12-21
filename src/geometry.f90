@@ -164,12 +164,17 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
 
      call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg,&
           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,fluct,flucto,fluctoo,fnrm,in)
-
+     if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) then
+        if (iproc.eq.0) write(16,*) 'Converged in switch back SD',iproc
+        call close_and_deallocate
+        return
+     endif
      goto 12345
 
   endif
   etotprec=etot
   if (iproc.eq.0) call wtposout(ncount_cluster,etot,nat,wpos,atomnames,iatype)
+  !if (iproc.eq.0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_cluster,etot,sqrt(fnrm)
   fluctoo=flucto
   flucto=fluct
   fluct=sumx**2+sumy**2+sumz**2
@@ -221,6 +226,11 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
      call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg,&
           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,&
           fluct,flucto,fluctoo,fnrm,in)
+     if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) then
+        if (iproc.eq.0) write(16,*) 'Converged in back up SD',iproc
+        call close_and_deallocate
+        return
+     endif
 
      nfail=nfail+1
      if (nfail.ge.100) stop 'too many failures of CONJG'
@@ -377,6 +387,7 @@ contains
     if (iproc.eq.0) then 
        write(16,'(i5,1x,e12.5,1x,e21.14,a)') itsd,sqrt(fnrm),etot,' SD '
        call wtposout(ncount_cluster,etot,nat,wpos,atomnames,iatype)
+       !write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'SD ',ncount_cluster,etot,sqrt(fnrm)
     end if
 
     fluctoo=flucto
@@ -596,13 +607,17 @@ subroutine wtposout(igeostep,energy,nat,rxyz,atomnames,iatype)
   integer, dimension(nat), intent(in) :: iatype
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   !local variables
+  character(len=2) :: symbol
+  character(len=3) :: suffix
   character(len=3) :: fn
+  character(len=10) :: name
   character(len=20) :: filename
   integer :: iat,j
   real(kind=8) :: xmax,ymax,zmax
 
   write(fn,'(i3.3)') igeostep
-  filename = 'posout_'//fn//'.ascii'
+  !filename = 'posout_'//fn//'.ascii'
+filename = 'posout_'//fn//'.xyz'
   open(unit=9,file=filename)
   xmax=0.d0 ; ymax=0.d0 ; zmax=0.d0
   do iat=1,nat
@@ -610,11 +625,21 @@ subroutine wtposout(igeostep,energy,nat,rxyz,atomnames,iatype)
      ymax=max(rxyz(2,iat),ymax)
      zmax=max(rxyz(3,iat),zmax)
   enddo
-  write(9,*) nat,' atomic ', energy,igeostep
-  write(9,*) xmax+5.d0, 0.d0, ymax+5.d0
-  write(9,*) 0.d0, 0.d0, zmax+5.d0
+  write(9,*) nat,' atomic '!, energy,igeostep
+  !write(9,*) xmax+5.d0, 0.d0, ymax+5.d0
+  !write(9,*) 0.d0, 0.d0, zmax+5.d0
+  write(9,*)' energy,igeostep ', energy,igeostep
   do iat=1,nat
-     write(9,'(3(1x,e21.14),2x,a10)') (rxyz(j,iat),j=1,3),atomnames(iatype(iat))
+     name=trim(atomnames(iatype(iat)))
+     if (name(3:3)=='_') then
+        symbol=name(1:2)
+        suffix=name(4:6)
+     else
+        symbol=name(1:1)
+        suffix=name(3:5)
+     end if
+     !write(9,'(3(1x,e21.14),2x,a10)') (rxyz(j,iat),j=1,3),atomnames(iatype(iat))
+     write(9,'(a2,4x,3(1x,1pe21.14),2x,a3)')symbol,(rxyz(j,iat),j=1,3),suffix
   enddo
   close(unit=9)
 

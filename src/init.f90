@@ -45,18 +45,6 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
           '------------------------------------------------- Wavefunctions Descriptors Creation'
   end if
 
-  ! Create the file grid.ascii to visualize the grid of functions
-  if (iproc.eq.0 .and. output_grid) then
-     open(unit=22,file='grid.ascii',status='unknown')
-     write(22,*) nat
-     write(22,*) alat1,' 0. ',alat2
-     write(22,*) ' 0. ',' 0. ',alat3
-     do iat=1,nat
-        write(22,'(3(1x,e12.5),3x,a20)') &
-             rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),atomnames(iatype(iat))
-     enddo
-  endif
-
   ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
   allocate(logrid_c(0:n1,0:n2,0:n3),stat=i_stat)
   call memocc(i_stat,product(shape(logrid_c))*kind(logrid_c),'logrid_c','crtwvfnctsdescriptors')
@@ -66,17 +54,6 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
   ! coarse grid quantities
   call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
        radii_cf(1,1),crmult,hgrid,logrid_c)
-  if (iproc.eq.0 .and. output_grid) then
-     do i3=0,n3  
-        do i2=0,n2  
-           do i1=0,n1
-              if (logrid_c(i1,i2,i3))&
-                   write(22,'(3(1x,e10.3),1x,a4)') &
-                   real(i1,kind=8)*hgrid,real(2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  g '
-           enddo
-        enddo
-     end do
-  endif
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,wfd%nseg_c,wfd%nvctr_c)
   if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
        'Coarse resolution grid: Number of segments= ',wfd%nseg_c,'points=',wfd%nvctr_c
@@ -85,23 +62,40 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
   ! fine grid quantities
   call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
        radii_cf(1,2),frmult,hgrid,logrid_f)
-  if (iproc.eq.0 .and. output_grid) then
-     do i3=0,n3 
-        do i2=0,n2 
-           do i1=0,n1
-              if (logrid_f(i1,i2,i3))&
-                   write(22,'(3(1x,e10.3),1x,a4)') &
-                   real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid,'  G '
-           enddo
-        enddo
-     enddo
-  endif
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,wfd%nseg_f,wfd%nvctr_f)
   if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
        '  Fine resolution grid: Number of segments= ',wfd%nseg_f,'points=',wfd%nvctr_f
   call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
 
-  if (iproc.eq.0 .and. output_grid) close(22)
+! Create the file grid.xyz to visualize the grid of functions
+  if (iproc ==0 .and. output_grid) then
+     open(unit=22,file='grid.xyz',status='unknown')
+     write(22,*) wfd%nvctr_c+wfd%nvctr_f,' atomic'
+     write(22,*)'complete simulation grid with low ang high resolution points'
+     do iat=1,nat
+        write(22,'(a6,2x,3(1x,e12.5),3x)') &
+             trim(atomnames(iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
+     enddo
+     do i3=0,n3  
+        do i2=0,n2  
+           do i1=0,n1
+              if (logrid_c(i1,i2,i3))&
+                   write(22,'(a4,2x,3(1x,e10.3))') &
+                   '  g ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
+           enddo
+        enddo
+     end do
+     do i3=0,n3 
+        do i2=0,n2 
+           do i1=0,n1
+              if (logrid_f(i1,i2,i3))&
+                   write(22,'(a4,2x,3(1x,e10.3))') &
+                   '  G ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
+           enddo
+        enddo
+     enddo
+     close(22)
+  endif
 
   ! allocations for arrays holding the wavefunctions and their data descriptors
   call allocate_wfd(wfd,'crtwvfnctsdescriptors')
@@ -173,7 +167,6 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
   allocate(bounds%ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
   call memocc(i_stat,product(shape(bounds%ibyyzz_r))*kind(bounds%ibyyzz_r),'ibyyzz_r','crtwvfnctsdescriptors')
 
-
   call make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        bounds%kb%ibxy_c,bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
        bounds%kb%ibxy_f,bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
@@ -181,7 +174,6 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
        bounds%kb%ibyz_f,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,&
        bounds%ibyyzz_r)
 
-  !***********************************************************************************************
 END SUBROUTINE createWavefunctionsDescriptors
 
 !pass to implicit none while inserting types on this routine
@@ -204,7 +196,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
   !local variables
   integer :: nl1,nl2,nl3,nu1,nu2,nu3,mseg,mvctr,mproj,istart,istart_c,istart_f,mvctr_c,mvctr_f
   integer :: nl1_c,nl1_f,nl2_c,nl2_f,nl3_c,nl3_f,nu1_c,nu1_f,nu2_c,nu2_f,nu3_c,nu3_f
-  integer :: iat,i_stat,i_all,nterm_max,i,l,m,iproj,ityp,nterm,iseg,nwarnings
+  integer :: iat,i_stat,i_all,nterm_max,i,l,m,iproj,ityp,nterm,iseg,nwarnings,natyp
   real(kind=8) :: fpi,factor,scpr,gau_a,rx,ry,rz,radmin
   logical, dimension(:,:,:), allocatable :: logrid
   real(kind=8), dimension(:), allocatable :: fac_arr
@@ -214,8 +206,8 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
           '------------------------------------------------------------ PSP Projectors Creation'
-     write(*,'(1x,a4,4x,a4,1x,a)')&
-          'Atom','Name','Number of projectors'
+     write(*,'(1x,a4,4x,a4,2(1x,a))')&
+          'Type','Name','Number of atoms','Number of projectors'
   end if
 
   allocate(nlpspd%nseg_p(0:2*nat),stat=i_stat)
@@ -240,14 +232,24 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
 
   istart=1
   nlpspd%nproj=0
+
+  if (iproc ==0) then
+     !print the number of projectors to be created
+     do ityp=1,ntypes
+        call numb_proj(ityp,ntypes,psppar,npspcode,mproj)
+        natyp=0
+        do iat=1,nat
+           if (iatype(iat) == ityp) natyp=natyp+1
+        end do
+        write(*,'(1x,i4,2x,a6,1x,i15,i21)')&
+             ityp,trim(atomnames(ityp)),natyp,mproj
+     end do
+  end if
+
   do iat=1,nat
 
      call numb_proj(iatype(iat),ntypes,psppar,npspcode,mproj)
      if (mproj.ne.0) then 
-
-        if (iproc.eq.0) write(*,'(1x,i4,2x,a6,1x,i20)')&
-             iat,trim(atomnames(iatype(iat))),mproj
-
 
         !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))')&
         !     'projector descriptors for atom with mproj ',iat,mproj
@@ -304,8 +306,8 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
   enddo
 
   if (iproc.eq.0) then
-     write(*,'(28x,a)') '------'
-     write(*,'(1x,a,i5)') 'Total number of projectors =',nlpspd%nproj
+     write(*,'(44x,a)') '------'
+     write(*,'(1x,a,i21)') 'Total number of projectors =',nlpspd%nproj
   end if
 
   ! allocations for arrays holding the projectors and their data descriptors
@@ -361,7 +363,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
      endif
   enddo
 
-  if (iproc.eq.0) write(*,'(1x,a)',advance='no') &
+  if (iproc.eq.0 .and. nlpspd%nproj /=0) write(*,'(1x,a)',advance='no') &
        'Calculating wavelets expansion of projectors...'
   !warnings related to the projectors norm
   nwarnings=0
@@ -465,7 +467,7 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
   enddo
   if (iproj.ne.nlpspd%nproj) stop 'incorrect number of projectors created'
   ! projector part finished
-  if (iproc == 0) then
+  if (iproc == 0 .and. nlpspd%nproj /=0) then
      if (nwarnings == 0) then
         write(*,'(1x,a)')'done.'
      else
@@ -871,7 +873,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           '------------------------------------------------------- Input Wavefunctions Creation'
   end if
 
-  ! Read the inguess.dat file or generate the input guess via the inguess_generator
+  !Generate the input guess via the inguess_generator
   call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,psppar,&
        & npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,&
        & norbsc_arr)
@@ -1069,7 +1071,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      call memocc(i_stat,i_all,'norbsc_arr','input_wf_diag')
 
      !orthogonalise the orbitals in the case of semi-core atoms
-     if (norbsc > 0) then
+     if (norbsc > 0 .or. norbu==norbd) then
         if(nspin==1) then
            call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,ppsit) 
         else
@@ -1138,7 +1140,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
 
      !orthogonalise the orbitals in the case of semi-core atoms
-     if (norbsc > 0) then
+     if (norbsc > 0 .or. norbu==norbd) then
         if(nspin==1) then
            call orthon(norb,nvctrp,ppsi)
         else
@@ -1203,15 +1205,6 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
 !!$        !        (hamovr(imatrst-1+jjorb+(jiorb-1)*norbi,1),jiorb=1,norbi)
 !!$        !end do
 !!$        !close(34+2*(i-1))
-
-!!$' <- last'
-!!$'  <-|     '
-!!$'  <-|     '
-!!$'  <-|     '
-!!$'       '
-!!$'  |     '
-!!$'  |     '
-!!$'  -     '
 
      !writing rules, control if the last eigenvector is degenerate
      do iorb=1,norbi
@@ -1338,7 +1331,9 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,
   real(kind=8), dimension(nvctrp,norbep*nproc), intent(in) :: psi
   real(kind=8), dimension(nvctrp,norbp*nproc), intent(out) :: ppsit
   !local variables
-  integer :: ispin,iorbst,iorbst2,imatrst,norbsc,norbi,norbj,i
+  integer :: ispin,iorbst,iorbst2,imatrst,norbsc,norbi,norbj,i,iorb,i_stat,i_all
+  real(kind=8) :: tt
+  real, dimension(:), allocatable :: randnoise
 
   !perform the vector-matrix multiplication for building the input wavefunctions
   ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
@@ -1381,6 +1376,32 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,
              hamovr(imatrst),norbi,0.d0,ppsit(1,iorbst2+iorbst),nvctrp)
      end if
   end do
+
+  !here we should put a random noise on the spin-down components in the case of norbu=norbd
+  if (nspin == 2 .and. norbu==norbd) then
+     allocate(randnoise(nvctrp),stat=i_stat)
+     call memocc(i_stat,product(shape(randnoise))*kind(randnoise),'randnoise','build_eigenvectors')
+     call random_number(randnoise)
+
+     do iorb=1,norbu
+        do i=1,nvctrp
+           tt=50.d0*real(randnoise(nvctrp-i+1)-0.5,kind=8)/real(nvctrp*nproc,kind=8)
+           ppsit(i,iorb)=tt+ppsit(i,iorb)
+        end do
+     end do
+
+     do iorb=norbu+1,norbu+norbd
+        do i=1,nvctrp
+           tt=50.d0*real(randnoise(i)-0.5,kind=8)/real(nvctrp*nproc,kind=8)
+           ppsit(i,iorb)=tt+ppsit(i,iorb)
+        end do
+     end do
+
+     i_all=-product(shape(randnoise))*kind(randnoise)
+     deallocate(randnoise,stat=i_stat)
+     call memocc(i_stat,i_all,'randnoise','build_eigenvectors')
+  end if
+
 end subroutine build_eigenvectors
 
 subroutine overlap_matrices(nproc,norbep,nvctrp,natsc,ndim_hamovr,norbsc_arr,hamovr,psi,hpsi)

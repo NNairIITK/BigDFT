@@ -1,4 +1,4 @@
-
+ 
 !! Copyright (C) 2002-2007 BigDFT group 
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~/COPYING file
@@ -275,20 +275,21 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      !no powers of hgrid because they are incorporated in the plane wave treatment
      scal=1.d0/real(n1*n2*n3,kind=8)
      call P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf(1,1,1),&
-          scal,hx,hy,hz)
+          scal,hx,hy,hz,offset)
      
-     !offset correction for the periodic treatment
-     if (iproc == 0) newoffset=zf(1,1,1)
-     !send the value of the offset to the other processes
-     call timing(iproc,'PSolv_commun  ','ON')
-     call MPI_BCAST(newoffset,1,MPI_double_precision,0,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'PSolv_commun  ','OF')
-     correction=offset-newoffset
+!!$     !offset correction for the periodic treatment
+!!$     if (iproc == 0) newoffset=zf(1,1,1)
+!!$     !send the value of the offset to the other processes
+!!$     call timing(iproc,'PSolv_commun  ','ON')
+!!$     call MPI_BCAST(newoffset,1,MPI_double_precision,0,MPI_COMM_WORLD,ierr)
+!!$     call timing(iproc,'PSolv_commun  ','OF')
+     correction=0.d0!offset-newoffset
      factor=0.5d0*hx*hy*hz
      
   else if (geocode == 'S') then
      !only one power of hgrid 
-     scal=hy/real(n1*n2*n3,kind=8)
+     !factor of -4*pi for the definition of the Poisson equation
+     scal=-16.d0*datan(1.d0)*hy/real(n1*n2*n3,kind=8)
      call S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
           scal,hx,hy,hz)!,ehartreeLOC)
      correction=0.d0
@@ -299,7 +300,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      call F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
           scal)!,hgrid)!,ehartreeLOC)
      correction=0.d0
-     factor=0.5d0*hx*hy*hz!hgrid**3
+     factor=0.5d0*hx*hy*hz
      
   else
       !Never used
@@ -541,7 +542,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      vxc=vexcuLOC
   end if
 
-  if(nspin==1) eh=eh*2.0d0
+  if(nspin==1 .and. ixc /= 0) eh=eh*2.0d0
   if (iproc==0) write(*,'(a)')'done.'
 
 end subroutine PSolver

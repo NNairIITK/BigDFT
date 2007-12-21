@@ -21,7 +21,7 @@ program memguess
 
   implicit none
   integer, parameter :: ngx=31
-  logical :: calc_tail,output_grid
+  logical :: calc_tail,output_grid,optimise
   character(len=20) :: tatonam,units
   integer :: ierror,nat,ntypes,nproc,n1,n2,n3,i_stat,i_all
   integer :: nelec,natsc,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
@@ -42,7 +42,8 @@ program memguess
 
 ! Get arguments
   call getarg(1,tatonam)
-
+  
+  optimise=.false.
   if(trim(tatonam)=='') then
      write(*,'(1x,a)')&
           'Usage: ./memguess <nproc> [y]'
@@ -52,6 +53,10 @@ program memguess
           'You can put a "y" in the second argument (optional) if you want the '
      write(*,'(1x,a)')&
           '  grid to be plotted with V_Sim'
+     write(*,'(1x,a)')&
+          'You can also put an "o" if you want to rotate the molecule such that'
+     write(*,'(1x,a)')&
+          '  the volume of the simulation box is optimised'
      stop
   else
      read(unit=tatonam,fmt=*) nproc
@@ -61,7 +66,12 @@ program memguess
      else if (trim(tatonam)=='y') then
         output_grid=.true.
         write(*,'(1x,a)')&
-             'The system grid will be displayed in the "grid.ascii" file'
+             'The system grid will be displayed in the "grid.xyz" file'
+     else if (trim(tatonam)=='o') then
+        optimise=.true.
+        output_grid=.true.
+        write(*,'(1x,a)')&
+             'The optimised system grid will be displayed in the "grid.xyz" file'
      else
         write(*,'(1x,a)')&
              'Usage: ./memguess <nproc> [y]'
@@ -82,8 +92,7 @@ program memguess
   !read number of atoms
   open(unit=99,file='posinp',status='old')
   read(99,*) nat,units
-  write(*,'(1x,a,i0)') 'Number of atoms     = ',nat
-
+ 
   allocate(rxyz(3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(rxyz))*kind(rxyz),'rxyz','memguess')
   allocate(iatype(nat),stat=i_stat)
@@ -96,14 +105,9 @@ program memguess
 
   close(99)
 
-  write(*,'(1x,a,i0)') 'Number of atom types= ',ntypes
-
-  do ityp=1,ntypes
-     write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ',trim(atomnames(ityp))
-  enddo
-
   !new way of reading the input variables, use structures
   call read_input_variables(0,in)
+  call print_input_parameters(in)
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
@@ -123,8 +127,9 @@ program memguess
   allocate(iasctype(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(iasctype))*kind(iasctype),'iasctype','memguess')
 
-  call read_system_variables(0,nproc,nat,ntypes,in%nspin,in%ncharge,in%mpol,atomnames,iatype,&
-       psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
+  call read_system_variables(0,nproc,nat,ntypes,in%nspin,in%ncharge,in%mpol,in%hgrid,&
+       atomnames,iatype,psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,&
+       norb,norbu,norbd,norbp,iunit)
 
 ! Allocations for the occupation numbers
   allocate(occup(norb),stat=i_stat)
@@ -231,12 +236,14 @@ program memguess
   deallocate(iasctype,stat=i_stat)
   call memocc(i_stat,i_all,'iasctype','memguess')
 
+  if (optimise) then
+     call optimise_volume(nat,ntypes,iatype,atomnames,in%crmult,in%frmult,in%hgrid,rxyz,radii_cf)
+  end if
 
 ! Determine size alat of overall simulation cell and shift atom positions
 ! then calculate the size in units of the grid space
   call system_size(0,nat,ntypes,rxyz,radii_cf,in%crmult,in%frmult,in%hgrid,iatype,atomnames, &
        alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
-
 
   call MemoryEstimator(nproc,in%idsx,n1,n2,n3,alat1,alat2,alat3,in%hgrid,nat,ntypes,iatype,&
           rxyz,radii_cf,in%crmult,in%frmult,norb,atomnames,output_grid,in%nspin,peakmem)
@@ -256,6 +263,108 @@ program memguess
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
-
+  
 end program memguess
 !!***
+
+!rotate the molecule via an orthogonal matrix in order to minimise the
+!volume of the cubic cell
+subroutine optimise_volume(nat,ntypes,iatype,atomnames,crmult,frmult,hgrid,rxyz,radii_cf)
+  implicit none
+  integer, intent(in) :: nat,ntypes
+  real(kind=8), intent(in) :: crmult,frmult,hgrid
+  character(len=20), dimension(ntypes), intent(in) :: atomnames
+  integer, dimension(nat), intent(in) :: iatype
+  real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
+  real(kind=8), dimension(3,nat), intent(inout) :: rxyz
+  !local variables
+  integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1,n2,n3,iat,i_all,i_stat,it,i
+  real(kind=8) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax,alat1,alat2,alat3
+  real(kind=8), dimension(3,3) :: urot
+  real(kind=8), dimension(:,:), allocatable :: txyz
+
+  allocate(txyz(3,nat),stat=i_stat)
+  call memocc(i_stat,product(shape(txyz))*kind(txyz),'txyz','optimise_volume')
+
+  call system_size(1,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
+       alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
+  !call volume(nat,rxyz,vol)
+  vol=alat1*alat2*alat3
+  write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
+
+  it=0
+  diag=1.d-2 ! initial small diagonal element allows for search over all angles
+  loop_rotations: do  ! loop over all trial rotations
+     diag=diag*1.0001d0 ! increase diag to search over smaller angles
+     it=it+1
+     if (diag.gt.100.d0) exit loop_rotations ! smaller angle rotations do not make sense
+
+     ! create a random orthogonal (rotation) matrix
+     call random_number(urot)
+     urot(:,:)=urot(:,:)-.5d0
+     do i=1,3
+        urot(i,i)=urot(i,i)+diag
+     enddo
+
+     s=urot(1,1)**2+urot(2,1)**2+urot(3,1)**2
+     s=1.d0/sqrt(s)
+     urot(:,1)=s*urot(:,1) 
+
+     s=urot(1,1)*urot(1,2)+urot(2,1)*urot(2,2)+urot(3,1)*urot(3,2)
+     urot(:,2)=urot(:,2)-s*urot(:,1)
+     s=urot(1,2)**2+urot(2,2)**2+urot(3,2)**2
+     s=1.d0/sqrt(s)
+     urot(:,2)=s*urot(:,2) 
+
+     s=urot(1,1)*urot(1,3)+urot(2,1)*urot(2,3)+urot(3,1)*urot(3,3)
+     urot(:,3)=urot(:,3)-s*urot(:,1)
+     s=urot(1,2)*urot(1,3)+urot(2,2)*urot(2,3)+urot(3,2)*urot(3,3)
+     urot(:,3)=urot(:,3)-s*urot(:,2)
+     s=urot(1,3)**2+urot(2,3)**2+urot(3,3)**2
+     s=1.d0/sqrt(s)
+     urot(:,3)=s*urot(:,3) 
+
+     ! eliminate reflections
+     if (urot(1,1).le.0.d0) urot(:,1)=-urot(:,1)
+     if (urot(2,2).le.0.d0) urot(:,2)=-urot(:,2)
+     if (urot(3,3).le.0.d0) urot(:,3)=-urot(:,3)
+
+     ! apply the rotation to all atomic positions! 
+     do iat=1,nat
+        x=rxyz(1,iat) ; y=rxyz(2,iat) ; z=rxyz(3,iat)
+        txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
+     enddo
+
+     call system_size(1,nat,ntypes,txyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
+          alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
+     tvol=alat1*alat2*alat3
+     !call volume(nat,txyz,tvol)
+     if (tvol.lt.vol) then
+        write(*,'(1x,a,1pe16.8,1x,i0,1x,f15.5)')'Found new best volume: ',tvol,it,diag
+        rxyz(:,:)=txyz(:,:)
+        vol=tvol
+        dmax=max(alat1,alat2,alat3)
+        ! if box longest along x switch x and z
+        if (alat1 == dmax)  then
+           do  iat=1,nat
+              tx=rxyz(1,iat)
+              tz=rxyz(3,iat)
+
+              rxyz(1,iat)=tz
+              rxyz(3,iat)=tx
+           enddo
+           ! if box longest along y switch y and z
+        else if (alat2 == dmax)  then
+           do  iat=1,nat
+              ty=rxyz(1,iat) ; tz=rxyz(3,iat)
+              rxyz(1,iat)=tz ; rxyz(3,iat)=ty
+           enddo
+        endif
+     endif
+  end do loop_rotations
+
+  i_all=-product(shape(txyz))*kind(txyz)
+  deallocate(txyz,stat=i_stat)
+  call memocc(i_stat,i_all,'txyz','optimise_volume')
+end subroutine optimise_volume
+
