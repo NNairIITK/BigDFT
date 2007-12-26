@@ -13,9 +13,7 @@ program BigDFT
   ! For parallel MPI execution set parallel=.true., for serial parallel=.false.
   ! this statement wil be changed by using the MPIfake.f90 file
   include 'parameters.h'
-  logical :: output_wf,output_grid,calc_tail
   character(len=20) :: units
-  character(len=80) :: line
   integer :: iproc,nproc,nat,ntypes,n1,n2,n3,iat,ityp,j,i_stat,i_all,ierr,infocode
   integer :: ncount_cluster
   integer :: norb,norbp

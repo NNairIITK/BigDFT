@@ -265,13 +265,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   call system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
        alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
 
-  !save the new atomic positions in the rxyz_old array
-  do iat=1,nat
-     rxyz_old(1,iat)=rxyz(1,iat)
-     rxyz_old(2,iat)=rxyz(2,iat)
-     rxyz_old(3,iat)=rxyz(3,iat)
-  enddo
-
   !memory estimation
   if (iproc==0) then
      call MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
@@ -450,6 +443,13 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
      stop
 
   end if
+
+  !save the new atomic positions in the rxyz_old array
+  do iat=1,nat
+     rxyz_old(1,iat)=rxyz(1,iat)
+     rxyz_old(2,iat)=rxyz(2,iat)
+     rxyz_old(3,iat)=rxyz(3,iat)
+  enddo
 
   !no need of using nzatom array, semicores useful only for the input guess
   i_all=-product(shape(nzatom))*kind(nzatom)
