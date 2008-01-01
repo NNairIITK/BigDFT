@@ -134,17 +134,18 @@ subroutine print_input_parameters(in)
 end subroutine print_input_parameters
 
 ! read atomic positions
-subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,rxyz)
+subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,lfrztyp,rxyz)
   implicit none
   character(len=20), intent(in) :: units
   integer, intent(in) :: iproc,ifile,nat
   integer, intent(out) :: ntypes
   character(len=20), dimension(100), intent(out) :: atomnames
+  logical, dimension(nat), intent(out) :: lfrztyp
   integer, dimension(nat), intent(out) :: iatype
   real(kind=8), dimension(3,nat), intent(out) :: rxyz
   !local variables
+  character(len=1) :: suffix
   character(len=2) :: symbol
-  character(len=3) :: suffix
   character(len=20) :: tatonam
   character(len=100) :: line
   integer :: nateq,iat,jat,ityp,i,ierror,ierrsfx
@@ -153,6 +154,10 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,r
   real(kind=4) :: rx,ry,rz
 
   if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',nat
+
+  !this array is useful for frozen atoms
+  !no atom is frozen by default
+  lfrztyp(:)=.false.
 
   !read from positions of .xyz format, but accepts also the old .ascii format
   read(ifile,'(a100)')line
@@ -167,11 +172,21 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,r
         read(ifile,'(a100)')line 
         read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,suffix
         if (ierrsfx ==0) then
-           tatonam=trim(symbol)//'_'//trim(suffix)
+           !tatonam=trim(symbol)//'_'//trim(suffix)
+           if (suffix == 'f') then
+              !the atom is considered as blocked
+              lfrztyp(iat)=.true.
+           else
+              if (iproc == 0) then
+                 print *,suffix
+                 write(*,'(1x,a,i0,a)')'ERROR in input file for atom number ',iat,': the only value accepted in 4th column is "f"'
+                 stop
+              end if
+           end if
         else
            read(line,*)symbol,rx,ry,rz
-           tatonam=trim(symbol)
         end if
+        tatonam=trim(symbol)
      end if
      rxyz(1,iat)=real(rx,kind=8)
      rxyz(2,iat)=real(ry,kind=8)
@@ -236,6 +251,13 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,r
      if (iproc.eq.0) &
           write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ',trim(atomnames(ityp))
   enddo
+
+  do iat=1,nat
+     if (iproc.eq.0 .and. lfrztyp(iat)) &
+          write(*,'(1x,a,i0,a,a)') 'FIXED ATOM: N.',iat,', Name: ',trim(atomnames(iatype(iat)))
+  enddo
+
+  !print 
 
 end subroutine read_atomic_positions
 
