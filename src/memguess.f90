@@ -130,7 +130,7 @@ program memguess
   allocate(iasctype(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(iasctype))*kind(iasctype),'iasctype','memguess')
 
-  call read_system_variables(0,nproc,nat,ntypes,in%nspin,in%ncharge,in%mpol,in%hgrid,&
+  call read_system_variables(0,nproc,nat,ntypes,in%nspin,in%ncharge,in%mpol,in%ixc,in%hgrid,&
        atomnames,iatype,psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,&
        norb,norbu,norbd,norbp,iunit)
 

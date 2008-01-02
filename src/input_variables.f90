@@ -254,7 +254,7 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,l
 
   do iat=1,nat
      if (iproc.eq.0 .and. lfrztyp(iat)) &
-          write(*,'(1x,a,i0,a,a)') 'FIXED ATOM: N.',iat,', Name: ',trim(atomnames(iatype(iat)))
+          write(*,'(1x,a,i0,a,a)') 'FIXED Atom N.:',iat,', Name: ',trim(atomnames(iatype(iat)))
   enddo
 
   !print 
@@ -392,10 +392,10 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spina
 
 end subroutine input_occup
 
-subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,hgrid,atomnames,iatype,&
+subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,hgrid,atomnames,iatype,&
      psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
   implicit none
-  integer, intent(in) :: iproc,nproc,nat,ntypes,nspin,ncharge,mpol
+  integer, intent(in) :: iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc
   real(kind=8), intent(in) :: hgrid
   character(len=20), dimension(ntypes), intent(in) :: atomnames
   integer, dimension(nat), intent(in) :: iatype
@@ -408,7 +408,7 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,hgrid
   logical :: exists
   character(len=2) :: symbol
   character(len=27) :: filename
-  integer :: i,j,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all
+  integer :: i,j,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp
   real(kind=8) :: rcov,rprb,ehomo,radfine,tt,minrad
   integer, dimension(:,:), allocatable :: neleconf
 
@@ -432,7 +432,13 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,hgrid
      end if
      read(11,*)
      read(11,*) nzatom(ityp),nelpsp(ityp)
-     read(11,*) npspcode(ityp)
+     read(11,*) npspcode(ityp),ixcpsp
+     !control if the PSP is calculated with the same XC value
+     if (ixcpsp /= ixc .and. iproc==0) then
+        write(*,'(1x,a)')        'WARNING: The pseudopotential file "'//trim(filename)//'"'
+        write(*,'(1x,a,i0,a,i0)')'         contains a PSP generated with an XC id=',&
+             ixcpsp,' while for this run ixc=',ixc
+     end if
      psppar(:,:,ityp)=0.d0
      if (npspcode(ityp) == 2) then !GTH case
         read(11,*) (psppar(0,j,ityp),j=0,4)
