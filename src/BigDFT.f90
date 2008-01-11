@@ -13,9 +13,7 @@ program BigDFT
   ! For parallel MPI execution set parallel=.true., for serial parallel=.false.
   ! this statement wil be changed by using the MPIfake.f90 file
   include 'parameters.h'
-  logical :: output_wf,output_grid,calc_tail
   character(len=20) :: units
-  character(len=80) :: line
   integer :: iproc,nproc,nat,ntypes,n1,n2,n3,iat,ityp,j,i_stat,i_all,ierr,infocode
   integer :: ncount_cluster
   integer :: norb,norbp
@@ -25,7 +23,6 @@ program BigDFT
   type(wavefunctions_descriptors) :: wfd
 
   logical, dimension(:), allocatable :: lfrztyp
-  character(len=6), dimension(:), allocatable :: frzsymb
   character(len=20), dimension(:), allocatable :: atomnames
   ! atomic types
   integer, dimension(:), allocatable :: iatype
@@ -81,59 +78,19 @@ program BigDFT
   call memocc(i_stat,product(shape(fxyz))*kind(fxyz),'fxyz','BigDFT')
   allocate(atomnames(100),stat=i_stat) 
   call memocc(i_stat,product(shape(atomnames))*kind(atomnames),'atomnames','BigDFT')
+  allocate(lfrztyp(nat),stat=i_stat)
+  call memocc(i_stat,product(shape(lfrztyp))*kind(lfrztyp),'lfrztyp','BigDFT')
 
   ! read atomic positions
-  call read_atomic_positions(iproc,99,units,nat,ntypes,iatype,atomnames,rxyz)
+  call read_atomic_positions(iproc,99,units,nat,ntypes,iatype,atomnames,lfrztyp,rxyz)
 
   close(99)
 
   !new way of reading the input variables, use structures
   call read_input_variables(iproc,inputs)
  
-  !this array is useful for frozen atoms
-  !we should modify the way in which they must be entrered
-  allocate(lfrztyp(ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(lfrztyp))*kind(lfrztyp),'lfrztyp','BigDFT')
-  lfrztyp(:)=.false.
-
-!!$  !  Read the first line of "input.dat"
-!!$  open(unit=1,file='input.dat',status='old')
-!!$  !Only the first line for the main routine (the program)
-!!$  ! ngeostep Number of steps of geometry optimisation (default 500)
-!!$  ! ampl     Amplitude for random displacement away from input file geometry 
-!!$  ! (usually equilibrium geom.)
-!!$  ! betax    Geometry optimisation
-!!$  read(1,'(a80)')line
-!!$  close(unit=1)
-!!$  
-!!$  allocate(lfrztyp(ntypes),stat=i_stat)
-!!$  call memocc(i_stat,product(shape(lfrztyp))*kind(lfrztyp),'lfrztyp','BigDFT')
-!!$
-!!$  
-!!$  read(line,*,iostat=ierror)ngeostep,ampl,betax,nfrztyp
-!!$  if (ierror /= 0) then
-!!$     read(line,*)ngeostep,ampl,betax
-!!$     lfrztyp(:)=.false.
-!!$  else
-!!$     allocate(frzsymb(nfrztyp),stat=i_stat)
-!!$     call memocc(i_stat,product(shape(frzsymb))*kind(frzsymb),'frzsymb','BigDFT')
-!!$     read(line,*,iostat=ierror)ngeostep,ampl,betax,nfrztyp,(frzsymb(i),i=1,nfrztyp)
-!!$     lfrztyp(:)=.false.
-!!$     do ityp=1,nfrztyp
-!!$        seek_frozen: do jtyp=1,ntypes
-!!$           if (trim(frzsymb(ityp))==trim(atomnames(jtyp))) then
-!!$              lfrztyp(jtyp)=.true.
-!!$              exit seek_frozen
-!!$           end if
-!!$        end do seek_frozen
-!!$     end do
-!!$     i_all=-product(shape(frzsymb))*kind(frzsymb)
-!!$     deallocate(frzsymb,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'frzsymb','BigDFT')
-!!$  end if
-
   do iat=1,nat
-     if (.not. lfrztyp(iatype(iat))) then
+     if (.not. lfrztyp(iat)) then
         call random_number(tt)
         rxyz(1,iat)=rxyz(1,iat)+inputs%randdis*tt
         call random_number(tt)
@@ -179,7 +136,6 @@ program BigDFT
   endif
 
   !deallocations
-  !the lfrztyp must be restored in the same way as before
   i_all=-product(shape(lfrztyp))*kind(lfrztyp)
   deallocate(lfrztyp,stat=i_stat)
   call memocc(i_stat,i_all,'lfrztyp','BigDFT')

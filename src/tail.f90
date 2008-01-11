@@ -169,27 +169,6 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   ! coarse grid quantities
   call fill_logrid(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,nat,ntypes,iatype,txyz, & 
        radii_cf(1,1),crmult,hgrid,logrid_c)
-  if (iproc.eq.0 .and. output_grid) then
-     write(*,'(1x,a)')&
-          'Writing the file describing the new atomic positions of the effective system'
-     open(unit=22,file='grid_tail.xyz',status='unknown')
-     write(22,*) nat
-     !write(22,*) alatb1,' 0. ',alatb2
-     !write(22,*) ' 0. ',' 0. ',alatb3
-     write(22,*)'complete grid used for the estimation of the finite-size corrections'
-     do iat=1,nat
-        write(22,'(a8,1x,3(1x,e12.5))') atomnames(iatype(iat)),txyz(1,iat),txyz(2,iat),txyz(3,iat)
-     end do
-     do i3=0,nb3
-        do i2=0,nb2
-           do i1=0,nb1
-              if (logrid_c(i1,i2,i3)) then
-                 write(22,'(a8,1x,3(1x,e12.5))')'  g ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
-              end if
-           enddo
-        enddo
-     end do
-  endif
   call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,nvctrb_c)
 
   if (iproc.eq.0) then
@@ -202,18 +181,6 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   ! fine grid quantities
   call fill_logrid(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,0,nat,ntypes,iatype,txyz, & 
        radii_cf(1,2),frmult,hgrid,logrid_f)
-  if (iproc.eq.0 .and. output_grid) then
-     do i3=0,nb3 
-        do i2=0,nb2 
-           do i1=0,nb1
-              if (logrid_f(i1,i2,i3)) then
-                 write(22,'(a8,1x,3(1x,e12.5))')'  G ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
-              end if
-           enddo
-        enddo
-     enddo
-     close(22)
-  endif
   call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
   if (iproc.eq.0) then
      write(*,'(2(1x,a,i10))') &
@@ -221,6 +188,38 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
      !write(*,'(1x,a,2(1x,i10))') 'BIG: orbitals have fine   segment, elements',nsegb_f,7*nvctrb_f
   end if
   call make_bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
+
+! Create the file grid.xyz to visualize the grid of functions
+  if (iproc ==0 .and. output_grid) then
+     write(*,'(1x,a)')&
+          'Writing the file describing the new atomic positions of the effective system'
+     open(unit=22,file='grid_tail.xyz',status='unknown')
+     write(22,*) nvctrb_c+nvctrb_f,' atomic' 
+     write(22,*)'complete simulation grid for the tail correction'
+     do iat=1,nat
+        write(22,'(a6,2x,3(1x,e12.5),3x)') &
+             trim(atomnames(iatype(iat))),txyz(1,iat),txyz(2,iat),txyz(3,iat)
+     enddo
+     do i3=0,nb3  
+        do i2=0,nb2  
+           do i1=0,nb1
+              if (logrid_c(i1,i2,i3))&
+                   write(22,'(a4,2x,3(1x,e10.3))') &
+                   '  g ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
+           enddo
+        enddo
+     end do
+     do i3=0,nb3 
+        do i2=0,nb2 
+           do i1=0,nb1
+              if (logrid_f(i1,i2,i3))&
+                   write(22,'(a4,2x,3(1x,e10.3))') &
+                   '  G ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
+           enddo
+        enddo
+     enddo
+     close(22)
+  endif
 
   call make_all_ib(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
        ibbxy_c,ibbzzx_c,ibbyyzz_c,ibbxy_f,ibbxy_ff,ibbzzx_f,ibbyyzz_f,&

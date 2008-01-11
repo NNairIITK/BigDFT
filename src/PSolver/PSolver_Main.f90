@@ -103,9 +103,9 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !local variables
   integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
-  integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4
+  integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4,ind4sh
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,i4,ind2nd
-  integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim
+  integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim,ispin,istden,istglo
   real(kind=8) :: ehartreeLOC,eexcuLOC,vexcuLOC
   real(kind=8) :: scal,newoffset,correction,pot,factor
   real(kind=8), dimension(:,:,:), allocatable :: zf
@@ -311,7 +311,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   
   !the value of the shift depends on the distributed i/o or not
   if (datacode=='G') then
-     i3xcsh=istart
+     i3xcsh=istart !beware on the fact that this is not what represents its name!!!
      is_step=n01*n02*n03
   else if (datacode=='D') then
      i3xcsh=nxcl+nwbl-1
@@ -368,6 +368,11 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         end do
      end if
   else
+     if (datacode == 'G') then
+        ind4sh=n01*n02*i3xcsh
+     else
+        ind4sh=0
+     end if
      do j2=1,nxc
         i2=j2+i3xcsh
         ind3=(i2-1)*n01*n02
@@ -375,7 +380,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
            ind2=(i3-1)*n01+ind3
            do i1=1,m1
               ind=i1+(i3-1)*n01+(i2-1)*n01*n02
-              ind4=i1+(i3-1)*n01+(j2-1)*n01*n02
+              ind4=i1+(i3-1)*n01+(j2-1)*n01*n02+ind4sh
               pot=zf(i1,i3,j2)+correction
               ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
               rhopot(ind)=pot
@@ -392,7 +397,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               ind2=(i3-1)*n01+ind3
               do i1=1,m1
                  ind=i1+(i3-1)*n01+(i2-1)*n01*n02+is_step
-                 ind4=i1+(i3-1)*n01+(j2-1)*n01*n02+is_step
+                 ind4=i1+(i3-1)*n01+(j2-1)*n01*n02+is_step+ind4sh
                  pot=zf(i1,i3,j2)+correction
                  ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
                  pot_ion(ind4)=zfionxc(i1,i3,j2,2)
@@ -402,64 +407,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      end if
   end if
   ehartreeLOC=ehartreeLOC*factor
-
-
-
-!!$  ehartreeLOCt=0.0d0
-!!$  i_jmp=0
-!!$  do ispin=1,nspin
-!!$     ehartreeLOC=0.d0
-!!$     if(ispin==2) i_jmp=is_step
-!!$     if (ixc==0) then
-!!$        do j2=1,nxc
-!!$           i2=j2+i3xcsh
-!!$           ind3=(i2-1)*n01*n02
-!!$           do i3=1,m3
-!!$              ind2=(i3-1)*n01+ind3
-!!$              do i1=1,m1
-!!$                 ind=i1+ind2+i_jmp
-!!$                 pot=zf(i1,i3,j2)+correction
-!!$                 ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-!!$                 rhopot(ind)=pot
-!!$              end do
-!!$           end do
-!!$        end do
-!!$        ehartreeLOC=ehartreeLOC*factor
-!!$     else if (sumpion) then
-!!$        do j2=1,nxc
-!!$           i2=j2+i3xcsh
-!!$           ind3=(i2-1)*n01*n02
-!!$           do i3=1,m3
-!!$              ind2=(i3-1)*n01+ind3
-!!$              do i1=1,m1
-!!$                 ind=i1+ind2+i_jmp
-!!$                 pot=zf(i1,i3,j2)+correction
-!!$                 ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-!!$                 rhopot(ind)=pot+zfionxc(i1,i3,j2,ispin)
-!!$              end do
-!!$           end do
-!!$        end do
-!!$        ehartreeLOC=ehartreeLOC*factor
-!!$     else
-!!$        do j2=1,nxc
-!!$           i2=j2+i3xcsh
-!!$           ind3=(i2-1)*n01*n02
-!!$           do i3=1,m3
-!!$              ind2=(i3-1)*n01+ind3
-!!$              do i1=1,m1
-!!$                 ind=i1+ind2+i_jmp
-!!$                 ind4=i1+ind2
-!!$                 pot=zf(i1,i3,j2)+correction
-!!$                 ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-!!$                 rhopot(ind)=pot
-!!$                 pot_ion(ind4)=pot_ion(ind4)+zfionxc(i1,i3,j2,ispin)
-!!$              end do
-!!$           end do
-!!$        end do
-!!$        ehartreeLOC=ehartreeLOC*factor
-!!$     end if
-!!$     ehartreeLOCt=ehartreeLOCt+ehartreeLOC
-!!$  end do
   
   i_all=-product(shape(zf))*kind(zf)
   deallocate(zf,stat=i_stat)
@@ -511,20 +458,28 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
         call timing(iproc,'PSolv_comput  ','OF')
         call timing(iproc,'PSolv_commun  ','ON')
-        call MPI_ALLGATHERV(rhopot(1+n01*n02*istart),gather_arr(iproc,1),MPI_double_precision,&
-             rhopot(1),gather_arr(0,1),gather_arr(0,2),MPI_double_precision,MPI_COMM_WORLD,ierr)
-        !second spin
-        if(nspin==2) then
-           call MPI_ALLGATHERV(rhopot(1+n01*n02*istart+n01*n02*n03),gather_arr(iproc,1),&
-                MPI_double_precision,rhopot(n01*n02*n03+1),gather_arr(0,1),gather_arr(0,2),&
-                MPI_double_precision,MPI_COMM_WORLD,ierr)
-        end if
-        !if it is the case gather also the results of the XC potential
-        if (ixc /=0 .and. .not. sumpion) then
-           call MPI_ALLGATHERV(pot_ion(1+n01*n02*istart),gather_arr(iproc,1),&
-                MPI_double_precision,pot_ion,gather_arr(0,1),gather_arr(0,2),&
-                MPI_double_precision,MPI_COMM_WORLD,ierr)
-        end if
+        istden=1+n01*n02*istart
+        istglo=1
+        do ispin=1,nspin
+           if (ispin==2) then
+              istden=istden+n01*n02*n03
+              istglo=istglo+n01*n02*n03
+           end if
+           call MPI_ALLGATHERV(rhopot(istden),gather_arr(iproc,1),MPI_double_precision,&
+                rhopot(istglo),gather_arr(0,1),gather_arr(0,2),MPI_double_precision,MPI_COMM_WORLD,ierr)
+           !if it is the case gather also the results of the XC potential
+           if (ixc /=0 .and. .not. sumpion) then
+              call MPI_ALLGATHERV(pot_ion(istden),gather_arr(iproc,1),&
+                   MPI_double_precision,pot_ion(istglo),gather_arr(0,1),gather_arr(0,2),&
+                   MPI_double_precision,MPI_COMM_WORLD,ierr)
+           end if
+           !second spin
+!!$        if(nspin==2) then
+!!$           call MPI_ALLGATHERV(rhopot(1+n01*n02*istart+n01*n02*n03),gather_arr(iproc,1),&
+!!$                MPI_double_precision,rhopot(n01*n02*n03+1),gather_arr(0,1),gather_arr(0,2),&
+!!$                MPI_double_precision,MPI_COMM_WORLD,ierr)
+!!$  
+        end do
         call timing(iproc,'PSolv_commun  ','OF')
         call timing(iproc,'PSolv_comput  ','ON')
 

@@ -17,6 +17,7 @@
   real(kind=8), dimension(:,:), pointer :: psi
   !local variables
   integer :: i_stat,i_all,ierr,inputPsiId_orig
+  logical, dimension(:), allocatable :: lfrztyp
   !temporary interface
   interface
      subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
@@ -69,7 +70,15 @@
         if (iproc.eq.0) then
            write(*,'(1x,a)')'Convergence error, cannot proceed.'
            write(*,'(1x,a)')' writing positions in file posout_999.xyz then exiting'
-           call wtposout(999,energy,nat,rxyz,atomnames,iatype)
+
+           allocate(lfrztyp(nat),stat=i_stat)
+           call memocc(i_stat,product(shape(lfrztyp))*kind(lfrztyp),'lfrztyp','call_cluster')
+           lfrztyp(:)=.false.
+           call wtposout(999,energy,nat,rxyz,atomnames,lfrztyp,iatype)
+           i_all=-product(shape(lfrztyp))*kind(lfrztyp)
+           deallocate(lfrztyp,stat=i_stat)
+           call memocc(i_stat,i_all,'lfrztyp','call_cluster')
+
         end if
 
         i_all=-product(shape(psi))*kind(psi)
@@ -249,7 +258,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   allocate(iasctype(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(iasctype))*kind(iasctype),'iasctype','cluster')
 
-  call read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,hgrid,atomnames,iatype,&
+  call read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,hgrid,atomnames,iatype,&
        psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
 
   allocate(occup(norb),stat=i_stat)
@@ -264,13 +273,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   ! then calculate the size in units of the grid space
   call system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
        alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
-
-  !save the new atomic positions in the rxyz_old array
-  do iat=1,nat
-     rxyz_old(1,iat)=rxyz(1,iat)
-     rxyz_old(2,iat)=rxyz(2,iat)
-     rxyz_old(3,iat)=rxyz(3,iat)
-  enddo
 
   !memory estimation
   if (iproc==0) then
@@ -451,6 +453,13 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
 
   end if
 
+  !save the new atomic positions in the rxyz_old array
+  do iat=1,nat
+     rxyz_old(1,iat)=rxyz(1,iat)
+     rxyz_old(2,iat)=rxyz(2,iat)
+     rxyz_old(3,iat)=rxyz(3,iat)
+  enddo
+
   !no need of using nzatom array, semicores useful only for the input guess
   i_all=-product(shape(nzatom))*kind(nzatom)
   deallocate(nzatom,stat=i_stat)
@@ -548,7 +557,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
      endif
 
      if (inputPsiId == 0) then
-        if (gnrm > 4.d0 .or. (norbu==norbd .and. gnrm > 10.d0)) then
+        if ((gnrm > 4.d0 .and. norbu/=norbd) .or. (norbu==norbd .and. gnrm > 10.d0)) then
            if (iproc == 0) then
               write(*,'(1x,a)')&
                    'Error: the norm of the residue is too large also with input wavefunctions.'

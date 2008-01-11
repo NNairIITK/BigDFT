@@ -29,8 +29,8 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   occupat(1:5,1:ntypes)= 0.d0
 
   ! Test if the file 'inguess.dat exists (no more used)
-  ! inquire(file='inguess.dat',exist=exists)
-  exists=.false.
+  inquire(file='inguess.dat',exist=exists)
+  !exists=.false.
   if (exists) then
      open(unit=24,file='inguess.dat',form='formatted',action='read',status='old')
   end if
@@ -205,11 +205,9 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
   real(kind=8) :: fac_arr(nterm_max)
   integer :: iorb, jorb, iat, ity, ipsp, i, ictot, inl, l, m, nctot, nterm
   real(kind=8) :: rx, ry, rz, ek, scpr
-  logical, dimension(:), allocatable :: semicore
+  logical, dimension(4) :: semicore
   real(kind=8), dimension(:), allocatable :: psiatn
 
-  allocate(semicore(4),stat=i_stat)
-  call memocc(i_stat,product(shape(semicore))*kind(semicore),'semicore','createatomicorbitals')
   allocate(psiatn(ngx),stat=i_stat)
   call memocc(i_stat,product(shape(psiatn))*kind(psiatn),'psiatn','createatomicorbitals')
   
@@ -306,9 +304,6 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
   if (iorbv /= norbe) stop 'createAtomic orbitals: error (iorbv)'
   if (iatsc /= natsc) stop 'createAtomic orbitals: error (iatsc)'
 
-  i_all=-product(shape(semicore))*kind(semicore)
-  deallocate(semicore,stat=i_stat)
-  call memocc(i_stat,i_all,'semicore','createatomicorbitals')
   i_all=-product(shape(psiatn))*kind(psiatn)
   deallocate(psiatn,stat=i_stat)
   call memocc(i_stat,i_all,'psiatn','createatomicorbitals')
@@ -500,11 +495,14 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   character(len=2) :: symbol
   integer, parameter :: lmax=3,n_int=100,noccmax=2
   real(kind=8), parameter :: fact=4.d0
-  real(kind=8), dimension(:), allocatable :: xp,gpot,alps,ott
-  real(kind=8), dimension(:,:), allocatable :: aeval,chrg,res,vh,hsep,occup,ofdcoef
+  integer, dimension(6,4) :: neleconf
+  real(kind=8), dimension(3) :: gpot
+  real(kind=8), dimension(6) :: ott
+  real(kind=8), dimension(noccmax,lmax+1) :: occup,aeval,chrg,res
+  real(kind=8), dimension(:), allocatable :: xp,alps
+  real(kind=8), dimension(:,:), allocatable :: vh,hsep,ofdcoef
   real(kind=8), dimension(:,:,:), allocatable :: psi
   real(kind=8), dimension(:,:,:,:), allocatable :: rmt
-  integer, dimension(:,:), allocatable :: neleconf
   logical :: exists
   integer :: lpx,ncount,nsccode
   integer :: l,i,j,iocc,il,lwrite,i_all,i_stat
@@ -521,18 +519,10 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
      end if
   end do lpx_determination
 
-  allocate(gpot(3),stat=i_stat)
-  call memocc(i_stat,product(shape(gpot))*kind(gpot),'gpot','iguess_generator')
   allocate(alps(lpx+1),stat=i_stat)
   call memocc(i_stat,product(shape(alps))*kind(alps),'alps','iguess_generator')
   allocate(hsep(6,lpx+1),stat=i_stat)
   call memocc(i_stat,product(shape(hsep))*kind(hsep),'hsep','iguess_generator')
-  allocate(ott(6),stat=i_stat)
-  call memocc(i_stat,product(shape(ott))*kind(ott),'ott','iguess_generator')
-  allocate(occup(noccmax,lmax+1),stat=i_stat)
-  call memocc(i_stat,product(shape(occup))*kind(occup),'occup','iguess_generator')
-  allocate(neleconf(6,4),stat=i_stat)
-  call memocc(i_stat,product(shape(neleconf))*kind(neleconf),'neleconf','iguess_generator')
 
   !assignation of radii and coefficients of the local part
   alpz=psppar(0,0)
@@ -611,12 +601,6 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   end do
 
   !allocate arrays for the gatom routine
-  allocate(aeval(noccmax,lmax+1),stat=i_stat)
-  call memocc(i_stat,product(shape(aeval))*kind(aeval),'aeval','iguess_generator')
-  allocate(chrg(noccmax,lmax+1),stat=i_stat)
-  call memocc(i_stat,product(shape(chrg))*kind(chrg),'chrg','iguess_generator')
-  allocate(res(noccmax,lmax+1),stat=i_stat)
-  call memocc(i_stat,product(shape(res))*kind(res),'res','iguess_generator')
   allocate(vh(4*(ng+1)**2,4*(ng+1)**2),stat=i_stat)
   call memocc(i_stat,product(shape(vh))*kind(vh),'vh','iguess_generator')
   allocate(psi(0:ng,noccmax,lmax+1),stat=i_stat)
@@ -675,15 +659,6 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
      end do
   end do
 
-  i_all=-product(shape(aeval))*kind(aeval)
-  deallocate(aeval,stat=i_stat)
-  call memocc(i_stat,i_all,'aeval','iguess_generator')
-  i_all=-product(shape(chrg))*kind(chrg)
-  deallocate(chrg,stat=i_stat)
-  call memocc(i_stat,i_all,'chrg','iguess_generator')
-  i_all=-product(shape(res))*kind(res)
-  deallocate(res,stat=i_stat)
-  call memocc(i_stat,i_all,'res','iguess_generator')
   i_all=-product(shape(vh))*kind(vh)
   deallocate(vh,stat=i_stat)
   call memocc(i_stat,i_all,'vh','iguess_generator')
@@ -696,24 +671,12 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   i_all=-product(shape(rmt))*kind(rmt)
   deallocate(rmt,stat=i_stat)
   call memocc(i_stat,i_all,'rmt','iguess_generator')
-  i_all=-product(shape(gpot))*kind(gpot)
-  deallocate(gpot,stat=i_stat)
-  call memocc(i_stat,i_all,'gpot','iguess_generator')
   i_all=-product(shape(hsep))*kind(hsep)
   deallocate(hsep,stat=i_stat)
   call memocc(i_stat,i_all,'hsep','iguess_generator')
   i_all=-product(shape(alps))*kind(alps)
   deallocate(alps,stat=i_stat)
   call memocc(i_stat,i_all,'alps','iguess_generator')
-  i_all=-product(shape(ott))*kind(ott)
-  deallocate(ott,stat=i_stat)
-  call memocc(i_stat,i_all,'ott','iguess_generator')
-  i_all=-product(shape(occup))*kind(occup)
-  deallocate(occup,stat=i_stat)
-  call memocc(i_stat,i_all,'occup','iguess_generator')
-  i_all=-product(shape(neleconf))*kind(neleconf)
-  deallocate(neleconf,stat=i_stat)
-  call memocc(i_stat,i_all,'neleconf','iguess_generator')
 
 END SUBROUTINE iguess_generator
 

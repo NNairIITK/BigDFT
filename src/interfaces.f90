@@ -53,10 +53,10 @@ interface
      real(kind=8), dimension(:,:), pointer :: psi,psi_old
    end subroutine copy_old_wavefunctions
 
-   subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,hgrid,atomnames,iatype,&
+   subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,hgrid,atomnames,iatype,&
         psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
      implicit none
-     integer, intent(in) :: iproc,nproc,nat,ntypes,nspin,ncharge,mpol
+     integer, intent(in) :: iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc
      real(kind=8), intent(in) :: hgrid
      character(len=20), dimension(ntypes), intent(in) :: atomnames
      integer, dimension(nat), intent(in) :: iatype

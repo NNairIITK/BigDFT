@@ -36,6 +36,7 @@ program memguess
   real(kind=8), dimension(:,:,:), allocatable :: psppar, psiat
   real(kind=8), dimension(:,:), allocatable :: xp, occupat
   integer, dimension(:,:), allocatable :: nl
+  logical, dimension(:), allocatable :: lfrztyp
   logical, dimension(:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng,norbsc_arr
   real(kind=8), dimension(:), allocatable :: occup,spinar
@@ -99,9 +100,11 @@ program memguess
   call memocc(i_stat,product(shape(iatype))*kind(iatype),'iatype','memguess')
   allocate(atomnames(100),stat=i_stat) 
   call memocc(i_stat,product(shape(atomnames))*kind(atomnames),'atomnames','memguess')
+  allocate(lfrztyp(nat),stat=i_stat)
+  call memocc(i_stat,product(shape(lfrztyp))*kind(lfrztyp),'lfrztyp','memguess')
 
   !read atomic positions
-  call read_atomic_positions(0,99,units,nat,ntypes,iatype,atomnames,rxyz)
+  call read_atomic_positions(0,99,units,nat,ntypes,iatype,atomnames,lfrztyp,rxyz)
 
   close(99)
 
@@ -127,8 +130,9 @@ program memguess
   allocate(iasctype(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(iasctype))*kind(iasctype),'iasctype','memguess')
 
-  call read_system_variables(0,nproc,nat,ntypes,in%nspin,in%ncharge,in%mpol,in%hgrid,atomnames,iatype,&
-       psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
+  call read_system_variables(0,nproc,nat,ntypes,in%nspin,in%ncharge,in%mpol,in%ixc,in%hgrid,&
+       atomnames,iatype,psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,&
+       norb,norbu,norbd,norbp,iunit)
 
 ! Allocations for the occupation numbers
   allocate(occup(norb),stat=i_stat)
@@ -218,6 +222,9 @@ program memguess
 
   end if
 
+  i_all=-product(shape(lfrztyp))*kind(lfrztyp)
+  deallocate(lfrztyp,stat=i_stat)
+  call memocc(i_stat,i_all,'lfrztyp','BigDFT')
   i_all=-product(shape(psppar))*kind(psppar)
   deallocate(psppar,stat=i_stat)
   call memocc(i_stat,i_all,'psppar','memguess')

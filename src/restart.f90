@@ -84,7 +84,7 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
 
   implicit real(kind=8) (a-h,o-z)
   type(wavefunctions_descriptors), intent(in) :: wfd,wfd_old
-  dimension :: rxyz(3,nat), rxyz_old(3,nat), center(3), center_old(3)
+  dimension :: rxyz(3,nat), rxyz_old(3,nat)
   dimension :: psi_old(wfd_old%nvctr_c + 7 * wfd_old%nvctr_f, norbp), &
        psi(wfd%nvctr_c + 7 * wfd%nvctr_f, norbp)
   logical :: reformat
@@ -94,38 +94,21 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
   allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8),stat=i_stat)
   call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','reformatmywaves')
 
-  ! calculate center of molecule
-  c1=0.d0 
-  c2=0.d0 
-  c3=0.d0
+  tx=0.d0 ; ty=0.d0 ; tz=0.d0
   do iat=1,nat
-     c1=c1+rxyz(1,iat) 
-     c2=c2+rxyz(2,iat) 
-     c3=c3+rxyz(3,iat)
+  tx=tx+(rxyz(1,iat)-rxyz_old(1,iat))**2
+  ty=ty+(rxyz(2,iat)-rxyz_old(2,iat))**2
+  tz=tz+(rxyz(3,iat)-rxyz_old(3,iat))**2
   enddo
-  center(1)=c1/real(nat,kind=8) 
-  center(2)=c2/real(nat,kind=8)
-  center(3)=c3/real(nat,kind=8)
-
-  c1=0.d0 
-  c2=0.d0 
-  c3=0.d0
-  do iat=1,nat
-     c1=c1+rxyz_old(1,iat) 
-     c2=c2+rxyz_old(2,iat) 
-     c3=c3+rxyz_old(3,iat)
-  enddo
-  center_old(1)=c1/real(nat,kind=8) 
-  center_old(2)=c2/real(nat,kind=8) 
-  center_old(3)=c3/real(nat,kind=8)
+  displ=sqrt(tx+ty+tz)
+!  write(100+iproc,*) 'displacement',dis
+!  write(100+iproc,*) 'rxyz ',rxyz
+!  write(100+iproc,*) 'rxyz_old ',rxyz_old
 
   !reformatting criterion
   if (hgrid_old.eq. hgrid .and. wfd_old%nvctr_c.eq.wfd%nvctr_c .and. &
        wfd_old%nvctr_f .eq. wfd%nvctr_f .and.&
-       n1_old.eq.n1  .and. n2_old.eq.n2 .and. n3_old.eq.n3  .and.  &
-       abs(center(1)-center_old(1)).lt.1.d-3 .and. &
-       abs(center(2)-center_old(2)).lt.1.d-3 .and. &
-       abs(center(3)-center_old(3)).lt.1.d-3  ) then
+       n1_old.eq.n1  .and. n2_old.eq.n2 .and. n3_old.eq.n3  .and.  displ.lt.1.d-3  ) then
      reformat=.false.
      if (iproc==0) then
         write(*,'(1x,a)',advance='NO')&
@@ -151,18 +134,38 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
                 'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
         else
            write(*,"(4x,a,3(1pe19.12))") &
-                'molecule was shifted  ' , abs(center(1)-center_old(1)), & 
-                abs(center(2)-center_old(2)),abs(center(3)-center_old(3))
+                'molecule was shifted  ' , tx,ty,tz
         endif
            write(*,"(1x,a)",advance='NO')& 
                 'Reformatting...'
      end if
+!check
+!        write(100+iproc,'(1x,a)')&
+!         'The wavefunctions need reformatting beacuse:                                 '
+!        if (hgrid_old.ne.hgrid) then 
+!           write(100+iproc,"(4x,a,1pe20.12)") &
+!                '  hgrid_old >< hgrid  ',hgrid_old, hgrid
+!        else if (wfd_old%nvctr_c.ne.wfd%nvctr_c) then
+!           write(100+iproc,"(4x,a,2i8)") &
+!                'nvctr_c_old >< nvctr_c',wfd_old%nvctr_c,wfd%nvctr_c
+!        else if (wfd_old%nvctr_f.ne.wfd%nvctr_f)  then
+!           write(100+iproc,"(4x,a,2i8)") &
+!                'nvctr_f_old >< nvctr_f',wfd_old%nvctr_f,wfd%nvctr_f
+!        else if (n1_old.ne.n1  .or. n2_old.ne.n2 .or. n3_old.ne.n3 )  then  
+!           write(100+iproc,"(4x,a,6i5)") &
+!                'cell size has changed ',n1_old,n1  , n2_old,n2 , n3_old,n3
+!        else
+!           write(100+iproc,"(4x,a,3(1pe19.12))") &
+!                'molecule was shifted  ' , tx,ty,tz
+!        endif
+!checkend
   end if
 
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
      if (.not. reformat) then
+!write(100+iproc,*) 'no reformatting' 
 
         do j=1,wfd_old%nvctr_c
            psi(j,iorb-iproc*norbp)=psi_old(j, iorb - iproc * norbp)
@@ -223,9 +226,11 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
            enddo
         enddo
 
-        call reformatonewave(iproc, hgrid_old, &
-             & n1_old, n2_old, n3_old, center_old, psigold, hgrid, &
-             & wfd%nvctr_c, wfd%nvctr_f, n1, n2, n3, center, &
+!write(100+iproc,*) 'norm psigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold,1)
+
+        call reformatonewave(iproc, displ, hgrid_old, &
+             & n1_old, n2_old, n3_old, nat, rxyz_old, psigold, hgrid, &
+             & wfd%nvctr_c, wfd%nvctr_f, n1, n2, n3, rxyz, &
              & wfd%nseg_c, wfd%nseg_f, wfd%keyg, wfd%keyv, psifscf, & 
              & psi(1,iorb - iproc * norbp))
 
@@ -243,7 +248,7 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
 
 END SUBROUTINE reformatmywaves
 
-subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,  & 
+subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz_old,rxyz,  & 
      wfd,psi,eval)
   ! reads wavefunction from file and transforms it properly if hgrid or size of simulation cell have changed
 
@@ -254,7 +259,7 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,  &
   character(len=50) filename
   character(len=4) f4
   dimension psi(wfd%nvctr_c+7*wfd%nvctr_f,norbp)
-  dimension rxyz(3,nat),eval(norb),center(3)
+  dimension rxyz_old(3,nat),rxyz(3,nat),eval(norb)
   allocatable :: psifscf(:,:,:)
 
   call cpu_time(tr0)
@@ -263,19 +268,6 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,  &
   allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8),stat=i_stat)
   call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','readmywaves')
 
-  ! calculate center of molecule
-  c1=0.d0 
-  c2=0.d0 
-  c3=0.d0
-  do iat=1,nat
-     c1=c1+rxyz(1,iat) 
-     c2=c2+rxyz(2,iat) 
-     c3=c3+rxyz(3,iat)
-  enddo
-  center(1)=c1/real(nat,kind=8) 
-  center(2)=c2/real(nat,kind=8) 
-  center(3)=c3/real(nat,kind=8)
-
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
      write(f4,'(i4.4)') iorb
@@ -283,7 +275,7 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,  &
      open(unit=99,file=filename,status='unknown')
 
      call readonewave(99, .true., iorb,iproc,n1,n2,n3, &
-          & hgrid,center,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
+          & hgrid,nat,rxyz_old,rxyz,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
           psi(1,iorb-iproc*norbp),eval(iorb),psifscf)
      close(99)
   end do
@@ -307,18 +299,11 @@ subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,wfd,psi,eval)
   type(wavefunctions_descriptors), intent(in) :: wfd
   character(len=4) f4
   character(len=50) filename
-  dimension rxyz(3,nat),eval(norb),center(3)
+  dimension rxyz(3,nat),eval(norb)
   dimension psi(wfd%nvctr_c+7*wfd%nvctr_f,norbp)
 
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
-
-  ! calculate center of molecule
-  c1=0.d0 ; c2=0.d0 ; c3=0.d0
-  do iat=1,nat
-     c1=c1+rxyz(1,iat) ; c2=c2+rxyz(2,iat) ; c3=c3+rxyz(3,iat)
-  enddo
-  center(1)=c1/real(nat,kind=8) ; center(2)=c2/real(nat,kind=8) ; center(3)=c3/real(nat,kind=8)
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
@@ -327,7 +312,7 @@ subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,wfd,psi,eval)
      write(*,*) 'opening ',filename
      open(unit=99,file=filename,status='unknown')
 
-     call writeonewave(99, .true., iorb,n1,n2,n3,hgrid,center,  & 
+     call writeonewave(99, .true., iorb,n1,n2,n3,hgrid,nat,rxyz,  & 
           wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1)  & 
           ,wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
           psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),norb,eval)

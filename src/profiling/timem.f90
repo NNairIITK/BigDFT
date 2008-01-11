@@ -180,7 +180,7 @@ subroutine timing(iproc,category,action)
 
   else if (action.eq.'RE') then ! RESULT
      if (init.neqv..false.) then
-        print *, 'TIMING INITIALIZED BEFORE RESULTS'
+        print *, 'TIMING MUST BE INITIALIZED BEFORE RESULTS'
         stop 
      endif
      !   sum results over all processor
