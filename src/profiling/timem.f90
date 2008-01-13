@@ -134,14 +134,16 @@ subroutine timing(iproc,category,action)
   logical :: parallel,init
   integer, parameter :: ncat=22   ! define timimg categories
   integer :: i,ierr,ii,i_all,i_stat
-  integer :: istart,iend,count_rate,count_max,ielapsed
+  integer :: istart,iend,count_rate,count_max,ielapsed,ncounters,itime
   !cputime routine gives a real
   real :: total,total0,time,time0
   real(kind=8) :: pc,total_pc
+  character(len=10), dimension(ncat) :: pcnames !names of the partial counters, to be assigned
   integer, dimension(ncat+1) :: itsum
   real(kind=8), dimension(ncat+1) :: timesum
+  real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
   real(kind=8), dimension(:), allocatable :: timemax,timemin
-  save :: init,itsum,istart,timesum,total0,parallel
+  save :: init,itsum,istart,timesum,total0,parallel,pcnames,pctimes,ncounters
 
   character(len=14), dimension(ncat), parameter :: cats = (/ &
        'ReformatWaves '    ,  &  !  Reformatting of input waves
@@ -167,6 +169,9 @@ subroutine timing(iproc,category,action)
        'Forces        '    ,  &  !
        'Tail          '    /)    !
 
+  !first of all, read the time
+  call system_clock(itime,count_rate,count_max)
+
   ! write(*,*) 'ACTION=',action,'...','CATEGORY=',category,'...'
   if (action.eq.'IN') then  ! INIT
      !no need of using system clock for the total time (presumably more than a millisecond)
@@ -174,64 +179,19 @@ subroutine timing(iproc,category,action)
      do i=1,ncat
         itsum(i)=0
         timesum(i)=0.d0
+        pctimes(i)=0.d0
      enddo
      parallel=trim(category).eq.'parallel'
      init=.false.
+     ncounters=0
 
   else if (action.eq.'RE') then ! RESULT
      if (init.neqv..false.) then
-        print *, 'TIMING MUST BE INITIALIZED BEFORE RESULTS'
+        print *, 'TIMING IS INITIALIZED BEFORE RESULTS'
         stop 
      endif
-     !   sum results over all processor
-     !total elapsed time
-     call cpu_time(total)
-     total=total-total0
-     timesum(ncat+1)=real(total,kind=8)
 
-     !time for other categories
-     call system_clock(iend,count_rate,count_max)
-     do i=1,ncat
-        timesum(i)=timesum(i)+real(itsum(i),kind=8)/real(count_rate,kind=8)
-     end do
-
-     allocate(timemax(ncat+1),stat=i_stat)
-     call memocc(i_stat,product(shape(timemax))*kind(timemax),'timemax','timing')
-     allocate(timemin(ncat+1),stat=i_stat)
-     call memocc(i_stat,product(shape(timemin))*kind(timemin),'timemin','timing')
-
-     if (parallel) then 
-        call MPI_REDUCE(timesum,timemax,ncat+1,MPI_DOUBLE_PRECISION,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-        call MPI_REDUCE(timesum,timemin,ncat+1,MPI_DOUBLE_PRECISION,MPI_MIN,0,MPI_COMM_WORLD,ierr)
-     else
-        do i=1,ncat+1
-           timemax(i)=timesum(i)
-           timemin(i)=timesum(i)
-        enddo
-     endif
-     total=real(timemax(ncat+1),kind=4)
-
-     if (iproc.eq.0) then
-        open(unit=60,file='time.prc',status='unknown')
-        write(60,*) 'CATEGORY          min. TIME(sec)     max. TIME(sec)           PERCENT'
-        total_pc=0.d0
-        do i=1,ncat
-           pc=100.d0*timemax(i)/real(total,kind=8)
-           write(60,'(a14,2(10x,1pe9.2),10x,0pf8.1 )') cats(i),timemin(i),timemax(i),pc
-           total_pc=total_pc+pc
-        enddo
-        write(60,'(70("-"))')
-        write(60,'(a,10x,1pe9.2,6x,a,0pf5.1)') &
-             'Total CPU time',total,'Total categorized percent ',total_pc
-     endif
-
-     i_all=-product(shape(timemax))*kind(timemax)
-     deallocate(timemax,stat=i_stat)
-     call memocc(i_stat,i_all,'timemax','timing')
-     i_all=-product(shape(timemin))*kind(timemin)
-     deallocate(timemin,stat=i_stat)
-     call memocc(i_stat,i_all,'timemin','timing')
-
+     call sum_results(parallel,iproc,ncat,cats,total0,itsum,timesum)
 
   else
 
@@ -248,21 +208,19 @@ subroutine timing(iproc,category,action)
         stop 'TIMING CATEGORY NOT DEFINED'
      end if
 
-   
-
      if (action.eq.'ON') then  ! ON
         if (init.neqv..false.) then
            print *, cats(ii),': TIMING INITIALIZED BEFORE READ'
            stop 
         endif
-        call system_clock(istart)
+        istart=itime
         init=.true.
      else if (action.eq.'OF') then  ! OFF
         if (init.neqv..true.) then
            print *, cats(ii), 'not initialized'
            stop 
         endif
-        call system_clock(iend,count_rate,count_max)
+        iend=itime
         if (iend-istart < 0) then
            ielapsed=iend-istart+count_max
         else
@@ -282,6 +240,59 @@ subroutine timing(iproc,category,action)
   endif
 
 end subroutine timing
+
+subroutine sum_results(parallel,iproc,ncat,cats,total0,itsum,timesum)
+  implicit none
+  include 'mpif.h'
+  logical, intent(in) :: parallel
+  integer, intent(in) :: iproc,ncat
+  real, intent(in) :: total0
+  character(len=14), dimension(ncat), intent(in) :: cats
+  integer, dimension(ncat+1), intent(in) :: itsum
+  real(kind=8), dimension(ncat+1), intent(inout) :: timesum
+  !local variables
+  integer :: i,iend,count_rate,count_max,ierr
+  real :: total
+  real(kind=8) :: total_pc,pc
+  real(kind=8), dimension(ncat+1) :: timemax,timemin
+  !sum results over all processor
+  !total elapsed time
+  call cpu_time(total)
+  total=total-total0
+  timesum(ncat+1)=real(total,kind=8)
+
+  !time for other categories
+  call system_clock(iend,count_rate,count_max)
+  do i=1,ncat
+     timesum(i)=timesum(i)+real(itsum(i),kind=8)/real(count_rate,kind=8)
+  end do
+
+  if (parallel) then 
+     call MPI_REDUCE(timesum,timemax,ncat+1,MPI_DOUBLE_PRECISION,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(timesum,timemin,ncat+1,MPI_DOUBLE_PRECISION,MPI_MIN,0,MPI_COMM_WORLD,ierr)
+  else
+     do i=1,ncat+1
+        timemax(i)=timesum(i)
+        timemin(i)=timesum(i)
+     enddo
+  endif
+  total=real(timemax(ncat+1),kind=4)
+
+  if (iproc.eq.0) then
+     open(unit=60,file='time.prc',status='unknown')
+     write(60,*) 'CATEGORY          min. TIME(sec)     max. TIME(sec)           PERCENT'
+     total_pc=0.d0
+     do i=1,ncat
+        pc=100.d0*timemax(i)/real(total,kind=8)
+        write(60,'(a14,2(10x,1pe9.2),10x,0pf8.1 )') cats(i),timemin(i),timemax(i),pc
+        total_pc=total_pc+pc
+     enddo
+     write(60,'(70("-"))')
+     write(60,'(a,10x,1pe9.2,6x,a,0pf5.1)') &
+          'Total CPU time',total,'Total categorized percent ',total_pc
+  endif
+
+end subroutine sum_results
 
 
 !control the memory occupation by calculating the overall size in bytes of the allocated arrays
