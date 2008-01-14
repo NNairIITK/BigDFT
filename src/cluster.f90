@@ -17,6 +17,7 @@
   real(kind=8), dimension(:,:), pointer :: psi
   !local variables
   integer :: i_stat,i_all,ierr,inputPsiId_orig
+  logical, dimension(:), allocatable :: lfrztyp
   !temporary interface
   interface
      subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
@@ -69,7 +70,15 @@
         if (iproc.eq.0) then
            write(*,'(1x,a)')'Convergence error, cannot proceed.'
            write(*,'(1x,a)')' writing positions in file posout_999.xyz then exiting'
-           call wtposout(999,energy,nat,rxyz,atomnames,iatype)
+
+           allocate(lfrztyp(nat),stat=i_stat)
+           call memocc(i_stat,product(shape(lfrztyp))*kind(lfrztyp),'lfrztyp','call_cluster')
+           lfrztyp(:)=.false.
+           call wtposout(999,energy,nat,rxyz,atomnames,lfrztyp,iatype)
+           i_all=-product(shape(lfrztyp))*kind(lfrztyp)
+           deallocate(lfrztyp,stat=i_stat)
+           call memocc(i_stat,i_all,'lfrztyp','call_cluster')
+
         end if
 
         i_all=-product(shape(psi))*kind(psi)
@@ -249,7 +258,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   allocate(iasctype(ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(iasctype))*kind(iasctype),'iasctype','cluster')
 
-  call read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,hgrid,atomnames,iatype,&
+  call read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,hgrid,atomnames,iatype,&
        psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
 
   allocate(occup(norb),stat=i_stat)

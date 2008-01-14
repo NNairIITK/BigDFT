@@ -194,14 +194,14 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
   real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(:), pointer :: proj
   !local variables
+  integer, parameter :: nterm_max=10 !if GTH nterm_max=3
   integer :: nl1,nl2,nl3,nu1,nu2,nu3,mseg,mvctr,mproj,istart,istart_c,istart_f,mvctr_c,mvctr_f
   integer :: nl1_c,nl1_f,nl2_c,nl2_f,nl3_c,nl3_f,nu1_c,nu1_f,nu2_c,nu2_f,nu3_c,nu3_f
-  integer :: iat,i_stat,i_all,nterm_max,i,l,m,iproj,ityp,nterm,iseg,nwarnings,natyp
+  integer :: iat,i_stat,i_all,i,l,m,iproj,ityp,nterm,iseg,nwarnings,natyp
   real(kind=8) :: fpi,factor,scpr,gau_a,rx,ry,rz,radmin
+  real(kind=8), dimension(nterm_max) :: fac_arr
+  integer, dimension(nterm_max) :: lx,ly,lz
   logical, dimension(:,:,:), allocatable :: logrid
-  real(kind=8), dimension(:), allocatable :: fac_arr
-  integer, dimension(:), allocatable :: lx,ly,lz
-
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -369,15 +369,6 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
   nwarnings=0
   radmin=1.d10
   !allocate these vectors up to the maximum size we can get
-  nterm_max=10 !if GTH nterm_max=3
-  allocate(fac_arr(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(fac_arr))*kind(fac_arr),'fac_arr','createprojectorsarrays')
-  allocate(lx(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(lx))*kind(lx),'lx','createprojectorsarrays')
-  allocate(ly(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(ly))*kind(ly),'ly','createprojectorsarrays')
-  allocate(lz(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(lz))*kind(lz),'lz','createprojectorsarrays')
 
   iproj=0
   fpi=(4.d0*atan(1.d0))**(-.75d0)
@@ -481,18 +472,6 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
   i_all=-product(shape(logrid))*kind(logrid)
   deallocate(logrid,stat=i_stat)
   call memocc(i_stat,i_all,'logrid','createprojectorsarrays')
-  i_all=-product(shape(fac_arr))*kind(fac_arr)
-  deallocate(fac_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'fac_arr','createprojectorsarrays')
-  i_all=-product(shape(lx))*kind(lx)
-  deallocate(lx,stat=i_stat)
-  call memocc(i_stat,i_all,'lx','createprojectorsarrays')
-  i_all=-product(shape(ly))*kind(ly)
-  deallocate(ly,stat=i_stat)
-  call memocc(i_stat,i_all,'ly','createprojectorsarrays')
-  i_all=-product(shape(lz))*kind(lz)
-  deallocate(lz,stat=i_stat)
-  call memocc(i_stat,i_all,'lz','createprojectorsarrays')
 
 END SUBROUTINE createProjectorsArrays
 
