@@ -300,9 +300,6 @@ subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,iatype,psppar,npspcode,oc
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
   real(kind=8), dimension(3,nat), intent(inout) :: fsep
   !Local Variables--------------
-  real(kind=8), dimension(:,:), allocatable :: fxyz_orb
-  real(kind=8), dimension(:,:,:), allocatable :: offdiagarr
-  real(kind=8), dimension(:,:,:,:), allocatable :: scalprod
   integer :: istart_c,istart_f,iproj,iat,ityp,i,j,l,m
   integer :: istart_c_i,istart_f_i,istart_c_j,istart_f_j
   integer :: mvctr_c,mvctr_f,mbseg_c,mbseg_f,jseg_c,jseg_f
@@ -311,13 +308,12 @@ subroutine nonlocal_forces(iproc,ntypes,nat,norb,norbp,iatype,psppar,npspcode,oc
   real(kind=8) :: scpr_i,scpr_j,scprp_i,scprp_j,tcprx_i,tcprx_j,tcpry_i,tcpry_j,tcprz_i,tcprz_j
   real(kind=8) :: offdiagcoeff,hij
   integer :: idir,i_all,i_stat
+  real(kind=8), dimension(2,2,3) :: offdiagarr
+  real(kind=8), dimension(0:3,4,3,7) :: scalprod
+  real(kind=8), dimension(:,:), allocatable :: fxyz_orb
 
-  allocate(scalprod(0:3,4,3,7),stat=i_stat)
-  call memocc(i_stat,product(shape(scalprod))*kind(scalprod),'scalprod','nonlocal_forces')
   allocate(fxyz_orb(3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(fxyz_orb))*kind(fxyz_orb),'fxyz_orb','nonlocal_forces')
-  allocate(offdiagarr(2,2,3),stat=i_stat)
-  call memocc(i_stat,product(shape(offdiagarr))*kind(offdiagarr),'offdiagarr','nonlocal_forces')
 
   !calculate the coefficients for the off-diagonal terms
   do l=1,3
@@ -451,12 +447,6 @@ end do
   i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)
   deallocate(fxyz_orb,stat=i_stat)
   call memocc(i_stat,i_all,'fxyz_orb','nonlocal_forces')
-  i_all=-product(shape(scalprod))*kind(scalprod)
-  deallocate(scalprod,stat=i_stat)
-  call memocc(i_stat,i_all,'scalprod','nonlocal_forces')
-  i_all=-product(shape(offdiagarr))*kind(offdiagarr)
-  deallocate(offdiagarr,stat=i_stat)
-  call memocc(i_stat,i_all,'offdiagarr','nonlocal_forces')
 
 end subroutine nonlocal_forces
 
