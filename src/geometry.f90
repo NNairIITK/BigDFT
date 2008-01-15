@@ -173,7 +173,7 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
 
   endif
   etotprec=etot
-  if (iproc.eq.0) call wtposout(ncount_cluster,etot,nat,wpos,atomnames,iatype)
+  if (iproc.eq.0) call wtposout(ncount_cluster,etot,nat,wpos,atomnames,lfrztyp,iatype)
   !if (iproc.eq.0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_cluster,etot,sqrt(fnrm)
   fluctoo=flucto
   flucto=fluct
@@ -386,7 +386,7 @@ contains
     endif
     if (iproc.eq.0) then 
        write(16,'(i5,1x,e12.5,1x,e21.14,a)') itsd,sqrt(fnrm),etot,' SD '
-       call wtposout(ncount_cluster,etot,nat,wpos,atomnames,iatype)
+       call wtposout(ncount_cluster,etot,nat,wpos,atomnames,lfrztyp,iatype)
        !write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'SD ',ncount_cluster,etot,sqrt(fnrm)
     end if
 
@@ -598,12 +598,13 @@ contains
 
 end subroutine conjgrad
 
-subroutine wtposout(igeostep,energy,nat,rxyz,atomnames,iatype)
+subroutine wtposout(igeostep,energy,nat,rxyz,atomnames,lfrztyp,iatype)
 
   implicit none
   integer, intent(in) :: igeostep,nat
   real(kind=8), intent(in) :: energy
   character(len=20), dimension(100), intent(in) :: atomnames(100)
+  logical, dimension(nat), intent(in) :: lfrztyp
   integer, dimension(nat), intent(in) :: iatype
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   !local variables
@@ -639,7 +640,13 @@ filename = 'posout_'//fn//'.xyz'
         suffix=name(3:5)
      end if
      !write(9,'(3(1x,e21.14),2x,a10)') (rxyz(j,iat),j=1,3),atomnames(iatype(iat))
-     write(9,'(a2,4x,3(1x,1pe21.14),2x,a3)')symbol,(rxyz(j,iat),j=1,3),suffix
+     !write(9,'(a2,4x,3(1x,1pe21.14),2x,a3)')symbol,(rxyz(j,iat),j=1,3),suffix
+     !takes into account the blocked atoms
+     if (lfrztyp(iat)) then
+        write(9,'(a2,4x,3(1x,1pe21.14),2x,a4)')symbol,(rxyz(j,iat),j=1,3),'   f'
+     else
+        write(9,'(a2,4x,3(1x,1pe21.14),2x,a4)')symbol,(rxyz(j,iat),j=1,3)
+     end if
   enddo
   close(unit=9)
 

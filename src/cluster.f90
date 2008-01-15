@@ -17,6 +17,7 @@
   real(kind=8), dimension(:,:), pointer :: psi
   !local variables
   integer :: i_stat,i_all,ierr,inputPsiId_orig
+  logical, dimension(:), allocatable :: lfrztyp
   !temporary interface
   interface
      subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
@@ -69,7 +70,15 @@
         if (iproc.eq.0) then
            write(*,'(1x,a)')'Convergence error, cannot proceed.'
            write(*,'(1x,a)')' writing positions in file posout_999.xyz then exiting'
-           call wtposout(999,energy,nat,rxyz,atomnames,iatype)
+
+           allocate(lfrztyp(nat),stat=i_stat)
+           call memocc(i_stat,product(shape(lfrztyp))*kind(lfrztyp),'lfrztyp','call_cluster')
+           lfrztyp(:)=.false.
+           call wtposout(999,energy,nat,rxyz,atomnames,lfrztyp,iatype)
+           i_all=-product(shape(lfrztyp))*kind(lfrztyp)
+           deallocate(lfrztyp,stat=i_stat)
+           call memocc(i_stat,i_all,'lfrztyp','call_cluster')
+
         end if
 
         i_all=-product(shape(psi))*kind(psi)
@@ -211,6 +220,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   end if
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
+
+
 
   ! We save the variables that defined the previous psi if
   ! restartOnPsi is .true.
@@ -459,6 +470,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   deallocate(iasctype,stat=i_stat)
   call memocc(i_stat,i_all,'iasctype','cluster')
 
+  !end of the initialization part
+  call timing(iproc,'INIT','PR')
 
   ! allocate arrays necessary for DIIS convergence acceleration
   if (idsx.gt.0) then
@@ -599,6 +612,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
      deallocate(ads,stat=i_stat)
      call memocc(i_stat,i_all,'ads','cluster')
   end if
+
+  !end of wavefunction minimisation
+  call timing(iproc,'WFN_OPT','PR')
 
   ! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
   call last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
@@ -955,6 +971,8 @@ contains
     deallocate(npspcode,stat=i_stat)
     call memocc(i_stat,i_all,'npspcode','cluster')
 
+    !end of wavefunction minimisation
+    call timing(iproc,'LAST','PR')
     call timing(iproc,'              ','RE')
     call cpu_time(tcpu1)
     call system_clock(ncount1,ncount_rate,ncount_max)

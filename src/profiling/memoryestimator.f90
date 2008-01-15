@@ -174,7 +174,7 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
   tminamount=real(3*(nvctr_c+7*nvctr_f)*8,kind=8)+3.d0*real(n01*n02,kind=8)+&
        (3.d0+2.d0*tt)*omempot
   write(*,'(1x,a)')&
-       'By reducing the DIIS history and/or decreasing the number of processors the amount of'
+       'By reducing the DIIS history and/or increasing the number of processors the amount of'
   write(*,'(1x,a,i0,a)')&
        ' memory can be reduced but for this system it will never be less than ',&
        int(tminamount/1048576.d0),' MB'

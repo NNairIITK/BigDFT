@@ -285,7 +285,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spina
         spinar(iorb)=-1.0d0
      end do
   end if
-!  write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinar(iorb),iorb=1,norb)
+! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinar(iorb),iorb=1,norb)
 
 ! First fill the occupation numbers by default
   nt=0
@@ -408,8 +408,11 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,h
   logical :: exists
   character(len=2) :: symbol
   character(len=27) :: filename
-  integer :: i,j,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp
+  character(len=50) :: format
+  integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp
   real(kind=8) :: rcov,rprb,ehomo,radfine,tt,minrad
+  real(kind=8), dimension(3,3) :: hij
+  real(kind=8), dimension(2,2,3) :: offdiagarr
   integer, dimension(:,:), allocatable :: neleconf
 
   if (iproc == 0) then
@@ -510,11 +513,92 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,h
        end do
        !control whether the grid spacing is too high or not
        if (iproc == 0 .and. hgrid > 2.5d0*minrad) then
-          write(*,'(1x,a)')'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
-          write(*,'(1x,a,f5.2,a)')'         Results can be meaningless if hgrid is bigger than',2.5d0*minrad,'. At your own risk!'
+          write(*,'(1x,a)')&
+               'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
+          write(*,'(1x,a,f5.2,a)')&
+               '         Results can be meaningless if hgrid is bigger than',2.5d0*minrad,'. At your own risk!'
        end if
 
     enddo
+
+    !print the pseudopotential matrices
+    if (iproc == 0) then
+       do l=1,3
+          do i=1,2
+             do j=i+1,3
+                  offdiagarr(i,j-i,l)=0.d0
+                if (l==1) then
+                   if (i==1) then
+                      if (j==2)   offdiagarr(i,j-i,l)=-0.5d0*sqrt(3.d0/5.d0)
+                      if (j==3)   offdiagarr(i,j-i,l)=0.5d0*sqrt(5.d0/21.d0)
+                   else
+                        offdiagarr(i,j-i,l)=-0.5d0*sqrt(100.d0/63.d0)
+                   end if
+                else if (l==2) then
+                   if (i==1) then
+                      if (j==2)   offdiagarr(i,j-i,l)=-0.5d0*sqrt(5.d0/7.d0)
+                      if (j==3)   offdiagarr(i,j-i,l)=1.d0/6.d0*sqrt(35.d0/11.d0)
+                   else
+                        offdiagarr(i,j-i,l)=-7.d0/3.d0*sqrt(1.d0/11.d0)
+                   end if
+                else if (l==3) then
+                   if (i==1) then
+                      if (j==2)   offdiagarr(i,j-i,l)=-0.5d0*sqrt(7.d0/9.d0)
+                      if (j==3)   offdiagarr(i,j-i,l)=0.5d0*sqrt(63.d0/143.d0)
+                   else
+                        offdiagarr(i,j-i,l)=-9.d0*sqrt(1.d0/143.d0)
+                   end if
+                end if
+             end do
+          end do
+       end do
+
+       write(*,'(1x,a)')&
+            '------------------------------------ Pseudopotential coefficients (Upper Triangular)'
+        do ityp=1,ntypes
+        write(*,'(1x,a)')&
+          'Atom Name    rloc      C1        C2        C3        C4  '
+           do l=0,3
+              do i=4,0,-1
+                 j=i
+                 if (psppar(l,i,ityp) /= 0.d0) exit
+              end do
+              if (l==0) then
+                 write(*,'(3x,a6,5(1x,f9.5))')&
+                      trim(atomnames(ityp)),(psppar(l,i,ityp),i=0,j)
+              else
+                 if (j /=0) then
+                    write(*,'(1x,a,i0,a)')&
+                         '    l=',l-1,' '//'     rl        h1j       h2j       h3j '
+                    hij=0.d0
+                    do i=1,j
+                       hij(i,i)=psppar(l,i,ityp)
+                    end do
+                    if (npspcode(ityp) == 3) then !traditional HGH convention
+                       hij(1,2)=offdiagarr(1,1,l)*psppar(l,2,ityp)
+                       hij(1,3)=offdiagarr(1,2,l)*psppar(l,3,ityp)
+                       hij(2,3)=offdiagarr(2,1,l)*psppar(l,3,ityp)
+                    else if (npspcode(ityp) == 10) then !HGH-K convention
+                       hij(1,2)=psppar(l,4,ityp)
+                       hij(1,3)=psppar(l,5,ityp)
+                       hij(2,3)=psppar(l,6,ityp)
+                    end if
+                    do i=1,j
+                       if (i==1) then
+                          write(format,'(a,2(i0,a))')"(9x,(1x,f9.5),",j,"(1x,f9.5))"
+                          write(*,format)psppar(l,0,ityp),(hij(i,k),k=i,j)
+                       else
+                          write(format,'(a,2(i0,a))')"(19x,",i-1,"(10x),",j-i+1,"(1x,f9.5))"
+                          write(*,format)(hij(i,k),k=i,j)
+                       end if
+
+                    end do
+                 end if
+              end if
+           end do
+        end do
+    end if
+    
 
     !deallocation
     i_all=-product(shape(neleconf))*kind(neleconf)
