@@ -119,7 +119,11 @@ subroutine timing(iproc,category,action)
            end do
         end if
         if (iproc.eq.0) then
-           call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+           if (parallel) then
+              call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+           else
+              nproc=1
+           end if
            write(60,*) 'PARTIAL COUNTER   mean TIME(sec)       PERCENT'
            total_pc=0.d0
            do i=1,ncounters
@@ -232,7 +236,11 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
   !total=real(timemax(ncat+1),kind=4)
 
   if (iproc.eq.0) then
-     call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+     if (parallel) then
+        call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+     else
+        nproc=1
+     end if
      open(unit=60,file='time.prc',status='unknown')
      !write(60,*) 'CATEGORY          min. TIME(sec)     max. TIME(sec)           PERCENT'
      write(60,*) 'CATEGORY          mean TIME(sec)       PERCENT'
