@@ -4,21 +4,20 @@ subroutine timing(iproc,category,action)
   include 'mpif.h'
   !Variables
   integer, intent(in) :: iproc
-  character(len=14), intent(in) :: category
+  character(len=*), intent(in) :: category
   character(len=2), intent(in) :: action      ! possibilities: INitialize, ON, OFf, REsults
   !Local variables
   logical :: parallel,init
   integer, parameter :: ncat=22   ! define timimg categories
-  integer :: i,ierr,ii,i_all,i_stat
+  integer :: i,ierr,ii,i_all,i_stat,nproc
   integer :: istart,iend,count_rate,count_max,ielapsed,ncounters,itime,ittime
   !cputime routine gives a real
-  real :: total,total0,time,time0
-  real(kind=8) :: pc,total_pc
+  !real :: total,total0,time,time0
+  real(kind=8) :: pc,total_pc,total
   character(len=10), dimension(ncat) :: pcnames !names of the partial counters, to be assigned
   integer, dimension(ncat+1) :: itsum
   real(kind=8), dimension(ncat+1) :: timesum
   real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
-  real(kind=8), dimension(:), allocatable :: timemax,timemin
   save :: init,itsum,istart,timesum,ittime,parallel,pcnames,pctimes,ncounters
 
   character(len=14), dimension(ncat), parameter :: cats = (/ &
@@ -50,8 +49,8 @@ subroutine timing(iproc,category,action)
 
   ! write(*,*) 'ACTION=',action,'...','CATEGORY=',category,'...'
   if (action.eq.'IN') then  ! INIT
-     !no need of using system clock for the total time (presumably more than a millisecond)
-     call cpu_time(total0)
+     !!no need of using system clock for the total time (presumably more than a millisecond)
+     !call cpu_time(total0)
      ittime=itime
      do i=1,ncat
         itsum(i)=0
@@ -62,19 +61,77 @@ subroutine timing(iproc,category,action)
      init=.false.
      ncounters=0
 
+  else if (action.eq.'PR') then !stop partial counters and restart from the beginning
+     if (init.neqv..false.) then
+        print *, 'TIMING IS INITIALIZED BEFORE PARTIAL RESULTS'
+        stop 
+     endif
+     ncounters=ncounters+1
+     if (ncounters > ncat) then
+        print *, 'It is not allowed to have more partial counters that categories; ncat=',ncat
+        stop
+     end if
+     pcnames(ncounters)=trim(category)
+     if (itime-ittime < 0) then
+        timesum(ncat+1)=real(itime-ittime+count_max,kind=8)/real(count_rate,kind=8)
+     else
+        timesum(ncat+1)=real(itime-ittime,kind=8)/real(count_rate,kind=8)
+     end if
+     pctimes(ncounters)=timesum(ncat+1)
+     call sum_results(parallel,iproc,ncat,cats,itsum,timesum,pcnames(ncounters))
+     !reset all timings
+     ittime=itime
+     do i=1,ncat
+        itsum(i)=0
+        timesum(i)=0.d0
+     enddo
+
+
   else if (action.eq.'RE') then ! RESULT
      if (init.neqv..false.) then
         print *, 'TIMING IS INITIALIZED BEFORE RESULTS'
         stop 
      endif
 
-     if (itime-ittime < 0) then
-        timesum(ncat+1)=real(itime-ittime+count_max,kind=8)/real(count_rate,kind=8)
-     else
-        timesum(ncat+1)=real(itime-ittime,kind=8)/real(count_rate,kind=8)
-     end if
+     if (ncounters == 0) then !no partial counters selected
+        if (itime-ittime < 0) then
+           timesum(ncat+1)=real(itime-ittime+count_max,kind=8)/real(count_rate,kind=8)
+        else
+           timesum(ncat+1)=real(itime-ittime,kind=8)/real(count_rate,kind=8)
+        end if
 
-     call sum_results(parallel,iproc,ncat,cats,itsum,timesum)
+        call sum_results(parallel,iproc,ncat,cats,itsum,timesum,'ALL')
+     else !consider only the results of the partial counters
+        total_pc=0.d0
+        do i=1,ncounters
+           total_pc=total_pc+pctimes(i)
+        end do
+        if (parallel) then 
+           !calculate total time
+           call MPI_REDUCE(total_pc,total,1,&
+                MPI_DOUBLE_PRECISION,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+           call MPI_REDUCE(pctimes,timesum,ncounters,&
+                MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        else
+           total=total_pc
+           do i=1,ncounters
+              timesum(i)=pctimes(i)
+           end do
+        end if
+        if (iproc.eq.0) then
+           call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+           write(60,*) 'PARTIAL COUNTER   mean TIME(sec)       PERCENT'
+           total_pc=0.d0
+           do i=1,ncounters
+              pc=100.d0*timesum(i)/sum(timesum(1:ncounters))
+              if (timesum(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') pcnames(i),timesum(i)/real(nproc,kind=8),pc
+              total_pc=total_pc+pc
+           enddo
+           write(60,'(70("-"))')
+           write(60,'(a,10x,1pe9.2,6x,a,0pf5.1)') &
+                'Total CPU time=',total,'Total categorized percent ',total_pc
+        end if
+     end if
 
   else
 
@@ -124,9 +181,10 @@ subroutine timing(iproc,category,action)
 
 end subroutine timing
 
-subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum)
+subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
   implicit none
   include 'mpif.h'
+  character(len=*), intent(in) :: message
   logical, intent(in) :: parallel
   integer, intent(in) :: iproc,ncat
   !real, intent(in) :: total0
@@ -181,12 +239,12 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum)
      total_pc=0.d0
      do i=1,ncat
         pc=100.d0*timetot(i)/timetot(ncat+1)!real(total,kind=8)
-        write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') cats(i),timetot(i)/real(nproc,kind=8),pc
+        if (timetot(i) /= 0.d0) write(60,'(a14,1(10x,1pe9.2),5x,0pf8.3 )') cats(i),timetot(i)/real(nproc,kind=8),pc
         total_pc=total_pc+pc
      enddo
      write(60,'(70("-"))')
      write(60,'(a,10x,1pe9.2,6x,a,0pf5.1)') &
-          'Total CPU time',totaltime,'Total categorized percent ',total_pc
+          'Total CPU time for category: '//message//'=',totaltime,'Total categorized percent ',total_pc
   endif
 
 end subroutine sum_results

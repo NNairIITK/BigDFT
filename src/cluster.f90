@@ -221,6 +221,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
 
+
+
   ! We save the variables that defined the previous psi if
   ! restartOnPsi is .true.
   if (inputPsiId == 1) then
@@ -468,7 +470,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   deallocate(iasctype,stat=i_stat)
   call memocc(i_stat,i_all,'iasctype','cluster')
 
-
   ! allocate arrays necessary for DIIS convergence acceleration
   if (idsx.gt.0) then
      allocate(psidst(nvctrp,norbp*nproc,idsx),stat=i_stat)
@@ -490,6 +491,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   energy_min=1.d10
   !set the infocode to the value it would have in the case of no convergence
   infocode=1
+
+  !end of the initialization part
+  call timing(iproc,'INIT','PR')
+
   ! loop for wavefunction minimization
   wfn_loop: do iter=1,itermax
      if (idsx.gt.0) mids=mod(iter-1,idsx)+1
@@ -555,6 +560,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
         write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
         write(*,'(1x,a,i6,2x,1pe19.12,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
      endif
+
+     !control whether the minimisation iterations ended
+     if (gnrm.le.gnrm_cv .or. iter.eq.itermax) call timing(iproc,'WFN_OPT','PR')
+
 
      if (inputPsiId == 0) then
         if ((gnrm > 4.d0 .and. norbu/=norbd) .or. (norbu==norbd .and. gnrm > 10.d0)) then
@@ -671,28 +680,52 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   i_all=-product(shape(spinar_foo))*kind(spinar_foo)
   deallocate(spinar_foo,stat=i_stat)
   call memocc(i_stat,i_all,'spinar_foo','cluster')
+
+  i_all=-product(shape(pot_ion))*kind(pot_ion)
+  deallocate(pot_ion,stat=i_stat)
+  call memocc(i_stat,i_all,'pot_ion','cluster')
+
   if (iproc.eq.0 .and. output_grid) then
+
      open(unit=22,file='density.pot',status='unknown')
      write(22,*)'density'
      write(22,*) 2*n1+1,2*n2+1,2*n3+1
      write(22,*) alat1,' 0. ',alat2
      write(22,*) ' 0. ',' 0. ',alat3
      write(22,*)'xyz'
-     do i3=1,2*n3+1
-        do i2=1,2*n2+1
-           do i1=1,2*n1+1
-              ind=i1+14+(i2+13)*(2*n1+31)+(i3+13)*(2*n1+31)*(2*n2+31)
-              write(22,*)rho(ind)
+
+     if (nproc > 1) then
+        !allocate full density in pot_ion directory
+        allocate(pot_ion((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
+        call memocc(i_stat,product(shape(pot))*kind(pot),'pot','hamiltonianapplication')
+
+        call MPI_ALLGATHERV(pot_ion,(2*n1+31)*(2*n2+31)*n3p,&
+             MPI_DOUBLE_PRECISION,rho,ngatherarr(0,1),&
+             ngatherarr(0,2),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+
+        do i3=1,2*n3+1
+           do i2=1,2*n2+1
+              do i1=1,2*n1+1
+                 ind=i1+14+(i2+13)*(2*n1+31)+(i3+13)*(2*n1+31)*(2*n2+31)
+                 write(22,*)rho(ind)
+              end do
            end do
         end do
-     end do
+        i_all=-product(shape(pot_ion))*kind(pot_ion)
+        deallocate(pot_ion,stat=i_stat)
+        call memocc(i_stat,i_all,'pot_ion','cluster')
+     else
+        do i3=1,2*n3+1
+           do i2=1,2*n2+1
+              do i1=1,2*n1+1
+                 ind=i1+14+(i2+13)*(2*n1+31)+(i3+13)*(2*n1+31)*(2*n2+31)
+                 write(22,*)rho(ind)
+              end do
+           end do
+        end do
+     end if
      close(22)
   endif
-
-  !switch between the old and the new forces calculation
-  i_all=-product(shape(pot_ion))*kind(pot_ion)
-  deallocate(pot_ion,stat=i_stat)
-  call memocc(i_stat,i_all,'pot_ion','cluster')
 
   if (n3p>0) then
      allocate(pot((2*n1+31),(2*n2+31),n3p,1),stat=i_stat)
@@ -964,6 +997,8 @@ contains
     deallocate(npspcode,stat=i_stat)
     call memocc(i_stat,i_all,'npspcode','cluster')
 
+    !end of wavefunction minimisation
+    call timing(iproc,'LAST','PR')
     call timing(iproc,'              ','RE')
     call cpu_time(tcpu1)
     call system_clock(ncount1,ncount_rate,ncount_max)
