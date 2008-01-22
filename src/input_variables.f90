@@ -822,9 +822,9 @@ subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,h
   if (nfl2 < 0) nfl2=0
   if (nfl3 < 0) nfl3=0
 
-  if (nfu1 < n1) nfl1=n1
-  if (nfu2 < n2) nfl2=n2
-  if (nfu3 < n3) nfl3=n3
+  if (nfu1 > n1) nfl1=n1
+  if (nfu2 > n2) nfl2=n2
+  if (nfu3 > n3) nfl3=n3
 
 
   if (iproc.eq.0) then
