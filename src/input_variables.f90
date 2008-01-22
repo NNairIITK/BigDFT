@@ -702,24 +702,33 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,h
 end subroutine read_system_variables
 
 
-subroutine system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
-       alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
-  ! calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
+subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
+     iatype,atomnames,alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
+  !calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
   !and shifts the atoms such that their position is the most symmetric possible
   implicit none
+  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nat,ntypes
-  real(kind=8), intent(in) :: hgrid,crmult,frmult
+  real(kind=8), intent(in) :: crmult,frmult
   character(len=20), dimension(ntypes), intent(in) :: atomnames
   integer, dimension(nat), intent(in) :: iatype
   real(kind=8), dimension(3,nat), intent(inout) :: rxyz
   real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
   integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
-  real(kind=8), intent(out) :: alat1,alat2,alat3
+  real(kind=8), intent(inout) :: hx,hy,hz,alat1,alat2,alat3
   !local variables
   real(kind=8), parameter ::eps_mach=1.d-12,onem=1.d0-eps_mach
   integer :: iat,j
   real(kind=8) :: rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
 
+  !check the geometry code with the grid spacings
+  if (geocode == 'F' .and. (hx/=hy .or. hx/=hz .or. hy/=hz)) then
+     write(*,'(1x,a)')'ERROR: The values of the grid spacings must be equal in the Free BC case'
+     stop
+  end if
+
+
+  !calculate the extremes of the boxes taking into account the spheres arount the atoms
   cxmax=-1.d10 ; cxmin=1.d10
   cymax=-1.d10 ; cymin=1.d10
   czmax=-1.d10 ; czmin=1.d10
@@ -738,28 +747,54 @@ subroutine system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype
   cymin=cymin-eps_mach
   czmin=czmin-eps_mach
 
-  alat1=(cxmax-cxmin)
-  alat2=(cymax-cymin)
-  alat3=(czmax-czmin)
 
-  ! grid sizes n1,n2,n3
-  n1=int(alat1/hgrid)
-  !if (mod(n1+1,4).eq.0) n1=n1+1
-  n2=int(alat2/hgrid)
-  !if (mod(n2+1,8).eq.0) n2=n2+1
-  n3=int(alat3/hgrid)
-  alatrue1=real(n1,kind=8)*hgrid 
-  alatrue2=real(n2,kind=8)*hgrid 
-  alatrue3=real(n3,kind=8)*hgrid
+  !define the box sizes for free BC
+  if (geocode == 'F') then
+     alat1=(cxmax-cxmin)
+     alat2=(cymax-cymin)
+     alat3=(czmax-czmin)
+
+     ! grid sizes n1,n2,n3
+     n1=int(alat1/hx)
+     n2=int(alat2/hy)
+     n3=int(alat3/hz)
+     alatrue1=real(n1,kind=8)*hx
+     alatrue2=real(n2,kind=8)*hy
+     alatrue3=real(n3,kind=8)*hz
+  else if (geocode == 'P') then !define the grid spacings, controlling the FFT compatibility
+     call correct_grid(alat1,hx,n1)
+     call correct_grid(alat2,hy,n2)
+     call correct_grid(alat3,hz,n3)
+     alatrue1=(cxmax-cxmin)
+     alatrue2=(cymax-cymin)
+     alatrue3=(czmax-czmin)
+  else if (geocode == 'S') then
+     call correct_grid(alat1,hx,n1)
+     alat2=(cymax-cymin)
+     call correct_grid(alat3,hz,n3)
+
+     alatrue1=(cxmax-cxmin)
+     alat2=(cymax-cymin)
+     n2=int(alat2/hy)
+     alatrue2=real(n2,kind=8)*hy
+     alatrue3=(czmax-czmin)
+
+  end if
+
 
   !balanced shift taking into account the missing space
   cxmin=cxmin+0.5d0*(alat1-alatrue1)
   cymin=cymin+0.5d0*(alat2-alatrue2)
   czmin=czmin+0.5d0*(alat3-alatrue3)
 
-  alat1=alatrue1
-  alat2=alatrue2
-  alat3=alatrue3
+  !correct the box sizes for the isolated case
+  if (geocode == 'F') then
+     alat1=alatrue1
+     alat2=alatrue2
+     alat3=alatrue3
+  else if (geocode == 'S') then
+     alat2=alatrue2
+  end if
 
   do iat=1,nat
      rxyz(1,iat)=rxyz(1,iat)-cxmin
@@ -767,56 +802,40 @@ subroutine system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype
      rxyz(3,iat)=rxyz(3,iat)-czmin
   enddo
 
-!!$! grid sizes n1,n2,n3 !added for testing purposes
-!!$  n1=int(alat1/hgrid)
-!!$  if (mod(n1,2).eq.0) n1=n1+1
-!!$  n2=int(alat2/hgrid)
-!!$  if (mod(n2,2).eq.0) n2=n2+1
-!!$  n3=int(alat3/hgrid)
-!!$  if (mod(n3,2).eq.0) n3=n3+1
-!!$  alat1=n1*hgrid 
-!!$  alat2=n2*hgrid 
-!!$  alat3=n3*hgrid
-!!$  do iat=1,nat
-!!$     rxyz(1,iat)=(real(n1/2,kind=8)+0.5)*hgrid 
-!!$     rxyz(2,iat)=(real(n1/2,kind=8)+0.5)*hgrid 
-!!$     rxyz(3,iat)=(real(n1/2,kind=8)+0.5)*hgrid 
-!!$  enddo
-
   ! fine grid size (needed for creation of input wavefunction, preconditioning)
   nfl1=n1 ; nfl2=n2 ; nfl3=n3
   nfu1=0 ; nfu2=0 ; nfu3=0
   do iat=1,nat
      rad=radii_cf(iatype(iat),2)*frmult
-     nfl1=min(nfl1,ceiling((rxyz(1,iat)-rad)/hgrid - eps_mach))
-     nfu1=max(nfu1,floor((rxyz(1,iat)+rad)/hgrid + eps_mach))
+     nfl1=min(nfl1,ceiling((rxyz(1,iat)-rad)/hx - eps_mach))
+     nfu1=max(nfu1,floor((rxyz(1,iat)+rad)/hx + eps_mach))
 
-     nfl2=min(nfl2,ceiling((rxyz(2,iat)-rad)/hgrid - eps_mach))
-     nfu2=max(nfu2,floor((rxyz(2,iat)+rad)/hgrid + eps_mach))
+     nfl2=min(nfl2,ceiling((rxyz(2,iat)-rad)/hy - eps_mach))
+     nfu2=max(nfu2,floor((rxyz(2,iat)+rad)/hy + eps_mach))
 
-     nfl3=min(nfl3,ceiling((rxyz(3,iat)-rad)/hgrid - eps_mach)) 
-     nfu3=max(nfu3,floor((rxyz(3,iat)+rad)/hgrid + eps_mach))
-
-!!$     nfl1=min(nfl1,int(onem+(rxyz(1,iat)-rad)/hgrid))
-!!$     nfu1=max(nfu1,int((rxyz(1,iat)+rad)/hgrid))
-!!$
-!!$     nfl2=min(nfl2,int(onem+(rxyz(2,iat)-rad)/hgrid))
-!!$     nfu2=max(nfu2,int((rxyz(2,iat)+rad)/hgrid))
-!!$
-!!$     nfl3=min(nfl3,int(onem+(rxyz(3,iat)-rad)/hgrid)) 
-!!$     nfu3=max(nfu3,int((rxyz(3,iat)+rad)/hgrid))
-
+     nfl3=min(nfl3,ceiling((rxyz(3,iat)-rad)/hz - eps_mach)) 
+     nfu3=max(nfu3,floor((rxyz(3,iat)+rad)/hz + eps_mach))
   enddo
+
+  !correct the values of the delimiter if they go outside the box
+  if (nfl1 < 0) nfl1=0
+  if (nfl2 < 0) nfl2=0
+  if (nfl3 < 0) nfl3=0
+
+  if (nfu1 < n1) nfl1=n1
+  if (nfu2 < n2) nfl2=n2
+  if (nfu3 < n3) nfl3=n3
+
 
   if (iproc.eq.0) then
      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
      do iat=1,nat
         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5),3x,3(1x,0pf9.3))') &
              iat,trim(atomnames(iatype(iat))),&
-             (rxyz(j,iat),j=1,3),rxyz(1,iat)/hgrid,rxyz(2,iat)/hgrid,rxyz(3,iat)/hgrid
+             (rxyz(j,iat),j=1,3),rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz
      enddo
-     write(*,'(1x,a,3(1x,1pe12.5))') &
-          '   Shift of=',-cxmin,-cymin,-czmin
+     write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf9.3))') &
+          '   Shift of=',-cxmin,-cymin,-czmin,' Grid spacings=',hx,hy,hz
      write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
           '  Box Sizes=',alat1,alat2,alat3,n1,n2,n3
      write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
@@ -825,3 +844,27 @@ subroutine system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype
   endif
 
 end subroutine system_size
+
+subroutine correct_grid(a,h,n)
+  use Poisson_Solver
+  implicit none
+  real(kind=8), intent(in) :: a
+  integer, intent(inout) :: n
+  real(kind=8), intent(inout) :: h
+  !local variables
+  integer :: m
+
+  n=int(a/h)
+  m=2*n+2
+  do 
+     call fourier_dim(m,m)
+     if ((m/2)*2==m) then
+        n=(m-2)/2
+        exit
+     else
+        m=m+1
+     end if
+  end do
+  h=a/real(n,kind=8)
+  
+end subroutine correct_grid

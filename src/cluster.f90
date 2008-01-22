@@ -151,7 +151,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   integer :: ncount0,ncount1,ncount_rate,ncount_max,iunit
   integer :: i1,i2,i3,ind,iat,ierror,i_all,i_stat,iter,ierr,i03,i04,jproc,ispin
   real :: tcpu0,tcpu1
-  real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf
+  real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf,hx,hy,hz
   real(kind=8) :: hgridh,peakmem,alat1,alat2,alat3,accurex,gnrm_check,hgrid_old,energy_old
   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum
   real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min
@@ -207,6 +207,9 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   output_grid=in%output_grid
   output_wf=in%output_wf
 
+  hx=in%hgrid
+  hy=in%hgrid
+  hz=in%hgrid
 
   if (iproc.eq.0) then
      write(*,'(1x,a,1x,i0)') &
@@ -238,6 +241,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   if(nspin==1) mpol=0
 
   ! grid spacing (same in x,y and z direction)
+  !modify the grid spacings such that it allows for inhomogeneous values of hgrid
   hgridh=.5d0*hgrid
 
   if (iproc==0) then
@@ -273,7 +277,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
 
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
-  call system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
+  call system_size(iproc,'F',nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,hy,hz,iatype,atomnames, &
        alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
 
   !memory estimation

@@ -73,19 +73,20 @@ interface
      real(kind=8), intent(out) :: occup(norb),spinar(norb)
    end subroutine input_occup
 
-   subroutine system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
-        alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
-     ! calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
+   subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
+        iatype,atomnames,alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
+     !calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
      !and shifts the atoms such that their position is the most symmetric possible
      implicit none
+     character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nat,ntypes
-     real(kind=8), intent(in) :: hgrid,crmult,frmult
+     real(kind=8), intent(in) :: crmult,frmult
      character(len=20), dimension(ntypes), intent(in) :: atomnames
      integer, dimension(nat), intent(in) :: iatype
      real(kind=8), dimension(3,nat), intent(inout) :: rxyz
      real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
      integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
-     real(kind=8), intent(out) :: alat1,alat2,alat3
+     real(kind=8), intent(inout) :: hx,hy,hz,alat1,alat2,alat3
    end subroutine system_size
 
    subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&

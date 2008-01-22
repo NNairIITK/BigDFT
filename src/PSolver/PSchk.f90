@@ -432,7 +432,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            do i1=1,n01
               x1 = hx*real(i1-n02/2-1,kind=8)
               call functions(x1,ax,bx,fx,fx2,ifx)
-              density(i1,i2,i3) = fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
+              density(i1,i2,i3) = fx2*fy*fz+fx*fy2*fz+fx*fy*fz2
               !density(i1,i2,i3) = max(abs(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2),1.d-24)
               !if (abs(density(i1,i2,i3)) < 1.d-20) density(i1,i2,i3)=1.d-20
               !denval=max(denval,-density(i1,i2,i3))
