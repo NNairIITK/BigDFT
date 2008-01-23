@@ -34,21 +34,24 @@ program PSchk
   real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
   real(kind=8), parameter :: acell = 10.d0
   character(len=50) :: chain
-  character(len=2) :: geocode
+  character(len=1) :: geocode
   character(len=1) :: datacode
-  real(kind=8), dimension(:,:,:), allocatable :: density,rhopot,potential,pot_ion,xc_pot,test,test_xc
+  real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
   real(kind=8), pointer :: pkernel(:)
   real(kind=8) :: hx,hy,hz,max_diff,length,eh,exc,vxc,hgrid,diff_parser,offset
   real(kind=8) :: ehartree,eexcu,vexcu,diff_par,diff_ser
   integer :: n01,n02,n03,itype_scf,i_all,i_stat
   integer :: i1_max,i2_max,i3_max,iproc,nproc,ierr,i3sd
   integer :: n_cell,ixc,n3d,n3p,n3pi,i3xcsh,i3s
-  integer, dimension(:), allocatable :: nxyz
-  
+  integer, dimension(3) :: nxyz
+
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+  !initialize memory counting and timings
+  call memocc(0,iproc,'count','start')
+  call timing(iproc,'parallel      ','IN')
 
   !the first proc read the data and then send them to the others
   if (iproc==0) then
@@ -61,9 +64,6 @@ program PSchk
      read(unit=chain,fmt=*) n03
   end if
 
-  allocate(nxyz(3),stat=i_stat)
-  call memocc(i_stat,product(shape(nxyz))*kind(nxyz),'nxyz','poisson_solver')
-
   nxyz(1)=n01
   nxyz(2)=n02
   nxyz(3)=n03
@@ -75,11 +75,6 @@ program PSchk
   n03=nxyz(3)
 
   print *,iproc,n01,n02,n03
-
-
-  !initialize memory counting and timings
-  call memocc(0,iproc,'count','start')
-  call timing(iproc,'parallel      ','IN')
 
   !Step size
   n_cell = max(n01,n02,n03)
@@ -94,298 +89,193 @@ program PSchk
   !order of the scaling functions choosed
   itype_scf=16
 
+  ixc=1
+  geocode='S'
+
+
+  !calculate the kernel in serial for each processor
+  call createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,0,1,pkernel)
+
   !Allocations
   !Density
-  allocate(density(n01,n02,n03),stat=i_stat)
+  allocate(density(n01*n02*n03),stat=i_stat)
   call memocc(i_stat,product(shape(density))*kind(density),'density','poisson_solver')
   !Density then potential
-  allocate(rhopot(n01,n02,n03),stat=i_stat)
-  call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','poisson_solver')
-  allocate(potential(n01,n02,n03),stat=i_stat)
+  allocate(potential(n01*n02*n03),stat=i_stat)
   call memocc(i_stat,product(shape(potential))*kind(potential),'potential','poisson_solver')
   !ionic potential
-  allocate(pot_ion(n01,n02,n03),stat=i_stat)
+  allocate(pot_ion(n01*n02*n03),stat=i_stat)
   call memocc(i_stat,product(shape(pot_ion))*kind(pot_ion),'pot_ion','poisson_solver')
   !XC potential
-  allocate(xc_pot(n01,n02,n03),stat=i_stat)
+  allocate(xc_pot(n01*n02*n03),stat=i_stat)
   call memocc(i_stat,product(shape(xc_pot))*kind(xc_pot),'xc_pot','poisson_solver')
-  !test array for comparison
-  allocate(test(n01,n02,n03),stat=i_stat)
-  call memocc(i_stat,product(shape(test))*kind(test),'test','poisson_solver')
-  !XC potential
-  allocate(test_xc(n01,n02,n03),stat=i_stat)
-  call memocc(i_stat,product(shape(xc_pot))*kind(xc_pot),'xc_pot','poisson_solver')
-
- 
-  !calculate the kernel in serial for each processor
-  call createKernel('F',n01,n02,n03,hx,hy,hz,itype_scf,0,1,pkernel)
+  allocate(rhopot(n01*n02*n03),stat=i_stat)
+  call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','poisson_solver')
 
   !then assign the value of the analytic density and the potential
-
-  ixc=1
-
-  call test_functions('F',0,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
+  call test_functions(geocode,0,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
        density,potential,rhopot,pot_ion)
 
   !now calculate the Poisson potential in serial for all the processors
-  call PSolver('F','G',0,1,n01,n02,n03,ixc,hx,hy,hz,&
+  call PSolver(geocode,'G',0,1,n01,n02,n03,ixc,hx,hy,hz,&
        rhopot,pkernel,xc_pot,ehartree,eexcu,vexcu,offset,.false.,1)
-  if (ixc /= 0) then
-     test=potential+pot_ion+xc_pot
-  else
-     test=potential+pot_ion
+
+
+  if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies:',ehartree,eexcu,vexcu
+  if (iproc == 0) then
+     !compare the values of the analytic results
+     call compare(0,1,n01,n02,n03,potential,rhopot,&
+          i1_max,i2_max,i3_max,max_diff,'ANALYTIC  ')
   end if
- 
-  !compare the values of the analytic results
-  call compare(0,1,n01,n02,n03,potential,rhopot,&
-       i1_max,i2_max,i3_max,max_diff)
+  !if the latter test pass, we have a reference for all the other calculations
+  !build the reference quantities (based on the numerical result, not the analytic)
+  potential=rhopot
 
   !test for the serial solver
   if (iproc == 0) then
+     call compare_with_reference(0,1,geocode,n01,n02,n03,ixc,hx,hy,hz,ehartree,eexcu,vexcu,&
+          density,potential,pot_ion,xc_pot,pkernel,rhopot)
+  end if
 
-  rhopot=density
-  !now we can try with the sumpotion=.true. variable
-  call PSolver('F','G',0,1,n01,n02,n03,ixc,hx,hy,hz,&
-       rhopot,pkernel,pot_ion,ehartree,eexcu,vexcu,offset,.true.,1)
+  !now the parallel calculation part
+  if (nproc > 1) then
+     i_all=-product(shape(pkernel))*kind(pkernel)
+     deallocate(pkernel,stat=i_stat)
+     call memocc(i_stat,i_all,'pkernel','poisson_solver')
 
-  !then compare again, but the complete result
-  call compare(0,1,n01,n02,n03,test,rhopot,&
-       i1_max,i2_max,i3_max,max_diff)
+     !calculate the kernel 
+     call createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,pkernel)
 
-  !now the same thing with the 'D' flag
-  rhopot=density
-  !now we can try with the sumpotion=.true. variable
-  call PSolver('F','D',0,1,n01,n02,n03,ixc,hx,hy,hz,&
-       rhopot,pkernel,test_xc,ehartree,eexcu,vexcu,offset,.false.,1)
-  
-  !compare the values of the analytic results
-  call compare(0,1,n01,n02,n03,potential,rhopot,&
-       i1_max,i2_max,i3_max,max_diff)
-
-  !compare also the xc_potential
-  call compare(0,1,n01,n02,n03,xc_pot,test_xc,&
-       i1_max,i2_max,i3_max,max_diff)
-
-  rhopot=density
-  !now we can try with the sumpotion=.true. variable
-  call PSolver('F','D',0,1,n01,n02,n03,ixc,hx,hy,hz,&
-       rhopot,pkernel,pot_ion,ehartree,eexcu,vexcu,offset,.true.,1)
-
-  !then compare again, but the complete result
-  call compare(0,1,n01,n02,n03,test,rhopot,&
-       i1_max,i2_max,i3_max,max_diff)
-
-end if
-
-
-
-
+     call compare_with_reference(iproc,nproc,geocode,n01,n02,n03,ixc,hx,hy,hz,ehartree,eexcu,vexcu,&
+          density,potential,pot_ion,xc_pot,pkernel,rhopot)
+ 
+  end if
   i_all=-product(shape(pkernel))*kind(pkernel)
   deallocate(pkernel,stat=i_stat)
   call memocc(i_stat,i_all,'pkernel','poisson_solver')
-  
+
+  i_all=-product(shape(rhopot))*kind(rhopot)
+  deallocate(rhopot,stat=i_stat)
+  call memocc(i_stat,i_all,'rhopot','poisson_solver')
+  i_all=-product(shape(density))*kind(density)
+  deallocate(density,stat=i_stat)
+  call memocc(i_stat,i_all,'density','poisson_solver')
+  i_all=-product(shape(potential))*kind(potential)
+  deallocate(potential,stat=i_stat)
+  call memocc(i_stat,i_all,'potential','poisson_solver')
+  i_all=-product(shape(pot_ion))*kind(pot_ion)
+  deallocate(pot_ion,stat=i_stat)
+  call memocc(i_stat,i_all,'pot_ion','poisson_solver')
+  i_all=-product(shape(xc_pot))*kind(xc_pot)
+  deallocate(xc_pot,stat=i_stat)
+  call memocc(i_stat,i_all,'xc_pot','poisson_solver')
+
+  call timing(iproc,'              ','RE')
+  !finalize memory counting
+  call memocc(0,0,'count','stop')
+
+  call MPI_FINALIZE(ierr)  
+
+contains
+
+  subroutine compare_with_reference(iproc,nproc,geocode,n01,n02,n03,ixc,hx,hy,hz,ehref,excref,vxcref,&
+       density,potential,pot_ion,xc_pot,pkernel,rhopot)
+    use Poisson_Solver
+    implicit none
+    character(len=1), intent(in) :: geocode
+    integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc
+    real(kind=8), intent(in) :: hx,hy,hz,ehref,excref,vxcref
+    real(kind=8), dimension(n01*n02*n03), intent(in) :: density,potential
+    real(kind=8), dimension(n01*n02*n03), intent(inout) :: rhopot,pot_ion,xc_pot
+    real(kind=8), dimension(:), pointer :: pkernel
+    !local variables
+    integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,i1_max,i2_max,i3_max,i_all,i_stat
+    real(kind=8) :: eexcu,vexcu,offset,max_diff,ehartree
+    real(kind=8), dimension(:), allocatable :: test,test_xc
+
+
+    call PS_dim4allocation(geocode,'D',iproc,nproc,n01,n02,n03,ixc,&
+         n3d,n3p,n3pi,i3xcsh,i3s)
+
+    !starting point of the three-dimensional arrays
+    istden=n01*n02*(i3s-1)+1
+    istpot=n01*n02*(i3s+i3xcsh-1)+1
+
+    !test arrays for comparison
+    allocate(test(n01*n02*n03),stat=i_stat)
+    call memocc(i_stat,product(shape(test))*kind(test),'test','poisson_solver')
+    !XC potential
+    allocate(test_xc(n01*n02*n03),stat=i_stat)
+    call memocc(i_stat,product(shape(xc_pot))*kind(xc_pot),'xc_pot','poisson_solver')
+
+    if (ixc /= 0) then
+       test=potential+pot_ion+xc_pot
+    else
+       test=potential!+pot_ion
+    end if
+
+    rhopot=density
+    call PSolver(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+         rhopot,pkernel,test_xc,ehartree,eexcu,vexcu,offset,.false.,1)
+
+    !compare the values of the analytic results
+    call compare(iproc,nproc,n01,n02,n03,potential,rhopot,&
+         i1_max,i2_max,i3_max,max_diff,'ANACOMPLET')
+
+    !compare also the xc_potential
+    if (ixc/=0) call compare(iproc,nproc,n01,n02,n03,xc_pot,test_xc,&
+         i1_max,i2_max,i3_max,max_diff,'XCCOMPLETE')
+    if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
+
+    rhopot=density
+    !now we can try with the sumpotion=.true. variable
+    call PSolver(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+         rhopot,pkernel,pot_ion(istpot),ehartree,eexcu,vexcu,offset,.true.,1)
+
+    !then compare again, but the complete result
+    call compare(iproc,nproc,n01,n02,n03,test,rhopot,&
+         i1_max,i2_max,i3_max,max_diff,'COMPLETE  ')
+    if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
+
+    !now the same thing with the 'D' flag
+    rhopot=density
+    call PSolver(geocode,'D',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+         rhopot(istden),pkernel,test_xc,ehartree,eexcu,vexcu,offset,.false.,1)
+
+    !compare the values of the analytic results
+    call compare(iproc,nproc,n01,n02,n3p,potential(istpot),rhopot(istpot),&
+         i1_max,i2_max,i3_max,max_diff,'ANADISTRIB')
+
+    !compare also the xc_potential
+    if (ixc/=0) call compare(iproc,nproc,n01,n02,n3p,xc_pot(istpot),test_xc,&
+         i1_max,i2_max,i3_max,max_diff,'XCDISTRIBU')
+    if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
+
+    rhopot=density
+    !now we can try with the sumpotion=.true. variable
+    call PSolver(geocode,'D',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+         rhopot(istden),pkernel,pot_ion(istpot),ehartree,eexcu,vexcu,offset,.true.,1)
+
+    !then compare again, but the complete result
+    call compare(iproc,nproc,n01,n02,n3p,test(istpot),rhopot(istpot),&
+         i1_max,i2_max,i3_max,max_diff,'COMPLETEDI')
+    if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
+
+    i_all=-product(shape(test))*kind(test)
+    deallocate(test,stat=i_stat)
+    call memocc(i_stat,i_all,'test','poisson_solver')
+    i_all=-product(shape(test_xc))*kind(test_xc)
+    deallocate(test_xc,stat=i_stat)
+    call memocc(i_stat,i_all,'test_xc','poisson_solver')
+
+  end subroutine compare_with_reference
 
 end program PSchk
-!!$     !offset, used only for the periodic solver case
-!!$     if (ixc==0) offset=potential(1,1,1)!-pot_ion(1,1,1)
-!!$
-!!$     !dimension needed for allocations
-!!$     call PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,n3d,n3p,n3pi,i3xcsh,i3s)
-!!$
-!!$     !dimension for comparison in the global or distributed poisson solver
-!!$     if (datacode == 'G') then
-!!$        i3sd=1
-!!$        ncomp=n03
-!!$     else if (datacode == 'D') then
-!!$        i3sd=i3s
-!!$        ncomp=n3p
-!!$     end if
-!!$
-!!$  print *,'iproc,i3xcsh,i3s',iproc,i3xcsh,i3s
-!!$
-!!$     !apply the Poisson Solver (case with distributed potential
-!!$     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-!!$          density(1,1,i3sd),karray,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.,1)
-!!$
-!!$  end if
-!!$
-!!$  i_all=-product(shape(karray))*kind(karray)
-!!$  deallocate(karray,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'karray','poisson_solver')
-!!$
-!!$  call timing(iproc,'              ','RE')
-!!$
-!!$  if (.not. onlykernel) then
-!!$
-!!$     !comparison (each process compare its own part)
-!!$     call compare(iproc,nproc,n01,n02,ncomp,potential(1,1,i3sd+i3xcsh),density(1,1,i3sd+i3xcsh),&
-!!$          i1_max,i2_max,i3_max,max_diff)
-!!$
-!!$  print *,'iproc,i3xcsh,i3s,max_diff',iproc,i3xcsh,i3s,max_diff
-!!$
-!!$     !extract the max
-!!$     call MPI_ALLREDUCE(max_diff,diff_par,1,MPI_double_precision,  &
-!!$          MPI_MAX,MPI_COMM_WORLD,ierr)
-!!$
-!!$
-!!$     if (iproc == 0) then
-!!$
-!!$        write(*,*) '--------------------'
-!!$        write(*,*) 'Parallel calculation '
-!!$        write(unit=*,fmt="(1x,a,3(1pe20.12))") "eht, exc, vxc:",ehartree,eexcu,vexcu
-!!$        write(*,'(a,3(i0,1x))') '  Max diff at: ',i1_max,i2_max,i3_max
-!!$        write(unit=*,fmt="(1x,a,1pe20.12)") '    Max diff:',diff_par,&
-!!$             '      result:',density(i1_max,i2_max,i3_max),&
-!!$             '    original:',potential(i1_max,i2_max,i3_max)
-!!$     end if
-!!$
-!!$  end if
-!!$
-!!$  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-!!$
-!!$  !Serial case
-!!$  if (alsoserial) then
-!!$     call timing(0,'             ','IN')
-!!$
-!!$     call createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,0,1,karray)
-!!$
-!!$     if (.not. onlykernel) then
-!!$        !offset, used only for the periodic solver case
-!!$        if(ixc==0) offset=potential(1,1,1)!-pot_ion(1,1,1)
-!!$        
-!!$        !apply the Poisson Solver (case with distributed potential
-!!$        call PSolver(geocode,'G',0,1,n01,n02,n03,ixc,hx,hy,hz,&
-!!$             rhopot,karray,pot_ion,eh,exc,vxc,offset,.true.,1)
-!!$        
-!!$     end if
-!!$
-!!$     i_all=-product(shape(karray))*kind(karray)
-!!$     deallocate(karray,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'karray','poisson_solver')
-!!$
-!!$     call timing(iproc,'              ','RE')
-!!$
-!!$     if (.not. onlykernel) then
-!!$        !Maximum difference
-!!$        call compare(n01,n02,n03,potential,rhopot,i1_max,i2_max,i3_max,diff_ser)
-!!$
-!!$     print *,'iproc,diff_ser',iproc,diff_ser
-!!$
-!!$        if (iproc==0) then
-!!$           write(*,*) '------------------'
-!!$           write(*,*) 'Serial Calculation'
-!!$           write(*,"(1x,a,3(1pe20.12))") "eht, exc, vxc:",eh,exc,vxc
-!!$           write(*,'(a,3(i0,1x))') '  Max diff at: ',i1_max,i2_max,i3_max
-!!$           write(*,"(1x,a,1pe20.12)") '     Max diff:',diff_ser,&
-!!$                '       result:',rhopot(i1_max,i2_max,i3_max),&
-!!$                '     original:',potential(i1_max,i2_max,i3_max)
-!!$        end if
-!!$
-!!$        !Maximum difference, parallel-serial
-!!$        call compare(n01,n02,ncomp,rhopot(1,1,i3sd+i3xcsh),density(1,1,i3sd+i3xcsh),&
-!!$             i1_max,i2_max,i3_max,max_diff)
-!!$
-!!$     print *,'max_diff,i1_max,i2_max,i3_max,i3s,i3xcsh,n3p',max_diff,i1_max,i2_max,i3_max,&
-!!$          i3s,i3xcsh,n3p
-!!$
-!!$        !extract the max
-!!$        call MPI_ALLREDUCE(max_diff,diff_parser,1,MPI_double_precision,  &
-!!$             MPI_MAX,MPI_COMM_WORLD,ierr)
-!!$
-!!$        if (iproc==0) then
-!!$           write(*,*) '------------------'
-!!$           write(*,'(a,3(i0,1x))')&
-!!$                'difference parallel-serial, at',i1_max,i2_max,i3_max
-!!$           write(*,"(1x,a,1pe12.4)")&
-!!$                '    Max diff:',diff_parser,&
-!!$                '    parallel:',density(i1_max,i2_max,i3_max),&
-!!$                '      serial:',rhopot(i1_max,i2_max,i3_max)
-!!$           write(*,"(1x,a,3(1pe12.4))")&
-!!$                "energy_diffs:",ehartree-eh,eexcu-exc,vexcu-vxc
-!!$        end if
-!!$     end if
-!!$  end if
-!!$  if (iproc==0 .and. .not. onlykernel) then
-!!$
-!!$     call regroup_data(geocode,n01,n02,n03,hx,hy,hz,diff_par,diff_parser)
-!!$
-!!$     i2=i2_max
-!!$     do i3=1,n03
-!!$        do i1=1,n01
-!!$           j1=n1/2+1-abs(n1/2+1-i1)
-!!$           j2=n2/2+1-abs(n2/2+1-i2)
-!!$           j3=n3/2+1-abs(n3/2+1-i3)
-!!$           write(11,*)i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3),&
-!!$                density(i1,i2,i3)
-!!$        end do
-!!$     end do
-!!$     i3=i3_max
-!!$     do i2=1,n02
-!!$        do i1=1,n01
-!!$           j1=n1/2+1-abs(n1/2+1-i1)
-!!$           j2=n2/2+1-abs(n2/2+1-i2)
-!!$           j3=n3/2+1-abs(n3/2+1-i3)
-!!$           write(12,*)i1,i2,rhopot(i1,i2,i3),potential(i1,i2,i3),&
-!!$                density(i1,i2,i3)
-!!$        end do
-!!$     end do
-!!$
-!!$  end if
-!!$
-!!$  if (.not. onlykernel) then
-!!$     i_all=-product(shape(density))*kind(density)
-!!$     deallocate(density,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'density','poisson_solver')
-!!$     i_all=-product(shape(rhopot))*kind(rhopot)
-!!$     deallocate(rhopot,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'rhopot','poisson_solver')
-!!$     i_all=-product(shape(potential))*kind(potential)
-!!$     deallocate(potential,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'potential','poisson_solver')
-!!$     i_all=-product(shape(pot_ion))*kind(pot_ion)
-!!$     deallocate(pot_ion,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'pot_ion','poisson_solver')
-!!$  end if
-!!$
-!!$  !finalize memory counting
-!!$  call memocc(0,0,'count','stop')
-!!$
-!!$  call MPI_FINALIZE(ierr)  
-!!$
-!!$end program PSchk
 
-subroutine regroup_data(geocode,n01,n02,n03,hx,hy,hz,max_diff,diff_parser)
-  implicit none
-  character(len=2), intent(in) :: geocode
-  integer, intent(in) ::n01,n02,n03
-  real(kind=8), intent(in) :: hx,hy,hz,max_diff,diff_parser
-  !local variables
-  character(len=14) :: string
-  real(kind=8) :: tcp1,tcp2,tcm1,tcm2,tk1,tk2,txc1,txc2,pcp,pcm,pk,pxc
-  real(kind=8) :: tcp,tcm,tk,txc,hgrid
-  hgrid=max(hx,hy,hz)
-  if (geocode == 'S') hgrid=hy
-
-  open(unit=60,file='time.par',status='unknown')
-  read(60,*)
-  read(60,*)string,tcp1,tcp2,pcp
-  read(60,*)string,tcm1,tcm2,pcm
-  read(60,*)string,tk1,tk2,pk
-  read(60,*)string,txc1,txc2,pxc
-  close(60)
-  tcp=tcp2
-  tcm=tcm2
-  tk=tk2
-  txc=txc2
-  
-  write(99,'(a2,3(i4),1pe9.2,1pe10.3,4(1pe9.2),4(0pf5.1),1pe9.2)')&
-       geocode,n01,n02,n03,hgrid,max_diff,tcp,tcm,tk,txc,pcp,pcm,pk,pxc,diff_parser
-  
-end subroutine regroup_data
-
-subroutine compare(iproc,nproc,n01,n02,n03,potential,density,i1_max,i2_max,i3_max,max_diff)
+subroutine compare(iproc,nproc,n01,n02,n03,potential,density,i1_max,i2_max,i3_max,max_diff,description)
   implicit none
   include 'mpif.h'
+  character(len=10), intent(in) :: description
   integer, intent(in) :: iproc,nproc,n01,n02,n03
   real(kind=8), dimension(n01,n02,n03), intent(in) :: potential,density
   integer, intent(out) :: i1_max,i2_max,i3_max
@@ -423,12 +313,12 @@ subroutine compare(iproc,nproc,n01,n02,n03,potential,density,i1_max,i2_max,i3_ma
 
   if (iproc == 0) then
      if (nproc == 1) then
-        write(*,'(a,3(i0,1x))') '  Max diff at: ',i1_max,i2_max,i3_max
-        write(unit=*,fmt="(1x,a,1pe20.12)") '    Max diff:',diff_par,&
-             '      result:',density(i1_max,i2_max,i3_max),&
-             '    original:',potential(i1_max,i2_max,i3_max)
+        write(unit=*,fmt="(1x,a,1pe20.12)") trim(description)// '    Max diff:',diff_par
+        !write(unit=*,fmt="(1x,a,1pe20.12)")'      result:',density(i1_max,i2_max,i3_max),&
+        !     '    original:',potential(i1_max,i2_max,i3_max)
+        !write(*,'(a,3(i0,1x))')'  Max diff at: ',i1_max,i2_max,i3_max
      else
-        write(unit=*,fmt="(1x,a,1pe20.12)") '    Max diff:',diff_par
+        write(unit=*,fmt="(1x,a,1pe20.12)") trim(description)//'    Max diff:',diff_par
      end if
   end if
 
@@ -522,14 +412,14 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      by=a
      density(:,:,:) = 0.d0!1d-20 !added
 
-     !plot of the functions used
-     do i1=1,n02
-        x = hx*real(i1-n02/2-1,kind=8)!valid if hy=hz
-        y = hy*real(i1-n02/2-1,kind=8) 
-        call functions(x,ax,bx,fx,fx2,ifx)
-        call functions(y,ay,by,fy,fy2,ify)
-        write(20,*)i1,fx,fx2,fy,fy2
-     end do
+!!$     !plot of the functions used
+!!$     do i1=1,n02
+!!$        x = hx*real(i1-n02/2-1,kind=8)!valid if hy=hz
+!!$        y = hy*real(i1-n02/2-1,kind=8) 
+!!$        call functions(x,ax,bx,fx,fx2,ifx)
+!!$        call functions(y,ay,by,fy,fy2,ify)
+!!$        write(20,*)i1,fx,fx2,fy,fy2
+!!$     end do
 
      !Initialisation of density and potential
      !Normalisation
@@ -543,13 +433,15 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
               x1 = hx*real(i1-n02/2-1,kind=8)
               call functions(x1,ax,bx,fx,fx2,ifx)
               density(i1,i2,i3) = fx2*fy*fz+fx*fy2*fz+fx*fy*fz2
-              denval=max(denval,-density(i1,i2,i3))
-              potential(i1,i2,i3) = fx*fy*fz
+              !density(i1,i2,i3) = max(abs(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2),1.d-24)
+              !if (abs(density(i1,i2,i3)) < 1.d-20) density(i1,i2,i3)=1.d-20
+              !denval=max(denval,-density(i1,i2,i3))
+              potential(i1,i2,i3) = -fx*fy*fz*16.d0*datan(1.d0)
            end do
         end do
      end do
 
-     if (ixc==0) denval=0.d0
+     !if (ixc==0) denval=0.d0
 
   else if (trim(geocode) == 'F') then
 
@@ -569,7 +461,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            do i1=1,n01
               x1 = hx*real(i1-n01/2,kind=8)
               r2 = x1*x1+x2*x2+x3*x3
-              density(i1,i2,i3) = factor*exp(-r2/a2)
+              density(i1,i2,i3) = max(factor*exp(-r2/a2),1d-24)
               r = sqrt(r2)
               !Potential from a gaussian
               if (r == 0.d0) then

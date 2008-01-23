@@ -10,7 +10,7 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
   type(input_variables), intent(inout) :: in
   type(wavefunctions_descriptors), intent(inout) :: wfd
   character(len=20), dimension(100), intent(in) :: atomnames
-  logical, dimension(ntypes), intent(in) :: lfrztyp
+  logical, dimension(nat), intent(in) :: lfrztyp
   integer, dimension(nat), intent(in) :: iatype
   real(kind=8), dimension(3,nat), intent(inout) :: wpos
   real(kind=8), dimension(3,nat), intent(out) :: rxyz_old,gg
@@ -70,7 +70,7 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
   !C line minimize along hh ----
 
   do iat=1,nat
-     if (lfrztyp(iatype(iat))) then
+     if (lfrztyp(iat)) then
         tpos(1,iat)=wpos(1,iat)
         tpos(2,iat)=wpos(2,iat)
         tpos(3,iat)=wpos(3,iat)
@@ -115,7 +115,7 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
      tpos(1,iat)=wpos(1,iat)
      tpos(2,iat)=wpos(2,iat)
      tpos(3,iat)=wpos(3,iat)
-     if ( .not. lfrztyp(iatype(iat))) then
+     if ( .not. lfrztyp(iat)) then
         wpos(1,iat)=wpos(1,iat)+beta*hh(1,iat)
         wpos(2,iat)=wpos(2,iat)+beta*hh(2,iat)
         wpos(3,iat)=wpos(3,iat)+beta*hh(3,iat)
@@ -173,7 +173,7 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
 
   endif
   etotprec=etot
-  if (iproc.eq.0) call wtposout(ncount_cluster,etot,nat,wpos,atomnames,iatype)
+  if (iproc.eq.0) call wtposout(ncount_cluster,etot,nat,wpos,atomnames,lfrztyp,iatype)
   !if (iproc.eq.0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_cluster,etot,sqrt(fnrm)
   fluctoo=flucto
   flucto=fluct
@@ -190,7 +190,7 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
      obeny=obeny+(gg(2,iat)-gp(2,iat))*gg(2,iat)
      obenz=obenz+(gg(3,iat)-gp(3,iat))*gg(3,iat)
      unten=unten+gp(1,iat)**2+gp(2,iat)**2+gp(3,iat)**2
-     if (.not. lfrztyp(iatype(iat))) then
+     if (.not. lfrztyp(iat)) then
         fnrm=fnrm+gg(1,iat)**2+gg(2,iat)**2+gg(3,iat)**2
         forcemax=max(forcemax,abs(gg(1,iat)),abs(gg(2,iat)),abs(gg(3,iat)))
      end if
@@ -279,7 +279,7 @@ contains
     implicit integer (i-n)
     logical :: parallel
     integer :: iatype(nat)
-    logical :: lfrztyp(ntypes)
+    logical :: lfrztyp(nat)
     type(input_variables) :: in
     type(wavefunctions_descriptors) :: wfd
     character(len=20) :: atomnames(100)
@@ -356,7 +356,7 @@ contains
     t3=0.d0
     forcemax=0.d0
     do iat=1,nat
-       if (.not. lfrztyp(iatype(iat))) then
+       if (.not. lfrztyp(iat)) then
           t1=t1+ff(1,iat)**2 
           t2=t2+ff(2,iat)**2 
           t3=t3+ff(3,iat)**2
@@ -386,7 +386,7 @@ contains
     endif
     if (iproc.eq.0) then 
        write(16,'(i5,1x,e12.5,1x,e21.14,a)') itsd,sqrt(fnrm),etot,' SD '
-       call wtposout(ncount_cluster,etot,nat,wpos,atomnames,iatype)
+       call wtposout(ncount_cluster,etot,nat,wpos,atomnames,lfrztyp,iatype)
        !write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'SD ',ncount_cluster,etot,sqrt(fnrm)
     end if
 
@@ -439,7 +439,7 @@ contains
        tpos(1,iat)=wpos(1,iat)
        tpos(2,iat)=wpos(2,iat)
        tpos(3,iat)=wpos(3,iat)
-       if ( .not. lfrztyp(iatype(iat))) then
+       if ( .not. lfrztyp(iat)) then
           wpos(1,iat)=wpos(1,iat)+beta*ff(1,iat)
           wpos(2,iat)=wpos(2,iat)+beta*ff(2,iat)
           wpos(3,iat)=wpos(3,iat)+beta*ff(3,iat)
@@ -464,7 +464,7 @@ contains
     implicit integer (i-n)
     logical :: parallel
     integer :: iatype(nat)
-    logical :: lfrztyp(ntypes)
+    logical :: lfrztyp(nat)
     type(input_variables) :: in
     type(wavefunctions_descriptors) :: wfd
     character(len=20) :: atomnames(100)
@@ -507,7 +507,7 @@ contains
        t2=beta0*ff(2,iat)
        t3=beta0*ff(3,iat)
        sum=sum+t1**2+t2**2+t3**2
-       if (.not. lfrztyp(iatype(iat))) then
+       if (.not. lfrztyp(iat)) then
           pos(1,iat)=pos(1,iat)+t1
           pos(2,iat)=pos(2,iat)+t2
           pos(3,iat)=pos(3,iat)+t3
@@ -536,7 +536,7 @@ contains
        goto 100
     endif
     do iat=1,nat
-       if (lfrztyp(iatype(iat))) then
+       if (lfrztyp(iat)) then
           tpos(1,iat)=pos(1,iat)
           tpos(2,iat)=pos(2,iat)
           tpos(3,iat)=pos(3,iat)
@@ -567,7 +567,7 @@ contains
        beta=min(beta,.5d0/der2)
     endif
     do iat=1,nat
-       if ( .not. lfrztyp(iatype(iat))) then
+       if ( .not. lfrztyp(iat)) then
           pos(1,iat)=pos(1,iat)+tt*ff(1,iat)
           pos(2,iat)=pos(2,iat)+tt*ff(2,iat)
           pos(3,iat)=pos(3,iat)+tt*ff(3,iat)
@@ -598,12 +598,13 @@ contains
 
 end subroutine conjgrad
 
-subroutine wtposout(igeostep,energy,nat,rxyz,atomnames,iatype)
+subroutine wtposout(igeostep,energy,nat,rxyz,atomnames,lfrztyp,iatype)
 
   implicit none
   integer, intent(in) :: igeostep,nat
   real(kind=8), intent(in) :: energy
   character(len=20), dimension(100), intent(in) :: atomnames(100)
+  logical, dimension(nat), intent(in) :: lfrztyp
   integer, dimension(nat), intent(in) :: iatype
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   !local variables
@@ -639,7 +640,13 @@ filename = 'posout_'//fn//'.xyz'
         suffix=name(3:5)
      end if
      !write(9,'(3(1x,e21.14),2x,a10)') (rxyz(j,iat),j=1,3),atomnames(iatype(iat))
-     write(9,'(a2,4x,3(1x,1pe21.14),2x,a3)')symbol,(rxyz(j,iat),j=1,3),suffix
+     !write(9,'(a2,4x,3(1x,1pe21.14),2x,a3)')symbol,(rxyz(j,iat),j=1,3),suffix
+     !takes into account the blocked atoms
+     if (lfrztyp(iat)) then
+        write(9,'(a2,4x,3(1x,1pe21.14),2x,a4)')symbol,(rxyz(j,iat),j=1,3),'   f'
+     else
+        write(9,'(a2,4x,3(1x,1pe21.14),2x,a4)')symbol,(rxyz(j,iat),j=1,3)
+     end if
   enddo
   close(unit=9)
 

@@ -24,9 +24,11 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
   integer :: ierr
   real(kind=8) :: rx,ry,rz,anorm,coeff,const0,const1
   real(kind=8) :: exponent,coefficient,scpr,ek,tt,ovrlp,normdev
-  integer, dimension(:), allocatable :: lx,ly,lz,nshell,iorbtmp,iw
+  integer, dimension(nterm_max) :: lx,ly,lz
+  real(kind=8), dimension(nterm_max) :: fac_arr
+  integer, dimension(:), allocatable :: nshell,iorbtmp,iw
   integer, dimension(:,:), allocatable :: nam,ndoc
-  real(kind=8), dimension(:), allocatable :: fac_arr,psiatn,xp,tpsi,ctmp,rw
+  real(kind=8), dimension(:), allocatable :: psiatn,xp,tpsi,ctmp,rw
   real(kind=8), dimension(:,:,:), allocatable :: contcoeff,expo
   real(kind=8), dimension(:,:,:,:), allocatable :: cimu
 
@@ -304,15 +306,6 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
      write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
   end if
 
-  allocate(lx(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(lx))*kind(lx),'lx','gautowav')
-  allocate(ly(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(ly))*kind(ly),'ly','gautowav')
-  allocate(lz(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(lz))*kind(lz),'lz','gautowav')
-  allocate(fac_arr(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(fac_arr))*kind(fac_arr),'fac_arr','gautowav')
-
   allocate(psiatn(ngx),stat=i_stat)
   call memocc(i_stat,product(shape(psiatn))*kind(psiatn),'psiatn','gautowav')
   allocate(xp(ngx),stat=i_stat)
@@ -414,19 +407,6 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
   i_all=-product(shape(cimu))*kind(cimu)
   deallocate(cimu,stat=i_stat)
   call memocc(i_stat,i_all,'cimu','gautowav')
-
-  i_all=-product(shape(lx))*kind(lx)
-  deallocate(lx,stat=i_stat)
-  call memocc(i_stat,i_all,'lx','gautowav')
-  i_all=-product(shape(ly))*kind(ly)
-  deallocate(ly,stat=i_stat)
-  call memocc(i_stat,i_all,'ly','gautowav')
-  i_all=-product(shape(lz))*kind(lz)
-  deallocate(lz,stat=i_stat)
-  call memocc(i_stat,i_all,'lz','gautowav')
-  i_all=-product(shape(fac_arr))*kind(fac_arr)
-  deallocate(fac_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'fac_arr','gautowav')
 
   i_all=-product(shape(xp))*kind(xp)
   deallocate(xp,stat=i_stat)

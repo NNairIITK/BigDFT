@@ -134,17 +134,18 @@ subroutine print_input_parameters(in)
 end subroutine print_input_parameters
 
 ! read atomic positions
-subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,rxyz)
+subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,lfrztyp,rxyz)
   implicit none
   character(len=20), intent(in) :: units
   integer, intent(in) :: iproc,ifile,nat
   integer, intent(out) :: ntypes
   character(len=20), dimension(100), intent(out) :: atomnames
+  logical, dimension(nat), intent(out) :: lfrztyp
   integer, dimension(nat), intent(out) :: iatype
   real(kind=8), dimension(3,nat), intent(out) :: rxyz
   !local variables
+  character(len=1) :: suffix
   character(len=2) :: symbol
-  character(len=3) :: suffix
   character(len=20) :: tatonam
   character(len=100) :: line
   integer :: nateq,iat,jat,ityp,i,ierror,ierrsfx
@@ -153,6 +154,10 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,r
   real(kind=4) :: rx,ry,rz
 
   if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',nat
+
+  !this array is useful for frozen atoms
+  !no atom is frozen by default
+  lfrztyp(:)=.false.
 
   !read from positions of .xyz format, but accepts also the old .ascii format
   read(ifile,'(a100)')line
@@ -167,11 +172,21 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,r
         read(ifile,'(a100)')line 
         read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,suffix
         if (ierrsfx ==0) then
-           tatonam=trim(symbol)//'_'//trim(suffix)
+           !tatonam=trim(symbol)//'_'//trim(suffix)
+           if (suffix == 'f') then
+              !the atom is considered as blocked
+              lfrztyp(iat)=.true.
+           else
+              if (iproc == 0) then
+                 print *,suffix
+                 write(*,'(1x,a,i0,a)')'ERROR in input file for atom number ',iat,': the only value accepted in 4th column is "f"'
+                 stop
+              end if
+           end if
         else
            read(line,*)symbol,rx,ry,rz
-           tatonam=trim(symbol)
         end if
+        tatonam=trim(symbol)
      end if
      rxyz(1,iat)=real(rx,kind=8)
      rxyz(2,iat)=real(ry,kind=8)
@@ -237,6 +252,13 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,r
           write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ',trim(atomnames(ityp))
   enddo
 
+  do iat=1,nat
+     if (iproc.eq.0 .and. lfrztyp(iat)) &
+          write(*,'(1x,a,i0,a,a)') 'FIXED Atom N.:',iat,', Name: ',trim(atomnames(iatype(iat)))
+  enddo
+
+  !print 
+
 end subroutine read_atomic_positions
 
 
@@ -263,7 +285,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spina
         spinar(iorb)=-1.0d0
      end do
   end if
-!  write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinar(iorb),iorb=1,norb)
+! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinar(iorb),iorb=1,norb)
 
 ! First fill the occupation numbers by default
   nt=0
@@ -370,10 +392,10 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spina
 
 end subroutine input_occup
 
-subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,hgrid,atomnames,iatype,&
+subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,hgrid,atomnames,iatype,&
      psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
   implicit none
-  integer, intent(in) :: iproc,nproc,nat,ntypes,nspin,ncharge,mpol
+  integer, intent(in) :: iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc
   real(kind=8), intent(in) :: hgrid
   character(len=20), dimension(ntypes), intent(in) :: atomnames
   integer, dimension(nat), intent(in) :: iatype
@@ -386,8 +408,11 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,hgrid
   logical :: exists
   character(len=2) :: symbol
   character(len=27) :: filename
-  integer :: i,j,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all
+  character(len=50) :: format
+  integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp
   real(kind=8) :: rcov,rprb,ehomo,radfine,tt,minrad
+  real(kind=8), dimension(3,3) :: hij
+  real(kind=8), dimension(2,2,3) :: offdiagarr
   integer, dimension(:,:), allocatable :: neleconf
 
   if (iproc == 0) then
@@ -410,7 +435,13 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,hgrid
      end if
      read(11,*)
      read(11,*) nzatom(ityp),nelpsp(ityp)
-     read(11,*) npspcode(ityp)
+     read(11,*) npspcode(ityp),ixcpsp
+     !control if the PSP is calculated with the same XC value
+     if (ixcpsp /= ixc .and. iproc==0) then
+        write(*,'(1x,a)')        'WARNING: The pseudopotential file "'//trim(filename)//'"'
+        write(*,'(1x,a,i0,a,i0)')'         contains a PSP generated with an XC id=',&
+             ixcpsp,' while for this run ixc=',ixc
+     end if
      psppar(:,:,ityp)=0.d0
      if (npspcode(ityp) == 2) then !GTH case
         read(11,*) (psppar(0,j,ityp),j=0,4)
@@ -482,11 +513,92 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,hgrid
        end do
        !control whether the grid spacing is too high or not
        if (iproc == 0 .and. hgrid > 2.5d0*minrad) then
-          write(*,'(1x,a)')'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
-          write(*,'(1x,a,f5.2,a)')'         Results can be meaningless if hgrid is bigger than',2.5d0*minrad,'. At your own risk!'
+          write(*,'(1x,a)')&
+               'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
+          write(*,'(1x,a,f5.2,a)')&
+               '         Results can be meaningless if hgrid is bigger than',2.5d0*minrad,'. At your own risk!'
        end if
 
     enddo
+
+    !print the pseudopotential matrices
+    if (iproc == 0) then
+       do l=1,3
+          do i=1,2
+             do j=i+1,3
+                  offdiagarr(i,j-i,l)=0.d0
+                if (l==1) then
+                   if (i==1) then
+                      if (j==2)   offdiagarr(i,j-i,l)=-0.5d0*sqrt(3.d0/5.d0)
+                      if (j==3)   offdiagarr(i,j-i,l)=0.5d0*sqrt(5.d0/21.d0)
+                   else
+                        offdiagarr(i,j-i,l)=-0.5d0*sqrt(100.d0/63.d0)
+                   end if
+                else if (l==2) then
+                   if (i==1) then
+                      if (j==2)   offdiagarr(i,j-i,l)=-0.5d0*sqrt(5.d0/7.d0)
+                      if (j==3)   offdiagarr(i,j-i,l)=1.d0/6.d0*sqrt(35.d0/11.d0)
+                   else
+                        offdiagarr(i,j-i,l)=-7.d0/3.d0*sqrt(1.d0/11.d0)
+                   end if
+                else if (l==3) then
+                   if (i==1) then
+                      if (j==2)   offdiagarr(i,j-i,l)=-0.5d0*sqrt(7.d0/9.d0)
+                      if (j==3)   offdiagarr(i,j-i,l)=0.5d0*sqrt(63.d0/143.d0)
+                   else
+                        offdiagarr(i,j-i,l)=-9.d0*sqrt(1.d0/143.d0)
+                   end if
+                end if
+             end do
+          end do
+       end do
+
+       write(*,'(1x,a)')&
+            '------------------------------------ Pseudopotential coefficients (Upper Triangular)'
+        do ityp=1,ntypes
+        write(*,'(1x,a)')&
+          'Atom Name    rloc      C1        C2        C3        C4  '
+           do l=0,3
+              do i=4,0,-1
+                 j=i
+                 if (psppar(l,i,ityp) /= 0.d0) exit
+              end do
+              if (l==0) then
+                 write(*,'(3x,a6,5(1x,f9.5))')&
+                      trim(atomnames(ityp)),(psppar(l,i,ityp),i=0,j)
+              else
+                 if (j /=0) then
+                    write(*,'(1x,a,i0,a)')&
+                         '    l=',l-1,' '//'     rl        h1j       h2j       h3j '
+                    hij=0.d0
+                    do i=1,j
+                       hij(i,i)=psppar(l,i,ityp)
+                    end do
+                    if (npspcode(ityp) == 3) then !traditional HGH convention
+                       hij(1,2)=offdiagarr(1,1,l)*psppar(l,2,ityp)
+                       hij(1,3)=offdiagarr(1,2,l)*psppar(l,3,ityp)
+                       hij(2,3)=offdiagarr(2,1,l)*psppar(l,3,ityp)
+                    else if (npspcode(ityp) == 10) then !HGH-K convention
+                       hij(1,2)=psppar(l,4,ityp)
+                       hij(1,3)=psppar(l,5,ityp)
+                       hij(2,3)=psppar(l,6,ityp)
+                    end if
+                    do i=1,j
+                       if (i==1) then
+                          write(format,'(a,2(i0,a))')"(9x,(1x,f9.5),",j,"(1x,f9.5))"
+                          write(*,format)psppar(l,0,ityp),(hij(i,k),k=i,j)
+                       else
+                          write(format,'(a,2(i0,a))')"(19x,",i-1,"(10x),",j-i+1,"(1x,f9.5))"
+                          write(*,format)(hij(i,k),k=i,j)
+                       end if
+
+                    end do
+                 end if
+              end if
+           end do
+        end do
+    end if
+    
 
     !deallocation
     i_all=-product(shape(neleconf))*kind(neleconf)
@@ -590,24 +702,33 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,hgrid
 end subroutine read_system_variables
 
 
-subroutine system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
-       alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
-  ! calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
+subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
+     iatype,atomnames,alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
+  !calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
   !and shifts the atoms such that their position is the most symmetric possible
   implicit none
+  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nat,ntypes
-  real(kind=8), intent(in) :: hgrid,crmult,frmult
+  real(kind=8), intent(in) :: crmult,frmult
   character(len=20), dimension(ntypes), intent(in) :: atomnames
   integer, dimension(nat), intent(in) :: iatype
   real(kind=8), dimension(3,nat), intent(inout) :: rxyz
   real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
-  integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
-  real(kind=8), intent(out) :: alat1,alat2,alat3
+  integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
+  real(kind=8), intent(inout) :: hx,hy,hz,alat1,alat2,alat3
   !local variables
   real(kind=8), parameter ::eps_mach=1.d-12,onem=1.d0-eps_mach
   integer :: iat,j
   real(kind=8) :: rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
 
+  !check the geometry code with the grid spacings
+  if (geocode == 'F' .and. (hx/=hy .or. hx/=hz .or. hy/=hz)) then
+     write(*,'(1x,a)')'ERROR: The values of the grid spacings must be equal in the Free BC case'
+     stop
+  end if
+
+
+  !calculate the extremes of the boxes taking into account the spheres arount the atoms
   cxmax=-1.d10 ; cxmin=1.d10
   cymax=-1.d10 ; cymin=1.d10
   czmax=-1.d10 ; czmin=1.d10
@@ -626,28 +747,69 @@ subroutine system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype
   cymin=cymin-eps_mach
   czmin=czmin-eps_mach
 
-  alat1=(cxmax-cxmin)
-  alat2=(cymax-cymin)
-  alat3=(czmax-czmin)
 
-  ! grid sizes n1,n2,n3
-  n1=int(alat1/hgrid)
-  !if (mod(n1+1,4).eq.0) n1=n1+1
-  n2=int(alat2/hgrid)
-  !if (mod(n2+1,8).eq.0) n2=n2+1
-  n3=int(alat3/hgrid)
-  alatrue1=real(n1,kind=8)*hgrid 
-  alatrue2=real(n2,kind=8)*hgrid 
-  alatrue3=real(n3,kind=8)*hgrid
+  !define the box sizes for free BC, and calculate dimensions for the fine grid with ISF
+  if (geocode == 'F') then
+     alat1=(cxmax-cxmin)
+     alat2=(cymax-cymin)
+     alat3=(czmax-czmin)
+
+     ! grid sizes n1,n2,n3
+     n1=int(alat1/hx)
+     n2=int(alat2/hy)
+     n3=int(alat3/hz)
+     alatrue1=real(n1,kind=8)*hx
+     alatrue2=real(n2,kind=8)*hy
+     alatrue3=real(n3,kind=8)*hz
+
+     n1i=2*n1+31
+     n2i=2*n2+31
+     n3i=2*n3+31
+
+  else if (geocode == 'P') then !define the grid spacings, controlling the FFT compatibility
+     call correct_grid(alat1,hx,n1)
+     call correct_grid(alat2,hy,n2)
+     call correct_grid(alat3,hz,n3)
+     alatrue1=(cxmax-cxmin)
+     alatrue2=(cymax-cymin)
+     alatrue3=(czmax-czmin)
+
+     n1i=2*n1+2
+     n2i=2*n2+2
+     n3i=2*n3+2
+
+  else if (geocode == 'S') then
+     call correct_grid(alat1,hx,n1)
+     alat2=(cymax-cymin)
+     call correct_grid(alat3,hz,n3)
+
+     alatrue1=(cxmax-cxmin)
+     alat2=(cymax-cymin)
+     n2=int(alat2/hy)
+     alatrue2=real(n2,kind=8)*hy
+     alatrue3=(czmax-czmin)
+
+     n1i=2*n1+2
+     n2i=2*n1+31
+     n3i=2*n1+2
+
+  end if
+
+
 
   !balanced shift taking into account the missing space
   cxmin=cxmin+0.5d0*(alat1-alatrue1)
   cymin=cymin+0.5d0*(alat2-alatrue2)
   czmin=czmin+0.5d0*(alat3-alatrue3)
 
-  alat1=alatrue1
-  alat2=alatrue2
-  alat3=alatrue3
+  !correct the box sizes for the isolated case
+  if (geocode == 'F') then
+     alat1=alatrue1
+     alat2=alatrue2
+     alat3=alatrue3
+  else if (geocode == 'S') then
+     alat2=alatrue2
+  end if
 
   do iat=1,nat
      rxyz(1,iat)=rxyz(1,iat)-cxmin
@@ -655,56 +817,40 @@ subroutine system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype
      rxyz(3,iat)=rxyz(3,iat)-czmin
   enddo
 
-!!$! grid sizes n1,n2,n3 !added for testing purposes
-!!$  n1=int(alat1/hgrid)
-!!$  if (mod(n1,2).eq.0) n1=n1+1
-!!$  n2=int(alat2/hgrid)
-!!$  if (mod(n2,2).eq.0) n2=n2+1
-!!$  n3=int(alat3/hgrid)
-!!$  if (mod(n3,2).eq.0) n3=n3+1
-!!$  alat1=n1*hgrid 
-!!$  alat2=n2*hgrid 
-!!$  alat3=n3*hgrid
-!!$  do iat=1,nat
-!!$     rxyz(1,iat)=(real(n1/2,kind=8)+0.5)*hgrid 
-!!$     rxyz(2,iat)=(real(n1/2,kind=8)+0.5)*hgrid 
-!!$     rxyz(3,iat)=(real(n1/2,kind=8)+0.5)*hgrid 
-!!$  enddo
-
   ! fine grid size (needed for creation of input wavefunction, preconditioning)
   nfl1=n1 ; nfl2=n2 ; nfl3=n3
   nfu1=0 ; nfu2=0 ; nfu3=0
   do iat=1,nat
      rad=radii_cf(iatype(iat),2)*frmult
-     nfl1=min(nfl1,ceiling((rxyz(1,iat)-rad)/hgrid - eps_mach))
-     nfu1=max(nfu1,floor((rxyz(1,iat)+rad)/hgrid + eps_mach))
+     nfl1=min(nfl1,ceiling((rxyz(1,iat)-rad)/hx - eps_mach))
+     nfu1=max(nfu1,floor((rxyz(1,iat)+rad)/hx + eps_mach))
 
-     nfl2=min(nfl2,ceiling((rxyz(2,iat)-rad)/hgrid - eps_mach))
-     nfu2=max(nfu2,floor((rxyz(2,iat)+rad)/hgrid + eps_mach))
+     nfl2=min(nfl2,ceiling((rxyz(2,iat)-rad)/hy - eps_mach))
+     nfu2=max(nfu2,floor((rxyz(2,iat)+rad)/hy + eps_mach))
 
-     nfl3=min(nfl3,ceiling((rxyz(3,iat)-rad)/hgrid - eps_mach)) 
-     nfu3=max(nfu3,floor((rxyz(3,iat)+rad)/hgrid + eps_mach))
-
-!!$     nfl1=min(nfl1,int(onem+(rxyz(1,iat)-rad)/hgrid))
-!!$     nfu1=max(nfu1,int((rxyz(1,iat)+rad)/hgrid))
-!!$
-!!$     nfl2=min(nfl2,int(onem+(rxyz(2,iat)-rad)/hgrid))
-!!$     nfu2=max(nfu2,int((rxyz(2,iat)+rad)/hgrid))
-!!$
-!!$     nfl3=min(nfl3,int(onem+(rxyz(3,iat)-rad)/hgrid)) 
-!!$     nfu3=max(nfu3,int((rxyz(3,iat)+rad)/hgrid))
-
+     nfl3=min(nfl3,ceiling((rxyz(3,iat)-rad)/hz - eps_mach)) 
+     nfu3=max(nfu3,floor((rxyz(3,iat)+rad)/hz + eps_mach))
   enddo
+
+  !correct the values of the delimiter if they go outside the box
+  if (nfl1 < 0) nfl1=0
+  if (nfl2 < 0) nfl2=0
+  if (nfl3 < 0) nfl3=0
+
+  if (nfu1 > n1) nfl1=n1
+  if (nfu2 > n2) nfl2=n2
+  if (nfu3 > n3) nfl3=n3
+
 
   if (iproc.eq.0) then
      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
      do iat=1,nat
         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5),3x,3(1x,0pf9.3))') &
              iat,trim(atomnames(iatype(iat))),&
-             (rxyz(j,iat),j=1,3),rxyz(1,iat)/hgrid,rxyz(2,iat)/hgrid,rxyz(3,iat)/hgrid
+             (rxyz(j,iat),j=1,3),rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz
      enddo
-     write(*,'(1x,a,3(1x,1pe12.5))') &
-          '   Shift of=',-cxmin,-cymin,-czmin
+     write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf5.2))') &
+          '   Shift of=',-cxmin,-cymin,-czmin,' Grid Spacings=',hx,hy,hz
      write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
           '  Box Sizes=',alat1,alat2,alat3,n1,n2,n3
      write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
@@ -713,3 +859,27 @@ subroutine system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype
   endif
 
 end subroutine system_size
+
+subroutine correct_grid(a,h,n)
+  use Poisson_Solver
+  implicit none
+  real(kind=8), intent(in) :: a
+  integer, intent(inout) :: n
+  real(kind=8), intent(inout) :: h
+  !local variables
+  integer :: m
+
+  n=int(a/h)
+  m=2*n+2
+  do 
+     call fourier_dim(m,m)
+     if ((m/2)*2==m) then
+        n=(m-2)/2
+        exit
+     else
+        m=m+1
+     end if
+  end do
+  h=a/real(n,kind=8)
+  
+end subroutine correct_grid
