@@ -1,21 +1,21 @@
-subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
-     rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid,nspin,peakmem)
+subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
+     iatype,rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid,nspin,peakmem)
 
   use Poisson_Solver
 
   implicit none
   !Arguments
+  character(len=1), intent(in) :: geocode
   logical, intent(in) :: output_grid
   integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin
   integer, dimension(nat), intent(in) :: iatype
   character(len=20), dimension(100), intent(in) :: atomnames
-  real(kind=8), intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
+  real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(ntypes,2), intent(in) ::  radii_cf
   real(kind=8), intent(out) :: peakmem
   !local variables
   real(kind=8), parameter :: eps_mach=1.d-12
-  character(len=1) :: geocode
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f,norbp,nvctrp,i_all,i_stat
   integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,iat,i1,i2,i3
   real(kind=8) :: omemwf,omemker,omemden,omempot
@@ -29,13 +29,13 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
   call memocc(i_stat,product(shape(logrid_f))*kind(logrid_f),'logrid_f','memoryestimator')
 
   ! coarse grid quantities
-  call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
-       radii_cf(1,1),crmult,hgrid,logrid_c)
+  call fill_logrid(geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
+       radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,nseg_c,nvctr_c)
 
   ! fine grid quantities
-  call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
-       radii_cf(1,2),frmult,hgrid,logrid_f)
+  call fill_logrid(geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
+       radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,nseg_f,nvctr_f)
 
 ! Create the file grid.xyz to visualize the grid of functions
@@ -52,7 +52,7 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
            do i1=0,n1
               if (logrid_c(i1,i2,i3))&
                    write(22,'(a4,2x,3(1x,e10.3))') &
-                   '  g ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
+                   '  g ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
            enddo
         enddo
      end do
@@ -61,7 +61,7 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
            do i1=0,n1
               if (logrid_f(i1,i2,i3))&
                    write(22,'(a4,2x,3(1x,e10.3))') &
-                   '  G ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
+                   '  G ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
            enddo
         enddo
      enddo
@@ -84,8 +84,6 @@ subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntype
   !wavefunction memory per orbitals
   omemwf=real(nvctrp*nproc*8,kind=8)
   
-  geocode='F'
-
   if (geocode == 'P') then
      call F_FFT_dimensions(n1,n2,n3,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
      n01=n1

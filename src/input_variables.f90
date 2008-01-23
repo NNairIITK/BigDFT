@@ -703,7 +703,7 @@ end subroutine read_system_variables
 
 
 subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
-     iatype,atomnames,alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
+     iatype,atomnames,alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
   !calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
   !and shifts the atoms such that their position is the most symmetric possible
   implicit none
@@ -714,7 +714,7 @@ subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,h
   integer, dimension(nat), intent(in) :: iatype
   real(kind=8), dimension(3,nat), intent(inout) :: rxyz
   real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
-  integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
+  integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
   real(kind=8), intent(inout) :: hx,hy,hz,alat1,alat2,alat3
   !local variables
   real(kind=8), parameter ::eps_mach=1.d-12,onem=1.d0-eps_mach
@@ -748,7 +748,7 @@ subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,h
   czmin=czmin-eps_mach
 
 
-  !define the box sizes for free BC
+  !define the box sizes for free BC, and calculate dimensions for the fine grid with ISF
   if (geocode == 'F') then
      alat1=(cxmax-cxmin)
      alat2=(cymax-cymin)
@@ -761,6 +761,11 @@ subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,h
      alatrue1=real(n1,kind=8)*hx
      alatrue2=real(n2,kind=8)*hy
      alatrue3=real(n3,kind=8)*hz
+
+     n1i=2*n1+31
+     n2i=2*n2+31
+     n3i=2*n3+31
+
   else if (geocode == 'P') then !define the grid spacings, controlling the FFT compatibility
      call correct_grid(alat1,hx,n1)
      call correct_grid(alat2,hy,n2)
@@ -768,6 +773,11 @@ subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,h
      alatrue1=(cxmax-cxmin)
      alatrue2=(cymax-cymin)
      alatrue3=(czmax-czmin)
+
+     n1i=2*n1+2
+     n2i=2*n2+2
+     n3i=2*n3+2
+
   else if (geocode == 'S') then
      call correct_grid(alat1,hx,n1)
      alat2=(cymax-cymin)
@@ -779,7 +789,12 @@ subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,h
      alatrue2=real(n2,kind=8)*hy
      alatrue3=(czmax-czmin)
 
+     n1i=2*n1+2
+     n2i=2*n1+31
+     n3i=2*n1+2
+
   end if
+
 
 
   !balanced shift taking into account the missing space
@@ -834,8 +849,8 @@ subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,h
              iat,trim(atomnames(iatype(iat))),&
              (rxyz(j,iat),j=1,3),rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz
      enddo
-     write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf9.3))') &
-          '   Shift of=',-cxmin,-cymin,-czmin,' Grid spacings=',hx,hy,hz
+     write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf5.2))') &
+          '   Shift of=',-cxmin,-cymin,-czmin,' Grid Spacings=',hx,hy,hz
      write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
           '  Box Sizes=',alat1,alat2,alat3,n1,n2,n3
      write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
