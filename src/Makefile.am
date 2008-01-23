@@ -158,7 +158,7 @@ $(high_level:.f90=.o) : types.o
 mpif.h:
 	touch mpif.h &&\
 	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
-	 echo "integer :: MPI_DOUBLE_PRECISION" >> mpif.h &&\
+	 echo "integer :: MPI_DOUBLE_PRECISION, MPI_INTEGER" >> mpif.h &&\
 	 echo "integer :: MPI_MIN, MPI_MAX" >> mpif.h
 
 test_forces.o: parameters.h \
