@@ -1,11 +1,12 @@
-subroutine createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,hgrid,&
-     elecfield,n1,n2,n3,n3pi,i3s,pkernel,pot_ion,eion)
+subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,&
+     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion)
 
   use Poisson_Solver
   
   implicit none
-  integer, intent(in) :: iproc,nproc,nat,ntypes,n1,n2,n3,n3pi,i3s
-  real(kind=8), intent(in) :: hgrid,elecfield
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: iproc,nproc,nat,ntypes,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+  real(kind=8), intent(in) :: hxh,hyh,hzh,elecfield
   integer, dimension(nat), intent(in) :: iatype
   integer, dimension(ntypes), intent(in) :: nelpsp
   real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
@@ -16,6 +17,7 @@ subroutine createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz
   !local variables
   real(kind=8) :: hgridh,ehart,eexcu,vexcu
   integer :: nspin
+  call timing(iproc,'CrtLocPot     ','ON')
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -23,42 +25,56 @@ subroutine createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz
   end if
 
   nspin=1
-  hgridh=0.5d0*hgrid
 
   ! Precalculate ionic potential from PSP charge densities and local Gaussian terms
-  call input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
-       & nelpsp,n1,n2,n3,n3pi,i3s,hgrid,pot_ion,eion)
+  call input_rho_ion(geocode,iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
+       & nelpsp,n1,n2,n3,n3pi,i3s,hxh,hyh,hzh,pot_ion,eion)
   if (iproc.eq.0) write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
 
+  call timing(iproc,'CrtLocPot     ','OF')
+
+
   !here the value of the datacode must be kept fixed
-  call PSolver('F','D',iproc,nproc,2*n1+31,2*n2+31,2*n3+31,0,hgridh,hgridh,hgridh,&
+  call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,hxh,hyh,hzh,&
        pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.false.,nspin)
+
+  call timing(iproc,'CrtLocPot     ','ON')
+
 
   !print *,'ehartree',ehart
   if (n3pi > 0) then
      call addlocgauspsp(iproc,ntypes,nat,iatype,rxyz,psppar,&
-          n1,n2,n3,n3pi,i3s,hgrid,pot_ion)
+          n1,n2,n3,n3pi,i3s,hxh,hyh,hzh,pot_ion)
   end if
 
   !use rhopot to calculate the potential from a constant electric field along x direction
   if (elecfield /= 0.d0) then
+     !constant electric field allowed only for free BC
+     if (geocode == 'F') then
+     if (iproc.eq.0) write(*,'(1x,a)') &
+          'The constant electric field is allowed only for Free BC'
+     stop
+     end if
      if (iproc.eq.0) write(*,'(1x,a,1pe10.2)') &
           'Adding constant electric field of intensity',elecfield,&
           'Ha*Bohr'
 
-     if (n3pi > 0) call pot_constantfield(iproc,n1,n2,n3,n3pi,pot_ion,hgrid,elecfield)
+     if (n3pi > 0) call pot_constantfield(iproc,n1,n2,n3,n3pi,pot_ion,hxh,elecfield)
 
   end if
 
+  call timing(iproc,'CrtLocPot     ','OF')
+
 end subroutine createIonicPotential
 
-subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
-     & nelpsp,n1,n2,n3,n3pi,i3s,hgrid,rho,eion)
+subroutine input_rho_ion(geocode,iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
+     & nelpsp,n1,n2,n3,n3pi,i3s,hxh,hyh,hzh,rho,eion)
   !Creates charge density arising from the ionic PSP cores
   implicit none
   include 'mpif.h'
+  logical, intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,ntypes,nat,n1,n2,n3,n3pi,i3s
-  real(kind=8), intent(in) :: hgrid
+  real(kind=8), intent(in) :: hxh,hyh,hzh
   real(kind=8), intent(out) :: eion
   integer, dimension(nat), intent(in) :: iatype
   integer, dimension(ntypes), intent(in) :: nelpsp
@@ -66,14 +82,12 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(*), intent(inout) :: rho
   !local variables
-  integer :: iat,jat,i1,i2,i3,j3,ii,ix,iy,iz,i3start,i3end,ierr,ityp,jtyp,ind,i_all,i_stat
+  integer :: iat,jat,i1,i2,i3,j3,ii1,ii2,ii3,ix,iy,iz,i3start,i3end,ierr,ityp,jtyp
+  integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,n1i,n2i,n3i
   real(kind=8) :: hgridh,pi,rholeaked,dist,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot
   real(kind=8), dimension(:), allocatable :: charges_mpi
   
-  call timing(iproc,'CrtLocPot     ','ON')
-
-  hgridh=hgrid*.5d0 
   pi=4.d0*atan(1.d0)
   ! Ionic charge (must be calculated for the PS active processes)
   rholeaked=0.d0
@@ -92,44 +106,61 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
      enddo
   end do
 
-
   if (n3pi >0 ) then
-     call razero((2*n1+31)*(2*n2+31)*n3pi,rho)
+
+     !conditions for periodicity in the three directions
+     perx=(geocode /= 'F')
+     pery=(geocode == 'P')
+     perz=(geocode /= 'F')
+
+     call ext_buffers(perx,nbl1,nbr1)
+     call ext_buffers(pery,nbl2,nbr2)
+     call ext_buffers(perz,nbl3,nbr3)
+
+     n1i=2*n1+1+nbl1+nbr1
+     n2i=2*n2+1+nbl2+nbr2
+     n3i=2*n3+1+nbl3+nbr3
+
+     call razero(n1i*n2i*n3pi,rho)
 
      do iat=1,nat
         ityp=iatype(iat)
         rx=rxyz(1,iat) 
         ry=rxyz(2,iat)
         rz=rxyz(3,iat)
-        ix=nint(rx/hgridh) 
-        iy=nint(ry/hgridh) 
-        iz=nint(rz/hgridh)
+        ix=nint(rx/hxh) 
+        iy=nint(ry/hyh) 
+        iz=nint(rz/hzh)
 
         rloc=psppar(0,0,ityp)
         charge=real(nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
         cutoff=10.d0*rloc
-        ii=nint(cutoff/hgridh)
+        ii1=nint(cutoff/hxh)
+        ii2=nint(cutoff/hyh)
+        ii3=nint(cutoff/hzh)
 
         !calculate start and end of the distributed pot
-        i3start=max(max(-14,iz-ii),i3s-15)
-        i3end=min(min(2*n3+16,iz+ii),i3s+n3pi-16)
+        i3start=max(max(-nbl3,iz-ii3),i3s-1-nbl3)
+        i3end=min(min(2*n3+1+nbr3,iz+ii3),i3s-1+n3pi-nbr3)
 
-        do i3=iz-ii,iz+ii
-           j3=i3+15-i3s+1
-           do i2=iy-ii,iy+ii
-              do i1=ix-ii,ix+ii
-                 x=real(i1,kind=8)*hgridh-rx
-                 y=real(i2,kind=8)*hgridh-ry
-                 z=real(i3,kind=8)*hgridh-rz
+        !this part should be changed with a modulo, in order to preserve the periodicity
+
+        do i3=iz-ii3,iz+ii3
+           j3=i3+1+nbl3-i3s+1
+           do i2=iy-ii2,iy+ii2
+              do i1=ix-ii1,ix+ii1
+                 x=real(i1,kind=8)*hxh-rx
+                 y=real(i2,kind=8)*hyh-ry
+                 z=real(i3,kind=8)*hzh-rz
                  r2=x**2+y**2+z**2
                  arg=r2/rloc**2
                  xp=exp(-.5d0*arg)
                  if (i3.ge.i3start .and. i3.le.i3end  .and.  & 
-                      i2.ge.-14 .and. i2.le.2*n2+16  .and.  & 
-                      i1.ge.-14 .and. i1.le.2*n1+16 ) then
-                    ind=i1+15+(i2+14)*(2*n1+31)+(j3-1)*(2*n1+31)*(2*n2+31)
+                      i2.ge.-nbl2 .and. i2.le.2*n2+1+nbr2  .and.  & 
+                      i1.ge.-nbl1 .and. i1.le.2*n1+1+nbr1 ) then
+                    ind=i1+1+nbl1+(i2+nbl2)*n1i+(j3-1)*n1i*n2i
                     rho(ind)=rho(ind)-xp*charge
-                 else if (i3.lt.-14 .or. i3.gt.2*n3+16 ) then
+                 else if (i3.lt.-nbl3 .or. i3.gt.2*n3+1+nbr3 ) then
                     rholeaked=rholeaked+xp*charge
                  endif
               enddo
@@ -143,16 +174,16 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
   tt=0.d0
   do j3= 1,n3pi!i3start,i3end
      !j3=i3+15-i3s+1
-     do i2= -14,2*n2+16
-        do i1= -14,2*n1+16
-           ind=i1+15+(i2+14)*(2*n1+31)+(j3-1)*(2*n1+31)*(2*n2+31)
+     do i2= -nbl2,2*n2+1+nbr2
+        do i1= -nbl1,2*n1+1+nbr1
+           ind=i1+1+nbl1+(i2+nbl2)*n1i+(j3-1)*n1i*n2i
            tt=tt+rho(ind)
         enddo
      enddo
   enddo
 
-  tt=tt*hgridh**3
-  rholeaked=rholeaked*hgridh**3
+  tt=tt*hxh*hyh*hzh
+  rholeaked=rholeaked**hxh*hyh*hzh
 
   !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
 
@@ -176,62 +207,67 @@ subroutine input_rho_ion(iproc,nproc,ntypes,nat,iatype,rxyz,psppar, &
   if (iproc.eq.0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
        'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
 
-
-  call timing(iproc,'CrtLocPot     ','OF')
-
 end subroutine input_rho_ion
 
-subroutine pot_constantfield(iproc,n1,n2,n3,n3pi,pot,hgrid,elecfield)
+subroutine ext_buffers(periodic,nl,nr)
+  implicit none
+  logical, intent(in) :: periodic
+  integer, intent(out) :: nl,nr
+
+  if (periodic) then
+     nl=14
+     nr=15
+  else
+     nl=0
+     nr=0
+  end if
+end subroutine ext_buffers
+
+subroutine pot_constantfield(iproc,n1,n2,n3,n3pi,pot,hgridh,elecfield)
   !Creates charge density arising from the ionic PSP cores
   implicit none
   include 'mpif.h'
   integer, intent(in) :: iproc,n1,n2,n3,n3pi
-  real(kind=8), intent(in) :: hgrid,elecfield
+  real(kind=8), intent(in) :: hgridh,elecfield
   real(kind=8), dimension(*), intent(inout) :: pot
   !local variables
   integer :: i1,i2,i3,ind
   
-  call timing(iproc,'CrtLocPot     ','ON')
 
   do i3=1,n3pi
      do i2= -14,2*n2+16
         do i1= -14,2*n1+16
            ind=i1+15+(i2+14)*(2*n1+31)+(i3-1)*(2*n1+31)*(2*n2+31)
-           pot(ind)=pot(ind)+0.25d0*elecfield*hgrid*real(i1-n1,kind=8)
+           pot(ind)=pot(ind)+0.5d0*elecfield*hgridh*real(i1-n1,kind=8)
         enddo
      enddo
   enddo
 
-  call timing(iproc,'CrtLocPot     ','OF')
-
 end subroutine pot_constantfield
 
-
 subroutine addlocgauspsp(iproc,ntypes,nat,iatype,rxyz,psppar,&
-     n1,n2,n3,n3pi,i3s,hgrid,pot)
+     n1,n2,n3,n3pi,i3s,hxh,hyh,hzh,pot)
   ! Add local Gaussian terms of the PSP to pot, where pot is distributed
   implicit none
   integer, intent(in) :: ntypes,nat,n1,n2,n3,n3pi,iproc,i3s
-  real(kind=8), intent(in) :: hgrid
+  real(kind=8), intent(in) :: hxh,hyh,hzh
   integer, dimension(nat), intent(in) :: iatype
   real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(-14:2*n1+16,-14:2*n2+16,n3pi), intent(inout) :: pot
   !local variables
-  integer :: iat,i1,i2,i3,ii,ix,iy,iz,ityp,iloc,nloc,i3start,i3end,j3
+  integer :: iat,i1,i2,i3,ii1,ii2,ii3,ix,iy,iz,ityp,iloc,nloc,i3start,i3end,j3
   real(kind=8) :: hgridh,rloc,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
  
-  hgridh=hgrid*.5d0
-
   do iat=1,nat
      ityp=iatype(iat)
 
      rx=rxyz(1,iat)
      ry=rxyz(2,iat)
      rz=rxyz(3,iat)
-     ix=nint(rx/hgridh)
-     iy=nint(ry/hgridh)
-     iz=nint(rz/hgridh)
+     ix=nint(rx/hxh)
+     iy=nint(ry/hyh)
+     iz=nint(rz/hzh)
 
      ! determine number of local terms
      nloc=0
@@ -240,21 +276,25 @@ subroutine addlocgauspsp(iproc,ntypes,nat,iatype,rxyz,psppar,&
      enddo
      rloc=psppar(0,0,ityp)
      cutoff=10.d0*rloc
-     ii=nint(cutoff/hgridh)
+     ii1=nint(cutoff/hxh)
+     ii2=nint(cutoff/hyh)
+     ii3=nint(cutoff/hzh)
 
      if (nloc /= 0) then
 
+        !this part should be changed with a modulo, in order to preserve the periodicity
+
         !calculate start and end of the distributed pot
-        i3start=max(max(-14,iz-ii),i3s-15)
-        i3end=min(min(2*n3+16,iz+ii),i3s+n3pi-16)
+        i3start=max(max(-nbl3,iz-ii3),i3s-1-nbl3)
+        i3end=min(min(2*n3+1+nbr3,iz+ii3),i3s-1+n3pi-nbl3)
 
         do i3=i3start,i3end
-           j3=i3+15-i3s+1
-           do i2=max(-14,iy-ii),min(2*n2+16,iy+ii)
-              do i1=max(-14,ix-ii),min(2*n1+16,ix+ii)
-                 x=real(i1,kind=8)*hgridh-rx
-                 y=real(i2,kind=8)*hgridh-ry
-                 z=real(i3,kind=8)*hgridh-rz
+           j3=i3+1+nbl3-i3s+1
+           do i2=max(-nbl2,iy-ii2),min(2*n2+1+nbr2,iy+ii2)
+              do i1=max(-nbl1,ix-ii1),min(2*n1+1+nbr1,ix+ii1)
+                 x=real(i1,kind=8)*hxh-rx
+                 y=real(i2,kind=8)*hyh-ry
+                 z=real(i3,kind=8)*hzh-rz
                  r2=x**2+y**2+z**2
                  arg=r2/rloc**2
                  xp=exp(-.5d0*arg)

@@ -336,10 +336,11 @@ interface
      real(kind=8), dimension(3,nat), intent(out) :: floc
    end subroutine local_forces
 
-   subroutine projectors_derivatives(iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,nlpspd,proj,  &
-        rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
+   subroutine projectors_derivatives(geocode,iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,&
+        nlpspd,proj,rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
      use module_types
      implicit none
+     character(len=1), intent(in) :: geocode
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
      !Arguments-------------
      integer, intent(in) :: iproc,ntypes,nat,norb
