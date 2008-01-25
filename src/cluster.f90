@@ -171,7 +171,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   !wavefunction gradients, hamiltonian on vavefunction
   !transposed  wavefunction
   ! Pointers and variables to store the last psi
-  ! before reformating if useFormattedInput is .true.
+  ! before reformatting if useFormattedInput is .true.
   real(kind=8), dimension(:,:), pointer :: hpsi,psit,psi_old
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj
@@ -332,8 +332,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
      call memocc(i_stat,product(shape(pot_ion))*kind(pot_ion),'pot_ion','cluster')
   end if
 
-  call createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,hgrid,&
-       elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,pkernel,pot_ion,eion)
+  call createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,&
+       hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,eion)
 
   !Allocate Charge density, Potential in real space
   if (n3d >0) then

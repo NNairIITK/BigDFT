@@ -141,21 +141,22 @@ interface
      real(kind=8), dimension(:), pointer :: proj
    end subroutine createProjectorsArrays
 
-   subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1,n2,n3,ixc,&
+   subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc,&
         n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
      implicit none
      character(len=1), intent(in) :: geocode,datacode
-     integer, intent(in) :: iproc,nproc,n1,n2,n3,ixc
+     integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,ixc
      integer, intent(out) ::  n3d,n3p,n3pi,i3xcsh,i3s
      integer, dimension(0:nproc-1,4), intent(out) :: nscatterarr
      integer, dimension(0:nproc-1,2), intent(out) :: ngatherarr
    end subroutine createDensPotDescriptors
 
-   subroutine createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,hgrid,&
-        elecfield,n1,n2,n3,n3pi,i3s,pkernel,pot_ion,eion)
+   subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,&
+        hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion)
      implicit none
-     integer, intent(in) :: iproc,nproc,nat,ntypes,n1,n2,n3,n3pi,i3s
-     real(kind=8), intent(in) :: hgrid,elecfield
+     character(len=1), intent(in) :: geocode
+     integer, intent(in) :: iproc,nproc,nat,ntypes,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+     real(kind=8), intent(in) :: hxh,hyh,hzh,elecfield
      integer, dimension(nat), intent(in) :: iatype
      integer, dimension(ntypes), intent(in) :: nelpsp
      real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
