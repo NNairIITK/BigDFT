@@ -33,22 +33,25 @@
  Random displacement amplitude   0.00E+00
  Steepest descent step   4.00E+00
  Spin-polarised calculation:  NO 
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
  Grid spacing=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=      50 | Extension= 5.0
  total charge=      1 | Coarse Proj.= 8.00 | CG Prec.Steps=      15 |  CG Steps=  30
   elec. field=0.0E+00 |   Fine Proj.= 8.00 | DIIS Hist. N.=       6
- ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------ System Properties
  Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File
    Li_lda               3       2            2.07000  0.40000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+   Li_lda   0.40000 -14.00939   9.50991  -1.75327   0.08346
  Total Number of Electrons        2
  Total Number of Orbitals        1
  occup(1)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1 Li_lda  1.03500E+01  1.03500E+01  1.03500E+01       23.000    23.000    23.000
-    Shift of=  1.03500E+01  1.03500E+01  1.03500E+01
+    Shift of=  1.03500E+01  1.03500E+01  1.03500E+01 Grid Spacings=  0.45  0.45  0.45
    Box Sizes=  2.07000E+01  2.07000E+01  2.07000E+01           46        46        46
        Extremes for the high resolution grid points:        16<30     16<30     16<30
  ------------------------------------------------------------------ Memory Estimation
@@ -66,7 +69,7 @@
        ~11*K         |       ~W+(~3)*U      |    ~8*D+K+W    |         ~W+(~3)*U 
        180MB         |        57MB          |      151MB     |            63MB
  The overall memory requirement needed for this calculation is thus: 180 MB
- By reducing the DIIS history and/or decreasing the number of processors the amount of
+ By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 55 MB
  ------------------------------------------------------------ Poisson Kernel Creation
  Calculating Poisson solver kernel, free BC...done.
@@ -77,10 +80,10 @@
    Fine resolution grid: Number of segments=        161 points=      1503
  Wavefunction memory occupation per orbital (Bytes): 491232
  ------------------------------------------------------------ PSP Projectors Creation
- Atom    Name Number of projectors
-                            ------
- Total number of projectors =    0
- Calculating wavelets expansion of projectors... done.
+ Type    Name Number of atoms Number of projectors
+    1  Li_lda               1                    0
+                                            ------
+ Total number of projectors =                    0
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -3.000000000000   0.000E+00
  ion-ion interaction energy  0.00000000000000E+00
@@ -93,9 +96,11 @@
  Calculation of charge density... done. Total electronic charge=       2.999998921423
  PSolver, free  BC, dimensions:   123  123  123   proc    1   ixc:  1 ...done.
  Hamiltonian application... done. ekin_sum,eks:       6.0811787607       6.0786638687
+ ekin_sum,epot_sum,eproj_sum  6.08117876070E+00 -9.84788613350E+00  0.00000000000E+00
+    ehart,   eexcu,    vexcu  3.97405402276E+00 -1.59363804835E+00 -2.09265026360E+00
  Input Wavefunctions Orthogonalization: Overlap Matrix... Linear Algebra...
  evale(1)= -1.85043078373505E+00 <- Last eigenvalue for input wavefunctions
- evale(2)= -6.58458053406252E-02
+ evale(2)= -6.58458053406253E-02
  Building orthogonal Input Wavefunctions... done.
  expected accuracy in kinetic energy due to grid size 2.51E-03
  suggested value for gnrm_cv  2.51E-03
@@ -153,7 +158,7 @@
  final ehart, eexcu,  vexcu   3.19009148173E+00 -1.49982624031E+00 -1.97192611437E+00
  FINAL iter,total energy,gnrm     6  -7.095366225628E+00  8.87E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1)= -2.18868730898290E+00
+ eval(   1)= -2.18868730898289E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=       1.999998851016
  PSolver, free  BC, dimensions:   123  123  123   proc    1   ixc:  0 ...done.
@@ -172,14 +177,14 @@
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  6.30246466704E+00 -1.06798392850E+01  0.00000000000E+00
  Total energy with tail correction -7.095366225628E+00
- CPU time for root process     0        43.56        35.97
+ CPU time for root process     0        65.13        37.65
  Final values of the Forces for each atom
      1 Li_lda  1.34878E-06  1.34878E-06  1.34878E-06
  the sum of the forces is
-      x direction     1.34878042E-06
-      y direction     1.34878043E-06
-      z direction     1.34878041E-06
+      x direction     1.34878041E-06
+      y direction     1.34878042E-06
+      z direction     1.34878040E-06
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 595 allocations and 595 deallocations, remaining memory(B):0
+ 588 allocations and 588 deallocations, remaining memory(B):0
  memory occupation peak: 180 MB
  for the array  cosinarr in the routine kernelfft

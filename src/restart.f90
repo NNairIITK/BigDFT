@@ -119,7 +119,7 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
      reformat=.true.
      if (iproc==0) then
         write(*,'(1x,a)')&
-         'The wavefunctions need reformatting beacuse:                                 '
+         'The wavefunctions need reformatting because:                                 '
         if (hgrid_old.ne.hgrid) then 
            write(*,"(4x,a,1pe20.12)") &
                 '  hgrid_old >< hgrid  ',hgrid_old, hgrid
@@ -141,7 +141,7 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
      end if
 !check
 !        write(100+iproc,'(1x,a)')&
-!         'The wavefunctions need reformatting beacuse:                                 '
+!         'The wavefunctions need reformatting because:                                 '
 !        if (hgrid_old.ne.hgrid) then 
 !           write(100+iproc,"(4x,a,1pe20.12)") &
 !                '  hgrid_old >< hgrid  ',hgrid_old, hgrid
