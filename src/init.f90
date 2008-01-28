@@ -421,7 +421,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
 
                  fac_arr(1:nterm)=factor*fac_arr(1:nterm)
 
-                 call crtproj(iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
+                 call crtproj(geocode,iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
                       & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radii_cf(iatype(iat),2), & 
                       & cpmult,fpmult,hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
                       & mvctr_c,mvctr_f,proj(istart_c), &

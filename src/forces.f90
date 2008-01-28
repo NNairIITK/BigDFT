@@ -148,13 +148,14 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
 
 end subroutine local_forces
 
-subroutine projectors_derivatives(iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,nlpspd,proj,  &
-     rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
+subroutine projectors_derivatives(geocode,iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,&
+     nlpspd,proj,rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and ads them to the force array
 
   use module_types
   
   implicit none
+  character(len=1), intent(in) :: geocode
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   !Arguments-------------
   integer, intent(in) :: iproc,ntypes,nat,norb
@@ -225,11 +226,11 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,n
                        lz(iterm)=lxyz_arr(3,iterm,idir)
                     end do
 
-                    call crtproj(iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,&
+                    call crtproj(geocode,iproc,nterm,n1,n2,n3,&
+                         nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,&
                          nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radii_cf(iatype(iat),2),&
                          cpmult,fpmult,hx,hy,hz,gau_a,fac_arr(1,idir),rx,ry,rz,lx,ly,lz,&
                          mvctr_c,mvctr_f,derproj(istart_c,idir),derproj(istart_f,idir))
-
                  end do
                  
                  iproj=iproj+1

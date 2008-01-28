@@ -790,8 +790,8 @@ subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,h
      alatrue3=(czmax-czmin)
 
      n1i=2*n1+2
-     n2i=2*n1+31
-     n3i=2*n1+2
+     n2i=2*n2+31
+     n3i=2*n3+2
 
   end if
 

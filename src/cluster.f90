@@ -171,7 +171,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   !wavefunction gradients, hamiltonian on vavefunction
   !transposed  wavefunction
   ! Pointers and variables to store the last psi
-  ! before reformating if useFormattedInput is .true.
+  ! before reformatting if useFormattedInput is .true.
   real(kind=8), dimension(:,:), pointer :: hpsi,psit,psi_old
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj
@@ -307,7 +307,6 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
 
   ! Calculate all projectors
   call timing(iproc,'CrtProjectors ','ON')
-
   call createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomnames,&
        & psppar,npspcode,radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
@@ -321,20 +320,20 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   call memocc(i_stat,product(shape(ngatherarr))*kind(ngatherarr),'ngatherarr','cluster')
 
   !create the descriptors for the density and the potential
-  call createDensPotDescriptors(iproc,nproc,'F',datacode,n1,n2,n3,ixc,&
+  call createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc,&
        n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
 
   !allocate ionic potential
   if (n3pi > 0) then
-     allocate(pot_ion((2*n1+31)*(2*n2+31)*n3pi),stat=i_stat)
+     allocate(pot_ion(n1i*n2i*n3pi),stat=i_stat)
      call memocc(i_stat,product(shape(pot_ion))*kind(pot_ion),'pot_ion','cluster')
   else
      allocate(pot_ion(1),stat=i_stat)
      call memocc(i_stat,product(shape(pot_ion))*kind(pot_ion),'pot_ion','cluster')
   end if
 
-  call createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,hgrid,&
-       elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,pkernel,pot_ion,eion)
+  call createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,&
+       hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,eion)
 
   !Allocate Charge density, Potential in real space
   if (n3d >0) then
@@ -361,15 +360,12 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
 
   else if (inputPsiId == 0) then
 
-
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hgrid,rxyz, & 
           rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
           atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,&
           ixc,psi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
-
-
 
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
@@ -777,7 +773,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   !the calculation of the derivatives of the projectors has been decoupled
   !from the one of nonlocal forces, in this way forces can be calculated
   !diring the wavefunction minimization if needed
-  call projectors_derivatives(iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,nlpspd,proj,  &
+  call projectors_derivatives(geocode,iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,nlpspd,proj,&
        rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
@@ -917,7 +913,6 @@ contains
 
   !routine which deallocate the pointers and the arrays before exiting 
   subroutine deallocate_before_exiting
-    !implicit real(kind=8) (a-h,o-z)
 
     !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1) then

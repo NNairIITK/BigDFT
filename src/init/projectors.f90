@@ -19,7 +19,7 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
   end if
 END SUBROUTINE numb_proj
 
-subroutine crtproj(iproc,nterm,n1,n2,n3, & 
+subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, & 
      nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,  & 
      radius_f,cpmult,fpmult,hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
      mvctr_c,mvctr_f,proj_c,proj_f)
@@ -27,6 +27,7 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
   ! x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-cntrx)^2 + (y-cntry)^2 + (z-cntrz)^2 ))
   ! in the arrays proj_c, proj_f
   implicit none
+  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nterm,n1,n2,n3,mvctr_c,mvctr_f
   integer, intent(in) :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
   real(kind=8), intent(in) :: radius_f,cpmult,fpmult,hx,hy,hz,gau_a,rx,ry,rz
@@ -36,9 +37,10 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
   real(kind=8), dimension(7,mvctr_f), intent(out) :: proj_f
   !local variables
   integer, parameter :: nw=16000
-  integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3,mvctr,i_all,i_stat
-  real(kind=8) :: rad_c,rad_f,factor,err_norm,dz2,dy2,dx,te
-  real(kind=8), allocatable, dimension(:,:,:) :: wprojx, wprojy, wprojz
+  logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
+  integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3,mvctr,i_all,i_stat,j1,j2,j3
+  real(kind=8) :: rad_c,rad_f,factor,err_norm,dz2,dy2,dx2,te,d2
+  real(kind=8), allocatable, dimension(:,:,:) :: wprojx,wprojy,wprojz
   real(kind=8), allocatable, dimension(:,:) :: work
 
   allocate(wprojx(0:n1,2,nterm),stat=i_stat)
@@ -50,6 +52,11 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
   allocate(work(0:nw,2),stat=i_stat)
   call memocc(i_stat,product(shape(work))*kind(work),'work','crtproj')
 
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
 
   rad_c=radius_f*cpmult
   rad_f=radius_f*fpmult
@@ -59,15 +66,15 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
   do iterm=1,nterm
      factor=fac_arr(iterm)
      n_gau=lx(iterm) 
-     CALL GAUSS_TO_DAUB(hx,factor,rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1,iterm),te,work,nw)
+     CALL GAUSS_TO_DAUB(hx,factor,rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1,iterm),te,work,nw,perx) 
      err_norm=max(err_norm,te) 
      n_gau=ly(iterm) 
-     CALL GAUSS_TO_DAUB(hy,1.d0,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1,iterm),te,work,nw)
+     CALL GAUSS_TO_DAUB(hy,1.d0,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1,iterm),te,work,nw,pery) 
      err_norm=max(err_norm,te) 
      n_gau=lz(iterm) 
-     CALL GAUSS_TO_DAUB(hz,1.d0,rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1,iterm),te,work,nw)
+     CALL GAUSS_TO_DAUB(hz,1.d0,rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1,iterm),te,work,nw,perz) 
      err_norm=max(err_norm,te) 
-     if (iproc.eq.0)  then
+     if (iproc.eq.0 .and. geocode == 'F')  then
         if (ml1.gt.min(nl1_c,nl1_f)) write(*,*) 'Projector box larger than needed: ml1'
         if (ml2.gt.min(nl2_c,nl2_f)) write(*,*) 'Projector box larger than needed: ml2'
         if (ml3.gt.min(nl3_c,nl3_f)) write(*,*) 'Projector box larger than needed: ml3'
@@ -81,30 +88,32 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
   ! First term: coarse projector components
   !          write(*,*) 'rad_c=',rad_c
   mvctr=0
+
   do i3=nl3_c,nu3_c
-     dz2=(real(i3,kind=8)*hz-rz)**2
+     dz2=d2(i3,hz,n3,rz,perz)
      do i2=nl2_c,nu2_c
-        dy2=(real(i2,kind=8)*hy-ry)**2
+        dy2=d2(i2,hy,n2,ry,pery)
         do i1=nl1_c,nu1_c
-           dx=real(i1,kind=8)*hx-rx
-           if (dx**2+(dy2+dz2).le.rad_c**2) then
+           dx2=d2(i1,hx,n1,rx,perx)
+           if (dx2+(dy2+dz2).le.rad_c**2) then
               mvctr=mvctr+1
               proj_c(mvctr)=wprojx(i1,1,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
            endif
         enddo
      enddo
   enddo
+
   if (mvctr.ne.mvctr_c) stop 'mvctr >< mvctr_c'
 
   ! First term: fine projector components
   mvctr=0
   do i3=nl3_f,nu3_f
-     dz2=(real(i3,kind=8)*hz-rz)**2
+     dz2=d2(i3,hz,n3,rz,perz)
      do i2=nl2_f,nu2_f
-        dy2=(real(i2,kind=8)*hy-ry)**2
+        dy2=d2(i2,hy,n2,ry,pery)
         do i1=nl1_f,nu1_f
-           dx=real(i1,kind=8)*hx-rx
-           if (dx**2+(dy2+dz2).le.rad_f**2) then
+           dx2=d2(i1,hx,n1,rx,perx)
+           if (dx2+(dy2+dz2).le.rad_f**2) then
               mvctr=mvctr+1
               proj_f(1,mvctr)=wprojx(i1,2,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
               proj_f(2,mvctr)=wprojx(i1,1,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
@@ -125,13 +134,13 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
      ! Other terms: coarse projector components
      mvctr=0
      do i3=nl3_c,nu3_c
-        dz2=(real(i3,kind=8)*hz-rz)**2
+        dz2=d2(i3,hz,n3,rz,perz)
         do i2=nl2_c,nu2_c
-           dy2=(real(i2,kind=8)*hy-ry)**2
+           dy2=d2(i2,hy,n2,ry,pery)
            do i1=nl1_c,nu1_c
-              dx=real(i1,kind=8)*hx-rx
-              if (dx**2+(dy2+dz2).le.rad_c**2) then
-                 mvctr=mvctr+1
+              dx2=d2(i1,hx,n1,rx,perx)
+              if (dx2+(dy2+dz2).le.rad_c**2) then
+              mvctr=mvctr+1
                  proj_c(mvctr)=proj_c(mvctr)+wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
               endif
            enddo
@@ -141,12 +150,12 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
      ! Other terms: fine projector components
      mvctr=0
      do i3=nl3_f,nu3_f
-        dz2=(real(i3,kind=8)*hz-rz)**2
+        dz2=d2(i3,hz,n3,rz,perz)
         do i2=nl2_f,nu2_f
-           dy2=(real(i2,kind=8)*hy-ry)**2
+           dy2=d2(i2,hy,n2,ry,pery)
            do i1=nl1_f,nu1_f
-              dx=real(i1,kind=8)*hx-rx
-              if (dx**2+(dy2+dz2).le.rad_f**2) then
+              dx2=d2(i1,hx,n1,rx,perx)
+              if (dx2+(dy2+dz2).le.rad_f**2) then
                  mvctr=mvctr+1
                  proj_f(1,mvctr)=&
                       proj_f(1,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
@@ -184,6 +193,26 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
   call memocc(i_stat,i_all,'work','crtproj')
 
 end subroutine crtproj
+
+function d2(i,h,n,r,periodic)
+  implicit none
+  logical, intent(in) :: periodic !determine whether the dimension is periodic or not
+  integer, intent(in) :: i,n
+  real(kind=8), intent(in) :: h,r
+  real(kind=8) :: d2
+  !local variables
+  integer :: j
+
+  if (periodic) then
+     !take the point which has the minimum distance  comparing with the periodic image
+     !which is i+-(n+1) if it is on the second or on the first half respectively
+     j=i+(2*(i/(n/2+1))-1)*(n+1)
+     d2=min((real(i,kind=8)*h-r)**2,(real(j,kind=8)*h-r)**2)
+  else
+     d2=(real(i,kind=8)*h-r)**2
+  end if
+  
+end function d2
 
 subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
   ! finds the size of the smallest subbox that contains a localization region made 

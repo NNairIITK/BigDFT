@@ -61,7 +61,7 @@
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1 Ca_lda  9.25000E+00  9.25000E+00  9.16541E+00       18.500    18.500    18.331
      2 Ca_lda  9.25000E+00  9.25000E+00  1.48346E+01       18.500    18.500    29.669
-    Shift of=  9.25000E+00  9.25000E+00  9.16541E+00 hgrids=     0.500     0.500     0.500
+    Shift of=  9.25000E+00  9.25000E+00  9.16541E+00 Grid Spacings=  0.50  0.50  0.50
    Box Sizes=  1.85000E+01  1.85000E+01  2.40000E+01           37        37        48
        Extremes for the high resolution grid points:        11<26     11<26     10<38
  ------------------------------------------------------------------ Memory Estimation
@@ -371,7 +371,7 @@
  PSolver, free  BC, dimensions:   105  105  127   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        56.40        54.74
+ CPU time for root process     0        63.89        61.20
  Final values of the Forces for each atom
      1 Ca_lda  7.94020E-05  7.94020E-05 -3.36998E-02
      2 Ca_lda  8.09908E-05  8.09908E-05  3.38244E-02
