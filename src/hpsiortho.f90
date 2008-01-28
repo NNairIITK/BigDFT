@@ -25,13 +25,12 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
   real(kind=8), dimension(*), intent(in) :: potential
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: hpsi
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
-
-
   !local variables
   integer :: i_all,i_stat,ierr,iorb
   real(kind=8) :: eproj
+  real(kind=8), dimension(3,2) :: wrkallred
   real(kind=8), dimension(:), allocatable :: pot
-  real(kind=8), dimension(:,:), allocatable :: wrkallred
+
 
   ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0) then
@@ -102,9 +101,6 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
   call timing(iproc,'ApplyProj     ','OF')
 
   if (parallel) then
-     allocate(wrkallred(3,2),stat=i_stat)
-     call memocc(i_stat,product(shape(wrkallred))*kind(wrkallred),'wrkallred','hamiltonianapplication')
-
      wrkallred(1,2)=ekin_sum 
      wrkallred(2,2)=epot_sum 
      wrkallred(3,2)=eproj_sum
@@ -113,10 +109,6 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
      ekin_sum=wrkallred(1,1)
      epot_sum=wrkallred(2,1)
      eproj_sum=wrkallred(3,1) 
-
-     i_all=-product(shape(wrkallred))*kind(wrkallred)
-     deallocate(wrkallred,stat=i_stat)
-     call memocc(i_stat,i_all,'wrkallred','hamiltonianapplication')
   endif
 
 end subroutine HamiltonianApplication

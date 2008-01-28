@@ -786,8 +786,8 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 
 END SUBROUTINE import_gaussians
 
-subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hgrid,rxyz, & 
+subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+     nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz, & 
      rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
      atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,&
      ppsi,ppsit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
@@ -800,17 +800,16 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   implicit none
   include 'mpif.h'
-  logical, intent(in) :: parallel
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(convolutions_bounds), intent(in) :: bounds
-  character(len=1), intent(in) :: datacode!,geocode
+  character(len=1), intent(in) :: datacode,geocode
   character(len=20), dimension(100), intent(in) :: atomnames
   integer, intent(in) :: iproc,nproc,nat,natsc,ntypes,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
   integer, intent(in) :: nspin
   real(kind=8), dimension(norb), intent(in) :: spinar
-  real(kind=8), intent(in) :: hgrid!hx,hy,hz
+  real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), intent(out) :: accurex
   integer, dimension(nat), intent(in) :: iatype
   integer, dimension(ntypes), intent(in) :: iasctype,npspcode,nzatom,nelpsp
@@ -826,11 +825,12 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   !local variables
   real(kind=8), parameter :: eps_mach=1.d-12
+  logical :: parallel
   integer, parameter :: ngx=31
   integer :: i,iorb,iorbsc,imatrsc,iorbst,imatrst,i_stat,i_all,ierr,info,jproc,jpst,norbeyou
   integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbi_max,norbsc
   integer :: ispin,norbu,norbd,iorbst2
-  real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,hgridh
+  real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol
   logical, dimension(:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: norbsc_arr,ng
   integer, dimension(:,:), allocatable :: nl
@@ -869,20 +869,21 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   !Generate the input guess via the inguess_generator
   call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,psppar,&
-       & npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,&
+       & npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,nspin,scorb,&
        & norbsc_arr)
 
   !  allocate wavefunctions and their occupation numbers
   allocate(occupe(norbe),stat=i_stat)
   call memocc(i_stat,product(shape(occupe))*kind(occupe),'occupe','input_wf_diag')
-  tt=dble(norbe)/dble(nproc)
+  !the number of orbitals to be considered is doubled in the case of a spin-polarised calculation
+  tt=dble(nspin*norbe)/dble(nproc)
   norbep=int((1.d0-eps_mach*tt) + tt)
 
   if (iproc == 0 .and. nproc>1) then
      jpst=0
      do jproc=0,nproc-2
-        norbeme=max(min((jproc+1)*norbep,norbe)-jproc*norbep,0)
-        norbeyou=max(min((jproc+2)*norbep,norbe)-(jproc+1)*norbep,0)
+        norbeme=max(min((jproc+1)*norbep,nspin*norbe)-jproc*norbep,0)
+        norbeyou=max(min((jproc+2)*norbep,nspin*norbe)-(jproc+1)*norbep,0)
         if (norbeme /= norbeyou) then
            !this is a screen output that must be modified
            write(*,'(3(a,i0),a)')&
@@ -894,26 +895,21 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           ' Processes from ',jpst,' to ',nproc-1,' treat ',norbeyou,' inguess orbitals '
   end if
 
-!!$  hxh=.5d0*hx
-!!$  hyh=.5d0*hy
-!!$  hzh=.5d0*hz
+  hxh=.5d0*hx
+  hyh=.5d0*hy
+  hzh=.5d0*hz
 
-  hgridh=0.5d0*hgrid
+  parallel=(nproc > 1)
 
-  if (parallel) then
-     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(psi(nvctrp,norbep*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','input_wf_diag')
-  else
-     allocate(psi(nvctrp,norbe),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','input_wf_diag')
-  end if
+  !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+  allocate(psi(nvctrp,norbep*nproc),stat=i_stat)
+  call memocc(i_stat,product(shape(psi))*kind(psi),'psi','input_wf_diag')
 
   ! Create input guess orbitals
-  call createAtomicOrbitals(iproc,nproc,atomnames,&
+  call createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
        nat,rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
-       wfd%nvctr_c,wfd%nvctr_f,n1,n2,n3,hgrid,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,iatype,ntypes,iasctype,natsc,psi,eks,scorb)
+       wfd%nvctr_c,wfd%nvctr_f,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+       wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,iatype,ntypes,iasctype,natsc,nspin,psi,eks,scorb)
 
 !!$  !!plot the initial LCAO wavefunctions
 !!$  !do i=2*iproc+1,2*iproc+2
@@ -947,28 +943,23 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
 
   ! resulting charge density and potential
-  allocate(ones(norbe),stat=i_stat)
+  allocate(ones(nspin*norbe),stat=i_stat)
   call memocc(i_stat,product(shape(ones))*kind(ones),'ones','input_wf_diag')
   ones(:)=1.0d0
 
-  call sumrho(parallel,iproc,nproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
+  call sumrho(parallel,iproc,nproc,nspin*norbe,norbep,n1,n2,n3,hx,occupe,  & 
        wfd,psi,rhopot,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,1,ones, &
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
-  call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
+  call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,1)
 
-  if (parallel) then
-     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(hpsi(nvctrp,norbep*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
-  else
-     allocate(hpsi(nvctrp,norbe),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
-  end if
-
-  call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
-       psppar,npspcode,norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+  !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+  allocate(hpsi(nvctrp,norbep*nproc),stat=i_stat)
+  call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
+  
+  call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hx,&
+       psppar,npspcode,nspin*norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        wfd,bounds,nlpspd,proj,&
        ngatherarr,nscatterarr(iproc,2),rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,ones)
@@ -983,7 +974,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   accurex=abs(eks-ekin_sum)
   !tolerance for comparing the eigenvalues in the case of degeneracies
-  etol=accurex/real(norbe,kind=8)
+  etol=accurex/real(nspin*norbe,kind=8)
   if (iproc.eq.0) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
   if (iproc.eq.0) then
      write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
@@ -1000,6 +991,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'
+
+  !WARNING here the spin must be introduced!!!!!
 
   norbi_max=maxval(norbsc_arr)
 

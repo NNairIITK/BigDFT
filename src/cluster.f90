@@ -361,8 +361,8 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   else if (inputPsiId == 0) then
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-     call input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-          nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hgrid,rxyz, & 
+     call input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+          nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz, & 
           rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
           atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,&
           ixc,psi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)

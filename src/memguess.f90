@@ -175,7 +175,7 @@ program memguess
 
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
      call readAtomicOrbitals(0,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,psppar,&
-          & npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,&
+          & npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,nspin,scorb,&
           & norbsc_arr)
 
      ! De-allocations
