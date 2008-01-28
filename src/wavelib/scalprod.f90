@@ -91,12 +91,15 @@ subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
   return
 END SUBROUTINE wzero
 
+!this function must be generalized for the linear scaling code
 subroutine wpdot(  &
      mavctr_c,mavctr_f,maseg_c,maseg_f,keyav_c,keyav_f,keyag_c,keyag_f,apsi_c,apsi_f,  &
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f,scpr)
   ! calculates the dot product between a wavefunctions apsi and a projector bpsi (both in compressed form)
   ! Warning: the subroutine assumes that bpsi has only one segment along each line,
   ! whereas apsi can have several segments. This assumption is true if bpsi is a projector 
+  ! To be more precise, it is assumed that the segments of bpsi are always contained inside
+  ! the segments of apsi, no matter whether they are in the same line or not.
   implicit real(kind=8) (a-h,o-z)
   dimension keyav_c(maseg_c),keyag_c(2,maseg_c),keyav_f(maseg_f),keyag_f(2,maseg_f)
   dimension keybv_c(mbseg_c),keybg_c(2,mbseg_c),keybv_f(mbseg_f),keybg_f(2,mbseg_f)

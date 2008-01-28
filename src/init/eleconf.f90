@@ -817,7 +817,7 @@ neleconf(4,2)=10
 case(46*1000+18)
 ! -----------------------          73
 ! Pd          46          18     Symbol, Z, Zion
-symbol = "Rh"
+symbol = "Pd"
 rcov=2.50d0
 rprb=5.00d0
 ehomo=-0.154624d0

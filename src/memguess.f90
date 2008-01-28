@@ -21,13 +21,14 @@ program memguess
 
   implicit none
   integer, parameter :: ngx=31
-  logical :: calc_tail,output_grid,optimise
+  character(len=1) :: geocode
   character(len=20) :: tatonam,units
+  logical :: calc_tail,output_grid,optimise
   integer :: ierror,nat,ntypes,nproc,n1,n2,n3,i_stat,i_all
-  integer :: nelec,natsc,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
+  integer :: nelec,natsc,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
   integer :: norb,norbu,norbd,norbe,norbp,norbsc
   integer :: iunit,ityp
-  real(kind=8) :: alat1,alat2,alat3,peakmem
+  real(kind=8) :: alat1,alat2,alat3,peakmem,hx,hy,hz
   type(input_variables) :: in
   character(len=20), dimension(:), allocatable :: atomnames
   integer, dimension(:), allocatable :: iatype,nelpsp,nzatom,npspcode,iasctype
@@ -110,6 +111,9 @@ program memguess
 
   !new way of reading the input variables, use structures
   call read_input_variables(0,in)
+
+  !hard-code the geocode variable for the moment
+  geocode='F'
   call print_input_parameters(in)
 
   write(*,'(1x,a)')&
@@ -171,7 +175,7 @@ program memguess
 
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
      call readAtomicOrbitals(0,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,psppar,&
-          & npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,&
+          & npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,nspin,scorb,&
           & norbsc_arr)
 
      ! De-allocations
@@ -248,11 +252,14 @@ program memguess
 
 ! Determine size alat of overall simulation cell and shift atom positions
 ! then calculate the size in units of the grid space
-  call system_size(0,nat,ntypes,rxyz,radii_cf,in%crmult,in%frmult,in%hgrid,iatype,atomnames, &
-       alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
+  hx=In%hgrid
+  hy=In%hgrid
+  hz=In%hgrid
+  call system_size(0,geocode,nat,ntypes,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,&
+       iatype,atomnames,alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
 
-  call MemoryEstimator(nproc,in%idsx,n1,n2,n3,alat1,alat2,alat3,in%hgrid,nat,ntypes,iatype,&
-          rxyz,radii_cf,in%crmult,in%frmult,norb,atomnames,output_grid,in%nspin,peakmem)
+  call MemoryEstimator(geocode,nproc,in%idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,&
+       ntypes,iatype,rxyz,radii_cf,in%crmult,in%frmult,norb,atomnames,output_grid,in%nspin,peakmem)
 
   i_all=-product(shape(atomnames))*kind(atomnames)
   deallocate(atomnames,stat=i_stat)
@@ -284,7 +291,7 @@ subroutine optimise_volume(nat,ntypes,iatype,atomnames,crmult,frmult,hgrid,rxyz,
   real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
   real(kind=8), dimension(3,nat), intent(inout) :: rxyz
   !local variables
-  integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1,n2,n3,iat,i_all,i_stat,it,i
+  integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1,n2,n3,n1i,n2i,n3i,iat,i_all,i_stat,it,i
   real(kind=8) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax,alat1,alat2,alat3
   real(kind=8), dimension(3,3) :: urot
   real(kind=8), dimension(:,:), allocatable :: txyz
@@ -292,8 +299,8 @@ subroutine optimise_volume(nat,ntypes,iatype,atomnames,crmult,frmult,hgrid,rxyz,
   allocate(txyz(3,nat),stat=i_stat)
   call memocc(i_stat,product(shape(txyz))*kind(txyz),'txyz','optimise_volume')
 
-  call system_size(1,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
-       alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
+  call system_size(1,'F',nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,hgrid,hgrid,iatype,&
+       atomnames,alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
   !call volume(nat,rxyz,vol)
   vol=alat1*alat2*alat3
   write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
@@ -341,8 +348,8 @@ subroutine optimise_volume(nat,ntypes,iatype,atomnames,crmult,frmult,hgrid,rxyz,
         txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
      enddo
 
-     call system_size(1,nat,ntypes,txyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
-          alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
+     call system_size(1,'F',nat,ntypes,txyz,radii_cf,crmult,frmult,hgrid,hgrid,hgrid,iatype,&
+          atomnames,alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
      tvol=alat1*alat2*alat3
      !call volume(nat,txyz,tvol)
      if (tvol.lt.vol) then

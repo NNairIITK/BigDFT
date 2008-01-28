@@ -148,18 +148,19 @@ subroutine local_forces(iproc,nproc,ntypes,nat,iatype,atomnames,rxyz,psppar,nelp
 
 end subroutine local_forces
 
-subroutine projectors_derivatives(iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,nlpspd,proj,  &
-     rxyz,radii_cf,cpmult,fpmult,hgrid,derproj)
+subroutine projectors_derivatives(geocode,iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,&
+     nlpspd,proj,rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and ads them to the force array
 
   use module_types
   
   implicit none
+  character(len=1), intent(in) :: geocode
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   !Arguments-------------
   integer, intent(in) :: iproc,ntypes,nat,norb
   integer, intent(in) :: n1,n2,n3
-  real(kind=8),intent(in) :: cpmult,fpmult,hgrid 
+  real(kind=8),intent(in) :: cpmult,fpmult,hx,hy,hz
   integer, dimension(nat), intent(in) :: iatype
   real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
@@ -167,28 +168,16 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,n
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(nlpspd%nprojel,3), intent(out) :: derproj
   !Local Variables--------------
-  real(kind=8), dimension(:,:), allocatable :: fac_arr
   integer, parameter :: nterm_max=20 !if GTH nterm_max=4
-  integer, dimension(:,:,:), allocatable :: lxyz_arr
-  integer, dimension(:), allocatable :: nterm_arr,lx,ly,lz
   integer :: istart_c,istart_f,iproj,iat,ityp,i,l,m,nterm
   integer :: mvctr_c,mvctr_f
   integer :: nl1_c,nl2_c,nl3_c,nl1_f,nl2_f,nl3_f,nu1_c,nu2_c,nu3_c,nu1_f,nu2_f,nu3_f
   real(kind=8) :: fpi,factor,gau_a,rx,ry,rz
   integer :: idir,iterm,i_all,i_stat
-
-  allocate(fac_arr(nterm_max,3),stat=i_stat)
-  call memocc(i_stat,product(shape(fac_arr))*kind(fac_arr),'fac_arr','projectors_derivatives')
-  allocate(lxyz_arr(3,nterm_max,3),stat=i_stat)
-  call memocc(i_stat,product(shape(lxyz_arr))*kind(lxyz_arr),'lxyz_arr','projectors_derivatives')
-  allocate(lx(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(lx))*kind(lx),'lx','projectors_derivatives')
-  allocate(ly(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(ly))*kind(ly),'ly','projectors_derivatives')
-  allocate(lz(nterm_max),stat=i_stat)
-  call memocc(i_stat,product(shape(lz))*kind(lz),'lz','projectors_derivatives')
-  allocate(nterm_arr(3),stat=i_stat)
-  call memocc(i_stat,product(shape(nterm_arr))*kind(nterm_arr),'nterm_arr','projectors_derivatives')
+  integer, dimension(3) :: nterm_arr
+  integer, dimension(nterm_max) :: lx,ly,lz
+  integer, dimension(3,nterm_max,3) :: lxyz_arr
+  real(kind=8), dimension(nterm_max,3) :: fac_arr
 
   !create the derivative of the projectors
   istart_c=1
@@ -237,11 +226,11 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,n
                        lz(iterm)=lxyz_arr(3,iterm,idir)
                     end do
 
-                    call crtproj(iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,&
+                    call crtproj(geocode,iproc,nterm,n1,n2,n3,&
+                         nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,&
                          nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radii_cf(iatype(iat),2),&
-                         cpmult,fpmult,hgrid,gau_a,fac_arr(1,idir),rx,ry,rz,lx,ly,lz,&
+                         cpmult,fpmult,hx,hy,hz,gau_a,fac_arr(1,idir),rx,ry,rz,lx,ly,lz,&
                          mvctr_c,mvctr_f,derproj(istart_c,idir),derproj(istart_f,idir))
-
                  end do
                  
                  iproj=iproj+1
@@ -258,25 +247,6 @@ subroutine projectors_derivatives(iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,n
   end do
   if (iproj.ne.nlpspd%nproj) stop 'incorrect number of projectors created'
   ! projector part finished
-
-  i_all=-product(shape(lxyz_arr))*kind(lxyz_arr)
-  deallocate(lxyz_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'lxyz_arr','projectors_derivatives')
-  i_all=-product(shape(nterm_arr))*kind(nterm_arr)
-  deallocate(nterm_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'nterm_arr','projectors_derivatives')
-  i_all=-product(shape(fac_arr))*kind(fac_arr)
-  deallocate(fac_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'fac_arr','projectors_derivatives')
-  i_all=-product(shape(lx))*kind(lx)
-  deallocate(lx,stat=i_stat)
-  call memocc(i_stat,i_all,'lx','projectors_derivatives')
-  i_all=-product(shape(ly))*kind(ly)
-  deallocate(ly,stat=i_stat)
-  call memocc(i_stat,i_all,'ly','projectors_derivatives')
-  i_all=-product(shape(lz))*kind(lz)
-  deallocate(lz,stat=i_stat)
-  call memocc(i_stat,i_all,'lz','projectors_derivatives')
 
 end subroutine projectors_derivatives
 

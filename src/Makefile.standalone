@@ -155,9 +155,9 @@ parameters.h:
 	echo "      logical, parameter :: parallel = $(PARALLEL)" > parameters.h
 
 clean:
-	rm -f *.o cluster memguess *.mod *~ PSolver/*.o PSolver/*~ parameters.h \
-		profiling/*.o init/*.o wfn_opt/*.o wavelib/*.o \
-	 PSolver/ABINIT-common/*.f90 PSolver/ABINIT-common/*.o PSolver/ABINIT-common/*~
+       rm -f *.o cluster memguess *.mod *~ PSolver/*.o PSolver/*~ parameters.h \
+               convolutions/*.o profiling/*.o init/*.o wfn_opt/*.o wavelib/*.o \
+        PSolver/ABINIT-common/*.f90 PSolver/ABINIT-common/*.o PSolver/ABINIT-common/*~ 
 
 tar:
 	make clean

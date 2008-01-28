@@ -73,46 +73,49 @@ interface
      real(kind=8), intent(out) :: occup(norb),spinar(norb)
    end subroutine input_occup
 
-   subroutine system_size(iproc,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
-        alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
-     ! calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
+   subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
+        iatype,atomnames,alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
+     !calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
      !and shifts the atoms such that their position is the most symmetric possible
      implicit none
+     character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nat,ntypes
-     real(kind=8), intent(in) :: hgrid,crmult,frmult
+     real(kind=8), intent(in) :: crmult,frmult
      character(len=20), dimension(ntypes), intent(in) :: atomnames
      integer, dimension(nat), intent(in) :: iatype
      real(kind=8), dimension(3,nat), intent(inout) :: rxyz
      real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
-     integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
-     real(kind=8), intent(out) :: alat1,alat2,alat3
+     integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
+     real(kind=8), intent(inout) :: hx,hy,hz,alat1,alat2,alat3
    end subroutine system_size
 
-   subroutine MemoryEstimator(nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hgrid,nat,ntypes,iatype,&
-        rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid,nspin,peakmem)
+   subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
+        iatype,rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid,nspin,peakmem)
      implicit none
      !Arguments
+     character(len=1), intent(in) :: geocode
      logical, intent(in) :: output_grid
      integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin
      integer, dimension(nat), intent(in) :: iatype
      character(len=20), dimension(100), intent(in) :: atomnames
-     real(kind=8), intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
+     real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
      real(kind=8), dimension(3,nat), intent(in) :: rxyz
      real(kind=8), dimension(ntypes,2), intent(in) ::  radii_cf
      real(kind=8), intent(out) :: peakmem
    end subroutine MemoryEstimator
 
-   subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,&
-        hgrid,nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
+   subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_grid,&
+        hx,hy,hz,nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
         wfd,nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
      use module_types
      implicit none
      !Arguments
-     integer, intent(in) :: iproc,nproc,idsx,n1,n2,n3,nat,ntypes,norb,norbp
+     character(len=1), intent(in) :: geocode
+     integer, intent(in) :: iproc,nproc,n1,n2,n3,nat,ntypes,norb,norbp
      integer, intent(out) :: nvctrp
      logical, intent(in) :: output_grid
      integer, intent(in) :: iatype(nat)
-     real(kind=8), intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
+     real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
      real(kind=8) :: rxyz(3, nat), radii_cf(ntypes, 2)
      character(len=20), intent(in) :: atomnames(100)
      integer,intent(in):: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
@@ -121,37 +124,39 @@ interface
      type(convolutions_bounds), intent(out) :: bounds
    end subroutine createWavefunctionsDescriptors
 
-   subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomnames,&
-        & psppar,npspcode,radii_cf,cpmult,fpmult,hgrid,nlpspd,proj)
+   subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomnames,&
+        & psppar,npspcode,radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
      use module_types
      implicit none
-     type(nonlocal_psp_descriptors), intent(out) :: nlpspd
+     character(len=1), intent(in) :: geocode
      character(len=20), dimension(100),intent(in) :: atomnames
      integer, intent(in) :: iproc,n1,n2,n3,nat,ntypes
-     real(kind=8), intent(in) :: cpmult,fpmult,hgrid
+     real(kind=8), intent(in) :: cpmult,fpmult,hx,hy,hz
      integer, dimension(nat), intent(in) :: iatype
      integer, dimension(ntypes), intent(in) :: npspcode
      real(kind=8), dimension(3,nat), intent(in) :: rxyz
      real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
      real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
+     type(nonlocal_psp_descriptors), intent(out) :: nlpspd
      real(kind=8), dimension(:), pointer :: proj
    end subroutine createProjectorsArrays
 
-   subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1,n2,n3,ixc,&
+   subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc,&
         n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
      implicit none
      character(len=1), intent(in) :: geocode,datacode
-     integer, intent(in) :: iproc,nproc,n1,n2,n3,ixc
+     integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,ixc
      integer, intent(out) ::  n3d,n3p,n3pi,i3xcsh,i3s
      integer, dimension(0:nproc-1,4), intent(out) :: nscatterarr
      integer, dimension(0:nproc-1,2), intent(out) :: ngatherarr
    end subroutine createDensPotDescriptors
 
-   subroutine createIonicPotential(iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,hgrid,&
-        elecfield,n1,n2,n3,n3pi,i3s,pkernel,pot_ion,eion)
+   subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,&
+        hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion)
      implicit none
-     integer, intent(in) :: iproc,nproc,nat,ntypes,n1,n2,n3,n3pi,i3s
-     real(kind=8), intent(in) :: hgrid,elecfield
+     character(len=1), intent(in) :: geocode
+     integer, intent(in) :: iproc,nproc,nat,ntypes,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+     real(kind=8), intent(in) :: hxh,hyh,hzh,elecfield
      integer, dimension(nat), intent(in) :: iatype
      integer, dimension(ntypes), intent(in) :: nelpsp
      real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
@@ -194,24 +199,24 @@ interface
      real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
    end subroutine import_gaussians
 
-   subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-        nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hgrid,rxyz, & 
+   subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+        nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz, & 
         rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
         atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,&
         ppsi,ppsit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
      use module_types
      implicit none
+     include 'mpif.h'
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
      type(convolutions_bounds), intent(in) :: bounds
-     logical, intent(in) :: parallel
+     character(len=1), intent(in) :: datacode,geocode
      character(len=20), dimension(100), intent(in) :: atomnames
-     character(len=1), intent(in) :: datacode
      integer, intent(in) :: iproc,nproc,nat,natsc,ntypes,norb,norbp,n1,n2,n3,ixc
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
      integer, intent(in) :: nspin
      real(kind=8), dimension(norb), intent(in) :: spinar
-     real(kind=8), intent(in) :: hgrid
+     real(kind=8), intent(in) :: hx,hy,hz
      real(kind=8), intent(out) :: accurex
      integer, dimension(nat), intent(in) :: iatype
      integer, dimension(ntypes), intent(in) :: iasctype,npspcode,nzatom,nelpsp
@@ -332,14 +337,16 @@ interface
      real(kind=8), dimension(3,nat), intent(out) :: floc
    end subroutine local_forces
 
-   subroutine projectors_derivatives(iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,nlpspd,proj,  &
-        rxyz,radii_cf,cpmult,fpmult,hgrid,derproj)
+   subroutine projectors_derivatives(geocode,iproc,n1,n2,n3,ntypes,nat,norb,iatype,psppar,&
+        nlpspd,proj,rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
      use module_types
      implicit none
+     character(len=1), intent(in) :: geocode
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+     !Arguments-------------
      integer, intent(in) :: iproc,ntypes,nat,norb
      integer, intent(in) :: n1,n2,n3
-     real(kind=8),intent(in) :: cpmult,fpmult,hgrid 
+     real(kind=8),intent(in) :: cpmult,fpmult,hx,hy,hz
      integer, dimension(nat), intent(in) :: iatype
      real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
      real(kind=8), dimension(3,nat), intent(in) :: rxyz

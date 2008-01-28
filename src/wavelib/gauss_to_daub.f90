@@ -1,236 +1,279 @@
- !       PROGRAM MAIN
- !       implicit real(kind=8) (a-h,o-z)          
- !       PARAMETER(NMAX=1000,NWORK=10000)
- !       DIMENSION C(0:NMAX,2)
-!!
-!!       NOW THE DIMENSION OF C IS (0:NMAX,2) INSTEAD OF (-N_INTVX:N_INTVX)
-!!
- !       DIMENSION WW(0:NWORK,2)  
-
- !           GAU_A=1.D0
- !           GAU_CEN=20.D0
- !           N_GAU=0
- !          FACTOR=1.D0
- !
- !        HGRID=1.D0
-
- !       CALL GAUSS_TO_DAUB(HGRID,FACTOR,GAU_CEN,GAU_A,N_GAU,&!NO ERR, ERRSUC
- !            NMAX,N_LEFT,N_RIGHT,C,ERR_NORM,&               !NO ERR_WAV. NMAX INSTEAD OF N_INTVX
- !            WW,NWORK)                                            !ADDED WORK ARRAY WW(:,:)  
-
-
- !           WRITE(*,*)'ERROR=',ERR_NORM
-
- !       END
-
-
-         SUBROUTINE GAUSS_TO_DAUB(HGRID,FACTOR,GAU_CEN,GAU_A,N_GAU,&!NO ERR, ERRSUC
-              NMAX,N_LEFT,N_RIGHT,C,ERR_NORM,&              !NO ERR_WAV. NMAX INSTEAD OF N_INTVX
-              WW,NWORK)                             !ADDED WORK ARRAYS WW WITH DIMENSION  NWORK
-! Gives the expansion coefficients of exp(-(1/2)*(x/gau_a)**2)
+! gives the expansion coefficients of exp(-(1/2)*(x/gau_a)**2)
 !!  INPUT: hgrid
-!          FACTOR
+!          factor
 !!         gau_cen
 !!          gau_a
 !!          n_gau
-!           NMAX
-!! OUTPUT: N_LEFT,N_RIGHT: Intervall where the GAUSSIAN IS LARGER THAN
+!           nmax
+!			periodic: the flag for periodic boundary conditions
+!
+!! output: n_left,n_right: intervall where the gaussian IS LARGER THAN
 !than thE MACHINE PRECISION
 !!         C(:,1) array of scaling function coefficients:
 !!         C(:,2) array of wavelet coefficients:
 !!         WW(:,1),WW(:,2): work arrays that have to be 16 times larger than C
-            implicit real(kind=8) (a-h,o-z)
-            INTEGER LEFTS(0:4),RIGHTS(0:4),RIGHTX,LEFTX,RIGHT_T
-            DIMENSION C(0:NMAX,2)
-            DIMENSION WW(0:NWORK,2)
-         INCLUDE 'recs16.inc'! MAGIC FILTER  
-         INCLUDE 'intots.inc'! HERE WE KEEP THE ANALYTICAL NORMS OF GAUSSIANS
-         INCLUDE 'sym_16.inc'! WAVELET FILTERS
 
-!
-!            RESCALE THE PARAMETERS SO THAT HGRID GOES TO 1.D0  
-!                   
-             A=GAU_A/HGRID
-             I0=NINT(GAU_CEN/HGRID) ! THE ARRAY IS CENTERED AT I0
-             Z0=GAU_CEN/HGRID-REAL(I0,KIND=8)
-         
-             H=.125D0*.5d0
-!
-!            CALCULATE THE ARRAY SIZES;
-!            AT LEVEL 0, POSITIONS SHIFTED BY I0 
-!
-             RIGHT_T= CEILING(15.D0*A)
+subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
+     nmax,n_left,n_right,c,err_norm,&                      !no err_wav. nmax instead of n_intvx
+     ww,nwork,periodic)                         !added work arrays ww with dimension nwork
+  implicit none
+  !implicit real(kind=8) (a-h,o-z)
+  logical, intent(in) :: periodic
+  integer, intent(in) :: n_gau,nmax,nwork
+  real(kind=8), intent(in) :: hgrid,factor,gau_cen,gau_a
+  integer, intent(out) :: n_left,n_right
+  real(kind=8), intent(out) :: err_norm
+  real(kind=8), dimension(0:nmax,2), intent(out) :: c
+  real(kind=8), dimension(0:nwork,2) :: ww 
+  !local variables
+  integer :: rightx,leftx,right_t,i0,i,k,length
+  real(kind=8) :: a,z0,h,cn2,theor_norm2,x,coeff,func,r,r2,error,fac
+  integer :: lefts(0:4),rights(0:4)
+  !include the convolutions filters
+  INCLUDE 'recs16.inc'! MAGIC FILTER  
+  INCLUDE 'intots.inc'! HERE WE KEEP THE ANALYTICAL NORMS OF GAUSSIANS
+  INCLUDE 'sym_16.inc'! WAVELET FILTERS
 
-!             WRITE(*,*)'RIGHT_T=',RIGHT_T,'A=',A,'HGRID=',HGRID,'NMAX=',NMAX
+  !rescale the parameters so that hgrid goes to 1.d0  
+  a=gau_a/hgrid
+  i0=nint(gau_cen/hgrid) ! the array is centered at i0
+  z0=gau_cen/hgrid-real(i0,kind=8)
+  h=.125d0*.5d0
 
-!             IF (2*RIGHT_T.GT.NMAX) &
-             IF (2*RIGHT_T.GT.NWORK) &
-!             STOP 'A GAUSSIAN IS GREATER THAN THE CELL'
-             STOP 'INCREASE THE NWORK IN SUBROUTINE gauss_to_daub.f90'
+  !calculate the array sizes;
+  !at level 0, positions shifted by i0 
+  right_t= ceiling(15.d0*a)
 
-             LEFTS( 0)=MAX(I0-RIGHT_T,   0)
-             RIGHTS(0)=MIN(I0+RIGHT_T,NMAX)
+  if (periodic) then
+     !we expand the whole Gaussian in scfunctions and later fold one of its tails periodically
+     lefts( 0)=i0-right_t
+     rights(0)=i0+right_t
 
-             N_LEFT=LEFTS(0)
-             N_RIGHT=RIGHTS(0)
+     call gauss_to_scf
 
-             DO K=1,4
-               RIGHTS(K)=2*RIGHTS(K-1)+M
-               LEFTS( K)=2*LEFTS( K-1)-M
-             ENDDO 
+     ! special for periodic case:
+     call fold_tail
+  else
+     ! non-periodic: the Gaussian is bounded by the cell borders
+     lefts( 0)=max(i0-right_t,   0)
+     rights(0)=min(i0+right_t,nmax)
 
-             LEFTX = LEFTS(4)-N
-             RIGHTX=RIGHTS(4)+N  
-!
-!            EIGENTLICH, CALCULATE THE EXPANSION COEFFICIENTS
-!            AT LEVEL 4, POSITIONS SHIFTED BY 16*I0 
-!         
-             !corrected for avoiding 0**0 problem
-             if (n_gau == 0) then
-                DO I=LEFTX,RIGHTX
-                   x=REAL(I-I0*16,KIND=8)*H
-                   r=x-z0
-                   r2=r/a
-                   r2=r2*r2
-                   r2=0.5d0*r2
-                   func=dexp(-r2)
-                   WW(I-LEFTX,1)=func
-                ENDDO
-             else
-                DO I=LEFTX,RIGHTX
-                   x=REAL(I-I0*16,KIND=8)*H
-                   r=x-z0
-                   coeff=r**n_gau
-                   r2=r/a
-                   r2=r2*r2
-                   r2=0.5d0*r2
-                   func=dexp(-r2)
-                   func=coeff*func
-                   WW(I-LEFTX,1)=func
-                   !PSI(REAL(I-I0*16,KIND=8)*H,A,Z0,N_GAU)
-                ENDDO
-             end if
+     call gauss_to_scf
 
-             CALL APPLY_W(WW(:,1),WW(:,2),&
-                                LEFTX   ,RIGHTX   ,LEFTS(4),RIGHTS(4),H)
+     ! non-periodic: no tails to fold
+     do i=0,length-1
+        c(i+n_left,1)=ww(i       ,2) !n_left..n_right <->    0  ..  length-1
+        c(i+n_left,2)=ww(i+length,2) !n_left..n_right <-> length..2*length-1
+     ENDDO
+  endif
 
-             CALL FORWARD_C(WW(:,2),WW(:,1),&
-                                LEFTS(4),RIGHTS(4),LEFTS(3),RIGHTS(3)) 
-             CALL FORWARD_C(WW(:,1),WW(:,2),&
-                                LEFTS(3),RIGHTS(3),LEFTS(2),RIGHTS(2)) 
-             CALL FORWARD_C(WW(:,2),WW(:,1),&
-                                LEFTS(2),RIGHTS(2),LEFTS(1),RIGHTS(1)) 
+  !calculate the (relative) error
+  cn2=0.d0
+  do i=0,length*2-1
+     cn2=cn2+ww(i,2)**2
+  ENDDO
 
-             CALL FORWARD(  WW(:,1),WW(:,2),&
-                                LEFTS(1),RIGHTS(1),LEFTS(0),RIGHTS(0)) 
+  theor_norm2=valints(n_gau)*a**(2*n_gau+1)
 
-             C=0.D0
-             LENGTH=N_RIGHT-N_LEFT+1
-             DO I=0,LENGTH-1
-               C(I+N_LEFT,1)=WW(I       ,2) !N_LEFT..N_RIGHT <->    0  ..  LENGTH-1
-               C(I+N_LEFT,2)=WW(I+LENGTH,2) !N_LEFT..N_RIGHT <-> LENGTH..2*LENGTH-1
-             ENDDO 
-!
-!            CALCULATE THE (RELATIVE) ERROR
-!
-             CN2=0.D0
-             DO I=0,LENGTH*2-1
-               CN2=CN2+WW(I,2)**2
-             ENDDO 
-             
-             THEOR_NORM2=VALINTS(N_GAU)*A**(2*N_GAU+1)
+  error=sqrt(abs(1.d0-cn2/theor_norm2))
 
-             ERROR=SQRT(ABS(1.D0-CN2/THEOR_NORM2))
-!
-!            RESCALE BACK THE COEFFICIENTS AND THE ERROR
-!
-             FAC= HGRID**N_GAU*SQRT(HGRID)*FACTOR
-             C=C*FAC
-             ERR_NORM=ERROR*FAC
-!
-!            CALCULATE THE OUTPUT ARRAY DIMENSIONS
-!
+  !write(*,*)'error, non scaled:',error
+  !
+  !RESCALE BACK THE COEFFICIENTS AND THE ERROR
+  fac= hgrid**n_gau*sqrt(hgrid)*factor
+  c=c*fac
+  err_norm=error*fac
 
-!             WRITE(*,*)'N_LEFT=',N_LEFT,'        N_RIGHT=',N_RIGHT
+contains
 
-         END
-         
-        SUBROUTINE APPLY_W(CX,C,LEFTX,RIGHTX,LEFT,RIGHT,H)
-!
-!       APPLYING THE MAGIC FILTER ("SHRINK") 
-!
-        implicit real(kind=8) (a-h,o-z)
-        INTEGER RIGHT,RIGHTX
-        DIMENSION CX(LEFTX:RIGHTX),C(LEFT:RIGHT)
-        INCLUDE 'recs16.inc'
+  subroutine gauss_to_scf
+    ! Once the bounds LEFTS(0) and RIGHTS(0) of the expansion coefficient array
+    ! are fixed, we get the expansion coefficients in the usual way:
+    ! get them on the finest grid by quadrature
+    ! then forward transform to get the coeffs on the coarser grid.
+    ! All this is done assuming nonperiodic boundary conditions
+    ! but will also work in the periodic case if the tails are folded
+    !implicit real(kind=8) (a-h,o-z)
+    n_left=lefts(0)
+    n_right=rights(0)
+    length=n_right-n_left+1
 
-        SQH=SQRT(H)
-        
-        DO I=LEFT,RIGHT
-          CI=0.D0
-          DO J=-N,N
-            CI=CI+CX(I+J)*W(J)         
-          ENDDO
-          C(I)=CI*SQH
-        ENDDO
-        
-        END 
+    do k=1,4
+       rights(k)=2*rights(k-1)+m
+       lefts( k)=2*lefts( k-1)-m
+    enddo
+
+    leftx = lefts(4)-n
+    rightx=rights(4)+N  
+
+    !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
+
+    !corrected for avoiding 0**0 problem
+    if (n_gau == 0) then
+       do i=leftx,rightx
+          x=real(i-i0*16,kind=8)*h
+          r=x-z0
+          r2=r/a
+          r2=r2*r2
+          r2=0.5d0*r2
+          func=dexp(-r2)
+          ww(i-leftx,1)=func
+       enddo
+    else
+       do i=leftx,rightx
+          x=real(i-i0*16,kind=8)*h
+          r=x-z0
+          coeff=r**n_gau
+          r2=r/a
+          r2=r2*r2
+          r2=0.5d0*r2
+          func=dexp(-r2)
+          func=coeff*func
+          ww(i-leftx,1)=func
+       enddo
+    end if
+
+    call apply_w(ww(:,1),ww(:,2),&
+         leftx   ,rightx   ,lefts(4),rights(4),h)
+
+    call forward_c(ww(:,2),ww(:,1),&
+         lefts(4),rights(4),lefts(3),rights(3)) 
+    call forward_c(ww(:,1),ww(:,2),&
+         lefts(3),rights(3),lefts(2),rights(2)) 
+    call forward_c(ww(:,2),ww(:,1),&
+         lefts(2),rights(2),lefts(1),rights(1)) 
+
+    call forward(  ww(:,1),ww(:,2),&
+         lefts(1),rights(1),lefts(0),rights(0)) 
+    c=0.d0
+  end subroutine gauss_to_scf
+
+  subroutine fold_tail
+    ! One of the tails of the Gaussian is folded periodically
+    ! We assume that the situation when we need to fold both tails
+    ! will never arise
+    !implicit none
+
+    !write(*,*) 'I fold the tail'
+    ! shift the resulting array and fold its periodic tails:
+    if (n_left.ge.0) then
+       if (n_right.le.nmax) then
+          ! normal situation: the gaussian is inside the box
+          do i=n_left,n_right
+             c(i,1)=ww(i-n_left       ,2)
+             c(i,2)=ww(i-n_left+length,2)
+          enddo
+       else
+          ! the gaussian extends beyond the right border
+
+          ! the normal part:
+          do i=n_left,nmax
+             c(i,1)=ww(i-n_left       ,2)
+             c(i,2)=ww(i-n_left+length,2)
+          enddo
+          ! the part of ww that goes beyond nmax 
+          ! is shifted by nmax+1 to the left			
+          do i=nmax+1,n_right
+             c(i-nmax-1,1)=ww(i-n_left       ,2)
+             c(i-nmax-1,2)=ww(i-n_left+length,2)
+          enddo
+       endif
+    else
+       ! the gaussian extends beyond the left border
+       ! the part of ww to the left of 0
+       ! is shifted by nmax+1 to the right
+       do i=n_left,-1
+          c(i+nmax+1,1)=ww(i-n_left       ,2)
+          c(i+nmax+1,2)=ww(i-n_left+length,2)
+       enddo
+       ! the normal part:
+       do i=0,n_right
+          c(i,1)=ww(i-n_left       ,2)
+          c(i,2)=ww(i-n_left+length,2)
+       enddo
+    endif
+  end subroutine fold_tail
 
 
-      SUBROUTINE FORWARD_C(C,C_1,LEFT,RIGHT,LEFT_1,RIGHT_1)
-!
-!      FORWARD WAVELET TRANSFORM WITHOUT WAVELETS ("SHRINK")
-!
-       implicit real(kind=8) (a-h,o-z)
-       INTEGER RIGHT,RIGHT_1
-       DIMENSION C(LEFT:RIGHT)
-       DIMENSION C_1(LEFT_1:RIGHT_1)
+end subroutine gauss_to_daub
 
-       INCLUDE 'sym_16.inc'
 
-!
-!      GET THE COARSE SCFUNCTIONS AND WAVELETS
-!
-       DO I=LEFT_1,RIGHT_1
-         I2=2*I
-         CI=0.D0
-         DO J=-M,M
-           CI=CI+CHT(J)*C(J+I2)
-         ENDDO
-         C_1(I)=CI
-       ENDDO
+SUBROUTINE APPLY_W(CX,C,LEFTX,RIGHTX,LEFT,RIGHT,H)
+  !
+  !       APPLYING THE MAGIC FILTER ("SHRINK") 
+  !
+  implicit real(kind=8) (a-h,o-z)
+  INTEGER RIGHT,RIGHTX
+  DIMENSION CX(LEFTX:RIGHTX),C(LEFT:RIGHT)
+  INCLUDE 'recs16.inc'
 
-       END
+  SQH=SQRT(H)
 
-      SUBROUTINE FORWARD(C,CD_1,LEFT,RIGHT,LEFT_1,RIGHT_1)
-!
-!      CONVENTIONAL FORWARD WAVELET TRANSFORM ("SHRINK")
-!
-       implicit real(kind=8) (a-h,o-z)
-       INTEGER RIGHT,RIGHT_1
-       DIMENSION C(LEFT:RIGHT)
-       DIMENSION CD_1(LEFT_1:RIGHT_1,2)
+  DO I=LEFT,RIGHT
+     CI=0.D0
+     DO J=-N,N
+        CI=CI+CX(I+J)*W(J)         
+     ENDDO
+     C(I)=CI*SQH
+  ENDDO
 
-       INCLUDE 'sym_16.inc'
+END SUBROUTINE APPLY_W
 
-!
-!      GET THE COARSE SCFUNCTIONS AND WAVELETS
-!
-       DO I=LEFT_1,RIGHT_1
-         I2=2*I
-         CI=0.D0
-         DI=0.D0
-         DO J=-M,M
-           CI=CI+CHT(J)*C(J+I2)
-           DI=DI+CGT(J)*C(J+I2)
-         ENDDO
-         CD_1(I,1)=CI
-         CD_1(I,2)=DI
-       ENDDO
- 
-       END
 
-       function psi(x,GAU_A,GAU_CEN,N_GAU)
-       implicit real(kind=8) (a-h,o-z)
-         psi=(X-GAU_CEN)**N_GAU*exp(-0.5d0*((X-GAU_CEN)/GAU_A)**2)
-       end
+SUBROUTINE FORWARD_C(C,C_1,LEFT,RIGHT,LEFT_1,RIGHT_1)
+  !
+  !      FORWARD WAVELET TRANSFORM WITHOUT WAVELETS ("SHRINK")
+  !
+  implicit real(kind=8) (a-h,o-z)
+  INTEGER RIGHT,RIGHT_1
+  DIMENSION C(LEFT:RIGHT)
+  DIMENSION C_1(LEFT_1:RIGHT_1)
+
+  INCLUDE 'sym_16.inc'
+
+  !
+  !      GET THE COARSE SCFUNCTIONS AND WAVELETS
+  !
+  DO I=LEFT_1,RIGHT_1
+     I2=2*I
+     CI=0.D0
+     DO J=-M,M
+        CI=CI+CHT(J)*C(J+I2)
+     ENDDO
+     C_1(I)=CI
+  ENDDO
+
+END SUBROUTINE FORWARD_C
+
+SUBROUTINE FORWARD(C,CD_1,LEFT,RIGHT,LEFT_1,RIGHT_1)
+  !
+  !      CONVENTIONAL FORWARD WAVELET TRANSFORM ("SHRINK")
+  !
+  implicit real(kind=8) (a-h,o-z)
+  INTEGER RIGHT,RIGHT_1
+  DIMENSION C(LEFT:RIGHT)
+  DIMENSION CD_1(LEFT_1:RIGHT_1,2)
+
+  INCLUDE 'sym_16.inc'
+
+  !
+  !      GET THE COARSE SCFUNCTIONS AND WAVELETS
+  !
+  DO I=LEFT_1,RIGHT_1
+     I2=2*I
+     CI=0.D0
+     DI=0.D0
+     DO J=-M,M
+        CI=CI+CHT(J)*C(J+I2)
+        DI=DI+CGT(J)*C(J+I2)
+     ENDDO
+     CD_1(I,1)=CI
+     CD_1(I,2)=DI
+  ENDDO
+
+END SUBROUTINE FORWARD
+
+function psi(x,GAU_A,GAU_CEN,N_GAU)
+  implicit real(kind=8) (a-h,o-z)
+  psi=(X-GAU_CEN)**N_GAU*exp(-0.5d0*((X-GAU_CEN)/GAU_A)**2)
+end function psi

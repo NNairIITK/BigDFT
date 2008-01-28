@@ -4,12 +4,12 @@ subroutine timing(iproc,category,action)
   include 'mpif.h'
   !Variables
   integer, intent(in) :: iproc
-  character(len=14), intent(in) :: category
+  character(len=*), intent(in) :: category
   character(len=2), intent(in) :: action      ! possibilities: INitialize, ON, OFf, REsults
   !Local variables
   logical :: parallel,init
   integer, parameter :: ncat=22   ! define timimg categories
-  integer :: i,ierr,ii,i_all,i_stat,nproc
+  integer :: i,ierr,ii,i_all,i_stat,nproc!,nskip
   integer :: istart,iend,count_rate,count_max,ielapsed,ncounters,itime,ittime
   !cputime routine gives a real
   !real :: total,total0,time,time0
@@ -18,7 +18,7 @@ subroutine timing(iproc,category,action)
   integer, dimension(ncat+1) :: itsum
   real(kind=8), dimension(ncat+1) :: timesum
   real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
-  save :: init,itsum,istart,timesum,ittime,parallel,pcnames,pctimes,ncounters
+  save :: init,itsum,istart,timesum,ittime,parallel,pcnames,pctimes,ncounters!,nskip
 
   character(len=14), dimension(ncat), parameter :: cats = (/ &
        'ReformatWaves '    ,  &  !  Reformatting of input waves
@@ -108,9 +108,9 @@ subroutine timing(iproc,category,action)
         end do
         if (parallel) then 
            !calculate total time
-           call MPI_REDUCE(total,total_pc,1,&
+           call MPI_REDUCE(total_pc,total,1,&
                 MPI_DOUBLE_PRECISION,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-           call MPI_REDUCE(timesum,pctimes,ncounters,&
+           call MPI_REDUCE(pctimes,timesum,ncounters,&
                 MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         else
            total=total_pc
@@ -119,7 +119,11 @@ subroutine timing(iproc,category,action)
            end do
         end if
         if (iproc.eq.0) then
-           call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+           if (parallel) then
+              call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+           else
+              nproc=1
+           end if
            write(60,*) 'PARTIAL COUNTER   mean TIME(sec)       PERCENT'
            total_pc=0.d0
            do i=1,ncounters
@@ -152,6 +156,9 @@ subroutine timing(iproc,category,action)
         if (init.neqv..false.) then
            print *, cats(ii),': TIMING INITIALIZED BEFORE READ'
            stop 
+!!$           !some other category was initalized before, taking that one
+!!$
+!!$           return
         endif
         istart=itime
         init=.true.
@@ -232,7 +239,11 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
   !total=real(timemax(ncat+1),kind=4)
 
   if (iproc.eq.0) then
-     call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+     if (parallel) then
+        call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+     else
+        nproc=1
+     end if
      open(unit=60,file='time.prc',status='unknown')
      !write(60,*) 'CATEGORY          min. TIME(sec)     max. TIME(sec)           PERCENT'
      write(60,*) 'CATEGORY          mean TIME(sec)       PERCENT'

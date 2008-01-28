@@ -1,5 +1,5 @@
-subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,&
-     hgrid,nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
+subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_grid,&
+     hx,hy,hz,nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
      wfd,nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
   !calculates the descriptor arrays keyg and keyv as well as nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp
   !calculates also the bounds arrays needed for convolutions
@@ -8,11 +8,12 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
 
   implicit none
   !Arguments
-  integer, intent(in) :: iproc,nproc,idsx,n1,n2,n3,nat,ntypes,norb,norbp
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,nat,ntypes,norb,norbp
   integer, intent(out) :: nvctrp
   logical, intent(in) :: output_grid
   integer, intent(in) :: iatype(nat)
-  real(kind=8), intent(in) :: hgrid,crmult,frmult,alat1,alat2,alat3
+  real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
   real(kind=8) :: rxyz(3, nat), radii_cf(ntypes, 2)
   character(len=20), intent(in) :: atomnames(100)
   integer,intent(in):: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
@@ -26,19 +27,21 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
   real(kind=8) :: tt
   logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
 
-  !allocate kinetic bounds
-  allocate(bounds%kb%ibyz_c(2,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%kb%ibyz_c))*kind(bounds%kb%ibyz_c),'ibyz_c','crtwvfnctsdescriptors')
-  allocate(bounds%kb%ibxz_c(2,0:n1,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%kb%ibxz_c))*kind(bounds%kb%ibxz_c),'ibxz_c','crtwvfnctsdescriptors')
-  allocate(bounds%kb%ibxy_c(2,0:n1,0:n2),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%kb%ibxy_c))*kind(bounds%kb%ibxy_c),'ibxy_c','crtwvfnctsdescriptors')
-  allocate(bounds%kb%ibyz_f(2,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%kb%ibyz_f))*kind(bounds%kb%ibyz_f),'ibyz_f','crtwvfnctsdescriptors')
-  allocate(bounds%kb%ibxz_f(2,0:n1,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%kb%ibxz_f))*kind(bounds%kb%ibxz_f),'ibxz_f','crtwvfnctsdescriptors')
-  allocate(bounds%kb%ibxy_f(2,0:n1,0:n2),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%kb%ibxy_f))*kind(bounds%kb%ibxy_f),'ibxy_f','crtwvfnctsdescriptors')
+  !allocate kinetic bounds, only for free BC
+  if (geocode == 'F') then
+     allocate(bounds%kb%ibyz_c(2,0:n2,0:n3),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%kb%ibyz_c))*kind(bounds%kb%ibyz_c),'ibyz_c','crtwvfnctsdescriptors')
+     allocate(bounds%kb%ibxz_c(2,0:n1,0:n3),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%kb%ibxz_c))*kind(bounds%kb%ibxz_c),'ibxz_c','crtwvfnctsdescriptors')
+     allocate(bounds%kb%ibxy_c(2,0:n1,0:n2),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%kb%ibxy_c))*kind(bounds%kb%ibxy_c),'ibxy_c','crtwvfnctsdescriptors')
+     allocate(bounds%kb%ibyz_f(2,0:n2,0:n3),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%kb%ibyz_f))*kind(bounds%kb%ibyz_f),'ibyz_f','crtwvfnctsdescriptors')
+     allocate(bounds%kb%ibxz_f(2,0:n1,0:n3),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%kb%ibxz_f))*kind(bounds%kb%ibxz_f),'ibxz_f','crtwvfnctsdescriptors')
+     allocate(bounds%kb%ibxy_f(2,0:n1,0:n2),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%kb%ibxy_f))*kind(bounds%kb%ibxy_f),'ibxy_f','crtwvfnctsdescriptors')
+  end if
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -52,22 +55,27 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
   call memocc(i_stat,product(shape(logrid_f))*kind(logrid_f),'logrid_f','crtwvfnctsdescriptors')
 
   ! coarse grid quantities
-  call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
-       radii_cf(1,1),crmult,hgrid,logrid_c)
+  call fill_logrid(geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
+       radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,wfd%nseg_c,wfd%nvctr_c)
   if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
        'Coarse resolution grid: Number of segments= ',wfd%nseg_c,'points=',wfd%nvctr_c
-  call make_bounds(n1,n2,n3,logrid_c,bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c)
+
+  if (geocode == 'F') then
+     call make_bounds(n1,n2,n3,logrid_c,bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c)
+  end if
 
   ! fine grid quantities
-  call fill_logrid(n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
-       radii_cf(1,2),frmult,hgrid,logrid_f)
+  call fill_logrid(geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
+       radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,wfd%nseg_f,wfd%nvctr_f)
   if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
        '  Fine resolution grid: Number of segments= ',wfd%nseg_f,'points=',wfd%nvctr_f
-  call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
+  if (geocode == 'F') then
+     call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
+  end if
 
-! Create the file grid.xyz to visualize the grid of functions
+  ! Create the file grid.xyz to visualize the grid of functions
   if (iproc ==0 .and. output_grid) then
      open(unit=22,file='grid.xyz',status='unknown')
      write(22,*) wfd%nvctr_c+wfd%nvctr_f,' atomic'
@@ -81,7 +89,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
            do i1=0,n1
               if (logrid_c(i1,i2,i3))&
                    write(22,'(a4,2x,3(1x,e10.3))') &
-                   '  g ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
+                   '  g ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
            enddo
         enddo
      end do
@@ -90,7 +98,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
            do i1=0,n1
               if (logrid_f(i1,i2,i3))&
                    write(22,'(a4,2x,3(1x,e10.3))') &
-                   '  G ',real(i1,kind=8)*hgrid,real(i2,kind=8)*hgrid,real(i3,kind=8)*hgrid
+                   '  G ',real(i1,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
            enddo
         enddo
      enddo
@@ -115,7 +123,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
   deallocate(logrid_f,stat=i_stat)
   call memocc(i_stat,i_all,'logrid_f','crtwvfnctsdescriptors')
 
-  ! allocate wavefunction arrays
+  !distribution of wavefunction arrays between processors
   norbme=max(min((iproc+1)*norbp,norb)-iproc*norbp,0)
   !write(*,'(a,i0,a,i0,a)') '- iproc ',iproc,' treats ',norbme,' orbitals '
   if (iproc == 0 .and. nproc>1) then
@@ -141,57 +149,63 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,idsx,n1,n2,n3,output_grid,
        'Wavefunction memory occupation per orbital (Bytes): ',&
        nvctrp*nproc*8
 
-  !allocate grow, shrink and real bounds
-  allocate(bounds%gb%ibzxx_c(2,0:n3,-14:2*n1+16),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%gb%ibzxx_c))*kind(bounds%gb%ibzxx_c),'ibzxx_c','crtwvfnctsdescriptors')
-  allocate(bounds%gb%ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%gb%ibxxyy_c))*kind(bounds%gb%ibxxyy_c),'ibxxyy_c','crtwvfnctsdescriptors')
-  allocate(bounds%gb%ibyz_ff(2,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%gb%ibyz_ff))*kind(bounds%gb%ibyz_ff),'ibyz_ff','crtwvfnctsdescriptors')
-  allocate(bounds%gb%ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%gb%ibzxx_f))*kind(bounds%gb%ibzxx_f),'ibzxx_f','crtwvfnctsdescriptors')
-  allocate(bounds%gb%ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%gb%ibxxyy_f))*kind(bounds%gb%ibxxyy_f),'ibxxyy_f','crtwvfnctsdescriptors')
+  !for free BC admits the bounds arrays
+  if (geocode == 'F') then
 
-  allocate(bounds%sb%ibzzx_c(2,-14:2*n3+16,0:n1),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%sb%ibzzx_c))*kind(bounds%sb%ibzzx_c),'ibzzx_c','crtwvfnctsdescriptors')
-  allocate(bounds%sb%ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%sb%ibyyzz_c))*kind(bounds%sb%ibyyzz_c),'ibyyzz_c','crtwvfnctsdescriptors')
-  allocate(bounds%sb%ibxy_ff(2,nfl1:nfu1,nfl2:nfu2),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%sb%ibxy_ff))*kind(bounds%sb%ibxy_ff),'ibxy_ff','crtwvfnctsdescriptors')
-  allocate(bounds%sb%ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%sb%ibzzx_f))*kind(bounds%sb%ibzzx_f),'ibzzx_f','crtwvfnctsdescriptors')
-  allocate(bounds%sb%ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%sb%ibyyzz_f))*kind(bounds%sb%ibyyzz_f),'ibyyzz_f','crtwvfnctsdescriptors')
+     !allocate grow, shrink and real bounds
+     allocate(bounds%gb%ibzxx_c(2,0:n3,-14:2*n1+16),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%gb%ibzxx_c))*kind(bounds%gb%ibzxx_c),'ibzxx_c','crtwvfnctsdescriptors')
+     allocate(bounds%gb%ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%gb%ibxxyy_c))*kind(bounds%gb%ibxxyy_c),'ibxxyy_c','crtwvfnctsdescriptors')
+     allocate(bounds%gb%ibyz_ff(2,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%gb%ibyz_ff))*kind(bounds%gb%ibyz_ff),'ibyz_ff','crtwvfnctsdescriptors')
+     allocate(bounds%gb%ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%gb%ibzxx_f))*kind(bounds%gb%ibzxx_f),'ibzxx_f','crtwvfnctsdescriptors')
+     allocate(bounds%gb%ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%gb%ibxxyy_f))*kind(bounds%gb%ibxxyy_f),'ibxxyy_f','crtwvfnctsdescriptors')
 
-  allocate(bounds%ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
-  call memocc(i_stat,product(shape(bounds%ibyyzz_r))*kind(bounds%ibyyzz_r),'ibyyzz_r','crtwvfnctsdescriptors')
+     allocate(bounds%sb%ibzzx_c(2,-14:2*n3+16,0:n1),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%sb%ibzzx_c))*kind(bounds%sb%ibzzx_c),'ibzzx_c','crtwvfnctsdescriptors')
+     allocate(bounds%sb%ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%sb%ibyyzz_c))*kind(bounds%sb%ibyyzz_c),'ibyyzz_c','crtwvfnctsdescriptors')
+     allocate(bounds%sb%ibxy_ff(2,nfl1:nfu1,nfl2:nfu2),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%sb%ibxy_ff))*kind(bounds%sb%ibxy_ff),'ibxy_ff','crtwvfnctsdescriptors')
+     allocate(bounds%sb%ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%sb%ibzzx_f))*kind(bounds%sb%ibzzx_f),'ibzzx_f','crtwvfnctsdescriptors')
+     allocate(bounds%sb%ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%sb%ibyyzz_f))*kind(bounds%sb%ibyyzz_f),'ibyyzz_f','crtwvfnctsdescriptors')
 
-  call make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       bounds%kb%ibxy_c,bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
-       bounds%kb%ibxy_f,bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
-       bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
-       bounds%kb%ibyz_f,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,&
-       bounds%ibyyzz_r)
+     allocate(bounds%ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16),stat=i_stat)
+     call memocc(i_stat,product(shape(bounds%ibyyzz_r))*kind(bounds%ibyyzz_r),'ibyyzz_r','crtwvfnctsdescriptors')
+
+     call make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+          bounds%kb%ibxy_c,bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
+          bounds%kb%ibxy_f,bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
+          bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
+          bounds%kb%ibyz_f,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,&
+          bounds%ibyyzz_r)
+
+  end if
 
 END SUBROUTINE createWavefunctionsDescriptors
 
 !pass to implicit none while inserting types on this routine
-subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomnames,&
-     & psppar,npspcode,radii_cf,cpmult,fpmult,hgrid,nlpspd,proj)
+subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomnames,&
+     & psppar,npspcode,radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
 
   use module_types
 
   implicit none
-  type(nonlocal_psp_descriptors), intent(out) :: nlpspd
+  character(len=1), intent(in) :: geocode
   character(len=20), dimension(100),intent(in) :: atomnames
   integer, intent(in) :: iproc,n1,n2,n3,nat,ntypes
-  real(kind=8), intent(in) :: cpmult,fpmult,hgrid
+  real(kind=8), intent(in) :: cpmult,fpmult,hx,hy,hz
   integer, dimension(nat), intent(in) :: iatype
   integer, dimension(ntypes), intent(in) :: npspcode
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
   real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
+  type(nonlocal_psp_descriptors), intent(out) :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
   !local variables
   integer, parameter :: nterm_max=10 !if GTH nterm_max=3
@@ -256,30 +270,31 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
         nlpspd%nproj=nlpspd%nproj+mproj
 
         ! coarse grid quantities
-        call  pregion_size(rxyz(1,iat),radii_cf(1,2),cpmult,iatype(iat),ntypes, &
-             hgrid,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
-        !if (iproc.eq.0) write(*,'(a,6(i4))') 'coarse grid',nl1,nu1,nl2,nu2,nl3,nu3
-        nlpspd%nboxp_c(1,1,iat)=nl1 
-        nlpspd%nboxp_c(1,2,iat)=nl2 
-        nlpspd%nboxp_c(1,3,iat)=nl3 
+        call  pregion_size(geocode,rxyz(1,iat),radii_cf(iatype(iat),2),cpmult, &
+             hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+
+        nlpspd%nboxp_c(1,1,iat)=nl1
+        nlpspd%nboxp_c(1,2,iat)=nl2       
+        nlpspd%nboxp_c(1,3,iat)=nl3       
 
         nlpspd%nboxp_c(2,1,iat)=nu1
         nlpspd%nboxp_c(2,2,iat)=nu2
         nlpspd%nboxp_c(2,3,iat)=nu3
 
-        call fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),cpmult,hgrid,logrid)
+        !now control the 
+
+        call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),cpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
-        !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr,coarse projectors ',mseg,mvctr
 
         nlpspd%nseg_p(2*iat-1)=nlpspd%nseg_p(2*iat-2) + mseg
         nlpspd%nvctr_p(2*iat-1)=nlpspd%nvctr_p(2*iat-2) + mvctr
         istart=istart+mvctr*mproj
 
         ! fine grid quantities
-        call  pregion_size(rxyz(1,iat),radii_cf(1,2),fpmult,iatype(iat),ntypes, &
-             hgrid,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
-        !if (iproc.eq.0) write(*,'(a,6(i4))') 'fine   grid',nl1,nu1,nl2,nu2,nl3,nu3
+        call  pregion_size(geocode,rxyz(1,iat),radii_cf(iatype(iat),2),fpmult,&
+             hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+
         nlpspd%nboxp_f(1,1,iat)=nl1
         nlpspd%nboxp_f(1,2,iat)=nl2
         nlpspd%nboxp_f(1,3,iat)=nl3
@@ -288,8 +303,8 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
         nlpspd%nboxp_f(2,2,iat)=nu2
         nlpspd%nboxp_f(2,3,iat)=nu3
 
-        call fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hgrid,logrid)
+        call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
         !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr, fine  projectors ',mseg,mvctr
         nlpspd%nseg_p(2*iat)=nlpspd%nseg_p(2*iat-1) + mseg
@@ -336,8 +351,8 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
         nu1=nlpspd%nboxp_c(2,1,iat)
         nu2=nlpspd%nboxp_c(2,2,iat)
         nu3=nlpspd%nboxp_c(2,3,iat)
-        call fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),cpmult,hgrid,logrid)
+        call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),cpmult,hx,hy,hz,logrid)
 
         iseg=nlpspd%nseg_p(2*iat-2)+1
         mseg=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
@@ -353,8 +368,8 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
         nu1=nlpspd%nboxp_f(2,1,iat)
         nu2=nlpspd%nboxp_f(2,2,iat)
         nu3=nlpspd%nboxp_f(2,3,iat)
-        call fill_logrid(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hgrid,logrid)
+        call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
         iseg=nlpspd%nseg_p(2*iat-1)+1
         mseg=nlpspd%nseg_p(2*iat)-nlpspd%nseg_p(2*iat-1)
         call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
@@ -406,9 +421,9 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomname
 
                  fac_arr(1:nterm)=factor*fac_arr(1:nterm)
 
-                 call crtproj(iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
+                 call crtproj(geocode,iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
                       & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radii_cf(iatype(iat),2), & 
-                      & cpmult,fpmult,hgrid,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
+                      & cpmult,fpmult,hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
                       & mvctr_c,mvctr_f,proj(istart_c), &
                       & proj(istart_f))
 
@@ -771,8 +786,8 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 
 END SUBROUTINE import_gaussians
 
-subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hgrid,rxyz, & 
+subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+     nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz, & 
      rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
      atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,&
      ppsi,ppsit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
@@ -788,14 +803,13 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(convolutions_bounds), intent(in) :: bounds
-  logical, intent(in) :: parallel
+  character(len=1), intent(in) :: datacode,geocode
   character(len=20), dimension(100), intent(in) :: atomnames
-  character(len=1), intent(in) :: datacode
   integer, intent(in) :: iproc,nproc,nat,natsc,ntypes,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
   integer, intent(in) :: nspin
   real(kind=8), dimension(norb), intent(in) :: spinar
-  real(kind=8), intent(in) :: hgrid
+  real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), intent(out) :: accurex
   integer, dimension(nat), intent(in) :: iatype
   integer, dimension(ntypes), intent(in) :: iasctype,npspcode,nzatom,nelpsp
@@ -811,11 +825,12 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   !local variables
   real(kind=8), parameter :: eps_mach=1.d-12
+  logical :: parallel
   integer, parameter :: ngx=31
   integer :: i,iorb,iorbsc,imatrsc,iorbst,imatrst,i_stat,i_all,ierr,info,jproc,jpst,norbeyou
   integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbi_max,norbsc
   integer :: ispin,norbu,norbd,iorbst2
-  real(kind=8) :: hgridh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol
+  real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol
   logical, dimension(:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: norbsc_arr,ng
   integer, dimension(:,:), allocatable :: nl
@@ -854,20 +869,21 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   !Generate the input guess via the inguess_generator
   call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,psppar,&
-       & npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,&
+       & npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,nspin,scorb,&
        & norbsc_arr)
 
   !  allocate wavefunctions and their occupation numbers
   allocate(occupe(norbe),stat=i_stat)
   call memocc(i_stat,product(shape(occupe))*kind(occupe),'occupe','input_wf_diag')
-  tt=dble(norbe)/dble(nproc)
+  !the number of orbitals to be considered is doubled in the case of a spin-polarised calculation
+  tt=dble(nspin*norbe)/dble(nproc)
   norbep=int((1.d0-eps_mach*tt) + tt)
 
   if (iproc == 0 .and. nproc>1) then
      jpst=0
      do jproc=0,nproc-2
-        norbeme=max(min((jproc+1)*norbep,norbe)-jproc*norbep,0)
-        norbeyou=max(min((jproc+2)*norbep,norbe)-(jproc+1)*norbep,0)
+        norbeme=max(min((jproc+1)*norbep,nspin*norbe)-jproc*norbep,0)
+        norbeyou=max(min((jproc+2)*norbep,nspin*norbe)-(jproc+1)*norbep,0)
         if (norbeme /= norbeyou) then
            !this is a screen output that must be modified
            write(*,'(3(a,i0),a)')&
@@ -879,22 +895,21 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           ' Processes from ',jpst,' to ',nproc-1,' treat ',norbeyou,' inguess orbitals '
   end if
 
-  hgridh=.5d0*hgrid
+  hxh=.5d0*hx
+  hyh=.5d0*hy
+  hzh=.5d0*hz
 
-  if (parallel) then
-     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(psi(nvctrp,norbep*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','input_wf_diag')
-  else
-     allocate(psi(nvctrp,norbe),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','input_wf_diag')
-  end if
+  parallel=(nproc > 1)
+
+  !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+  allocate(psi(nvctrp,norbep*nproc),stat=i_stat)
+  call memocc(i_stat,product(shape(psi))*kind(psi),'psi','input_wf_diag')
 
   ! Create input guess orbitals
-  call createAtomicOrbitals(iproc,nproc,atomnames,&
+  call createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
        nat,rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
-       wfd%nvctr_c,wfd%nvctr_f,n1,n2,n3,hgrid,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,iatype,ntypes,iasctype,natsc,psi,eks,scorb)
+       wfd%nvctr_c,wfd%nvctr_f,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+       wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,iatype,ntypes,iasctype,natsc,nspin,psi,eks,scorb)
 
 !!$  !!plot the initial LCAO wavefunctions
 !!$  !do i=2*iproc+1,2*iproc+2
@@ -928,28 +943,23 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
 
   ! resulting charge density and potential
-  allocate(ones(norbe),stat=i_stat)
+  allocate(ones(nspin*norbe),stat=i_stat)
   call memocc(i_stat,product(shape(ones))*kind(ones),'ones','input_wf_diag')
   ones(:)=1.0d0
 
-  call sumrho(parallel,iproc,nproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
+  call sumrho(parallel,iproc,nproc,nspin*norbe,norbep,n1,n2,n3,hx,occupe,  & 
        wfd,psi,rhopot,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,1,ones, &
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
-  call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
+  call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,1)
 
-  if (parallel) then
-     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(hpsi(nvctrp,norbep*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
-  else
-     allocate(hpsi(nvctrp,norbe),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
-  end if
-
-  call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
-       psppar,npspcode,norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+  !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+  allocate(hpsi(nvctrp,norbep*nproc),stat=i_stat)
+  call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
+  
+  call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hx,&
+       psppar,npspcode,nspin*norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        wfd,bounds,nlpspd,proj,&
        ngatherarr,nscatterarr(iproc,2),rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,ones)
@@ -964,7 +974,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   accurex=abs(eks-ekin_sum)
   !tolerance for comparing the eigenvalues in the case of degeneracies
-  etol=accurex/real(norbe,kind=8)
+  etol=accurex/real(nspin*norbe,kind=8)
   if (iproc.eq.0) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
   if (iproc.eq.0) then
      write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
@@ -981,6 +991,8 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'
+
+  !WARNING here the spin must be introduced!!!!!
 
   norbi_max=maxval(norbsc_arr)
 
