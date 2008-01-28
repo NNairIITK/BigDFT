@@ -786,8 +786,8 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 
 END SUBROUTINE import_gaussians
 
-subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hgrid,rxyz, & 
+subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+     nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz, & 
      rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
      atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,&
      ppsi,ppsit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
@@ -803,14 +803,13 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(convolutions_bounds), intent(in) :: bounds
-  logical, intent(in) :: parallel
+  character(len=1), intent(in) :: geocode,datacode
   character(len=20), dimension(100), intent(in) :: atomnames
-  character(len=1), intent(in) :: datacode
   integer, intent(in) :: iproc,nproc,nat,natsc,ntypes,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
   integer, intent(in) :: nspin
   real(kind=8), dimension(norb), intent(in) :: spinar
-  real(kind=8), intent(in) :: hgrid
+  real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), intent(out) :: accurex
   integer, dimension(nat), intent(in) :: iatype
   integer, dimension(ntypes), intent(in) :: iasctype,npspcode,nzatom,nelpsp
@@ -830,7 +829,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer :: i,iorb,iorbsc,imatrsc,iorbst,imatrst,i_stat,i_all,ierr,info,jproc,jpst,norbeyou
   integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbi_max,norbsc
   integer :: ispin,norbu,norbd,iorbst2
-  real(kind=8) :: hgridh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol
+  real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol
   logical, dimension(:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: norbsc_arr,ng
   integer, dimension(:,:), allocatable :: nl
@@ -894,7 +893,9 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           ' Processes from ',jpst,' to ',nproc-1,' treat ',norbeyou,' inguess orbitals '
   end if
 
-  hgridh=.5d0*hgrid
+  hxh=.5d0*hx
+  hyh=.5d0*hy
+  hzh=.5d0*hz
 
   if (parallel) then
      !allocate the wavefunction in the transposed way to avoid allocations/deallocations

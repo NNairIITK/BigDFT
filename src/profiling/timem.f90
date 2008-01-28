@@ -9,7 +9,7 @@ subroutine timing(iproc,category,action)
   !Local variables
   logical :: parallel,init
   integer, parameter :: ncat=22   ! define timimg categories
-  integer :: i,ierr,ii,i_all,i_stat,nproc
+  integer :: i,ierr,ii,i_all,i_stat,nproc!,nskip
   integer :: istart,iend,count_rate,count_max,ielapsed,ncounters,itime,ittime
   !cputime routine gives a real
   !real :: total,total0,time,time0
@@ -18,7 +18,7 @@ subroutine timing(iproc,category,action)
   integer, dimension(ncat+1) :: itsum
   real(kind=8), dimension(ncat+1) :: timesum
   real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
-  save :: init,itsum,istart,timesum,ittime,parallel,pcnames,pctimes,ncounters
+  save :: init,itsum,istart,timesum,ittime,parallel,pcnames,pctimes,ncounters!,nskip
 
   character(len=14), dimension(ncat), parameter :: cats = (/ &
        'ReformatWaves '    ,  &  !  Reformatting of input waves
@@ -156,6 +156,9 @@ subroutine timing(iproc,category,action)
         if (init.neqv..false.) then
            print *, cats(ii),': TIMING INITIALIZED BEFORE READ'
            stop 
+!!$           !some other category was initalized before, taking that one
+!!$
+!!$           return
         endif
         istart=itime
         init=.true.

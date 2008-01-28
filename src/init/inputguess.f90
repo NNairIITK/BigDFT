@@ -2,7 +2,6 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
      & psppar,npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,&
      & scorb,norbsc_arr)
   implicit none
-  ! character(len = *), intent(in) :: filename
   integer, intent(in) :: ngx, iproc, ntypes
   integer, intent(in) :: nzatom(ntypes), nelpsp(ntypes)
   real(kind=8), intent(in) :: psppar(0:4,0:6,ntypes)
@@ -129,7 +128,6 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
         if (iproc.eq.0) write(*,'(1x,a)')'done.'
 
      end if
-
 
   end do loop_assign
 
