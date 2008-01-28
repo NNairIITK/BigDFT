@@ -337,7 +337,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
 
   !Allocate Charge density, Potential in real space
   if (n3d >0) then
-     allocate(rhopot((2*n1+31),(2*n2+31),n3d,nspin),stat=i_stat)
+     allocate(rhopot(n1i,n2i,n3d,nspin),stat=i_stat)
      call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','cluster')
   else
      allocate(rhopot(1,1,1,nspin),stat=i_stat)
