@@ -213,4 +213,5 @@ while not EOF:
 
 print context_lines,
 print "Max Discrepancy%s:" % context_discrepancy,maximum
+sys.exit(0)
 
