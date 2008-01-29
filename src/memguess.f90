@@ -280,8 +280,23 @@ program memguess
 end program memguess
 !!***
 
-!rotate the molecule via an orthogonal matrix in order to minimise the
-!volume of the cubic cell
+
+!!****f* BigDFT/optimise_volume
+!! NAME
+!!   optimise_volume
+!!
+!! FUNCTION
+!!  Rotate the molecule via an orthogonal matrix in order to minimise the
+!!  volume of the cubic cell
+!!
+!! AUTHOR
+!!    Luigi Genovese
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007 CEA
+!!
+!! SOURCE
+!!
 subroutine optimise_volume(nat,ntypes,iatype,atomnames,crmult,frmult,hgrid,rxyz,radii_cf)
   implicit none
   integer, intent(in) :: nat,ntypes
@@ -380,4 +395,4 @@ subroutine optimise_volume(nat,ntypes,iatype,atomnames,crmult,frmult,hgrid,rxyz,
   deallocate(txyz,stat=i_stat)
   call memocc(i_stat,i_all,'txyz','optimise_volume')
 end subroutine optimise_volume
-
+!!***
