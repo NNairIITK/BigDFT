@@ -1,3 +1,45 @@
+!!****m* BigDFT/interfaces
+!! NAME
+!!   interfaces
+!!
+!! FUNCTION
+!!  Modules which contains all interfaces
+!!
+!! DESCRIPTION
+!!  Interfaces of:
+!!  - call_cluster
+!!  - conjgrad
+!!  - copy_old_wavefunctions
+!!  - read_system_variables
+!!  - input_occup
+!!  - system_size
+!!  - MemoryEstimator
+!!  - createWavefunctionsDescriptors
+!!  - createProjectorsArrays
+!!  - createDensPotDescriptors
+!!  - createIonicPotential
+!!  - import_gaussians
+!!  - input_wf_diag
+!!  - reformatmywaves
+!!  - first_orthon
+!!  - sumrho
+!!  - HamiltonianApplication
+!!  - hpsitopsi
+!!  - last_orthon
+!!  - local_forces
+!!  - projectors_derivatives
+!!  - nonlocal_forces
+!!  - CalculateTailCorrection
+!!  - reformatonewave
+!!
+!! AUTHOR
+!!    Luigi Genovese, Damien Caliste
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007 CEA
+!!
+!! SOURCE
+!!
 module module_interfaces
 
 interface
@@ -411,3 +453,4 @@ interface
 end interface
 
 end module module_interfaces
+!!***

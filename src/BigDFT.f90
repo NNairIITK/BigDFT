@@ -1,3 +1,15 @@
+!!****p* BigDFT/BigDFT
+!! NAME
+!!   BigDFT
+!!
+!! FUNCTION
+!!  Main program to calculate electronic structures
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007 CEA, UNIBAS
+!!
+!! SOURCE
+!!
 program BigDFT
 
   use module_types
@@ -171,3 +183,4 @@ program BigDFT
   if (parallel) call MPI_FINALIZE(ierr)
 
  end program BigDFT
+ !!***

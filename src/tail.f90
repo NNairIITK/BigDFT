@@ -1,3 +1,15 @@
+!!****f* BigDFT/CalculateTailCorrection
+!! NAME
+!!   CalculateTailCorrection
+!!
+!! FUNCTION
+!!  Calculate the finite size corrections over wavefunctions
+!!  
+!! COPYRIGHT
+!!    Copyright (C) 2007 UNIBAS,CEA
+!!
+!! SOURCE
+!!
 subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntypes,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,psppar,npspcode,eval,&
      pot,hgrid,rxyz,radii_cf,crmult,frmult,iatype,atomnames,nspin,spinar,&
@@ -572,6 +584,7 @@ subroutine CalculateTailCorrection(iproc,nproc,n1,n2,n3,rbuf,norb,norbp,nat,ntyp
   endif
 
 end subroutine CalculateTailCorrection
+!!***
 
 
 subroutine transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,& 

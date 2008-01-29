@@ -298,7 +298,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
                  occshell=occupat(ictot,ity)                 
                  if (nspin==2) then
                     if (polarised) then
-                       occshell=0.5d0*(occshell+real(2*ispin-1,kind=8)*nspinat(iat))
+                       occshell=0.5d0*(occshell+real(1-2*(ispin-1),kind=8)*nspinat(iat))
                        !this check can be inserted also elsewhere
                        if (occshell <= 0.d0) then
                           if(iproc==0) write(*,'(1x,3(a,i0))')&
