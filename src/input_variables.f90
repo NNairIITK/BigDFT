@@ -141,7 +141,7 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,l
   integer, intent(out) :: ntypes
   character(len=20), dimension(100), intent(out) :: atomnames
   logical, dimension(nat), intent(out) :: lfrztyp
-  integer, dimension(nat), intent(out) :: iatype,nspinat
+  integer, dimension(nat), intent(out) :: iatype!,nspinat
   real(kind=8), dimension(3,nat), intent(out) :: rxyz
   !local variables
   character(len=1) :: suffix
