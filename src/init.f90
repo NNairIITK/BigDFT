@@ -789,7 +789,7 @@ END SUBROUTINE import_gaussians
 subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz, & 
      rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
-     atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,&
+     atomnames,ntypes,iatype,iasctype,nspinat,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,&
      ppsi,ppsit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
@@ -808,18 +808,18 @@ subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer, intent(in) :: iproc,nproc,nat,natsc,ntypes,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
   integer, intent(in) :: nspin
-  real(kind=8), dimension(norb), intent(in) :: spinar
   real(kind=8), intent(in) :: hx,hy,hz
-  real(kind=8), intent(out) :: accurex
-  integer, dimension(nat), intent(in) :: iatype
   integer, dimension(ntypes), intent(in) :: iasctype,npspcode,nzatom,nelpsp
+  integer, dimension(nat), intent(in) :: iatype,nspinat
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+  real(kind=8), dimension(norb), intent(in) :: spinar
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(*), intent(in) :: pkernel
   real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
+  real(kind=8), intent(out) :: accurex
   real(kind=8), dimension(norb), intent(out) :: eval
   real(kind=8), dimension(:,:), pointer :: ppsi,ppsit
 
@@ -829,12 +829,12 @@ subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer, parameter :: ngx=31
   integer :: i,iorb,iorbsc,imatrsc,iorbst,imatrst,i_stat,i_all,ierr,info,jproc,jpst,norbeyou
   integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbi_max,norbsc
-  integer :: ispin,norbu,norbd,iorbst2
+  integer :: ispin,norbu,norbd,iorbst2,ist
   real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol
   logical, dimension(:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: norbsc_arr,ng
   integer, dimension(:,:), allocatable :: nl
-  real(kind=8), dimension(:), allocatable :: work_lp,pot,evale,occupe,ones
+  real(kind=8), dimension(:), allocatable :: work_lp,pot,evale,occupe,spinare
   real(kind=8), dimension(:,:), allocatable :: xp,occupat,hamovr,psi,hpsi
   real(kind=8), dimension(:,:,:), allocatable :: psiw,psiat
 
@@ -873,7 +873,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        & norbsc_arr)
 
   !  allocate wavefunctions and their occupation numbers
-  allocate(occupe(norbe),stat=i_stat)
+  allocate(occupe(nspin*norbe),stat=i_stat)
   call memocc(i_stat,product(shape(occupe))*kind(occupe),'occupe','input_wf_diag')
   !the number of orbitals to be considered is doubled in the case of a spin-polarised calculation
   tt=dble(nspin*norbe)/dble(nproc)
@@ -909,7 +909,8 @@ subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   call createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
        nat,rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
        wfd%nvctr_c,wfd%nvctr_f,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,iatype,ntypes,iasctype,natsc,nspin,psi,eks,scorb)
+       wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,iatype,ntypes,&
+       iasctype,natsc,nspinat,nspin,psi,eks,scorb)
 
 !!$  !!plot the initial LCAO wavefunctions
 !!$  !do i=2*iproc+1,2*iproc+2
@@ -943,16 +944,20 @@ subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
 
   ! resulting charge density and potential
-  allocate(ones(nspin*norbe),stat=i_stat)
-  call memocc(i_stat,product(shape(ones))*kind(ones),'ones','input_wf_diag')
-  ones(:)=1.0d0
+  allocate(spinare(nspin*norbe),stat=i_stat)
+  call memocc(i_stat,product(shape(spinare))*kind(spinare),'spinare','input_wf_diag')
+  ist=1
+  do ispin=1,nspin
+     spinare(ist:ist+norbe-1)=real(1-2*(ispin-1),kind=8)
+     ist=norbe+1
+  end do
 
   call sumrho(parallel,iproc,nproc,nspin*norbe,norbep,n1,n2,n3,hx,occupe,  & 
-       wfd,psi,rhopot,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,1,ones, &
+       wfd,psi,rhopot,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,nspin,spinare, &
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
   call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hxh,hyh,hzh,&
-       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,1)
+       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(nvctrp,norbep*nproc),stat=i_stat)
@@ -962,11 +967,11 @@ subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        psppar,npspcode,nspin*norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        wfd,bounds,nlpspd,proj,&
        ngatherarr,nscatterarr(iproc,2),rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,ones)
+       psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinare)
 
-  i_all=-product(shape(ones))*kind(ones)
-  deallocate(ones,stat=i_stat)
-  call memocc(i_stat,i_all,'ones','input_wf_diag')
+  i_all=-product(shape(spinare))*kind(spinare)
+  deallocate(spinare,stat=i_stat)
+  call memocc(i_stat,i_all,'spinare','input_wf_diag')
 
   i_all=-product(shape(occupe))*kind(occupe)
   deallocate(occupe,stat=i_stat)
@@ -974,7 +979,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   accurex=abs(eks-ekin_sum)
   !tolerance for comparing the eigenvalues in the case of degeneracies
-  etol=accurex/real(nspin*norbe,kind=8)
+  etol=accurex/real(norbe,kind=8)
   if (iproc.eq.0) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
   if (iproc.eq.0) then
      write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
@@ -992,8 +997,6 @@ subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'
 
-  !WARNING here the spin must be introduced!!!!!
-
   norbi_max=maxval(norbsc_arr)
 
   !calculate the dimension of the overlap matrix
@@ -1010,11 +1013,11 @@ subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      allocate(psiw(nvctrp,norbep,nproc),stat=i_stat)
      call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','input_wf_diag')
 
-     call switch_waves(iproc,nproc,norbe,norbep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,psiw)
+     call switch_waves(iproc,nproc,nspin*norbe,norbep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,psiw)
      call MPI_ALLTOALL(psiw,nvctrp*norbep,MPI_DOUBLE_PRECISION,  &
           psi,nvctrp*norbep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
 
-     call switch_waves(iproc,nproc,norbe,norbep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psiw)
+     call switch_waves(iproc,nproc,nspin*norbe,norbep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psiw)
      call MPI_ALLTOALL(psiw,nvctrp*norbep,MPI_DOUBLE_PRECISION,  &
           hpsi,nvctrp*norbep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
 
@@ -1023,20 +1026,20 @@ subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      call memocc(i_stat,i_all,'psiw','input_wf_diag')
      !end of transposition
 
-     allocate(hamovr(ndim_hamovr,4),stat=i_stat)
+     allocate(hamovr(nspin*ndim_hamovr,4),stat=i_stat)
      call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','input_wf_diag')
 
      if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
           'Overlap Matrix...'
 
-     call overlap_matrices(nproc,norbep,nvctrp,natsc,ndim_hamovr,norbsc_arr,hamovr(1,3),psi,hpsi)
+     call overlap_matrices(nproc,norbep,nvctrp,natsc,nspin,ndim_hamovr,norbsc_arr,hamovr(1,3),psi,hpsi)
 
      i_all=-product(shape(hpsi))*kind(hpsi)
      deallocate(hpsi,stat=i_stat)
      call memocc(i_stat,i_all,'hpsi','input_wf_diag')
 
      !reduce the overlap matrix between all the processors
-     call MPI_ALLREDUCE(hamovr(1,3),hamovr(1,1),2*ndim_hamovr,&
+     call MPI_ALLREDUCE(hamovr(1,3),hamovr(1,1),2*nspin*ndim_hamovr,&
           MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
      call solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,nspin,etol,&
@@ -1098,10 +1101,10 @@ subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
      write(*,'(1x,a)',advance='no')'Overlap Matrix...'
 
-     allocate(hamovr(ndim_hamovr,2),stat=i_stat)
+     allocate(hamovr(nspin*ndim_hamovr,2),stat=i_stat)
      call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','input_wf_diag')
 
-     call overlap_matrices(nproc,norbep,nvctrp,natsc,ndim_hamovr,norbsc_arr,hamovr,psi,hpsi)
+     call overlap_matrices(nproc,norbep,nvctrp,natsc,nspin,ndim_hamovr,norbsc_arr,hamovr,psi,hpsi)
 
      i_all=-product(shape(hpsi))*kind(hpsi)
      deallocate(hpsi,stat=i_stat)
@@ -1154,12 +1157,13 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   integer, intent(in) :: iproc,norb,norbi_max,ndim_hamovr,natsc,nspin,norbu,norbd
   integer, dimension(natsc+1), intent(in) :: norbsc_arr
   real(kind=8), intent(in) :: etol
-  real(kind=8), dimension(ndim_hamovr,2), intent(inout) :: hamovr
+  real(kind=8), dimension(nspin*ndim_hamovr,2), intent(inout) :: hamovr
   real(kind=8), dimension(norb), intent(out) :: eval
   !local variables
   character(len=64) :: message
   integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,iorb,i,ndegen,nwrtmsg,jorb,istart
-  real(kind=8) :: preval,tt,sum
+  real(kind=8) :: tt,sum
+  real(kind=8), dimension(2) :: preval
   real(kind=8), dimension(:), allocatable :: work_lp,evale,randarr
 
 
@@ -1167,7 +1171,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   n_lp=max(10,4*norbi_max)
   allocate(work_lp(n_lp),stat=i_stat)
   call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','solve_eigensystem')
-  allocate(evale(norbi_max),stat=i_stat)
+  allocate(evale(nspin*norbi_max),stat=i_stat)
   call memocc(i_stat,product(shape(evale))*kind(evale),'evale','solve_eigensystem')
 
   if (iproc.eq.0) write(*,'(1x,a)')'Linear Algebra...'
@@ -1175,14 +1179,23 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   nwrtmsg=0
   ndegen=0
 
+  preval=0.d0
   iorbst=1
   imatrst=1
   do i=1,natsc+1
      norbi=norbsc_arr(i)
+
      call DSYGV(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
           norbi,evale,work_lp,n_lp,info)
-
      if (info.ne.0) write(*,*) 'DSYGV ERROR',info,i,natsc+1
+
+     !do the diagonalisation separately in case of spin polarization     
+     if (nspin==2) then
+        call DSYGV(1,'V','U',norbi,hamovr(imatrst+ndim_hamovr,1),&
+             norbi,hamovr(imatrst+ndim_hamovr,2),norbi,evale(norbi+1),work_lp,n_lp,info)
+        if (info.ne.0) write(*,*) 'DSYGV ERROR',info,i,natsc+1
+     end if
+
 !!$        !write the matrices on a file
 !!$        !open(33+2*(i-1))
 !!$        !do jjorb=1,norbi
@@ -1197,64 +1210,120 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
 !!$        !end do
 !!$        !close(34+2*(i-1))
 
+
      !writing rules, control if the last eigenvector is degenerate
+     !do this for each spin
+     !for each spin it is supposed that only the last group contains is not completely passed
+     !and also that the components of each of the group but the last are the same for up and 
+     !down polarisation
      do iorb=1,norbi
-        if (nwrtmsg==1) then
-           if (abs(evale(iorb)-preval) <= etol) then
-              !degeneracy found
-              message='  <- found degeneracy'
-              ndegen=ndegen+1
-           else
-              nwrtmsg=0
-           end if
-        end if
         if (nspin==1) then
+           if (nwrtmsg==1) then
+              if (abs(evale(iorb)-preval(1)) <= etol) then
+                 !degeneracy found
+                 message='  <- found degeneracy'
+                 ndegen=ndegen+1
+              else
+                 nwrtmsg=0
+              end if
+           end if
            if (iorb+iorbst-1 == norb) then
               nwrtmsg=1
               message=' <- Last eigenvalue for input wavefunctions'
-              preval=evale(iorb)
+              preval(1)=evale(iorb)
+           end if
+           if (iproc.eq.0) then
+              if (nwrtmsg == 1) then
+                 write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
+                      'evale(',iorb+iorbst-1,')=',evale(iorb),trim(message)
+              else
+                 write(*,'(1x,a,i0,a,1x,1pe21.14)') &
+                      'evale(',iorb+iorbst-1,')=',evale(iorb)
+              end if
            end if
         else
-           if (norbu==norbd) then
-              if (iorb+iorbst-1 == norbu) then
-                 nwrtmsg=1
-                 message=' <- Last eigenvalue for input wavefncts of both spins'
-                 preval=evale(iorb)
+           if (nwrtmsg==1) then
+              if (abs(evale(iorb)-preval(1)) <= etol .and. &
+                   abs(evale(iorb+norbi)-preval(2)) <= etol) then
+                 !degeneracy found
+                 message='  <-deg->  '
+                 !ndegen=ndegen+1 removed, only for non magnetized cases
+              else if (abs(evale(iorb)-preval(1)) <= etol) then
+                 !degeneracy found
+                 message='  <-deg    '
+              else if (abs(evale(iorb+norbi)-preval(2)) <= etol) then
+                 !degeneracy found
+                 message='    deg->  '
+              else
+                 nwrtmsg=0
               end if
-           else
-              if (iorb+iorbst-1 == norbu) then
-                 nwrtmsg=1
-                 message=' <- Last eigenvalue for input wavefncts of spin up'
-                 preval=evale(iorb)
-              else if (iorb+iorbst-1 == norbd) then
-                 nwrtmsg=1
-                 message=' <- Last eigenvalue for input wavefncts of spin down'
-                 preval=evale(iorb)
+           end if
+           if (iorb+iorbst-1 == norbu .and. iorb+iorbst-1 == norbd) then
+              nwrtmsg=1
+              message=' <-Last->  ' 
+              preval(1)=evale(iorb)
+              preval(2)=evale(iorb+norbi)
+           else if (iorb+iorbst-1 == norbu) then
+              nwrtmsg=1
+              message=' <-Last    '
+              preval(1)=evale(iorb)
+           else if (iorb+iorbst-1 == norbd) then
+              nwrtmsg=1
+              message='   Last->  '
+              preval(2)=evale(iorb+norbi)
+           end if
+           if (iproc == 0) then
+              if (iorb+iorbst-1 <= norbu .and. iorb+iorbst-1 <= norbd) then
+                 if (nwrtmsg==1) then
+                    write(*,'(1x,a,i4,a,1x,1pe21.14,a12,a,i4,a,1x,1pe21.14)') &
+                         'evale(',iorb+iorbst-1,',u)=',evale(iorb),message,&
+                         'evale(',iorb+iorbst+1,',d)=',evale(iorb+norbi)
+                 else
+                    write(*,'(1x,a,i4,a,1x,1pe21.14,12x,a,i4,a,1x,1pe21.14)') &
+                         'evale(',iorb+iorbst-1,',u)=',evale(iorb),&
+                         'evale(',iorb+iorbst+1,',d)=',evale(iorb+norbi)
+                 end if
+              else if (iorb+iorbst-1 <= norbu) then
+                 if (nwrtmsg==1) then
+                    write(*,'(1x,a,i4,a,1x,1pe21.14,a12)')&
+                         'evale(',iorb+iorbst-1,',u)=',evale(iorb),message
+                 else
+                    write(*,'(1x,a,i4,a,1x,1pe21.14)')&
+                         'evale(',iorb+iorbst-1,',u)=',evale(iorb)  
+                 end if
+              else if (iorb+iorbst-1 <= norbd) then
+                 if (nwrtmsg==1) then
+                    write(*,'(47x,a,i0,a,1x,1pe21.14,a12)')&
+                         'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi),message
+                 else
+                    write(*,'(47x,a,i0,a,1x,1pe21.14)')&
+                         'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi)
+                 end if
               end if
            end if
         end if
-        if (iproc.eq.0) then
-           if (nwrtmsg == 1) then
-              write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
-                   'evale(',iorb+iorbst-1,')=',evale(iorb),trim(message)
-           else
-              write(*,'(1x,a,i0,a,1x,1pe21.14)') &
-                   'evale(',iorb+iorbst-1,')=',evale(iorb)
-           end if
-        end if
      end do
-     do iorb=iorbst,min(norbi+iorbst-1,norb)
-        eval(iorb)=evale(iorb-iorbst+1)
-     end do
+     if (nspin==1) then
+        do iorb=iorbst,min(norbi+iorbst-1,norb)
+           eval(iorb)=evale(iorb-iorbst+1)
+        end do
+     else
+        do iorb=iorbst,min(norbi+iorbst-1,norbu)
+           eval(iorb)=evale(iorb-iorbst+1)
+        end do
+        do iorb=iorbst,min(norbi+iorbst-1,norbd)
+           eval(iorb+norbu)=evale(iorb-iorbst+1+norbi)
+        end do
+     end if
      iorbst=iorbst+norbi
      imatrst=imatrst+norbi**2
   end do
-  ! Copy eigenvalues from NM to spin-polarized channels
-  if(nspin>1) then
-     do iorb=1,norbd
-        eval(iorb+norbu)=eval(iorb)
-     end do
-  end if
+!!$  ! Copy eigenvalues from NM to spin-polarized channels
+!!$  if(nspin>1) then
+!!$     do iorb=1,norbd
+!!$        eval(iorb+norbu)=eval(iorb)
+!!$     end do
+!!$  end if
 
   i_all=-product(shape(work_lp))*kind(work_lp)
   deallocate(work_lp,stat=i_stat)
@@ -1318,7 +1387,7 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,
   implicit none
   integer, intent(in) :: nproc,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,ndim_hamovr
   integer, dimension(natsc+1), intent(in) :: norbsc_arr
-  real(kind=8), dimension(ndim_hamovr), intent(in) :: hamovr
+  real(kind=8), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
   real(kind=8), dimension(nvctrp,norbep*nproc), intent(in) :: psi
   real(kind=8), dimension(nvctrp,norbp*nproc), intent(out) :: ppsit
   !local variables
@@ -1343,18 +1412,19 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,
   !!          hamovr(imatrst,1),norbi,0.d0,ppsit(1,iorbst),nvctrp)
 
   !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
+
+  iorbst=1
+  iorbst2=1
+  imatrst=1
   do ispin=1,nspin
-     iorbst=1
-     iorbst2=0
-     if(ispin==2) iorbst2=norbu
-     imatrst=1
      norbsc=0
      do i=1,natsc
         norbi=norbsc_arr(i)
         norbsc=norbsc+norbi
         call DGEMM('N','N',nvctrp,norbi,norbi,1.d0,psi(1,iorbst),nvctrp,&
-             hamovr(imatrst),norbi,0.d0,ppsit(1,iorbst2+iorbst),nvctrp)
+             hamovr(imatrst),norbi,0.d0,ppsit(1,iorbst2),nvctrp)
         iorbst=iorbst+norbi
+        iorbst2=iorbst2+norbi
         imatrst=imatrst+norbi**2
      end do
      norbi=norbsc_arr(natsc+1)
@@ -1364,59 +1434,64 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,
      !        norbj=norb-norbsc
      if(norbj>0) then
         call DGEMM('N','N',nvctrp,norbj,norbi,1.d0,psi(1,iorbst),nvctrp,&
-             hamovr(imatrst),norbi,0.d0,ppsit(1,iorbst2+iorbst),nvctrp)
+             hamovr(imatrst),norbi,0.d0,ppsit(1,iorbst2),nvctrp)
      end if
+     iorbst=norbi+norbsc+1 !this is equal to norbe+1
+     iorbst2=norbu+1
+     imatrst=ndim_hamovr+1
   end do
 
-  !here we should put a random noise on the spin-down components in the case of norbu=norbd
-  if (nspin == 2 .and. norbu==norbd) then
-     allocate(randnoise(nvctrp),stat=i_stat)
-     call memocc(i_stat,product(shape(randnoise))*kind(randnoise),'randnoise','build_eigenvectors')
-     call random_number(randnoise)
-
-     do iorb=1,norbu
-        do i=1,nvctrp
-           tt=50.d0*real(randnoise(nvctrp-i+1)-0.5,kind=8)/real(nvctrp*nproc,kind=8)
-           ppsit(i,iorb)=tt+ppsit(i,iorb)
-        end do
-     end do
-
-     do iorb=norbu+1,norbu+norbd
-        do i=1,nvctrp
-           tt=50.d0*real(randnoise(i)-0.5,kind=8)/real(nvctrp*nproc,kind=8)
-           ppsit(i,iorb)=tt+ppsit(i,iorb)
-        end do
-     end do
-
-     i_all=-product(shape(randnoise))*kind(randnoise)
-     deallocate(randnoise,stat=i_stat)
-     call memocc(i_stat,i_all,'randnoise','build_eigenvectors')
-  end if
+!!$  !here we should put a random noise on the spin-down components in the case of norbu=norbd
+!!$  if (nspin == 2 .and. norbu==norbd) then
+!!$     allocate(randnoise(nvctrp),stat=i_stat)
+!!$     call memocc(i_stat,product(shape(randnoise))*kind(randnoise),'randnoise','build_eigenvectors')
+!!$     call random_number(randnoise)
+!!$
+!!$     do iorb=1,norbu
+!!$        do i=1,nvctrp
+!!$           tt=50.d0*real(randnoise(nvctrp-i+1)-0.5,kind=8)/real(nvctrp*nproc,kind=8)
+!!$           ppsit(i,iorb)=tt+ppsit(i,iorb)
+!!$        end do
+!!$     end do
+!!$
+!!$     do iorb=norbu+1,norbu+norbd
+!!$        do i=1,nvctrp
+!!$           tt=50.d0*real(randnoise(i)-0.5,kind=8)/real(nvctrp*nproc,kind=8)
+!!$           ppsit(i,iorb)=tt+ppsit(i,iorb)
+!!$        end do
+!!$     end do
+!!$
+!!$     i_all=-product(shape(randnoise))*kind(randnoise)
+!!$     deallocate(randnoise,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'randnoise','build_eigenvectors')
+!!$  end if
 
 end subroutine build_eigenvectors
 
-subroutine overlap_matrices(nproc,norbep,nvctrp,natsc,ndim_hamovr,norbsc_arr,hamovr,psi,hpsi)
+subroutine overlap_matrices(nproc,norbep,nvctrp,natsc,nspin,ndim_hamovr,norbsc_arr,hamovr,psi,hpsi)
   implicit none
-  integer, intent(in) :: nproc,norbep,nvctrp,natsc,ndim_hamovr
+  integer, intent(in) :: nproc,norbep,nvctrp,natsc,ndim_hamovr,nspin
   integer, dimension(natsc+1), intent(in) :: norbsc_arr
-  real(kind=8), dimension(ndim_hamovr,2), intent(out) :: hamovr
+  real(kind=8), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
   real(kind=8), dimension(nvctrp,norbep*nproc), intent(in) :: psi,hpsi
   !local variables
-  integer ::iorbst,imatrst,norbi,i
+  integer ::iorbst,imatrst,norbi,i,ispin
 
   !calculate the overlap matrix for each group of the semicore atoms
   !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
   !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
   iorbst=1
   imatrst=1
-  do i=1,natsc+1
-     norbi=norbsc_arr(i)
-     call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,hpsi(1,iorbst),nvctrp,&
-          0.d0,hamovr(imatrst,1),norbi)
-     call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,psi(1,iorbst),nvctrp,&
-          0.d0,hamovr(imatrst,2),norbi)
-     iorbst=iorbst+norbi
-     imatrst=imatrst+norbi**2
+  do ispin=1,nspin
+     do i=1,natsc+1
+        norbi=norbsc_arr(i)
+        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,hpsi(1,iorbst),nvctrp,&
+             0.d0,hamovr(imatrst,1),norbi)
+        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,psi(1,iorbst),nvctrp,&
+             0.d0,hamovr(imatrst,2),norbi)
+        iorbst=iorbst+norbi
+        imatrst=imatrst+norbi**2
+     end do
   end do
-
+  
 end subroutine overlap_matrices

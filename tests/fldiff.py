@@ -60,7 +60,7 @@ context_lines = ""
 
 #First we compare the first two lines in the case of an added prefix (see platine CCRT)
 #We detect a pattern
-pattern='                             ****         *       *****    '
+pattern='                             BBBB         i       ggggg    '
 try:
     p1 = original1[0].index(pattern)
     p2 = original2[0].index(pattern)

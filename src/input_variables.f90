@@ -1,30 +1,30 @@
 subroutine print_logo()
   implicit none
-  write(*,'(23x,a)')'      ****         *       *****    '
-  write(*,'(23x,a)')'     *    *               *         '
-  write(*,'(23x,a)')'    *     *        *     *          '
-  write(*,'(23x,a)')'    *    *         *     *        * '
-  write(*,'(23x,a)')'    *****          *     *         *'
-  write(*,'(23x,a)')'    *    *         *     *         *'
-  write(*,'(23x,a)')'    *     *        *     *         *'
-  write(*,'(23x,a)')'    *      *       *     *         *'
-  write(*,'(23x,a)')'    *     *     ****     *         *'
-  write(*,'(23x,a)')'    * ****         *      *        *'
-  write(*,'(23x,a)')'    *             *        *      * '
-  write(*,'(23x,a)')'*********    *****          ******  ' 
+  write(*,'(23x,a)')'      BBBB         i       ggggg    '
+  write(*,'(23x,a)')'     B    B               g         '
+  write(*,'(23x,a)')'    B     B        i     g          '
+  write(*,'(23x,a)')'    B    B         i     g        g '
+  write(*,'(23x,a)')'    BBBBB          i     g         g'
+  write(*,'(23x,a)')'    B    B         i     g         g'
+  write(*,'(23x,a)')'    B     B        i     g         g'
+  write(*,'(23x,a)')'    B      B       i     g         g'
+  write(*,'(23x,a)')'    B     B     iiii     g         g'
+  write(*,'(23x,a)')'    B BBBB         i      g        g'
+  write(*,'(23x,a)')'    B             i        g      g '
+  write(*,'(23x,a)')'BBBBBBBBB    iiiii          gggggg  ' 
   !write(*,'(23x,a)')'---------------------------------------'
-  write(*,'(23x,a)')'  ******          *****    *********'
-  write(*,'(23x,a)')' *      *        *             *    '
-  write(*,'(23x,a)')'*        *      *         **** *    '
-  write(*,'(23x,a)')'*         *     ****     *     *    '
-  write(*,'(23x,a)')'*         *     *       *      *    '
-  write(*,'(23x,a)')'*         *     *        *     *    '
-  write(*,'(23x,a)')'*         *     *         *    *    '
-  write(*,'(23x,a)')'*         *     *          *****    '
-  write(*,'(23x,a)')' *        *     *         *    *    '  
-  write(*,'(23x,a)')'          *     *        *     *    ' 
-  write(*,'(23x,a)')'         *               *    *     '
-  write(*,'(23x,a)')'    *****       *         ****                       (Ver 1.0)'
+  write(*,'(23x,a)')'  DDDDDD          FFFFF    TTTTTTTTT'
+  write(*,'(23x,a)')' D      D        F             T    '
+  write(*,'(23x,a)')'D        D      F         TTTT T    '
+  write(*,'(23x,a)')'D         D     FFFF     T     T    '
+  write(*,'(23x,a)')'D         D     F       T      T    '
+  write(*,'(23x,a)')'D         D     F        T     T    '
+  write(*,'(23x,a)')'D         D     F         T    T    '
+  write(*,'(23x,a)')'D         D     F          TTTTT    '
+  write(*,'(23x,a)')' D        D     F         T    T    '  
+  write(*,'(23x,a)')'          D     F        T     T    ' 
+  write(*,'(23x,a)')'         D               T    T     '
+  write(*,'(23x,a)')'    DDDDD       F         TTTT                     (Ver 1.0.1)'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
   write(*,'(1x,a)')&
@@ -141,7 +141,7 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,l
   integer, intent(out) :: ntypes
   character(len=20), dimension(100), intent(out) :: atomnames
   logical, dimension(nat), intent(out) :: lfrztyp
-  integer, dimension(nat), intent(out) :: iatype
+  integer, dimension(nat), intent(out) :: iatype,nspinat
   real(kind=8), dimension(3,nat), intent(out) :: rxyz
   !local variables
   character(len=1) :: suffix

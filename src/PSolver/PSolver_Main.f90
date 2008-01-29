@@ -141,10 +141,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   allocate(zfionxc(md1,md3,md2/nproc,nspin),stat=i_stat)
   call memocc(i_stat,product(shape(zfionxc))*kind(zfionxc),'zfionxc','psolver')
 
-  !these MUST be eliminated in order to speed up the calculation
-!!$  zf=0.0d0
-!!$  zfionxc=0.0d0
-
   !dimension for exchange-correlation (different in the global or distributed case)
   !let us calculate the dimension of the portion of the rhopot array to be passed 
   !to the xc routine

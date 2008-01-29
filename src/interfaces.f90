@@ -202,7 +202,7 @@ interface
    subroutine input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
         nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz, & 
         rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
-        atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,&
+        atomnames,ntypes,iatype,iasctype,nspinat,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,&
         ppsi,ppsit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
      use module_types
      implicit none
@@ -215,18 +215,18 @@ interface
      integer, intent(in) :: iproc,nproc,nat,natsc,ntypes,norb,norbp,n1,n2,n3,ixc
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
      integer, intent(in) :: nspin
-     real(kind=8), dimension(norb), intent(in) :: spinar
      real(kind=8), intent(in) :: hx,hy,hz
-     real(kind=8), intent(out) :: accurex
-     integer, dimension(nat), intent(in) :: iatype
      integer, dimension(ntypes), intent(in) :: iasctype,npspcode,nzatom,nelpsp
+     integer, dimension(nat), intent(in) :: iatype,nspinat
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+     real(kind=8), dimension(norb), intent(in) :: spinar
      real(kind=8), dimension(3,nat), intent(in) :: rxyz
      real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(*), intent(in) :: pkernel
      real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
+     real(kind=8), intent(out) :: accurex
      real(kind=8), dimension(norb), intent(out) :: eval
      real(kind=8), dimension(:,:), pointer :: ppsi,ppsit
    end subroutine input_wf_diag

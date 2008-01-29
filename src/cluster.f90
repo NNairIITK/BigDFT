@@ -177,6 +177,10 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
   real(kind=8), dimension(:), pointer :: proj
   ! arrays for DIIS convergence accelerator
   real(kind=8), dimension(:,:,:), pointer :: ads,psidst,hpsidst
+  !temporary array, added for developing
+  integer, dimension(nat) :: nspinat
+
+  nspinat=0
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -364,7 +368,7 @@ subroutine cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,
      call input_wf_diag(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz, & 
           rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
-          atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,&
+          atomnames,ntypes,iatype,iasctype,nspinat,pkernel,nzatom,nelpsp,psppar,npspcode,&
           ixc,psi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
 
      if (iproc.eq.0) then
