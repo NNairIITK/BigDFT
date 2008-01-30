@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 31/10/2007
+# Date: 28/01/2008
 #----------------------------------------------------------------------------
 
 import difflib
@@ -20,11 +20,15 @@ def usage():
     print "fldiff.py file1 file2"
     sys.exit(1)
 
+#Test if the line should not be compared
 def line_junk(line):
     "True if the line must not be compared"
     return "CPU time" in line or "Load" in line or "memory" in line \
        or "MB" in line or "proc" in line or "Processes" in line \
        or "allocation" in line or "~W" in line or "for the array" in line
+
+#Check the last line
+end_line = "MEMORY CONSUMPTION REPORT"
 
 #Check arguments
 try:
@@ -49,18 +53,27 @@ if  version < [2,3,0]:
     sys.exit(1)
 
 #Read the first file
-original1 = open(file1).read().replace('\r','').splitlines(1)
+try:
+    original1 = open(file1).read().replace('\r','').splitlines(1)
+except IOError:
+    sys.stderr.write("The file '%s' does not exist!\n" % file1)
+    sys.exit(1)
 #Read the second file
-original2 = open(file2).read().replace('\r','').splitlines(1)
+try:
+    original2 = open(file2).read().replace('\r','').splitlines(1)
+except IOError:
+    sys.stderr.write("The file '%s' does not exist!\n" % file2)
+    sys.exit(1)
 
 max_discrepancy = 1.1e-11
 maximum = 0.0
 context_discrepancy = ""
 context_lines = ""
 
-#First we compare the first two lines in the case of an added prefix (see platine CCRT)
+#First we compare the first two lines in the case of an added prefix 
+#(see platine computer of CCRT)
 #We detect a pattern
-pattern='                             ****         *       *****    '
+pattern='                             BBBB         i       ggggg    '
 try:
     p1 = original1[0].index(pattern)
     p2 = original2[0].index(pattern)
@@ -74,11 +87,30 @@ if p1 >= 0 and p2 >= 0 and p1 != p2:
     prefix1 = original1[0].replace(pattern,'')[:-1]
     prefix2 = original2[0].replace(pattern,'')[:-1]
     if prefix1 != '':
-       #We remove the prefix
-       original1 = map(lambda x: x.replace(prefix1,''), original1)
+        #We remove the prefix
+        original1 = map(lambda x: x.replace(prefix1,''), original1)
     if prefix2 != '':
-       #We remove the prefix
-       original2 = map(lambda x: x.replace(prefix2,''), original2)
+        #We remove the prefix
+        original2 = map(lambda x: x.replace(prefix2,''), original2)
+
+end_left = False
+for line in original1:
+    end_left = end_line in line
+    if end_left:
+        break
+end_right = False
+for line in original1:
+    end_right = end_line in line
+    if end_right:
+        break
+#Do not compare if a file is not properly finished
+if not end_left:
+    print "WARNING: The file '%s' is not properly finished!" % file1
+if not end_right:
+    print "WARNING: The file '%s' is not properly finished!" % file2
+if not (end_left and end_right): 
+    print "Max Discrepancy: NaN"
+    sys.exit(1)
 
 #Compare both files
 compare = difflib.unified_diff(original1,original2,n=0)
@@ -126,7 +158,7 @@ while not EOF:
         line1 = left[i1]
         line2 = right[i2]
         #We avoid some lines
-	if line_junk(line1) or line_junk(line2):
+        if line_junk(line1) or line_junk(line2):
             continue
         floats1 = list()
         for (one,two) in re_float.findall(line1):
@@ -140,7 +172,7 @@ while not EOF:
         if new1 != new2 and i1 == 0:
             #For the first difference, we display the context
             print context,
-	    print_context = True
+        print_context = True
         if new1 != new2:
             print line1,
             print line2,
@@ -166,19 +198,20 @@ while not EOF:
     #Add lines if necessary
     while i1 < n1-1:
         i1 += 1
-	if not line_junk(left[i1]):
-	    if not print_context:
-                print context,
-		print_context = True
-            print left[i1],
+    if n1 > 0 and not line_junk(left[i1]):
+        if not print_context:
+            print context,
+        print_context = True
+        print left[i1],
     while i2 < n2-1:
         i2 += 1
-	if not line_junk(right[i2]):
-	    if not print_context:
-                print context,
-		print_context = True
-            print right[i2],
+    if n2 > 0 and not line_junk(right[i2]):
+        if not print_context:
+            print context,
+        print_context = True
+        print right[i2],
 
 print context_lines,
 print "Max Discrepancy%s:" % context_discrepancy,maximum
+sys.exit(0)
 

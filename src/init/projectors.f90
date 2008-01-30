@@ -81,10 +81,10 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
         if (mu1.lt.max(nu1_c,nu1_f)) write(*,*) 'Projector box larger than needed: mu1'
         if (mu2.lt.max(nu2_c,nu2_f)) write(*,*) 'Projector box larger than needed: mu2'
         if (mu3.lt.max(nu3_c,nu3_f)) write(*,*) 'Projector box larger than needed: mu3'
-        !approximate maximum value for cpmult,fpmult
-        cpmult_max=max((nu1_c-nl1_c)*hx*0.5d0/radius_f,(nu2_c-nl2_c)*hy*0.5d0/radius_f,(nu3_c-nl3_c)*hz*0.5d0/radius_f)
-        fpmult_max=max((nu1_f-nl1_f)*hx*0.5d0/radius_f,(nu2_f-nl2_f)*hy*0.5d0/radius_f,(nu3_f-nl3_f)*hz*0.5d0/radius_f)
-        print *,'cpmult_max,fpmult_max=',cpmult_max,fpmult_max
+!!$        !approximate maximum value for cpmult,fpmult
+!!$        cpmult_max=max((nu1_c-nl1_c)*hx*0.5d0/radius_f,(nu2_c-nl2_c)*hy*0.5d0/radius_f,(nu3_c-nl3_c)*hz*0.5d0/radius_f)
+!!$        fpmult_max=max((nu1_f-nl1_f)*hx*0.5d0/radius_f,(nu2_f-nl2_f)*hy*0.5d0/radius_f,(nu3_f-nl3_f)*hz*0.5d0/radius_f)
+!!$        print *,'cpmult_max,fpmult_max=',cpmult_max,fpmult_max
      endif
   end do
   !        if (iproc.eq.0) write(*,*) 'max err_norm ',err_norm

@@ -343,8 +343,8 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
            call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 !!$           !this kinetic energy is not reliable
 !!$           eks=eks+ek*occup(iorb)*cimu(m,ishell,iat,iorb)
-           call crtonewave(n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiatn,&
-                rx,ry,rz,hgrid,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+           call crtonewave('F',n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiatn,&
+                rx,ry,rz,hgrid,hgrid,hgrid,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
                 nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,&
                 keyg(1,nseg_c+1),keyv(nseg_c+1),&
                 tpsi(1),tpsi(nvctr_c+1))

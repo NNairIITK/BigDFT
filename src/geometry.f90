@@ -1,19 +1,17 @@
-subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg, &
+subroutine conjgrad(parallel,nproc,iproc,at,wpos,etot,gg, &
      psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,in)
   use module_types
   use module_interfaces, except_this_one => conjgrad
   implicit none
   logical, intent(in) :: parallel
-  integer, intent(in) :: nproc,iproc,nat,ntypes,norbp,norb
-  integer, intent(inout) :: n1,n2,n3,ncount_cluster
+  integer, intent(in) :: nproc,iproc
+  integer, intent(inout) :: n1,n2,n3,ncount_cluster,norbp,norb
   real(kind=8), intent(out) :: etot
+  type(atoms_data), intent(inout) :: at
   type(input_variables), intent(inout) :: in
   type(wavefunctions_descriptors), intent(inout) :: wfd
-  character(len=20), dimension(100), intent(in) :: atomnames
-  logical, dimension(nat), intent(in) :: lfrztyp
-  integer, dimension(nat), intent(in) :: iatype
-  real(kind=8), dimension(3,nat), intent(inout) :: wpos
-  real(kind=8), dimension(3,nat), intent(out) :: rxyz_old,gg
+  real(kind=8), dimension(3,at%nat), intent(inout) :: wpos
+  real(kind=8), dimension(3,at%nat), intent(out) :: rxyz_old,gg
   real(kind=8), dimension(:), pointer :: eval
   real(kind=8), dimension(:,:), pointer :: psi
   !local variables
@@ -22,11 +20,11 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
   real(kind=8) :: y0,y1,tt,sumx,sumy,sumz,obenx,obeny,obenz,unten,rlambda,tetot,forcemax
   real(kind=8), dimension(:,:), allocatable :: tpos,gp,hh
 
-  allocate(tpos(3,nat),stat=i_stat)
+  allocate(tpos(3,at%nat),stat=i_stat)
   call memocc(i_stat,product(shape(tpos))*kind(tpos),'tpos','conjgrad')
-  allocate(gp(3,nat),stat=i_stat)
+  allocate(gp(3,at%nat),stat=i_stat)
   call memocc(i_stat,product(shape(gp))*kind(gp),'gp','conjgrad')
-  allocate(hh(3,nat),stat=i_stat)
+  allocate(hh(3,at%nat),stat=i_stat)
   call memocc(i_stat,product(shape(hh))*kind(hh),'hh','conjgrad')
 
   anoise=1.d-4
@@ -37,18 +35,18 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
   open(unit=16,file='conjgrad.prc',status='unknown')
 
   if (in%betax <= 0.d0) then
-     call detbetax(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,&
+     call detbetax(parallel,nproc,iproc,at,wpos,&
           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in)
   endif
 
   avbeta=0.d0
   avnum=0.d0
   nfail=0
-  !        call steepdes(nat,fnrmtol,betax,alat,wpos,gg,etot,count_sd)
-  call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg,&
+
+  call steepdes(parallel,nproc,iproc,at,wpos,etot,gg,&
        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,fluct,flucto,fluctoo,fnrm,in)
 
-  if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) then
+  if (fnrm.lt.sqrt(1.d0*at%nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) then
      if (iproc.eq.0) write(16,*) 'Converged before entering CG',iproc
      call close_and_deallocate
      return
@@ -57,7 +55,7 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
 12345 continue
 
   etotprec=etot
-  do iat=1,nat
+  do iat=1,at%nat
      hh(1,iat)=gg(1,iat)
      hh(2,iat)=gg(2,iat)
      hh(3,iat)=gg(3,iat)
@@ -69,8 +67,8 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
 
   !C line minimize along hh ----
 
-  do iat=1,nat
-     if (lfrztyp(iat)) then
+  do iat=1,at%nat
+     if (at%lfrztyp(iat)) then
         tpos(1,iat)=wpos(1,iat)
         tpos(2,iat)=wpos(2,iat)
         tpos(3,iat)=wpos(3,iat)
@@ -80,14 +78,14 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
         tpos(3,iat)=wpos(3,iat)+beta0*hh(3,iat)
      end if
   end do
-  !        call energyandforces(nat,alat,tpos,gp,tetot,count_cg)
+
   in%inputPsiId=1
   in%output_grid=.false.
   in%output_wf=.false.
-  call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,tpos,tetot,gp,&
+  call call_cluster(parallel,nproc,iproc,at,tpos,tetot,gp,&
        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
-  do iat=1,nat
+  do iat=1,at%nat
      rxyz_old(1,iat)=tpos(1,iat) 
      rxyz_old(2,iat)=tpos(2,iat) 
      rxyz_old(3,iat)=tpos(3,iat)
@@ -97,7 +95,7 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
   !C projection of gradients at beta=0 and beta onto hh
   y0=0.d0
   y1=0.d0
-  do iat=1,nat
+  do iat=1,at%nat
      y0=y0+gg(1,iat)*hh(1,iat)+gg(2,iat)*hh(2,iat)+gg(3,iat)*hh(3,iat)
      y1=y1+gp(1,iat)*hh(1,iat)+gp(2,iat)*hh(2,iat)+gp(3,iat)*hh(3,iat)
   end do
@@ -111,11 +109,11 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
   !        beta=beta0*max(min(tt,1.d0),-.25d0)
   !        beta=beta0*max(min(tt,10.d0),-1.d0)
   !        beta=beta0*tt
-  do iat=1,nat
+  do iat=1,at%nat
      tpos(1,iat)=wpos(1,iat)
      tpos(2,iat)=wpos(2,iat)
      tpos(3,iat)=wpos(3,iat)
-     if ( .not. lfrztyp(iat)) then
+     if ( .not. at%lfrztyp(iat)) then
         wpos(1,iat)=wpos(1,iat)+beta*hh(1,iat)
         wpos(2,iat)=wpos(2,iat)+beta*hh(2,iat)
         wpos(3,iat)=wpos(3,iat)+beta*hh(3,iat)
@@ -125,17 +123,17 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
   avnum=avnum+1.d0
 
   !C new gradient
-  do iat=1,nat
+  do iat=1,at%nat
      gp(1,iat)=gg(1,iat)
      gp(2,iat)=gg(2,iat)
      gp(3,iat)=gg(3,iat)
   end do
 
-  !        call energyandforces(nat,alat,wpos,gg,etot,count_cg)
-  call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,gg,&
+
+  call call_cluster(parallel,nproc,iproc,at,wpos,etot,gg,&
        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
-  do iat=1,nat
+  do iat=1,at%nat
      rxyz_old(1,iat) = wpos(1,iat) 
      rxyz_old(2,iat) = wpos(2,iat) 
      rxyz_old(3,iat) = wpos(3,iat)
@@ -146,7 +144,7 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
   sumy=0.d0 
   sumz=0.d0
 
-  do iat=1,nat
+  do iat=1,at%nat
      sumx=sumx+gg(1,iat) 
      sumy=sumy+gg(2,iat) 
      sumz=sumz+gg(3,iat)
@@ -156,15 +154,15 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
 
      if (iproc.eq.0) write(16,*) 'switching back to SD:etot,etotprec',it,etot,etotprec
      if (iproc.eq.0) write(*,*) ' switching back to SD:etot,etotprec',it,etot,etotprec
-     do iat=1,nat
+     do iat=1,at%nat
         wpos(1,iat)=tpos(1,iat)
         wpos(2,iat)=tpos(2,iat)
         wpos(3,iat)=tpos(3,iat)
      end do
 
-     call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg,&
+     call steepdes(parallel,nproc,iproc,at,wpos,etot,gg,&
           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,fluct,flucto,fluctoo,fnrm,in)
-     if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) then
+     if (fnrm.lt.sqrt(1.d0*at%nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) then
         if (iproc.eq.0) write(16,*) 'Converged in switch back SD',iproc
         call close_and_deallocate
         return
@@ -173,7 +171,7 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
 
   endif
   etotprec=etot
-  if (iproc.eq.0) call wtposout(ncount_cluster,etot,nat,wpos,atomnames,lfrztyp,iatype)
+  if (iproc.eq.0) call wtposout(ncount_cluster,etot,wpos,at)
   !if (iproc.eq.0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_cluster,etot,sqrt(fnrm)
   fluctoo=flucto
   flucto=fluct
@@ -185,12 +183,12 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
   unten=0.d0
   fnrm=0.d0
   forcemax=0.d0
-  do iat=1,nat
+  do iat=1,at%nat
      obenx=obenx+(gg(1,iat)-gp(1,iat))*gg(1,iat)
      obeny=obeny+(gg(2,iat)-gp(2,iat))*gg(2,iat)
      obenz=obenz+(gg(3,iat)-gp(3,iat))*gg(3,iat)
      unten=unten+gp(1,iat)**2+gp(2,iat)**2+gp(3,iat)**2
-     if (.not. lfrztyp(iat)) then
+     if (.not. at%lfrztyp(iat)) then
         fnrm=fnrm+gg(1,iat)**2+gg(2,iat)**2+gg(3,iat)**2
         forcemax=max(forcemax,abs(gg(1,iat)),abs(gg(2,iat)),abs(gg(3,iat)))
      end if
@@ -198,13 +196,13 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
   if (iproc.eq.0) then
      write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)')it,sqrt(fnrm),etot,' CG ',beta/in%betax
      write(16,*) 'fnrm2,flucts',&
-          fnrm,sqrt(real(nat,kind=8))*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0
+          fnrm,sqrt(real(at%nat,kind=8))*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0
      write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
           'FORCES norm(Ha/Bohr): maxval=',    forcemax,'fnrm=',    fnrm    ,'fluct=',           &
-               sqrt(real(nat,kind=8))*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0
+               sqrt(real(at%nat,kind=8))*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0
   end if
 
-  if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) goto 2000
+  if (fnrm.lt.sqrt(1.d0*at%nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) goto 2000
 
   if (ncount_cluster.gt.in%ncount_cluster_x) then 
      if (iproc.eq.0) write(*,*) 'ncount_cluster in CG',ncount_cluster
@@ -217,16 +215,16 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
              'NO conv in CG after 500 its: switching back to SD',it,fnrm,etot
         write(*,*) 'NO conv in CG after 500 its: switching back to SD',it,fnrm,etot
      end if
-     do iat=1,nat
+     do iat=1,at%nat
         wpos(1,iat)=tpos(1,iat)
         wpos(2,iat)=tpos(2,iat)
         wpos(3,iat)=tpos(3,iat)
      end do
 
-     call steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg,&
+     call steepdes(parallel,nproc,iproc,at,wpos,etot,gg,&
           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,&
           fluct,flucto,fluctoo,fnrm,in)
-     if (fnrm.lt.sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) then
+     if (fnrm.lt.sqrt(1.d0*at%nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) then
         if (iproc.eq.0) write(16,*) 'Converged in back up SD',iproc
         call close_and_deallocate
         return
@@ -238,7 +236,7 @@ subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpo
   endif
 
   rlambda=(obenx+obeny+obenz)/unten
-  do iat=1,nat
+  do iat=1,at%nat
      hh(1,iat)=gg(1,iat)+rlambda*hh(1,iat)
      hh(2,iat)=gg(2,iat)+rlambda*hh(2,iat)
      hh(3,iat)=gg(3,iat)+rlambda*hh(3,iat)
@@ -270,25 +268,33 @@ contains
     call memocc(i_stat,i_all,'hh','conjgrad')
   end subroutine close_and_deallocate
   
-  subroutine steepdes(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,ff,&
+  subroutine steepdes(parallel,nproc,iproc,at,wpos,etot,ff,&
        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,&
        fluct,flucto,fluctoo,fnrm,in)
     use module_types
     use module_interfaces
-    implicit real(kind=8) (a-h,o-z)
-    implicit integer (i-n)
-    logical :: parallel
-    integer :: iatype(nat)
-    logical :: lfrztyp(nat)
-    type(input_variables) :: in
-    type(wavefunctions_descriptors) :: wfd
-    character(len=20) :: atomnames(100)
-    real(kind=8), pointer :: psi(:,:), eval(:)
-    dimension wpos(3,nat),ff(3,nat),rxyz_old(3,nat)
-    real(kind=8), allocatable, dimension(:,:) :: tpos
-    logical care
+    implicit none
+    logical, intent(in) :: parallel
+    integer, intent(in) :: nproc,iproc
+    type(atoms_data), intent(inout) :: at
+    type(input_variables), intent(inout) :: in
+    type(wavefunctions_descriptors), intent(inout) :: wfd
+    integer, intent(inout) :: ncount_cluster,norb,norbp,n1,n2,n3
+    real(kind=8), dimension(3,at%nat), intent(inout) :: wpos,rxyz_old
+    real(kind=8), intent(out) :: fluct,flucto,fluctoo,fnrm,etot
+    real(kind=8), dimension(3,at%nat), intent(out) ::ff
+    real(kind=8), dimension(:), pointer :: eval
+    real(kind=8), dimension(:,:), pointer :: psi
+    !local variables
+    logical :: care
+    integer :: nsatur,iat,itot,nitsd,itsd
+    real(kind=8) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise,sumx,sumy,sumz
+    real(kind=8) :: forcemax,t1,t2,t3,de1,de2,df1,df2
 
-    allocate(tpos(3,nat),stat=i_stat)
+    real(kind=8), allocatable, dimension(:,:) :: tpos
+
+
+    allocate(tpos(3,at%nat),stat=i_stat)
     call memocc(i_stat,product(shape(tpos))*kind(tpos),'tpos','steepdes')
 
     anoise=0.d-4
@@ -301,13 +307,14 @@ contains
     etotitm1=1.d100
     fnrmitm1=1.d100
 
-    do iat=1,nat
+    do iat=1,at%nat
        tpos(1,iat)=wpos(1,iat)
        tpos(2,iat)=wpos(2,iat)
        tpos(3,iat)=wpos(3,iat)
     end do
 
     itot=0
+
 12345 continue
 
     if (ncount_cluster.gt.in%ncount_cluster_x) then 
@@ -320,22 +327,20 @@ contains
 1000 itsd=itsd+1
     itot=itot+1
 
-    !        call energyandforces(nat,alat,wpos,ff,etot,count_sd)
-
     in%inputPsiId=1
     in%output_grid=.false.
     in%output_wf=.false.
-    call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,wpos,etot,ff,&
+    call call_cluster(parallel,nproc,iproc,at,wpos,etot,ff,&
          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
     ncount_cluster=ncount_cluster+1
-    do iat=1,nat
+    do iat=1,at%nat
        rxyz_old(1,iat)=wpos(1,iat)
        rxyz_old(2,iat)=wpos(2,iat)
        rxyz_old(3,iat)=wpos(3,iat)
     enddo
     if (care .and. etot.gt.etotitm1+anoise) then
-       do iat=1,nat
+       do iat=1,at%nat
           wpos(1,iat)=tpos(1,iat)
           wpos(2,iat)=tpos(2,iat)
           wpos(3,iat)=tpos(3,iat)
@@ -355,8 +360,8 @@ contains
     t2=0.d0 
     t3=0.d0
     forcemax=0.d0
-    do iat=1,nat
-       if (.not. lfrztyp(iat)) then
+    do iat=1,at%nat
+       if (.not. at%lfrztyp(iat)) then
           t1=t1+ff(1,iat)**2 
           t2=t2+ff(2,iat)**2 
           t3=t3+ff(3,iat)**2
@@ -373,7 +378,7 @@ contains
        write(16,'(5(1x,e11.4),1x,i3)') fnrm/fnrmitm1, de1,de2,df1,df2,nsatur
        write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))')&
             'FORCES norm(Ha/Bohr): maxval=',    forcemax,'fnrm=',    fnrm    ,'fluct=', &
-            sqrt(real(nat,kind=8))*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0
+            sqrt(real(at%nat,kind=8))*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0
     end if
 
     if (care .and. itsd.ge.3 .and. beta.eq.in%betax .and. fnrm/fnrmitm1.gt..8d0 .and. &
@@ -386,7 +391,7 @@ contains
     endif
     if (iproc.eq.0) then 
        write(16,'(i5,1x,e12.5,1x,e21.14,a)') itsd,sqrt(fnrm),etot,' SD '
-       call wtposout(ncount_cluster,etot,nat,wpos,atomnames,lfrztyp,iatype)
+       call wtposout(ncount_cluster,etot,wpos,at)
        !write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'SD ',ncount_cluster,etot,sqrt(fnrm)
     end if
 
@@ -395,16 +400,16 @@ contains
     sumx=0.d0 
     sumy=0.d0 
     sumz=0.d0
-    do iat=1,nat
+    do iat=1,at%nat
        sumx=sumx+ff(1,iat) 
        sumy=sumy+ff(2,iat) 
        sumz=sumz+ff(3,iat)
     end do
     fluct=sumx**2+sumy**2+sumz**2
     if (iproc.eq.0) write(16,*) &
-         'fnrm2,flucts',fnrm,sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0
+         'fnrm2,flucts',fnrm,sqrt(1.d0*at%nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0
 
-    if (fnrm < sqrt(1.d0*nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0 .or. nsatur > 5 ) &
+    if (fnrm < sqrt(1.d0*at%nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0 .or. nsatur > 5 ) &
          goto 2000
 
     if (ncount_cluster > in%ncount_cluster_x) then 
@@ -435,11 +440,11 @@ contains
        care=.true.
     endif
     if (iproc.eq.0) write(16,*) 'beta=',beta
-    do iat=1,nat
+    do iat=1,at%nat
        tpos(1,iat)=wpos(1,iat)
        tpos(2,iat)=wpos(2,iat)
        tpos(3,iat)=wpos(3,iat)
-       if ( .not. lfrztyp(iat)) then
+       if ( .not. at%lfrztyp(iat)) then
           wpos(1,iat)=wpos(1,iat)+beta*ff(1,iat)
           wpos(2,iat)=wpos(2,iat)+beta*ff(2,iat)
           wpos(3,iat)=wpos(3,iat)+beta*ff(3,iat)
@@ -455,28 +460,32 @@ contains
 
   end subroutine steepdes
 
-  subroutine detbetax(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,pos,&
-       psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in)
+  subroutine detbetax(parallel,nproc,iproc,at,pos,psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in)
     ! determines stepsize betax
     use module_types
     use module_interfaces
-    implicit real(kind=8) (a-h,o-z)
-    implicit integer (i-n)
-    logical :: parallel
-    integer :: iatype(nat)
-    logical :: lfrztyp(nat)
-    type(input_variables) :: in
-    type(wavefunctions_descriptors) :: wfd
-    character(len=20) :: atomnames(100)
-    real(kind=8), pointer :: psi(:,:), eval(:)
-    dimension pos(3,nat),alat(3),rxyz_old(3,nat)
-    real(kind=8), allocatable, dimension(:,:) :: tpos,ff,gg
+    implicit none
+!!$    implicit real(kind=8) (a-h,o-z)
+!!$    implicit integer (i-n)
+    logical, intent(in) :: parallel
+    integer, intent(in) :: nproc,iproc
+    type(atoms_data), intent(inout) :: at
+    type(input_variables), intent(inout) :: in
+    type(wavefunctions_descriptors), intent(inout) :: wfd
+    integer, intent(inout) :: norbp,norb,n1,n2,n3
+    real(kind=8), dimension(3,at%nat), intent(inout) :: pos,rxyz_old
+    real(kind=8), dimension(:), pointer :: eval
+    real(kind=8), dimension(:,:), pointer :: psi
+    !local variables
+    integer :: nsuc
+    real(kind=8) :: beta0,beta,sum,t1,t2,t3,etotm1,etot0,etotp1,der2,tt
+    real(kind=8), dimension(:,:), allocatable :: tpos,ff,gg
 
-    allocate(tpos(3,nat),stat=i_stat)
+    allocate(tpos(3,at%nat),stat=i_stat)
     call memocc(i_stat,product(shape(tpos))*kind(tpos),'tpos','detbetax')
-    allocate(ff(3,nat),stat=i_stat)
+    allocate(ff(3,at%nat),stat=i_stat)
     call memocc(i_stat,product(shape(ff))*kind(ff),'ff','detbetax')
-    allocate(gg(3,nat),stat=i_stat)
+    allocate(gg(3,at%nat),stat=i_stat)
     call memocc(i_stat,product(shape(gg))*kind(gg),'gg','detbetax')
 
     beta0=abs(in%betax)
@@ -484,22 +493,21 @@ contains
 
     nsuc=0
 100 continue
-    !        call energyandforces(nat,alat,pos,ff,etotm1,count)
 
     in%inputPsiId=1
     in%output_grid=.false.
     in%output_wf=.false.
-    call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,pos,etotm1,ff,&
+    call call_cluster(parallel,nproc,iproc,at,pos,etotm1,ff,&
          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
     ncount_cluster=ncount_cluster+1
-    do iat=1,nat
+    do iat=1,at%nat
        rxyz_old(1,iat) = pos(1,iat)
        rxyz_old(2,iat) = pos(2,iat) 
        rxyz_old(3,iat) = pos(3,iat)
     enddo
     sum=0.d0
 
-    do iat=1,nat
+    do iat=1,at%nat
        tpos(1,iat)=pos(1,iat)
        tpos(2,iat)=pos(2,iat)
        tpos(3,iat)=pos(3,iat)
@@ -507,26 +515,25 @@ contains
        t2=beta0*ff(2,iat)
        t3=beta0*ff(3,iat)
        sum=sum+t1**2+t2**2+t3**2
-       if (.not. lfrztyp(iat)) then
+       if (.not. at%lfrztyp(iat)) then
           pos(1,iat)=pos(1,iat)+t1
           pos(2,iat)=pos(2,iat)+t2
           pos(3,iat)=pos(3,iat)+t3
        end if
     enddo
-    !        call energyandforces(nat,alat,pos,gg,etot0,count)
 
-    call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,pos,etot0,gg,&
+    call call_cluster(parallel,nproc,iproc,at,pos,etot0,gg,&
          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
     ncount_cluster=ncount_cluster+1
-    do iat=1,nat
+    do iat=1,at%nat
        rxyz_old(1,iat)=pos(1,iat) 
        rxyz_old(2,iat)=pos(2,iat) 
        rxyz_old(3,iat)=pos(3,iat)
     enddo
 
     if (etot0.gt.etotm1) then
-       do iat=1,nat
+       do iat=1,at%nat
           pos(1,iat)=tpos(1,iat)
           pos(2,iat)=tpos(2,iat)
           pos(3,iat)=tpos(3,iat)
@@ -535,8 +542,8 @@ contains
        if (iproc.eq.0) write(16,*) 'beta0 reset',beta0
        goto 100
     endif
-    do iat=1,nat
-       if (lfrztyp(iat)) then
+    do iat=1,at%nat
+       if (at%lfrztyp(iat)) then
           tpos(1,iat)=pos(1,iat)
           tpos(2,iat)=pos(2,iat)
           tpos(3,iat)=pos(3,iat)
@@ -546,12 +553,12 @@ contains
           tpos(3,iat)=pos(3,iat)+beta0*ff(3,iat)
        end if
     enddo
-    !        call energyandforces(nat,alat,tpos,gg,etotp1,count)
-    call call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,tpos,etotp1,gg,&
+
+    call call_cluster(parallel,nproc,iproc,at,tpos,etotp1,gg,&
          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
     ncount_cluster=ncount_cluster+1
-    do iat=1,nat
+    do iat=1,at%nat
        rxyz_old(1,iat)=tpos(1,iat) 
        rxyz_old(2,iat)=tpos(2,iat) 
        rxyz_old(3,iat)=tpos(3,iat)
@@ -566,8 +573,8 @@ contains
        nsuc=nsuc+1
        beta=min(beta,.5d0/der2)
     endif
-    do iat=1,nat
-       if ( .not. lfrztyp(iat)) then
+    do iat=1,at%nat
+       if ( .not. at%lfrztyp(iat)) then
           pos(1,iat)=pos(1,iat)+tt*ff(1,iat)
           pos(2,iat)=pos(2,iat)+tt*ff(2,iat)
           pos(3,iat)=pos(3,iat)+tt*ff(3,iat)
@@ -598,15 +605,13 @@ contains
 
 end subroutine conjgrad
 
-subroutine wtposout(igeostep,energy,nat,rxyz,atomnames,lfrztyp,iatype)
-
+subroutine wtposout(igeostep,energy,rxyz,atoms)
+  use module_types
   implicit none
-  integer, intent(in) :: igeostep,nat
+  type(atoms_data), intent(in) :: atoms
+  integer, intent(in) :: igeostep
   real(kind=8), intent(in) :: energy
-  character(len=20), dimension(100), intent(in) :: atomnames(100)
-  logical, dimension(nat), intent(in) :: lfrztyp
-  integer, dimension(nat), intent(in) :: iatype
-  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(3,atoms%nat), intent(in) :: rxyz
   !local variables
   character(len=2) :: symbol
   character(len=3) :: suffix
@@ -621,17 +626,17 @@ subroutine wtposout(igeostep,energy,nat,rxyz,atomnames,lfrztyp,iatype)
 filename = 'posout_'//fn//'.xyz'
   open(unit=9,file=filename)
   xmax=0.d0 ; ymax=0.d0 ; zmax=0.d0
-  do iat=1,nat
+  do iat=1,atoms%nat
      xmax=max(rxyz(1,iat),xmax)
      ymax=max(rxyz(2,iat),ymax)
      zmax=max(rxyz(3,iat),zmax)
   enddo
-  write(9,*) nat,' atomic '!, energy,igeostep
+  write(9,*) atoms%nat,' atomic '!, energy,igeostep
   !write(9,*) xmax+5.d0, 0.d0, ymax+5.d0
   !write(9,*) 0.d0, 0.d0, zmax+5.d0
   write(9,*)' energy,igeostep ', energy,igeostep
-  do iat=1,nat
-     name=trim(atomnames(iatype(iat)))
+  do iat=1,atoms%nat
+     name=trim(atoms%atomnames(atoms%iatype(iat)))
      if (name(3:3)=='_') then
         symbol=name(1:2)
         suffix=name(4:6)
@@ -642,7 +647,7 @@ filename = 'posout_'//fn//'.xyz'
      !write(9,'(3(1x,e21.14),2x,a10)') (rxyz(j,iat),j=1,3),atomnames(iatype(iat))
      !write(9,'(a2,4x,3(1x,1pe21.14),2x,a3)')symbol,(rxyz(j,iat),j=1,3),suffix
      !takes into account the blocked atoms
-     if (lfrztyp(iat)) then
+     if (atoms%lfrztyp(iat)) then
         write(9,'(a2,4x,3(1x,1pe21.14),2x,a4)')symbol,(rxyz(j,iat),j=1,3),'   f'
      else
         write(9,'(a2,4x,3(1x,1pe21.14),2x,a4)')symbol,(rxyz(j,iat),j=1,3)
