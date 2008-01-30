@@ -145,6 +145,9 @@ program BigDFT
   i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
   deallocate(atoms%lfrztyp,stat=i_stat)
   call memocc(i_stat,i_all,'lfrztyp','BigDFT')
+  i_all=-product(shape(atoms%nspinat))*kind(atoms%nspinat)
+  deallocate(atoms%nspinat,stat=i_stat)
+  call memocc(i_stat,i_all,'nspinat','BigDFT')
 
   call deallocate_wfd(wfd,'BigDFT')
 
