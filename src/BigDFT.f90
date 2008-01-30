@@ -64,6 +64,9 @@ program BigDFT
      iproc=0
   endif
 
+  !experimental, to see if it works
+  if (nproc == 1) parallel=.false.
+
   !initialize memory counting
   call memocc(0,iproc,'count','start')
 

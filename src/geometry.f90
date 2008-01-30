@@ -603,7 +603,7 @@ subroutine wtposout(igeostep,energy,nat,rxyz,atomnames,lfrztyp,iatype)
   implicit none
   integer, intent(in) :: igeostep,nat
   real(kind=8), intent(in) :: energy
-  character(len=20), dimension(100), intent(in) :: atomnames(100)
+  character(len=20), dimension(100), intent(in) :: atomnames
   logical, dimension(nat), intent(in) :: lfrztyp
   integer, dimension(nat), intent(in) :: iatype
   real(kind=8), dimension(3,nat), intent(in) :: rxyz

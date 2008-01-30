@@ -8,7 +8,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   integer, intent(in) :: npspcode(ntypes),iasctype(ntypes)
   real(kind=8), intent(out) :: xp(ngx, ntypes), psiat(ngx, 5, ntypes), occupat(5, ntypes)
   integer, intent(out) :: ng(ntypes), nl(4,ntypes)
-  character(len = 20), intent(in) :: atomnames(100)
+  character(len = 20), dimension(ntypes), intent(in) :: atomnames
   integer, intent(out) :: norbe,norbsc
   integer, intent(in) :: nat,natsc
   integer, intent(in) :: iatype(nat)
@@ -184,7 +184,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ntypes
   integer, intent(in) :: norbsc,natsc,nspin
   real(kind=8), intent(in) :: hx,hy,hz
-  character(len=20), dimension(nat), intent(in) :: atomnames
+  character(len=20), dimension(ntypes), intent(in) :: atomnames
   logical, dimension(4,natsc), intent(in) :: scorb
   integer, dimension(ntypes), intent(in) :: iasctype
   integer, dimension(nat), intent(in) :: iatype,nspinat
@@ -300,7 +300,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
                     if (polarised) then
                        occshell=0.5d0*(occshell+real(1-2*(ispin-1),kind=8)*nspinat(iat))
                        !this check can be inserted also elsewhere
-                       if (occshell <= 0.d0) then
+                       if (occshell < 0.d0) then
                           if(iproc==0) write(*,'(1x,3(a,i0))')&
                                'Too high polarisation for atom number= ',iat,&
                                ' Inserted=',nspinat(iat),&

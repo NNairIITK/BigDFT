@@ -392,17 +392,15 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spina
 
 end subroutine input_occup
 
-subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,hgrid,atomnames,iatype,&
-     psppar,radii_cf,npspcode,iasctype,nelpsp,nzatom,nelec,natsc,norb,norbu,norbd,norbp,iunit)
+subroutine read_system_variables(iproc,nproc,nspin,ncharge,mpol,ixc,hgrid,at,&
+     radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
+  use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc
+  type(atoms_data), intent(inout) :: at
+  integer, intent(in) :: iproc,nproc,nspin,ncharge,mpol,ixc
   real(kind=8), intent(in) :: hgrid
-  character(len=20), dimension(ntypes), intent(in) :: atomnames
-  integer, dimension(nat), intent(in) :: iatype
-  integer, intent(out) :: nelec,natsc,norb,norbu,norbd,norbp,iunit
-  integer, dimension(ntypes), intent(out) :: npspcode,iasctype,nelpsp,nzatom
-  real(kind=8), dimension(ntypes,2), intent(out) :: radii_cf
-  real(kind=8), dimension(0:4,0:6,ntypes), intent(out) :: psppar
+  integer, intent(out) :: nelec,norb,norbu,norbd,norbp,iunit
+  real(kind=8), dimension(at%ntypes,2), intent(out) :: radii_cf
   !local variables
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: exists
@@ -413,18 +411,30 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,h
   real(kind=8) :: rcov,rprb,ehomo,radfine,tt,minrad
   real(kind=8), dimension(3,3) :: hij
   real(kind=8), dimension(2,2,3) :: offdiagarr
-  integer, dimension(:,:), allocatable :: neleconf
+  integer, dimension(6,0:3) :: neleconf
+
+  !allocate atoms data variables
+  ! store PSP parameters
+  ! modified to accept both GTH and HGHs pseudopotential types
+  allocate(at%psppar(0:4,0:6,at%ntypes),stat=i_stat)
+  call memocc(i_stat,product(shape(at%psppar))*kind(at%psppar),'psppar','read_system_variables')
+  allocate(at%nelpsp(at%ntypes),stat=i_stat)
+  call memocc(i_stat,product(shape(at%nelpsp))*kind(at%nelpsp),'nelpsp','read_system_variables')
+  allocate(at%npspcode(at%ntypes),stat=i_stat)
+  call memocc(i_stat,product(shape(at%npspcode))*kind(at%npspcode),'npspcode','read_system_variables')
+  allocate(at%nzatom(at%ntypes),stat=i_stat)
+  call memocc(i_stat,product(shape(at%nzatom))*kind(at%nzatom),'nzatom','read_system_variables')
+  allocate(at%iasctype(at%ntypes),stat=i_stat)
+  call memocc(i_stat,product(shape(at%iasctype))*kind(at%iasctype),'iasctype','read_system_variables')
+
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
           'Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File'
   end if
 
-  allocate(neleconf(6,0:3),stat=i_stat)
-  call memocc(i_stat,product(shape(neleconf))*kind(neleconf),'neleconf','read_PSP_variables')
-
-  do ityp=1,ntypes
-     filename = 'psppar.'//atomnames(ityp)
+  do ityp=1,at%ntypes
+     filename = 'psppar.'//at%atomnames(ityp)
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
      open(unit=11,file=filename,status='old',iostat=ierror)
      !Check the open statement
@@ -434,35 +444,35 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,h
         stop
      end if
      read(11,*)
-     read(11,*) nzatom(ityp),nelpsp(ityp)
-     read(11,*) npspcode(ityp),ixcpsp
+     read(11,*) at%nzatom(ityp),at%nelpsp(ityp)
+     read(11,*) at%npspcode(ityp),ixcpsp
      !control if the PSP is calculated with the same XC value
      if (ixcpsp /= ixc .and. iproc==0) then
         write(*,'(1x,a)')        'WARNING: The pseudopotential file "'//trim(filename)//'"'
         write(*,'(1x,a,i0,a,i0)')'         contains a PSP generated with an XC id=',&
              ixcpsp,' while for this run ixc=',ixc
      end if
-     psppar(:,:,ityp)=0.d0
-     if (npspcode(ityp) == 2) then !GTH case
-        read(11,*) (psppar(0,j,ityp),j=0,4)
+     at%psppar(:,:,ityp)=0.d0
+     if (at%npspcode(ityp) == 2) then !GTH case
+        read(11,*) (at%psppar(0,j,ityp),j=0,4)
         do i=1,2
-           read(11,*) (psppar(i,j,ityp),j=0,3-i)
+           read(11,*) (at%psppar(i,j,ityp),j=0,3-i)
         enddo
-     else if (npspcode(ityp) == 3) then !HGH case
-        read(11,*) (psppar(0,j,ityp),j=0,4)
-        read(11,*) (psppar(1,j,ityp),j=0,3)
+     else if (at%npspcode(ityp) == 3) then !HGH case
+        read(11,*) (at%psppar(0,j,ityp),j=0,4)
+        read(11,*) (at%psppar(1,j,ityp),j=0,3)
         do i=2,4
-           read(11,*) (psppar(i,j,ityp),j=0,3)
+           read(11,*) (at%psppar(i,j,ityp),j=0,3)
            read(11,*) !k coefficients, not used for the moment (no spin-orbit coupling)
         enddo
-     else if (npspcode(ityp) == 10) then !HGH-K case
-        read(11,*) psppar(0,0,ityp),nn,(psppar(0,j,ityp),j=1,nn) !local PSP parameters
+     else if (at%npspcode(ityp) == 10) then !HGH-K case
+        read(11,*) at%psppar(0,0,ityp),nn,(at%psppar(0,j,ityp),j=1,nn) !local PSP parameters
         read(11,*) nlterms !number of channels of the pseudo
         prjloop: do l=1,nlterms
-           read(11,*) psppar(l,0,ityp),nprl,psppar(l,1,ityp),&
-                (psppar(l,j+2,ityp),j=2,nprl) !h_ij terms
+           read(11,*) at%psppar(l,0,ityp),nprl,at%psppar(l,1,ityp),&
+                (at%psppar(l,j+2,ityp),j=2,nprl) !h_ij terms
            do i=2,nprl
-              read(11,*) psppar(l,i,ityp),(psppar(l,i+j+1,ityp),j=i+1,nprl) !h_ij terms
+              read(11,*) at%psppar(l,i,ityp),(at%psppar(l,i+j+1,ityp),j=i+1,nprl) !h_ij terms
            end do
            if (l==1) cycle
            do i=1,nprl
@@ -471,21 +481,22 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,h
         end do prjloop
      else
         if (iproc == 0) then
-           write(*,'(1x,a,a)')trim(atomnames(ityp)),&
+           write(*,'(1x,a,a)')trim(at%atomnames(ityp)),&
                 'unrecognized pspcode: only GTH, HGH & HGH-K pseudos (ABINIT format)'
         end if
         stop
        end if
        !see whether the atom is semicore or not
-       call eleconf(nzatom(ityp),nelpsp(ityp),symbol,rcov,rprb,ehomo,neleconf,iasctype(ityp))
+       call eleconf(at%nzatom(ityp),at%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
+            neleconf,at%iasctype(ityp))
        !if you want no semicore electrons, uncomment the following line
-       !iasctype(ityp)=0
+       !at%iasctype(ityp)=0
 
        !old way of calculating the radii, requires modification of the PSP files
        read(11,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
        if (ierror.eq.0) then
           if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
-               trim(atomnames(ityp)),nelpsp(ityp),npspcode(ityp),&
+               trim(at%atomnames(ityp)),at%nelpsp(ityp),at%npspcode(ityp),&
                radii_cf(ityp,1),radii_cf(ityp,2),&
                '                   X    '
        else
@@ -493,13 +504,13 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,h
           radii_cf(ityp,1)=1.d0/sqrt(abs(2.d0*ehomo))
           radfine=100.d0
           do i=0,4
-             if (psppar(i,0,ityp)/=0.d0) then
-                radfine=min(radfine,psppar(i,0,ityp))
+             if (at%psppar(i,0,ityp)/=0.d0) then
+                radfine=min(radfine,at%psppar(i,0,ityp))
              end if
           end do
           radii_cf(ityp,2)=radfine
           if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
-               trim(atomnames(ityp)),nelpsp(ityp),npspcode(ityp),&
+               trim(at%atomnames(ityp)),at%nelpsp(ityp),at%npspcode(ityp),&
                radii_cf(ityp,1),radii_cf(ityp,2),&
                '       X                '
        end if
@@ -507,8 +518,8 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,h
        !control the hardest gaussian
        minrad=1.d10
        do i=0,4
-          if (psppar(i,0,ityp)/=0.d0) then
-             minrad=min(minrad,psppar(i,0,ityp))
+          if (at%psppar(i,0,ityp)/=0.d0) then
+             minrad=min(minrad,at%psppar(i,0,ityp))
           end if
        end do
        !control whether the grid spacing is too high or not
@@ -516,7 +527,8 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,h
           write(*,'(1x,a)')&
                'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
           write(*,'(1x,a,f5.2,a)')&
-               '         Results can be meaningless if hgrid is bigger than',2.5d0*minrad,'. At your own risk!'
+               '         Results can be meaningless if hgrid is bigger than',2.5d0*minrad,&
+               '. At your own risk!'
        end if
 
     enddo
@@ -555,38 +567,38 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,h
 
        write(*,'(1x,a)')&
             '------------------------------------ Pseudopotential coefficients (Upper Triangular)'
-        do ityp=1,ntypes
+        do ityp=1,at%ntypes
         write(*,'(1x,a)')&
           'Atom Name    rloc      C1        C2        C3        C4  '
            do l=0,3
               do i=4,0,-1
                  j=i
-                 if (psppar(l,i,ityp) /= 0.d0) exit
+                 if (at%psppar(l,i,ityp) /= 0.d0) exit
               end do
               if (l==0) then
                  write(*,'(3x,a6,5(1x,f9.5))')&
-                      trim(atomnames(ityp)),(psppar(l,i,ityp),i=0,j)
+                      trim(at%atomnames(ityp)),(at%psppar(l,i,ityp),i=0,j)
               else
                  if (j /=0) then
                     write(*,'(1x,a,i0,a)')&
                          '    l=',l-1,' '//'     rl        h1j       h2j       h3j '
                     hij=0.d0
                     do i=1,j
-                       hij(i,i)=psppar(l,i,ityp)
+                       hij(i,i)=at%psppar(l,i,ityp)
                     end do
-                    if (npspcode(ityp) == 3) then !traditional HGH convention
-                       hij(1,2)=offdiagarr(1,1,l)*psppar(l,2,ityp)
-                       hij(1,3)=offdiagarr(1,2,l)*psppar(l,3,ityp)
-                       hij(2,3)=offdiagarr(2,1,l)*psppar(l,3,ityp)
-                    else if (npspcode(ityp) == 10) then !HGH-K convention
-                       hij(1,2)=psppar(l,4,ityp)
-                       hij(1,3)=psppar(l,5,ityp)
-                       hij(2,3)=psppar(l,6,ityp)
+                    if (at%npspcode(ityp) == 3) then !traditional HGH convention
+                       hij(1,2)=offdiagarr(1,1,l)*at%psppar(l,2,ityp)
+                       hij(1,3)=offdiagarr(1,2,l)*at%psppar(l,3,ityp)
+                       hij(2,3)=offdiagarr(2,1,l)*at%psppar(l,3,ityp)
+                    else if (at%npspcode(ityp) == 10) then !HGH-K convention
+                       hij(1,2)=at%psppar(l,4,ityp)
+                       hij(1,3)=at%psppar(l,5,ityp)
+                       hij(2,3)=at%psppar(l,6,ityp)
                     end if
                     do i=1,j
                        if (i==1) then
                           write(format,'(a,2(i0,a))')"(9x,(1x,f9.5),",j,"(1x,f9.5))"
-                          write(*,format)psppar(l,0,ityp),(hij(i,k),k=i,j)
+                          write(*,format)at%psppar(l,0,ityp),(hij(i,k),k=i,j)
                        else
                           write(format,'(a,2(i0,a))')"(19x,",i-1,"(10x),",j-i+1,"(1x,f9.5))"
                           write(*,format)(hij(i,k),k=i,j)
@@ -599,21 +611,14 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,h
         end do
     end if
     
-
-    !deallocation
-    i_all=-product(shape(neleconf))*kind(neleconf)
-    deallocate(neleconf,stat=i_stat)
-    call memocc(i_stat,i_all,'neleconf','read_PSP_variables')
-
-
     !calculate number of electrons and orbitals
     ! Number of electrons and number of semicore atoms
     nelec=0
-    natsc=0
-    do iat=1,nat
-       ityp=iatype(iat)
-       nelec=nelec+nelpsp(ityp)
-       if (iasctype(ityp) /= 0) natsc=natsc+1
+    at%natsc=0
+    do iat=1,at%nat
+       ityp=at%iatype(iat)
+       nelec=nelec+at%nelpsp(ityp)
+       if (at%iasctype(ityp) /= 0) at%natsc=at%natsc+1
     enddo
     nelec=nelec-ncharge
     if (iproc.eq.0) then
@@ -646,7 +651,7 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,h
            !The first line gives the number of orbitals
            read(unit=iunit,fmt=*,iostat=ierror) nt
        else
-           !The first line gives the number of orbitals
+          !The first line gives the number of orbitals
            read(unit=iunit,fmt=*,iostat=ierror) ntu,ntd
        end if
        if (ierror /=0) then
@@ -702,18 +707,18 @@ subroutine read_system_variables(iproc,nproc,nat,ntypes,nspin,ncharge,mpol,ixc,h
 end subroutine read_system_variables
 
 
-subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
-     iatype,atomnames,alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
+subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
+     alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
   !calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
   !and shifts the atoms such that their position is the most symmetric possible
+  use module_types
   implicit none
+  type(atoms_data), intent(in) :: atoms
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nat,ntypes
+  integer, intent(in) :: iproc
   real(kind=8), intent(in) :: crmult,frmult
-  character(len=20), dimension(ntypes), intent(in) :: atomnames
-  integer, dimension(nat), intent(in) :: iatype
-  real(kind=8), dimension(3,nat), intent(inout) :: rxyz
-  real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
+  real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz
+  real(kind=8), dimension(atoms%ntypes,2), intent(in) :: radii_cf
   integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
   real(kind=8), intent(inout) :: hx,hy,hz,alat1,alat2,alat3
   !local variables
@@ -732,8 +737,8 @@ subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,h
   cxmax=-1.d10 ; cxmin=1.d10
   cymax=-1.d10 ; cymin=1.d10
   czmax=-1.d10 ; czmin=1.d10
-  do iat=1,nat
-     rad=radii_cf(iatype(iat),1)*crmult
+  do iat=1,atoms%nat
+     rad=radii_cf(atoms%iatype(iat),1)*crmult
      cxmax=max(cxmax,rxyz(1,iat)+rad) ; cxmin=min(cxmin,rxyz(1,iat)-rad)
      cymax=max(cymax,rxyz(2,iat)+rad) ; cymin=min(cymin,rxyz(2,iat)-rad)
      czmax=max(czmax,rxyz(3,iat)+rad) ; czmin=min(czmin,rxyz(3,iat)-rad)
@@ -795,8 +800,6 @@ subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,h
 
   end if
 
-
-
   !balanced shift taking into account the missing space
   cxmin=cxmin+0.5d0*(alat1-alatrue1)
   cymin=cymin+0.5d0*(alat2-alatrue2)
@@ -811,7 +814,7 @@ subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,h
      alat2=alatrue2
   end if
 
-  do iat=1,nat
+  do iat=1,atoms%nat
      rxyz(1,iat)=rxyz(1,iat)-cxmin
      rxyz(2,iat)=rxyz(2,iat)-cymin
      rxyz(3,iat)=rxyz(3,iat)-czmin
@@ -820,8 +823,8 @@ subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,h
   ! fine grid size (needed for creation of input wavefunction, preconditioning)
   nfl1=n1 ; nfl2=n2 ; nfl3=n3
   nfu1=0 ; nfu2=0 ; nfu3=0
-  do iat=1,nat
-     rad=radii_cf(iatype(iat),2)*frmult
+  do iat=1,atoms%nat
+     rad=radii_cf(atoms%iatype(iat),2)*frmult
      nfl1=min(nfl1,ceiling((rxyz(1,iat)-rad)/hx - eps_mach))
      nfu1=max(nfu1,floor((rxyz(1,iat)+rad)/hx + eps_mach))
 
@@ -844,9 +847,9 @@ subroutine system_size(iproc,geocode,nat,ntypes,rxyz,radii_cf,crmult,frmult,hx,h
 
   if (iproc.eq.0) then
      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
-     do iat=1,nat
+     do iat=1,atoms%nat
         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5),3x,3(1x,0pf9.3))') &
-             iat,trim(atomnames(iatype(iat))),&
+             iat,trim(atoms%atomnames(atoms%iatype(iat))),&
              (rxyz(j,iat),j=1,3),rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz
      enddo
      write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf5.2))') &
