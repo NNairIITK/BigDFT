@@ -1,11 +1,3 @@
-
-!! Copyright (C) 2002-2007 BigDFT group 
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~/COPYING file
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the list of contributors, see ~/AUTHORS 
-
-
 !!****p* BigDFT/Poisson_Solver
 !! NAME
 !!   Poisson_Solver
@@ -20,7 +12,12 @@
 !!    Luigi Genovese
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007 CEA
+!!    Copyright (C) 2006-2008 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
 !! CREATION DATE
 !!    February 2007
 !!
