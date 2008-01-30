@@ -13,7 +13,7 @@ implicit none
 
 !    real(kind=8) w1(4,nfl2:nfu2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16)!work
     real(kind=8) w1(max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
-	          (2*n1+31)*(n2+1)*(n3+1)))!work
+                 (2*n1+31)*(n2+1)*(n3+1)))!work
     real(kind=8) w2(max((n3+1)*(2*n1+31)*(2*n2+31),&
                 2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))) ! work
 
@@ -47,7 +47,7 @@ subroutine comb_grow_c(n1,n2,n3,w1,w2,x,y,ibyz,ibzxx,ibxxyy,ibyyzz_r)
 
         implicit real(kind=8) (a-h,o-z)
         real(kind=8) x(0:n1,0:n2,0:n3)
-		real(kind=8) w1(    0:n2,0:n3,-14:2*n1+16)
+        real(kind=8) w1(    0:n2,0:n3,-14:2*n1+16)
         real(kind=8) w2(         0:n3,-14:2*n1+16,-14:2*n2+16) ! work
         real(kind=8) y(               -14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
         integer ibyz  (    2,0:n2,0:n3)
@@ -62,7 +62,7 @@ subroutine comb_grow_c(n1,n2,n3,w1,w2,x,y,ibyz,ibzxx,ibxxyy,ibyyzz_r)
         call  comb_rot_grow_loc_square_1(n2,n3,2*n1+30,w1,w2,ibzxx,ibxxyy,.true.) 
 
 ! i3,I1,I2  -> I1,I2,I3
-   		call  comb_rot_grow_loc_square_1(n3,2*n1+30,2*n2+30,w2,y,ibxxyy,ibyyzz_r,.false.) 
+        call  comb_rot_grow_loc_square_1(n3,2*n1+30,2*n2+30,w2,y,ibxxyy,ibyyzz_r,.false.) 
 
         END SUBROUTINE
 
@@ -116,9 +116,9 @@ integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
     integer,intent(in)::ib(2,         nfl2:nfu2,nfl3:nfu3)
     real(kind=8),intent(in )::x(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
 
-	integer,intent(in)::ib2(2,        			nfl3:nfu3,-14+2*nfl1:2*nfu1+16)
+    integer,intent(in)::ib2(2,                    nfl3:nfu3,-14+2*nfl1:2*nfu1+16)
 
-	
+    
     real(kind=8),intent(out)::y(2,2,        nfl2:nfu2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16)
 
 !    integer ncount0,ncount1,ncount_rate,ncount_max,nflop
@@ -128,7 +128,7 @@ integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
     real(kind=8) y2i__11,y2i__21,y2i1_11,y2i1_21
     real(kind=8) y2i__12,y2i__22,y2i1_12,y2i1_22
 
-    include 'v_17.f90'
+    include 'v_17.inc'
 
 
 !    open(unit=20,file='tree.flop')
@@ -143,12 +143,12 @@ integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 !    call system_clock(ncount0,ncount_rate,ncount_max)
 
 !   y=0.d0
-	do l1=-14+2*nfl1,2*nfu1+16
-		do l3=nfl3,nfu3
-			y(:,:,ib2(1,l3,l1):ib2(2,l3,l1),l3,l1)=0.d0
-		enddo
-	enddo
-	
+    do l1=-14+2*nfl1,2*nfu1+16
+        do l3=nfl3,nfu3
+            y(:,:,ib2(1,l3,l1):ib2(2,l3,l1),l3,l1)=0.d0
+        enddo
+    enddo
+    
     do l3=nfl3,nfu3
     do l2=nfl2,nfu2
 
@@ -219,15 +219,15 @@ integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
     integer,intent(in)::nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
     integer,intent(in)::ib( 2,          nfl3:nfu3,-14+2*nfl1:2*nfu1+16)
     real(kind=8),intent(in )::x(2,2,nfl2:nfu2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16)
-	integer,intent(in)::ib2(2,         	          -14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
-	
+    integer,intent(in)::ib2(2,                       -14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
+    
     real(kind=8),intent(out)::y(2,            nfl3:nfu3,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
 !    integer ncount0,ncount1,ncount_rate,ncount_max,nflop
     integer l1,l3,i,t,l2
 
     real(kind=8) tel,y2i__1,y2i__2,y2i1_1,y2i1_2
 
-    include 'v_17.f90'
+    include 'v_17.inc'
 
 !    open(unit=20,file='tree.flop')
 !    nflop=0
@@ -241,12 +241,12 @@ integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 !    call system_clock(ncount0,ncount_rate,ncount_max)
 
 !     y=0.d0
-	do l2=-14+2*nfl2,2*nfu2+16
-    	do l1=-14+2*nfl1,2*nfu1+16
-			y(:,ib2(1,l1,l2):ib2(2,l1,l2),l1,l2)=0.d0
-		enddo
-	enddo
-	 
+    do l2=-14+2*nfl2,2*nfu2+16
+        do l1=-14+2*nfl1,2*nfu1+16
+            y(:,ib2(1,l1,l2):ib2(2,l1,l2),l1,l2)=0.d0
+        enddo
+    enddo
+     
     do l1=-14+2*nfl1,2*nfu1+16
     do l3=nfl3,nfu3
 
@@ -302,7 +302,7 @@ integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
     integer l1_0,l1_1,ll1
 
     real(kind=8) tel,y2i__0,y2i__1,y2i1_0,y2i1_1,y2i,y2i1
-    include 'v_17.f90'
+    include 'v_17.inc'
 
 !    open(unit=20,file='tree.flop')
 
@@ -387,7 +387,7 @@ integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
     real(kind=8),intent(in):: x(0:n1,0:n2,0:n3)
     integer,intent(in)::ib(2,0:n2,0:n3)
     integer,intent(in)::ib2(2,0:n3,-14:2*n1+16)
-	logical,intent(in)::loczero
+    logical,intent(in)::loczero
     
     real(kind=8),intent(out)::y(0:n2,0:n3,-14:2*n1+16)
     
@@ -398,7 +398,7 @@ integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
     real(kind=8) y2i__11, y2i__12, y2i1_11, y2i1_12, y2i__21, y2i__22, y2i1_21, y2i1_22
     real(kind=8) t0,t1
     
-    include 'v_17.f90'
+    include 'v_17.inc'
 
 !    open(unit=10,file='zero.square')
 
@@ -415,13 +415,13 @@ integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 !   but only inside the region defined by ib2 array
 !   which is the ib array for the next step
 
-	if (loczero) call make_loczero(n1,n2,n3,ib2,y)
-	
+    if (loczero) call make_loczero(n1,n2,n3,ib2,y)
+    
 !    call system_clock(ncount1,ncount_rate,ncount_max)
 !    
 !    t0=dble(ncount1-ncount0)/dble(ncount_rate)
-	
-!	the actual convolution,unrolled
+    
+!    the actual convolution,unrolled
 !    
     do ll3=0,(n3-1)/2
         l3=ll3*2 ! even l3
@@ -548,44 +548,44 @@ subroutine make_loczero(n1,n2,n3,ib2,y)
 !   but only inside the region defined by ib2 array
 !   which is the ib array for the next step
 
-	implicit none
-	integer,intent(in)::n1,n2,n3
+    implicit none
+    integer,intent(in)::n1,n2,n3
     integer,intent(in)::ib2(2,0:n3,-14:2*n1+16)
     real(kind=8),intent(out)::y(0:n2,0:n3,-14:2*n1+16)
 
-	integer ll1,l10,l11,ll3,l30,l31,i,l1,l3
-	
-	    do ll1=-7,n1+7
-	        l10=2*ll1
-	        l11=l10+1
-	        do ll3=0,(n3-1)/2
-	            l30=ll3*2
-	            l31=l30+1
-	
-	            do i=ib2(1,l30,l10),ib2(2,l30,l10)
-	                y(i,l30,l10)=0.d0
-	                y(i,l30,l11)=0.d0
-	                y(i,l31,l10)=0.d0
-	                y(i,l31,l11)=0.d0
-	            enddo
-	        enddo
-	        ! remaining value of l3=n3
-	        if (mod(n3,2)==0) then
-	            do i=ib2(1,n3,l10),ib2(2,n3,l10) 
-	                y(i,n3,l10)=0.d0
-	            enddo
-	            do i=ib2(1,n3,l11),ib2(2,n3,l11) 
-	                y(i,n3,l11)=0.d0
-	            enddo
-	        endif
-	            
-	    enddo
+    integer ll1,l10,l11,ll3,l30,l31,i,l1,l3
+    
+        do ll1=-7,n1+7
+            l10=2*ll1
+            l11=l10+1
+            do ll3=0,(n3-1)/2
+                l30=ll3*2
+                l31=l30+1
+    
+                do i=ib2(1,l30,l10),ib2(2,l30,l10)
+                    y(i,l30,l10)=0.d0
+                    y(i,l30,l11)=0.d0
+                    y(i,l31,l10)=0.d0
+                    y(i,l31,l11)=0.d0
+                enddo
+            enddo
+            ! remaining value of l3=n3
+            if (mod(n3,2)==0) then
+                do i=ib2(1,n3,l10),ib2(2,n3,l10) 
+                    y(i,n3,l10)=0.d0
+                enddo
+                do i=ib2(1,n3,l11),ib2(2,n3,l11) 
+                    y(i,n3,l11)=0.d0
+                enddo
+            endif
+                
+        enddo
 
-	    ! remaining value of l1=2*n1+16
-	    l1=2*n1+16
-	    do l3=0,n3
-	        do i=ib2(1,l3,l1),ib2(2,l3,l1)
-	            y(i,l3,l1)=0.d0
-	        enddo
-	    enddo
+        ! remaining value of l1=2*n1+16
+        l1=2*n1+16
+        do l3=0,n3
+            do i=ib2(1,l3,l1),ib2(2,l3,l1)
+                y(i,l3,l1)=0.d0
+            enddo
+        enddo
 end subroutine make_loczero

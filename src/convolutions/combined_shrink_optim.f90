@@ -120,7 +120,7 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
   integer,parameter:: lowfil2=-14,lupfil2=16
   dimension x(lowfil2+2*nfl:2*nfu+lupfil2,ndat),y(ndat,nfl:nfu)
   integer ib(2,ndat)
-  include 'v_long.f90'
+  include 'v_long.inc'
 
   !open(unit=10,file='longer_filter.flop')
   nflop=0
@@ -223,7 +223,7 @@ subroutine comb_rot_shrink_loc_first(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,
   real(kind=8) x(-14:2*n1+16,-14:2*n2+16,         -14:2*n3+16) ! input
   real(kind=8) y(     -14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)! output
   integer ib(2, -14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
-  include 'v_long.f90'
+  include 'v_long.inc'
 
   !    open(unit=10,file='comb_shrink.unrolled')
   nflop=0
@@ -333,7 +333,7 @@ subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
   real(kind=8) x(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16) ! input
   real(kind=8) y(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)! output
   integer ib(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
-  include 'v_long.f90'
+  include 'v_long.inc'
 
   nflop=0
   !open(unit=20,file='long.flop')
@@ -411,7 +411,7 @@ subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
   integer,parameter:: lowfil2=-14,lupfil2=16
   dimension x(2,lowfil2+2*nfl:2*nfu+lupfil2,ndat),y(2,2,ndat,nfl:nfu)
   integer ib(2,ndat)
-  include 'v_long.f90'
+  include 'v_long.inc'
 
   nflop=0
   !open(unit=20,file='long.flop')
@@ -495,7 +495,7 @@ subroutine comb_rot_shrink_loc_3(ndat,x,y,nfl,nfu,ib)
   integer,parameter:: lowfil2=-14,lupfil2=16
   dimension x(2,2,lowfil2+2*nfl:2*nfu+lupfil2,ndat),y(7,ndat,nfl:nfu)
   integer ib(2,ndat)
-  include 'v.f90'
+  include 'v.inc'
 
   nflop=0
   !open(unit=20,file='long.flop')
