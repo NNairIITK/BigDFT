@@ -44,40 +44,36 @@ module module_interfaces
 
 interface
 
-   subroutine call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+   subroutine call_cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
         psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
      use module_types
      implicit none
-     type(input_variables) :: in
-     type(wavefunctions_descriptors) :: wfd
      logical, intent(in) :: parallel
-     integer, intent(in) :: iproc,nproc,nat,ntypes,norbp,norb
-     integer, intent(inout) :: infocode,n1,n2,n3
+     integer, intent(in) :: iproc,nproc
+     type(input_variables),intent(inout) :: in
+     type(wavefunctions_descriptors), intent(inout) :: wfd
+     type(atoms_data), intent(inout) :: atoms
+     integer, intent(inout) :: infocode,n1,n2,n3,norbp,norb
      real(kind=8), intent(out) :: energy
-     character(len=20), dimension(100), intent(in) :: atomnames
-     integer, dimension(nat), intent(in) :: iatype
-     real(kind=8), dimension(3,nat), intent(in) :: rxyz_old
-     real(kind=8), dimension(3,nat), intent(inout) :: rxyz
-     real(kind=8), dimension(3,nat), intent(out) :: fxyz
+     real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz
+     real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz,rxyz_old
      real(kind=8), dimension(:), pointer :: eval
      real(kind=8), dimension(:,:), pointer :: psi
    end subroutine call_cluster
 
-   subroutine conjgrad(parallel,nproc,iproc,nat,ntypes,iatype,lfrztyp,atomnames,wpos,etot,gg, &
+   subroutine conjgrad(parallel,nproc,iproc,at,wpos,etot,gg, &
         psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,in)
      use module_types
      implicit none
+     type(atoms_data), intent(in) :: at
      logical, intent(in) :: parallel
-     integer, intent(in) :: nproc,iproc,nat,ntypes,norbp,norb
-     integer, intent(inout) :: n1,n2,n3,ncount_cluster
+     integer, intent(in) :: nproc,iproc
+     integer, intent(inout) :: n1,n2,n3,ncount_cluster,norbp,norb
      real(kind=8), intent(out) :: etot
      type(input_variables), intent(inout) :: in
      type(wavefunctions_descriptors), intent(inout) :: wfd
-     character(len=20), dimension(100), intent(in) :: atomnames
-     logical, dimension(ntypes), intent(in) :: lfrztyp
-     integer, dimension(nat), intent(in) :: iatype
-     real(kind=8), dimension(3,nat), intent(inout) :: wpos
-     real(kind=8), dimension(3,nat), intent(out) :: rxyz_old,gg
+     real(kind=8), dimension(3,at%nat), intent(inout) :: wpos
+     real(kind=8), dimension(3,at%nat), intent(out) :: rxyz_old,gg
      real(kind=8), dimension(:), pointer :: eval
      real(kind=8), dimension(:,:), pointer :: psi
    end subroutine conjgrad
@@ -95,13 +91,13 @@ interface
      real(kind=8), dimension(:,:), pointer :: psi,psi_old
    end subroutine copy_old_wavefunctions
 
-   subroutine read_system_variables(iproc,nproc,nspin,ncharge,mpol,ixc,hgrid,at,&
-        radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
+   subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,&
+        norb,norbu,norbd,norbp,iunit)
      use module_types
      implicit none
+     type(input_variables), intent(in) :: in
+     integer, intent(in) :: iproc,nproc
      type(atoms_data), intent(inout) :: at
-     integer, intent(in) :: iproc,nproc,nspin,ncharge,mpol,ixc
-     real(kind=8), intent(in) :: hgrid
      integer, intent(out) :: nelec,norb,norbu,norbd,norbp,iunit
      real(kind=8), dimension(at%ntypes,2), intent(out) :: radii_cf
    end subroutine read_system_variables

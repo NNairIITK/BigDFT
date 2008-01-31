@@ -134,57 +134,87 @@ subroutine print_input_parameters(in)
 end subroutine print_input_parameters
 
 ! read atomic positions
-subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,lfrztyp,rxyz)
+subroutine read_atomic_positions(iproc,ifile,units,at,rxyz)
+  use module_types
   implicit none
   character(len=20), intent(in) :: units
-  integer, intent(in) :: iproc,ifile,nat
-  integer, intent(out) :: ntypes
-  character(len=20), dimension(100), intent(out) :: atomnames
-  logical, dimension(nat), intent(out) :: lfrztyp
-  integer, dimension(nat), intent(out) :: iatype!,nspinat
-  real(kind=8), dimension(3,nat), intent(out) :: rxyz
+  integer, intent(in) :: iproc,ifile
+  type(atoms_data), intent(inout) :: at
+  real(kind=8), dimension(3,at%nat), intent(out) :: rxyz
   !local variables
-  character(len=1) :: suffix
+  character(len=3) :: suffix
   character(len=2) :: symbol
   character(len=20) :: tatonam
   character(len=100) :: line
-  integer :: nateq,iat,jat,ityp,i,ierror,ierrsfx
-  real(kind=8), parameter :: bohr=0.5291772108d0 !1 AU in angstroem
+  integer :: nateq,iat,jat,ityp,i,ierror,ierrsfx,i_stat,natpol
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz
+  real(kind=8), parameter :: bohr=0.5291772108d0 !1 AU in angstroem
+  character(len=20), dimension(100) :: atomnames
 
-  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',nat
+  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',at%nat
+
+  allocate(at%iatype(at%nat),stat=i_stat)
+  call memocc(i_stat,product(shape(at%iatype))*kind(at%iatype),'iatype','read_atomic_positions')
+  allocate(at%lfrztyp(at%nat),stat=i_stat)
+  call memocc(i_stat,product(shape(at%lfrztyp))*kind(at%lfrztyp),'lfrztyp','read_atomic_positions')
+  allocate(at%nspinat(at%nat),stat=i_stat)
+  call memocc(i_stat,product(shape(at%nspinat))*kind(at%nspinat),'nspinat','read_atomic_positions')
+
 
   !this array is useful for frozen atoms
   !no atom is frozen by default
-  lfrztyp(:)=.false.
+  at%lfrztyp(:)=.false.
+  !also the spin polarisation is fixed to zero by default
+  at%nspinat(:)=0
 
   !read from positions of .xyz format, but accepts also the old .ascii format
   read(ifile,'(a100)')line
 
+  !old format, still here for backward compatibility
   read(line,*,iostat=ierror) rx,ry,rz,tatonam
 
-  ntypes=0
-  do iat=1,nat
+  at%ntypes=0
+  do iat=1,at%nat
      if (ierror == 0) then
         if (iat /= 1) read(ifile,*) rx,ry,rz,tatonam
      else
         read(ifile,'(a100)')line 
-        read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,suffix
+        read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,natpol,suffix
         if (ierrsfx ==0) then
+           at%nspinat(iat)=natpol
            !tatonam=trim(symbol)//'_'//trim(suffix)
            if (suffix == 'f') then
               !the atom is considered as blocked
-              lfrztyp(iat)=.true.
+              at%lfrztyp(iat)=.true.
            else
               if (iproc == 0) then
                  print *,suffix
-                 write(*,'(1x,a,i0,a)')'ERROR in input file for atom number ',iat,': the only value accepted in 4th column is "f"'
+                 write(*,'(1x,a,i0,a)')'ERROR in input file for atom number ',&
+                      iat,': the only value accepted in 5th column is "f"'
                  stop
               end if
            end if
         else
-           read(line,*)symbol,rx,ry,rz
+           read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,suffix
+           if (ierrsfx ==0) then
+              if (suffix == 'f') then
+                 !the atom is considered as blocked
+                 at%lfrztyp(iat)=.true.
+              else
+                 read(suffix,*,iostat=i_stat)at%nspinat(iat)
+                 if(i_stat /=0) then
+                    if (iproc == 0) then
+                       print *,suffix
+                       write(*,'(1x,a,i0,a)')'ERROR in input file for atom number ',&
+                            iat,': in 4th column you can put the input polarisation or "f"'
+                       stop
+                    end if
+                 end if
+              end if
+           else
+              read(line,*)symbol,rx,ry,rz
+           end if
         end if
         tatonam=trim(symbol)
      end if
@@ -202,16 +232,16 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,l
      !        rxyz(2,iat)=rxyz(2,iat)+step*t2
      !        rxyz(3,iat)=rxyz(3,iat)+step*t3
 
-     do ityp=1,ntypes
+     do ityp=1,at%ntypes
         if (tatonam.eq.atomnames(ityp)) then
-           iatype(iat)=ityp
+           at%iatype(iat)=ityp
            goto 200
         endif
      enddo
-     ntypes=ntypes+1
-     if (ntypes.gt.100) stop 'more than 100 atomnames not permitted'
+     at%ntypes=at%ntypes+1
+     if (at%ntypes.gt.100) stop 'more than 100 atomnames not permitted'
      atomnames(ityp)=tatonam
-     iatype(iat)=ntypes
+     at%iatype(iat)=at%ntypes
 200  continue
      if (units.eq.'angstroem') then
         ! if Angstroem convert to Bohr
@@ -226,16 +256,21 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,l
      endif
   enddo
 
+  !now that ntypes is determined allocate at%atomnames and copy the values
+  allocate(at%atomnames(at%ntypes),stat=i_stat) 
+  call memocc(i_stat,product(shape(at%atomnames))*kind(at%atomnames),'atomnames','read_atomic_positions')
+  at%atomnames(1:at%ntypes)=atomnames(1:at%ntypes)
+
   !control atom positions
   nateq=0
-  do iat=1,nat
-     do jat=iat+1,nat
+  do iat=1,at%nat
+     do jat=iat+1,at%nat
         if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
              (rxyz(3,iat)-rxyz(3,jat))**2 ==0.d0) then
            nateq=nateq+1
            write(*,'(1x,a,2(i0,a,a6,a))')'ERROR: atoms ',iat,&
-                ' (',trim(atomnames(iatype(iat))),') and ',&
-                jat,' (',trim(atomnames(iatype(jat))),&
+                ' (',trim(at%atomnames(at%iatype(iat))),') and ',&
+                jat,' (',trim(at%atomnames(at%iatype(jat))),&
                 ') have the same positions'
         end if
      end do
@@ -245,16 +280,16 @@ subroutine read_atomic_positions(iproc,ifile,units,nat,ntypes,iatype,atomnames,l
      stop
   end if
 
-  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atom types= ',ntypes
+  if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atom types= ',at%ntypes
 
-  do ityp=1,ntypes
+  do ityp=1,at%ntypes
      if (iproc.eq.0) &
-          write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ',trim(atomnames(ityp))
+          write(*,'(1x,a,i0,a,a)') 'Atoms of type ',ityp,' are ',trim(at%atomnames(ityp))
   enddo
 
-  do iat=1,nat
-     if (iproc.eq.0 .and. lfrztyp(iat)) &
-          write(*,'(1x,a,i0,a,a)') 'FIXED Atom N.:',iat,', Name: ',trim(atomnames(iatype(iat)))
+  do iat=1,at%nat
+     if (iproc.eq.0 .and. at%lfrztyp(iat)) &
+          write(*,'(1x,a,i0,a,a)') 'FIXED Atom N.:',iat,', Name: ',trim(at%atomnames(at%iatype(iat)))
   enddo
 
   !print 
@@ -392,13 +427,13 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spina
 
 end subroutine input_occup
 
-subroutine read_system_variables(iproc,nproc,nspin,ncharge,mpol,ixc,hgrid,at,&
-     radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
+!this routine performs also some cross-checks with other variables
+subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
   use module_types
   implicit none
+  type(input_variables), intent(in) :: in
+  integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(inout) :: at
-  integer, intent(in) :: iproc,nproc,nspin,ncharge,mpol,ixc
-  real(kind=8), intent(in) :: hgrid
   integer, intent(out) :: nelec,norb,norbu,norbd,norbp,iunit
   real(kind=8), dimension(at%ntypes,2), intent(out) :: radii_cf
   !local variables
@@ -407,7 +442,7 @@ subroutine read_system_variables(iproc,nproc,nspin,ncharge,mpol,ixc,hgrid,at,&
   character(len=2) :: symbol
   character(len=27) :: filename
   character(len=50) :: format
-  integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp
+  integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp,ispinsum
   real(kind=8) :: rcov,rprb,ehomo,radfine,tt,minrad
   real(kind=8), dimension(3,3) :: hij
   real(kind=8), dimension(2,2,3) :: offdiagarr
@@ -426,7 +461,6 @@ subroutine read_system_variables(iproc,nproc,nspin,ncharge,mpol,ixc,hgrid,at,&
   call memocc(i_stat,product(shape(at%nzatom))*kind(at%nzatom),'nzatom','read_system_variables')
   allocate(at%iasctype(at%ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(at%iasctype))*kind(at%iasctype),'iasctype','read_system_variables')
-
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -447,10 +481,10 @@ subroutine read_system_variables(iproc,nproc,nspin,ncharge,mpol,ixc,hgrid,at,&
      read(11,*) at%nzatom(ityp),at%nelpsp(ityp)
      read(11,*) at%npspcode(ityp),ixcpsp
      !control if the PSP is calculated with the same XC value
-     if (ixcpsp /= ixc .and. iproc==0) then
+     if (ixcpsp /= in%ixc .and. iproc==0) then
         write(*,'(1x,a)')        'WARNING: The pseudopotential file "'//trim(filename)//'"'
         write(*,'(1x,a,i0,a,i0)')'         contains a PSP generated with an XC id=',&
-             ixcpsp,' while for this run ixc=',ixc
+             ixcpsp,' while for this run ixc=',in%ixc
      end if
      at%psppar(:,:,ityp)=0.d0
      if (at%npspcode(ityp) == 2) then !GTH case
@@ -489,8 +523,30 @@ subroutine read_system_variables(iproc,nproc,nspin,ncharge,mpol,ixc,hgrid,at,&
        !see whether the atom is semicore or not
        call eleconf(at%nzatom(ityp),at%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
             neleconf,at%iasctype(ityp))
-       !if you want no semicore electrons, uncomment the following line
+       !if you want no semicore input guess electrons, uncomment the following line
        !at%iasctype(ityp)=0
+
+       !here we must check of the input guess polarisation
+       !first of all, control if the values are compatible with the atom configuration
+       !do this for all atoms belonging to a given type
+       do iat=1,at%nat
+          if (at%iatype(iat) == ityp) then
+             do l=0,3
+                do i=1,6
+                   if (neleconf(i,l) /= 0 .and. neleconf(i,l) /= 2*(2*l+1)) then
+                      if (at%nspinat(iat) > neleconf(i,l)) then
+                         if (iproc ==0) write(*,'(1x,a,i0,a,a,2(a,i0))')&
+                              'ERROR: Input polarisation of atom No.',iat,&
+                              ' (',trim(at%atomnames(ityp)),') must be <=',neleconf(i,l),&
+                              ', while found ',at%nspinat(iat)
+                         stop
+                      end if
+                   end if
+                end do
+             end do
+          end if
+       end do
+
 
        !old way of calculating the radii, requires modification of the PSP files
        read(11,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
@@ -523,7 +579,7 @@ subroutine read_system_variables(iproc,nproc,nspin,ncharge,mpol,ixc,hgrid,at,&
           end if
        end do
        !control whether the grid spacing is too high or not
-       if (iproc == 0 .and. hgrid > 2.5d0*minrad) then
+       if (iproc == 0 .and. in%hgrid > 2.5d0*minrad) then
           write(*,'(1x,a)')&
                'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
           write(*,'(1x,a,f5.2,a)')&
@@ -620,14 +676,14 @@ subroutine read_system_variables(iproc,nproc,nspin,ncharge,mpol,ixc,hgrid,at,&
        nelec=nelec+at%nelpsp(ityp)
        if (at%iasctype(ityp) /= 0) at%natsc=at%natsc+1
     enddo
-    nelec=nelec-ncharge
+    nelec=nelec-in%ncharge
     if (iproc.eq.0) then
        write(*,'(1x,a,i8)') &
             'Total Number of Electrons ',nelec
     end if
 
     ! Number of orbitals
-    if (nspin==1) then
+    if (in%nspin==1) then
        norb=(nelec+1)/2
        norbu=norb
        norbd=0
@@ -637,9 +693,34 @@ subroutine read_system_variables(iproc,nproc,nspin,ncharge,mpol,ixc,hgrid,at,&
     else
        if (iproc==0) write(*,'(1x,a)') 'Spin-polarized calculation'
        norb=nelec
-       norbu=min(norb/2+mpol,norb)
+       norbu=min(norb/2+in%mpol,norb)
        norbd=norb-norbu
     end if
+
+    !test if the spin is compatible with the input guess polarisations
+    ispinsum=0
+    do iat=1,at%nat
+       ispinsum=ispinsum+at%nspinat(iat)
+    end do
+    if (ispinsum /= in%mpol) then
+       if (iproc==0) write(*,'(1x,a,i0,a,i0)')&
+            'ERROR: Total input polarisation (found ',ispinsum,&
+            ') must agree with mpol=',in%mpol
+       stop
+    end if
+
+    !now warn if there is no input guess spin polarisation
+    ispinsum=0
+    do iat=1,at%nat
+       ispinsum=ispinsum+abs(at%nspinat(iat))
+    end do
+    if (ispinsum == 0 .and. in%nspin==2) then
+       if (iproc==0) write(*,'(1x,a)')&
+            'WARNING: Found no input polarisation, add it for a correct input guess'
+       !stop
+    end if
+    
+    
 
     ! Test if the file 'occup.dat exists
     inquire(file='occup.dat',exist=exists)
@@ -647,7 +728,7 @@ subroutine read_system_variables(iproc,nproc,nspin,ncharge,mpol,ixc,hgrid,at,&
     if (exists) then
        iunit=25
        open(unit=iunit,file='occup.dat',form='formatted',action='read',status='old')
-       if (nspin==1) then
+       if (in%nspin==1) then
            !The first line gives the number of orbitals
            read(unit=iunit,fmt=*,iostat=ierror) nt
        else
@@ -656,11 +737,11 @@ subroutine read_system_variables(iproc,nproc,nspin,ncharge,mpol,ixc,hgrid,at,&
        end if
        if (ierror /=0) then
           if (iproc==0) write(*,'(1x,a)') &
-               'ERROR reading the number of orbitals in the file "occup.dat"'
+               'ERROR: reading the number of orbitals in the file "occup.dat"'
           stop
        end if
        !Check
-       if (nspin==1) then
+       if (in%nspin==1) then
           if (nt<norb) then
               if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
                   'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&

@@ -1,22 +1,20 @@
 
- subroutine call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
+ subroutine call_cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
   use module_types
   implicit none
-  type(input_variables) :: in
-  type(wavefunctions_descriptors) :: wfd
   logical, intent(in) :: parallel
-  integer, intent(in) :: iproc,nproc,nat,ntypes
+  integer, intent(in) :: iproc,nproc
+  type(input_variables),intent(inout) :: in
+  type(wavefunctions_descriptors), intent(inout) :: wfd
+  type(atoms_data), intent(inout) :: atoms
   integer, intent(inout) :: infocode,n1,n2,n3,norbp,norb
   real(kind=8), intent(out) :: energy
-  character(len=20), dimension(100), intent(in) :: atomnames
-  integer, dimension(nat), intent(in) :: iatype
-  real(kind=8), dimension(3,nat), intent(inout) :: rxyz
-  real(kind=8), dimension(3,nat), intent(out) :: fxyz,rxyz_old
+  real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz
+  real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz,rxyz_old
   real(kind=8), dimension(:), pointer :: eval
   real(kind=8), dimension(:,:), pointer :: psi
   !local variables
-  type(atoms_data) :: atoms
   integer :: i_stat,i_all,ierr,inputPsiId_orig
   !temporary interface
   interface
@@ -68,7 +66,7 @@
            write(*,'(1x,a)')'Convergence error, cannot proceed.'
            write(*,'(1x,a)')' writing positions in file posout_999.xyz then exiting'
 
-           call wtposout(999,energy,atoms%nat,rxyz,atoms%atomnames,atoms%lfrztyp,atoms%iatype)
+           call wtposout(999,energy,rxyz,atoms)
 
         end if
 
@@ -148,7 +146,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(wavefunctions_descriptors) :: wfd_old
   type(convolutions_bounds) :: bounds
   type(nonlocal_psp_descriptors) :: nlpspd
-  integer, dimension(:,:), allocatable :: neleconf,nscatterarr,ngatherarr
+  integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: occup,spinar,spinar_foo,derproj,rho
   real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz
   ! Charge density/potential,ionic potential, pkernel
@@ -165,10 +163,6 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(:), pointer :: proj
   ! arrays for DIIS convergence accelerator
   real(kind=8), dimension(:,:,:), pointer :: ads,psidst,hpsidst
-
-  atoms%nspinat=0
-!!$  atoms%nspinat(1)=1
-!!$  atoms%nspinat(2)=-1
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -203,9 +197,6 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   hy=in%hgrid
   hz=in%hgrid
 
-  hxh=0.5d0*hx
-  hyh=0.5d0*hy
-  hzh=0.5d0*hz
 
   !define the geometry code: hard coded to free BC for the moment
   geocode='F'
@@ -252,8 +243,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   call memocc(i_stat,product(shape(radii_cf))*kind(radii_cf),'radii_cf','cluster')
 
 
-  call read_system_variables(iproc,nproc,nspin,ncharge,mpol,ixc,hgrid,atoms,&
-       radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
+  call read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
 
   allocate(occup(norb),stat=i_stat)
   call memocc(i_stat,product(shape(occup))*kind(occup),'occup','cluster')
@@ -267,6 +257,10 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! then calculate the size in units of the grid space
   call system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
        alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
+
+  hxh=0.5d0*hx
+  hyh=0.5d0*hy
+  hzh=0.5d0*hz
 
   !memory estimation
   if (iproc==0) then
