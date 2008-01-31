@@ -831,23 +831,23 @@ subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
 
 end subroutine calculates_green_opt_muzero
 
-subroutine indices(realimag,nelem,intrn,extrn,index)
+subroutine indices(nimag,nelem,intrn,extrn,nindex)
 
   implicit none
   integer, intent(in) :: intrn,extrn,nelem
-  integer, intent(out) :: realimag,index
+  integer, intent(out) :: nimag,nindex
   !local
   integer :: i
   !real or imaginary part
-  realimag=2-mod(intrn,2)
+  nimag=2-mod(intrn,2)
   !actual index over half the length
   i=(intrn+1)/2
   !check
-  if (2*(i-1)+realimag /= intrn) then
-     print *,'error, index=',intrn,'realimag=',realimag,'i=',i
+  if (2*(i-1)+nimag /= intrn) then
+     print *,'error, index=',intrn,'nimag=',nimag,'i=',i
   end if
   !complete index to be assigned
-  index=extrn+nelem*(i-1)
+  nindex=extrn+nelem*(i-1)
 
 end subroutine indices
 

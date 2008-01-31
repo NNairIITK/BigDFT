@@ -1,4 +1,4 @@
-!!****p* BigDFT/MPIfake
+!!****f* BigDFT/MPIfake
 !! NAME
 !!   MPIfake
 !!
