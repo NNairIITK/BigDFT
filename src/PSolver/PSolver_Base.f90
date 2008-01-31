@@ -589,6 +589,7 @@ subroutine P_fill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
   end do
 
 end subroutine P_fill_upcorn
+!!***
 
 
 !!****f* BigDFT/scramble_P
@@ -639,8 +640,9 @@ subroutine scramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2)
   end do
 
 end subroutine scramble_P
-!!**
- 
+!!***
+
+
 !!****f* BigDFT/unscramble_P
 !! NAME
 !!   unscramble_P
@@ -698,7 +700,7 @@ subroutine unscramble_P(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw)
   end do
 
 end subroutine unscramble_P
-!!**
+!!***
 
 
 !!****f* BigDFT/P_multkernel
@@ -768,7 +770,7 @@ subroutine P_multkernel(n1,n2,n3,lot,nfft,jS,i3,zw,hx,hy,hz,offset)
   end do
 
 end subroutine P_multkernel
-!!**
+!!***
 
 
 !!****f* BigDFT/multkernel
@@ -849,7 +851,7 @@ subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
   end do
 
 end subroutine multkernel
-!!**
+!!***
 
 
 !!!HERE POT MUST BE THE KERNEL (BEWARE THE HALF DIMENSION)
@@ -1338,7 +1340,7 @@ subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   call timing(iproc,'PSolv_comput  ','OF')
 
 end subroutine S_PoissonSolver
-!!**
+!!***
 
 
 subroutine S_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,md2,nd3,nproc,zmpi1,zw)
@@ -1369,6 +1371,7 @@ subroutine S_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,md2,nd3,nproc,zmpi1,zw
 
 end subroutine S_mpiswitch_upcorn
 
+
 subroutine S_switch_upcorn(nfft,n2,lot,n1,lzt,zt,zw)
   implicit none
   integer, intent(in) :: nfft,n2,lot,n1,lzt
@@ -1386,6 +1389,7 @@ subroutine S_switch_upcorn(nfft,n2,lot,n1,lzt,zt,zw)
 
 end subroutine S_switch_upcorn
 
+
 subroutine S_unswitch_downcorn(nfft,n2,lot,n1,lzt,zw,zt)
   implicit none
   integer, intent(in) :: nfft,n2,lot,n1,lzt
@@ -1402,6 +1406,7 @@ subroutine S_unswitch_downcorn(nfft,n2,lot,n1,lzt,zw,zt)
   end do
 
 end subroutine S_unswitch_downcorn
+
 
 subroutine S_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,zmpi1)
   implicit none
@@ -1496,7 +1501,7 @@ subroutine unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
   end do
   
 end subroutine unfill_downcorn
-!!**
+!!***
 
 
 subroutine halfill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
@@ -1601,7 +1606,7 @@ subroutine scramble_unpack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw,zmpi2,cosinarr)
   end do
 
 end subroutine scramble_unpack
-!!**
+!!***
 
  
 !!****f* BigDFT/unscramble_pack
@@ -1673,7 +1678,7 @@ subroutine unscramble_pack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw,cosinarr)
   end do
 
 end subroutine unscramble_pack
-!!**
+!!***
 
 
 !!****f* BigDFT/F_PoissonSolver
@@ -2156,7 +2161,7 @@ subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
 
   call timing(iproc,'PSolv_comput  ','OF')
 end subroutine F_PoissonSolver
-!!**
+!!***
 
 
 subroutine switch_upcorn(nfft,n2,lot,n1,lzt,zt,zw)
@@ -2322,4 +2327,4 @@ subroutine F_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
   end do
   
 end subroutine F_unfill_downcorn
-!!**
+!!***

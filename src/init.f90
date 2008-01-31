@@ -1,5 +1,5 @@
 subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_grid,&
-     hx,hy,hz,nat,ntypes,iatype,atomnames,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
+     hx,hy,hz,atoms,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
      wfd,nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
   !calculates the descriptor arrays keyg and keyv as well as nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp
   !calculates also the bounds arrays needed for convolutions
@@ -8,24 +8,23 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
 
   implicit none
   !Arguments
+  type(atoms_data), intent(in) :: atoms
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,nat,ntypes,norb,norbp
-  integer, intent(out) :: nvctrp
   logical, intent(in) :: output_grid
-  integer, intent(in) :: iatype(nat)
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp
+  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
-  real(kind=8) :: rxyz(3, nat), radii_cf(ntypes, 2)
-  character(len=20), intent(in) :: atomnames(100)
-  integer,intent(in):: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  real(kind=8), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(kind=8), dimension(atoms%ntypes,2), intent(in) :: radii_cf
   type(wavefunctions_descriptors) , intent(out) :: wfd
   !boundary arrays
   type(convolutions_bounds), intent(out) :: bounds
-
+  integer, intent(out) :: nvctrp
   !Local variables
   real(kind=8), parameter :: eps_mach=1.d-12
   integer :: iat,i1,i2,i3,norbme,norbyou,jpst,jproc,i_all,i_stat
   real(kind=8) :: tt
-  logical, allocatable :: logrid_c(:,:,:), logrid_f(:,:,:)
+  logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
   !allocate kinetic bounds, only for free BC
   if (geocode == 'F') then
@@ -55,7 +54,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
   call memocc(i_stat,product(shape(logrid_f))*kind(logrid_f),'logrid_f','crtwvfnctsdescriptors')
 
   ! coarse grid quantities
-  call fill_logrid(geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
+  call fill_logrid(geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,atoms%ntypes,atoms%iatype,rxyz, & 
        radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,wfd%nseg_c,wfd%nvctr_c)
   if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
@@ -66,7 +65,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
   end if
 
   ! fine grid quantities
-  call fill_logrid(geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,nat,ntypes,iatype,rxyz, & 
+  call fill_logrid(geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,atoms%ntypes,atoms%iatype,rxyz, & 
        radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,wfd%nseg_f,wfd%nvctr_f)
   if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
@@ -80,9 +79,9 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
      open(unit=22,file='grid.xyz',status='unknown')
      write(22,*) wfd%nvctr_c+wfd%nvctr_f,' atomic'
      write(22,*)'complete simulation grid with low ang high resolution points'
-     do iat=1,nat
+     do iat=1,atoms%nat
         write(22,'(a6,2x,3(1x,e12.5),3x)') &
-             trim(atomnames(iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
+             trim(atoms%atomnames(atoms%iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
      enddo
      do i3=0,n3  
         do i2=0,n2  
@@ -190,21 +189,16 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
 END SUBROUTINE createWavefunctionsDescriptors
 
 !pass to implicit none while inserting types on this routine
-subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,atomnames,&
-     & psppar,npspcode,radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
-
+subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
+     radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   use module_types
-
   implicit none
+  type(atoms_data), intent(in) :: at
   character(len=1), intent(in) :: geocode
-  character(len=20), dimension(100),intent(in) :: atomnames
-  integer, intent(in) :: iproc,n1,n2,n3,nat,ntypes
+  integer, intent(in) :: iproc,n1,n2,n3
   real(kind=8), intent(in) :: cpmult,fpmult,hx,hy,hz
-  integer, dimension(nat), intent(in) :: iatype
-  integer, dimension(ntypes), intent(in) :: npspcode
-  real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
-  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
+  real(kind=8), dimension(at%ntypes,2), intent(in) :: radii_cf
   type(nonlocal_psp_descriptors), intent(out) :: nlpspd
   real(kind=8), dimension(:), pointer :: proj
   !local variables
@@ -224,16 +218,16 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
           'Type','Name','Number of atoms','Number of projectors'
   end if
 
-  allocate(nlpspd%nseg_p(0:2*nat),stat=i_stat)
+  allocate(nlpspd%nseg_p(0:2*at%nat),stat=i_stat)
   call memocc(i_stat,product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p),&
        'nseg_p','createprojectorsarrays')
-  allocate(nlpspd%nvctr_p(0:2*nat),stat=i_stat)
+  allocate(nlpspd%nvctr_p(0:2*at%nat),stat=i_stat)
   call memocc(i_stat,product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p),&
        'nvctr_p','createprojectorsarrays')
-  allocate(nlpspd%nboxp_c(2,3,nat),stat=i_stat)
+  allocate(nlpspd%nboxp_c(2,3,at%nat),stat=i_stat)
   call memocc(i_stat,product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c),&
        'nboxp_c','createprojectorsarrays')
-  allocate(nlpspd%nboxp_f(2,3,nat),stat=i_stat)
+  allocate(nlpspd%nboxp_f(2,3,at%nat),stat=i_stat)
   call memocc(i_stat,product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f),&
        'nboxp_f','createprojectorsarrays')
 
@@ -249,20 +243,20 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
 
   if (iproc ==0) then
      !print the number of projectors to be created
-     do ityp=1,ntypes
-        call numb_proj(ityp,ntypes,psppar,npspcode,mproj)
+     do ityp=1,at%ntypes
+        call numb_proj(ityp,at%ntypes,at%psppar,at%npspcode,mproj)
         natyp=0
-        do iat=1,nat
-           if (iatype(iat) == ityp) natyp=natyp+1
+        do iat=1,at%nat
+           if (at%iatype(iat) == ityp) natyp=natyp+1
         end do
         write(*,'(1x,i4,2x,a6,1x,i15,i21)')&
-             ityp,trim(atomnames(ityp)),natyp,mproj
+             ityp,trim(at%atomnames(ityp)),natyp,mproj
      end do
   end if
 
-  do iat=1,nat
+  do iat=1,at%nat
 
-     call numb_proj(iatype(iat),ntypes,psppar,npspcode,mproj)
+     call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
      if (mproj.ne.0) then 
 
         !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))')&
@@ -270,7 +264,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
         nlpspd%nproj=nlpspd%nproj+mproj
 
         ! coarse grid quantities
-        call  pregion_size(geocode,rxyz(1,iat),radii_cf(iatype(iat),2),cpmult, &
+        call  pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),cpmult, &
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         nlpspd%nboxp_c(1,1,iat)=nl1
@@ -284,7 +278,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
         !now control the 
 
         call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),cpmult,hx,hy,hz,logrid)
+             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),cpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
 
         nlpspd%nseg_p(2*iat-1)=nlpspd%nseg_p(2*iat-2) + mseg
@@ -292,7 +286,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
         istart=istart+mvctr*mproj
 
         ! fine grid quantities
-        call  pregion_size(geocode,rxyz(1,iat),radii_cf(iatype(iat),2),fpmult,&
+        call  pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         nlpspd%nboxp_f(1,1,iat)=nl1
@@ -304,7 +298,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
         nlpspd%nboxp_f(2,3,iat)=nu3
 
         call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
+             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
         !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr, fine  projectors ',mseg,mvctr
         nlpspd%nseg_p(2*iat)=nlpspd%nseg_p(2*iat-1) + mseg
@@ -326,10 +320,10 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
   end if
 
   ! allocations for arrays holding the projectors and their data descriptors
-  allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*nat)),stat=i_stat)
+  allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*at%nat)),stat=i_stat)
   call memocc(i_stat,product(shape(nlpspd%keyg_p))*kind(nlpspd%keyg_p),&
        'keyg_p','createprojectorsarrays')
-  allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*nat)),stat=i_stat)
+  allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*at%nat)),stat=i_stat)
   call memocc(i_stat,product(shape(nlpspd%keyv_p))*kind(nlpspd%keyv_p),&
        'keyv_p','createprojectorsarrays')
   nlpspd%nprojel=istart-1
@@ -339,8 +333,8 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
 
   ! After having determined the size of the projector descriptor arrays fill them
   istart_c=1
-  do iat=1,nat
-     call numb_proj(iatype(iat),ntypes,psppar,npspcode,mproj)
+  do iat=1,at%nat
+     call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
      if (mproj.ne.0) then 
 
         ! coarse grid quantities
@@ -352,7 +346,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
         nu2=nlpspd%nboxp_c(2,2,iat)
         nu3=nlpspd%nboxp_c(2,3,iat)
         call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),cpmult,hx,hy,hz,logrid)
+             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),cpmult,hx,hy,hz,logrid)
 
         iseg=nlpspd%nseg_p(2*iat-2)+1
         mseg=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
@@ -369,7 +363,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
         nu2=nlpspd%nboxp_f(2,2,iat)
         nu3=nlpspd%nboxp_f(2,3,iat)
         call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             ntypes,iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
+             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
         iseg=nlpspd%nseg_p(2*iat-1)+1
         mseg=nlpspd%nseg_p(2*iat)-nlpspd%nseg_p(2*iat-1)
         call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,  & 
@@ -387,17 +381,17 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
 
   iproj=0
   fpi=(4.d0*atan(1.d0))**(-.75d0)
-  do iat=1,nat
+  do iat=1,at%nat
      rx=rxyz(1,iat) 
      ry=rxyz(2,iat) 
      rz=rxyz(3,iat)
-     ityp=iatype(iat)
+     ityp=at%iatype(iat)
 
      !decide the loop bounds
      do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
         do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
-           if (psppar(l,i,ityp).ne.0.d0) then
-              gau_a=psppar(l,0,ityp)
+           if (at%psppar(l,i,ityp).ne.0.d0) then
+              gau_a=at%psppar(l,0,ityp)
               factor=sqrt(2.d0)*fpi/(sqrt(gau_a)**(2*(l-1)+4*i-1))
               do m=1,2*l-1
                  mvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
@@ -422,7 +416,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
                  fac_arr(1:nterm)=factor*fac_arr(1:nterm)
 
                  call crtproj(geocode,iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
-                      & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radii_cf(iatype(iat),2), & 
+                      & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radii_cf(at%iatype(iat),2), & 
                       & cpmult,fpmult,hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
                       & mvctr_c,mvctr_f,proj(istart_c), &
                       & proj(istart_f))
@@ -437,7 +431,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
                           write(*,'(1x,a)')'error found!'
                           write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
                                'The norm of the nonlocal PSP for atom n=',iat,&
-                               ' (',trim(atomnames(iatype(iat))),&
+                               ' (',trim(at%atomnames(at%iatype(iat))),&
                                ') labeled by l=',l,' m=',m,' is ',scpr
                           write(*,'(1x,a)')&
                                'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
@@ -450,7 +444,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
                        nwarnings=nwarnings+1
                        radmin=min(radmin,gau_a)
                     end if
-!!$                    print *,'norm projector for atom ',trim(atomnames(iatype(iat))),&
+!!$                    print *,'norm projector for atom ',trim(at%atomnames(at%iatype(iat))),&
 !!$                         'iproc,l,i,rl,scpr=',iproc,l,i,gau_a,scpr
 !!$                    stop 'norm projector'
                  end if
@@ -462,7 +456,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
                  !do iterm=1,nterm
                  !   if (iproc.eq.0) write(*,'(1x,a,i0,1x,a,1pe10.3,3(1x,i0))') &
                  !        'projector: iat,atomname,gau_a,lx,ly,lz ', & 
-                 !        iat,trim(atomnames(iatype(iat))),gau_a,lx(iterm),ly(iterm),lz(iterm)
+                 !        iat,trim(at%atomnames(at%iatype(iat))),gau_a,lx(iterm),ly(iterm),lz(iterm)
                  !enddo
 
 
@@ -490,39 +484,32 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,nat,ntypes,iatype,
 
 END SUBROUTINE createProjectorsArrays
 
-subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-     nat,norb,norbp,occup,n1,n2,n3,nvctrp,hgrid,rxyz, & 
-     rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
-     atomnames,ntypes,iatype,pkernel,psppar,npspcode,ixc,&
-     psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
+subroutine import_gaussians(parallel,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+     norb,norbp,occup,n1,n2,n3,nvctrp,hgrid,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
+     pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
 
   use module_types
   use Poisson_Solver
 
   implicit none
   include 'mpif.h'
+  type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(convolutions_bounds), intent(in) :: bounds
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  logical, intent(in) :: parallel
-  character(len=20), dimension(100), intent(in) :: atomnames
   character(len=1), intent(in) :: datacode
-  integer, intent(in) :: iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,ixc
-  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
-  integer, intent(in) :: nspin
-  real(kind=8), dimension(norb), intent(in) :: spinar
+  logical, intent(in) :: parallel
+  integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
+  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
   real(kind=8), intent(in) :: hgrid
-  real(kind=8), intent(out) :: accurex
-  integer, dimension(nat), intent(in) :: iatype
-  integer, dimension(ntypes), intent(in) :: npspcode
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(kind=8), dimension(norb), intent(in) :: occup
-  real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(norb), intent(in) :: spinar,occup
+  real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(*), intent(in) :: pkernel
   real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
+  real(kind=8), intent(out) :: accurex
   real(kind=8), dimension(norb), intent(out) :: eval
   real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
 
@@ -557,9 +544,9 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
   end if
 
   !read the values for the gaussian code and insert them on psi 
-  call gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+  call gautowav(iproc,nproc,at%nat,at%ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,&
-       iatype,occup,rxyz,hgrid,psi,eks)
+       at%iatype,occup,rxyz,hgrid,psi,eks)
 
 !!$  !!plot the initial gaussian wavefunctions
 !!$  !do i=2*iproc+1,2*iproc+2
@@ -594,9 +581,8 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
   end if
 
 
-  call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
-       psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       wfd,bounds,nlpspd,proj,&
+  call HamiltonianApplication(parallel,datacode,iproc,nproc,at,hgrid,&
+       norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
        ngatherarr,nscatterarr(iproc,2),rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,ones)
 
@@ -786,55 +772,47 @@ subroutine import_gaussians(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
 
 END SUBROUTINE import_gaussians
 
-subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     nat,natsc,norb,norbp,n1,n2,n3,nvctrp,hgrid,rxyz, & 
-     rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
-     atomnames,ntypes,iatype,iasctype,pkernel,nzatom,nelpsp,psppar,npspcode,ixc,&
-     ppsi,ppsit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
+subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+     norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
+     pkernel,ixc,ppsi,ppsit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
-
   use module_types
   use Poisson_Solver
-
   implicit none
   include 'mpif.h'
-  logical, intent(in) :: parallel
+  type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(convolutions_bounds), intent(in) :: bounds
-  character(len=1), intent(in) :: datacode!,geocode
-  character(len=20), dimension(100), intent(in) :: atomnames
-  integer, intent(in) :: iproc,nproc,nat,natsc,ntypes,norb,norbp,n1,n2,n3,ixc
+  character(len=1), intent(in) :: datacode,geocode
+  integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
   integer, intent(in) :: nspin
-  real(kind=8), dimension(norb), intent(in) :: spinar
-  real(kind=8), intent(in) :: hgrid!hx,hy,hz
-  real(kind=8), intent(out) :: accurex
-  integer, dimension(nat), intent(in) :: iatype
-  integer, dimension(ntypes), intent(in) :: iasctype,npspcode,nzatom,nelpsp
+  real(kind=8), intent(in) :: hx,hy,hz
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
+  real(kind=8), dimension(norb), intent(in) :: spinar
+  real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(*), intent(in) :: pkernel
   real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
+  real(kind=8), intent(out) :: accurex
   real(kind=8), dimension(norb), intent(out) :: eval
   real(kind=8), dimension(:,:), pointer :: ppsi,ppsit
-
   !local variables
   real(kind=8), parameter :: eps_mach=1.d-12
+  logical :: parallel
   integer, parameter :: ngx=31
   integer :: i,iorb,iorbsc,imatrsc,iorbst,imatrst,i_stat,i_all,ierr,info,jproc,jpst,norbeyou
   integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbi_max,norbsc
-  integer :: ispin,norbu,norbd,iorbst2
-  real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,hgridh
+  integer :: ispin,norbu,norbd,iorbst2,ist
+  real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol
   logical, dimension(:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: norbsc_arr,ng
   integer, dimension(:,:), allocatable :: nl
-  real(kind=8), dimension(:), allocatable :: work_lp,pot,evale,occupe,ones
+  real(kind=8), dimension(:), allocatable :: work_lp,pot,evale,occupe,spinare
   real(kind=8), dimension(:,:), allocatable :: xp,occupat,hamovr,psi,hpsi
   real(kind=8), dimension(:,:,:), allocatable :: psiw,psiat
 
@@ -846,20 +824,20 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      if(spinar(iorb)<0.0d0) norbd=norbd+1
   end do
 
-  allocate(xp(ngx,ntypes),stat=i_stat)
+  allocate(xp(ngx,at%ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(xp))*kind(xp),'xp','input_wf_diag')
-  allocate(psiat(ngx,5,ntypes),stat=i_stat)
+  allocate(psiat(ngx,5,at%ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(psiat))*kind(psiat),'psiat','input_wf_diag')
-  allocate(occupat(5,ntypes),stat=i_stat)
+  allocate(occupat(5,at%ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(occupat))*kind(occupat),'occupat','input_wf_diag')
-  allocate(ng(ntypes),stat=i_stat)
+  allocate(ng(at%ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(ng))*kind(ng),'ng','input_wf_diag')
-  allocate(nl(4,ntypes),stat=i_stat)
+  allocate(nl(4,at%ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(nl))*kind(nl),'nl','input_wf_diag')
-  allocate(scorb(4,natsc),stat=i_stat)
+  allocate(scorb(4,at%natsc),stat=i_stat)
   call memocc(i_stat,product(shape(scorb))*kind(scorb),'scorb','input_wf_diag')
 
-  allocate(norbsc_arr(natsc+1),stat=i_stat)
+  allocate(norbsc_arr(at%natsc+1),stat=i_stat)
   call memocc(i_stat,product(shape(norbsc_arr))*kind(norbsc_arr),'norbsc_arr','input_wf_diag')
 
   if (iproc.eq.0) then
@@ -868,21 +846,22 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   end if
 
   !Generate the input guess via the inguess_generator
-  call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,psppar,&
-       & npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,scorb,&
-       & norbsc_arr)
+  call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at%nzatom,at%nelpsp,at%psppar,&
+       & at%npspcode,norbe,norbsc,at%atomnames,at%ntypes,at%iatype,at%iasctype,at%nat,at%natsc,&
+       nspin,scorb,norbsc_arr)
 
   !  allocate wavefunctions and their occupation numbers
-  allocate(occupe(norbe),stat=i_stat)
+  allocate(occupe(nspin*norbe),stat=i_stat)
   call memocc(i_stat,product(shape(occupe))*kind(occupe),'occupe','input_wf_diag')
-  tt=dble(norbe)/dble(nproc)
+  !the number of orbitals to be considered is doubled in the case of a spin-polarised calculation
+  tt=dble(nspin*norbe)/dble(nproc)
   norbep=int((1.d0-eps_mach*tt) + tt)
 
   if (iproc == 0 .and. nproc>1) then
      jpst=0
      do jproc=0,nproc-2
-        norbeme=max(min((jproc+1)*norbep,norbe)-jproc*norbep,0)
-        norbeyou=max(min((jproc+2)*norbep,norbe)-(jproc+1)*norbep,0)
+        norbeme=max(min((jproc+1)*norbep,nspin*norbe)-jproc*norbep,0)
+        norbeyou=max(min((jproc+2)*norbep,nspin*norbe)-(jproc+1)*norbep,0)
         if (norbeme /= norbeyou) then
            !this is a screen output that must be modified
            write(*,'(3(a,i0),a)')&
@@ -894,26 +873,22 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           ' Processes from ',jpst,' to ',nproc-1,' treat ',norbeyou,' inguess orbitals '
   end if
 
-!!$  hxh=.5d0*hx
-!!$  hyh=.5d0*hy
-!!$  hzh=.5d0*hz
+  hxh=.5d0*hx
+  hyh=.5d0*hy
+  hzh=.5d0*hz
 
-  hgridh=0.5d0*hgrid
+  parallel=(nproc > 1)
 
-  if (parallel) then
-     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(psi(nvctrp,norbep*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','input_wf_diag')
-  else
-     allocate(psi(nvctrp,norbe),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','input_wf_diag')
-  end if
+  !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+  allocate(psi(nvctrp,norbep*nproc),stat=i_stat)
+  call memocc(i_stat,product(shape(psi))*kind(psi),'psi','input_wf_diag')
 
   ! Create input guess orbitals
-  call createAtomicOrbitals(iproc,nproc,atomnames,&
-       nat,rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
-       wfd%nvctr_c,wfd%nvctr_f,n1,n2,n3,hgrid,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,iatype,ntypes,iasctype,natsc,psi,eks,scorb)
+  call createAtomicOrbitals(geocode,iproc,nproc,at%atomnames,&
+       at%nat,rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
+       wfd%nvctr_c,wfd%nvctr_f,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+       wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,at%iatype,at%ntypes,&
+       at%iasctype,at%natsc,at%nspinat,nspin,psi,eks,scorb)
 
 !!$  !!plot the initial LCAO wavefunctions
 !!$  !do i=2*iproc+1,2*iproc+2
@@ -947,35 +922,33 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
 
   ! resulting charge density and potential
-  allocate(ones(norbe),stat=i_stat)
-  call memocc(i_stat,product(shape(ones))*kind(ones),'ones','input_wf_diag')
-  ones(:)=1.0d0
+  allocate(spinare(nspin*norbe),stat=i_stat)
+  call memocc(i_stat,product(shape(spinare))*kind(spinare),'spinare','input_wf_diag')
+  ist=1
+  do ispin=1,nspin
+     spinare(ist:ist+norbe-1)=real(1-2*(ispin-1),kind=8)
+     ist=norbe+1
+  end do
 
-  call sumrho(parallel,iproc,nproc,norbe,norbep,n1,n2,n3,hgrid,occupe,  & 
-       wfd,psi,rhopot,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,1,ones, &
+  call sumrho(parallel,iproc,nproc,nspin*norbe,norbep,n1,n2,n3,hx,occupe,  & 
+       wfd,psi,rhopot,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,nspin,spinare, &
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
-  call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
-       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,1)
+  call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hxh,hyh,hzh,&
+       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
 
-  if (parallel) then
-     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(hpsi(nvctrp,norbep*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
-  else
-     allocate(hpsi(nvctrp,norbe),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
-  end if
-
-  call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
-       psppar,npspcode,norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       wfd,bounds,nlpspd,proj,&
+  !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+  allocate(hpsi(nvctrp,norbep*nproc),stat=i_stat)
+  call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
+  
+  call HamiltonianApplication(parallel,datacode,iproc,nproc,at,hx,&
+       nspin*norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
        ngatherarr,nscatterarr(iproc,2),rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,ones)
+       psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinare)
 
-  i_all=-product(shape(ones))*kind(ones)
-  deallocate(ones,stat=i_stat)
-  call memocc(i_stat,i_all,'ones','input_wf_diag')
+  i_all=-product(shape(spinare))*kind(spinare)
+  deallocate(spinare,stat=i_stat)
+  call memocc(i_stat,i_all,'spinare','input_wf_diag')
 
   i_all=-product(shape(occupe))*kind(occupe)
   deallocate(occupe,stat=i_stat)
@@ -1005,7 +978,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   !calculate the dimension of the overlap matrix
   ndim_hamovr=0
-  do i=1,natsc+1
+  do i=1,at%natsc+1
      ndim_hamovr=ndim_hamovr+norbsc_arr(i)**2
   end do
 
@@ -1017,11 +990,11 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      allocate(psiw(nvctrp,norbep,nproc),stat=i_stat)
      call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','input_wf_diag')
 
-     call switch_waves(iproc,nproc,norbe,norbep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,psiw)
+     call switch_waves(iproc,nproc,nspin*norbe,norbep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,psiw)
      call MPI_ALLTOALL(psiw,nvctrp*norbep,MPI_DOUBLE_PRECISION,  &
           psi,nvctrp*norbep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
 
-     call switch_waves(iproc,nproc,norbe,norbep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psiw)
+     call switch_waves(iproc,nproc,nspin*norbe,norbep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psiw)
      call MPI_ALLTOALL(psiw,nvctrp*norbep,MPI_DOUBLE_PRECISION,  &
           hpsi,nvctrp*norbep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
 
@@ -1030,23 +1003,23 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      call memocc(i_stat,i_all,'psiw','input_wf_diag')
      !end of transposition
 
-     allocate(hamovr(ndim_hamovr,4),stat=i_stat)
+     allocate(hamovr(nspin*ndim_hamovr,4),stat=i_stat)
      call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','input_wf_diag')
 
      if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
           'Overlap Matrix...'
 
-     call overlap_matrices(nproc,norbep,nvctrp,natsc,ndim_hamovr,norbsc_arr,hamovr(1,3),psi,hpsi)
+     call overlap_matrices(nproc,norbep,nvctrp,at%natsc,nspin,ndim_hamovr,norbsc_arr,hamovr(1,3),psi,hpsi)
 
      i_all=-product(shape(hpsi))*kind(hpsi)
      deallocate(hpsi,stat=i_stat)
      call memocc(i_stat,i_all,'hpsi','input_wf_diag')
 
      !reduce the overlap matrix between all the processors
-     call MPI_ALLREDUCE(hamovr(1,3),hamovr(1,1),2*ndim_hamovr,&
+     call MPI_ALLREDUCE(hamovr(1,3),hamovr(1,1),2*nspin*ndim_hamovr,&
           MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-     call solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,nspin,etol,&
+     call solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,at%natsc,nspin,etol,&
           norbsc_arr,hamovr,eval)
 
      !allocate the transposed wavefunction
@@ -1055,7 +1028,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
      if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Input Wavefunctions...'
 
-     call build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,ndim_hamovr,&
+     call build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,at%natsc,nspin,ndim_hamovr,&
           norbsc_arr,hamovr,psi,ppsit)
 
      i_all=-product(shape(psi))*kind(psi)
@@ -1105,16 +1078,16 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
      write(*,'(1x,a)',advance='no')'Overlap Matrix...'
 
-     allocate(hamovr(ndim_hamovr,2),stat=i_stat)
+     allocate(hamovr(nspin*ndim_hamovr,2),stat=i_stat)
      call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','input_wf_diag')
 
-     call overlap_matrices(nproc,norbep,nvctrp,natsc,ndim_hamovr,norbsc_arr,hamovr,psi,hpsi)
+     call overlap_matrices(nproc,norbep,nvctrp,at%natsc,nspin,ndim_hamovr,norbsc_arr,hamovr,psi,hpsi)
 
      i_all=-product(shape(hpsi))*kind(hpsi)
      deallocate(hpsi,stat=i_stat)
      call memocc(i_stat,i_all,'hpsi','input_wf_diag')
 
-     call solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,nspin,etol,&
+     call solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,at%natsc,nspin,etol,&
           norbsc_arr,hamovr,eval)
 
      write(*,'(1x,a)',advance='no')'Building orthogonal Input Wavefunctions...'
@@ -1123,7 +1096,7 @@ subroutine input_wf_diag(parallel,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      allocate(ppsi(nvctrp,norb),stat=i_stat)
      call memocc(i_stat,product(shape(ppsi))*kind(ppsi),'ppsi','input_wf_diag')
 
-     call build_eigenvectors(1,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,ndim_hamovr,&
+     call build_eigenvectors(1,norbu,norbd,norbp,norbep,nvctrp,at%natsc,nspin,ndim_hamovr,&
           norbsc_arr,hamovr,psi,ppsi)
 
      i_all=-product(shape(psi))*kind(psi)
@@ -1161,12 +1134,13 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   integer, intent(in) :: iproc,norb,norbi_max,ndim_hamovr,natsc,nspin,norbu,norbd
   integer, dimension(natsc+1), intent(in) :: norbsc_arr
   real(kind=8), intent(in) :: etol
-  real(kind=8), dimension(ndim_hamovr,2), intent(inout) :: hamovr
+  real(kind=8), dimension(nspin*ndim_hamovr,2), intent(inout) :: hamovr
   real(kind=8), dimension(norb), intent(out) :: eval
   !local variables
   character(len=64) :: message
   integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,iorb,i,ndegen,nwrtmsg,jorb,istart
-  real(kind=8) :: preval,tt,sum
+  real(kind=8) :: tt,sum
+  real(kind=8), dimension(2) :: preval
   real(kind=8), dimension(:), allocatable :: work_lp,evale,randarr
 
 
@@ -1174,7 +1148,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   n_lp=max(10,4*norbi_max)
   allocate(work_lp(n_lp),stat=i_stat)
   call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','solve_eigensystem')
-  allocate(evale(norbi_max),stat=i_stat)
+  allocate(evale(nspin*norbi_max),stat=i_stat)
   call memocc(i_stat,product(shape(evale))*kind(evale),'evale','solve_eigensystem')
 
   if (iproc.eq.0) write(*,'(1x,a)')'Linear Algebra...'
@@ -1182,14 +1156,23 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   nwrtmsg=0
   ndegen=0
 
+  preval=0.d0
   iorbst=1
   imatrst=1
   do i=1,natsc+1
      norbi=norbsc_arr(i)
+
      call DSYGV(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
           norbi,evale,work_lp,n_lp,info)
-
      if (info.ne.0) write(*,*) 'DSYGV ERROR',info,i,natsc+1
+
+     !do the diagonalisation separately in case of spin polarization     
+     if (nspin==2) then
+        call DSYGV(1,'V','U',norbi,hamovr(imatrst+ndim_hamovr,1),&
+             norbi,hamovr(imatrst+ndim_hamovr,2),norbi,evale(norbi+1),work_lp,n_lp,info)
+        if (info.ne.0) write(*,*) 'DSYGV ERROR',info,i,natsc+1
+     end if
+
 !!$        !write the matrices on a file
 !!$        !open(33+2*(i-1))
 !!$        !do jjorb=1,norbi
@@ -1204,64 +1187,120 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
 !!$        !end do
 !!$        !close(34+2*(i-1))
 
+
      !writing rules, control if the last eigenvector is degenerate
+     !do this for each spin
+     !for each spin it is supposed that only the last group contains is not completely passed
+     !and also that the components of each of the group but the last are the same for up and 
+     !down polarisation
      do iorb=1,norbi
-        if (nwrtmsg==1) then
-           if (abs(evale(iorb)-preval) <= etol) then
-              !degeneracy found
-              message='  <- found degeneracy'
-              ndegen=ndegen+1
-           else
-              nwrtmsg=0
-           end if
-        end if
         if (nspin==1) then
+           if (nwrtmsg==1) then
+              if (abs(evale(iorb)-preval(1)) <= etol) then
+                 !degeneracy found
+                 message='  <- found degeneracy'
+                 ndegen=ndegen+1
+              else
+                 nwrtmsg=0
+              end if
+           end if
            if (iorb+iorbst-1 == norb) then
               nwrtmsg=1
               message=' <- Last eigenvalue for input wavefunctions'
-              preval=evale(iorb)
+              preval(1)=evale(iorb)
+           end if
+           if (iproc.eq.0) then
+              if (nwrtmsg == 1) then
+                 write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
+                      'evale(',iorb+iorbst-1,')=',evale(iorb),trim(message)
+              else
+                 write(*,'(1x,a,i0,a,1x,1pe21.14)') &
+                      'evale(',iorb+iorbst-1,')=',evale(iorb)
+              end if
            end if
         else
-           if (norbu==norbd) then
-              if (iorb+iorbst-1 == norbu) then
-                 nwrtmsg=1
-                 message=' <- Last eigenvalue for input wavefncts of both spins'
-                 preval=evale(iorb)
+           if (nwrtmsg==1) then
+              if (abs(evale(iorb)-preval(1)) <= etol .and. &
+                   abs(evale(iorb+norbi)-preval(2)) <= etol) then
+                 !degeneracy found
+                 message='  <-deg->  '
+                 !ndegen=ndegen+1 removed, only for non magnetized cases
+              else if (abs(evale(iorb)-preval(1)) <= etol) then
+                 !degeneracy found
+                 message='  <-deg    '
+              else if (abs(evale(iorb+norbi)-preval(2)) <= etol) then
+                 !degeneracy found
+                 message='    deg->  '
+              else
+                 nwrtmsg=0
               end if
-           else
-              if (iorb+iorbst-1 == norbu) then
-                 nwrtmsg=1
-                 message=' <- Last eigenvalue for input wavefncts of spin up'
-                 preval=evale(iorb)
-              else if (iorb+iorbst-1 == norbd) then
-                 nwrtmsg=1
-                 message=' <- Last eigenvalue for input wavefncts of spin down'
-                 preval=evale(iorb)
+           end if
+           if (iorb+iorbst-1 == norbu .and. iorb+iorbst-1 == norbd) then
+              nwrtmsg=1
+              message='  <-Last-> ' 
+              preval(1)=evale(iorb)
+              preval(2)=evale(iorb+norbi)
+           else if (iorb+iorbst-1 == norbu) then
+              nwrtmsg=1
+              message='  <-Last   '
+              preval(1)=evale(iorb)
+           else if (iorb+iorbst-1 == norbd) then
+              nwrtmsg=1
+              message='    Last-> '
+              preval(2)=evale(iorb+norbi)
+           end if
+           if (iproc == 0) then
+              if (iorb+iorbst-1 <= norbu .and. iorb+iorbst-1 <= norbd) then
+                 if (nwrtmsg==1) then
+                    write(*,'(1x,a,i4,a,1x,1pe21.14,a12,a,i4,a,1x,1pe21.14)') &
+                         'evale(',iorb+iorbst-1,',u)=',evale(iorb),message,&
+                         'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi)
+                 else
+                    write(*,'(1x,a,i4,a,1x,1pe21.14,12x,a,i4,a,1x,1pe21.14)') &
+                         'evale(',iorb+iorbst-1,',u)=',evale(iorb),&
+                         'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi)
+                 end if
+              else if (iorb+iorbst-1 <= norbu) then
+                 if (nwrtmsg==1) then
+                    write(*,'(1x,a,i4,a,1x,1pe21.14,a12)')&
+                         'evale(',iorb+iorbst-1,',u)=',evale(iorb),message
+                 else
+                    write(*,'(1x,a,i4,a,1x,1pe21.14)')&
+                         'evale(',iorb+iorbst-1,',u)=',evale(iorb)  
+                 end if
+              else if (iorb+iorbst-1 <= norbd) then
+                 if (nwrtmsg==1) then
+                    write(*,'(47x,a,i0,a,1x,1pe21.14,a12)')&
+                         'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi),message
+                 else
+                    write(*,'(47x,a,i0,a,1x,1pe21.14)')&
+                         'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi)
+                 end if
               end if
            end if
         end if
-        if (iproc.eq.0) then
-           if (nwrtmsg == 1) then
-              write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
-                   'evale(',iorb+iorbst-1,')=',evale(iorb),trim(message)
-           else
-              write(*,'(1x,a,i0,a,1x,1pe21.14)') &
-                   'evale(',iorb+iorbst-1,')=',evale(iorb)
-           end if
-        end if
      end do
-     do iorb=iorbst,min(norbi+iorbst-1,norb)
-        eval(iorb)=evale(iorb-iorbst+1)
-     end do
+     if (nspin==1) then
+        do iorb=iorbst,min(norbi+iorbst-1,norb)
+           eval(iorb)=evale(iorb-iorbst+1)
+        end do
+     else
+        do iorb=iorbst,min(norbi+iorbst-1,norbu)
+           eval(iorb)=evale(iorb-iorbst+1)
+        end do
+        do iorb=iorbst,min(norbi+iorbst-1,norbd)
+           eval(iorb+norbu)=evale(iorb-iorbst+1+norbi)
+        end do
+     end if
      iorbst=iorbst+norbi
      imatrst=imatrst+norbi**2
   end do
-  ! Copy eigenvalues from NM to spin-polarized channels
-  if(nspin>1) then
-     do iorb=1,norbd
-        eval(iorb+norbu)=eval(iorb)
-     end do
-  end if
+!!$  ! Copy eigenvalues from NM to spin-polarized channels
+!!$  if(nspin>1) then
+!!$     do iorb=1,norbd
+!!$        eval(iorb+norbu)=eval(iorb)
+!!$     end do
+!!$  end if
 
   i_all=-product(shape(work_lp))*kind(work_lp)
   deallocate(work_lp,stat=i_stat)
@@ -1325,7 +1364,7 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,
   implicit none
   integer, intent(in) :: nproc,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,ndim_hamovr
   integer, dimension(natsc+1), intent(in) :: norbsc_arr
-  real(kind=8), dimension(ndim_hamovr), intent(in) :: hamovr
+  real(kind=8), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
   real(kind=8), dimension(nvctrp,norbep*nproc), intent(in) :: psi
   real(kind=8), dimension(nvctrp,norbp*nproc), intent(out) :: ppsit
   !local variables
@@ -1350,18 +1389,19 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,
   !!          hamovr(imatrst,1),norbi,0.d0,ppsit(1,iorbst),nvctrp)
 
   !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
+
+  iorbst=1
+  iorbst2=1
+  imatrst=1
   do ispin=1,nspin
-     iorbst=1
-     iorbst2=0
-     if(ispin==2) iorbst2=norbu
-     imatrst=1
      norbsc=0
      do i=1,natsc
         norbi=norbsc_arr(i)
         norbsc=norbsc+norbi
         call DGEMM('N','N',nvctrp,norbi,norbi,1.d0,psi(1,iorbst),nvctrp,&
-             hamovr(imatrst),norbi,0.d0,ppsit(1,iorbst2+iorbst),nvctrp)
+             hamovr(imatrst),norbi,0.d0,ppsit(1,iorbst2),nvctrp)
         iorbst=iorbst+norbi
+        iorbst2=iorbst2+norbi
         imatrst=imatrst+norbi**2
      end do
      norbi=norbsc_arr(natsc+1)
@@ -1371,59 +1411,64 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,
      !        norbj=norb-norbsc
      if(norbj>0) then
         call DGEMM('N','N',nvctrp,norbj,norbi,1.d0,psi(1,iorbst),nvctrp,&
-             hamovr(imatrst),norbi,0.d0,ppsit(1,iorbst2+iorbst),nvctrp)
+             hamovr(imatrst),norbi,0.d0,ppsit(1,iorbst2),nvctrp)
      end if
+     iorbst=norbi+norbsc+1 !this is equal to norbe+1
+     iorbst2=norbu+1
+     imatrst=ndim_hamovr+1
   end do
 
-  !here we should put a random noise on the spin-down components in the case of norbu=norbd
-  if (nspin == 2 .and. norbu==norbd) then
-     allocate(randnoise(nvctrp),stat=i_stat)
-     call memocc(i_stat,product(shape(randnoise))*kind(randnoise),'randnoise','build_eigenvectors')
-     call random_number(randnoise)
-
-     do iorb=1,norbu
-        do i=1,nvctrp
-           tt=50.d0*real(randnoise(nvctrp-i+1)-0.5,kind=8)/real(nvctrp*nproc,kind=8)
-           ppsit(i,iorb)=tt+ppsit(i,iorb)
-        end do
-     end do
-
-     do iorb=norbu+1,norbu+norbd
-        do i=1,nvctrp
-           tt=50.d0*real(randnoise(i)-0.5,kind=8)/real(nvctrp*nproc,kind=8)
-           ppsit(i,iorb)=tt+ppsit(i,iorb)
-        end do
-     end do
-
-     i_all=-product(shape(randnoise))*kind(randnoise)
-     deallocate(randnoise,stat=i_stat)
-     call memocc(i_stat,i_all,'randnoise','build_eigenvectors')
-  end if
+!!$  !here we should put a random noise on the spin-down components in the case of norbu=norbd
+!!$  if (nspin == 2 .and. norbu==norbd) then
+!!$     allocate(randnoise(nvctrp),stat=i_stat)
+!!$     call memocc(i_stat,product(shape(randnoise))*kind(randnoise),'randnoise','build_eigenvectors')
+!!$     call random_number(randnoise)
+!!$
+!!$     do iorb=1,norbu
+!!$        do i=1,nvctrp
+!!$           tt=50.d0*real(randnoise(nvctrp-i+1)-0.5,kind=8)/real(nvctrp*nproc,kind=8)
+!!$           ppsit(i,iorb)=tt+ppsit(i,iorb)
+!!$        end do
+!!$     end do
+!!$
+!!$     do iorb=norbu+1,norbu+norbd
+!!$        do i=1,nvctrp
+!!$           tt=50.d0*real(randnoise(i)-0.5,kind=8)/real(nvctrp*nproc,kind=8)
+!!$           ppsit(i,iorb)=tt+ppsit(i,iorb)
+!!$        end do
+!!$     end do
+!!$
+!!$     i_all=-product(shape(randnoise))*kind(randnoise)
+!!$     deallocate(randnoise,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'randnoise','build_eigenvectors')
+!!$  end if
 
 end subroutine build_eigenvectors
 
-subroutine overlap_matrices(nproc,norbep,nvctrp,natsc,ndim_hamovr,norbsc_arr,hamovr,psi,hpsi)
+subroutine overlap_matrices(nproc,norbep,nvctrp,natsc,nspin,ndim_hamovr,norbsc_arr,hamovr,psi,hpsi)
   implicit none
-  integer, intent(in) :: nproc,norbep,nvctrp,natsc,ndim_hamovr
+  integer, intent(in) :: nproc,norbep,nvctrp,natsc,ndim_hamovr,nspin
   integer, dimension(natsc+1), intent(in) :: norbsc_arr
-  real(kind=8), dimension(ndim_hamovr,2), intent(out) :: hamovr
+  real(kind=8), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
   real(kind=8), dimension(nvctrp,norbep*nproc), intent(in) :: psi,hpsi
   !local variables
-  integer ::iorbst,imatrst,norbi,i
+  integer ::iorbst,imatrst,norbi,i,ispin
 
   !calculate the overlap matrix for each group of the semicore atoms
   !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
   !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
   iorbst=1
   imatrst=1
-  do i=1,natsc+1
-     norbi=norbsc_arr(i)
-     call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,hpsi(1,iorbst),nvctrp,&
-          0.d0,hamovr(imatrst,1),norbi)
-     call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,psi(1,iorbst),nvctrp,&
-          0.d0,hamovr(imatrst,2),norbi)
-     iorbst=iorbst+norbi
-     imatrst=imatrst+norbi**2
+  do ispin=1,nspin
+     do i=1,natsc+1
+        norbi=norbsc_arr(i)
+        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,hpsi(1,iorbst),nvctrp,&
+             0.d0,hamovr(imatrst,1),norbi)
+        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,psi(1,iorbst),nvctrp,&
+             0.d0,hamovr(imatrst,2),norbi)
+        iorbst=iorbst+norbi
+        imatrst=imatrst+norbi**2
+     end do
   end do
-
+  
 end subroutine overlap_matrices

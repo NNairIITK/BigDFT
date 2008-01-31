@@ -36,6 +36,7 @@ end program optim_rot
     implicit none
     integer, intent(in) :: nat,ntypes
     real(kind=8), intent(in) :: crmult,frmult
+    real(kind=8), intent(inout) :: hgrid
     character(len=20), dimension(ntypes), intent(in) :: atomnames
     integer(kind=8), dimension(nat), intent(in) :: iatype
     real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf

@@ -1,12 +1,4 @@
-
-!! Copyright (C) 2002-2007 BigDFT group 
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~/COPYING file
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the list of contributors, see ~/AUTHORS 
-
-
-!!****h* BigDFT/createKernel
+!!****f* BigDFT/createKernel
 !! NAME
 !!    createKernel
 !!
@@ -14,6 +6,13 @@
 !!    Allocate a pointer which corresponds to the zero-padded FFT slice needed for
 !!    calculating the convolution with the kernel expressed in the interpolating scaling
 !!    function basis. The kernel pointer is unallocated on input, allocated on output.
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2002-2007 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 !!
 !! SYNOPSIS
 !!    geocode  Indicates the boundary conditions (BC) of the problem:
@@ -196,9 +195,10 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
   call timing(iproc,'PSolvKernel   ','OF')
 
 end subroutine createKernel
+!!***
 
 
-!!****h* BigDFT/Surfaces_Kernel
+!!****f* BigDFT/Surfaces_Kernel
 !! NAME
 !!   Surfaces_Kernel
 !!
@@ -609,6 +609,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
 end subroutine Surfaces_Kernel
 !!***
 
+
 subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g_mu)
   implicit none
   real(kind=8), parameter :: mu_max=0.2d0
@@ -745,6 +746,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
 
 end subroutine calculates_green_opt
 
+
 subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
   implicit none
   integer, intent(in) :: n,n_scf,intorder
@@ -831,6 +833,7 @@ subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
 
 end subroutine calculates_green_opt_muzero
 
+
 subroutine indices(nimag,nelem,intrn,extrn,nindex)
 
   implicit none
@@ -852,7 +855,7 @@ subroutine indices(nimag,nelem,intrn,extrn,nindex)
 end subroutine indices
 
 
-!!****h* BigDFT/Free_Kernel
+!!****f* BigDFT/Free_Kernel
 !! NAME
 !!   Free_Kernel
 !!
@@ -1186,7 +1189,7 @@ subroutine inserthalf(n1,n3,lot,nfft,i1,zf,zw)
 end subroutine inserthalf
 
 
-!!****h* BigDFT/kernelfft
+!!****f* BigDFT/kernelfft
 !! NAME
 !!   kernelfft
 !!
@@ -1488,6 +1491,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   end if
 
 end subroutine kernelfft
+!!***
 
 
 subroutine realcopy(lot,nfft,n2,nk1,nk2,zin,zout)

@@ -50,6 +50,14 @@ module module_types
      integer, dimension(:,:,:), pointer :: nboxp_c,nboxp_f
   end type nonlocal_psp_descriptors
 
+  type, public :: atoms_data
+     integer :: nat,ntypes,natsc
+     character(len=20), dimension(:), pointer :: atomnames
+     logical, dimension(:), pointer :: lfrztyp
+     integer, dimension(:), pointer :: iatype,iasctype,nspinat,nelpsp,npspcode,nzatom
+     real(kind=8), dimension(:,:,:), pointer :: psppar
+  end type atoms_data
+
 contains
 
 

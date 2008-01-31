@@ -1,37 +1,31 @@
-subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
-     psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     wfd,bounds,nlpspd,proj,ngatherarr,n3p,&
-     potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)
-
+subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,at,hgrid,&
+     norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
+     ngatherarr,n3p,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)
   use module_types
-
   implicit none
   include 'mpif.h'
+  type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(convolutions_bounds), intent(in) :: bounds
-  logical, intent(in) :: parallel
   character(len=1), intent(in) :: datacode
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nat,ntypes,n3p
+  logical, intent(in) :: parallel
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,n3p
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin
   real(kind=8), intent(in) :: hgrid
-  integer, dimension(ntypes), intent(in) :: npspcode
-  integer, dimension(nat), intent(in) :: iatype
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(kind=8), dimension(norb), intent(in) :: occup,spinar
-  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
   real(kind=8), dimension(*), intent(in) :: potential
-  real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: hpsi
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
-
-
+  real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: hpsi
   !local variables
   integer :: i_all,i_stat,ierr,iorb
   real(kind=8) :: eproj
+  real(kind=8), dimension(3,2) :: wrkallred
   real(kind=8), dimension(:), allocatable :: pot
-  real(kind=8), dimension(:,:), allocatable :: wrkallred
+
 
   ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0) then
@@ -90,7 +84,7 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
   eproj_sum=0.d0
   ! loop over all my orbitals
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-     call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
+     call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
           nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,nlpspd%nvctr_p,&
           proj,  &
           wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,wfd%nvctr_c,wfd%nvctr_f,  & 
@@ -102,9 +96,6 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
   call timing(iproc,'ApplyProj     ','OF')
 
   if (parallel) then
-     allocate(wrkallred(3,2),stat=i_stat)
-     call memocc(i_stat,product(shape(wrkallred))*kind(wrkallred),'wrkallred','hamiltonianapplication')
-
      wrkallred(1,2)=ekin_sum 
      wrkallred(2,2)=epot_sum 
      wrkallred(3,2)=eproj_sum
@@ -113,10 +104,6 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
      ekin_sum=wrkallred(1,1)
      epot_sum=wrkallred(2,1)
      eproj_sum=wrkallred(3,1) 
-
-     i_all=-product(shape(wrkallred))*kind(wrkallred)
-     deallocate(wrkallred,stat=i_stat)
-     call memocc(i_stat,i_all,'wrkallred','hamiltonianapplication')
   endif
 
 end subroutine HamiltonianApplication

@@ -299,6 +299,8 @@ program PoissonSolver
   call MPI_FINALIZE(ierr)  
 
 end program PoissonSolver
+!!***
+
 
 subroutine regroup_data(geocode,n01,n02,n03,hx,hy,hz,max_diff,diff_parser)
   implicit none
@@ -688,8 +690,6 @@ subroutine functions(x,a,b,f,f2,whichone)
   end select
 
 end subroutine functions
-
-!!***
 
 !!$!fake ABINIT subroutines
 !!$subroutine wrtout(unit,message,mode_paral)
