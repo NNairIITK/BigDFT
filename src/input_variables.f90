@@ -386,10 +386,11 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spina
         !Check if the polarisation is respected (mpol)
         rup=sum(occup(1:norbu))
         rdown=sum(occup(norbu+1:norb))
-        if (abs(rup-rdown-real(mpol,kind=8))>1.d-6) then
+        if (abs(rup-rdown-real(norbu-norbd,kind=8))>1.d-6) then
            if (iproc==0) then
+              print *,'ciao'
               write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the polarization ',rup-rdown,&
-                             ' is not equal to ',mpol
+                             ' is not equal to ',norbu-norbd
            end if
            stop
         end if
@@ -442,7 +443,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   character(len=2) :: symbol
   character(len=27) :: filename
   character(len=50) :: format
-  integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp,ispinsum
+  integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp,ispinsum,mxpl
   real(kind=8) :: rcov,rprb,ehomo,radfine,tt,minrad
   real(kind=8), dimension(3,3) :: hij
   real(kind=8), dimension(2,2,3) :: offdiagarr
@@ -529,21 +530,24 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
        !here we must check of the input guess polarisation
        !first of all, control if the values are compatible with the atom configuration
        !do this for all atoms belonging to a given type
+       !control the maximum polarisation allowed: consider only non-closed shells
        do iat=1,at%nat
           if (at%iatype(iat) == ityp) then
+             mxpl=0
              do l=0,3
                 do i=1,6
                    if (neleconf(i,l) /= 0 .and. neleconf(i,l) /= 2*(2*l+1)) then
-                      if (at%nspinat(iat) > neleconf(i,l)) then
-                         if (iproc ==0) write(*,'(1x,a,i0,a,a,2(a,i0))')&
-                              'ERROR: Input polarisation of atom No.',iat,&
-                              ' (',trim(at%atomnames(ityp)),') must be <=',neleconf(i,l),&
-                              ', while found ',at%nspinat(iat)
-                         stop
-                      end if
+                      mxpl=mxpl+neleconf(i,l)
                    end if
                 end do
              end do
+             if (abs(at%nspinat(iat)) > mxpl) then
+                if (iproc ==0) write(*,'(1x,a,i0,a,a,2(a,i0))')&
+                     'ERROR: Input polarisation of atom No.',iat,&
+                     ' (',trim(at%atomnames(ityp)),') must be <=',mxpl,&
+                     ', while found ',at%nspinat(iat)
+                stop
+             end if
           end if
        end do
 
@@ -627,14 +631,18 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
         write(*,'(1x,a)')&
           'Atom Name    rloc      C1        C2        C3        C4  '
            do l=0,3
-              do i=4,0,-1
-                 j=i
-                 if (at%psppar(l,i,ityp) /= 0.d0) exit
-              end do
               if (l==0) then
+                 do i=4,0,-1
+                    j=i
+                    if (at%psppar(l,i,ityp) /= 0.d0) exit
+                 end do
                  write(*,'(3x,a6,5(1x,f9.5))')&
                       trim(at%atomnames(ityp)),(at%psppar(l,i,ityp),i=0,j)
               else
+                 do i=3,0,-1
+                    j=i
+                    if (at%psppar(l,i,ityp) /= 0.d0) exit
+                 end do
                  if (j /=0) then
                     write(*,'(1x,a,i0,a)')&
                          '    l=',l-1,' '//'     rl        h1j       h2j       h3j '
@@ -702,11 +710,15 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
     do iat=1,at%nat
        ispinsum=ispinsum+at%nspinat(iat)
     end do
-    if (ispinsum /= in%mpol) then
-       if (iproc==0) write(*,'(1x,a,i0,a,i0)')&
+    if (ispinsum /= norbu-norbd) then
+       if (iproc==0) then 
+          write(*,'(1x,a,i0,a)')&
             'ERROR: Total input polarisation (found ',ispinsum,&
-            ') must agree with mpol=',in%mpol
-       stop
+            ') must be equal to with norbu-norbd.'
+          write(*,'(1x,3(a,i0))')&
+               'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
+          stop
+       end if
     end if
 
     !now warn if there is no input guess spin polarisation

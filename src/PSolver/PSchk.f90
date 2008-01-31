@@ -89,8 +89,8 @@ program PSchk
   !order of the scaling functions choosed
   itype_scf=16
 
-  ixc=1
-  geocode='S'
+  ixc=11
+  geocode='F'
 
 
   !calculate the kernel in serial for each processor
