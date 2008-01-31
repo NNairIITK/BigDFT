@@ -1551,8 +1551,12 @@ end subroutine mpiswitch
 
 subroutine gequad(nterms,p,w,urange,drange,acc)
 ! 
-  implicit real(kind=8) (a-h,o-z)
-  real(kind=8) :: p(*),w(*)
+  implicit none
+
+!Arguments
+  integer, intent(in) :: nterms
+  real(kind=8), intent(out) :: urange,drange,acc
+  real(kind=8), intent(out) :: p(*),w(*)
 !
 !       range [10^(-9),1] and accuracy ~10^(-8);
 !

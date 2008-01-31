@@ -197,7 +197,6 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   hy=in%hgrid
   hz=in%hgrid
 
-
   !define the geometry code: hard coded to free BC for the moment
   geocode='F'
 

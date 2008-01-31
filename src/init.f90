@@ -1250,32 +1250,14 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
               preval(2)=evale(iorb+norbi)
            end if
            if (iproc == 0) then
-              if (iorb+iorbst-1 <= norbu .and. iorb+iorbst-1 <= norbd) then
-                 if (nwrtmsg==1) then
-                    write(*,'(1x,a,i4,a,1x,1pe21.14,a12,a,i4,a,1x,1pe21.14)') &
-                         'evale(',iorb+iorbst-1,',u)=',evale(iorb),message,&
-                         'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi)
-                 else
-                    write(*,'(1x,a,i4,a,1x,1pe21.14,12x,a,i4,a,1x,1pe21.14)') &
-                         'evale(',iorb+iorbst-1,',u)=',evale(iorb),&
-                         'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi)
-                 end if
-              else if (iorb+iorbst-1 <= norbu) then
-                 if (nwrtmsg==1) then
-                    write(*,'(1x,a,i4,a,1x,1pe21.14,a12)')&
-                         'evale(',iorb+iorbst-1,',u)=',evale(iorb),message
-                 else
-                    write(*,'(1x,a,i4,a,1x,1pe21.14)')&
-                         'evale(',iorb+iorbst-1,',u)=',evale(iorb)  
-                 end if
-              else if (iorb+iorbst-1 <= norbd) then
-                 if (nwrtmsg==1) then
-                    write(*,'(47x,a,i0,a,1x,1pe21.14,a12)')&
-                         'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi),message
-                 else
-                    write(*,'(47x,a,i0,a,1x,1pe21.14)')&
-                         'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi)
-                 end if
+              if (nwrtmsg==1) then
+                 write(*,'(1x,a,i4,a,1x,1pe21.14,a12,a,i4,a,1x,1pe21.14)') &
+                      'evale(',iorb+iorbst-1,',u)=',evale(iorb),message,&
+                      'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi)
+              else
+                 write(*,'(1x,a,i4,a,1x,1pe21.14,12x,a,i4,a,1x,1pe21.14)') &
+                      'evale(',iorb+iorbst-1,',u)=',evale(iorb),&
+                      'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi)
               end if
            end if
         end if
