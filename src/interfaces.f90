@@ -42,6 +42,8 @@
 !!
 module module_interfaces
 
+implicit none
+
 interface
 
    subroutine call_cluster(parallel,nproc,iproc,nat,ntypes,iatype,atomnames,rxyz,energy,fxyz,&
