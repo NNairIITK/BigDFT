@@ -383,17 +383,16 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spina
         stop
      end if
      if (nspin/=1) then
-        !Check if the polarisation is respected (mpol)
-        rup=sum(occup(1:norbu))
-        rdown=sum(occup(norbu+1:norb))
-        if (abs(rup-rdown-real(norbu-norbd,kind=8))>1.d-6) then
-           if (iproc==0) then
-              print *,'ciao'
-              write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the polarization ',rup-rdown,&
-                             ' is not equal to ',norbu-norbd
-           end if
-           stop
-        end if
+!!$        !Check if the polarisation is respected (mpol)
+!!$        rup=sum(occup(1:norbu))
+!!$        rdown=sum(occup(norbu+1:norb))
+!!$        if (abs(rup-rdown-real(norbu-norbd,kind=8))>1.d-6) then
+!!$           if (iproc==0) then
+!!$              write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the polarization ',rup-rdown,&
+!!$                             ' is not equal to ',norbu-norbd
+!!$           end if
+!!$           stop
+!!$        end if
         !Fill spinar
         do iorb=1,norbu
            spinar(iorb)=1.0d0
@@ -703,34 +702,34 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
        norb=nelec
        norbu=min(norb/2+in%mpol,norb)
        norbd=norb-norbu
-    end if
+       !test if the spin is compatible with the input guess polarisations
+       ispinsum=0
+       do iat=1,at%nat
+          ispinsum=ispinsum+at%nspinat(iat)
+       end do
+       if (ispinsum /= norbu-norbd) then
+          if (iproc==0) then 
+             write(*,'(1x,a,i0,a)')&
+                  'ERROR: Total input polarisation (found ',ispinsum,&
+                  ') must be equal to with norbu-norbd.'
+             write(*,'(1x,3(a,i0))')&
+                  'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
+             stop
+          end if
+       end if
 
-    !test if the spin is compatible with the input guess polarisations
-    ispinsum=0
-    do iat=1,at%nat
-       ispinsum=ispinsum+at%nspinat(iat)
-    end do
-    if (ispinsum /= norbu-norbd) then
-       if (iproc==0) then 
-          write(*,'(1x,a,i0,a)')&
-            'ERROR: Total input polarisation (found ',ispinsum,&
-            ') must be equal to with norbu-norbd.'
-          write(*,'(1x,3(a,i0))')&
-               'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
-          stop
+       !now warn if there is no input guess spin polarisation
+       ispinsum=0
+       do iat=1,at%nat
+          ispinsum=ispinsum+abs(at%nspinat(iat))
+       end do
+       if (ispinsum == 0 .and. in%nspin==2) then
+          if (iproc==0) write(*,'(1x,a)')&
+               'WARNING: Found no input polarisation, add it for a correct input guess'
+          !stop
        end if
     end if
 
-    !now warn if there is no input guess spin polarisation
-    ispinsum=0
-    do iat=1,at%nat
-       ispinsum=ispinsum+abs(at%nspinat(iat))
-    end do
-    if (ispinsum == 0 .and. in%nspin==2) then
-       if (iproc==0) write(*,'(1x,a)')&
-            'WARNING: Found no input polarisation, add it for a correct input guess'
-       !stop
-    end if
     
     
 
