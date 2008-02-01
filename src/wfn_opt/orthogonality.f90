@@ -1,35 +1,39 @@
 subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum)
   !Effect of orthogonality constraints on gradient 
-  implicit real(kind=8) (a-h,o-z)
-  logical, parameter :: parallel=.true.
-  dimension psit(nvctrp,norb),hpsit(nvctrp,norb),occup(norb)
-  allocatable :: alag(:,:,:)
+  implicit none
+  integer, intent(in) :: iproc,nproc,norb,nvctrp
+  real(kind=8), dimension(norb), intent(in) :: occup
+  real(kind=8), dimension(nvctrp,norb), intent(in) :: psit
+  real(kind=8), intent(out) :: scprsum
+  real(kind=8), dimension(nvctrp,norb), intent(out) :: hpsit
+  !local variables
   include 'mpif.h'
-
+  integer :: i_stat,i_all,istart,iorb,ierr
+  real(kind=8), dimension(:,:,:), allocatable :: alag
   call timing(iproc,'LagrM_comput  ','ON')
-
-  allocate(alag(norb,norb,2),stat=i_stat)
+  istart=2
+  if (nproc == 1) istart=1
+  allocate(alag(norb,norb,istart),stat=i_stat)
   call memocc(i_stat,product(shape(alag))*kind(alag),'alag','orthoconstraint_p')
-  !     alag(jorb,iorb,2)=+psit(k,jorb)*hpsit(k,iorb)
-  call DGEMM('T','N',norb,norb,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,alag(1,1,2),norb)
-
-  call timing(iproc,'LagrM_comput  ','OF')
-  call timing(iproc,'LagrM_commun  ','ON')
-  call MPI_ALLREDUCE(alag(1,1,2),alag(1,1,1),norb**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-  call timing(iproc,'LagrM_commun  ','OF')
-  call timing(iproc,'LagrM_comput  ','ON')
+  !     alag(jorb,iorb,istart)=+psit(k,jorb)*hpsit(k,iorb)
+  call DGEMM('T','N',norb,norb,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,alag(1,1,istart),norb)
+  if (nproc > 1) then
+     call timing(iproc,'LagrM_comput  ','OF')
+     call timing(iproc,'LagrM_commun  ','ON')
+     call MPI_ALLREDUCE(alag(1,1,2),alag(1,1,1),norb**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'LagrM_commun  ','OF')
+     call timing(iproc,'LagrM_comput  ','ON')
+  end if
   !        if (iproc.eq.0) then
   !        write(*,*) 'ALAG',iproc
   !        do iorb=1,norb
   !        write(*,'(10(1x,1pe10.3))') (alag(iorb,jorb,1),jorb=1,norb)
   !        enddo
   !        endif
-
   scprsum=0.d0
   do iorb=1,norb
      scprsum=scprsum+occup(iorb)*alag(iorb,iorb,1)
   enddo
-
   ! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
   call DGEMM('N','N',nvctrp,norb,norb,-1.d0,psit,nvctrp,alag,norb,1.d0,hpsit,nvctrp)
   i_all=-product(shape(alag))*kind(alag)
@@ -77,11 +81,11 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit)
   ! Gram-Schmidt orthogonalisation
   implicit none
   integer, intent(in) :: iproc,nproc,norb,nvctrp,nvctr_tot
-  real(kind=8), dimension(nvctrp,norb) :: psit
+  real(kind=8), dimension(nvctrp,norb), intent(inout) :: psit
   !local variables
-  integer :: info,i_all,i_stat,nvctr_eff,ierr
+  integer :: info,i_all,i_stat,nvctr_eff,ierr,istart
   real(kind=8) :: tt,ttLOC,dnrm2
-  real(kind=8), dimension(:,:,:), allocatable :: ovrlp(:,:,:)
+  real(kind=8), dimension(:,:,:), allocatable :: ovrlp
   include 'mpif.h'
 
   call timing(iproc,'GramS_comput  ','ON')
@@ -99,27 +103,36 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit)
         ttLOC=0.d0
      end if
      
-     call MPI_ALLREDUCE(ttLOC,tt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+     if (nproc > 1) then
+        call MPI_ALLREDUCE(ttLOC,tt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+     else
+        tt=ttLOC
+     end if
 
      tt=1.d0/sqrt(tt)
      call dscal(nvctr_eff,tt,psit,1)
 
-     !stop 'more than one orbital needed for a parallel run'
 
   else
 
-     allocate(ovrlp(norb,norb,2),stat=i_stat)
+     istart=2
+     if (nproc == 1) istart=1
+
+     allocate(ovrlp(norb,norb,istart),stat=i_stat)
      call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','orthon_p')
 
      ! Upper triangle of overlap matrix using BLAS
      !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; upper triangle
-     call DSYRK('L','T',norb,nvctrp,1.d0,psit,nvctrp,0.d0,ovrlp(1,1,2),norb)
+     call DSYRK('L','T',norb,nvctrp,1.d0,psit,nvctrp,0.d0,ovrlp(1,1,istart),norb)
 
-     call timing(iproc,'GramS_comput  ','OF')
-     call timing(iproc,'GramS_commun  ','ON')
-     call MPI_ALLREDUCE (ovrlp(1,1,2),ovrlp(1,1,1),norb**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'GramS_commun  ','OF')
-     call timing(iproc,'GramS_comput  ','ON')
+     if (nproc > 1) then
+        call timing(iproc,'GramS_comput  ','OF')
+        call timing(iproc,'GramS_commun  ','ON')
+        call MPI_ALLREDUCE (ovrlp(1,1,2),ovrlp(1,1,1),norb**2,&
+             MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call timing(iproc,'GramS_commun  ','OF')
+        call timing(iproc,'GramS_comput  ','ON')
+     end if
 
      !  write(*,*) 'parallel ovrlp'
      !  do i=1,norb
@@ -128,15 +141,15 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit)
 
 
      ! Cholesky factorization
-     call dpotrf( 'L', norb, ovrlp, norb, info )
-     if (info.ne.0) write(6,*) 'info Cholesky factorization', info
+     call dpotrf( 'L',norb,ovrlp,norb,info )
+     if (info.ne.0) write(6,*) 'info Cholesky factorization',info
 
      ! calculate L^{-1}
-     call DTRTRI( 'L', 'N', norb, ovrlp, norb, info )
-     if (info.ne.0) write(6,*) 'info L^-1', info
+     call DTRTRI( 'L','N',norb,ovrlp,norb,info )
+     if (info.ne.0) write(6,*) 'info L^-1',info
 
      ! new vectors   
-     call DTRMM ('R', 'L', 'T', 'N', nvctrp, norb, 1.d0, ovrlp, norb, psit, nvctrp)
+     call DTRMM ('R','L','T','N',nvctrp,norb,1.d0,ovrlp,norb,psit,nvctrp)
 
      i_all=-product(shape(ovrlp))*kind(ovrlp)
      deallocate(ovrlp,stat=i_stat)
