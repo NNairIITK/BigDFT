@@ -271,22 +271,21 @@ interface
      integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
      real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
    end subroutine first_orthon
-   
-   subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-        wfd,psi,rho,nrho,nscatterarr,nspin,spinar,&
-        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
+
+   subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
+        wfd,psi,rho,nrho,nscatterarr,nspin,spinar,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
      use module_types
      implicit none
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(convolutions_bounds), intent(in) :: bounds
-     logical, intent(in) ::  parallel
+     character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,norb,norbp,nrho,nspin
      integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-     real(kind=8), intent(in) :: hgrid
+     real(kind=8), intent(in) :: hxh,hyh,hzh
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
      real(kind=8), dimension(norb), intent(in) :: occup,spinar
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
-     real(kind=8), dimension(max(nrho,1),nspin), intent(out) :: rho
+     real(kind=8), dimension(max(nrho,1),nspin), intent(out), target :: rho
    end subroutine sumrho
 
    subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,at,hgrid,&

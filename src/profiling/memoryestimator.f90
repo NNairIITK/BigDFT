@@ -105,11 +105,11 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   end if
 
   !density memory
-  omemden=real(md1*md3*md2/nproc*8*nspin,kind=8)
+  omemden=real(md3*md2/nproc,kind=8)*8.d0*real(md1*nspin,kind=8)
   !kernel memory
-  omemker=real(nd1*nd2*nd3/nproc*8,kind=8)
+  omemker=real(nd2*nd3/nproc,kind=8)*8.d0*real(nd1,kind=8)
   !memory of full grid arrays
-  omempot=real(n01*n02*n03*8*nspin,kind=8)
+  omempot=real(n02*n03,kind=8)*8.d0*real(n01*nspin,kind=8)
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ Memory Estimation'

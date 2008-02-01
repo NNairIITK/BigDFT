@@ -33,6 +33,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
   ! Ionic charge (must be calculated for the PS active processes)
   rholeaked=0.d0
   ! Ionic energy (can be calculated for all the processors)
+
+  !here we should insert the calculation of the ewald energy for the periodic BC case
   eion=0.d0
   do iat=1,nat
      ityp=iatype(iat)
