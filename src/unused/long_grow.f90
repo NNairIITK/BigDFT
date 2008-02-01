@@ -15,7 +15,7 @@ subroutine  comb_rot_grow_loc_plus(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ic
   dimension  y(          -14       :2*n1  +16,-14       :2*n2  +16,-14:2*n3+16)
   integer ib(2,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
 
-  include 'v.f90'
+  include 'v.inc'
 
   do l1=-14+2*nfl1,2*nfu1+16
      do l2=-14+2*nfl2,2*nfu2+16
@@ -78,7 +78,7 @@ subroutine comb_rot_grow_loc(nfl,nfu,ndat,x,y,icf,ib)
   dimension x(nfl:nfu,ndat),y(ndat,-14+2*nfl:2*nfu+16)
   integer ib(2,ndat)
   
-  include 'v_long.f90'
+  include 'v_long.inc'
   
   y=0.d0
   !open(unit=10,file='long.flop')

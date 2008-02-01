@@ -273,7 +273,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
 !!$              end if
               polarised=.true.
               !assuming that the control of the allowed polarisation is already done
-              ipolorb=min(ipolres,occupat(ictot,ity))
+              ipolorb=min(ipolres,int(occupat(ictot,ity)))
               ipolres=ipolres-ipolorb
               !this check can be inserted also elsewhere
               if (ipolres < 0) then

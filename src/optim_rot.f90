@@ -1,4 +1,4 @@
-
+program optim_rot
   implicit real*8 (a-h,o-z)
   character*20 atomnames
   parameter(rad=4.d0) ! this rad is only for visualization
@@ -12,6 +12,7 @@
      read(1,*) rxyz(:,iat),atomnames(iat)
   enddo
   close(1)
+end program optim_rot
 
   !! translate molecule such that the origin of the coordinate system is in its center
   !         xmin=1.d100 ; xmax=-1.d100
@@ -35,6 +36,7 @@
     implicit none
     integer, intent(in) :: nat,ntypes
     real(kind=8), intent(in) :: crmult,frmult
+    real(kind=8), intent(inout) :: hgrid
     character(len=20), dimension(ntypes), intent(in) :: atomnames
     integer(kind=8), dimension(nat), intent(in) :: iatype
     real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
