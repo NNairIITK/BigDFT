@@ -534,14 +534,9 @@ subroutine import_gaussians(parallel,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
 
   hgridh=.5d0*hgrid
 
-  if (parallel) then
-     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','import_gaussians')
-  else
-     allocate(psi(nvctrp,norb),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','import_gaussians')
-  end if
+  !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+  allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
+  call memocc(i_stat,product(shape(psi))*kind(psi),'psi','import_gaussians')
 
   !read the values for the gaussian code and insert them on psi 
   call gautowav(iproc,nproc,at%nat,at%ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
@@ -571,19 +566,14 @@ subroutine import_gaussians(parallel,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
   call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,1)
 
-  if (parallel) then
-     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','import_gaussians')
-  else
-     allocate(hpsi(nvctrp,norbp),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','import_gaussians')
-  end if
+  !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+  allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
+  call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','import_gaussians')
 
-
-  call HamiltonianApplication(parallel,datacode,iproc,nproc,at,hgrid,&
+  call HamiltonianApplication('F',iproc,nproc,at,hgrid,&
        norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
-       ngatherarr,nscatterarr(iproc,2),rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
+       ngatherarr,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,2),&
+       rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,ones)
 
   i_all=-product(shape(ones))*kind(ones)
@@ -805,7 +795,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: parallel
   integer, parameter :: ngx=31
-  integer :: i,iorb,iorbsc,imatrsc,iorbst,imatrst,i_stat,i_all,ierr,info,jproc,jpst,norbeyou
+  integer :: i,iorb,iorbsc,imatrsc,iorbst,imatrst,i_stat,i_all,ierr,info,jproc,jpst,norbeyou,n1i,n2i,n3i
   integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbi_max,norbsc
   integer :: ispin,norbu,norbd,iorbst2,ist
   real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol
@@ -823,6 +813,23 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      if(spinar(iorb)>0.0d0) norbu=norbu+1
      if(spinar(iorb)<0.0d0) norbd=norbd+1
   end do
+
+  !calculate dimension of the interpolating scaling function grid
+  select case(geocode)
+     case('F')
+        n1i=2*n1+31
+        n2i=2*n2+31
+        n3i=2*n3+31
+     case('S')
+        n1i=2*n1+2
+        n2i=2*n2+31
+        n3i=2*n3+2
+     case('P')
+        n1i=2*n1+2
+        n2i=2*n2+2
+        n3i=2*n3+2
+  end select
+
 
   allocate(xp(ngx,at%ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(xp))*kind(xp),'xp','input_wf_diag')
@@ -931,19 +938,19 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   end do
 
   call sumrho(geocode,iproc,nproc,nspin*norbe,norbep,n1,n2,n3,hxh,hyh,hzh,occupe,  & 
-       wfd,psi,rhopot,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,nspin,spinare, &
+       wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,nspin,spinare, &
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
-  call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hxh,hyh,hzh,&
+  call PSolver('F',datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(nvctrp,norbep*nproc),stat=i_stat)
   call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
   
-  call HamiltonianApplication(parallel,datacode,iproc,nproc,at,hx,&
+  call HamiltonianApplication(geocode,iproc,nproc,at,hx,&
        nspin*norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
-       ngatherarr,nscatterarr(iproc,2),rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
+       ngatherarr,n1i*n2i*nscatterarr(iproc,2),rhopot(1+n1i*n2i*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinare)
 
   i_all=-product(shape(spinare))*kind(spinare)
