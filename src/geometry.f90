@@ -623,7 +623,7 @@ subroutine wtposout(igeostep,energy,rxyz,atoms)
 
   write(fn,'(i3.3)') igeostep
   !filename = 'posout_'//fn//'.ascii'
-filename = 'posout_'//fn//'.xyz'
+  filename = 'posout_'//fn//'.xyz'
   open(unit=9,file=filename)
   xmax=0.d0 ; ymax=0.d0 ; zmax=0.d0
   do iat=1,atoms%nat
@@ -646,9 +646,14 @@ filename = 'posout_'//fn//'.xyz'
      end if
      !write(9,'(3(1x,e21.14),2x,a10)') (rxyz(j,iat),j=1,3),atomnames(iatype(iat))
      !write(9,'(a2,4x,3(1x,1pe21.14),2x,a3)')symbol,(rxyz(j,iat),j=1,3),suffix
-     !takes into account the blocked atoms
-     if (atoms%lfrztyp(iat)) then
+     !takes into account the blocked atoms and the input polarisation
+     if (atoms%lfrztyp(iat) .and. atoms%nspinat(iat) == 0) then
         write(9,'(a2,4x,3(1x,1pe21.14),2x,a4)')symbol,(rxyz(j,iat),j=1,3),'   f'
+     else if (atoms%lfrztyp(iat) .and. atoms%nspinat(iat) /= 0) then
+        write(9,'(a2,4x,3(1x,1pe21.14),i7,2x,a4)')symbol,(rxyz(j,iat),j=1,3),&
+             atoms%nspinat(iat),'   f'
+     else if (atoms%nspinat(iat) /= 0) then
+        write(9,'(a2,4x,3(1x,1pe21.14),i7)')symbol,(rxyz(j,iat),j=1,3),atoms%nspinat(iat)
      else
         write(9,'(a2,4x,3(1x,1pe21.14),2x,a4)')symbol,(rxyz(j,iat),j=1,3)
      end if

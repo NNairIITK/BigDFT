@@ -26,7 +26,6 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,at,hgrid,&
   real(kind=8), dimension(3,2) :: wrkallred
   real(kind=8), dimension(:), allocatable :: pot
 
-
   ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0) then
      write(*,'(1x,a)',advance='no')&
@@ -86,8 +85,7 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,at,hgrid,&
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
      call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
           nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,nlpspd%nvctr_p,&
-          proj,  &
-          wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,wfd%nvctr_c,wfd%nvctr_f,  & 
+          proj,wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,wfd%nvctr_c,wfd%nvctr_f,  & 
           psi(1,iorb-iproc*norbp),hpsi(1,iorb-iproc*norbp),eproj)
      eproj_sum=eproj_sum+occup(iorb)*eproj
      !     write(*,*) 'iorb,eproj',iorb,eproj
@@ -170,7 +168,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         scprpart=0.0d0
         if(norbd>0) then
            scprpart=scprsum 
-           call  orthoconstraint_p(iproc,nproc,norbd,occup,nvctrp,psit(1,norbu+1),hpsi(1,norbu+1),scprsum)
+           call  orthoconstraint_p(iproc,nproc,norbd,occup(norbu+1),nvctrp,psit(1,norbu+1),hpsi(1,norbu+1),scprsum)
         end if
         scprsum=scprsum+scprpart
      end if
@@ -194,7 +192,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         scprpart=0.0d0
         if(norbd>0) then
            scprpart=scprsum 
-           call orthoconstraint(norbd,occup,nvctrp,psi(1,norbu+1),hpsi(1,norbu+1),scprsum)
+           call orthoconstraint(norbd,occup(norbu+1),nvctrp,psi(1,norbu+1),hpsi(1,norbu+1),scprsum)
         end if
         scprsum=scprsum+scprpart
      end if
@@ -476,7 +474,7 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
         call KStrans_p(iproc,nproc,norbu,norbu,nvctrp,occup,hpsi,psit,evsum,eval)
         evpart=evsum
         if(norbd>0) then
-           call KStrans_p(iproc,nproc,norbd,norbd,nvctrp,occup,&
+           call KStrans_p(iproc,nproc,norbd,norbd,nvctrp,occup(norbu+1),&
                 hpsi(1,norbu+1),psit(1,norbu+1),evsum,eval(norbu+1))
            evsum=evsum+evpart
         end if
@@ -504,7 +502,7 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
         call KStrans(norbu,nvctrp,occup,hpsi,psi,evsum,eval)
         evpart=evsum
         if(norbd>0) then
-           call KStrans(norbd,nvctrp,occup,hpsi(1,norbu+1),psi(1,norbu+1),&
+           call KStrans(norbd,nvctrp,occup(norbu+1),hpsi(1,norbu+1),psi(1,norbu+1),&
                 evsum,eval(norbu+1))
            evsum=evsum+evpart
         end if

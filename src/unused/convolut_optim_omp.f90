@@ -677,7 +677,7 @@ subroutine ana_rot_shrink(n,nt,x,y)
   dimension x(-m+1:2*n+m,nt),y(nt,0:2*n+1)
   
         
-    !******** coefficints for wavelet transform *********************
+    !******** coefficients for wavelet transform *********************
     ! h coefficients
     real(kind=8) ch(-mm:mm)
     DATA ch / &

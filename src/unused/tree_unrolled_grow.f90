@@ -12,7 +12,7 @@ subroutine  comb_rot_grow_loc_1(nfl,nfu,ndat,x,y,ib)
   dimension x(7,nfl:nfu,ndat),y(2,2,ndat,-14+2*nfl:2*nfu+16)
   integer ib(2,ndat)
 
-  include 'v.f90'
+  include 'v.inc'
 
   y=0.d0
   !open(unit=20,file='tree_unrolled.flop')
@@ -135,7 +135,7 @@ subroutine  comb_rot_grow_loc_2(nfl,nfu,ndat,x,y,ib)
   dimension x(2,2,nfl:nfu,ndat),y(2,ndat,-14+2*nfl:2*nfu+16)
   integer ib(2,ndat)
 
-  include 'v.f90'
+  include 'v.inc'
 
   y=0.d0
   !open(unit=20,file='tree_unrolled.flop')
@@ -233,7 +233,7 @@ subroutine comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
     dimension  y(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
     integer ib(2,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16)
 
-    include 'v_long.f90'
+    include 'v_long.inc'
 
     !open(unit=20,file='tree_unrolled.flop')
 

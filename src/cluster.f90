@@ -146,7 +146,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(wavefunctions_descriptors) :: wfd_old
   type(convolutions_bounds) :: bounds
   type(nonlocal_psp_descriptors) :: nlpspd
-  integer, dimension(:,:), allocatable :: neleconf,nscatterarr,ngatherarr
+  integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: occup,spinar,spinar_foo,derproj,rho
   real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz
   ! Charge density/potential,ionic potential, pkernel
@@ -163,10 +163,6 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(:), pointer :: proj
   ! arrays for DIIS convergence accelerator
   real(kind=8), dimension(:,:,:), pointer :: ads,psidst,hpsidst
-
-  atoms%nspinat=0
-!!$  atoms%nspinat(1)=1
-!!$  atoms%nspinat(2)=-1
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -200,10 +196,6 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   hx=in%hgrid
   hy=in%hgrid
   hz=in%hgrid
-
-  hxh=0.5d0*hx
-  hyh=0.5d0*hy
-  hzh=0.5d0*hz
 
   !define the geometry code: hard coded to free BC for the moment
   geocode='F'
@@ -250,8 +242,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   call memocc(i_stat,product(shape(radii_cf))*kind(radii_cf),'radii_cf','cluster')
 
 
-  call read_system_variables(iproc,nproc,nspin,ncharge,mpol,ixc,hgrid,atoms,&
-       radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
+  call read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
 
   allocate(occup(norb),stat=i_stat)
   call memocc(i_stat,product(shape(occup))*kind(occup),'occup','cluster')
@@ -265,6 +256,10 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! then calculate the size in units of the grid space
   call system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
        alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
+
+  hxh=0.5d0*hx
+  hyh=0.5d0*hy
+  hzh=0.5d0*hz
 
   !memory estimation
   if (iproc==0) then
@@ -492,8 +487,8 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      if (gnrm.le.gnrm_cv .or. iter.eq.itermax) call timing(iproc,'WFN_OPT','PR')
 
      ! Potential from electronic charge density
-     call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-          wfd,psi,rhopot,(2*n1+31)*(2*n2+31)*n3d,nscatterarr,nspin,spinar,&
+     call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
+          wfd,psi,rhopot,n1i*n2i*n3d,nscatterarr,nspin,spinar,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
      !     ixc=11  ! PBE functional
@@ -656,8 +651,8 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
 
   !use pot_ion array for building total rho
-  call sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-       wfd,psi,rho,(2*n1+31)*(2*n2+31)*n3p,nscatterarr,1,spinar_foo,&
+  call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
+       wfd,psi,rho,n1i*n2i*n3p,nscatterarr,1,spinar_foo,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
   i_all=-product(shape(spinar_foo))*kind(spinar_foo)

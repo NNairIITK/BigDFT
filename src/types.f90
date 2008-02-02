@@ -1,5 +1,7 @@
 module module_types
 
+  implicit none
+
   !-Input variable structure
   !structure of the variables read by input.dat file
   type, public :: input_variables

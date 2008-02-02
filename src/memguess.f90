@@ -17,7 +17,6 @@
 program memguess
 
   use module_types
-  !use libBigDFT
 
   implicit none
   integer, parameter :: ngx=31
@@ -116,8 +115,7 @@ program memguess
   allocate(radii_cf(atoms%ntypes,2),stat=i_stat)
   call memocc(i_stat,product(shape(radii_cf))*kind(radii_cf),'radii_cf','memguess')
  
-  call read_system_variables(0,nproc,in%nspin,in%ncharge,in%mpol,in%ixc,in%hgrid,atoms,&
-       radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
+  call read_system_variables(0,nproc,in,atoms,radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
 
 ! Allocations for the occupation numbers
   allocate(occup(norb),stat=i_stat)
@@ -155,9 +153,9 @@ program memguess
      call memocc(i_stat,product(shape(norbsc_arr))*kind(norbsc_arr),'norbsc_arr','memguess')
 
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
-     call readAtomicOrbitals(0,ngx,xp,psiat,occupat,ng,nl,atoms%nzatom,atoms%nelpsp,atoms%psppar,&
-          atoms%npspcode,norbe,norbsc,atoms%atomnames,atoms%ntypes,atoms%iatype,atoms%iasctype,atoms%nat,atoms%natsc,&
-          in%nspin,scorb,norbsc_arr)
+     call readAtomicOrbitals(0,ngx,xp,psiat,occupat,ng,nl,atoms%nzatom,atoms%nelpsp,&
+          atoms%psppar,atoms%npspcode,norbe,norbsc,atoms%atomnames,atoms%ntypes,&
+          atoms%iatype,atoms%iasctype,atoms%nat,atoms%natsc,in%nspin,scorb,norbsc_arr)
 
      ! De-allocations
      i_all=-product(shape(xp))*kind(xp)
@@ -209,7 +207,10 @@ program memguess
 
   i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
   deallocate(atoms%lfrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'lfrztyp','BigDFT')
+  call memocc(i_stat,i_all,'lfrztyp','memguess')
+  i_all=-product(shape(atoms%nspinat))*kind(atoms%nspinat)
+  deallocate(atoms%nspinat,stat=i_stat)
+  call memocc(i_stat,i_all,'nspinat','memguess')
   i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
   deallocate(atoms%psppar,stat=i_stat)
   call memocc(i_stat,i_all,'psppar','memguess')

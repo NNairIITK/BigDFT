@@ -16,5 +16,7 @@ EXTRA_DIST = \
 	psppar.C_lda \
 	psppar.Li_lda \
 	psppar.O_lda \
+	psppar.H \
+	psppar.C \
 	psppar.Test_lda \
 	psppar.Test
