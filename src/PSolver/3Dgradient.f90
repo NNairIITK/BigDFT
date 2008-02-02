@@ -1,11 +1,3 @@
-
-!! Copyright (C) 2002-2007 BigDFT group 
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~/COPYING file
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the list of contributors, see ~/AUTHORS 
-
-
 !!****f* BigDFT/wb_correction
 !! NAME
 !! wb_correction
@@ -16,6 +8,13 @@
 !! It is based on a finite difference calculation of the gradient, corrected at the border
 !! (see the calc_gradient routine)
 !! Works either in parallel or in serial, by proper adjustation of the arguments
+!!
+!! COPYRIGHT
+!! Copyright (C) 2002-2007 BigDFT group 
+!! This file is distributed under the terms of the
+!! GNU General Public License, see ~/COPYING file
+!! or http://www.gnu.org/copyleft/gpl.txt .
+!! For the list of contributors, see ~/AUTHORS 
 !!
 !! INPUTS and OUTPUT
 !! f_i(n1,n2,n3,3,ispden) Three functions (depending on the fourth index) indicating the 
@@ -305,7 +304,7 @@ subroutine wb_correction(n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
  end do
 
 end subroutine wb_correction
-
+!!***
 
 
 !!****f* BigDFT/calc_gradient
@@ -571,3 +570,4 @@ subroutine calc_gradient(n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,h
   call memocc(i_stat,i_all,'density','calc_gradient')
 
 end subroutine calc_gradient
+!!***

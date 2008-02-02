@@ -114,11 +114,13 @@ END SUBROUTINE comb_shrink_loc_c
 ! subroutine for scfunctions:
 !include 'simple_shrink.f90'
 !include 'unrolled_shrink.f90'
-include 'long_shrink.f90'
+!Better to link it
+!include 'long_shrink.f90'
 
 !subroutine for wavelets:
-include 'tree_long_shrink.f90'
 !include 'tree.f90'
+!Better to link it
+!include 'tree_long_shrink.f90'
 
 
 

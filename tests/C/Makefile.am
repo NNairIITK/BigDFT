@@ -8,7 +8,7 @@ EXTRA_DIST = \
 	posinp
 
 PPFILES = \
-	psppar.C_lda 
+	psppar.C
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* C.out posout* *.out *.prc\
 			 fldiff.report

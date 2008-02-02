@@ -1,5 +1,7 @@
 module module_types
 
+  implicit none
+
   !-Input variable structure
   !structure of the variables read by input.dat file
   type, public :: input_variables
@@ -47,6 +49,14 @@ module module_types
      ! Parameters for the boxes containing the projectors
      integer, dimension(:,:,:), pointer :: nboxp_c,nboxp_f
   end type nonlocal_psp_descriptors
+
+  type, public :: atoms_data
+     integer :: nat,ntypes,natsc
+     character(len=20), dimension(:), pointer :: atomnames
+     logical, dimension(:), pointer :: lfrztyp
+     integer, dimension(:), pointer :: iatype,iasctype,nspinat,nelpsp,npspcode,nzatom
+     real(kind=8), dimension(:,:,:), pointer :: psppar
+  end type atoms_data
 
 contains
 

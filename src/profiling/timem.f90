@@ -9,7 +9,7 @@ subroutine timing(iproc,category,action)
   !Local variables
   logical :: parallel,init
   integer, parameter :: ncat=22   ! define timimg categories
-  integer :: i,ierr,ii,i_all,i_stat,nproc!,nskip
+  integer :: i,ierr,ii,i_all,i_stat,nproc,ncaton!,nskip
   integer :: istart,iend,count_rate,count_max,ielapsed,ncounters,itime,ittime
   !cputime routine gives a real
   !real :: total,total0,time,time0
@@ -18,7 +18,7 @@ subroutine timing(iproc,category,action)
   integer, dimension(ncat+1) :: itsum
   real(kind=8), dimension(ncat+1) :: timesum
   real(kind=8), dimension(ncat) :: pctimes !total times of the partial counters
-  save :: init,itsum,istart,timesum,ittime,parallel,pcnames,pctimes,ncounters!,nskip
+  save :: init,itsum,istart,timesum,ittime,parallel,pcnames,pctimes,ncounters,ncaton!,nskip
 
   character(len=14), dimension(ncat), parameter :: cats = (/ &
        'ReformatWaves '    ,  &  !  Reformatting of input waves
@@ -154,15 +154,15 @@ subroutine timing(iproc,category,action)
 
      if (action.eq.'ON') then  ! ON
         if (init.neqv..false.) then
-           print *, cats(ii),': TIMING INITIALIZED BEFORE READ'
-           stop 
-!!$           !some other category was initalized before, taking that one
-!!$
-!!$           return
+!!$           print *, cats(ii),': TIMING INITIALIZED BEFORE READ'
+!!$           stop 
+           !some other category was initalized before, taking that one
+           return
         endif
         istart=itime
         init=.true.
-     else if (action.eq.'OF') then  ! OFF
+        ncaton=ii
+     else if (action.eq.'OF' .and. ii==ncaton) then  ! OFF
         if (init.neqv..true.) then
            print *, cats(ii), 'not initialized'
            stop 
@@ -328,10 +328,12 @@ subroutine memocc(istat,isize,array,routine)
         !control of the allocation/deallocation status
         if (istat/=0) then
            if (isize>=0) then
-              write(*,*)' subroutine ',routine,': problem of allocation of array ',array
+              write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
+                   'error code=',istat,' exiting...'
               stop
            else if (isize<0) then
-              write(*,*)' subroutine ',routine,': problem of deallocation of array ',array
+              write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
+                   'error code=',istat,' exiting...'
               stop
            end if
         end if

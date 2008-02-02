@@ -1,4 +1,4 @@
-!!****f* BigDFT/test_forces
+!!****p* BigDFT/test_forces
 !! NAME
 !!   test_forces
 !!

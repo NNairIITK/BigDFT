@@ -1,11 +1,3 @@
-
-!! Copyright (C) 2002-2007 BigDFT group 
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~/COPYING file
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the list of contributors, see ~/AUTHORS 
-
-
 !!****p* BigDFT/Poisson_Solver
 !! NAME
 !!   Poisson_Solver
@@ -20,7 +12,12 @@
 !!    Luigi Genovese
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007 CEA
+!!    Copyright (C) 2006-2008 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
 !! CREATION DATE
 !!    February 2007
 !!
@@ -302,6 +299,8 @@ program PoissonSolver
   call MPI_FINALIZE(ierr)  
 
 end program PoissonSolver
+!!***
+
 
 subroutine regroup_data(geocode,n01,n02,n03,hx,hy,hz,max_diff,diff_parser)
   implicit none
@@ -691,8 +690,6 @@ subroutine functions(x,a,b,f,f2,whichone)
   end select
 
 end subroutine functions
-
-!!***
 
 !!$!fake ABINIT subroutines
 !!$subroutine wrtout(unit,message,mode_paral)

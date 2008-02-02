@@ -1,12 +1,4 @@
-
-!! Copyright (C) 2002-2007 BigDFT group 
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~/COPYING file
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the list of contributors, see ~/AUTHORS 
-
-
-!!****h* BigDFT/xcenergy
+!!****f* BigDFT/xcenergy
 !! NAME
 !!    xcenergy
 !!
@@ -16,6 +8,13 @@
 !!    which will be used for the core of the FFT procedure.
 !!    Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
 !!    to the XC potential, or even ignored.
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2002-2007 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 !!
 !! SYNOPSIS
 !!    geocode  Indicates the boundary conditions (BC) of the problem:
@@ -504,6 +503,8 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   end if
 
 end subroutine xc_energy
+!!***
+
 
 !!****f* BigDFT/vxcpostprocessing
 !! NAME
@@ -610,3 +611,4 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
   call memocc(i_stat,i_all,'f_i','vxcpostprocessing')
 
 end subroutine vxcpostprocessing
+!!***

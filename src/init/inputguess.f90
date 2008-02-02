@@ -8,7 +8,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   integer, intent(in) :: npspcode(ntypes),iasctype(ntypes)
   real(kind=8), intent(out) :: xp(ngx, ntypes), psiat(ngx, 5, ntypes), occupat(5, ntypes)
   integer, intent(out) :: ng(ntypes), nl(4,ntypes)
-  character(len = 20), intent(in) :: atomnames(100)
+  character(len = 20), dimension(ntypes), intent(in) :: atomnames
   integer, intent(out) :: norbe,norbsc
   integer, intent(in) :: nat,natsc
   integer, intent(in) :: iatype(nat)
@@ -184,7 +184,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ntypes
   integer, intent(in) :: norbsc,natsc,nspin
   real(kind=8), intent(in) :: hx,hy,hz
-  character(len=20), dimension(nat), intent(in) :: atomnames
+  character(len=20), dimension(ntypes), intent(in) :: atomnames
   logical, dimension(4,natsc), intent(in) :: scorb
   integer, dimension(ntypes), intent(in) :: iasctype
   integer, dimension(nat), intent(in) :: iatype,nspinat
@@ -202,7 +202,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
   !local variables
   integer, parameter :: nterm_max=3
   logical :: myorbital,polarised
-  integer :: iatsc,i_all,i_stat,ispin
+  integer :: iatsc,i_all,i_stat,ispin,ipolres,ipolorb
   integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,nterm
   real(kind=8) :: rx,ry,rz,ek,scpr,occshell
   real(kind=8), dimension(nterm_max) :: fac_arr
@@ -255,6 +255,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
         stop
      end if
      polarised=.false.
+     ipolres=nspinat(iat)
      do l=1,4
         do inl=1,nl(l,ity)
            ictot=ictot+1
@@ -263,14 +264,26 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
            eks=eks+ek*occupat(ictot,ity)
            if (nint(occupat(ictot,ity)) /=  2*(2*l-1) ) then
               !this is a polarisable orbital
-              if (polarised) then
-                 if (iproc == 0) then
-                    write(*,'(1x,a)')&
-                         'ERROR: only one polarisable orbital is allowed, check electronic configuration'
-                    stop
-                 end if
-              end if
+!!$              if (polarised) then
+!!$                 if (iproc == 0) then
+!!$                    write(*,'(1x,a)')&
+!!$                         'ERROR: only one polarisable orbital is allowed, check electronic configuration'
+!!$                    stop
+!!$                 end if
+!!$              end if
               polarised=.true.
+              !assuming that the control of the allowed polarisation is already done
+              ipolorb=min(ipolres,int(occupat(ictot,ity)))
+              ipolres=ipolres-ipolorb
+              !this check can be inserted also elsewhere
+              if (ipolres < 0) then
+                 if(iproc==0) write(*,'(1x,4(a,i0))')&
+                      'Too high polarisation for atom number= ',iat,&
+                      ' Inserted=',nspinat(iat),' Assigned=',ipolorb,&
+                      ' the maximum is=',nint(occupat(ictot,ity))
+                 stop
+              end if
+
            else
               !check for odd values of the occupation number
               if (mod(nint(occupat(ictot,ity)),2) /= 0) then
@@ -298,15 +311,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
                  occshell=occupat(ictot,ity)                 
                  if (nspin==2) then
                     if (polarised) then
-                       occshell=0.5d0*(occshell+real(1-2*(ispin-1),kind=8)*nspinat(iat))
-                       !this check can be inserted also elsewhere
-                       if (occshell <= 0.d0) then
-                          if(iproc==0) write(*,'(1x,3(a,i0))')&
-                               'Too high polarisation for atom number= ',iat,&
-                               ' Inserted=',nspinat(iat),&
-                               ' the maximum is=',nint(occupat(ictot,ity))
-                          stop
-                       end if
+                       occshell=0.5d0*(occshell+real(1-2*(ispin-1),kind=8)*ipolorb)
                     else
                        occshell=0.5d0*occshell
                     end if

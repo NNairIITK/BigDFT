@@ -103,9 +103,11 @@ END SUBROUTINE comb_grow_c
 ! subroutine for scfunctions
 !include 'standard_grow.f90'
 !include 'unrolled_grow.f90'
-include 'long_grow.f90'
+!Better to link it
+!include 'long_grow.f90'
 
 ! subroutine for wavelets
 !include 'tree_grow.f90'
-include 'tree_unrolled_grow.f90'
+!Better to link it
+!include 'tree_unrolled_grow.f90'
 

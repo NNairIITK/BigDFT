@@ -1,12 +1,4 @@
- 
-!! Copyright (C) 2002-2007 BigDFT group 
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~/COPYING file
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the list of contributors, see ~/AUTHORS 
-
-
-!!****h* BigDFT/PSolver
+!!****f* BigDFT/PSolver
 !! NAME
 !!    PSolver
 !!
@@ -14,6 +6,13 @@
 !!    Calculate the Poisson equation $\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$
 !!    from a given $\rho$, for different boundary conditions an for different data distributions.
 !!    Following the boundary conditions, it applies the Poisson Kernel previously calculated.
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2002-2007 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 !!
 !! SYNOPSIS
 !!    geocode  Indicates the boundary conditions (BC) of the problem:
@@ -497,11 +496,11 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if (iproc==0) write(*,'(a)')'done.'
 
 end subroutine PSolver
+!!***
 
 
 
-
-!!****h* BigDFT/PS_dim4allocation
+!!****f* BigDFT/PS_dim4allocation
 !! NAME
 !!    PS_dim4allocation
 !!
@@ -661,10 +660,10 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
 !!$       'ixc,n3d,n3p,i3xcsh,i3s',ixc,n3d,n3p,i3xcsh,i3s
 
 end subroutine PS_dim4allocation
-
-
 !!***
-!!****h* BigDFT/P_FFT_dimensions
+
+
+!!****f* BigDFT/P_FFT_dimensions
 !! NAME
 !!   P_FFT_dimensions
 !!
@@ -760,9 +759,9 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  endif
 
 end subroutine P_FFT_dimensions
+!!***
 
-
-!!****h* BigDFT/S_FFT_dimensions
+!!****f* BigDFT/S_FFT_dimensions
 !! NAME
 !!   S_FFT_dimensions
 !!
@@ -867,7 +866,8 @@ subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
 end subroutine S_FFT_dimensions
 !!***
 
-!!****h* BigDFT/F_FFT_dimensions
+
+!!****f* BigDFT/F_FFT_dimensions
 !! NAME
 !!   F_FFT_pardimensions
 !!

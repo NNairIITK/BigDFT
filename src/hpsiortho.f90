@@ -1,36 +1,31 @@
-subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
-     psppar,npspcode,norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     wfd,bounds,nlpspd,proj,ngatherarr,n3p,&
-     potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)
-
+subroutine HamiltonianApplication(geocode,iproc,nproc,at,hgrid,&
+     norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
+     ngatherarr,n3p,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)
   use module_types
-
   implicit none
   include 'mpif.h'
+  type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(convolutions_bounds), intent(in) :: bounds
-  logical, intent(in) :: parallel
-  character(len=1), intent(in) :: datacode
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nat,ntypes,n3p
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,n3p
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin
   real(kind=8), intent(in) :: hgrid
-  integer, dimension(ntypes), intent(in) :: npspcode
-  integer, dimension(nat), intent(in) :: iatype
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(kind=8), dimension(norb), intent(in) :: occup,spinar
-  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
-  real(kind=8), dimension(*), intent(in) :: potential
-  real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: hpsi
+  real(kind=8), dimension(*), intent(in), target :: potential
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
+  real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: hpsi
   !local variables
   integer :: i_all,i_stat,ierr,iorb
   real(kind=8) :: eproj
   real(kind=8), dimension(3,2) :: wrkallred
-  real(kind=8), dimension(:), allocatable :: pot
+  real(kind=8), dimension(:), pointer :: pot
 
+  call timing(iproc,'ApplyLocPotKin','ON')
 
   ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0) then
@@ -38,10 +33,7 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
           'Hamiltonian application...'
   end if
 
-  call timing(iproc,'ApplyLocPotKin','ON')
-
-  if (datacode=='D') then
-     !allocate full potential
+  if (nproc > 1) then
      allocate(pot((2*n1+31)*(2*n2+31)*(2*n3+31)*nspin),stat=i_stat)
      call memocc(i_stat,product(shape(pot))*kind(pot),'pot','hamiltonianapplication')
 
@@ -54,31 +46,26 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
              MPI_DOUBLE_PRECISION,pot((2*n1+31)*(2*n2+31)*(2*n3+31)+1),ngatherarr(0,1),&
              ngatherarr(0,2),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
      end if
-     call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
-          hgrid,occup,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
-          bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c,&
-          bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f, &
-          psi,pot,hpsi,epot_sum,ekin_sum,nspin,spinar,&
-          bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
-          bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
-          bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
-          bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,bounds%ibyyzz_r)
+  else
+     pot => potential
+  end if
 
+  call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
+       hgrid,occup,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
+       bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c,&
+       bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f, &
+       psi,pot,hpsi,epot_sum,ekin_sum,nspin,spinar,&
+       bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
+       bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
+       bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
+       bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,bounds%ibyyzz_r)
+
+  if (nproc > 1) then
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
      call memocc(i_stat,i_all,'pot','hamiltonianapplication')
-
   else
-
-     call applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
-          hgrid,occup,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
-          bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c,&
-          bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f, &
-          psi,potential,hpsi,epot_sum,ekin_sum,nspin,spinar,&
-          bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
-          bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
-          bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
-          bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,bounds%ibyyzz_r)
+     nullify(pot)
   end if
 
   call timing(iproc,'ApplyLocPotKin','OF')
@@ -89,10 +76,9 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
   eproj_sum=0.d0
   ! loop over all my orbitals
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-     call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
+     call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
           nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,nlpspd%nvctr_p,&
-          proj,  &
-          wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,wfd%nvctr_c,wfd%nvctr_f,  & 
+          proj,wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,wfd%nvctr_c,wfd%nvctr_f,  & 
           psi(1,iorb-iproc*norbp),hpsi(1,iorb-iproc*norbp),eproj)
      eproj_sum=eproj_sum+occup(iorb)*eproj
      !     write(*,*) 'iorb,eproj',iorb,eproj
@@ -100,7 +86,7 @@ subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatyp
 
   call timing(iproc,'ApplyProj     ','OF')
 
-  if (parallel) then
+  if (nproc > 1) then
      wrkallred(1,2)=ekin_sum 
      wrkallred(2,2)=epot_sum 
      wrkallred(3,2)=eproj_sum
@@ -175,7 +161,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         scprpart=0.0d0
         if(norbd>0) then
            scprpart=scprsum 
-           call  orthoconstraint_p(iproc,nproc,norbd,occup,nvctrp,psit(1,norbu+1),hpsi(1,norbu+1),scprsum)
+           call  orthoconstraint_p(iproc,nproc,norbd,occup(norbu+1),nvctrp,psit(1,norbu+1),hpsi(1,norbu+1),scprsum)
         end if
         scprsum=scprsum+scprpart
      end if
@@ -199,7 +185,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         scprpart=0.0d0
         if(norbd>0) then
            scprpart=scprsum 
-           call orthoconstraint(norbd,occup,nvctrp,psi(1,norbu+1),hpsi(1,norbu+1),scprsum)
+           call orthoconstraint(norbd,occup(norbu+1),nvctrp,psi(1,norbu+1),hpsi(1,norbu+1),scprsum)
         end if
         scprsum=scprsum+scprpart
      end if
@@ -481,7 +467,7 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
         call KStrans_p(iproc,nproc,norbu,norbu,nvctrp,occup,hpsi,psit,evsum,eval)
         evpart=evsum
         if(norbd>0) then
-           call KStrans_p(iproc,nproc,norbd,norbd,nvctrp,occup,&
+           call KStrans_p(iproc,nproc,norbd,norbd,nvctrp,occup(norbu+1),&
                 hpsi(1,norbu+1),psit(1,norbu+1),evsum,eval(norbu+1))
            evsum=evsum+evpart
         end if
@@ -509,7 +495,7 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
         call KStrans(norbu,nvctrp,occup,hpsi,psi,evsum,eval)
         evpart=evsum
         if(norbd>0) then
-           call KStrans(norbd,nvctrp,occup,hpsi(1,norbu+1),psi(1,norbu+1),&
+           call KStrans(norbd,nvctrp,occup(norbu+1),hpsi(1,norbu+1),psi(1,norbu+1),&
                 evsum,eval(norbu+1))
            evsum=evsum+evpart
         end if
