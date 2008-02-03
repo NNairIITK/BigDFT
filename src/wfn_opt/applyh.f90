@@ -314,7 +314,66 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
 !!$  print *,'after applylocpotkinone',tt
 
 
-END SUBROUTINE applylocpotkinone
+end subroutine applylocpotkinone
+
+subroutine applylocpotkinone_per(n1,n2,n3, & 
+     hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+     psir,psifscf,psifscfk,psig,ww,psi,pot,hpsi,epot,ekin)
+  !  Applies the local potential and kinetic energy operator to one wavefunction 
+  ! Input: pot,psi
+  ! Output: hpsi,epot,ekin
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f
+  real(kind=8), intent(in) :: hx,hy,hz
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  real(kind=8), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(in) :: pot
+  real(kind=8), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
+  real(kind=8), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(inout) :: psir,psifscf,psifscfk,ww
+  real(kind=8), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
+  real(kind=8), intent(out) :: epot,ekin
+  real(kind=8), dimension(nvctr_c+7*nvctr_f), intent(out) :: hpsi
+  !local variables
+  integer :: i
+  real(kind=8) :: tt
+  real(kind=8), dimension(3) :: hgridh
+
+  ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+  call uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+       psi(1),psi(nvctr_c+1),psifscf,psig,ww)
+
+  hgridh(1)=hx*.5d0
+  hgridh(2)=hy*.5d0
+  hgridh(3)=hz*.5d0
+
+  call convolut_kinetic_per(2*n1+1,2*n2+1,2*n3+1,hgridh,psifscf,psifscfk)
+
+  ekin=0.d0 
+  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+     ekin=ekin+psifscf(i)*psifscfk(i)
+  enddo
+
+  call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psifscf,psir) 
+
+  epot=0.d0
+  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+     tt=pot(i)*psir(i)
+     epot=epot+tt*psir(i)
+     psir(i)=tt
+  enddo
+
+  call convolut_magic_t_per(2*n1+1,2*n2+1,2*n3+1,psir,psifscf)
+
+  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+     psifscf(i)=psifscf(i)+psifscfk(i)
+  enddo
+
+  call compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
+       psifscf,hpsi(1),hpsi(nvctr_c+1),psig,ww)
+
+END SUBROUTINE applylocpotkinone_per
 
 subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   implicit none
@@ -384,34 +443,6 @@ subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
   enddo
 
 end subroutine realspace_nbuf
-
-
-subroutine applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
-     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-     norb,norbp,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
-  ! Applies all the projectors onto a wavefunction
-  ! Input: psi_c,psi_f
-  ! In/Output: hpsi_c,hpsi_f (both are updated, i.e. not initilized to zero at the beginning)
-  implicit real(kind=8) (a-h,o-z)
-  dimension psppar(0:4,0:6,ntypes),iatype(nat),npspcode(ntypes)
-  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-  dimension psi(nvctr_c+7*nvctr_f,norbp),hpsi(nvctr_c+7*nvctr_f,norbp)
-  dimension nseg_p(0:2*nat),nvctr_p(0:2*nat)
-  dimension keyg_p(2,nseg_p(2*nat)),keyv_p(nseg_p(2*nat))
-  dimension proj(nprojel),occup(norb)
-
-  eproj_sum=0.d0
-  ! loop over all my orbitals
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-     call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
-          nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-          nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,  & 
-          psi(1,iorb-iproc*norbp),hpsi(1,iorb-iproc*norbp),eproj)
-     eproj_sum=eproj_sum+occup(iorb)*eproj
-     !     write(*,*) 'iorb,eproj',iorb,eproj
-  enddo
-
-END SUBROUTINE applyprojectorsall
 
 subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
