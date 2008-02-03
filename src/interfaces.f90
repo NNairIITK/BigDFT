@@ -290,7 +290,7 @@ interface
 
    subroutine HamiltonianApplication(geocode,iproc,nproc,at,hgrid,&
         norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
-        ngatherarr,n3p,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)
+        ngatherarr,ndimpot,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)
      use module_types
      implicit none
      type(atoms_data), intent(in) :: at
@@ -298,14 +298,14 @@ interface
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
      type(convolutions_bounds), intent(in) :: bounds
      character(len=1), intent(in) :: geocode
-     integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,n3p
+     integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ndimpot
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin
      real(kind=8), intent(in) :: hgrid
      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
      real(kind=8), dimension(norb), intent(in) :: occup,spinar
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
-     real(kind=8), dimension(*), intent(in), target :: potential
+     real(kind=8), dimension(max(ndimpot,1)*nspin), intent(in), target :: potential
      real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: hpsi
    end subroutine HamiltonianApplication

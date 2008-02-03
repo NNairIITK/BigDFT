@@ -345,31 +345,20 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
         write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/real(norb,kind=8)
      endif
 
-     if (parallel) then
-        !allocate hpsi array (used also as transposed)
-        !allocated in the transposed way such as 
-        !it can also be used as the transposed hpsi
-        allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
-        call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','cluster')
-     else
-        !allocate hpsi array
-        allocate(hpsi(nvctrp,norb),stat=i_stat)
-        call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','cluster')
-     endif
-
+     !allocate hpsi array (used also as transposed)
+     !allocated in the transposed way such as 
+     !it can also be used as the transposed hpsi
+     allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','cluster')
+    
   else if (inputPsiId == 1 ) then 
      !restart from previously calculated wavefunctions, in memory
 
      !allocate principal wavefunction
-     if (parallel) then
-        !allocated in the transposed way such as 
-        !it can also be used as a work array for transposition
-        allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
-        call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
-     else
-        allocate(psi(nvctrp,norb),stat=i_stat)
-        call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
-     end if
+     !allocated in the transposed way such as 
+     !it can also be used as a work array for transposition
+     allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
 
      if (iproc.eq.0) then
         write(*,'(1x,a)')&
@@ -399,21 +388,15 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      !restart from previously calculated wavefunctions, on disk
 
      !allocate principal wavefunction
-     if (parallel) then
-        !allocated in the transposed way such as 
-        !it can also be used as a work array for transposition
-        allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
-        call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
-     else
-        allocate(psi(nvctrp,norb),stat=i_stat)
-        call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
-     end if
+     !allocated in the transposed way such as 
+     !it can also be used as a work array for transposition
+     allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
 
      if (iproc.eq.0) then
         write(*,'(1x,a)')&
              '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
-
 
      call readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,atoms%nat,rxyz,wfd,psi,eval)
 
@@ -499,7 +482,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      call HamiltonianApplication(geocode,iproc,nproc,atoms,hgrid,&
           norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-          wfd,bounds,nlpspd,proj,ngatherarr,n3p,&
+          wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
           rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
