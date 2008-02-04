@@ -1,6 +1,5 @@
 subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
-     wfd,psi,rho,nrho,nscatterarr,nspin,spinar,&
-     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
+     wfd,psi,rho,nrho,nscatterarr,nspin,spinar,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
   ! Output: rho
@@ -18,15 +17,12 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   real(kind=8), dimension(max(nrho,1),nspin), intent(out), target :: rho
   !local variables
   include 'mpif.h'
-  integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i
+  integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf
   integer :: ind1,ind2,ind3,ind1s,ind2s,ind3s
   integer :: i00,i0,i1,i2,i3,i3off,i3s,isjmp,i,ispin,iorb,jproc,i_all,i_stat,ierr
   real(kind=8) :: hfac,hgridh,tt,charge
   real(kind=8), dimension(0:3) :: scal
-  real(kind=8), dimension(:), allocatable :: psir
-  real(kind=8), dimension(:,:,:), allocatable :: x_c!input 
-  real(kind=8), dimension(:,:,:,:), allocatable :: x_f !added for newmethod=.false.
-  real(kind=8), allocatable, dimension(:) :: w1,w2
+  real(kind=8), dimension(:), allocatable :: psir,x_c_psifscf,x_f_psig,w1,w2
   real(kind=8), dimension(:,:), pointer :: rho_p
 
 
@@ -46,31 +42,49 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
         n1i=2*n1+31
         n2i=2*n2+31
         n3i=2*n3+31
+        
+        !dimension of the work arrays
+        ! shrink convention: nw1>nw2
+        nw1=max((n3+1)*(2*n1+31)*(2*n2+31),& 
+             (n1+1)*(2*n2+31)*(2*n3+31),&
+             2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+             2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+        nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+             4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+             (n1+1)*(n2+1)*(2*n3+31),&
+             (2*n1+31)*(n2+1)*(n3+1))
+        nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
+        nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
      case('S')
         n1i=2*n1+2
         n2i=2*n2+31
         n3i=2*n3+2
+
+        !dimension of the work arrays (tentative values)
+        nw1=(2*n1+2)*(2*n2+31)*(2*n3+2)
+        nw2=1
+        nxc=(2*n1+2)*(2*n2+31)*(2*n3+2)
+        nxf=(n1+1)*(n2+1)*(n3+1)*8
+
      case('P')
         n1i=2*n1+2
         n2i=2*n2+2
         n3i=2*n3+2
+        
+        !dimension of the work arrays
+        nw1=(2*n1+2)*(2*n2+2)*(2*n3+2)
+        nw2=1
+        nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
+        nxf=(n1+1)*(n2+1)*(n3+1)*8
+
   end select
 
-  !dimension of the work arrays
-  ! shrink convention: nw1>nw2
-  nw1=max((n3+1)*(2*n1+31)*(2*n2+31),& 
-       (n1+1)*(2*n2+31)*(2*n3+31),&
-       2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
-       2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
-  nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
-       4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
-       (n1+1)*(n2+1)*(2*n3+31),&
-       (2*n1+31)*(n2+1)*(n3+1))
   !work arrays
-  allocate(x_c(0:n1,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_c))*kind(x_c),'x_c','sumrho')
-  allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)! work
-  call memocc(i_stat,product(shape(x_f))*kind(x_f),'x_f','sumrho')
+  allocate(x_c_psifscf(nxc),stat=i_stat)
+  call memocc(i_stat,product(shape(x_c_psifscf))*kind(x_c_psifscf),'x_c_psifscf','sumrho')
+  allocate(x_f_psig(nxf),stat=i_stat)! work
+  call memocc(i_stat,product(shape(x_f_psig))*kind(x_f_psig),'x_f_psig','sumrho')
   allocate(w1(nw1),stat=i_stat)
   call memocc(i_stat,product(shape(w1))*kind(w1),'w1','sumrho')
   allocate(w2(nw2),stat=i_stat) ! work
@@ -81,10 +95,12 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   call memocc(i_stat,product(shape(psir))*kind(psir),'psir','sumrho')
 
   !initialisation
-  call razero((n1+1)*(n2+1)*(n3+1),x_c)
-  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f)
-
-  call razero(n1i*n2i*n3i,psir)
+  if (geocode == 'F') then
+     call razero((n1+1)*(n2+1)*(n3+1),x_c_psifscf)
+     call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f_psig)
+     
+     call razero(n1i*n2i*n3i,psir)
+  end if
 
 
   !calculate dimensions of the complete array to be allocated before the reduction procedure
@@ -104,49 +120,88 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   call tenminustwenty(n1i*n2i*nrhotot*nspin,rho_p,nproc)
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-     hfac=(occup(iorb)/hxh*hyh*hzh)
+     hfac=(occup(iorb)/(hxh*hyh*hzh))
 
      if (hfac /= 0.d0) then
 
-        call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-             wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
-             wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),   &
-             scal,psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),x_c,x_f)
+        select case(geocode)
+           case('F')
+              
+              call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+                   wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
+                   wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),   &
+                   scal,psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),x_c_psifscf,x_f_psig)
 
 
-        call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
-             psir,bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
-             bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,bounds%ibyyzz_r)
+              call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c_psifscf,x_f_psig,  & 
+                   psir,bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
+                   bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,bounds%ibyyzz_r)
 
-        !sum different slices by taking into account the overlap
-        i3s=0
-        loop_xc_overlap: do jproc=0,nproc-1
-           i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
-           n3d=nscatterarr(jproc,1)
-           if (n3d==0) exit loop_xc_overlap
-           if(spinar(iorb)>0.0d0) then
-              isjmp=1
-           else
-              isjmp=2
-           end if
-           do i3=i3off+1,i3off+n3d
-              i3s=i3s+1
-              ind3=(i3-1)*(2*n1+31)*(2*n2+31)
-              ind3s=(i3s-1)*(2*n1+31)*(2*n2+31)
-              do i2=1,2*n2+31
-                 ind2=(i2-1)*(2*n1+31)+ind3
-                 ind2s=(i2-1)*(2*n1+31)+ind3s
-                 !                 do i1=1,2*n1+31
-                 do i1=bounds%ibyyzz_r(1,i2-15,i3-15)+1,bounds%ibyyzz_r(2,i2-15,i3-15)+1
-                    ind1=i1+ind2
-                    ind1s=i1+ind2s
-                    !do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
-                    rho_p(ind1s,isjmp)=rho_p(ind1s,isjmp)+hfac*psir(ind1)**2
+              !sum different slices by taking into account the overlap
+              i3s=0
+              loop_xc_overlap_F: do jproc=0,nproc-1
+                 i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
+                 n3d=nscatterarr(jproc,1)
+                 if (n3d==0) exit loop_xc_overlap_F
+                 if(spinar(iorb)>0.0d0) then
+                    isjmp=1
+                 else
+                    isjmp=2
+                 end if
+                 do i3=i3off+1,i3off+n3d
+                    i3s=i3s+1
+                    ind3=(i3-1)*n1i*n2i
+                    ind3s=(i3s-1)*n1i*n2i
+                    do i2=1,n2i
+                       ind2=(i2-1)*n1i+ind3
+                       ind2s=(i2-1)*n2i+ind3s
+                       !                 do i1=1,2*n1+31
+                       do i1=bounds%ibyyzz_r(1,i2-15,i3-15)+1,bounds%ibyyzz_r(2,i2-15,i3-15)+1
+                          ind1=i1+ind2
+                          ind1s=i1+ind2s
+                          !do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
+                          rho_p(ind1s,isjmp)=rho_p(ind1s,isjmp)+hfac*psir(ind1)**2
+                       end do
+                    end do
                  end do
-              end do
-           end do
-        end do loop_xc_overlap
+              end do loop_xc_overlap_F
 
+           case('P')
+
+              call uncompress_per(n1,n2,n3,wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),   &
+                   wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),   &
+                   psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),x_c_psifscf,x_f_psig,w1)
+
+              call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,x_c_psifscf,psir) 
+
+              !sum different slices by taking into account the overlap
+              i3s=0
+              loop_xc_overlap_P: do jproc=0,nproc-1
+                 i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
+                 n3d=nscatterarr(jproc,1)
+                 if (n3d==0) exit loop_xc_overlap_P
+                 if(spinar(iorb)>0.0d0) then
+                    isjmp=1
+                 else
+                    isjmp=2
+                 end if
+                 do i3=i3off+1,i3off+n3d
+                    i3s=i3s+1
+                    ind3=(i3-1)*n1i*n2i
+                    ind3s=(i3s-1)*n1i*n2i
+                    do i2=1,n2i
+                       ind2=(i2-1)*n1i+ind3
+                       ind2s=(i2-1)*n2i+ind3s
+                       do i1=1,n1i
+                          ind1=i1+ind2
+                          ind1s=i1+ind2s
+                          rho_p(ind1s,isjmp)=rho_p(ind1s,isjmp)+hfac*psir(ind1)**2
+                       end do
+                    end do
+                 end do
+              end do loop_xc_overlap_P
+
+           end select
         if (i3s /= nrhotot) then
            print *,'problem with rhopot array in sumrho,i3s,nrhotot,',i3s,nrhotot
            stop
@@ -205,12 +260,12 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir','sumrho')
-  i_all=-product(shape(x_c))*kind(x_c)
-  deallocate(x_c,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c','sumrho')
-  i_all=-product(shape(x_f))*kind(x_f)
-  deallocate(x_f,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f','sumrho')
+  i_all=-product(shape(x_c_psifscf))*kind(x_c_psifscf)
+  deallocate(x_c_psifscf,stat=i_stat)
+  call memocc(i_stat,i_all,'x_c_psifscf','sumrho')
+  i_all=-product(shape(x_f_psig))*kind(x_f_psig)
+  deallocate(x_f_psig,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f_psig','sumrho')
   i_all=-product(shape(w1))*kind(w1)
   deallocate(w1,stat=i_stat)
   call memocc(i_stat,i_all,'w1','sumrho')

@@ -711,7 +711,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
           if (iproc==0) then 
              write(*,'(1x,a,i0,a)')&
                   'ERROR: Total input polarisation (found ',ispinsum,&
-                  ') must be equal to with norbu-norbd.'
+                  ') must be equal to norbu-norbd.'
              write(*,'(1x,3(a,i0))')&
                   'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
              stop
@@ -729,8 +729,6 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
           !stop
        end if
     end if
-
-    
     
 
     ! Test if the file 'occup.dat exists

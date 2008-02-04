@@ -534,14 +534,9 @@ subroutine import_gaussians(parallel,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
 
   hgridh=.5d0*hgrid
 
-  if (parallel) then
-     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','import_gaussians')
-  else
-     allocate(psi(nvctrp,norb),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','import_gaussians')
-  end if
+  !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+  allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
+  call memocc(i_stat,product(shape(psi))*kind(psi),'psi','import_gaussians')
 
   !read the values for the gaussian code and insert them on psi 
   call gautowav(iproc,nproc,at%nat,at%ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
@@ -571,19 +566,14 @@ subroutine import_gaussians(parallel,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
   call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,1)
 
-  if (parallel) then
-     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','import_gaussians')
-  else
-     allocate(hpsi(nvctrp,norbp),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','import_gaussians')
-  end if
+  !allocate the wavefunction in the transposed way to avoid allocations/deallocations
+  allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
+  call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','import_gaussians')
 
-
-  call HamiltonianApplication(parallel,datacode,iproc,nproc,at,hgrid,&
+  call HamiltonianApplication('F',iproc,nproc,at,hgrid,hgrid,hgrid,&
        norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
-       ngatherarr,nscatterarr(iproc,2),rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
+       ngatherarr,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,2),&
+       rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,ones)
 
   i_all=-product(shape(ones))*kind(ones)
@@ -806,12 +796,12 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   logical :: parallel
   integer, parameter :: ngx=31
   integer :: i,iorb,iorbsc,imatrsc,iorbst,imatrst,i_stat,i_all,ierr,info,jproc,jpst,norbeyou
-  integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbi_max,norbsc
-  integer :: ispin,norbu,norbd,iorbst2,ist
+  integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbi_max,norbsc,n1i,n2i,n3i
+  integer :: ispin,norbu,norbd,iorbst2,ist,n2hamovr,nsthamovr
   real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol
   logical, dimension(:,:), allocatable :: scorb
-  integer, dimension(:), allocatable :: norbsc_arr,ng
-  integer, dimension(:,:), allocatable :: nl
+  integer, dimension(:), allocatable :: ng
+  integer, dimension(:,:), allocatable :: nl,norbsc_arr
   real(kind=8), dimension(:), allocatable :: work_lp,pot,evale,occupe,spinare
   real(kind=8), dimension(:,:), allocatable :: xp,occupat,hamovr,psi,hpsi
   real(kind=8), dimension(:,:,:), allocatable :: psiw,psiat
@@ -823,6 +813,23 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      if(spinar(iorb)>0.0d0) norbu=norbu+1
      if(spinar(iorb)<0.0d0) norbd=norbd+1
   end do
+
+  !calculate dimension of the interpolating scaling function grid
+  select case(geocode)
+     case('F')
+        n1i=2*n1+31
+        n2i=2*n2+31
+        n3i=2*n3+31
+     case('S')
+        n1i=2*n1+2
+        n2i=2*n2+31
+        n3i=2*n3+2
+     case('P')
+        n1i=2*n1+2
+        n2i=2*n2+2
+        n3i=2*n3+2
+  end select
+
 
   allocate(xp(ngx,at%ntypes),stat=i_stat)
   call memocc(i_stat,product(shape(xp))*kind(xp),'xp','input_wf_diag')
@@ -837,7 +844,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   allocate(scorb(4,at%natsc),stat=i_stat)
   call memocc(i_stat,product(shape(scorb))*kind(scorb),'scorb','input_wf_diag')
 
-  allocate(norbsc_arr(at%natsc+1),stat=i_stat)
+  allocate(norbsc_arr(at%natsc+1,nspin),stat=i_stat)
   call memocc(i_stat,product(shape(norbsc_arr))*kind(norbsc_arr),'norbsc_arr','input_wf_diag')
 
   if (iproc.eq.0) then
@@ -931,19 +938,19 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   end do
 
   call sumrho(geocode,iproc,nproc,nspin*norbe,norbep,n1,n2,n3,hxh,hyh,hzh,occupe,  & 
-       wfd,psi,rhopot,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,nspin,spinare, &
+       wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,nspin,spinare, &
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
-  call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hxh,hyh,hzh,&
+  call PSolver('F',datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(nvctrp,norbep*nproc),stat=i_stat)
   call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
   
-  call HamiltonianApplication(parallel,datacode,iproc,nproc,at,hx,&
+  call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
        nspin*norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
-       ngatherarr,nscatterarr(iproc,2),rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
+       ngatherarr,n1i*n2i*nscatterarr(iproc,2),rhopot(1+n1i*n2i*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinare)
 
   i_all=-product(shape(spinare))*kind(spinare)
@@ -974,85 +981,209 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'
 
-  norbi_max=maxval(norbsc_arr)
 
-  !calculate the dimension of the overlap matrix
-  ndim_hamovr=0
-  do i=1,at%natsc+1
-     ndim_hamovr=ndim_hamovr+norbsc_arr(i)**2
-  end do
+  !diagonalise the hamiltonian in a basis set of norbe orbitals and select the first
+  !norb eigenvectors. Works also with the spin-polarisation case and perform also the 
+  !treatment of semicore atoms 
+  !create the routine with optional arguments
+subroutine DiagHam(iproc,nproc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,psi,hpsi,psit& !mandatory
+     norbe,norbep,natsc,norbsc_arr,ppsi) !optional
+  use module_types
+  implicit none
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  integer, intent(in) :: iproc,nproc,nspin,norb,norbu,norbd,norbp,nvctrp
+  real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit
+  !optional arguments
+  integer, optional, intent(in) :: norbe,norbep,natsc
+  integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
+  real(kind=8), optional, dimension(:,:), pointer :: ppsi
+  !local variables
+  include 'mpif.h'
+  logical :: semicore,minimal
+  integer :: i,ndim_hamovr,i_all,i_stat,n2hamovr,nsthamovr,ierr,norbi_max
+  integer :: norbtot,norbtotp,natsceff
+  integer, dimension(:,:), allocatable :: norbgrp
+  real(kind=8), dimension(:,:), allocatable :: hamovr
+  real(kind=8), dimension(:,:), pointer :: psiw
 
-  if (parallel) then
+  !performs some check of the arguments
+  if (present(norbe) .neqv. present(norbep)) then
+     if (iproc ==0) write(*,'(1x,a)')&
+          'ERROR (DiagHam): the variables norbe and norbep must be present at the same time'
+     stop
+  else
+     minimal=present(norbe)
+  end if
 
+  if (present(natsc) .neqv. present(norbsc_arr)) then
+     if (iproc == 0) write(*,'(1x,a)')&
+          'ERROR (DiagHam): the variables natsc and norbsc_arr must be present at the same time'
+
+     stop
+     semicore=present(natsc)
+  end if
+
+  !the ppsi wavefunctions makes sense only in the norbe case
+  if (minimal .and. .not. present(ppsi)) then
+     if (iproc ==0) write(*,'(1x,a)')&
+          'ERROR (DiagHam): the new wavefunction ppsi must be present in for a minimal basis set'
+     stop
+  end if
+
+
+  if (semicore) then
+     norbi_max=maxval(norbsc_arr)
+     
+     !calculate the dimension of the overlap matrix
+     !take the maximum as the two spin dimensions
+     ndim_hamovr=0
+     do ispin=1,nspin
+        ndh1=0
+        do i=1,at%natsc+1
+           ndh1=ndh1+norbsc_arr(i,ispin)**2
+        end do
+        ndim_hamovr=max(ndim_hamovr,ndh1)
+     end do
+     natsceff=natsc
+     allocate(norbgrp(natsceff,nspin),stat=i_stat)
+     call memocc(i_stat,product(shape(norbgrp))*kind(norbgrp),'norbgrp','input_wf_diag')
+
+     !assign the grouping of the orbitals
+     norbgrp=norbsc_arr
+
+  else
+     norbi_max=max(norbu,norbd) !this works also for non spin-polarised since there norbu=norb
+     ndim_hamovr=norbi_max**2
+
+     natsceff=0
+     allocate(norbgrp(1,nspin),stat=i_stat)
+     call memocc(i_stat,product(shape(norbgrp))*kind(norbgrp),'norbgrp','input_wf_diag')
+
+     norbgrp(1)=norbu
+     if (nspin == 2) norbgrp(2)=norbd
+
+  end if
+
+  if(minimal) then
+     norbtot=nspin*norbe !beware that norbe is equal both for spin up and down
+     norbtotp=norbep !this is coherent with nspin*norbe
+  else
+     norbtot=norb
+     norbtotp=norbp
+  end if
+
+  if (nproc > 1) then
      !transpose all the wavefunctions for having a piece of all the orbitals 
      !for each processor
-     !here the timing is related to the input guess part
-     allocate(psiw(nvctrp,norbep,nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','input_wf_diag')
 
-     call switch_waves(iproc,nproc,nspin*norbe,norbep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,psiw)
-     call MPI_ALLTOALL(psiw,nvctrp*norbep,MPI_DOUBLE_PRECISION,  &
-          psi,nvctrp*norbep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     if (minimal) then
+        allocate(psiw(nvctrp,norbtotp*nproc),stat=i_stat)
+        call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','input_wf_diag')
+     else
+        allocate(psit(nvctrp,norbtotp*nproc),stat=i_stat)
+        call memocc(i_stat,product(shape(psiw))*kind(psiw),'psit','input_wf_diag')
+        psiw => psit
+     end if
 
-     call switch_waves(iproc,nproc,nspin*norbe,norbep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psiw)
-     call MPI_ALLTOALL(psiw,nvctrp*norbep,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call switch_waves(iproc,nproc,norbtot,norbtotp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,psiw)
+     call MPI_ALLTOALL(psiw,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,  &
+          psi,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
 
-     i_all=-product(shape(psiw))*kind(psiw)
-     deallocate(psiw,stat=i_stat)
-     call memocc(i_stat,i_all,'psiw','input_wf_diag')
+     call switch_waves(iproc,nproc,norbtot,norbtotp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psiw)
+     call MPI_ALLTOALL(psiw,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,  &
+          hpsi,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+
+     if (minimal) then
+        i_all=-product(shape(psiw))*kind(psiw)
+        deallocate(psiw,stat=i_stat)
+        call memocc(i_stat,i_all,'psiw','input_wf_diag')
+     end if
      !end of transposition
+     
+     !allocation values
+     n2hamovr=4
+     nsthamovr=3
+  else
+     !allocation values
+     n2hamovr=2
+     nsthamovr=1
+  end if
 
-     allocate(hamovr(nspin*ndim_hamovr,4),stat=i_stat)
-     call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','input_wf_diag')
+  allocate(hamovr(nspin*ndim_hamovr,n2hamovr),stat=i_stat)
+  call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','input_wf_diag')
+  
+  if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
+       'Overlap Matrix...'
+  
+  call overlap_matrices(nproc,norbtotp,nvctrp,natsceff,nspin,ndim_hamovr,norbgrp,&
+       hamovr(1,nsthamovr),psi,hpsi)
 
-     if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
-          'Overlap Matrix...'
-
-     call overlap_matrices(nproc,norbep,nvctrp,at%natsc,nspin,ndim_hamovr,norbsc_arr,hamovr(1,3),psi,hpsi)
-
+  if (minimal) then
+     !deallocate hpsi in the case of a minimal basis
      i_all=-product(shape(hpsi))*kind(hpsi)
      deallocate(hpsi,stat=i_stat)
      call memocc(i_stat,i_all,'hpsi','input_wf_diag')
+  end if
 
+  if (nproc > 1) then
      !reduce the overlap matrix between all the processors
      call MPI_ALLREDUCE(hamovr(1,3),hamovr(1,1),2*nspin*ndim_hamovr,&
           MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+  end if
 
-     call solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,at%natsc,nspin,etol,&
-          norbsc_arr,hamovr,eval)
+  call solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsceff,nspin,etol,&
+       norbgrp,hamovr,eval)
 
-     !allocate the transposed wavefunction
-     allocate(ppsit(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(ppsit))*kind(ppsit),'ppsit','input_wf_diag')
+  !in the case of minimal basi allocate now the transposed wavefunction
 
-     if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Input Wavefunctions...'
+  if (minimal) then
+     if (nproc > 1) then
+        !allocate the transposed wavefunction
+        allocate(psit(nvctrp,norbp*nproc),stat=i_stat)
+        call memocc(i_stat,product(shape(psit))*kind(psit),'ppsit','input_wf_diag')
+     else
+        !allocate the wavefunction
+        allocate(ppsi(nvctrp,norb),stat=i_stat)
+        call memocc(i_stat,product(shape(ppsi))*kind(ppsi),'ppsi','input_wf_diag')
+        
+        !but point on it via the ppsit pointer
+        psit => ppsi
+     end if
+  end if
 
-     call build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,at%natsc,nspin,ndim_hamovr,&
-          norbsc_arr,hamovr,psi,ppsit)
+  !!!!SONO ARRIVATO QUI CONTROLLARE IL COMPORTAMENTO DEI DIVERSI CASI
 
+  if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Input Wavefunctions...'
+  
+  call build_eigenvectors(nproc,norbu,norbd,norbp,norbtotp,nvctrp,natsceff,nspin,ndim_hamovr,&
+       norbgrp,hamovr,psi,psit)
+  
+  if (minimal) then
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)
      call memocc(i_stat,i_all,'psi','input_wf_diag')
-     i_all=-product(shape(hamovr))*kind(hamovr)
-     deallocate(hamovr,stat=i_stat)
-     call memocc(i_stat,i_all,'hamovr','input_wf_diag')
-     i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-     deallocate(norbsc_arr,stat=i_stat)
-     call memocc(i_stat,i_all,'norbsc_arr','input_wf_diag')
+  end if
 
-     !orthogonalise the orbitals in the case of semi-core atoms
-     if (norbsc > 0 .or. norbu==norbd) then
-        if(nspin==1) then
-           call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,ppsit) 
-        else
-           call orthon_p(iproc,nproc,norbu,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,ppsit) 
-           if(norbd>0) then
-              call orthon_p(iproc,nproc,norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,ppsit(1,norbu+1)) 
-           end if
+  i_all=-product(shape(hamovr))*kind(hamovr)
+  deallocate(hamovr,stat=i_stat)
+  call memocc(i_stat,i_all,'hamovr','input_wf_diag')
+  i_all=-product(shape(norbgrp))*kind(norbgrp)
+  deallocate(norbgrp,stat=i_stat)
+  call memocc(i_stat,i_all,'norbgrp','input_wf_diag')
+  
+  !orthogonalise the orbitals in the case of semi-core atoms
+  if (norbsc > 0) then
+     if(nspin==1) then
+        call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,ppsit) 
+     else
+        call orthon_p(iproc,nproc,norbu,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,ppsit) 
+        if(norbd>0) then
+           call orthon_p(iproc,nproc,norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,ppsit(1,norbu+1)) 
         end if
      end if
-
+  end if
+  
+  if (nproc > 1) then
      !retranspose the wavefunctions
      allocate(psiw(nvctrp,norbp,nproc),stat=i_stat)
      call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','input_wf_diag')
@@ -1061,84 +1192,71 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      call MPI_ALLTOALL(ppsit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
           psiw,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
-
+     
      !allocate the direct wavefunction
      allocate(ppsi(nvctrp,norbp*nproc),stat=i_stat)
      call memocc(i_stat,product(shape(ppsi))*kind(ppsi),'ppsi','input_wf_diag')
-
+     
      call timing(iproc,'Un-TransSwitch','ON')
      call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psiw,ppsi)
      call timing(iproc,'Un-TransSwitch','OF')
-
+     
      i_all=-product(shape(psiw))*kind(psiw)
      deallocate(psiw,stat=i_stat)
      call memocc(i_stat,i_all,'psiw','input_wf_diag')
+  else
+     !for the moment we can leave things like that
+     nullify(ppsit)
+  end if
 
-  else !serial case
+  i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
+  deallocate(norbsc_arr,stat=i_stat)
+  call memocc(i_stat,i_all,'norbsc_arr','input_wf_diag')
 
-     write(*,'(1x,a)',advance='no')'Overlap Matrix...'
-
-     allocate(hamovr(nspin*ndim_hamovr,2),stat=i_stat)
-     call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','input_wf_diag')
-
-     call overlap_matrices(nproc,norbep,nvctrp,at%natsc,nspin,ndim_hamovr,norbsc_arr,hamovr,psi,hpsi)
-
-     i_all=-product(shape(hpsi))*kind(hpsi)
-     deallocate(hpsi,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsi','input_wf_diag')
-
-     call solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,at%natsc,nspin,etol,&
-          norbsc_arr,hamovr,eval)
-
-     write(*,'(1x,a)',advance='no')'Building orthogonal Input Wavefunctions...'
-
-     !allocate the wavefunction
-     allocate(ppsi(nvctrp,norb),stat=i_stat)
-     call memocc(i_stat,product(shape(ppsi))*kind(ppsi),'ppsi','input_wf_diag')
-
-     call build_eigenvectors(1,norbu,norbd,norbp,norbep,nvctrp,at%natsc,nspin,ndim_hamovr,&
-          norbsc_arr,hamovr,psi,ppsi)
-
-     i_all=-product(shape(psi))*kind(psi)
-     deallocate(psi,stat=i_stat)
-     call memocc(i_stat,i_all,'psi','input_wf_diag')
-     i_all=-product(shape(hamovr))*kind(hamovr)
-     deallocate(hamovr,stat=i_stat)
-     call memocc(i_stat,i_all,'hamovr','input_wf_diag')
-     i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-     deallocate(norbsc_arr,stat=i_stat)
-     call memocc(i_stat,i_all,'norbsc_arr','input_wf_diag')
-
-
-     !orthogonalise the orbitals in the case of semi-core atoms
-     if (norbsc > 0 .or. norbu==norbd) then
-        if(nspin==1) then
-           call orthon(norb,nvctrp,ppsi)
-        else
-           call orthon(norbu,nvctrp,ppsi)
-           if(norbd>0) then
-              call orthon(norbd,nvctrp,ppsi(1,norbu+1))
-           end if
-        end if
-     end if
-
-  endif
 
   if (iproc.eq.0) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE input_wf_diag
 
+subroutine overlap_matrices(nproc,norbep,nvctrp,natsc,nspin,ndim_hamovr,norbsc_arr,hamovr,psi,hpsi)
+  implicit none
+  integer, intent(in) :: nproc,norbep,nvctrp,natsc,ndim_hamovr,nspin
+  integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
+  real(kind=8), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
+  real(kind=8), dimension(nvctrp,norbep*nproc), intent(in) :: psi,hpsi
+  !local variables
+  integer ::iorbst,imatrst,norbi,i,ispin
+
+  !calculate the overlap matrix for each group of the semicore atoms
+  !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
+  !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
+  iorbst=1
+  imatrst=1
+  do ispin=1,nspin !this construct assumes that the semicore is identical for both the spins
+     do i=1,natsc+1
+        norbi=norbsc_arr(i,ispin)
+        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,hpsi(1,iorbst),nvctrp,&
+             0.d0,hamovr(imatrst,1),norbi)
+        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,psi(1,iorbst),nvctrp,&
+             0.d0,hamovr(imatrst,2),norbi)
+        iorbst=iorbst+norbi
+        imatrst=imatrst+norbi**2
+     end do
+  end do
+  
+end subroutine overlap_matrices
+
 subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,nspin,etol,&
      norbsc_arr,hamovr,eval)
   implicit none
   integer, intent(in) :: iproc,norb,norbi_max,ndim_hamovr,natsc,nspin,norbu,norbd
-  integer, dimension(natsc+1), intent(in) :: norbsc_arr
+  integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
   real(kind=8), intent(in) :: etol
   real(kind=8), dimension(nspin*ndim_hamovr,2), intent(inout) :: hamovr
   real(kind=8), dimension(norb), intent(out) :: eval
   !local variables
   character(len=64) :: message
-  integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,iorb,i,ndegen,nwrtmsg,jorb,istart
+  integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,iorb,i,ndegen,nwrtmsg,jorb,istart,norbj
   real(kind=8) :: tt,sum
   real(kind=8), dimension(2) :: preval
   real(kind=8), dimension(:), allocatable :: work_lp,evale,randarr
@@ -1160,7 +1278,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   iorbst=1
   imatrst=1
   do i=1,natsc+1
-     norbi=norbsc_arr(i)
+     norbi=norbsc_arr(i,1)
 
      call DSYGV(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
           norbi,evale,work_lp,n_lp,info)
@@ -1168,31 +1286,32 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
 
      !do the diagonalisation separately in case of spin polarization     
      if (nspin==2) then
-        call DSYGV(1,'V','U',norbi,hamovr(imatrst+ndim_hamovr,1),&
-             norbi,hamovr(imatrst+ndim_hamovr,2),norbi,evale(norbi+1),work_lp,n_lp,info)
+        norbj=norbsc_arr(i,2)
+        call DSYGV(1,'V','U',norbj,hamovr(imatrst+ndim_hamovr,1),&
+             norbj,hamovr(imatrst+ndim_hamovr,2),norbj,evale(norbi+1),work_lp,n_lp,info)
         if (info.ne.0) write(*,*) 'DSYGV ERROR',info,i,natsc+1
      end if
 
-!!$        !write the matrices on a file
-!!$        !open(33+2*(i-1))
-!!$        !do jjorb=1,norbi
-!!$        !   write(33+2*(i-1),'(2000(1pe10.2))')&
-!!$        !        (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
-!!$        !end do
-!!$        !close(33+2*(i-1))
-!!$        !open(34+2*(i-1))
-!!$        !do jjorb=1,norbi
-!!$        !   write(34+2*(i-1),'(2000(1pe10.2))')&
-!!$        !        (hamovr(imatrst-1+jjorb+(jiorb-1)*norbi,1),jiorb=1,norbi)
-!!$        !end do
-!!$        !close(34+2*(i-1))
-
+     !write the matrices on a file
+     !open(33+2*(i-1))
+     !do jjorb=1,norbi
+     !   write(33+2*(i-1),'(2000(1pe10.2))')&
+     !        (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
+     !end do
+     !close(33+2*(i-1))
+     !open(34+2*(i-1))
+     !do jjorb=1,norbi
+     !   write(34+2*(i-1),'(2000(1pe10.2))')&
+     !        (hamovr(imatrst-1+jjorb+(jiorb-1)*norbi,1),jiorb=1,norbi)
+     !end do
+     !close(34+2*(i-1))
+     
 
      !writing rules, control if the last eigenvector is degenerate
      !do this for each spin
-     !for each spin it is supposed that only the last group contains is not completely passed
+     !for each spin it is supposed that only the last group is not completely passed
      !and also that the components of each of the group but the last are the same for up and 
-     !down polarisation
+     !down polarisation. Do not work properly in the other cases
      do iorb=1,norbi
         if (nspin==1) then
            if (nwrtmsg==1) then
@@ -1277,12 +1396,6 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
      iorbst=iorbst+norbi
      imatrst=imatrst+norbi**2
   end do
-!!$  ! Copy eigenvalues from NM to spin-polarized channels
-!!$  if(nspin>1) then
-!!$     do iorb=1,norbd
-!!$        eval(iorb+norbu)=eval(iorb)
-!!$     end do
-!!$  end if
 
   i_all=-product(shape(work_lp))*kind(work_lp)
   deallocate(work_lp,stat=i_stat)
@@ -1291,53 +1404,53 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   deallocate(evale,stat=i_stat)
   call memocc(i_stat,i_all,'evale','solve_eigensystem')
 
-  !remove the degeneracy treatment, to be tested later
-  ndegen=0
-  !in the case of degeneracy
-  !transform the passage matrix with all the components of the eigenspace 
-  if (ndegen /= 0) then
-     !create the array of random numbers
-     !it must be the same for all the processors so use some fake functions
-     allocate(randarr(0:ndegen),stat=i_stat)
-     call memocc(i_stat,product(shape(randarr))*kind(randarr),'randarr','solve_eigensystem')
-     sum=0.d0
-     do i=0,ndegen
-        tt=abs(dsin(real(73*i,kind=8)+.7d0))
-        !call random_number(tt)
-        randarr(i)=tt
-        sum=sum+tt**2
-     end do
-     tt=1.d0/sqrt(sum)
-     do i=0,ndegen
-        randarr(i)=tt*randarr(i)
-     end do
-
-     !the degeneracy may appear ONLY in the group of the valence electrons (last one)
-     iorbst=iorbst-norbi
-     imatrst=imatrst-norbi**2
-     istart=norbu-iorbst+1
-     if (norbd < norbu .and. norbd>0) istart=norbd-iorbst+1
-     !print *,'imatrst',imatrst,iorbst,norbi,istart
-     do jorb=1,norbi
-        tt=randarr(0)
-        hamovr(imatrst-1+jorb+norbi*(istart-1),1)=&
-             tt*hamovr(imatrst-1+jorb+norbi*(istart-1),1)
-        !print *, imatrst-1+jorb+norbi*(istart-1),ndim_hamovr,tt
-     end do
-     do iorb=istart+1,istart+ndegen
-        tt=randarr(iorb-istart)
-        do jorb=1,norbi
-           hamovr(imatrst-1+jorb+norbi*(istart-1),1)=&
-                hamovr(imatrst-1+jorb+norbi*(istart-1),1)+tt*hamovr(imatrst-1+jorb+norbi*(iorb-1),1)
-           !print *, imatrst-1+jorb+norbi*(iorb-1),ndim_hamovr,tt
-        end do
-     end do
-
-     i_all=-product(shape(randarr))*kind(randarr)
-     deallocate(randarr,stat=i_stat)
-     call memocc(i_stat,i_all,'randarr','solve_eigensystem')
-
-  end if
+!!$  !remove the degeneracy treatment, to be tested later
+!!$  ndegen=0
+!!$  !in the case of degeneracy
+!!$  !transform the passage matrix with all the components of the eigenspace 
+!!$  if (ndegen /= 0) then
+!!$     !create the array of random numbers
+!!$     !it must be the same for all the processors so use some fake functions
+!!$     allocate(randarr(0:ndegen),stat=i_stat)
+!!$     call memocc(i_stat,product(shape(randarr))*kind(randarr),'randarr','solve_eigensystem')
+!!$     sum=0.d0
+!!$     do i=0,ndegen
+!!$        tt=abs(dsin(real(73*i,kind=8)+.7d0))
+!!$        !call random_number(tt)
+!!$        randarr(i)=tt
+!!$        sum=sum+tt**2
+!!$     end do
+!!$     tt=1.d0/sqrt(sum)
+!!$     do i=0,ndegen
+!!$        randarr(i)=tt*randarr(i)
+!!$     end do
+!!$
+!!$     !the degeneracy may appear ONLY in the group of the valence electrons (last one)
+!!$     iorbst=iorbst-norbi
+!!$     imatrst=imatrst-norbi**2
+!!$     istart=norbu-iorbst+1
+!!$     if (norbd < norbu .and. norbd>0) istart=norbd-iorbst+1
+!!$     !print *,'imatrst',imatrst,iorbst,norbi,istart
+!!$     do jorb=1,norbi
+!!$        tt=randarr(0)
+!!$        hamovr(imatrst-1+jorb+norbi*(istart-1),1)=&
+!!$             tt*hamovr(imatrst-1+jorb+norbi*(istart-1),1)
+!!$        !print *, imatrst-1+jorb+norbi*(istart-1),ndim_hamovr,tt
+!!$     end do
+!!$     do iorb=istart+1,istart+ndegen
+!!$        tt=randarr(iorb-istart)
+!!$        do jorb=1,norbi
+!!$           hamovr(imatrst-1+jorb+norbi*(istart-1),1)=&
+!!$                hamovr(imatrst-1+jorb+norbi*(istart-1),1)+tt*hamovr(imatrst-1+jorb+norbi*(iorb-1),1)
+!!$           !print *, imatrst-1+jorb+norbi*(iorb-1),ndim_hamovr,tt
+!!$        end do
+!!$     end do
+!!$
+!!$     i_all=-product(shape(randarr))*kind(randarr)
+!!$     deallocate(randarr,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'randarr','solve_eigensystem')
+!!$
+!!$  end if
 
 end subroutine solve_eigensystem
 
@@ -1427,30 +1540,3 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,
 
 end subroutine build_eigenvectors
 
-subroutine overlap_matrices(nproc,norbep,nvctrp,natsc,nspin,ndim_hamovr,norbsc_arr,hamovr,psi,hpsi)
-  implicit none
-  integer, intent(in) :: nproc,norbep,nvctrp,natsc,ndim_hamovr,nspin
-  integer, dimension(natsc+1), intent(in) :: norbsc_arr
-  real(kind=8), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
-  real(kind=8), dimension(nvctrp,norbep*nproc), intent(in) :: psi,hpsi
-  !local variables
-  integer ::iorbst,imatrst,norbi,i,ispin
-
-  !calculate the overlap matrix for each group of the semicore atoms
-  !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
-  !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
-  iorbst=1
-  imatrst=1
-  do ispin=1,nspin
-     do i=1,natsc+1
-        norbi=norbsc_arr(i)
-        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,hpsi(1,iorbst),nvctrp,&
-             0.d0,hamovr(imatrst,1),norbi)
-        call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,psi(1,iorbst),nvctrp,&
-             0.d0,hamovr(imatrst,2),norbi)
-        iorbst=iorbst+norbi
-        imatrst=imatrst+norbi**2
-     end do
-  end do
-  
-end subroutine overlap_matrices

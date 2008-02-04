@@ -276,3 +276,116 @@ subroutine compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
   enddo
 
 end subroutine compress_forstandard
+
+subroutine compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
+     nseg_f,nvctr_f,keyg_f,keyv_f,  & 
+     psifscf,psi_c,psi_f,psig,ww)
+  ! Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
+  ! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
+  implicit real*8 (a-h,o-z)
+  dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
+  dimension psi_c(nvctr_c),psi_f(7,nvctr_f)
+  dimension psifscf((2*n1+2)*(2*n2+2)*(2*n3+2))
+  real*8 psig(0:n1,2,0:n2,2,0:n3,2)
+  real*8 ww((2*n1+2)*(2*n2+2)*(2*n3+2))
+
+  ! decompose wavelets into coarse scaling functions and wavelets
+  call analyse_shrink_per(n1,n2,n3,ww,psifscf,psig)
+
+  ! coarse part
+  do iseg=1,nseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi_c(i-i0+jj)=psig(i,1,i2,1,i3,1)
+     enddo
+  enddo
+
+  ! fine part
+  do iseg=1,nseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi_f(1,i-i0+jj)=psig(i,2,i2,1,i3,1)
+        psi_f(2,i-i0+jj)=psig(i,1,i2,2,i3,1)
+        psi_f(3,i-i0+jj)=psig(i,2,i2,2,i3,1)
+        psi_f(4,i-i0+jj)=psig(i,1,i2,1,i3,2)
+        psi_f(5,i-i0+jj)=psig(i,2,i2,1,i3,2)
+        psi_f(6,i-i0+jj)=psig(i,1,i2,2,i3,2)
+        psi_f(7,i-i0+jj)=psig(i,2,i2,2,i3,2)
+     enddo
+  enddo
+
+end subroutine compress_per
+
+
+subroutine uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
+     nseg_f,nvctr_f,keyg_f,keyv_f,  & 
+     psi_c,psi_f,psifscf,psig,ww)
+  ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
+  ! into fine scaling functions (psifscf)
+  implicit real*8 (a-h,o-z)
+  dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
+  dimension psi_c(nvctr_c),psi_f(7,nvctr_f)
+  dimension psifscf((2*n1+2)*(2*n2+2)*(2*n3+2))
+  real*8 psig(0:n1,2,0:n2,2,0:n3,2)
+  real*8 ww((2*n1+2)*(2*n2+2)*(2*n3+2))
+
+  call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
+
+  ! coarse part
+  do iseg=1,nseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psig(i,1,i2,1,i3,1)=psi_c(i-i0+jj)
+     enddo
+  enddo
+
+  ! fine part
+  do iseg=1,nseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)
+        psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)
+        psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)
+        psig(i,1,i2,1,i3,2)=psi_f(4,i-i0+jj)
+        psig(i,2,i2,1,i3,2)=psi_f(5,i-i0+jj)
+        psig(i,1,i2,2,i3,2)=psi_f(6,i-i0+jj)
+        psig(i,2,i2,2,i3,2)=psi_f(7,i-i0+jj)
+     enddo
+  enddo
+
+  ! calculate fine scaling functions
+  call synthese_grow_per(n1,n2,n3,ww,psig,psifscf)
+
+end subroutine uncompress_per
