@@ -39,24 +39,6 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
           'Hamiltonian application...'
   end if
 
-  !first build the potential on the whole simulation box
-  if (nproc > 1) then
-     allocate(pot(n1i*n2i*n3i,nspin),stat=i_stat)
-     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','hamiltonianapplication')
-
-     call MPI_ALLGATHERV(potential,ndimpot,MPI_DOUBLE_PRECISION,pot,ngatherarr(0,1),&
-          ngatherarr(0,2),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-
-     if(nspin==2) then
-        call MPI_ALLGATHERV(potential(1,2),ndimpot,&
-             MPI_DOUBLE_PRECISION,pot(1,2),ngatherarr(0,1),&
-             ngatherarr(0,2),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     end if
-  else
-     pot => potential
-  end if
-
-
   select case(geocode)
      case('F')
         n1i=2*n1+31
@@ -124,6 +106,23 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
         call memocc(i_stat,product(shape(x_f2))*kind(x_f2),'x_f2','hamiltonianapplication')
 
   end select
+
+  !then build the potential on the whole simulation box
+  if (nproc > 1) then
+     allocate(pot(n1i*n2i*n3i,nspin),stat=i_stat)
+     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','hamiltonianapplication')
+
+     call MPI_ALLGATHERV(potential,ndimpot,MPI_DOUBLE_PRECISION,pot,ngatherarr(0,1),&
+          ngatherarr(0,2),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+
+     if(nspin==2) then
+        call MPI_ALLGATHERV(potential(1,2),ndimpot,&
+             MPI_DOUBLE_PRECISION,pot(1,2),ngatherarr(0,1),&
+             ngatherarr(0,2),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     end if
+  else
+     pot => potential
+  end if
 
 
   ! Wavefunction in real space

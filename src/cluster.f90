@@ -330,7 +330,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      !import gaussians form CP2K (data in files def_gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
      call import_gaussians(parallel,iproc,nproc,atoms,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-          norb,norbp,occup,n1,n2,n3,nvctrp,hgrid,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
+          norb,norbp,occup,n1,n2,n3,nvctrp,hx,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
           pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
 
   else if (inputPsiId == 0) then
@@ -476,7 +476,6 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      !     ixc=11  ! PBE functional
      !     ixc=1   ! LDA functional
-
      call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
           rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin) !add NSPIN
 
