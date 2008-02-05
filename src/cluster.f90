@@ -330,7 +330,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      !import gaussians form CP2K (data in files def_gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
      call import_gaussians(parallel,iproc,nproc,atoms,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-          norb,norbp,occup,n1,n2,n3,nvctrp,hgrid,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
+          norb,norbp,occup,n1,n2,n3,nvctrp,hx,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
           pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
 
   else if (inputPsiId == 0) then
@@ -338,7 +338,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(geocode,iproc,nproc,atoms,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj, &
-          pkernel,ixc,psi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
+          pkernel,ixc,psi,hpsi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
 
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
@@ -348,8 +348,8 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      !allocate hpsi array (used also as transposed)
      !allocated in the transposed way such as 
      !it can also be used as the transposed hpsi
-     allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','cluster')
+     !allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
+     !call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','cluster')
     
   else if (inputPsiId == 1 ) then 
      !restart from previously calculated wavefunctions, in memory
@@ -476,11 +476,10 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      !     ixc=11  ! PBE functional
      !     ixc=1   ! LDA functional
-
      call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
           rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin) !add NSPIN
 
-     call HamiltonianApplication(geocode,iproc,nproc,atoms,hgrid,&
+     call HamiltonianApplication(geocode,iproc,nproc,atoms,hx,hy,hz,&
           norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
           rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)

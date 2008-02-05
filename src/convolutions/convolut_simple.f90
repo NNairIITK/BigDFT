@@ -271,7 +271,6 @@ subroutine syn_rot_grow_per(n,ndat,x,y)
   return
 end subroutine syn_rot_grow_per
 
-
 subroutine convolut_magic_n_per(n1,n2,n3,x,y)
   ! Applies the magic filter matrix ( no transposition) ; data set grows
   ! The input array x is not overwritten
@@ -296,6 +295,31 @@ subroutine convolut_magic_n_per(n1,n2,n3,x,y)
 
   return
 end subroutine convolut_magic_n_per
+
+subroutine convolut_magic_t_per(n1,n2,n3,x,y)
+  ! Applies the magic filter matrix transposed ; data set shrinks
+  ! The input array x is overwritten
+  implicit real*8 (a-h,o-z)
+  parameter(lowfil=-8,lupfil=7) ! has to be consistent with values in convrot
+  dimension x(0:n1,0:n2,0:n3),y(0:n1,0:n2,0:n3)
+  real*8, allocatable :: ww(:,:,:)
+  
+  allocate(ww(0:n1,0:n2,0:n3))
+  
+  !  (I1,I2*I3) -> (I2*I3,i1)
+  ndat=(n2+1)*(n3+1)
+  call convrot_shrink(n1,ndat,x,ww)
+  !  (I2,I3*i1) -> (I3*i1,i2)
+  ndat=(n3+1)*(n1+1)
+  call convrot_shrink(n2,ndat,ww,x)
+  !  (I3,i1*i2) -> (i1*i2,i3)
+  ndat=(n1+1)*(n2+1)
+  call convrot_shrink(n3,ndat,x,y)
+  
+  deallocate(ww)
+  
+  return
+end subroutine convolut_magic_t_per
 
 
 ! Simple non-optimized version of the major convolution routines
@@ -479,3 +503,84 @@ subroutine convrot_shrink_per(n1,ndat,x,y)
 
   return
 end subroutine convrot_shrink_per
+
+
+subroutine convolut_kinetic_per(n1,n2,n3,hgrid,x,y)
+!   applies the kinetic energy operator onto x to get y. Works for periodic BC
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  real(kind=8), dimension(3), intent(in) :: hgrid
+  real(kind=8), dimension(0:n1,0:n2,0:n3), intent(in) :: x
+  real(kind=8), dimension(0:n1,0:n2,0:n3), intent(out) :: y
+  !local variables
+  integer, parameter :: lowfil=-14,lupfil=14
+  integer :: i1,i2,i3,i,l,j
+  real(kind=8) :: tt
+  real(kind=8), dimension(3) :: scale
+  real(kind=8), dimension(lowfil:lupfil,3) :: fil
+  
+  scale(:)=-.5d0/hgrid(:)**2
+
+  ! second derivative filters for Daubechies 16
+  fil(0,:)=   -3.5536922899131901941296809374d0*scale(:)
+  fil(1,:)=    2.2191465938911163898794546405d0*scale(:)
+  fil(2,:)=   -0.6156141465570069496314853949d0*scale(:)
+  fil(3,:)=    0.2371780582153805636239247476d0*scale(:)
+  fil(4,:)=   -0.0822663999742123340987663521d0*scale(:)
+  fil(5,:)=    0.02207029188482255523789911295638968409d0*scale(:)
+  fil(6,:)=   -0.409765689342633823899327051188315485d-2*scale(:)
+  fil(7,:)=    0.45167920287502235349480037639758496d-3*scale(:)
+  fil(8,:)=   -0.2398228524507599670405555359023135d-4*scale(:)
+  fil(9,:)=    2.0904234952920365957922889447361d-6*scale(:)
+  fil(10,:)=  -3.7230763047369275848791496973044d-7*scale(:)
+  fil(11,:)=  -1.05857055496741470373494132287d-8*scale(:)
+  fil(12,:)=  -5.813879830282540547959250667d-11*scale(:)
+  fil(13,:)=   2.70800493626319438269856689037647576d-13*scale(:)
+  fil(14,:)=  -6.924474940639200152025730585882d-18*scale(:)
+
+  do i=1,14
+     fil(-i,:)=fil(i,:)
+  enddo
+  
+  do i3=0,n3
+     ! (1/2) d^2/dx^2
+     do i2=0,n2
+        do i1=0,n1
+           tt=0.d0
+           do l=lowfil,lupfil
+              j=modulo(i1+l,n1+1)
+              tt=tt+x(j   ,i2,i3)*fil(l,1)
+           enddo
+           y(i1,i2,i3)=tt
+        enddo
+     enddo
+     
+     ! + (1/2) d^2/dy^2
+     do i1=0,n1
+        do i2=0,n2
+           tt=0.d0
+           do l=lowfil,lupfil
+              j=modulo(i2+l,n2+1)
+              tt=tt+x(i1,j   ,i3)*fil(l,2)
+           enddo
+           y(i1,i2,i3)=y(i1,i2,i3)+tt
+        enddo
+     enddo
+     
+  enddo
+
+  ! + (1/2) d^2/dz^2
+  do i2=0,n2
+     do i1=0,n1
+        do i3=0,n3
+           tt=0.d0
+           do l=lowfil,lupfil
+              j=modulo(i3+l,n3+1)
+              tt=tt+x(i1,i2,   j)*fil(l,3)
+           enddo
+           y(i1,i2,i3)=y(i1,i2,i3)+tt
+        enddo
+     enddo
+  enddo
+  
+end subroutine convolut_kinetic_per

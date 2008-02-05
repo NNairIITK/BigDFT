@@ -277,7 +277,7 @@ subroutine compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
 
 end subroutine compress_forstandard
 
-subroutine compress_prim_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
+subroutine compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psifscf,psi_c,psi_f,psig,ww)
   ! Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
@@ -330,10 +330,10 @@ subroutine compress_prim_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
      enddo
   enddo
 
-end subroutine compress_prim_per
+end subroutine compress_per
 
 
-subroutine uncompress_prim_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
+subroutine uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psi_c,psi_f,psifscf,psig,ww)
   ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
@@ -388,4 +388,4 @@ subroutine uncompress_prim_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   ! calculate fine scaling functions
   call synthese_grow_per(n1,n2,n3,ww,psig,psifscf)
 
-end subroutine uncompress_prim_per
+end subroutine uncompress_per

@@ -317,39 +317,44 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
 end subroutine applylocpotkinone
 
 subroutine applylocpotkinone_per(n1,n2,n3, & 
-     hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+     hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
      psir,psifscf,psifscfk,psig,ww,psi,pot,hpsi,epot,ekin)
   !  Applies the local potential and kinetic energy operator to one wavefunction 
   ! Input: pot,psi
   ! Output: hpsi,epot,ekin
-  implicit real(kind=8) (a-h,o-z)
-  dimension pot((2*n1+2)*(2*n2+2)*(2*n3+2))
-  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-  dimension psi(nvctr_c+7*nvctr_f)
-  dimension hpsi(nvctr_c+7*nvctr_f)
-  dimension psir((2*n1+2)*(2*n2+2)*(2*n3+2))
-  real(kind=8), dimension((2*n1+2)*(2*n2+2)*(2*n3+2))::psifscf,psifscfk
-  real(kind=8) psig(0:n1,2,0:n2,2,0:n3,2)
-  real(kind=8) ww((2*n1+2)*(2*n2+2)*(2*n3+2))
-  real(kind=8) hgridh(3)
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f
+  real(kind=8), intent(in) :: hx,hy,hz
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  real(kind=8), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(in) :: pot
+  real(kind=8), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
+  real(kind=8), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(inout) :: psir,psifscf,psifscfk,ww
+  real(kind=8), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
+  real(kind=8), intent(out) :: epot,ekin
+  real(kind=8), dimension(nvctr_c+7*nvctr_f), intent(out) :: hpsi
+  !local variables
+  integer :: i
+  real(kind=8) :: tt
+  real(kind=8), dimension(3) :: hgridh
 
   ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
-  call uncompress_prim(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+  call uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
        psi(1),psi(nvctr_c+1),psifscf,psig,ww)
 
-  hgridh(1)=hgrid*.5d0
-  hgridh(2)=hgrid*.5d0
-  hgridh(3)=hgrid*.5d0
+  hgridh(1)=hx*.5d0
+  hgridh(2)=hy*.5d0
+  hgridh(3)=hz*.5d0
 
-  call convolut_kinetic_prim(2*n1+1,2*n2+1,2*n3+1,hgridh,psifscf,psifscfk)
+  call convolut_kinetic_per(2*n1+1,2*n2+1,2*n3+1,hgridh,psifscf,psifscfk)
 
   ekin=0.d0 
   do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
      ekin=ekin+psifscf(i)*psifscfk(i)
   enddo
 
-  call convolut_magic_n(2*n1+1,2*n2+1,2*n3+1,psifscf,psir) 
+  call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psifscf,psir) 
 
   epot=0.d0
   do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
@@ -358,13 +363,13 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      psir(i)=tt
   enddo
 
-  call convolut_magic_t(2*n1+1,2*n2+1,2*n3+1,psir,psifscf)
+  call convolut_magic_t_per(2*n1+1,2*n2+1,2*n3+1,psir,psifscf)
 
   do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
      psifscf(i)=psifscf(i)+psifscfk(i)
   enddo
 
-  call compress_prim(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
+  call compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
        psifscf,hpsi(1),hpsi(nvctr_c+1),psig,ww)
 
@@ -394,32 +399,6 @@ subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   enddo
 
 end subroutine realspace
-
-subroutine realspace_per(ibyyzz_r,pot,psir,epot,n1,n2,n3)
-  implicit none
-  integer,intent(in)::n1,n2,n3
-  integer,intent(in)::ibyyzz_r(2,-14:2*n2+2,-14:2*n3+2)
-
-  real(kind=8),intent(in)::pot(-14:2*n1+2,-14:2*n2+2,-14:2*n3+2)
-  real(kind=8),intent(inout)::psir(-14:2*n1+2,-14:2*n2+2,-14:2*n3+2)
-
-  real(kind=8),intent(out)::epot
-  real(kind=8) tt
-  integer i1,i2,i3
-
-  epot=0.d0
-  do i3=-14,2*n3+2
-     do i2=-14,2*n2+2
-        do i1=max(ibyyzz_r(1,i2,i3)-14,-14),min(ibyyzz_r(2,i2,i3)-14,2*n1+2)
-           tt=pot(i1,i2,i3)*psir(i1,i2,i3)
-           epot=epot+tt*psir(i1,i2,i3)
-           psir(i1,i2,i3)=tt
-        enddo
-     enddo
-  enddo
-
-end subroutine realspace_per
-
 
 subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
   implicit none

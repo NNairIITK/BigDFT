@@ -19,4 +19,6 @@ EXTRA_DIST = \
 	psppar.H \
 	psppar.C \
 	psppar.Test_lda \
-	psppar.Test
+	psppar.Test \
+	HGH\psppar.H \
+	HGH\psppar.O
