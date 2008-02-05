@@ -122,7 +122,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
   enddo
 
   tt=tt*hxh*hyh*hzh
-  rholeaked=rholeaked**hxh*hyh*hzh
+  rholeaked=rholeaked*hxh*hyh*hzh
 
   !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
 

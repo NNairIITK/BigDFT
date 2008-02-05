@@ -228,8 +228,12 @@ interface
 
    subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
         norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
-        pkernel,ixc,ppsi,ppsit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
+        pkernel,ixc,psi,hpsi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
+     ! Input wavefunctions are found by a diagonalization in a minimal basis set
+     ! Each processors write its initial wavefunctions into the wavefunction file
+     ! The files are then read by readwave
      use module_types
+     use Poisson_Solver
      implicit none
      include 'mpif.h'
      type(atoms_data), intent(in) :: at
@@ -250,7 +254,7 @@ interface
      real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
      real(kind=8), intent(out) :: accurex
      real(kind=8), dimension(norb), intent(out) :: eval
-     real(kind=8), dimension(:,:), pointer :: ppsi,ppsit
+     real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit
    end subroutine input_wf_diag
 
    subroutine reformatmywaves(iproc,norb,norbp,nat,&
@@ -328,6 +332,21 @@ interface
      type(kinetic_bounds), intent(in) :: kbounds
      type(wavefunctions_descriptors), intent(in) :: wfd
    end subroutine hpsitopsi
+
+   subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
+        psi,hpsi,psit,eval,& !mandatory
+        norbe,norbep,etol,norbsc_arr) !optional
+     use module_types
+     implicit none
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     integer, intent(in) :: iproc,nproc,natsc,nspin,norb,norbu,norbd,norbp,nvctrp
+     real(kind=8), dimension(norb), intent(out) :: eval
+     real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit
+     !optional arguments
+     integer, optional, intent(in) :: norbe,norbep
+     real(kind=8), optional, intent(in) :: etol
+     integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
+   end subroutine DiagHam
 
    subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
         nspin,psi,hpsi,psit,occup,evsum,eval)
