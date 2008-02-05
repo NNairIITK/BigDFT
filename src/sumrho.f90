@@ -154,7 +154,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
                     ind3s=(i3s-1)*n1i*n2i
                     do i2=1,n2i
                        ind2=(i2-1)*n1i+ind3
-                       ind2s=(i2-1)*n2i+ind3s
+                       ind2s=(i2-1)*n1i+ind3s
                        !                 do i1=1,2*n1+31
                        do i1=bounds%ibyyzz_r(1,i2-15,i3-15)+1,bounds%ibyyzz_r(2,i2-15,i3-15)+1
                           ind1=i1+ind2
@@ -191,7 +191,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
                     ind3s=(i3s-1)*n1i*n2i
                     do i2=1,n2i
                        ind2=(i2-1)*n1i+ind3
-                       ind2s=(i2-1)*n2i+ind3s
+                       ind2s=(i2-1)*n1i+ind3s
                        do i1=1,n1i
                           ind1=i1+ind2
                           ind1s=i1+ind2s
