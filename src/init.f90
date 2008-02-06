@@ -484,8 +484,8 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
 
 END SUBROUTINE createProjectorsArrays
 
-subroutine import_gaussians(parallel,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-     norb,norbp,occup,n1,n2,n3,nvctrp,hgrid,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
+subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+     norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
      pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
 
   use module_interfaces, except_this_one => import_gaussians
@@ -498,11 +498,10 @@ subroutine import_gaussians(parallel,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(convolutions_bounds), intent(in) :: bounds
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  character(len=1), intent(in) :: datacode
-  logical, intent(in) :: parallel
+  character(len=1), intent(in) :: geocode,datacode
   integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
-  real(kind=8), intent(in) :: hgrid
+  real(kind=8), intent(in) :: hx,hy,hz
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(kind=8), dimension(norb), intent(in) :: spinar,occup
@@ -515,8 +514,8 @@ subroutine import_gaussians(parallel,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
   real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
 
   !local variables
-  integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp,jorb
-  real(kind=8) :: hgridh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum
+  integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp,jorb,n1i,n2i,n3i
+  real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum
   real(kind=8), dimension(:), allocatable :: work_lp,pot,ones
   real(kind=8), dimension(:,:), allocatable :: hamovr
 
@@ -532,17 +531,36 @@ subroutine import_gaussians(parallel,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
      stop
   end if
 
+  hxh=.5d0*hx
+  hyh=.5d0*hy
+  hzh=.5d0*hz
 
-  hgridh=.5d0*hgrid
+  !calculate dimension of the interpolating scaling function grid
+  select case(geocode)
+     case('F')
+        n1i=2*n1+31
+        n2i=2*n2+31
+        n3i=2*n3+31
+     case('S')
+        n1i=2*n1+2
+        n2i=2*n2+31
+        n3i=2*n3+2
+     case('P')
+        n1i=2*n1+2
+        n2i=2*n2+2
+        n3i=2*n3+2
+  end select
+
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
   call memocc(i_stat,product(shape(psi))*kind(psi),'psi','import_gaussians')
 
   !read the values for the gaussian code and insert them on psi 
-  call gautowav(iproc,nproc,at%nat,at%ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+  call gautowav(geocode,iproc,nproc,at%nat,at%ntypes,norb,norbp,n1,n2,n3,&
+       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,&
-       at%iatype,occup,rxyz,hgrid,psi,eks)
+       at%iatype,occup,rxyz,hx,hy,hz,psi,eks)
 
 !!$  !!plot the initial gaussian wavefunctions
 !!$  !do i=2*iproc+1,2*iproc+2
@@ -560,21 +578,21 @@ subroutine import_gaussians(parallel,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
   call memocc(i_stat,product(shape(ones))*kind(ones),'ones','import_gaussians')
   ones(:)=1.0d0
 
-  call sumrho('F',iproc,nproc,norb,norbp,n1,n2,n3,hgridh,hgridh,hgridh,&
-       occup,wfd,psi,rhopot,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,1),nscatterarr,1,ones,&
+  call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,&
+       occup,wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,1,ones,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
-  call PSolver('F',datacode,iproc,nproc,2*n1+31,2*n2+31,2*n3+31,ixc,hgridh,hgridh,hgridh,&
+  call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,1)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
   call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','import_gaussians')
 
-  call HamiltonianApplication('F',iproc,nproc,at,hgrid,hgrid,hgrid,&
+  call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
        norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
-       ngatherarr,(2*n1+31)*(2*n2+31)*nscatterarr(iproc,2),&
-       rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
+       ngatherarr,n1i*n2i*nscatterarr(iproc,2),&
+       rhopot(1+n1i*n2i*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,ones)
 
   i_all=-product(shape(ones))*kind(ones)
@@ -602,166 +620,6 @@ subroutine import_gaussians(parallel,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
 
   call DiagHam(iproc,nproc,at%natsc,nspin,norb,0,norb,norbp,nvctrp,wfd,&
        psi,hpsi,psit,eval)
-
-!!$
-!!$  if (parallel) then
-!!$
-!!$     !transpose all the wavefunctions for having a piece of all the orbitals 
-!!$     !for each processor
-!!$     !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-!!$     allocate(psit(nvctrp,norbp*nproc),stat=i_stat)
-!!$     call memocc(i_stat,product(shape(psit))*kind(psit),'psit','import_gaussians')
-!!$
-!!$     call timing(iproc,'Un-TransSwitch','ON')
-!!$     call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,psit)
-!!$     call timing(iproc,'Un-TransSwitch','OF')
-!!$     call timing(iproc,'Un-TransComm  ','ON')
-!!$     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-!!$          psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-!!$     call timing(iproc,'Un-TransComm  ','OF')
-!!$
-!!$     call timing(iproc,'Un-TransSwitch','ON')
-!!$     call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psit)
-!!$     call timing(iproc,'Un-TransSwitch','OF')
-!!$     call timing(iproc,'Un-TransComm  ','ON')
-!!$     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-!!$          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-!!$     call timing(iproc,'Un-TransComm  ','OF')
-!!$
-!!$     !end of transposition
-!!$
-!!$     allocate(hamovr(norb**2,4),stat=i_stat)
-!!$     call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','import_gaussians')
-!!$
-!!$     !calculate the overlap matrix for each group of the semicore atoms
-!!$     !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
-!!$     !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
-!!$
-!!$     if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
-!!$          'Overlap Matrix...'
-!!$
-!!$     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,&
-!!$          0.d0,hamovr(1,3),norb)
-!!$
-!!$     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,psi,nvctrp,&
-!!$          0.d0,hamovr(1,4),norb)
-!!$
-!!$     !reduce the overlap matrix between all the processors
-!!$     call MPI_ALLREDUCE(hamovr(1,3),hamovr(1,1),2*norb**2,&
-!!$          MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-!!$
-!!$     !print the overlap matrix in the wavelet case
-!!$     !print *,norb
-!!$     !open(33)
-!!$     !do iorb=1,norb
-!!$     !   write(33,'(2000(1pe10.2))')&
-!!$     !        (hamovr(jorb+(iorb-1)*norb,2),jorb=1,norb)
-!!$     !end do
-!!$     !close(33)
-
-     !stop
-!!$
-!!$     !found the eigenfunctions for each group
-!!$     n_lp=max(10,4*norb)
-!!$     allocate(work_lp(n_lp),stat=i_stat)
-!!$     call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','import_gaussians')
-!!$
-!!$     if (iproc.eq.0) write(*,'(1x,a)')'Linear Algebra...'
-!!$
-!!$     call DSYGV(1,'V','U',norb,hamovr(1,1),norb,hamovr(1,2),norb,eval,work_lp,n_lp,info)
-!!$
-!!$     if (info.ne.0) write(*,*) 'DSYGV ERROR',info
-        !!write the matrices on a file
-        !open(33+2*(i-1))
-        !do jjorb=1,norbi
-        !   write(33+2*(i-1),'(2000(1pe10.2))')&
-        !        (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
-        !end do
-        !close(33+2*(i-1))
-        !open(34+2*(i-1))
-        !do jjorb=1,norbi
-        !   write(34+2*(i-1),'(2000(1pe10.2))')&
-        !        (hamovr(imatrst-1+jjorb+(jiorb-1)*norbi,1),jiorb=1,norbi)
-        !end do
-        !close(34+2*(i-1))
-!!$
-!!$     if (iproc.eq.0) then
-!!$        do iorb=1,norb
-!!$           write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
-!!$        enddo
-!!$     endif
-!!$
-!!$     i_all=-product(shape(work_lp))*kind(work_lp)
-!!$     deallocate(work_lp,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'work_lp','import_gaussians')
-!!$
-!!$     if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Imported Wavefunctions...'
-!!$
-!!$     !perform the vector-matrix multiplication for building the input wavefunctions
-!!$     ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
-!!$
-!!$     call DGEMM('N','N',nvctrp,norb,norb,1.d0,psi,nvctrp,&
-!!$          hamovr(1,1),norb,0.d0,psit,nvctrp)
-!!$
-!!$     i_all=-product(shape(hamovr))*kind(hamovr)
-!!$     deallocate(hamovr,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'hamovr','import_gaussians')
-!!$
-!!$     !retranspose the wavefunctions
-!!$     call timing(iproc,'Un-TransComm  ','ON')
-!!$     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-!!$          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-!!$     call timing(iproc,'Un-TransComm  ','OF')
-!!$     call timing(iproc,'Un-TransSwitch','ON')
-!!$     call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi)
-!!$     call timing(iproc,'Un-TransSwitch','OF')
-!!$
-!!$  else !serial case
-!!$
-!!$     write(*,'(1x,a)',advance='no')'Overlap Matrix...'
-!!$
-!!$     allocate(hamovr(norb**2,4),stat=i_stat)
-!!$     call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','import_gaussians')
-!!$     !hamovr(jorb,iorb,3)=+psi(k,jorb)*hpsi(k,iorb)
-!!$     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,&
-!!$          0.d0,hamovr(1,1),norb)
-!!$     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,psi,nvctrp,&
-!!$          0.d0,hamovr(1,2),norb)
-!!$
-!!$     n_lp=max(10,4*norb)
-!!$     allocate(work_lp(n_lp),stat=i_stat)
-!!$     call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','import_gaussians')
-!!$
-!!$     write(*,'(1x,a)')'Linear Algebra...'
-!!$     call DSYGV(1,'V','U',norb,hamovr(1,1),norb,hamovr(1,2),norb,eval,work_lp,n_lp,info)
-!!$
-!!$     if (info.ne.0) write(*,*) 'DSYGV ERROR',info
-!!$     if (iproc.eq.0) then
-!!$        do iorb=1,norb
-!!$           write(*,'(1x,a,i0,a,1x,1pe21.14)') 'evale(',iorb,')=',eval(iorb)
-!!$        enddo
-!!$     endif
-!!$
-!!$     i_all=-product(shape(work_lp))*kind(work_lp)
-!!$     deallocate(work_lp,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'work_lp','import_gaussians')
-!!$
-!!$     write(*,'(1x,a)',advance='no')'Building orthogonal Imported Wavefunctions...'
-!!$
-!!$     !copy the values into hpsi
-!!$     do iorb=1,norb
-!!$        do i=1,wfd%nvctr_c+7*wfd%nvctr_f
-!!$           hpsi(i,iorb)=psi(i,iorb)
-!!$        end do
-!!$     end do
-!!$     !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
-!!$     call DGEMM('N','N',nvctrp,norb,norb,1.d0,hpsi,nvctrp,hamovr(1,1),norb,0.d0,psi,nvctrp)
-!!$
-!!$     i_all=-product(shape(hamovr))*kind(hamovr)
-!!$     deallocate(hamovr,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'hamovr','import_gaussians')
-!!$
-!!$  endif
 
   if (iproc.eq.0) write(*,'(1x,a)')'done.'
 

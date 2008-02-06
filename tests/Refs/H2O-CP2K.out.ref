@@ -114,11 +114,11 @@
  ekin_sum,epot_sum,eproj_sum  1.36399559587E+01 -1.88258836972E+01  1.23657580477E+00
     ehart,   eexcu,    vexcu  2.14096699112E+01 -4.12984421780E+00 -5.41374973736E+00
  Imported Wavefunctions Orthogonalization: Overlap Matrix... Linear Algebra...
- eval(1)= -9.21659008677334E-01
- eval(2)= -4.75895511362496E-01
- eval(3)= -3.26623644330773E-01
- eval(4)= -2.50499650565732E-01
- Building orthogonal Imported Wavefunctions... done.
+ evale(1)= -9.21659008677334E-01
+ evale(2)= -4.75895511362496E-01
+ evale(3)= -3.26623644330773E-01
+ evale(4)= -2.50499650565732E-01 <- Last eigenvalue for input wavefunctions
+ Building orthogonal Wavefunctions... done.
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       7.999996880923
  PSolver, free  BC, dimensions:    79   91   79   proc    2   ixc:  1 ...done.
@@ -222,7 +222,7 @@
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  1.35341083267E+01 -1.86949240649E+01  1.14931769049E+00
  Total energy with tail correction -1.711855356329E+01
- CPU time for root process     0        13.27        12.74
+ CPU time for root process     0        12.75        12.42
  Final values of the Forces for each atom
      1      O  2.36810E-04 -2.53614E-04 -3.56937E-02
      2      H  2.32118E-04 -1.31395E-02  1.08311E-02
@@ -232,6 +232,6 @@
       y direction     7.98017579E-05
       z direction    -1.40169494E-02
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1016 allocations and 1016 deallocations, remaining memory(B):0
+ 1019 allocations and 1019 deallocations, remaining memory(B):0
  memory occupation peak: 76 MB
  for the array  x_f3 in the routine applylocpotkinall

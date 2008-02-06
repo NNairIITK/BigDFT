@@ -1,20 +1,21 @@
-subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,occup,rxyz,hgrid,psi,eks)
-
+subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+     nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,occup,rxyz,hx,hy,hz,psi,eks)
   implicit none
-  include 'mpif.h'
+  character(len=1), intent(in) :: geocode
   integer, intent(in) :: norb,norbp,iproc,nproc,nat,ntypes
   integer, intent(in) :: nvctr_c,nvctr_f,n1,n2,n3,nseg_c,nseg_f
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(nat), intent(in) :: iatype
-  real(kind=8), intent(in) :: hgrid
+  real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), intent(in) :: rxyz(3,nat)
   real(kind=8), dimension(norb), intent(in) :: occup
   real(kind=8), intent(out) :: eks
   real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: psi
   !local variables
+  include 'mpif.h'
   logical :: myorbital
   character(len=6) :: string,symbol
   character(len=100) :: line
@@ -343,8 +344,8 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
            call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 !!$           !this kinetic energy is not reliable
 !!$           eks=eks+ek*occup(iorb)*cimu(m,ishell,iat,iorb)
-           call crtonewave('F',n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiatn,&
-                rx,ry,rz,hgrid,hgrid,hgrid,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+           call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiatn,&
+                rx,ry,rz,hx,hy,hz,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
                 nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,&
                 keyg(1,nseg_c+1),keyv(nseg_c+1),&
                 tpsi(1),tpsi(nvctr_c+1))

@@ -111,11 +111,11 @@
  ekin_sum,epot_sum,eproj_sum  3.54719349854E+00 -5.48192039305E+00  6.59169992080E-01
     ehart,   eexcu,    vexcu  4.49059878027E+00 -1.40660805221E+00 -1.83798690440E+00
  Input Wavefunctions Orthogonalization: Overlap Matrix... Linear Algebra...
- evale(1)= -4.69840374994923E-01
- evale(2)= -1.67938818608794E-01
+ evale(1)= -4.69840374994922E-01
+ evale(2)= -1.67938818608793E-01
  evale(3)= -1.67938818608793E-01
  evale(4)= -1.67936591634632E-01 <- Last eigenvalue for input wavefunctions
- Building orthogonal Input Wavefunctions... done.
+ Building orthogonal Wavefunctions... done.
  expected accuracy in kinetic energy due to grid size 5.94E-04
  suggested value for gnrm_cv  1.49E-04
  ---------------------------------------------------------------------------- iter= 1
@@ -181,10 +181,10 @@
  final ehart, eexcu,  vexcu   4.37012902449E+00 -1.37180739929E+00 -1.79225772604E+00
  FINAL iter,total energy,gnrm     7  -5.338579762190E+00  5.34E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1)= -4.98160619092819E-01
- eval(   2)= -1.96290489614047E-01
- eval(   3)= -1.96290489614047E-01
- eval(   4)= -1.96288760208743E-01
+ eval(   1)= -4.98160619092817E-01
+ eval(   2)= -1.96290489614045E-01
+ eval(   3)= -1.96290489614045E-01
+ eval(   4)= -1.96288760208741E-01
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=       3.999999944908
  PSolver, free  BC, dimensions:    95   95   95   proc    2   ixc:  0 ...done.
@@ -203,7 +203,7 @@
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  3.38031847974E+00 -5.41961181510E+00  6.49652947584E-01
  Total energy with tail correction -5.339319085515E+00
- CPU time for root process     0        13.70        13.70
+ CPU time for root process     0        14.82        14.74
  Final values of the Forces for each atom
      1      C  3.69478E-05  3.69478E-05  3.69478E-05
  the sum of the forces is
@@ -211,6 +211,6 @@
       y direction     3.69477891E-05
       z direction     3.69477891E-05
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 767 allocations and 767 deallocations, remaining memory(B):0
+ 758 allocations and 758 deallocations, remaining memory(B):0
  memory occupation peak: 67 MB
  for the array  x_f3 in the routine applylocpotkinall

@@ -199,21 +199,21 @@ interface
      real(kind=8), dimension(*), intent(out) :: pot_ion
    end subroutine createIonicPotential
 
-   subroutine import_gaussians(parallel,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-        norb,norbp,occup,n1,n2,n3,nvctrp,hgrid,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj, &
+   subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+        norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
         pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
      use module_types
+     use Poisson_Solver
      implicit none
      include 'mpif.h'
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(convolutions_bounds), intent(in) :: bounds
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-     character(len=1), intent(in) :: datacode
-     logical, intent(in) :: parallel
+     character(len=1), intent(in) :: geocode,datacode
      integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
-     real(kind=8), intent(in) :: hgrid
+     real(kind=8), intent(in) :: hx,hy,hz
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
      real(kind=8), dimension(norb), intent(in) :: spinar,occup
