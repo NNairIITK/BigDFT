@@ -379,7 +379,11 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
         tt=max(tt,abs(1.d0-scpr))
      end if
   end do
-  call MPI_REDUCE(tt,normdev,1,MPI_DOUBLE_PRECISION,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  if (nproc > 1) then
+     call MPI_REDUCE(tt,normdev,1,MPI_DOUBLE_PRECISION,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  else
+     normdev=tt
+  end if
   if (iproc ==0 ) write(*,'(1x,a,1pe12.2)')&
        'Deviation from normalization of the imported orbitals',normdev
 
