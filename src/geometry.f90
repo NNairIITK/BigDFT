@@ -641,7 +641,7 @@ subroutine wtposout(igeostep,energy,rxyz,atoms)
         symbol=name(1:2)
         suffix=name(4:6)
      else
-        symbol=name(1:1)
+        symbol=name(1:2)
         suffix=name(3:5)
      end if
      !write(9,'(3(1x,e21.14),2x,a10)') (rxyz(j,iat),j=1,3),atomnames(iatype(iat))

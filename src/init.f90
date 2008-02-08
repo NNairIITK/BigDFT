@@ -980,9 +980,11 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
      end do
      if (natsc > 0) then
         if (nspin == 2) then
-           if (sum(norbsc_arr(1:natsc,1)) /= sum(norbsc_arr(1:natsc,2))) write(*,'(1x,a)')&
+           if (sum(norbsc_arr(1:natsc,1)) /= sum(norbsc_arr(1:natsc,2))) then
+              write(*,'(1x,a)')&
                 'ERROR (DiagHam): The number of semicore orbitals must be the same for both spins'
-           stop
+              stop
+           end if
         end if
         norbsc=sum(norbsc_arr(1:natsc,1))
      else
@@ -991,7 +993,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
 
      natsceff=natsc
      allocate(norbgrp(natsceff+1,nspin),stat=i_stat)
-     call memocc(i_stat,product(shape(norbgrp))*kind(norbgrp),'norbgrp','input_wf_diag')
+     call memocc(i_stat,product(shape(norbgrp))*kind(norbgrp),'norbgrp','diagham')
 
      !assign the grouping of the orbitals
      norbgrp=norbsc_arr
@@ -1001,7 +1003,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
 
      natsceff=0
      allocate(norbgrp(1,nspin),stat=i_stat)
-     call memocc(i_stat,product(shape(norbgrp))*kind(norbgrp),'norbgrp','input_wf_diag')
+     call memocc(i_stat,product(shape(norbgrp))*kind(norbgrp),'norbgrp','diagham')
 
      norbsc=0
      norbgrp(1,1)=norbu
@@ -1022,7 +1024,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
      !transpose all the wavefunctions for having a piece of all the orbitals 
      !for each processor
      allocate(psiw(nvctrp,norbtotp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','input_wf_diag')
+     call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','diagham')
 
      call switch_waves(iproc,nproc,norbtot,norbtotp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,psiw)
      call MPI_ALLTOALL(psiw,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,  &
@@ -1034,7 +1036,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
 
      i_all=-product(shape(psiw))*kind(psiw)
      deallocate(psiw,stat=i_stat)
-     call memocc(i_stat,i_all,'psiw','input_wf_diag')
+     call memocc(i_stat,i_all,'psiw','diagham')
      !end of transposition
 
      !allocation values
@@ -1047,7 +1049,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
   end if
 
   allocate(hamovr(nspin*ndim_hamovr,n2hamovr),stat=i_stat)
-  call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','input_wf_diag')
+  call memocc(i_stat,product(shape(hamovr))*kind(hamovr),'hamovr','diagham')
 
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
        'Overlap Matrix...'
@@ -1059,7 +1061,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
      !deallocate hpsi in the case of a minimal basis
      i_all=-product(shape(hpsi))*kind(hpsi)
      deallocate(hpsi,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsi','input_wf_diag')
+     call memocc(i_stat,i_all,'hpsi','diagham')
   end if
 
   if (nproc > 1) then
@@ -1075,7 +1077,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
   !otherwise do it only in parallel
   if (minimal .or. nproc > 1) then
         allocate(psit(nvctrp,norbp*nproc),stat=i_stat)
-        call memocc(i_stat,product(shape(psit))*kind(psit),'psit','input_wf_diag')
+        call memocc(i_stat,product(shape(psit))*kind(psit),'psit','diagham')
   else
      psit => hpsi
   end if
@@ -1087,16 +1089,16 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
 
   i_all=-product(shape(hamovr))*kind(hamovr)
   deallocate(hamovr,stat=i_stat)
-  call memocc(i_stat,i_all,'hamovr','input_wf_diag')
+  call memocc(i_stat,i_all,'hamovr','diagham')
   i_all=-product(shape(norbgrp))*kind(norbgrp)
   deallocate(norbgrp,stat=i_stat)
-  call memocc(i_stat,i_all,'norbgrp','input_wf_diag')
+  call memocc(i_stat,i_all,'norbgrp','diagham')
 
   if (minimal) then
      !deallocate the old psi
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)
-     call memocc(i_stat,i_all,'psi','input_wf_diag')
+     call memocc(i_stat,i_all,'psi','diagham')
   else if (nproc == 1) then
      !reverse objects for the normal diagonalisation in serial
      !at this stage hpsi is the eigenvectors and psi is the old wavefunction
@@ -1121,7 +1123,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
 
   if (minimal) then
      allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','input_wf_diag')
+     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','diagham')
   end if
 
   if (nproc > 1) then
@@ -1134,7 +1136,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
      if (minimal) then
         !allocate the direct wavefunction
         allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
-        call memocc(i_stat,product(shape(psi))*kind(psi),'psi','input_wf_diag')
+        call memocc(i_stat,product(shape(psi))*kind(psi),'psi','diagham')
      end if
 
      call timing(iproc,'Un-TransSwitch','ON')

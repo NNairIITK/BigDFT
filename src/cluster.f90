@@ -132,9 +132,9 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(:,:), pointer :: psi
   !local variables
   character(len=1) :: datacode,geocode
-  logical :: calc_tail,output_wf,output_grid
-  integer :: ixc,ncharge,ncong,idsx,ncongt,nspin,mpol,inputPsiId,itermax
-  integer :: nelec,norbu,norbd,ndegree_ip,nvctrp,mids,iorb,iounit
+  logical :: calc_tail,output_wf,output_grid,switchSD
+  integer :: ixc,ncharge,ncong,idsx,ncongt,nspin,mpol,inputPsiId,itermax,idsx_actual
+  integer :: nelec,norbu,norbd,ndegree_ip,nvctrp,mids,iorb,iounit,ids,idiistol
   integer :: n1_old,n2_old,n3_old,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n3d,n3p,n3pi,i3xcsh,i3s
   integer :: ncount0,ncount1,ncount_rate,ncount_max,iunit,n1i,n2i,n3i
   integer :: i1,i2,i3,ind,iat,ierror,i_all,i_stat,iter,ierr,i03,i04,jproc,ispin
@@ -443,7 +443,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      call razero(3*(idsx+1)**2,ads)
   endif
 
-  alpha=1.d0
+  alpha=2.d0
   energy=1.d10
   gnrm=1.d10
   ekin_sum=0.d0 
@@ -453,13 +453,23 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   energy_min=1.d10
   !set the infocode to the value it would have in the case of no convergence
   infocode=1
+  !logical control variable for switch DIIS-SD
+  switchSD=.false.
+  !local variable for the diis history
+  idsx_actual=idsx
+
+  ids=0
+  idiistol=0
 
   !end of the initialization part
   call timing(iproc,'INIT','PR')
 
   ! loop for wavefunction minimization
   wfn_loop: do iter=1,itermax
-     if (idsx.gt.0) mids=mod(iter-1,idsx)+1
+     if (idsx.gt.0) then
+        mids=mod(ids,idsx)+1
+        ids=ids+1
+     end if
      if (iproc.eq.0) then 
         write(*,'(1x,a,i0)')&
              '---------------------------------------------------------------------------- iter= ',&
@@ -508,9 +518,9 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
         exit wfn_loop 
      endif
 
-     call hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
+     call hpsitopsi(ids,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,bounds%kb,&
-          eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
+          eval,ncong,mids,idsx_actual,ads,energy,energy_old,alpha,gnrm,scprsum,&
           psi,psit,hpsi,psidst,hpsidst,nspin,spinar)! add NSPIN
 
      tt=energybs-scprsum
@@ -561,6 +571,49 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
            end if
         end if
      end if
+
+     !add experimental switch between DIIS and SD
+     !if it works this section should be inserted into hpsitopsi
+     if (energy == energy_min) idiistol=0
+     if (energy > energy_min .and. idsx >0 .and. .not. switchSD) then
+        idiistol=idiistol+1
+     end if
+     if (idiistol > idsx) then
+        !the energy has not decreasing for too much steps, switching to SD for next steps
+        if (iproc ==0) write(*,'(1x,a,1pe9.2,a)')&
+                'WARNING: The energy value is growing (delta=',energy-energy_min,') switch to SD'
+        switchSD=.true.
+        i_all=-product(shape(psidst))*kind(psidst)
+        deallocate(psidst,stat=i_stat)
+        call memocc(i_stat,i_all,'psidst','cluster')
+        i_all=-product(shape(hpsidst))*kind(hpsidst)
+        deallocate(hpsidst,stat=i_stat)
+        call memocc(i_stat,i_all,'hpsidst','cluster')
+        i_all=-product(shape(ads))*kind(ads)
+        deallocate(ads,stat=i_stat)
+        call memocc(i_stat,i_all,'ads','cluster')
+        idsx_actual=0
+        idiistol=0
+
+     end if
+     if ( (energy == energy_min) .and. switchSD) then
+        !restore the original DIIS
+        if (iproc ==0) write(*,'(1x,a,1pe9.2)')&
+                'WARNING: The energy value is now decreasing again, coming back to DIIS'
+        switchSD=.false.
+        idsx_actual=idsx
+        ids=0
+        idiistol=0
+
+        allocate(psidst(nvctrp,norbp*nproc,idsx),stat=i_stat)
+        call memocc(i_stat,product(shape(psidst))*kind(psidst),'psidst','cluster')
+        allocate(hpsidst(nvctrp,norbp*nproc,idsx),stat=i_stat)
+        call memocc(i_stat,product(shape(hpsidst))*kind(hpsidst),'hpsidst','cluster')
+        allocate(ads(idsx+1,idsx+1,3),stat=i_stat)
+        call memocc(i_stat,product(shape(ads))*kind(ads),'ads','cluster')
+        call razero(3*(idsx+1)**2,ads)
+     end if
+
 
   end do wfn_loop
   if (iter == itermax+1 .and. iproc == 0 ) &
