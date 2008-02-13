@@ -326,6 +326,12 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   if (inputPsiId == -2) then
+
+     if (iproc.eq.0) then
+        write(*,'(1x,a)')&
+             '------------------------------------------------- Random wavefunctions initalization'
+     end if
+
      !random initialisation of the wavefunctions
      allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
      call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
@@ -593,7 +599,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      !add experimental switch between DIIS and SD
      !if it works this section should be inserted into hpsitopsi
-     if (energy == energy_min) idiistol=0
+     if (energy == energy_min .and. .not. switchSD) idiistol=0
      if (energy > energy_min .and. idsx >0 .and. .not. switchSD) then
         idiistol=idiistol+1
      end if
