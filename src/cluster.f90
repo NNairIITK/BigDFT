@@ -922,7 +922,7 @@ contains
     !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1) then
 
-       if (idsx.gt.0) then
+       if (idsx_actual > 0) then
           i_all=-product(shape(psidst))*kind(psidst)
           deallocate(psidst,stat=i_stat)
           call memocc(i_stat,i_all,'psidst','cluster')
