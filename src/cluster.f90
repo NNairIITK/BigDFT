@@ -324,8 +324,27 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   allocate(eval(norb),stat=i_stat)
   call memocc(i_stat,product(shape(eval))*kind(eval),'eval','cluster')
 
-  ! INPUT WAVEFUNCTIONS
-  if (inputPsiId == -1) then
+  ! INPUT WAVEFUNCTIONS, added also random input guess
+  if (inputPsiId == -2) then
+     !random initialisation of the wavefunctions
+     allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
+
+     do iorb=1,norbp*nproc
+        do i1=1,nvctrp
+           call random_number(tt)
+           psi(i1,iorb)=real(tt,kind=8)
+        end do
+     end do
+
+     eval(:)=-0.5d0
+
+     !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
+     call first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,&
+          wfd%nvctr_c,wfd%nvctr_f,nvctrp,nspin,psi,hpsi,psit)
+     
+
+  else if (inputPsiId == -1) then
 
      !import gaussians form CP2K (data in files def_gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
@@ -410,7 +429,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   else
 
      if (iproc == 0) then
-        write(*,'(1x,a)')'The supported values of inputPsiId are integers from -1 to 2'
+        write(*,'(1x,a)')'The supported values of inputPsiId are integers from -2 to 2'
         write(*,'(1x,a,i0)')'                        while we found',inputPsiId
      end if
      stop
@@ -578,7 +597,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      if (energy > energy_min .and. idsx >0 .and. .not. switchSD) then
         idiistol=idiistol+1
      end if
-     if (idiistol > idsx) then
+     if (idiistol > idsx .and. .not. switchSD) then
         !the energy has not decreasing for too much steps, switching to SD for next steps
         if (iproc ==0) write(*,'(1x,a,1pe9.2,a)')&
                 'WARNING: The energy value is growing (delta=',energy-energy_min,') switch to SD'
@@ -597,6 +616,9 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      end if
      if ( (energy == energy_min) .and. switchSD) then
+        idiistol=idiistol+1
+     end if
+     if (idiistol > idsx .and. switchSD) then
         !restore the original DIIS
         if (iproc ==0) write(*,'(1x,a,1pe9.2)')&
                 'WARNING: The energy value is now decreasing again, coming back to DIIS'
@@ -619,7 +641,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   if (iter == itermax+1 .and. iproc == 0 ) &
        write(*,'(1x,a)')'No convergence within the allowed number of minimization steps'
 
-  if (idsx.gt.0) then
+  if (idsx_actual > 0) then
      i_all=-product(shape(psidst))*kind(psidst)
      deallocate(psidst,stat=i_stat)
      call memocc(i_stat,i_all,'psidst','cluster')
