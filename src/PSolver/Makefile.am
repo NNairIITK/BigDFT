@@ -98,7 +98,8 @@ CLEANFILES = mpif.h POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@
 mpif.h:
 	touch mpif.h && \
 	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h && \
-	 echo "integer :: MPI_DOUBLE_PRECISION,MPI_MAX,MPI_MIN" >> mpif.h
+	 echo "integer :: MPI_DOUBLE_PRECISION,MPI_INTEGER" >> mpif.h && \
+	 echo "integer :: MPI_MAX,MPI_MIN" >> mpif.h
 
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 

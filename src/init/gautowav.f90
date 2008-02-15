@@ -1,20 +1,21 @@
-subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,occup,rxyz,hgrid,psi,eks)
-
+subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+     nvctr_c,nvctr_f,nseg_c,nseg_f,keyg,keyv,iatype,occup,rxyz,hx,hy,hz,psi,eks)
   implicit none
-  include 'mpif.h'
+  character(len=1), intent(in) :: geocode
   integer, intent(in) :: norb,norbp,iproc,nproc,nat,ntypes
   integer, intent(in) :: nvctr_c,nvctr_f,n1,n2,n3,nseg_c,nseg_f
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(nat), intent(in) :: iatype
-  real(kind=8), intent(in) :: hgrid
+  real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), intent(in) :: rxyz(3,nat)
   real(kind=8), dimension(norb), intent(in) :: occup
   real(kind=8), intent(out) :: eks
   real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: psi
   !local variables
+  include 'mpif.h'
   logical :: myorbital
   character(len=6) :: string,symbol
   character(len=100) :: line
@@ -343,8 +344,8 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
            call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 !!$           !this kinetic energy is not reliable
 !!$           eks=eks+ek*occup(iorb)*cimu(m,ishell,iat,iorb)
-           call crtonewave(n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiatn,&
-                rx,ry,rz,hgrid,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+           call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiatn,&
+                rx,ry,rz,hx,hy,hz,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
                 nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,&
                 keyg(1,nseg_c+1),keyv(nseg_c+1),&
                 tpsi(1),tpsi(nvctr_c+1))
@@ -379,7 +380,11 @@ subroutine gautowav(iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nf
         tt=max(tt,abs(1.d0-scpr))
      end if
   end do
-  call MPI_REDUCE(tt,normdev,1,MPI_DOUBLE_PRECISION,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  if (nproc > 1) then
+     call MPI_REDUCE(tt,normdev,1,MPI_DOUBLE_PRECISION,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  else
+     normdev=tt
+  end if
   if (iproc ==0 ) write(*,'(1x,a,1pe12.2)')&
        'Deviation from normalization of the imported orbitals',normdev
 
@@ -480,24 +485,42 @@ logical function myorbital(iorb,norbe,iproc,nproc)
      myorbital=.false.
   endif
 
-  return
 end function myorbital
 
-subroutine crtonewave(n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hgrid, & 
+subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hx,hy,hz, & 
      nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,  & 
      nseg_c,mvctr_c,keyg_c,keyv_c,nseg_f,mvctr_f,keyg_f,keyv_f,psi_c,psi_f)
   ! returns an input guess orbital that is a Gaussian centered at a Wannier center
   ! exp (-1/(2*gau_a^2) *((x-cntrx)^2 + (y-cntry)^2 + (z-cntrz)^2 ))
   ! in the arrays psi_c, psi_f
-  implicit real(kind=8) (a-h,o-z)
-  parameter(nw=16000)
-  dimension xp(nterm),psiat(nterm),fac_arr(ntp)
-  dimension lx(ntp),ly(ntp),lz(ntp)
-  dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
-  dimension psi_c(mvctr_c),psi_f(7,mvctr_f)
-  real(kind=8), allocatable, dimension(:,:) :: wprojx, wprojy, wprojz
-  real(kind=8), allocatable, dimension(:,:) :: work
-  real(kind=8), allocatable :: psig_c(:,:,:), psig_f(:,:,:,:)
+  implicit none
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: n1,n2,n3,nterm,ntp,nseg_c,nseg_f,mvctr_c,mvctr_f
+  integer, intent(in) :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
+  real(kind=8), intent(in) :: rx,ry,rz,hx,hy,hz
+  integer, dimension(ntp), intent(in) :: lx,ly,lz
+  integer, dimension(nseg_c), intent(in) :: keyv_c
+  integer, dimension(nseg_f), intent(in) :: keyv_f
+  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+  integer, dimension(2,nseg_f), intent(in) :: keyg_f
+  real(kind=8), dimension(ntp), intent(in) :: fac_arr
+  real(kind=8), dimension(nterm), intent(in) :: xp,psiat
+  real(kind=8), dimension(mvctr_c), intent(out) :: psi_c
+  real(kind=8), dimension(7,mvctr_f), intent(out) :: psi_f
+  !local variables
+  integer, parameter ::nw=16000
+  logical :: perx,pery,perz
+  integer:: iterm,itp,n_gau,ml1,mu1,ml2,mu2,ml3,mu3,i1,i2,i3,i_all,i_stat,iseg,ii,jj,j0,j1,i0,i
+  real(kind=8) :: gau_a,te
+  real(kind=8), dimension(:,:), allocatable :: work,wprojx,wprojy,wprojz
+  real(kind=8), dimension(:,:,:), allocatable :: psig_c
+  real(kind=8), dimension(:,:,:,:), allocatable :: psig_f
+
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
 
   allocate(wprojx(0:n1,2),stat=i_stat)
   call memocc(i_stat,product(shape(wprojx))*kind(wprojx),'wprojx','crtonewave')
@@ -516,11 +539,11 @@ subroutine crtonewave(n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hgri
   itp=1
   gau_a=xp(iterm)
   n_gau=lx(itp)
-  CALL GAUSS_TO_DAUB(hgrid,fac_arr(itp),rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1),te,work,nw)
+  CALL GAUSS_TO_DAUB(hx,fac_arr(itp),rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1),te,work,nw,perx)
   n_gau=ly(itp)
-  CALL GAUSS_TO_DAUB(hgrid,1.d0,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1),te,work,nw)
+  CALL GAUSS_TO_DAUB(hy,1.d0,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1),te,work,nw,pery)
   n_gau=lz(itp)
-  CALL GAUSS_TO_DAUB(hgrid,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw)
+  CALL GAUSS_TO_DAUB(hz,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw,perz)
 
   ! First term: coarse projector components
   do i3=nl3_c,nu3_c
@@ -549,11 +572,11 @@ subroutine crtonewave(n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hgri
   do iterm=2,nterm
      gau_a=xp(iterm)
      n_gau=lx(itp)
-     CALL GAUSS_TO_DAUB(hgrid,fac_arr(itp),rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1),te,work,nw)
+     CALL GAUSS_TO_DAUB(hx,fac_arr(itp),rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1),te,work,nw,perx)
      n_gau=ly(itp)
-     CALL GAUSS_TO_DAUB(hgrid,1.d0,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1),te,work,nw)
+     CALL GAUSS_TO_DAUB(hy,1.d0,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1),te,work,nw,pery)
      n_gau=lz(itp)
-     CALL GAUSS_TO_DAUB(hgrid,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw)
+     CALL GAUSS_TO_DAUB(hz,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw,perz)
 
      ! First term: coarse projector components
      do i3=nl3_c,nu3_c
@@ -586,11 +609,13 @@ subroutine crtonewave(n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hgri
      do iterm=1,nterm
         gau_a=xp(iterm)
         n_gau=lx(itp)
-        CALL GAUSS_TO_DAUB(hgrid,fac_arr(itp),rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1),te,work,nw)
+        CALL GAUSS_TO_DAUB(hx,fac_arr(itp),rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1),te,work,nw,&
+             perx)
         n_gau=ly(itp)
-        CALL GAUSS_TO_DAUB(hgrid,1.d0,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1),te,work,nw)
+        CALL GAUSS_TO_DAUB(hy,1.d0,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1),te,work,nw,pery)
         n_gau=lz(itp)
-        CALL GAUSS_TO_DAUB(hgrid,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw)
+        CALL GAUSS_TO_DAUB(hz,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw,&
+             perz)
 
         ! First term: coarse projector components
         do i3=nl3_c,nu3_c

@@ -6,7 +6,7 @@
 !! For the list of contributors, see ~/AUTHORS 
 
 
-!!****h* BigDFT/scaling_function
+!!****f* BigDFT/scaling_function
 !! NAME
 !!   scaling_function
 !!
@@ -97,7 +97,7 @@ end subroutine scaling_function
 !!***
 
 
-!!****h* BigDFT/wavelet_function
+!!****f* BigDFT/wavelet_function
 !! NAME
 !!   wavelet_function
 !!
@@ -186,7 +186,7 @@ end subroutine wavelet_function
 !!***
 
 
-!!****h* BigDFT/scf_recursion
+!!****f* BigDFT/scf_recursion
 !! NAME
 !!   scf_recursion
 !!
@@ -240,7 +240,7 @@ end subroutine scf_recursion
 !!***
 
 
-!!****h* BigDFT/zero
+!!****f* BigDFT/zero
 !! NAME
 !!   zero
 !!
@@ -263,7 +263,7 @@ end subroutine zero
 !!***
 
 
-!!****h* BigDFT/for_trans_8
+!!****f* BigDFT/for_trans_8
 !! NAME
 !!   for_trans_8
 !!
@@ -317,7 +317,7 @@ end subroutine for_trans_8
 !!***
 
 
-!!****h* BigDFT/back_trans_8
+!!****f* BigDFT/back_trans_8
 !! NAME
 !!   back_trans_8
 !!
@@ -371,7 +371,7 @@ end subroutine back_trans_8
 !!***
 
 
-!!****h* BigDFT/ftest_8
+!!****f* BigDFT/ftest_8
 !! NAME
 !!   ftest_8
 !!
@@ -430,7 +430,7 @@ end subroutine ftest_8
 !!***
 
 
-!!****h* BigDFT/scf_recursion_8
+!!****f* BigDFT/scf_recursion_8
 !! NAME
 !!   scf_recursion_8
 !!
@@ -480,7 +480,7 @@ end subroutine scf_recursion_8
 !!***
 
 
-!!****h* BigDFT/for_trans_14
+!!****f* BigDFT/for_trans_14
 !! NAME
 !!   for_trans_14
 !!
@@ -533,7 +533,7 @@ end subroutine for_trans_14
 !!***
 
 
-!!****h* BigDFT/back_trans_14
+!!****f* BigDFT/back_trans_14
 !! NAME
 !!   back_trans_14
 !!
@@ -587,7 +587,7 @@ end subroutine back_trans_14
 !!***
 
 
-!!****h* BigDFT/ftest_14
+!!****f* BigDFT/ftest_14
 !! NAME
 !!   ftest_14
 !!
@@ -646,7 +646,7 @@ end subroutine ftest_14
 !!***
 
 
-!!****h* BigDFT/scf_recursion_14
+!!****f* BigDFT/scf_recursion_14
 !! NAME
 !!   scf_recursion_14
 !!
@@ -696,7 +696,7 @@ end subroutine scf_recursion_14
 !!***
 
 
-!!****h* BigDFT/for_trans_16
+!!****f* BigDFT/for_trans_16
 !! NAME
 !!   for_trans_16
 !!
@@ -749,7 +749,7 @@ end subroutine for_trans_16
 !!***
 
 
-!!****h* BigDFT/back_trans_16
+!!****f* BigDFT/back_trans_16
 !! NAME
 !!   back_trans_16
 !!
@@ -802,7 +802,7 @@ end subroutine back_trans_16
 !!***
 
 
-!!****h* BigDFT/ftest_16
+!!****f* BigDFT/ftest_16
 !! NAME
 !!   ftest_16
 !!
@@ -861,7 +861,7 @@ end subroutine ftest_16
 !!***
 
 
-!!****h* BigDFT/scf_recursion_16
+!!****f* BigDFT/scf_recursion_16
 !! NAME
 !!   scf_recursion_16
 !!
@@ -911,7 +911,7 @@ end subroutine scf_recursion_16
 !!***
 
 
-!!****h* BigDFT/for_trans_20
+!!****f* BigDFT/for_trans_20
 !! NAME
 !!   for_trans_20
 !!
@@ -964,7 +964,7 @@ end subroutine for_trans_20
 !!***
 
 
-!!****h* BigDFT/back_trans_20
+!!****f* BigDFT/back_trans_20
 !! NAME
 !!   back_trans_20
 !!
@@ -1017,7 +1017,7 @@ end subroutine back_trans_20
 !!***
 
 
-!!****h* BigDFT/ftest_20
+!!****f* BigDFT/ftest_20
 !! NAME
 !!   ftest_20
 !!
@@ -1076,7 +1076,7 @@ end subroutine ftest_20
 !!***
 
 
-!!****h* BigDFT/scf_recursion_20
+!!****f* BigDFT/scf_recursion_20
 !! NAME
 !!   scf_recursion_20
 !!
@@ -1126,7 +1126,7 @@ end subroutine scf_recursion_20
 !!***
 
 
-!!****h* BigDFT/for_trans_24
+!!****f* BigDFT/for_trans_24
 !! NAME
 !!   for_trans_24
 !!
@@ -1179,7 +1179,7 @@ end subroutine for_trans_24
 !!***
 
 
-!!****h* BigDFT/back_trans_24
+!!****f* BigDFT/back_trans_24
 !! NAME
 !!   back_trans_24
 !!
@@ -1232,7 +1232,7 @@ end subroutine back_trans_24
 !!***
 
 
-!!****h* BigDFT/ftest_24
+!!****f* BigDFT/ftest_24
 !! NAME
 !!   ftest_24
 !!
@@ -1291,7 +1291,7 @@ end subroutine ftest_24
 !!***
 
 
-!!****h* BigDFT/scf_recursion_24
+!!****f* BigDFT/scf_recursion_24
 !! NAME
 !!   scf_recursion_24
 !!
@@ -1341,7 +1341,7 @@ end subroutine scf_recursion_24
 !!***
 
 
-!!****h* BigDFT/for_trans_30
+!!****f* BigDFT/for_trans_30
 !! NAME
 !!   for_trans_30
 !!
@@ -1394,7 +1394,7 @@ end subroutine for_trans_30
 !!***
 
 
-!!****h* BigDFT/back_trans_30
+!!****f* BigDFT/back_trans_30
 !! NAME
 !!   back_trans_30
 !!
@@ -1447,7 +1447,7 @@ end subroutine back_trans_30
 !!***
 
 
-!!****h* BigDFT/ftest_30
+!!****f* BigDFT/ftest_30
 !! NAME
 !!   ftest_30
 !!
@@ -1506,7 +1506,7 @@ end subroutine ftest_30
 !!***
 
 
-!!****h* BigDFT/scf_recursion_30
+!!****f* BigDFT/scf_recursion_30
 !! NAME
 !!   scf_recursion_30
 !!
@@ -1556,7 +1556,7 @@ end subroutine scf_recursion_30
 !!***
 
 
-!!****h* BigDFT/for_trans_40
+!!****f* BigDFT/for_trans_40
 !! NAME
 !!   for_trans_40
 !!
@@ -1609,7 +1609,7 @@ end subroutine for_trans_40
 !!***
 
 
-!!****h* BigDFT/back_trans_40
+!!****f* BigDFT/back_trans_40
 !! NAME
 !!   back_trans_40
 !!
@@ -1662,7 +1662,7 @@ end subroutine back_trans_40
 !!***
 
 
-!!****h* BigDFT/ftest_40
+!!****f* BigDFT/ftest_40
 !! NAME
 !!   ftest_40
 !!
@@ -1721,7 +1721,7 @@ end subroutine ftest_40
 !!***
 
 
-!!****h* BigDFT/scf_recursion_40
+!!****f* BigDFT/scf_recursion_40
 !! NAME
 !!   scf_recursion_40
 !!
@@ -1771,7 +1771,7 @@ end subroutine scf_recursion_40
 !!***
 
 
-!!****h* BigDFT/for_trans_50
+!!****f* BigDFT/for_trans_50
 !! NAME
 !!   for_trans_50
 !!
@@ -1824,7 +1824,7 @@ end subroutine for_trans_50
 !!***
 
 
-!!****h* BigDFT/back_trans_50
+!!****f* BigDFT/back_trans_50
 !! NAME
 !!   back_trans_50
 !!
@@ -1877,7 +1877,7 @@ end subroutine back_trans_50
 !!***
 
 
-!!****h* BigDFT/ftest_50
+!!****f* BigDFT/ftest_50
 !! NAME
 !!   ftest_50
 !!
@@ -1936,7 +1936,7 @@ end subroutine ftest_50
 !!***
 
 
-!!****h* BigDFT/scf_recursion_50
+!!****f* BigDFT/scf_recursion_50
 !! NAME
 !!   scf_recursion_50
 !!
@@ -1986,7 +1986,7 @@ end subroutine scf_recursion_50
 !!***
 
 
-!!****h* BigDFT/for_trans_60
+!!****f* BigDFT/for_trans_60
 !! NAME
 !!   for_trans_60
 !!
@@ -2039,7 +2039,7 @@ end subroutine for_trans_60
 !!***
 
 
-!!****h* BigDFT/back_trans_60
+!!****f* BigDFT/back_trans_60
 !! NAME
 !!   back_trans_60
 !!
@@ -2092,7 +2092,7 @@ end subroutine back_trans_60
 !!***
 
 
-!!****h* BigDFT/ftest_60
+!!****f* BigDFT/ftest_60
 !! NAME
 !!   ftest_60
 !!
@@ -2151,7 +2151,7 @@ end subroutine ftest_60
 !!***
 
 
-!!****h* BigDFT/scf_recursion_60
+!!****f* BigDFT/scf_recursion_60
 !! NAME
 !!   scf_recursion_60
 !!
@@ -2201,7 +2201,7 @@ end subroutine scf_recursion_60
 !!***
 
 
-!!****h* BigDFT/for_trans_100
+!!****f* BigDFT/for_trans_100
 !! NAME
 !!   for_trans_100
 !!
@@ -2254,7 +2254,7 @@ end subroutine for_trans_100
 !!***
 
 
-!!****h* BigDFT/back_trans_100
+!!****f* BigDFT/back_trans_100
 !! NAME
 !!   back_trans_100
 !!
@@ -2307,7 +2307,7 @@ end subroutine back_trans_100
 !!***
 
 
-!!****h* BigDFT/ftest_100
+!!****f* BigDFT/ftest_100
 !! NAME
 !!   ftest_100
 !!
@@ -2366,7 +2366,7 @@ end subroutine ftest_100
 !!***
 
 
-!!****h* BigDFT/scf_recursion_100
+!!****f* BigDFT/scf_recursion_100
 !! NAME
 !!   scf_recursion_100
 !!

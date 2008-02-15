@@ -1,11 +1,3 @@
-
-!! Copyright (C) 2002-2007 BigDFT group 
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~/COPYING file
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the list of contributors, see ~/AUTHORS 
-
-
 !!****p* BigDFT/PSchk
 !! NAME
 !!   PSchk
@@ -13,6 +5,13 @@
 !! FUNCTION
 !!    Performs a check of the Poisson Solver suite by running with different regimes
 !!    and for different choices of the XC functionals
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2002-2007 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 !!
 !! AUTHOR
 !!    Luigi Genovese
@@ -89,8 +88,8 @@ program PSchk
   !order of the scaling functions choosed
   itype_scf=16
 
-  ixc=1
-  geocode='S'
+  ixc=11
+  geocode='F'
 
 
   !calculate the kernel in serial for each processor
@@ -271,6 +270,8 @@ contains
   end subroutine compare_with_reference
 
 end program PSchk
+!!***
+
 
 subroutine compare(iproc,nproc,n01,n02,n03,potential,density,i1_max,i2_max,i3_max,max_diff,description)
   implicit none
@@ -432,7 +433,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            do i1=1,n01
               x1 = hx*real(i1-n02/2-1,kind=8)
               call functions(x1,ax,bx,fx,fx2,ifx)
-              density(i1,i2,i3) = fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
+              density(i1,i2,i3) = fx2*fy*fz+fx*fy2*fz+fx*fy*fz2
               !density(i1,i2,i3) = max(abs(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2),1.d-24)
               !if (abs(density(i1,i2,i3)) < 1.d-20) density(i1,i2,i3)=1.d-20
               !denval=max(denval,-density(i1,i2,i3))
@@ -589,7 +590,6 @@ subroutine functions(x,a,b,f,f2,whichone)
 
 end subroutine functions
 
-!!***
 
 !!$!fake ABINIT subroutines
 !!$subroutine wrtout(unit,message,mode_paral)
@@ -612,5 +612,3 @@ end subroutine functions
 !!$  print *,'exiting...'
 !!$  stop
 !!$end subroutine leave_new
-
-

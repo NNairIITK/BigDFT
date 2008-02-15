@@ -21,6 +21,8 @@
 
 module defs_xc
 
+ implicit none
+
  interface
   subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,&  !Mandatory arguments
 &  dvxc,d2vxc,grho2_updn,vxcgr,exexch)    !Optional arguments 

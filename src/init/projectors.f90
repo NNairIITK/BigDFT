@@ -19,19 +19,28 @@ subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
   end if
 END SUBROUTINE numb_proj
 
-subroutine crtproj(iproc,nterm,n1,n2,n3, & 
+subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, & 
      nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,  & 
-     radius_f,cpmult,fpmult,hgrid,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
+     radius_f,cpmult,fpmult,hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
      mvctr_c,mvctr_f,proj_c,proj_f)
   ! returns the compressed form of a Gaussian projector 
   ! x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-cntrx)^2 + (y-cntry)^2 + (z-cntrz)^2 ))
   ! in the arrays proj_c, proj_f
-  implicit real(kind=8) (a-h,o-z)
-  parameter(ntermx=3,nw=16000)
-  dimension lx(nterm),ly(nterm),lz(nterm)
-  dimension fac_arr(nterm)
-  dimension proj_c(mvctr_c),proj_f(7,mvctr_f)
-  real(kind=8), allocatable, dimension(:,:,:) :: wprojx, wprojy, wprojz
+  implicit none
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: iproc,nterm,n1,n2,n3,mvctr_c,mvctr_f
+  integer, intent(in) :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
+  real(kind=8), intent(in) :: radius_f,cpmult,fpmult,hx,hy,hz,gau_a,rx,ry,rz
+  integer, dimension(nterm), intent(in) :: lx,ly,lz
+  real(kind=8), dimension(nterm), intent(in) :: fac_arr
+  real(kind=8), dimension(mvctr_c), intent(out) :: proj_c
+  real(kind=8), dimension(7,mvctr_f), intent(out) :: proj_f
+  !local variables
+  integer, parameter :: nw=16000
+  logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
+  integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3,mvctr,i_all,i_stat,j1,j2,j3
+  real(kind=8) :: rad_c,rad_f,factor,err_norm,dz2,dy2,dx2,te,d2,cpmult_max,fpmult_max
+  real(kind=8), allocatable, dimension(:,:,:) :: wprojx,wprojy,wprojz
   real(kind=8), allocatable, dimension(:,:) :: work
 
   allocate(wprojx(0:n1,2,nterm),stat=i_stat)
@@ -43,6 +52,11 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
   allocate(work(0:nw,2),stat=i_stat)
   call memocc(i_stat,product(shape(work))*kind(work),'work','crtproj')
 
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
 
   rad_c=radius_f*cpmult
   rad_f=radius_f*fpmult
@@ -52,24 +66,25 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
   do iterm=1,nterm
      factor=fac_arr(iterm)
      n_gau=lx(iterm) 
-     CALL GAUSS_TO_DAUB(hgrid,factor,rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1,iterm),te,work,nw)
+     CALL GAUSS_TO_DAUB(hx,factor,rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1,iterm),te,work,nw,perx) 
      err_norm=max(err_norm,te) 
      n_gau=ly(iterm) 
-     CALL GAUSS_TO_DAUB(hgrid,1.d0,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1,iterm),te,work,nw)
+     CALL GAUSS_TO_DAUB(hy,1.d0,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1,iterm),te,work,nw,pery) 
      err_norm=max(err_norm,te) 
      n_gau=lz(iterm) 
-     CALL GAUSS_TO_DAUB(hgrid,1.d0,rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1,iterm),te,work,nw)
+     CALL GAUSS_TO_DAUB(hz,1.d0,rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1,iterm),te,work,nw,perz) 
      err_norm=max(err_norm,te) 
-     if (iproc.eq.0)  then
-        !       write(*,'(a,6(1x,i4))') 'Proj. box X: nl1_c,nl1_f,ml1,mu1,nu1_f,nu1_c',nl1_c,nl1_f,ml1,mu1,nu1_f,nu1_c
-        !       write(*,'(a,6(1x,i4))') 'Proj. box Y: nl2_c,nl2_f,ml2,mu2,nu2_f,nu2_c',nl2_c,nl2_f,ml2,mu2,nu2_f,nu2_c
-        !       write(*,'(a,6(1x,i4))') 'Proj. box Z: nl3_c,nl3_f,ml3,mu3,nu3_f,nu3_c',nl3_c,nl3_f,ml3,mu3,nu3_f,nu3_c
+     if (iproc.eq.0 .and. geocode == 'F')  then
         if (ml1.gt.min(nl1_c,nl1_f)) write(*,*) 'Projector box larger than needed: ml1'
         if (ml2.gt.min(nl2_c,nl2_f)) write(*,*) 'Projector box larger than needed: ml2'
         if (ml3.gt.min(nl3_c,nl3_f)) write(*,*) 'Projector box larger than needed: ml3'
         if (mu1.lt.max(nu1_c,nu1_f)) write(*,*) 'Projector box larger than needed: mu1'
         if (mu2.lt.max(nu2_c,nu2_f)) write(*,*) 'Projector box larger than needed: mu2'
         if (mu3.lt.max(nu3_c,nu3_f)) write(*,*) 'Projector box larger than needed: mu3'
+!!$        !approximate maximum value for cpmult,fpmult
+!!$        cpmult_max=max((nu1_c-nl1_c)*hx*0.5d0/radius_f,(nu2_c-nl2_c)*hy*0.5d0/radius_f,(nu3_c-nl3_c)*hz*0.5d0/radius_f)
+!!$        fpmult_max=max((nu1_f-nl1_f)*hx*0.5d0/radius_f,(nu2_f-nl2_f)*hy*0.5d0/radius_f,(nu3_f-nl3_f)*hz*0.5d0/radius_f)
+!!$        print *,'cpmult_max,fpmult_max=',cpmult_max,fpmult_max
      endif
   end do
   !        if (iproc.eq.0) write(*,*) 'max err_norm ',err_norm
@@ -77,30 +92,32 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
   ! First term: coarse projector components
   !          write(*,*) 'rad_c=',rad_c
   mvctr=0
+
   do i3=nl3_c,nu3_c
-     dz2=(real(i3,kind=8)*hgrid-rz)**2
+     dz2=d2(i3,hz,n3,rz,perz)
      do i2=nl2_c,nu2_c
-        dy2=(real(i2,kind=8)*hgrid-ry)**2
+        dy2=d2(i2,hy,n2,ry,pery)
         do i1=nl1_c,nu1_c
-           dx=real(i1,kind=8)*hgrid-rx
-           if (dx**2+(dy2+dz2).le.rad_c**2) then
+           dx2=d2(i1,hx,n1,rx,perx)
+           if (dx2+(dy2+dz2).le.rad_c**2) then
               mvctr=mvctr+1
               proj_c(mvctr)=wprojx(i1,1,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
            endif
         enddo
      enddo
   enddo
+
   if (mvctr.ne.mvctr_c) stop 'mvctr >< mvctr_c'
 
   ! First term: fine projector components
   mvctr=0
   do i3=nl3_f,nu3_f
-     dz2=(real(i3,kind=8)*hgrid-rz)**2
+     dz2=d2(i3,hz,n3,rz,perz)
      do i2=nl2_f,nu2_f
-        dy2=(real(i2,kind=8)*hgrid-ry)**2
+        dy2=d2(i2,hy,n2,ry,pery)
         do i1=nl1_f,nu1_f
-           dx=real(i1,kind=8)*hgrid-rx
-           if (dx**2+(dy2+dz2).le.rad_f**2) then
+           dx2=d2(i1,hx,n1,rx,perx)
+           if (dx2+(dy2+dz2).le.rad_f**2) then
               mvctr=mvctr+1
               proj_f(1,mvctr)=wprojx(i1,2,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
               proj_f(2,mvctr)=wprojx(i1,1,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
@@ -121,13 +138,13 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
      ! Other terms: coarse projector components
      mvctr=0
      do i3=nl3_c,nu3_c
-        dz2=(real(i3,kind=8)*hgrid-rz)**2
+        dz2=d2(i3,hz,n3,rz,perz)
         do i2=nl2_c,nu2_c
-           dy2=(real(i2,kind=8)*hgrid-ry)**2
+           dy2=d2(i2,hy,n2,ry,pery)
            do i1=nl1_c,nu1_c
-              dx=real(i1,kind=8)*hgrid-rx
-              if (dx**2+(dy2+dz2).le.rad_c**2) then
-                 mvctr=mvctr+1
+              dx2=d2(i1,hx,n1,rx,perx)
+              if (dx2+(dy2+dz2).le.rad_c**2) then
+              mvctr=mvctr+1
                  proj_c(mvctr)=proj_c(mvctr)+wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
               endif
            enddo
@@ -137,12 +154,12 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
      ! Other terms: fine projector components
      mvctr=0
      do i3=nl3_f,nu3_f
-        dz2=(real(i3,kind=8)*hgrid-rz)**2
+        dz2=d2(i3,hz,n3,rz,perz)
         do i2=nl2_f,nu2_f
-           dy2=(real(i2,kind=8)*hgrid-ry)**2
+           dy2=d2(i2,hy,n2,ry,pery)
            do i1=nl1_f,nu1_f
-              dx=real(i1,kind=8)*hgrid-rx
-              if (dx**2+(dy2+dz2).le.rad_f**2) then
+              dx2=d2(i1,hx,n1,rx,perx)
+              if (dx2+(dy2+dz2).le.rad_f**2) then
                  mvctr=mvctr+1
                  proj_f(1,mvctr)=&
                       proj_f(1,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
@@ -179,47 +196,72 @@ subroutine crtproj(iproc,nterm,n1,n2,n3, &
   deallocate(work,stat=i_stat)
   call memocc(i_stat,i_all,'work','crtproj')
 
-  return
-END SUBROUTINE crtproj
+end subroutine crtproj
 
-subroutine pregion_size(rxyz,radii,rmult,iatype,ntypes, &
-     hgrid,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+function d2(i,h,n,r,periodic)
+  implicit none
+  logical, intent(in) :: periodic !determine whether the dimension is periodic or not
+  integer, intent(in) :: i,n
+  real(kind=8), intent(in) :: h,r
+  real(kind=8) :: d2
+  !local variables
+  integer :: j
+
+  if (periodic) then
+     !take the point which has the minimum distance  comparing with the periodic image
+     !which is i+-(n+1) if it is on the second or on the first half respectively
+     j=i+(2*(i/(n/2+1))-1)*(n+1)
+     d2=min((real(i,kind=8)*h-r)**2,(real(j,kind=8)*h-r)**2)
+  else
+     d2=(real(i,kind=8)*h-r)**2
+  end if
+  
+end function d2
+
+subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
   ! finds the size of the smallest subbox that contains a localization region made 
   ! out of atom centered spheres
-  implicit real(kind=8) (a-h,o-z)
-  parameter(eps_mach=1.d-12)
-  dimension rxyz(3),radii(ntypes)
+  implicit none
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: n1,n2,n3
+  real(kind=8), intent(in) :: hx,hy,hz,rmult,radius
+  real(kind=8), dimension(3), intent(in) :: rxyz
+  integer, intent(out) :: nl1,nu1,nl2,nu2,nl3,nu3
+  !local variables
+  real(kind=8), parameter :: eps_mach=1.d-12
+  real(kind=8) :: cxmax,cymax,czmax,cxmin,cymin,czmin,rad,onem
 
-  rad=radii(iatype)*rmult
+  rad=radius*rmult
   cxmax=rxyz(1)+rad ; cxmin=rxyz(1)-rad
   cymax=rxyz(2)+rad ; cymin=rxyz(2)-rad
   czmax=rxyz(3)+rad ; czmin=rxyz(3)-rad
-  !        write(*,*) radii(iatype(iat)),rmult
-  !        write(*,*) rxyz(1),rxyz(2),rxyz(3)
-
-!!$      cxmax=cxmax-eps_mach ; cxmin=cxmin+eps_mach
-!!$      cymax=cymax-eps_mach ; cymin=cymin+eps_mach
-!!$      czmax=czmax-eps_mach ; czmin=czmin+eps_mach
   onem=1.d0-eps_mach
 
-  nl1=ceiling(cxmin/hgrid - eps_mach)   
-  nl2=ceiling(cymin/hgrid - eps_mach)   
-  nl3=ceiling(czmin/hgrid - eps_mach)   
-  nu1=floor(cxmax/hgrid + eps_mach)  
-  nu2=floor(cymax/hgrid + eps_mach)  
-  nu3=floor(czmax/hgrid + eps_mach)  
-  !        write(*,'(a,6(i4))') 'projector region ',nl1,nu1,nl2,nu2,nl3,nu3
-  !        write(*,*) ' projector region size ',cxmin,cxmax
-  !        write(*,*) '             ',cymin,cymax
-  !        write(*,*) '             ',czmin,czmax
-  if (nl1.lt.0)   stop 'nl1: projector region outside cell'
-  if (nl2.lt.0)   stop 'nl2: projector region outside cell'
-  if (nl3.lt.0)   stop 'nl3: projector region outside cell'
-  if (nu1.gt.n1)   stop 'nu1: projector region outside cell'
-  if (nu2.gt.n2)   stop 'nu2: projector region outside cell'
-  if (nu3.gt.n3)   stop 'nu3: projector region outside cell'
+  nl1=ceiling(cxmin/hx - eps_mach)   
+  nl2=ceiling(cymin/hy - eps_mach)   
+  nl3=ceiling(czmin/hz - eps_mach)   
+  nu1=floor(cxmax/hx + eps_mach)  
+  nu2=floor(cymax/hy + eps_mach)  
+  nu3=floor(czmax/hz + eps_mach)  
 
-  return
+  !for non-free BC the projectors are allowed to be also outside the box
+  if (geocode == 'F') then
+     if (nl1 < 0)   stop 'nl1: projector region outside cell'
+     if (nl2 < 0)   stop 'nl2: projector region outside cell'
+     if (nl3 < 0)   stop 'nl3: projector region outside cell'
+     if (nu1 > n1)   stop 'nu1: projector region outside cell'
+     if (nu2 > n2)   stop 'nu2: projector region outside cell'
+     if (nu3 > n3)   stop 'nu3: projector region outside cell'
+  else
+     !correct the extremes if the run outside the box
+     if (nl1 < 0)  nl1=0
+     if (nl2 < 0)  nl2=0
+     if (nl3 < 0)  nl3=0
+     if (nu1 > n1) nu1=n1
+     if (nu2 > n2) nu2=n2
+     if (nu3 > n3) nu3=n3
+  end if
+
 END SUBROUTINE pregion_size
 
 subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)

@@ -1,24 +1,24 @@
 subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
-     & psppar,npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,&
+     & psppar,npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,nspin,&
      & scorb,norbsc_arr)
   implicit none
-  ! character(len = *), intent(in) :: filename
-  integer, intent(in) :: ngx, iproc, ntypes
-  integer, intent(in) :: nzatom(ntypes), nelpsp(ntypes)
-  real(kind=8), intent(in) :: psppar(0:4,0:6,ntypes)
-  integer, intent(in) :: npspcode(ntypes),iasctype(ntypes)
-  real(kind=8), intent(out) :: xp(ngx, ntypes), psiat(ngx, 5, ntypes), occupat(5, ntypes)
-  integer, intent(out) :: ng(ntypes), nl(4,ntypes)
-  character(len = 20), intent(in) :: atomnames(100)
+  integer, intent(in) :: ngx,iproc,ntypes,nspin,nat,natsc
+  character(len = 20), dimension(ntypes), intent(in) :: atomnames
+  integer, dimension(ntypes), intent(in) :: nzatom,nelpsp,npspcode,iasctype
+  integer, dimension(nat), intent(in) :: iatype
+  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   integer, intent(out) :: norbe,norbsc
-  integer, intent(in) :: nat,natsc
-  integer, intent(in) :: iatype(nat)
   logical, dimension(4,natsc), intent(out) :: scorb
-  integer, dimension(natsc+1), intent(out) :: norbsc_arr
-
+  integer, dimension(ntypes), intent(out) :: ng
+  integer, dimension(4,ntypes), intent(out) :: nl
+  integer, dimension(natsc+1,nspin), intent(out) :: norbsc_arr
+  real(kind=8), dimension(ngx,ntypes), intent(out) :: xp
+  real(kind=8), dimension(5,ntypes), intent(out) :: occupat
+  real(kind=8), dimension(ngx,5,ntypes), intent(out) :: psiat
+  !local variables
   character(len = 20) :: pspatomname
   logical :: exists,found
-  integer :: ity,i,j,l,ipsp,ifile,ng_fake,ierror,iatsc,iat,ipow,lsc,inorbsc,iorbsc_count
+  integer :: ity,i,j,l,ifile,ng_fake,ierror,iatsc,iat,ipow,lsc,inorbsc,iorbsc_count
   real(kind=8) :: sccode
 
   ! Read the data file.
@@ -105,37 +105,37 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
         !the default value for the gaussians is chosen to be 21
         ng(ity)=21
 
-        call iguess_generator(iproc, nzatom(ity), nelpsp(ity),psppar(0,0,ity),npspcode(ity),&
+        call iguess_generator(iproc,nzatom(ity),nelpsp(ity),psppar(0,0,ity),npspcode(ity),&
              ng(ity)-1,nl(1,ity),5,occupat(1:5,ity),xp(1:ng(ity),ity),psiat(1:ng(ity),1:5,ity))
 
-        !values obtained from the input guess generator in iguess.dat format
-        !write these values on a file in the case of the HGH-K pseudo, for check
-        if (iproc .eq. 0 .and. npspcode(ity)==10) then
-           open(unit=12,file='inguess.new',status='unknown')
-
-           !write(*,*)' --------COPY THESE VALUES INSIDE inguess.dat--------'
-           write(12,*)trim(atomnames(ity))//' (remove _lda)'
-           write(12,*)nl(1,ity),(occupat(i,ity),i=1,nl(1,ity)),&
-                nl(2,ity),(occupat(i+nl(1,ity),ity),i=1,nl(2,ity)),&
-                nl(3,ity),(occupat(i+nl(1,ity)+nl(2,ity),ity),i=1,nl(3,ity)),&
-                nl(4,ity),(occupat(i+nl(1,ity)+nl(2,ity)+nl(3,ity),ity),i=1,nl(4,ity))
-           write(12,*)ng(ity)
-           write(12,'(30(e12.5))')xp(1:ng(ity),ity)
-           do j=1,ng(ity)
-              write(12,*)(psiat(j,i,ity),i=1,nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity))
-           end do
-           !print *,' --------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------'
-        end if
+!!$        !values obtained from the input guess generator in iguess.dat format
+!!$        !write these values on a file in the case of the HGH-K pseudo, for check
+!!$        if (iproc .eq. 0 .and. npspcode(ity)==10) then
+!!$           open(unit=12,file='inguess.new',status='unknown')
+!!$
+!!$           !write(*,*)' --------COPY THESE VALUES INSIDE inguess.dat--------'
+!!$           write(12,*)trim(atomnames(ity))//' (remove _lda)'
+!!$           write(12,*)nl(1,ity),(occupat(i,ity),i=1,nl(1,ity)),&
+!!$                nl(2,ity),(occupat(i+nl(1,ity),ity),i=1,nl(2,ity)),&
+!!$                nl(3,ity),(occupat(i+nl(1,ity)+nl(2,ity),ity),i=1,nl(3,ity)),&
+!!$                nl(4,ity),(occupat(i+nl(1,ity)+nl(2,ity)+nl(3,ity),ity),i=1,nl(4,ity))
+!!$           write(12,*)ng(ity)
+!!$           write(12,'(30(e12.5))')xp(1:ng(ity),ity)
+!!$           do j=1,ng(ity)
+!!$              write(12,*)(psiat(j,i,ity),i=1,nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity))
+!!$           end do
+!!$           !print *,' --------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------'
+!!$        end if
         if (iproc.eq.0) write(*,'(1x,a)')'done.'
 
      end if
-
 
   end do loop_assign
 
   close(unit=24)
 
   ! number of orbitals, total and semicore
+  !HERE WE MUST INSERT THE SPIN DEPENDENCE
   norbe=0
   norbsc=0
   iatsc=0
@@ -159,65 +159,75 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
            ipow=ipow-1
            !print *,iasctype(ity),inorbsc,lsc
         end do
-        norbsc_arr(iatsc)=iorbsc_count
+        norbsc_arr(iatsc,1)=iorbsc_count
         norbsc=norbsc+iorbsc_count
      end if
   end do
   !orbitals which are non semicore
-  norbsc_arr(natsc+1)=norbe-norbsc
+  norbsc_arr(natsc+1,1)=norbe-norbsc
+  
+  !duplicate the values in the case of spin-polarization
+  if (nspin == 2) norbsc_arr(:,2)=norbsc_arr(:,1)
 
   if (iproc ==0) then
-     write(*,'(1x,a,i0,a)')'Generating ',norbe,' Atomic Input Orbitals'
-     if (norbsc /=0)   write(*,'(1x,a,i0,a)')'  of which ',norbsc,' are semicore orbitals'
+     write(*,'(1x,a,i0,a)')'Generating ',nspin*norbe,' Atomic Input Orbitals'
+     if (norbsc /=0)   write(*,'(1x,a,i0,a)')'  of which ',nspin*norbsc,' are semicore orbitals'
   end if
 
 END SUBROUTINE readAtomicOrbitals
 
-
-subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
-     & nat, rxyz, norbe, norbep, norbsc, occupe, occupat, ngx, xp, psiat, ng, nl, &
-     & nvctr_c, nvctr_f, n1, n2, n3, hgrid, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, nseg_c, nseg_f, &
-     & keyg, keyv, iatype, ntypes, iasctype, natsc, psi, eks, scorb)
-
+subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
+     & nat,rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
+     & nvctr_c,nvctr_f,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nseg_c,nseg_f,&
+     & keyg,keyv,iatype,ntypes,iasctype,natsc,nspinat,nspin,psi,eks,scorb)
   implicit none
-  integer, intent(in) :: nat, norbe, norbep, ngx, iproc, nproc
-  integer, intent(in) :: nvctr_c, nvctr_f, n1, n2, n3, nseg_c, nseg_f
-  integer, intent(in) :: nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, ntypes
-  integer, intent(in) :: norbsc,natsc
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: nat,norbe,norbep,ngx,iproc,nproc
+  integer, intent(in) :: nvctr_c,nvctr_f,n1,n2,n3,nseg_c,nseg_f
+  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ntypes
+  integer, intent(in) :: norbsc,natsc,nspin
+  real(kind=8), intent(in) :: hx,hy,hz
+  character(len=20), dimension(ntypes), intent(in) :: atomnames
   logical, dimension(4,natsc), intent(in) :: scorb
-  integer, intent(in) :: keyg(2, nseg_c + nseg_f), keyv(nseg_c + nseg_f)
-  integer, intent(in) :: iatype(nat),iasctype(ntypes)
-  real(kind=8), intent(in) :: hgrid
+  integer, dimension(ntypes), intent(in) :: iasctype
+  integer, dimension(nat), intent(in) :: iatype,nspinat
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  integer, dimension(ntypes), intent(inout) :: ng
+  integer, dimension(4,ntypes), intent(inout) :: nl
+  real(kind=8), dimension(ngx,ntypes), intent(inout) :: xp
+  real(kind=8), dimension(5,ntypes), intent(inout) :: occupat
+  real(kind=8), dimension(ngx,5,ntypes), intent(inout) :: psiat
   real(kind=8), intent(out) :: eks
-  !character(len = 20), intent(in) :: pspatomnames(npsp)
-  character(len = 20), intent(in) :: atomnames(100)
-  integer, intent(inout) :: ng(ntypes), nl(4,ntypes)
-  real(kind=8), intent(in) :: rxyz(3, nat)
-  real(kind=8), intent(inout) :: xp(ngx, ntypes), psiat(ngx, 5, ntypes)
-  real(kind=8), intent(inout) :: occupat(5, ntypes)
-  real(kind=8), intent(out) :: psi(nvctr_c + 7 * nvctr_f, norbep), occupe(norbe)
+  real(kind=8), dimension(nspin*norbe), intent(out) :: occupe
+  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbep), intent(out) :: psi
+  !local variables
   integer, parameter :: nterm_max=3
-
-  logical :: myorbital
-  integer :: iatsc,iorbsc,iorbv,inorbsc,ipow,lsc,i_all,i_stat
-  real(kind=8) :: sccode
-  integer :: lx(nterm_max),ly(nterm_max),lz(nterm_max)
-  real(kind=8) :: fac_arr(nterm_max)
-  integer :: iorb, jorb, iat, ity, ipsp, i, ictot, inl, l, m, nctot, nterm
-  real(kind=8) :: rx, ry, rz, ek, scpr
+  logical :: myorbital,polarised
+  integer :: iatsc,i_all,i_stat,ispin,ipolres,ipolorb
+  integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,nterm
+  real(kind=8) :: rx,ry,rz,ek,scpr,occshell
+  real(kind=8), dimension(nterm_max) :: fac_arr
   logical, dimension(4) :: semicore
+  integer, dimension(2) :: iorbsc,iorbv
+  integer, dimension(nterm_max) :: lx,ly,lz
   real(kind=8), dimension(:), allocatable :: psiatn
 
   allocate(psiatn(ngx),stat=i_stat)
   call memocc(i_stat,product(shape(psiatn))*kind(psiatn),'psiatn','createatomicorbitals')
-  
 
   eks=0.d0
   iorb=0
-  ipsp = 1
   iatsc=0
-  iorbsc=0
-  iorbv=norbsc
+
+  !initialise the orbital counters
+  iorbsc(1)=0
+  iorbv(1)=norbsc
+  !used in case of spin-polarisation, ignored otherwise
+  iorbsc(2)=norbe
+  iorbv(2)=norbsc+norbe
+
 
   if (iproc ==0) then
      write(*,'(1x,a)',advance='no')'Calculating AIO wavefunctions...'
@@ -239,70 +249,123 @@ subroutine createAtomicOrbitals(iproc, nproc, atomnames,&
         semicore(:)=scorb(:,iatsc)
      end if
 
-     ipsp=ity
-
      !calculate the atomic input orbitals
      ictot=0
-     nctot=nl(1,ipsp)+nl(2,ipsp)+nl(3,ipsp)+nl(4,ipsp)
-     if (iorbsc+nctot .gt.norbe .and. iorbv+nctot .gt.norbe) then
-        print *,'transgpw occupe',nl(:,ipsp),norbe
+     nctot=nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity)
+     if (iorbsc(1)+nctot.gt.norbe .and. iorbv(1)+nctot .gt.norbe) then
+        print *,'transgpw occupe',nl(:,ity),norbe
         stop
      end if
+     polarised=.false.
+     ipolres=nspinat(iat)
      do l=1,4
-        do inl=1,nl(l,ipsp)
+        do inl=1,nl(l,ity)
            ictot=ictot+1
-           call atomkin(l-1,ng(ipsp),xp(1,ipsp),psiat(1,ictot,ipsp),psiatn,ek)
-           eks=eks+ek*occupat(ictot,ipsp)!occupe(iorb)*real(2*l-1,kind=8)
-           !the order of the orbitals (iorb,jorb) must put in the beginning
-           !the semicore orbitals
-           if (semicore(l) .and. inl==1) then
-              !the orbital is semi-core
-              iorb=iorbsc
-              !print *,'iproc, SEMICORE orbital, iat,l',iproc,iat,l
+           !contribution to the kinetic energy given by the electrons in this shell
+           call atomkin(l-1,ng(ity),xp(1,ity),psiat(1,ictot,ity),psiatn,ek)
+           eks=eks+ek*occupat(ictot,ity)
+           if (nint(occupat(ictot,ity)) /=  2*(2*l-1) ) then
+              !this is a polarisable orbital
+!!$              if (polarised) then
+!!$                 if (iproc == 0) then
+!!$                    write(*,'(1x,a)')&
+!!$                         'ERROR: only one polarisable orbital is allowed, check electronic configuration'
+!!$                    stop
+!!$                 end if
+!!$              end if
+              polarised=.true.
+              !assuming that the control of the allowed polarisation is already done
+              ipolorb=min(ipolres,int(occupat(ictot,ity)))
+              ipolres=ipolres-ipolorb
+              !this check can be inserted also elsewhere
+              if (ipolres < 0) then
+                 if(iproc==0) write(*,'(1x,4(a,i0))')&
+                      'Too high polarisation for atom number= ',iat,&
+                      ' Inserted=',nspinat(iat),' Assigned=',ipolorb,&
+                      ' the maximum is=',nint(occupat(ictot,ity))
+                 stop
+              end if
+
            else
-              !normal case, the orbital is a valence orbital
-              iorb=iorbv
+              !check for odd values of the occupation number
+              if (mod(nint(occupat(ictot,ity)),2) /= 0) then
+                 if (iproc == 0) write(*,'(1x,a)')&
+                      'The occupation number in the case of closed shells must be even'
+                 stop
+              end if
            end if
-           do m=1,2*l-1
-              iorb=iorb+1
-              jorb=iorb-iproc*norbep
-              occupe(iorb)=occupat(ictot,ipsp)/real(2*l-1,kind=8)
-              if (myorbital(iorb,norbe,iproc,nproc)) then
-                 !this will calculate the proper spherical harmonics
-                 call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
-                 !fac_arr=1.d0
-                 call crtonewave(n1,n2,n3,ng(ipsp),nterm,lx,ly,lz,fac_arr,xp(1,ipsp),psiatn,&
-                      rx,ry,rz,hgrid, & 
-                      0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-                      nseg_c,nvctr_c,keyg(1,1),keyv(1),nseg_f,nvctr_f,&
-                      keyg(1,nseg_c+1),keyv(nseg_c+1),&
-                      psi(1,jorb),psi(nvctr_c+1,jorb))
-                 call wnrm(nvctr_c,nvctr_f,psi(1,jorb),psi(nvctr_c+1,jorb),scpr) 
-                 !write(*,'(1x,a24,a7,2(a3,i1),a16,i4,i4,1x,e14.7)')&
-                 !     'ATOMIC INPUT ORBITAL for atom',trim(atomnames(ity)),&
-                 !     'l=',l,'m=',m,'iorb,jorb,norm',iorb,jorb,scpr 
-                 scpr=1.d0/sqrt(scpr)
-                 call wscal(nvctr_c,nvctr_f,scpr,psi(1,jorb),psi(nvctr_c+1,jorb))
-                 call wnrm(nvctr_c,nvctr_f,psi(1,jorb),psi(nvctr_c+1,jorb),scpr) 
-                 !print *,'newnorm', scpr,occupe(iorb),occupat(ictot,ipsp),ictot
-              endif
+           do ispin=1,nspin
+              !the order of the orbitals (iorb,jorb) must put in the beginning
+              !the semicore orbitals
+              if (semicore(l) .and. inl==1) then
+                 !the orbital is semi-core
+                 iorb=iorbsc(ispin)
+                 !print *,'iproc, SEMICORE orbital, iat,l',iproc,iat,l
+                 !the occupation number is divided by two in the case of spin polarisation
+                 if (nspin==2) then
+                    occshell=0.5d0*occupat(ictot,ity)
+                 else
+                    occshell=occupat(ictot,ity)
+                 end if
+              else
+                 !normal case, the orbital is a valence orbital
+                 iorb=iorbv(ispin)
+                 occshell=occupat(ictot,ity)                 
+                 if (nspin==2) then
+                    if (polarised) then
+                       occshell=0.5d0*(occshell+real(1-2*(ispin-1),kind=8)*ipolorb)
+                    else
+                       occshell=0.5d0*occshell
+                    end if
+                 end if
+              end if
+
+              do m=1,2*l-1
+                 iorb=iorb+1
+                 jorb=iorb-iproc*norbep
+                 occupe(iorb)=occshell/real(2*l-1,kind=8)
+                 if (myorbital(iorb,nspin*norbe,iproc,nproc)) then
+                    !this will calculate the proper spherical harmonics
+                    call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
+                    call crtonewave(geocode,n1,n2,n3,ng(ity),nterm,lx,ly,lz,fac_arr,&
+                         xp(1,ity),psiatn,rx,ry,rz,hx,hy,hz, & 
+                         0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+                         nseg_c,nvctr_c,keyg(1,1),keyv(1),nseg_f,nvctr_f,&
+                         keyg(1,nseg_c+1),keyv(nseg_c+1),&
+                         psi(1,jorb),psi(nvctr_c+1,jorb))
+                    !renormalise wavefunction in case of too crude translation
+                    call wnrm(nvctr_c,nvctr_f,psi(1,jorb),psi(nvctr_c+1,jorb),scpr) 
+                    !write(*,'(1x,a24,a7,2(a3,i1),a16,i4,i4,1x,e14.7)')&
+                    !     'ATOMIC INPUT ORBITAL for atom',trim(atomnames(ity)),&
+                    !     'l=',l,'m=',m,'iorb,jorb,norm',iorb,jorb,scpr 
+                    scpr=1.d0/sqrt(scpr)
+                    call wscal(nvctr_c,nvctr_f,scpr,psi(1,jorb),psi(nvctr_c+1,jorb))
+                    !call wnrm(nvctr_c,nvctr_f,psi(1,jorb),psi(nvctr_c+1,jorb),scpr) 
+                    !print *,'newnorm', scpr,occupe(iorb),occshell,ictot
+                 endif
+              end do
+              if (semicore(l) .and. inl==1) then
+                 !increase semicore orbitals
+                 iorbsc(ispin)=iorb
+              else
+                 !increase valence orbitals
+                 iorbv(ispin)=iorb
+              end if
            end do
-           if (semicore(l) .and. inl==1) then
-              !increase semicore orbitals
-              iorbsc=iorb
-           else
-              !increase valence orbitals
-              iorbv=iorb
-           end if
         end do
      end do
      
      if (ictot /= nctot) stop 'createAtomic orbitals: error (nctot)'
 
   end do
-  if (iorbsc /= norbsc) stop 'createAtomic orbitals: error (iorbsc)'
-  if (iorbv /= norbe) stop 'createAtomic orbitals: error (iorbv)'
+  if (iorbsc(1) /= norbsc) stop 'createAtomic orbitals: error (iorbsc)'
+  if (iorbv(1) /= norbe) stop 'createAtomic orbitals: error (iorbv)'
   if (iatsc /= natsc) stop 'createAtomic orbitals: error (iatsc)'
+
+  if (nspin==2) then
+     if (iorbsc(2) /= norbsc+norbe) stop 'createAtomic orbitals: error (iorbsc) nspin=2'
+     if (iorbv(2) /= 2*norbe) stop 'createAtomic orbitals: error (iorbv) nspin=2'
+  end if
 
   i_all=-product(shape(psiatn))*kind(psiatn)
   deallocate(psiatn,stat=i_stat)

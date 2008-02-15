@@ -1,18 +1,17 @@
-
-!! Copyright (C) 2002-2007 BigDFT group 
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~/COPYING file
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the list of contributors, see ~/AUTHORS 
-
-
-!!****h* BigDFT/Poisson_Solver
+!!****m* BigDFT/Poisson_Solver
 !! NAME
 !!    Poisson_Solver
 !!
 !! FUNCTION
 !!    The module of the Poisson Solver.
 !!    It must be used in the parent routine. 
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2002-2007 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 !!
 !! USAGE
 !!    In the main routine in which the Poisson Solver is called
@@ -74,7 +73,7 @@ module Poisson_Solver
   !calculate the poisson solver
   public :: PSolver
   !calculate the allocation dimensions
-  public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions
+  public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions,fourier_dim
 
 contains
 

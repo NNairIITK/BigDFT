@@ -7,7 +7,8 @@ SUBDIRS = \
 	  SiH4 \
 	  NaCl \
 	  C \
-	  Ca2
+	  Ca2 \
+	  H2O-CP2K
 
 EXTRA_DIST = \
 	fldiff.py \

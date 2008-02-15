@@ -26,7 +26,7 @@ subroutine reformatonewave(iproc, displ, hgrid_old, n1_old, n2_old, n3_old, nat,
 
 !write(*,*) iproc,' displ ',displ
 if (hgrid == hgrid_old .and. n1_old==n1 .and. n2_old==n2 .and. n3_old==n3 .and. displ<= 1.d-2) then
- if (iproc==0) write(*,*) iproc,' orbital just copied'
+   !if (iproc==0) write(*,*) iproc,' orbital just copied'
   do i3=-7,2*n3+8
   do i2=-7,2*n2+8
   do i1=-7,2*n1+8
@@ -46,7 +46,7 @@ else
    dx=dx/nat ; dy=dy/nat ; dz=dz/nat
 
   ! transform to new structure    
- if (iproc==0) write(*,*) iproc,' orbital fully transformed'
+   !if (iproc==0) write(*,*) iproc,' orbital fully transformed'
   hgridh=.5d0*hgrid
   hgridh_old=.5d0*hgrid_old
   call razero((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf)

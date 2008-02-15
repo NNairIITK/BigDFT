@@ -155,9 +155,9 @@ parameters.h:
 	echo "      logical, parameter :: parallel = $(PARALLEL)" > parameters.h
 
 clean:
-	rm -f *.o cluster memguess *.mod *~ PSolver/*.o PSolver/*~ parameters.h \
-		profiling/*.o init/*.o wfn_opt/*.o wavelib/*.o \
-	 PSolver/ABINIT-common/*.f90 PSolver/ABINIT-common/*.o PSolver/ABINIT-common/*~
+       rm -f *.o cluster memguess *.mod *~ PSolver/*.o PSolver/*~ parameters.h \
+               convolutions/*.o profiling/*.o init/*.o wfn_opt/*.o wavelib/*.o \
+        PSolver/ABINIT-common/*.f90 PSolver/ABINIT-common/*.o PSolver/ABINIT-common/*~ 
 
 tar:
 	make clean
@@ -167,12 +167,12 @@ tar:
 cluster.o geometry.o: PSolver/Poisson_Solver.o
 PSolver/Poisson_Solver.o: $(SOURCES_MOD) $(SOURCES_ABINIT)
 
-convolutions/combined_grow_simple.o : convolutions/v_17.f90
-convolutions/combined_grow_optim.o : convolutions/v_17.f90
-convolutions/combined_shrink_simple.o : convolutions/v.f90
+convolutions/combined_grow_simple.o : convolutions/v_17.inc
+convolutions/combined_grow_optim.o : convolutions/v_17.inc
+convolutions/combined_shrink_simple.o : convolutions/v.inc
 convolutions/combined_shrink_optim.o convolutions/convolution_prev.o : \
-	convolutions/v.f90 \
-	convolutions/v_long.f90
+	convolutions/v.inc \
+	convolutions/v_long.inc
 
 interfaces.o: types.o
 
