@@ -205,7 +205,6 @@ interface
      use module_types
      use Poisson_Solver
      implicit none
-     include 'mpif.h'
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(convolutions_bounds), intent(in) :: bounds

@@ -144,7 +144,14 @@ subroutine local_forces(iproc,nproc,at,rxyz,hgrid,n1,n2,n3,n3pi,i3s,rho,pot,floc
      floc(2,iat)=fyion+(hgridh**3*prefactor)*fyerf+(hgridh**3/rloc**2)*fygau
      floc(3,iat)=fzion+(hgridh**3*prefactor)*fzerf+(hgridh**3/rloc**2)*fzgau
 
+     !only for testing purposes, printing the components of the forces for each atoms
+     write(10+iat,'(1x,f8.3,i5,3(1x,3(1x,1pe12.5)))') &
+          hgrid,iat,fxion,fyion,fzion,(hgridh**3*prefactor)*fxerf,(hgridh**3*prefactor)*fyerf,&
+          (hgridh**3*prefactor)*fzerf,(hgridh**3/rloc**2)*fxgau,(hgridh**3/rloc**2)*fygau,(hgridh**3/rloc**2)*fzgau
+
+
   end do
+
 
   forceleaked=forceleaked*prefactor*hgridh**3
   if (iproc.eq.0) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
@@ -280,6 +287,9 @@ subroutine nonlocal_forces(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi
   allocate(fxyz_orb(3,at%nat),stat=i_stat)
   call memocc(i_stat,product(shape(fxyz_orb))*kind(fxyz_orb),'fxyz_orb','nonlocal_forces')
 
+  !to be eliminated only for testing purposes
+  fsep(:,:)=0.d0
+
   !calculate the coefficients for the off-diagonal terms
   do l=1,3
      do i=1,2
@@ -407,6 +417,11 @@ subroutine nonlocal_forces(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi
 
   if (iproj.ne.nlpspd%nproj) stop '1:applyprojectors'
   if (istart_c-1.ne.nlpspd%nprojel) stop '2:applyprojectors'
+end do
+
+do iat=1,at%nat
+   write(20+iat,'(1x,i5,1x,3(1x,1pe12.5))') &
+        iat,fsep(1,iat),fsep(2,iat),fsep(3,iat)
 end do
 
   i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)
