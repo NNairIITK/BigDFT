@@ -20,7 +20,7 @@ subroutine local_forces(iproc,nproc,at,rxyz,hgrid,n1,n2,n3,n3pi,i3s,rho,pot,floc
   hgridh=hgrid*.5d0 
   pi=4.d0*atan(1.d0)
 
-  if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate local forces...'
+  !if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate local forces...'
   forceleaked=0.d0
 
   do iat=1,at%nat
@@ -144,10 +144,15 @@ subroutine local_forces(iproc,nproc,at,rxyz,hgrid,n1,n2,n3,n3pi,i3s,rho,pot,floc
      floc(2,iat)=fyion+(hgridh**3*prefactor)*fyerf+(hgridh**3/rloc**2)*fygau
      floc(3,iat)=fzion+(hgridh**3*prefactor)*fzerf+(hgridh**3/rloc**2)*fzgau
 
+     write(*,'(1x,a,i5,i5,1x,a6,3(1x,1pe12.5))') &
+          'L',iproc,iat,trim(at%atomnames(at%iatype(iat))),&
+          fzion,(hgridh**3*prefactor)*fzerf,(hgridh**3/rloc**2)*fzgau
+
+
   end do
 
   forceleaked=forceleaked*prefactor*hgridh**3
-  if (iproc.eq.0) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
+  !if (iproc.eq.0) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
 
 end subroutine local_forces
 
@@ -280,6 +285,10 @@ subroutine nonlocal_forces(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi
   allocate(fxyz_orb(3,at%nat),stat=i_stat)
   call memocc(i_stat,product(shape(fxyz_orb))*kind(fxyz_orb),'fxyz_orb','nonlocal_forces')
 
+
+  !!!!!WARNING THIS MUS BE ELIMINATED, ONLY FOR TESTING
+  fsep=0.d0
+
   !calculate the coefficients for the off-diagonal terms
   do l=1,3
      do i=1,2
@@ -408,6 +417,13 @@ subroutine nonlocal_forces(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi
   if (iproj.ne.nlpspd%nproj) stop '1:applyprojectors'
   if (istart_c-1.ne.nlpspd%nprojel) stop '2:applyprojectors'
 end do
+
+do iat=1,at%nat
+   write(*,'(1x,a,i5,i5,1x,a6,1x,1pe12.5)') &
+        'NL',iproc,iat,trim(at%atomnames(at%iatype(iat))),&
+        fsep(3,iat)
+end do
+   
 
   i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)
   deallocate(fxyz_orb,stat=i_stat)

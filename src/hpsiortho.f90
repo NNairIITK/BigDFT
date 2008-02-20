@@ -518,7 +518,7 @@ subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvct
      !allocated in the transposed way such as 
      !it can also be used as the transposed hpsi
      allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','first_orthon')
+     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','first_orthon')
 
      !transpose the psi wavefunction
      !here hpsi is used as a work array
@@ -568,7 +568,7 @@ subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvct
      end if
      !allocate hpsi array
      allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','first_orthon')
+     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','first_orthon')
   endif
 
 end subroutine first_orthon
