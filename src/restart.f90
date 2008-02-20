@@ -52,9 +52,12 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,hgrid,n1,n2,n3,eval,wfd
      !(remember that the allocations are slightly enlarged to avoid
      !allocation of work arrays for transposition in the parallel case)
      do j=1,wfd_old%nvctr_c+7*wfd_old%nvctr_f
-        ind=j+(wfd_old%nvctr_c+7*wfd_old%nvctr_f)*(iorb-iproc*norbp-1)
-        i1=mod(ind-1,nvctrp_old)+1
-        i2=(ind-i1)/nvctrp_old+1
+        !starting address of the direct array in transposed form
+        call trans_address(norbp,nvctrp_old,wfd_old%nvctr_c+7*wfd_old%nvctr_f,&
+             j,iorb-iproc*norbp, i1,i2)
+!!$        ind=j+(wfd_old%nvctr_c+7*wfd_old%nvctr_f)*(iorb-iproc*norbp-1)
+!!$        i1=mod(ind-1,nvctrp_old)+1
+!!$        i2=(ind-i1)/nvctrp_old+1
         psi_old(j,iorb-iproc*norbp)     = psi(i1,i2)
         tt=tt+psi(i1,i2)**2
      enddo

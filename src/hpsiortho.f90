@@ -241,17 +241,14 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
 end subroutine HamiltonianApplication
 
 
-subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
+subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
      eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
      psi,psit,hpsi,psidst,hpsidst,nspin,spinar)
-
   use module_types
-
   implicit none
-  include 'mpif.h'
-  real(kind=8), parameter :: eps_mach=1.d-12
-  logical, intent(in) :: parallel
+  type(kinetic_bounds), intent(in) :: kbounds
+  type(wavefunctions_descriptors), intent(in) :: wfd
   integer, intent(in) :: iter,iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids,idsx
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
   real(kind=8), intent(in) :: hgrid,energy,energy_old
@@ -260,11 +257,11 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   real(kind=8), intent(inout) :: gnrm,scprsum
   real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
   real(kind=8), dimension(:,:,:), pointer :: psidst,hpsidst,ads
-  type(kinetic_bounds), intent(in) :: kbounds
-  type(wavefunctions_descriptors), intent(in) :: wfd
   !local variables
+  include 'mpif.h'
+  real(kind=8), parameter :: eps_mach=1.d-12
   integer :: ierr,ind,i1,i2,iorb,k,norbu,norbd
-  real(kind=8) :: tt,scpr,dnrm2,scprpart
+  real(kind=8) :: tt,scpr,dnrm2,scprpart,cprecr
 
   if (iproc==0) then
      write(*,'(1x,a)',advance='no')&
@@ -281,7 +278,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   !write(*,'(1x,a,3i4,30f6.2)')'Spins: ',norb,norbu,norbd,(spinar(iorb),iorb=1,norb)
 
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
-  if (parallel) then
+  if (nproc > 1) then
      !transpose the hpsi wavefunction
      !here psi is used as a work array
      call timing(iproc,'Un-TransSwitch','ON')
@@ -293,20 +290,23 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
           hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
      !end of transposition
+  else
+     psit => psi
+  end if
 
-
-     if(nspin==1) then
-        call  orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsi,scprsum)
-     else
-        call  orthoconstraint_p(iproc,nproc,norbu,occup,nvctrp,psit,hpsi,scprsum)
-        scprpart=0.0d0
-        if(norbd>0) then
-           scprpart=scprsum 
-           call  orthoconstraint_p(iproc,nproc,norbd,occup(norbu+1),nvctrp,psit(1,norbu+1),hpsi(1,norbu+1),scprsum)
-        end if
-        scprsum=scprsum+scprpart
+  if(nspin==1) then
+     call orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsi,scprsum)
+  else
+     call orthoconstraint_p(iproc,nproc,norbu,occup,nvctrp,psit,hpsi,scprsum)
+     scprpart=0.0d0
+     if(norbd>0) then
+        scprpart=scprsum 
+        call orthoconstraint_p(iproc,nproc,norbd,occup(norbu+1),nvctrp,psit(1,norbu+1),hpsi(1,norbu+1),scprsum)
      end if
+     scprsum=scprsum+scprpart
+  end if
 
+  if (nproc > 1) then
      !retranspose the hpsi wavefunction
      !here psi is used as a work array
      call timing(iproc,'Un-TransComm  ','ON')
@@ -318,42 +318,37 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,hpsi)
      call timing(iproc,'Un-TransSwitch','OF')
      !end of retransposition
-  else
-     if(nspin==1) then
-        call orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum)
-     else
-        call orthoconstraint(norbu,occup,nvctrp,psi,hpsi,scprsum)
-        scprpart=0.0d0
-        if(norbd>0) then
-           scprpart=scprsum 
-           call orthoconstraint(norbd,occup(norbu+1),nvctrp,psi(1,norbu+1),hpsi(1,norbu+1),scprsum)
-        end if
-        scprsum=scprsum+scprpart
-     end if
-  endif
+  end if
+
+!!$  else
+!!$     if(nspin==1) then
+!!$        call orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum)
+!!$     else
+!!$        call orthoconstraint(norbu,occup,nvctrp,psi,hpsi,scprsum)
+!!$        scprpart=0.0d0
+!!$        if(norbd>0) then
+!!$           scprpart=scprsum 
+!!$           call orthoconstraint(norbd,occup(norbu+1),nvctrp,psi(1,norbu+1),hpsi(1,norbu+1),scprsum)
+!!$        end if
+!!$        scprsum=scprsum+scprpart
+!!$     end if
+!!$  endif
 
 
   ! norm of gradient
   gnrm=0.d0
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-     !calculate the address to start from for calculating the 
-     !norm of the residue if hpsi is allocated in the transposed way
-     !it can be eliminated when including all this procedure in a subroutine
-     if (parallel) then
-        ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-iproc*norbp-1)
-        i1=mod(ind-1,nvctrp)+1
-        i2=(ind-i1)/nvctrp+1
-     else
-        i1=1
-        i2=iorb-iproc*norbp
-     end if
-     scpr=dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,hpsi(i1,i2),1)
+
+     !starting address of the direct array in transposed form
+     call trans_address(norbp,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,1,iorb-iproc*norbp,i1,i2)
+
+       scpr=dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,hpsi(i1,i2),1)
      !scpr=dnrm2(nvctr_c+7*nvctr_f,hpsi(1,iorb-iproc*norbp),1)
      !lines for writing the residue following the orbitals
      !if (iorb <=5) write(83,*)iter,iorb,scpr
      gnrm=gnrm+scpr**2
   enddo
-  if (parallel) then
+  if (nproc > 1) then
      tt=gnrm
      call MPI_ALLREDUCE(tt,gnrm,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
   endif
@@ -367,10 +362,25 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
   !   write(*,'(10f10.6)') (eval(iorb),iorb=1,norb)
   ! Preconditions all orbitals belonging to iproc
-  call preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid, &
-       ncong,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,eval,&
-       kbounds%ibyz_c,kbounds%ibxz_c,kbounds%ibxy_c,&
-       kbounds%ibyz_f,kbounds%ibxz_f,kbounds%ibxy_f,hpsi)
+
+  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+     
+     !starting address of the direct array in transposed form
+     call trans_address(norbp,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,1,iorb-iproc*norbp,i1,i2)
+
+     cprecr=-eval(iorb)
+     !       write(*,*) 'cprecr',iorb,cprecr!
+     call precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+          wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
+          ncong,cprecr,hgrid,kbounds%ibyz_c,kbounds%ibxz_c,kbounds%ibxy_c,&
+          kbounds%ibyz_f,kbounds%ibxz_f,kbounds%ibxy_f,hpsi(i1,i2))
+     
+  enddo
+
+!!$  call preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid, &
+!!$       ncong,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,eval,&
+!!$       kbounds%ibyz_c,kbounds%ibxz_c,kbounds%ibxy_c,&
+!!$       kbounds%ibyz_f,kbounds%ibxz_f,kbounds%ibxy_f,hpsi)
 
   if (iproc==0) then
      write(*,'(1x,a)')&
@@ -380,7 +390,7 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
   !apply the minimization method (DIIS or steepest descent)
   if (idsx.gt.0) then
-     if (parallel) then
+     if (nproc > 1) then
         !transpose the hpsi wavefunction into the diis array
 
         !here psi is used as a work array
@@ -400,8 +410,8 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
            enddo
         enddo
 
-        call diisstp(parallel,norb,norbp,nproc,iproc,  &
-             ads,iter,mids,idsx,nvctrp,psit,psidst,hpsidst)
+        !call diisstp(norb,norbp,nproc,iproc,  &
+        !     ads,iter,mids,idsx,nvctrp,psit,psidst,hpsidst)
      else
         call timing(iproc,'Diis          ','ON')
         do iorb=1,norb
@@ -410,11 +420,10 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
               hpsidst(k,iorb,mids)=hpsi(k,iorb)
            enddo
         enddo
-
-        call diisstp(parallel,norb,norbp,nproc,iproc,  &
-             ads,iter,mids,idsx,nvctrp,psi,psidst,hpsidst)
-
      endif
+
+     call diisstp(norb,norbp,nproc,iproc,  &
+          ads,iter,mids,idsx,nvctrp,psit,psidst,hpsidst)
      !    write(*,*) 'psi update done',iproc
 
   else
@@ -428,9 +437,8 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      endif
      if (iproc.eq.0) write(*,'(1x,a,1pe11.3)') 'alpha=',alpha
 
-     if (parallel) then
+     if (nproc > 1) then
         !transpose the hpsi wavefunction
-
         !here psi is used as a work array
         call timing(iproc,'Un-TransSwitch','ON')
         call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi)
@@ -441,17 +449,13 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
              hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
         call timing(iproc,'Un-TransComm  ','OF')
         !end of transposition
-
-        call timing(iproc,'Diis          ','ON')
-        do iorb=1,norb
-           call DAXPY(nvctrp,-alpha,hpsi(1,iorb),1,psit(1,iorb),1)
-        enddo
-     else
-        call timing(iproc,'Diis          ','ON')
-        do iorb=1,norb
-           call DAXPY(nvctrp,-alpha,hpsi(1,iorb),1,psi(1,iorb),1)
-        enddo
      endif
+
+     call timing(iproc,'Diis          ','ON')
+     do iorb=1,norb
+        call DAXPY(nvctrp,-alpha,hpsi(1,iorb),1,psit(1,iorb),1)
+     enddo
+     
 
   endif
 
@@ -462,17 +466,17 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
           'Orthogonalization...'
   end if
 
-  if (parallel) then
-     if(nspin==1) then
-        call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit)
-     else
-        call orthon_p(iproc,nproc,norbu,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit)
-        if(norbd>0) then
-           call orthon_p(iproc,nproc,norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit(1,norbu+1))
-        end if
+  if(nspin==1) then
+     call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit)
+  else
+     call orthon_p(iproc,nproc,norbu,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit)
+     if(norbd>0) then
+        call orthon_p(iproc,nproc,norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit(1,norbu+1))
      end if
+  end if
      !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
 
+  if (nproc > 1) then
      !here hpsi is used as a work array
      call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
@@ -483,17 +487,20 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      call timing(iproc,'Un-TransSwitch','OF')
      !end of retransposition
   else
-     if(nspin==1) then
-        call orthon(norb,nvctrp,psi)
-        !          call checkortho(norb,nvctrp,psi)
-     else
-        call orthon(norbu,nvctrp,psi)
-        !          call checkortho(norbu,nvctrp,psi)
-        if(norbd>0) then
-           call orthon(norbd,nvctrp,psi(1,norbu+1))
-        end if
-        !          call checkortho(norbd,nvctrp,psi(1,norbu+1))
-     end if
+
+     nullify(psit)
+
+!!$     if(nspin==1) then
+!!$        call orthon(norb,nvctrp,psi)
+!!$        !          call checkortho(norb,nvctrp,psi)
+!!$     else
+!!$        call orthon(norbu,nvctrp,psi)
+!!$        !          call checkortho(norbu,nvctrp,psi)
+!!$        if(norbd>0) then
+!!$           call orthon(norbd,nvctrp,psi(1,norbu+1))
+!!$        end if
+!!$        !          call checkortho(norbd,nvctrp,psi(1,norbu+1))
+!!$     end if
   endif
 
   if (iproc==0) then
@@ -502,6 +509,27 @@ subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   end if
 
 end subroutine hpsitopsi
+
+!calculate the address to start from for calculating the 
+!norm of the residue if hpsi is allocated in the transposed way
+!it can be eliminated when including all this procedure in a subroutine
+subroutine trans_address(norbp,nvctrp,nvctr,i,iorb,i1,i2)
+  implicit none
+  integer, intent(in) :: norbp,nvctrp,nvctr,i,iorb
+  integer, intent(out) :: i1,i2
+  !local variables
+  integer :: ind
+!  if (nproc > 1) then
+     ind=i+nvctr*(iorb-1)
+     i1=mod(ind-1,nvctrp)+1
+     i2=(ind-i1)/nvctrp+1
+!!$  else
+!!$     i1=1
+!!$     i2=iorb
+!!$  end if
+end subroutine trans_address
+
+
 
 subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
      nspin,psi,hpsi,psit)

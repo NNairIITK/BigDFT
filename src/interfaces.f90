@@ -205,7 +205,6 @@ interface
      use module_types
      use Poisson_Solver
      implicit none
-     include 'mpif.h'
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(convolutions_bounds), intent(in) :: bounds
@@ -313,13 +312,14 @@ interface
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: hpsi
    end subroutine HamiltonianApplication
 
-   subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
+   subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
         eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
         psi,psit,hpsi,psidst,hpsidst,nspin,spinar)
-     use module_types               
+     use module_types
      implicit none
-     logical, intent(in) :: parallel
+     type(kinetic_bounds), intent(in) :: kbounds
+     type(wavefunctions_descriptors), intent(in) :: wfd
      integer, intent(in) :: iter,iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids,idsx
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
      real(kind=8), intent(in) :: hgrid,energy,energy_old
@@ -328,8 +328,6 @@ interface
      real(kind=8), intent(inout) :: gnrm,scprsum
      real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
      real(kind=8), dimension(:,:,:), pointer :: psidst,hpsidst,ads
-     type(kinetic_bounds), intent(in) :: kbounds
-     type(wavefunctions_descriptors), intent(in) :: wfd
    end subroutine hpsitopsi
 
    subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
