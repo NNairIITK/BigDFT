@@ -1,4 +1,4 @@
-subroutine diisstp(parallel,norb,norbp,nproc,iproc,  & 
+subroutine diisstp(norb,norbp,nproc,iproc,  & 
                    ads,ids,mids,idsx,nvctrp,psit,psidst,hpsidst)
 ! diis subroutine:
 ! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
@@ -7,7 +7,6 @@ subroutine diisstp(parallel,norb,norbp,nproc,iproc,  &
   implicit none
   include 'mpif.h'
 ! Arguments
-  logical, intent(in) :: parallel
   integer, intent(in) :: norb,norbp,nproc,iproc,ids,mids,idsx,nvctrp
   real(kind=8) :: psit(nvctrp,norbp*nproc),ads(idsx+1,idsx+1,3)
   real(kind=8) :: psidst(nvctrp,norbp*nproc,idsx),hpsidst(nvctrp,norbp*nproc,idsx)
@@ -44,7 +43,7 @@ subroutine diisstp(parallel,norb,norbp,nproc,iproc,  &
      end do
   end do
 
-  if (parallel) then
+  if (nproc > 1) then
      call MPI_ALLREDUCE(rds,ads(1,min(idsx,ids),1),min(ids,idsx),  & 
                  MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
   else

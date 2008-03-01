@@ -18,7 +18,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
   integer :: iat,jat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,jtyp,nspin
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   real(kind=8) :: hgridh,pi,rholeaked,dist,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
-  real(kind=8) :: tt_tot,rholeaked_tot
+  real(kind=8) :: tt_tot,rholeaked_tot,eself
   real(kind=8) :: ehart,eexcu,vexcu
   real(kind=8), dimension(4) :: charges_mpi
 
@@ -36,6 +36,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
 
   !here we should insert the calculation of the ewald energy for the periodic BC case
   eion=0.d0
+  eself=0.d0
   do iat=1,nat
      ityp=iatype(iat)
      rx=rxyz(1,iat) 
@@ -47,6 +48,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
         jtyp=iatype(jat)
         eion=eion+real(nelpsp(jtyp)*nelpsp(ityp),kind=8)/dist
      enddo
+     !energy which comes from the self-interaction of the spread charge
+     eself=eself+real(nelpsp(ityp)**2,kind=8)*0.5*sqrt(1.d0/pi)/psppar(0,0,ityp)
   end do
   if (iproc.eq.0) write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
 
@@ -82,7 +85,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
         iey=ceiling((ry+cutoff)/hyh)
         iez=ceiling((rz+cutoff)/hzh)
 
-
+        !these nested loops will be used also for the actual ionic forces, to be recalculated
         do i3=isz,iez
            z=real(i3,kind=8)*hzh-rz
            call ind_positions(perz,i3,n3,j3,goz) 
@@ -122,7 +125,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
   enddo
 
   tt=tt*hxh*hyh*hzh
-  rholeaked=rholeaked**hxh*hyh*hzh
+  rholeaked=rholeaked*hxh*hyh*hzh
 
   !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
 
@@ -148,7 +151,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
        pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.false.,nspin)
   call timing(iproc,'CrtLocPot     ','ON')
 
-  !print *,'ehartree',ehart
+  print *,'true eion',ehart-eself
   if (n3pi > 0) then
      do iat=1,nat
         ityp=iatype(iat)
@@ -252,7 +255,7 @@ subroutine ind_positions(periodic,i,n,j,go)
 
   if (periodic) then
      go=.true.
-     j=modulo(i,n+1)
+     j=modulo(i,2*n+2)
   else
      j=i
      if (i >= -14 .and. i <= 2*n+16) then

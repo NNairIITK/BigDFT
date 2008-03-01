@@ -167,7 +167,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   norbsc_arr(natsc+1,1)=norbe-norbsc
   
   !duplicate the values in the case of spin-polarization
-  norbsc_arr(:,2)=norbsc_arr(:,1)
+  if (nspin == 2) norbsc_arr(:,2)=norbsc_arr(:,1)
 
   if (iproc ==0) then
      write(*,'(1x,a,i0,a)')'Generating ',nspin*norbe,' Atomic Input Orbitals'

@@ -1,0 +1,170 @@
+
+
+ BASIS SET INFORMATION (Unnormalised Gaussian-type functions)
+
+  1. Atomic kind: O
+
+     GTO basis set information for                                 DZVP-GTH-BLYP
+
+                        Set   Shell     n   l            Exponent    Coefficient
+
+                          1       1     2   0            8.278333       0.534660
+                                                         2.431918      -0.065036
+                                                         0.753040      -0.408612
+                                                         0.208465      -0.080873
+                          1       2     3   0            8.278333       0.000000
+                                                         2.431918       0.000000
+                                                         0.753040       0.000000
+                                                         0.208465       0.219880
+                          1       3     3   1            8.278333      -2.002435
+                                                         2.431918      -1.318890
+                                                         0.753040      -0.476446
+                                                         0.208465      -0.075594
+                          1       4     4   1            8.278333       0.000000
+                                                         2.431918       0.000000
+                                                         0.753040       0.000000
+                                                         0.208465       0.200785
+
+                          2       1     3   2            0.800000       1.929201
+
+  2. Atomic kind: H
+
+     GTO basis set information for                                 DZVP-GTH-BLYP
+
+                        Set   Shell     n   l            Exponent    Coefficient
+
+                          1       1     1   0            8.592682      -0.090761
+                                                         1.874162      -0.162457
+                                                         0.510524      -0.115739
+                                                         0.167158      -0.126909
+                          1       2     2   0            8.592682       0.000000
+                                                         1.874162       0.000000
+                                                         0.510524       0.000000
+                                                         0.167158       0.186319
+
+                          2       1     2   1            0.700000       0.912668
+
+
+ ATOMIC KIND INFORMATION
+
+  1. Atomic kind: O                                     Number of atoms:       1
+
+     Orbital basis set information for                             DZVP-GTH-BLYP
+
+       Number of orbital shell sets:                                           2
+       Number of orbital shells:                                               5
+       Number of primitive Cartesian functions:                                5
+       Number of Cartesian basis functions:                                   14
+       Number of spherical basis functions:                                   13
+
+       Normalised Cartesian orbitals:
+
+                        Set   Shell   Orbital            Exponent    Coefficient
+
+                          1       1    2s                8.278333       0.534660
+                                                         2.431918      -0.065036
+                                                         0.753040      -0.408612
+                                                         0.208465      -0.080873
+
+                          1       2    3s                8.278333       0.000000
+                                                         2.431918       0.000000
+                                                         0.753040       0.000000
+                                                         0.208465       0.219880
+
+                          1       3    3px               8.278333      -2.002435
+                                                         2.431918      -1.318890
+                                                         0.753040      -0.476446
+                                                         0.208465      -0.075594
+                          1       3    3py               8.278333      -2.002435
+                                                         2.431918      -1.318890
+                                                         0.753040      -0.476446
+                                                         0.208465      -0.075594
+                          1       3    3pz               8.278333      -2.002435
+                                                         2.431918      -1.318890
+                                                         0.753040      -0.476446
+                                                         0.208465      -0.075594
+
+                          1       4    4px               8.278333       0.000000
+                                                         2.431918       0.000000
+                                                         0.753040       0.000000
+                                                         0.208465       0.200785
+                          1       4    4py               8.278333       0.000000
+                                                         2.431918       0.000000
+                                                         0.753040       0.000000
+                                                         0.208465       0.200785
+                          1       4    4pz               8.278333       0.000000
+                                                         2.431918       0.000000
+                                                         0.753040       0.000000
+                                                         0.208465       0.200785
+
+                          2       1    3dx2              0.800000       1.113825
+                          2       1    3dxy              0.800000       1.929201
+                          2       1    3dxz              0.800000       1.929201
+                          2       1    3dy2              0.800000       1.113825
+                          2       1    3dyz              0.800000       1.929201
+                          2       1    3dz2              0.800000       1.113825
+
+     Potential information for                                       GTH-BLYP-q6
+
+       Description:                       Goedecker-Teter-Hutter pseudopotential
+                                           Goedecker et al., PRB 54, 1703 (1996)
+                                          Hartwigsen et al., PRB 58, 3641 (1998)
+                                                      Krack, TCA 114, 145 (2005)
+
+       Gaussian exponent of the core charge distribution:               8.438331
+       Electronic configuration (s p d ...):                               2   4
+
+       Parameters of the local part of the GTH pseudopotential:
+
+                          rloc        C1          C2          C3          C4
+                        0.243420  -16.991892    2.566142
+
+       Parameters of the non-local part of the GTH pseudopotential:
+
+                   l      r(l)      h(i,j,l)
+
+                   0    0.220831   18.388851
+                   1    0.217201
+
+  2. Atomic kind: H                                     Number of atoms:       2
+
+     Orbital basis set information for                             DZVP-GTH-BLYP
+
+       Number of orbital shell sets:                                           2
+       Number of orbital shells:                                               3
+       Number of primitive Cartesian functions:                                5
+       Number of Cartesian basis functions:                                    5
+       Number of spherical basis functions:                                    5
+
+       Normalised Cartesian orbitals:
+
+                        Set   Shell   Orbital            Exponent    Coefficient
+
+                          1       1    1s                8.592682      -0.090761
+                                                         1.874162      -0.162457
+                                                         0.510524      -0.115739
+                                                         0.167158      -0.126909
+
+                          1       2    2s                8.592682       0.000000
+                                                         1.874162       0.000000
+                                                         0.510524       0.000000
+                                                         0.167158       0.186319
+
+                          2       1    2px               0.700000       0.912668
+                          2       1    2py               0.700000       0.912668
+                          2       1    2pz               0.700000       0.912668
+
+     Potential information for                                       GTH-BLYP-q1
+
+       Description:                       Goedecker-Teter-Hutter pseudopotential
+                                           Goedecker et al., PRB 54, 1703 (1996)
+                                          Hartwigsen et al., PRB 58, 3641 (1998)
+                                                      Krack, TCA 114, 145 (2005)
+
+       Gaussian exponent of the core charge distribution:              12.500000
+       Electronic configuration (s p d ...):                                   1
+
+       Parameters of the local part of the GTH pseudopotential:
+
+                          rloc        C1          C2          C3          C4
+                        0.200000   -4.195961    0.730498

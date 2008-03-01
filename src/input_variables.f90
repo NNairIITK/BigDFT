@@ -469,11 +469,18 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
 
   do ityp=1,at%ntypes
      filename = 'psppar.'//at%atomnames(ityp)
+
+     inquire(file=filename,exist=exists)
+     if (.not. exists) then
+        if (iproc == 0) write(*,'(1x,a)')&
+             'ERROR: The pseudopotential parameter file "'//filename//'" is lacking, exiting...'
+        stop
+     end if
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
      open(unit=11,file=filename,status='old',iostat=ierror)
      !Check the open statement
      if (ierror /= 0) then
-        write(*,*) 'iproc=',iproc,': Failed to open the file (it must be in ABINIT format!) "',&
+        write(*,*) 'iproc=',iproc,': Failed to open the file (it must be in ABINIT format!): "',&
              trim(filename),'"'
         stop
      end if
@@ -672,7 +679,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
               end if
            end do
         end do
-    end if
+     end if
     
     !calculate number of electrons and orbitals
     ! Number of electrons and number of semicore atoms

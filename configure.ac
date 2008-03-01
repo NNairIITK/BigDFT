@@ -283,6 +283,7 @@ tests/H-spin/Makefile
 tests/Li+/Makefile
 tests/NaCl/Makefile
 tests/SiH4/Makefile
+tests/H2O-CP2K/Makefile
 ])
 AC_OUTPUT
 

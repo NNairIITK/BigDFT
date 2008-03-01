@@ -132,16 +132,16 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(:,:), pointer :: psi
   !local variables
   character(len=1) :: datacode,geocode
-  logical :: calc_tail,output_wf,output_grid
-  integer :: ixc,ncharge,ncong,idsx,ncongt,nspin,mpol,inputPsiId,itermax
-  integer :: nelec,norbu,norbd,ndegree_ip,nvctrp,mids,iorb,iounit
+  logical :: calc_tail,output_wf,output_grid,switchSD
+  integer :: ixc,ncharge,ncong,idsx,ncongt,nspin,mpol,inputPsiId,itermax,idsx_actual
+  integer :: nelec,norbu,norbd,ndegree_ip,nvctrp,mids,iorb,iounit,ids,idiistol,j
   integer :: n1_old,n2_old,n3_old,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n3d,n3p,n3pi,i3xcsh,i3s
   integer :: ncount0,ncount1,ncount_rate,ncount_max,iunit,n1i,n2i,n3i
   integer :: i1,i2,i3,ind,iat,ierror,i_all,i_stat,iter,ierr,i03,i04,jproc,ispin
   real :: tcpu0,tcpu1
   real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf,hx,hy,hz,hxh,hyh,hzh
-  real(kind=8) :: hgridh,peakmem,alat1,alat2,alat3,accurex,gnrm_check,hgrid_old,energy_old
-  real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum
+  real(kind=8) :: hgridh,peakmem,alat1,alat2,alat3,accurex,gnrm_check,hgrid_old,energy_old,sumz
+  real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
   real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min
   type(wavefunctions_descriptors) :: wfd_old
   type(convolutions_bounds) :: bounds
@@ -324,13 +324,44 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   allocate(eval(norb),stat=i_stat)
   call memocc(i_stat,product(shape(eval))*kind(eval),'eval','cluster')
 
-  ! INPUT WAVEFUNCTIONS
-  if (inputPsiId == -1) then
+  ! INPUT WAVEFUNCTIONS, added also random input guess
+  if (inputPsiId == -2) then
+
+     if (iproc.eq.0) then
+        write(*,'(1x,a)')&
+             '------------------------------------------------- Random wavefunctions initalization'
+     end if
+
+     !random initialisation of the wavefunctions
+     allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
+
+     do iorb=1,norbp*nproc
+        do i1=1,nvctrp
+           do j=0,iproc-1
+              call random_number(tt)
+           end do
+           call random_number(tt)
+           psi(i1,iorb)=real(tt,kind=8)
+           do j=iproc+1,nproc
+              call random_number(tt)
+           end do
+        end do
+     end do
+
+     eval(:)=-0.5d0
+
+     !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
+     call first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,&
+          wfd%nvctr_c,wfd%nvctr_f,nvctrp,nspin,psi,hpsi,psit)
+     
+
+  else if (inputPsiId == -1) then
 
      !import gaussians form CP2K (data in files def_gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
-     call import_gaussians(parallel,iproc,nproc,atoms,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-          norb,norbp,occup,n1,n2,n3,nvctrp,hx,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
+     call import_gaussians(geocode,iproc,nproc,atoms,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+          norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj, &
           pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
 
   else if (inputPsiId == 0) then
@@ -338,7 +369,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(geocode,iproc,nproc,atoms,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj, &
-          pkernel,ixc,psi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
+          pkernel,ixc,psi,hpsi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
 
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
@@ -348,8 +379,8 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      !allocate hpsi array (used also as transposed)
      !allocated in the transposed way such as 
      !it can also be used as the transposed hpsi
-     allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','cluster')
+     !allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
+     !call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','cluster')
     
   else if (inputPsiId == 1 ) then 
      !restart from previously calculated wavefunctions, in memory
@@ -410,7 +441,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   else
 
      if (iproc == 0) then
-        write(*,'(1x,a)')'The supported values of inputPsiId are integers from -1 to 2'
+        write(*,'(1x,a)')'The supported values of inputPsiId are integers from -2 to 2'
         write(*,'(1x,a,i0)')'                        while we found',inputPsiId
      end if
      stop
@@ -443,7 +474,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      call razero(3*(idsx+1)**2,ads)
   endif
 
-  alpha=1.d0
+  alpha=2.d0
   energy=1.d10
   gnrm=1.d10
   ekin_sum=0.d0 
@@ -453,13 +484,23 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   energy_min=1.d10
   !set the infocode to the value it would have in the case of no convergence
   infocode=1
+  !logical control variable for switch DIIS-SD
+  switchSD=.false.
+  !local variable for the diis history
+  idsx_actual=idsx
+
+  ids=0
+  idiistol=0
 
   !end of the initialization part
   call timing(iproc,'INIT','PR')
 
   ! loop for wavefunction minimization
   wfn_loop: do iter=1,itermax
-     if (idsx.gt.0) mids=mod(iter-1,idsx)+1
+     if (idsx.gt.0) then
+        mids=mod(ids,idsx)+1
+        ids=ids+1
+     end if
      if (iproc.eq.0) then 
         write(*,'(1x,a,i0)')&
              '---------------------------------------------------------------------------- iter= ',&
@@ -508,9 +549,9 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
         exit wfn_loop 
      endif
 
-     call hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
+     call hpsitopsi(ids,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,bounds%kb,&
-          eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
+          eval,ncong,mids,idsx_actual,ads,energy,energy_old,alpha,gnrm,scprsum,&
           psi,psit,hpsi,psidst,hpsidst,nspin,spinar)! add NSPIN
 
      tt=energybs-scprsum
@@ -562,11 +603,57 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
         end if
      end if
 
+     !add experimental switch between DIIS and SD
+     !if it works this section should be inserted into hpsitopsi
+     if (energy == energy_min .and. .not. switchSD) idiistol=0
+     if (energy > energy_min .and. idsx >0 .and. .not. switchSD) then
+        idiistol=idiistol+1
+     end if
+     if (idiistol > idsx .and. .not. switchSD) then
+        !the energy has not decreasing for too much steps, switching to SD for next steps
+        if (iproc ==0) write(*,'(1x,a,1pe9.2,a)')&
+                'WARNING: The energy value is growing (delta=',energy-energy_min,') switch to SD'
+        switchSD=.true.
+        i_all=-product(shape(psidst))*kind(psidst)
+        deallocate(psidst,stat=i_stat)
+        call memocc(i_stat,i_all,'psidst','cluster')
+        i_all=-product(shape(hpsidst))*kind(hpsidst)
+        deallocate(hpsidst,stat=i_stat)
+        call memocc(i_stat,i_all,'hpsidst','cluster')
+        i_all=-product(shape(ads))*kind(ads)
+        deallocate(ads,stat=i_stat)
+        call memocc(i_stat,i_all,'ads','cluster')
+        idsx_actual=0
+        idiistol=0
+
+     end if
+     if ( (energy == energy_min) .and. switchSD) then
+        idiistol=idiistol+1
+     end if
+     if (idiistol > idsx .and. switchSD) then
+        !restore the original DIIS
+        if (iproc ==0) write(*,'(1x,a,1pe9.2)')&
+                'WARNING: The energy value is now decreasing again, coming back to DIIS'
+        switchSD=.false.
+        idsx_actual=idsx
+        ids=0
+        idiistol=0
+
+        allocate(psidst(nvctrp,norbp*nproc,idsx),stat=i_stat)
+        call memocc(i_stat,product(shape(psidst))*kind(psidst),'psidst','cluster')
+        allocate(hpsidst(nvctrp,norbp*nproc,idsx),stat=i_stat)
+        call memocc(i_stat,product(shape(hpsidst))*kind(hpsidst),'hpsidst','cluster')
+        allocate(ads(idsx+1,idsx+1,3),stat=i_stat)
+        call memocc(i_stat,product(shape(ads))*kind(ads),'ads','cluster')
+        call razero(3*(idsx+1)**2,ads)
+     end if
+
+
   end do wfn_loop
   if (iter == itermax+1 .and. iproc == 0 ) &
        write(*,'(1x,a)')'No convergence within the allowed number of minimization steps'
 
-  if (idsx.gt.0) then
+  if (idsx_actual > 0) then
      i_all=-product(shape(psidst))*kind(psidst)
      deallocate(psidst,stat=i_stat)
      call memocc(i_stat,i_all,'psidst','cluster')
@@ -711,6 +798,22 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! calculate local part of the forces gxyz
   call local_forces(iproc,nproc,atoms,rxyz,hgrid,n1,n2,n3,n3p,i3s+i3xcsh,rho,pot,gxyz)
 
+!!$  sumx=0.d0
+!!$  sumy=0.d0
+!!$  sumz=0.d0
+!!$  write(*,'(1x,a,19x,a)') 'Final values of the Local Forces for each atom'
+!!$  do iat=1,atoms%nat
+!!$     write(*,'(1x,a,i5,i5,1x,a6,3(1x,1pe12.5))') &
+!!$          'L',iproc,iat,trim(atoms%atomnames(atoms%iatype(iat))),(gxyz(j,iat),j=1,3)
+!!$     sumx=sumx+gxyz(1,iat)
+!!$     sumy=sumy+gxyz(2,iat)
+!!$     sumz=sumz+gxyz(3,iat)
+!!$  enddo
+!!$  write(*,'(1x,a)')'the sum of the forces is'
+!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'x direction(L)',iproc,sumx
+!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'y direction(L)',iproc,sumy
+!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'z direction(L)',iproc,sumz
+
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)
   call memocc(i_stat,i_all,'rho','cluster')
@@ -734,6 +837,23 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   call nonlocal_forces(iproc,atoms,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,gxyz)
 
   if (iproc == 0) write(*,'(1x,a)')'done.'
+
+!!$  sumx=0.d0
+!!$  sumy=0.d0
+!!$  sumz=0.d0
+!!$  write(*,'(1x,a,19x,a)') 'Final values of the NonLocal+LOCAL Forces for each atom'
+!!$  do iat=1,atoms%nat
+!!$     write(*,'(1x,a,i5,i5,1x,a6,3(1x,1pe12.5))') &
+!!$          'NL',iproc,iat,trim(atoms%atomnames(atoms%iatype(iat))),(gxyz(j,iat),j=1,3)
+!!$     sumx=sumx+gxyz(1,iat)
+!!$     sumy=sumy+gxyz(2,iat)
+!!$     sumz=sumz+gxyz(3,iat)
+!!$  enddo
+!!$  write(*,'(1x,a)')'the sum of the forces is'
+!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'x direction(NL)',iproc,sumx
+!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'y direction(NL)',iproc,sumy
+!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'z direction(NL)',iproc,sumz
+
 
   i_all=-product(shape(derproj))*kind(derproj)
   deallocate(derproj,stat=i_stat)
@@ -869,7 +989,7 @@ contains
     !when this condition is verified we are in the middle of the SCF cycle
     if (infocode /=0 .and. infocode /=1) then
 
-       if (idsx.gt.0) then
+       if (idsx_actual > 0) then
           i_all=-product(shape(psidst))*kind(psidst)
           deallocate(psidst,stat=i_stat)
           call memocc(i_stat,i_all,'psidst','cluster')
