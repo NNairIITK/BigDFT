@@ -28,9 +28,16 @@ subroutine conjgrad(parallel,nproc,iproc,at,wpos,etot,gg, &
   call memocc(i_stat,product(shape(hh))*kind(hh),'hh','conjgrad')
 
   anoise=1.d-4
-  fluct=-1.d100
-  flucto=-1.d100
+  fluct=0.d0
+  flucto=0.d0
+  fluctoo=0.d0
 
+!!$  anoise=1.d-4
+!!$  fluct=-1.d100
+!!$  flucto=-1.d100
+
+  !write the first position
+  if (iproc.eq.0) call  wtposout(ncount_cluster,etot,wpos,at)
   !    Open a log file for conjgrad
   open(unit=16,file='conjgrad.prc',status='unknown')
 
@@ -465,8 +472,6 @@ contains
     use module_types
     use module_interfaces
     implicit none
-!!$    implicit real(kind=8) (a-h,o-z)
-!!$    implicit integer (i-n)
     logical, intent(in) :: parallel
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: at
@@ -631,7 +636,7 @@ subroutine wtposout(igeostep,energy,rxyz,atoms)
      ymax=max(rxyz(2,iat),ymax)
      zmax=max(rxyz(3,iat),zmax)
   enddo
-  write(9,*) atoms%nat,' atomic '!, energy,igeostep
+  write(9,*) atoms%nat,' atomicd0 '!, energy,igeostep
   !write(9,*) xmax+5.d0, 0.d0, ymax+5.d0
   !write(9,*) 0.d0, 0.d0, zmax+5.d0
   write(9,*)' energy,igeostep ', energy,igeostep

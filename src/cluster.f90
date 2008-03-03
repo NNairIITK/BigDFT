@@ -134,14 +134,14 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   character(len=1) :: datacode,geocode
   logical :: calc_tail,output_wf,output_grid,switchSD
   integer :: ixc,ncharge,ncong,idsx,ncongt,nspin,mpol,inputPsiId,itermax,idsx_actual
-  integer :: nelec,norbu,norbd,ndegree_ip,nvctrp,mids,iorb,iounit,ids,idiistol
+  integer :: nelec,norbu,norbd,ndegree_ip,nvctrp,mids,iorb,iounit,ids,idiistol,j
   integer :: n1_old,n2_old,n3_old,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n3d,n3p,n3pi,i3xcsh,i3s
   integer :: ncount0,ncount1,ncount_rate,ncount_max,iunit,n1i,n2i,n3i
   integer :: i1,i2,i3,ind,iat,ierror,i_all,i_stat,iter,ierr,i03,i04,jproc,ispin
   real :: tcpu0,tcpu1
   real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf,hx,hy,hz,hxh,hyh,hzh
-  real(kind=8) :: hgridh,peakmem,alat1,alat2,alat3,accurex,gnrm_check,hgrid_old,energy_old
-  real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum
+  real(kind=8) :: hgridh,peakmem,alat1,alat2,alat3,accurex,gnrm_check,hgrid_old,energy_old,sumz
+  real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
   real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min
   type(wavefunctions_descriptors) :: wfd_old
   type(convolutions_bounds) :: bounds
@@ -338,8 +338,14 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      do iorb=1,norbp*nproc
         do i1=1,nvctrp
+           do j=0,iproc-1
+              call random_number(tt)
+           end do
            call random_number(tt)
            psi(i1,iorb)=real(tt,kind=8)
+           do j=iproc+1,nproc
+              call random_number(tt)
+           end do
         end do
      end do
 
@@ -543,7 +549,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
         exit wfn_loop 
      endif
 
-     call hpsitopsi(ids,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
+     call hpsitopsi(ids,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,bounds%kb,&
           eval,ncong,mids,idsx_actual,ads,energy,energy_old,alpha,gnrm,scprsum,&
           psi,psit,hpsi,psidst,hpsidst,nspin,spinar)! add NSPIN
@@ -792,6 +798,22 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! calculate local part of the forces gxyz
   call local_forces(iproc,nproc,atoms,rxyz,hgrid,n1,n2,n3,n3p,i3s+i3xcsh,rho,pot,gxyz)
 
+!!$  sumx=0.d0
+!!$  sumy=0.d0
+!!$  sumz=0.d0
+!!$  write(*,'(1x,a,19x,a)') 'Final values of the Local Forces for each atom'
+!!$  do iat=1,atoms%nat
+!!$     write(*,'(1x,a,i5,i5,1x,a6,3(1x,1pe12.5))') &
+!!$          'L',iproc,iat,trim(atoms%atomnames(atoms%iatype(iat))),(gxyz(j,iat),j=1,3)
+!!$     sumx=sumx+gxyz(1,iat)
+!!$     sumy=sumy+gxyz(2,iat)
+!!$     sumz=sumz+gxyz(3,iat)
+!!$  enddo
+!!$  write(*,'(1x,a)')'the sum of the forces is'
+!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'x direction(L)',iproc,sumx
+!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'y direction(L)',iproc,sumy
+!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'z direction(L)',iproc,sumz
+
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)
   call memocc(i_stat,i_all,'rho','cluster')
@@ -815,6 +837,23 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   call nonlocal_forces(iproc,atoms,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,gxyz)
 
   if (iproc == 0) write(*,'(1x,a)')'done.'
+
+!!$  sumx=0.d0
+!!$  sumy=0.d0
+!!$  sumz=0.d0
+!!$  write(*,'(1x,a,19x,a)') 'Final values of the NonLocal+LOCAL Forces for each atom'
+!!$  do iat=1,atoms%nat
+!!$     write(*,'(1x,a,i5,i5,1x,a6,3(1x,1pe12.5))') &
+!!$          'NL',iproc,iat,trim(atoms%atomnames(atoms%iatype(iat))),(gxyz(j,iat),j=1,3)
+!!$     sumx=sumx+gxyz(1,iat)
+!!$     sumy=sumy+gxyz(2,iat)
+!!$     sumz=sumz+gxyz(3,iat)
+!!$  enddo
+!!$  write(*,'(1x,a)')'the sum of the forces is'
+!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'x direction(NL)',iproc,sumx
+!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'y direction(NL)',iproc,sumy
+!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'z direction(NL)',iproc,sumz
+
 
   i_all=-product(shape(derproj))*kind(derproj)
   deallocate(derproj,stat=i_stat)
