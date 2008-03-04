@@ -142,14 +142,17 @@ subroutine read_atomic_positions(iproc,ifile,units,at,rxyz)
   type(atoms_data), intent(inout) :: at
   real(kind=8), dimension(3,at%nat), intent(out) :: rxyz
   !local variables
+  real(kind=8), parameter :: bohr=0.5291772108d0 !1 AU in angstroem
   character(len=3) :: suffix
   character(len=2) :: symbol
   character(len=20) :: tatonam
   character(len=100) :: line
+  logical :: lpsdbl 
   integer :: nateq,iat,jat,ityp,i,ierror,ierrsfx,i_stat,natpol
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz
-  real(kind=8), parameter :: bohr=0.5291772108d0 !1 AU in angstroem
+! case for which the atomic positions are given whithin machine precision
+  real(kind=8) :: rxd0,ryd0,rzd0
   character(len=20), dimension(100) :: atomnames
 
   if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',at%nat
@@ -161,6 +164,12 @@ subroutine read_atomic_positions(iproc,ifile,units,at,rxyz)
   allocate(at%nspinat(at%nat),stat=i_stat)
   call memocc(i_stat,product(shape(at%nspinat))*kind(at%nspinat),'nspinat','read_atomic_positions')
 
+  !controls if the positions are provided with machine precision
+  if (units == 'angstroemd0' .or. units== 'atomicd0' .or. units== 'bohrd0') then
+     lpsdbl=.true.
+  else
+     lpsdbl=.false.
+  end if
 
   !this array is useful for frozen atoms
   !no atom is frozen by default
@@ -172,6 +181,7 @@ subroutine read_atomic_positions(iproc,ifile,units,at,rxyz)
   read(ifile,'(a100)')line
 
   !old format, still here for backward compatibility
+  !admits only simple precision calculation
   read(line,*,iostat=ierror) rx,ry,rz,tatonam
 
   at%ntypes=0
@@ -180,7 +190,11 @@ subroutine read_atomic_positions(iproc,ifile,units,at,rxyz)
         if (iat /= 1) read(ifile,*) rx,ry,rz,tatonam
      else
         read(ifile,'(a100)')line 
-        read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,natpol,suffix
+        if (lpsdbl) then
+           read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,natpol,suffix
+        else
+           read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,natpol,suffix
+        end if
         if (ierrsfx ==0) then
            at%nspinat(iat)=natpol
            !tatonam=trim(symbol)//'_'//trim(suffix)
@@ -196,7 +210,11 @@ subroutine read_atomic_positions(iproc,ifile,units,at,rxyz)
               end if
            end if
         else
-           read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,suffix
+           if (lpsdbl) then
+              read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,suffix
+           else
+              read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,suffix
+           end if
            if (ierrsfx ==0) then
               if (suffix == 'f') then
                  !the atom is considered as blocked
@@ -213,14 +231,25 @@ subroutine read_atomic_positions(iproc,ifile,units,at,rxyz)
                  end if
               end if
            else
-              read(line,*)symbol,rx,ry,rz
+              if (lpsdbl) then
+                 read(line,*)symbol,rx,ry,rz
+              else
+                 read(line,*)symbol,rxd0,ryd0,rzd0
+              end if
            end if
         end if
         tatonam=trim(symbol)
      end if
-     rxyz(1,iat)=real(rx,kind=8)
-     rxyz(2,iat)=real(ry,kind=8)
-     rxyz(3,iat)=real(rz,kind=8)
+     if (lpsdbl) then
+        rxyz(1,iat)=rxd0
+        rxyz(2,iat)=ryd0
+        rxyz(3,iat)=rzd0
+     else
+        rxyz(1,iat)=real(rx,kind=8)
+        rxyz(2,iat)=real(ry,kind=8)
+        rxyz(3,iat)=real(rz,kind=8)
+     end if
+ 
      !! For reading in saddle points
      !!        open(unit=83,file='step',status='old')
      !!        read(83,*) step
@@ -243,12 +272,13 @@ subroutine read_atomic_positions(iproc,ifile,units,at,rxyz)
      atomnames(ityp)=tatonam
      at%iatype(iat)=at%ntypes
 200  continue
-     if (units.eq.'angstroem') then
+     if (units=='angstroem' .or. units=='angstroemd0') then
         ! if Angstroem convert to Bohr
         do i=1,3 
            rxyz(i,iat)=rxyz(i,iat)/bohr
         enddo
-     else if  (units.eq.'atomic' .or. units.eq.'bohr') then
+     else if  (units=='atomic' .or. units=='bohr'  .or.&
+          units== 'atomicd0' .or. units== 'bohrd0') then
      else
         write(*,*) 'length units in input file unrecognized'
         write(*,*) 'recognized units are angstroem or atomic = bohr'
@@ -469,11 +499,18 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
 
   do ityp=1,at%ntypes
      filename = 'psppar.'//at%atomnames(ityp)
+
+     inquire(file=filename,exist=exists)
+     if (.not. exists) then
+        if (iproc == 0) write(*,'(1x,a)')&
+             'ERROR: The pseudopotential parameter file "'//filename//'" is lacking, exiting...'
+        stop
+     end if
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
      open(unit=11,file=filename,status='old',iostat=ierror)
      !Check the open statement
      if (ierror /= 0) then
-        write(*,*) 'iproc=',iproc,': Failed to open the file (it must be in ABINIT format!) "',&
+        write(*,*) 'iproc=',iproc,': Failed to open the file (it must be in ABINIT format!): "',&
              trim(filename),'"'
         stop
      end if
@@ -672,7 +709,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
               end if
            end do
         end do
-    end if
+     end if
     
     !calculate number of electrons and orbitals
     ! Number of electrons and number of semicore atoms
@@ -711,7 +748,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
           if (iproc==0) then 
              write(*,'(1x,a,i0,a)')&
                   'ERROR: Total input polarisation (found ',ispinsum,&
-                  ') must be equal to with norbu-norbd.'
+                  ') must be equal to norbu-norbd.'
              write(*,'(1x,3(a,i0))')&
                   'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
              stop
@@ -729,8 +766,6 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
           !stop
        end if
     end if
-
-    
     
 
     ! Test if the file 'occup.dat exists

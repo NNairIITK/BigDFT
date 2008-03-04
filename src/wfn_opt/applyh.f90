@@ -14,7 +14,6 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension  psi(nvctr_c+7*nvctr_f,norbp)
   dimension hpsi(nvctr_c+7*nvctr_f,norbp)
-  logical :: parameter, newmethod=.true.
   real(kind=8), allocatable :: psir(:),y_c(:,:,:),y_f(:,:,:,:)
 
   !********************Alexey***************************************************************
@@ -51,7 +50,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
        4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
        (n1+1)*(n2+1)*(2*n3+31),&
-	   (2*n1+31)*(n2+1)*(n3+1))
+       (2*n1+31)*(n2+1)*(n3+1))
 
   allocate(y_c(0:n1,0:n2,0:n3),stat=i_stat)
   call memocc(i_stat,product(shape(y_c))*kind(y_c),'y_c','applylocpotkinall')
@@ -72,91 +71,60 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   call memocc(i_stat,product(shape(w2))*kind(w2),'w2','applylocpotkinall')
 
 
-  if (newmethod) then
-     allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-     call memocc(i_stat,product(shape(x_f1))*kind(x_f1),'x_f1','applylocpotkinall')
-     allocate(x_f2(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-     call memocc(i_stat,product(shape(x_f2))*kind(x_f2),'x_f2','applylocpotkinall')
-     allocate(x_f3(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-     call memocc(i_stat,product(shape(x_f3))*kind(x_f3),'x_f3','applylocpotkinall')
+  
+  allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+  call memocc(i_stat,product(shape(x_f1))*kind(x_f1),'x_f1','applylocpotkinall')
+  allocate(x_f2(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+  call memocc(i_stat,product(shape(x_f2))*kind(x_f2),'x_f2','applylocpotkinall')
+  allocate(x_f3(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+  call memocc(i_stat,product(shape(x_f3))*kind(x_f3),'x_f3','applylocpotkinall')
 
-     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1)
-     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f2)
-     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f3)
+  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1)
+  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f2)
+  call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f3)
 
-     call razero((n1+1)*(n2+1)*(n3+1),x_c)
-     call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f)
+  call razero((n1+1)*(n2+1)*(n3+1),x_c)
+  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f)
 
-     !to be initialised
-     call razero((n1+1)*(n2+1)*(n3+1),y_c)
-     call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f)
+  !to be initialised
+  call razero((n1+1)*(n2+1)*(n3+1),y_c)
+  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f)
 
-     call razero((2*n1+31)*(2*n2+31)*(2*n3+31),psir)
+  call razero((2*n1+31)*(2*n2+31)*(2*n3+31),psir)
 
-     ekin_sum=0.d0
-     epot_sum=0.d0
-     do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+  ekin_sum=0.d0
+  epot_sum=0.d0
+  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
-        if(spinar(iorb)>0.0d0) then
-           nsoffset=1
-        else
-           nsoffset=(2*n1+31)*(2*n2+31)*(2*n3+31)+1
-        end if
-        call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
-             hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
-             ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,y_c,y_f,psir,  &
-             psi(1,iorb-iproc*norbp),pot(nsoffset),hpsi(1,iorb-iproc*norbp),epot,ekin, & 
-             x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
-             ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-             ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r)
-        ekin_sum=ekin_sum+occup(iorb)*ekin
-        epot_sum=epot_sum+occup(iorb)*epot
+     if(spinar(iorb)>0.0d0) then
+        nsoffset=1
+     else
+        nsoffset=(2*n1+31)*(2*n2+31)*(2*n3+31)+1
+     end if
+     call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
+          hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+          ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,y_c,y_f,psir,  &
+          psi(1,iorb-iproc*norbp),pot(nsoffset),hpsi(1,iorb-iproc*norbp),epot,ekin, & 
+          x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
+          ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+          ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r)
+     ekin_sum=ekin_sum+occup(iorb)*ekin
+     epot_sum=epot_sum+occup(iorb)*epot
 
-     enddo
+  enddo
 
-     i_all=-product(shape(x_f1))*kind(x_f1)
-     deallocate(x_f1,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f1','applylocpotkinall')
+  i_all=-product(shape(x_f1))*kind(x_f1)
+  deallocate(x_f1,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f1','applylocpotkinall')
 
-     i_all=-product(shape(x_f2))*kind(x_f2)
-     deallocate(x_f2,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f2','applylocpotkinall')
+  i_all=-product(shape(x_f2))*kind(x_f2)
+  deallocate(x_f2,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f2','applylocpotkinall')
 
-     i_all=-product(shape(x_f3))*kind(x_f3)
-     deallocate(x_f3,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f3','applylocpotkinall')
+  i_all=-product(shape(x_f3))*kind(x_f3)
+  deallocate(x_f3,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f3','applylocpotkinall')
 
-  else
-
-     allocate(x_fc(0:n1,0:n2,0:n3,3),stat=i_stat)
-     call memocc(i_stat,product(shape(x_fc))*kind(x_fc),'x_fc','applylocpotkinall')
-
-     ekin_sum=0.d0
-     epot_sum=0.d0
-     do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-
-        if(spinar(iorb)>0.0d0) then
-           nsoffset=1
-        else
-           nsoffset=(2*n1+31)*(2*n2+31)*(2*n3+31)+1
-        end if
-        call applylocpotkinone_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
-             hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
-             ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,y_c,y_f,psir,  &
-             psi(1,iorb-iproc*norbp),pot(nsoffset),hpsi(1,iorb-iproc*norbp),epot,ekin, & 
-             x_c,x_fc,x_f,w1,w2,&
-             ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-             ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r)
-        ekin_sum=ekin_sum+occup(iorb)*ekin
-        epot_sum=epot_sum+occup(iorb)*epot
-
-     enddo
-
-     i_all=-product(shape(x_fc))*kind(x_fc)
-     deallocate(x_fc,stat=i_stat)
-     call memocc(i_stat,i_all,'x_fc','applylocpotkinall')
-
-  end if
 
   i_all=-product(shape(y_c))*kind(y_c)
   deallocate(y_c,stat=i_stat)
@@ -346,7 +314,66 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
 !!$  print *,'after applylocpotkinone',tt
 
 
-END SUBROUTINE applylocpotkinone
+end subroutine applylocpotkinone
+
+subroutine applylocpotkinone_per(n1,n2,n3, & 
+     hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+     psir,psifscf,psifscfk,psig,ww,psi,pot,hpsi,epot,ekin)
+  !  Applies the local potential and kinetic energy operator to one wavefunction 
+  ! Input: pot,psi
+  ! Output: hpsi,epot,ekin
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f
+  real(kind=8), intent(in) :: hx,hy,hz
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  real(kind=8), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(in) :: pot
+  real(kind=8), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
+  real(kind=8), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(inout) :: psir,psifscf,psifscfk,ww
+  real(kind=8), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
+  real(kind=8), intent(out) :: epot,ekin
+  real(kind=8), dimension(nvctr_c+7*nvctr_f), intent(out) :: hpsi
+  !local variables
+  integer :: i
+  real(kind=8) :: tt
+  real(kind=8), dimension(3) :: hgridh
+
+  ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+  call uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+       psi(1),psi(nvctr_c+1),psifscf,psig,ww)
+
+  hgridh(1)=hx*.5d0
+  hgridh(2)=hy*.5d0
+  hgridh(3)=hz*.5d0
+
+  call convolut_kinetic_per(2*n1+1,2*n2+1,2*n3+1,hgridh,psifscf,psifscfk)
+
+  ekin=0.d0 
+  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+     ekin=ekin+psifscf(i)*psifscfk(i)
+  enddo
+
+  call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psifscf,psir) 
+
+  epot=0.d0
+  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+     tt=pot(i)*psir(i)
+     epot=epot+tt*psir(i)
+     psir(i)=tt
+  enddo
+
+  call convolut_magic_t_per(2*n1+1,2*n2+1,2*n3+1,psir,psifscf)
+
+  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+     psifscf(i)=psifscf(i)+psifscfk(i)
+  enddo
+
+  call compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
+       psifscf,hpsi(1),hpsi(nvctr_c+1),psig,ww)
+
+END SUBROUTINE applylocpotkinone_per
 
 subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   implicit none
@@ -416,34 +443,6 @@ subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
   enddo
 
 end subroutine realspace_nbuf
-
-
-subroutine applyprojectorsall(iproc,ntypes,nat,iatype,psppar,npspcode,occup, &
-     nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-     norb,norbp,nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,psi,hpsi,eproj_sum)
-  ! Applies all the projectors onto a wavefunction
-  ! Input: psi_c,psi_f
-  ! In/Output: hpsi_c,hpsi_f (both are updated, i.e. not initilized to zero at the beginning)
-  implicit real(kind=8) (a-h,o-z)
-  dimension psppar(0:4,0:6,ntypes),iatype(nat),npspcode(ntypes)
-  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-  dimension psi(nvctr_c+7*nvctr_f,norbp),hpsi(nvctr_c+7*nvctr_f,norbp)
-  dimension nseg_p(0:2*nat),nvctr_p(0:2*nat)
-  dimension keyg_p(2,nseg_p(2*nat)),keyv_p(nseg_p(2*nat))
-  dimension proj(nprojel),occup(norb)
-
-  eproj_sum=0.d0
-  ! loop over all my orbitals
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-     call applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
-          nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &
-          nseg_c,nseg_f,keyg,keyv,nvctr_c,nvctr_f,  & 
-          psi(1,iorb-iproc*norbp),hpsi(1,iorb-iproc*norbp),eproj)
-     eproj_sum=eproj_sum+occup(iorb)*eproj
-     !     write(*,*) 'iorb,eproj',iorb,eproj
-  enddo
-
-END SUBROUTINE applyprojectorsall
 
 subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &

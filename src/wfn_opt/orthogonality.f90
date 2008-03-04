@@ -83,7 +83,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit)
   integer, intent(in) :: iproc,nproc,norb,nvctrp,nvctr_tot
   real(kind=8), dimension(nvctrp,norb), intent(inout) :: psit
   !local variables
-  integer :: info,i_all,i_stat,nvctr_eff,ierr,istart
+  integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,i,j
   real(kind=8) :: tt,ttLOC,dnrm2
   real(kind=8), dimension(:,:,:), allocatable :: ovrlp
   include 'mpif.h'
@@ -134,10 +134,10 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit)
         call timing(iproc,'GramS_comput  ','ON')
      end if
 
-     !  write(*,*) 'parallel ovrlp'
-     !  do i=1,norb
-     !  write(*,'(10(1x,e10.3))') (ovrlp(i,j,1),j=1,norb)
-     !  enddo
+!!$       write(*,*) 'parallel ovrlp'
+!!$       do i=1,norb
+!!$       write(*,'(10(1x,1pe10.3))') (ovrlp(i,j,1),j=1,norb)
+!!$       enddo
 
 
      ! Cholesky factorization

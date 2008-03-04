@@ -2,19 +2,20 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
      & psppar,npspcode,norbe,norbsc,atomnames,ntypes,iatype,iasctype,nat,natsc,nspin,&
      & scorb,norbsc_arr)
   implicit none
-  integer, intent(in) :: ngx,iproc,ntypes,nspin
-  integer, intent(in) :: nzatom(ntypes), nelpsp(ntypes)
-  real(kind=8), intent(in) :: psppar(0:4,0:6,ntypes)
-  integer, intent(in) :: npspcode(ntypes),iasctype(ntypes)
-  real(kind=8), intent(out) :: xp(ngx, ntypes), psiat(ngx, 5, ntypes), occupat(5, ntypes)
-  integer, intent(out) :: ng(ntypes), nl(4,ntypes)
+  integer, intent(in) :: ngx,iproc,ntypes,nspin,nat,natsc
   character(len = 20), dimension(ntypes), intent(in) :: atomnames
+  integer, dimension(ntypes), intent(in) :: nzatom,nelpsp,npspcode,iasctype
+  integer, dimension(nat), intent(in) :: iatype
+  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   integer, intent(out) :: norbe,norbsc
-  integer, intent(in) :: nat,natsc
-  integer, intent(in) :: iatype(nat)
   logical, dimension(4,natsc), intent(out) :: scorb
-  integer, dimension(natsc+1), intent(out) :: norbsc_arr
-
+  integer, dimension(ntypes), intent(out) :: ng
+  integer, dimension(4,ntypes), intent(out) :: nl
+  integer, dimension(natsc+1,nspin), intent(out) :: norbsc_arr
+  real(kind=8), dimension(ngx,ntypes), intent(out) :: xp
+  real(kind=8), dimension(5,ntypes), intent(out) :: occupat
+  real(kind=8), dimension(ngx,5,ntypes), intent(out) :: psiat
+  !local variables
   character(len = 20) :: pspatomname
   logical :: exists,found
   integer :: ity,i,j,l,ifile,ng_fake,ierror,iatsc,iat,ipow,lsc,inorbsc,iorbsc_count
@@ -158,12 +159,15 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
            ipow=ipow-1
            !print *,iasctype(ity),inorbsc,lsc
         end do
-        norbsc_arr(iatsc)=iorbsc_count
+        norbsc_arr(iatsc,1)=iorbsc_count
         norbsc=norbsc+iorbsc_count
      end if
   end do
   !orbitals which are non semicore
-  norbsc_arr(natsc+1)=norbe-norbsc
+  norbsc_arr(natsc+1,1)=norbe-norbsc
+  
+  !duplicate the values in the case of spin-polarization
+  if (nspin == 2) norbsc_arr(:,2)=norbsc_arr(:,1)
 
   if (iproc ==0) then
      write(*,'(1x,a,i0,a)')'Generating ',nspin*norbe,' Atomic Input Orbitals'
@@ -171,7 +175,6 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   end if
 
 END SUBROUTINE readAtomicOrbitals
-
 
 subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
      & nat,rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
@@ -213,7 +216,6 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
 
   allocate(psiatn(ngx),stat=i_stat)
   call memocc(i_stat,product(shape(psiatn))*kind(psiatn),'psiatn','createatomicorbitals')
-  
 
   eks=0.d0
   iorb=0

@@ -199,21 +199,20 @@ interface
      real(kind=8), dimension(*), intent(out) :: pot_ion
    end subroutine createIonicPotential
 
-   subroutine import_gaussians(parallel,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-        norb,norbp,occup,n1,n2,n3,nvctrp,hgrid,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj, &
+   subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+        norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
         pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
      use module_types
+     use Poisson_Solver
      implicit none
-     include 'mpif.h'
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(convolutions_bounds), intent(in) :: bounds
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-     character(len=1), intent(in) :: datacode
-     logical, intent(in) :: parallel
+     character(len=1), intent(in) :: geocode,datacode
      integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
-     real(kind=8), intent(in) :: hgrid
+     real(kind=8), intent(in) :: hx,hy,hz
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
      real(kind=8), dimension(norb), intent(in) :: spinar,occup
@@ -228,10 +227,13 @@ interface
 
    subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
         norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
-        pkernel,ixc,ppsi,ppsit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
+        pkernel,ixc,psi,hpsi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
+     ! Input wavefunctions are found by a diagonalization in a minimal basis set
+     ! Each processors write its initial wavefunctions into the wavefunction file
+     ! The files are then read by readwave
      use module_types
+     use Poisson_Solver
      implicit none
-     include 'mpif.h'
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -250,7 +252,7 @@ interface
      real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
      real(kind=8), intent(out) :: accurex
      real(kind=8), dimension(norb), intent(out) :: eval
-     real(kind=8), dimension(:,:), pointer :: ppsi,ppsit
+     real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit
    end subroutine input_wf_diag
 
    subroutine reformatmywaves(iproc,norb,norbp,nat,&
@@ -271,55 +273,53 @@ interface
      integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
      real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
    end subroutine first_orthon
-   
-   subroutine sumrho(parallel,iproc,nproc,norb,norbp,n1,n2,n3,hgrid,occup,  & 
-        wfd,psi,rho,nrho,nscatterarr,nspin,spinar,&
-        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
+
+   subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
+        wfd,psi,rho,nrho,nscatterarr,nspin,spinar,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
      use module_types
      implicit none
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(convolutions_bounds), intent(in) :: bounds
-     logical, intent(in) ::  parallel
+     character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,norb,norbp,nrho,nspin
      integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-     real(kind=8), intent(in) :: hgrid
+     real(kind=8), intent(in) :: hxh,hyh,hzh
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
      real(kind=8), dimension(norb), intent(in) :: occup,spinar
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
-     real(kind=8), dimension(max(nrho,1),nspin), intent(out) :: rho
+     real(kind=8), dimension(max(nrho,1),nspin), intent(out), target :: rho
    end subroutine sumrho
 
-   subroutine HamiltonianApplication(parallel,datacode,iproc,nproc,at,hgrid,&
+   subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
         norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
-        ngatherarr,n3p,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)
+        ngatherarr,ndimpot,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)
      use module_types
      implicit none
-     include 'mpif.h'
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
      type(convolutions_bounds), intent(in) :: bounds
-     character(len=1), intent(in) :: datacode
-     logical, intent(in) :: parallel
-     integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,n3p
+     character(len=1), intent(in) :: geocode
+     integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ndimpot
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin
-     real(kind=8), intent(in) :: hgrid
+     real(kind=8), intent(in) :: hx,hy,hz
      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
      real(kind=8), dimension(norb), intent(in) :: occup,spinar
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
-     real(kind=8), dimension(*), intent(in) :: potential
+     real(kind=8), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
      real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: hpsi
    end subroutine HamiltonianApplication
 
-   subroutine hpsitopsi(iter,parallel,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
+   subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
         eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
         psi,psit,hpsi,psidst,hpsidst,nspin,spinar)
-     use module_types               
+     use module_types
      implicit none
-     logical, intent(in) :: parallel
+     type(kinetic_bounds), intent(in) :: kbounds
+     type(wavefunctions_descriptors), intent(in) :: wfd
      integer, intent(in) :: iter,iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids,idsx
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
      real(kind=8), intent(in) :: hgrid,energy,energy_old
@@ -328,9 +328,22 @@ interface
      real(kind=8), intent(inout) :: gnrm,scprsum
      real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
      real(kind=8), dimension(:,:,:), pointer :: psidst,hpsidst,ads
-     type(kinetic_bounds), intent(in) :: kbounds
-     type(wavefunctions_descriptors), intent(in) :: wfd
    end subroutine hpsitopsi
+
+   subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
+        psi,hpsi,psit,eval,& !mandatory
+        norbe,norbep,etol,norbsc_arr) !optional
+     use module_types
+     implicit none
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     integer, intent(in) :: iproc,nproc,natsc,nspin,norb,norbu,norbd,norbp,nvctrp
+     real(kind=8), dimension(norb), intent(out) :: eval
+     real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit
+     !optional arguments
+     integer, optional, intent(in) :: norbe,norbep
+     real(kind=8), optional, intent(in) :: etol
+     integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
+   end subroutine DiagHam
 
    subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
         nspin,psi,hpsi,psit,occup,evsum,eval)
