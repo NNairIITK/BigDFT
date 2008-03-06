@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 28/01/2008
+# Date: 06/03/2008
 #----------------------------------------------------------------------------
 
 import difflib
@@ -198,18 +198,18 @@ while not EOF:
     #Add lines if necessary
     while i1 < n1-1:
         i1 += 1
-    if n1 > 0 and not line_junk(left[i1]):
-        if not print_context:
-            print context,
-        print_context = True
-        print left[i1],
+        if n1 > 0 and not line_junk(left[i1]):
+            if not print_context:
+                print context,
+            print_context = True
+            print left[i1],
     while i2 < n2-1:
         i2 += 1
-    if n2 > 0 and not line_junk(right[i2]):
-        if not print_context:
-            print context,
-        print_context = True
-        print right[i2],
+        if n2 > 0 and not line_junk(right[i2]):
+            if not print_context:
+                print context,
+            print_context = True
+            print right[i2],
 
 print context_lines,
 print "Max Discrepancy%s:" % context_discrepancy,maximum
