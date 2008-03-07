@@ -636,7 +636,7 @@ subroutine wtposout(igeostep,energy,rxyz,atoms)
      ymax=max(rxyz(2,iat),ymax)
      zmax=max(rxyz(3,iat),zmax)
   enddo
-  write(9,*) atoms%nat,' atomic '!, energy,igeostep
+  write(9,*) atoms%nat,' atomicd0 '!, energy,igeostep
   !write(9,*) xmax+5.d0, 0.d0, ymax+5.d0
   !write(9,*) 0.d0, 0.d0, zmax+5.d0
   write(9,*)' energy,igeostep ', energy,igeostep
