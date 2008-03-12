@@ -312,7 +312,7 @@ interface
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: hpsi
    end subroutine HamiltonianApplication
 
-   subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
+   subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
         eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
         psi,psit,hpsi,psidst,hpsidst,nspin,spinar)
@@ -320,6 +320,7 @@ interface
      implicit none
      type(kinetic_bounds), intent(in) :: kbounds
      type(wavefunctions_descriptors), intent(in) :: wfd
+     character(len=1), intent(in) :: geocode
      integer, intent(in) :: iter,iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids,idsx
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
      real(kind=8), intent(in) :: hgrid,energy,energy_old
