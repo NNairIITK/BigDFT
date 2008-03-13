@@ -241,7 +241,7 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
 end subroutine HamiltonianApplication
 
 
-subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
+subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
      eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
      psi,psit,hpsi,psidst,hpsidst,nspin,spinar)
@@ -249,9 +249,10 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   implicit none
   type(kinetic_bounds), intent(in) :: kbounds
   type(wavefunctions_descriptors), intent(in) :: wfd
+  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iter,iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids,idsx
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
-  real(kind=8), intent(in) :: hgrid,energy,energy_old
+  real(kind=8), intent(in) :: hx,hy,hz,energy,energy_old
   real(kind=8), dimension(norb), intent(in) :: occup,eval,spinar
   real(kind=8), intent(inout) :: alpha
   real(kind=8), intent(inout) :: gnrm,scprsum
@@ -370,17 +371,21 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
      cprecr=-eval(iorb)
      !       write(*,*) 'cprecr',iorb,cprecr!
-     call precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
-          wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
-          ncong,cprecr,hgrid,kbounds%ibyz_c,kbounds%ibxz_c,kbounds%ibxy_c,&
-          kbounds%ibyz_f,kbounds%ibxz_f,kbounds%ibxy_f,hpsi(i1,i2))
+     select case(geocode)
+     case('F')
+        !in this case the grid spacings are uniform
+        call precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+             wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
+             ncong,cprecr,hx,kbounds%ibyz_c,kbounds%ibxz_c,kbounds%ibxy_c,&
+             kbounds%ibyz_f,kbounds%ibxz_f,kbounds%ibxy_f,hpsi(i1,i2))
+     case('P')
+        call prec_fft(n1,n2,n3, &
+             wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
+             ncong,cprecr,hx,hy,hz,hpsi(i1,i2))
+     end select
+
      
   enddo
-
-!!$  call preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid, &
-!!$       ncong,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,eval,&
-!!$       kbounds%ibyz_c,kbounds%ibxz_c,kbounds%ibxy_c,&
-!!$       kbounds%ibyz_f,kbounds%ibxz_f,kbounds%ibxy_f,hpsi)
 
   if (iproc==0) then
      write(*,'(1x,a)')&
@@ -676,14 +681,7 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
      write(*,'(1x,a)')&
           '-------------------------------------------------------------- Kohn-Sham Eigenvalues'
      if (nspin==1) then
-        do iorb=1,norb!/2
-!!$           jorb=norb/2+iorb
-!!$           write(*,'(1x,a,i4,a,1x,1pe21.14,17x,a,i4,a,1x,1pe21.14)') &
-!!$                'eval(',iorb,')=',eval(iorb),'eval(',jorb,')=',eval(jorb)
-!!$        end do
-!!$        if (2*norb/2 /= norb) then
-!!$           write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',norb/2+1,')=',eval(norb/2+1)
-!!$        end if
+        do iorb=1,norb
            write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
         end do
      else

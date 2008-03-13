@@ -1,4 +1,3 @@
-
  subroutine call_cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
   use module_types
@@ -549,7 +548,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
         exit wfn_loop 
      endif
 
-     call hpsitopsi(ids,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
+     call hpsitopsi(geocode,ids,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,bounds%kb,&
           eval,ncong,mids,idsx_actual,ads,energy,energy_old,alpha,gnrm,scprsum,&
           psi,psit,hpsi,psidst,hpsidst,nspin,spinar)! add NSPIN
