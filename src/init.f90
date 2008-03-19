@@ -486,7 +486,7 @@ END SUBROUTINE createProjectorsArrays
 
 subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
-     pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
+     pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinsgn)
 
   use module_interfaces, except_this_one => import_gaussians
   use module_types
@@ -504,7 +504,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(kind=8), intent(in) :: hx,hy,hz
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(kind=8), dimension(norb), intent(in) :: spinar,occup
+  real(kind=8), dimension(norb), intent(in) :: spinsgn,occup
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(*), intent(in) :: pkernel
@@ -627,7 +627,7 @@ END SUBROUTINE import_gaussians
 
 subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
-     pkernel,ixc,psi,hpsi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinar)
+     pkernel,ixc,psi,hpsi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinsgn)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -647,7 +647,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   real(kind=8), intent(in) :: hx,hy,hz
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(kind=8), dimension(norb), intent(in) :: spinar
+  real(kind=8), dimension(norb), intent(in) :: spinsgn
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(*), intent(in) :: pkernel
@@ -666,7 +666,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   logical, dimension(:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
   integer, dimension(:,:), allocatable :: nl,norbsc_arr
-  real(kind=8), dimension(:), allocatable :: work_lp,pot,evale,occupe,spinare
+  real(kind=8), dimension(:), allocatable :: work_lp,pot,evale,occupe,spinsgne
   real(kind=8), dimension(:,:), allocatable :: xp,occupat,hamovr!,psi,hpsi
   real(kind=8), dimension(:,:,:), allocatable :: psiat
   !real(kind=8), dimension(:,:), pointer :: psi,hpsi
@@ -676,8 +676,8 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   norbu=0
   norbd=0
   do iorb=1,norb
-     if(spinar(iorb)>0.0d0) norbu=norbu+1
-     if(spinar(iorb)<0.0d0) norbd=norbd+1
+     if(spinsgn(iorb)>0.0d0) norbu=norbu+1
+     if(spinsgn(iorb)<0.0d0) norbd=norbd+1
   end do
 
   !calculate dimension of the interpolating scaling function grid
@@ -795,16 +795,16 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
 
   ! resulting charge density and potential
-  allocate(spinare(nspin*norbe),stat=i_stat)
-  call memocc(i_stat,product(shape(spinare))*kind(spinare),'spinare','input_wf_diag')
+  allocate(spinsgne(nspin*norbe),stat=i_stat)
+  call memocc(i_stat,product(shape(spinsgne))*kind(spinsgne),'spinsgne','input_wf_diag')
   ist=1
   do ispin=1,nspin
-     spinare(ist:ist+norbe-1)=real(1-2*(ispin-1),kind=8)
+     spinsgne(ist:ist+norbe-1)=real(1-2*(ispin-1),kind=8)
      ist=norbe+1
   end do
 
   call sumrho(geocode,iproc,nproc,nspin*norbe,norbep,n1,n2,n3,hxh,hyh,hzh,occupe,  & 
-       wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,nspin,spinare, &
+       wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,nspin,spinsgne, &
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
   call PSolver('F',datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
@@ -817,11 +817,11 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
        nspin*norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
        ngatherarr,n1i*n2i*nscatterarr(iproc,2),rhopot(1+n1i*n2i*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinare)
+       psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinsgne)
 
-  i_all=-product(shape(spinare))*kind(spinare)
-  deallocate(spinare,stat=i_stat)
-  call memocc(i_stat,i_all,'spinare','input_wf_diag')
+  i_all=-product(shape(spinsgne))*kind(spinsgne)
+  deallocate(spinsgne,stat=i_stat)
+  call memocc(i_stat,i_all,'spinsgne','input_wf_diag')
 
   i_all=-product(shape(occupe))*kind(occupe)
   deallocate(occupe,stat=i_stat)

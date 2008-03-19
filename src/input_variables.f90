@@ -327,30 +327,30 @@ subroutine read_atomic_positions(iproc,ifile,units,at,rxyz)
 end subroutine read_atomic_positions
 
 
-! Fill the arrays occup and spinar
+! Fill the arrays occup and spinsgn
 ! if iunit /=0 this means that the file occup.dat does exist and it opens
-subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinar)
+subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinsgn)
   implicit none
 ! Arguments
   integer, intent(in) :: nelec,nspin,mpol,iproc,norb,norbu,norbd,iunit
-  real(kind=8), intent(out) :: occup(norb),spinar(norb)
+  real(kind=8), intent(out) :: occup(norb),spinsgn(norb)
 ! Local variables
   integer :: iorb,nt,ne,it,ierror,iorb1
   real(kind=8) :: rocc,rup,rdown
   character(len=100) :: line
 
   do iorb=1,norb
-     spinar(iorb)=1.0d0
+     spinsgn(iorb)=1.0d0
   end do
   if (nspin/=1) then
      do iorb=1,norbu
-        spinar(iorb)=1.0d0
+        spinsgn(iorb)=1.0d0
      end do
      do iorb=norbu+1,norb
-        spinar(iorb)=-1.0d0
+        spinsgn(iorb)=-1.0d0
      end do
   end if
-! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinar(iorb),iorb=1,norb)
+! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinsgn(iorb),iorb=1,norb)
 
 ! First fill the occupation numbers by default
   nt=0
@@ -423,12 +423,12 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spina
 !!$           end if
 !!$           stop
 !!$        end if
-        !Fill spinar
+        !Fill spinsgn
         do iorb=1,norbu
-           spinar(iorb)=1.0d0
+           spinsgn(iorb)=1.0d0
         end do
         do iorb=norbu+1,norb
-           spinar(iorb)=-1.0d0
+           spinsgn(iorb)=-1.0d0
         end do
       end if
   end if

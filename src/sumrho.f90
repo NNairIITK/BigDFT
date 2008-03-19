@@ -1,5 +1,5 @@
 subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
-     wfd,psi,rho,nrho,nscatterarr,nspin,spinar,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
+     wfd,psi,rho,nrho,nscatterarr,nspin,spinsgn,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
   ! Output: rho
@@ -12,7 +12,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(kind=8), intent(in) :: hxh,hyh,hzh
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-  real(kind=8), dimension(norb), intent(in) :: occup,spinar
+  real(kind=8), dimension(norb), intent(in) :: occup,spinsgn
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
   real(kind=8), dimension(max(nrho,1),nspin), intent(out), target :: rho
   !local variables
@@ -143,7 +143,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
                  i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
                  n3d=nscatterarr(jproc,1)
                  if (n3d==0) exit loop_xc_overlap_F
-                 if(spinar(iorb)>0.0d0) then
+                 if(spinsgn(iorb)>0.0d0) then
                     isjmp=1
                  else
                     isjmp=2
@@ -180,7 +180,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
                  i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
                  n3d=nscatterarr(jproc,1)
                  if (n3d==0) exit loop_xc_overlap_P
-                 if(spinar(iorb)>0.0d0) then
+                 if(spinsgn(iorb)>0.0d0) then
                     isjmp=1
                  else
                     isjmp=2

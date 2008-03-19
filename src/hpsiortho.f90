@@ -1,6 +1,6 @@
 subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
      norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
-     ngatherarr,ndimpot,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinar)
+     ngatherarr,ndimpot,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinsgn)
   use module_types
   implicit none
   include 'mpif.h'
@@ -13,7 +13,7 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin
   real(kind=8), intent(in) :: hx,hy,hz
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(kind=8), dimension(norb), intent(in) :: occup,spinar
+  real(kind=8), dimension(norb), intent(in) :: occup,spinsgn
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
   real(kind=8), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
@@ -135,7 +135,7 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   epot_sum=0.d0
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
-     if(spinar(iorb)>0.0d0) then
+     if(spinsgn(iorb)>0.0d0) then
         nsoffset=1
      else
         nsoffset=2
@@ -244,7 +244,7 @@ end subroutine HamiltonianApplication
 subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
      eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
-     psi,psit,hpsi,psidst,hpsidst,nspin,spinar)
+     psi,psit,hpsi,psidst,hpsidst,nspin,spinsgn)
   use module_types
   implicit none
   type(kinetic_bounds), intent(in) :: kbounds
@@ -252,7 +252,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   integer, intent(in) :: iter,iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids,idsx
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
   real(kind=8), intent(in) :: hgrid,energy,energy_old
-  real(kind=8), dimension(norb), intent(in) :: occup,eval,spinar
+  real(kind=8), dimension(norb), intent(in) :: occup,eval,spinsgn
   real(kind=8), intent(inout) :: alpha
   real(kind=8), intent(inout) :: gnrm,scprsum
   real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
@@ -272,10 +272,10 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   norbu=0
   norbd=0
   do iorb=1,norb
-     if(spinar(iorb)>0.0d0) norbu=norbu+1
-     if(spinar(iorb)<0.0d0) norbd=norbd+1
+     if(spinsgn(iorb)>0.0d0) norbu=norbu+1
+     if(spinsgn(iorb)<0.0d0) norbd=norbd+1
   end do
-  !write(*,'(1x,a,3i4,30f6.2)')'Spins: ',norb,norbu,norbd,(spinar(iorb),iorb=1,norb)
+  !write(*,'(1x,a,3i4,30f6.2)')'Spins: ',norb,norbu,norbd,(spinsgn(iorb),iorb=1,norb)
 
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
   if (nproc > 1) then
