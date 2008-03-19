@@ -967,9 +967,9 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
   if (nfl2 < 0) nfl2=0
   if (nfl3 < 0) nfl3=0
 
-  if (nfu1 > n1) nfl1=n1
-  if (nfu2 > n2) nfl2=n2
-  if (nfu3 > n3) nfl3=n3
+  if (nfu1 > n1) nfu1=n1
+  if (nfu2 > n2) nfu2=n2
+  if (nfu3 > n3) nfu3=n3
 
 
   if (iproc.eq.0) then
@@ -999,7 +999,10 @@ subroutine correct_grid(a,h,n)
   !local variables
   integer :: m
 
-  n=int(a/h)
+  !here the dimensions should be corrected in order to 
+  !allow the fft for the preconditioner
+
+  n=int(a/h)-1
   m=2*n+2
   do 
      call fourier_dim(m,m)
@@ -1010,6 +1013,6 @@ subroutine correct_grid(a,h,n)
         m=m+1
      end if
   end do
-  h=a/real(n,kind=8)
+  h=a/real(n+1,kind=8)
   
 end subroutine correct_grid

@@ -14,14 +14,13 @@
 subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,eval,&
      pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,spinar,&
-     proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
+     proj,psi,occup,output_grid,ekin_sum,epot_sum,eproj_sum)
   use module_types
   implicit none
-  include 'mpif.h' 
   type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
-  logical, intent(in) :: output_grid,parallel
+  logical, intent(in) :: output_grid
   integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncongt,nspin
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
@@ -33,6 +32,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
   !local variables
+  include 'mpif.h' 
   integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat,nbuf,ispin
   integer :: nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
   real(kind=8) :: alatb1,alatb2,alatb3,ekin,epot,eproj,tt,cprecr,sum_tail,ekin1,epot1,eproj1
@@ -528,7 +528,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   call memocc(i_stat,i_all,'ibbyyzz_r','calculatetailcorrection')
   !!***********************************************************************************************
 
-  if (parallel) then
+  if (nproc > 1) then
      !if (iproc.eq.0) then
      !   write(*,'(1x,a,f27.14)')'Tail calculation ended'
      !endif

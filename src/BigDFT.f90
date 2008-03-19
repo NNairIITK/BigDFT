@@ -24,7 +24,7 @@ program BigDFT
   include 'mpif.h'
   ! For parallel MPI execution set parallel=.true., for serial parallel=.false.
   ! this statement wil be changed by using the MPIfake.f90 file
-  include 'parameters.h'
+  !include 'parameters.h'
   character(len=20) :: units
   integer :: iproc,nproc,n1,n2,n3,iat,ityp,j,i_stat,i_all,ierr,infocode
   integer :: ncount_cluster
@@ -52,17 +52,13 @@ program BigDFT
   !$      end interface
 
   ! Start MPI in parallel version
-  if (parallel) then
-     call MPI_INIT(ierr)
-     call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-     call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-  else
-     nproc=1
-     iproc=0
-  endif
+  !in the case of MPIfake libraries the number of processors is automatically adjusted
+  call MPI_INIT(ierr)
+  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
-  !experimental, to see if it works
-  if (nproc == 1) parallel=.false.
+!!$  !experimental, to see if it works
+!!$  if (nproc == 1) parallel=.false.
 
   !initialize memory counting
   call memocc(0,iproc,'count','start')
@@ -106,7 +102,7 @@ program BigDFT
      end if
   enddo
 
-  call call_cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
+  call call_cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs,infocode)
 
   if (inputs%ncount_cluster_x > 1) then
@@ -119,7 +115,7 @@ program BigDFT
      ncount_cluster=1
      beta=inputs%betax
      energyold=1.d100
-     call conjgrad(parallel,nproc,iproc,atoms,rxyz,etot,fxyz,&
+     call conjgrad(nproc,iproc,atoms,rxyz,etot,fxyz,&
           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,inputs)
   end if
 
@@ -177,7 +173,7 @@ program BigDFT
   !finalize memory counting
   call memocc(0,0,'count','stop')
 
-  if (parallel) call MPI_FINALIZE(ierr)
+  if (nproc > 1) call MPI_FINALIZE(ierr)
 
  end program BigDFT
  !!***

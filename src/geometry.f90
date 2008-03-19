@@ -1,9 +1,8 @@
-subroutine conjgrad(parallel,nproc,iproc,at,wpos,etot,gg, &
+subroutine conjgrad(nproc,iproc,at,wpos,etot,gg, &
      psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,in)
   use module_types
   use module_interfaces, except_this_one => conjgrad
   implicit none
-  logical, intent(in) :: parallel
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: n1,n2,n3,ncount_cluster,norbp,norb
   real(kind=8), intent(out) :: etot
@@ -42,7 +41,7 @@ subroutine conjgrad(parallel,nproc,iproc,at,wpos,etot,gg, &
   open(unit=16,file='conjgrad.prc',status='unknown')
 
   if (in%betax <= 0.d0) then
-     call detbetax(parallel,nproc,iproc,at,wpos,&
+     call detbetax(nproc,iproc,at,wpos,&
           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in)
   endif
 
@@ -50,7 +49,7 @@ subroutine conjgrad(parallel,nproc,iproc,at,wpos,etot,gg, &
   avnum=0.d0
   nfail=0
 
-  call steepdes(parallel,nproc,iproc,at,wpos,etot,gg,&
+  call steepdes(nproc,iproc,at,wpos,etot,gg,&
        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,fluct,flucto,fluctoo,fnrm,in)
 
   if (fnrm.lt.sqrt(1.d0*at%nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) then
@@ -89,7 +88,7 @@ subroutine conjgrad(parallel,nproc,iproc,at,wpos,etot,gg, &
   in%inputPsiId=1
   in%output_grid=.false.
   in%output_wf=.false.
-  call call_cluster(parallel,nproc,iproc,at,tpos,tetot,gp,&
+  call call_cluster(nproc,iproc,at,tpos,tetot,gp,&
        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
   do iat=1,at%nat
@@ -137,7 +136,7 @@ subroutine conjgrad(parallel,nproc,iproc,at,wpos,etot,gg, &
   end do
 
 
-  call call_cluster(parallel,nproc,iproc,at,wpos,etot,gg,&
+  call call_cluster(nproc,iproc,at,wpos,etot,gg,&
        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
   do iat=1,at%nat
@@ -167,7 +166,7 @@ subroutine conjgrad(parallel,nproc,iproc,at,wpos,etot,gg, &
         wpos(3,iat)=tpos(3,iat)
      end do
 
-     call steepdes(parallel,nproc,iproc,at,wpos,etot,gg,&
+     call steepdes(nproc,iproc,at,wpos,etot,gg,&
           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,fluct,flucto,fluctoo,fnrm,in)
      if (fnrm.lt.sqrt(1.d0*at%nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) then
         if (iproc.eq.0) write(16,*) 'Converged in switch back SD',iproc
@@ -228,7 +227,7 @@ subroutine conjgrad(parallel,nproc,iproc,at,wpos,etot,gg, &
         wpos(3,iat)=tpos(3,iat)
      end do
 
-     call steepdes(parallel,nproc,iproc,at,wpos,etot,gg,&
+     call steepdes(nproc,iproc,at,wpos,etot,gg,&
           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,&
           fluct,flucto,fluctoo,fnrm,in)
      if (fnrm.lt.sqrt(1.d0*at%nat)*(fluct+flucto+fluctoo)*in%frac_fluct/3.d0) then
@@ -275,13 +274,12 @@ contains
     call memocc(i_stat,i_all,'hh','conjgrad')
   end subroutine close_and_deallocate
   
-  subroutine steepdes(parallel,nproc,iproc,at,wpos,etot,ff,&
+  subroutine steepdes(nproc,iproc,at,wpos,etot,ff,&
        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,&
        fluct,flucto,fluctoo,fnrm,in)
     use module_types
     use module_interfaces
     implicit none
-    logical, intent(in) :: parallel
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: at
     type(input_variables), intent(inout) :: in
@@ -337,7 +335,7 @@ contains
     in%inputPsiId=1
     in%output_grid=.false.
     in%output_wf=.false.
-    call call_cluster(parallel,nproc,iproc,at,wpos,etot,ff,&
+    call call_cluster(nproc,iproc,at,wpos,etot,ff,&
          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
     ncount_cluster=ncount_cluster+1
@@ -467,12 +465,11 @@ contains
 
   end subroutine steepdes
 
-  subroutine detbetax(parallel,nproc,iproc,at,pos,psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in)
+  subroutine detbetax(nproc,iproc,at,pos,psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in)
     ! determines stepsize betax
     use module_types
     use module_interfaces
     implicit none
-    logical, intent(in) :: parallel
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: at
     type(input_variables), intent(inout) :: in
@@ -502,7 +499,7 @@ contains
     in%inputPsiId=1
     in%output_grid=.false.
     in%output_wf=.false.
-    call call_cluster(parallel,nproc,iproc,at,pos,etotm1,ff,&
+    call call_cluster(nproc,iproc,at,pos,etotm1,ff,&
          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
     ncount_cluster=ncount_cluster+1
     do iat=1,at%nat
@@ -527,7 +524,7 @@ contains
        end if
     enddo
 
-    call call_cluster(parallel,nproc,iproc,at,pos,etot0,gg,&
+    call call_cluster(nproc,iproc,at,pos,etot0,gg,&
          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
     ncount_cluster=ncount_cluster+1
@@ -559,7 +556,7 @@ contains
        end if
     enddo
 
-    call call_cluster(parallel,nproc,iproc,at,tpos,etotp1,gg,&
+    call call_cluster(nproc,iproc,at,tpos,etotp1,gg,&
          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
     ncount_cluster=ncount_cluster+1
