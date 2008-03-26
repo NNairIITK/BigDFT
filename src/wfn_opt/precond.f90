@@ -52,6 +52,10 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   !       The new input guess is turned on if the parameter INGUESS_ON
   !       has value .TRUE.
   !       
+  tt=sum(hpsi)
+  if(abs(tt)/=0.0d0) then
+!     print *,"PREcond",abs(tt)
+ 
 
   allocate(rpsi(nvctr_c+7*nvctr_f),stat=i_stat)
   call memocc(i_stat,product(shape(rpsi))*kind(rpsi),'rpsi','precong')
@@ -271,6 +275,11 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      i_all=-product(shape(x_f3))*kind(x_f3)
      deallocate(x_f3,stat=i_stat)
      call memocc(i_stat,i_all,'x_f3','applylocpotkinall')
+  end if
+
+!  print *,"AFTcond",sum(hpsi)
+  else
+!     print *,'no preconditioning on empty orbital'
   end if
 
 end subroutine precong

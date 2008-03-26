@@ -1,6 +1,6 @@
 subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_grid,&
      hx,hy,hz,atoms,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
-     wfd,nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
+     wfd,nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,nspinor)
   !calculates the descriptor arrays keyg and keyv as well as nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp
   !calculates also the bounds arrays needed for convolutions
 
@@ -11,7 +11,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
   type(atoms_data), intent(in) :: atoms
   character(len=1), intent(in) :: geocode
   logical, intent(in) :: output_grid
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nspinor
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
   real(kind=8), dimension(3,atoms%nat), intent(in) :: rxyz
@@ -146,7 +146,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
 
   if (iproc.eq.0) write(*,'(1x,a,i0)') &
        'Wavefunction memory occupation per orbital (Bytes): ',&
-       nvctrp*nproc*8
+       nvctrp*nproc*8*nspinor !
 
   !for free BC admits the bounds arrays
   if (geocode == 'F') then
@@ -579,7 +579,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   ones(:)=1.0d0
 
   call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,&
-       occup,wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,1,ones,&
+       occup,wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,1,1,ones,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
   call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
@@ -593,7 +593,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
        norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
        ngatherarr,n1i*n2i*nscatterarr(iproc,2),&
        rhopot(1+n1i*n2i*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,ones)
+       psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,1,ones)
 
   i_all=-product(shape(ones))*kind(ones)
   deallocate(ones,stat=i_stat)
@@ -618,7 +618,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
        'Imported Wavefunctions Orthogonalization:'
 
-  call DiagHam(iproc,nproc,at%natsc,nspin,norb,0,norb,norbp,nvctrp,wfd,&
+  call DiagHam(iproc,nproc,at%natsc,nspin,1,norb,0,norb,norbp,nvctrp,wfd,&
        psi,hpsi,psit,eval)
 
   if (iproc.eq.0) write(*,'(1x,a)')'done.'
@@ -643,7 +643,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   character(len=1), intent(in) :: datacode,geocode
   integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
-  integer, intent(in) :: nspin
+  integer, intent(inout) :: nspin
   real(kind=8), intent(in) :: hx,hy,hz
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
@@ -661,7 +661,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer, parameter :: ngx=31
   integer :: i,iorb,iorbsc,imatrsc,iorbst,imatrst,i_stat,i_all,ierr,info,jproc,jpst,norbeyou
   integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbi_max,norbsc,n1i,n2i,n3i
-  integer :: ispin,norbu,norbd,iorbst2,ist,n2hamovr,nsthamovr
+  integer :: ispin,norbu,norbd,iorbst2,ist,n2hamovr,nsthamovr,nspinor
   real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol
   logical, dimension(:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
@@ -679,7 +679,12 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      if(spinsgn(iorb)>0.0d0) norbu=norbu+1
      if(spinsgn(iorb)<0.0d0) norbd=norbd+1
   end do
-
+  if(nspin==4) then
+     nspinor=4
+     nspin=2
+  else
+     nspinor=1
+  end if
   !calculate dimension of the interpolating scaling function grid
   select case(geocode)
      case('F')
@@ -752,17 +757,18 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   parallel=(nproc > 1)
 
+  
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  allocate(psi(nvctrp,norbep*nproc),stat=i_stat)
+  allocate(psi(nvctrp,norbep*nproc*nspinor),stat=i_stat)
   call memocc(i_stat,product(shape(psi))*kind(psi),'psi','input_wf_diag')
-
+  
   ! Create input guess orbitals
   call createAtomicOrbitals(geocode,iproc,nproc,at%atomnames,&
        at%nat,rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
        wfd%nvctr_c,wfd%nvctr_f,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,at%iatype,at%ntypes,&
        at%iasctype,at%natsc,at%nspinat,nspin,psi,eks,scorb)
-
+  
 !!$  !!plot the initial LCAO wavefunctions
 !!$  !do i=2*iproc+1,2*iproc+2
 !!$  !   iounit=15+3*(i-1)
@@ -802,13 +808,15 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      spinsgne(ist:ist+norbe-1)=real(1-2*(ispin-1),kind=8)
      ist=norbe+1
   end do
-
+    
   call sumrho(geocode,iproc,nproc,nspin*norbe,norbep,n1,n2,n3,hxh,hyh,hzh,occupe,  & 
-       wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,nspin,spinsgne, &
+       wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,nspin,1,spinsgne, &
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
+  
   call PSolver('F',datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
+  
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(nvctrp,norbep*nproc),stat=i_stat)
@@ -817,7 +825,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
        nspin*norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
        ngatherarr,n1i*n2i*nscatterarr(iproc,2),rhopot(1+n1i*n2i*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,spinsgne)
+       psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,1,spinsgne)
 
   i_all=-product(shape(spinsgne))*kind(spinsgne)
   deallocate(spinsgne,stat=i_stat)
@@ -847,12 +855,22 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'
 
-  call DiagHam(iproc,nproc,at%natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
+  call DiagHam(iproc,nproc,at%natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp,wfd,&
        psi,hpsi,psit,eval,norbe,norbep,etol,norbsc_arr)
+ 
+!  print *,'AFT DiagHam',iproc,(sum(psi(:,iorb)),iorb=1,norbp*nspinor)
 
   i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
   deallocate(norbsc_arr,stat=i_stat)
   call memocc(i_stat,i_all,'norbsc_arr','input_wf_diag')
+
+  if(nspinor==4) nspin=4
+
+!  if(nspin==4) then
+!     call psitospi(iproc,nproc,norbe,norbep,norbsc,nat,&
+!          wfd%nvctr_c,wfd%nvctr_f,at%iatype,at%ntypes,&
+!          at%iasctype,at%natsc,at%nspinat,nspin,spinsgne,psi)
+!  end if
 
 
   if (iproc.eq.0) write(*,'(1x,a)')'done.'
@@ -920,13 +938,13 @@ end subroutine input_wf_diag
 !!
 !! SOURCE
 !! 
-subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
+subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp,wfd,&
      psi,hpsi,psit,eval,& !mandatory
      norbe,norbep,etol,norbsc_arr) !optional
   use module_types
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
-  integer, intent(in) :: iproc,nproc,natsc,nspin,norb,norbu,norbd,norbp,nvctrp
+  integer, intent(in) :: iproc,nproc,natsc,nspin,nspinor,norb,norbu,norbd,norbp,nvctrp
   real(kind=8), dimension(norb), intent(out) :: eval
   real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit
   !optional arguments
@@ -938,11 +956,12 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
   include 'mpif.h'
   logical :: semicore,minimal
   integer :: i,ndim_hamovr,i_all,i_stat,n2hamovr,nsthamovr,ierr,norbi_max
-  integer :: norbtot,norbtotp,natsceff,norbsc,ndh1,ispin
+  integer :: norbtot,norbtotp,natsceff,norbsc,ndh1,ispin,nvctr
   real(kind=8) :: tolerance
   integer, dimension(:,:), allocatable :: norbgrp
   real(kind=8), dimension(:,:), allocatable :: hamovr
   real(kind=8), dimension(:,:), pointer :: psiw
+
 
   !performs some check of the arguments
   if (present(etol)) then
@@ -1026,11 +1045,11 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
      allocate(psiw(nvctrp,norbtotp*nproc),stat=i_stat)
      call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','diagham')
 
-     call switch_waves(iproc,nproc,norbtot,norbtotp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,psiw)
+     call switch_waves(iproc,nproc,norbtot,norbtotp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,psiw,1)
      call MPI_ALLTOALL(psiw,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,  &
           psi,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
 
-     call switch_waves(iproc,nproc,norbtot,norbtotp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psiw)
+     call switch_waves(iproc,nproc,norbtot,norbtotp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psiw,1)
      call MPI_ALLTOALL(psiw,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,  &
           hpsi,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
 
@@ -1076,7 +1095,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
   !in the case of minimal basis allocate now the transposed wavefunction
   !otherwise do it only in parallel
   if (minimal .or. nproc > 1) then
-        allocate(psit(nvctrp,norbp*nproc),stat=i_stat)
+        allocate(psit(nvctrp,nspinor*norbp*nproc),stat=i_stat)
         call memocc(i_stat,product(shape(psit))*kind(psit),'psit','diagham')
   else
      psit => hpsi
@@ -1084,8 +1103,9 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
 
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
 
-  call build_eigenvectors(nproc,norbu,norbd,norbp,norbtotp,nvctrp,natsceff,nspin,ndim_hamovr,&
-       norbgrp,hamovr,psi,psit)
+  nvctr=wfd%nvctr_c+7*wfd%nvctr_f
+  call build_eigenvectors(nproc,norbu,norbd,norbp,norbtotp,nvctrp,nvctr,natsceff,nspin,nspinor, &
+       ndim_hamovr,norbgrp,hamovr,psi,psit)
 
   i_all=-product(shape(hamovr))*kind(hamovr)
   deallocate(hamovr,stat=i_stat)
@@ -1122,25 +1142,28 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
   end if
 
   if (minimal) then
-     allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
+     allocate(hpsi(nvctrp,norbp*nproc*nspinor),stat=i_stat)
      call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','diagham')
+!     hpsi=0.0d0
   end if
 
   if (nproc > 1) then
 
      call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call MPI_ALLTOALL(psit,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
+          hpsi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
 
      if (minimal) then
         !allocate the direct wavefunction
-        allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
+        allocate(psi(nvctrp,norbp*nproc*nspinor),stat=i_stat)
         call memocc(i_stat,product(shape(psi))*kind(psi),'psi','diagham')
+!        psi=0.0d0
      end if
-
+     
+!     print *,'UnSwiWa',iproc,nproc,norb,norbp,wfd%nvctr_c+7*wfd%nvctr_f,nvctrp
      call timing(iproc,'Un-TransSwitch','ON')
-     call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi)
+     call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi,nspinor)
      call timing(iproc,'Un-TransSwitch','OF')
 
   else
@@ -1148,6 +1171,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,norbu,norbd,norb,norbp,nvctrp,wfd,&
      !for the moment we can leave things like that
      nullify(psit)
   end if
+!  print *,'Exit DiagHam',shape(psi),shape(hpsi),nspinor
 end subroutine DiagHam
 !!***
 
@@ -1388,18 +1412,19 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
 
 end subroutine solve_eigensystem
 
-subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,ndim_hamovr,&
+subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,nspin,nspinor,ndim_hamovr,&
      norbsc_arr,hamovr,psi,ppsit)
   implicit none
-  integer, intent(in) :: nproc,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,ndim_hamovr
+  integer, intent(in) :: nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,nspin,nspinor,ndim_hamovr
   integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
   real(kind=8), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
   real(kind=8), dimension(nvctrp,norbep*nproc), intent(in) :: psi
-  real(kind=8), dimension(nvctrp,norbp*nproc), intent(out) :: ppsit
+  real(kind=8), dimension(nvctrp*nspinor,norbp*nproc), intent(out) :: ppsit
   !local variables
   integer :: ispin,iorbst,iorbst2,imatrst,norbsc,norbi,norbj,i,iorb,i_stat,i_all
-  real(kind=8) :: tt
+  real(kind=8) :: tt,mx,my,mz,mnorm,fac
   real, dimension(:), allocatable :: randnoise
+  real(kind=8), dimension(:,:), allocatable :: tpsi
 
   !perform the vector-matrix multiplication for building the input wavefunctions
   ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
@@ -1419,34 +1444,95 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,natsc,nspin,
 
   !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
 
-  iorbst=1
-  iorbst2=1
-  imatrst=1
-  do ispin=1,nspin
-     norbsc=0
-     do i=1,natsc
-        norbi=norbsc_arr(i,ispin)
-        norbsc=norbsc+norbi
-        call DGEMM('N','N',nvctrp,norbi,norbi,1.d0,psi(1,iorbst),nvctrp,&
-             hamovr(imatrst),norbi,0.d0,ppsit(1,iorbst2),nvctrp)
-        iorbst=iorbst+norbi
-        iorbst2=iorbst2+norbi
-        imatrst=imatrst+norbi**2
+  if(nspinor==1) then
+     iorbst=1
+     iorbst2=1
+     imatrst=1
+     do ispin=1,nspin
+        norbsc=0
+        do i=1,natsc
+           norbi=norbsc_arr(i,ispin)
+           norbsc=norbsc+norbi
+           call DGEMM('N','N',nvctrp,norbi,norbi,1.d0,psi(1,iorbst),nvctrp,&
+                hamovr(imatrst),norbi,0.d0,ppsit(1,iorbst2),nvctrp)
+           iorbst=iorbst+norbi
+           iorbst2=iorbst2+norbi
+           imatrst=imatrst+norbi**2
+        end do
+        norbi=norbsc_arr(natsc+1,ispin)
+        if(ispin==1) norbj=norbu-norbsc
+        if(ispin==2) norbj=norbd-norbsc
+        !        write(*,'(1x,a,5i4)') "DIMS:",norbi,norbj,iorbst,imatrst
+        !        norbj=norb-norbsc
+        if(norbj>0) then
+           call DGEMM('N','N',nvctrp,norbj,norbi,1.d0,psi(1,iorbst),nvctrp,&
+                hamovr(imatrst),norbi,0.d0,ppsit(1,iorbst2),nvctrp)
+        end if
+        iorbst=norbi+norbsc+1 !this is equal to norbe+1
+        iorbst2=norbu+1
+        imatrst=ndim_hamovr+1
      end do
-     norbi=norbsc_arr(natsc+1,ispin)
-     if(ispin==1) norbj=norbu-norbsc
-     if(ispin==2) norbj=norbd-norbsc
-     !        write(*,'(1x,a,5i4)') "DIMS:",norbi,norbj,iorbst,imatrst
-     !        norbj=norb-norbsc
-     if(norbj>0) then
-        call DGEMM('N','N',nvctrp,norbj,norbi,1.d0,psi(1,iorbst),nvctrp,&
-             hamovr(imatrst),norbi,0.d0,ppsit(1,iorbst2),nvctrp)
-     end if
-     iorbst=norbi+norbsc+1 !this is equal to norbe+1
-     iorbst2=norbu+1
-     imatrst=ndim_hamovr+1
-  end do
-
+  else
+     allocate(tpsi(nvctrp,norbep*nproc))
+!     print *,'DIM SHOW',shape(tpsi),shape(psi),shape(ppsit),norbep*nproc,norbu,norbd
+     iorbst=1
+     iorbst2=1
+     imatrst=1
+     do ispin=1,nspin
+        norbsc=0
+        do i=1,natsc
+           norbi=norbsc_arr(i,ispin)
+           norbsc=norbsc+norbi
+           call DGEMM('N','N',nvctrp,norbi,norbi,1.d0,psi(1,iorbst),nvctrp,&
+                hamovr(imatrst),norbi,0.d0,tpsi(1,iorbst2),nvctrp)
+           iorbst=iorbst+norbi
+           iorbst2=iorbst2+norbi
+           imatrst=imatrst+norbi**2
+        end do
+        norbi=norbsc_arr(natsc+1,ispin)
+        if(ispin==1) norbj=norbu-norbsc
+        if(ispin==2) norbj=norbd-norbsc
+        !        write(*,'(1x,a,5i4)') "DIMS:",norbi,norbj,iorbst,imatrst
+        !        norbj=norb-norbsc
+        if(norbj>0) then
+           call DGEMM('N','N',nvctrp,norbj,norbi,1.d0,psi(1,iorbst),nvctrp,&
+                hamovr(imatrst),norbi,0.d0,tpsi(1,iorbst2),nvctrp)
+        end if
+        iorbst=norbi+norbsc+1 !this is equal to norbe+1
+        iorbst2=norbu+1
+        imatrst=ndim_hamovr+1
+     end do
+     ppsit=0.0d0
+     open(unit=1978,file='moments')
+     read(1978,*) mx,my,mz
+     close(1978)
+     mnorm=sqrt(mx**2+my**2+mz**2)
+     mx=mx/mnorm;my=my/mnorm;mz=mz/mnorm
+     fac=1.0d0/(2.0d0)
+ !    print *,'Moments',mx,my,mz
+     do iorb=1,norbu
+        do i=1,nvctrp
+!           ppsit(2*i-1,iorb)=(mz-fac*(my+mx))*tpsi(i,iorb)
+!           ppsit(2*i,iorb)=fac*(my-mx)*tpsi(i,iorb)
+!           ppsit(2*i+2*nvctrp-1,iorb)=(fac*(mx-my))*tpsi(i,iorb)
+!           ppsit(2*i+2*nvctrp,iorb)=-fac*(my-mx)*tpsi(i,iorb)
+           ppsit(2*i-1,iorb)=(mz+fac*(my+mx))*tpsi(i,iorb)
+           ppsit(2*i,iorb)=fac*(my-mx)*tpsi(i,iorb)
+           ppsit(2*i+2*nvctrp-1,iorb)=(fac*(mx-my))*tpsi(i,iorb)
+           ppsit(2*i+2*nvctrp,iorb)=fac*(my-mx)*tpsi(i,iorb)
+        end do
+     end do
+     do iorb=norbu+1,norbu+norbd
+        do i=1,nvctrp
+           ppsit(2*i-1,iorb)=(fac*(mx+my))*tpsi(i,iorb)
+           ppsit(2*i,iorb)=-fac*(my+mx)*tpsi(i,iorb)
+           ppsit(2*i+2*nvctrp-1,iorb)=-(mz+fac*(my+mx))*tpsi(i,iorb)
+           ppsit(2*i+2*nvctrp,iorb)=-fac*(my-mx)*tpsi(i,iorb)
+        end do
+     end do
+!     print *,'EIGe',shape(ppsit),shape(tpsi),norbu,norbd,nspinor
+     deallocate(tpsi)
+  end if
 !!$  !here we should put a random noise on the spin-down components in the case of norbu=norbd
 !!$  if (nspin == 2 .and. norbu==norbd) then
 !!$     allocate(randnoise(nvctrp),stat=i_stat)

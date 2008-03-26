@@ -107,7 +107,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
           psi(1,iorb-iproc*norbp),pot(nsoffset),hpsi(1,iorb-iproc*norbp),epot,ekin, & 
           x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
           ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-          ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r)
+          ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r,1)
      ekin_sum=ekin_sum+occup(iorb)*ekin
      epot_sum=epot_sum+occup(iorb)*epot
 
@@ -162,7 +162,166 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
      y_c,y_f,psir,  &
      psi,pot,hpsi,epot,ekin,x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
      ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-     ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r)!
+     ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r,NSPINOR)!
+  !  Applies the local potential and kinetic energy operator to one wavefunction 
+  ! Input: pot,psi
+  ! Output: hpsi,epot,ekin
+  implicit real(kind=8) (a-h,o-z)
+  dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
+  dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
+  dimension pot((2*n1+31)*(2*n2+31)*(2*n3+31),NSPINOR)
+  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
+  dimension psi(nvctr_c+7*nvctr_f,NSPINOR),scal(0:3)
+  dimension hpsi(nvctr_c+7*nvctr_f,NSPINOR)
+  dimension y_c(0:n1,0:n2,0:n3,NSPINOR)
+  dimension y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,NSPINOR)
+  dimension psir((2*n1+31)*(2*n2+31)*(2*n3+31),NSPINOR)
+  !********************Alexey***************************************************************
+  ! for shrink:
+  integer ibzzx_c(2,-14:2*n3+16,0:n1) 
+  integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
+
+  integer ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
+  integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
+  integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
+
+  ! for grow:
+  integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
+  integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
+
+  integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
+  integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+  integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+
+  ! for real space:
+  integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+
+  ! for saving old POT
+  real(kind=8), dimension(:,:), allocatable :: psib
+
+  !*****************************************************************************************
+  real(kind=8) x_c(0:n1,0:n2,0:n3,NSPINOR),x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,NSPINOR)! input
+  real(kind=8)::x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,NSPINOR)
+  real(kind=8)::x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3,NSPINOR)
+  real(kind=8)::x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2,NSPINOR)
+  real(kind=8) w1(nw1,nspinor),w2(nw2,nspinor) ! work
+  !***********************************************************************************************
+  do i=0,3
+     scal(i)=1.d0
+  enddo
+
+  psir=0.0d0
+do  IDX=1,NSPINOR  
+!  print *,"nspinor",nspinor,product(shape(psi)),idx
+  call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+       nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+       scal,psi(1,IDX),psi(nvctr_c+1,IDX),  &
+       x_c(0,0,0,idx),x_f(1,nfl1,nfl2,nfl3,idx),&
+       x_f1(nfl1,nfl2,nfl3,idx),x_f2(nfl2,nfl1,nfl3,idx),x_f3(nfl3,nfl1,nfl2,idx))
+
+
+
+  call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+       w1(1,IDX),w2(1,IDX), x_c(0,0,0,idx),x_f(1,nfl1,nfl2,nfl3,idx), & 
+       psir(1,IDX),ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+
+END DO
+!  print *,'POTr pre',(sum(pot(:,idx)),idx=1,nspinor)
+!  print *,'PSIr pre',(sum(psir(:,idx)),idx=1,nspinor)
+IF (NSPINOR==1) THEN
+  if (nbuf.eq.0) then
+     call realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
+  else
+     call realspace_nbuf(ibyyzz_r,pot,psir,epot,n1,n2,n3,nbuf)
+  endif
+ ELSE
+    epot=0.0d0
+    call realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
+  !  allocate(psiB((2*n1+31)*(2*n2+31)*(2*n3+31),NSPINOR),stat=i_stat)
+  !  call memocc(i_stat,product(shape(psiB))*kind(psiB),'psiB','applylocpotkinone')
+!
+!    PSIB=PSIR
+!    EPOTTOT=0.0D0
+!    if (nbuf.eq.0) then
+!       !NO SIGNS SET YET
+!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,1),PSIR(1,1),epot,n1,n2,n3)
+!       EPOTTOT=EPOTTOT+EPOT
+!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,3),PSIR(1,3),epot,n1,n2,n3)
+!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,4),PSIR(1,4),epot,n1,n2,n3)
+!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,1),PSIR(1,2),epot,n1,n2,n3)
+!       EPOTTOT=EPOTTOT+EPOT
+!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,4),PSIR(1,3),epot,n1,n2,n3)
+!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,3),PSIR(1,4),epot,n1,n2,n3)
+!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,2),PSIR(1,3),epot,n1,n2,n3)
+!       EPOTTOT=EPOTTOT+EPOT
+!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,3),PSIR(1,1),epot,n1,n2,n3)
+!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,4),PSIR(1,2),epot,n1,n2,n3)
+!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,2),PSIR(1,4),epot,n1,n2,n3)
+!       EPOTTOT=EPOTTOT+EPOT
+!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,4),PSIR(1,1),epot,n1,n2,n3)
+!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,3),PSIR(1,2),epot,n1,n2,n3)
+!       EPOT=EPOTTOT
+!    else
+!       !NO SIGNS SET YET
+!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,1),PSIR(1,1),epot,n1,n2,n3)
+!       EPOTTOT=EPOTTOT+EPOT
+!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,3),PSIR(1,3),epot,n1,n2,n3)
+!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,4),PSIR(1,4),epot,n1,n2,n3)
+!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,1),PSIR(1,2),epot,n1,n2,n3)
+!       EPOTTOT=EPOTTOT+EPOT
+!!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,4),PSIR(1,3),epot,n1,n2,n3)
+!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,3),PSIR(1,4),epot,n1,n2,n3)
+!!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,2),PSIR(1,3),epot,n1,n2,n3)
+!       EPOTTOT=EPOTTOT+EPOT
+!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,3),PSIR(1,1),epot,n1,n2,n3)
+!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,4),PSIR(1,2),epot,n1,n2,n3)
+!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,2),PSIR(1,4),epot,n1,n2,n3)
+!       EPOTTOT=EPOTTOT+EPOT
+!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,4),PSIR(1,1),epot,n1,n2,n3)
+!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,3),PSIR(1,2),epot,n1,n2,n3)
+!       EPOT=EPOTTOT
+!    end if
+!    i_all=-product(shape(psiB))*kind(psiB)
+!    deallocate(psiB,stat=i_stat)
+!    call memocc(i_stat,i_all,'psiB','applylocpotkinone')
+    
+    END IF
+!  print *,'PSIr aft',(sum(psir(:,idx)),idx=1,nspinor),epot
+
+
+    ekin=0.0d0
+DO IDX=1,NSPINOR
+  call comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+       w1(1,IDX),w2(1,IDX),psir(1,IDX),&
+       ibxy_c,ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+       y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX))!,ibyz_c,ibyz_f)
+
+  call ConvolkineticT(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+     hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+     x_c(0,0,0,IDX),x_f(1,nfl1,nfl2,nfl3,IDX),y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX),EKINO, &
+     x_f1(nfl1,nfl2,nfl3,IDX),x_f2(nfl2,nfl1,nfl3,IDX),x_f3(nfl3,nfl1,nfl2,IDX))
+    ekin=ekin+ekino
+
+!print *,'comp_for',ekin
+  call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+       nseg_c,nvctr_c,keyg(1,1),       keyv(1),   &
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+       scal,y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX),hpsi(1,IDX),hpsi(nvctr_c+1,IDX))
+END DO
+
+
+end subroutine applylocpotkinone
+
+
+
+subroutine applylocpotkinone_old(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
+     hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+     ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, & 
+     y_c,y_f,psir,  &
+     psi,pot,hpsi,epot,ekin,x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
+     ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+     ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r,nspinor)!
   !  Applies the local potential and kinetic energy operator to one wavefunction 
   ! Input: pot,psi
   ! Output: hpsi,epot,ekin
@@ -212,7 +371,7 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
 !!$  end do
 !!$  print *,'before applylocpotkinone',tt
 
-  
+!    print *,"nspinor",nspinor,product(shape(w1)),idx
   call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
        nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
@@ -314,7 +473,8 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
 !!$  print *,'after applylocpotkinone',tt
 
 
-end subroutine applylocpotkinone
+end subroutine applylocpotkinone_old
+
 
 subroutine applylocpotkinone_per(n1,n2,n3, & 
      hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
@@ -443,6 +603,133 @@ subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
   enddo
 
 end subroutine realspace_nbuf
+
+
+subroutine realspaceINOUT(ibyyzz_r,pot,psirIN,psirOUT,epot,n1,n2,n3)
+  implicit none
+  integer,intent(in)::n1,n2,n3
+  integer,intent(in)::ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+
+  real(kind=8),intent(in)::pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+  real(kind=8),intent(in)::psirIN(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+ real(kind=8),intent(out)::psirOUT(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+
+  real(kind=8),intent(out)::epot
+  real(kind=8) tt
+  integer i1,i2,i3
+
+  epot=0.d0
+  do i3=-14,2*n3+16
+     do i2=-14,2*n2+16
+        do i1=max(ibyyzz_r(1,i2,i3)-14,-14),min(ibyyzz_r(2,i2,i3)-14,2*n1+16)
+           tt=pot(i1,i2,i3)*psirIN(i1,i2,i3)
+           epot=epot+tt*psirIN(i1,i2,i3)
+           psirOUT(i1,i2,i3)=psirOUT(i1,i2,i3)+tt
+        enddo
+     enddo
+  enddo
+
+end subroutine realspaceINOUT
+
+subroutine realspaceINOUT_nbuf(ibyyzz_r,pot,psirIN,psirOUT,epot,nb1,nb2,nb3,nbuf)
+  implicit none
+  integer,intent(in)::nb1,nb2,nb3,nbuf
+  integer,intent(in)::ibyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16)
+  real(kind=8),intent(in)::pot(-14:2*nb1+16-4*nbuf,-14:2*nb2+16-4*nbuf,-14:2*nb3+16-4*nbuf)
+  real(kind=8),intent(in)::psirIN(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
+  real(kind=8),intent(out)::psirOUT(-14:2*nb1+16,-14:2*nb2+16,-14:2*nb3+16)
+
+  real(kind=8),intent(out)::epot
+  real(kind=8) tt,dnrm2
+  integer i1,i2,i3
+
+  epot=0.d0
+  do i3=-14,2*nb3+16
+     if (i3.ge.-14+2*nbuf .and. i3.le.2*nb3+16-2*nbuf) then
+        do i2=-14,2*nb2+16
+           if (i2.ge.-14+2*nbuf .and. i2.le.2*nb2+16-2*nbuf) then
+              do i1=-14+2*nbuf,ibyyzz_r(1,i2,i3)-14-1
+                 psirOUT(i1,i2,i3)=0.d0
+              enddo
+              do i1=max(ibyyzz_r(1,i2,i3)-14,-14+2*nbuf),min(ibyyzz_r(2,i2,i3)-14,2*nb1+16-2*nbuf)
+                 tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf)*psirIN(i1,i2,i3)
+                 epot=epot+tt*psirIN(i1,i2,i3)
+                 psirOUT(i1,i2,i3)=tt
+              enddo
+              do i1=ibyyzz_r(2,i2,i3)-14+1,2*nb1+16-2*nbuf
+                 psirOUT(i1,i2,i3)=0.d0
+              enddo
+           else
+              do i1=-14,2*nb1+16
+                 psirOUT(i1,i2,i3)=0.d0
+              enddo
+           endif
+        enddo
+     else
+        do i2=-14,2*nb2+16
+           do i1=-14,2*nb1+16
+              psirOUT(i1,i2,i3)=0.d0
+           enddo
+        enddo
+     endif
+  enddo
+
+end subroutine realspaceINOUT_nbuf
+
+subroutine realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
+  implicit none
+  integer,intent(in)::n1,n2,n3
+  integer,intent(in)::ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+
+  real(kind=8),intent(in)::pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16,4)
+  real(kind=8),intent(inout)::psir(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16,4)
+
+  real(kind=8),intent(out)::epot
+  real(kind=8) tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42
+  integer i1,i2,i3
+
+  epot=0.d0
+  do i3=-14,2*n3+16
+     do i2=-14,2*n2+16
+        do i1=max(ibyyzz_r(1,i2,i3)-14,-14),min(ibyyzz_r(2,i2,i3)-14,2*n1+16)
+           !diagonal terms
+           tt11=pot(i1,i2,i3,1)*psir(i1,i2,i3,1) !p1
+           tt22=pot(i1,i2,i3,1)*psir(i1,i2,i3,2) !p2
+           tt33=pot(i1,i2,i3,4)*psir(i1,i2,i3,3) !p3
+           tt44=pot(i1,i2,i3,4)*psir(i1,i2,i3,4) !p4
+           !Rab*Rb
+           tt13=pot(i1,i2,i3,2)*psir(i1,i2,i3,3) !p1
+           !Iab*Ib
+           tt14=pot(i1,i2,i3,3)*psir(i1,i2,i3,4) !p1
+           !Rab*Ib
+           tt23=pot(i1,i2,i3,2)*psir(i1,i2,i3,4) !p2
+           !Iab*Rb
+           tt24=pot(i1,i2,i3,3)*psir(i1,i2,i3,3) !p2
+           !Rab*Ra
+           tt31=pot(i1,i2,i3,2)*psir(i1,i2,i3,1) !p3
+           !Iab*Ia
+           tt32=pot(i1,i2,i3,3)*psir(i1,i2,i3,2) !p3
+           !Rab*Ia
+           tt41=pot(i1,i2,i3,2)*psir(i1,i2,i3,2) !p4
+           !Iab*Ra
+           tt42=pot(i1,i2,i3,3)*psir(i1,i2,i3,1) !p4
+           ! Change epot later
+           epot=epot+tt11*psir(i1,i2,i3,1)+tt22*psir(i1,i2,i3,2)+tt33*psir(i1,i2,i3,3)+tt44*psir(i1,i2,i3,4)+&
+                2.0d0*tt31*psir(i1,i2,i3,3)-2.0d0*tt42*psir(i1,i2,i3,4)+2.0d0*tt41*psir(i1,i2,i3,4)+2.0d0*tt32*psir(i1,i2,i3,3)
+!p1=h1p1+h2p3-h3p4
+!p2=h1p2+h2p4+h3p3
+!p3=h2p1+h3p2+h4p3
+!p4=h2p2-h3p1+h4p4
+           psir(i1,i2,i3,1)=tt11+tt13-tt14
+           psir(i1,i2,i3,2)=tt22+tt23+tt24
+           psir(i1,i2,i3,3)=tt33+tt31+tt32
+           psir(i1,i2,i3,4)=tt44+tt41-tt42
+        enddo
+     enddo
+  enddo
+
+end subroutine realspaceINPLACE
+
 
 subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
      nprojel,nproj,nseg_p,keyg_p,keyv_p,nvctr_p,proj,  &

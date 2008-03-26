@@ -81,6 +81,11 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   tt=dble(nvctr_c+7*nvctr_f)/dble(nproc)
   nvctrp=int((1.d0-eps_mach*tt) + tt)
 
+  if(nspin==4) then !quadruple size for complex spinors
+     norbp=norbp*4
+     nvctrp=nvctrp*4
+  end if
+
   !wavefunction memory per orbitals
   omemwf=real(nvctrp*nproc*8,kind=8)
   

@@ -1,26 +1,67 @@
-subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum)
+subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,nspinor)
   !Effect of orthogonality constraints on gradient 
   implicit none
-  integer, intent(in) :: iproc,nproc,norb,nvctrp
+  integer, intent(in) :: iproc,nproc,norb,nvctrp,nspinor
   real(kind=8), dimension(norb), intent(in) :: occup
-  real(kind=8), dimension(nvctrp,norb), intent(in) :: psit
+  real(kind=8), dimension(nspinor*nvctrp,norb), intent(in) :: psit
   real(kind=8), intent(out) :: scprsum
-  real(kind=8), dimension(nvctrp,norb), intent(out) :: hpsit
+  real(kind=8), dimension(nspinor*nvctrp,norb), intent(out) :: hpsit
   !local variables
   include 'mpif.h'
-  integer :: i_stat,i_all,istart,iorb,ierr
+  integer :: i_stat,i_all,istart,iorb,jorb,ierr,norbs,i,j
   real(kind=8), dimension(:,:,:), allocatable :: alag
+  real(kind=8), dimension(:,:), allocatable :: psitt,hpsitt
   call timing(iproc,'LagrM_comput  ','ON')
   istart=2
   if (nproc == 1) istart=1
-  allocate(alag(norb,norb,istart),stat=i_stat)
+  
+  if(nspinor==1) then
+     norbs=norb
+  else
+     norbs=2*norb
+!     if(nproc==1) then
+!        allocate(psitt(nspinor*nvctrp,norb))
+!        allocate(hpsitt(nspinor*nvctrp,norb))
+!        psitt=0.0d0
+!        hpsitt=0.0d0
+!        do j=1,nspinor*norb,4
+!           do i=1,nvctrp
+!              psitt(2*i-1,(j-1)/nspinor+1)=psit(i,j)
+!              psitt(2*i,(j-1)/nspinor+1)=psit(i,j+1)              
+!              psitt(2*i-1+2*nvctrp,(j-1)/nspinor+1)=psit(i,j+2)
+!              psitt(2*i+2*nvctrp,(j-1)/nspinor+1)=psit(i,j+3)              
+!           end do
+!        end do
+!        do j=1,nspinor*norb,4
+!           do i=1,nvctrp
+!              hpsitt(2*i-1,(j-1)/nspinor+1)=hpsit(i,j)
+!              hpsitt(2*i,(j-1)/nspinor+1)=hpsit(i,j+1)              
+!              hpsitt(2*i-1+2*nvctrp,(j-1)/nspinor+1)=hpsit(i,j+2)
+!              hpsitt(2*i+2*nvctrp,(j-1)/nspinor+1)=hpsit(i,j+3)              
+!           end do
+!        end do
+!     end if
+  end if
+
+  allocate(alag(norbs,norb,istart),stat=i_stat)
   call memocc(i_stat,product(shape(alag))*kind(alag),'alag','orthoconstraint_p')
   !     alag(jorb,iorb,istart)=+psit(k,jorb)*hpsit(k,iorb)
-  call DGEMM('T','N',norb,norb,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,alag(1,1,istart),norb)
+  if(nspinor==1) then
+     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,alag(1,1,istart),norb)
+  else
+     if(nproc>1) then
+        call ZGEMM('C','N',norb,norb,2*nvctrp,(1.d0,0.0d0),psit,2*nvctrp, &
+             hpsit,2*nvctrp,(0.d0,0.0d0),alag(1,1,istart),norb)
+!     else
+!        call ZGEMM('C','N',norb,norb,2*nvctrp,(1.d0,0.0d0),psitt,2*nvctrp, &
+!             hpsitt,2*nvctrp,(0.d0,0.0d0),alag(1,1,istart),norb)
+     end if
+  end if
+
   if (nproc > 1) then
      call timing(iproc,'LagrM_comput  ','OF')
      call timing(iproc,'LagrM_commun  ','ON')
-     call MPI_ALLREDUCE(alag(1,1,2),alag(1,1,1),norb**2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call MPI_ALLREDUCE(alag(1,1,2),alag(1,1,1),norbs*norb,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
      call timing(iproc,'LagrM_commun  ','OF')
      call timing(iproc,'LagrM_comput  ','ON')
   end if
@@ -30,12 +71,42 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum)
   !        write(*,'(10(1x,1pe10.3))') (alag(iorb,jorb,1),jorb=1,norb)
   !        enddo
   !        endif
+!  if(iproc==0) print *,norb,norbs
+!  do iorb=1,norb
+!     if(iproc==0) write(*,'(30f12.6)') (alag(jorb,iorb,1),jorb=1,norbs)
+!  end do
+!  if(iproc==0) print *,' '
   scprsum=0.d0
-  do iorb=1,norb
-     scprsum=scprsum+occup(iorb)*alag(iorb,iorb,1)
-  enddo
+  if(nspinor==1) then
+     do iorb=1,norb
+        scprsum=scprsum+occup(iorb)*alag(iorb,iorb,1)
+     enddo
+  else
+    do iorb=1,norb
+        scprsum=scprsum+occup(iorb)*alag(2*iorb-1,iorb,1)
+        scprsum=scprsum+occup(iorb)*alag(2*iorb,iorb,1)
+     enddo
+  end if
+
   ! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
-  call DGEMM('N','N',nvctrp,norb,norb,-1.d0,psit,nvctrp,alag,norb,1.d0,hpsit,nvctrp)
+  if(nspinor==1) then
+     call DGEMM('N','N',nvctrp,norb,norb,-1.d0,psit,nvctrp,alag,norb,1.d0,hpsit,nvctrp)
+  else
+     if(nproc>1) then
+        call ZGEMM('N','N',2*nvctrp,norb,norb,(-1.d0,0.0d0),psit,2*nvctrp,alag,norb,(1.d0,0.0d0),hpsit,2*nvctrp)
+!     else
+!        call ZGEMM('N','N',2*nvctrp,norb,norb,(-1.d0,0.0d0),psitt,2*nvctrp,alag,norb,(1.d0,0.0d0),hpsitt,2*nvctrp)
+!        do j=1,nspinor*norb,4
+!           do i=1,nvctrp
+!              hpsit(i,j)=hpsitt(2*i-1,(j-1)/nspinor+1)
+!              hpsit(i,j+1)=hpsitt(2*i,(j-1)/nspinor+1)
+!              hpsit(i,j+2)=hpsitt(2*i-1+2*nvctrp,(j-1)/nspinor+1)
+!              hpsit(i,j+3)=hpsitt(2*i+2*nvctrp,(j-1)/nspinor+1)
+!           end do
+!        end do
+!        deallocate(hpsitt,psitt)
+     end if
+  end if
   i_all=-product(shape(alag))*kind(alag)
   deallocate(alag,stat=i_stat)
   call memocc(i_stat,i_all,'alag','orthoconstraint_p')
@@ -45,45 +116,93 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum)
 END SUBROUTINE orthoconstraint_p
 
 
-subroutine orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum)
+subroutine orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum,nspinor)
   !Effect of orthogonality constraints on gradient 
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.false.
   dimension psi(nvctrp,norb),hpsi(nvctrp,norb),occup(norb)
-  allocatable :: alag(:,:,:)
+  allocatable :: alag(:,:,:),psit(:,:),hpsit(:,:)
 
   call timing(iproc,'LagrM_comput  ','ON')
 
-  allocate(alag(norb,norb,2),stat=i_stat)
-  call memocc(i_stat,product(shape(alag))*kind(alag),'alag','orthoconstraint')
+  if(nspinor==1) then
+     norbs=norb
+  else
+     norbs=2*norb
+     allocate(psit(nvctrp*nspinor,norb))
+     allocate(hpsit(nvctrp*nspinor,norb))
+     psit=0.0d0
+     do j=1,nspinor*norb,4
+        do i=1,nvctrp
+           psit(2*i-1,(j-1)/nspinor+1)=psi(i,j)
+           psit(2*i,(j-1)/nspinor+1)=psi(i,j+1)              
+           psit(2*i-1+2*nvctrp,(j-1)/nspinor+1)=psi(i,j+2)
+           psit(2*i+2*nvctrp,(j-1)/nspinor+1)=psi(i,j+3)              
+        end do
+     end do
+     do j=1,nspinor*norb,4
+        do i=1,nvctrp
+           hpsit(2*i-1,(j-1)/nspinor+1)=hpsi(i,j)
+           hpsit(2*i,(j-1)/nspinor+1)=hpsi(i,j+1)              
+           hpsit(2*i-1+2*nvctrp,(j-1)/nspinor+1)=hpsi(i,j+2)
+           hpsit(2*i+2*nvctrp,(j-1)/nspinor+1)=hpsi(i,j+3)              
+        end do
+     end do
+  end if
 
-  !     alag(jorb,iorb,2)=+psi(k,jorb)*hpsi(k,iorb)
-  call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,0.d0,alag(1,1,1),norb)
+  allocate(alag(norbs,norb,2),stat=i_stat)
+  call memocc(i_stat,product(shape(alag))*kind(alag),'alag','orthoconstraint')
+  
+  if(nspinor==1) then
+     !     alag(jorb,iorb,2)=+psi(k,jorb)*hpsi(k,iorb)
+     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,0.d0,alag(1,1,1),norb)
+  else
+     call ZGEMM('C','N',norb,norb,2*nvctrp,(1.d0,0.0d0),psit,2*nvctrp, &
+          hpsit,2*nvctrp,(0.d0,0.0d0),alag(1,1,istart),norb)
+  end if
 
   scprsum=0.d0
-  do iorb=1,norb
-     scprsum=scprsum+occup(iorb)*alag(iorb,iorb,1)
-  enddo
+  if(nspinor==1) then
+     do iorb=1,norb
+        scprsum=scprsum+occup(iorb)*alag(iorb,iorb,1)
+     enddo
+  else
+    do iorb=1,norb
+        scprsum=scprsum+occup(iorb)*alag(2*iorb-1,iorb,1)
+        scprsum=scprsum+occup(iorb)*alag(2*iorb,iorb,1)
+     enddo
+  end if
 
   ! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
-  call DGEMM('N','N',nvctrp,norb,norb,-1.d0,psi,nvctrp,alag,norb,1.d0,hpsi,nvctrp)
+  if(nspinor==1) then
+     call DGEMM('N','N',nvctrp,norb,norb,-1.d0,psi,nvctrp,alag,norb,1.d0,hpsi,nvctrp)
+  else
+     call ZGEMM('N','N',2*nvctrp,norb,norb,(-1.d0,0.0d0),psit,2*nvctrp,alag,norb,(1.d0,0.0d0),hpsit,2*nvctrp)
+     do j=1,nspinor*norb,nspinor
+        do i=1,nvctrp
+           hpsi(i,j)=hpsit(2*i-1,(j-1)/nspinor+1)
+           hpsi(i,j+1)=hpsit(2*i,(j-1)/nspinor+1)
+           hpsi(i,j+2)=hpsit(2*i-1+2*nvctrp,(j-1)/nspinor+1)
+           hpsi(i,j+3)=hpsit(2*i+2*nvctrp,(j-1)/nspinor+1)
+        end do
+     end do     
+  end if
 
   i_all=-product(shape(alag))*kind(alag)
   deallocate(alag,stat=i_stat)
   call memocc(i_stat,i_all,'alag','orthoconstraint')
-
+  deallocate(psit,hpsit)
   call timing(iproc,'LagrM_comput  ','OF')
 
 END SUBROUTINE orthoconstraint
 
-
-subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit)
+subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
   ! Gram-Schmidt orthogonalisation
   implicit none
-  integer, intent(in) :: iproc,nproc,norb,nvctrp,nvctr_tot
-  real(kind=8), dimension(nvctrp,norb), intent(inout) :: psit
+  integer, intent(in) :: iproc,nproc,norb,nvctrp,nvctr_tot,nspinor
+  real(kind=8), dimension(nspinor*nvctrp,norb), intent(inout) :: psit
   !local variables
-  integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,i,j
+  integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,i,j,norbs
   real(kind=8) :: tt,ttLOC,dnrm2
   real(kind=8), dimension(:,:,:), allocatable :: ovrlp
   include 'mpif.h'
@@ -96,8 +215,12 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit)
 
      if (nvctr_eff > 0) then
      !parallel treatment of a run with only one orbital
-     tt=dnrm2(nvctr_eff,psit,1)     
-     ttLOC=tt**2
+        if(nspinor==1) then
+           tt=dnrm2(nvctr_eff,psit,1)
+        else
+            tt=dnrm2(nvctr_eff,psit,1) !NOT CORRECT
+       end if
+        ttLOC=tt**2
 
      else
         ttLOC=0.d0
@@ -110,46 +233,89 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit)
      end if
 
      tt=1.d0/sqrt(tt)
-     call dscal(nvctr_eff,tt,psit,1)
-
+     if(nspinor==1) then ! redundant check since for nspinor>1, norb>=4
+        call dscal(nvctr_eff,tt,psit,1)
+     else
+        call zscal(nvctr_eff,tt,psit,1)
+     end if
 
   else
 
      istart=2
      if (nproc == 1) istart=1
 
-     allocate(ovrlp(norb,norb,istart),stat=i_stat)
+     if(nspinor==1) then
+        norbs=norb
+     else
+        norbs=2*norb
+     end if
+
+     allocate(ovrlp(norbs,norb,istart),stat=i_stat)
      call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','orthon_p')
 
      ! Upper triangle of overlap matrix using BLAS
      !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; upper triangle
-     call DSYRK('L','T',norb,nvctrp,1.d0,psit,nvctrp,0.d0,ovrlp(1,1,istart),norb)
-
+     if(nspinor==1) then
+        call DSYRK('L','T',norb,nvctrp,1.d0,psit,nvctrp,0.d0,ovrlp(1,1,istart),norb)
+     else
+        call ZHERK('L','C',norb,2*nvctrp,(1.d0,0.0d0),psit,2*nvctrp,(0.d0,0.0d0),ovrlp(1,1,istart),norb)
+     end if
      if (nproc > 1) then
         call timing(iproc,'GramS_comput  ','OF')
         call timing(iproc,'GramS_commun  ','ON')
-        call MPI_ALLREDUCE (ovrlp(1,1,2),ovrlp(1,1,1),norb**2,&
+        call MPI_ALLREDUCE (ovrlp(1,1,2),ovrlp(1,1,1),norbs*norb,&
              MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         call timing(iproc,'GramS_commun  ','OF')
         call timing(iproc,'GramS_comput  ','ON')
      end if
+
+!  if(iproc==0) print *,norb,norbs
+!  do i=1,norb
+!     if(iproc==0) write(*,'(30f12.6)') (ovrlp(j,i,1),j=1,norbs)
+!  end do
+!  if(iproc==0) print *,' '
 
 !!$       write(*,*) 'parallel ovrlp'
 !!$       do i=1,norb
 !!$       write(*,'(10(1x,1pe10.3))') (ovrlp(i,j,1),j=1,norb)
 !!$       enddo
 
+     if(nspinor==1) then
+        
+        ! Cholesky factorization
+        call dpotrf( 'L',norb,ovrlp,norb,info )
+        if (info.ne.0) write(6,*) 'info Cholesky factorization',info
+        
+        ! calculate L^{-1}
+        call DTRTRI( 'L','N',norb,ovrlp,norb,info )
+        if (info.ne.0) write(6,*) 'info L^-1',info
+        
+        ! new vectors   
+        call DTRMM ('R','L','T','N',nvctrp,norb,1.d0,ovrlp,norb,psit,nvctrp)
 
-     ! Cholesky factorization
-     call dpotrf( 'L',norb,ovrlp,norb,info )
-     if (info.ne.0) write(6,*) 'info Cholesky factorization',info
+     else
 
-     ! calculate L^{-1}
-     call DTRTRI( 'L','N',norb,ovrlp,norb,info )
-     if (info.ne.0) write(6,*) 'info L^-1',info
+       ! Cholesky factorization
+        do i=1,norb
+!           if(iproc==0) write(*,'(10f10.3)') (ovrlp(j,i,1), j=1,norbs)
+        end do
+        call zpotrf( 'L',norb,ovrlp,norb,info )
+        if (info.ne.0) write(6,*) 'info Cholesky factorization',info
+        
+        ! calculate L^{-1}
+         do i=1,norb
+!           if(iproc==0) write(*,'(10f10.3)') (ovrlp(j,i,1), j=1,norbs)
+        end do
+       call ZTRTRI( 'L','N',norb,ovrlp,norb,info )
+        if (info.ne.0) write(6,*) 'info L^-1',info
+        
+         do i=1,norb
+ !          if(iproc==0) write(*,'(10f10.3)') (ovrlp(j,i,1), j=1,norbs)
+        end do
+       ! new vectors   !!check if third argument should be transpose or conjugate
+        call ZTRMM ('R','L','C','N',2*nvctrp,norb,(1.d0,0.0d0),ovrlp,norb,psit,2*nvctrp)
 
-     ! new vectors   
-     call DTRMM ('R','L','T','N',nvctrp,norb,1.d0,ovrlp,norb,psit,nvctrp)
+     end if
 
      i_all=-product(shape(ovrlp))*kind(ovrlp)
      deallocate(ovrlp,stat=i_stat)
@@ -162,45 +328,118 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit)
 END SUBROUTINE orthon_p
 
 
-subroutine orthon(norb,nvctrp,psi)
+
+subroutine orthon(norb,nvctrp,psi,nspinor)
   ! Gram-Schmidt orthogonalisation
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.false.
-  dimension psi(nvctrp,norb)
-  real(kind=8), allocatable :: ovrlp(:,:)
+  dimension psi(nvctrp,nspinor*norb)
+  real(kind=8), allocatable :: ovrlp(:,:),psit(:,:)
 
   call timing(iproc,'GramS_comput  ','ON')
 
-  if (norb.eq.1) then
-     tt=dnrm2(nvctrp,psi,1)
-     tt=1.d0/tt
-     call dscal(nvctrp,tt,psi,1)
 
+  if (norb.eq.1) then
+     tt=0.0d0
+     do idx=1,nspinor
+        tt=tt+dnrm2(nvctrp,psi((nvctrp*(idx-1))+1,1),1)
+     end do
+     tt=1.d0/tt
+     call dscal(nvctrp*nspinor,tt,psi,1)
+     
   else
 
-     allocate(ovrlp(norb,norb),stat=i_stat)
+     if(nspinor==4) then
+        norbs=norb*2
+        allocate(psit(nvctrp*4,norb))
+        psit=0.0d0
+        do j=1,nspinor*norb,4
+           do i=1,nvctrp
+              psit(2*i-1,(j-1)/nspinor+1)=psi(i,j)
+              psit(2*i,(j-1)/nspinor+1)=psi(i,j+1)              
+              psit(2*i-1+2*nvctrp,(j-1)/nspinor+1)=psi(i,j+2)
+              psit(2*i+2*nvctrp,(j-1)/nspinor+1)=psi(i,j+3)              
+           end do
+        end do
+     else
+        norbs=norb
+     end if
+     allocate(ovrlp(norbs,norb),stat=i_stat)
      call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','orthon')
 
      ! Overlap matrix using BLAS
      !     ovrlp(iorb,jorb)=psi(k,iorb)*psi(k,jorb) ; upper triangle
-     call DSYRK('L','T',norb,nvctrp,1.d0,psi,nvctrp,0.d0,ovrlp,norb)
-
+     if(nspinor==1) then
+        call DSYRK('L','T',norb,nvctrp,1.d0,psi,nvctrp,0.d0,ovrlp,norb)
+     else
+!        ovrlp=0.0d0
+!        do iorb=1,norb
+!           do jorb=1,norb
+!              ttr=ddot(nvctrp*nspinor,psit(1,iorb),1,psit(1,jorb),1)
+!              tti=ddot(nvctrp,psit(1,iorb),1,psit(nvctrp+1,jorb),1)
+!              tti=tti-ddot(nvctrp,psit(nvctrp+1,iorb),1,psit(1,jorb),1)
+!              tti=tti-ddot(nvctrp,psit(3*nvctrp+1,iorb),1,psit(2*nvctrp+1,jorb),1)
+!              tti=tti+ddot(nvctrp,psit(2*nvctrp+1,iorb),1,psit(3*nvctrp+1,jorb),1)
+!              ovrlp(2*iorb-1,jorb)=ttr
+!              ovrlp(2*iorb,jorb)=tti*0.0d0
+!           end do
+!        end do
+        call ZHERK('L','C',norb,2*nvctrp,(1.d0,0.0d0),psit,2*nvctrp,(0.0d0,0.d0),ovrlp,norb)
+        do i=1,norb
+           write(*,'(10f10.3)') (ovrlp(j,i), j=1,norbs)
+        end do
+     end if
      !  write(*,*) 'ovrlp'
      !  do i=1,norb
      !  write(*,'(10(1x,e10.3))') (ovrlp(i,j),j=1,norb)
      !  enddo
+     ttsum=sum(ovrlp)
+     print *,'Check Ovrlp',ttsum
 
-     ! Cholesky factorization
-     call dpotrf( 'L', norb, ovrlp, norb, info )
-     if (info.ne.0) write(6,*) 'info Cholesky factorization', info
+     if(nspinor==1) then
+        ! Cholesky factorization
+        call dpotrf( 'L', norb, ovrlp, norb, info )
+        if (info.ne.0) write(6,*) 'info Cholesky factorization', info
+        
+        ! calculate L^{-1}
+        call DTRTRI( 'L', 'N', norb, ovrlp, norb, info )
+        if (info.ne.0) write(6,*) 'info L^-1', info
+        
+        ! new vectors   
+        call DTRMM ('R', 'L', 'T', 'N', nvctrp, norb, 1.d0, ovrlp, norb, psi, nvctrp)
+        
+     else
 
-     ! calculate L^{-1}
-     call DTRTRI( 'L', 'N', norb, ovrlp, norb, info )
-     if (info.ne.0) write(6,*) 'info L^-1', info
+        ! Cholesky factorization
+        do i=1,norb
+           write(*,'(10f10.3)') (ovrlp(j,i), j=1,norbs)
+        end do
+        call zpotrf( 'L', norb, ovrlp, norb, info )
+        if (info.ne.0) write(6,*) 'info Cholesky factorization', info
+        
+        do i=1,norb
+           write(*,'(10f10.3)') (ovrlp(j,i), j=1,norbs)
+        end do
+        ! calculate L^{-1}
+        call ZTRTRI( 'L', 'N', norb, ovrlp, norb, info )
+        if (info.ne.0) write(6,*) 'info L^-1', info
+        
+        do i=1,norb
+           write(*,'(10f10.3)') (ovrlp(j,i), j=1,norbs)
+        end do
+        ! new vectors   
+        call ZTRMM ('R', 'L', 'C', 'N', 2*nvctrp, norb, (1.d0,0.0d0), ovrlp, norb, psit, 2*nvctrp)
 
-     ! new vectors   
-     call DTRMM ('R', 'L', 'T', 'N', nvctrp, norb, 1.d0, ovrlp, norb, psi, nvctrp)
+        do j=1,nspinor*norb,4
+           do i=1,nvctrp
+              psi(i,j)=psit(2*i-1,(j-1)/nspinor+1)
+              psi(i,j+1)=psit(2*i,(j-1)/nspinor+1)
+              psi(i,j+2)=psit(2*i-1+2*nvctrp,(j-1)/nspinor+1)
+              psi(i,j+3)=psit(2*i+2*nvctrp,(j-1)/nspinor+1)
+           end do
+        end do
 
+     end if
      i_all=-product(shape(ovrlp))*kind(ovrlp)
      deallocate(ovrlp,stat=i_stat)
      call memocc(i_stat,i_all,'ovrlp','orthon')

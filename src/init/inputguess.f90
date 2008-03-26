@@ -1336,3 +1336,77 @@ real(kind=8) function gamma(x)
   end if
 end function gamma
 
+!  call psitospi(iproc,nproc,norbe,norbep,norbsc,nat,&
+!       wfd%nvctr_c,wfd%nvctr_f,at%iatype,at%ntypes,&
+!       at%iasctype,at%natsc,at%nspinat,nspin,spinsgne,psi)
+subroutine psitospi(iproc,nproc,norbe,norbep,norbsc,nat,&
+     & nvctr_c,nvctr_f,iatype,ntypes, &
+     iasctype,natsc,nspinat,nspin,spinsgne,psi)
+  implicit none
+  integer, intent(in) :: norbe,norbep,iproc,nproc,nat
+  integer, intent(in) :: nvctr_c,nvctr_f
+  integer, intent(in) :: ntypes
+  integer, intent(in) :: norbsc,natsc,nspin
+  integer, dimension(ntypes), intent(in) :: iasctype
+  integer, dimension(nat), intent(in) :: iatype,nspinat
+  integer, dimension(norbe*nspin), intent(in) :: spinsgne
+  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbep*nspin), intent(out) :: psi
+  !local variables
+  logical :: myorbital,polarised
+  integer :: iatsc,i_all,i_stat,ispin,ipolres,ipolorb,nvctr
+  integer :: iorb,jorb,iat,ity,i
+  real(kind=8) :: facu,facd
+  real(kind=8), dimension(:,:), allocatable :: psi_o
+  logical, dimension(4) :: semicore
+  integer, dimension(2) :: iorbsc,iorbv
+
+  !initialise the orbital counters
+  iorbsc(1)=0
+  iorbv(1)=norbsc
+  !used in case of spin-polarisation, ignored otherwise
+  iorbsc(2)=norbe
+  iorbv(2)=norbsc+norbe
+
+
+  if (iproc ==0) then
+     write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
+  end if
+  
+  nvctr=nvctr_c+7*nvctr_f
+  allocate(psi_o(nvctr,norbep))
+
+  do iorb=1,norbep
+     do i=1,nvctr
+        psi_o(i,iorb)=psi(i,iorb)
+     end do
+  end do
+
+ 
+  call razero(nvctr*nspin*norbep,psi)
+  
+
+  do iorb=1,norbe
+     jorb=iorb-iproc*norbep
+     if (myorbital(iorb,nspin*norbe,iproc,nproc)) then
+        if(spinsgne(jorb)>0.0d0) then
+           facu=1.0d0
+           facd=0.0d0
+        else
+           facu=0.0d0
+           facd=1.0d0
+        end if
+        do i=1,nvctr
+           psi(i,iorb*4-3) = facu*psi_o(i,iorb)
+           psi(i,iorb*4-2) = .0d0*psi_o(i,iorb)
+           psi(i,iorb*4-1) = facd*psi_o(i,iorb)
+           psi(i,iorb*4)   = .0d0*psi_o(i,iorb)
+        end do
+     end if
+  end do
+  deallocate(psi_o)
+
+  if (iproc ==0) then
+     write(*,'(1x,a)')'done.'
+  end if
+
+END SUBROUTINE psitospi

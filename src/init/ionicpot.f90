@@ -151,7 +151,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
        pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.false.,nspin)
   call timing(iproc,'CrtLocPot     ','ON')
 
-  print *,'true eion',ehart-eself
+!  print *,'true eion',ehart-eself
   if (n3pi > 0) then
      do iat=1,nat
         ityp=iatype(iat)

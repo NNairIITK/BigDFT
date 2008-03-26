@@ -96,7 +96,9 @@ subroutine read_input_variables(iproc,in)
      write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
   end if
 
-     if (in%nspin==2) then
+     if (in%nspin==4) then
+        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Non-collinear)'
+     else if (in%nspin==2) then
         if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Collinear)'
      else if (in%nspin==1) then
         if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation:  NO '
@@ -127,7 +129,7 @@ subroutine print_input_parameters(in)
        '|  CG Steps=',in%ncongt
   write(*,'(1x,a,1pe7.1,1x,a,0pf5.2,1x,a,i8)')&
        ' elec. field=',in%elecfield,'|   Fine Proj.=',in%fpmult,'| DIIS Hist. N.=',in%idsx
-  if (in%nspin==2) then
+  if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
           'Polarisation=',2*in%mpol, '|'
   end if
@@ -338,6 +340,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
   integer :: iorb,nt,ne,it,ierror,iorb1
   real(kind=8) :: rocc,rup,rdown
   character(len=100) :: line
+
 
   do iorb=1,norb
      spinsgn(iorb)=1.0d0
@@ -582,7 +585,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
                      'ERROR: Input polarisation of atom No.',iat,&
                      ' (',trim(at%atomnames(ityp)),') must be <=',mxpl,&
                      ', while found ',at%nspinat(iat)
-                stop
+!                stop
              end if
           end if
        end do
@@ -734,11 +737,17 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
        if (mod(nelec,2).ne.0 .and. iproc==0) then
           write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
        end if
-    else
+!    else if(in%nspin==4) then
+!       if (iproc==0) write(*,'(1x,a)') 'Spin-polarized non-collinear calculation'
+!       norb=nelec
+!       norbu=norb
+!       norbd=0
+    else 
        if (iproc==0) write(*,'(1x,a)') 'Spin-polarized calculation'
        norb=nelec
        norbu=min(norb/2+in%mpol,norb)
        norbd=norb-norbu
+
        !test if the spin is compatible with the input guess polarisations
        ispinsum=0
        do iat=1,at%nat

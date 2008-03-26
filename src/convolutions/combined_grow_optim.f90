@@ -27,6 +27,8 @@ implicit none
 
     integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)! boundaries of the real space array
 
+!    print *,'com_g_all',product(shape(w1)),4*(nfl2+nfu2+1)*(nfl3+nfu3+1)*(2*nfl1+2*nfu1+31)
+
     call comb_grow_c(n1,n2,n3,w1,w2,xc,y,ibyz_c,ibzxx_c,ibxxyy_c,ibyyzz_r)
 
     call comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
@@ -87,7 +89,7 @@ integer ibzxx( 2,        nfl3:nfu3,2*nfl1-14:2*nfu1+16)
 integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
           m1=nfu1-nfl1;    m2=nfu2-nfl2;    m3=nfu3-nfl3
-
+!    print *,'com_g_tree',product(shape(w1))
 ! i1,i2,i3 -> i2,i3,I1
         nt=(nfu2-nfl2+1)*(nfu3-nfl3+1)
         call  comb_rot_grow_loc_1(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,w1,ibyz,ibzxx) 
@@ -130,7 +132,7 @@ integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
     include 'v_17.inc'
 
-
+!    print *,'com_g_loc1',product(shape(y))
 !    open(unit=20,file='tree.flop')
 
 !    nflop=0
