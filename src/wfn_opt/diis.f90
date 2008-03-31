@@ -1,4 +1,4 @@
-subroutine diisstp(norb,norbp,nproc,iproc,  & 
+subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  & 
                    ads,ids,mids,idsx,nvctrp,psit,psidst,hpsidst)
 ! diis subroutine:
 ! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
@@ -7,9 +7,9 @@ subroutine diisstp(norb,norbp,nproc,iproc,  &
   implicit none
   include 'mpif.h'
 ! Arguments
-  integer, intent(in) :: norb,norbp,nproc,iproc,ids,mids,idsx,nvctrp
-  real(kind=8) :: psit(nvctrp,norbp*nproc),ads(idsx+1,idsx+1,3)
-  real(kind=8) :: psidst(nvctrp,norbp*nproc,idsx),hpsidst(nvctrp,norbp*nproc,idsx)
+  integer, intent(in) :: norb,norbp,nproc,iproc,nspinor,ids,mids,idsx,nvctrp
+  real(kind=8) :: psit(nvctrp,norbp*nproc*nspinor),ads(idsx+1,idsx+1,3)
+  real(kind=8) :: psidst(nvctrp,norbp*nproc*nspinor,idsx),hpsidst(nvctrp,norbp*nproc*nspinor,idsx)
 ! Local variables
   real(kind=8), allocatable :: rds(:)
   integer, allocatable :: ipiv(:)
@@ -37,7 +37,7 @@ subroutine diisstp(norb,norbp,nproc,iproc,  &
   ist=max(1,ids-idsx+1)
   do i=ist,ids
      mi=mod(i-1,idsx)+1
-     do iorb=1,norb
+     do iorb=1,norb*nspinor
         tt=DDOT(nvctrp,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mi),1)
         rds(i-ist+1)=rds(i-ist+1)+tt
      end do
@@ -49,7 +49,8 @@ subroutine diisstp(norb,norbp,nproc,iproc,  &
   else
      do i=1,min(ids,idsx)
         ads(i,min(idsx,ids),1)=rds(i)
-     end do
+!        print *,(ads(i,j,1),j=1,idsx)
+    end do
   endif
 
 
@@ -69,13 +70,14 @@ subroutine diisstp(norb,norbp,nproc,iproc,  &
 !  write(6,'(i3,12(1x,e9.2))') iproc,(ads(i,j,2),j=1,min(idsx,ids)+1),rds(i)
 !  enddo
   if (ids.gt.1) then
-           ! solve linear system:(LAPACK)
-           call DSYSV('U',min(idsx,ids)+1,1,ads(1,1,2),idsx+1,  & 
-                ipiv,rds,idsx+1,ads(1,1,3),(idsx+1)**2,info)
-           if (info.ne.0) then
-              print*, 'diisstp: DSYSV',info
-              stop
-           end if
+     ! solve linear system:(LAPACK)
+     call DSYSV('U',min(idsx,ids)+1,1,ads(1,1,2),idsx+1,  & 
+          ipiv,rds,idsx+1,ads(1,1,3),(idsx+1)**2,info)
+     
+     if (info.ne.0) then
+        print*, 'diisstp: DSYSV',info
+        stop
+     end if
   else
      rds(1)=1.d0
   endif
@@ -85,8 +87,8 @@ subroutine diisstp(norb,norbp,nproc,iproc,  &
   endif
 
 ! new guess
-  do iorb=1,norb
-     call razero(nvctrp,psit(1,iorb))
+  do iorb=1,norb*nspinor
+     call razero(nvctrp*nspinor,psit(1,iorb))
 
      jst=max(1,ids-idsx+1)
      jj=0

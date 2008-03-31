@@ -31,9 +31,14 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   real(kind=8), dimension(:,:,:,:,:), allocatable::x_f,x_fc,y_f
   real(kind=8), dimension(:,:), pointer :: pot
 
+  !debug
+  integer :: nvctrp
+  real(kind=8) :: DDOT
+
   call timing(iproc,'ApplyLocPotKin','ON')
+  nvctrp=wfd%nvctr_c+7*wfd%nvctr_f
 
-
+ 
 !  print *,'HamApp',iproc,(sum(potential(:,ispin)),ispin=1,nspinor)
     ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0) then
@@ -127,6 +132,10 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   end if
 
 !  print *,'HamApp pot',iproc,(sum(pot(:,ispin)),ispin=1,nspinor)
+!     print *,'Start',shape(psi)
+!     print *,'p', (DDOT(nvctrp*nspinor,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
+!     print *,'hp', (DDOT(nvctrp*nspinor,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
+
 
   ! Wavefunction in real space
   allocate(psir(n1i*n2i*n3i,nspinor),stat=i_stat)
@@ -172,6 +181,10 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
 
   enddo
 !  write(*,'(a,30f16.8)') 'Exit LocPot', (sum(hpsi(:,iorb)),iorb=1,norbp*nspinor)
+!     print *,'After locpot'
+!     print *,'p', (DDOT(nvctrp*nspinor,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
+!     print *,'hp', (DDOT(nvctrp*nspinor,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
+
 
 !  print *,'locpot done',iproc,epot_sum,ekin_sum
   !deallocations of work arrays
@@ -247,6 +260,9 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
      epot_sum=wrkallred(2,1)
      eproj_sum=wrkallred(3,1) 
   endif
+!     print *,'After proj'
+!     print *,'p', (DDOT(nvctrp*nspinor,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
+!     print *,'hp', (DDOT(nvctrp*nspinor,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
 
 !  write(*,*) 'Exit HamApp', (sum(hpsi(:,iorb)),iorb=1,norbp*nspinor),shape(hpsi)
 
@@ -275,11 +291,15 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   integer :: ierr,ind,i1,i2,iorb,k,norbu,norbd,i_stat,i_all,oidx,sidx
   real(kind=8) :: tt,scpr,dnrm2,scprpart,cprecr
   real(kind=8), dimension(:), allocatable :: zalpha
+  real(kind=8),external :: DDOT
 
   if (iproc==0) then
      write(*,'(1x,a)',advance='no')&
           'done, orthoconstraint...'
   end if
+!     print *,'Start hpsitopsi',shape(hpsi)
+!     print *,'p', (DDOT(nvctrp*nspinor,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
+!     print *,'hp', (DDOT(nvctrp*nspinor,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
 
   !Calculate no. up and dw orbitals for spin-polarized starting guess
   norbu=0
@@ -334,7 +354,10 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      call timing(iproc,'Un-TransSwitch','OF')
      !end of retransposition
   end if
-!  write(*,'(a,i3,30f16.8)') 'Exit Ortho', iproc,(sum(hpsi(:,nproc*iorb-1:nproc*iorb)),iorb=1,norbp*nspinor)
+!  write(*,'(a,30f16.8)') 'Exit Ortho',(abs(hpsi(iorb,1)),iorb=1,5)
+!     print *,'After orthocon'
+!     print *,'p', (DDOT(nvctrp*nspinor,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
+!     print *,'hp', (DDOT(nvctrp*nspinor,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
 
 !!$  else
 !!$     if(nspin==1) then
@@ -353,6 +376,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 !  print *,'gradient'
   ! norm of gradient
   gnrm=0.d0
+!  if(nspinor==4.and.nproc==1) call psitransspi(nvctrp,norb,hpsi
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
      oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
@@ -360,7 +384,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      if(norb==norbp) then
         !psi not transposed in serial mode
         i1=1
-        i2=iorb
+        i2=oidx
      else
         !starting address of the direct array in transposed form
         call trans_address(norbp*nspinor,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,1,oidx,i1,i2)
@@ -389,6 +413,8 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 !  print *,'preconding',shape(hpsi),shape(psi)
 !  print *,' '
 !  write(*,'(a,i3,30f16.8)') 'Enter PreCo', iproc,(sum(hpsi(:,nproc*iorb-1:nproc*iorb)),iorb=1,norbp*nspinor)
+!  print *,''
+!     print *,'Pre PC hpsi',((abs(hpsi(iorb,1))),iorb=1,5)
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
      
      oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
@@ -397,7 +423,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         if(norb==norbp) then
            !psi not transposed in serial mode
            i1=1
-           i2=iorb
+           i2=sidx
         else
            !starting address of the direct array in transposed form
            call trans_address(norbp,nvctrp*nspinor,nspinor*(wfd%nvctr_c+7*wfd%nvctr_f),1,sidx,i1,i2)
@@ -416,8 +442,12 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         
      end do
   enddo
+!     print *,'Post PC hpsi',((abs(hpsi(iorb,1))),iorb=1,5)
 
 ! write(*,'(a,i3,30f16.8)') 'Exit PreCo', iproc,(sum(hpsi(:,nproc*iorb-1:nproc*iorb)),iorb=1,norbp*nspinor)
+!     print *,'After precong'
+!     print *,'p', (DDOT(nvctrp*nspinor,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
+!     print *,'hp', (DDOT(nvctrp*nspinor,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
 
 
 !!$  call preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid, &
@@ -430,6 +460,8 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
           'done.'
   end if
   call timing(iproc,'Precondition  ','OF')
+!  write(*,'(a,12f10.4)') 'psi pupd',(100*psit(k,1),k=1,5),(100*psi(k,1),k=1,5)
+!  print *,DDOT(nvctrp*nspinor,hpsi(1,1),1,hpsi(1,1),1),DDOT(nvctrp*nspinor,psi(1,1),1,psi(1,1),1)
 !  print *,'SDing'
   !apply the minimization method (DIIS or steepest descent)
   if (idsx.gt.0) then
@@ -448,7 +480,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
         call timing(iproc,'Diis          ','ON')
         do iorb=1,norb
-           do k=1,nvctrp
+           do k=1,nvctrp*nspinor
               psidst(k,iorb,mids)= psit(k,iorb) 
            enddo
         enddo
@@ -457,18 +489,26 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         !     ads,iter,mids,idsx,nvctrp,psit,psidst,hpsidst)
      else
         call timing(iproc,'Diis          ','ON')
-        do iorb=1,norb
+        if(nspinor==4) call psitransspi(nvctrp,norb,psit,.true.)
+        if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.true.)
+!        write(*,'(a,12f10.4)') 'psi trans',(100*psit(k,1),k=1,5),(100*hpsi(k,1),k=1,5)
+        do iorb=1,norb*nspinor
            do k=1,nvctrp
-              psidst(k,iorb,mids)= psi(k,iorb)
+              psidst(k,iorb,mids)= psit(k,iorb)
               hpsidst(k,iorb,mids)=hpsi(k,iorb)
            enddo
         enddo
      endif
+!     print *,'Pre DIIS' ,shape(psi),shape(hpsidst),shape(psit)
+!     print *,'p', (DDOT(nvctrp*nspinor,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
+!     print *,'hp', (DDOT(nvctrp*nspinor,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mids),1), &
+!          iorb=1,norb*nspinor,nspinor)
 
-     call diisstp(norb,norbp,nproc,iproc,  &
+     call diisstp(norb,norbp,nproc,iproc, nspinor,  &
           ads,iter,mids,idsx,nvctrp,psit,psidst,hpsidst)
      !    write(*,*) 'psi update done',iproc
 
+!        write(*,'(a,10f10.4)') 'diis a',(100*psit(k,1),k=1,5),(100*hpsi(k,1),k=1,5)
   else
 
      ! update all wavefunctions with the preconditioned gradient
@@ -480,6 +520,8 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      endif
      if (iproc.eq.0) write(*,'(1x,a,1pe11.3)') 'alpha=',alpha
 
+!     print *,'SD psi',((abs(psit(iorb,1))),iorb=1,5)
+!     print *,'SD hpsi',((abs(hpsi(iorb,1))),iorb=1,5)
 !     print *,'transping'
      if (nproc > 1) then
         !transpose the hpsi wavefunction
@@ -493,6 +535,9 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
              hpsi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
         call timing(iproc,'Un-TransComm  ','OF')
         !end of transposition
+     else if(nspinor==4) then
+        call psitransspi(nvctrp,norb,hpsi,.true.)
+        call psitransspi(nvctrp,norb,psit,.true.) ! needed?
      endif
 
 !     print *,'updating',shape(psi),shape(hpsi),shape(psit),nvctrp,norb*nspinor
@@ -524,6 +569,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      write(*,'(1x,a)',advance='no')&
           'Orthogonalization...'
   end if
+!  write(*,'(a,10f10.4)') 'psit portho',(100*psit(k,1),k=1,5)
 
 
   if(nspin==1.or.nspinor==4) then
@@ -548,8 +594,10 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      !end of retransposition
   else
 
+!     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.)
      nullify(psit)
-
+     if(nspinor==4) call psitransspi(nvctrp,norb,psi,.false.)
+     if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.false.)
 !!$     if(nspin==1) then
 !!$        call orthon(norb,nvctrp,psi)
 !!$        !          call checkortho(norb,nvctrp,psi)
@@ -567,6 +615,9 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      write(*,'(1x,a)')&
           'done.'
   end if
+
+!     print *,'Final psi',((abs(psi(iorb,1))),iorb=1,5)
+!     print *,'Final hpsi',((abs(hpsi(iorb,1))),iorb=1,5)
 
 ! write(*,'(a,i3,30f16.8)') 'Exit OrthoN', iproc,(sum(psi(:,nproc*iorb-1:nproc*iorb)),iorb=1,norbp*nspinor)
 
@@ -609,12 +660,12 @@ subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvct
      nspinor=1
   end if
   
-  print *,'first ortho',nspinor,parallel,shape(psi)
+!  print *,'first ortho',nspinor,parallel,shape(psi)
   if (parallel) then
      !allocate hpsi array (used also as transposed)
      !allocated in the transposed way such as 
      !it can also be used as the transposed hpsi
-     allocate(hpsi(nvctrp*nspinor,norbp*nproc),stat=i_stat)
+     allocate(hpsi(nvctrp,nspinor*norbp*nproc),stat=i_stat)
      call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','first_orthon')
 
      write(*,'(a,i3,30f10.5)') 'SWI',iproc,(sum(psi(1:nvctrp,iorb)),iorb=1,norbp*nspinor)
@@ -625,7 +676,7 @@ subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvct
      call timing(iproc,'Un-TransSwitch','OF')
      !allocate transposed principal wavefunction
 !     allocate(psit(nvctrp,nspinor*norbp*nproc),stat=i_stat)
-     allocate(psit(nvctrp*nspinor,norbp*nproc),stat=i_stat)
+     allocate(psit(nvctrp,nspinor*norbp*nproc),stat=i_stat)
      call memocc(i_stat,product(shape(psit))*kind(psit),'psit','first_orthon')
      call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALL(hpsi,nvctrp*nspinor*norbp,MPI_DOUBLE_PRECISION,  &
@@ -633,7 +684,7 @@ subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvct
      call timing(iproc,'Un-TransComm  ','OF')
      !end of transposition
 
-     if(nspin==1) then
+     if(nspin==1.or.nspinor==4) then
         call orthon_p(iproc,nproc,norb,nvctrp,nvctr_c+7*nvctr_f,psit,nspinor) 
      else
         call orthon_p(iproc,nproc,norbu,nvctrp,nvctr_c+7*nvctr_f,psit,nspinor) 
@@ -655,7 +706,7 @@ subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvct
      !end of retransposition
      write(*,'(a,i3,30f10.5)') 'U-SWI',iproc,(sum(psi(1:nvctrp,iorb)),iorb=1,norbp*nspinor)
   else
-     if(nspin/=2) then
+     if(nspin==1.or.nspinor==4) then
         call orthon(norb,nvctrp,psi,nspinor)
         !call checkortho(norb,norbp,nvctrp,psi)
      else
@@ -686,31 +737,36 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
   real(kind=8), dimension(norb), intent(out) :: eval
   real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
   !local variables
-  integer :: i_all,i_stat,ierr,iorb,jorb
+  integer :: i_all,i_stat,ierr,iorb,jorb,nspinor
   real(kind=8) :: evpart
+
+  if(nspin==4) then
+     nspinor=4
+  else
+     nspinor=1
+  end if
 
   if (parallel) then
 
      !transpose the hpsi wavefunction
      !here psi is used as a work array
      call timing(iproc,'Un-TransSwitch','ON')
-     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi,nspinor)
      call timing(iproc,'Un-TransSwitch','OF')
      !here hpsi is the transposed array
      call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call MPI_ALLTOALL(psi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
+          hpsi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
      !end of transposition
-
-     if(nspin==1) then
-        call KStrans_p(iproc,nproc,norb,norbp*nproc,nvctrp,occup,hpsi,psit,evsum,eval)
+     if(nspin==1.or.nspinor==4) then
+        call KStrans_p(iproc,nproc,norb,norbp*nproc,nvctrp,occup,hpsi,psit,evsum,eval,nspinor)
      else
-        call KStrans_p(iproc,nproc,norbu,norbu,nvctrp,occup,hpsi,psit,evsum,eval)
+        call KStrans_p(iproc,nproc,norbu,norbu,nvctrp,occup,hpsi,psit,evsum,eval,nspinor)
         evpart=evsum
         if(norbd>0) then
            call KStrans_p(iproc,nproc,norbd,norbd,nvctrp,occup(norbu+1),&
-                hpsi(1,norbu+1),psit(1,norbu+1),evsum,eval(norbu+1))
+                hpsi(1,norbu+1),psit(1,norbu+1),evsum,eval(norbu+1),nspinor)
            evsum=evsum+evpart
         end if
      end if
@@ -718,11 +774,11 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
      !retranspose the psit wavefunction into psi
      !here hpsi is used as a work array
      call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call MPI_ALLTOALL(psit,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
+          hpsi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
-     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi)
+     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi,nspinor)
      call timing(iproc,'Un-TransSwitch','OF')
      !end of retransposition
 
@@ -732,13 +788,15 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
 
   else
      if(nspin==1) then
-        call KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval)
+        call KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval,nspinor)
+     else if(nspin==4) then
+        call KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval,nspinor)
      else
-        call KStrans(norbu,nvctrp,occup,hpsi,psi,evsum,eval)
+        call KStrans(norbu,nvctrp,occup,hpsi,psi,evsum,eval,nspinor)
         evpart=evsum
         if(norbd>0) then
            call KStrans(norbd,nvctrp,occup(norbu+1),hpsi(1,norbu+1),psi(1,norbu+1),&
-                evsum,eval(norbu+1))
+                evsum,eval(norbu+1),nspinor)
            evsum=evsum+evpart
         end if
      end if
@@ -748,7 +806,7 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
   if (iproc == 0) then
      write(*,'(1x,a)')&
           '-------------------------------------------------------------- Kohn-Sham Eigenvalues'
-     if (nspin==1) then
+     if (nspin==1.or.nspinor==4) then
         do iorb=1,norb!/2
 !!$           jorb=norb/2+iorb
 !!$           write(*,'(1x,a,i4,a,1x,1pe21.14,17x,a,i4,a,1x,1pe21.14)') &

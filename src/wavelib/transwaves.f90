@@ -163,3 +163,75 @@ subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,ps
 
 
 END SUBROUTINE untransallwaves
+
+subroutine psitransspi(nvctrp,norb,psi,forward)
+  implicit none
+  integer, intent(in) :: norb,nvctrp
+  logical, intent(in) :: forward
+  real(kind=8), dimension(4*nvctrp,norb), intent(inout) :: psi
+  real(kind=8), dimension(:,:,:), allocatable :: tpsit
+  !local variables
+  integer :: i,iorb,ij,isp,i_all,i_stat
+
+!  call timing(0,'Un-Transall   ','ON')
+
+  allocate(tpsit(nvctrp,4,norb),stat=i_stat)
+  call memocc(i_stat,product(shape(tpsit))*kind(tpsit),'tpsit','psitransspi')
+!  print '(a,5f10.5,2i5,l1)','p2s',(abs(psi(i,1)),i=1,5),shape(psi),forward
+  if(forward) then
+!     print *, 'transposing psi forward'
+!      print '(a,30f10.5)','tsp',((sum(abs(psi(:,iorb)))),iorb=1,norb)
+    do iorb=1,norb
+!        ij=1
+        do isp=1,4
+           do i=1,nvctrp
+              tpsit(i,isp,iorb)=psi(i+(isp-1)*nvctrp,iorb)
+!              ij=ij+1
+           enddo
+        enddo
+     enddo
+!      print '(a,30f10.5)','tsp',((sum(abs(tpsit(:,isp,iorb))),isp=1,4),iorb=1,norb)
+    do iorb=1,norb
+!        ij=1
+        do i=1,nvctrp
+           psi(2*i-1,iorb)=tpsit(i,1,iorb)
+           psi(2*i,iorb)=tpsit(i,2,iorb)
+           psi(2*i+2*nvctrp-1,iorb)=tpsit(i,3,iorb)
+           psi(2*i+2*nvctrp,iorb)=tpsit(i,4,iorb)
+!           ij=ij+1
+        enddo
+     enddo
+  else
+!     print *,'tsp',((sum(abs(psi(:,iorb)))),iorb=1,norb)
+!     print *,'transposing psi backward'
+     do iorb=1,norb
+!        ij=1
+        do i=1,nvctrp
+           tpsit(i,1,iorb)=psi(2*i-1,iorb)
+           tpsit(i,2,iorb)=psi(2*i,iorb)
+           tpsit(i,3,iorb)=psi(2*i-1+2*nvctrp,iorb)
+           tpsit(i,4,iorb)=psi(2*i+2*nvctrp,iorb)
+!           ij=ij+1
+        enddo
+     enddo
+!     print *,'tsp',((sum(abs(tpsit(:,isp,iorb))),isp=1,4),iorb=1,norb)
+     do iorb=1,norb
+!        ij=1
+        do isp=1,4
+           do i=1,nvctrp
+              psi(i+(isp-1)*nvctrp,iorb)=tpsit(i,isp,iorb)
+              ij=ij+1
+           enddo
+        enddo
+     enddo
+  end if
+
+  i_all=-product(shape(tpsit))*kind(tpsit)
+  deallocate(tpsit,stat=i_stat)
+  call memocc(i_stat,i_all,'tpsit','psitransspi')
+
+!   call timing(0,'Un-Transall   ','OF')
+!  print '(a,5f10.5,2i5,l1)','p2E',(abs(psi(i,1)),i=1,5),shape(psi),forward
+
+
+end subroutine psitransspi

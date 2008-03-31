@@ -759,7 +759,8 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  allocate(psi(nvctrp,norbep*nproc*nspinor),stat=i_stat)
+!  allocate(psi(nvctrp,norbep*nproc*nspinor),stat=i_stat)
+  allocate(psi(nvctrp,norbep*nproc),stat=i_stat)
   call memocc(i_stat,product(shape(psi))*kind(psi),'psi','input_wf_diag')
   
   ! Create input guess orbitals
@@ -858,7 +859,6 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   call DiagHam(iproc,nproc,at%natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp,wfd,&
        psi,hpsi,psit,eval,norbe,norbep,etol,norbsc_arr)
  
-!  print *,'AFT DiagHam',iproc,(sum(psi(:,iorb)),iorb=1,norbp*nspinor)
 
   i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
   deallocate(norbsc_arr,stat=i_stat)
@@ -961,6 +961,9 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   integer, dimension(:,:), allocatable :: norbgrp
   real(kind=8), dimension(:,:), allocatable :: hamovr
   real(kind=8), dimension(:,:), pointer :: psiw
+
+  !debug
+  real(kind=8) :: DDOT
 
 
   !performs some check of the arguments
@@ -1101,11 +1104,24 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
      psit => hpsi
   end if
 
-  if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
+!     print *,'Before build_eig',shape(psi),shape(psit)
+!     print *,'p', (DDOT(nvctrp,psi(1,i),1,psi(1,i),1),i=1,norbep*nproc)
 
+  if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
   nvctr=wfd%nvctr_c+7*wfd%nvctr_f
   call build_eigenvectors(nproc,norbu,norbd,norbp,norbtotp,nvctrp,nvctr,natsceff,nspin,nspinor, &
        ndim_hamovr,norbgrp,hamovr,psi,psit)
+  
+!  print *,'After build_eig', shape(psit)
+!  print *,'p', (DDOT(nvctrp*nspinor,psit(1,i),1,psit(1,i),1),i=1,nspinor*(norbu+norbd),nspinor)
+  
+  if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
+     
+!     print *,'After build_eig and trans'
+!     print *,'p', (DDOT(nvctrp*nspinor,psit(1,i),1,psit(1,i),1),i=1,nspinor*(norbu+norbd),nspinor)
+!     print *,'p', (DDOT(nvctrp*nspinor,psit(1,i),1,psit(1,i),1),i=1,norbu+norbd)
+
+  
 
   i_all=-product(shape(hamovr))*kind(hamovr)
   deallocate(hamovr,stat=i_stat)
@@ -1125,18 +1141,19 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
      !this will restore the correct identification
      nullify(hpsi)
      hpsi => psi
-     nullify(psi)
+!     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
+    nullify(psi)
      psi => psit
   end if
 
   !orthogonalise the orbitals in the case of semi-core atoms
   if (norbsc > 0) then
      if(nspin==1) then
-        call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit) 
+        call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor) 
      else
-        call orthon_p(iproc,nproc,norbu,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit) 
+        call orthon_p(iproc,nproc,norbu,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor) 
         if(norbd>0) then
-           call orthon_p(iproc,nproc,norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit(1,norbu+1)) 
+           call orthon_p(iproc,nproc,norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit(1,norbu+1),nspinor) 
         end if
      end if
   end if
@@ -1161,7 +1178,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
 !        psi=0.0d0
      end if
      
-!     print *,'UnSwiWa',iproc,nproc,norb,norbp,wfd%nvctr_c+7*wfd%nvctr_f,nvctrp
      call timing(iproc,'Un-TransSwitch','ON')
      call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi,nspinor)
      call timing(iproc,'Un-TransSwitch','OF')
@@ -1171,7 +1187,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
      !for the moment we can leave things like that
      nullify(psit)
   end if
-!  print *,'Exit DiagHam',shape(psi),shape(hpsi),nspinor
 end subroutine DiagHam
 !!***
 
@@ -1192,7 +1207,6 @@ subroutine overlap_matrices(nproc,norbep,nvctrp,natsc,nspin,ndim_hamovr,norbsc_a
   do ispin=1,nspin !this construct assumes that the semicore is identical for both the spins
      do i=1,natsc+1
         norbi=norbsc_arr(i,ispin)
-        !print *,norbi,norbi,nvctrp,iorbst,imatrst
         call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,hpsi(1,iorbst),nvctrp,&
              0.d0,hamovr(imatrst,1),norbi)
         call DGEMM('T','N',norbi,norbi,nvctrp,1.d0,psi(1,iorbst),nvctrp,psi(1,iorbst),nvctrp,&
@@ -1425,7 +1439,7 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
   real(kind=8) :: tt,mx,my,mz,mnorm,fac
   real, dimension(:), allocatable :: randnoise
   real(kind=8), dimension(:,:), allocatable :: tpsi
-
+  real(kind=8),external :: DDOT
   !perform the vector-matrix multiplication for building the input wavefunctions
   ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
   !!     iorbst=1
@@ -1472,9 +1486,12 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
         iorbst2=norbu+1
         imatrst=ndim_hamovr+1
      end do
+!     print *,'In build_eig',shape(psi),shape(ppsit)
+!     print *,'p', (DDOT(nvctrp,ppsit(1,i),1,ppsit(1,i),1),i=1,norbu+norbd)
+
   else
-     allocate(tpsi(nvctrp,norbep*nproc))
-!     print *,'DIM SHOW',shape(tpsi),shape(psi),shape(ppsit),norbep*nproc,norbu,norbd
+     allocate(tpsi(nvctrp,norbep*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(tpsi))*kind(tpsi),'tpsi','build_eigenvectors')
      iorbst=1
      iorbst2=1
      imatrst=1
@@ -1502,20 +1519,28 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
         iorbst2=norbu+1
         imatrst=ndim_hamovr+1
      end do
+!     print *,'In build_eig',shape(psi),shape(tpsi)
+!     print *,'p', (DDOT(nvctrp,tpsi(1,i),1,tpsi(1,i),1),i=1,norbu+norbd)
      ppsit=0.0d0
      open(unit=1978,file='moments')
      read(1978,*) mx,my,mz
      close(1978)
      mnorm=sqrt(mx**2+my**2+mz**2)
      mx=mx/mnorm;my=my/mnorm;mz=mz/mnorm
-     fac=1.0d0/(2.0d0)
- !    print *,'Moments',mx,my,mz
+ !    mx=0.0d0;my=0.0d0;mz=1.0d0
+     fac=0.5d0
+!     do iorb=1,norbu
+!        do i=1,nvctrp
+!           ppsit(2*i-1,iorb)=tpsi(i,iorb)
+!        end do
+!     end do
+!     do iorb=iorb,norbd+norbu
+!        do i=1,nvctrp
+!           ppsit(2*i-1+2*nvctrp,iorb)=tpsi(i,iorb)
+!        end do
+!     end do
      do iorb=1,norbu
         do i=1,nvctrp
-!           ppsit(2*i-1,iorb)=(mz-fac*(my+mx))*tpsi(i,iorb)
-!           ppsit(2*i,iorb)=fac*(my-mx)*tpsi(i,iorb)
-!           ppsit(2*i+2*nvctrp-1,iorb)=(fac*(mx-my))*tpsi(i,iorb)
-!           ppsit(2*i+2*nvctrp,iorb)=-fac*(my-mx)*tpsi(i,iorb)
            ppsit(2*i-1,iorb)=(mz+fac*(my+mx))*tpsi(i,iorb)
            ppsit(2*i,iorb)=fac*(my-mx)*tpsi(i,iorb)
            ppsit(2*i+2*nvctrp-1,iorb)=(fac*(mx-my))*tpsi(i,iorb)
@@ -1530,8 +1555,10 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
            ppsit(2*i+2*nvctrp,iorb)=-fac*(my-mx)*tpsi(i,iorb)
         end do
      end do
-!     print *,'EIGe',shape(ppsit),shape(tpsi),norbu,norbd,nspinor
-     deallocate(tpsi)
+     
+     i_all=-product(shape(tpsi))*kind(tpsi)
+     deallocate(tpsi,stat=i_stat)
+     call memocc(i_stat,i_all,'tpsi','build_eigenvectors')
   end if
 !!$  !here we should put a random noise on the spin-down components in the case of norbu=norbd
 !!$  if (nspin == 2 .and. norbu==norbd) then
@@ -1557,6 +1584,8 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
 !!$     deallocate(randnoise,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'randnoise','build_eigenvectors')
 !!$  end if
+!     print *,'Exit build_eig',shape(psi),shape(ppsit)
+!     print *,'p', (DDOT(nvctrp*nspinor,ppsit(1,i),1,ppsit(1,i),1),i=1,norbu+norbd)
 
 end subroutine build_eigenvectors
 

@@ -14,7 +14,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(kind=8), dimension(norb), intent(in) :: occup,spinsgn
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(in) :: psi
-  real(kind=8), dimension(max(nrho,1),nspinor), intent(out), target :: rho
+  real(kind=8), dimension(max(nrho,1),nspin), intent(out), target :: rho
   !local variables
   include 'mpif.h'
   integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf
@@ -100,7 +100,8 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   call memocc(i_stat,product(shape(w2))*kind(w2),'w2','sumrho')
 
   ! Wavefunction in real space
-  allocate(psir(n1i*n2i*n3i,nspin),stat=i_stat)
+  nspinn=max(nspin,nspinor)
+  allocate(psir(n1i*n2i*n3i,nspinn),stat=i_stat)
   call memocc(i_stat,product(shape(psir))*kind(psir),'psir','sumrho')
 
   !initialisation
@@ -108,7 +109,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
      call razero((n1+1)*(n2+1)*(n3+1),x_c_psifscf)
      call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f_psig)
      
-     call razero(n1i*n2i*n3i*nspin,psir)
+     call razero(n1i*n2i*n3i*nspinn,psir)
   end if
 
 
@@ -119,19 +120,21 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   end do
 
   if (nproc > 1) then
-     allocate(rho_p(n1i*n2i*nrhotot,nspin),stat=i_stat)
+     allocate(rho_p(n1i*n2i*nrhotot,nspinn),stat=i_stat)
      call memocc(i_stat,product(shape(rho_p))*kind(rho_p),'rho_p','sumrho')
   else
      rho_p => rho
   end if
 
   !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
-  if(nspin==4) then 
-     call razero(n1i*n2i*nrhotot*nspin,rho_p,nproc)
+!  print *,'sumrho 1',shape(rho_p),shape(rho),n1i*n2i*nrhotot
+  if(nspinor==4) then 
+     call razero(n1i*n2i*nrhotot*nspinor,rho_p,nproc)
      call tenminustwenty(n1i*n2i*nrhotot,rho_p,nproc)
+!     call tenminustwenty(n1i*n2i*nrhotot,rho_p(:,3),nproc)
   else
-       call tenminustwenty(n1i*n2i*nrhotot*nspin,rho_p,nproc)
-    end if
+     call tenminustwenty(n1i*n2i*nrhotot*nspinn,rho_p,nproc)
+  end if
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
      hfac=(occup(iorb)/(hxh*hyh*hzh))
@@ -157,7 +160,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
                       bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,bounds%ibyyzz_r)
                  
               end do
-!                 print *,'unco test',iorb,(sum((psir(:,sidx))),sidx=1,nspinor)
+!                 print *,'unco test',iorb,(sum(abs(psir(:,sidx))),sidx=1,nspinor)
               !sum different slices by taking into account the overlap
               i3s=0
               if(nspinor==1) then
@@ -209,11 +212,11 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
                                   +hfac*psir(ind1,3)**2 &
                                   +hfac*psir(ind1,4)**2 
                              !m_x
-                             rho_p(ind1s,2)=&
+                             rho_p(ind1s,2)= &
                              rho_p(ind1s,2)+hfac2*psir(ind1,1)*psir(ind1,3) &
                                   +hfac2*psir(ind1,2)*psir(ind1,4)
                              !m_y
-                             rho_p(ind1s,3)=&
+                             rho_p(ind1s,3)= &
                              rho_p(ind1s,3)+hfac2*psir(ind1,1)*psir(ind1,4) &
                                   -hfac2*psir(ind1,2)*psir(ind1,3)
                              !m_z

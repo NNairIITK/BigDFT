@@ -14,12 +14,19 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   call timing(iproc,'LagrM_comput  ','ON')
   istart=2
   if (nproc == 1) istart=1
-  
+!  print *,'  '
+!  print *,'Ortho0',((abs(psit(2,i))),(abs(hpsit(2,i))),i=1,norb)
   if(nspinor==1) then
      norbs=norb
   else
      norbs=2*norb
-!     if(nproc==1) then
+     if(nproc==1) then
+        call psitransspi(nvctrp,norb,psit,.true.)
+        call psitransspi(nvctrp,norb,hpsit,.true.)
+     end if
+  end if
+! print *,'Ortho1',((abs(psit(2,i))),(abs(hpsit(2,i))),i=1,norb)
+
 !        allocate(psitt(nspinor*nvctrp,norb))
 !        allocate(hpsitt(nspinor*nvctrp,norb))
 !        psitt=0.0d0
@@ -41,7 +48,7 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
 !           end do
 !        end do
 !     end if
-  end if
+!  end if
 
   allocate(alag(norbs,norb,istart),stat=i_stat)
   call memocc(i_stat,product(shape(alag))*kind(alag),'alag','orthoconstraint_p')
@@ -49,13 +56,13 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   if(nspinor==1) then
      call DGEMM('T','N',norb,norb,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,alag(1,1,istart),norb)
   else
-     if(nproc>1) then
+!     if(nproc>1) then
         call ZGEMM('C','N',norb,norb,2*nvctrp,(1.d0,0.0d0),psit,2*nvctrp, &
              hpsit,2*nvctrp,(0.d0,0.0d0),alag(1,1,istart),norb)
 !     else
 !        call ZGEMM('C','N',norb,norb,2*nvctrp,(1.d0,0.0d0),psitt,2*nvctrp, &
 !             hpsitt,2*nvctrp,(0.d0,0.0d0),alag(1,1,istart),norb)
-     end if
+!     end if
   end if
 
   if (nproc > 1) then
@@ -87,30 +94,23 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
         scprsum=scprsum+occup(iorb)*alag(2*iorb,iorb,1)
      enddo
   end if
+!  print *,'ortho_p',scprsum
 
   ! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
   if(nspinor==1) then
      call DGEMM('N','N',nvctrp,norb,norb,-1.d0,psit,nvctrp,alag,norb,1.d0,hpsit,nvctrp)
   else
-     if(nproc>1) then
-        call ZGEMM('N','N',2*nvctrp,norb,norb,(-1.d0,0.0d0),psit,2*nvctrp,alag,norb,(1.d0,0.0d0),hpsit,2*nvctrp)
-!     else
-!        call ZGEMM('N','N',2*nvctrp,norb,norb,(-1.d0,0.0d0),psitt,2*nvctrp,alag,norb,(1.d0,0.0d0),hpsitt,2*nvctrp)
-!        do j=1,nspinor*norb,4
-!           do i=1,nvctrp
-!              hpsit(i,j)=hpsitt(2*i-1,(j-1)/nspinor+1)
-!              hpsit(i,j+1)=hpsitt(2*i,(j-1)/nspinor+1)
-!              hpsit(i,j+2)=hpsitt(2*i-1+2*nvctrp,(j-1)/nspinor+1)
-!              hpsit(i,j+3)=hpsitt(2*i+2*nvctrp,(j-1)/nspinor+1)
-!           end do
-!        end do
-!        deallocate(hpsitt,psitt)
+     call ZGEMM('N','N',2*nvctrp,norb,norb,(-1.d0,0.0d0),psit,2*nvctrp,alag,norb,(1.d0,0.0d0),hpsit,2*nvctrp)
+     if(nproc==1) then
+        call psitransspi(nvctrp,norb,psit,.false.)
+        call psitransspi(nvctrp,norb,hpsit,.false.)
      end if
   end if
   i_all=-product(shape(alag))*kind(alag)
   deallocate(alag,stat=i_stat)
   call memocc(i_stat,i_all,'alag','orthoconstraint_p')
 
+!  print *,'Ortho2',sum(abs(psit(1:nvctrp,1))),sum(abs(hpsit(1:nvctrp,1)))
   call timing(iproc,'LagrM_comput  ','OF')
 
 END SUBROUTINE orthoconstraint_p
@@ -121,7 +121,7 @@ subroutine orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum,nspinor)
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.false.
   dimension psi(nvctrp,norb),hpsi(nvctrp,norb),occup(norb)
-  allocatable :: alag(:,:,:),psit(:,:),hpsit(:,:)
+  allocatable :: alag(:,:,:) !,psit(:,:),hpsit(:,:)
 
   call timing(iproc,'LagrM_comput  ','ON')
 
@@ -129,26 +129,9 @@ subroutine orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum,nspinor)
      norbs=norb
   else
      norbs=2*norb
-     allocate(psit(nvctrp*nspinor,norb))
-     allocate(hpsit(nvctrp*nspinor,norb))
-     psit=0.0d0
-     do j=1,nspinor*norb,4
-        do i=1,nvctrp
-           psit(2*i-1,(j-1)/nspinor+1)=psi(i,j)
-           psit(2*i,(j-1)/nspinor+1)=psi(i,j+1)              
-           psit(2*i-1+2*nvctrp,(j-1)/nspinor+1)=psi(i,j+2)
-           psit(2*i+2*nvctrp,(j-1)/nspinor+1)=psi(i,j+3)              
-        end do
-     end do
-     do j=1,nspinor*norb,4
-        do i=1,nvctrp
-           hpsit(2*i-1,(j-1)/nspinor+1)=hpsi(i,j)
-           hpsit(2*i,(j-1)/nspinor+1)=hpsi(i,j+1)              
-           hpsit(2*i-1+2*nvctrp,(j-1)/nspinor+1)=hpsi(i,j+2)
-           hpsit(2*i+2*nvctrp,(j-1)/nspinor+1)=hpsi(i,j+3)              
-        end do
-     end do
-  end if
+!     call psitransspi(nvctrp,norb,psi,.true.)
+!     call psitransspi(nvctrp,norb,hpsi,.true.)
+ end if
 
   allocate(alag(norbs,norb,2),stat=i_stat)
   call memocc(i_stat,product(shape(alag))*kind(alag),'alag','orthoconstraint')
@@ -172,26 +155,29 @@ subroutine orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum,nspinor)
         scprsum=scprsum+occup(iorb)*alag(2*iorb,iorb,1)
      enddo
   end if
+!  print *,'ortho_s',scprsum
 
   ! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
   if(nspinor==1) then
      call DGEMM('N','N',nvctrp,norb,norb,-1.d0,psi,nvctrp,alag,norb,1.d0,hpsi,nvctrp)
   else
      call ZGEMM('N','N',2*nvctrp,norb,norb,(-1.d0,0.0d0),psit,2*nvctrp,alag,norb,(1.d0,0.0d0),hpsit,2*nvctrp)
-     do j=1,nspinor*norb,nspinor
-        do i=1,nvctrp
-           hpsi(i,j)=hpsit(2*i-1,(j-1)/nspinor+1)
-           hpsi(i,j+1)=hpsit(2*i,(j-1)/nspinor+1)
-           hpsi(i,j+2)=hpsit(2*i-1+2*nvctrp,(j-1)/nspinor+1)
-           hpsi(i,j+3)=hpsit(2*i+2*nvctrp,(j-1)/nspinor+1)
-        end do
-     end do     
+     
+!     call psitransspi(nvctrp,norb,psi,.true.)
+!     call psitransspi(nvctrp,norb,hpsi,.true.)
+!     print *,'---O-o-------'
+     
   end if
 
   i_all=-product(shape(alag))*kind(alag)
   deallocate(alag,stat=i_stat)
   call memocc(i_stat,i_all,'alag','orthoconstraint')
-  deallocate(psit,hpsit)
+!  i_all=-product(shape(psit))*kind(psit)
+!  deallocate(psit,stat=i_stat)
+!  call memocc(i_stat,i_all,'psit','orthoconstraint')
+!  i_all=-product(shape(hpsit))*kind(hpsit)
+!  deallocate(hpsit,stat=i_stat)
+!  call memocc(i_stat,i_all,'hpsit','orthoconstraint')
   call timing(iproc,'LagrM_comput  ','OF')
 
 END SUBROUTINE orthoconstraint
@@ -248,6 +234,10 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
         norbs=norb
      else
         norbs=2*norb
+        if(nproc==1) then
+!           print *,'jello'
+!           call psitransspi(nvctrp,norb,psit,.true.)
+        end if
      end if
 
      allocate(ovrlp(norbs,norb,istart),stat=i_stat)
@@ -268,7 +258,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
         call timing(iproc,'GramS_commun  ','OF')
         call timing(iproc,'GramS_comput  ','ON')
      end if
-
+!
 !  if(iproc==0) print *,norb,norbs
 !  do i=1,norb
 !     if(iproc==0) write(*,'(30f12.6)') (ovrlp(j,i,1),j=1,norbs)
@@ -315,6 +305,9 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
        ! new vectors   !!check if third argument should be transpose or conjugate
         call ZTRMM ('R','L','C','N',2*nvctrp,norb,(1.d0,0.0d0),ovrlp,norb,psit,2*nvctrp)
 
+!        if(nproc==1) call psitransspi(nvctrp,norb,psit,.true.)
+
+
      end if
 
      i_all=-product(shape(ovrlp))*kind(ovrlp)
@@ -351,7 +344,8 @@ subroutine orthon(norb,nvctrp,psi,nspinor)
 
      if(nspinor==4) then
         norbs=norb*2
-        allocate(psit(nvctrp*4,norb))
+        allocate(psit(nvctrp*4,norb),stat=i_stat)
+        call memocc(i_stat,product(shape(psit))*kind(psit),'psit','orthon')
         psit=0.0d0
         do j=1,nspinor*norb,4
            do i=1,nvctrp
@@ -394,7 +388,7 @@ subroutine orthon(norb,nvctrp,psi,nspinor)
      !  write(*,'(10(1x,e10.3))') (ovrlp(i,j),j=1,norb)
      !  enddo
      ttsum=sum(ovrlp)
-     print *,'Check Ovrlp',ttsum
+!     print *,'Check Ovrlp',ttsum
 
      if(nspinor==1) then
         ! Cholesky factorization
@@ -720,68 +714,107 @@ END SUBROUTINE checkortho
 
 
 subroutine KStrans_p(iproc,nproc,norb,ndim,nvctrp,occup,  & 
-     hpsit,psit,evsum,eval)
+     hpsit,psit,evsum,eval,nspinor)
   ! at the start each processor has all the Psi's but only its part of the HPsi's
   ! at the end each processor has only its part of the Psi's
   implicit real(kind=8) (a-h,o-z)
   dimension occup(norb),eval(norb)
-  dimension psit(nvctrp,ndim),hpsit(nvctrp,ndim)
+  dimension psit(nvctrp*nspinor,ndim),hpsit(nvctrp*nspinor,ndim)
   ! arrays for KS orbitals
-  allocatable :: hamks(:,:,:),work_lp(:),psitt(:,:)
+  allocatable :: hamks(:,:,:),work_lp(:),work_rp(:),psitt(:,:)
   include 'mpif.h'
 
+  if(nspinor==4) then
+     norbs=2*norb
+  else
+     norbs=norb
+  end if
   ! set up Hamiltonian matrix
-  allocate(hamks(norb,norb,2),stat=i_stat)
+  allocate(hamks(norbs,norb,2),stat=i_stat)
   call memocc(i_stat,product(shape(hamks))*kind(hamks),'hamks','kstrans_p')
+
   do jorb=1,norb
-     do iorb=1,norb
+     do iorb=1,norbs
         hamks(iorb,jorb,2)=0.d0
      enddo
   enddo
-  do iorb=1,norb
-     do jorb=1,norb
-        scpr=ddot(nvctrp,psit(1,jorb),1,hpsit(1,iorb),1)
-        hamks(iorb,jorb,2)=scpr
-     enddo
-  enddo
+  if(nspinor==1) then
+!     do iorb=1,norb
+!        do jorb=1,norb
+!           scpr=ddot(nvctrp,psit(1,jorb),1,hpsit(1,iorb),1)
+!           hamks(iorb,jorb,2)=scpr
+!        enddo
+!     enddo
+     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,hamks(1,1,2),norb)
+  else
+     call ZGEMM('C','N',norb,norb,2*nvctrp,(1.d0,0.0d0),psit,2*nvctrp, &
+          hpsit,2*nvctrp,(0.d0,0.0d0),hamks(1,1,2),norb)
+  end if
 
-  call MPI_ALLREDUCE(hamks(1,1,2),hamks(1,1,1),norb**2,MPI_DOUBLE_PRECISION,&
+  call MPI_ALLREDUCE(hamks(1,1,2),hamks(1,1,1),norbs*norb,MPI_DOUBLE_PRECISION,&
        MPI_SUM,MPI_COMM_WORLD,ierr)
 
+!  do iorb=1,norb
+!     if(iproc==0) write(*,'(30f10.5)')(hamks(jorb,iorb,2),jorb=1,norbs)
+!  end do
   !        write(*,*) 'KS Hamiltonian',iproc
   !        do iorb=1,norb
   !        write(*,'(10(1x,e10.3))') (hamks(iorb,jorb,1),jorb=1,norb)
   !        enddo
 
-  n_lp=max(4*norb,1000)
-  allocate(work_lp(n_lp),stat=i_stat)
+  n_lp=max(4*norbs,1000)
+  allocate(work_lp(n_lp*2),stat=i_stat)
   call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','kstrans_p')
-  call  DSYEV('V','U',norb,hamks,norb,eval, work_lp, n_lp, info )
+  if(nspinor==1) then
+     call  DSYEV('V','U',norb,hamks,norb,eval, work_lp, n_lp, info )
+  else
+     allocate(work_rp(3*norb+1),stat=i_stat)
+     call memocc(i_stat,product(shape(work_rp))*kind(work_rp),'work_rp','kstrans_p')
+     
+     call  ZHEEV('V','U',norb,hamks(1,1,1),norb,eval, work_lp, n_lp, work_rp,info )
+     
+     i_all=-product(shape(work_rp))*kind(work_rp)
+     deallocate(work_rp,stat=i_stat)
+     call memocc(i_stat,i_all,'work_rp','kstrans_p')
+  end if
+
   evsum=0.d0
   do iorb=1,norb
      evsum=evsum+eval(iorb)*occup(iorb)
-     !if (iproc.eq.0) write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
+!     if (iproc.eq.0) write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
   enddo
   i_all=-product(shape(work_lp))*kind(work_lp)
   deallocate(work_lp,stat=i_stat)
   call memocc(i_stat,i_all,'work_lp','kstrans_p')
   if (info.ne.0) write(*,*) 'DSYEV ERROR',info
 
-  allocate(psitt(nvctrp,ndim),stat=i_stat)
+  allocate(psitt(nvctrp*nspinor,ndim),stat=i_stat)
   call memocc(i_stat,product(shape(psitt))*kind(psitt),'psitt','kstrans_p')
+!  if(iproc==0) print *,'DIMS',shape(psit),shape(psitt),nvctrp,norb
   ! Transform to KS orbitals
-  do iorb=1,norb
-     call razero(nvctrp,psitt(1,iorb))
-     do jorb=1,norb
-        alpha=hamks(jorb,iorb,1)
-        call daxpy(nvctrp,alpha,psit(1,jorb),1,psitt(1,iorb),1)
+  if(nspinor==1) then
+     do iorb=1,norb
+        call razero(nvctrp,psitt(1,iorb))
+        do jorb=1,norb
+           alpha=hamks(jorb,iorb,1)
+           call daxpy(nvctrp,alpha,psit(1,jorb),1,psitt(1,iorb),1)
+        enddo
      enddo
-  enddo
+  else
+     do iorb=1,norb
+        call razero(nvctrp*nspinor,psitt(1,iorb))
+        do jorb=1,norb
+           call zaxpy(2*nvctrp,hamks(2*jorb-1,iorb,1),psit(1,jorb),1,psitt(1,iorb),1)
+        enddo
+     enddo
+  end if
+!  print *,'KSsize A',iproc,(sum(psitt(:,iorb)),iorb=1,norb)
   i_all=-product(shape(hamks))*kind(hamks)
   deallocate(hamks,stat=i_stat)
   call memocc(i_stat,i_all,'hamks','kstrans_p')
 
-  call DCOPY(nvctrp*ndim,psitt,1,psit,1)
+  call DCOPY(nvctrp*ndim*nspinor,psitt,1,psit,1)
+!  print *,'KSsize B',(sum(psit(:,iorb)),iorb=1,norb)
   i_all=-product(shape(psitt))*kind(psitt)
   deallocate(psitt,stat=i_stat)
   call memocc(i_stat,i_all,'psitt','kstrans_p')
@@ -789,39 +822,69 @@ subroutine KStrans_p(iproc,nproc,norb,ndim,nvctrp,occup,  &
 END SUBROUTINE KStrans_p
 
 
-subroutine KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval)
+subroutine KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval,nspinor)
   ! at the start each processor has all the Psi's but only its part of the HPsi's
   ! at the end each processor has only its part of the Psi's
   implicit real(kind=8) (a-h,o-z)
   dimension occup(norb),eval(norb)
-  dimension psi(nvctrp,norb),hpsi(nvctrp,norb)
+  dimension psi(nvctrp*nspinor,norb),hpsi(nvctrp*nspinor,norb)
   ! arrays for KS orbitals
-  allocatable :: hamks(:,:,:),work_lp(:),psitt(:,:)
+  allocatable :: hamks(:,:,:),work_lp(:),work_rp(:),psitt(:,:)
+
+  if(nspinor==4) then
+     norbs=2*norb
+     call psitransspi(nvctrp,norb,psi,.true.)
+     call psitransspi(nvctrp,norb,hpsi,.true.)
+  else
+     norbs=norb
+  end if
 
   ! set up Hamiltonian matrix
-  allocate(hamks(norb,norb,2),stat=i_stat)
+  allocate(hamks(norbs,norb,2),stat=i_stat)
   call memocc(i_stat,product(shape(hamks))*kind(hamks),'hamks','kstrans')
   do jorb=1,norb
-     do iorb=1,norb
+     do iorb=1,norbs
         hamks(iorb,jorb,2)=0.d0
      enddo
   enddo
-  do iorb=1,norb
-     do jorb=1,norb
-        scpr=ddot(nvctrp,psi(1,jorb),1,hpsi(1,iorb),1)
-        hamks(iorb,jorb,1)=scpr
-     enddo
-  enddo
+  if(nspinor==1) then
+!  do iorb=1,norb
+!     do jorb=1,norb
+!        scpr=ddot(nvctrp,psi(1,jorb),1,hpsi(1,iorb),1)
+!        hamks(iorb,jorb,1)=scpr
+!     enddo
+!  enddo
+     call DGEMM('T','N',norb,norb,nvctrp,1.d0,psi,nvctrp,hpsi,nvctrp,0.d0,hamks(1,1,1),norb)
+  else
+     call ZGEMM('C','N',norb,norb,2*nvctrp,(1.d0,0.0d0),psi,2*nvctrp, &
+          hpsi,2*nvctrp,(0.d0,0.0d0),hamks(1,1,1),norb)
+  end if
+     
+  !do iorb=1,norb
+  !   if(iproc==0) write(*,'(30f10.5)')(hamks(jorb,iorb,1),jorb=1,norbs)
+  !end do
 
   !        write(*,*) 'KS Hamiltonian',0
   !        do iorb=1,norb
   !        write(*,'(10(1x,e10.3))') (hamks(iorb,jorb,1),jorb=1,norb)
   !        enddo
 
-  n_lp=max(4*norb,1000)
-  allocate(work_lp(n_lp),stat=i_stat)
+  n_lp=max(4*norbs,1000)
+  allocate(work_lp(n_lp*2),stat=i_stat)
   call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','kstrans')
-  call  DSYEV('V','U',norb,hamks,norb,eval, work_lp, n_lp, info )
+  if(nspinor==1) then
+     call  DSYEV('V','U',norb,hamks,norb,eval, work_lp, n_lp, info )
+  else
+     allocate(work_rp(3*norb+1),stat=i_stat)
+     call memocc(i_stat,product(shape(work_rp))*kind(work_rp),'work_rp','kstrans_p')
+     
+     call  ZHEEV('V','U',norb,hamks(1,1,1),norb,eval, work_lp, n_lp, work_rp,info )
+     
+     i_all=-product(shape(work_rp))*kind(work_rp)
+     deallocate(work_rp,stat=i_stat)
+     call memocc(i_stat,i_all,'work_rp','kstrans_p')
+  end if
+
   evsum=0.d0
   do iorb=1,norb
      evsum=evsum+eval(iorb)*occup(iorb)
@@ -832,23 +895,38 @@ subroutine KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval)
   call memocc(i_stat,i_all,'work_lp','kstrans')
   if (info.ne.0) write(*,*) 'DSYEV ERROR',info
 
-  allocate(psitt(nvctrp,norb),stat=i_stat)
+  allocate(psitt(nvctrp*nspinor,norb),stat=i_stat)
   call memocc(i_stat,product(shape(psitt))*kind(psitt),'psitt','kstrans')
   ! Transform to KS orbitals
-  do iorb=1,norb
-     call razero(nvctrp,psitt(1,iorb))
-     do jorb=1,norb
-        alpha=hamks(jorb,iorb,1)
-        call daxpy(nvctrp,alpha,psi(1,jorb),1,psitt(1,iorb),1)
+  if(nspinor==1) then
+     do iorb=1,norb
+        call razero(nvctrp,psitt(1,iorb))
+        do jorb=1,norb
+           alpha=hamks(jorb,iorb,1)
+           call daxpy(nvctrp,alpha,psi(1,jorb),1,psitt(1,iorb),1)
+        enddo
      enddo
-  enddo
+  else
+     do iorb=1,norb
+        call razero(nvctrp*nspinor,psitt(1,iorb))
+        do jorb=1,norb
+           call zaxpy(2*nvctrp,hamks(2*jorb-1,iorb,1),psi(1,jorb),1,psitt(1,iorb),1)
+        enddo
+     enddo
+  end if
   i_all=-product(shape(hamks))*kind(hamks)
   deallocate(hamks,stat=i_stat)
   call memocc(i_stat,i_all,'hamks','kstrans')
 
-  call DCOPY(nvctrp*norb,psitt,1,psi,1)
+  call DCOPY(nvctrp*norb*nspinor,psitt,1,psi,1)
   i_all=-product(shape(psitt))*kind(psitt)
   deallocate(psitt,stat=i_stat)
   call memocc(i_stat,i_all,'psitt','kstrans')
+
+  if(nspinor==4) then
+     call psitransspi(nvctrp,norb,psi,.false.)
+     call psitransspi(nvctrp,norb,hpsi,.false.)
+  end if
+
 
 END SUBROUTINE KStrans

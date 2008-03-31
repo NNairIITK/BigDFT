@@ -167,6 +167,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(:,:,:), pointer :: ads,psidst,hpsidst
   ! tmp debug array
   real(kind=8), dimension(:,:), allocatable :: tmred
+  real(kind=8), external :: DDOT
   
 
   !copying the input variables for readability
@@ -402,7 +403,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      call input_wf_diag(geocode,iproc,nproc,atoms,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj, &
           pkernel,ixc,psi,hpsi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinsgn)
-
+     
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
         write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/real(norb,kind=8)
@@ -507,9 +508,9 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   ! allocate arrays necessary for DIIS convergence acceleration
   if (idsx.gt.0) then
-     allocate(psidst(nvctrp,norbp*nproc,idsx),stat=i_stat)
+     allocate(psidst(nvctrp,nspinor*norbp*nproc,idsx),stat=i_stat)
      call memocc(i_stat,product(shape(psidst))*kind(psidst),'psidst','cluster')
-     allocate(hpsidst(nvctrp,norbp*nproc,idsx),stat=i_stat)
+     allocate(hpsidst(nvctrp,nspinor*norbp*nproc,idsx),stat=i_stat)
      call memocc(i_stat,product(shape(hpsidst))*kind(hpsidst),'hpsidst','cluster')
      allocate(ads(idsx+1,idsx+1,3),stat=i_stat)
      call memocc(i_stat,product(shape(ads))*kind(ads),'ads','cluster')
@@ -563,24 +564,34 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
           wfd,psi,rhopot,n1i*n2i*n3d,nscatterarr,nspin,nspinor,spinsgn,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
      
-     if (parallel) then
-        allocate(tmred(nspin+1,2))
+     if(nspinor==4) then
+        allocate(tmred(nspin+1,2),stat=i_stat)
+        call memocc(i_stat,product(shape(tmred))*kind(tmred),'tmred','cluster')
         tmred=0.0d0
         do ispin=1,nspin
            tmred(ispin,1)=sum(rhopot(:,:,:,ispin))
         end do
         tmred(nspin+1,1)=sum(rhopot(:,:,:,:))
-        call MPI_ALLREDUCE(tmred(:,1),tmred(:,2),nspin+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        if(iproc==0) print '(a,5f14.8)','SumRho Chk',(tmred(ispin,2),ispin=1,nspin+1)
-        if(nspin==4) then
+        if (parallel) then
+           call MPI_ALLREDUCE(tmred(:,1),tmred(:,2),nspin+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+           !        if(iproc==0) print '(a,5f14.8)','SumRho Chk',(tmred(ispin,2),ispin=1,nspin+1)
            tt=sqrt(tmred(2,2)**2+tmred(3,2)**2+tmred(4,2)**2)
-           if(iproc==0.and.tt>0.0d0) print '(a,5f14.8)','Magnetic Direction',(tmred(ispin,2)/tt,ispin=2,nspin)
+           if(iproc==0.and.tt>0.0d0) print '(a,5f10.4)','  Magnetic density orientation:',(tmred(ispin,2)/tmred(1,2),ispin=2,nspin)
+        else
+           tt=sqrt(tmred(2,1)**2+tmred(3,1)**2+tmred(4,1)**2)
+           if(iproc==0.and.tt>0.0d0) print '(a,5f10.4)','  Magnetic density orientation:',(tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
         end if
-        deallocate(tmred)
-     else
- !       print '(a,5f14.8)','SumRho Chk',(sum(rhopot(:,:,:,ispin)),ispin=1,nspin),sum(rhopot)
+        i_all=-product(shape(tmred))*kind(tmred)
+        deallocate(tmred,stat=i_stat)
+        call memocc(i_stat,i_all,'tmred','cluster')
      end if
-
+     
+     if(nspinor==4) then
+        ispin=1
+     else
+        ispin=nspin
+     end if
+!     print *,'SUMRHO',sum(abs(rhopot(:,:,:,1:ispin))),ddot(n1i*n2i*n3d*nspinor,rhopot,1,rhopot,1)
 
 !     print *,'SysDims',norb,norbp,nspinor
 
@@ -591,59 +602,67 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      !     ixc=1   ! LDA functional
      
      if(nspinor==4) then
-        !Allocate diagonal spin-density in real space
-        if (n3d >0) then
-           allocate(rho_diag(n1i,n2i,n3d,2),stat=i_stat)
-           call memocc(i_stat,product(shape(rho_diag))*kind(rho_diag),'rho_diag','cluster')
-           allocate(m_norm(n1i,n2i,n3d),stat=i_stat)
-           call memocc(i_stat,product(shape(m_norm))*kind(m_norm),'m_norm','cluster')
-!           print *,'Rho Dims',shape(rhopot),shape(rho_diag)
-           do i3=1,n3d
-              do i2=1,n2i
-                 do i1=1,n1i
-!                    rho_diag(i1,i2,i3,1)=rhopot(i1,i2,i3,1)
-                    m_norm(i1,i2,i3)=sqrt(rhopot(i1,i2,i3,2)**2+rhopot(i1,i2,i3,3)**2+rhopot(i1,i2,i3,4)**2)
-                    rho_diag(i1,i2,i3,1)=(rhopot(i1,i2,i3,1)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
-                    rho_diag(i1,i2,i3,2)=(rhopot(i1,i2,i3,1)-m_norm(i1,i2,i3))*0.5d0!+1.00e-20
-                 end do
-              end do
-           end do
-        else
-           allocate(rho_diag(1,1,1,2),stat=i_stat)
-           call memocc(i_stat,product(shape(rho_diag))*kind(rho_diag),'rho_diag','cluster')
-           allocate(m_norm(1,1,1),stat=i_stat)
-           call memocc(i_stat,product(shape(m_norm))*kind(m_norm),'m_norm','cluster')
-           rho_diag=0.0d0
-           m_norm=0.0d0
-        end if
-        
-!        print *,'Mnorm,rho_diag',sum(2.0d0*rho_diag(:,:,:,1)),sum(m_norm)&
-!             ,sum(2.0d0*rho_diag(:,:,:,1)+m_norm),sum(2.0d0*rho_diag(:,:,:,1)-m_norm)
+         call PSolverNC(geocode,datacode,iproc,nproc,n1i,n2i,n3i,n3d,ixc,hxh,hyh,hzh,&
+             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin) !add NSPIN
+!       !Allocate diagonal spin-density in real space
+!        if (n3d >0) then
+!           allocate(rho_diag(n1i,n2i,n3d,2),stat=i_stat)
+!           call memocc(i_stat,product(shape(rho_diag))*kind(rho_diag),'rho_diag','cluster')
+!           allocate(m_norm(n1i,n2i,n3d),stat=i_stat)
+!           call memocc(i_stat,product(shape(m_norm))*kind(m_norm),'m_norm','cluster')
+!!           print *,'Rho Dims',shape(rhopot),shape(rho_diag)
+!           do i3=1,n3d
+!              do i2=1,n2i
+!                 do i1=1,n1i
+!!                    rho_diag(i1,i2,i3,1)=rhopot(i1,i2,i3,1)
+!                    m_norm(i1,i2,i3)=sqrt(rhopot(i1,i2,i3,2)**2+rhopot(i1,i2,i3,3)**2+rhopot(i1,i2,i3,4)**2)
+!                    rho_diag(i1,i2,i3,1)=(rhopot(i1,i2,i3,1)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
+!                    rho_diag(i1,i2,i3,2)=(rhopot(i1,i2,i3,1)-m_norm(i1,i2,i3))*0.5d0!+1.00e-20
+!                 end do
+!              end do
+!           end do
+!        else
+!           allocate(rho_diag(1,1,1,2),stat=i_stat)
+!           call memocc(i_stat,product(shape(rho_diag))*kind(rho_diag),'rho_diag','cluster')
+!           allocate(m_norm(1,1,1),stat=i_stat)
+!           call memocc(i_stat,product(shape(m_norm))*kind(m_norm),'m_norm','cluster')
+!           rho_diag=0.0d0
+!           m_norm=0.0d0
+!        end if
+!        
+!!        print *,'Mnorm,rho_diag',sum(2.0d0*rho_diag(:,:,:,1)),sum(m_norm)&
+!!             ,sum(2.0d0*rho_diag(:,:,:,1)+m_norm),sum(2.0d0*rho_diag(:,:,:,1)-m_norm)
+!
+!        Call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
+!             rho_diag,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,2) 
+!
+!!        print *,'Psolver R',ehart,eexcu,vexcu
+!        
+!        do i3=1,n3d
+!           do i2=1,n2i
+!              do i1=1,n1i
+!                 rhon=(rho_diag(i1,i2,i3,1)+rho_diag(i1,i2,i3,2))*0.5d0
+!                 rhos=(rho_diag(i1,i2,i3,1)-rho_diag(i1,i2,i3,2))*0.5d0
+!                 if(m_norm(i1,i2,i3)>rhopot(i1,i2,i3,1)*4.0e-20)then
+ !                   factor=rhos/m_norm(i1,i2,i3)
+ !                else
+ !                   factor=0.0d0
+!                 end if
+!                 rhopot(i1,i2,i3,1)=rhon+rhopot(i1,i2,i3,4)*factor
+!                 rhopot(i1,i2,i3,2)=rhopot(i1,i2,i3,2)*factor
+!                 rhopot(i1,i2,i3,3)=-rhopot(i1,i2,i3,3)*factor
+!                 rhopot(i1,i2,i3,4)=rhon-rhopot(i1,i2,i3,4)*factor
+!              end do
+!           end do
+!        end do
+!        
+!        i_all=-product(shape(rho_diag))*kind(rho_diag)
+!        deallocate(rho_diag,stat=i_stat)
+!        call memocc(i_stat,i_all,'rho_diag','cluster')
+!        i_all=-product(shape(m_norm))*kind(m_norm)
+!        deallocate(m_norm,stat=i_stat)
+!        call memocc(i_stat,i_all,'m_norm','cluster')
 
-        Call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
-             rho_diag,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,2) 
-
-!        print *,'Psolver R',ehart,eexcu,vexcu
-        
-        do i3=1,n3d
-           do i2=1,n2i
-              do i1=1,n1i
-                 rhon=(rho_diag(i1,i2,i3,1)+rho_diag(i1,i2,i3,2))*0.5d0
-                 rhos=(rho_diag(i1,i2,i3,1)-rho_diag(i1,i2,i3,2))*0.5d0
-                 if(m_norm(i1,i2,i3)>rhopot(i1,i2,i3,1)*4.0e-20)then
-                    factor=rhos/m_norm(i1,i2,i3)
-                 else
-                    factor=0.0d0
-                 end if
-                 rhopot(i1,i2,i3,1)=rhon+rhopot(i1,i2,i3,4)*factor
-                 rhopot(i1,i2,i3,2)=rhopot(i1,i2,i3,2)*factor
-                 rhopot(i1,i2,i3,3)=-rhopot(i1,i2,i3,3)*factor
-                 rhopot(i1,i2,i3,4)=rhon-rhopot(i1,i2,i3,4)*factor
-              end do
-           end do
-        end do
-        
-        deallocate(rho_diag,m_norm)
      else
               
         call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
@@ -681,6 +700,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
                 'WARNING: Found an energy value lower than the FINAL energy, delta:',energy-energy_min
         end if
         infocode=0
+!        print *,'Converged, exiting...'
         exit wfn_loop 
      endif
 
@@ -774,9 +794,9 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
         ids=0
         idiistol=0
 
-        allocate(psidst(nvctrp,norbp*nproc,idsx),stat=i_stat)
+        allocate(psidst(nvctrp*nspinor,norbp*nproc,idsx),stat=i_stat)
         call memocc(i_stat,product(shape(psidst))*kind(psidst),'psidst','cluster')
-        allocate(hpsidst(nvctrp,norbp*nproc,idsx),stat=i_stat)
+        allocate(hpsidst(nvctrp*nspinor,norbp*nproc,idsx),stat=i_stat)
         call memocc(i_stat,product(shape(hpsidst))*kind(hpsidst),'hpsidst','cluster')
         allocate(ads(idsx+1,idsx+1,3),stat=i_stat)
         call memocc(i_stat,product(shape(ads))*kind(ads),'ads','cluster')
@@ -785,6 +805,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
 
 
   end do wfn_loop
+!  print *,'exit wfn_loop',shape(psi),shape(hpsi),shape(psit),norb,nspinor
   if (iter == itermax+1 .and. iproc == 0 ) &
        write(*,'(1x,a)')'No convergence within the allowed number of minimization steps'
 
@@ -846,18 +867,38 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      nscatterarr(jproc,4)=0
   end do
 
-  if (n3p>0) then
-     allocate(rho((2*n1+31)*(2*n2+31)*n3p),stat=i_stat)
-     call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
+  if(nproc>1) then
+     if (n3p>0) then
+        allocate(rho((2*n1+31)*(2*n2+31)*n3p),stat=i_stat)
+        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
+     else
+        allocate(rho(1),stat=i_stat)
+        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
+     end if
+     
+     !use pot_ion array for building total rho
+     call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
+          wfd,psi,rho,n1i*n2i*n3p,nscatterarr,1,nspinor,spinsgn_foo,&
+          !         wfd,psi,rho,n1i*n2i*n3p,nscatterarr,1,nspinor,spinsgn_foo,&
+          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
+     
   else
-     allocate(rho(1),stat=i_stat)
-     call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
+     
+     if (n3p>0) then
+        allocate(rho((2*n1+31)*(2*n2+31)*n3p*nspinor),stat=i_stat)
+        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
+     else
+        allocate(rho(1),stat=i_stat)
+        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
+     end if
+     
+     !use pot_ion array for building total rho
+     call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
+          wfd,psi,rho,n1i*n2i*n3p,nscatterarr,1,nspinor,spinsgn_foo,&
+ !         wfd,psi,rho,n1i*n2i*n3p,nscatterarr,nspin,nspinor,spinsgn_foo,&
+          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
+     
   end if
-
-  !use pot_ion array for building total rho
-  call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
-       wfd,psi,rho,n1i*n2i*n3p,nscatterarr,1,1,spinsgn_foo,&
-       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
   i_all=-product(shape(spinsgn_foo))*kind(spinsgn_foo)
   deallocate(spinsgn_foo,stat=i_stat)
@@ -893,6 +934,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
               end do
            end do
         end do
+
         i_all=-product(shape(pot_ion))*kind(pot_ion)
         deallocate(pot_ion,stat=i_stat)
         call memocc(i_stat,i_all,'pot_ion','cluster')
@@ -969,7 +1011,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
 
-  call nonlocal_forces(iproc,atoms,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,gxyz)
+  call nonlocal_forces(iproc,atoms,norb*nspinor,norbp*nspinor,occup,nlpspd,proj,derproj,wfd,psi,gxyz)
 
   if (iproc == 0) write(*,'(1x,a)')'done.'
 
@@ -1027,7 +1069,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
 
      if (datacode=='D') then
-        call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh,1),(2*n1+31)*(2*n2+31)*n3p,&
+        call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh,1),(2*n1+31)*(2*n2+31)*n3p*nspinor,&
              MPI_DOUBLE_PRECISION,pot(1,1,1,1),ngatherarr(0,1),ngatherarr(0,2), & 
              MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
         !print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
@@ -1216,8 +1258,8 @@ contains
     call cpu_time(tcpu1)
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
-    if (iproc == 0) &
-         write(*,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time for root process ', iproc,tel,tcpu1-tcpu0
+!    if (iproc == 0) &
+!         write(*,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time for root process ', iproc,tel,tcpu1-tcpu0
 
   end subroutine deallocate_before_exiting
 
