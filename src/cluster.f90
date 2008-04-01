@@ -559,11 +559,12 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
 !     do iorb=1,nspinor*norb
 !        print *,'orbnorm',nspinor*norbp*iproc+iorb,sum(abs(psi(:,iorb)))
 !     end do
-!     print *,'SumRho Chk',nspinor,nspin,(sum(rhopot(:,:,:,ispin)),ispin=1,nspin)
      call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
           wfd,psi,rhopot,n1i*n2i*n3d,nscatterarr,nspin,nspinor,spinsgn,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
      
+!     print *,'SumRho Chk',nspinor,nspin,(sum(rhopot(:,:,:,ispin)),ispin=1,nspin)
+
      if(nspinor==4) then
         allocate(tmred(nspin+1,2),stat=i_stat)
         call memocc(i_stat,product(shape(tmred))*kind(tmred),'tmred','cluster')

@@ -265,6 +265,8 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
 !     print '(a,30f10.4)','hp', (DDOT(nvctrp*nspinor,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
 
 !  write(*,*) 'Exit HamApp', (sum(hpsi(:,iorb)),iorb=1,norbp*nspinor),shape(hpsi)
+!   if(iproc==0)  print '(a,i3,5f10.6)','Final psi',iproc,((abs(psi(iorb,1)))*100,iorb=1,5)
+!   if(iproc==0)  print '(a,i3,5f10.6)','Final Hpsi',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
 
 end subroutine HamiltonianApplication
 
@@ -312,6 +314,8 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
  ! write(*,*) 'Enter Ortho', iproc,(sum(hpsi(:,nproc*iorb-1:nproc*iorb)),iorb=1,norbp*nspinor),shape(hpsi)
 
+!   if(iproc==0)  print '(a,i3,5f10.6)','prS psit (s)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
+!   if(iproc==0)  print '(a,i3,5f10.6)','prS Hpsi (s)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
   if (nproc > 1) then
      !transpose the hpsi wavefunction
@@ -327,7 +331,14 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      !end of transposition
   else
      psit => psi
+     if(nspinor==4) then
+        call psitransspi(nvctrp,norb,psit,.true.)
+        call psitransspi(nvctrp,norb,hpsi,.true.)
+     end if
   end if
+
+!   if(iproc==0)  print '(a,i3,5f10.6)','pOC psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
+!   if(iproc==0)  print '(a,i3,5f10.6)','pOC Hpsi (t)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
 
 !  print *,'constraining',norb,iproc
   if(nspin==1.or.nspinor==4) then
@@ -353,7 +364,13 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,hpsi,nspinor)
      call timing(iproc,'Un-TransSwitch','OF')
      !end of retransposition
+  else
+     if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.false.)
+!     call psitransspi(nvctrp,norb,psit.true.)
   end if
+!  if(iproc==0)   print '(a,i3,5f10.6)','aOC psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
+!  if(iproc==0)   print '(a,i3,5f10.6)','aOC psi (t)',iproc,((abs(psi(iorb,1)))*100,iorb=1,5)
+!   if(iproc==0)  print '(a,i3,5f10.6)','aOC Hpsi (s)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
 !  write(*,'(a,30f16.8)') 'Exit Ortho',(abs(hpsi(iorb,1)),iorb=1,5)
 !     print *,'After orthocon'
 !     print '(a,30f10.4)','p', (DDOT(nvctrp*nspinor,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
@@ -442,7 +459,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         
      end do
   enddo
-!     print *,'Post PC hpsi',((abs(hpsi(iorb,1))),iorb=1,5)
+!     if(iproc==0) print *,'Post PC hpsi',((abs(hpsi(iorb,1))),iorb=1,5)
 
 ! write(*,'(a,i3,30f16.8)') 'Exit PreCo', iproc,(sum(hpsi(:,nproc*iorb-1:nproc*iorb)),iorb=1,norbp*nspinor)
 !     print *,'After precong', shape(psi),shape(hpsi),shape(psit)
@@ -538,17 +555,21 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         call timing(iproc,'Un-TransComm  ','OF')
         !end of transposition
      else if(nspinor==4) then
- !       call psitransspi(nvctrp,norb,hpsi,.true.)
- !       call psitransspi(nvctrp,norb,psit,.true.) ! needed?
+        call psitransspi(nvctrp,norb,hpsi,.true.)
+!        call psitransspi(nvctrp,norb,psit,.true.) ! needed?
      endif
 
 !     print *,'updating',shape(psi),shape(hpsi),shape(psit),nvctrp,norb*nspinor
      call timing(iproc,'Diis          ','ON')
+!     if(iproc==0)print '(a,i3,5f10.6)','pDAX psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
+!     if(iproc==0) print '(a,i3,5f10.6)','pDAX hpsi (?)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
 
         do iorb=1,norb*nspinor
            call DAXPY(nvctrp,-alpha,hpsi(1,iorb),1,psit(1,iorb),1)
         enddo
      endif
+!     if(iproc==0)print '(a,i3,5f10.6)','aDAX psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
+!     if(iproc==0) print '(a,i3,5f10.6)','aDAX hpsi (?)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
 
   call timing(iproc,'Diis          ','OF')
 
@@ -567,7 +588,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 !     print *,'Into orthogonalization'
 !     print '(a,30f10.4)','hp', (DDOT(nvctrp*nspinor,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
 !     print '(a,90f10.4)','pt', (DDOT(2*nvctrp,psit(1,iorb),1,psit(1,iorb),1),iorb=2,norb*nspinor-1,2)
-        if(nspinor==4) call psitransspi(nvctrp,norb,psit,.true.)
+!  if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norb,psit,.true.)
 !     print '(a,30f10.4)','p1', (sum(abs(psi(:,iorb:iorb+3)))/100,iorb=1,norb*nspinor,4)
 !     print '(a,30f10.4)','p1', (DDOT(nvctrp,psit(1,1),2,psit(1,iorb),2),iorb=1,norb*nspinor,4)
 !     print '(a,30f10.4)','p2', (DDOT(nvctrp,psit(2,1),2,psit(2,iorb),2),iorb=1,norb*nspinor,4)
@@ -577,6 +598,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 !     print '(a,90f10.4)','p', (DDOT(nvctrp,psit(1,iorb),2,psit(1,iorb),2),iorb=1,norb*nspinor,2)
 !!        if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.)
 !     print '(a,90f20.14)','d', (DDOT(nvctrp,psit(1,5),2,psit(1,3),2)), (DDOT(nvctrp,psit(1,1),2,psit(1,3),2))
+!     if(iproc==0) print '(a,i3,5f10.6)','preO psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
 
   if(nspin==1.or.nspinor==4) then
      call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor)
@@ -587,6 +609,8 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      end if
   end if
      !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
+!     if(iproc==0)print '(a,i3,5f10.6)','preS psi (t)',iproc,((abs(psi(iorb,1)))*100,iorb=1,5)
+!     if(iproc==0) print '(a,i3,5f10.6)','preS psit (?)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
 
   if (nproc > 1) then
      !here hpsi is used as a work array
@@ -600,21 +624,10 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      !end of retransposition
   else
 
-!     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.)
      nullify(psit)
      if(nspinor==4) call psitransspi(nvctrp,norb,psi,.false.)
      if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.false.)
-!!$     if(nspin==1) then
-!!$        call orthon(norb,nvctrp,psi)
-!!$        !          call checkortho(norb,nvctrp,psi)
-!!$     else
-!!$        call orthon(norbu,nvctrp,psi)
-!!$        !          call checkortho(norbu,nvctrp,psi)
-!!$        if(norbd>0) then
-!!$           call orthon(norbd,nvctrp,psi(1,norbu+1))
-!!$        end if
-!!$        !          call checkortho(norbd,nvctrp,psi(1,norbu+1))
-!!$     end if
+
   endif
 
   if (iproc==0) then
@@ -622,8 +635,8 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
           'done.'
   end if
 
-!     print *,'Final psi',((abs(psi(iorb,1))),iorb=1,5)
-!     print *,'Final hpsi',((abs(hpsi(iorb,1))),iorb=1,5)
+!    if(iproc==0) print '(a,i3,5f10.6)','Final psi (st)',iproc,((abs(psi(iorb,1)))*100,iorb=1,5)
+!    if(iproc==0) print '(a,i3,5f10.6)','Final psit (t)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
 
 ! write(*,'(a,i3,30f16.8)') 'Exit OrthoN', iproc,(sum(psi(:,nproc*iorb-1:nproc*iorb)),iorb=1,norbp*nspinor)
 

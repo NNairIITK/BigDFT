@@ -20,35 +20,8 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
      norbs=norb
   else
      norbs=2*norb
-     if(nproc==1) then
-        call psitransspi(nvctrp,norb,psit,.true.)
-        call psitransspi(nvctrp,norb,hpsit,.true.)
-     end if
   end if
 ! print *,'Ortho1',((abs(psit(2,i))),(abs(hpsit(2,i))),i=1,norb)
-
-!        allocate(psitt(nspinor*nvctrp,norb))
-!        allocate(hpsitt(nspinor*nvctrp,norb))
-!        psitt=0.0d0
-!        hpsitt=0.0d0
-!        do j=1,nspinor*norb,4
-!           do i=1,nvctrp
-!              psitt(2*i-1,(j-1)/nspinor+1)=psit(i,j)
-!              psitt(2*i,(j-1)/nspinor+1)=psit(i,j+1)              
-!              psitt(2*i-1+2*nvctrp,(j-1)/nspinor+1)=psit(i,j+2)
-!              psitt(2*i+2*nvctrp,(j-1)/nspinor+1)=psit(i,j+3)              
-!           end do
-!        end do
-!        do j=1,nspinor*norb,4
-!           do i=1,nvctrp
-!              hpsitt(2*i-1,(j-1)/nspinor+1)=hpsit(i,j)
-!              hpsitt(2*i,(j-1)/nspinor+1)=hpsit(i,j+1)              
-!              hpsitt(2*i-1+2*nvctrp,(j-1)/nspinor+1)=hpsit(i,j+2)
-!              hpsitt(2*i+2*nvctrp,(j-1)/nspinor+1)=hpsit(i,j+3)              
-!           end do
-!        end do
-!     end if
-!  end if
 
   allocate(alag(norbs,norb,istart),stat=i_stat)
   call memocc(i_stat,product(shape(alag))*kind(alag),'alag','orthoconstraint_p')
@@ -72,12 +45,12 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
      call timing(iproc,'LagrM_commun  ','OF')
      call timing(iproc,'LagrM_comput  ','ON')
   end if
-  !        if (iproc.eq.0) then
-  !        write(*,*) 'ALAG',iproc
-  !        do iorb=1,norb
-  !        write(*,'(10(1x,1pe10.3))') (alag(iorb,jorb,1),jorb=1,norb)
-  !        enddo
-  !        endif
+!          if (iproc.eq.0) then
+!          write(*,*) 'ALAG',iproc,norb,norbs
+!          do iorb=1,norb
+!          write(*,'(10(1x,1pe10.3))') (alag(jorb,iorb,1),jorb=1,norbs)
+!          enddo
+!          endif
 !  if(iproc==0) print *,norb,norbs
 !  do iorb=1,norb
 !     if(iproc==0) write(*,'(30f12.6)') (alag(jorb,iorb,1),jorb=1,norbs)
@@ -94,17 +67,17 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
         scprsum=scprsum+occup(iorb)*alag(2*iorb,iorb,1)
      enddo
   end if
-!  print *,'ortho_p',scprsum
+!  if(iproc==0) print *,'ortho_p',scprsum
 
   ! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
   if(nspinor==1) then
      call DGEMM('N','N',nvctrp,norb,norb,-1.d0,psit,nvctrp,alag,norb,1.d0,hpsit,nvctrp)
   else
      call ZGEMM('N','N',2*nvctrp,norb,norb,(-1.d0,0.0d0),psit,2*nvctrp,alag,norb,(1.d0,0.0d0),hpsit,2*nvctrp)
-     if(nproc==1) then
-        call psitransspi(nvctrp,norb,psit,.false.)
-        call psitransspi(nvctrp,norb,hpsit,.false.)
-     end if
+!     if(nproc==1) then
+!        call psitransspi(nvctrp,norb,psit,.false.)
+!        call psitransspi(nvctrp,norb,hpsit,.false.)
+!     end if
   end if
   i_all=-product(shape(alag))*kind(alag)
   deallocate(alag,stat=i_stat)
@@ -270,7 +243,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 !
 !  if(iproc==0) print *,norb,norbs
 !  do i=1,norb
-!     if(iproc==0) write(*,'(30f8.4)') (ovrlp(j,i,istart),j=1,norbs,2) 
+!     if(iproc==0) write(*,'(30f8.4)') (ovrlp(j,i,1),j=1,norbs) 
 !  end do
 !  if(iproc==0) print *,' '
 
