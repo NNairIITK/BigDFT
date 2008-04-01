@@ -603,71 +603,12 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      
      if(nspinor==4) then
          call PSolverNC(geocode,datacode,iproc,nproc,n1i,n2i,n3i,n3d,ixc,hxh,hyh,hzh,&
-             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin) !add NSPIN
-!       !Allocate diagonal spin-density in real space
-!        if (n3d >0) then
-!           allocate(rho_diag(n1i,n2i,n3d,2),stat=i_stat)
-!           call memocc(i_stat,product(shape(rho_diag))*kind(rho_diag),'rho_diag','cluster')
-!           allocate(m_norm(n1i,n2i,n3d),stat=i_stat)
-!           call memocc(i_stat,product(shape(m_norm))*kind(m_norm),'m_norm','cluster')
-!!           print *,'Rho Dims',shape(rhopot),shape(rho_diag)
-!           do i3=1,n3d
-!              do i2=1,n2i
-!                 do i1=1,n1i
-!!                    rho_diag(i1,i2,i3,1)=rhopot(i1,i2,i3,1)
-!                    m_norm(i1,i2,i3)=sqrt(rhopot(i1,i2,i3,2)**2+rhopot(i1,i2,i3,3)**2+rhopot(i1,i2,i3,4)**2)
-!                    rho_diag(i1,i2,i3,1)=(rhopot(i1,i2,i3,1)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
-!                    rho_diag(i1,i2,i3,2)=(rhopot(i1,i2,i3,1)-m_norm(i1,i2,i3))*0.5d0!+1.00e-20
-!                 end do
-!              end do
-!           end do
-!        else
-!           allocate(rho_diag(1,1,1,2),stat=i_stat)
-!           call memocc(i_stat,product(shape(rho_diag))*kind(rho_diag),'rho_diag','cluster')
-!           allocate(m_norm(1,1,1),stat=i_stat)
-!           call memocc(i_stat,product(shape(m_norm))*kind(m_norm),'m_norm','cluster')
-!           rho_diag=0.0d0
-!           m_norm=0.0d0
-!        end if
-!        
-!!        print *,'Mnorm,rho_diag',sum(2.0d0*rho_diag(:,:,:,1)),sum(m_norm)&
-!!             ,sum(2.0d0*rho_diag(:,:,:,1)+m_norm),sum(2.0d0*rho_diag(:,:,:,1)-m_norm)
-!
-!        Call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
-!             rho_diag,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,2) 
-!
-!!        print *,'Psolver R',ehart,eexcu,vexcu
-!        
-!        do i3=1,n3d
-!           do i2=1,n2i
-!              do i1=1,n1i
-!                 rhon=(rho_diag(i1,i2,i3,1)+rho_diag(i1,i2,i3,2))*0.5d0
-!                 rhos=(rho_diag(i1,i2,i3,1)-rho_diag(i1,i2,i3,2))*0.5d0
-!                 if(m_norm(i1,i2,i3)>rhopot(i1,i2,i3,1)*4.0e-20)then
- !                   factor=rhos/m_norm(i1,i2,i3)
- !                else
- !                   factor=0.0d0
-!                 end if
-!                 rhopot(i1,i2,i3,1)=rhon+rhopot(i1,i2,i3,4)*factor
-!                 rhopot(i1,i2,i3,2)=rhopot(i1,i2,i3,2)*factor
-!                 rhopot(i1,i2,i3,3)=-rhopot(i1,i2,i3,3)*factor
-!                 rhopot(i1,i2,i3,4)=rhon-rhopot(i1,i2,i3,4)*factor
-!              end do
-!           end do
-!        end do
-!        
-!        i_all=-product(shape(rho_diag))*kind(rho_diag)
-!        deallocate(rho_diag,stat=i_stat)
-!        call memocc(i_stat,i_all,'rho_diag','cluster')
-!        i_all=-product(shape(m_norm))*kind(m_norm)
-!        deallocate(m_norm,stat=i_stat)
-!        call memocc(i_stat,i_all,'m_norm','cluster')
+             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
 
      else
               
         call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
-             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin) !add NSPIN
- !       print *,'Psolver R',ehart,eexcu,vexcu
+             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
         
      end if
 !     write(*,'(a,i3,30f12.5)') 'After  PSolv', iproc,(sum(psi(:,iorb)),iorb=1,norbp*nspinor)
@@ -678,6 +619,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
           norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
           rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,nspinor,spinsgn)
+
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
      energy=energybs-ehart+eexcu-vexcu+eion
@@ -707,7 +649,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
      call hpsitopsi(ids,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,bounds%kb,&
           eval,ncong,mids,idsx_actual,ads,energy,energy_old,alpha,gnrm,scprsum,&
-          psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)! add NSPIN
+          psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
 
      tt=energybs-scprsum
      if (abs(tt).gt.1.d-8 .and. iproc==0) then 
@@ -1082,7 +1024,7 @@ subroutine cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
               i03=1
               i04=2
            end if
-           call MPI_ALLGATHERV(rhopot(1,1,i03,i04),(2*n1+31)*(2*n2+31)*n3p,&
+           call MPI_ALLGATHERV(rhopot(1,1,i03,i04),(2*n1+31)*(2*n2+31)*n3p*nspinor,&
                 MPI_DOUBLE_PRECISION,pot(1,1,1,2),ngatherarr(0,1),ngatherarr(0,2), & 
                 MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
         end if

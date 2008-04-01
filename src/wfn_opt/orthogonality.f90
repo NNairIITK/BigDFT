@@ -191,9 +191,17 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
   integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,i,j,norbs
   real(kind=8) :: tt,ttLOC,dnrm2
   real(kind=8), dimension(:,:,:), allocatable :: ovrlp
+  real(kind=8) :: DDOT
+
   include 'mpif.h'
 
+ 
+  
+
   call timing(iproc,'GramS_comput  ','ON')
+!  print *,'ortho',shape(psit), ddot(2*nvctrp,psit(1,2),1,psit(1,2),1),&
+!       ddot(2*nvctrp,psit(2,2),2,psit(2,2),2)
+
 
   if (norb.eq.1) then 
 
@@ -242,6 +250,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 
      allocate(ovrlp(norbs,norb,istart),stat=i_stat)
      call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','orthon_p')
+     call razero(norbs*norb*istart,ovrlp)
 
      ! Upper triangle of overlap matrix using BLAS
      !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; upper triangle
@@ -261,7 +270,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 !
 !  if(iproc==0) print *,norb,norbs
 !  do i=1,norb
-!     if(iproc==0) write(*,'(30f12.6)') (ovrlp(j,i,1),j=1,norbs)
+!     if(iproc==0) write(*,'(30f8.4)') (ovrlp(j,i,istart),j=1,norbs,2) 
 !  end do
 !  if(iproc==0) print *,' '
 

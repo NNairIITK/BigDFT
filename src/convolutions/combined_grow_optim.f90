@@ -27,8 +27,6 @@ implicit none
 
     integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)! boundaries of the real space array
 
-!    print *,'com_g_all',product(shape(w1)),4*(nfl2+nfu2+1)*(nfl3+nfu3+1)*(2*nfl1+2*nfu1+31)
-
     call comb_grow_c(n1,n2,n3,w1,w2,xc,y,ibyz_c,ibzxx_c,ibxxyy_c,ibyyzz_r)
 
     call comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
@@ -89,7 +87,7 @@ integer ibzxx( 2,        nfl3:nfu3,2*nfl1-14:2*nfu1+16)
 integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
           m1=nfu1-nfl1;    m2=nfu2-nfl2;    m3=nfu3-nfl3
-!    print *,'com_g_tree',product(shape(w1))
+
 ! i1,i2,i3 -> i2,i3,I1
         nt=(nfu2-nfl2+1)*(nfu3-nfl3+1)
         call  comb_rot_grow_loc_1(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,w1,ibyz,ibzxx) 
@@ -132,7 +130,7 @@ integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
     include 'v_17.inc'
 
-!    print *,'com_g_loc1',product(shape(y))
+
 !    open(unit=20,file='tree.flop')
 
 !    nflop=0
@@ -434,14 +432,10 @@ integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
             if (ib(1,l2,l3).le.ib(2,l2,l3)) then
     
-                y(l2 ,l3,ib(2,l2 ,l3)+ib(2,l2 ,l3)+16)=fil2(16,1)*x(ib(2,l2 ,l3),l2 ,l3)
-                y(l21,l3,ib(2,l21,l3)+ib(2,l21,l3)+16)=fil2(16,1)*x(ib(2,l21,l3),l21,l3)
-                y(l2 ,l31,ib(2,l2 ,l31)+ib(2,l2 ,l31)+16)=fil2(16,1)*x(ib(2,l2 ,l31),l2 ,l31)
-                y(l21,l31,ib(2,l21,l31)+ib(2,l21,l31)+16)=fil2(16,1)*x(ib(2,l21,l31),l21,l31)
-!                y(l2 ,l3,2*ib(2,l2 ,l3)+16)=fil2(16,1)*x(ib(2,l2 ,l3),l2 ,l3)
-!                y(l21,l3,2*ib(2,l21,l3)+16)=fil2(16,1)*x(ib(2,l21,l3),l21,l3)
-!                y(l2 ,l31,2*ib(2,l2 ,l31)+16)=fil2(16,1)*x(ib(2,l2 ,l31),l2 ,l31)
-!                y(l21,l31,2*ib(2,l21,l31)+16)=fil2(16,1)*x(ib(2,l21,l31),l21,l31)
+                y(l2 ,l3,2*ib(2,l2 ,l3)+16)=fil2(16,1)*x(ib(2,l2 ,l3),l2 ,l3)
+                y(l21,l3,2*ib(2,l21,l3)+16)=fil2(16,1)*x(ib(2,l21,l3),l21,l3)
+                y(l2 ,l31,2*ib(2,l2 ,l31)+16)=fil2(16,1)*x(ib(2,l2 ,l31),l2 ,l31)
+                y(l21,l31,2*ib(2,l21,l31)+16)=fil2(16,1)*x(ib(2,l21,l31),l21,l31)
             
                 do i=ib(1,l2,l3)-7,ib(2,l2,l3)+7 
                     y2i__11=0.d0
@@ -455,37 +449,25 @@ integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
                     y2i1_22=0.d0
 
                     do t=max(i-8,ib(1,l2,l3)),min(i+7,ib(2,l2,l3))
-                        y2i__11=y2i__11+fil2(i+i-t-t  ,1)*x(t  ,l2 ,l3)
-                        y2i__12=y2i__12+fil2(i+i-t-t  ,1)*x(t  ,l21,l3)
-                        y2i1_11=y2i1_11+fil2(i+i-t-t+1,1)*x(t  ,l2 ,l3)
-                        y2i1_12=y2i1_12+fil2(i+i-t-t+1,1)*x(t  ,l21,l3)
-!                        y2i__11=y2i__11+fil2(2*(i-t)  ,1)*x(t  ,l2 ,l3)
-!                        y2i__12=y2i__12+fil2(2*(i-t)  ,1)*x(t  ,l21,l3)
-!                        y2i1_11=y2i1_11+fil2(2*(i-t)+1,1)*x(t  ,l2 ,l3)
-!                        y2i1_12=y2i1_12+fil2(2*(i-t)+1,1)*x(t  ,l21,l3)
+                        y2i__11=y2i__11+fil2(2*(i-t)  ,1)*x(t  ,l2 ,l3)
+                        y2i__12=y2i__12+fil2(2*(i-t)  ,1)*x(t  ,l21,l3)
+                        y2i1_11=y2i1_11+fil2(2*(i-t)+1,1)*x(t  ,l2 ,l3)
+                        y2i1_12=y2i1_12+fil2(2*(i-t)+1,1)*x(t  ,l21,l3)
 
-                        y2i__21=y2i__21+fil2(i+i-t-t  ,1)*x(t  ,l2 ,l31)
-                        y2i__22=y2i__22+fil2(i+i-t-t  ,1)*x(t  ,l21,l31)
-                        y2i1_21=y2i1_21+fil2(i+i-t-t+1,1)*x(t  ,l2 ,l31)
-                        y2i1_22=y2i1_22+fil2(i+i-t-t+1,1)*x(t  ,l21,l31)
+                        y2i__21=y2i__21+fil2(2*(i-t)  ,1)*x(t  ,l2 ,l31)
+                        y2i__22=y2i__22+fil2(2*(i-t)  ,1)*x(t  ,l21,l31)
+                        y2i1_21=y2i1_21+fil2(2*(i-t)+1,1)*x(t  ,l2 ,l31)
+                        y2i1_22=y2i1_22+fil2(2*(i-t)+1,1)*x(t  ,l21,l31)
                     enddo
-                    y(l2 ,l3,i+i  )=y2i__11
-                    y(l21,l3,i+i  )=y2i__12
-                    y(l2 ,l3,i+i+1)=y2i1_11
-                    y(l21,l3,i+i+1)=y2i1_12
-!                    y(l2 ,l3,2*i  )=y2i__11
-!                    y(l21,l3,2*i  )=y2i__12
-!                    y(l2 ,l3,2*i+1)=y2i1_11
-!                    y(l21,l3,2*i+1)=y2i1_12
+                    y(l2 ,l3,2*i  )=y2i__11
+                    y(l21,l3,2*i  )=y2i__12
+                    y(l2 ,l3,2*i+1)=y2i1_11
+                    y(l21,l3,2*i+1)=y2i1_12
 
-                    y(l2 ,l31,i+i  )=y2i__21
-                    y(l21,l31,i+i  )=y2i__22
-                    y(l2 ,l31,i+i+1)=y2i1_21
-                    y(l21,l31,i+i+1)=y2i1_22
-!                    y(l2 ,l31,2*i  )=y2i__21
-!                    y(l21,l31,2*i  )=y2i__22
-!                    y(l2 ,l31,2*i+1)=y2i1_21
-!                    y(l21,l31,2*i+1)=y2i1_22
+                    y(l2 ,l31,2*i  )=y2i__21
+                    y(l21,l31,2*i  )=y2i__22
+                    y(l2 ,l31,2*i+1)=y2i1_21
+                    y(l21,l31,2*i+1)=y2i1_22
                 enddo
         
             endif
@@ -537,17 +519,17 @@ integer ibxxyy(2,                  2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
             
             if (ib(1,l2,l3).le.ib(2,l2,l3)) then
     
-                y(l2,l3,ib(2,l2,l3)+ib(2,l2,l3)+16)=fil2(16,1)*x(ib(2,l2,l3),l2,l3)
+                y(l2,l3,2*ib(2,l2,l3)+16)=fil2(16,1)*x(ib(2,l2,l3),l2,l3)
             
                 do i=ib(1,l2,l3)-7,ib(2,l2,l3)+7 
                     y2i=0.d0
                     y2i1=0.d0
                     do t=max(i-8,ib(1,l2,l3)),min(i+7,ib(2,l2,l3))
-                        y2i=y2i+fil2(i-i+t+t,1)*x(t  ,l2,l3)
-                        y2i1=y2i1+fil2(i+i-t-t+1,1)*x(t  ,l2,l3)
+                        y2i=y2i+fil2(2*(i-t),1)*x(t  ,l2,l3)
+                        y2i1=y2i1+fil2(2*(i-t)+1,1)*x(t  ,l2,l3)
                     enddo
-                    y(l2,l3,i+i)=y2i
-                    y(l2,l3,i+i+1)=y2i1
+                    y(l2,l3,2*i)=y2i
+                    y(l2,l3,2*i+1)=y2i1
                 enddo
         
             endif

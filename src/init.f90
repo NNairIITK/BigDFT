@@ -1523,10 +1523,6 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
 !     print *,'p', (DDOT(nvctrp,tpsi(1,i),1,tpsi(1,i),1),i=1,norbu+norbd)
      ppsit=0.0d0
      open(unit=1978,file='moments')
-     read(1978,*) mx,my,mz
-     close(1978)
-     mnorm=sqrt(mx**2+my**2+mz**2)
-     mx=mx/mnorm;my=my/mnorm;mz=mz/mnorm
  !    mx=0.0d0;my=0.0d0;mz=1.0d0
      fac=0.5d0
 !     do iorb=1,norbu
@@ -1540,6 +1536,9 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
 !        end do
 !     end do
      do iorb=1,norbu
+        read(1978,*) mx,my,mz
+        mnorm=sqrt(mx**2+my**2+mz**2)
+        mx=mx/mnorm;my=my/mnorm;mz=mz/mnorm
         do i=1,nvctrp
            ppsit(2*i-1,iorb)=(mz+fac*(my+mx))*tpsi(i,iorb)
            ppsit(2*i,iorb)=fac*(my-mx)*tpsi(i,iorb)
@@ -1548,6 +1547,9 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
         end do
      end do
      do iorb=norbu+1,norbu+norbd
+        read(1978,*) mx,my,mz
+        mnorm=sqrt(mx**2+my**2+mz**2)
+        mx=mx/mnorm;my=my/mnorm;mz=mz/mnorm
         do i=1,nvctrp
            ppsit(2*i-1,iorb)=(fac*(mx+my))*tpsi(i,iorb)
            ppsit(2*i,iorb)=-fac*(my+mx)*tpsi(i,iorb)
@@ -1555,7 +1557,8 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
            ppsit(2*i+2*nvctrp,iorb)=-fac*(my-mx)*tpsi(i,iorb)
         end do
      end do
-     
+     close(1978)
+    
      i_all=-product(shape(tpsi))*kind(tpsi)
      deallocate(tpsi,stat=i_stat)
      call memocc(i_stat,i_all,'tpsi','build_eigenvectors')
@@ -1589,3 +1592,97 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
 
 end subroutine build_eigenvectors
 
+
+!  call psitospi(iproc,nproc,norbe,norbep,norbsc,nat,&
+!       wfd%nvctr_c,wfd%nvctr_f,at%iatype,at%ntypes,&
+!       at%iasctype,at%natsc,at%nspinat,nspin,spinsgne,otoa,psi)
+! Reads magnetic moments from file ('moments') and transforms the
+! atomic orbitals to spinors 
+! warning: Does currently not work for mx<0
+!
+subroutine psitospi(iproc,nproc,norbe,norbep,norbsc,&
+     & nvctr_c,nvctr_f,nat,iatype,ntypes, &
+     iasctype,natsc,nspinat,nspin,spinsgne,otoa,psi)
+  implicit none
+  integer, intent(in) :: norbe,norbep,iproc,nproc,nat
+  integer, intent(in) :: nvctr_c,nvctr_f
+  integer, intent(in) :: ntypes
+  integer, intent(in) :: norbsc,natsc,nspin
+  integer, dimension(ntypes), intent(in) :: iasctype
+  integer, dimension(norbep), intent(in) :: otoa
+  integer, dimension(nat), intent(in) :: iatype,nspinat
+  integer, dimension(norbe*nspin), intent(in) :: spinsgne
+  real(kind=8), dimension(nvctr_c+7*nvctr_f,4*norbep), intent(out) :: psi
+  !local variables
+  logical :: myorbital,polarised
+  integer :: iatsc,i_all,i_stat,ispin,ipolres,ipolorb,nvctr
+  integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,nterm
+  real(kind=8) :: facu,facd
+  real(kind=8) :: mx,my,mz,mnorm,fac
+  real(kind=8), dimension(:,:), allocatable :: mom,psi_o
+  logical, dimension(4) :: semicore
+  integer, dimension(2) :: iorbsc,iorbv
+
+  !initialise the orbital counters
+  iorbsc(1)=0
+  iorbv(1)=norbsc
+  !used in case of spin-polarisation, ignored otherwise
+  iorbsc(2)=norbe
+  iorbv(2)=norbsc+norbe
+
+
+  if (iproc ==0) then
+     write(*,'(1x,a)',advance='no')'Transforming AIO to spinors...'
+  end if
+  
+  nvctr=nvctr_c+7*nvctr_f
+
+  allocate(mom(3,nat),stat=i_stat)
+  call memocc(i_stat,product(shape(mom))*kind(mom),'mom','psitospi')
+
+  open(unit=1978,file='moments')
+  do i=1,nat
+     read(1978,*) mx,my,mz
+     mnorm=sqrt(mx**2+my**2+mz**2)
+     mom(1,iat)=mx/mnorm
+     mom(2,iat)=my/mnorm
+     mom(3,iat)=mz/mnorm
+  end do
+  close(1978)
+  fac=0.5d0
+  do iorb=norbep*nproc,1,-1
+     jorb=iorb-iproc*norbep
+     print *,'Kolla', shape(psi),4*iorb,shape(spinsgne),iorb
+     if (myorbital(iorb,nspin*norbe,iproc,nproc)) then
+        mx=mom(1,otoa(iorb))
+        my=mom(2,otoa(iorb))
+        mz=mom(3,otoa(iorb))
+        print *,'makin spi'
+        if(spinsgne(jorb)>0.0d0) then
+           do i=1,nvctr
+              psi(i,iorb*4-3) = (mz+fac*(my+mx))*psi(i,iorb)
+              psi(i,iorb*4-2) = fac*(my-mx)*psi(i,iorb)
+              psi(i,iorb*4-1) = (fac*(mx-my))*psi(i,iorb)
+              psi(i,iorb*4)   = fac*(my-mx)*psi(i,iorb)
+           end do
+        else
+           do i=1,nvctr
+              psi(i,iorb*4-3) = (fac*(mx+my))*psi(i,iorb)
+              psi(i,iorb*4-2) = -fac*(my+mx)*psi(i,iorb)
+              psi(i,iorb*4-1) = -(mz+fac*(my+mx))*psi(i,iorb)
+              psi(i,iorb*4)   = -fac*(my-mx)*psi(i,iorb)
+           end do
+        end if
+     end if
+!     print *,'OtoA',(otoa(iorb),iorb=1,norbe)
+
+  end do
+     i_all=-product(shape(mom))*kind(mom)
+     deallocate(mom,stat=i_stat)
+     call memocc(i_stat,i_all,'mom','psitospi')
+
+  if (iproc ==0) then
+     write(*,'(1x,a)')'done.'
+  end if
+
+END SUBROUTINE psitospi

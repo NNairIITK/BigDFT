@@ -1339,7 +1339,7 @@ end function gamma
 !  call psitospi(iproc,nproc,norbe,norbep,norbsc,nat,&
 !       wfd%nvctr_c,wfd%nvctr_f,at%iatype,at%ntypes,&
 !       at%iasctype,at%natsc,at%nspinat,nspin,spinsgne,psi)
-subroutine psitospi(iproc,nproc,norbe,norbep,norbsc,nat,&
+subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
      & nvctr_c,nvctr_f,iatype,ntypes, &
      iasctype,natsc,nspinat,nspin,spinsgne,psi)
   implicit none
@@ -1409,4 +1409,4 @@ subroutine psitospi(iproc,nproc,norbe,norbep,norbsc,nat,&
      write(*,'(1x,a)')'done.'
   end if
 
-END SUBROUTINE psitospi
+END SUBROUTINE psitospi0
