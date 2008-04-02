@@ -33,7 +33,7 @@ subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  &
   end if
 
 ! calculate new line, use rds as work array for summation
-  call razero(idsx,rds)
+  call razero(idsx+1,rds)
   ist=max(1,ids-idsx+1)
   do i=ist,ids
      mi=mod(i-1,idsx)+1
@@ -53,7 +53,6 @@ subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  &
     end do
   endif
 
-
 ! copy to work array, right hand side, boundary elements
   do j=1,min(idsx,ids)
      ads(j,min(idsx,ids)+1,2)=1.d0
@@ -65,10 +64,10 @@ subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  &
   ads(min(idsx,ids)+1,min(idsx,ids)+1,2)=0.d0
   rds(min(idsx,ids)+1)=1.d0
 
-!  write(6,*) 'DIIS matrix'
-!  do i=1,min(idsx,ids)+1
-!  write(6,'(i3,12(1x,e9.2))') iproc,(ads(i,j,2),j=1,min(idsx,ids)+1),rds(i)
-!  enddo
+  !if(iproc==0)  write(6,*) 'DIIS matrix'
+  !do i=1,min(idsx,ids)+1
+  !  if(iproc==0)  write(6,'(i3,12(1x,e9.2))') iproc,(ads(i,j,2),j=1,min(idsx,ids)+1),rds(i)
+  !enddo
   if (ids.gt.1) then
      ! solve linear system:(LAPACK)
      call DSYSV('U',min(idsx,ids)+1,1,ads(1,1,2),idsx+1,  & 
@@ -88,7 +87,7 @@ subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  &
 
 ! new guess
   do iorb=1,norb*nspinor
-     call razero(nvctrp*nspinor,psit(1,iorb))
+     call razero(nvctrp,psit(1,iorb))
 
      jst=max(1,ids-idsx+1)
      jj=0

@@ -366,7 +366,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      !end of retransposition
   else
      if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.false.)
-!     call psitransspi(nvctrp,norb,psit.true.)
+!    if(nspinor==4) call psitransspi(nvctrp,norb,psit.true.)
   end if
 !  if(iproc==0)   print '(a,i3,5f10.6)','aOC psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
 !  if(iproc==0)   print '(a,i3,5f10.6)','aOC psi (t)',iproc,((abs(psi(iorb,1)))*100,iorb=1,5)
@@ -482,6 +482,9 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 !  write(*,'(a,12f10.4)') 'psi pupd',(100*psit(k,1),k=1,5),(100*psi(k,1),k=1,5)
 !  print *,DDOT(nvctrp*nspinor,hpsi(1,1),1,hpsi(1,1),1),DDOT(nvctrp*nspinor,psi(1,1),1,psi(1,1),1)
 !  print *,'SDing'
+!  if(iproc==0)   print '(a,i3,5f10.6)','pUD psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
+!  if(iproc==0)   print '(a,i3,5f10.6)','pUD psi (t)',iproc,((abs(psi(iorb,1)))*100,iorb=1,5)
+!   if(iproc==0)  print '(a,i3,5f10.6)','pUD Hpsi (s)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
   !apply the minimization method (DIIS or steepest descent)
   if (idsx.gt.0) then
      if (nproc > 1) then
@@ -489,17 +492,17 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
         !here psi is used as a work array
         call timing(iproc,'Un-TransSwitch','ON')
-        call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi)
+        call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi,nspinor)
         call timing(iproc,'Un-TransSwitch','OF')
         call timing(iproc,'Un-TransComm  ','ON')
-        call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-             hpsidst(1,1,mids),nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+        call MPI_ALLTOALL(psi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
+             hpsidst(1,1,mids),nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
         call timing(iproc,'Un-TransComm  ','OF')
         !end of transposition
 
         call timing(iproc,'Diis          ','ON')
-        do iorb=1,norb
-           do k=1,nvctrp*nspinor
+        do iorb=1,norb*nspinor
+           do k=1,nvctrp
               psidst(k,iorb,mids)= psit(k,iorb) 
            enddo
         enddo
@@ -508,7 +511,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         !     ads,iter,mids,idsx,nvctrp,psit,psidst,hpsidst)
      else
         call timing(iproc,'Diis          ','ON')
-        if(nspinor==4) call psitransspi(nvctrp,norb,psit,.true.)
+!        if(nspinor==4) call psitransspi(nvctrp,norb,psit,.true.)
         if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.true.)
 !        write(*,'(a,12f10.4)') 'psi trans',(100*psit(k,1),k=1,5),(100*hpsi(k,1),k=1,5)
         do iorb=1,norb*nspinor
@@ -518,9 +521,11 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
            enddo
         enddo
      endif
-!     print *,'Pre DIIS' ,shape(psi),shape(hpsidst),shape(psit)
-!     print '(a,30f10.4)','p', (DDOT(nvctrp*nspinor,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
-!     print '(a,30f10.4)','hp', (DDOT(nvctrp*nspinor,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mids),1), &
+!  if(iproc==0)   print '(a,i3,5f10.6)','pDI psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
+!   if(iproc==0)  print '(a,i3,5f10.6)','pDI Hpsi (s)',iproc,((abs(hpsidst(iorb,1,mids)))*100,iorb=1,5)
+!     print *,'Pre DIIS' ,iproc
+!     print '(a,30f10.4)','p', (DDOT(nvctrp,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
+!     print '(a,30f10.4)','hp', (DDOT(nvctrp,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mids),1), &
 !          iorb=1,norb*nspinor,nspinor)
 
      call diisstp(norb,norbp,nproc,iproc, nspinor,  &
@@ -562,14 +567,12 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 !     print *,'updating',shape(psi),shape(hpsi),shape(psit),nvctrp,norb*nspinor
      call timing(iproc,'Diis          ','ON')
 !     if(iproc==0)print '(a,i3,5f10.6)','pDAX psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
-!     if(iproc==0) print '(a,i3,5f10.6)','pDAX hpsi (?)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
+!     if(iproc==0) print '(a,i3,5f10.6)','pDAX hpsi (t)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
 
         do iorb=1,norb*nspinor
            call DAXPY(nvctrp,-alpha,hpsi(1,iorb),1,psit(1,iorb),1)
         enddo
      endif
-!     if(iproc==0)print '(a,i3,5f10.6)','aDAX psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
-!     if(iproc==0) print '(a,i3,5f10.6)','aDAX hpsi (?)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
 
   call timing(iproc,'Diis          ','OF')
 
@@ -599,6 +602,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 !!        if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.)
 !     print '(a,90f20.14)','d', (DDOT(nvctrp,psit(1,5),2,psit(1,3),2)), (DDOT(nvctrp,psit(1,1),2,psit(1,3),2))
 !     if(iproc==0) print '(a,i3,5f10.6)','preO psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
+!     if(iproc==0)print '(a,i3,5f10.6)','pORT psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
 
   if(nspin==1.or.nspinor==4) then
      call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor)
@@ -626,7 +630,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
      nullify(psit)
      if(nspinor==4) call psitransspi(nvctrp,norb,psi,.false.)
-     if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.false.)
+!     if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.false.)
 
   endif
 
@@ -634,6 +638,8 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      write(*,'(1x,a)')&
           'done.'
   end if
+!     if(iproc==0)print '(a,i3,5f10.6)','Final psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
+!     if(iproc==0)print '(a,i3,5f10.6)','Final psi (s)',iproc,((abs(psi(iorb,1)))*100,iorb=1,5)
 
 !    if(iproc==0) print '(a,i3,5f10.6)','Final psi (st)',iproc,((abs(psi(iorb,1)))*100,iorb=1,5)
 !    if(iproc==0) print '(a,i3,5f10.6)','Final psit (t)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
