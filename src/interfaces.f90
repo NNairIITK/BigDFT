@@ -353,13 +353,16 @@ interface
      real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
    end subroutine last_orthon
 
-   subroutine local_forces(iproc,nproc,at,rxyz,hgrid,n1,n2,n3,n3pi,i3s,rho,pot,floc)
+   subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
+        n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc)
+     ! Calculates the local forces acting on the atoms belonging to iproc
      use module_types
      implicit none
      !Arguments---------
      type(atoms_data), intent(in) :: at
-     integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s
-     real(kind=8), intent(in) :: hgrid
+     character(len=1), intent(in) :: geocode
+     integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+     real(kind=8), intent(in) :: hxh,hyh,hzh
      real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
      real(kind=8), dimension(*), intent(in) :: rho,pot
      real(kind=8), dimension(3,at%nat), intent(out) :: floc

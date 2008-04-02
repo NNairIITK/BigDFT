@@ -308,13 +308,13 @@ subroutine convolut_magic_t_per(n1,n2,n3,x,y)
   
   !  (I1,I2*I3) -> (I2*I3,i1)
   ndat=(n2+1)*(n3+1)
-  call convrot_shrink(n1,ndat,x,ww)
+  call convrot_shrink_per(n1,ndat,x,ww)
   !  (I2,I3*i1) -> (I3*i1,i2)
   ndat=(n3+1)*(n1+1)
-  call convrot_shrink(n2,ndat,ww,x)
+  call convrot_shrink_per(n2,ndat,ww,x)
   !  (I3,i1*i2) -> (i1*i2,i3)
   ndat=(n1+1)*(n2+1)
-  call convrot_shrink(n3,ndat,x,y)
+  call convrot_shrink_per(n3,ndat,x,y)
   
   deallocate(ww)
   
@@ -495,6 +495,7 @@ subroutine convrot_shrink_per(n1,ndat,x,y)
         do l=lowfil,lupfil
 			k=modulo(i+l,n1+1)	
 !        	tt=tt+x(i+l,j)*fil(l)
+        	tt=tt+x(k,j)*fil(l)
         enddo
 		 y(j,i)=tt
 

@@ -99,7 +99,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
                  r2=x**2+y**2+z**2
                  arg=r2/rloc**2
                  xp=exp(-.5d0*arg)
-                 if (j3.ge.i3s .and. j3.le. i3s+n3pi-1  .and. goy  .and. gox ) then
+                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                     ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                     pot_ion(ind)=pot_ion(ind)-xp*charge
                  else if (.not. goz ) then
@@ -112,6 +112,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
      enddo
 
   end if
+
   ! Check
   tt=0.d0
   do j3= 1,n3pi!i3start,i3end

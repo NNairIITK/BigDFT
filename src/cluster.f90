@@ -193,8 +193,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   hy=in%hgrid
   hz=in%hgrid
 
-  !define the geometry code: hard coded to free BC for the moment
-  geocode='F'
+  geocode=in%geocode
+
+  alat1=in%alat1
+  alat2=in%alat2
+  alat3=in%alat3
 
   if (iproc.eq.0) then
      write(*,'(1x,a,1x,i0)') &
@@ -536,7 +539,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                 'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
            write(*,'(1x,a,3(1x,1pe18.11))') &
                 'final ehart, eexcu,  vexcu ',ehart,eexcu,vexcu
-           write(*,'(1x,a,i6,2x,1pe19.12,1x,1pe9.2)') &
+           write(*,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
                 'FINAL iter,total energy,gnrm',iter,energy,gnrm
            !write(61,*)hgrid,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
            if (energy > energy_min) write(*,'(1x,a,1pe9.2)')&
@@ -560,7 +563,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
              ekin_sum,epot_sum,eproj_sum
         write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-        write(*,'(1x,a,i6,2x,1pe19.12,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
+        write(*,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
      endif
 
      if (inputPsiId == 0) then
@@ -798,7 +801,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
 
   call DCOPY(n1i*n2i*n3p,rho,1,pot,1) 
-  call PSolver('F',datacode,iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
+  call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
        pot,pkernel,pot,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1)
   !here nspin=1 since ixc=0
 
@@ -812,7 +815,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   call timing(iproc,'Forces        ','ON')
   ! calculate local part of the forces gxyz
-  call local_forces(iproc,nproc,atoms,rxyz,hgrid,n1,n2,n3,n3p,i3s+i3xcsh,rho,pot,gxyz)
+  call local_forces(geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
+       n1,n2,n3,n3p,i3s+i3xcsh,n1i,n2i,n3i,rho,pot,gxyz)
 
 !!$  sumx=0.d0
 !!$  sumy=0.d0
@@ -844,7 +848,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !the calculation of the derivatives of the projectors has been decoupled
   !from the one of nonlocal forces, in this way forces can be calculated
-  !diring the wavefunction minimization if needed
+  !during the wavefunction minimization if needed
   call projectors_derivatives(geocode,iproc,atoms,n1,n2,n3,norb,nlpspd,proj,&
        rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
 
@@ -975,7 +979,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      if (iproc.eq.0) then
         write(*,'(1x,a,3(1x,1pe18.11))')&
              '  Corrected ekin,epot,eproj',ekin_sum,epot_sum,eproj_sum
-        write(*,'(1x,a,1x,1pe19.12)')&
+        write(*,'(1x,a,1x,1pe24.17)')&
              'Total energy with tail correction',energy
      endif
 

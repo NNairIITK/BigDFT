@@ -99,7 +99,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
         dy2=d2(i2,hy,n2,ry,pery)
         do i1=nl1_c,nu1_c
            dx2=d2(i1,hx,n1,rx,perx)
-           if (dx2+(dy2+dz2).le.rad_c**2) then
+           if (dx2+(dy2+dz2) <= rad_c**2) then
               mvctr=mvctr+1
               proj_c(mvctr)=wprojx(i1,1,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
            endif
@@ -117,7 +117,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
         dy2=d2(i2,hy,n2,ry,pery)
         do i1=nl1_f,nu1_f
            dx2=d2(i1,hx,n1,rx,perx)
-           if (dx2+(dy2+dz2).le.rad_f**2) then
+           if (dx2+(dy2+dz2) <= rad_f**2) then
               mvctr=mvctr+1
               proj_f(1,mvctr)=wprojx(i1,2,1)*wprojy(i2,1,1)*wprojz(i3,1,1)
               proj_f(2,mvctr)=wprojx(i1,1,1)*wprojy(i2,2,1)*wprojz(i3,1,1)
@@ -131,7 +131,6 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
      enddo
   enddo
   if (mvctr.ne.mvctr_f) stop 'mvctr >< mvctr_f'
-
 
   do iterm=2,nterm
 
