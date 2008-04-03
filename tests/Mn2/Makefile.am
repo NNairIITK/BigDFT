@@ -10,8 +10,8 @@ EXTRA_DIST = \
 PPFILES = \
 	psppar.Mn
 
-CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* Mn.out posout* \
-			 *.prc Mn.memguess fldiff.report 
+CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* Mn2.out posout* \
+			 *.prc Mn2.memguess fldiff.report 
 
 #dependencies
 $(PPFILES):
@@ -25,6 +25,6 @@ check: $(PPFILES) posinp input.dat
 	  ln -s $(top_srcdir)/tests/Mn2/posinp ; \
 	fi
 	$(top_builddir)/src/memguess 1 > Mn.memguess
-	python $(top_srcdir)/tests/fldiff.py Mn.memguess $(top_srcdir)/tests/Refs/Mn.memguess.ref | cat
-	$(run_parallel) $(top_builddir)/src/cluster > Mn.out
-	python $(top_srcdir)/tests/fldiff.py Mn.out $(top_srcdir)/tests/Refs/Mn.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py Mn.memguess $(top_srcdir)/tests/Refs/Mn2.memguess.ref | cat
+	$(run_parallel) $(top_builddir)/src/cluster > Mn2.out
+	python $(top_srcdir)/tests/fldiff.py Mn.out $(top_srcdir)/tests/Refs/Mn2.out.ref | tee fldiff.report

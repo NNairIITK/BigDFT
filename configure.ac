@@ -284,6 +284,7 @@ tests/Li+/Makefile
 tests/NaCl/Makefile
 tests/SiH4/Makefile
 tests/H2O-CP2K/Makefile
+tests/Mn2/Makefile
 ])
 AC_OUTPUT
 
