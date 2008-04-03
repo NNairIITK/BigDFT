@@ -188,6 +188,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
 
 END SUBROUTINE createWavefunctionsDescriptors
 
+
 !pass to implicit none while inserting types on this routine
 subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
      radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
@@ -485,6 +486,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
 
 END SUBROUTINE createProjectorsArrays
 
+
 subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
      pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinsgn)
@@ -625,6 +627,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   if (iproc.eq.0) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE import_gaussians
+
 
 subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
@@ -1415,16 +1418,20 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
 
 end subroutine solve_eigensystem
 
+
 subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,nspin,nspinor,ndim_hamovr,&
      norbsc_arr,hamovr,psi,ppsit)
   implicit none
+  !Arguments
   integer, intent(in) :: nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,nspin,nspinor,ndim_hamovr
   integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
   real(kind=8), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
   real(kind=8), dimension(nvctrp,norbep*nproc), intent(in) :: psi
   real(kind=8), dimension(nvctrp*nspinor,norbp*nproc), intent(out) :: ppsit
-  !local variables
+  !Local variables
+  integer, parameter :: iunit=1978
   integer :: ispin,iorbst,iorbst2,imatrst,norbsc,norbi,norbj,i,iorb,i_stat,i_all
+  logical :: exists
   real(kind=8) :: tt,mx,my,mz,mnorm,fac,ma,mb,mc,md
   real, dimension(:), allocatable :: randnoise
   real(kind=8), dimension(:,:), allocatable :: tpsi
@@ -1507,10 +1514,20 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
         imatrst=ndim_hamovr+1
      end do
      ppsit=0.0d0
-     open(unit=1978,file='moments')
+     inquire(file='moments',exist=exists)
+     if (.not.exists) then
+        stop 'The file "moments does not exist!'
+     endif
+     open(unit=iunit,file='moments',form='formatted',action='read',status='old')
      fac=0.5d0
      do iorb=1,norbu+norbd
-        read(1978,*) mx,my,mz
+        read(unit=iunit,fmt=*,iostat=i_stat) mx,my,mz
+        if (i_stat /= 0) then
+           write(unit=*,fmt='(a,i0,a,i0,a)') &
+                'The file "moments" has the line ',iorb,&
+                ' which have not 3 numbers for the orbital ',iorb,'.'
+           stop 'The file "moments" is not correct!'
+        end if
         mnorm=sqrt(mx**2+my**2+mz**2)
         mx=mx/mnorm;my=my/mnorm;mz=mz/mnorm
         ma=0.0d0;mb=0.0d0;mc=0.0d0;md=0.0d0
@@ -1554,7 +1571,7 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
            ppsit(2*i+2*nvctrp,iorb)=md*tpsi(i,iorb)
         end do
      end do
-     close(1978)
+     close(unit=iunit)
     
      i_all=-product(shape(tpsi))*kind(tpsi)
      deallocate(tpsi,stat=i_stat)
