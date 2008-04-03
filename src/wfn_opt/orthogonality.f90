@@ -219,11 +219,13 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
         call timing(iproc,'GramS_commun  ','OF')
         call timing(iproc,'GramS_comput  ','ON')
      end if
-
-!!$       write(*,*) 'parallel ovrlp'
-!!$       do i=1,norbs
-!!$       write(*,'(10(1x,1pe10.3))') (ovrlp(i,j,1),j=1,norb)
-!!$       enddo
+     
+!     if (iproc==0) then
+!        !       write(*,*) 'parallel ovrlp'
+!        do i=1,norbs,min(2,nspinor)
+!           write(*,'(10(1x,1pe10.3))') (ovrlp(i,j,1),j=1,norb)
+!        enddo
+!     end if
 
      if(nspinor==1) then
         
@@ -241,22 +243,22 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
      else
 
        ! Cholesky factorization
-        do i=1,norb
+!        do i=1,norb
 !           if(iproc==0) write(*,'(10f10.3)') (ovrlp(j,i,1), j=1,norbs)
-        end do
+!        end do
         call zpotrf( 'L',norb,ovrlp,norb,info )
         if (info.ne.0) write(6,*) 'info Cholesky factorization',info
         
         ! calculate L^{-1}
-         do i=1,norb
+!         do i=1,norb
 !           if(iproc==0) write(*,'(10f10.3)') (ovrlp(j,i,1), j=1,norbs)
-        end do
+!        end do
        call ZTRTRI( 'L','N',norb,ovrlp,norb,info )
         if (info.ne.0) write(6,*) 'info L^-1',info
         
-         do i=1,norb
+!         do i=1,norb
  !          if(iproc==0) write(*,'(10f10.3)') (ovrlp(j,i,1), j=1,norbs)
-        end do
+!        end do
        ! new vectors   !!check if third argument should be transpose or conjugate
         call ZTRMM ('R','L','C','N',2*nvctrp,norb,(1.d0,0.0d0),ovrlp,norb,psit,2*nvctrp)
 

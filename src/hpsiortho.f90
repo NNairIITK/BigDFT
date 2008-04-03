@@ -242,7 +242,6 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
      eproj_sum=wrkallred(3,1) 
   endif
 
-
 end subroutine HamiltonianApplication
 
 
@@ -302,6 +301,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         call psitransspi(nvctrp,norb,hpsi,.true.)
      end if
   end if
+
 
   if(nspin==1.or.nspinor==4) then
      call orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsi,scprsum,nspinor)
@@ -391,7 +391,6 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         else
            !starting address of the direct array in transposed form
            call trans_address(norbp,nvctrp*nspinor,nspinor*(wfd%nvctr_c+7*wfd%nvctr_f),1,sidx,i1,i2)
-!           print *,'TrAdd',iproc,'   ',iorb,sidx,i1,i2
         end if
         
         cprecr=-eval(iorb)
@@ -473,7 +472,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         !here psi is used as a work array
         call timing(iproc,'Un-TransSwitch','ON')
         call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi,nspinor)
-        call timing(iproc,'Un-TransSwitch','OF')
+       call timing(iproc,'Un-TransSwitch','OF')
         !here hpsi is the transposed array
         call timing(iproc,'Un-TransComm  ','ON')
         call MPI_ALLTOALL(psi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
@@ -617,16 +616,24 @@ subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvct
 !     write(*,'(a,i3,30f10.5)') 'U-SWI',iproc,(sum(psi(1:nvctrp,iorb)),iorb=1,norbp*nspinor)
   else
      if(nspin==1.or.nspinor==4) then
-        call orthon(norb,nvctrp,psi,nspinor)
-        !call checkortho(norb,norbp,nvctrp,psi)
+        call orthon_p(iproc,nproc,norb,nvctrp,nvctr_c+7*nvctr_f,psi,nspinor) 
      else
-        call orthon(norbu,nvctrp,psi,nspinor)
-        !call checkortho(norbu,nvctrp,psi)
+        call orthon_p(iproc,nproc,norbu,nvctrp,nvctr_c+7*nvctr_f,psi,nspinor) 
         if(norbd>0) then
-           call orthon(norbd,nvctrp,psi(1,norbu+1),nspinor)
-           !call checkortho(norbd,nvctrp,psi(1,norbu+1))
+           call orthon_p(iproc,nproc,norbd,nvctrp,nvctr_c+7*nvctr_f,psi(1,norbu+1),nspinor) 
         end if
      end if
+!     if(nspin==1.or.nspinor==4) then
+!        call orthon(norb,nvctrp,psi,nspinor)
+        !call checkortho(norb,norbp,nvctrp,psi)
+!     else
+!        call orthon(norbu,nvctrp,psi,nspinor)
+!        !call checkortho(norbu,nvctrp,psi)
+!        if(norbd>0) then
+!           call orthon(norbd,nvctrp,psi(1,norbu+1),nspinor)
+!           !call checkortho(norbd,nvctrp,psi(1,norbu+1))
+!        end if
+!     end if
      !allocate hpsi array
      allocate(hpsi(nvctr_c+7*nvctr_f,nspinor*norbp),stat=i_stat)
      call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','first_orthon')
@@ -764,9 +771,6 @@ subroutine calc_moments(iproc,nproc,norb,norbp,nvctr,nspinor,psi)
   real(kind=8), dimension(:,:,:), allocatable :: mom_vec
   real(kind=8),external :: DDOT
 
-!  print *,'cm',shape(psi)
-!  if(iproc==0) print '(a,5f10.6)','cm s',(psi(oidx,1),oidx=1,5)
-!  if(iproc==0) print '(a,5f10.6)','cm t',(psi(1,oidx),oidx=1,5)
   if(nspinor==4) then
      
      allocate(mom_vec(4,norbp*nproc,2),stat=i_stat)

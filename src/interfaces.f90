@@ -80,12 +80,12 @@ interface
      real(kind=8), dimension(:,:), pointer :: psi
    end subroutine conjgrad
 
-   subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,hgrid,n1,n2,n3,eval,wfd,psi,&
+   subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,eval,wfd,psi,&
         hgrid_old,n1_old,n2_old,n3_old,eval_old,wfd_old,psi_old)
      use module_types     
      implicit none
      type(wavefunctions_descriptors) :: wfd,wfd_old
-     integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3
+     integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,n1,n2,n3
      real(kind=8), intent(in) :: hgrid
      integer, intent(out) :: n1_old,n2_old,n3_old
      real(kind=8), intent(out) :: hgrid_old
