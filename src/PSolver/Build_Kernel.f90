@@ -130,9 +130,15 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
 
   if (iproc==0) then
      write(*,'(a)')'done.'
-     write(*,'(1x,2(a,i0))')&
-          'Memory occ. per proc. (Bytes):  Density=',md1*md3*md2/nproc*8,&
-          '  Kernel=',nd1*nd2*nd3/nproc*8
+     if (geocode /= 'P') then 
+        write(*,'(1x,2(a,i0))')&
+             'Memory occ. per proc. (Bytes):  Density=',md1*md3*md2/nproc*8,&
+             '  Kernel=',nd1*nd2*nd3/nproc*8
+     else
+        write(*,'(1x,2(a,i0))')&
+             'Memory occ. per proc. (Bytes):  Density=',md1*md3*md2/nproc*8,&
+             '  Kernel=',8
+     end if
      write(*,'(1x,a,i0)')&
           '                                Full Grid Arrays=',n01*n02*n03*8
      !print the load balancing of the different dimensions on screen

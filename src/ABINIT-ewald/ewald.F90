@@ -309,7 +309,7 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 !Output the final values of ng and nr
  write(message, '(a,a,i4,a,i4)' )ch10,&
 & ' ewald : nr and ng are ',nr,' and ',ng
- call wrtout(06,message,'COLL')
+ !call wrtout(06,message,'COLL')
 
 end subroutine ewald
 !!***

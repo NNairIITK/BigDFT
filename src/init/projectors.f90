@@ -61,6 +61,9 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   rad_c=radius_f*cpmult
   rad_f=radius_f*fpmult
 
+  !print *,''
+  !print *,'limits',nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
+
   ! make sure that the coefficients returned by CALL GAUSS_TO_DAUB are zero outside [ml:mr] 
   err_norm=0.d0 
   do iterm=1,nterm
@@ -86,6 +89,9 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
 !!$        fpmult_max=max((nu1_f-nl1_f)*hx*0.5d0/radius_f,(nu2_f-nl2_f)*hy*0.5d0/radius_f,(nu3_f-nl3_f)*hz*0.5d0/radius_f)
 !!$        print *,'cpmult_max,fpmult_max=',cpmult_max,fpmult_max
      endif
+
+     !print *,iterm,ml1,mu1,ml2,mu2,ml3,mu3,n1,n2,n3,rad_c,rad_f
+
   end do
   !        if (iproc.eq.0) write(*,*) 'max err_norm ',err_norm
 
@@ -107,7 +113,10 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
      enddo
   enddo
 
-  if (mvctr.ne.mvctr_c) stop 'mvctr >< mvctr_c'
+  if (mvctr /=  mvctr_c) then
+     write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_c ',mvctr,mvctr_c
+     stop
+  end if
 
   ! First term: fine projector components
   mvctr=0
@@ -130,7 +139,10 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
         enddo
      enddo
   enddo
-  if (mvctr.ne.mvctr_f) stop 'mvctr >< mvctr_f'
+  if (mvctr /= mvctr_f) then
+     write(*,'(1x,a,i0,1x,i0)')' ERROR: mvctr >< mvctr_f ',mvctr,mvctr_f
+     stop 
+  end if
 
   do iterm=2,nterm
 
@@ -179,7 +191,6 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
         enddo
      enddo
 
-
   enddo
 
   i_all=-product(shape(wprojx))*kind(wprojx)
@@ -208,8 +219,8 @@ function d2(i,h,n,r,periodic)
 
   if (periodic) then
      !take the point which has the minimum distance  comparing with the periodic image
-     !which is i+-(n+1) if it is on the second or on the first half respectively
-     j=i+(2*(i/(n/2+1))-1)*(n+1)
+     !which is i-+(n+1) if it is on the second or on the first half respectively
+     j=i-(2*(i/(n/2+1))-1)*(n+1)
      d2=min((real(i,kind=8)*h-r)**2,(real(j,kind=8)*h-r)**2)
   else
      d2=(real(i,kind=8)*h-r)**2
@@ -252,13 +263,19 @@ subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,
      if (nu2 > n2)   stop 'nu2: projector region outside cell'
      if (nu3 > n3)   stop 'nu3: projector region outside cell'
   else
-     !correct the extremes if the run outside the box
-     if (nl1 < 0)  nl1=0
-     if (nl2 < 0)  nl2=0
-     if (nl3 < 0)  nl3=0
-     if (nu1 > n1) nu1=n1
-     if (nu2 > n2) nu2=n2
-     if (nu3 > n3) nu3=n3
+     !correct the extremes if they run outside the box
+     if (nl1 < 0 .or. nu1 > n1) then
+        nl1=0
+        nu1=n1
+     end if
+     if (nl2 < 0 .or. nu2 > n2) then
+        nl2=0
+        nu2=n2
+     end if
+     if (nl3 < 0 .or. nu3 > n3) then
+        nl3=0
+        nu3=n3
+     end if
   end if
 
 END SUBROUTINE pregion_size

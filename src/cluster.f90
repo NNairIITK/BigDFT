@@ -312,6 +312,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
        atoms%psppar,atoms%nelpsp,rxyz,hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,&
        n1i,n2i,n3i,pkernel,pot_ion,eion)
 
+  !here calculate the ionic energy
+  call IonicEnergy(geocode,iproc,atoms,alat1,alat2,alat3,rxyz,eion)
+
   !Allocate Charge density, Potential in real space
   if (n3d >0) then
      allocate(rhopot(n1i,n2i,n3d,nspin),stat=i_stat)

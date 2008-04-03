@@ -982,6 +982,7 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
      alat2=alatrue2
   else if (geocode == 'P') then
      !for the moment we do not put the shift, at the end it will be tested
+     !here we should put the center of mass
      cxmin=0.d0
      cymin=0.d0
      czmin=0.d0
@@ -1010,14 +1011,18 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
   enddo
 
   !correct the values of the delimiter if they go outside the box
-  if (nfl1 < 0) nfl1=0
-  if (nfl2 < 0) nfl2=0
-  if (nfl3 < 0) nfl3=0
-
-  if (nfu1 > n1) nfu1=n1
-  if (nfu2 > n2) nfu2=n2
-  if (nfu3 > n3) nfu3=n3
-
+  if (nfl1 < 0 .or. nfu1 > n1) then
+     nfl1=0
+     nfu1=n1
+  end if
+  if (nfl2 < 0 .or. nfu2 > n2) then
+     nfl2=0
+     nfu2=n2
+  end if
+  if (nfl3 < 0 .or. nfu3 > n3) then
+     nfl3=0
+     nfu3=n3
+  end if
 
   if (iproc.eq.0) then
      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
