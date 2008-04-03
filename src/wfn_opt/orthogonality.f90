@@ -14,14 +14,12 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   call timing(iproc,'LagrM_comput  ','ON')
   istart=2
   if (nproc == 1) istart=1
-!  print *,'  '
-!  print *,'Ortho0',((abs(psit(2,i))),(abs(hpsit(2,i))),i=1,norb)
+
   if(nspinor==1) then
      norbs=norb
   else
      norbs=2*norb
   end if
-! print *,'Ortho1',((abs(psit(2,i))),(abs(hpsit(2,i))),i=1,norb)
 
   allocate(alag(norbs,norb,istart),stat=i_stat)
   call memocc(i_stat,product(shape(alag))*kind(alag),'alag','orthoconstraint_p')
@@ -51,11 +49,6 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
 !          write(*,'(10(1x,1pe10.3))') (alag(jorb,iorb,1),jorb=1,norbs)
 !          enddo
 !          endif
-!  if(iproc==0) print *,norb,norbs
-!  do iorb=1,norb
-!     if(iproc==0) write(*,'(30f12.6)') (alag(jorb,iorb,1),jorb=1,norbs)
-!  end do
-!  if(iproc==0) print *,' '
   scprsum=0.d0
   if(nspinor==1) then
      do iorb=1,norb
@@ -83,7 +76,6 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   deallocate(alag,stat=i_stat)
   call memocc(i_stat,i_all,'alag','orthoconstraint_p')
 
-!  print *,'Ortho2',sum(abs(psit(1:nvctrp,1))),sum(abs(hpsit(1:nvctrp,1)))
   call timing(iproc,'LagrM_comput  ','OF')
 
 END SUBROUTINE orthoconstraint_p
@@ -136,9 +128,6 @@ subroutine orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum,nspinor)
   else
      call ZGEMM('N','N',2*nvctrp,norb,norb,(-1.d0,0.0d0),psit,2*nvctrp,alag,norb,(1.d0,0.0d0),hpsit,2*nvctrp)
      
-!     call psitransspi(nvctrp,norb,psi,.true.)
-!     call psitransspi(nvctrp,norb,hpsi,.true.)
-!     print *,'---O-o-------'
      
   end if
 
@@ -168,13 +157,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 
   include 'mpif.h'
 
- 
-  
-
   call timing(iproc,'GramS_comput  ','ON')
-!  print *,'ortho',shape(psit), ddot(2*nvctrp,psit(1,2),1,psit(1,2),1),&
-!       ddot(2*nvctrp,psit(2,2),2,psit(2,2),2)
-
 
   if (norb.eq.1) then 
 
@@ -215,10 +198,6 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
         norbs=norb
      else
         norbs=2*norb
-        if(nproc==1) then
-!           print *,'jello'
-!           call psitransspi(nvctrp,norb,psit,.true.)
-        end if
      end if
 
      allocate(ovrlp(norbs,norb,istart),stat=i_stat)
@@ -240,15 +219,9 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
         call timing(iproc,'GramS_commun  ','OF')
         call timing(iproc,'GramS_comput  ','ON')
      end if
-!
-!  if(iproc==0) print *,norb,norbs
-!  do i=1,norb
-!     if(iproc==0) write(*,'(30f8.4)') (ovrlp(j,i,1),j=1,norbs) 
-!  end do
-!  if(iproc==0) print *,' '
 
 !!$       write(*,*) 'parallel ovrlp'
-!!$       do i=1,norb
+!!$       do i=1,norbs
 !!$       write(*,'(10(1x,1pe10.3))') (ovrlp(i,j,1),j=1,norb)
 !!$       enddo
 
@@ -772,7 +745,6 @@ subroutine KStrans_p(iproc,nproc,norb,ndim,nvctrp,occup,  &
 
   allocate(psitt(nvctrp*nspinor,ndim),stat=i_stat)
   call memocc(i_stat,product(shape(psitt))*kind(psitt),'psitt','kstrans_p')
-!  if(iproc==0) print *,'DIMS',shape(psit),shape(psitt),nvctrp,norb
   ! Transform to KS orbitals
   if(nspinor==1) then
      do iorb=1,norb
@@ -790,13 +762,11 @@ subroutine KStrans_p(iproc,nproc,norb,ndim,nvctrp,occup,  &
         enddo
      enddo
   end if
-!  print *,'KSsize A',iproc,(sum(psitt(:,iorb)),iorb=1,norb)
   i_all=-product(shape(hamks))*kind(hamks)
   deallocate(hamks,stat=i_stat)
   call memocc(i_stat,i_all,'hamks','kstrans_p')
 
   call DCOPY(nvctrp*ndim*nspinor,psitt,1,psit,1)
-!  print *,'KSsize B',(sum(psit(:,iorb)),iorb=1,norb)
   i_all=-product(shape(psitt))*kind(psitt)
   deallocate(psitt,stat=i_stat)
   call memocc(i_stat,i_all,'psitt','kstrans_p')

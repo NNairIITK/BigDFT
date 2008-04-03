@@ -21,8 +21,9 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(out) :: hpsi
   !local variables
   integer :: i_all,i_stat,ierr,iorb,n1i,n2i,n3i
-  integer :: nw1,nw2,nsoffset,oidx,ispin
+  integer :: nw1,nw2,nsoffset,oidx,ispin,md
   real(kind=8) :: ekin,epot,eproj
+  real(kind=8) :: m00,m11,m12,m13,m34,m24
   real(kind=8), dimension(3,2) :: wrkallred
   real(kind=8), dimension(:,:), allocatable :: w1,w2,psir
   !for the periodic BC case, these arrays substitute 
@@ -30,24 +31,20 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   real(kind=8), dimension(:,:,:,:), allocatable ::x_c,y_c,x_f1,x_f2,x_f3
   real(kind=8), dimension(:,:,:,:,:), allocatable::x_f,x_fc,y_f
   real(kind=8), dimension(:,:), pointer :: pot
+  real(kind=8), dimension(:,:,:), allocatable :: mom_vec
+  real(kind=8),external :: DDOT
 
   !debug
   integer :: nvctrp
-  real(kind=8) :: DDOT
 
   call timing(iproc,'ApplyLocPotKin','ON')
   nvctrp=wfd%nvctr_c+7*wfd%nvctr_f
 
- 
-!  print *,'HamApp',iproc,(sum(potential(:,ispin)),ispin=1,nspinor)
     ! local potential and kinetic energy for all orbitals belonging to iproc
   if (iproc==0) then
      write(*,'(1x,a)',advance='no')&
           'Hamiltonian application...'
   end if
-
-!write(*,'(a,2i6,30f12.5)') 'Into HamApp', shape(psi),(sum(psi(:,iorb)),iorb=1,norbp*nspinor)
-
 
   select case(geocode)
      case('F')
@@ -131,12 +128,6 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
      pot => potential
   end if
 
-!  print *,'HamApp pot',iproc,(sum(pot(:,ispin)),ispin=1,nspinor)
-!     print *,'Start',shape(psi)
-!     print '(a,30f10.4)','p', (DDOT(nvctrp*nspinor,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
-!     print '(a,30f10.4)','hp', (DDOT(nvctrp*nspinor,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
-
-
   ! Wavefunction in real space
   allocate(psir(n1i*n2i*n3i,nspinor),stat=i_stat)
   call memocc(i_stat,product(shape(psir))*kind(psir),'psir','hamiltonianapplication')
@@ -145,11 +136,9 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
 
   ekin_sum=0.d0
   epot_sum=0.d0
-!  print *,"IORB",iproc*norbp+1,min((iproc+1)*norbp,norb)
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
      oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
-!     print *,"OIDX,nspinor",iorb,oidx,nspinor,nspin,product(shape(w1))
      if(spinsgn(iorb)>0.0d0) then
         nsoffset=1
      else
@@ -180,13 +169,7 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
      epot_sum=epot_sum+occup(iorb)*epot
 
   enddo
-!  write(*,'(a,30f16.8)') 'Exit LocPot', (sum(hpsi(:,iorb)),iorb=1,norbp*nspinor)
-!     print *,'After locpot'
-!     print '(a,30f10.4)','p', (DDOT(nvctrp*nspinor,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
-!     print '(a,30f10.4)','hp', (DDOT(nvctrp*nspinor,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
 
-
-!  print *,'locpot done',iproc,epot_sum,ekin_sum
   !deallocations of work arrays
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
@@ -239,13 +222,11 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   eproj_sum=0.d0
   ! loop over all my orbitals
   do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor
-!     print *,'call projone',iorb,iorb-iproc*norbp*nspinor,(iorb-1)/nspinor+1
      call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
           nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,nlpspd%nvctr_p,&
           proj,wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,wfd%nvctr_c,wfd%nvctr_f,  & 
           psi(1,iorb-iproc*norbp*nspinor),hpsi(1,iorb-iproc*norbp*nspinor),eproj)
         eproj_sum=eproj_sum+occup((iorb-1)/nspinor+1)*eproj
-!          write(*,*) 'iorb,eproj',iorb,eproj
   enddo
 
   call timing(iproc,'ApplyProj     ','OF')
@@ -260,13 +241,7 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
      epot_sum=wrkallred(2,1)
      eproj_sum=wrkallred(3,1) 
   endif
-!     print *,'After proj'
-!     print '(a,30f10.4)','p', (DDOT(nvctrp*nspinor,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
-!     print '(a,30f10.4)','hp', (DDOT(nvctrp*nspinor,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
 
-!  write(*,*) 'Exit HamApp', (sum(hpsi(:,iorb)),iorb=1,norbp*nspinor),shape(hpsi)
-!   if(iproc==0)  print '(a,i3,5f10.6)','Final psi',iproc,((abs(psi(iorb,1)))*100,iorb=1,5)
-!   if(iproc==0)  print '(a,i3,5f10.6)','Final Hpsi',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
 
 end subroutine HamiltonianApplication
 
@@ -293,15 +268,11 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   integer :: ierr,ind,i1,i2,iorb,k,norbu,norbd,i_stat,i_all,oidx,sidx
   real(kind=8) :: tt,scpr,dnrm2,scprpart,cprecr
   real(kind=8), dimension(:), allocatable :: zalpha
-  real(kind=8) :: DDOT
 
   if (iproc==0) then
      write(*,'(1x,a)',advance='no')&
           'done, orthoconstraint...'
   end if
-!     print *,'Start hpsitopsi',shape(hpsi)
-!     print '(a,30f10.4)','p', (DDOT(nvctrp*nspinor,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
-!     print '(a,30f10.4)','hp', (DDOT(nvctrp*nspinor,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
 
   !Calculate no. up and dw orbitals for spin-polarized starting guess
   norbu=0
@@ -310,12 +281,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      if(spinsgn(iorb)>0.0d0) norbu=norbu+1
      if(spinsgn(iorb)<0.0d0) norbd=norbd+1
   end do
-  !write(*,'(1x,a,3i4,30f6.2)')'Spins: ',norb,norbu,norbd,(spinsgn(iorb),iorb=1,norb)
 
- ! write(*,*) 'Enter Ortho', iproc,(sum(hpsi(:,nproc*iorb-1:nproc*iorb)),iorb=1,norbp*nspinor),shape(hpsi)
-
-!   if(iproc==0)  print '(a,i3,5f10.6)','prS psit (s)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
-!   if(iproc==0)  print '(a,i3,5f10.6)','prS Hpsi (s)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
   if (nproc > 1) then
      !transpose the hpsi wavefunction
@@ -337,10 +303,6 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      end if
   end if
 
-!   if(iproc==0)  print '(a,i3,5f10.6)','pOC psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
-!   if(iproc==0)  print '(a,i3,5f10.6)','pOC Hpsi (t)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
-
-!  print *,'constraining',norb,iproc
   if(nspin==1.or.nspinor==4) then
      call orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsi,scprsum,nspinor)
   else
@@ -368,13 +330,6 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.false.)
 !    if(nspinor==4) call psitransspi(nvctrp,norb,psit.true.)
   end if
-!  if(iproc==0)   print '(a,i3,5f10.6)','aOC psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
-!  if(iproc==0)   print '(a,i3,5f10.6)','aOC psi (t)',iproc,((abs(psi(iorb,1)))*100,iorb=1,5)
-!   if(iproc==0)  print '(a,i3,5f10.6)','aOC Hpsi (s)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
-!  write(*,'(a,30f16.8)') 'Exit Ortho',(abs(hpsi(iorb,1)),iorb=1,5)
-!     print *,'After orthocon'
-!     print '(a,30f10.4)','p', (DDOT(nvctrp*nspinor,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
-!     print '(a,30f10.4)','hp', (DDOT(nvctrp*nspinor,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
 
 !!$  else
 !!$     if(nspin==1) then
@@ -390,10 +345,9 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 !!$     end if
 !!$  endif
 
-!  print *,'gradient'
   ! norm of gradient
   gnrm=0.d0
-!  if(nspinor==4.and.nproc==1) call psitransspi(nvctrp,norb,hpsi
+
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
      oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
@@ -425,13 +379,6 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
           'done, preconditioning...'
   end if
 
-  !   write(*,'(10f10.6)') (eval(iorb),iorb=1,norb)
-  ! Preconditions all orbitals belonging to iproc
-!  print *,'preconding',shape(hpsi),shape(psi)
-!  print *,' '
-!  write(*,'(a,i3,30f16.8)') 'Enter PreCo', iproc,(sum(hpsi(:,nproc*iorb-1:nproc*iorb)),iorb=1,norbp*nspinor)
-!  print *,''
-!     print *,'Pre PC hpsi',((abs(hpsi(iorb,1))),iorb=1,5)
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
      
      oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
@@ -459,15 +406,6 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         
      end do
   enddo
-!     if(iproc==0) print *,'Post PC hpsi',((abs(hpsi(iorb,1))),iorb=1,5)
-
-! write(*,'(a,i3,30f16.8)') 'Exit PreCo', iproc,(sum(hpsi(:,nproc*iorb-1:nproc*iorb)),iorb=1,norbp*nspinor)
-!     print *,'After precong', shape(psi),shape(hpsi),shape(psit)
-!     print '(a,30f8.4)','p', (DDOT(nvctrp*nspinor,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
-!     print '(a,30f8.4)','hp', (DDOT(nvctrp*nspinor,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
-!     print '(a,90f8.4)','pt', (DDOT(nvctrp,psit(1,iorb),1,psit(1,iorb),1),iorb=1,norb*nspinor)
-!     print '(a,90f8.4)','hp', (DDOT(nvctrp,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor)
-
 
 !!$  call preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid, &
 !!$       ncong,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,eval,&
@@ -479,12 +417,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
           'done.'
   end if
   call timing(iproc,'Precondition  ','OF')
-!  write(*,'(a,12f10.4)') 'psi pupd',(100*psit(k,1),k=1,5),(100*psi(k,1),k=1,5)
-!  print *,DDOT(nvctrp*nspinor,hpsi(1,1),1,hpsi(1,1),1),DDOT(nvctrp*nspinor,psi(1,1),1,psi(1,1),1)
-!  print *,'SDing'
-!  if(iproc==0)   print '(a,i3,5f10.6)','pUD psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
-!  if(iproc==0)   print '(a,i3,5f10.6)','pUD psi (t)',iproc,((abs(psi(iorb,1)))*100,iorb=1,5)
-!   if(iproc==0)  print '(a,i3,5f10.6)','pUD Hpsi (s)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
+
   !apply the minimization method (DIIS or steepest descent)
   if (idsx.gt.0) then
      if (nproc > 1) then
@@ -511,9 +444,8 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         !     ads,iter,mids,idsx,nvctrp,psit,psidst,hpsidst)
      else
         call timing(iproc,'Diis          ','ON')
-!        if(nspinor==4) call psitransspi(nvctrp,norb,psit,.true.)
         if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.true.)
-!        write(*,'(a,12f10.4)') 'psi trans',(100*psit(k,1),k=1,5),(100*hpsi(k,1),k=1,5)
+
         do iorb=1,norb*nspinor
            do k=1,nvctrp
               psidst(k,iorb,mids)= psit(k,iorb)
@@ -521,18 +453,10 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
            enddo
         enddo
      endif
-!  if(iproc==0)   print '(a,i3,5f10.6)','pDI psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
-!   if(iproc==0)  print '(a,i3,5f10.6)','pDI Hpsi (s)',iproc,((abs(hpsidst(iorb,1,mids)))*100,iorb=1,5)
-!     print *,'Pre DIIS' ,iproc
-!     print '(a,30f10.4)','p', (DDOT(nvctrp,psi(1,iorb),1,psi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
-!     print '(a,30f10.4)','hp', (DDOT(nvctrp,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mids),1), &
-!          iorb=1,norb*nspinor,nspinor)
 
      call diisstp(norb,norbp,nproc,iproc, nspinor,  &
           ads,iter,mids,idsx,nvctrp,psit,psidst,hpsidst)
-     !    write(*,*) 'psi update done',iproc
 
-!        write(*,'(a,10f10.4)') 'diis a',(100*psit(k,1),k=1,5),(100*hpsi(k,1),k=1,5)
   else
 
      ! update all wavefunctions with the preconditioned gradient
@@ -544,9 +468,6 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      endif
      if (iproc.eq.0) write(*,'(1x,a,1pe11.3)') 'alpha=',alpha
 
-!     print *,'SD psi',((abs(psit(iorb,1))),iorb=1,5)
-!     print '(a,30f10.4)','SD hpsi',((abs(hpsi(iorb,1))),iorb=1,5)
-!     print *,'transping'
      if (nproc > 1) then
         !transpose the hpsi wavefunction
         !here psi is used as a work array
@@ -561,13 +482,10 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
         !end of transposition
      else if(nspinor==4) then
         call psitransspi(nvctrp,norb,hpsi,.true.)
-!        call psitransspi(nvctrp,norb,psit,.true.) ! needed?
+
      endif
 
-!     print *,'updating',shape(psi),shape(hpsi),shape(psit),nvctrp,norb*nspinor
      call timing(iproc,'Diis          ','ON')
-!     if(iproc==0)print '(a,i3,5f10.6)','pDAX psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
-!     if(iproc==0) print '(a,i3,5f10.6)','pDAX hpsi (t)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
 
         do iorb=1,norb*nspinor
            call DAXPY(nvctrp,-alpha,hpsi(1,iorb),1,psit(1,iorb),1)
@@ -580,29 +498,6 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      write(*,'(1x,a)',advance='no')&
           'Orthogonalization...'
   end if
-!  write(*,'(a,10f10.4)') 'psit portho',(100*psit(k,1),k=1,5)
-
-!     print *,'Into orthogonalization'
-!     print '(a,30f10.4)','p1', (sum(abs(psit(:,iorb:iorb+3)))/100.0,iorb=1,norb*nspinor,4) ! (DDOT(nvctrp,psit(1,iorb),1,psit(1,iorb),1),iorb=1,norb*nspinor-3,nspinor)
-!     print '(a,30f10.4)','p1', (DDOT(nvctrp,psit(1,iorb),1,psit(1,iorb),1),iorb=1,norb*nspinor-3,nspinor)
-!     print '(a,30f10.4)','p2', (DDOT(nvctrp,psit(1,iorb),1,psit(1,iorb),1),iorb=2,norb*nspinor-3,nspinor)
-!     print '(a,30f10.4)','p3', (DDOT(nvctrp,psit(1,iorb),1,psit(1,iorb),1),iorb=3,norb*nspinor-3,nspinor)
-!     print '(a,30f10.4)','p4', (DDOT(nvctrp,psit(1,iorb),1,psit(1,iorb),1),iorb=4,norb*nspinor-3,nspinor)
-!     print *,'Into orthogonalization'
-!     print '(a,30f10.4)','hp', (DDOT(nvctrp*nspinor,hpsi(1,iorb),1,hpsi(1,iorb),1),iorb=1,norb*nspinor,nspinor)
-!     print '(a,90f10.4)','pt', (DDOT(2*nvctrp,psit(1,iorb),1,psit(1,iorb),1),iorb=2,norb*nspinor-1,2)
-!  if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norb,psit,.true.)
-!     print '(a,30f10.4)','p1', (sum(abs(psi(:,iorb:iorb+3)))/100,iorb=1,norb*nspinor,4)
-!     print '(a,30f10.4)','p1', (DDOT(nvctrp,psit(1,1),2,psit(1,iorb),2),iorb=1,norb*nspinor,4)
-!     print '(a,30f10.4)','p2', (DDOT(nvctrp,psit(2,1),2,psit(2,iorb),2),iorb=1,norb*nspinor,4)
-!     print '(a,30f10.4)','p3', (DDOT(nvctrp,psit(1,5),2,psit(1,iorb),2),iorb=1,norb*nspinor,4)
-!     print '(a,30f10.4)','p4', (DDOT(nvctrp,psit(2,5),2,psit(2,iorb),2),iorb=1,norb*nspinor,4)
-!     print *,''
-!     print '(a,90f10.4)','p', (DDOT(nvctrp,psit(1,iorb),2,psit(1,iorb),2),iorb=1,norb*nspinor,2)
-!!        if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.)
-!     print '(a,90f20.14)','d', (DDOT(nvctrp,psit(1,5),2,psit(1,3),2)), (DDOT(nvctrp,psit(1,1),2,psit(1,3),2))
-!     if(iproc==0) print '(a,i3,5f10.6)','preO psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
-!     if(iproc==0)print '(a,i3,5f10.6)','pORT psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
 
   if(nspin==1.or.nspinor==4) then
      call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor)
@@ -613,8 +508,6 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      end if
   end if
      !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
-!     if(iproc==0)print '(a,i3,5f10.6)','preS psi (t)',iproc,((abs(psi(iorb,1)))*100,iorb=1,5)
-!     if(iproc==0) print '(a,i3,5f10.6)','preS psit (?)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
 
   if (nproc > 1) then
      !here hpsi is used as a work array
@@ -630,7 +523,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
      nullify(psit)
      if(nspinor==4) call psitransspi(nvctrp,norb,psi,.false.)
-!     if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.false.)
+!     if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.false.) !(needed?)
 
   endif
 
@@ -638,13 +531,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
      write(*,'(1x,a)')&
           'done.'
   end if
-!     if(iproc==0)print '(a,i3,5f10.6)','Final psit (t)',iproc,((abs(psit(iorb,1)))*100,iorb=1,5)
-!     if(iproc==0)print '(a,i3,5f10.6)','Final psi (s)',iproc,((abs(psi(iorb,1)))*100,iorb=1,5)
-
-!    if(iproc==0) print '(a,i3,5f10.6)','Final psi (st)',iproc,((abs(psi(iorb,1)))*100,iorb=1,5)
-!    if(iproc==0) print '(a,i3,5f10.6)','Final psit (t)',iproc,((abs(hpsi(iorb,1)))*100,iorb=1,5)
-
-! write(*,'(a,i3,30f16.8)') 'Exit OrthoN', iproc,(sum(psi(:,nproc*iorb-1:nproc*iorb)),iorb=1,norbp*nspinor)
+  
 
 end subroutine hpsitopsi
 
@@ -685,7 +572,6 @@ subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvct
      nspinor=1
   end if
   
-!  print *,'first ortho',nspinor,parallel,shape(psi)
   if (parallel) then
      !allocate hpsi array (used also as transposed)
      !allocated in the transposed way such as 
@@ -693,14 +579,13 @@ subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvct
      allocate(hpsi(nvctrp,nspinor*norbp*nproc),stat=i_stat)
      call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','first_orthon')
 
-     write(*,'(a,i3,30f10.5)') 'SWI',iproc,(sum(psi(1:nvctrp,iorb)),iorb=1,norbp*nspinor)
+!     write(*,'(a,i3,30f10.5)') 'SWI',iproc,(sum(psi(1:nvctrp,iorb)),iorb=1,norbp*nspinor)
      !transpose the psi wavefunction
      !here hpsi is used as a work array
      call timing(iproc,'Un-TransSwitch','ON')
      call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,hpsi,nspinor)
      call timing(iproc,'Un-TransSwitch','OF')
      !allocate transposed principal wavefunction
-!     allocate(psit(nvctrp,nspinor*norbp*nproc),stat=i_stat)
      allocate(psit(nvctrp,nspinor*norbp*nproc),stat=i_stat)
      call memocc(i_stat,product(shape(psit))*kind(psit),'psit','first_orthon')
      call timing(iproc,'Un-TransComm  ','ON')
@@ -729,7 +614,7 @@ subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvct
      call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi,nspinor)
      call timing(iproc,'Un-TransSwitch','OF')
      !end of retransposition
-     write(*,'(a,i3,30f10.5)') 'U-SWI',iproc,(sum(psi(1:nvctrp,iorb)),iorb=1,norbp*nspinor)
+!     write(*,'(a,i3,30f10.5)') 'U-SWI',iproc,(sum(psi(1:nvctrp,iorb)),iorb=1,norbp*nspinor)
   else
      if(nspin==1.or.nspinor==4) then
         call orthon(norb,nvctrp,psi,nspinor)
@@ -743,7 +628,6 @@ subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvct
         end if
      end if
      !allocate hpsi array
-!     print *,'Alloc HPSI',nvctr_c+7*nvctr_f,nspin,nspinor,norbp
      allocate(hpsi(nvctr_c+7*nvctr_f,nspinor*norbp),stat=i_stat)
      call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','first_orthon')
   endif
@@ -865,3 +749,74 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
   call memocc(i_stat,i_all,'hpsi','last_orthon')
 
 end subroutine last_orthon
+
+
+subroutine calc_moments(iproc,nproc,norb,norbp,nvctr,nspinor,psi)
+
+  implicit none
+  include 'mpif.h'
+  integer, intent(in) :: iproc,nproc,norb,norbp,nvctr,nspinor
+  real(kind=8), dimension(nvctr,norbp*nproc*nspinor), intent(in) :: psi
+  !local variables
+  integer :: i_all,i_stat,ierr,iorb
+  integer :: oidx,ispin,md
+  real(kind=8) :: m00,m11,m13,m24,m12,m34,m14,m23
+  real(kind=8), dimension(:,:,:), allocatable :: mom_vec
+  real(kind=8),external :: DDOT
+
+!  print *,'cm',shape(psi)
+!  if(iproc==0) print '(a,5f10.6)','cm s',(psi(oidx,1),oidx=1,5)
+!  if(iproc==0) print '(a,5f10.6)','cm t',(psi(1,oidx),oidx=1,5)
+  if(nspinor==4) then
+     
+     allocate(mom_vec(4,norbp*nproc,2),stat=i_stat)
+     call memocc(i_stat,product(shape(mom_vec))*kind(mom_vec),'mom_vec','hamiltonianapplication')
+     call razero(4*norbp*nproc*2,mom_vec)
+     
+     do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+        oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
+        m00=ddot(2*nvctr,psi(1,oidx),1,psi(1,oidx),1)
+        m11=ddot(2*nvctr,psi(1,oidx+2),1,psi(1,oidx+2),1)
+        m13=ddot(nvctr,psi(1,oidx),1,psi(1,oidx+2),1)
+        m24=ddot(nvctr,psi(1,oidx+1),1,psi(1,oidx+3),1)
+!        m12=ddot(nvctr,psi(1,oidx),1,psi(1,oidx+1),1)
+!        m34=ddot(nvctr,psi(1,oidx+2),1,psi(1,oidx+3),1)
+        m14=ddot(nvctr,psi(1,oidx),1,psi(1,oidx+3),1)
+        m23=ddot(nvctr,psi(1,oidx+1),1,psi(1,oidx+2),1)
+        mom_vec(1,iorb-iproc*norbp,1)=(m00+m11) !rho
+        mom_vec(2,iorb-iproc*norbp,1)=2.0d0*(m13+m24)       !m_x
+!        mom_vec(3,iorb-iproc*norbp,1)=2.0d0*(m12-m34)       !m_y
+        mom_vec(3,iorb-iproc*norbp,1)=2.0d0*(m14-m23)       !m_y
+        mom_vec(4,iorb-iproc*norbp,1)=(m00-m11) !m_z
+     end do
+     
+     if(nproc>1) then
+           call MPI_GATHER(mom_vec(1,1,1),4*norbp,MPI_DOUBLE_PRECISION,mom_vec(1,1,2),4*norbp &
+                ,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+        oidx=2
+     else
+        oidx=1
+     end if
+     
+     if(iproc==0) then
+        write(*,'(1x,a)')&
+             'Magnetic polarization per orbital'
+        write(*,'(1x,a)')&
+             '  iorb    m_x       m_y       m_z'
+        do iorb=1,norb
+           write(*,'(1x,i5,3f10.5)') &
+                iorb,(mom_vec(md,iorb,oidx)/mom_vec(1,iorb,oidx),md=2,4)
+        end do
+     end if
+     
+     i_all=-product(shape(mom_vec))*kind(mom_vec)
+     deallocate(mom_vec,stat=i_stat)
+     call memocc(i_stat,i_all,'mom_vec','hamiltonianapplication')
+     
+
+     
+  end if
+
+  return
+
+end subroutine calc_moments

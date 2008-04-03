@@ -34,14 +34,6 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
           'Calculation of charge density...'
   end if
   
-!  if(nspin==4) then 
-!     nspinor=4
-!  else
-!     nspinor=1
-!  end if
-  
-!  write(*,'(a,2i6,30f12.5)') 'In SumRho', shape(psi),(sum(psi(:,iorb)),iorb=1,norbp*nspinor)
-
   do i=0,3
      scal(i)=1.d0
   enddo
@@ -127,11 +119,9 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   end if
 
   !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
-!  print *,'sumrho 1',shape(rho_p),shape(rho),n1i*n2i*nrhotot
   if(nspinor==4) then 
      call razero(n1i*n2i*nrhotot*nspinor,rho_p,nproc)
      call tenminustwenty(n1i*n2i*nrhotot,rho_p,nproc)
-!     call tenminustwenty(n1i*n2i*nrhotot,rho_p(:,3),nproc)
   else
      call tenminustwenty(n1i*n2i*nrhotot*nspinn,rho_p,nproc)
   end if
@@ -160,7 +150,6 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
                       bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,bounds%ibyyzz_r)
                  
               end do
-!                 print *,'unco test',iorb,(sum(abs(psir(:,sidx))),sidx=1,nspinor)
               !sum different slices by taking into account the overlap
               i3s=0
               if(nspinor==1) then

@@ -211,105 +211,54 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   enddo
 
   psir=0.0d0
-do  IDX=1,NSPINOR  
-!  print *,"nspinor",nspinor,product(shape(psi)),idx
-  call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-       nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
-       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-       scal,psi(1,IDX),psi(nvctr_c+1,IDX),  &
-       x_c(0,0,0,idx),x_f(1,nfl1,nfl2,nfl3,idx),&
-       x_f1(nfl1,nfl2,nfl3,idx),x_f2(nfl2,nfl1,nfl3,idx),x_f3(nfl3,nfl1,nfl2,idx))
+  do  IDX=1,NSPINOR  
+     call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+          nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
+          nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+          scal,psi(1,IDX),psi(nvctr_c+1,IDX),  &
+          x_c(0,0,0,idx),x_f(1,nfl1,nfl2,nfl3,idx),&
+          x_f1(nfl1,nfl2,nfl3,idx),x_f2(nfl2,nfl1,nfl3,idx),x_f3(nfl3,nfl1,nfl2,idx))
+     
+     
+     
+     call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+          w1(1,IDX),w2(1,IDX), x_c(0,0,0,idx),x_f(1,nfl1,nfl2,nfl3,idx), & 
+          psir(1,IDX),ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+     
+  END DO
 
+  IF (NSPINOR==1) THEN
+     if (nbuf.eq.0) then
+        call realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
+     else
+        call realspace_nbuf(ibyyzz_r,pot,psir,epot,n1,n2,n3,nbuf)
+     endif
+  ELSE
+     epot=0.0d0
+     call realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
+  END IF
+  
+  
+  ekin=0.0d0
+  DO IDX=1,NSPINOR
+     call comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+          w1(1,IDX),w2(1,IDX),psir(1,IDX),&
+          ibxy_c,ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
+          y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX))!,ibyz_c,ibyz_f)
+     
+     call ConvolkineticT(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+          hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
+          x_c(0,0,0,IDX),x_f(1,nfl1,nfl2,nfl3,IDX),y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX),EKINO, &
+          x_f1(nfl1,nfl2,nfl3,IDX),x_f2(nfl2,nfl1,nfl3,IDX),x_f3(nfl3,nfl1,nfl2,IDX))
+     ekin=ekin+ekino
+     
 
-
-  call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       w1(1,IDX),w2(1,IDX), x_c(0,0,0,idx),x_f(1,nfl1,nfl2,nfl3,idx), & 
-       psir(1,IDX),ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
-
-END DO
-!  print *,'POTr pre',(sum(pot(:,idx)),idx=1,nspinor)
-!  print *,'PSIr pre',(sum(psir(:,idx)),idx=1,nspinor)
-IF (NSPINOR==1) THEN
-  if (nbuf.eq.0) then
-     call realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
-  else
-     call realspace_nbuf(ibyyzz_r,pot,psir,epot,n1,n2,n3,nbuf)
-  endif
- ELSE
-    epot=0.0d0
-    call realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
-  !  allocate(psiB((2*n1+31)*(2*n2+31)*(2*n3+31),NSPINOR),stat=i_stat)
-  !  call memocc(i_stat,product(shape(psiB))*kind(psiB),'psiB','applylocpotkinone')
-!
-!    PSIB=PSIR
-!    EPOTTOT=0.0D0
-!    if (nbuf.eq.0) then
-!       !NO SIGNS SET YET
-!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,1),PSIR(1,1),epot,n1,n2,n3)
-!       EPOTTOT=EPOTTOT+EPOT
-!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,3),PSIR(1,3),epot,n1,n2,n3)
-!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,4),PSIR(1,4),epot,n1,n2,n3)
-!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,1),PSIR(1,2),epot,n1,n2,n3)
-!       EPOTTOT=EPOTTOT+EPOT
-!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,4),PSIR(1,3),epot,n1,n2,n3)
-!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,3),PSIR(1,4),epot,n1,n2,n3)
-!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,2),PSIR(1,3),epot,n1,n2,n3)
-!       EPOTTOT=EPOTTOT+EPOT
-!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,3),PSIR(1,1),epot,n1,n2,n3)
-!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,4),PSIR(1,2),epot,n1,n2,n3)
-!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,2),PSIR(1,4),epot,n1,n2,n3)
-!       EPOTTOT=EPOTTOT+EPOT
-!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,4),PSIR(1,1),epot,n1,n2,n3)
-!       call realspaceINOUT(ibyyzz_r,pot,psiB(1,3),PSIR(1,2),epot,n1,n2,n3)
-!       EPOT=EPOTTOT
-!    else
-!       !NO SIGNS SET YET
-!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,1),PSIR(1,1),epot,n1,n2,n3)
-!       EPOTTOT=EPOTTOT+EPOT
-!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,3),PSIR(1,3),epot,n1,n2,n3)
-!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,4),PSIR(1,4),epot,n1,n2,n3)
-!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,1),PSIR(1,2),epot,n1,n2,n3)
-!       EPOTTOT=EPOTTOT+EPOT
-!!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,4),PSIR(1,3),epot,n1,n2,n3)
-!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,3),PSIR(1,4),epot,n1,n2,n3)
-!!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,2),PSIR(1,3),epot,n1,n2,n3)
-!       EPOTTOT=EPOTTOT+EPOT
-!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,3),PSIR(1,1),epot,n1,n2,n3)
-!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,4),PSIR(1,2),epot,n1,n2,n3)
-!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,2),PSIR(1,4),epot,n1,n2,n3)
-!       EPOTTOT=EPOTTOT+EPOT
-!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,4),PSIR(1,1),epot,n1,n2,n3)
-!       call realspaceINOUT_nbuf(ibyyzz_r,pot,psiB(1,3),PSIR(1,2),epot,n1,n2,n3)
-!       EPOT=EPOTTOT
-!    end if
-!    i_all=-product(shape(psiB))*kind(psiB)
-!    deallocate(psiB,stat=i_stat)
-!    call memocc(i_stat,i_all,'psiB','applylocpotkinone')
-    
-    END IF
-!  print *,'PSIr aft',(sum(psir(:,idx)),idx=1,nspinor),epot
-
-
-    ekin=0.0d0
-DO IDX=1,NSPINOR
-  call comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       w1(1,IDX),w2(1,IDX),psir(1,IDX),&
-       ibxy_c,ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-       y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX))!,ibyz_c,ibyz_f)
-
-  call ConvolkineticT(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
-     hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-     x_c(0,0,0,IDX),x_f(1,nfl1,nfl2,nfl3,IDX),y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX),EKINO, &
-     x_f1(nfl1,nfl2,nfl3,IDX),x_f2(nfl2,nfl1,nfl3,IDX),x_f3(nfl3,nfl1,nfl2,IDX))
-    ekin=ekin+ekino
-
-!print *,'comp_for',ekin
-  call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
-       nseg_c,nvctr_c,keyg(1,1),       keyv(1),   &
-       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-       scal,y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX),hpsi(1,IDX),hpsi(nvctr_c+1,IDX))
-END DO
-
+     call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+          nseg_c,nvctr_c,keyg(1,1),       keyv(1),   &
+          nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+          scal,y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX),hpsi(1,IDX),hpsi(nvctr_c+1,IDX))
+  END DO
+  
 
 end subroutine applylocpotkinone
 
@@ -371,7 +320,6 @@ subroutine applylocpotkinone_old(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
 !!$  end do
 !!$  print *,'before applylocpotkinone',tt
 
-!    print *,"nspinor",nspinor,product(shape(w1)),idx
   call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
        nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &

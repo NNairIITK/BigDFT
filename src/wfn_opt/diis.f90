@@ -49,7 +49,6 @@ subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  &
   else
      do i=1,min(ids,idsx)
         ads(i,min(idsx,ids),1)=rds(i)
-!        print *,(ads(i,j,1),j=1,idsx)
     end do
   endif
 

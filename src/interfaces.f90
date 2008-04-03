@@ -385,14 +385,14 @@ interface
      real(kind=8), dimension(nlpspd%nprojel,3), intent(out) :: derproj
    end subroutine projectors_derivatives
 
-   subroutine nonlocal_forces(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,fsep)
+   subroutine nonlocal_forces(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,fsep,nspinor)
      use module_types
      implicit none
      !Arguments-------------
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-     integer, intent(in) :: iproc,norb,norbp
+     integer, intent(in) :: iproc,norb,norbp,nspinor
      real(kind=8), dimension(norb), intent(in) :: occup
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(nlpspd%nprojel,3), intent(in) :: derproj

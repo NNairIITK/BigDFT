@@ -210,6 +210,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
   real(kind=8), dimension(nterm_max) :: fac_arr
   integer, dimension(nterm_max) :: lx,ly,lz
   logical, dimension(:,:,:), allocatable :: logrid
+  
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -872,7 +873,6 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 !          at%iasctype,at%natsc,at%nspinat,nspin,spinsgne,psi)
 !  end if
 
-
   if (iproc.eq.0) write(*,'(1x,a)')'done.'
 
 end subroutine input_wf_diag
@@ -1104,24 +1104,13 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
      psit => hpsi
   end if
 
-!     print *,'Before build_eig',shape(psi),shape(psit)
-!     print *,'p', (DDOT(nvctrp,psi(1,i),1,psi(1,i),1),i=1,norbep*nproc)
-
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
   nvctr=wfd%nvctr_c+7*wfd%nvctr_f
   call build_eigenvectors(nproc,norbu,norbd,norbp,norbtotp,nvctrp,nvctr,natsceff,nspin,nspinor, &
        ndim_hamovr,norbgrp,hamovr,psi,psit)
   
-!  print *,'After build_eig', shape(psit)
-!  print *,'p', (DDOT(nvctrp*nspinor,psit(1,i),1,psit(1,i),1),i=1,nspinor*(norbu+norbd),nspinor)
-  
   if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
      
-!     print *,'After build_eig and trans'
-!     print *,'p', (DDOT(nvctrp*nspinor,psit(1,i),1,psit(1,i),1),i=1,nspinor*(norbu+norbd),nspinor)
-!     print *,'p', (DDOT(nvctrp*nspinor,psit(1,i),1,psit(1,i),1),i=1,norbu+norbd)
-
-  
 
   i_all=-product(shape(hamovr))*kind(hamovr)
   deallocate(hamovr,stat=i_stat)
@@ -1436,7 +1425,7 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
   real(kind=8), dimension(nvctrp*nspinor,norbp*nproc), intent(out) :: ppsit
   !local variables
   integer :: ispin,iorbst,iorbst2,imatrst,norbsc,norbi,norbj,i,iorb,i_stat,i_all
-  real(kind=8) :: tt,mx,my,mz,mnorm,fac
+  real(kind=8) :: tt,mx,my,mz,mnorm,fac,ma,mb,mc,md
   real, dimension(:), allocatable :: randnoise
   real(kind=8), dimension(:,:), allocatable :: tpsi
   real(kind=8),external :: DDOT
@@ -1486,8 +1475,6 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
         iorbst2=norbu+1
         imatrst=ndim_hamovr+1
      end do
-!     print *,'In build_eig',shape(psi),shape(ppsit)
-!     print *,'p', (DDOT(nvctrp,ppsit(1,i),1,ppsit(1,i),1),i=1,norbu+norbd)
 
   else
      allocate(tpsi(nvctrp,norbep*nproc),stat=i_stat)
@@ -1519,42 +1506,52 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
         iorbst2=norbu+1
         imatrst=ndim_hamovr+1
      end do
-!     print *,'In build_eig',shape(psi),shape(tpsi)
-!     print *,'p', (DDOT(nvctrp,tpsi(1,i),1,tpsi(1,i),1),i=1,norbu+norbd)
      ppsit=0.0d0
      open(unit=1978,file='moments')
- !    mx=0.0d0;my=0.0d0;mz=1.0d0
      fac=0.5d0
-!     do iorb=1,norbu
-!        do i=1,nvctrp
-!           ppsit(2*i-1,iorb)=tpsi(i,iorb)
-!        end do
-!     end do
-!     do iorb=iorb,norbd+norbu
-!        do i=1,nvctrp
-!           ppsit(2*i-1+2*nvctrp,iorb)=tpsi(i,iorb)
-!        end do
-!     end do
-     do iorb=1,norbu
+     do iorb=1,norbu+norbd
         read(1978,*) mx,my,mz
         mnorm=sqrt(mx**2+my**2+mz**2)
         mx=mx/mnorm;my=my/mnorm;mz=mz/mnorm
+        ma=0.0d0;mb=0.0d0;mc=0.0d0;md=0.0d0
+        if(mz>0.0d0.and.iorb<=norbu) then 
+           ma=ma+mz
+        else
+           mc=mc+abs(mz)
+        end if
+        if(mx>0.0d0.and.iorb<=norbu) then 
+           ma=ma+fac*mx
+           mb=mb+fac*mx
+           mc=mc+fac*mx
+           md=md+fac*mx
+        else
+           ma=ma-fac*abs(mx)
+           mb=mb-fac*abs(mx)
+           mc=mc+fac*abs(mx)
+           md=md+fac*abs(mx)
+        end if
+        if(my>0.0d0.and.iorb<=norbu) then 
+           ma=ma+fac*my
+           mb=mb-fac*my
+           mc=mc+fac*my
+           md=md+fac*my
+        else
+           ma=ma-fac*abs(my)
+           mb=mb+fac*abs(my)
+           mc=mc+fac*abs(my)
+           md=md+fac*abs(my)
+        end if
+        if(mx==0.0d0.and.my==0.0d0.and.mz==0.0d0) then
+           ma=1.0d0/sqrt(2.0d0)
+           mb=0.0d0
+           mc=1.0d0/sqrt(2.0d0)
+           md=0.0d0
+        end if
         do i=1,nvctrp
-           ppsit(2*i-1,iorb)=(mz+fac*(my+mx))*tpsi(i,iorb)
-           ppsit(2*i,iorb)=fac*(my-mx)*tpsi(i,iorb)
-           ppsit(2*i+2*nvctrp-1,iorb)=(fac*(mx-my))*tpsi(i,iorb)
-           ppsit(2*i+2*nvctrp,iorb)=fac*(my-mx)*tpsi(i,iorb)
-        end do
-     end do
-     do iorb=norbu+1,norbu+norbd
-        read(1978,*) mx,my,mz
-        mnorm=sqrt(mx**2+my**2+mz**2)
-        mx=mx/mnorm;my=my/mnorm;mz=mz/mnorm
-        do i=1,nvctrp
-           ppsit(2*i-1,iorb)=(fac*(mx+my))*tpsi(i,iorb)
-           ppsit(2*i,iorb)=-fac*(my+mx)*tpsi(i,iorb)
-           ppsit(2*i+2*nvctrp-1,iorb)=-(mz+fac*(my+mx))*tpsi(i,iorb)
-           ppsit(2*i+2*nvctrp,iorb)=-fac*(my-mx)*tpsi(i,iorb)
+           ppsit(2*i-1,iorb)=ma*tpsi(i,iorb)
+           ppsit(2*i,iorb)=mb*tpsi(i,iorb)
+           ppsit(2*i+2*nvctrp-1,iorb)=mc*tpsi(i,iorb)
+           ppsit(2*i+2*nvctrp,iorb)=md*tpsi(i,iorb)
         end do
      end do
      close(1978)
@@ -1652,12 +1649,11 @@ subroutine psitospi(iproc,nproc,norbe,norbep,norbsc,&
   fac=0.5d0
   do iorb=norbep*nproc,1,-1
      jorb=iorb-iproc*norbep
-     print *,'Kolla', shape(psi),4*iorb,shape(spinsgne),iorb
+!     print *,'Kolla', shape(psi),4*iorb,shape(spinsgne),iorb
      if (myorbital(iorb,nspin*norbe,iproc,nproc)) then
         mx=mom(1,otoa(iorb))
         my=mom(2,otoa(iorb))
         mz=mom(3,otoa(iorb))
-        print *,'makin spi'
         if(spinsgne(jorb)>0.0d0) then
            do i=1,nvctr
               psi(i,iorb*4-3) = (mz+fac*(my+mx))*psi(i,iorb)
