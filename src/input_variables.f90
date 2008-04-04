@@ -753,7 +753,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
        do iat=1,at%nat
           ispinsum=ispinsum+at%nspinat(iat)
        end do
-       if (ispinsum /= norbu-norbd) then
+       if (in%nspin == 2 .and. ispinsum /= norbu-norbd) then
           if (iproc==0) then 
              write(*,'(1x,a,i0,a)')&
                   'ERROR: Total input polarisation (found ',ispinsum,&

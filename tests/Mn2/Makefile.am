@@ -24,7 +24,10 @@ check: $(PPFILES) posinp input.dat
 	if test ! -f posinp ; then \
 	  ln -s $(top_srcdir)/tests/Mn2/posinp ; \
 	fi
-	$(top_builddir)/src/memguess 1 > Mn.memguess
-	python $(top_srcdir)/tests/fldiff.py Mn.memguess $(top_srcdir)/tests/Refs/Mn2.memguess.ref | cat
+	if test ! -f moments ; then \
+	  ln -s $(top_srcdir)/tests/Mn2/moments ; \
+	fi
+	$(top_builddir)/src/memguess 1 > Mn2.memguess
+	python $(top_srcdir)/tests/fldiff.py Mn2.memguess $(top_srcdir)/tests/Refs/Mn2.memguess.ref | cat
 	$(run_parallel) $(top_builddir)/src/cluster > Mn2.out
-	python $(top_srcdir)/tests/fldiff.py Mn.out $(top_srcdir)/tests/Refs/Mn2.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py Mn2.out $(top_srcdir)/tests/Refs/Mn2.out.ref | tee fldiff.report

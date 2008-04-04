@@ -8,8 +8,8 @@ SUBDIRS = \
 	  NaCl \
 	  C \
 	  Ca2 \
-	  H2O-CP2K \
-	  Mn2
+	  Mn2  \
+	  H2O-CP2K
 
 EXTRA_DIST = \
 	fldiff.py \
