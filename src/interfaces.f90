@@ -183,18 +183,20 @@ interface
    end subroutine createDensPotDescriptors
 
    subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,&
-        hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion)
+        hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
+     use Poisson_Solver
      implicit none
+     include 'mpif.h'
      character(len=1), intent(in) :: geocode
-     integer, intent(in) :: iproc,nproc,nat,ntypes,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
-     real(kind=8), intent(in) :: hxh,hyh,hzh,elecfield
+     integer, intent(in) :: iproc,nproc,ntypes,nat,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+     real(kind=8), intent(in) :: hxh,hyh,hzh,elecfield,psoffset
      integer, dimension(nat), intent(in) :: iatype
      integer, dimension(ntypes), intent(in) :: nelpsp
      real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
      real(kind=8), dimension(3,nat), intent(in) :: rxyz
      real(kind=8), dimension(*), intent(in) :: pkernel
+     real(kind=8), dimension(*), intent(inout) :: pot_ion
      real(kind=8), intent(out) :: eion
-     real(kind=8), dimension(*), intent(out) :: pot_ion
    end subroutine createIonicPotential
 
    subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
