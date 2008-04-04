@@ -498,7 +498,194 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 end subroutine PSolver
 !!***
 
+!!****f* BigDFT/PSolver
+!! NAME
+!!    PSolverNC
+!!
+!! FUNCTION
+!!    Transforms a generalized spin density into a pointwise collinear spin density which is
+!!    then passed to the Poisson Solver (PSolver). 
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2002-2007 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SYNOPSIS
+!!    geocode  Indicates the boundary conditions (BC) of the problem:
+!!            'F' free BC, isolated systems.
+!!                The program calculates the solution as if the given density is
+!!                "alone" in R^3 space.
+!!            'S' surface BC, isolated in y direction, periodic in xz plane                
+!!                The given density is supposed to be periodic in the xz plane,
+!!                so the dimensions in these direction mus be compatible with the FFT
+!!                Beware of the fact that the isolated direction is y!
+!!            'P' periodic BC.
+!!                The density is supposed to be periodic in all the three directions,
+!!                then all the dimensions must be compatible with the FFT.
+!!                No need for setting up the kernel.
+!!    datacode Indicates the distribution of the data of the input/output array:
+!!            'G' global data. Each process has the whole array of the density 
+!!                which will be overwritten with the whole array of the potential
+!!            'D' distributed data. Each process has only the needed part of the density
+!!                and of the potential. The data distribution is such that each processor
+!!                has the xy planes needed for the calculation AND for the evaluation of the 
+!!                gradient, needed for XC part, and for the White-Bird correction, which
+!!                may lead up to 8 planes more on each side. Due to this fact, the information
+!!                between the processors may overlap.
+!!    nproc       number of processors
+!!    iproc       label of the process,from 0 to nproc-1
+!!    n01,n02,n03 global dimension in the three directions. They are the same no matter if the 
+!!                datacode is in 'G' or in 'D' position.
+!!    n3d         third dimension of the density. For distributed data, it takes into account 
+!!                the enlarging needed for calculating the XC functionals.
+!!                For global data it is simply equal to n03. 
+!!                When there are too many processes and there is no room for the density n3d=0
+!!    ixc         eXchange-Correlation code. Indicates the XC functional to be used 
+!!                for calculating XC energies and potential. 
+!!                ixc=0 indicates that no XC terms are computed. The XC functional codes follow
+!!                the ABINIT convention.
+!!    hx,hy,hz    grid spacings. For the isolated BC case for the moment they are supposed to 
+!!                be equal in the three directions
+!!    rhopot      main input/output array.
+!!                On input, it represents the density values on the grid points
+!!                On output, it is the Hartree potential, namely the solution of the Poisson 
+!!                equation PLUS (when ixc/=0 sumpion=.true.) the XC potential 
+!!                PLUS (again for ixc/=0 and sumpion=.true.) the pot_ion array. 
+!!                The output is non overlapping, in the sense that it does not
+!!                consider the points that are related to gradient and WB calculation
+!!    karray      kernel of the poisson equation. It is provided in distributed case, with
+!!                dimensions that are related to the output of the PS_dim4allocation routine
+!!                it MUST be created by following the same geocode as the Poisson Solver.
+!!    pot_ion     additional external potential that is added to the output, 
+!!                when the XC parameter ixc/=0 and sumpion=.true., otherwise it corresponds 
+!!                to the XC potential Vxc.
+!!                When sumpion=.true., it is always provided in the distributed form,
+!!                clearly without the overlapping terms which are needed only for the XC part
+!!                When sumpion=.false. it is the XC potential and therefore it has 
+!!                the same distribution of the data as the potential
+!!                Ignored when ixc=0.
+!!    eh,exc,vxc  Hartree energy, XC energy and integral of $\rho V_{xc}$ respectively
+!!    offset      value of the potential at the point 1,1,1 of the grid.
+!!                To be used only in the periodic case, ignored for other boundary conditions.
+!!    sumpion     logical value which states whether to sum pot_ion to the final result or not
+!!                if sumpion==.true. rhopot will be the Hartree potential + pot_ion+vxci
+!!                                   pot_ion will be untouched
+!!                if sumpion==.false. rhopot will be only the Hartree potential
+!!                                    pot_ion will be the XC potential vxci
+!!                this value is ignored when ixc=0. In that case pot_ion is untouched
+!! WARNING
+!!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
+!!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
+!!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
+!!    Moreover, for the cases with the exchange and correlation the density must be initialised
+!!    to 10^-20 and not to zero.
+!!
+!! AUTHOR
+!!    Anders Bergman
+!! CREATION DATE
+!!    March 2008
+!!
+!! SOURCE
+!! 
+subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
+     rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
+  implicit none
+  character(len=1), intent(in) :: geocode
+  character(len=1), intent(in) :: datacode
+  logical, intent(in) :: sumpion
+  integer, intent(in) :: iproc,nproc,n01,n02,n03,n3d,ixc,nspin
+  real(kind=8), intent(in) :: hx,hy,hz,offset
+  real(kind=8), dimension(*), intent(in) :: karray
+  real(kind=8), intent(out) :: eh,exc,vxc
+  real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
+  !local variables
+  real(kind=8) :: rhon,rhos,factor
+  integer :: i_all,i_stat,ierr,i1,i2,i3,idx,offs
+  real(kind=8), dimension(:,:,:), allocatable :: m_norm
+  real(kind=8), dimension(:,:,:,:), allocatable :: rho_diag
+  
+  
+  if(nspin==4) then
+     !Allocate diagonal spin-density in real space
+     if (n3d >0) then
+        allocate(rho_diag(n01,n02,n3d,2),stat=i_stat)
+        call memocc(i_stat,product(shape(rho_diag))*kind(rho_diag),'rho_diag','cluster')
+        allocate(m_norm(n01,n02,n3d),stat=i_stat)
+        call memocc(i_stat,product(shape(m_norm))*kind(m_norm),'m_norm','cluster')
+        !           print *,'Rho Dims',shape(rhopot),shape(rho_diag)
+        idx=1
+        offs=n01*n02*n3d
+        do i3=1,n3d
+           do i2=1,n02
+              do i1=1,n01
+                 !                    rho_diag(i1,i2,i3,1)=rhopot(i1,i2,i3,1)
+                 m_norm(i1,i2,i3)=sqrt(rhopot(idx+offs)**2+rhopot(idx+2*offs)**2+rhopot(idx+3*offs)**2)
+                 rho_diag(i1,i2,i3,1)=(rhopot(idx)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
+                 rho_diag(i1,i2,i3,2)=(rhopot(idx)-m_norm(i1,i2,i3))*0.5d0!+1.00e-20
+                 idx=idx+1
+                 !                    m_norm(i1,i2,i3)=sqrt(rhopot(i1,i2,i3,2)**2+rhopot(i1,i2,i3,3)**2+rhopot(i1,i2,i3,4)**2)
+                 !                    rho_diag(i1,i2,i3,1)=(rhopot(i1,i2,i3,1)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
+                 !                    rho_diag(i1,i2,i3,2)=(rhopot(i1,i2,i3,1)-m_norm(i1,i2,i3))*0.5d0!+1.00e-20
+              end do
+           end do
+        end do
+     else
+        allocate(rho_diag(1,1,1,2),stat=i_stat)
+        call memocc(i_stat,product(shape(rho_diag))*kind(rho_diag),'rho_diag','cluster')
+        allocate(m_norm(1,1,1),stat=i_stat)
+        call memocc(i_stat,product(shape(m_norm))*kind(m_norm),'m_norm','cluster')
+        rho_diag=0.0d0
+        m_norm=0.0d0
+     end if
+     
+     !        print *,'Mnorm,rho_diag',sum(2.0d0*rho_diag(:,:,:,1)),sum(m_norm)&
+     !             ,sum(2.0d0*rho_diag(:,:,:,1)+m_norm),sum(2.0d0*rho_diag(:,:,:,1)-m_norm)
+     
+     !        Call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
+     !             rho_diag,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,2) 
+     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+          rho_diag,karray,pot_ion,eh,exc,vxc,offset,sumpion,2)
+     !        print *,'Psolver R',ehart,eexcu,vexcu
+     
+     idx=1
+     do i3=1,n3d
+        do i2=1,n02
+           do i1=1,n01
+              rhon=(rho_diag(i1,i2,i3,1)+rho_diag(i1,i2,i3,2))*0.5d0
+              rhos=(rho_diag(i1,i2,i3,1)-rho_diag(i1,i2,i3,2))*0.5d0
+              if(m_norm(i1,i2,i3)>rhopot(idx)*4.0e-20)then
+                 !                 if(m_norm(i1,i2,i3)>rhopot(i1,i2,i3,1)*4.0e-20)then
+                 factor=rhos/m_norm(i1,i2,i3)
+              else
+                 factor=0.0d0
+              end if
+              rhopot(idx)=rhon+rhopot(idx+3*offs)*factor
+              rhopot(idx+offs)=rhopot(idx+offs)*factor
+              rhopot(idx+2*offs)=-rhopot(idx+2*offs)*factor
+              rhopot(idx+3*offs)=rhon-rhopot(idx+3*offs)*factor
+              idx=idx+1
+              !                 rhopot(i1,i2,i3,1)=rhon+rhopot(i1,i2,i3,4)*factor
+              !                 rhopot(i1,i2,i3,2)=rhopot(i1,i2,i3,2)*factor
+              !                 rhopot(i1,i2,i3,3)=-rhopot(i1,i2,i3,3)*factor
+              !                 rhopot(i1,i2,i3,4)=rhon-rhopot(i1,i2,i3,4)*factor
+           end do
+        end do
+     end do
+     i_all=-product(shape(rho_diag))*kind(rho_diag)
+     deallocate(rho_diag,stat=i_stat)
+     call memocc(i_stat,i_all,'rho_diag','cluster')
+     i_all=-product(shape(m_norm))*kind(m_norm)
+     deallocate(m_norm,stat=i_stat)
+     call memocc(i_stat,i_all,'m_norm','cluster')
+  else
+     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+          rho_diag,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
+  end if
 
+end subroutine PSolverNC
 
 !!****f* BigDFT/PS_dim4allocation
 !! NAME

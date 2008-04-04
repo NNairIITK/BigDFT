@@ -122,16 +122,16 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
   integer ib(2,ndat)
   include 'v_long.inc'
 
-  !open(unit=10,file='longer_filter.flop')
-  nflop=0
-  ! count the flops:
-  do j=1,ndat
-     do i=ib(1,j),ib(2,j)
-        do l=lowfil2+2*i,lupfil2+2*i
-           nflop=nflop+2
-        enddo
-     enddo
-  enddo
+!  !open(unit=10,file='longer_filter.flop')
+!  nflop=0
+!  ! count the flops:
+!  do j=1,ndat
+!     do i=ib(1,j),ib(2,j)
+!        do l=lowfil2+2*i,lupfil2+2*i
+!           nflop=nflop+2
+!        enddo
+!     enddo
+!  enddo
 
   ! the convolution itself:
   call system_clock(ncount0,ncount_rate,ncount_max)

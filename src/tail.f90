@@ -13,7 +13,7 @@
 !!
 subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,eval,&
-     pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,spinar,&
+     pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,spinsgn,&
      proj,psi,occup,output_grid,ekin_sum,epot_sum,eproj_sum)
   use module_types
   implicit none
@@ -24,7 +24,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncongt,nspin
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
-  real(kind=8), dimension(norb), intent(in) :: occup,eval,spinar
+  real(kind=8), dimension(norb), intent(in) :: occup,eval,spinsgn
   real(kind=8), dimension(at%ntypes,2), intent(in) :: radii_cf
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
   real(kind=8), dimension(2*n1+31,2*n2+31,2*n3+31,nspin), intent(in) :: pot
@@ -327,7 +327,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
      npt=2
      tail_adding: do ipt=1,npt
 
-        if(spinar(iorb)>0.0d0) then
+        if(spinsgn(iorb)>0.0d0) then
            ispin=1
         else
            ispin=2
@@ -340,7 +340,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
              psib,pot(1,1,1,ispin),hpsib,epot,ekin, &
              x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
              ibbzzx_c,ibbyyzz_c,ibbxy_ff,ibbzzx_f,ibbyyzz_f,&
-             ibbzxx_c,ibbxxyy_c,ibbyz_ff,ibbzxx_f,ibbxxyy_f,nw1,nw2,ibbyyzz_r)
+             ibbzxx_c,ibbxxyy_c,ibbyz_ff,ibbzxx_f,ibbxxyy_f,nw1,nw2,ibbyyzz_r,1)
 
         !write(*,'(a,3i3,2f12.8)') 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin
         call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &

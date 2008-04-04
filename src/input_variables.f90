@@ -88,7 +88,9 @@ subroutine read_input_variables(iproc,in)
      write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
   end if
 
-     if (in%nspin==2) then
+     if (in%nspin==4) then
+        if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Non-collinear)'
+     else if (in%nspin==2) then
         if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Collinear)'
      else if (in%nspin==1) then
         if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation:  NO '
@@ -119,7 +121,7 @@ subroutine print_input_parameters(in)
        '|  CG Steps=',in%ncongt
   write(*,'(1x,a,1pe7.1,1x,a,0pf5.2,1x,a,i8)')&
        ' elec. field=',in%elecfield,'|   Fine Proj.=',in%fpmult,'| DIIS Hist. N.=',in%idsx
-  if (in%nspin==2) then
+  if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
           'Polarisation=',2*in%mpol, '|'
   end if
@@ -368,30 +370,31 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
 end subroutine read_atomic_positions
 
 
-! Fill the arrays occup and spinar
+! Fill the arrays occup and spinsgn
 ! if iunit /=0 this means that the file occup.dat does exist and it opens
-subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinar)
+subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinsgn)
   implicit none
 ! Arguments
   integer, intent(in) :: nelec,nspin,mpol,iproc,norb,norbu,norbd,iunit
-  real(kind=8), intent(out) :: occup(norb),spinar(norb)
+  real(kind=8), intent(out) :: occup(norb),spinsgn(norb)
 ! Local variables
   integer :: iorb,nt,ne,it,ierror,iorb1
   real(kind=8) :: rocc,rup,rdown
   character(len=100) :: line
 
+
   do iorb=1,norb
-     spinar(iorb)=1.0d0
+     spinsgn(iorb)=1.0d0
   end do
   if (nspin/=1) then
      do iorb=1,norbu
-        spinar(iorb)=1.0d0
+        spinsgn(iorb)=1.0d0
      end do
      do iorb=norbu+1,norb
-        spinar(iorb)=-1.0d0
+        spinsgn(iorb)=-1.0d0
      end do
   end if
-! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinar(iorb),iorb=1,norb)
+! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinsgn(iorb),iorb=1,norb)
 
 ! First fill the occupation numbers by default
   nt=0
@@ -464,12 +467,12 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spina
 !!$           end if
 !!$           stop
 !!$        end if
-        !Fill spinar
+        !Fill spinsgn
         do iorb=1,norbu
-           spinar(iorb)=1.0d0
+           spinsgn(iorb)=1.0d0
         end do
         do iorb=norbu+1,norb
-           spinar(iorb)=-1.0d0
+           spinsgn(iorb)=-1.0d0
         end do
       end if
   end if
@@ -623,7 +626,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
                      'ERROR: Input polarisation of atom No.',iat,&
                      ' (',trim(at%atomnames(ityp)),') must be <=',mxpl,&
                      ', while found ',at%nspinat(iat)
-                stop
+!                stop
              end if
           end if
        end do
@@ -775,17 +778,23 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
        if (mod(nelec,2).ne.0 .and. iproc==0) then
           write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
        end if
-    else
+!    else if(in%nspin==4) then
+!       if (iproc==0) write(*,'(1x,a)') 'Spin-polarized non-collinear calculation'
+!       norb=nelec
+!       norbu=norb
+!       norbd=0
+    else 
        if (iproc==0) write(*,'(1x,a)') 'Spin-polarized calculation'
        norb=nelec
        norbu=min(norb/2+in%mpol,norb)
        norbd=norb-norbu
+
        !test if the spin is compatible with the input guess polarisations
        ispinsum=0
        do iat=1,at%nat
           ispinsum=ispinsum+at%nspinat(iat)
        end do
-       if (ispinsum /= norbu-norbd) then
+       if (in%nspin == 2 .and. ispinsum /= norbu-norbd) then
           if (iproc==0) then 
              write(*,'(1x,a,i0,a)')&
                   'ERROR: Total input polarisation (found ',ispinsum,&

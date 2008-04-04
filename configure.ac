@@ -281,6 +281,7 @@ tests/Ca2/Makefile
 tests/H/Makefile
 tests/H-spin/Makefile
 tests/Li+/Makefile
+tests/Mn2/Makefile
 tests/NaCl/Makefile
 tests/SiH4/Makefile
 tests/H2O-CP2K/Makefile
