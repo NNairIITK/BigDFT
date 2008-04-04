@@ -71,22 +71,14 @@ subroutine read_input_variables(iproc,in)
   read(1,*,iostat=ierror) in%rbuf
   read(1,*,iostat=ierror) in%ncongt
   read(1,*,iostat=ierror) in%nspin,in%mpol
+  read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
 
   if (ierror/=0) then
      write(*,'(1x,a)') 'Error while reading the file "input.dat"'
      stop
   end if
 
-  !add optional line for the restart option
-  read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
-
   close(1,iostat=ierror)
-
-!!$  !these values are hard-coded for the moment but they can be entered in the input file
-!!$  !in case of need also other variables can be entered without any changements
-!!$  in%output_grid=.false. 
-!!$  in%inputPsiId=0
-!!$  in%output_wf=.false. 
 
   if (iproc == 0) then
      write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
@@ -131,15 +123,22 @@ subroutine print_input_parameters(in)
      write(*,'(1x,a,i7,1x,a)')&
           'Polarisation=',2*in%mpol, '|'
   end if
+  if (in%geocode /= 'F') then
+     write(*,'(1x,a,1x,a,3(1x,1pe12.5))')&
+          '  Geom. Code=    '//in%geocode//'   |',&
+          '  Box Sizes (Bohr) =',in%alat1,in%alat2,in%alat3
+
+  end if
 end subroutine print_input_parameters
 
 ! read atomic positions
-subroutine read_atomic_positions(iproc,ifile,units,at,rxyz)
+subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   use module_types
   implicit none
   character(len=20), intent(in) :: units
   integer, intent(in) :: iproc,ifile
   type(atoms_data), intent(inout) :: at
+  type(input_variables), intent(out) :: in
   real(kind=8), dimension(3,at%nat), intent(out) :: rxyz
   !local variables
   real(kind=8), parameter :: bohr=0.5291772108d0 !1 AU in angstroem
@@ -150,9 +149,9 @@ subroutine read_atomic_positions(iproc,ifile,units,at,rxyz)
   logical :: lpsdbl 
   integer :: nateq,iat,jat,ityp,i,ierror,ierrsfx,i_stat,natpol
 ! To read the file posinp (avoid differences between compilers)
-  real(kind=4) :: rx,ry,rz
+  real(kind=4) :: rx,ry,rz,alat1,alat2,alat3
 ! case for which the atomic positions are given whithin machine precision
-  real(kind=8) :: rxd0,ryd0,rzd0
+  real(kind=8) :: rxd0,ryd0,rzd0,alat1d0,alat2d0,alat3d0
   character(len=20), dimension(100) :: atomnames
 
   if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',at%nat
@@ -183,6 +182,42 @@ subroutine read_atomic_positions(iproc,ifile,units,at,rxyz)
   !old format, still here for backward compatibility
   !admits only simple precision calculation
   read(line,*,iostat=ierror) rx,ry,rz,tatonam
+
+  !in case of old format, put geocode to F and alat to 0.
+  if (ierror == 0) then
+     in%geocode='F'
+     in%alat1=0.d0
+     in%alat2=0.d0
+     in%alat3=0.d0
+  else
+     if (lpsdbl) then
+        read(line,*,iostat=ierrsfx) tatonam,alat1d0,alat2d0,alat3d0
+     else
+        read(line,*,iostat=ierrsfx) tatonam,alat1,alat2,alat3
+     end if
+     if (ierrsfx == 0) then
+        if (trim(tatonam)=='periodic') then
+           in%geocode='P'
+        else if (trim(tatonam)=='surface') then 
+           in%geocode='S'
+        else !otherwise free bc
+           in%geocode='F'
+           in%alat1=0.d0
+           in%alat2=0.d0
+           in%alat3=0.d0
+        end if
+        if (.not. lpsdbl) then
+           alat1d0=real(alat1,kind=8)
+           alat2d0=real(alat2,kind=8)
+           alat3d0=real(alat3,kind=8)
+        end if
+     else
+        in%geocode='F'
+        in%alat1=0.d0
+        in%alat2=0.d0
+        in%alat3=0.d0
+     end if
+  end if
 
   at%ntypes=0
   do iat=1,at%nat
@@ -274,11 +309,17 @@ subroutine read_atomic_positions(iproc,ifile,units,at,rxyz)
 200  continue
      if (units=='angstroem' .or. units=='angstroemd0') then
         ! if Angstroem convert to Bohr
+        in%alat1=alat1d0/bohr
+        in%alat2=alat2d0/bohr
+        in%alat3=alat3d0/bohr
         do i=1,3 
            rxyz(i,iat)=rxyz(i,iat)/bohr
         enddo
      else if  (units=='atomic' .or. units=='bohr'  .or.&
           units== 'atomicd0' .or. units== 'bohrd0') then
+        in%alat1=alat1d0
+        in%alat2=alat2d0
+        in%alat3=alat3d0
      else
         write(*,*) 'length units in input file unrecognized'
         write(*,*) 'recognized units are angstroem or atomic = bohr'
@@ -939,7 +980,14 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
      alat3=alatrue3
   else if (geocode == 'S') then
      alat2=alatrue2
+  else if (geocode == 'P') then
+     !for the moment we do not put the shift, at the end it will be tested
+     !here we should put the center of mass
+     cxmin=0.d0
+     cymin=0.d0
+     czmin=0.d0
   end if
+
 
   do iat=1,atoms%nat
      rxyz(1,iat)=rxyz(1,iat)-cxmin
@@ -963,14 +1011,18 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
   enddo
 
   !correct the values of the delimiter if they go outside the box
-  if (nfl1 < 0) nfl1=0
-  if (nfl2 < 0) nfl2=0
-  if (nfl3 < 0) nfl3=0
-
-  if (nfu1 > n1) nfu1=n1
-  if (nfu2 > n2) nfu2=n2
-  if (nfu3 > n3) nfu3=n3
-
+  if (nfl1 < 0 .or. nfu1 > n1) then
+     nfl1=0
+     nfu1=n1
+  end if
+  if (nfl2 < 0 .or. nfu2 > n2) then
+     nfl2=0
+     nfu2=n2
+  end if
+  if (nfl3 < 0 .or. nfu3 > n3) then
+     nfl3=0
+     nfu3=n3
+  end if
 
   if (iproc.eq.0) then
      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'

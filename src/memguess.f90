@@ -20,14 +20,13 @@ program memguess
 
   implicit none
   integer, parameter :: ngx=31
-  character(len=1) :: geocode
   character(len=20) :: tatonam,units
   logical :: calc_tail,output_grid,optimise
   integer :: ierror,nproc,n1,n2,n3,i_stat,i_all
   integer :: nelec,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
   integer :: norb,norbu,norbd,norbe,norbp,norbsc
   integer :: iunit,ityp
-  real(kind=8) :: alat1,alat2,alat3,peakmem,hx,hy,hz
+  real(kind=8) :: peakmem,hx,hy,hz
   type(input_variables) :: in
   type(atoms_data) :: atoms
   integer, dimension(:,:), allocatable :: neleconf
@@ -96,15 +95,13 @@ program memguess
   call memocc(i_stat,product(shape(rxyz))*kind(rxyz),'rxyz','memguess')
 
   !read atomic positions
-  call read_atomic_positions(0,99,units,atoms,rxyz)
+  call read_atomic_positions(0,99,units,in,atoms,rxyz)
 
   close(99)
 
   !new way of reading the input variables, use structures
   call read_input_variables(0,in)
 
-  !hard-code the geocode variable for the moment
-  geocode='F'
   call print_input_parameters(in)
 
   write(*,'(1x,a)')&
@@ -237,11 +234,12 @@ program memguess
   hx=In%hgrid
   hy=In%hgrid
   hz=In%hgrid
-  call system_size(0,geocode,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,&
-       alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
+  call system_size(0,in%geocode,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,&
+       in%alat1,in%alat2,in%alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
 
-  call MemoryEstimator(geocode,nproc,in%idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,atoms%nat,&
-       atoms%ntypes,atoms%iatype,rxyz,radii_cf,in%crmult,in%frmult,norb,atoms%atomnames,output_grid,in%nspin,peakmem)
+  call MemoryEstimator(in%geocode,nproc,in%idsx,n1,n2,n3,in%alat1,in%alat2,in%alat3,&
+       hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,in%crmult,in%frmult,&
+       norb,atoms%atomnames,output_grid,in%nspin,peakmem)
 
   i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
   deallocate(atoms%atomnames,stat=i_stat)

@@ -1,3 +1,64 @@
+subroutine IonicEnergy(geocode,iproc,at,alat1,alat2,alat3,rxyz,eion)
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: at
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: iproc
+  real(kind=8), intent(in) :: alat1,alat2,alat3
+  real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
+  real(kind=8), intent(out) :: eion
+  !local variables
+  !array of the metrics in real and reciprocal spaces (useful for the ewald calculation)
+  integer :: iat,ii,i_all,i_stat
+  real(kind=8) :: ucvol
+  real(kind=8), dimension(3,3) :: gmet,rmet,rprimd,gprimd
+  !other arrays for the ewald treatment
+  real(kind=8), dimension(:,:), allocatable :: fewald,xred
+
+
+  if (geocode == 'P') then
+     !here we insert the calculation of the ewald forces
+     allocate(fewald(3,at%nat),stat=i_stat)
+     call memocc(i_stat,product(shape(fewald))*kind(fewald),'fewald','ionicenergy')
+     allocate(xred(3,at%nat),stat=i_stat)
+     call memocc(i_stat,product(shape(xred))*kind(xred),'xred','ionicenergy')
+
+     !calculate rprimd
+     rprimd(:,:)=0.d0
+     
+     rprimd(1,1)=alat1
+     rprimd(2,2)=alat2
+     rprimd(3,3)=alat3
+
+     !calculate the metrics and the volume
+     call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
+
+     !calculate reduced coordinates
+     do iat=1,at%nat
+        do ii=1,3
+           xred(ii,iat)= gprimd(1,ii)*rxyz(1,iat)+gprimd(2,ii)*rxyz(2,iat)+&
+                gprimd(3,ii)*rxyz(3,iat)
+        end do
+     end do
+     !calculate ewald energy and forces
+     call ewald(eion,gmet,fewald,at%nat,at%ntypes,rmet,at%iatype,ucvol,xred,real(at%nelpsp,kind=8))
+     i_all=-product(shape(xred))*kind(xred)
+     deallocate(xred,stat=i_stat)
+     call memocc(i_stat,i_all,'xred','ionicenergy')
+
+     !deallocate the forces for the moment
+     i_all=-product(shape(fewald))*kind(fewald)
+     deallocate(fewald,stat=i_stat)
+     call memocc(i_stat,i_all,'fewald','ionicenergy')
+
+     if (iproc.eq.0) write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
+
+  end if
+
+
+end subroutine IonicEnergy
+
+
 subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion)
   use Poisson_Solver
@@ -34,24 +95,26 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
   rholeaked=0.d0
   ! Ionic energy (can be calculated for all the processors)
 
-  !here we should insert the calculation of the ewald energy for the periodic BC case
-  eion=0.d0
-  eself=0.d0
-  do iat=1,nat
-     ityp=iatype(iat)
-     rx=rxyz(1,iat) 
-     ry=rxyz(2,iat)
-     rz=rxyz(3,iat)
-     !    ion-ion interaction
-     do jat=1,iat-1
-        dist=sqrt( (rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2 )
-        jtyp=iatype(jat)
-        eion=eion+real(nelpsp(jtyp)*nelpsp(ityp),kind=8)/dist
-     enddo
-     !energy which comes from the self-interaction of the spread charge
-     eself=eself+real(nelpsp(ityp)**2,kind=8)*0.5*sqrt(1.d0/pi)/psppar(0,0,ityp)
-  end do
-  if (iproc.eq.0) write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
+  !if (geocode == 'F') then
+     !here we should insert the calculation of the ewald energy for the periodic BC case
+     eion=0.d0
+     eself=0.d0
+     do iat=1,nat
+        ityp=iatype(iat)
+        rx=rxyz(1,iat) 
+        ry=rxyz(2,iat)
+        rz=rxyz(3,iat)
+        !    ion-ion interaction
+        do jat=1,iat-1
+           dist=sqrt( (rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2 )
+           jtyp=iatype(jat)
+           eion=eion+real(nelpsp(jtyp)*nelpsp(ityp),kind=8)/dist
+        enddo
+        !energy which comes from the self-interaction of the spread charge
+        eself=eself+real(nelpsp(ityp)**2,kind=8)*0.5*sqrt(1.d0/pi)/psppar(0,0,ityp)
+     end do
+     if (iproc.eq.0) write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
+  !end if
 
   !Creates charge density arising from the ionic PSP cores
   if (n3pi >0 ) then
@@ -99,7 +162,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
                  r2=x**2+y**2+z**2
                  arg=r2/rloc**2
                  xp=exp(-.5d0*arg)
-                 if (j3.ge.i3s .and. j3.le. i3s+n3pi-1  .and. goy  .and. gox ) then
+                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                     ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                     pot_ion(ind)=pot_ion(ind)-xp*charge
                  else if (.not. goz ) then
@@ -112,6 +175,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
      enddo
 
   end if
+
   ! Check
   tt=0.d0
   do j3= 1,n3pi!i3start,i3end
@@ -151,6 +215,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
        pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.false.,nspin)
   call timing(iproc,'CrtLocPot     ','ON')
 
+  print *,'ehart',ehart
   print *,'true eion',ehart-eself
   if (n3pi > 0) then
      do iat=1,nat
@@ -202,7 +267,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
                              do iloc=nloc-1,1,-1
                                 tt=arg*tt+psppar(0,iloc,ityp)
                              enddo
-                             ind=i1+1+nbl1+(i2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                             ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                              pot_ion(ind)=pot_ion(ind)+xp*tt
                           end if
                        enddo

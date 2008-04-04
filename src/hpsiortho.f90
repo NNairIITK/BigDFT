@@ -541,7 +541,7 @@ subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctr
   implicit none
   integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
   real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
-  !local variable
+  !local variables
   include 'mpif.h'
   integer :: i_all,i_stat,ierr
 

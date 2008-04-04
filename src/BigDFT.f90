@@ -84,7 +84,7 @@ program BigDFT
   call memocc(i_stat,product(shape(fxyz))*kind(fxyz),'fxyz','BigDFT')
 
   ! read atomic positions
-  call read_atomic_positions(iproc,99,units,atoms,rxyz)
+  call read_atomic_positions(iproc,99,units,inputs,atoms,rxyz)
 
   close(99)
 

@@ -264,7 +264,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
         nlpspd%nproj=nlpspd%nproj+mproj
 
         ! coarse grid quantities
-        call  pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),cpmult, &
+        call pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),cpmult, &
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         nlpspd%nboxp_c(1,1,iat)=nl1
@@ -275,8 +275,6 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
         nlpspd%nboxp_c(2,2,iat)=nu2
         nlpspd%nboxp_c(2,3,iat)=nu3
 
-        !now control the 
-
         call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
              at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),cpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
@@ -286,7 +284,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
         istart=istart+mvctr*mproj
 
         ! fine grid quantities
-        call  pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
+        call pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         nlpspd%nboxp_f(1,1,iat)=nl1
@@ -464,6 +462,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
            endif
         enddo
      enddo
+     !print *,iat,'ok',nwarnings
   enddo
   if (iproj.ne.nlpspd%nproj) stop 'incorrect number of projectors created'
   ! projector part finished
@@ -807,7 +806,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,nspin,spinare, &
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
-  call PSolver('F',datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
+  call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations

@@ -1,27 +1,80 @@
-subroutine local_forces(iproc,nproc,at,rxyz,hgrid,n1,n2,n3,n3pi,i3s,rho,pot,floc)
+subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
+     n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc)
 ! Calculates the local forces acting on the atoms belonging to iproc
   use module_types
   implicit none
   !Arguments---------
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s
-  real(kind=8), intent(in) :: hgrid
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+  real(kind=8), intent(in) :: hxh,hyh,hzh
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
   real(kind=8), dimension(*), intent(in) :: rho,pot
   real(kind=8), dimension(3,at%nat), intent(out) :: floc
   !Local variables---------
+  logical :: perx,pery,perz,gox,goy,goz
   real(kind=8) :: hgridh,pi,prefactor,cutoff,rloc,Vel,rhoel
   real(kind=8) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc
-  real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,dist,tt
-  integer :: ii,ix,iy,iz,i1,i2,i3,i3start,i3end,j3,ind,iat,jat,ityp,jtyp,nloc,iloc,i_all,i_stat
+  real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,dist,tt,eew,ucvol,alat1,alat2,alat3
+  integer :: ii,ix,iy,iz,i1,i2,i3,i3start,i3end,ind,iat,jat,ityp,jtyp,nloc,iloc,i_all,i_stat
+  integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
   !array of coefficients of the derivative
   real(kind=8), dimension(4) :: cprime 
-
-  hgridh=hgrid*.5d0 
+  !array of the metrics in real and reciprocal spaces (useful for the ewald calculation)
+  real(kind=8), dimension(3,3) :: gmet,rmet,rprimd,gprimd
+  !other arrays for the ewald treatment
+  real(kind=8), dimension(:,:), allocatable :: fewald,xred
+  
   pi=4.d0*atan(1.d0)
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate local forces...'
   forceleaked=0.d0
+
+  if (geocode == 'P') then
+     !here we insert the calculation of the ewald forces
+     allocate(fewald(3,at%nat),stat=i_stat)
+     call memocc(i_stat,product(shape(fewald))*kind(fewald),'fewald','local_forces')
+     allocate(xred(3,at%nat),stat=i_stat)
+     call memocc(i_stat,product(shape(xred))*kind(xred),'xred','local_forces')
+
+     !calculate rprimd
+     rprimd(:,:)=0.d0
+     
+     rprimd(1,1)=alat1
+     rprimd(2,2)=alat2
+     rprimd(3,3)=alat3
+
+     !calculate the metrics and the volume
+     call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
+
+     !calculate reduced coordinates
+     do iat=1,at%nat
+        do ii=1,3
+           xred(ii,iat)= gprimd(1,ii)*rxyz(1,iat)+gprimd(2,ii)*rxyz(2,iat)+&
+                gprimd(3,ii)*rxyz(3,iat)
+        end do
+     end do
+     !calculate ewald energy and forces
+     call ewald(eew,gmet,fewald,at%nat,at%ntypes,rmet,at%iatype,ucvol,xred,real(at%nelpsp,kind=8))
+     i_all=-product(shape(xred))*kind(xred)
+     deallocate(xred,stat=i_stat)
+     call memocc(i_stat,i_all,'xred','local_forces')
+
+     !deallocate the forces for the moment
+     i_all=-product(shape(fewald))*kind(fewald)
+     deallocate(fewald,stat=i_stat)
+     call memocc(i_stat,i_all,'fewald','local_forces')
+
+  end if
+
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+  call ext_buffers(perx,nbl1,nbr1)
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
 
   do iat=1,at%nat
      ityp=at%iatype(iat)
@@ -30,9 +83,9 @@ subroutine local_forces(iproc,nproc,at,rxyz,hgrid,n1,n2,n3,n3pi,i3s,rho,pot,floc
      ry=rxyz(2,iat) 
      rz=rxyz(3,iat)
      !nearest grid points to the center
-     ix=nint(rx/hgridh)
-     iy=nint(ry/hgridh)
-     iz=nint(rz/hgridh)
+     ix=nint(rx/hxh)
+     iy=nint(ry/hyh)
+     iz=nint(rz/hzh)
      !inizialization of the forces
      !ion-ion term
      fxion=0.d0
@@ -47,9 +100,8 @@ subroutine local_forces(iproc,nproc,at,rxyz,hgrid,n1,n2,n3,n3pi,i3s,rho,pot,floc
      fygau=0.d0
      fzgau=0.d0
 
-     !parallelize the calculation of the ionic forces
-     if (mod(iat-1,nproc).eq.iproc .and. iproc < at%nat) then
-
+     !parallelize the calculation of the ionic forces in the nonperiodic case
+     if (mod(iat-1,nproc).eq.iproc .and. iproc < at%nat .and. geocode /= 'P') then
         !Derivative of the ion-ion energy
         do jat=1,iat-1
            dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
@@ -86,36 +138,54 @@ subroutine local_forces(iproc,nproc,at,rxyz,hgrid,n1,n2,n3,n3pi,i3s,rho,pot,floc
         if (at%psppar(0,iloc,ityp).ne.0.d0) nloc=iloc
      enddo
 
+
      !local part
      rloc=at%psppar(0,0,ityp)
      prefactor=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**5)
      !maximum extension of the gaussian
      cutoff=10.d0*rloc
-     !nearest grid point to the cutoff
-     ii=nint(cutoff/hgridh)
+!!$     !nearest grid point to the cutoff
+!!$     ii=nint(cutoff/hxh)
 
-     !calculate start and end of the distributed region
-     i3start=max(max(-14,iz-ii),i3s-15)
-     i3end=min(min(2*n3+16,iz+ii),i3s+n3pi-16)
+     isx=floor((rx-cutoff)/hxh)
+     isy=floor((ry-cutoff)/hyh)
+     isz=floor((rz-cutoff)/hzh)
+     
+     iex=ceiling((rx+cutoff)/hxh)
+     iey=ceiling((ry+cutoff)/hyh)
+     iez=ceiling((rz+cutoff)/hzh)
+
+!!$     !calculate start and end of the distributed region
+!!$     i3start=max(max(-14,iz-ii),i3s-15)
+!!$     i3end=min(min(2*n3+16,iz+ii),i3s+n3pi-16)
 
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
-     do i3=i3start,i3end!i3=iz-ii,iz+ii
-        j3=i3+15-i3s+1
-        do i2=iy-ii,iy+ii
-           do i1=ix-ii,ix+ii
-              x=real(i1,kind=8)*hgridh-rx
-              y=real(i2,kind=8)*hgridh-ry
-              z=real(i3,kind=8)*hgridh-rz
+     do i3=isz,iez!i3start,i3end
+        z=real(i3,kind=8)*hzh-rz
+        call ind_positions(perz,i3,n3,j3,goz) 
+        j3=j3+nbl3+1
+!!$        j3=i3+15-i3s+1
+        do i2=isy,iey!iy-ii,iy+ii
+           y=real(i2,kind=8)*hyh-ry
+           call ind_positions(pery,i2,n2,j2,goy)
+           do i1=isx,iex!ix-ii,ix+ii
+              x=real(i1,kind=8)*hxh-rx
+              call ind_positions(perx,i1,n1,j1,gox)
               r2=x**2+y**2+z**2
               arg=r2/rloc**2
               xp=exp(-.5d0*arg)
-              if (i3.ge.-14 .and. i3.le.2*n3+16  .and.  & 
-                   i2.ge.-14 .and. i2.le.2*n2+16  .and.  & 
-                   i1.ge.-14 .and. i1.le.2*n1+16 ) then
-                 ind=i1+15+(i2+14)*(2*n1+31)+(j3-1)*(2*n1+31)*(2*n2+31)
+              if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+!!$              if (i3.ge.-14 .and. i3.le.2*n3+16  .and.  & 
+!!$                   i2.ge.-14 .and. i2.le.2*n2+16  .and.  & 
+!!$                   i1.ge.-14 .and. i1.le.2*n1+16 ) then
+!!$                 ind=i1+15+(i2+14)*(2*n1+31)+(j3-1)*(2*n1+31)*(2*n2+31)
+                 ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                  !gaussian part
+
+                 tt=0.d0
                  if (nloc /= 0) then
+                    !derivative of the polynomial
                     tt=cprime(nloc)
                     do iloc=nloc-1,1,-1
                        tt=arg*tt+cprime(iloc)
@@ -126,13 +196,14 @@ subroutine local_forces(iproc,nproc,at,rxyz,hgrid,n1,n2,n3,n3pi,i3s,rho,pot,floc
                     fygau=fygau+forceloc*y
                     fzgau=fzgau+forceloc*z
                  end if
+
                  !error function part
                  Vel=pot(ind)
                  fxerf=fxerf+xp*Vel*x
                  fyerf=fyerf+xp*Vel*y
                  fzerf=fzerf+xp*Vel*z
-              else
-                 forceleaked=forceleaked+xp*(1.d0+tt)
+              else if (.not. goz) then
+                 forceleaked=forceleaked+xp*tt*rho(1) !(as a sample value)
               endif
            end do
         end do
@@ -140,9 +211,9 @@ subroutine local_forces(iproc,nproc,at,rxyz,hgrid,n1,n2,n3,n3pi,i3s,rho,pot,floc
 
      !final result of the forces
 
-     floc(1,iat)=fxion+(hgridh**3*prefactor)*fxerf+(hgridh**3/rloc**2)*fxgau
-     floc(2,iat)=fyion+(hgridh**3*prefactor)*fyerf+(hgridh**3/rloc**2)*fygau
-     floc(3,iat)=fzion+(hgridh**3*prefactor)*fzerf+(hgridh**3/rloc**2)*fzgau
+     floc(1,iat)=fxion+(hxh*hyh*hzh*prefactor)*fxerf+(hxh*hyh*hzh/rloc**2)*fxgau
+     floc(2,iat)=fyion+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
+     floc(3,iat)=fzion+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
 
 !!$     !only for testing purposes, printing the components of the forces for each atoms
 !!$     write(10+iat,'(1x,f8.3,i5,3(1x,3(1x,1pe12.5)))') &
@@ -153,7 +224,7 @@ subroutine local_forces(iproc,nproc,at,rxyz,hgrid,n1,n2,n3,n3pi,i3s,rho,pot,floc
   end do
 
 
-  forceleaked=forceleaked*prefactor*hgridh**3
+  forceleaked=forceleaked*prefactor*hxh*hyh*hzh
   if (iproc.eq.0) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
 
 end subroutine local_forces
