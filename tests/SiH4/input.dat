@@ -17,4 +17,4 @@
 5.       rbuf:   length of the tail to be added (in atomic units)
 30       ncongt: number of conjugate gradient iterations for the calculation of tail
 1 0      nspin=1 non-spin polarization, mpol=total magnetic moment
-0 .false. .false. InputPsiId, output_wf, output_grid 
+0 .false. .false. InputPsiId, output_wf, output_grid

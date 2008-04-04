@@ -100,6 +100,9 @@ low_level = init/projectors.f90  \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
 	wfn_opt/applyh_prev.f90 \
+	wfn_opt/precond_per.f90 \
+	wfn_opt/kernel_per.f90 \
+	wfn_opt/fft_per.f90 \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
 	wavelib/plotting.f90 \

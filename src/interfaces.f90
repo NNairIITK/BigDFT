@@ -46,11 +46,10 @@ implicit none
 
 interface
 
-   subroutine call_cluster(parallel,nproc,iproc,atoms,rxyz,energy,fxyz,&
+   subroutine call_cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
      use module_types
      implicit none
-     logical, intent(in) :: parallel
      integer, intent(in) :: iproc,nproc
      type(input_variables),intent(inout) :: in
      type(wavefunctions_descriptors), intent(inout) :: wfd
@@ -63,12 +62,11 @@ interface
      real(kind=8), dimension(:,:), pointer :: psi
    end subroutine call_cluster
 
-   subroutine conjgrad(parallel,nproc,iproc,at,wpos,etot,gg, &
+   subroutine conjgrad(nproc,iproc,at,wpos,etot,gg, &
         psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,in)
      use module_types
      implicit none
      type(atoms_data), intent(in) :: at
-     logical, intent(in) :: parallel
      integer, intent(in) :: nproc,iproc
      integer, intent(inout) :: n1,n2,n3,ncount_cluster,norbp,norb
      real(kind=8), intent(out) :: etot
@@ -266,10 +264,9 @@ interface
           psi(wfd%nvctr_c + 7 * wfd%nvctr_f, norbp)
    end subroutine reformatmywaves
 
-   subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
+   subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
         nspin,psi,hpsi,psit)
      implicit none
-     logical, intent(in) :: parallel
      integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
      real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
    end subroutine first_orthon
@@ -312,7 +309,7 @@ interface
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: hpsi
    end subroutine HamiltonianApplication
 
-   subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
+   subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
         nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
         eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
         psi,psit,hpsi,psidst,hpsidst,nspin,spinar)
@@ -320,9 +317,10 @@ interface
      implicit none
      type(kinetic_bounds), intent(in) :: kbounds
      type(wavefunctions_descriptors), intent(in) :: wfd
+     character(len=1), intent(in) :: geocode
      integer, intent(in) :: iter,iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids,idsx
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
-     real(kind=8), intent(in) :: hgrid,energy,energy_old
+     real(kind=8), intent(in) :: hx,hy,hz,energy,energy_old
      real(kind=8), dimension(norb), intent(in) :: occup,eval,spinar
      real(kind=8), intent(inout) :: alpha
      real(kind=8), intent(inout) :: gnrm,scprsum
@@ -345,10 +343,9 @@ interface
      integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
    end subroutine DiagHam
 
-   subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
+   subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
         nspin,psi,hpsi,psit,occup,evsum,eval)
      implicit none
-     logical, intent(in) :: parallel
      integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
      real(kind=8), dimension(norb), intent(in) :: occup
      real(kind=8), intent(out) :: evsum
@@ -403,13 +400,13 @@ interface
    subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
         nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,eval,&
         pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,spinar,&
-        proj,psi,occup,output_grid,parallel,ekin_sum,epot_sum,eproj_sum)
+        proj,psi,occup,output_grid,ekin_sum,epot_sum,eproj_sum)
      use module_types
      implicit none
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
-     logical, intent(in) :: output_grid,parallel
+     logical, intent(in) :: output_grid
      integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncongt,nspin
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
      real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf

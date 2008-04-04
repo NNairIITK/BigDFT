@@ -68,6 +68,8 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
      close(22)
   endif
 
+  !here we must add the estimation for the projectors
+
   i_all=-product(shape(logrid_c))*kind(logrid_c)
   deallocate(logrid_c,stat=i_stat)
   call memocc(i_stat,i_all,'logrid_c','memoryestimator')
@@ -85,13 +87,13 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   omemwf=real(nvctrp*nproc*8,kind=8)
   
   if (geocode == 'P') then
-     call F_FFT_dimensions(n1,n2,n3,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call F_FFT_dimensions(2*n1+2,2*n2+2,2*n3+2,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
      n01=n1
      n02=n2
      n03=n3
      tt=1.d0
   else if (geocode == 'S') then
-     call S_FFT_dimensions(n1,2*n2+31,n3,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call S_FFT_dimensions(2*n1+2,2*n2+31,2*n3+2,m1,m2,m3,n01,n02,n03,md1,md2,md3,nd1,nd2,nd3,nproc)
      n01=n1
      n02=2*n2+31
      n03=n3
@@ -101,7 +103,7 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
      n01=2*n1+31
      n02=2*n2+31
      n03=2*n3+31
-     tt=real(8*n1*n2*n3,kind=8)/real(n01*n02*n03,kind=8)
+     tt=8.d0*real(n1*n2*n3,kind=8)/real(n01*n02*n03,kind=8)
   end if
 
   !density memory
