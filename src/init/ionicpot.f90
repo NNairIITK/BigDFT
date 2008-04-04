@@ -1,4 +1,4 @@
-subroutine IonicEnergy(geocode,iproc,at,alat1,alat2,alat3,rxyz,eion)
+subroutine IonicEnergyandForces(geocode,iproc,at,alat1,alat2,alat3,rxyz,eion,fion,psoffset)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
@@ -6,15 +6,17 @@ subroutine IonicEnergy(geocode,iproc,at,alat1,alat2,alat3,rxyz,eion)
   integer, intent(in) :: iproc
   real(kind=8), intent(in) :: alat1,alat2,alat3
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
-  real(kind=8), intent(out) :: eion
+  real(kind=8), intent(out) :: eion,psoffset
+  real(kind=8), dimension(3,at%nat), intent(out) :: fion
   !local variables
   !array of the metrics in real and reciprocal spaces (useful for the ewald calculation)
-  integer :: iat,ii,i_all,i_stat
-  real(kind=8) :: ucvol
+  integer :: iat,ii,i_all,i_stat,ityp
+  real(kind=8) :: ucvol,rloc,twopitothreehalf,pi,atint,shortlength,charge
   real(kind=8), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
   real(kind=8), dimension(:,:), allocatable :: fewald,xred
 
+  pi=4.d0*datan(1.d0)
 
   if (geocode == 'P') then
      !here we insert the calculation of the ewald forces
@@ -41,32 +43,66 @@ subroutine IonicEnergy(geocode,iproc,at,alat1,alat2,alat3,rxyz,eion)
         end do
      end do
      !calculate ewald energy and forces
-     call ewald(eion,gmet,fewald,at%nat,at%ntypes,rmet,at%iatype,ucvol,xred,real(at%nelpsp,kind=8))
+     call ewald(eion,gmet,fewald,at%nat,at%ntypes,rmet,at%iatype,ucvol,&
+          xred,real(at%nelpsp,kind=8))
+
+     !make forces dimensional
+     do iat=1,at%nat
+        do ii=1,3
+           fion(ii,iat)= - (gprimd(ii,1)*fewald(1,iat)+&
+                gprimd(ii,2)*fewald(2,iat)+&
+                gprimd(ii,3)*fewald(3,iat))
+        end do
+     end do
+
+
      i_all=-product(shape(xred))*kind(xred)
      deallocate(xred,stat=i_stat)
      call memocc(i_stat,i_all,'xred','ionicenergy')
 
-     !deallocate the forces for the moment
      i_all=-product(shape(fewald))*kind(fewald)
      deallocate(fewald,stat=i_stat)
      call memocc(i_stat,i_all,'fewald','ionicenergy')
+
+     !now calculate the integral of the local psp
+     !this is the offset to be applied in the Poisson Solver to have a neutralizing background
+     psoffset=0.d0
+     shortlength=0.d0
+     charge=0.d0
+     twopitothreehalf=2.d0*pi*sqrt(2.d0*pi)
+     do iat=1,at%nat
+        ityp=at%iatype(iat)
+        rloc=at%psppar(0,0,ityp)
+        atint=at%psppar(0,1,ityp)+3.d0*at%psppar(0,2,ityp)+&
+             15.d0*at%psppar(0,3,ityp)+105.d0*at%psppar(0,4,ityp)
+        psoffset=psoffset+rloc**3*atint
+        shortlength=shortlength+real(at%nelpsp(ityp),kind=8)*rloc**2
+        charge=charge+real(at%nelpsp(ityp),kind=8)
+     end do
+     psoffset=twopitothreehalf*psoffset
+     shortlength=shortlength*2.d0*pi
+
+     !print *,'psoffset',psoffset,'pspcore',(psoffset+shortlength)*charge/(alat1*alat2*alat3)
+
+     !correct ionic energy taking into account the PSP core correction
+     eion=eion+charge/ucvol*(psoffset+shortlength)
 
      if (iproc.eq.0) write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
 
   end if
 
 
-end subroutine IonicEnergy
+end subroutine IonicEnergyandForces
 
 
 subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,&
-     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion)
+     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
   use Poisson_Solver
   implicit none
   include 'mpif.h'
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,ntypes,nat,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
-  real(kind=8), intent(in) :: hxh,hyh,hzh,elecfield
+  real(kind=8), intent(in) :: hxh,hyh,hzh,elecfield,psoffset
   integer, dimension(nat), intent(in) :: iatype
   integer, dimension(ntypes), intent(in) :: nelpsp
   real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
@@ -95,7 +131,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
   rholeaked=0.d0
   ! Ionic energy (can be calculated for all the processors)
 
-  !if (geocode == 'F') then
+  if (geocode == 'F') then
      !here we should insert the calculation of the ewald energy for the periodic BC case
      eion=0.d0
      eself=0.d0
@@ -114,7 +150,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
         eself=eself+real(nelpsp(ityp)**2,kind=8)*0.5*sqrt(1.d0/pi)/psppar(0,0,ityp)
      end do
      if (iproc.eq.0) write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
-  !end if
+  end if
 
   !Creates charge density arising from the ionic PSP cores
   if (n3pi >0 ) then
@@ -212,11 +248,19 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
   !here the value of the datacode must be kept fixed
   nspin=1
   call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-       pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.false.,nspin)
+       pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,-psoffset,.false.,nspin)
   call timing(iproc,'CrtLocPot     ','ON')
 
-  print *,'ehart',ehart
-  print *,'true eion',ehart-eself
+  !print *,'ehart',ehart
+  !print *,'true eion',ehart-eself
+
+!!$  !calculate the value of the offset to be put
+!!$  tt_tot=0.d0
+!!$  do ind=1,n1i*n2i*n3i
+!!$     tt_tot=tt_tot+pot_ion(ind)
+!!$  end do
+!!$  print *,'previous offset',tt_tot*hxh*hyh*hzh
+
   if (n3pi > 0) then
      do iat=1,nat
         ityp=iatype(iat)
@@ -244,8 +288,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
 
         
         if (nloc /= 0) then
-
-           !this part should be changed with a modulo, in order to preserve the periodicity
 
            do i3=isz,iez
               z=real(i3,kind=8)*hzh-rz
@@ -281,6 +323,14 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
      enddo
 
   end if
+
+!!$  !calculate the value of the offset to be put
+!!$  tt_tot=0.d0
+!!$  do ind=1,n1i*n2i*n3i
+!!$     tt_tot=tt_tot+pot_ion(ind)
+!!$  end do
+!!$  print *,'actual offset',tt_tot*hxh*hyh*hzh
+
 
   !use rhopot to calculate the potential from a constant electric field along x direction
   if (elecfield /= 0.d0) then

@@ -30,43 +30,6 @@ subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
   if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate local forces...'
   forceleaked=0.d0
 
-  if (geocode == 'P') then
-     !here we insert the calculation of the ewald forces
-     allocate(fewald(3,at%nat),stat=i_stat)
-     call memocc(i_stat,product(shape(fewald))*kind(fewald),'fewald','local_forces')
-     allocate(xred(3,at%nat),stat=i_stat)
-     call memocc(i_stat,product(shape(xred))*kind(xred),'xred','local_forces')
-
-     !calculate rprimd
-     rprimd(:,:)=0.d0
-     
-     rprimd(1,1)=alat1
-     rprimd(2,2)=alat2
-     rprimd(3,3)=alat3
-
-     !calculate the metrics and the volume
-     call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
-
-     !calculate reduced coordinates
-     do iat=1,at%nat
-        do ii=1,3
-           xred(ii,iat)= gprimd(1,ii)*rxyz(1,iat)+gprimd(2,ii)*rxyz(2,iat)+&
-                gprimd(3,ii)*rxyz(3,iat)
-        end do
-     end do
-     !calculate ewald energy and forces
-     call ewald(eew,gmet,fewald,at%nat,at%ntypes,rmet,at%iatype,ucvol,xred,real(at%nelpsp,kind=8))
-     i_all=-product(shape(xred))*kind(xred)
-     deallocate(xred,stat=i_stat)
-     call memocc(i_stat,i_all,'xred','local_forces')
-
-     !deallocate the forces for the moment
-     i_all=-product(shape(fewald))*kind(fewald)
-     deallocate(fewald,stat=i_stat)
-     call memocc(i_stat,i_all,'fewald','local_forces')
-
-  end if
-
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
   pery=(geocode == 'P')

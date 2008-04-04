@@ -138,13 +138,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf,hx,hy,hz,hxh,hyh,hzh
   real(kind=8) :: hgridh,peakmem,alat1,alat2,alat3,accurex,gnrm_check,hgrid_old,energy_old,sumz
   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
-  real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min
+  real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min,psoffset
   type(wavefunctions_descriptors) :: wfd_old
   type(convolutions_bounds) :: bounds
   type(nonlocal_psp_descriptors) :: nlpspd
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: occup,spinar,spinar_foo,derproj,rho
-  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz
+  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
   real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot
@@ -307,13 +307,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,product(shape(pot_ion))*kind(pot_ion),'pot_ion','cluster')
   end if
 
+  !here calculate the ionic energy and forces accordingly
+  allocate(fion(3,atoms%nat),stat=i_stat)
+  call memocc(i_stat,product(shape(fion))*kind(fion),'fion','cluster')
+
+  call IonicEnergyandForces(geocode,iproc,atoms,alat1,alat2,alat3,rxyz,eion,fion,psoffset)
+
   !do not pass the atoms data structure as arguments for dependence problem in compiling
   call createIonicPotential(geocode,iproc,nproc,atoms%nat,atoms%ntypes,atoms%iatype,&
        atoms%psppar,atoms%nelpsp,rxyz,hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,&
-       n1i,n2i,n3i,pkernel,pot_ion,eion)
-
-  !here calculate the ionic energy
-  call IonicEnergy(geocode,iproc,atoms,alat1,alat2,alat3,rxyz,eion)
+       n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
 
   !Allocate Charge density, Potential in real space
   if (n3d >0) then
@@ -517,6 +520,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
           wfd,psi,rhopot,n1i*n2i*n3d,nscatterarr,nspin,spinar,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
+
+!!$     tt=0.d0
+!!$     do i3=1,n3i
+!!$        do i2=1,n2i
+!!$           do i1=1,n1i
+!!$              tt=tt+pot_ion(i1+n1i*(i2-1)+n1i*n2i*(i3-1))*rhopot(i1,i2,i3,1)
+!!$           end do
+!!$        end do
+!!$     end do
+!!$
+!!$     print *,'elocalpsp',iproc,tt,tt*hxh*hyh*hzh
 
      !     ixc=11  ! PBE functional
      !     ixc=1   ! LDA functional
@@ -900,6 +914,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      enddo
   end if
 
+  !add to the forces the ionic contribution (for the moment only in the peridica case)
+  if (geocode == 'P') then
+     fxyz(:,:)=fxyz(:,:)+fion(:,:)
+  end if
+
+  i_all=-product(shape(fion))*kind(fion)
+  deallocate(fion,stat=i_stat)
+  call memocc(i_stat,i_all,'fion','cluster')
   i_all=-product(shape(gxyz))*kind(gxyz)
   deallocate(gxyz,stat=i_stat)
   call memocc(i_stat,i_all,'gxyz','cluster')
@@ -1062,7 +1084,9 @@ contains
 
     end if
 
-    call deallocate_bounds(bounds,'cluster')
+    if (geocode == 'F') then
+       call deallocate_bounds(bounds,'cluster')
+    end if
 
     i_all=-product(shape(nlpspd%keyg_p))*kind(nlpspd%keyg_p)
     deallocate(nlpspd%keyg_p,stat=i_stat)
