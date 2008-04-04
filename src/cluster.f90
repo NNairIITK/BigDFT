@@ -138,23 +138,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf,hx,hy,hz,hxh,hyh,hzh
   real(kind=8) :: hgridh,peakmem,alat1,alat2,alat3,accurex,gnrm_check,hgrid_old,energy_old,sumz
   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
-<<<<<<< TREE
-  real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min
-  real(kind=8) :: factor,rhon,rhos,ttsum
-=======
   real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min,psoffset
->>>>>>> MERGE-SOURCE
+  real(kind=8) :: factor,rhon,rhos,ttsum
   type(wavefunctions_descriptors) :: wfd_old
   type(convolutions_bounds) :: bounds
   type(nonlocal_psp_descriptors) :: nlpspd
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
-<<<<<<< TREE
   real(kind=8), dimension(:), allocatable :: occup,spinsgn,spinsgn_foo,derproj,rho
-  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz
-=======
-  real(kind=8), dimension(:), allocatable :: occup,spinar,spinar_foo,derproj,rho
   real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion
->>>>>>> MERGE-SOURCE
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
   real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot,rho_diag
@@ -582,14 +573,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
          call PSolverNC(geocode,datacode,iproc,nproc,n1i,n2i,n3i,n3d,ixc,hxh,hyh,hzh,&
              rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
 
-<<<<<<< TREE
      else
               
-        call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
-             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
-        
-     end if
-=======
 !!$     tt=0.d0
 !!$     do i3=1,n3i
 !!$        do i2=1,n2i
@@ -605,7 +590,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !     ixc=1   ! LDA functional
      call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
           rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin) !add NSPIN
->>>>>>> MERGE-SOURCE
+     end if
 
      call HamiltonianApplication(geocode,iproc,nproc,atoms,hx,hy,hz,&
           norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
