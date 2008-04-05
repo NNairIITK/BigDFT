@@ -163,7 +163,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(:,:,:), pointer :: ads,psidst,hpsidst
   ! tmp debug array
   real(kind=8), dimension(:,:), allocatable :: tmred
-  real(kind=8), external :: DDOT
   
 
   !copying the input variables for readability
@@ -280,7 +279,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           atoms%atomnames,.false.,nspin,peakmem) 
   end if
 
-
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   ndegree_ip=16 !default value to be put to 16 and update references for test
   call createKernel(geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,iproc,nproc,pkernel)
@@ -393,7 +391,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call input_wf_diag(geocode,iproc,nproc,atoms,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj, &
           pkernel,ixc,psi,hpsi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinsgn)
-     
+
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
         write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/real(norb,kind=8)
@@ -542,7 +540,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
           wfd,psi,rhopot,n1i*n2i*n3d,nscatterarr,nspin,nspinor,spinsgn,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
-     
+
      if(nspinor==4) then
         !        call calc_moments(iproc,nproc,norb,norbp,nvctrp*nproc,nspinor,psi)
         allocate(tmred(nspin+1,2),stat=i_stat)
@@ -554,10 +552,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         tmred(nspin+1,1)=sum(rhopot(:,:,:,:))
         if (nproc>1) then
            call MPI_ALLREDUCE(tmred(:,1),tmred(:,2),nspin+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+           tt=sqrt(tmred(2,2)**2+tmred(3,2)**2+tmred(4,2)**2)
+           if(iproc==0.and.tt>0.0d0) write(*,'(a,5f10.4)') '  Magnetic density orientation:', &
+                (tmred(ispin,2)/tmred(1,2),ispin=2,nspin)
+        else
+           tt=sqrt(tmred(2,1)**2+tmred(3,1)**2+tmred(4,1)**2)
+           if(iproc==0.and.tt>0.0d0) write(*,'(a,5f10.4)') '  Magnetic density orientation:',&
+                (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
         end if
-        tt=sqrt(tmred(2,2)**2+tmred(3,2)**2+tmred(4,2)**2)
-        if(iproc==0.and.tt>0.0d0) write(*,'(a,5f10.4)') '  Magnetic density orientation:', &
-             (tmred(ispin,2)/tmred(1,2),ispin=2,nspin)
         i_all=-product(shape(tmred))*kind(tmred)
         deallocate(tmred,stat=i_stat)
         call memocc(i_stat,i_all,'tmred','cluster')
@@ -569,12 +571,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         ispin=nspin
      end if
      
-     if(nspinor==4) then
-         call PSolverNC(geocode,datacode,iproc,nproc,n1i,n2i,n3i,n3d,ixc,hxh,hyh,hzh,&
-             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
-
-     else
-              
 !!$     tt=0.d0
 !!$     do i3=1,n3i
 !!$        do i2=1,n2i
@@ -588,8 +584,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      !     ixc=11  ! PBE functional
      !     ixc=1   ! LDA functional
-     call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
-          rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin) !add NSPIN
+     if(nspinor==4) then
+         call PSolverNC(geocode,datacode,iproc,nproc,n1i,n2i,n3i,n3d,ixc,hxh,hyh,hzh,&
+             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
+     else
+              
+        call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
+             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
+        
      end if
 
      call HamiltonianApplication(geocode,iproc,nproc,atoms,hx,hy,hz,&
@@ -788,38 +790,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      nscatterarr(jproc,4)=0
   end do
 
-  if(nproc>1) then
-     if (n3p>0) then
+  if (n3p>0) then
      allocate(rho(n1i*n2i*n3p),stat=i_stat)
-        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
-     else
-        allocate(rho(1),stat=i_stat)
-        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
-     end if
-     
-     !use pot_ion array for building total rho
-     call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
-          wfd,psi,rho,n1i*n2i*n3p,nscatterarr,1,nspinor,spinsgn_foo,&
-          !         wfd,psi,rho,n1i*n2i*n3p,nscatterarr,1,nspinor,spinsgn_foo,&
-          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
-     
+     call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
   else
-     
-     if (n3p>0) then
-        allocate(rho((2*n1+31)*(2*n2+31)*n3p*nspinor),stat=i_stat)
-        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
-     else
-        allocate(rho(1),stat=i_stat)
-        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
-     end if
-     
-     !use pot_ion array for building total rho
-     call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
-          wfd,psi,rho,n1i*n2i*n3p,nscatterarr,1,nspinor,spinsgn_foo,&
- !         wfd,psi,rho,n1i*n2i*n3p,nscatterarr,nspin,nspinor,spinsgn_foo,&
-          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
-     
+     allocate(rho(1),stat=i_stat)
+     call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
   end if
+
+  !use pot_ion array for building total rho
+  call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
+       wfd,psi,rho,n1i*n2i*n3p,nscatterarr,1,nspinor,spinsgn_foo,&
+       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
   i_all=-product(shape(spinsgn_foo))*kind(spinsgn_foo)
   deallocate(spinsgn_foo,stat=i_stat)
@@ -1020,8 +1002,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh,1),n1i*n2i*n3p,&
              MPI_DOUBLE_PRECISION,pot(1,1,1,1),ngatherarr(0,1),ngatherarr(0,2), & 
              MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-
+        !print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
         if(nspin==2) then
+           !print '(a,2f12.6)','RHOdw',sum(abs(rhopot(:,:,:,2))),sum(abs(pot(:,:,:,2)))
            if (n3d /= n3p) then
               i03=1+i3xcsh+n3p
               i04=1
@@ -1207,8 +1190,8 @@ contains
     call cpu_time(tcpu1)
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
-!    if (iproc == 0) &
-!         write(*,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time for root process ', iproc,tel,tcpu1-tcpu0
+    if (iproc == 0) &
+         write(*,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time for root process ', iproc,tel,tcpu1-tcpu0
 
   end subroutine deallocate_before_exiting
 

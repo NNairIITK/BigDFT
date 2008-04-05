@@ -32,7 +32,6 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   real(kind=8), dimension(:,:,:,:,:), allocatable::x_f,x_fc,y_f
   real(kind=8), dimension(:,:), pointer :: pot
   real(kind=8), dimension(:,:,:), allocatable :: mom_vec
-  real(kind=8),external :: DDOT
 
   !debug
   integer :: nvctrp
@@ -353,14 +352,8 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
 
      oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
 
-     if(norb==norbp) then
-        !psi not transposed in serial mode
-        i1=1
-        i2=oidx
-     else
-        !starting address of the direct array in transposed form
-        call trans_address(norbp*nspinor,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,1,oidx,i1,i2)
-    end if
+     !starting address of the direct array in transposed form
+     call trans_address(norbp*nspinor,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,1,oidx,i1,i2)
 
      scpr=dnrm2((wfd%nvctr_c+7*wfd%nvctr_f)*nspinor,hpsi(i1,i2),1)
      !scpr=dnrm2(nvctr_c+7*nvctr_f,hpsi(1,iorb-iproc*norbp),1)
@@ -406,27 +399,6 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
 
      oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
      
-     do sidx=oidx,oidx+nspinor-1
-        if(norb==norbp) then
-           !psi not transposed in serial mode
-           i1=1
-           i2=sidx
-        else
-           !starting address of the direct array in transposed form
-           call trans_address(norbp,nvctrp*nspinor,nspinor*(wfd%nvctr_c+7*wfd%nvctr_f),1,sidx,i1,i2)
-        end if
-        
-        cprecr=-eval(iorb)
-        !       write(*,*) 'cprecr',iorb,cprecr!
-        !     do sidx=1,nspinor
-        
-        call precong(sidx,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
-             wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
-             ncong,cprecr,hx,kbounds%ibyz_c,kbounds%ibxz_c,kbounds%ibxy_c,&
-             kbounds%ibyz_f,kbounds%ibxz_f,kbounds%ibxy_f,hpsi(i1,i2))
-        
-        
-     end do
   enddo
 
   if (iproc==0) then
@@ -800,7 +772,7 @@ subroutine calc_moments(iproc,nproc,norb,norbp,nvctr,nspinor,psi)
   integer :: oidx,ispin,md
   real(kind=8) :: m00,m11,m13,m24,m12,m34,m14,m23
   real(kind=8), dimension(:,:,:), allocatable :: mom_vec
-  real(kind=8),external :: DDOT
+  real(kind=8) :: ddot
 
   if(nspinor==4) then
      

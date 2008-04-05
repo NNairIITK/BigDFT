@@ -195,8 +195,8 @@ interface
      real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
      real(kind=8), dimension(3,nat), intent(in) :: rxyz
      real(kind=8), dimension(*), intent(in) :: pkernel
-     real(kind=8), dimension(*), intent(inout) :: pot_ion
      real(kind=8), intent(out) :: eion
+     real(kind=8), dimension(*), intent(inout) :: pot_ion
    end subroutine createIonicPotential
 
    subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
