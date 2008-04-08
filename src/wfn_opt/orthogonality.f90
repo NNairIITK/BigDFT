@@ -83,7 +83,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit)
   integer, intent(in) :: iproc,nproc,norb,nvctrp,nvctr_tot
   real(kind=8), dimension(nvctrp,norb), intent(inout) :: psit
   !local variables
-  integer :: info,i_all,i_stat,nvctr_eff,ierr,istart
+  integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,i,j
   real(kind=8) :: tt,ttLOC,dnrm2
   real(kind=8), dimension(:,:,:), allocatable :: ovrlp
   include 'mpif.h'
@@ -134,10 +134,10 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit)
         call timing(iproc,'GramS_comput  ','ON')
      end if
 
-     !  write(*,*) 'parallel ovrlp'
-     !  do i=1,norb
-     !  write(*,'(10(1x,e10.3))') (ovrlp(i,j,1),j=1,norb)
-     !  enddo
+!!$       write(*,*) 'parallel ovrlp'
+!!$       do i=1,norb
+!!$       write(*,'(10(1x,1pe10.3))') (ovrlp(i,j,1),j=1,norb)
+!!$       enddo
 
 
      ! Cholesky factorization
@@ -480,16 +480,25 @@ subroutine checkortho(norb,nvctrp,psi)
 END SUBROUTINE checkortho
 
 
-subroutine KStrans_p(iproc,nproc,norb,ndim,nvctrp,occup,  & 
-     hpsit,psit,evsum,eval)
+subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,hpsit,psit,evsum,eval)
   ! at the start each processor has all the Psi's but only its part of the HPsi's
   ! at the end each processor has only its part of the Psi's
-  implicit real(kind=8) (a-h,o-z)
-  dimension occup(norb),eval(norb)
-  dimension psit(nvctrp,ndim),hpsit(nvctrp,ndim)
-  ! arrays for KS orbitals
-  allocatable :: hamks(:,:,:),work_lp(:),psitt(:,:)
+  !implicit real(kind=8) (a-h,o-z)
+  implicit none
+  integer, intent(in) :: iproc,nproc,norb,nvctrp
+  real(kind=8), intent(out) :: evsum
+  real(kind=8), dimension(norb), intent(in) :: occup
+  real(kind=8), dimension(nvctrp,norb), intent(in) :: hpsit
+  real(kind=8), dimension(norb), intent(out) :: eval
+  real(kind=8), dimension(nvctrp,norb), intent(out) :: psit
+  !local variables
   include 'mpif.h'
+  integer :: i_all,i_stat,ierr,iorb,jorb,n_lp,istart,info
+  real(kind=8) :: scpr,alpha,ddot
+  ! arrays for KS orbitals
+  real(kind=8), dimension(:), allocatable :: work_lp
+  real(kind=8), dimension(:,:), allocatable :: psitt
+  real(kind=8), dimension(:,:,:), allocatable :: hamks
 
   ! set up Hamiltonian matrix
   allocate(hamks(norb,norb,2),stat=i_stat)
@@ -499,16 +508,24 @@ subroutine KStrans_p(iproc,nproc,norb,ndim,nvctrp,occup,  &
         hamks(iorb,jorb,2)=0.d0
      enddo
   enddo
+
+  if (nproc > 1) then
+     istart=2
+  else
+     istart=1
+  end if
+
   do iorb=1,norb
      do jorb=1,norb
         scpr=ddot(nvctrp,psit(1,jorb),1,hpsit(1,iorb),1)
-        hamks(iorb,jorb,2)=scpr
+        hamks(iorb,jorb,istart)=scpr
      enddo
   enddo
 
-  call MPI_ALLREDUCE(hamks(1,1,2),hamks(1,1,1),norb**2,MPI_DOUBLE_PRECISION,&
-       MPI_SUM,MPI_COMM_WORLD,ierr)
-
+  if (nproc > 1) then
+     call MPI_ALLREDUCE(hamks(1,1,2),hamks(1,1,1),norb**2,MPI_DOUBLE_PRECISION,&
+          MPI_SUM,MPI_COMM_WORLD,ierr)
+  end if
   !        write(*,*) 'KS Hamiltonian',iproc
   !        do iorb=1,norb
   !        write(*,'(10(1x,e10.3))') (hamks(iorb,jorb,1),jorb=1,norb)
@@ -528,7 +545,7 @@ subroutine KStrans_p(iproc,nproc,norb,ndim,nvctrp,occup,  &
   call memocc(i_stat,i_all,'work_lp','kstrans_p')
   if (info.ne.0) write(*,*) 'DSYEV ERROR',info
 
-  allocate(psitt(nvctrp,ndim),stat=i_stat)
+  allocate(psitt(nvctrp,norb),stat=i_stat)
   call memocc(i_stat,product(shape(psitt))*kind(psitt),'psitt','kstrans_p')
   ! Transform to KS orbitals
   do iorb=1,norb
@@ -542,7 +559,7 @@ subroutine KStrans_p(iproc,nproc,norb,ndim,nvctrp,occup,  &
   deallocate(hamks,stat=i_stat)
   call memocc(i_stat,i_all,'hamks','kstrans_p')
 
-  call DCOPY(nvctrp*ndim,psitt,1,psit,1)
+  call DCOPY(nvctrp*norb,psitt,1,psit,1)
   i_all=-product(shape(psitt))*kind(psitt)
   deallocate(psitt,stat=i_stat)
   call memocc(i_stat,i_all,'psitt','kstrans_p')

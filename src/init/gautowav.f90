@@ -535,6 +535,8 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
   allocate(psig_f(7,nl1_f:nu1_f,nl2_f:nu2_f,nl3_f:nu3_f),stat=i_stat)
   call memocc(i_stat,product(shape(psig_f))*kind(psig_f),'psig_f','crtonewave')
 
+  !print *,'limits',nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
+
   iterm=1
   itp=1
   gau_a=xp(iterm)
@@ -648,6 +650,8 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
 
 
   !wavefunction compression
+
+  !itp=0
   ! coarse part
   do iseg=1,nseg_c
      jj=keyv_c(iseg)
@@ -660,10 +664,14 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
+        !itp=itp+1
         psi_c(i-i0+jj)=psig_c(i,i2,i3)
      enddo
   enddo
 
+  !print *,'nvctr_c',itp,mvctr_c
+
+  !itp=0
   ! fine part
   do iseg=1,nseg_f
      jj=keyv_f(iseg)
@@ -676,6 +684,7 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
+        !itp=itp+1
         psi_f(1,i-i0+jj)=psig_f(1,i,i2,i3)
         psi_f(2,i-i0+jj)=psig_f(2,i,i2,i3)
         psi_f(3,i-i0+jj)=psig_f(3,i,i2,i3)
@@ -685,6 +694,8 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
         psi_f(7,i-i0+jj)=psig_f(7,i,i2,i3)
      enddo
   enddo
+
+  !print *,'nvctr_f',itp,mvctr_f
 
   i_all=-product(shape(wprojx))*kind(wprojx)
   deallocate(wprojx,stat=i_stat)

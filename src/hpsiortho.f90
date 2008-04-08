@@ -241,7 +241,7 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
 end subroutine HamiltonianApplication
 
 
-subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
+subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
      eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
      psi,psit,hpsi,psidst,hpsidst,nspin,spinar)
@@ -249,9 +249,10 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   implicit none
   type(kinetic_bounds), intent(in) :: kbounds
   type(wavefunctions_descriptors), intent(in) :: wfd
+  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iter,iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids,idsx
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
-  real(kind=8), intent(in) :: hgrid,energy,energy_old
+  real(kind=8), intent(in) :: hx,hy,hz,energy,energy_old
   real(kind=8), dimension(norb), intent(in) :: occup,eval,spinar
   real(kind=8), intent(inout) :: alpha
   real(kind=8), intent(inout) :: gnrm,scprsum
@@ -261,7 +262,7 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   include 'mpif.h'
   real(kind=8), parameter :: eps_mach=1.d-12
   integer :: ierr,ind,i1,i2,iorb,k,norbu,norbd
-  real(kind=8) :: tt,scpr,dnrm2,scprpart
+  real(kind=8) :: tt,scpr,dnrm2,scprpart,cprecr
 
   if (iproc==0) then
      write(*,'(1x,a)',advance='no')&
@@ -338,18 +339,11 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
   ! norm of gradient
   gnrm=0.d0
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-     !calculate the address to start from for calculating the 
-     !norm of the residue if hpsi is allocated in the transposed way
-     !it can be eliminated when including all this procedure in a subroutine
-     if (nproc > 1) then
-        ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-iproc*norbp-1)
-        i1=mod(ind-1,nvctrp)+1
-        i2=(ind-i1)/nvctrp+1
-     else
-        i1=1
-        i2=iorb-iproc*norbp
-     end if
-     scpr=dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,hpsi(i1,i2),1)
+
+     !starting address of the direct array in transposed form
+     call trans_address(norbp,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,1,iorb-iproc*norbp,i1,i2)
+
+       scpr=dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,hpsi(i1,i2),1)
      !scpr=dnrm2(nvctr_c+7*nvctr_f,hpsi(1,iorb-iproc*norbp),1)
      !lines for writing the residue following the orbitals
      !if (iorb <=5) write(83,*)iter,iorb,scpr
@@ -369,10 +363,30 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
   !   write(*,'(10f10.6)') (eval(iorb),iorb=1,norb)
   ! Preconditions all orbitals belonging to iproc
-  call preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid, &
-       ncong,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,eval,&
-       kbounds%ibyz_c,kbounds%ibxz_c,kbounds%ibxy_c,&
-       kbounds%ibyz_f,kbounds%ibxz_f,kbounds%ibxy_f,hpsi)
+
+  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+     
+     !starting address of the direct array in transposed form
+     call trans_address(norbp,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,1,iorb-iproc*norbp,i1,i2)
+
+     cprecr=-eval(iorb)
+     !       write(*,*) 'cprecr',iorb,cprecr!
+     select case(geocode)
+     case('F')
+        !in this case the grid spacings are uniform
+        call precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+             wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
+             ncong,cprecr,hx,kbounds%ibyz_c,kbounds%ibxz_c,kbounds%ibxy_c,&
+             kbounds%ibyz_f,kbounds%ibxz_f,kbounds%ibxy_f,hpsi(i1,i2))
+     case('P')
+        cprecr=0.5d0
+        call prec_fft(n1,n2,n3, &
+             wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
+             ncong,cprecr,hx,hy,hz,hpsi(i1,i2))
+     end select
+
+     
+  enddo
 
   if (iproc==0) then
      write(*,'(1x,a)')&
@@ -502,22 +516,42 @@ subroutine hpsitopsi(iter,iproc,nproc,norb,norbp,occup,hgrid,n1,n2,n3,&
 
 end subroutine hpsitopsi
 
-subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
+!calculate the address to start from for calculating the 
+!norm of the residue if hpsi is allocated in the transposed way
+!it can be eliminated when including all this procedure in a subroutine
+subroutine trans_address(norbp,nvctrp,nvctr,i,iorb,i1,i2)
+  implicit none
+  integer, intent(in) :: norbp,nvctrp,nvctr,i,iorb
+  integer, intent(out) :: i1,i2
+  !local variables
+  integer :: ind
+!  if (nproc > 1) then
+     ind=i+nvctr*(iorb-1)
+     i1=mod(ind-1,nvctrp)+1
+     i2=(ind-i1)/nvctrp+1
+!!$  else
+!!$     i1=1
+!!$     i2=iorb
+!!$  end if
+end subroutine trans_address
+
+
+
+subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
      nspin,psi,hpsi,psit)
   implicit none
-  include 'mpif.h'
-  logical, intent(in) :: parallel
   integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
   real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
   !local variables
+  include 'mpif.h'
   integer :: i_all,i_stat,ierr
 
-  if (parallel) then
+  if (nproc > 1) then
      !allocate hpsi array (used also as transposed)
      !allocated in the transposed way such as 
      !it can also be used as the transposed hpsi
      allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','first_orthon')
+     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','first_orthon')
 
      !transpose the psi wavefunction
      !here hpsi is used as a work array
@@ -532,17 +566,21 @@ subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvct
           psit,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
      !end of transposition
+  else
+     psit => psi
+  end if
 
-     if(nspin==1) then
-        call orthon_p(iproc,nproc,norb,nvctrp,nvctr_c+7*nvctr_f,psit) 
-     else
-        call orthon_p(iproc,nproc,norbu,nvctrp,nvctr_c+7*nvctr_f,psit) 
-        if(norbd>0) then
-           call orthon_p(iproc,nproc,norbd,nvctrp,nvctr_c+7*nvctr_f,psit(1,norbu+1)) 
-        end if
+  if(nspin==1) then
+     call orthon_p(iproc,nproc,norb,nvctrp,nvctr_c+7*nvctr_f,psit) 
+  else
+     call orthon_p(iproc,nproc,norbu,nvctrp,nvctr_c+7*nvctr_f,psit) 
+     if(norbd>0) then
+        call orthon_p(iproc,nproc,norbd,nvctrp,nvctr_c+7*nvctr_f,psit(1,norbu+1)) 
      end if
-     !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
+  end if
+  !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
+  if (nproc > 1) then
      !retranspose the psit wavefunction into psi
      !here hpsi is used as a work array
      call timing(iproc,'Un-TransComm  ','ON')
@@ -554,41 +592,46 @@ subroutine first_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvct
      call timing(iproc,'Un-TransSwitch','OF')
      !end of retransposition
   else
-     if(nspin==1) then
-        call orthon(norb,nvctrp,psi)
-        !call checkortho(norb,norbp,nvctrp,psi)
-     else
-        call orthon(norbu,nvctrp,psi)
-        !call checkortho(norbu,nvctrp,psi)
-        if(norbd>0) then
-           call orthon(norbd,nvctrp,psi(1,norbu+1))
-           !call checkortho(norbd,nvctrp,psi(1,norbu+1))
-        end if
-     end if
+     nullify(psit)
      !allocate hpsi array
-     allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'hpsi','first_orthon')
-  endif
+     allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
+     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','first_orthon')
+  end if
+
+!!$  else
+!!$     if(nspin==1) then
+!!$        call orthon(norb,nvctrp,psi)
+!!$        !call checkortho(norb,norbp,nvctrp,psi)
+!!$     else
+!!$        call orthon(norbu,nvctrp,psi)
+!!$        !call checkortho(norbu,nvctrp,psi)
+!!$        if(norbd>0) then
+!!$           call orthon(norbd,nvctrp,psi(1,norbu+1))
+!!$           !call checkortho(norbd,nvctrp,psi(1,norbu+1))
+!!$        end if
+!!$     end if
+!!$     !allocate hpsi array
+!!$     allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
+!!$     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','first_orthon')
+!!$  endif
 
 end subroutine first_orthon
 
 ! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
-subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
+subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
      nspin,psi,hpsi,psit,occup,evsum,eval)
   implicit none
-  include 'mpif.h'
-  logical, intent(in) :: parallel
   integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
   real(kind=8), dimension(norb), intent(in) :: occup
   real(kind=8), intent(out) :: evsum
   real(kind=8), dimension(norb), intent(out) :: eval
   real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
   !local variables
+  include 'mpif.h'
   integer :: i_all,i_stat,ierr,iorb,jorb
   real(kind=8) :: evpart
 
-  if (parallel) then
-
+  if (nproc > 1) then
      !transpose the hpsi wavefunction
      !here psi is used as a work array
      call timing(iproc,'Un-TransSwitch','ON')
@@ -600,19 +643,23 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
           hpsi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
      !end of transposition
+  else
+     psit => psi
+  end if
 
-     if(nspin==1) then
-        call KStrans_p(iproc,nproc,norb,norbp*nproc,nvctrp,occup,hpsi,psit,evsum,eval)
-     else
-        call KStrans_p(iproc,nproc,norbu,norbu,nvctrp,occup,hpsi,psit,evsum,eval)
-        evpart=evsum
-        if(norbd>0) then
-           call KStrans_p(iproc,nproc,norbd,norbd,nvctrp,occup(norbu+1),&
-                hpsi(1,norbu+1),psit(1,norbu+1),evsum,eval(norbu+1))
-           evsum=evsum+evpart
-        end if
+  if(nspin==1) then
+     call KStrans_p(iproc,nproc,norb,nvctrp,occup,hpsi,psit,evsum,eval)
+  else
+     call KStrans_p(iproc,nproc,norbu,nvctrp,occup,hpsi,psit,evsum,eval)
+     evpart=evsum
+     if(norbd>0) then
+        call KStrans_p(iproc,nproc,norbd,nvctrp,occup(norbu+1),&
+             hpsi(1,norbu+1),psit(1,norbu+1),evsum,eval(norbu+1))
+        evsum=evsum+evpart
      end if
+  end if
 
+  if (nproc > 1) then
      !retranspose the psit wavefunction into psi
      !here hpsi is used as a work array
      call timing(iproc,'Un-TransComm  ','ON')
@@ -627,34 +674,30 @@ subroutine last_orthon(iproc,nproc,parallel,norbu,norbd,norb,norbp,nvctr_c,nvctr
      i_all=-product(shape(psit))*kind(psit)
      deallocate(psit,stat=i_stat)
      call memocc(i_stat,i_all,'psit','last_orthon')
-
   else
-     if(nspin==1) then
-        call KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval)
-     else
-        call KStrans(norbu,nvctrp,occup,hpsi,psi,evsum,eval)
-        evpart=evsum
-        if(norbd>0) then
-           call KStrans(norbd,nvctrp,occup(norbu+1),hpsi(1,norbu+1),psi(1,norbu+1),&
-                evsum,eval(norbu+1))
-           evsum=evsum+evpart
-        end if
-     end if
-  endif
+     nullify(psit)
+  end if
+
+!!$  else
+!!$     if(nspin==1) then
+!!$        call KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval)
+!!$     else
+!!$        call KStrans(norbu,nvctrp,occup,hpsi,psi,evsum,eval)
+!!$        evpart=evsum
+!!$        if(norbd>0) then
+!!$           call KStrans(norbd,nvctrp,occup(norbu+1),hpsi(1,norbu+1),psi(1,norbu+1),&
+!!$                evsum,eval(norbu+1))
+!!$           evsum=evsum+evpart
+!!$        end if
+!!$     end if
+!!$  endif
 
   !print the found eigenvalues
   if (iproc == 0) then
      write(*,'(1x,a)')&
           '-------------------------------------------------------------- Kohn-Sham Eigenvalues'
      if (nspin==1) then
-        do iorb=1,norb!/2
-!!$           jorb=norb/2+iorb
-!!$           write(*,'(1x,a,i4,a,1x,1pe21.14,17x,a,i4,a,1x,1pe21.14)') &
-!!$                'eval(',iorb,')=',eval(iorb),'eval(',jorb,')=',eval(jorb)
-!!$        end do
-!!$        if (2*norb/2 /= norb) then
-!!$           write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',norb/2+1,')=',eval(norb/2+1)
-!!$        end if
+        do iorb=1,norb
            write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
         end do
      else
