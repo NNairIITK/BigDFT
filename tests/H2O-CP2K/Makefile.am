@@ -19,7 +19,7 @@ CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* H2O-CP2K.out posou
 $(PPFILES):
 	ln -s $(top_srcdir)/utils/PSPfiles/HGH/$@ .
 
-check: $(PPFILES) posinp input.dat
+check: $(PPFILES) posinp input.dat gaucoeff.dat gaubasis.dat
 	if test ! -f input.dat ; then \
 	  ln -s $(top_srcdir)/tests/H2O-CP2K/input.dat ; \
 	fi
