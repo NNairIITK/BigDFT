@@ -14,7 +14,7 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
   real(kind=8), dimension(*), intent(out) :: pot_ion
   !local variables
   include 'mpif.h'
-  logical, parameter :: slowion=.false.
+  logical, parameter :: slowion=.true.
   logical :: perx,pery,perz,gox,goy,goz
   integer :: iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
@@ -62,6 +62,7 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
                 gprimd(ii,2)*fewald(2,iat)+&
                 gprimd(ii,3)*fewald(3,iat))
         end do
+        !if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
      end do
 
      i_all=-product(shape(xred))*kind(xred)
@@ -90,7 +91,7 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
      shortlength=shortlength*2.d0*pi
 
      !print *,'psoffset',psoffset,'pspcore',(psoffset+shortlength)*charge/(alat1*alat2*alat3)
-
+     print *,'eion',eion,charge/ucvol*(psoffset+shortlength)
      !correct ionic energy taking into account the PSP core correction
      eion=eion+charge/ucvol*(psoffset+shortlength)
 
@@ -207,10 +208,11 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
            end do
         end if
 
+       
         !application of the Poisson solver to calculate the self energy and the potential
         !here the value of the datacode must be kept fixed
         call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-             pot_ion,pkernel,pot_ion,ehart,zero,zero,0.d0,.false.,1)
+             pot_ion,pkernel,pot_ion,ehart,zero,zero,2.d0*pi*rloc**2*real(at%nelpsp(ityp),kind=8),.false.,1)
         eself=eself+ehart
 
         !initialise forces calculation
