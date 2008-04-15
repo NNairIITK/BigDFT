@@ -182,6 +182,22 @@ interface
      integer, dimension(0:nproc-1,2), intent(out) :: ngatherarr
    end subroutine createDensPotDescriptors
 
+   subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,alat3,rxyz,eion,fion,psoffset,&
+        n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+     use module_types
+     use Poisson_Solver
+     implicit none
+     type(atoms_data), intent(in) :: at
+     character(len=1), intent(in) :: geocode
+     integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi
+     real(kind=8), intent(in) :: alat1,alat2,alat3,hxh,hyh,hzh
+     real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
+     real(kind=8), dimension(*), intent(in) :: pkernel
+     real(kind=8), intent(out) :: eion,psoffset
+     real(kind=8), dimension(3,at%nat), intent(out) :: fion
+     real(kind=8), dimension(*), intent(out) :: pot_ion
+   end subroutine IonicEnergyandForces
+
    subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,&
         hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
      use Poisson_Solver

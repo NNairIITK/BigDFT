@@ -45,10 +45,6 @@ subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
      rx=rxyz(1,iat) 
      ry=rxyz(2,iat) 
      rz=rxyz(3,iat)
-     !nearest grid points to the center
-     ix=nint(rx/hxh)
-     iy=nint(ry/hyh)
-     iz=nint(rz/hzh)
      !inizialization of the forces
      !ion-ion term
      fxion=0.d0
@@ -63,31 +59,31 @@ subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
      fygau=0.d0
      fzgau=0.d0
 
-     !parallelize the calculation of the ionic forces in the nonperiodic case
-     if (mod(iat-1,nproc).eq.iproc .and. iproc < at%nat .and. geocode /= 'P') then
-        !Derivative of the ion-ion energy
-        do jat=1,iat-1
-           dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-           jtyp=at%iatype(jat)
-           !eion=eion+at%nelpsp(jtyp)*at%nelpsp(ityp)/dist
-           fxion=fxion+real(at%nelpsp(jtyp),kind=8)*&
-                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(rx-rxyz(1,jat))
-           fyion=fyion+real(at%nelpsp(jtyp),kind=8)*&
-                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(ry-rxyz(2,jat))
-           fzion=fzion+real(at%nelpsp(jtyp),kind=8)*&
-                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(rz-rxyz(3,jat))
-        end do
-        do jat=iat+1,at%nat
-           dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-           jtyp=at%iatype(jat)
-           fxion=fxion+real(at%nelpsp(jtyp),kind=8)*&
-                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(rx-rxyz(1,jat))
-           fyion=fyion+real(at%nelpsp(jtyp),kind=8)*&
-                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(ry-rxyz(2,jat))
-           fzion=fzion+real(at%nelpsp(jtyp),kind=8)*&
-                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(rz-rxyz(3,jat))
-        end do
-     end if
+!!$     !parallelize the calculation of the ionic forces in the nonperiodic case
+!!$     if (mod(iat-1,nproc).eq.iproc .and. iproc < at%nat .and. geocode /= 'P') then
+!!$        !Derivative of the ion-ion energy
+!!$        do jat=1,iat-1
+!!$           dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
+!!$           jtyp=at%iatype(jat)
+!!$           !eion=eion+at%nelpsp(jtyp)*at%nelpsp(ityp)/dist
+!!$           fxion=fxion+real(at%nelpsp(jtyp),kind=8)*&
+!!$                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(rx-rxyz(1,jat))
+!!$           fyion=fyion+real(at%nelpsp(jtyp),kind=8)*&
+!!$                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(ry-rxyz(2,jat))
+!!$           fzion=fzion+real(at%nelpsp(jtyp),kind=8)*&
+!!$                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(rz-rxyz(3,jat))
+!!$        end do
+!!$        do jat=iat+1,at%nat
+!!$           dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
+!!$           jtyp=at%iatype(jat)
+!!$           fxion=fxion+real(at%nelpsp(jtyp),kind=8)*&
+!!$                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(rx-rxyz(1,jat))
+!!$           fyion=fyion+real(at%nelpsp(jtyp),kind=8)*&
+!!$                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(ry-rxyz(2,jat))
+!!$           fzion=fzion+real(at%nelpsp(jtyp),kind=8)*&
+!!$                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(rz-rxyz(3,jat))
+!!$        end do
+!!$     end if
 
      !building array of coefficients of the derivative of the gaussian part
      cprime(1)=2.d0*at%psppar(0,2,ityp)-at%psppar(0,1,ityp)
@@ -107,8 +103,6 @@ subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
      prefactor=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**5)
      !maximum extension of the gaussian
      cutoff=10.d0*rloc
-!!$     !nearest grid point to the cutoff
-!!$     ii=nint(cutoff/hxh)
 
      isx=floor((rx-cutoff)/hxh)
      isy=floor((ry-cutoff)/hyh)
@@ -118,34 +112,24 @@ subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
      iey=ceiling((ry+cutoff)/hyh)
      iez=ceiling((rz+cutoff)/hzh)
 
-!!$     !calculate start and end of the distributed region
-!!$     i3start=max(max(-14,iz-ii),i3s-15)
-!!$     i3end=min(min(2*n3+16,iz+ii),i3s+n3pi-16)
-
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
-     do i3=isz,iez!i3start,i3end
+     do i3=isz,iez
         z=real(i3,kind=8)*hzh-rz
         call ind_positions(perz,i3,n3,j3,goz) 
         j3=j3+nbl3+1
-!!$        j3=i3+15-i3s+1
-        do i2=isy,iey!iy-ii,iy+ii
+        do i2=isy,iey
            y=real(i2,kind=8)*hyh-ry
            call ind_positions(pery,i2,n2,j2,goy)
-           do i1=isx,iex!ix-ii,ix+ii
+           do i1=isx,iex
               x=real(i1,kind=8)*hxh-rx
               call ind_positions(perx,i1,n1,j1,gox)
               r2=x**2+y**2+z**2
               arg=r2/rloc**2
               xp=exp(-.5d0*arg)
               if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-!!$              if (i3.ge.-14 .and. i3.le.2*n3+16  .and.  & 
-!!$                   i2.ge.-14 .and. i2.le.2*n2+16  .and.  & 
-!!$                   i1.ge.-14 .and. i1.le.2*n1+16 ) then
-!!$                 ind=i1+15+(i2+14)*(2*n1+31)+(j3-1)*(2*n1+31)*(2*n2+31)
                  ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                  !gaussian part
-
                  tt=0.d0
                  if (nloc /= 0) then
                     !derivative of the polynomial
@@ -159,7 +143,6 @@ subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
                     fygau=fygau+forceloc*y
                     fzgau=fzgau+forceloc*z
                  end if
-
                  !error function part
                  Vel=pot(ind)
                  fxerf=fxerf+xp*Vel*x
@@ -178,11 +161,10 @@ subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
      floc(2,iat)=fyion+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
      floc(3,iat)=fzion+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
 
-!!$     !only for testing purposes, printing the components of the forces for each atoms
-!!$     write(10+iat,'(1x,f8.3,i5,3(1x,3(1x,1pe12.5)))') &
-!!$          hgrid,iat,fxion,fyion,fzion,(hgridh**3*prefactor)*fxerf,(hgridh**3*prefactor)*fyerf,&
-!!$          (hgridh**3*prefactor)*fzerf,(hgridh**3/rloc**2)*fxgau,(hgridh**3/rloc**2)*fygau,(hgridh**3/rloc**2)*fzgau
-     
+     !only for testing purposes, printing the components of the forces for each atoms
+     write(10+iat,'(2(1x,3(1x,1pe12.5)))') &
+          (hxh*hyh*hzh*prefactor)*fxerf,(hxh*hyh*hzh*prefactor)*fyerf,&
+          (hxh*hyh*hzh*prefactor)*fzerf,(hxh*hyh*hzh/rloc**2)*fxgau,(hxh*hyh*hzh/rloc**2)*fygau,(hxh*hyh*hzh/rloc**2)*fzgau
 
   end do
 
@@ -365,100 +347,98 @@ subroutine nonlocal_forces(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi
      iproj=0
      istart_c=1
      do iat=1,at%nat
-     fx=0.d0
-     fy=0.d0
-     fz=0.d0
-     mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-     mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-     jseg_c=nlpspd%nseg_p(2*iat-2)+1
-     jseg_f=nlpspd%nseg_p(2*iat-1)+1
-     mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-     mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-     ityp=at%iatype(iat)
-     scalprod(:,:,:,:)=0.d0
-     do l=1,4
-        do i=1,3
-           if (at%psppar(l,i,ityp).ne.0.d0) then
-              do m=1,2*l-1
-                 iproj=iproj+1
-                 istart_f=istart_c+mbvctr_c
+        fx=0.d0
+        fy=0.d0
+        fz=0.d0
+        mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
+        mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
+        jseg_c=nlpspd%nseg_p(2*iat-2)+1
+        jseg_f=nlpspd%nseg_p(2*iat-1)+1
+        mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
+        mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
+        ityp=at%iatype(iat)
+        scalprod(:,:,:,:)=0.d0
+        do l=1,4
+           do i=1,3
+              if (at%psppar(l,i,ityp).ne.0.d0) then
+                 do m=1,2*l-1
+                    iproj=iproj+1
+                    istart_f=istart_c+mbvctr_c
 
-                 call wpdot(  &
-                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                      wfd%keyv(1),wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,1),&
-                      wfd%keyg(1,wfd%nseg_c+1),&
-                      psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),  &
-                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                      nlpspd%keyv_p(jseg_c),nlpspd%keyv_p(jseg_f),  &
-                      nlpspd%keyg_p(1,jseg_c),nlpspd%keyg_p(1,jseg_f),&
-                      proj(istart_c),proj(istart_f),scalprod(0,l,i,m))
-
-                 ! scalar product with the derivatives in all the directions
-                 do idir=1,3
                     call wpdot(  &
                          wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
                          wfd%keyv(1),wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,1),&
                          wfd%keyg(1,wfd%nseg_c+1),&
-                         psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp), &
+                         psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),  &
                          mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                          nlpspd%keyv_p(jseg_c),nlpspd%keyv_p(jseg_f),  &
                          nlpspd%keyg_p(1,jseg_c),nlpspd%keyg_p(1,jseg_f),&
-                         derproj(istart_c,idir),derproj(istart_f,idir),scalprod(idir,l,i,m))
+                         proj(istart_c),proj(istart_f),scalprod(0,l,i,m))
 
-                    fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
-                         at%psppar(l,i,ityp)*scalprod(0,l,i,m)*scalprod(idir,l,i,m)
-                 end do
+                    ! scalar product with the derivatives in all the directions
+                    do idir=1,3
+                       call wpdot(  &
+                            wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
+                            wfd%keyv(1),wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,1),&
+                            wfd%keyg(1,wfd%nseg_c+1),&
+                            psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp), &
+                            mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                            nlpspd%keyv_p(jseg_c),nlpspd%keyv_p(jseg_f),  &
+                            nlpspd%keyg_p(1,jseg_c),nlpspd%keyg_p(1,jseg_f),&
+                            derproj(istart_c,idir),derproj(istart_f,idir),scalprod(idir,l,i,m))
 
-                 istart_c=istart_f+7*mbvctr_f
-              end do
-           end if
-        end do
-     end do
-     !HGH case, offdiagonal terms
-     if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10) then
-        do l=1,3
-           do i=1,2
-              if (at%psppar(l,i,ityp).ne.0.d0) then 
-                 loop_j: do j=i+1,3
-                    if (at%psppar(l,j,ityp) .eq. 0.d0) exit loop_j
-                    !offdiagonal HGH term
-                    if (at%npspcode(ityp) == 3) then !traditional HGH convention
-                       hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
-                    else !HGH-K convention
-                       hij=at%psppar(l,i+j+1,ityp)
-                    end if
-                    do m=1,2*l-1
-                       !F_t= 2.d0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
-                       !(the two factor is below)
-                       do idir=1,3
-                          fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
-                               hij*(scalprod(0,l,i,m)*scalprod(idir,l,j,m)+&
-                               scalprod(idir,l,i,m)*scalprod(0,l,j,m))
-                       end do
+                       fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
+                            at%psppar(l,i,ityp)*scalprod(0,l,i,m)*scalprod(idir,l,i,m)
                     end do
-                 end do loop_j
+
+                    istart_c=istart_f+7*mbvctr_f
+                 end do
               end if
            end do
         end do
-     end if
+        !HGH case, offdiagonal terms
+        if (at%npspcode(ityp) == 3 .or. at%npspcode(ityp) == 10) then
+           do l=1,3
+              do i=1,2
+                 if (at%psppar(l,i,ityp).ne.0.d0) then 
+                    loop_j: do j=i+1,3
+                       if (at%psppar(l,j,ityp) .eq. 0.d0) exit loop_j
+                       !offdiagonal HGH term
+                       if (at%npspcode(ityp) == 3) then !traditional HGH convention
+                          hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
+                       else !HGH-K convention
+                          hij=at%psppar(l,i+j+1,ityp)
+                       end if
+                       do m=1,2*l-1
+                          !F_t= 2.d0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
+                          !(the two factor is below)
+                          do idir=1,3
+                             fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
+                                  hij*(scalprod(0,l,i,m)*scalprod(idir,l,j,m)+&
+                                  scalprod(idir,l,i,m)*scalprod(0,l,j,m))
+                          end do
+                       end do
+                    end do loop_j
+                 end if
+              end do
+           end do
+        end if
+     end do
+
+     do iat=1,at%nat
+        fsep(1,iat)=fsep(1,iat)+occup(iorb)*2.d0*fxyz_orb(1,iat)
+        fsep(2,iat)=fsep(2,iat)+occup(iorb)*2.d0*fxyz_orb(2,iat)
+        fsep(3,iat)=fsep(3,iat)+occup(iorb)*2.d0*fxyz_orb(3,iat)
+     end do
+
+     if (iproj.ne.nlpspd%nproj) stop '1:applyprojectors'
+     if (istart_c-1.ne.nlpspd%nprojel) stop '2:applyprojectors'
   end do
 
   do iat=1,at%nat
-     fsep(1,iat)=fsep(1,iat)+occup(iorb)*2.d0*fxyz_orb(1,iat)
-     fsep(2,iat)=fsep(2,iat)+occup(iorb)*2.d0*fxyz_orb(2,iat)
-     fsep(3,iat)=fsep(3,iat)+occup(iorb)*2.d0*fxyz_orb(3,iat)
+     write(20+iat,'(1x,i5,1x,3(1x,1pe12.5))') &
+          iat,fsep(1,iat),fsep(2,iat),fsep(3,iat)
   end do
-
-  if (iproj.ne.nlpspd%nproj) stop '1:applyprojectors'
-  if (istart_c-1.ne.nlpspd%nprojel) stop '2:applyprojectors'
-end do
-
-!!$do iat=1,at%nat
-!!$   write(20+iat,'(1x,i5,1x,3(1x,1pe12.5))') &
-!!$        iat,fsep(1,iat),fsep(2,iat),fsep(3,iat)
-!!$        fsep(3,iat)
-!!$end do
-   
 
   i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)
   deallocate(fxyz_orb,stat=i_stat)

@@ -241,7 +241,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   allocate(radii_cf(atoms%ntypes,2),stat=i_stat)
   call memocc(i_stat,product(shape(radii_cf))*kind(radii_cf),'radii_cf','cluster')
 
-
   call read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
 
   allocate(occup(norb),stat=i_stat)
@@ -311,7 +310,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   allocate(fion(3,atoms%nat),stat=i_stat)
   call memocc(i_stat,product(shape(fion))*kind(fion),'fion','cluster')
 
-  call IonicEnergyandForces(geocode,iproc,atoms,alat1,alat2,alat3,rxyz,eion,fion,psoffset)
+  call IonicEnergyandForces(geocode,iproc,nproc,atoms,hxh,hyh,hzh,alat1,alat2,alat3,rxyz,eion,fion,psoffset,&
+       n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
 
   !do not pass the atoms data structure as arguments for dependence problem in compiling
   call createIonicPotential(geocode,iproc,nproc,atoms%nat,atoms%ntypes,atoms%iatype,&
@@ -360,7 +360,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,norbu,norbd,norb,norbp,&
           wfd%nvctr_c,wfd%nvctr_f,nvctrp,nspin,psi,hpsi,psit)
-     
 
   else if (inputPsiId == -1) then
 
@@ -914,10 +913,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      enddo
   end if
 
-  !add to the forces the ionic contribution (for the moment only in the peridica case)
-  if (geocode == 'P') then
+  !add to the forces the ionic contribution (for the moment only in the peridic case)
+  !if (geocode == 'P') then
      fxyz(:,:)=fxyz(:,:)+fion(:,:)
-  end if
+  !end if
 
   i_all=-product(shape(fion))*kind(fion)
   deallocate(fion,stat=i_stat)
