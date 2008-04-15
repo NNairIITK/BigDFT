@@ -335,7 +335,8 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
                          psi(1,jorb),psi(nvctr_c+1,jorb))
                     !renormalise wavefunction in case of too crude translation
                     call wnrm(nvctr_c,nvctr_f,psi(1,jorb),psi(nvctr_c+1,jorb),scpr) 
-                    !write(*,'(1x,a24,a7,2(a3,i1),a16,i4,i4,1x,e14.7)')&
+                    !in the periodic case the function is not always normalised
+                    !write(*,'(1x,a24,a7,2(a3,i1),a16,i4,i4,1x,1pe14.7)')&
                     !     'ATOMIC INPUT ORBITAL for atom',trim(atomnames(ity)),&
                     !     'l=',l,'m=',m,'iorb,jorb,norm',iorb,jorb,scpr 
                     scpr=1.d0/sqrt(scpr)

@@ -43,6 +43,9 @@ low_level = init/projectors.f90  \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
 	wfn_opt/applyh_prev.f90 \
+	wfn_opt/precond_per.f90 \
+	wfn_opt/kernel_per.f90 \
+	wfn_opt/fft_per.f90 \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
 	wavelib/plotting.f90 \
@@ -51,16 +54,20 @@ low_level = init/projectors.f90  \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 
 
+abinit = ABINIT-ewald/ewald.F90 \
+	 ABINIT-ewald/metric.F90 \
+	 ABINIT-ewald/matr3inv.F90 \
+	 ABINIT-ewald/derfc.F90 
+
 SOURCES = types.f90 \
 	interfaces.f90 \
 	$(low_level) \
-	$(high_level) 
-	
+	$(high_level)
 
 #profiling sources
 SOURCES_TIME = profiling/timem.f90 \
 	profiling/memoryestimator.f90
-	
+
 #convolutions libraries
 SOURCES_CONVOLUTIONS = convolutions/combined_shrink_optim.f90 \
 	convolutions/combined_grow_optim.f90 \
@@ -85,7 +92,7 @@ XC_ABINIT = PSolver/ABINIT-common/xctetr.F90 \
         PSolver/ABINIT-common/invcb.F90 \
         PSolver/ABINIT-common/size_dvxc.F90
 
-SOURCES_ABINIT = $(MODULES_ABINIT) $(XC_ABINIT)
+SOURCES_ABINIT = $(MODULES_ABINIT) $(XC_ABINIT) $(abinit)
 
 SOURCES_POISSON = \
    PSolver/Poisson_Solver.f90
@@ -155,13 +162,14 @@ parameters.h:
 	echo "      logical, parameter :: parallel = $(PARALLEL)" > parameters.h
 
 clean:
-       rm -f *.o cluster memguess *.mod *~ PSolver/*.o PSolver/*~ parameters.h \
-               convolutions/*.o profiling/*.o init/*.o wfn_opt/*.o wavelib/*.o \
-        PSolver/ABINIT-common/*.f90 PSolver/ABINIT-common/*.o PSolver/ABINIT-common/*~ 
+	rm -f *.o cluster memguess *.mod *~ PSolver/*.o PSolver/*~ parameters.h \
+	convolutions/*.o profiling/*.o init/*.o wfn_opt/*.o wavelib/*.o \
+	ABINIT-ewald/*.f90 ABINIT-ewald/*.o PSolver/ABINIT-common/*.f90 \
+	PSolver/ABINIT-common/*.o PSolver/ABINIT-common/*~ 
 
 tar:
 	make clean
-	tar czvf all.tgz Makefile *.f90 RE* PSolver/* PSolver/ABINIT-common/*.F90 init/* convolutions/*.f90 wfn_opt/* wavelib/* profiling/*.f90
+	tar czvf all.tgz Makefile.standalone Makefile *.f90 RE* PSolver/* PSolver/ABINIT-common/*.F90 init/* convolutions/*.f90 convolutions/*.inc wfn_opt/* wavelib/* profiling/*.f90  ABINIT-ewald/*.F90
 
 #Dependencies:
 cluster.o geometry.o: PSolver/Poisson_Solver.o
@@ -184,7 +192,6 @@ test_forces.o: parameters.h \
 BigDFT.o: parameters.h \
 	interfaces.o \
 	PSolver/Poisson_Solver.o 
-	
 
 memguess.o: types.o
 

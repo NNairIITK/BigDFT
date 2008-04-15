@@ -29,8 +29,8 @@ subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
      enddo
   enddo
   if (nend.ne.nsrt) then 
-     write(*,*) 'nend , nsrt',nend,nsrt
-     stop 'nend <> nsrt'
+     write(*,*)' ERROR: nend <> nsrt',nend,nsrt
+     stop 
   endif
   mseg=nend
   

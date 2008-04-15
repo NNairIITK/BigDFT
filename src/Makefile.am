@@ -35,7 +35,7 @@ EXTRA_DIST = \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc 
 
-AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ -IPSolver
+AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common
 
 bin_PROGRAMS = $(binaries_sources)
 
@@ -100,6 +100,9 @@ low_level = init/projectors.f90  \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
 	wfn_opt/applyh_prev.f90 \
+	wfn_opt/precond_per.f90 \
+	wfn_opt/kernel_per.f90 \
+	wfn_opt/fft_per.f90 \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
 	wavelib/plotting.f90 \
@@ -108,13 +111,20 @@ low_level = init/projectors.f90  \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 
 
+#common routine with abinit
+abinit = ABINIT-ewald/ewald.F90 \
+	 ABINIT-ewald/metric.F90 \
+	 ABINIT-ewald/matr3inv.F90 \
+	 ABINIT-ewald/derfc.F90 
+
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
 	types.f90 \
 	interfaces.f90 \
 	BigDFT_API.f90 \
 	$(high_level) \
-	$(low_level)
+	$(low_level) \
+	$(abinit)
 
 libbigdft_a_LIBADD = profiling/timem.o \
 	profiling/memoryestimator.o \
