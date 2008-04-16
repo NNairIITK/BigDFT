@@ -756,7 +756,7 @@ subroutine KStrans_p(iproc,nproc,norb,ndim,nvctrp,occup,  &
   evsum=0.d0
   do iorb=1,norb
      evsum=evsum+eval(iorb)*occup(iorb)
-!     if (iproc.eq.0) write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
+     !if (iproc.eq.0) write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
   enddo
   i_all=-product(shape(work_lp))*kind(work_lp)
   deallocate(work_lp,stat=i_stat)

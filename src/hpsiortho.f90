@@ -677,7 +677,7 @@ subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp
   end if
 
   if(nspin==1.or.nspinor==4) then
-     call KStrans_p(iproc,nproc,norb,norbp*nproc,nvctrp,occup,hpsi,psit,evsum,eval,nspinor)
+     call KStrans_p(iproc,nproc,norb,norbp,nvctrp,occup,hpsi,psit,evsum,eval,nspinor)
   else
      call KStrans_p(iproc,nproc,norbu,norbu,nvctrp,occup,hpsi,psit,evsum,eval,nspinor)
      evpart=evsum
