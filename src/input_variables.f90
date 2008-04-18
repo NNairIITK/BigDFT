@@ -41,13 +41,19 @@ subroutine read_input_variables(iproc,in)
   integer, intent(in) :: iproc
   type(input_variables), intent(out) :: in
   !local variables
+  character(len=100) :: line
   real(kind=4) :: hgrid,crmult,frmult,cpmult,fpmult
-  integer :: ierror
+  integer :: ierror,ierrfrc
 
   ! Read the input variables.
   open(unit=1,file='input.dat',status='old')
   read(1,*,iostat=ierror) in%ncount_cluster_x
-  read(1,*,iostat=ierror) in%frac_fluct
+  read(1,'(a100)')line
+  read(line,*,iostat=ierrfrc) in%frac_fluct,in%forcemax
+  if (ierrfrc /= 0) then
+     read(line,*,iostat=ierror) in%frac_fluct
+     in%forcemax=0.d0
+  end if
   read(1,*,iostat=ierror) in%randdis
   read(1,*,iostat=ierror) in%betax
   read(1,*,iostat=ierror) hgrid
@@ -84,6 +90,8 @@ subroutine read_input_variables(iproc,in)
      write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
      write(*,'(1x,a,1pe10.2)') 'Convergence criterion for forces: fraction of noise ',&
           in%frac_fluct
+     write(*,'(1x,a,1pe10.2)') '                                : maximal component ',&
+          in%forcemax
      write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
      write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
   end if

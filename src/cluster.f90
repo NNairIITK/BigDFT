@@ -8,8 +8,8 @@
   type(atoms_data), intent(inout) :: atoms
   integer, intent(inout) :: infocode,n1,n2,n3,norbp,norb
   real(kind=8), intent(out) :: energy
-  real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz
-  real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz,rxyz_old
+  real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
+  real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
   real(kind=8), dimension(:), pointer :: eval
   real(kind=8), dimension(:,:), pointer :: psi
   !local variables
@@ -29,8 +29,8 @@
        type(wavefunctions_descriptors), intent(inout) :: wfd
        type(atoms_data), intent(inout) :: atoms
        real(kind=8), intent(out) :: energy
-       real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz
-       real(kind=8), dimension(3,atoms%nat), intent(out) :: rxyz_old,fxyz
+       real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
+       real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
        real(kind=8), dimension(:), pointer :: eval
        real(kind=8), dimension(:,:), pointer :: psi
      end subroutine cluster
@@ -113,7 +113,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   use module_interfaces
   use Poisson_Solver
   implicit none
-  !implicit real(kind=8) (a-h,o-z)
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: n1,n2,n3,norbp,norb
   integer, intent(out) :: infocode
@@ -121,8 +120,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(wavefunctions_descriptors), intent(inout) :: wfd
   type(atoms_data), intent(inout) :: atoms
   real(kind=8), intent(out) :: energy
-  real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz
-  real(kind=8), dimension(3,atoms%nat), intent(out) :: rxyz_old,fxyz
+  real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
+  real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
   real(kind=8), dimension(:), pointer :: eval
   real(kind=8), dimension(:,:), pointer :: psi
   !local variables

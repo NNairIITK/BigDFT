@@ -56,13 +56,13 @@ interface
      type(atoms_data), intent(inout) :: atoms
      integer, intent(inout) :: infocode,n1,n2,n3,norbp,norb
      real(kind=8), intent(out) :: energy
-     real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz
-     real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz,rxyz_old
+     real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
+     real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
      real(kind=8), dimension(:), pointer :: eval
      real(kind=8), dimension(:,:), pointer :: psi
    end subroutine call_cluster
 
-   subroutine conjgrad(nproc,iproc,at,wpos,etot,gg, &
+   subroutine conjgrad(nproc,iproc,at,wpos,etot,fxyz, &
         psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,in)
      use module_types
      implicit none
@@ -72,8 +72,8 @@ interface
      real(kind=8), intent(out) :: etot
      type(input_variables), intent(inout) :: in
      type(wavefunctions_descriptors), intent(inout) :: wfd
-     real(kind=8), dimension(3,at%nat), intent(inout) :: wpos
-     real(kind=8), dimension(3,at%nat), intent(out) :: rxyz_old,gg
+     real(kind=8), dimension(3,at%nat), intent(inout) :: wpos,rxyz_old
+     real(kind=8), dimension(3,at%nat), intent(out) :: fxyz
      real(kind=8), dimension(:), pointer :: eval
      real(kind=8), dimension(:,:), pointer :: psi
    end subroutine conjgrad

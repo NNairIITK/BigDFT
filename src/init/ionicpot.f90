@@ -14,7 +14,7 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
   real(kind=8), dimension(*), intent(out) :: pot_ion
   !local variables
   include 'mpif.h'
-  logical, parameter :: slowion=.true.
+  logical, parameter :: slowion=.false.
   logical :: perx,pery,perz,gox,goy,goz
   integer :: iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
@@ -374,8 +374,8 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
 
         if (nproc==1) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
 
-        write(10+iat,'(1x,f8.3,i5,(1x,3(1x,1pe12.5)))',advance='no') &
-             hxh,iat,(fion(j1,iat),j1=1,3)
+!!$        write(10+iat,'(1x,f8.3,i5,(1x,3(1x,1pe12.5)))',advance='no') &
+!!$             hxh,iat,(fion(j1,iat),j1=1,3)
 
 
      end do

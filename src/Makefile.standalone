@@ -154,7 +154,7 @@ OBJECTS_TEST =  $(OBJECTS_ABINIT) $(OBJECTS_POISSON) \
 				$(OBJECTS_PROJECTORS) memguess.f90
 
 cluster: $(OBJECTS) 
-	$(F95) -o cluster $(OBJECTS) $(LIBRARIES) 
+	$(Link) -o cluster $(OBJECTS) $(LIBRARIES) 
 
 memguess: $(OBJECTS_TEST)
 		$(F95) -o memguess $(OBJECTS_TEST) $(LIBRARIES)
