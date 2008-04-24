@@ -8,6 +8,7 @@ SUBDIRS = \
 	  NaCl \
 	  C \
 	  Ca2 \
+	  Mn2  \
 	  H2O-CP2K \
 	  SiBulk
 

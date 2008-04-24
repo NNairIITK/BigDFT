@@ -1,0 +1,88 @@
+                             BBBB         i       ggggg    
+                            B    B               g         
+                           B     B        i     g          
+                           B    B         i     g        g 
+                           BBBBB          i     g         g
+                           B    B         i     g         g
+                           B     B        i     g         g
+                           B      B       i     g         g
+                           B     B     iiii     g         g
+                           B BBBB         i      g        g
+                           B             i        g      g 
+                       BBBBBBBBB    iiiii          gggggg  
+                         DDDDDD          FFFFF    TTTTTTTTT
+                        D      D        F             T    
+                       D        D      F         TTTT T    
+                       D         D     FFFF     T     T    
+                       D         D     F       T      T    
+                       D         D     F        T     T    
+                       D         D     F         T    T    
+                       D         D     F          TTTTT    
+                        D        D     F         T    T    
+                                 D     F        T     T    
+                                D               T    T     
+                           DDDDD       F         TTTT                     (Ver 1.0.1)
+ ------------------------------------------------------------------------------------
+ |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
+ ------------------------------------------------------------------------------------
+ Number of atoms     = 2
+ Number of atom types= 1
+ Atoms of type 1 are Mn
+ Max. number of wavefnctn optim 1
+ Convergence criterion for forces: fraction of noise   1.00E+00
+ Random displacement amplitude   0.00E+00
+ Steepest descent step   4.00E+00
+ Spin-polarised calculation: YES (Non-collinear)
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Grid spacing=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 5.0E-04 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=      20 | Extension= 5.0
+ total charge=      0 | Coarse Proj.= 8.00 | CG Prec.Steps=      20 |  CG Steps=  30
+  elec. field=0.0E+00 |   Fine Proj.= 8.00 | DIIS Hist. N.=       3
+ Polarisation=      0 |
+ ------------------------------------------------------------------ System Properties
+ Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File
+       Mn               7       3            1.61739  0.32776       X                
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+       Mn   0.64000
+     l=0      rl        h1j       h2j       h3j 
+            0.48125   2.79903  -0.96286   0.62595
+                                2.48610  -1.61619
+                                          2.56563
+     l=1      rl        h1j       h2j       h3j 
+            0.66930   1.36878  -0.13386
+                                0.31676
+     l=2      rl        h1j       h2j       h3j 
+            0.32776  -7.99542
+ Total Number of Electrons       14
+ Spin-polarized calculation
+ Total Number of Orbitals       14
+ occup(1:14)= 1.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1     Mn  7.87500E+00  7.87500E+00  7.97663E+00       17.500    17.500    17.726
+     2     Mn  7.87500E+00  7.87500E+00  1.31734E+01       17.500    17.500    29.274
+    Shift of=  7.87500E+00  7.87500E+00  7.97663E+00 Grid Spacings=  0.45  0.45  0.45
+   Box Sizes=  1.57500E+01  1.57500E+01  2.11500E+01           35        35        47
+       Extremes for the high resolution grid points:        12<23     12<23     12<35
+ ------------------------------------------------------------------ Memory Estimation
+ Number of atoms=    2 Number of orbitals=    14 Sim. Box Dimensions=    35   35   47
+ Estimation performed for 1 processors.
+ Memory occupation for principal arrays:
+               Poisson Solver Kernel (K):    11 MB   710 KB
+              Poisson Solver Density (D):    45 MB   576 KB
+     Single Wavefunction for one orbital:     1 MB   456 KB
+    All Wavefunctions for each processor:   161 MB   896 KB
+       Wavefunctions + DIIS per proc (W):   728 MB   448 KB
+    Arrays of full uncompressed grid (U):    38 MB   936 KB
+ Estimation of Memory requirements for principal code sections:
+  Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
+       ~11*K         |       ~W+(~3)*U      |    ~8*D+K+W    |         ~W+(~3)*U 
+       128MB         |       832MB          |     1104MB     |           846MB
+ The overall memory requirement needed for this calculation is thus: 1104 MB
+ By reducing the DIIS history and/or increasing the number of processors the amount of
+  memory can be reduced but for this system it will never be less than 145 MB
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 15 allocations and 15 deallocations, remaining memory(B):0
+ memory occupation peak: 0 MB
+ for the array  logrid_f in the routine memoryestimator

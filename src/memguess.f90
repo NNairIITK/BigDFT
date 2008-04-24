@@ -36,7 +36,7 @@ program memguess
   integer, dimension(:,:), allocatable :: nl
   logical, dimension(:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng,norbsc_arr
-  real(kind=8), dimension(:), allocatable :: occup,spinar
+  real(kind=8), dimension(:), allocatable :: occup,spinsgn
 
 ! Get arguments
   call getarg(1,tatonam)
@@ -117,19 +117,19 @@ program memguess
 ! Allocations for the occupation numbers
   allocate(occup(norb),stat=i_stat)
   call memocc(i_stat,product(shape(occup))*kind(occup),'occup','memguess')
-  allocate(spinar(norb),stat=i_stat)
-  call memocc(i_stat,product(shape(spinar))*kind(spinar),'occup','memguess')
+  allocate(spinsgn(norb),stat=i_stat)
+  call memocc(i_stat,product(shape(spinsgn))*kind(spinsgn),'occup','memguess')
   
 ! Occupation numbers
-  call input_occup(0,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,occup,spinar)
+  call input_occup(0,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,occup,spinsgn)
 
 ! De-allocations
   i_all=-product(shape(occup))*kind(occup)
   deallocate(occup,stat=i_stat)
   call memocc(i_stat,i_all,'occup','memguess')
-  i_all=-product(shape(spinar))*kind(spinar)
-  deallocate(spinar,stat=i_stat)
-  call memocc(i_stat,i_all,'spinar','memguess')
+  i_all=-product(shape(spinsgn))*kind(spinsgn)
+  deallocate(spinsgn,stat=i_stat)
+  call memocc(i_stat,i_all,'spinsgn','memguess')
   
   !in the case in which the number of orbitals is not "trivial" check whether they are too many
   if ( max(norbu,norbd) /= ceiling(real(nelec,kind=4)/2.0) ) then

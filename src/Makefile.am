@@ -159,6 +159,8 @@ CLEANFILES = mpif.h \
 cluster.o geometry.o: $(mpi_include) \
 	interfaces.o
 
+init.o : interfaces.o
+
 interfaces.o: types.o
 
 BigDFT_API.o: types.o interfaces.o

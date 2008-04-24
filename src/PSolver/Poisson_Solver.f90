@@ -60,6 +60,8 @@
 !! CREATION DATE
 !!    February 2007
 !!
+!! MODIFICATIONS
+!!    PSolverNC added by Anders Bergman, March 2008
 !! SOURCE
 !!
 module Poisson_Solver
@@ -72,6 +74,8 @@ module Poisson_Solver
   public :: createKernel
   !calculate the poisson solver
   public :: PSolver
+  !wrapper to the poisson solver for allowing non-collinear densities
+  public :: PSolverNC
   !calculate the allocation dimensions
   public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions,fourier_dim
 
