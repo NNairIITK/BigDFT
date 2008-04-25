@@ -81,7 +81,7 @@ subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  &
   endif
   if (iproc.eq.0) then 
      !write(*,*) 'DIIS weights'
-     write(*,'(1x,a,2x,12(1x,1pe19.12))')'DIIS weights',(rds(j),j=1,min(idsx,ids)+1)
+     write(*,'(1x,a,2x,12(1x,1pe9.2))')'DIIS weights',(rds(j),j=1,min(idsx,ids)+1)
   endif
 
 ! new guess
