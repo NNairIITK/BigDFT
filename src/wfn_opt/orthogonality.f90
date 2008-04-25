@@ -28,23 +28,15 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   if(nspinor==1) then
      call DGEMM('T','N',norb,norb,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,alag(1,1,istart),norb)
   else
-
-    !     if(nproc>1) then
-        call ZGEMM('C','N',norb,norb,2*nvctrp,(1.d0,0.0d0),psit,2*nvctrp, &
-             hpsit,2*nvctrp,(0.d0,0.0d0),alag(1,1,istart),norb)
-
-
-
-!     else
-!        call ZGEMM('C','N',norb,norb,2*nvctrp,(1.d0,0.0d0),psitt,2*nvctrp, &
-!             hpsitt,2*nvctrp,(0.d0,0.0d0),alag(1,1,istart),norb)
-!     end if
+     call ZGEMM('C','N',norb,norb,2*nvctrp,(1.d0,0.0d0),psit,2*nvctrp, &
+          hpsit,2*nvctrp,(0.d0,0.0d0),alag(1,1,istart),norb)
   end if
 
   if (nproc > 1) then
      call timing(iproc,'LagrM_comput  ','OF')
      call timing(iproc,'LagrM_commun  ','ON')
-     call MPI_ALLREDUCE(alag(1,1,2),alag(1,1,1),norbs*norb,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call MPI_ALLREDUCE(alag(1,1,2),alag(1,1,1),norbs*norb,&
+          MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
      call timing(iproc,'LagrM_commun  ','OF')
      call timing(iproc,'LagrM_comput  ','ON')
   end if
@@ -71,11 +63,8 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   if(nspinor==1) then
      call DGEMM('N','N',nvctrp,norb,norb,-1.d0,psit,nvctrp,alag,norb,1.d0,hpsit,nvctrp)
   else
-     call ZGEMM('N','N',2*nvctrp,norb,norb,(-1.d0,0.0d0),psit,2*nvctrp,alag,norb,(1.d0,0.0d0),hpsit,2*nvctrp)
-!     if(nproc==1) then
-!        call psitransspi(nvctrp,norb,psit,.false.)
-!        call psitransspi(nvctrp,norb,hpsit,.false.)
-!     end if
+     call ZGEMM('N','N',2*nvctrp,norb,norb,(-1.d0,0.0d0),psit,2*nvctrp,&
+          alag,norb,(1.d0,0.0d0),hpsit,2*nvctrp)
   end if
   i_all=-product(shape(alag))*kind(alag)
   deallocate(alag,stat=i_stat)
@@ -155,12 +144,11 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
   integer, intent(in) :: iproc,nproc,norb,nvctrp,nvctr_tot,nspinor
   real(kind=8), dimension(nspinor*nvctrp,norb), intent(inout) :: psit
   !local variables
+  include 'mpif.h'
   integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,i,j,norbs,iorb,jorb
   real(kind=8) :: tt,ttLOC,dnrm2,ttr,tti
   real(kind=8), dimension(:,:,:), allocatable :: ovrlp
   real(kind=8) :: DDOT
-
-  include 'mpif.h'
 
   call timing(iproc,'GramS_comput  ','ON')
 
@@ -231,7 +219,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 !!$           end do
 !!$        end do
 !!$        stop
-        call ZHERK('L','C',norb,2*nvctrp,(1.d0,0.d0),psit,2*nvctrp,(0.0d0,0.d0),ovrlp(1,1,istart),norb)
+        call ZHERK('L','C',norb,2*nvctrp,1.d0,psit,2*nvctrp,0.0d0,ovrlp(1,1,istart),norb)
      end if
 
      if (nproc > 1) then
@@ -367,7 +355,7 @@ subroutine orthon(norb,nvctrp,psi,nspinor)
               print *,iorb,norb,ttr,tti
            end do
         end do
-        call ZHERK('L','C',norb,2*nvctrp,(1.d0,0.d0),psit,2*nvctrp,(0.d0,0.d0),ovrlp,norb)
+        call ZHERK('L','C',norb,2*nvctrp,1.d0,psit,2*nvctrp,0.d0,ovrlp,norb)
         do i=1,norb
            write(*,'(10f10.3)') (ovrlp(j,i), j=1,norbs)
         end do

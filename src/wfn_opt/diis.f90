@@ -1,21 +1,21 @@
-subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  & 
-                   ads,ids,mids,idsx,nvctrp,psit,psidst,hpsidst)
 ! diis subroutine:
 ! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
 ! using  the previous iteration points phidst and the associated error 
 ! vectors (preconditione gradients) hpsidst
+subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  & 
+                   ads,ids,mids,idsx,nvctrp,psit,psidst,hpsidst)
   implicit none
-  include 'mpif.h'
 ! Arguments
   integer, intent(in) :: norb,norbp,nproc,iproc,nspinor,ids,mids,idsx,nvctrp
-  real(kind=8) :: psit(nvctrp,norbp*nproc*nspinor),ads(idsx+1,idsx+1,3)
-  real(kind=8) :: psidst(nvctrp,norbp*nproc*nspinor,idsx),hpsidst(nvctrp,norbp*nproc*nspinor,idsx)
+  real(kind=8), dimension(nvctrp,norbp*nproc*nspinor,idsx), intent(in) :: psidst,hpsidst
+  real(kind=8), dimension(idsx+1,idsx+1,3), intent(inout) :: ads
+  real(kind=8), dimension(nvctrp,norbp*nproc*nspinor), intent(out) :: psit
 ! Local variables
-  real(kind=8), allocatable :: rds(:)
-  integer, allocatable :: ipiv(:)
-  real(kind=8) :: tt
-  real(kind=8) :: DDOT
+  include 'mpif.h'
   integer :: i,j,ist,jst,mi,iorb,info,jj,mj,k,i_all,i_stat,ierr
+  real(kind=8) :: tt,DDOT
+  integer, dimension(:), allocatable :: ipiv
+  real(kind=8), dimension(:), allocatable :: rds
 
   allocate(ipiv(idsx+1),stat=i_stat)
   call memocc(i_stat,product(shape(ipiv))*kind(ipiv),'ipiv','diisstp')
@@ -81,7 +81,7 @@ subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  &
   endif
   if (iproc.eq.0) then 
      !write(*,*) 'DIIS weights'
-     write(*,'(1x,a,2x,12(1x,1pe9.2))')'DIIS weights',(rds(j),j=1,min(idsx,ids)+1)
+     write(*,'(1x,a,2x,12(1x,1pe19.12))')'DIIS weights',(rds(j),j=1,min(idsx,ids)+1)
   endif
 
 ! new guess

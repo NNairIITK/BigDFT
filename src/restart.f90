@@ -60,14 +60,11 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,
 !     do sidx=0,nspinor-1
         do j=1,wfd_old%nvctr_c+7*wfd_old%nvctr_f
            !starting address of the direct array in transposed form
-!           call trans_address(norbp,nvctrp*nspinor,nspinor*(wfd%nvctr_c+7*wfd%nvctr_f),1,sidx,i1,i2)
-           call trans_address(norbp,nvctrp_old*nspinor,(wfd_old%nvctr_c+7*wfd_old%nvctr_f)*nspinor,&
+           !changed for obrtaining the good one
+           call trans_address(nvctrp_old,wfd_old%nvctr_c+7*wfd_old%nvctr_f,&
                 j,sidx, i1,i2)
-!           call trans_address(norbp,nvctrp_old,wfd_old%nvctr_c+7*wfd_old%nvctr_f,&
-!                j,iorb-iproc*norbp*nspinor+sidx, i1,i2)
-!!$        ind=j+(wfd_old%nvctr_c+7*wfd_old%nvctr_f)*(iorb-iproc*norbp-1)
-!!$        i1=mod(ind-1,nvctrp_old)+1
-!!$        i2=(ind-i1)/nvctrp_old+1
+!!$           call trans_address(nvctrp_old*nspinor,(wfd_old%nvctr_c+7*wfd_old%nvctr_f)*nspinor,&
+!!$                j,sidx, i1,i2)
            psi_old(j,sidx)     = psi(i1,i2)
            tt=tt+psi(i1,i2)**2
         enddo

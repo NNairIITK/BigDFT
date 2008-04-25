@@ -54,7 +54,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
              4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
              (n1+1)*(n2+1)*(2*n3+31),&
              (2*n1+31)*(n2+1)*(n3+1))
-        nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
+        nxc=(n1+1)*(n2+1)*(n3+1)!(2*n1+2)*(2*n2+2)*(2*n3+2)
         nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
 
      case('S')
@@ -98,8 +98,8 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
 
   !initialisation
   if (geocode == 'F') then
-     call razero((n1+1)*(n2+1)*(n3+1),x_c_psifscf)
-     call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f_psig)
+     call razero(nxc,x_c_psifscf)
+     call razero(nxf,x_f_psig)
      
      call razero(n1i*n2i*n3i*nspinn,psir)
   end if

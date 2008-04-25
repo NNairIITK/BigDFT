@@ -750,6 +750,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call last_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
        nspin,psi,hpsi,psit,occup,evsum,eval)
 
+  if(nspinor==4) then
+     call calc_moments(iproc,nproc,norb,norbp,wfd%nvctr_c+7*wfd%nvctr_f,nspinor,psi) 
+  end if
+
   if (abs(evsum-energybs).gt.1.d-8 .and. iproc==0) write(*,'(1x,a,2(1x,1pe20.13))')&
        'Difference:evsum,energybs',evsum,energybs
 

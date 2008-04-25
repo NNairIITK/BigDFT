@@ -60,14 +60,12 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   call memocc(i_stat,product(shape(wpsi))*kind(wpsi),'wpsi','precong')
 
 
-  !! check initial residue of original equation
-  allocate(spsi(nvctr_c+7*nvctr_f),stat=i_stat)
-  call memocc(i_stat,product(shape(spsi))*kind(spsi),'spsi','precong')
-
-!***********************************************************************************************
-  do i=1,nvctr_c+7*nvctr_f
-     spsi(i)=hpsi(i)
-  enddo
+!!$  !! check initial residue of original equation
+!!$  allocate(spsi(nvctr_c+7*nvctr_f),stat=i_stat)
+!!$  call memocc(i_stat,product(shape(spsi))*kind(spsi),'spsi','precong')
+!!$  do i=1,nvctr_c+7*nvctr_f
+!!$     spsi(i)=hpsi(i)
+!!$  enddo
 
 
   FAC_H=1.d0/hgrid**2
@@ -112,7 +110,7 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   allocate(x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),stat=i_stat)
   call memocc(i_stat,product(shape(x_f3))*kind(x_f3),'x_f3','applylocpotkinall')
 
-
+  
   call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1)
   call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f2)
   call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f3)
@@ -146,7 +144,8 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   ENDIF
 
 
-  do icong=2,ncong
+  loop_precond: do icong=2,ncong
+
      call CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
           nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
           scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
@@ -168,7 +167,7 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      end do
 
 !    if (alpha1.lt.tol) goto 1010
-     if (icong.ge.ncong) goto 1010
+     if (icong >= ncong) exit loop_precond
      
      beta1=0.d0 ; beta2=0.d0
      do i=1,nvctr_c+7*nvctr_f
@@ -181,35 +180,34 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         ppsi(i)=rpsi(i)-beta*ppsi(i)
      end do
 
-  end do
-1010 continue
+  end do loop_precond
 
   !  D^{-1/2} times solution
   call wscalv(nvctr_c,nvctr_f,scal,hpsi,hpsi(nvctr_c+1))
   
   !write(*,'(i4,(100(1x,e8.2)))') iorb,(residues(icong),icong=2,ncong)
   
-  ! check final residue of original equation
-  do i=0,3
-     scal(i)=1.d0
-  enddo
-
-  call CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
-       nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
-       scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
-       ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
-       xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
-       x_f1,x_f2,x_f3)
-     
-  tt=0.d0
-  do i=1,nvctr_c+7*nvctr_f
-     tt=tt+(wpsi(i)-spsi(i))**2
-  enddo
-  !write(*,'(1x,a,1x,i0,1x,1pe13.6)') 'Precond, final residue',iorb,sqrt(tt)
-  i_all=-product(shape(spsi))*kind(spsi)
-  deallocate(spsi,stat=i_stat)
-  call memocc(i_stat,i_all,'spsi','precong')
-  ! checkend
+!!$  ! check final residue of original equation
+!!$  do i=0,3
+!!$     scal(i)=1.d0
+!!$  enddo
+!!$
+!!$  call CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+!!$       nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
+!!$       scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
+!!$       ibxy_f,hpsi,hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
+!!$       xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
+!!$       x_f1,x_f2,x_f3)
+!!$     
+!!$  tt=0.d0
+!!$  do i=1,nvctr_c+7*nvctr_f
+!!$     tt=tt+(wpsi(i)-spsi(i))**2
+!!$  enddo
+!!$  !write(*,'(1x,a,1x,i0,1x,1pe13.6)') 'Precond, final residue',iorb,sqrt(tt)
+!!$  i_all=-product(shape(spsi))*kind(spsi)
+!!$  deallocate(spsi,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'spsi','precong')
+!!$  ! checkend
 
   i_all=-product(shape(rpsi))*kind(rpsi)
   deallocate(rpsi,stat=i_stat)
@@ -256,9 +254,8 @@ end subroutine precong
 SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsi_c,xpsi_f,ypsi_c,ypsi_f,&
- xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
- x_f1,x_f2,x_f3)
-  ! ypsi = (1/2) \Nabla^2 xpsi
+     xpsig_c,xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3)
+  ! ypsi = (1/2) \Nabla^2 xpsi + cprecr xpsi
   implicit real(kind=8) (a-h,o-z)        
   dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
   dimension xpsi_c(nvctr_c),xpsi_f(7,nvctr_f),scal(0:3)

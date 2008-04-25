@@ -23,7 +23,7 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   integer :: i_all,i_stat,ierr,iorb,n1i,n2i,n3i
   integer :: nw1,nw2,nsoffset,oidx,ispin,md
   real(kind=8) :: ekin,epot,eproj
-  real(kind=8) :: m00,m11,m12,m13,m34,m24
+  real(kind=8) :: m00,m11,m12,m13,m34,m24,dnrm2
   real(kind=8), dimension(3,2) :: wrkallred
   real(kind=8), dimension(:,:), allocatable :: w1,w2,psir
   !for the periodic BC case, these arrays substitute 
@@ -87,6 +87,9 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
         call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,x_f)
         call razero((n1+1)*(n2+1)*(n3+1)*nspinor,y_c)
         call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,y_f)
+
+!!$        call razero(nw1*nspinor,w1)
+!!$        call razero(nw2*nspinor,w2)
 
      case('S')
         n1i=2*n1+2
@@ -237,6 +240,18 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
      eproj_sum=wrkallred(3,1) 
   endif
 
+!!$  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+!!$     oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
+!!$     !loop over the spinorial components
+!!$     do ispin=oidx,oidx+nspinor-1
+!!$        m00=dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,hpsi(1,ispin),1)
+!!$        if (iproc == 0) then
+!!$           write(*,'(1x,i0,1pe24.17)'),iorb,m00
+!!$        end if
+!!$     end do
+!!$  enddo
+
+
 end subroutine HamiltonianApplication
 
 
@@ -328,88 +343,32 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
 !    if(nspinor==4) call psitransspi(nvctrp,norb,psit.true.)
   end if
 
-!!$  else
-!!$     if(nspin==1) then
-!!$        call orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum)
-!!$     else
-!!$        call orthoconstraint(norbu,occup,nvctrp,psi,hpsi,scprsum)
-!!$        scprpart=0.0d0
-!!$        if(norbd>0) then
-!!$           scprpart=scprsum 
-!!$           call orthoconstraint(norbd,occup(norbu+1),nvctrp,psi(1,norbu+1),hpsi(1,norbu+1),scprsum)
-!!$        end if
-!!$        scprsum=scprsum+scprpart
-!!$     end if
-!!$  endif
-
   ! norm of gradient
   gnrm=0.d0
-
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-
-     oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
-
-!!$     !starting address of the direct array in transposed form
-!!$     if(norb==norbp) then
-!!$        !psi not transposed in serial mode
-!!$        i1=1
-!!$        i2=oidx
-!!$     else
-        !starting address of the direct array in transposed form
-        call trans_address(norbp*nspinor,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,1,oidx,i1,i2)
-!!$     end if
-    
-    !call trans_address(norbp*nspinor,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,1,oidx,i1,i2)
-
-     scpr=dnrm2((wfd%nvctr_c+7*wfd%nvctr_f)*nspinor,hpsi(i1,i2),1)
-     !scpr=dnrm2(nvctr_c+7*nvctr_f,hpsi(1,iorb-iproc*norbp),1)
-     !lines for writing the residue following the orbitals
-     !if (iorb <=5) write(83,*)iter,iorb,scpr
-     gnrm=gnrm+scpr**2
-  enddo
-  if (nproc > 1) then
-     tt=gnrm
-     call MPI_ALLREDUCE(tt,gnrm,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-  endif
-  gnrm=sqrt(gnrm/real(norb,kind=8))
 
   call timing(iproc,'Precondition  ','ON')
   if (iproc==0) then
      write(*,'(1x,a)',advance='no')&
           'done, preconditioning...'
   end if
-
-  !   write(*,'(10f10.6)') (eval(iorb),iorb=1,norb)
   ! Preconditions all orbitals belonging to iproc
+  !and calculate the norm of the residue
   !loop over the orbitals
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-
      oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
-
      !loop over the spinorial components
      do sidx=oidx,oidx+nspinor-1
         !starting address of the direct array in transposed form
+        call trans_address(nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,1,sidx,i1,i2)
 
-!!$        if(norb==norbp) then
-!!$           !psi not transposed in serial mode
-!!$           i1=1
-!!$           i2=sidx
-!!$        else
-           !starting address of the direct array in transposed form
-           call trans_address(norbp,nvctrp*nspinor,nspinor*(wfd%nvctr_c+7*wfd%nvctr_f),&
-                1,sidx,i1,i2)
-!!$        end if
-
-        !       write(*,*) 'cprecr',iorb,cprecr!
+        scpr=dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,hpsi(i1,i2),1)
+        !lines for writing the residue following the orbitals
+        !if (iorb <=5) write(83,*)iter,iorb,scpr
+        gnrm=gnrm+scpr**2
         select case(geocode)
         case('F')
            !in this case the grid spacings are uniform
            cprecr=-eval(iorb)
-!!$           scpr=1.d0
-!!$           if (nspinor==4) then
-              scpr=dnrm2((wfd%nvctr_c+7*wfd%nvctr_f),hpsi(i1,i2),1)
-              !print *,iorb,sidx,scpr
-!!$           end if
            if(scpr /=0.d0) then
               call precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
                    wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
@@ -422,14 +381,13 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
                 wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
                 ncong,cprecr,hx,hy,hz,hpsi(i1,i2))
         end select
-
-        !scpr=dnrm2((wfd%nvctr_c+7*wfd%nvctr_f),hpsi(i1,i2),1)
-        !print *,iorb,sidx,scpr
-
-
      end do
-
   enddo
+  if (nproc > 1) then
+     tt=gnrm
+     call MPI_ALLREDUCE(tt,gnrm,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+  endif
+  gnrm=sqrt(gnrm/real(norb,kind=8))
 
   if (iproc==0) then
      write(*,'(1x,a)')&
@@ -441,7 +399,6 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
   if (idsx.gt.0) then
      if (nproc > 1) then
         !transpose the hpsi wavefunction into the diis array
-
         !here psi is used as a work array
         call timing(iproc,'Un-TransSwitch','ON')
         call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi,nspinor)
@@ -451,19 +408,15 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
              hpsidst(1,1,mids),nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
         call timing(iproc,'Un-TransComm  ','OF')
         !end of transposition
-
         call timing(iproc,'Diis          ','ON')
         do iorb=1,norb*nspinor
            do k=1,nvctrp
-              psidst(k,iorb,mids)= psit(k,iorb) 
+              psidst(k,iorb,mids)= psit(k,iorb)
            enddo
         enddo
-
-        !call diisstp(norb,norbp,nproc,iproc,  &
-        !     ads,iter,mids,idsx,nvctrp,psit,psidst,hpsidst)
      else
-        call timing(iproc,'Diis          ','ON')
         if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.true.)
+        call timing(iproc,'Diis          ','ON')
         do iorb=1,norb*nspinor
            do k=1,nvctrp
               psidst(k,iorb,mids)= psit(k,iorb)
@@ -542,17 +495,6 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
 
 !     if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.false.) !(needed?)
 
-!!$     if(nspin==1) then
-!!$        call orthon(norb,nvctrp,psi)
-!!$        !          call checkortho(norb,nvctrp,psi)
-!!$     else
-!!$        call orthon(norbu,nvctrp,psi)
-!!$        !          call checkortho(norbu,nvctrp,psi)
-!!$        if(norbd>0) then
-!!$           call orthon(norbd,nvctrp,psi(1,norbu+1))
-!!$        end if
-!!$        !          call checkortho(norbd,nvctrp,psi(1,norbu+1))
-!!$     end if
   endif
 
   if (iproc==0) then
@@ -567,9 +509,10 @@ end subroutine hpsitopsi
 !it can be eliminated when including all this procedure in a subroutine
 !in other terms, it takes the i1,i2 component of an array psi(nvctr,norbp) 
 !from an array of the form psi(nvctrp,norb)
-subroutine trans_address(norbp,nvctrp,nvctr,i,iorb,i1,i2)
+!for this routine norbp is not needed
+subroutine trans_address(nvctrp,nvctr,i,iorb,i1,i2)
   implicit none
-  integer, intent(in) :: norbp,nvctrp,nvctr,i,iorb
+  integer, intent(in) :: nvctrp,nvctr,i,iorb
   integer, intent(out) :: i1,i2
   !local variables
   integer :: ind

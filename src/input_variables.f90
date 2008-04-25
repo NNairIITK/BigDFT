@@ -808,8 +808,8 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
                   ') must be equal to norbu-norbd.'
              write(*,'(1x,3(a,i0))')&
                   'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
-             stop
           end if
+          stop
        end if
 
        !now warn if there is no input guess spin polarisation
