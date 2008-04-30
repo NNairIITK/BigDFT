@@ -1,5 +1,6 @@
 subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,alat3,rxyz,eion,fion,psoffset,&
      n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+  use module_base
   use module_types
   use Poisson_Solver
   implicit none

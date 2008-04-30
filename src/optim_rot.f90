@@ -33,6 +33,7 @@ end program optim_rot
   !rotate the molecule via an orthogonal matrix in order to minimise the
   !volume of the cubic cell
   subroutine optimise_volume(nat,ntypes,iatype,atomnames,crmult,frmult,hgrid,rxyz,radii_cf)
+    use module_base
     implicit none
     integer, intent(in) :: nat,ntypes
     real(kind=8), intent(in) :: crmult,frmult

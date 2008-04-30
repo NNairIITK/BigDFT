@@ -16,6 +16,7 @@
 !!
 program memguess
 
+  use module_base
   use module_types
 
   implicit none
@@ -278,6 +279,7 @@ end program memguess
 !! SOURCE
 !!
 subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
+  use module_base
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms

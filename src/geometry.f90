@@ -1,5 +1,6 @@
 subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz, &
      psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,in)
+  use module_base
   use module_types
   use module_interfaces, except_this_one => conjgrad
   implicit none
@@ -281,6 +282,7 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz, &
 contains
 
   subroutine close_and_deallocate
+    use module_base
     !    Close the file
     close(unit=16)
     i_all=-product(shape(tpos))*kind(tpos)
@@ -297,6 +299,7 @@ contains
   subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,&
        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,&
        fluct,flucto,fluctoo,fnrm,in)
+    use module_base
     use module_types
     use module_interfaces
     implicit none

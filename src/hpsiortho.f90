@@ -1,6 +1,7 @@
 subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
      norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
      ngatherarr,ndimpot,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,nspinor,spinsgn)
+  use module_base
   use module_types
   implicit none
   include 'mpif.h'
@@ -29,7 +30,7 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   !for the periodic BC case, these arrays substitute 
   !psifscf,psifscfk,psig,ww respectively
   real(kind=8), dimension(:,:,:,:), allocatable ::x_c,y_c,x_f1,x_f2,x_f3
-  real(kind=8), dimension(:,:,:,:,:), allocatable::x_f,x_fc,y_f
+  real(kind=8), dimension(:,:,:,:,:), allocatable ::x_f,x_fc,y_f
   real(kind=8), dimension(:,:), pointer :: pot
   real(kind=8), dimension(:,:,:), allocatable :: mom_vec
 
@@ -155,7 +156,8 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
                 bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
                 bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
                 bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
-                bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,nw1,nw2,bounds%ibyyzz_r,nspinor)
+                bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,nw1,nw2,bounds%ibyyzz_r,&
+                nspinor)
         case('P')
            call applylocpotkinone_per(n1,n2,n3,hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
                 wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
@@ -259,6 +261,7 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
      eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
      psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
+  use module_base
   use module_types
   implicit none
   type(kinetic_bounds), intent(in) :: kbounds
@@ -530,6 +533,7 @@ end subroutine trans_address
 
 subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
      nspin,psi,hpsi,psit)
+  use module_base
   implicit none
   integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
   real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
@@ -618,6 +622,7 @@ end subroutine first_orthon
 ! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
 subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
      nspin,psi,hpsi,psit,occup,evsum,eval)
+  use module_base
   implicit none
   integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
   real(kind=8), dimension(norb), intent(in) :: occup
@@ -744,6 +749,7 @@ end subroutine last_orthon
 
 
 subroutine calc_moments(iproc,nproc,norb,norbp,nvctr,nspinor,psi)
+  use module_base
   implicit none
   include 'mpif.h'
   integer, intent(in) :: iproc,nproc,norb,norbp,nvctr,nspinor

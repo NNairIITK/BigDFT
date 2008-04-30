@@ -26,6 +26,7 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
   ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
   ! hpsi is the right hand side on input and the solution on output
+  use module_base
   implicit real(kind=8) (a-h,o-z)
   dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
   dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
@@ -292,6 +293,7 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
      keyg_c,keyv_c,hpsi_c,hpsi_f,C,scal,A2,B2)
   ! 
   !
+  use module_base
   implicit real(kind=8) (a-h,o-z)
   dimension keyg_c(2,nseg_c),keyv_c(nseg_c),hpsi_c(nvctr_c),hpsi_f(7,nvctr_f)
   real(kind=8), allocatable, dimension(:,:,:) :: hpsip

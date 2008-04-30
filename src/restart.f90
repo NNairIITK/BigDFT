@@ -1,6 +1,6 @@
 subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,eval,wfd,psi,&
      hgrid_old,n1_old,n2_old,n3_old,eval_old,wfd_old,psi_old)
-
+  use module_base
   use module_types
 
   implicit none
@@ -90,7 +90,7 @@ end subroutine copy_old_wavefunctions
 subroutine reformatmywaves(iproc,norb,norbp,nat,&
      & hgrid_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
      & hgrid,n1,n2,n3,rxyz,wfd,psi)
-
+  use module_base
   use module_types
 
   implicit real(kind=8) (a-h,o-z)
@@ -262,7 +262,7 @@ END SUBROUTINE reformatmywaves
 subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz_old,rxyz,  & 
      wfd,psi,eval)
   ! reads wavefunction from file and transforms it properly if hgrid or size of simulation cell have changed
-
+  use module_base
   use module_types
 
   implicit real(kind=8) (a-h,o-z)

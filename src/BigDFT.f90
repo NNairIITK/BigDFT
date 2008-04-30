@@ -12,6 +12,7 @@
 !!
 program BigDFT
 
+  use module_base
   use module_types
   use module_interfaces
 

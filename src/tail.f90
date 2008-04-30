@@ -15,6 +15,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,eval,&
      pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,spinsgn,&
      proj,psi,occup,output_grid,ekin_sum,epot_sum,eproj_sum)
+  use module_base
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at

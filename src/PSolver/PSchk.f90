@@ -25,6 +25,7 @@
 !!
 program PSchk
 
+  use module_base
   use Poisson_Solver
 
   implicit none

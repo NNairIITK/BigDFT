@@ -4,6 +4,7 @@
 ! vectors (preconditione gradients) hpsidst
 subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  & 
                    ads,ids,mids,idsx,nvctrp,psit,psidst,hpsidst)
+  use module_base
   implicit none
 ! Arguments
   integer, intent(in) :: norb,norbp,nproc,iproc,nspinor,ids,mids,idsx,nvctrp

@@ -1,6 +1,7 @@
 subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc)
 ! Calculates the local forces acting on the atoms belonging to iproc
+  use module_base
   use module_types
   implicit none
   !Arguments---------
@@ -275,6 +276,7 @@ end subroutine projectors_derivatives
 
 subroutine nonlocal_forces(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,fsep,nspinor)
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and adds them to the force array
+  use module_base
   use module_types
   implicit none
   !Arguments-------------

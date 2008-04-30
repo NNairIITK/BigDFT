@@ -26,6 +26,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   ! returns the compressed form of a Gaussian projector 
   ! x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-cntrx)^2 + (y-cntry)^2 + (z-cntrz)^2 ))
   ! in the arrays proj_c, proj_f
+  use module_base
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nterm,n1,n2,n3,mvctr_c,mvctr_f

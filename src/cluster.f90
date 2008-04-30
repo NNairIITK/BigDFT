@@ -1,5 +1,6 @@
  subroutine call_cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
+  use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
@@ -19,8 +20,6 @@
      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
        use module_types
-       use module_interfaces
-       use Poisson_Solver
        implicit none
        integer, intent(in) :: nproc,iproc
        integer, intent(inout) :: n1,n2,n3,norbp,norb
@@ -108,7 +107,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !             the second iteration OR grnm 1st >2.
   !             Input wavefunctions need to be recalculated. Routine exits.
   !          =3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
-
+  use module_base
   use module_types
   use module_interfaces
   use Poisson_Solver

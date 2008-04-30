@@ -1,4 +1,5 @@
 subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
+  use module_base
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.true.
   integer recvcount,sendcount
@@ -124,6 +125,7 @@ subroutine unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psiw,psi
 end subroutine unswitch_waves
 
 subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,psi)
+  use module_base
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.true.
   integer recvcount,sendcount
@@ -165,6 +167,7 @@ subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,ps
 END SUBROUTINE untransallwaves
 
 subroutine psitransspi(nvctrp,norb,psi,forward)
+  use module_base
   implicit none
   integer, intent(in) :: norb,nvctrp
   logical, intent(in) :: forward

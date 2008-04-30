@@ -185,7 +185,6 @@ interface
    subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,alat3,rxyz,eion,fion,psoffset,&
         n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
      use module_types
-     use Poisson_Solver
      implicit none
      type(atoms_data), intent(in) :: at
      character(len=1), intent(in) :: geocode
@@ -200,9 +199,7 @@ interface
 
    subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,&
         hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
-     use Poisson_Solver
      implicit none
-     include 'mpif.h'
      character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,ntypes,nat,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
      real(kind=8), intent(in) :: hxh,hyh,hzh,elecfield,psoffset
@@ -219,7 +216,6 @@ interface
         norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
         pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinsgn)
      use module_types
-     use Poisson_Solver
      implicit none
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
@@ -248,7 +244,6 @@ interface
      ! Each processors write its initial wavefunctions into the wavefunction file
      ! The files are then read by readwave
      use module_types
-     use Poisson_Solver
      implicit none
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd

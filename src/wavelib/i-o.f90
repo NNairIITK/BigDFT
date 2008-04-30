@@ -1,6 +1,7 @@
 subroutine reformatonewave(iproc, displ, hgrid_old, n1_old, n2_old, n3_old, nat,&
      & rxyz_old, psigold, hgrid, nvctr_c, nvctr_f, n1, n2, n3, rxyz, nseg_c, nseg_f, &
      & keyg, keyv, psifscf, psi)
+  use module_base
   implicit real(kind=8) (a-h,o-z)
   logical cif1,cif2,cif3
   dimension xya(-1:1,-1:1),xa(-1:1)
@@ -153,6 +154,7 @@ END SUBROUTINE reformatonewave
 
 subroutine readonewave(unitwf, useFormattedInput, iorb,iproc,n1,n2,n3, &
      & hgrid,nat,rxyz_old,rxyz,nseg_c,nseg_f, nvctr_c,nvctr_f,keyg,keyv,psi,eval,psifscf)
+  use module_base
   implicit real(kind=8) (a-h,o-z)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
   dimension psi(nvctr_c+7*nvctr_f)

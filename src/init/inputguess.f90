@@ -180,6 +180,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
      & nat,rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
      & nvctr_c,nvctr_f,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nseg_c,nseg_f,&
      & keyg,keyv,iatype,ntypes,iasctype,natsc,nspinat,nspin,psi,eks,scorb)
+  use module_base
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: nat,norbe,norbep,ngx,iproc,nproc
@@ -546,6 +547,7 @@ END SUBROUTINE calc_coeff_inguess
 
 
 subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,occupat,expo,psiat)
+  use module_base
   implicit none
   integer, intent(in) :: iproc,izatom,ielpsp,ng,npspcode,nmax_occ
   real(kind=8), dimension(0:4,0:6), intent(in) :: psppar
@@ -1343,6 +1345,7 @@ end function gamma
 subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
      & nvctr_c,nvctr_f,iatype,ntypes, &
      iasctype,natsc,nspinat,nspin,spinsgne,psi)
+  use module_base
   implicit none
   integer, intent(in) :: norbe,norbep,iproc,nproc,nat
   integer, intent(in) :: nvctr_c,nvctr_f

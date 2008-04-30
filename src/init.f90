@@ -3,7 +3,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
      wfd,nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,nspinor)
   !calculates the descriptor arrays keyg and keyv as well as nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp
   !calculates also the bounds arrays needed for convolutions
-
+  use module_base
   use module_types
 
   implicit none
@@ -192,6 +192,7 @@ END SUBROUTINE createWavefunctionsDescriptors
 !pass to implicit none while inserting types on this routine
 subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
      radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
+  use module_base
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
@@ -489,7 +490,7 @@ END SUBROUTINE createProjectorsArrays
 subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
      pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinsgn)
-
+  use module_base
   use module_interfaces, except_this_one => import_gaussians
   use module_types
   use Poisson_Solver
@@ -634,6 +635,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
+  use module_base
   use module_interfaces, except_this_one => input_wf_diag
   use module_types
   use Poisson_Solver
@@ -942,6 +944,7 @@ end subroutine input_wf_diag
 subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp,wfd,&
      psi,hpsi,psit,eval,& !mandatory
      norbe,norbep,etol,norbsc_arr) !optional
+  use module_base
   use module_types
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -1210,6 +1213,7 @@ end subroutine overlap_matrices
 
 subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,nspin,etol,&
      norbsc_arr,hamovr,eval)
+  use module_base
   implicit none
   integer, intent(in) :: iproc,norb,norbi_max,ndim_hamovr,natsc,nspin,norbu,norbd
   integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
@@ -1417,8 +1421,9 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
 end subroutine solve_eigensystem
 
 
-subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,nspin,nspinor,ndim_hamovr,&
-     norbsc_arr,hamovr,psi,ppsit)
+subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,nspin,nspinor,&
+     ndim_hamovr,norbsc_arr,hamovr,psi,ppsit)
+  use module_base
   implicit none
   !Arguments
   integer, intent(in) :: nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,nspin,nspinor,ndim_hamovr
@@ -1615,6 +1620,7 @@ end subroutine build_eigenvectors
 subroutine psitospi(iproc,nproc,norbe,norbep,norbsc,&
      & nvctr_c,nvctr_f,nat,iatype,ntypes, &
      iasctype,natsc,nspinat,nspin,spinsgne,otoa,psi)
+  use module_base
   implicit none
   integer, intent(in) :: norbe,norbep,iproc,nproc,nat
   integer, intent(in) :: nvctr_c,nvctr_f
@@ -1697,3 +1703,4 @@ subroutine psitospi(iproc,nproc,norbe,norbep,norbsc,&
   end if
 
 END SUBROUTINE psitospi
+ 

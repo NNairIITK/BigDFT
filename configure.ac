@@ -267,10 +267,11 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
+src/modules/Makefile
+src/profiling/Makefile
 src/PSolver/ABINIT-common/Makefile
 src/PSolver/Makefile
 src/convolutions/Makefile
-src/profiling/Makefile
 src/parameters.h
 utils/Makefile
 utils/PSPfiles/Makefile

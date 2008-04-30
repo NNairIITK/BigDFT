@@ -27,7 +27,7 @@ binaries_sources =
 endif
 
 
-SUBDIRS = $(sub_dirs_ps) convolutions profiling
+SUBDIRS = modules $(sub_dirs_ps) convolutions profiling
 
 EXTRA_DIST = \
 	Makefile.standalone \
@@ -35,7 +35,7 @@ EXTRA_DIST = \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc 
 
-AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common
+AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common
 
 bin_PROGRAMS = $(binaries_sources)
 
@@ -73,6 +73,13 @@ convolution_source = convolutions/combined_shrink_simple.f90 \
 endif
 
 convolution_objects = $(convolution_source:.f90=.o)
+
+#modules for types, interfaces and base variables
+modules_source = modules/base.f90 \
+	modules/types.f90 \
+	modules/interfaces.f90
+
+modules_objects = $(modules_source:.f90=.o)
 
 #objects which depends from module_types
 high_level = cluster.f90 \
@@ -119,8 +126,6 @@ abinit = ABINIT-ewald/ewald.F90 \
 
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
-	types.f90 \
-	interfaces.f90 \
 	BigDFT_API.f90 \
 	$(high_level) \
 	$(low_level) \
@@ -128,7 +133,8 @@ libbigdft_a_SOURCES = \
 
 libbigdft_a_LIBADD = profiling/timem.o \
 	profiling/memoryestimator.o \
-	$(convolution_objects)
+	$(convolution_objects) \
+	$(modules_objects)
 
 cluster_SOURCES = BigDFT.f90 
 cluster_LDFLAGS = $(LMPI)
@@ -156,16 +162,13 @@ CLEANFILES = mpif.h \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@
 
 #dependencies
-cluster.o geometry.o: $(mpi_include) \
-	interfaces.o
+cluster.o geometry.o: $(mpi_include)
 
-init.o : interfaces.o
+#init.o : base.o interfaces.o
 
-interfaces.o: types.o
+#BigDFT_API.o: base.o types.o interfaces.o
 
-BigDFT_API.o: types.o interfaces.o
-
-$(high_level:.f90=.o) : types.o
+#$(high_level:.f90=.o) : base.o types.o
 
 mpif.h:
 	touch mpif.h &&\
@@ -178,7 +181,8 @@ test_forces.o: parameters.h \
 
 $(mod_bigdft) : BigDFT_API.o
 
-BigDFT.o: parameters.h \
-	interfaces.o
+#BigDFT.o: parameters.h \
+#	base.o \
+#	interfaces.o
 
-memguess.o: types.o
+#memguess.o: base.o types.o

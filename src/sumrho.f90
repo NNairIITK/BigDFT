@@ -3,6 +3,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
   ! Output: rho
+  use module_base
   use module_types
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd

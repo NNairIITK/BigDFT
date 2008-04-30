@@ -1,5 +1,6 @@
 subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,nspinor)
   !Effect of orthogonality constraints on gradient 
+  use module_base
   implicit none
   integer, intent(in) :: iproc,nproc,norb,nvctrp,nspinor
   real(kind=8), dimension(norb), intent(in) :: occup
@@ -77,6 +78,7 @@ END SUBROUTINE orthoconstraint_p
 
 subroutine orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum,nspinor)
   !Effect of orthogonality constraints on gradient 
+  use module_base
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.false.
   dimension psi(nvctrp,norb),hpsi(nvctrp,norb),occup(norb)
@@ -140,6 +142,7 @@ END SUBROUTINE orthoconstraint
 
 subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
   ! Gram-Schmidt orthogonalisation
+  use module_base
   implicit none
   integer, intent(in) :: iproc,nproc,norb,nvctrp,nvctr_tot,nspinor
   real(kind=8), dimension(nspinor*nvctrp,norb), intent(inout) :: psit
@@ -300,6 +303,7 @@ END SUBROUTINE orthon_p
 
 subroutine orthon(norb,nvctrp,psi,nspinor)
   ! Gram-Schmidt orthogonalisation
+  use module_base
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.false.
   dimension psi(nvctrp,nspinor*norb)
@@ -424,6 +428,7 @@ end subroutine orthon
 
 subroutine loewe_p(iproc,nproc,norb,ndim,nvctrp,nvctr_tot,psit)
   ! loewdin orthogonalisation
+  use module_base
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.true.
   dimension psit(nvctrp,ndim)
@@ -526,6 +531,7 @@ END SUBROUTINE loewe_p
 
 subroutine loewe(norb,nvctrp,psi)
   ! loewdin orthogonalisation
+  use module_base
   implicit real(kind=8) (a-h,o-z)
   dimension psi(nvctrp,norb)
   real(kind=8), allocatable :: ovrlp(:,:,:),evall(:),tpsi(:,:)
@@ -605,6 +611,7 @@ END SUBROUTINE loewe
 
 
 subroutine checkortho_p(iproc,nproc,norb,nvctrp,psit)
+  use module_base
   implicit real(kind=8) (a-h,o-z)
   dimension psit(nvctrp,norb)
   real(kind=8), allocatable :: ovrlp(:,:,:)
@@ -650,6 +657,7 @@ END SUBROUTINE checkortho_p
 
 
 subroutine checkortho(norb,nvctrp,psi)
+  use module_base
   implicit real(kind=8) (a-h,o-z)
   dimension psi(nvctrp,norb)
   real(kind=8), allocatable :: ovrlp(:,:,:)
@@ -695,6 +703,7 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
   ! at the start each processor has all the Psi's but only its part of the HPsi's
   ! at the end each processor has only its part of the Psi's
   !implicit real(kind=8) (a-h,o-z)
+  use module_base
   implicit none
   integer, intent(in) :: iproc,nproc,norb,nvctrp,nspinor
   real(kind=8), intent(out) :: evsum
@@ -818,6 +827,7 @@ END SUBROUTINE KStrans_p
 subroutine KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval,nspinor)
   ! at the start each processor has all the Psi's but only its part of the HPsi's
   ! at the end each processor has only its part of the Psi's
+  use module_base
   implicit real(kind=8) (a-h,o-z)
   dimension occup(norb),eval(norb)
   dimension psi(nvctrp*nspinor,norb),hpsi(nvctrp*nspinor,norb)

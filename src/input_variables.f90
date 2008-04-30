@@ -80,7 +80,7 @@ subroutine read_input_variables(iproc,in)
   read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
 
   if (ierror/=0) then
-     write(*,'(1x,a)') 'Error while reading the file "input.dat"'
+     if (iproc == 0) write(*,'(1x,a)') 'Error while reading the file "input.dat"'
      stop
   end if
 
@@ -143,6 +143,7 @@ end subroutine print_input_parameters
 
 ! read atomic positions
 subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
+  use module_base
   use module_types
   implicit none
   character(len=20), intent(in) :: units
@@ -511,6 +512,7 @@ end subroutine input_occup
 
 !this routine performs also some cross-checks with other variables
 subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
+  use module_base
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
