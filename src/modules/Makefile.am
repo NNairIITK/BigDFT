@@ -8,6 +8,9 @@ noinst_LIBRARIES = libmodules.a
 
 libmodules_a_SOURCES = $(modules_source)
 
+CLEANFILES = MODULE_BASE.@MODULE_EXT@ module_base.@MODULE_EXT@ \
+	MODULE_TYPES.@MODULE_EXT@ module_types.@MODULE_EXT@ \
+	MODULE_INTERFACES.@MODULE_EXT@ module_interfaces.@MODULE_EXT@
 #dependencies
 interfaces.o: types.o
 types.o: base.o

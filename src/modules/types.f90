@@ -71,9 +71,9 @@ contains
     integer :: i_all,i_stat
 
     allocate(wfd%keyg(2,wfd%nseg_c+wfd%nseg_f),stat=i_stat)
-    call memocc(i_stat,product(shape(wfd%keyg))*kind(wfd%keyg),'keyg',routine)
+    call memocc(i_stat,wfd%keyg,'keyg',routine)
     allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f),stat=i_stat)
-    call memocc(i_stat,product(shape(wfd%keyv))*kind(wfd%keyv),'keyv',routine)
+    call memocc(i_stat,wfd%keyv,'keyv',routine)
 
   end subroutine allocate_wfd
 

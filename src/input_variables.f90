@@ -152,6 +152,7 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   type(input_variables), intent(out) :: in
   real(kind=8), dimension(3,at%nat), intent(out) :: rxyz
   !local variables
+  character(len=*), parameter :: subname='read_atomic_positions'
   real(kind=8), parameter :: bohr=0.5291772108d0 !1 AU in angstroem
   character(len=3) :: suffix
   character(len=2) :: symbol
@@ -167,12 +168,12 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
 
   if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',at%nat
 
-  allocate(at%iatype(at%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(at%iatype))*kind(at%iatype),'iatype','read_atomic_positions')
-  allocate(at%lfrztyp(at%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(at%lfrztyp))*kind(at%lfrztyp),'lfrztyp','read_atomic_positions')
-  allocate(at%nspinat(at%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(at%nspinat))*kind(at%nspinat),'nspinat','read_atomic_positions')
+  allocate(at%iatype(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,at%iatype,'at%iatype',subname)
+  allocate(at%lfrztyp(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,at%lfrztyp,'at%lfrztyp',subname)
+  allocate(at%nspinat(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,at%nspinat,'at%nspinat',subname)
 
   !controls if the positions are provided with machine precision
   if (units == 'angstroemd0' .or. units== 'atomicd0' .or. units== 'bohrd0') then
@@ -339,8 +340,8 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   enddo
 
   !now that ntypes is determined allocate at%atomnames and copy the values
-  allocate(at%atomnames(at%ntypes),stat=i_stat) 
-  call memocc(i_stat,product(shape(at%atomnames))*kind(at%atomnames),'atomnames','read_atomic_positions')
+  allocate(at%atomnames(at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,at%atomnames,'at%atomnames',subname)
   at%atomnames(1:at%ntypes)=atomnames(1:at%ntypes)
 
   !control atom positions
@@ -521,6 +522,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   integer, intent(out) :: nelec,norb,norbu,norbd,norbp,iunit
   real(kind=8), dimension(at%ntypes,2), intent(out) :: radii_cf
   !local variables
+  character(len=*), parameter :: subname='read_system_variables'
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: exists
   character(len=2) :: symbol
@@ -535,16 +537,16 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   !allocate atoms data variables
   ! store PSP parameters
   ! modified to accept both GTH and HGHs pseudopotential types
-  allocate(at%psppar(0:4,0:6,at%ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(at%psppar))*kind(at%psppar),'psppar','read_system_variables')
-  allocate(at%nelpsp(at%ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(at%nelpsp))*kind(at%nelpsp),'nelpsp','read_system_variables')
-  allocate(at%npspcode(at%ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(at%npspcode))*kind(at%npspcode),'npspcode','read_system_variables')
-  allocate(at%nzatom(at%ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(at%nzatom))*kind(at%nzatom),'nzatom','read_system_variables')
-  allocate(at%iasctype(at%ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(at%iasctype))*kind(at%iasctype),'iasctype','read_system_variables')
+  allocate(at%psppar(0:4,0:6,at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,at%psppar,'at%psppar',subname)
+  allocate(at%nelpsp(at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,at%nelpsp,'at%nelpsp',subname)
+  allocate(at%npspcode(at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,at%npspcode,'at%npspcode',subname)
+  allocate(at%nzatom(at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,at%nzatom,'at%nzatom',subname)
+  allocate(at%iasctype(at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,at%iasctype,'at%iasctype',subname)
 
   if (iproc == 0) then
      write(*,'(1x,a)')&

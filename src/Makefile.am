@@ -58,8 +58,7 @@ convolution_source = convolutions/combined_shrink_optim.f90 \
 	convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_ib_optim.f90 \
 	convolutions/conv_per_optim.f90 \
-	convolutions/convolut_simple.f90 \
-	convolutions/convolution_prev.f90 
+	convolutions/convolut_simple.f90
 
 else
 convolution_source = convolutions/combined_shrink_simple.f90 \
@@ -67,8 +66,7 @@ convolution_source = convolutions/combined_shrink_simple.f90 \
 	convolutions/combined_shrink_simple.f90 \
 	convolutions/convolut_ib_simple.f90 \
 	convolutions/conv_per_simple.f90 \
-	convolutions/convolut_simple.f90 \
-	convolutions/convolution_prev.f90 
+	convolutions/convolut_simple.f90
 
 endif
 
@@ -106,7 +104,6 @@ low_level = init/projectors.f90  \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
-	wfn_opt/applyh_prev.f90 \
 	wfn_opt/precond_per.f90 \
 	wfn_opt/kernel_per.f90 \
 	wfn_opt/fft_per.f90 \
@@ -162,7 +159,9 @@ CLEANFILES = mpif.h \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@
 
 #dependencies
-cluster.o geometry.o: $(mpi_include)
+$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o : $(mpi_include) $(modules_objects)
+
+#cluster.o geometry.o: 
 
 #init.o : base.o interfaces.o
 

@@ -89,6 +89,7 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   real(kind=8), intent(out) :: exc,vxc
 
   !Local variables----------------
+  character(len=*), parameter :: subname='xc_energy'
   real(kind=8), dimension(:,:,:), allocatable :: exci,d2vxci
   real(kind=8), dimension(:,:,:,:), allocatable :: vxci,dvxci,dvxcdgr
   real(kind=8), dimension(:,:,:,:,:), allocatable :: gradient
@@ -160,8 +161,8 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
      if (ixc >= 11 .and. ixc <= 16) then
         !computation of the gradient
-        allocate(gradient(m1,m3,nwb,2*nspden-1,0:3),stat=i_stat)
-        call memocc(i_stat,product(shape(gradient))*kind(gradient),'gradient','xc_energy')
+        allocate(gradient(m1,m3,nwb,2*nspden-1,0:3+ndebug),stat=i_stat)
+        call memocc(i_stat,gradient,'gradient',subname)
 
         !the calculation of the gradient will depend on the geometry code
         if (geocode=='F') then
@@ -176,22 +177,22 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      end if
 
      !Allocations
-     allocate(exci(m1,m3,nwb),stat=i_stat)
-     call memocc(i_stat,product(shape(exci))*kind(exci),'exci','xc_energy')
-     allocate(vxci(m1,m3,nwb,nspden),stat=i_stat)
-     call memocc(i_stat,product(shape(vxci))*kind(vxci),'vxci','xc_energy')
+     allocate(exci(m1,m3,nwb+ndebug),stat=i_stat)
+     call memocc(i_stat,exci,'exci',subname)
+     allocate(vxci(m1,m3,nwb,nspden+ndebug),stat=i_stat)
+     call memocc(i_stat,vxci,'vxci',subname)
 
      if (ndvxc/=0) then
-        allocate(dvxci(m1,m3,nwb,ndvxc),stat=i_stat)
-        call memocc(i_stat,product(shape(dvxci))*kind(dvxci),'dvxci','xc_energy')
+        allocate(dvxci(m1,m3,nwb,ndvxc+ndebug),stat=i_stat)
+        call memocc(i_stat,dvxci,'dvxci',subname)
      end if
      if (nvxcdgr/=0) then
-        allocate(dvxcdgr(m1,m3,nwb,nvxcdgr),stat=i_stat)
-        call memocc(i_stat,product(shape(dvxcdgr))*kind(dvxcdgr),'dvxcdgr','xc_energy')
+        allocate(dvxcdgr(m1,m3,nwb,nvxcdgr+ndebug),stat=i_stat)
+        call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
      end if
      if ((ixc==3 .or. (ixc>=7 .and. ixc<=15)) .and. order==3) then
-        allocate(d2vxci(m1,m3,nwb),stat=i_stat)
-        call memocc(i_stat,product(shape(d2vxci))*kind(d2vxci),'d2vxci','xc_energy')
+        allocate(d2vxci(m1,m3,nwb+ndebug),stat=i_stat)
+        call memocc(i_stat,d2vxci,'d2vxci',subname)
      end if
 
      if (.not.allocated(gradient) .and. nxc/=nxt ) then
@@ -275,22 +276,22 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      if (allocated(dvxci)) then
         i_all=-product(shape(dvxci))*kind(dvxci)
         deallocate(dvxci,stat=i_stat)
-        call memocc(i_stat,i_all,'dvxci','xc_energy')
+        call memocc(i_stat,i_all,'dvxci',subname)
      end if
      if (allocated(dvxcdgr)) then
         i_all=-product(shape(dvxcdgr))*kind(dvxcdgr)
         deallocate(dvxcdgr,stat=i_stat)
-        call memocc(i_stat,i_all,'dvxcdgr','xc_energy')
+        call memocc(i_stat,i_all,'dvxcdgr',subname)
      end if
      if (allocated(d2vxci)) then
         i_all=-product(shape(d2vxci))*kind(d2vxci)
         deallocate(d2vxci,stat=i_stat)
-        call memocc(i_stat,i_all,'d2vxci','xc_energy')
+        call memocc(i_stat,i_all,'d2vxci',subname)
      end if
      if (allocated(gradient)) then
         i_all=-product(shape(gradient))*kind(gradient)
         deallocate(gradient,stat=i_stat)
-        call memocc(i_stat,i_all,'gradient','xc_energy')
+        call memocc(i_stat,i_all,'gradient',subname)
      end if
 
 !     rewind(300)
@@ -463,10 +464,10 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      !De-allocations
      i_all=-product(shape(exci))*kind(exci)
      deallocate(exci,stat=i_stat)
-     call memocc(i_stat,i_all,'exci','xc_energy')
+     call memocc(i_stat,i_all,'exci',subname)
      i_all=-product(shape(vxci))*kind(vxci)
      deallocate(vxci,stat=i_stat)
-     call memocc(i_stat,i_all,'vxci','xc_energy')
+     call memocc(i_stat,i_all,'vxci',subname)
 
 
   else
@@ -524,14 +525,15 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
   real(kind=8), dimension(n01,n02,n03,nvxcdgr), intent(in) :: dvxcdgr
   real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: wb_vxc
   !Local variables
+  character(len=*), parameter :: subname='vxcpostprocessing'
   integer :: i1,i2,i3,dir_i,i_all,i_stat,ispden
   real(kind=8) :: dnexcdgog,grad_i,rho_up,rho_down,rho_tot
   real(kind=8), dimension(:,:,:,:,:), allocatable :: f_i
 
   !Body
 
-  allocate(f_i(n01,n02,n03,3,nspden),stat=i_stat)
-  call memocc(i_stat,product(shape(f_i))*kind(f_i),'f_i','vxcpostprocessing')
+  allocate(f_i(n01,n02,n03,3,nspden+ndebug),stat=i_stat)
+  call memocc(i_stat,f_i,'f_i',subname)
   
   !let us first treat the case nspden=1
   if (nspden == 1) then
@@ -608,7 +610,7 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
 
   i_all=-product(shape(f_i))*kind(f_i)
   deallocate(f_i,stat=i_stat)
-  call memocc(i_stat,i_all,'f_i','vxcpostprocessing')
+  call memocc(i_stat,i_all,'f_i',subname)
 
 end subroutine vxcpostprocessing
 !!***

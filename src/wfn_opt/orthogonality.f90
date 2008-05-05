@@ -9,6 +9,7 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   real(kind=8), dimension(nspinor*nvctrp,norb), intent(out) :: hpsit
   !local variables
   include 'mpif.h'
+  character(len=*), parameter :: subname='orthoconstraint_p'
   integer :: i_stat,i_all,istart,iorb,jorb,ierr,norbs,i,j
   real(kind=8) :: ttr,tti,ddot
   real(kind=8), dimension(:,:,:), allocatable :: alag
@@ -23,8 +24,8 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
      norbs=2*norb
   end if
 
-  allocate(alag(norbs,norb,istart),stat=i_stat)
-  call memocc(i_stat,product(shape(alag))*kind(alag),'alag','orthoconstraint_p')
+  allocate(alag(norbs,norb,istart+ndebug),stat=i_stat)
+  call memocc(i_stat,alag,'alag',subname)
   !     alag(jorb,iorb,istart)=+psit(k,jorb)*hpsit(k,iorb)
   if(nspinor==1) then
      call DGEMM('T','N',norb,norb,nvctrp,1.d0,psit,nvctrp,hpsit,nvctrp,0.d0,alag(1,1,istart),norb)
@@ -69,7 +70,7 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   end if
   i_all=-product(shape(alag))*kind(alag)
   deallocate(alag,stat=i_stat)
-  call memocc(i_stat,i_all,'alag','orthoconstraint_p')
+  call memocc(i_stat,i_all,'alag',subname)
 
   call timing(iproc,'LagrM_comput  ','OF')
 
@@ -80,6 +81,7 @@ subroutine orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum,nspinor)
   !Effect of orthogonality constraints on gradient 
   use module_base
   implicit real(kind=8) (a-h,o-z)
+  character(len=*), parameter :: subname='orthoconstraint'
   logical, parameter :: parallel=.false.
   dimension psi(nvctrp,norb),hpsi(nvctrp,norb),occup(norb)
   allocatable :: alag(:,:,:) !,psit(:,:),hpsit(:,:)
@@ -94,8 +96,8 @@ subroutine orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum,nspinor)
 !     call psitransspi(nvctrp,norb,hpsi,.true.)
  end if
 
-  allocate(alag(norbs,norb,2),stat=i_stat)
-  call memocc(i_stat,product(shape(alag))*kind(alag),'alag','orthoconstraint')
+  allocate(alag(norbs,norb,2+ndebug),stat=i_stat)
+  call memocc(i_stat,alag,'alag',subname)
   
   if(nspinor==1) then
      !     alag(jorb,iorb,2)=+psi(k,jorb)*hpsi(k,iorb)
@@ -129,7 +131,7 @@ subroutine orthoconstraint(norb,occup,nvctrp,psi,hpsi,scprsum,nspinor)
 
   i_all=-product(shape(alag))*kind(alag)
   deallocate(alag,stat=i_stat)
-  call memocc(i_stat,i_all,'alag','orthoconstraint')
+  call memocc(i_stat,i_all,'alag',subname)
 !  i_all=-product(shape(psit))*kind(psit)
 !  deallocate(psit,stat=i_stat)
 !  call memocc(i_stat,i_all,'psit','orthoconstraint')
@@ -148,6 +150,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
   real(kind=8), dimension(nspinor*nvctrp,norb), intent(inout) :: psit
   !local variables
   include 'mpif.h'
+  character(len=*), parameter :: subname='orthon_p'
   integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,i,j,norbs,iorb,jorb
   real(kind=8) :: tt,ttLOC,dnrm2,ttr,tti
   real(kind=8), dimension(:,:,:), allocatable :: ovrlp
@@ -199,8 +202,8 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
         norbs=2*norb
      end if
 
-     allocate(ovrlp(norbs,norb,istart),stat=i_stat)
-     call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','orthon_p')
+     allocate(ovrlp(norbs,norb,istart+ndebug),stat=i_stat)
+     call memocc(i_stat,ovrlp,'ovrlp',subname)
      call razero(norbs*norb*istart,ovrlp)
 
      ! Upper triangle of overlap matrix using BLAS
@@ -291,7 +294,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 
      i_all=-product(shape(ovrlp))*kind(ovrlp)
      deallocate(ovrlp,stat=i_stat)
-     call memocc(i_stat,i_all,'ovrlp','orthon_p')
+     call memocc(i_stat,i_all,'ovrlp',subname)
 
   end if
 
@@ -307,6 +310,7 @@ subroutine orthon(norb,nvctrp,psi,nspinor)
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.false.
   dimension psi(nvctrp,nspinor*norb)
+  character(len=*), parameter :: subname='orthon'
   real(kind=8), allocatable :: ovrlp(:,:),psit(:,:)
 
   call timing(iproc,'GramS_comput  ','ON')
@@ -324,8 +328,8 @@ subroutine orthon(norb,nvctrp,psi,nspinor)
 
      if(nspinor==4) then
         norbs=norb*2
-        allocate(psit(nvctrp*4,norb),stat=i_stat)
-        call memocc(i_stat,product(shape(psit))*kind(psit),'psit','orthon')
+        allocate(psit(nvctrp*4,norb+ndebug),stat=i_stat)
+        call memocc(i_stat,psit,'psit',subname)
         psit=0.0d0
         do j=1,nspinor*norb,4
            do i=1,nvctrp
@@ -338,8 +342,8 @@ subroutine orthon(norb,nvctrp,psi,nspinor)
      else
         norbs=norb
      end if
-     allocate(ovrlp(norbs,norb),stat=i_stat)
-     call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','orthon')
+     allocate(ovrlp(norbs,norb+ndebug),stat=i_stat)
+     call memocc(i_stat,ovrlp,'ovrlp',subname)
 
      ! Overlap matrix using BLAS
      !     ovrlp(iorb,jorb)=psi(k,iorb)*psi(k,jorb) ; upper triangle
@@ -417,7 +421,7 @@ subroutine orthon(norb,nvctrp,psi,nspinor)
      end if
      i_all=-product(shape(ovrlp))*kind(ovrlp)
      deallocate(ovrlp,stat=i_stat)
-     call memocc(i_stat,i_all,'ovrlp','orthon')
+     call memocc(i_stat,i_all,'ovrlp',subname)
 
   endif
 
@@ -432,6 +436,7 @@ subroutine loewe_p(iproc,nproc,norb,ndim,nvctrp,nvctr_tot,psit)
   implicit real(kind=8) (a-h,o-z)
   logical, parameter :: parallel=.true.
   dimension psit(nvctrp,ndim)
+  character(len=*), parameter :: subname='loewe_p'
   real(kind=8), allocatable :: ovrlp(:,:,:),evall(:),psitt(:,:)
   include 'mpif.h'
 
@@ -457,10 +462,10 @@ subroutine loewe_p(iproc,nproc,norb,ndim,nvctrp,nvctr_tot,psit)
 
   else
 
-     allocate(ovrlp(norb,norb,3),stat=i_stat)
-     call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','loewe_p')
-     allocate(evall(norb),stat=i_stat)
-     call memocc(i_stat,product(shape(evall))*kind(evall),'evall','loewe_p')
+     allocate(ovrlp(norb,norb,3+ndebug),stat=i_stat)
+     call memocc(i_stat,ovrlp,'ovrlp',subname)
+     allocate(evall(norb+ndebug),stat=i_stat)
+     call memocc(i_stat,evall,'evall',subname)
 
      ! Upper triangle of overlap matrix using BLAS
      !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; upper triangle
@@ -507,22 +512,22 @@ subroutine loewe_p(iproc,nproc,norb,ndim,nvctrp,nvctr_tot,psit)
      call DGEMM('N','T',norb,norb,norb,1.d0,ovrlp(1,1,1),norb,&
           ovrlp(1,1,2),norb,0.d0,ovrlp(1,1,3),norb)
 
-     allocate(psitt(nvctrp,ndim),stat=i_stat)
-     call memocc(i_stat,product(shape(psitt))*kind(psitt),'psitt','loewe_p')
+     allocate(psitt(nvctrp,ndim+ndebug),stat=i_stat)
+     call memocc(i_stat,psitt,'psitt',subname)
      ! new eigenvectors
      !   psitt(i,iorb)=psit(i,jorb)*ovrlp(jorb,iorb,3)
      call DGEMM('N','N',nvctrp,norb,norb,1.d0,psit,nvctrp,ovrlp(1,1,3),norb,0.d0,psitt,nvctrp)
      call DCOPY(nvctrp*ndim,psitt,1,psit,1)
      i_all=-product(shape(psitt))*kind(psitt)
      deallocate(psitt,stat=i_stat)
-     call memocc(i_stat,i_all,'psitt','loewe_p')
+     call memocc(i_stat,i_all,'psitt',subname)
 
      i_all=-product(shape(ovrlp))*kind(ovrlp)
      deallocate(ovrlp,stat=i_stat)
-     call memocc(i_stat,i_all,'ovrlp','loewe_p')
+     call memocc(i_stat,i_all,'ovrlp',subname)
      i_all=-product(shape(evall))*kind(evall)
      deallocate(evall,stat=i_stat)
-     call memocc(i_stat,i_all,'evall','loewe_p')
+     call memocc(i_stat,i_all,'evall',subname)
 
   end if
 
@@ -534,6 +539,7 @@ subroutine loewe(norb,nvctrp,psi)
   use module_base
   implicit real(kind=8) (a-h,o-z)
   dimension psi(nvctrp,norb)
+  character(len=*), parameter :: subname='loewe'
   real(kind=8), allocatable :: ovrlp(:,:,:),evall(:),tpsi(:,:)
 
   if (norb.eq.1) then
@@ -548,10 +554,10 @@ subroutine loewe(norb,nvctrp,psi)
 
   else
 
-     allocate(ovrlp(norb,norb,3),stat=i_stat)
-     call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','loewe')
-     allocate(evall(norb),stat=i_stat)
-     call memocc(i_stat,product(shape(evall))*kind(evall),'evall','loewe')
+     allocate(ovrlp(norb,norb,3+ndebug),stat=i_stat)
+     call memocc(i_stat,ovrlp,'ovrlp',subname)
+     allocate(evall(norb+ndebug),stat=i_stat)
+     call memocc(i_stat,evall,'evall',subname)
 
      ! Overlap matrix using BLAS
      !     ovrlp(iorb,jorb)=psi(k,iorb)*psi(k,jorb) ; upper triangle
@@ -589,21 +595,21 @@ subroutine loewe(norb,nvctrp,psi)
      call DGEMM('N','T',norb,norb,norb,1.d0,ovrlp(1,1,1),norb,ovrlp(1,1,2),norb,0.d0,ovrlp(1,1,3),norb)
 
      ! new eigenvectors
-     allocate(tpsi(nvctrp,norb),stat=i_stat)
-     call memocc(i_stat,product(shape(tpsi))*kind(tpsi),'tpsi','loewe')
+     allocate(tpsi(nvctrp,norb+ndebug),stat=i_stat)
+     call memocc(i_stat,tpsi,'tpsi',subname)
      !   tpsi(i,iorb)=psi(i,jorb)*ovrlp(jorb,iorb,3)
      call DGEMM('N','N',nvctrp,norb,norb,1.d0,psi,nvctrp,ovrlp(1,1,3),norb,0.d0,tpsi,nvctrp)
      call DCOPY(nvctrp*norb,tpsi,1,psi,1)
      i_all=-product(shape(tpsi))*kind(tpsi)
      deallocate(tpsi,stat=i_stat)
-     call memocc(i_stat,i_all,'tpsi','loewe')
+     call memocc(i_stat,i_all,'tpsi',subname)
 
      i_all=-product(shape(ovrlp))*kind(ovrlp)
      deallocate(ovrlp,stat=i_stat)
-     call memocc(i_stat,i_all,'ovrlp','loewe')
+     call memocc(i_stat,i_all,'ovrlp',subname)
      i_all=-product(shape(evall))*kind(evall)
      deallocate(evall,stat=i_stat)
-     call memocc(i_stat,i_all,'evall','loewe')
+     call memocc(i_stat,i_all,'evall',subname)
 
   endif
 
@@ -614,11 +620,12 @@ subroutine checkortho_p(iproc,nproc,norb,nvctrp,psit)
   use module_base
   implicit real(kind=8) (a-h,o-z)
   dimension psit(nvctrp,norb)
+  character(len=*), parameter :: subname='checkortho_p'
   real(kind=8), allocatable :: ovrlp(:,:,:)
   include 'mpif.h'
 
-  allocate(ovrlp(norb,norb,2),stat=i_stat)
-  call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','checkortho_p')
+  allocate(ovrlp(norb,norb,2+ndebug),stat=i_stat)
+  call memocc(i_stat,ovrlp,'ovrlp',subname)
 
   do iorb=1,norb
      do jorb=1,norb
@@ -651,7 +658,7 @@ subroutine checkortho_p(iproc,nproc,norb,nvctrp,psit)
 
   i_all=-product(shape(ovrlp))*kind(ovrlp)
   deallocate(ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ovrlp','checkortho_p')
+  call memocc(i_stat,i_all,'ovrlp',subname)
 
 END SUBROUTINE checkortho_p
 
@@ -660,10 +667,11 @@ subroutine checkortho(norb,nvctrp,psi)
   use module_base
   implicit real(kind=8) (a-h,o-z)
   dimension psi(nvctrp,norb)
+  character(len=*), parameter :: subname='checkortho'
   real(kind=8), allocatable :: ovrlp(:,:,:)
 
-  allocate(ovrlp(norb,norb,1),stat=i_stat)
-  call memocc(i_stat,product(shape(ovrlp))*kind(ovrlp),'ovrlp','checkortho')
+  allocate(ovrlp(norb,norb,1+ndebug),stat=i_stat)
+  call memocc(i_stat,ovrlp,'ovrlp',subname)
 
   do iorb=1,norb
      do jorb=1,norb
@@ -692,7 +700,7 @@ subroutine checkortho(norb,nvctrp,psi)
 
   i_all=-product(shape(ovrlp))*kind(ovrlp)
   deallocate(ovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ovrlp','checkortho')
+  call memocc(i_stat,i_all,'ovrlp',subname)
 
 
 END SUBROUTINE checkortho
@@ -713,6 +721,7 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
   real(kind=8), dimension(nvctrp*nspinor,norb), intent(out) :: psit
   !local variables
   include 'mpif.h'
+  character(len=*), parameter :: subname='KStrans_p'
   integer :: i_all,i_stat,ierr,iorb,jorb,n_lp,istart,info,norbs
   real(kind=8) :: scpr,alpha,ddot
   ! arrays for KS orbitals
@@ -726,8 +735,8 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
      norbs=norb
   end if
   ! set up Hamiltonian matrix
-  allocate(hamks(norbs,norb,2),stat=i_stat)
-  call memocc(i_stat,product(shape(hamks))*kind(hamks),'hamks','kstrans_p')
+  allocate(hamks(norbs,norb,2+ndebug),stat=i_stat)
+  call memocc(i_stat,hamks,'hamks',subname)
 
   do jorb=1,norb
      do iorb=1,norbs
@@ -768,19 +777,19 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
   !        enddo
 
   n_lp=max(4*norbs,1000)
-  allocate(work_lp(n_lp*2),stat=i_stat)
-  call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','kstrans_p')
+  allocate(work_lp(n_lp*2+ndebug),stat=i_stat)
+  call memocc(i_stat,work_lp,'work_lp',subname)
   if(nspinor==1) then
      call  DSYEV('V','U',norb,hamks,norb,eval, work_lp, n_lp, info )
   else
-     allocate(work_rp(3*norb+1),stat=i_stat)
-     call memocc(i_stat,product(shape(work_rp))*kind(work_rp),'work_rp','kstrans_p')
+     allocate(work_rp(3*norb+1+ndebug),stat=i_stat)
+     call memocc(i_stat,work_rp,'work_rp',subname)
      
      call  ZHEEV('V','U',norb,hamks(1,1,1),norb,eval, work_lp, n_lp, work_rp,info )
      
      i_all=-product(shape(work_rp))*kind(work_rp)
      deallocate(work_rp,stat=i_stat)
-     call memocc(i_stat,i_all,'work_rp','kstrans_p')
+     call memocc(i_stat,i_all,'work_rp',subname)
   end if
 
   evsum=0.d0
@@ -790,11 +799,11 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
   enddo
   i_all=-product(shape(work_lp))*kind(work_lp)
   deallocate(work_lp,stat=i_stat)
-  call memocc(i_stat,i_all,'work_lp','kstrans_p')
+  call memocc(i_stat,i_all,'work_lp',subname)
   if (info.ne.0) write(*,*) 'DSYEV ERROR',info
 
-  allocate(psitt(nvctrp*nspinor,norb),stat=i_stat)
-  call memocc(i_stat,product(shape(psitt))*kind(psitt),'psitt','kstrans_p')
+  allocate(psitt(nvctrp*nspinor,norb+ndebug),stat=i_stat)
+  call memocc(i_stat,psitt,'psitt',subname)
   ! Transform to KS orbitals
   if(nspinor==1) then
      do iorb=1,norb
@@ -814,12 +823,12 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
   end if
   i_all=-product(shape(hamks))*kind(hamks)
   deallocate(hamks,stat=i_stat)
-  call memocc(i_stat,i_all,'hamks','kstrans_p')
+  call memocc(i_stat,i_all,'hamks',subname)
 
   call DCOPY(nvctrp*norb*nspinor,psitt,1,psit,1)
   i_all=-product(shape(psitt))*kind(psitt)
   deallocate(psitt,stat=i_stat)
-  call memocc(i_stat,i_all,'psitt','kstrans_p')
+  call memocc(i_stat,i_all,'psitt',subname)
 
 END SUBROUTINE KStrans_p
 
@@ -831,6 +840,7 @@ subroutine KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval,nspinor)
   implicit real(kind=8) (a-h,o-z)
   dimension occup(norb),eval(norb)
   dimension psi(nvctrp*nspinor,norb),hpsi(nvctrp*nspinor,norb)
+  character(len=*), parameter :: subname='KStrans'
   ! arrays for KS orbitals
   allocatable :: hamks(:,:,:),work_lp(:),work_rp(:),psitt(:,:)
 
@@ -843,8 +853,8 @@ subroutine KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval,nspinor)
   end if
 
   ! set up Hamiltonian matrix
-  allocate(hamks(norbs,norb,2),stat=i_stat)
-  call memocc(i_stat,product(shape(hamks))*kind(hamks),'hamks','kstrans')
+  allocate(hamks(norbs,norb,2+ndebug),stat=i_stat)
+  call memocc(i_stat,hamks,'hamks',subname)
   do jorb=1,norb
      do iorb=1,norbs
         hamks(iorb,jorb,2)=0.d0
@@ -873,19 +883,19 @@ subroutine KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval,nspinor)
   !        enddo
 
   n_lp=max(4*norbs,1000)
-  allocate(work_lp(n_lp*2),stat=i_stat)
-  call memocc(i_stat,product(shape(work_lp))*kind(work_lp),'work_lp','kstrans')
+  allocate(work_lp(n_lp*2+ndebug),stat=i_stat)
+  call memocc(i_stat,work_lp,'work_lp',subname)
   if(nspinor==1) then
      call  DSYEV('V','U',norb,hamks,norb,eval, work_lp, n_lp, info )
   else
-     allocate(work_rp(3*norb+1),stat=i_stat)
-     call memocc(i_stat,product(shape(work_rp))*kind(work_rp),'work_rp','kstrans_p')
+     allocate(work_rp(3*norb+1+ndebug),stat=i_stat)
+     call memocc(i_stat,work_rp,'work_rp',subname)
      
      call  ZHEEV('V','U',norb,hamks(1,1,1),norb,eval, work_lp, n_lp, work_rp,info )
      
      i_all=-product(shape(work_rp))*kind(work_rp)
      deallocate(work_rp,stat=i_stat)
-     call memocc(i_stat,i_all,'work_rp','kstrans_p')
+     call memocc(i_stat,i_all,'work_rp',subname)
   end if
 
   evsum=0.d0
@@ -895,11 +905,11 @@ subroutine KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval,nspinor)
   enddo
   i_all=-product(shape(work_lp))*kind(work_lp)
   deallocate(work_lp,stat=i_stat)
-  call memocc(i_stat,i_all,'work_lp','kstrans')
+  call memocc(i_stat,i_all,'work_lp',subname)
   if (info.ne.0) write(*,*) 'DSYEV ERROR',info
 
-  allocate(psitt(nvctrp*nspinor,norb),stat=i_stat)
-  call memocc(i_stat,product(shape(psitt))*kind(psitt),'psitt','kstrans')
+  allocate(psitt(nvctrp*nspinor,norb+ndebug),stat=i_stat)
+  call memocc(i_stat,psitt,'psitt',subname)
   ! Transform to KS orbitals
   if(nspinor==1) then
      do iorb=1,norb
@@ -919,12 +929,12 @@ subroutine KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval,nspinor)
   end if
   i_all=-product(shape(hamks))*kind(hamks)
   deallocate(hamks,stat=i_stat)
-  call memocc(i_stat,i_all,'hamks','kstrans')
+  call memocc(i_stat,i_all,'hamks',subname)
 
   call DCOPY(nvctrp*norb*nspinor,psitt,1,psi,1)
   i_all=-product(shape(psitt))*kind(psitt)
   deallocate(psitt,stat=i_stat)
-  call memocc(i_stat,i_all,'psitt','kstrans')
+  call memocc(i_stat,i_all,'psitt',subname)
 
   if(nspinor==4) then
      call psitransspi(nvctrp,norb,psi,.false.)

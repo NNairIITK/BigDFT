@@ -17,6 +17,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: psi
   !local variables
   include 'mpif.h'
+  character(len=*), parameter :: subname='gautowav'
   logical :: myorbital
   character(len=6) :: string,symbol
   character(len=100) :: line
@@ -43,8 +44,8 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   nbx=0
   lmax=0
 
-  allocate(nshell(ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(nshell))*kind(nshell),'nshell','gautowav')
+  allocate(nshell(ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,nshell,'nshell',subname)
 
   open(unit=35,file='gaubasis.dat',action='read')
 
@@ -90,14 +91,14 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   rewind(35)
 
   !here allocate arrays
-  allocate(nam(nbx,ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(nam))*kind(nam),'nam','gautowav')
-  allocate(ndoc(nbx,ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(ndoc))*kind(ndoc),'ndoc','gautowav')
-  allocate(contcoeff(ngx,nbx,ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(contcoeff))*kind(contcoeff),'contcoeff','gautowav')
-  allocate(expo(ngx,nbx,ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(expo))*kind(expo),'expo','gautowav')
+  allocate(nam(nbx,ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,nam,'nam',subname)
+  allocate(ndoc(nbx,ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,ndoc,'ndoc',subname)
+  allocate(contcoeff(ngx,nbx,ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,contcoeff,'contcoeff',subname)
+  allocate(expo(ngx,nbx,ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,expo,'expo',subname)
   
   ityp=0
   ipg=0
@@ -202,12 +203,12 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   !now read the coefficients of the gaussian converged orbitals
   open(unit=36,file='gaucoeff.dat',action='read')
   !here there is the orbital label, for the moment it is assumed to vary between 1 and 4
-  allocate(ctmp(10),stat=i_stat)
-  call memocc(i_stat,product(shape(ctmp))*kind(ctmp),'ctmp','gautowav')
-  allocate(iorbtmp(10),stat=i_stat)
-  call memocc(i_stat,product(shape(iorbtmp))*kind(iorbtmp),'iorbtmp','gautowav')
-  allocate(cimu(mmax,nbx,nat,norb),stat=i_stat)
-  call memocc(i_stat,product(shape(cimu))*kind(cimu),'cimu','gautowav')
+  allocate(ctmp(10+ndebug),stat=i_stat)
+  call memocc(i_stat,ctmp,'ctmp',subname)
+  allocate(iorbtmp(10+ndebug),stat=i_stat)
+  call memocc(i_stat,iorbtmp,'iorbtmp',subname)
+  allocate(cimu(mmax,nbx,nat,norb+ndebug),stat=i_stat)
+  call memocc(i_stat,cimu,'cimu',subname)
 
   read(36,*)
   read_line1: do
@@ -295,10 +296,10 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
 
   i_all=-product(shape(ctmp))*kind(ctmp)
   deallocate(ctmp,stat=i_stat)
-  call memocc(i_stat,i_all,'ctmp','gautowav')
+  call memocc(i_stat,i_all,'ctmp',subname)
   i_all=-product(shape(iorbtmp))*kind(iorbtmp)
   deallocate(iorbtmp,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbtmp','gautowav')
+  call memocc(i_stat,i_all,'iorbtmp',subname)
 
 
   !now apply this basis set information to construct the wavelets wavefunctions
@@ -308,12 +309,12 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
      write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
   end if
 
-  allocate(psiatn(ngx),stat=i_stat)
-  call memocc(i_stat,product(shape(psiatn))*kind(psiatn),'psiatn','gautowav')
-  allocate(xp(ngx),stat=i_stat)
-  call memocc(i_stat,product(shape(xp))*kind(xp),'xp','gautowav')
-  allocate(tpsi(nvctr_c+7*nvctr_f),stat=i_stat)
-  call memocc(i_stat,product(shape(tpsi))*kind(tpsi),'tpsi','gautowav')
+  allocate(psiatn(ngx+ndebug),stat=i_stat)
+  call memocc(i_stat,psiatn,'psiatn',subname)
+  allocate(xp(ngx+ndebug),stat=i_stat)
+  call memocc(i_stat,xp,'xp',subname)
+  allocate(tpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
+  call memocc(i_stat,tpsi,'tpsi',subname)
 
   !initialize the wavefunction
   psi(:,:)=0.d0
@@ -393,33 +394,33 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
 
   i_all=-product(shape(tpsi))*kind(tpsi)
   deallocate(tpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'tpsi','gautowav')
+  call memocc(i_stat,i_all,'tpsi',subname)
 
   i_all=-product(shape(nshell))*kind(nshell)
   deallocate(nshell,stat=i_stat)
-  call memocc(i_stat,i_all,'nshell','gautowav')
+  call memocc(i_stat,i_all,'nshell',subname)
   i_all=-product(shape(nam))*kind(nam)
   deallocate(nam,stat=i_stat)
-  call memocc(i_stat,i_all,'nam','gautowav')
+  call memocc(i_stat,i_all,'nam',subname)
   i_all=-product(shape(ndoc))*kind(ndoc)
   deallocate(ndoc,stat=i_stat)
-  call memocc(i_stat,i_all,'ndoc','gautowav')
+  call memocc(i_stat,i_all,'ndoc',subname)
   i_all=-product(shape(contcoeff))*kind(contcoeff)
   deallocate(contcoeff,stat=i_stat)
-  call memocc(i_stat,i_all,'contcoeff','gautowav')
+  call memocc(i_stat,i_all,'contcoeff',subname)
   i_all=-product(shape(expo))*kind(expo)
   deallocate(expo,stat=i_stat)
-  call memocc(i_stat,i_all,'expo','gautowav')
+  call memocc(i_stat,i_all,'expo',subname)
   i_all=-product(shape(cimu))*kind(cimu)
   deallocate(cimu,stat=i_stat)
-  call memocc(i_stat,i_all,'cimu','gautowav')
+  call memocc(i_stat,i_all,'cimu',subname)
 
   i_all=-product(shape(xp))*kind(xp)
   deallocate(xp,stat=i_stat)
-  call memocc(i_stat,i_all,'xp','gautowav')
+  call memocc(i_stat,i_all,'xp',subname)
   i_all=-product(shape(psiatn))*kind(psiatn)
   deallocate(psiatn,stat=i_stat)
-  call memocc(i_stat,i_all,'psiatn','gautowav')
+  call memocc(i_stat,i_all,'psiatn',subname)
 
 
 end subroutine gautowav
@@ -510,6 +511,7 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
   real(kind=8), dimension(mvctr_c), intent(out) :: psi_c
   real(kind=8), dimension(7,mvctr_f), intent(out) :: psi_f
   !local variables
+  character(len=*), parameter :: subname='crtonewave'
   integer, parameter ::nw=16000
   logical :: perx,pery,perz
   integer:: iterm,itp,n_gau,ml1,mu1,ml2,mu2,ml3,mu3,i1,i2,i3,i_all,i_stat,iseg,ii,jj,j0,j1,i0,i
@@ -524,18 +526,18 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
   perz=(geocode /= 'F')
 
 
-  allocate(wprojx(0:n1,2),stat=i_stat)
-  call memocc(i_stat,product(shape(wprojx))*kind(wprojx),'wprojx','crtonewave')
-  allocate(wprojy(0:n2,2),stat=i_stat)
-  call memocc(i_stat,product(shape(wprojy))*kind(wprojy),'wprojy','crtonewave')
-  allocate(wprojz(0:n3,2),stat=i_stat)
-  call memocc(i_stat,product(shape(wprojz))*kind(wprojz),'wprojz','crtonewave')
-  allocate(work(0:nw,2),stat=i_stat)
-  call memocc(i_stat,product(shape(work))*kind(work),'work','crtonewave')
-  allocate(psig_c(nl1_c:nu1_c,nl2_c:nu2_c,nl3_c:nu3_c),stat=i_stat)
-  call memocc(i_stat,product(shape(psig_c))*kind(psig_c),'psig_c','crtonewave')
-  allocate(psig_f(7,nl1_f:nu1_f,nl2_f:nu2_f,nl3_f:nu3_f),stat=i_stat)
-  call memocc(i_stat,product(shape(psig_f))*kind(psig_f),'psig_f','crtonewave')
+  allocate(wprojx(0:n1,2+ndebug),stat=i_stat)
+  call memocc(i_stat,wprojx,'wprojx',subname)
+  allocate(wprojy(0:n2,2+ndebug),stat=i_stat)
+  call memocc(i_stat,wprojy,'wprojy',subname)
+  allocate(wprojz(0:n3,2+ndebug),stat=i_stat)
+  call memocc(i_stat,wprojz,'wprojz',subname)
+  allocate(work(0:nw,2+ndebug),stat=i_stat)
+  call memocc(i_stat,work,'work',subname)
+  allocate(psig_c(nl1_c:nu1_c,nl2_c:nu2_c,nl3_c:nu3_c+ndebug),stat=i_stat)
+  call memocc(i_stat,psig_c,'psig_c',subname)
+  allocate(psig_f(7,nl1_f:nu1_f,nl2_f:nu2_f,nl3_f:nu3_f+ndebug),stat=i_stat)
+  call memocc(i_stat,psig_f,'psig_f',subname)
 
   !print *,'limits',nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
 
@@ -701,22 +703,21 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
 
   i_all=-product(shape(wprojx))*kind(wprojx)
   deallocate(wprojx,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojx','crtonewave')
+  call memocc(i_stat,i_all,'wprojx',subname)
   i_all=-product(shape(wprojy))*kind(wprojy)
   deallocate(wprojy,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojy','crtonewave')
+  call memocc(i_stat,i_all,'wprojy',subname)
   i_all=-product(shape(wprojz))*kind(wprojz)
   deallocate(wprojz,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojz','crtonewave')
+  call memocc(i_stat,i_all,'wprojz',subname)
   i_all=-product(shape(work))*kind(work)
   deallocate(work,stat=i_stat)
-  call memocc(i_stat,i_all,'work','crtonewave')
+  call memocc(i_stat,i_all,'work',subname)
   i_all=-product(shape(psig_c))*kind(psig_c)
   deallocate(psig_c,stat=i_stat)
-  call memocc(i_stat,i_all,'psig_c','crtonewave')
+  call memocc(i_stat,i_all,'psig_c',subname)
   i_all=-product(shape(psig_f))*kind(psig_f)
   deallocate(psig_f,stat=i_stat)
-  call memocc(i_stat,i_all,'psig_f','crtonewave')
+  call memocc(i_stat,i_all,'psig_f',subname)
 
-  return
 END SUBROUTINE crtonewave

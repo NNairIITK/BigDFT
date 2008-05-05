@@ -37,6 +37,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   real(kind=8), dimension(mvctr_c), intent(out) :: proj_c
   real(kind=8), dimension(7,mvctr_f), intent(out) :: proj_f
   !local variables
+  character(len=*), parameter :: subname='crtproj'
   integer, parameter :: nw=16000
   logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3,mvctr,i_all,i_stat,j1,j2,j3
@@ -44,14 +45,14 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   real(kind=8), allocatable, dimension(:,:,:) :: wprojx,wprojy,wprojz
   real(kind=8), allocatable, dimension(:,:) :: work
 
-  allocate(wprojx(0:n1,2,nterm),stat=i_stat)
-  call memocc(i_stat,product(shape(wprojx))*kind(wprojx),'wprojx','crtproj')
-  allocate(wprojy(0:n2,2,nterm),stat=i_stat)
-  call memocc(i_stat,product(shape(wprojy))*kind(wprojy),'wprojy','crtproj')
-  allocate(wprojz(0:n3,2,nterm),stat=i_stat)
-  call memocc(i_stat,product(shape(wprojz))*kind(wprojz),'wprojz','crtproj')
-  allocate(work(0:nw,2),stat=i_stat)
-  call memocc(i_stat,product(shape(work))*kind(work),'work','crtproj')
+  allocate(wprojx(0:n1,2,nterm+ndebug),stat=i_stat)
+  call memocc(i_stat,wprojx,'wprojx',subname)
+  allocate(wprojy(0:n2,2,nterm+ndebug),stat=i_stat)
+  call memocc(i_stat,wprojy,'wprojy',subname)
+  allocate(wprojz(0:n3,2,nterm+ndebug),stat=i_stat)
+  call memocc(i_stat,wprojz,'wprojz',subname)
+  allocate(work(0:nw,2+ndebug),stat=i_stat)
+  call memocc(i_stat,work,'work',subname)
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -196,16 +197,16 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
 
   i_all=-product(shape(wprojx))*kind(wprojx)
   deallocate(wprojx,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojx','crtproj')
+  call memocc(i_stat,i_all,'wprojx',subname)
   i_all=-product(shape(wprojy))*kind(wprojy)
   deallocate(wprojy,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojy','crtproj')
+  call memocc(i_stat,i_all,'wprojy',subname)
   i_all=-product(shape(wprojz))*kind(wprojz)
   deallocate(wprojz,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojz','crtproj')
+  call memocc(i_stat,i_all,'wprojz',subname)
   i_all=-product(shape(work))*kind(work)
   deallocate(work,stat=i_stat)
-  call memocc(i_stat,i_all,'work','crtproj')
+  call memocc(i_stat,i_all,'work',subname)
 
 end subroutine crtproj
 

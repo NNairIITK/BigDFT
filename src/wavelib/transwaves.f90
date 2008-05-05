@@ -4,12 +4,13 @@ subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
   logical, parameter :: parallel=.true.
   integer recvcount,sendcount
   dimension psi(nvctr_c+7*nvctr_f,norbp),psit(nvctrp,norbp*nproc)
+  character(len=*), parameter :: subname='transallwwaves'
   real(kind=8), allocatable :: psiw(:,:,:)
   include 'mpif.h'
 
   call timing(iproc,'Un-Transall   ','ON')
-  allocate(psiw(nvctrp,norbp,nproc),stat=i_stat)
-  call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','transallwaves')
+  allocate(psiw(nvctrp,norbp,nproc+ndebug),stat=i_stat)
+  call memocc(i_stat,psiw,'psiw',subname)
 
   sendcount=nvctrp*norbp
   recvcount=nvctrp*norbp
@@ -37,7 +38,7 @@ subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
 
   i_all=-product(shape(psiw))*kind(psiw)
   deallocate(psiw,stat=i_stat)
-  call memocc(i_stat,i_all,'psiw','transallwaves')
+  call memocc(i_stat,i_all,'psiw',subname)
 
 END SUBROUTINE transallwaves
 
@@ -130,13 +131,14 @@ subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,ps
   logical, parameter :: parallel=.true.
   integer recvcount,sendcount
   dimension psi(nvctr_c+7*nvctr_f,norbp),psit(nvctrp,norbp*nproc)
+  character(len=*), parameter :: subname='untransallwaves'
   real(kind=8), allocatable :: psiw(:,:,:)
   include 'mpif.h'
 
   call timing(iproc,'Un-Transall   ','ON')
 
-  allocate(psiw(nvctrp,norbp,nproc),stat=i_stat)
-  call memocc(i_stat,product(shape(psiw))*kind(psiw),'psiw','untransallwaves')
+  allocate(psiw(nvctrp,norbp,nproc+ndebug),stat=i_stat)
+  call memocc(i_stat,psiw,'psiw',subname)
 
   sendcount=nvctrp*norbp
   recvcount=nvctrp*norbp
@@ -160,7 +162,7 @@ subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,ps
 
   i_all=-product(shape(psiw))*kind(psiw)
   deallocate(psiw,stat=i_stat)
-  call memocc(i_stat,i_all,'psiw','untransallwaves')
+  call memocc(i_stat,i_all,'psiw',subname)
   call timing(iproc,'Un-Transall   ','OF')
 
 
@@ -174,12 +176,13 @@ subroutine psitransspi(nvctrp,norb,psi,forward)
   real(kind=8), dimension(4*nvctrp,norb), intent(inout) :: psi
   real(kind=8), dimension(:,:,:), allocatable :: tpsit
   !local variables
+  character(len=*), parameter :: subname='psitransspi'
   integer :: i,iorb,ij,isp,i_all,i_stat
 
 !  call timing(0,'Un-Transall   ','ON')
 
-  allocate(tpsit(nvctrp,4,norb),stat=i_stat)
-  call memocc(i_stat,product(shape(tpsit))*kind(tpsit),'tpsit','psitransspi')
+  allocate(tpsit(nvctrp,4,norb+ndebug),stat=i_stat)
+  call memocc(i_stat,tpsit,'tpsit',subname)
 !  print '(a,5f10.5,2i5,l1)','p2s',(abs(psi(i,1)),i=1,5),shape(psi),forward
   if(forward) then
 !     print *, 'transposing psi forward'
@@ -231,7 +234,7 @@ subroutine psitransspi(nvctrp,norb,psi,forward)
 
   i_all=-product(shape(tpsit))*kind(tpsit)
   deallocate(tpsit,stat=i_stat)
-  call memocc(i_stat,i_all,'tpsit','psitransspi')
+  call memocc(i_stat,i_all,'tpsit',subname)
 
 !   call timing(0,'Un-Transall   ','OF')
 !  print '(a,5f10.5,2i5,l1)','p2E',(abs(psi(i,1)),i=1,5),shape(psi),forward

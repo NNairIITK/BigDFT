@@ -29,6 +29,7 @@ program test_forces
   
   implicit none
   include 'mpif.h'
+  character(len=*), parameter :: subname='test_forces'
   integer, parameter :: n=31
   real(kind=8), dimension(:,:), allocatable :: rxyz,fxyz,drxyz,rxyz_old
   real(kind=8), dimension(:), allocatable :: weight
@@ -62,14 +63,14 @@ program test_forces
   open(unit=9,file='posinp',status='old')
   read(9,*) nat,units
   if (iproc.eq.0) write(6,*) 'nat=',nat
-  allocate(rxyz(3,nat),stat=i_stat)
-  call memocc(i_stat,product(shape(rxyz))*kind(rxyz),'rxyz','test_forces')
-  allocate(iatype(nat),stat=i_stat)
-  call memocc(i_stat,product(shape(iatype))*kind(iatype),'iatype','test_forces')
-  allocate(fxyz(3,nat),stat=i_stat)
-  call memocc(i_stat,product(shape(fxyz))*kind(fxyz),'fxyz','test_forces')
-  allocate(drxyz(3,nat),stat=i_stat)
-  call memocc(i_stat,product(shape(drxyz))*kind(drxyz),'drxyz','test_forces')
+  allocate(rxyz(3,nat+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz,'rxyz',subname)
+  allocate(iatype(nat+ndebug),stat=i_stat)
+  call memocc(i_stat,iatype,'iatype',subname)
+  allocate(fxyz(3,nat+ndebug),stat=i_stat)
+  call memocc(i_stat,fxyz,'fxyz',subname)
+  allocate(drxyz(3,nat+ndebug),stat=i_stat)
+  call memocc(i_stat,drxyz,'drxyz',subname)
   ntypes=0
   do iat=1,nat
      read(9,*) rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),tatonam
@@ -115,19 +116,19 @@ program test_forces
   
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
-  call memocc(i_stat,i_all,'psi','test_forces')
+  call memocc(i_stat,i_all,'psi',subname)
   i_all=-product(shape(eval))*kind(eval)
   deallocate(eval,stat=i_stat)
-  call memocc(i_stat,i_all,'eval','test_forces')
+  call memocc(i_stat,i_all,'eval',subname)
   i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
   deallocate(wfd%keyg,stat=i_stat)
-  call memocc(i_stat,i_all,'keyg','test_forces')
+  call memocc(i_stat,i_all,'keyg',subname)
   i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
   deallocate(wfd%keyv,stat=i_stat)
-  call memocc(i_stat,i_all,'keyv','test_forces')
+  call memocc(i_stat,i_all,'keyv',subname)
 
-  allocate(weight(n),stat=i_stat)
-  call memocc(i_stat,product(shape(weight))*kind(weight),'weight','test_forces')
+  allocate(weight(n+ndebug),stat=i_stat)
+  call memocc(i_stat,weight,'weight',subname)
   !prepare the array of the correct weights of the iteration steps
   if (mod(n,2).ne.1) stop 'the number of iteration steps has to be odd'
   weight(1)=1.d0/3.d0
@@ -160,16 +161,16 @@ program test_forces
 
      i_all=-product(shape(psi))*kind(psi)
      deallocate(psi,stat=i_stat)
-     call memocc(i_stat,i_all,'psi','test_forces')
+     call memocc(i_stat,i_all,'psi',subname)
      i_all=-product(shape(eval))*kind(eval)
      deallocate(eval,stat=i_stat)
-     call memocc(i_stat,i_all,'eval','test_forces')
+     call memocc(i_stat,i_all,'eval',subname)
      i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
      deallocate(wfd%keyg,stat=i_stat)
-     call memocc(i_stat,i_all,'keyg','test_forces')
+     call memocc(i_stat,i_all,'keyg',subname)
      i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
      deallocate(wfd%keyv,stat=i_stat)
-     call memocc(i_stat,i_all,'keyv','test_forces')
+     call memocc(i_stat,i_all,'keyv',subname)
      
 
 
@@ -213,19 +214,19 @@ program test_forces
 
   i_all=-product(shape(rxyz))*kind(rxyz)
   deallocate(rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz','test_forces')
+  call memocc(i_stat,i_all,'rxyz',subname)
   i_all=-product(shape(iatype))*kind(iatype)
   deallocate(iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'iatype','test_forces')
+  call memocc(i_stat,i_all,'iatype',subname)
   i_all=-product(shape(fxyz))*kind(fxyz)
   deallocate(fxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'fxyz','test_forces')
+  call memocc(i_stat,i_all,'fxyz',subname)
   i_all=-product(shape(drxyz))*kind(drxyz)
   deallocate(drxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'drxyz','test_forces')
+  call memocc(i_stat,i_all,'drxyz',subname)
   i_all=-product(shape(weight))*kind(weight)
   deallocate(weight,stat=i_stat)
-  call memocc(i_stat,i_all,'weight','test_forces')
+  call memocc(i_stat,i_all,'weight',subname)
   
   if (parallel) call MPI_FINALIZE(ierr)
 

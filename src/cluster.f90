@@ -14,6 +14,7 @@
   real(kind=8), dimension(:), pointer :: eval
   real(kind=8), dimension(:,:), pointer :: psi
   !local variables
+  character(len=*), parameter :: subname='call_cluster'
   integer :: i_stat,i_all,ierr,inputPsiId_orig
   !temporary interface
   interface
@@ -42,10 +43,10 @@
      if (in%inputPsiId == 0 .and. associated(psi)) then
         i_all=-product(shape(psi))*kind(psi)
         deallocate(psi,stat=i_stat)
-        call memocc(i_stat,i_all,'psi','call_cluster')
+        call memocc(i_stat,i_all,'psi',subname)
         i_all=-product(shape(eval))*kind(eval)
         deallocate(eval,stat=i_stat)
-        call memocc(i_stat,i_all,'eval','call_cluster')
+        call memocc(i_stat,i_all,'eval',subname)
 
         call deallocate_wfd(wfd,'call_cluster')
      end if
@@ -68,10 +69,10 @@
 
         i_all=-product(shape(psi))*kind(psi)
         deallocate(psi,stat=i_stat)
-        call memocc(i_stat,i_all,'psi','call_cluster')
+        call memocc(i_stat,i_all,'psi',subname)
         i_all=-product(shape(eval))*kind(eval)
         deallocate(eval,stat=i_stat)
-        call memocc(i_stat,i_all,'eval','call_cluster')
+        call memocc(i_stat,i_all,'eval',subname)
 
         call deallocate_wfd(wfd,'call_cluster')
         !finalize memory counting (there are still the positions and the forces allocated)
@@ -125,6 +126,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(:,:), pointer :: psi
   !local variables
   include 'mpif.h'
+  character(len=*), parameter :: subname='cluster'
   character(len=1) :: datacode,geocode
   logical :: calc_tail,output_wf,output_grid,switchSD
   integer :: ixc,ncharge,ncong,idsx,ncongt,nspin,mpol,inputPsiId,itermax,idsx_actual
@@ -246,15 +248,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           '------------------------------------------------------------------ System Properties'
   end if
 
-  allocate(radii_cf(atoms%ntypes,2),stat=i_stat)
-  call memocc(i_stat,product(shape(radii_cf))*kind(radii_cf),'radii_cf','cluster')
+  allocate(radii_cf(atoms%ntypes,2+ndebug),stat=i_stat)
+  call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   call read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
 
-  allocate(occup(norb),stat=i_stat)
-  call memocc(i_stat,product(shape(occup))*kind(occup),'occup','cluster')
-  allocate(spinsgn(norb),stat=i_stat)
-  call memocc(i_stat,product(shape(spinsgn))*kind(spinsgn),'spinsgn','cluster')
+  allocate(occup(norb+ndebug),stat=i_stat)
+  call memocc(i_stat,occup,'occup',subname)
+  allocate(spinsgn(norb+ndebug),stat=i_stat)
+  call memocc(i_stat,spinsgn,'spinsgn',subname)
 
   ! Occupation numbers
   call input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinsgn)
@@ -295,11 +297,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !allocate values of the array for the data scattering in sumrho
   !its values are ignored in the datacode='G' case
-  allocate(nscatterarr(0:nproc-1,4),stat=i_stat)
-  call memocc(i_stat,product(shape(nscatterarr))*kind(nscatterarr),'nscatterarr','cluster')
+  allocate(nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
+  call memocc(i_stat,nscatterarr,'nscatterarr',subname)
   !allocate array for the communications of the potential
-  allocate(ngatherarr(0:nproc-1,2),stat=i_stat)
-  call memocc(i_stat,product(shape(ngatherarr))*kind(ngatherarr),'ngatherarr','cluster')
+  allocate(ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
+  call memocc(i_stat,ngatherarr,'ngatherarr',subname)
 
   !create the descriptors for the density and the potential
   call createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc,&
@@ -307,16 +309,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !allocate ionic potential
   if (n3pi > 0) then
-     allocate(pot_ion(n1i*n2i*n3pi),stat=i_stat)
-     call memocc(i_stat,product(shape(pot_ion))*kind(pot_ion),'pot_ion','cluster')
+     allocate(pot_ion(n1i*n2i*n3pi+ndebug),stat=i_stat)
+     call memocc(i_stat,pot_ion,'pot_ion',subname)
   else
-     allocate(pot_ion(1),stat=i_stat)
-     call memocc(i_stat,product(shape(pot_ion))*kind(pot_ion),'pot_ion','cluster')
+     allocate(pot_ion(1+ndebug),stat=i_stat)
+     call memocc(i_stat,pot_ion,'pot_ion',subname)
   end if
 
   !here calculate the ionic energy and forces accordingly
-  allocate(fion(3,atoms%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(fion))*kind(fion),'fion','cluster')
+  allocate(fion(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,fion,'fion',subname)
 
   call IonicEnergyandForces(geocode,iproc,nproc,atoms,hxh,hyh,hzh,alat1,alat2,alat3,rxyz,eion,fion,psoffset,&
        n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
@@ -328,15 +330,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !Allocate Charge density, Potential in real space
   if (n3d >0) then
-     allocate(rhopot(n1i,n2i,n3d,nspin),stat=i_stat)
-     call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','cluster')
+     allocate(rhopot(n1i,n2i,n3d,nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,rhopot,'rhopot',subname)
   else
-     allocate(rhopot(1,1,1,nspin),stat=i_stat)
-     call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','cluster')
+     allocate(rhopot(1,1,1,nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,rhopot,'rhopot',subname)
   end if
 
-  allocate(eval(norb),stat=i_stat)
-  call memocc(i_stat,product(shape(eval))*kind(eval),'eval','cluster')
+  allocate(eval(norb+ndebug),stat=i_stat)
+  call memocc(i_stat,eval,'eval',subname)
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   if (inputPsiId == -2) then
@@ -347,8 +349,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
 
      !random initialisation of the wavefunctions
-     allocate(psi(nvctrp,nspinor*norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
+     allocate(psi(nvctrp,nspinor*norbp*nproc+ndebug),stat=i_stat)
+     call memocc(i_stat,psi,'psi',subname)
 
      psi=0.0d0
      ttsum=0.0d0
@@ -407,8 +409,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !allocate principal wavefunction
      !allocated in the transposed way such as 
      !it can also be used as a work array for transposition
-     allocate(psi(nvctrp,norbp*nproc*nspinor),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
+     allocate(psi(nvctrp,norbp*nproc*nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,psi,'psi',subname)
 
      if (iproc.eq.0) then
         write(*,'(1x,a)')&
@@ -422,10 +424,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      i_all=-product(shape(psi_old))*kind(psi_old)
      deallocate(psi_old,stat=i_stat)
-     call memocc(i_stat,i_all,'psi_old','cluster')
+     call memocc(i_stat,i_all,'psi_old',subname)
      i_all=-product(shape(eval_old))*kind(eval_old)
      deallocate(eval_old,stat=i_stat)
-     call memocc(i_stat,i_all,'eval_old','cluster')
+     call memocc(i_stat,i_all,'eval_old',subname)
 
      !initialise control value for gnrm in the case of a restart
      gnrm_check=0.d0
@@ -440,8 +442,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !allocate principal wavefunction
      !allocated in the transposed way such as 
      !it can also be used as a work array for transposition
-     allocate(psi(nvctrp,norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psi))*kind(psi),'psi','cluster')
+     allocate(psi(nvctrp,norbp*nproc+ndebug),stat=i_stat)
+     call memocc(i_stat,psi,'psi',subname)
 
      if (iproc.eq.0) then
         write(*,'(1x,a)')&
@@ -483,19 +485,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !no need of using nzatom array, semicores useful only for the input guess
   i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
   deallocate(atoms%nzatom,stat=i_stat)
-  call memocc(i_stat,i_all,'nzatom','cluster')
+  call memocc(i_stat,i_all,'nzatom',subname)
   i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
   deallocate(atoms%iasctype,stat=i_stat)
-  call memocc(i_stat,i_all,'iasctype','cluster')
+  call memocc(i_stat,i_all,'iasctype',subname)
 
   ! allocate arrays necessary for DIIS convergence acceleration
   if (idsx.gt.0) then
-     allocate(psidst(nvctrp,nspinor*norbp*nproc,idsx),stat=i_stat)
-     call memocc(i_stat,product(shape(psidst))*kind(psidst),'psidst','cluster')
-     allocate(hpsidst(nvctrp,nspinor*norbp*nproc,idsx),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsidst))*kind(hpsidst),'hpsidst','cluster')
-     allocate(ads(idsx+1,idsx+1,3),stat=i_stat)
-     call memocc(i_stat,product(shape(ads))*kind(ads),'ads','cluster')
+     allocate(psidst(nvctrp,nspinor*norbp*nproc,idsx+ndebug),stat=i_stat)
+     call memocc(i_stat,psidst,'psidst',subname)
+     allocate(hpsidst(nvctrp,nspinor*norbp*nproc,idsx+ndebug),stat=i_stat)
+     call memocc(i_stat,hpsidst,'hpsidst',subname)
+     allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
+     call memocc(i_stat,ads,'ads',subname)
      call razero(3*(idsx+1)**2,ads)
   endif
 
@@ -542,8 +544,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      if(nspinor==4) then
         !        call calc_moments(iproc,nproc,norb,norbp,nvctrp*nproc,nspinor,psi)
-        allocate(tmred(nspin+1,2),stat=i_stat)
-        call memocc(i_stat,product(shape(tmred))*kind(tmred),'tmred','cluster')
+        allocate(tmred(nspin+1,2+ndebug),stat=i_stat)
+        call memocc(i_stat,tmred,'tmred',subname)
         tmred=0.0d0
         do ispin=1,nspin
            tmred(ispin,1)=sum(rhopot(:,:,:,ispin))
@@ -562,7 +564,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         end if
         i_all=-product(shape(tmred))*kind(tmred)
         deallocate(tmred,stat=i_stat)
-        call memocc(i_stat,i_all,'tmred','cluster')
+        call memocc(i_stat,i_all,'tmred',subname)
      end if
      
 !!$     if(nspinor==4) then
@@ -696,13 +698,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         switchSD=.true.
         i_all=-product(shape(psidst))*kind(psidst)
         deallocate(psidst,stat=i_stat)
-        call memocc(i_stat,i_all,'psidst','cluster')
+        call memocc(i_stat,i_all,'psidst',subname)
         i_all=-product(shape(hpsidst))*kind(hpsidst)
         deallocate(hpsidst,stat=i_stat)
-        call memocc(i_stat,i_all,'hpsidst','cluster')
+        call memocc(i_stat,i_all,'hpsidst',subname)
         i_all=-product(shape(ads))*kind(ads)
         deallocate(ads,stat=i_stat)
-        call memocc(i_stat,i_all,'ads','cluster')
+        call memocc(i_stat,i_all,'ads',subname)
         idsx_actual=0
         idiistol=0
 
@@ -719,12 +721,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         ids=0
         idiistol=0
 
-        allocate(psidst(nvctrp*nspinor,norbp*nproc,idsx),stat=i_stat)
-        call memocc(i_stat,product(shape(psidst))*kind(psidst),'psidst','cluster')
-        allocate(hpsidst(nvctrp*nspinor,norbp*nproc,idsx),stat=i_stat)
-        call memocc(i_stat,product(shape(hpsidst))*kind(hpsidst),'hpsidst','cluster')
-        allocate(ads(idsx+1,idsx+1,3),stat=i_stat)
-        call memocc(i_stat,product(shape(ads))*kind(ads),'ads','cluster')
+        allocate(psidst(nvctrp*nspinor,norbp*nproc,idsx+ndebug),stat=i_stat)
+        call memocc(i_stat,psidst,'psidst',subname)
+        allocate(hpsidst(nvctrp*nspinor,norbp*nproc,idsx+ndebug),stat=i_stat)
+        call memocc(i_stat,hpsidst,'hpsidst',subname)
+        allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
+        call memocc(i_stat,ads,'ads',subname)
         call razero(3*(idsx+1)**2,ads)
      end if
 
@@ -736,13 +738,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   if (idsx_actual > 0) then
      i_all=-product(shape(psidst))*kind(psidst)
      deallocate(psidst,stat=i_stat)
-     call memocc(i_stat,i_all,'psidst','cluster')
+     call memocc(i_stat,i_all,'psidst',subname)
      i_all=-product(shape(hpsidst))*kind(hpsidst)
      deallocate(hpsidst,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsidst','cluster')
+     call memocc(i_stat,i_all,'hpsidst',subname)
      i_all=-product(shape(ads))*kind(ads)
      deallocate(ads,stat=i_stat)
-     call memocc(i_stat,i_all,'ads','cluster')
+     call memocc(i_stat,i_all,'ads',subname)
   end if
 
   ! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
@@ -782,8 +784,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! Selfconsistent potential is saved in rhopot, 
   ! new arrays rho,pot for calculation of forces ground state electronic density
 
-  allocate(spinsgn_foo(norb),stat=i_stat)
-  call memocc(i_stat,product(shape(spinsgn_foo))*kind(spinsgn_foo),'spinsgn_foo','cluster')
+  allocate(spinsgn_foo(norb+ndebug),stat=i_stat)
+  call memocc(i_stat,spinsgn_foo,'spinsgn_foo',subname)
   spinsgn_foo(:)=1.0d0
   ! Potential from electronic charge density
 
@@ -798,19 +800,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !here there are the spinor which must be taken into account
   if(nproc>1) then
      if (n3p>0) then
-        allocate(rho((2*n1+31)*(2*n2+31)*n3p),stat=i_stat)
-        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
+        allocate(rho((2*n1+31)*(2*n2+31)*n3p+ndebug),stat=i_stat)
+        call memocc(i_stat,rho,'rho',subname)
      else
-        allocate(rho(1),stat=i_stat)
-        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
+        allocate(rho(1+ndebug),stat=i_stat)
+        call memocc(i_stat,rho,'rho',subname)
      end if
   else
      if (n3p>0) then
-        allocate(rho((2*n1+31)*(2*n2+31)*n3p*nspinor),stat=i_stat)
-        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
+        allocate(rho((2*n1+31)*(2*n2+31)*n3p*nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,rho,'rho',subname)
      else
-        allocate(rho(1),stat=i_stat)
-        call memocc(i_stat,product(shape(rho))*kind(rho),'rho','cluster')
+        allocate(rho(1+ndebug),stat=i_stat)
+        call memocc(i_stat,rho,'rho',subname)
      end if
   end if
 
@@ -821,11 +823,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   i_all=-product(shape(spinsgn_foo))*kind(spinsgn_foo)
   deallocate(spinsgn_foo,stat=i_stat)
-  call memocc(i_stat,i_all,'spinsgn_foo','cluster')
+  call memocc(i_stat,i_all,'spinsgn_foo',subname)
 
   i_all=-product(shape(pot_ion))*kind(pot_ion)
   deallocate(pot_ion,stat=i_stat)
-  call memocc(i_stat,i_all,'pot_ion','cluster')
+  call memocc(i_stat,i_all,'pot_ion',subname)
 
   if (iproc.eq.0 .and. output_grid) then
 
@@ -855,8 +857,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      if (nproc > 1) then
         !allocate full density in pot_ion directory
-        allocate(pot_ion(n1i*n2i*n3i),stat=i_stat)
-        call memocc(i_stat,product(shape(pot))*kind(pot),'pot','hamiltonianapplication')
+        allocate(pot_ion(n1i*n2i*n3i+ndebug),stat=i_stat)
+        call memocc(i_stat,pot_ion,'pot_ion',subname)
 
         call MPI_ALLGATHERV(pot_ion,n1i*n2i*n3p,&
              MPI_DOUBLE_PRECISION,rho,ngatherarr(0,1),&
@@ -873,7 +875,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
         i_all=-product(shape(pot_ion))*kind(pot_ion)
         deallocate(pot_ion,stat=i_stat)
-        call memocc(i_stat,i_all,'pot_ion','cluster')
+        call memocc(i_stat,i_all,'pot_ion',subname)
      else
         do i3=0,2*n3+1
            do i2=0,2*n2+1
@@ -888,11 +890,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   endif
 
   if (n3p>0) then
-     allocate(pot(n1i,n2i,n3p,1),stat=i_stat)
-     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
+     allocate(pot(n1i,n2i,n3p,1+ndebug),stat=i_stat)
+     call memocc(i_stat,pot,'pot',subname)
   else
-     allocate(pot(1,1,1,1),stat=i_stat)
-     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
+     allocate(pot(1,1,1,1+ndebug),stat=i_stat)
+     call memocc(i_stat,pot,'pot',subname)
   end if
 
   call DCOPY(n1i*n2i*n3p,rho,1,pot,1) 
@@ -903,10 +905,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   i_all=-product(shape(pkernel))*kind(pkernel)
   deallocate(pkernel,stat=i_stat)
-  call memocc(i_stat,i_all,'pkernel','cluster')
+  call memocc(i_stat,i_all,'pkernel',subname)
 
-  allocate(gxyz(3,atoms%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(gxyz))*kind(gxyz),'gxyz','cluster')
+  allocate(gxyz(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,gxyz,'gxyz',subname)
 
   call timing(iproc,'Forces        ','ON')
   ! calculate local part of the forces gxyz
@@ -931,13 +933,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)
-  call memocc(i_stat,i_all,'rho','cluster')
+  call memocc(i_stat,i_all,'rho',subname)
   i_all=-product(shape(pot))*kind(pot)
   deallocate(pot,stat=i_stat)
-  call memocc(i_stat,i_all,'pot','cluster')
+  call memocc(i_stat,i_all,'pot',subname)
 
-  allocate(derproj(3*nlpspd%nprojel),stat=i_stat)
-  call memocc(i_stat,product(shape(derproj))*kind(derproj),'derproj','cluster')
+  allocate(derproj(3*nlpspd%nprojel+ndebug),stat=i_stat)
+  call memocc(i_stat,derproj,'derproj',subname)
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate projectors derivatives...'
 
@@ -972,14 +974,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   i_all=-product(shape(derproj))*kind(derproj)
   deallocate(derproj,stat=i_stat)
-  call memocc(i_stat,i_all,'derproj','cluster')
+  call memocc(i_stat,i_all,'derproj',subname)
 
   i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
   deallocate(nlpspd%nboxp_c,stat=i_stat)
-  call memocc(i_stat,i_all,'nboxp_c','cluster')
+  call memocc(i_stat,i_all,'nboxp_c',subname)
   i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
   deallocate(nlpspd%nboxp_f,stat=i_stat)
-  call memocc(i_stat,i_all,'nboxp_f','cluster')
+  call memocc(i_stat,i_all,'nboxp_f',subname)
 
   ! Add up all the force contributions
   if (nproc > 1) then
@@ -999,10 +1001,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   i_all=-product(shape(fion))*kind(fion)
   deallocate(fion,stat=i_stat)
-  call memocc(i_stat,i_all,'fion','cluster')
+  call memocc(i_stat,i_all,'fion',subname)
   i_all=-product(shape(gxyz))*kind(gxyz)
   deallocate(gxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'gxyz','cluster')
+  call memocc(i_stat,i_all,'gxyz',subname)
 
   call timing(iproc,'Forces        ','OF')
 
@@ -1011,8 +1013,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call timing(iproc,'Tail          ','ON')
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential
-     allocate(pot(n1i,n2i,n3i,nspin),stat=i_stat)
-     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','cluster')
+     allocate(pot(n1i,n2i,n3i,nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,pot,'pot',subname)
 
      if (nproc > 1) then
         call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh,1),n1i*n2i*n3p,&
@@ -1047,13 +1049,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
      i_all=-product(shape(nscatterarr))*kind(nscatterarr)
      deallocate(nscatterarr,stat=i_stat)
-     call memocc(i_stat,i_all,'nscatterarr','cluster')
+     call memocc(i_stat,i_all,'nscatterarr',subname)
      i_all=-product(shape(ngatherarr))*kind(ngatherarr)
      deallocate(ngatherarr,stat=i_stat)
-     call memocc(i_stat,i_all,'ngatherarr','cluster')
+     call memocc(i_stat,i_all,'ngatherarr',subname)
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
-     call memocc(i_stat,i_all,'rhopot','cluster')
+     call memocc(i_stat,i_all,'rhopot',subname)
 
      !pass hx instead of hgrid since we are only in free BC
      call CalculateTailCorrection(iproc,nproc,atoms,n1,n2,n3,rbuf,norb,norbp,&
@@ -1063,7 +1065,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
-     call memocc(i_stat,i_all,'pot','cluster')
+     call memocc(i_stat,i_all,'pot',subname)
 
      !if (iproc==0) then
      !   open(61)
@@ -1092,13 +1094,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
-     call memocc(i_stat,i_all,'rhopot','cluster')
+     call memocc(i_stat,i_all,'rhopot',subname)
      i_all=-product(shape(nscatterarr))*kind(nscatterarr)
      deallocate(nscatterarr,stat=i_stat)
-     call memocc(i_stat,i_all,'nscatterarr','cluster')
+     call memocc(i_stat,i_all,'nscatterarr',subname)
      i_all=-product(shape(ngatherarr))*kind(ngatherarr)
      deallocate(ngatherarr,stat=i_stat)
-     call memocc(i_stat,i_all,'ngatherarr','cluster')
+     call memocc(i_stat,i_all,'ngatherarr',subname)
   endif
   ! --- End if of tail calculation
 
@@ -1115,50 +1117,50 @@ contains
        if (idsx_actual > 0) then
           i_all=-product(shape(psidst))*kind(psidst)
           deallocate(psidst,stat=i_stat)
-          call memocc(i_stat,i_all,'psidst','cluster')
+          call memocc(i_stat,i_all,'psidst',subname)
           i_all=-product(shape(hpsidst))*kind(hpsidst)
           deallocate(hpsidst,stat=i_stat)
-          call memocc(i_stat,i_all,'hpsidst','cluster')
+          call memocc(i_stat,i_all,'hpsidst',subname)
           i_all=-product(shape(ads))*kind(ads)
           deallocate(ads,stat=i_stat)
-          call memocc(i_stat,i_all,'ads','cluster')
+          call memocc(i_stat,i_all,'ads',subname)
        end if
 
        if (nproc > 1) then
           i_all=-product(shape(psit))*kind(psit)
           deallocate(psit,stat=i_stat)
-          call memocc(i_stat,i_all,'psit','cluster')
+          call memocc(i_stat,i_all,'psit',subname)
        end if
 
        i_all=-product(shape(hpsi))*kind(hpsi)
        deallocate(hpsi,stat=i_stat)
-       call memocc(i_stat,i_all,'hpsi','cluster')
+       call memocc(i_stat,i_all,'hpsi',subname)
 
        i_all=-product(shape(pot_ion))*kind(pot_ion)
        deallocate(pot_ion,stat=i_stat)
-       call memocc(i_stat,i_all,'pot_ion','cluster')
+       call memocc(i_stat,i_all,'pot_ion',subname)
 
        i_all=-product(shape(pkernel))*kind(pkernel)
        deallocate(pkernel,stat=i_stat)
-       call memocc(i_stat,i_all,'pkernel','cluster')
+       call memocc(i_stat,i_all,'pkernel',subname)
 
        i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
        deallocate(nlpspd%nboxp_c,stat=i_stat)
-       call memocc(i_stat,i_all,'nboxp_c','cluster')
+       call memocc(i_stat,i_all,'nboxp_c',subname)
        i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
        deallocate(nlpspd%nboxp_f,stat=i_stat)
-       call memocc(i_stat,i_all,'nboxp_f','cluster')
+       call memocc(i_stat,i_all,'nboxp_f',subname)
 
        ! calc_tail false
        i_all=-product(shape(rhopot))*kind(rhopot)
        deallocate(rhopot,stat=i_stat)
-       call memocc(i_stat,i_all,'rhopot','cluster')
+       call memocc(i_stat,i_all,'rhopot',subname)
        i_all=-product(shape(nscatterarr))*kind(nscatterarr)
        deallocate(nscatterarr,stat=i_stat)
-       call memocc(i_stat,i_all,'nscatterarr','cluster')
+       call memocc(i_stat,i_all,'nscatterarr',subname)
        i_all=-product(shape(ngatherarr))*kind(ngatherarr)
        deallocate(ngatherarr,stat=i_stat)
-       call memocc(i_stat,i_all,'ngatherarr','cluster')
+       call memocc(i_stat,i_all,'ngatherarr',subname)
 
     end if
 
@@ -1168,37 +1170,37 @@ contains
 
     i_all=-product(shape(nlpspd%keyg_p))*kind(nlpspd%keyg_p)
     deallocate(nlpspd%keyg_p,stat=i_stat)
-    call memocc(i_stat,i_all,'keyg_p','cluster')
+    call memocc(i_stat,i_all,'keyg_p',subname)
     i_all=-product(shape(nlpspd%keyv_p))*kind(nlpspd%keyv_p)
     deallocate(nlpspd%keyv_p,stat=i_stat)
-    call memocc(i_stat,i_all,'keyv_p','cluster')
+    call memocc(i_stat,i_all,'keyv_p',subname)
     i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
     deallocate(nlpspd%nvctr_p,stat=i_stat)
-    call memocc(i_stat,i_all,'nvctr_p','cluster')
+    call memocc(i_stat,i_all,'nvctr_p',subname)
     i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
     deallocate(nlpspd%nseg_p,stat=i_stat)
-    call memocc(i_stat,i_all,'nseg_p','cluster')
+    call memocc(i_stat,i_all,'nseg_p',subname)
     i_all=-product(shape(proj))*kind(proj)
     deallocate(proj,stat=i_stat)
-    call memocc(i_stat,i_all,'proj','cluster')
+    call memocc(i_stat,i_all,'proj',subname)
     i_all=-product(shape(occup))*kind(occup)
     deallocate(occup,stat=i_stat)
-    call memocc(i_stat,i_all,'occup','cluster')
+    call memocc(i_stat,i_all,'occup',subname)
     i_all=-product(shape(spinsgn))*kind(spinsgn)
     deallocate(spinsgn,stat=i_stat)
-    call memocc(i_stat,i_all,'spinsgn','cluster')
+    call memocc(i_stat,i_all,'spinsgn',subname)
     i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
     deallocate(atoms%psppar,stat=i_stat)
-    call memocc(i_stat,i_all,'psppar','cluster')
+    call memocc(i_stat,i_all,'psppar',subname)
     i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
     deallocate(atoms%nelpsp,stat=i_stat)
-    call memocc(i_stat,i_all,'nelpsp','cluster')
+    call memocc(i_stat,i_all,'nelpsp',subname)
     i_all=-product(shape(radii_cf))*kind(radii_cf)
     deallocate(radii_cf,stat=i_stat)
-    call memocc(i_stat,i_all,'radii_cf','cluster')
+    call memocc(i_stat,i_all,'radii_cf',subname)
     i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
     deallocate(atoms%npspcode,stat=i_stat)
-    call memocc(i_stat,i_all,'npspcode','cluster')
+    call memocc(i_stat,i_all,'npspcode',subname)
 
     !end of wavefunction minimisation
     call timing(iproc,'LAST','PR')

@@ -16,6 +16,7 @@ subroutine plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f
   !    for real space:
   integer,intent(in):: ibyyzz_r(2,2*n2+31,2*n3+31)
   real(kind=8) scal(0:3)
+  character(len=*), parameter :: subname='plot_wf'
   real(kind=8), allocatable :: psir(:)
 
   real(kind=8), allocatable, dimension(:,:,:)::x_c!input 
@@ -35,17 +36,17 @@ subroutine plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f
      scal(i)=1.d0
   enddo
 
-  allocate(x_c(0:n1,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_c))*kind(x_c),'x_c','plot_wf')
+  allocate(x_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,x_c,'x_c',subname)
   
-  allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)! work
-  call memocc(i_stat,product(shape(x_f))*kind(x_f),'x_f','plot_wf')
-  allocate(w1(nw1),stat=i_stat)
-  call memocc(i_stat,product(shape(w1))*kind(w1),'w1','plot_wf')
-  allocate(w2(nw2),stat=i_stat) ! work
-  call memocc(i_stat,product(shape(w2))*kind(w2),'w2','plot_wf')
-  allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
-  call memocc(i_stat,product(shape(psir))*kind(psir),'psir','plot_wf')
+  allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,x_f,'x_f',subname)
+  allocate(w1(nw1+ndebug),stat=i_stat)
+  call memocc(i_stat,w1,'w1',subname)
+  allocate(w2(nw2+ndebug),stat=i_stat)
+  call memocc(i_stat,w2,'w2',subname)
+  allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)+ndebug),stat=i_stat)
+  call memocc(i_stat,psir,'psir',subname)
 
   call razero((n1+1)*(n2+1)*(n3+1),x_c)
   call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f)
@@ -63,23 +64,23 @@ subroutine plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f
 
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir','plot_wf')
+  call memocc(i_stat,i_all,'psir',subname)
 
   i_all=-product(shape(x_c))*kind(x_c)
   deallocate(x_c,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c','plot_wf')
+  call memocc(i_stat,i_all,'x_c',subname)
 
   i_all=-product(shape(x_f))*kind(x_f)
   deallocate(x_f,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f','plot_wf')
+  call memocc(i_stat,i_all,'x_f',subname)
 
   i_all=-product(shape(w1))*kind(w1)
   deallocate(w1,stat=i_stat)
-  call memocc(i_stat,i_all,'w1','plot_wf')
+  call memocc(i_stat,i_all,'w1',subname)
 
   i_all=-product(shape(w2))*kind(w2)
   deallocate(w2,stat=i_stat)
-  call memocc(i_stat,i_all,'w2','plot_wf')
+  call memocc(i_stat,i_all,'w2',subname)
   return
 END SUBROUTINE plot_wf
 

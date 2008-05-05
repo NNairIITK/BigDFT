@@ -204,6 +204,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
   real(kind=8), dimension(nspin*norbe), intent(out) :: occupe
   real(kind=8), dimension(nvctr_c+7*nvctr_f,norbep), intent(out) :: psi
   !local variables
+  character(len=*), parameter :: subname= 'createAtomicOrbitals'
   integer, parameter :: nterm_max=3
   logical :: myorbital,polarised
   integer :: iatsc,i_all,i_stat,ispin,ipolres,ipolorb
@@ -215,8 +216,8 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
   integer, dimension(nterm_max) :: lx,ly,lz
   real(kind=8), dimension(:), allocatable :: psiatn
 
-  allocate(psiatn(ngx),stat=i_stat)
-  call memocc(i_stat,product(shape(psiatn))*kind(psiatn),'psiatn','createatomicorbitals')
+  allocate(psiatn(ngx+ndebug),stat=i_stat)
+  call memocc(i_stat,psiatn,'psiatn',subname)
 
   eks=0.d0
   iorb=0
@@ -371,7 +372,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
 
   i_all=-product(shape(psiatn))*kind(psiatn)
   deallocate(psiatn,stat=i_stat)
-  call memocc(i_stat,i_all,'psiatn','createatomicorbitals')
+  call memocc(i_stat,i_all,'psiatn',subname)
 
   if (iproc ==0) then
      write(*,'(1x,a)')'done.'
@@ -557,6 +558,7 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   real(kind=8), dimension(ng+1,nmax_occ), intent(out) :: psiat
   
   !local variables
+  character(len=*), parameter :: subname='iguess_generator'
   character(len=27) :: string 
   character(len=2) :: symbol
   integer, parameter :: lmax=3,n_int=100,noccmax=2
@@ -585,10 +587,10 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
      end if
   end do lpx_determination
 
-  allocate(alps(lpx+1),stat=i_stat)
-  call memocc(i_stat,product(shape(alps))*kind(alps),'alps','iguess_generator')
-  allocate(hsep(6,lpx+1),stat=i_stat)
-  call memocc(i_stat,product(shape(hsep))*kind(hsep),'hsep','iguess_generator')
+  allocate(alps(lpx+1+ndebug),stat=i_stat)
+  call memocc(i_stat,alps,'alps',subname)
+  allocate(hsep(6,lpx+1+ndebug),stat=i_stat)
+  call memocc(i_stat,hsep,'hsep',subname)
 
   !assignation of radii and coefficients of the local part
   alpz=psppar(0,0)
@@ -607,8 +609,8 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
         hsep(6,l)=psppar(l,3)
      end do
   else if (npspcode == 3) then !HGH case
-     allocate(ofdcoef(3,4),stat=i_stat)
-     call memocc(i_stat,product(shape(ofdcoef))*kind(ofdcoef),'ofdcoef','iguess_generator')
+     allocate(ofdcoef(3,4+ndebug),stat=i_stat)
+     call memocc(i_stat,ofdcoef,'ofdcoef',subname)
 
      ofdcoef(1,1)=-0.5d0*sqrt(3.d0/5.d0) !h2
      ofdcoef(2,1)=0.5d0*sqrt(5.d0/21.d0) !h4
@@ -637,7 +639,7 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
      end do
      i_all=-product(shape(ofdcoef))*kind(ofdcoef)
      deallocate(ofdcoef,stat=i_stat)
-     call memocc(i_stat,i_all,'ofdcoef','iguess_generator')
+     call memocc(i_stat,i_all,'ofdcoef',subname)
   else if (npspcode == 10) then !HGH-K case
      do l=1,lpx+1
         hsep(1,l)=psppar(l,1) !h11
@@ -667,14 +669,14 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   end do
 
   !allocate arrays for the gatom routine
-  allocate(vh(4*(ng+1)**2,4*(ng+1)**2),stat=i_stat)
-  call memocc(i_stat,product(shape(vh))*kind(vh),'vh','iguess_generator')
-  allocate(psi(0:ng,noccmax,lmax+1),stat=i_stat)
-  call memocc(i_stat,product(shape(psi))*kind(psi),'psi','iguess_generator')
-  allocate(xp(0:ng),stat=i_stat)
-  call memocc(i_stat,product(shape(xp))*kind(xp),'xp','iguess_generator')
-  allocate(rmt(n_int,0:ng,0:ng,lmax+1),stat=i_stat)
-  call memocc(i_stat,product(shape(rmt))*kind(rmt),'rmt','iguess_generator')
+  allocate(vh(4*(ng+1)**2,4*(ng+1)**2+ndebug),stat=i_stat)
+  call memocc(i_stat,vh,'vh',subname)
+  allocate(psi(0:ng,noccmax,lmax+1+ndebug),stat=i_stat)
+  call memocc(i_stat,psi,'psi',subname)
+  allocate(xp(0:ng+ndebug),stat=i_stat)
+  call memocc(i_stat,xp,'xp',subname)
+  allocate(rmt(n_int,0:ng,0:ng,lmax+1+ndebug),stat=i_stat)
+  call memocc(i_stat,rmt,'rmt',subname)
 
   zion=real(ielpsp,kind=8)
 
@@ -727,22 +729,22 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
 
   i_all=-product(shape(vh))*kind(vh)
   deallocate(vh,stat=i_stat)
-  call memocc(i_stat,i_all,'vh','iguess_generator')
+  call memocc(i_stat,i_all,'vh',subname)
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
-  call memocc(i_stat,i_all,'psi','iguess_generator')
+  call memocc(i_stat,i_all,'psi',subname)
   i_all=-product(shape(xp))*kind(xp)
   deallocate(xp,stat=i_stat)
-  call memocc(i_stat,i_all,'xp','iguess_generator')
+  call memocc(i_stat,i_all,'xp',subname)
   i_all=-product(shape(rmt))*kind(rmt)
   deallocate(rmt,stat=i_stat)
-  call memocc(i_stat,i_all,'rmt','iguess_generator')
+  call memocc(i_stat,i_all,'rmt',subname)
   i_all=-product(shape(hsep))*kind(hsep)
   deallocate(hsep,stat=i_stat)
-  call memocc(i_stat,i_all,'hsep','iguess_generator')
+  call memocc(i_stat,i_all,'hsep',subname)
   i_all=-product(shape(alps))*kind(alps)
   deallocate(alps,stat=i_stat)
-  call memocc(i_stat,i_all,'alps','iguess_generator')
+  call memocc(i_stat,i_all,'alps',subname)
 
 END SUBROUTINE iguess_generator
 
@@ -1356,6 +1358,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
   integer, dimension(norbe*nspin), intent(in) :: spinsgne
   real(kind=8), dimension(nvctr_c+7*nvctr_f,norbep*nspin), intent(out) :: psi
   !local variables
+  character(len=*), parameter :: subname='psitospi0'
   logical :: myorbital,polarised
   integer :: iatsc,i_all,i_stat,ispin,ipolres,ipolorb,nvctr
   integer :: iorb,jorb,iat,ity,i
@@ -1377,7 +1380,8 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
   end if
   
   nvctr=nvctr_c+7*nvctr_f
-  allocate(psi_o(nvctr,norbep))
+  allocate(psi_o(nvctr,norbep+ndebug),stat=i_stat)
+  call memocc(i_stat,psi_o,'psi_o',subname)
 
   do iorb=1,norbep
      do i=1,nvctr
@@ -1407,7 +1411,9 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
         end do
      end if
   end do
-  deallocate(psi_o)
+  i_all=-product(shape(psi_o))*kind(psi_o)
+  deallocate(psi_o,stat=i_stat)
+  call memocc(i_stat,i_all,'psi_o',subname)
 
   if (iproc ==0) then
      write(*,'(1x,a)')'done.'

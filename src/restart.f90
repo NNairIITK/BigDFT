@@ -12,6 +12,7 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,
   real(kind=8), dimension(:), pointer :: eval,eval_old
   real(kind=8), dimension(:,:), pointer :: psi,psi_old
   !local variables
+  character(len=*), parameter :: subname='copy_old_wavefunctions'
   real(kind=8), parameter :: eps_mach=1.d-12
   integer :: iseg,nvctrp_old,i1,i2,j,ind,iorb,i_all,i_stat,oidx,sidx
   real(kind=8) :: tt
@@ -40,10 +41,10 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,
   tt=dble(wfd_old%nvctr_c+7*wfd_old%nvctr_f)/dble(nproc)
   nvctrp_old=int((1.d0-eps_mach*tt) + tt)
 
-  allocate(psi_old(wfd_old%nvctr_c+7*wfd_old%nvctr_f,norbp*nspinor),stat=i_stat)
-  call memocc(i_stat,product(shape(psi_old))*kind(psi_old),'psi_old','copy_old_wavefunctions')
-  allocate(eval_old(norb),stat=i_stat)
-  call memocc(i_stat,product(shape(eval_old))*kind(eval_old),'eval_old','copy_old_wavefunctions')
+  allocate(psi_old(wfd_old%nvctr_c+7*wfd_old%nvctr_f,norbp*nspinor+ndebug),stat=i_stat)
+  call memocc(i_stat,psi_old,'psi_old',subname)
+  allocate(eval_old(norb+ndebug),stat=i_stat)
+  call memocc(i_stat,eval_old,'eval_old',subname)
 
          
 !  do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor,nspinor
@@ -80,10 +81,10 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,
   !deallocation
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
-  call memocc(i_stat,i_all,'psi','copy_old_wavefunctions')
+  call memocc(i_stat,i_all,'psi',subname)
   i_all=-product(shape(eval))*kind(eval)
   deallocate(eval,stat=i_stat)
-  call memocc(i_stat,i_all,'eval','copy_old_wavefunctions')
+  call memocc(i_stat,i_all,'eval',subname)
 
 end subroutine copy_old_wavefunctions
 
@@ -98,12 +99,13 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
   dimension :: rxyz(3,nat), rxyz_old(3,nat)
   dimension :: psi_old(wfd_old%nvctr_c + 7 * wfd_old%nvctr_f, norbp), &
        psi(wfd%nvctr_c + 7 * wfd%nvctr_f, norbp)
+  character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat
 
   allocatable :: psifscf(:,:,:), psigold(:,:,:,:,:,:)
 
-  allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8),stat=i_stat)
-  call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','reformatmywaves')
+  allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8+ndebug),stat=i_stat)
+  call memocc(i_stat,psifscf,'psifscf',subname)
 
   tx=0.d0 ; ty=0.d0 ; tz=0.d0
   do iat=1,nat
@@ -193,8 +195,8 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
 
      else
 
-        allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2),stat=i_stat)
-        call memocc(i_stat,product(shape(psigold))*kind(psigold),'psigold','reformatmywaves')
+        allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
+        call memocc(i_stat,psigold,'psigold',subname)
 
         call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
@@ -247,13 +249,13 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
 
         i_all=-product(shape(psigold))*kind(psigold)
         deallocate(psigold,stat=i_stat)
-        call memocc(i_stat,i_all,'psigold','reformatmywaves')
+        call memocc(i_stat,i_all,'psigold',subname)
      end if
   end do
 
   i_all=-product(shape(psifscf))*kind(psifscf)
   deallocate(psifscf,stat=i_stat)
-  call memocc(i_stat,i_all,'psifscf','reformatmywaves')
+  call memocc(i_stat,i_all,'psifscf',subname)
 
   if (iproc==0) write(*,"(1x,a)")'done.'
 
@@ -267,6 +269,7 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz_old,rxyz,  &
 
   implicit real(kind=8) (a-h,o-z)
   type(wavefunctions_descriptors), intent(in) :: wfd
+  character(len=*), parameter :: subname='readmywaves'
   character(len=50) filename
   character(len=4) f4
   dimension psi(wfd%nvctr_c+7*wfd%nvctr_f,norbp)
@@ -276,8 +279,8 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz_old,rxyz,  &
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
 
-  allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8),stat=i_stat)
-  call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','readmywaves')
+  allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8+ndebug),stat=i_stat)
+  call memocc(i_stat,psifscf,'psifscf',subname)
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
@@ -293,7 +296,7 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz_old,rxyz,  &
 
   i_all=-product(shape(psifscf))*kind(psifscf)
   deallocate(psifscf,stat=i_stat)
-  call memocc(i_stat,i_all,'psifscf','readmywaves')
+  call memocc(i_stat,i_all,'psifscf',subname)
 
   call cpu_time(tr1)
   call system_clock(ncount2,ncount_rate,ncount_max)

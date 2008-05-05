@@ -12,16 +12,17 @@ subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  &
   real(kind=8), dimension(idsx+1,idsx+1,3), intent(inout) :: ads
   real(kind=8), dimension(nvctrp,norbp*nproc*nspinor), intent(out) :: psit
 ! Local variables
+  character(len=*), parameter :: subname='diisstp'
   include 'mpif.h'
   integer :: i,j,ist,jst,mi,iorb,info,jj,mj,k,i_all,i_stat,ierr
   real(kind=8) :: tt,DDOT
   integer, dimension(:), allocatable :: ipiv
   real(kind=8), dimension(:), allocatable :: rds
 
-  allocate(ipiv(idsx+1),stat=i_stat)
-  call memocc(i_stat,product(shape(ipiv))*kind(ipiv),'ipiv','diisstp')
-  allocate(rds(idsx+1),stat=i_stat)
-  call memocc(i_stat,product(shape(rds))*kind(rds),'rds','diisstp')
+  allocate(ipiv(idsx+1+ndebug),stat=i_stat)
+  call memocc(i_stat,ipiv,'ipiv',subname)
+  allocate(rds(idsx+1+ndebug),stat=i_stat)
+  call memocc(i_stat,rds,'rds',subname)
 
 ! set up DIIS matrix (upper triangle)
   if (ids.gt.idsx) then
@@ -102,9 +103,9 @@ subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  &
 
   i_all=-product(shape(ipiv))*kind(ipiv)
   deallocate(ipiv,stat=i_stat)
-  call memocc(i_stat,i_all,'ipiv','diisstp')
+  call memocc(i_stat,i_all,'ipiv',subname)
   i_all=-product(shape(rds))*kind(rds)
   deallocate(rds,stat=i_stat)
-  call memocc(i_stat,i_all,'rds','diisstp')
+  call memocc(i_stat,i_all,'rds',subname)
 
 END SUBROUTINE diisstp

@@ -290,6 +290,7 @@ subroutine nonlocal_forces(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(in) :: psi
   real(kind=8), dimension(3,at%nat), intent(inout) :: fsep
   !Local Variables--------------
+  character(len=*), parameter :: subname='nonlocal_forces'
   integer :: istart_c,istart_f,iproj,iat,ityp,i,j,l,m
   integer :: istart_c_i,istart_f_i,istart_c_j,istart_f_j
   integer :: mvctr_c,mvctr_f,mbseg_c,mbseg_f,jseg_c,jseg_f
@@ -302,8 +303,8 @@ subroutine nonlocal_forces(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi
   real(kind=8), dimension(0:3,4,3,7) :: scalprod
   real(kind=8), dimension(:,:), allocatable :: fxyz_orb
 
-  allocate(fxyz_orb(3,at%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(fxyz_orb))*kind(fxyz_orb),'fxyz_orb','nonlocal_forces')
+  allocate(fxyz_orb(3,at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,fxyz_orb,'fxyz_orb',subname)
 
 !!$  !to be eliminated only for testing purposes
 !!$  fsep(:,:)=0.d0
@@ -445,7 +446,7 @@ subroutine nonlocal_forces(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi
 
   i_all=-product(shape(fxyz_orb))*kind(fxyz_orb)
   deallocate(fxyz_orb,stat=i_stat)
-  call memocc(i_stat,i_all,'fxyz_orb','nonlocal_forces')
+  call memocc(i_stat,i_all,'fxyz_orb',subname)
 
 end subroutine nonlocal_forces
 

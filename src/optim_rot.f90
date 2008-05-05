@@ -43,13 +43,14 @@ end program optim_rot
     real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
     real(kind=8), dimension(3,nat), intent(inout) :: rxyz
     !local variables
+    character(len=*), parameter :: subname='optimise_volume'
     integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
     real(kind=8) :: x,y,z,vol,tx,ty,tz
     real(kind=8), dimension(3,3) :: urot
     real(kind=8), dimension(:,:), allocatable :: txyz
 
-    allocate(txyz(3,nat),stat=i_stat)
-    call memocc(i_stat,product(shape(txyz))*kind(txyz),'txyz','optimise_volume')
+    allocate(txyz(3,nat+ndebug),stat=i_stat)
+    call memocc(i_stat,txyz,'txyz',subname)
     
     call system_size(1,nat,ntypes,rxyz,radii_cf,crmult,frmult,hgrid,iatype,atomnames, &
          alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
@@ -130,7 +131,7 @@ end program optim_rot
 
     i_all=-product(shape(txyz))*kind(txyz)
     deallocate(txyz,stat=i_stat)
-    call memocc(i_stat,i_all,'txyz','optimise_volume')
+    call memocc(i_stat,i_all,'txyz',subname)
   end subroutine optimise_volume
 
 

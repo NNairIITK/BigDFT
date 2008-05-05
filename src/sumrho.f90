@@ -18,6 +18,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   real(kind=8), dimension(max(nrho,1),nspin), intent(out), target :: rho
   !local variables
   include 'mpif.h'
+  character(len=*), parameter :: subname='sumrho'
   integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf
   integer :: ind1,ind2,ind3,ind1s,ind2s,ind3s,oidx,sidx,nspinn
   integer :: i00,i0,i1,i2,i3,i3off,i3s,isjmp,i,ispin,iorb,jproc,i_all,i_stat,ierr
@@ -83,19 +84,19 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   end select
 
   !work arrays
-  allocate(x_c_psifscf(nxc),stat=i_stat)
-  call memocc(i_stat,product(shape(x_c_psifscf))*kind(x_c_psifscf),'x_c_psifscf','sumrho')
-  allocate(x_f_psig(nxf),stat=i_stat)! work
-  call memocc(i_stat,product(shape(x_f_psig))*kind(x_f_psig),'x_f_psig','sumrho')
-  allocate(w1(nw1),stat=i_stat)
-  call memocc(i_stat,product(shape(w1))*kind(w1),'w1','sumrho')
-  allocate(w2(nw2),stat=i_stat) ! work
-  call memocc(i_stat,product(shape(w2))*kind(w2),'w2','sumrho')
+  allocate(x_c_psifscf(nxc+ndebug),stat=i_stat)
+  call memocc(i_stat,x_c_psifscf,'x_c_psifscf',subname)
+  allocate(x_f_psig(nxf+ndebug),stat=i_stat)
+  call memocc(i_stat,x_f_psig,'x_f_psig',subname)
+  allocate(w1(nw1+ndebug),stat=i_stat)
+  call memocc(i_stat,w1,'w1',subname)
+  allocate(w2(nw2+ndebug),stat=i_stat)
+  call memocc(i_stat,w2,'w2',subname)
 
   ! Wavefunction in real space
   nspinn=max(nspin,nspinor)
-  allocate(psir(n1i*n2i*n3i,nspinn),stat=i_stat)
-  call memocc(i_stat,product(shape(psir))*kind(psir),'psir','sumrho')
+  allocate(psir(n1i*n2i*n3i,nspinn+ndebug),stat=i_stat)
+  call memocc(i_stat,psir,'psir',subname)
 
   !initialisation
   if (geocode == 'F') then
@@ -113,8 +114,8 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   end do
 
   if (nproc > 1) then
-     allocate(rho_p(n1i*n2i*nrhotot,nspinn),stat=i_stat)
-     call memocc(i_stat,product(shape(rho_p))*kind(rho_p),'rho_p','sumrho')
+     allocate(rho_p(n1i*n2i*nrhotot,nspinn+ndebug),stat=i_stat)
+     call memocc(i_stat,rho_p,'rho_p',subname)
   else
      rho_p => rho
   end if
@@ -336,7 +337,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   if (nproc > 1) then
      i_all=-product(shape(rho_p))*kind(rho_p)
      deallocate(rho_p,stat=i_stat)
-     call memocc(i_stat,i_all,'rho_p','sumrho')
+     call memocc(i_stat,i_all,'rho_p',subname)
 
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')
@@ -355,19 +356,19 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
 
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir','sumrho')
+  call memocc(i_stat,i_all,'psir',subname)
   i_all=-product(shape(x_c_psifscf))*kind(x_c_psifscf)
   deallocate(x_c_psifscf,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c_psifscf','sumrho')
+  call memocc(i_stat,i_all,'x_c_psifscf',subname)
   i_all=-product(shape(x_f_psig))*kind(x_f_psig)
   deallocate(x_f_psig,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f_psig','sumrho')
+  call memocc(i_stat,i_all,'x_f_psig',subname)
   i_all=-product(shape(w1))*kind(w1)
   deallocate(w1,stat=i_stat)
-  call memocc(i_stat,i_all,'w1','sumrho')
+  call memocc(i_stat,i_all,'w1',subname)
   i_all=-product(shape(w2))*kind(w2)
   deallocate(w2,stat=i_stat)
-  call memocc(i_stat,i_all,'w2','sumrho')
+  call memocc(i_stat,i_all,'w2',subname)
 
   call timing(iproc,'Rho_comput    ','OF')
 

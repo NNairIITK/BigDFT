@@ -32,6 +32,7 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
   dimension hpsi(nvctr_c+7*nvctr_f),scal(0:3),residues(ncong)
   dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
+  character(len=*), parameter :: subname='precong'
   allocatable rpsi(:),ppsi(:),wpsi(:),spsi(:)
 
 !***********************************************************************************************
@@ -53,12 +54,12 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   !       has value .TRUE.
   !       
 
-  allocate(rpsi(nvctr_c+7*nvctr_f),stat=i_stat)
-  call memocc(i_stat,product(shape(rpsi))*kind(rpsi),'rpsi','precong')
-  allocate(ppsi(nvctr_c+7*nvctr_f),stat=i_stat)
-  call memocc(i_stat,product(shape(ppsi))*kind(ppsi),'ppsi','precong')
-  allocate(wpsi(nvctr_c+7*nvctr_f),stat=i_stat)
-  call memocc(i_stat,product(shape(wpsi))*kind(wpsi),'wpsi','precong')
+  allocate(rpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
+  call memocc(i_stat,rpsi,'rpsi',subname)
+  allocate(ppsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
+  call memocc(i_stat,ppsi,'ppsi',subname)
+  allocate(wpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
+  call memocc(i_stat,wpsi,'wpsi',subname)
 
 
 !!$  !! check initial residue of original equation
@@ -95,21 +96,21 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   ENDIF
 
 
-  allocate(xpsig_c(0:n1,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(xpsig_c))*kind(xpsig_c),'xpsig_c','calc_grad_reza')
-  allocate(xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(xpsig_f))*kind(xpsig_f),'xpsig_f','calc_grad_reza')
-  allocate(ypsig_c(0:n1,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(ypsig_c))*kind(ypsig_c),'ypsig_c','calc_grad_reza')
-  allocate(ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(ypsig_f))*kind(ypsig_f),'ypsig_f','calc_grad_reza')
+  allocate(xpsig_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,xpsig_c,'xpsig_c',subname)
+  allocate(xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,xpsig_f,'xpsig_f',subname)
+  allocate(ypsig_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,ypsig_c,'ypsig_c',subname)
+  allocate(ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,ypsig_f,'ypsig_f',subname)
 
-  allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_f1))*kind(x_f1),'x_f1','applylocpotkinall')
-  allocate(x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_f2))*kind(x_f2),'x_f2','applylocpotkinall')
-  allocate(x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2),stat=i_stat)
-  call memocc(i_stat,product(shape(x_f3))*kind(x_f3),'x_f3','applylocpotkinall')
+  allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,x_f1,'x_f1',subname)
+  allocate(x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,x_f2,'x_f2',subname)
+  allocate(x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2+ndebug),stat=i_stat)
+  call memocc(i_stat,x_f3,'x_f3',subname)
 
   
   call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1)
@@ -212,42 +213,42 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   i_all=-product(shape(rpsi))*kind(rpsi)
   deallocate(rpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'rpsi','precong')
+  call memocc(i_stat,i_all,'rpsi',subname)
   i_all=-product(shape(ppsi))*kind(ppsi)
   deallocate(ppsi,stat=i_stat)
-  call memocc(i_stat,i_all,'ppsi','precong')
+  call memocc(i_stat,i_all,'ppsi',subname)
   i_all=-product(shape(wpsi))*kind(wpsi)
   deallocate(wpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'wpsi','precong')
+  call memocc(i_stat,i_all,'wpsi',subname)
 
 
   i_all=-product(shape(xpsig_c))*kind(xpsig_c)
   deallocate(xpsig_c,stat=i_stat)
-  call memocc(i_stat,i_all,'xpsig_c','calc_grad_reza')
+  call memocc(i_stat,i_all,'xpsig_c',subname)
 
   i_all=-product(shape(ypsig_c))*kind(ypsig_c)
   deallocate(ypsig_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ypsig_c','calc_grad_reza')
+  call memocc(i_stat,i_all,'ypsig_c',subname)
 
   i_all=-product(shape(xpsig_f))*kind(xpsig_f)
   deallocate(xpsig_f,stat=i_stat)
-  call memocc(i_stat,i_all,'xpsig_f','calc_grad_reza')
+  call memocc(i_stat,i_all,'xpsig_f',subname)
 
   i_all=-product(shape(ypsig_f))*kind(ypsig_f)
   deallocate(ypsig_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ypsig_f','calc_grad_reza')
+  call memocc(i_stat,i_all,'ypsig_f',subname)
 
   i_all=-product(shape(x_f1))*kind(x_f1)
   deallocate(x_f1,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f1','applylocpotkinall')
+  call memocc(i_stat,i_all,'x_f1',subname)
 
   i_all=-product(shape(x_f2))*kind(x_f2)
   deallocate(x_f2,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f2','applylocpotkinall')
+  call memocc(i_stat,i_all,'x_f2',subname)
 
   i_all=-product(shape(x_f3))*kind(x_f3)
   deallocate(x_f3,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f3','applylocpotkinall')
+  call memocc(i_stat,i_all,'x_f3',subname)
      
      
 end subroutine precong
@@ -298,6 +299,7 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
   dimension keyg_c(2,nseg_c),keyv_c(nseg_c),hpsi_c(nvctr_c),hpsi_f(7,nvctr_f)
   real(kind=8), allocatable, dimension(:,:,:) :: hpsip
   real(kind=8)::scal(0:3) 
+  character(len=*), parameter :: subname='prec_diag'
   real(kind=8),parameter::atomic_length=2.d0,FAC_LEN=2.D0
 
   !      Number of sweeps in wavelet transformation
@@ -319,8 +321,8 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
 
   !write(*,'(3(1x,a,i0))')'ND1=',ND1,'ND2=',ND2,'ND3=',ND3
 
-  allocate(hpsip(0:nd1,0:nd2,0:nd3),stat=i_stat)
-  call memocc(i_stat,product(shape(hpsip))*kind(hpsip),'hpsip','prec_diag')
+  allocate(hpsip(0:nd1,0:nd2,0:nd3+ndebug),stat=i_stat)
+  call memocc(i_stat,hpsip,'hpsip',subname)
 
   HPSIP=0.D0
 
@@ -389,7 +391,7 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
 
   i_all=-product(shape(hpsip))*kind(hpsip)
   deallocate(hpsip,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsip','prec_diag')
+  call memocc(i_stat,i_all,'hpsip',subname)
 
 end subroutine prec_diag
 

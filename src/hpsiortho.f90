@@ -21,6 +21,7 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(out) :: hpsi
   !local variables
+  character(len=*), parameter :: subname='HamiltonianApplication'
   integer :: i_all,i_stat,ierr,iorb,n1i,n2i,n3i
   integer :: nw1,nw2,nsoffset,oidx,ispin,md
   real(kind=8) :: ekin,epot,eproj
@@ -61,24 +62,24 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
              (2*n1+31)*(n2+1)*(n3+1))
 
         !allocation of work arrays
-        allocate(y_c(0:n1,0:n2,0:n3,nspinor),stat=i_stat)
-        call memocc(i_stat,product(shape(y_c))*kind(y_c),'y_c','hamiltonianapplication')
-        allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor),stat=i_stat)
-        call memocc(i_stat,product(shape(y_f))*kind(y_f),'y_f','hamiltonianapplication')
-        allocate(x_c(0:n1,0:n2,0:n3,nspinor),stat=i_stat)
-        call memocc(i_stat,product(shape(x_c))*kind(x_c),'x_c','hamiltonianapplication')
-        allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor),stat=i_stat)! work
-        call memocc(i_stat,product(shape(x_f))*kind(x_f),'x_f','hamiltonianapplication')
-        allocate(w1(nw1,nspinor),stat=i_stat)
-        call memocc(i_stat,product(shape(w1))*kind(w1),'w1','hamiltonianapplication')
-        allocate(w2(nw2,nspinor),stat=i_stat) ! work
-        call memocc(i_stat,product(shape(w2))*kind(w2),'w2','hamiltonianapplication')
-        allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor),stat=i_stat)
-        call memocc(i_stat,product(shape(x_f1))*kind(x_f1),'x_f1','hamiltonianapplication')
-        allocate(x_f2(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor),stat=i_stat)
-        call memocc(i_stat,product(shape(x_f2))*kind(x_f2),'x_f2','hamiltonianapplication')
-        allocate(x_f3(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor),stat=i_stat)
-        call memocc(i_stat,product(shape(x_f3))*kind(x_f3),'x_f3','hamiltonianapplication')
+        allocate(y_c(0:n1,0:n2,0:n3,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,y_c,'y_c',subname)
+        allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,y_f,'y_f',subname)
+        allocate(x_c(0:n1,0:n2,0:n3,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,x_c,'x_c',subname)
+        allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,x_f,'x_f',subname)
+        allocate(w1(nw1,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,w1,'w1',subname)
+        allocate(w2(nw2,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,w2,'w2',subname)
+        allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,x_f1,'x_f1',subname)
+        allocate(x_f2(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,x_f2,'x_f2',subname)
+        allocate(x_f3(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,x_f3,'x_f3',subname)
 
         !initialisation of the work arrays
         call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,x_f1)
@@ -102,21 +103,21 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
         n3i=2*n3+2
 
         !allocation of work arrays
-        allocate(x_c(n1i,n2i,n3i,nspinor),stat=i_stat) !this is psifscf
-        call memocc(i_stat,product(shape(x_c))*kind(x_c),'x_c','hamiltonianapplication')
-        allocate(y_c(n1i,n2i,n3i,nspinor),stat=i_stat) !this is psifscfk
-        call memocc(i_stat,product(shape(y_c))*kind(y_c),'y_c','hamiltonianapplication')
-        allocate(x_f1(n1i,n2i,n3i,nspinor),stat=i_stat) !this is psig
-        call memocc(i_stat,product(shape(x_f1))*kind(x_f1),'x_f1','hamiltonianapplication')
-        allocate(x_f2(n1i,n2i,n3i,nspinor),stat=i_stat) !this is ww
-        call memocc(i_stat,product(shape(x_f2))*kind(x_f2),'x_f2','hamiltonianapplication')
+        allocate(x_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,x_c,'x_c',subname)
+        allocate(y_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,y_c,'y_c',subname)
+        allocate(x_f1(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,x_f1,'x_f1',subname)
+        allocate(x_f2(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,x_f2,'x_f2',subname)
 
   end select
 
   !then build the potential on the whole simulation box
   if (nproc > 1) then
-     allocate(pot(n1i*n2i*n3i,nspin),stat=i_stat)
-     call memocc(i_stat,product(shape(pot))*kind(pot),'pot','hamiltonianapplication')
+     allocate(pot(n1i*n2i*n3i,nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,pot,'pot',subname)
 
      do ispin=1,nspin
         call MPI_ALLGATHERV(potential(1,ispin),ndimpot,&
@@ -128,8 +129,8 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   end if
 
   ! Wavefunction in real space
-  allocate(psir(n1i*n2i*n3i,nspinor),stat=i_stat)
-  call memocc(i_stat,product(shape(psir))*kind(psir),'psir','hamiltonianapplication')
+  allocate(psir(n1i*n2i*n3i,nspinor+ndebug),stat=i_stat)
+  call memocc(i_stat,psir,'psir',subname)
 
   call razero(n1i*n2i*n3i*nspinor,psir)
 
@@ -173,43 +174,43 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   !deallocations of work arrays
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir','hamiltonianapplication')
+  call memocc(i_stat,i_all,'psir',subname)
 
   i_all=-product(shape(x_c))*kind(x_c)
   deallocate(x_c,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c','hamiltonianapplication')
+  call memocc(i_stat,i_all,'x_c',subname)
   i_all=-product(shape(y_c))*kind(y_c)
   deallocate(y_c,stat=i_stat)
-  call memocc(i_stat,i_all,'y_c','hamiltonianapplication')
+  call memocc(i_stat,i_all,'y_c',subname)
   i_all=-product(shape(x_f1))*kind(x_f1)
   deallocate(x_f1,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f1','hamiltonianapplication')
+  call memocc(i_stat,i_all,'x_f1',subname)
   i_all=-product(shape(x_f2))*kind(x_f2)
   deallocate(x_f2,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f2','hamiltonianapplication')
+  call memocc(i_stat,i_all,'x_f2',subname)
 
   if (geocode == 'F') then
      i_all=-product(shape(x_f3))*kind(x_f3)
      deallocate(x_f3,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f3','hamiltonianapplication')
+     call memocc(i_stat,i_all,'x_f3',subname)
      i_all=-product(shape(y_f))*kind(y_f)
      deallocate(y_f,stat=i_stat)
-     call memocc(i_stat,i_all,'y_f','hamiltonianapplication')
+     call memocc(i_stat,i_all,'y_f',subname)
      i_all=-product(shape(x_f))*kind(x_f)
      deallocate(x_f,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f','hamiltonianapplication')
+     call memocc(i_stat,i_all,'x_f',subname)
      i_all=-product(shape(w1))*kind(w1)
      deallocate(w1,stat=i_stat)
-     call memocc(i_stat,i_all,'w1','hamiltonianapplication')
+     call memocc(i_stat,i_all,'w1',subname)
      i_all=-product(shape(w2))*kind(w2)
      deallocate(w2,stat=i_stat)
-     call memocc(i_stat,i_all,'w2','hamiltonianapplication')
+     call memocc(i_stat,i_all,'w2',subname)
   end if
 
   if (nproc > 1) then
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
-     call memocc(i_stat,i_all,'pot','hamiltonianapplication')
+     call memocc(i_stat,i_all,'pot',subname)
   else
      nullify(pot)
   end if
@@ -538,6 +539,7 @@ subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctr
   integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
   real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
   !local variables
+  character(len=*), parameter :: subname='first_orthon'
   include 'mpif.h'
   integer :: i_all,i_stat,ierr,nspinor,iorb
 
@@ -551,8 +553,8 @@ subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctr
      !allocate hpsi array (used also as transposed)
      !allocated in the transposed way such as 
      !it can also be used as the transposed hpsi
-     allocate(hpsi(nvctrp,nspinor*norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','first_orthon')
+     allocate(hpsi(nvctrp,nspinor*norbp*nproc+ndebug),stat=i_stat)
+     call memocc(i_stat,hpsi,'hpsi',subname)
 
 !     write(*,'(a,i3,30f10.5)') 'SWI',iproc,(sum(psi(1:nvctrp,iorb)),iorb=1,norbp*nspinor)
      !transpose the psi wavefunction
@@ -561,8 +563,8 @@ subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctr
      call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,hpsi,nspinor)
      call timing(iproc,'Un-TransSwitch','OF')
      !allocate transposed principal wavefunction
-     allocate(psit(nvctrp,nspinor*norbp*nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(psit))*kind(psit),'psit','first_orthon')
+     allocate(psit(nvctrp,nspinor*norbp*nproc+ndebug),stat=i_stat)
+     call memocc(i_stat,psit,'psit',subname)
      call timing(iproc,'Un-TransComm  ','ON')
      call MPI_ALLTOALL(hpsi,nvctrp*nspinor*norbp,MPI_DOUBLE_PRECISION,  &
           psit,nvctrp*nspinor*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
@@ -596,8 +598,8 @@ subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctr
   else
      nullify(psit)
      !allocate hpsi array
-     allocate(hpsi(nvctr_c+7*nvctr_f,nspinor*norbp),stat=i_stat)
-     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','first_orthon')
+     allocate(hpsi(nvctr_c+7*nvctr_f,nspinor*norbp+ndebug),stat=i_stat)
+     call memocc(i_stat,hpsi,'hpsi',subname)
   end if
 
 !!$  else
@@ -630,6 +632,7 @@ subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp
   real(kind=8), dimension(norb), intent(out) :: eval
   real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
   !local variables
+  character(len=*), parameter :: subname='last_orthon'
   include 'mpif.h'
   integer :: i_all,i_stat,ierr,iorb,jorb,nspinor
   real(kind=8) :: evpart
@@ -686,7 +689,7 @@ subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp
 
      i_all=-product(shape(psit))*kind(psit)
      deallocate(psit,stat=i_stat)
-     call memocc(i_stat,i_all,'psit','last_orthon')
+     call memocc(i_stat,i_all,'psit',subname)
   else
      if(nspinor==4) then
         call psitransspi(nvctrp,norb,psit,.false.)
@@ -743,7 +746,7 @@ subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp
 
   i_all=-product(shape(hpsi))*kind(hpsi)
   deallocate(hpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsi','last_orthon')
+  call memocc(i_stat,i_all,'hpsi',subname)
 
 end subroutine last_orthon
 
@@ -755,6 +758,7 @@ subroutine calc_moments(iproc,nproc,norb,norbp,nvctr,nspinor,psi)
   integer, intent(in) :: iproc,nproc,norb,norbp,nvctr,nspinor
   real(kind=8), dimension(nvctr,norbp*nproc*nspinor), intent(in) :: psi
   !local variables
+  character(len=*), parameter :: subname='calc_moments'
   integer :: i_all,i_stat,ierr,iorb
   integer :: oidx,ispin,md,ndim
   real(kind=8) :: m00,m11,m13,m24,m12,m34,m14,m23
@@ -766,8 +770,8 @@ subroutine calc_moments(iproc,nproc,norb,norbp,nvctr,nspinor,psi)
 
   if(nspinor==4) then
      
-     allocate(mom_vec(4,norbp*nproc,ndim),stat=i_stat)
-     call memocc(i_stat,product(shape(mom_vec))*kind(mom_vec),'mom_vec','calc_moments')
+     allocate(mom_vec(4,norbp*nproc,ndim+ndebug),stat=i_stat)
+     call memocc(i_stat,mom_vec,'mom_vec',subname)
      call razero(4*norbp*nproc*ndim,mom_vec)
      
      do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
@@ -808,7 +812,7 @@ subroutine calc_moments(iproc,nproc,norb,norbp,nvctr,nspinor,psi)
      
      i_all=-product(shape(mom_vec))*kind(mom_vec)
      deallocate(mom_vec,stat=i_stat)
-     call memocc(i_stat,i_all,'mom_vec','calc_moments')
+     call memocc(i_stat,i_all,'mom_vec',subname)
      
 
      

@@ -9,19 +9,19 @@ subroutine reformatonewave(iproc, displ, hgrid_old, n1_old, n2_old, n3_old, nat,
   dimension :: keyg(2, nseg_c + nseg_f), keyv(nseg_c + nseg_f)
   dimension :: psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2), psi(nvctr_c + 7 * nvctr_f)
   dimension :: psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
-
+  character(len=*), parameter :: subname='reformatonewave'
   allocatable :: psifscfold(:,:,:),psig(:,:,:,:,:,:),ww(:),wwold(:)
 
-  allocate(psifscfold(-7:2*n1_old+8,-7:2*n2_old+8,-7:2*n3_old+8),stat=i_stat)
-  call memocc(i_stat,product(shape(psifscfold))*kind(psifscfold),'psifscfold','reformatonewave')
-  allocate(wwold((2*n1_old+16)*(2*n2_old+16)*(2*n3_old+16)),stat=i_stat)
-  call memocc(i_stat,product(shape(wwold))*kind(wwold),'wwold','reformatonewave')
+  allocate(psifscfold(-7:2*n1_old+8,-7:2*n2_old+8,-7:2*n3_old+8+ndebug),stat=i_stat)
+  call memocc(i_stat,psifscfold,'psifscfold',subname)
+  allocate(wwold((2*n1_old+16)*(2*n2_old+16)*(2*n3_old+16)+ndebug),stat=i_stat)
+  call memocc(i_stat,wwold,'wwold',subname)
 
   call synthese_grow(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
 
   i_all=-product(shape(wwold))*kind(wwold)
   deallocate(wwold,stat=i_stat)
-  call memocc(i_stat,i_all,'wwold','reformatonewave')
+  call memocc(i_stat,i_all,'wwold',subname)
 
 !write(100+iproc,*) 'norm psifscfold ',dnrm2((2*n1_old+16)*(2*n2_old+16)*(2*n3_old+16),psifscfold,1)
 
@@ -130,11 +130,11 @@ endif
 
   i_all=-product(shape(psifscfold))*kind(psifscfold)
   deallocate(psifscfold,stat=i_stat)
-  call memocc(i_stat,i_all,'psifscfold','reformatonewave')
-  allocate(psig(0:n1,2,0:n2,2,0:n3,2),stat=i_stat)
-  call memocc(i_stat,product(shape(psig))*kind(psig),'psig','reformatonewave')
-  allocate(ww((2*n1+16)*(2*n2+16)*(2*n3+16)),stat=i_stat)
-  call memocc(i_stat,product(shape(ww))*kind(ww),'ww','reformatonewave')
+  call memocc(i_stat,i_all,'psifscfold',subname)
+  allocate(psig(0:n1,2,0:n2,2,0:n3,2+ndebug),stat=i_stat)
+  call memocc(i_stat,psig,'psig',subname)
+  allocate(ww((2*n1+16)*(2*n2+16)*(2*n3+16)+ndebug),stat=i_stat)
+  call memocc(i_stat,ww,'ww',subname)
 
   call analyse_shrink(n1,n2,n3,ww,psifscf,psig)
 !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
@@ -146,10 +146,10 @@ endif
 
   i_all=-product(shape(psig))*kind(psig)
   deallocate(psig,stat=i_stat)
-  call memocc(i_stat,i_all,'psig','reformatonewave')
+  call memocc(i_stat,i_all,'psig',subname)
   i_all=-product(shape(ww))*kind(ww)
   deallocate(ww,stat=i_stat)
-  call memocc(i_stat,i_all,'ww','reformatonewave')
+  call memocc(i_stat,i_all,'ww',subname)
 END SUBROUTINE reformatonewave
 
 subroutine readonewave(unitwf, useFormattedInput, iorb,iproc,n1,n2,n3, &
@@ -161,6 +161,7 @@ subroutine readonewave(unitwf, useFormattedInput, iorb,iproc,n1,n2,n3, &
   dimension rxyz_old(3,nat),rxyz(3,nat)
   dimension :: psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
   allocatable :: psigold(:,:,:,:,:,:)
+  character(len=*), parameter :: subname='readonewave'
   integer :: unitwf
   logical :: useFormattedInput
 
@@ -233,8 +234,8 @@ subroutine readonewave(unitwf, useFormattedInput, iorb,iproc,n1,n2,n3, &
           write(*,*) 'because cell size has changed',n1_old,n1  , n2_old,n2 , n3_old,n3
      if (displ.gt.1.d-3 ) write(*,*) 'large displacement of molecule'
 
-     allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2),stat=i_stat)
-     call memocc(i_stat,product(shape(psigold))*kind(psigold),'psigold','readonewave')
+     allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
+     call memocc(i_stat,psigold,'psigold',subname)
 
      call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
      do iel=1,nvctr_c_old
@@ -267,7 +268,7 @@ subroutine readonewave(unitwf, useFormattedInput, iorb,iproc,n1,n2,n3, &
 
      i_all=-product(shape(psigold))*kind(psigold)
      deallocate(psigold,stat=i_stat)
-     call memocc(i_stat,i_all,'psigold','readonewave')
+     call memocc(i_stat,i_all,'psigold',subname)
 
   endif
 END SUBROUTINE readonewave

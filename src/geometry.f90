@@ -15,17 +15,18 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz, &
   real(kind=8), dimension(:), pointer :: eval
   real(kind=8), dimension(:,:), pointer :: psi
   !local variables
+  character(len=*), parameter :: subname='conjgrad'  
   integer :: nfail,it,iat,i_all,i_stat,infocode
   real(kind=8) :: anoise,fluct,flucto,fluctoo,avbeta,avnum,fnrm,etotprec,beta0,beta
   real(kind=8) :: y0,y1,tt,sumx,sumy,sumz,obenx,obeny,obenz,unten,rlambda,tetot,forcemax
   real(kind=8), dimension(:,:), allocatable :: tpos,gp,hh
 
-  allocate(tpos(3,at%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(tpos))*kind(tpos),'tpos','conjgrad')
-  allocate(gp(3,at%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(gp))*kind(gp),'gp','conjgrad')
-  allocate(hh(3,at%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(hh))*kind(hh),'hh','conjgrad')
+  allocate(tpos(3,at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,tpos,'tpos',subname)
+  allocate(gp(3,at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,gp,'gp',subname)
+  allocate(hh(3,at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,hh,'hh',subname)
 
   anoise=1.d-4
   fluct=0.d0
@@ -287,13 +288,13 @@ contains
     close(unit=16)
     i_all=-product(shape(tpos))*kind(tpos)
     deallocate(tpos,stat=i_stat)
-    call memocc(i_stat,i_all,'tpos','conjgrad')
+    call memocc(i_stat,i_all,'tpos',subname)
     i_all=-product(shape(gp))*kind(gp)
     deallocate(gp,stat=i_stat)
-    call memocc(i_stat,i_all,'gp','conjgrad')
+    call memocc(i_stat,i_all,'gp',subname)
     i_all=-product(shape(hh))*kind(hh)
     deallocate(hh,stat=i_stat)
-    call memocc(i_stat,i_all,'hh','conjgrad')
+    call memocc(i_stat,i_all,'hh',subname)
   end subroutine close_and_deallocate
   
   subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,&
@@ -314,6 +315,7 @@ contains
     real(kind=8), dimension(:), pointer :: eval
     real(kind=8), dimension(:,:), pointer :: psi
     !local variables
+    character(len=*), parameter :: subname='steepdes'
     logical :: care
     integer :: nsatur,iat,itot,nitsd,itsd
     real(kind=8) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise,sumx,sumy,sumz
@@ -321,8 +323,8 @@ contains
 
     real(kind=8), allocatable, dimension(:,:) :: tpos
 
-    allocate(tpos(3,at%nat),stat=i_stat)
-    call memocc(i_stat,product(shape(tpos))*kind(tpos),'tpos','steepdes')
+    allocate(tpos(3,at%nat+ndebug),stat=i_stat)
+    call memocc(i_stat,tpos,'tpos',subname)
 
     anoise=0.d-4
 
@@ -351,7 +353,7 @@ contains
 
           i_all=-product(shape(tpos))*kind(tpos)
           deallocate(tpos,stat=i_stat)
-          call memocc(i_stat,i_all,'tpos','steepdes')
+          call memocc(i_stat,i_all,'tpos',subname)
           return
        endif
 
@@ -514,7 +516,7 @@ contains
 
     i_all=-product(shape(tpos))*kind(tpos)
     deallocate(tpos,stat=i_stat)
-    call memocc(i_stat,i_all,'tpos','steepdes')
+    call memocc(i_stat,i_all,'tpos',subname)
 
   end subroutine steepdes
 
@@ -536,12 +538,12 @@ contains
     real(kind=8) :: beta0,beta,sum,t1,t2,t3,etotm1,etot0,etotp1,der2,tt
     real(kind=8), dimension(:,:), allocatable :: tpos,ff,gg
 
-    allocate(tpos(3,at%nat),stat=i_stat)
-    call memocc(i_stat,product(shape(tpos))*kind(tpos),'tpos','detbetax')
-    allocate(ff(3,at%nat),stat=i_stat)
-    call memocc(i_stat,product(shape(ff))*kind(ff),'ff','detbetax')
-    allocate(gg(3,at%nat),stat=i_stat)
-    call memocc(i_stat,product(shape(gg))*kind(gg),'gg','detbetax')
+    allocate(tpos(3,at%nat+ndebug),stat=i_stat)
+    call memocc(i_stat,tpos,'tpos',subname)
+    allocate(ff(3,at%nat+ndebug),stat=i_stat)
+    call memocc(i_stat,ff,'ff',subname)
+    allocate(gg(3,at%nat+ndebug),stat=i_stat)
+    call memocc(i_stat,gg,'gg',subname)
 
     beta0=abs(in%betax)
     beta=1.d100
@@ -630,13 +632,13 @@ contains
 
     i_all=-product(shape(tpos))*kind(tpos)
     deallocate(tpos,stat=i_stat)
-    call memocc(i_stat,i_all,'tpos','detbetax')
+    call memocc(i_stat,i_all,'tpos',subname)
     i_all=-product(shape(ff))*kind(ff)
     deallocate(ff,stat=i_stat)
-    call memocc(i_stat,i_all,'ff','detbetax')
+    call memocc(i_stat,i_all,'ff',subname)
     i_all=-product(shape(gg))*kind(gg)
     deallocate(gg,stat=i_stat)
-    call memocc(i_stat,i_all,'gg','detbetax')
+    call memocc(i_stat,i_all,'gg',subname)
 
   end subroutine detbetax
 
