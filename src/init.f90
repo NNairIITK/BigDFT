@@ -461,7 +461,6 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
            endif
         enddo
      enddo
-     !print *,iat,'ok',nwarnings
   enddo
   if (iproj.ne.nlpspd%nproj) stop 'incorrect number of projectors created'
   ! projector part finished
@@ -624,10 +623,10 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
 END SUBROUTINE import_gaussians
 
-
 subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
-     pkernel,ixc,psi,hpsi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinsgn)
+     norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
+     wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,accurex,datacode,&
+     nscatterarr,ngatherarr,nspin,spinsgn)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -644,7 +643,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   character(len=1), intent(in) :: datacode,geocode
   integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
-  integer, intent(inout) :: nspin
+  integer, intent(inout) :: nspin,nvirte,nvirtep,nvirt
   real(kind=8), intent(in) :: hx,hy,hz
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
@@ -655,7 +654,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
   real(kind=8), intent(out) :: accurex
   real(kind=8), dimension(norb), intent(out) :: eval
-  real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit
+  real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit,psivirt
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   real(kind=8), parameter :: eps_mach=1.d-12
@@ -730,12 +729,26 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        & at%npspcode,norbe,norbsc,at%atomnames,at%ntypes,at%iatype,at%iasctype,at%nat,at%natsc,&
        nspin,scorb,norbsc_arr)
 
+  !Check for max number of virtual orbitals
+  nvirte=norbe-max(norbu,norbd)!the unoccupied orbitals available as a LCAO
+  if(nvirt==nvirte.and.iproc==0)write(*,'(1x,a,i3)')&
+          "WARNING: A smaller number of virtual orbitals may be needed for better convergence."
+  if(nvirte<nvirt)then
+     nvirt=nvirte 
+     if(iproc==0)write(*,'(1x,a,i3)')&
+          "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
+  end if
+
   !  allocate wavefunctions and their occupation numbers
   allocate(occupe(nspin*norbe+ndebug),stat=i_stat)
   call memocc(i_stat,occupe,'occupe',subname)
   !the number of orbitals to be considered is doubled in the case of a spin-polarised calculation
   tt=dble(nspin*norbe)/dble(nproc)
   norbep=int((1.d0-eps_mach*tt) + tt)
+  !  virtual orbitals per node needed?
+  tt=dble(nvirte)/dble(nproc)
+  nvirtep=int((1.d0-eps_mach*tt) + tt)
+
 
   if (iproc == 0 .and. nproc>1) then
      jpst=0
@@ -904,6 +917,7 @@ end subroutine input_wf_diag
 !!    norbd  number of down orbitals in the spin-polarised case; for non spin-pol equal to 0
 !!    norb   total number of orbitals of the resulting eigenfunctions
 !!    norbp  number of orbitals in parallel. For nproc=1 norbp=norb
+!!    nvirt  number of virtual orbitals to be saved as input guess for the Davidson method
 !!    nvctrp number of points of the wavefunctions for each orbital in the transposed sense
 !!    wfd    data structure of the wavefunction descriptors
 !!    norbe  (optional) number of orbitals of the initial set of wavefunction, to be reduced
@@ -925,6 +939,9 @@ end subroutine input_wf_diag
 !!    psit   wavefunctions in the transposed form.
 !!           On input: nullified
 !!           on Output: transposed wavefunction but only if nproc>1, nullified otherwise
+!!    psivirt wavefunctions for input guess of the Davidson method in the transposed form.
+!!           On input: nullified
+!!           on Output: transposed wavefunction (if nproc>1), direct otherwise
 !!    eval   array of the first norb eigenvalues       
 !!    
 !!
@@ -1111,6 +1128,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   call build_eigenvectors(nproc,norbu,norbd,norbp,norbtotp,nvctrp,nvctr,natsceff,nspin,nspinor, &
        ndim_hamovr,norbgrp,hamovr,psi,psit)
   
+  !here we should insert the davidson input guess as well as the noncollinear treatment for the input function
+
   if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
      
 
@@ -1580,32 +1599,6 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
      deallocate(tpsi,stat=i_stat)
      call memocc(i_stat,i_all,'tpsi',subname)
   end if
-!!$  !here we should put a random noise on the spin-down components in the case of norbu=norbd
-!!$  if (nspin == 2 .and. norbu==norbd) then
-!!$     allocate(randnoise(nvctrp),stat=i_stat)
-!!$     call memocc(i_stat,product(shape(randnoise))*kind(randnoise),'randnoise','build_eigenvectors')
-!!$     call random_number(randnoise)
-!!$
-!!$     do iorb=1,norbu
-!!$        do i=1,nvctrp
-!!$           tt=50.d0*real(randnoise(nvctrp-i+1)-0.5,kind=8)/real(nvctrp*nproc,kind=8)
-!!$           ppsit(i,iorb)=tt+ppsit(i,iorb)
-!!$        end do
-!!$     end do
-!!$
-!!$     do iorb=norbu+1,norbu+norbd
-!!$        do i=1,nvctrp
-!!$           tt=50.d0*real(randnoise(i)-0.5,kind=8)/real(nvctrp*nproc,kind=8)
-!!$           ppsit(i,iorb)=tt+ppsit(i,iorb)
-!!$        end do
-!!$     end do
-!!$
-!!$     i_all=-product(shape(randnoise))*kind(randnoise)
-!!$     deallocate(randnoise,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'randnoise','build_eigenvectors')
-!!$  end if
-!     print *,'Exit build_eig',shape(psi),shape(ppsit)
-!     print *,'p', (DDOT(nvctrp*nspinor,ppsit(1,i),1,ppsit(1,i),1),i=1,norbu+norbd)
 
 end subroutine build_eigenvectors
 
