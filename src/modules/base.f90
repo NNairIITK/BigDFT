@@ -19,7 +19,14 @@
 module module_base 
 
   implicit none  
-  integer, parameter :: ndebug=1
+  !buffer to be added at the end of the last dimension of an array to control bounds_check
+  integer, parameter :: ndebug=0
+
+  !general precision, density and the wavefunctions types
+  integer, parameter :: gp=kind(1.0d0)  !general-type precision
+  integer, parameter :: dp=kind(1.0d0)  !density-type precision
+  integer, parameter :: wp=kind(1.0d0)  !wavefunction-type precision
+
 
   interface memocc
      module procedure mo_dp1,mo_dp2,mo_dp3,mo_dp4,mo_dp5,mo_dp6,mo_dp7,&

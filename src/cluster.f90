@@ -88,7 +88,7 @@
   end do loop_cluster
 
   !preserve the previous value
-  inputPsiId_orig=in%inputPsiId
+  in%inputPsiId=inputPsiId_orig
 
 end subroutine call_cluster
 
@@ -128,8 +128,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   include 'mpif.h'
   character(len=*), parameter :: subname='cluster'
   character(len=1) :: datacode,geocode
-  logical :: calc_tail,output_wf,output_grid,switchSD
-  integer :: ixc,ncharge,ncong,idsx,ncongt,nspin,mpol,inputPsiId,itermax,idsx_actual
+  logical :: calc_tail,switchSD
+  integer :: ixc,ncharge,ncong,idsx,ncongt,nspin,mpol,itermax,idsx_actual
   integer :: nelec,norbu,norbd,ndegree_ip,nvctrp,mids,iorb,iounit,ids,idiistol,j
   integer :: n1_old,n2_old,n3_old,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n3d,n3p,n3pi,i3xcsh,i3s
   integer :: ncount0,ncount1,ncount_rate,ncount_max,iunit,n1i,n2i,n3i,nl1,nl2,nl3
@@ -195,10 +195,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
   mpol=in%mpol
 
-  inputPsiId=in%inputPsiId
-  output_grid=in%output_grid
-  output_wf=in%output_wf
-
   hx=in%hgrid
   hy=in%hgrid
   hz=in%hgrid
@@ -211,7 +207,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   if (iproc.eq.0) then
      write(*,'(1x,a,1x,i0)') &
-       '===================== BigDFT Wavefunction Optimization =============== inputPsiId=',inputPsiId
+       '===================== BigDFT Wavefunction Optimization =============== inputPsiId=',&
+       in%inputPsiId
      call print_input_parameters(in)
   end if
   if (nproc > 1) then
@@ -226,7 +223,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   ! We save the variables that defined the previous psi if
   ! restartOnPsi is .true.
-  if (inputPsiId == 1) then
+  if (in%inputPsiId == 1) then
      call copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,eval,wfd,psi,&
           hgrid_old,n1_old,n2_old,n3_old,eval_old,wfd_old,psi_old)
   end if
@@ -284,7 +281,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   ! Create wavefunctions descriptors and allocate them
   call timing(iproc,'CrtDescriptors','ON')
-  call createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_grid,hx,hy,hz,&
+  call createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,in%output_grid,hx,hy,hz,&
        atoms,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,wfd,&
        nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,nspinor)
   call timing(iproc,'CrtDescriptors','OF')
@@ -341,7 +338,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call memocc(i_stat,eval,'eval',subname)
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
-  if (inputPsiId == -2) then
+  if (in%inputPsiId == -2) then
 
      if (iproc.eq.0) then
         write(*,'(1x,a)')&
@@ -377,7 +374,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call first_orthon(iproc,nproc,norbu,norbd,norb,norbp,&
           wfd%nvctr_c,wfd%nvctr_f,nvctrp,nspin,psi,hpsi,psit)
 
-  else if (inputPsiId == -1) then
+  else if (in%inputPsiId == -1) then
 
      !import gaussians form CP2K (data in files def_gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
@@ -385,7 +382,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj, &
           pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinsgn)
 
-  else if (inputPsiId == 0) then
+  else if (in%inputPsiId == 0) then
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(geocode,iproc,nproc,atoms,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -403,7 +400,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
      !call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','cluster')
     
-  else if (inputPsiId == 1 ) then 
+  else if (in%inputPsiId == 1 ) then 
      !restart from previously calculated wavefunctions, in memory
 
      !allocate principal wavefunction
@@ -436,7 +433,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call first_orthon(iproc,nproc,norbu,norbd,norb,norbp,&
           wfd%nvctr_c,wfd%nvctr_f,nvctrp,nspin,psi,hpsi,psit)
 
-  else if (inputPsiId == 2 ) then 
+  else if (in%inputPsiId == 2 ) then 
      !restart from previously calculated wavefunctions, on disk
 
      !allocate principal wavefunction
@@ -463,7 +460,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      if (iproc == 0) then
         write(*,'(1x,a)')'The supported values of inputPsiId are integers from -2 to 2'
-        write(*,'(1x,a,i0)')'                        while we found',inputPsiId
+        write(*,'(1x,a,i0)')'                        while we found',in%inputPsiId
      end if
      stop
 
@@ -535,13 +532,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      endif
 
      !control whether the minimisation iterations ended
-     if (gnrm.le.gnrm_cv .or. iter.eq.itermax) call timing(iproc,'WFN_OPT','PR')
+     if (gnrm <= gnrm_cv .or. iter == itermax) call timing(iproc,'WFN_OPT','PR')
 
      ! Potential from electronic charge density
      call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
           wfd,psi,rhopot,n1i*n2i*n3d,nscatterarr,nspin,nspinor,spinsgn,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
+     !this section should be inserted into sumrho
      if(nspinor==4) then
         !        call calc_moments(iproc,nproc,norb,norbp,nvctrp*nproc,nspinor,psi)
         allocate(tmred(nspin+1,2+ndebug),stat=i_stat)
@@ -567,27 +565,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call memocc(i_stat,i_all,'tmred',subname)
      end if
      
-!!$     if(nspinor==4) then
-!!$        ispin=1
-!!$     else
-!!$        ispin=nspin
-!!$     end if
-     
-!!$     tt=0.d0
-!!$     do i3=1,n3i
-!!$        do i2=1,n2i
-!!$           do i1=1,n1i
-!!$              tt=tt+pot_ion(i1+n1i*(i2-1)+n1i*n2i*(i3-1))*rhopot(i1,i2,i3,1)
-!!$           end do
-!!$        end do
-!!$     end do
-!!$
-!!$     print *,'elocalpsp',iproc,tt,tt*hxh*hyh*hzh
-
-     !     ixc=11  ! PBE functional
-     !     ixc=1   ! LDA functional
      if(nspinor==4) then
-        !this wrapper can be inserted inside the poisson solver, in principle
+        !this wrapper can be inserted inside the poisson solver
          call PSolverNC(geocode,datacode,iproc,nproc,n1i,n2i,n3i,n3d,ixc,hxh,hyh,hzh,&
              rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
      else
@@ -608,7 +587,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      energy_min=min(energy_min,energy)
 
      !check for convergence or whether max. numb. of iterations exceeded
-     if (gnrm.le.gnrm_cv .or. iter.eq.itermax) then 
+     if (gnrm <= gnrm_cv .or. iter == itermax) then 
         if (iproc.eq.0) then 
            write(*,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
            write(*,'(1x,a)') &
@@ -648,7 +627,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call calc_moments(iproc,nproc,norb,norbp,wfd%nvctr_c+7*wfd%nvctr_f,nspinor,psi) 
      end if
 
-     if (inputPsiId == 0) then
+     if (in%inputPsiId == 0) then
         if ((gnrm > 4.d0 .and. norbu/=norbd) .or. (norbu==norbd .and. gnrm > 10.d0)) then
            if (iproc == 0) then
               write(*,'(1x,a)')&
@@ -658,7 +637,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
            call deallocate_before_exiting
            return
         end if
-     else if (inputPsiId == 1) then
+     else if (in%inputPsiId == 1) then
         if (gnrm > 1.d0) then
            if (iproc == 0) then
               write(*,'(1x,a)')&
@@ -768,7 +747,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!$  end do
 
   !  write all the wavefunctions into files
-  if (output_wf) then
+  if (in%output_wf) then
      call  writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,atoms%nat,rxyz,wfd,psi,eval)
      write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
   end if
@@ -829,7 +808,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   deallocate(pot_ion,stat=i_stat)
   call memocc(i_stat,i_all,'pot_ion',subname)
 
-  if (iproc.eq.0 .and. output_grid) then
+  if (iproc.eq.0 .and. in%output_grid) then
 
      open(unit=22,file='density.pot',status='unknown')
      write(22,*)'density'
@@ -994,10 +973,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      enddo
   end if
 
-  !add to the forces the ionic contribution (for the moment only in the peridic case)
-  !if (geocode == 'P') then
-     fxyz(:,:)=fxyz(:,:)+fion(:,:)
-  !end if
+  !add to the forces the ionic contribution 
+  fxyz(:,:)=fxyz(:,:)+fion(:,:)
 
   i_all=-product(shape(fion))*kind(fion)
   deallocate(fion,stat=i_stat)
@@ -1061,7 +1038,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call CalculateTailCorrection(iproc,nproc,atoms,n1,n2,n3,rbuf,norb,norbp,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,eval,&
           pot,hx,rxyz,radii_cf,crmult,frmult,nspin,spinsgn,&
-          proj,psi,occup,output_grid,ekin_sum,epot_sum,eproj_sum)
+          proj,psi,occup,in%output_grid,ekin_sum,epot_sum,eproj_sum)
 
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
@@ -1161,6 +1138,10 @@ contains
        i_all=-product(shape(ngatherarr))*kind(ngatherarr)
        deallocate(ngatherarr,stat=i_stat)
        call memocc(i_stat,i_all,'ngatherarr',subname)
+
+       i_all=-product(shape(fion))*kind(fion)
+       deallocate(fion,stat=i_stat)
+       call memocc(i_stat,i_all,'fion',subname)
 
     end if
 

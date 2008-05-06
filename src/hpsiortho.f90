@@ -146,6 +146,7 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
      if(nspinor==4) nsoffset=1
 
      oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
+
      select case(geocode)
         case('F')
            call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
@@ -529,8 +530,6 @@ subroutine trans_address(nvctrp,nvctr,i,iorb,i1,i2)
 !!$     i2=iorb
 !!$  end if
 end subroutine trans_address
-
-
 
 subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
      nspin,psi,hpsi,psit)

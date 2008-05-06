@@ -1,570 +1,362 @@
-       SUBROUTINE SYN_REPEATED_PER(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3)
-       implicit real(kind=8) (a-h,o-z)
-       dimension  x(0:nd1,0:nd2,0:nd3)
-       ALLOCATABLE XX(:),YY(:),WW(:)
-
-       IF (NUM_TRANS.GE.1)  THEN
-
-         ALLOCATE(YY((ND1+1)*(ND2+1)*(ND3+1)))
-         ALLOCATE(XX((ND1+1)*(ND2+1)*(ND3+1)))
-
-       ENDIF
-
-       IF (NUM_TRANS.GE.2) THEN
-
-         NN1=(ND1+1)/2-1
-         NN2=(ND2+1)/2-1
-         NN3=(ND3+1)/2-1
-
-         ALLOCATE(WW((NN1+1)*(NN2+1)*(NN3+1)))
-
-         DO I_TRANS=1,NUM_TRANS-1
-
-           N1=2*(N1+1)-1
-           N2=2*(N2+1)-1
-           N3=2*(N3+1)-1
-
-           IF (N1.GT.ND1) STOP 'N1 BEYOND BORDERS'
-           IF (N2.GT.ND2) STOP 'N2 BEYOND BORDERS'
-           IF (N3.GT.ND3) STOP 'N3 BEYOND BORDERS'
-
-           I=1
-           DO I3=0,N3
-           DO I2=0,N2
-           DO I1=0,N1
-                 XX(I)=X(I1,I2,I3)
-                 I=I+1
-           ENDDO
-           ENDDO
-           ENDDO
-
-           CALL SYNTHESE_PER(N1,N2,N3,XX,YY,WW)
-
-           I=1
-           DO I3=0,N3
-           DO I2=0,N2
-           DO I1=0,N1
-                 X(I1,I2,I3)=YY(I)
-                 I=I+1
-           ENDDO
-           ENDDO
-           ENDDO
-
-         ENDDO
-
-         DEALLOCATE(WW)
-
-       ENDIF
-
-       IF (NUM_TRANS.GE.1) THEN
-
-         N1=2*(N1+1)-1
-         N2=2*(N2+1)-1
-         N3=2*(N3+1)-1
-
-         CALL SYNTHESE_PER_SELF(N1,N2,N3,X,XX,YY)
-         DEALLOCATE(XX,YY)
-
-       ENDIF
-
-       END
-
-
-
-       SUBROUTINE ANA_REPEATED_PER(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3)
-       implicit real(kind=8) (a-h,o-z)
-       dimension  x(0:nd1,0:nd2,0:nd3)
-       ALLOCATABLE XX(:),YY(:),WW(:) 
-
-       N1=ND1
-       N2=ND2
-       N3=ND3
-
-       IF (NUM_TRANS.GE.1)  THEN
-
-         ALLOCATE(YY((ND1+1)*(ND2+1)*(ND3+1))) 
-         ALLOCATE(XX((ND1+1)*(ND2+1)*(ND3+1)))
-
-         CALL ANALYSE_PER_SELF(N1,N2,N3,X,YY,XX)
-
-         N1=(N1+1)/2-1
-         N2=(N2+1)/2-1
-         N3=(N3+1)/2-1
-
-       ENDIF
-
-       IF (NUM_TRANS.GE.2) THEN
-
-         ALLOCATE(WW((N1+1)*(N2+1)*(N3+1)))
-
-         DO I_TRANS=2,NUM_TRANS
-
-           I=1
-           DO I3=0,N3
-           DO I2=0,N2
-           DO I1=0,N1
-                 XX(I)=X(I1,I2,I3)
-                 I=I+1
-           ENDDO
-           ENDDO
-           ENDDO
-
-           CALL ANALYSE_PER(N1,N2,N3,XX,YY,WW)
- 
-           I=1
-           DO I3=0,N3
-           DO I2=0,N2
-           DO I1=0,N1
-                 X(I1,I2,I3)=YY(I)
-                 I=I+1
-           ENDDO
-           ENDDO
-           ENDDO
-
-           N1=(N1+1)/2-1
-           N2=(N2+1)/2-1
-           N3=(N3+1)/2-1
-
-         ENDDO
- 
-         DEALLOCATE(WW)
-
-       ENDIF
-
-       IF (NUM_TRANS.GE.1) THEN 
-         DEALLOCATE(YY,XX)         
-       ENDIF 
-
-       END
-
-
-
-
-       subroutine SYNTHESE_PER(nd1,nd2,nd3,x,y,ww)
-! A periodic synthesis (BACKWARD) wavelet transformation
-! The input array x is not overwritten
-        implicit real(kind=8) (a-h,o-z)
-        dimension  x(0:nd1,0:nd2,0:nd3)
-        dimension ww(0:nd1,0:nd2,0:nd3)
-        dimension  y(0:nd1,0:nd2,0:nd3)
-
-! i1,i2,i3 -> i2,i3,I1
-        nt=(nd2+1)*(nd3+1)
-        call  SYN_ROT_PER(nd1,nt,x,y)
-! i2,i3,I1 -> i3,I1,I2
-        nt=(nd3+1)*(nd1+1)
-        call  SYN_ROT_PER(nd2,nt,y,ww)
-! i3,I1,I2  -> I1,I2,I3
-        nt=(nd1+1)*(nd2+1)
-        call  SYN_ROT_PER(nd3,nt,ww,y)
-
-        return
-        end
-
-       subroutine SYNTHESE_PER_SELF(nd1,nd2,nd3,x,y,ww)
-! A periodic synthesis (BACKWARD) wavelet transformation
-! The input array x is not overwritten
-        implicit real(kind=8) (a-h,o-z)
-        dimension  x(0:nd1,0:nd2,0:nd3)
-        dimension ww(0:nd1,0:nd2,0:nd3)
-        dimension  y(0:nd1,0:nd2,0:nd3)
-
-! i1,i2,i3 -> i2,i3,I1
-        nt=(nd2+1)*(nd3+1)
-        call  SYN_ROT_PER(nd1,nt,x,y)
-! i2,i3,I1 -> i3,I1,I2
-        nt=(nd3+1)*(nd1+1)
-        call  SYN_ROT_PER(nd2,nt,y,ww)
-! i3,I1,I2  -> I1,I2,I3
-        nt=(nd1+1)*(nd2+1)
-        call  SYN_ROT_PER(nd3,nt,ww,x)
-
-        return
-        end
-
-
-        subroutine ANALYSE_PER(nd1,nd2,nd3,y,x,ww)
-! An analysis (FORWARD) periodic wavelet transformation
-! The input array y is NOT overwritten
-        implicit real(kind=8) (a-h,o-z)
-        dimension  x(0:nd1,0:nd2,0:nd3)
-        dimension ww(0:nd1,0:nd2,0:nd3)
-        dimension  y(0:nd1,0:nd2,0:nd3)
-
-! I1,I2,I3 -> I2,I3,i1
-        nt=(nd2+1)*(nd3+1)
-        call  ANA_ROT_PER(nd1,nt,y,x)
-! I2,I3,i1 -> I3,i1,i2
-        nt=(nd3+1)*(nd1+1)
-        call  ANA_ROT_PER(nd2,nt,x,ww)
-! I3,i1,i2 -> i1,i2,i3
-        nt=(nd1+1)*(nd2+1)
-        call  ANA_ROT_PER(nd3,nt,ww,x)
-
-        return
-        end
-
-        subroutine ANALYSE_PER_SELF(nd1,nd2,nd3,y,x,ww)
-! An analysis (FORWARD) periodic wavelet transformation
-! The input array y is NOT overwritten
-        implicit real(kind=8) (a-h,o-z)
-        dimension  x(0:nd1,0:nd2,0:nd3)
-        dimension ww(0:nd1,0:nd2,0:nd3)
-        dimension  y(0:nd1,0:nd2,0:nd3)
-
-! I1,I2,I3 -> I2,I3,i1
-        nt=(nd2+1)*(nd3+1)
-        call  ANA_ROT_PER(nd1,nt,y,x)
-! I2,I3,i1 -> I3,i1,i2
-        nt=(nd3+1)*(nd1+1)
-        call  ANA_ROT_PER(nd2,nt,x,ww)
-! I3,i1,i2 -> i1,i2,i3
-        nt=(nd1+1)*(nd2+1)
-        call  ANA_ROT_PER(nd3,nt,ww,y)
-
-        return
-        end
-
-
-      SUBROUTINE ANA_ROT_PER(RIGHT,NT,C,CD_1)
-!
-!      FORWARD WAVELET TRANSFORM, ANALYSIS, PERIODIC
-!
-       implicit real(kind=8) (a-h,o-z)
-       INTEGER RIGHT
-       DIMENSION C(0:RIGHT,NT),CD_1(NT,0:RIGHT)
-       ALLOCATABLE MOD_MY(:)
-        parameter(m=8)
-        real(kind=8) ch(-8:9) ,cg(-8:9)
-!       Daubechy S16
-        data ch  /  0.d0 , -0.0033824159510050025955D0, & 
-                -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
-                 0.0076074873249766081919D0, -0.14329423835127266284D0, & 
-                -0.061273359067811077843D0, 0.48135965125905339159D0,  & 
-                 0.77718575169962802862D0,0.36444189483617893676D0, &
-                -0.051945838107881800736D0,-0.027219029917103486322D0, &
-                 0.049137179673730286787D0,0.0038087520138944894631D0, &
-                -0.014952258337062199118D0,-0.00030292051472413308126D0, &
-                 0.0018899503327676891843D0 , 0.d0 /
-        data cg  / 0.d0 , -0.0018899503327676891843D0, &
-                -0.00030292051472413308126D0, 0.014952258337062199118D0, &
-                 0.0038087520138944894631D0, -0.049137179673730286787D0, &
-                -0.027219029917103486322D0, 0.051945838107881800736D0, &
-                 0.36444189483617893676D0, -0.77718575169962802862D0, &
-                 0.48135965125905339159D0, 0.061273359067811077843D0, &
-                -0.14329423835127266284D0, -0.0076074873249766081919D0, &
-                 0.031695087811525991431D0, 0.00054213233180001068935D0, &
-                -0.0033824159510050025955D0 , 0.d0 /
-
-       LENC=RIGHT+1
-       LEN_2=LENC/2
-
-       MOD_LEFT=1-M
-       MOD_RIGHT=2*LEN_2-2+M
-
-       ALLOCATE(MOD_MY(MOD_LEFT:MOD_RIGHT))
-
-       DO I=MOD_LEFT,MOD_RIGHT
-         MOD_MY(I)=MODULO(I,LENC)
-       ENDDO
-
-!       nflop=NT*LEN_2*2*M*4
-!       call system_clock(ncount1,ncount_rate,ncount_max)
-
-       DO IT=1,NT-11,12
-         DO I=0,LEN_2-1
-           I2=2*I
-
-           CI_0 =0.D0
-           CI_1 =0.D0
-           CI_2 =0.D0
-           CI_3 =0.D0
-           CI_4 =0.D0
-           CI_5 =0.D0
-           CI_6 =0.D0
-           CI_7 =0.D0
-           CI_8 =0.D0
-           CI_9 =0.D0
-           CI_10=0.D0
-           CI_11=0.D0
-
-           DI_0 =0.D0
-           DI_1 =0.D0
-           DI_2 =0.D0
-           DI_3 =0.D0
-           DI_4 =0.D0
-           DI_5 =0.D0
-           DI_6 =0.D0
-           DI_7 =0.D0
-           DI_8 =0.D0
-           DI_9 =0.D0
-           DI_10=0.D0
-           DI_11=0.D0
-
-           DO J=1-M,M
-             JI2=MOD_MY(J+I2)
-
-             CHJ=CH(J)
-             CGJ=CG(J) 
-
-             CI_0 =CI_0 +CHJ*C(JI2,IT+0 )
-             CI_1 =CI_1 +CHJ*C(JI2,IT+1 )
-             CI_2 =CI_2 +CHJ*C(JI2,IT+2 )
-             CI_3 =CI_3 +CHJ*C(JI2,IT+3 )
-
-             CI_4 =CI_4 +CHJ*C(JI2,IT+4 )
-             CI_5 =CI_5 +CHJ*C(JI2,IT+5 )
-             CI_6 =CI_6 +CHJ*C(JI2,IT+6 )
-             CI_7 =CI_7 +CHJ*C(JI2,IT+7 )
-             CI_8 =CI_8  +CHJ*C(JI2,IT+8  )
-             CI_9 =CI_9  +CHJ*C(JI2,IT+9  )
-             CI_10=CI_10 +CHJ*C(JI2,IT+10 )
-             CI_11=CI_11 +CHJ*C(JI2,IT+11 )
-
-             DI_0 =DI_0 +CGJ*C(JI2,IT+0 )
-             DI_1 =DI_1 +CGJ*C(JI2,IT+1 )
-             DI_2 =DI_2 +CGJ*C(JI2,IT+2 )
-             DI_3 =DI_3 +CGJ*C(JI2,IT+3 )
-
-             DI_4 =DI_4 +CGJ*C(JI2,IT+4 )
-             DI_5 =DI_5 +CGJ*C(JI2,IT+5 )
-             DI_6 =DI_6 +CGJ*C(JI2,IT+6 )
-             DI_7 =DI_7 +CGJ*C(JI2,IT+7 )
-             DI_8 =DI_8 +CGJ*C(JI2,IT+8 )
-             DI_9 =DI_9 +CGJ*C(JI2,IT+9 )
-             DI_10=DI_10+CGJ*C(JI2,IT+10)
-             DI_11=DI_11+CGJ*C(JI2,IT+11)
-
-           ENDDO
-
-           CD_1(IT+0,I)=CI_0
-           CD_1(IT+1,I)=CI_1
-           CD_1(IT+2,I)=CI_2
-           CD_1(IT+3,I)=CI_3
-           CD_1(IT+4,I)=CI_4
-           CD_1(IT+5,I)=CI_5
-           CD_1(IT+6,I)=CI_6
-           CD_1(IT+7,I)=CI_7
-           CD_1(IT+8 ,I)=CI_8 
-           CD_1(IT+9 ,I)=CI_9 
-           CD_1(IT+10,I)=CI_10
-           CD_1(IT+11,I)=CI_11
-
-           IL2=LEN_2+I
-
-           CD_1(IT+0,IL2)=DI_0
-           CD_1(IT+1,IL2)=DI_1
-           CD_1(IT+2,IL2)=DI_2
-           CD_1(IT+3,IL2)=DI_3
-           CD_1(IT+4,IL2)=DI_4
-           CD_1(IT+5,IL2)=DI_5
-           CD_1(IT+6,IL2)=DI_6
-           CD_1(IT+7,IL2)=DI_7
-           CD_1(IT+8 ,IL2)=DI_8 
-           CD_1(IT+9 ,IL2)=DI_9 
-           CD_1(IT+10,IL2)=DI_10
-           CD_1(IT+11,IL2)=DI_11
-
-         ENDDO
-       ENDDO
-
-       IT0=IT
-
-       DO IT=IT0,NT
-         DO I=0,LEN_2-1
-           I2=2*I
-           CI=0.D0
-           DI=0.D0
-           DO J=1-M,M
-             JI2=MOD_MY(J+I2)
-             CI=CI+CH(J)*C(JI2,IT)
-             DI=DI+CG(J)*C(JI2,IT)
-           ENDDO
-           CD_1(IT,I)=CI
-           CD_1(IT,LEN_2+I)=DI
-         ENDDO
-       ENDDO
-
-!        call system_clock(ncount2,ncount_rate,ncount_max)
-!        tel=dble(ncount2-ncount1)/dble(ncount_rate)
-!        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'ana_rot_per',tel,1.d-6*nflop/tel,nflop
-       DEALLOCATE(MOD_MY) 
-
-       END
-
-
-
-
-
-      SUBROUTINE SYN_ROT_PER(RIGHT1,NT,CD,C1)
-!
-!     BACKWARD WAVELET TRANSFORM, SYNTHESIS, PERIODIC
-!
-      implicit real(kind=8) (a-h,o-z)
-      INTEGER RIGHT1
-      DIMENSION CD(0:RIGHT1,NT),C1(NT,0:RIGHT1)
-      ALLOCATABLE MOD_MY(:)
-        parameter(m=8)
-        real(kind=8) ch(-8:9) ,cg(-8:9)
-!       Daubechy S16
-        data ch  /  0.d0 , -0.0033824159510050025955D0, & 
-                -0.00054213233180001068935D0, 0.031695087811525991431D0, & 
-                 0.0076074873249766081919D0, -0.14329423835127266284D0, & 
-                -0.061273359067811077843D0, 0.48135965125905339159D0,  & 
-                 0.77718575169962802862D0,0.36444189483617893676D0, &
-                -0.051945838107881800736D0,-0.027219029917103486322D0, &
-                 0.049137179673730286787D0,0.0038087520138944894631D0, &
-                -0.014952258337062199118D0,-0.00030292051472413308126D0, &
-                 0.0018899503327676891843D0 , 0.d0 /
-        data cg  / 0.d0 , -0.0018899503327676891843D0, &
-                -0.00030292051472413308126D0, 0.014952258337062199118D0, &
-                 0.0038087520138944894631D0, -0.049137179673730286787D0, &
-                -0.027219029917103486322D0, 0.051945838107881800736D0, &
-                 0.36444189483617893676D0, -0.77718575169962802862D0, &
-                 0.48135965125905339159D0, 0.061273359067811077843D0, &
-                -0.14329423835127266284D0, -0.0076074873249766081919D0, &
-                 0.031695087811525991431D0, 0.00054213233180001068935D0, &
-                -0.0033824159510050025955D0 , 0.d0 /
-       M_2=M/2
-       LEN_2=(RIGHT1+1)/2
-
-       MOD_LEFT=-M_2
-       MOD_RIGHT=LEN_2-1+M_2
-
-       ALLOCATE(MOD_MY(MOD_LEFT:MOD_RIGHT))
-
-       DO I=MOD_LEFT,MOD_RIGHT
-         MOD_MY(I)=MODULO(I,LEN_2)
-       ENDDO
-
-!       nflop=NT*LEN_2*(2*M_2+1)*8
-!       call system_clock(ncount1,ncount_rate,ncount_max)
-
-        DO IT=1,NT-11,12
-          DO I=0,LEN_2-1
-
-            CI2_0 =0.D0
-            CI2_1 =0.D0
-            CI2_2 =0.D0
-            CI2_3 =0.D0
-            CI2_4 =0.D0
-            CI2_5 =0.D0
-            CI2_6 =0.D0
-            CI2_7 =0.D0
-            CI2_8  =0.D0
-            CI2_9  =0.D0
-            CI2_10 =0.D0
-            CI2_11 =0.D0
-
-            CI21_0=0.D0
-            CI21_1=0.D0
-            CI21_2=0.D0
-            CI21_3=0.D0
-            CI21_4=0.D0
-            CI21_5=0.D0
-            CI21_6=0.D0
-            CI21_7=0.D0
-            CI21_8 =0.D0
-            CI21_9 =0.D0
-            CI21_10=0.D0
-            CI21_11=0.D0
-
-            DO J=-M_2,M_2
-              I_J=MOD_MY(I-J)
-
-              I_J2=I_J+LEN_2
-
-              J2=2*J
-              J21=J2+1
-
-              CHJ2=CH(J2)
-              CGJ2=CG(J2)
-
-              CHJ21=CH(J21)
-              CGJ21=CG(J21)
-
-              CI2_0  = CI2_0  + CHJ2*CD(I_J,IT+0) + CGJ2*CD(I_J2,IT+0)
-              CI2_1  = CI2_1  + CHJ2*CD(I_J,IT+1) + CGJ2*CD(I_J2,IT+1)
-              CI2_2  = CI2_2  + CHJ2*CD(I_J,IT+2) + CGJ2*CD(I_J2,IT+2)
-              CI2_3  = CI2_3  + CHJ2*CD(I_J,IT+3) + CGJ2*CD(I_J2,IT+3)
-              CI2_4  = CI2_4  + CHJ2*CD(I_J,IT+4) + CGJ2*CD(I_J2,IT+4)
-              CI2_5  = CI2_5  + CHJ2*CD(I_J,IT+5) + CGJ2*CD(I_J2,IT+5)
-              CI2_6  = CI2_6  + CHJ2*CD(I_J,IT+6) + CGJ2*CD(I_J2,IT+6)
-              CI2_7  = CI2_7  + CHJ2*CD(I_J,IT+7) + CGJ2*CD(I_J2,IT+7)
-              CI2_8   = CI2_8   + CHJ2*CD(I_J,IT+8 ) + CGJ2*CD(I_J2,IT+8 )
-              CI2_9   = CI2_9   + CHJ2*CD(I_J,IT+9 ) + CGJ2*CD(I_J2,IT+9 )
-              CI2_10  = CI2_10  + CHJ2*CD(I_J,IT+10) + CGJ2*CD(I_J2,IT+10)
-              CI2_11  = CI2_11  + CHJ2*CD(I_J,IT+11) + CGJ2*CD(I_J2,IT+11)
-
-              CI21_0 = CI21_0 + CHJ21*CD(I_J,IT+0) + CGJ21*CD(I_J2,IT+0)
-              CI21_1 = CI21_1 + CHJ21*CD(I_J,IT+1) + CGJ21*CD(I_J2,IT+1)
-              CI21_2 = CI21_2 + CHJ21*CD(I_J,IT+2) + CGJ21*CD(I_J2,IT+2)
-              CI21_3 = CI21_3 + CHJ21*CD(I_J,IT+3) + CGJ21*CD(I_J2,IT+3)
-              CI21_4 = CI21_4 + CHJ21*CD(I_J,IT+4) + CGJ21*CD(I_J2,IT+4)
-              CI21_5 = CI21_5 + CHJ21*CD(I_J,IT+5) + CGJ21*CD(I_J2,IT+5)
-              CI21_6 = CI21_6 + CHJ21*CD(I_J,IT+6) + CGJ21*CD(I_J2,IT+6)
-              CI21_7 = CI21_7 + CHJ21*CD(I_J,IT+7) + CGJ21*CD(I_J2,IT+7)
-              CI21_8  = CI21_8  + CHJ21*CD(I_J,IT+8 ) + CGJ21*CD(I_J2,IT+8 )
-              CI21_9  = CI21_9  + CHJ21*CD(I_J,IT+9 ) + CGJ21*CD(I_J2,IT+9 )
-              CI21_10 = CI21_10 + CHJ21*CD(I_J,IT+10) + CGJ21*CD(I_J2,IT+10)
-              CI21_11 = CI21_11 + CHJ21*CD(I_J,IT+11) + CGJ21*CD(I_J2,IT+11)
-
-            ENDDO
-
-            I2=2*I
-            I21=I2+1
-
-            C1(IT+0,I2 ) = CI2_0
-            C1(IT+1,I2 ) = CI2_1
-            C1(IT+2,I2 ) = CI2_2
-            C1(IT+3,I2 ) = CI2_3
-            C1(IT+4,I2 ) = CI2_4
-            C1(IT+5,I2 ) = CI2_5
-            C1(IT+6,I2 ) = CI2_6
-            C1(IT+7,I2 ) = CI2_7
-            C1(IT+8 ,I2 ) = CI2_8 
-            C1(IT+9 ,I2 ) = CI2_9 
-            C1(IT+10,I2 ) = CI2_10
-            C1(IT+11,I2 ) = CI2_11
-
-            C1(IT+0,I21) = CI21_0 
-            C1(IT+1,I21) = CI21_1 
-            C1(IT+2,I21) = CI21_2 
-            C1(IT+3,I21) = CI21_3 
-            C1(IT+4,I21) = CI21_4 
-            C1(IT+5,I21) = CI21_5 
-            C1(IT+6,I21) = CI21_6 
-            C1(IT+7,I21) = CI21_7 
-            C1(IT+8 ,I21) = CI21_8  
-            C1(IT+9 ,I21) = CI21_9  
-            C1(IT+10,I21) = CI21_10 
-            C1(IT+11,I21) = CI21_11 
-
-          ENDDO
-        ENDDO
-
-       IT0=IT
-
-       DO IT=IT0,NT
-         DO I=0,LEN_2-1
-           CI2 =0.D0
-           CI21=0.D0
-           DO J=-M_2,M_2
-             I_J=MOD_MY(I-J)
-             CI2  = CI2  + CH(2*J  )*CD(I_J,IT) + CG(2*J  )*CD(I_J+LEN_2,IT)
-             CI21 = CI21 + CH(2*J+1)*CD(I_J,IT) + CG(2*J+1)*CD(I_J+LEN_2,IT)
-           ENDDO
-           C1(IT,2*I  ) = CI2
-           C1(IT,2*I+1) = CI21
-         ENDDO
-       ENDDO
-
-!        call system_clock(ncount2,ncount_rate,ncount_max)
-!        tel=dble(ncount2-ncount1)/dble(ncount_rate)
-!        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'syn_rot_per',tel,1.d-6*nflop/tel,nflop
-       DEALLOCATE(MOD_MY)
-
-      END
+subroutine ana_rot_per(right,nt,c,cd_1)
+  !
+  !      forward wavelet transform, analysis, periodic
+  !
+  use module_base
+  implicit none
+  integer, intent(in) :: right,nt
+  real(wp), dimension(0:right,nt), intent(in) :: c
+  real(wp), dimension(nt,0:right), intent(out) :: cd_1
+  !local variables
+  character(len=*), parameter :: subname='ana_rot_per'
+  integer, parameter :: m=8
+  integer :: i_all,i_stat,lenc,len_2,mod_left,mod_right,i,it,i2,it0,j,ji2,il2
+  real(wp) :: ci_0,ci_1,ci_2, ci_3,ci_4,ci_5,ci_6,ci_7,ci_8,ci_9,ci_10,ci_11,ci,cgj,chj
+  real(wp) :: di_0,di_1,di_2, di_3,di_4,di_5,di_6,di_7,di_8,di_9,di_10,di_11,di
+  real(wp), dimension(:), allocatable :: mod_my
+  real(wp) ch(-8:9) ,cg(-8:9)
+  !       daubechy s16
+  data ch  /  0.0_wp , -0.0033824159510050025955_wp, & 
+       -0.00054213233180001068935_wp, 0.031695087811525991431_wp, & 
+       0.0076074873249766081919_wp, -0.14329423835127266284_wp, & 
+       -0.061273359067811077843_wp, 0.48135965125905339159_wp,  & 
+       0.77718575169962802862_wp,0.36444189483617893676_wp, &
+       -0.051945838107881800736_wp,-0.027219029917103486322_wp, &
+       0.049137179673730286787_wp,0.0038087520138944894631_wp, &
+       -0.014952258337062199118_wp,-0.00030292051472413308126_wp, &
+       0.0018899503327676891843_wp , 0.0_wp /
+  data cg  / 0.0_wp , -0.0018899503327676891843_wp, &
+       -0.00030292051472413308126_wp, 0.014952258337062199118_wp, &
+       0.0038087520138944894631_wp, -0.049137179673730286787_wp, &
+       -0.027219029917103486322_wp, 0.051945838107881800736_wp, &
+       0.36444189483617893676_wp, -0.77718575169962802862_wp, &
+       0.48135965125905339159_wp, 0.061273359067811077843_wp, &
+       -0.14329423835127266284_wp, -0.0076074873249766081919_wp, &
+       0.031695087811525991431_wp, 0.00054213233180001068935_wp, &
+       -0.0033824159510050025955_wp , 0.0_wp /
+
+  lenc=right+1
+  len_2=lenc/2
+
+  mod_left=1-m
+  mod_right=2*len_2-2+m
+
+  allocate(mod_my(mod_left:mod_right+ndebug),stat=i_stat)
+  call memocc(i_stat,mod_my,'mod_my',subname)
+
+  do i=mod_left,mod_right
+     mod_my(i)=modulo(i,lenc)
+  enddo
+
+  !       nflop=nt*len_2*2*m*4
+  !       call system_clock(ncount1,ncount_rate,ncount_max)
+
+  do it=1,nt-11,12
+     do i=0,len_2-1
+        i2=2*i
+
+        ci_0 =0.0_wp
+        ci_1 =0.0_wp
+        ci_2 =0.0_wp
+        ci_3 =0.0_wp
+        ci_4 =0.0_wp
+        ci_5 =0.0_wp
+        ci_6 =0.0_wp
+        ci_7 =0.0_wp
+        ci_8 =0.0_wp
+        ci_9 =0.0_wp
+        ci_10=0.0_wp
+        ci_11=0.0_wp
+
+        di_0 =0.0_wp
+        di_1 =0.0_wp
+        di_2 =0.0_wp
+        di_3 =0.0_wp
+        di_4 =0.0_wp
+        di_5 =0.0_wp
+        di_6 =0.0_wp
+        di_7 =0.0_wp
+        di_8 =0.0_wp
+        di_9 =0.0_wp
+        di_10=0.0_wp
+        di_11=0.0_wp
+
+        do j=1-m,m
+           ji2=mod_my(j+i2)
+
+           chj=ch(j)
+           cgj=cg(j) 
+
+           ci_0 =ci_0 +chj*c(ji2,it+0 )
+           ci_1 =ci_1 +chj*c(ji2,it+1 )
+           ci_2 =ci_2 +chj*c(ji2,it+2 )
+           ci_3 =ci_3 +chj*c(ji2,it+3 )
+
+           ci_4 =ci_4 +chj*c(ji2,it+4 )
+           ci_5 =ci_5 +chj*c(ji2,it+5 )
+           ci_6 =ci_6 +chj*c(ji2,it+6 )
+           ci_7 =ci_7 +chj*c(ji2,it+7 )
+           ci_8 =ci_8  +chj*c(ji2,it+8  )
+           ci_9 =ci_9  +chj*c(ji2,it+9  )
+           ci_10=ci_10 +chj*c(ji2,it+10 )
+           ci_11=ci_11 +chj*c(ji2,it+11 )
+
+           di_0 =di_0 +cgj*c(ji2,it+0 )
+           di_1 =di_1 +cgj*c(ji2,it+1 )
+           di_2 =di_2 +cgj*c(ji2,it+2 )
+           di_3 =di_3 +cgj*c(ji2,it+3 )
+
+           di_4 =di_4 +cgj*c(ji2,it+4 )
+           di_5 =di_5 +cgj*c(ji2,it+5 )
+           di_6 =di_6 +cgj*c(ji2,it+6 )
+           di_7 =di_7 +cgj*c(ji2,it+7 )
+           di_8 =di_8 +cgj*c(ji2,it+8 )
+           di_9 =di_9 +cgj*c(ji2,it+9 )
+           di_10=di_10+cgj*c(ji2,it+10)
+           di_11=di_11+cgj*c(ji2,it+11)
+
+        enddo
+
+        cd_1(it+0,i)=ci_0
+        cd_1(it+1,i)=ci_1
+        cd_1(it+2,i)=ci_2
+        cd_1(it+3,i)=ci_3
+        cd_1(it+4,i)=ci_4
+        cd_1(it+5,i)=ci_5
+        cd_1(it+6,i)=ci_6
+        cd_1(it+7,i)=ci_7
+        cd_1(it+8 ,i)=ci_8 
+        cd_1(it+9 ,i)=ci_9 
+        cd_1(it+10,i)=ci_10
+        cd_1(it+11,i)=ci_11
+
+        il2=len_2+i
+
+        cd_1(it+0,il2)=di_0
+        cd_1(it+1,il2)=di_1
+        cd_1(it+2,il2)=di_2
+        cd_1(it+3,il2)=di_3
+        cd_1(it+4,il2)=di_4
+        cd_1(it+5,il2)=di_5
+        cd_1(it+6,il2)=di_6
+        cd_1(it+7,il2)=di_7
+        cd_1(it+8 ,il2)=di_8 
+        cd_1(it+9 ,il2)=di_9 
+        cd_1(it+10,il2)=di_10
+        cd_1(it+11,il2)=di_11
+
+     enddo
+  enddo
+
+  it0=it
+
+  do it=it0,nt
+     do i=0,len_2-1
+        i2=2*i
+        ci=0.0_wp
+        di=0.0_wp
+        do j=1-m,m
+           ji2=mod_my(j+i2)
+           ci=ci+ch(j)*c(ji2,it)
+           di=di+cg(j)*c(ji2,it)
+        enddo
+        cd_1(it,i)=ci
+        cd_1(it,len_2+i)=di
+     enddo
+  enddo
+
+  !        call system_clock(ncount2,ncount_rate,ncount_max)
+  !        tel=dble(ncount2-ncount1)/dble(ncount_rate)
+  !        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'ana_rot_per',tel,1.d-6*nflop/tel,nflop
+  i_all=-product(shape(mod_my))*kind(mod_my)
+  deallocate(mod_my,stat=i_stat) 
+  call memocc(i_stat,i_all,'mod_my',subname)
+
+end subroutine ana_rot_per
+
+
+subroutine syn_rot_per(right1,nt,cd,c1)
+  !
+  !     backward wavelet transform, synthesis, periodic
+  !
+  use module_base
+  implicit none
+  integer, intent(in) :: right1,nt
+  real(wp), dimension(0:right1,nt), intent(in) :: cd
+  real(wp), dimension(nt,0:right1), intent(out) :: c1
+  !local variables
+  character(len=*), parameter :: subname='syn_rot_per'
+  integer, parameter :: m=8
+  integer :: i_all,i_stat,lenc,len_2,mod_left,mod_right,i,it,it0,i2,i_j,j,ji2,il2,m_2,i21,i_j2,j2,j21
+  real(wp) :: ci2_0,ci2_1,ci2_2, ci2_3,ci2_4,ci2_5,ci2_6,ci2_7,ci2_8,ci2_9,ci2_10,ci2_11,ci2
+  real(wp) :: ci21_0,ci21_1,ci21_2, ci21_3,ci21_4,ci21_5,ci21_6,ci21_7,ci21_8,ci21_9,ci21_10
+  real(wp) :: ci21_11,ci21,cgj2,chj2,cgj21,chj21
+  real(wp), dimension(:), allocatable :: mod_my
+  real(wp) ch(-8:9) ,cg(-8:9)
+  !       daubechy s16
+  data ch  /  0.0_wp , -0.0033824159510050025955_wp, & 
+       -0.00054213233180001068935_wp, 0.031695087811525991431_wp, & 
+       0.0076074873249766081919_wp, -0.14329423835127266284_wp, & 
+       -0.061273359067811077843_wp, 0.48135965125905339159_wp,  & 
+       0.77718575169962802862_wp,0.36444189483617893676_wp, &
+       -0.051945838107881800736_wp,-0.027219029917103486322_wp, &
+       0.049137179673730286787_wp,0.0038087520138944894631_wp, &
+       -0.014952258337062199118_wp,-0.00030292051472413308126_wp, &
+       0.0018899503327676891843_wp , 0.0_wp /
+  data cg  / 0.0_wp , -0.0018899503327676891843_wp, &
+       -0.00030292051472413308126_wp, 0.014952258337062199118_wp, &
+       0.0038087520138944894631_wp, -0.049137179673730286787_wp, &
+       -0.027219029917103486322_wp, 0.051945838107881800736_wp, &
+       0.36444189483617893676_wp, -0.77718575169962802862_wp, &
+       0.48135965125905339159_wp, 0.061273359067811077843_wp, &
+       -0.14329423835127266284_wp, -0.0076074873249766081919_wp, &
+       0.031695087811525991431_wp, 0.00054213233180001068935_wp, &
+       -0.0033824159510050025955_wp , 0.0_wp /
+
+  m_2=m/2
+  len_2=(right1+1)/2
+
+  mod_left=-m_2
+  mod_right=len_2-1+m_2
+
+  allocate(mod_my(mod_left:mod_right+ndebug),stat=i_stat)
+  call memocc(i_stat,mod_my,'mod_my',subname)
+
+
+  do i=mod_left,mod_right
+     mod_my(i)=modulo(i,len_2)
+  enddo
+
+  !       nflop=nt*len_2*(2*m_2+1)*8
+  !       call system_clock(ncount1,ncount_rate,ncount_max)
+
+  do it=1,nt-11,12
+     do i=0,len_2-1
+
+        ci2_0 =0.0_wp
+        ci2_1 =0.0_wp
+        ci2_2 =0.0_wp
+        ci2_3 =0.0_wp
+        ci2_4 =0.0_wp
+        ci2_5 =0.0_wp
+        ci2_6 =0.0_wp
+        ci2_7 =0.0_wp
+        ci2_8  =0.0_wp
+        ci2_9  =0.0_wp
+        ci2_10 =0.0_wp
+        ci2_11 =0.0_wp
+
+        ci21_0=0.0_wp
+        ci21_1=0.0_wp
+        ci21_2=0.0_wp
+        ci21_3=0.0_wp
+        ci21_4=0.0_wp
+        ci21_5=0.0_wp
+        ci21_6=0.0_wp
+        ci21_7=0.0_wp
+        ci21_8 =0.0_wp
+        ci21_9 =0.0_wp
+        ci21_10=0.0_wp
+        ci21_11=0.0_wp
+
+        do j=-m_2,m_2
+           i_j=mod_my(i-j)
+
+           i_j2=i_j+len_2
+
+           j2=2*j
+           j21=j2+1
+
+           chj2=ch(j2)
+           cgj2=cg(j2)
+
+           chj21=ch(j21)
+           cgj21=cg(j21)
+
+           ci2_0  = ci2_0  + chj2*cd(i_j,it+0) + cgj2*cd(i_j2,it+0)
+           ci2_1  = ci2_1  + chj2*cd(i_j,it+1) + cgj2*cd(i_j2,it+1)
+           ci2_2  = ci2_2  + chj2*cd(i_j,it+2) + cgj2*cd(i_j2,it+2)
+           ci2_3  = ci2_3  + chj2*cd(i_j,it+3) + cgj2*cd(i_j2,it+3)
+           ci2_4  = ci2_4  + chj2*cd(i_j,it+4) + cgj2*cd(i_j2,it+4)
+           ci2_5  = ci2_5  + chj2*cd(i_j,it+5) + cgj2*cd(i_j2,it+5)
+           ci2_6  = ci2_6  + chj2*cd(i_j,it+6) + cgj2*cd(i_j2,it+6)
+           ci2_7  = ci2_7  + chj2*cd(i_j,it+7) + cgj2*cd(i_j2,it+7)
+           ci2_8   = ci2_8   + chj2*cd(i_j,it+8 ) + cgj2*cd(i_j2,it+8 )
+           ci2_9   = ci2_9   + chj2*cd(i_j,it+9 ) + cgj2*cd(i_j2,it+9 )
+           ci2_10  = ci2_10  + chj2*cd(i_j,it+10) + cgj2*cd(i_j2,it+10)
+           ci2_11  = ci2_11  + chj2*cd(i_j,it+11) + cgj2*cd(i_j2,it+11)
+
+           ci21_0 = ci21_0 + chj21*cd(i_j,it+0) + cgj21*cd(i_j2,it+0)
+           ci21_1 = ci21_1 + chj21*cd(i_j,it+1) + cgj21*cd(i_j2,it+1)
+           ci21_2 = ci21_2 + chj21*cd(i_j,it+2) + cgj21*cd(i_j2,it+2)
+           ci21_3 = ci21_3 + chj21*cd(i_j,it+3) + cgj21*cd(i_j2,it+3)
+           ci21_4 = ci21_4 + chj21*cd(i_j,it+4) + cgj21*cd(i_j2,it+4)
+           ci21_5 = ci21_5 + chj21*cd(i_j,it+5) + cgj21*cd(i_j2,it+5)
+           ci21_6 = ci21_6 + chj21*cd(i_j,it+6) + cgj21*cd(i_j2,it+6)
+           ci21_7 = ci21_7 + chj21*cd(i_j,it+7) + cgj21*cd(i_j2,it+7)
+           ci21_8  = ci21_8  + chj21*cd(i_j,it+8 ) + cgj21*cd(i_j2,it+8 )
+           ci21_9  = ci21_9  + chj21*cd(i_j,it+9 ) + cgj21*cd(i_j2,it+9 )
+           ci21_10 = ci21_10 + chj21*cd(i_j,it+10) + cgj21*cd(i_j2,it+10)
+           ci21_11 = ci21_11 + chj21*cd(i_j,it+11) + cgj21*cd(i_j2,it+11)
+
+        enddo
+
+        i2=2*i
+        i21=i2+1
+
+        c1(it+0,i2 ) = ci2_0
+        c1(it+1,i2 ) = ci2_1
+        c1(it+2,i2 ) = ci2_2
+        c1(it+3,i2 ) = ci2_3
+        c1(it+4,i2 ) = ci2_4
+        c1(it+5,i2 ) = ci2_5
+        c1(it+6,i2 ) = ci2_6
+        c1(it+7,i2 ) = ci2_7
+        c1(it+8 ,i2 ) = ci2_8 
+        c1(it+9 ,i2 ) = ci2_9 
+        c1(it+10,i2 ) = ci2_10
+        c1(it+11,i2 ) = ci2_11
+
+        c1(it+0,i21) = ci21_0 
+        c1(it+1,i21) = ci21_1 
+        c1(it+2,i21) = ci21_2 
+        c1(it+3,i21) = ci21_3 
+        c1(it+4,i21) = ci21_4 
+        c1(it+5,i21) = ci21_5 
+        c1(it+6,i21) = ci21_6 
+        c1(it+7,i21) = ci21_7 
+        c1(it+8 ,i21) = ci21_8  
+        c1(it+9 ,i21) = ci21_9  
+        c1(it+10,i21) = ci21_10 
+        c1(it+11,i21) = ci21_11 
+
+     enddo
+  enddo
+
+  it0=it
+
+  do it=it0,nt
+     do i=0,len_2-1
+        ci2 =0.0_wp
+        ci21=0.0_wp
+        do j=-m_2,m_2
+           i_j=mod_my(i-j)
+           ci2  = ci2  + ch(2*j  )*cd(i_j,it) + cg(2*j  )*cd(i_j+len_2,it)
+           ci21 = ci21 + ch(2*j+1)*cd(i_j,it) + cg(2*j+1)*cd(i_j+len_2,it)
+        enddo
+        c1(it,2*i  ) = ci2
+        c1(it,2*i+1) = ci21
+     enddo
+  enddo
+
+  !        call system_clock(ncount2,ncount_rate,ncount_max)
+  !        tel=dble(ncount2-ncount1)/dble(ncount_rate)
+  !        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'syn_rot_per',tel,1.d-6*nflop/tel,nflop
+  i_all=-product(shape(mod_my))*kind(mod_my)
+  deallocate(mod_my,stat=i_stat) 
+  call memocc(i_stat,i_all,'mod_my',subname)
+
+end subroutine syn_rot_per
 
 
 

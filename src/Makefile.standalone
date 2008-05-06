@@ -77,7 +77,7 @@ SOURCES_CONVOLUTIONS = convolutions/combined_shrink_optim.f90 \
 	convolutions/combined_grow_optim.f90 \
 	convolutions/convolut_ib_optim.f90 \
 	convolutions/conv_per_optim.f90 \
-	convolutions/convolut_simple.f90 
+	convolutions/convolut_common.f90 
 
 MODULES_ABINIT= PSolver/ABINIT-common/defs_basis.F90 \
         PSolver/ABINIT-common/defs_datatypes.F90 \

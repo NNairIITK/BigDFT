@@ -58,7 +58,7 @@ convolution_source = convolutions/combined_shrink_optim.f90 \
 	convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_ib_optim.f90 \
 	convolutions/conv_per_optim.f90 \
-	convolutions/convolut_simple.f90
+	convolutions/convolut_common.f90
 
 else
 convolution_source = convolutions/combined_shrink_simple.f90 \
@@ -66,7 +66,7 @@ convolution_source = convolutions/combined_shrink_simple.f90 \
 	convolutions/combined_shrink_simple.f90 \
 	convolutions/convolut_ib_simple.f90 \
 	convolutions/conv_per_simple.f90 \
-	convolutions/convolut_simple.f90
+	convolutions/convolut_common.f90
 
 endif
 
