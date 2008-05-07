@@ -461,7 +461,6 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
            endif
         enddo
      enddo
-     !print *,iat,'ok',nwarnings
   enddo
   if (iproj.ne.nlpspd%nproj) stop 'incorrect number of projectors created'
   ! projector part finished
@@ -485,7 +484,7 @@ END SUBROUTINE createProjectorsArrays
 
 subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
-     pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinsgn)
+     pkernel,ixc,psi,psit,hpsi,eval,accurex,nscatterarr,ngatherarr,nspin,spinsgn)
   use module_base
   use module_interfaces, except_this_one => import_gaussians
   use module_types
@@ -497,7 +496,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(convolutions_bounds), intent(in) :: bounds
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  character(len=1), intent(in) :: geocode,datacode
+  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
   real(kind=8), intent(in) :: hx,hy,hz
@@ -581,7 +580,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
        occup,wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,1,1,ones,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
-  call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
+  call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,1)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
@@ -624,10 +623,10 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
 END SUBROUTINE import_gaussians
 
-
 subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
-     pkernel,ixc,psi,hpsi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinsgn)
+     norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
+     wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,accurex,&
+     nscatterarr,ngatherarr,nspin,spinsgn)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -641,10 +640,10 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(convolutions_bounds), intent(in) :: bounds
-  character(len=1), intent(in) :: datacode,geocode
+  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
-  integer, intent(inout) :: nspin
+  integer, intent(inout) :: nspin,nvirte,nvirtep,nvirt
   real(kind=8), intent(in) :: hx,hy,hz
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
@@ -655,14 +654,13 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
   real(kind=8), intent(out) :: accurex
   real(kind=8), dimension(norb), intent(out) :: eval
-  real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit
+  real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit,psivirt
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   real(kind=8), parameter :: eps_mach=1.d-12
-  logical :: parallel
   integer, parameter :: ngx=31
   integer :: i,iorb,iorbsc,imatrsc,iorbst,imatrst,i_stat,i_all,ierr,info,jproc,jpst,norbeyou
-  integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbi_max,norbsc,n1i,n2i,n3i
+  integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbsc,n1i,n2i,n3i
   integer :: ispin,norbu,norbd,iorbst2,ist,n2hamovr,nsthamovr,nspinor
   real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol
   logical, dimension(:,:), allocatable :: scorb
@@ -730,12 +728,29 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        & at%npspcode,norbe,norbsc,at%atomnames,at%ntypes,at%iatype,at%iasctype,at%nat,at%natsc,&
        nspin,scorb,norbsc_arr)
 
+  !Check for max number of virtual orbitals
+  nvirte=norbe-max(norbu,norbd)!the unoccupied orbitals available as a LCAO
+  if(nvirt==nvirte .and. nvirt/=0 .and. iproc==0) then
+     write(*,'(1x,a)')&
+          "WARNING: A smaller number of virtual orbitals may be needed for better convergence."
+     write(*,'(1x,a,i0)')'         Put nvirte= ',nvirte
+  end if
+  if(nvirte<nvirt)then
+     nvirt=nvirte 
+     if(iproc==0)write(*,'(1x,a,i3)')&
+          "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
+  end if
+  
+  !no Davidson calculation if nvirt=0
+  if (nvirt==0) nvirte=0
+
   !  allocate wavefunctions and their occupation numbers
   allocate(occupe(nspin*norbe+ndebug),stat=i_stat)
   call memocc(i_stat,occupe,'occupe',subname)
   !the number of orbitals to be considered is doubled in the case of a spin-polarised calculation
   tt=dble(nspin*norbe)/dble(nproc)
   norbep=int((1.d0-eps_mach*tt) + tt)
+
 
   if (iproc == 0 .and. nproc>1) then
      jpst=0
@@ -757,9 +772,6 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   hyh=.5d0*hy
   hzh=.5d0*hz
 
-  parallel=(nproc > 1)
-
-  
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
 !  allocate(psi(nvctrp,norbep*nproc*nspinor),stat=i_stat)
   allocate(psi(nvctrp,norbep*nproc+ndebug),stat=i_stat)
@@ -816,7 +828,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,nspin,1,spinsgne, &
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
-  call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
+  call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
   
 
@@ -858,7 +870,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        'Input Wavefunctions Orthogonalization:'
 
   call DiagHam(iproc,nproc,at%natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp,wfd,&
-       psi,hpsi,psit,eval,norbe,norbep,etol,norbsc_arr)
+       psi,hpsi,psit,eval,norbe,norbep,etol,norbsc_arr,nvirte,nvirtep,psivirt)
  
 
   i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
@@ -904,6 +916,7 @@ end subroutine input_wf_diag
 !!    norbd  number of down orbitals in the spin-polarised case; for non spin-pol equal to 0
 !!    norb   total number of orbitals of the resulting eigenfunctions
 !!    norbp  number of orbitals in parallel. For nproc=1 norbp=norb
+!!    nvirte  number of virtual orbitals to be saved as input guess for the Davidson method
 !!    nvctrp number of points of the wavefunctions for each orbital in the transposed sense
 !!    wfd    data structure of the wavefunction descriptors
 !!    norbe  (optional) number of orbitals of the initial set of wavefunction, to be reduced
@@ -925,6 +938,10 @@ end subroutine input_wf_diag
 !!    psit   wavefunctions in the transposed form.
 !!           On input: nullified
 !!           on Output: transposed wavefunction but only if nproc>1, nullified otherwise
+!!    psivirt wavefunctions for input guess of the Davidson method in the transposed form.
+!!           On input: nullified
+!!           if nvirte >0: on Output transposed wavefunction (if nproc>1), direct otherwise
+!!           if nvirte=0: nullified
 !!    eval   array of the first norb eigenvalues       
 !!    
 !!
@@ -940,26 +957,30 @@ end subroutine input_wf_diag
 !! 
 subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp,wfd,&
      psi,hpsi,psit,eval,& !mandatory
-     norbe,norbep,etol,norbsc_arr) !optional
+     norbe,norbep,etol,norbsc_arr,nvirte,nvirtep,psivirt) !optional
   use module_base
   use module_types
+  use module_interfaces, except_this_one => DiagHam
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
   integer, intent(in) :: iproc,nproc,natsc,nspin,nspinor,norb,norbu,norbd,norbp,nvctrp
   real(kind=8), dimension(norb), intent(out) :: eval
   real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit
   !optional arguments
-  integer, optional, intent(in) :: norbe,norbep
+  integer, optional, intent(in) :: norbe,norbep,nvirte
+  integer, optional, intent(out) :: nvirtep
   real(kind=8), optional, intent(in) :: etol
   integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
+  real(wp), dimension(:,:), pointer, optional :: psivirt
    !real(kind=8), optional, dimension(:,:), pointer :: ppsi
   !local variables
   include 'mpif.h'
   character(len=*), parameter :: subname='DiagHam'
+  real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal
   integer :: i,ndim_hamovr,i_all,i_stat,n2hamovr,nsthamovr,ierr,norbi_max
   integer :: norbtot,norbtotp,natsceff,norbsc,ndh1,ispin,nvctr
-  real(kind=8) :: tolerance
+  real(kind=8) :: tolerance,tt
   integer, dimension(:,:), allocatable :: norbgrp
   real(kind=8), dimension(:,:), allocatable :: hamovr
   real(kind=8), dimension(:,:), pointer :: psiw
@@ -989,7 +1010,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   !otherwise use the number of orbitals, separated in the spin-polarised case
   !fro the spin polarised case it is supposed that the semicore orbitals are disposed equally
   if (semicore) then
-     norbi_max=maxval(norbsc_arr)
+     norbi_max=max(maxval(norbsc_arr),nvirte)
 
      !calculate the dimension of the overlap matrix
      !take the maximum as the two spin dimensions
@@ -1105,11 +1126,19 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   else
      psit => hpsi
   end if
+  
+  !allocate the pointer for virtual orbitals
+  if(present(nvirte) .and. present(psivirt)) then
+     tt=dble(nvirte)/dble(nproc)
+     nvirtep=int((1.d0-eps_mach*tt) + tt)
+     allocate(psivirt(nvctrp,nvirtep*nproc),stat=i_stat)
+     call memocc(i_stat,psivirt,'psivirt',subname)
+  end if
 
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
   nvctr=wfd%nvctr_c+7*wfd%nvctr_f
   call build_eigenvectors(nproc,norbu,norbd,norbp,norbtotp,nvctrp,nvctr,natsceff,nspin,nspinor, &
-       ndim_hamovr,norbgrp,hamovr,psi,psit)
+       ndim_hamovr,norbgrp,hamovr,psi,psit,nvirte,psivirt)
   
   if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
      
@@ -1226,8 +1255,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   real(kind=8), dimension(2) :: preval
   real(kind=8), dimension(:), allocatable :: work_lp,evale,randarr
 
-
-  !found the eigenfunctions for each group
+  !find the eigenfunctions for each group
   n_lp=max(10,4*norbi_max)
   allocate(work_lp(n_lp+ndebug),stat=i_stat)
   call memocc(i_stat,work_lp,'work_lp',subname)
@@ -1369,59 +1397,10 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   deallocate(evale,stat=i_stat)
   call memocc(i_stat,i_all,'evale',subname)
 
-!!$  !remove the degeneracy treatment, to be tested later
-!!$  ndegen=0
-!!$  !in the case of degeneracy
-!!$  !transform the passage matrix with all the components of the eigenspace 
-!!$  if (ndegen /= 0) then
-!!$     !create the array of random numbers
-!!$     !it must be the same for all the processors so use some fake functions
-!!$     allocate(randarr(0:ndegen),stat=i_stat)
-!!$     call memocc(i_stat,product(shape(randarr))*kind(randarr),'randarr','solve_eigensystem')
-!!$     sum=0.d0
-!!$     do i=0,ndegen
-!!$        tt=abs(dsin(real(73*i,kind=8)+.7d0))
-!!$        !call random_number(tt)
-!!$        randarr(i)=tt
-!!$        sum=sum+tt**2
-!!$     end do
-!!$     tt=1.d0/sqrt(sum)
-!!$     do i=0,ndegen
-!!$        randarr(i)=tt*randarr(i)
-!!$     end do
-!!$
-!!$     !the degeneracy may appear ONLY in the group of the valence electrons (last one)
-!!$     iorbst=iorbst-norbi
-!!$     imatrst=imatrst-norbi**2
-!!$     istart=norbu-iorbst+1
-!!$     if (norbd < norbu .and. norbd>0) istart=norbd-iorbst+1
-!!$     !print *,'imatrst',imatrst,iorbst,norbi,istart
-!!$     do jorb=1,norbi
-!!$        tt=randarr(0)
-!!$        hamovr(imatrst-1+jorb+norbi*(istart-1),1)=&
-!!$             tt*hamovr(imatrst-1+jorb+norbi*(istart-1),1)
-!!$        !print *, imatrst-1+jorb+norbi*(istart-1),ndim_hamovr,tt
-!!$     end do
-!!$     do iorb=istart+1,istart+ndegen
-!!$        tt=randarr(iorb-istart)
-!!$        do jorb=1,norbi
-!!$           hamovr(imatrst-1+jorb+norbi*(istart-1),1)=&
-!!$                hamovr(imatrst-1+jorb+norbi*(istart-1),1)+tt*hamovr(imatrst-1+jorb+norbi*(iorb-1),1)
-!!$           !print *, imatrst-1+jorb+norbi*(iorb-1),ndim_hamovr,tt
-!!$        end do
-!!$     end do
-!!$
-!!$     i_all=-product(shape(randarr))*kind(randarr)
-!!$     deallocate(randarr,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'randarr','solve_eigensystem')
-!!$
-!!$  end if
-
 end subroutine solve_eigensystem
 
-
 subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,nspin,nspinor,&
-     ndim_hamovr,norbsc_arr,hamovr,psi,ppsit)
+     ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,nvirte,psivirt)
   use module_base
   implicit none
   !Arguments
@@ -1430,6 +1409,8 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
   real(kind=8), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
   real(kind=8), dimension(nvctrp,norbep*nproc), intent(in) :: psi
   real(kind=8), dimension(nvctrp*nspinor,norbp*nproc), intent(out) :: ppsit
+  integer, intent(in), optional :: nvirte
+  real(wp), dimension(:,:), pointer, optional :: psivirt
   !Local variables
   character(len=*), parameter :: subname='build_eigenvectors'
   integer, parameter :: iunit=1978
@@ -1438,7 +1419,7 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
   real(kind=8) :: tt,mx,my,mz,mnorm,fac,ma,mb,mc,md
   real, dimension(:), allocatable :: randnoise
   real(kind=8), dimension(:,:), allocatable :: tpsi
-  real(kind=8),external :: DDOT
+  real(kind=8), external :: DDOT
   !perform the vector-matrix multiplication for building the input wavefunctions
   ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
   !!     iorbst=1
@@ -1457,7 +1438,10 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
 
   !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
 
+  !allocate the pointer for virtual orbitals
+
   if(nspinor==1) then
+
      iorbst=1
      iorbst2=1
      imatrst=1
@@ -1480,6 +1464,16 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
         if(norbj>0) then
            call DGEMM('N','N',nvctrp,norbj,norbi,1.d0,psi(1,iorbst),nvctrp,&
                 hamovr(imatrst),norbi,0.d0,ppsit(1,iorbst2),nvctrp)
+        end if
+
+        !now store the input wavefunctions for the Davidson treatment
+        !we take the rest of the orbitals which are not assigned
+        !from the group of non-semicore orbitals
+        !the results are orthogonal with each other by construction
+        !in the case of semicore atomes the orthogonality is not guaranteed
+        if (present(nvirte) .and. nvirte >0) then
+           call DGEMM('N','N',nvctrp,nvirte,norbi,1.d0,psi(1,iorbst),nvctrp,&
+                hamovr(imatrst+norbi*norbj),norbi,0.d0,psivirt(1,1),nvctrp)
         end if
         iorbst=norbi+norbsc+1 !this is equal to norbe+1
         iorbst2=norbu+1
@@ -1580,32 +1574,6 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
      deallocate(tpsi,stat=i_stat)
      call memocc(i_stat,i_all,'tpsi',subname)
   end if
-!!$  !here we should put a random noise on the spin-down components in the case of norbu=norbd
-!!$  if (nspin == 2 .and. norbu==norbd) then
-!!$     allocate(randnoise(nvctrp),stat=i_stat)
-!!$     call memocc(i_stat,product(shape(randnoise))*kind(randnoise),'randnoise','build_eigenvectors')
-!!$     call random_number(randnoise)
-!!$
-!!$     do iorb=1,norbu
-!!$        do i=1,nvctrp
-!!$           tt=50.d0*real(randnoise(nvctrp-i+1)-0.5,kind=8)/real(nvctrp*nproc,kind=8)
-!!$           ppsit(i,iorb)=tt+ppsit(i,iorb)
-!!$        end do
-!!$     end do
-!!$
-!!$     do iorb=norbu+1,norbu+norbd
-!!$        do i=1,nvctrp
-!!$           tt=50.d0*real(randnoise(i)-0.5,kind=8)/real(nvctrp*nproc,kind=8)
-!!$           ppsit(i,iorb)=tt+ppsit(i,iorb)
-!!$        end do
-!!$     end do
-!!$
-!!$     i_all=-product(shape(randnoise))*kind(randnoise)
-!!$     deallocate(randnoise,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'randnoise','build_eigenvectors')
-!!$  end if
-!     print *,'Exit build_eig',shape(psi),shape(ppsit)
-!     print *,'p', (DDOT(nvctrp*nspinor,ppsit(1,i),1,ppsit(1,i),1),i=1,norbu+norbd)
 
 end subroutine build_eigenvectors
 

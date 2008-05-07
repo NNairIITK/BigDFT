@@ -1,22 +1,54 @@
+! Calls the preconditioner for each orbital treated by the processor
+subroutine preconditionall(geocode,iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+     hx,hy,hz,ncong,nspinor,wfd,eval,kb,hpsi,gnrm)
+  use module_base
+  use module_types
+  implicit none
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(kinetic_bounds), intent(in) :: kb
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: nspinor,ncong
+  real(gp), intent(in) :: hx,hy,hz
+  real(wp), dimension(norb), intent(in) :: eval
+  real(dp), intent(out) :: gnrm
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(inout) :: hpsi
+  !local variables
+  integer :: iorb,inds,indo
+  real(wp) :: cprecr
+  real(dp) :: scpr
+  real(kind=8), external :: dnrm2
 
-subroutine preconditionall(iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,&
-     ncong,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,eval,&
-     ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi)
-  ! Calls the preconditioner for each orbital treated by the processor
-  implicit real(kind=8) (a-h,o-z)
-  dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
-  dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-  dimension hpsi(nvctr_c+7*nvctr_f,norbp),eval(norb)
-  
+  ! Preconditions all orbitals belonging to iproc
+  !and calculate the norm of the residue
+
+  ! norm of gradient
+  gnrm=0.0_dp
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-     
-     cprecr=-eval(iorb)
-     !       write(*,*) 'cprecr',iorb,cprecr!
-     call precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
-          nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-          ncong,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi(1,iorb-iproc*norbp))
-     
+     indo=(iorb-1)*nspinor+1-iproc*norbp*nspinor
+     !loop over the spinorial components
+     do inds=indo,indo+nspinor-1
+
+        scpr=dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,hpsi(1,inds),1)
+        gnrm=gnrm+scpr**2
+
+        select case(geocode)
+        case('F')
+           !in this case the grid spacings are uniform
+           cprecr=-eval(iorb)
+           if(scpr /=0.0_dp) then
+              call precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+                   wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
+                   ncong,cprecr,hx,kb%ibyz_c,kb%ibxz_c,kb%ibxy_c,&
+                   kb%ibyz_f,kb%ibxz_f,kb%ibxy_f,hpsi(1,inds))
+           end if
+        case('P')
+           cprecr=0.5_wp
+           call prec_fft(n1,n2,n3, &
+                wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
+                ncong,cprecr,hx,hy,hz,hpsi(1,inds))
+        end select
+     end do
   enddo
 
 end subroutine preconditionall

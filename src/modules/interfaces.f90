@@ -214,14 +214,14 @@ interface
 
    subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
         norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
-        pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinsgn)
+        pkernel,ixc,psi,psit,hpsi,eval,accurex,nscatterarr,ngatherarr,nspin,spinsgn)
      use module_types
      implicit none
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(convolutions_bounds), intent(in) :: bounds
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-     character(len=1), intent(in) :: geocode,datacode
+     character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
      real(kind=8), intent(in) :: hx,hy,hz
@@ -238,21 +238,24 @@ interface
    end subroutine import_gaussians
 
    subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-        norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,  &
-        pkernel,ixc,psi,hpsi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinsgn)
+        norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
+        wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,accurex,&
+        nscatterarr,ngatherarr,nspin,spinsgn)
      ! Input wavefunctions are found by a diagonalization in a minimal basis set
      ! Each processors write its initial wavefunctions into the wavefunction file
      ! The files are then read by readwave
+     use module_base
      use module_types
      implicit none
+     include 'mpif.h'
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
      type(convolutions_bounds), intent(in) :: bounds
-     character(len=1), intent(in) :: datacode,geocode
+     character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
-     integer, intent(in) :: nspin
+     integer, intent(inout) :: nspin,nvirte,nvirtep,nvirt
      real(kind=8), intent(in) :: hx,hy,hz
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
@@ -263,7 +266,7 @@ interface
      real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
      real(kind=8), intent(out) :: accurex
      real(kind=8), dimension(norb), intent(out) :: eval
-     real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit
+     real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit,psivirt
    end subroutine input_wf_diag
 
    subroutine reformatmywaves(iproc,norb,norbp,nat,&
@@ -343,7 +346,8 @@ interface
 
    subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp,wfd,&
         psi,hpsi,psit,eval,& !mandatory
-        norbe,norbep,etol,norbsc_arr) !optional
+        norbe,norbep,etol,norbsc_arr,nvirte,nvirtep,psivirt) !optional
+     use module_base
      use module_types
      implicit none
      type(wavefunctions_descriptors), intent(in) :: wfd
@@ -351,9 +355,11 @@ interface
      real(kind=8), dimension(norb), intent(out) :: eval
      real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit
      !optional arguments
-     integer, optional, intent(in) :: norbe,norbep
+     integer, optional, intent(in) :: norbe,norbep,nvirte
+     integer, optional, intent(out) :: nvirtep
      real(kind=8), optional, intent(in) :: etol
      integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
+     real(wp), dimension(:,:), pointer, optional :: psivirt
    end subroutine DiagHam
 
    subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
@@ -445,6 +451,69 @@ interface
      dimension :: psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2), psi(nvctr_c + 7 * nvctr_f)
      dimension :: psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
    end subroutine reformatonewave
+
+   subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
+        norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,n1,n2,n3,nvctrp,&
+        hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  & 
+        pkernel,ixc,psi,v,eval,ncong,nscatterarr,ngatherarr)
+     use module_base
+     use module_types
+     implicit none
+     include 'mpif.h'
+     type(atoms_data), intent(in) :: at
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+     type(convolutions_bounds), intent(in) :: bounds
+     character(len=1), intent(in) :: geocode
+     integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc,n1i,n2i,n3i
+     integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i3xcsh,nvctrp,norbu
+     integer, intent(in) :: nvirte,nvirtep,nvirt,ncong,n3p,itermax 
+     real(gp), dimension(norb), intent(in) :: occup
+     real(dp), intent(in) :: gnrm_cv
+     real(gp), intent(in) :: hx,hy,hz!convergence criterion for gradients
+     integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+     integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
+     real(gp), dimension(3,at%nat), intent(in) :: rxyz
+     real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+     real(dp), dimension(*), intent(in) :: pkernel,rhopot
+     !this is a Fortran 95 standard, should be avoided (it is a pity IMHO)
+     !real(kind=8), dimension(:,:,:,:), allocatable :: rhopot 
+     real(wp), dimension(norb), intent(in) :: eval
+     real(wp), dimension(:,:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
+     !v, that is psivirt, is transposed on input and direct on output
+   end subroutine davidson
+
+   subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,nspin,nspinor,&
+        ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,nvirte,psivirt)
+     use module_base
+     implicit none
+     !Arguments
+     integer, intent(in) :: nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc
+     integer, intent(in) :: nspin,nspinor,ndim_hamovr
+     integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
+     real(kind=8), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
+     real(kind=8), dimension(nvctrp,norbep*nproc), intent(in) :: psi
+     real(kind=8), dimension(nvctrp*nspinor,norbp*nproc), intent(out) :: ppsit
+     integer, intent(in), optional :: nvirte
+     real(wp), dimension(:,:), pointer, optional :: psivirt
+   end subroutine build_eigenvectors
+
+   subroutine preconditionall(geocode,iproc,nproc,norb,norbp,n1,n2,n3,&
+        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+        hx,hy,hz,ncong,nspinor,wfd,eval,kb,hpsi,gnrm)
+     use module_base
+     use module_types
+     implicit none
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     type(kinetic_bounds), intent(in) :: kb
+     character(len=1), intent(in) :: geocode
+     integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+     integer, intent(in) :: nspinor,ncong
+     real(gp), intent(in) :: hx,hy,hz
+     real(wp), dimension(norb), intent(in) :: eval
+     real(dp), intent(out) :: gnrm
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(inout) :: hpsi
+   end subroutine preconditionall
 
 end interface
 

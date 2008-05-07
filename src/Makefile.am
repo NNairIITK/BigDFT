@@ -88,7 +88,8 @@ high_level = cluster.f90 \
 	forces.f90 \
 	tail.f90 \
 	restart.f90 \
-	geometry.f90
+	geometry.f90 \
+	davidson.f90
 
 #objects which can be compiled whithout any dependence
 low_level = init/projectors.f90  \

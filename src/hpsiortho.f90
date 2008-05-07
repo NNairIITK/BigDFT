@@ -348,9 +348,6 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
 !    if(nspinor==4) call psitransspi(nvctrp,norb,psit.true.)
   end if
 
-  ! norm of gradient
-  gnrm=0.d0
-
   call timing(iproc,'Precondition  ','ON')
   if (iproc==0) then
      write(*,'(1x,a)',advance='no')&
@@ -359,6 +356,9 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
   ! Preconditions all orbitals belonging to iproc
   !and calculate the norm of the residue
   !loop over the orbitals
+
+  ! norm of gradient
+  gnrm=0.d0
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
      oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
      !loop over the spinorial components

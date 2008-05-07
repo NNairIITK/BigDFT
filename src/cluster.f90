@@ -127,13 +127,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !local variables
   include 'mpif.h'
   character(len=*), parameter :: subname='cluster'
-  character(len=1) :: datacode,geocode
+  character(len=1) :: geocode
+  character(len=10) :: orbname
   logical :: calc_tail,switchSD
-  integer :: ixc,ncharge,ncong,idsx,ncongt,nspin,mpol,itermax,idsx_actual
+  integer :: ixc,ncharge,ncong,idsx,ncongt,nspin,mpol,itermax,idsx_actual,nvirte,nvirtep,nvirt
   integer :: nelec,norbu,norbd,ndegree_ip,nvctrp,mids,iorb,iounit,ids,idiistol,j
   integer :: n1_old,n2_old,n3_old,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n3d,n3p,n3pi,i3xcsh,i3s
   integer :: ncount0,ncount1,ncount_rate,ncount_max,iunit,n1i,n2i,n3i,nl1,nl2,nl3
-  integer :: i1,i2,i3,ind,iat,ierror,i_all,i_stat,iter,ierr,i03,i04,jproc,ispin,nspinor
+  integer :: i1,i2,i3,ind,iat,ierror,i_all,i_stat,iter,ierr,i03,i04,jproc,ispin,nspinor,nplot
   real :: tcpu0,tcpu1
   real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf,hx,hy,hz,hxh,hyh,hzh
   real(kind=8) :: hgridh,peakmem,alat1,alat2,alat3,accurex,gnrm_check,hgrid_old,energy_old,sumz
@@ -156,7 +157,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !transposed  wavefunction
   ! Pointers and variables to store the last psi
   ! before reformatting if useFormattedInput is .true.
-  real(kind=8), dimension(:,:), pointer :: hpsi,psit,psi_old
+  real(kind=8), dimension(:,:), pointer :: hpsi,psit,psi_old,psivirt
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj
   ! arrays for DIIS convergence accelerator
@@ -195,6 +196,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
   mpol=in%mpol
 
+  nvirt=in%nvirt
+  nplot=in%nplot
+
   hx=in%hgrid
   hy=in%hgrid
   hz=in%hgrid
@@ -228,10 +232,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           hgrid_old,n1_old,n2_old,n3_old,eval_old,wfd_old,psi_old)
   end if
 
-  !datacodes for the poisson solver, depending on the implementation
-  datacode='D'
-  !leaving always datacode to D
-  !if () datacode='G'
+!!$  !datacodes for the poisson solver, depending on the implementation
+!!$  datacode='D'
+!!$  !leaving always datacode to D
+!!$  !if () datacode='G'
 
   if(nspin/=1.and.nspin/=2.and.nspin/=4) nspin=1
   if(nspin==1) mpol=0
@@ -301,7 +305,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call memocc(i_stat,ngatherarr,'ngatherarr',subname)
 
   !create the descriptors for the density and the potential
-  call createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc,&
+  call createDensPotDescriptors(iproc,nproc,geocode,'D',n1i,n2i,n3i,ixc,&
        n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
 
   !allocate ionic potential
@@ -380,14 +384,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !and calculate eigenvalues
      call import_gaussians(geocode,iproc,nproc,atoms,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj, &
-          pkernel,ixc,psi,psit,hpsi,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinsgn)
+          pkernel,ixc,psi,psit,hpsi,eval,accurex,nscatterarr,ngatherarr,nspin,spinsgn)
 
   else if (in%inputPsiId == 0) then
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(geocode,iproc,nproc,atoms,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-          norb,norbp,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj, &
-          pkernel,ixc,psi,hpsi,psit,eval,accurex,datacode,nscatterarr,ngatherarr,nspin,spinsgn)
+          norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
+          wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,accurex,&
+          nscatterarr,ngatherarr,nspin,spinsgn)
 
      if (iproc.eq.0) then
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
@@ -567,11 +572,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      
      if(nspinor==4) then
         !this wrapper can be inserted inside the poisson solver
-         call PSolverNC(geocode,datacode,iproc,nproc,n1i,n2i,n3i,n3d,ixc,hxh,hyh,hzh,&
+         call PSolverNC(geocode,'D',iproc,nproc,n1i,n2i,n3i,n3d,ixc,hxh,hyh,hzh,&
              rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
      else
               
-        call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
+        call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
              rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
         
      end if
@@ -602,7 +607,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
            if (energy > energy_min) write(*,'(1x,a,1pe9.2)')&
                 'WARNING: Found an energy value lower than the FINAL energy, delta:',energy-energy_min
         end if
-        infocode=0
+        if (gnrm <= gnrm_cv) infocode=0
         exit wfn_loop 
      endif
 
@@ -711,7 +716,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
 
   end do wfn_loop
-  if (iter == itermax+1 .and. iproc == 0 ) &
+  if (iter == itermax .and. iproc == 0 ) &
        write(*,'(1x,a)')'No convergence within the allowed number of minimization steps'
 
   if (idsx_actual > 0) then
@@ -745,6 +750,72 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!$          bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,&
 !!$          bounds%gb%ibxxyy_f,bounds%ibyyzz_r,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 !!$  end do
+  
+  if (nvirt > 0) then
+     call davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,atoms,&
+          norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,n1,n2,n3,nvctrp,&
+          hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  &
+          pkernel,ixc,psi,psivirt,eval,ncong,nscatterarr,ngatherarr)
+
+     !THIS PART COULD BE MOVED TO A SUBROUTINE IN DAVIDSON OR PLOTTING.
+     !Note: gnrm in hpsi_to_psi may use a common routine for the adress.
+
+     !plot the converged wavefunctions in the different orbitals.
+     !nplot is the requested total of orbitals to plot, where
+     !states near the HOMO/LUMO gap are given higher priority.
+     !Occupied orbitals are only plotted when nplot>nvirt,
+     !otherwise a comment is given in the out file.
+
+     if(nplot>norb+nvirt)then
+        if(iproc==0)write(*,'(1x,A,i3)')"WARNING: More plots requested than orbitals calculated." 
+     end if
+
+     do iorb=iproc*nvirtep+1,min((iproc+1)*nvirtep,nvirt)!requested: nvirt of nvirte orbitals
+        if(iorb>nplot)then
+           if(iproc==0.and.nplot>0)write(*,'(A)')&
+                'WARNING: No plots of occupied orbitals requested.'
+           exit 
+        end if
+        !calculate the address to start from, since psivirt and
+        !psi are allocated in the transposed way. Physical shape
+        !is (nvtrp,norbp*nproc), logical shape is (nvctr_tot,norbp).
+        if (nproc > 1) then
+           ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-iproc*nvirtep-1)
+           i1=mod(ind-1,nvctrp)+1
+           i2=(ind-i1)/nvctrp+1
+        else
+           i1=1
+           i2=iorb-iproc*norbp
+        end if
+
+        write(orbname,'(A,i3.3)')'virtual',iorb
+        call plot_wf(orbname,n1,n2,n3,hx,wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,&
+             wfd%nseg_f,wfd%nvctr_f,rxyz(1,1),rxyz(2,1),rxyz(3,1),psivirt(i1,i2),&
+             bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,&
+             bounds%gb%ibxxyy_f,bounds%ibyyzz_r,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+     end do
+
+     do iorb=min((iproc+1)*norbp,norb),iproc*norbp+1,-1 ! sweep over highest occupied orbitals
+        if(norb-iorb+1+nvirt>nplot)exit! we have written nplot pot files
+        !adress
+        if (nproc > 1) then
+           ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-iproc*norbp-1)
+           i1=mod(ind-1,nvctrp)+1
+           i2=(ind-i1)/nvctrp+1
+        else
+           i1=1
+           i2=iorb-iproc*norbp
+        end if
+
+        write(orbname,'(A,i3.3)')'orbital',iorb
+        call plot_wf(orbname,n1,n2,n3,hx,wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,&
+             wfd%nseg_f,wfd%nvctr_f,rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(i1,i2),&
+             bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,&
+             bounds%gb%ibxxyy_f,bounds%ibyyzz_r,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+     end do
+     ! END OF PLOTTING
+
+  end if
 
   !  write all the wavefunctions into files
   if (in%output_wf) then
@@ -877,7 +948,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
 
   call DCOPY(n1i*n2i*n3p,rho,1,pot,1) 
-  call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
+  call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
        pot,pkernel,pot,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1)
   !here nspin=1 since ixc=0
 
@@ -1143,6 +1214,12 @@ contains
        deallocate(fion,stat=i_stat)
        call memocc(i_stat,i_all,'fion',subname)
 
+    end if
+    !deallocate wavefunction for virtual orbitals
+    if (in%nvirt > 0) then
+       i_all=-product(shape(psivirt))*kind(psivirt)
+       deallocate(psivirt)
+       call memocc(i_stat,i_all,'psivirt','cluster')
     end if
 
     if (geocode == 'F') then
