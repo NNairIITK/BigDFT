@@ -287,6 +287,7 @@ tests/NaCl/Makefile
 tests/SiH4/Makefile
 tests/H2O-CP2K/Makefile
 tests/SiBulk/Makefile
+tests/Davidson-SiH4/Makefile
 ])
 AC_OUTPUT
 

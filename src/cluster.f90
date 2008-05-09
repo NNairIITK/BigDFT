@@ -751,7 +751,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!$          bounds%gb%ibxxyy_f,bounds%ibyyzz_r,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 !!$  end do
   
-  if (nvirt > 0) then
+  if (nvirt > 0 .and. in%inputPsiId == 0) then
      call davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,atoms,&
           norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,n1,n2,n3,nvctrp,&
           hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  &
@@ -767,7 +767,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !otherwise a comment is given in the out file.
 
      if(nplot>norb+nvirt)then
-        if(iproc==0)write(*,'(1x,A,i3)')"WARNING: More plots requested than orbitals calculated." 
+        if(iproc==0)write(*,'(1x,A,i3)')&
+             "WARNING: More plots requested than orbitals calculated." 
      end if
 
      do iorb=iproc*nvirtep+1,min((iproc+1)*nvirtep,nvirt)!requested: nvirt of nvirte orbitals

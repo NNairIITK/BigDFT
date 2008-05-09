@@ -187,7 +187,8 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
           xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
           x_f1,x_f2,x_f3)
      
-     alpha1=0.d0 ; alpha2=0.d0
+     alpha1=0.d0 
+     alpha2=0.d0
      do i=1,nvctr_c+7*nvctr_f
         alpha1=alpha1+rpsi(i)*rpsi(i)
         alpha2=alpha2+rpsi(i)*wpsi(i)

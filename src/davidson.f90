@@ -45,6 +45,7 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
            pkernel,ixc,psi,v,eval,ncong,nscatterarr,ngatherarr)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => davidson
   implicit none
   include 'mpif.h'
   type(atoms_data), intent(in) :: at
@@ -78,7 +79,8 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
   real(kind=8) :: tt,gnrm,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,gnrm_fake
   real(gp), dimension(:), allocatable :: ones
   real(kind=8), dimension(:), allocatable :: work
-  real(wp), dimension(:,:), allocatable :: hv,psiw,g,hg
+  real(wp), dimension(:,:), allocatable :: hv,g,hg
+  real(wp), dimension(:,:), pointer :: psiw
   real(dp), dimension(:,:,:), allocatable :: e,hamovr
   !last index of e and hamovr are for mpi_allraduce. e (eigenvalues) is also used as 2 work arrays
 
@@ -96,6 +98,7 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
 
   !if(msg)write(*,*)'shape(v)',shape(v),'size(v)',size(v)
 
+  !dimensions for allocations of matrices
   if (nproc > 1) then
      ise=2
      ish=4
@@ -105,27 +108,30 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
   end if
 
   n2virt=nvirte*2! the dimension of the subspace
+
+
+  if (nproc == 1) then
+   
+  end if
  
+  !disassociate work array for transposition in serial
   if (nproc > 1) then
-     !transpose the wavefunction psi 
-     !here psiw is used as a work array
+
      allocate(psiw(nvctrp,norbp*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
-     call timing(iproc,'Un-TransSwitch','ON')
-     call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-          psi,psiw,1)
-     call timing(iproc,'Un-TransSwitch','OF')
-     !here psi is the transposed array
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psiw,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-          psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
-     !end of transposition
+  else
+     psiw => null()
+  endif
 
+  !transpose the wavefunction psi 
+  call transpose(iproc,nproc,norb,norbp,1,wfd,nvctrp,psi,work=psiw)
+
+  if (nproc > 1) then
      i_all=-product(shape(psiw))*kind(psiw)
      deallocate(psiw,stat=i_stat)
      call memocc(i_stat,i_all,'psiw',subname)
-  endif
+  end if
+
 
   if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
   !project v such that they are orthogonal to all occupied psi
@@ -139,26 +145,15 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
   !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
   call  orthon_p(iproc,nproc,nvirte,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,v,1)
 
+
+  !retranspose v
   if(nproc > 1)then
-     !retranspose v
-     !Here psiw is used as a work array
+     !reallocate the work array with the good sizeXS
      allocate(psiw(nvctrp,nvirtep*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(v,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,  &
-          psiw,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
-     !here v is the direct array
-     call timing(iproc,'Un-TransSwitch','ON')
-     call unswitch_waves(iproc,nproc,nvirte,nvirtep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-                         psiw,v,1)
-     call timing(iproc,'Un-TransSwitch','OF')
-     !end of retransposition
-
-     i_all=-product(shape(psiw))*kind(psiw)
-     deallocate(psiw,stat=i_stat)
-     call memocc(i_stat,i_all,'psiw',subname)
   end if
+
+  call untranspose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,v,work=psiw)
 
 
   !DEBUG output of initial guess
@@ -210,36 +205,9 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
   allocate(e(nvirte,2,ise+ndebug),stat=i_stat)
   call memocc(i_stat,e,'e',subname)
 
-  if (nproc > 1) then
-     !transpose  v and hv
-     !here psiw is used as a work array
-     allocate(psiw(nvctrp,nvirtep*nproc+ndebug),stat=i_stat)
-     call memocc(i_stat,psiw,'psiw',subname)
-     call timing(iproc,'Un-TransSwitch','ON')
-     call switch_waves(iproc,nproc,nvirte,nvirtep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-          v,psiw,1)
-     call timing(iproc,'Un-TransSwitch','OF')
-     !here v is the transposed array
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psiw,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,  &
-          v,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
-
-     call timing(iproc,'Un-TransSwitch','ON')
-     call switch_waves(iproc,nproc,nvirte,nvirtep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-          hv,psiw,1)
-     call timing(iproc,'Un-TransSwitch','OF')
-     !here hv is the transposed array
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psiw,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,  &
-          hv,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
-     !end of transposition
-
-     i_all=-product(shape(psiw))*kind(psiw)
-     deallocate(psiw,stat=i_stat)
-     call memocc(i_stat,i_all,'psiw',subname)
-  endif
+  !transpose  v and hv
+  call transpose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,v,work=psiw)
+  call transpose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,hv,work=psiw)
 
   call timing(iproc,'Davidson      ','ON')
   !Timing excludes transposition, hamilton application and preconditioning
@@ -304,10 +272,14 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
      end do
      gnrm=dsqrt(gnrm/dble(nvirte))
 
-     if(iproc==0)write(*,'(1x,a,2(1x,1pe21.14))')&
+     if(iproc == 0)write(*,'(1x,a,2(1x,1pe12.5))')&
           "|gradient|=gnrm and exit criterion ",gnrm,gnrm_cv
-     if(gnrm<gnrm_cv)exit ! iteration loop
-
+     if(gnrm < gnrm_cv) then
+        i_all=-product(shape(g))*kind(g)
+        deallocate(g,stat=i_stat)
+        call memocc(i_stat,i_all,'g',subname)
+        exit ! iteration loop
+     end if
      call timing(iproc,'Davidson      ','OF')
 
      if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality of gradients to occupied psi..."
@@ -346,27 +318,9 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
      if (iproc==0)write(*,'(1x,a)',advance='no')'Preconditioning...'
 
      call timing(iproc,'Davidson      ','OF')
-     if(nproc > 1)then
-        !retranspose the gradient g 
-        !Here psiw is used as a work array
-        allocate(psiw(nvctrp,nvirtep*nproc+ndebug),stat=i_stat)
-        call memocc(i_stat,psiw,'psiw',subname)
 
-        call timing(iproc,'Un-TransComm  ','ON')
-        call MPI_ALLTOALL(g,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,  &
-             psiw,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        call timing(iproc,'Un-TransComm  ','OF')
-        !here g is the direct array
-        call timing(iproc,'Un-TransSwitch','ON')
-        call unswitch_waves(iproc,nproc,nvirte,nvirtep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-                            psiw,g,1)
-        call timing(iproc,'Un-TransSwitch','OF')
-        !end of retransposition
-
-        i_all=-product(shape(psiw))*kind(psiw)
-        deallocate(psiw,stat=i_stat)
-        call memocc(i_stat,i_all,'psiw',subname)
-     end if
+     !retranspose the gradient g 
+     call untranspose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,g,work=psiw)
 
      ! Here the gradients norm could be calculated in the direct form instead,
      ! as it is done in hpsiortho before preconditioning. 
@@ -385,65 +339,25 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
      if(iproc==0)write(*,'(1x,a)',advance="no")&
                  "Orthogonality of precondiioned gradients to occupied psi..."
 
-
-    if (nproc > 1) then
-        !transpose  g and hg
-        !here psiw is used as a work array
-        allocate(psiw(nvctrp,nvirtep*nproc+ndebug),stat=i_stat)
-        call memocc(i_stat,psiw,'psiw',subname)
-        call timing(iproc,'Un-TransSwitch','ON')
-        call switch_waves(iproc,nproc,nvirte,nvirtep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-             g,psiw,1)
-        call timing(iproc,'Un-TransSwitch','OF')
-        !here v is the transposed array
-        call timing(iproc,'Un-TransComm  ','ON')
-        call MPI_ALLTOALL(psiw,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,  &
-             g,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        call timing(iproc,'Un-TransComm  ','OF')
-        !end of transposition
-
-        i_all=-product(shape(psiw))*kind(psiw)
-        deallocate(psiw,stat=i_stat)
-        call memocc(i_stat,i_all,'psiw',subname)
-     endif
-
+     !transpose  g 
+     call transpose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,g,work=psiw)
 
      !project g such that they are orthogonal to all occupied psi
      call  orthoconvirt_p(iproc,nproc,norbu,nvirte,nvctrp,psi,g,msg)
      if(norbu<norb)call  orthoconvirt_p(iproc,nproc,norb-norbu,nvirte,nvctrp,&
                                            psi(1,norbu+1),g,msg)
-
-     if(nproc > 1)then
-        !retranspose the gradient g
-        !Here psiw is used as a work array
-        allocate(psiw(nvctrp,nvirtep*nproc+ndebug),stat=i_stat)
-        call memocc(i_stat,psiw,'psiw',subname)
-
-        call timing(iproc,'Un-TransComm  ','ON')
-        call MPI_ALLTOALL(g,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,  &
-             psiw,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        call timing(iproc,'Un-TransComm  ','OF')
-        !here g is the direct array
-        call timing(iproc,'Un-TransSwitch','ON')
-        call unswitch_waves(iproc,nproc,nvirte,nvirtep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-                            psiw,g,1)
-        call timing(iproc,'Un-TransSwitch','OF')
-        !end of retransposition
-
-        i_all=-product(shape(psiw))*kind(psiw)
-        deallocate(psiw,stat=i_stat)
-        call memocc(i_stat,i_all,'psiw',subname)
-     end if
+     !retranspose the gradient g
+     call untranspose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,g,work=psiw)
 
      if(iproc==0)write(*,'(1x,a)')"done."
 
      allocate(hg(nvctrp,nvirtep*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,hg,'hg',subname)
 
-  call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
-       nvirte,nvirtep,ones,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
-       rhopot(1+i3xcsh*n1i*n2i),g,hg,ekin_sum,epot_sum,eproj_sum,1,1,ones)
+     call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
+          nvirte,nvirtep,ones,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+          wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
+          rhopot(1+i3xcsh*n1i*n2i),g,hg,ekin_sum,epot_sum,eproj_sum,1,1,ones)
 
                               !ixcs
 !  and the syntax from init, wfn_diag
@@ -453,36 +367,9 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
 !       ngatherarr,nscatterarr(iproc,2),rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
 !       g,hg,ekin_sum,epot_sum,eproj_sum,1,ones(1))
 
-    if (nproc > 1) then
-        !transpose  g and hg
-        !here psiw is used as a work array
-        allocate(psiw(nvctrp,nvirtep*nproc+ndebug),stat=i_stat)
-        call memocc(i_stat,psiw,'psiw',subname)
-        call timing(iproc,'Un-TransSwitch','ON')
-        call switch_waves(iproc,nproc,nvirte,nvirtep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-             g,psiw,1)
-        call timing(iproc,'Un-TransSwitch','OF')
-        !here v is the transposed array
-        call timing(iproc,'Un-TransComm  ','ON')
-        call MPI_ALLTOALL(psiw,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,  &
-             g,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        call timing(iproc,'Un-TransComm  ','OF')
-
-        call timing(iproc,'Un-TransSwitch','ON')
-        call switch_waves(iproc,nproc,nvirte,nvirtep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-             hg,psiw,1)
-        call timing(iproc,'Un-TransSwitch','OF')
-        !here hv is the transposed array
-        call timing(iproc,'Un-TransComm  ','ON')
-        call MPI_ALLTOALL(psiw,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,  &
-             hg,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        call timing(iproc,'Un-TransComm  ','OF')
-        !end of transposition
-   
-        i_all=-product(shape(psiw))*kind(psiw)
-        deallocate(psiw,stat=i_stat)
-        call memocc(i_stat,i_all,'psiw',subname)
-     endif
+     !transpose  g and hg
+     call transpose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,g,work=psiw)
+     call transpose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,hg,work=psiw)
 
      call timing(iproc,'Davidson      ','ON')
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
@@ -647,26 +534,8 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
      !and orthonormalize them using "gram schmidt"  (should conserve orthogonality to psi)
      call  orthon_p(iproc,nproc,nvirte,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,v,1)
 
-     if(nproc > 1)then
-        !retranspose v
-        !Here psiw is used as a work array
-        allocate(psiw(nvctrp,nvirtep*nproc+ndebug),stat=i_stat)
-        call memocc(i_stat,psiw,'psiw',subname)
-        call timing(iproc,'Un-TransComm  ','ON')
-        call MPI_ALLTOALL(v,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,  &
-             psiw,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        call timing(iproc,'Un-TransComm  ','OF')
-        !here v is the direct array
-        call timing(iproc,'Un-TransSwitch','ON')
-        call unswitch_waves(iproc,nproc,nvirte,nvirtep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-             psiw,v,1)
-        call timing(iproc,'Un-TransSwitch','OF')
-        !end of retransposition
-
-        i_all=-product(shape(psiw))*kind(psiw)
-        deallocate(psiw,stat=i_stat)
-        call memocc(i_stat,i_all,'psiw',subname)
-     end if
+     !retranspose v
+     call untranspose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,v,work=psiw)
  
      ! Hamilton application on v
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
@@ -676,36 +545,9 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
           wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
           rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,1,1,ones)
 
-     if (nproc > 1) then
-        !transpose  v and hv
-        !here psiw is used as a work array
-        allocate(psiw(nvctrp,nvirtep*nproc+ndebug),stat=i_stat)
-        call memocc(i_stat,psiw,'psiw',subname)
-        call timing(iproc,'Un-TransSwitch','ON')
-        call switch_waves(iproc,nproc,nvirte,nvirtep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-             v,psiw,1)
-        call timing(iproc,'Un-TransSwitch','OF')
-        !here v is the transposed array
-        call timing(iproc,'Un-TransComm  ','ON')
-        call MPI_ALLTOALL(psiw,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,  &
-             v,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        call timing(iproc,'Un-TransComm  ','OF')
-
-        call timing(iproc,'Un-TransSwitch','ON')
-        call switch_waves(iproc,nproc,nvirte,nvirtep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-             hv,psiw,1)
-        call timing(iproc,'Un-TransSwitch','OF')
-        !here hv is the transposed array
-        call timing(iproc,'Un-TransComm  ','ON')
-        call MPI_ALLTOALL(psiw,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,  &
-             hv,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-        call timing(iproc,'Un-TransComm  ','OF')
-        !end of transposition
-   
-        i_all=-product(shape(psiw))*kind(psiw)
-        deallocate(psiw,stat=i_stat)
-        call memocc(i_stat,i_all,'psiw',subname)
-     endif
+     !transpose  v and hv
+     call transpose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,v,work=psiw)
+     call transpose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,hv,work=psiw)
 
      if(iproc==0)write(*,'(1x,a)')"done. "
      call timing(iproc,'Davidson      ','ON')
@@ -733,43 +575,28 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
   end if
 
   call timing(iproc,'Davidson      ','OF')
+
+  !retranspose v and psi
+  call untranspose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,v,work=psiw)
+
+  !resize work array before final transposition
   if(nproc > 1)then
-     !retranspose v and psi
-     !Here psiw is used as a work array
-     allocate(psiw(nvctrp,nvirtep*nproc+ndebug),stat=i_stat)
-     call memocc(i_stat,psiw,'psiw',subname)
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(v,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,  &
-          psiw,nvctrp*nvirtep,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
-     !here v is the direct array
-     call timing(iproc,'Un-TransSwitch','ON')
-     call unswitch_waves(iproc,nproc,nvirte,nvirtep,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-                         psiw,v,1)
-     call timing(iproc,'Un-TransSwitch','OF')
-
-!!$     !be on the save side: Reallocate psiw (LG: actually it is the same)
-!!$     i_all=-product(shape(psiw))*kind(psiw)
-!!$     deallocate(psiw,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'psiw',subname)
-!!$     allocate(psiw(nvctrp,norbp*nproc+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,psiw,'psiw',subname)
-
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psi,nvctrp*norbp,MPI_DOUBLE_PRECISION,  &
-          psiw,nvctrp*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
-     !here psi is the direct array
-     call timing(iproc,'Un-TransSwitch','ON')
-     call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-                         psiw,psi,1)
-     call timing(iproc,'Un-TransSwitch','OF')
      i_all=-product(shape(psiw))*kind(psiw)
      deallocate(psiw,stat=i_stat)
      call memocc(i_stat,i_all,'psiw',subname)
 
-     !end of retransposition
+     allocate(psiw(nvctrp,norbp*nproc+ndebug),stat=i_stat)
+     call memocc(i_stat,psiw,'psiw',subname)
   end if
+
+  call untranspose(iproc,nproc,norb,norbp,1,wfd,nvctrp,psi,work=psiw)
+
+  if(nproc > 1) then
+     i_all=-product(shape(psiw))*kind(psiw)
+     deallocate(psiw,stat=i_stat)
+     call memocc(i_stat,i_all,'psiw',subname)
+  end if
+
 
   i_all=-product(shape(hv))*kind(hv)
   deallocate(hv,stat=i_stat)

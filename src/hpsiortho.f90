@@ -282,7 +282,6 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
   real(kind=8), parameter :: eps_mach=1.d-12
   integer :: ierr,ind,i1,i2,iorb,k,norbu,norbd,i_stat,i_all,oidx,sidx
   real(kind=8) :: tt,scpr,dnrm2,scprpart,cprecr
-  real(kind=8), dimension(:), allocatable :: zalpha
 
   if (iproc==0) then
      write(*,'(1x,a)',advance='no')&

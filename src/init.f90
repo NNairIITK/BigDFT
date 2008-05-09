@@ -1128,7 +1128,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   end if
   
   !allocate the pointer for virtual orbitals
-  if(present(nvirte) .and. present(psivirt)) then
+  if(present(nvirte) .and. present(psivirt) .and. nvirte > 0) then
      tt=dble(nvirte)/dble(nproc)
      nvirtep=int((1.d0-eps_mach*tt) + tt)
      allocate(psivirt(nvctrp,nvirtep*nproc),stat=i_stat)

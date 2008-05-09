@@ -515,6 +515,28 @@ interface
      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(inout) :: hpsi
    end subroutine preconditionall
 
+   subroutine transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
+        work,out) !optional
+     use module_base
+     use module_types
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
+     real(wp), dimension(:,:), pointer, optional :: work
+     real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(out), optional :: out
+   end subroutine transpose
+
+   subroutine untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
+        work,out) !optional
+     use module_base
+     use module_types
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
+     real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(inout) :: psi
+     real(wp), dimension(:,:), pointer, optional :: work
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(out), optional :: out
+   end subroutine untranspose
+
 end interface
 
 end module module_interfaces
