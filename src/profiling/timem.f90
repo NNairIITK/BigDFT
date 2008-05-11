@@ -8,7 +8,7 @@ subroutine timing(iproc,category,action)
   character(len=2), intent(in) :: action      ! possibilities: INitialize, ON, OFf, REsults
   !Local variables
   logical :: parallel,init
-  integer, parameter :: ncat=22   ! define timimg categories
+  integer, parameter :: ncat=23   ! define timimg categories
   integer :: i,ierr,ii,i_all,i_stat,nproc,ncaton!,nskip
   integer :: istart,iend,count_rate,count_max,ielapsed,ncounters,itime,ittime
   !cputime routine gives a real
@@ -42,7 +42,8 @@ subroutine timing(iproc,category,action)
        'PSolvKernel   '    ,  &  !
        'Exchangecorr  '    ,  &  !
        'Forces        '    ,  &  !
-       'Tail          '    /)    !
+       'Tail          '    ,  &
+       'Davidson      '    /)    !
 
   !first of all, read the time
   call system_clock(itime,count_rate,count_max)

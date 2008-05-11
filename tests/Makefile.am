@@ -10,7 +10,8 @@ SUBDIRS = \
 	  Ca2 \
 	  Mn2  \
 	  H2O-CP2K \
-	  SiBulk
+	  SiBulk \
+	  Davidson-SiH4
 
 EXTRA_DIST = \
 	fldiff.py \

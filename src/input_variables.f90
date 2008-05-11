@@ -84,6 +84,23 @@ subroutine read_input_variables(iproc,in)
      stop
   end if
 
+  !add reading lines for Davidson treatment (optional for backward compatibility)
+  read(1,*,iostat=ierror) in%nvirt, in%nplot
+  
+  if (ierror/=0) then
+     in%nvirt=0
+     in%nplot=0
+  else
+     !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
+     !systems
+     if (in%nspin/=1 .and. in%nvirt/=0) then
+        if (iproc==0) then
+           write(*,'(1x,a)')'ERROR: Davidson treeatment allowed on fon non spin-polarised systems'
+        end if
+        stop
+     end if
+  end if
+ 
   close(1,iostat=ierror)
 
   if (iproc == 0) then
@@ -94,6 +111,11 @@ subroutine read_input_variables(iproc,in)
           in%forcemax
      write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
      write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
+     if (in%nvirt > 0) then
+        !read virtual orbital and plotting request
+        write(*,'(1x,a,i3)')'Virtual orbitals',in%nvirt
+        write(*,'(1x,A,i3,A)')'Output for density plots is requested for ',in%nplot,' orbitals'
+     end if
   end if
 
      if (in%nspin==4) then

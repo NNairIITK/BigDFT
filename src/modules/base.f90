@@ -58,26 +58,35 @@ module module_base
     !  Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007
     subroutine memory_occupation(istat,isize,array,routine)
       implicit none
+
+      type :: memstat
+         character(len=36) :: routine,array
+         integer(kind=8) :: memory,peak
+      end type memstat
+
       character(len=*), intent(in) :: array,routine
       integer, intent(in) :: istat,isize
       !local variables
-      character(len=36) :: maxroutine,locroutine
-      character(len=36) :: maxarray,locarray
-      integer :: nalloc,ndealloc,locpeak,locmemory,iproc
-      integer(kind=8) :: memory,maxmemory
-      save :: memory,nalloc,ndealloc,maxroutine,maxarray,maxmemory
-      save :: locroutine,locarray,locpeak,locmemory,iproc
+      type(memstat), save :: loc,tot!,prev
+!!$      character(len=36), save :: maxroutine,locroutine,prevroutine
+!!$      character(len=36), save :: maxarray,locarray
+      integer, save :: nalloc,ndealloc,iproc!,locpeak,locmemory
+!!$      integer(kind=8), save :: memory,maxmemory
+!!$      save :: memory,nalloc,ndealloc,maxroutine,maxarray,maxmemory
+!!$      save :: locroutine,locarray,locpeak,locmemory,iproc,prevroutine
       select case(array)
       case('count')
          if (routine=='start') then
-            memory=int(0,kind=8)
-            maxmemory=int(0,kind=8)
+            tot%memory=int(0,kind=8)
+            tot%peak=int(0,kind=8)
             nalloc=0
             ndealloc=0
-            locroutine='routine'
-            locarray='array'
-            locmemory=0
-            locpeak=0
+
+            loc%routine='routine'
+            loc%array='array'
+            loc%memory=int(0,kind=8) !fake initialisation to print the first routine
+            loc%peak=int(0,kind=8)
+
             iproc=isize
             !open the writing file for the root process
             if (iproc == 0) then
@@ -88,16 +97,19 @@ module module_base
             end if
          else if (routine=='stop' .and. iproc==0) then
             write(98,'(a32,a14,4(1x,i12))')&
-                 trim(locroutine),trim(locarray),&
-                 locmemory/1024,locpeak/1024,memory/int(1024,kind=8),&
-                 (memory+int(locpeak-locmemory,kind=8))/int(1024,kind=8)
+                 trim(loc%routine),trim(loc%array),&
+                 loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
+                 tot%memory/int(1024,kind=8),&
+                 (tot%peak+loc%peak-loc%memory)/int(1024,kind=8)
             close(98)
             write(*,'(1x,a)')&
                  '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
             write(*,'(1x,2(i0,a),i0)')&
-                 nalloc,' allocations and ',ndealloc,' deallocations, remaining memory(B):',memory
-            write(*,'(1x,a,i0,a)') 'memory occupation peak: ',maxmemory/int(1048576,kind=8),' MB'
-            write(*,'(4(1x,a))') 'for the array ',trim(maxarray),'in the routine',trim(maxroutine)
+                 nalloc,' allocations and ',ndealloc,' deallocations, remaining memory(B):',&
+                 tot%memory
+            write(*,'(1x,a,i0,a)') 'memory occupation peak: ',tot%peak/int(1048576,kind=8),' MB'
+            write(*,'(4(1x,a))') 'for the array ',trim(tot%array),&
+                 'in the routine',trim(tot%routine)
          end if
 
       case default
@@ -117,27 +129,43 @@ module module_base
          case (0)
             !to be used for inspecting an array which is not deallocated
             !write(98,'(a32,a14,4(1x,i12))')trim(routine),trim(array),isize,memory
-            if (trim(locroutine) /= routine) then
-               write(98,'(a32,a14,4(1x,i12))')&
-                    trim(locroutine),trim(locarray),&
-                    locmemory/1024,locpeak/1024,memory/int(1024,kind=8),&
-                    (memory+int(locpeak-locmemory,kind=8))/int(1024,kind=8)
-               locroutine=routine
-               locarray=array
-               locmemory=isize
-               locpeak=isize
+            if (trim(loc%routine) /= routine) then
+!!$               if (loc%memory == int(0,kind=8)) then
+!!$                  if(routine == prev%routine) then
+!!$                     loc%routine=prev%routine
+!!$                     loc%array=prev%array
+!!$                     loc%memory=prev%memory
+!!$                     loc%peak=prev%peak
+!!$                  end if
+!!$               else
+!!$                  prev%routine=loc%routine
+!!$                  prev%array=loc%array
+!!$                  prev%memory=loc%memory
+!!$                  prev%peak=loc%peak
+               if (loc%memory /= int(0,kind=8)) then
+                  write(98,'(a32,a14,4(1x,i12))')&
+                       trim(loc%routine),trim(loc%array),&
+                       loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
+                       tot%memory/int(1024,kind=8),&
+                       (tot%memory+loc%peak-loc%memory)/int(1024,kind=8)
+               end if
+               loc%routine=routine
+               loc%array=array
+               loc%memory=isize
+               loc%peak=isize
+!!$               end if
             else
-               locmemory=locmemory+isize
-               if (locmemory > locpeak) then
-                  locpeak=locmemory
-                  locarray=array
+               loc%memory=loc%memory+isize
+               if (loc%memory > loc%peak) then
+                  loc%peak=loc%memory
+                  loc%array=array
                end if
             end if
-            memory=memory+int(isize,kind=8)
-            if (memory > maxmemory) then
-               maxmemory=memory
-               maxroutine=routine
-               maxarray=array
+            tot%memory=tot%memory+int(isize,kind=8)
+            if (tot%memory > tot%peak) then
+               tot%peak=tot%memory
+               tot%routine=routine
+               tot%array=array
             end if
             if (isize>0) then
                nalloc=nalloc+1
