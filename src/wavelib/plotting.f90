@@ -1,28 +1,21 @@
-subroutine plot_wf(orbname,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,rx,ry,rz,psi,&
- ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r,&
- nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+subroutine plot_wf(orbname,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,rx,ry,rz,wfd,&
+     bounds,psi)
   use module_base
-  implicit real(kind=8) (a-h,o-z)
-  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-  dimension psi(nvctr_c+7*nvctr_f)
-  !    for grow:
-  integer ibyz_c(2,0:n2,0:n3)
-  integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
-  integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
-
-  integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
-  integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
-  integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
-  !    for real space:
-  integer,intent(in):: ibyyzz_r(2,2*n2+31,2*n3+31)
-  real(kind=8) scal(0:3)
+  use module_types
+  implicit none
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(convolutions_bounds), intent(in) :: bounds
+  character(len=10) :: orbname 
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  real(gp), intent(in) :: hgrid,rx,ry,rz
+  real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
+  !local variables
   character(len=*), parameter :: subname='plot_wf'
-  real(kind=8), allocatable :: psir(:)
-
-  real(kind=8), allocatable, dimension(:,:,:)::x_c!input 
-  real(kind=8), allocatable :: x_f(:,:,:,:)
-  real(kind=8), allocatable, dimension(:) :: w1,w2
-  character(10) :: orbname
+  integer :: nw1,nw2,i_stat,i_all,i
+  real(wp), dimension(0:3) :: scal
+  real(wp), dimension(:), allocatable :: psir,w1,w2
+  real(wp), dimension(:,:,:), allocatable :: x_c
+  real(wp), dimension(:,:,:,:), allocatable :: x_f
 
   nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
        (n1+1)*(2*n2+31)*(2*n3+31),&
@@ -39,7 +32,6 @@ subroutine plot_wf(orbname,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_
 
   allocate(x_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,x_c,'x_c',subname)
-  
   allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
   call memocc(i_stat,x_f,'x_f',subname)
   allocate(w1(nw1+ndebug),stat=i_stat)
@@ -52,13 +44,14 @@ subroutine plot_wf(orbname,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_
   call razero((n1+1)*(n2+1)*(n3+1),x_c)
   call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f)
 
-        call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-             nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
-             nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-             scal,psi(1),psi(nvctr_c+1),x_c,x_f)
+  call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+       wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
+       wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),   &
+       scal,psi(1),psi(wfd%nvctr_c+1),x_c,x_f)
 
-        call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
-             psir,ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+  call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
+       psir,bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,bounds%gb%ibyz_ff,&
+       bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,bounds%ibyyzz_r)
 
   !call plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,psir)
   call plot_pot_full(rx,ry,rz,hgrid,n1,n2,n3,orbname,psir)
@@ -82,7 +75,7 @@ subroutine plot_wf(orbname,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_
   i_all=-product(shape(w2))*kind(w2)
   deallocate(w2,stat=i_stat)
   call memocc(i_stat,i_all,'w2',subname)
-  return
+
 END SUBROUTINE plot_wf
 
 subroutine plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,pot)

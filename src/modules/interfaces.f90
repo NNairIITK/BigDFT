@@ -453,7 +453,7 @@ interface
    end subroutine reformatonewave
 
    subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
-        norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,n1,n2,n3,nvctrp,&
+        norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,&
         hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  & 
         pkernel,ixc,psi,v,eval,ncong,nscatterarr,ngatherarr)
      use module_base
@@ -467,7 +467,7 @@ interface
      character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc,n1i,n2i,n3i
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i3xcsh,nvctrp,norbu
-     integer, intent(in) :: nvirte,nvirtep,nvirt,ncong,n3p,itermax 
+     integer, intent(in) :: nvirte,nvirtep,nvirt,ncong,n3p,itermax,nplot
      real(gp), dimension(norb), intent(in) :: occup
      real(dp), intent(in) :: gnrm_cv
      real(gp), intent(in) :: hx,hy,hz!convergence criterion for gradients
@@ -536,6 +536,19 @@ interface
      real(wp), dimension(:,:), pointer, optional :: work
      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(out), optional :: out
    end subroutine untranspose
+
+   subroutine plot_wf(orbname,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,rx,ry,rz,wfd,&
+        bounds,psi)
+     use module_base
+     use module_types
+     implicit none
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     type(convolutions_bounds), intent(in) :: bounds
+     character(len=10) :: orbname 
+     integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+     real(gp), intent(in) :: hgrid,rx,ry,rz
+     real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
+   end subroutine plot_wf
 
 end interface
 
