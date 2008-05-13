@@ -204,6 +204,12 @@ program memguess
 
   end if
 
+  if (optimise) then
+     call optimise_volume(atoms,in%crmult,in%frmult,in%hgrid,rxyz,radii_cf)
+     write(*,'(1x,a)')'Writing optimised positions in file posout_000.xyz...'
+     call wtposout(0,0.d0,rxyz,atoms)
+  end if
+
   i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
   deallocate(atoms%lfrztyp,stat=i_stat)
   call memocc(i_stat,i_all,'lfrztyp',subname)
@@ -226,10 +232,6 @@ program memguess
   i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
   deallocate(atoms%iasctype,stat=i_stat)
   call memocc(i_stat,i_all,'iasctype',subname)
-
-  if (optimise) then
-     call optimise_volume(atoms,in%crmult,in%frmult,in%hgrid,rxyz,radii_cf)
-  end if
 
 ! Determine size alat of overall simulation cell and shift atom positions
 ! then calculate the size in units of the grid space

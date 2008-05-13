@@ -68,6 +68,7 @@ subroutine applylocpotkinall(iproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,
   call memocc(i_stat,x_f,'x_f',subname)
   allocate(w1(nw1+ndebug),stat=i_stat)
   call memocc(i_stat,w1,'w1',subname)
+
     
   allocate(w2(nw2+ndebug),stat=i_stat)
   call memocc(i_stat,w2,'w2',subname)

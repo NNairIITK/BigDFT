@@ -85,12 +85,12 @@ endif
 libpoissonsolver_a_SOURCES = \
 	Poisson_Solver.f90 
 
-libpoissonsolver_a_LIBADD = ../profiling/timem.o
+libpoissonsolver_a_LIBADD = ../profiling/memory.o
 
 
 PSchk_SOURCES = PSchk.f90 timing.f90 $(mpi_source)
 PSchk_LDFLAGS = $(LMPI)
-PSchk_LDADD = ../modules/base.o \	
+PSchk_LDADD = ../modules/base.o \
 	libpoissonsolver.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@

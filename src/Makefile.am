@@ -129,7 +129,8 @@ libbigdft_a_SOURCES = \
 	$(low_level) \
 	$(abinit)
 
-libbigdft_a_LIBADD = profiling/timem.o \
+libbigdft_a_LIBADD = profiling/time.o \
+	profiling/memory.o \
 	profiling/memoryestimator.o \
 	$(convolution_objects) \
 	$(modules_objects)

@@ -247,7 +247,6 @@ interface
      use module_base
      use module_types
      implicit none
-     include 'mpif.h'
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -453,13 +452,12 @@ interface
    end subroutine reformatonewave
 
    subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
-        norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,n1,n2,n3,nvctrp,&
+        norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,&
         hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  & 
         pkernel,ixc,psi,v,eval,ncong,nscatterarr,ngatherarr)
      use module_base
      use module_types
      implicit none
-     include 'mpif.h'
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -467,7 +465,7 @@ interface
      character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc,n1i,n2i,n3i
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i3xcsh,nvctrp,norbu
-     integer, intent(in) :: nvirte,nvirtep,nvirt,ncong,n3p,itermax 
+     integer, intent(in) :: nvirte,nvirtep,nvirt,ncong,n3p,itermax,nplot
      real(gp), dimension(norb), intent(in) :: occup
      real(dp), intent(in) :: gnrm_cv
      real(gp), intent(in) :: hx,hy,hz!convergence criterion for gradients
@@ -479,8 +477,7 @@ interface
      !this is a Fortran 95 standard, should be avoided (it is a pity IMHO)
      !real(kind=8), dimension(:,:,:,:), allocatable :: rhopot 
      real(wp), dimension(norb), intent(in) :: eval
-     real(wp), dimension(:,:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
-     !v, that is psivirt, is transposed on input and direct on output
+     real(wp), dimension(:,:), pointer :: psi,v
    end subroutine davidson
 
    subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,nspin,nspinor,&
@@ -514,6 +511,54 @@ interface
      real(dp), intent(out) :: gnrm
      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(inout) :: hpsi
    end subroutine preconditionall
+
+   subroutine transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
+        work,out) !optional
+     use module_base
+     use module_types
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
+     real(wp), dimension(:,:), pointer, optional :: work
+     real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(out), optional :: out
+   end subroutine transpose
+
+   subroutine untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
+        work,out) !optional
+     use module_base
+     use module_types
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
+     real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(inout) :: psi
+     real(wp), dimension(:,:), pointer, optional :: work
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(out), optional :: out
+   end subroutine untranspose
+
+   subroutine plot_wf(orbname,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,rx,ry,rz,wfd,&
+        bounds,psi)
+     use module_base
+     use module_types
+     implicit none
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     type(convolutions_bounds), intent(in) :: bounds
+     character(len=10) :: orbname 
+     integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+     real(gp), intent(in) :: hgrid,rx,ry,rz
+     real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
+   end subroutine plot_wf
+
+   subroutine partial_density(nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
+        hfac,nscatterarr,spinsgn,psir,rho_p,&
+        ibyyzz_r) !optional argument
+     use module_base
+     implicit none
+     integer, intent(in) :: nproc,n1i,n2i,n3i,nrhotot,nspinor,nspinn
+     real(gp), intent(in) :: hfac,spinsgn
+     integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
+     real(wp), dimension(n1i,n2i,n3i,nspinn), intent(in) :: psir
+     real(dp), dimension(n1i,n2i,nrhotot,nspinn), intent(inout) :: rho_p
+     integer, dimension(:,:,:), pointer, optional :: ibyyzz_r 
+   end subroutine partial_density
 
 end interface
 

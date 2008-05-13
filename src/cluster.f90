@@ -751,69 +751,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!$          bounds%gb%ibxxyy_f,bounds%ibyyzz_r,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 !!$  end do
   
-  if (nvirt > 0) then
+  if (nvirt > 0 .and. in%inputPsiId == 0) then
      call davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,atoms,&
-          norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,n1,n2,n3,nvctrp,&
+          norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,&
           hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  &
           pkernel,ixc,psi,psivirt,eval,ncong,nscatterarr,ngatherarr)
-
-     !THIS PART COULD BE MOVED TO A SUBROUTINE IN DAVIDSON OR PLOTTING.
-     !Note: gnrm in hpsi_to_psi may use a common routine for the adress.
-
-     !plot the converged wavefunctions in the different orbitals.
-     !nplot is the requested total of orbitals to plot, where
-     !states near the HOMO/LUMO gap are given higher priority.
-     !Occupied orbitals are only plotted when nplot>nvirt,
-     !otherwise a comment is given in the out file.
-
-     if(nplot>norb+nvirt)then
-        if(iproc==0)write(*,'(1x,A,i3)')"WARNING: More plots requested than orbitals calculated." 
-     end if
-
-     do iorb=iproc*nvirtep+1,min((iproc+1)*nvirtep,nvirt)!requested: nvirt of nvirte orbitals
-        if(iorb>nplot)then
-           if(iproc==0.and.nplot>0)write(*,'(A)')&
-                'WARNING: No plots of occupied orbitals requested.'
-           exit 
-        end if
-        !calculate the address to start from, since psivirt and
-        !psi are allocated in the transposed way. Physical shape
-        !is (nvtrp,norbp*nproc), logical shape is (nvctr_tot,norbp).
-        if (nproc > 1) then
-           ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-iproc*nvirtep-1)
-           i1=mod(ind-1,nvctrp)+1
-           i2=(ind-i1)/nvctrp+1
-        else
-           i1=1
-           i2=iorb-iproc*norbp
-        end if
-
-        write(orbname,'(A,i3.3)')'virtual',iorb
-        call plot_wf(orbname,n1,n2,n3,hx,wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,&
-             wfd%nseg_f,wfd%nvctr_f,rxyz(1,1),rxyz(2,1),rxyz(3,1),psivirt(i1,i2),&
-             bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,&
-             bounds%gb%ibxxyy_f,bounds%ibyyzz_r,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
-     end do
-
-     do iorb=min((iproc+1)*norbp,norb),iproc*norbp+1,-1 ! sweep over highest occupied orbitals
-        if(norb-iorb+1+nvirt>nplot)exit! we have written nplot pot files
-        !adress
-        if (nproc > 1) then
-           ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-iproc*norbp-1)
-           i1=mod(ind-1,nvctrp)+1
-           i2=(ind-i1)/nvctrp+1
-        else
-           i1=1
-           i2=iorb-iproc*norbp
-        end if
-
-        write(orbname,'(A,i3.3)')'orbital',iorb
-        call plot_wf(orbname,n1,n2,n3,hx,wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,&
-             wfd%nseg_f,wfd%nvctr_f,rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(i1,i2),&
-             bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,&
-             bounds%gb%ibxxyy_f,bounds%ibyyzz_r,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
-     end do
-     ! END OF PLOTTING
 
   end if
 

@@ -70,7 +70,8 @@ MODULES_BIGDFT = modules/base.f90 \
 
 
 #profiling sources
-SOURCES_TIME = profiling/timem.f90 \
+SOURCES_TIME = profiling/time.f90 \
+	profiling/memory.f90 \
 	profiling/memoryestimator.f90
 
 #convolutions libraries

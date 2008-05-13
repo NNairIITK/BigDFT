@@ -491,7 +491,6 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   use Poisson_Solver
 
   implicit none
-  include 'mpif.h'
   type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(convolutions_bounds), intent(in) :: bounds
@@ -511,6 +510,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(kind=8), dimension(norb), intent(out) :: eval
   real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
   !local variables
+  include 'mpif.h'
   character(len=*), parameter :: subname='import_gaussians'
   integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp,jorb,n1i,n2i,n3i
   real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum
@@ -635,7 +635,6 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   use module_types
   use Poisson_Solver
   implicit none
-  include 'mpif.h'
   type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -656,6 +655,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   real(kind=8), dimension(norb), intent(out) :: eval
   real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit,psivirt
   !local variables
+  include 'mpif.h'
   character(len=*), parameter :: subname='input_wf_diag'
   real(kind=8), parameter :: eps_mach=1.d-12
   integer, parameter :: ngx=31
@@ -1128,7 +1128,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   end if
   
   !allocate the pointer for virtual orbitals
-  if(present(nvirte) .and. present(psivirt)) then
+  if(present(nvirte) .and. present(psivirt) .and. nvirte > 0) then
      tt=dble(nvirte)/dble(nproc)
      nvirtep=int((1.d0-eps_mach*tt) + tt)
      allocate(psivirt(nvctrp,nvirtep*nproc),stat=i_stat)

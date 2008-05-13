@@ -59,33 +59,42 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
   ! hpsi is the right hand side on input and the solution on output
   use module_base
-  implicit real(kind=8) (a-h,o-z)
-  dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
-  dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-  dimension hpsi(nvctr_c+7*nvctr_f),scal(0:3),residues(ncong)
-  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
+  implicit none
+  !implicit real(kind=8) (a-h,o-z)
+  integer, intent(in) :: iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f,ncong
+  real(gp), intent(in) :: hgrid
+  real(dp), intent(in) :: cprecr
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(inout) :: hpsi
+  !local variables
   character(len=*), parameter :: subname='precong'
-  allocatable rpsi(:),ppsi(:),wpsi(:),spsi(:)
+  logical, parameter :: inguess_on=.true.
+  !       wavelet and scaling function second derivative filters
+  real(wp), parameter :: b2=24.8758460293923314_wp, a2=3.55369228991319019_wp
+  integer :: i,icong,i_stat,i_all
+  real(wp) :: fac_h,h0,h1,h2,h3,tt,alpha1,alpha2,alpha,beta1,beta2,beta
+  real(wp), dimension(0:3) :: scal
+  real(wp), dimension(:), allocatable :: rpsi,ppsi,wpsi,spsi
+  real(wp), dimension(:,:,:,:), allocatable :: xpsig_f,ypsig_f
+  real(wp), dimension(:,:,:), allocatable :: xpsig_c,ypsig_c,x_f1,x_f2,x_f3
 
-!***********************************************************************************************
-  allocatable :: xpsig_c(:,:,:), ypsig_c(:,:,:)
-  allocatable :: xpsig_f(:,:,:,:), ypsig_f(:,:,:,:)
-  real(kind=8), allocatable, dimension(:,:,:) :: x_f1,x_f2,x_f3 ! input
-!***********************************************************************************************
-  !       WAVELET AND SCALING FUNCTION SECOND DERIVATIVE FILTERS
-  PARAMETER(B2=24.8758460293923314D0,A2=3.55369228991319019D0)
-  LOGICAL,PARAMETER::INGUESS_ON=.TRUE.
 
-  !      The input guess consists of diagonal preconditioning of the original gradient.
-  !       In contrast to older version, not only the wavelet part and the scfunction
-  !       part are multiplied by different factors, but the scfunction part is 
-  !       subjected to wavelet analysis with periodic boundaries. Then the wavelets
-  !       on different scales are multiplied by different factors and backward wavelet !       transformed to scaling functions.
+  ! The input guess consists of diagonal preconditioning of the original gradient.
+  ! In contrast to older version, not only the wavelet part and the scfunction
+  ! part are multiplied by different factors, but the scfunction part is 
+  ! subjected to wavelet analysis with periodic boundaries. Then the wavelets
+  ! on different scales are multiplied by different factors and backward wavelet 
+  ! transformed to scaling functions.
   !
-  !       The new input guess is turned on if the parameter INGUESS_ON
-  !       has value .TRUE.
-  !       
-
+  ! The new input guess is turned on if the parameter INGUESS_ON
+  ! has value .TRUE.
+  ! 
+  
   allocate(rpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
   call memocc(i_stat,rpsi,'rpsi',subname)
   allocate(ppsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
@@ -93,41 +102,42 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   allocate(wpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
   call memocc(i_stat,wpsi,'wpsi',subname)
 
-
-!!$  !! check initial residue of original equation
+!!$  !array of initial wavefunction
 !!$  allocate(spsi(nvctr_c+7*nvctr_f),stat=i_stat)
-!!$  call memocc(i_stat,product(shape(spsi))*kind(spsi),'spsi','precong')
+!!$  call memocc(i_stat,spsi,'spsi',subname)
 !!$  do i=1,nvctr_c+7*nvctr_f
 !!$     spsi(i)=hpsi(i)
 !!$  enddo
 
+  fac_h=1.0_wp/real(hgrid,wp)**2
+  h0=    1.5_wp*a2*fac_h
+  h1=(a2+b2*.5_wp)*fac_h
+  h2=(a2*.5_wp+b2)*fac_h
+  h3=    1.5_wp*b2*fac_h
 
-  FAC_H=1.d0/hgrid**2
-  H0=    1.5D0*A2*FAC_H;    H1=(A2+B2*.5D0)*FAC_H
-  H2=(A2*.5D0+B2)*FAC_H;    H3=    1.5D0*B2*FAC_H
+  scal(0)=sqrt(1.0_wp/(h0+cprecr)) 
+  scal(1)=sqrt(1.0_wp/(h1+cprecr)) 
+  scal(2)=sqrt(1.0_wp/(h2+cprecr)) 
+  scal(3)=sqrt(1.0_wp/(h3+cprecr))
 
-  scal(0)=sqrt(1.D0/(H0+cprecr)) ;  scal(1)=sqrt(1.D0/(H1+cprecr)) 
-  scal(2)=sqrt(1.D0/(H2+cprecr)) ;  scal(3)=sqrt(1.D0/(H3+cprecr))
-
-
-  IF (INGUESS_ON) THEN
-     !          The right hand side is temporarily stored in the rpsi array        
+  if (inguess_on) then
+     !          the right hand side is temporarily stored in the rpsi array        
      rpsi=hpsi           
-     !          and preconditioned with D^{-1/2} as usual:
+     !          and preconditioned with d^{-1/2} as usual:
      call  wscalv(nvctr_c,nvctr_f,scal,rpsi,rpsi(nvctr_c+1))
 
      !          hpsi is now diagonally preconditioned with alexey's old preconditioner;
-     !          inside the diagonal preconditioner a factor of D^{1/2} was added
-     !          to make the overall factor D^{-1/2} again
-     CALL prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
-          keyg,keyv,hpsi,hpsi(nvctr_c+1),cprecr,scal,A2,B2)
-  ELSE
+     !          inside the diagonal preconditioner a factor of d^{1/2} was added
+     !          to make the overall factor d^{-1/2} again
+     call prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
+          keyg,keyv,hpsi,hpsi(nvctr_c+1),cprecr,scal,a2,b2)
+  else
      !          assume as input guess x=y
-     !          hpsi is preconditioned with D^{-1/2} as usual
+     !          hpsi is preconditioned with d^{-1/2} as usual
      call  wscalv(nvctr_c,nvctr_f,scal,hpsi,hpsi(nvctr_c+1))
-  ENDIF
+  endif
 
-
+  !allocate work arrays
   allocate(xpsig_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,xpsig_c,'xpsig_c',subname)
   allocate(xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
@@ -143,8 +153,8 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   call memocc(i_stat,x_f2,'x_f2',subname)
   allocate(x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2+ndebug),stat=i_stat)
   call memocc(i_stat,x_f3,'x_f3',subname)
-
   
+  !initalize to zero the work arrays, probably not needed
   call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1)
   call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f2)
   call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f3)
@@ -154,7 +164,7 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   call razero((n1+1)*(n2+1)*(n3+1),ypsig_c)
   call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),ypsig_f)
-
+  
   call CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
        scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi,&
@@ -177,7 +187,6 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      enddo
   ENDIF
 
-
   loop_precond: do icong=2,ncong
 
      call CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
@@ -186,30 +195,36 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
           ibxy_f,ppsi,ppsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
           xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
           x_f1,x_f2,x_f3)
-     
-     alpha1=0.d0 ; alpha2=0.d0
+
+     alpha1=0.0_wp 
+     alpha2=0.0_wp
      do i=1,nvctr_c+7*nvctr_f
         alpha1=alpha1+rpsi(i)*rpsi(i)
         alpha2=alpha2+rpsi(i)*wpsi(i)
      enddo
-     residues(icong)=alpha1
-     alpha=alpha1/alpha2
-     
+
+     !residues(icong)=alpha1
+     alpha=alpha1/alpha2        
+
+     write(10+iorb,'(1x,i0,3(1x,1pe24.17))')icong,alpha1,alpha2,alpha
+
      do i=1,nvctr_c+7*nvctr_f
         hpsi(i)=hpsi(i)-alpha*ppsi(i)
         rpsi(i)=rpsi(i)-alpha*wpsi(i)
      end do
 
-!    if (alpha1.lt.tol) goto 1010
      if (icong >= ncong) exit loop_precond
-     
-     beta1=0.d0 ; beta2=0.d0
+
+     beta1=0.0_wp 
+     beta2=0.0_wp
+
      do i=1,nvctr_c+7*nvctr_f
         beta1=beta1+rpsi(i)*wpsi(i)
         beta2=beta2+ppsi(i)*wpsi(i)
      enddo
-     beta=beta1/beta2
-     
+
+     beta=beta1/beta2        
+
      do i=1,nvctr_c+7*nvctr_f
         ppsi(i)=rpsi(i)-beta*ppsi(i)
      end do
@@ -218,9 +233,9 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   !  D^{-1/2} times solution
   call wscalv(nvctr_c,nvctr_f,scal,hpsi,hpsi(nvctr_c+1))
-  
+
   !write(*,'(i4,(100(1x,e8.2)))') iorb,(residues(icong),icong=2,ncong)
-  
+
 !!$  ! check final residue of original equation
 !!$  do i=0,3
 !!$     scal(i)=1.d0
@@ -240,7 +255,7 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !!$  !write(*,'(1x,a,1x,i0,1x,1pe13.6)') 'Precond, final residue',iorb,sqrt(tt)
 !!$  i_all=-product(shape(spsi))*kind(spsi)
 !!$  deallocate(spsi,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'spsi','precong')
+!!$  call memocc(i_stat,i_all,'spsi',subname)
 !!$  ! checkend
 
   i_all=-product(shape(rpsi))*kind(rpsi)
@@ -282,26 +297,37 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   deallocate(x_f3,stat=i_stat)
   call memocc(i_stat,i_all,'x_f3',subname)
      
-     
 end subroutine precong
 
-SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+! ypsi = (1/2) \Nabla^2 xpsi + cprecr xpsi
+subroutine calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
-     scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsi_c,xpsi_f,ypsi_c,ypsi_f,&
+     scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
+     xpsi_c,xpsi_f,ypsi_c,ypsi_f,&
      xpsig_c,xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3)
-  ! ypsi = (1/2) \Nabla^2 xpsi + cprecr xpsi
-  implicit real(kind=8) (a-h,o-z)        
-  dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
-  dimension xpsi_c(nvctr_c),xpsi_f(7,nvctr_f),scal(0:3)
-  dimension ypsi_c(nvctr_c),ypsi_f(7,nvctr_f)
-  dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
-  dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-!***********************************************************************************************
-   dimension  xpsig_c(0:n1,0:n2,0:n3),xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-   dimension  ypsig_c(0:n1,0:n2,0:n3),ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-   dimension  x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3)
-   dimension  x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2)
-!***********************************************************************************************
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
+  real(wp), intent(in) :: cprecr
+  real(gp), intent(in) :: hgrid
+  integer, dimension(nseg_c), intent(in) :: keyv_c
+  integer, dimension(nseg_f), intent(in) :: keyv_f
+  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+  integer, dimension(2,nseg_f), intent(in) :: keyg_f
+  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+  real(wp), dimension(0:3), intent(in) :: scal
+  real(wp), dimension(nvctr_c), intent(in) :: xpsi_c
+  real(wp), dimension(7,nvctr_f), intent(in) :: xpsi_f
+  real(wp), dimension(nvctr_c), intent(out) :: ypsi_c
+  real(wp), dimension(7,nvctr_f), intent(out) :: ypsi_f
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: xpsig_c,ypsig_c
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: xpsig_f,ypsig_f
+  real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: x_f1
+  real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), intent(inout) :: x_f2
+  real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(inout) :: x_f3
 
   call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
        nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -319,44 +345,53 @@ SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
        scal,ypsig_c,ypsig_f,ypsi_c,ypsi_f)
 
-END SUBROUTINE CALC_GRAD_REZA
+end subroutine calc_grad_reza
 
 
 subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
-     keyg_c,keyv_c,hpsi_c,hpsi_f,C,scal,A2,B2)
-  ! 
-  !
+     keyg_c,keyv_c,hpsi_c,hpsi_f,c,scal,a2,b2)
   use module_base
-  implicit real(kind=8) (a-h,o-z)
-  dimension keyg_c(2,nseg_c),keyv_c(nseg_c),hpsi_c(nvctr_c),hpsi_f(7,nvctr_f)
-  real(kind=8), allocatable, dimension(:,:,:) :: hpsip
-  real(kind=8)::scal(0:3) 
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nvctr_f
+  real(wp), intent(in) :: c,a2,b2
+  real(gp), intent(in) :: hgrid
+  integer, dimension(nseg_c), intent(in) :: keyv_c
+  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+  real(wp), dimension(0:3), intent(in) :: scal
+  real(wp), dimension(nvctr_c), intent(inout) :: hpsi_c
+  real(wp), dimension(7,nvctr_f), intent(inout) :: hpsi_f
+  !local variables
   character(len=*), parameter :: subname='prec_diag'
-  real(kind=8),parameter::atomic_length=2.d0,FAC_LEN=2.D0
-
-  !      Number of sweeps in wavelet transformation
-  !      THE BIGGEST SCALING FUNCTION STEP: atomic_length*FAC_LEN
-  !      (NOT JUST ATOMIC_LENGTH, BECAUSE SO IT IS BETTER IN PRACTICE) 
-  NUM_TRANS=NINT(log(atomic_length*FAC_LEN/hgrid)/log(2.d0))
-  N2_NT=2**NUM_TRANS
-  !write(*,'(1x,a)') 'NUMBER OF WAVELET TRANSFORMS (sweeps)',NUM_TRANS
-
-  ! Find right leading dimensions for array
+  real(gp), parameter ::atomic_length=2.0_gp,fac_len=2.0_gp
+  integer :: num_trans,n2_nt,nd1,nd2,nd3,iseg,jj,j0,ii,i3,i2,i
+  integer :: nn1,nn2,nn3,nnn1,nnn2,nnn3,i0,i_all,i_stat,i1,j1
+  real(wp) :: h0,h1,h2,h3,fac_h
+  real(wp), dimension(:,:,:), allocatable :: hpsip
 
 
-  !       ND1+1 IS THE MULTIPLE OF N2_N
-  !       WHICH IS CLOSEST TO N1+1 FROM ABOVE. 
-  ND1=CEILING( REAL(N1+1,KIND=8)/REAL(N2_NT,KIND=8) ) *N2_NT-1
-  !       THE SAME FOR ND2,ND3.
-  ND2=CEILING( REAL(N2+1,KIND=8)/REAL(N2_NT,KIND=8) ) *N2_NT-1
-  ND3=CEILING( REAL(N3+1,KIND=8)/REAL(N2_NT,KIND=8) ) *N2_NT-1
+  !      number of sweeps in wavelet transformation
+  !      the biggest scaling function step: atomic_length*fac_len
+  !      (not just atomic_length, because so it is better in practice) 
+  num_trans=nint(log(atomic_length*fac_len/hgrid)/log(2.0_gp))
+  n2_nt=2**num_trans
+  !write(*,'(1x,a)') 'number of wavelet transforms (sweeps)',num_trans
 
-  !write(*,'(3(1x,a,i0))')'ND1=',ND1,'ND2=',ND2,'ND3=',ND3
+  ! find right leading dimensions for array
+
+
+  !       nd1+1 is the multiple of n2_n
+  !       which is closest to n1+1 from above. 
+  nd1=ceiling( real(n1+1,kind=8)/real(n2_nt,kind=8)) *n2_nt-1
+  !       the same for nd2,nd3.
+  nd2=ceiling( real(n2+1,kind=8)/real(n2_nt,kind=8)) *n2_nt-1
+  nd3=ceiling( real(n3+1,kind=8)/real(n2_nt,kind=8)) *n2_nt-1
+
+  !write(*,'(3(1x,a,i0))')'nd1=',nd1,'nd2=',nd2,'nd3=',nd3
 
   allocate(hpsip(0:nd1,0:nd2,0:nd3+ndebug),stat=i_stat)
   call memocc(i_stat,hpsip,'hpsip',subname)
 
-  HPSIP=0.D0
+  hpsip=0.0_wp
 
   ! coarse part
   do iseg=1,nseg_c
@@ -374,36 +409,40 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
      enddo
   enddo
 
-  FAC_H=1.D0/((HGRID*REAL(N2_NT,KIND=8))**2)
+  fac_h=real(1.0_gp/((hgrid*real(n2_nt,gp))**2),wp)
 
-  H0=    1.5D0*A2*FAC_H;    H1=(A2+B2*.5D0)*FAC_H
-  H2=(A2*.5D0+B2)*FAC_H;    H3=    1.5D0*B2*FAC_H
+  h0=    1.5_wp*a2*fac_h
+  h1=(a2+b2*.5d0)*fac_h
+  h2=(a2*.5_wp+b2)*fac_h
+  h3=    1.5_wp*b2*fac_h
 
-  !       FORWARD TRANSFORM THE COARSE SCALING FUNCTIONS NUM_TRANS TIMES
-  CALL ANA_REPEATED_PER(ND1,ND2,ND3,HPSIP,NUM_TRANS,NN1,NN2,NN3) 
+  !       forward transform the coarse scaling functions num_trans times
+  call ana_repeated_per(nd1,nd2,nd3,hpsip,num_trans,nn1,nn2,nn3) 
 
-  NNN1=NN1; NNN2=NN2; NNN3=NN3 
+  nnn1=nn1
+  nnn2=nn2
+  nnn3=nn3 
 
-  !       DIAGONALLY PRECONDITION THE RESULTING COARSE WAVELETS
-  CALL PRECOND_PROPER(ND1,ND2,ND3,HPSIP,NUM_TRANS,NNN1,NNN2,NNN3,H0,H1,H2,H3,C)
+  !       diagonally precondition the resulting coarse wavelets
+  call precond_proper(nd1,nd2,nd3,hpsip,num_trans,nnn1,nnn2,nnn3,h0,h1,h2,h3,c)
 
-  HPSIP=HPSIP/SCAL(0) ! apply (wscal)^(-1)
+  hpsip=hpsip/scal(0) ! apply (wscal)^(-1)
 
-  !       BACKWARD TRANSFORM THE COARSE SCALING FUNCTIONS NUM_TRANS TIMES
-  CALL SYN_REPEATED_PER(ND1,ND2,ND3,HPSIP,NUM_TRANS,NN1,NN2,NN3)
+  !       backward transform the coarse scaling functions num_trans times
+  call syn_repeated_per(nd1,nd2,nd3,hpsip,num_trans,nn1,nn2,nn3)
 
-  !       DIAGONALLY PRECONDITION THE FINE WAVELETS
-  DO I=1,NVCTR_F
-     HPSI_F(1,I)=HPSI_F(1,I)*scal(1)
-     HPSI_F(2,I)=HPSI_F(2,I)*scal(1)
-     HPSI_F(4,I)=HPSI_F(4,I)*scal(1)
+  !       diagonally precondition the fine wavelets
+  do i=1,nvctr_f
+     hpsi_f(1,i)=hpsi_f(1,i)*scal(1)
+     hpsi_f(2,i)=hpsi_f(2,i)*scal(1)
+     hpsi_f(4,i)=hpsi_f(4,i)*scal(1)
 
-     HPSI_F(3,I)=HPSI_F(3,I)*scal(2)
-     HPSI_F(5,I)=HPSI_F(5,I)*scal(2)
-     HPSI_F(6,I)=HPSI_F(6,I)*scal(2)
+     hpsi_f(3,i)=hpsi_f(3,i)*scal(2)
+     hpsi_f(5,i)=hpsi_f(5,i)*scal(2)
+     hpsi_f(6,i)=hpsi_f(6,i)*scal(2)
 
-     HPSI_F(7,I)=HPSI_F(7,I)*scal(3)
-  ENDDO
+     hpsi_f(7,i)=hpsi_f(7,i)*scal(3)
+  enddo
 
   ! coarse part
   do iseg=1,nseg_c
