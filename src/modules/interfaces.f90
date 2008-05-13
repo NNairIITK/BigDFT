@@ -247,7 +247,6 @@ interface
      use module_base
      use module_types
      implicit none
-     include 'mpif.h'
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -459,7 +458,6 @@ interface
      use module_base
      use module_types
      implicit none
-     include 'mpif.h'
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -479,8 +477,7 @@ interface
      !this is a Fortran 95 standard, should be avoided (it is a pity IMHO)
      !real(kind=8), dimension(:,:,:,:), allocatable :: rhopot 
      real(wp), dimension(norb), intent(in) :: eval
-     real(wp), dimension(:,:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
-     !v, that is psivirt, is transposed on input and direct on output
+     real(wp), dimension(:,:), pointer :: psi,v
    end subroutine davidson
 
    subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,nspin,nspinor,&
@@ -549,6 +546,19 @@ interface
      real(gp), intent(in) :: hgrid,rx,ry,rz
      real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
    end subroutine plot_wf
+
+   subroutine partial_density(nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
+        hfac,nscatterarr,spinsgn,psir,rho_p,&
+        ibyyzz_r) !optional argument
+     use module_base
+     implicit none
+     integer, intent(in) :: nproc,n1i,n2i,n3i,nrhotot,nspinor,nspinn
+     real(gp), intent(in) :: hfac,spinsgn
+     integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
+     real(wp), dimension(n1i,n2i,n3i,nspinn), intent(in) :: psir
+     real(dp), dimension(n1i,n2i,nrhotot,nspinn), intent(inout) :: rho_p
+     integer, dimension(:,:,:), pointer, optional :: ibyyzz_r 
+   end subroutine partial_density
 
 end interface
 

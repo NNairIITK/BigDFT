@@ -466,88 +466,97 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
 
 end subroutine prec_diag
 
-SUBROUTINE PRECOND_PROPER(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3,H0,H1,H2,H3,EPS)
-  implicit real(kind=8) (a-h,o-z)
-  dimension  x(0:nd1,0:nd2,0:nd3)
+subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
+  use module_base
+  implicit none
+  integer, intent(in) :: nd1,nd2,nd3,num_trans
+  integer, intent(inout) :: n1,n2,n3
+  real(wp), intent(in) :: eps,h0
+  real(wp), intent(inout) :: h1,h2,h3
+  real(wp), dimension(0:nd1,0:nd2,0:nd3), intent(inout) :: x
+  !local variables
+  integer :: i_trans,n1p,n2p,n3p,n1pp,n2pp,n3pp,i1,i2,i3,i1p,i2p,i3p
+  real(wp) :: f0,f1,f2,f3
 
 
-  DO I_TRANS=1,NUM_TRANS
-     N1P=2*(N1+1)-1
-     N2P=2*(N2+1)-1
-     N3P=2*(N3+1)-1
+  do i_trans=1,num_trans
+     n1p=2*(n1+1)-1
+     n2p=2*(n2+1)-1
+     n3p=2*(n3+1)-1
 
-     IF (N1P.GT.ND1) STOP 'N1 BEYOND BORDERS'
-     IF (N2P.GT.ND2) STOP 'N2 BEYOND BORDERS'
-     IF (N3P.GT.ND3) STOP 'N3 BEYOND BORDERS'
+     if (n1p.gt.nd1) stop 'n1 beyond borders'
+     if (n2p.gt.nd2) stop 'n2 beyond borders'
+     if (n3p.gt.nd3) stop 'n3 beyond borders'
 
-     N1PP=N1+1
-     N2PP=N2+1
-     N3PP=N3+1
+     n1pp=n1+1
+     n2pp=n2+1
+     n3pp=n3+1
 
-     F1=1.D0/(H1+EPS); F2=1.D0/(H2+EPS);  F3=1.D0/(H3+EPS)       
+     f1=1.0_wp/(h1+eps)
+     f2=1.0_wp/(h2+eps)
+     f3=1.0_wp/(h3+eps)       
 
+     if (i_trans == 1) then 
 
-     IF (I_TRANS.EQ.1) THEN 
+        f0=1.d0/(h0+eps)
 
-        F0=1.D0/(H0+EPS)
+        do i3=0,n3
+           i3p=i3+n3pp
+           do i2=0,n2
+              i2p=i2+n2pp
+              do i1=0,n1
+                 i1p=i1+n1pp
 
-        DO I3=0,N3
-           I3P=I3+N3PP
-           DO I2=0,N2
-              I2P=I2+N2PP
-              DO I1=0,N1
-                 I1P=I1+N1PP
+                 x(i1,i2,i3)=x(i1,i2,i3)*f0
 
-                 X(I1,I2,I3)=X(I1,I2,I3)*F0
+                 x(i1p,i2,i3)=x(i1p,i2,i3)*f1
+                 x(i1,i2p,i3)=x(i1,i2p,i3)*f1
+                 x(i1,i2,i3p)=x(i1,i2,i3p)*f1
 
-                 X(I1P,I2,I3)=X(I1P,I2,I3)*F1
-                 X(I1,I2P,I3)=X(I1,I2P,I3)*F1
-                 X(I1,I2,I3P)=X(I1,I2,I3P)*F1
+                 x(i1p,i2p,i3)=x(i1p,i2p,i3)*f2
+                 x(i1,i2p,i3p)=x(i1,i2p,i3p)*f2
+                 x(i1p,i2,i3p)=x(i1p,i2,i3p)*f2
 
-                 X(I1P,I2P,I3)=X(I1P,I2P,I3)*F2
-                 X(I1,I2P,I3P)=X(I1,I2P,I3P)*F2
-                 X(I1P,I2,I3P)=X(I1P,I2,I3P)*F2
+                 x(i1p,i2p,i3p)=x(i1p,i2p,i3p)*f3
 
-                 X(I1P,I2P,I3P)=X(I1P,I2P,I3P)*F3
+              enddo
+           enddo
+        enddo
 
-              ENDDO
-           ENDDO
-        ENDDO
+     else
 
-     ELSE
+        do i3=0,n3
+           i3p=i3+n3pp
+           do i2=0,n2
+              i2p=i2+n2pp
+              do i1=0,n1
+                 i1p=i1+n1pp
 
-        DO I3=0,N3
-           I3P=I3+N3PP
-           DO I2=0,N2
-              I2P=I2+N2PP
-              DO I1=0,N1
-                 I1P=I1+N1PP
+                 x(i1p,i2,i3)=x(i1p,i2,i3)*f1
+                 x(i1,i2p,i3)=x(i1,i2p,i3)*f1
+                 x(i1,i2,i3p)=x(i1,i2,i3p)*f1
 
-                 X(I1P,I2,I3)=X(I1P,I2,I3)*F1
-                 X(I1,I2P,I3)=X(I1,I2P,I3)*F1
-                 X(I1,I2,I3P)=X(I1,I2,I3P)*F1
+                 x(i1p,i2p,i3)=x(i1p,i2p,i3)*f2
+                 x(i1,i2p,i3p)=x(i1,i2p,i3p)*f2
+                 x(i1p,i2,i3p)=x(i1p,i2,i3p)*f2
 
-                 X(I1P,I2P,I3)=X(I1P,I2P,I3)*F2
-                 X(I1,I2P,I3P)=X(I1,I2P,I3P)*F2
-                 X(I1P,I2,I3P)=X(I1P,I2,I3P)*F2
+                 x(i1p,i2p,i3p)=x(i1p,i2p,i3p)*f3
 
-                 X(I1P,I2P,I3P)=X(I1P,I2P,I3P)*F3
+              enddo
+           enddo
+        enddo
 
-              ENDDO
-           ENDDO
-        ENDDO
+     endif
 
-     ENDIF
+     n1=n1p
+     n2=n2p
+     n3=n3p
 
-     N1=N1P
-     N2=N2P
-     N3=N3P
+     h1=h1*4.0_wp
+     h2=h2*4.0_wp
+     h3=h3*4.0_wp
 
-     H1=H1*4.D0
-     H2=H2*4.D0
-     H3=H3*4.D0
+  enddo
 
-  ENDDO
-
-END SUBROUTINE PRECOND_PROPER
+end subroutine precond_proper
 

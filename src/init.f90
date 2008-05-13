@@ -491,7 +491,6 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   use Poisson_Solver
 
   implicit none
-  include 'mpif.h'
   type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(convolutions_bounds), intent(in) :: bounds
@@ -511,6 +510,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(kind=8), dimension(norb), intent(out) :: eval
   real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
   !local variables
+  include 'mpif.h'
   character(len=*), parameter :: subname='import_gaussians'
   integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp,jorb,n1i,n2i,n3i
   real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum
@@ -635,7 +635,6 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   use module_types
   use Poisson_Solver
   implicit none
-  include 'mpif.h'
   type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -656,6 +655,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   real(kind=8), dimension(norb), intent(out) :: eval
   real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit,psivirt
   !local variables
+  include 'mpif.h'
   character(len=*), parameter :: subname='input_wf_diag'
   real(kind=8), parameter :: eps_mach=1.d-12
   integer, parameter :: ngx=31
@@ -1064,27 +1064,23 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
      norbtot=norb
      norbtotp=norbp
   end if
-
   if (nproc > 1) then
-     !transpose all the wavefunctions for having a piece of all the orbitals 
-     !for each processor
      allocate(psiw(nvctrp,norbtotp*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
+  else
+     psiw => null()
+  end if
 
-     call switch_waves(iproc,nproc,norbtot,norbtotp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,psiw,1)
-     call MPI_ALLTOALL(psiw,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,  &
-          psi,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+  !transpose all the wavefunctions for having a piece of all the orbitals 
+  !for each processor
+  call transpose(iproc,nproc,norbtot,norbtotp,1,wfd,nvctrp,psi,work=psiw)
+  call transpose(iproc,nproc,norbtot,norbtotp,1,wfd,nvctrp,hpsi,work=psiw)
 
-     call switch_waves(iproc,nproc,norbtot,norbtotp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psiw,1)
-     call MPI_ALLTOALL(psiw,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-
+ if (nproc > 1) then
      i_all=-product(shape(psiw))*kind(psiw)
      deallocate(psiw,stat=i_stat)
      call memocc(i_stat,i_all,'psiw',subname)
-     !end of transposition
 
-     !allocation values
      n2hamovr=4
      nsthamovr=3
   else
@@ -1092,6 +1088,36 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
      n2hamovr=2
      nsthamovr=1
   end if
+
+
+
+!!$  if (nproc > 1) then
+!!$     !transpose all the wavefunctions for having a piece of all the orbitals 
+!!$     !for each processor
+!!$     allocate(psiw(nvctrp,norbtotp*nproc+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,psiw,'psiw',subname)
+!!$
+!!$     call switch_waves(iproc,nproc,norbtot,norbtotp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,psiw,1)
+!!$     call MPI_ALLTOALL(psiw,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,  &
+!!$          psi,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+!!$
+!!$     call switch_waves(iproc,nproc,norbtot,norbtotp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psiw,1)
+!!$     call MPI_ALLTOALL(psiw,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,  &
+!!$          hpsi,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+!!$
+!!$     i_all=-product(shape(psiw))*kind(psiw)
+!!$     deallocate(psiw,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'psiw',subname)
+!!$     !end of transposition
+!!$
+!!$     !allocation values
+!!$     n2hamovr=4
+!!$     nsthamovr=3
+!!$  else
+!!$     !allocation values
+!!$     n2hamovr=2
+!!$     nsthamovr=1
+!!$  end if
 
   allocate(hamovr(nspin*ndim_hamovr,n2hamovr+ndebug),stat=i_stat)
   call memocc(i_stat,hamovr,'hamovr',subname)
@@ -1182,31 +1208,43 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
      allocate(hpsi(nvctrp,norbp*nproc*nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,hpsi,'hpsi',subname)
 !     hpsi=0.0d0
-  end if
-
-  if (nproc > 1) then
-
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psit,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
-
-     if (minimal) then
+     if (nproc > 1) then
         !allocate the direct wavefunction
         allocate(psi(nvctrp,norbp*nproc*nspinor+ndebug),stat=i_stat)
         call memocc(i_stat,psi,'psi',subname)
-!        psi=0.0d0
      end if
-     
-     call timing(iproc,'Un-TransSwitch','ON')
-     call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi,nspinor)
-     call timing(iproc,'Un-TransSwitch','OF')
+  end if
 
-  else
+  call untranspose(iproc,nproc,norb,norbp,1,wfd,nvctrp,psit,work=hpsi,out=psi)
+
+  if (nproc == 1) then
      if (minimal) psi => psit
-     !for the moment we can leave things like that
      nullify(psit)
   end if
+
+!!$  if (nproc > 1) then
+!!$
+!!$     call timing(iproc,'Un-TransComm  ','ON')
+!!$     call MPI_ALLTOALL(psit,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
+!!$          hpsi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+!!$     call timing(iproc,'Un-TransComm  ','OF')
+!!$
+!!$     if (minimal) then
+!!$        !allocate the direct wavefunction
+!!$        allocate(psi(nvctrp,norbp*nproc*nspinor+ndebug),stat=i_stat)
+!!$        call memocc(i_stat,psi,'psi',subname)
+!!$!        psi=0.0d0
+!!$     end if
+!!$     
+!!$     call timing(iproc,'Un-TransSwitch','ON')
+!!$     call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi,nspinor)
+!!$     call timing(iproc,'Un-TransSwitch','OF')
+!!$
+!!$  else
+!!$     if (minimal) psi => psit
+!!$     !for the moment we can leave things like that
+!!$     nullify(psit)
+!!$  end if
 end subroutine DiagHam
 !!***
 

@@ -85,7 +85,7 @@ endif
 libpoissonsolver_a_SOURCES = \
 	Poisson_Solver.f90 
 
-libpoissonsolver_a_LIBADD = ../profiling/timem.o
+libpoissonsolver_a_LIBADD = ../profiling/memory.o
 
 
 PSchk_SOURCES = PSchk.f90 timing.f90 $(mpi_source)

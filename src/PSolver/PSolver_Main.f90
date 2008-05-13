@@ -135,7 +135,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   end if
 
   !array allocations
-  i_all=0
   allocate(zf(md1,md3,md2/nproc+ndebug),stat=i_stat)
   call memocc(i_stat,zf,'zf',subname)
   allocate(zfionxc(md1,md3,md2/nproc,nspin+ndebug),stat=i_stat)
@@ -272,14 +271,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      scal=1.d0/real(n1*n2*n3,kind=8)
      call P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf(1,1,1),&
           scal,hx,hy,hz,offset)
-     
-!!$     !offset correction for the periodic treatment
-!!$     if (iproc == 0) newoffset=zf(1,1,1)
-!!$     !send the value of the offset to the other processes
-!!$     call timing(iproc,'PSolv_commun  ','ON')
-!!$     call MPI_BCAST(newoffset,1,MPI_double_precision,0,MPI_COMM_WORLD,ierr)
-!!$     call timing(iproc,'PSolv_commun  ','OF')
-     correction=0.d0!offset-newoffset
+
+     correction=0.d0
      factor=0.5d0*hx*hy*hz
      
   else if (geocode == 'S') then
@@ -415,7 +408,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree,eexcu,vexcu
-  if (nproc.gt.1) then
+  if (nproc > 1) then
 
      call timing(iproc,'PSolv_commun  ','ON')
      allocate(energies_mpi(6+ndebug),stat=i_stat)
@@ -462,19 +455,14 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               istglo=istglo+n01*n02*n03
            end if
            call MPI_ALLGATHERV(rhopot(istden),gather_arr(iproc,1),MPI_double_precision,&
-                rhopot(istglo),gather_arr(0,1),gather_arr(0,2),MPI_double_precision,MPI_COMM_WORLD,ierr)
+                rhopot(istglo),gather_arr(0,1),gather_arr(0,2),MPI_double_precision,&
+                MPI_COMM_WORLD,ierr)
            !if it is the case gather also the results of the XC potential
            if (ixc /=0 .and. .not. sumpion) then
               call MPI_ALLGATHERV(pot_ion(istden),gather_arr(iproc,1),&
                    MPI_double_precision,pot_ion(istglo),gather_arr(0,1),gather_arr(0,2),&
                    MPI_double_precision,MPI_COMM_WORLD,ierr)
            end if
-           !second spin
-!!$        if(nspin==2) then
-!!$           call MPI_ALLGATHERV(rhopot(1+n01*n02*istart+n01*n02*n03),gather_arr(iproc,1),&
-!!$                MPI_double_precision,rhopot(n01*n02*n03+1),gather_arr(0,1),gather_arr(0,2),&
-!!$                MPI_double_precision,MPI_COMM_WORLD,ierr)
-!!$  
         end do
         call timing(iproc,'PSolv_commun  ','OF')
         call timing(iproc,'PSolv_comput  ','ON')
@@ -623,14 +611,15 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
         do i3=1,n3d
            do i2=1,n02
               do i1=1,n01
-                 !                    rho_diag(i1,i2,i3,1)=rhopot(i1,i2,i3,1)
-                 m_norm(i1,i2,i3)=sqrt(rhopot(idx+offs)**2+rhopot(idx+2*offs)**2+rhopot(idx+3*offs)**2)
+                 !rho_diag(i1,i2,i3,1)=rhopot(i1,i2,i3,1)
+                 m_norm(i1,i2,i3)=&
+                      sqrt(rhopot(idx+offs)**2+rhopot(idx+2*offs)**2+rhopot(idx+3*offs)**2)
                  rho_diag(i1,i2,i3,1)=(rhopot(idx)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
                  rho_diag(i1,i2,i3,2)=(rhopot(idx)-m_norm(i1,i2,i3))*0.5d0!+1.00e-20
                  idx=idx+1
-                 !                    m_norm(i1,i2,i3)=sqrt(rhopot(i1,i2,i3,2)**2+rhopot(i1,i2,i3,3)**2+rhopot(i1,i2,i3,4)**2)
-                 !                    rho_diag(i1,i2,i3,1)=(rhopot(i1,i2,i3,1)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
-                 !                    rho_diag(i1,i2,i3,2)=(rhopot(i1,i2,i3,1)-m_norm(i1,i2,i3))*0.5d0!+1.00e-20
+                 !m_norm(i1,i2,i3)=sqrt(rhopot(i1,i2,i3,2)**2+rhopot(i1,i2,i3,3)**2+rhopot(i1,i2,i3,4)**2)
+                 !rho_diag(i1,i2,i3,1)=(rhopot(i1,i2,i3,1)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
+                 !rho_diag(i1,i2,i3,2)=(rhopot(i1,i2,i3,1)-m_norm(i1,i2,i3))*0.5d0!+1.00e-20
               end do
            end do
         end do
@@ -794,7 +783,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
            if (ixc==13) then
               !now the dimension of the part required for the gradient
               nwbl=min(istart,nordgr)
-              nwbr=min(m2-iend,nordgr)
+              nwbr=min(m2-iend,nordgr) !doubt when istart < m2 < iend
               nxcl=1
               nxcr=1
            else
