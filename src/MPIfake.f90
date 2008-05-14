@@ -33,6 +33,12 @@
         ierr=0
         end subroutine MPI_COMM_SIZE
 
+        subroutine  MPI_ABORT(MPI_COMM_WORLD,ierr)
+          implicit none
+          integer :: MPI_COMM_WORLD,ierr
+          stop
+        end subroutine MPI_ABORT
+
         subroutine  MPI_FINALIZE(ierr)
         implicit none
         integer :: ierr

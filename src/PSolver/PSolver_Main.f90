@@ -102,7 +102,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='PSolver'
   integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
-  integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
+  integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
   integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4,ind4sh
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,i4,ind2nd
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim,ispin,istden,istglo
@@ -156,35 +156,37 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !      nwb+nwbl+nwbr = nxt
   istart=iproc*(md2/nproc)
   iend=min((iproc+1)*md2/nproc,m2)
-  nxc=iend-istart
-  if (ixc >= 11 .and. ixc <= 16 .and. geocode == 'F') then
-     if (ixc==13) then
-        nwbl=min(istart,nordgr)
-        nwbr=min(m2-iend,nordgr)
-        nxcl=1
-        nxcr=1
-     else
-        if(istart<=nordgr) then
-           nxcl=istart+1
-           nwbl=0
-        else
-           nxcl=nordgr+1
-           nwbl=min(nordgr,istart-nordgr)
-        end if
-        if(iend>=m2-nordgr+1) then
-           nxcr=m2-iend+1
-           nwbr=0
-        else
-           nxcr=nordgr+1
-           nwbr=min(nordgr,m2-nordgr-iend)
-        end if
-     end if
-  else !(for the moment GGA is not implemented in the non free BC)
-     nwbl=0
-     nwbr=0
-     nxcl=1
-     nxcr=1
-  end if
+
+  call xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
+!!$  nxc=iend-istart
+!!$  if (ixc >= 11 .and. ixc <= 16 .and. geocode == 'F') then
+!!$     if (ixc==13) then
+!!$        nwbl=min(istart,nordgr)
+!!$        nwbr=min(m2-iend,nordgr)
+!!$        nxcl=1
+!!$        nxcr=1
+!!$     else
+!!$        if(istart<=nordgr) then
+!!$           nxcl=istart+1
+!!$           nwbl=0
+!!$        else
+!!$           nxcl=nordgr+1
+!!$           nwbl=min(nordgr,istart-nordgr)
+!!$        end if
+!!$        if(iend>=m2-nordgr+1) then
+!!$           nxcr=m2-iend+1
+!!$           nwbr=0
+!!$        else
+!!$           nxcr=nordgr+1
+!!$           nwbr=min(nordgr,m2-nordgr-iend)
+!!$        end if
+!!$     end if
+!!$  else !(for the moment GGA is not implemented in the non free BC)
+!!$     nwbl=0
+!!$     nwbr=0
+!!$     nxcl=1
+!!$     nxcr=1
+!!$  end if
   nwb=nxcl+nxc+nxcr-2
   nxt=nwbr+nwb+nwbl
 
@@ -777,49 +779,11 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
   iend=min((iproc+1)*md2/nproc,m2)
 
   if (datacode == 'D') then
-     if (istart <= m2-1) then
-        nxc=iend-istart
-        if (ixc >= 11 .and. ixc <= 16 .and. geocode == 'F') then
-           if (ixc==13) then
-              !now the dimension of the part required for the gradient
-              nwbl=min(istart,nordgr)
-              nwbr=min(m2-iend,nordgr) !doubt when istart < m2 < iend
-              nxcl=1
-              nxcr=1
-           else
-              !now the dimension of the part required for the gradient
-              if(istart<=nordgr) then
-                 nxcl=istart+1
-                 nwbl=0
-              else
-                 nxcl=nordgr+1
-                 nwbl=min(nordgr,istart-nordgr)
-              end if
-              if(iend>=m2-nordgr+1) then
-                 nxcr=m2-iend+1
-                 nwbr=0
-              else
-                 nxcr=nordgr+1
-                 nwbr=min(nordgr,m2-nordgr-iend)
-              end if
-           end if
-        else !(for the moment GGA is not implemented in the non free BC)
-           nwbl=0
-           nwbr=0
-           nxcl=1
-           nxcr=1
-        end if
-        nwb=nxcl+nxc+nxcr-2
-        nxt=nwbr+nwb+nwbl
+     call xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
 
-        i3xcsh=nxcl+nwbl-1
-        i3s=istart+1-i3xcsh
-     else
-        nxc=0
-        nxt=0
-        i3xcsh=0
-        i3s=m2
-     end if
+     nwb=nxcl+nxc+nxcr-2
+     nxt=nwbr+nwb+nwbl
+
      n3p=nxc
      n3d=nxt
      n3pi=n3p
@@ -838,6 +802,93 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
 !!$       'ixc,n3d,n3p,i3xcsh,i3s',ixc,n3d,n3p,i3xcsh,i3s
 
 end subroutine PS_dim4allocation
+!!***
+
+!!****f* BigDFT/xc_dimensions
+!! NAME
+!!   xc_dimensions
+!!
+!! FUNCTION
+!!   Calculate the dimensions to be used for the XC part, taking into account also
+!!   the White-bird correction which should be made for some GGA functionals
+!!
+!! SYNOPSIS
+!!    geocode   choice of the boundary conditions
+!!
+!!    ixc       XC id
+!!
+!!    m2        dimension to be parallelised
+!!   
+!!    nxc       size of the parallelised XC potential
+!!
+!!    ncxl,ncxr left and right buffers for calculating the WB correction after call drivexc
+!!    nwbl,nwbr left and right buffers for calculating the gradient to pass to drivexc
+!!    
+!!    i3s       starting addres of the distributed dimension
+!!
+!!    i3xcsh    shift to be applied to i3s for having the striting address of the potential
+!!
+!! WARNING
+!!    It is imperative that iend <=m2
+!!
+!! AUTHOR
+!!    Luigi Genovese
+!! CREATION DATE
+!!    May 2008
+!!
+!! SOURCE
+!!
+subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
+  implicit none
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: ixc,istart,iend,m2
+  integer, intent(out) :: nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh
+  !local variables
+  integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
+  if (istart <= m2-1) then
+     nxc=iend-istart
+     if (ixc >= 11 .and. ixc <= 16 .and. geocode == 'F') then
+        if (ixc==13) then
+           !now the dimension of the part required for the gradient
+           nwbl=min(istart,nordgr)
+           nwbr=min(m2-iend,nordgr) !always m2 < iend
+           nxcl=1
+           nxcr=1
+        else
+           !now the dimension of the part required for the gradient
+           if(istart<=nordgr) then
+              nxcl=istart+1
+              nwbl=0
+           else
+              nxcl=nordgr+1
+              nwbl=min(nordgr,istart-nordgr)
+           end if
+           if(iend>=m2-nordgr+1) then
+              nxcr=m2-iend+1
+              nwbr=0
+           else
+              nxcr=nordgr+1
+              nwbr=min(nordgr,m2-nordgr-iend)
+           end if
+        end if
+     else !(for the moment GGA is not implemented in the non free BC)
+        nwbl=0
+        nwbr=0
+        nxcl=1
+        nxcr=1
+     end if
+     i3xcsh=nxcl+nwbl-1
+     i3s=istart+1-i3xcsh
+  else
+     nwbl=0
+     nwbr=0
+     nxcl=1
+     nxcr=1
+     nxc=0
+     i3xcsh=0
+     i3s=m2
+  end if
+end subroutine xc_dimensions
 !!***
 
 

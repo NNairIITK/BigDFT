@@ -27,13 +27,14 @@ subroutine memory_occupation(istat,isize,array,routine)
   character(len=*), intent(in) :: array,routine
   integer, intent(in) :: istat,isize
   !local variables
-  type(memstat), save :: loc,tot!,prev
-!!$      character(len=36), save :: maxroutine,locroutine,prevroutine
-!!$      character(len=36), save :: maxarray,locarray
-  integer, save :: nalloc,ndealloc,iproc!,locpeak,locmemory
-!!$      integer(kind=8), save :: memory,maxmemory
-!!$      save :: memory,nalloc,ndealloc,maxroutine,maxarray,maxmemory
-!!$      save :: locroutine,locarray,locpeak,locmemory,iproc,prevroutine
+  include 'mpif.h'
+  !Memory limit value in GB. It stops EVERYTHING if some process passes such limit
+  !For no memory limit, leave it to zero
+  integer, parameter :: memorylimit=0
+  type(memstat), save :: loc,tot
+  integer, save :: nalloc,ndealloc,iproc
+  integer :: ierr
+
   select case(array)
   case('count')
      if (routine=='start') then
@@ -70,6 +71,14 @@ subroutine memory_occupation(istat,isize,array,routine)
         write(*,'(1x,a,i0,a)') 'memory occupation peak: ',tot%peak/int(1048576,kind=8),' MB'
         write(*,'(4(1x,a))') 'for the array ',trim(tot%array),&
              'in the routine',trim(tot%routine)
+        !here we can add a routine which open the malloc.prc file in case of some 
+        !memory allocation problem, and which eliminates it for a successful run
+        if (nalloc == ndealloc .and. tot%memory==int(0,kind=8)) then
+           !clean the malloc file
+           open(unit=98,file='malloc.prc',status='unknown')
+           write(98,*)
+           close(98)
+        end if
      end if
 
   case default
@@ -85,23 +94,34 @@ subroutine memory_occupation(istat,isize,array,routine)
            stop
         end if
      end if
+     !total counter, for all the processes
+     tot%memory=tot%memory+int(isize,kind=8)
+     if (tot%memory > tot%peak) then
+        tot%peak=tot%memory
+        tot%routine=routine
+        tot%array=array
+     end if
+     if (isize>0) then
+        nalloc=nalloc+1
+     else if (isize<0) then
+        ndealloc=ndealloc+1
+     end if
+
+     if (memorylimit /= 0 .and. &
+          tot%memory > int(memorylimit*int(1073741824,kind=8),kind=8)) then !memory limit is in GB
+        write(*,'(1x,3(a,i0),a)')&
+             'ERROR: Memory limit of ',memorylimit,&
+             ' GB reached for iproc ',iproc,' : total memory is ',tot%memory,' B.'
+        write(*,'(1x,2(a,i0))')&
+             '       this happened for array '//trim(tot%array)//' in routine '//trim(tot%routine)
+        call MPI_ABORT(MPI_COMM_WORLD,ierr)
+     end if
+
      select case(iproc)
      case (0)
         !to be used for inspecting an array which is not deallocated
         !write(98,'(a32,a14,4(1x,i12))')trim(routine),trim(array),isize,memory
         if (trim(loc%routine) /= routine) then
-!!$               if (loc%memory == int(0,kind=8)) then
-!!$                  if(routine == prev%routine) then
-!!$                     loc%routine=prev%routine
-!!$                     loc%array=prev%array
-!!$                     loc%memory=prev%memory
-!!$                     loc%peak=prev%peak
-!!$                  end if
-!!$               else
-!!$                  prev%routine=loc%routine
-!!$                  prev%array=loc%array
-!!$                  prev%memory=loc%memory
-!!$                  prev%peak=loc%peak
            if (loc%memory /= int(0,kind=8)) then
               write(98,'(a32,a14,4(1x,i12))')&
                    trim(loc%routine),trim(loc%array),&
@@ -120,17 +140,6 @@ subroutine memory_occupation(istat,isize,array,routine)
               loc%peak=loc%memory
               loc%array=array
            end if
-        end if
-        tot%memory=tot%memory+int(isize,kind=8)
-        if (tot%memory > tot%peak) then
-           tot%peak=tot%memory
-           tot%routine=routine
-           tot%array=array
-        end if
-        if (isize>0) then
-           nalloc=nalloc+1
-        else if (isize<0) then
-           ndealloc=ndealloc+1
         end if
      case default
         return

@@ -25,6 +25,7 @@
 !!
 program PoissonSolver
 
+  use module_base
   use Poisson_Solver
 
   implicit none
@@ -101,7 +102,7 @@ program PoissonSolver
   !hgrid=hx
 
   !we must choose properly a test case with a positive density
-  itype_scf=14
+  itype_scf=16
 
   call timing(iproc,'parallel      ','IN')
 

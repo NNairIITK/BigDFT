@@ -1064,27 +1064,23 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
      norbtot=norb
      norbtotp=norbp
   end if
-
   if (nproc > 1) then
-     !transpose all the wavefunctions for having a piece of all the orbitals 
-     !for each processor
      allocate(psiw(nvctrp,norbtotp*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
+  else
+     psiw => null()
+  end if
 
-     call switch_waves(iproc,nproc,norbtot,norbtotp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,psiw,1)
-     call MPI_ALLTOALL(psiw,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,  &
-          psi,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+  !transpose all the wavefunctions for having a piece of all the orbitals 
+  !for each processor
+  call transpose(iproc,nproc,norbtot,norbtotp,1,wfd,nvctrp,psi,work=psiw)
+  call transpose(iproc,nproc,norbtot,norbtotp,1,wfd,nvctrp,hpsi,work=psiw)
 
-     call switch_waves(iproc,nproc,norbtot,norbtotp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psiw,1)
-     call MPI_ALLTOALL(psiw,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbtotp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-
+ if (nproc > 1) then
      i_all=-product(shape(psiw))*kind(psiw)
      deallocate(psiw,stat=i_stat)
      call memocc(i_stat,i_all,'psiw',subname)
-     !end of transposition
 
-     !allocation values
      n2hamovr=4
      nsthamovr=3
   else
@@ -1182,31 +1178,20 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
      allocate(hpsi(nvctrp,norbp*nproc*nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,hpsi,'hpsi',subname)
 !     hpsi=0.0d0
-  end if
-
-  if (nproc > 1) then
-
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psit,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
-
-     if (minimal) then
+     if (nproc > 1) then
         !allocate the direct wavefunction
         allocate(psi(nvctrp,norbp*nproc*nspinor+ndebug),stat=i_stat)
         call memocc(i_stat,psi,'psi',subname)
-!        psi=0.0d0
      end if
-     
-     call timing(iproc,'Un-TransSwitch','ON')
-     call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi,nspinor)
-     call timing(iproc,'Un-TransSwitch','OF')
+  end if
 
-  else
+  call untranspose(iproc,nproc,norb,norbp,1,wfd,nvctrp,psit,work=hpsi,out=psi)
+
+  if (nproc == 1) then
      if (minimal) psi => psit
-     !for the moment we can leave things like that
      nullify(psit)
   end if
+
 end subroutine DiagHam
 !!***
 

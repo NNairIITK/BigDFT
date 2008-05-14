@@ -7,7 +7,7 @@ subroutine transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
   integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
   real(wp), dimension(:,:), pointer, optional :: work
-  real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(out), optional :: out
+  real(wp), dimension(*), intent(out), optional :: out
   !local variables
   include 'mpif.h'
   integer :: mpidatatype,ierr
@@ -58,7 +58,7 @@ subroutine untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
   integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
   real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(inout) :: psi
   real(wp), dimension(:,:), pointer, optional :: work
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(out), optional :: out
+  real(wp), dimension(*), intent(out), optional :: out
   !local variables
   include 'mpif.h'
   integer :: mpidatatype,ierr
@@ -101,56 +101,12 @@ subroutine untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
   call timing(iproc,'Un-TransSwitch','OF')
 end subroutine untranspose
 
-
-subroutine transallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psit)
-  use module_base
-  implicit real(kind=8) (a-h,o-z)
-  logical, parameter :: parallel=.true.
-  integer recvcount,sendcount
-  dimension psi(nvctr_c+7*nvctr_f,norbp),psit(nvctrp,norbp*nproc)
-  character(len=*), parameter :: subname='transallwwaves'
-  real(kind=8), allocatable :: psiw(:,:,:)
-  include 'mpif.h'
-
-  call timing(iproc,'Un-Transall   ','ON')
-  allocate(psiw(nvctrp,norbp,nproc+ndebug),stat=i_stat)
-  call memocc(i_stat,psiw,'psiw',subname)
-
-  sendcount=nvctrp*norbp
-  recvcount=nvctrp*norbp
-
-  !  reformatting: psiw(i,iorb,j,jorb) <- psi(ij,iorb,jorb)
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-     ij=1
-     do j=1,nproc
-        do i=1,nvctrp
-           if (ij .le. nvctr_c+7*nvctr_f) then
-              psiw(i,iorb-iproc*norbp,j)=psi(ij,iorb-iproc*norbp)
-           else
-              psiw(i,iorb-iproc*norbp,j)=0.d0
-           endif
-           ij=ij+1
-        enddo
-     enddo
-  enddo
-
-  !  transposition: psit(i,iorb,jorb,j) <- psiw(i,iorb,j,jorb) 
-  call MPI_ALLTOALL(psiw,sendcount,MPI_DOUBLE_PRECISION,  &
-       psit,recvcount,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-
-  call timing(iproc,'Un-Transall   ','OF')
-
-  i_all=-product(shape(psiw))*kind(psiw)
-  deallocate(psiw,stat=i_stat)
-  call memocc(i_stat,i_all,'psiw',subname)
-
-END SUBROUTINE transallwaves
-
 subroutine switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psiw,nspinor)
+  use module_base
   implicit none
   integer, intent(in) :: iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspinor
-  real(kind=8), dimension(nvctr_c+7*nvctr_f,nspinor,norbp), intent(in) :: psi
-  real(kind=8), dimension(nspinor*nvctrp,norbp,nproc), intent(out) :: psiw
+  real(wp), dimension(nvctr_c+7*nvctr_f,nspinor,norbp), intent(in) :: psi
+  real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(out) :: psiw
   !local variables
   integer :: iorb,i,j,ij,isp
 
@@ -163,7 +119,7 @@ subroutine switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psiw,n
               if (ij <= nvctr_c+7*nvctr_f) then
                  psiw(i,iorb-iproc*norbp,j)=psi(ij,nspinor,iorb-iproc*norbp)
               else
-                 psiw(i,iorb-iproc*norbp,j)=0.d0
+                 psiw(i,iorb-iproc*norbp,j)=0.0_wp
               endif
               ij=ij+1
            enddo
@@ -180,10 +136,10 @@ subroutine switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psiw,n
                  psiw(2*i+2*nvctrp-1,iorb-iproc*norbp,j)=psi(ij,3,iorb-iproc*norbp)
                  psiw(2*i+2*nvctrp,iorb-iproc*norbp,j)=psi(ij,4,iorb-iproc*norbp)
               else
-                 psiw(2*i-1,iorb-iproc*norbp,j)=0.0d0
-                 psiw(2*i,iorb-iproc*norbp,j)=0.0d0
-                 psiw(2*i+2*nvctrp-1,iorb-iproc*norbp,j)=0.0d0
-                 psiw(2*i+2*nvctrp,iorb-iproc*norbp,j)=0.0d0
+                 psiw(2*i-1,iorb-iproc*norbp,j)=0.0_wp
+                 psiw(2*i,iorb-iproc*norbp,j)=0.0_wp
+                 psiw(2*i+2*nvctrp-1,iorb-iproc*norbp,j)=0.0_wp
+                 psiw(2*i+2*nvctrp,iorb-iproc*norbp,j)=0.0_wp
               endif
               ij=ij+1
            enddo
@@ -193,10 +149,11 @@ subroutine switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,psiw,n
 end subroutine switch_waves
 
 subroutine unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psiw,psi,nspinor)
+  use module_base
   implicit none
   integer, intent(in) :: iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspinor
-  real(kind=8), dimension(nspinor*nvctrp,norbp,nproc), intent(in) :: psiw
-  real(kind=8), dimension(nvctr_c+7*nvctr_f,nspinor,norbp), intent(out) :: psi
+  real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(in) :: psiw
+  real(wp), dimension(nvctr_c+7*nvctr_f,nspinor,norbp), intent(out) :: psi
   !local variables
   integer :: iorb,i,j,ij,isp
 
@@ -229,59 +186,16 @@ subroutine unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psiw,psi
   
 end subroutine unswitch_waves
 
-subroutine untransallwaves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psit,psi)
-  use module_base
-  implicit real(kind=8) (a-h,o-z)
-  logical, parameter :: parallel=.true.
-  integer recvcount,sendcount
-  dimension psi(nvctr_c+7*nvctr_f,norbp),psit(nvctrp,norbp*nproc)
-  character(len=*), parameter :: subname='untransallwaves'
-  real(kind=8), allocatable :: psiw(:,:,:)
-  include 'mpif.h'
-
-  call timing(iproc,'Un-Transall   ','ON')
-
-  allocate(psiw(nvctrp,norbp,nproc+ndebug),stat=i_stat)
-  call memocc(i_stat,psiw,'psiw',subname)
-
-  sendcount=nvctrp*norbp
-  recvcount=nvctrp*norbp
-
-  ! transposition: psiw(i,iorb,j,jorb) <- psit(i,iorb,jorb,j) 
-  call MPI_ALLTOALL(psit,sendcount,MPI_DOUBLE_PRECISION,  &
-       psiw,recvcount,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-
-  ! reformatting: psi(ij,iorb,jorb) <- psiw(i,iorb,j,jorb)
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-     ij=1
-     do j=1,nproc
-        do i=1,nvctrp
-           psi(ij,iorb-iproc*norbp)=psiw(i,iorb-iproc*norbp,j)
-           ij=ij+1
-           if (ij.gt. nvctr_c+7*nvctr_f) goto 333
-        enddo
-     enddo
-333  continue
-  enddo
-
-  i_all=-product(shape(psiw))*kind(psiw)
-  deallocate(psiw,stat=i_stat)
-  call memocc(i_stat,i_all,'psiw',subname)
-  call timing(iproc,'Un-Transall   ','OF')
-
-
-END SUBROUTINE untransallwaves
-
 subroutine psitransspi(nvctrp,norb,psi,forward)
   use module_base
   implicit none
   integer, intent(in) :: norb,nvctrp
   logical, intent(in) :: forward
-  real(kind=8), dimension(4*nvctrp,norb), intent(inout) :: psi
-  real(kind=8), dimension(:,:,:), allocatable :: tpsit
+  real(wp), dimension(4*nvctrp,norb), intent(inout) :: psi
   !local variables
   character(len=*), parameter :: subname='psitransspi'
   integer :: i,iorb,ij,isp,i_all,i_stat
+  real(wp), dimension(:,:,:), allocatable :: tpsit
 
 !  call timing(0,'Un-Transall   ','ON')
 
@@ -342,6 +256,5 @@ subroutine psitransspi(nvctrp,norb,psi,forward)
 
 !   call timing(0,'Un-Transall   ','OF')
 !  print '(a,5f10.5,2i5,l1)','p2E',(abs(psi(i,1)),i=1,5),shape(psi),forward
-
 
 end subroutine psitransspi

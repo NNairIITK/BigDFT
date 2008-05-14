@@ -20,7 +20,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   !local variables
   include 'mpif.h'
   character(len=*), parameter :: subname='sumrho'
-  integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf
+  integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf,mpidatatype
   integer :: ind1,ind2,ind3,ind1s,ind2s,ind3s,oidx,sidx,nspinn
   integer :: i00,i0,i1,i2,i3,i3off,i3s,isjmp,i,ispin,iorb,jproc,i_all,i_stat,ierr
   real(kind=8) :: hfac,hgridh,tt,charge,hfac2
@@ -141,187 +141,51 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
            case('F')
               
               do sidx=1,nspinor
-                 
                  call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
                       wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
                       wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),   &
                       scal,psi(1,oidx+sidx),psi(wfd%nvctr_c+1,oidx+sidx),x_c_psifscf,x_f_psig)
-               
                  
                  call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c_psifscf,x_f_psig,  & 
                       psir(1,sidx),bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
                       bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,bounds%ibyyzz_r)
-                 
               end do
 
               call partial_density(nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
                    hfac,nscatterarr,spinsgn(iorb),psir,rho_p,bounds%ibyyzz_r)
 
-
-
-!!$              !sum different slices by taking into account the overlap
-!!$              i3s=0
-!!$              if(nspinor==1) then
-!!$                 loop_xc_overlap_F: do jproc=0,nproc-1
-!!$                    i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
-!!$                    n3d=nscatterarr(jproc,1)
-!!$                    if (n3d==0) exit loop_xc_overlap_F
-!!$                    if(spinsgn(iorb)>0.0d0) then
-!!$                       isjmp=1
-!!$                    else
-!!$                       isjmp=2
-!!$                    end if
-!!$                    do i3=i3off+1,i3off+n3d
-!!$                       i3s=i3s+1
-!!$                       ind3=(i3-1)*n1i*n2i
-!!$                       ind3s=(i3s-1)*n1i*n2i
-!!$                       do i2=1,n2i
-!!$                          ind2=ind3+(i2-1)*n1i
-!!$                          ind2s=ind3s+(i2-1)*n1i
-!!$                          !                 do i1=1,2*n1+31
-!!$                          do i1=bounds%ibyyzz_r(1,i2-15,i3-15)+1,bounds%ibyyzz_r(2,i2-15,i3-15)+1
-!!$                             ind1=i1+ind2
-!!$                             ind1s=i1+ind2s
-!!$                             !do i=1,(2*n1+31)*(2*n2+31)*(2*n3+31)
-!!$                             rho_p(ind1s,isjmp)=rho_p(ind1s,isjmp)+hfac*psir(ind1,nspinor)**2
-!!$                          end do
-!!$                       end do
-!!$                    end do
-!!$                 end do loop_xc_overlap_F
-!!$              else  !similar loop for nspinor=4
-!!$                 loop_xc_overlap_FS: do jproc=0,nproc-1
-!!$                    i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
-!!$                    n3d=nscatterarr(jproc,1)
-!!$                    if (n3d==0) exit loop_xc_overlap_FS
-!!$                    do i3=i3off+1,i3off+n3d
-!!$                       i3s=i3s+1
-!!$                       ind3=(i3-1)*n1i*n2i
-!!$                       ind3s=(i3s-1)*n1i*n2i
-!!$                       do i2=1,n2i
-!!$                          ind2=(i2-1)*n1i+ind3
-!!$                          ind2s=(i2-1)*n1i+ind3s
-!!$                          !                 do i1=1,2*n1+31
-!!$                          do i1=bounds%ibyyzz_r(1,i2-15,i3-15)+1,bounds%ibyyzz_r(2,i2-15,i3-15)+1
-!!$                             ind1=i1+ind2
-!!$                             ind1s=i1+ind2s
-!!$                             !rho
-!!$                             rho_p(ind1s,1)=rho_p(ind1s,1)+hfac*psir(ind1,1)**2 &
-!!$                                  +hfac*psir(ind1,2)**2 &
-!!$                                  +hfac*psir(ind1,3)**2 &
-!!$                                  +hfac*psir(ind1,4)**2 
-!!$                             !m_x
-!!$                             rho_p(ind1s,2)= &
-!!$                             rho_p(ind1s,2)+hfac2*psir(ind1,1)*psir(ind1,3) &
-!!$                                  +hfac2*psir(ind1,2)*psir(ind1,4)
-!!$                             !m_y
-!!$                             rho_p(ind1s,3)= &
-!!$                             rho_p(ind1s,3)+hfac2*psir(ind1,1)*psir(ind1,4) &
-!!$                                  -hfac2*psir(ind1,2)*psir(ind1,3)
-!!$                             !m_z
-!!$                             rho_p(ind1s,4)=rho_p(ind1s,4)+hfac*psir(ind1,1)**2 &
-!!$                                  +hfac*psir(ind1,2)**2 &
-!!$                                  -hfac*psir(ind1,3)**2 &
-!!$                                  -hfac*psir(ind1,4)**2 
-!!$                          end do
-!!$                       end do
-!!$                    end do
-!!$                 end do loop_xc_overlap_FS
-!!$              end if
-
            case('P')
 
               do sidx=1,nspinor
-                 
                  call uncompress_per(n1,n2,n3,wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),   &
                       wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),   &
                       psi(1,oidx+sidx),psi(wfd%nvctr_c+1,oidx+sidx),x_c_psifscf,x_f_psig,w1)
                  
                  call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,x_c_psifscf,psir(1,sidx)) 
-                 
               end do
 
               call partial_density(nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
                    hfac,nscatterarr,spinsgn(iorb),psir,rho_p)
 
-!!$              !sum different slices by taking into account the overlap
-!!$              i3s=0
-!!$              if(nspinor==1) then
-!!$                 loop_xc_overlap_P: do jproc=0,nproc-1
-!!$                    i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
-!!$                    n3d=nscatterarr(jproc,1)
-!!$                    if (n3d==0) exit loop_xc_overlap_P
-!!$                    if(spinsgn(iorb)>0.0d0) then
-!!$                       isjmp=1
-!!$                    else
-!!$                       isjmp=2
-!!$                    end if
-!!$                    do i3=i3off+1,i3off+n3d
-!!$                       i3s=i3s+1
-!!$                       ind3=(i3-1)*n1i*n2i
-!!$                       ind3s=(i3s-1)*n1i*n2i
-!!$                       do i2=1,n2i
-!!$                          ind2=(i2-1)*n1i+ind3
-!!$                          ind2s=(i2-1)*n1i+ind3s
-!!$                          do i1=1,n1i
-!!$                             ind1=i1+ind2
-!!$                             ind1s=i1+ind2s
-!!$                             rho_p(ind1s,isjmp)=rho_p(ind1s,isjmp)+hfac*psir(ind1,nspinor)**2
-!!$                          end do
-!!$                       end do
-!!$                    end do
-!!$                 end do loop_xc_overlap_P
-!!$              else
-!!$                 loop_xc_overlap_PS: do jproc=0,nproc-1
-!!$                    i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
-!!$                    n3d=nscatterarr(jproc,1)
-!!$                    if (n3d==0) exit loop_xc_overlap_PS
-!!$                    do i3=i3off+1,i3off+n3d
-!!$                       i3s=i3s+1
-!!$                       ind3=(i3-1)*n1i*n2i
-!!$                       ind3s=(i3s-1)*n1i*n2i
-!!$                       do i2=1,n2i
-!!$                          ind2=(i2-1)*n1i+ind3
-!!$                          ind2s=(i2-1)*n1i+ind3s
-!!$                          do i1=1,n1i
-!!$                             ind1=i1+ind2
-!!$                             ind1s=i1+ind2s
-!!$                             !rho
-!!$                             rho_p(ind1s,1)=rho_p(ind1s,1)+hfac*psir(ind1,1)**2 &
-!!$                                  +hfac*psir(ind1,2)**2 &
-!!$                                  +hfac*psir(ind1,3)**2 &
-!!$                                  +hfac*psir(ind1,4)**2 
-!!$                             !m_x
-!!$                             rho_p(ind1s,2)=rho_p(ind1s,2)+hfac2*psir(ind1,1)*psir(ind1,3) &
-!!$                                  +hfac2*psir(ind1,2)*psir(ind1,4)
-!!$                             !m_y
-!!$                             rho_p(ind1s,3)=rho_p(ind1s,3)+hfac2*psir(ind1,1)*psir(ind1,4) &
-!!$                                  -hfac2*psir(ind1,2)*psir(ind1,3)
-!!$                             !m_z
-!!$                             rho_p(ind1s,4)=rho_p(ind1s,4)+hfac*psir(ind1,1)**2 &
-!!$                                  +hfac*psir(ind1,2)**2 &
-!!$                                  -hfac*psir(ind1,3)**2 &
-!!$                                  -hfac*psir(ind1,4)**2 
-!!$                          end do
-!!$                       end do
-!!$                    end do
-!!$                 end do loop_xc_overlap_PS
-!!$              end if
-
            end select
-!!$        if (i3s /= nrhotot) then
-!!$           print *,'problem with rhopot array in sumrho,i3s,nrhotot,',i3s,nrhotot
-!!$           stop
-!!$        end if
      end if
      
   enddo
+
+  !determine the kind of the density for MPI
+  if (dp == kind(1.d0)) then
+     mpidatatype=MPI_DOUBLE_PRECISION
+  else
+     mpidatatype=MPI_REAL
+  end if
+
 
   if (nproc > 1) then
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')
      do ispin=1,nspin
         call MPI_REDUCE_SCATTER(rho_p(1,ispin),rho(1,ispin),n1i*n2i*nscatterarr(:,1),&
-             MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+             mpidatatype,MPI_SUM,MPI_COMM_WORLD,ierr)
      end do
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')
@@ -352,7 +216,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
 
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')
-     call MPI_REDUCE(tt,charge,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(tt,charge,1,mpidatatype,MPI_SUM,0,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')
   else
