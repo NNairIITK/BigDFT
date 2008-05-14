@@ -146,6 +146,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
         if (mu2.gt.nu2) stop 'mu2 > nu2'
         if (mu3.gt.nu3) stop 'mu3 > nu3'
      end if
+     !the surfaces case is lacking here, what follows works always provided the check before
      do i3=ml3,mu3
         dz2=(real(i3,kind=8)*hz-rxyz(3,iat))**2
         j3=modulo(i3,n3+1)

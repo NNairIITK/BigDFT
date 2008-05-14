@@ -68,7 +68,7 @@ endif
 
 SUBDIRS = $(sub_dirs_xc) 
 
-check_PROGRAMS = PSchk 
+check_PROGRAMS = PSchk PSolver
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@
 
@@ -95,6 +95,14 @@ PSchk_LDADD = ../modules/base.o \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
+PSolver_SOURCES = PSolver.f90 timing.f90 $(mpi_source)
+PSolver_LDFLAGS = $(LMPI)
+PSolver_LDADD = ../modules/base.o \
+	libpoissonsolver.a \
+	ABINIT-common/libABINIT.a \
+	@MPI_LIBS@
+
+
 
 CLEANFILES = mpif.h POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@
 
@@ -109,4 +117,5 @@ poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 
 Poisson_Solver.o : $(mpi_include) $(SOURCES_MOD)
 
-PSchk.o: Poisson_Solver.o
+PSchk.o PSolver.o: Poisson_Solver.o
+

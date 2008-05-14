@@ -306,26 +306,6 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
      call transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psit)
   end if
 
-!!$  if (nproc > 1) then
-!!$     !transpose the hpsi wavefunction
-!!$     !here psi is used as a work array
-!!$     call timing(iproc,'Un-TransSwitch','ON')
-!!$     call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi,nspinor)
-!!$     call timing(iproc,'Un-TransSwitch','OF')
-!!$     !here hpsi is the transposed array
-!!$     call timing(iproc,'Un-TransComm  ','ON')
-!!$     call MPI_ALLTOALL(psi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
-!!$          hpsi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-!!$     call timing(iproc,'Un-TransComm  ','OF')
-!!$     !end of transposition
-!!$  else
-!!$     psit => psi
-!!$     if(nspinor==4) then
-!!$        call psitransspi(nvctrp,norb,psit,.true.)
-!!$        call psitransspi(nvctrp,norb,hpsi,.true.)
-!!$     end if
-!!$  end if
-
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
   if(nspin==1.or.nspinor==4) then
      call orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsi,scprsum,nspinor)
@@ -342,23 +322,6 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
 
   !retranspose the hpsi wavefunction
   call untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,hpsi,work=psi)
-
-!!$  if (nproc > 1) then
-!!$     !retranspose the hpsi wavefunction
-!!$     !here psi is used as a work array
-!!$     call timing(iproc,'Un-TransComm  ','ON')
-!!$     call MPI_ALLTOALL(hpsi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
-!!$          psi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-!!$     call timing(iproc,'Un-TransComm  ','OF')
-!!$     !here hpsi is the direct array
-!!$     call timing(iproc,'Un-TransSwitch','ON')
-!!$     call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,hpsi,nspinor)
-!!$     call timing(iproc,'Un-TransSwitch','OF')
-!!$     !end of retransposition
-!!$  else
-!!$     if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.false.)
-!!$!    if(nspinor==4) call psitransspi(nvctrp,norb,psit.true.)
-!!$  end if
 
   call timing(iproc,'Precondition  ','ON')
   if (iproc==0) then
@@ -426,24 +389,12 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
      call timing(iproc,'Diis          ','ON')
      if (nproc > 1) then
 
-!!$        !here psi is used as a work array
-!!$        call timing(iproc,'Un-TransSwitch','ON')
-!!$        call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi,nspinor)
-!!$        call timing(iproc,'Un-TransSwitch','OF')
-!!$        call timing(iproc,'Un-TransComm  ','ON')
-!!$        call MPI_ALLTOALL(psi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
-!!$             hpsidst(1,1,mids),nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-!!$        call timing(iproc,'Un-TransComm  ','OF')
-!!$        !end of transposition
-!!$        call timing(iproc,'Diis          ','ON')
         do iorb=1,norb*nspinor
            do k=1,nvctrp
               psidst(k,iorb,mids)= psit(k,iorb)
            enddo
         enddo
      else
-!!$        if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.true.)
-!!$        call timing(iproc,'Diis          ','ON')
         do iorb=1,norb*nspinor
            do k=1,nvctrp
               psidst(k,iorb,mids)= psit(k,iorb)
@@ -498,24 +449,6 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
      nullify(psit)
   end if
   
-!!$  if (nproc > 1) then
-!!$     !here hpsi is used as a work array
-!!$     call timing(iproc,'Un-TransComm  ','ON')
-!!$     call MPI_ALLTOALL(psit,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
-!!$          hpsi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-!!$     call timing(iproc,'Un-TransComm  ','OF')
-!!$     call timing(iproc,'Un-TransSwitch','ON')
-!!$     call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,hpsi,psi,nspinor)
-!!$     call timing(iproc,'Un-TransSwitch','OF')
-!!$     !end of retransposition
-!!$  else
-!!$     nullify(psit)
-!!$     if(nspinor==4) call psitransspi(nvctrp,norb,psi,.false.)
-!!$
-!!$!     if(nspinor==4) call psitransspi(nvctrp,norb,hpsi,.false.) !(needed?)
-!!$
-!!$  endif
-
   if (iproc==0) then
      write(*,'(1x,a)')&
           'done.'
@@ -615,23 +548,6 @@ subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctr
      call memocc(i_stat,hpsi,'hpsi',subname)
   end if
 
-!!$  else
-!!$     if(nspin==1) then
-!!$        call orthon(norb,nvctrp,psi)
-!!$        !call checkortho(norb,norbp,nvctrp,psi)
-!!$     else
-!!$        call orthon(norbu,nvctrp,psi)
-!!$        !call checkortho(norbu,nvctrp,psi)
-!!$        if(norbd>0) then
-!!$           call orthon(norbd,nvctrp,psi(1,norbu+1))
-!!$           !call checkortho(norbd,nvctrp,psi(1,norbu+1))
-!!$        end if
-!!$     end if
-!!$     !allocate hpsi array
-!!$     allocate(hpsi(nvctr_c+7*nvctr_f,norbp),stat=i_stat)
-!!$     call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','first_orthon')
-!!$  endif
-
 end subroutine first_orthon
 
 ! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
@@ -709,20 +625,6 @@ subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp
      end if
      nullify(psit)
   end if
-
-!!$  else
-!!$     if(nspin==1) then
-!!$        call KStrans(norb,nvctrp,occup,hpsi,psi,evsum,eval)
-!!$     else
-!!$        call KStrans(norbu,nvctrp,occup,hpsi,psi,evsum,eval)
-!!$        evpart=evsum
-!!$        if(norbd>0) then
-!!$           call KStrans(norbd,nvctrp,occup(norbu+1),hpsi(1,norbu+1),psi(1,norbu+1),&
-!!$                evsum,eval(norbu+1))
-!!$           evsum=evsum+evpart
-!!$        end if
-!!$     end if
-!!$  endif
 
   !print the found eigenvalues
   if (iproc == 0) then
