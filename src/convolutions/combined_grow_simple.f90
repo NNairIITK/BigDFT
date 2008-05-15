@@ -143,7 +143,7 @@ subroutine make_loczero(n1,n2,n3,ib2,y)
         do l1=-14,2*n1+16
             do l3=0,n3
                 do l2=ib2(1,l3,l1),ib2(2,l3,l1)
-                    y(l2,l3,l1)=0.d0
+                    y(l2,l3,l1)=0.0_wp
                 enddo
             enddo
         enddo
