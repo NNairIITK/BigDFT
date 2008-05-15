@@ -70,7 +70,7 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
         keyg(2,nend)=ngridp
      endif
   enddo; enddo
-  if (nend.ne.nsrt) then 
+  if (nend /= nsrt) then 
      write(*,*) 'nend , nsrt',nend,nsrt
      stop 'nend <> nsrt'
   endif
