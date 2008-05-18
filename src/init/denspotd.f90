@@ -80,63 +80,132 @@ subroutine CoarseForSolverDescriptors(i3s,i3e,n3,i3sc,i3ec)
 end subroutine CoarseForSolverDescriptors
 
 
+!create a routine which transpose the wavefunctions into a form ready for the density construction
+!starting from the mask arrays
+!this routine should be rethought, the maskarray is much too big
+subroutine rhotranspose(iproc,nproc,norbp,norb,nspinor,wfd,wfd_loc,psi_loc,&
+     maskrho,ncountrhoreg,psit)
+  use module_base
+  use module_types
+  implicit none
+  type(wavefunctions_descriptors), intent(in) :: wfd,wfd_loc
+  integer , intent(in) :: iproc,nproc,norbp,norb,nspinor
+  logical, dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(in) :: maskrho
+  integer, dimension(nproc), intent(in) :: ncountrhoreg
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(in) :: psi_loc
+  !this array may also have dimension zero
+  real(wp), dimension(wfd_loc%nvctr_c+7*wfd_loc%nvctr_f,norb*nspinor), intent(out) :: psit
+  !local variables
+  character(len=*), parameter :: subname='rhotranspose'
+  integer :: i_stat,i_all,iorb
+
+
+  !the local array contains the components of psi in the local region of rho 
+  !for the processor orbitals and separate it in contiguous packets which should be sent to 
+  !different processors
+  
+
+end subroutine rhotranspose
+  
+
+
 !this subroutine define other wavefunctions descriptors starting from the original descriptors 
 !and the limits of a given localisation region
 !it also returns an array which is used to mask the compressed wavefunction into the new one
-subroutine loc_wfd(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,wfdg,wfdl,maskarr)
+! INPUTS
+! ilocreg               localisation region to be considered
+! nlocreg               total number of localisation regions
+! n1,n2,n3              original dimensions of the global box
+! lrlims                array of limits of the localisation regions (global system coordinates)
+! wfdg                  global wavefunction descriptors structure
+! OUTPUT
+! wfdl                  local wavefunction descriptors structure in local system coordinates
+! maskarr               mask array for traducing the wavefunction in compressed form
+!                       to the wavefunction in compressed form for the local system
+! ncountlocreg          array of elements for each localisation region
+subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keytrans,ncountlocreg)
   use module_types
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfdg
-  integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec
-  logical, dimension(wfdg%nvctr_c+7*wfdg%nvctr_f), intent(out) :: maskarr
+  integer, intent(in) :: ilocreg,nlocreg,n1,n2,n3
+  integer, dimension(2,3,nlocreg), intent(in) :: lrlims
   type(wavefunctions_descriptors), intent(out) :: wfdl
+  integer, dimension(nlocreg), intent(out) :: ncountlocreg
+  integer, dimension(:), pointer :: keytrans
   !local variables
   character(len=*), parameter :: subname='loc_wfd'
+  integer :: iloc,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nvctr_c,nseg_c,nseg_f,nvctr_f,ndimkey
 
-  !calculate the number of segments of the new descriptors
-  !and define the mask array for the wavefunction
+  !calculate the number of segments of the new descriptors for each localisation region
+  !and the dimension of the array for the translation of the localisation regions
+  ndimkey=0
+  do iloc=1,nlocreg
+     if (iloc /= ilocreg) then
+        !coarse part
+        call num_segkeys_loc(n1,n2,n3,lrlims(1,1,iloc),lrlims(2,1,iloc),&
+             lrlims(1,2,iloc),lrlims(2,2,iloc),lrlims(1,3,iloc),lrlims(2,3,iloc),&
+             wfdg%nseg_c,wfdg%nvctr_c,wfdg%keyg(1,1),wfdg%keyv(1),&
+             nseg_c,nvctr_c)
+        !fine part
+        call num_segkeys_loc(n1,n2,n3,lrlims(1,1,iloc),lrlims(2,1,iloc),&
+             lrlims(1,2,iloc),lrlims(2,2,iloc),lrlims(1,3,iloc),lrlims(2,3,iloc),&
+             wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+1),wfdg%keyv(wfdg%nseg_c+1),&
+             nseg_f,nvctr_f)
+        ncountlocreg(iloc)=nvctr_c+7*nvctr_f
+        ndimkey=ndimkey+ncountlocreg(iloc)
+     end if
+  end do
+
+  i1sc=lrlims(1,1,ilocreg)
+  i1ec=lrlims(2,1,ilocreg)
+  i2sc=lrlims(1,2,ilocreg)
+  i2ec=lrlims(2,2,ilocreg)
+  i3sc=lrlims(1,3,ilocreg)
+  i3ec=lrlims(2,3,ilocreg)
 
   !coarse part
-  call num_segkeys_loc(1,n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
+  call num_segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
        wfdg%nseg_c,wfdg%nvctr_c,wfdg%keyg(1,1),wfdg%keyv(1),&
-       wfdl%nseg_c,wfdl%nvctr_c,maskarr(1))
+       wfdl%nseg_c,wfdl%nvctr_c)
 
   !fine part
-  call num_segkeys_loc(7,n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
+  call num_segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
        wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+1),wfdg%keyv(wfdg%nseg_c+1),&
-       wfdl%nseg_f,wfdl%nvctr_f,maskarr(wfdg%nvctr_c+1))
+       wfdl%nseg_f,wfdl%nvctr_f)
+
+  ncountlocreg(ilocreg)=wfdl%nvctr_c+7*wfdl%nvctr_f
 
   call allocate_wfd(wfdl,subname)
 
-  !a little check
-  if (count(maskarr) /= wfdl%nvctr_c+7*wfdl%nvctr_f) then
-     write(*,'(1x,a)')'ERROR : Masking problem, check maskarr'
-     stop
-  end if
-
   !now fill the local wavefunction descriptors
+  !and define the mask array for the wavefunction
   !coarse part
   call segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
        wfdg%nseg_c,wfdg%nvctr_c,wfdg%keyg(1,1),wfdg%keyv(1),&
-       wfdl%nseg_c,wfdl%nvctr_c,wfdl%keyg(1,1),wfdl%keyv(1))
-
+       wfdl%nseg_c,wfdl%nvctr_c,wfdl%keyg(1,1),wfdl%keyv(1),keytrans(1))
 
   !fine part
   call segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
        wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+1),wfdg%keyv(wfdg%nseg_c+1),&
-       wfdl%nseg_f,wfdl%nvctr_f,wfdl%keyg(1,wfdl%nseg_c+1),wfdl%keyv(wfdl%nseg_f+1))
+       wfdl%nseg_f,wfdl%nvctr_f,wfdl%keyg(1,wfdl%nseg_c+1),wfdl%keyv(wfdl%nseg_c+1),&
+       keytrans(wfdg%nseg_c+1))
 
+  !a little check on the masking array
+!!$  if (count(maskarr) /= wfdl%nvctr_c+7*wfdl%nvctr_f) then
+!!$     write(*,'(1x,a)')'ERROR : Masking problem, check maskarr'
+!!$     stop
+!!$  end if
 
 end subroutine loc_wfd
 
 subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
-     nseg_loc,nvctr_loc,keyg_loc,keyv_loc)
+     nseg_loc,nvctr_loc,keyg_loc,keyv_loc,keytrans)
   implicit none
   integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,nseg_loc,nvctr_loc
   integer, dimension(nseg), intent(in) :: keyv
   integer, dimension(2,nseg), intent(in) :: keyg
   integer, dimension(nseg_loc), intent(out) :: keyv_loc
-  integer, dimension(2,nseg_loc), intent(out) :: keyg_loc
+  integer, dimension(2,nseg_loc), intent(out) :: keyg_loc,keytrans
   !local variables
   logical :: go,lseg
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,j,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l
@@ -165,6 +234,8 @@ subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,ke
      go=(i3sc <= i3 .and. i3 <= i3ec) .and. (i2sc <= i2 .and. i2 <= i2ec)
      lseg=.false.
      do i=i0,i1
+        !index of the compressed function
+        ind=i-i0+jj
         i1l=i-i1sc
         i2l=i2-i2sc
         i3l=i3-i3sc
@@ -173,6 +244,7 @@ subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,ke
            nvctr_check=nvctr_check+1
            if (.not. lseg) then
               nsrt=nsrt+1
+              keytrans(1,nsrt)=ind
               keyg_loc(1,nsrt)=ngridp
               keyv_loc(nsrt)=nvctr_check
            end if
@@ -180,6 +252,7 @@ subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,ke
         else
            if (lseg) then
               nend=nend+1
+              keytrans(2,nend)=ind-1
               keyg_loc(2,nend)=ngridp-1
               lseg=.false. 
            end if
@@ -187,6 +260,7 @@ subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,ke
      end do
      if (lseg) then
         nend=nend+1
+        keytrans(2,nend)=ind
         keyg_loc(2,nend)=ngridp
      end if
   end do
@@ -201,14 +275,13 @@ subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,ke
 
 end subroutine segkeys_loc
 
-subroutine num_segkeys_loc(num,n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
-     nseg_loc,nvctr_loc,mask)
+subroutine num_segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
+     nseg_loc,nvctr_loc)
   implicit none
-  integer, intent(in) :: num,n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr
+  integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr
   integer, dimension(nseg), intent(in) :: keyv
   integer, dimension(2,nseg), intent(in) :: keyg
   integer, intent(out) :: nseg_loc,nvctr_loc
-  logical, dimension(num,nvctr), intent(out) :: mask
   !local variables
   logical :: go,lseg
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,j,nsrt,nend,nvctr_check
@@ -232,22 +305,14 @@ subroutine num_segkeys_loc(num,n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr
      go=(i3sc <= i3 .and. i3 <= i3ec) .and. (i2sc <= i2 .and. i2 <= i2ec)
      lseg=.false.
      do i=i0,i1
-        !index of the compressed function
-        ind=i-i0+jj
         nvctr_check=nvctr_check+1
         if (go .and. (i1sc <= i .and. i <= i1ec)) then
-           do j=1,num
-              mask(j,ind)=.true.
-           end do
            nvctr_loc=nvctr_loc+1
            if (.not. lseg) then
               nsrt=nsrt+1
            end if
            lseg=.true.
         else
-           do j=1,num
-              mask(j,ind)=.false.
-           end do
            if (lseg) then
               nend=nend+1
               lseg=.false. 
@@ -275,6 +340,41 @@ subroutine num_segkeys_loc(num,n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr
     
 end subroutine num_segkeys_loc
 
+!conversion of the global bounds into a given localisation region
+subroutine make_bounds_loc(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+     i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,bounds,bounds_loc)
+  use module_base
+  use module_types
+  implicit none
+  type(convolutions_bounds), intent(in) :: bounds
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec
+  type(convolutions_bounds), intent(out) :: bounds_loc
+  !local variables
+  character(len=*), parameter :: subname='kb_conversion'
+  integer :: n1l,n2l,n3l,i_stat
+  
+  !dimensions of the localisation region (O:nIl)
+  n1l=i1ec-i1sc
+  n2l=i2ec-i2sc
+  n3l=i3ec-i3sc
+
+  call kb_conversion(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,bounds%kb,bounds_loc%kb)
+
+  call sb_conversion(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+     i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,bounds%sb,bounds_loc%sb)
+
+  call gb_conversion(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+     i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,bounds%gb,bounds_loc%gb)
+
+  !convert the real bounds array
+  allocate(bounds_loc%ibyyzz_r(2,-14:2*n2l+16,-14:2*n3l+16+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds_loc%ibyyzz_r,'bounds_loc%ibyyzz_r',subname)
+  call bound_conversion(-14,2*n2+16,-14,2*n3+16,&
+       0,2*i1sc,2*i1ec+30,-14+2*i2sc,2*i2ec+16,-14+2*i3sc,2*i3ec+16,&
+       bounds%ibyyzz_r,bounds_loc%ibyyzz_r)
+
+end subroutine make_bounds_loc
+
 !convert the kinetic bounds
 subroutine kb_conversion(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,kb,kb_loc)
   use module_base
@@ -295,22 +395,34 @@ subroutine kb_conversion(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,kb,kb_loc)
   call memocc(i_stat,kb_loc%ibyz_c,'kb_loc%ibyz_c',subname)
   allocate(kb_loc%ibyz_f(2,0:n2l,0:n3l+ndebug),stat=i_stat)
   call memocc(i_stat,kb_loc%ibyz_f,'kb_loc%ibyz_f',subname)
-  call bound_conversion(0,n2,0,n3,0,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,kb%ibyz_c,kb_loc%ibyz_c)
-  call bound_conversion(0,n2,0,n3,0,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,kb%ibyz_f,kb_loc%ibyz_f)
+  call bound_conversion(0,n2,0,n3,&
+       0,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
+       kb%ibyz_c,kb_loc%ibyz_c)
+  call bound_conversion(0,n2,0,n3,&
+       0,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
+       kb%ibyz_f,kb_loc%ibyz_f)
 
   allocate(kb_loc%ibxz_c(2,0:n1l,0:n3l+ndebug),stat=i_stat)
   call memocc(i_stat,kb_loc%ibxz_c,'kb_loc%ibxz_c',subname)
   allocate(kb_loc%ibxz_f(2,0:n1l,0:n3l+ndebug),stat=i_stat)
   call memocc(i_stat,kb_loc%ibxz_f,'kb_loc%ibxz_f',subname)
-  call bound_conversion(0,n1,0,n3,0,i2sc,i2ec,i1sc,i1ec,i3sc,i3ec,kb%ibxz_c,kb_loc%ibxz_c)
-  call bound_conversion(0,n1,0,n3,0,i2sc,i2ec,i1sc,i1ec,i3sc,i3ec,kb%ibxz_f,kb_loc%ibxz_f)
+  call bound_conversion(0,n1,0,n3,&
+       0,i2sc,i2ec,i1sc,i1ec,i3sc,i3ec,&
+       kb%ibxz_c,kb_loc%ibxz_c)
+  call bound_conversion(0,n1,0,n3,&
+       0,i2sc,i2ec,i1sc,i1ec,i3sc,i3ec,&
+       kb%ibxz_f,kb_loc%ibxz_f)
 
   allocate(kb_loc%ibxy_c(2,0:n1l,0:n2l+ndebug),stat=i_stat)
   call memocc(i_stat,kb_loc%ibxy_c,'kb_loc%ibxy_c',subname)
   allocate(kb_loc%ibxy_f(2,0:n1l,0:n2l+ndebug),stat=i_stat)
   call memocc(i_stat,kb_loc%ibxy_f,'kb_loc%ibxy_f',subname)
-  call bound_conversion(0,n1,0,n2,0,i3sc,i3ec,i1sc,i1ec,i2sc,i2ec,kb%ibxy_c,kb_loc%ibxy_c)
-  call bound_conversion(0,n1,0,n2,0,i3sc,i3ec,i1sc,i1ec,i2sc,i2ec,kb%ibxy_f,kb_loc%ibxy_f)
+  call bound_conversion(0,n1,0,n2,&
+       0,i3sc,i3ec,i1sc,i1ec,i2sc,i2ec,&
+       kb%ibxy_c,kb_loc%ibxy_c)
+  call bound_conversion(0,n1,0,n2,&
+       0,i3sc,i3ec,i1sc,i1ec,i2sc,i2ec,&
+       kb%ibxy_f,kb_loc%ibxy_f)
   
 end subroutine kb_conversion
 
@@ -343,36 +455,106 @@ subroutine sb_conversion(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   allocate(sb_loc%ibzzx_c(2,-14:2*n3l+16,0:n1l+ndebug),stat=i_stat)
   call memocc(i_stat,sb_loc%ibzzx_c,'sb_loc%ibzzx_c',subname)
-  call bound_conversion(-14,2*n3+16,0,n1,0,i2sc,i2ec,-14+2*i3sc,2*i3ec+16,i1sc,i1ec,&
+  call bound_conversion(-14,2*n3+16,0,n1,&
+       0,i2sc,i2ec,-14+2*i3sc,2*i3ec+16,i1sc,i1ec,&
        sb%ibzzx_c,sb_loc%ibzzx_c)
 
   allocate(sb_loc%ibyyzz_c(2,-14:2*n2l+16,-14:2*n3l+16+ndebug),stat=i_stat)
   call memocc(i_stat,sb_loc%ibyyzz_c,'sb_loc%ibyyzz_c',subname)
-  call bound_conversion(-14,2*n2+16,-14,2*n3+16,0,i1sc,i1ec,-14+2*i2sc,2*i2ec+16,&
+  call bound_conversion(-14,2*n2+16,-14,2*n3+16,&
+       0,i1sc,i1ec,-14+2*i2sc,2*i2ec+16,&
        -14+2*i3sc,2*i3ec+16,sb%ibyyzz_c,sb_loc%ibyyzz_c)
 
   allocate(sb_loc%ibzzx_f(2,-14+2*nfl3l:2*nfu3l+16,nfl1l:nfu1l+ndebug),stat=i_stat)
   call memocc(i_stat,sb_loc%ibzzx_f,'sb_loc%ibzzx_f',subname)
-  call bound_conversion(-14+2*nfl3,2*nfu3+16,nfl1,nfu1,nfl2l,i2sc,i2ec,-14+2*nfl3l,2*nfu3l+16,&
+  call bound_conversion(-14+2*nfl3,2*nfu3+16,nfl1,nfu1,&
+       nfl2l,nfl2l,nfu2l,-14+2*nfl3l,2*nfu3l+16,&
        nfl1l,nfu1l,sb%ibzzx_f,sb_loc%ibzzx_f)
 
   allocate(sb_loc%ibyyzz_f(2,-14+2*nfl2l:2*nfu2l+16,-14+2*nfl3l:2*nfu3l+16+ndebug),stat=i_stat)
   call memocc(i_stat,sb_loc%ibyyzz_f,'sb_loc%ibyyzz_f',subname)
-  call bound_conversion(-14+2*nfl2,2*nfu2+16,-14+2*nfl3,2*nfu3+16,nfl1l,i1sc,i1ec,&
-       -14+2*nfl2l,2*nfu2l+16,-14+2*nfl3l,2*nfu3l+16,sb%ibyyzz_c,sb_loc%ibyyzz_c)
+  call bound_conversion(-14+2*nfl2,2*nfu2+16,-14+2*nfl3,2*nfu3+16,&
+       nfl1l,nfl1l,nfu1l,-14+2*nfl2l,2*nfu2l+16,-14+2*nfl3l,2*nfu3l+16,&
+       sb%ibyyzz_c,sb_loc%ibyyzz_c)
 
   allocate(sb_loc%ibxy_ff(2,nfl1l:nfu1l,nfl2l:nfu2l+ndebug),stat=i_stat)
   call memocc(i_stat,sb_loc%ibxy_ff,'sb_loc%ibxy_ff',subname)
-  call bound_conversion(nfl1,nfu1,nfl2,nfu2,nfl3l,i3sc,i3ec,&
-       nfl1l,nfu1l,nfl2l,nfu2l,sb%ibyyzz_c,sb_loc%ibyyzz_c)
-
-  
+  call bound_conversion(nfl1,nfu1,nfl2,nfu2,&
+       nfl3l,nfl3l,nfu3l,nfl1l,nfu1l,nfl2l,nfu2l,&
+       sb%ibyyzz_c,sb_loc%ibyyzz_c)
+ 
 end subroutine sb_conversion
 
+
+!convert the grow bounds
+subroutine gb_conversion(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+     i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,gb,gb_loc)
+  use module_base
+  use module_types
+  type(grow_bounds), intent(in) :: gb
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec
+  type(grow_bounds), intent(out) :: gb_loc
+  !local variables
+  character(len=*), parameter :: subname='gb_conversion'
+  integer :: n1l,n2l,n3l,i_stat,nfl1l,nfu1l,nfl2l,nfu2l,nfl3l,nfu3l
+  
+  !dimensions of the localisation region (O:nIl)
+  n1l=i1ec-i1sc
+  n2l=i2ec-i2sc
+  n3l=i3ec-i3sc
+
+  !dimensions for the fine localisation region
+  nfl1l=max(nfl1,i1sc)
+  nfl2l=max(nfl2,i2sc)
+  nfl3l=max(nfl3,i3sc)
+
+  nfu1l=min(nfu1,i1ec)
+  nfu2l=min(nfu2,i2ec)
+  nfu3l=min(nfu3,i3ec)
+
+  allocate(gb_loc%ibzxx_c(2,0:n3l,-14:2*n1l+16+ndebug),stat=i_stat)
+  call memocc(i_stat,gb_loc%ibzxx_c,'gb_loc%ibzxx_c',subname)
+  call bound_conversion(0,n3,-14,2*n1+16,&
+       0,i2sc,i2ec,i3sc,i3ec,-14+2*i1sc,2*i1ec+16,&
+       gb%ibzxx_c,gb_loc%ibzxx_c)
+
+  allocate(gb_loc%ibxxyy_c(2,-14:2*n1l+16,-14:2*n2l+16+ndebug),stat=i_stat)
+  call memocc(i_stat,gb_loc%ibxxyy_c,'gb_loc%ibxxyy_c',subname)
+  call bound_conversion(-14,2*n1+16,-14,2*n2+16,&
+       0,i3sc,i3ec,-14+2*i1sc,2*i1ec+16,-14+2*i2sc,2*i2ec+16,&
+       gb%ibxxyy_c,gb_loc%ibxxyy_c)
+
+  allocate(gb_loc%ibyz_ff(2,nfl2l:nfu2l,nfl3l:nfu3l+ndebug),stat=i_stat)
+  call memocc(i_stat,gb_loc%ibyz_ff,'gb_loc%ibyz_ff',subname)
+  call bound_conversion(nfl2,nfu2,nfl3,nfu3,&
+       nfl1l,nfl1l,nfu1l,nfl2l,nfu2l,nfl3l,nfu3l,&
+       gb%ibyz_ff,gb_loc%ibyz_ff)
+
+  allocate(gb_loc%ibzxx_f(2,nfl3l:nfu3l,2*nfl1l-14:2*nfu1l+16+ndebug),stat=i_stat)
+  call memocc(i_stat,gb_loc%ibzxx_f,'gb_loc%ibzxx_f',subname)
+  call bound_conversion(nfl3,nfu3,2*nfl1-14,2*nfu1+16,&
+       nfl2l,nfl2l,nfu2l,nfl3l,nfu3l,2*nfl1l-14,2*nfu1l+16,&
+       gb%ibzxx_f,gb_loc%ibzxx_f)
+
+  allocate(gb_loc%ibxxyy_f(2,2*nfl1l-14:2*nfu1l+16,2*nfl2l-14:2*nfu2l+16+ndebug),stat=i_stat)
+  call memocc(i_stat,gb_loc%ibxxyy_f,'gb_loc%ibxxyy_f',subname)
+  call bound_conversion(2*nfl1-14,2*nfu1+16,2*nfl2-14,2*nfu2+16,&
+       nfl3l,nfl3l,nfu3l,2*nfl1l-14,2*nfu1l+16,2*nfl2l-14,2*nfu2l+16,&
+       gb%ibxxyy_f,gb_loc%ibxxyy_f)
+  
+end subroutine gb_conversion
 
 
 !with this subroutine we should convert a bound array from its global version to 
 !the version which is compatible for a given localisation region
+!! INPUTS
+!!   nl2,nu2,nl3,nu3  limits of the global bounds array in the orthogonal directions
+!!   nl1_loc          lower limit of the local bounds array in the interested direction
+!!   i1s,i1e,i2s,i2e
+!!   i3s,i3e          limits of the localisation region in the global system coordinates
+!!   ib               global bounds array
+!! OUTPUT
+!!   ib_loc           local bounds array
 subroutine bound_conversion(nl2,nu2,nl3,nu3,nl1_loc,i1s,i1e,i2s,i2e,i3s,i3e,ib,ib_loc)
   implicit none
   integer, intent(in) :: nl1_loc,nl2,nu2,nl3,nu3,i1s,i1e,i2s,i2e,i3s,i3e
@@ -404,6 +586,5 @@ subroutine bound_conversion(nl2,nu2,nl3,nu3,nl1_loc,i1s,i1e,i2s,i2e,i3s,i3e,ib,i
         end do
      end do
   end if
-
 
 end subroutine bound_conversion

@@ -206,7 +206,7 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      !residues(icong)=alpha1
      alpha=alpha1/alpha2        
 
-     write(10+iorb,'(1x,i0,3(1x,1pe24.17))')icong,alpha1,alpha2,alpha
+     !write(10+iorb,'(1x,i0,3(1x,1pe24.17))')icong,alpha1,alpha2,alpha
 
      do i=1,nvctr_c+7*nvctr_f
         hpsi(i)=hpsi(i)-alpha*ppsi(i)

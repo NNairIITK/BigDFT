@@ -113,6 +113,8 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   do jproc=0,nproc-1
      nrhotot=nrhotot+nscatterarr(jproc,1)
   end do
+  !here we should insert the condition for the GGA case for MPI_ALLREDUCE operation
+
 
   if (nproc > 1) then
      allocate(rho_p(n1i*n2i*nrhotot,nspinn+ndebug),stat=i_stat)
@@ -277,6 +279,7 @@ subroutine partial_density(nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
      i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
      n3d=nscatterarr(jproc,1)
      if (n3d==0) exit loop_xc_overlap
+     !here the condition for the MPI_ALLREDUCE should be entered
      if(spinsgn > 0.0d0) then
         isjmp=1
      else

@@ -1136,7 +1136,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   call build_eigenvectors(nproc,norbu,norbd,norbp,norbtotp,nvctrp,nvctr,natsceff,nspin,nspinor, &
        ndim_hamovr,norbgrp,hamovr,psi,psit,nvirte,psivirt)
   
-  if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
+  !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
      
 
   i_all=-product(shape(hamovr))*kind(hamovr)
@@ -1185,7 +1185,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
      end if
   end if
 
-  call untranspose(iproc,nproc,norb,norbp,1,wfd,nvctrp,psit,work=hpsi,out=psi)
+  !this untranspose also the wavefunctions 
+  call untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psit,work=hpsi,out=psi)
 
   if (nproc == 1) then
      if (minimal) psi => psit
