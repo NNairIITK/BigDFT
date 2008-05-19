@@ -59,6 +59,10 @@ module module_types
      real(kind=8), dimension(:,:,:), pointer :: psppar
   end type atoms_data
 
+  type, public :: grid_dimensions
+     integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
+  end type grid_dimensions
+
 contains
 
 

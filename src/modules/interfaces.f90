@@ -247,7 +247,6 @@ interface
      use module_base
      use module_types
      implicit none
-     include 'mpif.h'
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -287,14 +286,14 @@ interface
      real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
    end subroutine first_orthon
 
-   subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
+   subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,  & 
         wfd,psi,rho,nrho,nscatterarr,nspin,nspinor,spinsgn,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
      use module_types
      implicit none
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(convolutions_bounds), intent(in) :: bounds
      character(len=1), intent(in) :: geocode
-     integer, intent(in) :: iproc,nproc,norb,norbp,nrho,nspin,nspinor
+     integer, intent(in) :: iproc,nproc,norb,norbp,nrho,nspin,nspinor,ixc
      integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
      real(kind=8), intent(in) :: hxh,hyh,hzh
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -459,7 +458,6 @@ interface
      use module_base
      use module_types
      implicit none
-     include 'mpif.h'
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -479,8 +477,7 @@ interface
      !this is a Fortran 95 standard, should be avoided (it is a pity IMHO)
      !real(kind=8), dimension(:,:,:,:), allocatable :: rhopot 
      real(wp), dimension(norb), intent(in) :: eval
-     real(wp), dimension(:,:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
-     !v, that is psivirt, is transposed on input and direct on output
+     real(wp), dimension(:,:), pointer :: psi,v
    end subroutine davidson
 
    subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,nspin,nspinor,&
@@ -549,6 +546,20 @@ interface
      real(gp), intent(in) :: hgrid,rx,ry,rz
      real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
    end subroutine plot_wf
+
+   subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
+        hfac,nscatterarr,spinsgn,psir,rho_p,&
+        ibyyzz_r) !optional argument
+     use module_base
+     implicit none
+     logical, intent(in) :: rsflag
+     integer, intent(in) :: nproc,n1i,n2i,n3i,nrhotot,nspinor,nspinn
+     real(gp), intent(in) :: hfac,spinsgn
+     integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
+     real(wp), dimension(n1i,n2i,n3i,nspinn), intent(in) :: psir
+     real(dp), dimension(n1i,n2i,nrhotot,nspinn), intent(inout) :: rho_p
+     integer, dimension(:,:,:), pointer, optional :: ibyyzz_r 
+   end subroutine partial_density
 
 end interface
 

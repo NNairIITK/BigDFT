@@ -21,4 +21,7 @@ EXTRA_DIST = \
 	psppar.Test_lda \
 	psppar.Test \
 	HGH/psppar.H \
-	HGH/psppar.O
+	HGH/psppar.O \
+	HGH/psppar.Si \
+	HGH-K/psppar.H \
+	HGH-K/psppar.Si 

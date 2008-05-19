@@ -206,7 +206,7 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      !residues(icong)=alpha1
      alpha=alpha1/alpha2        
 
-     write(10+iorb,'(1x,i0,3(1x,1pe24.17))')icong,alpha1,alpha2,alpha
+     !write(10+iorb,'(1x,i0,3(1x,1pe24.17))')icong,alpha1,alpha2,alpha
 
      do i=1,nvctr_c+7*nvctr_f
         hpsi(i)=hpsi(i)-alpha*ppsi(i)
@@ -297,26 +297,37 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   deallocate(x_f3,stat=i_stat)
   call memocc(i_stat,i_all,'x_f3',subname)
      
-     
 end subroutine precong
 
-SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+! ypsi = (1/2) \Nabla^2 xpsi + cprecr xpsi
+subroutine calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
-     scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsi_c,xpsi_f,ypsi_c,ypsi_f,&
+     scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,&
+     xpsi_c,xpsi_f,ypsi_c,ypsi_f,&
      xpsig_c,xpsig_f,ypsig_c,ypsig_f,x_f1,x_f2,x_f3)
-  ! ypsi = (1/2) \Nabla^2 xpsi + cprecr xpsi
-  implicit real(kind=8) (a-h,o-z)        
-  dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
-  dimension xpsi_c(nvctr_c),xpsi_f(7,nvctr_f),scal(0:3)
-  dimension ypsi_c(nvctr_c),ypsi_f(7,nvctr_f)
-  dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
-  dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-!***********************************************************************************************
-   dimension  xpsig_c(0:n1,0:n2,0:n3),xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-   dimension  ypsig_c(0:n1,0:n2,0:n3),ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-   dimension  x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3)
-   dimension  x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2)
-!***********************************************************************************************
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
+  real(wp), intent(in) :: cprecr
+  real(gp), intent(in) :: hgrid
+  integer, dimension(nseg_c), intent(in) :: keyv_c
+  integer, dimension(nseg_f), intent(in) :: keyv_f
+  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+  integer, dimension(2,nseg_f), intent(in) :: keyg_f
+  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+  real(wp), dimension(0:3), intent(in) :: scal
+  real(wp), dimension(nvctr_c), intent(in) :: xpsi_c
+  real(wp), dimension(7,nvctr_f), intent(in) :: xpsi_f
+  real(wp), dimension(nvctr_c), intent(out) :: ypsi_c
+  real(wp), dimension(7,nvctr_f), intent(out) :: ypsi_f
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: xpsig_c,ypsig_c
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: xpsig_f,ypsig_f
+  real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: x_f1
+  real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), intent(inout) :: x_f2
+  real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(inout) :: x_f3
 
   call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
        nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -334,44 +345,53 @@ SUBROUTINE CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
        scal,ypsig_c,ypsig_f,ypsi_c,ypsi_f)
 
-END SUBROUTINE CALC_GRAD_REZA
+end subroutine calc_grad_reza
 
 
 subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
-     keyg_c,keyv_c,hpsi_c,hpsi_f,C,scal,A2,B2)
-  ! 
-  !
+     keyg_c,keyv_c,hpsi_c,hpsi_f,c,scal,a2,b2)
   use module_base
-  implicit real(kind=8) (a-h,o-z)
-  dimension keyg_c(2,nseg_c),keyv_c(nseg_c),hpsi_c(nvctr_c),hpsi_f(7,nvctr_f)
-  real(kind=8), allocatable, dimension(:,:,:) :: hpsip
-  real(kind=8)::scal(0:3) 
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nvctr_f
+  real(wp), intent(in) :: c,a2,b2
+  real(gp), intent(in) :: hgrid
+  integer, dimension(nseg_c), intent(in) :: keyv_c
+  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+  real(wp), dimension(0:3), intent(in) :: scal
+  real(wp), dimension(nvctr_c), intent(inout) :: hpsi_c
+  real(wp), dimension(7,nvctr_f), intent(inout) :: hpsi_f
+  !local variables
   character(len=*), parameter :: subname='prec_diag'
-  real(kind=8),parameter::atomic_length=2.d0,FAC_LEN=2.D0
-
-  !      Number of sweeps in wavelet transformation
-  !      THE BIGGEST SCALING FUNCTION STEP: atomic_length*FAC_LEN
-  !      (NOT JUST ATOMIC_LENGTH, BECAUSE SO IT IS BETTER IN PRACTICE) 
-  NUM_TRANS=NINT(log(atomic_length*FAC_LEN/hgrid)/log(2.d0))
-  N2_NT=2**NUM_TRANS
-  !write(*,'(1x,a)') 'NUMBER OF WAVELET TRANSFORMS (sweeps)',NUM_TRANS
-
-  ! Find right leading dimensions for array
+  real(gp), parameter ::atomic_length=2.0_gp,fac_len=2.0_gp
+  integer :: num_trans,n2_nt,nd1,nd2,nd3,iseg,jj,j0,ii,i3,i2,i
+  integer :: nn1,nn2,nn3,nnn1,nnn2,nnn3,i0,i_all,i_stat,i1,j1
+  real(wp) :: h0,h1,h2,h3,fac_h
+  real(wp), dimension(:,:,:), allocatable :: hpsip
 
 
-  !       ND1+1 IS THE MULTIPLE OF N2_N
-  !       WHICH IS CLOSEST TO N1+1 FROM ABOVE. 
-  ND1=CEILING( REAL(N1+1,KIND=8)/REAL(N2_NT,KIND=8) ) *N2_NT-1
-  !       THE SAME FOR ND2,ND3.
-  ND2=CEILING( REAL(N2+1,KIND=8)/REAL(N2_NT,KIND=8) ) *N2_NT-1
-  ND3=CEILING( REAL(N3+1,KIND=8)/REAL(N2_NT,KIND=8) ) *N2_NT-1
+  !      number of sweeps in wavelet transformation
+  !      the biggest scaling function step: atomic_length*fac_len
+  !      (not just atomic_length, because so it is better in practice) 
+  num_trans=nint(log(atomic_length*fac_len/hgrid)/log(2.0_gp))
+  n2_nt=2**num_trans
+  !write(*,'(1x,a)') 'number of wavelet transforms (sweeps)',num_trans
 
-  !write(*,'(3(1x,a,i0))')'ND1=',ND1,'ND2=',ND2,'ND3=',ND3
+  ! find right leading dimensions for array
+
+
+  !       nd1+1 is the multiple of n2_n
+  !       which is closest to n1+1 from above. 
+  nd1=ceiling( real(n1+1,kind=8)/real(n2_nt,kind=8)) *n2_nt-1
+  !       the same for nd2,nd3.
+  nd2=ceiling( real(n2+1,kind=8)/real(n2_nt,kind=8)) *n2_nt-1
+  nd3=ceiling( real(n3+1,kind=8)/real(n2_nt,kind=8)) *n2_nt-1
+
+  !write(*,'(3(1x,a,i0))')'nd1=',nd1,'nd2=',nd2,'nd3=',nd3
 
   allocate(hpsip(0:nd1,0:nd2,0:nd3+ndebug),stat=i_stat)
   call memocc(i_stat,hpsip,'hpsip',subname)
 
-  HPSIP=0.D0
+  hpsip=0.0_wp
 
   ! coarse part
   do iseg=1,nseg_c
@@ -389,36 +409,40 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
      enddo
   enddo
 
-  FAC_H=1.D0/((HGRID*REAL(N2_NT,KIND=8))**2)
+  fac_h=real(1.0_gp/((hgrid*real(n2_nt,gp))**2),wp)
 
-  H0=    1.5D0*A2*FAC_H;    H1=(A2+B2*.5D0)*FAC_H
-  H2=(A2*.5D0+B2)*FAC_H;    H3=    1.5D0*B2*FAC_H
+  h0=    1.5_wp*a2*fac_h
+  h1=(a2+b2*.5d0)*fac_h
+  h2=(a2*.5_wp+b2)*fac_h
+  h3=    1.5_wp*b2*fac_h
 
-  !       FORWARD TRANSFORM THE COARSE SCALING FUNCTIONS NUM_TRANS TIMES
-  CALL ANA_REPEATED_PER(ND1,ND2,ND3,HPSIP,NUM_TRANS,NN1,NN2,NN3) 
+  !       forward transform the coarse scaling functions num_trans times
+  call ana_repeated_per(nd1,nd2,nd3,hpsip,num_trans,nn1,nn2,nn3) 
 
-  NNN1=NN1; NNN2=NN2; NNN3=NN3 
+  nnn1=nn1
+  nnn2=nn2
+  nnn3=nn3 
 
-  !       DIAGONALLY PRECONDITION THE RESULTING COARSE WAVELETS
-  CALL PRECOND_PROPER(ND1,ND2,ND3,HPSIP,NUM_TRANS,NNN1,NNN2,NNN3,H0,H1,H2,H3,C)
+  !       diagonally precondition the resulting coarse wavelets
+  call precond_proper(nd1,nd2,nd3,hpsip,num_trans,nnn1,nnn2,nnn3,h0,h1,h2,h3,c)
 
-  HPSIP=HPSIP/SCAL(0) ! apply (wscal)^(-1)
+  hpsip=hpsip/scal(0) ! apply (wscal)^(-1)
 
-  !       BACKWARD TRANSFORM THE COARSE SCALING FUNCTIONS NUM_TRANS TIMES
-  CALL SYN_REPEATED_PER(ND1,ND2,ND3,HPSIP,NUM_TRANS,NN1,NN2,NN3)
+  !       backward transform the coarse scaling functions num_trans times
+  call syn_repeated_per(nd1,nd2,nd3,hpsip,num_trans,nn1,nn2,nn3)
 
-  !       DIAGONALLY PRECONDITION THE FINE WAVELETS
-  DO I=1,NVCTR_F
-     HPSI_F(1,I)=HPSI_F(1,I)*scal(1)
-     HPSI_F(2,I)=HPSI_F(2,I)*scal(1)
-     HPSI_F(4,I)=HPSI_F(4,I)*scal(1)
+  !       diagonally precondition the fine wavelets
+  do i=1,nvctr_f
+     hpsi_f(1,i)=hpsi_f(1,i)*scal(1)
+     hpsi_f(2,i)=hpsi_f(2,i)*scal(1)
+     hpsi_f(4,i)=hpsi_f(4,i)*scal(1)
 
-     HPSI_F(3,I)=HPSI_F(3,I)*scal(2)
-     HPSI_F(5,I)=HPSI_F(5,I)*scal(2)
-     HPSI_F(6,I)=HPSI_F(6,I)*scal(2)
+     hpsi_f(3,i)=hpsi_f(3,i)*scal(2)
+     hpsi_f(5,i)=hpsi_f(5,i)*scal(2)
+     hpsi_f(6,i)=hpsi_f(6,i)*scal(2)
 
-     HPSI_F(7,I)=HPSI_F(7,I)*scal(3)
-  ENDDO
+     hpsi_f(7,i)=hpsi_f(7,i)*scal(3)
+  enddo
 
   ! coarse part
   do iseg=1,nseg_c
@@ -442,88 +466,97 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
 
 end subroutine prec_diag
 
-SUBROUTINE PRECOND_PROPER(nd1,nd2,nd3,x,NUM_TRANS,N1,N2,N3,H0,H1,H2,H3,EPS)
-  implicit real(kind=8) (a-h,o-z)
-  dimension  x(0:nd1,0:nd2,0:nd3)
+subroutine precond_proper(nd1,nd2,nd3,x,num_trans,n1,n2,n3,h0,h1,h2,h3,eps)
+  use module_base
+  implicit none
+  integer, intent(in) :: nd1,nd2,nd3,num_trans
+  integer, intent(inout) :: n1,n2,n3
+  real(wp), intent(in) :: eps,h0
+  real(wp), intent(inout) :: h1,h2,h3
+  real(wp), dimension(0:nd1,0:nd2,0:nd3), intent(inout) :: x
+  !local variables
+  integer :: i_trans,n1p,n2p,n3p,n1pp,n2pp,n3pp,i1,i2,i3,i1p,i2p,i3p
+  real(wp) :: f0,f1,f2,f3
 
 
-  DO I_TRANS=1,NUM_TRANS
-     N1P=2*(N1+1)-1
-     N2P=2*(N2+1)-1
-     N3P=2*(N3+1)-1
+  do i_trans=1,num_trans
+     n1p=2*(n1+1)-1
+     n2p=2*(n2+1)-1
+     n3p=2*(n3+1)-1
 
-     IF (N1P.GT.ND1) STOP 'N1 BEYOND BORDERS'
-     IF (N2P.GT.ND2) STOP 'N2 BEYOND BORDERS'
-     IF (N3P.GT.ND3) STOP 'N3 BEYOND BORDERS'
+     if (n1p.gt.nd1) stop 'n1 beyond borders'
+     if (n2p.gt.nd2) stop 'n2 beyond borders'
+     if (n3p.gt.nd3) stop 'n3 beyond borders'
 
-     N1PP=N1+1
-     N2PP=N2+1
-     N3PP=N3+1
+     n1pp=n1+1
+     n2pp=n2+1
+     n3pp=n3+1
 
-     F1=1.D0/(H1+EPS); F2=1.D0/(H2+EPS);  F3=1.D0/(H3+EPS)       
+     f1=1.0_wp/(h1+eps)
+     f2=1.0_wp/(h2+eps)
+     f3=1.0_wp/(h3+eps)       
 
+     if (i_trans == 1) then 
 
-     IF (I_TRANS.EQ.1) THEN 
+        f0=1.d0/(h0+eps)
 
-        F0=1.D0/(H0+EPS)
+        do i3=0,n3
+           i3p=i3+n3pp
+           do i2=0,n2
+              i2p=i2+n2pp
+              do i1=0,n1
+                 i1p=i1+n1pp
 
-        DO I3=0,N3
-           I3P=I3+N3PP
-           DO I2=0,N2
-              I2P=I2+N2PP
-              DO I1=0,N1
-                 I1P=I1+N1PP
+                 x(i1,i2,i3)=x(i1,i2,i3)*f0
 
-                 X(I1,I2,I3)=X(I1,I2,I3)*F0
+                 x(i1p,i2,i3)=x(i1p,i2,i3)*f1
+                 x(i1,i2p,i3)=x(i1,i2p,i3)*f1
+                 x(i1,i2,i3p)=x(i1,i2,i3p)*f1
 
-                 X(I1P,I2,I3)=X(I1P,I2,I3)*F1
-                 X(I1,I2P,I3)=X(I1,I2P,I3)*F1
-                 X(I1,I2,I3P)=X(I1,I2,I3P)*F1
+                 x(i1p,i2p,i3)=x(i1p,i2p,i3)*f2
+                 x(i1,i2p,i3p)=x(i1,i2p,i3p)*f2
+                 x(i1p,i2,i3p)=x(i1p,i2,i3p)*f2
 
-                 X(I1P,I2P,I3)=X(I1P,I2P,I3)*F2
-                 X(I1,I2P,I3P)=X(I1,I2P,I3P)*F2
-                 X(I1P,I2,I3P)=X(I1P,I2,I3P)*F2
+                 x(i1p,i2p,i3p)=x(i1p,i2p,i3p)*f3
 
-                 X(I1P,I2P,I3P)=X(I1P,I2P,I3P)*F3
+              enddo
+           enddo
+        enddo
 
-              ENDDO
-           ENDDO
-        ENDDO
+     else
 
-     ELSE
+        do i3=0,n3
+           i3p=i3+n3pp
+           do i2=0,n2
+              i2p=i2+n2pp
+              do i1=0,n1
+                 i1p=i1+n1pp
 
-        DO I3=0,N3
-           I3P=I3+N3PP
-           DO I2=0,N2
-              I2P=I2+N2PP
-              DO I1=0,N1
-                 I1P=I1+N1PP
+                 x(i1p,i2,i3)=x(i1p,i2,i3)*f1
+                 x(i1,i2p,i3)=x(i1,i2p,i3)*f1
+                 x(i1,i2,i3p)=x(i1,i2,i3p)*f1
 
-                 X(I1P,I2,I3)=X(I1P,I2,I3)*F1
-                 X(I1,I2P,I3)=X(I1,I2P,I3)*F1
-                 X(I1,I2,I3P)=X(I1,I2,I3P)*F1
+                 x(i1p,i2p,i3)=x(i1p,i2p,i3)*f2
+                 x(i1,i2p,i3p)=x(i1,i2p,i3p)*f2
+                 x(i1p,i2,i3p)=x(i1p,i2,i3p)*f2
 
-                 X(I1P,I2P,I3)=X(I1P,I2P,I3)*F2
-                 X(I1,I2P,I3P)=X(I1,I2P,I3P)*F2
-                 X(I1P,I2,I3P)=X(I1P,I2,I3P)*F2
+                 x(i1p,i2p,i3p)=x(i1p,i2p,i3p)*f3
 
-                 X(I1P,I2P,I3P)=X(I1P,I2P,I3P)*F3
+              enddo
+           enddo
+        enddo
 
-              ENDDO
-           ENDDO
-        ENDDO
+     endif
 
-     ENDIF
+     n1=n1p
+     n2=n2p
+     n3=n3p
 
-     N1=N1P
-     N2=N2P
-     N3=N3P
+     h1=h1*4.0_wp
+     h2=h2*4.0_wp
+     h3=h3*4.0_wp
 
-     H1=H1*4.D0
-     H2=H2*4.D0
-     H3=H3*4.D0
+  enddo
 
-  ENDDO
-
-END SUBROUTINE PRECOND_PROPER
+end subroutine precond_proper
 

@@ -1,5 +1,5 @@
 subroutine comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
-  ! In one dimesnion,    
+  ! In one dimension,    
   ! with optimised cycles
   ! Applies synthesis wavelet transformation 
   ! then convolves with magic filter

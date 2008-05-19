@@ -102,7 +102,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='PSolver'
   integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
-  integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
+  integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
   integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4,ind4sh
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,i4,ind2nd
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim,ispin,istden,istglo
@@ -135,7 +135,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   end if
 
   !array allocations
-  i_all=0
   allocate(zf(md1,md3,md2/nproc+ndebug),stat=i_stat)
   call memocc(i_stat,zf,'zf',subname)
   allocate(zfionxc(md1,md3,md2/nproc,nspin+ndebug),stat=i_stat)
@@ -157,35 +156,37 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   !      nwb+nwbl+nwbr = nxt
   istart=iproc*(md2/nproc)
   iend=min((iproc+1)*md2/nproc,m2)
-  nxc=iend-istart
-  if (ixc >= 11 .and. ixc <= 16 .and. geocode == 'F') then
-     if (ixc==13) then
-        nwbl=min(istart,nordgr)
-        nwbr=min(m2-iend,nordgr)
-        nxcl=1
-        nxcr=1
-     else
-        if(istart<=nordgr) then
-           nxcl=istart+1
-           nwbl=0
-        else
-           nxcl=nordgr+1
-           nwbl=min(nordgr,istart-nordgr)
-        end if
-        if(iend>=m2-nordgr+1) then
-           nxcr=m2-iend+1
-           nwbr=0
-        else
-           nxcr=nordgr+1
-           nwbr=min(nordgr,m2-nordgr-iend)
-        end if
-     end if
-  else !(for the moment GGA is not implemented in the non free BC)
-     nwbl=0
-     nwbr=0
-     nxcl=1
-     nxcr=1
-  end if
+
+  call xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
+!!$  nxc=iend-istart
+!!$  if (ixc >= 11 .and. ixc <= 16 .and. geocode == 'F') then
+!!$     if (ixc==13) then
+!!$        nwbl=min(istart,nordgr)
+!!$        nwbr=min(m2-iend,nordgr)
+!!$        nxcl=1
+!!$        nxcr=1
+!!$     else
+!!$        if(istart<=nordgr) then
+!!$           nxcl=istart+1
+!!$           nwbl=0
+!!$        else
+!!$           nxcl=nordgr+1
+!!$           nwbl=min(nordgr,istart-nordgr)
+!!$        end if
+!!$        if(iend>=m2-nordgr+1) then
+!!$           nxcr=m2-iend+1
+!!$           nwbr=0
+!!$        else
+!!$           nxcr=nordgr+1
+!!$           nwbr=min(nordgr,m2-nordgr-iend)
+!!$        end if
+!!$     end if
+!!$  else !(for the moment GGA is not implemented in the non free BC)
+!!$     nwbl=0
+!!$     nwbr=0
+!!$     nxcl=1
+!!$     nxcr=1
+!!$  end if
   nwb=nxcl+nxc+nxcr-2
   nxt=nwbr+nwb+nwbl
 
@@ -272,14 +273,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      scal=1.d0/real(n1*n2*n3,kind=8)
      call P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf(1,1,1),&
           scal,hx,hy,hz,offset)
-     
-!!$     !offset correction for the periodic treatment
-!!$     if (iproc == 0) newoffset=zf(1,1,1)
-!!$     !send the value of the offset to the other processes
-!!$     call timing(iproc,'PSolv_commun  ','ON')
-!!$     call MPI_BCAST(newoffset,1,MPI_double_precision,0,MPI_COMM_WORLD,ierr)
-!!$     call timing(iproc,'PSolv_commun  ','OF')
-     correction=0.d0!offset-newoffset
+
+     correction=0.d0
      factor=0.5d0*hx*hy*hz
      
   else if (geocode == 'S') then
@@ -415,7 +410,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree,eexcu,vexcu
-  if (nproc.gt.1) then
+  if (nproc > 1) then
 
      call timing(iproc,'PSolv_commun  ','ON')
      allocate(energies_mpi(6+ndebug),stat=i_stat)
@@ -462,19 +457,14 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               istglo=istglo+n01*n02*n03
            end if
            call MPI_ALLGATHERV(rhopot(istden),gather_arr(iproc,1),MPI_double_precision,&
-                rhopot(istglo),gather_arr(0,1),gather_arr(0,2),MPI_double_precision,MPI_COMM_WORLD,ierr)
+                rhopot(istglo),gather_arr(0,1),gather_arr(0,2),MPI_double_precision,&
+                MPI_COMM_WORLD,ierr)
            !if it is the case gather also the results of the XC potential
            if (ixc /=0 .and. .not. sumpion) then
               call MPI_ALLGATHERV(pot_ion(istden),gather_arr(iproc,1),&
                    MPI_double_precision,pot_ion(istglo),gather_arr(0,1),gather_arr(0,2),&
                    MPI_double_precision,MPI_COMM_WORLD,ierr)
            end if
-           !second spin
-!!$        if(nspin==2) then
-!!$           call MPI_ALLGATHERV(rhopot(1+n01*n02*istart+n01*n02*n03),gather_arr(iproc,1),&
-!!$                MPI_double_precision,rhopot(n01*n02*n03+1),gather_arr(0,1),gather_arr(0,2),&
-!!$                MPI_double_precision,MPI_COMM_WORLD,ierr)
-!!$  
         end do
         call timing(iproc,'PSolv_commun  ','OF')
         call timing(iproc,'PSolv_comput  ','ON')
@@ -623,14 +613,15 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
         do i3=1,n3d
            do i2=1,n02
               do i1=1,n01
-                 !                    rho_diag(i1,i2,i3,1)=rhopot(i1,i2,i3,1)
-                 m_norm(i1,i2,i3)=sqrt(rhopot(idx+offs)**2+rhopot(idx+2*offs)**2+rhopot(idx+3*offs)**2)
+                 !rho_diag(i1,i2,i3,1)=rhopot(i1,i2,i3,1)
+                 m_norm(i1,i2,i3)=&
+                      sqrt(rhopot(idx+offs)**2+rhopot(idx+2*offs)**2+rhopot(idx+3*offs)**2)
                  rho_diag(i1,i2,i3,1)=(rhopot(idx)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
                  rho_diag(i1,i2,i3,2)=(rhopot(idx)-m_norm(i1,i2,i3))*0.5d0!+1.00e-20
                  idx=idx+1
-                 !                    m_norm(i1,i2,i3)=sqrt(rhopot(i1,i2,i3,2)**2+rhopot(i1,i2,i3,3)**2+rhopot(i1,i2,i3,4)**2)
-                 !                    rho_diag(i1,i2,i3,1)=(rhopot(i1,i2,i3,1)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
-                 !                    rho_diag(i1,i2,i3,2)=(rhopot(i1,i2,i3,1)-m_norm(i1,i2,i3))*0.5d0!+1.00e-20
+                 !m_norm(i1,i2,i3)=sqrt(rhopot(i1,i2,i3,2)**2+rhopot(i1,i2,i3,3)**2+rhopot(i1,i2,i3,4)**2)
+                 !rho_diag(i1,i2,i3,1)=(rhopot(i1,i2,i3,1)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
+                 !rho_diag(i1,i2,i3,2)=(rhopot(i1,i2,i3,1)-m_norm(i1,i2,i3))*0.5d0!+1.00e-20
               end do
            end do
         end do
@@ -788,49 +779,11 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
   iend=min((iproc+1)*md2/nproc,m2)
 
   if (datacode == 'D') then
-     if (istart <= m2-1) then
-        nxc=iend-istart
-        if (ixc >= 11 .and. ixc <= 16 .and. geocode == 'F') then
-           if (ixc==13) then
-              !now the dimension of the part required for the gradient
-              nwbl=min(istart,nordgr)
-              nwbr=min(m2-iend,nordgr)
-              nxcl=1
-              nxcr=1
-           else
-              !now the dimension of the part required for the gradient
-              if(istart<=nordgr) then
-                 nxcl=istart+1
-                 nwbl=0
-              else
-                 nxcl=nordgr+1
-                 nwbl=min(nordgr,istart-nordgr)
-              end if
-              if(iend>=m2-nordgr+1) then
-                 nxcr=m2-iend+1
-                 nwbr=0
-              else
-                 nxcr=nordgr+1
-                 nwbr=min(nordgr,m2-nordgr-iend)
-              end if
-           end if
-        else !(for the moment GGA is not implemented in the non free BC)
-           nwbl=0
-           nwbr=0
-           nxcl=1
-           nxcr=1
-        end if
-        nwb=nxcl+nxc+nxcr-2
-        nxt=nwbr+nwb+nwbl
+     call xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
 
-        i3xcsh=nxcl+nwbl-1
-        i3s=istart+1-i3xcsh
-     else
-        nxc=0
-        nxt=0
-        i3xcsh=0
-        i3s=m2
-     end if
+     nwb=nxcl+nxc+nxcr-2
+     nxt=nwbr+nwb+nwbl
+
      n3p=nxc
      n3d=nxt
      n3pi=n3p
@@ -849,6 +802,93 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
 !!$       'ixc,n3d,n3p,i3xcsh,i3s',ixc,n3d,n3p,i3xcsh,i3s
 
 end subroutine PS_dim4allocation
+!!***
+
+!!****f* BigDFT/xc_dimensions
+!! NAME
+!!   xc_dimensions
+!!
+!! FUNCTION
+!!   Calculate the dimensions to be used for the XC part, taking into account also
+!!   the White-bird correction which should be made for some GGA functionals
+!!
+!! SYNOPSIS
+!!    geocode   choice of the boundary conditions
+!!
+!!    ixc       XC id
+!!
+!!    m2        dimension to be parallelised
+!!   
+!!    nxc       size of the parallelised XC potential
+!!
+!!    ncxl,ncxr left and right buffers for calculating the WB correction after call drivexc
+!!    nwbl,nwbr left and right buffers for calculating the gradient to pass to drivexc
+!!    
+!!    i3s       starting addres of the distributed dimension
+!!
+!!    i3xcsh    shift to be applied to i3s for having the striting address of the potential
+!!
+!! WARNING
+!!    It is imperative that iend <=m2
+!!
+!! AUTHOR
+!!    Luigi Genovese
+!! CREATION DATE
+!!    May 2008
+!!
+!! SOURCE
+!!
+subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
+  implicit none
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: ixc,istart,iend,m2
+  integer, intent(out) :: nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh
+  !local variables
+  integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
+  if (istart <= m2-1) then
+     nxc=iend-istart
+     if (ixc >= 11 .and. ixc <= 16 .and. geocode == 'F') then
+        if (ixc==13) then
+           !now the dimension of the part required for the gradient
+           nwbl=min(istart,nordgr)
+           nwbr=min(m2-iend,nordgr) !always m2 < iend
+           nxcl=1
+           nxcr=1
+        else
+           !now the dimension of the part required for the gradient
+           if(istart<=nordgr) then
+              nxcl=istart+1
+              nwbl=0
+           else
+              nxcl=nordgr+1
+              nwbl=min(nordgr,istart-nordgr)
+           end if
+           if(iend>=m2-nordgr+1) then
+              nxcr=m2-iend+1
+              nwbr=0
+           else
+              nxcr=nordgr+1
+              nwbr=min(nordgr,m2-nordgr-iend)
+           end if
+        end if
+     else !(for the moment GGA is not implemented in the non free BC)
+        nwbl=0
+        nwbr=0
+        nxcl=1
+        nxcr=1
+     end if
+     i3xcsh=nxcl+nwbl-1
+     i3s=istart+1-i3xcsh
+  else
+     nwbl=0
+     nwbr=0
+     nxcl=1
+     nxcr=1
+     nxc=0
+     i3xcsh=0
+     i3s=m2
+  end if
+end subroutine xc_dimensions
 !!***
 
 
