@@ -9,10 +9,11 @@ convolution_includes = 	v.inc \
 #	tree_unrolled_grow.f90 \
 #	long_grow.f90
 
-#GPU_INTERFACE if statement to be added
+if USE_CUDA_GPU
+GPU_INTERFACE = convolut_common_interface_cuda.f90
+else
 GPU_INTERFACE = interface_cuda_fake.f90
-#	convolut_common_interface_cuda.f90 
-
+endif
 
 if USE_OPTI_CONVOLUT
 convolution_source = combined_shrink_optim.f90 \

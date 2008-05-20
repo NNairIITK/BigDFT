@@ -26,8 +26,18 @@ else
 binaries_sources = 
 endif
 
+if USE_CUDA_GPU
+sub_dirs_cuda=CUDA
+GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart CUDA/libGPU.a @LIB_CUTIL_PATH@/libcutil.a
+else
+sub_dirs_cuda=
+GPU_INTERFACE = convolutions/interface_cuda_fake.f90
+libs_cuda=
+endif
 
-SUBDIRS = modules $(sub_dirs_ps) convolutions profiling
+
+SUBDIRS = modules $(sub_dirs_ps) convolutions profiling $(sub_dirs_cuda)
 
 EXTRA_DIST = \
 	Makefile.standalone \
@@ -51,9 +61,6 @@ mpi_source = MPIfake.f90
 mpi_include = mpif.h
 lMPI =
 endif
-
-#GPU_INTERFACE if statement to be added
-GPU_INTERFACE = convolutions/interface_cuda_fake.f90
 
 if USE_OPTI_CONVOLUT
 convolution_source = convolutions/combined_shrink_optim.f90 \
@@ -145,19 +152,22 @@ cluster_LDFLAGS = $(LMPI)
 cluster_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
-	@MPI_LIBS@
+	@MPI_LIBS@ \
+	$(libs_cuda)
 
 test_forces_SOURCES = test_forces.f90
 test_forces_LDFLAGS = $(LMPI)
 test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
-	@MPI_LIBS@
+	@MPI_LIBS@ \
+	$(libs_cuda)
 
 memguess_SOURCES = memguess.f90 
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	PSolver/ABINIT-common/libABINIT.a 
+	PSolver/ABINIT-common/libABINIT.a \
+	$(libs_cuda)
 
 
 CLEANFILES = mpif.h \

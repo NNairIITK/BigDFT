@@ -34,6 +34,7 @@ AC_FC_SRCEXT(f90)
 
 dnl We defined CC for the ABINIT part.
 AC_PROG_CC()
+AC_PROG_CXX()
 
 dnl If FC environement variable is not already set, it
 dnl looks for a modern Fortran compiler, prefering newest
@@ -131,6 +132,54 @@ AC_ARG_ENABLE(optimised-convolution, AS_HELP_STRING([--disable-optimised-convolu
                          ac_use_opti_convolut=$enableval, ac_use_opti_convolut="yes")
 AM_CONDITIONAL(USE_OPTI_CONVOLUT, test "$ac_use_opti_convolut" = "yes")
 AC_MSG_RESULT([$ac_use_opti_convolut])
+
+AC_MSG_CHECKING([for GPU computing with CUDA libraries])
+ac_use_cuda_gpu="no"
+AC_ARG_ENABLE(cuda-gpu, AS_HELP_STRING([--enable-cuda-gpu], [Use CUDA implementation for GPU convolutions (disabled by default).]),
+                         ac_use_cuda_gpu=$enableval, ac_use_cuda_gpu="no")
+AM_CONDITIONAL(USE_CUDA_GPU, test "$ac_use_cuda_gpu" = "yes")
+AC_MSG_RESULT([$ac_use_cuda_gpu])
+if test x"$ac_use_cuda_gpu" = "xyes" ; then
+  dnl Optional Cuda installation dir.
+  AC_ARG_WITH(cuda-path, AS_HELP_STRING([--with-cuda-path], [give the path to the NVidia Cuda tools (default is /usr/local/cuda).]),
+                         [ac_with_cuda_path=$withval], [ac_with_cuda_path="/usr/local/cuda"])
+  CUDA_PATH=$ac_with_cuda_path
+  AC_SUBST(CUDA_PATH)
+  dnl Test the existence of things.
+  AC_PATH_PROG([NVCC], [nvcc], [$ac_with_nvcc], [$PATH:${ac_with_cuda_path}/bin])
+  AC_SUBST(NVCC)
+
+  dnl Add the flags.
+  AC_ARG_WITH(cuda-cflags, AS_HELP_STRING([--with-cuda-cflags], [specify the flags for the NVidia Cuda Compiler (default is '-O3 --compiler-options -fno-strict-aliasing').]),
+                         [ac_with_cuda_cflags=$withval],
+                         [ac_with_cuda_cflags="no"])
+  if test x"$ac_with_cuda_cflags" != x"no" ; then
+    CUDA_FLAGS="$ac_with_cuda_cflags"
+  else
+    if test -z "$CUDA_FLAGS" ; then
+      CUDA_FLAGS="-O3 --compiler-options -fno-strict-aliasing"
+    fi
+  fi
+  AC_SUBST(CUDA_FLAGS)
+
+  dnl Test if Cuda utils is installed.
+  AC_ARG_WITH(lib-cutils, AS_HELP_STRING([--with-lib-cutils], [specifiy the directory for libcutil library (default is '$(top_srcdir)/src/lib/CUDA').]),
+                         [ac_with_lib_cutils=$withval],
+                         [ac_with_lib_cutils="no"])
+  if test x"$ac_with_lib_cutils" = x"no" ; then
+    LIB_CUTIL_PATH='$(top_srcdir)/src/lib/CUDA'
+  else
+    LIB_CUTIL_PATH=$ac_with_lib_cutils
+  fi  
+  AC_SUBST(LIB_CUTIL_PATH)
+
+  if test -n "$GCC41HACK" ; then
+    INC_GCC41CUDA="--compiler-bindir="$GCC41HACK
+  else
+    INC_GCC41CUDA="--compiler-bindir=/usr/bin"
+  fi
+  AC_SUBST(INC_GCC41CUDA)
+fi
 
 
 dnl AM_CONDITIONAL for the different libraries, set default values.
@@ -272,6 +321,7 @@ src/profiling/Makefile
 src/PSolver/ABINIT-common/Makefile
 src/PSolver/Makefile
 src/convolutions/Makefile
+src/CUDA/Makefile
 src/parameters.h
 utils/Makefile
 utils/PSPfiles/Makefile
@@ -313,6 +363,12 @@ Options:
    | Linker flags:         $MPI_LDFLAGS
    | linked libraries:     $MPI_LIBS
   With optimised conv.:    $ac_use_opti_convolut
+  With Cuda GPU conv.:     $ac_use_cuda_gpu
+   | NVidia Cuda Compiler: $NVCC
+   | Cuda flags:           $CUDA_FLAGS
+   | GCC41HACK (gcc path): $GCC41HACK
+   | ext. cutil library:   $ac_with_lib_cutils
+   |      cutil path:      $LIB_CUTIL_PATH
 
 Installation paths:
   Prefix:                  $prefix
