@@ -27,6 +27,10 @@ module module_base
   integer, parameter :: dp=kind(1.0d0)  !density-type precision
   integer, parameter :: wp=kind(1.0d0)  !wavefunction-type precision
 
+  !MPI definitions and datatypes for density and wavefunctions
+  !include 'mpif.h'
+  !integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION,mpidtypd=MPI_DOUBLE_PRECISION
+  !integer, parameter :: mpidtypw=MPI_REAL,mpidtypd=MPI_REAL !in case of single precision
 
   interface memocc
      module procedure mo_dp1,mo_dp2,mo_dp3,mo_dp4,mo_dp5,mo_dp6,mo_dp7,&

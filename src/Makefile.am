@@ -52,13 +52,17 @@ mpi_include = mpif.h
 lMPI =
 endif
 
+#GPU_INTERFACE if statement to be added
+GPU_INTERFACE = convolutions/interface_cuda_fake.f90
+
 if USE_OPTI_CONVOLUT
 convolution_source = convolutions/combined_shrink_optim.f90 \
 	convolutions/combined_grow_optim.f90 \
 	convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_ib_optim.f90 \
 	convolutions/conv_per_optim.f90 \
-	convolutions/convolut_common.f90
+	convolutions/convolut_common.f90 \
+	$(GPU_INTERFACE)
 
 else
 convolution_source = convolutions/combined_shrink_simple.f90 \
@@ -66,7 +70,8 @@ convolution_source = convolutions/combined_shrink_simple.f90 \
 	convolutions/combined_shrink_simple.f90 \
 	convolutions/convolut_ib_simple.f90 \
 	convolutions/conv_per_simple.f90 \
-	convolutions/convolut_common.f90
+	convolutions/convolut_common.f90 \
+	$(GPU_INTERFACE)
 
 endif
 
