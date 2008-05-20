@@ -21,7 +21,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
   include 'mpif.h'
   character(len=*), parameter :: subname='sumrho'
   logical :: rsflag
-  integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf,mpidatatype
+  integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf,mpidtypd
   integer :: ind1,ind2,ind3,ind1s,ind2s,ind3s,oidx,sidx,nspinn
   integer :: i00,i0,i1,i2,i3,i3off,i3s,isjmp,i,ispin,iorb,jproc,i_all,i_stat,ierr
   real(kind=8) :: hfac,hgridh,tt,charge,hfac2
@@ -179,13 +179,8 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
      
   enddo
 
-  !determine the kind of the density for MPI
-  if (dp == kind(1.d0)) then
-     mpidatatype=MPI_DOUBLE_PRECISION
-  else
-     mpidatatype=MPI_REAL
-  end if
-
+  !temporary insertion in view of module_base inclusion
+  mpidtypd=MPI_DOUBLE_PRECISION
 
   if (nproc > 1) then
      call timing(iproc,'Rho_comput    ','OF')
@@ -193,11 +188,11 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
      if (rsflag) then
         do ispin=1,nspin
           call MPI_REDUCE_SCATTER(rho_p(1,ispin),rho(1,ispin),n1i*n2i*nscatterarr(:,1),&
-               mpidatatype,MPI_SUM,MPI_COMM_WORLD,ierr)
+               mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
         end do
      else
         call MPI_ALLREDUCE(MPI_IN_PLACE,rho_p,n1i*n2i*n3i*nspin,&
-             mpidatatype,MPI_SUM,MPI_COMM_WORLD,ierr)
+             mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
      end if
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')
@@ -237,7 +232,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
 
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')
-     call MPI_REDUCE(tt,charge,1,mpidatatype,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(tt,charge,1,mpidtypd,MPI_SUM,0,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')
   else

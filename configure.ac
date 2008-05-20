@@ -338,6 +338,7 @@ tests/SiH4/Makefile
 tests/H2O-CP2K/Makefile
 tests/SiBulk/Makefile
 tests/Davidson-SiH4/Makefile
+tests/GPU/Makefile
 ])
 AC_OUTPUT
 

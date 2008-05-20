@@ -27,7 +27,17 @@ module module_base
   integer, parameter :: dp=kind(1.0d0)  !density-type precision
   integer, parameter :: wp=kind(1.0d0)  !wavefunction-type precision
 
+  !MPI definitions and datatypes for density and wavefunctions
+  !include 'mpif.h'
+  !integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION,mpidtypd=MPI_DOUBLE_PRECISION
+  !integer, parameter :: mpidtypw=MPI_REAL,mpidtypd=MPI_REAL !in case of single precision
 
+  !flag for GPU computing, if CUDA libraries are present
+  !the save statement is added to allow each processor to modify it following the needs
+  !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
+  logical, save :: GPUcomputing=.false. 
+
+  !interface for the memory allocation control, depends on ndebug
   interface memocc
      module procedure mo_dp1,mo_dp2,mo_dp3,mo_dp4,mo_dp5,mo_dp6,mo_dp7,&
           mo_sp1,mo_sp2,mo_sp3,mo_sp4,mo_sp5,mo_sp6,mo_sp7,&

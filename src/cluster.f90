@@ -125,7 +125,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(:), pointer :: eval
   real(kind=8), dimension(:,:), pointer :: psi
   !local variables
-  include 'mpif.h'
+  include 'mpif.h' !already in module_base
   character(len=*), parameter :: subname='cluster'
   character(len=1) :: geocode
   character(len=10) :: orbname

@@ -79,8 +79,14 @@ subroutine plot_wf(orbname,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,rx,ry,rz
 END SUBROUTINE plot_wf
 
 subroutine plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,pot)
-  implicit real(kind=8) (a-h,o-z)
-  dimension pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3,iounit
+  real(gp), intent(in) :: rx,ry,rz,hgrid
+  real(dp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(in) :: pot
+  !local variables
+  integer :: i1,i2,i3
+  real(gp) :: hgridh
 
   hgridh=.5d0*hgrid
   open(iounit) 
@@ -91,34 +97,39 @@ subroutine plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,pot)
   i2=nint(ry/hgridh)
   write(*,*) 'plot_p, i2,i3,n2,n3 ',i2,i3,n2,n3
   do i1=-14,2*n1+16
-     write(iounit,*) real(i1,kind=8)*hgridh,pot(i1,i2,i3)
+     write(iounit,*) real(i1,gp)*hgridh,pot(i1,i2,i3)
   enddo
 
   i1=nint(rx/hgridh)
   i2=nint(ry/hgridh)
   write(*,*) 'plot_p, i1,i2 ',i1,i2
   do i3=-14,2*n3+16
-     write(iounit+1,*) real(i3,kind=8)*hgridh,pot(i1,i2,i3)
+     write(iounit+1,*) real(i3,gp)*hgridh,pot(i1,i2,i3)
   enddo
 
   i1=nint(rx/hgridh)
   i3=nint(rz/hgridh)
   write(*,*) 'plot_p, i1,i3 ',i1,i3
   do i2=-14,2*n2+16
-     write(iounit+2,*) real(i2,kind=8)*hgridh,pot(i1,i2,i3)
+     write(iounit+2,*) real(i2,gp)*hgridh,pot(i1,i2,i3)
   enddo
 
   close(iounit) 
   close(iounit+1) 
   close(iounit+2) 
 
-  return
-END SUBROUTINE plot_pot
+end subroutine plot_pot
 
 subroutine plot_pot_full(rx,ry,rz,hgrid,n1,n2,n3,orbname,pot)
-  implicit real(kind=8) (a-h,o-z)
-  character(10) :: orbname
-  dimension pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+  use module_base
+  implicit none
+  character(len=10), intent(in) :: orbname
+  integer, intent(in) :: n1,n2,n3
+  real(gp), intent(in) :: rx,ry,rz,hgrid
+  real(dp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(in) :: pot
+  !local variables
+  integer :: i1,i2,i3
+  real(gp) :: hgridh
 
 !virtual orbitals are identified by their name
 !  write(*,'(1x,a,i0)')'printing orbital number= ',iounit
@@ -152,11 +163,17 @@ subroutine plot_pot_full(rx,ry,rz,hgrid,n1,n2,n3,orbname,pot)
   close(unit=22) 
 !  close(unit=23) 
 
-END SUBROUTINE plot_pot_full
+end subroutine plot_pot_full
 
 subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
-  implicit real(kind=8) (a-h,o-z)
-  dimension psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
+  use module_base
+  implicit none
+  integer, intent(in) :: iunit,n1,n2,n3
+  real(gp), intent(in) :: hgrid
+  real(wp), dimension(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8), intent(in) :: psifscf
+  !local variables
+  integer :: i1,i2,i3,i
+  real(gp) :: hgridh
 
   hgridh=.5d0*hgrid
 
@@ -196,6 +213,5 @@ subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
           real(i1,kind=8)*hgridh,real(i2,kind=8)*hgridh,real(i3,kind=8)*hgridh,psifscf(i1,i2,i3)
   enddo
 
-  return
-END SUBROUTINE plot_psifscf
+end subroutine plot_psifscf
 

@@ -54,14 +54,14 @@ all: cluster memguess
 
 
 LIBCUTIL=lib/CUDA/libcutil.a
-LIBRARIES += -L/usr/local/cuda/lib/ -lcudart CUDA/libGPU.a $(LIBCUTIL)
+#LIBRARIES += -L/usr/local/cuda/lib/ -lcudart CUDA/libGPU.a $(LIBCUTIL)
 
-CUDAlib : libGPU
-GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90	
+#CUDAlib : libGPU
+#GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90	
 
 #TOGGLE THESE IF YOU DO NOT WANT CUDA INTERFACES (and comment LIBRARIES statement above)
-#CUDAlib : 
-#GPU_INTERFACE = convolutions/interface_cuda_fake.f90
+CUDAlib : 
+GPU_INTERFACE = convolutions/interface_cuda_fake.f90
 
 
 libGPU: 

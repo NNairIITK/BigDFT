@@ -34,20 +34,32 @@ subroutine print_logo()
 end subroutine print_logo
 
 subroutine read_input_variables(iproc,in)
-
+  use module_base
   use module_types
-
   implicit none
   integer, intent(in) :: iproc
   type(input_variables), intent(out) :: in
   !local variables
+  character(len=7) :: cudagpu
   character(len=100) :: line
   real(kind=4) :: hgrid,crmult,frmult,cpmult,fpmult
   integer :: ierror,ierrfrc
 
   ! Read the input variables.
   open(unit=1,file='input.dat',status='old')
-  read(1,*,iostat=ierror) in%ncount_cluster_x
+
+  !read the line for force the CUDA GPU calculation for all processors
+  read(1,'(a100)')line
+  read(line,*,iostat=ierrfrc) cudagpu
+  if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
+     !change the value of the GPU flag in the module_base
+     GPUcomputing=.true.
+     read(1,*,iostat=ierror) in%ncount_cluster_x
+  else
+     read(line,*,iostat=ierror) in%ncount_cluster_x
+  end if
+
+  !read(1,*,iostat=ierror) in%ncount_cluster_x
   read(1,'(a100)')line
   read(line,*,iostat=ierrfrc) in%frac_fluct,in%forcemax
   if (ierrfrc /= 0) then
