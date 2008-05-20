@@ -616,9 +616,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           eval,ncong,mids,idsx_actual,ads,energy,energy_old,alpha,gnrm,scprsum,&
           psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
 
-     tt=energybs-scprsum
-     if (abs(tt).gt.1.d-8 .and. iproc==0) then 
-        write(*,'(1x,a,3(1pe22.14))') &
+     tt=(energybs-scprsum)/scprsum
+     if ((abs(tt) > 1.d-10 .and. .not. GPUcomputing) .or.&
+          (abs(tt) > 1.d-8 .and. GPUcomputing).and. iproc==0) then 
+        write(*,'(1x,a,1pe9.2,2(1pe22.14))') &
              'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
      endif
      if (iproc.eq.0) then

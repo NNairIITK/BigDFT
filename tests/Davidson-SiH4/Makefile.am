@@ -10,7 +10,7 @@ PPFILES = \
 	psppar.H \
 	psppar.Si
 
-CLEANFILES = $(PPFILES) SiH4.out posout* *.pot *.prc\
+CLEANFILES = $(PPFILES) Davidson-SiH4.out posout* *.pot *.prc\
 			 fldiff.report
 
 #dependencies

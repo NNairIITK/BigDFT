@@ -8,13 +8,9 @@ endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft.a
 if CAPITALIZE
-mod_bigdft = BIGDFT_API.@MODULE_EXT@ \
-	MODULE_INTERFACES.@MODULE_EXT@ \
-	MODULE_TYPES.@MODULE_EXT@
+mod_bigdft = BIGDFT_API.@MODULE_EXT@ 
 else
-mod_bigdft = bigdft_api.@MODULE_EXT@ \
-	module_interfaces.@MODULE_EXT@ \
-	module_types.@MODULE_EXT@
+mod_bigdft = bigdft_api.@MODULE_EXT@ 
 endif
 else
 lib_bigdft =

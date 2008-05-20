@@ -33,9 +33,9 @@ module module_base
   !integer, parameter :: mpidtypw=MPI_REAL,mpidtypd=MPI_REAL !in case of single precision
 
   !flag for GPU computing, if CUDA libraries are present
-  !the save statement is added to allow each processor to modify it following the needs
+  !the parameter flag is removed to allow each processor to modify it following the needs
   !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
-  logical, save :: GPUcomputing=.false. 
+  logical :: GPUcomputing=.false. 
 
   !interface for the memory allocation control, depends on ndebug
   interface memocc

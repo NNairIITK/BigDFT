@@ -1,3 +1,9 @@
+EXTRA_DIST = \
+	structUtil.h \
+	convolution.h \
+	convSeria.h \
+	conv_shared_multi_kernel.cu
+
 SOURCES_CU_CONV1 = convolution.cu \
 	structUtil.cu
 
@@ -18,7 +24,7 @@ SUFFIXES = .cu
 
 
 #dependencies
-convolution.cu : conv_shared_multi.cu  \
+convolution.cu : conv_shared_multi_kernel.cu \
 	convolution.h \
 	convSeria.h \
 	structUtil.h
