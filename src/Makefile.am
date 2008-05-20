@@ -8,13 +8,9 @@ endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft.a
 if CAPITALIZE
-mod_bigdft = BIGDFT_API.@MODULE_EXT@ \
-	MODULE_INTERFACES.@MODULE_EXT@ \
-	MODULE_TYPES.@MODULE_EXT@
+mod_bigdft = BIGDFT_API.@MODULE_EXT@ 
 else
-mod_bigdft = bigdft_api.@MODULE_EXT@ \
-	module_interfaces.@MODULE_EXT@ \
-	module_types.@MODULE_EXT@
+mod_bigdft = bigdft_api.@MODULE_EXT@ 
 endif
 else
 lib_bigdft =
@@ -26,8 +22,18 @@ else
 binaries_sources = 
 endif
 
+if USE_CUDA_GPU
+sub_dirs_cuda=CUDA
+GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart CUDA/libGPU.a @LIB_CUTIL_PATH@/libcutil.a
+else
+sub_dirs_cuda=
+GPU_INTERFACE = convolutions/interface_cuda_fake.f90
+libs_cuda=
+endif
 
-SUBDIRS = modules $(sub_dirs_ps) convolutions profiling
+
+SUBDIRS = modules $(sub_dirs_ps) convolutions profiling $(sub_dirs_cuda)
 
 EXTRA_DIST = \
 	Makefile.standalone \
@@ -58,7 +64,8 @@ convolution_source = convolutions/combined_shrink_optim.f90 \
 	convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_ib_optim.f90 \
 	convolutions/conv_per_optim.f90 \
-	convolutions/convolut_common.f90
+	convolutions/convolut_common.f90 \
+	$(GPU_INTERFACE)
 
 else
 convolution_source = convolutions/combined_shrink_simple.f90 \
@@ -66,7 +73,8 @@ convolution_source = convolutions/combined_shrink_simple.f90 \
 	convolutions/combined_shrink_simple.f90 \
 	convolutions/convolut_ib_simple.f90 \
 	convolutions/conv_per_simple.f90 \
-	convolutions/convolut_common.f90
+	convolutions/convolut_common.f90 \
+	$(GPU_INTERFACE)
 
 endif
 
@@ -140,19 +148,22 @@ cluster_LDFLAGS = $(LMPI)
 cluster_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
-	@MPI_LIBS@
+	@MPI_LIBS@ \
+	$(libs_cuda)
 
 test_forces_SOURCES = test_forces.f90
 test_forces_LDFLAGS = $(LMPI)
 test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
-	@MPI_LIBS@
+	@MPI_LIBS@ \
+	$(libs_cuda)
 
 memguess_SOURCES = memguess.f90 
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	PSolver/ABINIT-common/libABINIT.a 
+	PSolver/ABINIT-common/libABINIT.a \
+	$(libs_cuda)
 
 
 CLEANFILES = mpif.h \

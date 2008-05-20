@@ -1,4 +1,4 @@
-subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
+subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,  & 
      wfd,psi,rho,nrho,nscatterarr,nspin,nspinor,spinsgn,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
@@ -10,7 +10,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(convolutions_bounds), intent(in) :: bounds
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,norb,norbp,nrho,nspin,nspinor
+  integer, intent(in) :: iproc,nproc,norb,norbp,nrho,nspin,nspinor,ixc
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(gp), intent(in) :: hxh,hyh,hzh
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -20,7 +20,8 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   !local variables
   include 'mpif.h'
   character(len=*), parameter :: subname='sumrho'
-  integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf,mpidatatype
+  logical :: rsflag
+  integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf,mpidtypd
   integer :: ind1,ind2,ind3,ind1s,ind2s,ind3s,oidx,sidx,nspinn
   integer :: i00,i0,i1,i2,i3,i3off,i3s,isjmp,i,ispin,iorb,jproc,i_all,i_stat,ierr
   real(kind=8) :: hfac,hgridh,tt,charge,hfac2
@@ -37,6 +38,9 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
           'Calculation of charge density...'
   end if
 
+  !flag for toggling the REDUCE_SCATTER stategy
+  rsflag=.not. (ixc >= 11 .and. ixc <=16)
+  
   do i=0,3
      scal(i)=1.d0
   enddo
@@ -103,18 +107,19 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
   if (geocode == 'F') then
      call razero(nxc,x_c_psifscf)
      call razero(nxf,x_f_psig)
-     
      call razero(n1i*n2i*n3i*nspinn,psir)
   end if
 
 
   !calculate dimensions of the complete array to be allocated before the reduction procedure
-  nrhotot=0
-  do jproc=0,nproc-1
-     nrhotot=nrhotot+nscatterarr(jproc,1)
-  end do
-  !here we should insert the condition for the GGA case for MPI_ALLREDUCE operation
-
+  if (rsflag) then
+     nrhotot=0
+     do jproc=0,nproc-1
+        nrhotot=nrhotot+nscatterarr(jproc,1)
+     end do
+  else
+     nrhotot=n3i
+  end if
 
   if (nproc > 1) then
      allocate(rho_p(n1i*n2i*nrhotot,nspinn+ndebug),stat=i_stat)
@@ -153,7 +158,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
                       bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,bounds%ibyyzz_r)
               end do
 
-              call partial_density(nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
+              call partial_density(rsflag,nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
                    hfac,nscatterarr,spinsgn(iorb),psir,rho_p,bounds%ibyyzz_r)
 
            case('P')
@@ -166,7 +171,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
                  call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,x_c_psifscf,psir(1,sidx)) 
               end do
 
-              call partial_density(nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
+              call partial_density(rsflag,nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
                    hfac,nscatterarr,spinsgn(iorb),psir,rho_p)
 
            end select
@@ -174,23 +179,32 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
      
   enddo
 
-  !determine the kind of the density for MPI
-  if (dp == kind(1.d0)) then
-     mpidatatype=MPI_DOUBLE_PRECISION
-  else
-     mpidatatype=MPI_REAL
-  end if
-
+  !temporary insertion in view of module_base inclusion
+  mpidtypd=MPI_DOUBLE_PRECISION
 
   if (nproc > 1) then
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')
-     do ispin=1,nspin
-        call MPI_REDUCE_SCATTER(rho_p(1,ispin),rho(1,ispin),n1i*n2i*nscatterarr(:,1),&
-             mpidatatype,MPI_SUM,MPI_COMM_WORLD,ierr)
-     end do
+     if (rsflag) then
+        do ispin=1,nspin
+          call MPI_REDUCE_SCATTER(rho_p(1,ispin),rho(1,ispin),n1i*n2i*nscatterarr(:,1),&
+               mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+        end do
+     else
+        call MPI_ALLREDUCE(MPI_IN_PLACE,rho_p,n1i*n2i*n3i*nspin,&
+             mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+     end if
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')
+     if (.not. rsflag) then
+        i3off=n1i*n2i*(nscatterarr(iproc,3)-nscatterarr(iproc,4))
+        n3d=nscatterarr(iproc,1)
+        do ispin=1,nspin
+           do i=1,n1i*n2i*n3d
+              rho(i,ispin)=rho_p(i+i3off,ispin)
+           end do
+        end do
+     end if
   end if
 
   ! Check
@@ -218,7 +232,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
 
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')
-     call MPI_REDUCE(tt,charge,1,mpidatatype,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(tt,charge,1,mpidtypd,MPI_SUM,0,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')
   else
@@ -252,11 +266,12 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  &
 END SUBROUTINE sumrho
 
 
-subroutine partial_density(nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
+subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
      hfac,nscatterarr,spinsgn,psir,rho_p,&
      ibyyzz_r) !optional argument
   use module_base
   implicit none
+  logical, intent(in) :: rsflag
   integer, intent(in) :: nproc,n1i,n2i,n3i,nrhotot,nspinor,nspinn
   real(gp), intent(in) :: hfac,spinsgn
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
@@ -276,9 +291,15 @@ subroutine partial_density(nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
   i1e=n1i
 
   loop_xc_overlap: do jproc=0,nproc-1
-     i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
-     n3d=nscatterarr(jproc,1)
-     if (n3d==0) exit loop_xc_overlap
+     !case for REDUCE_SCATTER approach
+     if (rsflag) then
+        i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
+        n3d=nscatterarr(jproc,1)
+        if (n3d==0) exit loop_xc_overlap
+     else
+        i3off=0
+        n3d=n3i
+     end if
      !here the condition for the MPI_ALLREDUCE should be entered
      if(spinsgn > 0.0d0) then
         isjmp=1
@@ -323,6 +344,7 @@ subroutine partial_density(nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
            end if
         end do
      end do
+     if (.not. rsflag) exit loop_xc_overlap
   end do loop_xc_overlap
 
   if (i3s /= nrhotot) then

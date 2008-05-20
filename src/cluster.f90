@@ -125,7 +125,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(:), pointer :: eval
   real(kind=8), dimension(:,:), pointer :: psi
   !local variables
-  include 'mpif.h'
+  include 'mpif.h' !already in module_base
   character(len=*), parameter :: subname='cluster'
   character(len=1) :: geocode
   character(len=10) :: orbname
@@ -540,7 +540,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      if (gnrm <= gnrm_cv .or. iter == itermax) call timing(iproc,'WFN_OPT','PR')
 
      ! Potential from electronic charge density
-     call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
+     call sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,  & 
           wfd,psi,rhopot,n1i*n2i*n3d,nscatterarr,nspin,nspinor,spinsgn,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
@@ -616,9 +616,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           eval,ncong,mids,idsx_actual,ads,energy,energy_old,alpha,gnrm,scprsum,&
           psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
 
-     tt=energybs-scprsum
-     if (abs(tt).gt.1.d-8 .and. iproc==0) then 
-        write(*,'(1x,a,3(1pe22.14))') &
+     tt=(energybs-scprsum)/scprsum
+     if ((abs(tt) > 1.d-10 .and. .not. GPUcomputing) .or.&
+          (abs(tt) > 1.d-8 .and. GPUcomputing).and. iproc==0) then 
+        write(*,'(1x,a,1pe9.2,2(1pe22.14))') &
              'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
      endif
      if (iproc.eq.0) then
@@ -809,7 +810,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
 
   !use pot_ion array for building total rho
-  call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,occup,  & 
+  call sumrho(geocode,iproc,nproc,norb,norbp,0,n1,n2,n3,hxh,hyh,hzh,occup,  & 
        wfd,psi,rho,n1i*n2i*n3p,nscatterarr,1,nspinor,spinsgn_foo,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 

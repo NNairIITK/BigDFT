@@ -1,24 +1,73 @@
-#Link = ftn
+######################## compilers and flags ####################################
 
-Link = $(F95)
+#Athena intel
+#Link = $(F95)
+#F95 = mpif90  -i_dynamic -L/soft/intel/mkl/9.0/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
+#F77 = mpif90  -i_dynamic
+#FFLAGS =
+#LIBRARIES = -L/soft/intel/mkl721/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
+
+#Athena g95
+#Link = $(F95)
+#F95 = mpif90 /soft/g95-install/bin/g95 -L/soft/intel/mkl/9.0/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
+#F77 = /soft/g95-install/bin/g95
+#FFLAGS = -C -g
+#LIBRARIES = -L/soft/intel/mkl721/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
+
+
+#Athena lapack
+#Link = $(F95)
+#F95 = mpif90  -L/soft/acml4.0.1/pathscale64_mp/lib  -I/soft/acml4.0.1/pathscale64_mp/include -lacml_mp -lacml_mv -mp -lpthread
+#F77 = mpif90
+#FFLAGS =
+#LIBRARIES = -L/soft/acml4.0.1/pathscale64_mp/lib -I/soft/acml4.0.1/pathscale64_mp/include -lacml_mp -lacml_mv -mp -lpthread
+
+#Cronos scali
+#Link = $(F95) 
+#F95 = /opt/intel/fc/9.0/bin/ifort  -I/opt/scali/include
+#-openmp
+#F77 = /opt/intel/fc/9.0/bin/ifort
+#FFLAGS =
+#LIBRARIES = /opt/intel/mkl72/lib/32/libmkl_lapack.a /opt/intel/mkl72/lib/32/libmkl_ia32.a -L/opt/intel/mkl72/lib/32/ -lguide -lpthread  -D_REENTRANT -L/opt/scali/lib -lfmpi -lmpi
+
+##Palu:
+#Link = ftn
 # pathscale compiler
-F95 = /opt/xt-mpt/1.5.47/mpich2-64/PSP2/bin/mpif90
-F77 = /opt/xt-mpt/1.5.47/mpich2-64/PSP2/bin/mpif77
-FFLAGS =
+#F95 = /opt/xt-mpt/1.5.47/mpich2-64/PSP2/bin/mpif90
+#F77 = /opt/xt-mpt/1.5.47/mpich2-64/PSP2/bin/mpif77
+#FFLAGS =
 
 # pgi compiler
 #F95 = /opt/xt-pe/1.5.47/bin/snos64/ftn
 #F77 = /opt/xt-pe/1.5.47/bin/snos64/ftn
 #FLAGS =  -O2 -fastsse -Mcache_align -Minfo -Mnoprefetch -Mipa=fast
 
-#PARALLEL = .true.
-#LIBRARIES = -L/soft/intel/mkl721/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
-
+#Grenoble Workstations compilers
 F95 =ompif90 -O2
 F77 =ompif90 -O2
-LIBRARIES = -L/usr/lib/lapack-g95  -llapack -lblas
+LIBRARIES = -L/usr/lib/lapack-g95  -llapack -lblas 
+Link = $(F95) 
+
+######################################################################
 
 all: cluster memguess
+
+
+LIBCUTIL=lib/CUDA/libcutil.a
+#LIBRARIES += -L/usr/local/cuda/lib/ -lcudart CUDA/libGPU.a $(LIBCUTIL)
+
+#CUDAlib : libGPU
+#GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90	
+
+#TOGGLE THESE IF YOU DO NOT WANT CUDA INTERFACES (and comment LIBRARIES statement above)
+CUDAlib : 
+GPU_INTERFACE = convolutions/interface_cuda_fake.f90
+
+
+libGPU: 
+	cd CUDA;\
+	make -f Makefile.standalone libCUDA
+
 
 high_level = cluster.f90 \
 	input_variables.f90 \
@@ -79,7 +128,8 @@ SOURCES_CONVOLUTIONS = convolutions/combined_shrink_optim.f90 \
 	convolutions/combined_grow_optim.f90 \
 	convolutions/convolut_ib_optim.f90 \
 	convolutions/conv_per_optim.f90 \
-	convolutions/convolut_common.f90 
+	convolutions/convolut_common.f90 \
+	$(GPU_INTERFACE)
 
 MODULES_ABINIT= PSolver/ABINIT-common/defs_basis.F90 \
         PSolver/ABINIT-common/defs_datatypes.F90 \
@@ -130,6 +180,7 @@ OBJECTS_POISSON = $(SOURCES_POISSON:.f90=.o)
 OBJECTS_CONVOLUTIONS = $(SOURCES_CONVOLUTIONS:.f90=.o)
 OBJECTS_MODULES = $(SOURCES_MODULES:.f90=.o)
 
+
 $(OBJECTS_MODULES): %.o: %.f90
 	$(F95) $(FFLAGS) -I.. -c $< -o $@
 
@@ -162,27 +213,28 @@ $(OBJECTS_CONVOLUTIONS): %.o: %.f90
 
 OBJECTS = $(OBJECTS_ABINIT) $(OBJECTS_POISSON) \
 		  $(OBJECTS_CONVOLUTIONS) $(OBJECTS_F95) $(OBJECTS_TIME) \
-		  $(OBJECTS_PROJECTORS) $(COBJECTS) BigDFT.f90
+		  $(OBJECTS_PROJECTORS) $(COBJECTS) $(GPU_OBJECTS) BigDFT.f90
 
 OBJECTS_TEST =  $(OBJECTS_ABINIT) $(OBJECTS_POISSON) \
 				$(OBJECTS_CONVOLUTIONS) $(OBJECTS_F95) $(OBJECTS_TIME) \
 				$(OBJECTS_PROJECTORS) memguess.f90
 
-cluster: $(OBJECTS_MODULES) $(OBJECTS) 
+cluster: $(OBJECTS_MODULES) $(OBJECTS) CUDAlib
 	$(Link) -o cluster $(OBJECTS_MODULES) $(OBJECTS) $(LIBRARIES) 
 
-memguess: $(OBJECTS_MODULES) $(OBJECTS_TEST)
-		$(F95) -o memguess $(OBJECTS_MODULES) $(OBJECTS_TEST) $(LIBRARIES)
+memguess: $(OBJECTS_MODULES) $(OBJECTS_TEST) CUDAlib
+		$(Link) -o memguess $(OBJECTS_MODULES) $(OBJECTS_TEST) $(LIBRARIES)
 
 clean:
 	rm -f *.o cluster memguess *.mod *~ PSolver/*.o PSolver/*~ \
 	convolutions/*.o profiling/*.o init/*.o wfn_opt/*.o wavelib/*.o \
 	ABINIT-ewald/*.f90 ABINIT-ewald/*.o PSolver/ABINIT-common/*.f90 \
-	PSolver/ABINIT-common/*.o PSolver/ABINIT-common/*~ modules/*~ modules/*.o
+	PSolver/ABINIT-common/*.o PSolver/ABINIT-common/*~ modules/*~ modules/*.o \
+	CUDA/*.o CUDA/*.a
 
 tar:
 	make clean
-	tar czvf all.tgz Makefile.standalone Makefile *.f90 RE* PSolver/* PSolver/ABINIT-common/*.F90 init/* convolutions/*.f90 convolutions/*.inc wfn_opt/* wavelib/* profiling/*.f90  ABINIT-ewald/*.F90 modules/*.f90
+	tar czvf all.tgz Makefile.standalone Makefile *.f90 RE* PSolver/* PSolver/ABINIT-common/*.F90 init/* convolutions/*.f90 convolutions/*.inc wfn_opt/* wavelib/* profiling/*.f90  ABINIT-ewald/*.F90 modules/*.f90 CUDA/*.c* CUDA/*.f90 CUDA/*.h* lib
 
 #Dependencies:
 $(OBJECTS) : $(OBJECTS_MODULES)
@@ -208,8 +260,6 @@ test_forces.o: $(mod_bigdft)
 
 BigDFT.o: interfaces.o \
 	PSolver/Poisson_Solver.o 
-
-#memguess.o: types.o
 
 init/denspotd.o init/ionicpot.o init.o : PSolver/Poisson_Solver.o 
 

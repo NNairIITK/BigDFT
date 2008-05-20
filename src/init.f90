@@ -576,7 +576,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   call memocc(i_stat,ones,'ones',subname)
   ones(:)=1.0d0
 
-  call sumrho(geocode,iproc,nproc,norb,norbp,n1,n2,n3,hxh,hyh,hzh,&
+  call sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,&
        occup,wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,1,1,ones,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
@@ -824,7 +824,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      ist=norbe+1
   end do
     
-  call sumrho(geocode,iproc,nproc,nspin*norbe,norbep,n1,n2,n3,hxh,hyh,hzh,occupe,  & 
+  call sumrho(geocode,iproc,nproc,nspin*norbe,norbep,ixc,n1,n2,n3,hxh,hyh,hzh,occupe,  & 
        wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,nspin,1,spinsgne, &
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 

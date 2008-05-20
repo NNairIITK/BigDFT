@@ -7,20 +7,17 @@ EXTRA_DIST = \
 	posinp 
 
 PPFILES = \
-	psppar.H_lda \
-	psppar.Si_lda
+	psppar.H \
+	psppar.Si
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* SiH4.out posout* *.prc\
 			 fldiff.report
 
 #dependencies
 $(PPFILES):
-	ln -s $(top_srcdir)/utils/PSPfiles/$@ .
+	ln -s $(top_srcdir)/utils/PSPfiles/HGH-K/$@ .
 
-inguess.dat:
-	ln -s $(top_srcdir)/tests/inguess.dat .
-
-check: $(PPFILES) inguess.dat posinp input.dat
+check: $(PPFILES) posinp input.dat
 	if test ! -f input.dat ; then \
 	  ln -s $(top_srcdir)/tests/SiH4/input.dat ; \
 	fi

@@ -99,14 +99,104 @@ subroutine rhotranspose(iproc,nproc,norbp,norb,nspinor,wfd,wfd_loc,psi_loc,&
   character(len=*), parameter :: subname='rhotranspose'
   integer :: i_stat,i_all,iorb
 
-
   !the local array contains the components of psi in the local region of rho 
   !for the processor orbitals and separate it in contiguous packets which should be sent to 
   !different processors
+
+
   
 
 end subroutine rhotranspose
+
+!pass from the global wavefunction for a set of orbitals to the local wavefunctions
+!for all the orbitals
+!INPUTS
+! nlr           number of localisation regions contained by the compressed form
+! nvctr_c,f     compressed elements of the global function
+! nseglr     array of compressed elements for each localisation region
+!               number of segments of keymask array
+! nvctr_tot   number of components of the distributed wavefunction
+! nseg_tot      total number of segments for the mask array
+! keymask       array of masking element for each localisation region           
+! psi           global wavefunctions with distributed orbitals
+!OUTPUTS
+! psiloc        wavefunctions of all the localisation regions 
+! ncount        array of elements to be sent to each processor for MPI_ALLTOALLV procedure
+subroutine rhoswitch_waves(nlr,norbp,nvctr_c,nvctr_f,nseg_tot,nvctr_tot,nseglr,keymask,&
+     ncount,psi,psiloc)
+  use module_base
+  implicit none
+  integer, intent(in) :: nlr,nvctr_c,nvctr_f,nseg_tot,nvctr_tot,norbp
+  integer, dimension(nlr,2) , intent(in) :: nseglr
+  integer, dimension(2,nseg_tot), intent(in) :: keymask
+  real(wp), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
+  integer, dimension(nlr), intent(out) :: ncount
+  real(wp), dimension(nvctr_tot), intent(out) :: psiloc
+  !local variables
+  integer :: jsh,jsegsh,ilr,iseg,iorb,i,j,k,jseg
   
+  jsh=0
+  jsegsh=0
+  do ilr=1,nlr
+     j=0
+     do iorb=1,norbp
+        jseg=0 !each orbital has the same descriptors
+        do iseg=1,nseglr(ilr,1) !coarse segments
+           jseg=jseg+1
+           do i=keymask(1,jseg+jsegsh),keymask(2,jseg+jsegsh)
+              j=j+1
+              psiloc(j+jsh)=psi(i,iorb)
+           end do
+        end do
+        do iseg=1,nseglr(ilr,2) !fine segments
+           jseg=jseg+1
+           do i=keymask(1,jseg+jsegsh),keymask(2,jseg+jsegsh)
+              do k=1,7
+                 j=j+1
+                 psiloc(j+jsh)=psi(k+nvctr_c+7*(i-1),iorb)
+              end do
+           end do
+        end do
+     end do
+     ncount(ilr)=j
+     jsh=jsh+ncount(ilr)
+     jsegsh=jsegsh+j
+  end do
+end subroutine rhoswitch_waves
+
+
+!build the wavefunction in real space starting from its compressed form
+!one of the building blocks for a localised region call
+subroutine build_psir(d,wfd,gb,ibyz_c,ibyyzz_r,w1,w2,x_c,x_f,scal,psi,psir)
+  use module_base
+  use module_types
+  implicit none
+  type(grid_dimensions), intent(in) :: d
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(grow_bounds), intent(in) :: gb
+  integer, dimension(2,0:d%n2,0:d%n3), intent(in) :: ibyz_c
+  integer, dimension(2,-14:2*d%n2+16,-14:2*d%n3+16), intent(in):: ibyyzz_r
+  real(wp), dimension(0:3), intent(in) :: scal
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(in) :: psi
+  real(wp), dimension(max(4*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)*(2*(d%nfu1-d%nfl1)+31),&
+       (2*d%n1+31)*(d%n2+1)*(d%n3+1))), &
+       intent(inout) :: w1 !work
+  real(wp), dimension(max((d%n3+1)*(2*d%n1+31)*(2*d%n2+31),&
+       2*(d%nfu3-d%nfl3+1)*(2*(d%nfu1-d%nfl1)+31)*(2*(d%nfu2-d%nfl2)+31))), &
+       intent(inout) :: w2 ! work
+  real(wp), dimension(0:d%n1,0:d%n2,0:d%n3), intent(inout) :: x_c
+  real(wp), dimension(7,d%nfl1:d%nfu1,d%nfl2:d%nfu2,d%nfl3:d%nfu3), intent(inout) :: x_f
+  real(wp), dimension(d%n1i,d%n2i,d%n3i), intent(out) :: psir
+  
+  call uncompress_forstandard_short(d%n1,d%n2,d%n3,d%nfl1,d%nfu1,d%nfl2,d%nfu2,d%nfl3,d%nfu3, & 
+       wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
+       wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),   &
+       scal,psi(1),psi(wfd%nvctr_c+1),x_c,x_f)
+  
+  call comb_grow_all(d%n1,d%n2,d%n3,d%nfl1,d%nfu1,d%nfl2,d%nfu2,d%nfl3,d%nfu3,w1,w2,x_c,x_f,  & 
+       psir,ibyz_c,gb%ibzxx_c,gb%ibxxyy_c,gb%ibyz_ff,gb%ibzxx_f,gb%ibxxyy_f,ibyyzz_r)
+  
+end subroutine build_psir
 
 
 !this subroutine define other wavefunctions descriptors starting from the original descriptors 
@@ -120,10 +210,11 @@ end subroutine rhotranspose
 ! wfdg                  global wavefunction descriptors structure
 ! OUTPUT
 ! wfdl                  local wavefunction descriptors structure in local system coordinates
-! maskarr               mask array for traducing the wavefunction in compressed form
+! keymask               mask array for traducing the wavefunction in compressed form
 !                       to the wavefunction in compressed form for the local system
 ! ncountlocreg          array of elements for each localisation region
-subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keytrans,ncountlocreg)
+subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocreg)
+  use module_base
   use module_types
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfdg
@@ -131,9 +222,10 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keytrans,ncountlocr
   integer, dimension(2,3,nlocreg), intent(in) :: lrlims
   type(wavefunctions_descriptors), intent(out) :: wfdl
   integer, dimension(nlocreg), intent(out) :: ncountlocreg
-  integer, dimension(:), pointer :: keytrans
+  integer, dimension(:), pointer :: keymask
   !local variables
   character(len=*), parameter :: subname='loc_wfd'
+  integer :: i_stat,i_all
   integer :: iloc,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nvctr_c,nseg_c,nseg_f,nvctr_f,ndimkey
 
   !calculate the number of segments of the new descriptors for each localisation region
@@ -152,7 +244,7 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keytrans,ncountlocr
              wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+1),wfdg%keyv(wfdg%nseg_c+1),&
              nseg_f,nvctr_f)
         ncountlocreg(iloc)=nvctr_c+7*nvctr_f
-        ndimkey=ndimkey+ncountlocreg(iloc)
+        ndimkey=ndimkey+nseg_c+nseg_f
      end if
   end do
 
@@ -174,21 +266,25 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keytrans,ncountlocr
        wfdl%nseg_f,wfdl%nvctr_f)
 
   ncountlocreg(ilocreg)=wfdl%nvctr_c+7*wfdl%nvctr_f
+  ndimkey=ndimkey+wfdl%nseg_c+wfdl%nseg_f
 
   call allocate_wfd(wfdl,subname)
+
+  allocate(keymask(ndimkey),stat=i_stat)
+  call memocc(i_stat,keymask,'keymask',subname)
 
   !now fill the local wavefunction descriptors
   !and define the mask array for the wavefunction
   !coarse part
   call segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
        wfdg%nseg_c,wfdg%nvctr_c,wfdg%keyg(1,1),wfdg%keyv(1),&
-       wfdl%nseg_c,wfdl%nvctr_c,wfdl%keyg(1,1),wfdl%keyv(1),keytrans(1))
+       wfdl%nseg_c,wfdl%nvctr_c,wfdl%keyg(1,1),wfdl%keyv(1),keymask(1))
 
   !fine part
   call segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
        wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+1),wfdg%keyv(wfdg%nseg_c+1),&
        wfdl%nseg_f,wfdl%nvctr_f,wfdl%keyg(1,wfdl%nseg_c+1),wfdl%keyv(wfdl%nseg_c+1),&
-       keytrans(wfdg%nseg_c+1))
+       keymask(wfdg%nseg_c+1))
 
   !a little check on the masking array
 !!$  if (count(maskarr) /= wfdl%nvctr_c+7*wfdl%nvctr_f) then
@@ -198,14 +294,73 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keytrans,ncountlocr
 
 end subroutine loc_wfd
 
+subroutine build_keymask(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,keyg,keyv,&
+     nseg_loc,keymask)
+  implicit none
+  integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,nseg_loc
+  integer, dimension(nseg_tot), intent(in) :: keyv
+  integer, dimension(2,nseg_tot), intent(in) :: keyg
+  integer, dimension(2,nseg_loc), intent(out) :: keymask
+  !local variables
+  logical :: go,lseg
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,j,nsrt,nend
+
+  !start and end points
+  nsrt=0
+  nend=0
+  do iseg=1,nseg_tot
+     jj=keyv(iseg)
+     j0=keyg(1,iseg)
+     j1=keyg(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     go=(i3sc <= i3 .and. i3 <= i3ec) .and. (i2sc <= i2 .and. i2 <= i2ec)
+     lseg=.false.
+     do i=i0,i1
+        !index of the compressed function
+        ind=i-i0+jj
+        if (go .and. (i1sc <= i .and. i <= i1ec)) then
+           if (.not. lseg) then
+              nsrt=nsrt+1
+              keymask(1,nsrt)=ind
+           end if
+           lseg=.true.
+        else
+           if (lseg) then
+              keymask(2,nend)=ind-1
+              nend=nend+1
+              lseg=.false. 
+           end if
+        end if
+     end do
+     if (lseg) then
+        keymask(2,nend)=ind
+        nend=nend+1
+     end if
+  end do
+
+  !check
+  if (nend /= nsrt .or. nend /= nseg_loc) then
+     write(*,'(1x,a,2(i6))')&
+          'ERROR: problem in build_keymask',&
+          nend,nsrt,nseg_loc
+     stop
+  end if
+
+end subroutine build_keymask
+
 subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
-     nseg_loc,nvctr_loc,keyg_loc,keyv_loc,keytrans)
+     nseg_loc,nvctr_loc,keyg_loc,keyv_loc,keymask)
   implicit none
   integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,nseg_loc,nvctr_loc
   integer, dimension(nseg), intent(in) :: keyv
   integer, dimension(2,nseg), intent(in) :: keyg
   integer, dimension(nseg_loc), intent(out) :: keyv_loc
-  integer, dimension(2,nseg_loc), intent(out) :: keyg_loc,keytrans
+  integer, dimension(2,nseg_loc), intent(out) :: keyg_loc,keymask
   !local variables
   logical :: go,lseg
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,j,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l
@@ -244,7 +399,7 @@ subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,ke
            nvctr_check=nvctr_check+1
            if (.not. lseg) then
               nsrt=nsrt+1
-              keytrans(1,nsrt)=ind
+              keymask(1,nsrt)=ind
               keyg_loc(1,nsrt)=ngridp
               keyv_loc(nsrt)=nvctr_check
            end if
@@ -252,7 +407,7 @@ subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,ke
         else
            if (lseg) then
               nend=nend+1
-              keytrans(2,nend)=ind-1
+              keymask(2,nend)=ind-1
               keyg_loc(2,nend)=ngridp-1
               lseg=.false. 
            end if
@@ -260,7 +415,7 @@ subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,ke
      end do
      if (lseg) then
         nend=nend+1
-        keytrans(2,nend)=ind
+        keymask(2,nend)=ind
         keyg_loc(2,nend)=ngridp
      end if
   end do

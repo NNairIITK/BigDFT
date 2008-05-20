@@ -16,19 +16,22 @@
 subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      nmax,n_left,n_right,c,err_norm,&                      !no err_wav. nmax instead of n_intvx
      ww,nwork,periodic)                         !added work arrays ww with dimension nwork
+  use module_base
   implicit none
   !implicit real(kind=8) (a-h,o-z)
   logical, intent(in) :: periodic
   integer, intent(in) :: n_gau,nmax,nwork
-  real(kind=8), intent(in) :: hgrid,factor,gau_cen,gau_a
+  real(gp), intent(in) :: hgrid,factor,gau_cen,gau_a
   integer, intent(out) :: n_left,n_right
-  real(kind=8), intent(out) :: err_norm
-  real(kind=8), dimension(0:nmax,2), intent(out) :: c
-  real(kind=8), dimension(0:nwork,2) :: ww 
+  real(gp), intent(out) :: err_norm
+  real(wp), dimension(0:nwork,2), intent(inout) :: ww 
+  real(wp), dimension(0:nmax,2), intent(out) :: c
   !local variables
   integer :: rightx,leftx,right_t,i0,i,k,length,j
-  real(kind=8) :: a,z0,h,cn2,theor_norm2,x,coeff,func,r,r2,error,fac
-  integer :: lefts(0:4),rights(0:4)
+  real(gp) :: a,z0,h,theor_norm2,x,r,coeff,r2,error,fac
+  real(dp) :: cn2,tt
+  real(wp) :: func
+  integer, dimension(0:4) :: lefts,rights
   !include the convolutions filters
   INCLUDE 'recs16.inc'! MAGIC FILTER  
   INCLUDE 'intots.inc'! HERE WE KEEP THE ANALYTICAL NORMS OF GAUSSIANS
@@ -37,8 +40,8 @@ subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
   !rescale the parameters so that hgrid goes to 1.d0  
   a=gau_a/hgrid
   i0=nint(gau_cen/hgrid) ! the array is centered at i0
-  z0=gau_cen/hgrid-real(i0,kind=8)
-  h=.125d0*.5d0
+  z0=gau_cen/hgrid-real(i0,gp)
+  h=.125_gp*.5_gp
 
   !calculate the array sizes;
   !at level 0, positions shifted by i0 
@@ -69,20 +72,21 @@ subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
   endif
 
   !calculate the (relative) error
-  cn2=0.d0
+  cn2=0.0_dp
   do i=0,length*2-1
-     cn2=cn2+ww(i,2)**2
+     tt=real(ww(i,2),dp)
+     cn2=cn2+tt**2
   ENDDO
 
   theor_norm2=valints(n_gau)*a**(2*n_gau+1)
 
-  error=sqrt(abs(1.d0-cn2/theor_norm2))
+  error=sqrt(abs(1.0_gp-real(cn2,gp)/theor_norm2))
 
   !write(*,*)'error, non scaled:',error
   !
   !RESCALE BACK THE COEFFICIENTS AND THE ERROR
   fac= hgrid**n_gau*sqrt(hgrid)*factor
-  c=c*fac
+  c=real(fac,wp)*c
   err_norm=error*fac
 
 contains
@@ -114,24 +118,24 @@ contains
     !corrected for avoiding 0**0 problem
     if (n_gau == 0) then
        do i=leftx,rightx
-          x=real(i-i0*16,kind=8)*h
+          x=real(i-i0*16,gp)*h
           r=x-z0
           r2=r/a
           r2=r2*r2
-          r2=0.5d0*r2
-          func=dexp(-r2)
+          r2=0.5_gp*r2
+          func=real(dexp(-real(r2,kind=8)),wp)
           ww(i-leftx,1)=func
        enddo
     else
        do i=leftx,rightx
-          x=real(i-i0*16,kind=8)*h
+          x=real(i-i0*16,gp)*h
           r=x-z0
           coeff=r**n_gau
           r2=r/a
           r2=r2*r2
-          r2=0.5d0*r2
-          func=dexp(-r2)
-          func=coeff*func
+          r2=0.5_gp*r2
+          func=real(dexp(-real(r2,kind=8)),wp)
+          func=real(coeff,wp)*func
           ww(i-leftx,1)=func
        enddo
     end if
@@ -212,80 +216,92 @@ contains
 end subroutine gauss_to_daub
 
 
-SUBROUTINE APPLY_W(CX,C,LEFTX,RIGHTX,LEFT,RIGHT,H)
-  !
-  !       APPLYING THE MAGIC FILTER ("SHRINK") 
-  !
-  implicit real(kind=8) (a-h,o-z)
-  INTEGER RIGHT,RIGHTX
-  DIMENSION CX(LEFTX:RIGHTX),C(LEFT:RIGHT)
-  INCLUDE 'recs16.inc'
+!
+!       APPLYING THE MAGIC FILTER ("SHRINK") 
+!
+subroutine apply_w(cx,c,leftx,rightx,left,right,h)
+  use module_base
+  implicit none
+  integer, intent(in) :: leftx,rightx,left,right
+  real(gp), intent(in) :: h
+  real(wp), dimension(leftx:rightx), intent(in) :: cx
+  real(wp), dimension(left:right), intent(out) :: c
+  !local variables
+  include 'recs16.inc'
+  integer :: i,j
+  real(wp) :: sqh,ci
 
-  SQH=SQRT(H)
+  sqh=real(sqrt(h),wp)
 
-  DO I=LEFT,RIGHT
-     CI=0.D0
-     DO J=-N,N
-        CI=CI+CX(I+J)*W(J)         
-     ENDDO
-     C(I)=CI*SQH
-  ENDDO
+  do i=left,right
+     ci=0.0_wp
+     do j=-n,n
+        ci=ci+cx(i+j)*w(j)         
+     enddo
+     c(i)=ci*sqh
+  enddo
 
-END SUBROUTINE APPLY_W
+end subroutine apply_w
 
 
-SUBROUTINE FORWARD_C(C,C_1,LEFT,RIGHT,LEFT_1,RIGHT_1)
-  !
-  !      FORWARD WAVELET TRANSFORM WITHOUT WAVELETS ("SHRINK")
-  !
-  implicit real(kind=8) (a-h,o-z)
-  INTEGER RIGHT,RIGHT_1
-  DIMENSION C(LEFT:RIGHT)
-  DIMENSION C_1(LEFT_1:RIGHT_1)
-
-  INCLUDE 'sym_16.inc'
-
-  !
-  !      GET THE COARSE SCFUNCTIONS AND WAVELETS
-  !
-  DO I=LEFT_1,RIGHT_1
-     I2=2*I
-     CI=0.D0
-     DO J=-M,M
-        CI=CI+CHT(J)*C(J+I2)
-     ENDDO
-     C_1(I)=CI
-  ENDDO
-
-END SUBROUTINE FORWARD_C
-
-SUBROUTINE FORWARD(C,CD_1,LEFT,RIGHT,LEFT_1,RIGHT_1)
-  !
-  !      CONVENTIONAL FORWARD WAVELET TRANSFORM ("SHRINK")
-  !
-  implicit real(kind=8) (a-h,o-z)
-  INTEGER RIGHT,RIGHT_1
-  DIMENSION C(LEFT:RIGHT)
-  DIMENSION CD_1(LEFT_1:RIGHT_1,2)
-
-  INCLUDE 'sym_16.inc'
+!
+!      FORWARD WAVELET TRANSFORM WITHOUT WAVELETS ("SHRINK")
+!
+subroutine forward_c(c,c_1,left,right,left_1,right_1)
+  use module_base
+  implicit none
+  !implicit real(kind=8) (a-h,o-z)
+  integer, intent(in) :: left,right,left_1,right_1
+  real(wp), dimension(left:right), intent(in) :: c
+  real(wp), dimension(left_1:right_1), intent(out) :: c_1
+  !local variables
+  integer :: i,i2,j
+  real(wp) :: ci
+  include 'sym_16.inc'
 
   !
-  !      GET THE COARSE SCFUNCTIONS AND WAVELETS
+  !      get the coarse scfunctions and wavelets
   !
-  DO I=LEFT_1,RIGHT_1
-     I2=2*I
-     CI=0.D0
-     DI=0.D0
-     DO J=-M,M
-        CI=CI+CHT(J)*C(J+I2)
-        DI=DI+CGT(J)*C(J+I2)
-     ENDDO
-     CD_1(I,1)=CI
-     CD_1(I,2)=DI
-  ENDDO
+  do i=left_1,right_1
+     i2=2*i
+     ci=0.0_wp
+     do j=-m,m
+        ci=ci+cht(j)*c(j+i2)
+     enddo
+     c_1(i)=ci
+  enddo
 
-END SUBROUTINE FORWARD
+end subroutine forward_c
+
+!
+!      CONVENTIONAL FORWARD WAVELET TRANSFORM ("SHRINK")
+!
+subroutine forward(c,cd_1,left,right,left_1,right_1)
+  use module_base
+  integer, intent(in) :: left,right,left_1,right_1
+  real(wp), dimension(left:right), intent(in) :: c
+  real(wp), dimension(left_1:right_1,2), intent(out) :: cd_1
+  !local variables
+  integer :: i,i2,j
+  real(wp) :: ci,di
+  include 'sym_16.inc'
+
+  !
+  !      get the coarse scfunctions and wavelets
+  !
+  do i=left_1,right_1
+     i2=2*i
+     ci=0.d0
+     di=0.d0
+     do j=-m,m
+        ci=ci+cht(j)*c(j+i2)
+        di=di+cgt(j)*c(j+i2)
+     enddo
+     cd_1(i,1)=ci
+     cd_1(i,2)=di
+  enddo
+
+end subroutine forward
 
 function psi(x,GAU_A,GAU_CEN,N_GAU)
   implicit real(kind=8) (a-h,o-z)
