@@ -39,7 +39,8 @@ EXTRA_DIST = \
 	Makefile.standalone \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
-	wavelib/sym_16.inc 
+	wavelib/sym_16.inc \
+	lib
 
 AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common
 

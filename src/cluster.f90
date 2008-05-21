@@ -145,8 +145,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(convolutions_bounds) :: bounds
   type(nonlocal_psp_descriptors) :: nlpspd
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
-  real(kind=8), dimension(:), allocatable :: occup,spinsgn,spinsgn_foo,derproj,rho
-  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion
+  real(kind=8), dimension(:), allocatable :: occup,spinsgn,spinsgn_foo,rho
+  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,derproj
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
   real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot,rho_diag
@@ -931,7 +931,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   deallocate(pot,stat=i_stat)
   call memocc(i_stat,i_all,'pot',subname)
 
-  allocate(derproj(3*nlpspd%nprojel+ndebug),stat=i_stat)
+  allocate(derproj(nlpspd%nprojel,3+ndebug),stat=i_stat)
   call memocc(i_stat,derproj,'derproj',subname)
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate projectors derivatives...'
@@ -939,12 +939,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !the calculation of the derivatives of the projectors has been decoupled
   !from the one of nonlocal forces, in this way forces can be calculated
   !during the wavefunction minimization if needed
-  call projectors_derivatives(geocode,iproc,atoms,n1,n2,n3,norb,nlpspd,proj,&
-       rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
+!!$  call projectors_derivatives(geocode,iproc,atoms,n1,n2,n3,norb,nlpspd,proj,&
+!!$       rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
 
-  call nonlocal_forces(iproc,atoms,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,gxyz,nspinor)
+!!$  call nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,atoms,rxyz,radii_cf,&
+!!$     norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,gxyz,.true.)
+
+  do i1=1,3
+     call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,atoms,rxyz,radii_cf,&
+          nlpspd,derproj(1,i1),i1)
+  end do
+
+  call nonlocal_forcesold(iproc,atoms,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,gxyz,nspinor)
 
   if (iproc == 0) write(*,'(1x,a)')'done.'
 

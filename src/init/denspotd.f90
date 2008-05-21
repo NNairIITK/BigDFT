@@ -99,13 +99,70 @@ subroutine rhotranspose(iproc,nproc,norbp,norb,nspinor,wfd,wfd_loc,psi_loc,&
   character(len=*), parameter :: subname='rhotranspose'
   integer :: i_stat,i_all,iorb
 
-
   !the local array contains the components of psi in the local region of rho 
   !for the processor orbitals and separate it in contiguous packets which should be sent to 
   !different processors
+
+
   
 
 end subroutine rhotranspose
+
+!pass from the global wavefunction for a set of orbitals to the local wavefunctions
+!for all the orbitals
+!INPUTS
+! nlr           number of localisation regions contained by the compressed form
+! nvctr_c,f     compressed elements of the global function
+! nseglr     array of compressed elements for each localisation region
+!               number of segments of keymask array
+! nvctr_tot   number of components of the distributed wavefunction
+! nseg_tot      total number of segments for the mask array
+! keymask       array of masking element for each localisation region           
+! psi           global wavefunctions with distributed orbitals
+!OUTPUTS
+! psiloc        wavefunctions of all the localisation regions 
+! ncount        array of elements to be sent to each processor for MPI_ALLTOALLV procedure
+subroutine rhoswitch_waves(nlr,norbp,nvctr_c,nvctr_f,nseg_tot,nvctr_tot,nseglr,keymask,&
+     ncount,psi,psiloc)
+  use module_base
+  implicit none
+  integer, intent(in) :: nlr,nvctr_c,nvctr_f,nseg_tot,nvctr_tot,norbp
+  integer, dimension(nlr,2) , intent(in) :: nseglr
+  integer, dimension(2,nseg_tot), intent(in) :: keymask
+  real(wp), dimension(nvctr_c+7*nvctr_f,norbp), intent(in) :: psi
+  integer, dimension(nlr), intent(out) :: ncount
+  real(wp), dimension(nvctr_tot), intent(out) :: psiloc
+  !local variables
+  integer :: jsh,jsegsh,ilr,iseg,iorb,i,j,k,jseg
+  
+  jsh=0
+  jsegsh=0
+  do ilr=1,nlr
+     j=0
+     do iorb=1,norbp
+        jseg=0 !each orbital has the same descriptors
+        do iseg=1,nseglr(ilr,1) !coarse segments
+           jseg=jseg+1
+           do i=keymask(1,jseg+jsegsh),keymask(2,jseg+jsegsh)
+              j=j+1
+              psiloc(j+jsh)=psi(i,iorb)
+           end do
+        end do
+        do iseg=1,nseglr(ilr,2) !fine segments
+           jseg=jseg+1
+           do i=keymask(1,jseg+jsegsh),keymask(2,jseg+jsegsh)
+              do k=1,7
+                 j=j+1
+                 psiloc(j+jsh)=psi(k+nvctr_c+7*(i-1),iorb)
+              end do
+           end do
+        end do
+     end do
+     ncount(ilr)=j
+     jsh=jsh+ncount(ilr)
+     jsegsh=jsegsh+j
+  end do
+end subroutine rhoswitch_waves
 
 
 !build the wavefunction in real space starting from its compressed form
@@ -243,7 +300,7 @@ subroutine build_keymask(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,keyg,ke
   integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,nseg_loc
   integer, dimension(nseg_tot), intent(in) :: keyv
   integer, dimension(2,nseg_tot), intent(in) :: keyg
-  integer, dimension(nseg_loc), intent(out) :: keymask
+  integer, dimension(2,nseg_loc), intent(out) :: keymask
   !local variables
   logical :: go,lseg
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,j,nsrt,nend
@@ -269,17 +326,19 @@ subroutine build_keymask(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,keyg,ke
         if (go .and. (i1sc <= i .and. i <= i1ec)) then
            if (.not. lseg) then
               nsrt=nsrt+1
-              keymask(nsrt)=ind
+              keymask(1,nsrt)=ind
            end if
            lseg=.true.
         else
            if (lseg) then
+              keymask(2,nend)=ind-1
               nend=nend+1
               lseg=.false. 
            end if
         end if
      end do
      if (lseg) then
+        keymask(2,nend)=ind
         nend=nend+1
      end if
   end do

@@ -1,3 +1,145 @@
+!fill the proj array with the PSP projectors or their derivatives, following idir value
+subroutine fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
+     nlpspd,proj,idir)
+  use module_base
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: at
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: iproc,n1,n2,n3,idir
+  real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf
+  real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
+  !local variables
+  integer, parameter :: nterm_max=20 !if GTH nterm_max=4
+  integer :: istart_c,istart_f,mvctr_c,mvctr_f
+  integer :: nl1_c,nl1_f,nl2_c,nl2_f,nl3_c,nl3_f,nu1_c,nu1_f,nu2_c,nu2_f,nu3_c,nu3_f
+  integer :: iat,i,l,m,iproj,ityp,nterm,nwarnings,iterm
+  real(gp) :: fpi,factor,gau_a,rx,ry,rz
+  real(dp) :: scpr
+  integer, dimension(3) :: nterm_arr
+  integer, dimension(nterm_max) :: lx,ly,lz
+  integer, dimension(3,nterm_max,3) :: lxyz_arr
+  real(gp), dimension(nterm_max) :: factors
+  real(gp), dimension(nterm_max,3) :: fac_arr
+
+  if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) write(*,'(1x,a)',advance='no') &
+       'Calculating wavelets expansion of projectors...'
+  !warnings related to the projectors norm
+  nwarnings=0
+  !allocate these vectors up to the maximum size we can get
+  istart_c=1
+  iproj=0
+  fpi=(4.0_gp*atan(1.0_gp))**(-.75_gp)
+  do iat=1,at%nat
+     rx=rxyz(1,iat) 
+     ry=rxyz(2,iat) 
+     rz=rxyz(3,iat)
+     ityp=at%iatype(iat)
+
+     mvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
+     mvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
+
+     nl1_c=nlpspd%nboxp_c(1,1,iat)
+     nl2_c=nlpspd%nboxp_c(1,2,iat)
+     nl3_c=nlpspd%nboxp_c(1,3,iat)
+     nl1_f=nlpspd%nboxp_f(1,1,iat)
+     nl2_f=nlpspd%nboxp_f(1,2,iat)
+     nl3_f=nlpspd%nboxp_f(1,3,iat)
+
+     nu1_c=nlpspd%nboxp_c(2,1,iat)
+     nu2_c=nlpspd%nboxp_c(2,2,iat)
+     nu3_c=nlpspd%nboxp_c(2,3,iat)
+     nu1_f=nlpspd%nboxp_f(2,1,iat)
+     nu2_f=nlpspd%nboxp_f(2,2,iat)
+     nu3_f=nlpspd%nboxp_f(2,3,iat)
+
+     !decide the loop bounds
+     do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
+        do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
+           if (at%psppar(l,i,ityp) /= 0.0_gp) then
+              gau_a=at%psppar(l,0,ityp)
+              factor=sqrt(2.0_gp)*fpi/(sqrt(gau_a)**(2*(l-1)+4*i-1))
+              do m=1,2*l-1
+                 istart_f=istart_c+mvctr_c
+
+                 if (idir==0) then !normal projector calculation case
+                    call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,factors)
+                    
+                    factors(1:nterm)=factor*factors(1:nterm)
+                 else !calculation of projector derivative
+                    call calc_coeff_derproj(l,i,m,nterm_max,gau_a,nterm_arr,lxyz_arr,fac_arr)
+
+                    nterm=nterm_arr(idir)
+                    do iterm=1,nterm
+                       factors(iterm)=factor*fac_arr(iterm,idir)
+                       lx(iterm)=lxyz_arr(1,iterm,idir)
+                       ly(iterm)=lxyz_arr(2,iterm,idir)
+                       lz(iterm)=lxyz_arr(3,iterm,idir)
+                    end do                    
+                 end if
+
+                 call crtproj(geocode,iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
+                      & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radii_cf(at%iatype(iat),2), & 
+                      & cpmult,fpmult,hx,hy,hz,gau_a,factors,rx,ry,rz,lx,ly,lz, & 
+                      & mvctr_c,mvctr_f,proj(istart_c),proj(istart_f))
+
+                 iproj=iproj+1
+
+                 ! testing
+                 if (idir == 0) then
+                    call wnrm(mvctr_c,mvctr_f,proj(istart_c), &
+                         & proj(istart_f),scpr)
+                    if (abs(1.d0-scpr) > 1.d-2) then
+                       if (abs(1.d0-scpr) > 1.d-1) then
+                          if (iproc == 0) then
+                             write(*,'(1x,a)')'error found!'
+                             write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
+                                  'The norm of the nonlocal PSP for atom n=',iat,&
+                                  ' (',trim(at%atomnames(at%iatype(iat))),&
+                                  ') labeled by l=',l,' m=',m,' is ',scpr
+                             write(*,'(1x,a)')&
+                                  'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
+                          end if
+                          stop
+                       else
+                          nwarnings=nwarnings+1
+                       end if
+                    end if
+                    !do iterm=1,nterm
+                    !   if (iproc.eq.0) write(*,'(1x,a,i0,1x,a,1pe10.3,3(1x,i0))') &
+                    !        'projector: iat,atomname,gau_a,lx,ly,lz ', & 
+                    !        iat,trim(at%atomnames(at%iatype(iat))),gau_a,lx(iterm),ly(iterm),lz(iterm)
+                    !enddo
+                 end if
+                 !end testing
+
+                 istart_c=istart_f+7*mvctr_f
+                 if (istart_c > nlpspd%nprojel+1) stop 'istart_c > nprojel+1'
+              enddo
+           endif
+        enddo
+     enddo
+  enddo
+  if (iproj.ne.nlpspd%nproj) stop 'incorrect number of projectors created'
+  ! projector part finished
+
+  if (iproc == 0 .and. nlpspd%nproj /=0 .and. idir == 0) then
+     if (nwarnings == 0) then
+        write(*,'(1x,a)')'done.'
+     else
+        write(*,'(1x,a,i0,a)')'found ',nwarnings,' warnings.'
+        write(*,'(1x,a)')'Some projectors may be too rough.'
+        write(*,'(1x,a,f6.3)')&
+             'Consider the possibility of reducing hgrid for having a more accurate run.'
+     end if
+  end if
+
+end subroutine fill_projectors
+
+
 subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
   ! Determines the number of projectors (valid for GTH and HGH pseudopotentials)
   implicit real(kind=8) (a-h,o-z)
@@ -98,7 +240,8 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   !        if (iproc.eq.0) write(*,*) 'max err_norm ',err_norm
 
   ! First term: coarse projector components
-  !          write(*,*) 'rad_c=',rad_c
+  !write(*,*) 'rad_c=',rad_c
+  
   mvctr=0
 
   do i3=nl3_c,nu3_c

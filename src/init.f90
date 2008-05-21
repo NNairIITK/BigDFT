@@ -206,13 +206,8 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
   real(kind=8), dimension(:), pointer :: proj
   !local variables
   character(len=*), parameter :: subname='createProjectorsArrays'
-  integer, parameter :: nterm_max=10 !if GTH nterm_max=3
-  integer :: nl1,nl2,nl3,nu1,nu2,nu3,mseg,mvctr,mproj,istart,istart_c,istart_f,mvctr_c,mvctr_f
-  integer :: nl1_c,nl1_f,nl2_c,nl2_f,nl3_c,nl3_f,nu1_c,nu1_f,nu2_c,nu2_f,nu3_c,nu3_f
-  integer :: iat,i_stat,i_all,i,l,m,iproj,ityp,nterm,iseg,nwarnings,natyp
-  real(kind=8) :: fpi,factor,scpr,gau_a,rx,ry,rz,radmin
-  real(kind=8), dimension(nterm_max) :: fac_arr
-  integer, dimension(nterm_max) :: lx,ly,lz
+  integer :: nl1,nl2,nl3,nu1,nu2,nu3,mseg,mvctr,mproj,istart
+  integer :: iat,i_stat,i_all,ityp,iseg,natyp
   logical, dimension(:,:,:), allocatable :: logrid
   
 
@@ -329,7 +324,6 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
 
 
   ! After having determined the size of the projector descriptor arrays fill them
-  istart_c=1
   do iat=1,at%nat
      call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
      if (mproj.ne.0) then 
@@ -369,115 +363,13 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
      endif
   enddo
 
-  if (iproc.eq.0 .and. nlpspd%nproj /=0) write(*,'(1x,a)',advance='no') &
-       'Calculating wavelets expansion of projectors...'
-  !warnings related to the projectors norm
-  nwarnings=0
-  radmin=1.d10
-  !allocate these vectors up to the maximum size we can get
-
-  iproj=0
-  fpi=(4.d0*atan(1.d0))**(-.75d0)
-  do iat=1,at%nat
-     rx=rxyz(1,iat) 
-     ry=rxyz(2,iat) 
-     rz=rxyz(3,iat)
-     ityp=at%iatype(iat)
-
-     !decide the loop bounds
-     do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
-        do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
-           if (at%psppar(l,i,ityp).ne.0.d0) then
-              gau_a=at%psppar(l,0,ityp)
-              factor=sqrt(2.d0)*fpi/(sqrt(gau_a)**(2*(l-1)+4*i-1))
-              do m=1,2*l-1
-                 mvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-                 mvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-                 istart_f=istart_c+mvctr_c
-                 nl1_c=nlpspd%nboxp_c(1,1,iat)
-                 nl2_c=nlpspd%nboxp_c(1,2,iat)
-                 nl3_c=nlpspd%nboxp_c(1,3,iat)
-                 nl1_f=nlpspd%nboxp_f(1,1,iat)
-                 nl2_f=nlpspd%nboxp_f(1,2,iat)
-                 nl3_f=nlpspd%nboxp_f(1,3,iat)
-
-                 nu1_c=nlpspd%nboxp_c(2,1,iat)
-                 nu2_c=nlpspd%nboxp_c(2,2,iat)
-                 nu3_c=nlpspd%nboxp_c(2,3,iat)
-                 nu1_f=nlpspd%nboxp_f(2,1,iat)
-                 nu2_f=nlpspd%nboxp_f(2,2,iat)
-                 nu3_f=nlpspd%nboxp_f(2,3,iat)
-
-                 call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
-
-                 fac_arr(1:nterm)=factor*fac_arr(1:nterm)
-
-                 call crtproj(geocode,iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
-                      & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radii_cf(at%iatype(iat),2), & 
-                      & cpmult,fpmult,hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
-                      & mvctr_c,mvctr_f,proj(istart_c), &
-                      & proj(istart_f))
-
-                 iproj=iproj+1
-                 ! testing
-                 call wnrm(mvctr_c,mvctr_f,proj(istart_c), &
-                      & proj(istart_f),scpr)
-                 if (abs(1.d0-scpr).gt.1.d-2) then
-                    if (abs(1.d0-scpr).gt.1.d-1) then
-                       if (iproc == 0) then
-                          write(*,'(1x,a)')'error found!'
-                          write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
-                               'The norm of the nonlocal PSP for atom n=',iat,&
-                               ' (',trim(at%atomnames(at%iatype(iat))),&
-                               ') labeled by l=',l,' m=',m,' is ',scpr
-                          write(*,'(1x,a)')&
-                               'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
-!!$                          write(*,'(1x,a,f6.3,a)')&
-!!$                               'It should be of the order of the hardest PSP radius (here',&
-!!$                               gau_a,').'
-                       end if
-                       stop
-                    else
-                       nwarnings=nwarnings+1
-                       radmin=min(radmin,gau_a)
-                    end if
-!!$                    print *,'norm projector for atom ',trim(at%atomnames(at%iatype(iat))),&
-!!$                         'iproc,l,i,rl,scpr=',iproc,l,i,gau_a,scpr
-!!$                    stop 'norm projector'
-                 end if
-
-                 ! testing end
-                 istart_c=istart_f+7*mvctr_f
-                 if (istart_c.gt.istart) stop 'istart_c > istart'
-
-                 !do iterm=1,nterm
-                 !   if (iproc.eq.0) write(*,'(1x,a,i0,1x,a,1pe10.3,3(1x,i0))') &
-                 !        'projector: iat,atomname,gau_a,lx,ly,lz ', & 
-                 !        iat,trim(at%atomnames(at%iatype(iat))),gau_a,lx(iterm),ly(iterm),lz(iterm)
-                 !enddo
-
-
-              enddo
-           endif
-        enddo
-     enddo
-  enddo
-  if (iproj.ne.nlpspd%nproj) stop 'incorrect number of projectors created'
-  ! projector part finished
-  if (iproc == 0 .and. nlpspd%nproj /=0) then
-     if (nwarnings == 0) then
-        write(*,'(1x,a)')'done.'
-     else
-        write(*,'(1x,a,i0,a)')'found ',nwarnings,' warnings.'
-        write(*,'(1x,a)')'Some projectors may be too rough.'
-        write(*,'(1x,a,f6.3)')&
-             'Consider the possibility of reducing hgrid for having a more accurate run.'
-     end if
-  end if
-
   i_all=-product(shape(logrid))*kind(logrid)
   deallocate(logrid,stat=i_stat)
   call memocc(i_stat,i_all,'logrid',subname)
+
+  !calculate the wavelet expansion of projectors
+  call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
+       nlpspd,proj,0)
 
 END SUBROUTINE createProjectorsArrays
 

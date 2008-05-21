@@ -403,19 +403,24 @@ interface
      real(kind=8), dimension(nlpspd%nprojel,3), intent(out) :: derproj
    end subroutine projectors_derivatives
 
-   subroutine nonlocal_forces(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,fsep,nspinor)
+   subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
+        norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,fsep,last)
+     use module_base
      use module_types
      implicit none
-     !Arguments-------------
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-     integer, intent(in) :: iproc,norb,norbp,nspinor
-     real(kind=8), dimension(norb), intent(in) :: occup
-     real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
-     real(kind=8), dimension(nlpspd%nprojel,3), intent(in) :: derproj
-     real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
-     real(kind=8), dimension(3,at%nat), intent(inout) :: fsep
+     character(len=1), intent(in) :: geocode
+     logical, intent(in) :: last
+     integer, intent(in) :: iproc,norb,norbp,nspinor,n1,n2,n3
+     real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult 
+     real(gp), dimension(norb), intent(in) :: occup
+     real(gp), dimension(3,at%nat), intent(in) :: rxyz
+     real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(in) :: psi
+     real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+     real(gp), dimension(3,at%nat), intent(inout) :: fsep
    end subroutine nonlocal_forces
 
    subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
