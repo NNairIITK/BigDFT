@@ -276,9 +276,9 @@ end subroutine projectors_derivatives
 
 
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and adds them to the force array
-!recalculate the projectors at the end id last flag is .false.
+!recalculate the projectors at the end id refill flag is .false.
 subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
-     norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,fsep,last)
+     norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,fsep,refill)
   use module_base
   use module_types
   implicit none
@@ -287,7 +287,7 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   character(len=1), intent(in) :: geocode
-  logical, intent(in) :: last
+  logical, intent(in) :: refill
   integer, intent(in) :: iproc,norb,norbp,nspinor,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult 
   real(gp), dimension(norb), intent(in) :: occup
@@ -302,46 +302,43 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
   integer :: istart_c_i,istart_f_i,istart_c_j,istart_f_j
   integer :: mvctr_c,mvctr_f,mbseg_c,mbseg_f,jseg_c,jseg_f
   integer :: mbvctr_c,mbvctr_f,iorb
-  real(gp) :: offdiagcoeff,hij
+  real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj
   integer :: idir,i_all,i_stat
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb
-  real(dp), dimension(:,:,:,:,:), allocatable :: scalprod
-
-  allocate(fxyz_orb(3,at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,fxyz_orb,'fxyz_orb',subname)
-
-  allocate(scalprod(0:3,4,3,7,norbp),stat=i_stat)
-  call memocc(i_stat,scalprod,'scalprod',subname)
+  real(dp), dimension(:,:,:,:,:,:), allocatable :: scalprod
 
 !!$  !to be eliminated only for testing purposes
 !!$  fsep(:,:)=0.d0
+
+  allocate(scalprod(0:3,7,3,4,at%nat,norbp*nspinor),stat=i_stat)
+  call memocc(i_stat,scalprod,'scalprod',subname)
 
   !calculate the coefficients for the off-diagonal terms
   do l=1,3
      do i=1,2
         do j=i+1,3
-           offdiagcoeff=0.d0
+           offdiagcoeff=0.0_gp
            if (l==1) then
               if (i==1) then
-                 if (j==2) offdiagcoeff=-0.5d0*sqrt(3.d0/5.d0)
-                 if (j==3) offdiagcoeff=0.5d0*sqrt(5.d0/21.d0)
+                 if (j==2) offdiagcoeff=-0.5_gp*sqrt(3._gp/5._gp)
+                 if (j==3) offdiagcoeff=0.5_gp*sqrt(5._gp/21._gp)
               else
-                 offdiagcoeff=-0.5d0*sqrt(100.d0/63.d0)
+                 offdiagcoeff=-0.5_gp*sqrt(100._gp/63._gp)
               end if
            else if (l==2) then
               if (i==1) then
-                 if (j==2) offdiagcoeff=-0.5d0*sqrt(5.d0/7.d0)
-                 if (j==3) offdiagcoeff=1.d0/6.d0*sqrt(35.d0/11.d0)
+                 if (j==2) offdiagcoeff=-0.5_gp*sqrt(5._gp/7._gp)
+                 if (j==3) offdiagcoeff=1._gp/6._gp*sqrt(35._gp/11._gp)
               else
-                 offdiagcoeff=-7.d0/3.d0*sqrt(1.d0/11.d0)
+                 offdiagcoeff=-7._gp/3._gp*sqrt(1._gp/11._gp)
               end if
            else if (l==3) then
               if (i==1) then
-                 if (j==2) offdiagcoeff=-0.5d0*sqrt(7.d0/9.d0)
-                 if (j==3) offdiagcoeff=0.5d0*sqrt(63.d0/143.d0)
+                 if (j==2) offdiagcoeff=-0.5_gp*sqrt(7._gp/9._gp)
+                 if (j==3) offdiagcoeff=0.5_gp*sqrt(63._gp/143._gp)
               else
-                 offdiagcoeff=-9.d0*sqrt(1.d0/143.d0)
+                 offdiagcoeff=-9._gp*sqrt(1._gp/143._gp)
               end if
            end if
            offdiagarr(i,j-i,l)=offdiagcoeff
@@ -388,7 +385,7 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
                             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                             nlpspd%keyv_p(jseg_c),nlpspd%keyv_p(jseg_f),  &
                             nlpspd%keyg_p(1,jseg_c),nlpspd%keyg_p(1,jseg_f),&
-                            proj(istart_c),proj(istart_f),scalprod(idir,l,i,m,jorb))
+                            proj(istart_c),proj(istart_f),scalprod(idir,m,i,l,iat,jorb))
 
                        istart_c=istart_f+7*mbvctr_f
                     end do
@@ -403,18 +400,19 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
      end do
   end do
 
-  if (.not. last) then !restore the projectors in the proj array (for on the run forces calc.)
+  if (refill) then !restore the projectors in the proj array (for on the run forces calc.)
      call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
           nlpspd,proj,0)
   end if
 
-
+  allocate(fxyz_orb(3,at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,fxyz_orb,'fxyz_orb',subname)
 
   ! loop over all my orbitals for calculatin forces
   do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor
      jorb=iorb-iproc*norbp*nspinor
      ! loop over all projectors
-     fxyz_orb(:,:)=0.d0
+     fxyz_orb(:,:)=0.0_gp
      do iat=1,at%nat
         ityp=at%iatype(iat)
         do l=1,4
@@ -422,10 +420,11 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
               if (at%psppar(l,i,ityp) /= 0.0_gp) then
                  do m=1,2*l-1
                     ! scalar product with the derivatives in all the directions
+                    sp0=real(scalprod(0,m,i,l,iat,jorb),gp)
                     do idir=1,3
-
+                       spi=real(scalprod(idir,m,i,l,iat,jorb),gp)
                        fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
-                            at%psppar(l,i,ityp)*scalprod(0,l,i,m,jorb)*scalprod(idir,l,i,m,jorb)
+                            at%psppar(l,i,ityp)*sp0*spi
                     end do
                  end do
               end if
@@ -445,12 +444,15 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
                           hij=at%psppar(l,i+j+1,ityp)
                        end if
                        do m=1,2*l-1
-                          !F_t= 2.d0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
+                          !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
                           !(the two factor is below)
+                          sp0i=real(scalprod(0,m,i,l,iat,jorb),gp)
+                          sp0j=real(scalprod(0,m,j,l,iat,jorb),gp)
                           do idir=1,3
+                             spi=real(scalprod(idir,m,i,l,iat,jorb),gp)
+                             spj=real(scalprod(idir,m,j,l,iat,jorb),gp)
                              fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
-                                  hij*(scalprod(0,l,i,m,jorb)*scalprod(idir,l,j,m,jorb)+&
-                                  scalprod(idir,l,i,m,jorb)*scalprod(0,l,j,m,jorb))
+                                  hij*(sp0j*spi+spj*sp0i)
                           end do
                        end do
                     end do loop_j
@@ -461,9 +463,9 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
      end do
 
      do iat=1,at%nat
-        fsep(1,iat)=fsep(1,iat)+occup((iorb-1)/nspinor+1)*2.d0*fxyz_orb(1,iat)
-        fsep(2,iat)=fsep(2,iat)+occup((iorb-1)/nspinor+1)*2.d0*fxyz_orb(2,iat)
-        fsep(3,iat)=fsep(3,iat)+occup((iorb-1)/nspinor+1)*2.d0*fxyz_orb(3,iat)
+        fsep(1,iat)=fsep(1,iat)+occup((iorb-1)/nspinor+1)*2.0_gp*fxyz_orb(1,iat)
+        fsep(2,iat)=fsep(2,iat)+occup((iorb-1)/nspinor+1)*2.0_gp*fxyz_orb(2,iat)
+        fsep(3,iat)=fsep(3,iat)+occup((iorb-1)/nspinor+1)*2.0_gp*fxyz_orb(3,iat)
      end do
 
      if (iproj.ne.nlpspd%nproj) stop '1:applyprojectors'

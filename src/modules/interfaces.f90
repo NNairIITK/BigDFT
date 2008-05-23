@@ -404,7 +404,7 @@ interface
    end subroutine projectors_derivatives
 
    subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
-        norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,fsep,last)
+        norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,fsep,refill)
      use module_base
      use module_types
      implicit none
@@ -412,7 +412,7 @@ interface
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
      character(len=1), intent(in) :: geocode
-     logical, intent(in) :: last
+     logical, intent(in) :: refill
      integer, intent(in) :: iproc,norb,norbp,nspinor,n1,n2,n3
      real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult 
      real(gp), dimension(norb), intent(in) :: occup

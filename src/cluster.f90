@@ -146,7 +146,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(nonlocal_psp_descriptors) :: nlpspd
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: occup,spinsgn,spinsgn_foo,rho
-  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,derproj
+  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion!,derproj
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
   real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot,rho_diag
@@ -370,7 +370,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
            end do
         end if
      end do
-     write(*,'(a,30f10.4)') 'Rand Check',ttsum,(sum(psi(:,iorb)),iorb=1,norbp*nproc*nspinor)
+     !write(*,'(a,30f10.4)') 'Rand Check',ttsum,(sum(psi(:,iorb)),iorb=1,norbp*nproc*nspinor)
  
      eval(:)=-0.5d0
 
@@ -931,8 +931,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   deallocate(pot,stat=i_stat)
   call memocc(i_stat,i_all,'pot',subname)
 
-  allocate(derproj(nlpspd%nprojel,3+ndebug),stat=i_stat)
-  call memocc(i_stat,derproj,'derproj',subname)
+!!$  allocate(derproj(nlpspd%nprojel,3+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,derproj,'derproj',subname)
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate projectors derivatives...'
 
@@ -944,15 +944,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
 
-!!$  call nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,atoms,rxyz,radii_cf,&
-!!$     norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,gxyz,.true.)
-
-  do i1=1,3
-     call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,atoms,rxyz,radii_cf,&
-          nlpspd,derproj(1,i1),i1)
-  end do
-
-  call nonlocal_forcesold(iproc,atoms,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,gxyz,nspinor)
+  call nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,atoms,rxyz,radii_cf,&
+     norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,gxyz,calc_tail) !refill projectors for tails
+!!$
+!!$  do i1=1,3
+!!$     call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,atoms,rxyz,radii_cf,&
+!!$          nlpspd,derproj(1,i1),i1)
+!!$  end do
+!!$
+!!$  call nonlocal_forcesold(iproc,atoms,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,gxyz,nspinor)
 
   if (iproc == 0) write(*,'(1x,a)')'done.'
 
@@ -973,9 +973,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!$  write(*,'(1x,a,3x,i5,1pe16.8)')'z direction(NL)',iproc,sumz
 
 
-  i_all=-product(shape(derproj))*kind(derproj)
-  deallocate(derproj,stat=i_stat)
-  call memocc(i_stat,i_all,'derproj',subname)
+!!$  i_all=-product(shape(derproj))*kind(derproj)
+!!$  deallocate(derproj,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'derproj',subname)
 
   i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
   deallocate(nlpspd%nboxp_c,stat=i_stat)
