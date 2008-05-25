@@ -58,8 +58,7 @@ interface
      real(kind=8), intent(out) :: energy
      real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
      real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
-     real(kind=8), dimension(:), pointer :: eval
-     real(kind=8), dimension(:,:), pointer :: psi
+     real(kind=8), dimension(:), pointer :: eval,psi
    end subroutine call_cluster
 
    subroutine conjgrad(nproc,iproc,at,wpos,etot,fxyz, &
@@ -74,8 +73,7 @@ interface
      type(wavefunctions_descriptors), intent(inout) :: wfd
      real(kind=8), dimension(3,at%nat), intent(inout) :: wpos,rxyz_old
      real(kind=8), dimension(3,at%nat), intent(out) :: fxyz
-     real(kind=8), dimension(:), pointer :: eval
-     real(kind=8), dimension(:,:), pointer :: psi
+     real(kind=8), dimension(:), pointer :: eval,psi
    end subroutine conjgrad
 
    subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,eval,wfd,psi,&
@@ -88,7 +86,7 @@ interface
      integer, intent(out) :: n1_old,n2_old,n3_old
      real(kind=8), intent(out) :: hgrid_old
      real(kind=8), dimension(:), pointer :: eval,eval_old
-     real(kind=8), dimension(:,:), pointer :: psi,psi_old
+     real(kind=8), dimension(:), pointer :: psi,psi_old
    end subroutine copy_old_wavefunctions
 
    subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,&
@@ -234,7 +232,7 @@ interface
      real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
      real(kind=8), intent(out) :: accurex
      real(kind=8), dimension(norb), intent(out) :: eval
-     real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
+     real(kind=8), dimension(:), pointer :: psi,psit,hpsi
    end subroutine import_gaussians
 
    subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
@@ -265,7 +263,7 @@ interface
      real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
      real(kind=8), intent(out) :: accurex
      real(kind=8), dimension(norb), intent(out) :: eval
-     real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit,psivirt
+     real(kind=8), dimension(:), pointer :: psi,hpsi,psit,psivirt
    end subroutine input_wf_diag
 
    subroutine reformatmywaves(iproc,norb,norbp,nat,&
@@ -283,7 +281,7 @@ interface
         nspin,psi,hpsi,psit)
      implicit none
      integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
-     real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
+     real(kind=8), dimension(:) , pointer :: psi,hpsi,psit
    end subroutine first_orthon
 
    subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,  & 
@@ -339,8 +337,8 @@ interface
      real(kind=8), dimension(norb), intent(in) :: occup,eval,spinsgn
      real(kind=8), intent(inout) :: alpha
      real(kind=8), intent(inout) :: gnrm,scprsum
-     real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
-     real(kind=8), dimension(:,:,:), pointer :: psidst,hpsidst,ads
+     real(kind=8), dimension(:), pointer :: psi,psit,hpsi,psidst,hpsidst
+     real(kind=8), dimension(:,:,:), pointer :: ads
    end subroutine hpsitopsi
 
    subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp,wfd,&
@@ -352,13 +350,13 @@ interface
      type(wavefunctions_descriptors), intent(in) :: wfd
      integer, intent(in) :: iproc,nproc,natsc,nspin,nspinor,norb,norbu,norbd,norbp,nvctrp
      real(kind=8), dimension(norb), intent(out) :: eval
-     real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit
+     real(kind=8), dimension(:), pointer :: psi,hpsi,psit
      !optional arguments
      integer, optional, intent(in) :: norbe,norbep,nvirte
      integer, optional, intent(out) :: nvirtep
      real(kind=8), optional, intent(in) :: etol
      integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
-     real(wp), dimension(:,:), pointer, optional :: psivirt
+     real(wp), dimension(:), pointer, optional :: psivirt
    end subroutine DiagHam
 
    subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
@@ -368,7 +366,7 @@ interface
      real(kind=8), dimension(norb), intent(in) :: occup
      real(kind=8), intent(out) :: evsum
      real(kind=8), dimension(norb), intent(out) :: eval
-     real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
+     real(kind=8), dimension(:) , pointer :: psi,hpsi,psit
    end subroutine last_orthon
 
    subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
@@ -403,19 +401,24 @@ interface
      real(kind=8), dimension(nlpspd%nprojel,3), intent(out) :: derproj
    end subroutine projectors_derivatives
 
-   subroutine nonlocal_forces(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,fsep,nspinor)
+   subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
+        norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,fsep,refill)
+     use module_base
      use module_types
      implicit none
-     !Arguments-------------
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-     integer, intent(in) :: iproc,norb,norbp,nspinor
-     real(kind=8), dimension(norb), intent(in) :: occup
-     real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
-     real(kind=8), dimension(nlpspd%nprojel,3), intent(in) :: derproj
-     real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
-     real(kind=8), dimension(3,at%nat), intent(inout) :: fsep
+     character(len=1), intent(in) :: geocode
+     logical, intent(in) :: refill
+     integer, intent(in) :: iproc,norb,norbp,nspinor,n1,n2,n3
+     real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult 
+     real(gp), dimension(norb), intent(in) :: occup
+     real(gp), dimension(3,at%nat), intent(in) :: rxyz
+     real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(in) :: psi
+     real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
+     real(gp), dimension(3,at%nat), intent(inout) :: fsep
    end subroutine nonlocal_forces
 
    subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
@@ -477,7 +480,7 @@ interface
      !this is a Fortran 95 standard, should be avoided (it is a pity IMHO)
      !real(kind=8), dimension(:,:,:,:), allocatable :: rhopot 
      real(wp), dimension(norb), intent(in) :: eval
-     real(wp), dimension(:,:), pointer :: psi,v
+     real(wp), dimension(:), pointer :: psi,v
    end subroutine davidson
 
    subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,nspin,nspinor,&
@@ -492,7 +495,7 @@ interface
      real(kind=8), dimension(nvctrp,norbep*nproc), intent(in) :: psi
      real(kind=8), dimension(nvctrp*nspinor,norbp*nproc), intent(out) :: ppsit
      integer, intent(in), optional :: nvirte
-     real(wp), dimension(:,:), pointer, optional :: psivirt
+     real(wp), dimension(:), pointer, optional :: psivirt
    end subroutine build_eigenvectors
 
    subroutine preconditionall(geocode,iproc,nproc,norb,norbp,n1,n2,n3,&
@@ -519,8 +522,7 @@ interface
      type(wavefunctions_descriptors), intent(in) :: wfd
      integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
-     real(wp), dimension(:,:), pointer, optional :: work
-     real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(out), optional :: out
+     real(wp), dimension(:), pointer, optional :: work,out
    end subroutine transpose
 
    subroutine untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
@@ -530,8 +532,7 @@ interface
      type(wavefunctions_descriptors), intent(in) :: wfd
      integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
      real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(inout) :: psi
-     real(wp), dimension(:,:), pointer, optional :: work
-     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(out), optional :: out
+     real(wp), dimension(:), pointer, optional :: work,out
    end subroutine untranspose
 
    subroutine plot_wf(orbname,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,rx,ry,rz,wfd,&

@@ -206,13 +206,8 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
   real(kind=8), dimension(:), pointer :: proj
   !local variables
   character(len=*), parameter :: subname='createProjectorsArrays'
-  integer, parameter :: nterm_max=10 !if GTH nterm_max=3
-  integer :: nl1,nl2,nl3,nu1,nu2,nu3,mseg,mvctr,mproj,istart,istart_c,istart_f,mvctr_c,mvctr_f
-  integer :: nl1_c,nl1_f,nl2_c,nl2_f,nl3_c,nl3_f,nu1_c,nu1_f,nu2_c,nu2_f,nu3_c,nu3_f
-  integer :: iat,i_stat,i_all,i,l,m,iproj,ityp,nterm,iseg,nwarnings,natyp
-  real(kind=8) :: fpi,factor,scpr,gau_a,rx,ry,rz,radmin
-  real(kind=8), dimension(nterm_max) :: fac_arr
-  integer, dimension(nterm_max) :: lx,ly,lz
+  integer :: nl1,nl2,nl3,nu1,nu2,nu3,mseg,mvctr,mproj,istart
+  integer :: iat,i_stat,i_all,ityp,iseg,natyp
   logical, dimension(:,:,:), allocatable :: logrid
   
 
@@ -329,7 +324,6 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
 
 
   ! After having determined the size of the projector descriptor arrays fill them
-  istart_c=1
   do iat=1,at%nat
      call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
      if (mproj.ne.0) then 
@@ -369,115 +363,13 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
      endif
   enddo
 
-  if (iproc.eq.0 .and. nlpspd%nproj /=0) write(*,'(1x,a)',advance='no') &
-       'Calculating wavelets expansion of projectors...'
-  !warnings related to the projectors norm
-  nwarnings=0
-  radmin=1.d10
-  !allocate these vectors up to the maximum size we can get
-
-  iproj=0
-  fpi=(4.d0*atan(1.d0))**(-.75d0)
-  do iat=1,at%nat
-     rx=rxyz(1,iat) 
-     ry=rxyz(2,iat) 
-     rz=rxyz(3,iat)
-     ityp=at%iatype(iat)
-
-     !decide the loop bounds
-     do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
-        do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
-           if (at%psppar(l,i,ityp).ne.0.d0) then
-              gau_a=at%psppar(l,0,ityp)
-              factor=sqrt(2.d0)*fpi/(sqrt(gau_a)**(2*(l-1)+4*i-1))
-              do m=1,2*l-1
-                 mvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-                 mvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-                 istart_f=istart_c+mvctr_c
-                 nl1_c=nlpspd%nboxp_c(1,1,iat)
-                 nl2_c=nlpspd%nboxp_c(1,2,iat)
-                 nl3_c=nlpspd%nboxp_c(1,3,iat)
-                 nl1_f=nlpspd%nboxp_f(1,1,iat)
-                 nl2_f=nlpspd%nboxp_f(1,2,iat)
-                 nl3_f=nlpspd%nboxp_f(1,3,iat)
-
-                 nu1_c=nlpspd%nboxp_c(2,1,iat)
-                 nu2_c=nlpspd%nboxp_c(2,2,iat)
-                 nu3_c=nlpspd%nboxp_c(2,3,iat)
-                 nu1_f=nlpspd%nboxp_f(2,1,iat)
-                 nu2_f=nlpspd%nboxp_f(2,2,iat)
-                 nu3_f=nlpspd%nboxp_f(2,3,iat)
-
-                 call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
-
-                 fac_arr(1:nterm)=factor*fac_arr(1:nterm)
-
-                 call crtproj(geocode,iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
-                      & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radii_cf(at%iatype(iat),2), & 
-                      & cpmult,fpmult,hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
-                      & mvctr_c,mvctr_f,proj(istart_c), &
-                      & proj(istart_f))
-
-                 iproj=iproj+1
-                 ! testing
-                 call wnrm(mvctr_c,mvctr_f,proj(istart_c), &
-                      & proj(istart_f),scpr)
-                 if (abs(1.d0-scpr).gt.1.d-2) then
-                    if (abs(1.d0-scpr).gt.1.d-1) then
-                       if (iproc == 0) then
-                          write(*,'(1x,a)')'error found!'
-                          write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
-                               'The norm of the nonlocal PSP for atom n=',iat,&
-                               ' (',trim(at%atomnames(at%iatype(iat))),&
-                               ') labeled by l=',l,' m=',m,' is ',scpr
-                          write(*,'(1x,a)')&
-                               'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
-!!$                          write(*,'(1x,a,f6.3,a)')&
-!!$                               'It should be of the order of the hardest PSP radius (here',&
-!!$                               gau_a,').'
-                       end if
-                       stop
-                    else
-                       nwarnings=nwarnings+1
-                       radmin=min(radmin,gau_a)
-                    end if
-!!$                    print *,'norm projector for atom ',trim(at%atomnames(at%iatype(iat))),&
-!!$                         'iproc,l,i,rl,scpr=',iproc,l,i,gau_a,scpr
-!!$                    stop 'norm projector'
-                 end if
-
-                 ! testing end
-                 istart_c=istart_f+7*mvctr_f
-                 if (istart_c.gt.istart) stop 'istart_c > istart'
-
-                 !do iterm=1,nterm
-                 !   if (iproc.eq.0) write(*,'(1x,a,i0,1x,a,1pe10.3,3(1x,i0))') &
-                 !        'projector: iat,atomname,gau_a,lx,ly,lz ', & 
-                 !        iat,trim(at%atomnames(at%iatype(iat))),gau_a,lx(iterm),ly(iterm),lz(iterm)
-                 !enddo
-
-
-              enddo
-           endif
-        enddo
-     enddo
-  enddo
-  if (iproj.ne.nlpspd%nproj) stop 'incorrect number of projectors created'
-  ! projector part finished
-  if (iproc == 0 .and. nlpspd%nproj /=0) then
-     if (nwarnings == 0) then
-        write(*,'(1x,a)')'done.'
-     else
-        write(*,'(1x,a,i0,a)')'found ',nwarnings,' warnings.'
-        write(*,'(1x,a)')'Some projectors may be too rough.'
-        write(*,'(1x,a,f6.3)')&
-             'Consider the possibility of reducing hgrid for having a more accurate run.'
-     end if
-  end if
-
   i_all=-product(shape(logrid))*kind(logrid)
   deallocate(logrid,stat=i_stat)
   call memocc(i_stat,i_all,'logrid',subname)
+
+  !calculate the wavelet expansion of projectors
+  call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
+       nlpspd,proj,0)
 
 END SUBROUTINE createProjectorsArrays
 
@@ -508,7 +400,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
   real(kind=8), intent(out) :: accurex
   real(kind=8), dimension(norb), intent(out) :: eval
-  real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
+  real(kind=8), dimension(:), pointer :: psi,psit,hpsi
   !local variables
   include 'mpif.h'
   character(len=*), parameter :: subname='import_gaussians'
@@ -551,7 +443,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  allocate(psi(nvctrp,norbp*nproc+ndebug),stat=i_stat)
+  allocate(psi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
 
   !read the values for the gaussian code and insert them on psi 
@@ -584,7 +476,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,1)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  allocate(hpsi(nvctrp,norbp*nproc+ndebug),stat=i_stat)
+  allocate(hpsi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
 
   call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
@@ -653,7 +545,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
   real(kind=8), intent(out) :: accurex
   real(kind=8), dimension(norb), intent(out) :: eval
-  real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit,psivirt
+  real(kind=8), dimension(:), pointer :: psi,hpsi,psit,psivirt
   !local variables
   include 'mpif.h'
   character(len=*), parameter :: subname='input_wf_diag'
@@ -669,7 +561,6 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   real(kind=8), dimension(:), allocatable :: work_lp,pot,evale,occupe,spinsgne
   real(kind=8), dimension(:,:), allocatable :: xp,occupat,hamovr!,psi,hpsi
   real(kind=8), dimension(:,:,:), allocatable :: psiat
-  !real(kind=8), dimension(:,:), pointer :: psi,hpsi
 
 
   !Calculate no. up and down orbitals for spin-polarized starting guess
@@ -774,7 +665,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
 !  allocate(psi(nvctrp,norbep*nproc*nspinor),stat=i_stat)
-  allocate(psi(nvctrp,norbep*nproc+ndebug),stat=i_stat)
+  allocate(psi(nvctrp*norbep*nproc+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
   
   ! Create input guess orbitals
@@ -833,7 +724,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  allocate(hpsi(nvctrp,norbep*nproc+ndebug),stat=i_stat)
+  allocate(hpsi(nvctrp*norbep*nproc+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
   
   call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
@@ -965,13 +856,13 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   type(wavefunctions_descriptors), intent(in) :: wfd
   integer, intent(in) :: iproc,nproc,natsc,nspin,nspinor,norb,norbu,norbd,norbp,nvctrp
   real(kind=8), dimension(norb), intent(out) :: eval
-  real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit
+  real(kind=8), dimension(:), pointer :: psi,hpsi,psit
   !optional arguments
   integer, optional, intent(in) :: norbe,norbep,nvirte
   integer, optional, intent(out) :: nvirtep
   real(kind=8), optional, intent(in) :: etol
   integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
-  real(wp), dimension(:,:), pointer, optional :: psivirt
+  real(wp), dimension(:), pointer, optional :: psivirt
    !real(kind=8), optional, dimension(:,:), pointer :: ppsi
   !local variables
   include 'mpif.h'
@@ -983,7 +874,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   real(kind=8) :: tolerance,tt
   integer, dimension(:,:), allocatable :: norbgrp
   real(kind=8), dimension(:,:), allocatable :: hamovr
-  real(kind=8), dimension(:,:), pointer :: psiw
+  real(kind=8), dimension(:), pointer :: psiw
 
   !debug
   real(kind=8) :: DDOT
@@ -1065,7 +956,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
      norbtotp=norbp
   end if
   if (nproc > 1) then
-     allocate(psiw(nvctrp,norbtotp*nproc+ndebug),stat=i_stat)
+     allocate(psiw(nvctrp*norbtotp*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
   else
      psiw => null()
@@ -1117,7 +1008,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   !in the case of minimal basis allocate now the transposed wavefunction
   !otherwise do it only in parallel
   if (minimal .or. nproc > 1) then
-        allocate(psit(nvctrp,nspinor*norbp*nproc+ndebug),stat=i_stat)
+        allocate(psit(nvctrp*nspinor*norbp*nproc+ndebug),stat=i_stat)
         call memocc(i_stat,psit,'psit',subname)
   else
      psit => hpsi
@@ -1127,7 +1018,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   if(present(nvirte) .and. present(psivirt) .and. nvirte > 0) then
      tt=dble(nvirte)/dble(nproc)
      nvirtep=int((1.d0-eps_mach*tt) + tt)
-     allocate(psivirt(nvctrp,nvirtep*nproc),stat=i_stat)
+     allocate(psivirt(nvctrp*nvirtep*nproc),stat=i_stat)
      call memocc(i_stat,psivirt,'psivirt',subname)
   end if
 
@@ -1169,18 +1060,18 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
      else
         call orthon_p(iproc,nproc,norbu,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor) 
         if(norbd>0) then
-           call orthon_p(iproc,nproc,norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit(1,norbu+1),nspinor) 
+           call orthon_p(iproc,nproc,norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit(1+nvctrp*norbu),nspinor) 
         end if
      end if
   end if
 
   if (minimal) then
-     allocate(hpsi(nvctrp,norbp*nproc*nspinor+ndebug),stat=i_stat)
+     allocate(hpsi(nvctrp*norbp*nproc*nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,hpsi,'hpsi',subname)
 !     hpsi=0.0d0
      if (nproc > 1) then
         !allocate the direct wavefunction
-        allocate(psi(nvctrp,norbp*nproc*nspinor+ndebug),stat=i_stat)
+        allocate(psi(nvctrp*norbp*nproc*nspinor+ndebug),stat=i_stat)
         call memocc(i_stat,psi,'psi',subname)
      end if
   end if
@@ -1396,7 +1287,7 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
   real(kind=8), dimension(nvctrp,norbep*nproc), intent(in) :: psi
   real(kind=8), dimension(nvctrp*nspinor,norbp*nproc), intent(out) :: ppsit
   integer, intent(in), optional :: nvirte
-  real(wp), dimension(:,:), pointer, optional :: psivirt
+  real(wp), dimension(:), pointer, optional :: psivirt
   !Local variables
   character(len=*), parameter :: subname='build_eigenvectors'
   integer, parameter :: iunit=1978
@@ -1459,7 +1350,7 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
         !in the case of semicore atomes the orthogonality is not guaranteed
         if (present(nvirte) .and. nvirte >0) then
            call DGEMM('N','N',nvctrp,nvirte,norbi,1.d0,psi(1,iorbst),nvctrp,&
-                hamovr(imatrst+norbi*norbj),norbi,0.d0,psivirt(1,1),nvctrp)
+                hamovr(imatrst+norbi*norbj),norbi,0.d0,psivirt,nvctrp)
         end if
         iorbst=norbi+norbsc+1 !this is equal to norbe+1
         iorbst2=norbu+1

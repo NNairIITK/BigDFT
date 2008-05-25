@@ -28,18 +28,16 @@ program BigDFT
   integer :: iproc,nproc,n1,n2,n3,iat,ityp,j,i_stat,i_all,ierr,infocode
   integer :: ncount_cluster
   integer :: norb,norbp
-  real(kind=8) :: energy,etot,energyold,beta,sumx,sumy,sumz,tt
+  real(gp) :: energy,etot,energyold,beta,sumx,sumy,sumz,tt
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(wavefunctions_descriptors) :: wfd
   character(len=20), dimension(:), allocatable :: atomnames
   ! atomic coordinates, forces
-  real(kind=8), dimension(:,:), allocatable :: rxyz,fxyz,rxyz_old
+  real(gp), dimension(:,:), allocatable :: rxyz,fxyz,rxyz_old
  
-  real(kind=8), dimension(:), pointer :: eval
-  real(kind=8), dimension(:,:), pointer :: psi
-
+  real(wp), dimension(:), pointer :: eval,psi
 
   !$      interface
   !$        integer ( kind=4 ) function omp_get_num_threads ( )
@@ -55,9 +53,6 @@ program BigDFT
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-
-!!$  !experimental, to see if it works
-!!$  if (nproc == 1) parallel=.false.
 
   !initialize memory counting
   call memocc(0,iproc,'count','start')
@@ -87,7 +82,7 @@ program BigDFT
 
   close(99)
 
-  !new way of reading the input variables, use structures
+  !read input variables, use structures
   call read_input_variables(iproc,inputs)
  
   do iat=1,atoms%nat

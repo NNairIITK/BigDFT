@@ -12,7 +12,7 @@
   real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
   real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
   real(kind=8), dimension(:), pointer :: eval
-  real(kind=8), dimension(:,:), pointer :: psi
+  real(kind=8), dimension(:), pointer :: psi
   !local variables
   character(len=*), parameter :: subname='call_cluster'
   integer :: i_stat,i_all,ierr,inputPsiId_orig
@@ -32,7 +32,7 @@
        real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
        real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
        real(kind=8), dimension(:), pointer :: eval
-       real(kind=8), dimension(:,:), pointer :: psi
+       real(kind=8), dimension(:), pointer :: psi
      end subroutine cluster
   end interface
 
@@ -123,7 +123,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
   real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
   real(kind=8), dimension(:), pointer :: eval
-  real(kind=8), dimension(:,:), pointer :: psi
+  real(kind=8), dimension(:), pointer :: psi
   !local variables
   include 'mpif.h' !already in module_base
   character(len=*), parameter :: subname='cluster'
@@ -145,8 +145,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(convolutions_bounds) :: bounds
   type(nonlocal_psp_descriptors) :: nlpspd
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
-  real(kind=8), dimension(:), allocatable :: occup,spinsgn,spinsgn_foo,derproj,rho
-  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion
+  real(kind=8), dimension(:), allocatable :: occup,spinsgn,spinsgn_foo,rho
+  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion!,derproj
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
   real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot,rho_diag
@@ -157,11 +157,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !transposed  wavefunction
   ! Pointers and variables to store the last psi
   ! before reformatting if useFormattedInput is .true.
-  real(kind=8), dimension(:,:), pointer :: hpsi,psit,psi_old,psivirt
+  real(kind=8), dimension(:), pointer :: hpsi,psit,psi_old,psivirt,psidst,hpsidst
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj
   ! arrays for DIIS convergence accelerator
-  real(kind=8), dimension(:,:,:), pointer :: ads,psidst,hpsidst
+  real(kind=8), dimension(:,:,:), pointer :: ads
   ! tmp debug array
   real(kind=8), dimension(:,:), allocatable :: tmred
   
@@ -350,7 +350,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
 
      !random initialisation of the wavefunctions
-     allocate(psi(nvctrp,nspinor*norbp*nproc+ndebug),stat=i_stat)
+     allocate(psi(nvctrp*nspinor*norbp*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
      psi=0.0d0
@@ -362,15 +362,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                  call random_number(tt)
               end do
               call random_number(tt)
-              psi(i1,iorb)=real(tt,kind=8)*0.01d0
-              ttsum=ttsum+psi(i1,iorb)
+              psi(i1+nvctrp*(iorb-1))=real(tt,kind=8)*0.01d0
+              ttsum=ttsum+psi(i1+nvctrp*(iorb-1))
               do j=iproc+1,nproc
                  call random_number(tt)
               end do
            end do
         end if
      end do
-     write(*,'(a,30f10.4)') 'Rand Check',ttsum,(sum(psi(:,iorb)),iorb=1,norbp*nproc*nspinor)
+     !write(*,'(a,30f10.4)') 'Rand Check',ttsum,(sum(psi(:,iorb)),iorb=1,norbp*nproc*nspinor)
  
      eval(:)=-0.5d0
 
@@ -398,20 +398,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
         write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/real(norb,kind=8)
      endif
-
-     !allocate hpsi array (used also as transposed)
-     !allocated in the transposed way such as 
-     !it can also be used as the transposed hpsi
-     !allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
-     !call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','cluster')
-    
+   
   else if (in%inputPsiId == 1 ) then 
      !restart from previously calculated wavefunctions, in memory
 
      !allocate principal wavefunction
      !allocated in the transposed way such as 
      !it can also be used as a work array for transposition
-     allocate(psi(nvctrp,norbp*nproc*nspinor+ndebug),stat=i_stat)
+     allocate(psi(nvctrp*norbp*nproc*nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
      if (iproc.eq.0) then
@@ -444,7 +438,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !allocate principal wavefunction
      !allocated in the transposed way such as 
      !it can also be used as a work array for transposition
-     allocate(psi(nvctrp,norbp*nproc+ndebug),stat=i_stat)
+     allocate(psi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
      if (iproc.eq.0) then
@@ -494,9 +488,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   ! allocate arrays necessary for DIIS convergence acceleration
   if (idsx.gt.0) then
-     allocate(psidst(nvctrp,nspinor*norbp*nproc,idsx+ndebug),stat=i_stat)
+     allocate(psidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(nvctrp,nspinor*norbp*nproc,idsx+ndebug),stat=i_stat)
+     allocate(hpsidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,hpsidst,'hpsidst',subname)
      allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)
@@ -706,9 +700,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         ids=0
         idiistol=0
 
-        allocate(psidst(nvctrp*nspinor,norbp*nproc,idsx+ndebug),stat=i_stat)
+        allocate(psidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
         call memocc(i_stat,psidst,'psidst',subname)
-        allocate(hpsidst(nvctrp*nspinor,norbp*nproc,idsx+ndebug),stat=i_stat)
+        allocate(hpsidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
         call memocc(i_stat,hpsidst,'hpsidst',subname)
         allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
         call memocc(i_stat,ads,'ads',subname)
@@ -757,7 +751,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,&
           hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  &
           pkernel,ixc,psi,psivirt,eval,ncong,nscatterarr,ngatherarr)
-
   end if
 
   !  write all the wavefunctions into files
@@ -931,20 +924,28 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   deallocate(pot,stat=i_stat)
   call memocc(i_stat,i_all,'pot',subname)
 
-  allocate(derproj(3*nlpspd%nprojel+ndebug),stat=i_stat)
-  call memocc(i_stat,derproj,'derproj',subname)
+!!$  allocate(derproj(nlpspd%nprojel,3+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,derproj,'derproj',subname)
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate projectors derivatives...'
 
   !the calculation of the derivatives of the projectors has been decoupled
   !from the one of nonlocal forces, in this way forces can be calculated
   !during the wavefunction minimization if needed
-  call projectors_derivatives(geocode,iproc,atoms,n1,n2,n3,norb,nlpspd,proj,&
-       rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
+!!$  call projectors_derivatives(geocode,iproc,atoms,n1,n2,n3,norb,nlpspd,proj,&
+!!$       rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
 
-  call nonlocal_forces(iproc,atoms,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,gxyz,nspinor)
+  call nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,atoms,rxyz,radii_cf,&
+     norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,gxyz,calc_tail) !refill projectors for tails
+!!$
+!!$  do i1=1,3
+!!$     call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,atoms,rxyz,radii_cf,&
+!!$          nlpspd,derproj(1,i1),i1)
+!!$  end do
+!!$
+!!$  call nonlocal_forcesold(iproc,atoms,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,gxyz,nspinor)
 
   if (iproc == 0) write(*,'(1x,a)')'done.'
 
@@ -965,9 +966,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!$  write(*,'(1x,a,3x,i5,1pe16.8)')'z direction(NL)',iproc,sumz
 
 
-  i_all=-product(shape(derproj))*kind(derproj)
-  deallocate(derproj,stat=i_stat)
-  call memocc(i_stat,i_all,'derproj',subname)
+!!$  i_all=-product(shape(derproj))*kind(derproj)
+!!$  deallocate(derproj,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'derproj',subname)
 
   i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
   deallocate(nlpspd%nboxp_c,stat=i_stat)

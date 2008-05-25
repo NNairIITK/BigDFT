@@ -2,7 +2,8 @@ EXTRA_DIST = \
 	structUtil.h \
 	convolution.h \
 	convSeria.h \
-	conv_shared_multi_kernel.cu
+	conv_shared_multi_kernel.cu \
+	Makefile.standalone
 
 SOURCES_CU_CONV1 = convolution.cu \
 	structUtil.cu

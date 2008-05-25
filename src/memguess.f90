@@ -367,10 +367,13 @@ subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
               rxyz(3,iat)=tx
            enddo
            ! if box longest along y switch y and z
-        else if (alat2 == dmax)  then
+        else if (alat2 == dmax .and. alat1 /= dmax)  then
            do  iat=1,atoms%nat
-              ty=rxyz(1,iat) ; tz=rxyz(3,iat)
-              rxyz(1,iat)=tz ; rxyz(3,iat)=ty
+              ty=rxyz(2,iat) 
+              tz=rxyz(3,iat)
+
+              rxyz(2,iat)=tz 
+              rxyz(3,iat)=ty
            enddo
         endif
      endif

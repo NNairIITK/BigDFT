@@ -10,11 +10,11 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,
   integer, intent(out) :: n1_old,n2_old,n3_old
   real(kind=8), intent(out) :: hgrid_old
   real(kind=8), dimension(:), pointer :: eval,eval_old
-  real(kind=8), dimension(:,:), pointer :: psi,psi_old
+  real(kind=8), dimension(:), pointer :: psi,psi_old
   !local variables
   character(len=*), parameter :: subname='copy_old_wavefunctions'
   real(kind=8), parameter :: eps_mach=1.d-12
-  integer :: iseg,nvctrp_old,i1,i2,j,ind,iorb,i_all,i_stat,oidx,sidx
+  integer :: iseg,nvctrp_old,i1,i2,j,ind1,ind2,iorb,i_all,i_stat,oidx,sidx
   real(kind=8) :: tt
 
   wfd_old%nvctr_c = wfd%nvctr_c
@@ -41,35 +41,41 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,
   tt=dble(wfd_old%nvctr_c+7*wfd_old%nvctr_f)/dble(nproc)
   nvctrp_old=int((1.d0-eps_mach*tt) + tt)
 
-  allocate(psi_old(wfd_old%nvctr_c+7*wfd_old%nvctr_f,norbp*nspinor+ndebug),stat=i_stat)
+  allocate(psi_old((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*norbp*nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,psi_old,'psi_old',subname)
   allocate(eval_old(norb+ndebug),stat=i_stat)
   call memocc(i_stat,eval_old,'eval_old',subname)
 
-         
 !  do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor,nspinor
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
      tt=0.d0
-     
      oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
-     
      do sidx=oidx,oidx+nspinor-1
-     !the control between the different psi
-     !must be such that the allocation dimensions are respected
-     !(remember that the allocations are slightly enlarged to avoid
-     !allocation of work arrays for transposition in the parallel case)
-!     do sidx=0,nspinor-1
         do j=1,wfd_old%nvctr_c+7*wfd_old%nvctr_f
-           !starting address of the direct array in transposed form
-           !changed for obrtaining the good one
-           call trans_address(nvctrp_old,wfd_old%nvctr_c+7*wfd_old%nvctr_f,&
-                j,sidx, i1,i2)
-!!$           call trans_address(nvctrp_old*nspinor,(wfd_old%nvctr_c+7*wfd_old%nvctr_f)*nspinor,&
-!!$                j,sidx, i1,i2)
-           psi_old(j,sidx)     = psi(i1,i2)
-           tt=tt+psi(i1,i2)**2
+           ind1=j+(wfd_old%nvctr_c+7*wfd_old%nvctr_f)*(sidx-1)
+           psi_old(ind1)= psi(ind1)
+           tt=tt+psi(ind1)**2
         enddo
      end do
+
+     
+!!$     do sidx=oidx,oidx+nspinor-1
+!!$     !the control between the different psi
+!!$     !must be such that the allocation dimensions are respected
+!!$     !(remember that the allocations are slightly enlarged to avoid
+!!$     !allocation of work arrays for transposition in the parallel case)
+!!$!     do sidx=0,nspinor-1
+!!$        do j=1,wfd_old%nvctr_c+7*wfd_old%nvctr_f
+!!$           !starting address of the direct array in transposed form
+!!$           !changed for obrtaining the good one
+!!$           call trans_address(nvctrp_old,wfd_old%nvctr_c+7*wfd_old%nvctr_f,&
+!!$                j,sidx, i1,i2)
+!!$        !call trans_address(nvctrp_old*nspinor,(wfd_old%nvctr_c+7*wfd_old%nvctr_f)*nspinor,&
+!!$        !     j,sidx, i1,i2)
+!!$           psi_old(j,sidx)     = psi(i1,i2)
+!!$           tt=tt+psi(i1,i2)**2
+!!$        enddo
+!!$     end do
      tt=sqrt(tt)
      if (abs(tt-1.d0).gt.1.d-8) then
         write(*,*)'wrong psi_old',iorb,tt
@@ -77,7 +83,6 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,
      end if
      eval_old(iorb) = eval(iorb)
   enddo
-
   !deallocation
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
