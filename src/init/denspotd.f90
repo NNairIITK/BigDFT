@@ -99,10 +99,10 @@ subroutine rhotranspose(iproc,nproc,norbp,norb,nspinor,wfd,wfd_loc,psi_loc,&
   character(len=*), parameter :: subname='rhotranspose'
   integer :: i_stat,i_all,iorb
 
-  !the local array contains the components of psi in the local region of rho 
-  !for the processor orbitals and separate it in contiguous packets which should be sent to 
-  !different processors
-
+  !first rearrange the wavefunction in each of thel ocalisation regions which belong to a
+  !processor
+!!$  call rhoswitch_waves(nlr,norbp,nvctr_c,nvctr_f,nseg_tot,nvctr_tot,nseglr,keymask,&
+!!$     ncount,psi,psiloc)
 
   
 

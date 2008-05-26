@@ -165,65 +165,63 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
      y_c,y_f,psir,  &
      psi,pot,hpsi,epot,ekin,x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
      ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-     ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r,NSPINOR)!
+     ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r,nspinor)!
   !  Applies the local potential and kinetic energy operator to one wavefunction 
   ! Input: pot,psi
   ! Output: hpsi,epot,ekin
   use module_base
-  implicit real(kind=8) (a-h,o-z)
-  dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
-  dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-  dimension pot((2*n1+31)*(2*n2+31)*(2*n3+31),NSPINOR)
-  dimension keyg(2,nseg_c+nseg_f),keyv(nseg_c+nseg_f)
-  dimension psi(nvctr_c+7*nvctr_f,NSPINOR),scal(0:3)
-  dimension hpsi(nvctr_c+7*nvctr_f,NSPINOR)
-  dimension y_c(0:n1,0:n2,0:n3,NSPINOR)
-  dimension y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,NSPINOR)
-  dimension psir((2*n1+31)*(2*n2+31)*(2*n3+31),NSPINOR)
-  !********************Alexey***************************************************************
-  ! for shrink:
-  integer ibzzx_c(2,-14:2*n3+16,0:n1) 
-  integer ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf,nw1,nw2
+  integer, intent(in) :: nseg_c,nseg_f,nvctr_c,nvctr_f,nspinor
+  real(gp), intent(in) :: hgrid
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+  integer, dimension(2,-14:2*n3+16,0:n1), intent(in) :: ibzzx_c
+  integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in) :: ibyyzz_c
+  integer, dimension(2,nfl1:nfu1,nfl2:nfu2), intent(in) :: ibxy_ff
+  integer, dimension(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1), intent(in) :: ibzzx_f
+  integer, dimension(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16), intent(in) :: ibyyzz_f
+  integer, dimension(2,0:n3,-14:2*n1+16), intent(in) :: ibzxx_c
+  integer, dimension(2,-14:2*n1+16,-14:2*n2+16), intent(in) :: ibxxyy_c
+  integer, dimension(2,nfl2:nfu2,nfl3:nfu3), intent(in) :: ibyz_ff
+  integer, dimension(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16), intent(in) :: ibzxx_f
+  integer, dimension(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16), intent(in) :: ibxxyy_f
+  integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in) :: ibyyzz_r
+  real(wp), dimension(nvctr_c+7*nvctr_f,nspinor), intent(in) :: psi
+  real(wp), dimension((2*n1+31)*(2*n2+31)*(2*n3+31),nspinor), intent(in) :: pot
+  real(wp), dimension(nw1,nspinor), intent(inout) :: w1
+  real(wp), dimension(nw2,nspinor), intent(inout) :: w2
+  real(wp), dimension(0:n1,0:n2,0:n3,nspinor), intent(inout) :: y_c
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor), intent(inout) :: y_f
+  real(wp), dimension((2*n1+31)*(2*n2+31)*(2*n3+31),nspinor), intent(inout) :: psir
+  real(wp), dimension(0:n1,0:n2,0:n3,nspinor), intent(inout) :: x_c
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor), intent(inout) :: x_f
+  real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,NSPINOR),intent(inout) :: x_f1
+  real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3,NSPINOR),intent(inout) :: x_f2
+  real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2,NSPINOR),intent(inout) :: x_f3
+  real(gp), intent(out) :: epot,ekin
+  real(wp), dimension(nvctr_c+7*nvctr_f,nspinor), intent(out) :: hpsi
+  !local variables
+  integer :: i,idx
+  real(gp) :: ekino
+  real(wp), dimension(0:3) :: scal
 
-  integer ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
-  integer ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1) 
-  integer ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
-
-  ! for grow:
-  integer ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
-  integer ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
-
-  integer ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
-  integer ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
-  integer ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
-
-  ! for real space:
-  integer,intent(in):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
-
-  ! for saving old POT
-  real(kind=8), dimension(:,:), allocatable :: psib
-
-  !*****************************************************************************************
-  real(kind=8) x_c(0:n1,0:n2,0:n3,NSPINOR),x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,NSPINOR)! input
-  real(kind=8)::x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,NSPINOR)
-  real(kind=8)::x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3,NSPINOR)
-  real(kind=8)::x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2,NSPINOR)
-  real(kind=8) w1(nw1,nspinor),w2(nw2,nspinor) ! work
-  !***********************************************************************************************
   do i=0,3
-     scal(i)=1.d0
+     scal(i)=1.0_wp
   enddo
 
-  psir=0.0d0
-  do  IDX=1,NSPINOR  
+  call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
+
+  do idx=1,nspinor  
      call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
           nseg_c,nvctr_c,keyg(1,1),keyv(1),  & 
           nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
           scal,psi(1,IDX),psi(nvctr_c+1,IDX),  &
           x_c(0,0,0,idx),x_f(1,nfl1,nfl2,nfl3,idx),&
           x_f1(nfl1,nfl2,nfl3,idx),x_f2(nfl2,nfl1,nfl3,idx),x_f3(nfl3,nfl1,nfl2,idx))
-     
-     
      
      call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           w1(1,IDX),w2(1,IDX), x_c(0,0,0,idx),x_f(1,nfl1,nfl2,nfl3,idx), & 
@@ -238,13 +236,13 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
         call realspace_nbuf(ibyyzz_r,pot,psir,epot,n1,n2,n3,nbuf)
      endif
   ELSE
-     epot=0.0d0
+     epot=0.0_gp
      call realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   END IF
   
   
-  ekin=0.0d0
-  DO IDX=1,NSPINOR
+  ekin=0.0_gp
+  do idx=1,nspinor
      call comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           w1(1,IDX),w2(1,IDX),psir(1,IDX),&
           ibxy_c,ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
@@ -256,14 +254,12 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
           x_f1(nfl1,nfl2,nfl3,IDX),x_f2(nfl2,nfl1,nfl3,IDX),x_f3(nfl3,nfl1,nfl2,IDX))
      ekin=ekin+ekino
      
-
      call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
           nseg_c,nvctr_c,keyg(1,1),       keyv(1),   &
           nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
           scal,y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX),hpsi(1,IDX),hpsi(nvctr_c+1,IDX))
-  END DO
+  end do
   
-
 end subroutine applylocpotkinone
 
 
@@ -273,44 +269,48 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
   !  Applies the local potential and kinetic energy operator to one wavefunction 
   ! Input: pot,psi
   ! Output: hpsi,epot,ekin
+  use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f
-  real(kind=8), intent(in) :: hx,hy,hz
+  real(gp), intent(in) :: hx,hy,hz
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  real(kind=8), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(in) :: pot
-  real(kind=8), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
-  real(kind=8), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(inout) :: psir,psifscf,psifscfk,ww
-  real(kind=8), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
-  real(kind=8), intent(out) :: epot,ekin
-  real(kind=8), dimension(nvctr_c+7*nvctr_f), intent(out) :: hpsi
+  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(in) :: pot
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
+  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(inout) :: psir,psifscf,psifscfk,ww
+  real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
+  real(gp), intent(out) :: epot,ekin
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(out) :: hpsi
   !local variables
   integer :: i
-  real(kind=8) :: tt
-  real(kind=8), dimension(3) :: hgridh
+  real(wp) :: tt
+  real(gp) :: v,p
+  real(gp), dimension(3) :: hgridh
 
   ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
   call uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
        psi(1),psi(nvctr_c+1),psifscf,psig,ww)
 
-  hgridh(1)=hx*.5d0
-  hgridh(2)=hy*.5d0
-  hgridh(3)=hz*.5d0
+  hgridh(1)=hx*.5_gp
+  hgridh(2)=hy*.5_gp
+  hgridh(3)=hz*.5_gp
 
   call convolut_kinetic_per(2*n1+1,2*n2+1,2*n3+1,hgridh,psifscf,psifscfk)
 
-  ekin=0.d0 
+  ekin=0.0_gp
   do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
-     ekin=ekin+psifscf(i)*psifscfk(i)
+     ekin=ekin+real(psifscf(i),gp)*real(psifscfk(i),gp)
   enddo
 
   call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psifscf,psir) 
 
-  epot=0.d0
+  epot=0.0_gp
   do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+     v=real(pot(i),gp)
+     p=real(psir(i),gp)
      tt=pot(i)*psir(i)
-     epot=epot+tt*psir(i)
+     epot=epot+p*v*p
      psir(i)=tt
   enddo
 
@@ -330,7 +330,6 @@ subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   implicit none
   integer,intent(in)::n1,n2,n3
   integer,intent(in)::ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
-
   real(kind=8),intent(in)::pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
   real(kind=8),intent(inout)::psir(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
 
