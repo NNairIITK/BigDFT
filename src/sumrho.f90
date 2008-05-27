@@ -3,7 +3,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
   ! Output: rho
-  use module_base
+  use module_base!, only: gp,dp,wp,ndebug,memocc
   use module_types
   use module_interfaces, except_this_one => sumrho
   implicit none
@@ -28,7 +28,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
   real(wp), dimension(:,:), allocatable :: psir
   real(wp), dimension(:), allocatable :: x_c_psifscf,x_f_psig,w1,w2
   real(dp), dimension(:,:), pointer :: rho_p
-
+!  include 'mpif.h'
 
   call timing(iproc,'Rho_comput    ','ON')
 
@@ -184,11 +184,11 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
      if (rsflag) then
         do ispin=1,nspin
           call MPI_REDUCE_SCATTER(rho_p(1,ispin),rho(1,ispin),n1i*n2i*nscatterarr(:,1),&
-               mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+               MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         end do
      else
         call MPI_ALLREDUCE(MPI_IN_PLACE,rho_p,n1i*n2i*n3i*nspin,&
-             mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+             MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
      end if
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')
@@ -228,7 +228,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
 
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')
-     call MPI_REDUCE(tt,charge,1,mpidtypd,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(tt,charge,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')
   else

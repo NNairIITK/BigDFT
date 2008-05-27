@@ -29,7 +29,7 @@ program PoissonSolver
   use Poisson_Solver
 
   implicit none
-  include 'mpif.h'
+  !include 'mpif.h'
   !Order of interpolating scaling function
   !integer, parameter :: itype_scf=8
   character(len=*), parameter :: subname='Poisson_Solver'
