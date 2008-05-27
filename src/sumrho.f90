@@ -18,10 +18,9 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(in) :: psi
   real(dp), dimension(max(nrho,1),nspin), intent(out), target :: rho
   !local variables
-  include 'mpif.h'
   character(len=*), parameter :: subname='sumrho'
   logical :: rsflag
-  integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf,mpidtypd
+  integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf
   integer :: ind1,ind2,ind3,ind1s,ind2s,ind3s,oidx,sidx,nspinn
   integer :: i00,i0,i1,i2,i3,i3off,i3s,isjmp,i,ispin,iorb,jproc,i_all,i_stat,ierr
   real(kind=8) :: hfac,hgridh,tt,charge,hfac2
@@ -42,7 +41,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
   rsflag=.not. (ixc >= 11 .and. ixc <=16)
   
   do i=0,3
-     scal(i)=1.d0
+     scal(i)=1.0_wp
   enddo
 
   select case(geocode)
@@ -178,9 +177,6 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
      end if
      
   enddo
-
-  !temporary insertion in view of module_base inclusion
-  mpidtypd=MPI_DOUBLE_PRECISION
 
   if (nproc > 1) then
      call timing(iproc,'Rho_comput    ','OF')

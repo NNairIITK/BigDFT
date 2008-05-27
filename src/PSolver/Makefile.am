@@ -82,10 +82,16 @@ mpi_source = ../MPIfake.f90
 mpi_include = mpif.h
 endif
 
+if USE_CUDA_GPU
+GPU_BLAS=
+else
+GPU_BLAS = ../modules/cublas_fake.o
+endif
+
 libpoissonsolver_a_SOURCES = \
 	Poisson_Solver.f90 
 
-libpoissonsolver_a_LIBADD = ../profiling/memory.o
+libpoissonsolver_a_LIBADD = ../profiling/memory.o $(GPU_BLAS)
 
 
 PSchk_SOURCES = PSchk.f90 timing.f90 $(mpi_source)

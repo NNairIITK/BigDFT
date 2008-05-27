@@ -333,7 +333,7 @@ subroutine convolut_magic_n_per(n1,n2,n3,x,y)
        2.72734492911979659657715313017228e-6_4 /
 
 
-  if (.not. GPUcomputing) then !traditional CPU computation
+  if (.not. GPUconv) then !traditional CPU computation
      allocate(ww(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
      call memocc(i_stat,ww,'ww',subname)
 
@@ -411,7 +411,7 @@ subroutine convolut_magic_t_per(n1,n2,n3,x,y)
        8.4334247333529341094733325815816e-7_4 /
 
   
-  if (.not. GPUcomputing) then
+  if (.not. GPUconv) then
      allocate(ww(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
      call memocc(i_stat,ww,'ww',subname)
 

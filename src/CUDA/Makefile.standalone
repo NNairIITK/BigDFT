@@ -6,12 +6,17 @@ GCC41HACK="--compiler-bindir=/home/genovese/bin"
 CUDA_INC=../lib/CUDA/
 CUDA_FLAGS= -O3 --compiler-options -fno-strict-aliasing
 NVCC=/usr/local/cuda/bin/nvcc
+CUBLAS_INC = /usr/local/cuda/include/
 CXX=g++
 
 SOURCES_CU_CONV1 = convolution.cu \
-	structUtil.cu
+	structUtil.cu \
+	cudafct.cu
 
-SOURCES_CXX_CONV1 = convSeria.cpp
+SOURCES_CXX_CONV1 = convSeria.cpp \
+	setCPU_GPU_aff.cpp \
+	read_conf_file.cpp \
+	fortran.c
 
 OBJECT_CU_CONV1 = $(SOURCES_CU_CONV1:.cu=.o)
 OBJECT_CXX_CONV1 = $(SOURCES_CXX_CONV1:.cpp=.o)
@@ -21,7 +26,7 @@ libCUDA: $(OBJECT_CXX_CONV1) $(OBJECT_CU_CONV1)
 	ranlib  libGPU.a
 
 $(OBJECT_CU_CONV1): %.o: %.cu
-	$(NVCC) $(GCC41HACK) $(CUDA_FLAGS) -I$(CUDA_INC) -I. -c $< -o $@
+	$(NVCC) $(GCC41HACK) $(CUDA_FLAGS) -I$(CUDA_INC) -I. -I$(CUBLAS_INC) -DCUBLAS_USE_THUNKING -c $< -o $@
 
 $(OBJECT_CXX_CONV1): %.o: %.cpp
 	$(CXX)   -I$(CUDA_INC) -I. -c $< -o $@
@@ -40,3 +45,4 @@ conv_shared_multi.cu : structUtil.h
 
 convSeria.cpp structUtil.cu : structUtil.h
 
+read_conf_file.cpp : read_conf_file.h

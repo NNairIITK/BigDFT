@@ -4,7 +4,6 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   use module_base
   use module_types
   implicit none
-  include 'mpif.h'
   type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -121,8 +120,8 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
 
      do ispin=1,nspin
         call MPI_ALLGATHERV(potential(1,ispin),ndimpot,&
-             MPI_DOUBLE_PRECISION,pot(1,ispin),ngatherarr(0,1),&
-             ngatherarr(0,2),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+             mpidtypw,pot(1,ispin),ngatherarr(0,1),&
+             ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
      end do
   else
      pot => potential
@@ -238,7 +237,7 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
      wrkallred(2,2)=epot_sum 
      wrkallred(3,2)=eproj_sum
      call MPI_ALLREDUCE(wrkallred(1,2),wrkallred(1,1),3,&
-          MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+          mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
      ekin_sum=wrkallred(1,1)
      epot_sum=wrkallred(2,1)
      eproj_sum=wrkallred(3,1) 
@@ -276,12 +275,11 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
   real(kind=8), dimension(norb), intent(in) :: occup,eval,spinsgn
   real(kind=8), intent(inout) :: alpha
   real(kind=8), intent(inout) :: gnrm,scprsum
-  real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
-  real(kind=8), dimension(:,:,:), pointer :: psidst,hpsidst,ads
+  real(kind=8), dimension(:), pointer :: psi,psit,hpsi,psidst,hpsidst
+  real(kind=8), dimension(:,:,:), pointer :: ads
   !local variables
-  include 'mpif.h'
   real(kind=8), parameter :: eps_mach=1.d-12
-  integer :: ierr,ind,i1,i2,iorb,k,norbu,norbd,i_stat,i_all,oidx,sidx
+  integer :: ierr,ind,i1,i2,iorb,i,k,norbu,norbd,i_stat,i_all,oidx,sidx
   real(kind=8) :: tt,scpr,dnrm2,scprpart,cprecr
 
   if (iproc==0) then
@@ -301,7 +299,7 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
   call transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,hpsi,work=psi)
 
   if (nproc == 1) then
-     !associate psit pointer for orthoconstraint and transpose it
+     !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
      psit => psi
      call transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psit)
   end if
@@ -315,7 +313,7 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
      if(norbd>0) then
         scprpart=scprsum 
         call orthoconstraint_p(iproc,nproc,norbd,occup(norbu+1),nvctrp,&
-             psit(1,norbu+1),hpsi(1,norbu+1),scprsum,nspinor)
+             psit(1+nvctrp*norbu),hpsi(1+nvctrp*norbu),scprsum,nspinor)
      end if
      scprsum=scprsum+scprpart
   end if
@@ -333,44 +331,10 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
   call preconditionall(geocode,iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      hx,hy,hz,ncong,nspinor,wfd,eval,kbounds,hpsi,gnrm)
 
-!!$  !loop over the orbitals
-!!$
-!!$  ! norm of gradient
-!!$  gnrm=0.d0
-!!$  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-!!$     oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
-!!$     !loop over the spinorial components
-!!$     do sidx=oidx,oidx+nspinor-1
-!!$        !starting address of the direct array in transposed form
-!!$        call trans_address(nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,1,sidx,i1,i2)
-!!$
-!!$        scpr=dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,hpsi(i1,i2),1)
-!!$        !lines for writing the residue following the orbitals
-!!$        !if (iorb <=5) write(83,*)iter,iorb,scpr
-!!$        gnrm=gnrm+scpr**2
-!!$        select case(geocode)
-!!$        case('F')
-!!$           !in this case the grid spacings are uniform
-!!$           cprecr=-eval(iorb)
-!!$           if(scpr /=0.d0) then
-!!$              call precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
-!!$                   wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
-!!$                   ncong,cprecr,hx,kbounds%ibyz_c,kbounds%ibxz_c,kbounds%ibxy_c,&
-!!$                   kbounds%ibyz_f,kbounds%ibxz_f,kbounds%ibxy_f,hpsi(i1,i2))
-!!$           end if
-!!$        case('P')
-!!$           cprecr=0.5d0
-!!$           call prec_fft(n1,n2,n3, &
-!!$                wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
-!!$                ncong,cprecr,hx,hy,hz,hpsi(i1,i2))
-!!$        end select
-!!$     end do
-!!$  enddo
-
   !sum over all the partial residues
   if (nproc > 1) then
      tt=gnrm
-     call MPI_ALLREDUCE(tt,gnrm,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call MPI_ALLREDUCE(tt,gnrm,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
   endif
   gnrm=sqrt(gnrm/real(norb,kind=8))
 
@@ -383,31 +347,35 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
   !apply the minimization method (DIIS or steepest descent)
   if (idsx.gt.0) then
      !transpose the hpsi wavefunction into the diis array
-     call transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,hpsi,work=psi,&
-          out=hpsidst(1:,1:,mids:))
+     call transposeto(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,hpsi,psi,&
+          hpsidst(1+nvctrp*nspinor*norbp*nproc*(mids-1)))
 
      call timing(iproc,'Diis          ','ON')
      if (nproc > 1) then
-
-        do iorb=1,norb*nspinor
-           do k=1,nvctrp
-              psidst(k,iorb,mids)= psit(k,iorb)
-           enddo
+!!$        do iorb=1,norb*nspinor
+!!$           do k=1,nvctrp
+!!$              psidst(k,iorb,mids)= psit(k,iorb)
+!!$           enddo
+!!$        enddo
+        do i=1,nvctrp*norb*nspinor
+           psidst(i+nvctrp*nspinor*norbp*nproc*(mids-1))= psit(i)
         enddo
      else
-        do iorb=1,norb*nspinor
-           do k=1,nvctrp
-              psidst(k,iorb,mids)= psit(k,iorb)
-              hpsidst(k,iorb,mids)=hpsi(k,iorb)
-           enddo
+!!$        do iorb=1,norb*nspinor
+!!$           do k=1,nvctrp
+!!$              psidst(k,iorb,mids)= psit(k,iorb)
+!!$              hpsidst(k,iorb,mids)=hpsi(k,iorb)
+!!$           enddo
+!!$        enddo
+        do i=1,nvctrp*norb*nspinor
+           psidst(i+nvctrp*nspinor*norbp*nproc*(mids-1))= psit(i)
+           hpsidst(i+nvctrp*nspinor*norbp*nproc*(mids-1))=hpsi(i)
         enddo
      endif
 
      call diisstp(norb,norbp,nproc,iproc, nspinor,  &
           ads,iter,mids,idsx,nvctrp,psit,psidst,hpsidst)
-
   else
-
      ! update all wavefunctions with the preconditioned gradient
      if (energy.gt.energy_old) then
         alpha=max(.125d0,.5d0*alpha)
@@ -422,9 +390,8 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
 
      call timing(iproc,'Diis          ','ON')
      do iorb=1,norb*nspinor
-        call DAXPY(nvctrp,-alpha,hpsi(1,iorb),1,psit(1,iorb),1)
+        call DAXPY(nvctrp,-alpha,hpsi(1+nvctrp*(iorb-1)),1,psit(1+nvctrp*(iorb-1)),1)
      enddo
-
   endif
 
   call timing(iproc,'Diis          ','OF')
@@ -439,7 +406,7 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
   else
      call orthon_p(iproc,nproc,norbu,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor)
      if(norbd>0) then
-        call orthon_p(iproc,nproc,norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit(1,norbu+1),nspinor)
+        call orthon_p(iproc,nproc,norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit(1+nvctrp*norbu),nspinor)
      end if
   end if
     !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
@@ -483,10 +450,9 @@ subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctr
   use module_base
   implicit none
   integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
-  real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
+  real(kind=8), dimension(:) , pointer :: psi,hpsi,psit
   !local variables
   character(len=*), parameter :: subname='first_orthon'
-  include 'mpif.h'
   integer :: i_all,i_stat,ierr,nspinor,iorb
 
   if(nspin==4) then
@@ -499,7 +465,7 @@ subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctr
      !allocate hpsi array (used also as transposed)
      !allocated in the transposed way such as 
      !it can also be used as the transposed hpsi
-     allocate(hpsi(nvctrp,nspinor*norbp*nproc+ndebug),stat=i_stat)
+     allocate(hpsi(nvctrp*nspinor*norbp*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,hpsi,'hpsi',subname)
 
 !     write(*,'(a,i3,30f10.5)') 'SWI',iproc,(sum(psi(1:nvctrp,iorb)),iorb=1,norbp*nspinor)
@@ -509,11 +475,11 @@ subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctr
      call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,hpsi,nspinor)
      call timing(iproc,'Un-TransSwitch','OF')
      !allocate transposed principal wavefunction
-     allocate(psit(nvctrp,nspinor*norbp*nproc+ndebug),stat=i_stat)
+     allocate(psit(nvctrp*nspinor*norbp*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,psit,'psit',subname)
      call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(hpsi,nvctrp*nspinor*norbp,MPI_DOUBLE_PRECISION,  &
-          psit,nvctrp*nspinor*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call MPI_ALLTOALL(hpsi,nvctrp*nspinor*norbp,mpidtypw,  &
+          psit,nvctrp*nspinor*norbp,mpidtypw,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
      !end of transposition
   else
@@ -525,7 +491,7 @@ subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctr
   else
      call orthon_p(iproc,nproc,norbu,nvctrp,nvctr_c+7*nvctr_f,psit,nspinor) 
      if(norbd>0) then
-        call orthon_p(iproc,nproc,norbd,nvctrp,nvctr_c+7*nvctr_f,psit(1,norbu+1),nspinor) 
+        call orthon_p(iproc,nproc,norbd,nvctrp,nvctr_c+7*nvctr_f,psit(1+nvctrp*norbu),nspinor) 
      end if
   end if
   !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
@@ -534,8 +500,8 @@ subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctr
      !retranspose the psit wavefunction into psi
      !here hpsi is used as a work array
      call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psit,nvctrp*nspinor*norbp,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*nspinor*norbp,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+     call MPI_ALLTOALL(psit,nvctrp*nspinor*norbp,mpidtypw,  &
+          hpsi,nvctrp*nspinor*norbp,mpidtypw,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
      call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi,nspinor)
@@ -544,7 +510,7 @@ subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctr
   else
      nullify(psit)
      !allocate hpsi array
-     allocate(hpsi(nvctr_c+7*nvctr_f,nspinor*norbp+ndebug),stat=i_stat)
+     allocate(hpsi(nvctrp*nspinor*norbp+ndebug),stat=i_stat)
      call memocc(i_stat,hpsi,'hpsi',subname)
   end if
 
@@ -559,10 +525,9 @@ subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp
   real(kind=8), dimension(norb), intent(in) :: occup
   real(kind=8), intent(out) :: evsum
   real(kind=8), dimension(norb), intent(out) :: eval
-  real(kind=8), dimension(:,:) , pointer :: psi,hpsi,psit
+  real(kind=8), dimension(:) , pointer :: psi,hpsi,psit
   !local variables
   character(len=*), parameter :: subname='last_orthon'
-  include 'mpif.h'
   integer :: i_all,i_stat,ierr,iorb,jorb,nspinor
   real(kind=8) :: evpart
 
@@ -599,7 +564,7 @@ subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp
      evpart=evsum
      if(norbd>0) then
         call KStrans_p(iproc,nproc,norbd,nvctrp,occup(norbu+1),&
-             hpsi(1,norbu+1),psit(1,norbu+1),evsum,eval(norbu+1),nspinor)
+             hpsi(1+nvctrp*norbu),psit(1+nvctrp*norbu),evsum,eval(norbu+1),nspinor)
         evsum=evsum+evpart
      end if
   end if
@@ -669,7 +634,6 @@ end subroutine last_orthon
 subroutine calc_moments(iproc,nproc,norb,norbp,nvctr,nspinor,psi)
   use module_base
   implicit none
-  include 'mpif.h'
   integer, intent(in) :: iproc,nproc,norb,norbp,nvctr,nspinor
   real(kind=8), dimension(nvctr,norbp*nproc*nspinor), intent(in) :: psi
   !local variables

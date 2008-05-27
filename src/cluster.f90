@@ -12,7 +12,7 @@
   real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
   real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
   real(kind=8), dimension(:), pointer :: eval
-  real(kind=8), dimension(:,:), pointer :: psi
+  real(kind=8), dimension(:), pointer :: psi
   !local variables
   character(len=*), parameter :: subname='call_cluster'
   integer :: i_stat,i_all,ierr,inputPsiId_orig
@@ -32,7 +32,7 @@
        real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
        real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
        real(kind=8), dimension(:), pointer :: eval
-       real(kind=8), dimension(:,:), pointer :: psi
+       real(kind=8), dimension(:), pointer :: psi
      end subroutine cluster
   end interface
 
@@ -123,9 +123,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
   real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
   real(kind=8), dimension(:), pointer :: eval
-  real(kind=8), dimension(:,:), pointer :: psi
+  real(kind=8), dimension(:), pointer :: psi
   !local variables
-  include 'mpif.h' !already in module_base
   character(len=*), parameter :: subname='cluster'
   character(len=1) :: geocode
   character(len=10) :: orbname
@@ -157,11 +156,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !transposed  wavefunction
   ! Pointers and variables to store the last psi
   ! before reformatting if useFormattedInput is .true.
-  real(kind=8), dimension(:,:), pointer :: hpsi,psit,psi_old,psivirt
+  real(kind=8), dimension(:), pointer :: hpsi,psit,psi_old,psivirt,psidst,hpsidst
   ! PSP projectors 
   real(kind=8), dimension(:), pointer :: proj
   ! arrays for DIIS convergence accelerator
-  real(kind=8), dimension(:,:,:), pointer :: ads,psidst,hpsidst
+  real(kind=8), dimension(:,:,:), pointer :: ads
   ! tmp debug array
   real(kind=8), dimension(:,:), allocatable :: tmred
   
@@ -350,7 +349,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
 
      !random initialisation of the wavefunctions
-     allocate(psi(nvctrp,nspinor*norbp*nproc+ndebug),stat=i_stat)
+     allocate(psi(nvctrp*nspinor*norbp*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
      psi=0.0d0
@@ -362,8 +361,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                  call random_number(tt)
               end do
               call random_number(tt)
-              psi(i1,iorb)=real(tt,kind=8)*0.01d0
-              ttsum=ttsum+psi(i1,iorb)
+              psi(i1+nvctrp*(iorb-1))=real(tt,kind=8)*0.01d0
+              ttsum=ttsum+psi(i1+nvctrp*(iorb-1))
               do j=iproc+1,nproc
                  call random_number(tt)
               end do
@@ -398,20 +397,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
         write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/real(norb,kind=8)
      endif
-
-     !allocate hpsi array (used also as transposed)
-     !allocated in the transposed way such as 
-     !it can also be used as the transposed hpsi
-     !allocate(hpsi(nvctrp,norbp*nproc),stat=i_stat)
-     !call memocc(i_stat,product(shape(hpsi))*kind(hpsi),'hpsi','cluster')
-    
+   
   else if (in%inputPsiId == 1 ) then 
      !restart from previously calculated wavefunctions, in memory
 
      !allocate principal wavefunction
      !allocated in the transposed way such as 
      !it can also be used as a work array for transposition
-     allocate(psi(nvctrp,norbp*nproc*nspinor+ndebug),stat=i_stat)
+     allocate(psi(nvctrp*norbp*nproc*nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
      if (iproc.eq.0) then
@@ -444,7 +437,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !allocate principal wavefunction
      !allocated in the transposed way such as 
      !it can also be used as a work array for transposition
-     allocate(psi(nvctrp,norbp*nproc+ndebug),stat=i_stat)
+     allocate(psi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
      if (iproc.eq.0) then
@@ -494,9 +487,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   ! allocate arrays necessary for DIIS convergence acceleration
   if (idsx.gt.0) then
-     allocate(psidst(nvctrp,nspinor*norbp*nproc,idsx+ndebug),stat=i_stat)
+     allocate(psidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(nvctrp,nspinor*norbp*nproc,idsx+ndebug),stat=i_stat)
+     allocate(hpsidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,hpsidst,'hpsidst',subname)
      allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)
@@ -617,8 +610,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
 
      tt=(energybs-scprsum)/scprsum
-     if ((abs(tt) > 1.d-10 .and. .not. GPUcomputing) .or.&
-          (abs(tt) > 1.d-8 .and. GPUcomputing).and. iproc==0) then 
+     if ((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
+          (abs(tt) > 1.d-8 .and. GPUconv).and. iproc==0) then 
         write(*,'(1x,a,1pe9.2,2(1pe22.14))') &
              'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
      endif
@@ -706,9 +699,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         ids=0
         idiistol=0
 
-        allocate(psidst(nvctrp*nspinor,norbp*nproc,idsx+ndebug),stat=i_stat)
+        allocate(psidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
         call memocc(i_stat,psidst,'psidst',subname)
-        allocate(hpsidst(nvctrp*nspinor,norbp*nproc,idsx+ndebug),stat=i_stat)
+        allocate(hpsidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
         call memocc(i_stat,hpsidst,'hpsidst',subname)
         allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
         call memocc(i_stat,ads,'ads',subname)
@@ -757,7 +750,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,&
           hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  &
           pkernel,ixc,psi,psivirt,eval,ncong,nscatterarr,ngatherarr)
-
   end if
 
   !  write all the wavefunctions into files

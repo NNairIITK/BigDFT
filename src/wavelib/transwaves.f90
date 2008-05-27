@@ -1,3 +1,37 @@
+!transpose the routine to an array. Does not need interface
+subroutine transposeto(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,work,out) 
+  use module_base
+  use module_types
+  implicit none
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
+  real(wp), dimension(*), intent(inout) :: work
+  real(wp), dimension(*), intent(out) :: out
+  !local variables
+  integer :: ierr
+
+  call timing(iproc,'Un-TransSwitch','ON')
+
+  if (nproc > 1) then
+     call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,work,nspinor)
+     call timing(iproc,'Un-TransSwitch','OF')
+     call timing(iproc,'Un-TransComm  ','ON')
+     call MPI_ALLTOALL(work,nvctrp*norbp*nspinor,mpidtypw,  &
+          out,nvctrp*norbp*nspinor,mpidtypw,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'Un-TransSwitch','ON')
+  else
+     if(nspinor==4) then
+        call psitransspi(nvctrp,norb,psi,.true.)
+     end if
+  end if
+
+  call timing(iproc,'Un-TransSwitch','OF')
+
+end subroutine transposeto
+
+
 subroutine transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
      work,out) !optional
   use module_base
@@ -6,18 +40,12 @@ subroutine transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
-  real(wp), dimension(:,:), pointer, optional :: work
-  real(wp), dimension(*), intent(out), optional :: out
+  real(wp), dimension(:), pointer, optional :: work,out
+  !real(wp), dimension(*), intent(out), optional :: out
   !local variables
-  include 'mpif.h'
-  integer :: mpidatatype,ierr
+  integer :: ierr
 
   call timing(iproc,'Un-TransSwitch','ON')
-  if (wp == kind(1.d0)) then
-     mpidatatype=MPI_DOUBLE_PRECISION
-  else
-     mpidatatype=MPI_REAL
-  end if
 
   if (nproc > 1) then
      !control check
@@ -31,11 +59,11 @@ subroutine transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
      call timing(iproc,'Un-TransSwitch','OF')
      call timing(iproc,'Un-TransComm  ','ON')
      if (present(out)) then
-        call MPI_ALLTOALL(work,nvctrp*norbp*nspinor,mpidatatype,  &
-             out,nvctrp*norbp*nspinor,mpidatatype,MPI_COMM_WORLD,ierr)
+        call MPI_ALLTOALL(work,nvctrp*norbp*nspinor,mpidtypw,  &
+             out,nvctrp*norbp*nspinor,mpidtypw,MPI_COMM_WORLD,ierr)
      else
-        call MPI_ALLTOALL(work,nvctrp*norbp*nspinor,mpidatatype,  &
-             psi,nvctrp*norbp*nspinor,mpidatatype,MPI_COMM_WORLD,ierr)
+        call MPI_ALLTOALL(work,nvctrp*norbp*nspinor,mpidtypw,  &
+             psi,nvctrp*norbp*nspinor,mpidtypw,MPI_COMM_WORLD,ierr)
      end if
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
@@ -57,19 +85,12 @@ subroutine untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
   real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(inout) :: psi
-  real(wp), dimension(:,:), pointer, optional :: work
-  real(wp), dimension(*), intent(out), optional :: out
+  real(wp), dimension(:), pointer, optional :: work,out
+  !real(wp), dimension(*), intent(out), optional :: out
   !local variables
-  include 'mpif.h'
-  integer :: mpidatatype,ierr
+  integer :: ierr
 
   call timing(iproc,'Un-TransSwitch','ON')
-
-  if (wp == kind(1.d0)) then
-     mpidatatype=MPI_DOUBLE_PRECISION
-  else
-     mpidatatype=MPI_REAL
-  end if
 
   if (nproc > 1) then
      !control check
@@ -81,8 +102,8 @@ subroutine untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
      end if
      call timing(iproc,'Un-TransSwitch','OF')
      call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psi,nvctrp*norbp*nspinor,mpidatatype,  &
-          work,nvctrp*norbp*nspinor,mpidatatype,MPI_COMM_WORLD,ierr)
+     call MPI_ALLTOALL(psi,nvctrp*norbp*nspinor,mpidtypw,  &
+          work,nvctrp*norbp*nspinor,mpidtypw,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
      if (present(out)) then

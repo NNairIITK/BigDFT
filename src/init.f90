@@ -400,9 +400,8 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
   real(kind=8), intent(out) :: accurex
   real(kind=8), dimension(norb), intent(out) :: eval
-  real(kind=8), dimension(:,:), pointer :: psi,psit,hpsi
+  real(kind=8), dimension(:), pointer :: psi,psit,hpsi
   !local variables
-  include 'mpif.h'
   character(len=*), parameter :: subname='import_gaussians'
   integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp,jorb,n1i,n2i,n3i
   real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum
@@ -443,7 +442,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  allocate(psi(nvctrp,norbp*nproc+ndebug),stat=i_stat)
+  allocate(psi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
 
   !read the values for the gaussian code and insert them on psi 
@@ -476,7 +475,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,1)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  allocate(hpsi(nvctrp,norbp*nproc+ndebug),stat=i_stat)
+  allocate(hpsi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
 
   call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
@@ -545,9 +544,8 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
   real(kind=8), intent(out) :: accurex
   real(kind=8), dimension(norb), intent(out) :: eval
-  real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit,psivirt
+  real(kind=8), dimension(:), pointer :: psi,hpsi,psit,psivirt
   !local variables
-  include 'mpif.h'
   character(len=*), parameter :: subname='input_wf_diag'
   real(kind=8), parameter :: eps_mach=1.d-12
   integer, parameter :: ngx=31
@@ -561,7 +559,6 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   real(kind=8), dimension(:), allocatable :: work_lp,pot,evale,occupe,spinsgne
   real(kind=8), dimension(:,:), allocatable :: xp,occupat,hamovr!,psi,hpsi
   real(kind=8), dimension(:,:,:), allocatable :: psiat
-  !real(kind=8), dimension(:,:), pointer :: psi,hpsi
 
 
   !Calculate no. up and down orbitals for spin-polarized starting guess
@@ -666,7 +663,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
 !  allocate(psi(nvctrp,norbep*nproc*nspinor),stat=i_stat)
-  allocate(psi(nvctrp,norbep*nproc+ndebug),stat=i_stat)
+  allocate(psi(nvctrp*norbep*nproc+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
   
   ! Create input guess orbitals
@@ -725,7 +722,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  allocate(hpsi(nvctrp,norbep*nproc+ndebug),stat=i_stat)
+  allocate(hpsi(nvctrp*norbep*nproc+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
   
   call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
@@ -857,16 +854,15 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   type(wavefunctions_descriptors), intent(in) :: wfd
   integer, intent(in) :: iproc,nproc,natsc,nspin,nspinor,norb,norbu,norbd,norbp,nvctrp
   real(kind=8), dimension(norb), intent(out) :: eval
-  real(kind=8), dimension(:,:), pointer :: psi,hpsi,psit
+  real(kind=8), dimension(:), pointer :: psi,hpsi,psit
   !optional arguments
   integer, optional, intent(in) :: norbe,norbep,nvirte
   integer, optional, intent(out) :: nvirtep
   real(kind=8), optional, intent(in) :: etol
   integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
-  real(wp), dimension(:,:), pointer, optional :: psivirt
+  real(wp), dimension(:), pointer, optional :: psivirt
    !real(kind=8), optional, dimension(:,:), pointer :: ppsi
   !local variables
-  include 'mpif.h'
   character(len=*), parameter :: subname='DiagHam'
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal
@@ -875,7 +871,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   real(kind=8) :: tolerance,tt
   integer, dimension(:,:), allocatable :: norbgrp
   real(kind=8), dimension(:,:), allocatable :: hamovr
-  real(kind=8), dimension(:,:), pointer :: psiw
+  real(kind=8), dimension(:), pointer :: psiw
 
   !debug
   real(kind=8) :: DDOT
@@ -957,7 +953,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
      norbtotp=norbp
   end if
   if (nproc > 1) then
-     allocate(psiw(nvctrp,norbtotp*nproc+ndebug),stat=i_stat)
+     allocate(psiw(nvctrp*norbtotp*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
   else
      psiw => null()
@@ -1009,7 +1005,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   !in the case of minimal basis allocate now the transposed wavefunction
   !otherwise do it only in parallel
   if (minimal .or. nproc > 1) then
-        allocate(psit(nvctrp,nspinor*norbp*nproc+ndebug),stat=i_stat)
+        allocate(psit(nvctrp*nspinor*norbp*nproc+ndebug),stat=i_stat)
         call memocc(i_stat,psit,'psit',subname)
   else
      psit => hpsi
@@ -1019,7 +1015,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   if(present(nvirte) .and. present(psivirt) .and. nvirte > 0) then
      tt=dble(nvirte)/dble(nproc)
      nvirtep=int((1.d0-eps_mach*tt) + tt)
-     allocate(psivirt(nvctrp,nvirtep*nproc),stat=i_stat)
+     allocate(psivirt(nvctrp*nvirtep*nproc),stat=i_stat)
      call memocc(i_stat,psivirt,'psivirt',subname)
   end if
 
@@ -1061,18 +1057,18 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
      else
         call orthon_p(iproc,nproc,norbu,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor) 
         if(norbd>0) then
-           call orthon_p(iproc,nproc,norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit(1,norbu+1),nspinor) 
+           call orthon_p(iproc,nproc,norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit(1+nvctrp*norbu),nspinor) 
         end if
      end if
   end if
 
   if (minimal) then
-     allocate(hpsi(nvctrp,norbp*nproc*nspinor+ndebug),stat=i_stat)
+     allocate(hpsi(nvctrp*norbp*nproc*nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,hpsi,'hpsi',subname)
 !     hpsi=0.0d0
      if (nproc > 1) then
         !allocate the direct wavefunction
-        allocate(psi(nvctrp,norbp*nproc*nspinor+ndebug),stat=i_stat)
+        allocate(psi(nvctrp*norbp*nproc*nspinor+ndebug),stat=i_stat)
         call memocc(i_stat,psi,'psi',subname)
      end if
   end if
@@ -1151,16 +1147,16 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   do i=1,natsc+1
      norbi=norbsc_arr(i,1)
 
-     call DSYGV(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
-          norbi,evale,work_lp,n_lp,info)
-     if (info.ne.0) write(*,*) 'DSYGV ERROR',info,i,natsc+1
+     call sygv(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
+          norbi,evale(1),work_lp(1),n_lp,info)
+     if (info.ne.0) write(*,*) 'SYGV ERROR',info,i,natsc+1
 
      !do the diagonalisation separately in case of spin polarization     
      if (nspin==2) then
         norbj=norbsc_arr(i,2)
-        call DSYGV(1,'V','U',norbj,hamovr(imatrst+ndim_hamovr,1),&
-             norbj,hamovr(imatrst+ndim_hamovr,2),norbj,evale(norbi+1),work_lp,n_lp,info)
-        if (info.ne.0) write(*,*) 'DSYGV ERROR',info,i,natsc+1
+        call sygv(1,'V','U',norbj,hamovr(imatrst+ndim_hamovr,1),&
+             norbj,hamovr(imatrst+ndim_hamovr,2),norbj,evale(norbi+1),work_lp(1),n_lp,info)
+        if (info.ne.0) write(*,*) 'SYGV ERROR',info,i,natsc+1
      end if
 
      !write the matrices on a file
@@ -1288,7 +1284,7 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
   real(kind=8), dimension(nvctrp,norbep*nproc), intent(in) :: psi
   real(kind=8), dimension(nvctrp*nspinor,norbp*nproc), intent(out) :: ppsit
   integer, intent(in), optional :: nvirte
-  real(wp), dimension(:,:), pointer, optional :: psivirt
+  real(wp), dimension(:), pointer, optional :: psivirt
   !Local variables
   character(len=*), parameter :: subname='build_eigenvectors'
   integer, parameter :: iunit=1978
@@ -1351,7 +1347,7 @@ subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,
         !in the case of semicore atomes the orthogonality is not guaranteed
         if (present(nvirte) .and. nvirte >0) then
            call DGEMM('N','N',nvctrp,nvirte,norbi,1.d0,psi(1,iorbst),nvctrp,&
-                hamovr(imatrst+norbi*norbj),norbi,0.d0,psivirt(1,1),nvctrp)
+                hamovr(imatrst+norbi*norbj),norbi,0.d0,psivirt,nvctrp)
         end if
         iorbst=norbi+norbsc+1 !this is equal to norbe+1
         iorbst2=norbu+1

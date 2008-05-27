@@ -12,8 +12,7 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz, &
   type(wavefunctions_descriptors), intent(inout) :: wfd
   real(kind=8), dimension(3,at%nat), intent(inout) :: rxyz,rxyz_old
   real(kind=8), dimension(3,at%nat), intent(out) :: fxyz
-  real(kind=8), dimension(:), pointer :: eval
-  real(kind=8), dimension(:,:), pointer :: psi
+  real(kind=8), dimension(:), pointer :: eval,psi
   !local variables
   character(len=*), parameter :: subname='conjgrad'  
   integer :: nfail,it,iat,i_all,i_stat,infocode
@@ -312,8 +311,7 @@ contains
     real(kind=8), dimension(3,at%nat), intent(inout) :: rxyz,rxyz_old
     real(kind=8), intent(out) :: fluct,flucto,fluctoo,fnrm,etot
     real(kind=8), dimension(3,at%nat), intent(out) ::ff
-    real(kind=8), dimension(:), pointer :: eval
-    real(kind=8), dimension(:,:), pointer :: psi
+    real(kind=8), dimension(:), pointer :: eval,psi
     !local variables
     character(len=*), parameter :: subname='steepdes'
     logical :: care
@@ -531,8 +529,7 @@ contains
     type(wavefunctions_descriptors), intent(inout) :: wfd
     integer, intent(inout) :: norbp,norb,n1,n2,n3
     real(kind=8), dimension(3,at%nat), intent(inout) :: pos,rxyz_old
-    real(kind=8), dimension(:), pointer :: eval
-    real(kind=8), dimension(:,:), pointer :: psi
+    real(kind=8), dimension(:), pointer :: eval,psi
     !local variables
     integer :: nsuc
     real(kind=8) :: beta0,beta,sum,t1,t2,t3,etotm1,etot0,etotp1,der2,tt

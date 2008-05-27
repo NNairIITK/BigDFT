@@ -28,7 +28,6 @@ program test_forces
   use module_types
   
   implicit none
-  include 'mpif.h'
   character(len=*), parameter :: subname='test_forces'
   integer, parameter :: n=31
   real(kind=8), dimension(:,:), allocatable :: rxyz,fxyz,drxyz,rxyz_old

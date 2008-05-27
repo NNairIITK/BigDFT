@@ -16,7 +16,6 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   real(kind=8), intent(out) :: eks
   real(kind=8), dimension(nvctr_c+7*nvctr_f,norbp), intent(out) :: psi
   !local variables
-  include 'mpif.h'
   character(len=*), parameter :: subname='gautowav'
   logical :: myorbital
   character(len=6) :: string,symbol

@@ -43,7 +43,7 @@ subroutine read_input_variables(iproc,in)
   character(len=7) :: cudagpu
   character(len=100) :: line
   real(kind=4) :: hgrid,crmult,frmult,cpmult,fpmult
-  integer :: ierror,ierrfrc
+  integer :: ierror,ierrfrc,iconv,iblas
 
   ! Read the input variables.
   open(unit=1,file='input.dat',status='old')
@@ -52,8 +52,15 @@ subroutine read_input_variables(iproc,in)
   read(1,'(a100)')line
   read(line,*,iostat=ierrfrc) cudagpu
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
-     !change the value of the GPU flag in the module_base
-     GPUcomputing=.true.
+     call set_cpu_gpu_aff(iproc,iconv,iblas)
+     if (iconv == 0) then
+        !change the value of the GPU convolution flag defined in the module_base
+        GPUconv=.true.
+     end if
+     if (iblas == 0) then
+        !change the value of the GPU convolution flag defined in the module_base
+        GPUblas=.true.
+     end if
      read(1,*,iostat=ierror) in%ncount_cluster_x
   else
      read(line,*,iostat=ierror) in%ncount_cluster_x
