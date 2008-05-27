@@ -70,7 +70,7 @@ SUBDIRS = $(sub_dirs_xc)
 
 check_PROGRAMS = PSchk PSolver
 
-AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@
+AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ $(GPU_INC)
 
 
 
@@ -83,9 +83,11 @@ mpi_include = mpif.h
 endif
 
 if USE_CUDA_GPU
-GPU_BLAS=
+GPU_BLAS= ../CUDA/libGPU.a
+GPU_INC= -I@CUDA_PATH@/include/ 
 else
 GPU_BLAS = ../modules/cublas_fake.o
+GPU_INC=
 endif
 
 libpoissonsolver_a_SOURCES = \
@@ -97,6 +99,7 @@ libpoissonsolver_a_LIBADD = ../profiling/memory.o $(GPU_BLAS)
 PSchk_SOURCES = PSchk.f90 timing.f90 $(mpi_source)
 PSchk_LDFLAGS = $(LMPI)
 PSchk_LDADD = ../modules/base.o \
+	$(GPU_BLAS) \
 	libpoissonsolver.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
@@ -104,6 +107,7 @@ PSchk_LDADD = ../modules/base.o \
 PSolver_SOURCES = PSolver.f90 timing.f90 $(mpi_source)
 PSolver_LDFLAGS = $(LMPI)
 PSolver_LDADD = ../modules/base.o \
+	$(GPU_BLAS) \
 	libpoissonsolver.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
