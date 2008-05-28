@@ -70,8 +70,7 @@ SUBDIRS = $(sub_dirs_xc)
 
 check_PROGRAMS = PSchk PSolver
 
-AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ $(GPU_INC)
-
+AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ 
 
 
 if USE_MPI
@@ -82,39 +81,27 @@ mpi_source = ../MPIfake.f90
 mpi_include = mpif.h
 endif
 
-if USE_CUDA_GPU
-GPU_BLAS= ../CUDA/libGPU.a
-GPU_INC= -I@CUDA_PATH@/include/ 
-else
-GPU_BLAS = ../modules/cublas_fake.o
-GPU_INC=
-endif
-
 libpoissonsolver_a_SOURCES = \
 	Poisson_Solver.f90 
 
-libpoissonsolver_a_LIBADD = ../profiling/memory.o $(GPU_BLAS)
+libpoissonsolver_a_LIBADD = 
 
-
-PSchk_SOURCES = PSchk.f90 timing.f90 $(mpi_source)
+PSchk_SOURCES = PSchk.f90 timing.f90 base.f90 $(mpi_source)
 PSchk_LDFLAGS = $(LMPI)
-PSchk_LDADD = ../modules/base.o \
-	$(GPU_BLAS) \
-	libpoissonsolver.a \
+PSchk_LDADD = libpoissonsolver.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
-PSolver_SOURCES = PSolver.f90 timing.f90 $(mpi_source)
+PSolver_SOURCES = PSolver.f90 timing.f90 base.f90 $(mpi_source)
 PSolver_LDFLAGS = $(LMPI)
-PSolver_LDADD = ../modules/base.o \
-	$(GPU_BLAS) \
-	libpoissonsolver.a \
+PSolver_LDADD = libpoissonsolver.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
 
 
-CLEANFILES = mpif.h POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@
+CLEANFILES = mpif.h POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@ \
+	module_base.@MODULE_EXT@
 
 #dependencies
 mpif.h:
@@ -125,7 +112,7 @@ mpif.h:
 
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 
-Poisson_Solver.o : $(mpi_include) $(SOURCES_MOD)
+Poisson_Solver.o : base.o $(mpi_include) $(SOURCES_MOD)
 
 PSchk.o PSolver.o: Poisson_Solver.o
 

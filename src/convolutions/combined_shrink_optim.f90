@@ -1,11 +1,17 @@
+! In one dimension,    
+! Applies the magic filter transposed, then analysis wavelet transformation.
+! The size of the data is forced to shrink
 subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
-  ! In one dimension,    
-  ! Applies the magic filter transposed, then analysis wavelet transformation.
-  ! The size of the data is forced to shrink
-  implicit real(kind=8) (a-h,o-z)
-  integer,parameter:: lowfil2=-14,lupfil2=16
-  dimension x(lowfil2+2*nfl:2*nfu+lupfil2,ndat),y(ndat,nfl:nfu)
-  integer ib(2,ndat)
+  use module_base
+  implicit none
+  integer, parameter :: lowfil2=-14,lupfil2=16
+  integer, intent(in) :: ndat,icf,nfl,nfu
+  integer, dimension(2,ndat), intent(in) :: ib
+  real(wp), dimension(lowfil2+2*nfl:2*nfu+lupfil2,ndat), intent(in) :: x
+  real(wp), dimension(ndat,nfl:nfu), intent(out) :: y
+  !local variables
+  integer :: j,l,i,icur
+  real(wp) :: ci0,ci1,ci2,ci3
   include 'v_long.inc'
 
 !  !open(unit=10,file='longer_filter.flop')
@@ -20,14 +26,14 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
 !  enddo
 
   ! the convolution itself:
-  call system_clock(ncount0,ncount_rate,ncount_max)
+  !call system_clock(ncount0,ncount_rate,ncount_max)
   do j=1,ndat
      if (ib(2,j)-ib(1,j).ge.4) then
         do i=ib(1,j),ib(2,j)-4,4
-           ci0=0.d0
-           ci1=0.d0
-           ci2=0.d0
-           ci3=0.d0
+           ci0=0.0_wp
+           ci1=0.0_wp
+           ci2=0.0_wp
+           ci3=0.0_wp
 
            !                l=lowfil2+2*i+0
            !                  ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
@@ -85,7 +91,7 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
      endif
 
      do i=icur,ib(2,j)
-        ci0=0.d0
+        ci0=0.0_wp
         do l=lowfil2+2*i,lupfil2+2*i
            ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
         enddo
@@ -93,8 +99,8 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
      enddo
   enddo
 
-  call system_clock(ncount1,ncount_rate,ncount_max)
-  tel=dble(ncount1-ncount0)/dble(ncount_rate)
+  !call system_clock(ncount1,ncount_rate,ncount_max)
+  !tel=dble(ncount1-ncount0)/dble(ncount_rate)
 
   !write(10,*) tel, 1.d-6*nflop/tel
 end subroutine comb_rot_shrink_loc

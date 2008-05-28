@@ -345,7 +345,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      if (iproc.eq.0) then
         write(*,'(1x,a)')&
-             '------------------------------------------------- Random wavefunctions initalization'
+             '------------------------------------------------ Random wavefunctions initialization'
      end if
 
      !random initialisation of the wavefunctions

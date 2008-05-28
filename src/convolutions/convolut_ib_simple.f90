@@ -431,24 +431,32 @@ end subroutine Convolkinetic
 
 subroutine ConvolkineticT(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
-     hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,ekin,x_f1,x_f2,x_f3)
+     hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,ekinout,x_f1,x_f2,x_f3)
   !   y = y+(kinetic energy operator)x 
-  implicit real(kind=8) (a-h,o-z)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  real(gp), intent(in) :: hgrid
+  integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c,ibyz_f
+  integer, dimension(2,0:n1,0:n3), intent(in) :: ibxz_c,ibxz_f
+  integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c,ibxy_f
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x_c
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: x_f
+  real(wp), dimension(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: x_f1
+  real(wp), dimension(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3), intent(in) :: x_f2
+  real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(in) :: x_f3
+  real(gp), intent(out) :: ekinout
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
+  !local variables
+  integer, parameter :: lowfil=-14,lupfil=14
   logical :: firstcall=.true. 
-  integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  dimension x_c(0:n1,0:n2,0:n3),y_c(0:n1,0:n2,0:n3)
-  dimension x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-  dimension y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-  dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
-  dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
-
-    real(kind=8),intent(in)::x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)
-    real(kind=8),intent(in)::x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3)
-    real(kind=8),intent(in)::x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2)
-
-  parameter(lowfil=-14,lupfil=14)
-  dimension a(lowfil:lupfil),b(lowfil:lupfil),c(lowfil:lupfil),e(lowfil:lupfil)
-  integer t
+  !integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
+  integer :: i,t,i1,i2,i3,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
+  integer :: icur,istart,iend,l
+  real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211,ekin
+  real(kind=8) :: tel
+  real(wp), dimension(lowfil:lupfil) :: a,b,c,d,e
 
   scale=-.5_wp/hgrid**2
   !---------------------------------------------------------------------------
@@ -890,7 +898,8 @@ subroutine ConvolkineticT(n1,n2,n3, &
   write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:ALL   PART',  & 
   tel,1.e-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-  return
+  ekinout=real(ekin,gp)
+
 end subroutine ConvolkineticT
 
 

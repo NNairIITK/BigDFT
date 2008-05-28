@@ -277,7 +277,9 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
   real(kind=8), intent(inout) :: gnrm,scprsum
   real(kind=8), dimension(:), pointer :: psi,psit,hpsi,psidst,hpsidst
   real(kind=8), dimension(:,:,:), pointer :: ads
+  real(kind=4), dimension(:), allocatable :: psitcuda,hpsitcuda
   !local variables
+  character(len=*), parameter :: subname='hpsitopsi'
   real(kind=8), parameter :: eps_mach=1.d-12
   integer :: ierr,ind,i1,i2,iorb,i,k,norbu,norbd,i_stat,i_all,oidx,sidx
   real(kind=8) :: tt,scpr,dnrm2,scprpart,cprecr
@@ -305,17 +307,57 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
   end if
 
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
-  if(nspin==1.or.nspinor==4) then
-     call orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsi,scprsum,nspinor)
-  else
-     call orthoconstraint_p(iproc,nproc,norbu,occup,nvctrp,psit,hpsi,scprsum,nspinor)
-     scprpart=0.0d0
-     if(norbd>0) then
-        scprpart=scprsum 
-        call orthoconstraint_p(iproc,nproc,norbd,occup(norbu+1),nvctrp,&
-             psit(1+nvctrp*norbu),hpsi(1+nvctrp*norbu),scprsum,nspinor)
+  ! insert branching for CUDA section(experimental)
+  if (GPUblas) then
+     allocate(psitcuda(nspinor*nvctrp*norb+ndebug),stat=i_stat)
+     call memocc(i_stat,psitcuda,'psitcuda',subname)
+     allocate(hpsitcuda(nspinor*nvctrp*norb+ndebug),stat=i_stat)
+     call memocc(i_stat,hpsitcuda,'hpsitcuda',subname)
+
+     do i=1,nspinor*nvctrp*norb
+        psitcuda(i)=real(psit(i),kind=4)
+        hpsitcuda(i)=real(hpsi(i),kind=4)
+     end do
+
+     if(nspin==1.or.nspinor==4) then
+        call orthoconstraint_cuda(iproc,nproc,norb,occup,nvctrp,psitcuda,hpsitcuda,&
+             scprsum,nspinor)
+     else
+        call orthoconstraint_cuda(iproc,nproc,norbu,occup,nvctrp,psitcuda,hpsitcuda,&
+             scprsum,nspinor)
+        scprpart=0.0d0
+        if(norbd>0) then
+           scprpart=scprsum 
+           call orthoconstraint_cuda(iproc,nproc,norbd,occup(norbu+1),nvctrp,&
+                psitcuda(1+nvctrp*norbu),hpsitcuda(1+nvctrp*norbu),scprsum,nspinor)
+        end if
+        scprsum=scprsum+scprpart
      end if
-     scprsum=scprsum+scprpart
+
+     do i=1,nspinor*nvctrp*norb
+        psit(i)=real(psitcuda(i),wp)
+        hpsi(i)=real(hpsitcuda(i),wp)
+     end do
+
+     i_all=-product(shape(psitcuda))*kind(psitcuda)
+     deallocate(psitcuda,stat=i_stat)
+     call memocc(i_stat,i_all,'psitcuda',subname)
+     i_all=-product(shape(hpsitcuda))*kind(hpsitcuda)
+     deallocate(hpsitcuda,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsitcuda',subname)
+  else
+     if(nspin==1.or.nspinor==4) then
+        call orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsi,scprsum,nspinor)
+     else
+        call orthoconstraint_p(iproc,nproc,norbu,occup,nvctrp,psit,hpsi,scprsum,nspinor)
+        scprpart=0.0d0
+        if(norbd>0) then
+           scprpart=scprsum 
+           call orthoconstraint_p(iproc,nproc,norbd,occup(norbu+1),nvctrp,&
+                psit(1+nvctrp*norbu),hpsi(1+nvctrp*norbu),scprsum,nspinor)
+        end if
+        scprsum=scprsum+scprpart
+     end if
   end if
 
   !retranspose the hpsi wavefunction

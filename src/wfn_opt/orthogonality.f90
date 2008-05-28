@@ -1,10 +1,93 @@
+subroutine orthoconstraint_cuda(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,nspinor)
+  !Effect of orthogonality constraints on gradient 
+  use module_base
+  implicit none
+  integer, intent(in) :: iproc,nproc,norb,nvctrp,nspinor
+  real(gp), dimension(norb), intent(in) :: occup
+  real(kind=4), dimension(nspinor*nvctrp,norb), intent(in) :: psit 
+  real(dp), intent(out) :: scprsum
+  real(kind=4), dimension(nspinor*nvctrp,norb), intent(out) :: hpsit
+  !local variables
+  character(len=*), parameter :: subname='orthoconstraint_p'
+  integer :: i_stat,i_all,istart,iorb,jorb,ierr,norbs,i,j
+  real(dp) :: occ
+  real(kind=4), dimension(:,:,:), allocatable :: alag
+
+  call timing(iproc,'LagrM_comput  ','ON')
+  istart=2
+  if (nproc == 1) istart=1
+
+  if(nspinor==1) then
+     norbs=norb
+  else
+     norbs=2*norb
+  end if
+
+  allocate(alag(norbs,norb,istart+ndebug),stat=i_stat)
+  call memocc(i_stat,alag,'alag',subname)
+  !     alag(jorb,iorb,istart)=+psit(k,jorb)*hpsit(k,iorb)
+
+  if(nspinor==1) then
+     call GEMM('T','N',norb,norb,nvctrp,1.0_4,psit(1,1),nvctrp,hpsit(1,1),nvctrp,0.0_4,&
+          alag(1,1,istart),norb)
+  else
+     call C_GEMM('C','N',norb,norb,2*nvctrp,(1.0_4,0.0_4),psit(1,1),2*nvctrp, &
+          hpsit(1,1),2*nvctrp,(0.0_4,0.0_4),alag(1,1,istart),norb)
+  end if
+
+  if (nproc > 1) then
+     call timing(iproc,'LagrM_comput  ','OF')
+     call timing(iproc,'LagrM_commun  ','ON')
+     call MPI_ALLREDUCE(alag(1,1,2),alag(1,1,1),norbs*norb,&
+          MPI_REAL,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'LagrM_commun  ','OF')
+     call timing(iproc,'LagrM_comput  ','ON')
+  end if
+!!$          if (iproc.eq.0) then
+!!$          write(*,*) 'ALAG',iproc,norb,norbs
+!!$          do iorb=1,norb
+!!$          write(*,'(10(1x,1pe10.3))') (alag(jorb,iorb,1),jorb=1,norbs)
+!!$          enddo
+!!$          endif
+  scprsum=0.0_dp
+  if(nspinor==1) then
+     do iorb=1,norb
+        occ=real(occup(iorb),dp)
+        scprsum=scprsum+occ*real(alag(iorb,iorb,1),dp)
+     enddo
+  else
+    do iorb=1,norb
+       occ=real(occup(iorb),dp)
+       scprsum=scprsum+occ*real(alag(2*iorb-1,iorb,1),dp)
+       scprsum=scprsum+occ*real(alag(2*iorb,iorb,1),dp)
+     enddo
+  end if
+!  if(iproc==0) print *,'ortho_p',scprsum
+
+  ! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
+  if(nspinor==1) then
+     call GEMM('N','N',nvctrp,norb,norb,-1.0_4,psit(1,1),nvctrp,alag(1,1,1),norb,1.0_4,&
+          hpsit(1,1),nvctrp)
+  else
+     call C_GEMM('N','N',2*nvctrp,norb,norb,(-1.0_4,0.0_4),psit(1,1),2*nvctrp,&
+          alag(1,1,1),norb,(1.0_4,0.0_4),hpsit(1,1),2*nvctrp)
+  end if
+  i_all=-product(shape(alag))*kind(alag)
+  deallocate(alag,stat=i_stat)
+  call memocc(i_stat,i_all,'alag',subname)
+
+  call timing(iproc,'LagrM_comput  ','OF')
+
+end subroutine orthoconstraint_cuda
+
+
 subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,nspinor)
   !Effect of orthogonality constraints on gradient 
   use module_base
   implicit none
   integer, intent(in) :: iproc,nproc,norb,nvctrp,nspinor
   real(gp), dimension(norb), intent(in) :: occup
-  real(wp), dimension(nspinor*nvctrp,norb), intent(in) :: psit
+  real(wp), dimension(nspinor*nvctrp,norb), intent(in) :: psit 
   real(dp), intent(out) :: scprsum
   real(wp), dimension(nspinor*nvctrp,norb), intent(out) :: hpsit
   !local variables
@@ -12,7 +95,6 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   integer :: i_stat,i_all,istart,iorb,jorb,ierr,norbs,i,j
   real(dp) :: occ
   real(dp), dimension(:,:,:), allocatable :: alag
-  real(wp), dimension(:,:), allocatable :: psitt,hpsitt
 
   call timing(iproc,'LagrM_comput  ','ON')
   istart=2

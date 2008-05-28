@@ -149,10 +149,6 @@ subroutine wpdot(  &
   real(wp), dimension(7,mavctr_f), intent(in) :: apsi_f
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f
   real(dp), intent(out) :: scpr
-!!$  implicit real(kind=8) (a-h,o-z)
-!!$  dimension keyav_c(maseg_c),keyag_c(2,maseg_c),keyav_f(maseg_f),keyag_f(2,maseg_f)
-!!$  dimension keybv_c(mbseg_c),keybg_c(2,mbseg_c),keybv_f(mbseg_f),keybg_f(2,mbseg_f)
-!!$  dimension apsi_c(mavctr_c),apsi_f(7,mavctr_f),bpsi_c(mbvctr_c),bpsi_f(7,mbvctr_f)
   !local variables
   integer :: iaseg,ibseg,llc,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,llf,i
   real(dp) :: pac,paf1,paf2,paf3,paf4,paf5,paf6,paf7,pbc,pbf1,pbf2,pbf3,pbf4,pbf5,pbf6,pbf7
@@ -301,11 +297,6 @@ subroutine waxpy(  &
   !local variables
   integer :: iaseg,ibseg,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,i
   real(wp) :: scprwp
-
-!!$  implicit real(kind=8) (a-h,o-z)
-!!$  dimension keyav_c(maseg_c),keyag_c(2,maseg_c),keyav_f(maseg_f),keyag_f(2,maseg_f)
-!!$  dimension keybv_c(mbseg_c),keybg_c(2,mbseg_c),keybv_f(mbseg_f),keybg_f(2,mbseg_f)
-!!$  dimension apsi_c(mavctr_c),apsi_f(7,mavctr_f),bpsi_c(mbvctr_c),bpsi_f(7,mbvctr_f)
 
   scprwp=real(scpr,wp)
 
