@@ -17,7 +17,7 @@
 !! SOURCE
 !! 
 module module_base 
-  use MPI
+  !use MPI
   implicit none  
   !buffer to be added at the end of the last dimension of an array to control bounds_check
   integer, parameter :: ndebug=0
@@ -28,7 +28,7 @@ module module_base
   integer, parameter :: wp=kind(1.0d0)  !wavefunction-type precision
 
   !MPI definitions and datatypes for density and wavefunctions
-  !include 'mpif.h'
+  include 'mpif.h'
   integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION,mpidtypd=MPI_DOUBLE_PRECISION
   integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
   !integer, parameter :: mpidtypw=MPI_REAL,mpidtypd=MPI_REAL !in case of single precision

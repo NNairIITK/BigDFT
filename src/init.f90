@@ -210,14 +210,6 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
   integer :: iat,i_stat,i_all,ityp,iseg,natyp
   logical, dimension(:,:,:), allocatable :: logrid
   
-
-  if (iproc.eq.0) then
-     write(*,'(1x,a)')&
-          '------------------------------------------------------------ PSP Projectors Creation'
-     write(*,'(1x,a4,4x,a4,2(1x,a))')&
-          'Type','Name','Number of atoms','Number of projectors'
-  end if
-
   allocate(nlpspd%nseg_p(0:2*at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,nlpspd%nseg_p,'nlpspd%nseg_p',subname)
   allocate(nlpspd%nvctr_p(0:2*at%nat+ndebug),stat=i_stat)
@@ -231,94 +223,14 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
   allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid,'logrid',subname)
 
-  nlpspd%nseg_p(0)=0 
-  nlpspd%nvctr_p(0)=0 
-
-  istart=1
-  nlpspd%nproj=0
-
-  if (iproc ==0) then
-     !print the number of projectors to be created
-     do ityp=1,at%ntypes
-        call numb_proj(ityp,at%ntypes,at%psppar,at%npspcode,mproj)
-        natyp=0
-        do iat=1,at%nat
-           if (at%iatype(iat) == ityp) natyp=natyp+1
-        end do
-        write(*,'(1x,i4,2x,a6,1x,i15,i21)')&
-             ityp,trim(at%atomnames(ityp)),natyp,mproj
-     end do
-  end if
-
-  do iat=1,at%nat
-
-     call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
-     if (mproj.ne.0) then 
-
-        !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))')&
-        !     'projector descriptors for atom with mproj ',iat,mproj
-        nlpspd%nproj=nlpspd%nproj+mproj
-
-        ! coarse grid quantities
-        call pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),cpmult, &
-             hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
-
-        nlpspd%nboxp_c(1,1,iat)=nl1
-        nlpspd%nboxp_c(1,2,iat)=nl2       
-        nlpspd%nboxp_c(1,3,iat)=nl3       
-
-        nlpspd%nboxp_c(2,1,iat)=nu1
-        nlpspd%nboxp_c(2,2,iat)=nu2
-        nlpspd%nboxp_c(2,3,iat)=nu3
-
-        call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),cpmult,hx,hy,hz,logrid)
-        call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
-
-        nlpspd%nseg_p(2*iat-1)=nlpspd%nseg_p(2*iat-2) + mseg
-        nlpspd%nvctr_p(2*iat-1)=nlpspd%nvctr_p(2*iat-2) + mvctr
-        istart=istart+mvctr*mproj
-
-        ! fine grid quantities
-        call pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
-             hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
-
-        nlpspd%nboxp_f(1,1,iat)=nl1
-        nlpspd%nboxp_f(1,2,iat)=nl2
-        nlpspd%nboxp_f(1,3,iat)=nl3
-
-        nlpspd%nboxp_f(2,1,iat)=nu1
-        nlpspd%nboxp_f(2,2,iat)=nu2
-        nlpspd%nboxp_f(2,3,iat)=nu3
-
-        call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
-        call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
-        !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr, fine  projectors ',mseg,mvctr
-        nlpspd%nseg_p(2*iat)=nlpspd%nseg_p(2*iat-1) + mseg
-        nlpspd%nvctr_p(2*iat)=nlpspd%nvctr_p(2*iat-1) + mvctr
-
-        istart=istart+7*mvctr*mproj
-
-     else  !(atom has no nonlocal PSP, e.g. H)
-        nlpspd%nseg_p(2*iat-1)=nlpspd%nseg_p(2*iat-2) 
-        nlpspd%nvctr_p(2*iat-1)=nlpspd%nvctr_p(2*iat-2) 
-        nlpspd%nseg_p(2*iat)=nlpspd%nseg_p(2*iat-1) 
-        nlpspd%nvctr_p(2*iat)=nlpspd%nvctr_p(2*iat-1) 
-     endif
-  enddo
-
-  if (iproc.eq.0) then
-     write(*,'(44x,a)') '------'
-     write(*,'(1x,a,i21)') 'Total number of projectors =',nlpspd%nproj
-  end if
+  call localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
+       logrid,at,nlpspd)
 
   ! allocations for arrays holding the projectors and their data descriptors
   allocate(nlpspd%keyg_p(2,nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
   call memocc(i_stat,nlpspd%keyg_p,'nlpspd%keyg_p',subname)
   allocate(nlpspd%keyv_p(nlpspd%nseg_p(2*at%nat)+ndebug),stat=i_stat)
   call memocc(i_stat,nlpspd%keyv_p,'nlpspd%keyv_p',subname)
-  nlpspd%nprojel=istart-1
   allocate(proj(nlpspd%nprojel+ndebug),stat=i_stat)
   call memocc(i_stat,proj,'proj',subname)
 

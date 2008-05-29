@@ -31,6 +31,8 @@ program memguess
   real(kind=8) :: peakmem,hx,hy,hz
   type(input_variables) :: in
   type(atoms_data) :: atoms
+  type(nonlocal_psp_descriptors) :: nlpspd
+  logical, dimension(:,:,:), allocatable :: logrid
   integer, dimension(:,:), allocatable :: neleconf
   real(kind=8), dimension(:,:), allocatable :: rxyz,radii_cf
   real(kind=8), dimension(:,:,:), allocatable :: psiat
@@ -210,6 +212,44 @@ program memguess
      call wtposout(0,0.d0,rxyz,atoms)
   end if
 
+! Determine size alat of overall simulation cell and shift atom positions
+! then calculate the size in units of the grid space
+  hx=In%hgrid
+  hy=In%hgrid
+  hz=In%hgrid
+  call system_size(0,in%geocode,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,&
+       in%alat1,in%alat2,in%alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
+
+  ! determine localization region for all projectors, but do not yet fill the descriptor arrays
+  allocate(nlpspd%nseg_p(0:2*atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,nlpspd%nseg_p,'nseg_p',subname)
+  allocate(nlpspd%nvctr_p(0:2*atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,nlpspd%nvctr_p,'nvctr_p',subname)
+  allocate(nlpspd%nboxp_c(2,3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,nlpspd%nboxp_c,'nboxp_c',subname)
+  allocate(nlpspd%nboxp_f(2,3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,nlpspd%nboxp_f,'nboxp_f',subname)
+  allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid,'logrid',subname)
+
+  call localize_projectors(in%geocode,0,n1,n2,n3,hx,hy,hz,in%cpmult,in%fpmult,rxyz,radii_cf,&
+       logrid,atoms,nlpspd)
+
+  i_all=-product(shape(logrid))*kind(logrid)
+  deallocate(logrid,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid',subname)
+  i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
+  deallocate(nlpspd%nvctr_p,stat=i_stat)
+  call memocc(i_stat,i_all,'nvctr_p',subname)
+  i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
+  deallocate(nlpspd%nseg_p,stat=i_stat)
+  call memocc(i_stat,i_all,'nseg_p',subname)
+  i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
+  deallocate(nlpspd%nboxp_c,stat=i_stat)
+  call memocc(i_stat,i_all,'nboxp_c',subname)
+  i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
+  deallocate(nlpspd%nboxp_f,stat=i_stat)
+  call memocc(i_stat,i_all,'nboxp_f',subname)
   i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
   deallocate(atoms%lfrztyp,stat=i_stat)
   call memocc(i_stat,i_all,'lfrztyp',subname)
@@ -233,17 +273,10 @@ program memguess
   deallocate(atoms%iasctype,stat=i_stat)
   call memocc(i_stat,i_all,'iasctype',subname)
 
-! Determine size alat of overall simulation cell and shift atom positions
-! then calculate the size in units of the grid space
-  hx=In%hgrid
-  hy=In%hgrid
-  hz=In%hgrid
-  call system_size(0,in%geocode,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,&
-       in%alat1,in%alat2,in%alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
 
   call MemoryEstimator(in%geocode,nproc,in%idsx,n1,n2,n3,in%alat1,in%alat2,in%alat3,&
        hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,in%crmult,in%frmult,&
-       norb,atoms%atomnames,output_grid,in%nspin,peakmem)
+       norb,nlpspd%nprojel,atoms%atomnames,output_grid,in%nspin,peakmem)
 
   i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
   deallocate(atoms%atomnames,stat=i_stat)

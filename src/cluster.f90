@@ -270,14 +270,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   hyh=0.5d0*hy
   hzh=0.5d0*hz
 
-  !memory estimation
-  if (iproc==0) then
-     !for the moment leave the atoms data as they are due to the module dependence
-     call MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,&
-          atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,norb,&
-          atoms%atomnames,.false.,nspin,peakmem) 
-  end if
-
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   ndegree_ip=16 !default value to be put to 16 and update references for test
   call createKernel(geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,iproc,nproc,pkernel)
@@ -294,6 +286,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,atoms,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
+
+  !memory estimation
+  if (iproc==0) then
+     call MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,&
+          atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,norb,nlpspd%nprojel,&
+          atoms%atomnames,.false.,nspin,peakmem) 
+  end if
 
   !allocate values of the array for the data scattering in sumrho
   !its values are ignored in the datacode='G' case

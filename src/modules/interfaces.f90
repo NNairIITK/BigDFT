@@ -122,12 +122,12 @@ interface
    end subroutine system_size
 
    subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
-        iatype,rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid,nspin,peakmem)
+        iatype,rxyz,radii_cf,crmult,frmult,norb,nprojel,atomnames,output_grid,nspin,peakmem)
      implicit none
      !Arguments
      character(len=1), intent(in) :: geocode
      logical, intent(in) :: output_grid
-     integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin
+     integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin,nprojel
      integer, dimension(nat), intent(in) :: iatype
      character(len=20), dimension(ntypes), intent(in) :: atomnames
      real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
