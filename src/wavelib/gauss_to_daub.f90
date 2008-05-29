@@ -275,8 +275,8 @@ end subroutine forward_c
 !
 subroutine forward(c,cd_1,left,right,left_1,right_1)
   use module_base
-  integer, intent(in) :: left,right,left_1,right_1
   implicit none
+  integer, intent(in) :: left,right,left_1,right_1
   real(wp), dimension(left:right), intent(in) :: c
   real(wp), dimension(left_1:right_1,2), intent(out) :: cd_1
   !local variables

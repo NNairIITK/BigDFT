@@ -534,17 +534,17 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
   integer, intent(inout) :: nspin,nvirte,nvirtep,nvirt
-  real(kind=8), intent(in) :: hx,hy,hz
+  real(gp), intent(in) :: hx,hy,hz
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(kind=8), dimension(norb), intent(in) :: spinsgn
-  real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
-  real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(kind=8), dimension(*), intent(in) :: pkernel
-  real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
-  real(kind=8), intent(out) :: accurex
-  real(kind=8), dimension(norb), intent(out) :: eval
-  real(kind=8), dimension(:), pointer :: psi,hpsi,psit,psivirt
+  real(gp), dimension(norb), intent(in) :: spinsgn
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
+  real(dp), dimension(*), intent(in) :: pkernel
+  real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
+  real(gp), intent(out) :: accurex
+  real(wp), dimension(norb), intent(out) :: eval
+  real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   real(kind=8), parameter :: eps_mach=1.d-12
@@ -552,13 +552,13 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer :: i,iorb,iorbsc,imatrsc,iorbst,imatrst,i_stat,i_all,ierr,info,jproc,jpst,norbeyou
   integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbsc,n1i,n2i,n3i
   integer :: ispin,norbu,norbd,iorbst2,ist,n2hamovr,nsthamovr,nspinor
-  real(kind=8) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol
+  real(gp) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol
   logical, dimension(:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
   integer, dimension(:,:), allocatable :: nl,norbsc_arr
-  real(kind=8), dimension(:), allocatable :: work_lp,pot,evale,occupe,spinsgne
-  real(kind=8), dimension(:,:), allocatable :: xp,occupat,hamovr!,psi,hpsi
-  real(kind=8), dimension(:,:,:), allocatable :: psiat
+  real(gp), dimension(:), allocatable :: occupe,spinsgne
+  real(gp), dimension(:,:), allocatable :: xp,occupat
+  real(gp), dimension(:,:,:), allocatable :: psiat
 
 
   !Calculate no. up and down orbitals for spin-polarized starting guess
@@ -657,9 +657,9 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           ' Processes from ',jpst,' to ',nproc-1,' treat ',norbeyou,' inguess orbitals '
   end if
 
-  hxh=.5d0*hx
-  hyh=.5d0*hy
-  hzh=.5d0*hz
+  hxh=.5_gp*hx
+  hyh=.5_gp*hy
+  hzh=.5_gp*hz
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
 !  allocate(psi(nvctrp,norbep*nproc*nspinor),stat=i_stat)
@@ -718,7 +718,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
   call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
-       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
+       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,nspin)
   
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
