@@ -33,15 +33,15 @@ end subroutine transposeto
 
 
 subroutine transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
-     work,out) !optional
+     work,outadd) !optional
   use module_base
   use module_types
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
   integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
-  real(wp), dimension(:), pointer, optional :: work,out
-  !real(wp), dimension(*), intent(out), optional :: out
+  real(wp), dimension(:), pointer, optional :: work
+  real(wp), dimension(*), intent(out), optional :: outadd
   !local variables
   integer :: ierr
 
@@ -58,9 +58,9 @@ subroutine transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
      call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,work,nspinor)
      call timing(iproc,'Un-TransSwitch','OF')
      call timing(iproc,'Un-TransComm  ','ON')
-     if (present(out)) then
+     if (present(outadd)) then
         call MPI_ALLTOALL(work,nvctrp*norbp*nspinor,mpidtypw,  &
-             out,nvctrp*norbp*nspinor,mpidtypw,MPI_COMM_WORLD,ierr)
+             outadd,nvctrp*norbp*nspinor,mpidtypw,MPI_COMM_WORLD,ierr)
      else
         call MPI_ALLTOALL(work,nvctrp*norbp*nspinor,mpidtypw,  &
              psi,nvctrp*norbp*nspinor,mpidtypw,MPI_COMM_WORLD,ierr)
@@ -78,15 +78,15 @@ subroutine transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
 end subroutine transpose
 
 subroutine untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
-     work,out) !optional
+     work,outadd) !optional
   use module_base
   use module_types
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
   integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
   real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(inout) :: psi
-  real(wp), dimension(:), pointer, optional :: work,out
-  !real(wp), dimension(*), intent(out), optional :: out
+  real(wp), dimension(:), pointer, optional :: work
+  real(wp), dimension(*), intent(out), optional :: outadd
   !local variables
   integer :: ierr
 
@@ -106,9 +106,9 @@ subroutine untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
           work,nvctrp*norbp*nspinor,mpidtypw,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
-     if (present(out)) then
+     if (present(outadd)) then
         call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-        work,out,nspinor)
+        work,outadd,nspinor)
      else
         call unswitch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
         work,psi,nspinor)

@@ -389,8 +389,8 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
   !apply the minimization method (DIIS or steepest descent)
   if (idsx.gt.0) then
      !transpose the hpsi wavefunction into the diis array
-     call transposeto(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,hpsi,psi,&
-          hpsidst(1+nvctrp*nspinor*norbp*nproc*(mids-1)))
+     call transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,hpsi,work=psi,&
+          outadd=hpsidst(1+nvctrp*nspinor*norbp*nproc*(mids-1)))
 
      call timing(iproc,'Diis          ','ON')
      if (nproc > 1) then
@@ -453,7 +453,7 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
   end if
     !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
   
-  call untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psit,work=hpsi,out=psi)
+  call untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psit,work=hpsi,outadd=psi(1))
   if (nproc == 1) then
      nullify(psit)
   end if

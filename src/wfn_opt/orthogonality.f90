@@ -172,7 +172,6 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
   character(len=*), parameter :: subname='orthon_p'
   integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,i,j,norbs,iorb,jorb
   real(dp) :: tt,ttLOC,ttr,tti
-  real(dp) :: nrm2
   real(kind=8) :: ddot
   real(dp), dimension(:,:,:), allocatable :: ovrlp
 
