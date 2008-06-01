@@ -29,7 +29,7 @@ program PSchk
   use Poisson_Solver
 
   implicit none
-  include 'mpif.h'
+  !include 'mpif.h'
   !Length of the box
   character(len=*), parameter :: subname='PSchk'
   real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2

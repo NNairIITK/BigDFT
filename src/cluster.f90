@@ -125,7 +125,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(:), pointer :: eval
   real(kind=8), dimension(:), pointer :: psi
   !local variables
-  include 'mpif.h' !already in module_base
   character(len=*), parameter :: subname='cluster'
   character(len=1) :: geocode
   character(len=10) :: orbname
@@ -137,7 +136,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   integer :: i1,i2,i3,ind,iat,ierror,i_all,i_stat,iter,ierr,i03,i04,jproc,ispin,nspinor,nplot
   real :: tcpu0,tcpu1
   real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf,hx,hy,hz,hxh,hyh,hzh
-  real(kind=8) :: hgridh,peakmem,alat1,alat2,alat3,accurex,gnrm_check,hgrid_old,energy_old,sumz
+  real(kind=8) :: hgridh,peakmem,alat1,alat2,alat3,gnrm_check,hgrid_old,energy_old,sumz
   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
   real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min,psoffset
   real(kind=8) :: factor,rhon,rhos,ttsum
@@ -271,14 +270,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   hyh=0.5d0*hy
   hzh=0.5d0*hz
 
-  !memory estimation
-  if (iproc==0) then
-     !for the moment leave the atoms data as they are due to the module dependence
-     call MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,&
-          atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,norb,&
-          atoms%atomnames,.false.,nspin,peakmem) 
-  end if
-
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   ndegree_ip=16 !default value to be put to 16 and update references for test
   call createKernel(geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,iproc,nproc,pkernel)
@@ -295,6 +286,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,atoms,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
+
+  !memory estimation
+  if (iproc==0) then
+     call MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,&
+          atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,norb,nlpspd%nprojel,&
+          atoms%atomnames,.false.,nspin,peakmem) 
+  end if
 
   !allocate values of the array for the data scattering in sumrho
   !its values are ignored in the datacode='G' case
@@ -346,7 +344,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      if (iproc.eq.0) then
         write(*,'(1x,a)')&
-             '------------------------------------------------- Random wavefunctions initalization'
+             '------------------------------------------------ Random wavefunctions initialization'
      end if
 
      !random initialisation of the wavefunctions
@@ -384,21 +382,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !and calculate eigenvalues
      call import_gaussians(geocode,iproc,nproc,atoms,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj, &
-          pkernel,ixc,psi,psit,hpsi,eval,accurex,nscatterarr,ngatherarr,nspin,spinsgn)
+          pkernel,ixc,psi,psit,hpsi,eval,nscatterarr,ngatherarr,nspin,spinsgn)
 
   else if (in%inputPsiId == 0) then
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(geocode,iproc,nproc,atoms,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
-          wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,accurex,&
+          wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,&
           nscatterarr,ngatherarr,nspin,spinsgn)
-
-     if (iproc.eq.0) then
-        write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
-        write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/real(norb,kind=8)
-     endif
-   
+  
   else if (in%inputPsiId == 1 ) then 
      !restart from previously calculated wavefunctions, in memory
 
@@ -611,8 +604,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
 
      tt=(energybs-scprsum)/scprsum
-     if ((abs(tt) > 1.d-10 .and. .not. GPUcomputing) .or.&
-          (abs(tt) > 1.d-8 .and. GPUcomputing).and. iproc==0) then 
+     if ((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
+          (abs(tt) > 1.d-8 .and. GPUconv).and. iproc==0) then 
         write(*,'(1x,a,1pe9.2,2(1pe22.14))') &
              'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
      endif

@@ -18,7 +18,6 @@ subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      ww,nwork,periodic)                         !added work arrays ww with dimension nwork
   use module_base
   implicit none
-  !implicit real(kind=8) (a-h,o-z)
   logical, intent(in) :: periodic
   integer, intent(in) :: n_gau,nmax,nwork
   real(gp), intent(in) :: hgrid,factor,gau_cen,gau_a
@@ -98,7 +97,6 @@ contains
     ! then forward transform to get the coeffs on the coarser grid.
     ! All this is done assuming nonperiodic boundary conditions
     ! but will also work in the periodic case if the tails are folded
-    !implicit real(kind=8) (a-h,o-z)
     n_left=lefts(0)
     n_right=rights(0)
     length=n_right-n_left+1
@@ -250,7 +248,6 @@ end subroutine apply_w
 subroutine forward_c(c,c_1,left,right,left_1,right_1)
   use module_base
   implicit none
-  !implicit real(kind=8) (a-h,o-z)
   integer, intent(in) :: left,right,left_1,right_1
   real(wp), dimension(left:right), intent(in) :: c
   real(wp), dimension(left_1:right_1), intent(out) :: c_1
@@ -278,6 +275,7 @@ end subroutine forward_c
 !
 subroutine forward(c,cd_1,left,right,left_1,right_1)
   use module_base
+  implicit none
   integer, intent(in) :: left,right,left_1,right_1
   real(wp), dimension(left:right), intent(in) :: c
   real(wp), dimension(left_1:right_1,2), intent(out) :: cd_1
@@ -303,6 +301,7 @@ subroutine forward(c,cd_1,left,right,left_1,right_1)
 
 end subroutine forward
 
+!unused
 function psi(x,GAU_A,GAU_CEN,N_GAU)
   implicit real(kind=8) (a-h,o-z)
   psi=(X-GAU_CEN)**N_GAU*exp(-0.5d0*((X-GAU_CEN)/GAU_A)**2)

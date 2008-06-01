@@ -30,7 +30,7 @@ subroutine memory_occupation(istat,isize,array,routine)
   include 'mpif.h'
   !Memory limit value in GB. It stops EVERYTHING if some process passes such limit
   !For no memory limit, leave it to zero
-  integer, parameter :: memorylimit=3
+  integer, parameter :: memorylimit=1
   type(memstat), save :: loc,tot
   integer, save :: nalloc,ndealloc,iproc
   integer :: ierr

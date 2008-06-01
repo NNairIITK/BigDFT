@@ -13,7 +13,6 @@ subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  &
   real(wp), dimension(nvctrp,norbp*nproc*nspinor), intent(out) :: psit
 ! Local variables
   character(len=*), parameter :: subname='diisstp'
-  include 'mpif.h'
   integer :: i,j,ist,jst,mi,iorb,info,jj,mj,k,i_all,i_stat,ierr
   real(kind=8) :: tt
   real(kind=8), external :: DDOT

@@ -47,7 +47,6 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
   use module_types
   use module_interfaces, except_this_one => davidson
   implicit none
-  include 'mpif.h'
   type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -215,7 +214,7 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
   ! Rayleigh quotients.
   do iorb=1,nvirte ! temporary variables 
      e(iorb,1,ise)= ddot(nvctrp,v(1+nvctrp*(iorb-1)),1,hv(1+nvctrp*(iorb-1)),1)          != <psi|H|psi> 
-     e(iorb,2,ise)= dnrm2(nvctrp,v(1+nvctrp+(iorb-1)),1)**2                    != <psi|psi> 
+     e(iorb,2,ise)= dnrm2(nvctrp,v(1+nvctrp*(iorb-1)),1)**2                    != <psi|psi> 
   end do
 
   if(nproc > 1)then
@@ -742,7 +741,6 @@ subroutine orthoconvirt_p(iproc,nproc,norb,nvirte,nvctrp,psi,hpsi,msg)
   real(wp), dimension(nvctrp,norb), intent(in) :: psi
   real(wp), dimension(nvctrp,nvirte), intent(out) :: hpsi
   !local variables
-  include 'mpif.h'
   character(len=*), parameter :: subname='orthoconvirt_p'
   logical :: msg
   integer :: i_all,i_stat,ierr,iorb,jorb,istart

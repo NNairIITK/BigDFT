@@ -38,67 +38,6 @@ module module_base
   !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   logical :: GPUconv=.false.,GPUblas=.false.
 
-  !interfaces for LAPACK routines
-  interface potrf
-     module procedure potrf_simple,potrf_double
-  end interface
-  interface c_potrf
-     module procedure c_potrf_simple,c_potrf_double
-  end interface
-  interface trtri
-     module procedure trtri_simple,trtri_double
-  end interface
-  interface c_trtri
-     module procedure c_trtri_simple,c_trtri_double
-  end interface
-  interface syev
-     module procedure syev_simple,syev_double
-  end interface
-  interface heev
-     module procedure heev_simple,heev_double
-  end interface
-  interface sygv
-     module procedure sygv_simple,sygv_double
-  end interface
-
-  
-
-  !interfaces for BLAS routines
-  interface gemm
-     module procedure gemm_simple,gemm_double
-  end interface
-  interface c_gemm
-     module procedure c_gemm_simple,c_gemm_double
-  end interface
-  interface nrm2
-     module procedure nrm2_simple,nrm2_double
-  end interface
-  interface vscal
-     module procedure scal_simple,scal_double
-  end interface
-  interface c_vscal
-     module procedure c_scal_simple,c_scal_double
-  end interface
-  interface syrk
-     module procedure syrk_simple,syrk_double
-  end interface
-  interface herk
-     module procedure herk_simple,herk_double
-  end interface
-  interface trmm
-     module procedure trmm_simple,trmm_double
-  end interface
-  interface c_trmm
-     module procedure c_trmm_simple,c_trmm_double
-  end interface
-  interface axpy
-     module procedure axpy_simple,axpy_double
-  end interface
-  interface c_axpy
-     module procedure c_axpy_simple,c_axpy_double
-  end interface
-
-
   !interface for the memory allocation control, depends on ndebug
   interface memocc
      module procedure mo_dp1,mo_dp2,mo_dp3,mo_dp4,mo_dp5,mo_dp6,mo_dp7,&
@@ -110,460 +49,6 @@ module module_base
   end interface
 
   contains
-
-    !interfaces for LAPACK routines
-    !WARNING: in these interfaces the input arrays are declared as scalars,
-    !         so the passage of the arguments by addresses is compulsory when calling
-    !         these routines
-    
-    !Cholesky factorization of a positive definite matrix
-    subroutine potrf_simple(uplo,n,a,lda,info)
-      implicit none
-      character(len=1), intent(in) :: uplo
-      integer, intent(in) :: lda,n
-      integer, intent(out) :: info
-      real(kind=4), intent(inout) :: a
-      !call to LAPACK routine
-      call spotrf(uplo,n,a,lda,info)
-    end subroutine potrf_simple
-
-    subroutine potrf_double(uplo,n,a,lda,info)
-      implicit none
-      character(len=1), intent(in) :: uplo
-      integer, intent(in) :: lda,n
-      integer, intent(out) :: info
-      real(kind=8), intent(inout) :: a
-      !call to LAPACK routine
-      call dpotrf(uplo,n,a,lda,info)
-    end subroutine potrf_double
-
-    subroutine c_potrf_simple(uplo,n,a,lda,info)
-      implicit none
-      character(len=1), intent(in) :: uplo
-      integer, intent(in) :: lda,n
-      integer, intent(out) :: info
-      real(kind=4), intent(inout) :: a
-      !call to LAPACK routine
-      call cpotrf(uplo,n,a,lda,info)
-    end subroutine c_potrf_simple
-
-    subroutine c_potrf_double(uplo,n,a,lda,info)
-      implicit none
-      character(len=1), intent(in) :: uplo
-      integer, intent(in) :: lda,n
-      integer, intent(out) :: info
-      real(kind=8), intent(inout) :: a
-      !call to LAPACK routine
-      call zpotrf(uplo,n,a,lda,info)
-    end subroutine c_potrf_double
-
-    !TRiangular matrix Inverse
-    subroutine trtri_simple(uplo,diag,n,a,lda,info)
-      implicit none
-      character(len=1), intent(in) :: uplo,diag
-      integer, intent(in) :: lda,n
-      integer, intent(out) :: info
-      real(kind=4), intent(inout) :: a
-      !call to LAPACK routine
-      call strtri(uplo,diag,n,a,lda,info)
-    end subroutine trtri_simple
-
-    subroutine trtri_double(uplo,diag,n,a,lda,info)
-      implicit none
-      character(len=1), intent(in) :: uplo,diag
-      integer, intent(in) :: lda,n
-      integer, intent(out) :: info
-      real(kind=8), intent(inout) :: a
-      !call to LAPACK routine
-      call dtrtri(uplo,diag,n,a,lda,info)
-    end subroutine trtri_double
-
-    subroutine c_trtri_simple(uplo,diag,n,a,lda,info)
-      implicit none
-      character(len=1), intent(in) :: uplo,diag
-      integer, intent(in) :: lda,n
-      integer, intent(out) :: info
-      real(kind=4), intent(inout) :: a
-      !call to LAPACK routine
-      call ctrtri(uplo,diag,n,a,lda,info)
-    end subroutine c_trtri_simple
-
-    subroutine c_trtri_double(uplo,diag,n,a,lda,info)
-      implicit none
-      character(len=1), intent(in) :: uplo,diag
-      integer, intent(in) :: lda,n
-      integer, intent(out) :: info
-      real(kind=8), intent(inout) :: a
-      !call to LAPACK routine
-      call ztrtri(uplo,diag,n,a,lda,info)
-    end subroutine c_trtri_double
-
-    subroutine syev_simple(jobz,uplo,n,a,lda,w,work,lwork,info)
-      implicit none
-      character(len=1), intent(in) :: jobz,uplo
-      integer, intent(in) :: lda,lwork,n
-      integer, intent(out) :: info
-      real(kind=4), intent(inout) :: a,work
-      real(kind=4), intent(out) :: w
-      !call to LAPACK routine
-      call ssyev(jobz,uplo,n,a,lda,w,work,lwork,info)
-    end subroutine syev_simple
-
-    subroutine syev_double(jobz,uplo,n,a,lda,w,work,lwork,info)
-      implicit none
-      character(len=1), intent(in) :: jobz,uplo
-      integer, intent(in) :: lda,lwork,n
-      integer, intent(out) :: info
-      real(kind=8), intent(inout) :: a,work
-      real(kind=8), intent(out) :: w
-      !call to LAPACK routine
-      call dsyev(jobz,uplo,n,a,lda,w,work,lwork,info)
-    end subroutine syev_double
-
-    subroutine heev_simple(jobz,uplo,n,a,lda,w,work,lwork,rwork,info)
-      implicit none
-      character(len=1), intent(in) :: jobz,uplo
-      integer, intent(in) :: lda,lwork,n
-      integer, intent(out) :: info
-      real(kind=4), intent(inout) :: a,work,rwork
-      real(kind=4), intent(out) :: w
-      !call to LAPACK routine
-      call cheev(jobz,uplo,n,a,lda,w,work,lwork,rwork,info)
-    end subroutine heev_simple
-
-    subroutine heev_double(jobz,uplo,n,a,lda,w,work,lwork,rwork,info)
-      implicit none
-      character(len=1), intent(in) :: jobz,uplo
-      integer, intent(in) :: lda,lwork,n
-      integer, intent(out) :: info
-      real(kind=8), intent(inout) :: a,work,rwork
-      real(kind=8), intent(out) :: w
-      !call to LAPACK routine
-      call zheev(jobz,uplo,n,a,lda,w,work,lwork,rwork,info)
-    end subroutine heev_double
-
-    subroutine sygv_simple(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,info)
-      implicit none
-      character(len=1), intent(in) :: jobz,uplo
-      integer, intent(in) :: itype,lda,ldb,lwork,n
-      integer, intent(out) :: info
-      real(kind=4), intent(inout) :: a,b,work
-      real(kind=4), intent(out) :: w
-      !call to LAPACK routine
-      call ssygv(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,info)
-    end subroutine sygv_simple
-
-    subroutine sygv_double(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,info)
-      implicit none
-      character(len=1), intent(in) :: jobz,uplo
-      integer, intent(in) :: itype,lda,ldb,lwork,n
-      integer, intent(out) :: info
-      real(kind=8), intent(inout) :: a,b,work
-      real(kind=8), intent(out) :: w
-      !call to LAPACK routine
-      call dsygv(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,info)
-    end subroutine sygv_double
-
-
-    !interfaces for BLAS routines
-    !WARNING: in these interfaces the input arrays are declared as scalars,
-    !         so the passage of the arguments by addresses is compulsory when calling
-    !         these routines
-
-    !SCALe a vector by a constant
-    subroutine scal_simple(n,da,dx,incx)
-      implicit none
-      integer, intent(in) :: incx,n
-      real(kind=4), intent(in) :: da
-      real(kind=4), intent(out) :: dx
-      if (GPUblas) then
-         !call to CUBLAS routine
-         call cublas_SSCAL(n,da,dx,incx)
-      else
-         !call to BLAS routine
-         call SSCAL(n,da,dx,incx)
-      end if
-    end subroutine scal_simple
-
-    subroutine scal_double(n,da,dx,incx)
-      implicit none
-      integer, intent(in) :: incx,n
-      real(kind=8), intent(in) :: da
-      real(kind=8), intent(out) :: dx
-      !call to BLAS routine
-      call DSCAL(n,da,dx,incx)
-    end subroutine scal_double
-
-    subroutine c_scal_simple(n,da,dx,incx)
-      implicit none
-      integer, intent(in) :: incx,n
-      real(kind=4), intent(in) :: da
-      real(kind=4), intent(out) :: dx
-      if (GPUblas) then
-         !call to CUBLAS routine
-         call cublas_CSCAL(n,da,dx,incx)
-      else
-         !call to BLAS routine
-         call CSCAL(n,da,dx,incx)
-      end if
-    end subroutine c_scal_simple
-    
-    subroutine c_scal_double(n,da,dx,incx)
-      implicit none
-      integer, intent(in) :: incx,n
-      real(kind=8), intent(in) :: da
-      real(kind=8), intent(out) :: dx
-      !call to BLAS routine
-      call ZSCAL(n,da,dx,incx)
-    end subroutine c_scal_double
-
-    subroutine trmm_simple(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
-      implicit none
-      character(len=1), intent(in) :: side,uplo,transa,diag
-      integer, intent(in) :: lda,ldb,m,n
-      real(kind=4), intent(in) :: alpha
-      real(kind=4), intent(in) :: a
-      real(kind=4), intent(inout) :: b
-      if (GPUblas) then
-         !call to CUBLAS routine
-         call cublas_STRMM(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
-      else
-         !call to BLAS routine
-         call STRMM(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
-      end if
-    end subroutine trmm_simple
-
-    subroutine trmm_double(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
-      implicit none
-      character(len=1), intent(in) :: side,uplo,transa,diag
-      integer, intent(in) :: lda,ldb,m,n
-      real(kind=8), intent(in) :: alpha
-      real(kind=8), intent(in) :: a
-      real(kind=8), intent(inout) :: b
-      !call to BLAS routine
-      call DTRMM(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
-    end subroutine trmm_double
-
-    subroutine c_trmm_simple(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
-      implicit none
-      character(len=1), intent(in) :: side,uplo,transa,diag
-      integer, intent(in) :: lda,ldb,m,n
-      complex(kind=4), intent(in) :: alpha
-      real(kind=4), intent(in) :: a
-      real(kind=4), intent(inout) :: b
-      if (GPUblas) then
-         !call to CUBLAS routine
-         call cublas_CTRMM(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
-      else
-         !call to BLAS routine
-         call CTRMM(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
-      end if
-    end subroutine c_trmm_simple
-
-    subroutine c_trmm_double(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
-      implicit none
-      character(len=1), intent(in) :: side,uplo,transa,diag
-      integer, intent(in) :: lda,ldb,m,n
-      complex(kind=8), intent(in) :: alpha
-      real(kind=8), intent(in) :: a
-      real(kind=8), intent(inout) :: b
-      !call to BLAS routine
-      call ZTRMM(side,uplo,transa,diag,m,n,alpha,a,lda,b,ldb)
-    end subroutine c_trmm_double
-
-    subroutine axpy_simple(n,da,dx,incx,dy,incy)
-      implicit none
-      integer, intent(in) :: incx,incy,n
-      real(kind=4), intent(in) :: da
-      real(kind=4), intent(in) :: dx
-      real(kind=4), intent(inout) :: dy
-      if (GPUblas) then
-         !call to CUBLAS routine
-         call cublas_SAXPY(n,da,dx,incx,dy,incy)
-      else
-         !call to BLAS routine
-         call SAXPY(n,da,dx,incx,dy,incy)
-      end if
-    end subroutine axpy_simple
-
-    subroutine axpy_double(n,da,dx,incx,dy,incy)
-      implicit none
-      integer, intent(in) :: incx,incy,n
-      real(kind=8), intent(in) :: da
-      real(kind=8), intent(in) :: dx
-      real(kind=8), intent(inout) :: dy
-      !call to BLAS routine
-      call DAXPY(n,da,dx,incx,dy,incy)
-    end subroutine axpy_double
-
-    subroutine c_axpy_simple(n,da,dx,incx,dy,incy)
-      implicit none
-      integer, intent(in) :: incx,incy,n
-      real(kind=4), intent(in) :: da
-      real(kind=4), intent(in) :: dx
-      real(kind=4), intent(inout) :: dy
-      if (GPUblas) then
-         !call to CUBLAS routine
-         call cublas_CAXPY(n,da,dx,incx,dy,incy)
-      else
-         !call to BLAS routine
-         call CAXPY(n,da,dx,incx,dy,incy)
-      end if
-    end subroutine c_axpy_simple
-
-    subroutine c_axpy_double(n,da,dx,incx,dy,incy)
-      implicit none
-      integer, intent(in) :: incx,incy,n
-      real(kind=8), intent(in) :: da
-      real(kind=8), intent(in) :: dx
-      real(kind=8), intent(inout) :: dy
-      !call to BLAS routine
-      call ZAXPY(n,da,dx,incx,dy,incy)
-    end subroutine c_axpy_double
-
-
-
-    !euclidean NoRM of a vector
-    function nrm2_simple(n,x,incx)
-      implicit none
-      integer, intent(in) :: n,incx
-      real(kind=4), intent(in) :: x
-      real(kind=4) :: nrm2_simple
-      !local variables
-      real(kind=4) :: cublas_snrm2,snrm2
-      if (GPUblas) then
-         !call to CUBLAS function
-         nrm2_simple=cublas_snrm2(n,x,incx)
-      else
-         !call to BLAS function
-         nrm2_simple=snrm2(n,x,incx)
-      end if
-    end function nrm2_simple
-    function nrm2_double(n,x,incx)
-      implicit none
-      integer, intent(in) :: n,incx
-      real(kind=8), intent(in) :: x
-      real(kind=8) :: nrm2_double
-      !local variables
-      real(kind=8) :: dnrm2
-      !call to BLAS routine
-      nrm2_double=dnrm2(n,x,incx)
-    end function nrm2_double
-
-    !GEneral Matrix-Matrix multiplication routines
-    subroutine gemm_simple(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
-      implicit none
-      character(len=1), intent(in) :: transa,transb
-      integer, intent(in) :: k,lda,ldb,ldc,m,n
-      real(kind=4), intent(in) :: alpha,beta
-      real(kind=4), intent(in) :: a
-      real(kind=4), intent(in) :: b
-      real(kind=4), intent(inout) :: c
-      if (GPUblas) then
-         !call to CUBLAS routine
-         call cublas_SGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
-      else
-         !call to BLAS routine
-         call SGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
-      end if
-    end subroutine gemm_simple
-
-    subroutine gemm_double(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
-      implicit none
-      character(len=1), intent(in) :: transa,transb
-      integer, intent(in) :: k,lda,ldb,ldc,m,n
-      real(kind=8), intent(in) :: alpha,beta
-      real(kind=8), intent(in) :: a
-      real(kind=8), intent(in) :: b
-      real(kind=8), intent(inout) :: c
-      !call to BLAS routine
-      call DGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
-    end subroutine gemm_double
-
-    subroutine c_gemm_simple(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
-      implicit none
-      character(len=1), intent(in) :: transa,transb
-      integer, intent(in) :: k,lda,ldb,ldc,m,n
-      complex(kind=4), intent(in) :: alpha,beta
-      real(kind=4), intent(in) :: a
-      real(kind=4), intent(in) :: b
-      real(kind=4), intent(inout) :: c
-      if (GPUblas) then
-         !call to CUBLAS routine
-         call cublas_CGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
-      else
-         !call to BLAS routine
-         call CGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
-      end if
-    end subroutine c_gemm_simple
-    subroutine c_gemm_double(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
-      implicit none
-      character(len=1), intent(in) :: transa,transb
-      integer, intent(in) :: k,lda,ldb,ldc,m,n
-      complex(kind=8), intent(in) :: alpha,beta
-      real(kind=8), intent(in) :: a
-      real(kind=8), intent(in) :: b
-      real(kind=8), intent(inout) :: c
-      !call to BLAS routine
-      call ZGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
-    end subroutine c_gemm_double
-
-    !SYmmetric Rank K operation
-    subroutine syrk_simple(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
-      implicit none
-      character(len=1), intent(in) :: trans,uplo
-      integer, intent(in) :: k,lda,ldc,n
-      real(kind=4), intent(in) :: alpha,beta
-      real(kind=4), intent(in) :: a
-      real(kind=4), intent(out) :: c 
-      if (GPUblas) then
-         !call to CUBLAS routine
-         call cublas_SSYRK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
-      else
-         !call to BLAS routine
-         call SSYRK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
-      end if
-    end subroutine syrk_simple
-
-    subroutine syrk_double(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
-      implicit none
-      character(len=1), intent(in) :: trans,uplo
-      integer, intent(in) :: k,lda,ldc,n
-      real(kind=8), intent(in) :: alpha,beta
-      real(kind=8), intent(in) :: a
-      real(kind=8), intent(out) :: c 
-      !call to BLAS routine
-      call DSYRK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
-    end subroutine syrk_double
-
-    !HErmitian Rank K operation
-    subroutine herk_simple(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
-      implicit none
-      character(len=1), intent(in) :: trans,uplo
-      integer, intent(in) :: k,lda,ldc,n
-      real(kind=4), intent(in) :: alpha,beta
-      real(kind=4), intent(in) :: a
-      real(kind=4), intent(out) :: c 
-      if (GPUblas) then
-         !call to CUBLAS routine
-         call cublas_CHERK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
-      else
-         !call to BLAS routine
-         call CHERK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
-      end if
-    end subroutine herk_simple
-
-    subroutine herk_double(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
-      implicit none
-      character(len=1), intent(in) :: trans,uplo
-      integer, intent(in) :: k,lda,ldc,n
-      real(kind=8), intent(in) :: alpha,beta
-      real(kind=8), intent(in) :: a
-      real(kind=8), intent(out) :: c 
-      !call to BLAS routine
-      call ZHERK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
-    end subroutine herk_double
-
 
     !routine used for deallocations
     subroutine memocc_internal(istat,isize,array,routine)
@@ -1112,3 +597,179 @@ module module_base
 
 end module module_base
 !!***
+
+!control the memory occupation by calculating the overall size of the allocated arrays
+!usage: 
+! when allocating allocating an array "stuff" of dimension n in the routine "dosome"
+!  allocate(stuff(n),stat=i_stat)
+!  call memocc(i_stat,product(shape(stuff))*kind(stuff),'stuff','dosome')
+! when deallocating 
+!  i_all=-product(shape(stuff))*kind(stuff)
+!  deallocate(stuff,stat=i_stat)
+!  call memocc(i_stat,i_all,'stuff','dosome')
+! the counters are initialized with
+!  call memocc(0,iproc,'count','start') (iproc = mpi rank, nproc=mpi size)
+! and stopped with
+!  call memocc(0,0,'count','stop')
+! at the end of the calculation a short report is printed on the screen
+! some information can be also written on disk following the needs
+!  This file is distributed under the terms of the
+!  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+!  Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007
+subroutine memory_occupation(istat,isize,array,routine)
+  implicit none
+
+  type :: memstat
+     character(len=36) :: routine,array
+     integer(kind=8) :: memory,peak
+  end type memstat
+
+  character(len=*), intent(in) :: array,routine
+  integer, intent(in) :: istat,isize
+  !local variables
+  include 'mpif.h'
+  !Memory limit value in GB. It stops EVERYTHING if some process passes such limit
+  !For no memory limit, leave it to zero
+  integer, parameter :: memorylimit=3
+  type(memstat), save :: loc,tot
+  integer, save :: nalloc,ndealloc,iproc
+  integer :: ierr
+
+  select case(array)
+  case('count')
+     if (routine=='start') then
+        tot%memory=int(0,kind=8)
+        tot%peak=int(0,kind=8)
+        nalloc=0
+        ndealloc=0
+
+        loc%routine='routine'
+        loc%array='array'
+        loc%memory=int(0,kind=8) !fake initialisation to print the first routine
+        loc%peak=int(0,kind=8)
+
+        iproc=isize
+        !open the writing file for the root process
+        if (iproc == 0) then
+           open(unit=98,file='malloc.prc',status='unknown')
+           write(98,'(a32,a14,4(1x,a12))')&
+                '(Data in KB)             Routine','    Peak Array',&
+                'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
+        end if
+     else if (routine=='stop' .and. iproc==0) then
+        write(98,'(a32,a14,4(1x,i12))')&
+             trim(loc%routine),trim(loc%array),&
+             loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
+             tot%memory/int(1024,kind=8),&
+             (tot%peak+loc%peak-loc%memory)/int(1024,kind=8)
+        close(98)
+        write(*,'(1x,a)')&
+             '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
+        write(*,'(1x,2(i0,a),i0)')&
+             nalloc,' allocations and ',ndealloc,' deallocations, remaining memory(B):',&
+             tot%memory
+        write(*,'(1x,a,i0,a)') 'memory occupation peak: ',tot%peak/int(1048576,kind=8),' MB'
+        write(*,'(4(1x,a))') 'for the array ',trim(tot%array),&
+             'in the routine',trim(tot%routine)
+        !here we can add a routine which open the malloc.prc file in case of some 
+        !memory allocation problem, and which eliminates it for a successful run
+        if (nalloc == ndealloc .and. tot%memory==int(0,kind=8)) then
+           !clean the malloc file
+           open(unit=98,file='malloc.prc',status='unknown')
+           write(98,*)
+           close(98)
+        end if
+     end if
+
+  case default
+     !control of the allocation/deallocation status
+     if (istat/=0) then
+        if (isize>=0) then
+           write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
+                'error code=',istat,' exiting...'
+           stop
+        else if (isize<0) then
+           write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
+                'error code=',istat,' exiting...'
+           stop
+        end if
+     end if
+     !total counter, for all the processes
+     tot%memory=tot%memory+int(isize,kind=8)
+     if (tot%memory > tot%peak) then
+        tot%peak=tot%memory
+        tot%routine=routine
+        tot%array=array
+     end if
+     if (isize>0) then
+        nalloc=nalloc+1
+     else if (isize<0) then
+        ndealloc=ndealloc+1
+     end if
+
+     if (memorylimit /= 0 .and. &
+          tot%memory > int(memorylimit*int(1073741824,kind=8),kind=8)) then !memory limit is in GB
+        write(*,'(1x,3(a,i0),a)')&
+             'ERROR: Memory limit of ',memorylimit,&
+             ' GB reached for iproc ',iproc,' : total memory is ',tot%memory,' B.'
+        write(*,'(1x,2(a,i0))')&
+             '       this happened for array '//trim(tot%array)//' in routine '//trim(tot%routine)
+        call MPI_ABORT(MPI_COMM_WORLD,ierr)
+     end if
+
+     select case(iproc)
+     case (0)
+        !to be used for inspecting an array which is not deallocated
+        !write(98,'(a32,a14,4(1x,i12))')trim(routine),trim(array),isize,memory
+        if (trim(loc%routine) /= routine) then
+           if (loc%memory /= int(0,kind=8)) then
+              write(98,'(a32,a14,4(1x,i12))')&
+                   trim(loc%routine),trim(loc%array),&
+                   loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
+                   tot%memory/int(1024,kind=8),&
+                   (tot%memory+loc%peak-loc%memory)/int(1024,kind=8)
+           end if
+           loc%routine=routine
+           loc%array=array
+           loc%memory=isize
+           loc%peak=isize
+!!$               end if
+        else
+           loc%memory=loc%memory+isize
+           if (loc%memory > loc%peak) then
+              loc%peak=loc%memory
+              loc%array=array
+           end if
+        end if
+     case default
+        return
+     end select
+  end select
+end subroutine memory_occupation
+
+!functions which specify NaN according to IEEE specifications
+function d_nan()
+  implicit none
+  real(kind=8) :: d_nan
+  !local variables
+  real(kind=8) :: dnan
+  integer, dimension(2) :: inan
+  equivalence (dnan, inan)
+  ! This first assignment is for big-endian machines
+  inan(1) = 2147483647
+  ! The second assignment is for little-endian machines
+  inan(2) = 2147483647
+  d_nan = dnan
+end function d_nan
+
+function r_nan()
+  implicit none
+  real(kind=4) :: r_nan
+  !local variables
+  real(kind=4) :: rnan
+  integer :: inan
+  equivalence (rnan, inan)
+  inan = 2147483647
+  r_nan = rnan
+end function r_nan
+

@@ -551,6 +551,7 @@ subroutine applyprojectorsone(ntypes,nat,iatype,psppar,npspcode, &
      do l=1,4
         do i=1,3
            if (psppar(l,i,ityp).ne.0.d0) then
+              !start of the routine for projectors application
               do m=1,2*l-1
                  iproj=iproj+1
                  istart_f=istart_c+mbvctr_c

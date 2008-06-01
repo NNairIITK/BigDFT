@@ -1,3 +1,114 @@
+  subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
+       logrid,at,nlpspd)
+    use module_base
+    use module_types
+    implicit none
+    type(atoms_data), intent(in) :: at
+    type(nonlocal_psp_descriptors), intent(out) :: nlpspd
+    character(len=1), intent(in) :: geocode
+    integer, intent(in) :: iproc,n1,n2,n3
+    real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
+    real(gp), dimension(3,at%nat), intent(in) :: rxyz
+    real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf
+    logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
+    !local variables
+    integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg
+
+  if (iproc.eq.0) then
+     write(*,'(1x,a)')&
+          '------------------------------------------------------------ PSP Projectors Creation'
+     write(*,'(1x,a4,4x,a4,2(1x,a))')&
+          'Type','Name','Number of atoms','Number of projectors'
+  end if
+
+  nlpspd%nseg_p(0)=0 
+  nlpspd%nvctr_p(0)=0 
+
+  istart=1
+  nlpspd%nproj=0
+
+  if (iproc ==0) then
+     !print the number of projectors to be created
+     do ityp=1,at%ntypes
+        call numb_proj(ityp,at%ntypes,at%psppar,at%npspcode,mproj)
+        natyp=0
+        do iat=1,at%nat
+           if (at%iatype(iat) == ityp) natyp=natyp+1
+        end do
+        write(*,'(1x,i4,2x,a6,1x,i15,i21)')&
+             ityp,trim(at%atomnames(ityp)),natyp,mproj
+     end do
+  end if
+
+  do iat=1,at%nat
+
+     call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
+     if (mproj.ne.0) then 
+
+        !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))')&
+        !     'projector descriptors for atom with mproj ',iat,mproj
+        nlpspd%nproj=nlpspd%nproj+mproj
+
+        ! coarse grid quantities
+        call pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),cpmult, &
+             hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+
+        nlpspd%nboxp_c(1,1,iat)=nl1
+        nlpspd%nboxp_c(1,2,iat)=nl2       
+        nlpspd%nboxp_c(1,3,iat)=nl3       
+
+        nlpspd%nboxp_c(2,1,iat)=nu1
+        nlpspd%nboxp_c(2,2,iat)=nu2
+        nlpspd%nboxp_c(2,3,iat)=nu3
+
+        call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),cpmult,hx,hy,hz,logrid)
+        call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
+
+        nlpspd%nseg_p(2*iat-1)=nlpspd%nseg_p(2*iat-2) + mseg
+        nlpspd%nvctr_p(2*iat-1)=nlpspd%nvctr_p(2*iat-2) + mvctr
+        istart=istart+mvctr*mproj
+
+        ! fine grid quantities
+        call pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
+             hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
+
+        nlpspd%nboxp_f(1,1,iat)=nl1
+        nlpspd%nboxp_f(1,2,iat)=nl2
+        nlpspd%nboxp_f(1,3,iat)=nl3
+
+        nlpspd%nboxp_f(2,1,iat)=nu1
+        nlpspd%nboxp_f(2,2,iat)=nu2
+        nlpspd%nboxp_f(2,3,iat)=nu3
+
+        call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
+        call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
+        !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr, fine  projectors ',mseg,mvctr
+        nlpspd%nseg_p(2*iat)=nlpspd%nseg_p(2*iat-1) + mseg
+        nlpspd%nvctr_p(2*iat)=nlpspd%nvctr_p(2*iat-1) + mvctr
+
+        istart=istart+7*mvctr*mproj
+
+     else  !(atom has no nonlocal PSP, e.g. H)
+        nlpspd%nseg_p(2*iat-1)=nlpspd%nseg_p(2*iat-2) 
+        nlpspd%nvctr_p(2*iat-1)=nlpspd%nvctr_p(2*iat-2) 
+        nlpspd%nseg_p(2*iat)=nlpspd%nseg_p(2*iat-1) 
+        nlpspd%nvctr_p(2*iat)=nlpspd%nvctr_p(2*iat-1) 
+     endif
+  enddo
+
+  !number of elements of the projectors
+  nlpspd%nprojel=istart-1
+  if (iproc.eq.0) then
+     write(*,'(44x,a)') '------'
+     write(*,'(1x,a,i21)') 'Total number of projectors =',nlpspd%nproj
+     write(*,'(1x,a,i21)') 'Total number of components =',nlpspd%nprojel
+  end if
+
+end subroutine localize_projectors
+
+
 !fill the proj array with the PSP projectors or their derivatives, following idir value
 subroutine fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
      nlpspd,proj,idir)
@@ -60,10 +171,12 @@ subroutine fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
      do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
         do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
            if (at%psppar(l,i,ityp) /= 0.0_gp) then
+              !start of the projectors expansion routine
               gau_a=at%psppar(l,0,ityp)
               factor=sqrt(2.0_gp)*fpi/(sqrt(gau_a)**(2*(l-1)+4*i-1))
               do m=1,2*l-1
                  istart_f=istart_c+mvctr_c
+
 
                  if (idir==0) then !normal projector calculation case
                     call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,factors)

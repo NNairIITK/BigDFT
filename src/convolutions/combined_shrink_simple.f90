@@ -2,11 +2,17 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
 ! In one dimension,    
 ! Applies the magic filter transposed, then analysis wavelet transformation.
 ! The size of the data is forced to shrink
-    implicit real(kind=8) (a-h,o-z)
-    integer,parameter:: lowfil2=-14,lupfil2=16
-    dimension x(lowfil2+2*nfl:2*nfu+lupfil2,ndat),y(ndat,nfl:nfu)
-    integer ib(2,ndat)
-    include 'v.inc'
+  use module_base
+  implicit none
+  integer, parameter :: lowfil2=-14,lupfil2=16
+  integer, intent(in) :: ndat,icf,nfl,nfu
+  integer, dimension(2,ndat), intent(in) :: ib
+  real(wp), dimension(lowfil2+2*nfl:2*nfu+lupfil2,ndat), intent(in) :: x
+  real(wp), dimension(ndat,nfl:nfu), intent(out) :: y
+  !local variables
+  integer :: j,l,i,icur
+  real(wp) :: ci0,ci1,ci2,ci3
+  include 'v.inc'
 
 !    open(unit=10,file='simple_shrink.flop')
 !    nflop=0
@@ -41,12 +47,17 @@ subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
 ! In one dimension,    
 ! Applies the magic filter transposed, then analysis wavelet transformation.
 ! The size of the data is forced to shrink
-    implicit real(kind=8) (a-h,o-z)
-    integer,parameter:: lowfil2=-14,lupfil2=16
-    real(kind=8) x(-14:2*n1+16,-14:2*n2+16,         -14:2*n3+16) ! input
-    real(kind=8) y(2,     -14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)! output
-    integer ib(2, -14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
-    include 'v.inc'
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, dimension(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16), intent(in) :: ib
+  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(in) :: x
+  real(wp), dimension(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1), intent(out) :: y
+  !local variables
+  integer, parameter :: lowfil2=-14,lupfil2=16
+  integer :: nflop,i,j2,j3,l,icur
+  real(wp) :: c1i0,c1i1,c1i2,c1i3,c2i0,c2i1,c2i2,c2i3,ci1,ci2
+  include 'v.inc'
 
     nflop=0
 !    open(unit=20,file='tree_shrink.flop')
@@ -79,11 +90,17 @@ subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
 ! In one dimension,    
 ! Applies the magic filter transposed, then analysis wavelet transformation.
 ! The size of the data is forced to shrink
-    implicit real(kind=8) (a-h,o-z)
-    integer,parameter:: lowfil2=-14,lupfil2=16
-    dimension x(2,lowfil2+2*nfl:2*nfu+lupfil2,ndat),y(2,2,ndat,nfl:nfu)
-    integer ib(2,ndat)
-    include 'v.inc'
+  use module_base
+  implicit none
+  integer, parameter:: lowfil2=-14,lupfil2=16
+  integer, intent(in) :: ndat,nfl,nfu
+  integer, dimension(2,ndat), intent(in) :: ib
+  real(wp), dimension(2,lowfil2+2*nfl:2*nfu+lupfil2,ndat), intent(in) :: x
+  real(wp), dimension(2,2,ndat,nfl:nfu), intent(out) :: y
+  !local variables
+  integer :: nflop,j,i,l,icur
+  real(wp) :: c11i0,c12i0,c21i0,c22i0,c11i1,c12i1,c21i1,c22i1,ci11,ci12,ci21,ci22
+  include 'v.inc'
 
     nflop=0
     !open(unit=20,file='tree_shrink.flop')

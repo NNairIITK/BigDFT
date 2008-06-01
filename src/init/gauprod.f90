@@ -13,13 +13,14 @@
 
 !normalize a given atomic shell following the angular momentum
 subroutine normalize_shell(ng,l,expo,coeff)
+  use module_base
   implicit none
   integer, intent(in) :: ng,l
-  real(kind=8), dimension(ng), intent(in) :: expo
-  real(kind=8), dimension(ng), intent(inout) :: coeff
+  real(gp), dimension(ng), intent(in) :: expo
+  real(gp), dimension(ng), intent(inout) :: coeff
   !local variables
   integer :: i,j
-  real(kind=8) :: norm,tt,e1,ex,c1,c2,gauint0
+  real(gp) :: norm,tt,e1,ex,c1,c2,gauint0
 
   norm=0.d0
   do i=1,ng
@@ -32,8 +33,8 @@ subroutine normalize_shell(ng,l,expo,coeff)
         norm=norm+c1*tt*c2
      end do
   end do
-  norm=sqrt(0.5d0*norm)
-  norm=1.d0/norm
+  norm=sqrt(0.5_gp*norm)
+  norm=1.0_gp/norm
   do i=1,ng
      coeff(i)=coeff(i)*norm
   end do

@@ -57,12 +57,13 @@ LIBCUTIL=lib/CUDA/libcutil.a
 #LIBRARIES += -L/usr/local/cuda/lib/ -lcudart CUDA/libGPU.a $(LIBCUTIL)
 
 #CUDAlib : libGPU
-#GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90	
+#GPUCONV_INTERFACE = 
+#GPUBLAS_INTERFACE =
 
 #TOGGLE THESE IF YOU DO NOT WANT CUDA INTERFACES (and comment LIBRARIES statement above)
 CUDAlib : 
-GPU_INTERFACE = convolutions/interface_cuda_fake.f90
-
+GPUCONV_INTERFACE = convolutions/interface_cuda_fake.f90
+GPUBLAS_INTERFACE = modules/cublas_fake.f90
 
 libGPU: 
 	cd CUDA;\
@@ -115,7 +116,8 @@ SOURCES = $(low_level) \
 
 MODULES_BIGDFT = modules/base.f90 \
 	modules/types.f90 \
-	modules/interfaces.f90
+	modules/interfaces.f90 \
+	$(CUBLAS_FAKE)
 
 
 #profiling sources
@@ -129,7 +131,7 @@ SOURCES_CONVOLUTIONS = convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_ib_optim.f90 \
 	convolutions/conv_per_optim.f90 \
 	convolutions/convolut_common.f90 \
-	$(GPU_INTERFACE)
+	$(GPUCONV_INTERFACE)
 
 MODULES_ABINIT= PSolver/ABINIT-common/defs_basis.F90 \
         PSolver/ABINIT-common/defs_datatypes.F90 \

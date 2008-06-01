@@ -22,7 +22,6 @@ program BigDFT
   !such that the implicit statement can be commented at will
 
   implicit none
-  include 'mpif.h'
   character(len=*), parameter :: subname='BigDFT'
   character(len=20) :: units
   integer :: iproc,nproc,n1,n2,n3,iat,ityp,j,i_stat,i_all,ierr,infocode

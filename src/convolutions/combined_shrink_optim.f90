@@ -1,11 +1,17 @@
+! In one dimension,    
+! Applies the magic filter transposed, then analysis wavelet transformation.
+! The size of the data is forced to shrink
 subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
-  ! In one dimension,    
-  ! Applies the magic filter transposed, then analysis wavelet transformation.
-  ! The size of the data is forced to shrink
-  implicit real(kind=8) (a-h,o-z)
-  integer,parameter:: lowfil2=-14,lupfil2=16
-  dimension x(lowfil2+2*nfl:2*nfu+lupfil2,ndat),y(ndat,nfl:nfu)
-  integer ib(2,ndat)
+  use module_base
+  implicit none
+  integer, parameter :: lowfil2=-14,lupfil2=16
+  integer, intent(in) :: ndat,icf,nfl,nfu
+  integer, dimension(2,ndat), intent(in) :: ib
+  real(wp), dimension(lowfil2+2*nfl:2*nfu+lupfil2,ndat), intent(in) :: x
+  real(wp), dimension(ndat,nfl:nfu), intent(out) :: y
+  !local variables
+  integer :: j,l,i,icur
+  real(wp) :: ci0,ci1,ci2,ci3
   include 'v_long.inc'
 
 !  !open(unit=10,file='longer_filter.flop')
@@ -20,14 +26,14 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
 !  enddo
 
   ! the convolution itself:
-  call system_clock(ncount0,ncount_rate,ncount_max)
+  !call system_clock(ncount0,ncount_rate,ncount_max)
   do j=1,ndat
      if (ib(2,j)-ib(1,j).ge.4) then
         do i=ib(1,j),ib(2,j)-4,4
-           ci0=0.d0
-           ci1=0.d0
-           ci2=0.d0
-           ci3=0.d0
+           ci0=0.0_wp
+           ci1=0.0_wp
+           ci2=0.0_wp
+           ci3=0.0_wp
 
            !                l=lowfil2+2*i+0
            !                  ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
@@ -85,7 +91,7 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
      endif
 
      do i=icur,ib(2,j)
-        ci0=0.d0
+        ci0=0.0_wp
         do l=lowfil2+2*i,lupfil2+2*i
            ci0=ci0+fil2(l-2*(i+0),icf)*x(l,j)
         enddo
@@ -93,21 +99,26 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
      enddo
   enddo
 
-  call system_clock(ncount1,ncount_rate,ncount_max)
-  tel=dble(ncount1-ncount0)/dble(ncount_rate)
+  !call system_clock(ncount1,ncount_rate,ncount_max)
+  !tel=dble(ncount1-ncount0)/dble(ncount_rate)
 
   !write(10,*) tel, 1.d-6*nflop/tel
 end subroutine comb_rot_shrink_loc
 
+! In one dimension,    
+! Applies the magic filter transposed, then analysis wavelet transformation.
+! The size of the data is forced to shrink
 subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
-  ! In one dimension,    
-  ! Applies the magic filter transposed, then analysis wavelet transformation.
-  ! The size of the data is forced to shrink
-  implicit real(kind=8) (a-h,o-z)
-  integer,parameter:: lowfil2=-14,lupfil2=16
-  real(kind=8) x(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16) ! input
-  real(kind=8) y(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)! output
-  integer ib(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, dimension(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16), intent(in) :: ib
+  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(in) :: x
+  real(wp), dimension(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16,nfl1:nfu1), intent(out) :: y
+  !local variables
+  integer, parameter :: lowfil2=-14,lupfil2=16
+  integer :: nflop,i,j2,j3,l,icur
+  real(wp) :: c1i0,c1i1,c1i2,c1i3,c2i0,c2i1,c2i2,c2i3,ci1,ci2
   include 'v_long.inc'
 
   nflop=0
@@ -118,15 +129,15 @@ subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
      do j3=-14+2*nfl3,2*nfu3+16
         if (ib(2,j2,j3)-ib(1,j2,j3).ge.4) then
            do i=ib(1,j2,j3),ib(2,j2,j3)-4,4
-              c1i0=0.d0
-              c1i1=0.d0
-              c1i2=0.d0
-              c1i3=0.d0
+              c1i0=0.0_wp
+              c1i1=0.0_wp
+              c1i2=0.0_wp
+              c1i3=0.0_wp
 
-              c2i0=0.d0
-              c2i1=0.d0
-              c2i2=0.d0
-              c2i3=0.d0
+              c2i0=0.0_wp
+              c2i1=0.0_wp
+              c2i2=0.0_wp
+              c2i3=0.0_wp
 
               !nflop=nflop+(lupfil2-lowfil2+1)*8*2
 
@@ -158,8 +169,8 @@ subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
         endif
 
         do i=icur,ib(2,j2,j3)
-           ci1=0.d0
-           ci2=0.d0
+           ci1=0.0_wp
+           ci2=0.0_wp
            !nflop=nflop+(lupfil2-lowfil2+1)*2*2
            do l=lowfil2+2*i,lupfil2+2*i
               ci1=ci1+fil2(l-2*i,1)*x(l,j2,j3)
@@ -177,15 +188,20 @@ subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
 
 end subroutine comb_rot_shrink_loc_1
 
-
+! In one dimension,    
+! Applies the magic filter transposed, then analysis wavelet transformation.
+! The size of the data is forced to shrink
 subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
-  ! In one dimension,    
-  ! Applies the magic filter transposed, then analysis wavelet transformation.
-  ! The size of the data is forced to shrink
-  implicit real(kind=8) (a-h,o-z)
-  integer,parameter:: lowfil2=-14,lupfil2=16
-  dimension x(2,lowfil2+2*nfl:2*nfu+lupfil2,ndat),y(2,2,ndat,nfl:nfu)
-  integer ib(2,ndat)
+  use module_base
+  implicit none
+  integer, parameter:: lowfil2=-14,lupfil2=16
+  integer, intent(in) :: ndat,nfl,nfu
+  integer, dimension(2,ndat), intent(in) :: ib
+  real(wp), dimension(2,lowfil2+2*nfl:2*nfu+lupfil2,ndat), intent(in) :: x
+  real(wp), dimension(2,2,ndat,nfl:nfu), intent(out) :: y
+  !local variables
+  integer :: nflop,j,i,l,icur
+  real(wp) :: c11i0,c12i0,c21i0,c22i0,c11i1,c12i1,c21i1,c22i1,ci11,ci12,ci21,ci22
   include 'v_long.inc'
 
   nflop=0
@@ -196,15 +212,15 @@ subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
      if (ib(2,j)-ib(1,j).ge.2) then
         do i=ib(1,j),ib(2,j)-2,2
 
-           c11i0=0.d0
-           c12i0=0.d0
-           c21i0=0.d0
-           c22i0=0.d0
+           c11i0=0.0_wp
+           c12i0=0.0_wp
+           c21i0=0.0_wp
+           c22i0=0.0_wp
 
-           c11i1=0.d0
-           c12i1=0.d0
-           c21i1=0.d0
-           c22i1=0.d0
+           c11i1=0.0_wp
+           c12i1=0.0_wp
+           c21i1=0.0_wp
+           c22i1=0.0_wp
 
            !nflop=nflop+(lupfil2-lowfil2+1)*2*8
            do l=lowfil2+2*i,lupfil2+2*i+2
@@ -235,10 +251,10 @@ subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
      endif
 
      do i=icur,ib(2,j)
-        ci11=0.d0
-        ci12=0.d0
-        ci21=0.d0
-        ci22=0.d0
+        ci11=0.0_wp
+        ci12=0.0_wp
+        ci21=0.0_wp
+        ci22=0.0_wp
 
         !nflop=nflop+(lupfil2-lowfil2+1)*2*4
         do l=lowfil2+2*i,lupfil2+2*i

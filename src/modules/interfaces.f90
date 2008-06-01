@@ -122,12 +122,12 @@ interface
    end subroutine system_size
 
    subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
-        iatype,rxyz,radii_cf,crmult,frmult,norb,atomnames,output_grid,nspin,peakmem)
+        iatype,rxyz,radii_cf,crmult,frmult,norb,nprojel,atomnames,output_grid,nspin,peakmem)
      implicit none
      !Arguments
      character(len=1), intent(in) :: geocode
      logical, intent(in) :: output_grid
-     integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin
+     integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin,nprojel
      integer, dimension(nat), intent(in) :: iatype
      character(len=20), dimension(ntypes), intent(in) :: atomnames
      real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
@@ -212,7 +212,7 @@ interface
 
    subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
         norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
-        pkernel,ixc,psi,psit,hpsi,eval,accurex,nscatterarr,ngatherarr,nspin,spinsgn)
+        pkernel,ixc,psi,psit,hpsi,eval,nscatterarr,ngatherarr,nspin,spinsgn)
      use module_types
      implicit none
      type(atoms_data), intent(in) :: at
@@ -230,14 +230,13 @@ interface
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(*), intent(in) :: pkernel
      real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
-     real(kind=8), intent(out) :: accurex
      real(kind=8), dimension(norb), intent(out) :: eval
      real(kind=8), dimension(:), pointer :: psi,psit,hpsi
    end subroutine import_gaussians
 
    subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
         norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
-        wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,accurex,&
+        wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,&
         nscatterarr,ngatherarr,nspin,spinsgn)
      ! Input wavefunctions are found by a diagonalization in a minimal basis set
      ! Each processors write its initial wavefunctions into the wavefunction file
@@ -261,7 +260,6 @@ interface
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(*), intent(in) :: pkernel
      real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
-     real(kind=8), intent(out) :: accurex
      real(kind=8), dimension(norb), intent(out) :: eval
      real(kind=8), dimension(:), pointer :: psi,hpsi,psit,psivirt
    end subroutine input_wf_diag
@@ -516,23 +514,25 @@ interface
    end subroutine preconditionall
 
    subroutine transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
-        work,out) !optional
+        work,outadd) !optional
      use module_base
      use module_types
      type(wavefunctions_descriptors), intent(in) :: wfd
      integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
-     real(wp), dimension(:), pointer, optional :: work,out
+     real(wp), dimension(:), pointer, optional :: work
+     real(wp), optional, intent(out) :: outadd !pass only the address to avoid pointer problems 
    end subroutine transpose
 
    subroutine untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
-        work,out) !optional
+        work,outadd) !optional
      use module_base
      use module_types
      type(wavefunctions_descriptors), intent(in) :: wfd
      integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
      real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(inout) :: psi
-     real(wp), dimension(:), pointer, optional :: work,out
+     real(wp), dimension(:), pointer, optional :: work
+     real(wp), optional, intent(out) :: outadd !pass only the address to avoid pointer problems 
    end subroutine untranspose
 
    subroutine plot_wf(orbname,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,rx,ry,rz,wfd,&

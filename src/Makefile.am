@@ -25,11 +25,13 @@ endif
 if USE_CUDA_GPU
 sub_dirs_cuda=CUDA
 GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart CUDA/libGPU.a @LIB_CUTIL_PATH@/libcutil.a
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas CUDA/libGPU.a @LIB_CUTIL_PATH@/libcutil.a
+GPU_BLAS=
 else
 sub_dirs_cuda=
 GPU_INTERFACE = convolutions/interface_cuda_fake.f90
 libs_cuda=
+GPU_BLAS = modules/cublas_fake.f90
 endif
 
 
@@ -84,7 +86,8 @@ convolution_objects = $(convolution_source:.f90=.o)
 #modules for types, interfaces and base variables
 modules_source = modules/base.f90 \
 	modules/types.f90 \
-	modules/interfaces.f90
+	modules/interfaces.f90 \
+	$(GPU_BLAS)
 
 modules_objects = $(modules_source:.f90=.o)
 
@@ -173,7 +176,7 @@ CLEANFILES = mpif.h \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@
 
 #dependencies
-$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o : $(mpi_include) $(modules_objects)
+$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o : $(mpi_include)  $(modules_objects)
 
 #cluster.o geometry.o: 
 

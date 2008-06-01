@@ -1,6 +1,13 @@
+if USE_CUDA_GPU
+GPUBLAS_INTERFACE = 
+else
+GPUBLAS_INTERFACE = cublas_fake.f90
+endif
+
 modules_source = base.f90 \
 	types.f90 \
-	interfaces.f90
+	interfaces.f90 \
+	$(GPUBLAS_INTERFACE)
 
 AM_FCFLAGS = -I. -I$(srcdir)
 

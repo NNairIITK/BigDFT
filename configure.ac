@@ -140,6 +140,10 @@ AC_ARG_ENABLE(cuda-gpu, AS_HELP_STRING([--enable-cuda-gpu], [Use CUDA implementa
 AM_CONDITIONAL(USE_CUDA_GPU, test "$ac_use_cuda_gpu" = "yes")
 AC_MSG_RESULT([$ac_use_cuda_gpu])
 if test x"$ac_use_cuda_gpu" = "xyes" ; then
+  dnl Add no-second-underscore flag.
+  dnl if `echo $FCFLAGS | grep -qvs -- "-fno-second-underscore"` ; then
+  dnl    FCFLAGS=$FCFLAGS" -fno-second-underscore"
+  dnl fi
   dnl Optional Cuda installation dir.
   AC_ARG_WITH(cuda-path, AS_HELP_STRING([--with-cuda-path], [give the path to the NVidia Cuda tools (default is /usr/local/cuda).]),
                          [ac_with_cuda_path=$withval], [ac_with_cuda_path="/usr/local/cuda"])
