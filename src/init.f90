@@ -920,8 +920,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   call solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsceff,nspin,tolerance,&
        norbgrp,hamovr,eval)
 
-  if (iproc == 0) print *,'DEBUGA',sum(hamovr(:,1),nspin*ndim_hamovr)
-
   !in the case of minimal basis allocate now the transposed wavefunction
   !otherwise do it only in parallel
   if (minimal .or. nproc > 1) then
@@ -942,8 +940,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
   nvctr=wfd%nvctr_c+7*wfd%nvctr_f
 
-  if (iproc == 0) print *,'DEBUG0',sum(psi,nvctrp*nspinor*nproc)
-
   if (.not. present(nvirte)) then
      call build_eigenvectors(nproc,norbu,norbd,norbp,norbtotp,nvctrp,nvctr,&
           natsceff,nspin,nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit)
@@ -954,8 +950,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   
   !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
      
-  if (iproc == 0) print *,'DEBUG1',sum(psit,nvctrp*nspinor*nproc)
-
   i_all=-product(shape(hamovr))*kind(hamovr)
   deallocate(hamovr,stat=i_stat)
   call memocc(i_stat,i_all,'hamovr',subname)
@@ -1007,8 +1001,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
 
   !this untranspose also the wavefunctions 
   call untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psit,work=hpsi,outadd=psi(1))
-
-  if (iproc == 0) print *,'DEBUG3',sum(psi,nvctrp*nspinor*nproc)
 
   if (nproc == 1) then
      nullify(psit)
@@ -1064,7 +1056,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   real(kind=8), dimension(:), allocatable :: work_lp,evale,randarr
 
   !find the eigenfunctions for each group
-  n_lp=1088!max(10,4*norbi_max)
+  n_lp=max(10,4*norbi_max)
   allocate(work_lp(n_lp+ndebug),stat=i_stat)
   call memocc(i_stat,work_lp,'work_lp',subname)
   allocate(evale(nspin*norbi_max+ndebug),stat=i_stat)
@@ -1098,36 +1090,43 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
 !!$
 !!$     end if
 
+     !write(11,*)hamovr(:,1:2)
 
-     call Dsygv(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
+     call sygv(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
           norbi,evale(1),work_lp(1),n_lp,info)
-     print *,iproc,n_lp,work_lp(1)
      if (info.ne.0) write(*,*) 'SYGV ERROR',info,i,natsc+1
 
      !do the diagonalisation separately in case of spin polarization     
      if (nspin==2) then
         norbj=norbsc_arr(i,2)
-        call Dsygv(1,'V','U',norbj,hamovr(imatrst+ndim_hamovr,1),&
+        call sygv(1,'V','U',norbj,hamovr(imatrst+ndim_hamovr,1),&
              norbj,hamovr(imatrst+ndim_hamovr,2),norbj,evale(norbi+1),work_lp(1),n_lp,info)
         if (info.ne.0) write(*,*) 'SYGV ERROR',info,i,natsc+1
      end if
 
-     if (iproc == 0) then
-        !write the matrices on a file
-        open(33+2*(i-1))
-        do jjorb=1,norbi
-           write(33+2*(i-1),'(2000(1pe10.2))')&
-                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
-        end do
-        close(33+2*(i-1))
-        open(34+2*(i-1))
-        do jjorb=1,norbi
-           write(34+2*(i-1),'(2000(1pe10.2))')&
-                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,2),jiorb=1,norbi)
-        end do
-        close(34+2*(i-1))
-
-     end if
+!!$     if (iproc == 0) then
+!!$        !write the matrices on a file
+!!$        open(12)
+!!$        do jjorb=1,norbi
+!!$           do jiorb=1,norbi
+!!$              write(12,'(1x,2(i0,1x),2(1pe24.17,1x))')jjorb,jiorb,&
+!!$                   hamovr(jjorb+norbi*(jiorb-1),1),hamovr(jjorb+norbi*(jiorb-1),2)
+!!$           end do
+!!$        end do
+!!$        close(12)
+!!$        !open(33+2*(i-1))
+!!$        !write(33+2*(i-1),'(2000(1pe10.2))')&
+!!$        !        (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
+!!$        !end do
+!!$        !close(33+2*(i-1))
+!!$        !open(34+2*(i-1))
+!!$        !do jjorb=1,norbi
+!!$        !   write(34+2*(i-1),'(2000(1pe10.2))')&
+!!$        !        (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,2),jiorb=1,norbi)
+!!$        !end do
+!!$        !close(34+2*(i-1))
+!!$
+!!$     end if
 
      !writing rules, control if the last eigenvector is degenerate
      !do this for each spin

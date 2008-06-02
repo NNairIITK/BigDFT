@@ -171,10 +171,12 @@ subroutine fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
      do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
         do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
            if (at%psppar(l,i,ityp) /= 0.0_gp) then
+              !start of the projectors expansion routine
               gau_a=at%psppar(l,0,ityp)
               factor=sqrt(2.0_gp)*fpi/(sqrt(gau_a)**(2*(l-1)+4*i-1))
               do m=1,2*l-1
                  istart_f=istart_c+mvctr_c
+
 
                  if (idir==0) then !normal projector calculation case
                     call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,factors)
