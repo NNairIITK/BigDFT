@@ -210,9 +210,11 @@ interface
      real(kind=8), dimension(*), intent(inout) :: pot_ion
    end subroutine createIonicPotential
 
-   subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+   subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
+        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
         norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
         pkernel,ixc,psi,psit,hpsi,eval,nscatterarr,ngatherarr,nspin,spinsgn)
+     use module_base
      use module_types
      implicit none
      type(atoms_data), intent(in) :: at
@@ -222,10 +224,11 @@ interface
      character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
-     real(kind=8), intent(in) :: hx,hy,hz
+     real(kind=8), intent(in) :: hx,hy,hz,cpmult,fpmult
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
      real(kind=8), dimension(norb), intent(in) :: spinsgn,occup
+     real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf  
      real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(*), intent(in) :: pkernel
@@ -234,7 +237,8 @@ interface
      real(kind=8), dimension(:), pointer :: psi,psit,hpsi
    end subroutine import_gaussians
 
-   subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+   subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
+        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
         norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
         wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,&
         nscatterarr,ngatherarr,nspin,spinsgn)
@@ -252,10 +256,11 @@ interface
      integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
      integer, intent(inout) :: nspin,nvirte,nvirtep,nvirt
-     real(kind=8), intent(in) :: hx,hy,hz
+     real(kind=8), intent(in) :: hx,hy,hz,cpmult,fpmult
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
      real(kind=8), dimension(norb), intent(in) :: spinsgn
+     real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf  
      real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(*), intent(in) :: pkernel
@@ -298,9 +303,10 @@ interface
      real(kind=8), dimension(max(nrho,1),nspinor), intent(out), target :: rho
    end subroutine sumrho
 
-   subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
+   subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
         norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
         ngatherarr,ndimpot,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,nspinor,spinsgn)
+     use module_base
      use module_types
      implicit none
      type(atoms_data), intent(in) :: at
@@ -310,9 +316,11 @@ interface
      character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ndimpot
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,nspinor
-     real(kind=8), intent(in) :: hx,hy,hz
+     real(kind=8), intent(in) :: hx,hy,hz,cpmult,fpmult
      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
      real(kind=8), dimension(norb), intent(in) :: occup,spinsgn
+     real(gp), dimension(3,at%nat), intent(in) :: rxyz
+     real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf  
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
      real(kind=8), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
@@ -421,7 +429,7 @@ interface
 
    subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
         nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,eval,&
-        pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,spinsgn,&
+        pot,hgrid,rxyz,radii_cf,crmult,frmult,cpmult,fpmult,nspin,spinsgn,&
         proj,psi,occup,output_grid,ekin_sum,epot_sum,eproj_sum)
      use module_types
      implicit none
@@ -431,7 +439,7 @@ interface
      logical, intent(in) :: output_grid
      integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncongt,nspin
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-     real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
+     real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf,cpmult,fpmult
      real(kind=8), dimension(norb), intent(in) :: occup,eval,spinsgn
      real(kind=8), dimension(at%ntypes,2), intent(in) :: radii_cf
      real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
@@ -453,6 +461,7 @@ interface
    end subroutine reformatonewave
 
    subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
+        cpmult,fpmult,radii_cf,&
         norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,&
         hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  & 
         pkernel,ixc,psi,v,eval,ncong,nscatterarr,ngatherarr)
@@ -468,8 +477,9 @@ interface
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i3xcsh,nvctrp,norbu
      integer, intent(in) :: nvirte,nvirtep,nvirt,ncong,n3p,itermax,nplot
      real(gp), dimension(norb), intent(in) :: occup
-     real(dp), intent(in) :: gnrm_cv
-     real(gp), intent(in) :: hx,hy,hz!convergence criterion for gradients
+     real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf  
+     real(dp), intent(in) :: gnrm_cv !convergence criterion for gradients
+     real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
      real(gp), dimension(3,at%nat), intent(in) :: rxyz

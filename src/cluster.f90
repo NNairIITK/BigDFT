@@ -380,14 +380,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      !import gaussians form CP2K (data in files def_gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
-     call import_gaussians(geocode,iproc,nproc,atoms,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+     call import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,atoms,&
+          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj, &
           pkernel,ixc,psi,psit,hpsi,eval,nscatterarr,ngatherarr,nspin,spinsgn)
 
   else if (in%inputPsiId == 0) then
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
-     call input_wf_diag(geocode,iproc,nproc,atoms,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+     call input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,atoms,&
+          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
           norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
           wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,&
           nscatterarr,ngatherarr,nspin,spinsgn)
@@ -568,7 +570,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         
      end if
 
-     call HamiltonianApplication(geocode,iproc,nproc,atoms,hx,hy,hz,&
+     call HamiltonianApplication(geocode,iproc,nproc,atoms,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
           norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
           rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,nspinor,spinsgn)
@@ -741,6 +743,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   
   if (nvirt > 0 .and. in%inputPsiId == 0) then
      call davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,atoms,&
+          cpmult,fpmult,radii_cf,&
           norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,&
           hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  &
           pkernel,ixc,psi,psivirt,eval,ncong,nscatterarr,ngatherarr)
@@ -963,13 +966,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!$  deallocate(derproj,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'derproj',subname)
 
-  i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
-  deallocate(nlpspd%nboxp_c,stat=i_stat)
-  call memocc(i_stat,i_all,'nboxp_c',subname)
-  i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
-  deallocate(nlpspd%nboxp_f,stat=i_stat)
-  call memocc(i_stat,i_all,'nboxp_f',subname)
-
   ! Add up all the force contributions
   if (nproc > 1) then
      call MPI_ALLREDUCE(gxyz,fxyz,3*atoms%nat,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -1045,7 +1041,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !pass hx instead of hgrid since we are only in free BC
      call CalculateTailCorrection(iproc,nproc,atoms,n1,n2,n3,rbuf,norb,norbp,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,eval,&
-          pot,hx,rxyz,radii_cf,crmult,frmult,nspin,spinsgn,&
+          pot,hx,rxyz,radii_cf,crmult,frmult,cpmult,fpmult,nspin,spinsgn,&
           proj,psi,occup,in%output_grid,ekin_sum,epot_sum,eproj_sum)
 
      i_all=-product(shape(pot))*kind(pot)
@@ -1129,13 +1125,6 @@ contains
        deallocate(pkernel,stat=i_stat)
        call memocc(i_stat,i_all,'pkernel',subname)
 
-       i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
-       deallocate(nlpspd%nboxp_c,stat=i_stat)
-       call memocc(i_stat,i_all,'nboxp_c',subname)
-       i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
-       deallocate(nlpspd%nboxp_f,stat=i_stat)
-       call memocc(i_stat,i_all,'nboxp_f',subname)
-
        ! calc_tail false
        i_all=-product(shape(rhopot))*kind(rhopot)
        deallocate(rhopot,stat=i_stat)
@@ -1163,6 +1152,12 @@ contains
        call deallocate_bounds(bounds,'cluster')
     end if
 
+    i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
+    deallocate(nlpspd%nboxp_c,stat=i_stat)
+    call memocc(i_stat,i_all,'nboxp_c',subname)
+    i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
+    deallocate(nlpspd%nboxp_f,stat=i_stat)
+    call memocc(i_stat,i_all,'nboxp_f',subname)
     i_all=-product(shape(nlpspd%keyg_p))*kind(nlpspd%keyg_p)
     deallocate(nlpspd%keyg_p,stat=i_stat)
     call memocc(i_stat,i_all,'keyg_p',subname)
@@ -1175,9 +1170,11 @@ contains
     i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
     deallocate(nlpspd%nseg_p,stat=i_stat)
     call memocc(i_stat,i_all,'nseg_p',subname)
+
     i_all=-product(shape(proj))*kind(proj)
     deallocate(proj,stat=i_stat)
     call memocc(i_stat,i_all,'proj',subname)
+
     i_all=-product(shape(occup))*kind(occup)
     deallocate(occup,stat=i_stat)
     call memocc(i_stat,i_all,'occup',subname)

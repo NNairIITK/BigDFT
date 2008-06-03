@@ -279,14 +279,18 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
   deallocate(logrid,stat=i_stat)
   call memocc(i_stat,i_all,'logrid',subname)
 
-  !calculate the wavelet expansion of projectors
-  call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
-       nlpspd,proj,0)
+  !fill the projectors if the strategy is a distributed calculation
+  if (.not. DistProjApply) then
+     !calculate the wavelet expansion of projectors
+     call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
+          nlpspd,proj,0)
+  end if
 
 END SUBROUTINE createProjectorsArrays
 
 
-subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
      pkernel,ixc,psi,psit,hpsi,eval,nscatterarr,ngatherarr,nspin,spinsgn)
   use module_base
@@ -301,10 +305,11 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
-  real(kind=8), intent(in) :: hx,hy,hz
+  real(kind=8), intent(in) :: hx,hy,hz,cpmult,fpmult
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(kind=8), dimension(norb), intent(in) :: spinsgn,occup
+  real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf  
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(*), intent(in) :: pkernel
@@ -388,7 +393,7 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   allocate(hpsi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
 
-  call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
+  call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
        norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
        ngatherarr,n1i*n2i*nscatterarr(iproc,2),&
        rhopot(1+n1i*n2i*nscatterarr(iproc,4)),&
@@ -424,7 +429,8 @@ subroutine import_gaussians(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
 END SUBROUTINE import_gaussians
 
-subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
      wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,&
      nscatterarr,ngatherarr,nspin,spinsgn)
@@ -444,10 +450,11 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
   integer, intent(inout) :: nspin,nvirte,nvirtep,nvirt
-  real(gp), intent(in) :: hx,hy,hz
+  real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(norb), intent(in) :: spinsgn
+  real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf  
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(dp), dimension(*), intent(in) :: pkernel
@@ -634,7 +641,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,at,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   allocate(hpsi(nvctrp*norbep*nproc+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
   
-  call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
+  call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
        nspin*norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
        ngatherarr,n1i*n2i*nscatterarr(iproc,2),rhopot(1+n1i*n2i*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,1,spinsgne)

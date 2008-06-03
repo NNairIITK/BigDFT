@@ -4,7 +4,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   use module_base
   implicit none
   integer, intent(in) :: ngx,iproc,ntypes,nspin,nat,natsc
-  character(len = 20), dimension(ntypes), intent(in) :: atomnames
+  character(len=20), dimension(ntypes), intent(in) :: atomnames
   integer, dimension(ntypes), intent(in) :: nzatom,nelpsp,npspcode,iasctype
   integer, dimension(nat), intent(in) :: iatype
   real(gp), dimension(0:4,0:6,ntypes), intent(in) :: psppar

@@ -32,9 +32,9 @@ subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
   real(wp) :: func
   integer, dimension(0:4) :: lefts,rights
   !include the convolutions filters
-  INCLUDE 'recs16.inc'! MAGIC FILTER  
-  INCLUDE 'intots.inc'! HERE WE KEEP THE ANALYTICAL NORMS OF GAUSSIANS
-  INCLUDE 'sym_16.inc'! WAVELET FILTERS
+  include 'recs16.inc'! MAGIC FILTER  
+  include 'intots.inc'! HERE WE KEEP THE ANALYTICAL NORMS OF GAUSSIANS
+  include 'sym_16.inc'! WAVELET FILTERS
 
   !rescale the parameters so that hgrid goes to 1.d0  
   a=gau_a/hgrid

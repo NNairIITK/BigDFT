@@ -301,7 +301,7 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
   integer :: istart_c,istart_f,iproj,iat,ityp,i,j,l,m,jorb
   integer :: istart_c_i,istart_f_i,istart_c_j,istart_f_j
   integer :: mvctr_c,mvctr_f,mbseg_c,mbseg_f,jseg_c,jseg_f
-  integer :: mbvctr_c,mbvctr_f,iorb
+  integer :: mbvctr_c,mbvctr_f,iorb,nwarnings
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj
   integer :: idir,i_all,i_stat
   real(gp), dimension(2,2,3) :: offdiagarr
@@ -346,69 +346,130 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
      end do
   end do
 
-  !calculate all the scalar products for each direction and each orbitals
-  
-  do idir=0,3
+  !look for the strategy of projectors application
+  if (DistProjApply) then
+     nwarnings=0 !not used, simply initialised 
+     do iat=1,at%nat
+        mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
+        mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
+        jseg_c=nlpspd%nseg_p(2*iat-2)+1
+        jseg_f=nlpspd%nseg_p(2*iat-1)+1
+        mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
+        mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
+        ityp=at%iatype(iat)
 
-     if (idir /= 0) then !for the first run the projectors are already allocated
-        call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
-             nlpspd,proj,idir)
-     end if
-
-
-     ! calculate the scalar product for all the orbitals
-     do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor
-        jorb=iorb-iproc*norbp*nspinor
-        ! loop over all projectors
-        iproj=0
-        istart_c=1
-        do iat=1,at%nat
-           mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
-           mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
-           jseg_c=nlpspd%nseg_p(2*iat-2)+1
-           jseg_f=nlpspd%nseg_p(2*iat-1)+1
-           mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
-           mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
-           ityp=at%iatype(iat)
-           do l=1,4
-              do i=1,3
+        do idir=0,3
+           !calculate projectors
+           istart_c=1
+           do l=1,4 !for GTH it will stop at l=2
+              do i=1,3 !for GTH it will stop at i=2
                  if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                    do m=1,2*l-1
-                       iproj=iproj+1
-                       istart_f=istart_c+mbvctr_c
+                    call projector(geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
+                         at%psppar(l,0,ityp),rxyz(1,iat),&
+                         nlpspd%nboxp_c(1,1,iat),nlpspd%nboxp_f(1,1,iat),n1,n2,n3,&
+                         hx,hy,hz,cpmult,fpmult,radii_cf(ityp,2),&
+                         mbvctr_c,mbvctr_f,proj(istart_c),nwarnings)
+                    istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)
+                    if (istart_c > nlpspd%nprojel+1) stop 'istart_c > nprojel+1'
+                 endif
+              enddo
+           enddo
 
-                       call wpdot(  &
-                            wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
-                            wfd%keyv(1),wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,1),&
-                            wfd%keyg(1,wfd%nseg_c+1),&
-                            psi(1,jorb),psi(wfd%nvctr_c+1,jorb),  &
-                            mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                            nlpspd%keyv_p(jseg_c),nlpspd%keyv_p(jseg_f),  &
-                            nlpspd%keyg_p(1,jseg_c),nlpspd%keyg_p(1,jseg_f),&
-                            proj(istart_c),proj(istart_f),scalprod(idir,m,i,l,iat,jorb))
+           !calculate the contribution for each orbital
+           do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor
+              jorb=iorb-iproc*norbp*nspinor
+              istart_c=1
+              do l=1,4
+                 do i=1,3
+                    if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                       do m=1,2*l-1
+                          istart_f=istart_c+mbvctr_c
+                          call wpdot(  &
+                               wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
+                               wfd%keyv(1),wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,1),&
+                               wfd%keyg(1,wfd%nseg_c+1),&
+                               psi(1,jorb),psi(wfd%nvctr_c+1,jorb),  &
+                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                               nlpspd%keyv_p(jseg_c),nlpspd%keyv_p(jseg_f),  &
+                               nlpspd%keyg_p(1,jseg_c),nlpspd%keyg_p(1,jseg_f),&
+                               proj(istart_c),proj(istart_f),scalprod(idir,m,i,l,iat,jorb))
 
-                       istart_c=istart_f+7*mbvctr_f
-                    end do
-                 end if
+                          istart_c=istart_f+7*mbvctr_f
+                       end do
+                    end if
+                 end do
               end do
            end do
         end do
 
-        if (iproj.ne.nlpspd%nproj) stop '1:applyprojectors'
-        if (istart_c-1.ne.nlpspd%nprojel) stop '2:applyprojectors'
-
      end do
-  end do
 
-  if (refill) then !restore the projectors in the proj array (for on the run forces calc.)
-     call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
-          nlpspd,proj,0)
+     if (istart_c-1  > nlpspd%nprojel) stop '2:applyprojectors'
+
+  else
+     !calculate all the scalar products for each direction and each orbitals
+     do idir=0,3
+
+        if (idir /= 0) then !for the first run the projectors are already allocated
+           call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
+                nlpspd,proj,idir)
+        end if
+
+
+        ! calculate the scalar product for all the orbitals
+        do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor
+           jorb=iorb-iproc*norbp*nspinor
+           ! loop over all projectors
+           iproj=0
+           istart_c=1
+           do iat=1,at%nat
+              mbseg_c=nlpspd%nseg_p(2*iat-1)-nlpspd%nseg_p(2*iat-2)
+              mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
+              jseg_c=nlpspd%nseg_p(2*iat-2)+1
+              jseg_f=nlpspd%nseg_p(2*iat-1)+1
+              mbvctr_c=nlpspd%nvctr_p(2*iat-1)-nlpspd%nvctr_p(2*iat-2)
+              mbvctr_f=nlpspd%nvctr_p(2*iat  )-nlpspd%nvctr_p(2*iat-1)
+              ityp=at%iatype(iat)
+              do l=1,4
+                 do i=1,3
+                    if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                       do m=1,2*l-1
+                          iproj=iproj+1
+                          istart_f=istart_c+mbvctr_c
+
+                          call wpdot(  &
+                               wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
+                               wfd%keyv(1),wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,1),&
+                               wfd%keyg(1,wfd%nseg_c+1),&
+                               psi(1,jorb),psi(wfd%nvctr_c+1,jorb),  &
+                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                               nlpspd%keyv_p(jseg_c),nlpspd%keyv_p(jseg_f),  &
+                               nlpspd%keyg_p(1,jseg_c),nlpspd%keyg_p(1,jseg_f),&
+                               proj(istart_c),proj(istart_f),scalprod(idir,m,i,l,iat,jorb))
+
+                          istart_c=istart_f+7*mbvctr_f
+                       end do
+                    end if
+                 end do
+              end do
+           end do
+
+           if (iproj /= nlpspd%nproj) stop '1:applyprojectors'
+           if (istart_c-1  /= nlpspd%nprojel) stop '2:applyprojectors'
+
+        end do
+     end do
+
+     if (refill) then !restore the projectors in the proj array (for on the run forces calc.)
+        call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
+             nlpspd,proj,0)
+     end if
   end if
 
   allocate(fxyz_orb(3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fxyz_orb,'fxyz_orb',subname)
 
-  ! loop over all my orbitals for calculatin forces
+  ! loop over all my orbitals for calculating forces
   do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor
      jorb=iorb-iproc*norbp*nspinor
      ! loop over all projectors
@@ -467,9 +528,6 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
         fsep(2,iat)=fsep(2,iat)+occup((iorb-1)/nspinor+1)*2.0_gp*fxyz_orb(2,iat)
         fsep(3,iat)=fsep(3,iat)+occup((iorb-1)/nspinor+1)*2.0_gp*fxyz_orb(3,iat)
      end do
-
-     if (iproj.ne.nlpspd%nproj) stop '1:applyprojectors'
-     if (istart_c-1.ne.nlpspd%nprojel) stop '2:applyprojectors'
 
   end do
 

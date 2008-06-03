@@ -40,9 +40,10 @@
 ! (retranspose v and psi) 
 
 subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
-           norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,&
-           hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  & 
-           pkernel,ixc,psi,v,eval,ncong,nscatterarr,ngatherarr)
+     cpmult,fpmult,radii_cf,&
+     norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,&
+     hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  & 
+     pkernel,ixc,psi,v,eval,ncong,nscatterarr,ngatherarr)
   use module_base
   use module_types
   use module_interfaces, except_this_one => davidson
@@ -56,8 +57,9 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i3xcsh,nvctrp,norbu
   integer, intent(in) :: nvirte,nvirtep,nvirt,ncong,n3p,itermax,nplot
   real(gp), dimension(norb), intent(in) :: occup
+  real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf  
   real(dp), intent(in) :: gnrm_cv
-  real(gp), intent(in) :: hx,hy,hz!convergence criterion for gradients
+  real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -194,7 +196,7 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
 !write(*,*)"start adress: ",1,1,1+i3xcsh,1
 !write(*,*)"start adress: ",1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)
 
-  call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
+  call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
        nvirte,nvirtep,ones,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
        rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,1,1,ones)
@@ -353,7 +355,7 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
      allocate(hg(nvctrp*nvirtep*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,hg,'hg',subname)
 
-     call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
+     call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
           nvirte,nvirtep,ones,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
           rhopot(1+i3xcsh*n1i*n2i),g,hg,ekin_sum,epot_sum,eproj_sum,1,1,ones)
@@ -541,7 +543,7 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
      ! Hamilton application on v
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
   
-     call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
+     call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
           nvirte,nvirtep,ones,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
           rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,1,1,ones)
