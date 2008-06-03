@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 06/03/2008
+# Date: 25/04/2008
 #----------------------------------------------------------------------------
 
 import difflib
@@ -137,7 +137,12 @@ while not EOF:
     line = compare.next()
     while line[0] == "-":
         left.append(line)
-        line = compare.next()
+        try:
+            line = compare.next()
+        except StopIteration:
+            #We have reached the end of file
+            EOF = True
+            break
     right = list()
     while line[0] == "+":
         right.append(line)

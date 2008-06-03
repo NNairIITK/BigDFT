@@ -79,6 +79,11 @@
         stop 'GATHER'
         end subroutine  MPI_GATHER
 
+        subroutine  MPI_Gather()
+        implicit none
+        stop 'GATHER'
+        end subroutine  MPI_Gather
+
         subroutine  MPI_ALLTOALL()
         implicit none
         stop 'ALLTOALL'
