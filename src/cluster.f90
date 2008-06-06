@@ -811,14 +811,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   deallocate(pot_ion,stat=i_stat)
   call memocc(i_stat,i_all,'pot_ion',subname)
 
-  if (iproc.eq.0 .and. in%output_grid) then
-
-     open(unit=22,file='density.pot',status='unknown')
-     write(22,*)'density'
-     write(22,*) 2*n1+2,2*n2+2,2*n3+2
-     write(22,*) alat1,' 0. ',alat2
-     write(22,*) ' 0. ',' 0. ',alat3
-     write(22,*)'xyz'
+  if (in%output_grid) then
+    
+     if (iproc == 0) then
+        open(unit=22,file='density.pot',status='unknown')
+        write(22,*)'normalised density'
+        write(22,*) 2*n1+2,2*n2+2,2*n3+2
+        write(22,*) alat1,' 0. ',alat2
+        write(22,*) ' 0. ',' 0. ',alat3
+        write(22,*)'xyz   periodic'
+     end if
 
      !conditions for periodicity in the three directions
      !value of the buffer in the x and z direction
@@ -842,18 +844,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         allocate(pot_ion(n1i*n2i*n3i+ndebug),stat=i_stat)
         call memocc(i_stat,pot_ion,'pot_ion',subname)
 
-        call MPI_ALLGATHERV(pot_ion,n1i*n2i*n3p,&
-             MPI_DOUBLE_PRECISION,rho,ngatherarr(0,1),&
+        call MPI_ALLGATHERV(rho,n1i*n2i*n3p,&
+             MPI_DOUBLE_PRECISION,pot_ion,ngatherarr(0,1),&
              ngatherarr(0,2),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
 
-        do i3=0,2*n3+1
-           do i2=0,2*n2+1
-              do i1=0,2*n1+1
-                 ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-                 write(22,*)pot_ion(ind)
+        if (iproc == 0) then
+           do i3=0,2*n3+1
+              do i2=0,2*n2+1
+                 do i1=0,2*n1+1
+                    ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
+                    write(22,*)pot_ion(ind)/real(nelec,dp)
+                 end do
               end do
            end do
-        end do
+        end if
 
         i_all=-product(shape(pot_ion))*kind(pot_ion)
         deallocate(pot_ion,stat=i_stat)
@@ -868,7 +872,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
            end do
         end do
      end if
-     close(22)
+     if (iproc == 0 )close(22)
   endif
 
   if (n3p>0) then

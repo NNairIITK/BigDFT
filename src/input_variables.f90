@@ -600,7 +600,8 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      inquire(file=filename,exist=exists)
      if (.not. exists) then
         if (iproc == 0) write(*,'(1x,a)')&
-             'ERROR: The pseudopotential parameter file "'//filename//'" is lacking, exiting...'
+             'ERROR: The pseudopotential parameter file "'&
+             //trim(filename)//'" is lacking, exiting...'
         stop
      end if
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename

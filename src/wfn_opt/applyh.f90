@@ -692,7 +692,7 @@ subroutine applyprojector(l,i,psppar,npspcode,&
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(mbseg_c+mbseg_f), intent(in) :: keyv_p
   integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keyg_p
-  real(wp), dimension((mbvctr_c+7*mbvctr_f)*(2*l-1)), intent(in) :: proj
+  real(wp), dimension(*), intent(in) :: proj
   real(gp), dimension(0:4,0:6), intent(in) :: psppar
   real(wp), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
   real(gp), intent(inout) :: eproj
