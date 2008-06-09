@@ -139,7 +139,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8) :: hgridh,peakmem,alat1,alat2,alat3,gnrm_check,hgrid_old,energy_old,sumz
   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
   real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min,psoffset
-  real(kind=8) :: factor,rhon,rhos,ttsum
+  real(kind=8) :: factor,rhon,rhos,ttsum,hx_old,hy_old,hz_old
   type(wavefunctions_descriptors) :: wfd_old
   type(convolutions_bounds) :: bounds
   type(nonlocal_psp_descriptors) :: nlpspd
@@ -227,8 +227,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! We save the variables that defined the previous psi if
   ! restartOnPsi is .true.
   if (in%inputPsiId == 1) then
-     call copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,eval,wfd,psi,&
-          hgrid_old,n1_old,n2_old,n3_old,eval_old,wfd_old,psi_old)
+     call copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,wfd,psi,&
+          hgrid_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
   end if
 
 !!$  !datacodes for the poisson solver, depending on the implementation
@@ -336,8 +336,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,rhopot,'rhopot',subname)
   end if
 
-  allocate(eval(norb+ndebug),stat=i_stat)
-  call memocc(i_stat,eval,'eval',subname)
+  if (in%inputPsiId /= 1) then
+     allocate(eval(norb+ndebug),stat=i_stat)
+     call memocc(i_stat,eval,'eval',subname)
+  end if
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   if (in%inputPsiId == -2) then
@@ -407,18 +409,29 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         write(*,'(1x,a)')&
              '-------------------------------------------------------------- Wavefunctions Restart'
      end if
-     call reformatmywaves(iproc,norb*nspinor,norbp*nspinor,atoms%nat,hgrid_old,n1_old,n2_old,n3_old,&
-          rxyz_old,wfd_old,psi_old,hgrid,n1,n2,n3,rxyz,wfd,psi)
-     eval=eval_old
+     !generate old grid spacings
+     hx_old=hgrid_old
+     hy_old=hgrid_old
+     hz_old=hgrid_old
+     if (geocode == 'P') then
+        call correct_grid(in%alat1,hx_old,n1)
+        call correct_grid(in%alat2,hy_old,n2)
+        call correct_grid(in%alat3,hz_old,n3)
+     end if
+
+     call reformatmywaves(iproc,norb*nspinor,norbp*nspinor,atoms%nat,hx_old,hy_old,hz_old,&
+          n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,hx,hy,hz,n1,n2,n3,rxyz,wfd,psi)
+!!$     eval=eval_old
 
      call deallocate_wfd(wfd_old,'cluster')
 
      i_all=-product(shape(psi_old))*kind(psi_old)
      deallocate(psi_old,stat=i_stat)
      call memocc(i_stat,i_all,'psi_old',subname)
-     i_all=-product(shape(eval_old))*kind(eval_old)
-     deallocate(eval_old,stat=i_stat)
-     call memocc(i_stat,i_all,'eval_old',subname)
+
+!!$     i_all=-product(shape(eval_old))*kind(eval_old)
+!!$     deallocate(eval_old,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'eval_old',subname)
 
      !initialise control value for gnrm in the case of a restart
      gnrm_check=0.d0
@@ -442,6 +455,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
 
      call readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,atoms%nat,rxyz,wfd,psi,eval)
+     !when reading wavefunctions we should control the grid spacings for a periodic run
 
      !initialise control value for gnrm in the case of a restart
      gnrm_check=0.d0
@@ -560,7 +574,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
      
      if(nspinor==4) then
-        !this wrapper can be inserted inside the poisson solver
+        !this wrapper can be inserted inside the poisson solver or in sumrho
          call PSolverNC(geocode,'D',iproc,nproc,n1i,n2i,n3i,n3d,ixc,hxh,hyh,hzh,&
              rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
      else
@@ -659,8 +673,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         end if
      end if
  
-     !add experimental switch between DIIS and SD
-     !if it works this section should be inserted into hpsitopsi
+     !add switch between DIIS and SD
+     !this section should be inserted into hpsitopsi
      if (energy == energy_min .and. .not. switchSD) idiistol=0
      if (energy > energy_min .and. idsx >0 .and. .not. switchSD) then
         idiistol=idiistol+1
@@ -825,15 +839,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !conditions for periodicity in the three directions
      !value of the buffer in the x and z direction
      if (geocode /= 'F') then
-        nl1=0
-        nl3=0
+        nl1=1
+        nl3=1
      else
         nl1=14
         nl3=14
      end if
      !value of the buffer in the y direction
      if (geocode == 'P') then
-        nl2=0
+        nl2=1
      else
         nl2=14
      end if

@@ -76,17 +76,17 @@ interface
      real(kind=8), dimension(:), pointer :: eval,psi
    end subroutine conjgrad
 
-   subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,eval,wfd,psi,&
-        hgrid_old,n1_old,n2_old,n3_old,eval_old,wfd_old,psi_old)
-     use module_types     
+   subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,wfd,psi,&
+        hgrid_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
+     use module_base
+     use module_types
      implicit none
      type(wavefunctions_descriptors) :: wfd,wfd_old
-     integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,n1,n2,n3
-     real(kind=8), intent(in) :: hgrid
+     integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nspinor
+     real(gp), intent(in) :: hgrid
      integer, intent(out) :: n1_old,n2_old,n3_old
-     real(kind=8), intent(out) :: hgrid_old
-     real(kind=8), dimension(:), pointer :: eval,eval_old
-     real(kind=8), dimension(:), pointer :: psi,psi_old
+     real(gp), intent(out) :: hgrid_old
+     real(wp), dimension(:), pointer :: psi,psi_old
    end subroutine copy_old_wavefunctions
 
    subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,&
@@ -270,14 +270,17 @@ interface
    end subroutine input_wf_diag
 
    subroutine reformatmywaves(iproc,norb,norbp,nat,&
-        & hgrid_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
-        & hgrid,n1,n2,n3,rxyz,wfd,psi)
+        hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
+        hx,hy,hz,n1,n2,n3,rxyz,wfd,psi)
+     use module_base
      use module_types
-     implicit real(kind=8) (a-h,o-z)
+     implicit none
      type(wavefunctions_descriptors), intent(in) :: wfd,wfd_old
-     dimension :: rxyz(3,nat), rxyz_old(3,nat), center(3), center_old(3)
-     dimension :: psi_old(wfd_old%nvctr_c + 7 * wfd_old%nvctr_f, norbp), &
-          psi(wfd%nvctr_c + 7 * wfd%nvctr_f, norbp)
+     integer, intent(in) :: iproc,norb,norbp,nat,n1_old,n2_old,n3_old,n1,n2,n3
+     real(gp), intent(in) :: hx_old,hy_old,hz_old,hx,hy,hz
+     real(gp), dimension(3,nat), intent(in) :: rxyz,rxyz_old
+     real(wp), dimension(wfd_old%nvctr_c+7*wfd_old%nvctr_f,norbp), intent(in) :: psi_old
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: psi
    end subroutine reformatmywaves
 
    subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
@@ -450,14 +453,19 @@ interface
    end subroutine CalculateTailCorrection
 
    !added for abinit compatilbility
-   subroutine reformatonewave(iproc, hgrid_old, n1_old, n2_old, n3_old, &
-        & center_old, psigold, hgrid, nvctr_c, nvctr_f, n1, n2, n3, center, nseg_c, nseg_f, &
-        & keyg, keyv, psifscf, psi)
-     implicit real(kind=8) (a-h,o-z)
-     dimension :: center(3), center_old(3)
-     dimension :: keyg(2, nseg_c + nseg_f), keyv(nseg_c + nseg_f)
-     dimension :: psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2), psi(nvctr_c + 7 * nvctr_f)
-     dimension :: psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8)
+   subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,nat,&
+        & rxyz_old,psigold,hx,hy,hz,nvctr_c,nvctr_f,n1,n2,n3,rxyz,nseg_c,nseg_f,&
+        & keyg,keyv,psifscf,psi)
+     use module_base
+     implicit none
+     integer, intent(in) :: iproc,n1_old,n2_old,n3_old,nat,nvctr_c,nvctr_f,n1,n2,n3,nseg_c,nseg_f
+     real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
+     integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+     integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+     real(gp), dimension(3,nat), intent(in) :: rxyz_old,rxyz
+     real(wp), dimension(0:n1_old,2,0:n2_old,2,0:n3_old,2), intent(in) :: psigold
+     real(wp), dimension(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8), intent(out) :: psifscf
+     real(wp), dimension(nvctr_c + 7 * nvctr_f), intent(out) :: psi
    end subroutine reformatonewave
 
    subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
