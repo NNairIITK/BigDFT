@@ -33,10 +33,19 @@ module module_base
   integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
   !integer, parameter :: mpidtypw=MPI_REAL,mpidtypd=MPI_REAL !in case of single precision
 
+  !Memory limit value in GB. It stops EVERYTHING if some process passes such limit
+  !For no memory limit, leave it to zero
+  integer, parameter :: memorylimit=0
+
   !flag for GPU computing, if CUDA libraries are present
-  !the parameter flag is removed to allow each processor to modify it following the needs
   !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
+  !this value can be changed in the read_input_variables routine
   logical :: GPUconv=.false.,GPUblas=.false.
+
+  !logical parameter for the projectors application strategy (true for distributed way)
+  !if the projector allocation passes the memorylimit this is switched to true
+  !inside localize_projectors routines
+  logical :: DistProjApply=.true.
 
   !interfaces for LAPACK routines
   interface potrf
@@ -47,7 +56,7 @@ module module_base
   end interface
   interface trtri
      module procedure trtri_simple,trtri_double
-  end interface
+  end interface 
   interface c_trtri
      module procedure c_trtri_simple,c_trtri_double
   end interface

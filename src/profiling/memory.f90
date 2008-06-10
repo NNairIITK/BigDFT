@@ -17,6 +17,7 @@
 !  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
 !  Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007
 subroutine memory_occupation(istat,isize,array,routine)
+  use module_base, only: memorylimit
   implicit none
 
   type :: memstat
@@ -28,9 +29,6 @@ subroutine memory_occupation(istat,isize,array,routine)
   integer, intent(in) :: istat,isize
   !local variables
   include 'mpif.h'
-  !Memory limit value in GB. It stops EVERYTHING if some process passes such limit
-  !For no memory limit, leave it to zero
-  integer, parameter :: memorylimit=1
   type(memstat), save :: loc,tot
   integer, save :: nalloc,ndealloc,iproc
   integer :: ierr

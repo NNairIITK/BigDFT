@@ -1,10 +1,10 @@
-subroutine reformatonewave(iproc,displ,hgrid_old,n1_old,n2_old,n3_old,nat,&
-     & rxyz_old,psigold,hgrid,nvctr_c,nvctr_f,n1,n2,n3,rxyz,nseg_c,nseg_f,&
+subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,nat,&
+     & rxyz_old,psigold,hx,hy,hz,nvctr_c,nvctr_f,n1,n2,n3,rxyz,nseg_c,nseg_f,&
      & keyg,keyv,psifscf,psi)
   use module_base
   implicit none
   integer, intent(in) :: iproc,n1_old,n2_old,n3_old,nat,nvctr_c,nvctr_f,n1,n2,n3,nseg_c,nseg_f
-  real(gp), intent(in) :: hgrid,displ,hgrid_old
+  real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   real(gp), dimension(3,nat), intent(in) :: rxyz_old,rxyz
@@ -15,7 +15,7 @@ subroutine reformatonewave(iproc,displ,hgrid_old,n1_old,n2_old,n3_old,nat,&
   character(len=*), parameter :: subname='reformatonewave'
   logical :: cif1,cif2,cif3
   integer :: i_stat,i_all,i1,i2,i3,j1,j2,j3,l1,l2,iat
-  real(gp) :: hgridh,hgridh_old,x,y,z,dx,dy,dz,xold,yold,zold
+  real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,x,y,z,dx,dy,dz,xold,yold,zold
   real(wp) :: zr,yr,xr,y01,ym1,y00,yp1
   real(wp), dimension(-1:1,-1:1) :: xya
   real(wp), dimension(-1:1) :: xa
@@ -38,7 +38,8 @@ subroutine reformatonewave(iproc,displ,hgrid_old,n1_old,n2_old,n3_old,nat,&
   !     psifscfold,1)
   
   !write(*,*) iproc,' displ ',displ
-  if (hgrid == hgrid_old .and. n1_old==n1 .and. n2_old==n2 .and. n3_old==n3 .and. &
+  if (hx == hx_old .and. hy == hy_old .and. hz == hz_old .and. &
+       n1_old==n1 .and. n2_old==n2 .and. n3_old==n3 .and. &
        displ<= 1.d-2) then
      !if (iproc==0) write(*,*) iproc,' orbital just copied'
      do i3=-7,2*n3+8
@@ -65,15 +66,21 @@ subroutine reformatonewave(iproc,displ,hgrid_old,n1_old,n2_old,n3_old,nat,&
      
      ! transform to new structure    
      !if (iproc==0) write(*,*) iproc,' orbital fully transformed'
-     hgridh=.5_gp*hgrid
-     hgridh_old=.5_gp*hgrid_old
+     hxh=.5_gp*hx
+     hxh_old=.5_gp*hx_old
+     hyh=.5_gp*hy
+     hyh_old=.5_gp*hy_old
+     hzh=.5_gp*hz
+     hzh_old=.5_gp*hz_old
+
      call razero((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf)
+
      do i3=-7,2*n3+8
-        z=real(i3,gp)*hgridh
+        z=real(i3,gp)*hzh
         do i2=-7,2*n2+8
-           y=real(i2,gp)*hgridh
+           y=real(i2,gp)*hyh
            do i1=-7,2*n1+8
-              x=real(i1,gp)*hgridh
+              x=real(i1,gp)*hxh
 !! The lines below might be reactivated in connection with a better interpolation scheme
 !           if (nat.le.10) then ! calculate individual shifts for each atom
 !             dx=0.d0 ; dy=0.d0 ; dz=0.d0 ; w=0.d0
@@ -102,18 +109,18 @@ subroutine reformatonewave(iproc,displ,hgrid_old,n1_old,n2_old,n3_old,nat,&
 !write(iproc+200,'(a,6(e12.4))') 'new ',x,y,z,dx,dy,dz
 !write(iproc+200,'(a,3(e12.4))') 'old ',xold,yold,zold
 !endif
-              j1=nint((xold)/hgridh_old)
+              j1=nint((xold)/hxh_old)
               cif1=(j1 >= -6 .and. j1 <= 2*n1_old+7)
-              j2=nint((yold)/hgridh_old)
+              j2=nint((yold)/hyh_old)
               cif2=(j2 >= -6 .and. j2 <= 2*n2_old+7)
-              j3=nint((zold)/hgridh_old)
+              j3=nint((zold)/hzh_old)
               cif3=(j3 >= -6 .and. j3 <= 2*n3_old+7)
               
            !        if (cif1 .and. cif2 .and. cif3) psifscf(i1,i2,i3)=psifscfold(j1,j2,j3)
            !        if (cif1 .and. cif2 .and. cif3) psifscf(i1,i2,i3)=psifscfoex(j1,j2,j3)
 
               if (cif1 .and. cif2 .and. cif3) then 
-                 zr =real(((z-dz)-real(j3,gp)*hgridh_old)/hgridh_old,wp)
+                 zr =real(((z-dz)-real(j3,gp)*hzh_old)/hzh_old,wp)
                  do l2=-1,1
                     do l1=-1,1
                        ym1=psifscfold(j1+l1,j2+l2,j3-1)
@@ -124,7 +131,7 @@ subroutine reformatonewave(iproc,displ,hgrid_old,n1_old,n2_old,n3_old,nat,&
                     enddo
                  enddo
 
-                 yr = real(((y-dy)-real(j2,gp)*hgridh_old)/hgridh_old,wp)
+                 yr = real(((y-dy)-real(j2,gp)*hyh_old)/hyh_old,wp)
                  do l1=-1,1
                     ym1=xya(l1,-1)
                     y00=xya(l1,0)
@@ -133,7 +140,7 @@ subroutine reformatonewave(iproc,displ,hgrid_old,n1_old,n2_old,n3_old,nat,&
                          (1.0_wp + yr)*(y00 - ym1 + yr*(.5_wp*ym1 - y00  + .5_wp*yp1))
                  enddo
 
-                 xr = real(((x-dx)-real(j1,gp)*hgridh_old)/hgridh_old,wp)
+                 xr = real(((x-dx)-real(j1,gp)*hxh_old)/hxh_old,wp)
                  ym1=xa(-1)
                  y00=xa(0)
                  yp1=xa(1)
@@ -161,7 +168,7 @@ subroutine reformatonewave(iproc,displ,hgrid_old,n1_old,n2_old,n3_old,nat,&
 
   !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
   call compress(n1,n2,n3,0,n1,0,n2,0,n3,  &
-       nseg_c,nvctr_c,keyg(1,1),       keyv(1),   &
+       nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
        psig,psi(1),psi(nvctr_c+1))
 
@@ -295,15 +302,16 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      enddo
 
      ! I put nat = 1 here, since only one position is saved in wavefunction files.
-     call reformatonewave(iproc, displ, hgrid_old, n1_old, n2_old, n3_old, nat, &
-          & rxyz_old, psigold, hgrid, nvctr_c, nvctr_f, n1, n2, n3, rxyz, nseg_c, nseg_f, &
-          & keyg, keyv, psifscf, psi)
+     call reformatonewave(iproc,displ,hgrid_old,n1_old,n2_old,n3_old,nat,&
+          rxyz_old,psigold,hgrid,nvctr_c,nvctr_f,n1,n2,n3,rxyz,nseg_c,nseg_f,&
+          keyg,keyv,psifscf,psi)
 
      i_all=-product(shape(psigold))*kind(psigold)
      deallocate(psigold,stat=i_stat)
      call memocc(i_stat,i_all,'psigold',subname)
 
   endif
+
 end subroutine readonewave
 
 

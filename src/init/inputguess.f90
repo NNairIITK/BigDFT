@@ -4,7 +4,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   use module_base
   implicit none
   integer, intent(in) :: ngx,iproc,ntypes,nspin,nat,natsc
-  character(len = 20), dimension(ntypes), intent(in) :: atomnames
+  character(len=20), dimension(ntypes), intent(in) :: atomnames
   integer, dimension(ntypes), intent(in) :: nzatom,nelpsp,npspcode,iasctype
   integer, dimension(nat), intent(in) :: iatype
   real(gp), dimension(0:4,0:6,ntypes), intent(in) :: psppar
@@ -164,9 +164,10 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
         norbsc=norbsc+iorbsc_count
      end if
   end do
+
   !orbitals which are non semicore
   norbsc_arr(natsc+1,1)=norbe-norbsc
-  
+
   !duplicate the values in the case of spin-polarization
   if (nspin == 2) norbsc_arr(:,2)=norbsc_arr(:,1)
 
@@ -1288,7 +1289,7 @@ subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
 END SUBROUTINE crtvh
 
 
-real(gp) function wave(ng,ll,xp,psi,r)
+function wave(ng,ll,xp,psi,r)
   use module_base, only: gp
   implicit real(gp) (a-h,o-z)
   dimension psi(0:ng),xp(0:ng)
@@ -1303,7 +1304,7 @@ real(gp) function wave(ng,ll,xp,psi,r)
 end function wave
 
 
-real(gp) function emuxc(rho)
+function emuxc(rho)
   use module_base, only: gp
   implicit real(gp) (a-h,o-z)
   parameter (a0p=.4581652932831429_gp,&
@@ -1333,7 +1334,7 @@ end function emuxc
 
 
 ! restricted version of the Gamma function
-real(gp) function gamma(x)
+function gamma(x)
   use module_base, only: gp
   implicit real(gp) (a-h,o-z)
 

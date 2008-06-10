@@ -177,7 +177,7 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
        'The overall memory requirement needed for this calculation is thus: ',&
        mega(peakmem),' MB'
   tminamount=real(3*(nvctr_c+7*nvctr_f)*8,kind=8)+3.d0*real(n01*n02,kind=8)+&
-       (3.d0+2.d0*tt)*omempot
+       (3.d0+2.d0*tt)*omempot+omemproj
   write(*,'(1x,a)')&
        'By reducing the DIIS history and/or increasing the number of processors the amount of'
   write(*,'(1x,a,i0,a)')&

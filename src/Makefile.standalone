@@ -117,7 +117,7 @@ SOURCES = $(low_level) \
 MODULES_BIGDFT = modules/base.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
-	$(CUBLAS_FAKE)
+	$(GPUBLAS_INTERFACE)
 
 
 #profiling sources

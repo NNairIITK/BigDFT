@@ -337,6 +337,12 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
         rxyz(2,iat)=real(ry,kind=8)
         rxyz(3,iat)=real(rz,kind=8)
      end if
+
+     if (in%geocode == 'P') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),alat1d0)
+        rxyz(2,iat)=modulo(rxyz(2,iat),alat2d0)
+        rxyz(3,iat)=modulo(rxyz(3,iat),alat3d0)
+     end if
  
      !! For reading in saddle points
      !!        open(unit=83,file='step',status='old')
@@ -600,7 +606,8 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      inquire(file=filename,exist=exists)
      if (.not. exists) then
         if (iproc == 0) write(*,'(1x,a)')&
-             'ERROR: The pseudopotential parameter file "'//filename//'" is lacking, exiting...'
+             'ERROR: The pseudopotential parameter file "'&
+             //trim(filename)//'" is lacking, exiting...'
         stop
      end if
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
@@ -940,20 +947,21 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
      alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
   !calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
   !and shifts the atoms such that their position is the most symmetric possible
+  use module_base
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc
-  real(kind=8), intent(in) :: crmult,frmult
-  real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz
-  real(kind=8), dimension(atoms%ntypes,2), intent(in) :: radii_cf
+  real(gp), intent(in) :: crmult,frmult
+  real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
+  real(gp), dimension(atoms%ntypes,2), intent(in) :: radii_cf
   integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
-  real(kind=8), intent(inout) :: hx,hy,hz,alat1,alat2,alat3
+  real(gp), intent(inout) :: hx,hy,hz,alat1,alat2,alat3
   !local variables
-  real(kind=8), parameter ::eps_mach=1.d-12,onem=1.d0-eps_mach
+  real(gp), parameter ::eps_mach=1.e-12_gp,onem=1.0_gp-eps_mach
   integer :: iat,j
-  real(kind=8) :: rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
+  real(gp) :: rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
 
   !check the geometry code with the grid spacings
   if (geocode == 'F' .and. (hx/=hy .or. hx/=hz .or. hy/=hz)) then
@@ -962,15 +970,28 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
   end if
 
 
-  !calculate the extremes of the boxes taking into account the spheres arount the atoms
-  cxmax=-1.d10 ; cxmin=1.d10
-  cymax=-1.d10 ; cymin=1.d10
-  czmax=-1.d10 ; czmin=1.d10
+  !calculate the extremes of the boxes taking into account the spheres around the atoms
+  cxmax=-1.e10_gp 
+  cxmin=1.e10_gp
+
+  cymax=-1.e10_gp 
+  cymin=1.e10_gp
+
+  czmax=-1.e10_gp 
+  czmin=1.e10_gp
+
   do iat=1,atoms%nat
+
      rad=radii_cf(atoms%iatype(iat),1)*crmult
-     cxmax=max(cxmax,rxyz(1,iat)+rad) ; cxmin=min(cxmin,rxyz(1,iat)-rad)
-     cymax=max(cymax,rxyz(2,iat)+rad) ; cymin=min(cymin,rxyz(2,iat)-rad)
-     czmax=max(czmax,rxyz(3,iat)+rad) ; czmin=min(czmin,rxyz(3,iat)-rad)
+
+     cxmax=max(cxmax,rxyz(1,iat)+rad) 
+     cxmin=min(cxmin,rxyz(1,iat)-rad)
+
+     cymax=max(cymax,rxyz(2,iat)+rad) 
+     cymin=min(cymin,rxyz(2,iat)-rad)
+     
+     czmax=max(czmax,rxyz(3,iat)+rad) 
+     czmin=min(czmin,rxyz(3,iat)-rad)
   enddo
 
   cxmax=cxmax+eps_mach 
@@ -1030,9 +1051,9 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
   end if
 
   !balanced shift taking into account the missing space
-  cxmin=cxmin+0.5d0*(alat1-alatrue1)
-  cymin=cymin+0.5d0*(alat2-alatrue2)
-  czmin=czmin+0.5d0*(alat3-alatrue3)
+  cxmin=cxmin+0.5_gp*(alat1-alatrue1)
+  cymin=cymin+0.5_gp*(alat2-alatrue2)
+  czmin=czmin+0.5_gp*(alat3-alatrue3)
 
   !correct the box sizes for the isolated case
   if (geocode == 'F') then
@@ -1044,21 +1065,34 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
   else if (geocode == 'P') then
      !for the moment we do not put the shift, at the end it will be tested
      !here we should put the center of mass
-     cxmin=0.d0
-     cymin=0.d0
-     czmin=0.d0
+     cxmin=0.0_gp
+     cymin=0.0_gp
+     czmin=0.0_gp
   end if
 
-
-  do iat=1,atoms%nat
-     rxyz(1,iat)=rxyz(1,iat)-cxmin
-     rxyz(2,iat)=rxyz(2,iat)-cymin
-     rxyz(3,iat)=rxyz(3,iat)-czmin
-  enddo
+  if (geocode /= 'P') then
+     do iat=1,atoms%nat
+        rxyz(1,iat)=rxyz(1,iat)-cxmin
+        rxyz(2,iat)=rxyz(2,iat)-cymin
+        rxyz(3,iat)=rxyz(3,iat)-czmin
+     enddo
+  else !place the atoms inside the box
+     do iat=1,atoms%nat
+        rxyz(1,iat)=modulo(rxyz(1,iat),alat1)
+        rxyz(2,iat)=modulo(rxyz(2,iat),alat2)
+        rxyz(3,iat)=modulo(rxyz(3,iat),alat3)
+     enddo
+  end if
 
   ! fine grid size (needed for creation of input wavefunction, preconditioning)
-  nfl1=n1 ; nfl2=n2 ; nfl3=n3
-  nfu1=0 ; nfu2=0 ; nfu3=0
+  nfl1=n1 
+  nfl2=n2 
+  nfl3=n3
+
+  nfu1=0 
+  nfu2=0 
+  nfu3=0
+
   do iat=1,atoms%nat
      rad=radii_cf(atoms%iatype(iat),2)*frmult
      nfl1=min(nfl1,ceiling((rxyz(1,iat)-rad)/hx - eps_mach))

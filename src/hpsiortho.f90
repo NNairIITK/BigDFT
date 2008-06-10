@@ -1,4 +1,4 @@
-subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
+subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
      norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
      ngatherarr,ndimpot,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,nspinor,spinsgn)
   use module_base
@@ -11,9 +11,11 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ndimpot
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,nspinor
-  real(kind=8), intent(in) :: hx,hy,hz
+  real(kind=8), intent(in) :: hx,hy,hz,cpmult,fpmult
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(kind=8), dimension(norb), intent(in) :: occup,spinsgn
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf  
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(in) :: psi
   real(kind=8), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
@@ -221,14 +223,21 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,&
   call timing(iproc,'ApplyProj     ','ON')
 
   eproj_sum=0.d0
-  ! loop over all my orbitals
-  do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor
-     call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
-          nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,nlpspd%nvctr_p,&
-          proj,wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,wfd%nvctr_c,wfd%nvctr_f,  & 
-          psi(1,iorb-iproc*norbp*nspinor),hpsi(1,iorb-iproc*norbp*nspinor),eproj)
+  !apply the projectors following the strategy (On-the-fly calculation or not)
+  if (DistProjApply) then
+     call applyprojectorsonthefly(geocode,iproc,nspinor,norb,norbp,occup,at,n1,n2,n3,&
+          rxyz,hx,hy,hz,cpmult,fpmult,radii_cf,wfd,nlpspd,proj,psi,hpsi,eproj_sum)
+  else
+     ! loop over all my orbitals
+     do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor
+        call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
+             nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,&
+             nlpspd%nvctr_p,&
+             proj,wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,wfd%nvctr_c,wfd%nvctr_f,  & 
+             psi(1,iorb-iproc*norbp*nspinor),hpsi(1,iorb-iproc*norbp*nspinor),eproj)
         eproj_sum=eproj_sum+occup((iorb-1)/nspinor+1)*eproj
-  enddo
+     enddo
+  end if
 
   call timing(iproc,'ApplyProj     ','OF')
 

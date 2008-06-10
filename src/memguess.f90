@@ -33,13 +33,13 @@ program memguess
   type(atoms_data) :: atoms
   type(nonlocal_psp_descriptors) :: nlpspd
   logical, dimension(:,:,:), allocatable :: logrid
-  integer, dimension(:,:), allocatable :: neleconf
+  integer, dimension(:,:), allocatable :: neleconf,norbsc_arr
   real(kind=8), dimension(:,:), allocatable :: rxyz,radii_cf
   real(kind=8), dimension(:,:,:), allocatable :: psiat
   real(kind=8), dimension(:,:), allocatable :: xp, occupat
   integer, dimension(:,:), allocatable :: nl
   logical, dimension(:,:), allocatable :: scorb
-  integer, dimension(:), allocatable :: ng,norbsc_arr
+  integer, dimension(:), allocatable :: ng
   real(kind=8), dimension(:), allocatable :: occup,spinsgn
 
 ! Get arguments
@@ -150,7 +150,7 @@ program memguess
      call memocc(i_stat,nl,'nl',subname)
      allocate(scorb(4,atoms%natsc+ndebug),stat=i_stat)
      call memocc(i_stat,scorb,'scorb',subname)
-     allocate(norbsc_arr(atoms%natsc+1+ndebug),stat=i_stat)
+     allocate(norbsc_arr(atoms%natsc+1,in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
 
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
@@ -205,6 +205,7 @@ program memguess
      end if
 
   end if
+
 
   if (optimise) then
      call optimise_volume(atoms,in%crmult,in%frmult,in%hgrid,rxyz,radii_cf)
