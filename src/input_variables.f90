@@ -337,6 +337,12 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
         rxyz(2,iat)=real(ry,kind=8)
         rxyz(3,iat)=real(rz,kind=8)
      end if
+
+     if (in%geocode == 'P') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),alat1d0)
+        rxyz(2,iat)=modulo(rxyz(2,iat),alat2d0)
+        rxyz(3,iat)=modulo(rxyz(3,iat),alat3d0)
+     end if
  
      !! For reading in saddle points
      !!        open(unit=83,file='step',status='old')

@@ -264,6 +264,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
         psi(nvctr_c+j+5)=t6
         psi(nvctr_c+j+6)=t7
      enddo
+
   else
 
      write(*,*) 'wavefunction ',iorb,' needs reformatting on processor',iproc
@@ -302,15 +303,16 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      enddo
 
      ! I put nat = 1 here, since only one position is saved in wavefunction files.
-     call reformatonewave(iproc, displ, hgrid_old, n1_old, n2_old, n3_old, nat, &
-          & rxyz_old, psigold, hgrid, nvctr_c, nvctr_f, n1, n2, n3, rxyz, nseg_c, nseg_f, &
-          & keyg, keyv, psifscf, psi)
+     call reformatonewave(iproc,displ,hgrid_old,n1_old,n2_old,n3_old,nat,&
+          rxyz_old,psigold,hgrid,nvctr_c,nvctr_f,n1,n2,n3,rxyz,nseg_c,nseg_f,&
+          keyg,keyv,psifscf,psi)
 
      i_all=-product(shape(psigold))*kind(psigold)
      deallocate(psigold,stat=i_stat)
      call memocc(i_stat,i_all,'psigold',subname)
 
   endif
+
 end subroutine readonewave
 
 

@@ -188,7 +188,6 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
 !checkend
   end if
 
-
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
 
      if (.not. reformat) then
@@ -213,7 +212,6 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
         call memocc(i_stat,psigold,'psigold',subname)
 
         call razero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
-
 
         ! coarse part
         do iseg=1,wfd_old%nseg_c
@@ -277,18 +275,26 @@ END SUBROUTINE reformatmywaves
 
 subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz_old,rxyz,  & 
      wfd,psi,eval)
-  ! reads wavefunction from file and transforms it properly if hgrid or size of simulation cell have changed
+  ! reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
+  ! have changed
   use module_base
   use module_types
-
-  implicit real(kind=8) (a-h,o-z)
+  implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
+  integer, intent(in) :: iproc,norb,norbp,n1,n2,n3,nat
+  real(gp), intent(in) :: hgrid
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  real(wp), dimension(norb), intent(out) :: eval
+  real(gp), dimension(3,nat), intent(out) :: rxyz_old
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: psi
+  !local variables
   character(len=*), parameter :: subname='readmywaves'
-  character(len=50) filename
-  character(len=4) f4
-  dimension psi(wfd%nvctr_c+7*wfd%nvctr_f,norbp)
-  dimension rxyz_old(3,nat),rxyz(3,nat),eval(norb)
-  allocatable :: psifscf(:,:,:)
+  character(len=4) :: f4
+  character(len=50) :: filename
+  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2
+  real(kind=4) :: tr0,tr1
+  real(kind=8) :: tel
+  real(wp), dimension(:,:,:), allocatable :: psifscf
 
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
@@ -303,9 +309,11 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz_old,rxyz,  &
      open(unit=99,file=filename,status='unknown')
 
      call readonewave(99, .true., iorb,iproc,n1,n2,n3, &
-          & hgrid,nat,rxyz_old,rxyz,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
+          & hgrid,nat,rxyz_old,rxyz,wfd%nseg_c,wfd%nseg_f,&
+          wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
           psi(1,iorb-iproc*norbp),eval(iorb),psifscf)
      close(99)
+
   end do
 
   i_all=-product(shape(psifscf))*kind(psifscf)
@@ -316,19 +324,26 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz_old,rxyz,  &
   call system_clock(ncount2,ncount_rate,ncount_max)
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
   write(*,'(a,i4,2(1x,e10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
-END SUBROUTINE readmywaves
+
+end subroutine readmywaves
 
 subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,wfd,psi,eval)
   ! write all my wavefunctions in files by calling writeonewave
-  
   use module_types
-
-  implicit real(kind=8) (a-h,o-z)
+  use module_base
+  implicit none
+  integer, intent(in) :: iproc,norb,norbp,n1,n2,n3,nat
+  real(gp), intent(in) :: hgrid
   type(wavefunctions_descriptors), intent(in) :: wfd
-  character(len=4) f4
-  character(len=50) filename
-  dimension rxyz(3,nat),eval(norb)
-  dimension psi(wfd%nvctr_c+7*wfd%nvctr_f,norbp)
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  real(wp), dimension(norb), intent(in) :: eval
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
+  !local variables
+  character(len=4) :: f4
+  character(len=50) :: filename
+  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2
+  real(kind=4) :: tr0,tr1
+  real(kind=8) :: tel
 
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
@@ -340,9 +355,9 @@ subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,wfd,psi,eval)
      write(*,*) 'opening ',filename
      open(unit=99,file=filename,status='unknown')
 
-     call writeonewave(99, .true., iorb,n1,n2,n3,hgrid,nat,rxyz,  & 
-          wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1)  & 
-          ,wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
+     call writeonewave(99,.true.,iorb,n1,n2,n3,hgrid,nat,rxyz,  & 
+          wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
+          wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
           psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),norb,eval)
      close(99)
 
@@ -353,6 +368,4 @@ subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,wfd,psi,eval)
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
   write(*,'(a,i4,2(1x,e10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
 
-
-  return
-END SUBROUTINE writemywaves
+end subroutine writemywaves

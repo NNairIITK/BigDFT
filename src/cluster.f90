@@ -455,7 +455,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
 
      call readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,atoms%nat,rxyz,wfd,psi,eval)
-     !when reading wavefunctions we should control the grid spacings for a periodic run
 
      !initialise control value for gnrm in the case of a restart
      gnrm_check=0.d0
@@ -745,16 +744,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   if (abs(evsum-energybs).gt.1.d-8 .and. iproc==0) write(*,'(1x,a,2(1x,1pe20.13))')&
        'Difference:evsum,energybs',evsum,energybs
-
-  !plot the converged wavefunctions in the different orbitals
-!!$  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-!!$     iounit=iorb
-!!$     call plot_wf(iounit,n1,n2,n3,hgrid,wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,wfd%nseg_f,wfd%nvctr_f,  & 
-!!$          rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(1,iorb-iproc*norbp),&
-!!$          bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,&
-!!$          bounds%gb%ibxxyy_f,bounds%ibyyzz_r,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
-!!$  end do
-  
+ 
   if (nvirt > 0 .and. in%inputPsiId == 0) then
      call davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,atoms,&
           cpmult,fpmult,radii_cf,&
@@ -881,7 +871,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
            do i2=0,2*n2+1
               do i1=0,2*n1+1
                  ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-                 write(22,*)rho(ind)
+                 write(22,*)rho(ind)/real(nelec,dp)
               end do
            end do
         end do

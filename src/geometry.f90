@@ -82,9 +82,15 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz, &
               tpos(2,iat)=rxyz(2,iat)
               tpos(3,iat)=rxyz(3,iat)
            else
-              tpos(1,iat)=rxyz(1,iat)+beta0*hh(1,iat)
-              tpos(2,iat)=rxyz(2,iat)+beta0*hh(2,iat)
-              tpos(3,iat)=rxyz(3,iat)+beta0*hh(3,iat)
+              if (in%geocode == 'P') then
+                 tpos(1,iat)=modulo(rxyz(1,iat)+beta0*hh(1,iat),in%alat1)
+                 tpos(2,iat)=modulo(rxyz(2,iat)+beta0*hh(2,iat),in%alat2)
+                 tpos(3,iat)=modulo(rxyz(3,iat)+beta0*hh(3,iat),in%alat3)
+              else
+                 tpos(1,iat)=rxyz(1,iat)+beta0*hh(1,iat)
+                 tpos(2,iat)=rxyz(2,iat)+beta0*hh(2,iat)
+                 tpos(3,iat)=rxyz(3,iat)+beta0*hh(3,iat)
+              end if
            end if
         end do
 
@@ -124,9 +130,16 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz, &
            tpos(2,iat)=rxyz(2,iat)
            tpos(3,iat)=rxyz(3,iat)
            if ( .not. at%lfrztyp(iat)) then
-              rxyz(1,iat)=rxyz(1,iat)+beta*hh(1,iat)
-              rxyz(2,iat)=rxyz(2,iat)+beta*hh(2,iat)
-              rxyz(3,iat)=rxyz(3,iat)+beta*hh(3,iat)
+              if (in%geocode == 'P') then
+                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*hh(1,iat),in%alat1)
+                 rxyz(2,iat)=modulo(rxyz(2,iat)+beta*hh(2,iat),in%alat2)
+                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*hh(3,iat),in%alat3)
+              else
+                 rxyz(1,iat)=rxyz(1,iat)+beta*hh(1,iat)
+                 rxyz(2,iat)=rxyz(2,iat)+beta*hh(2,iat)
+                 rxyz(3,iat)=rxyz(3,iat)+beta*hh(3,iat)
+              end if
+
            end if
         end do
         avbeta=avbeta+beta/in%betax
@@ -318,7 +331,6 @@ contains
     integer :: nsatur,iat,itot,nitsd,itsd
     real(kind=8) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise,sumx,sumy,sumz
     real(kind=8) :: forcemax,t1,t2,t3,de1,de2,df1,df2
-
     real(kind=8), allocatable, dimension(:,:) :: tpos
 
     allocate(tpos(3,at%nat+ndebug),stat=i_stat)
@@ -501,9 +513,15 @@ contains
              tpos(2,iat)=rxyz(2,iat)
              tpos(3,iat)=rxyz(3,iat)
              if ( .not. at%lfrztyp(iat)) then
-                rxyz(1,iat)=rxyz(1,iat)+beta*ff(1,iat)
-                rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
-                rxyz(3,iat)=rxyz(3,iat)+beta*ff(3,iat)
+                if (in%geocode == 'P') then
+                   rxyz(1,iat)=modulo(rxyz(1,iat)+beta*ff(1,iat),in%alat1)
+                   rxyz(2,iat)=modulo(rxyz(2,iat)+beta*ff(2,iat),in%alat2)
+                   rxyz(3,iat)=modulo(rxyz(3,iat)+beta*ff(3,iat),in%alat3)
+                else
+                   rxyz(1,iat)=rxyz(1,iat)+beta*ff(1,iat)
+                   rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
+                   rxyz(3,iat)=rxyz(3,iat)+beta*ff(3,iat)
+                end if
              end if
           end do
        end do loop_sd
@@ -564,9 +582,15 @@ contains
           t3=beta0*ff(3,iat)
           sum=sum+t1**2+t2**2+t3**2
           if (.not. at%lfrztyp(iat)) then
-             pos(1,iat)=pos(1,iat)+t1
-             pos(2,iat)=pos(2,iat)+t2
-             pos(3,iat)=pos(3,iat)+t3
+             if (in%geocode == 'P') then
+                pos(1,iat)=modulo(pos(1,iat)+t1,in%alat1)
+                pos(2,iat)=modulo(pos(2,iat)+t2,in%alat2)
+                pos(3,iat)=modulo(pos(3,iat)+t3,in%alat3)
+             else
+                pos(1,iat)=pos(1,iat)+t1
+                pos(2,iat)=pos(2,iat)+t2
+                pos(3,iat)=pos(3,iat)+t3
+             end if
           end if
        enddo
 
@@ -591,9 +615,15 @@ contains
              tpos(2,iat)=pos(2,iat)
              tpos(3,iat)=pos(3,iat)
           else
-             tpos(1,iat)=pos(1,iat)+beta0*ff(1,iat)
-             tpos(2,iat)=pos(2,iat)+beta0*ff(2,iat)
-             tpos(3,iat)=pos(3,iat)+beta0*ff(3,iat)
+             if (in%geocode == 'P') then
+                tpos(1,iat)=modulo(pos(1,iat)+beta0*ff(1,iat),in%alat1)
+                tpos(2,iat)=modulo(pos(2,iat)+beta0*ff(2,iat),in%alat2)
+                tpos(3,iat)=modulo(pos(3,iat)+beta0*ff(3,iat),in%alat3)
+             else
+                tpos(1,iat)=pos(1,iat)+beta0*ff(1,iat)
+                tpos(2,iat)=pos(2,iat)+beta0*ff(2,iat)
+                tpos(3,iat)=pos(3,iat)+beta0*ff(3,iat)
+             end if
           end if
        enddo
 
@@ -613,9 +643,15 @@ contains
        endif
        do iat=1,at%nat
           if ( .not. at%lfrztyp(iat)) then
-             pos(1,iat)=pos(1,iat)+tt*ff(1,iat)
-             pos(2,iat)=pos(2,iat)+tt*ff(2,iat)
-             pos(3,iat)=pos(3,iat)+tt*ff(3,iat)
+             if (in%geocode == 'P') then
+                pos(1,iat)=modulo(pos(1,iat)+tt*ff(1,iat),in%alat1)
+                pos(2,iat)=modulo(pos(2,iat)+tt*ff(2,iat),in%alat2)
+                pos(3,iat)=modulo(pos(3,iat)+tt*ff(3,iat),in%alat3)
+             else
+                pos(1,iat)=pos(1,iat)+tt*ff(1,iat)
+                pos(2,iat)=pos(2,iat)+tt*ff(2,iat)
+                pos(3,iat)=pos(3,iat)+tt*ff(3,iat)
+             end if
           end if
        enddo
 

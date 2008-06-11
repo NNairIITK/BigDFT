@@ -164,9 +164,10 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
         norbsc=norbsc+iorbsc_count
      end if
   end do
+
   !orbitals which are non semicore
   norbsc_arr(natsc+1,1)=norbe-norbsc
-  
+
   !duplicate the values in the case of spin-polarization
   if (nspin == 2) norbsc_arr(:,2)=norbsc_arr(:,1)
 
