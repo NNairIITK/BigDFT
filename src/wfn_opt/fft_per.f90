@@ -1090,12 +1090,12 @@
                         cm=r - s
                         r=s2 + s6
                         s=s4 + s8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         zout(1,j,nout1) = ap + bp
-                        zout(2,j,nout1) = cp + dp
+                        zout(2,j,nout1) = cp + dp1
                         zout(1,j,nout5) = ap - bp
-                        zout(2,j,nout5) = cp - dp
+                        zout(2,j,nout5) = cp - dp1
                         zout(1,j,nout3) = am + dm
                         zout(2,j,nout3) = cm - bm
                         zout(1,j,nout7) = am - dm
@@ -1114,20 +1114,20 @@
                         cm=r - s
                         r=s2 - s6
                         s=r4 - r8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         r = ( cp + dm)*rt2i
                         s = ( dm - cp)*rt2i
-                        cp= ( cm + dp)*rt2i
-                        dp = ( cm - dp)*rt2i
+                        cp= ( cm + dp1)*rt2i
+                        dp1 = ( cm - dp1)*rt2i
                         zout(1,j,nout2) = ap + r
                         zout(2,j,nout2) = bm + s
                         zout(1,j,nout6) = ap - r
                         zout(2,j,nout6) = bm - s
                         zout(1,j,nout4) = am + cp
-                        zout(2,j,nout4) = bp + dp
+                        zout(2,j,nout4) = bp + dp1
                         zout(1,j,nout8) = am - cp
-                        zout(2,j,nout8) = bp - dp
+                        zout(2,j,nout8) = bp - dp1
 8120                        continue
                 do 8000,ia=2,after
                 ias=ia-1
@@ -1217,12 +1217,12 @@
                         cm=r - s
                         r=s2 + s6
                         s=s4 + s8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         zout(1,j,nout1) = ap + bp
-                        zout(2,j,nout1) = cp + dp
+                        zout(2,j,nout1) = cp + dp1
                         zout(1,j,nout5) = ap - bp
-                        zout(2,j,nout5) = cp - dp
+                        zout(2,j,nout5) = cp - dp1
                         zout(1,j,nout3) = am + dm
                         zout(2,j,nout3) = cm - bm
                         zout(1,j,nout7) = am - dm
@@ -1241,20 +1241,20 @@
                         cm=r - s
                         r=s2 - s6
                         s=r4 - r8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         r = ( cp + dm)*rt2i
                         s = ( dm - cp)*rt2i
-                        cp= ( cm + dp)*rt2i
-                        dp = ( cm - dp)*rt2i
+                        cp= ( cm + dp1)*rt2i
+                        dp1 = ( cm - dp1)*rt2i
                         zout(1,j,nout2) = ap + r
                         zout(2,j,nout2) = bm + s
                         zout(1,j,nout6) = ap - r
                         zout(2,j,nout6) = bm - s
                         zout(1,j,nout4) = am + cp
-                        zout(2,j,nout4) = bp + dp
+                        zout(2,j,nout4) = bp + dp1
                         zout(1,j,nout8) = am - cp
-                        zout(2,j,nout8) = bp - dp
+                        zout(2,j,nout8) = bp - dp1
 
 8020                        continue
 8000                continue
@@ -1311,12 +1311,12 @@
                         cm=r - s
                         r=s2 + s6
                         s=s4 + s8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         zout(1,j,nout1) = ap + bp
-                        zout(2,j,nout1) = cp + dp
+                        zout(2,j,nout1) = cp + dp1
                         zout(1,j,nout5) = ap - bp
-                        zout(2,j,nout5) = cp - dp
+                        zout(2,j,nout5) = cp - dp1
                         zout(1,j,nout3) = am - dm
                         zout(2,j,nout3) = cm + bm
                         zout(1,j,nout7) = am + dm
@@ -1335,20 +1335,20 @@
                         cm=r - s
                         r=-s2 + s6
                         s= r4 - r8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         r = ( cp + dm)*rt2i
                         s = ( cp - dm)*rt2i
-                        cp= ( cm + dp)*rt2i
-                        dp= ( dp - cm)*rt2i
+                        cp= ( cm + dp1)*rt2i
+                        dp1= ( dp1 - cm)*rt2i
                         zout(1,j,nout2) = ap + r
                         zout(2,j,nout2) = bm + s
                         zout(1,j,nout6) = ap - r
                         zout(2,j,nout6) = bm - s
                         zout(1,j,nout4) = am + cp
-                        zout(2,j,nout4) = bp + dp
+                        zout(2,j,nout4) = bp + dp1
                         zout(1,j,nout8) = am - cp
-                        zout(2,j,nout8) = bp - dp
+                        zout(2,j,nout8) = bp - dp1
 8121                        continue
 
                 do 8001,ia=2,after
@@ -1439,12 +1439,12 @@
                         cm=r - s
                         r=s2 + s6
                         s=s4 + s8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         zout(1,j,nout1) = ap + bp
-                        zout(2,j,nout1) = cp + dp
+                        zout(2,j,nout1) = cp + dp1
                         zout(1,j,nout5) = ap - bp
-                        zout(2,j,nout5) = cp - dp
+                        zout(2,j,nout5) = cp - dp1
                         zout(1,j,nout3) = am - dm
                         zout(2,j,nout3) = cm + bm
                         zout(1,j,nout7) = am + dm
@@ -1463,20 +1463,20 @@
                         cm=r - s
                         r=-s2 + s6
                         s= r4 - r8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         r = ( cp + dm)*rt2i
                         s = ( cp - dm)*rt2i
-                        cp= ( cm + dp)*rt2i
-                        dp= ( dp - cm)*rt2i
+                        cp= ( cm + dp1)*rt2i
+                        dp1= ( dp1 - cm)*rt2i
                         zout(1,j,nout2) = ap + r
                         zout(2,j,nout2) = bm + s
                         zout(1,j,nout6) = ap - r
                         zout(2,j,nout6) = bm - s
                         zout(1,j,nout4) = am + cp
-                        zout(2,j,nout4) = bp + dp
+                        zout(2,j,nout4) = bp + dp1
                         zout(1,j,nout8) = am - cp
-                        zout(2,j,nout8) = bp - dp
+                        zout(2,j,nout8) = bp - dp1
 8021                        continue
 8001                continue
 
@@ -2537,12 +2537,12 @@
                         cm=r - s
                         r=s2 + s6
                         s=s4 + s8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         zout(1,nout1,j) = ap + bp
-                        zout(2,nout1,j) = cp + dp
+                        zout(2,nout1,j) = cp + dp1
                         zout(1,nout5,j) = ap - bp
-                        zout(2,nout5,j) = cp - dp
+                        zout(2,nout5,j) = cp - dp1
                         zout(1,nout3,j) = am + dm
                         zout(2,nout3,j) = cm - bm
                         zout(1,nout7,j) = am - dm
@@ -2561,20 +2561,20 @@
                         cm=r - s
                         r=s2 - s6
                         s=r4 - r8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         r = ( cp + dm)*rt2i
                         s = ( dm - cp)*rt2i
-                        cp= ( cm + dp)*rt2i
-                        dp= ( cm - dp)*rt2i
+                        cp= ( cm + dp1)*rt2i
+                        dp1= ( cm - dp1)*rt2i
                         zout(1,nout2,j) = ap + r
                         zout(2,nout2,j) = bm + s
                         zout(1,nout6,j) = ap - r
                         zout(2,nout6,j) = bm - s
                         zout(1,nout4,j) = am + cp
-                        zout(2,nout4,j) = bp + dp
+                        zout(2,nout4,j) = bp + dp1
                         zout(1,nout8,j) = am - cp
-                        zout(2,nout8,j) = bp - dp
+                        zout(2,nout8,j) = bp - dp1
 8120                        continue
                 do 8000,ia=2,after
                 ias=ia-1
@@ -2664,12 +2664,12 @@
                         cm=r - s
                         r=s2 + s6
                         s=s4 + s8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         zout(1,nout1,j) = ap + bp
-                        zout(2,nout1,j) = cp + dp
+                        zout(2,nout1,j) = cp + dp1
                         zout(1,nout5,j) = ap - bp
-                        zout(2,nout5,j) = cp - dp
+                        zout(2,nout5,j) = cp - dp1
                         zout(1,nout3,j) = am + dm
                         zout(2,nout3,j) = cm - bm
                         zout(1,nout7,j) = am - dm
@@ -2688,20 +2688,20 @@
                         cm=r - s
                         r=s2 - s6
                         s=r4 - r8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         r = ( cp + dm)*rt2i
                         s = ( dm - cp)*rt2i
-                        cp= ( cm + dp)*rt2i
-                        dp= ( cm - dp)*rt2i
+                        cp= ( cm + dp1)*rt2i
+                        dp1= ( cm - dp1)*rt2i
                         zout(1,nout2,j) = ap + r
                         zout(2,nout2,j) = bm + s
                         zout(1,nout6,j) = ap - r
                         zout(2,nout6,j) = bm - s
                         zout(1,nout4,j) = am + cp
-                        zout(2,nout4,j) = bp + dp
+                        zout(2,nout4,j) = bp + dp1
                         zout(1,nout8,j) = am - cp
-                        zout(2,nout8,j) = bp - dp
+                        zout(2,nout8,j) = bp - dp1
 
 8020                        continue
 8000                continue
@@ -2758,12 +2758,12 @@
                         cm=r - s
                         r=s2 + s6
                         s=s4 + s8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         zout(1,nout1,j) = ap + bp
-                        zout(2,nout1,j) = cp + dp
+                        zout(2,nout1,j) = cp + dp1
                         zout(1,nout5,j) = ap - bp
-                        zout(2,nout5,j) = cp - dp
+                        zout(2,nout5,j) = cp - dp1
                         zout(1,nout3,j) = am - dm
                         zout(2,nout3,j) = cm + bm
                         zout(1,nout7,j) = am + dm
@@ -2782,20 +2782,20 @@
                         cm=r - s
                         r=-s2 + s6
                         s= r4 - r8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         r = ( cp + dm)*rt2i
                         s = ( cp - dm)*rt2i
-                        cp= ( cm + dp)*rt2i
-                        dp= ( dp - cm)*rt2i
+                        cp= ( cm + dp1)*rt2i
+                        dp1= ( dp1 - cm)*rt2i
                         zout(1,nout2,j) = ap + r
                         zout(2,nout2,j) = bm + s
                         zout(1,nout6,j) = ap - r
                         zout(2,nout6,j) = bm - s
                         zout(1,nout4,j) = am + cp
-                        zout(2,nout4,j) = bp + dp
+                        zout(2,nout4,j) = bp + dp1
                         zout(1,nout8,j) = am - cp
-                        zout(2,nout8,j) = bp - dp
+                        zout(2,nout8,j) = bp - dp1
 8121                        continue
 
                 do 8001,ia=2,after
@@ -2886,12 +2886,12 @@
                         cm=r - s
                         r=s2 + s6
                         s=s4 + s8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         zout(1,nout1,j) = ap + bp
-                        zout(2,nout1,j) = cp + dp
+                        zout(2,nout1,j) = cp + dp1
                         zout(1,nout5,j) = ap - bp
-                        zout(2,nout5,j) = cp - dp
+                        zout(2,nout5,j) = cp - dp1
                         zout(1,nout3,j) = am - dm
                         zout(2,nout3,j) = cm + bm
                         zout(1,nout7,j) = am + dm
@@ -2910,20 +2910,20 @@
                         cm=r - s
                         r=-s2 + s6
                         s= r4 - r8
-                        dp=r + s
+                        dp1=r + s
                         dm=r - s
                         r = ( cp + dm)*rt2i
                         s = ( cp - dm)*rt2i
-                        cp= ( cm + dp)*rt2i
-                        dp= ( dp - cm)*rt2i
+                        cp= ( cm + dp1)*rt2i
+                        dp1= ( dp1 - cm)*rt2i
                         zout(1,nout2,j) = ap + r
                         zout(2,nout2,j) = bm + s
                         zout(1,nout6,j) = ap - r
                         zout(2,nout6,j) = bm - s
                         zout(1,nout4,j) = am + cp
-                        zout(2,nout4,j) = bp + dp
+                        zout(2,nout4,j) = bp + dp1
                         zout(1,nout8,j) = am - cp
-                        zout(2,nout8,j) = bp - dp
+                        zout(2,nout8,j) = bp - dp1
 8021                        continue
 8001                continue
 

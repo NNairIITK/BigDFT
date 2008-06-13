@@ -10,7 +10,14 @@ SUBDIRS = \
 	  Ca2 \
 	  Mn2  \
 	  H2O-CP2K \
-	  SiBulk
+	  SiBulk \
+	  Davidson-SiH4
+
+#this will run the automatic tests also for GPU
+if USE_CUDA_GPU
+SUBDIRS += GPU
+endif
+
 
 EXTRA_DIST = \
 	fldiff.py \

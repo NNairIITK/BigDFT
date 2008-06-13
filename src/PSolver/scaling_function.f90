@@ -26,6 +26,7 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   integer, intent(out) :: nrange
   real(kind=8), dimension(0:nd), intent(out) :: a,x
   !Local variables
+  character(len=*), parameter :: subname='scaling_function'
   real(kind=8), dimension(:), allocatable :: y
   integer :: i,nt,ni,i_all,i_stat
   
@@ -44,8 +45,8 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   !from -itype to itype
   ni=2*itype
   nrange = ni
-  allocate(y(0:nd),stat=i_stat)
-  call memocc(i_stat,product(shape(y))*kind(y),'y','scaling_function')
+  allocate(y(0:nd+ndebug),stat=i_stat)
+  call memocc(i_stat,y,'y',subname)
   
   ! plot scaling function
   call zero(nd+1,x)
@@ -92,7 +93,7 @@ subroutine scaling_function(itype,nd,nrange,a,x)
 
   i_all=-product(shape(y))*kind(y)
   deallocate(y,stat=i_stat)
-  call memocc(i_stat,i_all,'y','scaling_function')
+  call memocc(i_stat,i_all,'y',subname)
 end subroutine scaling_function
 !!***
 
@@ -116,6 +117,7 @@ subroutine wavelet_function(itype,nd,a,x)
   integer, intent(in) :: nd
   real(kind=8), dimension(0:nd), intent(out) :: a,x
   !Local variables
+  character(len=*), parameter :: subname='wavelet_function'
   real(kind=8), dimension(:), allocatable :: y
   integer :: i,nt,ni,i_all,i_stat
 
@@ -132,8 +134,8 @@ subroutine wavelet_function(itype,nd,a,x)
   !from -itype to itype
   ni=2*itype
 
-  allocate(y(0:nd),stat=i_stat)
-  call memocc(i_stat,product(shape(y))*kind(y),'y','wavelet_function')
+  allocate(y(0:nd+ndebug),stat=i_stat)
+  call memocc(i_stat,y,'y',subname)
   
   ! plot wavelet 
   call zero(nd+1,x)
@@ -180,7 +182,7 @@ subroutine wavelet_function(itype,nd,a,x)
 
   i_all=-product(shape(y))*kind(y)
   deallocate(y,stat=i_stat)
-  call memocc(i_stat,i_all,'y','wavelet_function')
+  call memocc(i_stat,i_all,'y',subname)
  
 end subroutine wavelet_function
 !!***

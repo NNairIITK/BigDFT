@@ -8,6 +8,7 @@ subroutine applylocpotkinone_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   !  Applies the local potential and kinetic energy operator to one wavefunction 
   ! Input: pot,psi
   ! Output: hpsi,epot,ekin
+  use module_base
   implicit real(kind=8) (a-h,o-z)
   dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
   dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
@@ -41,6 +42,7 @@ subroutine applylocpotkinone_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   real(kind=8) x_c(0:n1,0:n2,0:n3),  x_fc(0:n1,0:n2,0:n3,3), x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3)! input
   real(kind=8) w1(nw1),w2(nw2) ! work
   !***********************************************************************************************
+  character(len=*), parameter :: subname='applylocpotkinone_prev'
   do i=0,3
      scal(i)=1.d0
   enddo
@@ -146,26 +148,28 @@ SUBROUTINE CALC_GRAD_REZA_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
      nseg_c,nvctr_c,keyg_c,keyv_c,nseg_f,nvctr_f,keyg_f,keyv_f, &
      scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,xpsi_c,xpsi_f,ypsi_c,ypsi_f)
   ! ypsi = (1/2) \Nabla^2 xpsi
+  use module_base
   implicit real(kind=8) (a-h,o-z)        
   dimension keyg_c(2,nseg_c),keyv_c(nseg_c),keyg_f(2,nseg_f),keyv_f(nseg_f)
   dimension xpsi_c(nvctr_c),xpsi_f(7,nvctr_f),scal(0:3)
   dimension ypsi_c(nvctr_c),ypsi_f(7,nvctr_f)
   dimension ibyz_c(2,0:n2,0:n3),ibxz_c(2,0:n1,0:n3),ibxy_c(2,0:n1,0:n2)
   dimension ibyz_f(2,0:n2,0:n3),ibxz_f(2,0:n1,0:n3),ibxy_f(2,0:n1,0:n2)
+ character(len=*), parameter :: subname='CALC_GRAD_REZA_prev'
   allocatable xpsig_c(:,:,:),ypsig_c(:,:,:)
   allocatable xpsig_f(:,:,:,:),ypsig_f(:,:,:,:)
   allocatable xpsig_fc(:,:,:,:)
 
-  allocate(xpsig_c(0:n1,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(xpsig_c))*kind(xpsig_c),'xpsig_c','calc_grad_reza')
-  allocate(xpsig_fc(0:n1,0:n2,0:n3,3),stat=i_stat)
-  call memocc(i_stat,product(shape(xpsig_fc))*kind(xpsig_fc),'xpsig_fc','calc_grad_reza')
-  allocate(xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(xpsig_f))*kind(xpsig_f),'xpsig_f','calc_grad_reza')
-  allocate(ypsig_c(0:n1,0:n2,0:n3),stat=i_stat)
-  call memocc(i_stat,product(shape(ypsig_c))*kind(ypsig_c),'ypsig_c','calc_grad_reza')
-  allocate(ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(ypsig_f))*kind(ypsig_f),'ypsig_f','calc_grad_reza')
+  allocate(xpsig_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,xpsig_c,'xpsig_c',subname)
+  allocate(xpsig_fc(0:n1,0:n2,0:n3,3+ndebug),stat=i_stat)
+  call memocc(i_stat,xpsig_fc,'xpsig_fc',subname)
+  allocate(xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,xpsig_f,'xpsig_f',subname)
+  allocate(ypsig_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,ypsig_c,'ypsig_c',subname)
+  allocate(ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,ypsig_f,'ypsig_f',subname)
 
   call uncompress_forstandard_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
        nseg_c,nvctr_c,keyg_c,keyv_c,  & 
@@ -182,18 +186,18 @@ SUBROUTINE CALC_GRAD_REZA_prev(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   i_all=-product(shape(xpsig_c))*kind(xpsig_c)
   deallocate(xpsig_c,stat=i_stat)
-  call memocc(i_stat,i_all,'xpsig_c','calc_grad_reza')
+  call memocc(i_stat,i_all,'xpsig_c',subname)
   i_all=-product(shape(ypsig_c))*kind(ypsig_c)
   deallocate(ypsig_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ypsig_c','calc_grad_reza')
+  call memocc(i_stat,i_all,'ypsig_c',subname)
   i_all=-product(shape(xpsig_f))*kind(xpsig_f)
   deallocate(xpsig_f,stat=i_stat)
-  call memocc(i_stat,i_all,'xpsig_f','calc_grad_reza')
+  call memocc(i_stat,i_all,'xpsig_f',subname)
   i_all=-product(shape(ypsig_f))*kind(ypsig_f)
   deallocate(ypsig_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ypsig_f','calc_grad_reza')
+  call memocc(i_stat,i_all,'ypsig_f',subname)
   i_all=-product(shape(xpsig_fc))*kind(xpsig_fc)
   deallocate(xpsig_fc,stat=i_stat)
-  call memocc(i_stat,i_all,'xpsig_fc','calc_grad_reza')
+  call memocc(i_stat,i_all,'xpsig_fc',subname)
 
 END SUBROUTINE CALC_GRAD_REZA_prev

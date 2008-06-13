@@ -28,13 +28,14 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   integer,intent(out):: ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
   integer,intent(out):: ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
 
+  character(len=*), parameter :: subname=' make_all_ib'
   logical,allocatable:: logrid_big(:)
 
   !    for real space:
   integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
 
-  allocate(logrid_big((2*n1+31)*(2*n2+31)*(2*n3+31)),stat=i_stat)
-  call memocc(i_stat,product(shape(logrid_big))*kind(logrid_big),'logrid_big','make_all_ib')
+  allocate(logrid_big((2*n1+31)*(2*n2+31)*(2*n3+31)+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid_big,'logrid_big',subname)
 
   m1=nfu1-nfl1
   m2=nfu2-nfl2
@@ -86,7 +87,7 @@ subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
 
   i_all=-product(shape(logrid_big))*kind(logrid_big)
   deallocate(logrid_big,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_big','make_all_ib')
+  call memocc(i_stat,i_all,'logrid_big',subname)
 
 end subroutine make_all_ib
 

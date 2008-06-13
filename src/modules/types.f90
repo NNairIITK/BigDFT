@@ -8,7 +8,7 @@ module module_types
      character(len=1) :: geocode
      integer :: ncount_cluster_x
      real(kind=8) :: frac_fluct,randdis,betax,forcemax
-     integer :: ixc,ncharge,itermax,ncong,idsx,ncongt,inputPsiId,nspin,mpol
+     integer :: ixc,ncharge,itermax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,nvirt,nplot
      real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf,alat1,alat2,alat3
      logical :: output_grid,output_wf,calc_tail
   end type input_variables
@@ -59,6 +59,10 @@ module module_types
      real(kind=8), dimension(:,:,:), pointer :: psppar
   end type atoms_data
 
+  type, public :: grid_dimensions
+     integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
+  end type grid_dimensions
+
 contains
 
 
@@ -71,9 +75,9 @@ contains
     integer :: i_all,i_stat
 
     allocate(wfd%keyg(2,wfd%nseg_c+wfd%nseg_f),stat=i_stat)
-    call memocc(i_stat,product(shape(wfd%keyg))*kind(wfd%keyg),'keyg',routine)
+    call memocc(i_stat,wfd%keyg,'keyg',routine)
     allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f),stat=i_stat)
-    call memocc(i_stat,product(shape(wfd%keyv))*kind(wfd%keyv),'keyv',routine)
+    call memocc(i_stat,wfd%keyv,'keyv',routine)
 
   end subroutine allocate_wfd
 

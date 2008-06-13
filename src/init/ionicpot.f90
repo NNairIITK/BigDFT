@@ -14,7 +14,7 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
   real(kind=8), dimension(3,at%nat), intent(out) :: fion
   real(kind=8), dimension(*), intent(out) :: pot_ion
   !local variables
-  include 'mpif.h'
+  character(len=*), parameter :: subname='IonicEnergyandForces'
   logical, parameter :: slowion=.false.
   logical :: perx,pery,perz,gox,goy,goz
   integer :: iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
@@ -30,10 +30,10 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
 
   if (geocode == 'P') then
      !here we insert the calculation of the ewald forces
-     allocate(fewald(3,at%nat),stat=i_stat)
-     call memocc(i_stat,product(shape(fewald))*kind(fewald),'fewald','ionicenergy')
-     allocate(xred(3,at%nat),stat=i_stat)
-     call memocc(i_stat,product(shape(xred))*kind(xred),'xred','ionicenergy')
+     allocate(fewald(3,at%nat+ndebug),stat=i_stat)
+     call memocc(i_stat,fewald,'fewald',subname)
+     allocate(xred(3,at%nat+ndebug),stat=i_stat)
+     call memocc(i_stat,xred,'xred',subname)
 
      !calculate rprimd
      rprimd(:,:)=0.d0
@@ -68,10 +68,10 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
 
      i_all=-product(shape(xred))*kind(xred)
      deallocate(xred,stat=i_stat)
-     call memocc(i_stat,i_all,'xred','ionicenergy')
+     call memocc(i_stat,i_all,'xred',subname)
      i_all=-product(shape(fewald))*kind(fewald)
      deallocate(fewald,stat=i_stat)
-     call memocc(i_stat,i_all,'fewald','ionicenergy')
+     call memocc(i_stat,i_all,'fewald',subname)
 
      !now calculate the integral of the local psp
      !this is the offset to be applied in the Poisson Solver to have a neutralizing background
@@ -382,8 +382,8 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
      end do
 
      if (nproc > 1) then
-        allocate(gion(3,at%nat),stat=i_stat)
-        call memocc(i_stat,product(shape(gion))*kind(gion),'gion','ionicenergy')
+        allocate(gion(3,at%nat+ndebug),stat=i_stat)
+        call memocc(i_stat,gion,'gion',subname)
         do iat=1,at%nat
            gion(1,iat)=fion(1,iat)
            gion(2,iat)=fion(2,iat)
@@ -394,7 +394,7 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
 
         i_all=-product(shape(gion))*kind(gion)
         deallocate(gion,stat=i_stat)
-        call memocc(i_stat,i_all,'gion','ionicenergy')
+        call memocc(i_stat,i_all,'gion',subname)
 
      end if
 
@@ -407,9 +407,9 @@ end subroutine IonicEnergyandForces
 
 subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
+  use module_base
   use Poisson_Solver
   implicit none
-  include 'mpif.h'
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,ntypes,nat,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
   real(kind=8), intent(in) :: hxh,hyh,hzh,elecfield,psoffset

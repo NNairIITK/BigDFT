@@ -34,20 +34,39 @@ subroutine print_logo()
 end subroutine print_logo
 
 subroutine read_input_variables(iproc,in)
-
+  use module_base
   use module_types
-
   implicit none
   integer, intent(in) :: iproc
   type(input_variables), intent(out) :: in
   !local variables
+  character(len=7) :: cudagpu
   character(len=100) :: line
   real(kind=4) :: hgrid,crmult,frmult,cpmult,fpmult
-  integer :: ierror,ierrfrc
+  integer :: ierror,ierrfrc,iconv,iblas
 
   ! Read the input variables.
   open(unit=1,file='input.dat',status='old')
-  read(1,*,iostat=ierror) in%ncount_cluster_x
+
+  !read the line for force the CUDA GPU calculation for all processors
+  read(1,'(a100)')line
+  read(line,*,iostat=ierrfrc) cudagpu
+  if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
+     call set_cpu_gpu_aff(iproc,iconv,iblas)
+     if (iconv == 0) then
+        !change the value of the GPU convolution flag defined in the module_base
+        GPUconv=.true.
+     end if
+     if (iblas == 0) then
+        !change the value of the GPU convolution flag defined in the module_base
+        GPUblas=.true.
+     end if
+     read(1,*,iostat=ierror) in%ncount_cluster_x
+  else
+     read(line,*,iostat=ierror) in%ncount_cluster_x
+  end if
+
+  !read(1,*,iostat=ierror) in%ncount_cluster_x
   read(1,'(a100)')line
   read(line,*,iostat=ierrfrc) in%frac_fluct,in%forcemax
   if (ierrfrc /= 0) then
@@ -84,6 +103,23 @@ subroutine read_input_variables(iproc,in)
      stop
   end if
 
+  !add reading lines for Davidson treatment (optional for backward compatibility)
+  read(1,*,iostat=ierror) in%nvirt, in%nplot
+  
+  if (ierror/=0) then
+     in%nvirt=0
+     in%nplot=0
+  else
+     !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
+     !systems
+     if (in%nspin/=1 .and. in%nvirt/=0) then
+        if (iproc==0) then
+           write(*,'(1x,a)')'ERROR: Davidson treeatment allowed on fon non spin-polarised systems'
+        end if
+        stop
+     end if
+  end if
+ 
   close(1,iostat=ierror)
 
   if (iproc == 0) then
@@ -94,6 +130,11 @@ subroutine read_input_variables(iproc,in)
           in%forcemax
      write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
      write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
+     if (in%nvirt > 0) then
+        !read virtual orbital and plotting request
+        write(*,'(1x,a,i3)')'Virtual orbitals',in%nvirt
+        write(*,'(1x,A,i3,A)')'Output for density plots is requested for ',in%nplot,' orbitals'
+     end if
   end if
 
      if (in%nspin==4) then
@@ -152,6 +193,7 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   type(input_variables), intent(out) :: in
   real(kind=8), dimension(3,at%nat), intent(out) :: rxyz
   !local variables
+  character(len=*), parameter :: subname='read_atomic_positions'
   real(kind=8), parameter :: bohr=0.5291772108d0 !1 AU in angstroem
   character(len=3) :: suffix
   character(len=2) :: symbol
@@ -167,12 +209,12 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
 
   if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',at%nat
 
-  allocate(at%iatype(at%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(at%iatype))*kind(at%iatype),'iatype','read_atomic_positions')
-  allocate(at%lfrztyp(at%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(at%lfrztyp))*kind(at%lfrztyp),'lfrztyp','read_atomic_positions')
-  allocate(at%nspinat(at%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(at%nspinat))*kind(at%nspinat),'nspinat','read_atomic_positions')
+  allocate(at%iatype(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,at%iatype,'at%iatype',subname)
+  allocate(at%lfrztyp(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,at%lfrztyp,'at%lfrztyp',subname)
+  allocate(at%nspinat(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,at%nspinat,'at%nspinat',subname)
 
   !controls if the positions are provided with machine precision
   if (units == 'angstroemd0' .or. units== 'atomicd0' .or. units== 'bohrd0') then
@@ -295,6 +337,12 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
         rxyz(2,iat)=real(ry,kind=8)
         rxyz(3,iat)=real(rz,kind=8)
      end if
+
+     if (in%geocode == 'P') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),alat1d0)
+        rxyz(2,iat)=modulo(rxyz(2,iat),alat2d0)
+        rxyz(3,iat)=modulo(rxyz(3,iat),alat3d0)
+     end if
  
      !! For reading in saddle points
      !!        open(unit=83,file='step',status='old')
@@ -339,8 +387,8 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   enddo
 
   !now that ntypes is determined allocate at%atomnames and copy the values
-  allocate(at%atomnames(at%ntypes),stat=i_stat) 
-  call memocc(i_stat,product(shape(at%atomnames))*kind(at%atomnames),'atomnames','read_atomic_positions')
+  allocate(at%atomnames(at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,at%atomnames,'at%atomnames',subname)
   at%atomnames(1:at%ntypes)=atomnames(1:at%ntypes)
 
   !control atom positions
@@ -373,8 +421,6 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
      if (iproc.eq.0 .and. at%lfrztyp(iat)) &
           write(*,'(1x,a,i0,a,a)') 'FIXED Atom N.:',iat,', Name: ',trim(at%atomnames(at%iatype(iat)))
   enddo
-
-  !print 
 
 end subroutine read_atomic_positions
 
@@ -521,6 +567,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   integer, intent(out) :: nelec,norb,norbu,norbd,norbp,iunit
   real(kind=8), dimension(at%ntypes,2), intent(out) :: radii_cf
   !local variables
+  character(len=*), parameter :: subname='read_system_variables'
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: exists
   character(len=2) :: symbol
@@ -535,16 +582,16 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   !allocate atoms data variables
   ! store PSP parameters
   ! modified to accept both GTH and HGHs pseudopotential types
-  allocate(at%psppar(0:4,0:6,at%ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(at%psppar))*kind(at%psppar),'psppar','read_system_variables')
-  allocate(at%nelpsp(at%ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(at%nelpsp))*kind(at%nelpsp),'nelpsp','read_system_variables')
-  allocate(at%npspcode(at%ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(at%npspcode))*kind(at%npspcode),'npspcode','read_system_variables')
-  allocate(at%nzatom(at%ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(at%nzatom))*kind(at%nzatom),'nzatom','read_system_variables')
-  allocate(at%iasctype(at%ntypes),stat=i_stat)
-  call memocc(i_stat,product(shape(at%iasctype))*kind(at%iasctype),'iasctype','read_system_variables')
+  allocate(at%psppar(0:4,0:6,at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,at%psppar,'at%psppar',subname)
+  allocate(at%nelpsp(at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,at%nelpsp,'at%nelpsp',subname)
+  allocate(at%npspcode(at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,at%npspcode,'at%npspcode',subname)
+  allocate(at%nzatom(at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,at%nzatom,'at%nzatom',subname)
+  allocate(at%iasctype(at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,at%iasctype,'at%iasctype',subname)
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -557,7 +604,8 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      inquire(file=filename,exist=exists)
      if (.not. exists) then
         if (iproc == 0) write(*,'(1x,a)')&
-             'ERROR: The pseudopotential parameter file "'//filename//'" is lacking, exiting...'
+             'ERROR: The pseudopotential parameter file "'&
+             //trim(filename)//'" is lacking, exiting...'
         stop
      end if
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
@@ -642,7 +690,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
        end do
 
        !old way of calculating the radii, requires modification of the PSP files
-       read(11,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
+       read(11,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)!here we add the coarse radius for proj.
        if (ierror.eq.0) then
           if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
                trim(at%atomnames(ityp)),at%nelpsp(ityp),at%npspcode(ityp),&
@@ -763,7 +811,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
            end do
         end do
      end if
-    
+     
     !calculate number of electrons and orbitals
     ! Number of electrons and number of semicore atoms
     nelec=0
@@ -897,20 +945,21 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
      alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
   !calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
   !and shifts the atoms such that their position is the most symmetric possible
+  use module_base
   use module_types
   implicit none
   type(atoms_data), intent(in) :: atoms
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc
-  real(kind=8), intent(in) :: crmult,frmult
-  real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz
-  real(kind=8), dimension(atoms%ntypes,2), intent(in) :: radii_cf
+  real(gp), intent(in) :: crmult,frmult
+  real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
+  real(gp), dimension(atoms%ntypes,2), intent(in) :: radii_cf
   integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
-  real(kind=8), intent(inout) :: hx,hy,hz,alat1,alat2,alat3
+  real(gp), intent(inout) :: hx,hy,hz,alat1,alat2,alat3
   !local variables
-  real(kind=8), parameter ::eps_mach=1.d-12,onem=1.d0-eps_mach
+  real(gp), parameter ::eps_mach=1.e-12_gp,onem=1.0_gp-eps_mach
   integer :: iat,j
-  real(kind=8) :: rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
+  real(gp) :: rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
 
   !check the geometry code with the grid spacings
   if (geocode == 'F' .and. (hx/=hy .or. hx/=hz .or. hy/=hz)) then
@@ -919,15 +968,28 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
   end if
 
 
-  !calculate the extremes of the boxes taking into account the spheres arount the atoms
-  cxmax=-1.d10 ; cxmin=1.d10
-  cymax=-1.d10 ; cymin=1.d10
-  czmax=-1.d10 ; czmin=1.d10
+  !calculate the extremes of the boxes taking into account the spheres around the atoms
+  cxmax=-1.e10_gp 
+  cxmin=1.e10_gp
+
+  cymax=-1.e10_gp 
+  cymin=1.e10_gp
+
+  czmax=-1.e10_gp 
+  czmin=1.e10_gp
+
   do iat=1,atoms%nat
+
      rad=radii_cf(atoms%iatype(iat),1)*crmult
-     cxmax=max(cxmax,rxyz(1,iat)+rad) ; cxmin=min(cxmin,rxyz(1,iat)-rad)
-     cymax=max(cymax,rxyz(2,iat)+rad) ; cymin=min(cymin,rxyz(2,iat)-rad)
-     czmax=max(czmax,rxyz(3,iat)+rad) ; czmin=min(czmin,rxyz(3,iat)-rad)
+
+     cxmax=max(cxmax,rxyz(1,iat)+rad) 
+     cxmin=min(cxmin,rxyz(1,iat)-rad)
+
+     cymax=max(cymax,rxyz(2,iat)+rad) 
+     cymin=min(cymin,rxyz(2,iat)-rad)
+     
+     czmax=max(czmax,rxyz(3,iat)+rad) 
+     czmin=min(czmin,rxyz(3,iat)-rad)
   enddo
 
   cxmax=cxmax+eps_mach 
@@ -987,9 +1049,9 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
   end if
 
   !balanced shift taking into account the missing space
-  cxmin=cxmin+0.5d0*(alat1-alatrue1)
-  cymin=cymin+0.5d0*(alat2-alatrue2)
-  czmin=czmin+0.5d0*(alat3-alatrue3)
+  cxmin=cxmin+0.5_gp*(alat1-alatrue1)
+  cymin=cymin+0.5_gp*(alat2-alatrue2)
+  czmin=czmin+0.5_gp*(alat3-alatrue3)
 
   !correct the box sizes for the isolated case
   if (geocode == 'F') then
@@ -1001,21 +1063,34 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
   else if (geocode == 'P') then
      !for the moment we do not put the shift, at the end it will be tested
      !here we should put the center of mass
-     cxmin=0.d0
-     cymin=0.d0
-     czmin=0.d0
+     cxmin=0.0_gp
+     cymin=0.0_gp
+     czmin=0.0_gp
   end if
 
-
-  do iat=1,atoms%nat
-     rxyz(1,iat)=rxyz(1,iat)-cxmin
-     rxyz(2,iat)=rxyz(2,iat)-cymin
-     rxyz(3,iat)=rxyz(3,iat)-czmin
-  enddo
+  !if (geocode /= 'P') then
+     do iat=1,atoms%nat
+        rxyz(1,iat)=rxyz(1,iat)-cxmin
+        rxyz(2,iat)=rxyz(2,iat)-cymin
+        rxyz(3,iat)=rxyz(3,iat)-czmin
+     enddo
+  !else !place the atoms inside the box
+  !   do iat=1,atoms%nat
+  !      rxyz(1,iat)=modulo(rxyz(1,iat),alat1)
+  !      rxyz(2,iat)=modulo(rxyz(2,iat),alat2)
+  !      rxyz(3,iat)=modulo(rxyz(3,iat),alat3)
+  !   enddo
+  !end if
 
   ! fine grid size (needed for creation of input wavefunction, preconditioning)
-  nfl1=n1 ; nfl2=n2 ; nfl3=n3
-  nfu1=0 ; nfu2=0 ; nfu3=0
+  nfl1=n1 
+  nfl2=n2 
+  nfl3=n3
+
+  nfu1=0 
+  nfu2=0 
+  nfu3=0
+
   do iat=1,atoms%nat
      rad=radii_cf(atoms%iatype(iat),2)*frmult
      nfl1=min(nfl1,ceiling((rxyz(1,iat)-rad)/hx - eps_mach))

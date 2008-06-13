@@ -25,12 +25,14 @@
 !!
 program PoissonSolver
 
+  use module_base
   use Poisson_Solver
 
   implicit none
-  include 'mpif.h'
+  !include 'mpif.h'
   !Order of interpolating scaling function
   !integer, parameter :: itype_scf=8
+  character(len=*), parameter :: subname='Poisson_Solver'
   real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
   !Error function
   real(kind=8) :: derf
@@ -100,7 +102,7 @@ program PoissonSolver
   !hgrid=hx
 
   !we must choose properly a test case with a positive density
-  itype_scf=14
+  itype_scf=16
 
   call timing(iproc,'parallel      ','IN')
 
@@ -109,16 +111,16 @@ program PoissonSolver
   if (.not. onlykernel) then
      !Allocations
      !Density
-     allocate(density(n01,n02,n03),stat=i_stat)
-     call memocc(i_stat,product(shape(density))*kind(density),'density','poisson_solver')
+     allocate(density(n01,n02,n03+ndebug),stat=i_stat)
+     call memocc(i_stat,density,'density',subname)
      !Density then potential
-     allocate(rhopot(n01,n02,n03),stat=i_stat)
-     call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','poisson_solver')
-     allocate(potential(n01,n02,n03),stat=i_stat)
-     call memocc(i_stat,product(shape(potential))*kind(potential),'potential','poisson_solver')
+     allocate(rhopot(n01,n02,n03+ndebug),stat=i_stat)
+     call memocc(i_stat,rhopot,'rhopot',subname)
+     allocate(potential(n01,n02,n03+ndebug),stat=i_stat)
+     call memocc(i_stat,potential,'potential',subname)
      !ionic potential
-     allocate(pot_ion(n01,n02,n03),stat=i_stat)
-     call memocc(i_stat,product(shape(pot_ion))*kind(pot_ion),'pot_ion','poisson_solver')
+     allocate(pot_ion(n01,n02,n03+ndebug),stat=i_stat)
+     call memocc(i_stat,pot_ion,'pot_ion',subname)
 
      call test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
           density,potential,rhopot,pot_ion)
@@ -149,7 +151,7 @@ program PoissonSolver
 
   i_all=-product(shape(karray))*kind(karray)
   deallocate(karray,stat=i_stat)
-  call memocc(i_stat,i_all,'karray','poisson_solver')
+  call memocc(i_stat,i_all,'karray',subname)
 
   call timing(iproc,'              ','RE')
 
@@ -203,7 +205,7 @@ program PoissonSolver
 
      i_all=-product(shape(karray))*kind(karray)
      deallocate(karray,stat=i_stat)
-     call memocc(i_stat,i_all,'karray','poisson_solver')
+     call memocc(i_stat,i_all,'karray',subname)
 
      call timing(iproc,'              ','RE')
 
@@ -281,16 +283,16 @@ program PoissonSolver
   if (.not. onlykernel) then
      i_all=-product(shape(density))*kind(density)
      deallocate(density,stat=i_stat)
-     call memocc(i_stat,i_all,'density','poisson_solver')
+     call memocc(i_stat,i_all,'density',subname)
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
-     call memocc(i_stat,i_all,'rhopot','poisson_solver')
+     call memocc(i_stat,i_all,'rhopot',subname)
      i_all=-product(shape(potential))*kind(potential)
      deallocate(potential,stat=i_stat)
-     call memocc(i_stat,i_all,'potential','poisson_solver')
+     call memocc(i_stat,i_all,'potential',subname)
      i_all=-product(shape(pot_ion))*kind(pot_ion)
      deallocate(pot_ion,stat=i_stat)
-     call memocc(i_stat,i_all,'pot_ion','poisson_solver')
+     call memocc(i_stat,i_all,'pot_ion',subname)
   end if
 
   !finalize memory counting

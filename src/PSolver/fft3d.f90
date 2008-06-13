@@ -813,12 +813,12 @@ subroutine fftstp(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
               cm=r - s
               r=s2 + s6
               s=s4 + s8
-              dp=r + s
+              dp1=r + s
               dm=r - s
               zout(1,j,nout1) = ap + bp
-              zout(2,j,nout1) = cp + dp
+              zout(2,j,nout1) = cp + dp1
               zout(1,j,nout5) = ap - bp
-              zout(2,j,nout5) = cp - dp
+              zout(2,j,nout5) = cp - dp1
               zout(1,j,nout3) = am + dm
               zout(2,j,nout3) = cm - bm
               zout(1,j,nout7) = am - dm
@@ -837,20 +837,20 @@ subroutine fftstp(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
               cm=r - s
               r=s2 - s6
               s=r4 - r8
-              dp=r + s
+              dp1=r + s
               dm=r - s
               r = ( cp + dm)*rt2i
               s = ( dm - cp)*rt2i
-              cp= ( cm + dp)*rt2i
-              dp = ( cm - dp)*rt2i
+              cp= ( cm + dp1)*rt2i
+              dp1 = ( cm - dp1)*rt2i
               zout(1,j,nout2) = ap + r
               zout(2,j,nout2) = bm + s
               zout(1,j,nout6) = ap - r
               zout(2,j,nout6) = bm - s
               zout(1,j,nout4) = am + cp
-              zout(2,j,nout4) = bp + dp
+              zout(2,j,nout4) = bp + dp1
               zout(1,j,nout8) = am - cp
-              zout(2,j,nout8) = bp - dp
+              zout(2,j,nout8) = bp - dp1
            end do
         end do
         do ia=2,after
@@ -941,12 +941,12 @@ subroutine fftstp(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
                  cm=r - s
                  r=s2 + s6
                  s=s4 + s8
-                 dp=r + s
+                 dp1=r + s
                  dm=r - s
                  zout(1,j,nout1) = ap + bp
-                 zout(2,j,nout1) = cp + dp
+                 zout(2,j,nout1) = cp + dp1
                  zout(1,j,nout5) = ap - bp
-                 zout(2,j,nout5) = cp - dp
+                 zout(2,j,nout5) = cp - dp1
                  zout(1,j,nout3) = am + dm
                  zout(2,j,nout3) = cm - bm
                  zout(1,j,nout7) = am - dm
@@ -965,20 +965,20 @@ subroutine fftstp(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
                  cm=r - s
                  r=s2 - s6
                  s=r4 - r8
-                 dp=r + s
+                 dp1=r + s
                  dm=r - s
                  r = ( cp + dm)*rt2i
                  s = ( dm - cp)*rt2i
-                 cp= ( cm + dp)*rt2i
-                 dp = ( cm - dp)*rt2i
+                 cp= ( cm + dp1)*rt2i
+                 dp1 = ( cm - dp1)*rt2i
                  zout(1,j,nout2) = ap + r
                  zout(2,j,nout2) = bm + s
                  zout(1,j,nout6) = ap - r
                  zout(2,j,nout6) = bm - s
                  zout(1,j,nout4) = am + cp
-                 zout(2,j,nout4) = bp + dp
+                 zout(2,j,nout4) = bp + dp1
                  zout(1,j,nout8) = am - cp
-                 zout(2,j,nout8) = bp - dp
+                 zout(2,j,nout8) = bp - dp1
               end do
            end do
         end do
@@ -1034,12 +1034,12 @@ subroutine fftstp(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
               cm=r - s
               r=s2 + s6
               s=s4 + s8
-              dp=r + s
+              dp1=r + s
               dm=r - s
               zout(1,j,nout1) = ap + bp
-              zout(2,j,nout1) = cp + dp
+              zout(2,j,nout1) = cp + dp1
               zout(1,j,nout5) = ap - bp
-              zout(2,j,nout5) = cp - dp
+              zout(2,j,nout5) = cp - dp1
               zout(1,j,nout3) = am - dm
               zout(2,j,nout3) = cm + bm
               zout(1,j,nout7) = am + dm
@@ -1058,20 +1058,20 @@ subroutine fftstp(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
               cm=r - s
               r=-s2 + s6
               s= r4 - r8
-              dp=r + s
+              dp1=r + s
               dm=r - s
               r = ( cp + dm)*rt2i
               s = ( cp - dm)*rt2i
-              cp= ( cm + dp)*rt2i
-              dp= ( dp - cm)*rt2i
+              cp= ( cm + dp1)*rt2i
+              dp1= ( dp1 - cm)*rt2i
               zout(1,j,nout2) = ap + r
               zout(2,j,nout2) = bm + s
               zout(1,j,nout6) = ap - r
               zout(2,j,nout6) = bm - s
               zout(1,j,nout4) = am + cp
-              zout(2,j,nout4) = bp + dp
+              zout(2,j,nout4) = bp + dp1
               zout(1,j,nout8) = am - cp
-              zout(2,j,nout8) = bp - dp
+              zout(2,j,nout8) = bp - dp1
            end do
         end do
         do ia=2,after
@@ -1162,12 +1162,12 @@ subroutine fftstp(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
                  cm=r - s
                  r=s2 + s6
                  s=s4 + s8
-                 dp=r + s
+                 dp1=r + s
                  dm=r - s
                  zout(1,j,nout1) = ap + bp
-                 zout(2,j,nout1) = cp + dp
+                 zout(2,j,nout1) = cp + dp1
                  zout(1,j,nout5) = ap - bp
-                 zout(2,j,nout5) = cp - dp
+                 zout(2,j,nout5) = cp - dp1
                  zout(1,j,nout3) = am - dm
                  zout(2,j,nout3) = cm + bm
                  zout(1,j,nout7) = am + dm
@@ -1186,20 +1186,20 @@ subroutine fftstp(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
                  cm=r - s
                  r=-s2 + s6
                  s= r4 - r8
-                 dp=r + s
+                 dp1=r + s
                  dm=r - s
                  r = ( cp + dm)*rt2i
                  s = ( cp - dm)*rt2i
-                 cp= ( cm + dp)*rt2i
-                 dp= ( dp - cm)*rt2i
+                 cp= ( cm + dp1)*rt2i
+                 dp1= ( dp1 - cm)*rt2i
                  zout(1,j,nout2) = ap + r
                  zout(2,j,nout2) = bm + s
                  zout(1,j,nout6) = ap - r
                  zout(2,j,nout6) = bm - s
                  zout(1,j,nout4) = am + cp
-                 zout(2,j,nout4) = bp + dp
+                 zout(2,j,nout4) = bp + dp1
                  zout(1,j,nout8) = am - cp
-                 zout(2,j,nout8) = bp - dp
+                 zout(2,j,nout8) = bp - dp1
               end do
            end do
         end do

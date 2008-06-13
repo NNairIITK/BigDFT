@@ -13,7 +13,7 @@
 !!
 subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,eval,&
-     pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,spinsgn,&
+     pot,hgrid,rxyz,radii_cf,crmult,frmult,cpmult,fpmult,nspin,spinsgn,&
      proj,psi,occup,output_grid,ekin_sum,epot_sum,eproj_sum)
   use module_base
   use module_types
@@ -24,7 +24,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   logical, intent(in) :: output_grid
   integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncongt,nspin
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
+  real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf,cpmult,fpmult
   real(kind=8), dimension(norb), intent(in) :: occup,eval,spinsgn
   real(kind=8), dimension(at%ntypes,2), intent(in) :: radii_cf
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
@@ -33,16 +33,17 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
   !local variables
-  include 'mpif.h' 
+  character(len=*), parameter :: subname='CalculateTailCorrection'
   integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat,nbuf,ispin
   integer :: nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
   real(kind=8) :: alatb1,alatb2,alatb3,ekin,epot,eproj,tt,cprecr,sum_tail,ekin1,epot1,eproj1
+  type(wavefunctions_descriptors) :: wfdb
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
   integer, dimension(:,:,:), allocatable :: ibbyz_c,ibbyz_f,ibbxz_c,ibbxz_f,ibbxy_c,ibbxy_f
-  integer, dimension(:), allocatable :: keybv
-  integer, dimension(:,:), allocatable :: keybg
   real(kind=8), dimension(:,:), allocatable :: txyz,wrkallred
   real(kind=8), dimension(:), allocatable :: psib,hpsib,psir
+  integer, dimension(:), pointer :: keybv
+  integer, dimension(:,:), pointer :: keybg
 
   !for shrink:
   integer, allocatable, dimension(:,:,:) :: ibbzzx_c,ibbyyzz_c
@@ -119,8 +120,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   endif
 
   ! change atom coordinates according to the enlarged box
-  allocate(txyz(3,at%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(txyz))*kind(txyz),'txyz','calculatetailcorrection')
+  allocate(txyz(3,at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,txyz,'txyz',subname)
   do iat=1,at%nat
      txyz(1,iat)=rxyz(1,iat)+real(nbuf,kind=8)*hgrid
      txyz(2,iat)=rxyz(2,iat)+real(nbuf,kind=8)*hgrid
@@ -128,51 +129,51 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   enddo
 
   ! determine localization region for all orbitals, but do not yet fill the descriptor arrays
-  allocate(logrid_c(0:nb1,0:nb2,0:nb3),stat=i_stat)
-  call memocc(i_stat,product(shape(logrid_c))*kind(logrid_c),'logrid_c','calculatetailcorrection')
-  allocate(logrid_f(0:nb1,0:nb2,0:nb3),stat=i_stat)
-  call memocc(i_stat,product(shape(logrid_f))*kind(logrid_f),'logrid_f','calculatetailcorrection')
-  allocate(ibbyz_c(2,0:nb2,0:nb3),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbyz_c))*kind(ibbyz_c),'ibbyz_c','calculatetailcorrection')
-  allocate(ibbxz_c(2,0:nb1,0:nb3),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbxz_c))*kind(ibbxz_c),'ibbxz_c','calculatetailcorrection')
-  allocate(ibbxy_c(2,0:nb1,0:nb2),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbxy_c))*kind(ibbxy_c),'ibbxy_c','calculatetailcorrection')
-  allocate(ibbyz_f(2,0:nb2,0:nb3),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbyz_f))*kind(ibbyz_f),'ibbyz_f','calculatetailcorrection')
-  allocate(ibbxz_f(2,0:nb1,0:nb3),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbxz_f))*kind(ibbxz_f),'ibbxz_f','calculatetailcorrection')
-  allocate(ibbxy_f(2,0:nb1,0:nb2),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbxy_f))*kind(ibbxy_f),'ibbxy_f','calculatetailcorrection')
+  allocate(logrid_c(0:nb1,0:nb2,0:nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid_c,'logrid_c',subname)
+  allocate(logrid_f(0:nb1,0:nb2,0:nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid_f,'logrid_f',subname)
+  allocate(ibbyz_c(2,0:nb2,0:nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbyz_c,'ibbyz_c',subname)
+  allocate(ibbxz_c(2,0:nb1,0:nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbxz_c,'ibbxz_c',subname)
+  allocate(ibbxy_c(2,0:nb1,0:nb2+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbxy_c,'ibbxy_c',subname)
+  allocate(ibbyz_f(2,0:nb2,0:nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbyz_f,'ibbyz_f',subname)
+  allocate(ibbxz_f(2,0:nb1,0:nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbxz_f,'ibbxz_f',subname)
+  allocate(ibbxy_f(2,0:nb1,0:nb2+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbxy_f,'ibbxy_f',subname)
 
   !!*********************************Alexey*********************************************************
   !   allocate for grow
-  allocate(ibbzxx_c(2,0:nb3,-14:2*nb1+16),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbzxx_c))*kind(ibbzxx_c),'ibbzxx_c','calculatetailcorrection')
-  allocate(ibbxxyy_c(2,-14:2*nb1+16,-14:2*nb2+16),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbxxyy_c))*kind(ibbxxyy_c),'ibbxxyy_c','calculatetailcorrection')
-  allocate(ibbyz_ff(2,0:nb2,0:nb3),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbyz_ff))*kind(ibbyz_ff),'ibbyz_ff','calculatetailcorrection')
-  allocate(ibbzxx_f(2,0:nb3,-14:2*nb1+16),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbzxx_f))*kind(ibbzxx_f),'ibbzxx_f','calculatetailcorrection')
-  allocate(ibbxxyy_f(2,-14:2*nb1+16,-14:2*nb2+16),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbxxyy_f))*kind(ibbxxyy_f),'ibbxxyy_f','calculatetailcorrection')
+  allocate(ibbzxx_c(2,0:nb3,-14:2*nb1+16+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbzxx_c,'ibbzxx_c',subname)
+  allocate(ibbxxyy_c(2,-14:2*nb1+16,-14:2*nb2+16+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbxxyy_c,'ibbxxyy_c',subname)
+  allocate(ibbyz_ff(2,0:nb2,0:nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbyz_ff,'ibbyz_ff',subname)
+  allocate(ibbzxx_f(2,0:nb3,-14:2*nb1+16+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbzxx_f,'ibbzxx_f',subname)
+  allocate(ibbxxyy_f(2,-14:2*nb1+16,-14:2*nb2+16+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbxxyy_f,'ibbxxyy_f',subname)
 
   !allocate for shrink
-  allocate(ibbzzx_c(2,-14:2*nb3+16,0:nb1),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbzzx_c))*kind(ibbzzx_c),'ibbzzx_c','calculatetailcorrection')
-  allocate(ibbyyzz_c(2,-14:2*nb2+16,-14:2*nb3+16),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbyyzz_c))*kind(ibbyyzz_c),'ibbyyzz_c','calculatetailcorrection')
-  allocate(ibbxy_ff(2,0:nb1,0:nb2),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbxy_ff))*kind(ibbxy_ff),'ibbxy_ff','calculatetailcorrection')
-  allocate(ibbzzx_f(2,-14:2*nb3+16,0:nb1),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbzzx_f))*kind(ibbzzx_f),'ibbzzx_f','calculatetailcorrection')
-  allocate(ibbyyzz_f(2,-14:2*nb2+16,-14:2*nb3+16),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbyyzz_f))*kind(ibbyyzz_f),'ibbyyzz_f','calculatetailcorrection')
+  allocate(ibbzzx_c(2,-14:2*nb3+16,0:nb1+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbzzx_c,'ibbzzx_c',subname)
+  allocate(ibbyyzz_c(2,-14:2*nb2+16,-14:2*nb3+16+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbyyzz_c,'ibbyyzz_c',subname)
+  allocate(ibbxy_ff(2,0:nb1,0:nb2+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbxy_ff,'ibbxy_ff',subname)
+  allocate(ibbzzx_f(2,-14:2*nb3+16,0:nb1+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbzzx_f,'ibbzzx_f',subname)
+  allocate(ibbyyzz_f(2,-14:2*nb2+16,-14:2*nb3+16+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbyyzz_f,'ibbyyzz_f',subname)
 
   !allocate for real space
-  allocate(ibbyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16),stat=i_stat)
-  call memocc(i_stat,product(shape(ibbyyzz_r))*kind(ibbyyzz_r),'ibbyyzz_r','calculatetailcorrection')
+  allocate(ibbyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16+ndebug),stat=i_stat)
+  call memocc(i_stat,ibbyyzz_r,'ibbyyzz_r',subname)
   !***********************************************************************************************
   ! coarse grid quantities
   call fill_logrid('F',nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,at%nat,at%ntypes,at%iatype,txyz, & 
@@ -234,10 +235,10 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
        ibbyz_c,ibbzxx_c,ibbxxyy_c,ibbyz_f,ibbyz_ff,ibbzxx_f,ibbxxyy_f,ibbyyzz_r)
 
   ! now fill the wavefunction descriptor arrays
-  allocate(keybg(2,nsegb_c+nsegb_f),stat=i_stat)
-  call memocc(i_stat,product(shape(keybg))*kind(keybg),'keybg','calculatetailcorrection')
-  allocate(keybv(nsegb_c+nsegb_f),stat=i_stat)
-  call memocc(i_stat,product(shape(keybv))*kind(keybv),'keybv','calculatetailcorrection')
+  allocate(keybg(2,nsegb_c+nsegb_f+ndebug),stat=i_stat)
+  call memocc(i_stat,keybg,'keybg',subname)
+  allocate(keybv(nsegb_c+nsegb_f+ndebug),stat=i_stat)
+  call memocc(i_stat,keybv,'keybv',subname)
   ! coarse grid quantities
   call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,keybg(1,1),keybv(1))
 
@@ -246,23 +247,35 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
 
   i_all=-product(shape(logrid_c))*kind(logrid_c)
   deallocate(logrid_c,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_c','calculatetailcorrection')
+  call memocc(i_stat,i_all,'logrid_c',subname)
   i_all=-product(shape(logrid_f))*kind(logrid_f)
   deallocate(logrid_f,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid_f','calculatetailcorrection')
+  call memocc(i_stat,i_all,'logrid_f',subname)
+
+
+  !assign the values of the big wavefunction descriptors (used for on-the-fly projectors calc)
+  if (DistProjApply) then
+     wfdb%nvctr_c=nvctrb_c
+     wfdb%nvctr_f=nvctrb_f
+     wfdb%nseg_c=nsegb_c
+     wfdb%nseg_f=nsegb_f
+     wfdb%keyv => keybv
+     wfdb%keyg => keybg
+  end if
+
 
   ! allocations for arrays holding the wavefunction
   !if (iproc.eq.0) &
   !     write(*,'(1x,a,i0)') 'Allocate words for psib and hpsib ',2*(nvctrb_c+7*nvctrb_f)
-  allocate(psib(nvctrb_c+7*nvctrb_f),stat=i_stat)
-  call memocc(i_stat,product(shape(psib))*kind(psib),'psib','calculatetailcorrection')
-  allocate(hpsib(nvctrb_c+7*nvctrb_f),stat=i_stat)
-  call memocc(i_stat,product(shape(hpsib))*kind(hpsib),'hpsib','calculatetailcorrection')
+  allocate(psib(nvctrb_c+7*nvctrb_f+ndebug),stat=i_stat)
+  call memocc(i_stat,psib,'psib',subname)
+  allocate(hpsib(nvctrb_c+7*nvctrb_f+ndebug),stat=i_stat)
+  call memocc(i_stat,hpsib,'hpsib',subname)
   !if (iproc.eq.0) write(*,*) 'Allocation done'
 
   ! work arrays applylocpotkin
-  allocate(psir((2*nb1+31)*(2*nb2+31)*(2*nb3+31)),stat=i_stat)
-  call memocc(i_stat,product(shape(psir))*kind(psir),'psir','calculatetailcorrection')
+  allocate(psir((2*nb1+31)*(2*nb2+31)*(2*nb3+31)+ndebug),stat=i_stat)
+  call memocc(i_stat,psir,'psir',subname)
 
   if (iproc.eq.0) then
      write(*,'(1x,a,i0)') &
@@ -279,25 +292,25 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   nw2=max(4*(nb2+1)*(nb3+1)*(2*nb1+31),&
        4*(nb1+1)*(nb2+1)*(2*nb3+31))
 
-  allocate(x_c(0:nb1,0:nb2,0:nb3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_c))*kind(x_c),'x_c','calculatetailcorrection')
-  allocate(y_c(0:nb1,0:nb2,0:nb3),stat=i_stat)
-  call memocc(i_stat,product(shape(y_c))*kind(y_c),'y_c','calculatetailcorrection')
-  allocate(x_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)! work
-  call memocc(i_stat,product(shape(x_f))*kind(x_f),'x_f','calculatetailcorrection')
-  allocate(y_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)! work
-  call memocc(i_stat,product(shape(y_f))*kind(y_f),'y_f','calculatetailcorrection')
-  allocate(w1(nw1),stat=i_stat)
-  call memocc(i_stat,product(shape(w1))*kind(w1),'w1','calculatetailcorrection')
-  allocate(w2(nw2),stat=i_stat) ! work
-  call memocc(i_stat,product(shape(w2))*kind(w2),'w2','calculatetailcorrection')
+  allocate(x_c(0:nb1,0:nb2,0:nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,x_c,'x_c',subname)
+  allocate(y_c(0:nb1,0:nb2,0:nb3+ndebug),stat=i_stat)
+  call memocc(i_stat,y_c,'y_c',subname)
+  allocate(x_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,x_f,'x_f',subname)
+  allocate(y_f(7,nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,y_f,'y_f',subname)
+  allocate(w1(nw1+ndebug),stat=i_stat)
+  call memocc(i_stat,w1,'w1',subname)
+  allocate(w2(nw2+ndebug),stat=i_stat)
+  call memocc(i_stat,w2,'w2',subname)
 
-  allocate(x_f1(nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_f1))*kind(x_f1),'x_f1','calculatetailcorrection')
-  allocate(x_f2(nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_f2))*kind(x_f2),'x_f2','calculatetailcorrection')
-  allocate(x_f3(nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3),stat=i_stat)
-  call memocc(i_stat,product(shape(x_f3))*kind(x_f3),'x_f3','calculatetailcorrection')
+  allocate(x_f1(nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,x_f1,'x_f1',subname)
+  allocate(x_f2(nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,x_f2,'x_f2',subname)
+  allocate(x_f3(nbfl1:nbfu1,nbfl2:nbfu2,nbfl3:nbfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,x_f3,'x_f3',subname)
   !put to zero the arrays for the hamiltonian procedure
   call razero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f1)
   call razero((nbfu1-nbfl1+1)*(nbfu2-nbfl2+1)*(nbfu3-nbfl3+1),x_f2)
@@ -342,14 +355,21 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
              x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
              ibbzzx_c,ibbyyzz_c,ibbxy_ff,ibbzzx_f,ibbyyzz_f,&
              ibbzxx_c,ibbxxyy_c,ibbyz_ff,ibbzxx_f,ibbxxyy_f,nw1,nw2,ibbyyzz_r,1)
-
         !write(*,'(a,3i3,2f12.8)') 'applylocpotkinone finished',iproc,iorb,ipt,epot,ekin
-        call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
-             nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,&
-             nlpspd%keyg_p,nlpspd%keyv_p,nlpspd%nvctr_p,proj,  &
-             nsegb_c,nsegb_f,keybg,keybv,nvctrb_c,nvctrb_f,  & 
-             psib,hpsib,eproj)
-        !write(*,'(a,2i3,2f12.8)') 'applyprojectorsone finished',iproc,iorb,eproj,sum_tail
+
+        if (DistProjApply) then
+           !here the box do not change, only the projectors descriptors
+           call applyprojectorsonthefly('F',0,1,1,1,(/1.0_gp/),at,n1,n2,n3,&
+                rxyz,hgrid,hgrid,hgrid,cpmult,fpmult,radii_cf,wfdb,nlpspd,proj,psib,hpsib,eproj)
+           !only the wavefunction descriptors must change
+        else
+           call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
+                nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,&
+                nlpspd%keyg_p,nlpspd%keyv_p,nlpspd%nvctr_p,proj,  &
+                nsegb_c,nsegb_f,keybg,keybv,nvctrb_c,nvctrb_f,  & 
+                psib,hpsib,eproj)
+           !write(*,'(a,2i3,2f12.8)') 'applyprojectorsone finished',iproc,iorb,eproj,sum_tail
+        end if
 
 
         !calculate residue for the single orbital
@@ -406,6 +426,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
      ekin_sum=ekin_sum+ekin*occup(iorb)
      epot_sum=epot_sum+epot*occup(iorb)
      eproj_sum=eproj_sum+eproj*occup(iorb)
+
   end do
 
   if (iproc == 0) then
@@ -414,127 +435,133 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
 
   i_all=-product(shape(txyz))*kind(txyz)
   deallocate(txyz,stat=i_stat)
-  call memocc(i_stat,i_all,'txyz','calculatetailcorrection')
+  call memocc(i_stat,i_all,'txyz',subname)
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir','calculatetailcorrection')
+  call memocc(i_stat,i_all,'psir',subname)
   i_all=-product(shape(psib))*kind(psib)
   deallocate(psib,stat=i_stat)
-  call memocc(i_stat,i_all,'psib','calculatetailcorrection')
+  call memocc(i_stat,i_all,'psib',subname)
   i_all=-product(shape(hpsib))*kind(hpsib)
   deallocate(hpsib,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsib','calculatetailcorrection')
-  i_all=-product(shape(keybg))*kind(keybg)
-  deallocate(keybg,stat=i_stat)
-  call memocc(i_stat,i_all,'keybg','calculatetailcorrection')
-  i_all=-product(shape(keybv))*kind(keybv)
-  deallocate(keybv,stat=i_stat)
-  call memocc(i_stat,i_all,'keybv','calculatetailcorrection')
+  call memocc(i_stat,i_all,'hpsib',subname)
+
+  if (DistProjApply) then
+     call deallocate_wfd(wfdb,subname)
+  else
+     i_all=-product(shape(keybg))*kind(keybg)
+     deallocate(keybg,stat=i_stat)
+     call memocc(i_stat,i_all,'keybg',subname)
+     i_all=-product(shape(keybv))*kind(keybv)
+     deallocate(keybv,stat=i_stat)
+     call memocc(i_stat,i_all,'keybv',subname)
+  end if
+
   i_all=-product(shape(ibbyz_c))*kind(ibbyz_c)
   deallocate(ibbyz_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbyz_c','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbyz_c',subname)
   i_all=-product(shape(ibbxz_c))*kind(ibbxz_c)
   deallocate(ibbxz_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbxz_c','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbxz_c',subname)
   i_all=-product(shape(ibbxy_c))*kind(ibbxy_c)
   deallocate(ibbxy_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbxy_c','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbxy_c',subname)
   i_all=-product(shape(ibbyz_f))*kind(ibbyz_f)
   deallocate(ibbyz_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbyz_f','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbyz_f',subname)
   i_all=-product(shape(ibbxz_f))*kind(ibbxz_f)
   deallocate(ibbxz_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbxz_f','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbxz_f',subname)
   i_all=-product(shape(ibbxy_f))*kind(ibbxy_f)
   deallocate(ibbxy_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbxy_f','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbxy_f',subname)
 
   !!*****************************Alexey************************************************************
   i_all=-product(shape(x_c))*kind(x_c)
   deallocate(x_c,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c','calculatetailcorrection')
+  call memocc(i_stat,i_all,'x_c',subname)
 
   i_all=-product(shape(y_c))*kind(y_c)
   deallocate(y_c,stat=i_stat)
-  call memocc(i_stat,i_all,'y_c','calculatetailcorrection')
+  call memocc(i_stat,i_all,'y_c',subname)
 
   i_all=-product(shape(w1))*kind(w1)
   deallocate(w1,stat=i_stat)
-  call memocc(i_stat,i_all,'w1','calculatetailcorrection')
+  call memocc(i_stat,i_all,'w1',subname)
 
   i_all=-product(shape(w2))*kind(w2)
   deallocate(w2,stat=i_stat)
-  call memocc(i_stat,i_all,'w2','calculatetailcorrection')
+  call memocc(i_stat,i_all,'w2',subname)
   
   i_all=-product(shape(x_f1))*kind(x_f1)
   deallocate(x_f1,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f1','calculatetailcorrection')
+  call memocc(i_stat,i_all,'x_f1',subname)
   i_all=-product(shape(x_f2))*kind(x_f2)
   deallocate(x_f2,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f2','calculatetailcorrection')
+  call memocc(i_stat,i_all,'x_f2',subname)
   i_all=-product(shape(x_f3))*kind(x_f3)
   deallocate(x_f3,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f3','calculatetailcorrection')
+  call memocc(i_stat,i_all,'x_f3',subname)
   
   i_all=-product(shape(x_f))*kind(x_f)
   deallocate(x_f,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f','calculatetailcorrection')
+  call memocc(i_stat,i_all,'x_f',subname)
 
   i_all=-product(shape(y_f))*kind(y_f)
   deallocate(y_f,stat=i_stat)
-  call memocc(i_stat,i_all,'y_f','calculatetailcorrection')
+  call memocc(i_stat,i_all,'y_f',subname)
 
   i_all=-product(shape(ibbzzx_c))*kind(ibbzzx_c)
   deallocate(ibbzzx_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbzzx_c','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbzzx_c',subname)
 
   i_all=-product(shape(ibbyyzz_c))*kind(ibbyyzz_c)
   deallocate(ibbyyzz_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbyyzz_c','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbyyzz_c',subname)
 
   i_all=-product(shape(ibbxy_ff))*kind(ibbxy_ff)
   deallocate(ibbxy_ff,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbxy_ff','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbxy_ff',subname)
 
   i_all=-product(shape(ibbzzx_f))*kind(ibbzzx_f)
   deallocate(ibbzzx_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbzzx_f','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbzzx_f',subname)
 
   i_all=-product(shape(ibbyyzz_f))*kind(ibbyyzz_f)
   deallocate(ibbyyzz_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbyyzz_f','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbyyzz_f',subname)
 
   i_all=-product(shape(ibbzxx_c))*kind(ibbzxx_c)
   deallocate(ibbzxx_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbzxx_c','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbzxx_c',subname)
 
   i_all=-product(shape(ibbxxyy_c))*kind(ibbxxyy_c)
   deallocate(ibbxxyy_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbxxyy_c','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbxxyy_c',subname)
 
   i_all=-product(shape(ibbyz_ff))*kind(ibbyz_ff)
   deallocate(ibbyz_ff,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbyz_ff','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbyz_ff',subname)
 
   i_all=-product(shape(ibbzxx_f))*kind(ibbzxx_f)
   deallocate(ibbzxx_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbzxx_f','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbzxx_f',subname)
 
   i_all=-product(shape(ibbxxyy_f))*kind(ibbxxyy_f)
   deallocate(ibbxxyy_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbxxyy_f','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbxxyy_f',subname)
 
   i_all=-product(shape(ibbyyzz_r))*kind(ibbyyzz_r)
   deallocate(ibbyyzz_r,stat=i_stat)
-  call memocc(i_stat,i_all,'ibbyyzz_r','calculatetailcorrection')
+  call memocc(i_stat,i_all,'ibbyyzz_r',subname)
   !!***********************************************************************************************
 
   if (nproc > 1) then
      !if (iproc.eq.0) then
      !   write(*,'(1x,a,f27.14)')'Tail calculation ended'
      !endif
-     allocate(wrkallred(3,2),stat=i_stat)
-     call memocc(i_stat,product(shape(wrkallred))*kind(wrkallred),'wrkallred','calculatetailcorrection')
+     allocate(wrkallred(3,2+ndebug),stat=i_stat)
+     call memocc(i_stat,wrkallred,'wrkallred',subname)
      wrkallred(1,2)=ekin_sum
      wrkallred(2,2)=epot_sum 
      wrkallred(3,2)=eproj_sum 
@@ -545,7 +572,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
      eproj_sum=wrkallred(3,1)
      i_all=-product(shape(wrkallred))*kind(wrkallred)
      deallocate(wrkallred,stat=i_stat)
-     call memocc(i_stat,i_all,'wrkallred','calculatetailcorrection')
+     call memocc(i_stat,i_all,'wrkallred',subname)
   endif
 
 end subroutine CalculateTailCorrection

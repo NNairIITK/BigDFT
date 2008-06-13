@@ -20,6 +20,7 @@ program memguess
   use module_types
 
   implicit none
+  character(len=*), parameter :: subname='memguess'
   integer, parameter :: ngx=31
   character(len=20) :: tatonam,units
   logical :: calc_tail,output_grid,optimise
@@ -30,13 +31,15 @@ program memguess
   real(kind=8) :: peakmem,hx,hy,hz
   type(input_variables) :: in
   type(atoms_data) :: atoms
-  integer, dimension(:,:), allocatable :: neleconf
+  type(nonlocal_psp_descriptors) :: nlpspd
+  logical, dimension(:,:,:), allocatable :: logrid
+  integer, dimension(:,:), allocatable :: neleconf,norbsc_arr
   real(kind=8), dimension(:,:), allocatable :: rxyz,radii_cf
   real(kind=8), dimension(:,:,:), allocatable :: psiat
   real(kind=8), dimension(:,:), allocatable :: xp, occupat
   integer, dimension(:,:), allocatable :: nl
   logical, dimension(:,:), allocatable :: scorb
-  integer, dimension(:), allocatable :: ng,norbsc_arr
+  integer, dimension(:), allocatable :: ng
   real(kind=8), dimension(:), allocatable :: occup,spinsgn
 
 ! Get arguments
@@ -92,8 +95,8 @@ program memguess
   open(unit=99,file='posinp',status='old')
   read(99,*) atoms%nat,units
  
-  allocate(rxyz(3,atoms%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(rxyz))*kind(rxyz),'rxyz','memguess')
+  allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz,'rxyz',subname)
 
   !read atomic positions
   call read_atomic_positions(0,99,units,in,atoms,rxyz)
@@ -110,16 +113,16 @@ program memguess
  
   ! store PSP parameters
   ! modified to accept both GTH and HGHs pseudopotential types
-  allocate(radii_cf(atoms%ntypes,2),stat=i_stat)
-  call memocc(i_stat,product(shape(radii_cf))*kind(radii_cf),'radii_cf','memguess')
+  allocate(radii_cf(atoms%ntypes,2+ndebug),stat=i_stat)
+  call memocc(i_stat,radii_cf,'radii_cf',subname)
  
   call read_system_variables(0,nproc,in,atoms,radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
 
 ! Allocations for the occupation numbers
-  allocate(occup(norb),stat=i_stat)
-  call memocc(i_stat,product(shape(occup))*kind(occup),'occup','memguess')
-  allocate(spinsgn(norb),stat=i_stat)
-  call memocc(i_stat,product(shape(spinsgn))*kind(spinsgn),'occup','memguess')
+  allocate(occup(norb+ndebug),stat=i_stat)
+  call memocc(i_stat,occup,'occup',subname)
+  allocate(spinsgn(norb+ndebug),stat=i_stat)
+  call memocc(i_stat,spinsgn,'spinsgn',subname)
   
 ! Occupation numbers
   call input_occup(0,iunit,nelec,norb,norbu,norbd,in%nspin,in%mpol,occup,spinsgn)
@@ -127,28 +130,28 @@ program memguess
 ! De-allocations
   i_all=-product(shape(occup))*kind(occup)
   deallocate(occup,stat=i_stat)
-  call memocc(i_stat,i_all,'occup','memguess')
+  call memocc(i_stat,i_all,'occup',subname)
   i_all=-product(shape(spinsgn))*kind(spinsgn)
   deallocate(spinsgn,stat=i_stat)
-  call memocc(i_stat,i_all,'spinsgn','memguess')
+  call memocc(i_stat,i_all,'spinsgn',subname)
   
   !in the case in which the number of orbitals is not "trivial" check whether they are too many
   if ( max(norbu,norbd) /= ceiling(real(nelec,kind=4)/2.0) ) then
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
-     allocate(xp(ngx,atoms%ntypes),stat=i_stat)
-     call memocc(i_stat,product(shape(xp))*kind(xp),'xp','memguess')
-     allocate(psiat(ngx,5,atoms%ntypes),stat=i_stat)
-     call memocc(i_stat,product(shape(psiat))*kind(psiat),'psiat','memguess')
-     allocate(occupat(5,atoms%ntypes),stat=i_stat)
-     call memocc(i_stat,product(shape(occupat))*kind(occupat),'occupat','memguess')
-     allocate(ng(atoms%ntypes),stat=i_stat)
-     call memocc(i_stat,product(shape(ng))*kind(ng),'ng','memguess')
-     allocate(nl(4,atoms%ntypes),stat=i_stat)
-     call memocc(i_stat,product(shape(nl))*kind(nl),'nl','memguess')
-     allocate(scorb(4,atoms%natsc),stat=i_stat)
-     call memocc(i_stat,product(shape(scorb))*kind(scorb),'scorb','memguess')
-     allocate(norbsc_arr(atoms%natsc+1),stat=i_stat)
-     call memocc(i_stat,product(shape(norbsc_arr))*kind(norbsc_arr),'norbsc_arr','memguess')
+     allocate(xp(ngx,atoms%ntypes+ndebug),stat=i_stat)
+     call memocc(i_stat,xp,'xp',subname)
+     allocate(psiat(ngx,5,atoms%ntypes+ndebug),stat=i_stat)
+     call memocc(i_stat,psiat,'psiat',subname)
+     allocate(occupat(5,atoms%ntypes+ndebug),stat=i_stat)
+     call memocc(i_stat,occupat,'occupat',subname)
+     allocate(ng(atoms%ntypes+ndebug),stat=i_stat)
+     call memocc(i_stat,ng,'ng',subname)
+     allocate(nl(4,atoms%ntypes+ndebug),stat=i_stat)
+     call memocc(i_stat,nl,'nl',subname)
+     allocate(scorb(4,atoms%natsc+ndebug),stat=i_stat)
+     call memocc(i_stat,scorb,'scorb',subname)
+     allocate(norbsc_arr(atoms%natsc+1,in%nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
 
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
      call readAtomicOrbitals(0,ngx,xp,psiat,occupat,ng,nl,atoms%nzatom,atoms%nelpsp,&
@@ -158,25 +161,25 @@ program memguess
      ! De-allocations
      i_all=-product(shape(xp))*kind(xp)
      deallocate(xp,stat=i_stat)
-     call memocc(i_stat,i_all,'xp','memguess')
+     call memocc(i_stat,i_all,'xp',subname)
      i_all=-product(shape(psiat))*kind(psiat)
      deallocate(psiat,stat=i_stat)
-     call memocc(i_stat,i_all,'psiat','memguess')
+     call memocc(i_stat,i_all,'psiat',subname)
      i_all=-product(shape(occupat))*kind(occupat)
      deallocate(occupat,stat=i_stat)
-     call memocc(i_stat,i_all,'occupat','memguess')
+     call memocc(i_stat,i_all,'occupat',subname)
      i_all=-product(shape(ng))*kind(ng)
      deallocate(ng,stat=i_stat)
-     call memocc(i_stat,i_all,'ng','memguess')
+     call memocc(i_stat,i_all,'ng',subname)
      i_all=-product(shape(nl))*kind(nl)
      deallocate(nl,stat=i_stat)
-     call memocc(i_stat,i_all,'nl','memguess')
+     call memocc(i_stat,i_all,'nl',subname)
      i_all=-product(shape(scorb))*kind(scorb)
      deallocate(scorb,stat=i_stat)
-     call memocc(i_stat,i_all,'scorb','memguess')
+     call memocc(i_stat,i_all,'scorb',subname)
      i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
      deallocate(norbsc_arr,stat=i_stat)
-     call memocc(i_stat,i_all,'norbsc_arr','memguess')
+     call memocc(i_stat,i_all,'norbsc_arr',subname)
 
      ! Check the maximum number of orbitals
      if (in%nspin==1) then
@@ -203,31 +206,11 @@ program memguess
 
   end if
 
-  i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
-  deallocate(atoms%lfrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'lfrztyp','memguess')
-  i_all=-product(shape(atoms%nspinat))*kind(atoms%nspinat)
-  deallocate(atoms%nspinat,stat=i_stat)
-  call memocc(i_stat,i_all,'nspinat','memguess')
-  i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
-  deallocate(atoms%psppar,stat=i_stat)
-  call memocc(i_stat,i_all,'psppar','memguess')
-  i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
-  deallocate(atoms%npspcode,stat=i_stat)
-  call memocc(i_stat,i_all,'npspcode','memguess')
-  i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
-  deallocate(atoms%nelpsp,stat=i_stat)
-  call memocc(i_stat,i_all,'nelpsp','memguess')
-  !no need of using nzatom array
-  i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
-  deallocate(atoms%nzatom,stat=i_stat)
-  call memocc(i_stat,i_all,'nzatom','memguess')
-  i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
-  deallocate(atoms%iasctype,stat=i_stat)
-  call memocc(i_stat,i_all,'iasctype','memguess')
 
   if (optimise) then
      call optimise_volume(atoms,in%crmult,in%frmult,in%hgrid,rxyz,radii_cf)
+     write(*,'(1x,a)')'Writing optimised positions in file posout_000.xyz...'
+     call wtposout(0,0.d0,rxyz,atoms)
   end if
 
 ! Determine size alat of overall simulation cell and shift atom positions
@@ -238,22 +221,76 @@ program memguess
   call system_size(0,in%geocode,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,&
        in%alat1,in%alat2,in%alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
 
+  ! determine localization region for all projectors, but do not yet fill the descriptor arrays
+  allocate(nlpspd%nseg_p(0:2*atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,nlpspd%nseg_p,'nseg_p',subname)
+  allocate(nlpspd%nvctr_p(0:2*atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,nlpspd%nvctr_p,'nvctr_p',subname)
+  allocate(nlpspd%nboxp_c(2,3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,nlpspd%nboxp_c,'nboxp_c',subname)
+  allocate(nlpspd%nboxp_f(2,3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,nlpspd%nboxp_f,'nboxp_f',subname)
+  allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid,'logrid',subname)
+
+  call localize_projectors(in%geocode,0,n1,n2,n3,hx,hy,hz,in%cpmult,in%fpmult,rxyz,radii_cf,&
+       logrid,atoms,nlpspd)
+
+  i_all=-product(shape(logrid))*kind(logrid)
+  deallocate(logrid,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid',subname)
+  i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
+  deallocate(nlpspd%nvctr_p,stat=i_stat)
+  call memocc(i_stat,i_all,'nvctr_p',subname)
+  i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
+  deallocate(nlpspd%nseg_p,stat=i_stat)
+  call memocc(i_stat,i_all,'nseg_p',subname)
+  i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
+  deallocate(nlpspd%nboxp_c,stat=i_stat)
+  call memocc(i_stat,i_all,'nboxp_c',subname)
+  i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
+  deallocate(nlpspd%nboxp_f,stat=i_stat)
+  call memocc(i_stat,i_all,'nboxp_f',subname)
+  i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
+  deallocate(atoms%lfrztyp,stat=i_stat)
+  call memocc(i_stat,i_all,'lfrztyp',subname)
+  i_all=-product(shape(atoms%nspinat))*kind(atoms%nspinat)
+  deallocate(atoms%nspinat,stat=i_stat)
+  call memocc(i_stat,i_all,'nspinat',subname)
+  i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
+  deallocate(atoms%psppar,stat=i_stat)
+  call memocc(i_stat,i_all,'psppar',subname)
+  i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
+  deallocate(atoms%npspcode,stat=i_stat)
+  call memocc(i_stat,i_all,'npspcode',subname)
+  i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
+  deallocate(atoms%nelpsp,stat=i_stat)
+  call memocc(i_stat,i_all,'nelpsp',subname)
+  !no need of using nzatom array
+  i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
+  deallocate(atoms%nzatom,stat=i_stat)
+  call memocc(i_stat,i_all,'nzatom',subname)
+  i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
+  deallocate(atoms%iasctype,stat=i_stat)
+  call memocc(i_stat,i_all,'iasctype',subname)
+
+
   call MemoryEstimator(in%geocode,nproc,in%idsx,n1,n2,n3,in%alat1,in%alat2,in%alat3,&
        hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,in%crmult,in%frmult,&
-       norb,atoms%atomnames,output_grid,in%nspin,peakmem)
+       norb,nlpspd%nprojel,atoms%atomnames,output_grid,in%nspin,peakmem)
 
   i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
   deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atomnames','memguess')
+  call memocc(i_stat,i_all,'atomnames',subname)
   i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)
-  call memocc(i_stat,i_all,'radii_cf','memguess')
+  call memocc(i_stat,i_all,'radii_cf',subname)
   i_all=-product(shape(rxyz))*kind(rxyz)
   deallocate(rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz','memguess')
+  call memocc(i_stat,i_all,'rxyz',subname)
   i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
   deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'iatype','memguess')
+  call memocc(i_stat,i_all,'iatype',subname)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
@@ -287,13 +324,14 @@ subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
   real(kind=8), dimension(atoms%ntypes,2), intent(in) :: radii_cf
   real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz
   !local variables
+  character(len=*), parameter :: subname='optimise_volume'
   integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1,n2,n3,n1i,n2i,n3i,iat,i_all,i_stat,it,i
   real(kind=8) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax,alat1,alat2,alat3
   real(kind=8), dimension(3,3) :: urot
   real(kind=8), dimension(:,:), allocatable :: txyz
 
-  allocate(txyz(3,atoms%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(txyz))*kind(txyz),'txyz','optimise_volume')
+  allocate(txyz(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,txyz,'txyz',subname)
 
   call system_size(1,'F',atoms,rxyz,radii_cf,crmult,frmult,hgrid,hgrid,hgrid,&
        alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
@@ -363,10 +401,13 @@ subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
               rxyz(3,iat)=tx
            enddo
            ! if box longest along y switch y and z
-        else if (alat2 == dmax)  then
+        else if (alat2 == dmax .and. alat1 /= dmax)  then
            do  iat=1,atoms%nat
-              ty=rxyz(1,iat) ; tz=rxyz(3,iat)
-              rxyz(1,iat)=tz ; rxyz(3,iat)=ty
+              ty=rxyz(2,iat) 
+              tz=rxyz(3,iat)
+
+              rxyz(2,iat)=tz 
+              rxyz(3,iat)=ty
            enddo
         endif
      endif
@@ -374,6 +415,6 @@ subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
 
   i_all=-product(shape(txyz))*kind(txyz)
   deallocate(txyz,stat=i_stat)
-  call memocc(i_stat,i_all,'txyz','optimise_volume')
+  call memocc(i_stat,i_all,'txyz',subname)
 end subroutine optimise_volume
 !!***

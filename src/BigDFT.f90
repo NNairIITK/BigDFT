@@ -22,26 +22,21 @@ program BigDFT
   !such that the implicit statement can be commented at will
 
   implicit none
-  include 'mpif.h'
-  ! For parallel MPI execution set parallel=.true., for serial parallel=.false.
-  ! this statement wil be changed by using the MPIfake.f90 file
-  !include 'parameters.h'
+  character(len=*), parameter :: subname='BigDFT'
   character(len=20) :: units
   integer :: iproc,nproc,n1,n2,n3,iat,ityp,j,i_stat,i_all,ierr,infocode
   integer :: ncount_cluster
   integer :: norb,norbp
-  real(kind=8) :: energy,etot,energyold,beta,sumx,sumy,sumz,tt
+  real(gp) :: energy,etot,energyold,beta,sumx,sumy,sumz,tt
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(wavefunctions_descriptors) :: wfd
   character(len=20), dimension(:), allocatable :: atomnames
   ! atomic coordinates, forces
-  real(kind=8), dimension(:,:), allocatable :: rxyz,fxyz,rxyz_old
+  real(gp), dimension(:,:), allocatable :: rxyz,fxyz,rxyz_old
  
-  real(kind=8), dimension(:), pointer :: eval
-  real(kind=8), dimension(:,:), pointer :: psi
-
+  real(wp), dimension(:), pointer :: eval,psi
 
   !$      interface
   !$        integer ( kind=4 ) function omp_get_num_threads ( )
@@ -57,9 +52,6 @@ program BigDFT
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-
-!!$  !experimental, to see if it works
-!!$  if (nproc == 1) parallel=.false.
 
   !initialize memory counting
   call memocc(0,iproc,'count','start')
@@ -77,19 +69,19 @@ program BigDFT
   open(unit=99,file='posinp',status='old')
   read(99,*) atoms%nat,units
 
-  allocate(rxyz_old(3,atoms%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(rxyz_old))*kind(rxyz_old),'rxyz_old','BigDFT')
-  allocate(rxyz(3,atoms%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(rxyz))*kind(rxyz),'rxyz','BigDFT')
-  allocate(fxyz(3,atoms%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(fxyz))*kind(fxyz),'fxyz','BigDFT')
+  allocate(rxyz_old(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz_old,'rxyz_old',subname)
+  allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz,'rxyz',subname)
+  allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,fxyz,'fxyz',subname)
 
   ! read atomic positions
   call read_atomic_positions(iproc,99,units,inputs,atoms,rxyz)
 
   close(99)
 
-  !new way of reading the input variables, use structures
+  !read input variables, use structures
   call read_input_variables(iproc,inputs)
  
   do iat=1,atoms%nat
@@ -141,34 +133,34 @@ program BigDFT
   !deallocations
   i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
   deallocate(atoms%lfrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'lfrztyp','BigDFT')
+  call memocc(i_stat,i_all,'lfrztyp',subname)
   i_all=-product(shape(atoms%nspinat))*kind(atoms%nspinat)
   deallocate(atoms%nspinat,stat=i_stat)
-  call memocc(i_stat,i_all,'nspinat','BigDFT')
+  call memocc(i_stat,i_all,'nspinat',subname)
 
   call deallocate_wfd(wfd,'BigDFT')
 
   i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
   deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atomnames','BigDFT')
+  call memocc(i_stat,i_all,'atomnames',subname)
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
-  call memocc(i_stat,i_all,'psi','BigDFT')
+  call memocc(i_stat,i_all,'psi',subname)
   i_all=-product(shape(eval))*kind(eval)
   deallocate(eval,stat=i_stat)
-  call memocc(i_stat,i_all,'eval','BigDFT')
+  call memocc(i_stat,i_all,'eval',subname)
   i_all=-product(shape(rxyz))*kind(rxyz)
   deallocate(rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz','BigDFT')
+  call memocc(i_stat,i_all,'rxyz',subname)
   i_all=-product(shape(rxyz_old))*kind(rxyz_old)
   deallocate(rxyz_old,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz_old','BigDFT')
+  call memocc(i_stat,i_all,'rxyz_old',subname)
   i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
   deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'iatype','BigDFT')
+  call memocc(i_stat,i_all,'iatype',subname)
   i_all=-product(shape(fxyz))*kind(fxyz)
   deallocate(fxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'fxyz','BigDFT')
+  call memocc(i_stat,i_all,'fxyz',subname)
 
 
   !finalize memory counting

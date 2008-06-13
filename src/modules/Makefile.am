@@ -1,6 +1,13 @@
+if USE_CUDA_GPU
+GPUBLAS_INTERFACE = 
+else
+GPUBLAS_INTERFACE = cublas_fake.f90
+endif
+
 modules_source = base.f90 \
 	types.f90 \
-	interfaces.f90
+	interfaces.f90 \
+	$(GPUBLAS_INTERFACE)
 
 AM_FCFLAGS = -I. -I$(srcdir)
 
@@ -8,7 +15,16 @@ noinst_LIBRARIES = libmodules.a
 
 libmodules_a_SOURCES = $(modules_source)
 
+CLEANFILES = mpif.h MODULE_BASE.@MODULE_EXT@ module_base.@MODULE_EXT@ \
+	MODULE_TYPES.@MODULE_EXT@ module_types.@MODULE_EXT@ \
+	MODULE_INTERFACES.@MODULE_EXT@ module_interfaces.@MODULE_EXT@
 #dependencies
-interfaces.o: types.o
+interfaces.o: base.o types.o
 types.o: base.o
+base.o: mpif.h
 
+mpif.h:
+	touch mpif.h &&\
+	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
+	 echo "integer :: MPI_MIN, MPI_MAX, MPI_IN_PLACE" >> mpif.h

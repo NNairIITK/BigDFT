@@ -12,20 +12,20 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz, &
   type(wavefunctions_descriptors), intent(inout) :: wfd
   real(kind=8), dimension(3,at%nat), intent(inout) :: rxyz,rxyz_old
   real(kind=8), dimension(3,at%nat), intent(out) :: fxyz
-  real(kind=8), dimension(:), pointer :: eval
-  real(kind=8), dimension(:,:), pointer :: psi
+  real(kind=8), dimension(:), pointer :: eval,psi
   !local variables
+  character(len=*), parameter :: subname='conjgrad'  
   integer :: nfail,it,iat,i_all,i_stat,infocode
   real(kind=8) :: anoise,fluct,flucto,fluctoo,avbeta,avnum,fnrm,etotprec,beta0,beta
   real(kind=8) :: y0,y1,tt,sumx,sumy,sumz,obenx,obeny,obenz,unten,rlambda,tetot,forcemax
-  real(kind=8), dimension(:,:), allocatable :: tpos,gp,hh
+  real(kind=8), dimension(:,:), allocatable :: tpos,gpf,hh
 
-  allocate(tpos(3,at%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(tpos))*kind(tpos),'tpos','conjgrad')
-  allocate(gp(3,at%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(gp))*kind(gp),'gp','conjgrad')
-  allocate(hh(3,at%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(hh))*kind(hh),'hh','conjgrad')
+  allocate(tpos(3,at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,tpos,'tpos',subname)
+  allocate(gpf(3,at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,gpf,'gpf',subname)
+  allocate(hh(3,at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,hh,'hh',subname)
 
   anoise=1.d-4
   fluct=0.d0
@@ -82,16 +82,22 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz, &
               tpos(2,iat)=rxyz(2,iat)
               tpos(3,iat)=rxyz(3,iat)
            else
-              tpos(1,iat)=rxyz(1,iat)+beta0*hh(1,iat)
-              tpos(2,iat)=rxyz(2,iat)+beta0*hh(2,iat)
-              tpos(3,iat)=rxyz(3,iat)+beta0*hh(3,iat)
+              if (in%geocode == 'P') then
+                 tpos(1,iat)=modulo(rxyz(1,iat)+beta0*hh(1,iat),in%alat1)
+                 tpos(2,iat)=modulo(rxyz(2,iat)+beta0*hh(2,iat),in%alat2)
+                 tpos(3,iat)=modulo(rxyz(3,iat)+beta0*hh(3,iat),in%alat3)
+              else
+                 tpos(1,iat)=rxyz(1,iat)+beta0*hh(1,iat)
+                 tpos(2,iat)=rxyz(2,iat)+beta0*hh(2,iat)
+                 tpos(3,iat)=rxyz(3,iat)+beta0*hh(3,iat)
+              end if
            end if
         end do
 
         in%inputPsiId=1
         in%output_grid=.false.
         in%output_wf=.false.
-        call call_cluster(nproc,iproc,at,tpos,tetot,gp,&
+        call call_cluster(nproc,iproc,at,tpos,tetot,gpf,&
              psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
 
         !useless, already done in call_cluster routine
@@ -107,7 +113,7 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz, &
         y1=0.d0
         do iat=1,at%nat
            y0=y0+fxyz(1,iat)*hh(1,iat)+fxyz(2,iat)*hh(2,iat)+fxyz(3,iat)*hh(3,iat)
-           y1=y1+gp(1,iat)*hh(1,iat)+gp(2,iat)*hh(2,iat)+gp(3,iat)*hh(3,iat)
+           y1=y1+gpf(1,iat)*hh(1,iat)+gpf(2,iat)*hh(2,iat)+gpf(3,iat)*hh(3,iat)
         end do
         tt=y0/(y0-y1)
         if (iproc.eq.0) then
@@ -124,9 +130,16 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz, &
            tpos(2,iat)=rxyz(2,iat)
            tpos(3,iat)=rxyz(3,iat)
            if ( .not. at%lfrztyp(iat)) then
-              rxyz(1,iat)=rxyz(1,iat)+beta*hh(1,iat)
-              rxyz(2,iat)=rxyz(2,iat)+beta*hh(2,iat)
-              rxyz(3,iat)=rxyz(3,iat)+beta*hh(3,iat)
+              if (in%geocode == 'P') then
+                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*hh(1,iat),in%alat1)
+                 rxyz(2,iat)=modulo(rxyz(2,iat)+beta*hh(2,iat),in%alat2)
+                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*hh(3,iat),in%alat3)
+              else
+                 rxyz(1,iat)=rxyz(1,iat)+beta*hh(1,iat)
+                 rxyz(2,iat)=rxyz(2,iat)+beta*hh(2,iat)
+                 rxyz(3,iat)=rxyz(3,iat)+beta*hh(3,iat)
+              end if
+
            end if
         end do
         avbeta=avbeta+beta/in%betax
@@ -134,9 +147,9 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz, &
 
         !C new gradient
         do iat=1,at%nat
-           gp(1,iat)=fxyz(1,iat)
-           gp(2,iat)=fxyz(2,iat)
-           gp(3,iat)=fxyz(3,iat)
+           gpf(1,iat)=fxyz(1,iat)
+           gpf(2,iat)=fxyz(2,iat)
+           gpf(3,iat)=fxyz(3,iat)
         end do
 
         call call_cluster(nproc,iproc,at,rxyz,etot,fxyz,&
@@ -202,10 +215,10 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz, &
         fnrm=0.d0
         forcemax=0.d0
         do iat=1,at%nat
-           obenx=obenx+(fxyz(1,iat)-gp(1,iat))*fxyz(1,iat)
-           obeny=obeny+(fxyz(2,iat)-gp(2,iat))*fxyz(2,iat)
-           obenz=obenz+(fxyz(3,iat)-gp(3,iat))*fxyz(3,iat)
-           unten=unten+gp(1,iat)**2+gp(2,iat)**2+gp(3,iat)**2
+           obenx=obenx+(fxyz(1,iat)-gpf(1,iat))*fxyz(1,iat)
+           obeny=obeny+(fxyz(2,iat)-gpf(2,iat))*fxyz(2,iat)
+           obenz=obenz+(fxyz(3,iat)-gpf(3,iat))*fxyz(3,iat)
+           unten=unten+gpf(1,iat)**2+gpf(2,iat)**2+gpf(3,iat)**2
            if (.not. at%lfrztyp(iat)) then
               fnrm=fnrm+fxyz(1,iat)**2+fxyz(2,iat)**2+fxyz(3,iat)**2
               forcemax=max(forcemax,abs(fxyz(1,iat)),abs(fxyz(2,iat)),abs(fxyz(3,iat)))
@@ -287,13 +300,13 @@ contains
     close(unit=16)
     i_all=-product(shape(tpos))*kind(tpos)
     deallocate(tpos,stat=i_stat)
-    call memocc(i_stat,i_all,'tpos','conjgrad')
-    i_all=-product(shape(gp))*kind(gp)
-    deallocate(gp,stat=i_stat)
-    call memocc(i_stat,i_all,'gp','conjgrad')
+    call memocc(i_stat,i_all,'tpos',subname)
+    i_all=-product(shape(gpf))*kind(gpf)
+    deallocate(gpf,stat=i_stat)
+    call memocc(i_stat,i_all,'gpf',subname)
     i_all=-product(shape(hh))*kind(hh)
     deallocate(hh,stat=i_stat)
-    call memocc(i_stat,i_all,'hh','conjgrad')
+    call memocc(i_stat,i_all,'hh',subname)
   end subroutine close_and_deallocate
   
   subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,&
@@ -311,18 +324,17 @@ contains
     real(kind=8), dimension(3,at%nat), intent(inout) :: rxyz,rxyz_old
     real(kind=8), intent(out) :: fluct,flucto,fluctoo,fnrm,etot
     real(kind=8), dimension(3,at%nat), intent(out) ::ff
-    real(kind=8), dimension(:), pointer :: eval
-    real(kind=8), dimension(:,:), pointer :: psi
+    real(kind=8), dimension(:), pointer :: eval,psi
     !local variables
+    character(len=*), parameter :: subname='steepdes'
     logical :: care
     integer :: nsatur,iat,itot,nitsd,itsd
     real(kind=8) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise,sumx,sumy,sumz
     real(kind=8) :: forcemax,t1,t2,t3,de1,de2,df1,df2
-
     real(kind=8), allocatable, dimension(:,:) :: tpos
 
-    allocate(tpos(3,at%nat),stat=i_stat)
-    call memocc(i_stat,product(shape(tpos))*kind(tpos),'tpos','steepdes')
+    allocate(tpos(3,at%nat+ndebug),stat=i_stat)
+    call memocc(i_stat,tpos,'tpos',subname)
 
     anoise=0.d-4
 
@@ -351,7 +363,7 @@ contains
 
           i_all=-product(shape(tpos))*kind(tpos)
           deallocate(tpos,stat=i_stat)
-          call memocc(i_stat,i_all,'tpos','steepdes')
+          call memocc(i_stat,i_all,'tpos',subname)
           return
        endif
 
@@ -501,9 +513,15 @@ contains
              tpos(2,iat)=rxyz(2,iat)
              tpos(3,iat)=rxyz(3,iat)
              if ( .not. at%lfrztyp(iat)) then
-                rxyz(1,iat)=rxyz(1,iat)+beta*ff(1,iat)
-                rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
-                rxyz(3,iat)=rxyz(3,iat)+beta*ff(3,iat)
+                if (in%geocode == 'P') then
+                   rxyz(1,iat)=modulo(rxyz(1,iat)+beta*ff(1,iat),in%alat1)
+                   rxyz(2,iat)=modulo(rxyz(2,iat)+beta*ff(2,iat),in%alat2)
+                   rxyz(3,iat)=modulo(rxyz(3,iat)+beta*ff(3,iat),in%alat3)
+                else
+                   rxyz(1,iat)=rxyz(1,iat)+beta*ff(1,iat)
+                   rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
+                   rxyz(3,iat)=rxyz(3,iat)+beta*ff(3,iat)
+                end if
              end if
           end do
        end do loop_sd
@@ -514,7 +532,7 @@ contains
 
     i_all=-product(shape(tpos))*kind(tpos)
     deallocate(tpos,stat=i_stat)
-    call memocc(i_stat,i_all,'tpos','steepdes')
+    call memocc(i_stat,i_all,'tpos',subname)
 
   end subroutine steepdes
 
@@ -529,19 +547,18 @@ contains
     type(wavefunctions_descriptors), intent(inout) :: wfd
     integer, intent(inout) :: norbp,norb,n1,n2,n3
     real(kind=8), dimension(3,at%nat), intent(inout) :: pos,rxyz_old
-    real(kind=8), dimension(:), pointer :: eval
-    real(kind=8), dimension(:,:), pointer :: psi
+    real(kind=8), dimension(:), pointer :: eval,psi
     !local variables
     integer :: nsuc
     real(kind=8) :: beta0,beta,sum,t1,t2,t3,etotm1,etot0,etotp1,der2,tt
     real(kind=8), dimension(:,:), allocatable :: tpos,ff,gg
 
-    allocate(tpos(3,at%nat),stat=i_stat)
-    call memocc(i_stat,product(shape(tpos))*kind(tpos),'tpos','detbetax')
-    allocate(ff(3,at%nat),stat=i_stat)
-    call memocc(i_stat,product(shape(ff))*kind(ff),'ff','detbetax')
-    allocate(gg(3,at%nat),stat=i_stat)
-    call memocc(i_stat,product(shape(gg))*kind(gg),'gg','detbetax')
+    allocate(tpos(3,at%nat+ndebug),stat=i_stat)
+    call memocc(i_stat,tpos,'tpos',subname)
+    allocate(ff(3,at%nat+ndebug),stat=i_stat)
+    call memocc(i_stat,ff,'ff',subname)
+    allocate(gg(3,at%nat+ndebug),stat=i_stat)
+    call memocc(i_stat,gg,'gg',subname)
 
     beta0=abs(in%betax)
     beta=1.d100
@@ -565,9 +582,15 @@ contains
           t3=beta0*ff(3,iat)
           sum=sum+t1**2+t2**2+t3**2
           if (.not. at%lfrztyp(iat)) then
-             pos(1,iat)=pos(1,iat)+t1
-             pos(2,iat)=pos(2,iat)+t2
-             pos(3,iat)=pos(3,iat)+t3
+             if (in%geocode == 'P') then
+                pos(1,iat)=modulo(pos(1,iat)+t1,in%alat1)
+                pos(2,iat)=modulo(pos(2,iat)+t2,in%alat2)
+                pos(3,iat)=modulo(pos(3,iat)+t3,in%alat3)
+             else
+                pos(1,iat)=pos(1,iat)+t1
+                pos(2,iat)=pos(2,iat)+t2
+                pos(3,iat)=pos(3,iat)+t3
+             end if
           end if
        enddo
 
@@ -592,9 +615,15 @@ contains
              tpos(2,iat)=pos(2,iat)
              tpos(3,iat)=pos(3,iat)
           else
-             tpos(1,iat)=pos(1,iat)+beta0*ff(1,iat)
-             tpos(2,iat)=pos(2,iat)+beta0*ff(2,iat)
-             tpos(3,iat)=pos(3,iat)+beta0*ff(3,iat)
+             if (in%geocode == 'P') then
+                tpos(1,iat)=modulo(pos(1,iat)+beta0*ff(1,iat),in%alat1)
+                tpos(2,iat)=modulo(pos(2,iat)+beta0*ff(2,iat),in%alat2)
+                tpos(3,iat)=modulo(pos(3,iat)+beta0*ff(3,iat),in%alat3)
+             else
+                tpos(1,iat)=pos(1,iat)+beta0*ff(1,iat)
+                tpos(2,iat)=pos(2,iat)+beta0*ff(2,iat)
+                tpos(3,iat)=pos(3,iat)+beta0*ff(3,iat)
+             end if
           end if
        enddo
 
@@ -614,9 +643,15 @@ contains
        endif
        do iat=1,at%nat
           if ( .not. at%lfrztyp(iat)) then
-             pos(1,iat)=pos(1,iat)+tt*ff(1,iat)
-             pos(2,iat)=pos(2,iat)+tt*ff(2,iat)
-             pos(3,iat)=pos(3,iat)+tt*ff(3,iat)
+             if (in%geocode == 'P') then
+                pos(1,iat)=modulo(pos(1,iat)+tt*ff(1,iat),in%alat1)
+                pos(2,iat)=modulo(pos(2,iat)+tt*ff(2,iat),in%alat2)
+                pos(3,iat)=modulo(pos(3,iat)+tt*ff(3,iat),in%alat3)
+             else
+                pos(1,iat)=pos(1,iat)+tt*ff(1,iat)
+                pos(2,iat)=pos(2,iat)+tt*ff(2,iat)
+                pos(3,iat)=pos(3,iat)+tt*ff(3,iat)
+             end if
           end if
        enddo
 
@@ -630,13 +665,13 @@ contains
 
     i_all=-product(shape(tpos))*kind(tpos)
     deallocate(tpos,stat=i_stat)
-    call memocc(i_stat,i_all,'tpos','detbetax')
+    call memocc(i_stat,i_all,'tpos',subname)
     i_all=-product(shape(ff))*kind(ff)
     deallocate(ff,stat=i_stat)
-    call memocc(i_stat,i_all,'ff','detbetax')
+    call memocc(i_stat,i_all,'ff',subname)
     i_all=-product(shape(gg))*kind(gg)
     deallocate(gg,stat=i_stat)
-    call memocc(i_stat,i_all,'gg','detbetax')
+    call memocc(i_stat,i_all,'gg',subname)
 
   end subroutine detbetax
 

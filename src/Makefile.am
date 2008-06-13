@@ -8,13 +8,9 @@ endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft.a
 if CAPITALIZE
-mod_bigdft = BIGDFT_API.@MODULE_EXT@ \
-	MODULE_INTERFACES.@MODULE_EXT@ \
-	MODULE_TYPES.@MODULE_EXT@
+mod_bigdft = BIGDFT_API.@MODULE_EXT@ 
 else
-mod_bigdft = bigdft_api.@MODULE_EXT@ \
-	module_interfaces.@MODULE_EXT@ \
-	module_types.@MODULE_EXT@
+mod_bigdft = bigdft_api.@MODULE_EXT@ 
 endif
 else
 lib_bigdft =
@@ -26,14 +22,27 @@ else
 binaries_sources = 
 endif
 
+if USE_CUDA_GPU
+sub_dirs_cuda=CUDA
+GPU_INTERFACE = convolutions/convolut_common_interface_cuda.f90
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas CUDA/libGPU.a @LIB_CUTIL_PATH@/libcutil.a
+GPU_BLAS=
+else
+sub_dirs_cuda=
+GPU_INTERFACE = convolutions/interface_cuda_fake.f90
+libs_cuda=
+GPU_BLAS = modules/cublas_fake.f90
+endif
 
-SUBDIRS = modules $(sub_dirs_ps) convolutions profiling
+
+SUBDIRS = modules $(sub_dirs_ps) convolutions profiling $(sub_dirs_cuda)
 
 EXTRA_DIST = \
 	Makefile.standalone \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
-	wavelib/sym_16.inc 
+	wavelib/sym_16.inc \
+	lib
 
 AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common
 
@@ -58,8 +67,8 @@ convolution_source = convolutions/combined_shrink_optim.f90 \
 	convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_ib_optim.f90 \
 	convolutions/conv_per_optim.f90 \
-	convolutions/convolut_simple.f90 \
-	convolutions/convolution_prev.f90 
+	convolutions/convolut_common.f90 \
+	$(GPU_INTERFACE)
 
 else
 convolution_source = convolutions/combined_shrink_simple.f90 \
@@ -67,8 +76,8 @@ convolution_source = convolutions/combined_shrink_simple.f90 \
 	convolutions/combined_shrink_simple.f90 \
 	convolutions/convolut_ib_simple.f90 \
 	convolutions/conv_per_simple.f90 \
-	convolutions/convolut_simple.f90 \
-	convolutions/convolution_prev.f90 
+	convolutions/convolut_common.f90 \
+	$(GPU_INTERFACE)
 
 endif
 
@@ -77,7 +86,8 @@ convolution_objects = $(convolution_source:.f90=.o)
 #modules for types, interfaces and base variables
 modules_source = modules/base.f90 \
 	modules/types.f90 \
-	modules/interfaces.f90
+	modules/interfaces.f90 \
+	$(GPU_BLAS)
 
 modules_objects = $(modules_source:.f90=.o)
 
@@ -90,7 +100,8 @@ high_level = cluster.f90 \
 	forces.f90 \
 	tail.f90 \
 	restart.f90 \
-	geometry.f90
+	geometry.f90 \
+	davidson.f90
 
 #objects which can be compiled whithout any dependence
 low_level = init/projectors.f90  \
@@ -106,7 +117,6 @@ low_level = init/projectors.f90  \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
-	wfn_opt/applyh_prev.f90 \
 	wfn_opt/precond_per.f90 \
 	wfn_opt/kernel_per.f90 \
 	wfn_opt/fft_per.f90 \
@@ -131,7 +141,8 @@ libbigdft_a_SOURCES = \
 	$(low_level) \
 	$(abinit)
 
-libbigdft_a_LIBADD = profiling/timem.o \
+libbigdft_a_LIBADD = profiling/time.o \
+	profiling/memory.o \
 	profiling/memoryestimator.o \
 	$(convolution_objects) \
 	$(modules_objects)
@@ -141,19 +152,22 @@ cluster_LDFLAGS = $(LMPI)
 cluster_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
-	@MPI_LIBS@
+	@MPI_LIBS@ \
+	$(libs_cuda)
 
 test_forces_SOURCES = test_forces.f90
 test_forces_LDFLAGS = $(LMPI)
 test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
-	@MPI_LIBS@
+	@MPI_LIBS@ \
+	$(libs_cuda)
 
 memguess_SOURCES = memguess.f90 
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
-	PSolver/ABINIT-common/libABINIT.a 
+	PSolver/ABINIT-common/libABINIT.a \
+	$(libs_cuda)
 
 
 CLEANFILES = mpif.h \
@@ -162,7 +176,9 @@ CLEANFILES = mpif.h \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@
 
 #dependencies
-cluster.o geometry.o: $(mpi_include)
+$(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o : $(mpi_include)  $(modules_objects)
+
+#cluster.o geometry.o: 
 
 #init.o : base.o interfaces.o
 
@@ -173,13 +189,15 @@ cluster.o geometry.o: $(mpi_include)
 mpif.h:
 	touch mpif.h &&\
 	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
-	 echo "integer :: MPI_DOUBLE_PRECISION, MPI_INTEGER" >> mpif.h &&\
-	 echo "integer :: MPI_MIN, MPI_MAX" >> mpif.h
+	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
+	 echo "integer :: MPI_MIN, MPI_MAX, MPI_IN_PLACE" >> mpif.h
 
 test_forces.o: parameters.h \
 	$(mod_bigdft)
 
 $(mod_bigdft) : BigDFT_API.o
+
+$(moodules_objects) : mpif.h
 
 #BigDFT.o: parameters.h \
 #	base.o \

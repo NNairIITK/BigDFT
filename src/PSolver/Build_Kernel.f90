@@ -59,6 +59,7 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
   real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), pointer :: kernel(:)
   !local variables
+  character(len=*), parameter :: subname='createKernel'
   integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_stat
   integer :: jproc,nlimd,nlimk,jhalf,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
   real(kind=8) :: hgrid
@@ -78,8 +79,8 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
      
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
 
-     allocate(kernel(1),stat=i_stat)
-     call memocc(i_stat,product(shape(kernel))*kind(kernel),'kernel','createkernel')
+     allocate(kernel(1+ndebug),stat=i_stat)
+     call memocc(i_stat,kernel,'kernel',subname)
 
      nlimd=n2
      nlimk=0
@@ -92,8 +93,8 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
      !Build the Kernel
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
 
-     allocate(kernel(nd1*nd2*nd3/nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(kernel))*kind(kernel),'kernel','createkernel')
+     allocate(kernel(nd1*nd2*nd3/nproc+ndebug),stat=i_stat)
+     call memocc(i_stat,kernel,'kernel',subname)
 
      !the kernel must be built and scattered to all the processes
      call Surfaces_Kernel(n1,n2,n3,m3,nd1,nd2,nd3,hx,hz,hy,itype_scf,kernel,iproc,nproc)
@@ -109,8 +110,8 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
 
      !Build the Kernel
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
-     allocate(kernel(nd1*nd2*nd3/nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(kernel))*kind(kernel),'kernel','createkernel')
+     allocate(kernel(nd1*nd2*nd3/nproc+ndebug),stat=i_stat)
+     call memocc(i_stat,kernel,'kernel',subname)
 
      !the kernel must be built and scattered to all the processes
 
@@ -242,6 +243,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   real(kind=8), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
   
   !Local variables 
+  character(len=*), parameter :: subname='Surfaces_Kernel'
   !Better if higher (1024 points are enough 10^{-14}: 2*itype_scf*n_points)
   integer, parameter :: n_points = 2**6
   !Maximum number of points for FFT (should be same number in fft3d routine)
@@ -332,10 +334,10 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   !Number of integration points : 2*itype_scf*n_points
   n_scf=2*itype_scf*n_points
   !Allocations
-  allocate(x_scf(0:n_scf),stat=i_stat)
-  call memocc(i_stat,product(shape(x_scf))*kind(x_scf),'x_scf','surfaces_kernel')
-  allocate(y_scf(0:n_scf),stat=i_stat)
-  call memocc(i_stat,product(shape(y_scf))*kind(y_scf),'y_scf','surfaces_kernel')
+  allocate(x_scf(0:n_scf+ndebug),stat=i_stat)
+  call memocc(i_stat,x_scf,'x_scf',subname)
+  allocate(y_scf(0:n_scf+ndebug),stat=i_stat)
+  call memocc(i_stat,y_scf,'y_scf',subname)
   !Build the scaling function
   call scaling_function(itype_scf,n_scf,n_range,x_scf,y_scf)
   !Step grid for the integration
@@ -362,24 +364,24 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   end do enlarge_ydim
 
   !array for the MPI procedure
-  allocate(kernel(nker1,nact2/nproc,nker3),stat=i_stat)
-  call memocc(i_stat,product(shape(kernel))*kind(kernel),'kernel','surfaces_kernel')
-  allocate(kernel_mpi(nker1,nact2/nproc,nker3/nproc,nproc),stat=i_stat)
-  call memocc(i_stat,product(shape(kernel_mpi))*kind(kernel_mpi),'kernel_mpi','surfaces_kernel')
-  allocate(kernel_scf(n_range),stat=i_stat)
-  call memocc(i_stat,product(shape(kernel_scf))*kind(kernel_scf),'kernel_scf','surfaces_kernel')
-  allocate(halfft_cache(2,ncache/4,2),stat=i_stat)
-  call memocc(i_stat,product(shape(halfft_cache))*kind(halfft_cache),'halfft_cache','surfaces_kernel')
-  allocate(cossinarr(2,n3/2-1),stat=i_stat)
-  call memocc(i_stat,product(shape(cossinarr))*kind(cossinarr),'cossinarr','surfaces_kernel')
-  allocate(btrig(2,nfft_max),stat=i_stat)
-  call memocc(i_stat,product(shape(btrig))*kind(btrig),'btrig','surfaces_kernel')
-  allocate(after(7),stat=i_stat)
-  call memocc(i_stat,product(shape(after))*kind(after),'after','surfaces_kernel')
-  allocate(now(7),stat=i_stat)
-  call memocc(i_stat,product(shape(now))*kind(now),'now','surfaces_kernel')
-  allocate(before(7),stat=i_stat)
-  call memocc(i_stat,product(shape(before))*kind(before),'before','surfaces_kernel')
+  allocate(kernel(nker1,nact2/nproc,nker3+ndebug),stat=i_stat)
+  call memocc(i_stat,kernel,'kernel',subname)
+  allocate(kernel_mpi(nker1,nact2/nproc,nker3/nproc,nproc+ndebug),stat=i_stat)
+  call memocc(i_stat,kernel_mpi,'kernel_mpi',subname)
+  allocate(kernel_scf(n_range+ndebug),stat=i_stat)
+  call memocc(i_stat,kernel_scf,'kernel_scf',subname)
+  allocate(halfft_cache(2,ncache/4,2+ndebug),stat=i_stat)
+  call memocc(i_stat,halfft_cache,'halfft_cache',subname)
+  allocate(cossinarr(2,n3/2-1+ndebug),stat=i_stat)
+  call memocc(i_stat,cossinarr,'cossinarr',subname)
+  allocate(btrig(2,nfft_max+ndebug),stat=i_stat)
+  call memocc(i_stat,btrig,'btrig',subname)
+  allocate(after(7+ndebug),stat=i_stat)
+  call memocc(i_stat,after,'after',subname)
+  allocate(now(7+ndebug),stat=i_stat)
+  call memocc(i_stat,now,'now',subname)
+  allocate(before(7+ndebug),stat=i_stat)
+  call memocc(i_stat,before,'before',subname)
 
 
   !constants
@@ -527,7 +529,7 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
 
   i_all=-product(shape(cossinarr))*kind(cossinarr)
   deallocate(cossinarr,stat=i_stat)
-  call memocc(i_stat,i_all,'cossinarr','surfaces_kernel')
+  call memocc(i_stat,i_all,'cossinarr',subname)
 
 
   !give to each processor a slice of the third dimension
@@ -583,34 +585,34 @@ subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karr
   !De-allocations
   i_all=-product(shape(kernel))*kind(kernel)
   deallocate(kernel,stat=i_stat)
-  call memocc(i_stat,i_all,'kernel','surfaces_kernel')
+  call memocc(i_stat,i_all,'kernel',subname)
   i_all=-product(shape(kernel_mpi))*kind(kernel_mpi)
   deallocate(kernel_mpi,stat=i_stat)
-  call memocc(i_stat,i_all,'kernel_mpi','surfaces_kernel')
+  call memocc(i_stat,i_all,'kernel_mpi',subname)
   i_all=-product(shape(btrig))*kind(btrig)
   deallocate(btrig,stat=i_stat)
-  call memocc(i_stat,i_all,'btrig','surfaces_kernel')
+  call memocc(i_stat,i_all,'btrig',subname)
   i_all=-product(shape(after))*kind(after)
   deallocate(after,stat=i_stat)
-  call memocc(i_stat,i_all,'after','surfaces_kernel')
+  call memocc(i_stat,i_all,'after',subname)
   i_all=-product(shape(now))*kind(now)
   deallocate(now,stat=i_stat)
-  call memocc(i_stat,i_all,'now','surfaces_kernel')
+  call memocc(i_stat,i_all,'now',subname)
   i_all=-product(shape(before))*kind(before)
   deallocate(before,stat=i_stat)
-  call memocc(i_stat,i_all,'before','surfaces_kernel')
+  call memocc(i_stat,i_all,'before',subname)
   i_all=-product(shape(halfft_cache))*kind(halfft_cache)
   deallocate(halfft_cache,stat=i_stat)
-  call memocc(i_stat,i_all,'halfft_cache','surfaces_kernel')
+  call memocc(i_stat,i_all,'halfft_cache',subname)
   i_all=-product(shape(kernel_scf))*kind(kernel_scf)
   deallocate(kernel_scf,stat=i_stat)
-  call memocc(i_stat,i_all,'kernel_scf','surfaces_kernel')
+  call memocc(i_stat,i_all,'kernel_scf',subname)
   i_all=-product(shape(x_scf))*kind(x_scf)
   deallocate(x_scf,stat=i_stat)
-  call memocc(i_stat,i_all,'x_scf','surfaces_kernel')
+  call memocc(i_stat,i_all,'x_scf',subname)
   i_all=-product(shape(y_scf))*kind(y_scf)
   deallocate(y_scf,stat=i_stat)
-  call memocc(i_stat,i_all,'y_scf','surfaces_kernel')
+  call memocc(i_stat,i_all,'y_scf',subname)
 
 end subroutine Surfaces_Kernel
 !!***
@@ -625,6 +627,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   real(kind=8), dimension(intorder+1), intent(in) :: c
   real(kind=8), dimension(n), intent(out) :: g_mu
   !local variables
+  character(len=*), parameter :: subname='calculates_green_opt'
   integer :: izero,ivalue,i,iend,ikern,n_iter,nrec,i_all,i_stat
   real(kind=8) :: f,x,filter,gleft,gright,gltmp,grtmp,fl,fr,x0,x1,ratio,mu0
   real(kind=8), dimension(:), allocatable :: green,green1
@@ -649,8 +652,8 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   !dimension needed for the correct calculation of the recursion
   nrec=2**n_iter*n
 
-  allocate(green(-nrec:nrec),stat=i_stat)
-  call memocc(i_stat,product(shape(green))*kind(green),'green','calculates_green_opt')
+  allocate(green(-nrec:nrec+ndebug),stat=i_stat)
+  call memocc(i_stat,green,'green',subname)
 
 
   !initialization of the branching value
@@ -730,8 +733,8 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
      !print *,ikern,izero,n_scf,gltmp,grtmp,gleft,gright,x0,x1,green(ikern)
   end do
   !now we must calculate the recursion
-  allocate(green1(-nrec:nrec),stat=i_stat)
-  call memocc(i_stat,product(shape(green1))*kind(green1),'green1','calculates_green_opt')
+  allocate(green1(-nrec:nrec+ndebug),stat=i_stat)
+  call memocc(i_stat,green1,'green1',subname)
   !Start the iteration to go from mu0 to mu
   call scf_recursion(itype_scf,n_iter,nrec,green(-nrec),green1(-nrec))
 
@@ -745,10 +748,10 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
 
   i_all=-product(shape(green))*kind(green)
   deallocate(green,stat=i_stat)
-  call memocc(i_stat,i_all,'green','calculates_green_opt')
+  call memocc(i_stat,i_all,'green',subname)
   i_all=-product(shape(green1))*kind(green1)
   deallocate(green1,stat=i_stat)
-  call memocc(i_stat,i_all,'green1','calculates_green_opt')
+  call memocc(i_stat,i_all,'green1',subname)
 
 end subroutine calculates_green_opt
 
@@ -761,6 +764,7 @@ subroutine calculates_green_opt_muzero(n,n_scf,intorder,xval,yval,c,hres,green)
   real(kind=8), dimension(intorder+1), intent(in) :: c
   real(kind=8), dimension(n), intent(out) :: green
   !local variables
+  character(len=*), parameter :: subname='calculates_green_opt_muzero'
   integer :: izero,ivalue,i,iend,ikern,n_iter,nrec
   real(kind=8) :: f,x,y,filter,gl0,gl1,gr0,gr1,c0,c1,fl,fr,x0,x1,ratio,mu0
 
@@ -900,6 +904,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  real(kind=8), dimension(n1k,n2k,n3k/nproc), intent(out) :: karray
 
  !Local variables
+ character(len=*), parameter :: subname='Free_Kernel'
  !Do not touch !!!!
  integer, parameter :: n_gauss = 89
  !Better if higher (1024 points are enough 10^{-14}: 2*itype_scf*n_points)
@@ -953,8 +958,8 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  end do
 
  !this will be the array of the kernel in the real space
- allocate(kp(n1h+1,n3h+1,nker2/nproc),stat=i_stat)
- call memocc(i_stat,product(shape(kp))*kind(kp),'kp','free_kernel')
+ allocate(kp(n1h+1,n3h+1,nker2/nproc+ndebug),stat=i_stat)
+ call memocc(i_stat,kp,'kp',subname)
 
  !defining proper extremes for the calculation of the
  !local part of the kernel
@@ -966,10 +971,10 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  if(iproc .eq. 0) istart1=n2h-n03+2
 
  !Allocations
- allocate(x_scf(0:n_scf),stat=i_stat)
- call memocc(i_stat,product(shape(x_scf))*kind(x_scf),'x_scf','free_kernel')
- allocate(y_scf(0:n_scf),stat=i_stat)
- call memocc(i_stat,product(shape(y_scf))*kind(y_scf),'y_scf','free_kernel')
+ allocate(x_scf(0:n_scf+ndebug),stat=i_stat)
+ call memocc(i_stat,x_scf,'x_scf',subname)
+ allocate(y_scf(0:n_scf+ndebug),stat=i_stat)
+ call memocc(i_stat,y_scf,'y_scf',subname)
 
  !Build the scaling function
  call scaling_function(itype_scf,n_scf,n_range,x_scf,y_scf)
@@ -1004,12 +1009,12 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  kp(:,:,:)=0.d0
 
  !Allocations
- allocate(kern_1_scf(-n_range:n_range),stat=i_stat)
- call memocc(i_stat,product(shape(kern_1_scf))*kind(kern_1_scf),'kern_1_scf','free_kernel')
+ allocate(kern_1_scf(-n_range:n_range+ndebug),stat=i_stat)
+ call memocc(i_stat,kern_1_scf,'kern_1_scf',subname)
  !add the treatment for inhomogeneous hgrids
  if (hx == hy .and. hy == hz) then
-    allocate(kernel_scf(-n_range:n_range,1),stat=i_stat)
-    call memocc(i_stat,product(shape(kernel_scf))*kind(kernel_scf),'kernel_scf','free_kernel')
+    allocate(kernel_scf(-n_range:n_range,1+ndebug),stat=i_stat)
+    call memocc(i_stat,kernel_scf,'kernel_scf',subname)
 
     hgrid=hx
 
@@ -1069,8 +1074,8 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 
  else
 
-    allocate(kernel_scf(-n_range:n_range,3),stat=i_stat)
-    call memocc(i_stat,product(shape(kernel_scf))*kind(kernel_scf),'kernel_scf','free_kernel')
+    allocate(kernel_scf(-n_range:n_range,3+ndebug),stat=i_stat)
+    call memocc(i_stat,kernel_scf,'kernel_scf',subname)
 
     !To have a correct integration
     pref1 = p0_ref/(hx*hx)
@@ -1146,16 +1151,16 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  !De-allocations
  i_all=-product(shape(kernel_scf))*kind(kernel_scf)
  deallocate(kernel_scf,stat=i_stat)
- call memocc(i_stat,i_all,'kernel_scf','free_kernel')
+ call memocc(i_stat,i_all,'kernel_scf',subname)
  i_all=-product(shape(kern_1_scf))*kind(kern_1_scf)
  deallocate(kern_1_scf,stat=i_stat)
- call memocc(i_stat,i_all,'kern_1_scf','free_kernel')
+ call memocc(i_stat,i_all,'kern_1_scf',subname)
  i_all=-product(shape(x_scf))*kind(x_scf)
  deallocate(x_scf,stat=i_stat)
- call memocc(i_stat,i_all,'x_scf','free_kernel')
+ call memocc(i_stat,i_all,'x_scf',subname)
  i_all=-product(shape(y_scf))*kind(y_scf)
  deallocate(y_scf,stat=i_stat)
- call memocc(i_stat,i_all,'y_scf','free_kernel')
+ call memocc(i_stat,i_all,'y_scf',subname)
 
 !!!!END KERNEL CONSTRUCTION
 
@@ -1167,7 +1172,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  !De-allocations
  i_all=-product(shape(kp))*kind(kp)
  deallocate(kp,stat=i_stat)
- call memocc(i_stat,i_all,'kp','free_kernel')
+ call memocc(i_stat,i_all,'kp',subname)
 
 end subroutine Free_Kernel
 !!***
@@ -1240,6 +1245,7 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   real(kind=8), dimension(n1/2+1,n3/2+1,nd2/nproc), intent(in) :: zf
   real(kind=8), dimension(nk1,nk2,nk3/nproc), intent(inout) :: zr
   !Local variables
+  character(len=*), parameter :: subname='kernelfft'
   !Maximum number of points for FFT (should be same number in fft3d routine)
   integer, parameter :: nfft_max=24000
   integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2st,J2st
@@ -1274,41 +1280,41 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   if (mod(n2,4).eq.0) lzt=lzt+1
   
   !Allocations
-  allocate(trig1(2,nfft_max),stat=i_stat)
-  call memocc(i_stat,product(shape(trig1))*kind(trig1),'trig1','kernelfft')
-  allocate(after1(7),stat=i_stat)
-  call memocc(i_stat,product(shape(after1))*kind(after1),'after1','kernelfft')
-  allocate(now1(7),stat=i_stat)
-  call memocc(i_stat,product(shape(now1))*kind(now1),'now1','kernelfft')
-  allocate(before1(7),stat=i_stat)
-  call memocc(i_stat,product(shape(before1))*kind(before1),'before1','kernelfft')
-  allocate(trig2(2,nfft_max),stat=i_stat)
-  call memocc(i_stat,product(shape(trig2))*kind(trig2),'trig2','kernelfft')
-  allocate(after2(7),stat=i_stat)
-  call memocc(i_stat,product(shape(after2))*kind(after2),'after2','kernelfft')
-  allocate(now2(7),stat=i_stat)
-  call memocc(i_stat,product(shape(now2))*kind(now2),'now2','kernelfft')
-  allocate(before2(7),stat=i_stat)
-  call memocc(i_stat,product(shape(before2))*kind(before2),'before2','kernelfft')
-  allocate(trig3(2,nfft_max),stat=i_stat)
-  call memocc(i_stat,product(shape(trig3))*kind(trig3),'trig3','kernelfft')
-  allocate(after3(7),stat=i_stat)
-  call memocc(i_stat,product(shape(after3))*kind(after3),'after3','kernelfft')
-  allocate(now3(7),stat=i_stat)
-  call memocc(i_stat,product(shape(now3))*kind(now3),'now3','kernelfft')
-  allocate(before3(7),stat=i_stat)
-  call memocc(i_stat,product(shape(before3))*kind(before3),'before3','kernelfft')
-  allocate(zw(2,ncache/4,2),stat=i_stat)
-  call memocc(i_stat,product(shape(zw))*kind(zw),'zw','kernelfft')
-  allocate(zt(2,lzt,n1),stat=i_stat)
-  call memocc(i_stat,product(shape(zt))*kind(zt),'zt','kernelfft')
-  allocate(zmpi2(2,n1,nd2/nproc,nd3),stat=i_stat)
-  call memocc(i_stat,product(shape(zmpi2))*kind(zmpi2),'zmpi2','kernelfft')
-  allocate(cosinarr(2,n3/2),stat=i_stat)
-  call memocc(i_stat,product(shape(cosinarr))*kind(cosinarr),'cosinarr','kernelfft')
+  allocate(trig1(2,nfft_max+ndebug),stat=i_stat)
+  call memocc(i_stat,trig1,'trig1',subname)
+  allocate(after1(7+ndebug),stat=i_stat)
+  call memocc(i_stat,after1,'after1',subname)
+  allocate(now1(7+ndebug),stat=i_stat)
+  call memocc(i_stat,now1,'now1',subname)
+  allocate(before1(7+ndebug),stat=i_stat)
+  call memocc(i_stat,before1,'before1',subname)
+  allocate(trig2(2,nfft_max+ndebug),stat=i_stat)
+  call memocc(i_stat,trig2,'trig2',subname)
+  allocate(after2(7+ndebug),stat=i_stat)
+  call memocc(i_stat,after2,'after2',subname)
+  allocate(now2(7+ndebug),stat=i_stat)
+  call memocc(i_stat,now2,'now2',subname)
+  allocate(before2(7+ndebug),stat=i_stat)
+  call memocc(i_stat,before2,'before2',subname)
+  allocate(trig3(2,nfft_max+ndebug),stat=i_stat)
+  call memocc(i_stat,trig3,'trig3',subname)
+  allocate(after3(7+ndebug),stat=i_stat)
+  call memocc(i_stat,after3,'after3',subname)
+  allocate(now3(7+ndebug),stat=i_stat)
+  call memocc(i_stat,now3,'now3',subname)
+  allocate(before3(7+ndebug),stat=i_stat)
+  call memocc(i_stat,before3,'before3',subname)
+  allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
+  call memocc(i_stat,zw,'zw',subname)
+  allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
+  call memocc(i_stat,zt,'zt',subname)
+  allocate(zmpi2(2,n1,nd2/nproc,nd3+ndebug),stat=i_stat)
+  call memocc(i_stat,zmpi2,'zmpi2',subname)
+  allocate(cosinarr(2,n3/2+ndebug),stat=i_stat)
+  call memocc(i_stat,cosinarr,'cosinarr',subname)
   if (nproc.gt.1) then
-     allocate(zmpi1(2,n1,nd2/nproc,nd3/nproc,nproc),stat=i_stat)
-     call memocc(i_stat,product(shape(zmpi1))*kind(zmpi1),'zmpi1','kernelfft')
+     allocate(zmpi1(2,n1,nd2/nproc,nd3/nproc,nproc+ndebug),stat=i_stat)
+     call memocc(i_stat,zmpi1,'zmpi1',subname)
   end if
 
   
@@ -1444,56 +1450,56 @@ subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
   !De-allocations
   i_all=-product(shape(trig1))*kind(trig1)
   deallocate(trig1,stat=i_stat)
-  call memocc(i_stat,i_all,'trig1','kernelfft')
+  call memocc(i_stat,i_all,'trig1',subname)
   i_all=-product(shape(after1))*kind(after1)
   deallocate(after1,stat=i_stat)
-  call memocc(i_stat,i_all,'after1','kernelfft')
+  call memocc(i_stat,i_all,'after1',subname)
   i_all=-product(shape(now1))*kind(now1)
   deallocate(now1,stat=i_stat)
-  call memocc(i_stat,i_all,'now1','kernelfft')
+  call memocc(i_stat,i_all,'now1',subname)
   i_all=-product(shape(before1))*kind(before1)
   deallocate(before1,stat=i_stat)
-  call memocc(i_stat,i_all,'before1','kernelfft')
+  call memocc(i_stat,i_all,'before1',subname)
   i_all=-product(shape(trig2))*kind(trig2)
   deallocate(trig2,stat=i_stat)
-  call memocc(i_stat,i_all,'trig2','kernelfft')
+  call memocc(i_stat,i_all,'trig2',subname)
   i_all=-product(shape(after2))*kind(after2)
   deallocate(after2,stat=i_stat)
-  call memocc(i_stat,i_all,'after2','kernelfft')
+  call memocc(i_stat,i_all,'after2',subname)
   i_all=-product(shape(now2))*kind(now2)
   deallocate(now2,stat=i_stat)
-  call memocc(i_stat,i_all,'now2','kernelfft')
+  call memocc(i_stat,i_all,'now2',subname)
   i_all=-product(shape(before2))*kind(before2)
   deallocate(before2,stat=i_stat)
-  call memocc(i_stat,i_all,'before2','kernelfft')
+  call memocc(i_stat,i_all,'before2',subname)
   i_all=-product(shape(trig3))*kind(trig3)
   deallocate(trig3,stat=i_stat)
-  call memocc(i_stat,i_all,'trig3','kernelfft')
+  call memocc(i_stat,i_all,'trig3',subname)
   i_all=-product(shape(after3))*kind(after3)
   deallocate(after3,stat=i_stat)
-  call memocc(i_stat,i_all,'after3','kernelfft')
+  call memocc(i_stat,i_all,'after3',subname)
   i_all=-product(shape(now3))*kind(now3)
   deallocate(now3,stat=i_stat)
-  call memocc(i_stat,i_all,'now3','kernelfft')
+  call memocc(i_stat,i_all,'now3',subname)
   i_all=-product(shape(before3))*kind(before3)
   deallocate(before3,stat=i_stat)
-  call memocc(i_stat,i_all,'before3','kernelfft')
+  call memocc(i_stat,i_all,'before3',subname)
   i_all=-product(shape(zmpi2))*kind(zmpi2)
   deallocate(zmpi2,stat=i_stat)
-  call memocc(i_stat,i_all,'zmpi2','kernelfft')
+  call memocc(i_stat,i_all,'zmpi2',subname)
   i_all=-product(shape(zw))*kind(zw)
   deallocate(zw,stat=i_stat)
-  call memocc(i_stat,i_all,'zw','kernelfft')
+  call memocc(i_stat,i_all,'zw',subname)
   i_all=-product(shape(zt))*kind(zt)
   deallocate(zt,stat=i_stat)
-  call memocc(i_stat,i_all,'zt','kernelfft')
+  call memocc(i_stat,i_all,'zt',subname)
   i_all=-product(shape(cosinarr))*kind(cosinarr)
   deallocate(cosinarr,stat=i_stat)
-  call memocc(i_stat,i_all,'cosinarr','kernelfft')
+  call memocc(i_stat,i_all,'cosinarr',subname)
   if (nproc.gt.1) then
      i_all=-product(shape(zmpi1))*kind(zmpi1)
      deallocate(zmpi1,stat=i_stat)
-     call memocc(i_stat,i_all,'zmpi1','kernelfft')
+     call memocc(i_stat,i_all,'zmpi1',subname)
   end if
 
 end subroutine kernelfft

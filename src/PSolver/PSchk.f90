@@ -29,8 +29,9 @@ program PSchk
   use Poisson_Solver
 
   implicit none
-  include 'mpif.h'
+  !include 'mpif.h'
   !Length of the box
+  character(len=*), parameter :: subname='PSchk'
   real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
   real(kind=8), parameter :: acell = 10.d0
   character(len=50) :: chain
@@ -98,19 +99,19 @@ program PSchk
 
   !Allocations
   !Density
-  allocate(density(n01*n02*n03),stat=i_stat)
-  call memocc(i_stat,product(shape(density))*kind(density),'density','poisson_solver')
+  allocate(density(n01*n02*n03+ndebug),stat=i_stat)
+  call memocc(i_stat,density,'density',subname)
   !Density then potential
-  allocate(potential(n01*n02*n03),stat=i_stat)
-  call memocc(i_stat,product(shape(potential))*kind(potential),'potential','poisson_solver')
+  allocate(potential(n01*n02*n03+ndebug),stat=i_stat)
+  call memocc(i_stat,potential,'potential',subname)
   !ionic potential
-  allocate(pot_ion(n01*n02*n03),stat=i_stat)
-  call memocc(i_stat,product(shape(pot_ion))*kind(pot_ion),'pot_ion','poisson_solver')
+  allocate(pot_ion(n01*n02*n03+ndebug),stat=i_stat)
+  call memocc(i_stat,pot_ion,'pot_ion',subname)
   !XC potential
-  allocate(xc_pot(n01*n02*n03),stat=i_stat)
-  call memocc(i_stat,product(shape(xc_pot))*kind(xc_pot),'xc_pot','poisson_solver')
-  allocate(rhopot(n01*n02*n03),stat=i_stat)
-  call memocc(i_stat,product(shape(rhopot))*kind(rhopot),'rhopot','poisson_solver')
+  allocate(xc_pot(n01*n02*n03+ndebug),stat=i_stat)
+  call memocc(i_stat,xc_pot,'xc_pot',subname)
+  allocate(rhopot(n01*n02*n03+ndebug),stat=i_stat)
+  call memocc(i_stat,rhopot,'rhopot',subname)
 
   !then assign the value of the analytic density and the potential
   call test_functions(geocode,0,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
@@ -141,7 +142,7 @@ program PSchk
   if (nproc > 1) then
      i_all=-product(shape(pkernel))*kind(pkernel)
      deallocate(pkernel,stat=i_stat)
-     call memocc(i_stat,i_all,'pkernel','poisson_solver')
+     call memocc(i_stat,i_all,'pkernel',subname)
 
      !calculate the kernel 
      call createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,pkernel)
@@ -152,23 +153,23 @@ program PSchk
   end if
   i_all=-product(shape(pkernel))*kind(pkernel)
   deallocate(pkernel,stat=i_stat)
-  call memocc(i_stat,i_all,'pkernel','poisson_solver')
+  call memocc(i_stat,i_all,'pkernel',subname)
 
   i_all=-product(shape(rhopot))*kind(rhopot)
   deallocate(rhopot,stat=i_stat)
-  call memocc(i_stat,i_all,'rhopot','poisson_solver')
+  call memocc(i_stat,i_all,'rhopot',subname)
   i_all=-product(shape(density))*kind(density)
   deallocate(density,stat=i_stat)
-  call memocc(i_stat,i_all,'density','poisson_solver')
+  call memocc(i_stat,i_all,'density',subname)
   i_all=-product(shape(potential))*kind(potential)
   deallocate(potential,stat=i_stat)
-  call memocc(i_stat,i_all,'potential','poisson_solver')
+  call memocc(i_stat,i_all,'potential',subname)
   i_all=-product(shape(pot_ion))*kind(pot_ion)
   deallocate(pot_ion,stat=i_stat)
-  call memocc(i_stat,i_all,'pot_ion','poisson_solver')
+  call memocc(i_stat,i_all,'pot_ion',subname)
   i_all=-product(shape(xc_pot))*kind(xc_pot)
   deallocate(xc_pot,stat=i_stat)
-  call memocc(i_stat,i_all,'xc_pot','poisson_solver')
+  call memocc(i_stat,i_all,'xc_pot',subname)
 
   call timing(iproc,'              ','RE')
   !finalize memory counting
@@ -189,6 +190,7 @@ contains
     real(kind=8), dimension(n01*n02*n03), intent(inout) :: rhopot,pot_ion,xc_pot
     real(kind=8), dimension(:), pointer :: pkernel
     !local variables
+    character(len=*), parameter :: subname='compare_with_reference'
     integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,i1_max,i2_max,i3_max,i_all,i_stat
     real(kind=8) :: eexcu,vexcu,offset,max_diff,ehartree
     real(kind=8), dimension(:), allocatable :: test,test_xc
@@ -202,11 +204,11 @@ contains
     istpot=n01*n02*(i3s+i3xcsh-1)+1
 
     !test arrays for comparison
-    allocate(test(n01*n02*n03),stat=i_stat)
-    call memocc(i_stat,product(shape(test))*kind(test),'test','poisson_solver')
+    allocate(test(n01*n02*n03+ndebug),stat=i_stat)
+    call memocc(i_stat,test,'test',subname)
     !XC potential
-    allocate(test_xc(n01*n02*n03),stat=i_stat)
-    call memocc(i_stat,product(shape(xc_pot))*kind(xc_pot),'xc_pot','poisson_solver')
+    allocate(test_xc(n01*n02*n03+ndebug),stat=i_stat)
+    call memocc(i_stat,test_xc,'test_xc',subname)
 
     if (ixc /= 0) then
        test=potential+pot_ion+xc_pot
@@ -263,10 +265,10 @@ contains
 
     i_all=-product(shape(test))*kind(test)
     deallocate(test,stat=i_stat)
-    call memocc(i_stat,i_all,'test','poisson_solver')
+    call memocc(i_stat,i_all,'test',subname)
     i_all=-product(shape(test_xc))*kind(test_xc)
     deallocate(test_xc,stat=i_stat)
-    call memocc(i_stat,i_all,'test_xc','poisson_solver')
+    call memocc(i_stat,i_all,'test_xc',subname)
 
   end subroutine compare_with_reference
 
