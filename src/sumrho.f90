@@ -80,10 +80,10 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
         n3i=2*n3+2
         
         !dimension of the work arrays
-        nw1=(2*n1+2)*(2*n2+2)*(2*n3+2)
-        nw2=1
+        nw1=1-ndebug
+        nw2=1-ndebug
         nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
-        nxf=(n1+1)*(n2+1)*(n3+1)*8
+        nxf=1-ndebug
 
   end select
 
@@ -165,9 +165,10 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
               do sidx=1,nspinor
                  call uncompress_per(n1,n2,n3,wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),   &
                       wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),   &
-                      psi(1,oidx+sidx),psi(wfd%nvctr_c+1,oidx+sidx),x_c_psifscf,x_f_psig,w1)
+                      psi(1,oidx+sidx),psi(wfd%nvctr_c+1,oidx+sidx),x_c_psifscf,psir(1,sidx))
                  
-                 call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,x_c_psifscf,psir(1,sidx)) 
+!                 call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,x_c_psifscf,psir(1,sidx)) 
+                 call convolut_magic_n_per_self(2*n1+1,2*n2+1,2*n3+1,x_c_psifscf,psir(1,sidx)) 
               end do
 
               call partial_density(rsflag,nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&

@@ -1289,7 +1289,7 @@ subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
 END SUBROUTINE crtvh
 
 
-function wave(ng,ll,xp,psi,r)
+real(gp) function wave(ng,ll,xp,psi,r)
   use module_base, only: gp
   implicit real(gp) (a-h,o-z)
   dimension psi(0:ng),xp(0:ng)
@@ -1304,7 +1304,7 @@ function wave(ng,ll,xp,psi,r)
 end function wave
 
 
-function emuxc(rho)
+real(gp) function emuxc(rho)
   use module_base, only: gp
   implicit real(gp) (a-h,o-z)
   parameter (a0p=.4581652932831429_gp,&
@@ -1334,7 +1334,7 @@ end function emuxc
 
 
 ! restricted version of the Gamma function
-function gamma(x)
+real(gp) function gamma(x)
   use module_base, only: gp
   implicit real(gp) (a-h,o-z)
 

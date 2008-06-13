@@ -256,7 +256,7 @@ end subroutine compress_forstandard
 ! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
 subroutine compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
-     psifscf,psi_c,psi_f,psig,ww)
+     psifscf,psi_c,psi_f,psig)
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
@@ -266,14 +266,13 @@ subroutine compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   integer, dimension(2,nseg_f), intent(in) :: keyg_f
   real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(in) :: psifscf
   real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
-  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(inout) :: ww
   real(wp), dimension(nvctr_c), intent(out) :: psi_c
   real(wp), dimension(7,nvctr_f), intent(out) :: psi_f
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
   ! decompose wavelets into coarse scaling functions and wavelets
-  call analyse_shrink_per(n1,n2,n3,ww,psifscf,psig)
+  call analyse_per_self(n1,n2,n3,psifscf,psig)
 
   ! coarse part
   do iseg=1,nseg_c
@@ -317,7 +316,7 @@ end subroutine compress_per
 
 subroutine uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
-     psi_c,psi_f,psifscf,psig,ww)
+     psi_c,psi_f,psifscf,psig)
   ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
   ! into fine scaling functions (psifscf)
   use module_base
@@ -330,7 +329,6 @@ subroutine uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   real(wp), dimension(nvctr_c), intent(in) :: psi_c
   real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
   real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
-  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(inout) :: ww
   real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(out) :: psifscf
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
@@ -376,6 +374,6 @@ subroutine uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   enddo
 
   ! calculate fine scaling functions
-  call synthese_grow_per(n1,n2,n3,ww,psig,psifscf)
+  call synthese_per_self(n1,n2,n3,psig,psifscf)
 
 end subroutine uncompress_per
