@@ -1,16 +1,15 @@
 
-subroutine hit_with_kernel(x,y,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,c)	
+subroutine hit_with_kernel(x,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,c)	
 ! hits the input array x with the kernel
 ! ((-1/2\Delta+C)_{ij})^{-1}
 	implicit none
 	integer,intent(in)::n1,n2,n3,nd1,nd2,nd3
-	real*8,intent(in)::x(0:n1,0:n2,0:n3)! input
 	real*8,intent(in)::kern_k1(0:n1)
 	real*8,intent(in)::kern_k2(0:n2)
 	real*8,intent(in)::kern_k3(0:n3)
 	real*8,intent(in)::c
 
-	real*8,intent(out)::y(0:n1,0:n2,0:n3)! output
+	real*8,intent(inout)::x(0:n1,0:n2,0:n3)! input/output
 
 	real*8::z(2,nd1,nd2,nd3,2)! work array
 	real*8 tt
@@ -39,14 +38,14 @@ do i3=0,n3
 	enddo
 enddo
 
-! fourier transform x back; the result is y
+! fourier transform x back
 isign=-1
 call fft(n1+1,n2+1,n3+1,nd1,nd2,nd3,z,isign,inzee)
 
 do i3=0,n3
 	do i2=0,n2
 		do i1=0,n1
-			y(i1,i2,i3)=z(1,i1+1,i2+1,i3+1,inzee)/((n1+1)*(n2+1)*(n3+1))
+			x(i1,i2,i3)=z(1,i1+1,i2+1,i3+1,inzee)/((n1+1)*(n2+1)*(n3+1))
 		enddo
 	enddo
 enddo

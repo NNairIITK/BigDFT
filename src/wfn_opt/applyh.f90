@@ -265,7 +265,7 @@ end subroutine applylocpotkinone
 
 subroutine applylocpotkinone_per(n1,n2,n3, & 
      hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
-     psir,psifscf,psifscfk,psig,ww,psi,pot,hpsi,epot,ekin)
+     psir,psi_in,psi_out,psi,pot,hpsi,epot,ekin)
   !  Applies the local potential and kinetic energy operator to one wavefunction 
   ! Input: pot,psi
   ! Output: hpsi,epot,ekin
@@ -277,8 +277,7 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(in) :: pot
   real(wp), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
-  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(inout) :: psir,psifscf,psifscfk,ww
-  real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
+  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(inout) :: psir,psi_in,psi_out
   real(gp), intent(out) :: epot,ekin
   real(wp), dimension(nvctr_c+7*nvctr_f), intent(out) :: hpsi
   !local variables
@@ -290,20 +289,10 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
   ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
   call uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-       psi(1),psi(nvctr_c+1),psifscf,psig,ww)
+       psi(1),psi(nvctr_c+1),psi_in,psir)
 
-  hgridh(1)=hx*.5_gp
-  hgridh(2)=hy*.5_gp
-  hgridh(3)=hz*.5_gp
-
-  call convolut_kinetic_per(2*n1+1,2*n2+1,2*n3+1,hgridh,psifscf,psifscfk)
-
-  ekin=0.0_gp
-  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
-     ekin=ekin+real(psifscf(i),gp)*real(psifscfk(i),gp)
-  enddo
-
-  call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psifscf,psir) 
+!	psir serves as a work array	   
+  call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psi_in,psir,psi_out) 
 
   epot=0.0_gp
   do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
@@ -314,15 +303,19 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      psir(i)=tt
   enddo
 
-  call convolut_magic_t_per(2*n1+1,2*n2+1,2*n3+1,psir,psifscf)
+  call convolut_magic_t_per_self(2*n1+1,2*n2+1,2*n3+1,psir,psi_out)
 
-  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
-     psifscf(i)=psifscf(i)+psifscfk(i)
-  enddo
+  hgridh(1)=hx*.5_gp
+  hgridh(2)=hy*.5_gp
+  hgridh(3)=hz*.5_gp
 
+! compute the kinetic part and add  it to psi_out
+! the kinetic energy is calculated at the same time
+  call convolut_kinetic_per_T(2*n1+1,2*n2+1,2*n3+1,hgridh,psi_in,psi_out,ekin)
+  
   call compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
-       psifscf,hpsi(1),hpsi(nvctr_c+1),psig,ww)
+       psi_out,hpsi(1),hpsi(nvctr_c+1),psir)
 
 END SUBROUTINE applylocpotkinone_per
 
@@ -692,7 +685,8 @@ subroutine applyprojector(l,i,psppar,npspcode,&
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(mbseg_c+mbseg_f), intent(in) :: keyv_p
   integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keyg_p
-  real(wp), dimension(*), intent(in) :: proj
+!  real(wp), dimension((mbvctr_c+7*mbvctr_f)*(2*l-1)), intent(in) :: proj
+	real(wp), dimension(*), intent(in) :: proj
   real(gp), dimension(0:4,0:6), intent(in) :: psppar
   real(wp), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
   real(gp), intent(inout) :: eproj

@@ -108,10 +108,6 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
         call memocc(i_stat,x_c,'x_c',subname)
         allocate(y_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
         call memocc(i_stat,y_c,'y_c',subname)
-        allocate(x_f1(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,x_f1,'x_f1',subname)
-        allocate(x_f2(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,x_f2,'x_f2',subname)
 
   end select
 
@@ -164,7 +160,7 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
         case('P')
            call applylocpotkinone_per(n1,n2,n3,hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
                 wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
-                psir,x_c,y_c,x_f1,x_f2,psi(1,oidx),pot(1,nsoffset),&
+                psir,x_c,y_c,psi(1,oidx),pot(1,nsoffset),&
                 hpsi(1,oidx),epot,ekin) 
         end select
 
@@ -184,14 +180,14 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
   i_all=-product(shape(y_c))*kind(y_c)
   deallocate(y_c,stat=i_stat)
   call memocc(i_stat,i_all,'y_c',subname)
-  i_all=-product(shape(x_f1))*kind(x_f1)
-  deallocate(x_f1,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f1',subname)
-  i_all=-product(shape(x_f2))*kind(x_f2)
-  deallocate(x_f2,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f2',subname)
 
   if (geocode == 'F') then
+	  i_all=-product(shape(x_f1))*kind(x_f1)
+	  deallocate(x_f1,stat=i_stat)
+	  call memocc(i_stat,i_all,'x_f1',subname)
+	  i_all=-product(shape(x_f2))*kind(x_f2)
+	  deallocate(x_f2,stat=i_stat)
+	  call memocc(i_stat,i_all,'x_f2',subname)
      i_all=-product(shape(x_f3))*kind(x_f3)
      deallocate(x_f3,stat=i_stat)
      call memocc(i_stat,i_all,'x_f3',subname)
