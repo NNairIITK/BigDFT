@@ -1,8 +1,12 @@
+! Calculates the length of the keys describing a wavefunction data structure
 subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
-  ! Calculates the length of the keys describing a wavefunction data structure
-  implicit real(kind=8) (a-h,o-z)
-  logical logrid,plogrid
-  dimension logrid(0:n1,0:n2,0:n3)
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3
+  logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid 
+  integer, intent(out) :: mseg,mvctr
+  !local variables
+  logical :: plogrid
+  integer :: i1,i2,i3,nsrt,nend
 
   mvctr=0
   nsrt=0
@@ -36,11 +40,17 @@ subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
   
 end subroutine num_segkeys
 
+! Calculates the keys describing a wavefunction data structure
 subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
-  ! Calculates the keys describing a wavefunction data structure
-  implicit real(kind=8) (a-h,o-z)
-  logical logrid,plogrid
-  dimension logrid(0:n1,0:n2,0:n3),keyg(2,mseg),keyv(mseg)
+  !implicit real(kind=8) (a-h,o-z)
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,mseg
+  logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid  
+  integer, dimension(mseg), intent(out) :: keyv
+  integer, dimension(2,mseg), intent(out) :: keyg
+  !local variables
+  logical :: plogrid
+  integer :: mvctr,nsrt,nend,i1,i2,i3,ngridp
 
   mvctr=0
   nsrt=0
@@ -74,27 +84,26 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
      write(*,*) 'nend , nsrt',nend,nsrt
      stop 'nend <> nsrt'
   endif
-  mseg=nend
-
-  return
-END SUBROUTINE segkeys
+  !mseg=nend
+end subroutine segkeys
 
 subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
      ntypes,iatype,rxyz,radii,rmult,hx,hy,hz,logrid)
   ! set up an array logrid(i1,i2,i3) that specifies whether the grid point
   ! i1,i2,i3 is the center of a scaling function/wavelet
+  use module_base
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,ntypes
-  real(kind=8), intent(in) :: rmult,hx,hy,hz
+  real(gp), intent(in) :: rmult,hx,hy,hz
   integer, dimension(nat), intent(in) :: iatype
-  real(kind=8), dimension(ntypes), intent(in) :: radii
-  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(gp), dimension(ntypes), intent(in) :: radii
+  real(gp), dimension(3,nat), intent(in) :: rxyz
   logical, dimension(0:n1,0:n2,0:n3), intent(out) :: logrid
   !local variables
   real(kind=8), parameter :: eps_mach=1.d-12,onem=1.d0-eps_mach
   integer :: i1,i2,i3,iat,ml1,ml2,ml3,mu1,mu2,mu3,j1,j2,j3
-  real(kind=8) :: dx,dy2,dz2,rad
+  real(gp) :: dx,dy2,dz2,rad
 
   !some checks
   if (geocode /='F') then
@@ -128,7 +137,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
   end if
 
   do iat=1,nat
-     rad=radii(iatype(iat))*rmult+real(nbuf,kind=8)*hx
+     rad=radii(iatype(iat))*rmult+real(nbuf,gp)*hx
      !        write(*,*) 'iat,nat,rad',iat,nat,rad
      ml1=ceiling((rxyz(1,iat)-rad)/hx - eps_mach)  
      ml2=ceiling((rxyz(2,iat)-rad)/hy - eps_mach)   
@@ -148,14 +157,14 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
      end if
      !the surfaces case is lacking here, what follows works always provided the check before
      do i3=ml3,mu3
-        dz2=(real(i3,kind=8)*hz-rxyz(3,iat))**2
+        dz2=(real(i3,gp)*hz-rxyz(3,iat))**2
         j3=modulo(i3,n3+1)
         do i2=ml2,mu2
-           dy2=(real(i2,kind=8)*hy-rxyz(2,iat))**2
+           dy2=(real(i2,gp)*hy-rxyz(2,iat))**2
            j2=modulo(i2,n2+1)
            do i1=ml1,mu1
               j1=modulo(i1,n1+1)
-              dx=real(i1,kind=8)*hx-rxyz(1,iat)
+              dx=real(i1,gp)*hx-rxyz(1,iat)
               if (dx**2+(dy2+dz2).le.rad**2) then 
                  logrid(j1,j2,j3)=.true.
               endif
@@ -167,32 +176,33 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
 END SUBROUTINE fill_logrid
 
 subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
-  implicit real(kind=8) (a-h,o-z)
-  logical logrid
-  dimension logrid(0:n1,0:n2,0:n3)
-  dimension ibyz(2,0:n2,0:n3),ibxz(2,0:n1,0:n3),ibxy(2,0:n1,0:n2)
-
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid
+  integer, dimension(2,0:n2,0:n3), intent(out) :: ibyz
+  integer, dimension(2,0:n1,0:n3), intent(out) :: ibxz
+  integer, dimension(2,0:n1,0:n2), intent(out) :: ibxy
+  !local variables
+  integer :: i1,i2,i3
 
   do i3=0,n3 
      do i2=0,n2 
         ibyz(1,i2,i3)= 1000
         ibyz(2,i2,i3)=-1000
 
-        do i1=0,n1
+        loop_i1s: do i1=0,n1
            if (logrid(i1,i2,i3)) then 
               ibyz(1,i2,i3)=i1
-              goto 10
+              exit loop_i1s
            endif
-        enddo
-10      continue
-        do i1=n1,0,-1
+        enddo loop_i1s
+
+        loop_i1e: do i1=n1,0,-1
            if (logrid(i1,i2,i3)) then 
               ibyz(2,i2,i3)=i1
-              goto 11
+              exit loop_i1e
            endif
-        enddo
-11      continue
-
+        enddo loop_i1e
      end do
   end do
 
@@ -202,20 +212,19 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
         ibxz(1,i1,i3)= 1000
         ibxz(2,i1,i3)=-1000
 
-        do i2=0,n2 
+        loop_i2s: do i2=0,n2 
            if (logrid(i1,i2,i3)) then 
               ibxz(1,i1,i3)=i2
-              goto 20 
+              exit loop_i2s
            endif
-        enddo
-20      continue
-        do i2=n2,0,-1
+        enddo loop_i2s
+
+        loop_i2e: do i2=n2,0,-1
            if (logrid(i1,i2,i3)) then 
               ibxz(2,i1,i3)=i2
-              goto 21 
+              exit loop_i2e
            endif
-        enddo
-21      continue
+        enddo loop_i2e
 
      end do
   end do
@@ -226,23 +235,20 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
         ibxy(1,i1,i2)= 1000
         ibxy(2,i1,i2)=-1000
 
-        do i3=0,n3
+        loop_i3s: do i3=0,n3
            if (logrid(i1,i2,i3)) then 
               ibxy(1,i1,i2)=i3
-              goto 30 
+              exit loop_i3s
            endif
-        enddo
-30      continue
-        do i3=n3,0,-1
+        enddo loop_i3s
+
+        loop_i3e: do i3=n3,0,-1
            if (logrid(i1,i2,i3)) then 
               ibxy(2,i1,i2)=i3
-              goto 31 
+              exit loop_i3e
            endif
-        enddo
-31      continue
-
+        enddo loop_i3e
      end do
   end do
 
-  return
-END SUBROUTINE make_bounds
+end subroutine make_bounds

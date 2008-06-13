@@ -76,16 +76,16 @@ interface
      real(kind=8), dimension(:), pointer :: eval,psi
    end subroutine conjgrad
 
-   subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,wfd,psi,&
-        hgrid_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
+   subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,n3,wfd,psi,&
+        hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
      use module_base
      use module_types
      implicit none
      type(wavefunctions_descriptors) :: wfd,wfd_old
      integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nspinor
-     real(gp), intent(in) :: hgrid
+     real(gp), intent(in) :: hx,hy,hz
      integer, intent(out) :: n1_old,n2_old,n3_old
-     real(gp), intent(out) :: hgrid_old
+     real(gp), intent(out) :: hx_old,hy_old,hz_old
      real(wp), dimension(:), pointer :: psi,psi_old
    end subroutine copy_old_wavefunctions
 
@@ -242,9 +242,6 @@ interface
         norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
         wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,&
         nscatterarr,ngatherarr,nspin,spinsgn)
-     ! Input wavefunctions are found by a diagonalization in a minimal basis set
-     ! Each processors write its initial wavefunctions into the wavefunction file
-     ! The files are then read by readwave
      use module_base
      use module_types
      implicit none

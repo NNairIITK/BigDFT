@@ -183,14 +183,14 @@ subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old
 end subroutine reformatonewave
 
 subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
-     & hgrid,nat,rxyz_old,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval,psifscf)
+     & hx,hy,hz,nat,rxyz_old,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval,psifscf)
   use module_base
   implicit none
   logical, intent(in) :: useFormattedInput
   integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3,nat,nseg_c,nseg_f,nvctr_c,nvctr_f
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  real(gp), intent(in) :: hgrid
+  real(gp), intent(in) :: hx,hy,hz
   real(gp), dimension(3,nat), intent(in) :: rxyz
   real(wp), intent(out) :: eval
   real(gp), dimension(3,nat), intent(out) :: rxyz_old
@@ -200,7 +200,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   character(len=*), parameter :: subname='readonewave'
   integer :: iorb_old,n1_old,n2_old,n3_old,iat,j,iel,nvctr_c_old,nvctr_f_old,i_stat,i_all,i1,i2,i3
   real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
-  real(gp) :: tx,ty,tz,displ,hgrid_old
+  real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
 
   !write(*,*) 'INSIDE readonewave'
@@ -212,7 +212,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   end if
   if (iorb_old.ne.iorb) stop 'readonewave'
   if (useFormattedInput) then
-     read(unitwf,*) hgrid_old
+     read(unitwf,*) hx_old,hy_old,hz_old
      read(unitwf,*) n1_old,n2_old,n3_old
      !write(*,*) 'reading ',nat,' atomic positions'
      do iat=1,nat
@@ -220,7 +220,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      enddo
      read(unitwf,*) nvctr_c_old, nvctr_f_old
   else
-     read(unitwf) hgrid_old
+     read(unitwf) hx_old,hy_old,hz_old
      read(unitwf) n1_old,n2_old,n3_old
      do iat=1,nat
         read(unitwf)(rxyz_old(j,iat),j=1,3)
@@ -238,8 +238,9 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   enddo
   displ=sqrt(tx+ty+tz)
 
-  if (hgrid_old == hgrid .and. nvctr_c_old == nvctr_c .and. nvctr_f_old == nvctr_f  & 
-       .and. n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
+  if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
+       nvctr_c_old == nvctr_c .and. nvctr_f_old == nvctr_f .and. & 
+       n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
 
      write(*,*) 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
      do j=1,nvctr_c_old
@@ -268,7 +269,8 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   else
 
      write(*,*) 'wavefunction ',iorb,' needs reformatting on processor',iproc
-     if (hgrid_old /= hgrid) write(*,*) 'because hgrid_old >< hgrid',hgrid_old,hgrid
+     if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,*) &
+          'because hgrid_old >< hgrid',hx_old,hy_old,hz_old,hx,hy,hz
      if (nvctr_c_old /= nvctr_c) write(*,*) 'because nvctr_c_old >< nvctr_c',nvctr_c_old,nvctr_c
      if (nvctr_f_old /= nvctr_f) write(*,*) 'because nvctr_f_old >< nvctr_f',nvctr_f_old,nvctr_f
      if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
@@ -303,8 +305,8 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      enddo
 
      ! I put nat = 1 here, since only one position is saved in wavefunction files.
-     call reformatonewave(iproc,displ,hgrid_old,n1_old,n2_old,n3_old,nat,&
-          rxyz_old,psigold,hgrid,nvctr_c,nvctr_f,n1,n2,n3,rxyz,nseg_c,nseg_f,&
+     call reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,nat,&
+          rxyz_old,psigold,hx,hy,hz,nvctr_c,nvctr_f,n1,n2,n3,rxyz,nseg_c,nseg_f,&
           keyg,keyv,psifscf,psi)
 
      i_all=-product(shape(psigold))*kind(psigold)
@@ -315,8 +317,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
 end subroutine readonewave
 
-
-subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hgrid,nat,rxyz,  & 
+subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
      nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f, & 
      psi_c,psi_f,norb,eval)
@@ -324,7 +325,7 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hgrid,nat,rxyz, 
   implicit none
   logical, intent(in) :: useFormattedOutput
   integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f,norb
-  real(gp), intent(in) :: hgrid
+  real(gp), intent(in) :: hx,hy,hz
   integer, dimension(nseg_c), intent(in) :: keyv_c
   integer, dimension(nseg_f), intent(in) :: keyv_f
   integer, dimension(2,nseg_c), intent(in) :: keyg_c
@@ -339,7 +340,7 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hgrid,nat,rxyz, 
 
   if (useFormattedOutput) then
      write(unitwf,*) iorb,eval(iorb)
-     write(unitwf,*) hgrid
+     write(unitwf,*) hx,hy,hz
      write(unitwf,*) n1,n2,n3
      do iat=1,nat
      write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
@@ -347,7 +348,7 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hgrid,nat,rxyz, 
      write(unitwf,*) nvctr_c, nvctr_f
   else
      write(unitwf) iorb,eval(iorb)
-     write(unitwf) hgrid
+     write(unitwf) hx,hy,hz
      write(unitwf) n1,n2,n3
      do iat=1,nat
      write(unitwf) (rxyz(j,iat),j=1,3)

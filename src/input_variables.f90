@@ -422,8 +422,6 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
           write(*,'(1x,a,i0,a,a)') 'FIXED Atom N.:',iat,', Name: ',trim(at%atomnames(at%iatype(iat)))
   enddo
 
-  !print 
-
 end subroutine read_atomic_positions
 
 
@@ -692,7 +690,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
        end do
 
        !old way of calculating the radii, requires modification of the PSP files
-       read(11,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
+       read(11,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)!here we add the coarse radius for proj.
        if (ierror.eq.0) then
           if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
                trim(at%atomnames(ityp)),at%nelpsp(ityp),at%npspcode(ityp),&
@@ -813,7 +811,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
            end do
         end do
      end if
-    
+     
     !calculate number of electrons and orbitals
     ! Number of electrons and number of semicore atoms
     nelec=0
@@ -1070,19 +1068,19 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
      czmin=0.0_gp
   end if
 
-  if (geocode /= 'P') then
+  !if (geocode /= 'P') then
      do iat=1,atoms%nat
         rxyz(1,iat)=rxyz(1,iat)-cxmin
         rxyz(2,iat)=rxyz(2,iat)-cymin
         rxyz(3,iat)=rxyz(3,iat)-czmin
      enddo
-  else !place the atoms inside the box
-     do iat=1,atoms%nat
-        rxyz(1,iat)=modulo(rxyz(1,iat),alat1)
-        rxyz(2,iat)=modulo(rxyz(2,iat),alat2)
-        rxyz(3,iat)=modulo(rxyz(3,iat),alat3)
-     enddo
-  end if
+  !else !place the atoms inside the box
+  !   do iat=1,atoms%nat
+  !      rxyz(1,iat)=modulo(rxyz(1,iat),alat1)
+  !      rxyz(2,iat)=modulo(rxyz(2,iat),alat2)
+  !      rxyz(3,iat)=modulo(rxyz(3,iat),alat3)
+  !   enddo
+  !end if
 
   ! fine grid size (needed for creation of input wavefunction, preconditioning)
   nfl1=n1 

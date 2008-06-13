@@ -189,13 +189,15 @@ $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o : $(mpi_includ
 mpif.h:
 	touch mpif.h &&\
 	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
-	 echo "integer :: MPI_DOUBLE_PRECISION, MPI_REAL, MPI_INTEGER" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
 	 echo "integer :: MPI_MIN, MPI_MAX, MPI_IN_PLACE" >> mpif.h
 
 test_forces.o: parameters.h \
 	$(mod_bigdft)
 
 $(mod_bigdft) : BigDFT_API.o
+
+$(moodules_objects) : mpif.h
 
 #BigDFT.o: parameters.h \
 #	base.o \

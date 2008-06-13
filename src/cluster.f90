@@ -227,8 +227,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! We save the variables that defined the previous psi if
   ! restartOnPsi is .true.
   if (in%inputPsiId == 1) then
-     call copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,wfd,psi,&
-          hgrid_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
+     !regeneerate grid spacings
+     if (geocode == 'P') then
+        call correct_grid(in%alat1,hx,n1)
+        call correct_grid(in%alat2,hy,n2)
+        call correct_grid(in%alat3,hz,n3)
+     end if
+     call copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,n3,wfd,psi,&
+          hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
   end if
 
 !!$  !datacodes for the poisson solver, depending on the implementation
@@ -281,7 +287,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
        nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,nspinor)
   call timing(iproc,'CrtDescriptors','OF')
 
-  ! Calculate all projectors
+  ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,atoms,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
@@ -319,10 +325,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   allocate(fion(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fion,'fion',subname)
 
-  call IonicEnergyandForces(geocode,iproc,nproc,atoms,hxh,hyh,hzh,alat1,alat2,alat3,rxyz,eion,fion,psoffset,&
-       n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+  call IonicEnergyandForces(geocode,iproc,nproc,atoms,hxh,hyh,hzh,alat1,alat2,alat3,rxyz,eion,fion,&
+       psoffset,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
 
-  !do not pass the atoms data structure as arguments for dependence problem in compiling
+  !can pass the atoms data structure as argument
   call createIonicPotential(geocode,iproc,nproc,atoms%nat,atoms%ntypes,atoms%iatype,&
        atoms%psppar,atoms%nelpsp,rxyz,hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,&
        n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
@@ -380,7 +386,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   else if (in%inputPsiId == -1) then
 
-     !import gaussians form CP2K (data in files def_gaubasis.dat and gaucoeff.dat)
+     !import gaussians form CP2K (data in files gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
      call import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,atoms,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
@@ -408,15 +414,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      if (iproc.eq.0) then
         write(*,'(1x,a)')&
              '-------------------------------------------------------------- Wavefunctions Restart'
-     end if
-     !generate old grid spacings
-     hx_old=hgrid_old
-     hy_old=hgrid_old
-     hz_old=hgrid_old
-     if (geocode == 'P') then
-        call correct_grid(in%alat1,hx_old,n1)
-        call correct_grid(in%alat2,hy_old,n2)
-        call correct_grid(in%alat3,hz_old,n3)
      end if
 
      call reformatmywaves(iproc,norb*nspinor,norbp*nspinor,atoms%nat,hx_old,hy_old,hz_old,&
@@ -619,8 +616,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
 
      tt=(energybs-scprsum)/scprsum
-     if ((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
-          (abs(tt) > 1.d-8 .and. GPUconv).and. iproc==0) then 
+     if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
+          (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
         write(*,'(1x,a,1pe9.2,2(1pe22.14))') &
              'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
      endif
@@ -694,9 +691,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call memocc(i_stat,i_all,'ads',subname)
         idsx_actual=0
         idiistol=0
-
      end if
-     if ( (energy == energy_min) .and. switchSD) then
+
+     if ((energy == energy_min) .and. switchSD) then
         idiistol=idiistol+1
      end if
      if (idiistol > idsx .and. switchSD) then
@@ -738,6 +735,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call last_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
        nspin,psi,hpsi,psit,occup,evsum,eval)
 
+  ! this section can be inserted inside last_orthon
   if(nspinor==4) then
      call calc_moments(iproc,nproc,norb,norbp,wfd%nvctr_c+7*wfd%nvctr_f,nspinor,psi) 
   end if
@@ -755,7 +753,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !  write all the wavefunctions into files
   if (in%output_wf) then
-     call  writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,atoms%nat,rxyz,wfd,psi,eval)
+     call  writemywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,wfd,psi,eval)
      write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
   end if
 
@@ -786,7 +784,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !here there are the spinor which must be taken into account
   if(nproc>1) then
      if (n3p>0) then
-        allocate(rho((2*n1+31)*(2*n2+31)*n3p+ndebug),stat=i_stat)
+        allocate(rho(n1i*n2i*n3p+ndebug),stat=i_stat)
         call memocc(i_stat,rho,'rho',subname)
      else
         allocate(rho(1+ndebug),stat=i_stat)
@@ -794,7 +792,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
   else
      if (n3p>0) then
-        allocate(rho((2*n1+31)*(2*n2+31)*n3p*nspinor+ndebug),stat=i_stat)
+        allocate(rho(n1i*n2i*n3p*nspinor+ndebug),stat=i_stat)
         call memocc(i_stat,rho,'rho',subname)
      else
         allocate(rho(1+ndebug),stat=i_stat)
@@ -802,7 +800,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
   end if
 
-  !use pot_ion array for building total rho
   call sumrho(geocode,iproc,nproc,norb,norbp,0,n1,n2,n3,hxh,hyh,hzh,occup,  & 
        wfd,psi,rho,n1i*n2i*n3p,nscatterarr,1,nspinor,spinsgn_foo,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
@@ -816,7 +813,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call memocc(i_stat,i_all,'pot_ion',subname)
 
   if (in%output_grid) then
-    
      if (iproc == 0) then
         open(unit=22,file='density.pot',status='unknown')
         write(22,*)'normalised density'
@@ -891,7 +887,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
        pot,pkernel,pot,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1)
   !here nspin=1 since ixc=0
-
 
   i_all=-product(shape(pkernel))*kind(pkernel)
   deallocate(pkernel,stat=i_stat)

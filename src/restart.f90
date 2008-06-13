@@ -1,13 +1,13 @@
-subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,wfd,psi,&
-     hgrid_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
+subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,n3,wfd,psi,&
+     hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
   use module_base
   use module_types
   implicit none
   type(wavefunctions_descriptors) :: wfd,wfd_old
   integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nspinor
-  real(gp), intent(in) :: hgrid
+  real(gp), intent(in) :: hx,hy,hz
   integer, intent(out) :: n1_old,n2_old,n3_old
-  real(gp), intent(out) :: hgrid_old
+  real(gp), intent(out) :: hx_old,hy_old,hz_old
 !!$  real(wp), dimension(:), pointer :: eval,eval_old
   real(wp), dimension(:), pointer :: psi,psi_old
   !local variables
@@ -32,7 +32,9 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hgrid,n1,n2,n3,
   !deallocation
   call deallocate_wfd(wfd,'copy_old_wavefunctions')
 
-  hgrid_old   = hgrid
+  hx_old   = hx
+  hy_old   = hy
+  hz_old   = hz
 
   n1_old      = n1
   n2_old      = n2
@@ -327,13 +329,13 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz_old,rxyz,  &
 
 end subroutine readmywaves
 
-subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,wfd,psi,eval)
+subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi,eval)
   ! write all my wavefunctions in files by calling writeonewave
   use module_types
   use module_base
   implicit none
   integer, intent(in) :: iproc,norb,norbp,n1,n2,n3,nat
-  real(gp), intent(in) :: hgrid
+  real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
   real(gp), dimension(3,nat), intent(in) :: rxyz
   real(wp), dimension(norb), intent(in) :: eval
@@ -355,7 +357,7 @@ subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz,wfd,psi,eval)
      write(*,*) 'opening ',filename
      open(unit=99,file=filename,status='unknown')
 
-     call writeonewave(99,.true.,iorb,n1,n2,n3,hgrid,nat,rxyz,  & 
+     call writeonewave(99,.true.,iorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
           wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
           wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
           psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),norb,eval)
