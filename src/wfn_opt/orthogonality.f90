@@ -94,7 +94,7 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   character(len=*), parameter :: subname='orthoconstraint_p'
   integer :: i_stat,i_all,istart,iorb,jorb,ierr,norbs,i,j
   real(dp) :: occ
-  real(dp), dimension(:,:,:), allocatable :: alag
+  real(wp), dimension(:,:,:), allocatable :: alag
 
   call timing(iproc,'LagrM_comput  ','ON')
   istart=2
@@ -135,13 +135,13 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   if(nspinor==1) then
      do iorb=1,norb
         occ=real(occup(iorb),dp)
-        scprsum=scprsum+occ*alag(iorb,iorb,1)
+        scprsum=scprsum+occ*real(alag(iorb,iorb,1),dp)
      enddo
   else
     do iorb=1,norb
        occ=real(occup(iorb),dp)
-       scprsum=scprsum+occ*alag(2*iorb-1,iorb,1)
-       scprsum=scprsum+occ*alag(2*iorb,iorb,1)
+       scprsum=scprsum+occ*real(alag(2*iorb-1,iorb,1),dp)
+       scprsum=scprsum+occ*real(alag(2*iorb,iorb,1),dp)
      enddo
   end if
 !  if(iproc==0) print *,'ortho_p',scprsum
@@ -171,9 +171,8 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
   !local variables
   character(len=*), parameter :: subname='orthon_p'
   integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,i,j,norbs,iorb,jorb
-  real(dp) :: tt,ttLOC,ttr,tti
-  real(kind=8) :: ddot
-  real(dp), dimension(:,:,:), allocatable :: ovrlp
+  real(wp) :: tt,ttLOC,ttr,tti
+  real(wp), dimension(:,:,:), allocatable :: ovrlp
 
   call timing(iproc,'GramS_comput  ','ON')
 
@@ -192,7 +191,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
         end if
         ttLOC=tt**2
      else
-        ttLOC=0.0_dp
+        ttLOC=0.0_wp
      end if
      
      if (nproc > 1) then
@@ -201,7 +200,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
         tt=ttLOC
      end if
 
-     tt=1.0_dp/sqrt(tt)
+     tt=1.0_wp/sqrt(tt)
      if(nspinor==1) then 
         !correct normalisation
         call vscal(nvctr_eff,tt,psit(1,1),1)
@@ -228,7 +227,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
      ! Upper triangle of overlap matrix using BLAS
      !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; upper triangle
      if(nspinor==1) then
-        call syrk('L','T',norb,nvctrp,1.d0,psit(1,1),nvctrp,0.d0,ovrlp(1,1,istart),norb)
+        call syrk('L','T',norb,nvctrp,1.0_wp,psit(1,1),nvctrp,0.0_wp,ovrlp(1,1,istart),norb)
      else
 !!$        ovrlp=0.0d0
 !!$        do iorb=1,norb
@@ -244,7 +243,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 !!$           end do
 !!$        end do
 !!$        stop
-        call herk('L','C',norb,2*nvctrp,1.d0,psit(1,1),2*nvctrp,0.0d0,ovrlp(1,1,istart),norb)
+        call herk('L','C',norb,2*nvctrp,1.0_wp,psit(1,1),2*nvctrp,0.0_wp,ovrlp(1,1,istart),norb)
      end if
 
      if (nproc > 1) then
@@ -274,7 +273,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
         if (info.ne.0) write(6,*) 'info L^-1',info
         
         ! new vectors   
-        call trmm ('R','L','T','N',nvctrp,norb,1.d0,ovrlp(1,1,1),norb,psit(1,1),nvctrp)
+        call trmm ('R','L','T','N',nvctrp,norb,1.0_wp,ovrlp(1,1,1),norb,psit(1,1),nvctrp)
 
      else
 
@@ -304,7 +303,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 !!$           end if
 !!$        end do
        ! new vectors   !!check if third argument should be transpose or conjugate
-        call c_trmm ('R','L','C','N',2*nvctrp,norb,(1.d0,0.0d0),ovrlp(1,1,1),norb,psit(1,1),&
+        call c_trmm ('R','L','C','N',2*nvctrp,norb,(1.0_wp,0.0_wp),ovrlp(1,1,1),norb,psit(1,1),&
              2*nvctrp)
 
         !if(nproc==1) call psitransspi(nvctrp,norb,psit,.true.)
@@ -617,7 +616,7 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
   ! arrays for KS orbitals
   real(wp), dimension(:), allocatable :: work_lp,work_rp
   real(wp), dimension(:,:), allocatable :: psitt
-  real(dp), dimension(:,:,:), allocatable :: hamks
+  real(wp), dimension(:,:,:), allocatable :: hamks
 
   if(nspinor==4) then
      norbs=2*norb
@@ -630,7 +629,7 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
 
   do jorb=1,norb
      do iorb=1,norbs
-        hamks(iorb,jorb,2)=0.0_dp
+        hamks(iorb,jorb,2)=0.0_wp
      enddo
   enddo
   if (nproc > 1) then
@@ -646,11 +645,11 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
 !           hamks(iorb,jorb,istart)=scpr
 !        enddo
 !     enddo
-     call gemm('T','N',norb,norb,nvctrp,1.d0,psit(1,1),nvctrp,hpsit(1,1),nvctrp,0.d0,&
+     call gemm('T','N',norb,norb,nvctrp,1.0_wp,psit(1,1),nvctrp,hpsit(1,1),nvctrp,0.0_wp,&
           hamks(1,1,istart),norb)
   else
-     call c_gemm('C','N',norb,norb,2*nvctrp,(1.d0,0.0d0),psit(1,1),2*nvctrp, &
-          hpsit(1,1),2*nvctrp,(0.d0,0.0d0),hamks(1,1,istart),norb)
+     call c_gemm('C','N',norb,norb,2*nvctrp,(1.0_wp,0.0_wp),psit(1,1),2*nvctrp, &
+          hpsit(1,1),2*nvctrp,(0.0_wp,0.0_wp),hamks(1,1,istart),norb)
   end if
 
   if (nproc > 1) then
@@ -683,7 +682,7 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
 
   evsum=0.0_wp
   do iorb=1,norb
-     evsum=evsum+eval(iorb)*occup(iorb)
+     evsum=evsum+eval(iorb)*real(occup(iorb),wp)
      !if (iproc.eq.0) write(*,'(1x,a,i0,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
   enddo
   i_all=-product(shape(work_lp))*kind(work_lp)

@@ -130,7 +130,7 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
        psi(1),psi(nvctr_c+1),psi_in,psir)
 
-!	psir serves as a work array	   
+! psir serves as a work array	   
   call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psi_in,psir,psi_out) 
 
   epot=0.0_gp

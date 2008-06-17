@@ -59,15 +59,15 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 contains
 
   subroutine allocate_all
-    allocate(b(nvctr_c+7*nvctr_f),stat=i_stat)
+    allocate(b(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
     call memocc(i_stat,b,'b',subname)
-    allocate(r(nvctr_c+7*nvctr_f),stat=i_stat)
+    allocate(r(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
     call memocc(i_stat,r,'r',subname)
-    allocate(d(nvctr_c+7*nvctr_f),stat=i_stat)
+    allocate(d(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
     call memocc(i_stat,d,'d',subname)
-    allocate( psifscf((2*n1+2)*(2*n2+2)*(2*n3+2)),stat=i_stat )
+    allocate(psifscf((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug),stat=i_stat )
     call memocc(i_stat,psifscf,'psifscf',subname)
-    allocate( ww((2*n1+2)*(2*n2+2)*(2*n3+2)) ,stat=i_stat)
+    allocate(ww((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug),stat=i_stat)
     call memocc(i_stat,ww,'ww',subname)
   end subroutine allocate_all
 
@@ -220,6 +220,7 @@ end subroutine prec_fft
 !	array x is input, array y is output
 subroutine apply_hp(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psifscf,ww)
+  use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f

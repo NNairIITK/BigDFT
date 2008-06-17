@@ -455,12 +455,11 @@ subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
   integer, parameter :: lowfil=-14,lupfil=14
   integer :: i1,i2,i3,i,l,j
   real(wp) :: tt
+  integer, dimension(lowfil:n1+lupfil) :: mod_arr1	
+  integer, dimension(lowfil:n2+lupfil) :: mod_arr2	
+  integer, dimension(lowfil:n3+lupfil) :: mod_arr3	
   real(wp), dimension(3) :: scale
   real(wp), dimension(lowfil:lupfil,3) :: fil
-
-  integer mod_arr1(lowfil:n1+lupfil)	
-  integer mod_arr2(lowfil:n2+lupfil)	
-  integer mod_arr3(lowfil:n3+lupfil)	
 
   call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
   call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
@@ -697,13 +696,12 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin)
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
   integer :: i1,i2,i3,i,l,j
+  integer, dimension(lowfil:n1+lupfil) :: mod_arr1
+  integer, dimension(lowfil:n2+lupfil) :: mod_arr2
+  integer, dimension(lowfil:n3+lupfil) :: mod_arr3
   real(wp) :: tt
   real(wp), dimension(3) :: scale
   real(wp), dimension(lowfil:lupfil,3) :: fil
-
-  integer mod_arr1(lowfil:n1+lupfil)	
-  integer mod_arr2(lowfil:n2+lupfil)	
-  integer mod_arr3(lowfil:n3+lupfil)	
 
   call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
   call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
