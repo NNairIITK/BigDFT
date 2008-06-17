@@ -11,12 +11,12 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   real(wp), intent(inout) ::  x(nvctr_c+7*nvctr_f)
-  ! local variables
-  real*8::scal(0:8)
-  real*8::rmr,rmr_new,alpha,beta
-  integer i,i_stat,i_all
-  real(kind=8),allocatable::b(:),r(:),d(:)
-  real*8,allocatable::psifscf(:),ww(:)
+  !local variables
+  character(len=*), parameter :: subname='precong_per'
+  integer :: i,i_stat,i_all
+  real(wp) :: rmr,rmr_new,alpha,beta
+  real(wp), dimension(0:8) :: scal
+  real(wp), dimension(:), allocatable :: b,r,d,ww,psifscf
 
   call allocate_all
 
@@ -42,7 +42,7 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      call apply_hp(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
           cprecr,hx,hy,hz,d,b,psifscf,ww) ! b:=Ad
 
-     alpha=rmr/dot_product(d,b)
+     alpha=rmr/dot_product(d,b) !does this built_in function is well optimised?
      x=x+alpha*d
      r=r-alpha*b
 
@@ -60,59 +60,62 @@ contains
 
   subroutine allocate_all
     allocate(b(nvctr_c+7*nvctr_f),stat=i_stat)
-    call memocc(i_stat,product(shape(b))*kind(b),'b','precong_per')
+    call memocc(i_stat,b,'b',subname)
     allocate(r(nvctr_c+7*nvctr_f),stat=i_stat)
-    call memocc(i_stat,product(shape(r))*kind(r),'r','precong_per')
+    call memocc(i_stat,r,'r',subname)
     allocate(d(nvctr_c+7*nvctr_f),stat=i_stat)
-    call memocc(i_stat,product(shape(d))*kind(d),'','precong_per')
+    call memocc(i_stat,d,'d',subname)
     allocate( psifscf((2*n1+2)*(2*n2+2)*(2*n3+2)),stat=i_stat )
-    call memocc(i_stat,product(shape(psifscf))*kind(psifscf),'psifscf','precong_per')
+    call memocc(i_stat,psifscf,'psifscf',subname)
     allocate( ww((2*n1+2)*(2*n2+2)*(2*n3+2)) ,stat=i_stat)
-    call memocc(i_stat,product(shape(ww))*kind(ww),'ww','precong_per')
+    call memocc(i_stat,ww,'ww',subname)
   end subroutine allocate_all
 
   subroutine deallocate_all
     i_all=-product(shape(psifscf))*kind(psifscf)
     deallocate(psifscf,stat=i_stat)
-    call memocc(i_stat,i_all,'psifscf','last_orthon')
+    call memocc(i_stat,i_all,'psifscf',subname)
 
     i_all=-product(shape(ww))*kind(ww)
     deallocate(ww,stat=i_stat)
-    call memocc(i_stat,i_all,'ww','last_orthon')
+    call memocc(i_stat,i_all,'ww',subname)
 
     i_all=-product(shape(b))*kind(b)
     deallocate(b,stat=i_stat)
-    call memocc(i_stat,i_all,'b','last_orthon')
+    call memocc(i_stat,i_all,'b',subname)
 
     i_all=-product(shape(r))*kind(r)
     deallocate(r,stat=i_stat)
-    call memocc(i_stat,i_all,'r','last_orthon')
+    call memocc(i_stat,i_all,'r',subname)
 
     i_all=-product(shape(d))*kind(d)
     deallocate(d,stat=i_stat)
-    call memocc(i_stat,i_all,'d','last_orthon')
+    call memocc(i_stat,i_all,'d',subname)
   end subroutine deallocate_all
 end subroutine precong_per
 
 
+! Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
+! x_c is the right hand side on input and the solution on output
+! This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
 subroutine prec_fft_fast(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,hpsi,&
      kern_k1,kern_k2,kern_k3,z,x_c)
-  ! Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
-  ! x_c is the right hand side on input and the solution on output
-  ! This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
+  use module_base
   implicit none 
   integer, intent(in) :: n1,n2,n3
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
-  real(kind=8), intent(in) :: hx,hy,hz,cprecr
+  real(gp), intent(in) :: hx,hy,hz
+  real(wp), intent(in) :: cprecr
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  real(kind=8), intent(inout) ::  hpsi(nvctr_c+7*nvctr_f) 
-
-  !work arrays
-  real(kind=8):: kern_k1(0:n1),kern_k2(0:n2),kern_k3(0:n3)
-  real(kind=8),dimension(0:n1,0:n2,0:n3):: x_c! in and out of Fourier preconditioning
-  real(kind=8)::z(2,n1+2,n2+2,n3+2,2) ! work array for FFT
+  real(wp), intent(inout) :: hpsi(nvctr_c+7*nvctr_f) 
+  !local variables
+  real(wp), dimension(0:n1) :: kern_k1
+  real(wp), dimension(0:n2) :: kern_k2
+  real(wp), dimension(0:n3) :: kern_k3
+  real(wp), dimension(0:n1,0:n2,0:n3):: x_c! in and out of Fourier preconditioning
+  real(wp), dimension(2,n1+2,n2+2,n3+2,2) :: z ! work array for FFT
 
   call wscal_f(nvctr_f,hpsi(nvctr_c+1),hx,hy,hz,cprecr)
 
@@ -122,9 +125,9 @@ subroutine prec_fft_fast(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 
   call uncompress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
-  call  hit_with_kernel(x_c,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,n1+2,n2+2,n3+2,cprecr)
+  call hit_with_kernel(x_c,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,n1+2,n2+2,n3+2,cprecr)
 
-  call   compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
+  call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
 end subroutine prec_fft_fast
 
@@ -137,16 +140,21 @@ subroutine prec_fft(n1,n2,n3, &
   implicit none 
   integer, intent(in) :: n1,n2,n3
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
-  real(kind=8), intent(in) :: hx,hy,hz,cprecr
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  real(wp), intent(in) :: cprecr
+  real(gp), intent(in) :: hx,hy,hz
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  real(kind=8), intent(inout) ::  hpsi(nvctr_c+7*nvctr_f)
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  real(wp), intent(inout) ::  hpsi(nvctr_c+7*nvctr_f)
   !local variables
+  character(len=*), parameter :: subname='prec_fft'
   integer nd1,nd2,nd3,i_stat,i_all
-  real(kind=8), dimension(:), allocatable :: kern_k1,kern_k2,kern_k3
-  real(kind=8), dimension(:,:,:), allocatable :: x_c! in and out of Fourier preconditioning
-  real(kind=8), dimension(:,:,:,:,:), allocatable::z(:,:,:,:,:) ! work array for FFT
-  nd1=n1+2;		nd2=n2+2;	nd3=n3+2
+  real(wp), dimension(:), allocatable :: kern_k1,kern_k2,kern_k3
+  real(wp), dimension(:,:,:), allocatable :: x_c! in and out of Fourier preconditioning
+  real(wp), dimension(:,:,:,:,:), allocatable :: z ! work array for FFT
+
+  nd1=n1+2
+  nd2=n2+2
+  nd3=n3+2
 
   call allocate_all
 
@@ -168,58 +176,63 @@ subroutine prec_fft(n1,n2,n3, &
 
 contains
   subroutine allocate_all
-    allocate(kern_k1(0:n1),stat=i_stat)
-    call memocc(i_stat,product(shape(kern_k1))*kind(kern_k1),'kern_k1','prec_fft')
-    allocate(kern_k2(0:n2),stat=i_stat)
-    call memocc(i_stat,product(shape(kern_k2))*kind(kern_k2),'kern_k2','prec_fft')
-    allocate(kern_k3(0:n3),stat=i_stat)
-    call memocc(i_stat,product(shape(kern_k3))*kind(kern_k3),'kern_k3','prec_fft')
-    allocate(z(2,nd1,nd2,nd3,2),stat=i_stat) ! work array for fft
-    call memocc(i_stat,product(shape(z))*kind(z),'z','prec_fft')
-    allocate(x_c(0:n1,0:n2,0:n3),stat=i_stat)
-    call memocc(i_stat,product(shape(x_c))*kind(x_c),'x_c','prec_fft')
+
+    allocate(kern_k1(0:n1+ndebug),stat=i_stat)
+    call memocc(i_stat,kern_k1,'kern_k1',subname)
+    allocate(kern_k2(0:n2+ndebug),stat=i_stat)
+    call memocc(i_stat,kern_k2,'kern_k2',subname)
+    allocate(kern_k3(0:n3+ndebug),stat=i_stat)
+    call memocc(i_stat,kern_k3,'kern_k3',subname)
+    allocate(z(2,nd1,nd2,nd3,2+ndebug),stat=i_stat) ! work array for fft
+    call memocc(i_stat,z,'z',subname)
+    allocate(x_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+    call memocc(i_stat,x_c,'x_c',subname)
+
   end subroutine allocate_all
+
   subroutine deallocate_all
+
     i_all=-product(shape(z))*kind(z)
     deallocate(z,stat=i_stat)
-    call memocc(i_stat,i_all,'z','last_orthon')
+    call memocc(i_stat,i_all,'z',subname)
 
     i_all=-product(shape(kern_k1))*kind(kern_k1)
     deallocate(kern_k1,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k1','last_orthon')
+    call memocc(i_stat,i_all,'kern_k1',subname)
 
     i_all=-product(shape(kern_k2))*kind(kern_k2)
     deallocate(kern_k2,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k2','last_orthon')
+    call memocc(i_stat,i_all,'kern_k2',subname)
 
     i_all=-product(shape(kern_k3))*kind(kern_k3)
     deallocate(kern_k3,stat=i_stat)
-    call memocc(i_stat,i_all,'kern_k3','last_orthon')
+    call memocc(i_stat,i_all,'kern_k3',subname)
 
     i_all=-product(shape(x_c))*kind(x_c)
     deallocate(x_c,stat=i_stat)
-    call memocc(i_stat,i_all,'x_c','last_orthon')
+    call memocc(i_stat,i_all,'x_c',subname)
 
   end subroutine deallocate_all
 end subroutine prec_fft
 
 
-subroutine apply_hp(n1,n2,n3, &
-     nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
+!	Applies the operator (KE+cprecr*I)*x=y
+!	array x is input, array y is output
+subroutine apply_hp(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psifscf,ww)
-  !	Applies the operator (KE+cprecr*I)*x=y
-  !	array x is input, array y is output
   implicit none
   integer, intent(in) :: n1,n2,n3
   integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
-  real(kind=8), intent(in) :: hx,hy,hz,cprecr
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  real(wp), intent(in) :: cprecr
+  real(gp), intent(in) :: hx,hy,hz
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  real(kind=8), intent(in) ::  x(nvctr_c+7*nvctr_f)  
-  real(kind=8), intent(out) ::  y(nvctr_c+7*nvctr_f)
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  real(wp), intent(in) ::  x(nvctr_c+7*nvctr_f)  
+  real(wp), intent(out) ::  y(nvctr_c+7*nvctr_f)
+  !local variables
+  real(gp), dimension(3) :: hgridh
+  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)) :: ww,psifscf
 
-  real*8 hgridh(3)	
-  real*8,dimension((2*n1+2)*(2*n2+2)*(2*n3+2))::ww,psifscf
   call uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
        x(1),x(nvctr_c+1),psifscf,ww)
@@ -235,18 +248,20 @@ subroutine apply_hp(n1,n2,n3, &
 end subroutine apply_hp
 
 subroutine uncompress_c(hpsi,x_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
+  use module_base
   implicit none
-  integer,intent(in)::n1,n2,n3
-  integer,intent(in)::nseg_c,nvctr_c
-  real*8,intent(in)::hpsi(nvctr_c)
-  integer,intent(in)::keyg_c(2,nseg_c),keyv_c(nseg_c)
-
-  real*8,intent(out)::x_c(0:n1,0:n2,0:n3)
-
+  integer, intent(in) :: n1,n2,n3
+  integer, intent(in) :: nseg_c,nvctr_c
+  integer, dimension(nseg_c), intent(in) :: keyv_c
+  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+  real(wp), dimension(nvctr_c), intent(in) :: hpsi
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: x_c
+  !local variables
   integer iseg,jj,j0,j1,ii,i3,i2,i0,i1,i
 
-  x_c=0.d0
+  x_c=0.0_wp !razero
   do iseg=1,nseg_c
+
      jj=keyv_c(iseg)
      j0=keyg_c(1,iseg)
      j1=keyg_c(2,iseg)
@@ -265,14 +280,15 @@ subroutine uncompress_c(hpsi,x_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
 end subroutine uncompress_c
 
 subroutine compress_c(hpsi,y_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
+  use module_base
   implicit none
-  integer,intent(in)::n1,n2,n3
-  integer,intent(in)::nseg_c,nvctr_c
-  integer,intent(in)::keyg_c(2,nseg_c),keyv_c(nseg_c)
-  real*8,intent(in)::y_c(0:n1,0:n2,0:n3)
-
-  real*8,intent(out)::hpsi(nvctr_c)
-
+  integer, intent(in) :: n1,n2,n3
+  integer, intent(in) :: nseg_c,nvctr_c
+  integer, dimension(nseg_c), intent(in) :: keyv_c
+  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: y_c
+  real(wp), dimension(nvctr_c), intent(out) :: hpsi
+  !local variables
   integer iseg,jj,j0,j1,ii,i3,i2,i0,i1,i
 
   ! coarse part
@@ -294,25 +310,32 @@ subroutine compress_c(hpsi,y_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
 end subroutine compress_c
 
 
+! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)`
 subroutine wscal_f(mvctr_f,psi_f,hx,hy,hz,c)
-  ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
-  implicit real(kind=8) (a-h,o-z)
-  real*8,intent(in)::c,hx,hy,hz
-  dimension psi_f(7,mvctr_f),scal(7),hh(3)
+  use module_base
+  implicit none
+  integer, intent(in) :: mvctr_f
+  real(wp), intent(in) :: c
+  real(gp), intent(in) :: hx,hy,hz
+  real(wp), dimension(7,mvctr_f), intent(inout) :: psi_f
+  !local variables
+  real(wp), parameter :: B2=24.8758460293923314_wp, A2=3.55369228991319019_wp
+  integer :: i
+  real(wp), dimension(3) :: hh
+  real(wp), dimension(7) :: scal
   !WAVELET AND SCALING FUNCTION SECOND DERIVATIVE FILTERS, diagonal elements
-  PARAMETER(B2=24.8758460293923314D0,A2=3.55369228991319019D0)
 
-  hh(1)=.5d0/hx**2
-  hh(2)=.5d0/hy**2
-  hh(3)=.5d0/hz**2
+  hh(1)=real(.5_gp/hx**2,wp)
+  hh(2)=real(.5_gp/hy**2,wp)
+  hh(3)=real(.5_gp/hz**2,wp)
 
-  scal(1)=1.d0/(b2*hh(1)+a2*hh(2)+a2*hh(3)+c)       !  2 1 1
-  scal(2)=1.d0/(a2*hh(1)+b2*hh(2)+a2*hh(3)+c)       !  1 2 1
-  scal(3)=1.d0/(b2*hh(1)+b2*hh(2)+a2*hh(3)+c)       !  2 2 1
-  scal(4)=1.d0/(a2*hh(1)+a2*hh(2)+b2*hh(3)+c)       !  1 1 2
-  scal(5)=1.d0/(b2*hh(1)+a2*hh(2)+b2*hh(3)+c)       !  2 1 2
-  scal(6)=1.d0/(a2*hh(1)+b2*hh(2)+b2*hh(3)+c)       !  1 2 2
-  scal(7)=1.d0/(b2*hh(1)+b2*hh(2)+b2*hh(3)+c)       !  2 2 2
+  scal(1)=1._wp/(b2*hh(1)+a2*hh(2)+a2*hh(3)+c)       !  2 1 1
+  scal(2)=1._wp/(a2*hh(1)+b2*hh(2)+a2*hh(3)+c)       !  1 2 1
+  scal(3)=1._wp/(b2*hh(1)+b2*hh(2)+a2*hh(3)+c)       !  2 2 1
+  scal(4)=1._wp/(a2*hh(1)+a2*hh(2)+b2*hh(3)+c)       !  1 1 2
+  scal(5)=1._wp/(b2*hh(1)+a2*hh(2)+b2*hh(3)+c)       !  2 1 2
+  scal(6)=1._wp/(a2*hh(1)+b2*hh(2)+b2*hh(3)+c)       !  1 2 2
+  scal(7)=1._wp/(b2*hh(1)+b2*hh(2)+b2*hh(3)+c)       !  2 2 2
 
   do i=1,mvctr_f
      psi_f(1,i)=psi_f(1,i)*scal(1)       !  2 1 1
@@ -327,11 +350,18 @@ subroutine wscal_f(mvctr_f,psi_f,hx,hy,hz,c)
 end subroutine wscal_f
 
 
+! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
 subroutine wscal_per(mvctr_c,mvctr_f,scal,psi_c_in,psi_f_in,psi_c_out,psi_f_out)
-  ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
-  implicit real(kind=8) (a-h,o-z)
-  real*8,intent(in)::psi_c_in(mvctr_c),psi_f_in(7,mvctr_f),scal(0:8)
-  real*8,intent(out)::psi_c_out(mvctr_c),psi_f_out(7,mvctr_f)
+  use module_base
+  implicit none
+  integer, intent(in) :: mvctr_c,mvctr_f
+  real(wp), dimension(0:8), intent(in) :: scal
+  real(wp), dimension(mvctr_c), intent(in) :: psi_c_in
+  real(wp), dimension(7,mvctr_f), intent(in) :: psi_f_in
+  real(wp), dimension(mvctr_c), intent(out) :: psi_c_out
+  real(wp), dimension(7,mvctr_f), intent(out) :: psi_f_out
+  !local variables
+  integer :: i
 
   do i=1,mvctr_c
      psi_c_out(i)=psi_c_in(i)*scal(0)           !  1 1 1
@@ -352,24 +382,27 @@ end subroutine wscal_per
 
 subroutine wscal_init_per(scal,hx,hy,hz,c)
   !	initialization for the array scal in the subroutine wscal_per 	
+  use module_base
   implicit none
-  real*8,intent(in)::c,hx,hy,hz
-  real*8,PARAMETER::B2=24.8758460293923314D0,A2=3.55369228991319019D0
-  real*8,intent(out)::scal(0:8)
-  real*8::hh(3)
+  real(wp), intent(in) :: c
+  real(gp), intent(in) :: hx,hy,hz
+  real(wp), dimension(0:8), intent(out) :: scal
+  !local variables
+  real(wp), parameter :: B2=24.8758460293923314_wp, A2=3.55369228991319019_wp
+  real(wp), dimension(3) :: hh
 
-  hh(1)=.5d0/hx**2
-  hh(2)=.5d0/hy**2
-  hh(3)=.5d0/hz**2
+  hh(1)=real(.5_gp/hx**2,wp)
+  hh(2)=real(.5_gp/hy**2,wp)
+  hh(3)=real(.5_gp/hz**2,wp)
 
-  scal(0)=1.d0/(a2*hh(1)+a2*hh(2)+a2*hh(3)+c)       !  1 1 1
-  scal(1)=1.d0/(b2*hh(1)+a2*hh(2)+a2*hh(3)+c)       !  2 1 1
-  scal(2)=1.d0/(a2*hh(1)+b2*hh(2)+a2*hh(3)+c)       !  1 2 1
-  scal(3)=1.d0/(b2*hh(1)+b2*hh(2)+a2*hh(3)+c)       !  2 2 1
-  scal(4)=1.d0/(a2*hh(1)+a2*hh(2)+b2*hh(3)+c)       !  1 1 2
-  scal(5)=1.d0/(b2*hh(1)+a2*hh(2)+b2*hh(3)+c)       !  2 1 2
-  scal(6)=1.d0/(a2*hh(1)+b2*hh(2)+b2*hh(3)+c)       !  1 2 2
-  scal(7)=1.d0/(b2*hh(1)+b2*hh(2)+b2*hh(3)+c)       !  2 2 2
+  scal(0)=1._wp/(a2*hh(1)+a2*hh(2)+a2*hh(3)+c)       !  1 1 1
+  scal(1)=1._wp/(b2*hh(1)+a2*hh(2)+a2*hh(3)+c)       !  2 1 1
+  scal(2)=1._wp/(a2*hh(1)+b2*hh(2)+a2*hh(3)+c)       !  1 2 1
+  scal(3)=1._wp/(b2*hh(1)+b2*hh(2)+a2*hh(3)+c)       !  2 2 1
+  scal(4)=1._wp/(a2*hh(1)+a2*hh(2)+b2*hh(3)+c)       !  1 1 2
+  scal(5)=1._wp/(b2*hh(1)+a2*hh(2)+b2*hh(3)+c)       !  2 1 2
+  scal(6)=1._wp/(a2*hh(1)+b2*hh(2)+b2*hh(3)+c)       !  1 2 2
+  scal(7)=1._wp/(b2*hh(1)+b2*hh(2)+b2*hh(3)+c)       !  2 2 2
 
 end subroutine wscal_init_per
 
