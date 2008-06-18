@@ -214,10 +214,10 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
   real(wp) :: scprw
   real(dp) :: scpr
   real(gp) :: rx,ry,rz,ek,occshell
-  real(gp), dimension(nterm_max) :: fac_arr
   logical, dimension(4) :: semicore
   integer, dimension(2) :: iorbsc,iorbv
   integer, dimension(nterm_max) :: lx,ly,lz
+  real(gp), dimension(nterm_max) :: fac_arr
   real(gp), dimension(:), allocatable :: psiatn
 
   allocate(psiatn(ngx+ndebug),stat=i_stat)

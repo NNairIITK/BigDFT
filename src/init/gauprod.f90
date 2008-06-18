@@ -540,4 +540,174 @@ function ifac(is,ie)
   end do
 end function ifac
 
+!calculate the projection of a gaussian for a given eigenspace of spherical harmonics
+!centered on a given point and rotated by theta(along y) and phi(along x)
+subroutine gaussian_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,theta,phi,hx,hy,hz,&
+     wfd,psi,coeffs)
+  use module_base
+  use module_types
+  implicit none
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: l,ng,n1,n2,n3
+  real(gp), intent(in) :: theta,phi,hx,hy,hz
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  real(gp), dimension(3), intent(in) :: rxyz
+  real(gp), dimension(ng), intent(in) :: xp,psiat
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(in) :: psi
+  real(wp), dimension(2*l-1), intent(out) :: coeffs
+  !local variables
+  integer, parameter :: nterm_max=3 !to be enlarged for generic theta and phi
+  integer :: nterm,m
+  integer, dimension(nterm_max) :: lx,ly,lz
+  real(gp), dimension(nterm_max) :: fac_arr
+  
+  do m=1,2*l-1
+     !for the moment theta and phi are ignored but a new routine should be made
+     call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 
+     call wavetogau(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,xp,psiat,&
+          rxyz(1),rxyz(2),rxyz(3),hx,hy,hz,wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),&
+          wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
+          psi(1),psi(wfd%nvctr_c+1),coeffs(m))
+
+  end do
+
+end subroutine gaussian_projection
+
+
+
+
+! calculate the scalar product between a sum of gaussians times polynomials and a wavefunction
+! \int dx dy dz 
+!           \sum_i=1..ntp fac_arr(i) {
+!                \sum_j=1..nterm psiat(j) [exp(-r^2/(2*(xp(j)^2)))] 
+!                    *((x-rx)^lx(i) *(y-ry)^ly(i) * (z-rz)^lz(i) ))} psi(x,y,z)
+! expressed in Daubechies Basis in the arrays psi_c, psi_f
+subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,rz,hx,hy,hz, & 
+     nseg_c,mvctr_c,keyg_c,keyv_c,nseg_f,mvctr_f,keyg_f,keyv_f,psi_c,psi_f,overlap)
+  use module_base
+  implicit none
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: n1,n2,n3,nterm,ntp,nseg_c,nseg_f,mvctr_c,mvctr_f
+  real(gp), intent(in) :: rx,ry,rz,hx,hy,hz
+  integer, dimension(ntp), intent(in) :: lx,ly,lz
+  integer, dimension(nseg_c), intent(in) :: keyv_c
+  integer, dimension(nseg_f), intent(in) :: keyv_f
+  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+  integer, dimension(2,nseg_f), intent(in) :: keyg_f
+  real(gp), dimension(ntp), intent(in) :: fac_arr
+  real(gp), dimension(nterm), intent(in) :: xp,psiat
+  real(wp), dimension(mvctr_c), intent(in) :: psi_c
+  real(wp), dimension(7,mvctr_f), intent(in) :: psi_f
+  real(wp), intent(out) :: overlap
+  !local variables
+  character(len=*), parameter :: subname='wavetogau'
+  integer, parameter ::nw=16000
+  logical :: perx,pery,perz
+  integer:: iterm,itp,n_gau,ml1,mu1,ml2,mu2,ml3,mu3,i1,i2,i3,i_all,i_stat,iseg,ii,jj,j0,j1,i0,i
+  real(wp) :: ovlp_c,ovlp_f1,ovlp_f2,ovlp_f3,ovlp_f4,ovlp_f5,ovlp_f6,ovlp_f7,ovlp
+  real(gp) :: gau_a,te
+  real(wp), dimension(:,:), allocatable :: work,wprojx,wprojy,wprojz
+
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+
+  allocate(wprojx(0:n1,2+ndebug),stat=i_stat)
+  call memocc(i_stat,wprojx,'wprojx',subname)
+  allocate(wprojy(0:n2,2+ndebug),stat=i_stat)
+  call memocc(i_stat,wprojy,'wprojy',subname)
+  allocate(wprojz(0:n3,2+ndebug),stat=i_stat)
+  call memocc(i_stat,wprojz,'wprojz',subname)
+  allocate(work(0:nw,2+ndebug),stat=i_stat)
+  call memocc(i_stat,work,'work',subname)
+
+  overlap=0.0_wp
+
+  do itp=1,ntp
+
+     do iterm=1,nterm
+        gau_a=xp(iterm)
+        n_gau=lx(itp)
+        call gauss_to_daub(hx,fac_arr(itp),rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1),te,work,nw,&
+             perx)
+        n_gau=ly(itp)
+        call gauss_to_daub(hy,1.0_gp,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1),te,work,nw,pery)
+        n_gau=lz(itp)
+        call gauss_to_daub(hz,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw,&
+             perz)
+
+        !scalar product (in wavefunction precision)
+
+        ! coarse part
+        ovlp_c=0.0_wp
+        do iseg=1,nseg_c
+           jj=keyv_c(iseg)
+           j0=keyg_c(1,iseg)
+           j1=keyg_c(2,iseg)
+           ii=j0-1
+           i3=ii/((n1+1)*(n2+1))
+           ii=ii-i3*(n1+1)*(n2+1)
+           i2=ii/(n1+1)
+           i0=ii-i2*(n1+1)
+           i1=i0+j1-j0
+           do i=i0,i1
+              ovlp_c=ovlp_c+psi_c(i-i0+jj)*wprojx(i,1)*wprojy(i2,1)*wprojz(i3,1)
+           enddo
+        enddo
+
+        ! fine part
+        ovlp_f1=0.0_wp
+        ovlp_f2=0.0_wp
+        ovlp_f3=0.0_wp
+        ovlp_f4=0.0_wp
+        ovlp_f5=0.0_wp
+        ovlp_f6=0.0_wp
+        ovlp_f7=0.0_wp
+        do iseg=1,nseg_f
+           jj=keyv_f(iseg)
+           j0=keyg_f(1,iseg)
+           j1=keyg_f(2,iseg)
+           ii=j0-1
+           i3=ii/((n1+1)*(n2+1))
+           ii=ii-i3*(n1+1)*(n2+1)
+           i2=ii/(n1+1)
+           i0=ii-i2*(n1+1)
+           i1=i0+j1-j0
+           do i=i0,i1
+              !itp=itp+1
+              ovlp_f1=ovlp_f1+psi_f(1,i-i0+jj)*wprojx(i,2)*wprojy(i2,1)*wprojz(i3,1)
+              ovlp_f2=ovlp_f2+psi_f(2,i-i0+jj)*wprojx(i,1)*wprojy(i2,2)*wprojz(i3,1)
+              ovlp_f3=ovlp_f3+psi_f(3,i-i0+jj)*wprojx(i,2)*wprojy(i2,2)*wprojz(i3,1)
+              ovlp_f4=ovlp_f4+psi_f(4,i-i0+jj)*wprojx(i,1)*wprojy(i2,1)*wprojz(i3,2)
+              ovlp_f5=ovlp_f5+psi_f(5,i-i0+jj)*wprojx(i,2)*wprojy(i2,1)*wprojz(i3,2)
+              ovlp_f6=ovlp_f6+psi_f(6,i-i0+jj)*wprojx(i,1)*wprojy(i2,2)*wprojz(i3,2)
+              ovlp_f7=ovlp_f7+psi_f(7,i-i0+jj)*wprojx(i,2)*wprojy(i2,2)*wprojz(i3,2)
+           enddo
+        enddo
+
+        ovlp=ovlp_c+ovlp_f1+ovlp_f2+ovlp_f3+ovlp_f4+ovlp_f5+ovlp_f6+ovlp_f7
+
+        overlap=overlap+ovlp
+
+     end do
+
+
+  end do
+
+  i_all=-product(shape(wprojx))*kind(wprojx)
+  deallocate(wprojx,stat=i_stat)
+  call memocc(i_stat,i_all,'wprojx',subname)
+  i_all=-product(shape(wprojy))*kind(wprojy)
+  deallocate(wprojy,stat=i_stat)
+  call memocc(i_stat,i_all,'wprojy',subname)
+  i_all=-product(shape(wprojz))*kind(wprojz)
+  deallocate(wprojz,stat=i_stat)
+  call memocc(i_stat,i_all,'wprojz',subname)
+  i_all=-product(shape(work))*kind(work)
+  deallocate(work,stat=i_stat)
+  call memocc(i_stat,i_all,'work',subname)
+
+end subroutine wavetogau

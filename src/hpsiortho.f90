@@ -287,6 +287,7 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
   integer :: ierr,ind,i1,i2,iorb,i,k,norbu,norbd,i_stat,i_all,oidx,sidx
   real(wp) :: cprecr
   real(dp) :: tt,scpr,scprpart
+  real(wp), dimension(:,:,:), allocatable :: mom_vec
   real(kind=4), dimension(:), allocatable :: psitcuda,hpsitcuda
 
   if (iproc==0) then
@@ -313,6 +314,7 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
 
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
   ! insert branching for CUDA section(experimental)
+  ! once the mixed precision version is ready such part can be eliminated
   if (GPUblas) then
      allocate(psitcuda(nspinor*nvctrp*norb+ndebug),stat=i_stat)
      call memocc(i_stat,psitcuda,'psitcuda',subname)
@@ -468,6 +470,28 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
           'done.'
   end if
 
+  if(nspinor==4) then
+     allocate(mom_vec(4,norbp*nproc,min(nproc,2)+ndebug),stat=i_stat)
+     call memocc(i_stat,mom_vec,'mom_vec',subname)
+
+     call calc_moments(iproc,nproc,norb,norbp,wfd%nvctr_c+7*wfd%nvctr_f,nspinor,psi,mom_vec)
+     !only the root process has the correct array
+     if(iproc==0) then
+        write(*,'(1x,a)')&
+             'Magnetic polarization per orbital'
+        write(*,'(1x,a)')&
+             '  iorb    m_x       m_y       m_z'
+        do iorb=1,norb
+           write(*,'(1x,i5,3f10.5)') &
+                iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
+        end do
+     end if
+
+     i_all=-product(shape(mom_vec))*kind(mom_vec)
+     deallocate(mom_vec,stat=i_stat)
+     call memocc(i_stat,i_all,'mom_vec',subname)
+  end if
+
 end subroutine hpsitopsi
 
 !calculate the address to start from for calculating the 
@@ -492,11 +516,14 @@ subroutine trans_address(nvctrp,nvctr,i,iorb,i1,i2)
 !!$  end if
 end subroutine trans_address
 
-subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
+subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd,nvctrp,&
      nspin,psi,hpsi,psit)
   use module_base
+  use module_types
+  use module_interfaces, except_this_one => first_orthon
   implicit none
-  integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctrp,nspin
   real(wp), dimension(:) , pointer :: psi,hpsi,psit
   !local variables
   character(len=*), parameter :: subname='first_orthon'
@@ -519,44 +546,47 @@ subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctr
      call memocc(i_stat,psit,'psit',subname)
 
 !     write(*,'(a,i3,30f10.5)') 'SWI',iproc,(sum(psi(1:nvctrp,iorb)),iorb=1,norbp*nspinor)
-     !transpose the psi wavefunction
-     !here hpsi is used as a work array
-     call timing(iproc,'Un-TransSwitch','ON')
-     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psi,hpsi,nspinor)
-     call timing(iproc,'Un-TransSwitch','OF')
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(hpsi,nvctrp*nspinor*norbp,mpidtypw,  &
-          psit,nvctrp*nspinor*norbp,mpidtypw,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
-     !end of transposition
+!!$     !transpose the psi wavefunction
+!!$     !here hpsi is used as a work array
+!!$     call timing(iproc,'Un-TransSwitch','ON')
+!!$     call switch_waves(iproc,nproc,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,psi,hpsi,nspinor)
+!!$     call timing(iproc,'Un-TransSwitch','OF')
+!!$     call timing(iproc,'Un-TransComm  ','ON')
+!!$     call MPI_ALLTOALL(hpsi,nvctrp*nspinor*norbp,mpidtypw,  &
+!!$          psit,nvctrp*nspinor*norbp,mpidtypw,MPI_COMM_WORLD,ierr)
+!!$     call timing(iproc,'Un-TransComm  ','OF')
+!!$     !end of transposition
   else
      psit => psi
   end if
 
-!!$  !to be substituted, must pass the wavefunction descriptors to the routine
-!!$  call transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,work=hpsi,outadd=psit(1))
+  !to be substituted, must pass the wavefunction descriptors to the routine
+  call transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,work=hpsi,outadd=psit(1))
 
   if(nspin==1.or.nspinor==4) then
-     call orthon_p(iproc,nproc,norb,nvctrp,nvctr_c+7*nvctr_f,psit,nspinor) 
+     call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor) 
   else
-     call orthon_p(iproc,nproc,norbu,nvctrp,nvctr_c+7*nvctr_f,psit,nspinor) 
+     call orthon_p(iproc,nproc,norbu,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor) 
      if(norbd>0) then
-        call orthon_p(iproc,nproc,norbd,nvctrp,nvctr_c+7*nvctr_f,psit(1+nvctrp*norbu),nspinor) 
+        call orthon_p(iproc,nproc,norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,&
+             psit(1+nvctrp*norbu),nspinor) 
      end if
   end if
   !call checkortho_p(iproc,nproc,norb,norbp,nvctrp,psit)
 
+  call untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psit,work=hpsi,outadd=psi(1))
+
   if (nproc > 1) then
-     !retranspose the psit wavefunction into psi
-     !here hpsi is used as a work array
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psit,nvctrp*nspinor*norbp,mpidtypw,  &
-          hpsi,nvctrp*nspinor*norbp,mpidtypw,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
-     call timing(iproc,'Un-TransSwitch','ON')
-     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi,nspinor)
-     call timing(iproc,'Un-TransSwitch','OF')
-     !end of retransposition
+!!$     !retranspose the psit wavefunction into psi
+!!$     !here hpsi is used as a work array
+!!$     call timing(iproc,'Un-TransComm  ','ON')
+!!$     call MPI_ALLTOALL(psit,nvctrp*nspinor*norbp,mpidtypw,  &
+!!$          hpsi,nvctrp*nspinor*norbp,mpidtypw,MPI_COMM_WORLD,ierr)
+!!$     call timing(iproc,'Un-TransComm  ','OF')
+!!$     call timing(iproc,'Un-TransSwitch','ON')
+!!$     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi,nspinor)
+!!$     call timing(iproc,'Un-TransSwitch','OF')
+!!$     !end of retransposition
   else
      nullify(psit)
      !allocate hpsi array
@@ -567,19 +597,23 @@ subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctr
 end subroutine first_orthon
 
 ! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
-subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
+subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd,nvctrp,&
      nspin,psi,hpsi,psit,occup,evsum,eval)
   use module_base
+  use module_types
+  use module_interfaces, except_this_one => last_orthon
   implicit none
-  integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
-  real(kind=8), dimension(norb), intent(in) :: occup
-  real(kind=8), intent(out) :: evsum
-  real(kind=8), dimension(norb), intent(out) :: eval
-  real(kind=8), dimension(:) , pointer :: psi,hpsi,psit
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctrp,nspin
+  real(gp), dimension(norb), intent(in) :: occup
+  real(wp), intent(out) :: evsum
+  real(wp), dimension(norb), intent(out) :: eval
+  real(wp), dimension(:) , pointer :: psi,hpsi,psit
   !local variables
   character(len=*), parameter :: subname='last_orthon'
-  integer :: i_all,i_stat,ierr,iorb,jorb,nspinor
-  real(kind=8) :: evpart
+  integer :: i_all,i_stat,ierr,iorb,jorb,nspinor,md
+  real(wp) :: evpart
+  real(wp), dimension(:,:,:), allocatable :: mom_vec
 
   if(nspin==4) then
      nspinor=4
@@ -587,25 +621,31 @@ subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp
      nspinor=1
   end if
 
-  if (nproc > 1) then
-     !transpose the hpsi wavefunction
-     !here psi is used as a work array
-     call timing(iproc,'Un-TransSwitch','ON')
-     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi,nspinor)
-     call timing(iproc,'Un-TransSwitch','OF')
-     !here hpsi is the transposed array
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
-     !end of transposition
-  else
+  call transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,hpsi,work=psi)
+  if (nproc==1) then
      psit => psi
-     if(nspinor==4) then
-        call psitransspi(nvctrp,norb,psit,.true.)
-        call psitransspi(nvctrp,norb,hpsi,.true.)
-     end if
+     call transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psit)
   end if
+
+!!$  if (nproc > 1) then
+!!$     !transpose the hpsi wavefunction
+!!$     !here psi is used as a work array
+!!$     call timing(iproc,'Un-TransSwitch','ON')
+!!$     call switch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi,nspinor)
+!!$     call timing(iproc,'Un-TransSwitch','OF')
+!!$     !here hpsi is the transposed array
+!!$     call timing(iproc,'Un-TransComm  ','ON')
+!!$     call MPI_ALLTOALL(psi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
+!!$          hpsi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+!!$     call timing(iproc,'Un-TransComm  ','OF')
+!!$     !end of transposition
+!!$  else
+!!$     psit => psi
+!!$     if(nspinor==4) then
+!!$        call psitransspi(nvctrp,norb,psit,.true.)
+!!$        call psitransspi(nvctrp,norb,hpsi,.true.)
+!!$     end if
+!!$  end if
 
   if(nspin==1.or.nspinor==4) then
      call KStrans_p(iproc,nproc,norb,nvctrp,occup,hpsi,psit,evsum,eval,nspinor)
@@ -619,26 +659,39 @@ subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp
      end if
   end if
 
+  call untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psit,work=hpsi,outadd=psi(1))
+
   if (nproc > 1) then
-     !retranspose the psit wavefunction into psi
-     !here hpsi is used as a work array
-     call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALL(psit,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
-          hpsi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'Un-TransComm  ','OF')
-     call timing(iproc,'Un-TransSwitch','ON')
-     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi,nspinor)
-     call timing(iproc,'Un-TransSwitch','OF')
-     !end of retransposition
+!!$     !retranspose the psit wavefunction into psi
+!!$     !here hpsi is used as a work array
+!!$     call timing(iproc,'Un-TransComm  ','ON')
+!!$     call MPI_ALLTOALL(psit,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,  &
+!!$          hpsi,nvctrp*norbp*nspinor,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+!!$     call timing(iproc,'Un-TransComm  ','OF')
+!!$     call timing(iproc,'Un-TransSwitch','ON')
+!!$     call unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,hpsi,psi,nspinor)
+!!$     call timing(iproc,'Un-TransSwitch','OF')
+!!$     !end of retransposition
 
      i_all=-product(shape(psit))*kind(psit)
      deallocate(psit,stat=i_stat)
      call memocc(i_stat,i_all,'psit',subname)
   else
-     if(nspinor==4) then
-        call psitransspi(nvctrp,norb,psit,.false.)
-     end if
+!!$     if(nspinor==4) then
+!!$        call psitransspi(nvctrp,norb,psit,.false.)
+!!$     end if
      nullify(psit)
+  end if
+
+  !for a non-collinear treatment,
+  !here we can add the calculation of the moments for printing their value
+  !close to the corresponding eigenvector
+  ! this section can be inserted inside last_orthon
+  if(nspinor==4) then
+     allocate(mom_vec(4,norbp*nproc,min(nproc,2)+ndebug),stat=i_stat)
+     call memocc(i_stat,mom_vec,'mom_vec',subname)
+
+     call calc_moments(iproc,nproc,norb,norbp,wfd%nvctr_c+7*wfd%nvctr_f,nspinor,psi,mom_vec)
   end if
 
   !print the found eigenvalues
@@ -646,16 +699,18 @@ subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp
      write(*,'(1x,a)')&
           '-------------------------------------------------------------- Kohn-Sham Eigenvalues'
      if (nspin==1.or.nspinor==4) then
-        do iorb=1,norb!/2
-!!$           jorb=norb/2+iorb
-!!$           write(*,'(1x,a,i4,a,1x,1pe21.14,17x,a,i4,a,1x,1pe21.14)') &
-!!$                'eval(',iorb,')=',eval(iorb),'eval(',jorb,')=',eval(jorb)
-!!$        end do
-!!$        if (2*norb/2 /= norb) then
-!!$           write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',norb/2+1,')=',eval(norb/2+1)
-!!$        end if
-           write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
-        end do
+        if (nspinor ==4) then
+        write(*,'(1x,a)')&
+             '           Eigenvalue                                      m_x       m_y       m_z'
+           do iorb=1,norb
+              write(*,'(1x,a,i4,a,1x,1pe21.14,20x,(1x,3(0pf10.5)))') &
+                   'eval(',iorb,')=',eval(iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
+           end do
+        else
+           do iorb=1,norb
+              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
+           end do
+        end if
      else
         do iorb=1,min(norbu,norbd)
            jorb=norbu+iorb
@@ -674,6 +729,12 @@ subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp
      end if
   end if
 
+  if (nspinor ==4) then
+     i_all=-product(shape(mom_vec))*kind(mom_vec)
+     deallocate(mom_vec,stat=i_stat)
+     call memocc(i_stat,i_all,'mom_vec',subname)
+  end if
+
   i_all=-product(shape(hpsi))*kind(hpsi)
   deallocate(hpsi,stat=i_stat)
   call memocc(i_stat,i_all,'hpsi',subname)
@@ -681,26 +742,27 @@ subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp
 end subroutine last_orthon
 
 
-subroutine calc_moments(iproc,nproc,norb,norbp,nvctr,nspinor,psi)
+subroutine calc_moments(iproc,nproc,norb,norbp,nvctr,nspinor,psi,mom_vec)
   use module_base
   implicit none
   integer, intent(in) :: iproc,nproc,norb,norbp,nvctr,nspinor
-  real(kind=8), dimension(nvctr,norbp*nproc*nspinor), intent(in) :: psi
+  real(wp), dimension(nvctr,norbp*nproc*nspinor), intent(in) :: psi
+  real(wp), dimension(4,norbp*nproc,min(nproc,2)), intent(out) :: mom_vec
   !local variables
   character(len=*), parameter :: subname='calc_moments'
   integer :: i_all,i_stat,ierr,iorb
-  integer :: oidx,ispin,md,ndim
-  real(kind=8) :: m00,m11,m13,m24,m12,m34,m14,m23
-  real(kind=8), dimension(:,:,:), allocatable :: mom_vec
-  real(kind=8) :: ddot
+  integer :: ispin,md,ndim,oidx
+  real(wp) :: m00,m11,m13,m24,m12,m34,m14,m23
+  !real(wp), dimension(:,:,:), allocatable :: mom_vec
+  real(kind=8) :: ddot !interface to be defined
 
   ndim=2
   if (nproc==1) ndim=1
 
   if(nspinor==4) then
      
-     allocate(mom_vec(4,norbp*nproc,ndim+ndebug),stat=i_stat)
-     call memocc(i_stat,mom_vec,'mom_vec',subname)
+!!$     allocate(mom_vec(4,norbp*nproc,ndim+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,mom_vec,'mom_vec',subname)
      call razero(4*norbp*nproc*ndim,mom_vec)
      
      do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
@@ -713,37 +775,34 @@ subroutine calc_moments(iproc,nproc,norb,norbp,nvctr,nspinor,psi)
 !        m34=ddot(nvctr,psi(1,oidx+2),1,psi(1,oidx+3),1)
         m14=ddot(nvctr,psi(1,oidx),1,psi(1,oidx+3),1)
         m23=ddot(nvctr,psi(1,oidx+1),1,psi(1,oidx+2),1)
-        mom_vec(1,iorb-iproc*norbp,1)=(m00+m11) !rho
-        mom_vec(2,iorb-iproc*norbp,1)=2.0d0*(m13+m24)       !m_x
-!        mom_vec(3,iorb-iproc*norbp,1)=2.0d0*(m12-m34)       !m_y
-        mom_vec(3,iorb-iproc*norbp,1)=2.0d0*(m14-m23)       !m_y
-        mom_vec(4,iorb-iproc*norbp,1)=(m00-m11) !m_z
+
+        mom_vec(1,iorb-iproc*norbp,ndim)=(m00+m11) !rho
+        mom_vec(2,iorb-iproc*norbp,ndim)=2.0d0*(m13+m24)       !m_x
+!        mom_vec(3,iorb-iproc*norbp,ndim)=2.0d0*(m12-m34)       !m_y
+        mom_vec(3,iorb-iproc*norbp,ndim)=2.0d0*(m14-m23)       !m_y
+        mom_vec(4,iorb-iproc*norbp,ndim)=(m00-m11) !m_z
      end do
      
      if(nproc>1) then
-           call MPI_GATHER(mom_vec(1,1,1),4*norbp,MPI_DOUBLE_PRECISION,mom_vec(1,1,2),4*norbp, &
+           call MPI_GATHER(mom_vec(1,1,2),4*norbp,MPI_DOUBLE_PRECISION,mom_vec(1,1,1),4*norbp, &
                 MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-        oidx=2
      else
-        oidx=1
      end if
      
-     if(iproc==0) then
-        write(*,'(1x,a)')&
-             'Magnetic polarization per orbital'
-        write(*,'(1x,a)')&
-             '  iorb    m_x       m_y       m_z'
-        do iorb=1,norb
-           write(*,'(1x,i5,3f10.5)') &
-                iorb,(mom_vec(md,iorb,oidx)/mom_vec(1,iorb,oidx),md=2,4)
-        end do
-     end if
+!!$     if(iproc==0) then
+!!$        write(*,'(1x,a)')&
+!!$             'Magnetic polarization per orbital'
+!!$        write(*,'(1x,a)')&
+!!$             '  iorb    m_x       m_y       m_z'
+!!$        do iorb=1,norb
+!!$           write(*,'(1x,i5,3f10.5)') &
+!!$                iorb,(mom_vec(md,iorb,oidx)/mom_vec(1,iorb,oidx),md=2,4)
+!!$        end do
+!!$     end if
      
-     i_all=-product(shape(mom_vec))*kind(mom_vec)
-     deallocate(mom_vec,stat=i_stat)
-     call memocc(i_stat,i_all,'mom_vec',subname)
-     
-
+!!$     i_all=-product(shape(mom_vec))*kind(mom_vec)
+!!$     deallocate(mom_vec,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'mom_vec',subname)
      
   end if
 

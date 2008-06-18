@@ -280,11 +280,14 @@ interface
      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: psi
    end subroutine reformatmywaves
 
-   subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
+   subroutine first_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd,nvctrp,&
         nspin,psi,hpsi,psit)
+     use module_base
+     use module_types
      implicit none
-     integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
-     real(kind=8), dimension(:) , pointer :: psi,hpsi,psit
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctrp,nspin
+     real(wp), dimension(:) , pointer :: psi,hpsi,psit
    end subroutine first_orthon
 
    subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,  & 
@@ -365,14 +368,17 @@ interface
      real(wp), dimension(:), pointer, optional :: psivirt
    end subroutine DiagHam
 
-   subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,&
+   subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd,nvctrp,&
         nspin,psi,hpsi,psit,occup,evsum,eval)
+     use module_base
+     use module_types
      implicit none
-     integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctr_c,nvctr_f,nvctrp,nspin
-     real(kind=8), dimension(norb), intent(in) :: occup
-     real(kind=8), intent(out) :: evsum
-     real(kind=8), dimension(norb), intent(out) :: eval
-     real(kind=8), dimension(:) , pointer :: psi,hpsi,psit
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctrp,nspin
+     real(gp), dimension(norb), intent(in) :: occup
+     real(wp), intent(out) :: evsum
+     real(wp), dimension(norb), intent(out) :: eval
+     real(wp), dimension(:) , pointer :: psi,hpsi,psit
    end subroutine last_orthon
 
    subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&

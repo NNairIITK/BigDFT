@@ -131,10 +131,10 @@ subroutine comb_rot_grow_loc_1(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib,ib2)
 
   !    call system_clock(ncount0,ncount_rate,ncount_max)
 
-  !   y=0.d0
+  !   y=0._wp
   do l1=-14+2*nfl1,2*nfu1+16
      do l3=nfl3,nfu3
-        y(:,:,ib2(1,l3,l1):ib2(2,l3,l1),l3,l1)=0.d0
+        y(:,:,ib2(1,l3,l1):ib2(2,l3,l1),l3,l1)=0._wp
      enddo
   enddo
 
@@ -153,15 +153,15 @@ subroutine comb_rot_grow_loc_1(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib,ib2)
                 fil2(16,1)*x(6,ib(2,l2,l3),l2,l3)+fil2(16,2)*x(7,ib(2,l2,l3),l2,l3)
 
            do i=ib(1,l2,l3)-7,ib(2,l2,l3)+7 
-              y2i__11=0.d0
-              y2i__21=0.d0
-              y2i__12=0.d0
-              y2i__22=0.d0
+              y2i__11=0._wp
+              y2i__21=0._wp
+              y2i__12=0._wp
+              y2i__22=0._wp
 
-              y2i1_11=0.d0
-              y2i1_21=0.d0
-              y2i1_12=0.d0
-              y2i1_22=0.d0
+              y2i1_11=0._wp
+              y2i1_21=0._wp
+              y2i1_12=0._wp
+              y2i1_22=0._wp
               do t=max(i-8,ib(1,l2,l3)),min(i+7,ib(2,l2,l3))
                  y2i__11=y2i__11                               +fil2(2*(i-t)  ,2)*x(1,t,l2,l3)
                  y2i__21=y2i__21+fil2(2*(i-t)  ,1)*x(2,t,l2,l3)+fil2(2*(i-t)  ,2)*x(3,t,l2,l3)
@@ -226,10 +226,10 @@ subroutine comb_rot_grow_loc_2(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib,ib2)
 
   !    call system_clock(ncount0,ncount_rate,ncount_max)
 
-  !     y=0.d0
+  !     y=0._wp
   do l2=-14+2*nfl2,2*nfu2+16
      do l1=-14+2*nfl1,2*nfu1+16
-        y(:,ib2(1,l1,l2):ib2(2,l1,l2),l1,l2)=0.d0
+        y(:,ib2(1,l1,l2):ib2(2,l1,l2),l1,l2)=0._wp
      enddo
   enddo
 
@@ -243,10 +243,10 @@ subroutine comb_rot_grow_loc_2(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib,ib2)
                 fil2(16,1)*x(1,2,ib(2,l3,l1),l3,l1)+fil2(16,2)*x(2,2,ib(2,l3,l1),l3,l1)
 
            do i=ib(1,l3,l1)-7,ib(2,l3,l1)+7 
-              y2i__1=0.d0
-              y2i__2=0.d0
-              y2i1_1=0.d0
-              y2i1_2=0.d0
+              y2i__1=0._wp
+              y2i__2=0._wp
+              y2i1_1=0._wp
+              y2i1_2=0._wp
               do t=max(i-8,ib(1,l3,l1)),min(i+7,ib(2,l3,l1))
                  y2i__1=y2i__1+fil2(2*(i-t)  ,1)*x(1,1,t,l3,l1)+fil2(2*(i-t)  ,2)*x(2,1,t,l3,l1)
                  y2i__2=y2i__2+fil2(2*(i-t)  ,1)*x(1,2,t,l3,l1)+fil2(2*(i-t)  ,2)*x(2,2,t,l3,l1)
