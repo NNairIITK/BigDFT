@@ -209,7 +209,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
   character(len=*), parameter :: subname= 'createAtomicOrbitals'
   integer, parameter :: nterm_max=3
   logical :: myorbital,polarised
-  integer :: iatsc,i_all,i_stat,ispin,ipolres,ipolorb
+  integer :: iatsc,i_all,i_stat,ispin,ipolres,ipolorb,ichg
   integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,nterm
   real(wp) :: scprw
   real(dp) :: scpr
@@ -258,12 +258,12 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
      !calculate the atomic input orbitals
      ictot=0
      nctot=nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity)
-     if (iorbsc(1)+nctot.gt.norbe .and. iorbv(1)+nctot .gt.norbe) then
+     if (iorbsc(1)+nctot > norbe .and. iorbv(1)+nctot > norbe) then
         print *,'transgpw occupe',nl(:,ity),norbe
         stop
      end if
      polarised=.false.
-     ipolres=nspinat(iat)
+     call charge_and_spol(nspinat(iat),ichg,ipolres)
      do l=1,4
         do inl=1,nl(l,ity)
            ictot=ictot+1
@@ -287,7 +287,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
               if (ipolres < 0) then
                  if(iproc==0) write(*,'(1x,4(a,i0))')&
                       'Too high polarisation for atom number= ',iat,&
-                      ' Inserted=',nspinat(iat),' Assigned=',ipolorb,&
+                      ' Inserted=',modulo(nspinat(iat),1000)-100,' Assigned=',ipolorb,&
                       ' the maximum is=',nint(occupat(ictot,ity))
                  stop
               end if
@@ -339,7 +339,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
                          nseg_c,nvctr_c,keyg(1,1),keyv(1),nseg_f,nvctr_f,&
                          keyg(1,nseg_c+1),keyv(nseg_c+1),&
                          psi(1,jorb),psi(nvctr_c+1,jorb))
-                    !renormalise wavefunction in case of too crude translation
+                    !renormalise wavefunction in case of too crude box
                     call wnrm(nvctr_c,nvctr_f,psi(1,jorb),psi(nvctr_c+1,jorb),scpr) 
                     !in the periodic case the function is not always normalised
                     !write(*,'(1x,a24,a7,2(a3,i1),a16,i4,i4,1x,1pe14.7)')&
@@ -668,9 +668,9 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
      iocc=0
      do i=1,6
         ott(i)=real(neleconf(i,l+1),gp)
-        if (ott(i).gt.0.0_gp) then
+        if (ott(i) > 0.0_gp) then
            iocc=iocc+1
-            if (iocc.gt.noccmax) stop 'iguess_generator: noccmax too small'
+            if (iocc > noccmax) stop 'iguess_generator: noccmax too small'
            occup(iocc,l+1)=ott(i)
         endif
      end do
