@@ -21,7 +21,7 @@
 !!
 !! SOURCE
 !!
-subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode)
+subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
   implicit none
 ! Arguments
   integer, intent(in) :: nzatom,nvalelec
@@ -29,9 +29,9 @@ subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode)
   real(kind=8), intent(out) :: rcov,rprb,ehomo
   integer, parameter :: nmax=6,lmax=3
   integer, intent(out) :: neleconf(nmax,0:lmax)
-  integer, intent(out) :: nsccode
+  integer, intent(out) :: nsccode,mxpl,mxchg
 ! Local variables
-  integer :: n,l,nsum,ipow,lsc,mxpl,mxchg,inorbsc,i
+  integer :: n,l,nsum,ipow,lsc,inorbsc,i,ichg
   real(kind=8) :: sccode
 
   neleconf(:,:)=0
@@ -1448,8 +1448,8 @@ end select
 
 ! Test than nvalelec is coherent with neleconf
   nsum = 0
-  do n=1,nmax
-     do l=0,lmax
+  do l=0,lmax
+     do n=1,nmax
         nsum = nsum + neleconf(n,l)
      end do
   end do
@@ -1457,27 +1457,42 @@ end select
      write(*,*) 'BUG: The electronic configuration is not correct'
      stop
   end if
+  mxchg=nsum
 
   !correct the value of the nsccode following the new conventions
-  sccode=real(nsccode,kind=8)
-  !nsccode=0
-  inorbsc=ceiling(dlog(sccode)/dlog(10.d0))
-  if (sccode==1.d0) inorbsc=1
-  ipow=inorbsc-1
-  do i=1,inorbsc
-     lsc=floor(sccode/10.d0**ipow)
-     sccode=sccode-real(lsc,kind=8)*10.d0**ipow
-     ipow=ipow-1
-     !nsccode=nsccode+4**(lsc-1)
-  end do
+  if (nsccode /= 0) then
+     sccode=real(nsccode,kind=8)
+     nsccode=0
+     inorbsc=ceiling(dlog(sccode)/dlog(10.d0))
+     if (sccode==1.d0) inorbsc=1
+     ipow=inorbsc-1
+     do i=1,inorbsc
+        lsc=floor(sccode/10.d0**ipow)
+        sccode=sccode-real(lsc,kind=8)*10.d0**ipow
+        ipow=ipow-1
+        nsccode=nsccode+4**(lsc-1)
+     end do
+  end if
+
+  !correct the electronic configuration for a given atomic charge
+  ichg=0 !temporary
+  if (ichg < mxchg .and. ichg /= 0) then
+     nchgres=ichg
+     !place the charge on the atom starting from the non closed shells
+     do i=nmax,1,-1
+        do l=0,lmax
+           if (neleconf(i,l) /= 2*(2*l+1)) then
+           end if
+        end do
+     end do
+     
+  end if
 
 
   !calculate the maximum spin polarisation and the maximum charge to be placed on the atom
   mxpl=0
-  mxchg=0
-  do l=0,3
-     do i=1,6
-        mxchg=mxchg+neleconf(i,l)
+  do l=0,lmax
+     do i=1,nmax
         if (neleconf(i,l) /= 0 .and. neleconf(i,l) /= 2*(2*l+1)) then
            mxpl=mxpl+neleconf(i,l)
         end if

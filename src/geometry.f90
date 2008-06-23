@@ -720,7 +720,7 @@ subroutine wtposout(igeostep,energy,rxyz,atoms)
         suffix=' '
      end if
 
-     call charge_and_spol(atoms%nspinat(iat),ichg,ispol)
+     call charge_and_spol(atoms%natpol(iat),ichg,ispol)
 
      !takes into account the blocked atoms and the input polarisation
      if (atoms%lfrztyp(iat) .and. ispol == 0 .and. ichg == 0 ) then

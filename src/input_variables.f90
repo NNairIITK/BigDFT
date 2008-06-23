@@ -214,8 +214,8 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   call memocc(i_stat,at%iatype,'at%iatype',subname)
   allocate(at%lfrztyp(at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,at%lfrztyp,'at%lfrztyp',subname)
-  allocate(at%nspinat(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,at%nspinat,'at%nspinat',subname)
+  allocate(at%natpol(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,at%natpol,'at%natpol',subname)
 
   !controls if the positions are provided with machine precision
   if (units == 'angstroemd0' .or. units== 'atomicd0' .or. units== 'bohrd0') then
@@ -229,8 +229,8 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   at%lfrztyp(:)=.false.
   !also the spin polarisation and the charge are is fixed to zero by default
   !this corresponds to the value of 100
-  !RULE nspinat=charge*1000 + 100 + spinpol
-  at%nspinat(:)=100
+  !RULE natpol=charge*1000 + 100 + spinpol
+  at%natpol(:)=100
 
   !read from positions of .xyz format, but accepts also the old .ascii format
   read(ifile,'(a100)')line
@@ -304,7 +304,7 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
 !!$           read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,natpol,suffix
 !!$        end if
 !!$        if (ierrsfx ==0) then
-!!$           at%nspinat(iat)=natpol
+!!$           at%natpol(iat)=natpol
 !!$           !tatonam=trim(symbol)//'_'//trim(suffix)
 !!$           if (suffix == 'f') then
 !!$              !the atom is considered as blocked
@@ -328,7 +328,7 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
 !!$                 !the atom is considered as blocked
 !!$                 at%lfrztyp(iat)=.true.
 !!$              else
-!!$                 read(suffix,*,iostat=i_stat)at%nspinat(iat)
+!!$                 read(suffix,*,iostat=i_stat)at%natpol(iat)
 !!$                 if(i_stat /=0) then
 !!$                    if (iproc == 0) then
 !!$                       print *,suffix
@@ -486,7 +486,7 @@ subroutine parse_extra_info(iproc,iat,extra,at)
   end if
 
   !now assign the array, following the rule
-  at%nspinat(iat)=1000*nchrg+100+nspol
+  at%natpol(iat)=1000*nchrg+100+nspol
   
   if (trim(suffix) == 'f') then
      !the atom is considered as blocked
@@ -640,7 +640,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
 end subroutine input_occup
 
 !calculate the charge and the spin polarisation to be placed on a given atom
-!RULE: nspinat = c*1000 + 100 + s: charged and polarised atom (charge c, polarisation s)
+!RULE: natpol = c*1000 + 100 + s: charged and polarised atom (charge c, polarisation s)
 subroutine charge_and_spol(natpol,nchrg,nspol)
   implicit none
   integer, intent(in) :: natpol
@@ -757,7 +757,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      end if
      !see whether the atom is semicore or not
      call eleconf(at%nzatom(ityp),at%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
-          neleconf,at%iasctype(ityp))
+          neleconf,at%iasctype(ityp),mxpl,mxchg)
      !if you want no semicore input guess electrons, uncomment the following line
      !at%iasctype(ityp)=0
 
@@ -768,22 +768,19 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
 
      do iat=1,at%nat
         if (at%iatype(iat) == ityp) then
-           !modify the electronic shells according to the charge placed on the atom
-           mxpl=0
-           mxchg=0
-           do l=0,3
-              do i=1,6
-                 if (neleconf(i,l) /= 0 .and. neleconf(i,l) /= 2*(2*l+1)) then
-                    mxpl=mxpl+neleconf(i,l)
-                 end if
-              end do
-           end do
-           call charge_and_spol(at%nspinat(iat),ichg,ispol)
+           call charge_and_spol(at%natpol(iat),ichg,ispol)
            if (abs(ispol) > mxpl) then
               if (iproc ==0) write(*,'(1x,a,i0,a,a,2(a,i0))')&
                    'ERROR: Input polarisation of atom No.',iat,&
                    ' (',trim(at%atomnames(ityp)),') must be <=',mxpl,&
                    ', while found ',ispol
+              stop
+           end if
+           if (abs(ichg) > mxchg) then
+              if (iproc ==0) write(*,'(1x,a,i0,a,a,2(a,i0))')&
+                   'ERROR: Input charge of atom No.',iat,&
+                   ' (',trim(at%atomnames(ityp)),') must be <=',mxchg,&
+                   ', while found ',ichg
               stop
            end if
         end if
@@ -950,7 +947,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      !test if the spin is compatible with the input guess polarisations
      ispinsum=0
      do iat=1,at%nat
-        call charge_and_spol(at%nspinat(iat),ichg,ispol)
+        call charge_and_spol(at%natpol(iat),ichg,ispol)
         ispinsum=ispinsum+ispol
      end do
 
@@ -968,7 +965,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      !now warn if there is no input guess spin polarisation
      ispinsum=0
      do iat=1,at%nat
-        call charge_and_spol(at%nspinat(iat),ichg,ispol)
+        call charge_and_spol(at%natpol(iat),ichg,ispol)
         ispinsum=ispinsum+abs(ispol)
      end do
      if (ispinsum == 0 .and. in%nspin==2) then

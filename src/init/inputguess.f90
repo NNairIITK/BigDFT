@@ -9,7 +9,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   integer, dimension(nat), intent(in) :: iatype
   real(gp), dimension(0:4,0:6,ntypes), intent(in) :: psppar
   integer, intent(out) :: norbe,norbsc
-  logical, dimension(4,natsc), intent(out) :: scorb
+  logical, dimension(4,2,natsc), intent(out) :: scorb
   integer, dimension(ntypes), intent(out) :: ng
   integer, dimension(4,ntypes), intent(out) :: nl
   integer, dimension(natsc+1,nspin), intent(out) :: norbsc_arr
@@ -19,7 +19,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   !local variables
   character(len = 20) :: pspatomname
   logical :: exists,found
-  integer :: ity,i,j,l,ifile,ng_fake,ierror,iatsc,iat,ipow,lsc,inorbsc,iorbsc_count
+  integer :: ity,i,j,l,ifile,ng_fake,ierror,iatsc,iat,ipow,lsc,inorbsc,iorbsc_count,niasc,nlsc
   real(kind=8) :: sccode
 
   ! Read the data file.
@@ -140,28 +140,45 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   norbe=0
   norbsc=0
   iatsc=0
+  scorb(:,:,:)=.false.
   do iat=1,nat
      ity=iatype(iat)
      norbe=norbe+nl(1,ity)+3*nl(2,ity)+5*nl(3,ity)+7*nl(4,ity)
      if (iasctype(ity)/=0) then !the atom has some semicore orbitals
+        !here we should assign the new way of determining semicore orbitals 
         iatsc=iatsc+1
-        sccode=real(iasctype(ity),kind=8)
-        inorbsc=ceiling(dlog(sccode)/dlog(10.d0))
-        if (sccode==1.d0) inorbsc=1
-        ipow=inorbsc-1
-        scorb(:,iatsc)=.false.
+        niasc=iasctype(ity)
         !count the semicore orbitals for this atom
         iorbsc_count=0
-        do i=1,inorbsc
-           lsc=floor(sccode/10.d0**ipow)
-           iorbsc_count=iorbsc_count+(2*lsc-1)
-           scorb(lsc,iatsc)=.true.
-           sccode=sccode-real(lsc,kind=8)*10.d0**ipow
-           ipow=ipow-1
-           !print *,iasctype(ity),inorbsc,lsc
+        do lsc=4,1,-1
+           nlsc=niasc/4**(lsc-1)
+           iorbsc_count=iorbsc_count+nlsc*(2*lsc-1)
+           do i=1,nlsc
+              scorb(lsc,i,iatsc)=.true.
+           end do
+           niasc=niasc-nlsc*4**(lsc-1)
         end do
+!!$        !here we should assign the new way of determining semicore orbitals 
+!!$        iatsc=iatsc+1
+!!$        sccode=real(iasctype(ity),kind=8)
+!!$        inorbsc=ceiling(dlog(sccode)/dlog(10.d0))
+!!$        if (sccode==1.d0) inorbsc=1
+!!$        ipow=inorbsc-1
+!!$        scorb(:,:,iatsc)=.false.
+!!$        !count the semicore orbitals for this atom
+!!$        iorbsc_count=0
+!!$        do i=1,inorbsc
+!!$           lsc=floor(sccode/10.d0**ipow)
+!!$           iorbsc_count=iorbsc_count+(2*lsc-1)
+!!$           scorb(lsc,1,iatsc)=.true.
+!!$           sccode=sccode-real(lsc,kind=8)*10.d0**ipow
+!!$           ipow=ipow-1
+!!$           !print *,iasctype(ity),inorbsc,lsc
+!!$        end do
+
         norbsc_arr(iatsc,1)=iorbsc_count
         norbsc=norbsc+iorbsc_count
+        !if (iproc == 0) print *,iasctype(ity),iorbsc_count,norbsc,scorb(:,:,iatsc)
      end if
   end do
 
@@ -181,7 +198,7 @@ END SUBROUTINE readAtomicOrbitals
 subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
      & nat,rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
      & nvctr_c,nvctr_f,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nseg_c,nseg_f,&
-     & keyg,keyv,iatype,ntypes,iasctype,natsc,nspinat,nspin,psi,eks,scorb)
+     & keyg,keyv,iatype,ntypes,iasctype,natsc,natpol,nspin,psi,eks,scorb)
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
@@ -191,9 +208,9 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
   integer, intent(in) :: norbsc,natsc,nspin
   real(gp), intent(in) :: hx,hy,hz
   character(len=20), dimension(ntypes), intent(in) :: atomnames
-  logical, dimension(4,natsc), intent(in) :: scorb
+  logical, dimension(4,2,natsc), intent(in) :: scorb
   integer, dimension(ntypes), intent(in) :: iasctype
-  integer, dimension(nat), intent(in) :: iatype,nspinat
+  integer, dimension(nat), intent(in) :: iatype,natpol
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   real(gp), dimension(3,nat), intent(in) :: rxyz
@@ -207,14 +224,14 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
   real(wp), dimension(nvctr_c+7*nvctr_f,norbep), intent(out) :: psi
   !local variables
   character(len=*), parameter :: subname= 'createAtomicOrbitals'
-  integer, parameter :: nterm_max=3
+  integer, parameter :: nterm_max=3,noccmax=2,nlmax=4
   logical :: myorbital,polarised
   integer :: iatsc,i_all,i_stat,ispin,ipolres,ipolorb,ichg
   integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,nterm
   real(wp) :: scprw
   real(dp) :: scpr
   real(gp) :: rx,ry,rz,ek,occshell
-  logical, dimension(4) :: semicore
+  logical, dimension(nlmax,noccmax) :: semicore
   integer, dimension(2) :: iorbsc,iorbv
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
@@ -249,10 +266,11 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
 
      !here we can evaluate whether the atom has semicore orbitals and with
      !which value(s) of l
-     semicore(:)=.false.
      if (iasctype(ity)/=0) then !the atom has some semicore orbitals
         iatsc=iatsc+1
-        semicore(:)=scorb(:,iatsc)
+        semicore(:,:)=scorb(:,:,iatsc)
+     else
+        semicore(:,:)=.false.
      end if
 
      !calculate the atomic input orbitals
@@ -263,7 +281,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
         stop
      end if
      polarised=.false.
-     call charge_and_spol(nspinat(iat),ichg,ipolres)
+     call charge_and_spol(natpol(iat),ichg,ipolres)
      do l=1,4
         do inl=1,nl(l,ity)
            ictot=ictot+1
@@ -287,7 +305,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
               if (ipolres < 0) then
                  if(iproc==0) write(*,'(1x,4(a,i0))')&
                       'Too high polarisation for atom number= ',iat,&
-                      ' Inserted=',modulo(nspinat(iat),1000)-100,' Assigned=',ipolorb,&
+                      ' Inserted=',modulo(natpol(iat),1000)-100,' Assigned=',ipolorb,&
                       ' the maximum is=',nint(occupat(ictot,ity))
                  stop
               end if
@@ -303,7 +321,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
            do ispin=1,nspin
               !the order of the orbitals (iorb,jorb) must put in the beginning
               !the semicore orbitals
-              if (semicore(l) .and. inl==1) then
+              if (semicore(l,inl)) then
                  !the orbital is semi-core
                  iorb=iorbsc(ispin)
                  !print *,'iproc, SEMICORE orbital, iat,l',iproc,iat,l
@@ -351,9 +369,9 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
                     !print *,'newnorm', scpr,occupe(iorb),occshell,ictot
                  endif
               end do
-              if (semicore(l) .and. inl==1) then
-                 !increase semicore orbitals
-                 iorbsc(ispin)=iorb
+              if (semicore(l,inl)) then
+                    !increase semicore orbitals
+                    iorbsc(ispin)=iorb
               else
                  !increase valence orbitals
                  iorbv(ispin)=iorb
@@ -365,7 +383,9 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
      if (ictot /= nctot) stop 'createAtomic orbitals: error (nctot)'
 
   end do
-  if (iorbsc(1) /= norbsc) stop 'createAtomic orbitals: error (iorbsc)'
+  if (iorbsc(1) /= norbsc) then
+     stop 'createAtomic orbitals: error (iorbsc)'
+  end if
   if (iorbv(1) /= norbe) stop 'createAtomic orbitals: error (iorbv)'
   if (iatsc /= natsc) stop 'createAtomic orbitals: error (iatsc)'
 
@@ -581,7 +601,7 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   real(gp), dimension(:,:,:), allocatable :: psi
   real(gp), dimension(:,:,:,:), allocatable :: rmt
   logical :: exists
-  integer :: lpx,ncount,nsccode
+  integer :: lpx,ncount,nsccode,mxpl,mxchg
   integer :: l,i,j,iocc,il,lwrite,i_all,i_stat
   real(gp) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt,ehomo
 
@@ -661,7 +681,7 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   end if
 
   !Now the treatment of the occupation number
-  call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode)
+  call eleconf(izatom,ielpsp,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
 
   occup(:,:)=0.0_gp
    do l=0,lmax
@@ -1288,8 +1308,7 @@ subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
 
 END SUBROUTINE crtvh
 
-
-real(gp) function wave(ng,ll,xp,psi,r)
+ function wave(ng,ll,xp,psi,r)
   use module_base, only: gp
   implicit real(gp) (a-h,o-z)
   dimension psi(0:ng),xp(0:ng)
@@ -1304,7 +1323,7 @@ real(gp) function wave(ng,ll,xp,psi,r)
 end function wave
 
 
-real(gp) function emuxc(rho)
+function emuxc(rho)
   use module_base, only: gp
   implicit real(gp) (a-h,o-z)
   parameter (a0p=.4581652932831429_gp,&
@@ -1334,7 +1353,7 @@ end function emuxc
 
 
 ! restricted version of the Gamma function
-real(gp) function gamma(x)
+ function gamma(x)
   use module_base, only: gp
   implicit real(gp) (a-h,o-z)
 
@@ -1358,10 +1377,10 @@ end function gamma
 
 !  call psitospi(iproc,nproc,norbe,norbep,norbsc,nat,&
 !       wfd%nvctr_c,wfd%nvctr_f,at%iatype,at%ntypes,&
-!       at%iasctype,at%natsc,at%nspinat,nspin,spinsgne,psi)
+!       at%iasctype,at%natsc,at%natpol,nspin,spinsgne,psi)
 subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
      & nvctr_c,nvctr_f,iatype,ntypes, &
-     iasctype,natsc,nspinat,nspin,spinsgne,psi)
+     iasctype,natsc,natpol,nspin,spinsgne,psi)
   use module_base
   implicit none
   integer, intent(in) :: norbe,norbep,iproc,nproc,nat
@@ -1369,7 +1388,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
   integer, intent(in) :: ntypes
   integer, intent(in) :: norbsc,natsc,nspin
   integer, dimension(ntypes), intent(in) :: iasctype
-  integer, dimension(nat), intent(in) :: iatype,nspinat
+  integer, dimension(nat), intent(in) :: iatype,natpol
   integer, dimension(norbe*nspin), intent(in) :: spinsgne
   real(kind=8), dimension(nvctr_c+7*nvctr_f,norbep*nspin), intent(out) :: psi
   !local variables
@@ -1379,7 +1398,6 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
   integer :: iorb,jorb,iat,ity,i
   real(kind=8) :: facu,facd
   real(kind=8), dimension(:,:), allocatable :: psi_o
-  logical, dimension(4) :: semicore
   integer, dimension(2) :: iorbsc,iorbv
 
   !initialise the orbital counters
