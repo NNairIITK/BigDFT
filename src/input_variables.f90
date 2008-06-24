@@ -670,7 +670,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   character(len=27) :: filename
   character(len=50) :: format
   integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp,ispinsum,mxpl
-  integer :: ispol,mxchg,ichg,natpol,ichgsum
+  integer :: ispol,mxchg,ichg,natpol,ichgsum,nsccode
   real(kind=8) :: rcov,rprb,ehomo,radfine,tt,minrad
   real(kind=8), dimension(3,3) :: hij
   real(kind=8), dimension(2,2,3) :: offdiagarr
@@ -917,7 +917,12 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   do iat=1,at%nat
      ityp=at%iatype(iat)
      nelec=nelec+at%nelpsp(ityp)
-     if (at%iasctype(ityp) /= 0) at%natsc=at%natsc+1
+     nsccode=at%iasctype(ityp)
+     call charge_and_spol(at%natpol(iat),ichg,ispol)
+     if (ichg /=0) then
+        call correct_semicore(at%atomnames(ityp),6,3,ichg,neleconf,nsccode)
+     end if
+     if (nsccode/= 0) at%natsc=at%natsc+1
   enddo
   nelec=nelec-in%ncharge
   if (iproc.eq.0) then

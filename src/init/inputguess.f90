@@ -17,10 +17,14 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   real(gp), dimension(5,ntypes), intent(out) :: occupat
   real(gp), dimension(ngx,5,ntypes), intent(out) :: psiat
   !local variables
-  character(len = 20) :: pspatomname
+  integer, parameter :: nmax=6,lmax=3
+  character(len=2) :: symbol
+  character(len=20) :: pspatomname
   logical :: exists,found
   integer :: ity,i,j,l,ifile,ng_fake,ierror,iatsc,iat,ipow,lsc,inorbsc,iorbsc_count,niasc,nlsc
-  real(kind=8) :: sccode
+  integer :: ichg,nsccode,ispol,mxpl,mxchg
+  real(gp) :: rcov,rprb,ehomo
+  integer, dimension(nmax,0:lmax) :: neleconf
 
   ! Read the data file.
   nl(1:4,1:ntypes) = 0
@@ -144,9 +148,17 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   do iat=1,nat
      ity=iatype(iat)
      norbe=norbe+nl(1,ity)+3*nl(2,ity)+5*nl(3,ity)+7*nl(4,ity)
-     if (iasctype(ity)/=0) then !the atom has some semicore orbitals
+     nsccode=iasctype(ity)
+     call charge_and_spol(natpol(iat),ichg,ispol)
+     if (ichg /=0) then
+        call eleconf(nzatom(ity),nelpsp(ity),symbol,rcov,rprb,ehomo,&
+             neleconf,nsccode,mxpl,mxchg)
+        call correct_semicore(atomnames(ity),6,3,ichg,neleconf,nsccode)
+     end if
+
+     if (nsccode/=0) then !the atom has some semicore orbitals
         iatsc=iatsc+1
-        niasc=iasctype(ity)
+        niasc=nsccode
         !count the semicore orbitals for this atom
         iorbsc_count=0
         do lsc=4,1,-1
@@ -157,27 +169,10 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
            end do
            niasc=niasc-nlsc*4**(lsc-1)
         end do
-!!$        !here we should assign the new way of determining semicore orbitals 
-!!$        iatsc=iatsc+1
-!!$        sccode=real(iasctype(ity),kind=8)
-!!$        inorbsc=ceiling(dlog(sccode)/dlog(10.d0))
-!!$        if (sccode==1.d0) inorbsc=1
-!!$        ipow=inorbsc-1
-!!$        scorb(:,:,iatsc)=.false.
-!!$        !count the semicore orbitals for this atom
-!!$        iorbsc_count=0
-!!$        do i=1,inorbsc
-!!$           lsc=floor(sccode/10.d0**ipow)
-!!$           iorbsc_count=iorbsc_count+(2*lsc-1)
-!!$           scorb(lsc,1,iatsc)=.true.
-!!$           sccode=sccode-real(lsc,kind=8)*10.d0**ipow
-!!$           ipow=ipow-1
-!!$           !print *,iasctype(ity),inorbsc,lsc
-!!$        end do
 
         norbsc_arr(iatsc,1)=iorbsc_count
         norbsc=norbsc+iorbsc_count
-        !if (iproc == 0) print *,iasctype(ity),iorbsc_count,norbsc,scorb(:,:,iatsc)
+        !if (iproc == 0) print *,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
      end if
   end do
 
@@ -265,6 +260,10 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
 
      !here we can evaluate whether the atom has semicore orbitals and with
      !which value(s) of l
+
+     !HERE WE MUST CORRECT THE SEMICORE FOR THE CHARGED aTOMS
+     !then shift occupat by the charged value
+
      if (iasctype(ity)/=0) then !the atom has some semicore orbitals
         iatsc=iatsc+1
         semicore(:,:)=scorb(:,:,iatsc)
