@@ -690,7 +690,7 @@ subroutine wtposout(igeostep,energy,rxyz,atoms)
   character(len=3) :: fn
   character(len=10) :: name
   character(len=20) :: filename
-  integer :: iat,j
+  integer :: iat,j,ichg,ispol
   real(kind=8) :: xmax,ymax,zmax
 
   write(fn,'(i3.3)') igeostep
@@ -719,14 +719,22 @@ subroutine wtposout(igeostep,energy,rxyz,atoms)
         symbol=name(1:2)
         suffix=' '
      end if
+
+     call charge_and_spol(atoms%natpol(iat),ichg,ispol)
+
      !takes into account the blocked atoms and the input polarisation
-     if (atoms%lfrztyp(iat) .and. atoms%nspinat(iat) == 0) then
+     if (atoms%lfrztyp(iat) .and. ispol == 0 .and. ichg == 0 ) then
         write(9,'(a2,4x,3(1x,1pe21.14),2x,a4)')symbol,(rxyz(j,iat),j=1,3),'   f'
-     else if (atoms%lfrztyp(iat) .and. atoms%nspinat(iat) /= 0) then
+     else if (atoms%lfrztyp(iat) .and. ispol /= 0 .and. ichg == 0) then
         write(9,'(a2,4x,3(1x,1pe21.14),i7,2x,a4)')symbol,(rxyz(j,iat),j=1,3),&
-             atoms%nspinat(iat),'   f'
-     else if (atoms%nspinat(iat) /= 0) then
-        write(9,'(a2,4x,3(1x,1pe21.14),i7)')symbol,(rxyz(j,iat),j=1,3),atoms%nspinat(iat)
+             ispol,'   f'
+     else if (atoms%lfrztyp(iat) .and. ichg /= 0) then
+        write(9,'(a2,4x,3(1x,1pe21.14),2(i7),2x,a4)')symbol,(rxyz(j,iat),j=1,3),&
+             ispol,ichg,'   f'
+     else if (ispol /= 0 .and. ichg == 0) then
+        write(9,'(a2,4x,3(1x,1pe21.14),i7)')symbol,(rxyz(j,iat),j=1,3),ispol
+     else if (ichg /= 0) then
+        write(9,'(a2,4x,3(1x,1pe21.14),2(i7))')symbol,(rxyz(j,iat),j=1,3),ispol,ichg
      else
         write(9,'(a2,4x,3(1x,1pe21.14),2x,a4)')symbol,(rxyz(j,iat),j=1,3)
      end if

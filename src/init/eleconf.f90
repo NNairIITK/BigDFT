@@ -14,13 +14,14 @@
 !!   rcov      Covalent radius
 !!   rprb      Parabolic radius for the input guess using the subroutines "gatom"
 !!   neleconf  Occupation number (electronic configuration of the atom)
-!!   nsccode    Semicore orbitals, indicated as an integer. Each digit indicates the value(s) 
-!!             of the angular momentum of the semicore orbital, increased by one
-!!             e.g. if semicore are l=0 and l=2, nsccode=13
+!!   nsccode   Semicore orbitals, indicated as an integer.
+!!             The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
+!!             where n_l are the number of semicore orbitals for a given angular momentum
+!!             starting from the lower level of course
 !!
 !! SOURCE
 !!
-subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode)
+subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
   implicit none
 ! Arguments
   integer, intent(in) :: nzatom,nvalelec
@@ -28,14 +29,15 @@ subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode)
   real(kind=8), intent(out) :: rcov,rprb,ehomo
   integer, parameter :: nmax=6,lmax=3
   integer, intent(out) :: neleconf(nmax,0:lmax)
-  integer, intent(out) :: nsccode
+  integer, intent(out) :: nsccode,mxpl,mxchg
 ! Local variables
-  integer :: n,l,nsum
+  integer :: n,l,nsum,ipow,lsc,inorbsc,i
+  real(kind=8) :: sccode
 
   neleconf(:,:)=0
   nsccode=0
 
-!Eah atomic configuration
+!Each atomic configuration
 select case(nzatom*1000+nvalelec)
 
 case(1*1000+1)
@@ -1446,8 +1448,8 @@ end select
 
 ! Test than nvalelec is coherent with neleconf
   nsum = 0
-  do n=1,nmax
-     do l=0,lmax
+  do l=0,lmax
+     do n=1,nmax
         nsum = nsum + neleconf(n,l)
      end do
   end do
@@ -1455,6 +1457,97 @@ end select
      write(*,*) 'BUG: The electronic configuration is not correct'
      stop
   end if
+  mxchg=nsum
+
+  !correct the value of the nsccode following the new conventions
+  if (nsccode /= 0) then
+     sccode=real(nsccode,kind=8)
+     nsccode=0
+     inorbsc=ceiling(dlog(sccode)/dlog(10.d0))
+     if (sccode==1.d0) inorbsc=1
+     ipow=inorbsc-1
+     do i=1,inorbsc
+        lsc=floor(sccode/10.d0**ipow)
+        sccode=sccode-real(lsc,kind=8)*10.d0**ipow
+        ipow=ipow-1
+        nsccode=nsccode+4**(lsc-1)
+     end do
+  end if
+
+  !calculate the maximum spin polarisation and the maximum charge to be placed on the atom
+  mxpl=0
+  do l=0,lmax
+     do i=1,nmax
+        if (neleconf(i,l) /= 0 .and. neleconf(i,l) /= 2*(2*l+1)) then
+           mxpl=mxpl+neleconf(i,l)
+        end if
+     end do
+  end do
 
 end subroutine eleconf
 !!***
+
+subroutine correct_semicore(symbol,nmax,lmax,ichg,neleconf,nsccode)
+  implicit none
+  character(len=2), intent(in) :: symbol
+  integer, intent(in) :: nmax,lmax,ichg
+  integer, dimension(nmax,0:lmax), intent(inout) :: neleconf
+  integer, intent(inout) :: nsccode
+  !local variables
+  integer :: i,l,isccode,itmp,nchgres,ichgp
+  
+  !correct the electronic configuration for a given atomic charge
+
+  nchgres=ichg !residual charge
+  if (ichg >0) then
+     !place the charge on the atom starting from the non closed shells
+     do i=nmax,1,-1
+        do l=lmax,0,-1
+           if (neleconf(i,l) /= 2*(2*l+1)) then
+              ichgp=min(neleconf(i,l),nchgres)
+              nchgres=nchgres-ichgp
+              neleconf(i,l)=neleconf(i,l)-ichgp
+           end if
+        end do
+     end do
+     if (nchgres /= 0) then
+        !charge only unoccupied shells 
+        print *,'Atom ',symbol,': cannot charge occupied shells for the moment'
+        stop
+     end if
+  else if (ichg < 0) then
+     !place the charge on the atom starting from the non closed shells
+     do i=nmax,1,-1
+        do l=lmax,0,-1
+           if (neleconf(i,l) /= 0) then
+              ichgp=min(2*(2*l+1)-neleconf(i,l),-nchgres)
+              nchgres=nchgres-ichgp
+              neleconf(i,l)=neleconf(i,l)+ichgp
+           end if
+        end do
+     end do
+     if (nchgres /= 0) then
+        !charge only occupied shells 
+        print *,'Atom ',symbol,': cannot charge unoccupied shells for the moment'
+        stop
+     end if
+     
+  end if
+
+  isccode=nsccode
+  do l=lmax,0,-1
+     !control whether it is already semicore
+     itmp=isccode/(lmax**l)
+     isccode=isccode-itmp*lmax**l
+     do i=1,nmax
+        if (neleconf(i,l) == 2*(2*l+1)) then
+           if (itmp==1) then
+              itmp=0
+              cycle
+           else
+               nsccode=nsccode+4**l !the maximum occupied is noccmax=2
+           end if
+        end if
+     end do
+  end do
+end subroutine correct_semicore

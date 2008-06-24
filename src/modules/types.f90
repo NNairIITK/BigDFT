@@ -55,7 +55,7 @@ module module_types
      integer :: nat,ntypes,natsc
      character(len=20), dimension(:), pointer :: atomnames
      logical, dimension(:), pointer :: lfrztyp
-     integer, dimension(:), pointer :: iatype,iasctype,nspinat,nelpsp,npspcode,nzatom
+     integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom
      real(kind=8), dimension(:,:,:), pointer :: psppar
   end type atoms_data
 

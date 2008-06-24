@@ -22,6 +22,10 @@ convolution_source = combined_shrink_optim.f90 \
 	convolut_ib_optim.f90 \
 	conv_per_optim.f90 \
 	convolut_common.f90 \
+	growshrink.f90 \
+	conv_per_common.f90 \
+	convolut_common_per.f90 \
+	convolut_optim_per.f90 \
 	$(GPU_INTERFACE)
 
 else
@@ -31,6 +35,10 @@ convolution_source = combined_shrink_simple.f90 \
 	convolut_ib_simple.f90 \
 	conv_per_simple.f90 \
 	convolut_common.f90  \
+	growshrink.f90 \
+	conv_per_common.f90 \
+	convolut_common_per.f90 \
+	convolut_simple_per.f90 \
 	$(GPU_INTERFACE)
 endif
 
