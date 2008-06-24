@@ -468,7 +468,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
   integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbsc,n1i,n2i,n3i
   integer :: ispin,norbu,norbd,iorbst2,ist,n2hamovr,nsthamovr,nspinor
   real(gp) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,accurex
-  logical, dimension(:,:), allocatable :: scorb
+  logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
   integer, dimension(:,:), allocatable :: nl,norbsc_arr
   real(gp), dimension(:), allocatable :: occupe,spinsgne
@@ -514,7 +514,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call memocc(i_stat,ng,'ng',subname)
   allocate(nl(4,at%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,nl,'nl',subname)
-  allocate(scorb(4,at%natsc+ndebug),stat=i_stat)
+  allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
   call memocc(i_stat,scorb,'scorb',subname)
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -583,7 +583,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
        at%nat,rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
        wfd%nvctr_c,wfd%nvctr_f,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,at%iatype,at%ntypes,&
-       at%iasctype,at%natsc,at%nspinat,nspin,psi,eks,scorb)
+       at%iasctype,at%natsc,at%natpol,nspin,psi,eks,scorb)
   
 !!$  !!plot the initial LCAO wavefunctions
 !!$  !do i=2*iproc+1,2*iproc+2
@@ -684,7 +684,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
 !  if(nspin==4) then
 !     call psitospi(iproc,nproc,norbe,norbep,norbsc,nat,&
 !          wfd%nvctr_c,wfd%nvctr_f,at%iatype,at%ntypes,&
-!          at%iasctype,at%natsc,at%nspinat,nspin,spinsgne,psi)
+!          at%iasctype,at%natsc,at%natpol,nspin,spinsgne,psi)
 !  end if
 
   if (iproc.eq.0) then
@@ -1413,14 +1413,14 @@ end subroutine build_eigenvectors
 
 !  call psitospi(iproc,nproc,norbe,norbep,norbsc,nat,&
 !       wfd%nvctr_c,wfd%nvctr_f,at%iatype,at%ntypes,&
-!       at%iasctype,at%natsc,at%nspinat,nspin,spinsgne,otoa,psi)
+!       at%iasctype,at%natsc,at%natpol,nspin,spinsgne,otoa,psi)
 ! Reads magnetic moments from file ('moments') and transforms the
 ! atomic orbitals to spinors 
 ! warning: Does currently not work for mx<0
 !
 subroutine psitospi(iproc,nproc,norbe,norbep,norbsc,&
      & nvctr_c,nvctr_f,nat,iatype,ntypes, &
-     iasctype,natsc,nspinat,nspin,spinsgne,otoa,psi)
+     iasctype,natsc,natpol,nspin,spinsgne,otoa,psi)
   use module_base
   implicit none
   integer, intent(in) :: norbe,norbep,iproc,nproc,nat
@@ -1429,7 +1429,7 @@ subroutine psitospi(iproc,nproc,norbe,norbep,norbsc,&
   integer, intent(in) :: norbsc,natsc,nspin
   integer, dimension(ntypes), intent(in) :: iasctype
   integer, dimension(norbep), intent(in) :: otoa
-  integer, dimension(nat), intent(in) :: iatype,nspinat
+  integer, dimension(nat), intent(in) :: iatype,natpol
   integer, dimension(norbe*nspin), intent(in) :: spinsgne
   real(kind=8), dimension(nvctr_c+7*nvctr_f,4*norbep), intent(out) :: psi
   !local variables

@@ -381,8 +381,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      eval(:)=-0.5d0
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,norbu,norbd,norb,norbp,&
-          wfd%nvctr_c,wfd%nvctr_f,nvctrp,nspin,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd,nvctrp,nspin,psi,hpsi,psit)
 
   else if (in%inputPsiId == -1) then
 
@@ -403,11 +402,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           nscatterarr,ngatherarr,nspin,spinsgn)
   
   else if (in%inputPsiId == 1 ) then 
+     !these parts should be reworked for the non-collinear spin case
+
      !restart from previously calculated wavefunctions, in memory
 
      !allocate principal wavefunction
      !allocated in the transposed way such as 
      !it can also be used as a work array for transposition
+
      allocate(psi(nvctrp*norbp*nproc*nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
@@ -434,8 +436,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      gnrm_check=0.d0
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,norbu,norbd,norb,norbp,&
-          wfd%nvctr_c,wfd%nvctr_f,nvctrp,nspin,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd,nvctrp,nspin,psi,hpsi,psit)
 
   else if (in%inputPsiId == 2 ) then 
      !restart from previously calculated wavefunctions, on disk
@@ -457,8 +458,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      gnrm_check=0.d0
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,norbu,norbd,norb,norbp,&
-          wfd%nvctr_c,wfd%nvctr_f,nvctrp,nspin,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd,nvctrp,nspin,psi,hpsi,psit)
 
   else
 
@@ -628,10 +628,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         write(*,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
      endif
 
-     if(nspinor==4) then
-        call calc_moments(iproc,nproc,norb,norbp,wfd%nvctr_c+7*wfd%nvctr_f,nspinor,psi) 
-     end if
-
      if (in%inputPsiId == 0) then
         if ((gnrm > 4.d0 .and. norbu/=norbd) .or. (norbu==norbd .and. gnrm > 10.d0)) then
            if (iproc == 0) then
@@ -732,13 +728,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
 
   ! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
-  call last_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd%nvctr_c,wfd%nvctr_f,nvctrp,&
-       nspin,psi,hpsi,psit,occup,evsum,eval)
-
-  ! this section can be inserted inside last_orthon
-  if(nspinor==4) then
-     call calc_moments(iproc,nproc,norb,norbp,wfd%nvctr_c+7*wfd%nvctr_f,nspinor,psi) 
-  end if
+  call last_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd,nvctrp,nspin,psi,hpsi,psit,&
+       occup,evsum,eval)
 
   if (abs(evsum-energybs).gt.1.d-8 .and. iproc==0) write(*,'(1x,a,2(1x,1pe20.13))')&
        'Difference:evsum,energybs',evsum,energybs

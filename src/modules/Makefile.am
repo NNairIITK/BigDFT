@@ -4,6 +4,12 @@ else
 GPUBLAS_INTERFACE = cublas_fake.f90
 endif
 
+if USE_MPI
+mpi_include =
+else
+mpi_include = mpif.h
+endif
+
 modules_source = base.f90 \
 	types.f90 \
 	interfaces.f90 \
@@ -21,7 +27,7 @@ CLEANFILES = mpif.h MODULE_BASE.@MODULE_EXT@ module_base.@MODULE_EXT@ \
 #dependencies
 interfaces.o: base.o types.o
 types.o: base.o
-base.o: mpif.h
+base.o: $(mpi_include)
 
 mpif.h:
 	touch mpif.h &&\

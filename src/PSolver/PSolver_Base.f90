@@ -2331,3 +2331,483 @@ subroutine F_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
   
 end subroutine F_unfill_downcorn
 !!***
+
+!!****f* BigDFT/W_PoissonSolver
+!! NAME
+!!   W_PoissonSolver
+!!
+!! FUNCTION
+!!     (Based on suitable modifications of S.Goedecker routines)
+!!     Applies the local FFT space Kernel to the density in Real space.
+!!     Works for Wires-like boundary conditions
+!!
+!! SYNOPSIS
+!!     zf:          Density (input/output)
+!!                  ZF(i1,i3,i2)
+!!                  i1=1,md1 , i2=1,md2/nproc , i3=1,md3 
+!!     pot:         Kernel, only the distributed part (REAL)
+!!                  POT(i1,i2,i3)
+!!                  i1=1,nd1 , i2=1,nd2 , i3=1,nd3/nproc
+!!     nproc:       number of processors used as returned by MPI_COMM_SIZE
+!!     iproc:       [0:nproc-1] number of processor as returned by MPI_COMM_RANK
+!!     n1,n2,n3:    logical dimension of the transform. As transform lengths 
+!!                  most products of the prime factors 2,3,5 are allowed.
+!!                  The detailed table with allowed transform lengths can 
+!!                  be found in subroutine CTRIG
+!!     md1,md2,md3: Dimension of ZF
+!!     nd1,nd2,nd3: Dimension of POT
+!!     scal:        factor of renormalization of the FFT in order to acheve unitarity 
+!!                  and the correct dimension
+!!     hgrid:       grid spacing, used for integrating quantities
+!!
+!! RESTRICTIONS on USAGE
+!!     Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
+!!     Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
+!!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
+!!     This file is distributed under the terms of the
+!!      GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+!!
+!! AUTHORS
+!!    S. Goedecker, L. Genovese
+!!
+!! CREATION DATE
+!!     February 2006
+!!
+!! SOURCE
+!!
+subroutine W_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
+             ,scal)!,hgrid)!,ehartree)
+  implicit none
+  include 'mpif.h'
+  include 'perfdata.inc'
+  !Arguments
+  integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc
+  real(kind=8), intent(in) :: scal!,hgrid
+  !real(kind=8), intent(out) :: ehartree
+  real(kind=8), dimension(nd1,nd2,nd3/nproc), intent(in) :: pot
+  real(kind=8), dimension(md1,md3,md2/nproc), intent(inout) :: zf
+  !Local variables
+  character(len=*), parameter :: subname='W_Poisson_Solver'
+  !Maximum number of points for FFT (should be same number in fft3d routine)
+  integer, parameter :: nfft_max=24000
+  integer :: ncache,lzt,lot,ma,mb,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
+  integer :: j1,j2,j3,i1,i2,i3,i,j,inzee,ierr,i_all,i_stat
+  real(kind=8) :: twopion!,ehartreetmp
+  !work arrays for transpositions
+  real(kind=8), dimension(:,:,:), allocatable :: zt
+  !work arrays for MPI
+  real(kind=8), dimension(:,:,:,:,:), allocatable :: zmpi1
+  real(kind=8), dimension(:,:,:,:), allocatable :: zmpi2
+  !cache work array
+  real(kind=8), dimension(:,:,:), allocatable :: zw
+  !FFT work arrays
+  real(kind=8), dimension(:,:), allocatable :: btrig1,btrig2,btrig3,&
+       ftrig1,ftrig2,ftrig3,cosinarr
+  integer, dimension(:), allocatable :: after1,now1,before1, & 
+       after2,now2,before2,after3,now3,before3
+
+  call timing(iproc,'PSolv_comput  ','ON')
+  
+  !Body
+  ! check input
+  !if (mod(n1,2) /= 0) stop 'Parallel convolution:ERROR:n1'
+  if (mod(n2,2) /= 0) stop 'Parallel convolution:ERROR:n2'
+  if (mod(n3,2) /= 0) stop 'Parallel convolution:ERROR:n3'
+  if (nd1 < n1/2+1) stop 'Parallel convolution:ERROR:nd1'
+  if (nd2 < n2/2+1) stop 'Parallel convolution:ERROR:nd2'
+  if (nd3 < n3/2+1) stop 'Parallel convolution:ERROR:nd3'
+  if (md1 < n1) stop 'Parallel convolution:ERROR:md1'
+  if (md2 < n2/2) stop 'Parallel convolution:ERROR:md2'
+  if (md3 < n3/2) stop 'Parallel convolution:ERROR:md3'
+  if (mod(nd3,nproc) /= 0) stop 'Parallel convolution:ERROR:nd3'
+  if (mod(md2,nproc) /= 0) stop 'Parallel convolution:ERROR:md2'
+  
+  !defining work arrays dimensions
+  
+  ncache=ncache_optimal
+  if (ncache <= max(n1,n2,n3/2)*4) ncache=max(n1,n2,n3/2)*4
+  lzt=n2/2
+  if (mod(n2/2,2).eq.0) lzt=lzt+1
+  if (mod(n2/2,4).eq.0) lzt=lzt+1
+  
+  !Allocations
+  allocate(btrig1(2,nfft_max+ndebug),stat=i_stat)
+  call memocc(i_stat,btrig1,'btrig1',subname)
+  allocate(ftrig1(2,nfft_max+ndebug),stat=i_stat)
+  call memocc(i_stat,ftrig1,'ftrig1',subname)
+  allocate(after1(7+ndebug),stat=i_stat)
+  call memocc(i_stat,after1,'after1',subname)
+  allocate(now1(7+ndebug),stat=i_stat)
+  call memocc(i_stat,now1,'now1',subname)
+  allocate(before1(7+ndebug),stat=i_stat)
+  call memocc(i_stat,before1,'before1',subname)
+  allocate(btrig2(2,nfft_max+ndebug),stat=i_stat)
+  call memocc(i_stat,btrig2,'btrig2',subname)
+  allocate(ftrig2(2,nfft_max+ndebug),stat=i_stat)
+  call memocc(i_stat,ftrig2,'ftrig2',subname)
+  allocate(after2(7+ndebug),stat=i_stat)
+  call memocc(i_stat,after2,'after2',subname)
+  allocate(now2(7+ndebug),stat=i_stat)
+  call memocc(i_stat,now2,'now2',subname)
+  allocate(before2(7+ndebug),stat=i_stat)
+  call memocc(i_stat,before2,'before2',subname)
+  allocate(btrig3(2,nfft_max+ndebug),stat=i_stat)
+  call memocc(i_stat,btrig3,'btrig3',subname)
+  allocate(ftrig3(2,nfft_max+ndebug),stat=i_stat)
+  call memocc(i_stat,ftrig3,'ftrig3',subname)
+  allocate(after3(7+ndebug),stat=i_stat)
+  call memocc(i_stat,after3,'after3',subname)
+  allocate(now3(7+ndebug),stat=i_stat)
+  call memocc(i_stat,now3,'now3',subname)
+  allocate(before3(7+ndebug),stat=i_stat)
+  call memocc(i_stat,before3,'before3',subname)
+  allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
+  call memocc(i_stat,zw,'zw',subname)
+  allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
+  call memocc(i_stat,zt,'zt',subname)
+  allocate(zmpi2(2,n1,md2/nproc,nd3+ndebug),stat=i_stat)
+  call memocc(i_stat,zmpi2,'zmpi2',subname)
+  allocate(cosinarr(2,n3/2+ndebug),stat=i_stat)
+  call memocc(i_stat,cosinarr,'cosinarr',subname)
+  if (nproc.gt.1) then
+     allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,nproc+ndebug),stat=i_stat)
+     call memocc(i_stat,zmpi1,'zmpi1',subname)
+  end if
+
+
+  !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
+  call ctrig(n3/2,btrig3,after3,before3,now3,1,ic3)
+  call ctrig(n1,btrig1,after1,before1,now1,1,ic1)
+  call ctrig(n2,btrig2,after2,before2,now2,1,ic2)
+  do  j=1,n1
+     ftrig1(1,j)= btrig1(1,j)
+     ftrig1(2,j)=-btrig1(2,j)
+  enddo
+  do  j=1,n2
+     ftrig2(1,j)= btrig2(1,j)
+     ftrig2(2,j)=-btrig2(2,j)
+  enddo
+  do  j=1,n3/2
+     ftrig3(1,j)= btrig3(1,j)
+     ftrig3(2,j)=-btrig3(2,j)
+  enddo
+
+  !Calculating array of phases for HalFFT decoding
+  twopion=8.d0*datan(1.d0)/real(n3,kind=8)
+  do i3=1,n3/2
+     cosinarr(1,i3)= dcos(twopion*real(i3-1,kind=8))
+     cosinarr(2,i3)=-dsin(twopion*real(i3-1,kind=8))
+  end do
+
+  !initializing integrals
+  !ehartree=0.d0
+
+  ! transform along z axis
+  lot=ncache/(2*n3)
+  if (lot < 1) then  
+     write(6,*) & 
+          'convolxc_on:ncache has to be enlarged to be able to hold at' // &  
+          'least one 1-d FFT of this size even though this will' // & 
+          'reduce the performance for shorter transform lengths'
+     stop
+  endif
+  
+  do j2=1,md2/nproc
+     !this condition ensures that we manage only the interesting part for the FFT
+     if (iproc*(md2/nproc)+j2 <= n2/2) then
+        do i1=1,n1,lot
+           ma=i1
+           mb=min(i1+(lot-1),n1)
+           nfft=mb-ma+1
+
+           !inserting real data into complex array of half lenght
+           call halfill_upcorn(md1,md3,lot,nfft,n3,zf(i1,1,j2),zw(1,1,1))
+
+           !performing FFT
+           !input: I1,I3,J2,(Jp2)
+           inzee=1
+           do i=1,ic3
+              call fftstp(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
+                   btrig3,after3(i),now3(i),before3(i),1)
+              inzee=3-inzee
+           enddo
+           !output: I1,i3,J2,(Jp2)
+
+           !unpacking FFT in order to restore correct result, 
+           !while exchanging components
+           !input: I1,i3,J2,(Jp2)
+           call scramble_unpack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zw(1,1,inzee),zmpi2,cosinarr)
+           !output: I1,J2,i3,(Jp2)
+        end do
+     endif
+  end do
+
+  !Interprocessor data transposition
+  !input: I1,J2,j3,jp3,(Jp2)
+  if (nproc.gt.1) then
+     call timing(iproc,'PSolv_comput  ','OF')
+
+     call timing(iproc,'PSolv_commun  ','ON')
+     !communication scheduling
+     call MPI_ALLTOALL(zmpi2,2*n1*(md2/nproc)*(nd3/nproc), &
+          MPI_double_precision, &
+          zmpi1,2*n1*(md2/nproc)*(nd3/nproc), &
+          MPI_double_precision,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'PSolv_commun  ','OF')
+
+     call timing(iproc,'PSolv_comput  ','ON')
+  endif
+  !output: I1,J2,j3,Jp2,(jp3)
+
+  !now each process perform complete convolution of its planes
+  do j3=1,nd3/nproc
+     !this condition ensures that we manage only the interesting part for the FFT
+     if (iproc*(nd3/nproc)+j3 <= n3/2+1) then
+      Jp2stb=1
+      J2stb=1
+      Jp2stf=1
+      J2stf=1
+        
+        ! transform along x axis
+        lot=ncache/(4*n1)
+        if (lot < 1) then  
+           write(6,*) & 
+                'convolxc_on:ncache has to be enlarged to be able to hold at' // &  
+                'least one 1-d FFT of this size even though this will' // & 
+                'reduce the performance for shorter transform lengths'
+           stop
+        endif
+        
+        do j=1,n2/2,lot
+           ma=j
+           mb=min(j+(lot-1),n2/2)
+           nfft=mb-ma+1
+
+           !reverse index ordering, leaving the planes to be transformed at the end
+           !input: I1,J2,j3,Jp2,(jp3)
+           if (nproc.eq.1) then
+              call P_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,md2,nd3,nproc,zmpi2,zw(1,1,1))
+           else
+              call P_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,md2,nd3,nproc,zmpi1,zw(1,1,1))
+           endif
+           !output: J2,Jp2,I1,j3,(jp3)
+           
+           !performing FFT
+           !input: I2,I1,j3,(jp3)
+           inzee=1
+           do i=1,ic1-1
+              call fftstp(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
+                   btrig1,after1(i),now1(i),before1(i),1)
+              inzee=3-inzee
+           enddo
+
+           !storing the last step into zt array
+           i=ic1
+           call fftstp(lot,nfft,n1,lzt,n1,zw(1,1,inzee),zt(1,j,1), & 
+                btrig1,after1(i),now1(i),before1(i),1)           
+           !output: I2,i1,j3,(jp3)
+        end do
+
+        !transform along y axis
+        lot=ncache/(4*n2)
+        if (lot < 1) then  
+           write(6,*) & 
+                'convolxc_on:ncache has to be enlarged to be able to hold at' // &  
+                'least one 1-d FFT of this size even though this will' // & 
+                'reduce the performance for shorter transform lengths'
+           stop
+        endif
+
+        do j=1,n1,lot
+           ma=j
+           mb=min(j+(lot-1),n1)
+           nfft=mb-ma+1
+
+           !reverse ordering 
+           !input: I2,i1,j3,(jp3)
+           call switch_upcorn(nfft,n2,lot,n1,lzt,zt(1,1,j),zw(1,1,1))
+           !output: i1,I2,j3,(jp3)
+           
+           !performing FFT
+           !input: i1,I2,j3,(jp3)
+           inzee=1
+           do i=1,ic2
+              call fftstp(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
+                   btrig2,after2(i),now2(i),before2(i),1)
+              inzee=3-inzee
+           enddo
+           !output: i1,i2,j3,(jp3)
+           
+           !Multiply with kernel in fourier space
+           call multkernel(nd1,nd2,n1,n2,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee))
+           
+           !TRANSFORM BACK IN REAL SPACE
+           
+           !transform along y axis
+           !input: i1,i2,j3,(jp3)
+           do i=1,ic2
+              call fftstp(lot,nfft,n2,lot,n2,zw(1,1,inzee),zw(1,1,3-inzee), &
+                   ftrig2,after2(i),now2(i),before2(i),-1)
+              inzee=3-inzee
+           enddo
+
+           !reverse ordering
+           !input: i1,I2,j3,(jp3)
+           call unswitch_downcorn(nfft,n2,lot,n1,lzt,zw(1,1,inzee),zt(1,1,j))
+           !output: I2,i1,j3,(jp3)
+        end do
+        
+        !transform along x axis
+        !input: I2,i1,j3,(jp3)
+        lot=ncache/(4*n1)
+        do j=1,n2/2,lot
+           ma=j
+           mb=min(j+(lot-1),n2/2)
+           nfft=mb-ma+1
+
+           !performing FFT
+           i=1
+           call fftstp(lzt,nfft,n1,lot,n1,zt(1,j,1),zw(1,1,1), &
+                ftrig1,after1(i),now1(i),before1(i),-1)
+           
+           inzee=1
+           do i=2,ic1
+              call fftstp(lot,nfft,n1,lot,n1,zw(1,1,inzee),zw(1,1,3-inzee), &
+                   ftrig1,after1(i),now1(i),before1(i),-1)
+              inzee=3-inzee
+           enddo
+           !output: I2,I1,j3,(jp3)
+
+           !reverse ordering
+           !input: J2,Jp2,I1,j3,(jp3)
+           if (nproc.eq.1) then
+              call P_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw(1,1,inzee),zmpi2)
+           else
+              call P_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw(1,1,inzee),zmpi1)
+           endif
+           ! output: I1,J2,j3,Jp2,(jp3)
+        end do
+     endif
+  end do
+  
+  
+  !Interprocessor data transposition
+  !input: I1,J2,j3,Jp2,(jp3)
+  if (nproc.gt.1) then
+     call timing(iproc,'PSolv_comput  ','OF')
+
+     call timing(iproc,'PSolv_commun  ','ON')
+     !communication scheduling
+     call MPI_ALLTOALL(zmpi1,2*n1*(md2/nproc)*(nd3/nproc), &
+          MPI_double_precision, &
+          zmpi2,2*n1*(md2/nproc)*(nd3/nproc), &
+          MPI_double_precision,MPI_COMM_WORLD,ierr)
+     call timing(iproc,'PSolv_commun  ','OF')
+
+     call timing(iproc,'PSolv_comput  ','ON')
+     !output: I1,J2,j3,jp3,(Jp2)
+  endif
+
+  !transform along z axis
+  !input: I1,J2,i3,(Jp2)
+  lot=ncache/(2*n3)
+  do j2=1,md2/nproc
+     !this condition ensures that we manage only the interesting part for the FFT
+     if (iproc*(md2/nproc)+j2 <= n2/2) then
+        do i1=1,n1,lot
+           ma=i1
+           mb=min(i1+(lot-1),n1)
+           nfft=mb-ma+1
+
+           !reverse ordering and repack the FFT data in order to be backward HalFFT transformed
+           !input: I1,J2,i3,(Jp2)
+           call unscramble_pack(i1,j2,lot,nfft,n1,n3,md2,nproc,nd3,zmpi2,zw(1,1,1),cosinarr)
+           !output: I1,i3,J2,(Jp2)
+
+           !performing FFT
+           !input: I1,i3,J2,(Jp2)           
+           inzee=1
+           do i=1,ic3
+              call fftstp(lot,nfft,n3/2,lot,n3/2,zw(1,1,inzee),zw(1,1,3-inzee), &
+                   ftrig3,after3(i),now3(i),before3(i),-1)
+              inzee=3-inzee
+           enddo
+           !output: I1,I3,J2,(Jp2)
+
+           !calculates the exchange correlation terms locally and rebuild the output array
+           call unfill_downcorn(md1,md3,lot,nfft,n3,zw(1,1,inzee),zf(i1,1,j2)&
+                ,scal)!,ehartreetmp)
+
+           !integrate local pieces together
+           !ehartree=ehartree+0.5d0*ehartreetmp*hgrid**3
+        end do
+     endif
+  end do
+  
+  !De-allocations  
+  i_all=-product(shape(btrig1))*kind(btrig1)
+  deallocate(btrig1,stat=i_stat)
+  call memocc(i_stat,i_all,'btrig1',subname)
+  i_all=-product(shape(ftrig1))*kind(ftrig1)
+  deallocate(ftrig1,stat=i_stat)
+  call memocc(i_stat,i_all,'ftrig1',subname)
+  i_all=-product(shape(after1))*kind(after1)
+  deallocate(after1,stat=i_stat)
+  call memocc(i_stat,i_all,'after1',subname)
+  i_all=-product(shape(now1))*kind(now1)
+  deallocate(now1,stat=i_stat)
+  call memocc(i_stat,i_all,'now1',subname)
+  i_all=-product(shape(before1))*kind(before1)
+  deallocate(before1,stat=i_stat)
+  call memocc(i_stat,i_all,'before1',subname)
+  i_all=-product(shape(btrig2))*kind(btrig2)
+  deallocate(btrig2,stat=i_stat)
+  call memocc(i_stat,i_all,'btrig2',subname)
+  i_all=-product(shape(ftrig2))*kind(ftrig2)
+  deallocate(ftrig2,stat=i_stat)
+  call memocc(i_stat,i_all,'ftrig2',subname)
+  i_all=-product(shape(after2))*kind(after2)
+  deallocate(after2,stat=i_stat)
+  call memocc(i_stat,i_all,'after2',subname)
+  i_all=-product(shape(now2))*kind(now2)
+  deallocate(now2,stat=i_stat)
+  call memocc(i_stat,i_all,'now2',subname)
+  i_all=-product(shape(before2))*kind(before2)
+  deallocate(before2,stat=i_stat)
+  call memocc(i_stat,i_all,'before2',subname)
+  i_all=-product(shape(btrig3))*kind(btrig3)
+  deallocate(btrig3,stat=i_stat)
+  call memocc(i_stat,i_all,'btrig3',subname)
+  i_all=-product(shape(ftrig3))*kind(ftrig3)
+  deallocate(ftrig3,stat=i_stat)
+  call memocc(i_stat,i_all,'ftrig3',subname)
+  i_all=-product(shape(after3))*kind(after3)
+  deallocate(after3,stat=i_stat)
+  call memocc(i_stat,i_all,'after3',subname)
+  i_all=-product(shape(now3))*kind(now3)
+  deallocate(now3,stat=i_stat)
+  call memocc(i_stat,i_all,'now3',subname)
+  i_all=-product(shape(before3))*kind(before3)
+  deallocate(before3,stat=i_stat)
+  call memocc(i_stat,i_all,'before3',subname)
+  i_all=-product(shape(zmpi2))*kind(zmpi2)
+  deallocate(zmpi2,stat=i_stat)
+  call memocc(i_stat,i_all,'zmpi2',subname)
+  i_all=-product(shape(zw))*kind(zw)
+  deallocate(zw,stat=i_stat)
+  call memocc(i_stat,i_all,'zw',subname)
+  i_all=-product(shape(zt))*kind(zt)
+  deallocate(zt,stat=i_stat)
+  call memocc(i_stat,i_all,'zt',subname)
+  i_all=-product(shape(cosinarr))*kind(cosinarr)
+  deallocate(cosinarr,stat=i_stat)
+  call memocc(i_stat,i_all,'cosinarr',subname)
+  if (nproc.gt.1) then
+     i_all=-product(shape(zmpi1))*kind(zmpi1)
+     deallocate(zmpi1,stat=i_stat)
+     call memocc(i_stat,i_all,'zmpi1',subname)
+  end if
+
+  call timing(iproc,'PSolv_comput  ','OF')
+end subroutine W_PoissonSolver
+!!***

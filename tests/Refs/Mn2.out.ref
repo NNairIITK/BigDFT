@@ -67,85 +67,82 @@
     Shift of=  7.87500E+00  7.87500E+00  7.97663E+00 Grid Spacings=  0.45  0.45  0.45
    Box Sizes=  1.57500E+01  1.57500E+01  2.11500E+01           35        35        47
        Extremes for the high resolution grid points:        12<23     12<23     12<35
- ------------------------------------------------------------------ Memory Estimation
- Number of atoms=    2 Number of orbitals=    14 Sim. Box Dimensions=    35   35   47
- Estimation performed for 7 processors.
- Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     1 MB   734 KB
-              Poisson Solver Density (D):     6 MB   782 KB
-     Single Wavefunction for one orbital:     1 MB   457 KB
-    All Wavefunctions for each processor:    34 MB   706 KB
-       Wavefunctions + DIIS per proc (W):   173 MB   456 KB
-    Arrays of full uncompressed grid (U):    38 MB   936 KB
- Estimation of Memory requirements for principal code sections:
-  Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
-       ~19*K         |      W+(~4)*U+D+K    |    ~12*D+K+W   |      ~W+(~5)*U+D+K 
-        32MB         |       305MB          |      256MB     |           320MB
- The overall memory requirement needed for this calculation is thus: 320 MB
- By reducing the DIIS history and/or increasing the number of processors the amount of
-  memory can be reduced but for this system it will never be less than 145 MB
  ------------------------------------------------------------ Poisson Kernel Creation
  Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=1772928  Kernel=1799808
+ Memory occ. per proc. (Bytes):  Density=1492992  Kernel=1574832
                                  Full Grid Arrays=10201000
  Load Balancing for Poisson Solver related operations:
- LB_density        : processors   0  -  5 work at 100%
-                     processor       6   works at  74%
-  LB_kernel        : processors   0  -  5 work at 100%
-                     processor       6   works at  81%
+ LB_density        : processors   0  -  7 work at 100%
+  LB_kernel        : processors   0  -  6 work at 100%
+                     processor       7   works at  79%
  Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1432 points=     35712
    Fine resolution grid: Number of segments=        212 points=      1664
  Processes from 0 to 6 treat 2 orbitals 
- Wavefunction memory occupation per orbital (Bytes): 1515584
+ Processes from 7 to 7 treat 0 orbitals 
+ Wavefunction memory occupation per orbital (Bytes): 1515520
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Mn               2                   14
-                                            ------
+                                            ------   On-the-fly projectors application
  Total number of projectors =                   28
- Calculating wavelets expansion of projectors... done.
+ Total number of components =                93184
+ ------------------------------------------------------------------ Memory Estimation
+ Number of atoms=    2 Number of orbitals=    14 Sim. Box Dimensions=    35   35   47
+ Estimation performed for 8 processors.
+ Memory occupation for principal arrays:
+               Poisson Solver Kernel (K):     1 MB   514 KB
+              Poisson Solver Density (D):     5 MB   712 KB
+     Single Wavefunction for one orbital:     1 MB   456 KB
+    All Wavefunctions for each processor:    34 MB   704 KB
+       Wavefunctions + DIIS per proc (W):   173 MB   448 KB
+     Nonlocal Pseudopotential Arrays (P):     0 MB   728 KB
+    Arrays of full uncompressed grid (U):    38 MB   936 KB
+ Estimation of Memory requirements for principal code sections:
+  Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
+       ~19*K         |     W+(~4)*U+D+K+P   |   ~12*D+K+W+P  |    ~W+(~5)*U+D+K+P 
+        28MB         |       306MB          |      243MB     |           320MB
+ The overall memory requirement needed for this calculation is thus: 320 MB
+ By reducing the DIIS history and/or increasing the number of processors the amount of
+  memory can be reduced but for this system it will never be less than 146 MB
  ion-ion interaction energy  9.42898817335483E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -14.000000000000   0.000E+00
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  0 ...done.
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  0 ...done.
  ------------------------------------------------------- Input Wavefunctions Creation
  Input wavefunction data for atom     Mn NOT found, automatic generation... done.
  Generating 24 Atomic Input Orbitals
- Processes from 0 to 5 treat 4 inguess orbitals 
- Processes from 6 to 6 treat 0 inguess orbitals 
+ Processes from 0 to 7 treat 3 inguess orbitals 
  Calculating AIO wavefunctions... done.
  Calculation of charge density... done. Total electronic charge=      13.999998485027
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  1 ...done.
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  1 ...done.
  Hamiltonian application... done. ekin_sum,eks:      47.6527241743      47.6314156916
  ekin_sum,epot_sum,eproj_sum  4.76527241743E+01 -2.04750149340E+01 -3.05370496171E+01
     ehart,   eexcu,    vexcu  3.64139906878E+01 -5.93704098167E+00 -7.77352836504E+00
  Input Wavefunctions Orthogonalization: Overlap Matrix... Linear Algebra...
  evale(   1,u)= -2.81126062463910E-01            evale(   1,d)= -2.81126062463910E-01
- evale(   2,u)= -2.64393198359718E-01            evale(   2,d)= -2.64393198359718E-01
- evale(   3,u)= -2.64387704134722E-01            evale(   3,d)= -2.64387704134722E-01
+ evale(   2,u)= -2.64393198359719E-01            evale(   2,d)= -2.64393198359719E-01
+ evale(   3,u)= -2.64387704134723E-01            evale(   3,d)= -2.64387704134723E-01
  evale(   4,u)= -2.52623166059022E-01            evale(   4,d)= -2.52623166059022E-01
- evale(   5,u)= -2.51350418529163E-01            evale(   5,d)= -2.51350418529163E-01
+ evale(   5,u)= -2.51350418529162E-01            evale(   5,d)= -2.51350418529162E-01
  evale(   6,u)= -2.48370681821641E-01            evale(   6,d)= -2.48370681821641E-01
- evale(   7,u)= -2.47074007393258E-01  <-Last->  evale(   7,d)= -2.47074007393258E-01
- evale(   8,u)= -2.42750741390575E-01            evale(   8,d)= -2.42750741390575E-01
- evale(   9,u)= -2.42745466008479E-01            evale(   9,d)= -2.42745466008479E-01
- evale(  10,u)= -2.39438074820717E-01            evale(  10,d)= -2.39438074820717E-01
- evale(  11,u)= -2.25512340567319E-01            evale(  11,d)= -2.25512340567319E-01
- evale(  12,u)= -1.40634833462890E-01            evale(  12,d)= -1.40634833462890E-01
+ evale(   7,u)= -2.47074007393257E-01  <-Last->  evale(   7,d)= -2.47074007393257E-01
+ evale(   8,u)= -2.42750741390576E-01            evale(   8,d)= -2.42750741390576E-01
+ evale(   9,u)= -2.42745466008480E-01            evale(   9,d)= -2.42745466008480E-01
+ evale(  10,u)= -2.39438074820716E-01            evale(  10,d)= -2.39438074820716E-01
+ evale(  11,u)= -2.25512340567320E-01            evale(  11,d)= -2.25512340567320E-01
+ evale(  12,u)= -1.40634833462892E-01            evale(  12,d)= -1.40634833462892E-01
  Building orthogonal Wavefunctions... done.
  expected accuracy in kinetic energy due to grid size 2.13E-02
  suggested value for gnrm_cv  1.52E-03
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=      13.999997939974
-  Magnetic density orientation:    0.0000    0.0000    0.0000
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  1 ...done.
+  Magnetic density orientation:    0.0000    0.0000   -0.0000
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    1.00E+00  1.00E+00
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  6.32348827893E+01 -1.67007567156E+01 -4.16372706069E+01
-    ehart,   eexcu,    vexcu  4.46147870983E+01 -7.47534613459E+00 -9.80310611098E+00
- iter,total energy,gnrm     1  -2.79611834817779723E+01  2.78E-01
  Magnetic polarization per orbital
    iorb    m_x       m_y       m_z
      1   0.00000   0.00000   1.00000
@@ -162,16 +159,16 @@
     12   0.00000   0.00000  -1.00000
     13   0.00000   0.00000  -1.00000
     14   0.00000   0.00000  -1.00000
+ ekin_sum,epot_sum,eproj_sum  6.32348827893E+01 -1.67007567156E+01 -4.16372706069E+01
+    ehart,   eexcu,    vexcu  4.46147870983E+01 -7.47534613459E+00 -9.80310611098E+00
+ iter,total energy,gnrm     1  -2.79611834817777165E+01  2.78E-01
  ---------------------------------------------------------------------------- iter= 2
  Calculation of charge density... done. Total electronic charge=      13.999998522988
   Magnetic density orientation:    0.0000    0.0000   -0.0000
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  1 ...done.
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    1.12E-01  8.88E-01 -1.07E-02
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  4.95337295437E+01 -1.95138037254E+01 -3.17141734335E+01
-    ehart,   eexcu,    vexcu  3.81593299061E+01 -6.22299911765E+00 -8.15020338075E+00
- iter,total energy,gnrm     2  -2.84973850849147041E+01  8.48E-02
  Magnetic polarization per orbital
    iorb    m_x       m_y       m_z
      1   0.00000   0.00000   1.00000
@@ -188,16 +185,16 @@
     12   0.00000   0.00000  -1.00000
     13   0.00000   0.00000  -1.00000
     14   0.00000   0.00000  -1.00000
+ ekin_sum,epot_sum,eproj_sum  4.95337295437E+01 -1.95138037254E+01 -3.17141734335E+01
+    ehart,   eexcu,    vexcu  3.81593299061E+01 -6.22299911765E+00 -8.15020338075E+00
+ iter,total energy,gnrm     2  -2.84973850849139794E+01  8.48E-02
  ---------------------------------------------------------------------------- iter= 3
  Calculation of charge density... done. Total electronic charge=      13.999998482527
-  Magnetic density orientation:    0.0000    0.0000    0.0000
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  1 ...done.
+  Magnetic density orientation:    0.0000    0.0000   -0.0000
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -3.54E-02  1.00E-01  9.35E-01 -9.41E-03
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  5.14848609479E+01 -1.92701915975E+01 -3.31724591753E+01
-    ehart,   eexcu,    vexcu  3.89799139049E+01 -6.38979276076E+00 -8.37046193010E+00
- iter,total energy,gnrm     3  -2.85280463870400993E+01  2.41E-02
  Magnetic polarization per orbital
    iorb    m_x       m_y       m_z
      1   0.00000   0.00000   1.00000
@@ -214,16 +211,16 @@
     12   0.00000   0.00000  -1.00000
     13   0.00000   0.00000  -1.00000
     14   0.00000   0.00000  -1.00000
+ ekin_sum,epot_sum,eproj_sum  5.14848609479E+01 -1.92701915975E+01 -3.31724591753E+01
+    ehart,   eexcu,    vexcu  3.89799139049E+01 -6.38979276076E+00 -8.37046193010E+00
+ iter,total energy,gnrm     3  -2.85280463870397440E+01  2.41E-02
  ---------------------------------------------------------------------------- iter= 4
  Calculation of charge density... done. Total electronic charge=      13.999998494462
   Magnetic density orientation:    0.0000    0.0000   -0.0000
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  1 ...done.
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -3.63E-03 -1.38E-01 -9.38E-01  2.08E+00 -3.45E-03
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  5.12124889422E+01 -1.93856802710E+01 -3.30210253304E+01
-    ehart,   eexcu,    vexcu  3.87414683140E+01 -6.35151361788E+00 -8.32011374403E+00
- iter,total energy,gnrm     4  -2.85380966737023769E+01  1.92E-02
  Magnetic polarization per orbital
    iorb    m_x       m_y       m_z
      1   0.00000   0.00000   1.00000
@@ -240,16 +237,16 @@
     12   0.00000   0.00000  -1.00000
     13   0.00000   0.00000  -1.00000
     14   0.00000   0.00000  -1.00000
+ ekin_sum,epot_sum,eproj_sum  5.12124889422E+01 -1.93856802710E+01 -3.30210253304E+01
+    ehart,   eexcu,    vexcu  3.87414683140E+01 -6.35151361788E+00 -8.32011374403E+00
+ iter,total energy,gnrm     4  -2.85380966737024195E+01  1.92E-02
  ---------------------------------------------------------------------------- iter= 5
  Calculation of charge density... done. Total electronic charge=      13.999998504943
-  Magnetic density orientation:    0.0000    0.0000    0.0000
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  1 ...done.
+  Magnetic density orientation:    0.0000    0.0000   -0.0000
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    2.42E-03  7.42E-02 -1.84E-01 -2.02E-01  1.31E+00 -2.90E-03
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  5.11581166582E+01 -1.94434365852E+01 -3.30292131752E+01
-    ehart,   eexcu,    vexcu  3.86278636735E+01 -6.33909091007E+00 -8.30387909830E+00
- iter,total energy,gnrm     5  -2.85486204141339144E+01  2.02E-02
  Magnetic polarization per orbital
    iorb    m_x       m_y       m_z
      1   0.00000   0.00000   1.00000
@@ -266,16 +263,16 @@
     12   0.00000   0.00000  -1.00000
     13   0.00000   0.00000  -1.00000
     14   0.00000   0.00000  -1.00000
+ ekin_sum,epot_sum,eproj_sum  5.11581166582E+01 -1.94434365852E+01 -3.30292131752E+01
+    ehart,   eexcu,    vexcu  3.86278636735E+01 -6.33909091007E+00 -8.30387909830E+00
+ iter,total energy,gnrm     5  -2.85486204141336586E+01  2.02E-02
  ---------------------------------------------------------------------------- iter= 6
- Calculation of charge density... done. Total electronic charge=      13.999998518190
+ Calculation of charge density... done. Total electronic charge=      13.999998518189
   Magnetic density orientation:    0.0000    0.0000    0.0000
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  1 ...done.
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -3.66E-02 -4.32E-02  7.30E-01 -1.34E+00 -3.58E-01  2.04E+00 -4.94E-04
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  5.10645143668E+01 -1.94414010066E+01 -3.29615218342E+01
-    ehart,   eexcu,    vexcu  3.86083201364E+01 -6.33760282653E+00 -8.30192179626E+00
- iter,total energy,gnrm     6  -2.85534214673140028E+01  1.39E-02
  Magnetic polarization per orbital
    iorb    m_x       m_y       m_z
      1   0.00000   0.00000   1.00000
@@ -292,16 +289,16 @@
     12   0.00000   0.00000  -1.00000
     13   0.00000   0.00000  -1.00000
     14   0.00000   0.00000  -1.00000
+ ekin_sum,epot_sum,eproj_sum  5.10645143668E+01 -1.94414010066E+01 -3.29615218342E+01
+    ehart,   eexcu,    vexcu  3.86083201364E+01 -6.33760282653E+00 -8.30192179626E+00
+ iter,total energy,gnrm     6  -2.85534214673137043E+01  1.39E-02
  ---------------------------------------------------------------------------- iter= 7
  Calculation of charge density... done. Total electronic charge=      13.999998543259
-  Magnetic density orientation:    0.0000    0.0000    0.0000
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  1 ...done.
+  Magnetic density orientation:    0.0000    0.0000   -0.0000
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -2.47E-02 -1.36E-02  4.46E-01 -1.14E+00  4.76E-01  1.26E+00 -2.73E-04
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  5.08329647091E+01 -1.94712906535E+01 -3.28137841520E+01
-    ehart,   eexcu,    vexcu  3.84965977727E+01 -6.32471376987E+00 -8.28496032336E+00
- iter,total energy,gnrm     7  -2.85594731422944292E+01  1.15E-02
  Magnetic polarization per orbital
    iorb    m_x       m_y       m_z
      1   0.00000   0.00000   1.00000
@@ -318,16 +315,16 @@
     12   0.00000   0.00000  -1.00000
     13   0.00000   0.00000  -1.00000
     14   0.00000   0.00000  -1.00000
+ ekin_sum,epot_sum,eproj_sum  5.08329647091E+01 -1.94712906535E+01 -3.28137841520E+01
+    ehart,   eexcu,    vexcu  3.84965977727E+01 -6.32471376987E+00 -8.28496032336E+00
+ iter,total energy,gnrm     7  -2.85594731422940313E+01  1.15E-02
  ---------------------------------------------------------------------------- iter= 8
  Calculation of charge density... done. Total electronic charge=      13.999998552269
-  Magnetic density orientation:    0.0000    0.0000   -0.0000
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  1 ...done.
+  Magnetic density orientation:    0.0000    0.0000    0.0000
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -2.48E-01  3.19E-01 -1.06E-01 -7.18E-02 -4.92E-01  1.60E+00 -9.06E-05
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  5.08065590399E+01 -1.94453229610E+01 -3.27863098721E+01
-    ehart,   eexcu,    vexcu  3.85275550761E+01 -6.33174646846E+00 -8.29420725317E+00
- iter,total energy,gnrm     8  -2.85611799111279794E+01  7.90E-03
  Magnetic polarization per orbital
    iorb    m_x       m_y       m_z
      1   0.00000   0.00000   1.00000
@@ -344,16 +341,16 @@
     12   0.00000   0.00000  -1.00000
     13   0.00000   0.00000  -1.00000
     14   0.00000   0.00000  -1.00000
+ ekin_sum,epot_sum,eproj_sum  5.08065590399E+01 -1.94453229610E+01 -3.27863098721E+01
+    ehart,   eexcu,    vexcu  3.85275550761E+01 -6.33174646846E+00 -8.29420725317E+00
+ iter,total energy,gnrm     8  -2.85611799111276454E+01  7.90E-03
  ---------------------------------------------------------------------------- iter= 9
  Calculation of charge density... done. Total electronic charge=      13.999998560972
-  Magnetic density orientation:    0.0000    0.0000   -0.0000
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  1 ...done.
+  Magnetic density orientation:    0.0000    0.0000    0.0000
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -3.58E-02 -3.59E-02  2.07E-01 -2.84E-01 -4.86E-01  1.64E+00 -4.14E-05
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  5.07251771965E+01 -1.94619559641E+01 -3.27334423500E+01
-    ehart,   eexcu,    vexcu  3.84824603433E+01 -6.32821069053E+00 -8.28956562215E+00
- iter,total energy,gnrm     9  -2.85623383559355375E+01  4.58E-03
  Magnetic polarization per orbital
    iorb    m_x       m_y       m_z
      1   0.00000   0.00000   1.00000
@@ -370,16 +367,16 @@
     12   0.00000   0.00000  -1.00000
     13   0.00000   0.00000  -1.00000
     14   0.00000   0.00000  -1.00000
+ ekin_sum,epot_sum,eproj_sum  5.07251771965E+01 -1.94619559641E+01 -3.27334423500E+01
+    ehart,   eexcu,    vexcu  3.84824603433E+01 -6.32821069053E+00 -8.28956562215E+00
+ iter,total energy,gnrm     9  -2.85623383559348909E+01  4.58E-03
  ---------------------------------------------------------------------------- iter= 10
  Calculation of charge density... done. Total electronic charge=      13.999998566970
   Magnetic density orientation:    0.0000    0.0000   -0.0000
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  1 ...done.
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -1.58E-02  8.70E-02 -1.22E-01 -4.09E-01  3.33E-01  1.13E+00 -1.43E-05
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  5.06638588170E+01 -1.94663350756E+01 -3.26904282133E+01
-    ehart,   eexcu,    vexcu  3.84596076568E+01 -6.32624049280E+00 -8.28697383800E+00
- iter,total energy,gnrm    10  -2.85627906101003148E+01  2.33E-03
  Magnetic polarization per orbital
    iorb    m_x       m_y       m_z
      1   0.00000   0.00000   1.00000
@@ -396,16 +393,16 @@
     12   0.00000   0.00000  -1.00000
     13   0.00000   0.00000  -1.00000
     14   0.00000   0.00000  -1.00000
+ ekin_sum,epot_sum,eproj_sum  5.06638588170E+01 -1.94663350756E+01 -3.26904282133E+01
+    ehart,   eexcu,    vexcu  3.84596076568E+01 -6.32624049280E+00 -8.28697383800E+00
+ iter,total energy,gnrm    10  -2.85627906101005777E+01  2.33E-03
  ---------------------------------------------------------------------------- iter= 11
  Calculation of charge density... done. Total electronic charge=      13.999998570865
-  Magnetic density orientation:    0.0000    0.0000    0.0000
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  1 ...done.
+  Magnetic density orientation:    0.0000    0.0000   -0.0000
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -1.69E-02  4.91E-02  8.63E-02 -4.72E-01  3.27E-02  1.32E+00 -4.98E-06
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  5.06359922729E+01 -1.94695538464E+01 -3.26709060198E+01
-    ehart,   eexcu,    vexcu  3.84481864217E+01 -6.32617903719E+00 -8.28689916495E+00
- iter,total energy,gnrm    11  -2.85629457137882738E+01  1.11E-03
  Magnetic polarization per orbital
    iorb    m_x       m_y       m_z
      1   0.00000   0.00000   1.00000
@@ -422,16 +419,16 @@
     12   0.00000   0.00000  -1.00000
     13   0.00000   0.00000  -1.00000
     14   0.00000   0.00000  -1.00000
+ ekin_sum,epot_sum,eproj_sum  5.06359922729E+01 -1.94695538464E+01 -3.26709060198E+01
+    ehart,   eexcu,    vexcu  3.84481864217E+01 -6.32617903719E+00 -8.28689916495E+00
+ iter,total energy,gnrm    11  -2.85629457137872080E+01  1.11E-03
  ---------------------------------------------------------------------------- iter= 12
- Calculation of charge density... done. Total electronic charge=      13.999998573260
-  Magnetic density orientation:    0.0000    0.0000    0.0000
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  1 ...done.
+ Calculation of charge density... done. Total electronic charge=      13.999998573261
+  Magnetic density orientation:    0.0000    0.0000   -0.0000
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    3.87E-02  7.52E-02 -5.04E-02 -3.41E-01  1.44E-02  1.26E+00 -1.31E-06
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  5.06145237701E+01 -1.94721368247E+01 -3.26558108110E+01
-    ehart,   eexcu,    vexcu  3.84390897777E+01 -6.32562968407E+00 -8.28617851535E+00
- iter,total energy,gnrm    12  -2.85629766386736748E+01  5.88E-04
  Magnetic polarization per orbital
    iorb    m_x       m_y       m_z
      1   0.00000   0.00000   1.00000
@@ -448,16 +445,16 @@
     12   0.00000   0.00000  -1.00000
     13   0.00000   0.00000  -1.00000
     14   0.00000   0.00000  -1.00000
+ ekin_sum,epot_sum,eproj_sum  5.06145237701E+01 -1.94721368247E+01 -3.26558108110E+01
+    ehart,   eexcu,    vexcu  3.84390897777E+01 -6.32562968407E+00 -8.28617851535E+00
+ iter,total energy,gnrm    12  -2.85629766386737316E+01  5.88E-04
  ---------------------------------------------------------------------------- iter= 13
  Calculation of charge density... done. Total electronic charge=      13.999998573536
   Magnetic density orientation:    0.0000    0.0000    0.0000
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  1 ...done.
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    4.01E-02  6.91E-02 -1.69E-01 -2.69E-01  3.58E-01  9.71E-01 -3.15E-07
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  5.06095166256E+01 -1.94721798282E+01 -3.26522256341E+01
-    ehart,   eexcu,    vexcu  3.84375018423E+01 -6.32523565063E+00 -8.28565824905E+00
- iter,total energy,gnrm    13  -2.85629799072741335E+01  3.30E-04
  Magnetic polarization per orbital
    iorb    m_x       m_y       m_z
      1   0.00000   0.00000   1.00000
@@ -474,52 +471,40 @@
     12   0.00000   0.00000  -1.00000
     13   0.00000   0.00000  -1.00000
     14   0.00000   0.00000  -1.00000
+ ekin_sum,epot_sum,eproj_sum  5.06095166256E+01 -1.94721798282E+01 -3.26522256341E+01
+    ehart,   eexcu,    vexcu  3.84375018423E+01 -6.32523565063E+00 -8.28565824905E+00
+ iter,total energy,gnrm    13  -2.85629799072734372E+01  3.30E-04
  ---------------------------------------------------------------------------- iter= 14
  Calculation of charge density... done. Total electronic charge=      13.999998573558
   Magnetic density orientation:    0.0000    0.0000   -0.0000
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  1 ...done.
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  1 ...done.
  Hamiltonian application... done. 14 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   5.06118452880E+01 -1.94716615113E+01 -3.26537296708E+01
  final ehart, eexcu,  vexcu   3.84389302473E+01 -6.32550179177E+00 -8.28600895110E+00
- FINAL iter,total energy,gnrm    14  -2.85629808087492094E+01  3.30E-04
+ FINAL iter,total energy,gnrm    14  -2.85629808087491739E+01  3.30E-04
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1)= -1.92549967701904E-01
- eval(   2)= -1.92549967701904E-01
- eval(   3)= -1.32126154573897E-01
- eval(   4)= -1.32126154573897E-01
- eval(   5)= -1.32057953589843E-01
- eval(   6)= -1.32057953589843E-01
- eval(   7)= -7.97736612097013E-02
- eval(   8)= -7.97736612097013E-02
- eval(   9)= -7.86194062682403E-02
- eval(  10)= -7.86194062682403E-02
- eval(  11)= -7.14407668611936E-02
- eval(  12)= -7.14407668611936E-02
- eval(  13)= -7.02050368447087E-02
- eval(  14)= -7.02050368447087E-02
- Magnetic polarization per orbital
-   iorb    m_x       m_y       m_z
-     1   0.00000   0.00000   1.00000
-     2   0.00000   0.00000  -1.00000
-     3   0.00000   0.00000   1.00000
-     4   0.00000   0.00000  -1.00000
-     5   0.00000   0.00000   1.00000
-     6   0.00000   0.00000  -1.00000
-     7   0.00000   0.00000   1.00000
-     8   0.00000   0.00000  -1.00000
-     9   0.00000   0.00000   1.00000
-    10   0.00000   0.00000  -1.00000
-    11   0.00000   0.00000  -1.00000
-    12   0.00000   0.00000   1.00000
-    13   0.00000   0.00000   1.00000
-    14   0.00000   0.00000  -1.00000
+            Eigenvalue                                      m_x       m_y       m_z
+ eval(   1)= -1.92549967701901E-01                        0.00000   0.00000   1.00000
+ eval(   2)= -1.92549967701901E-01                        0.00000   0.00000  -1.00000
+ eval(   3)= -1.32126154573888E-01                        0.00000   0.00000   1.00000
+ eval(   4)= -1.32126154573888E-01                        0.00000   0.00000  -1.00000
+ eval(   5)= -1.32057953589841E-01                        0.00000   0.00000   1.00000
+ eval(   6)= -1.32057953589841E-01                        0.00000   0.00000  -1.00000
+ eval(   7)= -7.97736612096950E-02                        0.00000   0.00000   1.00000
+ eval(   8)= -7.97736612096950E-02                        0.00000   0.00000  -1.00000
+ eval(   9)= -7.86194062682369E-02                        0.00000   0.00000   1.00000
+ eval(  10)= -7.86194062682369E-02                        0.00000   0.00000  -1.00000
+ eval(  11)= -7.14407668611899E-02                        0.00000   0.00000  -1.00000
+ eval(  12)= -7.14407668611899E-02                        0.00000   0.00000   1.00000
+ eval(  13)= -7.02050368447050E-02                        0.00000   0.00000   1.00000
+ eval(  14)= -7.02050368447050E-02                        0.00000   0.00000  -1.00000
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=      13.999998573558
- PSolver, free  BC, dimensions:   101  101  125   proc    7   ixc:  0 ...done.
+ PSolver, free  BC, dimensions:   101  101  125   proc    8   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        54.31        54.05
+ CPU time for root process     0       134.32        75.82
  Final values of the Forces for each atom
      1     Mn  4.19191E-04  4.19191E-04  6.12462E-02
      2     Mn  3.74629E-04  3.74629E-04 -5.98938E-02
@@ -528,6 +513,6 @@
       y direction     7.93819988E-04
       z direction     1.35241047E-03
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1665 allocations and 1665 deallocations, remaining memory(B):0
- memory occupation peak: 158 MB
+ 3431 allocations and 3431 deallocations, remaining memory(B):0
+ memory occupation peak: 155 MB
  for the array  psir in the routine HamiltonianApplication

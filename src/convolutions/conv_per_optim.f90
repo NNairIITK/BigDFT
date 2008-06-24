@@ -1,4 +1,7 @@
-subroutine ana_rot_per(right,nt,c,cd_1)
+
+
+
+subroutine ana_rot_per_old(right,nt,c,cd_1)
   !
   !      forward wavelet transform, analysis, periodic
   !
@@ -8,7 +11,7 @@ subroutine ana_rot_per(right,nt,c,cd_1)
   real(wp), dimension(0:right,nt), intent(in) :: c
   real(wp), dimension(nt,0:right), intent(out) :: cd_1
   !local variables
-  character(len=*), parameter :: subname='ana_rot_per'
+  character(len=*), parameter :: subname='ana_rot_per_old'
   integer, parameter :: m=8
   integer :: i_all,i_stat,lenc,len_2,mod_left,mod_right,i,it,i2,it0,j,ji2,il2
   real(wp) :: ci_0,ci_1,ci_2, ci_3,ci_4,ci_5,ci_6,ci_7,ci_8,ci_9,ci_10,ci_11,ci,cgj,chj
@@ -167,15 +170,15 @@ subroutine ana_rot_per(right,nt,c,cd_1)
 
   !        call system_clock(ncount2,ncount_rate,ncount_max)
   !        tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  !        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'ana_rot_per',tel,1.d-6*nflop/tel,nflop
+  !        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'ana_rot_per_old',tel,1.d-6*nflop/tel,nflop
   i_all=-product(shape(mod_my))*kind(mod_my)
   deallocate(mod_my,stat=i_stat) 
   call memocc(i_stat,i_all,'mod_my',subname)
 
-end subroutine ana_rot_per
+end subroutine ana_rot_per_old
 
 
-subroutine syn_rot_per(right1,nt,cd,c1)
+subroutine syn_rot_per_old(right1,nt,cd,c1)
   !
   !     backward wavelet transform, synthesis, periodic
   !
@@ -185,7 +188,7 @@ subroutine syn_rot_per(right1,nt,cd,c1)
   real(wp), dimension(0:right1,nt), intent(in) :: cd
   real(wp), dimension(nt,0:right1), intent(out) :: c1
   !local variables
-  character(len=*), parameter :: subname='syn_rot_per'
+  character(len=*), parameter :: subname='syn_rot_per_old'
   integer, parameter :: m=8
   integer :: i_all,i_stat,lenc,len_2,mod_left,mod_right,i,it,it0,i2,i_j,j,ji2,il2,m_2,i21,i_j2,j2,j21
   real(wp) :: ci2_0,ci2_1,ci2_2, ci2_3,ci2_4,ci2_5,ci2_6,ci2_7,ci2_8,ci2_9,ci2_10,ci2_11,ci2
@@ -351,12 +354,12 @@ subroutine syn_rot_per(right1,nt,cd,c1)
 
   !        call system_clock(ncount2,ncount_rate,ncount_max)
   !        tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  !        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'syn_rot_per',tel,1.d-6*nflop/tel,nflop
+  !        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'syn_rot_per_old',tel,1.d-6*nflop/tel,nflop
   i_all=-product(shape(mod_my))*kind(mod_my)
   deallocate(mod_my,stat=i_stat) 
   call memocc(i_stat,i_all,'mod_my',subname)
 
-end subroutine syn_rot_per
+end subroutine syn_rot_per_old
 
 
 

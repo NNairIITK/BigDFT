@@ -1,4 +1,4 @@
-subroutine ana_rot_per(right,nt,c,cd_1)
+subroutine ana_rot_per_old(right,nt,c,cd_1)
   !
   !      forward wavelet transform, analysis, periodic
   !
@@ -53,11 +53,11 @@ subroutine ana_rot_per(right,nt,c,cd_1)
         cd_1(it,len_2+i)=di
      enddo
   enddo
-  !      ana_rot_per: nt*len_2*2*m*4 flops
+  !      ana_rot_per_old: nt*len_2*2*m*4 flops
 
-end subroutine ana_rot_per
+end subroutine ana_rot_per_old
 
-subroutine syn_rot_per(right1,nt,cd,c1)
+subroutine syn_rot_per_old(right1,nt,cd,c1)
   !
   !     backward wavelet transform, synthesis, periodic
   !
@@ -111,6 +111,7 @@ subroutine syn_rot_per(right1,nt,cd,c1)
         c1(it,2*i+1) = ci21
      enddo
   enddo
-  !       syn_rot_per:  nt*len_2*(2*m_2+1)*8 flops
+  !       syn_rot_per_old:  nt*len_2*(2*m_2+1)*8 flops
 
-end subroutine syn_rot_per
+end subroutine syn_rot_per_old
+

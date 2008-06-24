@@ -198,6 +198,7 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   character(len=3) :: suffix
   character(len=2) :: symbol
   character(len=20) :: tatonam
+  character(len=50) :: extra
   character(len=100) :: line
   logical :: lpsdbl 
   integer :: nateq,iat,jat,ityp,i,ierror,ierrsfx,i_stat,natpol
@@ -213,8 +214,8 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   call memocc(i_stat,at%iatype,'at%iatype',subname)
   allocate(at%lfrztyp(at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,at%lfrztyp,'at%lfrztyp',subname)
-  allocate(at%nspinat(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,at%nspinat,'at%nspinat',subname)
+  allocate(at%natpol(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,at%natpol,'at%natpol',subname)
 
   !controls if the positions are provided with machine precision
   if (units == 'angstroemd0' .or. units== 'atomicd0' .or. units== 'bohrd0') then
@@ -226,8 +227,10 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   !this array is useful for frozen atoms
   !no atom is frozen by default
   at%lfrztyp(:)=.false.
-  !also the spin polarisation is fixed to zero by default
-  at%nspinat(:)=0
+  !also the spin polarisation and the charge are is fixed to zero by default
+  !this corresponds to the value of 100
+  !RULE natpol=charge*1000 + 100 + spinpol
+  at%natpol(:)=100
 
   !read from positions of .xyz format, but accepts also the old .ascii format
   read(ifile,'(a100)')line
@@ -275,57 +278,74 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   at%ntypes=0
   do iat=1,at%nat
      if (ierror == 0) then
+        !old case of ascii file, added for backward compatibility
         if (iat /= 1) read(ifile,*) rx,ry,rz,tatonam
      else
+        !xyz input file, allow extra information
         read(ifile,'(a100)')line 
         if (lpsdbl) then
-           read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,natpol,suffix
+           read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,extra
         else
-           read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,natpol,suffix
+           read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,extra
         end if
         if (ierrsfx ==0) then
-           at%nspinat(iat)=natpol
-           !tatonam=trim(symbol)//'_'//trim(suffix)
-           if (suffix == 'f') then
-              !the atom is considered as blocked
-              at%lfrztyp(iat)=.true.
-           else
-              if (iproc == 0) then
-                 print *,suffix
-                 write(*,'(1x,a,i0,a)')'ERROR in input file for atom number ',&
-                      iat,': the only value accepted in 5th column is "f"'
-                 stop
-              end if
-           end if
+           call parse_extra_info(iproc,iat,extra,at)
         else
            if (lpsdbl) then
-              read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,suffix
+              read(line,*)symbol,rx,ry,rz
            else
-              read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,suffix
-           end if
-           if (ierrsfx ==0) then
-              if (suffix == 'f') then
-                 !the atom is considered as blocked
-                 at%lfrztyp(iat)=.true.
-              else
-                 read(suffix,*,iostat=i_stat)at%nspinat(iat)
-                 if(i_stat /=0) then
-                    if (iproc == 0) then
-                       print *,suffix
-                       write(*,'(1x,a,i0,a)')'ERROR in input file for atom number ',&
-                            iat,': in 4th column you can put the input polarisation or "f"'
-                       stop
-                    end if
-                 end if
-              end if
-           else
-              if (lpsdbl) then
-                 read(line,*)symbol,rx,ry,rz
-              else
-                 read(line,*)symbol,rxd0,ryd0,rzd0
-              end if
+              read(line,*)symbol,rxd0,ryd0,rzd0
            end if
         end if
+        
+!!$        if (lpsdbl) then
+!!$           read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,natpol,suffix
+!!$        else
+!!$           read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,natpol,suffix
+!!$        end if
+!!$        if (ierrsfx ==0) then
+!!$           at%natpol(iat)=natpol
+!!$           !tatonam=trim(symbol)//'_'//trim(suffix)
+!!$           if (suffix == 'f') then
+!!$              !the atom is considered as blocked
+!!$              at%lfrztyp(iat)=.true.
+!!$           else
+!!$              if (iproc == 0) then
+!!$                 print *,suffix
+!!$                 write(*,'(1x,a,i0,a)')'ERROR in input file for atom number ',&
+!!$                      iat,': the only value accepted in 5th column is "f"'
+!!$                 stop
+!!$              end if
+!!$           end if
+!!$        else
+!!$           if (lpsdbl) then
+!!$              read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,suffix
+!!$           else
+!!$              read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,suffix
+!!$           end if
+!!$           if (ierrsfx ==0) then
+!!$              if (suffix == 'f') then
+!!$                 !the atom is considered as blocked
+!!$                 at%lfrztyp(iat)=.true.
+!!$              else
+!!$                 read(suffix,*,iostat=i_stat)at%natpol(iat)
+!!$                 if(i_stat /=0) then
+!!$                    if (iproc == 0) then
+!!$                       print *,suffix
+!!$                       write(*,'(1x,a,i0,a)')'ERROR in input file for atom number ',&
+!!$                            iat,': in 4th column you can put the input polarisation or "f"'
+!!$                       stop
+!!$                    end if
+!!$                 end if
+!!$              end if
+!!$           else
+!!$              if (lpsdbl) then
+!!$                 read(line,*)symbol,rx,ry,rz
+!!$              else
+!!$                 read(line,*)symbol,rxd0,ryd0,rzd0
+!!$              end if
+!!$           end if
+!!$        end if
         tatonam=trim(symbol)
      end if
      if (lpsdbl) then
@@ -423,6 +443,69 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   enddo
 
 end subroutine read_atomic_positions
+
+subroutine parse_extra_info(iproc,iat,extra,at)
+  use module_types
+  implicit none
+  character(len=50), intent(in) :: extra
+  integer, intent(in) :: iat,iproc
+  type(atoms_data), intent(out) :: at
+  !local variables
+  character(len=3) :: suffix
+  integer :: ierr,ierr1,ierr2,nspol,nchrg
+  
+  !case with all the information
+  read(extra,*,iostat=ierr)nspol,nchrg,suffix
+  !case with partial information
+  if (ierr /= 0) then
+     read(extra,*,iostat=ierr1)nspol,suffix
+     if (ierr1 /=0) then
+        if (trim(extra) == 'f') then
+           suffix=trim(extra)
+           nspol=0
+           nchrg=0
+        else
+           read(extra,*,iostat=ierr2)nspol
+           if (ierr2 /=0) then
+              call error
+           end if
+           suffix='   '
+           nchrg=0
+        end if
+     else
+        nchrg=0
+        if (trim(suffix) /= 'f') then
+           read(suffix,*,iostat=ierr2)nchrg
+           if (ierr2 /= 0) then
+              call error
+           else
+              suffix='   '
+           end if
+        end if
+     end if
+  end if
+
+  !now assign the array, following the rule
+  at%natpol(iat)=1000*nchrg+100+nspol
+  
+  if (trim(suffix) == 'f') then
+     !the atom is considered as blocked
+     at%lfrztyp(iat)=.true.
+  end if
+
+contains
+
+ subroutine error
+   if (iproc == 0) then
+      print *,extra
+      write(*,'(1x,a,i0,a)')&
+           'ERROR in input file for atom number ',iat,&
+           ': after 4th column you can put the input polarisation(s) or "f"'
+   end if
+   stop
+ end subroutine error
+  
+end subroutine parse_extra_info
 
 
 ! Fill the arrays occup and spinsgn
@@ -556,6 +639,19 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
 
 end subroutine input_occup
 
+!calculate the charge and the spin polarisation to be placed on a given atom
+!RULE: natpol = c*1000 + 100 + s: charged and polarised atom (charge c, polarisation s)
+subroutine charge_and_spol(natpol,nchrg,nspol)
+  implicit none
+  integer, intent(in) :: natpol
+  integer, intent(out) :: nchrg,nspol
+  !local variables
+
+  nchrg=natpol/1000
+  nspol=natpol-1000*nchrg-100
+
+end subroutine charge_and_spol
+
 !this routine performs also some cross-checks with other variables
 subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
   use module_base
@@ -574,6 +670,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   character(len=27) :: filename
   character(len=50) :: format
   integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp,ispinsum,mxpl
+  integer :: ispol,mxchg,ichg,natpol
   real(kind=8) :: rcov,rprb,ehomo,radfine,tt,minrad
   real(kind=8), dimension(3,3) :: hij
   real(kind=8), dimension(2,2,3) :: offdiagarr
@@ -604,8 +701,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      inquire(file=filename,exist=exists)
      if (.not. exists) then
         if (iproc == 0) write(*,'(1x,a)')&
-             'ERROR: The pseudopotential parameter file "'&
-             //trim(filename)//'" is lacking, exiting...'
+             'ERROR: The pseudopotential parameter file "'//filename//'" is lacking, exiting...'
         stop
      end if
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
@@ -658,285 +754,294 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
                 'unrecognized pspcode: only GTH, HGH & HGH-K pseudos (ABINIT format)'
         end if
         stop
-       end if
-       !see whether the atom is semicore or not
-       call eleconf(at%nzatom(ityp),at%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
-            neleconf,at%iasctype(ityp))
-       !if you want no semicore input guess electrons, uncomment the following line
-       !at%iasctype(ityp)=0
+     end if
+     !see whether the atom is semicore or not
+     call eleconf(at%nzatom(ityp),at%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
+          neleconf,at%iasctype(ityp))
+     !if you want no semicore input guess electrons, uncomment the following line
+     !at%iasctype(ityp)=0
 
-       !here we must check of the input guess polarisation
-       !first of all, control if the values are compatible with the atom configuration
-       !do this for all atoms belonging to a given type
-       !control the maximum polarisation allowed: consider only non-closed shells
-       do iat=1,at%nat
-          if (at%iatype(iat) == ityp) then
-             mxpl=0
-             do l=0,3
-                do i=1,6
-                   if (neleconf(i,l) /= 0 .and. neleconf(i,l) /= 2*(2*l+1)) then
-                      mxpl=mxpl+neleconf(i,l)
-                   end if
-                end do
-             end do
-             if (abs(at%nspinat(iat)) > mxpl) then
-                if (iproc ==0) write(*,'(1x,a,i0,a,a,2(a,i0))')&
-                     'ERROR: Input polarisation of atom No.',iat,&
-                     ' (',trim(at%atomnames(ityp)),') must be <=',mxpl,&
-                     ', while found ',at%nspinat(iat)
-                stop
-             end if
-          end if
-       end do
+     !here we must check of the input guess polarisation
+     !control if the values are compatible with the atom configuration
+     !do this for all atoms belonging to a given type
+     !control the maximum polarisation allowed: consider only non-closed shells   
 
-       !old way of calculating the radii, requires modification of the PSP files
-       read(11,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)!here we add the coarse radius for proj.
-       if (ierror.eq.0) then
-          if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
-               trim(at%atomnames(ityp)),at%nelpsp(ityp),at%npspcode(ityp),&
-               radii_cf(ityp,1),radii_cf(ityp,2),&
-               '                   X    '
-       else
-          !assigning the radii by calculating physical parameters
-          radii_cf(ityp,1)=1.d0/sqrt(abs(2.d0*ehomo))
-          radfine=100.d0
-          do i=0,4
-             if (at%psppar(i,0,ityp)/=0.d0) then
-                radfine=min(radfine,at%psppar(i,0,ityp))
-             end if
-          end do
-          radii_cf(ityp,2)=radfine
-          if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
-               trim(at%atomnames(ityp)),at%nelpsp(ityp),at%npspcode(ityp),&
-               radii_cf(ityp,1),radii_cf(ityp,2),&
-               '       X                '
-       end if
-       close(11)
-       !control the hardest gaussian
-       minrad=1.d10
-       do i=0,4
-          if (at%psppar(i,0,ityp)/=0.d0) then
-             minrad=min(minrad,at%psppar(i,0,ityp))
-          end if
-       end do
-       !control whether the grid spacing is too high or not
-       if (iproc == 0 .and. in%hgrid > 2.5d0*minrad) then
-          write(*,'(1x,a)')&
-               'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
-          write(*,'(1x,a,f5.2,a)')&
-               '         Results can be meaningless if hgrid is bigger than',2.5d0*minrad,&
-               '. At your own risk!'
-       end if
-
-    enddo
-
-    !print the pseudopotential matrices
-    if (iproc == 0) then
-       do l=1,3
-          do i=1,2
-             do j=i+1,3
-                  offdiagarr(i,j-i,l)=0.d0
-                if (l==1) then
-                   if (i==1) then
-                      if (j==2)   offdiagarr(i,j-i,l)=-0.5d0*sqrt(3.d0/5.d0)
-                      if (j==3)   offdiagarr(i,j-i,l)=0.5d0*sqrt(5.d0/21.d0)
-                   else
-                        offdiagarr(i,j-i,l)=-0.5d0*sqrt(100.d0/63.d0)
-                   end if
-                else if (l==2) then
-                   if (i==1) then
-                      if (j==2)   offdiagarr(i,j-i,l)=-0.5d0*sqrt(5.d0/7.d0)
-                      if (j==3)   offdiagarr(i,j-i,l)=1.d0/6.d0*sqrt(35.d0/11.d0)
-                   else
-                        offdiagarr(i,j-i,l)=-7.d0/3.d0*sqrt(1.d0/11.d0)
-                   end if
-                else if (l==3) then
-                   if (i==1) then
-                      if (j==2)   offdiagarr(i,j-i,l)=-0.5d0*sqrt(7.d0/9.d0)
-                      if (j==3)   offdiagarr(i,j-i,l)=0.5d0*sqrt(63.d0/143.d0)
-                   else
-                        offdiagarr(i,j-i,l)=-9.d0*sqrt(1.d0/143.d0)
-                   end if
-                end if
-             end do
-          end do
-       end do
-
-       write(*,'(1x,a)')&
-            '------------------------------------ Pseudopotential coefficients (Upper Triangular)'
-        do ityp=1,at%ntypes
-        write(*,'(1x,a)')&
-          'Atom Name    rloc      C1        C2        C3        C4  '
+     do iat=1,at%nat
+        if (at%iatype(iat) == ityp) then
+           !modify the electronic shells according to the charge placed on the atom
+           mxpl=0
+           mxchg=0
            do l=0,3
-              if (l==0) then
-                 do i=4,0,-1
-                    j=i
-                    if (at%psppar(l,i,ityp) /= 0.d0) exit
-                 end do
-                 write(*,'(3x,a6,5(1x,f9.5))')&
-                      trim(at%atomnames(ityp)),(at%psppar(l,i,ityp),i=0,j)
-              else
-                 do i=3,0,-1
-                    j=i
-                    if (at%psppar(l,i,ityp) /= 0.d0) exit
-                 end do
-                 if (j /=0) then
-                    write(*,'(1x,a,i0,a)')&
-                         '    l=',l-1,' '//'     rl        h1j       h2j       h3j '
-                    hij=0.d0
-                    do i=1,j
-                       hij(i,i)=at%psppar(l,i,ityp)
-                    end do
-                    if (at%npspcode(ityp) == 3) then !traditional HGH convention
-                       hij(1,2)=offdiagarr(1,1,l)*at%psppar(l,2,ityp)
-                       hij(1,3)=offdiagarr(1,2,l)*at%psppar(l,3,ityp)
-                       hij(2,3)=offdiagarr(2,1,l)*at%psppar(l,3,ityp)
-                    else if (at%npspcode(ityp) == 10) then !HGH-K convention
-                       hij(1,2)=at%psppar(l,4,ityp)
-                       hij(1,3)=at%psppar(l,5,ityp)
-                       hij(2,3)=at%psppar(l,6,ityp)
-                    end if
-                    do i=1,j
-                       if (i==1) then
-                          write(format,'(a,2(i0,a))')"(9x,(1x,f9.5),",j,"(1x,f9.5))"
-                          write(*,format)at%psppar(l,0,ityp),(hij(i,k),k=i,j)
-                       else
-                          write(format,'(a,2(i0,a))')"(19x,",i-1,"(10x),",j-i+1,"(1x,f9.5))"
-                          write(*,format)(hij(i,k),k=i,j)
-                       end if
+              do i=1,6
+                 if (neleconf(i,l) /= 0 .and. neleconf(i,l) /= 2*(2*l+1)) then
+                    mxpl=mxpl+neleconf(i,l)
+                 end if
+              end do
+           end do
+           call charge_and_spol(at%natpol(iat),ichg,ispol)
+           if (abs(ispol) > mxpl) then
+              if (iproc ==0) write(*,'(1x,a,i0,a,a,2(a,i0))')&
+                   'ERROR: Input polarisation of atom No.',iat,&
+                   ' (',trim(at%atomnames(ityp)),') must be <=',mxpl,&
+                   ', while found ',ispol
+              stop
+           end if
+        end if
+     end do
 
-                    end do
+     !old way of calculating the radii, requires modification of the PSP files
+     read(11,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)!here we must add 
+     !the coarse radius for proj.
+     if (ierror.eq.0) then
+        if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
+             trim(at%atomnames(ityp)),at%nelpsp(ityp),at%npspcode(ityp),&
+             radii_cf(ityp,1),radii_cf(ityp,2),&
+             '                   X    '
+     else
+        !assigning the radii by calculating physical parameters
+        radii_cf(ityp,1)=1.d0/sqrt(abs(2.d0*ehomo))
+        radfine=100.d0
+        do i=0,4
+           if (at%psppar(i,0,ityp)/=0.d0) then
+              radfine=min(radfine,at%psppar(i,0,ityp))
+           end if
+        end do
+        radii_cf(ityp,2)=radfine
+        if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
+             trim(at%atomnames(ityp)),at%nelpsp(ityp),at%npspcode(ityp),&
+             radii_cf(ityp,1),radii_cf(ityp,2),&
+             '       X                '
+     end if
+     close(11)
+     !control the hardest gaussian
+     minrad=1.d10
+     do i=0,4
+        if (at%psppar(i,0,ityp)/=0.d0) then
+           minrad=min(minrad,at%psppar(i,0,ityp))
+        end if
+     end do
+     !control whether the grid spacing is too high or not
+     if (iproc == 0 .and. in%hgrid > 2.5d0*minrad) then
+        write(*,'(1x,a)')&
+             'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
+        write(*,'(1x,a,f5.2,a)')&
+             '         Results can be meaningless if hgrid is bigger than',2.5d0*minrad,&
+             '. At your own risk!'
+     end if
+
+  enddo
+
+  !print the pseudopotential matrices
+  if (iproc == 0) then
+     do l=1,3
+        do i=1,2
+           do j=i+1,3
+              offdiagarr(i,j-i,l)=0.d0
+              if (l==1) then
+                 if (i==1) then
+                    if (j==2)   offdiagarr(i,j-i,l)=-0.5d0*sqrt(3.d0/5.d0)
+                    if (j==3)   offdiagarr(i,j-i,l)=0.5d0*sqrt(5.d0/21.d0)
+                 else
+                    offdiagarr(i,j-i,l)=-0.5d0*sqrt(100.d0/63.d0)
+                 end if
+              else if (l==2) then
+                 if (i==1) then
+                    if (j==2)   offdiagarr(i,j-i,l)=-0.5d0*sqrt(5.d0/7.d0)
+                    if (j==3)   offdiagarr(i,j-i,l)=1.d0/6.d0*sqrt(35.d0/11.d0)
+                 else
+                    offdiagarr(i,j-i,l)=-7.d0/3.d0*sqrt(1.d0/11.d0)
+                 end if
+              else if (l==3) then
+                 if (i==1) then
+                    if (j==2)   offdiagarr(i,j-i,l)=-0.5d0*sqrt(7.d0/9.d0)
+                    if (j==3)   offdiagarr(i,j-i,l)=0.5d0*sqrt(63.d0/143.d0)
+                 else
+                    offdiagarr(i,j-i,l)=-9.d0*sqrt(1.d0/143.d0)
                  end if
               end if
            end do
         end do
+     end do
+
+     write(*,'(1x,a)')&
+          '------------------------------------ Pseudopotential coefficients (Upper Triangular)'
+     do ityp=1,at%ntypes
+        write(*,'(1x,a)')&
+             'Atom Name    rloc      C1        C2        C3        C4  '
+        do l=0,3
+           if (l==0) then
+              do i=4,0,-1
+                 j=i
+                 if (at%psppar(l,i,ityp) /= 0.d0) exit
+              end do
+              write(*,'(3x,a6,5(1x,f9.5))')&
+                   trim(at%atomnames(ityp)),(at%psppar(l,i,ityp),i=0,j)
+           else
+              do i=3,0,-1
+                 j=i
+                 if (at%psppar(l,i,ityp) /= 0.d0) exit
+              end do
+              if (j /=0) then
+                 write(*,'(1x,a,i0,a)')&
+                      '    l=',l-1,' '//'     rl        h1j       h2j       h3j '
+                 hij=0.d0
+                 do i=1,j
+                    hij(i,i)=at%psppar(l,i,ityp)
+                 end do
+                 if (at%npspcode(ityp) == 3) then !traditional HGH convention
+                    hij(1,2)=offdiagarr(1,1,l)*at%psppar(l,2,ityp)
+                    hij(1,3)=offdiagarr(1,2,l)*at%psppar(l,3,ityp)
+                    hij(2,3)=offdiagarr(2,1,l)*at%psppar(l,3,ityp)
+                 else if (at%npspcode(ityp) == 10) then !HGH-K convention
+                    hij(1,2)=at%psppar(l,4,ityp)
+                    hij(1,3)=at%psppar(l,5,ityp)
+                    hij(2,3)=at%psppar(l,6,ityp)
+                 end if
+                 do i=1,j
+                    if (i==1) then
+                       write(format,'(a,2(i0,a))')"(9x,(1x,f9.5),",j,"(1x,f9.5))"
+                       write(*,format)at%psppar(l,0,ityp),(hij(i,k),k=i,j)
+                    else
+                       write(format,'(a,2(i0,a))')"(19x,",i-1,"(10x),",j-i+1,"(1x,f9.5))"
+                       write(*,format)(hij(i,k),k=i,j)
+                    end if
+
+                 end do
+              end if
+           end if
+        end do
+     end do
+  end if
+
+  !calculate number of electrons and orbitals
+  ! Number of electrons and number of semicore atoms
+  nelec=0
+  at%natsc=0
+  do iat=1,at%nat
+     ityp=at%iatype(iat)
+     nelec=nelec+at%nelpsp(ityp)
+     if (at%iasctype(ityp) /= 0) at%natsc=at%natsc+1
+  enddo
+  nelec=nelec-in%ncharge
+  if (iproc.eq.0) then
+     write(*,'(1x,a,i8)') &
+          'Total Number of Electrons ',nelec
+  end if
+
+  ! Number of orbitals
+  if (in%nspin==1) then
+     norb=(nelec+1)/2
+     norbu=norb
+     norbd=0
+     if (mod(nelec,2).ne.0 .and. iproc==0) then
+        write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
      end if
-     
-    !calculate number of electrons and orbitals
-    ! Number of electrons and number of semicore atoms
-    nelec=0
-    at%natsc=0
-    do iat=1,at%nat
-       ityp=at%iatype(iat)
-       nelec=nelec+at%nelpsp(ityp)
-       if (at%iasctype(ityp) /= 0) at%natsc=at%natsc+1
-    enddo
-    nelec=nelec-in%ncharge
-    if (iproc.eq.0) then
-       write(*,'(1x,a,i8)') &
-            'Total Number of Electrons ',nelec
-    end if
+     !    else if(in%nspin==4) then
+     !       if (iproc==0) write(*,'(1x,a)') 'Spin-polarized non-collinear calculation'
+     !       norb=nelec
+     !       norbu=norb
+     !       norbd=0
+  else 
+     if (iproc==0) write(*,'(1x,a)') 'Spin-polarized calculation'
+     norb=nelec
+     norbu=min(norb/2+in%mpol,norb)
+     norbd=norb-norbu
 
-    ! Number of orbitals
-    if (in%nspin==1) then
-       norb=(nelec+1)/2
-       norbu=norb
-       norbd=0
-       if (mod(nelec,2).ne.0 .and. iproc==0) then
-          write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
-       end if
-!    else if(in%nspin==4) then
-!       if (iproc==0) write(*,'(1x,a)') 'Spin-polarized non-collinear calculation'
-!       norb=nelec
-!       norbu=norb
-!       norbd=0
-    else 
-       if (iproc==0) write(*,'(1x,a)') 'Spin-polarized calculation'
-       norb=nelec
-       norbu=min(norb/2+in%mpol,norb)
-       norbd=norb-norbu
+     !test if the spin is compatible with the input guess polarisations
+     ispinsum=0
+     do iat=1,at%nat
+        call charge_and_spol(at%natpol(iat),ichg,ispol)
+        ispinsum=ispinsum+ispol
+     end do
 
-       !test if the spin is compatible with the input guess polarisations
-       ispinsum=0
-       do iat=1,at%nat
-          ispinsum=ispinsum+at%nspinat(iat)
-       end do
-       if (in%nspin == 2 .and. ispinsum /= norbu-norbd) then
-          if (iproc==0) then 
-             write(*,'(1x,a,i0,a)')&
-                  'ERROR: Total input polarisation (found ',ispinsum,&
-                  ') must be equal to norbu-norbd.'
-             write(*,'(1x,3(a,i0))')&
-                  'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
-          end if
-          stop
-       end if
+     if (in%nspin == 2 .and. ispinsum /= norbu-norbd) then
+        if (iproc==0) then 
+           write(*,'(1x,a,i0,a)')&
+                'ERROR: Total input polarisation (found ',ispinsum,&
+                ') must be equal to norbu-norbd.'
+           write(*,'(1x,3(a,i0))')&
+                'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
+        end if
+        stop
+     end if
 
-       !now warn if there is no input guess spin polarisation
-       ispinsum=0
-       do iat=1,at%nat
-          ispinsum=ispinsum+abs(at%nspinat(iat))
-       end do
-       if (ispinsum == 0 .and. in%nspin==2) then
-          if (iproc==0) write(*,'(1x,a)')&
-               'WARNING: Found no input polarisation, add it for a correct input guess'
-          !stop
-       end if
-    end if
-    
+     !now warn if there is no input guess spin polarisation
+     ispinsum=0
+     do iat=1,at%nat
+        call charge_and_spol(at%natpol(iat),ichg,ispol)
+        ispinsum=ispinsum+abs(ispol)
+     end do
+     if (ispinsum == 0 .and. in%nspin==2) then
+        if (iproc==0) write(*,'(1x,a)')&
+             'WARNING: Found no input polarisation, add it for a correct input guess'
+        !stop
+     end if
 
-    ! Test if the file 'occup.dat exists
-    inquire(file='occup.dat',exist=exists)
-    iunit=0
-    if (exists) then
-       iunit=25
-       open(unit=iunit,file='occup.dat',form='formatted',action='read',status='old')
-       if (in%nspin==1) then
-           !The first line gives the number of orbitals
-           read(unit=iunit,fmt=*,iostat=ierror) nt
-       else
-          !The first line gives the number of orbitals
-           read(unit=iunit,fmt=*,iostat=ierror) ntu,ntd
-       end if
-       if (ierror /=0) then
-          if (iproc==0) write(*,'(1x,a)') &
-               'ERROR: reading the number of orbitals in the file "occup.dat"'
-          stop
-       end if
-       !Check
-       if (in%nspin==1) then
-          if (nt<norb) then
-              if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
-                  'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
-                  ' should be greater or equal than (nelec+1)/2=',norb
-             stop
-          else
-             norb=nt
-             norbu=norb
-             norbd=0
-          end if
-       else
-          nt=ntu+ntd
-          if (nt<norb) then
-              if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
-                  'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
-                  ' should be greater or equal than nelec=',norb
-             stop
-          else
-             norb=nt
-          end if
-          if (ntu<norbu) then
-              if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
-                  'ERROR: In the file "occup.dat", the number of orbitals up norbu=',ntu,&
-                  ' should be greater or equal than min(nelec/2+mpol,nelec)=',norbu
-             stop
-          else
-             norbu=ntu
-          end if
-          if (ntd<norbd) then
-              if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
-              'ERROR: In the file "occup.dat", the number of orbitals down norbd=',ntd,&
-                  ' should be greater or equal than min(nelec/2-mpol,0)=',norbd
-             stop
-          else
-             norbd=ntd
-          end if
-       end if
-    end if
+  end if
 
-    tt=dble(norb)/dble(nproc)
-    norbp=int((1.d0-eps_mach*tt) + tt)
-    !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
+
+  ! Test if the file 'occup.dat exists
+  inquire(file='occup.dat',exist=exists)
+  iunit=0
+  if (exists) then
+     iunit=25
+     open(unit=iunit,file='occup.dat',form='formatted',action='read',status='old')
+     if (in%nspin==1) then
+        !The first line gives the number of orbitals
+        read(unit=iunit,fmt=*,iostat=ierror) nt
+     else
+        !The first line gives the number of orbitals
+        read(unit=iunit,fmt=*,iostat=ierror) ntu,ntd
+     end if
+     if (ierror /=0) then
+        if (iproc==0) write(*,'(1x,a)') &
+             'ERROR: reading the number of orbitals in the file "occup.dat"'
+        stop
+     end if
+     !Check
+     if (in%nspin==1) then
+        if (nt<norb) then
+           if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
+                'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
+                ' should be greater or equal than (nelec+1)/2=',norb
+           stop
+        else
+           norb=nt
+           norbu=norb
+           norbd=0
+        end if
+     else
+        nt=ntu+ntd
+        if (nt<norb) then
+           if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
+                'ERROR: In the file "occup.dat", the number of orbitals norb=',nt,&
+                ' should be greater or equal than nelec=',norb
+           stop
+        else
+           norb=nt
+        end if
+        if (ntu<norbu) then
+           if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
+                'ERROR: In the file "occup.dat", the number of orbitals up norbu=',ntu,&
+                ' should be greater or equal than min(nelec/2+mpol,nelec)=',norbu
+           stop
+        else
+           norbu=ntu
+        end if
+        if (ntd<norbd) then
+           if (iproc==0) write(*,'(1x,a,i0,a,i0)') &
+                'ERROR: In the file "occup.dat", the number of orbitals down norbd=',ntd,&
+                ' should be greater or equal than min(nelec/2-mpol,0)=',norbd
+           stop
+        else
+           norbd=ntd
+        end if
+     end if
+  end if
+
+  tt=dble(norb)/dble(nproc)
+  norbp=int((1.d0-eps_mach*tt) + tt)
+  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
 
 end subroutine read_system_variables
 
