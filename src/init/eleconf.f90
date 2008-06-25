@@ -1503,7 +1503,7 @@ subroutine correct_semicore(symbol,nmax,lmax,ichg,neleconf,nsccode)
      !place the charge on the atom starting from the non closed shells
      do i=nmax,1,-1
         do l=lmax,0,-1
-           if (neleconf(i,l) /= 2*(2*l+1)) then
+           if (neleconf(i,l) /= 2*(2*l+1) .and. neleconf(i,l) /= 0) then
               ichgp=min(neleconf(i,l),nchgres)
               nchgres=nchgres-ichgp
               neleconf(i,l)=neleconf(i,l)-ichgp
@@ -1521,7 +1521,7 @@ subroutine correct_semicore(symbol,nmax,lmax,ichg,neleconf,nsccode)
         do l=lmax,0,-1
            if (neleconf(i,l) /= 0) then
               ichgp=min(2*(2*l+1)-neleconf(i,l),-nchgres)
-              nchgres=nchgres-ichgp
+              nchgres=nchgres+ichgp
               neleconf(i,l)=neleconf(i,l)+ichgp
            end if
         end do
@@ -1537,8 +1537,9 @@ subroutine correct_semicore(symbol,nmax,lmax,ichg,neleconf,nsccode)
   isccode=nsccode
   do l=lmax,0,-1
      !control whether it is already semicore
-     itmp=isccode/(lmax**l)
-     isccode=isccode-itmp*lmax**l
+     itmp=isccode/((lmax+1)**l)
+     isccode=isccode-itmp*((lmax+1)**l)
+     !print *,'symbol',symbol,l,itmp,isccode,itmp*(lmax**l)
      do i=1,nmax
         if (neleconf(i,l) == 2*(2*l+1)) then
            if (itmp==1) then

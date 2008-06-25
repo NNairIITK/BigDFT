@@ -172,7 +172,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
 
         norbsc_arr(iatsc,1)=iorbsc_count
         norbsc=norbsc+iorbsc_count
-        !if (iproc == 0) print *,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
+        !if (iproc == 0) print *,iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
      end if
   end do
 
@@ -189,45 +189,45 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
 
 END SUBROUTINE readAtomicOrbitals
 
-subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
-     & nat,rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
-     & nvctr_c,nvctr_f,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nseg_c,nseg_f,&
-     & keyg,keyv,iatype,ntypes,iasctype,natsc,natpol,nspin,psi,eks,scorb)
+subroutine createAtomicOrbitals(geocode,iproc,nproc,at,&
+     rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
+     wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,psi,eks,scorb)
   use module_base
+  use module_types
   implicit none
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: nat,norbe,norbep,ngx,iproc,nproc
-  integer, intent(in) :: nvctr_c,nvctr_f,n1,n2,n3,nseg_c,nseg_f
-  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ntypes
-  integer, intent(in) :: norbsc,natsc,nspin
+  integer, intent(in) :: norbe,norbep,ngx,iproc,nproc,n1,n2,n3
+  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: norbsc,nspin
   real(gp), intent(in) :: hx,hy,hz
-  character(len=20), dimension(ntypes), intent(in) :: atomnames
-  logical, dimension(4,2,natsc), intent(in) :: scorb
-  integer, dimension(ntypes), intent(in) :: iasctype
-  integer, dimension(nat), intent(in) :: iatype,natpol
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  real(gp), dimension(3,nat), intent(in) :: rxyz
-  integer, dimension(ntypes), intent(inout) :: ng
-  integer, dimension(4,ntypes), intent(inout) :: nl
-  real(gp), dimension(ngx,ntypes), intent(inout) :: xp
-  real(gp), dimension(5,ntypes), intent(inout) :: occupat
-  real(gp), dimension(ngx,5,ntypes), intent(inout) :: psiat
+  type(atoms_data), intent(in) :: at
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  logical, dimension(4,2,at%natsc), intent(in) :: scorb
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  integer, dimension(at%ntypes), intent(inout) :: ng
+  integer, dimension(4,at%ntypes), intent(inout) :: nl
+  real(gp), dimension(ngx,at%ntypes), intent(inout) :: xp
+  real(gp), dimension(5,at%ntypes), intent(inout) :: occupat
+  real(gp), dimension(ngx,5,at%ntypes), intent(inout) :: psiat
   real(gp), intent(out) :: eks
   real(gp), dimension(nspin*norbe), intent(out) :: occupe
-  real(wp), dimension(nvctr_c+7*nvctr_f,norbep), intent(out) :: psi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbep), intent(out) :: psi
   !local variables
   character(len=*), parameter :: subname= 'createAtomicOrbitals'
-  integer, parameter :: nterm_max=3,noccmax=2,nlmax=4
+  integer, parameter :: nterm_max=3,noccmax=2,nlmax=4,nlevmax=6
+  character(len=2) :: symbol
   logical :: myorbital,polarised
-  integer :: iatsc,i_all,i_stat,ispin,ipolres,ipolorb,ichg
-  integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,nterm
+  integer :: iatsc,i_all,i_stat,ispin,ipolres,ipolorb,ichg,nsccode,mxpl,mxchg
+  integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,nterm,iocc,ictotpsi
   real(wp) :: scprw
   real(dp) :: scpr
-  real(gp) :: rx,ry,rz,ek,occshell
+  real(gp) :: rx,ry,rz,ek,occshell,rcov,rprb,ehomo,shelloccup
   logical, dimension(nlmax,noccmax) :: semicore
   integer, dimension(2) :: iorbsc,iorbv
+  integer, dimension(nlevmax,0:(nlmax-1)) :: neleconf
   integer, dimension(nterm_max) :: lx,ly,lz
+  integer, dimension(nlmax) :: nlat
+  real(gp), dimension(5) :: occupatat
   real(gp), dimension(nterm_max) :: fac_arr
   real(gp), dimension(:), allocatable :: psiatn
 
@@ -245,26 +245,48 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
   iorbsc(2)=norbe
   iorbv(2)=norbsc+norbe
 
-
   if (iproc ==0) then
      write(*,'(1x,a)',advance='no')'Calculating AIO wavefunctions...'
   end if
 
-  do iat=1,nat
+  do iat=1,at%nat
 
      rx=rxyz(1,iat)
      ry=rxyz(2,iat)
      rz=rxyz(3,iat)
 
-     ity=iatype(iat)
+     ity=at%iatype(iat)
 
-     !here we can evaluate whether the atom has semicore orbitals and with
-     !which value(s) of l
+     !copy the nls and the occupation numbers
+     nlat(:)=nl(:,ity)
+     occupatat(:)=occupat(:,ity)
 
-     !HERE WE MUST CORRECT THE SEMICORE FOR THE CHARGED aTOMS
-     !then shift occupat by the charged value
+     !calculate the charge to be placed on an atom then correct
+     !the semicore value if it is the case
+     call charge_and_spol(at%natpol(iat),ichg,ipolres)
+     nsccode=at%iasctype(ity)
+     if (ichg /=0) then
+        call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
+             neleconf,nsccode,mxpl,mxchg)
+        call correct_semicore(at%atomnames(ity),nlevmax,nlmax-1,ichg,neleconf,nsccode)
+        !we should then correct the occupatat and the nlat arrays for this atom
+        iocc=0
+        do l=0,nlmax-1
+           inl=0
+           do i=1,nlevmax
+              if (neleconf(i,l) > 0) then
+                 iocc=iocc+1
+                 inl=inl+1
+                 if (inl > noccmax) stop 'iguess_generator: noccmax too small'
+                 occupatat(iocc)=real(neleconf(i,l),gp)
+              endif
+           end do
+           nlat(l+1)=inl
+        end do
+     end if
 
-     if (iasctype(ity)/=0) then !the atom has some semicore orbitals
+     !the scorb array was already corrected in readAtomicOrbitals routine
+     if (nsccode/=0) then !the atom has some semicore orbitals
         iatsc=iatsc+1
         semicore(:,:)=scorb(:,:,iatsc)
      else
@@ -273,44 +295,44 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
 
      !calculate the atomic input orbitals
      ictot=0
+     ictotpsi=0
      nctot=nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity)
      if (iorbsc(1)+nctot > norbe .and. iorbv(1)+nctot > norbe) then
-        print *,'transgpw occupe',nl(:,ity),norbe
+        print *,'transgpw occupe',nlat(:),norbe
         stop
      end if
      polarised=.false.
-     call charge_and_spol(natpol(iat),ichg,ipolres)
      do l=1,4
         do inl=1,nl(l,ity)
+           ictotpsi=ictotpsi+1
            ictot=ictot+1
+           !this can happen if we charge an atom such that an occupied shell disappears
+           shelloccup=occupatat(ictot)
+           if (inl > nlat(l)) then
+              shelloccup=0.0_gp
+              ictot=ictot-1
+           end if
            !contribution to the kinetic energy given by the electrons in this shell
-           call atomkin(l-1,ng(ity),xp(1,ity),psiat(1,ictot,ity),psiatn,ek)
-           eks=eks+ek*occupat(ictot,ity)
-           if (nint(occupat(ictot,ity)) /=  2*(2*l-1) ) then
+           call atomkin(l-1,ng(ity),xp(1,ity),psiat(1,ictotpsi,ity),psiatn,ek)
+           eks=eks+ek*shelloccup
+           if (nint(shelloccup) /=  2*(2*l-1) ) then
               !this is a polarisable orbital
-!!$              if (polarised) then
-!!$                 if (iproc == 0) then
-!!$                    write(*,'(1x,a)')&
-!!$                         'ERROR: only one polarisable orbital is allowed, check electronic configuration'
-!!$                    stop
-!!$                 end if
-!!$              end if
               polarised=.true.
               !assuming that the control of the allowed polarisation is already done
-              ipolorb=min(ipolres,int(occupat(ictot,ity)))
+              ipolorb=min(ipolres,int(shelloccup))
               ipolres=ipolres-ipolorb
               !this check can be inserted also elsewhere
               if (ipolres < 0) then
                  if(iproc==0) write(*,'(1x,4(a,i0))')&
                       'Too high polarisation for atom number= ',iat,&
-                      ' Inserted=',modulo(natpol(iat),1000)-100,' Assigned=',ipolorb,&
-                      ' the maximum is=',nint(occupat(ictot,ity))
+                      ' Inserted=',modulo(at%natpol(iat),1000)-100,' Assigned=',ipolorb,&
+                      ' the maximum is=',nint(shelloccup)
                  stop
               end if
 
            else
               !check for odd values of the occupation number
-              if (mod(nint(occupat(ictot,ity)),2) /= 0) then
+              if (mod(nint(shelloccup),2) /= 0) then
                  if (iproc == 0) write(*,'(1x,a)')&
                       'The occupation number in the case of closed shells must be even'
                  stop
@@ -325,14 +347,14 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
                  !print *,'iproc, SEMICORE orbital, iat,l',iproc,iat,l
                  !the occupation number is divided by two in the case of spin polarisation
                  if (nspin==2) then
-                    occshell=0.5_gp*occupat(ictot,ity)
+                    occshell=0.5_gp*shelloccup
                  else
-                    occshell=occupat(ictot,ity)
+                    occshell=shelloccup
                  end if
               else
                  !normal case, the orbital is a valence orbital
                  iorb=iorbv(ispin)
-                 occshell=occupat(ictot,ity)                 
+                 occshell=shelloccup                 
                  if (nspin==2) then
                     if (polarised) then
                        occshell=0.5_gp*(occshell+real(1-2*(ispin-1),gp)*ipolorb)
@@ -352,17 +374,17 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
                     call crtonewave(geocode,n1,n2,n3,ng(ity),nterm,lx,ly,lz,fac_arr,&
                          xp(1,ity),psiatn,rx,ry,rz,hx,hy,hz, & 
                          0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-                         nseg_c,nvctr_c,keyg(1,1),keyv(1),nseg_f,nvctr_f,&
-                         keyg(1,nseg_c+1),keyv(nseg_c+1),&
-                         psi(1,jorb),psi(nvctr_c+1,jorb))
+                         wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),wfd%nseg_f,wfd%nvctr_f,&
+                         wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
+                         psi(1,jorb),psi(wfd%nvctr_c+1,jorb))
                     !renormalise wavefunction in case of too crude box
-                    call wnrm(nvctr_c,nvctr_f,psi(1,jorb),psi(nvctr_c+1,jorb),scpr) 
+                    call wnrm(wfd%nvctr_c,wfd%nvctr_f,psi(1,jorb),psi(wfd%nvctr_c+1,jorb),scpr) 
                     !in the periodic case the function is not always normalised
                     !write(*,'(1x,a24,a7,2(a3,i1),a16,i4,i4,1x,1pe14.7)')&
                     !     'ATOMIC INPUT ORBITAL for atom',trim(atomnames(ity)),&
                     !     'l=',l,'m=',m,'iorb,jorb,norm',iorb,jorb,scpr 
                     scprw=real(1.0_dp/sqrt(scpr),wp)
-                    call wscal(nvctr_c,nvctr_f,scprw,psi(1,jorb),psi(nvctr_c+1,jorb))
+                    call wscal(wfd%nvctr_c,wfd%nvctr_f,scprw,psi(1,jorb),psi(wfd%nvctr_c+1,jorb))
                     !call wnrm(nvctr_c,nvctr_f,psi(1,jorb),psi(nvctr_c+1,jorb),scpr) 
                     !print *,'newnorm', scpr,occupe(iorb),occshell,ictot
                  endif
@@ -378,17 +400,18 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,atomnames,&
         end do
      end do
      
-     if (ictot /= nctot) stop 'createAtomic orbitals: error (nctot)'
+     if (ictotpsi /= nctot) stop 'createAtomic orbitals: error (nctot)'
 
   end do
   if (iorbsc(1) /= norbsc) then
+     print *,iorbsc(1),norbsc
      stop 'createAtomic orbitals: error (iorbsc)'
   end if
-  if (iorbv(1) /= norbe) stop 'createAtomic orbitals: error (iorbv)'
-  if (iatsc /= natsc) stop 'createAtomic orbitals: error (iatsc)'
+  if (iorbv(1)/= norbe) stop 'createAtomic orbitals: error (iorbv)'
+  if (iatsc /= at%natsc) stop 'createAtomic orbitals: error (iatsc)'
 
   if (nspin==2) then
-     if (iorbsc(2) /= norbsc+norbe) stop 'createAtomic orbitals: error (iorbsc) nspin=2'
+     if (iorbsc(2)/= norbsc+norbe) stop 'createAtomic orbitals: error (iorbsc) nspin=2'
      if (iorbv(2) /= 2*norbe) stop 'createAtomic orbitals: error (iorbv) nspin=2'
   end if
 

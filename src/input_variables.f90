@@ -71,7 +71,7 @@ subroutine read_input_variables(iproc,in)
   read(line,*,iostat=ierrfrc) in%frac_fluct,in%forcemax
   if (ierrfrc /= 0) then
      read(line,*,iostat=ierror) in%frac_fluct
-     in%forcemax=0.d0
+     in%forcemax=0.0_gp
   end if
   read(1,*,iostat=ierror) in%randdis
   read(1,*,iostat=ierror) in%betax
@@ -80,12 +80,15 @@ subroutine read_input_variables(iproc,in)
   read(1,*,iostat=ierror) frmult
   read(1,*,iostat=ierror) cpmult
   read(1,*,iostat=ierror) fpmult
-  in%hgrid  = real(hgrid,kind=8)
-  in%crmult = real(crmult,kind=8)
-  in%frmult = real(frmult,kind=8)
-  in%cpmult = real(cpmult,kind=8)
-  in%fpmult = real(fpmult,kind=8)
-  if (in%fpmult.gt.in%frmult .and. iproc==0) write(*,*) ' NONSENSE: fpmult > frmult'
+  in%hgrid  = real(hgrid,gp)
+  in%crmult = real(crmult,gp)
+  in%frmult = real(frmult,gp)
+  in%cpmult = real(cpmult,gp)
+  in%fpmult = real(fpmult,gp)
+  if (in%fpmult.gt.in%frmult) then
+     if (iproc == 0) write(*,*) ' NONSENSE: fpmult > frmult'
+     stop
+  end if
   read(1,*,iostat=ierror) in%ixc
   read(1,*,iostat=ierror) in%ncharge,in%elecfield
   read(1,*,iostat=ierror) in%gnrm_cv
@@ -191,10 +194,10 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   integer, intent(in) :: iproc,ifile
   type(atoms_data), intent(inout) :: at
   type(input_variables), intent(out) :: in
-  real(kind=8), dimension(3,at%nat), intent(out) :: rxyz
+  real(gp), dimension(3,at%nat), intent(out) :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_atomic_positions'
-  real(kind=8), parameter :: bohr=0.5291772108d0 !1 AU in angstroem
+  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   character(len=3) :: suffix
   character(len=2) :: symbol
   character(len=20) :: tatonam
@@ -204,8 +207,8 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   integer :: nateq,iat,jat,ityp,i,ierror,ierrsfx,i_stat,natpol
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3
-! case for which the atomic positions are given whithin machine precision
-  real(kind=8) :: rxd0,ryd0,rzd0,alat1d0,alat2d0,alat3d0
+! case for which the atomic positions are given whithin general precision
+  real(gp) :: rxd0,ryd0,rzd0,alat1d0,alat2d0,alat3d0
   character(len=20), dimension(100) :: atomnames
 
   if (iproc.eq.0) write(*,'(1x,a,i0)') 'Number of atoms     = ',at%nat
@@ -242,9 +245,9 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   !in case of old format, put geocode to F and alat to 0.
   if (ierror == 0) then
      in%geocode='F'
-     in%alat1=0.d0
-     in%alat2=0.d0
-     in%alat3=0.d0
+     in%alat1=0.0_gp
+     in%alat2=0.0_gp
+     in%alat3=0.0_gp
   else
      if (lpsdbl) then
         read(line,*,iostat=ierrsfx) tatonam,alat1d0,alat2d0,alat3d0
@@ -258,20 +261,20 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
            in%geocode='S'
         else !otherwise free bc
            in%geocode='F'
-           in%alat1=0.d0
-           in%alat2=0.d0
-           in%alat3=0.d0
+           in%alat1=0.0_gp
+           in%alat2=0.0_gp
+           in%alat3=0.0_gp
         end if
         if (.not. lpsdbl) then
-           alat1d0=real(alat1,kind=8)
-           alat2d0=real(alat2,kind=8)
-           alat3d0=real(alat3,kind=8)
+           alat1d0=real(alat1,gp)
+           alat2d0=real(alat2,gp)
+           alat3d0=real(alat3,gp)
         end if
      else
         in%geocode='F'
-        in%alat1=0.d0
-        in%alat2=0.d0
-        in%alat3=0.d0
+        in%alat1=0.0_gp
+        in%alat2=0.0_gp
+        in%alat3=0.0_gp
      end if
   end if
 
@@ -288,6 +291,7 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
         else
            read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,extra
         end if
+        call find_extra_info(line,extra)
         if (ierrsfx ==0) then
            call parse_extra_info(iproc,iat,extra,at)
         else
@@ -353,9 +357,9 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
         rxyz(2,iat)=ryd0
         rxyz(3,iat)=rzd0
      else
-        rxyz(1,iat)=real(rx,kind=8)
-        rxyz(2,iat)=real(ry,kind=8)
-        rxyz(3,iat)=real(rz,kind=8)
+        rxyz(1,iat)=real(rx,gp)
+        rxyz(2,iat)=real(ry,gp)
+        rxyz(3,iat)=real(rz,gp)
      end if
 
      if (in%geocode == 'P') then
@@ -416,7 +420,7 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   do iat=1,at%nat
      do jat=iat+1,at%nat
         if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
-             (rxyz(3,iat)-rxyz(3,jat))**2 ==0.d0) then
+             (rxyz(3,iat)-rxyz(3,jat))**2 ==0.0_gp) then
            nateq=nateq+1
            write(*,'(1x,a,2(i0,a,a6,a))')'ERROR: atoms ',iat,&
                 ' (',trim(at%atomnames(at%iatype(iat))),') and ',&
@@ -444,6 +448,32 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
 
 end subroutine read_atomic_positions
 
+subroutine find_extra_info(line,extra)
+  implicit none
+  character(len=100), intent(in) :: line
+  character(len=50), intent(out) :: extra
+  !local variables
+  logical :: space
+  integer :: i,nspace
+  i=1
+  space=.true.
+  nspace=-1
+  find_space : do
+     !toggle the space value for each time
+     if (line(i:i) == ' ' .neqv. space) then
+        nspace=nspace+1
+        space=.not. space
+     end if
+     !print *,line(i:i),nspace
+     if (nspace==7) then
+        extra=line(i:min(100,i+49))
+        exit find_space
+     end if
+     i=i+1
+  end do find_space
+
+end subroutine find_extra_info
+
 subroutine parse_extra_info(iproc,iat,extra,at)
   use module_types
   implicit none
@@ -452,8 +482,7 @@ subroutine parse_extra_info(iproc,iat,extra,at)
   type(atoms_data), intent(out) :: at
   !local variables
   character(len=3) :: suffix
-  integer :: ierr,ierr1,ierr2,nspol,nchrg
-  
+  integer :: ierr,ierr1,ierr2,nspol,nchrg,nsgn
   !case with all the information
   read(extra,*,iostat=ierr)nspol,nchrg,suffix
   !case with partial information
@@ -486,7 +515,14 @@ subroutine parse_extra_info(iproc,iat,extra,at)
   end if
 
   !now assign the array, following the rule
-  at%natpol(iat)=1000*nchrg+100+nspol
+  if(nchrg>=0) then
+     nsgn=1
+  else
+     nsgn=-1
+  end if
+  at%natpol(iat)=1000*nchrg+nsgn*100+nspol
+
+  !print *,'natpol',iat,at%natpol(iat)
   
   if (trim(suffix) == 'f') then
      !the atom is considered as blocked
@@ -511,25 +547,26 @@ end subroutine parse_extra_info
 ! Fill the arrays occup and spinsgn
 ! if iunit /=0 this means that the file occup.dat does exist and it opens
 subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinsgn)
+  use module_base
   implicit none
 ! Arguments
   integer, intent(in) :: nelec,nspin,mpol,iproc,norb,norbu,norbd,iunit
-  real(kind=8), intent(out) :: occup(norb),spinsgn(norb)
+  real(gp), intent(out) :: occup(norb),spinsgn(norb)
 ! Local variables
   integer :: iorb,nt,ne,it,ierror,iorb1
-  real(kind=8) :: rocc,rup,rdown
+  real(gp) :: rocc,rup,rdown
   character(len=100) :: line
 
 
   do iorb=1,norb
-     spinsgn(iorb)=1.0d0
+     spinsgn(iorb)=1.0_gp
   end do
   if (nspin/=1) then
      do iorb=1,norbu
-        spinsgn(iorb)=1.0d0
+        spinsgn(iorb)=1.0_gp
      end do
      do iorb=norbu+1,norb
-        spinsgn(iorb)=-1.0d0
+        spinsgn(iorb)=-1.0_gp
      end do
   end if
 ! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinsgn(iorb),iorb=1,norb)
@@ -540,16 +577,16 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
      ne=(nelec+1)/2
      do iorb=1,ne
         it=min(2,nelec-nt)
-        occup(iorb)=real(it,kind=8)
+        occup(iorb)=real(it,gp)
         nt=nt+it
      enddo
      do iorb=ne+1,norb
-        occup(iorb)=0.d0
+        occup(iorb)=0._gp
      end do
   else
      do iorb=1,norb
         it=min(1,nelec-nt)
-        occup(iorb)=real(it,kind=8)
+        occup(iorb)=real(it,gp)
         nt=nt+it
      enddo
   end if
@@ -569,7 +606,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
                  write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
               end if
               stop
-           elseif (rocc<0.d0 .or. rocc>2.d0) then
+           elseif (rocc<0._gp .or. rocc>2._gp) then
               if (iproc==0) then
                  write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "occup.dat"'
                  write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
@@ -587,7 +624,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
      close(unit=iunit)
      !Check if sum(occup)=nelec
      rocc=sum(occup)
-     if (abs(rocc-real(nelec,kind=8))>1.d-6) then
+     if (abs(rocc-real(nelec,gp))>1.e-6_gp) then
         if (iproc==0) then
            write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the total number of electrons ',rocc,&
                           ' is not equal to ',nelec
@@ -598,7 +635,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
 !!$        !Check if the polarisation is respected (mpol)
 !!$        rup=sum(occup(1:norbu))
 !!$        rdown=sum(occup(norbu+1:norb))
-!!$        if (abs(rup-rdown-real(norbu-norbd,kind=8))>1.d-6) then
+!!$        if (abs(rup-rdown-real(norbu-norbd,gp))>1.e-6_gp) then
 !!$           if (iproc==0) then
 !!$              write(*,'(1x,a,f13.6,a,i0)') 'From the file "occup.dat", the polarization ',rup-rdown,&
 !!$                             ' is not equal to ',norbu-norbd
@@ -607,10 +644,10 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
 !!$        end if
         !Fill spinsgn
         do iorb=1,norbu
-           spinsgn(iorb)=1.0d0
+           spinsgn(iorb)=1.0_gp
         end do
         do iorb=norbu+1,norb
-           spinsgn(iorb)=-1.0d0
+           spinsgn(iorb)=-1.0_gp
         end do
       end if
   end if
@@ -640,15 +677,24 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
 end subroutine input_occup
 
 !calculate the charge and the spin polarisation to be placed on a given atom
-!RULE: natpol = c*1000 + 100 + s: charged and polarised atom (charge c, polarisation s)
+!RULE: natpol = c*1000 + sgn(c)*100 + s: charged and polarised atom (charge c, polarisation s)
 subroutine charge_and_spol(natpol,nchrg,nspol)
   implicit none
   integer, intent(in) :: natpol
   integer, intent(out) :: nchrg,nspol
   !local variables
+  integer :: nsgn
 
   nchrg=natpol/1000
-  nspol=natpol-1000*nchrg-100
+  if (nchrg>=0) then
+     nsgn=1
+  else
+     nsgn=-1
+  end if
+
+  nspol=natpol-1000*nchrg-nsgn*100
+
+  !print *,'charge,spol',nchrg,nspol
 
 end subroutine charge_and_spol
 
@@ -661,7 +707,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(inout) :: at
   integer, intent(out) :: nelec,norb,norbu,norbd,norbp,iunit
-  real(kind=8), dimension(at%ntypes,2), intent(out) :: radii_cf
+  real(gp), dimension(at%ntypes,2), intent(out) :: radii_cf
   !local variables
   character(len=*), parameter :: subname='read_system_variables'
   real(kind=8), parameter :: eps_mach=1.d-12
@@ -671,9 +717,9 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   character(len=50) :: format
   integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp,ispinsum,mxpl
   integer :: ispol,mxchg,ichg,natpol,ichgsum,nsccode
-  real(kind=8) :: rcov,rprb,ehomo,radfine,tt,minrad
-  real(kind=8), dimension(3,3) :: hij
-  real(kind=8), dimension(2,2,3) :: offdiagarr
+  real(gp) :: rcov,rprb,ehomo,radfine,tt,minrad
+  real(gp), dimension(3,3) :: hij
+  real(gp), dimension(2,2,3) :: offdiagarr
   integer, dimension(6,0:3) :: neleconf
 
   !allocate atoms data variables
@@ -721,7 +767,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
         write(*,'(1x,a,i0,a,i0)')'         contains a PSP generated with an XC id=',&
              ixcpsp,' while for this run ixc=',in%ixc
      end if
-     at%psppar(:,:,ityp)=0.d0
+     at%psppar(:,:,ityp)=0._gp
      if (at%npspcode(ityp) == 2) then !GTH case
         read(11,*) (at%psppar(0,j,ityp),j=0,4)
         do i=1,2
@@ -796,10 +842,10 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
              '                   X    '
      else
         !assigning the radii by calculating physical parameters
-        radii_cf(ityp,1)=1.d0/sqrt(abs(2.d0*ehomo))
-        radfine=100.d0
+        radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
+        radfine=100._gp
         do i=0,4
-           if (at%psppar(i,0,ityp)/=0.d0) then
+           if (at%psppar(i,0,ityp)/=0._gp) then
               radfine=min(radfine,at%psppar(i,0,ityp))
            end if
         end do
@@ -813,16 +859,16 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      !control the hardest gaussian
      minrad=1.d10
      do i=0,4
-        if (at%psppar(i,0,ityp)/=0.d0) then
+        if (at%psppar(i,0,ityp)/=0._gp) then
            minrad=min(minrad,at%psppar(i,0,ityp))
         end if
      end do
      !control whether the grid spacing is too high or not
-     if (iproc == 0 .and. in%hgrid > 2.5d0*minrad) then
+     if (iproc == 0 .and. in%hgrid > 2.5_gp*minrad) then
         write(*,'(1x,a)')&
              'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
         write(*,'(1x,a,f5.2,a)')&
-             '         Results can be meaningless if hgrid is bigger than',2.5d0*minrad,&
+             '         Results can be meaningless if hgrid is bigger than',2.5_gp*minrad,&
              '. At your own risk!'
      end if
 
@@ -833,27 +879,27 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      do l=1,3
         do i=1,2
            do j=i+1,3
-              offdiagarr(i,j-i,l)=0.d0
+              offdiagarr(i,j-i,l)=0._gp
               if (l==1) then
                  if (i==1) then
-                    if (j==2)   offdiagarr(i,j-i,l)=-0.5d0*sqrt(3.d0/5.d0)
-                    if (j==3)   offdiagarr(i,j-i,l)=0.5d0*sqrt(5.d0/21.d0)
+                    if (j==2)   offdiagarr(i,j-i,l)=-0.5_gp*sqrt(3._gp/5._gp)
+                    if (j==3)   offdiagarr(i,j-i,l)=0.5_gp*sqrt(5._gp/21._gp)
                  else
-                    offdiagarr(i,j-i,l)=-0.5d0*sqrt(100.d0/63.d0)
+                    offdiagarr(i,j-i,l)=-0.5_gp*sqrt(100._gp/63._gp)
                  end if
               else if (l==2) then
                  if (i==1) then
-                    if (j==2)   offdiagarr(i,j-i,l)=-0.5d0*sqrt(5.d0/7.d0)
-                    if (j==3)   offdiagarr(i,j-i,l)=1.d0/6.d0*sqrt(35.d0/11.d0)
+                    if (j==2)   offdiagarr(i,j-i,l)=-0.5_gp*sqrt(5._gp/7._gp)
+                    if (j==3)   offdiagarr(i,j-i,l)=1._gp/6._gp*sqrt(35._gp/11._gp)
                  else
-                    offdiagarr(i,j-i,l)=-7.d0/3.d0*sqrt(1.d0/11.d0)
+                    offdiagarr(i,j-i,l)=-7._gp/3._gp*sqrt(1._gp/11._gp)
                  end if
               else if (l==3) then
                  if (i==1) then
-                    if (j==2)   offdiagarr(i,j-i,l)=-0.5d0*sqrt(7.d0/9.d0)
-                    if (j==3)   offdiagarr(i,j-i,l)=0.5d0*sqrt(63.d0/143.d0)
+                    if (j==2)   offdiagarr(i,j-i,l)=-0.5_gp*sqrt(7._gp/9._gp)
+                    if (j==3)   offdiagarr(i,j-i,l)=0.5_gp*sqrt(63._gp/143._gp)
                  else
-                    offdiagarr(i,j-i,l)=-9.d0*sqrt(1.d0/143.d0)
+                    offdiagarr(i,j-i,l)=-9._gp*sqrt(1._gp/143._gp)
                  end if
               end if
            end do
@@ -869,19 +915,19 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
            if (l==0) then
               do i=4,0,-1
                  j=i
-                 if (at%psppar(l,i,ityp) /= 0.d0) exit
+                 if (at%psppar(l,i,ityp) /= 0._gp) exit
               end do
               write(*,'(3x,a6,5(1x,f9.5))')&
                    trim(at%atomnames(ityp)),(at%psppar(l,i,ityp),i=0,j)
            else
               do i=3,0,-1
                  j=i
-                 if (at%psppar(l,i,ityp) /= 0.d0) exit
+                 if (at%psppar(l,i,ityp) /= 0._gp) exit
               end do
               if (j /=0) then
                  write(*,'(1x,a,i0,a)')&
                       '    l=',l-1,' '//'     rl        h1j       h2j       h3j '
-                 hij=0.d0
+                 hij=0._gp
                  do i=1,j
                     hij(i,i)=at%psppar(l,i,ityp)
                  end do
@@ -920,6 +966,8 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      nsccode=at%iasctype(ityp)
      call charge_and_spol(at%natpol(iat),ichg,ispol)
      if (ichg /=0) then
+        call eleconf(at%nzatom(ityp),at%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
+             neleconf,at%iasctype(ityp),mxpl,mxchg)
         call correct_semicore(at%atomnames(ityp),6,3,ichg,neleconf,nsccode)
      end if
      if (nsccode/= 0) at%natsc=at%natsc+1
@@ -969,11 +1017,11 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
         stop
      end if
 
-     if (ichgsum > in%ncharge) then
+     if (ichgsum /= in%ncharge .and. ichgsum /= 0) then
         if (iproc==0) then 
            write(*,'(1x,a,i0,a)')&
                 'ERROR: Total input charge (found ',ichgsum,&
-                ') cannot be higher than charge.'
+                ') cannot be different than charge.'
            write(*,'(1x,2(a,i0))')&
                 'The charge is=',in%ncharge,' input charge=',ichgsum
         end if
@@ -1131,9 +1179,9 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
      n1=int(alat1/hx)
      n2=int(alat2/hy)
      n3=int(alat3/hz)
-     alatrue1=real(n1,kind=8)*hx
-     alatrue2=real(n2,kind=8)*hy
-     alatrue3=real(n3,kind=8)*hz
+     alatrue1=real(n1,gp)*hx
+     alatrue2=real(n2,gp)*hy
+     alatrue3=real(n3,gp)*hz
 
      n1i=2*n1+31
      n2i=2*n2+31
@@ -1159,7 +1207,7 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
      alatrue1=(cxmax-cxmin)
      alat2=(cymax-cymin)
      n2=int(alat2/hy)
-     alatrue2=real(n2,kind=8)*hy
+     alatrue2=real(n2,gp)*hy
      alatrue3=(czmax-czmin)
 
      n1i=2*n1+2
@@ -1256,11 +1304,12 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
 end subroutine system_size
 
 subroutine correct_grid(a,h,n)
+  use module_base
   use Poisson_Solver
   implicit none
-  real(kind=8), intent(in) :: a
+  real(gp), intent(in) :: a
   integer, intent(inout) :: n
-  real(kind=8), intent(inout) :: h
+  real(gp), intent(inout) :: h
   !local variables
   integer :: m
 
@@ -1278,6 +1327,6 @@ subroutine correct_grid(a,h,n)
         m=m+1
      end if
   end do
-  h=a/real(n+1,kind=8)
+  h=a/real(n+1,gp)
   
 end subroutine correct_grid
