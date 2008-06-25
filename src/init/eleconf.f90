@@ -31,7 +31,7 @@ subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,
   integer, intent(out) :: neleconf(nmax,0:lmax)
   integer, intent(out) :: nsccode,mxpl,mxchg
 ! Local variables
-  integer :: n,l,nsum,ipow,lsc,inorbsc,i,ichg
+  integer :: n,l,nsum,ipow,lsc,inorbsc,i
   real(kind=8) :: sccode
 
   neleconf(:,:)=0
@@ -1474,21 +1474,6 @@ end select
      end do
   end if
 
-  !correct the electronic configuration for a given atomic charge
-  ichg=0 !temporary
-  if (ichg < mxchg .and. ichg /= 0) then
-     nchgres=ichg
-     !place the charge on the atom starting from the non closed shells
-     do i=nmax,1,-1
-        do l=0,lmax
-           if (neleconf(i,l) /= 2*(2*l+1)) then
-           end if
-        end do
-     end do
-     
-  end if
-
-
   !calculate the maximum spin polarisation and the maximum charge to be placed on the atom
   mxpl=0
   do l=0,lmax
@@ -1501,3 +1486,69 @@ end select
 
 end subroutine eleconf
 !!***
+
+subroutine correct_semicore(symbol,nmax,lmax,ichg,neleconf,nsccode)
+  implicit none
+  character(len=2), intent(in) :: symbol
+  integer, intent(in) :: nmax,lmax,ichg
+  integer, dimension(nmax,0:lmax), intent(inout) :: neleconf
+  integer, intent(inout) :: nsccode
+  !local variables
+  integer :: i,l,isccode,itmp,nchgres,ichgp
+  
+  !correct the electronic configuration for a given atomic charge
+
+  nchgres=ichg !residual charge
+  if (ichg >0) then
+     !place the charge on the atom starting from the non closed shells
+     do i=nmax,1,-1
+        do l=lmax,0,-1
+           if (neleconf(i,l) /= 2*(2*l+1) .and. neleconf(i,l) /= 0) then
+              ichgp=min(neleconf(i,l),nchgres)
+              nchgres=nchgres-ichgp
+              neleconf(i,l)=neleconf(i,l)-ichgp
+           end if
+        end do
+     end do
+     if (nchgres /= 0) then
+        !charge only unoccupied shells 
+        print *,'Atom ',symbol,': cannot charge occupied shells for the moment'
+        stop
+     end if
+  else if (ichg < 0) then
+     !place the charge on the atom starting from the non closed shells
+     do i=nmax,1,-1
+        do l=lmax,0,-1
+           if (neleconf(i,l) /= 0) then
+              ichgp=min(2*(2*l+1)-neleconf(i,l),-nchgres)
+              nchgres=nchgres+ichgp
+              neleconf(i,l)=neleconf(i,l)+ichgp
+           end if
+        end do
+     end do
+     if (nchgres /= 0) then
+        !charge only occupied shells 
+        print *,'Atom ',symbol,': cannot charge unoccupied shells for the moment'
+        stop
+     end if
+     
+  end if
+
+  isccode=nsccode
+  do l=lmax,0,-1
+     !control whether it is already semicore
+     itmp=isccode/((lmax+1)**l)
+     isccode=isccode-itmp*((lmax+1)**l)
+     !print *,'symbol',symbol,l,itmp,isccode,itmp*(lmax**l)
+     do i=1,nmax
+        if (neleconf(i,l) == 2*(2*l+1)) then
+           if (itmp==1) then
+              itmp=0
+              cycle
+           else
+               nsccode=nsccode+4**l !the maximum occupied is noccmax=2
+           end if
+        end if
+     end do
+  end do
+end subroutine correct_semicore

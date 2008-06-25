@@ -85,7 +85,10 @@ subroutine read_input_variables(iproc,in)
   in%frmult = real(frmult,kind=8)
   in%cpmult = real(cpmult,kind=8)
   in%fpmult = real(fpmult,kind=8)
-  if (in%fpmult.gt.in%frmult .and. iproc==0) write(*,*) ' NONSENSE: fpmult > frmult'
+  if (in%fpmult.gt.in%frmult) then
+     if (iproc == 0) write(*,*) ' NONSENSE: fpmult > frmult'
+     stop
+  end if
   read(1,*,iostat=ierror) in%ixc
   read(1,*,iostat=ierror) in%ncharge,in%elecfield
   read(1,*,iostat=ierror) in%gnrm_cv
@@ -288,6 +291,7 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
         else
            read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,extra
         end if
+        call find_extra_info(line,extra)
         if (ierrsfx ==0) then
            call parse_extra_info(iproc,iat,extra,at)
         else
@@ -444,6 +448,32 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
 
 end subroutine read_atomic_positions
 
+subroutine find_extra_info(line,extra)
+  implicit none
+  character(len=100), intent(in) :: line
+  character(len=50), intent(out) :: extra
+  !local variables
+  logical :: space
+  integer :: i,nspace
+  i=1
+  space=.true.
+  nspace=-1
+  find_space : do
+     !toggle the space value for each time
+     if (line(i:i) == ' ' .neqv. space) then
+        nspace=nspace+1
+        space=.not. space
+     end if
+     !print *,line(i:i),nspace
+     if (nspace==7) then
+        extra=line(i:min(100,i+49))
+        exit find_space
+     end if
+     i=i+1
+  end do find_space
+
+end subroutine find_extra_info
+
 subroutine parse_extra_info(iproc,iat,extra,at)
   use module_types
   implicit none
@@ -452,8 +482,7 @@ subroutine parse_extra_info(iproc,iat,extra,at)
   type(atoms_data), intent(out) :: at
   !local variables
   character(len=3) :: suffix
-  integer :: ierr,ierr1,ierr2,nspol,nchrg
-  
+  integer :: ierr,ierr1,ierr2,nspol,nchrg,nsgn
   !case with all the information
   read(extra,*,iostat=ierr)nspol,nchrg,suffix
   !case with partial information
@@ -486,7 +515,14 @@ subroutine parse_extra_info(iproc,iat,extra,at)
   end if
 
   !now assign the array, following the rule
-  at%natpol(iat)=1000*nchrg+100+nspol
+  if(nchrg>=0) then
+     nsgn=1
+  else
+     nsgn=-1
+  end if
+  at%natpol(iat)=1000*nchrg+nsgn*100+nspol
+
+  !print *,'natpol',iat,at%natpol(iat)
   
   if (trim(suffix) == 'f') then
      !the atom is considered as blocked
@@ -640,15 +676,24 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
 end subroutine input_occup
 
 !calculate the charge and the spin polarisation to be placed on a given atom
-!RULE: natpol = c*1000 + 100 + s: charged and polarised atom (charge c, polarisation s)
+!RULE: natpol = c*1000 + sgn(c)*100 + s: charged and polarised atom (charge c, polarisation s)
 subroutine charge_and_spol(natpol,nchrg,nspol)
   implicit none
   integer, intent(in) :: natpol
   integer, intent(out) :: nchrg,nspol
   !local variables
+  integer :: nsgn
 
   nchrg=natpol/1000
-  nspol=natpol-1000*nchrg-100
+  if (nchrg>=0) then
+     nsgn=1
+  else
+     nsgn=-1
+  end if
+
+  nspol=natpol-1000*nchrg-nsgn*100
+
+  !print *,'charge,spol',nchrg,nspol
 
 end subroutine charge_and_spol
 
@@ -670,7 +715,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   character(len=27) :: filename
   character(len=50) :: format
   integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp,ispinsum,mxpl
-  integer :: ispol,mxchg,ichg,natpol
+  integer :: ispol,mxchg,ichg,natpol,ichgsum,nsccode
   real(kind=8) :: rcov,rprb,ehomo,radfine,tt,minrad
   real(kind=8), dimension(3,3) :: hij
   real(kind=8), dimension(2,2,3) :: offdiagarr
@@ -917,7 +962,14 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   do iat=1,at%nat
      ityp=at%iatype(iat)
      nelec=nelec+at%nelpsp(ityp)
-     if (at%iasctype(ityp) /= 0) at%natsc=at%natsc+1
+     nsccode=at%iasctype(ityp)
+     call charge_and_spol(at%natpol(iat),ichg,ispol)
+     if (ichg /=0) then
+        call eleconf(at%nzatom(ityp),at%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
+             neleconf,at%iasctype(ityp),mxpl,mxchg)
+        call correct_semicore(at%atomnames(ityp),6,3,ichg,neleconf,nsccode)
+     end if
+     if (nsccode/= 0) at%natsc=at%natsc+1
   enddo
   nelec=nelec-in%ncharge
   if (iproc.eq.0) then
@@ -946,9 +998,11 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
 
      !test if the spin is compatible with the input guess polarisations
      ispinsum=0
+     ichgsum=0
      do iat=1,at%nat
         call charge_and_spol(at%natpol(iat),ichg,ispol)
         ispinsum=ispinsum+ispol
+        ichgsum=ichgsum+ichg
      end do
 
      if (in%nspin == 2 .and. ispinsum /= norbu-norbd) then
@@ -958,6 +1012,17 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
                 ') must be equal to norbu-norbd.'
            write(*,'(1x,3(a,i0))')&
                 'With norb=',norb,' and mpol=',in%mpol,' norbu-norbd=',norbu-norbd
+        end if
+        stop
+     end if
+
+     if (ichgsum /= in%ncharge .and. ichgsum /= 0) then
+        if (iproc==0) then 
+           write(*,'(1x,a,i0,a)')&
+                'ERROR: Total input charge (found ',ichgsum,&
+                ') cannot be different than charge.'
+           write(*,'(1x,2(a,i0))')&
+                'The charge is=',in%ncharge,' input charge=',ichgsum
         end if
         stop
      end if
