@@ -489,6 +489,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 end subroutine PSolver
 !!***
 
+
 !!****f* BigDFT/PSolverNC
 !! NAME
 !!    PSolverNC
@@ -679,6 +680,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
   end if
 
 end subroutine PSolverNC
+!!***
+
 
 !!****f* BigDFT/PS_dim4allocation
 !! NAME
@@ -803,6 +806,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,&
 
 end subroutine PS_dim4allocation
 !!***
+
 
 !!****f* BigDFT/xc_dimensions
 !! NAME
@@ -989,6 +993,7 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
 
 end subroutine P_FFT_dimensions
 !!***
+
 
 !!****f* BigDFT/S_FFT_dimensions
 !! NAME

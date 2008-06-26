@@ -18,7 +18,7 @@
         implicit none
         integer :: ierr
         end subroutine MPI_INIT
-
+!!***
         subroutine  MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
         implicit none
         integer :: MPI_COMM_WORLD,iproc,ierr
@@ -33,19 +33,15 @@
         ierr=0
         end subroutine MPI_COMM_SIZE
 
-        subroutine  MPI_ABORT(MPI_COMM_WORLD,ierr)
-          implicit none
-          integer :: MPI_COMM_WORLD,ierr
-          stop
-        end subroutine MPI_ABORT
-
         subroutine  MPI_FINALIZE(ierr)
         implicit none
         integer :: ierr
         end subroutine MPI_FINALIZE
 
-        subroutine  MPI_ALLREDUCE()
+        subroutine  MPI_ALLREDUCE(wrkallred,allred,n,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         implicit none
+        real :: wrkallred,allred
+        integer :: n,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr
         stop 'ALLREDUCE'
         end subroutine MPI_ALLREDUCE
 
@@ -69,15 +65,10 @@
         stop 'ALLGATHERV'
         end subroutine  MPI_ALLGatherV
 
-        subroutine  MPI_ALLGATHER()
+        subroutine  MPI_ALLGather()
         implicit none
         stop 'ALLGATHER'
-        end subroutine  MPI_ALLGATHER
-
-        subroutine  MPI_GATHER()
-        implicit none
-        stop 'GATHER'
-        end subroutine  MPI_GATHER
+        end subroutine  MPI_ALLGather
 
         subroutine  MPI_ALLTOALL()
         implicit none
@@ -88,4 +79,3 @@
         implicit none
         stop 'REDUCE_SCATTER'
         end subroutine  MPI_REDUCE_SCATTER
-!!***

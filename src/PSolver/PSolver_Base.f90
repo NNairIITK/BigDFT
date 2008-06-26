@@ -1,11 +1,19 @@
-
+!!****f* BigDFT/P_PoissonSolver
+!! NAME
+!!   P_PoissonSolver
+!!
+!! FUNCTION
+!!  Parallel version of Poisson Solver
+!!
+!! RESTRICTIONS on USAGE
 !! Copyright (C) 2002-2007 BigDFT group 
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~/COPYING file
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !! For the list of contributors, see ~/AUTHORS 
-
-
+!!
+!! SOURCE
+!!
 subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
              scal,hx,hy,hz,offset)
   implicit none
@@ -422,6 +430,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
   end if
   call timing(iproc,'PSolv_comput  ','OF')
 end subroutine P_PoissonSolver
+!!***
 
 
 subroutine P_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,md2,nd3,nproc,zmpi1,zw)
@@ -572,7 +581,7 @@ subroutine P_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf,scal)
   end do
 
 end subroutine P_unfill_downcorn
-!!**
+!!***
 
 subroutine P_fill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
   implicit none

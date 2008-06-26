@@ -18,4 +18,4 @@
 30       ncongt: number of conjugate gradient iterations for the calculation of tail
 1 0      nspin=1 non-spin polarization, mpol=total magnetic moment
 0 .false. .false. InputPsiId, output_wf, output_grid
-3 6      nvirt, nplot : number of orbitals to be calculated and plotted for Davidson treatment
+30 6      nvirt, nplot : number of orbitals to be calculated and plotted for Davidson treatment
