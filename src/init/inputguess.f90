@@ -140,7 +140,6 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   close(unit=24)
 
   ! number of orbitals, total and semicore
-  !HERE WE MUST INSERT THE SPIN DEPENDENCE
   norbe=0
   norbsc=0
   iatsc=0
@@ -150,6 +149,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
      norbe=norbe+nl(1,ity)+3*nl(2,ity)+5*nl(3,ity)+7*nl(4,ity)
      nsccode=iasctype(ity)
      call charge_and_spol(natpol(iat),ichg,ispol)
+     !correct in the case of input charge positioning
      if (ichg /=0) then
         call eleconf(nzatom(ity),nelpsp(ity),symbol,rcov,rprb,ehomo,&
              neleconf,nsccode,mxpl,mxchg)
