@@ -971,7 +971,7 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  md1=n1
  md2=n2
  md3=n3
-151 if (nproc*(md2/nproc).lt.n2) then
+151 if (nproc*(md2/nproc) < n2) then
     md2=md2+1
     goto 151
  endif
@@ -982,7 +982,7 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  nd1=n1/2+1 
  nd2=n2/2+1
  nd3=n3/2+1
-250 if (modulo(nd3,nproc) .ne. 0) then
+250 if (modulo(nd3,nproc) /= 0) then
     nd3=nd3+1
     goto 250
  endif

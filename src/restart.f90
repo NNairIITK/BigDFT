@@ -275,7 +275,7 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
 
 END SUBROUTINE reformatmywaves
 
-subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz_old,rxyz,  & 
+subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,nat,rxyz_old,rxyz,  & 
      wfd,psi,eval)
   ! reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
   ! have changed
@@ -284,7 +284,7 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz_old,rxyz,  &
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
   integer, intent(in) :: iproc,norb,norbp,n1,n2,n3,nat
-  real(gp), intent(in) :: hgrid
+  real(gp), intent(in) :: hx,hy,hz
   real(gp), dimension(3,nat), intent(in) :: rxyz
   real(wp), dimension(norb), intent(out) :: eval
   real(gp), dimension(3,nat), intent(out) :: rxyz_old
@@ -311,7 +311,7 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,nat,rxyz_old,rxyz,  &
      open(unit=99,file=filename,status='unknown')
 
      call readonewave(99, .true., iorb,iproc,n1,n2,n3, &
-          & hgrid,nat,rxyz_old,rxyz,wfd%nseg_c,wfd%nseg_f,&
+          & hx,hy,hz,nat,rxyz_old,rxyz,wfd%nseg_c,wfd%nseg_f,&
           wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
           psi(1,iorb-iproc*norbp),eval(iorb),psifscf)
      close(99)
