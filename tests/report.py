@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Final report
-# Date: 29/01/2008
+# Date: 26/06/2008
 #----------------------------------------------------------------------------
 
 import glob
@@ -22,10 +22,14 @@ for file in glob.glob("*/fldiff.report"):
     if discrepancy:
         discrepancy = float(discrepancy[0])
         if discrepancy <= max_discrepancy:
+            start = ""
             state = "succeeded"
+            end = ""
         else:
+            start = "\033[0;31m"
             state = "failed"
+            end = "\033[m"
             Exit = 1
-        print "%-9s %-9s (%7.1e)" % (dir,state,discrepancy)
+        print "%s%-13s %-9s (%7.1e)%s" % (start,dir,state,discrepancy,end)
 #Error code
 sys.exit(Exit)
