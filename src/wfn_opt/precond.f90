@@ -55,6 +55,11 @@ subroutine preconditionall(geocode,iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl
 	             wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
 	             ncong,cprecr,hx,hy,hz,hpsi(1,inds))
 			endif
+        case('S')
+           cprecr=0.5_wp
+           call prec_fft_slab(n1,n2,n3, &
+                wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
+                cprecr,hx,hy,hz,hpsi(1,inds))
         end select
      end do
   enddo

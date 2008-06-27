@@ -319,6 +319,68 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
 
 END SUBROUTINE applylocpotkinone_per
 
+
+subroutine applylocpotkinone_slab(n1,n2,n3, & 
+     hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+     psir,psi_in,psi_out,psi,pot,hpsi,epot,ekin)
+  !  Applies the local potential and kinetic energy operator to one wavefunction 
+  ! Input: pot,psi
+  ! Output: hpsi,epot,ekin
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f
+  real(gp), intent(in) :: hx,hy,hz
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  real(wp), dimension((2*n1+2)*(2*n2+31)*(2*n3+2)), intent(in) :: pot
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
+  real(wp), dimension((2*n1+2)*(2*n2+16)*(2*n3+2)), intent(inout) :: psi_in
+  real(wp), dimension((2*n1+2)*(2*n2+31)*(2*n3+2)), intent(inout) :: psir,psi_out
+  real(gp), intent(out) :: epot,ekin
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(out) :: hpsi
+  !local variables
+  integer :: i
+  real(wp) :: tt
+  real(gp) :: v,p
+  real(gp), dimension(3) :: hgridh
+
+! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+!	psir serves as a work array	   
+  call uncompress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+       psi(1),psi(nvctr_c+1),psi_in,psir)
+
+!	psi_out serves as a work array	   
+  call convolut_magic_n_slab(2*n1+1,2*n2+15,2*n3+1,psi_in,psir,psi_out) 
+
+  epot=0.0_gp
+  do i=1,(2*n1+2)*(2*n2+31)*(2*n3+2)
+     v=real(pot(i),gp)
+     p=real(psir(i),gp)
+     tt=pot(i)*psir(i)
+     epot=epot+p*v*p
+     psir(i)=tt
+  enddo
+
+  call convolut_magic_t_slab_self(2*n1+1,2*n2+15,2*n3+1,psir,psi_out)
+
+  hgridh(1)=hx*.5_gp
+  hgridh(2)=hy*.5_gp
+  hgridh(3)=hz*.5_gp
+
+! compute the kinetic part and add  it to psi_out
+! the kinetic energy is calculated at the same time
+  call convolut_kinetic_slab_T(2*n1+1,2*n2+15,2*n3+1,hgridh,psi_in,psi_out,ekin)
+  
+  call compress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
+       psi_out,hpsi(1),hpsi(nvctr_c+1),psir)
+
+END SUBROUTINE applylocpotkinone_slab
+
+
+
+
 subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   implicit none
   integer,intent(in)::n1,n2,n3
