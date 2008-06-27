@@ -155,7 +155,6 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
              neleconf,nsccode,mxpl,mxchg)
         call correct_semicore(atomnames(ity),6,3,ichg,neleconf,nsccode)
      end if
-
      if (nsccode/=0) then !the atom has some semicore orbitals
         iatsc=iatsc+1
         niasc=nsccode
@@ -169,8 +168,9 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
            end do
            niasc=niasc-nlsc*4**(lsc-1)
         end do
-
+        print *,'iat5',iatsc,natsc,iorbsc_count,nsccode,'nspin',nspin
         norbsc_arr(iatsc,1)=iorbsc_count
+        print *,'iat6',iat,norbsc_arr(iatsc,1)
         norbsc=norbsc+iorbsc_count
         !if (iproc == 0) print *,iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
      end if

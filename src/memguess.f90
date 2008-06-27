@@ -18,6 +18,7 @@ program memguess
 
   use module_base
   use module_types
+  use module_interfaces
 
   implicit none
   character(len=*), parameter :: subname='memguess'
@@ -33,12 +34,12 @@ program memguess
   type(atoms_data) :: atoms
   type(nonlocal_psp_descriptors) :: nlpspd
   logical, dimension(:,:,:), allocatable :: logrid
-  integer, dimension(:,:), allocatable :: neleconf,norbsc_arr
+  integer, dimension(:,:), allocatable :: norbsc_arr
   real(kind=8), dimension(:,:), allocatable :: rxyz,radii_cf
   real(kind=8), dimension(:,:,:), allocatable :: psiat
   real(kind=8), dimension(:,:), allocatable :: xp, occupat
   integer, dimension(:,:), allocatable :: nl
-  logical, dimension(:,:), allocatable :: scorb
+  logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
   real(kind=8), dimension(:), allocatable :: occup,spinsgn
 
@@ -148,10 +149,14 @@ program memguess
      call memocc(i_stat,ng,'ng',subname)
      allocate(nl(4,atoms%ntypes+ndebug),stat=i_stat)
      call memocc(i_stat,nl,'nl',subname)
-     allocate(scorb(4,atoms%natsc+ndebug),stat=i_stat)
+     allocate(scorb(4,2,atoms%natsc+ndebug),stat=i_stat)
      call memocc(i_stat,scorb,'scorb',subname)
      allocate(norbsc_arr(atoms%natsc+1,in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
+
+     !print *,'norbsc',shape(norbsc_arr),'nspin',in%nspin,'ndebug',ndebug
+
+     !print *,'in',0,ngx,atoms%nzatom,atoms%ntypes,atoms%iasctype,atoms%nat,atoms%natsc,in%nspin
 
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
      call readAtomicOrbitals(0,ngx,xp,psiat,occupat,ng,nl,atoms%nzatom,atoms%nelpsp,&
@@ -215,12 +220,15 @@ program memguess
 
 ! Determine size alat of overall simulation cell and shift atom positions
 ! then calculate the size in units of the grid space
-  hx=In%hgrid
-  hy=In%hgrid
-  hz=In%hgrid
+  hx=in%hgrid
+  hy=in%hgrid
+  hz=in%hgrid
+
+  print *,'here'
   call system_size(0,in%geocode,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,&
        in%alat1,in%alat2,in%alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
 
+  print *,'there'
   ! determine localization region for all projectors, but do not yet fill the descriptor arrays
   allocate(nlpspd%nseg_p(0:2*atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,nlpspd%nseg_p,'nseg_p',subname)
@@ -233,8 +241,12 @@ program memguess
   allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid,'logrid',subname)
 
+  print *,'there1'
+
   call localize_projectors(in%geocode,0,n1,n2,n3,hx,hy,hz,in%cpmult,in%fpmult,rxyz,radii_cf,&
        logrid,atoms,nlpspd)
+
+  print *,'there2'
 
   i_all=-product(shape(logrid))*kind(logrid)
   deallocate(logrid,stat=i_stat)

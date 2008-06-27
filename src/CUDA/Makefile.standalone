@@ -2,26 +2,33 @@
 #cuda
 
 #MACHINE-DEPENDENT PARAMETERS, TO BE TUNED WITH AUTOTOOLS
-GCC41HACK="--compiler-bindir=/home/genovese/bin" 
+GCC41HACK="--compiler-bindir=/home/mo219174" 
 CUDA_INC=../lib/CUDA/
 CUDA_FLAGS= -O3 --compiler-options -fno-strict-aliasing
 NVCC=/usr/local/cuda/bin/nvcc
 CUBLAS_INC = /usr/local/cuda/include/
 CXX=g++
+CC=gcc
+
 
 SOURCES_CU_CONV1 = convolution.cu \
+	convolutionPot.cu \
 	structUtil.cu \
 	cudafct.cu
 
 SOURCES_CXX_CONV1 = convSeria.cpp \
 	setCPU_GPU_aff.cpp \
-	read_conf_file.cpp \
-	fortran.c
+	read_conf_file.cpp 
+
+
+SOURCES_C_CONV1	= fortran.c
 
 OBJECT_CU_CONV1 = $(SOURCES_CU_CONV1:.cu=.o)
 OBJECT_CXX_CONV1 = $(SOURCES_CXX_CONV1:.cpp=.o)
+OBJECT_C_CONV1 = $(SOURCES_C_CONV1:.c=.o)
 
-libCUDA: $(OBJECT_CXX_CONV1) $(OBJECT_CU_CONV1)
+
+libCUDA: $(OBJECT_CXX_CONV1) $(OBJECT_CU_CONV1) $(OBJECT_C_CONV1)
 	ar -rv  libGPU.a $^
 	ranlib  libGPU.a
 
@@ -30,6 +37,9 @@ $(OBJECT_CU_CONV1): %.o: %.cu
 
 $(OBJECT_CXX_CONV1): %.o: %.cpp
 	$(CXX)   -I$(CUDA_INC) -I. -c $< -o $@
+
+$(OBJECT_C_CONV1): %.o: %.c
+	$(CC)   -I$(CUDA_INC) -I$(CUBLAS_INC) -DCUBLAS_USE_THUNKING -I. -c $< -o $@
 
 
 clean: 

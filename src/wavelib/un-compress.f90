@@ -377,3 +377,133 @@ subroutine uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   call synthese_per_self(n1,n2,n3,psig,psifscf)
 
 end subroutine uncompress_per
+
+! Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
+! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
+subroutine compress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
+     nseg_f,nvctr_f,keyg_f,keyv_f,  & 
+     psifscf,psi_c,psi_f,psig)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
+  integer, dimension(nseg_c), intent(in) :: keyv_c
+  integer, dimension(nseg_f), intent(in) :: keyv_f
+  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+  integer, dimension(2,nseg_f), intent(in) :: keyg_f
+  real(wp), dimension((2*n1+2)*(2*n2+16)*(2*n3+2)), intent(in) :: psifscf
+  real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
+  real(wp), dimension(nvctr_c), intent(out) :: psi_c
+  real(wp), dimension(7,nvctr_f), intent(out) :: psi_f
+  !local variables
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
+  real(wp),allocatable:: ww(:)
+
+  ! decompose wavelets into coarse scaling functions and wavelets
+
+  call analyse_slab_self(n1,n2,n3,psifscf,psig)
+
+  ! coarse part
+  do iseg=1,nseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi_c(i-i0+jj)=psig(i,1,i2,1,i3,1)
+     enddo
+  enddo
+
+  ! fine part
+  do iseg=1,nseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psi_f(1,i-i0+jj)=psig(i,2,i2,1,i3,1)
+        psi_f(2,i-i0+jj)=psig(i,1,i2,2,i3,1)
+        psi_f(3,i-i0+jj)=psig(i,2,i2,2,i3,1)
+        psi_f(4,i-i0+jj)=psig(i,1,i2,1,i3,2)
+        psi_f(5,i-i0+jj)=psig(i,2,i2,1,i3,2)
+        psi_f(6,i-i0+jj)=psig(i,1,i2,2,i3,2)
+        psi_f(7,i-i0+jj)=psig(i,2,i2,2,i3,2)
+     enddo
+  enddo
+
+end subroutine compress_slab
+
+subroutine uncompress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
+     nseg_f,nvctr_f,keyg_f,keyv_f,  & 
+     psi_c,psi_f,psifscf,psig)
+  ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
+  ! into fine scaling functions (psifscf)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
+  integer, dimension(nseg_c), intent(in) :: keyv_c
+  integer, dimension(nseg_f), intent(in) :: keyv_f
+  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+  integer, dimension(2,nseg_f), intent(in) :: keyg_f
+  real(wp), dimension(nvctr_c), intent(in) :: psi_c
+  real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
+  real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
+  real(wp), dimension((2*n1+2)*(2*n2+16)*(2*n3+2)), intent(out) :: psifscf
+  !local variables
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
+  real(wp),allocatable:: ww(:)
+
+  call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
+
+  ! coarse part
+  do iseg=1,nseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psig(i,1,i2,1,i3,1)=psi_c(i-i0+jj)
+     enddo
+  enddo
+
+  ! fine part
+  do iseg=1,nseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)
+        psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)
+        psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)
+        psig(i,1,i2,1,i3,2)=psi_f(4,i-i0+jj)
+        psig(i,2,i2,1,i3,2)=psi_f(5,i-i0+jj)
+        psig(i,1,i2,2,i3,2)=psi_f(6,i-i0+jj)
+        psig(i,2,i2,2,i3,2)=psi_f(7,i-i0+jj)
+     enddo
+  enddo
+
+  ! calculate fine scaling functions
+  
+  call synthese_slab_self(n1,n2,n3,psig,psifscf)
+
+end subroutine uncompress_slab

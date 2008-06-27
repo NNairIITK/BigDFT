@@ -120,29 +120,109 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
   real(gp), intent(out) :: epot,ekin
   real(wp), dimension(nvctr_c+7*nvctr_f), intent(out) :: hpsi
   !local variables
-  integer :: i
+  character(len=*), parameter :: subname='applylocpotkinone_per'
+  integer :: i,i_stat,i_all
   real(wp) :: tt
   real(gp) :: v,p
   real(gp), dimension(3) :: hgridh
+  real(kind=4), dimension(:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
+  real(kind=8) :: psi_GPU,v_GPU,work_GPU !pointer to the GPU  memory addresses (with norb=1)
+  integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
+  integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
+  real(kind=4) filCUDA1(lowfil1:lupfil1) !array of filters to be passed to CUDA interface
+  data filCUDA1 / &
+       8.4334247333529341094733325815816e-7_4,&
+       -0.1290557201342060969516786758559028e-4_4,&
+       0.8762984476210559564689161894116397e-4_4,&
+       -0.30158038132690463167163703826169879e-3_4,&
+       0.174723713672993903449447812749852942e-2_4,&
+       -0.942047030201080385922711540948195075e-2_4,&
+       0.2373821463724942397566389712597274535e-1_4,&
+       0.612625895831207982195380597e-1_4,&
+       0.9940415697834003993178616713_4,&
+       -0.604895289196983516002834636e-1_4, &
+       -0.2103025160930381434955489412839065067e-1_4,&
+       0.1337263414854794752733423467013220997e-1_4,&
+       -0.344128144493493857280881509686821861e-2_4,&
+       0.49443227688689919192282259476750972e-3_4,&
+       -0.5185986881173432922848639136911487e-4_4,&
+       2.72734492911979659657715313017228e-6_4 /
+  real(kind=4) filCUDA2(lowfil2:lupfil2) !array of filters to be passed to CUDA interface
+  data filCUDA2 / &
+       2.72734492911979659657715313017228e-6_4,&
+       -0.5185986881173432922848639136911487e-4_4,&
+       0.49443227688689919192282259476750972e-3_4,&
+       -0.344128144493493857280881509686821861e-2_4,&
+       0.1337263414854794752733423467013220997e-1_4,&
+       -0.2103025160930381434955489412839065067e-1_4,&
+       -0.604895289196983516002834636e-1_4,&
+       0.9940415697834003993178616713_4,&
+       0.612625895831207982195380597e-1_4,&
+       0.2373821463724942397566389712597274535e-1_4,&
+       -0.942047030201080385922711540948195075e-2_4,&
+       0.174723713672993903449447812749852942e-2_4,&
+       -0.30158038132690463167163703826169879e-3_4,&
+       0.8762984476210559564689161894116397e-4_4,&
+       -0.1290557201342060969516786758559028e-4_4,&
+       8.4334247333529341094733325815816e-7_4 /
+
 
   ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
   call uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
        psi(1),psi(nvctr_c+1),psi_in,psir)
+  
+  if (GPUconv) then !convolution in cuda for the complete potential
 
-! psir serves as a work array	   
-  call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psi_in,psir,psi_out) 
+     allocate(psi_cuda((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug),stat=i_stat)
+     call memocc(i_stat,psi_cuda,'psi_cuda',subname)
+     allocate(v_cuda((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug),stat=i_stat)
+     call memocc(i_stat,v_cuda,'v_cuda',subname)
 
-  epot=0.0_gp
-  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
-     v=real(pot(i),gp)
-     p=real(psir(i),gp)
-     tt=pot(i)*psir(i)
-     epot=epot+p*v*p
-     psir(i)=tt
-  enddo
+     psi_cuda=real(psi_in,kind=4)
+     v_cuda=real(pot,kind=4)
 
-  call convolut_magic_t_per_self(2*n1+1,2*n2+1,2*n3+1,psir,psi_out)
+     !allocate the GPU memory
+     !copy the data on GPU
+     call CUDA_ALLOC_MEM(1,2*n1+1,2*n2+1,2*n3+1,psi_cuda,v_cuda,psi_GPU,v_GPU,work_GPU)
+
+     !calculate the potential application on GPU
+     call cuda_psi_to_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,v_GPU,work_GPU,&
+          filCUDA1,filCUDA2,lowfil1,lupfil1,lowfil2,lupfil2)
+     
+     !copy vpsi on the CPU
+     call cuda_fetch_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,psi_cuda)
+
+     !deallocate GOU memory
+     call CUDA_DEALLOCATE_MEM(1,psi_GPU,v_GPU,work_GPU)
+
+     !copy values on the output function
+     psi_out=real(psi_cuda,wp)
+
+     i_all=-product(shape(psi_cuda))
+     deallocate(psi_cuda,stat=i_stat)
+     call memocc(i_stat,i_all,'psi_cuda',subname)
+     i_all=-product(shape(v_cuda))
+     deallocate(v_cuda,stat=i_stat)
+     call memocc(i_stat,i_all,'v_cuda',subname)
+
+  else
+
+     ! psir serves as a work array	   
+     call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psi_in,psir,psi_out) 
+
+     epot=0.0_gp
+     do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+        v=real(pot(i),gp)
+        p=real(psir(i),gp)
+        tt=pot(i)*psir(i)
+        epot=epot+p*v*p
+        psir(i)=tt
+     enddo
+
+     call convolut_magic_t_per_self(2*n1+1,2*n2+1,2*n3+1,psir,psi_out)
+
+  end if
 
   hgridh(1)=hx*.5_gp
   hgridh(2)=hy*.5_gp
@@ -157,6 +237,68 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
        psi_out,hpsi(1),hpsi(nvctr_c+1),psir)
 
 END SUBROUTINE applylocpotkinone_per
+
+
+subroutine applylocpotkinone_slab(n1,n2,n3, & 
+     hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+     psir,psi_in,psi_out,psi,pot,hpsi,epot,ekin)
+  !  Applies the local potential and kinetic energy operator to one wavefunction 
+  ! Input: pot,psi
+  ! Output: hpsi,epot,ekin
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f
+  real(gp), intent(in) :: hx,hy,hz
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  real(wp), dimension((2*n1+2)*(2*n2+31)*(2*n3+2)), intent(in) :: pot
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
+  real(wp), dimension((2*n1+2)*(2*n2+16)*(2*n3+2)), intent(inout) :: psi_in
+  real(wp), dimension((2*n1+2)*(2*n2+31)*(2*n3+2)), intent(inout) :: psir,psi_out
+  real(gp), intent(out) :: epot,ekin
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(out) :: hpsi
+  !local variables
+  integer :: i
+  real(wp) :: tt
+  real(gp) :: v,p
+  real(gp), dimension(3) :: hgridh
+
+! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+!	psir serves as a work array	   
+  call uncompress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+       psi(1),psi(nvctr_c+1),psi_in,psir)
+
+!	psi_out serves as a work array	   
+  call convolut_magic_n_slab(2*n1+1,2*n2+15,2*n3+1,psi_in,psir,psi_out) 
+
+  epot=0.0_gp
+  do i=1,(2*n1+2)*(2*n2+31)*(2*n3+2)
+     v=real(pot(i),gp)
+     p=real(psir(i),gp)
+     tt=pot(i)*psir(i)
+     epot=epot+p*v*p
+     psir(i)=tt
+  enddo
+
+  call convolut_magic_t_slab_self(2*n1+1,2*n2+15,2*n3+1,psir,psi_out)
+
+  hgridh(1)=hx*.5_gp
+  hgridh(2)=hy*.5_gp
+  hgridh(3)=hz*.5_gp
+
+! compute the kinetic part and add  it to psi_out
+! the kinetic energy is calculated at the same time
+  call convolut_kinetic_slab_T(2*n1+1,2*n2+15,2*n3+1,hgridh,psi_in,psi_out,ekin)
+  
+  call compress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
+       psi_out,hpsi(1),hpsi(nvctr_c+1),psir)
+
+END SUBROUTINE applylocpotkinone_slab
+
+
+
 
 subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   implicit none

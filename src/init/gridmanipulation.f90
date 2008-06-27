@@ -114,7 +114,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
      end if
      !the grid spacings must be the same
      if (hx/= hy .or. hy /=hz .or. hx/=hz) then
-        write(*,'(1x,a)')'ERROR: For Free BC the grid spacings must be the same'
+!        write(*,'(1x,a)')'ERROR: For Free BC the grid spacings must be the same'
      end if
   end if
 
