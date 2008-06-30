@@ -35,7 +35,7 @@ module module_base
 
   !Memory limit value in GB. It stops EVERYTHING if some process passes such limit
   !For no memory limit, leave it to zero
-  integer, parameter :: memorylimit=0
+  real(kind=4), parameter :: memorylimit=0.0e0
 
   !flag for GPU computing, if CUDA libraries are present
   !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation

@@ -105,9 +105,9 @@ subroutine memory_occupation(istat,isize,array,routine)
         ndealloc=ndealloc+1
      end if
 
-     if (memorylimit /= 0 .and. &
-          tot%memory > int(memorylimit*int(1073741824,kind=8),kind=8)) then !memory limit is in GB
-        write(*,'(1x,3(a,i0),a)')&
+     if (memorylimit /= 0.e0 .and. &
+          tot%memory > int(real(memorylimit,kind=8)*1073741824.d0,kind=8)) then !memory limit is in GB
+        write(*,'(1x,a,f7.3,2(a,i0),a)')&
              'ERROR: Memory limit of ',memorylimit,&
              ' GB reached for iproc ',iproc,' : total memory is ',tot%memory,' B.'
         write(*,'(1x,2(a,i0))')&
