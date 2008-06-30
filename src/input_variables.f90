@@ -292,15 +292,16 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
            read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,extra
         end if
         call find_extra_info(line,extra)
-        if (ierrsfx ==0) then
-           call parse_extra_info(iproc,iat,extra,at)
-        else
-           if (lpsdbl) then
-              read(line,*)symbol,rx,ry,rz
-           else
-              read(line,*)symbol,rxd0,ryd0,rzd0
-           end if
-        end if
+        call parse_extra_info(iproc,iat,extra,at)
+!!$        if (ierrsfx ==0) then
+!!$           call parse_extra_info(iproc,iat,extra,at)
+!!$        else
+!!$           if (lpsdbl) then
+!!$              read(line,*)symbol,rx,ry,rz
+!!$           else
+!!$              read(line,*)symbol,rxd0,ryd0,rzd0
+!!$           end if
+!!$        end if
         
 !!$        if (lpsdbl) then
 !!$           read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,natpol,suffix
@@ -485,8 +486,11 @@ subroutine parse_extra_info(iproc,iat,extra,at)
   integer :: ierr,ierr1,ierr2,nspol,nchrg,nsgn
   !case with all the information
   read(extra,*,iostat=ierr)nspol,nchrg,suffix
-  !case with partial information
-  if (ierr /= 0) then
+  if (extra == '') then !case with empty information
+     nspol=0
+     nchrg=0
+     suffix='   '
+  else if (ierr /= 0) then !case with partial information
      read(extra,*,iostat=ierr1)nspol,suffix
      if (ierr1 /=0) then
         if (trim(extra) == 'f') then
@@ -522,7 +526,7 @@ subroutine parse_extra_info(iproc,iat,extra,at)
   end if
   at%natpol(iat)=1000*nchrg+nsgn*100+nspol
 
-  !print *,'natpol',iat,at%natpol(iat)
+  !print *,'natpol atomic',iat,at%natpol(iat)
   
   if (trim(suffix) == 'f') then
      !the atom is considered as blocked
@@ -693,8 +697,6 @@ subroutine charge_and_spol(natpol,nchrg,nspol)
   end if
 
   nspol=natpol-1000*nchrg-nsgn*100
-
-  !print *,'charge,spol',nchrg,nspol
 
 end subroutine charge_and_spol
 
