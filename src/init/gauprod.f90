@@ -5,9 +5,9 @@
 !!$  !exponents of the spherical harmonics nterm=primitve gaussians * spherical components
 !!$  integer, dimension(3,nterm,ngau), intent(in) :: lxyz 
 !!$  !coefficients of the spherical harmonics times primitive gaussian functions
-!!$  real(kind=8), dimension(nterm,ngau), intent(in) :: coeff 
+!!$  real(gp), dimension(nterm,ngau), intent(in) :: coeff 
 !!$  !exponent and center
-!!$  real(kind=8), dimension(2,nterm,ngau), intent(in) :: expcent
+!!$  real(gp), dimension(2,nterm,ngau), intent(in) :: expcent
 !!$  
 !!$end subroutine gaussian_overlap
 
@@ -45,14 +45,15 @@ end subroutine normalize_shell
 
 !calculates \int_0^\infty \exp^{-a*x^2} x^l dx
 function gauinth(a,l)
+  use module_base
   implicit none
   integer, intent(in) :: l
-  real(kind=8), intent(in) :: a
-  real(kind=8) :: gauinth
+  real(gp), intent(in) :: a
+  real(gp) :: gauinth
   !local variables
-  real(kind=8), parameter :: gammaonehalf=1.772453850905516027298d0
+  real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
   integer :: p
-  real(kind=8) :: xfac,prefac,tt,firstprod,sh
+  real(gp) :: xfac,prefac,tt,firstprod,sh
   !build the prefactor
   prefac=sqrt(a)
   prefac=1.d0/prefac
@@ -60,7 +61,7 @@ function gauinth(a,l)
   p=1-l+2*(l/2)
   tt=0.5d0*gammaonehalf**p
   prefac=prefac*tt
-  sh=-0.5d0*real(p,kind=8)
+  sh=-0.5d0*real(p,gp)
   p=l/2
   tt=xfac(1,p,sh)
   !final result
@@ -74,24 +75,27 @@ end function gauinth
 !inserted work arrays for calculation
 subroutine gbasovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
      niw,nrw,iw,rw,ovrlp)
+  use module_base
   implicit none
   integer, intent(in) :: ng1,ng2,l1,m1,l2,m2,niw,nrw
-  real(kind=8), intent(in) :: dx,dy,dz
+  real(gp), intent(in) :: dx,dy,dz
   integer, dimension(niw) :: iw
-  real(kind=8), dimension(nrw) :: rw
-  real(kind=8), dimension(ng1), intent(in) :: expo1,coeff1
-  real(kind=8), dimension(ng2), intent(in) :: expo2,coeff2
-  real(kind=8), intent(out) :: ovrlp
+  real(gp), dimension(nrw) :: rw
+  real(gp), dimension(ng1), intent(in) :: expo1,coeff1
+  real(gp), dimension(ng2), intent(in) :: expo2,coeff2
+  real(gp), intent(out) :: ovrlp
   !local variables
   integer :: i1,i2
-  real(kind=8) :: a1,a2,c1,c2,govrlpr
+  real(gp) :: a1,a2,c1,c2,govrlpr
 
   ovrlp=0.d0
   do i1=1,ng1
      a1=expo1(i1)
+     a1=0.5_gp/a1**2
      c1=coeff1(i1)
      do i2=1,ng2
         a2=expo2(i2)
+        a2=0.5_gp/a2**2
         c2=coeff2(i2)
         call gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,govrlpr)
         govrlpr=c1*govrlpr*c2
@@ -102,23 +106,129 @@ subroutine gbasovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
   
 end subroutine gbasovrlp
 
+!overlap matrix between two different basis structures
+subroutine gaussian_overlap(A,B,ovrlp)
+  use module_types
+  type(gaussian_basis), intent(in) :: A,B
+  real(gp), dimension(A%ncoeff*(B%ncoeff-1)/2) :: ovrlp !only upper triangular part for A%ncoeff=B%ncoeff
+
+  !local variables
+  integer, parameter :: niw=18,nrw=6
+  integer :: ishell,iexpo,icoeff,ishellB,iexpoB,icoeffB,iat,jat,isat,isatB,jsat,jshell,iovrlp
+  integer :: ngA,ngB,lA,lB,mA,mB
+  real(gp) :: dx,dy,dz
+  integer, dimension(niw) :: iw
+  real(gp), dimension(nrw) :: rw
+
+  iovrlp=0
+
+  ishell=0
+  iexpo=1
+  icoeff=1
+
+  ishellB=0
+  iexpoB=1
+  icoeffB=1
+
+  do iat=1,A%nat
+     do isat=1,A%nshell(iat)
+        ishell=ishell+1
+        ngA=A%ndoc(ishell)
+        lA=A%nam(ishell)
+
+        jshell=ishellB
+        jexpo=iexpoB
+        jcoeff=icoeffB
+
+        !diagonal case
+        if (iat <= B%nat) then
+           do jsat=1,B%nshell(iat)
+              jshell=jshell+1
+              ngB=B%ndoc(jshell)
+              lB=B%nam(jshell)
+
+              do mA=1,2*lA-1
+                 do mB=mA,2*lB-1
+                    iovrlp=iovrlp+1
+                    call gbasovrlp(A%xp(iexpo),A%psiat(iexpo),B%xp(jexpo),B%psiat(jexpo),ngA,ngB,lA,mA,lB,mB,&
+                         0.0_gp,0.0_gp,0.0_gp,niw,nrw,iw,rw,ovrlp(iovrlp))
+                 end do
+              end do
+
+              jexpo=jexpo+ngB
+              jcoeff=jcoeff+2*lB-1
+           end do
+
+        end if
+
+        do jat=iat+1,B%nat
+
+           dx=A%rxyz(1,iat)-B%rxyz(1,jat)
+           dy=A%rxyz(2,iat)-B%rxyz(2,jat)
+           dz=A%rxyz(3,iat)-B%rxyz(3,jat)
+
+           do jsat=1,B%nshell(jat)
+              jshell=jshell+1
+              ngB=B%ndoc(jshell)
+              lB=B%nam(jshell)
+
+              do mA=1,2*lA-1
+                 do mB=1,2*lB-1
+                    iovrlp=iovrlp+1
+                    call gbasovrlp(a%xp(iexpo),A%psiat(iexpo),B%xp(jexpo),B%psiat(jexpo),ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
+                         niw,nrw,iw,rw,ovrlp(iovrlp))
+                 end do
+              end do
+
+              jexpo=jexpo+ngB
+              jcoeff=jcoeff+2*lB-1
+           end do
+        end do
+        iexpo=iexpo+ngA
+        icoeff=icoeff+2*lA-1
+
+        ishellB=ishellB+B%nshell(iat)
+        do isatB=1,B%nshell(iat)
+           iexpoB=iexpoB+B%ndoc(isatB)
+           icoeffB=icoeffB+2*B%nam(isatB)-1
+        end do
+     end do
+  end do
+
+  call gaudim_check(iexpo,icoeff,ishell,A%nexpo,A%ncoeff,A%nshltot)
+  call gaudim_check(iexpoB,icoeffB,jshell,B%nexpo,B%ncoeff,B%nshltot)
+  !check of the dimensions
+!!$  if (iexpo /= nexpo+1) then
+!!$     write(*,*)' ERROR: nexpo+1 <> iexpo',nexpo,iexpo
+!!$     stop
+!!$  else if (icoeff /= ncoeff+1) then
+!!$     write(*,*)' ERROR: ncoeff+1 <> icoeff',ncoeff,icoeff
+!!$     stop
+!!$  else if (ishell /= nshltot+1) then
+!!$     write(*,*)' ERROR: nshltot+1 <> ishell',nshltot,ishell
+!!$     stop
+!!$  end if
+  
+end subroutine gaussian_overlap
+
 
 !calculates a dot product between two differents gaussians times spherical harmonics
 !vaild only for shell which belongs to different atoms, and with also dy/=0/=dx dz/=0
 !to be rearranged when only some of them is zero
 subroutine gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
+  use module_base
   implicit none
-  integer, intent(in) :: l1,l2,m1,m2,niw,nrw
-  real(kind=8), intent(in) :: a1,a2,dx,dy,dz
+  integer, intent(in) :: l1,l2,m1,m2,niw,nrw 
+  real(gp), intent(in) :: a1,a2,dx,dy,dz
   integer, dimension(niw) :: iw !work array of the exponents of the two polynomials
-  real(kind=8), dimension(nrw) :: rw !work array of the polynomials coefficients 
-  real(kind=8), intent(out) :: ovrlp
+  real(gp), dimension(nrw) :: rw !work array of the polynomials coefficients 
+  real(gp), intent(out) :: ovrlp
   !local variables
   integer, parameter :: nx=3
   integer :: n1,n2,i1,i2,px,py,pz,qx,qy,qz,i
   integer :: lx1,lx2,lx3,ly1,ly2,ly3,lz1,lz2,lz3
   integer :: mx1,mx2,mx3,my1,my2,my3,mz1,mz2,mz3
-  real(kind=8) :: fx,fy,fz,fa,fb,govrlp,f1,f2,f3,g1,g2,g3
+  real(gp) :: fx,fy,fz,fa,fb,govrlp,f1,f2,f3,g1,g2,g3
 
 !!$  rw(1)=0.d0
 !!$  rw(2)=0.d0
@@ -245,13 +355,14 @@ end subroutine gprod
 
 !calculates \int \exp^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx
 function govrlp(a1,a2,d,l1,l2)
+  use module_base
   implicit none
   integer, intent(in) :: l1,l2
-  real(kind=8), intent(in) :: a1,a2,d
-  real(kind=8) :: govrlp
+  real(gp), intent(in) :: a1,a2,d
+  real(gp) :: govrlp
   !local variables
   integer :: p
-  real(kind=8) :: prefac,rfac,stot,aeff,ceff,tt,fsum,gauint
+  real(gp) :: prefac,rfac,stot,aeff,ceff,tt,fsum,gauint
 
   !build the prefactor
   prefac=a1+a2
@@ -298,14 +409,15 @@ end function govrlp
 !calculates \int \exp^{-a*(x-c)^2} x^l dx
 !this works ALSO when c/=0.d0
 function gauint(a,c,l)
+  use module_base
   implicit none
   integer, intent(in) :: l
-  real(kind=8), intent(in) :: a,c
-  real(kind=8) :: gauint
+  real(gp), intent(in) :: a,c
+  real(gp) :: gauint
   !local variables
-  real(kind=8), parameter :: gammaonehalf=1.772453850905516027298d0
+  real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
   integer :: p
-  real(kind=8) :: rfac,prefac,xsum,stot,fsum,tt,firstprod
+  real(gp) :: rfac,prefac,xsum,stot,fsum,tt,firstprod
   !build the prefactor
   prefac=sqrt(a)
   prefac=1.d0/prefac
@@ -358,14 +470,15 @@ end function gauint
 !calculates \int \exp^{-a*x^2} x^l dx
 !this works only when l is even (if not equal to zero)
 function gauint0(a,l)
+  use module_base
   implicit none
   integer, intent(in) :: l
-  real(kind=8), intent(in) :: a
-  real(kind=8) :: gauint0
+  real(gp), intent(in) :: a
+  real(gp) :: gauint0
   !local variables
-  real(kind=8), parameter :: gammaonehalf=1.772453850905516027298d0
+  real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
   integer :: p
-  real(kind=8) :: xfac,prefac,tt,firstprod
+  real(gp) :: xfac,prefac,tt,firstprod
   !build the prefactor
   prefac=sqrt(a)
   prefac=1.d0/prefac
@@ -379,15 +492,16 @@ function gauint0(a,l)
 end function gauint0
 
 function firstprod(p)
+  use module_base
   implicit none
   integer, intent(in) :: p
-  real(kind=8) :: firstprod
+  real(gp) :: firstprod
   !local variables
   integer :: i
-  real(kind=8) :: tt
+  real(gp) :: tt
   firstprod=1.d0
   do i=1,p
-     tt=real(2*i,kind=8)
+     tt=real(2*i,gp)
      tt=1.d0/tt
      tt=1.d0-tt
      firstprod=firstprod*tt
@@ -395,31 +509,33 @@ function firstprod(p)
 end function firstprod
 
 function rfac(is,ie)
+  use module_base
   implicit none
   integer, intent(in) :: is,ie
-  real(kind=8) :: rfac
+  real(gp) :: rfac
   !local variables
   integer :: i
-  real(kind=8) :: tt
+  real(gp) :: tt
   rfac=1.d0
   do i=is,ie
-     tt=real(i,kind=8)
+     tt=real(i,gp)
      rfac=rfac*tt
   end do
 end function rfac
 
 !with this function n!=xfac(1,n,0.d0)
 function xfac(is,ie,sh)
+  use module_base
   implicit none
   integer, intent(in) :: is,ie
-  real(kind=8), intent(in) :: sh
-  real(kind=8) :: xfac
+  real(gp), intent(in) :: sh
+  real(gp) :: xfac
   !local variables
   integer :: i
-  real(kind=8) :: tt
+  real(gp) :: tt
   xfac=1.d0
   do i=is,ie
-     tt=real(i,kind=8)+sh
+     tt=real(i,gp)+sh
      xfac=xfac*tt
   end do
 end function xfac
@@ -431,14 +547,15 @@ end function xfac
 !the same function but with integer factorials (valid ONLY if l<=18)
 !not a visible improvement in speed with respect to the analogous real
 function gauinti(a,c,l)
+  use module_base
   implicit none
   integer, intent(in) :: l
-  real(kind=8), intent(in) :: a,c
-  real(kind=8) :: gauinti
+  real(gp), intent(in) :: a,c
+  real(gp) :: gauinti
   !local variables
-  real(kind=8), parameter :: gammaonehalf=1.772453850905516027298d0
+  real(gp), parameter :: gammaonehalf=1.772453850905516027298d0
   integer :: p,ifac
-  real(kind=8) :: prefac,xsum,stot,fsum,tt,firstprod
+  real(gp) :: prefac,xsum,stot,fsum,tt,firstprod
   !build the prefactor
   prefac=sqrt(a)
   prefac=c**l/prefac
@@ -453,8 +570,8 @@ function gauinti(a,c,l)
 
   !calculate the sum
   do p=1,l/4
-     tt=real(ifac(p+1,2*p),kind=8)
-     fsum=real(ifac(l-2*p+1,l),kind=8)
+     tt=real(ifac(p+1,2*p),gp)
+     fsum=real(ifac(l-2*p+1,l),gp)
      fsum=fsum/tt
      tt=firstprod(p)
      fsum=fsum*tt
@@ -462,8 +579,8 @@ function gauinti(a,c,l)
      stot=stot+fsum
   end do
   do p=l/4+1,l/3
-     tt=real(ifac(p+1,l-2*p),kind=8)
-     fsum=real(ifac(2*p+1,l),kind=8)
+     tt=real(ifac(p+1,l-2*p),gp)
+     fsum=real(ifac(2*p+1,l),gp)
      fsum=fsum/tt
      tt=firstprod(p)
      fsum=fsum*tt
@@ -471,8 +588,8 @@ function gauinti(a,c,l)
      stot=stot+fsum
   end do
   do p=l/3+1,l/2
-     tt=real(ifac(l-2*p+1,p),kind=8)
-     fsum=real(ifac(2*p+1,l),kind=8)
+     tt=real(ifac(l-2*p+1,p),gp)
+     fsum=real(ifac(2*p+1,l),gp)
      fsum=fsum*tt
      tt=firstprod(p)
      fsum=fsum*tt
@@ -488,19 +605,20 @@ end function gauinti
 
 !valid if p<l/4 AND p/=0
 function secondprod1(p,l)
+  use module_base
   implicit none
   integer, intent(in) :: p,l
-  real(kind=8) :: secondprod1
+  real(gp) :: secondprod1
   !local variables
   integer :: i
-  real(kind=8) :: tt,part1,rfac
+  real(gp) :: tt,part1,rfac
   part1=rfac(p+1,2*p)
   !divide by the last value
-  part1=real(l,kind=8)/part1
+  part1=real(l,gp)/part1
   tt=rfac(l-2*p+1,l-1)
 !!$  part1=1.d0
 !!$  do i=p+1,2*p !in the second case the bound must be changed here
-!!$     tt=real(i,kind=8)
+!!$     tt=real(i,gp)
 !!$     part1=part1*tt
 !!$  end do
   secondprod1=tt*part1
@@ -508,19 +626,20 @@ end function secondprod1
 
 !valid if p>=l/4 AND p<l/3
 function secondprod2(p,l)
+  use module_base
   implicit none
   integer, intent(in) :: p,l
-  real(kind=8) :: secondprod2
+  real(gp) :: secondprod2
   !local variables
   integer :: i
-  real(kind=8) :: tt,part1,rfac
+  real(gp) :: tt,part1,rfac
   part1=rfac(p+1,l-2*p)
   !divide by the last value
-  part1=real(l,kind=8)/part1
+  part1=real(l,gp)/part1
   tt=rfac(2*p+1,l-1)
 !!$  part1=1.d0
 !!$  do i=p+1,2*p !in the second case the bound must be changed here
-!!$     tt=real(i,kind=8)
+!!$     tt=real(i,gp)
 !!$     part1=part1*tt
 !!$  end do
   secondprod2=tt*part1
@@ -540,17 +659,75 @@ function ifac(is,ie)
   end do
 end function ifac
 
+!calculate the projection of a given orbital on a gaussian basis centered on 
+!a set of points
+subroutine orbital_projection(geocode,n1,n2,n3,nat,rxyz,thetaphi,nshell,ndoc,nam,xp,psiat,nshltot,nexpo,ncoeff,&
+     hx,hy,hz,wfd,psi,coeffs)
+  use module_base
+  use module_types
+  implicit none
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: n1,n2,n3,nat,nshltot,nexpo,ncoeff
+  real(gp), intent(in) :: hx,hy,hz
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  integer, dimension(nat), intent(in) :: nshell
+  integer, dimension(nshltot), intent(in) :: ndoc,nam
+  real(gp), dimension(nexpo), intent(in) :: xp,psiat
+  real(gp), dimension(2,nat), intent(in) :: thetaphi
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(in) :: psi
+  real(wp), dimension(ncoeff), intent(out) :: coeffs
+  !local variables
+  integer :: ishell,iexpo,icoeff,iat,isat,ng,l
+  
+  ishell=0
+  iexpo=1
+  icoeff=1
+  do iat=1,nat
+     do isat=1,nshell(iat)
+        ishell=ishell+1
+        ng=ndoc(ishell)
+        l=nam(ishell)
+        call lsh_projection(geocode,l,ng,xp(iexpo),psiat(iexpo),n1,n2,n3,rxyz(1,iat),thetaphi(1,iat),hx,hy,hz,&
+             wfd,psi,coeffs(icoeff))
+        iexpo=iexpo+ng
+        icoeff=icoeff+2*l-1
+     end do
+  end do
+
+  call gaudim_check(iexpo,icoeff,ishell,nexpo,ncoeff,nshltot)
+  
+end subroutine orbital_projection
+
+subroutine gaudim_check(iexpo,icoeff,ishell,nexpo,ncoeff,nshltot)
+  implicit none
+  integer, intent(in) :: iexpo,icoeff,ishell,nexpo,ncoeff,nshltot
+  !check of the dimensions
+  if (iexpo /= nexpo+1) then
+     write(*,*)' ERROR: nexpo+1 <> iexpo',nexpo,iexpo
+     stop
+  else if (icoeff /= ncoeff+1) then
+     write(*,*)' ERROR: ncoeff+1 <> icoeff',ncoeff,icoeff
+     stop
+  else if (ishell /= nshltot) then
+     write(*,*)' ERROR: nshltot <> ishell',nshltot,ishell
+     stop
+  end if
+end subroutine gaudim_check
+
+
 !calculate the projection of a gaussian for a given eigenspace of spherical harmonics
 !centered on a given point and rotated by theta(along y) and phi(along x)
-subroutine gaussian_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,theta,phi,hx,hy,hz,&
+subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,&
      wfd,psi,coeffs)
   use module_base
   use module_types
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: l,ng,n1,n2,n3
-  real(gp), intent(in) :: theta,phi,hx,hy,hz
+  real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
+  real(gp), dimension(2), intent(in) :: thetaphi
   real(gp), dimension(3), intent(in) :: rxyz
   real(gp), dimension(ng), intent(in) :: xp,psiat
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(in) :: psi
@@ -570,9 +747,11 @@ subroutine gaussian_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,theta,phi,hx,
           wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
           psi(1),psi(wfd%nvctr_c+1),coeffs(m))
 
+     !here we should modify the coefficients following the direction of the axis
+
   end do
 
-end subroutine gaussian_projection
+end subroutine lsh_projection
 
 
 

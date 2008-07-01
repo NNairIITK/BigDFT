@@ -320,7 +320,9 @@ subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
   character(len=*), parameter :: subname='import_gaussians'
   integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp,jorb,n1i,n2i,n3i
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,accurex
+  type(gaussian_basis) :: CP2K
   real(gp), dimension(:), allocatable :: ones
+  real(wp), dimension(:,:), pointer :: wfn_cp2k
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -353,17 +355,31 @@ subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
         n2i=2*n2+2
         n3i=2*n3+2
   end select
-
+!!$
+!!$  call parse_cp2k_files(iproc,'gaubasis.dat','gaucoeff.dat',at%nat,at%ntypes,norb,at%iatype,rxyz,CP2K,wfn_cp2k)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(psi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
+
+!!$  call gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
+!!$     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,CP2K,wfn_cp2k,psi)
+!!$
+!!$  !deallocate CP2K variables
+!!$  call deallocate_gwf(CP2K,subname)
+!!$  !nullify gaussian centers
+!!$  nullify(CP2K%rxyz)
+!!$  i_all=-product(shape(wfn_cp2k))*kind(wfn_cp2k)
+!!$  deallocate(wfn_cp2k,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'wfn_cp2k',subname)
+
 
   !read the values for the gaussian code and insert them on psi 
   call gautowav(geocode,iproc,nproc,at%nat,at%ntypes,norb,norbp,n1,n2,n3,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,&
        at%iatype,occup,rxyz,hx,hy,hz,psi,eks)
+  
 
 !!$  !!plot the initial gaussian wavefunctions
 !!$  !do i=2*iproc+1,2*iproc+2

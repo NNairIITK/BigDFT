@@ -583,6 +583,18 @@ interface
      integer, dimension(:,:,:), pointer, optional :: ibyyzz_r 
    end subroutine partial_density
 
+   subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,iatype,rxyz,CP2K,wfn_cp2k)
+     use module_base
+     use module_types
+     implicit none
+     character(len=*), intent(in) :: basisfile,orbitalfile
+     integer, intent(in) :: norb,iproc,nat,ntypes
+     integer, dimension(nat), intent(in) :: iatype
+     real(gp), dimension(3,nat), target, intent(in) :: rxyz
+     type(gaussian_basis), intent(out) :: CP2K
+     real(wp), dimension(:,:), pointer :: wfn_cp2k
+   end subroutine parse_cp2k_files
+
 end interface
 
 end module module_interfaces
