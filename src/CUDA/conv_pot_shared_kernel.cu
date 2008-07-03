@@ -49,6 +49,7 @@ __global__ void conv_shared(unsigned int n1,unsigned int n2,float *t_out,float *
 
   int lineNumberFetch = lineNumber;
 
+  //such conditionals should be avoided
   if(bidx == gridDim.x - 1)
     {
       lineNumberFetch = (int)lineNumber - (int)param.lineLastBlock;

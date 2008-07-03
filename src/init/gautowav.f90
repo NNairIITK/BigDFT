@@ -39,7 +39,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,iatype,r
   open(unit=35,file=trim(basisfile),action='read')
 
   !read the lines for analyzing the maximum number of primitive gaussian functions
-  !and als for the maximum angular momentum
+  !and also for the maximum angular momentum
   ityp=0
   ngx=0
   nbx=0
@@ -186,7 +186,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,iatype,r
         ishell=ishell+1
         do ig=1,CP2K%ndoc(ishell)
            iexpo=iexpo+1
-           CP2K%psiat(ig)=contcoeff(ig,isat,ityp)
+           CP2K%psiat(iexpo)=contcoeff(ig,isat,ityp)
            CP2K%xp(iexpo)=sqrt(0.5_gp/expo(ig,isat,ityp))
         end do
      end do
@@ -369,7 +369,7 @@ subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
   character(len=*), parameter :: subname='gaussians_to_wavelets'
   integer, parameter :: nterm_max=3
   logical :: myorbital
-  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,i,nterm,ierr
+  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,i,nterm,ierr,ig
   real(dp) :: normdev,tt,scpr
   real(gp) :: rx,ry,rz
   integer, dimension(nterm_max) :: lx,ly,lz
@@ -416,7 +416,6 @@ subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
            do iorb=1,norb
               if (myorbital(iorb,norb,iproc,nproc)) then
                  jorb=iorb-iproc*norbp
-                 print *,iorb,wfn_gau(icoeff,iorb)
                  do i=1,wfd%nvctr_c+7*wfd%nvctr_f
                     !for this also daxpy BLAS can be used
                     psi(i,jorb)=psi(i,jorb)+wfn_gau(icoeff,iorb)*tpsi(i)
@@ -824,7 +823,6 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
            do iorb=1,norb
               if (myorbital(iorb,norb,iproc,nproc)) then
                  jorb=iorb-iproc*norbp
-                 print *,iorb,cimu(m,ishell,iat,iorb)
                  do i=1,nvctr_c+7*nvctr_f
                     !for this also daxpy BLAS can be used
                     psi(i,jorb)=psi(i,jorb)+cimu(m,ishell,iat,iorb)*tpsi(i)
