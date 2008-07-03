@@ -9,7 +9,7 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
   real(wp), dimension(nt,0:right), intent(out) :: cd_1
   !local variables
   integer, parameter :: m=8
-  integer :: lenc,len_2,it,i,i2,ji2
+  integer :: lenc,len_2,it,i,i2,ji2,j
   real(wp) :: ci,di
   real(wp) ch(-8:9) ,cg(-8:9)
   !       daubechy s16
@@ -68,7 +68,7 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
   real(wp), dimension(nt,0:right1), intent(out) :: c1
   !local variables
   integer, parameter :: m=8
-  integer :: m_2,len_2,i,j,it
+  integer :: m_2,len_2,i,j,it,i_j
   real(wp) :: ci2,ci21
   real(wp) ch(-8:9) ,cg(-8:9)
   !       daubechy s16

@@ -11,7 +11,7 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
   real(wp), dimension(ndat,nfl:nfu), intent(out) :: y
   !local variables
   integer :: j,l,i,icur
-  real(wp) :: ci0,ci1,ci2,ci3
+  real(wp) :: ci,ci1,ci2,ci3
   include 'v.inc'
 
 !    open(unit=10,file='simple_shrink.flop')
@@ -26,7 +26,7 @@ subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
 !    enddo
 
     ! the convolution itself:
-    call system_clock(ncount0,ncount_rate,ncount_max)
+  !call system_clock(ncount0,ncount_rate,ncount_max)
     do j=1,ndat
        do i=ib(1,j),ib(2,j)
          ci=0.d0

@@ -6,7 +6,7 @@ subroutine ana_rot_per(n,ndat,x,y)
   real(wp), dimension(0:2*n+1,ndat), intent(in) :: x
   real(wp), dimension(ndat,0:2*n+1), intent(out) :: y
   !local variables
-  integer :: i,j
+  integer :: i,j,k,l
   real(wp) :: ci,di
   real(wp), dimension(-7:8) :: ch,cg
   !       Daubechy S16
@@ -54,7 +54,7 @@ subroutine syn_rot_per(n,ndat,x,y)
   real(wp), dimension(0:2*n+1,ndat), intent(in) :: x
   real(wp), dimension(ndat,0:2*n+1), intent(out) :: y
   !local variables
-  integer :: i,j
+  integer :: i,j,k,l
   real(wp) :: so,se
   real(wp), dimension(-8:9) :: ch,cg
   !       Daubechy S16

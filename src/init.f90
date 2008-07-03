@@ -318,9 +318,13 @@ subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
   real(wp), dimension(:), pointer :: psi,psit,hpsi
   !local variables
   character(len=*), parameter :: subname='import_gaussians'
-  integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp,jorb,n1i,n2i,n3i
+  integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp,jorb,n1i,n2i,n3i,j
+  real(kind=4) :: t1,t0
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,accurex
-  real(gp), dimension(:), allocatable :: ones
+  type(gaussian_basis) :: CP2K
+  real(gp), dimension(:), allocatable :: ones,ovrlp
+  real(gp), dimension(:,:), allocatable :: tmp,smat
+  real(wp), dimension(:,:), pointer :: wfn_cp2k
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -354,16 +358,65 @@ subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
         n3i=2*n3+2
   end select
 
+  call parse_cp2k_files(iproc,'gaubasis.dat','gaucoeff.dat',at%nat,at%ntypes,norb,at%iatype,rxyz,CP2K,wfn_cp2k)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(psi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
 
-  !read the values for the gaussian code and insert them on psi 
-  call gautowav(geocode,iproc,nproc,at%nat,at%ntypes,norb,norbp,n1,n2,n3,&
-       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,&
-       at%iatype,occup,rxyz,hx,hy,hz,psi,eks)
+  allocate(ovrlp(CP2K%ncoeff*CP2K%ncoeff),stat=i_stat)
+  call memocc(i_stat,ovrlp,'ovrlp',subname)
+  allocate(tmp(CP2K%ncoeff,norb),stat=i_stat)
+  call memocc(i_stat,tmp,'tmp',subname)
+  allocate(smat(norb,norb),stat=i_stat)
+  call memocc(i_stat,smat,'smat',subname)
+
+!!$  call cpu_time(t0)
+!!$  do i=1,1000
+  !overlap calculation of the gaussian matrix, to be done in view of quick restart
+  call gaussian_overlap(CP2K,CP2K,ovrlp)
+  call dsymm('L','U',CP2K%ncoeff,norb,1.0_gp,ovrlp(1),CP2K%ncoeff,wfn_cp2k(1,1),CP2K%ncoeff,&
+       0.d0,tmp(1,1),CP2K%ncoeff)
+  call gemm('T','N',norb,norb,CP2K%ncoeff,1.0_gp,wfn_cp2k(1,1),CP2K%ncoeff,tmp(1,1),CP2K%ncoeff,&
+       0.0_wp,smat(1,1),norb)
+!!$  end do
+!!$  call cpu_time(t1)
+!!$  print *,'done',t1-t0
+  !print *,'ovrlp'
+  !print overlap matrices
+  do i=1,norb
+     write(*,'(i5,30(1pe19.12))')i,(smat(i,iorb),iorb=1,norb)
+  end do
+  
+
+  i_all=-product(shape(ovrlp))*kind(ovrlp)
+  deallocate(ovrlp,stat=i_stat)
+  call memocc(i_stat,i_all,'ovrlp',subname)
+  i_all=-product(shape(tmp))*kind(tmp)
+  deallocate(tmp,stat=i_stat)
+  call memocc(i_stat,i_all,'tmp',subname)
+  i_all=-product(shape(smat))*kind(smat)
+  deallocate(smat,stat=i_stat)
+  call memocc(i_stat,i_all,'smat',subname)
+
+
+  call gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
+     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,CP2K,wfn_cp2k,psi)
+
+  !deallocate CP2K variables
+  call deallocate_gwf(CP2K,subname)
+  !nullify gaussian centers
+  nullify(CP2K%rxyz)
+  i_all=-product(shape(wfn_cp2k))*kind(wfn_cp2k)
+  deallocate(wfn_cp2k,stat=i_stat)
+  call memocc(i_stat,i_all,'wfn_cp2k',subname)
+
+!!$  !read the values for the gaussian code and insert them on psi 
+!!$  call gautowav(geocode,iproc,nproc,at%nat,at%ntypes,norb,norbp,n1,n2,n3,&
+!!$       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+!!$       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,&
+!!$       at%iatype,occup,rxyz,hx,hy,hz,psi,eks)
+  
 
 !!$  !!plot the initial gaussian wavefunctions
 !!$  !do i=2*iproc+1,2*iproc+2
@@ -1014,7 +1067,8 @@ subroutine overlap_matrices(nproc,norbep,nvctrp,natsc,nspin,ndim_hamovr,norbsc_a
   real(wp), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
   real(wp), dimension(nvctrp,norbep*nproc), intent(in) :: psi,hpsi
   !local variables
-  integer ::iorbst,imatrst,norbi,i,ispin
+  integer :: iorbst,imatrst,norbi,i,ispin,j
+  real(kind=4) :: t0,t1
 
   !calculate the overlap matrix for each group of the semicore atoms
   !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
@@ -1026,13 +1080,24 @@ subroutine overlap_matrices(nproc,norbep,nvctrp,natsc,nspin,ndim_hamovr,norbsc_a
         norbi=norbsc_arr(i,ispin)
         call gemm('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),nvctrp,hpsi(1,iorbst),nvctrp,&
              0.0_wp,hamovr(imatrst,1),norbi)
+        call cpu_time(t0)
+        do j=1,1000
         call gemm('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),nvctrp,psi(1,iorbst),nvctrp,&
              0.0_wp,hamovr(imatrst,2),norbi)
+        end do
+        call cpu_time(t1)
+        print *,'AAAAAAAAA',t1-t0
         iorbst=iorbst+norbi
         imatrst=imatrst+norbi**2
      end do
   end do
-  
+
+  print *,'ovrlp'
+  !print overlap matrices
+  do i=1,norbi
+     write(*,'(i5,30(1pe19.12))')i,(hamovr(norbi*(iorbst-1)+i,2),iorbst=1,norbi)
+  end do
+
 end subroutine overlap_matrices
 
 subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,nspin,etol,&
