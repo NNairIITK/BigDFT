@@ -540,9 +540,9 @@ subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
   end if
 
   !Generate the input guess via the inguess_generator
-  call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at%nzatom,at%nelpsp,at%psppar,&
-       & at%npspcode,norbe,norbsc,at%atomnames,at%ntypes,at%iatype,at%natpol,at%iasctype,at%nat,at%natsc,&
-       nspin,scorb,norbsc_arr)
+
+  call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,nspin,&
+       scorb,norbsc_arr)
 
   !Check for max number of virtual orbitals
   nvirte=norbe-max(norbu,norbd)!the unoccupied orbitals available as a LCAO

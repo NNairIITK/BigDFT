@@ -104,8 +104,8 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
   !control the strategy to be applied following the memory limit
   !if the projectors takes too much memory allocate only one atom at the same time
   !control the memory of the projectors expressed in GB
-  if (memorylimit /= 0 .and. .not. DistProjApply .and. &
-       real(istart-1,kind=8)/134217728.d0 > real(memorylimit,kind=8)) then
+  if (memorylimit /= 0.e0 .and. .not. DistProjApply .and. &
+       real(istart-1,kind=4) > memorylimit*134217728.0e0) then
      if (iproc == 0) then
         write(*,'(44x,a)') '------   On-the-fly projectors application'
      end if

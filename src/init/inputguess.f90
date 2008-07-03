@@ -1,21 +1,18 @@
-subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
-     & psppar,npspcode,norbe,norbsc,atomnames,ntypes,iatype,natpol,iasctype,nat,natsc,nspin,&
+subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,nspin,&
      & scorb,norbsc_arr)
   use module_base
+  use module_types
   implicit none
-  integer, intent(in) :: ngx,iproc,ntypes,nspin,nat,natsc
-  character(len=20), dimension(ntypes), intent(in) :: atomnames
-  integer, dimension(ntypes), intent(in) :: nzatom,nelpsp,npspcode,iasctype
-  integer, dimension(nat), intent(in) :: iatype,natpol
-  real(gp), dimension(0:4,0:6,ntypes), intent(in) :: psppar
+  integer, intent(in) :: ngx,iproc,nspin
   integer, intent(out) :: norbe,norbsc
-  logical, dimension(4,2,natsc), intent(out) :: scorb
-  integer, dimension(ntypes), intent(out) :: ng
-  integer, dimension(4,ntypes), intent(out) :: nl
-  integer, dimension(natsc+1,nspin), intent(out) :: norbsc_arr
-  real(gp), dimension(ngx,ntypes), intent(out) :: xp
-  real(gp), dimension(5,ntypes), intent(out) :: occupat
-  real(gp), dimension(ngx,5,ntypes), intent(out) :: psiat
+  type(atoms_data), intent(inout) :: at
+  logical, dimension(4,2,at%natsc), intent(out) :: scorb
+  integer, dimension(at%ntypes), intent(out) :: ng
+  integer, dimension(4,at%ntypes), intent(out) :: nl
+  integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
+  real(gp), dimension(ngx,at%ntypes), intent(out) :: xp
+  real(gp), dimension(5,at%ntypes), intent(out) :: occupat
+  real(gp), dimension(ngx,5,at%ntypes), intent(out) :: psiat
   !local variables
   integer, parameter :: nmax=6,lmax=3
   character(len=2) :: symbol
@@ -27,11 +24,11 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   integer, dimension(nmax,0:lmax) :: neleconf
 
   ! Read the data file.
-  nl(1:4,1:ntypes) = 0
-  ng(1:ntypes) = 0
-  xp(1:ngx,1:ntypes) = 0.0_gp
-  psiat(1:ngx,1:5,1:ntypes) = 0.0_gp
-  occupat(1:5,1:ntypes)= 0.0_gp
+  nl(1:4,1:at%ntypes) = 0
+  ng(1:at%ntypes) = 0
+  xp(1:ngx,1:at%ntypes) = 0.0_gp
+  psiat(1:ngx,1:5,1:at%ntypes) = 0.0_gp
+  occupat(1:5,1:at%ntypes)= 0.0_gp
 
   ! Test if the file 'inguess.dat exists (no more used)
   inquire(file='inguess.dat',exist=exists)
@@ -40,7 +37,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
      open(unit=24,file='inguess.dat',form='formatted',action='read',status='old')
   end if
 
-  loop_assign: do ity=1,ntypes
+  loop_assign: do ity=1,at%ntypes
 
      if (exists) then
         rewind(24)
@@ -58,9 +55,9 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
            exit loop_find
         end if
 
-        if (pspatomname .eq. atomnames(ity)) then
+        if (pspatomname .eq. at%atomnames(ity)) then
            if (iproc.eq.0) then
-              write(*,'(1x,a,a,a)') 'input wavefunction data for atom ',trim(atomnames(ity)),&
+              write(*,'(1x,a,a,a)') 'input wavefunction data for atom ',trim(at%atomnames(ity)),&
                    ' found'
            end if
            found = .true.
@@ -103,23 +100,24 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
 
         if (iproc.eq.0) then
            write(*,'(1x,a,a6,a)',advance='no')&
-                'Input wavefunction data for atom ',trim(atomnames(ity)),&
+                'Input wavefunction data for atom ',trim(at%atomnames(ity)),&
                 ' NOT found, automatic generation...'
         end if
 
         !the default value for the gaussians is chosen to be 21
         ng(ity)=21
 
-        call iguess_generator(iproc,nzatom(ity),nelpsp(ity),psppar(0,0,ity),npspcode(ity),&
+        call iguess_generator(iproc,at%nzatom(ity),at%nelpsp(ity),at%psppar(0,0,ity),&
+             at%npspcode(ity),&
              ng(ity)-1,nl(1,ity),5,occupat(1:5,ity),xp(1:ng(ity),ity),psiat(1:ng(ity),1:5,ity))
 
 !!$        !values obtained from the input guess generator in iguess.dat format
 !!$        !write these values on a file in the case of the HGH-K pseudo, for check
-!!$        if (iproc .eq. 0 .and. npspcode(ity)==10) then
+!!$        if (iproc .eq. 0 .and. at%npspcode(ity)==10) then
 !!$           open(unit=12,file='inguess.new',status='unknown')
 !!$
 !!$           !write(*,*)' --------COPY THESE VALUES INSIDE inguess.dat--------'
-!!$           write(12,*)trim(atomnames(ity))//' (remove _lda)'
+!!$           write(12,*)trim(at%atomnames(ity))//' (remove _lda)'
 !!$           write(12,*)nl(1,ity),(occupat(i,ity),i=1,nl(1,ity)),&
 !!$                nl(2,ity),(occupat(i+nl(1,ity),ity),i=1,nl(2,ity)),&
 !!$                nl(3,ity),(occupat(i+nl(1,ity)+nl(2,ity),ity),i=1,nl(3,ity)),&
@@ -144,16 +142,16 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
   norbsc=0
   iatsc=0
   scorb(:,:,:)=.false.
-  do iat=1,nat
-     ity=iatype(iat)
+  do iat=1,at%nat
+     ity=at%iatype(iat)
      norbe=norbe+nl(1,ity)+3*nl(2,ity)+5*nl(3,ity)+7*nl(4,ity)
-     nsccode=iasctype(ity)
-     call charge_and_spol(natpol(iat),ichg,ispol)
+     nsccode=at%iasctype(ity)
+     call charge_and_spol(at%natpol(iat),ichg,ispol)
      !correct in the case of input charge positioning
      if (ichg /=0) then
-        call eleconf(nzatom(ity),nelpsp(ity),symbol,rcov,rprb,ehomo,&
+        call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
              neleconf,nsccode,mxpl,mxchg)
-        call correct_semicore(atomnames(ity),6,3,ichg,neleconf,nsccode)
+        call correct_semicore(at%atomnames(ity),6,3,ichg,neleconf,nsccode)
      end if
      if (nsccode/=0) then !the atom has some semicore orbitals
         iatsc=iatsc+1
@@ -168,16 +166,14 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,nzatom,nelpsp,&
            end do
            niasc=niasc-nlsc*4**(lsc-1)
         end do
-        print *,'iat5',iatsc,natsc,iorbsc_count,nsccode,'nspin',nspin
         norbsc_arr(iatsc,1)=iorbsc_count
-        print *,'iat6',iat,norbsc_arr(iatsc,1)
         norbsc=norbsc+iorbsc_count
         !if (iproc == 0) print *,iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
      end if
   end do
 
   !orbitals which are non semicore
-  norbsc_arr(natsc+1,1)=norbe-norbsc
+  norbsc_arr(at%natsc+1,1)=norbe-norbsc
 
   !duplicate the values in the case of spin-polarization
   if (nspin == 2) norbsc_arr(:,2)=norbsc_arr(:,1)
