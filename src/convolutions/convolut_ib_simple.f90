@@ -21,7 +21,7 @@ subroutine Convolkinetic(n1,n2,n3, &
   integer, parameter :: lowfil=-14,lupfil=14
   logical :: firstcall=.true. 
   integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  integer :: i,t,i1,i2,i3,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
+  integer :: i,t,i1,i2,i3,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6,l
   real(wp) :: scale,dyi,t112, t121,t122,t212,t221,t222,t211
   real(kind=8) :: tel
   real(wp), dimension(lowfil:lupfil) :: a,b,c,d,e
@@ -228,7 +228,7 @@ subroutine Convolkinetic(n1,n2,n3, &
 
   ! Scaling function part
 
-  call system_clock(ncount0,ncount_rate,ncount_max)
+  !call system_clock(ncount0,ncount_rate,ncount_max)
 
   ! (1/2) d^2/dx^2
 
@@ -258,9 +258,9 @@ subroutine Convolkinetic(n1,n2,n3, &
             enddo
      enddo
   enddo
-  call system_clock(ncount1,ncount_rate,ncount_max)
-  tel=dble(ncount1-ncount0)/dble(ncount_rate)
-  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:x',tel,1.e-6*mflop1/tel
+  !call system_clock(ncount1,ncount_rate,ncount_max)
+  !tel=dble(ncount1-ncount0)/dble(ncount_rate)
+  !write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:x',tel,1.e-6*mflop1/tel
 
  ! + (1/2) d^2/dy^2
    do i3=0,n3
@@ -291,9 +291,9 @@ subroutine Convolkinetic(n1,n2,n3, &
  enddo
 
 
- call system_clock(ncount2,ncount_rate,ncount_max)
- tel=dble(ncount2-ncount1)/dble(ncount_rate)
- write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:y',tel,1.e-6*mflop2/tel
+ !call system_clock(ncount2,ncount_rate,ncount_max)
+ !tel=dble(ncount2-ncount1)/dble(ncount_rate)
+ !write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:y',tel,1.e-6*mflop2/tel
 
  ! ! + (1/2) d^2/dz^2
 
@@ -324,9 +324,9 @@ subroutine Convolkinetic(n1,n2,n3, &
      enddo
   enddo
 
-  call system_clock(ncount3,ncount_rate,ncount_max)
-  tel=dble(ncount3-ncount2)/dble(ncount_rate)
-  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:z',tel,1.e-6*mflop3/tel
+  !call system_clock(ncount3,ncount_rate,ncount_max)
+  !tel=dble(ncount3-ncount2)/dble(ncount_rate)
+  !write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:z',tel,1.e-6*mflop3/tel
 
   ! wavelet part
   ! (1/2) d^2/dx^2
@@ -355,9 +355,9 @@ subroutine Convolkinetic(n1,n2,n3, &
      enddo
   enddo
 
-  call system_clock(ncount4,ncount_rate,ncount_max)
-  tel=dble(ncount4-ncount3)/dble(ncount_rate)
-  write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:x',tel,1.e-6*nflop1/tel
+  !call system_clock(ncount4,ncount_rate,ncount_max)
+  !tel=dble(ncount4-ncount3)/dble(ncount_rate)
+  !write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:x',tel,1.e-6*nflop1/tel
 
 
   ! + (1/2) d^2/dy^2
@@ -386,9 +386,9 @@ subroutine Convolkinetic(n1,n2,n3, &
      enddo
   enddo
 
-  call system_clock(ncount5,ncount_rate,ncount_max)
-  tel=dble(ncount5-ncount4)/dble(ncount_rate)
-  write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:y',tel,1.e-6*nflop2/tel
+  !call system_clock(ncount5,ncount_rate,ncount_max)
+  !tel=dble(ncount5-ncount4)/dble(ncount_rate)
+  !write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:y',tel,1.e-6*nflop2/tel
 
   ! + (1/2) d^2/dz^2
   do i2=nfl2,nfu2
@@ -417,15 +417,14 @@ subroutine Convolkinetic(n1,n2,n3, &
      enddo
   enddo
 
-  call system_clock(ncount6,ncount_rate,ncount_max)
-  tel=dble(ncount6-ncount5)/dble(ncount_rate)
-  write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:z',tel,1.e-6*nflop3/tel
+  !call system_clock(ncount6,ncount_rate,ncount_max)
+  !tel=dble(ncount6-ncount5)/dble(ncount_rate)
+  !write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:z',tel,1.e-6*nflop3/tel
 
-  tel=dble(ncount6-ncount0)/dble(ncount_rate)
-  write(99,'(a40,1x,e10.3,1x,f6.1)') 'ALL   PART',  & 
-  tel,1.e-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
+  !tel=dble(ncount6-ncount0)/dble(ncount_rate)
+  !write(99,'(a40,1x,e10.3,1x,f6.1)') 'ALL   PART',  & 
+  !tel,1.e-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
-  return
 end subroutine Convolkinetic
 
 
@@ -451,9 +450,9 @@ subroutine ConvolkineticT(n1,n2,n3, &
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
   logical :: firstcall=.true. 
-  !integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
-  integer :: i,t,i1,i2,i3,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
-  integer :: icur,istart,iend,l
+  integer, save :: mflop1,mflop2,mflop3,nflop1,nflop2,nflop3
+  integer :: i,nb,t,i1,i2,i3,ncount1,ncount_rate,ncount_max,ncount2,ncount3,ncount4,ncount5,ncount6
+  integer :: icur,istart,iend,l,j
   real(wp) :: scale,dyi,dyi0,dyi1,dyi2,dyi3,t112,t121,t122,t212,t221,t222,t211,ekin
   real(kind=8) :: tel
   real(wp), dimension(lowfil:lupfil) :: a,b,c,d,e
@@ -662,7 +661,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
 
   ! Scaling function part
 
-  call system_clock(ncount0,ncount_rate,ncount_max)
+  !call system_clock(ncount0,ncount_rate,ncount_max)
   ekin=0._gp
 
 !  ! (1/2) d^2/dx^2
@@ -699,9 +698,9 @@ subroutine ConvolkineticT(n1,n2,n3, &
             enddo
      enddo
   enddo
-  call system_clock(ncount1,ncount_rate,ncount_max)
-  tel=dble(ncount1-ncount0)/dble(ncount_rate)
-  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:x',tel,1.e-6*mflop1/tel
+  !call system_clock(ncount1,ncount_rate,ncount_max)
+  !tel=dble(ncount1-ncount0)/dble(ncount_rate)
+  !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:x',tel,1.e-6*mflop1/tel
 !!
 !!  ! + (1/2) d^2/dy^2
 !!
@@ -738,9 +737,9 @@ subroutine ConvolkineticT(n1,n2,n3, &
   enddo
 !    
 !!
-  call system_clock(ncount2,ncount_rate,ncount_max)
-  tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:y',tel,1.e-6*mflop2/tel
+  !call system_clock(ncount2,ncount_rate,ncount_max)
+  !tel=dble(ncount2-ncount1)/dble(ncount_rate)
+  !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:y',tel,1.e-6*mflop2/tel
 !!
 !!  ! + (1/2) d^2/dz^2
 !!
@@ -775,9 +774,9 @@ subroutine ConvolkineticT(n1,n2,n3, &
             enddo
      enddo
   enddo
- call system_clock(ncount3,ncount_rate,ncount_max)
- tel=dble(ncount3-ncount2)/dble(ncount_rate)
- write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:z',tel,1.e-6*mflop3/tel
+  !call system_clock(ncount3,ncount_rate,ncount_max)
+  !tel=dble(ncount3-ncount2)/dble(ncount_rate)
+  !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:z',tel,1.e-6*mflop3/tel
 
   ! wavelet part
   ! (1/2) d^2/dx^2
@@ -813,9 +812,9 @@ subroutine ConvolkineticT(n1,n2,n3, &
      enddo
   enddo
 
-  call system_clock(ncount4,ncount_rate,ncount_max)
-  tel=dble(ncount4-ncount3)/dble(ncount_rate)
-  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:x',tel,1.e-6*nflop1/tel
+  !call system_clock(ncount4,ncount_rate,ncount_max)
+  !tel=dble(ncount4-ncount3)/dble(ncount_rate)
+  !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:x',tel,1.e-6*nflop1/tel
 
 
   ! + (1/2) d^2/dy^2
@@ -852,9 +851,9 @@ subroutine ConvolkineticT(n1,n2,n3, &
      enddo
   enddo
 
-  call system_clock(ncount5,ncount_rate,ncount_max)
-  tel=dble(ncount5-ncount4)/dble(ncount_rate)
-  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:y',tel,1.e-6*nflop2/tel
+  !call system_clock(ncount5,ncount_rate,ncount_max)
+  !tel=dble(ncount5-ncount4)/dble(ncount_rate)
+  !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:y',tel,1.e-6*nflop2/tel
 
   ! + (1/2) d^2/dz^2
   nb=16
@@ -890,13 +889,13 @@ subroutine ConvolkineticT(n1,n2,n3, &
      enddo
   enddo
 
-  call system_clock(ncount6,ncount_rate,ncount_max)
-  tel=dble(ncount6-ncount5)/dble(ncount_rate)
-  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:z',tel,1.e-6*nflop3/tel
-
-  tel=dble(ncount6-ncount0)/dble(ncount_rate)
-  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:ALL   PART',  & 
-  tel,1.e-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
+  !call system_clock(ncount6,ncount_rate,ncount_max)
+  !tel=dble(ncount6-ncount5)/dble(ncount_rate)
+  !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:SECND PART:z',tel,1.e-6*nflop3/tel
+  !
+  !tel=dble(ncount6-ncount0)/dble(ncount_rate)
+  !write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:ALL   PART',  & 
+  !tel,1.e-6*(mflop1+mflop2+mflop3+nflop1+nflop2+nflop3)/tel
 
   ekinout=real(ekin,gp)
 

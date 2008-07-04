@@ -71,6 +71,7 @@ convolution_source = convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_common.f90 \
 	convolutions/convolut_common_per.f90 \
 	convolutions/convolut_optim_per.f90 \
+	convolutions/convolut_simple_slab.f90 \
 	$(GPU_INTERFACE)
 
 else
@@ -83,6 +84,7 @@ convolution_source = convolutions/combined_shrink_simple.f90 \
 	convolutions/convolut_common.f90 \
 	convolutions/convolut_common_per.f90 \
 	convolutions/convolut_simple_per.f90 \
+	convolutions/convolut_simple_slab.f90 \
 	$(GPU_INTERFACE)
 
 endif
@@ -133,6 +135,10 @@ low_level = init/projectors.f90  \
 	wavelib/un-compress.f90 \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 
+
+
+#	wfn_opt/precond_slab.f90 \
+#	wfn_opt/kernel_slab.f90 
 
 #common routine with abinit
 abinit = ABINIT-ewald/ewald.F90 \

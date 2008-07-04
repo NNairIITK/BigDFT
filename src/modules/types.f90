@@ -1,5 +1,5 @@
 module module_types
-
+  use module_base, only : gp,wp,dp
   implicit none
 
   !-Input variable structure
@@ -63,8 +63,14 @@ module module_types
      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
   end type grid_dimensions
 
-contains
+  type, public :: gaussian_basis
+     integer :: nat,ncoeff,nshltot,nexpo
+     integer, dimension(:), pointer :: nshell,ndoc,nam
+     real(gp), dimension(:), pointer :: xp,psiat
+     real(gp), dimension(:,:), pointer :: rxyz
+  end type gaussian_basis
 
+contains
 
   subroutine allocate_wfd(wfd,routine)
     use module_base
@@ -97,6 +103,35 @@ contains
     call memocc(i_stat,i_all,'keyv',routine)
 
   end subroutine deallocate_wfd
+
+  subroutine deallocate_gwf(G,routine)
+    use module_base
+    implicit none
+    type(gaussian_basis) :: G
+    character(len=*), intent(in) :: routine
+    !local variables
+    integer :: i_all,i_stat
+
+    !normally positions should be deallocated outside
+    
+    i_all=-product(shape(G%ndoc))*kind(G%ndoc)
+    deallocate(G%ndoc,stat=i_stat)
+    call memocc(i_stat,i_all,'ndoc',routine)
+    i_all=-product(shape(G%nam))*kind(G%nam)
+    deallocate(G%nam,stat=i_stat)
+    call memocc(i_stat,i_all,'nam',routine)
+    i_all=-product(shape(G%nshell))*kind(G%nshell)
+    deallocate(G%nshell,stat=i_stat)
+    call memocc(i_stat,i_all,'nshell',routine)
+    i_all=-product(shape(G%psiat))*kind(G%psiat)
+    deallocate(G%psiat,stat=i_stat)
+    call memocc(i_stat,i_all,'psiat',routine)
+    i_all=-product(shape(G%xp))*kind(G%xp)
+    deallocate(G%xp,stat=i_stat)
+    call memocc(i_stat,i_all,'xp',routine)
+
+  end subroutine deallocate_gwf
+
 
   subroutine deallocate_bounds(bounds,routine)
     use module_base

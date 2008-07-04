@@ -96,6 +96,13 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
         n1i=2*n1+2
         n2i=2*n2+31
         n3i=2*n3+2
+		
+        !allocation of work arrays
+        allocate(x_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,x_c,'x_c',subname)
+        allocate(y_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,y_c,'y_c',subname)
+		
      case('P')
         n1i=2*n1+2
         n2i=2*n2+2
@@ -158,6 +165,11 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
                 nspinor)
         case('P')
            call applylocpotkinone_per(n1,n2,n3,hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
+                wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
+                psir,x_c,y_c,psi(1,oidx),pot(1,nsoffset),&
+                hpsi(1,oidx),epot,ekin) 
+        case('S')
+           call applylocpotkinone_slab(n1,n2,n3,hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
                 wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
                 psir,x_c,y_c,psi(1,oidx),pot(1,nsoffset),&
                 hpsi(1,oidx),epot,ekin) 

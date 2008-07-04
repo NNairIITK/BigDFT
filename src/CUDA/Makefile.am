@@ -1,12 +1,15 @@
 EXTRA_DIST = \
 	structUtil.h \
 	convolution.h \
+	convolutionPot.h \
 	convSeria.h \
 	conv_shared_multi_kernel.cu \
+	conv_pot_shared_kernel.cu \
 	Makefile.standalone \
 	read_conf_file.h
 
 SOURCES_CU_CONV1 = convolution.cu \
+	convolutionPot.cu \
 	structUtil.cu \
 	cudafct.cu
 
@@ -37,6 +40,15 @@ convolution.cu : conv_shared_multi_kernel.cu \
 	structUtil.h
 
 conv_shared_multi.cu : structUtil.h
+
+
+convolutionPot.cu : conv_pot_shared_kernel.cu \
+	convolutionPot.h \
+	convSeria.h \
+	structUtil.h
+
+conv_pot_shared_kernel.cu : structUtil.h
+
 
 convSeria.cpp structUtil.cu : structUtil.h
 

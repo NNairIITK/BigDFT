@@ -1534,21 +1534,22 @@ subroutine correct_semicore(symbol,nmax,lmax,ichg,neleconf,nsccode)
      
   end if
 
-  isccode=nsccode
-  do l=lmax,0,-1
-     !control whether it is already semicore
-     itmp=isccode/((lmax+1)**l)
-     isccode=isccode-itmp*((lmax+1)**l)
-     !print *,'symbol',symbol,l,itmp,isccode,itmp*(lmax**l)
-     do i=1,nmax
-        if (neleconf(i,l) == 2*(2*l+1)) then
-           if (itmp==1) then
-              itmp=0
-              cycle
-           else
-               nsccode=nsccode+4**l !the maximum occupied is noccmax=2
-           end if
-        end if
-     end do
-  end do
+!!$  !if the atom has only closed shells we can treat it as semicore atom (commented)
+!!$  isccode=nsccode
+!!$  do l=lmax,0,-1
+!!$     !control whether it is already semicore
+!!$     itmp=isccode/((lmax+1)**l)
+!!$     isccode=isccode-itmp*((lmax+1)**l)
+!!$     !print *,'symbol',symbol,l,itmp,isccode,itmp*(lmax**l)
+!!$     do i=1,nmax
+!!$        if (neleconf(i,l) == 2*(2*l+1)) then
+!!$           if (itmp==1) then
+!!$              itmp=0
+!!$              cycle
+!!$           else
+!!$               nsccode=nsccode+4**l !the maximum occupied is noccmax=2
+!!$           end if
+!!$        end if
+!!$     end do
+!!$  end do
 end subroutine correct_semicore

@@ -104,8 +104,8 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
   !control the strategy to be applied following the memory limit
   !if the projectors takes too much memory allocate only one atom at the same time
   !control the memory of the projectors expressed in GB
-  if (memorylimit /= 0 .and. .not. DistProjApply .and. &
-       real(istart-1,kind=8)/134217728.d0 > real(memorylimit,kind=8)) then
+  if (memorylimit /= 0.e0 .and. .not. DistProjApply .and. &
+       real(istart-1,kind=4) > memorylimit*134217728.0e0) then
      if (iproc == 0) then
         write(*,'(44x,a)') '------   On-the-fly projectors application'
      end if
@@ -333,7 +333,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
      radius_f,cpmult,fpmult,hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
      mvctr_c,mvctr_f,proj_c,proj_f)
   ! returns the compressed form of a Gaussian projector 
-  ! x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-cntrx)^2 + (y-cntry)^2 + (z-cntrz)^2 ))
+  ! x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 ))
   ! in the arrays proj_c, proj_f
   use module_base
   implicit none

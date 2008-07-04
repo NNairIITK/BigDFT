@@ -44,17 +44,23 @@ subroutine preconditionall(geocode,iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl
            end if
         case('P')
            cprecr=0.5_wp
-!           cprecr=abs(eval(iorb))
-!		   if (cprecr.lt..1_wp) cprecr=.5_wp
-			if (ncong.eq.0) then
-           call prec_fft(n1,n2,n3, &
-                wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
-                cprecr,hx,hy,hz,hpsi(1,inds))
-			else
-	        	call precong_per(n1,n2,n3, &
-	             wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
-	             ncong,cprecr,hx,hy,hz,hpsi(1,inds))
-			endif
+           !           cprecr=abs(eval(iorb))
+           !		   if (cprecr.lt..1_wp) cprecr=.5_wp
+           if (ncong.eq.0) then
+              call prec_fft(n1,n2,n3, &
+                   wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
+                   cprecr,hx,hy,hz,hpsi(1,inds))
+           else
+              call precong_per(n1,n2,n3, &
+                   wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
+                   ncong,cprecr,hx,hy,hz,hpsi(1,inds))
+           endif
+        case('S')
+           !commented for the moment due to absence of fftw
+!!$           cprecr=0.5_wp
+!!$           call prec_fft_slab(n1,n2,n3, &
+!!$                wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
+!!$                cprecr,hx,hy,hz,hpsi(1,inds))
         end select
      end do
   enddo

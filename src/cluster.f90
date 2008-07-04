@@ -136,7 +136,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   integer :: i1,i2,i3,ind,iat,ierror,i_all,i_stat,iter,ierr,i03,i04,jproc,ispin,nspinor,nplot
   real :: tcpu0,tcpu1
   real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf,hx,hy,hz,hxh,hyh,hzh
-  real(kind=8) :: hgridh,peakmem,alat1,alat2,alat3,gnrm_check,hgrid_old,energy_old,sumz
+  real(kind=8) :: peakmem,alat1,alat2,alat3,gnrm_check,hgrid_old,energy_old,sumz
   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
   real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min,psoffset
   real(kind=8) :: factor,rhon,rhos,ttsum,hx_old,hy_old,hz_old
@@ -246,8 +246,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   if(nspin==1) mpol=0
 
   ! grid spacing (same in x,y and z direction)
-  !modify the grid spacings such that it allows for inhomogeneous values of hgrid
-  hgridh=.5d0*hgrid
 
   if (iproc==0) then
      write(*,'(1x,a)')&
@@ -452,7 +450,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
 
-     call readmywaves(iproc,norb,norbp,n1,n2,n3,hgrid,atoms%nat,rxyz,wfd,psi,eval)
+     call readmywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,wfd,psi,eval)
 
      !initialise control value for gnrm in the case of a restart
      gnrm_check=0.d0
@@ -744,8 +742,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !  write all the wavefunctions into files
   if (in%output_wf) then
-     call  writemywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,wfd,psi,eval)
-     write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
+     !add flag for writing waves in the gaussian basis form
+     if (in%inputPsiId >= 10) then
+        !extract the gaussian basis from the pseudopotential
+
+        !extract the gaussian basis from the wavefunctions
+        
+     else
+        call  writemywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,wfd,psi,eval)
+        write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
+     end if
   end if
 
 
