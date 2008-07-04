@@ -742,8 +742,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !  write all the wavefunctions into files
   if (in%output_wf) then
-     call  writemywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,wfd,psi,eval)
-     write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
+     !add flag for writing waves in the gaussian basis form
+     if (in%inputPsiId >= 10) then
+        !extract the gaussian basis from the pseudopotential
+
+        !extract the gaussian basis from the wavefunctions
+        
+     else
+        call  writemywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,wfd,psi,eval)
+        write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
+     end if
   end if
 
 

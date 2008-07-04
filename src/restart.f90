@@ -1,3 +1,82 @@
+!gaussian section
+!extract the pseudopotential basis
+!WARNING: this is not the complete PSP basis set. 
+!         the radial power term is lacking in the gaussian descriptors to have that
+subroutine gaussian_psp_basis(at,rxyz,G)
+  use module_base
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,nat), target, intent(in) :: rxyz
+  type(gaussian_basis), intent(out) :: G  
+  !local variables
+  integer ::
+
+  G%nat=at%nat
+  G%rxyz => rxyz
+  allocate(G%nshell(nat+ndebug),stat=i_stat)
+  call memocc(i_stat,G%nshell,'G%nshell',subname)
+ 
+  G%nshltot=0
+  do iat=1,G%nat
+     ityp=at%iatype(iat) 
+     nshell=0
+     do l=1,4 
+        do i=1,3 
+           if (at%psppar(l,0,ityp) /= 0.0_gp) nshell=nshell+1
+        enddo
+     enddo
+     G%nshell(iat)=nshell
+     G%nshltot=G%nshltot+nshell
+  end do
+
+  allocate(G%ndoc(G%nshltot+ndebug),stat=i_stat)
+  call memocc(i_stat,G%ndoc,'G%ndoc',subname)
+  allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
+  call memocc(i_stat,G%nam,'G%nam',subname)
+
+  !assign shell IDs and count the number of exponents and coefficients
+  G%nexpo=0
+  G%ncoeff=0
+  ishell=0
+  do iat=1,nat
+     ityp=iatype(iat)
+     do l=1,4 
+        do i=1,3 
+           if (at%psppar(l,0,ityp) /= 0.0_gp) then
+              ishell=ishell+1
+              G%ndoc(ishell)=1
+              G%nam(ishell)=l
+              G%nexpo=G%nexpo+1
+              G%ncoeff=G%ncoeff+2*l-1
+           end if
+        enddo
+     enddo
+  end do
+
+  !allocate and assign the exponents and the coefficients
+  allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
+  call memocc(i_stat,G%xp,'G%xp',subname)
+  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
+  call memocc(i_stat,G%psiat,'G%psiat',subname)
+
+  ishell=0
+  iexpo=0
+  do iat=1,nat
+     ityp=iatype(iat)
+     do isat=1,G%nshell(iat)
+        ishell=ishell+1
+        do ig=1,G%ndoc(ishell)
+           iexpo=iexpo+1
+           G%psiat(iexpo)=1
+           G%xp(iexpo)=sqrt(0.5_gp/expo(ig,isat,ityp))
+        end do
+     end do
+  end do
+
+end subroutine gaussian_psp_basis
+
+
 subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,n3,wfd,psi,&
      hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
   use module_base
