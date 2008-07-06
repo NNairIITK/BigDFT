@@ -107,107 +107,68 @@ subroutine gbasovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
 end subroutine gbasovrlp
 
 !overlap matrix between two different basis structures
+!works only if A%ncoeff==B%ncoeff
 subroutine gaussian_overlap(A,B,ovrlp)
   use module_types
   type(gaussian_basis), intent(in) :: A,B
-  real(gp), dimension(A%ncoeff*(B%ncoeff-1)/2) :: ovrlp !only upper triangular part for A%ncoeff=B%ncoeff
+  real(gp), dimension(A%ncoeff,B%ncoeff) :: ovrlp !only lower triangular part for A%ncoeff=B%ncoeff
 
   !local variables
   integer, parameter :: niw=18,nrw=6
-  integer :: ishell,iexpo,icoeff,ishellB,iexpoB,icoeffB,iat,jat,isat,isatB,jsat,jshell,iovrlp
+  integer :: ishell,iexpo,icoeff,ishellB,iexpoB,icoeffB,iat,jat,isat,isatB,jsat,jshell
+  integer :: jstart,iovrlp,jovrlp
   integer :: ngA,ngB,lA,lB,mA,mB
   real(gp) :: dx,dy,dz
   integer, dimension(niw) :: iw
   real(gp), dimension(nrw) :: rw
 
   iovrlp=0
-
   ishell=0
   iexpo=1
   icoeff=1
 
-  ishellB=0
-  iexpoB=1
-  icoeffB=1
-
+  !loop on each shell (intensive calculation)
   do iat=1,A%nat
      do isat=1,A%nshell(iat)
         ishell=ishell+1
         ngA=A%ndoc(ishell)
         lA=A%nam(ishell)
+        do mA=1,2*lA-1
+           iovrlp=iovrlp+1
 
-        jshell=ishellB
-        jexpo=iexpoB
-        jcoeff=icoeffB
+           jovrlp=0
+           jshell=0
+           jexpo=1
+           jcoeff=1
 
-        !diagonal case
-        if (iat <= B%nat) then
-           do jsat=1,B%nshell(iat)
-              jshell=jshell+1
-              ngB=B%ndoc(jshell)
-              lB=B%nam(jshell)
-
-              do mA=1,2*lA-1
-                 do mB=mA,2*lB-1
-                    iovrlp=iovrlp+1
-                    call gbasovrlp(A%xp(iexpo),A%psiat(iexpo),B%xp(jexpo),B%psiat(jexpo),ngA,ngB,lA,mA,lB,mB,&
-                         0.0_gp,0.0_gp,0.0_gp,niw,nrw,iw,rw,ovrlp(iovrlp))
-                 end do
-              end do
-
-              jexpo=jexpo+ngB
-              jcoeff=jcoeff+2*lB-1
-           end do
-
-        end if
-
-        do jat=iat+1,B%nat
-
-           dx=A%rxyz(1,iat)-B%rxyz(1,jat)
-           dy=A%rxyz(2,iat)-B%rxyz(2,jat)
-           dz=A%rxyz(3,iat)-B%rxyz(3,jat)
-
-           do jsat=1,B%nshell(jat)
-              jshell=jshell+1
-              ngB=B%ndoc(jshell)
-              lB=B%nam(jshell)
-
-              do mA=1,2*lA-1
+           do jat=1,B%nat
+              dx=B%rxyz(1,jat)-A%rxyz(1,iat)
+              dy=B%rxyz(2,jat)-A%rxyz(2,iat)
+              dz=B%rxyz(3,jat)-A%rxyz(3,iat)
+              do jsat=1,B%nshell(jat)
+                 jshell=jshell+1
+                 ngB=B%ndoc(jshell)
+                 lB=B%nam(jshell)
                  do mB=1,2*lB-1
-                    iovrlp=iovrlp+1
-                    call gbasovrlp(a%xp(iexpo),A%psiat(iexpo),B%xp(jexpo),B%psiat(jexpo),ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
-                         niw,nrw,iw,rw,ovrlp(iovrlp))
+                    jovrlp=jovrlp+1
+                    if (jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) then
+                       call gbasovrlp(A%xp(iexpo),A%psiat(iexpo),B%xp(jexpo),B%psiat(jexpo),&
+                            ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
+                            niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
+                    end if
                  end do
+                 jexpo=jexpo+ngB
+                 jcoeff=jcoeff+2*lB-1
               end do
-
-              jexpo=jexpo+ngB
-              jcoeff=jcoeff+2*lB-1
            end do
         end do
         iexpo=iexpo+ngA
         icoeff=icoeff+2*lA-1
-
-        ishellB=ishellB+B%nshell(iat)
-        do isatB=1,B%nshell(iat)
-           iexpoB=iexpoB+B%ndoc(isatB)
-           icoeffB=icoeffB+2*B%nam(isatB)-1
-        end do
      end do
   end do
 
   call gaudim_check(iexpo,icoeff,ishell,A%nexpo,A%ncoeff,A%nshltot)
-  call gaudim_check(iexpoB,icoeffB,jshell,B%nexpo,B%ncoeff,B%nshltot)
-  !check of the dimensions
-!!$  if (iexpo /= nexpo+1) then
-!!$     write(*,*)' ERROR: nexpo+1 <> iexpo',nexpo,iexpo
-!!$     stop
-!!$  else if (icoeff /= ncoeff+1) then
-!!$     write(*,*)' ERROR: ncoeff+1 <> icoeff',ncoeff,icoeff
-!!$     stop
-!!$  else if (ishell /= nshltot+1) then
-!!$     write(*,*)' ERROR: nshltot+1 <> ishell',nshltot,ishell
-!!$     stop
-!!$  end if
+  call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
   
 end subroutine gaussian_overlap
 
@@ -659,6 +620,30 @@ function ifac(is,ie)
   end do
 end function ifac
 
+!calculate the projection of norb wavefunctions on a gaussian basis set
+subroutine wavelets_to_gaussians(geocode,norbp,n1,n2,n3,G,thetaphi,hx,hy,hz,wfd,psi,coeffs)
+  use module_base
+  use module_types
+  implicit none
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: norbp,n1,n2,n3
+  real(gp), intent(in) :: hx,hy,hz
+  type(gaussian_basis), intent(in) :: G
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  real(gp), dimension(2,G%nat), intent(in) :: thetaphi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
+  real(wp), dimension(G%ncoeff,norbp), intent(out) :: coeffs
+  !local variables
+  integer :: iorb
+  
+  do iorb=1,norbp
+     call orbital_projection(geocode,n1,n2,n3,G%nat,G%rxyz,thetaphi,&
+          G%nshell,G%ndoc,G%nam,G%xp,G%psiat,G%nshltot,G%nexpo,G%ncoeff,&
+          hx,hy,hz,wfd,psi(1,iorb),coeffs(1,iorb))
+  end do
+  
+end subroutine wavelets_to_gaussians
+
 !calculate the projection of a given orbital on a gaussian basis centered on 
 !a set of points
 subroutine orbital_projection(geocode,n1,n2,n3,nat,rxyz,thetaphi,nshell,ndoc,nam,xp,psiat,nshltot,nexpo,ncoeff,&
@@ -688,8 +673,8 @@ subroutine orbital_projection(geocode,n1,n2,n3,nat,rxyz,thetaphi,nshell,ndoc,nam
         ishell=ishell+1
         ng=ndoc(ishell)
         l=nam(ishell)
-        call lsh_projection(geocode,l,ng,xp(iexpo),psiat(iexpo),n1,n2,n3,rxyz(1,iat),thetaphi(1,iat),hx,hy,hz,&
-             wfd,psi,coeffs(icoeff))
+        call lsh_projection(geocode,l,ng,xp(iexpo),psiat(iexpo),n1,n2,n3,rxyz(1,iat),&
+             thetaphi(1,iat),hx,hy,hz,wfd,psi,coeffs(icoeff))
         iexpo=iexpo+ng
         icoeff=icoeff+2*l-1
      end do

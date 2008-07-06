@@ -1,3 +1,101 @@
+subroutine dual_gaussian_coefficients(norbp,G,coeffs)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: norbp
+  type(gaussian_basis), intent(in) :: G
+  real(gp), dimension(G%ncoeff,norbp), intent(inout) :: coeffs !warning: the precision here should be wp
+  !local variables
+  character(len=*), parameter :: subname='dual_gaussian_coefficients'
+  integer :: nwork,info,i_stat,i_all
+  integer, dimension(:), allocatable :: iwork
+  real(gp), dimension(:), allocatable :: ovrlp,work
+  
+  allocate(iwork(6+ndebug),stat=i_stat)
+  call memocc(i_stat,iwork,'iwork',subname)
+  allocate(ovrlp(G%ncoeff*G%ncoeff+ndebug),stat=i_stat)
+  call memocc(i_stat,ovrlp,'ovrlp',subname)
+
+  !temporary allocation of the work array, workspace query in dsysv
+  allocate(work(1+ndebug),stat=i_stat)
+  call memocc(i_stat,work,'work',subname)
+
+  call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),G%ncoeff,&
+       work(1),-1,info)
+  nwork=work(1)
+
+  i_all=-product(shape(work))*kind(work)
+  deallocate(work,stat=i_stat)
+  call memocc(i_stat,i_all,'work',subname)
+  allocate(work(nwork+ndebug),stat=i_stat)
+  call memocc(i_stat,work,'work',subname)
+
+  
+  call gaussian_overlap(G,G,ovrlp)
+  call dsysv('U',G%ncoeff,norbp,ovrlp(1),G%ncoeff,iwork(1),coeffs(1,1),G%ncoeff,&
+       work,nwork,info)
+
+  i_all=-product(shape(iwork))*kind(iwork)
+  deallocate(iwork,stat=i_stat)
+  call memocc(i_stat,i_all,'iwork',subname)
+  i_all=-product(shape(work))*kind(work)
+  deallocate(work,stat=i_stat)
+  call memocc(i_stat,i_all,'work',subname)
+  i_all=-product(shape(ovrlp))*kind(ovrlp)
+  deallocate(ovrlp,stat=i_stat)
+  call memocc(i_stat,i_all,'ovrlp',subname)
+
+end subroutine dual_gaussian_coefficients
+
+!control the accuracy of the expansion in gaussian
+subroutine check_gaussian_expansion(geocode,iproc,nproc,norb,norbp,&
+     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,psi,G,coeffs)
+  use module_base
+  use module_types
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  real(gp), intent(in) :: hx,hy,hz
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(gaussian_basis), intent(in) :: G
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
+  real(wp), dimension(G%ncoeff,norbp), intent(in) :: coeffs
+  !local variables
+  character(len=*), parameter :: subname='check_gaussian_expansion'
+  integer :: iorb,i_stat,i_all,i,j,ierr
+  real(wp) :: maxdiffp,maxdiff,orbdiff
+  real(wp), dimension(:), allocatable :: workpsi
+
+  allocate(workpsi((wfd%nvctr_c+7*wfd%nvctr_f)*norbp+ndebug),stat=i_stat)
+  call memocc(i_stat,workpsi,'workpsi',subname)
+
+  call gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
+     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,coeffs,workpsi)
+
+  maxdiffp=0.0_wp
+  do iorb=1,norbp
+     orbdiff=0.0_wp
+     if (iorb+iproc*norbp <= norb) then
+        do i=1,wfd%nvctr_c+7*wfd%nvctr_f
+           j=i+(iorb-1)*wfd%nvctr_c+7*wfd%nvctr_f
+           orbdiff=max(orbdiff,(psi(i,iorb)-workpsi(j))**2)
+        end do
+     end if
+     maxdiffp=max(maxdiffp,orbdiff)
+     print *,'iproc,iorb,orbdiff',iorb,orbdiff
+  end do
+
+  call MPI_GATHER(maxdiffp,1,mpidtypw,maxdiff,1,mpidtypw,0,MPI_COMM_WORLD,ierr)
+
+  if (iproc == 0) then
+     write(*,*)' Mean L2 norm of gaussian-wavelet difference:',sqrt(maxdiff)/real(norb,wp)
+  end if
+  i_all=-product(shape(workpsi))*kind(workpsi)
+  deallocate(workpsi,stat=i_stat)
+  call memocc(i_stat,i_all,'workpsi',subname)
+
+
+end subroutine check_gaussian_expansion
+
 subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,iatype,rxyz,CP2K,wfn_cp2k)
   use module_base
   use module_types
@@ -444,7 +542,7 @@ subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
         jorb=iorb-iproc*norbp
         call wnrm(wfd%nvctr_c,wfd%nvctr_f,psi(1,jorb),psi(wfd%nvctr_c+1,jorb),scpr) 
         call wscal(wfd%nvctr_c,wfd%nvctr_f,real(1.0_dp/sqrt(scpr),wp),psi(1,jorb),psi(wfd%nvctr_c+1,jorb))
-        !print *,'norm of orbital ',iorb,scpr
+        print *,'norm of orbital ',iorb,scpr
         tt=max(tt,abs(1.0_dp-scpr))
      end if
   end do

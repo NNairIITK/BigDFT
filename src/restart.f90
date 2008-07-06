@@ -1,3 +1,227 @@
+!gaussian section
+!create gaussian structure from input guess pseudo wavefunctions
+subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
+  type(gaussian_basis), intent(out) :: G
+  !local variables
+  character(len=*), parameter :: subname='gaussian_pswf_basis'
+  integer, parameter :: ngx=31
+  integer :: i_stat,i_all,iat,ityp,ishell,iexpo,l,i,ig,isat,ictotpsi,norbe,norbsc,ishltmp
+  real(gp) :: ek
+  logical, dimension(:,:,:), allocatable :: scorb
+  integer, dimension(:), allocatable :: ng
+  integer, dimension(:,:), allocatable :: nl,norbsc_arr
+  real(gp), dimension(:), allocatable :: psiatn
+  real(gp), dimension(:,:), allocatable :: xpt,occupat
+  real(gp), dimension(:,:,:), allocatable :: psiat
+
+
+  allocate(xpt(ngx,at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,xpt,'xpt',subname)
+  allocate(psiat(ngx,5,at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,psiat,'psiat',subname)
+  allocate(occupat(5,at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,occupat,'occupat',subname)
+  allocate(ng(at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,ng,'ng',subname)
+  allocate(nl(4,at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,nl,'nl',subname)
+  allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
+  call memocc(i_stat,scorb,'scorb',subname)
+  allocate(norbsc_arr(at%natsc+1,1+ndebug),stat=i_stat)
+  call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
+  allocate(psiatn(ngx+ndebug),stat=i_stat)
+  call memocc(i_stat,psiatn,'psiatn',subname)
+
+
+  !Generate the input guess via the inguess_generator
+  call readAtomicOrbitals(iproc,ngx,xpt,psiat,occupat,ng,nl,at,norbe,norbsc,1,&
+       scorb,norbsc_arr)
+
+  !the number of gaussian centers are thus nat
+  G%nat=at%nat
+  G%rxyz => rxyz
+  !copy the parsed values in the gaussian structure
+  !count also the total number of shells
+  allocate(G%nshell(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,G%nshell,'G%nshell',subname)
+  
+
+  G%nshltot=0
+  do iat=1,at%nat
+     ityp=at%iatype(iat)
+     G%nshell(iat)=nl(1,ityp)+nl(2,ityp)+nl(3,ityp)+nl(4,ityp)
+     G%nshltot=G%nshltot+G%nshell(iat)
+  end do
+
+  allocate(G%ndoc(G%nshltot+ndebug),stat=i_stat)
+  call memocc(i_stat,G%ndoc,'G%ndoc',subname)
+  allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
+  call memocc(i_stat,G%nam,'G%nam',subname)
+
+  !assign shell IDs and count the number of exponents and coefficients
+  G%nexpo=0
+  G%ncoeff=0
+  ishell=0
+  do iat=1,at%nat
+     ityp=at%iatype(iat)
+     ishltmp=0
+     do l=1,4
+        do i=1,nl(l,ityp)
+           ishell=ishell+1
+           ishltmp=ishltmp+1
+           G%ndoc(ishell)=ng(ityp)
+           G%nam(ishell)=l
+           G%nexpo=G%nexpo+ng(ityp)
+           G%ncoeff=G%ncoeff+2*l-1
+        end do
+     end do
+     if (ishltmp /= G%nshell(iat)) then
+        write(*,*)'ERROR: ishelltmp <> nshell',ishell,G%nshell(iat)
+        stop 
+     end if
+  end do
+
+  !allocate and assign the exponents and the coefficients
+  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
+  call memocc(i_stat,G%psiat,'G%psiat',subname)
+  allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
+  call memocc(i_stat,G%xp,'G%xp',subname)
+
+  ishell=0
+  iexpo=0
+  do iat=1,at%nat
+     ityp=at%iatype(iat)
+     ictotpsi=0
+     do l=1,4
+        do i=1,nl(l,ityp)
+           ishell=ishell+1
+           ictotpsi=ictotpsi+1
+           call atomkin(l-1,ng(ityp),xpt(1,ityp),psiat(1,ictotpsi,ityp),psiatn,ek)
+           do ig=1,G%ndoc(ishell)
+              iexpo=iexpo+1
+              G%psiat(iexpo)=psiatn(ig)
+              G%xp(iexpo)=xpt(ig,ityp)
+           end do
+        end do
+     end do
+  end do
+  if (iexpo /= G%nexpo) then
+     write(*,*)'ERROR: iexpo <> nexpo',iexpo,G%nexpo
+     stop 
+  end if
+
+  
+
+  i_all=-product(shape(scorb))*kind(scorb)
+  deallocate(scorb,stat=i_stat)
+  call memocc(i_stat,i_all,'scorb',subname)
+  i_all=-product(shape(xpt))*kind(xpt)
+  deallocate(xpt,stat=i_stat)
+  call memocc(i_stat,i_all,'xpt',subname)
+  i_all=-product(shape(psiat))*kind(psiat)
+  deallocate(psiat,stat=i_stat)
+  call memocc(i_stat,i_all,'psiat',subname)
+  i_all=-product(shape(occupat))*kind(occupat)
+  deallocate(occupat,stat=i_stat)
+  call memocc(i_stat,i_all,'occupat',subname)
+  i_all=-product(shape(ng))*kind(ng)
+  deallocate(ng,stat=i_stat)
+  call memocc(i_stat,i_all,'ng',subname)
+  i_all=-product(shape(nl))*kind(nl)
+  deallocate(nl,stat=i_stat)
+  call memocc(i_stat,i_all,'nl',subname)
+  i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
+  deallocate(norbsc_arr,stat=i_stat)
+  call memocc(i_stat,i_all,'norbsc_arr',subname)
+  i_all=-product(shape(psiatn))*kind(psiatn)
+  deallocate(psiatn,stat=i_stat)
+  call memocc(i_stat,i_all,'psiatn',subname)
+
+end subroutine gaussian_pswf_basis
+
+
+!extract the pseudopotential basis
+!WARNING: this is not the complete PSP basis set. 
+!         the radial power term is lacking in the gaussian descriptors 
+!         should be added if needed
+subroutine gaussian_psp_basis(at,rxyz,G)
+  use module_base
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), target, intent(in) :: rxyz
+  type(gaussian_basis), intent(out) :: G  
+  !local variables
+  character(len=*), parameter :: subname='gaussian_psp_basis'
+  integer :: iat,nshell,ityp,iexpo,l,i,isat,ishell,ig,i_stat,i_all
+
+  G%nat=at%nat
+  G%rxyz => rxyz
+  allocate(G%nshell(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,G%nshell,'G%nshell',subname)
+ 
+  G%nshltot=0
+  do iat=1,G%nat
+     ityp=at%iatype(iat) 
+     nshell=0
+     do l=1,4 
+        if (at%psppar(l,0,ityp) /= 0.0_gp) nshell=nshell+1
+     enddo
+     G%nshell(iat)=nshell
+     G%nshltot=G%nshltot+nshell
+  end do
+
+  allocate(G%ndoc(G%nshltot+ndebug),stat=i_stat)
+  call memocc(i_stat,G%ndoc,'G%ndoc',subname)
+  allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
+  call memocc(i_stat,G%nam,'G%nam',subname)
+
+  !assign shell IDs and count the number of exponents and coefficients
+  G%nexpo=0
+  G%ncoeff=0
+  ishell=0
+  do iat=1,G%nat
+     ityp=at%iatype(iat)
+     do l=1,4 
+        if (at%psppar(l,0,ityp) /= 0.0_gp) then
+           ishell=ishell+1
+           G%ndoc(ishell)=1
+           G%nam(ishell)=l
+           G%nexpo=G%nexpo+1
+           G%ncoeff=G%ncoeff+2*l-1
+        end if
+     enddo
+  end do
+
+  !allocate and assign the exponents and the coefficients
+  allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
+  call memocc(i_stat,G%xp,'G%xp',subname)
+  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
+  call memocc(i_stat,G%psiat,'G%psiat',subname)
+
+  ishell=0
+  iexpo=0
+  do iat=1,G%nat
+     ityp=at%iatype(iat)
+     do isat=1,G%nshell(iat)
+        ishell=ishell+1
+        do ig=1,G%ndoc(ishell)
+           iexpo=iexpo+1
+           G%psiat(iexpo)=1.0_gp
+           G%xp(iexpo)=at%psppar(l,0,ityp)
+        end do
+     end do
+  end do
+
+end subroutine gaussian_psp_basis
+
+
 subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,n3,wfd,psi,&
      hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
   use module_base

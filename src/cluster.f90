@@ -143,9 +143,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(wavefunctions_descriptors) :: wfd_old
   type(convolutions_bounds) :: bounds
   type(nonlocal_psp_descriptors) :: nlpspd
+  type(gaussian_basis) :: gbd
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: occup,spinsgn,spinsgn_foo,rho
-  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion!,derproj
+  real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,gaucoeffs,thetaphi
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
   real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot,rho_diag
@@ -381,7 +382,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd,nvctrp,nspin,psi,hpsi,psit)
 
-  else if (in%inputPsiId == -1) then
+  else if (in%inputPsiId == -1 .or. in%inputPsiId >= 10) then
 
      !import gaussians form CP2K (data in files gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
@@ -480,14 +481,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      rxyz_old(2,iat)=rxyz(2,iat)
      rxyz_old(3,iat)=rxyz(3,iat)
   enddo
-
-  !no need of using nzatom array, semicores useful only for the input guess
-  i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
-  deallocate(atoms%nzatom,stat=i_stat)
-  call memocc(i_stat,i_all,'nzatom',subname)
-  i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
-  deallocate(atoms%iasctype,stat=i_stat)
-  call memocc(i_stat,i_all,'iasctype',subname)
 
   ! allocate arrays necessary for DIIS convergence acceleration
   if (idsx.gt.0) then
@@ -742,8 +735,51 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !  write all the wavefunctions into files
   if (in%output_wf) then
-     call  writemywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,wfd,psi,eval)
-     write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
+     !add flag for writing waves in the gaussian basis form
+     if (in%inputPsiId >= 10) then
+        if (in%inputPsiId == 11) then
+           !extract the gaussian basis from the pseudowavefunctions
+           call gaussian_pswf_basis(iproc,atoms,rxyz,gbd)
+        else if (in%inputPsiId == 12) then
+           !extract the gaussian basis from the pseudopotential
+           call gaussian_psp_basis(atoms,rxyz,gbd)
+        end if
+        !calculate the gaussian coefficients and check the accuracy of the expansion
+        !temporary allocation of the work array, workspace query in dsysv
+        allocate(thetaphi(2,gbd%nat),stat=i_stat)
+        call memocc(i_stat,thetaphi,'thetaphi',subname)
+        thetaphi=0.0_gp
+
+        allocate(gaucoeffs(gbd%ncoeff,norbp),stat=i_stat)
+        call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
+        
+        call wavelets_to_gaussians(geocode,norbp,n1,n2,n3,gbd,thetaphi,hx,hy,hz,wfd,psi,gaucoeffs)
+
+        !write the coefficients and the basis on a file
+
+
+        !build dual coefficients
+        call dual_gaussian_coefficients(norbp,gbd,gaucoeffs)
+        !control the accuracy of the expansion
+        call check_gaussian_expansion(geocode,iproc,nproc,norb,norbp,&
+             n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,psi,gbd,gaucoeffs)
+        
+
+        i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
+        deallocate(gaucoeffs,stat=i_stat)
+        call memocc(i_stat,i_all,'gaucoeffs',subname)
+
+        i_all=-product(shape(thetaphi))*kind(thetaphi)
+        deallocate(thetaphi,stat=i_stat)
+        call memocc(i_stat,i_all,'thetaphi',subname)
+        
+        call deallocate_gwf(gbd,subname)
+        nullify(gbd%rxyz)
+
+     else
+        call  writemywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,wfd,psi,eval)
+        write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
+     end if
   end if
 
 
@@ -1144,6 +1180,13 @@ contains
        call deallocate_bounds(bounds,'cluster')
     end if
 
+    !semicores useful only for the input guess
+    i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
+    deallocate(atoms%iasctype,stat=i_stat)
+    call memocc(i_stat,i_all,'iasctype',subname)
+    i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
+    deallocate(atoms%nzatom,stat=i_stat)
+    call memocc(i_stat,i_all,'nzatom',subname)
     i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
     deallocate(nlpspd%nboxp_c,stat=i_stat)
     call memocc(i_stat,i_all,'nboxp_c',subname)
