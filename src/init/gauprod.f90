@@ -640,6 +640,7 @@ subroutine wavelets_to_gaussians(geocode,norbp,n1,n2,n3,G,thetaphi,hx,hy,hz,wfd,
      call orbital_projection(geocode,n1,n2,n3,G%nat,G%rxyz,thetaphi,&
           G%nshell,G%ndoc,G%nam,G%xp,G%psiat,G%nshltot,G%nexpo,G%ncoeff,&
           hx,hy,hz,wfd,psi(1,iorb),coeffs(1,iorb))
+     print *,'iorb, coeffs',iorb,coeffs(:,iorb)
   end do
   
 end subroutine wavelets_to_gaussians
