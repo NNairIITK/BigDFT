@@ -168,9 +168,9 @@ subroutine prec_fft(n1,n2,n3, &
   call uncompress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
   !	solve the helmholtz equation for the scfunction part  
-  call  hit_with_kernel(x_c,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,cprecr)
+  call hit_with_kernel(x_c,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,cprecr)
 
-  call   compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
+  call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
   call deallocate_all
 

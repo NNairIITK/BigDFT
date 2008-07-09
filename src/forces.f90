@@ -367,7 +367,7 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
                     call projector(geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
                          at%psppar(l,0,ityp),rxyz(1,iat),&
                          nlpspd%nboxp_c(1,1,iat),nlpspd%nboxp_f(1,1,iat),n1,n2,n3,&
-                         hx,hy,hz,cpmult,fpmult,radii_cf(ityp,2),&
+                         hx,hy,hz,cpmult,fpmult,radii_cf(ityp,2),radii_cf(ityp,2),&
                          mbvctr_c,mbvctr_f,proj(istart_c),nwarnings)
                     istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)
                     if (istart_c > nlpspd%nprojel+1) stop 'istart_c > nprojel+1'

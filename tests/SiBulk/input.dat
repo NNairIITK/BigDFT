@@ -2,16 +2,16 @@
 1.d0 1.d-5     frac_fluct:     geometry optimization stops if force norm less than frac_fluct of noise
 0.d0     randdis:        random amplitude for atoms
 2.0d0    betax: steepest descent step size,  if negative automatic determination
-.45      hgrid: grid spacing
-6.      crmult:   crmult*radii_cf(*,1) gives the coarse radius around each atom
-8.       frmult:   frmult*radii_cf(*,2) gives the fine   radius around each atom
-8.       cpmult:   cpmult*radii_cf(*,2) region for coarse projectors around each atom
-8.       fpmult:   fpmult*radii_cf(*,2) region for fine   projectors around each atom
+.300      hgrid: grid spacing
+4.      crmult:   crmult*radii_cf(*,1) gives the coarse radius around each atom
+16.       frmult:   frmult*radii_cf(*,2) gives the fine   radius around each atom
+30.       cpmult:   cpmult*radii_cf(*,2) region for coarse projectors around each atom
+16.       fpmult:   fpmult*radii_cf(*,2) region for fine   projectors around each atom
 1        ixc: exchange-correlation parameter (LDA=1)
 0 0.d0   ncharge: charge of the system, Electric field
-1.d-4    gnrm_cv: convergence criterion gradient
-50       itermax: maximum number of wavefunction optimizations
-5        ncong: number of conjugate gradient iterations for the solution of the preconditioning equation
+1.d-7    gnrm_cv: convergence criterion gradient
+500       itermax: maximum number of wavefunction optimizations
+5       ncong: number of conjugate gradient iterations for the solution of the preconditioning equation
 6        idsx: length of the diis history. if =0 steepest descent
 .false.   calc_tail: calculate tail for better energy
 7.       rbuf:   length of the tail to be added (in atomic units)

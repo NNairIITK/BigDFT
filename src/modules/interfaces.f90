@@ -583,17 +583,27 @@ interface
      integer, dimension(:,:,:), pointer, optional :: ibyyzz_r 
    end subroutine partial_density
 
-   subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,iatype,rxyz,CP2K,wfn_cp2k)
+   subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,norbp,iatype,rxyz,CP2K,wfn_cp2k)
      use module_base
      use module_types
      implicit none
      character(len=*), intent(in) :: basisfile,orbitalfile
-     integer, intent(in) :: norb,iproc,nat,ntypes
+     integer, intent(in) :: norb,iproc,nat,ntypes,norbp
      integer, dimension(nat), intent(in) :: iatype
      real(gp), dimension(3,nat), target, intent(in) :: rxyz
      type(gaussian_basis), intent(out) :: CP2K
      real(wp), dimension(:,:), pointer :: wfn_cp2k
    end subroutine parse_cp2k_files
+
+   subroutine read_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,filename)
+     use module_base
+     use module_types
+     implicit none
+     character(len=*), intent(in) :: filename
+     integer, intent(in) :: iproc,nproc,norb,norbp
+     type(gaussian_basis), intent(out) :: G
+     real(wp), dimension(:,:), pointer :: coeffs
+   end subroutine read_gaussian_information
 
 end interface
 

@@ -67,7 +67,7 @@ subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
      do i=0,length-1
         c(i+n_left,1)=ww(i       ,2) !n_left..n_right <->    0  ..  length-1
         c(i+n_left,2)=ww(i+length,2) !n_left..n_right <-> length..2*length-1
-     ENDDO
+     end do
   endif
 
   !calculate the (relative) error
@@ -75,7 +75,7 @@ subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
   do i=0,length*2-1
      tt=real(ww(i,2),dp)
      cn2=cn2+tt**2
-  ENDDO
+  end do
 
   theor_norm2=valints(n_gau)*a**(2*n_gau+1)
 
@@ -109,7 +109,7 @@ contains
     enddo
 
     leftx = lefts(4)-n
-    rightx=rights(4)+N  
+    rightx=rights(4)+n  
 
     !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
   
@@ -150,7 +150,9 @@ contains
 
     call forward(  ww(:,1),ww(:,2),&
          lefts(1),rights(1),lefts(0),rights(0)) 
-    c=0.d0
+
+    c=0.0_gp
+
   end subroutine gauss_to_scf
 
   subroutine fold_tail

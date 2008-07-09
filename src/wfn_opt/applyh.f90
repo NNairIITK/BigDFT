@@ -527,7 +527,7 @@ subroutine applyprojectorsonthefly(geocode,iproc,nspinor,norb,norbp,occup,at,n1,
   eproj_sum=0.0_gp
 
   !quick return if no orbitals on this porcessor
-  if (iproc*norbp*nspinor+1 > min((iproc+1)*norbp,norb)*nspinor) then
+  if (iproc*norbp*nspinor+1 > norb*nspinor) then
      return
   end if
 
@@ -545,7 +545,7 @@ subroutine applyprojectorsonthefly(geocode,iproc,nspinor,norb,norbp,occup,at,n1,
               call projector(geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
                    at%psppar(l,0,ityp),rxyz(1,iat),&
                    nlpspd%nboxp_c(1,1,iat),nlpspd%nboxp_f(1,1,iat),n1,n2,n3,&
-                   hx,hy,hz,cpmult,fpmult,radii_cf(ityp,2),&
+                   hx,hy,hz,cpmult,fpmult,radii_cf(ityp,2),radii_cf(ityp,2),&
                    mbvctr_c,mbvctr_f,proj(istart_c),nwarnings)
               iproj=iproj+2*l-1
               istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)
@@ -667,7 +667,7 @@ subroutine applyprojector(l,i,psppar,npspcode,&
   integer, dimension(mbseg_c+mbseg_f), intent(in) :: keyv_p
   integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keyg_p
 !  real(wp), dimension((mbvctr_c+7*mbvctr_f)*(2*l-1)), intent(in) :: proj
-	real(wp), dimension(*), intent(in) :: proj
+  real(wp), dimension(*), intent(in) :: proj
   real(gp), dimension(0:4,0:6), intent(in) :: psppar
   real(wp), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
   real(gp), intent(inout) :: eproj
@@ -714,7 +714,7 @@ subroutine applyprojector(l,i,psppar,npspcode,&
   enddo
   if (npspcode == 3 .and. l/=4 .and. i/=3) then !HGH case, offdiagonal terms
      loop_j: do j=i+1,3
-        if (psppar(l,j) .eq. 0.0_gp) exit loop_j
+        if (psppar(l,j) == 0.0_gp) exit loop_j
         !calculate the coefficients for the off-diagonal terms
         if (l==1) then
            if (i==1) then
