@@ -188,7 +188,7 @@ subroutine projectors_derivatives(geocode,iproc,at,n1,n2,n3,norb,&
   integer, intent(in) :: n1,n2,n3
   real(kind=8),intent(in) :: cpmult,fpmult,hx,hy,hz
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
-  real(kind=8), dimension(at%ntypes,2), intent(in) :: radii_cf
+  real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(nlpspd%nprojel,3), intent(out) :: derproj
   !Local Variables--------------
@@ -252,7 +252,8 @@ subroutine projectors_derivatives(geocode,iproc,at,n1,n2,n3,norb,&
 
                     call crtproj(geocode,iproc,nterm,n1,n2,n3,&
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,&
-                         nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radii_cf(at%iatype(iat),2),&
+                         nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radii_cf(at%iatype(iat),3),&
+                         radii_cf(at%iatype(iat),2),&
                          cpmult,fpmult,hx,hy,hz,gau_a,fac_arr(1,idir),rx,ry,rz,lx,ly,lz,&
                          mvctr_c,mvctr_f,derproj(istart_c,idir),derproj(istart_f,idir))
                  end do
@@ -292,7 +293,7 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult 
   real(gp), dimension(norb), intent(in) :: occup
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf
+  real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(in) :: psi
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,at%nat), intent(inout) :: fsep
@@ -367,7 +368,7 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
                     call projector(geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
                          at%psppar(l,0,ityp),rxyz(1,iat),&
                          nlpspd%nboxp_c(1,1,iat),nlpspd%nboxp_f(1,1,iat),n1,n2,n3,&
-                         hx,hy,hz,cpmult,fpmult,radii_cf(ityp,2),radii_cf(ityp,2),&
+                         hx,hy,hz,cpmult,fpmult,radii_cf(ityp,3),radii_cf(ityp,2),&
                          mbvctr_c,mbvctr_f,proj(istart_c),nwarnings)
                     istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)
                     if (istart_c > nlpspd%nprojel+1) stop 'istart_c > nprojel+1'

@@ -114,7 +114,7 @@ program memguess
  
   ! store PSP parameters
   ! modified to accept both GTH and HGHs pseudopotential types
-  allocate(radii_cf(atoms%ntypes,2+ndebug),stat=i_stat)
+  allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
  
   call read_system_variables(0,nproc,in,atoms,radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
@@ -322,7 +322,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
   implicit none
   type(atoms_data), intent(in) :: atoms
   real(kind=8), intent(in) :: crmult,frmult,hgrid
-  real(kind=8), dimension(atoms%ntypes,2), intent(in) :: radii_cf
+  real(kind=8), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz
   !local variables
   character(len=*), parameter :: subname='optimise_volume'

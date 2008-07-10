@@ -253,7 +253,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           '------------------------------------------------------------------ System Properties'
   end if
 
-  allocate(radii_cf(atoms%ntypes,2+ndebug),stat=i_stat)
+  allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
   call read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,norb,norbu,norbd,norbp,iunit)

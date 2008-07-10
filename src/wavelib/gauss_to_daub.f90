@@ -7,8 +7,8 @@
 !           nmax
 !			periodic: the flag for periodic boundary conditions
 !
-!! output: n_left,n_right: intervall where the gaussian IS LARGER THAN
-!than thE MACHINE PRECISION
+!! output: n_left,n_right: intervall where the gaussian is larger than
+!!         the machine precision
 !!         C(:,1) array of scaling function coefficients:
 !!         C(:,2) array of wavelet coefficients:
 !!         WW(:,1),WW(:,2): work arrays that have to be 16 times larger than C

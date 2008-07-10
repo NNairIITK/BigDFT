@@ -97,7 +97,7 @@ interface
      integer, intent(in) :: iproc,nproc
      type(atoms_data), intent(inout) :: at
      integer, intent(out) :: nelec,norb,norbu,norbd,norbp,iunit
-     real(kind=8), dimension(at%ntypes,2), intent(out) :: radii_cf
+     real(kind=8), dimension(at%ntypes,3), intent(out) :: radii_cf
    end subroutine read_system_variables
 
    subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinsgn)
@@ -116,7 +116,7 @@ interface
      integer, intent(in) :: iproc
      real(kind=8), intent(in) :: crmult,frmult
      real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz
-     real(kind=8), dimension(atoms%ntypes,2), intent(in) :: radii_cf
+     real(kind=8), dimension(atoms%ntypes,3), intent(in) :: radii_cf
      integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
      real(kind=8), intent(inout) :: hx,hy,hz,alat1,alat2,alat3
    end subroutine system_size
@@ -132,7 +132,7 @@ interface
      character(len=20), dimension(ntypes), intent(in) :: atomnames
      real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
      real(kind=8), dimension(3,nat), intent(in) :: rxyz
-     real(kind=8), dimension(ntypes,2), intent(in) ::  radii_cf
+     real(kind=8), dimension(ntypes,3), intent(in) ::  radii_cf
      real(kind=8), intent(out) :: peakmem
    end subroutine MemoryEstimator
 
@@ -149,7 +149,7 @@ interface
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspinor
      real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
      real(kind=8), dimension(3,atoms%nat), intent(in) :: rxyz
-     real(kind=8), dimension(atoms%ntypes,2), intent(in) :: radii_cf
+     real(kind=8), dimension(atoms%ntypes,3), intent(in) :: radii_cf
      type(wavefunctions_descriptors) , intent(out) :: wfd
      !boundary arrays
      type(convolutions_bounds), intent(out) :: bounds
@@ -165,7 +165,7 @@ interface
      integer, intent(in) :: iproc,n1,n2,n3
      real(kind=8), intent(in) :: cpmult,fpmult,hx,hy,hz
      real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
-     real(kind=8), dimension(at%ntypes,2), intent(in) :: radii_cf
+     real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
      type(nonlocal_psp_descriptors), intent(out) :: nlpspd
      real(kind=8), dimension(:), pointer :: proj
    end subroutine createProjectorsArrays
@@ -228,7 +228,7 @@ interface
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
      real(kind=8), dimension(norb), intent(in) :: spinsgn,occup
-     real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf  
+     real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
      real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(*), intent(in) :: pkernel
@@ -257,7 +257,7 @@ interface
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
      real(kind=8), dimension(norb), intent(in) :: spinsgn
-     real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf  
+     real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
      real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(*), intent(in) :: pkernel
@@ -323,7 +323,7 @@ interface
      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
      real(kind=8), dimension(norb), intent(in) :: occup,spinsgn
      real(gp), dimension(3,at%nat), intent(in) :: rxyz
-     real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf  
+     real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
      real(kind=8), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
@@ -408,7 +408,7 @@ interface
      integer, intent(in) :: n1,n2,n3
      real(kind=8),intent(in) :: cpmult,fpmult,hx,hy,hz
      real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
-     real(kind=8), dimension(at%ntypes,2), intent(in) :: radii_cf
+     real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(nlpspd%nprojel,3), intent(out) :: derproj
    end subroutine projectors_derivatives
@@ -427,7 +427,7 @@ interface
      real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult 
      real(gp), dimension(norb), intent(in) :: occup
      real(gp), dimension(3,at%nat), intent(in) :: rxyz
-     real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf
+     real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(in) :: psi
      real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
      real(gp), dimension(3,at%nat), intent(inout) :: fsep
@@ -447,7 +447,7 @@ interface
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
      real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf,cpmult,fpmult
      real(kind=8), dimension(norb), intent(in) :: occup,eval,spinsgn
-     real(kind=8), dimension(at%ntypes,2), intent(in) :: radii_cf
+     real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
      real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
      real(kind=8), dimension(2*n1+31,2*n2+31,2*n3+31,nspin), intent(in) :: pot
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
@@ -488,7 +488,7 @@ interface
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i3xcsh,nvctrp,norbu
      integer, intent(in) :: nvirte,nvirtep,nvirt,ncong,n3p,itermax,nplot
      real(gp), dimension(norb), intent(in) :: occup
-     real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf  
+     real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
      real(dp), intent(in) :: gnrm_cv !convergence criterion for gradients
      real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh

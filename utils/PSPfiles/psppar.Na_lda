@@ -4,4 +4,5 @@ Goedecker-Teter-Hutter  Tue Dec  8 11:30:55 EDT 1998
 0.2463178 -22.5984025 3.2558639 0 0 rloc, c1, c2, c3, c4
 0.1688905  30.5987103 0             rs, h1s, h2s
 0 0                                 rp, h1p
-2.101610  .25   ???                 rcutoff, rloc
+2.101610  .25   
+???                 rcutoff, rloc

@@ -9,7 +9,7 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf
+  real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
   !local variables
   integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat
@@ -51,7 +51,7 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
         nlpspd%nproj=nlpspd%nproj+mproj
 
         ! coarse grid quantities
-        call pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),cpmult, &
+        call pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),3),cpmult, &
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         nlpspd%nboxp_c(1,1,iat)=nl1
@@ -63,7 +63,7 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
         nlpspd%nboxp_c(2,3,iat)=nu3
 
         call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),cpmult,hx,hy,hz,logrid)
+             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),cpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
 
         nlpspd%nseg_p(2*iat-1)=nlpspd%nseg_p(2*iat-2) + mseg
@@ -140,7 +140,7 @@ subroutine fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
   integer, intent(in) :: iproc,n1,n2,n3,idir
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf
+  real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
   !local variables
   integer, parameter :: nterm_max=20 !if GTH nterm_max=4
@@ -176,7 +176,7 @@ subroutine fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
               call projector(geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
                    at%psppar(l,0,ityp),rxyz(1,iat),&
                    nlpspd%nboxp_c(1,1,iat),nlpspd%nboxp_f(1,1,iat),n1,n2,n3,&
-                   hx,hy,hz,cpmult,fpmult,radii_cf(ityp,2),radii_cf(ityp,2),&
+                   hx,hy,hz,cpmult,fpmult,radii_cf(ityp,3),radii_cf(ityp,2),&
                    mbvctr_c,mbvctr_f,proj(istart_c),nwarnings)
               iproj=iproj+2*l-1
               istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)

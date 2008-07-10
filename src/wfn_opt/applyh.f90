@@ -509,7 +509,7 @@ subroutine applyprojectorsonthefly(geocode,iproc,nspinor,norb,norbp,occup,at,n1,
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf  
+  real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
   real(gp), dimension(norb), intent(in) :: occup
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(in) :: psi
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(inout) :: hpsi
@@ -545,7 +545,7 @@ subroutine applyprojectorsonthefly(geocode,iproc,nspinor,norb,norbp,occup,at,n1,
               call projector(geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
                    at%psppar(l,0,ityp),rxyz(1,iat),&
                    nlpspd%nboxp_c(1,1,iat),nlpspd%nboxp_f(1,1,iat),n1,n2,n3,&
-                   hx,hy,hz,cpmult,fpmult,radii_cf(ityp,2),radii_cf(ityp,2),&
+                   hx,hy,hz,cpmult,fpmult,radii_cf(ityp,3),radii_cf(ityp,2),&
                    mbvctr_c,mbvctr_f,proj(istart_c),nwarnings)
               iproj=iproj+2*l-1
               istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)

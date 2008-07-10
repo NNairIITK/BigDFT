@@ -40,7 +40,7 @@ end program optim_rot
     real(kind=8), intent(inout) :: hgrid
     character(len=20), dimension(ntypes), intent(in) :: atomnames
     integer(kind=8), dimension(nat), intent(in) :: iatype
-    real(kind=8), dimension(ntypes,2), intent(in) :: radii_cf
+    real(kind=8), dimension(ntypes,3), intent(in) :: radii_cf
     real(kind=8), dimension(3,nat), intent(inout) :: rxyz
     !local variables
     character(len=*), parameter :: subname='optimise_volume'

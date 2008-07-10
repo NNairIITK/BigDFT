@@ -709,16 +709,18 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(inout) :: at
   integer, intent(out) :: nelec,norb,norbu,norbd,norbp,iunit
-  real(gp), dimension(at%ntypes,2), intent(out) :: radii_cf
+  real(gp), dimension(at%ntypes,3), intent(out) :: radii_cf
   !local variables
   character(len=*), parameter :: subname='read_system_variables'
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: exists
   character(len=2) :: symbol
+  character(len=24) :: message
   character(len=27) :: filename
   character(len=50) :: format
+  character(len=100) :: line
   integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp,ispinsum,mxpl
-  integer :: ispol,mxchg,ichg,natpol,ichgsum,nsccode
+  integer :: ispol,mxchg,ichg,natpol,ichgsum,nsccode,ierror1
   real(gp) :: rcov,rprb,ehomo,radfine,tt,minrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr
@@ -740,7 +742,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
-          'Atom Name   Ext.Electrons  PSP Code  Radii: Coarse     Fine   Calculated   From File'
+          ' Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File'
   end if
 
   do ityp=1,at%ntypes
@@ -835,14 +837,19 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      end do
 
      !old way of calculating the radii, requires modification of the PSP files
-     read(11,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)!here we must add 
-     !the coarse radius for proj.
-     if (ierror.eq.0) then
-        if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
-             trim(at%atomnames(ityp)),at%nelpsp(ityp),at%npspcode(ityp),&
-             radii_cf(ityp,1),radii_cf(ityp,2),&
-             '                   X    '
-     else
+     ierror=0
+     read(11,'(a100)')line
+     read(line,*,iostat=ierror1) radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3)
+     if (ierror1 /= 0 ) then
+        read(line,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
+        !if the projector application is on-the-fly cpmult multiplies the coarse radius
+        radii_cf(ityp,3)=radii_cf(ityp,2)
+        if (DistProjApply) then
+        end if
+     end if
+     message='                   X ' 
+
+     if (ierror /= 0) then
         !assigning the radii by calculating physical parameters
         radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
         radfine=100._gp
@@ -852,12 +859,16 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
            end if
         end do
         radii_cf(ityp,2)=radfine
-        if (iproc==0) write(*,'(3x,a6,13x,i3,5x,i3,10x,2(1x,f8.5),a)')&
-             trim(at%atomnames(ityp)),at%nelpsp(ityp),at%npspcode(ityp),&
-             radii_cf(ityp,1),radii_cf(ityp,2),&
-             '       X                '
+        message='         X              '
+        radii_cf(ityp,3)=radfine
      end if
      close(11)
+
+     if (iproc==0) write(*,'(1x,a6,8x,i3,5x,i3,10x,3(1x,f8.5),a)')&
+          trim(at%atomnames(ityp)),at%nelpsp(ityp),at%npspcode(ityp),&
+          radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,2),message
+
+
      !control the hardest gaussian
      minrad=1.d10
      do i=0,4
@@ -1123,7 +1134,7 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
   integer, intent(in) :: iproc
   real(gp), intent(in) :: crmult,frmult
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
-  real(gp), dimension(atoms%ntypes,2), intent(in) :: radii_cf
+  real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
   real(gp), intent(inout) :: hx,hy,hz,alat1,alat2,alat3
   !local variables

@@ -3,7 +3,7 @@
 0.0d0    randdis:        random amplitude for atoms
 4.00d0     betax: steepest descent step size,  if negative automatic determination   
 .55      hgrid: grid spacing
-5.0      crmult:   crmult*radii_cf(*,1) gives the coarse radius around each atom
+5.      crmult:   crmult*radii_cf(*,1) gives the coarse radius around each atom
 8.       frmult:   frmult*radii_cf(*,2) gives the fine   radius around each atom
 8.       cpmult:   cpmult*radii_cf(*,2) region for coarse projectors around each atom
 8.       fpmult:   fpmult*radii_cf(*,2) region for fine   projectors around each atom
@@ -13,7 +13,7 @@
 50       itermax: maximum number of wavefunction optimizations
 15       ncong: number of conjugate gradient iterations for the solution of the preconditioning equation
 6        idsx:  length of the diis history. if =0 steepest descent
-.true.   calc_tail: calculate tail for better energy
+.tail.       calc_tail: calculate tail for better energy
 5.       rbuf:   length of the tail to be added (in atomic units)
 30       ncongt: number of conjugate gradient iterations for the calculation of tail
 1 0      nspin=1 non-spin polarization, mpol=total magnetic moment
