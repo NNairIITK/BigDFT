@@ -11,7 +11,7 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   character(len=20), dimension(ntypes), intent(in) :: atomnames
   real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(ntypes,2), intent(in) ::  radii_cf
+  real(kind=8), dimension(ntypes,3), intent(in) ::  radii_cf
   real(kind=8), intent(out) :: peakmem
   !local variables
   character(len=*), parameter :: subname='MemoryEstimator'

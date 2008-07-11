@@ -14,17 +14,17 @@ CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* H-spin.out posout*
 
 #dependencies
 $(PPFILES):
-	ln -s $(top_srcdir)/utils/PSPfiles/HGH/$@ .
+	ln $(top_srcdir)/utils/PSPfiles/HGH/$@ .
 
 #inguess.dat:
 #	ln -s $(top_srcdir)/tests/inguess.dat .
 
 check: $(PPFILES) posinp input.dat
 	if test ! -f input.dat ; then \
-	  ln -s $(top_srcdir)/tests/H-spin/input.dat ; \
+	  ln $(top_srcdir)/tests/H-spin/input.dat ; \
 	fi
 	if test ! -f posinp ; then \
-	  ln -s $(top_srcdir)/tests/H-spin/posinp ; \
+	  ln $(top_srcdir)/tests/H-spin/posinp ; \
 	fi
 	$(run_parallel) $(top_builddir)/src/cluster > H-spin.out
 	python $(top_srcdir)/tests/fldiff.py H-spin.out $(top_srcdir)/tests/Refs/H-spin.out.ref | tee fldiff.report

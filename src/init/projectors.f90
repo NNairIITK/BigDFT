@@ -9,7 +9,7 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf
+  real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
   !local variables
   integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat
@@ -44,14 +44,14 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
   do iat=1,at%nat
 
      call numb_proj(at%iatype(iat),at%ntypes,at%psppar,at%npspcode,mproj)
-     if (mproj.ne.0) then 
+     if (mproj /= 0) then 
 
         !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))')&
         !     'projector descriptors for atom with mproj ',iat,mproj
         nlpspd%nproj=nlpspd%nproj+mproj
 
         ! coarse grid quantities
-        call pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),cpmult, &
+        call pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),3),cpmult, &
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         nlpspd%nboxp_c(1,1,iat)=nl1
@@ -63,7 +63,7 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
         nlpspd%nboxp_c(2,3,iat)=nu3
 
         call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),cpmult,hx,hy,hz,logrid)
+             at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),cpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
 
         nlpspd%nseg_p(2*iat-1)=nlpspd%nseg_p(2*iat-2) + mseg
@@ -140,7 +140,7 @@ subroutine fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
   integer, intent(in) :: iproc,n1,n2,n3,idir
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
-  real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf
+  real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
   !local variables
   integer, parameter :: nterm_max=20 !if GTH nterm_max=4
@@ -176,7 +176,7 @@ subroutine fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
               call projector(geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
                    at%psppar(l,0,ityp),rxyz(1,iat),&
                    nlpspd%nboxp_c(1,1,iat),nlpspd%nboxp_f(1,1,iat),n1,n2,n3,&
-                   hx,hy,hz,cpmult,fpmult,radii_cf(ityp,2),&
+                   hx,hy,hz,cpmult,fpmult,radii_cf(ityp,3),radii_cf(ityp,2),&
                    mbvctr_c,mbvctr_f,proj(istart_c),nwarnings)
               iproj=iproj+2*l-1
               istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)
@@ -203,13 +203,13 @@ subroutine fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
 end subroutine fill_projectors
 
 subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,nboxp_c,nboxp_f,n1,n2,n3,&
-     hx,hy,hz,cpmult,fpmult,radius_f,mbvctr_c,mbvctr_f,proj,nwarnings)
+     hx,hy,hz,cpmult,fpmult,radius_c,radius_f,mbvctr_c,mbvctr_f,proj,nwarnings)
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=20), intent(in) :: atomname
   integer, intent(in) :: iat,iproc,idir,l,i,n1,n2,n3,mbvctr_c,mbvctr_f
-  real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult,radius_f,gau_a
+  real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult,radius_c,radius_f,gau_a
   integer, dimension(2,3), intent(in) :: nboxp_c,nboxp_f
   real(gp), dimension(3), intent(in) :: rxyz
   integer, intent(inout) :: nwarnings
@@ -271,7 +271,7 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,nboxp_c,nbox
      end if
      
      call crtproj(geocode,iproc,nterm,n1,n2,n3,nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c, &
-          & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radius_f, & 
+          & nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radius_c,radius_f, & 
           & cpmult,fpmult,hx,hy,hz,gau_a,factors,rx,ry,rz,lx,ly,lz, & 
           & mbvctr_c,mbvctr_f,proj(istart_c),proj(istart_f))
      
@@ -330,7 +330,7 @@ END SUBROUTINE numb_proj
 
 subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, & 
      nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,  & 
-     radius_f,cpmult,fpmult,hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
+     radius_c,radius_f,cpmult,fpmult,hx,hy,hz,gau_a,fac_arr,rx,ry,rz,lx,ly,lz, & 
      mvctr_c,mvctr_f,proj_c,proj_f)
   ! returns the compressed form of a Gaussian projector 
   ! x^lx * y^ly * z^lz * exp (-1/(2*gau_a^2) *((x-rx)^2 + (y-ry)^2 + (z-rz)^2 ))
@@ -340,7 +340,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nterm,n1,n2,n3,mvctr_c,mvctr_f
   integer, intent(in) :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
-  real(gp), intent(in) :: radius_f,cpmult,fpmult,hx,hy,hz,gau_a,rx,ry,rz
+  real(gp), intent(in) :: radius_c,radius_f,cpmult,fpmult,hx,hy,hz,gau_a,rx,ry,rz
   integer, dimension(nterm), intent(in) :: lx,ly,lz
   real(gp), dimension(nterm), intent(in) :: fac_arr
   real(wp), dimension(mvctr_c), intent(out) :: proj_c
@@ -369,7 +369,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
 
-  rad_c=radius_f*cpmult
+  rad_c=radius_c*cpmult
   rad_f=radius_f*fpmult
 
   !print *,''
@@ -389,12 +389,12 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
      CALL GAUSS_TO_DAUB(hz,1.d0,rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1,iterm),te,work,nw,perz) 
      err_norm=max(err_norm,te) 
      if (iproc.eq.0 .and. geocode == 'F')  then
-        if (ml1.gt.min(nl1_c,nl1_f)) write(*,*) 'Projector box larger than needed: ml1'
-        if (ml2.gt.min(nl2_c,nl2_f)) write(*,*) 'Projector box larger than needed: ml2'
-        if (ml3.gt.min(nl3_c,nl3_f)) write(*,*) 'Projector box larger than needed: ml3'
-        if (mu1.lt.max(nu1_c,nu1_f)) write(*,*) 'Projector box larger than needed: mu1'
-        if (mu2.lt.max(nu2_c,nu2_f)) write(*,*) 'Projector box larger than needed: mu2'
-        if (mu3.lt.max(nu3_c,nu3_f)) write(*,*) 'Projector box larger than needed: mu3'
+        if (ml1 > min(nl1_c,nl1_f)) write(*,*) 'Projector box larger than needed: ml1'
+        if (ml2 > min(nl2_c,nl2_f)) write(*,*) 'Projector box larger than needed: ml2'
+        if (ml3 > min(nl3_c,nl3_f)) write(*,*) 'Projector box larger than needed: ml3'
+        if (mu1 < max(nu1_c,nu1_f)) write(*,*) 'Projector box larger than needed: mu1'
+        if (mu2 < max(nu2_c,nu2_f)) write(*,*) 'Projector box larger than needed: mu2'
+        if (mu3 < max(nu3_c,nu3_f)) write(*,*) 'Projector box larger than needed: mu3'
 !!$        !approximate maximum value for cpmult,fpmult
 !!$        cpmult_max=max((nu1_c-nl1_c)*hx*0.5d0/radius_f,(nu2_c-nl2_c)*hy*0.5d0/radius_f,(nu3_c-nl3_c)*hz*0.5d0/radius_f)
 !!$        fpmult_max=max((nu1_f-nl1_f)*hx*0.5d0/radius_f,(nu2_f-nl2_f)*hy*0.5d0/radius_f,(nu3_f-nl3_f)*hz*0.5d0/radius_f)
@@ -466,7 +466,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
            dy2=d2(i2,hy,n2,ry,pery)
            do i1=nl1_c,nu1_c
               dx2=d2(i1,hx,n1,rx,perx)
-              if (dx2+(dy2+dz2).le.rad_c**2) then
+              if (dx2+(dy2+dz2) <= rad_c**2) then
               mvctr=mvctr+1
                  proj_c(mvctr)=proj_c(mvctr)+wprojx(i1,1,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)
               endif
@@ -482,7 +482,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
            dy2=d2(i2,hy,n2,ry,pery)
            do i1=nl1_f,nu1_f
               dx2=d2(i1,hx,n1,rx,perx)
-              if (dx2+(dy2+dz2).le.rad_f**2) then
+              if (dx2+(dy2+dz2) <= rad_f**2) then
                  mvctr=mvctr+1
                  proj_f(1,mvctr)=&
                       proj_f(1,mvctr)+wprojx(i1,2,iterm)*wprojy(i2,1,iterm)*wprojz(i3,1,iterm)

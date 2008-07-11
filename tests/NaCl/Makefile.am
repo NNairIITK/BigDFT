@@ -15,17 +15,17 @@ CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* NaCl.out posout* *
 
 #dependencies
 $(PPFILES):
-	ln -s $(top_srcdir)/utils/PSPfiles/$@ .
+	ln $(top_srcdir)/utils/PSPfiles/$@ .
 
 inguess.dat:
-	ln -s $(top_srcdir)/tests/inguess.dat .
+	ln $(top_srcdir)/tests/inguess.dat .
 
 check: $(PPFILES) inguess.dat posinp input.dat
 	if test ! -f input.dat ; then \
-	  ln -s $(top_srcdir)/tests/NaCl/input.dat ; \
+	  ln $(top_srcdir)/tests/NaCl/input.dat ; \
 	fi
 	if test ! -f posinp ; then \
-	  ln -s $(top_srcdir)/tests/NaCl/posinp ; \
+	  ln $(top_srcdir)/tests/NaCl/posinp ; \
 	fi
 	$(run_parallel) $(top_builddir)/src/cluster > NaCl.out
 	python $(top_srcdir)/tests/fldiff.py NaCl.out $(top_srcdir)/tests/Refs/NaCl.out.ref | tee fldiff.report

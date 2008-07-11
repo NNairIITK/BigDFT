@@ -14,17 +14,17 @@ CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* Ca2.out posout* *.
 
 #dependencies
 $(PPFILES):
-	ln -s $(top_srcdir)/utils/PSPfiles/$@ .
+	ln $(top_srcdir)/utils/PSPfiles/$@ .
 
 inguess.dat:
-	ln -s $(top_srcdir)/tests/inguess.dat .
+	ln $(top_srcdir)/tests/inguess.dat .
 
 check: $(PPFILES) inguess.dat posinp input.dat
 	if test ! -f input.dat ; then \
-	  ln -s $(top_srcdir)/tests/Ca2/input.dat ; \
+	  ln $(top_srcdir)/tests/Ca2/input.dat ; \
 	fi
 	if test ! -f posinp ; then \
-	  ln -s $(top_srcdir)/tests/Ca2/posinp ; \
+	  ln $(top_srcdir)/tests/Ca2/posinp ; \
 	fi
 	$(run_parallel) $(top_builddir)/src/cluster > Ca2.out
 	python $(top_srcdir)/tests/fldiff.py Ca2.out $(top_srcdir)/tests/Refs/Ca2.out.ref | tee fldiff.report

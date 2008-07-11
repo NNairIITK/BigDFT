@@ -26,7 +26,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf,cpmult,fpmult
   real(kind=8), dimension(norb), intent(in) :: occup,eval,spinsgn
-  real(kind=8), dimension(at%ntypes,2), intent(in) :: radii_cf
+  real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
   real(kind=8), dimension(2*n1+31,2*n2+31,2*n3+31,nspin), intent(in) :: pot
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj

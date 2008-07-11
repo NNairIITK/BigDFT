@@ -57,7 +57,7 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i3xcsh,nvctrp,norbu
   integer, intent(in) :: nvirte,nvirtep,nvirt,ncong,n3p,itermax,nplot
   real(gp), dimension(norb), intent(in) :: occup
-  real(gp), dimension(at%ntypes,2), intent(in) :: radii_cf  
+  real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
   real(dp), intent(in) :: gnrm_cv
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh

@@ -15,14 +15,14 @@ CLEANFILES = $(PPFILES) Davidson-SiH4.out posout* *.pot *.prc\
 
 #dependencies
 $(PPFILES):
-	ln -s $(top_srcdir)/utils/PSPfiles/$@ .
+	ln $(top_srcdir)/utils/PSPfiles/$@ .
 
 check: $(PPFILES) posinp input.dat
 	if test ! -f input.dat ; then \
-	  ln -s $(top_srcdir)/tests/Davidson-SiH4/input.dat ; \
+	  ln $(top_srcdir)/tests/Davidson-SiH4/input.dat ; \
 	fi
 	if test ! -f posinp ; then \
-	  ln -s $(top_srcdir)/tests/Davidson-SiH4/posinp ; \
+	  ln $(top_srcdir)/tests/Davidson-SiH4/posinp ; \
 	fi
 	$(run_parallel) $(top_builddir)/src/cluster > Davidson-SiH4.out
 	python $(top_srcdir)/tests/fldiff.py Davidson-SiH4.out $(top_srcdir)/tests/Refs/Davidson-SiH4.out.ref | tee fldiff.report

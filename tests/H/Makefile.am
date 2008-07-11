@@ -14,14 +14,14 @@ CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* H.out posout* \
 
 #dependencies
 $(PPFILES):
-	ln -s $(top_srcdir)/utils/PSPfiles/$@ .
+	ln $(top_srcdir)/utils/PSPfiles/$@ .
 
 check: $(PPFILES) posinp input.dat
 	if test ! -f input.dat ; then \
-	  ln -s $(top_srcdir)/tests/H/input.dat ; \
+	  ln $(top_srcdir)/tests/H/input.dat ; \
 	fi
 	if test ! -f posinp ; then \
-	  ln -s $(top_srcdir)/tests/H/posinp ; \
+	  ln $(top_srcdir)/tests/H/posinp ; \
 	fi
 	$(top_builddir)/src/memguess 1 > H.memguess
 	python $(top_srcdir)/tests/fldiff.py H.memguess $(top_srcdir)/tests/Refs/H.memguess.ref | cat

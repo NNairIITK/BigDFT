@@ -1,9 +1,62 @@
-subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,iatype,rxyz,CP2K,wfn_cp2k)
+!control the accuracy of the expansion in gaussian
+subroutine check_gaussian_expansion(geocode,iproc,nproc,norb,norbp,&
+     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,psi,G,coeffs)
+  use module_base
+  use module_types
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  real(gp), intent(in) :: hx,hy,hz
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(gaussian_basis), intent(in) :: G
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
+  real(wp), dimension(G%ncoeff,norbp), intent(in) :: coeffs
+  !local variables
+  character(len=*), parameter :: subname='check_gaussian_expansion'
+  integer :: iorb,i_stat,i_all,i,j,ierr
+  real(wp) :: maxdiffp,maxdiff,orbdiff
+  real(wp), dimension(:), allocatable :: workpsi
+
+  allocate(workpsi((wfd%nvctr_c+7*wfd%nvctr_f)*norbp+ndebug),stat=i_stat)
+  call memocc(i_stat,workpsi,'workpsi',subname)
+
+  call gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
+     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,coeffs,workpsi)
+
+  maxdiffp=0.0_wp
+  do iorb=1,norbp
+     orbdiff=0.0_wp
+     if (iorb+iproc*norbp <= norb) then
+        do i=1,wfd%nvctr_c+7*wfd%nvctr_f
+           j=i+(iorb-1)*(wfd%nvctr_c+7*wfd%nvctr_f)
+           orbdiff=max(orbdiff,(psi(i,iorb)-workpsi(j))**2)
+        end do
+     end if
+     maxdiffp=max(maxdiffp,orbdiff)
+     !print *,'iproc,iorb,orbdiff',iorb,orbdiff
+  end do
+
+  if (nproc > 1) then
+     call MPI_REDUCE(maxdiffp,maxdiff,1,mpidtypw,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+  else
+     maxdiff=maxdiffp
+  end if
+
+  if (iproc == 0) then
+     write(*,'(1x,a,1pe12.5)')'Mean L2 norm of gaussian-wavelet difference:',sqrt(maxdiff/real(norb,wp))
+  end if
+  i_all=-product(shape(workpsi))*kind(workpsi)
+  deallocate(workpsi,stat=i_stat)
+  call memocc(i_stat,i_all,'workpsi',subname)
+
+
+end subroutine check_gaussian_expansion
+
+subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,norbp,iatype,rxyz,CP2K,wfn_cp2k)
   use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: basisfile,orbitalfile
-  integer, intent(in) :: norb,iproc,nat,ntypes
+  integer, intent(in) :: norb,iproc,nat,ntypes,norbp
   integer, dimension(nat), intent(in) :: iatype
   real(gp), dimension(3,nat), target, intent(in) :: rxyz
   type(gaussian_basis), intent(out) :: CP2K
@@ -308,9 +361,10 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,iatype,r
 !!$  end do
 
   !allocate and assign the coefficients of each orbital
-  allocate(wfn_cp2k(CP2K%ncoeff,norb+ndebug),stat=i_stat)
+  allocate(wfn_cp2k(CP2K%ncoeff,norbp+ndebug),stat=i_stat)
   call memocc(i_stat,wfn_cp2k,'wfn_cp2k',subname)
-  do iorb=1,norb
+  do iorb=1,norbp
+     jorb=iorb+iproc*norbp
      icoeff=0
      ishell=0
      do iat=1,CP2K%nat
@@ -318,7 +372,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,iatype,r
            ishell=ishell+1
            do iam=1,2*CP2K%nam(ishell)-1
               icoeff=icoeff+1
-              wfn_cp2k(icoeff,iorb)=cimu(iam,isat,iat,iorb)
+              if (jorb <= norb) wfn_cp2k(icoeff,iorb)=cimu(iam,isat,iat,jorb)
            end do
         end do
      end do
@@ -362,7 +416,7 @@ subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
   real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(gaussian_basis), intent(in) :: G
-  real(wp), dimension(G%ncoeff,norb), intent(in) :: wfn_gau
+  real(wp), dimension(G%ncoeff,norbp), intent(in) :: wfn_gau
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: psi
 
   !local variables
@@ -418,7 +472,7 @@ subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
                  jorb=iorb-iproc*norbp
                  do i=1,wfd%nvctr_c+7*wfd%nvctr_f
                     !for this also daxpy BLAS can be used
-                    psi(i,jorb)=psi(i,jorb)+wfn_gau(icoeff,iorb)*tpsi(i)
+                    psi(i,jorb)=psi(i,jorb)+wfn_gau(icoeff,jorb)*tpsi(i)
                  end do
               end if
            end do
