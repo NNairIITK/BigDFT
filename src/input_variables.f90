@@ -80,14 +80,17 @@ subroutine read_input_variables(iproc,in)
   read(1,*,iostat=ierror) frmult
   read(1,*,iostat=ierror) cpmult
   read(1,*,iostat=ierror) fpmult
+  !put the value at the max, such that to coincide with the maximum possible extension
+  fpmult=100.e0
   in%hgrid  = real(hgrid,gp)
   in%crmult = real(crmult,gp)
   in%frmult = real(frmult,gp)
   in%cpmult = real(cpmult,gp)
   in%fpmult = real(fpmult,gp)
-  if (in%fpmult.gt.in%frmult) then
-     if (iproc == 0) write(*,*) ' NONSENSE: fpmult > frmult'
-     stop
+  in%cpmult = in%frmult
+  if (in%fpmult > in%frmult) then
+     if (iproc == 0) write(*,*) ' NONSENSE: fpmult > frmult, putting them equal'
+     in%fpmult=in%frmult
   end if
   read(1,*,iostat=ierror) in%ixc
   read(1,*,iostat=ierror) in%ncharge,in%elecfield
@@ -721,7 +724,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   character(len=100) :: line
   integer :: i,j,k,l,iat,nlterms,nprl,nn,nt,ntu,ntd,ityp,ierror,i_stat,i_all,ixcpsp,ispinsum,mxpl
   integer :: ispol,mxchg,ichg,natpol,ichgsum,nsccode,ierror1
-  real(gp) :: rcov,rprb,ehomo,radfine,tt,minrad
+  real(gp) :: rcov,rprb,ehomo,radfine,tt,minrad,maxrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr
   integer, dimension(6,0:3) :: neleconf
@@ -836,16 +839,23 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
         end if
      end do
 
+     !control the hardest and the softest gaussian
+     minrad=1.e10_gp
+     do i=0,4
+        !the maximum radii is useful only for projectors
+        if (i==1) maxrad=0.0_gp
+        if (at%psppar(i,0,ityp)/=0._gp) then
+           minrad=min(minrad,at%psppar(i,0,ityp))
+           maxrad=max(maxrad,at%psppar(i,0,ityp))
+        end if
+     end do
+
      !old way of calculating the radii, requires modification of the PSP files
-     ierror=0
-     read(11,'(a100)')line
+     read(11,'(a100)',iostat=ierror)line
      read(line,*,iostat=ierror1) radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3)
      if (ierror1 /= 0 ) then
         read(line,*,iostat=ierror) radii_cf(ityp,1),radii_cf(ityp,2)
-        !if the projector application is on-the-fly cpmult multiplies the coarse radius
         radii_cf(ityp,3)=radii_cf(ityp,2)
-        if (DistProjApply) then
-        end if
      end if
      message='                   X ' 
 
@@ -864,19 +874,14 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      end if
      close(11)
 
+     !correct the coarse and the fine radius for projectors
+     radii_cf(ityp,3)=min(in%crmult*radii_cf(ityp,1),15.0_gp*maxrad)/in%frmult
+
      if (iproc==0) write(*,'(1x,a6,8x,i3,5x,i3,10x,3(1x,f8.5),a)')&
           trim(at%atomnames(ityp)),at%nelpsp(ityp),at%npspcode(ityp),&
-          radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,2),message
+          radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3),message
 
-
-     !control the hardest gaussian
-     minrad=1.d10
-     do i=0,4
-        if (at%psppar(i,0,ityp)/=0._gp) then
-           minrad=min(minrad,at%psppar(i,0,ityp))
-        end if
-     end do
-     !control whether the grid spacing is too high or not
+     !control whether the grid spacing is too high
      if (iproc == 0 .and. in%hgrid > 2.5_gp*minrad) then
         write(*,'(1x,a)')&
              'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
