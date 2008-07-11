@@ -390,12 +390,12 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
      err_norm=max(err_norm,te) 
      if (iproc.eq.0 .and. geocode == 'F')  then
         !temporary comment, only for verification
-!!$        if (ml1 > min(nl1_c,nl1_f)) write(*,*) 'Projector box larger than needed: ml1'
-!!$        if (ml2 > min(nl2_c,nl2_f)) write(*,*) 'Projector box larger than needed: ml2'
-!!$        if (ml3 > min(nl3_c,nl3_f)) write(*,*) 'Projector box larger than needed: ml3'
-!!$        if (mu1 < max(nu1_c,nu1_f)) write(*,*) 'Projector box larger than needed: mu1'
-!!$        if (mu2 < max(nu2_c,nu2_f)) write(*,*) 'Projector box larger than needed: mu2'
-!!$        if (mu3 < max(nu3_c,nu3_f)) write(*,*) 'Projector box larger than needed: mu3'
+        if (ml1 > min(nl1_c,nl1_f)) write(*,*) 'Projector box larger than needed: ml1'
+        if (ml2 > min(nl2_c,nl2_f)) write(*,*) 'Projector box larger than needed: ml2'
+        if (ml3 > min(nl3_c,nl3_f)) write(*,*) 'Projector box larger than needed: ml3'
+        if (mu1 < max(nu1_c,nu1_f)) write(*,*) 'Projector box larger than needed: mu1'
+        if (mu2 < max(nu2_c,nu2_f)) write(*,*) 'Projector box larger than needed: mu2'
+        if (mu3 < max(nu3_c,nu3_f)) write(*,*) 'Projector box larger than needed: mu3'
 
 !!$        !approximate maximum value for cpmult,fpmult
 !!$        cpmult_max=max((nu1_c-nl1_c)*hx*0.5d0/radius_f,(nu2_c-nl2_c)*hy*0.5d0/radius_f,(nu3_c-nl3_c)*hz*0.5d0/radius_f)
