@@ -9,4 +9,5 @@ Goedecker-Teter-Hutter  Wed May  8 14:27:44 EDT 1996
               0.000000    0.000000    0.00 k11d, k22d, k33d
   0.000000    0.000000    0.000000    0.00 rf, h11f, h22f, h33f
               0.000000    0.000000    0.00 k11f, k22f, k33f
-1.36 .15   0.6                           rcutoff, rloc
+1.36 .15  
+ 0.6                           rcutoff, rloc
