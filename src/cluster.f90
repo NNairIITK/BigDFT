@@ -1,20 +1,17 @@
- subroutine call_cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
-     psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
+ subroutine call_bigdft(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables),intent(inout) :: in
-  type(wavefunctions_descriptors), intent(inout) :: wfd
   type(atoms_data), intent(inout) :: atoms
-  integer, intent(inout) :: infocode,n1,n2,n3,norbp,norb
-  real(kind=8), intent(out) :: energy
-  real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
-  real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
-  real(kind=8), dimension(:), pointer :: eval
-  real(kind=8), dimension(:), pointer :: psi
+  type(restart_objects), intent(inout) :: rst
+  integer, intent(inout) :: infocode
+  real(gp), intent(out) :: energy
+  real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
+  real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
   !local variables
-  character(len=*), parameter :: subname='call_cluster'
+  character(len=*), parameter :: subname='call_bigdft'
   integer :: i_stat,i_all,ierr,inputPsiId_orig
   !temporary interface
   interface
@@ -28,31 +25,34 @@
        type(input_variables), intent(in) :: in
        type(wavefunctions_descriptors), intent(inout) :: wfd
        type(atoms_data), intent(inout) :: atoms
-       real(kind=8), intent(out) :: energy
-       real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
-       real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
-       real(kind=8), dimension(:), pointer :: eval
-       real(kind=8), dimension(:), pointer :: psi
+       real(gp), intent(out) :: energy
+       real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
+       real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+       real(wp), dimension(:), pointer :: eval,psi
      end subroutine cluster
   end interface
+
 
   inputPsiId_orig=in%inputPsiId
 
   loop_cluster: do
 
-     if (in%inputPsiId == 0 .and. associated(psi)) then
-        i_all=-product(shape(psi))*kind(psi)
-        deallocate(psi,stat=i_stat)
+     if (in%inputPsiId == 0 .and. associated(rst%psi)) then
+        i_all=-product(shape(rst%psi))*kind(rst%psi)
+        deallocate(rst%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
-        i_all=-product(shape(eval))*kind(eval)
-        deallocate(eval,stat=i_stat)
+        i_all=-product(shape(rst%eval))*kind(rst%eval)
+        deallocate(rst%eval,stat=i_stat)
         call memocc(i_stat,i_all,'eval',subname)
 
-        call deallocate_wfd(wfd,'call_cluster')
+        call deallocate_wfd(rst%wfd,subname)
      end if
 
+
+
      call cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
-          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
+          rst%psi,rst%wfd,rst%norbp,rst%norb,rst%eval,rst%n1,rst%n2,rst%n3,rst%rxyz_old,&
+          in,infocode)
 
      if (in%inputPsiId==1 .and. infocode==2) then
         in%inputPsiId=0
@@ -67,14 +67,14 @@
 
         end if
 
-        i_all=-product(shape(psi))*kind(psi)
-        deallocate(psi,stat=i_stat)
+        i_all=-product(shape(rst%psi))*kind(rst%psi)
+        deallocate(rst%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
-        i_all=-product(shape(eval))*kind(eval)
-        deallocate(eval,stat=i_stat)
+        i_all=-product(shape(rst%eval))*kind(rst%eval)
+        deallocate(rst%eval,stat=i_stat)
         call memocc(i_stat,i_all,'eval',subname)
 
-        call deallocate_wfd(wfd,'call_cluster')
+        call deallocate_wfd(rst%wfd,subname)
         !finalize memory counting (there are still the positions and the forces allocated)
         call memocc(0,0,'count','stop')
 
@@ -90,7 +90,7 @@
   !preserve the previous value
   in%inputPsiId=inputPsiId_orig
 
-end subroutine call_cluster
+end subroutine call_bigdft
 
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)

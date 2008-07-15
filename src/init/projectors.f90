@@ -12,7 +12,8 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
   !local variables
-  integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat
+  integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
+  real(gp) :: maxfullvol,totfullvol,totzerovol,zerovol,fullvol,maxrad,maxzerovol
   
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -112,6 +113,41 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
      DistProjApply =.true.
   end if
 
+  !calculate the fraction of the projector array used for allocate zero values
+  !control the hardest and the softest gaussian
+  totzerovol=0.0_gp
+  maxfullvol=0.0_gp
+  totfullvol=0.0_gp
+  do iat=1,at%nat
+     ityp=at%iatype(iat)
+     maxrad=maxval(at%psppar(1:4,0,ityp))
+     zerovol=0.0_gp
+     fullvol=0.0_gp
+     do l=1,4
+        do i=1,3
+           if (at%psppar(l,i,ityp) /= 0.0_gp) then
+              zerovol=zerovol+(maxrad**3-at%psppar(l,0,ityp)**3)
+              fullvol=fullvol+maxrad**3
+           end if
+        end do
+     end do
+     if (fullvol >= maxfullvol .and. fullvol > 0.0_gp) then
+        maxzerovol=zerovol/fullvol
+        maxfullvol=fullvol
+     end if
+     totzerovol=totzerovol+zerovol
+     totfullvol=totfullvol+fullvol
+  end do
+
+  !assign the total quantity per atom
+  zerovol=0.d0
+  if (totfullvol /= 0.0_gp) then
+     if (DistProjApply) then
+        zerovol=maxzerovol
+     else
+        zerovol=totzerovol/totfullvol
+     end if
+  end if
 
   !number of elements of the projectors
   if (.not. DistProjApply) nlpspd%nprojel=istart-1
@@ -123,7 +159,10 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
      end if
      write(*,'(1x,a,i21)') 'Total number of projectors =',nlpspd%nproj
      write(*,'(1x,a,i21)') 'Total number of components =',nlpspd%nprojel
+     write(*,'(1x,a,i21)')  'Percent of zero components =',nint(100.0_gp*zerovol)
   end if
+
+
 
 end subroutine localize_projectors
 
@@ -307,26 +346,33 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,nboxp_c,nbox
 end subroutine projector
 
 
+! Determines the number of projectors (valid for GTH and HGH pseudopotentials)
 subroutine numb_proj(ityp,ntypes,psppar,npspcode,mproj)
-  ! Determines the number of projectors (valid for GTH and HGH pseudopotentials)
-  implicit real(kind=8) (a-h,o-z)
-  dimension psppar(0:4,0:6,ntypes),npspcode(ntypes)
+  use module_base
+  implicit none
+  integer, intent(in) :: ityp,ntypes
+  integer, dimension(ntypes), intent(in) :: npspcode
+  real(gp), dimension(0:4,0:6,ntypes), intent(in) :: psppar
+  integer, intent(out) :: mproj
+  !local variables
+  integer :: l,i
 
   mproj=0
   if (npspcode(ityp) == 2) then !GTH
      do l=1,2 
         do i=1,2 
-           if (psppar(l,i,ityp).ne.0.d0) mproj=mproj+2*l-1
+           if (psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
         enddo
      enddo
   else if (npspcode(ityp) == 3 .or. npspcode(ityp) == 10) then !HGH and HGH-K
      do l=1,4 
         do i=1,3 
-           if (psppar(l,i,ityp).ne.0.d0) mproj=mproj+2*l-1
+           if (psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
         enddo
      enddo
   end if
-END SUBROUTINE numb_proj
+
+end subroutine numb_proj
 
 subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, & 
      nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,  & 
@@ -351,7 +397,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3,mvctr,i_all,i_stat,j1,j2,j3
   real(gp) :: rad_c,rad_f,factor,err_norm,dz2,dy2,dx2,te,d2,cpmult_max,fpmult_max
-  real(wp), dimension(nw,2) :: work
+  real(wp), dimension(0:nw,2) :: work
   real(wp), allocatable, dimension(:,:,:) :: wprojx,wprojy,wprojz
 
 
@@ -361,8 +407,6 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   call memocc(i_stat,wprojy,'wprojy',subname)
   allocate(wprojz(0:n3,2,nterm+ndebug),stat=i_stat)
   call memocc(i_stat,wprojz,'wprojz',subname)
-!!$  allocate(work(0:nw,2+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,work,'work',subname)
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -388,20 +432,21 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
      n_gau=lz(iterm) 
      call gauss_to_daub(hz,1.d0,rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1,iterm),te,work,nw,perz) 
      err_norm=max(err_norm,te) 
-     if (iproc.eq.0 .and. geocode == 'F')  then
-        !temporary comment, only for verification
-        if (ml1 > min(nl1_c,nl1_f)) write(*,*) 'Projector box larger than needed: ml1'
-        if (ml2 > min(nl2_c,nl2_f)) write(*,*) 'Projector box larger than needed: ml2'
-        if (ml3 > min(nl3_c,nl3_f)) write(*,*) 'Projector box larger than needed: ml3'
-        if (mu1 < max(nu1_c,nu1_f)) write(*,*) 'Projector box larger than needed: mu1'
-        if (mu2 < max(nu2_c,nu2_f)) write(*,*) 'Projector box larger than needed: mu2'
-        if (mu3 < max(nu3_c,nu3_f)) write(*,*) 'Projector box larger than needed: mu3'
-        
-!!$        !approximate maximum value for cpmult,fpmult
-!!$        cpmult_max=max((nu1_c-nl1_c)*hx*0.5d0/radius_f,(nu2_c-nl2_c)*hy*0.5d0/radius_f,(nu3_c-nl3_c)*hz*0.5d0/radius_f)
-!!$        fpmult_max=max((nu1_f-nl1_f)*hx*0.5d0/radius_f,(nu2_f-nl2_f)*hy*0.5d0/radius_f,(nu3_f-nl3_f)*hz*0.5d0/radius_f)
-!!$        print *,'cpmult_max,fpmult_max=',cpmult_max,fpmult_max
-     endif
+!!$     if (iproc.eq.0 .and. geocode == 'F')  then
+!!$        if (ml1 > min(nl1_c,nl1_f)) write(*,*) 'Projector box larger than needed: ml1'
+!!$        if (ml2 > min(nl2_c,nl2_f)) write(*,*) 'Projector box larger than needed: ml2'
+!!$        if (ml3 > min(nl3_c,nl3_f)) write(*,*) 'Projector box larger than needed: ml3'
+!!$        if (mu1 < max(nu1_c,nu1_f)) write(*,*) 'Projector box larger than needed: mu1'
+!!$        if (mu2 < max(nu2_c,nu2_f)) write(*,*) 'Projector box larger than needed: mu2'
+!!$        if (mu3 < max(nu3_c,nu3_f)) write(*,*) 'Projector box larger than needed: mu3'
+!!$        
+!!$        !!approximate maximum value for cpmult,fpmult
+!!$        !cpmult_max=max((nu1_c-nl1_c)*hx*0.5d0/radius_f,&
+!!$        !     (nu2_c-nl2_c)*hy*0.5d0/radius_f,(nu3_c-nl3_c)*hz*0.5d0/radius_f)
+!!$        !fpmult_max=max((nu1_f-nl1_f)*hx*0.5d0/radius_f,&
+!!$        !     (nu2_f-nl2_f)*hy*0.5d0/radius_f,(nu3_f-nl3_f)*hz*0.5d0/radius_f)
+!!$        !print *,'cpmult_max,fpmult_max=',cpmult_max,fpmult_max
+!!$     endif
 
      !print *,iterm,ml1,mu1,ml2,mu2,ml3,mu3,n1,n2,n3,rad_c,rad_f
 
@@ -516,9 +561,6 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   i_all=-product(shape(wprojz))*kind(wprojz)
   deallocate(wprojz,stat=i_stat)
   call memocc(i_stat,i_all,'wprojz',subname)
-!!$  i_all=-product(shape(work))*kind(work)
-!!$  deallocate(work,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'work',subname)
 
 end subroutine crtproj
 

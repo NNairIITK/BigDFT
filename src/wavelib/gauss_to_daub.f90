@@ -21,9 +21,9 @@ subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
   logical, intent(in) :: periodic
   integer, intent(in) :: n_gau,nmax,nwork
   real(gp), intent(in) :: hgrid,factor,gau_cen,gau_a
+  real(wp), dimension(0:nwork,2), intent(inout) :: ww 
   integer, intent(out) :: n_left,n_right
   real(gp), intent(out) :: err_norm
-  real(wp), dimension(0:nwork,2), intent(inout) :: ww 
   real(wp), dimension(0:nmax,2), intent(out) :: c
   !local variables
   integer :: rightx,leftx,right_t,i0,i,k,length,j

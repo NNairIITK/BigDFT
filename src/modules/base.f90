@@ -45,7 +45,7 @@ module module_base
   !logical parameter for the projectors application strategy (true for distributed way)
   !if the projector allocation passes the memorylimit this is switched to true
   !inside localize_projectors routines
-  logical :: DistProjApply=.false.
+  logical :: DistProjApply=.true.
 
   !interfaces for LAPACK routines
   interface potrf

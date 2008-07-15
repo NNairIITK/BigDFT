@@ -1245,7 +1245,8 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
   integer:: iterm,itp,n_gau,ml1,mu1,ml2,mu2,ml3,mu3,i1,i2,i3,i_all,i_stat,iseg,ii,jj,j0,j1,i0,i
   real(wp) :: ovlp_c,ovlp_f1,ovlp_f2,ovlp_f3,ovlp_f4,ovlp_f5,ovlp_f6,ovlp_f7,ovlp
   real(gp) :: gau_a,te
-  real(wp), dimension(:,:), allocatable :: work,wprojx,wprojy,wprojz
+  real(wp), dimension(0:nw,2) :: work
+  real(wp), dimension(:,:), allocatable :: wprojx,wprojy,wprojz
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -1259,8 +1260,6 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
   call memocc(i_stat,wprojy,'wprojy',subname)
   allocate(wprojz(0:n3,2+ndebug),stat=i_stat)
   call memocc(i_stat,wprojz,'wprojz',subname)
-  allocate(work(0:nw,2+ndebug),stat=i_stat)
-  call memocc(i_stat,work,'work',subname)
 
   overlap=0.0_wp
 
@@ -1344,8 +1343,5 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
   i_all=-product(shape(wprojz))*kind(wprojz)
   deallocate(wprojz,stat=i_stat)
   call memocc(i_stat,i_all,'wprojz',subname)
-  i_all=-product(shape(work))*kind(work)
-  deallocate(work,stat=i_stat)
-  call memocc(i_stat,i_all,'work',subname)
 
 end subroutine wavetogau

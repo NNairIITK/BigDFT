@@ -46,34 +46,32 @@ implicit none
 
 interface
 
-   subroutine call_cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
-        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
+   subroutine call_bigdft(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
+     use module_base
      use module_types
      implicit none
      integer, intent(in) :: iproc,nproc
      type(input_variables),intent(inout) :: in
-     type(wavefunctions_descriptors), intent(inout) :: wfd
      type(atoms_data), intent(inout) :: atoms
-     integer, intent(inout) :: infocode,n1,n2,n3,norbp,norb
-     real(kind=8), intent(out) :: energy
-     real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
-     real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
-     real(kind=8), dimension(:), pointer :: eval,psi
-   end subroutine call_cluster
+     type(restart_objects), intent(inout) :: rst
+     integer, intent(inout) :: infocode
+     real(gp), intent(out) :: energy
+     real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
+     real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
+   end subroutine call_bigdft
 
-   subroutine conjgrad(nproc,iproc,at,wpos,etot,fxyz, &
-        psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,in)
+   subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
+     use module_base
      use module_types
      implicit none
-     type(atoms_data), intent(in) :: at
      integer, intent(in) :: nproc,iproc
-     integer, intent(inout) :: n1,n2,n3,ncount_cluster,norbp,norb
-     real(kind=8), intent(out) :: etot
+     integer, intent(inout) :: ncount_cluster
+     real(gp), intent(out) :: etot
+     type(atoms_data), intent(inout) :: at
      type(input_variables), intent(inout) :: in
-     type(wavefunctions_descriptors), intent(inout) :: wfd
-     real(kind=8), dimension(3,at%nat), intent(inout) :: wpos,rxyz_old
-     real(kind=8), dimension(3,at%nat), intent(out) :: fxyz
-     real(kind=8), dimension(:), pointer :: eval,psi
+     type(restart_objects), intent(inout) :: rst
+     real(gp), dimension(3,at%nat), intent(inout) :: rxyz
+     real(gp), dimension(3,at%nat), intent(out) :: fxyz
    end subroutine conjgrad
 
    subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,n3,wfd,psi,&

@@ -24,20 +24,17 @@ program BigDFT
   implicit none
   character(len=*), parameter :: subname='BigDFT'
   character(len=20) :: units
-  integer :: iproc,nproc,n1,n2,n3,iat,ityp,j,i_stat,i_all,ierr,infocode
+  integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode
   integer :: ncount_cluster
-  integer :: norb,norbp
-  real(gp) :: energy,etot,energyold,beta,sumx,sumy,sumz,tt
+  real(gp) :: energy,etot,sumx,sumy,sumz,tt
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
-  type(wavefunctions_descriptors) :: wfd
+  type(restart_objects) :: rst
   character(len=20), dimension(:), allocatable :: atomnames
   ! atomic coordinates, forces
-  real(gp), dimension(:,:), allocatable :: rxyz,fxyz,rxyz_old
+  real(gp), dimension(:,:), allocatable :: rxyz,fxyz
  
-  real(wp), dimension(:), pointer :: eval,psi
-
   !$      interface
   !$        integer ( kind=4 ) function omp_get_num_threads ( )
   !$        end function omp_get_num_threads
@@ -69,8 +66,6 @@ program BigDFT
   open(unit=99,file='posinp',status='old')
   read(99,*) atoms%nat,units
 
-  allocate(rxyz_old(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz_old,'rxyz_old',subname)
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz,'rxyz',subname)
   allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
@@ -95,8 +90,9 @@ program BigDFT
      end if
   enddo
 
-  call call_cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
-       psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs,infocode)
+  call init_restart_objects(atoms,rst,subname)
+
+  call call_bigdft(nproc,iproc,atoms,rxyz,inputs,energy,fxyz,rst,infocode)
 
   if (inputs%ncount_cluster_x > 1) then
      if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
@@ -106,10 +102,8 @@ program BigDFT
      !   betax=7.5d0  ! silicon systems
      !    betax=10.d0  !  Na_Cl clusters
      ncount_cluster=1
-     beta=inputs%betax
-     energyold=1.d100
-     call conjgrad(nproc,iproc,atoms,rxyz,etot,fxyz,&
-          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,inputs)
+
+     call conjgrad(nproc,iproc,atoms,rxyz,etot,fxyz,rst,ncount_cluster,inputs)
   end if
 
   if (iproc.eq.0) then
@@ -134,30 +128,21 @@ program BigDFT
   i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
   deallocate(atoms%lfrztyp,stat=i_stat)
   call memocc(i_stat,i_all,'lfrztyp',subname)
-  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
-  deallocate(atoms%natpol,stat=i_stat)
-  call memocc(i_stat,i_all,'natpol',subname)
-
-  call deallocate_wfd(wfd,'BigDFT')
-
-  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
-  deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atomnames',subname)
-  i_all=-product(shape(psi))*kind(psi)
-  deallocate(psi,stat=i_stat)
-  call memocc(i_stat,i_all,'psi',subname)
-  i_all=-product(shape(eval))*kind(eval)
-  deallocate(eval,stat=i_stat)
-  call memocc(i_stat,i_all,'eval',subname)
-  i_all=-product(shape(rxyz))*kind(rxyz)
-  deallocate(rxyz,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz',subname)
-  i_all=-product(shape(rxyz_old))*kind(rxyz_old)
-  deallocate(rxyz_old,stat=i_stat)
-  call memocc(i_stat,i_all,'rxyz_old',subname)
   i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
   deallocate(atoms%iatype,stat=i_stat)
   call memocc(i_stat,i_all,'iatype',subname)
+  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
+  deallocate(atoms%natpol,stat=i_stat)
+  call memocc(i_stat,i_all,'natpol',subname)
+  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
+  deallocate(atoms%atomnames,stat=i_stat)
+  call memocc(i_stat,i_all,'atomnames',subname)
+
+  call free_restart_objects(rst,subname)
+
+  i_all=-product(shape(rxyz))*kind(rxyz)
+  deallocate(rxyz,stat=i_stat)
+  call memocc(i_stat,i_all,'rxyz',subname)
   i_all=-product(shape(fxyz))*kind(fxyz)
   deallocate(fxyz,stat=i_stat)
   call memocc(i_stat,i_all,'fxyz',subname)
