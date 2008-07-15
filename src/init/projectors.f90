@@ -347,7 +347,7 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   real(wp), dimension(7,mvctr_f), intent(out) :: proj_f
   !local variables
   character(len=*), parameter :: subname='crtproj'
-  integer, parameter :: nw=16000
+  integer, parameter :: nw=32000
   logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3,mvctr,i_all,i_stat,j1,j2,j3
   real(gp) :: rad_c,rad_f,factor,err_norm,dz2,dy2,dx2,te,d2,cpmult_max,fpmult_max
@@ -380,23 +380,23 @@ subroutine crtproj(geocode,iproc,nterm,n1,n2,n3, &
   do iterm=1,nterm
      factor=fac_arr(iterm)
      n_gau=lx(iterm) 
-     CALL GAUSS_TO_DAUB(hx,factor,rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1,iterm),te,work,nw,perx) 
+     call gauss_to_daub(hx,factor,rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1,iterm),te,work,nw,perx) 
      err_norm=max(err_norm,te) 
      n_gau=ly(iterm) 
-     CALL GAUSS_TO_DAUB(hy,1.d0,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1,iterm),te,work,nw,pery) 
+     call gauss_to_daub(hy,1.d0,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1,iterm),te,work,nw,pery) 
      err_norm=max(err_norm,te) 
      n_gau=lz(iterm) 
-     CALL GAUSS_TO_DAUB(hz,1.d0,rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1,iterm),te,work,nw,perz) 
+     call gauss_to_daub(hz,1.d0,rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1,iterm),te,work,nw,perz) 
      err_norm=max(err_norm,te) 
      if (iproc.eq.0 .and. geocode == 'F')  then
         !temporary comment, only for verification
-!!$        if (ml1 > min(nl1_c,nl1_f)) write(*,*) 'Projector box larger than needed: ml1'
-!!$        if (ml2 > min(nl2_c,nl2_f)) write(*,*) 'Projector box larger than needed: ml2'
-!!$        if (ml3 > min(nl3_c,nl3_f)) write(*,*) 'Projector box larger than needed: ml3'
-!!$        if (mu1 < max(nu1_c,nu1_f)) write(*,*) 'Projector box larger than needed: mu1'
-!!$        if (mu2 < max(nu2_c,nu2_f)) write(*,*) 'Projector box larger than needed: mu2'
-!!$        if (mu3 < max(nu3_c,nu3_f)) write(*,*) 'Projector box larger than needed: mu3'
-
+        if (ml1 > min(nl1_c,nl1_f)) write(*,*) 'Projector box larger than needed: ml1'
+        if (ml2 > min(nl2_c,nl2_f)) write(*,*) 'Projector box larger than needed: ml2'
+        if (ml3 > min(nl3_c,nl3_f)) write(*,*) 'Projector box larger than needed: ml3'
+        if (mu1 < max(nu1_c,nu1_f)) write(*,*) 'Projector box larger than needed: mu1'
+        if (mu2 < max(nu2_c,nu2_f)) write(*,*) 'Projector box larger than needed: mu2'
+        if (mu3 < max(nu3_c,nu3_f)) write(*,*) 'Projector box larger than needed: mu3'
+        
 !!$        !approximate maximum value for cpmult,fpmult
 !!$        cpmult_max=max((nu1_c-nl1_c)*hx*0.5d0/radius_f,(nu2_c-nl2_c)*hy*0.5d0/radius_f,(nu3_c-nl3_c)*hz*0.5d0/radius_f)
 !!$        fpmult_max=max((nu1_f-nl1_f)*hx*0.5d0/radius_f,(nu2_f-nl2_f)*hy*0.5d0/radius_f,(nu3_f-nl3_f)*hz*0.5d0/radius_f)

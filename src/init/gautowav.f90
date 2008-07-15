@@ -1037,7 +1037,7 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
   real(wp), dimension(7,mvctr_f), intent(out) :: psi_f
   !local variables
   character(len=*), parameter :: subname='crtonewave'
-  integer, parameter ::nw=16000
+  integer, parameter ::nw=32000
   logical :: perx,pery,perz
   integer:: iterm,itp,n_gau,ml1,mu1,ml2,mu2,ml3,mu3,i1,i2,i3,i_all,i_stat,iseg,ii,jj,j0,j1,i0,i
   real(gp) :: gau_a,te
@@ -1070,11 +1070,11 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
   itp=1
   gau_a=xp(iterm)
   n_gau=lx(itp)
-  CALL GAUSS_TO_DAUB(hx,fac_arr(itp),rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1),te,work,nw,perx)
+  call gauss_to_daub(hx,fac_arr(itp),rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1),te,work,nw,perx)
   n_gau=ly(itp)
-  CALL GAUSS_TO_DAUB(hy,1.0_gp,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1),te,work,nw,pery)
+  call gauss_to_daub(hy,1.0_gp,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1),te,work,nw,pery)
   n_gau=lz(itp)
-  CALL GAUSS_TO_DAUB(hz,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw,perz)
+  call gauss_to_daub(hz,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw,perz)
 
   ! First term: coarse projector components
   do i3=nl3_c,nu3_c
@@ -1103,11 +1103,11 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
   do iterm=2,nterm
      gau_a=xp(iterm)
      n_gau=lx(itp)
-     CALL GAUSS_TO_DAUB(hx,fac_arr(itp),rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1),te,work,nw,perx)
+     call gauss_to_daub(hx,fac_arr(itp),rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1),te,work,nw,perx)
      n_gau=ly(itp)
-     CALL GAUSS_TO_DAUB(hy,1.0_gp,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1),te,work,nw,pery)
+     call gauss_to_daub(hy,1.0_gp,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1),te,work,nw,pery)
      n_gau=lz(itp)
-     CALL GAUSS_TO_DAUB(hz,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw,perz)
+     call gauss_to_daub(hz,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw,perz)
 
      ! First term: coarse projector components
      do i3=nl3_c,nu3_c
@@ -1140,12 +1140,12 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
      do iterm=1,nterm
         gau_a=xp(iterm)
         n_gau=lx(itp)
-        CALL GAUSS_TO_DAUB(hx,fac_arr(itp),rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1),te,work,nw,&
+        call gauss_to_daub(hx,fac_arr(itp),rx,gau_a,n_gau,n1,ml1,mu1,wprojx(0,1),te,work,nw,&
              perx)
         n_gau=ly(itp)
-        CALL GAUSS_TO_DAUB(hy,1.0_gp,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1),te,work,nw,pery)
+        call gauss_to_daub(hy,1.0_gp,ry,gau_a,n_gau,n2,ml2,mu2,wprojy(0,1),te,work,nw,pery)
         n_gau=lz(itp)
-        CALL GAUSS_TO_DAUB(hz,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw,&
+        call gauss_to_daub(hz,psiat(iterm),rz,gau_a,n_gau,n3,ml3,mu3,wprojz(0,1),te,work,nw,&
              perz)
 
         ! First term: coarse projector components
