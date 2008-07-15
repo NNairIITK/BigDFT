@@ -1240,7 +1240,7 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
   real(wp), intent(out) :: overlap
   !local variables
   character(len=*), parameter :: subname='wavetogau'
-  integer, parameter ::nw=16000
+  integer, parameter ::nw=32000
   logical :: perx,pery,perz
   integer:: iterm,itp,n_gau,ml1,mu1,ml2,mu2,ml3,mu3,i1,i2,i3,i_all,i_stat,iseg,ii,jj,j0,j1,i0,i
   real(wp) :: ovlp_c,ovlp_f1,ovlp_f2,ovlp_f3,ovlp_f4,ovlp_f5,ovlp_f6,ovlp_f7,ovlp
