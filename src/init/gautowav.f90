@@ -49,7 +49,6 @@ subroutine check_gaussian_expansion(geocode,iproc,nproc,norb,norbp,&
   deallocate(workpsi,stat=i_stat)
   call memocc(i_stat,i_all,'workpsi',subname)
 
-
 end subroutine check_gaussian_expansion
 
 subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,norbp,iatype,rxyz,CP2K,wfn_cp2k)
@@ -1042,7 +1041,8 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
   logical :: perx,pery,perz
   integer:: iterm,itp,n_gau,ml1,mu1,ml2,mu2,ml3,mu3,i1,i2,i3,i_all,i_stat,iseg,ii,jj,j0,j1,i0,i
   real(gp) :: gau_a,te
-  real(wp), dimension(:,:), allocatable :: work,wprojx,wprojy,wprojz
+  real(wp), dimension(0:nw,2) :: work
+  real(wp), dimension(:,:), allocatable :: wprojx,wprojy,wprojz
   real(wp), dimension(:,:,:), allocatable :: psig_c
   real(wp), dimension(:,:,:,:), allocatable :: psig_f
 
@@ -1058,8 +1058,6 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
   call memocc(i_stat,wprojy,'wprojy',subname)
   allocate(wprojz(0:n3,2+ndebug),stat=i_stat)
   call memocc(i_stat,wprojz,'wprojz',subname)
-  allocate(work(0:nw,2+ndebug),stat=i_stat)
-  call memocc(i_stat,work,'work',subname)
   allocate(psig_c(nl1_c:nu1_c,nl2_c:nu2_c,nl3_c:nu3_c+ndebug),stat=i_stat)
   call memocc(i_stat,psig_c,'psig_c',subname)
   allocate(psig_f(7,nl1_f:nu1_f,nl2_f:nu2_f,nl3_f:nu3_f+ndebug),stat=i_stat)
@@ -1236,9 +1234,6 @@ subroutine crtonewave(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry
   i_all=-product(shape(wprojz))*kind(wprojz)
   deallocate(wprojz,stat=i_stat)
   call memocc(i_stat,i_all,'wprojz',subname)
-  i_all=-product(shape(work))*kind(work)
-  deallocate(work,stat=i_stat)
-  call memocc(i_stat,i_all,'work',subname)
   i_all=-product(shape(psig_c))*kind(psig_c)
   deallocate(psig_c,stat=i_stat)
   call memocc(i_stat,i_all,'psig_c',subname)

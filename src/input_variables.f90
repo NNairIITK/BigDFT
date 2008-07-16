@@ -81,17 +81,17 @@ subroutine read_input_variables(iproc,in)
   read(1,*,iostat=ierror) cpmult
   read(1,*,iostat=ierror) fpmult
   !put the value at the max, such that to coincide with the maximum possible extension
-  fpmult=100.e0
+!!$  fpmult=100.e0
   in%hgrid  = real(hgrid,gp)
   in%crmult = real(crmult,gp)
   in%frmult = real(frmult,gp)
-  in%cpmult = real(cpmult,gp)
-  in%fpmult = real(fpmult,gp)
+!!$  in%cpmult = real(cpmult,gp)
+!!$  in%fpmult = real(fpmult,gp)
   in%cpmult = in%frmult
-  if (in%fpmult > in%frmult) then
-     if (iproc == 0) write(*,*) ' NONSENSE: fpmult > frmult, putting them equal'
+!!$  if (in%fpmult > in%frmult) then
+!!$     if (iproc == 0) write(*,*) ' NONSENSE: fpmult > frmult, putting them equal'
      in%fpmult=in%frmult
-  end if
+!!$  end if
   read(1,*,iostat=ierror) in%ixc
   read(1,*,iostat=ierror) in%ncharge,in%elecfield
   read(1,*,iostat=ierror) in%gnrm_cv
@@ -171,11 +171,11 @@ subroutine print_input_parameters(in)
   write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,f4.1)')&
        '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
        '| Extension=',in%rbuf
-  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,i4)')&
-       'total charge=',in%ncharge, '| Coarse Proj.=',in%cpmult,'| CG Prec.Steps=',in%ncong,&
+  write(*,'(1x,a,i7,1x,a,1x,a,i8,1x,a,i4)')&
+       'total charge=',in%ncharge, '| Coarse Proj.= Max.','| CG Prec.Steps=',in%ncong,&
        '|  CG Steps=',in%ncongt
-  write(*,'(1x,a,1pe7.1,1x,a,0pf5.2,1x,a,i8)')&
-       ' elec. field=',in%elecfield,'|   Fine Proj.=',in%fpmult,'| DIIS Hist. N.=',in%idsx
+  write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
+       ' elec. field=',in%elecfield,'|   Fine Proj.= Max.','| DIIS Hist. N.=',in%idsx
   if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
           'Polarisation=',2*in%mpol, '|'
@@ -206,8 +206,8 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=100) :: line
-  logical :: lpsdbl 
-  integer :: nateq,iat,jat,ityp,i,ierror,ierrsfx,i_stat,natpol
+  logical :: lpsdbl,dowrite
+  integer :: nateq,iat,jat,ityp,i,ierror,ierrsfx,i_stat,natpol,j
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3
 ! case for which the atomic positions are given whithin general precision
@@ -296,64 +296,7 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
         end if
         call find_extra_info(line,extra)
         call parse_extra_info(iproc,iat,extra,at)
-!!$        if (ierrsfx ==0) then
-!!$           call parse_extra_info(iproc,iat,extra,at)
-!!$        else
-!!$           if (lpsdbl) then
-!!$              read(line,*)symbol,rx,ry,rz
-!!$           else
-!!$              read(line,*)symbol,rxd0,ryd0,rzd0
-!!$           end if
-!!$        end if
-        
-!!$        if (lpsdbl) then
-!!$           read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,natpol,suffix
-!!$        else
-!!$           read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,natpol,suffix
-!!$        end if
-!!$        if (ierrsfx ==0) then
-!!$           at%natpol(iat)=natpol
-!!$           !tatonam=trim(symbol)//'_'//trim(suffix)
-!!$           if (suffix == 'f') then
-!!$              !the atom is considered as blocked
-!!$              at%lfrztyp(iat)=.true.
-!!$           else
-!!$              if (iproc == 0) then
-!!$                 print *,suffix
-!!$                 write(*,'(1x,a,i0,a)')'ERROR in input file for atom number ',&
-!!$                      iat,': the only value accepted in 5th column is "f"'
-!!$                 stop
-!!$              end if
-!!$           end if
-!!$        else
-!!$           if (lpsdbl) then
-!!$              read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,suffix
-!!$           else
-!!$              read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,suffix
-!!$           end if
-!!$           if (ierrsfx ==0) then
-!!$              if (suffix == 'f') then
-!!$                 !the atom is considered as blocked
-!!$                 at%lfrztyp(iat)=.true.
-!!$              else
-!!$                 read(suffix,*,iostat=i_stat)at%natpol(iat)
-!!$                 if(i_stat /=0) then
-!!$                    if (iproc == 0) then
-!!$                       print *,suffix
-!!$                       write(*,'(1x,a,i0,a)')'ERROR in input file for atom number ',&
-!!$                            iat,': in 4th column you can put the input polarisation or "f"'
-!!$                       stop
-!!$                    end if
-!!$                 end if
-!!$              end if
-!!$           else
-!!$              if (lpsdbl) then
-!!$                 read(line,*)symbol,rx,ry,rz
-!!$              else
-!!$                 read(line,*)symbol,rxd0,ryd0,rzd0
-!!$              end if
-!!$           end if
-!!$        end if
+
         tatonam=trim(symbol)
      end if
      if (lpsdbl) then
@@ -434,7 +377,29 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
      end do
   end do
   if (nateq /= 0) then
-     write(*,'(1x,a)')'Control your posinp file, cannot proceed'
+     if (iproc == 0) then
+        write(*,'(1x,a)')'Control your posinp file, cannot proceed'
+        write(*,'(1x,a)',advance='no')&
+             'Writing tentative alternative positions in the file posinp_alt...'
+        open(unit=9,file='posinp_alt')
+        write(9,'(1x,a)')' ??? atomicd0'
+        write(9,*)
+        do iat=1,at%nat
+           dowrite=.true.
+           do jat=iat+1,at%nat
+              if ((rxyz(1,iat)-rxyz(1,jat))**2+(rxyz(2,iat)-rxyz(2,jat))**2+&
+                   (rxyz(3,iat)-rxyz(3,jat))**2 ==0.0_gp) then
+                 dowrite=.false.
+              end if
+           end do
+           if (dowrite) &
+                write(9,'(a2,4x,3(1x,1pe21.14))'),trim(at%atomnames(at%iatype(iat))),&
+                (rxyz(j,iat),j=1,3)
+        end do
+        close(9)
+        write(*,'(1x,a)')' done.'
+        write(*,'(1x,a)')' Replace ??? in the file heading with the actual atoms number'               
+     end if
      stop
   end if
 
