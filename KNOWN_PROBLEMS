@@ -2,7 +2,7 @@ DIIS:
 -----
 
 T.D. 30/10/2007
-With Pt2 spin-ploarized, the DIIS algorithm decreases in energy and increases at the end.
+With Pt2 spin-polarized, the DIIS algorithm decreases in energy and increases at the end.
 gnrm always decreases.
 It seems that the program converges to a higher-symmetry state than the ground one.
 To avoid this behaviour, we will implement an algorithm which does not permit to increase the energy
