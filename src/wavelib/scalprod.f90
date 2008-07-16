@@ -1,6 +1,7 @@
 ! calculates the norm SQUARED (scpr) of a wavefunction (in vector form)
 subroutine wnrm(mvctr_c,mvctr_f,psi_c,psi_f,scpr)
   use module_base
+  implicit none
   integer, intent(in) :: mvctr_c,mvctr_f
   real(wp), dimension(mvctr_c), intent(in) :: psi_c
   real(wp), dimension(7,mvctr_f), intent(in) :: psi_f
@@ -53,6 +54,7 @@ end subroutine wnrm
 ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scalar (scal)
 subroutine wscal(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   use module_base
+  implicit none
   integer, intent(in) :: mvctr_c,mvctr_f
   real(wp), intent(in) :: scal
   real(wp), dimension(mvctr_c), intent(inout) :: psi_c
@@ -78,6 +80,7 @@ end subroutine wscal
 ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
 subroutine wscalv(mvctr_c,mvctr_f,scal,psi_c,psi_f)
   use module_base
+  implicit none
   integer, intent(in) :: mvctr_c,mvctr_f
   real(wp), dimension(0:3), intent(in) :: scal
   real(wp), dimension(mvctr_c), intent(inout) :: psi_c
@@ -103,6 +106,7 @@ end subroutine wscalv
 ! initializes a wavefunction to zero
 subroutine wzero(mvctr_c,mvctr_f,psi_c,psi_f)
   use module_base
+  implicit none
   integer, intent(in) :: mvctr_c,mvctr_f
   real(wp), dimension(mvctr_c), intent(out) :: psi_c
   real(wp), dimension(7,mvctr_f), intent(out) :: psi_f

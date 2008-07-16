@@ -3,6 +3,7 @@ subroutine check_gaussian_expansion(geocode,iproc,nproc,norb,norbp,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,psi,G,coeffs)
   use module_base
   use module_types
+  implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(gp), intent(in) :: hx,hy,hz

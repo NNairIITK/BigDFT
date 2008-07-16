@@ -534,6 +534,7 @@ end subroutine make_bounds_loc
 subroutine kb_conversion(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,kb,kb_loc)
   use module_base
   use module_types
+  implicit none
   type(kinetic_bounds), intent(in) :: kb
   integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec
   type(kinetic_bounds), intent(out) :: kb_loc
@@ -586,6 +587,7 @@ subroutine sb_conversion(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,sb,sb_loc)
   use module_base
   use module_types
+  implicit none
   type(shrink_bounds), intent(in) :: sb
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec
   type(shrink_bounds), intent(out) :: sb_loc
@@ -646,6 +648,7 @@ subroutine gb_conversion(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,gb,gb_loc)
   use module_base
   use module_types
+  implicit none
   type(grow_bounds), intent(in) :: gb
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec
   type(grow_bounds), intent(out) :: gb_loc
