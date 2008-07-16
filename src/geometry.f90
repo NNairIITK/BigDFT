@@ -90,7 +90,11 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
            end if
         end do
 
-        in%inputPsiId=1
+        if (in%inputPsiId >= 10) then
+           in%inputPsiId=11
+        else
+           in%inputPsiId=1
+        end if
         in%output_grid=.false.
         in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,tpos,in,tetot,gpf,rst,infocode)
@@ -364,7 +368,11 @@ contains
           itsd=itsd+1
           itot=itot+1
 
-          in%inputPsiId=1
+          if (in%inputPsiId >= 10) then
+             in%inputPsiId=11
+          else
+             in%inputPsiId=1
+          end if
           in%output_grid=.false.
           in%output_wf=.false.
           call call_bigdft(nproc,iproc,at,rxyz,in,etot,ff,rst,infocode)
@@ -553,7 +561,11 @@ contains
 
     nsuc=0
     loop_detbeta: do
-       in%inputPsiId=1
+       if (in%inputPsiId >= 10) then
+          in%inputPsiId=11
+       else
+          in%inputPsiId=1
+       end if
        in%output_grid=.false.
        in%output_wf=.false.
        call call_bigdft(nproc,iproc,at,pos,in,etotm1,ff,rst,infocode)

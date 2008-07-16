@@ -96,6 +96,7 @@
     if(test) exit
    end do
    if( .not. test) then
+      print *,ipts,rho,del
     write(message,'(a,a,a,a)' ) ch10,&
 &    ' invcb : BUG -',ch10,&
 &    '  Fast computation of inverse cubic root failed. '

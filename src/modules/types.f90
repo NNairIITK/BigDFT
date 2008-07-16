@@ -73,8 +73,10 @@ module module_types
   type, public :: restart_objects
      integer :: n1,n2,n3,norbp,norb
      real(wp), dimension(:), pointer :: eval,psi
+     real(wp), dimension(:,:), pointer :: gaucoeffs
      real(gp), dimension(:,:), pointer :: rxyz_old
      type(wavefunctions_descriptors) :: wfd
+     type(gaussian_basis) :: gbd
   end type restart_objects
 
 contains
@@ -96,8 +98,17 @@ contains
     nullify(rst%psi)
     nullify(rst%eval)
 
+    nullify(rst%gaucoeffs)
+
     nullify(rst%wfd%keyg)
     nullify(rst%wfd%keyv)
+
+    nullify(rst%gbd%nshell)
+    nullify(rst%gbd%ndoc)
+    nullify(rst%gbd%nam)
+    nullify(rst%gbd%xp)
+    nullify(rst%gbd%psiat)
+    nullify(rst%gbd%rxyz)
 
   end subroutine init_restart_objects
 
@@ -120,6 +131,19 @@ contains
     i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
     deallocate(rst%rxyz_old,stat=i_stat)
     call memocc(i_stat,i_all,'rxyz_old',routine)
+
+    !the gaussian basis descriptors are always allocated together
+    !with the gaussian coefficients
+    if (associated(rst%gbd%rxyz)) then
+       nullify(rst%gbd%rxyz)
+       call deallocate_gwf(rst%gbd,routine)
+
+       i_all=-product(shape(rst%gaucoeffs))*kind(rst%gaucoeffs)
+       deallocate(rst%gaucoeffs,stat=i_stat)
+       call memocc(i_stat,i_all,'gaucoeffs',routine)
+
+    end if
+       
 
   end subroutine free_restart_objects
 

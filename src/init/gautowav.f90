@@ -48,7 +48,6 @@ subroutine check_gaussian_expansion(geocode,iproc,nproc,norb,norbp,&
   deallocate(workpsi,stat=i_stat)
   call memocc(i_stat,i_all,'workpsi',subname)
 
-
 end subroutine check_gaussian_expansion
 
 subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,norbp,iatype,rxyz,CP2K,wfn_cp2k)

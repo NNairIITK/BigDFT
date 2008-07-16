@@ -9,7 +9,6 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,
   real(gp), intent(in) :: hx,hy,hz
   integer, intent(out) :: n1_old,n2_old,n3_old
   real(gp), intent(out) :: hx_old,hy_old,hz_old
-!!$  real(wp), dimension(:), pointer :: eval,eval_old
   real(wp), dimension(:), pointer :: psi,psi_old
   !local variables
   character(len=*), parameter :: subname='copy_old_wavefunctions'
@@ -23,7 +22,7 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,
   wfd_old%nseg_f  = wfd%nseg_f
 
   !allocations
-  call allocate_wfd(wfd_old,'copy_old_wavefunctions')
+  call allocate_wfd(wfd_old,subname)
 
   do iseg=1,wfd_old%nseg_c+wfd_old%nseg_f
      wfd_old%keyg(1,iseg)    = wfd%keyg(1,iseg)
@@ -31,7 +30,7 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,
      wfd_old%keyv(iseg)      = wfd%keyv(iseg)
   enddo
   !deallocation
-  call deallocate_wfd(wfd,'copy_old_wavefunctions')
+  call deallocate_wfd(wfd,subname)
 
   hx_old   = hx
   hy_old   = hy
@@ -84,7 +83,6 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,
         write(*,*)'wrong psi_old',iorb,tt
         stop 
      end if
-!!$     eval_old(iorb) = eval(iorb)
   enddo
   !deallocation
   i_all=-product(shape(psi))*kind(psi)

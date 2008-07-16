@@ -603,6 +603,20 @@ interface
      real(wp), dimension(:,:), pointer :: coeffs
    end subroutine read_gaussian_information
 
+   subroutine restart_from_gaussians(geocode,iproc,nproc,norb,norbp,&
+        n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,psi,G,coeffs)
+     use module_base
+     use module_types
+     implicit none
+     character(len=1), intent(in) :: geocode
+     integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+     real(gp), intent(in) :: hx,hy,hz
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     type(gaussian_basis), intent(inout) :: G
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: psi
+     real(wp), dimension(:,:), pointer :: coeffs
+   end subroutine restart_from_gaussians
+
 end interface
 
 end module module_interfaces

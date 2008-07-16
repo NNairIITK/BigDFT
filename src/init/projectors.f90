@@ -13,7 +13,7 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
   !local variables
   integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
-  real(gp) :: maxfullvol,totfullvol,totzerovol,zerovol,fullvol,maxrad,maxzerovol
+  real(gp) :: maxfullvol,totfullvol,totzerovol,zerovol,fullvol,maxrad,maxzerovol,rad
   
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -120,13 +120,14 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
   totfullvol=0.0_gp
   do iat=1,at%nat
      ityp=at%iatype(iat)
-     maxrad=maxval(at%psppar(1:4,0,ityp))
+     maxrad=min(maxval(at%psppar(1:4,0,ityp)),cpmult/15.0_gp*radii_cf(ityp,3))
      zerovol=0.0_gp
      fullvol=0.0_gp
      do l=1,4
         do i=1,3
            if (at%psppar(l,i,ityp) /= 0.0_gp) then
-              zerovol=zerovol+(maxrad**3-at%psppar(l,0,ityp)**3)
+              rad=min(at%psppar(l,0,ityp),cpmult/15.0_gp*radii_cf(ityp,3))
+              zerovol=zerovol+(maxrad**3-rad**3)
               fullvol=fullvol+maxrad**3
            end if
         end do
@@ -159,10 +160,8 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
      end if
      write(*,'(1x,a,i21)') 'Total number of projectors =',nlpspd%nproj
      write(*,'(1x,a,i21)') 'Total number of components =',nlpspd%nprojel
-     write(*,'(1x,a,i21)')  'Percent of zero components =',nint(100.0_gp*zerovol)
+     write(*,'(1x,a,i21)') 'Percent of zero components =',nint(100.0_gp*zerovol)
   end if
-
-
 
 end subroutine localize_projectors
 
