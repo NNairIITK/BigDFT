@@ -15,14 +15,10 @@ CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* SiH4.out posout* *
 
 #dependencies
 $(PPFILES):
-	ln $(top_srcdir)/utils/PSPfiles/HGH-K/$@ .
+	cp $(top_srcdir)/utils/PSPfiles/HGH-K/$@ .
 
-check: $(PPFILES) posinp input.dat
-	if test ! -f input.dat ; then \
-	  ln $(top_srcdir)/tests/SiH4/input.dat ; \
-	fi
-	if test ! -f posinp ; then \
-	  ln $(top_srcdir)/tests/SiH4/posinp ; \
-	fi
+check: $(PPFILES)
+	cp -f $(top_srcdir)/tests/SiH4/input.dat .
+	cp -f $(top_srcdir)/tests/SiH4/posinp .
 	$(run_parallel) $(top_builddir)/src/cluster > SiH4.out
 	python $(top_srcdir)/tests/fldiff.py SiH4.out $(top_srcdir)/tests/Refs/SiH4.out.ref | tee fldiff.report
