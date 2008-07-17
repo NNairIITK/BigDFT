@@ -1,5 +1,4 @@
           2   angstroem
-periodic 5. 5. 5.
-Na 10. 10. 10. 
-Na 10. 10. 12.36 
+ 10. 10. 10. Na_lda
+ 10. 10. 12.36 Cl_lda 
 
