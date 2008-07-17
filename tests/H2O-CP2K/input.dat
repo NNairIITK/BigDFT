@@ -1,9 +1,9 @@
-5        ncount_cluster: max steps during geometry relaxation
-1.d0     frac_fluct:     geometry optimization stops if force norm less than frac_fluct of noise
+100        ncount_cluster: max steps during geometry relaxation
+1.d-2 1.d-5     frac_fluct:     geometry optimization stops if force norm less than frac_fluct of noise
 0.d0     randdis:        random amplitude for atoms
-10.0d0    betax: steepest descent step size,  if negative automatic determination
+5.0d0    betax: steepest descent step size,  if negative automatic determination
 .45      hgrid: grid spacing
-4.      crmult:   crmult*radii_cf(*,1) gives the coarse radius around each atom
+6.      crmult:   crmult*radii_cf(*,1) gives the coarse radius around each atom
 8.       frmult:   frmult*radii_cf(*,2) gives the fine   radius around each atom
 8.       cpmult:   cpmult*radii_cf(*,2) region for coarse projectors around each atom
 8.       fpmult:   fpmult*radii_cf(*,2) region for fine   projectors around each atom

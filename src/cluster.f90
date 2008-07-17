@@ -33,7 +33,7 @@
        real(kind=8), dimension(:), pointer :: eval
        real(kind=8), dimension(:), pointer :: psi
        real(kind=8), dimension(:,:), pointer :: gaucoeffs
-     end subroutine cluster
+     end subroutine cluster 
   end interface
 
   inputPsiId_orig=in%inputPsiId
@@ -56,7 +56,11 @@
           rst%n1,rst%n2,rst%n3,rst%rxyz_old,in,infocode)
 
      if (in%inputPsiId==1 .and. infocode==2) then
-        in%inputPsiId=0
+        if (in%gaussian_help) then
+           in%inputPsiId=0
+        else
+           in%inputPsiId=11
+        end if
      else if (in%inputPsiId==1 .and. infocode==1) then
         in%inputPsiId=0
      else if (in%inputPsiId == 0 .and. infocode==3) then
@@ -399,7 +403,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj, &
           pkernel,ixc,psi,psit,hpsi,eval,nscatterarr,ngatherarr,nspin,spinsgn)
 
-  else if (in%inputPsiId == 0 .or. in%inputPsiId == 10) then ! gaussian input is the same
+  else if (in%inputPsiId == 0) then 
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,atoms,&
@@ -416,7 +420,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !allocate principal wavefunction
      !allocated in the transposed way such as 
      !it can also be used as a work array for transposition
-
      allocate(psi(nvctrp*norbp*nproc*nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
@@ -494,7 +497,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      allocate(psi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
-     call read_gaussian_information(iproc,nproc,norb,norbp,gbd,gaucoeffs,'output.gau')
+     call read_gaussian_information(iproc,nproc,norb,norbp,gbd,gaucoeffs,'wavefunctions.gau')
 
      call restart_from_gaussians(geocode,iproc,nproc,norb,norbp,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,psi,gbd,gaucoeffs)
@@ -683,20 +686,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
            if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
            call deallocate_before_exiting
            return
-        else if (iter == 1 .and. gnrm > 1.d0) then
-           !check the value of the first gnrm to see whether it is the case
-           !to recalculate input guess
-           gnrm_check=gnrm
-        else if (iter == 2 .and. gnrm_check > 1.d0) then
-           !control whether it is the case to exit the program
-           if (gnrm >= gnrm_check) then
-              if (iproc == 0) write(*,'(1x,a)')&
-                   'The norm of the residue is growing, need to recalculate input wavefunctions'
-              infocode=2
-              if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-              call deallocate_before_exiting
-              return
-           end if
         end if
      end if
  
@@ -776,9 +765,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  &
           pkernel,ixc,psi,psivirt,eval,ncong,nscatterarr,ngatherarr)
   end if
-
+  
   !project the wavefunctions on a gaussian basis and keep in memory
-  if (in%inputPsiId >= 10) then
+  if (in%gaussian_help) then
      if (iproc.eq.0) then
         write(*,'(1x,a)')&
              '---------------------------------------------------------- Gaussian Basis Projection'
@@ -796,19 +785,21 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !extract the gaussian basis from the pseudowavefunctions
      call gaussian_pswf_basis(iproc,atoms,rxyz,gbd)
 
+     if (.not. associated(gaucoeffs)) then
+        allocate(gaucoeffs(gbd%ncoeff,norbp),stat=i_stat)
+        call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
+     end if
+
      allocate(thetaphi(2,gbd%nat),stat=i_stat)
      call memocc(i_stat,thetaphi,'thetaphi',subname)
      thetaphi=0.0_gp
-
-     allocate(gaucoeffs(gbd%ncoeff,norbp),stat=i_stat)
-     call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
 
      call wavelets_to_gaussians(geocode,norbp,n1,n2,n3,gbd,thetaphi,hx,hy,hz,wfd,psi,gaucoeffs)
 
      i_all=-product(shape(thetaphi))*kind(thetaphi)
      deallocate(thetaphi,stat=i_stat)
      call memocc(i_stat,i_all,'thetaphi',subname)
-     
+
   end if
 
 
@@ -823,7 +814,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!$
 !!$        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
         !write the coefficients and the basis on a file
-        call write_gaussian_information(iproc,nproc,norb,norbp,gbd,gaucoeffs,'output.gau')
+        call write_gaussian_information(iproc,nproc,norb,norbp,gbd,gaucoeffs,'wavefunctions.gau')
 
         !build dual coefficients
         call dual_gaussian_coefficients(norbp,gbd,gaucoeffs)
@@ -986,22 +977,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call local_forces(geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
        n1,n2,n3,n3p,i3s+i3xcsh,n1i,n2i,n3i,rho,pot,gxyz)
 
-!!$  sumx=0.d0
-!!$  sumy=0.d0
-!!$  sumz=0.d0
-!!$  write(*,'(1x,a,19x,a)') 'Final values of the Local Forces for each atom'
-!!$  do iat=1,atoms%nat
-!!$     write(*,'(1x,a,i5,i5,1x,a6,3(1x,1pe12.5))') &
-!!$          'L',iproc,iat,trim(atoms%atomnames(atoms%iatype(iat))),(gxyz(j,iat),j=1,3)
-!!$     sumx=sumx+gxyz(1,iat)
-!!$     sumy=sumy+gxyz(2,iat)
-!!$     sumz=sumz+gxyz(3,iat)
-!!$  enddo
-!!$  write(*,'(1x,a)')'the sum of the forces is'
-!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'x direction(L)',iproc,sumx
-!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'y direction(L)',iproc,sumy
-!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'z direction(L)',iproc,sumz
-
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)
   call memocc(i_stat,i_all,'rho',subname)
@@ -1009,51 +984,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   deallocate(pot,stat=i_stat)
   call memocc(i_stat,i_all,'pot',subname)
 
-!!$  allocate(derproj(nlpspd%nprojel,3+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,derproj,'derproj',subname)
-
   if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate projectors derivatives...'
-
-  !the calculation of the derivatives of the projectors has been decoupled
-  !from the one of nonlocal forces, in this way forces can be calculated
-  !during the wavefunction minimization if needed
-!!$  call projectors_derivatives(geocode,iproc,atoms,n1,n2,n3,norb,nlpspd,proj,&
-!!$       rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
 
   if (iproc == 0) write(*,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
 
   call nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,atoms,rxyz,radii_cf,&
      norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,gxyz,calc_tail) !refill projectors for tails
-!!$
-!!$  do i1=1,3
-!!$     call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,atoms,rxyz,radii_cf,&
-!!$          nlpspd,derproj(1,i1),i1)
-!!$  end do
-!!$
-!!$  call nonlocal_forcesold(iproc,atoms,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,gxyz,nspinor)
 
   if (iproc == 0) write(*,'(1x,a)')'done.'
-
-!!$  sumx=0.d0
-!!$  sumy=0.d0
-!!$  sumz=0.d0
-!!$  write(*,'(1x,a,19x,a)') 'Final values of the NonLocal+LOCAL Forces for each atom'
-!!$  do iat=1,atoms%nat
-!!$     write(*,'(1x,a,i5,i5,1x,a6,3(1x,1pe12.5))') &
-!!$          'NL',iproc,iat,trim(atoms%atomnames(atoms%iatype(iat))),(gxyz(j,iat),j=1,3)
-!!$     sumx=sumx+gxyz(1,iat)
-!!$     sumy=sumy+gxyz(2,iat)
-!!$     sumz=sumz+gxyz(3,iat)
-!!$  enddo
-!!$  write(*,'(1x,a)')'the sum of the forces is'
-!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'x direction(NL)',iproc,sumx
-!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'y direction(NL)',iproc,sumy
-!!$  write(*,'(1x,a,3x,i5,1pe16.8)')'z direction(NL)',iproc,sumz
-
-
-!!$  i_all=-product(shape(derproj))*kind(derproj)
-!!$  deallocate(derproj,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'derproj',subname)
 
   ! Add up all the force contributions
   if (nproc > 1) then
@@ -1075,6 +1013,30 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   i_all=-product(shape(gxyz))*kind(gxyz)
   deallocate(gxyz,stat=i_stat)
   call memocc(i_stat,i_all,'gxyz',subname)
+
+  !subtraction of zero of the forces, disabled for the moment
+  !the zero of the forces depends on the atomic positions
+  if (in%gaussian_help .and. .false.) then
+     sumx=0.d0
+     sumy=0.d0
+     sumz=0.d0
+     do iat=1,atoms%nat
+        sumx=sumx+fxyz(1,iat)
+        sumy=sumy+fxyz(2,iat)
+        sumz=sumz+fxyz(3,iat)
+     enddo
+     sumx=sumx/real(atoms%nat,gp)
+     sumy=sumy/real(atoms%nat,gp)
+     sumz=sumz/real(atoms%nat,gp)
+     if (iproc==0) write(*,'(1x,a,1x,3(1x,1pe9.2))') &
+          'Subtracting center-mass shift of',sumx,sumy,sumz
+
+     do iat=1,atoms%nat
+        fxyz(1,iat)=fxyz(1,iat)-sumx
+        fxyz(2,iat)=fxyz(2,iat)-sumy
+        fxyz(3,iat)=fxyz(3,iat)-sumz
+     enddo
+  end if
 
   call timing(iproc,'Forces        ','OF')
 

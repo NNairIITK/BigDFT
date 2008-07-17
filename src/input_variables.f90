@@ -104,6 +104,14 @@ subroutine read_input_variables(iproc,in)
   read(1,*,iostat=ierror) in%nspin,in%mpol
   read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
 
+  in%gaussian_help=.false.
+  !switch on the gaussian auxiliary treatment 
+  !and the zero of the forces
+  if (in%inputPsiId == 10) then
+     in%inputPsiId=0
+     in%gaussian_help=.true.
+  end if
+
   if (ierror/=0) then
      if (iproc == 0) write(*,'(1x,a)') 'Error while reading the file "input.dat"'
      stop
@@ -392,8 +400,8 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
                  dowrite=.false.
               end if
            end do
-           if (dowrite) &
-                write(9,'(a2,4x,3(1x,1pe21.14))'),trim(at%atomnames(at%iatype(iat))),&
+           if (dowrite) & 
+                write(9,'(a2,4x,3(1x,1pe21.14))')trim(at%atomnames(at%iatype(iat))),&
                 (rxyz(j,iat),j=1,3)
         end do
         close(9)
