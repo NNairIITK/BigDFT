@@ -17,7 +17,6 @@ SOURCES_MOD = PSolver_Main.f90 \
 
 OTHERS = Makefile.PSolver \
 	PSchk.f90 \
-	MPIfake.f90 \
 	PSolver.f90 \
 	PSexercise.f90 \
 	bench.csh \

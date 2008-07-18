@@ -229,8 +229,3 @@
        ENDDO
  
        END
-
-       function psi(x,GAU_A,GAU_CEN,N_GAU)
-       implicit real(kind=8) (a-h,o-z)
-         psi=(X-GAU_CEN)**N_GAU*exp(-0.5d0*((X-GAU_CEN)/GAU_A)**2)
-       end

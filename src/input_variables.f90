@@ -146,8 +146,8 @@ subroutine read_input_variables(iproc,in)
      write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
      if (in%nvirt > 0) then
         !read virtual orbital and plotting request
-        write(*,'(1x,a,i3)')'Virtual orbitals',in%nvirt
-        write(*,'(1x,A,i3,A)')'Output for density plots is requested for ',in%nplot,' orbitals'
+        write(*,'(1x,a,i0)')'Virtual orbitals ',in%nvirt
+        write(*,'(1x,a,i0,a)')'Output for density plots is requested for ',in%nplot,' orbitals'
      end if
   end if
 
@@ -726,8 +726,8 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
 
      inquire(file=filename,exist=exists)
      if (.not. exists) then
-        if (iproc == 0) write(*,'(1x,a)')&
-             'ERROR: The pseudopotential parameter file "'//filename//'" is lacking, exiting...'
+        if (iproc == 0) write(*,'(1x,3a)')&
+             'ERROR: The pseudopotential parameter file "',trim(filename),'" is lacking, exiting...'
         stop
      end if
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename

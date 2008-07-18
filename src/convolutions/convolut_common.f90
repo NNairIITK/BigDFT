@@ -50,11 +50,12 @@ end subroutine synthese_grow
 
 subroutine ana_rot_shrink(n,ndat,x,y)
   use module_base
+  implicit none
   integer, intent(in) :: n,ndat
   real(wp), dimension(-7:2*n+8,ndat), intent(in) :: x
   real(wp), dimension(ndat,0:2*n+1), intent(out) :: y
   !local variables
-  integer :: i,j
+  integer :: i,j,l
   real(wp) :: ci,di
   real(wp), dimension(-7:8) :: ch,cg
   !       Daubechy S16
@@ -95,11 +96,12 @@ end subroutine ana_rot_shrink
 
 subroutine syn_rot_grow(n,ndat,x,y)
   use module_base
+  implicit none
   integer, intent(in) :: n,ndat
   real(wp), dimension(0:2*n+1,ndat), intent(in) :: x
   real(wp), dimension(ndat,-7:2*n+8), intent(out) :: y
   !local variables
-  integer :: i,j
+  integer :: i,j,l
   real(wp) :: so,se
   real(wp), dimension(-8:9) :: ch,cg
   !       Daubechy S16

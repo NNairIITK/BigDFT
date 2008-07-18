@@ -226,7 +226,7 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
   end if
 
   if(iproc==0)write(*,'(1x,a)')"done."
-  if(iproc==0)write(*,'(1x,a)')"     sqnorm                Reyleygh quotient"
+  if(iproc==0)write(*,'(1x,a)')"     sqnorm                Rayleigh quotient"
  
   do iorb=1,nvirte
      !e(:,1,1) = <psi|H|psi> / <psi|psi>
@@ -440,14 +440,14 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
      end if
      
      if(msg)then
-       write(*,*)"supscpace matrices, upper triangular (diagonal elements first)"
+       write(*,*)"subspace matrices, upper triangular (diagonal elements first)"
        write(*,'(1x)')
-       write(*,*)"supscpace H "
+       write(*,*)"subspace H "
        do iorb=1,n2virt
          write(*,*)hamovr(iorb,iorb:n2virt,1)
          write(*,*)
        end do
-       write(*,*)"supscpace S"
+       write(*,*)"subspace S"
        write(*,*)
        do iorb=1,n2virt
          write(*,*)hamovr(iorb,iorb:n2virt,2)
@@ -475,7 +475,7 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
      if(msg)then
      write(*,'(1x,a)')'    e(update)           e(not used)'
         do iorb=1,nvirte
-          write(*,'(1x,i3,2(1x,g20.14))')iorb, e(iorb,:,1)
+          write(*,'(1x,i3,2(1pe21.14))')iorb, e(iorb,:,1)
         end do
         write(*,*)
         write(*,*)"and the eigenvectors are"
@@ -486,7 +486,7 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
         end do
      else
         do iorb=1,nvirt
-          if(iproc==0)write(*,'(1x,i3,2(1x,g20.14))')iorb, e(iorb,:,1)
+          if(iproc==0)write(*,'(1x,i3,2(1pe21.14))')iorb, e(iorb,:,1)
         end do
      end if
      if(iproc==0)write(*,'(1x,a)',advance="no")"Update v with eigenvectors..."

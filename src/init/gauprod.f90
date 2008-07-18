@@ -773,14 +773,16 @@ end subroutine gbasovrlp
 !overlap matrix between two different basis structures
 !works only if A%ncoeff==B%ncoeff
 subroutine gaussian_overlap(A,B,ovrlp)
+  use module_base
   use module_types
+  implicit none
   type(gaussian_basis), intent(in) :: A,B
   real(gp), dimension(A%ncoeff,B%ncoeff) :: ovrlp !only lower triangular part for A%ncoeff=B%ncoeff
 
   !local variables
   integer, parameter :: niw=18,nrw=6
   integer :: ishell,iexpo,icoeff,ishellB,iexpoB,icoeffB,iat,jat,isat,isatB,jsat,jshell
-  integer :: jstart,iovrlp,jovrlp
+  integer :: jstart,iovrlp,jovrlp,jcoeff,jexpo
   integer :: ngA,ngB,lA,lB,mA,mB
   real(gp) :: dx,dy,dz
   integer, dimension(niw) :: iw

@@ -1,13 +1,11 @@
 EXTRA_DIST = \
 	psppar.Al_lda \
 	psppar.Ca_lda \
-	psppar.Cl_lda \
+	psppar.Cl \
 	psppar.Mg_lda \
 	psppar.P_lda \
 	psppar.Be_lda \
 	psppar.F_lda \
-	psppar.Na_lda \
-	psppar.Na_hgh \
 	psppar.Si_lda \
 	psppar.B_lda \
 	psppar.H_lda \
@@ -24,6 +22,7 @@ EXTRA_DIST = \
 	psppar.Test \
 	HGH/psppar.H \
 	HGH/psppar.O \
+	HGH/psppar.Na \
 	HGH/psppar.Si \
 	HGH-K/psppar.H \
 	HGH-K/psppar.Si 

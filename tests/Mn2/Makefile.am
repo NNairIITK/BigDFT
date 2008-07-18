@@ -11,22 +11,16 @@ PPFILES = \
 	psppar.Mn
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* Mn2.out posout* \
-			 *.prc Mn2.memguess fldiff.report 
+			 *.prc Mn2.memguess fldiff.report $(EXTRA_DIST) $(PPFILES)
 
 #dependencies
 $(PPFILES):
-	ln -s $(top_srcdir)/utils/PSPfiles/$@ .
+	cp $(top_srcdir)/utils/PSPfiles/$@ .
 
-check: $(PPFILES) posinp input.dat
-	if test ! -f input.dat ; then \
-	  ln -s $(top_srcdir)/tests/Mn2/input.dat ; \
-	fi
-	if test ! -f posinp ; then \
-	  ln -s $(top_srcdir)/tests/Mn2/posinp ; \
-	fi
-	if test ! -f moments ; then \
-	  ln -s $(top_srcdir)/tests/Mn2/moments ; \
-	fi
+check: $(PPFILES) 
+	cp -f $(top_srcdir)/tests/Mn2/input.dat .
+	cp -f $(top_srcdir)/tests/Mn2/posinp .
+	cp -f $(top_srcdir)/tests/Mn2/moments .
 	$(top_builddir)/src/memguess 1 > Mn2.memguess
 	python $(top_srcdir)/tests/fldiff.py Mn2.memguess $(top_srcdir)/tests/Refs/Mn2.memguess.ref | cat
 	$(run_parallel) $(top_builddir)/src/cluster > Mn2.out

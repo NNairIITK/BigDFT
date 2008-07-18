@@ -10,19 +10,15 @@ PPFILES = \
 	psppar.H
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* H.out posout* \
-			 *.prc H.memguess fldiff.report 
+			 *.prc H.memguess fldiff.report $(EXTRA_DIST)
 
 #dependencies
 $(PPFILES):
-	ln -s $(top_srcdir)/utils/PSPfiles/$@ .
+	cp $(top_srcdir)/utils/PSPfiles/$@ .
 
-check: $(PPFILES) posinp input.dat
-	if test ! -f input.dat ; then \
-	  ln -s $(top_srcdir)/tests/H/input.dat ; \
-	fi
-	if test ! -f posinp ; then \
-	  ln -s $(top_srcdir)/tests/H/posinp ; \
-	fi
+check: $(PPFILES) 
+	cp -f $(top_srcdir)/tests/H/input.dat .
+	cp -f $(top_srcdir)/tests/H/posinp .
 	$(top_builddir)/src/memguess 1 > H.memguess
 	python $(top_srcdir)/tests/fldiff.py H.memguess $(top_srcdir)/tests/Refs/H.memguess.ref | cat
 	$(run_parallel) $(top_builddir)/src/cluster > H.out
