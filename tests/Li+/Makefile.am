@@ -10,7 +10,7 @@ PPFILES = \
 	psppar.Li_lda 
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* Li+.out posout* malloc *.prc\
-			 fldiff.report
+			 fldiff.report $(EXTRA_DIST) $(PPFILES)
 
 #dependencies
 $(PPFILES):

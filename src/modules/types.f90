@@ -10,7 +10,7 @@ module module_types
      real(kind=8) :: frac_fluct,randdis,betax,forcemax
      integer :: ixc,ncharge,itermax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,nvirt,nplot
      real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf,alat1,alat2,alat3
-     logical :: output_grid,output_wf,calc_tail
+     logical :: output_grid,output_wf,calc_tail,gaussian_help
   end type input_variables
 
   type, public :: kinetic_bounds
@@ -34,7 +34,7 @@ module module_types
      type(grow_bounds) :: gb
      integer, dimension(:,:,:), pointer ::ibyyzz_r ! real space border
   end type convolutions_bounds
-
+  
   type, public :: wavefunctions_descriptors
      integer :: nvctr_c,nvctr_f,nseg_c,nseg_f
      integer, dimension(:,:), pointer :: keyg

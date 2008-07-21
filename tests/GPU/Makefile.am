@@ -11,7 +11,7 @@ PPFILES = \
 	psppar.Si
 
 CLEANFILES = $(PPFILES) GPU.out posout* *.prc \
-			 fldiff.report
+			 fldiff.report $(EXTRA_DIST) $(PPFILES)
 
 #dependencies
 $(PPFILES):

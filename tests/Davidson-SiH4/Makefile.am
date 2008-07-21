@@ -11,7 +11,7 @@ PPFILES = \
 	psppar.Si
 
 CLEANFILES = $(PPFILES) Davidson-SiH4.out posout* *.pot *.prc\
-			 fldiff.report
+			 fldiff.report $(EXTRA_DIST) $(PPFILES)
 
 #dependencies
 $(PPFILES):

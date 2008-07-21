@@ -168,8 +168,13 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
   integer, dimension(:,:), allocatable :: nl,norbsc_arr
   real(gp), dimension(:), allocatable :: psiatn
   real(gp), dimension(:,:), allocatable :: xpt,occupat
-  real(gp), dimension(:,:,:), allocatable :: psiat
+  real(gp), dimension(:,:,:), allocatable :: psiat  
 
+  !quick return if possible
+  !if the positions are already associated it means that the basis is generated
+  if (associated(G%rxyz)) then
+     return
+  end if
 
   allocate(xpt(ngx,at%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,xpt,'xpt',subname)

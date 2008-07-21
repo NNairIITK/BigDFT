@@ -10,7 +10,7 @@ PPFILES = \
 	psppar.H
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* H.out posout* \
-			 *.prc H.memguess fldiff.report 
+			 *.prc H.memguess fldiff.report $(EXTRA_DIST)
 
 #dependencies
 $(PPFILES):

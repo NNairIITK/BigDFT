@@ -13,7 +13,7 @@ PPFILES = \
 	psppar.O
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* H2O-CP2K.out posout* *.prc \
-			 fldiff.report
+			 fldiff.report $(EXTRA_DIST) $(PPFILES)
 
 #dependencies
 $(PPFILES):

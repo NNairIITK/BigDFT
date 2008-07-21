@@ -11,7 +11,7 @@ PPFILES = \
 	psppar.Cl
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* NaCl.out posout* *.prc\
-			 fldiff.report
+			 fldiff.report $(EXTRA_DIST) $(PPFILES)
 
 #dependencies
 psppar.Na:

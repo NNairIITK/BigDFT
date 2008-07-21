@@ -1,7 +1,7 @@
 EXTRA_DIST = \
 	psppar.Al_lda \
 	psppar.Ca_lda \
-	psppar.Cl_lda \
+	psppar.Cl \
 	psppar.Mg_lda \
 	psppar.P_lda \
 	psppar.Be_lda \
