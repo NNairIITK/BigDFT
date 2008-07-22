@@ -786,7 +786,7 @@ subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd,nvctrp,&
            end do
         else if (norbd > norbu) then
            do iorb=2*norbu+1,norbu+norbd
-              write(*,'(48x,a,i0,a,1x,1pe21.14)') 'eval(',iorb-norbu,',d)=',eval(iorb)
+              write(*,'(50x,a,i4,a,1x,1pe21.14)') 'eval(',iorb-norbu,',d)=',eval(iorb)
            end do
         end if
      end if
