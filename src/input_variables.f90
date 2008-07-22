@@ -104,12 +104,12 @@ subroutine read_input_variables(iproc,in)
   read(1,*,iostat=ierror) in%nspin,in%mpol
   read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
 
-  in%gaussian_help=.false.
+  !project however the wavefunction on gaussians if asking to write them on disk
+  in%gaussian_help=(in%inputPsiId >= 10) .or. in%output_wf 
   !switch on the gaussian auxiliary treatment 
   !and the zero of the forces
   if (in%inputPsiId == 10) then
      in%inputPsiId=0
-     in%gaussian_help=.true.
   end if
 
   if (ierror/=0) then

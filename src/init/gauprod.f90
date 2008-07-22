@@ -34,20 +34,29 @@ subroutine restart_from_gaussians(geocode,iproc,nproc,norb,norbp,&
 
 end subroutine restart_from_gaussians
 
-subroutine read_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,filename)
+subroutine read_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,eval,filename)
   use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc,nproc,norb,norbp
   type(gaussian_basis), intent(out) :: G
+  real(wp), dimension(norb), intent(out) :: eval
   real(wp), dimension(:,:), pointer :: coeffs
   !local variables
   character(len=*), parameter :: subname='read_gaussian_information'
+  logical :: exists
   integer :: jproc,i_stat,i_all,ierr,jexpo,iexpo,iat,iorb,jat,icoeff,jcoeff,jorb
   real(gp) :: rx,ry,rz,coeff
 
   !read the information from a file
+  inquire(file=filename,exist=exists)
+  if (.not. exists) then
+     if (iproc == 0) write(*,'(1x,3a)')&
+          'ERROR: The gaussian wavefunctions file "',trim(filename),'" is lacking, exiting...'
+     stop
+  end if
+
   open(unit=99,file=filename,status='unknown')
   read(99,*)G%nat,G%nshltot,G%nexpo,G%ncoeff
   
@@ -73,6 +82,7 @@ subroutine read_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,filename)
      read(99,*)jexpo,G%xp(jexpo),G%psiat(jexpo)
   end do
   do iorb=1,norb
+     read(99,*)jorb,eval(jorb)
      do icoeff=1,G%ncoeff
         read(99,*)jorb,jcoeff,coeff
         if (iproc*norbp < iorb .and. iorb <= min((iproc+1)*norbp,norb) ) then
@@ -84,13 +94,14 @@ subroutine read_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,filename)
  
 end subroutine read_gaussian_information
 
-subroutine write_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,filename)
+subroutine write_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,eval,filename)
   use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc,nproc,norb,norbp
   type(gaussian_basis), intent(in) :: G
+  real(wp), dimension(norb), intent(in) :: eval
   real(wp), dimension(G%ncoeff,norbp), intent(in) :: coeffs
   !local variables
   character(len=*), parameter :: subname='write_gaussian_information'
@@ -135,6 +146,7 @@ subroutine write_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,filename)
         write(99,'(i6,2(1x,1pe21.14))')iexpo,G%xp(iexpo),G%psiat(iexpo)
      end do
      do iorb=1,norb
+        write(99,'(i6,1x,1pe21.14)')iorb,eval(iorb)
         do icoeff=1,G%ncoeff
            write(99,'(2(i6),1x,1pe21.14)')iorb,icoeff,gaupsi(icoeff,iorb)
         end do
@@ -1313,8 +1325,8 @@ end subroutine wavelets_to_gaussians
 
 !calculate the projection of a given orbital on a gaussian basis centered on 
 !a set of points
-subroutine orbital_projection(geocode,n1,n2,n3,nat,rxyz,thetaphi,nshell,ndoc,nam,xp,psiat,nshltot,nexpo,ncoeff,&
-     hx,hy,hz,wfd,psi,coeffs)
+subroutine orbital_projection(geocode,n1,n2,n3,nat,rxyz,thetaphi,nshell,ndoc,nam,xp,psiat,&
+     nshltot,nexpo,ncoeff,hx,hy,hz,wfd,psi,coeffs)
   use module_base
   use module_types
   implicit none
@@ -1399,27 +1411,53 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
           wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
           psi(1),psi(wfd%nvctr_c+1),coeffs(m))
 
-     !here we should modify the coefficients following the direction of the axis
-
   end do
+
+  !here we should modify the coefficients following the direction of the axis
+  call lsh_rotation(l-1,thetaphi(1),thetaphi(2),coeffs)
 
 end subroutine lsh_projection
 
-!!$subroutine lsh_rotation(l,theta,phi,coeffs)
-!!$  use module_base
-!!$  implicit none
-!!$  integer, intent(in) :: l
-!!$  real(gp), intent(in) :: theta,phi
-!!$  real(wp), dimension(2*l-1), intent(inout) :: coeffs
-!!$  !local variables
-!!$  real(gp) :: t,p
-!!$  real(gp) :: cp,c2p,c3p,sp,s2p,s3p,ct,c2t,c3t,st,s2t,s3t
-!!$  real(gp), dimension(7,7) :: hrot ! rotation coefficients
-!!$
-!!$  !angles in radiants
-!!$  
-!!$  
-!!$end subroutine lsh_rotation
+subroutine lsh_rotation(l,theta,phi,coeffs)
+  use module_base
+  implicit none
+  integer, intent(in) :: l !beware the change in notation
+  real(gp), intent(in) :: theta,phi
+  real(wp), dimension(2*l-1), intent(inout) :: coeffs
+  !local variables
+  real(gp), parameter :: degrad=0.0174532925199432957692369076849_gp
+  integer :: m,m1
+  real(gp) :: t,p,res
+  real(gp), dimension(7) :: incoef ! calculated projection
+  real(gp), dimension(7,7) :: hrot ! rotation coefficients
+
+  !quick return if possible
+  if (theta == 0._gp .and. phi == 0._gp) then
+     return
+  end if
+
+  !angles in radiants
+  t=theta*degrad
+  p=phi*degrad
+
+  !extract coefficients for the rotation
+  call rotation_matrix(l,t,p,hrot)
+  
+  !copy input variables
+  do m=1,2*l+1
+     incoef(m)=real(coeffs(m),gp)
+  end do
+  
+  !apply rotation matrix
+  do m=1,2*l+1
+     res=0._gp
+     do m1=1,2*l+1
+        res=res+incoef(m1)*hrot(m,m1) !sense to be verified
+     end do
+     coeffs(m)=real(res,wp)
+  end do
+  
+end subroutine lsh_rotation
 
 
 ! calculate the scalar product between a sum of gaussians times polynomials and a wavefunction
@@ -1553,87 +1591,119 @@ subroutine wavetogau(geocode,n1,n2,n3,nterm,ntp,lx,ly,lz,fac_arr,xp,psiat,rx,ry,
 
 end subroutine wavetogau
 
-!!$!coefficients of the rotation matrix
-!!$hrot(1,1,1)=cp*ct
-!!$hrot(2,1,1)=ct*sp
-!!$hrot(3,1,1)=-1._gp*st
-!!$hrot(1,2,1)=-1._gp*sp
-!!$hrot(2,2,1)=cp
-!!$hrot(3,2,1)=0_gp
-!!$hrot(1,3,1)=cp*st
-!!$hrot(2,3,1)=sp*st
-!!$hrot(3,3,1)=ct
-!!$hrot(1,1,2)=cp*ct
-!!$hrot(2,1,2)=-1._gp*ct*sp
-!!$hrot(3,1,2)=c2p*st
-!!$hrot(4,1,2)=-2._gp*cp*sp*st
-!!$hrot(5,1,2)=0_gp
-!!$hrot(1,2,2)=c2t*sp
-!!$hrot(2,2,2)=c2t*cp
-!!$hrot(3,2,2)=2._gp*cp*ct*sp*st
-!!$hrot(4,2,2)=0.5_gp*c2p*s2t
-!!$hrot(5,2,2)=-1.7320508075688772935_gp*ct*st
-!!$hrot(1,3,2)=-1._gp*cp*st
-!!$hrot(2,3,2)=sp*st
-!!$hrot(3,3,2)=c2p*ct
-!!$hrot(4,3,2)=-2._gp*cp*ct*sp
-!!$hrot(5,3,2)=0_gp
-!!$hrot(1,4,2)=-1._gp*ct*sp*st
-!!$hrot(2,4,2)=-1._gp*cp*ct*st
-!!$hrot(3,4,2)=cp*(1._gp + ct**2)*sp
-!!$hrot(4,4,2)=0.25_gp*c2p*(3._gp + c2t)
-!!$hrot(5,4,2)=0.86602540378443864676_gp*st**2
-!!$hrot(1,5,2)=1.7320508075688772935_gp*ct*sp*st
-!!$hrot(2,5,2)=1.7320508075688772935_gp*cp*ct*st
-!!$hrot(3,5,2)=1.7320508075688772935_gp*cp*sp*st**2
-!!$hrot(4,5,2)=0.86602540378443864676_gp*c2p*st**2
-!!$hrot(5,5,2)=0.25_gp*(1._gp + 3._gp*c2t)
-!!$hrot(1,1,3)=0.0625_gp*cp*(15._gp*c3t + ct)
-!!$hrot(2,1,3)=0.0625_gp*(15._gp*c3t + ct)*sp
-!!$hrot(3,1,3)=-0.15309310892394863114_gp*(5._gp*s3t + st)
-!!$hrot(4,1,3)=-0.96824583655185422129_gp*c3p*ct*st**2
-!!$hrot(5,1,3)=0.96824583655185422129_gp*ct*s3p*st**2
-!!$hrot(6,1,3)=0.19764235376052370825_gp*c2p*(-3._gp*s3t + st)
-!!$hrot(7,1,3)=-0.3952847075210474165_gp*(1._gp + 3._gp*c2t)*s2p*st
-!!$hrot(1,2,3)=-0.125_gp*(3._gp + 5._gp*c2t)*sp
-!!$hrot(2,2,3)=0.125_gp*(3._gp + 5._gp*c2t)*cp
-!!$hrot(3,2,3)=0_gp
-!!$hrot(4,2,3)=0.96824583655185422129_gp*s3p*st**2
-!!$hrot(5,2,3)=0.96824583655185422129_gp*c3p*st**2
-!!$hrot(6,2,3)=3.162277660168379332_gp*cp*ct*sp*st
-!!$hrot(7,2,3)=-0.790569415042094833_gp*c2p*s2t
-!!$hrot(1,3,3)=0.15309310892394863114_gp*cp*(5._gp*s3t + st)
-!!$hrot(2,3,3)=0.15309310892394863114_gp*sp*(5._gp*s3t + st)
-!!$hrot(3,3,3)=0.125_gp*(5._gp*c3t + 3._gp*ct)
-!!$hrot(4,3,3)=0.790569415042094833_gp*(1._gp - 2._gp*c2p)*cp*st**3
-!!$hrot(5,3,3)=0.790569415042094833_gp*(1._gp + 2._gp*c2p)*sp*st**3
-!!$hrot(6,3,3)=-1.9364916731037084426_gp*c2p*ct*st**2
-!!$hrot(7,3,3)=-3.8729833462074168852_gp*cp*ct*sp*st**2
-!!$hrot(1,4,3)=-0.96824583655185422129_gp*cp*ct*st**2
-!!$hrot(2,4,3)=-0.96824583655185422129_gp*ct*sp*st**2
-!!$hrot(3,4,3)=0.790569415042094833_gp*st**3
-!!$hrot(4,4,3)=0.0625_gp*c3p*(c3t + 15._gp*ct)
-!!$hrot(5,4,3)=-0.0625_gp*(c3t + 15._gp*ct)*s3p
-!!$hrot(6,4,3)=-0.15309310892394863114_gp*c2p*(s3t + 5._gp*st)
-!!$hrot(7,4,3)=-0.15309310892394863114_gp*s2p*(s3t + 5._gp*st)
-!!$hrot(1,5,3)=-0.96824583655185422129_gp*sp*st**2
-!!$hrot(2,5,3)=0.96824583655185422129_gp*cp*st**2
-!!$hrot(3,5,3)=0_gp
-!!$hrot(4,5,3)=0.125_gp*(5._gp + 3._gp*c2t)*s3p
-!!$hrot(5,5,3)=0.125_gp*(5._gp + 3._gp*c2t)*c3p
-!!$hrot(6,5,3)=-2.4494897427831780982_gp*cp*ct*sp*st
-!!$hrot(7,5,3)=0.61237243569579452455_gp*c2p*s2t
-!!$hrot(1,6,3)=-0.19764235376052370825_gp*cp*(-3._gp*s3t + st)
-!!$hrot(2,6,3)=-0.19764235376052370825_gp*sp*(-3._gp*s3t + st)
-!!$hrot(3,6,3)=-1.9364916731037084426_gp*ct*st**2
-!!$hrot(4,6,3)=0.15309310892394863114_gp*c3p*(s3t + 5._gp*st)
-!!$hrot(5,6,3)=-0.15309310892394863114_gp*s3p*(s3t + 5._gp*st)
-!!$hrot(6,6,3)=0.25_gp*c2p*(1._gp + 3._gp*c2t)*ct
-!!$hrot(7,6,3)=0.25_gp*(1._gp + 3._gp*c2t)*ct*s2p
-!!$hrot(1,7,3)=-1.581138830084189666_gp*ct*sp*st
-!!$hrot(2,7,3)=1.581138830084189666_gp*cp*ct*st
-!!$hrot(3,7,3)=0_gp
-!!$hrot(4,7,3)=-0.61237243569579452455_gp*s2t*s3p
-!!$hrot(5,7,3)=-0.61237243569579452455_gp*c3p*s2t
-!!$hrot(6,7,3)=-1._gp*c2t*s2p
-!!$hrot(7,7,3)=c2p*c2t
+!coefficients of the rotation matrix
+subroutine rotation_matrix(l,t,p,hrot)
+  use module_base
+  implicit none
+  integer, intent(in) :: l
+  real(gp), intent(in) :: t,p
+  real(gp), dimension(2*l+1,2*l+1), intent(out) :: hrot
+  !local variables
+  real(gp) :: cp,c2p,c3p,sp,s2p,s3p,ct,c2t,c3t,st,s2t,s3t
+
+  !trigonometrical functions
+  cp=cos(p)
+  sp=sin(p)
+  c2p=cos(2._gp*p)
+  s2p=sin(2._gp*p)
+  c3p=cos(3._gp*p)
+  s3p=sin(3._gp*p)
+  ct=cos(t)
+  st=sin(t)
+  c2t=cos(2._gp*t)
+  s2t=sin(2._gp*t)
+  c3t=cos(3._gp*t)
+  s3t=sin(3._gp*t)
+  
+
+  if (l == 1) then
+     hrot(1,1)=cp*ct
+     hrot(2,1)=ct*sp
+     hrot(3,1)=-1._gp*st
+     hrot(1,2)=-1._gp*sp
+     hrot(2,2)=cp
+     hrot(3,2)=0_gp
+     hrot(1,3)=cp*st
+     hrot(2,3)=sp*st
+     hrot(3,3)=ct
+  else if (l == 2) then
+     hrot(1,1)=cp*ct
+     hrot(2,1)=-1._gp*ct*sp
+     hrot(3,1)=c2p*st
+     hrot(4,1)=-2._gp*cp*sp*st
+     hrot(5,1)=0_gp
+     hrot(1,2)=c2t*sp
+     hrot(2,2)=c2t*cp
+     hrot(3,2)=2._gp*cp*ct*sp*st
+     hrot(4,2)=0.5_gp*c2p*s2t
+     hrot(5,2)=-1.7320508075688772935_gp*ct*st
+     hrot(1,3)=-1._gp*cp*st
+     hrot(2,3)=sp*st
+     hrot(3,3)=c2p*ct
+     hrot(4,3)=-2._gp*cp*ct*sp
+     hrot(5,3)=0_gp
+     hrot(1,4)=-1._gp*ct*sp*st
+     hrot(2,4)=-1._gp*cp*ct*st
+     hrot(3,4)=cp*(1._gp + ct**2)*sp
+     hrot(4,4)=0.25_gp*c2p*(3._gp + c2t)
+     hrot(5,4)=0.86602540378443864676_gp*st**2
+     hrot(1,5)=1.7320508075688772935_gp*ct*sp*st
+     hrot(2,5)=1.7320508075688772935_gp*cp*ct*st
+     hrot(3,5)=1.7320508075688772935_gp*cp*sp*st**2
+     hrot(4,5)=0.86602540378443864676_gp*c2p*st**2
+     hrot(5,5)=0.25_gp*(1._gp + 3._gp*c2t)
+  else if (l == 3) then
+     hrot(1,1)=0.0625_gp*cp*(15._gp*c3t + ct)
+     hrot(2,1)=0.0625_gp*(15._gp*c3t + ct)*sp
+     hrot(3,1)=-0.15309310892394863114_gp*(5._gp*s3t + st)
+     hrot(4,1)=-0.96824583655185422129_gp*c3p*ct*st**2
+     hrot(5,1)=0.96824583655185422129_gp*ct*s3p*st**2
+     hrot(6,1)=0.19764235376052370825_gp*c2p*(-3._gp*s3t + st)
+     hrot(7,1)=-0.3952847075210474165_gp*(1._gp + 3._gp*c2t)*s2p*st
+     hrot(1,2)=-0.125_gp*(3._gp + 5._gp*c2t)*sp
+     hrot(2,2)=0.125_gp*(3._gp + 5._gp*c2t)*cp
+     hrot(3,2)=0_gp
+     hrot(4,2)=0.96824583655185422129_gp*s3p*st**2
+     hrot(5,2)=0.96824583655185422129_gp*c3p*st**2
+     hrot(6,2)=3.162277660168379332_gp*cp*ct*sp*st
+     hrot(7,2)=-0.790569415042094833_gp*c2p*s2t
+     hrot(1,3)=0.15309310892394863114_gp*cp*(5._gp*s3t + st)
+     hrot(2,3)=0.15309310892394863114_gp*sp*(5._gp*s3t + st)
+     hrot(3,3)=0.125_gp*(5._gp*c3t + 3._gp*ct)
+     hrot(4,3)=0.790569415042094833_gp*(1._gp - 2._gp*c2p)*cp*st**3
+     hrot(5,3)=0.790569415042094833_gp*(1._gp + 2._gp*c2p)*sp*st**3
+     hrot(6,3)=-1.9364916731037084426_gp*c2p*ct*st**2
+     hrot(7,3)=-3.8729833462074168852_gp*cp*ct*sp*st**2
+     hrot(1,4)=-0.96824583655185422129_gp*cp*ct*st**2
+     hrot(2,4)=-0.96824583655185422129_gp*ct*sp*st**2
+     hrot(3,4)=0.790569415042094833_gp*st**3
+     hrot(4,4)=0.0625_gp*c3p*(c3t + 15._gp*ct)
+     hrot(5,4)=-0.0625_gp*(c3t + 15._gp*ct)*s3p
+     hrot(6,4)=-0.15309310892394863114_gp*c2p*(s3t + 5._gp*st)
+     hrot(7,4)=-0.15309310892394863114_gp*s2p*(s3t + 5._gp*st)
+     hrot(1,5)=-0.96824583655185422129_gp*sp*st**2
+     hrot(2,5)=0.96824583655185422129_gp*cp*st**2
+     hrot(3,5)=0_gp
+     hrot(4,5)=0.125_gp*(5._gp + 3._gp*c2t)*s3p
+     hrot(5,5)=0.125_gp*(5._gp + 3._gp*c2t)*c3p
+     hrot(6,5)=-2.4494897427831780982_gp*cp*ct*sp*st
+     hrot(7,5)=0.61237243569579452455_gp*c2p*s2t
+     hrot(1,6)=-0.19764235376052370825_gp*cp*(-3._gp*s3t + st)
+     hrot(2,6)=-0.19764235376052370825_gp*sp*(-3._gp*s3t + st)
+     hrot(3,6)=-1.9364916731037084426_gp*ct*st**2
+     hrot(4,6)=0.15309310892394863114_gp*c3p*(s3t + 5._gp*st)
+     hrot(5,6)=-0.15309310892394863114_gp*s3p*(s3t + 5._gp*st)
+     hrot(6,6)=0.25_gp*c2p*(1._gp + 3._gp*c2t)*ct
+     hrot(7,6)=0.25_gp*(1._gp + 3._gp*c2t)*ct*s2p
+     hrot(1,7)=-1.581138830084189666_gp*ct*sp*st
+     hrot(2,7)=1.581138830084189666_gp*cp*ct*st
+     hrot(3,7)=0_gp
+     hrot(4,7)=-0.61237243569579452455_gp*s2t*s3p
+     hrot(5,7)=-0.61237243569579452455_gp*c3p*s2t
+     hrot(6,7)=-1._gp*c2t*s2p
+     hrot(7,7)=c2p*c2t
+  else
+     write(*,*)'ERROR: rotation matrix for angular momentum l=',l,'not implemented'
+     stop
+  end if
+end subroutine rotation_matrix

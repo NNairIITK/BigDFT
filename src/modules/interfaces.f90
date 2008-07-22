@@ -329,23 +329,28 @@ interface
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: hpsi
    end subroutine HamiltonianApplication
 
-   subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
+   subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
         nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
-        eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
-        psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
+        eval,ncong,ids,mids,idsx,idiistol,idsx_actual,switchSD,ads,energy,energy_old,energy_min,&
+        alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
+     use module_base
      use module_types
      implicit none
      type(kinetic_bounds), intent(in) :: kbounds
      type(wavefunctions_descriptors), intent(in) :: wfd
      character(len=1), intent(in) :: geocode
-     integer, intent(in) :: iter,iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids,idsx
+     integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin,nspinor
-     real(kind=8), intent(in) :: hx,hy,hz,energy,energy_old
-     real(kind=8), dimension(norb), intent(in) :: occup,eval,spinsgn
-     real(kind=8), intent(inout) :: alpha
-     real(kind=8), intent(inout) :: gnrm,scprsum
-     real(kind=8), dimension(:), pointer :: psi,psit,hpsi,psidst,hpsidst
-     real(kind=8), dimension(:,:,:), pointer :: ads
+     real(gp), intent(in) :: hx,hy,hz,energy,energy_old
+     real(wp), dimension(norb), intent(in) :: eval
+     real(gp), dimension(norb), intent(in) :: occup,spinsgn
+     logical, intent(inout) :: switchSD
+     integer, intent(inout) :: idiistol,idsx,ids,idsx_actual
+     real(wp), intent(inout) :: alpha
+     real(dp), intent(inout) :: gnrm,scprsum
+     real(gp), intent(inout) :: energy_min
+     real(wp), dimension(:), pointer :: psi,psit,hpsi,psidst,hpsidst
+     real(wp), dimension(:,:,:), pointer :: ads
    end subroutine hpsitopsi
 
    subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp,wfd,&
@@ -593,13 +598,14 @@ interface
      real(wp), dimension(:,:), pointer :: wfn_cp2k
    end subroutine parse_cp2k_files
 
-   subroutine read_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,filename)
+   subroutine read_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,eval,filename)
      use module_base
      use module_types
      implicit none
      character(len=*), intent(in) :: filename
      integer, intent(in) :: iproc,nproc,norb,norbp
      type(gaussian_basis), intent(out) :: G
+     real(wp), dimension(norb), intent(out) :: eval
      real(wp), dimension(:,:), pointer :: coeffs
    end subroutine read_gaussian_information
 
