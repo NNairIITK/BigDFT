@@ -20,13 +20,15 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
   !local variables
   character(len=*), parameter :: subname='sumrho'
   logical :: rsflag
-  integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf
+  integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf,itmred
   integer :: ind1,ind2,ind3,ind1s,ind2s,ind3s,oidx,sidx,nspinn
   integer :: i00,i0,i1,i2,i3,i3off,i3s,isjmp,i,ispin,iorb,jproc,i_all,i_stat,ierr
-  real(kind=8) :: hfac,hgridh,tt,charge,hfac2
+  real(dp) :: charge,tt
+  real(gp) :: hfac,hgridh
   real(wp), dimension(0:3) :: scal
   real(wp), dimension(:,:), allocatable :: psir
   real(wp), dimension(:), allocatable :: x_c_psifscf,x_f_psig,w1,w2
+  real(wp), dimension(:,:), allocatable :: tmred
   real(dp), dimension(:,:), pointer :: rho_p
 !  include 'mpif.h'
 
@@ -137,7 +139,6 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
 
   do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
      hfac=(occup(iorb)/(hxh*hyh*hzh))
-     hfac2=hfac*2.0d0
      
      oidx=(iorb-iproc*norbp-1)*nspinor
 
@@ -206,6 +207,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')
      if (.not. rsflag) then
+        !here we must add the treatment for the periodic GGA
         i3off=n1i*n2i*(nscatterarr(iproc,3)-nscatterarr(iproc,4))
         n3d=nscatterarr(iproc,1)
         do ispin=1,nspin
@@ -219,19 +221,38 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
   ! Check
   tt=0.d0
   i3off=n1i*n2i*nscatterarr(iproc,4)
-  if(nspinor==4) then
-     nspinn=1
+
+  !allocation of the magnetic density orientation array
+  if (nproc > 1) then
+     itmred=2
   else
-     nspinn=nspin
+     itmred=1
   end if
-  do ispin=1,nspinn
+
+  !use this check also for the magnetic density orientation
+  allocate(tmred(nspin+1,itmred+ndebug),stat=i_stat)
+  call memocc(i_stat,tmred,'tmred',subname)
+
+!!$  if(nspinor==4) then
+!!$     nspinn=1
+!!$  else
+!!$     nspinn=nspin
+!!$  end if
+
+  
+
+  tmred(nspin+1,itmred)=0.0_dp
+  do ispin=1,nspin!n
+     tmred(ispin,itmred)=0.0_dp
      do i=1,n1i*n2i*nscatterarr(iproc,2)
-        tt=tt+rho(i+i3off,ispin)
+!!$        tt=tt+rho(i+i3off,ispin)
+        tmred(ispin,itmred)=tmred(ispin,itmred)+rho(i+i3off,ispin)
 !!$        !temporary check for debugging purposes
-!!$        if (rho(i+i3off) < 9.d-21) then
-!!$           print *,iproc,'error in density construction',rho(i+i3off)
+!!$        if (rho(i+i3off,ispin) < 9.d-21) then
+!!$           print *,iproc,'error in density construction',rho(i+i3off,ispin)
 !!$        end if
      enddo
+     tmred(nspin+1,itmred)=tmred(nspin+1,itmred)+tmred(ispin,itmred)
   end do
 
   if (nproc > 1) then
@@ -241,19 +262,38 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
 
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')
-     call MPI_REDUCE(tt,charge,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+!!$     call MPI_REDUCE(tt,charge,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+     call MPI_REDUCE(tmred(1,2),tmred(1,1),nspin+1,mpidtypd,MPI_SUM,0,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')
   else
      !useless, only for completeness
      nullify(rho_p)
 
-     charge=tt
+     !charge=tt
   end if
 
-  if (iproc.eq.0) write(*,'(1x,a,f21.12)')&
-       'done. Total electronic charge=',charge*hxh*hyh*hzh
-
+  !write the results
+  if (iproc == 0) then
+     if(nspinor==4) then
+        charge=tmred(1,1)
+        tt=sqrt(tmred(2,1)**2+tmred(3,1)**2+tmred(4,1)**2)
+     else
+        charge=0._dp
+        do ispin=1,nspin
+           charge=charge+tmred(ispin,1)
+        end do
+     end if
+     write(*,'(1x,a,f21.12)')&
+          'done. Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
+     if(nspin == 4 .and. tt > 0._dp)&
+          write(*,'(a,5f10.4)')'  Magnetic density orientation:',&
+          (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
+  end if
+  
+  i_all=-product(shape(tmred))*kind(tmred)
+  deallocate(tmred,stat=i_stat)
+  call memocc(i_stat,i_all,'tmred',subname)
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
@@ -272,7 +312,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
 
   call timing(iproc,'Rho_comput    ','OF')
 
-END SUBROUTINE sumrho
+end subroutine sumrho
 
 
 subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&

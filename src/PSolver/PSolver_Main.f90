@@ -610,7 +610,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
         call memocc(i_stat,m_norm,'m_norm',subname)
         !           print *,'Rho Dims',shape(rhopot),shape(rho_diag)
         idx=1
-        offs=n01*n02*n3d
+        offs=n01*n02*n3d 
         do i3=1,n3d
            do i2=1,n02
               do i1=1,n01
@@ -676,7 +676,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
      call memocc(i_stat,i_all,'m_norm',subname)
   else
      call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-          rho_diag,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
+          rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
   end if
 
 end subroutine PSolverNC
