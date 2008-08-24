@@ -125,8 +125,7 @@ program PSchk
   if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies:',ehartree,eexcu,vexcu
   if (iproc == 0) then
      !compare the values of the analytic results
-     call compare(0,1,n01,n02,n03,potential,rhopot,&
-          i1_max,i2_max,i3_max,max_diff,'ANALYTIC  ')
+     call compare(0,1,n01,n02,n03,potential,rhopot,'ANALYTIC  ')
   end if
   !if the latter test pass, we have a reference for all the other calculations
   !build the reference quantities (based on the numerical result, not the analytic)
@@ -134,7 +133,10 @@ program PSchk
 
   !test for the serial solver
   if (iproc == 0) then
-     call compare_with_reference(0,1,geocode,n01,n02,n03,ixc,hx,hy,hz,ehartree,eexcu,vexcu,&
+     call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,hx,hy,hz,ehartree,eexcu,vexcu,&
+          density,potential,pot_ion,xc_pot,pkernel,rhopot)
+
+     call compare_with_reference(0,1,geocode,'D',n01,n02,n03,ixc,hx,hy,hz,ehartree,eexcu,vexcu,&
           density,potential,pot_ion,xc_pot,pkernel,rhopot)
   end if
 
@@ -147,7 +149,10 @@ program PSchk
      !calculate the kernel 
      call createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,pkernel)
 
-     call compare_with_reference(iproc,nproc,geocode,n01,n02,n03,ixc,hx,hy,hz,ehartree,eexcu,vexcu,&
+     call compare_with_reference(iproc,nproc,geocode,'G',n01,n02,n03,ixc,hx,hy,hz,ehartree,eexcu,vexcu,&
+          density,potential,pot_ion,xc_pot,pkernel,rhopot)
+
+     call compare_with_reference(iproc,nproc,geocode,'D',n01,n02,n03,ixc,hx,hy,hz,ehartree,eexcu,vexcu,&
           density,potential,pot_ion,xc_pot,pkernel,rhopot)
  
   end if
@@ -179,11 +184,11 @@ program PSchk
 
 contains
 
-  subroutine compare_with_reference(iproc,nproc,geocode,n01,n02,n03,ixc,hx,hy,hz,ehref,excref,vxcref,&
+  subroutine compare_with_reference(iproc,nproc,geocode,distcode,n01,n02,n03,ixc,hx,hy,hz,ehref,excref,vxcref,&
        density,potential,pot_ion,xc_pot,pkernel,rhopot)
     use Poisson_Solver
     implicit none
-    character(len=1), intent(in) :: geocode
+    character(len=1), intent(in) :: geocode,distcode
     integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc
     real(kind=8), intent(in) :: hx,hy,hz,ehref,excref,vxcref
     real(kind=8), dimension(n01*n02*n03), intent(in) :: density,potential
@@ -191,17 +196,23 @@ contains
     real(kind=8), dimension(:), pointer :: pkernel
     !local variables
     character(len=*), parameter :: subname='compare_with_reference'
-    integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,i1_max,i2_max,i3_max,i_all,i_stat
+    integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,i1_max,i2_max,i3_max,i_all,i_stat,istpoti
     real(kind=8) :: eexcu,vexcu,offset,max_diff,ehartree
     real(kind=8), dimension(:), allocatable :: test,test_xc
 
 
-    call PS_dim4allocation(geocode,'D',iproc,nproc,n01,n02,n03,ixc,&
+    call PS_dim4allocation(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,&
          n3d,n3p,n3pi,i3xcsh,i3s)
 
     !starting point of the three-dimensional arrays
-    istden=n01*n02*(i3s-1)+1
-    istpot=n01*n02*(i3s+i3xcsh-1)+1
+    if (distcode == 'D') then
+       istden=n01*n02*(i3s-1)+1
+       istpot=n01*n02*(i3s+i3xcsh-1)+1
+    else if (distcode == 'G') then
+       istden=1
+       istpot=1
+    end if
+    istpoti=n01*n02*(i3s+i3xcsh-1)+1
 
     !test arrays for comparison
     allocate(test(n01*n02*n03+ndebug),stat=i_stat)
@@ -217,51 +228,45 @@ contains
     end if
 
     rhopot=density
-    call PSolver(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-         rhopot,pkernel,test_xc,ehartree,eexcu,vexcu,offset,.false.,1)
-
-    !compare the values of the analytic results
-    call compare(iproc,nproc,n01,n02,n03,potential,rhopot,&
-         i1_max,i2_max,i3_max,max_diff,'ANACOMPLET')
-
-    !compare also the xc_potential
-    if (ixc/=0) call compare(iproc,nproc,n01,n02,n03,xc_pot,test_xc,&
-         i1_max,i2_max,i3_max,max_diff,'XCCOMPLETE')
-    if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
-
-    rhopot=density
-    !now we can try with the sumpotion=.true. variable
-    call PSolver(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-         rhopot,pkernel,pot_ion(istpot),ehartree,eexcu,vexcu,offset,.true.,1)
-
-    !then compare again, but the complete result
-    call compare(iproc,nproc,n01,n02,n03,test,rhopot,&
-         i1_max,i2_max,i3_max,max_diff,'COMPLETE  ')
-    if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
-
-    !now the same thing with the 'D' flag
-    rhopot=density
-    call PSolver(geocode,'D',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
          rhopot(istden),pkernel,test_xc,ehartree,eexcu,vexcu,offset,.false.,1)
 
     !compare the values of the analytic results
-    call compare(iproc,nproc,n01,n02,n3p,potential(istpot),rhopot(istpot),&
-         i1_max,i2_max,i3_max,max_diff,'ANADISTRIB')
+    call compare(iproc,nproc,n01,n02,n3p,potential(istpot),rhopot(istpot),'ANACOMPLET '//distcode)
 
     !compare also the xc_potential
-    if (ixc/=0) call compare(iproc,nproc,n01,n02,n3p,xc_pot(istpot),test_xc,&
-         i1_max,i2_max,i3_max,max_diff,'XCDISTRIBU')
+    if (ixc/=0) call compare(iproc,nproc,n01,n02,n3p,xc_pot(istpot),test_xc,'XCCOMPLETE '//distcode)
     if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
 
     rhopot=density
     !now we can try with the sumpotion=.true. variable
-    call PSolver(geocode,'D',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-         rhopot(istden),pkernel,pot_ion(istpot),ehartree,eexcu,vexcu,offset,.true.,1)
+    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+         rhopot(istden),pkernel,pot_ion(istpoti),ehartree,eexcu,vexcu,offset,.true.,1)
 
     !then compare again, but the complete result
-    call compare(iproc,nproc,n01,n02,n3p,test(istpot),rhopot(istpot),&
-         i1_max,i2_max,i3_max,max_diff,'COMPLETEDI')
+    call compare(iproc,nproc,n01,n02,n3p,test(istpot),rhopot(istpot),'COMPLETE  '//distcode)
     if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
+
+!!$    !now the same thing with the 'D' flag
+!!$    rhopot=density
+!!$    call PSolver(geocode,'D',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+!!$         rhopot(istden),pkernel,test_xc,ehartree,eexcu,vexcu,offset,.false.,1)
+!!$
+!!$    !compare the values of the analytic results
+!!$    call compare(iproc,nproc,n01,n02,n3p,potential(istpot),rhopot(istpot),'ANADISTRIB')
+!!$
+!!$    !compare also the xc_potential
+!!$    if (ixc/=0) call compare(iproc,nproc,n01,n02,n3p,xc_pot(istpot),test_xc,'XCDISTRIBU')
+!!$    if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
+!!$
+!!$    rhopot=density
+!!$    !now we can try with the sumpotion=.true. variable
+!!$    call PSolver(geocode,'D',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
+!!$         rhopot(istden),pkernel,pot_ion(istpot),ehartree,eexcu,vexcu,offset,.true.,1)
+!!$
+!!$    !then compare again, but the complete result
+!!$    call compare(iproc,nproc,n01,n02,n3p,test(istpot),rhopot(istpot),'COMPLETEDI')
+!!$    if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
 
     i_all=-product(shape(test))*kind(test)
     deallocate(test,stat=i_stat)
@@ -276,17 +281,15 @@ end program PSchk
 !!***
 
 
-subroutine compare(iproc,nproc,n01,n02,n03,potential,density,i1_max,i2_max,i3_max,max_diff,description)
+subroutine compare(iproc,nproc,n01,n02,n03,potential,density,description)
   implicit none
   include 'mpif.h'
-  character(len=10), intent(in) :: description
+  character(len=*), intent(in) :: description
   integer, intent(in) :: iproc,nproc,n01,n02,n03
   real(kind=8), dimension(n01,n02,n03), intent(in) :: potential,density
-  integer, intent(out) :: i1_max,i2_max,i3_max
-  real(kind=8), intent(out) :: max_diff
   !local variables
-  integer :: i1,i2,i3,ierr
-  real(kind=8) :: factor,diff_par
+  integer :: i1,i2,i3,ierr,i1_max,i2_max,i3_max
+  real(kind=8) :: factor,diff_par,max_diff
   max_diff = 0.d0
   i1_max = 1
   i2_max = 1
@@ -501,7 +504,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      do i3=1,n03
         do i2=1,n02
            do i1=1,n01
-              call random_number(tt)
+              !call random_number(tt)
               !tt=0.d0!1.d0
               tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
               pot_ion(i1,i2,i3)=tt
