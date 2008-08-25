@@ -58,9 +58,9 @@
 
      if (in%inputPsiId==1 .and. infocode==2) then
         if (in%gaussian_help) then
-           in%inputPsiId=0
-        else
            in%inputPsiId=11
+        else
+           in%inputPsiId=0
         end if
      else if (in%inputPsiId==1 .and. infocode==1) then
         in%inputPsiId=0
