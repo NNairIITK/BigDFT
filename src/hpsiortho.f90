@@ -312,6 +312,7 @@ subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
      switchSD=.false.
 
      ids=0
+     mids=1
      idiistol=0
   end if
   !update variables at each iteration step
@@ -443,7 +444,7 @@ subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
         enddo
      endif
 
-     call diisstp(norb,norbp,nproc,iproc, nspinor,  &
+     call diisstp(norb,norbp,nproc,iproc,nspinor,  &
           ads,ids,mids,idsx_actual,nvctrp,psit,psidst,hpsidst)
   else
      ! update all wavefunctions with the preconditioned gradient
