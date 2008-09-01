@@ -274,10 +274,10 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
 end subroutine HamiltonianApplication
 
 
-subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
+subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
-     eval,ncong,mids,idsx,ads,energy,energy_old,alpha,gnrm,scprsum,&
-     psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
+     eval,ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
+     alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi
@@ -285,22 +285,43 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
   type(kinetic_bounds), intent(in) :: kbounds
   type(wavefunctions_descriptors), intent(in) :: wfd
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iter,iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids,idsx
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncong,idsx,iter
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin,nspinor
   real(gp), intent(in) :: hx,hy,hz,energy,energy_old
   real(wp), dimension(norb), intent(in) :: eval
   real(gp), dimension(norb), intent(in) :: occup,spinsgn
+  integer, intent(inout) :: idsx_actual
   real(wp), intent(inout) :: alpha
   real(dp), intent(inout) :: gnrm,scprsum
+  real(gp), intent(inout) :: energy_min
   real(wp), dimension(:), pointer :: psi,psit,hpsi,psidst,hpsidst
   real(wp), dimension(:,:,:), pointer :: ads
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
+  logical, save :: switchSD
+  integer, save :: idiistol,mids,ids
   integer :: ierr,ind,i1,i2,iorb,i,k,norbu,norbd,i_stat,i_all,oidx,sidx
   real(wp) :: cprecr
   real(dp) :: tt,scpr,scprpart
   real(wp), dimension(:,:,:), allocatable :: mom_vec
   real(kind=4), dimension(:), allocatable :: psitcuda,hpsitcuda
+
+  !adjust the save variables for DIIS/SD switch
+  if (iter == 1) then
+     !logical control variable for switch DIIS-SD
+     switchSD=.false.
+
+     ids=0
+     mids=1
+     idiistol=0
+  end if
+  !update variables at each iteration step
+  if (idsx > 0) then
+     mids=mod(ids,idsx)+1
+     ids=ids+1
+  end if
+
+  energy_min=min(energy_min,energy)
 
   if (iproc==0) then
      write(*,'(1x,a)',advance='no')&
@@ -406,39 +427,28 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
   call timing(iproc,'Precondition  ','OF')
 
   !apply the minimization method (DIIS or steepest descent)
-  if (idsx.gt.0) then
+  if (idsx_actual > 0) then
      !transpose the hpsi wavefunction into the diis array
      call transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,hpsi,work=psi,&
           outadd=hpsidst(1+nvctrp*nspinor*norbp*nproc*(mids-1)))
 
      call timing(iproc,'Diis          ','ON')
      if (nproc > 1) then
-!!$        do iorb=1,norb*nspinor
-!!$           do k=1,nvctrp
-!!$              psidst(k,iorb,mids)= psit(k,iorb)
-!!$           enddo
-!!$        enddo
         do i=1,nvctrp*norb*nspinor
            psidst(i+nvctrp*nspinor*norbp*nproc*(mids-1))= psit(i)
         enddo
      else
-!!$        do iorb=1,norb*nspinor
-!!$           do k=1,nvctrp
-!!$              psidst(k,iorb,mids)= psit(k,iorb)
-!!$              hpsidst(k,iorb,mids)=hpsi(k,iorb)
-!!$           enddo
-!!$        enddo
         do i=1,nvctrp*norb*nspinor
            psidst(i+nvctrp*nspinor*norbp*nproc*(mids-1))= psit(i)
            hpsidst(i+nvctrp*nspinor*norbp*nproc*(mids-1))=hpsi(i)
         enddo
      endif
 
-     call diisstp(norb,norbp,nproc,iproc, nspinor,  &
-          ads,iter,mids,idsx,nvctrp,psit,psidst,hpsidst)
+     call diisstp(norb,norbp,nproc,iproc,nspinor,  &
+          ads,ids,mids,idsx_actual,nvctrp,psit,psidst,hpsidst)
   else
      ! update all wavefunctions with the preconditioned gradient
-     if (energy.gt.energy_old) then
+     if (energy > energy_old) then
         alpha=max(.125_wp,.5_wp*alpha)
         if (alpha == .125_wp) write(*,*) 'Convergence problem or limit'
      else
@@ -451,7 +461,7 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
 
      call timing(iproc,'Diis          ','ON')
      do iorb=1,norb*nspinor
-        call DAXPY(nvctrp,-alpha,hpsi(1+nvctrp*(iorb-1)),1,psit(1+nvctrp*(iorb-1)),1)
+        call axpy(nvctrp,-alpha,hpsi(1+nvctrp*(iorb-1)),1,psit(1+nvctrp*(iorb-1)),1)
      enddo
   endif
 
@@ -503,6 +513,53 @@ subroutine hpsitopsi(geocode,iter,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3
      deallocate(mom_vec,stat=i_stat)
      call memocc(i_stat,i_all,'mom_vec',subname)
   end if
+
+  !here we should add the DIIS/SD switch
+  !add switch between DIIS and SD
+  !this section should be inserted into hpsitopsi
+  if (energy == energy_min .and. .not. switchSD) idiistol=0
+  if (energy > energy_min .and. idsx >0 .and. .not. switchSD) then
+     idiistol=idiistol+1
+  end if
+  if (idiistol > idsx .and. .not. switchSD) then
+     !the energy has not decreasing for too much steps, switching to SD for next steps
+     if (iproc ==0) write(*,'(1x,a,1pe9.2,a)')&
+          'WARNING: The energy value is growing (delta=',energy-energy_min,') switch to SD'
+     switchSD=.true.
+     i_all=-product(shape(psidst))*kind(psidst)
+     deallocate(psidst,stat=i_stat)
+     call memocc(i_stat,i_all,'psidst',subname)
+     i_all=-product(shape(hpsidst))*kind(hpsidst)
+     deallocate(hpsidst,stat=i_stat)
+     call memocc(i_stat,i_all,'hpsidst',subname)
+     i_all=-product(shape(ads))*kind(ads)
+     deallocate(ads,stat=i_stat)
+     call memocc(i_stat,i_all,'ads',subname)
+     idsx_actual=0
+     idiistol=0
+  end if
+
+  if ((energy == energy_min) .and. switchSD) then
+     idiistol=idiistol+1
+  end if
+  if (idiistol > idsx .and. switchSD) then
+     !restore the original DIIS
+     if (iproc ==0) write(*,'(1x,a,1pe9.2)')&
+          'WARNING: The energy value is now decreasing again, coming back to DIIS'
+     switchSD=.false.
+     idsx_actual=idsx
+     ids=0
+     idiistol=0
+
+     allocate(psidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
+     call memocc(i_stat,psidst,'psidst',subname)
+     allocate(hpsidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
+     call memocc(i_stat,hpsidst,'hpsidst',subname)
+     allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
+     call memocc(i_stat,ads,'ads',subname)
+     call razero(3*(idsx+1)**2,ads)
+  end if
+
 
 end subroutine hpsitopsi
 

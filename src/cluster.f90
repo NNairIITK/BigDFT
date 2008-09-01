@@ -28,7 +28,8 @@
        type(atoms_data), intent(inout) :: atoms
        type(gaussian_basis), intent(inout) :: gbd
        real(kind=8), intent(out) :: energy
-       real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
+       real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz_old
+       real(kind=8), dimension(3,atoms%nat), target, intent(inout) :: rxyz
        real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
        real(kind=8), dimension(:), pointer :: eval
        real(kind=8), dimension(:), pointer :: psi
@@ -57,9 +58,9 @@
 
      if (in%inputPsiId==1 .and. infocode==2) then
         if (in%gaussian_help) then
-           in%inputPsiId=0
-        else
            in%inputPsiId=11
+        else
+           in%inputPsiId=0
         end if
      else if (in%inputPsiId==1 .and. infocode==1) then
         in%inputPsiId=0
@@ -126,7 +127,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(atoms_data), intent(inout) :: atoms
   type(gaussian_basis), intent(inout) :: gbd
   real(kind=8), intent(out) :: energy
-  real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz,rxyz_old
+  real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz_old
+  real(kind=8), dimension(3,atoms%nat), target, intent(inout) :: rxyz
   real(kind=8), dimension(3,atoms%nat), intent(out) :: fxyz
   real(kind=8), dimension(:), pointer :: eval
   real(kind=8), dimension(:), pointer :: psi
@@ -353,6 +355,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,rhopot,'rhopot',subname)
   end if
 
+  !avoid allocation of the eigenvalues array in case of restart
   if (in%inputPsiId /= 1 .and. in%inputPsiId /= 11) then
      allocate(eval(norb+ndebug),stat=i_stat)
      call memocc(i_stat,eval,'eval',subname)
@@ -497,8 +500,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      allocate(psi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
-     call read_gaussian_information(iproc,nproc,norb,norbp,gbd,gaucoeffs,'wavefunctions.gau')
-
+     call read_gaussian_information(iproc,nproc,norb,norbp,gbd,gaucoeffs,eval,'wavefunctions.gau')
+     !associate the new positions, provided that the atom number is good
+     if (gbd%nat == atoms%nat) then
+        gbd%rxyz=>rxyz
+     else
+        if (iproc == 0) then
+           write(*,*)&
+                ' ERROR: the atom number does not coincide with the number of gaussian centers'
+        end if
+        stop
+     end if
+ 
      call restart_from_gaussians(geocode,iproc,nproc,norb,norbp,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,psi,gbd,gaucoeffs)
 
@@ -530,7 +543,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   enddo
 
   ! allocate arrays necessary for DIIS convergence acceleration
-  if (idsx.gt.0) then
+  if (idsx > 0) then
      allocate(psidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,psidst,'psidst',subname)
      allocate(hpsidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
@@ -550,24 +563,24 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   energy_min=1.d10
   !set the infocode to the value it would have in the case of no convergence
   infocode=1
-  !logical control variable for switch DIIS-SD
-  switchSD=.false.
   !local variable for the diis history
   idsx_actual=idsx
 
-  ids=0
-  idiistol=0
+!!$  !logical control variable for switch DIIS-SD
+!!$  switchSD=.false.
+!!$  ids=0
+!!$  idiistol=0
 
   !end of the initialization part
   call timing(iproc,'INIT','PR')
 
   ! loop for wavefunction minimization
   wfn_loop: do iter=1,itermax
-     if (idsx.gt.0) then
-        mids=mod(ids,idsx)+1
-        ids=ids+1
-     end if
-     if (iproc.eq.0) then 
+!!$     if (idsx > 0) then
+!!$        mids=mod(ids,idsx)+1
+!!$        ids=ids+1
+!!$     end if
+     if (iproc == 0) then 
         write(*,'(1x,a,i0)')&
            '---------------------------------------------------------------------------- iter= ',&
            iter
@@ -580,35 +593,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,  & 
           wfd,psi,rhopot,n1i*n2i*n3d,nscatterarr,nspin,nspinor,spinsgn,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
-
-     !this section should be inserted into sumrho
-     if(nspinor==4) then
-        !        call calc_moments(iproc,nproc,norb,norbp,nvctrp*nproc,nspinor,psi)
-        allocate(tmred(nspin+1,2+ndebug),stat=i_stat)
-        call memocc(i_stat,tmred,'tmred',subname)
-        tmred=0.0d0
-        do ispin=1,nspin
-           tmred(ispin,1)=sum(rhopot(:,:,:,ispin))
-        end do
-        tmred(nspin+1,1)=sum(rhopot(:,:,:,:))
-        if (nproc>1) then
-           call MPI_ALLREDUCE(tmred(:,1),tmred(:,2),nspin+1,MPI_DOUBLE_PRECISION,&
-                MPI_SUM,MPI_COMM_WORLD,ierr)
-           tt=sqrt(tmred(2,2)**2+tmred(3,2)**2+tmred(4,2)**2)
-           if(iproc==0.and.tt>0.0d0) write(*,'(a,5f10.4)') '  Magnetic density orientation:', &
-                (tmred(ispin,2)/tmred(1,2),ispin=2,nspin)
-        else
-           tt=sqrt(tmred(2,1)**2+tmred(3,1)**2+tmred(4,1)**2)
-           if(iproc==0.and.tt>0.0d0) write(*,'(a,5f10.4)') '  Magnetic density orientation:',&
-                (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
-        end if
-        i_all=-product(shape(tmred))*kind(tmred)
-        deallocate(tmred,stat=i_stat)
-        call memocc(i_stat,i_all,'tmred',subname)
-     end if
      
      if(nspinor==4) then
-        !this wrapper can be inserted inside the poisson solver or in sumrho
+        !this wrapper can be inserted inside the poisson solver 
          call PSolverNC(geocode,'D',iproc,nproc,n1i,n2i,n3i,n3d,ixc,hxh,hyh,hzh,&
              rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
      else
@@ -626,7 +613,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
      energy=energybs-ehart+eexcu-vexcu+eion
-     energy_min=min(energy_min,energy)
 
      !check for convergence or whether max. numb. of iterations exceeded
      if (gnrm <= gnrm_cv .or. iter == itermax) then 
@@ -648,10 +634,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         exit wfn_loop 
      endif
 
-     call hpsitopsi(geocode,ids,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
+     call hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,bounds%kb,&
-          eval,ncong,mids,idsx_actual,ads,energy,energy_old,alpha,gnrm,scprsum,&
-          psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
+          eval,ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
+          alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
 
      tt=(energybs-scprsum)/scprsum
      if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
@@ -689,52 +675,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         end if
      end if
  
-     !add switch between DIIS and SD
-     !this section should be inserted into hpsitopsi
-     if (energy == energy_min .and. .not. switchSD) idiistol=0
-     if (energy > energy_min .and. idsx >0 .and. .not. switchSD) then
-        idiistol=idiistol+1
-     end if
-     if (idiistol > idsx .and. .not. switchSD) then
-        !the energy has not decreasing for too much steps, switching to SD for next steps
-        if (iproc ==0) write(*,'(1x,a,1pe9.2,a)')&
-                'WARNING: The energy value is growing (delta=',energy-energy_min,') switch to SD'
-        switchSD=.true.
-        i_all=-product(shape(psidst))*kind(psidst)
-        deallocate(psidst,stat=i_stat)
-        call memocc(i_stat,i_all,'psidst',subname)
-        i_all=-product(shape(hpsidst))*kind(hpsidst)
-        deallocate(hpsidst,stat=i_stat)
-        call memocc(i_stat,i_all,'hpsidst',subname)
-        i_all=-product(shape(ads))*kind(ads)
-        deallocate(ads,stat=i_stat)
-        call memocc(i_stat,i_all,'ads',subname)
-        idsx_actual=0
-        idiistol=0
-     end if
-
-     if ((energy == energy_min) .and. switchSD) then
-        idiistol=idiistol+1
-     end if
-     if (idiistol > idsx .and. switchSD) then
-        !restore the original DIIS
-        if (iproc ==0) write(*,'(1x,a,1pe9.2)')&
-                'WARNING: The energy value is now decreasing again, coming back to DIIS'
-        switchSD=.false.
-        idsx_actual=idsx
-        ids=0
-        idiistol=0
-
-        allocate(psidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
-        call memocc(i_stat,psidst,'psidst',subname)
-        allocate(hpsidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
-        call memocc(i_stat,hpsidst,'hpsidst',subname)
-        allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
-        call memocc(i_stat,ads,'ads',subname)
-        call razero(3*(idsx+1)**2,ads)
-     end if
-
-
   end do wfn_loop
   if (iter == itermax .and. iproc == 0 ) &
        write(*,'(1x,a)')'No convergence within the allowed number of minimization steps'
@@ -755,7 +695,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call last_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd,nvctrp,nspin,psi,hpsi,psit,&
        occup,evsum,eval)
 
-  if (abs(evsum-energybs).gt.1.d-8 .and. iproc==0) write(*,'(1x,a,2(1x,1pe20.13))')&
+  if (abs(evsum-energybs) > 1.d-8 .and. iproc==0) write(*,'(1x,a,2(1x,1pe20.13))')&
        'Difference:evsum,energybs',evsum,energybs
  
   if (nvirt > 0 .and. in%inputPsiId == 0) then
@@ -806,15 +746,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !  write all the wavefunctions into files
   if (in%output_wf) then
      !add flag for writing waves in the gaussian basis form
-     if (in%inputPsiId >= 10) then
-        !calculate the gaussian coefficients and check the accuracy of the expansion
-        !temporary allocation of the work array, workspace query in dsysv
+     if (in%gaussian_help) then
 
 !!$        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
 !!$
 !!$        call gaussian_orthogonality(iproc,nproc,norb,norbp,gbd,gaucoeffs)
         !write the coefficients and the basis on a file
-        call write_gaussian_information(iproc,nproc,norb,norbp,gbd,gaucoeffs,'wavefunctions.gau')
+        call write_gaussian_information(iproc,nproc,norb,norbp,gbd,gaucoeffs,eval,&
+             'wavefunctions.gau')
 
         !build dual coefficients
         call dual_gaussian_coefficients(norbp,gbd,gaucoeffs)

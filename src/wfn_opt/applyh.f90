@@ -297,9 +297,6 @@ subroutine applylocpotkinone_slab(n1,n2,n3, &
 
 END SUBROUTINE applylocpotkinone_slab
 
-
-
-
 subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   implicit none
   integer,intent(in)::n1,n2,n3
