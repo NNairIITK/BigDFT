@@ -331,7 +331,7 @@ interface
 
    subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
         nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
-        eval,ncong,ids,mids,idsx,idiistol,idsx_actual,switchSD,ads,energy,energy_old,energy_min,&
+        eval,ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
         alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
      use module_base
      use module_types
@@ -339,13 +339,12 @@ interface
      type(kinetic_bounds), intent(in) :: kbounds
      type(wavefunctions_descriptors), intent(in) :: wfd
      character(len=1), intent(in) :: geocode
-     integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncong,mids
+     integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncong,idsx,iter
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin,nspinor
      real(gp), intent(in) :: hx,hy,hz,energy,energy_old
      real(wp), dimension(norb), intent(in) :: eval
      real(gp), dimension(norb), intent(in) :: occup,spinsgn
-     logical, intent(inout) :: switchSD
-     integer, intent(inout) :: idiistol,idsx,ids,idsx_actual
+     integer, intent(inout) :: idsx_actual
      real(wp), intent(inout) :: alpha
      real(dp), intent(inout) :: gnrm,scprsum
      real(gp), intent(inout) :: energy_min

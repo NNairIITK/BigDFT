@@ -511,9 +511,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         end if
         stop
      end if
-     
-
-
+ 
      call restart_from_gaussians(geocode,iproc,nproc,norb,norbp,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,psi,gbd,gaucoeffs)
 
@@ -545,7 +543,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   enddo
 
   ! allocate arrays necessary for DIIS convergence acceleration
-  if (idsx.gt.0) then
+  if (idsx > 0) then
      allocate(psidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,psidst,'psidst',subname)
      allocate(hpsidst(nvctrp*nspinor*norbp*nproc*idsx+ndebug),stat=i_stat)
@@ -565,23 +563,23 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   energy_min=1.d10
   !set the infocode to the value it would have in the case of no convergence
   infocode=1
-  !logical control variable for switch DIIS-SD
-  switchSD=.false.
   !local variable for the diis history
   idsx_actual=idsx
 
-  ids=0
-  idiistol=0
+!!$  !logical control variable for switch DIIS-SD
+!!$  switchSD=.false.
+!!$  ids=0
+!!$  idiistol=0
 
   !end of the initialization part
   call timing(iproc,'INIT','PR')
 
   ! loop for wavefunction minimization
   wfn_loop: do iter=1,itermax
-     if (idsx > 0) then
-        mids=mod(ids,idsx)+1
-        ids=ids+1
-     end if
+!!$     if (idsx > 0) then
+!!$        mids=mod(ids,idsx)+1
+!!$        ids=ids+1
+!!$     end if
      if (iproc == 0) then 
         write(*,'(1x,a,i0)')&
            '---------------------------------------------------------------------------- iter= ',&
@@ -595,35 +593,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,  & 
           wfd,psi,rhopot,n1i*n2i*n3d,nscatterarr,nspin,nspinor,spinsgn,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
-
-     !this section should be inserted into sumrho
-     if(nspinor==4) then
-        !        call calc_moments(iproc,nproc,norb,norbp,nvctrp*nproc,nspinor,psi)
-        allocate(tmred(nspin+1,2+ndebug),stat=i_stat)
-        call memocc(i_stat,tmred,'tmred',subname)
-        tmred=0.0d0
-        do ispin=1,nspin
-           tmred(ispin,1)=sum(rhopot(:,:,:,ispin))
-        end do
-        tmred(nspin+1,1)=sum(rhopot(:,:,:,:))
-        if (nproc>1) then
-           call MPI_ALLREDUCE(tmred(:,1),tmred(:,2),nspin+1,MPI_DOUBLE_PRECISION,&
-                MPI_SUM,MPI_COMM_WORLD,ierr)
-           tt=sqrt(tmred(2,2)**2+tmred(3,2)**2+tmred(4,2)**2)
-           if(iproc==0.and.tt>0.0d0) write(*,'(a,5f10.4)') '  Magnetic density orientation:', &
-                (tmred(ispin,2)/tmred(1,2),ispin=2,nspin)
-        else
-           tt=sqrt(tmred(2,1)**2+tmred(3,1)**2+tmred(4,1)**2)
-           if(iproc==0.and.tt>0.0d0) write(*,'(a,5f10.4)') '  Magnetic density orientation:',&
-                (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
-        end if
-        i_all=-product(shape(tmred))*kind(tmred)
-        deallocate(tmred,stat=i_stat)
-        call memocc(i_stat,i_all,'tmred',subname)
-     end if
      
      if(nspinor==4) then
-        !this wrapper can be inserted inside the poisson solver or in sumrho
+        !this wrapper can be inserted inside the poisson solver 
          call PSolverNC(geocode,'D',iproc,nproc,n1i,n2i,n3i,n3d,ixc,hxh,hyh,hzh,&
              rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
      else
@@ -664,8 +636,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      call hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
           nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,bounds%kb,&
-          eval,ncong,ids,mids,idsx,idiistol,idsx_actual,switchSD,ads,&
-          energy,energy_old,energy_min,&
+          eval,ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
           alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
 
      tt=(energybs-scprsum)/scprsum
