@@ -107,7 +107,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,i4,ind2nd
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim,ispin,istden,istglo
   real(kind=8) :: ehartreeLOC,eexcuLOC,vexcuLOC
-  real(kind=8) :: scal,newoffset,correction,pot,factor
+  real(kind=8) :: scal,newoffset,pot,factor
   real(kind=8), dimension(:,:,:), allocatable :: zf
   real(kind=8), dimension(:,:,:,:), allocatable :: zfionxc
   integer, dimension(:,:), allocatable :: gather_arr
@@ -158,42 +158,13 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   iend=min((iproc+1)*md2/nproc,m2)
 
   call xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
-!!$  nxc=iend-istart
-!!$  if (ixc >= 11 .and. ixc <= 16 .and. geocode == 'F') then
-!!$     if (ixc==13) then
-!!$        nwbl=min(istart,nordgr)
-!!$        nwbr=min(m2-iend,nordgr)
-!!$        nxcl=1
-!!$        nxcr=1
-!!$     else
-!!$        if(istart<=nordgr) then
-!!$           nxcl=istart+1
-!!$           nwbl=0
-!!$        else
-!!$           nxcl=nordgr+1
-!!$           nwbl=min(nordgr,istart-nordgr)
-!!$        end if
-!!$        if(iend>=m2-nordgr+1) then
-!!$           nxcr=m2-iend+1
-!!$           nwbr=0
-!!$        else
-!!$           nxcr=nordgr+1
-!!$           nwbr=min(nordgr,m2-nordgr-iend)
-!!$        end if
-!!$     end if
-!!$  else !(for the moment GGA is not implemented in the non free BC)
-!!$     nwbl=0
-!!$     nwbr=0
-!!$     nxcl=1
-!!$     nxcr=1
-!!$  end if
   nwb=nxcl+nxc+nxcr-2
   nxt=nwbr+nwb+nwbl
 
   if (datacode=='G') then
      !starting address of rhopot in the case of global i/o
      i3start=istart+2-nxcl-nwbl
-     if(nspin==2.and.nproc>1) then
+     if(nspin==2 .and. nproc>1) then
         !allocation of an auxiliary array for avoiding the shift of the density
         allocate(rhopot_g(m1*m3*nxt*2+ndebug),stat=i_stat)
         call memocc(i_stat,rhopot_g,'rhopot_g',subname)
@@ -227,7 +198,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 !!$  print *,'        it goes from',i3start+nwbl+nxcl-1,'to',i3start+nxc-1
 
   if (istart+1 <= m2) then 
-       if(nspin==2.and.datacode=='G'.and.nproc>1) then
+       if(nspin==2 .and. datacode=='G' .and. nproc>1) then
           call xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
                ixc,hx,hy,hz,rhopot_G,pot_ion,sumpion,zf,zfionxc,&
                eexcuLOC,vexcuLOC,iproc,nproc,nspin)
@@ -235,7 +206,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
              rhopot(n01*n02*(i3start-1)+i1)=rhopot_G(i1)
           end do
           do i1=1,m1*m3*nxt
-             rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)=rhopot_G(i1)
+             rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)=rhopot_G(i1+m1*m3*nxt)
           end do
           i_all=-product(shape(rhopot_G))*kind(rhopot_G)
           deallocate(rhopot_G,stat=i_stat)
@@ -273,24 +244,19 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      scal=1.d0/real(n1*n2*n3,kind=8)
      call P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf(1,1,1),&
           scal,hx,hy,hz,offset)
-
-     correction=0.d0
      factor=0.5d0*hx*hy*hz
-     
   else if (geocode == 'S') then
      !only one power of hgrid 
      !factor of -4*pi for the definition of the Poisson equation
      scal=-16.d0*datan(1.d0)*hy/real(n1*n2*n3,kind=8)
      call S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
           scal,hx,hy,hz)!,ehartreeLOC)
-     correction=0.d0
      factor=0.5d0*hx*hy*hz
   else if (geocode == 'F') then
      !hgrid=max(hx,hy,hz)
      scal=hx*hy*hz/real(n1*n2*n3,kind=8)
      call F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
           scal)!,hgrid)!,ehartreeLOC)
-     correction=0.d0
      factor=0.5d0*hx*hy*hz
      
   else
@@ -319,7 +285,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
            ind2=(i3-1)*n01+ind3
            do i1=1,m1
               ind=i1+ind2
-              pot=zf(i1,i3,j2)+correction
+              pot=zf(i1,i3,j2)
               ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
               rhopot(ind)=pot
            end do
@@ -333,7 +299,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
            ind2=(i3-1)*n01+ind3
            do i1=1,m1
               ind=i1+ind2
-              pot=zf(i1,i3,j2)+correction
+              pot=zf(i1,i3,j2)
               ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
               rhopot(ind)=pot+zfionxc(i1,i3,j2,1)
            end do
@@ -351,7 +317,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               do i1=1,m1
                  ind2nd=i1+ind2+is_step
                  ind=ind+1
-                 pot=zf(i1,i3,j2)+correction
+                 pot=zf(i1,i3,j2)
                  ehartreeLOC=ehartreeLOC+rhopot(ind2nd)*pot
                  rhopot(ind)=pot+zfionxc(i1,i3,j2,2)
               end do
@@ -372,7 +338,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
            do i1=1,m1
               ind=i1+(i3-1)*n01+(i2-1)*n01*n02
               ind4=i1+(i3-1)*n01+(j2-1)*n01*n02+ind4sh
-              pot=zf(i1,i3,j2)+correction
+              pot=zf(i1,i3,j2)
               ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
               rhopot(ind)=pot
               pot_ion(ind4)=zfionxc(i1,i3,j2,1)
@@ -389,7 +355,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               do i1=1,m1
                  ind=i1+(i3-1)*n01+(i2-1)*n01*n02+is_step
                  ind4=i1+(i3-1)*n01+(j2-1)*n01*n02+is_step+ind4sh
-                 pot=zf(i1,i3,j2)+correction
+                 pot=zf(i1,i3,j2)
                  ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
                  pot_ion(ind4)=zfionxc(i1,i3,j2,2)
               end do

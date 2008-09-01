@@ -2,7 +2,7 @@
 ! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
 ! using  the previous iteration points phidst and the associated error 
 ! vectors (preconditione gradients) hpsidst
-subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  & 
+subroutine diisstp(norb,norbp,nproc,iproc,nspinor,  & 
                    ads,ids,mids,idsx,nvctrp,psit,psidst,hpsidst)
   use module_base
   implicit none
@@ -25,7 +25,7 @@ subroutine diisstp(norb,norbp,nproc,iproc, nspinor,  &
   call memocc(i_stat,rds,'rds',subname)
 
 ! set up DIIS matrix (upper triangle)
-  if (ids.gt.idsx) then
+  if (ids > idsx) then
 ! shift left up matrix
      do i=1,idsx-1
         do j=1,i
