@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 25/04/2008
+# Date: 01/09/2008
 #----------------------------------------------------------------------------
 
 import difflib
@@ -65,7 +65,9 @@ except IOError:
     sys.stderr.write("The file '%s' does not exist!\n" % file2)
     sys.exit(1)
 
-max_discrepancy = 1.1e-11
+#Maximum discrepancy between float results
+max_discrepancy = 1.1e-10
+
 maximum = 0.0
 context_discrepancy = ""
 context_lines = ""
