@@ -172,6 +172,8 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
        psi(1),psi(nvctr_c+1),psi_in,psir)
   
+  epot=0.0_gp
+
   if (GPUconv) then !convolution in cuda for the complete potential
 
      allocate(psi_cuda((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug),stat=i_stat)
@@ -211,7 +213,6 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      ! psir serves as a work array	   
      call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psi_in,psir,psi_out) 
 
-     epot=0.0_gp
      do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
         v=real(pot(i),gp)
         p=real(psir(i),gp)

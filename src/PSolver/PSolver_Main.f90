@@ -349,6 +349,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      end do
      !in the spin-polarised (distributed) case the potential is given contiguously
      if (nspin==2) then
+        if (datacode == 'D') ind4sh=-n01*n02*(nxt-nxc)
         do j2=1,nxc
            i2=j2+i3xcsh
            ind3=(i2-1)*n01*n02

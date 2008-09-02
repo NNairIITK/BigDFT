@@ -90,8 +90,8 @@ program PSchk
   !order of the scaling functions choosed
   itype_scf=16
 
-  ixc=11
-  geocode='F'
+  ixc=0
+  geocode='P'
 
 
   !calculate the kernel in parallel for each processor
@@ -115,7 +115,7 @@ program PSchk
 
   do ispden=1,2
   !then assign the value of the analytic density and the potential
-     call test_functions(geocode,0,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,&
+     call test_functions(geocode,ixc,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,&
           density,potential,rhopot,pot_ion)
      !calculate the Poisson potential in parallel
      !with the global data distribution (also for xc potential)
@@ -155,7 +155,7 @@ program PSchk
           density,potential,pot_ion,xc_pot,pkernel,rhopot)
   end if
 
-     if(iproc == 0) print *,'CIAO'
+     if (ixc == 0) exit
   end do
 
   i_all=-product(shape(pkernel))*kind(pkernel)
@@ -290,6 +290,7 @@ contains
 !!$          xc_pot(i+istpot-1+n01*n02*n3p)=xc_pot(i+istpot-1+n01*n02*n03)
 !!$          xc_pot(i+istpot-1+n01*n02*n03)=tt
 !!$       end do
+
        !toggle the components of xc_pot in the distributed case
        do i=1,n01*n02*n3p
           test_xc(i)=xc_pot(i+istpot-1+n01*n02*n3p)
@@ -477,7 +478,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,
      by=a
 
      !Initialisation of density and potential
-     !Normalisation
+     denval=0.d0 !value for keeping the density positive
      do i3=1,n03
         x3 = hz*real(i3-n03/2-1,kind=8)
         call functions(x3,az,bz,fz,fz2,ifz)
@@ -491,11 +492,12 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,
                  density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)*(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
               end do
               potential(i1,i2,i3) = -fx*fy*fz*16.d0*datan(1.d0)
+              denval=max(denval,-density(i1,i2,i3,1))
            end do
         end do
      end do
 
-     !if (ixc==0) denval=0.d0
+     if (ixc==0) denval=0.d0
 
   else if (trim(geocode) == 'F') then
 
@@ -543,12 +545,15 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,
 ! To ease the comparison between the serial and the parallel case we add a random pot_ion
 ! to the potential.
 
-  rhopot(:,:,:,:) = density(:,:,:,:) + denval
+  rhopot(:,:,:,:) = density(:,:,:,:) + denval +1.d-14
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01
            tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
            pot_ion(i1,i2,i3)=tt
+!!$           if (rhopot(i1,i2,i3,1) <= 0.d0) then
+!!$              print *,i1,i2,i3,rhopot(i1,i2,i3,1),denval
+!!$           end if
         end do
      end do
   end do
