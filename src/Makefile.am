@@ -160,18 +160,20 @@ libbigdft_a_LIBADD = profiling/time.o \
 	$(modules_objects)
 
 cluster_SOURCES = BigDFT.f90 
-cluster_LDFLAGS = $(LMPI)
+cluster_LDFLAGS = 
 cluster_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
+	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDFLAGS = $(LMPI)
+test_forces_LDFLAGS = 
 test_forces_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
+	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
@@ -179,6 +181,8 @@ memguess_SOURCES = memguess.f90
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
 	$(libs_cuda)
 
 

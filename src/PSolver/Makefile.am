@@ -75,9 +75,11 @@ AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@
 if USE_MPI
 mpi_source =
 mpi_include =
+LMPI = @MPI_LDFLAGS@
 else
 mpi_source = ../MPIfake.f90
 mpi_include = mpif.h
+LMPI = 
 endif
 
 libpoissonsolver_a_SOURCES = \
@@ -86,15 +88,17 @@ libpoissonsolver_a_SOURCES = \
 libpoissonsolver_a_LIBADD = 
 
 PSchk_SOURCES = PSchk.f90 timing.f90 base.f90 $(mpi_source)
-PSchk_LDFLAGS = $(LMPI)
+PSchk_LDFLAGS = 
 PSchk_LDADD = libpoissonsolver.a \
 	ABINIT-common/libABINIT.a \
+	$(LMPI) \
 	@MPI_LIBS@
 
 PSolver_SOURCES = PSolver.f90 timing.f90 base.f90 $(mpi_source)
-PSolver_LDFLAGS = $(LMPI)
+PSolver_LDFLAGS = 
 PSolver_LDADD = libpoissonsolver.a \
 	ABINIT-common/libABINIT.a \
+	$(LMPI) \
 	@MPI_LIBS@
 
 

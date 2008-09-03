@@ -93,6 +93,8 @@ program PSchk
   ixc=0
   geocode='P'
 
+  !to be fixed only in the periodic case
+  offset=0.d0
 
   !calculate the kernel in parallel for each processor
   call createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,pkernel)
@@ -116,11 +118,17 @@ program PSchk
   do ispden=1,2
   !then assign the value of the analytic density and the potential
      call test_functions(geocode,ixc,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,&
-          density,potential,rhopot,pot_ion)
+          density,potential,rhopot,pot_ion,offset)
      !calculate the Poisson potential in parallel
      !with the global data distribution (also for xc potential)
+
+     print *,'old',sum(potential(1:n01*n02*n03))*hx*hy*hz,offset
+
      call PSolver(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
           rhopot,pkernel,xc_pot,ehartree,eexcu,vexcu,offset,.false.,ispden)
+
+     print *,'new',sum(rhopot(1:n01*n02*n03))*hx*hy*hz
+
      if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies:',ehartree,eexcu,vexcu
      if (iproc == 0) then
         !compare the values of the analytic results
@@ -399,14 +407,14 @@ end subroutine compare
 ! function in the isolated direction and an explicitly periodic function in the periodic ones.
 ! Beware of the high-frequency components that may falsify the results when hgrid is too high.
 subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,&
-     density,potential,rhopot,pot_ion)
+     density,potential,rhopot,pot_ion,offset)
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: n01,n02,n03,ixc,nspden
   real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz
+  real(kind=8), intent(out) :: offset
   real(kind=8), dimension(n01,n02,n03), intent(out) :: pot_ion,potential
   real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: density,rhopot
-
   !local variables
   integer :: i1,i2,i3,nu,ifx,ify,ifz,i
   real(kind=8) :: x,x1,x2,x3,y,length,denval,pi,a2,derf,hgrid,factor,r,r2
@@ -546,11 +554,13 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,
 ! to the potential.
 
   rhopot(:,:,:,:) = density(:,:,:,:) + denval +1.d-14
+  offset=0.d0
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01
            tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
            pot_ion(i1,i2,i3)=tt
+           offset=offset+potential(i1,i2,i3)
 !!$           if (rhopot(i1,i2,i3,1) <= 0.d0) then
 !!$              print *,i1,i2,i3,rhopot(i1,i2,i3,1),denval
 !!$           end if
@@ -558,6 +568,9 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,
      end do
   end do
   if (denval /= 0.d0) density=rhopot
+  offset=offset*hx*hy*hz
+
+  print *,'offset',offset
 
 end subroutine test_functions
 

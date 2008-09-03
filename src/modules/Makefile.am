@@ -15,7 +15,7 @@ modules_source = base.f90 \
 	interfaces.f90 \
 	$(GPUBLAS_INTERFACE)
 
-AM_FCFLAGS = -I. -I$(srcdir)
+AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@
 
 noinst_LIBRARIES = libmodules.a
 
