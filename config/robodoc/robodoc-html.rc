@@ -1,0 +1,126 @@
+items:
+    NAME
+    COPYRIGHT
+    USAGE
+    FUNCTION
+    DESCRIPTION
+    AUTHOR
+    INPUTS
+    OUTPUT
+    SIDE EFFECTS
+    RETURN VALUE
+    EXAMPLE
+    SEE ALSO
+    USES
+    USED BY
+    COPYRIGHT
+source items:
+    SOURCE
+ignore items:
+options:
+    --doc ./www
+    --html
+    --multidoc
+    --sections
+    --sectionnameonly
+    --index
+    --tabsize 2
+    --toc
+    --nopre
+    --documenttitle "BigDFT - API"
+    --syntaxcolors
+headertypes:
+    g  "Categories"  robo_main_cat
+    e  "Tutorials"  robo_tuto_cat
+ignore files:
+    ChangeLog
+    Makefile*
+    AUTHORS
+    README
+    COPYING
+    INSTALL
+    NEWS
+    config
+    doc
+    tests
+    tmp*
+    *.log
+    *.o
+    *.a
+    *.MOD
+    *.mod
+    *~
+    *.htm*
+    *.rc
+    .svn
+    autom4te.cache
+accept files:
+    *.f90
+    *.F90
+    *.h
+    architecture
+header markers:
+    !!****
+remark markers:
+    !!
+end markers:
+    !!***
+source line comments:
+    !
+keywords:
+    if
+    do
+    intent
+    integer
+    character
+    double
+    precision
+    real
+    logical
+    subroutine
+    function
+    end
+    type
+    optional
+    call
+    pointer
+    null
+    contains
+    include
+    module
+    use
+    implicit
+    none
+    parameter
+    return
+    present
+    then
+    true
+    false
+    else
+    in
+    out
+    inout
+    private
+    public
+    dimension
+    allocatable
+    trim
+    len
+    and
+    or
+    not
+    read
+    write
+    iostat
+    allocate
+    allocated
+    associated
+    deallocate
+    select
+    case
+    iand
+    ior
+    program
+    __FILE__
+    __LINE__
