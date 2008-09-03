@@ -16,9 +16,9 @@ SOURCES_MOD = PSolver_Main.f90 \
 	scaling_function.f90
 
 OTHERS = Makefile.PSolver \
-	PSchk.f90 \
-	PSolver.f90 \
-	PSexercise.f90 \
+	PS_Check.f90 \
+	PS_Program.f90 \
+	PS_Exercise.f90 \
 	bench.csh \
 	perfdata.t \
 	acc_F.20-100.ref \
@@ -27,11 +27,12 @@ OTHERS = Makefile.PSolver \
 	README \
 	INSTALL \
 	COPYING \
+	SUBDIRS \
 	TODO \
 	$(EXERCISE)
 
 EXERCISE = Exercise/plot.gnuplot \
-	Exercise/PSexercise.tex \
+	Exercise/PS_Exercise.tex \
 	Exercise/accF.pdf \
 	Exercise/accS.pdf \
 	Exercise/fandg.pdf \
@@ -67,7 +68,7 @@ endif
 
 SUBDIRS = $(sub_dirs_xc) 
 
-check_PROGRAMS = PSchk PSolver
+check_PROGRAMS = PS_Check PS_Program PS_Exercise
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ 
 
@@ -85,18 +86,21 @@ libpoissonsolver_a_SOURCES = \
 
 libpoissonsolver_a_LIBADD = 
 
-PSchk_SOURCES = PSchk.f90 timing.f90 base.f90 $(mpi_source)
-PSchk_LDFLAGS = $(LMPI)
-PSchk_LDADD = libpoissonsolver.a \
+PS_Check_SOURCES = PS_Check.f90 timing.f90 base.f90 $(mpi_source)
+PS_Check_LDFLAGS = $(LMPI)
+PS_Check_LDADD = libpoissonsolver.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
-PSolver_SOURCES = PSolver.f90 timing.f90 base.f90 $(mpi_source)
-PSolver_LDFLAGS = $(LMPI)
-PSolver_LDADD = libpoissonsolver.a \
+PS_Program_SOURCES = PS_Program.f90 timing.f90 base.f90 $(mpi_source)
+PS_Program_LDFLAGS = $(LMPI)
+PS_Program_LDADD = libpoissonsolver.a \
 	ABINIT-common/libABINIT.a \
 	@MPI_LIBS@
 
+PS_Exercise_SOURCES = PS_Exercise.f90 timing.f90 base.f90 
+PS_Exercise_LDADD = libpoissonsolver.a \
+	ABINIT-common/libABINIT.a
 
 
 CLEANFILES = mpif.h POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@ \
@@ -113,5 +117,5 @@ poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 
 Poisson_Solver.o : base.o $(mpi_include) $(SOURCES_MOD)
 
-PSchk.o PSolver.o: Poisson_Solver.o
+PS_Check.o PSolver.o: Poisson_Solver.o
 

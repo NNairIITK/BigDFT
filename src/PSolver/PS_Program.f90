@@ -1,6 +1,6 @@
-!!****p* BigDFT/Poisson_Solver
+!!****p* PSolver/PSolver_Program
 !! NAME
-!!   Poisson_Solver
+!!   PSolver_Program
 !!
 !! FUNCTION
 !!    Program test for Poisson
@@ -23,7 +23,7 @@
 !!
 !! SOURCE
 !!
-program PoissonSolver
+program PSolver_Program
 
   use module_base
   use Poisson_Solver
@@ -298,11 +298,9 @@ program PoissonSolver
   !finalize memory counting
   call memocc(0,0,'count','stop')
 
-  call MPI_FINALIZE(ierr)  
+  call MPI_FINALIZE(ierr)
 
-end program PoissonSolver
-!!***
-
+contains
 
 subroutine regroup_data(geocode,n01,n02,n03,hx,hy,hz,max_diff,diff_parser)
   implicit none
@@ -714,5 +712,8 @@ end subroutine functions
 !!$  print *,'exiting...'
 !!$  stop
 !!$end subroutine leave_new
+
+end program PSolver_Program
+!!***
 
 

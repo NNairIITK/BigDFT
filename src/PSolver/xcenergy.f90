@@ -1,6 +1,6 @@
-!!****f* BigDFT/xcenergy
+!!****f* PSolver/xc_energy
 !! NAME
-!!    xcenergy
+!!    xc_energy
 !!
 !! FUNCTION
 !!    Calculate the XC terms from the given density in a distributed way.
@@ -507,7 +507,7 @@ end subroutine xc_energy
 !!***
 
 
-!!****f* BigDFT/vxcpostprocessing
+!!****f* PSolver/vxcpostprocessing
 !! NAME
 !! vxcpostprocessing
 !!

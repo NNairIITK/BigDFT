@@ -1,6 +1,6 @@
-!!****p* BigDFT/PSchk
+!!****p* PSolver/PS_Check
 !! NAME
-!!   PSchk
+!!   PS_Check
 !!
 !! FUNCTION
 !!    Performs a check of the Poisson Solver suite by running with different regimes
@@ -23,7 +23,7 @@
 !!
 !! SOURCE
 !!
-program PSchk
+program PS_Check
 
   use module_base
   use Poisson_Solver
@@ -31,7 +31,7 @@ program PSchk
   implicit none
   !include 'mpif.h'
   !Length of the box
-  character(len=*), parameter :: subname='PSchk'
+  character(len=*), parameter :: subname='PS_Check'
   real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
   real(kind=8), parameter :: acell = 10.d0
   character(len=50) :: chain
@@ -310,7 +310,7 @@ contains
 
   end subroutine compare_with_reference
 
-end program PSchk
+end program PS_Check
 !!***
 
 

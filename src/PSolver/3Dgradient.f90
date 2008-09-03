@@ -1,4 +1,4 @@
-!!****f* BigDFT/wb_correction
+!!****f* PSolver/wb_correction
 !! NAME
 !! wb_correction
 !!

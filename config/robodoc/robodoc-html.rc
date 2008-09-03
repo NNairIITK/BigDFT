@@ -1,24 +1,26 @@
 items:
+    AUTHOR
     NAME
     COPYRIGHT
+    CREATION DATE
     USAGE
     FUNCTION
     DESCRIPTION
-    AUTHOR
     INPUTS
     OUTPUT
     SIDE EFFECTS
     RETURN VALUE
     EXAMPLE
     SEE ALSO
+    SYNOPSIS
     USES
     USED BY
-    COPYRIGHT
+    WARNING
 source items:
     SOURCE
 ignore items:
 options:
-    --doc ./www
+    --src src
     --html
     --multidoc
     --sections
@@ -30,8 +32,12 @@ options:
     --documenttitle "BigDFT - API"
     --syntaxcolors
 headertypes:
-    g  "Categories"  robo_main_cat
+    d "Directories" robo_directories
     e  "Tutorials"  robo_tuto_cat
+    f "Routines" robo_routines
+    h  "Include files" robo_includes
+    m "Modules"  robo_modules
+    p "Programs" robo_programs
 ignore files:
     ChangeLog
     Makefile*
@@ -58,7 +64,8 @@ accept files:
     *.f90
     *.F90
     *.h
-    architecture
+    *.inc
+    SUBDIRS
 header markers:
     !!****
 remark markers:
@@ -70,6 +77,7 @@ source line comments:
 keywords:
     if
     do
+    enddo
     intent
     integer
     character

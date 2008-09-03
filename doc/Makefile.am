@@ -9,6 +9,7 @@ EXTRA_DIST = \
 
 # doc/robodoc-html will contain all the documnentation files made by robodoc
 robodoc:
-	robodoc --rc $(top_srcdir)/config/robodoc/robodoc-html.rc \
-		    --src $(top_srcdir)/src \
-			--css $(top_srcdir)/config/robodoc/robodoc.css
+	export OLDPWD=`pwd`; cd $(top_srcdir); \
+	pwd; robodoc --rc config/robodoc/robodoc-html.rc\
+			--css ./config/robodoc/robodoc.css\
+	        --doc $${OLDPWD}/www

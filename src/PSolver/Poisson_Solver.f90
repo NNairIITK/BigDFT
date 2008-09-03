@@ -1,4 +1,4 @@
-!!****m* BigDFT/Poisson_Solver
+!!****m* PSolver/Poisson_Solver
 !! NAME
 !!    Poisson_Solver
 !!
@@ -92,3 +92,4 @@ contains
   include 'scaling_function.f90'
 
 end module Poisson_Solver
+!!***

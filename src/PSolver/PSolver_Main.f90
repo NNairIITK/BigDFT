@@ -1,4 +1,4 @@
-!!****f* BigDFT/PSolver
+!!****f* PSolver/PSolver
 !! NAME
 !!    PSolver
 !!
@@ -456,7 +456,7 @@ end subroutine PSolver
 !!***
 
 
-!!****f* BigDFT/PSolverNC
+!!****f* PSolver/PSolverNC
 !! NAME
 !!    PSolverNC
 !!
@@ -649,7 +649,7 @@ end subroutine PSolverNC
 !!***
 
 
-!!****f* BigDFT/PS_dim4allocation
+!!****f* PSolver/PS_dim4allocation
 !! NAME
 !!    PS_dim4allocation
 !!
@@ -774,7 +774,7 @@ end subroutine PS_dim4allocation
 !!***
 
 
-!!****f* BigDFT/xc_dimensions
+!!****f* PSolver/xc_dimensions
 !! NAME
 !!   xc_dimensions
 !!
@@ -862,7 +862,7 @@ end subroutine xc_dimensions
 !!***
 
 
-!!****f* BigDFT/P_FFT_dimensions
+!!****f* PSolver/P_FFT_dimensions
 !! NAME
 !!   P_FFT_dimensions
 !!
@@ -961,7 +961,7 @@ end subroutine P_FFT_dimensions
 !!***
 
 
-!!****f* BigDFT/S_FFT_dimensions
+!!****f* PSolver/S_FFT_dimensions
 !! NAME
 !!   S_FFT_dimensions
 !!
@@ -1067,7 +1067,7 @@ end subroutine S_FFT_dimensions
 !!***
 
 
-!!****f* BigDFT/F_FFT_dimensions
+!!****f* PSolver/F_FFT_dimensions
 !! NAME
 !!   F_FFT_pardimensions
 !!

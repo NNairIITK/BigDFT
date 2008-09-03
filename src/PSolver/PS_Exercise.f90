@@ -16,7 +16,7 @@
    call getarg(1,chain)
    if(trim(chain)=='') then
       write(*,'(1x,a)')&
-           'Usage: ./PSexercise solvertype hgrid isf_order'
+           'Usage: ./PS_Exercise solvertype hgrid isf_order'
       stop
    end if
    read(unit=chain,fmt=*) solvertype

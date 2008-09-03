@@ -1,4 +1,4 @@
-!!****f* BigDFT/P_PoissonSolver
+!!****f* PSolver/P_PoissonSolver
 !! NAME
 !!   P_PoissonSolver
 !!
@@ -526,7 +526,7 @@ subroutine P_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,z
 end subroutine P_unmpiswitch_downcorn
 
 
-!!****f* BigDFT/P_fill_downcorn
+!!****f* PSolver/P_fill_downcorn
 !! NAME
 !!   P_fill_downcorn
 !!
@@ -602,7 +602,7 @@ end subroutine P_fill_upcorn
 !!***
 
 
-!!****f* BigDFT/scramble_P
+!!****f* PSolver/scramble_P
 !! NAME
 !!   scramble_P
 !!
@@ -653,7 +653,7 @@ end subroutine scramble_P
 !!***
 
 
-!!****f* BigDFT/unscramble_P
+!!****f* PSolver/unscramble_P
 !! NAME
 !!   unscramble_P
 !!
@@ -713,7 +713,7 @@ end subroutine unscramble_P
 !!***
 
 
-!!****f* BigDFT/P_multkernel
+!!****f* PSolver/P_multkernel
 !! NAME
 !!   P_multkernel
 !!
@@ -783,7 +783,7 @@ end subroutine P_multkernel
 !!***
 
 
-!!****f* BigDFT/multkernel
+!!****f* PSolver/multkernel
 !! NAME
 !!   multkernel
 !!
@@ -867,7 +867,7 @@ end subroutine multkernel
 !!!HERE POT MUST BE THE KERNEL (BEWARE THE HALF DIMENSION)
 
 
-!!****f* BigDFT/S_PoissonSolver
+!!****f* PSolver/S_PoissonSolver
 !! NAME
 !!   PoissonSolver
 !!
@@ -1447,7 +1447,7 @@ subroutine S_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,z
 end subroutine S_unmpiswitch_downcorn
 
 
-!!****f* BigDFT/unfill_downcorn
+!!****f* PSolver/unfill_downcorn
 !! NAME
 !!   unfill_downcorn
 !!
@@ -1538,7 +1538,7 @@ subroutine halfill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
 end subroutine halfill_upcorn
 
 
-!!****f* BigDFT/scramble_unpack
+!!****f* PSolver/scramble_unpack
 !! NAME
 !!   scramble_unpack
 !!
@@ -1620,7 +1620,7 @@ end subroutine scramble_unpack
 !!***
 
  
-!!****f* BigDFT/unscramble_pack
+!!****f* PSolver/unscramble_pack
 !! NAME
 !!   unscramble_pack
 !!
@@ -1692,7 +1692,7 @@ end subroutine unscramble_pack
 !!***
 
 
-!!****f* BigDFT/F_PoissonSolver
+!!****f* PSolver/F_PoissonSolver
 !! NAME
 !!   F_PoissonSolver
 !!
@@ -2274,7 +2274,7 @@ subroutine unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,zmp
 end subroutine unmpiswitch_downcorn
 
 
-!!****f* BigDFT/F_unfill_downcorn
+!!****f* PSolver/F_unfill_downcorn
 !! NAME
 !!   F_unfill_downcorn
 !!
@@ -2341,7 +2341,7 @@ subroutine F_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
 end subroutine F_unfill_downcorn
 !!***
 
-!!****f* BigDFT/W_PoissonSolver
+!!****f* PSolver/W_PoissonSolver
 !! NAME
 !!   W_PoissonSolver
 !!

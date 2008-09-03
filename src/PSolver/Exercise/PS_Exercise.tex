@@ -77,15 +77,15 @@ The parameters which regulate the accuracy of the results are two: the grid spac
 We will then show that the Green's function formalism is such that energies of charged systems can be carried out easily and accurately, which is not possible with a fully periodic approach.
 For simplicity, all our systems will be placed inside a cubic box of length $L$.
 
-\subsection*{An example of the use of the Poisson Solver: the file \texttt{PSexercise.f90}}
-An example of the use of the Poisson Solver can be found in the file \texttt{PSexercise.f90}.
+\subsection*{An example of the use of the Poisson Solver: the file \texttt{PS\_Exercise.f90}}
+An example of the use of the Poisson Solver can be found in the file \texttt{PS\_Exercise.f90}.
 From this file we create an executable that will launch the Poisson solver for two choices of analytic function, one for Isolated and the other for Surfaces boundary conditions.
 Let us see how to use it.
 
 The important instructions on how to run the code should be typed in the command line.
 The typical usage is
 \begin{verbatim}
- >./PSexercise <solvertype> <hgrid> <isf_order>
+ >./PS_Exercise <solvertype> <hgrid> <isf_order>
 \end{verbatim}
 
 Where the above arguments signify:
@@ -108,7 +108,7 @@ since a fully periodic poisson solver is not able to determine it.
 
 For example, by typing
 \begin{verbatim}
- > ./PSexercise F 0.3 14
+ > ./PS_Exercise F 0.3 14
 \end{verbatim}
 you should get the output
 \begin{verbatim}
