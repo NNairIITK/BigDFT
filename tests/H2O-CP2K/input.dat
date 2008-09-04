@@ -13,7 +13,7 @@
 50       itermax: maximum number of wavefunction optimizations
 15       ncong: number of conjugate gradient iterations for the solution of the preconditioning equation
 6        idsx: length of the diis history. if =0 steepest descent
-.false.   calc_tail: calculate tail for better energy
+.true.   calc_tail: calculate tail for better energy
 7.       rbuf:   length of the tail to be added (in atomic units)
 30       ncongt: number of conjugate gradient iterations for the calculation of tail
 1 0      nspin=1 non-spin polarization, mpol=total magnetic moment

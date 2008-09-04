@@ -171,7 +171,8 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
   call uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
        psi(1),psi(nvctr_c+1),psi_in,psir)
-  
+
+  ! Initialisation of potential energy  
   epot=0.0_gp
 
   if (GPUconv) then !convolution in cuda for the complete potential
@@ -207,7 +208,7 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      i_all=-product(shape(v_cuda))
      deallocate(v_cuda,stat=i_stat)
      call memocc(i_stat,i_all,'v_cuda',subname)
-
+     
   else
 
      ! psir serves as a work array	   

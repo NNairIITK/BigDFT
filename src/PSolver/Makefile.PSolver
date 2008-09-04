@@ -23,12 +23,12 @@ F77 = $(FC) -O2
 #F95 = ompif90 -fbounds-check -O 
 #F77 = ompif90 -fbounds-check -O 
 
-all: PSolver PSex PSchk
+all: PS_Program PS_Exercise PS_Check
 
 clean:
 	\rm -f *.o ${PROGRAMS} *~ *.log *.aux fort.* mpif.h *.mod \
-	ABINIT-common/*.f90 ABINIT-common/*.o ABINIT-common/*.mod PSexercise/*.aux PSexercise/*.log \
-	PSexercise/PSexercise.pdf
+	ABINIT-common/*.f90 ABINIT-common/*.o ABINIT-common/*.mod Exercise/*.aux Exercise/*.log \
+	Exercise/PS_Exercise.pdf
 
 cleanall:
 	make clean
@@ -38,26 +38,26 @@ tar:
 	tar czvf solver.tgz $(SOURCES_ABINIT) $(SOURCES_F77) $(SOURCES_F90) $(INCLUDES) $(OTHERS)
 
 PROGRAMS = \
-	PSolver \
-	PSexercise \
-	PSchk
+	PS_Program \
+	PS_Exercise \
+	PS_Chek
 
 SOURCES_ABINIT = ABINIT-common/defs_basis.F90 \
-        ABINIT-common/defs_datatypes.F90 \
-        ABINIT-common/defs_xc.F90 \
-        ABINIT-common/drivexc.F90 \
+    ABINIT-common/defs_datatypes.F90 \
+    ABINIT-common/defs_xc.F90 \
+    ABINIT-common/drivexc.F90 \
 	$(OTHER_ABINIT)
 
 OTHER_ABINIT=  ABINIT-common/xctetr.F90 \
-        ABINIT-common/xcwign.F90 \
-        ABINIT-common/xcxalp.F90 \
-        ABINIT-common/xchelu.F90 \
-        ABINIT-common/xcpzca.F90 \
-        ABINIT-common/xcspol.F90 \
-        ABINIT-common/xchcth.F90 \
-        ABINIT-common/xclb.F90 \
-        ABINIT-common/xcpbe.F90 \
-        ABINIT-common/invcb.F90 \
+    ABINIT-common/xcwign.F90 \
+    ABINIT-common/xcxalp.F90 \
+    ABINIT-common/xchelu.F90 \
+    ABINIT-common/xcpzca.F90 \
+    ABINIT-common/xcspol.F90 \
+    ABINIT-common/xchcth.F90 \
+    ABINIT-common/xclb.F90 \
+    ABINIT-common/xcpbe.F90 \
+    ABINIT-common/invcb.F90 \
 	ABINIT-common/size_dvxc.F90 
 
 SOURCES_F90 = \
@@ -89,10 +89,10 @@ SOURCES_MOD = PSolver_Main.f90 \
 	scaling_function.f90
 
 OTHERS = Makefile \
-	PSchk.f90 \
+	PS_Check.f90 \
+	PS_Exercise.f90 \
+	PS_Program.f90 \
 	MPIfake.f90 \
-	PSolver.f90 \
-	PSexercise.f90 \
 	bench.csh \
 	perfdata.t \
 	acc_F.20-100.ref \
@@ -106,7 +106,7 @@ OTHERS = Makefile \
 	$(EXERCISE)
 
 EXERCISE = Exercise/plot.gnuplot \
-	Exercise/PSexercise.tex \
+	Exercise/PS_Exercise.tex \
 	Exercise/accF.pdf \
 	Exercise/accS.pdf \
 	Exercise/fandg.pdf \
@@ -142,20 +142,20 @@ COMMON =  $(OBJECTS_ABINIT) \
 	$(OBJECTS_F90) \
 	dcopy.o
 
-PSolver: $(COMMON) $(INCLUDES) PSolver.f90 
-	$(F95) -o $@ $(COMMON) PSolver.f90
+PS_Program: $(COMMON) $(INCLUDES) PS_Program.f90 
+	$(F95) -o $@ $(COMMON) PS_Program.f90
 
-PSexercise: $(COMMON) $(INCLUDES) PSexercise.f90
-	$(F95) -o $@ $(COMMON) PSexercise.f90
-	cd Exercise &&	pdflatex PSexercise.tex && pdflatex PSexercise.tex && rm *.aux *.log && mv ../$@ .
+PS_Exercise: $(COMMON) $(INCLUDES) PS_Exercise.f90
+	$(F95) -o $@ $(COMMON) PS_Exercise.f90
+	cd Exercise &&	pdflatex PS_Exercise.tex && pdflatex PS_Exercise.tex && rm *.aux *.log && mv ../$@ .
 	@echo "#-To better understand how the Poisson Solver works-#"
 	@echo "# To do the exercise, type:                         #"
 	@echo "#  > cd Exercise                                    #"
-	@echo "# And follow the instructions in PSexercise.pdf     #"
+	@echo "# And follow the instructions in PS_Exercise.pdf    #"
 	@echo "#####################################################"
 
-PSchk: $(COMMON) $(INCLUDES) PSchk.f90
-	$(F95) -o $@ $(COMMON) PSchk.f90
+PS_Check: $(COMMON) $(INCLUDES) PS_Check.f90
+	$(F95) -o $@ $(COMMON) PS_Check.f90
 
 Poisson_Solver.o : $(mpi_include) $(SOURCES_MOD)
 
