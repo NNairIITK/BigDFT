@@ -147,15 +147,15 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
      mu3=floor((rxyz(3,iat)+rad)/hz + eps_mach)
      !for Free BC, there must be no incoherences with the previously calculated delimiters
      if (geocode == 'F') then
-        if (ml1.lt.nl1) stop 'ml1 < nl1'
-        if (ml2.lt.nl2) stop 'ml2 < nl2'
-        if (ml3.lt.nl3) stop 'ml3 < nl3'
+        if (ml1 < nl1) stop 'ml1 < nl1'
+        if (ml2 < nl2) stop 'ml2 < nl2'
+        if (ml3 < nl3) stop 'ml3 < nl3'
 
-        if (mu1.gt.nu1) stop 'mu1 > nu1'
-        if (mu2.gt.nu2) stop 'mu2 > nu2'
-        if (mu3.gt.nu3) stop 'mu3 > nu3'
+        if (mu1 > nu1) stop 'mu1 > nu1'
+        if (mu2 > nu2) stop 'mu2 > nu2'
+        if (mu3 > nu3) stop 'mu3 > nu3'
      end if
-     !the surfaces case is lacking here, what follows works always provided the check before
+     !what follows works always provided the check before
      do i3=ml3,mu3
         dz2=(real(i3,gp)*hz-rxyz(3,iat))**2
         j3=modulo(i3,n3+1)
@@ -165,7 +165,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
            do i1=ml1,mu1
               j1=modulo(i1,n1+1)
               dx=real(i1,gp)*hx-rxyz(1,iat)
-              if (dx**2+(dy2+dz2).le.rad**2) then 
+              if (dx**2+(dy2+dz2) <= rad**2) then 
                  logrid(j1,j2,j3)=.true.
               endif
            enddo

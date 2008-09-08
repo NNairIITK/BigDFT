@@ -3,7 +3,7 @@ subroutine hit_with_kernel(x,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,c)
   ! hits the input array x with the kernel
   ! ((-1/2\Delta+C)_{ij})^{-1}
   implicit none
-  integer,intent(in)::n1,n2,n3,nd1,nd2,nd3
+  integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3
   real*8,intent(in)::kern_k1(0:n1)
   real*8,intent(in)::kern_k2(0:n2)
   real*8,intent(in)::kern_k3(0:n3)

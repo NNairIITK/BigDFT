@@ -277,7 +277,7 @@ end subroutine projectors_derivatives
 
 
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and adds them to the force array
-!recalculate the projectors at the end id refill flag is .false.
+!recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
      norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,fsep,refill)
   use module_base
