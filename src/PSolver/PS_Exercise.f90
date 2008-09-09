@@ -184,7 +184,7 @@
    real(kind=8), dimension(n1,n2,n3), intent(out) :: rhoF,potF,rhoS,potS,psi
    !local variables
    integer :: i1,i2,i3
-   real(kind=8) :: a_gauss,a2,pi,factor,offset,x,y,z,r,r2,fx,fy,fz,fx2,fy2,fz2,zero,norm
+   real(kind=8) :: a_gauss,a2,pi,factor,offset,x,y,z,r,r2,fx,fy,fz,fx2,fy2,fz2,zero,norm,derf
    !assign the function that must be analytically compared
    pi=4.d0*datan(1.d0)
    a_gauss=1.d0/sqrt(mu)
@@ -205,10 +205,10 @@
       do i2=1,n2
          y=real(i2,kind=8)*hgrid-0.5d0*length
          !call functions(y,1.d0/(2.d0*sigma**2),zero,fy,fy2,2)
-         call functions(y,length,zero,fy,fy2,6)
+         call functions(y,length,zero,fy,fy2,5)
          do i1=1,n1
             x=real(i1,kind=8)*hgrid-0.5d0*length
-            call functions(x,length,zero,fx,fx2,5)
+            call functions(x,length,zero,fx,fx2,6)
             r2=x**2+y**2+z**2
             rhoF(i1,i2,i3)=exp(-r2/a2)
             rhoS(i1,i2,i3)=fx2*fy*fz+fx*fy2*fz+fx*fy*fz2
@@ -275,7 +275,7 @@ subroutine functions(x,a,b,f,f2,whichone)
   real(kind=8), intent(out) :: f,f2
   !local variables
   real(kind=8) :: r,r2,y,yp,ys,factor,pi,g,h,g1,g2,h1,h2
-  real(kind=8) :: length,frequency,nu,sigma,agauss
+  real(kind=8) :: length,frequency,nu,sigma,agauss,derf
 
   pi = 4.d0*datan(1.d0)
   select case(whichone)

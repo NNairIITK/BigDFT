@@ -620,7 +620,19 @@ subroutine pregion_size(geocode,rxyz,radius,rmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,
      if (nu1 > n1)   stop 'nu1: projector region outside cell'
      if (nu2 > n2)   stop 'nu2: projector region outside cell'
      if (nu3 > n3)   stop 'nu3: projector region outside cell'
-  else
+  else if (geocode == 'S') then
+     !correct the extremes if they run outside the box
+     if (nl1 < 0 .or. nu1 > n1) then
+        nl1=0
+        nu1=n1
+     end if
+     if (nl2 < 0)   stop 'nl2: projector region outside cell'
+     if (nu2 > n2)   stop 'nu2: projector region outside cell'
+     if (nl3 < 0 .or. nu3 > n3) then
+        nl3=0
+        nu3=n3
+     end if
+  else if (geocode == 'P') then
      !correct the extremes if they run outside the box
      if (nl1 < 0 .or. nu1 > n1) then
         nl1=0

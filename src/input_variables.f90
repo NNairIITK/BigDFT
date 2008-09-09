@@ -24,7 +24,7 @@ subroutine print_logo()
   write(*,'(23x,a)')' D        D     F         T    T    '  
   write(*,'(23x,a)')'          D     F        T     T    ' 
   write(*,'(23x,a)')'         D               T    T     '
-  write(*,'(23x,a)')'    DDDDD       F         TTTT                     (Ver 1.0.1)'
+  write(*,'(23x,a)')'    DDDDD       F         TTTT                     (Ver 1.1.9)'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
   write(*,'(1x,a)')&
@@ -270,6 +270,7 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
            in%geocode='P'
         else if (trim(tatonam)=='surface') then 
            in%geocode='S'
+           in%alat2=0.0_gp
         else !otherwise free bc
            in%geocode='F'
            in%alat1=0.0_gp
@@ -320,6 +321,9 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
      if (in%geocode == 'P') then
         rxyz(1,iat)=modulo(rxyz(1,iat),alat1d0)
         rxyz(2,iat)=modulo(rxyz(2,iat),alat2d0)
+        rxyz(3,iat)=modulo(rxyz(3,iat),alat3d0)
+     else if (in%geocode == 'S') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),alat1d0)
         rxyz(3,iat)=modulo(rxyz(3,iat),alat3d0)
      end if
  
@@ -1218,7 +1222,9 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
      alat2=alatrue2
      alat3=alatrue3
   else if (geocode == 'S') then
+     cxmin=0.0_gp
      alat2=alatrue2
+     czmin=0.0_gp
   else if (geocode == 'P') then
      !for the moment we do not put the shift, at the end it will be tested
      !here we should put the center of mass
@@ -1227,19 +1233,11 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
      czmin=0.0_gp
   end if
 
-  !if (geocode /= 'P') then
-     do iat=1,atoms%nat
-        rxyz(1,iat)=rxyz(1,iat)-cxmin
-        rxyz(2,iat)=rxyz(2,iat)-cymin
-        rxyz(3,iat)=rxyz(3,iat)-czmin
-     enddo
-  !else !place the atoms inside the box
-  !   do iat=1,atoms%nat
-  !      rxyz(1,iat)=modulo(rxyz(1,iat),alat1)
-  !      rxyz(2,iat)=modulo(rxyz(2,iat),alat2)
-  !      rxyz(3,iat)=modulo(rxyz(3,iat),alat3)
-  !   enddo
-  !end if
+  do iat=1,atoms%nat
+     rxyz(1,iat)=rxyz(1,iat)-cxmin
+     rxyz(2,iat)=rxyz(2,iat)-cymin
+     rxyz(3,iat)=rxyz(3,iat)-czmin
+  enddo
 
   ! fine grid size (needed for creation of input wavefunction, preconditioning)
   nfl1=n1 

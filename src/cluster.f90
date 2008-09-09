@@ -275,6 +275,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call correct_grid(in%alat1,hx,n1)
         call correct_grid(in%alat2,hy,n2)
         call correct_grid(in%alat3,hz,n3)
+     else if (geocode == 'S') then 
+        call correct_grid(in%alat1,hx,n1)
+        call correct_grid(in%alat3,hz,n3)
      end if
      call copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,n3,wfd,psi,&
           hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
@@ -289,12 +292,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   end if
 
-!!$  !datacodes for the poisson solver, depending on the implementation
-!!$  datacode='D'
-!!$  !leaving always datacode to D
-!!$  !if () datacode='G'
-
-  if(nspin/=1.and.nspin/=2.and.nspin/=4) nspin=1
+  if(nspin/=1 .and. nspin/=2 .and. nspin/=4) nspin=1
   if(nspin==1) mpol=0
 
   ! grid spacing (same in x,y and z direction)
