@@ -1498,7 +1498,7 @@ subroutine unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
   integer :: i3,i1
   real(kind=8) :: pot1
 
-  !Body
+  !Execution
   !ehartreetmp=0.d0
   do i3=1,n3/4
      do i1=1,nfft
@@ -1517,7 +1517,11 @@ end subroutine unfill_downcorn
 
 subroutine halfill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
   implicit real(kind=8) (a-h,o-z)
-  dimension zw(2,lot,n3/2),zf(md1,md3)
+!Arguments
+  integer, intent(in) :: md1,md3,lot,nfft,n3
+  real(kind=8) ::  zw(2,lot,n3/2),zf(md1,md3)
+!Local variables
+  integer :: i1,i3
 ! WARNING: Assuming that high frequencies are in the corners 
 !          and that n3 is multiple of 4
 !in principle we can relax this condition
@@ -2177,8 +2181,13 @@ end subroutine F_PoissonSolver
 
 
 subroutine switch_upcorn(nfft,n2,lot,n1,lzt,zt,zw)
-  implicit real(kind=8) (a-h,o-z)
-  dimension zw(2,lot,n2),zt(2,lzt,n1)
+  implicit none
+!Arguments
+  integer, intent(in) :: nfft,n2,lot,n1,lzt
+  real(kind=8), intent(in) :: zt(2,lzt,n1)
+  real(kind=8), intent(out) :: zw(2,lot,n2)
+!Local variables
+  integer :: i,j
 ! WARNING: Assuming that high frequencies are in the corners 
 !          and that n2 is multiple of 2
 
@@ -2202,8 +2211,13 @@ end subroutine switch_upcorn
 
         
 subroutine mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,n1,md2,nd3,nproc,zmpi1,zw)
-  implicit real(kind=8) (a-h,o-z)
-  dimension zmpi1(2,n1/2,md2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
+  implicit none
+!Arguments
+  integer, intent(in) :: j3,nfft,lot,n1,md2,nd3,nproc
+  integer, intent(inout) :: Jp2stb,J2stb
+  real(kind=8) ::  zmpi1(2,n1/2,md2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
+!Local variables
+  integer :: mfft,Jp2,J2,I1
 ! WARNING: Assuming that high frequencies are in the corners 
 !          and that n1 is multiple of 2
 
@@ -2232,8 +2246,12 @@ end subroutine mpiswitch_upcorn
 
 
 subroutine unswitch_downcorn(nfft,n2,lot,n1,lzt,zw,zt)
-  implicit real(kind=8) (a-h,o-z)
-  dimension zw(2,lot,n2),zt(2,lzt,n1)
+  implicit none
+!Arguments
+  integer, intent(in) :: nfft,n2,lot,n1,lzt
+  real(kind=8) :: zw(2,lot,n2),zt(2,lzt,n1)
+!Local variables
+  integer :: i,j
 ! WARNING: Assuming that high frequencies are in the corners 
 !          and that n2 is multiple of 2
 
@@ -2249,8 +2267,13 @@ end subroutine unswitch_downcorn
 
 
 subroutine unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,zmpi1)
-  implicit real(kind=8) (a-h,o-z)
-  dimension zmpi1(2,n1/2,md2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
+  implicit none
+!Arguments
+  integer, intent(in) :: j3,nfft,lot,n1,md2,nd3,nproc
+  integer, intent(inout) :: Jp2stf,J2stf
+  real(kind=8) :: zmpi1(2,n1/2,md2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
+!local variables
+  integer :: mfft,Jp2,J2,I1
 ! WARNING: Assuming that high frequencies are in the corners 
 !          and that n1 is multiple of 2
 

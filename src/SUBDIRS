@@ -37,7 +37,7 @@
 !!  init
 !!
 !! DESCRIPTION
-!!  Initialization
+!!  Initialization routines
 !!
 !!***
 
@@ -48,7 +48,7 @@
 !!  lib
 !!
 !! DESCRIPTION
-!!  
+!!  Contains routines for the compilation (CUDA header and library)
 !!
 !!***
 
