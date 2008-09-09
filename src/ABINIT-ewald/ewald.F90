@@ -210,6 +210,7 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 !reduced coordinates xred back into [0,1).
 !
 !Loop on shells in r-space as was done in g-space
+
  nr=0
  do
   nr=nr+1
@@ -253,7 +254,7 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
        rmagn=sqrt(rsq)
        arg=reta*rmagn
 !      derfc is the real(dp) complementary error function
-       call derfc(derfc_arg,arg)
+       call derfcf(derfc_arg,arg)
        term=derfc_arg/rmagn
        sumr=sumr+zion(typat(ia))*zion(typat(ib))*term
        term=zion(typat(ia))*zion(typat(ib))*&
@@ -293,6 +294,7 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 !End loop on nr (new shells). Note that there is an exit within the loop
  end do
 !
+
  sumr=0.5_dp*sumr
  fac=pi*ch**2/(2.0_dp*eta*ucvol)
 
@@ -309,7 +311,7 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 !Output the final values of ng and nr
  write(message, '(a,a,i4,a,i4)' )ch10,&
 & ' ewald : nr and ng are ',nr,' and ',ng
- !call wrtout(06,message,'COLL')
+! call wrtout(06,message,'COLL')
 
 end subroutine ewald
 !!***
