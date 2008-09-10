@@ -51,6 +51,16 @@ int conv3dGPU(multiTab_t* m_dataIn,
 	      unsigned int num_threads,
 	      evalPerfGPU_t *evPerf);
 
+int conv1dGPU(multiTab_t* m_dataIn,
+	      multiTab_t* m_dataOut,
+	      //    float *dataOut,
+	      const float *f_data,
+	      int fsize,
+	      int lowfil,
+	      int lupfil,
+	      unsigned int num_threads,
+	      evalPerfGPU_t *evPerf);
+
 int conv3d_multi_GPU(multiTab_t *t_m_dataIn,
 		     multiTab_t *t_m_dataOut,
 		     float **t_f_data,

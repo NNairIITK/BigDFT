@@ -70,8 +70,6 @@ module module_base
      module procedure sygv_simple,sygv_double
   end interface
 
-  
-
   !interfaces for BLAS routines
   interface gemm
      module procedure gemm_simple,gemm_double
