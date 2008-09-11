@@ -52,10 +52,10 @@ program conv_check
        8.4334247333529341094733325815816e-7_4 /
 
   !values for the grid
-  n1=23
-  n2=23
-  n3=23
-  ntimes=1
+  n1=50
+  n2=50
+  n3=50
+  ntimes=100
   hx=0.1e0_gp
   hy=0.1e0_gp
   hz=0.1e0_gp
@@ -63,14 +63,14 @@ program conv_check
 
   !set of one-dimensional convolutions
   !allocate arrays
-  ndat=1!(n2+1)*(n3+1)
+  ndat=20000!(n2+1)*(n3+1)
   allocate(psi_in((2*n1+2),ndat,1+ndebug),stat=i_stat)
   call memocc(i_stat,psi_in,'psi_in',subname)
   allocate(psi_out(ndat,(2*n1+2),1+ndebug),stat=i_stat)
   call memocc(i_stat,psi_out,'psi_out',subname)
 
   !initialise array
-  sigma2=((2*n1+2)*hx)**2
+  sigma2=0.25d0*(((2*n1+2)*hx)**2)
   do i=1,ndat
      do i1=1,2*n1+2
         x=hx*real(i1-n1-1,kind=8)
@@ -93,23 +93,43 @@ program conv_check
   CPUtime=real(t1-t0,kind=8)/real(ntimes,kind=8)
 
 
-  allocate(v_cuda((2*n1+2),ndat,1+ndebug),stat=i_stat)
-  call memocc(i_stat,v_cuda,'v_cuda',subname)
-  allocate(psi_cuda(ndat,(2*n1+2),1+ndebug),stat=i_stat)
+  allocate(psi_cuda((2*n1+2),ndat,1+ndebug),stat=i_stat)
   call memocc(i_stat,psi_cuda,'psi_cuda',subname)
+  allocate(v_cuda(ndat,(2*n1+2),1+ndebug),stat=i_stat)
+  call memocc(i_stat,v_cuda,'v_cuda',subname)
 
 
   !the input and output arrays must be reverted in this implementation
   v_cuda=real(psi_in,kind=4)
+  do i=1,ndat
+     do i1=1,2*n1+2
+        v_cuda(i,i1,1)=real(psi_in(i1,i,1),kind=4)
+        !write(16,'(2(i6),2(1pe24.17)')i,i1,v_cuda(i,i1,1),psi_in(i1,i,1)
+     end do
+  end do
+
+  call GPU_allocate((2*n1+2)*ndat,psi_GPU,i_stat)
+  call GPU_allocate((2*n1+2)*ndat,work_GPU,i_stat)
+
+  !call GPU_send((2*n1+2)*ndat,v_cuda,psi_GPU,i_stat)
+  call GPU_send((2*n1+2)*ndat,v_cuda,work_GPU,i_stat)
 
   !now the CUDA part
   !take timings
   call cpu_time(t0)
   do i=1,ntimes
      !call cuda C interface
-     call previous1dconv(2*n1+1,ndat,v_cuda,psi_cuda,filCUDA1,lowfil1,lupfil1)
+     !call previous1dconv(2*n1+1,ndat,v_cuda,psi_cuda,filCUDA1,lowfil1,lupfil1)
+     call m1dconv(2*n1+1,ndat,work_GPU,psi_GPU,filCUDA1,lowfil1,lupfil1)
+
   end do
   call cpu_time(t1)
+
+  call GPU_receive((2*n1+2)*ndat,psi_cuda,psi_GPU,i_stat)
+
+  call GPU_deallocate(psi_GPU,i_stat)
+  call GPU_deallocate(work_GPU,i_stat)
+
 
   GPUtime=real(t1-t0,kind=8)/real(ntimes,kind=8)
   
@@ -117,11 +137,14 @@ program conv_check
   maxdiff=0.d0
   do i=1,ndat
      do i1=1,2*n1+2
-        maxdiff=max(abs(psi_out(i,i1,1)-real(psi_cuda(i,i1,1),kind=8)),maxdiff)
+        !write(17,'(2(i6),2(1pe24.17)')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
+        maxdiff=max(abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8)),maxdiff)
      end do
   end do
 
   print *,'timings,difference',CPUtime,GPUtime,maxdiff
+
+  print *,'CPU/GPU ratio',CPUtime/GPUtime
 
   i_all=-product(shape(psi_in))
   deallocate(psi_in,stat=i_stat)
@@ -140,6 +163,7 @@ program conv_check
 
 
   !-------------------------3d case---------------------------
+  ntimes=1
   !allocate arrays
   allocate(psi_in((2*n1+2),(2*n2+2),(2*n3+2)+ndebug),stat=i_stat)
   call memocc(i_stat,psi_in,'psi_in',subname)
@@ -154,7 +178,7 @@ program conv_check
 
   !fake initialisation, random numbers
   !here the grid spacings are the small ones
-  sigma2=((2*n1+2)*hx)**2+((2*n2+2)*hy)**2+((2*n3+2)*hz)**2
+  sigma2=0.25d0*(((2*n1+2)*hx)**2+((2*n2+2)*hy)**2+((2*n3+2)*hz)**2)
   do i3=1,2*n3+2
      z=hz*real(i3-n3-1,kind=8)
      do i2=1,2*n2+2
@@ -219,8 +243,15 @@ program conv_check
   epot=0.0_gp
 
   !allocate the GPU memory
+  call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),psi_GPU,i_stat)
+  call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),v_GPU,i_stat)
+  call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),work_GPU,i_stat)
+
+  call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,psi_GPU,i_stat)
+  call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),v_cuda,v_GPU,i_stat)
+
   !copy the data on GPU(must be separated)
-  call CUDA_ALLOC_MEM(1,2*n1+1,2*n2+1,2*n3+1,psi_cuda,v_cuda,psi_GPU,v_GPU,work_GPU)
+  !call CUDA_ALLOC_MEM(1,2*n1+1,2*n2+1,2*n3+1,psi_cuda,v_cuda,psi_GPU,v_GPU,work_GPU)
 
   call cpu_time(t0)
   do i=1,ntimes
@@ -230,7 +261,8 @@ program conv_check
           filCUDA1,filCUDA2,lowfil1,lupfil1,lowfil2,lupfil2)
 
      !copy vpsi on the CPU
-     call cuda_fetch_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,psi_cuda)
+     call GPU_receive((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,psi_GPU,i_stat)
+!     call cuda_fetch_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,psi_cuda)
 
   end do
   call cpu_time(t1)
@@ -238,7 +270,11 @@ program conv_check
   GPUtime=real(t1-t0,kind=8)/real(ntimes,kind=8)
 
   !deallocate GPU memory
-  call CUDA_DEALLOCATE_MEM(1,psi_GPU,v_GPU,work_GPU)
+  call GPU_deallocate(psi_GPU,i_stat)
+  call GPU_deallocate(v_GPU,i_stat)
+  call GPU_deallocate(work_GPU,i_stat)
+
+  !call CUDA_DEALLOCATE_MEM(1,psi_GPU,v_GPU,work_GPU)
 
   !check the differences between the results
   maxdiff=0.d0

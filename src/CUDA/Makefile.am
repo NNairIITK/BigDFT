@@ -5,6 +5,7 @@ EXTRA_DIST = \
 	convSeria.h \
 	conv_shared_multi_kernel.cu \
 	conv_pot_shared_kernel.cu \
+	oldcase.cu \
 	Makefile.standalone \
 	read_conf_file.h
 
@@ -54,10 +55,17 @@ conv_check_LDADD = ../convolutions/libconvolutions.a \
 
 
 #dependencies
-convolution.cu 1Dconv.cu : conv_shared_multi_kernel.cu \
+convolution.o : conv_shared_multi_kernel.cu \
 	convolution.h \
 	convSeria.h \
 	structUtil.h
+
+1Dconv.o : conv_shared_multi_kernel.cu \
+	conv_pot_shared_kernel.cu \
+	convolution.h \
+	convSeria.h \
+	structUtil.h
+
 
 conv_shared_multi.cu : structUtil.h
 
