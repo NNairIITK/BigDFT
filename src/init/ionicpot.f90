@@ -52,6 +52,7 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
                 gprimd(3,ii)*rxyz(3,iat)
         end do
      end do
+
      !calculate ewald energy and forces
      call ewald(eion,gmet,fewald,at%nat,at%ntypes,rmet,at%iatype,ucvol,&
           xred,real(at%nelpsp,kind=8))
@@ -92,7 +93,7 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
      shortlength=shortlength*2.d0*pi
 
      !print *,'psoffset',psoffset,'pspcore',(psoffset+shortlength)*charge/(alat1*alat2*alat3)
-     print *,'eion',eion,charge/ucvol*(psoffset+shortlength)
+     !print *,'eion',iproc,eion,charge/ucvol*(psoffset+shortlength)
      !correct ionic energy taking into account the PSP core correction
      eion=eion+charge/ucvol*(psoffset+shortlength)
 

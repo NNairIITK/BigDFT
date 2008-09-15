@@ -204,13 +204,16 @@ contains
     real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
     real(kind=8), dimension(n01*n02*n03*nspden), intent(in) :: density
     real(kind=8), dimension(n01*n02*n03), intent(inout) :: pot_ion
-    real(kind=8), dimension(n01*n02*n03*nspden), intent(inout) :: rhopot,xc_pot
+    real(kind=8), dimension(n01*n02*n03*nspden), intent(inout) :: rhopot
+    real(kind=8), dimension(n01*n02*n03*nspden), target, intent(inout) :: xc_pot
     real(kind=8), dimension(:), pointer :: pkernel
     !local variables
     character(len=*), parameter :: subname='compare_with_reference'
     integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,i1_max,i2_max,i3_max,i_all,i_stat,istpoti,i
+    integer :: istxc
     real(kind=8) :: eexcu,vexcu,max_diff,ehartree,tt
     real(kind=8), dimension(:), allocatable :: test,test_xc
+    real(kind=8), dimension(:), pointer :: xc_temp
 
     call PS_dim4allocation(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,&
          n3d,n3p,n3pi,i3xcsh,i3s)
@@ -259,17 +262,27 @@ contains
           rhopot(i+istden-1)=density(i+istden-1)
           rhopot(i+istden-1+n01*n02*n3d)=density(i+istden-1+n01*n02*n03)
        end do
+       allocate(xc_temp(n01*n02*n3p*nspden+ndebug),stat=i_stat)
+       call memocc(i_stat,xc_temp,'xc_temp',subname)
        !toggle the components of xc_pot in the distributed case
        do i=1,n01*n02*n3p
-          test_xc(i)=xc_pot(i+istpot-1+n01*n02*n3p)
-          test_xc(i+n01*n02*n3p)=xc_pot(i+istpot-1+n01*n02*n03)
+          xc_temp(i)=xc_pot(i+istpot-1)
+          xc_temp(i+n01*n02*n3p)=xc_pot(i+istpot-1+n01*n02*n03)
        end do
-       do i=1,n01*n02*n3p
-          xc_pot(i+istpot-1+n01*n02*n3p)=test_xc(i+n01*n02*n3p)
-          xc_pot(i+istpot-1+n01*n02*n03)=test_xc(i)
-       end do
+       istxc=1
+!!$       !toggle the components of xc_pot in the distributed case
+!!$       do i=1,n01*n02*n3p
+!!$          test_xc(i)=xc_pot(i+istpot-1+n01*n02*n3p)
+!!$          test_xc(i+n01*n02*n3p)=xc_pot(i+istpot-1+n01*n02*n03)
+!!$       end do
+!!$       do i=1,n01*n02*n3p
+!!$          xc_pot(i+istpot-1+n01*n02*n3p)=test_xc(i+n01*n02*n3p)
+!!$          xc_pot(i+istpot-1+n01*n02*n03)=test_xc(i)
+!!$       end do
     else
        rhopot=density
+       xc_temp => xc_pot
+       istxc=istpot
     end if
 
     call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
@@ -280,7 +293,7 @@ contains
          'ANACOMPLET '//distcode)
 
     !compare also the xc_potential
-    if (ixc/=0) call compare(iproc,nproc,n01,n02,nspden*n3p,1,xc_pot(istpot),&
+    if (ixc/=0) call compare(iproc,nproc,n01,n02,nspden*n3p,1,xc_temp(istxc),&
          test_xc(1),&
          'XCCOMPLETE '//distcode)
     if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") &
@@ -291,15 +304,19 @@ contains
           rhopot(i+istden-1)=density(i+istden-1)
           rhopot(i+istden-1+n01*n02*n3d)=density(i+istden-1+n01*n02*n03)
        end do
-       !toggle the components of xc_pot in the distributed case
-       do i=1,n01*n02*n3p
-          test_xc(i)=xc_pot(i+istpot-1+n01*n02*n3p)
-          test_xc(i+n01*n02*n3p)=xc_pot(i+istpot-1+n01*n02*n03)
-       end do
-       do i=1,n01*n02*n3p
-          xc_pot(i+istpot-1+n01*n02*n3p)=test_xc(i+n01*n02*n3p)
-          xc_pot(i+istpot-1+n01*n02*n03)=test_xc(i)
-       end do
+       i_all=-product(shape(xc_temp))*kind(xc_temp)
+       deallocate(xc_temp,stat=i_stat)
+       call memocc(i_stat,i_all,'xc_temp',subname)
+
+!!$       !toggle the components of xc_pot in the distributed case
+!!$       do i=1,n01*n02*n3p
+!!$          test_xc(i)=xc_pot(i+istpot-1+n01*n02*n3p)
+!!$          test_xc(i+n01*n02*n3p)=xc_pot(i+istpot-1+n01*n02*n03)
+!!$       end do
+!!$       do i=1,n01*n02*n3p
+!!$          xc_pot(i+istpot-1+n01*n02*n3p)=test_xc(i+n01*n02*n3p)
+!!$          xc_pot(i+istpot-1+n01*n02*n03)=test_xc(i)
+!!$       end do
     else
        rhopot=density
     end if

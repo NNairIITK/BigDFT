@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 01/09/2008
+# Date: 15/09/2008
 #----------------------------------------------------------------------------
 
 import difflib
@@ -14,6 +14,9 @@ import os
 import re
 import sys
 
+#Match the version number ex. 1.1.9
+re_version = re.compile("[(]ver[ ]+[0-9.]+[)]",re.IGNORECASE)
+#Match a floating number
 re_float = re.compile("([- ]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
 
 def usage():
@@ -23,9 +26,16 @@ def usage():
 #Test if the line should not be compared
 def line_junk(line):
     "True if the line must not be compared"
-    return "CPU time" in line or "Load" in line or "memory" in line \
-       or "MB" in line or "proc" in line or "Processes" in line \
-       or "allocation" in line or "~W" in line or "for the array" in line
+    return re_version.search(line) \
+        or "CPU time" in line \
+        or "Load" in line \
+        or "memory" in line \
+        or "MB" in line \
+        or "proc" in line \
+        or "Processes" in line \
+        or "allocation" in line \
+        or "~W" in line \
+        or "for the array" in line
 
 #Check the last line
 end_line = "MEMORY CONSUMPTION REPORT"
@@ -73,7 +83,7 @@ context_discrepancy = ""
 context_lines = ""
 
 #First we compare the first two lines in the case of an added prefix 
-#(see platine computer of CCRT)
+#(as in platine computer of CCRT)
 #We detect a pattern
 pattern='                             BBBB         i       ggggg    '
 try:
