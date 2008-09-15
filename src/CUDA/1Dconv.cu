@@ -31,7 +31,8 @@ __constant__ param_t param;
 
 __global__ void conv_shared2(unsigned int n1,unsigned int n2,float *t_out,float *t_in,int nf)
 {
-  __shared__ float shared_temp[SIZE_SHARED_TOTAL];
+
+__shared__ float shared_temp[SIZE_SHARED_TOTAL];
 
 
 

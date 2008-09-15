@@ -1,47 +1,115 @@
-#ifndef _CONV_SHARED_KERNEL_MULTI_
-#define _CONV_SHARED_KERNEL_MULTI_
-#include <math.h>
+#include <stdio.h>
+#include <cutil.h>
+//#include <multithreading.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <sched.h>
 
-//#include "cuda_runtime.h"
-#include "structUtil.h"
-///////////////////////////////////////////////////////////////////////////////
-//f*g convolution
+#include <time.h>
+#include <sys/time.h>
+
+#include "convolution.h"
+
+//#include "conv_pot_shared_kernel.cu"
+//#include "deffct.h" //convseria
+
+#define NUM_MULTIPROCESSORS 30 // valid for GTX280
+#define BLOCK_SIZE 256 //must be at least 64
 
 
-
-///////////////////////////////////////////////////////////////////////////////
-
-//24-bit multiplication is faster on G80,
-//but we must be sure to multiply integers
-//only within [-8M, 8M - 1] range
-
-__constant__ param_t param;
-
-
-__global__ void conv_old(unsigned int n1,unsigned int n2,float *t_out,float *t_in,int nf)
+__device__ void copy_rectangle(unsigned int ndat, //total number of lines
+			       unsigned int num_elem, //copied by each thread
+			       unsigned int num_lines, //lines treated 
+			       unsigned int dim_rectangle
+			       const unsigned int tid, //thread id (1-dim)
+			       float *psi_in, //input array (global)
+			       float *psi_sh) //copy array (shared)
 {
-  __shared__ float shared_temp[SIZE_SHARED_TOTAL];
+  int tidk,nx_sh,ndatx_sh
 
-
-
-
-  const unsigned int thid = threadIdx.x; //ID of current thread
-  const unsigned int bidx = blockIdx.x;
-  const unsigned int SIZE_SHARED_1 = param.SIZE_SHARED_1; 
-  const unsigned int lineNumber = thid % 16;  
-
-
-  int lineNumberFetch = lineNumber;
-
-  if(bidx == gridDim.x - 1)
+  for(int k=0; k < num_elem-1; ++k)
     {
-      lineNumberFetch = (int)lineNumber - (int)param.lineLastBlock;
+      tidk=num_elem*tid+k
 
-      if(lineNumberFetch <= 0)
-	lineNumberFetch += (int)param.lineLastBlock;
-      else
-	lineNumberFetch = 0;
+      //n axis position of the given thread in shared memory
+      int nx_sh = tidk/num_lines;
+      //ndat axis position of the given thread in shared memory
+      // to be controlled if it is faster than tidk % num_lines
+      int ndatx_sh = tidk - nx_sh*num_lines;
+
+      //each thread copies the corresponding point in shared memory
+
+      //bank conflicts for psi_sh: for each half-warp there is 
+      //a linear addressing with stride num_lines (which MUST be odd
+      //or equal to the number of banks)
+
+      //coalesced accesses for psi_in: the access are completely
+      //uncoalesced, must pass through texture mapping
+      if(tidk <= dim_rectangle) //the warp-consistency should be checked separately
+	{
+	  psi_sh[tidk]=psi_in[nx_sh*ndat+ndatx_sh];
+	}
+  
     }
+
+} 
+
+__global__ void conv_lg(unsigned int n1,unsigned int n2,float *t_out,float *t_in,int nf)
+{
+  __shared__ float psi_sh[dim_shared];
+
+  const unsigned int tid = threadIdx.x; //ID of current thread
+  const unsigned int bid = blockIdx.x;
+
+  //If the total number of element to be convoluted
+  //is lower that NUM_MULTIPROCESSORS*BLOCK_SIZE the GPU strategy is
+  //not anymore convenient
+
+  //starting point of n axis in the given block (global memory)
+  int n0_gb = tba;
+
+  //starting point of ndat axis in the given block (global memory)
+  int ndat0_gb = tba;
+
+  int istart_gb = n0_gb*ndat + ndat0_gb
+
+  //here we can start the for loop
+  //we can copy NUM_THREADS*num_elem elements
+  //so num_lines is NUM_THREADS/num_columns
+  copy_rectangle(ndat,num_elem,num_lines,numthreads*num_elem,tid,
+		 psi_in + istart_gb,psi_sh + num_lines*lowfil);
+
+  //continue copying up to fill what it is lacking
+
+  //then come back in the 
+
+  //after the main copy we should copy the data for periodicity
+  //the copy should be taken at the edge or on the other side
+  //depending on the value of the starting point
+
+  //number of other elements to be copied (right part)
+  int nright = lupfil*num_lines ;
+  
+  //number of elements which still have to be copied in the right part
+  int nrightstill = - numthreads*num_elem (num_lines+lupfil)*num_columns;
+
+  //number of other elements to be copied (left part)
+  int nleft = lowfil*num_lines;
+
+  //end memory transfer
+   __syncthreads();
+ 
+  //then we perform convolutions, switching the values of shared
+  //memory array
+
+
+  //and then we copy back to global memory, in a coalesced way
+  //beware of the problem of alignment for the array
+  
+
+   psi_out[iout_gb+tid]=psi_sh[iout_sh+tid];
+
+
 
 
   //copy into memory
@@ -97,9 +165,8 @@ __global__ void conv_old(unsigned int n1,unsigned int n2,float *t_out,float *t_i
 	  tmp += shared_temp[lineNumber + (i + offset_calc + j)*16] * param.f_fct[j];
 
 	}   
-      t_out[(lineNumberFetch + SIZE_SHARED_1 *(bidx))*n2 +(i+offset_calc + baseOffset)] = 23.f; // tmp;
+      t_out[(lineNumberFetch + SIZE_SHARED_1 *(bidx))*n2 +(i+offset_calc + baseOffset)] = tmp;
     }
 
 }
 
-#endif 
