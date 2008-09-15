@@ -77,7 +77,10 @@ subroutine scaling_function(itype,nd,nrange,a,x)
      case(100)
         call back_trans_100(nd,nt,x,y)
      end select
-     call dcopy(nt,y,1,x,1)
+     !call dcopy(nt,y,1,x,1)
+     do i=0,nt-1
+        x(i)=y(i)
+     end do
      if (nt.eq.nd) then
         exit loop1
      end if
@@ -166,7 +169,10 @@ subroutine wavelet_function(itype,nd,a,x)
      case(100)
         call back_trans_100(nd,nt,x,y)
      end select
-     call dcopy(nd,y,1,x,1)
+     !call dcopy(nt,y,1,x,1)
+     do i=0,nt-1
+        x(i)=y(i)
+     end do
      if (nt.eq.nd) then
         exit loop3
      end if

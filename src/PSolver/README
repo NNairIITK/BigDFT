@@ -44,7 +44,6 @@ ABINIT-common/invcb.F90
 Poisson_Solver.f90 
 PS_Program.f90 
 timing.f90
-dcopy.f
 perfdata.inc 
 lazy_100.inc 
 lazy_16.inc 

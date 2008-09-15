@@ -35,7 +35,7 @@ cleanall:
 	\rm -rf *.dat *.pdf gmon.out
 
 tar:
-	tar czvf solver.tgz $(SOURCES_ABINIT) $(SOURCES_F77) $(SOURCES_F90) $(INCLUDES) $(OTHERS)
+	tar czvf solver.tgz $(SOURCES_ABINIT) $(SOURCES_F90) $(INCLUDES) $(OTHERS)
 
 PROGRAMS = \
 	PS_Program \
@@ -64,9 +64,6 @@ SOURCES_F90 = \
 	Poisson_Solver.f90 \
 	timing.f90 \
 	$(mpi_source)
-
-SOURCES_F77 = \
-	dcopy.f
 
 INCLUDES = perfdata.inc \
 	lazy_100.inc \
@@ -125,15 +122,8 @@ OBJECTS_ABINIT = $(OBJECTS_ABINIT_PP:.f90=.o)
 
 OBJECTS_F90 = $(SOURCES_F90:.f90=.o) 
 
-OBJECTS_F77 = $(SOURCES_F77:.f=.o) 
-
-
 $(OBJECTS_F90): %.o: %.f90
 	$(F95) -c $< -o $@
-
-$(OBJECTS_F77): %.o: %.f
-	$(F95) -c $< -o $@
-
 
 $(OBJECTS_ABINIT): %.o: %.f90
 	$(F95) -c $< -o $@
