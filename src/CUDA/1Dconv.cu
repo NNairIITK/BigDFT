@@ -22,8 +22,96 @@
 
 #include "convolution.h"
 
+//#include "newcase.cu"
 //#include "conv_pot_shared_kernel.cu"
 //#include "deffct.h" //convseria
+
+#define max(a,b) (a > b ? a : b)
+#define min(a,b) (a < b ? a : b)
+
+#define SIZE_SHARED 288
+
+__global__ void conv_lg(unsigned int n,unsigned int ndat,float *psi_in,float *psi_out,
+			int lowfil,int lupfil)
+{
+
+  const unsigned int tid = threadIdx.x; //thread id
+  const unsigned int bid = blockIdx.x;  //block id (can be 2-dim)
+
+  const unsigned int numthreads = blockDim.x;
+
+  //number of parts in which the line is separated
+  int linecuts = 1;//((n-1)/numthreads + 1);
+
+  //line cut in which the block is placed
+  int icut = 0;//bid % linecuts; // to be controlled if modulo operator is
+			     // not too slow
+
+  //start point in n axis of the line treated by the block
+  int istart = 0;//icut * (n/linecuts);
+
+  //end point
+  int iend = n;//min((icut+1)*(n/linecuts),n);
+
+  //number of elements
+  int num_elem = n;//iend-istart;
+
+  //actual column treated by the block, in ndat axis
+  int idat = bid;// / linecuts;
+
+  //starting element in the global memory for the OUTPUT array
+  int startelem = n*idat + istart;
+
+  //distance from the halfwarp base element to guarantee coalesced
+  //access in global memory
+  int startd = 0;//startelem & 15;  // bitwise modulo 16
+  
+  //the first element which should be written in the output array
+  //should be processed by thread startd
+
+  __shared__ float psi_sh[SIZE_SHARED];  
+
+  //in case the line cut is not the first, correct the starting point
+  //such that the left elements are copied also
+  //NOTE: it is assumed that for non-first segments the starting
+  //points is far enough for the filter to be contained
+
+  //int startdcorr=(icut > 0 ? lowfil : 0); 
+  
+  //copy of elements in shared memory
+  if (tid < num_elem)
+    {
+      //bank conflicts for psi_sh: for each half-warp there is 
+      //a linear addressing with stride 1, so ok.
+
+      //coalesced accesses for psi_in: the access are completely
+      //uncoalesced, must pass through texture fetches
+
+      psi_sh[tid+lowfil+startd]=psi_in[(ndat+1)*(istart+tid)+idat];
+    }
+
+
+  //end shared memory copy
+  __syncthreads();
+
+
+  //perform convolution in shared memory and write results in the
+  //lowfil-scaled address
+  for(int j=0;j < lowfil+lupfil+1;++j)
+    {
+       register float tmp = 0;
+       tmp = psi_sh[tid];
+    }
+
+
+  //write in global memory by taking care of the coalescing
+  if (tid >= startd && tid < startd + num_elem)
+    {
+      psi_out[startelem-startd+tid]=psi_sh[tid+lowfil];
+    }
+
+}
+
 
 __constant__ param_t param;
 
@@ -129,6 +217,13 @@ int dooldconv(int n1,
 	       int lupfil,
 	       unsigned int num_threads);
 
+void donewconv(int n,
+	       int ndat,
+	       float *psi_in,
+	       float *psi_out,
+	       int lowfil,
+	       int lupfil);
+
 
 
 #include "convSeria.h"
@@ -223,7 +318,50 @@ void previous1dconv_(int *n,
 }
 
 
-//new interface, only the 1d convolution
+extern "C"
+void n1dconv_(int *nx,
+	      int *nconv,
+	      float **data_in, 
+	      float **data_out, 
+	      float *filters, 
+	      int *lowfil, 
+	      int *lupfil)
+{
+  //define the number of threads and blocks according to parameter
+  //definitions
+  const int ndat = *nconv -1;
+  const int n = *nx+1;
+
+  donewconv(n,ndat,*data_in,*data_out,*lowfil,*lupfil);
+
+  return;
+}
+     
+void donewconv(int n,
+	       int ndat,
+	       float *psi_in,
+	       float *psi_out,
+	       int lowfil,
+	       int lupfil)
+{
+  const int num_threads = min(64* (n/64 + 1),256);
+
+
+  printf(" %i numthds %i \n",num_threads,14 % 1);
+
+  dim3 grid1(ndat+1, 1, 1);  
+  dim3 threads1(num_threads, 1, 1);
+
+  //launch the kernel grid
+  conv_lg <<< grid1, threads1 >>>(n,ndat, psi_in, psi_out,lowfil, lupfil);
+
+  cudaThreadSynchronize();
+
+  return;  
+
+}
+
+//interface, only the 1d convolution
 extern "C" 
 void m1dconv_(int *n, 
 	      int *ndat, 
@@ -433,7 +571,7 @@ int conv1dGPU(multiTab_t* m_dataIn,
 extern "C" 
 void gpu_allocate__(int *nsize, //memory size
 		    float **GPU_pointer, // pointer indicating the GPU address
-		    int ierr) // error code, 1 if failure
+		    int *ierr) // error code, 1 if failure
 		    
 {
 
@@ -441,25 +579,25 @@ void gpu_allocate__(int *nsize, //memory size
 
 
   //allocate memory on GPU, return error code in case of problems
-  ierr=0;
+  *ierr=0;
   if(cudaMalloc( (void**) (GPU_pointer), mem_size) != 0)
     {
       printf("GPU allocation error \n");
-      ierr=1;
+      *ierr=1;
       return;
     }
 }
 
 extern "C" 
 void gpu_deallocate__(float **GPU_pointer, // pointer indicating the GPU address
-		      int ierr) // error code, 1 if failure
+		      int *ierr) // error code, 1 if failure
 {
   //deallocate memory on GPU, return error code in case of problems
-  ierr=0;
+  *ierr=0;
   if(cudaFree(*GPU_pointer) != 0)
     {
       printf("GPU deallocation error \n");
-      ierr=1;
+      *ierr=1;
       return;
     }
 }
@@ -472,17 +610,17 @@ extern "C"
 void gpu_send__(int *nsize,
 		float *CPU_pointer, 
 		float **GPU_pointer,
-		int ierr)
+		int *ierr)
 {
 
   unsigned int mem_size = (*nsize)*sizeof(float);
 
   //copy V to GPU
-  ierr=0;
+  *ierr=0;
   if(cudaMemcpy(*GPU_pointer, CPU_pointer, mem_size, cudaMemcpyHostToDevice)  != 0)
     {
       printf("HostToDevice Memcpy error \n");
-      ierr=1;
+      *ierr=1;
       return;
     }
 
@@ -492,18 +630,18 @@ extern "C"
 void gpu_receive__(int *nsize,
 		float *CPU_pointer, 
 		float **GPU_pointer,
-		int ierr)
+		int *ierr)
 {
 
   unsigned int mem_size = (*nsize)*sizeof(float);
 
   //copy V to GPU
-  ierr=0;
+  *ierr=0;
   if(cudaMemcpy(CPU_pointer,*GPU_pointer, mem_size, cudaMemcpyDeviceToHost)  != 0)
     {
       printf("DeviceToHost Memcpy error \n");
       printf(" %i \n",mem_size);
-      ierr=1;
+      *ierr=1;
       return;
     }
 

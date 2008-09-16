@@ -5,7 +5,7 @@ EXTRA_DIST = \
 	convSeria.h \
 	conv_shared_multi_kernel.cu \
 	conv_pot_shared_kernel.cu \
-	oldcase.cu \
+	newcase.cu \
 	Makefile.standalone \
 	read_conf_file.h
 
@@ -64,7 +64,8 @@ convolution.o : conv_shared_multi_kernel.cu \
 	conv_pot_shared_kernel.cu \
 	convolution.h \
 	convSeria.h \
-	structUtil.h
+	structUtil.h \
+	newcase.cu 
 
 
 conv_shared_multi.cu : structUtil.h
