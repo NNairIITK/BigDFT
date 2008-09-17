@@ -326,7 +326,6 @@ src/PSolver/ABINIT-common/Makefile
 src/PSolver/Makefile
 src/convolutions/Makefile
 src/CUDA/Makefile
-src/parameters.h
 utils/Makefile
 utils/PSPfiles/Makefile
 doc/Makefile
