@@ -9,7 +9,7 @@ program conv_check
   character(len=50) :: chain
   integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,ndat,i1_max,i_max
   real(wp) :: tt
-  real(gp) :: v,p,CPUtime,GPUtime
+  real(gp) :: v,p,CPUtime,GPUtime,comp
   real(kind=4), dimension(:,:,:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
   real(kind=4) :: t0,t1
   real(kind=8) :: psi_GPU,v_GPU,work_GPU !pointer to the GPU  memory addresses (with norb=1)
@@ -158,9 +158,11 @@ program conv_check
   do i=1,ndat
      do i1=1,2*n1+2
         write(17,'(2(i6),2(1pe24.17)')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
-        !maxdiff=max(abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8)),maxdiff)
-        if (abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1)) > maxdiff) then
-           maxdiff=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
+        !write(17,'(2(i6),2(1pe24.17)')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
+        !comp=abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8))
+        comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
+        if (comp > maxdiff) then
+           maxdiff=comp
            i1_max=i1
            i_max=i
         end if
@@ -170,6 +172,7 @@ program conv_check
   print *,'timings,difference',CPUtime,GPUtime,maxdiff
 
   print *,'i1,maxdiff',i_max,i1_max,v_cuda(i_max,i1_max,1),psi_cuda(i1_max,i_max,1)
+  !print *,'i1,maxdiff',i_max,i1_max,psi_out(i_max,i1_max,1),psi_cuda(i1_max,i_max,1)
 
   print *,'CPU/GPU ratio',CPUtime/GPUtime
 
