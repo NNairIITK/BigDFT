@@ -82,113 +82,51 @@ __global__ void conv_lg(unsigned int n,unsigned int ndat,float *psi_in,float *ps
   //and the same for non-last segments.
   //in other terms: lenght of the line is always bigger than max(lowfil,lupfil)
 
-  int startdcorr=(istart > 0 ? lowfil : 0); 
-  int endcorr=min(n-iend,lupfil); 
-  
-  //copy of elements in shared memory
-  //use all the threads to copy the elements in memory
-  //unless there are not enough elements to be copied
-  int copythreads = min(numthreads,num_elem+startdcorr+endcorr);
+  int ileftcopystart,irightcopystart;
+  int thcpyleft1,thcpyright1,thcpyright0,thcpyleft0;
 
-  int ileftcopystart,irightcopystart,icentercopystartb
-  //case in which some threads should copy from the opposite side
+  //start copy for the central points. the first thread copy the first
+  //point since we are guaranteed there are enough threads
+  //NOTE: thread 0 use the shared memory bank lowfil+startd & 15
+  if (tid < num_elem)
+    {
+      psi_sh[tid+lowfil+startd]=psi_in[(ndat+1)*(istart+tid)+idat];
+    }
 
-  //here we define the initial points for the copy
-  //the first threads copy the first part, always, in order to avoid
-  //bank conflicts
-  //depending on the position of the line, they copy either the last
-  //points or the very beginning points
-  
-  ileftcopystart = (icut > 0 ? istart-lowfil : n-lowfil);
+  thcpyleft0 = 0; //temporary assignments, to be changed to avoid bank conflicts
   thcpyleft1 = lowfil;
 
-  //thread 0 starts writing at memory bank startd+1
-  if (tid < thcpyleft1)
-    {
-      psi_sh[tid+startd]=psi_in[(ndat+1)*(ileftcopystart+tid)+idat];
-    }
-  
-  //there is now the copy of the central points; the first central
-  //point will be copied by thread lowfil, then we continue until the 
-  //minimum between numthreads and num_elem is reached
-  thcpycenter1=lowfil+min(numthreads-lowfil,num_elem);
-  icentercopystart=istart-thcpyleft1;
-  //then recuperate the elements which are lacking
-  //in case of need the starting thread of recuperation should access
-  //the same bank as the first copy
-  //bank associated to thcpycenter1 =(thcpycenter1 + startd) & 15: 
-  thcpycenter1b=(thcpycenter1 + startd) & 15 -startd;
-  icentercopystartb=istart+min(numthreads-lowfil,num_elem)-thcpycenter1b;
-  thcpycenter2=thcpycenter1b+max(-numthreads+lowfil+num_elem,0);
-  //central copy
-  if (tid >=thcpyleft1 && tid < thcpycenter1)
-    {
-      psi_sh[tid+startd]=psi_in[(ndat+1)*(icentercopystart+tid)+idat];
-    }
-  //recuperation copy, then correct shared address
-  if (tid >=thcpycenter1b && tid < thcpycenter2)
-    {
-      psi_sh[tid+startd+thcpycenter1-thcpyleft1]=
-	psi_in[(ndat+1)*(icentercopystartb+tid)+idat];
-    }
-  
-  //now we should end with the copy of the last part
-  irightcopystart = (icut < linecuts -1 ? iend : 0); 
-  //the thread which should start copying the last part depends
-  //on the copy of the central part
-  thcpyright0=(num_elem >= numthreads-lowfil ? thcpycenter2 : thcpycenter1);
-  thcpyright1=thcpyright0+min(numthreads-thcpyright0,lupfil);
+  thcpyright0 = numthreads - lupfil;
+  thcpyright1 = numthreads;
 
-  thcpyright1b=(thcpyright1 + startd) & 15 -startd;
-  irightcopystartb=irightcopystart+min(numthreads-thcpyright0,lupfil)-thcpyright1b;
-  thcpyright2=thcpyright1b+max(lupfil-numthreads+thcpyright0,0);
+  //copy the rightmost points. if there are enough threads continue
+  //with them, otherwise use threads of the same shared memory banks
+  //than the initial ones
+  irightcopystart = (icut < linecuts -1 ? istart+num_elem : 0) - thcpyright0;
+  ileftcopystart = (icut > 0 ? istart-lowfil : n-lowfil) - thcpyleft0;
+  
+  if (tid >=thcpyleft0 && tid < thcpyleft1)
+    {
+      psi_sh[tid+startd-thcpyleft0]=
+	psi_in[(ndat+1)*(ileftcopystart+tid)+idat];
+    }
+
   if (tid >=thcpyright0 && tid < thcpyright1)
     {
       psi_sh[tid+startd+lowfil+num_elem-thcpyright0]=
 	psi_in[(ndat+1)*(irightcopystart+tid)+idat];
     }
-  //recuperation copy, then correct shared address
-  if (tid >=thcpyright1b && tid < thcpyright2)
-    {
-      psi_sh[tid+startd+lowfil+num_elem+thcpyright1-thcpyright0]=
-	psi_in[(ndat+1)*(irightcopystartb+tid)+idat];
-    }
-
-  /*
-  startleft = 
-  startright = (icut < linecuts -1 ? iend : 0);      
-    numthreadleft = 0;
-  numthreadright = numthreads;
-
-  if (numthreads < num_elem + lowfil + lupfil)
-    {
   
-  numthreadleft = (icut == 0 ? lowfil : 0);
-  numthreadright = (icut == linecuts -1 ? numthreads - lupfil : numthreads);
-      //}
-  
-  if (tid < numthreadleft)
-    {
-      psi_sh[tid+startd]=psi_in[(ndat+1)*(startleft+tid)+idat];
-    }
-  
-  if (tid > numthreadright)
-    {
-      psi_sh[tid+startd+lowfil+num_elem-numthreadright]=
-	psi_in[(ndat+1)*(startright+tid)+idat];
-    }
-  
-  if (tid < copythreads) 
-    {
-      //bank conflicts for psi_sh: for each half-warp there is 
-      //a linear addressing with stride 1, so ok.
 
-      //coalesced accesses for psi_in: the access are completely
-      //uncoalesced, must pass through texture fetches
+  //thread 0 starts writing at memory bank startd+1
 
-      psi_sh[tid+lowfil+startd-startdcorr]=psi_in[(ndat+1)*(istart+tid-startdcorr)+idat];
-    }
-  */
+  //there is now the copy of the central points; the first central
+  //point will be copied by thread lowfil, then we continue until the 
+  //minimum between numthreads and num_elem is reached
+  //then recuperate the elements which are lacking
+  //in case of need the starting thread of recuperation should access
+  //the same bank as the first copy
+  //bank associated to thcpycenter1 =(thcpycenter1 + startd) & 15: 
   //end shared memory copy
   __syncthreads();
 
@@ -227,7 +165,7 @@ __global__ void conv_lg(unsigned int n,unsigned int ndat,float *psi_in,float *ps
   //write in global memory by taking care of the coalescing
   if (tid >= startd && tid < startd + num_elem)
     {
-      psi_out[startelem-startd+tid]=psi_sh[tid+lowfil];
+      psi_out[startelem-startd+tid]=conv;//psi_sh[tid+lowfil];
     }
 
 }
@@ -464,7 +402,7 @@ void donewconv(int n,
 	       int lowfil,
 	       int lupfil)
 {
-  const int num_threads = min(64* ((n)/64 + 1),256);
+  const int num_threads = min(64* ((n+15)/64 + 1),256);
 
 
   //printf(" %i numthds %i \n",num_threads,(n-1) >> 8);
