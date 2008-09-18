@@ -1,0 +1,134 @@
+items:
+    AUTHOR
+    NAME
+    COPYRIGHT
+    CREATION DATE
+    USAGE
+    FUNCTION
+    DESCRIPTION
+    INPUTS
+    OUTPUT
+    SIDE EFFECTS
+    RETURN VALUE
+    EXAMPLE
+    SEE ALSO
+    SYNOPSIS
+    USES
+    USED BY
+    WARNING
+source items:
+    SOURCE
+ignore items:
+options:
+    --src src
+    --html
+    --multidoc
+    --sections
+    --sectionnameonly
+    --index
+    --tabsize 2
+    --toc
+    --nopre
+    --documenttitle "BigDFT - API"
+    --syntaxcolors
+headertypes:
+    d "Directories" robo_directories
+    e  "Tutorials"  robo_tuto_cat
+    f "Routines" robo_routines
+    h  "Include files" robo_includes
+    m "Modules"  robo_modules
+    p "Programs" robo_programs
+ignore files:
+    ChangeLog
+    Makefile*
+    AUTHORS
+    README
+    COPYING
+    INSTALL
+    NEWS
+    config
+    doc
+    tests
+    tmp*
+    *.log
+    *.o
+    *.a
+    *.MOD
+    *.mod
+    *~
+    *.htm*
+    *.rc
+    .svn
+    autom4te.cache
+accept files:
+    *.f90
+    *.F90
+    *.h
+    *.inc
+    SUBDIRS
+header markers:
+    !!****
+remark markers:
+    !!
+end markers:
+    !!***
+source line comments:
+    !
+keywords:
+    if
+    do
+    enddo
+    intent
+    integer
+    character
+    double
+    precision
+    real
+    logical
+    subroutine
+    function
+    end
+    type
+    optional
+    call
+    pointer
+    null
+    contains
+    include
+    module
+    use
+    implicit
+    none
+    parameter
+    return
+    present
+    then
+    true
+    false
+    else
+    in
+    out
+    inout
+    private
+    public
+    dimension
+    allocatable
+    trim
+    len
+    and
+    or
+    not
+    read
+    write
+    iostat
+    allocate
+    allocated
+    associated
+    deallocate
+    select
+    case
+    iand
+    ior
+    program
+    __FILE__
+    __LINE__

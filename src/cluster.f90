@@ -1,3 +1,20 @@
+!!****f* BigDFT/call_bigdft
+!! NAME
+!!  call_bigdft
+!!
+!! FUNCTION
+!!  Routines to use bigdft as a blackbox
+!!
+!! COPYRIGHT
+!! Copyright (C) 2005-2008 BigDFT group 
+!! This file is distributed under the terms of the
+!! GNU General Public License, see ~/COPYING file
+!! or http://www.gnu.org/copyleft/gpl.txt .
+!! For the list of contributors, see ~/AUTHORS 
+!!
+!!
+!! SOURCE
+!!
  subroutine call_bigdft(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
   use module_base
   use module_types
@@ -66,8 +83,8 @@
         in%inputPsiId=0
      else if (in%inputPsiId == 0 .and. infocode==3) then
         if (iproc.eq.0) then
-           write(*,'(1x,a)')'Convergence error, cannot proceed.'
-           write(*,'(1x,a)')' writing positions in file posout_999.xyz then exiting'
+           write( *,'(1x,a)')'Convergence error, cannot proceed.'
+           write( *,'(1x,a)')' writing positions in file posout_999.xyz then exiting'
 
            call wtposout(999,energy,rxyz,atoms)
 
@@ -97,7 +114,27 @@
   in%inputPsiId=inputPsiId_orig
 
 end subroutine call_bigdft
+!!***
 
+
+!!****f* BigDFT/cluster
+!! NAME
+!!  cluster
+!!
+!! FUNCTION
+!!  Main routine which does self-consistent loop.
+!!  Do not parse input file and no geometry optimization.
+!!
+!! COPYRIGHT
+!! Copyright (C) 2005-2008 BigDFT group 
+!! This file is distributed under the terms of the
+!! GNU General Public License, see ~/COPYING file
+!! or http://www.gnu.org/copyleft/gpl.txt .
+!! For the list of contributors, see ~/AUTHORS 
+!!
+!!
+!! SOURCE
+!!
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      psi,wfd,gaucoeffs,gbd,norbp,norb,eval,n1,n2,n3,rxyz_old,in,infocode)
   ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
@@ -217,7 +254,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   alat3=in%alat3
 
   if (iproc.eq.0) then
-     write(*,'(1x,a,1x,i0)') &
+     write( *,'(1x,a,1x,i0)') &
        '===================== BigDFT Wavefunction Optimization =============== inputPsiId=',&
        in%inputPsiId
      call print_input_parameters(in)
@@ -238,6 +275,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call correct_grid(in%alat1,hx,n1)
         call correct_grid(in%alat2,hy,n2)
         call correct_grid(in%alat3,hz,n3)
+     else if (geocode == 'S') then 
+        call correct_grid(in%alat1,hx,n1)
+        call correct_grid(in%alat3,hz,n3)
      end if
      call copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,n3,wfd,psi,&
           hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
@@ -252,18 +292,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   end if
 
-!!$  !datacodes for the poisson solver, depending on the implementation
-!!$  datacode='D'
-!!$  !leaving always datacode to D
-!!$  !if () datacode='G'
-
-  if(nspin/=1.and.nspin/=2.and.nspin/=4) nspin=1
+  if(nspin/=1 .and. nspin/=2 .and. nspin/=4) nspin=1
   if(nspin==1) mpol=0
 
   ! grid spacing (same in x,y and z direction)
 
   if (iproc==0) then
-     write(*,'(1x,a)')&
+     write( *,'(1x,a)')&
           '------------------------------------------------------------------ System Properties'
   end if
 
@@ -365,7 +400,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   if (in%inputPsiId == -2) then
 
      if (iproc.eq.0) then
-        write(*,'(1x,a)')&
+        write( *,'(1x,a)')&
              '------------------------------------------------ Random wavefunctions initialization'
      end if
 
@@ -390,7 +425,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
            end do
         end if
      end do
-     !write(*,'(a,30f10.4)') 'Rand Check',ttsum,(sum(psi(:,iorb)),iorb=1,norbp*nproc*nspinor)
+     !write( *,'(a,30f10.4)') 'Rand Check',ttsum,(sum(psi(:,iorb)),iorb=1,norbp*nproc*nspinor)
  
      eval(:)=-0.5d0
 
@@ -427,7 +462,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,psi,'psi',subname)
 
      if (iproc.eq.0) then
-        write(*,'(1x,a)')&
+        write( *,'(1x,a)')&
              '-------------------------------------------------------------- Wavefunctions Restart'
      end if
 
@@ -456,7 +491,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,psi,'psi',subname)
 
      if (iproc.eq.0) then
-        write(*,'(1x,a)')&
+        write( *,'(1x,a)')&
              '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
 
@@ -471,7 +506,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   else if (in%inputPsiId == 11 ) then 
      !restart from previously calculated gaussian coefficients
      if (iproc.eq.0) then
-        write(*,'(1x,a)')&
+        write( *,'(1x,a)')&
              '--------------------------------------- Quick Wavefunctions Restart (Gaussian basis)'
      end if
 
@@ -490,7 +525,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   else if (in%inputPsiId == 12 ) then 
      !reading wavefunctions from gaussian file
      if (iproc.eq.0) then
-        write(*,'(1x,a)')&
+        write( *,'(1x,a)')&
              '------------------------------------------- Reading Wavefunctions from gaussian file'
      end if
      
@@ -506,7 +541,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         gbd%rxyz=>rxyz
      else
         if (iproc == 0) then
-           write(*,*)&
+           write( *,*)&
                 ' ERROR: the atom number does not coincide with the number of gaussian centers'
         end if
         stop
@@ -521,9 +556,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   else
 
      if (iproc == 0) then
-        write(*,'(1x,a)')'ERROR:values of inputPsiId must be integers from -2 to  2'
-        write(*,'(1x,a)')'                                         or from 10 to 12'
-        write(*,'(1x,a,i0)')'                               while we found',in%inputPsiId
+        write( *,'(1x,a)')'ERROR:values of inputPsiId must be integers from -2 to  2'
+        write( *,'(1x,a)')'                                         or from 10 to 12'
+        write( *,'(1x,a,i0)')'                               while we found',in%inputPsiId
      end if
      stop
 
@@ -581,7 +616,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 !!$        ids=ids+1
 !!$     end if
      if (iproc == 0) then 
-        write(*,'(1x,a,i0)')&
+        write( *,'(1x,a,i0)')&
            '---------------------------------------------------------------------------- iter= ',&
            iter
      endif
@@ -617,17 +652,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !check for convergence or whether max. numb. of iterations exceeded
      if (gnrm <= gnrm_cv .or. iter == itermax) then 
         if (iproc.eq.0) then 
-           write(*,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
-           write(*,'(1x,a)') &
+           write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
+           write( *,'(1x,a)') &
                 '--------------------------------------------------- End of Wavefunction Optimisation'
-           write(*,'(1x,a,3(1x,1pe18.11))') &
+           write( *,'(1x,a,3(1x,1pe18.11))') &
                 'final  ekin,  epot,  eproj ',ekin_sum,epot_sum,eproj_sum
-           write(*,'(1x,a,3(1x,1pe18.11))') &
+           write( *,'(1x,a,3(1x,1pe18.11))') &
                 'final ehart, eexcu,  vexcu ',ehart,eexcu,vexcu
-           write(*,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
+           write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
                 'FINAL iter,total energy,gnrm',iter,energy,gnrm
            !write(61,*)hgrid,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
-           if (energy > energy_min) write(*,'(1x,a,1pe9.2)')&
+           if (energy > energy_min) write( *,'(1x,a,1pe9.2)')&
                 'WARNING: Found an energy value lower than the FINAL energy, delta:',energy-energy_min
         end if
         if (gnrm <= gnrm_cv) infocode=0
@@ -642,20 +677,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      tt=(energybs-scprsum)/scprsum
      if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
           (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
-        write(*,'(1x,a,1pe9.2,2(1pe22.14))') &
+        write( *,'(1x,a,1pe9.2,2(1pe22.14))') &
              'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
      endif
      if (iproc.eq.0) then
-        write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+        write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
              ekin_sum,epot_sum,eproj_sum
-        write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
-        write(*,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
+        write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+        write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
      endif
 
      if (in%inputPsiId == 0) then
         if ((gnrm > 4.d0 .and. norbu/=norbd) .or. (norbu==norbd .and. gnrm > 10.d0)) then
            if (iproc == 0) then
-              write(*,'(1x,a)')&
+              write( *,'(1x,a)')&
                    'Error: the norm of the residue is too large also with input wavefunctions.'
            end if
            infocode=3
@@ -665,7 +700,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      else if (in%inputPsiId == 1) then
         if (gnrm > 1.d0) then
            if (iproc == 0) then
-              write(*,'(1x,a)')&
+              write( *,'(1x,a)')&
                    'The norm of the residue is too large, need to recalculate input wavefunctions'
            end if
            infocode=2
@@ -677,7 +712,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
  
   end do wfn_loop
   if (iter == itermax .and. iproc == 0 ) &
-       write(*,'(1x,a)')'No convergence within the allowed number of minimization steps'
+       write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
 
   if (idsx_actual > 0) then
      i_all=-product(shape(psidst))*kind(psidst)
@@ -695,7 +730,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call last_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd,nvctrp,nspin,psi,hpsi,psit,&
        occup,evsum,eval)
 
-  if (abs(evsum-energybs) > 1.d-8 .and. iproc==0) write(*,'(1x,a,2(1x,1pe20.13))')&
+  if (abs(evsum-energybs) > 1.d-8 .and. iproc==0) write( *,'(1x,a,2(1x,1pe20.13))')&
        'Difference:evsum,energybs',evsum,energybs
  
   if (nvirt > 0 .and. in%inputPsiId == 0) then
@@ -709,7 +744,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !project the wavefunctions on a gaussian basis and keep in memory
   if (in%gaussian_help) then
      if (iproc.eq.0) then
-        write(*,'(1x,a)')&
+        write( *,'(1x,a)')&
              '---------------------------------------------------------- Gaussian Basis Projection'
      end if
 
@@ -769,7 +804,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      else
         call  writemywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,wfd,psi,eval)
-        write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
+        write( *,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
      end if
   end if
 
@@ -777,7 +812,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !------------------------------------------------------------------------
   ! here we start the calculation of the forces
   if (iproc.eq.0) then
-     write(*,'(1x,a)')&
+     write( *,'(1x,a)')&
           '----------------------------------------------------------------- Forces Calculation'
   end if
 
@@ -923,14 +958,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   deallocate(pot,stat=i_stat)
   call memocc(i_stat,i_all,'pot',subname)
 
-  if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate projectors derivatives...'
+  if (iproc == 0) write( *,'(1x,a)',advance='no')'Calculate projectors derivatives...'
 
-  if (iproc == 0) write(*,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
+  if (iproc == 0) write( *,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
 
   call nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,atoms,rxyz,radii_cf,&
      norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,gxyz,calc_tail) !refill projectors for tails
 
-  if (iproc == 0) write(*,'(1x,a)')'done.'
+  if (iproc == 0) write( *,'(1x,a)')'done.'
 
   ! Add up all the force contributions
   if (nproc > 1) then
@@ -967,7 +1002,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      sumx=sumx/real(atoms%nat,gp)
      sumy=sumy/real(atoms%nat,gp)
      sumz=sumz/real(atoms%nat,gp)
-     if (iproc==0) write(*,'(1x,a,1x,3(1x,1pe9.2))') &
+     if (iproc==0) write( *,'(1x,a,1x,3(1x,1pe9.2))') &
           'Subtracting center-mass shift of',sumx,sumy,sumz
 
      do iat=1,atoms%nat
@@ -1053,9 +1088,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !end if
 
      if (iproc.eq.0) then
-        write(*,'(1x,a,3(1x,1pe18.11))')&
+        write( *,'(1x,a,3(1x,1pe18.11))')&
              '  Corrected ekin,epot,eproj',ekin_sum,epot_sum,eproj_sum
-        write(*,'(1x,a,1x,1pe24.17)')&
+        write( *,'(1x,a,1x,1pe24.17)')&
              'Total energy with tail correction',energy
      endif
 
@@ -1198,10 +1233,9 @@ contains
     call system_clock(ncount1,ncount_rate,ncount_max)
     tel=dble(ncount1-ncount0)/dble(ncount_rate)
     if (iproc == 0) &
-         write(*,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time for root process ', iproc,tel,tcpu1-tcpu0
+         write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time for root process ', iproc,tel,tcpu1-tcpu0
 
   end subroutine deallocate_before_exiting
 
 END SUBROUTINE cluster
-
-
+!!***

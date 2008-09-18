@@ -1,4 +1,4 @@
-!!****f* BigDFT/PSolver
+!!****f* PSolver/PSolver
 !! NAME
 !!    PSolver
 !!
@@ -275,6 +275,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      is_step=m1*m3*nxt
   end if
 
+  !if (iproc == 0) print *,'n03,nxt,nxc,geocode,datacode',n03,nxt,nxc,geocode,datacode
+
   ehartreeLOC=0.d0
   !recollect the final data
   if (ixc==0) then !without XC the spin does not exist
@@ -347,6 +349,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      end do
      !in the spin-polarised (distributed) case the potential is given contiguously
      if (nspin==2) then
+        if (datacode == 'D') ind4sh=-n01*n02*(nxt-nxc)
         do j2=1,nxc
            i2=j2+i3xcsh
            ind3=(i2-1)*n01*n02
@@ -456,7 +459,7 @@ end subroutine PSolver
 !!***
 
 
-!!****f* BigDFT/PSolverNC
+!!****f* PSolver/PSolverNC
 !! NAME
 !!    PSolverNC
 !!
@@ -649,7 +652,7 @@ end subroutine PSolverNC
 !!***
 
 
-!!****f* BigDFT/PS_dim4allocation
+!!****f* PSolver/PS_dim4allocation
 !! NAME
 !!    PS_dim4allocation
 !!
@@ -774,7 +777,7 @@ end subroutine PS_dim4allocation
 !!***
 
 
-!!****f* BigDFT/xc_dimensions
+!!****f* PSolver/xc_dimensions
 !! NAME
 !!   xc_dimensions
 !!
@@ -862,7 +865,7 @@ end subroutine xc_dimensions
 !!***
 
 
-!!****f* BigDFT/P_FFT_dimensions
+!!****f* PSolver/P_FFT_dimensions
 !! NAME
 !!   P_FFT_dimensions
 !!
@@ -961,7 +964,7 @@ end subroutine P_FFT_dimensions
 !!***
 
 
-!!****f* BigDFT/S_FFT_dimensions
+!!****f* PSolver/S_FFT_dimensions
 !! NAME
 !!   S_FFT_dimensions
 !!
@@ -1067,7 +1070,7 @@ end subroutine S_FFT_dimensions
 !!***
 
 
-!!****f* BigDFT/F_FFT_dimensions
+!!****f* PSolver/F_FFT_dimensions
 !! NAME
 !!   F_FFT_pardimensions
 !!

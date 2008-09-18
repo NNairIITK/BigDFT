@@ -259,18 +259,6 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
      eproj_sum=wrkallred(3,1) 
   endif
 
-!!$  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-!!$     oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
-!!$     !loop over the spinorial components
-!!$     do ispin=oidx,oidx+nspinor-1
-!!$        m00=dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,hpsi(1,ispin),1)
-!!$        if (iproc == 0) then
-!!$           write(*,'(1x,i0,1pe24.17)'),iorb,m00
-!!$        end if
-!!$     end do
-!!$  enddo
-
-
 end subroutine HamiltonianApplication
 
 

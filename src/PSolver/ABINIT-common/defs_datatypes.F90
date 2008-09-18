@@ -268,6 +268,8 @@ integer :: alphon,asr,brav,chneut,dieflag,dipdip,doscalprod,eivec,elaflag,elphfl
 
  end type bcp_type
 
+!!***
+
 !----------------------------------------------------------------------
 
 !!****t* defs_datatypes/datafiles_type

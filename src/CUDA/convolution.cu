@@ -134,6 +134,7 @@ void intertamponcgpu_(int *n1,
   if(cudaMalloc( (void**) &(m_dataIn.GPU_data), mem_size1) != 0)
     {
       printf("erreur malloc GPU_odata\n");
+      printf(" %i \n",mem_size1);
       return;
     }
  

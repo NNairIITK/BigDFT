@@ -1,4 +1,4 @@
-!!****f* BigDFT/P_PoissonSolver
+!!****f* PSolver/P_PoissonSolver
 !! NAME
 !!   P_PoissonSolver
 !!
@@ -66,8 +66,8 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
   if (timing_flag == 1 .and. iproc ==0) print *,'parallel ncache=',ncache
 
   lzt=n2
-  if (mod(n2,2).eq.0) lzt=lzt+1
-  if (mod(n2,4).eq.0) lzt=lzt+1 !maybe this is useless
+  if (mod(n2,2) == 0) lzt=lzt+1
+  if (mod(n2,4) == 0) lzt=lzt+1 !maybe this is useless
   
   !Allocations
   allocate(btrig1(2,nfft_max+ndebug),stat=i_stat)
@@ -106,7 +106,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
   call memocc(i_stat,zt,'zt',subname)
   allocate(zmpi2(2,n1,md2/nproc,nd3+ndebug),stat=i_stat)
   call memocc(i_stat,zmpi2,'zmpi2',subname)
-  if (nproc.gt.1) then
+  if (nproc > 1) then
      allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,nproc+ndebug),stat=i_stat)
      call memocc(i_stat,zmpi1,'zmpi1',subname)
   end if
@@ -131,7 +131,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
 
   ! transform along z axis
   lot=ncache/(4*n3)
-  if (lot.lt.1) then  
+  if (lot < 1) then  
      write(6,*) & 
           'convolxc_off:ncache has to be enlarged to be able to hold at' // &  
           'least one 1-d FFT of this size even though this will' // & 
@@ -188,7 +188,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
   !now each process perform complete convolution of its planes
   do j3=1,nd3/nproc
      !this condition ensures that we manage only the interesting part for the FFT
-     if (iproc*(nd3/nproc)+j3.le.n3/2+1) then
+     if (iproc*(nd3/nproc)+j3 <= n3/2+1) then
       Jp2stb=1
       J2stb=1
       Jp2stf=1
@@ -196,7 +196,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
         
         ! transform along x axis
         lot=ncache/(4*n1)
-        if (lot.lt.1) then  
+        if (lot < 1) then  
            write(6,*) & 
                 'convolxc_off:ncache has to be enlarged to be able to hold at' // &  
                 'least one 1-d FFT of this size even though this will' // & 
@@ -236,7 +236,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
 
         !transform along y axis
         lot=ncache/(4*n2)
-        if (lot.lt.1) then  
+        if (lot < 1) then  
            write(6,*) & 
                 'convolxc_off:ncache has to be enlarged to be able to hold at' // &  
                 'least one 1-d FFT of this size even though this will' // & 
@@ -423,7 +423,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
   i_all=-product(shape(zt))*kind(zt)
   deallocate(zt,stat=i_stat)
   call memocc(i_stat,i_all,'zt',subname)
-  if (nproc.gt.1) then
+  if (nproc > 1) then
      i_all=-product(shape(zmpi1))*kind(zmpi1)
      deallocate(zmpi1,stat=i_stat)
      call memocc(i_stat,i_all,'zmpi1',subname)
@@ -526,7 +526,7 @@ subroutine P_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,z
 end subroutine P_unmpiswitch_downcorn
 
 
-!!****f* BigDFT/P_fill_downcorn
+!!****f* PSolver/P_fill_downcorn
 !! NAME
 !!   P_fill_downcorn
 !!
@@ -602,7 +602,7 @@ end subroutine P_fill_upcorn
 !!***
 
 
-!!****f* BigDFT/scramble_P
+!!****f* PSolver/scramble_P
 !! NAME
 !!   scramble_P
 !!
@@ -653,7 +653,7 @@ end subroutine scramble_P
 !!***
 
 
-!!****f* BigDFT/unscramble_P
+!!****f* PSolver/unscramble_P
 !! NAME
 !!   unscramble_P
 !!
@@ -713,7 +713,7 @@ end subroutine unscramble_P
 !!***
 
 
-!!****f* BigDFT/P_multkernel
+!!****f* PSolver/P_multkernel
 !! NAME
 !!   P_multkernel
 !!
@@ -783,7 +783,7 @@ end subroutine P_multkernel
 !!***
 
 
-!!****f* BigDFT/multkernel
+!!****f* PSolver/multkernel
 !! NAME
 !!   multkernel
 !!
@@ -867,7 +867,7 @@ end subroutine multkernel
 !!!HERE POT MUST BE THE KERNEL (BEWARE THE HALF DIMENSION)
 
 
-!!****f* BigDFT/S_PoissonSolver
+!!****f* PSolver/S_PoissonSolver
 !! NAME
 !!   PoissonSolver
 !!
@@ -1447,7 +1447,7 @@ subroutine S_unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,z
 end subroutine S_unmpiswitch_downcorn
 
 
-!!****f* BigDFT/unfill_downcorn
+!!****f* PSolver/unfill_downcorn
 !! NAME
 !!   unfill_downcorn
 !!
@@ -1538,7 +1538,7 @@ subroutine halfill_upcorn(md1,md3,lot,nfft,n3,zf,zw)
 end subroutine halfill_upcorn
 
 
-!!****f* BigDFT/scramble_unpack
+!!****f* PSolver/scramble_unpack
 !! NAME
 !!   scramble_unpack
 !!
@@ -1620,7 +1620,7 @@ end subroutine scramble_unpack
 !!***
 
  
-!!****f* BigDFT/unscramble_pack
+!!****f* PSolver/unscramble_pack
 !! NAME
 !!   unscramble_pack
 !!
@@ -1692,7 +1692,7 @@ end subroutine unscramble_pack
 !!***
 
 
-!!****f* BigDFT/F_PoissonSolver
+!!****f* PSolver/F_PoissonSolver
 !! NAME
 !!   F_PoissonSolver
 !!
@@ -2274,7 +2274,7 @@ subroutine unmpiswitch_downcorn(j3,nfft,Jp2stf,J2stf,lot,n1,md2,nd3,nproc,zw,zmp
 end subroutine unmpiswitch_downcorn
 
 
-!!****f* BigDFT/F_unfill_downcorn
+!!****f* PSolver/F_unfill_downcorn
 !! NAME
 !!   F_unfill_downcorn
 !!
@@ -2341,7 +2341,7 @@ subroutine F_unfill_downcorn(md1,md3,lot,nfft,n3,zw,zf&
 end subroutine F_unfill_downcorn
 !!***
 
-!!****f* BigDFT/W_PoissonSolver
+!!****f* PSolver/W_PoissonSolver
 !! NAME
 !!   W_PoissonSolver
 !!

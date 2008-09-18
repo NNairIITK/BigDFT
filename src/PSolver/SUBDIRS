@@ -1,0 +1,10 @@
+!!****d* PSolver/ABINIT
+!!
+!! NAME
+!!  ABINIT
+!!
+!! DESCRIPTION
+!!  The directory ABINIT-common contains the routines from the ABINIT package,
+!!  specially the XC routines.
+!!
+!!***

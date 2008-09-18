@@ -1,6 +1,6 @@
-!!****f* BigDFT/xcenergy
+!!****f* PSolver/xc_energy
 !! NAME
-!!    xcenergy
+!!    xc_energy
 !!
 !! FUNCTION
 !!    Calculate the XC terms from the given density in a distributed way.
@@ -478,7 +478,6 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      vxc=0.d0
      do jp2=1,nxc
         j2=offset+jp2+nxcl-2
-        jpp2=jp2     
         do j3=1,m3
            do j1=1,m1
               zf(j1,j3,jp2)=rhopot(j1,j3,j2,1)
@@ -507,7 +506,7 @@ end subroutine xc_energy
 !!***
 
 
-!!****f* BigDFT/vxcpostprocessing
+!!****f* PSolver/vxcpostprocessing
 !! NAME
 !! vxcpostprocessing
 !!

@@ -14,9 +14,6 @@
 #include "structUtil.h"
 
 
-
-
-
 int conv3dGPU_pot(int dn1,
 		  int dn2,
 		  int dn3,
@@ -49,10 +46,6 @@ void doMalloc(multiTab_t *t_m_dataIn,
 	      unsigned int num_threads,
 	      unsigned int num_GPU,
 	      evalPerfGPU_t *t_evPerf);
-
-
-
-
 
 
 

@@ -113,7 +113,7 @@ ID : 0 CPU_ID : 0 GPU_ID : 0 FLAG BLAS = 0
  Calculation of charge density... done. Total electronic charge=      31.999990834688
  PSolver, periodic BC, dimensions:    48   48   48   proc    1   ixc:  1 ...done.
  Hamiltonian application... done. ekin_sum,eks:      11.5176088871      11.1353757265
- ekin_sum,epot_sum,eproj_sum  1.15176088871E+01  1.97626258336-322  8.02024126603E+00
+ ekin_sum,epot_sum,eproj_sum  1.15176088871E+01  0.00000000000E+00  8.02024126603E+00
     ehart,   eexcu,    vexcu  1.83669037820E+00 -9.43309050068E+00 -1.23007464080E+01
  Input Wavefunctions Orthogonalization: Overlap Matrix... Linear Algebra...
  evale(1)= -1.83333021404801E-01
@@ -158,7 +158,7 @@ ID : 0 CPU_ID : 0 GPU_ID : 0 FLAG BLAS = 0
  DIIS weights    1.00E+00  1.00E+00
  Orthogonalization... done.
  ERROR: inconsistency between gradient and energy 5.93E+00  2.00148767212602E+01  2.88649459555745E+00
- ekin_sum,epot_sum,eproj_sum  1.27844266699E+01  1.50872628644-315  7.23045005136E+00
+ ekin_sum,epot_sum,eproj_sum  1.27844266699E+01  0.00000000000E+00  7.23045005136E+00
     ehart,   eexcu,    vexcu  2.08913483997E+00 -9.53491960682E+00 -1.24346493911E+01
  iter,total energy,gnrm     1  -1.39528677684306466E+01  9.38E-02
  ---------------------------------------------------------------------------- iter= 2
@@ -168,7 +168,7 @@ ID : 0 CPU_ID : 0 GPU_ID : 0 FLAG BLAS = 0
  DIIS weights   -6.08E-01  1.61E+00 -3.70E-03
  Orthogonalization... done.
  ERROR: inconsistency between gradient and energy 5.71E+00  1.98560005195638E+01  2.95873709395528E+00
- ekin_sum,epot_sum,eproj_sum  1.31692283306E+01  1.47636996682-315  6.68677218892E+00
+ ekin_sum,epot_sum,eproj_sum  1.31692283306E+01  0.00000000000E+00  6.68677218892E+00
     ehart,   eexcu,    vexcu  2.36998886398E+00 -9.65488846644E+00 -1.25925801112E+01
  iter,total energy,gnrm     2  -1.43546361336201329E+01  5.10E-02
  ---------------------------------------------------------------------------- iter= 3
@@ -178,7 +178,7 @@ ID : 0 CPU_ID : 0 GPU_ID : 0 FLAG BLAS = 0
  DIIS weights    5.07E-01 -1.67E+00  2.17E+00 -6.18E-04
  Orthogonalization... done.
  ERROR: inconsistency between gradient and energy 5.55E+00  1.98345469464775E+01  3.03038806095719E+00
- ekin_sum,epot_sum,eproj_sum  1.33884458188E+01  1.47636996682-315  6.44610112770E+00
+ ekin_sum,epot_sum,eproj_sum  1.33884458188E+01  0.00000000000E+00  6.44610112770E+00
     ehart,   eexcu,    vexcu  2.53180842824E+00 -9.72370630262E+00 -1.26832079936E+01
  iter,total energy,gnrm     3  -1.45160992247640230E+01  2.89E-02
  ---------------------------------------------------------------------------- iter= 4
@@ -188,7 +188,7 @@ ID : 0 CPU_ID : 0 GPU_ID : 0 FLAG BLAS = 0
  DIIS weights   -8.81E-02  3.20E-01 -7.66E-01  1.53E+00 -5.74E-05
  Orthogonalization... done.
  ERROR: inconsistency between gradient and energy 5.54E+00  1.97401183629243E+01  3.01884943246841E+00
- ekin_sum,epot_sum,eproj_sum  1.34300380590E+01  3.57151691835-315  6.31008030395E+00
+ ekin_sum,epot_sum,eproj_sum  1.34300380590E+01  0.00000000000E+00  6.31008030395E+00
     ehart,   eexcu,    vexcu  2.54563968546E+00 -9.73188714864E+00 -1.26940156958E+01
  iter,total energy,gnrm     4  -1.46217322094074618E+01  1.04E-02
  ---------------------------------------------------------------------------- iter= 5
@@ -198,7 +198,7 @@ ID : 0 CPU_ID : 0 GPU_ID : 0 FLAG BLAS = 0
  DIIS weights    3.41E-02 -9.98E-02  2.98E-01 -9.25E-01  1.69E+00 -4.72E-06
  Orthogonalization... done.
  ERROR: inconsistency between gradient and energy 5.54E+00  1.97072382931081E+01  3.01494985073805E+00
- ekin_sum,epot_sum,eproj_sum  1.34473804314E+01  3.57303721763-315  6.25985786167E+00
+ ekin_sum,epot_sum,eproj_sum  1.34473804314E+01  0.00000000000E+00  6.25985786167E+00
     ehart,   eexcu,    vexcu  2.54438489615E+00 -9.73241066272E+00 -1.26947170258E+01
  iter,total energy,gnrm     5  -1.46531796739425531E+01  3.96E-03
  ---------------------------------------------------------------------------- iter= 6
@@ -208,7 +208,7 @@ ID : 0 CPU_ID : 0 GPU_ID : 0 FLAG BLAS = 0
  DIIS weights   -9.28E-03  2.31E-02 -7.80E-02  2.90E-01 -7.18E-01  1.49E+00 -3.15E-07
  Orthogonalization... done.
  ERROR: inconsistency between gradient and energy 5.54E+00  1.97106352687689E+01  3.01306957378983E+00
- ekin_sum,epot_sum,eproj_sum  1.34433205427E+01  3.57258947558-315  6.26731472607E+00
+ ekin_sum,epot_sum,eproj_sum  1.34433205427E+01  0.00000000000E+00  6.26731472607E+00
     ehart,   eexcu,    vexcu  2.54241678936E+00 -9.73146379791E+00 -1.26934715840E+01
  iter,total energy,gnrm     6  -1.46481131685180443E+01  1.33E-03
  ---------------------------------------------------------------------------- iter= 7
@@ -218,7 +218,7 @@ ID : 0 CPU_ID : 0 GPU_ID : 0 FLAG BLAS = 0
  DIIS weights    3.36E-03 -5.40E-03 -5.88E-03  9.20E-02 -6.01E-01  1.52E+00 -2.08E-08
  Orthogonalization... done.
  ERROR: inconsistency between gradient and energy 5.54E+00  1.97137485471753E+01  3.01348685100675E+00
- ekin_sum,epot_sum,eproj_sum  1.34422933675E+01  3.57154474413-315  6.27145517971E+00
+ ekin_sum,epot_sum,eproj_sum  1.34422933675E+01  0.00000000000E+00  6.27145517971E+00
     ehart,   eexcu,    vexcu  2.54288633655E+00 -9.73157847769E+00 -1.26936224638E+01
  iter,total energy,gnrm     7  -1.46454332372558440E+01  4.26E-04
  ---------------------------------------------------------------------------- iter= 8
@@ -228,7 +228,7 @@ ID : 0 CPU_ID : 0 GPU_ID : 0 FLAG BLAS = 0
  DIIS weights    2.41E-03 -1.22E-02  2.04E-02  5.70E-02 -3.66E-01  1.30E+00 -3.50E-09
  Orthogonalization... done.
  ERROR: inconsistency between gradient and energy 5.54E+00  1.97142172310931E+01  3.01334463059902E+00
- ekin_sum,epot_sum,eproj_sum  1.34410887727E+01  3.57342171928-315  6.27312845841E+00
+ ekin_sum,epot_sum,eproj_sum  1.34410887727E+01  0.00000000000E+00  6.27312845841E+00
     ehart,   eexcu,    vexcu  2.54271743411E+00 -9.73148461683E+00 -1.26934987295E+01
  iter,total energy,gnrm     8  -1.46448255243765431E+01  9.15E-05
  ---------------------------------------------------------------------------- iter= 9
@@ -236,7 +236,7 @@ ID : 0 CPU_ID : 0 GPU_ID : 0 FLAG BLAS = 0
  PSolver, periodic BC, dimensions:    48   48   48   proc    1   ixc:  1 ...done.
  Hamiltonian application... done. 9 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
- final  ekin,  epot,  eproj   1.34408638360E+01  3.57271342677-315  6.27313582734E+00
+ final  ekin,  epot,  eproj   1.34408638360E+01  0.00000000000E+00  6.27313582734E+00
  final ehart, eexcu,  vexcu   2.54264153632E+00 -9.73145570353E+00 -1.26934606272E+01
  FINAL iter,total energy,gnrm     9  -1.46449763833041828E+01  9.15E-05
  WARNING: Found an energy value lower than the FINAL energy, delta: 8.20E-03
@@ -263,7 +263,7 @@ ID : 0 CPU_ID : 0 GPU_ID : 0 FLAG BLAS = 0
  PSolver, periodic BC, dimensions:    48   48   48   proc    1   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        77.80        77.80
+ CPU time for root process     0       117.45       116.39
  Final values of the Forces for each atom
      1     Si -1.26489E-07 -1.55634E-07 -1.29889E-07
      2     Si -1.63071E-07 -1.52808E-07 -1.42055E-07
@@ -278,6 +278,6 @@ ID : 0 CPU_ID : 0 GPU_ID : 0 FLAG BLAS = 0
       y direction     3.45061294E-08
       z direction     7.07037919E-08
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 3683 allocations and 3683 deallocations, remaining memory(B):116785152
+ 3694 allocations and 3694 deallocations, remaining memory(B):116785152
  memory occupation peak: 276 MB
  for the array  v_cuda in the routine applylocpotkinone_per

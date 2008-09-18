@@ -38,7 +38,7 @@
 #include "config.h"
 #endif
 
-subroutine derfc(derfc_yy,yy)
+subroutine derfcf(derfc_yy,yy)
 
  use defs_basis
 
@@ -166,5 +166,5 @@ subroutine derfc(derfc_yy,yy)
   !All cases have been investigated
   derfc_yy = res
 
-end subroutine derfc
+end subroutine derfcf
 !!***

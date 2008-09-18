@@ -1,6 +1,6 @@
-!!****p* BigDFT/PSchk
+!!****p* PSolver/PS_Check
 !! NAME
-!!   PSchk
+!!   PS_Check
 !!
 !! FUNCTION
 !!    Performs a check of the Poisson Solver suite by running with different regimes
@@ -23,7 +23,7 @@
 !!
 !! SOURCE
 !!
-program PSchk
+program PS_Check
 
   use module_base
   use Poisson_Solver
@@ -31,7 +31,7 @@ program PSchk
   implicit none
   !include 'mpif.h'
   !Length of the box
-  character(len=*), parameter :: subname='PSchk'
+  character(len=*), parameter :: subname='PS_Check'
   real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
   real(kind=8), parameter :: acell = 10.d0
   character(len=50) :: chain
@@ -44,7 +44,7 @@ program PSchk
   integer :: n01,n02,n03,itype_scf,i_all,i_stat
   integer :: i1_max,i2_max,i3_max,iproc,nproc,ierr,i3sd,ispden
   integer :: n_cell,ixc,n3d,n3p,n3pi,i3xcsh,i3s
-  integer, dimension(3) :: nxyz
+  integer, dimension(4) :: nxyz
 
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
@@ -58,22 +58,24 @@ program PSchk
   if (iproc==0) then
      !Use arguments
      call getarg(1,chain)
-     read(unit=chain,fmt=*) n01
+     read(unit=chain,fmt=*) nxyz(1)
      call getarg(2,chain)
-     read(unit=chain,fmt=*) n02
+     read(unit=chain,fmt=*) nxyz(2)
      call getarg(3,chain)
-     read(unit=chain,fmt=*) n03
+     read(unit=chain,fmt=*) nxyz(3)
+     call getarg(4,chain)
+     read(unit=chain,fmt=*) nxyz(4)
+     call getarg(5,chain)
+     read(unit=chain,fmt=*) geocode
   end if
 
-  nxyz(1)=n01
-  nxyz(2)=n02
-  nxyz(3)=n03
-
-  call MPI_BCAST(nxyz,3,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+  call MPI_BCAST(nxyz,4,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+  call MPI_BCAST(geocode,1,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
 
   n01=nxyz(1)
   n02=nxyz(2)
   n03=nxyz(3)
+  ixc=nxyz(4)
 
   !print *,iproc,n01,n02,n03
 
@@ -90,9 +92,8 @@ program PSchk
   !order of the scaling functions choosed
   itype_scf=16
 
-  ixc=11
-  geocode='F'
-
+!!$  ixc=1
+!!$  geocode='S'
 
   !calculate the kernel in parallel for each processor
   call createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,pkernel)
@@ -114,13 +115,17 @@ program PSchk
   call memocc(i_stat,rhopot,'rhopot',subname)
 
   do ispden=1,2
+     if (iproc==0) write(unit=*,fmt="(1x,a,i0)") &
+          '===================== npsden:  ',ispden
   !then assign the value of the analytic density and the potential
-     call test_functions(geocode,0,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,&
-          density,potential,rhopot,pot_ion)
+     call test_functions(geocode,ixc,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,&
+          density,potential,rhopot,pot_ion,offset)
      !calculate the Poisson potential in parallel
      !with the global data distribution (also for xc potential)
+
      call PSolver(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
           rhopot,pkernel,xc_pot,ehartree,eexcu,vexcu,offset,.false.,ispden)
+
      if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies:',ehartree,eexcu,vexcu
      if (iproc == 0) then
         !compare the values of the analytic results
@@ -132,11 +137,11 @@ program PSchk
      !now the parallel calculation part
 
      call compare_with_reference(iproc,nproc,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
-          ehartree,eexcu,vexcu,&
+          offset,ehartree,eexcu,vexcu,&
           density,potential,pot_ion,xc_pot,pkernel,rhopot)
      
      call compare_with_reference(iproc,nproc,geocode,'D',n01,n02,n03,ixc,ispden,hx,hy,hz,&
-          ehartree,eexcu,vexcu,&
+          offset,ehartree,eexcu,vexcu,&
           density,potential,pot_ion,xc_pot,pkernel,rhopot)
 
   !test for the serial solver
@@ -148,14 +153,16 @@ program PSchk
      !calculate the kernel 
      call createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,0,1,pkernel)
 
-     call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,ehartree,eexcu,vexcu,&
+     call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
+          offset,ehartree,eexcu,vexcu,&
           density,potential,pot_ion,xc_pot,pkernel,rhopot)
 
-     call compare_with_reference(0,1,geocode,'D',n01,n02,n03,ixc,ispden,hx,hy,hz,ehartree,eexcu,vexcu,&
+     call compare_with_reference(0,1,geocode,'D',n01,n02,n03,ixc,ispden,hx,hy,hz,&
+          offset,ehartree,eexcu,vexcu,&
           density,potential,pot_ion,xc_pot,pkernel,rhopot)
   end if
 
-     if(iproc == 0) print *,'CIAO'
+     if (ixc == 0) exit
   end do
 
   i_all=-product(shape(pkernel))*kind(pkernel)
@@ -187,23 +194,26 @@ program PSchk
 contains
 
   subroutine compare_with_reference(iproc,nproc,geocode,distcode,n01,n02,n03,&
-       ixc,nspden,hx,hy,hz,ehref,excref,vxcref,&
+       ixc,nspden,hx,hy,hz,offset,ehref,excref,vxcref,&
        density,potential,pot_ion,xc_pot,pkernel,rhopot)
     use Poisson_Solver
     implicit none
     character(len=1), intent(in) :: geocode,distcode
     integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspden
-    real(kind=8), intent(in) :: hx,hy,hz,ehref,excref,vxcref
+    real(kind=8), intent(in) :: hx,hy,hz,offset,ehref,excref,vxcref
     real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
     real(kind=8), dimension(n01*n02*n03*nspden), intent(in) :: density
     real(kind=8), dimension(n01*n02*n03), intent(inout) :: pot_ion
-    real(kind=8), dimension(n01*n02*n03*nspden), intent(inout) :: rhopot,xc_pot
+    real(kind=8), dimension(n01*n02*n03*nspden), intent(inout) :: rhopot
+    real(kind=8), dimension(n01*n02*n03*nspden), target, intent(inout) :: xc_pot
     real(kind=8), dimension(:), pointer :: pkernel
     !local variables
     character(len=*), parameter :: subname='compare_with_reference'
     integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,i1_max,i2_max,i3_max,i_all,i_stat,istpoti,i
-    real(kind=8) :: eexcu,vexcu,offset,max_diff,ehartree,tt
+    integer :: istxc
+    real(kind=8) :: eexcu,vexcu,max_diff,ehartree,tt
     real(kind=8), dimension(:), allocatable :: test,test_xc
+    real(kind=8), dimension(:), pointer :: xc_temp
 
     call PS_dim4allocation(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,&
          n3d,n3p,n3pi,i3xcsh,i3s)
@@ -252,14 +262,27 @@ contains
           rhopot(i+istden-1)=density(i+istden-1)
           rhopot(i+istden-1+n01*n02*n3d)=density(i+istden-1+n01*n02*n03)
        end do
+       allocate(xc_temp(n01*n02*n3p*nspden+ndebug),stat=i_stat)
+       call memocc(i_stat,xc_temp,'xc_temp',subname)
        !toggle the components of xc_pot in the distributed case
        do i=1,n01*n02*n3p
-          tt=xc_pot(i+istpot-1+n01*n02*n03)
-          xc_pot(i+istpot-1+n01*n02*n03)=xc_pot(i+istpot-1+n01*n02*n3p)
-          xc_pot(i+istpot-1+n01*n02*n3p)=tt
+          xc_temp(i)=xc_pot(i+istpot-1)
+          xc_temp(i+n01*n02*n3p)=xc_pot(i+istpot-1+n01*n02*n03)
        end do
+       istxc=1
+!!$       !toggle the components of xc_pot in the distributed case
+!!$       do i=1,n01*n02*n3p
+!!$          test_xc(i)=xc_pot(i+istpot-1+n01*n02*n3p)
+!!$          test_xc(i+n01*n02*n3p)=xc_pot(i+istpot-1+n01*n02*n03)
+!!$       end do
+!!$       do i=1,n01*n02*n3p
+!!$          xc_pot(i+istpot-1+n01*n02*n3p)=test_xc(i+n01*n02*n3p)
+!!$          xc_pot(i+istpot-1+n01*n02*n03)=test_xc(i)
+!!$       end do
     else
        rhopot=density
+       xc_temp => xc_pot
+       istxc=istpot
     end if
 
     call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
@@ -270,7 +293,7 @@ contains
          'ANACOMPLET '//distcode)
 
     !compare also the xc_potential
-    if (ixc/=0) call compare(iproc,nproc,n01,n02,nspden*n3p,1,xc_pot(istpot),&
+    if (ixc/=0) call compare(iproc,nproc,n01,n02,nspden*n3p,1,xc_temp(istxc),&
          test_xc(1),&
          'XCCOMPLETE '//distcode)
     if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") &
@@ -281,12 +304,19 @@ contains
           rhopot(i+istden-1)=density(i+istden-1)
           rhopot(i+istden-1+n01*n02*n3d)=density(i+istden-1+n01*n02*n03)
        end do
-       !toggle the components of xc_pot in the distributed case
-       do i=1,n01*n02*n3p
-          tt=xc_pot(i+istpot-1+n01*n02*n03)
-          xc_pot(i+istpot-1+n01*n02*n03)=xc_pot(i+istpot-1+n01*n02*n3p)
-          xc_pot(i+istpot-1+n01*n02*n3p)=tt
-       end do
+       i_all=-product(shape(xc_temp))*kind(xc_temp)
+       deallocate(xc_temp,stat=i_stat)
+       call memocc(i_stat,i_all,'xc_temp',subname)
+
+!!$       !toggle the components of xc_pot in the distributed case
+!!$       do i=1,n01*n02*n3p
+!!$          test_xc(i)=xc_pot(i+istpot-1+n01*n02*n3p)
+!!$          test_xc(i+n01*n02*n3p)=xc_pot(i+istpot-1+n01*n02*n03)
+!!$       end do
+!!$       do i=1,n01*n02*n3p
+!!$          xc_pot(i+istpot-1+n01*n02*n3p)=test_xc(i+n01*n02*n3p)
+!!$          xc_pot(i+istpot-1+n01*n02*n03)=test_xc(i)
+!!$       end do
     else
        rhopot=density
     end if
@@ -310,7 +340,7 @@ contains
 
   end subroutine compare_with_reference
 
-end program PSchk
+end program PS_Check
 !!***
 
 
@@ -355,17 +385,25 @@ subroutine compare(iproc,nproc,n01,n02,n03,nspden,potential,density,description)
      if (nproc == 1) then
         if (diff_par > 1.e-10) then
            write(unit=*,fmt="(1x,a,1pe20.12,a)") trim(description)//'    Max diff:',diff_par,&
-                '   <<<< ERROR'
+                '   <<<< WARNING'
            write(unit=*,fmt="(1x,a,1pe20.12)")'      result:',density(i1_max,i2_max,i3_max),&
                 '    original:',potential(i1_max,i2_max,i3_max)
            write(*,'(a,3(i0,1x))')'  Max diff at: ',i1_max,i2_max,i3_max
+!!$           i3=i3_max
+!!$           i1=i1_max
+!!$           do i2=1,n02
+!!$              !do i1=1,n01
+!!$                 write(20,*)i1,i2,potential(i1,i2,i3),density(i1,i2,i3)
+!!$              !end do
+!!$           end do
+!!$           stop
         else
            write(unit=*,fmt="(1x,a,1pe20.12)") trim(description)// '    Max diff:',diff_par
         end if
      else
         if (diff_par > 1.e-10) then
            write(unit=*,fmt="(1x,a,1pe20.12,a)") trim(description)//'    Max diff:',diff_par,&
-                '   <<<< ERROR'
+                '   <<<< WARNING'
         else
            write(unit=*,fmt="(1x,a,1pe20.12)") trim(description)// '    Max diff:',diff_par
         end if
@@ -386,14 +424,14 @@ end subroutine compare
 ! function in the isolated direction and an explicitly periodic function in the periodic ones.
 ! Beware of the high-frequency components that may falsify the results when hgrid is too high.
 subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,&
-     density,potential,rhopot,pot_ion)
+     density,potential,rhopot,pot_ion,offset)
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: n01,n02,n03,ixc,nspden
   real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz
+  real(kind=8), intent(out) :: offset
   real(kind=8), dimension(n01,n02,n03), intent(out) :: pot_ion,potential
   real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: density,rhopot
-
   !local variables
   integer :: i1,i2,i3,nu,ifx,ify,ifz,i
   real(kind=8) :: x,x1,x2,x3,y,length,denval,pi,a2,derf,hgrid,factor,r,r2
@@ -438,7 +476,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,
               do i=1,nspden
                  density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)*(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
               end do
-              potential(i1,i2,i3) = fx*fy*fz
+              potential(i1,i2,i3) = -16.d0*datan(1.d0)*fx*fy*fz
               denval=max(denval,-density(i1,i2,i3,1))
            end do
         end do
@@ -465,7 +503,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,
      by=a
 
      !Initialisation of density and potential
-     !Normalisation
+     denval=0.d0 !value for keeping the density positive
      do i3=1,n03
         x3 = hz*real(i3-n03/2-1,kind=8)
         call functions(x3,az,bz,fz,fz2,ifz)
@@ -479,11 +517,12 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,
                  density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)*(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
               end do
               potential(i1,i2,i3) = -fx*fy*fz*16.d0*datan(1.d0)
+              denval=max(denval,-density(i1,i2,i3,1))
            end do
         end do
      end do
 
-     !if (ixc==0) denval=0.d0
+     if (ixc==0) denval=0.d0
 
   else if (trim(geocode) == 'F') then
 
@@ -531,16 +570,39 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,
 ! To ease the comparison between the serial and the parallel case we add a random pot_ion
 ! to the potential.
 
-  rhopot(:,:,:,:) = density(:,:,:,:) + denval
+  if (denval /= 0.d0) then
+     rhopot(:,:,:,:) = density(:,:,:,:) + denval +1.d-20
+  else
+     rhopot(:,:,:,:) = density(:,:,:,:) 
+  end if
+
+  offset=0.d0
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01
            tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
            pot_ion(i1,i2,i3)=tt
+           offset=offset+potential(i1,i2,i3)
+           !add the case for offset in the surfaces case 
+           !(for periodic case it is absorbed in offset)
+           if (geocode == 'S' .and. denval /= 0.d0) then
+              x2 = hy*real(i2-1,kind=8)-0.5d0*acell+0.5d0*hy
+              potential(i1,i2,i3)=potential(i1,i2,i3)&
+                   -8.d0*datan(1.d0)*denval*real(nspden,kind=8)*(x2**2+0.25d0*acell**2)
+              !this stands for
+              !denval*2pi*Lx*Lz/Ly^2(y^2-Ly^2/4), less accurate in hgrid
+           end if
+
+!!$           if (rhopot(i1,i2,i3,1) <= 0.d0) then
+!!$              print *,i1,i2,i3,rhopot(i1,i2,i3,1),denval
+!!$           end if
         end do
      end do
   end do
   if (denval /= 0.d0) density=rhopot
+  offset=offset*hx*hy*hz
+
+  !print *,'offset',offset
 
 end subroutine test_functions
 
@@ -620,26 +682,3 @@ subroutine functions(x,a,b,f,f2,whichone)
   end select
 
 end subroutine functions
-
-
-!!$!fake ABINIT subroutines
-!!$subroutine wrtout(unit,message,mode_paral)
-!!$  implicit none
-!!$
-!!$  !Arguments ------------------------------------
-!!$  integer,intent(in) :: unit
-!!$  character(len=4),intent(in) :: mode_paral
-!!$  character(len=500),intent(inout) :: message
-!!$
-!!$  print *,message
-!!$end subroutine wrtout
-!!$
-!!$subroutine leave_new(mode_paral)
-!!$  implicit none
-!!$
-!!$  !Arguments ------------------------------------
-!!$  character(len=4),intent(in) :: mode_paral
-!!$
-!!$  print *,'exiting...'
-!!$  stop
-!!$end subroutine leave_new
