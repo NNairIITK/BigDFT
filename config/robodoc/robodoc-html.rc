@@ -22,6 +22,7 @@ ignore items:
 options:
     --src src
     --html
+    --masterindex "General Index,index"
     --multidoc
     --sections
     --sectionnameonly
