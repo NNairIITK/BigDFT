@@ -214,61 +214,64 @@ subroutine wpdot(  &
   scpr6=0.d0
   scpr7=0.d0
   ! fine part
+  !add possibility of zero fine segments for the projectors
   ibseg=1
-  loop_jaf: do iaseg=1,maseg_f
-     jaj=keyav_f(iaseg)
-     ja0=keyag_f(1,iaseg)
-     ja1=keyag_f(2,iaseg)
+  if (mbseg_f /= 0) then
+     loop_jaf: do iaseg=1,maseg_f
+        jaj=keyav_f(iaseg)
+        ja0=keyag_f(1,iaseg)
+        ja1=keyag_f(2,iaseg)
 
-     loop_jbf: do
-        jb1=keybg_f(2,ibseg)
-        jb0=keybg_f(1,ibseg)
-        if (jb1 < ja0) then
+        loop_jbf: do
+           jb1=keybg_f(2,ibseg)
+           jb0=keybg_f(1,ibseg)
+           if (jb1 < ja0) then
+              ibseg=ibseg+1
+              if (ibseg > mbseg_f) exit loop_jbf
+              cycle loop_jbf
+           end if
+           if (jb0 > ja1) exit loop_jbf
+
+           jbj=keybv_f(ibseg)
+           if (ja0 .gt. jb0) then 
+              iaoff=0
+              iboff=ja0-jb0
+              length=min(ja1,jb1)-ja0
+           else
+              iaoff=jb0-ja0
+              iboff=0
+              length=min(ja1,jb1)-jb0
+           endif
+           do i=0,length
+              llf=llf+1
+              paf1=real(apsi_f(1,jaj+iaoff+i),dp)
+              pbf1=real(bpsi_f(1,jbj+iboff+i),dp)
+              paf2=real(apsi_f(2,jaj+iaoff+i),dp)
+              pbf2=real(bpsi_f(2,jbj+iboff+i),dp)
+              paf3=real(apsi_f(3,jaj+iaoff+i),dp)
+              pbf3=real(bpsi_f(3,jbj+iboff+i),dp)
+              paf4=real(apsi_f(4,jaj+iaoff+i),dp)
+              pbf4=real(bpsi_f(4,jbj+iboff+i),dp)
+              paf5=real(apsi_f(5,jaj+iaoff+i),dp)
+              pbf5=real(bpsi_f(5,jbj+iboff+i),dp)
+              paf6=real(apsi_f(6,jaj+iaoff+i),dp)
+              pbf6=real(bpsi_f(6,jbj+iboff+i),dp)
+              paf7=real(apsi_f(7,jaj+iaoff+i),dp)
+              pbf7=real(bpsi_f(7,jbj+iboff+i),dp)
+
+              scpr1=scpr1+paf1*pbf1
+              scpr2=scpr2+paf2*pbf2
+              scpr3=scpr3+paf3*pbf3
+              scpr4=scpr4+paf4*pbf4
+              scpr5=scpr5+paf5*pbf5
+              scpr6=scpr6+paf6*pbf6
+              scpr7=scpr7+paf7*pbf7
+           enddo
            ibseg=ibseg+1
-           if (ibseg > mbseg_f) exit loop_jbf
-           cycle loop_jbf
-        end if
-        if (jb0 > ja1) exit loop_jbf
-
-        jbj=keybv_f(ibseg)
-        if (ja0 .gt. jb0) then 
-           iaoff=0
-           iboff=ja0-jb0
-           length=min(ja1,jb1)-ja0
-        else
-           iaoff=jb0-ja0
-           iboff=0
-           length=min(ja1,jb1)-jb0
-        endif
-        do i=0,length
-           llf=llf+1
-           paf1=real(apsi_f(1,jaj+iaoff+i),dp)
-           pbf1=real(bpsi_f(1,jbj+iboff+i),dp)
-           paf2=real(apsi_f(2,jaj+iaoff+i),dp)
-           pbf2=real(bpsi_f(2,jbj+iboff+i),dp)
-           paf3=real(apsi_f(3,jaj+iaoff+i),dp)
-           pbf3=real(bpsi_f(3,jbj+iboff+i),dp)
-           paf4=real(apsi_f(4,jaj+iaoff+i),dp)
-           pbf4=real(bpsi_f(4,jbj+iboff+i),dp)
-           paf5=real(apsi_f(5,jaj+iaoff+i),dp)
-           pbf5=real(bpsi_f(5,jbj+iboff+i),dp)
-           paf6=real(apsi_f(6,jaj+iaoff+i),dp)
-           pbf6=real(bpsi_f(6,jbj+iboff+i),dp)
-           paf7=real(apsi_f(7,jaj+iaoff+i),dp)
-           pbf7=real(bpsi_f(7,jbj+iboff+i),dp)
-
-           scpr1=scpr1+paf1*pbf1
-           scpr2=scpr2+paf2*pbf2
-           scpr3=scpr3+paf3*pbf3
-           scpr4=scpr4+paf4*pbf4
-           scpr5=scpr5+paf5*pbf5
-           scpr6=scpr6+paf6*pbf6
-           scpr7=scpr7+paf7*pbf7
-        enddo
-        ibseg=ibseg+1
-        if (ibseg > mbseg_f) exit loop_jaf
-     end do loop_jbf
-  enddo loop_jaf
+           if (ibseg > mbseg_f) exit loop_jaf
+        end do loop_jbf
+     enddo loop_jaf
+  end if
 
   !print *,'nvctr_f',llf,mavctr_f,mbvctr_f
 
@@ -344,46 +347,47 @@ subroutine waxpy(  &
   !        llf=0
   ! fine part
   ibseg=1
-  loop_jaf: do iaseg=1,maseg_f
-     jaj=keyav_f(iaseg)
-     ja0=keyag_f(1,iaseg)
-     ja1=keyag_f(2,iaseg)
+  if (mbseg_f /= 0) then
+     loop_jaf: do iaseg=1,maseg_f
+        jaj=keyav_f(iaseg)
+        ja0=keyag_f(1,iaseg)
+        ja1=keyag_f(2,iaseg)
 
-     loop_jbf: do
-        jb1=keybg_f(2,ibseg)
-        jb0=keybg_f(1,ibseg)
-        if (jb1 < ja0) then
+        loop_jbf: do
+           jb1=keybg_f(2,ibseg)
+           jb0=keybg_f(1,ibseg)
+           if (jb1 < ja0) then
+              ibseg=ibseg+1
+              if (ibseg > mbseg_f) exit loop_jbf
+              cycle loop_jbf
+           end if
+           if (jb0 > ja1) exit loop_jbf
+
+           jbj=keybv_f(ibseg)
+           if (ja0 .gt. jb0) then 
+              iaoff=0
+              iboff=ja0-jb0
+              length=min(ja1,jb1)-ja0
+           else
+              iaoff=jb0-ja0
+              iboff=0
+              length=min(ja1,jb1)-jb0
+           endif
+           do i=0,length
+              !          llf=llf+1
+              apsi_f(1,jaj+iaoff+i)=apsi_f(1,jaj+iaoff+i)+scprwp*bpsi_f(1,jbj+iboff+i)
+              apsi_f(2,jaj+iaoff+i)=apsi_f(2,jaj+iaoff+i)+scprwp*bpsi_f(2,jbj+iboff+i)
+              apsi_f(3,jaj+iaoff+i)=apsi_f(3,jaj+iaoff+i)+scprwp*bpsi_f(3,jbj+iboff+i)
+              apsi_f(4,jaj+iaoff+i)=apsi_f(4,jaj+iaoff+i)+scprwp*bpsi_f(4,jbj+iboff+i)
+              apsi_f(5,jaj+iaoff+i)=apsi_f(5,jaj+iaoff+i)+scprwp*bpsi_f(5,jbj+iboff+i)
+              apsi_f(6,jaj+iaoff+i)=apsi_f(6,jaj+iaoff+i)+scprwp*bpsi_f(6,jbj+iboff+i)
+              apsi_f(7,jaj+iaoff+i)=apsi_f(7,jaj+iaoff+i)+scprwp*bpsi_f(7,jbj+iboff+i)
+           enddo
            ibseg=ibseg+1
-           if (ibseg > mbseg_f) exit loop_jbf
-           cycle loop_jbf
-        end if
-        if (jb0 > ja1) exit loop_jbf
-
-        jbj=keybv_f(ibseg)
-        if (ja0 .gt. jb0) then 
-           iaoff=0
-           iboff=ja0-jb0
-           length=min(ja1,jb1)-ja0
-        else
-           iaoff=jb0-ja0
-           iboff=0
-           length=min(ja1,jb1)-jb0
-        endif
-        do i=0,length
-           !          llf=llf+1
-           apsi_f(1,jaj+iaoff+i)=apsi_f(1,jaj+iaoff+i)+scprwp*bpsi_f(1,jbj+iboff+i)
-           apsi_f(2,jaj+iaoff+i)=apsi_f(2,jaj+iaoff+i)+scprwp*bpsi_f(2,jbj+iboff+i)
-           apsi_f(3,jaj+iaoff+i)=apsi_f(3,jaj+iaoff+i)+scprwp*bpsi_f(3,jbj+iboff+i)
-           apsi_f(4,jaj+iaoff+i)=apsi_f(4,jaj+iaoff+i)+scprwp*bpsi_f(4,jbj+iboff+i)
-           apsi_f(5,jaj+iaoff+i)=apsi_f(5,jaj+iaoff+i)+scprwp*bpsi_f(5,jbj+iboff+i)
-           apsi_f(6,jaj+iaoff+i)=apsi_f(6,jaj+iaoff+i)+scprwp*bpsi_f(6,jbj+iboff+i)
-           apsi_f(7,jaj+iaoff+i)=apsi_f(7,jaj+iaoff+i)+scprwp*bpsi_f(7,jbj+iboff+i)
-        enddo
-        ibseg=ibseg+1
-        if (ibseg > mbseg_f) exit loop_jaf
-     end do loop_jbf
-  enddo loop_jaf
-
+           if (ibseg > mbseg_f) exit loop_jaf
+        end do loop_jbf
+     enddo loop_jaf
+  end if
   !        write(*,*) 'waxpy,llc,llf',llc,llf
 
 END SUBROUTINE waxpy

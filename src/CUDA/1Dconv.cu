@@ -5,7 +5,7 @@
 ** Login   <ospici@badiane>
 ** 
 ** Started on  Tue Mar 11 14:54:55 2008 Matthieu Ospici
-** Last update Fri Jun 27 17:12:28 2008 Luigi Genovese
+** Last update Thu Sep 18 18:22:55 2008 Luigi Genovese
 */
 
 #include <stdio.h>
@@ -31,6 +31,7 @@
 
 #define SIZE_SHARED 288
 
+
 __global__ void conv_lg(unsigned int n,unsigned int ndat,float *psi_in,float *psi_out,
 			int lowfil,int lupfil)
 {
@@ -40,6 +41,12 @@ __global__ void conv_lg(unsigned int n,unsigned int ndat,float *psi_in,float *ps
 
   const unsigned int numthreads = blockDim.x;
 
+
+  //things to be done in this version of the kernel:
+  //1)pass to constant memory the parameters, including the filters
+  //2)implement texture fetching for non-coalesced addressed in read
+  //memory
+  //3)eliminate non-warp dependencies
 
   //all these elements can be decided with the block sizes
   //number of parts in which the line is separated
@@ -88,6 +95,7 @@ __global__ void conv_lg(unsigned int n,unsigned int ndat,float *psi_in,float *ps
   //start copy for the central points. the first thread copy the first
   //point since we are guaranteed there are enough threads
   //NOTE: thread 0 use the shared memory bank lowfil+startd & 15
+
   if (tid < num_elem)
     {
       psi_sh[tid+lowfil+startd]=psi_in[(ndat+1)*(istart+tid)+idat];
@@ -116,7 +124,7 @@ __global__ void conv_lg(unsigned int n,unsigned int ndat,float *psi_in,float *ps
       psi_sh[tid+startd+lowfil+num_elem-thcpyright0]=
 	psi_in[(ndat+1)*(irightcopystart+tid)+idat];
     }
-  
+
 
   //thread 0 starts writing at memory bank startd+1
 
@@ -132,7 +140,8 @@ __global__ void conv_lg(unsigned int n,unsigned int ndat,float *psi_in,float *ps
 
 
   //copy the filters in shared memory for the moment
-  //while they are to be put in constant memory space
+  //while they have to be put in constant memory space
+ 
   __shared__ float fil[16];
 
   fil[0] = 8.4334247333529341094733325815816e-7f;
@@ -156,12 +165,12 @@ __global__ void conv_lg(unsigned int n,unsigned int ndat,float *psi_in,float *ps
   //perform convolution in shared memory and write results in the
   //lowfil-scaled address
   register float conv = 0.f;
+  #pragma unroll 20
   for(int j=0;j < lowfil+lupfil+1;++j)
     {
        conv += fil[j]*psi_sh[tid+j];
     }
-
-
+  
   //write in global memory by taking care of the coalescing
   if (tid >= startd && tid < startd + num_elem)
     {
@@ -170,6 +179,7 @@ __global__ void conv_lg(unsigned int n,unsigned int ndat,float *psi_in,float *ps
 
 }
 
+__constant__ par_t par;
 
 __constant__ param_t param;
 
@@ -191,7 +201,7 @@ __shared__ float shared_temp[SIZE_SHARED_TOTAL];
 
   int lineNumberFetch = lineNumber;
 
-  //such conditionals should be avoided
+  //such conditionals are warp-independent and do not create problems
   if(bidx == gridDim.x - 1)
     {
       lineNumberFetch = (int)lineNumber - (int)param.lineLastBlock;
@@ -207,7 +217,7 @@ __shared__ float shared_temp[SIZE_SHARED_TOTAL];
 
   const unsigned int  step = (gridDim.y == 1) ? 0 : blockIdx.y/(gridDim.y - 1);
   const unsigned int TO_COPY =  param.fetchTabs.tabSeq[step][thid/16];    
-  const int offset = param.fetchTabs.currPosTab[step][thid/16]; // collums offset (per thread)         
+  const int offset = param.fetchTabs.currPosTab[step][thid/16]; // columns offset (per thread)         
   const unsigned int TO_COPY_CALC =  param.calcTabs.tabSeq[step][thid/16];       
   const unsigned int offset_calc = param.calcTabs.currPosTab[step][thid/16]; // calc collums offset (per thread)
 
@@ -402,16 +412,24 @@ void donewconv(int n,
 	       int lowfil,
 	       int lupfil)
 {
+  //declare the texture for binding the input psi
+  //texture<float, 2> psi_tex;
+
   const int num_threads = min(64* ((n+15)/64 + 1),256);
 
 
+  //printf(" %i numthdandblock %i %i\n",num_threads,ndat+1); 
   //printf(" %i numthds %i \n",num_threads,(n-1) >> 8);
 
-  dim3 grid1(ndat+1, 1, 1);  
+  //cudaBindTexture(NULL,psi_tex,psi_in,n*ndat*sizeof(float));
+
+  dim3 grid1((ndat+1)*(n/num_threads), 1, 1);  
   dim3 threads1(num_threads, 1, 1);
 
   //launch the kernel grid
   conv_lg <<< grid1, threads1 >>>(n,ndat, psi_in, psi_out,lowfil, lupfil);
+
+  //cudaUnbindTexture(psi_tex);
 
   cudaThreadSynchronize();
 
@@ -477,7 +495,9 @@ int dooldconv(int n1,
 
       return 1;
     }
-  
+ 
+  //printf(" %i numthdandblock %i %i\n",num_threads,numBlockDim1,numBlockDim2); 
+
   //define the number of threads and blocks according to parameter definitions
 
   dim3  grid1(numBlockDim1, numBlockDim2, 1);  

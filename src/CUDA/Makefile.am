@@ -40,12 +40,13 @@ check_PROGRAMS = conv_check
 else
 check_PROGRAMS = 
 EXTRA_DIST += conv_check.f90 \
-	1Dconv.cu
+	1Dconv.cu \
+	1Dconv_new.cu
 endif
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ 
 
-conv_check_SOURCES = conv_check.f90 1Dconv.cu ../profiling/memory.f90 ../modules/base.f90
+conv_check_SOURCES = conv_check.f90 1Dconv.cu 1Dconv_new.cu ../profiling/memory.f90 ../modules/base.f90
 conv_check_LDFLAGS =
 conv_check_LDADD = ../convolutions/libconvolutions.a \
 	$(libs_cuda)
