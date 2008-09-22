@@ -1,11 +1,15 @@
-/*
-** structUtil.c
+/****c* CUDA/structUtil.cu
+**
 ** 
-** Made by (Matthieu Ospici)
-** Login   <ospici@badiane>
-** 
+** AUTHOR
+**  Matthieu Ospici
+**
+** CHANGELOG
 ** Started on  Mon Feb 11 13:39:47 2008 Matthieu Ospici
+**
 ** Last update Sun May 12 01:17:25 2002 Speed Blue
+**
+** SOURCE
 */
 
 #include <stdio.h>
@@ -73,3 +77,4 @@ bool compareTab(const multiTab_t *a, const multiTab_t *b,int *i_,int *j_,int ib,
     }
     return true;
 }*/
+/****/

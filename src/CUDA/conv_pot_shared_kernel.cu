@@ -1,3 +1,12 @@
+/****c* CUDA/conv_pot_shared_kernel.cu
+**
+** 
+** AUTHOR
+**  Matthieu Ospici
+**
+** SOURCE
+*/
+
 #ifndef _CONV_SHARED_KERNEL_MULTI_
 #define _CONV_SHARED_KERNEL_MULTI_
 #include <math.h>
@@ -206,3 +215,4 @@ __global__ void conv_pot_shared(unsigned int n1,unsigned int n2,float *t_out,flo
     }
 
 #endif 
+/****/

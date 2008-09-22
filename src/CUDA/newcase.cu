@@ -1,3 +1,12 @@
+/****c* CUDA/newcase.cu
+**
+** 
+** AUTHOR
+**  Matthieu Ospici
+**
+** SOURCE
+*/
+
 //#include <stdio.h>
 //#include <cutil.h>
 //#include <multithreading.h>
@@ -110,3 +119,4 @@ __global__ void conv_lg(unsigned int n,unsigned int ndat,float *psi_in,float *ps
   */
 
 }
+/****/

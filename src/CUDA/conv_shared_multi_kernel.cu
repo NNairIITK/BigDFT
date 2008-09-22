@@ -1,3 +1,12 @@
+/****c* CUDA/conv_shared_multi_kernel.cu
+**
+** 
+** AUTHOR
+**  Matthieu Ospici
+**
+** SOURCE
+*/
+
 #ifndef _CONV_SHARED_KERNEL_MULTI_
 #define _CONV_SHARED_KERNEL_MULTI_
 #include <math.h>
@@ -118,3 +127,4 @@ __global__ void conv_shared_multi(unsigned int n1,unsigned int n2,float *t_out,f
 }
 
 #endif 
+/****/

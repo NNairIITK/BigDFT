@@ -1,11 +1,15 @@
-/*
-** convolution.cu
+/****c* CUDA/1Dconv.cu
+**
 ** 
-** Made by (Matthieu Ospici)
-** Login   <ospici@badiane>
-** 
+** AUTHOR
+**  Matthieu Ospici
+**
+** CHANGELOG
 ** Started on  Tue Mar 11 14:54:55 2008 Matthieu Ospici
+**
 ** Last update Thu Sep 18 18:22:55 2008 Luigi Genovese
+**
+** SOURCE
 */
 
 #include <stdio.h>
@@ -707,3 +711,4 @@ void gpu_receive__(int *nsize,
     }
 
 }
+/****/

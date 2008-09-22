@@ -3,6 +3,7 @@ items:
     NAME
     COPYRIGHT
     CREATION DATE
+    CHANGELOG
     USAGE
     FUNCTION
     DESCRIPTION
@@ -10,6 +11,7 @@ items:
     OUTPUT
     SIDE EFFECTS
     RETURN VALUE
+    FILES
     EXAMPLE
     SEE ALSO
     SYNOPSIS
@@ -33,12 +35,13 @@ options:
     --documenttitle "BigDFT - API"
     --syntaxcolors
 headertypes:
-    d "Directories" robo_directories
-    e  "Tutorials"  robo_tuto_cat
-    f "Routines" robo_routines
+    c "C files"        robo_c
+    d "Directories"    robo_directories
+    e  "Tutorials"     robo_tuto_cat
+    f "Routines"       robo_routines
     h  "Include files" robo_includes
-    m "Modules"  robo_modules
-    p "Programs" robo_programs
+    m "Modules"        robo_modules
+    p "Programs"       robo_programs
 ignore files:
     ChangeLog
     Makefile*
@@ -62,6 +65,8 @@ ignore files:
     .svn
     autom4te.cache
 accept files:
+    *.c
+    *.cu
     *.f90
     *.F90
     *.h
@@ -69,10 +74,13 @@ accept files:
     SUBDIRS
 header markers:
     !!****
+    /****
 remark markers:
     !!
+    **
 end markers:
     !!***
+    /****/
 source line comments:
     !
 keywords:
