@@ -179,8 +179,6 @@ __global__ void conv_lg(unsigned int n,unsigned int ndat,float *psi_in,float *ps
 
 }
 
-__constant__ par_t par;
-
 __constant__ param_t param;
 
 //__global__ void conv_shared(unsigned int n1,unsigned int n2,float *t_out,float *t_in,int nf);

@@ -64,7 +64,7 @@ program conv_check
 !!$  n1=127
   n2=50
   n3=50
-  ntimes=5000
+  ntimes=1
   hx=0.1e0_gp
   hy=0.1e0_gp
   hz=0.1e0_gp
@@ -140,7 +140,8 @@ program conv_check
   do i=1,ntimes
      !call cuda C interface
      !call m1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,lowfil1,lupfil1)
-     call n1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,-lowfil1,lupfil1)
+     !call n1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,-lowfil1,lupfil1)
+     call g1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,-lowfil1,lupfil1)
   end do
   call cpu_time(t1)
   !call system_clock(it1,count_rate,count_max)
@@ -162,8 +163,8 @@ program conv_check
   i_max=1
   do i=1,ndat
      do i1=1,n1
-        !write(17,'(2(i6),2(1pe24.17)')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
-        write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
+        write(17,'(2(i6),2(1pe24.17)')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
+        !write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
         comp=abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8))
         !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
         if (comp > maxdiff) then
