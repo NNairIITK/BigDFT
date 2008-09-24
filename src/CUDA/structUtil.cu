@@ -1,4 +1,4 @@
-/****c* CUDA/structUtil.cu
+/****u* CUDA/structUtil.cu
 **
 ** 
 ** AUTHOR

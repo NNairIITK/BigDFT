@@ -1,4 +1,4 @@
-/****c* CUDA/convolutionPot.cu
+/****u* CUDA/convolutionPot.cu
 **
 ** 
 ** AUTHOR

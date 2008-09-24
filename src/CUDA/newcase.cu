@@ -1,4 +1,4 @@
-/****c* CUDA/newcase.cu
+/****u* CUDA/newcase.cu
 **
 ** 
 ** AUTHOR

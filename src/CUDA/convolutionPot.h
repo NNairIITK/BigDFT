@@ -1,11 +1,13 @@
-/*
-** convolutionpot.h
+/****c* CUDA/convolutionPot.h
 ** 
-** Made by Matthieu Ospici
-** Login   <ospici@badiane>
+** AUTHOR
+**  Matthieu Ospici
 ** 
-** Started on  Tue Mar 11 14:55:07 2008 Matthieu Ospici
-** Last update Tue Mar 11 14:55:07 2008 Matthieu Ospici
+** CHANGELOG
+**  Started on  Tue Mar 11 14:55:07 2008 Matthieu Ospici
+**  Last update Tue Mar 11 14:55:07 2008 Matthieu Ospici
+**
+** SOURCE
 */
 
 #ifndef   	CONVOLUTIONPOT_H_
@@ -73,3 +75,5 @@ void createTabs(int tabSeq[2][40],
 		short step);
 
 #endif 	    /* !CONVOLUTION_H_ */
+
+/****/

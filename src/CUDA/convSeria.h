@@ -1,11 +1,13 @@
-/*
-** convSeria.h
+/****c* CUDA/convSeria.h
 ** 
-** Made by Matthieu Ospici
-** Login   <mo219174@badiane>
+** AUTHOR
+**  Matthieu Ospici
 ** 
-** Started on  Wed Apr  9 15:36:25 2008 Matthieu Ospici
-** Last update Wed Apr  9 15:36:25 2008 Matthieu Ospici
+** CHANGELOG
+**  Started on  Wed Apr  9 15:36:25 2008 Matthieu Ospici
+**  Last update Wed Apr  9 15:36:25 2008 Matthieu Ospici
+**
+** SOURCE
 */
 
 #ifndef   	CONVSERIA_H_
@@ -33,3 +35,5 @@ public:
 
 
 #endif 	    /* !CONVSERIA_H_ */
+
+/****/

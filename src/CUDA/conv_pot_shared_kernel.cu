@@ -1,4 +1,4 @@
-/****c* CUDA/conv_pot_shared_kernel.cu
+/****u* CUDA/conv_pot_shared_kernel.cu
 **
 ** 
 ** AUTHOR

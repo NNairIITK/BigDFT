@@ -1,11 +1,13 @@
-/*
-** read_conf_file.h
+/****c* CUDA/read_conf_file.h
 ** 
-** Made by Matthieu Ospici
-** Login   <mo219174@muscade>
+** AUTHOR
+**  Matthieu Ospici
 ** 
-** Started on  Wed May 21 14:22:40 2008 Matthieu Ospici
-** Last update Wed May 21 14:22:40 2008 Matthieu Ospici
+** CHANGELOG
+**  Started on  Wed May 21 14:22:40 2008 Matthieu Ospici
+**  Last update Wed May 21 14:22:40 2008 Matthieu Ospici
+**
+** SOURCE
 */
 
 #ifndef   	READ_CONF_FILE_H_
@@ -61,3 +63,5 @@ public:
 };
 
 #endif 	    /* !READ_CONF_FILE_H_ */
+
+/****/

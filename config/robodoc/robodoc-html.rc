@@ -42,6 +42,7 @@ headertypes:
     h  "Include files" robo_includes
     m "Modules"        robo_modules
     p "Programs"       robo_programs
+    u "CUDA files"     robo_cuda
 ignore files:
     ChangeLog
     Makefile*

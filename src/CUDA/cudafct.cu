@@ -1,4 +1,4 @@
-/****c* CUDA/cudafct.cu
+/****u* CUDA/cudafct.cu
 **
 ** 
 ** AUTHOR

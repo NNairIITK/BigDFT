@@ -1,11 +1,13 @@
-/*
-** structUtil.h
+/****c* CUDA/structUtil.h
+**
+** AUTHOR
+**  Matthieu Ospici
 ** 
-** Made by Matthieu Ospici
-** Login   <ospici@badiane>
-** 
-** Started on  Mon Feb 11 10:28:17 2008 Matthieu Ospici
-** Last update Mon Feb 11 10:28:17 2008 Matthieu Ospici
+** CHANGELOG
+**  Started on  Mon Feb 11 10:28:17 2008 Matthieu Ospici
+**  Last update Mon Feb 11 10:28:17 2008 Matthieu Ospici
+**
+** SOURCE
 */
 
 #ifndef   	STRUCTUTIL_H_
@@ -133,3 +135,5 @@ inline void setTab(multiTab_t* m,float val,unsigned int i,unsigned int j)
 }*/
 
 #endif 	    /* !STRUCTUTIL_H_ */
+
+/****/

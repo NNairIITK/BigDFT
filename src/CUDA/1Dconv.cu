@@ -1,4 +1,4 @@
-/****c* CUDA/1Dconv.cu
+/****u* CUDA/1Dconv.cu
 **
 ** 
 ** AUTHOR
