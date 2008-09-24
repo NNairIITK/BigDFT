@@ -1,3 +1,25 @@
+!!****p* CUDA/conv_check
+!! NAME
+!!   conv_check
+!!
+!! FUNCTION
+!!    Program test for the convolution in GPU
+!!
+!! AUTHOR
+!!    Luigi Genovese
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2008 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! CREATION DATE
+!!    Septembre 2008
+!!
+!! SOURCE
+!!
 program conv_check
   use module_base
   implicit none
@@ -7,7 +29,7 @@ program conv_check
   !local variables
   character(len=*), parameter :: subname='conv_check'
   character(len=50) :: chain
-  integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,ndat,i1_max,i_max
+  integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,ndat,i1_max,i_max,it0,it1,count_rate,count_max
   real(wp) :: tt
   real(gp) :: v,p,CPUtime,GPUtime,comp
   real(kind=4), dimension(:,:,:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
@@ -64,7 +86,7 @@ program conv_check
 !!$  n1=127
   n2=50
   n3=50
-  ntimes=10
+  ntimes=1
   hx=0.1e0_gp
   hy=0.1e0_gp
   hz=0.1e0_gp
@@ -93,13 +115,16 @@ program conv_check
   end do
  
   !take timings
+  !call system_clock(it0,count_rate,count_max)
   call cpu_time(t0)
   do i=1,ntimes
      call convrot_n_per(n1-1,ndat,psi_in,psi_out)
   end do
   call cpu_time(t1)
+  !call system_clock(it1,count_rate,count_max)
 
-  CPUtime=real(t1-t0,kind=8)/real(ntimes,kind=8)
+  !CPUtime=real(it1-it0,kind=8)/real(count_rate*ntimes,kind=8)
+  CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
 
   print *,'starting CUDA with n,ndat',n1,ndat
 
@@ -132,13 +157,16 @@ program conv_check
   !take timings
 
 
+  !call system_clock(it0,count_rate,count_max)
   call cpu_time(t0)
   do i=1,ntimes
      !call cuda C interface
      !call m1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,lowfil1,lupfil1)
-     call n1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,-lowfil1,lupfil1)
+     !call n1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,-lowfil1,lupfil1)
+     call g1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,-lowfil1,lupfil1)
   end do
   call cpu_time(t1)
+  !call system_clock(it1,count_rate,count_max)
 
   !print *,'ending CUDA'
 
@@ -148,16 +176,17 @@ program conv_check
   call GPU_deallocate(work_GPU,i_stat)
 
 
-  GPUtime=real(t1-t0,kind=8)/real(ntimes,kind=8)
-  
+  !GPUtime=real(it1-it0,kind=8)/real(count_rate*ntimes,kind=8)
+  GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
   !check the differences between the results
   maxdiff=0.d0
   i1_max=1
   i_max=1
   do i=1,ndat
      do i1=1,n1
-        !write(17,'(2(i6),2(1pe24.17)')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
-        write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
+        write(17,'(2(i6),2(1pe24.17)')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
+        !write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
         comp=abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8))
         !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
         if (comp > maxdiff) then
@@ -173,7 +202,7 @@ program conv_check
   !print *,'i1,maxdiff',i_max,i1_max,v_cuda(i_max,i1_max,1),psi_cuda(i1_max,i_max,1)
   print *,'i1,maxdiff',i_max,i1_max,psi_out(i_max,i1_max,1),psi_cuda(i1_max,i_max,1)
 
-  write(*,'(a,i4,i4,f9.5,1pe12.5)')'n,ndat,CPU/GPU ratio',n1,ndat,CPUtime/GPUtime,maxdiff
+  write(*,'(a,i4,i4,f9.5,1pe12.5)')'n,ndat,GPU/CPU ratio',n1,ndat,CPUtime/GPUtime,maxdiff
 
   i_all=-product(shape(psi_in))
   deallocate(psi_in,stat=i_stat)
@@ -341,3 +370,5 @@ end program conv_check
 !!$
 !!$
 !!$end program conv_check
+
+!!***
