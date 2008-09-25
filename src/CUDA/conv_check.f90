@@ -163,8 +163,8 @@ program conv_check
   i_max=1
   do i=1,ndat
      do i1=1,n1
-        write(17,'(2(i6),2(1pe24.17)')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
-        !write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
+        !write(17,'(2(i6),2(1pe24.17)')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
+        write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
         comp=abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8))
         !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
         if (comp > maxdiff) then
