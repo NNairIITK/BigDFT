@@ -73,7 +73,7 @@ void constantParameters(par_t* par,
 	 num_elem_tot,num_elem_max,linecuts,hwelems,*num_blocks,num_elem_min);
 
   //number of elements treated by each block 
-  par->ElementsPerBlock = HALF_WARP_SIZE*(((n-1)/linecuts+1)/HALF_WARP_SIZE+1);
+  par->ElementsPerBlock = HALF_WARP_SIZE*(((n-1)/linecuts)/HALF_WARP_SIZE+1);
 
   //number of elements which should be calculated by each thread in a half-warp
   par->HalfWarpCalculatedElements = par -> ElementsPerBlock/num_elem_min; //multiples
@@ -116,7 +116,7 @@ void constantParameters(par_t* par,
 }
 
 //1D convolution of multiple lines by the same block
-__global__ void conv1d_stride(unsigned int n,unsigned int ndat,float *psi_in,float *psi_out)
+__global__ void conv1d_stride(int n,int ndat,float *psi_in,float *psi_out)
 {
   
   const unsigned int num_lines = par.LinesPerBlock;
@@ -171,7 +171,6 @@ __global__ void conv1d_stride(unsigned int n,unsigned int ndat,float *psi_in,flo
       ipos += hwelems;
     }
 
-
   //end shared memory copy
   __syncthreads();
 
@@ -195,7 +194,7 @@ __global__ void conv1d_stride(unsigned int n,unsigned int ndat,float *psi_in,flo
 	    par.fil[j]*psi_sh[ShBaseElem + j*num_lines +i*HALF_WARP_SIZE];
 	}
       psi_out[OutBaseElem+i*hwelems]=conv;
-      //psi_sh[ShBaseElem+lowfil*num_lines+i*HALF_WARP_SIZE]; //for testing only
+	//psi_sh[ShBaseElem+lowfil*num_lines+i*HALF_WARP_SIZE]; //for testing only
     }
 }
 
