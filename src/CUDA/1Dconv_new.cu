@@ -10,7 +10,7 @@
 //maximum size of the shared memory array
 //conceived for maximize occupancy on a hardware of compute
 //capability 1.2 and higher (1024 threads at same time on a given multiprocessor)
-#define MAX_SHARED_SIZE 3840 //16*240 =~ 3.9 kB
+#define MAX_SHARED_SIZE 4096 //16*256 4 kB (should be =~ 3.9 kB, try also 3072)
 #define HALF_WARP_SIZE 16 // for all architectures
 
 typedef struct   _par
@@ -38,42 +38,44 @@ int dogenconv(int ndat,
 //create the parameters to be used for calculating the convolution
 //with a given stride
 void constantParameters(par_t* par,
-			unsigned int num_threads,
+			unsigned int num_halfwarps,
 			unsigned int num_lines,
 			int n,
 			int ndat,
 			int lowfil,
 			int lupfil,
+			unsigned int* linecuts,
 			unsigned int* num_blocks)
+
 {
 
   //number of lines treated by each block
   par->LinesPerBlock = num_lines;
 
   //number of total allowed elements of a input line
-  unsigned int num_elem_tot=MAX_SHARED_SIZE/sizeof(float)/num_lines; //between 960 and 60
+  unsigned int num_elem_tot=MAX_SHARED_SIZE/sizeof(float)/num_lines; //between 1024 and 64
   
   //number of elements of the output
-  unsigned int num_elem_max=min(num_elem_tot-lowfil-lupfil-1,n); //between 944 and 44 for 16 fil
+  unsigned int num_elem_max=min(num_elem_tot-lowfil-lupfil-1,n); //between 1008 and 48 for 16-fil
 
   //number of pieces in which a line is divided
-  unsigned int linecuts=(n-1)/num_elem_max+1;
+  *linecuts=(n-1)/num_elem_max+1;
 
   //total number of blocks we must have
-  *num_blocks=((ndat-1)/num_lines + 1)*linecuts;
+  *num_blocks=((ndat-1)/num_lines + 1)* (*linecuts);
 
   //number of elements treated by the single half-warp
   unsigned int hwelems =HALF_WARP_SIZE/num_lines; //it is assumed they are multiples
 
   //minimum number of elements treated by a single block
   //this should not be bigger than num_elem_max
-  unsigned int num_elem_min=num_threads/num_lines;
+  unsigned int num_elem_min=(num_halfwarps*HALF_WARP_SIZE)/num_lines;
 
   printf("num_elem_tot %i,num_elem_max %i,linecuts %i,hwelems %i,num_blocks %i, num_elem_min %i \n",
-	 num_elem_tot,num_elem_max,linecuts,hwelems,*num_blocks,num_elem_min);
+	 num_elem_tot,num_elem_max,*linecuts,hwelems,*num_blocks,num_elem_min);
 
   //number of elements treated by each block 
-  par->ElementsPerBlock = HALF_WARP_SIZE*(((n-1)/linecuts)/HALF_WARP_SIZE+1);
+  par->ElementsPerBlock = HALF_WARP_SIZE*(((n-1)/(*linecuts))/HALF_WARP_SIZE+1);
 
   //number of elements which should be calculated by each thread in a half-warp
   par->HalfWarpCalculatedElements = par -> ElementsPerBlock/num_elem_min; //multiples
@@ -82,8 +84,8 @@ void constantParameters(par_t* par,
   par->HalfWarpCopiedElements = (par -> ElementsPerBlock+lowfil+lupfil)/num_elem_min + 1;
 
   //the last half-warp copies less elements in general
-  par->LastHalfWarpCopiedElements = par -> ElementsPerBlock+lowfil+lupfil
-    - (num_threads/HALF_WARP_SIZE-1) * par -> HalfWarpCopiedElements;
+  par->LastHalfWarpCopiedElements = par -> ElementsPerBlock+lowfil+lupfil+1
+    - (num_halfwarps-1) * par -> HalfWarpCopiedElements;
   
   //lowfil and lupfil parameters
   par->lowfil = lowfil;
@@ -124,28 +126,29 @@ __global__ void conv1d_stride(int n,int ndat,float *psi_in,float *psi_out)
   const unsigned int hwcopy_gen = par.HalfWarpCopiedElements;
   const unsigned int hwcalc_gen = par.HalfWarpCalculatedElements;
   const unsigned int lowfil = par.lowfil;
-  const unsigned int lupfil = par.lupfil;
-  const unsigned int linecuts = (n-1)/num_elem + 1;
   //number of elements calculated by a half-warp
   const unsigned int hwelems = HALF_WARP_SIZE/num_lines; 
 
-  const unsigned int tid = threadIdx.x; //thread id
-  const unsigned int bid = blockIdx.x+gridDim.x*blockIdx.y; // 2D for more than 2^16 lines
-  const unsigned int numhw = blockDim.x/HALF_WARP_SIZE;
+  //line cut id
+  const unsigned int linecutid = blockIdx.x;
+  //block id (in ndat axis)
+  const unsigned int bid = blockIdx.y;
+  //number of half-warps for a block
+  //const unsigned int numhw = blockDim.y;
   //half-warp id
-  const unsigned int hwid = tid / HALF_WARP_SIZE; // =tid >> 4 if HWS=16
+  const unsigned int hwid = threadIdx.y;
   //tid within the HW
-  const unsigned int tid_hw = tid & (HALF_WARP_SIZE -1); //HWS is a power of
+  const unsigned int tid_hw = threadIdx.x;
 
   //line treated by the given block
-  unsigned int lineOffset = min((bid/linecuts)*num_lines,ndat-num_lines);
+  unsigned int lineOffset = min(bid*num_lines,ndat-num_lines);
   //starting element treated by the block
-  unsigned int elemOffset = min((bid % linecuts)*num_elem,n-num_elem);
+  unsigned int elemOffset = min(linecutid*num_elem,n-num_elem);
 						  //two
   __shared__ float psi_sh[MAX_SHARED_SIZE/sizeof(float)];  
 
   //line treated by the given thread
-  unsigned int thline = tid % num_lines; //always HWS % num_lines =0
+  unsigned int thline = tid_hw & (num_lines - 1); //num_lines always a power of two
   //write data in shared memory
   //element treated by the given thread in n-axis
   unsigned int thelem = tid_hw/num_lines + hwid * hwelems * hwcopy_gen;
@@ -156,14 +159,16 @@ __global__ void conv1d_stride(int n,int ndat,float *psi_in,float *psi_out)
 
   unsigned int InBaseElem = thline+lineOffset;//+(thelem + elemOffset)*ndat;
 
-  const unsigned int hwcopy_eff = (hwid == numhw-1?par.LastHalfWarpCopiedElements:hwcopy_gen);
+  const unsigned int hwcopy_eff = (hwid == blockDim.y-1?par.LastHalfWarpCopiedElements:hwcopy_gen);
   int epsilon,npos;
 
   //NOTE: it is assumed that for non-first segments the starting
   //points is far enough for the filter to be contained
   //and the same for non-last segments.
-  //in other terms: lenght of the line is always bigger than max(lowfil,lupfil)
-  for(int i=0,ipos=elemOffset-lowfil+thelem;i < hwcopy_eff; ++i)
+  //in other terms: lenght of the line is always bigger than
+  //max(lowfil,lupfil)
+
+  for(int i=0,ipos=elemOffset-lowfil+thelem;i < hwcopy_eff ; ++i)
     {
       epsilon=(ipos < 0 ? -1 : ipos/n);
       npos=ipos-epsilon*n;
@@ -182,20 +187,35 @@ __global__ void conv1d_stride(int n,int ndat,float *psi_in,float *psi_out)
   unsigned int OutBaseElem = n*(thline+lineOffset)+ thelem + elemOffset;
 
   //perform convolution in shared memory 
-  //each thread calculate a number of elements, identical for each half-warp
+  //each thread calculate a number of elements, identical for each
+  //half-warp
+  //#pragma unroll 5 (to be tested if it is important)
   for(int i=0;i < hwcalc_gen; ++i)
     {
       //values of the convolution
-      register float conv = 0.f;
-      #pragma unroll 20 //loop unrolling should be performed by hand
-      for(int j=0;j < lowfil+lupfil+1;++j)
-	{
-	  conv += 
-	    par.fil[j]*psi_sh[ShBaseElem + j*num_lines +i*HALF_WARP_SIZE];
-	}
+      register float conv =
+      //hand-unrolled loop (16 elements for this filter)
+	par.fil[0]*psi_sh[ShBaseElem               +i*HALF_WARP_SIZE] +
+	par.fil[1]*psi_sh[ShBaseElem +   num_lines +i*HALF_WARP_SIZE] +
+	par.fil[2]*psi_sh[ShBaseElem + 2*num_lines +i*HALF_WARP_SIZE] +
+	par.fil[3]*psi_sh[ShBaseElem + 3*num_lines +i*HALF_WARP_SIZE] +
+	par.fil[4]*psi_sh[ShBaseElem + 4*num_lines +i*HALF_WARP_SIZE] +
+	par.fil[5]*psi_sh[ShBaseElem + 5*num_lines +i*HALF_WARP_SIZE] +
+	par.fil[6]*psi_sh[ShBaseElem + 6*num_lines +i*HALF_WARP_SIZE] +
+	par.fil[7]*psi_sh[ShBaseElem + 7*num_lines +i*HALF_WARP_SIZE] +
+	par.fil[8]*psi_sh[ShBaseElem + 8*num_lines +i*HALF_WARP_SIZE] +
+	par.fil[9]*psi_sh[ShBaseElem + 9*num_lines +i*HALF_WARP_SIZE] +
+	par.fil[10]*psi_sh[ShBaseElem + 10*num_lines +i*HALF_WARP_SIZE] +
+	par.fil[11]*psi_sh[ShBaseElem + 11*num_lines +i*HALF_WARP_SIZE] +
+	par.fil[12]*psi_sh[ShBaseElem + 12*num_lines +i*HALF_WARP_SIZE] +
+	par.fil[13]*psi_sh[ShBaseElem + 13*num_lines +i*HALF_WARP_SIZE] +
+	par.fil[14]*psi_sh[ShBaseElem + 14*num_lines +i*HALF_WARP_SIZE] +
+	par.fil[15]*psi_sh[ShBaseElem + 15*num_lines +i*HALF_WARP_SIZE];
+      
       psi_out[OutBaseElem+i*hwelems]=conv;
-	//psi_sh[ShBaseElem+lowfil*num_lines+i*HALF_WARP_SIZE]; //for testing only
+      //psi_sh[ShBaseElem+(lowfil)*num_lines+i*HALF_WARP_SIZE]; //for testing only
     }
+ 
 }
 
 //interface, only the 1d convolution
@@ -238,18 +258,14 @@ int dogenconv(int ndat,
   par_t parCPU;
 
   //calculate the number of threads and blocks
-  unsigned int num_threads = 256;
+  unsigned int num_halfwarps = 16;
   unsigned int num_lines = min(16,ndat); //hard coded for the moment
-  unsigned int numBlocks;
+  unsigned int numBlocks,linecuts;
 
-  constantParameters(&parCPU,num_threads,num_lines,n,ndat,lowfil,lupfil,&numBlocks);
+  constantParameters(&parCPU,num_halfwarps,num_lines,n,ndat,lowfil,lupfil,
+		     &linecuts,&numBlocks);
 
-  unsigned int num_blocksx=numBlocks & 65535;
-  unsigned int num_blocksy=(numBlocks >> 16) + 1; // this should be
-					    // corrected to allow
-					    // prime values
-
-  printf("numBlocks %i, num_blocksx %i, num_blocksy %i\n",numBlocks,num_blocksx,num_blocksy);
+  //printf("num_blocksx %i, num_blocksy %i\n",linecuts,numBlocks);
 
   //send them to constant memory
   if(cudaMemcpyToSymbol(par,&parCPU, sizeof(par_t)) != 0)
@@ -263,8 +279,8 @@ int dogenconv(int ndat,
 
   //define the number of threads and blocks according to parameter definitions
 
-  dim3  grid1(num_blocksx, num_blocksy, 1);  
-  dim3  threads1(num_threads, 1, 1);
+  dim3  grid1(linecuts, numBlocks, 1);  
+  dim3  threads1(HALF_WARP_SIZE, num_halfwarps , 1);
  
   //launch the kernel grid
   conv1d_stride <<< grid1, threads1 >>>(n,ndat,GPU_idata, GPU_odata);
