@@ -484,7 +484,7 @@ int dooldconv(int n1,
   createParam(&paramToSend,num_threads,n1,n2,&numBlockDim1,&numBlockDim2,
 	      filters,fsize,lowfil,lupfil);
 
-  printf("numBlocks1 %i, num_blocks2 %i\n",numBlockDim1,numBlockDim2);
+  //printf("numBlocks1 %i, num_blocks2 %i\n",numBlockDim1,numBlockDim2);
 
   //send them to constant memory
   
