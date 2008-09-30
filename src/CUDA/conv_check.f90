@@ -107,7 +107,7 @@ program conv_check
         !CPUtime=real(it1-it0,kind=8)/real(count_rate*ntimes,kind=8)
         CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
 
-        print *,'starting CUDA with n,ndat',n1,ndat
+        !print *,'starting CUDA with n,ndat',n1,ndat
 
         allocate(psi_cuda(n1,ndat,1+ndebug),stat=i_stat)
         call memocc(i_stat,psi_cuda,'psi_cuda',subname)
@@ -178,10 +178,10 @@ program conv_check
            end do
         end do
 
-        print *,'timings,difference',CPUtime,GPUtime,maxdiff
+        !!print *,'timings,difference',CPUtime,GPUtime,maxdiff
 
         !print *,'i1,maxdiff',i_max,i1_max,v_cuda(i_max,i1_max,1),psi_cuda(i1_max,i_max,1)
-        print *,'i1,maxdiff',i_max,i1_max,psi_out(i_max,i1_max,1),psi_cuda(i1_max,i_max,1)
+        !!print *,'i1,maxdiff',i_max,i1_max,psi_out(i_max,i1_max,1),psi_cuda(i1_max,i_max,1)
 
         if (maxdiff <= 3.d-7) then
            write(*,'(a,i4,i4,f9.5,1pe12.5)')'n,ndat,GPU/CPU ratio',&

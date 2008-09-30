@@ -47,11 +47,11 @@ void correctSequence(int thds,int elem,int * tab);
 //create the parameters to be used for calculating the convolution
 //with a given stride
 void constantParameters(par_t* par,
-			unsigned int num_halfwarps,
+			unsigned int* num_halfwarps,
 			unsigned int num_lines,
 			int n,
 			int ndat,
-			int lowfil,
+			int lowfil, //lowfil + lupfil must be a multiple of 16
 			int lupfil,
 			unsigned int* linecuts,
 			unsigned int* num_blocks)
@@ -67,15 +67,17 @@ void constantParameters(par_t* par,
   //number of elements of the output
   unsigned int num_elem_max=min(num_elem_tot-lowfil-lupfil-1,n); //between 1008 and 48 for 16-fil
 
-  //number of pieces in which a line is divided
-  *linecuts=(n-1)/num_elem_max+1;
-
-  //total number of blocks we must have
-  *num_blocks=((ndat-1)/num_lines + 1)* (*linecuts);
-
-  
   //number of elements treated by the single half-warp
   par -> ElementsPerHalfWarp = HALF_WARP_SIZE/num_lines; //it is assumed they are multiples
+
+  //number of pieces in which a line is divided
+  //if the line is too small and not a multiple of ElementsPerHalfWarp
+  //divide the line in two
+  *linecuts=(n < num_elem_max && n % par -> ElementsPerHalfWarp !=0 ? 2 : (n-1)/num_elem_max+1);
+
+  //number of blocks in ndat direction
+  *num_blocks=((ndat-1)/num_lines + 1);
+
 
   /*
   //minimum number of elements treated by a single block
@@ -83,11 +85,27 @@ void constantParameters(par_t* par,
   unsigned int num_elem_min=(num_halfwarps*HALF_WARP_SIZE)/num_lines;
   */
 
-  //printf("num_elem_tot %i,num_elem_max %i,linecuts %i,hwelems %i,num_blocks %i, num_elem_min %i \n",
-  //num_elem_tot,num_elem_max,*linecuts,hwelems,*num_blocks,num_elem_min);
+  //printf("num_elem_tot %i,num_elem_max %i,linecuts %i,num_blocks %i,elemperHW %i \n",
+  //num_elem_tot,num_elem_max,*linecuts,*num_blocks, par -> ElementsPerHalfWarp);
 
   //number of elements treated by each block 
-  par->ElementsPerBlock = min(HALF_WARP_SIZE*(((n-1)/(*linecuts))/HALF_WARP_SIZE+1),n);
+  //this may pose problems for values of n dimensions less than 48
+  //when n is not a multiple of ElementsPerHalfWarp
+  par->ElementsPerBlock = 
+    min(par->ElementsPerHalfWarp*(((n-1)/(*linecuts))/par->ElementsPerHalfWarp+1),n);
+
+  int halfwarps =16;
+  //calculate the maximum number of halfwarps (between 4 and 16)
+  for(int i =0;i<5;++i)
+    {
+      if(par->ElementsPerBlock/par->ElementsPerHalfWarp <= 1 << i)
+	{
+	  halfwarps = 1 << i;
+	  break;
+	}
+    }
+
+  *num_halfwarps = halfwarps;
 
   for(int j=0;j < HALF_WARP_SIZE ; ++j)
     {
@@ -95,17 +113,18 @@ void constantParameters(par_t* par,
     }
 
   //define the sequences of the number of elements
-  correctSequence(num_halfwarps,par->ElementsPerBlock,par->hwelem_calc);
+  correctSequence(halfwarps,par->ElementsPerBlock/par->ElementsPerHalfWarp,par->hwelem_calc);
 
-  correctSequence(num_halfwarps,par->ElementsPerBlock+lowfil+lupfil+1,par->hwelem_copy);
+  correctSequence(halfwarps,(par->ElementsPerBlock+lowfil+lupfil+1)/par->ElementsPerHalfWarp,
+		  par->hwelem_copy);
 
   //define the offsets
-  for(int j=0,pos_calc=0,pos_copy=0;j < num_halfwarps ; ++j)
+  for(int j=0,pos_calc=0,pos_copy=0;j < halfwarps ; ++j)
     {
       par->hwoffset_calc[j]=pos_calc;
       par->hwoffset_copy[j]=pos_copy;
-      pos_calc+=par->hwelem_calc[j];
-      pos_copy+=par->hwelem_copy[j];
+      pos_calc+=par->ElementsPerHalfWarp*par->hwelem_calc[j];
+      pos_copy+=par->ElementsPerHalfWarp*par->hwelem_copy[j];
     }
  
 
@@ -124,7 +143,7 @@ void constantParameters(par_t* par,
 
   //printf("ElementsPerBlock %i,HalfWarpCalculatedElements %i,HalfWarpCopiedElements %i,LastHalfWarpCalcElements %i, LastHalfWarpCopiedElements %i \n",
   //par->ElementsPerBlock,par->hwelem_calc[0],par->hwelem_copy[0],
-  //par->hwelem_calc[num_halfwarps-1],par->hwelem_copy[num_halfwarps-1]);
+  //par->hwelem_calc[halfwarps-1],par->hwelem_copy[halfwarps-1]);
 
   //filter values for this convolution, hard coded
   par->fil[0] = 8.4334247333529341094733325815816e-7f;
@@ -339,14 +358,13 @@ int dogenconv(int ndat,
   par_t parCPU;
 
   //calculate the number of threads and blocks
-  unsigned int num_halfwarps = 16;
-  unsigned int num_lines = min(16,ndat); //hard coded for the moment
-  unsigned int numBlocks,linecuts;
+  unsigned int num_lines = min(8,ndat); //hard coded for the moment
+  unsigned int numBlocks,linecuts,num_halfwarps;
 
-  constantParameters(&parCPU,num_halfwarps,num_lines,n,ndat,lowfil,lupfil,
+  constantParameters(&parCPU,&num_halfwarps,num_lines,n,ndat,lowfil,lupfil,
 		     &linecuts,&numBlocks);
 
-  //printf("num_blocksx %i, num_blocksy %i\n",linecuts,numBlocks);
+  //printf("num_blocksx %i, num_blocksy %i, halfwarps %i\n",linecuts,numBlocks,num_halfwarps);
 
   //send them to constant memory
   if(cudaMemcpyToSymbol(par,&parCPU, sizeof(par_t)) != 0)
