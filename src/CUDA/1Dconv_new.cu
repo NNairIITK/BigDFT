@@ -13,17 +13,15 @@
 #define MAX_SHARED_SIZE 4096 //16*256 4 kB (should be =~ 3.9 kB, try also 3072)
 #define HALF_WARP_SIZE 16 // for all architectures
 
-typedef struct   _par
+typedef struct  _par
 {
   unsigned int LinesPerBlock;
   unsigned int ElementsPerBlock;
   unsigned int ElementsPerHalfWarp;
-  //unsigned int HalfWarpCalculatedElements;
-  //unsigned int HalfWarpCopiedElements;
-  //unsigned int LastHalfWarpCopiedElements;
 
   int lowfil, lupfil; //structure of f_fct
-  int thline[HALF_WARP_SIZE]; //line considered within the half-warp
+  int thline[HALF_WARP_SIZE]; //line considered by a thread within the half-warp
+  int thelem[HALF_WARP_SIZE]; //elements considered by a thread within the half-warp
   int hwelem_calc[16]; //maximum number of half warps
   int hwelem_copy[16]; //maximum number of half-warps
   int hwoffset_calc[16]; //maximum number of half warps
@@ -34,6 +32,10 @@ typedef struct   _par
 } par_t;
 
 __constant__ par_t par;
+
+//declare the texture for binding the input psi
+//texture<float> psi_tex;
+
 
 int dogenconv(int ndat,
 	      int n, 
@@ -73,17 +75,10 @@ void constantParameters(par_t* par,
   //number of pieces in which a line is divided
   //if the line is too small and not a multiple of ElementsPerHalfWarp
   //divide the line in two
-  *linecuts=(n < num_elem_max && n % par -> ElementsPerHalfWarp !=0 ? 2 : (n-1)/num_elem_max+1);
+  *linecuts=(n <= num_elem_max && n % par -> ElementsPerHalfWarp !=0 ? 2 : (n-1)/num_elem_max+1);
 
   //number of blocks in ndat direction
   *num_blocks=((ndat-1)/num_lines + 1);
-
-
-  /*
-  //minimum number of elements treated by a single block
-  //this should not be bigger than num_elem_max
-  unsigned int num_elem_min=(num_halfwarps*HALF_WARP_SIZE)/num_lines;
-  */
 
   //printf("num_elem_tot %i,num_elem_max %i,linecuts %i,num_blocks %i,elemperHW %i \n",
   //num_elem_tot,num_elem_max,*linecuts,*num_blocks, par -> ElementsPerHalfWarp);
@@ -94,11 +89,11 @@ void constantParameters(par_t* par,
   par->ElementsPerBlock = 
     min(par->ElementsPerHalfWarp*(((n-1)/(*linecuts))/par->ElementsPerHalfWarp+1),n);
 
-  int halfwarps =16;
+  int halfwarps=16;
   //calculate the maximum number of halfwarps (between 4 and 16)
-  for(int i =0;i<5;++i)
+  for(int i =3; i>=0; --i)
     {
-      if(par->ElementsPerBlock/par->ElementsPerHalfWarp <= 1 << i)
+      if(par->ElementsPerBlock/par->ElementsPerHalfWarp >= 1 << i)
 	{
 	  halfwarps = 1 << i;
 	  break;
@@ -109,7 +104,8 @@ void constantParameters(par_t* par,
 
   for(int j=0;j < HALF_WARP_SIZE ; ++j)
     {
-      par->thline[j]= j & (num_lines - 1); //num_lines always a power of two       
+      par->thline[j]= j & (num_lines - 1); //num_lines always a power of two 
+      par->thelem[j]= j / num_lines; 
     }
 
   //define the sequences of the number of elements
@@ -127,16 +123,6 @@ void constantParameters(par_t* par,
       pos_copy+=par->ElementsPerHalfWarp*par->hwelem_copy[j];
     }
  
-
-  /*
-  //number of elements which should be calculated by each thread in a half-warp
-  par->HalfWarpCalculatedElements = par -> ElementsPerBlock/num_elem_min; //multiples
-  
-  
-  //the last half-warp copies less elements in general
-  par->LastHalfWarpCopiedElements = 
-  */
-  
   //lowfil and lupfil parameters
   par->lowfil = lowfil;
   par->lupfil = lupfil;
@@ -168,7 +154,6 @@ void constantParameters(par_t* par,
 
 //uniformise the tabular of the number of elements treated by each
 //thread (counterpart of uniformiseTab)
-//divide the operations in three steps: the general, particular, last
 void correctSequence(int thds,int elem,int * tab)
 {
   //put to zero all the values;
@@ -188,53 +173,33 @@ void correctSequence(int thds,int elem,int * tab)
 
 
 
-//1D convolution of multiple lines by the same block
-__global__ void conv1d_stride(int n,int ndat,float *psi_in,float *psi_out)
+//1D convolution of multiple lines in the same block
+//__global__ void conv1d_stride(int n,int ndat, float *psi_out)
+__global__ void conv1d_stride(int n,int ndat, float *psi_in, float *psi_out)
 {
-  
 
-  //lines treated by each block, constant values
-  const unsigned int num_lines = par.LinesPerBlock;
-  const unsigned int num_elem = par.ElementsPerBlock;
-  //const unsigned int hwcopy_gen = par.hwelem_copy[0];//HalfWarpCopiedElements;
-  //const unsigned int hwcalc_gen = par.hwelem_calc[0];//HalfWarpCalculatedElements;
-  const unsigned int lowfil = par.lowfil;
-  //number of output elements of a single half-warp
-  const unsigned int hwelems = par.ElementsPerHalfWarp; 
-
-  //line cut id
-  const unsigned int linecutid = blockIdx.x;
-  //block id (in ndat axis)
-  const unsigned int bid = blockIdx.y;
   //line treated by the given block
-  unsigned int lineOffset = min(bid*num_lines,ndat-num_lines);
+  unsigned int lineOffset = min(blockIdx.y*par.LinesPerBlock,ndat-par.LinesPerBlock);
   //starting element treated by the block
-  unsigned int elemOffset = min(linecutid*num_elem,n-num_elem);
+  unsigned int elemOffset = min(blockIdx.x*par.ElementsPerBlock,n-par.ElementsPerBlock);
 
   //half-warp id
   const unsigned int hwid = threadIdx.y;
   //tid within the HW
   const unsigned int tid_hw = threadIdx.x;
 
+  //shared memory array
   __shared__ float psi_sh[MAX_SHARED_SIZE/sizeof(float)];
 
-  //line treated by the given thread
-  unsigned int thline = par.thline[tid_hw];
+  //line treated by the given thread in ndat axis
+  //which is the input base element
+  unsigned int BaseElem = par.thline[tid_hw] + lineOffset;
   //write data in shared memory
   //element treated by the given thread in n-axis
-  unsigned int thelem = tid_hw/num_lines + par.hwoffset_copy[hwid];//hwid * hwelems * hwcopy_gen;
-  //base element for the given thread in shared memory
-  //unsigned int ShBaseElem = thline + num_lines*thelem;
-  //alternative formulation
-  //unsigned int ShBaseElem = tid_hw + hwid *HALF_WARP_SIZE * hwcopy_gen;
-  //alternative
-  unsigned int ShBaseElem = tid_hw + num_lines*par.hwoffset_copy[hwid];
+  unsigned int thelem = par.thelem[tid_hw] + par.hwoffset_copy[hwid];
 
-  unsigned int InBaseElem = thline+lineOffset;//+(thelem + elemOffset)*ndat;
+  unsigned int ShBaseElem = tid_hw + par.LinesPerBlock*par.hwoffset_copy[hwid];
 
-  unsigned int hwcopy_eff = par.hwelem_copy[hwid];
-  //(hwid == blockDim.y-1?par.LastHalfWarpCopiedElements:hwcopy_gen);
-  
   int epsilon,npos;
 
   //NOTE: it is assumed that for non-first segments the starting
@@ -243,78 +208,214 @@ __global__ void conv1d_stride(int n,int ndat,float *psi_in,float *psi_out)
   //in other terms: lenght of the line is always bigger than
   //max(lowfil,lupfil)
 
-  for(int i=0,ipos=elemOffset-lowfil+thelem;i < hwcopy_eff ; ++i)
+  for(int i=0,ipos=elemOffset-par.lowfil+thelem;i < par.hwelem_copy[hwid] ; ++i)
     {
       epsilon=(ipos < 0 ? -1 : ipos/n);
       npos=ipos-epsilon*n;
-      psi_sh[ShBaseElem+i*HALF_WARP_SIZE]=psi_in[InBaseElem+ndat*npos];
-      //psi_sh[thelem+i*hwelems][thline]=psi_in[InBaseElem+ndat*npos];
-      ipos += hwelems;
-    }
+      psi_sh[ShBaseElem]=psi_in[BaseElem+ndat*npos];
+      //psi_sh[ShBaseElem]=tex1Dfetch(psi_tex,BaseElem+ndat*npos);
 
+      ShBaseElem += HALF_WARP_SIZE;
+      ipos += par.ElementsPerHalfWarp;
+      
+    }
 
   //end shared memory copy
   __syncthreads();
 
   //element treated by the given thread in n-axis
-  thelem = tid_hw/num_lines + par.hwoffset_calc[hwid];//hwid *hwelems * hwcalc_gen;
+  thelem = par.thelem[tid_hw] + par.hwoffset_calc[hwid];
   //base element for the given thread in shared memory
-  //ShBaseElem = thline + num_lines*thelem;
-  ShBaseElem = tid_hw + num_lines*par.hwoffset_calc[hwid];//hwid *HALF_WARP_SIZE * hwcalc_gen;
+  ShBaseElem = tid_hw + par.LinesPerBlock*par.hwoffset_calc[hwid];
 
-  unsigned int hwcalc_eff = par.hwelem_calc[hwid];
-
-  unsigned int OutBaseElem = n*(thline+lineOffset)+ thelem + elemOffset;
+  //output base element, from the input one
+  BaseElem =  n*BaseElem+ thelem + elemOffset;
 
   //perform convolution in shared memory 
   //each thread calculate a number of elements, identical for each
   //half-warp
   //#pragma unroll 5 (to be tested if it is important)
-  for(int i=0;i < hwcalc_eff; ++i)
+
+  for(int i=0;i < par.hwelem_calc[hwid]; ++i)
     {
       //values of the convolution
-      register float conv =
-      //hand-unrolled loop (16 elements for this filter)
-	
-	par.fil[0]*psi_sh[ShBaseElem               +i*HALF_WARP_SIZE] +
-	par.fil[1]*psi_sh[ShBaseElem +   num_lines +i*HALF_WARP_SIZE] +
-	par.fil[2]*psi_sh[ShBaseElem + 2*num_lines +i*HALF_WARP_SIZE] +
-	par.fil[3]*psi_sh[ShBaseElem + 3*num_lines +i*HALF_WARP_SIZE] +
-	par.fil[4]*psi_sh[ShBaseElem + 4*num_lines +i*HALF_WARP_SIZE] +
-	par.fil[5]*psi_sh[ShBaseElem + 5*num_lines +i*HALF_WARP_SIZE] +
-	par.fil[6]*psi_sh[ShBaseElem + 6*num_lines +i*HALF_WARP_SIZE] +
-	par.fil[7]*psi_sh[ShBaseElem + 7*num_lines +i*HALF_WARP_SIZE] +
-	par.fil[8]*psi_sh[ShBaseElem + 8*num_lines +i*HALF_WARP_SIZE] +
-	par.fil[9]*psi_sh[ShBaseElem + 9*num_lines +i*HALF_WARP_SIZE] +
-	par.fil[10]*psi_sh[ShBaseElem + 10*num_lines +i*HALF_WARP_SIZE] +
-	par.fil[11]*psi_sh[ShBaseElem + 11*num_lines +i*HALF_WARP_SIZE] +
-	par.fil[12]*psi_sh[ShBaseElem + 12*num_lines +i*HALF_WARP_SIZE] +
-	par.fil[13]*psi_sh[ShBaseElem + 13*num_lines +i*HALF_WARP_SIZE] +
-	par.fil[14]*psi_sh[ShBaseElem + 14*num_lines +i*HALF_WARP_SIZE] +
-	par.fil[15]*psi_sh[ShBaseElem + 15*num_lines +i*HALF_WARP_SIZE];
+      register float conv = 
+	//hand-unrolled loop (16 elements for this filter)
+	//order changed for increasing the precision
+	par.fil[0]*psi_sh[ShBaseElem               ] +
+	par.fil[15]*psi_sh[ShBaseElem + 15*par.LinesPerBlock] +
+	par.fil[1]*psi_sh[ShBaseElem +   par.LinesPerBlock ] +
+	par.fil[14]*psi_sh[ShBaseElem + 14*par.LinesPerBlock] +
+	par.fil[2]*psi_sh[ShBaseElem + 2*par.LinesPerBlock ] +
+	par.fil[13]*psi_sh[ShBaseElem + 13*par.LinesPerBlock] +
+	par.fil[3]*psi_sh[ShBaseElem + 3*par.LinesPerBlock ] +
+	par.fil[12]*psi_sh[ShBaseElem + 12*par.LinesPerBlock] +
+	par.fil[4]*psi_sh[ShBaseElem + 4*par.LinesPerBlock ] +
+	par.fil[11]*psi_sh[ShBaseElem + 11*par.LinesPerBlock] +
+	par.fil[5]*psi_sh[ShBaseElem + 5*par.LinesPerBlock ] +
+	par.fil[10]*psi_sh[ShBaseElem + 10*par.LinesPerBlock] +
+	par.fil[6]*psi_sh[ShBaseElem + 6*par.LinesPerBlock ] +
+	par.fil[9]*psi_sh[ShBaseElem + 9*par.LinesPerBlock ] +
+	par.fil[7]*psi_sh[ShBaseElem + 7*par.LinesPerBlock ] +
+	par.fil[8]*psi_sh[ShBaseElem + 8*par.LinesPerBlock ] ;
 
-	/*
-	par.fil[0]*psi_sh[thelem +    i*hwelems][thline]  +
-	par.fil[1]*psi_sh[thelem + 1 +i*hwelems][thline]  +
-	par.fil[2]*psi_sh[thelem + 2 +i*hwelems][thline]  +
-	par.fil[3]*psi_sh[thelem + 3 +i*hwelems][thline]  +
-	par.fil[4]*psi_sh[thelem + 4 +i*hwelems][thline]  +
-	par.fil[5]*psi_sh[thelem + 5 +i*hwelems][thline]  +
-	par.fil[6]*psi_sh[thelem + 6 +i*hwelems][thline]  +
-	par.fil[7]*psi_sh[thelem + 7 +i*hwelems][thline]  +
-	par.fil[8]*psi_sh[thelem + 8 +i*hwelems][thline]  +
-	par.fil[9]*psi_sh[thelem + 9 +i*hwelems][thline]  +
-	par.fil[10]*psi_sh[thelem + 10 +i*hwelems][thline] +
-	par.fil[11]*psi_sh[thelem + 11 +i*hwelems][thline] +
-	par.fil[12]*psi_sh[thelem + 12 +i*hwelems][thline] +
-	par.fil[13]*psi_sh[thelem + 13 +i*hwelems][thline] +
-	par.fil[14]*psi_sh[thelem + 14 +i*hwelems][thline] +
-	par.fil[15]*psi_sh[thelem + 15 +i*hwelems][thline] ;
-	*/
+      /*
+	par.fil[0]*psi_sh[ShBaseElem               ] +
+	par.fil[1]*psi_sh[ShBaseElem +   par.LinesPerBlock ] +
+	par.fil[2]*psi_sh[ShBaseElem + 2*par.LinesPerBlock ] +
+	par.fil[3]*psi_sh[ShBaseElem + 3*par.LinesPerBlock ] +
+	par.fil[4]*psi_sh[ShBaseElem + 4*par.LinesPerBlock ] +
+	par.fil[5]*psi_sh[ShBaseElem + 5*par.LinesPerBlock ] +
+	par.fil[6]*psi_sh[ShBaseElem + 6*par.LinesPerBlock ] +
+	par.fil[7]*psi_sh[ShBaseElem + 7*par.LinesPerBlock ] +
+	par.fil[8]*psi_sh[ShBaseElem + 8*par.LinesPerBlock ] +
+	par.fil[9]*psi_sh[ShBaseElem + 9*par.LinesPerBlock ] +
+	par.fil[10]*psi_sh[ShBaseElem + 10*par.LinesPerBlock] +
+	par.fil[11]*psi_sh[ShBaseElem + 11*par.LinesPerBlock] +
+	par.fil[12]*psi_sh[ShBaseElem + 12*par.LinesPerBlock] +
+	par.fil[13]*psi_sh[ShBaseElem + 13*par.LinesPerBlock] +
+	par.fil[14]*psi_sh[ShBaseElem + 14*par.LinesPerBlock] +
+	par.fil[15]*psi_sh[ShBaseElem + 15*par.LinesPerBlock];
+      */
+
+      psi_out[BaseElem]=conv;
+      //psi_sh[ShBaseElem+par.lowfil*par.LinesPerBlock]; //for testing only
+
+      ShBaseElem += HALF_WARP_SIZE;
+      BaseElem += par.ElementsPerHalfWarp;
       
-      psi_out[OutBaseElem+i*hwelems]=conv;
-      //psi_sh[ShBaseElem+(lowfil)*num_lines+i*HALF_WARP_SIZE]; //for testing only
     }
+
+ 
+}
+
+//1D convolution of multiple lines in the same block
+//multiplies by the potential and calculate the potential energy
+//__global__ void conv1d_stride_pot(int n,int ndat, float *psi_out)
+__global__ void conv1d_stride_pot(int n,int ndat, float *psi_in, float pot, float *psi_out)
+{
+
+  //line treated by the given block
+  unsigned int lineOffset = min(blockIdx.y*par.LinesPerBlock,ndat-par.LinesPerBlock);
+  //starting element treated by the block
+  unsigned int elemOffset = min(blockIdx.x*par.ElementsPerBlock,n-par.ElementsPerBlock);
+
+  //half-warp id
+  const unsigned int hwid = threadIdx.y;
+  //tid within the HW
+  const unsigned int tid_hw = threadIdx.x;
+
+  //shared memory array
+  __shared__ float psi_sh[MAX_SHARED_SIZE/sizeof(float)];
+
+  //line treated by the given thread in ndat axis
+  //which is the input base element
+  unsigned int BaseElem = par.thline[tid_hw] + lineOffset;
+  //write data in shared memory
+  //element treated by the given thread in n-axis
+  unsigned int thelem = par.thelem[tid_hw] + par.hwoffset_copy[hwid];
+
+  unsigned int ShBaseElem = tid_hw + par.LinesPerBlock*par.hwoffset_copy[hwid];
+
+  int epsilon,npos;
+
+  //NOTE: it is assumed that for non-first segments the starting
+  //points is far enough for the filter to be contained
+  //and the same for non-last segments.
+  //in other terms: lenght of the line is always bigger than
+  //max(lowfil,lupfil)
+
+  for(int i=0,ipos=elemOffset-par.lowfil+thelem;i < par.hwelem_copy[hwid] ; ++i)
+    {
+      epsilon=(ipos < 0 ? -1 : ipos/n);
+      npos=ipos-epsilon*n;
+      psi_sh[ShBaseElem]=psi_in[BaseElem+ndat*npos];
+      //psi_sh[ShBaseElem]=tex1Dfetch(psi_tex,BaseElem+ndat*npos);
+
+      ShBaseElem += HALF_WARP_SIZE;
+      ipos += par.ElementsPerHalfWarp;
+      
+    }
+
+  //end shared memory copy
+  __syncthreads();
+
+  //element treated by the given thread in n-axis
+  thelem = par.thelem[tid_hw] + par.hwoffset_calc[hwid];
+  //base element for the given thread in shared memory
+  ShBaseElem = tid_hw + par.LinesPerBlock*par.hwoffset_calc[hwid];
+
+  //output base element, from the input one
+  BaseElem =  n*BaseElem+ thelem + elemOffset;
+
+  //perform convolution in shared memory 
+  //each thread calculate a number of elements, identical for each
+  //half-warp
+  //#pragma unroll 5 (to be tested if it is important)
+
+  //per thread value of the potential energy
+  __shared__ float epot_th[16][HALF_WARP_SIZE];
+  //initalize suitable value
+  epot_th[hwid][tid_hw]=0.f;
+
+  for(int i=0;i < par.hwelem_calc[hwid]; ++i)
+    {
+      //values of the convolution
+      register float conv = 
+	//hand-unrolled loop (16 elements for this filter)
+	//order changed for increasing the precision
+	par.fil[0]*psi_sh[ShBaseElem               ] +
+	par.fil[15]*psi_sh[ShBaseElem + 15*par.LinesPerBlock] +
+	par.fil[1]*psi_sh[ShBaseElem +   par.LinesPerBlock ] +
+	par.fil[14]*psi_sh[ShBaseElem + 14*par.LinesPerBlock] +
+	par.fil[2]*psi_sh[ShBaseElem + 2*par.LinesPerBlock ] +
+	par.fil[13]*psi_sh[ShBaseElem + 13*par.LinesPerBlock] +
+	par.fil[3]*psi_sh[ShBaseElem + 3*par.LinesPerBlock ] +
+	par.fil[12]*psi_sh[ShBaseElem + 12*par.LinesPerBlock] +
+	par.fil[4]*psi_sh[ShBaseElem + 4*par.LinesPerBlock ] +
+	par.fil[11]*psi_sh[ShBaseElem + 11*par.LinesPerBlock] +
+	par.fil[5]*psi_sh[ShBaseElem + 5*par.LinesPerBlock ] +
+	par.fil[10]*psi_sh[ShBaseElem + 10*par.LinesPerBlock] +
+	par.fil[6]*psi_sh[ShBaseElem + 6*par.LinesPerBlock ] +
+	par.fil[9]*psi_sh[ShBaseElem + 9*par.LinesPerBlock ] +
+	par.fil[7]*psi_sh[ShBaseElem + 7*par.LinesPerBlock ] +
+	par.fil[8]*psi_sh[ShBaseElem + 8*par.LinesPerBlock ] ;
+
+      /*
+	par.fil[0]*psi_sh[ShBaseElem               ] +
+	par.fil[1]*psi_sh[ShBaseElem +   par.LinesPerBlock ] +
+	par.fil[2]*psi_sh[ShBaseElem + 2*par.LinesPerBlock ] +
+	par.fil[3]*psi_sh[ShBaseElem + 3*par.LinesPerBlock ] +
+	par.fil[4]*psi_sh[ShBaseElem + 4*par.LinesPerBlock ] +
+	par.fil[5]*psi_sh[ShBaseElem + 5*par.LinesPerBlock ] +
+	par.fil[6]*psi_sh[ShBaseElem + 6*par.LinesPerBlock ] +
+	par.fil[7]*psi_sh[ShBaseElem + 7*par.LinesPerBlock ] +
+	par.fil[8]*psi_sh[ShBaseElem + 8*par.LinesPerBlock ] +
+	par.fil[9]*psi_sh[ShBaseElem + 9*par.LinesPerBlock ] +
+	par.fil[10]*psi_sh[ShBaseElem + 10*par.LinesPerBlock] +
+	par.fil[11]*psi_sh[ShBaseElem + 11*par.LinesPerBlock] +
+	par.fil[12]*psi_sh[ShBaseElem + 12*par.LinesPerBlock] +
+	par.fil[13]*psi_sh[ShBaseElem + 13*par.LinesPerBlock] +
+	par.fil[14]*psi_sh[ShBaseElem + 14*par.LinesPerBlock] +
+	par.fil[15]*psi_sh[ShBaseElem + 15*par.LinesPerBlock];
+      */
+
+      register float v=pot[BaseElem];
+      //register float v=tex1Dfetch(pot_tex,BaseElem);
+
+      psi_out[BaseElem]=conv*v;
+
+      ShBaseElem += HALF_WARP_SIZE;
+      BaseElem += par.ElementsPerHalfWarp;
+
+      //update potential energy
+      epot_th[hwid][tid_hw] += conv*v*conv;
+      
+    }
+
+  //here we should add the reduction procedure for a given subset of
+  //elements. each block will provide only one value
+
  
 }
 
@@ -358,8 +459,10 @@ int dogenconv(int ndat,
   par_t parCPU;
 
   //calculate the number of threads and blocks
-  unsigned int num_lines = min(8,ndat); //hard coded for the moment
+  unsigned int num_lines = min(16,ndat); //hard coded for the moment
   unsigned int numBlocks,linecuts,num_halfwarps;
+  //int tex_offset;
+  //size_t offset;
 
   constantParameters(&parCPU,&num_halfwarps,num_lines,n,ndat,lowfil,lupfil,
 		     &linecuts,&numBlocks);
@@ -374,15 +477,23 @@ int dogenconv(int ndat,
       return 1;
     }
  
-  //printf(" %i numthdandblock %i %i\n",num_threads,numBlockDim1,numBlockDim2); 
-
   //define the number of threads and blocks according to parameter definitions
-
-  dim3  grid1(linecuts, numBlocks, 1);  
+  dim3  grid1(linecuts,  numBlocks, 1);  
   dim3  threads1(HALF_WARP_SIZE, num_halfwarps , 1);
- 
+
+  //bind the texture reference to the input array
+  //cudaBindTexture(NULL,psi_tex,GPU_idata,n*ndat*sizeof(float));
+
+  //element offset for reading from the texture
+  //tex_offset = offset/sizeof(float);
+  
+  //printf(" offset %i\n",tex_offset); 
   //launch the kernel grid
-  conv1d_stride <<< grid1, threads1 >>>(n,ndat,GPU_idata, GPU_odata);
+  //conv1d_stride <<< grid1, threads1 >>>(n,ndat, GPU_odata);
+  conv1d_stride <<< grid1, threads1 >>>(n,ndat, GPU_idata, GPU_odata);
+
+  //unbind the texture
+  //cudaUnbindTexture(psi_tex);
 
   cudaThreadSynchronize();
 
