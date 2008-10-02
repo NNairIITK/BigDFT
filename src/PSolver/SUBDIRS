@@ -8,3 +8,15 @@
 !!  specially the XC routines.
 !!
 !!***
+
+
+!!****d* PSolver/Exercise
+!!
+!! NAME
+!!  Exercise
+!!
+!! DESCRIPTION
+!!  Contains Exercise about the standalone version of the Poisson Solver
+!!  used for the BigDFT tutorial (November 2007, CECAM, Lyon)
+!!
+!!***

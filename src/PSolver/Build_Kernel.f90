@@ -1524,8 +1524,12 @@ end subroutine realcopy
 
 
 subroutine switch(nfft,n2,lot,n1,lzt,zt,zw)
-  implicit real(kind=8) (a-h,o-z)
-  dimension zw(2,lot,n2),zt(2,lzt,n1)
+  implicit none
+!Arguments
+  integer, intent(in) :: nfft,n2,lot,n1,lzt
+  real(kind=8) :: zw(2,lot,n2),zt(2,lzt,n1)
+!Local variables
+  integer :: i,j
 
   do j=1,nfft
      do i=1,n2
@@ -1538,9 +1542,13 @@ end subroutine switch
 
 
 subroutine mpiswitch(j3,nfft,Jp2st,J2st,lot,n1,nd2,nd3,nproc,zmpi1,zw)
-  implicit real(kind=8) (a-h,o-z)
-  dimension zmpi1(2,n1,nd2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
-
+  implicit none
+!Arguments
+  integer, intent(in) :: j3,nfft,lot,n1,nd2,nd3,nproc
+  integer, intent(inout) :: Jp2st,J2st
+  real(kind=8) :: zmpi1(2,n1,nd2/nproc,nd3/nproc,nproc),zw(2,lot,n1)
+!Local variables
+  integer :: mfft,Jp2,J2,I1
   mfft=0
   do Jp2=Jp2st,nproc
      do J2=J2st,nd2/nproc

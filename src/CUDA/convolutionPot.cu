@@ -1,11 +1,15 @@
-/*
-** convolution.cu
+/****u* CUDA/convolutionPot.cu
+**
 ** 
-** Made by (Matthieu Ospici)
-** Login   <ospici@badiane>
-** 
+** AUTHOR
+**  Matthieu Ospici
+**
+** CHANGELOG
 ** Started on  Tue Mar 11 14:54:55 2008 Matthieu Ospici
+**
 ** Last update Fri Jun 27 17:09:09 2008 Luigi Genovese
+**
+** SOURCE
 */
 
 #include <stdio.h>
@@ -840,18 +844,4 @@ void createParam(param_t* param,
   // const int tailleTab = (2*numThread)/32; //(2*numThread)/32;
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/****/

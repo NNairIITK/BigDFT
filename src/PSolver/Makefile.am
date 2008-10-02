@@ -109,7 +109,8 @@ PS_Exercise_LDADD = libpoissonsolver.a \
 	@MPI_LIBS@
 
 
-CLEANFILES = mpif.h POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@ \
+CLEANFILES = mpif.h malloc.prc time.par PS_Check.out \
+	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@ \
 	module_base.@MODULE_EXT@
 
 #dependencies

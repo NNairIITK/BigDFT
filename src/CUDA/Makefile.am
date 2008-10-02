@@ -44,6 +44,8 @@ EXTRA_DIST += conv_check.f90 \
 	1Dconv_new.cu
 endif
 
+CLEANFILES = module_base.@MODULE_EXT@
+
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ 
 
 conv_check_SOURCES = conv_check.f90 1Dconv.cu 1Dconv_new.cu ../profiling/memory.f90 ../modules/base.f90

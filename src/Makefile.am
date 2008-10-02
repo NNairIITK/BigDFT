@@ -130,7 +130,7 @@ low_level = init/projectors.f90  \
 	wfn_opt/kernel_per.f90 \
 	wfn_opt/kernel_slab_simple.f90 \
 	wfn_opt/fft_per.f90 \
-	wfn_opt/fft2d.f \
+	wfn_opt/fft2d.f90 \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
 	wavelib/plotting.f90 \
@@ -211,14 +211,13 @@ mpif.h:
 	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
 	 echo "integer :: MPI_MIN, MPI_MAX, MPI_IN_PLACE" >> mpif.h
 
-test_forces.o: parameters.h \
-	$(mod_bigdft)
+test_forces.o: $(mod_bigdft)
 
 $(mod_bigdft) : BigDFT_API.o
 
 $(moodules_objects) : mpif.h
 
-#BigDFT.o: parameters.h \
+#BigDFT.o: \
 #	base.o \
 #	interfaces.o
 

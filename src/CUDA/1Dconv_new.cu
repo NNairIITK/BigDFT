@@ -1,3 +1,12 @@
+/****u* CUDA/1Dconv_new.cu
+**
+** 
+** AUTHOR
+**  Luigi Genovese
+**
+** SOURCE
+*/
+
 #include <stdio.h>
 #include <cutil.h>
 #include <pthread.h>
@@ -500,3 +509,5 @@ int dogenconv(int ndat,
   return 0;
 
 }
+
+/****/

@@ -1,4 +1,4 @@
-!!****h* BigDFT/lazy_14
+!!****h* PSolver/lazy_14
 !! NAME
 !!   lazy_14
 !!

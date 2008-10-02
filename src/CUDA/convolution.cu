@@ -1,11 +1,15 @@
-/*
-** convolution.cu
+/****u* CUDA/convolution.cu
+**
 ** 
-** Made by (Matthieu Ospici)
-** Login   <ospici@badiane>
-** 
+** AUTHOR
+**  Matthieu Ospici
+**
+** CHANGELOG
 ** Started on  Tue Mar 11 14:54:55 2008 Matthieu Ospici
+**
 ** Last update Fri Jun 27 17:12:28 2008 Luigi Genovese
+**
+** SOURCE
 */
 
 #include <stdio.h>
@@ -396,3 +400,4 @@ int conv3dGPU(multiTab_t* m_dataIn,
   cudaFree(GPU_idata);
   return 0;
 }
+/****/

@@ -1,3 +1,25 @@
+!!****p* CUDA/conv_check
+!! NAME
+!!   conv_check
+!!
+!! FUNCTION
+!!    Program test for the convolution in GPU
+!!
+!! AUTHOR
+!!    Luigi Genovese
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2008 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! CREATION DATE
+!!    Septembre 2008
+!!
+!! SOURCE
+!!
 program conv_check
   use module_base
   implicit none
@@ -360,3 +382,5 @@ end program conv_check
 !!$
 !!$
 !!$end program conv_check
+
+!!***

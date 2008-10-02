@@ -1,10 +1,16 @@
-!!****d* BigDFT/ABINIT-Ewald
+!!****d* BigDFT/ABINIT-ewald
 !!
 !! NAME
-!!  ABINIT-Ewald
+!!  ABINIT-ewald
 !!
 !! DESCRIPTION
 !!  Routines to calculate the Ewald sum from ABINIT packages
+!!
+!! FILES
+!! derfc.F90
+!! ewald.F90
+!! matr3inv.F90
+!! metric.F90
 !!
 !!***
 
@@ -17,6 +23,29 @@
 !! DESCRIPTION
 !!  Convolutions for the Daubechies functions.
 !!
+!! FILES
+!! combined_grow_optim.f90
+!! combined_grow_simple.f90
+!! combined_shrink_optim.f90
+!! combined_shrink_simple.f90
+!! convolut_common.f90
+!! convolut_common_interface_cuda.f90
+!! convolut_common_per.f90
+!! convolut_ib_optim.f90
+!! convolut_ib_simple.f90
+!! convolut_optim_per.f90
+!! convolut_simple.f90
+!! convolut_simple_per.f90
+!! convolut_simple_slab.f90
+!! conv_per_common.f90
+!! conv_per_optim.f90
+!! conv_per_simple.f90
+!! growshrink.f90
+!! interface_cuda_fake.f90
+!! v_17.inc
+!! v.inc
+!! v_long.inc
+!!
 !!***
 
 
@@ -26,7 +55,28 @@
 !!  CUDA
 !!
 !! DESCRIPTION
-!!  Routines for the GPU part based on CUDA library from NVIDIA
+!!  Routines for the GPU part based on CUDA library from NVIDIA.
+!!  3D convolutions are coded.
+!!
+!! FILES
+!! 1Dconv.cu
+!! conv_check.f90
+!! convolution.cu
+!! convolution.h
+!! convolutionPot.cu
+!! convolutionPot.h
+!! conv_pot_shared_kernel.cu
+!! convSeria.cpp
+!! convSeria.h
+!! conv_shared_multi_kernel.cu
+!! cudafct.cu
+!! fortran.c
+!! newcase.cu
+!! read_conf_file.cpp
+!! read_conf_file.h
+!! setCPU_GPU_aff.cpp
+!! structUtil.cu
+!! structUtil.h
 !!
 !!***
 
@@ -37,7 +87,18 @@
 !!  init
 !!
 !! DESCRIPTION
-!!  Initialization
+!!  Initialization routines
+!!
+!! FILES
+!! denspotd.f90
+!! eleconf.f90
+!! gauprod.f90
+!! gautowav.f90
+!! gridmanipulation.f90
+!! inputguess.f90
+!! ionicpot.f90
+!! logrid.f90
+!! projectors.f90
 !!
 !!***
 
@@ -48,7 +109,9 @@
 !!  lib
 !!
 !! DESCRIPTION
-!!  
+!!  Contains routines for the compilation (CUDA header and library)
+!!
+!! FILES
 !!
 !!***
 
@@ -60,6 +123,11 @@
 !!
 !! DESCRIPTION
 !!  
+!! FILES
+!! base.f90
+!! cublas_fake.f90
+!! interfaces.f90
+!! types.f90
 !!
 !!***
 
@@ -71,6 +139,11 @@
 !!
 !! DESCRIPTION
 !!  Routines to profile the code
+!!
+!! FILES
+!! memoryestimator.f90
+!! memory.f90
+!! time.f90
 !!
 !!***
 
@@ -86,6 +159,34 @@
 !!  There are also the routines to build and manipulate
 !!  the interpolating scaling functions.
 !!
+!! FILES
+!! 3Dgradient.f90
+!! ABINIT-common
+!! base.f90
+!! Build_Kernel.f90
+!! fft3d.f90
+!! lazy_100.inc
+!! lazy_14.inc
+!! lazy_16.inc
+!! lazy_20.inc
+!! lazy_24.inc
+!! lazy_30.inc
+!! lazy_40.inc
+!! lazy_50.inc
+!! lazy_60.inc
+!! lazy_8.inc
+!! perfdata.inc
+!! perfdata.t
+!! Poisson_Solver.f90
+!! PS_Check.f90
+!! PS_Exercise.f90
+!! PSolver_Base.f90
+!! PSolver_Main.f90
+!! PS_Program.f90
+!! scaling_function.f90
+!! timing.f90
+!! xcenergy.f90
+!!
 !!***
 
 
@@ -97,6 +198,38 @@
 !! DESCRIPTION
 !!  Unused routines
 !!
+!! FILES
+!! applyh_prev.f90
+!! combined_grow.f90
+!! combined_shrink.f90
+!! convolution_prev.f90
+!! convolut_optim.f90
+!! convolut_optim_omp.f90
+!! conv_per_8.f90
+!! daub_8.inc
+!! gauss_to_daub.f90
+!! gsints.inc
+!! gsint_x.inc
+!! logrid_old.f90
+!! long_grow.f90
+!! long_shrink.f90
+!! precond_fb.f90
+!! precond_sg.f90
+!! recd10.inc
+!! recd12.inc
+!! recd14.inc
+!! recd16.inc
+!! recd6.inc
+!! recd8.inc
+!! standconv_old.f90
+!! standconv_optim.f90
+!! standconv_simple.f90
+!! standconv_test.f90
+!! to_cf.f90
+!! transl_rot_transf.f90
+!! tree_long_shrink.f90
+!! tree_unrolled_grow.f90
+!!
 !!***
 
 
@@ -107,6 +240,17 @@
 !!
 !! DESCRIPTION
 !!  
+!! FILES
+!! gauss_to_daub.f90
+!! intots.inc
+!! i-o.f90
+!! plotting.f90
+!! razero.f90
+!! recs16.inc
+!! scalprod.f90
+!! sym_16.inc
+!! transwaves.f90
+!! un-compress.f90
 !!
 !!***
 
@@ -118,6 +262,23 @@
 !!
 !! DESCRIPTION
 !!  Wavefunction optimization
+!!
+!! FILES
+!! applyh.f90
+!! d2s16.inc
+!! diis.f90
+!! fft2d.f90
+!! fft_per.f90
+!! kernel_per.f90
+!! kernel_per_fftw.f90
+!! kernel_slab.f90
+!! kernel_slab_fftw.f90
+!! kernel_slab_optim.f90
+!! kernel_slab_simple.f90
+!! orthogonality.f90
+!! precond.f90
+!! precond_per.f90
+!! precond_slab.f90
 !!
 !!***
 

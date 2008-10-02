@@ -1,1 +1,0 @@
-logical :: parallel = @PARALLEL_OPTION@
