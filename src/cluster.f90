@@ -29,7 +29,7 @@
   real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
   !local variables
   character(len=*), parameter :: subname='call_bigdft'
-  integer :: i_stat,i_all,ierr,inputPsiId_orig
+  integer :: i_stat,i_all,ierr,inputPsiId_orig,icycle
   !temporary interface
   interface
      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
@@ -56,7 +56,7 @@
 
   inputPsiId_orig=in%inputPsiId
 
-  loop_cluster: do
+  loop_cluster: do icycle=1,10
 
      if (in%inputPsiId == 0 .and. associated(rst%psi)) then
         i_all=-product(shape(rst%psi))*kind(rst%psi)
@@ -80,7 +80,8 @@
            in%inputPsiId=0
         end if
      else if (in%inputPsiId==1 .and. infocode==1) then
-        in%inputPsiId=0
+        !in%inputPsiId=0 !better to diagonalise that to restart an input guess
+        if(iproc==0)write(*,*)' WARNING: Wavefunctions converged after cycle',icycle 
      else if (in%inputPsiId == 0 .and. infocode==3) then
         if (iproc.eq.0) then
            write( *,'(1x,a)')'Convergence error, cannot proceed.'
