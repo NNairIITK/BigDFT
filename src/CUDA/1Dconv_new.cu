@@ -423,7 +423,26 @@ __global__ void conv1d_stride_pot(int n,int ndat, float *psi_in, float pot, floa
     }
 
   //here we should add the reduction procedure for a given subset of
-  //elements. each block will provide only one value
+  //elements. each block will provide only one value and copy it on
+  //global memory
+
+  //wait until each thread has finished
+  __syncthreads();
+
+  //now reduce by knowing that the blockSize is always less or equal
+  //than 256
+  //use the rationale of parallel reduction indicated in CUDA examples
+  if (blockDim.y >= 16)
+    {
+      if (hwid < 8){epot_th[hwid][tid_hw]+=epot_th[hwid+8][tid_hw];}
+      __syncthreads();
+    }
+  if (blockDim.y >= 8)
+    {
+      if (hwid < 4){epot_th[hwid][tid_hw]+=epot_th[hwid+4][tid_hw];}
+      __syncthreads();
+    }
+  //then add the statements which do not need to syncthreads
 
  
 }
