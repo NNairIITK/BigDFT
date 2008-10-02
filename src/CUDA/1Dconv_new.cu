@@ -357,15 +357,21 @@ __global__ void conv1d_stride_pot(int n,int ndat, float *psi_in, float pot, floa
   //output base element, from the input one
   BaseElem =  n*BaseElem+ thelem + elemOffset;
 
+  //limit element for which the block treats unique elements
+
   //perform convolution in shared memory 
   //each thread calculate a number of elements, identical for each
   //half-warp
   //#pragma unroll 5 (to be tested if it is important)
 
+  /* suspend the potential energy calculation due to doubling of
+     addresses
+     perhaps a ddot strategy has better performances
   //per thread value of the potential energy
   __shared__ float epot_th[16][HALF_WARP_SIZE];
   //initalize suitable value
   epot_th[hwid][tid_hw]=0.f;
+  */
 
   for(int i=0;i < par.hwelem_calc[hwid]; ++i)
     {
@@ -409,19 +415,25 @@ __global__ void conv1d_stride_pot(int n,int ndat, float *psi_in, float pot, floa
 	par.fil[15]*psi_sh[ShBaseElem + 15*par.LinesPerBlock];
       */
 
-      register float v=pot[BaseElem];
       //register float v=tex1Dfetch(pot_tex,BaseElem);
 
-      psi_out[BaseElem]=conv*v;
+      psi_out[BaseElem]=conv*pot[BaseElem];
+
+      //update potential energy
+      //not efficient calculation, update the energy only if the element
+      //treated is unique
+      //epot_th[hwid][tid_hw] += conv*v*conv;
+      
 
       ShBaseElem += HALF_WARP_SIZE;
       BaseElem += par.ElementsPerHalfWarp;
 
-      //update potential energy
-      epot_th[hwid][tid_hw] += conv*v*conv;
       
     }
 
+
+  /* partial reduction of the potential energy.
+     not valid due to duplication of calculations
   //here we should add the reduction procedure for a given subset of
   //elements. each block will provide only one value and copy it on
   //global memory
@@ -443,6 +455,9 @@ __global__ void conv1d_stride_pot(int n,int ndat, float *psi_in, float pot, floa
       __syncthreads();
     }
   //then add the statements which do not need to syncthreads
+
+  */
+  
 
  
 }
