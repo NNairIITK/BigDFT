@@ -27,4 +27,4 @@ check: $(PPFILES) inguess.dat
 	cp -f $(top_srcdir)/tests/NaCl/input.dat .
 	cp -f $(top_srcdir)/tests/NaCl/posinp .
 	$(run_parallel) $(top_builddir)/src/cluster > NaCl.out
-	python $(top_srcdir)/tests/fldiff.py NaCl.out $(top_srcdir)/tests/Refs/NaCl.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --bigdft NaCl.out $(top_srcdir)/tests/Refs/NaCl.out.ref | tee fldiff.report

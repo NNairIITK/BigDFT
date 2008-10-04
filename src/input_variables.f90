@@ -446,7 +446,7 @@ subroutine find_extra_info(line,extra)
         space=.not. space
      end if
      !print *,line(i:i),nspace
-     if (nspace==7) then
+     if (nspace==8) then
         extra=line(i:min(100,i+49))
         exit find_space
      end if
@@ -474,7 +474,7 @@ subroutine parse_extra_info(iproc,iat,extra,at)
      read(extra,*,iostat=ierr1)nspol,suffix
      if (ierr1 /=0) then
         if (trim(extra) == 'f') then
-           suffix=trim(extra)
+           suffix='f'
            nspol=0
            nchrg=0
         else

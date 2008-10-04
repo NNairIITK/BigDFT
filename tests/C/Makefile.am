@@ -25,4 +25,4 @@ check: $(PPFILES) inguess.dat
 	cp -f $(top_srcdir)/tests/C/posinp .
 	cp -f $(top_srcdir)/tests/C/occup.dat .
 	$(run_parallel) $(top_builddir)/src/cluster > C.out
-	python $(top_srcdir)/tests/fldiff.py C.out $(top_srcdir)/tests/Refs/C.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --bigdft C.out $(top_srcdir)/tests/Refs/C.out.ref | tee fldiff.report

@@ -21,4 +21,4 @@ check: $(PPFILES)
 	cp -f $(top_srcdir)/tests/SiH4/input.dat .
 	cp -f $(top_srcdir)/tests/SiH4/posinp .
 	$(run_parallel) $(top_builddir)/src/cluster > SiH4.out
-	python $(top_srcdir)/tests/fldiff.py SiH4.out $(top_srcdir)/tests/Refs/SiH4.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --bigdft SiH4.out $(top_srcdir)/tests/Refs/SiH4.out.ref | tee fldiff.report

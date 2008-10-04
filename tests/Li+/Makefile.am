@@ -21,4 +21,4 @@ check: $(PPFILES)
 	cp -f $(top_srcdir)/tests/Li+/input.dat .
 	cp -f $(top_srcdir)/tests/Li+/posinp .
 	$(run_parallel) $(top_builddir)/src/cluster > Li+.out
-	python $(top_srcdir)/tests/fldiff.py Li+.out $(top_srcdir)/tests/Refs/Li+.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --bigdft Li+.out $(top_srcdir)/tests/Refs/Li+.out.ref | tee fldiff.report

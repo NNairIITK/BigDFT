@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 15/09/2008
+# Date: 04/10/2008
 #----------------------------------------------------------------------------
 
 import difflib
@@ -14,46 +14,6 @@ import os
 import re
 import sys
 
-#Match the version number ex. 1.1.9
-re_version = re.compile("[(]ver[ ]+[0-9.]+[)]",re.IGNORECASE)
-#Match a floating number
-re_float = re.compile("([- ]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
-
-def usage():
-    print "fldiff.py file1 file2"
-    sys.exit(1)
-
-#Test if the line should not be compared
-def line_junk(line):
-    "True if the line must not be compared"
-    return re_version.search(line) \
-        or "CPU time" in line \
-        or "Load" in line \
-        or "memory" in line \
-        or "MB" in line \
-        or "proc" in line \
-        or "Processes" in line \
-        or "allocation" in line \
-        or "~W" in line \
-        or "for the array" in line
-
-#Check the last line
-end_line = "MEMORY CONSUMPTION REPORT"
-
-#Check arguments
-try:
-    optlist, args = getopt.getopt(sys.argv[1:],[])
-except getopt.error:
-    sys.stderr.write("Error in arguments\n")
-    usage()
-if len(sys.argv) != 3:
-    sys.stderr.write("Error in arguments\n")
-    usage()
-
-#Arguments
-file1 = sys.argv[1]
-file2 = sys.argv[2]
-
 #Check the version of python
 version = map(int,sys.version_info[0:3])
 if  version < [2,3,0]:
@@ -61,6 +21,56 @@ if  version < [2,3,0]:
     sys.stderr.write("Minimal required version is python 2.3.0: Use the command diff\n")
     os.system("diff %s %s" % (file1,file2))
     sys.exit(1)
+
+#Match the version number ex. 1.1.9
+re_version = re.compile("[(]ver[ ]+[0-9.]+[)]",re.IGNORECASE)
+#Match a floating number
+re_float = re.compile("([- ]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
+
+def usage():
+    print "fldiff.py [--bigdft] file1 file2"
+    print "  --bigdft to compare 'bigdft' output files"
+    sys.exit(1)
+
+#Check arguments
+try:
+    optlist, args = getopt.getopt(sys.argv[1:],"b",["bigdft"])
+except getopt.error:
+    sys.stderr.write("Error in arguments\n")
+    usage()
+bigdft = False
+for opt,arg in optlist:
+    if opt == "-b" or opt == "--bigdft":
+        bigdft = True
+if len(args) != 2:
+    sys.stderr.write("Error in arguments\n")
+    usage()
+
+#Arguments
+file1 = args[0]
+file2 = args[1]
+
+if bigdft:
+    #Test if the line should not be compared (bigdft output)
+    def line_junk(line):
+        "True if the line must not be compared"
+        return re_version.search(line) \
+            or "CPU time" in line \
+            or "Load" in line \
+            or "memory" in line \
+            or "MB" in line \
+            or "proc" in line \
+            or "Processes" in line \
+            or "allocation" in line \
+            or "~W" in line \
+            or "for the array" in line
+else:
+    def line_junk(line):
+        "Always False"
+        return False
+
+#Check the last line
+end_line = "MEMORY CONSUMPTION REPORT"
 
 #Read the first file
 try:

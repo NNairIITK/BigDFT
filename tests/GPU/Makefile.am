@@ -22,4 +22,4 @@ check: $(PPFILES)
 	cp -f $(top_srcdir)/tests/GPU/posinp .
 	cp -f $(top_srcdir)/tests/GPU/cpu_gpu_aff.config .
 	$(top_builddir)/src/cluster > GPU.out
-	python $(top_srcdir)/tests/fldiff.py GPU.out $(top_srcdir)/tests/Refs/GPU.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --bigdft GPU.out $(top_srcdir)/tests/Refs/GPU.out.ref | tee fldiff.report

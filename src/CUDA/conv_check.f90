@@ -30,6 +30,7 @@ program conv_check
   character(len=*), parameter :: subname='conv_check'
   character(len=50) :: chain
   integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,ndat,i1_max,i_max,it0,it1,count_rate,count_max
+  integer :: n1s,n1e,ndats,ndate
   real(wp) :: tt
   real(gp) :: v,p,CPUtime,GPUtime,comp
   real(kind=4), dimension(:,:,:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
@@ -80,143 +81,154 @@ program conv_check
 !!$  call getarg(2,chain)
 !!$  read(unit=chain,fmt=*) ndat
 
-  read(1,*)n1,ndat
+  read(1,*)n1s,n1e,ndats,ndate,ntimes
 
-  !values for the grid
+  do ndat=ndats,ndate
+     do n1=n1s,n1e
+        !values for the grid
 !!$  n1=127
-  n2=50
-  n3=50
-  ntimes=1
-  hx=0.1e0_gp
-  hy=0.1e0_gp
-  hz=0.1e0_gp
+        n2=50
+        n3=50
+        !ntimes=1
+        hx=0.1e0_gp
+        hy=0.1e0_gp
+        hz=0.1e0_gp
 
 
-  !set of one-dimensional convolutions
-  !allocate arrays
-  !ndat=256!(n2+1)*(n3+1)
-  allocate(psi_in(n1,ndat,1+ndebug),stat=i_stat)
-  call memocc(i_stat,psi_in,'psi_in',subname)
-  allocate(psi_out(ndat,n1,1+ndebug),stat=i_stat)
-  call memocc(i_stat,psi_out,'psi_out',subname)
+        !set of one-dimensional convolutions
+        !allocate arrays
+        !ndat=256!(n2+1)*(n3+1)
+        allocate(psi_in(n1,ndat,1+ndebug),stat=i_stat)
+        call memocc(i_stat,psi_in,'psi_in',subname)
+        allocate(psi_out(ndat,n1,1+ndebug),stat=i_stat)
+        call memocc(i_stat,psi_out,'psi_out',subname)
 
-  !initialise array
-  sigma2=0.25d0*((n1*hx)**2)
-  do i=1,ndat
-     do i1=1,n1
-        x=hx*real(i1-n1/2-1,kind=8)
-        !tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
-        r2=x**2
-        arg=0.5d0*r2/sigma2
-        tt=dexp(-arg)
+        !initialise array
+        sigma2=0.25d0*((n1*hx)**2)
+        do i=1,ndat
+           do i1=1,n1
+              x=hx*real(i1-n1/2-1,kind=8)
+              !tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
+              r2=x**2
+              arg=0.5d0*r2/sigma2
+              tt=dexp(-arg)
 
-        psi_in(i1,i,1)=tt
-     end do
-  end do
- 
-  !take timings
-  !call system_clock(it0,count_rate,count_max)
-  call cpu_time(t0)
-  do i=1,ntimes
-     call convrot_n_per(n1-1,ndat,psi_in,psi_out)
-  end do
-  call cpu_time(t1)
-  !call system_clock(it1,count_rate,count_max)
+              psi_in(i1,i,1)=tt
+           end do
+        end do
 
-  !CPUtime=real(it1-it0,kind=8)/real(count_rate*ntimes,kind=8)
-  CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+        !take timings
+        !call system_clock(it0,count_rate,count_max)
+        call cpu_time(t0)
+        do i=1,ntimes
+           call convrot_n_per(n1-1,ndat,psi_in,psi_out)
+        end do
+        call cpu_time(t1)
+        !call system_clock(it1,count_rate,count_max)
 
-  print *,'starting CUDA with n,ndat',n1,ndat
+        !CPUtime=real(it1-it0,kind=8)/real(count_rate*ntimes,kind=8)
+        CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
 
-  allocate(psi_cuda(n1,ndat,1+ndebug),stat=i_stat)
-  call memocc(i_stat,psi_cuda,'psi_cuda',subname)
-  allocate(v_cuda(ndat,n1,1+ndebug),stat=i_stat)
-  call memocc(i_stat,v_cuda,'v_cuda',subname)
+        !print *,'starting CUDA with n,ndat',n1,ndat
 
-
-  !print *,'one'
-  !the input and output arrays must be reverted in this implementation
-  do i=1,ndat
-     do i1=1,n1
-        v_cuda(i,i1,1)=real(psi_in(i1,i,1),kind=4)
-        !write(16,'(2(i6),2(1pe24.17)')i,i1,v_cuda(i,i1,1),psi_in(i1,i,1)
-     end do
-  end do
-  !print *,'two'
-
-  call GPU_allocate(n1*ndat,psi_GPU,i_stat)
-  !print *,'three'
-  call GPU_allocate(n1*ndat,work_GPU,i_stat)
-
-  !call GPU_send(n1*ndat,v_cuda,psi_GPU,i_stat)
-  call GPU_send(n1*ndat,v_cuda,work_GPU,i_stat)
-
-  !print *,'starting CUDA'
-
-  !now the CUDA part
-  !take timings
+        allocate(psi_cuda(n1,ndat,1+ndebug),stat=i_stat)
+        call memocc(i_stat,psi_cuda,'psi_cuda',subname)
+        allocate(v_cuda(ndat,n1,1+ndebug),stat=i_stat)
+        call memocc(i_stat,v_cuda,'v_cuda',subname)
 
 
-  !call system_clock(it0,count_rate,count_max)
-  call cpu_time(t0)
-  do i=1,ntimes
-     !call cuda C interface
-     !call m1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,lowfil1,lupfil1)
-     !call n1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,-lowfil1,lupfil1)
-     call g1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,-lowfil1,lupfil1)
-  end do
-  call cpu_time(t1)
-  !call system_clock(it1,count_rate,count_max)
+        !print *,'one'
+        !the input and output arrays must be reverted in this implementation
+        do i=1,ndat
+           do i1=1,n1
+              v_cuda(i,i1,1)=real(psi_in(i1,i,1),kind=4)
+              !write(16,'(2(i6),2(1pe24.17)')i,i1,v_cuda(i,i1,1),psi_in(i1,i,1)
+           end do
+        end do
+        !print *,'two'
 
-  !print *,'ending CUDA'
+        call GPU_allocate(n1*ndat,psi_GPU,i_stat)
+        !print *,'three'
+        call GPU_allocate(n1*ndat,work_GPU,i_stat)
 
-  call GPU_receive(n1*ndat,psi_cuda,psi_GPU,i_stat)
+        !call GPU_send(n1*ndat,v_cuda,psi_GPU,i_stat)
+        call GPU_send(n1*ndat,v_cuda,work_GPU,i_stat)
 
-  call GPU_deallocate(psi_GPU,i_stat)
-  call GPU_deallocate(work_GPU,i_stat)
+        !print *,'starting CUDA'
+
+        !now the CUDA part
+        !take timings
 
 
-  !GPUtime=real(it1-it0,kind=8)/real(count_rate*ntimes,kind=8)
-  GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+        !call system_clock(it0,count_rate,count_max)
+        call cpu_time(t0)
+        do i=1,ntimes
+           !call cuda C interface
+           !call m1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,lowfil1,lupfil1)
+           !call n1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,-lowfil1,lupfil1)
+           call g1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,-lowfil1,lupfil1)
+        end do
+        call cpu_time(t1)
+        !call system_clock(it1,count_rate,count_max)
 
-  !check the differences between the results
-  maxdiff=0.d0
-  i1_max=1
-  i_max=1
-  do i=1,ndat
-     do i1=1,n1
-        write(17,'(2(i6),2(1pe24.17)')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
-        !write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
-        comp=abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8))
-        !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
-        if (comp > maxdiff) then
-           maxdiff=comp
-           i1_max=i1
-           i_max=i
+        !print *,'ending CUDA'
+
+        call GPU_receive(n1*ndat,psi_cuda,psi_GPU,i_stat)
+
+        call GPU_deallocate(psi_GPU,i_stat)
+        call GPU_deallocate(work_GPU,i_stat)
+
+
+        !GPUtime=real(it1-it0,kind=8)/real(count_rate*ntimes,kind=8)
+        GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+        !check the differences between the results
+        maxdiff=0.d0
+        i1_max=1
+        i_max=1
+        do i=1,ndat
+           do i1=1,n1
+              !write(17,'(2(i6),2(1pe24.17)')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
+              write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
+              comp=abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8))
+              !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
+              if (comp > maxdiff) then
+                 maxdiff=comp
+                 i1_max=i1
+                 i_max=i
+              end if
+           end do
+        end do
+
+        !!print *,'timings,difference',CPUtime,GPUtime,maxdiff
+
+        !print *,'i1,maxdiff',i_max,i1_max,v_cuda(i_max,i1_max,1),psi_cuda(i1_max,i_max,1)
+        !!print *,'i1,maxdiff',i_max,i1_max,psi_out(i_max,i1_max,1),psi_cuda(i1_max,i_max,1)
+
+        if (maxdiff <= 3.d-7) then
+           write(*,'(a,i4,i4,f9.5,1pe12.5)')'n,ndat,GPU/CPU ratio',&
+                n1,ndat,CPUtime/GPUtime,maxdiff
+        else
+           write(*,'(a,i4,i4,f9.5,1pe12.5,a)')'n,ndat,GPU/CPU ratio',&
+                n1,ndat,CPUtime/GPUtime,maxdiff,&
+                '<<<< WARNING' 
         end if
+
+        i_all=-product(shape(psi_in))
+        deallocate(psi_in,stat=i_stat)
+        call memocc(i_stat,i_all,'psi_in',subname)
+        i_all=-product(shape(psi_out))
+        deallocate(psi_out,stat=i_stat)
+        call memocc(i_stat,i_all,'psi_out',subname)
+
+        i_all=-product(shape(psi_cuda))
+        deallocate(psi_cuda,stat=i_stat)
+        call memocc(i_stat,i_all,'psi_cuda',subname)
+        i_all=-product(shape(v_cuda))
+        deallocate(v_cuda,stat=i_stat)
+        call memocc(i_stat,i_all,'v_cuda',subname)
      end do
   end do
-
-  print *,'timings,difference',CPUtime,GPUtime,maxdiff
-
-  !print *,'i1,maxdiff',i_max,i1_max,v_cuda(i_max,i1_max,1),psi_cuda(i1_max,i_max,1)
-  print *,'i1,maxdiff',i_max,i1_max,psi_out(i_max,i1_max,1),psi_cuda(i1_max,i_max,1)
-
-  write(*,'(a,i4,i4,f9.5,1pe12.5)')'n,ndat,GPU/CPU ratio',n1,ndat,CPUtime/GPUtime,maxdiff
-
-  i_all=-product(shape(psi_in))
-  deallocate(psi_in,stat=i_stat)
-  call memocc(i_stat,i_all,'psi_in',subname)
-  i_all=-product(shape(psi_out))
-  deallocate(psi_out,stat=i_stat)
-  call memocc(i_stat,i_all,'psi_out',subname)
-
-  i_all=-product(shape(psi_cuda))
-  deallocate(psi_cuda,stat=i_stat)
-  call memocc(i_stat,i_all,'psi_cuda',subname)
-  i_all=-product(shape(v_cuda))
-  deallocate(v_cuda,stat=i_stat)
-  call memocc(i_stat,i_all,'v_cuda',subname)
 
 end program conv_check
 !!$
