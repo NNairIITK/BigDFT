@@ -13,3 +13,13 @@ robodoc:
 	pwd; robodoc --rc config/robodoc/robodoc-html.rc\
 			--css ./config/robodoc/robodoc.css\
 	        --doc $${OLDPWD}/www
+
+cluster.pdf: cluster.tex
+	pdflatex $(top_srcdir)/doc/cluster.tex
+
+HalFFT.pdf: HalFFT.tex
+	pdflatex $(top_srcdir)/doc/HalFFT.tex
+
+clean:
+	\rm *.aux *.log
+
