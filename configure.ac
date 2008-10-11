@@ -36,7 +36,7 @@ dnl We defined CC for the ABINIT part.
 AC_PROG_CC()
 AC_PROG_CXX()
 
-dnl If FC environement variable is not already set, it
+dnl If FC environment variable is not already set, it
 dnl looks for a modern Fortran compiler, prefering newest
 dnl fortran available (e. g. Fortran95). Then FC variable
 dnl is set.
@@ -125,6 +125,7 @@ AC_SUBST(MPI_LDFLAGS)
 AM_CONDITIONAL(USE_MPI, test "$ac_use_mpi" = "yes")
 AC_MSG_RESULT([$ac_use_mpi])
 
+
 dnl Use the simple or the optimised convolution code.
 AC_MSG_CHECKING([for convolution optimisation])
 ac_use_opti_convolut="yes"
@@ -133,6 +134,25 @@ AC_ARG_ENABLE(optimised-convolution, AS_HELP_STRING([--disable-optimised-convolu
 AM_CONDITIONAL(USE_OPTI_CONVOLUT, test "$ac_use_opti_convolut" = "yes")
 AC_MSG_RESULT([$ac_use_opti_convolut])
 
+
+dnl Use the minima hopping method (build the executable global)
+AC_MSG_CHECKING([for minima hopping])
+ac_use_minima_hopping="no"
+AC_ARG_ENABLE(minima-hopping, AS_HELP_STRING([--disable-minima-hopping], [Compile the minima hopping code (need the file src/global.f90, not compiled by default).]),
+                         ac_use_minima_hopping=$enableval, ac_use_minima_hopping="no")
+AM_CONDITIONAL(USE_MINIMA_HOPPING, test "$ac_use_minima_hopping" = "yes")
+if test x"$ac_use_minima_hopping" = "xyes" ; then
+  dnl Check if src/global.f90 does exist.
+  if test -f ../src/global.f90 ; then
+     AC_MSG_CHECKING([src/global.f90])
+  else
+     AC_MSG_ERROR(["No src/global.f90. This file is not freely available."])
+  fi
+fi
+AC_MSG_RESULT([$ac_use_minima_hopping])
+
+
+dnl Use the GPU computing (only NVIDIA cards with CUDA libraries)
 AC_MSG_CHECKING([for GPU computing with CUDA libraries])
 ac_use_cuda_gpu="no"
 AC_ARG_ENABLE(cuda-gpu, AS_HELP_STRING([--enable-cuda-gpu], [Use CUDA implementation for GPU convolutions (disabled by default).]),
@@ -342,6 +362,7 @@ tests/H2O-CP2K/Makefile
 tests/SiBulk/Makefile
 tests/Davidson-SiH4/Makefile
 tests/GPU/Makefile
+tests/MINHOP/Makefile
 ])
 AC_OUTPUT
 
@@ -373,6 +394,7 @@ Options:
    | GCC41HACK (gcc path): $GCC41HACK
    | ext. cutil library:   $ac_with_lib_cutils
    |      cutil path:      $LIB_CUTIL_PATH
+  With minima hopping:     $ac_use_minima_hopping
 
 Installation paths:
   Prefix:                  $prefix

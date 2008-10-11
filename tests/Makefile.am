@@ -13,9 +13,15 @@ SUBDIRS = \
 	  SiBulk \
 	  Davidson-SiH4
 
-#this will run the automatic tests also for GPU
+
+#This will run the automatic tests also for GPU
 if USE_CUDA_GPU
 SUBDIRS += GPU
+endif
+
+#This will run the automatic tests also for minima hopping
+if USE_MINIMA_HOPPING
+SUBDIRS += MINHOP
 endif
 
 
