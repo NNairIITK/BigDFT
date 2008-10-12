@@ -76,7 +76,7 @@ program BigDFT
 
   close(99)
 
-  !read input variables, use structures
+  ! read input variables, use structures
   call read_input_variables(iproc,inputs)
  
   do iat=1,atoms%nat
