@@ -21,5 +21,5 @@ HalFFT.pdf: HalFFT.tex
 	pdflatex $(top_srcdir)/doc/HalFFT.tex
 
 clean:
-	\rm *.aux *.log
+	rm -f *.aux *.log
 

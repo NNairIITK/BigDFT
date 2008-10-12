@@ -11,6 +11,8 @@
 - SiBulk        a periodic cell of 8 Si atoms
 - H2O-CP2K      Use the output wavefunctions from CP2K
                 (example to import wavefunctions from Gaussian basis sets)
+- MINHOP        Use the minima hopping algorithm (program global from file global.F90)
+                Warning: The file 'global.f90' is not freely distributed
 
 This call the program "cluster" in the src directories.
 The program "memguess" followed by the number of processors checks the input files and estimates the required memory.
