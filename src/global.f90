@@ -1,4 +1,18 @@
-  program MINHOP
+!!****p* MINHOP
+!! NAME
+!!   MINHOP
+!!
+!! FUNCTION
+!!  Main program fro the minima hopping
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2008 UNIBAS
+!!    This file is not freely distributed.
+!!    A licence is necessary from UNIBAS
+!!
+!! SOURCE
+!!
+program MINHOP
 
   use module_base
   use module_types
@@ -29,8 +43,8 @@
   real(kind=8), parameter :: alpha1=1.d0/1.10d0,alpha2=1.10d0
   integer, parameter :: nbuf=1000
 ! interval for writing intermediate results
-  integer, parameter(minter=1)
-  real(kind=8), dimension :: elocmin(npminx),abuf(nbuf)
+  integer, parameter :: minter=1
+  real(kind=8) :: elocmin(npminx),abuf(nbuf)
   real(kind=8), allocatable, dimension(:,:) :: pos,ff,wpos,vxyz,gg,earr
   real(kind=8), allocatable, dimension(:,:,:) :: poslocmin
 
@@ -1004,7 +1018,8 @@ end subroutine my_input_variables
 !        deallocate(wpos,fxyz)
 end subroutine soften
 
-    end program MINHOP
+end program MINHOP
+!!***
 
 
 
