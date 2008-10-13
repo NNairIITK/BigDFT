@@ -301,7 +301,7 @@ __global__ void conv1d_stride(int n,int ndat, float *psi_in, float *psi_out)
 //1D convolution of multiple lines in the same block
 //multiplies by the potential and calculate the potential energy
 //__global__ void conv1d_stride_pot(int n,int ndat, float *psi_out)
-__global__ void conv1d_stride_pot(int n,int ndat, float *psi_in, float* pot, float *psi_out)
+__global__ void conv1d_stride_pot(int n,int ndat, float *psi_in, float *pot, float *psi_out)
 {
 
   //line treated by the given block

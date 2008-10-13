@@ -1,7 +1,9 @@
 News
 ----
 
-This is the first release of the bigdft project:
+2008/10/08 Version 1.1.9 Many improvements (periodic systems, surfaces)
+
+2006/12/19 This is the first release of the bigdft project:
 - electronic structure calculations based on wavelet basis sets with
   two levels of resolution, non-local pseudopotential (GTH), atomic forces
   and all GGA implemented in ABINIT 5.2

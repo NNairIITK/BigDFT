@@ -21,4 +21,4 @@ check: $(PPFILES) posinp input.dat
 	cp -f $(top_srcdir)/tests/H-spin/input.dat .
 	cp -f $(top_srcdir)/tests/H-spin/posinp .
 	$(run_parallel) $(top_builddir)/src/cluster > H-spin.out
-	python $(top_srcdir)/tests/fldiff.py H-spin.out $(top_srcdir)/tests/Refs/H-spin.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --bigdft H-spin.out $(top_srcdir)/tests/Refs/H-spin.out.ref | tee fldiff.report

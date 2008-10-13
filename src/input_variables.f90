@@ -1,3 +1,19 @@
+!!****f* BigDFT/print_logo
+!! NAME
+!!    print_logo
+!!
+!! FUNCTION
+!!    Display the logo of BigDFT 
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2008 BigDFT group 
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine print_logo()
   implicit none
   write(*,'(23x,a)')'      BBBB         i       ggggg    '
@@ -32,7 +48,18 @@ subroutine print_logo()
   write(*,'(1x,a)')&
           '------------------------------------------------------------------------------------'
 end subroutine print_logo
+!!***
 
+
+!!****f* BigDFT/read_input_variables
+!! NAME
+!!   read_input_variables
+!!
+!! FUNCTION
+!!    Read the input variables in the file 'input.dat'
+!!
+!! SOURCE
+!!
 subroutine read_input_variables(iproc,in)
   use module_base
   use module_types
@@ -163,7 +190,18 @@ subroutine read_input_variables(iproc,in)
      end if
 
 end subroutine read_input_variables
+!!***
 
+
+!!****f* BigDFT/print_input_parameters
+!! NAME
+!!    print_input_parameters
+!!
+!! FUNCTION
+!!    Print all input parameters
+!!
+!! SOURCE
+!!
 subroutine print_input_parameters(in)
   use module_types
   implicit none
@@ -195,8 +233,18 @@ subroutine print_input_parameters(in)
 
   end if
 end subroutine print_input_parameters
+!!***
 
-! read atomic positions
+
+!!****f* BigDFT/read_atomic_positions
+!! NAME
+!!    read_atomic_positions
+!!
+!! FUNCTION
+!!    Read atomic positions
+!!
+!! SOURCE
+!!
 subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   use module_base
   use module_types
@@ -428,7 +476,18 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   enddo
 
 end subroutine read_atomic_positions
+!!***
 
+
+!!****f* BigDFT/find_extra_info
+!! NAME
+!!    find_extra_info
+!!
+!! FUNCTION
+!!    Find extra information
+!!
+!! SOURCE
+!!
 subroutine find_extra_info(line,extra)
   implicit none
   character(len=100), intent(in) :: line
@@ -454,7 +513,18 @@ subroutine find_extra_info(line,extra)
   end do find_space
 
 end subroutine find_extra_info
+!!***
 
+
+!!****f* BigDFT/parse_extra_info
+!! NAME
+!!    parse_extra_info
+!!
+!! FUNCTION
+!!    Parse extra information
+!!
+!! SOURCE
+!!
 subroutine parse_extra_info(iproc,iat,extra,at)
   use module_types
   implicit none
@@ -526,10 +596,19 @@ contains
  end subroutine error
   
 end subroutine parse_extra_info
+!!***
 
 
-! Fill the arrays occup and spinsgn
-! if iunit /=0 this means that the file occup.dat does exist and it opens
+!!****f* BigDFT/input_occup
+!! NAME
+!!    input_occup
+!!
+!! FUNCTION
+!!    Fill the arrays occup and spinsgn
+!!    if iunit /=0 this means that the file 'occup.dat' does exist and it opens
+!!
+!! SOURCE
+!!
 subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinsgn)
   use module_base
   implicit none
@@ -659,6 +738,7 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
   endif
 
 end subroutine input_occup
+!!***
 
 !calculate the charge and the spin polarisation to be placed on a given atom
 !RULE: natpol = c*1000 + sgn(c)*100 + s: charged and polarised atom (charge c, polarisation s)

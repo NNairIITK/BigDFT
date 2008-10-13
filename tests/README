@@ -1,11 +1,18 @@
 'make check' is the command to perform the series of tests (optimisation of geometry):
-- C      carbon atom
-- Ca2    dimer of Ca
-- H      hydrogen atom
-- H-spin hydrogen atom with Local Spin Density
-- Li+    lithium ion
-- NaCl   sodium chloride
-- SiH4   silane
+- C             carbon atom
+- Ca2           dimer of Ca
+- H             hydrogen atom
+- H-spin        hydrogen atom with Local Spin Density
+- Li+           lithium ion
+- Mn2           non-collinear spin
+- NaCl          sodium chloride
+- SiH4          silane
+- Davidson-SiH4 calculate the Kohn-Sham eigenvalues (diagonalisation)
+- SiBulk        a periodic cell of 8 Si atoms
+- H2O-CP2K      Use the output wavefunctions from CP2K
+                (example to import wavefunctions from Gaussian basis sets)
+- MINHOP        Use the minima hopping algorithm (program global from file global.F90)
+                Warning: The file 'global.f90' is not freely distributed
 
 This call the program "cluster" in the src directories.
 The program "memguess" followed by the number of processors checks the input files and estimates the required memory.

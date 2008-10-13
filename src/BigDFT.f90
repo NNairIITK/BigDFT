@@ -7,6 +7,10 @@
 !!
 !! COPYRIGHT
 !!    Copyright (C) 2007 CEA, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 !!
 !! SOURCE
 !!
@@ -76,7 +80,7 @@ program BigDFT
 
   close(99)
 
-  !read input variables, use structures
+  ! read input variables, use structures
   call read_input_variables(iproc,inputs)
  
   do iat=1,atoms%nat

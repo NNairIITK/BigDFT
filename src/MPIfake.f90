@@ -3,10 +3,10 @@
 !!   MPIfake
 !!
 !! FUNCTION
-!!    Fake function for MPI in the case onf serial version
+!!    Fake functions for MPI in the case onf serial version
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007 BigDFT group 
+!!    Copyright (C) 2007-2008 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -69,6 +69,16 @@
         implicit none
         stop 'ALLGATHER'
         end subroutine  MPI_ALLGather
+
+        subroutine  MPI_GatherV()
+        implicit none
+        stop 'GATHERV'
+        end subroutine  MPI_GatherV
+
+        subroutine  MPI_Gather()
+        implicit none
+        stop 'GATHER'
+        end subroutine  MPI_Gather
 
         subroutine  MPI_ALLTOALL()
         implicit none

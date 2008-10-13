@@ -25,4 +25,4 @@ check: $(PPFILES)
 	cp -f $(top_srcdir)/tests/H2O-CP2K/gaucoeff.dat .
 	cp -f $(top_srcdir)/tests/H2O-CP2K/gaubasis.dat .
 	$(run_parallel) $(top_builddir)/src/cluster > H2O-CP2K.out
-	python $(top_srcdir)/tests/fldiff.py H2O-CP2K.out $(top_srcdir)/tests/Refs/H2O-CP2K.out.ref | tee fldiff.report
+	python $(top_srcdir)/tests/fldiff.py --bigdft H2O-CP2K.out $(top_srcdir)/tests/Refs/H2O-CP2K.out.ref | tee fldiff.report

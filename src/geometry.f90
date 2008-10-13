@@ -1,3 +1,21 @@
+
+
+subroutine timeleft(tt)
+! MODIFIED version for refined time limit on restart of global.f90.
+! Only difference: Calls routine CPUtime(tt)
+    implicit real*8 (a-h,o-z)
+          open(unit=55,file='CPUlimit',status='unknown')
+          read(55,*,iostat=ierr) timelimit ! in hours
+          if(ierr/=0)timelimit=1d6
+          close(55)
+          call cpu_time(tcpu)
+          tt=timelimit-tcpu/3600d0 ! in hours
+end subroutine timeleft
+
+
+
+
+
 subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
   use module_base
   use module_types
@@ -33,7 +51,7 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
   !write the first position
   if (iproc.eq.0) call  wtposout(ncount_cluster,etot,rxyz,at)
   !    Open a log file for conjgrad
-  open(unit=16,file='conjgrad.prc',status='unknown')
+  open(unit=16,file='conjgrad.prc',status='append')
 
   if (in%betax <= 0._gp) then
      call detbetax(nproc,iproc,at,rxyz,rst,in)
@@ -234,6 +252,17 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
            if (iproc.eq.0) write(*,*) 'ncount_cluster in CG',ncount_cluster
            exit loop_cg
         endif
+
+
+          if(iproc==0)call timeleft(tt)
+          call MPI_BCAST(tt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,i_stat)
+          if(tt<0)then
+              call close_and_deallocate
+              return
+          endif
+
+
+
 
         !if no convergence is reached after 500 CG steps
         !switch back to SD

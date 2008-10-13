@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces memguess
+binaries_sources = cluster test_forces memguess $(minima_hopping_sources)
 else
 binaries_sources = 
 endif
@@ -34,6 +34,19 @@ libs_cuda=
 GPU_BLAS = modules/cublas_fake.f90
 endif
 
+if USE_MINIMA_HOPPING
+minima_hopping_sources = global
+global_SOURCES = global.f90 
+global_LDFLAGS = 
+global_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
+	PSolver/ABINIT-common/libABINIT.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
+	$(libs_cuda) 
+else
+minima_hopping_sources =
+endif
 
 SUBDIRS = modules $(sub_dirs_ps) convolutions profiling $(sub_dirs_cuda)
 
