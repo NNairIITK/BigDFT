@@ -44,6 +44,7 @@ headertypes:
     p "Programs"       robo_programs
     u "CUDA files"     robo_cuda
 ignore files:
+    global.f90
     ChangeLog
     Makefile*
     AUTHORS
