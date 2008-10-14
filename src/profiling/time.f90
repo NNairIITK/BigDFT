@@ -125,6 +125,7 @@ subroutine timing(iproc,category,action)
            else
               nproc=1
            end if
+           write(60,*)
            write(60,*) 'PARTIAL COUNTER   mean TIME(sec)       PERCENT'
            total_pc=0.d0
            do i=1,ncounters
@@ -135,6 +136,7 @@ subroutine timing(iproc,category,action)
            write(60,'(70("-"))')
            write(60,'(a,10x,1pe9.2,6x,a,0pf5.1)') &
                 'Total CPU time=',total,'Total categorized percent ',total_pc
+           write(60,*)
         end if
      end if
 

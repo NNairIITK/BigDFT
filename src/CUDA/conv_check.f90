@@ -117,6 +117,8 @@ program conv_check
            end do
         end do
 
+        write(*,'(a,i6,i6)')'CPU Convolutions, dimensions:',n1,ndat
+
         !take timings
         !call system_clock(it0,count_rate,count_max)
         call cpu_time(t0)
@@ -128,6 +130,9 @@ program conv_check
 
         !CPUtime=real(it1-it0,kind=8)/real(count_rate*ntimes,kind=8)
         CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+        write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+             CPUtime*1.d3/real(ntimes,kind=8),real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
 
         !print *,'starting CUDA with n,ndat',n1,ndat
 
@@ -159,6 +164,7 @@ program conv_check
         !now the CUDA part
         !take timings
 
+        write(*,'(a,i6,i6)')'GPU Convolutions, dimensions:',n1,ndat
 
         !call system_clock(it0,count_rate,count_max)
         call cpu_time(t0)
@@ -171,6 +177,11 @@ program conv_check
         call cpu_time(t1)
         !call system_clock(it1,count_rate,count_max)
 
+        !GPUtime=real(it1-it0,kind=8)/real(count_rate*ntimes,kind=8)
+        GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+        write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+             GPUtime*1.d3/real(ntimes,kind=8),real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
         !print *,'ending CUDA'
 
         call GPU_receive(n1*ndat,psi_cuda,psi_GPU,i_stat)
@@ -179,8 +190,6 @@ program conv_check
         call GPU_deallocate(work_GPU,i_stat)
 
 
-        !GPUtime=real(it1-it0,kind=8)/real(count_rate*ntimes,kind=8)
-        GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
 
         !check the differences between the results
         maxdiff=0.d0
@@ -189,7 +198,7 @@ program conv_check
         do i=1,ndat
            do i1=1,n1
               !write(17,'(2(i6),2(1pe24.17)')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
-              write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
+              !write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
               comp=abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8))
               !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
               if (comp > maxdiff) then
@@ -206,10 +215,10 @@ program conv_check
         !!print *,'i1,maxdiff',i_max,i1_max,psi_out(i_max,i1_max,1),psi_cuda(i1_max,i_max,1)
 
         if (maxdiff <= 3.d-7) then
-           write(*,'(a,i4,i4,f9.5,1pe12.5)')'n,ndat,GPU/CPU ratio',&
+           write(*,'(a,i6,i6,f9.5,1pe12.5)')'n,ndat,GPU/CPU ratio',&
                 n1,ndat,CPUtime/GPUtime,maxdiff
         else
-           write(*,'(a,i4,i4,f9.5,1pe12.5,a)')'n,ndat,GPU/CPU ratio',&
+           write(*,'(a,i6,i6,f9.5,1pe12.5,a)')'n,ndat,GPU/CPU ratio',&
                 n1,ndat,CPUtime/GPUtime,maxdiff,&
                 '<<<< WARNING' 
         end if
