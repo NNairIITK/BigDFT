@@ -1,17 +1,12 @@
 !!****f* BigDFT/print_logo
-!! NAME
-!!    print_logo
-!!
 !! FUNCTION
 !!    Display the logo of BigDFT 
-!!
 !! COPYRIGHT
 !!    Copyright (C) 2007-2008 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-!!
 !! SOURCE
 !!
 subroutine print_logo()
@@ -52,18 +47,15 @@ end subroutine print_logo
 
 
 !!****f* BigDFT/read_input_variables
-!! NAME
-!!   read_input_variables
-!!
 !! FUNCTION
 !!    Read the input variables in the file 'input.dat'
-!!
 !! SOURCE
 !!
-subroutine read_input_variables(iproc,in)
+subroutine read_input_variables(iproc,filename,in)
   use module_base
   use module_types
   implicit none
+  character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc
   type(input_variables), intent(out) :: in
   !local variables
@@ -73,7 +65,7 @@ subroutine read_input_variables(iproc,in)
   integer :: ierror,ierrfrc,iconv,iblas
 
   ! Read the input variables.
-  open(unit=1,file='input.dat',status='old')
+  open(unit=1,file=filename,status='old')
 
   !read the line for force the CUDA GPU calculation for all processors
   read(1,'(a100)')line
@@ -161,7 +153,7 @@ subroutine read_input_variables(iproc,in)
      end if
   end if
  
-  close(1,iostat=ierror)
+  close(unit=1,iostat=ierror)
 
   if (iproc == 0) then
      write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
@@ -194,12 +186,8 @@ end subroutine read_input_variables
 
 
 !!****f* BigDFT/print_input_parameters
-!! NAME
-!!    print_input_parameters
-!!
 !! FUNCTION
 !!    Print all input parameters
-!!
 !! SOURCE
 !!
 subroutine print_input_parameters(in)
@@ -237,12 +225,8 @@ end subroutine print_input_parameters
 
 
 !!****f* BigDFT/read_atomic_positions
-!! NAME
-!!    read_atomic_positions
-!!
 !! FUNCTION
 !!    Read atomic positions
-!!
 !! SOURCE
 !!
 subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
@@ -480,8 +464,6 @@ end subroutine read_atomic_positions
 
 
 !!****f* BigDFT/find_extra_info
-!! NAME
-!!    find_extra_info
 !!
 !! FUNCTION
 !!    Find extra information
@@ -517,8 +499,6 @@ end subroutine find_extra_info
 
 
 !!****f* BigDFT/parse_extra_info
-!! NAME
-!!    parse_extra_info
 !!
 !! FUNCTION
 !!    Parse extra information
@@ -600,13 +580,9 @@ end subroutine parse_extra_info
 
 
 !!****f* BigDFT/input_occup
-!! NAME
-!!    input_occup
-!!
 !! FUNCTION
 !!    Fill the arrays occup and spinsgn
 !!    if iunit /=0 this means that the file 'occup.dat' does exist and it opens
-!!
 !! SOURCE
 !!
 subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinsgn)

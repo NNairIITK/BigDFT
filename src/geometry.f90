@@ -1,5 +1,3 @@
-
-
 subroutine timeleft(tt)
 ! MODIFIED version for refined time limit on restart of global.f90.
 ! Only difference: Calls routine CPUtime(tt)
@@ -11,9 +9,6 @@ subroutine timeleft(tt)
           call cpu_time(tcpu)
           tt=timelimit-tcpu/3600d0 ! in hours
 end subroutine timeleft
-
-
-
 
 
 subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
@@ -51,7 +46,7 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
   !write the first position
   if (iproc.eq.0) call  wtposout(ncount_cluster,etot,rxyz,at)
   !    Open a log file for conjgrad
-  open(unit=16,file='conjgrad.prc',status='append')
+  open(unit=16,file='conjgrad.prc',access='append')
 
   if (in%betax <= 0._gp) then
      call detbetax(nproc,iproc,at,rxyz,rst,in)

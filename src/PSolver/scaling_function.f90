@@ -1,7 +1,4 @@
 !!****f* PSolver/scaling_function
-!! NAME
-!!   scaling_function
-!!
 !! FUNCTION
 !!   Calculate the values of a scaling function in real uniform grid
 !!
@@ -101,9 +98,6 @@ end subroutine scaling_function
 
 
 !!****f* PSolver/wavelet_function
-!! NAME
-!!   wavelet_function
-!!
 !! FUNCTION
 !!   Calculate the values of the wavelet function in a real uniform mesh.
 !!
@@ -194,9 +188,6 @@ end subroutine wavelet_function
 
 
 !!****f* PSolver/scf_recursion
-!! NAME
-!!   scf_recursion
-!!
 !! FUNCTION
 !!   Do iterations to go from p0gauss to pgauss
 !!   order interpolating scaling function
@@ -248,9 +239,6 @@ end subroutine scf_recursion
 
 
 !!****f* PSolver/zero
-!! NAME
-!!   zero
-!!
 !! FUNCTION
 !!   Set to zero an array x(n)
 !!
@@ -271,9 +259,6 @@ end subroutine zero
 
 
 !!****f* PSolver/for_trans_8
-!! NAME
-!!   for_trans_8
-!!
 !! FUNCTION
 !!   forward wavelet transform
 !!   nd: length of data set
@@ -325,9 +310,6 @@ end subroutine for_trans_8
 
 
 !!****f* PSolver/back_trans_8
-!! NAME
-!!   back_trans_8
-!!
 !! FUNCTION
 !!
 !! SOURCE
@@ -379,9 +361,6 @@ end subroutine back_trans_8
 
 
 !!****f* PSolver/ftest_8
-!! NAME
-!!   ftest_8
-!!
 !! FUNCTION
 !!   Tests the 4 orthogonality relations of the filters
 !!
@@ -438,9 +417,6 @@ end subroutine ftest_8
 
 
 !!****f* PSolver/scf_recursion_8
-!! NAME
-!!   scf_recursion_8
-!!
 !! FUNCTION
 !!   Do iterations to go from p0gauss to pgauss
 !!   8th-order interpolating scaling function
@@ -488,9 +464,6 @@ end subroutine scf_recursion_8
 
 
 !!****f* PSolver/for_trans_14
-!! NAME
-!!   for_trans_14
-!!
 !! FUNCTION
 !!   forward wavelet transform
 !!   nd: length of data set
@@ -541,9 +514,6 @@ end subroutine for_trans_14
 
 
 !!****f* PSolver/back_trans_14
-!! NAME
-!!   back_trans_14
-!!
 !! FUNCTION
 !!   backward wavelet transform
 !!   nd: length of data set
@@ -595,9 +565,6 @@ end subroutine back_trans_14
 
 
 !!****f* PSolver/ftest_14
-!! NAME
-!!   ftest_14
-!!
 !! FUNCTION
 !!   Tests the 4 orthogonality relations of the filters
 !!
@@ -654,9 +621,6 @@ end subroutine ftest_14
 
 
 !!****f* PSolver/scf_recursion_14
-!! NAME
-!!   scf_recursion_14
-!!
 !! FUNCTION
 !!   Do iterations to go from p0gauss to pgauss
 !!   14th-order interpolating scaling function
@@ -704,9 +668,6 @@ end subroutine scf_recursion_14
 
 
 !!****f* PSolver/for_trans_16
-!! NAME
-!!   for_trans_16
-!!
 !! FUNCTION
 !!   forward wavelet transform
 !!   nd: length of data set
@@ -757,9 +718,6 @@ end subroutine for_trans_16
 
 
 !!****f* PSolver/back_trans_16
-!! NAME
-!!   back_trans_16
-!!
 !! FUNCTION
 !!   backward wavelet transform
 !!   nd: length of data set
@@ -810,9 +768,6 @@ end subroutine back_trans_16
 
 
 !!****f* PSolver/ftest_16
-!! NAME
-!!   ftest_16
-!!
 !! FUNCTION
 !!   Tests the 4 orthogonality relations of the filters
 !!
@@ -869,9 +824,6 @@ end subroutine ftest_16
 
 
 !!****f* PSolver/scf_recursion_16
-!! NAME
-!!   scf_recursion_16
-!!
 !! FUNCTION
 !!   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function
@@ -919,9 +871,6 @@ end subroutine scf_recursion_16
 
 
 !!****f* PSolver/for_trans_20
-!! NAME
-!!   for_trans_20
-!!
 !! FUNCTION
 !!   forward wavelet transform
 !!   nd: length of data set
@@ -972,9 +921,6 @@ end subroutine for_trans_20
 
 
 !!****f* PSolver/back_trans_20
-!! NAME
-!!   back_trans_20
-!!
 !! FUNCTION
 !!   backward wavelet transform
 !!   nd: length of data set
@@ -1025,9 +971,6 @@ end subroutine back_trans_20
 
 
 !!****f* PSolver/ftest_20
-!! NAME
-!!   ftest_20
-!!
 !! FUNCTION
 !!   Tests the 4 orthogonality relations of the filters
 !!
@@ -1084,9 +1027,6 @@ end subroutine ftest_20
 
 
 !!****f* PSolver/scf_recursion_20
-!! NAME
-!!   scf_recursion_20
-!!
 !! FUNCTION
 !!   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function
@@ -1134,9 +1074,6 @@ end subroutine scf_recursion_20
 
 
 !!****f* PSolver/for_trans_24
-!! NAME
-!!   for_trans_24
-!!
 !! FUNCTION
 !!   forward wavelet transform
 !!   nd: length of data set
@@ -1187,9 +1124,6 @@ end subroutine for_trans_24
 
 
 !!****f* PSolver/back_trans_24
-!! NAME
-!!   back_trans_24
-!!
 !! FUNCTION
 !!   backward wavelet transform
 !!   nd: length of data set
@@ -1240,9 +1174,6 @@ end subroutine back_trans_24
 
 
 !!****f* PSolver/ftest_24
-!! NAME
-!!   ftest_24
-!!
 !! FUNCTION
 !!   Tests the 4 orthogonality relations of the filters
 !!
@@ -1299,9 +1230,6 @@ end subroutine ftest_24
 
 
 !!****f* PSolver/scf_recursion_24
-!! NAME
-!!   scf_recursion_24
-!!
 !! FUNCTION
 !!   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function
@@ -1349,9 +1277,6 @@ end subroutine scf_recursion_24
 
 
 !!****f* PSolver/for_trans_30
-!! NAME
-!!   for_trans_30
-!!
 !! FUNCTION
 !!   forward wavelet transform
 !!   nd: length of data set
@@ -1402,9 +1327,6 @@ end subroutine for_trans_30
 
 
 !!****f* PSolver/back_trans_30
-!! NAME
-!!   back_trans_30
-!!
 !! FUNCTION
 !!   backward wavelet transform
 !!   nd: length of data set
@@ -1455,9 +1377,6 @@ end subroutine back_trans_30
 
 
 !!****f* PSolver/ftest_30
-!! NAME
-!!   ftest_30
-!!
 !! FUNCTION
 !!   Tests the 4 orthogonality relations of the filters
 !!
@@ -1514,9 +1433,6 @@ end subroutine ftest_30
 
 
 !!****f* PSolver/scf_recursion_30
-!! NAME
-!!   scf_recursion_30
-!!
 !! FUNCTION
 !!   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function
@@ -1564,9 +1480,6 @@ end subroutine scf_recursion_30
 
 
 !!****f* PSolver/for_trans_40
-!! NAME
-!!   for_trans_40
-!!
 !! FUNCTION
 !!   forward wavelet transform
 !!   nd: length of data set
@@ -1617,9 +1530,6 @@ end subroutine for_trans_40
 
 
 !!****f* PSolver/back_trans_40
-!! NAME
-!!   back_trans_40
-!!
 !! FUNCTION
 !!   backward wavelet transform
 !!   nd: length of data set
@@ -1670,9 +1580,6 @@ end subroutine back_trans_40
 
 
 !!****f* PSolver/ftest_40
-!! NAME
-!!   ftest_40
-!!
 !! FUNCTION
 !!   Tests the 4 orthogonality relations of the filters
 !!
@@ -1729,9 +1636,6 @@ end subroutine ftest_40
 
 
 !!****f* PSolver/scf_recursion_40
-!! NAME
-!!   scf_recursion_40
-!!
 !! FUNCTION
 !!   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function
@@ -1779,9 +1683,6 @@ end subroutine scf_recursion_40
 
 
 !!****f* PSolver/for_trans_50
-!! NAME
-!!   for_trans_50
-!!
 !! FUNCTION
 !!   forward wavelet transform
 !!   nd: length of data set
@@ -1832,9 +1733,6 @@ end subroutine for_trans_50
 
 
 !!****f* PSolver/back_trans_50
-!! NAME
-!!   back_trans_50
-!!
 !! FUNCTION
 !!   backward wavelet transform
 !!   nd: length of data set
@@ -1885,9 +1783,6 @@ end subroutine back_trans_50
 
 
 !!****f* PSolver/ftest_50
-!! NAME
-!!   ftest_50
-!!
 !! FUNCTION
 !!   Tests the 4 orthogonality relations of the filters
 !!
@@ -1944,9 +1839,6 @@ end subroutine ftest_50
 
 
 !!****f* PSolver/scf_recursion_50
-!! NAME
-!!   scf_recursion_50
-!!
 !! FUNCTION
 !!   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function
@@ -1994,9 +1886,6 @@ end subroutine scf_recursion_50
 
 
 !!****f* PSolver/for_trans_60
-!! NAME
-!!   for_trans_60
-!!
 !! FUNCTION
 !!   forward wavelet transform
 !!   nd: length of data set
@@ -2047,9 +1936,6 @@ end subroutine for_trans_60
 
 
 !!****f* PSolver/back_trans_60
-!! NAME
-!!   back_trans_60
-!!
 !! FUNCTION
 !!   backward wavelet transform
 !!   nd: length of data set
@@ -2100,9 +1986,6 @@ end subroutine back_trans_60
 
 
 !!****f* PSolver/ftest_60
-!! NAME
-!!   ftest_60
-!!
 !! FUNCTION
 !!   Tests the 4 orthogonality relations of the filters
 !!
@@ -2159,9 +2042,6 @@ end subroutine ftest_60
 
 
 !!****f* PSolver/scf_recursion_60
-!! NAME
-!!   scf_recursion_60
-!!
 !! FUNCTION
 !!   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function
@@ -2209,9 +2089,6 @@ end subroutine scf_recursion_60
 
 
 !!****f* PSolver/for_trans_100
-!! NAME
-!!   for_trans_100
-!!
 !! FUNCTION
 !!   forward wavelet transform
 !!   nd: length of data set
@@ -2262,9 +2139,6 @@ end subroutine for_trans_100
 
 
 !!****f* PSolver/back_trans_100
-!! NAME
-!!   back_trans_100
-!!
 !! FUNCTION
 !!   backward wavelet transform
 !!   nd: length of data set
@@ -2315,9 +2189,6 @@ end subroutine back_trans_100
 
 
 !!****f* PSolver/ftest_100
-!! NAME
-!!   ftest_100
-!!
 !! FUNCTION
 !!   Tests the 4 orthogonality relations of the filters
 !!
@@ -2374,9 +2245,6 @@ end subroutine ftest_100
 
 
 !!****f* PSolver/scf_recursion_100
-!! NAME
-!!   scf_recursion_100
-!!
 !! FUNCTION
 !!   Do iterations to go from p0gauss to pgauss
 !!   16th-order interpolating scaling function

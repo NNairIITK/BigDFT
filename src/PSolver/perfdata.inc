@@ -1,7 +1,4 @@
 !!****h* PSolver/perfdata
-!! NAME
-!!   perfdata
-!!
 !! FUNCTION
 !!  Performance Data (size of the cache for FFT)
 !!

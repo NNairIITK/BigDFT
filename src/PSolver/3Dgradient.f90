@@ -1,7 +1,4 @@
 !!****f* PSolver/wb_correction
-!! NAME
-!! wb_correction
-!!
 !! FUNCTION
 !! Calculates the White-Bird correction to the XC potential.
 !! Since this correction strongly depends on the way of calculating the gradient
@@ -308,9 +305,6 @@ end subroutine wb_correction
 
 
 !!****f* BigDFT/calc_gradient
-!! NAME
-!! calc_gradient
-!!
 !! FUNCTION
 !! Calculates the finite difference gradient.White-Bird correction to the XC potential.
 !! The gradient in point x is calculated by taking four point before and after x.

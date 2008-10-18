@@ -1,7 +1,4 @@
 !!****p* BigDFT/BigDFT
-!! NAME
-!!   BigDFT
-!!
 !! FUNCTION
 !!  Main program to calculate electronic structures
 !!
@@ -81,7 +78,7 @@ program BigDFT
   close(99)
 
   ! read input variables, use structures
-  call read_input_variables(iproc,inputs)
+  call read_input_variables(iproc,'input.dat',inputs)
  
   do iat=1,atoms%nat
      if (.not. atoms%lfrztyp(iat)) then

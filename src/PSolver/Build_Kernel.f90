@@ -1,7 +1,4 @@
 !!****f* BigDFT/createKernel
-!! NAME
-!!    createKernel
-!!
 !! FUNCTION
 !!    Allocate a pointer which corresponds to the zero-padded FFT slice needed for
 !!    calculating the convolution with the kernel expressed in the interpolating scaling
@@ -206,9 +203,6 @@ end subroutine createKernel
 
 
 !!****f* BigDFT/Surfaces_Kernel
-!! NAME
-!!   Surfaces_Kernel
-!!
 !! FUNCTION
 !!    Build the kernel of the Poisson operator with
 !!    surfaces Boundary conditions
@@ -866,9 +860,6 @@ end subroutine indices
 
 
 !!****f* BigDFT/Free_Kernel
-!! NAME
-!!   Free_Kernel
-!!
 !! FUNCTION
 !!    Build the kernel of a gaussian function
 !!    for interpolating scaling functions.
@@ -1201,9 +1192,6 @@ end subroutine inserthalf
 
 
 !!****f* BigDFT/kernelfft
-!! NAME
-!!   kernelfft
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Calculates the FFT of the distributed kernel

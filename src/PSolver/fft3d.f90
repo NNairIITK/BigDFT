@@ -7,12 +7,8 @@
 
 
 !!****f* BigDFT/fourier_dim
-!! NAME
-!!   fourier_dim
-!!
 !! FUNCTION
 !!   Give a number n_next > n compatible for the FFT
-!!
 !! SOURCE
 !!
 subroutine fourier_dim(n,n_next)

@@ -35,14 +35,15 @@ options:
     --documenttitle "BigDFT - API"
     --syntaxcolors
 headertypes:
-    c "C files"        robo_c
-    d "Directories"    robo_directories
-    e  "Tutorials"     robo_tuto_cat
-    f "Routines"       robo_routines
-    h  "Include files" robo_includes
-    m "Modules"        robo_modules
-    p "Programs"       robo_programs
-    u "CUDA files"     robo_cuda
+    c "C files"         robo_c
+    d "Directories"     robo_directories
+    e "Tutorials"       robo_tuto_cat
+    f "Routines"        robo_routines
+    h "Include files"   robo_includes
+    m "Modules"         robo_modules
+    p "Programs"        robo_programs
+    t "Data structures" robo_types
+    u "CUDA files"      robo_cuda
 ignore files:
     global.f90
     ChangeLog

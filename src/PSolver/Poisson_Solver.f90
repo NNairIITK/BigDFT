@@ -1,7 +1,4 @@
 !!****m* PSolver/Poisson_Solver
-!! NAME
-!!    Poisson_Solver
-!!
 !! FUNCTION
 !!    The module of the Poisson Solver.
 !!    It must be used in the parent routine. 

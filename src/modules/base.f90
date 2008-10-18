@@ -1,12 +1,7 @@
 !!****m* BigDFT/base
-!! NAME
-!!   base
-!!
-!! FUNCTION
-!!  Modules which contains the low level definitions, as well as some profiling procedures
 !!
 !! DESCRIPTION
-!!  Interfaces of:
+!!  Modules which contains the low level definitions, as well as some profiling procedures
 !!
 !! AUTHOR
 !!    Luigi Genovese

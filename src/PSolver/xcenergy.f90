@@ -1,7 +1,4 @@
 !!****f* PSolver/xc_energy
-!! NAME
-!!    xc_energy
-!!
 !! FUNCTION
 !!    Calculate the XC terms from the given density in a distributed way.
 !!    it assign also the proper part of the density to the zf array 
@@ -507,9 +504,6 @@ end subroutine xc_energy
 
 
 !!****f* PSolver/vxcpostprocessing
-!! NAME
-!! vxcpostprocessing
-!!
 !! FUNCTION
 !! Correct the XC potential with the White-Bird formula, to be used for the 
 !! GGA case. Works either in parallel of in serial, by proper change of the 

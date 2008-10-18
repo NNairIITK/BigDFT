@@ -29,7 +29,7 @@
                         D        D     F         T    T    
                                  D     F        T     T    
                                 D               T    T     
-                           DDDDD       F         TTTT                     (Ver @PACKAGE_VERSION)
+                           DDDDD       F         TTTT                     (Ver 1.0.1)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
@@ -51,7 +51,7 @@
  Convergence criterion for forces: fraction of noise   2.00E+00
                                  : maximal component   0.00E+00
  Random displacement amplitude   0.00E+00
- Steepest descent step   4.00E+00
+ Steepest descent step   6.00E+00
  Spin-polarised calculation:  NO 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
@@ -295,7 +295,7 @@
  PSolver, free  BC, dimensions:    75   77   77   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        12.67        12.58
+ CPU time for root process     0        12.68        12.56
  # calling conjgrad for the first time here. energy  -4.736596686655676
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -403,7 +403,7 @@
  PSolver, free  BC, dimensions:    75   77   77   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         2.72         2.67
+ CPU time for root process     0         2.68         2.66
  FORCES norm(Ha/Bohr): maxval=   4.52115E-01 fnrm=   7.24486E-01 fluct=   0.00000E+00
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -497,7 +497,7 @@
     ehart,   eexcu,    vexcu  7.58511392064E+00 -1.95823445941E+00 -2.55741421781E+00
  iter,total energy,gnrm     1   1.14519180794862852E+00  1.08E+00
  The norm of the residue is too large, need to recalculate input wavefunctions
- CPU time for root process     0         2.94         2.93
+ CPU time for root process     0         2.94         2.88
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -830,7 +830,7 @@
  PSolver, free  BC, dimensions:    75   95   95   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        26.36        26.12
+ CPU time for root process     0        26.37        26.04
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -923,7 +923,7 @@
     ehart,   eexcu,    vexcu  4.77702326898E+00 -1.48096664960E+00 -1.92984173877E+00
  iter,total energy,gnrm     1   1.26326271029416892E+00  1.01E+00
  The norm of the residue is too large, need to recalculate input wavefunctions
- CPU time for root process     0         2.19         2.18
+ CPU time for root process     0         2.20         2.13
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -1166,7 +1166,7 @@
  PSolver, free  BC, dimensions:    75   77   77   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        12.63        12.51
+ CPU time for root process     0        12.56        12.40
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -1273,7 +1273,7 @@
  PSolver, free  BC, dimensions:    75   77   77   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         2.75         2.67
+ CPU time for root process     0         2.68         2.65
  FORCES norm(Ha/Bohr): maxval=   4.52115E-01 fnrm=   7.24486E-01 fluct=   3.37538E-03
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -1518,7 +1518,7 @@
  PSolver, free  BC, dimensions:    75   83   83   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        14.76        14.64
+ CPU time for root process     0        14.82        14.62
  FORCES norm(Ha/Bohr): maxval=   7.50363E-02 fnrm=   1.97744E-02 fluct=   6.75076E-03
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -1737,12 +1737,12 @@
  PSolver, free  BC, dimensions:    75   81   81   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        11.73        11.63
+ CPU time for root process     0        11.66        11.60
  FORCES norm(Ha/Bohr): maxval=   5.15007E-02 fnrm=   5.33556E-03 fluct=   6.75900E-03
  #  6  Wvfnctn Opt. steps for accurate initial conf
  # INPUT(relaxed): iproc, e_pos,re_pos,eref    0 -4.9643243912E+00  1.5035400000E+01 -2.0000000000E+01
  # iproc,initial re_sm 0 15.0354
- # CPU time hours left 47.97556625111111
+ # CPU time hours left 47.975671813055556
  # soften initial step 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -1969,7 +1969,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         5.72         5.64
+ CPU time for root process     0         5.70         5.66
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -2168,7 +2168,7 @@
  PSolver, free  BC, dimensions:    59   67   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         4.83         4.79
+ CPU time for root process     0         4.79         4.77
 # soften it, curv, fd2,dE and res:  1    -0.31704     0.10748     0.01344     0.18785
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -2359,7 +2359,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         4.41         4.37
+ CPU time for root process     0         4.42         4.40
 # soften it, curv, fd2,dE and res:  2     0.26103     0.01674     0.00209     0.30806
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -2550,7 +2550,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         4.44         4.40
+ CPU time for root process     0         4.41         4.34
 # soften it, curv, fd2,dE and res:  3    -0.35222     0.02228     0.00279     0.31635
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -2750,7 +2750,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         4.75         4.70
+ CPU time for root process     0         4.72         4.66
 # soften it, curv, fd2,dE and res:  4    -0.46896    -0.09760    -0.01220     0.22273
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -2950,7 +2950,7 @@
  PSolver, free  BC, dimensions:    59   63   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         4.51         4.45
+ CPU time for root process     0         4.50         4.46
 # soften it, curv, fd2,dE and res:  5    -0.12721    -0.34815    -0.04352     0.36192
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -3141,7 +3141,7 @@
  PSolver, free  BC, dimensions:    59   63   67   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         4.28         4.25
+ CPU time for root process     0         4.22         4.17
 # soften it, curv, fd2,dE and res:  6     0.03042    -0.00787    -0.00098     0.35449
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -3332,7 +3332,7 @@
  PSolver, free  BC, dimensions:    59   63   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         4.24         4.18
+ CPU time for root process     0         4.20         4.14
 # soften it, curv, fd2,dE and res:  7    -0.21604    -0.31206    -0.03901     0.33879
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -3532,7 +3532,7 @@
  PSolver, free  BC, dimensions:    59   65   67   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         4.80         4.76
+ CPU time for root process     0         4.75         4.71
 # soften it, curv, fd2,dE and res:  8    -0.14813     0.13335     0.01667     0.30691
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -3723,7 +3723,7 @@
  PSolver, free  BC, dimensions:    59   63   67   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         4.28         4.20
+ CPU time for root process     0         4.80         4.17
 # soften it, curv, fd2,dE and res:  9    -0.30820     0.10906     0.01363     0.32660
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -3914,7 +3914,7 @@
  PSolver, free  BC, dimensions:    59   63   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         4.21         4.16
+ CPU time for root process     0         4.21         4.17
 # soften it, curv, fd2,dE and res: 10    -0.23838    -0.16576    -0.02072     0.40194
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -4114,7 +4114,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         4.77         4.70
+ CPU time for root process     0         4.76         4.70
  #MD     1 -4.9319271582E+00  0  0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -4269,7 +4269,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.26         3.20
+ CPU time for root process     0         3.20         3.17
  #MD     2 -4.9333796600E+00  0  0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -4424,7 +4424,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.22         3.18
+ CPU time for root process     0         3.20         3.19
  #MD     3 -4.9373207870E+00  0  0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -4579,7 +4579,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.23         3.20
+ CPU time for root process     0         3.19         3.16
  #MD     4 -4.9437957004E+00  0  0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -4734,7 +4734,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.22         3.16
+ CPU time for root process     0         3.21         3.18
  #MD     5 -4.9528078324E+00  0  0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -4898,7 +4898,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.56         3.49
+ CPU time for root process     0         3.51         3.47
  #MD     6 -4.9622057963E+00  0  0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -5062,7 +5062,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.52         3.48
+ CPU time for root process     0         3.51         3.48
  #MD     7 -4.9709484529E+00  0  0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -5226,7 +5226,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.53         3.49
+ CPU time for root process     0         3.51         3.48
  #MD     8 -4.9778719687E+00  0  0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -5390,7 +5390,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.53         3.48
+ CPU time for root process     0         3.51         3.47
  #MD     9 -4.9803359473E+00  0  0
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -5554,7 +5554,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.55         3.51
+ CPU time for root process     0         3.54         3.48
  #MD    10 -4.9782108316E+00  0  1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -5718,7 +5718,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.57         3.52
+ CPU time for root process     0         3.51         3.46
  #MD    11 -4.9724278006E+00  0  1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -5882,7 +5882,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.57         3.55
+ CPU time for root process     0         3.54         3.50
  #MD    12 -4.9632283174E+00  0  1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -6046,7 +6046,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.56         3.48
+ CPU time for root process     0         3.50         3.46
  #MD    13 -4.9541220887E+00  0  1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -6210,7 +6210,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.56         3.44
+ CPU time for root process     0         3.54         3.46
  #MD    14 -4.9460757532E+00  0  1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -6374,7 +6374,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.61         3.45
+ CPU time for root process     0         3.51         3.48
  #MD    15 -4.9403565542E+00  0  1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -6538,7 +6538,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.61         3.45
+ CPU time for root process     0         3.54         3.49
  #MD    16 -4.9370086294E+00  0  1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -6702,7 +6702,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.58         3.42
+ CPU time for root process     0         3.51         3.47
  #MD    17 -4.9368270954E+00  0  1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -6866,7 +6866,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.61         3.44
+ CPU time for root process     0         3.50         3.46
  #MD    18 -4.9401215182E+00  1  1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -7030,7 +7030,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.58         3.40
+ CPU time for root process     0         3.52         3.48
  #MD    19 -4.9457419612E+00  1  1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -7194,7 +7194,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.62         3.44
+ CPU time for root process     0         3.49         3.44
  #MD    20 -4.9531485174E+00  1  1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -7358,7 +7358,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.56         3.41
+ CPU time for root process     0         3.51         3.47
  #MD    21 -4.9604189589E+00  1  1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -7522,7 +7522,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.60         3.42
+ CPU time for root process     0         3.51         3.46
  #MD    22 -4.9639206552E+00  1  1
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -7686,7 +7686,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.61         3.48
+ CPU time for root process     0         3.54         3.51
  #MD    23 -4.9628993005E+00  1  2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -7850,7 +7850,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.56         3.42
+ CPU time for root process     0         3.52         3.48
  #MD    24 -4.9565429968E+00  1  2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -8014,7 +8014,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.61         3.42
+ CPU time for root process     0         3.51         3.46
  #MD    25 -4.9475684055E+00  1  2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -8178,7 +8178,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.56         3.44
+ CPU time for root process     0         3.54         3.45
  #MD    26 -4.9399256311E+00  1  2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -8342,7 +8342,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.61         3.41
+ CPU time for root process     0         3.49         3.46
  #MD    27 -4.9360211370E+00  1  2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -8506,7 +8506,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.59         3.44
+ CPU time for root process     0         3.52         3.48
  #MD    28 -4.9365257152E+00  2  2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -8670,7 +8670,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.63         3.46
+ CPU time for root process     0         3.50         3.45
  #MD    29 -4.9427527891E+00  2  2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -8825,7 +8825,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.30         3.14
+ CPU time for root process     0         3.23         3.17
  #MD    30 -4.9525504350E+00  2  2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -8980,7 +8980,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.26         3.13
+ CPU time for root process     0         3.19         3.16
  #MD    31 -4.9624422463E+00  2  2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -9144,7 +9144,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.61         3.42
+ CPU time for root process     0         3.53         3.48
  #MD    32 -4.9683771188E+00  2  2
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -9308,7 +9308,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.56         3.42
+ CPU time for root process     0         3.51         3.47
  #MD    33 -4.9670533462E+00  2  3
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -9472,7 +9472,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.60         3.44
+ CPU time for root process     0         3.49         3.47
  #MD    34 -4.9585376584E+00  2  3
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -9636,7 +9636,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.60         3.42
+ CPU time for root process     0         3.51         3.46
  #MD    35 -4.9473632886E+00  2  3
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -9800,7 +9800,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.56         3.43
+ CPU time for root process     0         3.49         3.47
  #MD    36 -4.9370855799E+00  2  3
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -9964,7 +9964,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.58         3.43
+ CPU time for root process     0         3.52         3.48
  #MD    37 -4.9314401514E+00  2  3
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -10292,7 +10292,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.51         3.48
+ CPU time for root process     0         3.49         3.46
  #MD    39 -4.9362267009E+00  3  3
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -10456,7 +10456,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.50         3.47
+ CPU time for root process     0         3.52         3.46
  #MD    40 -4.9411028865E+00  3  3
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -10620,7 +10620,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.54         3.52
+ CPU time for root process     0         3.49         3.45
  #MD    41 -4.9408653510E+00  3  4
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -10784,7 +10784,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.55         3.50
+ CPU time for root process     0         3.53         3.47
  #MD    42 -4.9341278483E+00  3  4
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -10948,7 +10948,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.50         3.48
+ CPU time for root process     0         3.49         3.46
  #MD    43 -4.9254715341E+00  3  4
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -11112,7 +11112,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.57         3.48
+ CPU time for root process     0         3.53         3.48
  #MD    44 -4.9198357660E+00  3  4
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -11276,7 +11276,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.56         3.38
+ CPU time for root process     0         3.53         3.48
  #MD    45 -4.9213890036E+00  4  4
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -11440,7 +11440,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.66         3.43
+ CPU time for root process     0         3.53         3.46
  #MD    46 -4.9307401656E+00  4  4
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -11604,7 +11604,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.60         3.48
+ CPU time for root process     0         3.50         3.46
  #MD    47 -4.9434518048E+00  4  4
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -11768,7 +11768,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.58         3.47
+ CPU time for root process     0         3.51         3.48
  #MD    48 -4.9532453010E+00  4  4
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -11932,7 +11932,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.62         3.46
+ CPU time for root process     0         3.55         3.49
  #MD    49 -4.9546175892E+00  4  4
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -12096,7 +12096,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.58         3.46
+ CPU time for root process     0         3.50         3.43
  #MD    50 -4.9477669552E+00  4  5
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -12260,9 +12260,9 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.62         3.50
+ CPU time for root process     0         3.56         3.45
  #MD    51 -4.9364871434E+00  4  5
- # CPU time hours left 47.912858998611114
+ # CPU time hours left 47.91288344472222
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -12369,7 +12369,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         1.59         1.51
+ CPU time for root process     0         1.55         1.54
  FORCES norm(Ha/Bohr): maxval=   2.51316E-01 fnrm=   1.56281E-01 fluct=   0.00000E+00
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -12578,7 +12578,7 @@
  PSolver, free  BC, dimensions:    59   61   61   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         4.38         4.16
+ CPU time for root process     0         4.25         4.19
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -12795,7 +12795,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         5.44         5.25
+ CPU time for root process     0         5.34         5.24
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -12902,7 +12902,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         1.59         1.52
+ CPU time for root process     0         1.64         1.53
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -13009,7 +13009,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         1.60         1.54
+ CPU time for root process     0         1.55         1.53
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -13116,7 +13116,7 @@
  PSolver, free  BC, dimensions:    59   65   65   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         1.64         1.53
+ CPU time for root process     0         1.59         1.56
  FORCES norm(Ha/Bohr): maxval=   2.51319E-01 fnrm=   1.56282E-01 fluct=   2.12961E-02
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -13298,9 +13298,9 @@
  PSolver, free  BC, dimensions:    59   65   63   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         3.92         3.76
+ CPU time for root process     0         3.84         3.79
  FORCES norm(Ha/Bohr): maxval=   2.20583E-01 fnrm=   1.11593E-01 fluct=   4.25927E-02
- # CPU time hours left 47.907500885833336
+ # CPU time hours left 47.90749866361111
  #  7  Wvfnctn Opt. steps for approximate geo. rel of MD conf.
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -13394,7 +13394,7 @@
     ehart,   eexcu,    vexcu  7.75441416528E+00 -2.04503851411E+00 -2.67101364115E+00
  iter,total energy,gnrm     1  -2.19883653590717687E+00  1.02E+00
  The norm of the residue is too large, need to recalculate input wavefunctions
- CPU time for root process     0         2.26         2.18
+ CPU time for root process     0         2.24         2.20
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
@@ -13655,7 +13655,7 @@
  PSolver, free  BC, dimensions:    75   81   79   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        15.23        14.69
+ CPU time for root process     0        14.90        14.74
  FORCES norm(Ha/Bohr): maxval=   5.74281E-02 fnrm=   8.12817E-03 fluct=   0.00000E+00
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
  ------------------------------------------------------------------- Input Parameters
@@ -13883,20 +13883,16 @@
  PSolver, free  BC, dimensions:    75   81   81   proc    2   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
  Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0        12.67        12.04
+ CPU time for root process     0        12.32        12.19
  FORCES norm(Ha/Bohr): maxval=   4.53080E-02 fnrm=   2.57249E-03 fluct=   2.05257E-03
- # CPU time hours left 47.89946705055556
- #  2  Wvfnctn Opt. steps for accurate geo. rel of MD conf. #:process 1 has  nlminx collected 2
- -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 82013 allocations and 82013 deallocations, remaining memory(B):0
- memory occupation peak: 53 MB
-
- for the array  zmpi1 in the routine kernelfft
+ # CPU time hours left 47.89940815805556
+ #  2  Wvfnctn Opt. steps for accurate geo. rel of MD conf.
 # nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos  1  1 -4.9716051E+00 -4.9643244E+00  1.5028200E+01  1.5035400E+01
 # new lowest       1  1.50281999999999982E+01  0
  #:process 0 has  nlminx collected 2
  # writing final results
   wrote poscur.xyz           for  RESTART
+ #:process 1 has  nlminx collected 2
   wrote poslow files
   wrote earr.dat for  RESTART
   wrote poscur.xyz           for  RESTART
@@ -13904,5 +13900,9 @@
 number of configurations for which atoms escaped         0
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
  104475 allocations and 104475 deallocations, remaining memory(B):0
+ memory occupation peak: 53 MB
+ for the array  zmpi1 in the routine kernelfft
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 82013 allocations and 82013 deallocations, remaining memory(B):0
  memory occupation peak: 53 MB
  for the array  zmpi1 in the routine kernelfft

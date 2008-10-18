@@ -1,7 +1,4 @@
 !!****m* PSolver/module_base
-!! NAME
-!!   module_base
-!!
 !! FUNCTION
 !!  Modules which contains the low level definitions, as well as some profiling procedures
 !!  in order to have a standalone PSolver version.

@@ -1,7 +1,4 @@
 !!****p* BigDFT/test_forces
-!! NAME
-!!   test_forces
-!!
 !! FUNCTION
 !!    Runs BigDFT and test whether the forces are the 
 !!    derivative of the energy.
@@ -9,17 +6,14 @@
 !!    some random displacement and compare the result with the 
 !!    difference of the energy between the final and the initial 
 !!    position
-!!
-!! SYNOPSIS
 !! WARNING
 !!    Date: 10/07; THIS PROGRAM MUST BE COMPLETELY CHANGED
 !! AUTHOR
 !!    Luigi Genovese
 !! COPYRIGHT
-!!    Copyright (C) 2005 CEA
+!!    Copyright (C) 2005-2008 CEA
 !! CREATION DATE
 !!    09/2006
-!!
 !! SOURCE
 !!
 program test_forces

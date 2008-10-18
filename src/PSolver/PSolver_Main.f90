@@ -1,7 +1,4 @@
 !!****f* PSolver/PSolver
-!! NAME
-!!    PSolver
-!!
 !! FUNCTION
 !!    Calculate the Poisson equation $\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$
 !!    from a given $\rho$, for different boundary conditions an for different data distributions.
@@ -460,9 +457,6 @@ end subroutine PSolver
 
 
 !!****f* PSolver/PSolverNC
-!! NAME
-!!    PSolverNC
-!!
 !! FUNCTION
 !!    Transforms a generalized spin density into a pointwise collinear spin density which is
 !!    then passed to the Poisson Solver (PSolver). 
@@ -653,9 +647,6 @@ end subroutine PSolverNC
 
 
 !!****f* PSolver/PS_dim4allocation
-!! NAME
-!!    PS_dim4allocation
-!!
 !! FUNCTION
 !!    Calculate the dimensions needed for the allocation of the arrays 
 !!    related to the Poisson Solver
@@ -778,9 +769,6 @@ end subroutine PS_dim4allocation
 
 
 !!****f* PSolver/xc_dimensions
-!! NAME
-!!   xc_dimensions
-!!
 !! FUNCTION
 !!   Calculate the dimensions to be used for the XC part, taking into account also
 !!   the White-bird correction which should be made for some GGA functionals
@@ -866,9 +854,6 @@ end subroutine xc_dimensions
 
 
 !!****f* PSolver/P_FFT_dimensions
-!! NAME
-!!   P_FFT_dimensions
-!!
 !! FUNCTION
 !!    Calculate four sets of dimension needed for the calculation of the
 !!    convolution for the periodic system
@@ -965,9 +950,6 @@ end subroutine P_FFT_dimensions
 
 
 !!****f* PSolver/S_FFT_dimensions
-!! NAME
-!!   S_FFT_dimensions
-!!
 !! FUNCTION
 !!    Calculate four sets of dimension needed for the calculation of the
 !!    convolution for the surface system
@@ -1071,9 +1053,6 @@ end subroutine S_FFT_dimensions
 
 
 !!****f* PSolver/F_FFT_dimensions
-!! NAME
-!!   F_FFT_pardimensions
-!!
 !! FUNCTION
 !!    Calculate four sets of dimension needed for the calculation of the
 !!    zero-padded convolution

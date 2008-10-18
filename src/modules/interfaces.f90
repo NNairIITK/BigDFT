@@ -1,7 +1,4 @@
 !!****m* BigDFT/interfaces
-!! NAME
-!!   interfaces
-!!
 !! FUNCTION
 !!  Modules which contains all interfaces
 !!

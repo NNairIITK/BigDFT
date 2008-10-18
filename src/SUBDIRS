@@ -1,8 +1,5 @@
 !!****d* BigDFT/ABINIT-ewald
 !!
-!! NAME
-!!  ABINIT-ewald
-!!
 !! DESCRIPTION
 !!  Routines to calculate the Ewald sum from ABINIT packages
 !!
@@ -16,9 +13,6 @@
 
 
 !!****d* BigDFT/convolutions
-!!
-!! NAME
-!!  convolutions
 !!
 !! DESCRIPTION
 !!  Convolutions for the Daubechies functions.
@@ -51,9 +45,6 @@
 
 !!****d* BigDFT/CUDA
 !!
-!! NAME
-!!  CUDA
-!!
 !! DESCRIPTION
 !!  Routines for the GPU part based on CUDA library from NVIDIA.
 !!  3D convolutions are coded.
@@ -83,9 +74,6 @@
 
 !!****d* BigDFT/init
 !!
-!! NAME
-!!  init
-!!
 !! DESCRIPTION
 !!  Initialization routines
 !!
@@ -105,9 +93,6 @@
 
 !!****d* BigDFT/lib
 !!
-!! NAME
-!!  lib
-!!
 !! DESCRIPTION
 !!  Contains routines for the compilation (CUDA header and library)
 !!
@@ -117,9 +102,6 @@
 
 
 !!****d* BigDFT/modules
-!!
-!! NAME
-!!  modules
 !!
 !! DESCRIPTION
 !!  
@@ -134,9 +116,6 @@
 
 !!****d* BigDFT/profiling
 !!
-!! NAME
-!!  profiling
-!!
 !! DESCRIPTION
 !!  Routines to profile the code
 !!
@@ -149,9 +128,6 @@
 
 
 !!****d* BigDFT/PSolver
-!!
-!! NAME
-!!  PSolver
 !!
 !! DESCRIPTION
 !!  Contains Poisson solver routines
@@ -191,9 +167,6 @@
 
 
 !!****d* BigDFT/unused
-!!
-!! NAME
-!!  unused
 !!
 !! DESCRIPTION
 !!  Unused routines
@@ -235,9 +208,6 @@
 
 !!****d* BigDFT/wavelib
 !!
-!! NAME
-!!  wavelib
-!!
 !! DESCRIPTION
 !!  
 !! FILES
@@ -256,9 +226,6 @@
 
 
 !!****d* BigDFT/wfn_opt
-!!
-!! NAME
-!!  wfn_opt
 !!
 !! DESCRIPTION
 !!  Wavefunction optimization

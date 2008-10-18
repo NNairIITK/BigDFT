@@ -1,6 +1,4 @@
 !!****p* MINHOP
-!! NAME
-!!   MINHOP
 !!
 !! FUNCTION
 !!  Main program fro the minima hopping
@@ -215,26 +213,29 @@ program MINHOP
         nlmin_l=0
         if (nlmin.gt.0) then
           kk=1
-4983      continue
-          write(fn,'(i5.5)') kk
-          filename = 'poslow'//fn//'.xyz'
-          if (nlmin_l.ge.npminx .or. kk.gt.min(nlmin,npminx)) goto 4546
-          nlmin_l=nlmin_l+1
-          open(unit=9,file=filename,status='old',err=4544)
-          read(9,*) natp,units,elocmin(nlmin_l)
-          if (atoms%nat.ne.natp) stop   'nat <> natp'
-          read(9,*) 
-          do iat=1,atoms%nat
-          read(9,*) atmn,poslocmin(1,iat,nlmin_l),poslocmin(2,iat,nlmin_l),poslocmin(3,iat,nlmin_l)
-          enddo
-          close(9)
-          if (iproc.eq.0) write(67,*) 'read file',filename
-          if (iproc.eq.0) write(*,*) '# read file',filename
-          kk=kk+1
-          goto  4983
-4544      continue
-          write(*,*) iproc,' COULD not read file ',filename
-4546      continue
+          do
+             write(fn,'(i5.5)') kk
+             filename = 'poslow'//fn//'.xyz'
+             if (nlmin_l.ge.npminx .or. kk.gt.min(nlmin,npminx)) then
+                 exit
+             end if
+             nlmin_l=nlmin_l+1
+             open(unit=9,file=filename,status='old',iostat=ierror)
+             if (ierror /= 0) then
+                write(*,*) iproc,' COULD not read file ',filename
+                exit
+             end if
+             read(9,*) natp,units,elocmin(nlmin_l)
+             if (atoms%nat.ne.natp) stop   'nat <> natp'
+             read(9,*) 
+             do iat=1,atoms%nat
+             read(9,*) atmn,poslocmin(1,iat,nlmin_l),poslocmin(2,iat,nlmin_l),poslocmin(3,iat,nlmin_l)
+             enddo
+             close(9)
+             if (iproc.eq.0) write(67,*) 'read file',filename
+             if (iproc.eq.0) write(*,*) '# read file',filename
+             kk=kk+1
+          end do
           if (iproc.eq.0) write(67,*) 'read ',nlmin_l,'poslow files'
           if (iproc.eq.0) write(*,*) '# read ',nlmin_l,'poslow files'
         endif
@@ -254,7 +255,7 @@ program MINHOP
 !        alphax=1.d-3  ! LJ
 !       if (iproc.eq.0) write(67,*) alphax,'optimal stepsize for LJ systems'
     
-     call read_input_variables(iproc,inputs)
+     call read_input_variables(iproc,'input.dat',inputs)
      call my_input_variables(iproc,.true.,inputs)
      inputs%inputPsiId=0
 
@@ -265,13 +266,9 @@ program MINHOP
      call call_bigdft(nproc,iproc,atoms,pos,inputs,e_pos,ff,rst,infocode)
 
 
-!     call call_cluster(nproc,iproc,atoms,pos,e_pos,ff,&
-!          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs,infocode)
      write(17,*) 'ENERGY ',e_pos
      energyold=1.d100
      ncount_cluster=0
-
-
 
 
 !        if(irestart>0)then
@@ -290,8 +287,6 @@ program MINHOP
 
      call my_input_variables(iproc,.true.,inputs)
      call conjgrad(nproc,iproc,atoms,pos,e_pos,ff,rst,ncount_cluster,inputs)
-!     call conjgrad(nproc,iproc,atoms,pos,e_pos,ff,&
-!          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,inputs)
   if (iproc.eq.0) write(67,*) ncount_cluster,' Wvfnctn Opt. steps for accurate initial conf'
   if (iproc.eq.0) write(*,*)'# ', ncount_cluster,' Wvfnctn Opt. steps for accurate initial conf'
       nconjgr=0
@@ -343,10 +338,8 @@ program MINHOP
         end if
 
 
-
-
           do iat=1,atoms%nat
-          wpos(1,iat)=pos(1,iat) ; wpos(2,iat)=pos(2,iat) ; wpos(3,iat)=pos(3,iat)
+              wpos(1,iat)=pos(1,iat) ; wpos(2,iat)=pos(2,iat) ; wpos(3,iat)=pos(3,iat)
           enddo
         nlmin_old=nlmin
 
@@ -410,7 +403,6 @@ program MINHOP
           call mdescape(mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,wpos, &
                    nproc,iproc,atoms,&
                     rst,inputs)
-!                   psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs)
                    
           call fix_fragmentation(iproc,atoms%nat,wpos,nputback)
           
@@ -422,8 +414,7 @@ program MINHOP
      call my_input_variables(iproc,.false.,inputs)
 
      call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,rst,ncount_cluster,inputs)
-!     call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,&
-!          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,inputs)
+
           if(iproc==0)then
             call timeleft(tt)
             write(*,*) '# CPU time hours left',tt
@@ -773,8 +764,6 @@ close(111)
      inputs%inputPsiId=1
      if (istep.gt.2) inputs%itermax=30
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,e_rxyz,ff,rst,infocode)
-!     call call_cluster(nproc,iproc,atoms,rxyz,e_rxyz,ff,&
-!          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs,infocode)
         call wtmd(istep,atoms%nat,e_rxyz,rxyz,atoms%iatype,atoms%atomnames,atoms%natpol)
 
         en0000=e_rxyz-e_pos
@@ -821,8 +810,7 @@ close(111)
         dt=dt*(1.d0/1.05d0)
         endif
    
-        return
-        end  subroutine mdescape
+end  subroutine mdescape
 
 subroutine my_input_variables(iproc,accurate,in)
 
@@ -881,10 +869,9 @@ endif
 
 end subroutine my_input_variables
 
-        subroutine soften(mdmin,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
+
+subroutine soften(mdmin,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
                    nproc,iproc,atoms,rst,inputs)! &
-!                   psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs)
-                   !all arguments of mdescape, most of them are not needed...
   use module_base
   use module_types
   use module_interfaces, except_this_one => conjgrad
@@ -912,8 +899,6 @@ end subroutine my_input_variables
     if(iproc==0)write(*,*)'# soften initial step '
 !        call  energyandforces(nat,rxyz,fxyz,etot0,count)
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot0,fxyz,rst,infocode)
-!     call call_cluster(nproc,iproc,atoms,rxyz,etot0,fxyz,&
-!          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs,infocode)
 
 
 ! scale velocity to generate dimer 
@@ -940,8 +925,6 @@ end subroutine my_input_variables
 !        wpos=rxyz+vxyz
 !        call  energyandforces(nat,wpos,fxyz,etot,count)
      call call_bigdft(nproc,iproc,atoms,wpos,inputs,etot,fxyz,rst,infocode)
-!     call call_cluster(nproc,iproc,atoms,wpos,etot,fxyz,&
-!          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs,infocode)
         fd2=2.d0*(etot-etot0)/eps_vxyz**2
 
         sdf=0.d0
@@ -1158,21 +1141,21 @@ end program MINHOP
 
 !C      Kinetic energy of the random velocities
       rkinsum= 0.d0      
-      do 102 iat=1,nat
-102   rkinsum= rkinsum+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
+      do iat=1,nat
+         rkinsum= rkinsum+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
+      end do
       rkin=.5d0*rkinsum/(3*nat-3)
 !       write(*,*) 'rkin,ekinetic',rkin,ekinetic
  
 !C      Rescaling of velocities to get reference kinetic energy
       sclvel= dsqrt(ekinetic/rkin)
-      do 11 iat=1,nat
+      do iat=1,nat
         vxyz(1,iat)=vxyz(1,iat)*sclvel
         vxyz(2,iat)=vxyz(2,iat)*sclvel
         vxyz(3,iat)=vxyz(3,iat)*sclvel
-11      continue
+      end do
 
-       return
-      end
+      end SUBROUTINE velopt
 
       subroutine randdist(nat,rxyz,vxyz)
       implicit real*8 (a-h,o-z)
@@ -1703,7 +1686,8 @@ endif
          
 !C Classify the configuration in the global ranking
          kk=0
-111      kk=kk+1
+111      continue
+         kk=kk+1
          if (kk.gt.min(nlmin,nlminx+nbuf)) then 
             write(*,*) 'ranking error for',k
             stop 
@@ -1775,6 +1759,4 @@ subroutine rdposout(igeostep,rxyz,nat)
   enddo
   close(unit=9)
 end subroutine rdposout
-
-
 

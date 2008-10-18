@@ -1,7 +1,4 @@
 !!****f* BigDFT/razero
-!! NAME
-!!   razero
-!!
 !! FUNCTION
 !!   Set to zero an array x(n)
 !!
@@ -21,9 +18,6 @@ end subroutine razero
 !!***
 
 !!****f* BigDFT/tenminustwenty
-!! NAME
-!!   tenminustwenty
-!!
 !! FUNCTION
 !!   Set to 10^-20 an array x(n)
 !!

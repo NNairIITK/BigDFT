@@ -1,7 +1,4 @@
 !!****f* PSolver/P_PoissonSolver
-!! NAME
-!!   P_PoissonSolver
-!!
 !! FUNCTION
 !!  Parallel version of Poisson Solver
 !!
@@ -527,9 +524,6 @@ end subroutine P_unmpiswitch_downcorn
 
 
 !!****f* PSolver/P_fill_downcorn
-!! NAME
-!!   P_fill_downcorn
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Restore data into output array
@@ -603,9 +597,6 @@ end subroutine P_fill_upcorn
 
 
 !!****f* PSolver/scramble_P
-!! NAME
-!!   scramble_P
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Assign the correct planes to the work array zmpi2
@@ -654,9 +645,6 @@ end subroutine scramble_P
 
 
 !!****f* PSolver/unscramble_P
-!! NAME
-!!   unscramble_P
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Insert the correct planes of the work array zmpi2
@@ -714,9 +702,6 @@ end subroutine unscramble_P
 
 
 !!****f* PSolver/P_multkernel
-!! NAME
-!!   P_multkernel
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Multiply with the kernel taking into account its symmetry
@@ -784,9 +769,6 @@ end subroutine P_multkernel
 
 
 !!****f* PSolver/multkernel
-!! NAME
-!!   multkernel
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Multiply with the kernel taking into account its symmetry
@@ -868,9 +850,6 @@ end subroutine multkernel
 
 
 !!****f* PSolver/S_PoissonSolver
-!! NAME
-!!   PoissonSolver
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Applies the local FFT space Kernel to the density in Real space.
@@ -1448,9 +1427,6 @@ end subroutine S_unmpiswitch_downcorn
 
 
 !!****f* PSolver/unfill_downcorn
-!! NAME
-!!   unfill_downcorn
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Restore data into output array, calculating in the meanwhile
@@ -1543,9 +1519,6 @@ end subroutine halfill_upcorn
 
 
 !!****f* PSolver/scramble_unpack
-!! NAME
-!!   scramble_unpack
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Assign the correct planes to the work array zmpi2
@@ -1625,9 +1598,6 @@ end subroutine scramble_unpack
 
  
 !!****f* PSolver/unscramble_pack
-!! NAME
-!!   unscramble_pack
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Insert the correct planes of the work array zmpi2
@@ -1697,9 +1667,6 @@ end subroutine unscramble_pack
 
 
 !!****f* PSolver/F_PoissonSolver
-!! NAME
-!!   F_PoissonSolver
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Applies the local FFT space Kernel to the density in Real space.
@@ -2298,9 +2265,6 @@ end subroutine unmpiswitch_downcorn
 
 
 !!****f* PSolver/F_unfill_downcorn
-!! NAME
-!!   F_unfill_downcorn
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Restore data into output array, calculating in the meanwhile
@@ -2365,9 +2329,6 @@ end subroutine F_unfill_downcorn
 !!***
 
 !!****f* PSolver/W_PoissonSolver
-!! NAME
-!!   W_PoissonSolver
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Applies the local FFT space Kernel to the density in Real space.
