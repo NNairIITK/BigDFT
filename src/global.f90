@@ -23,7 +23,7 @@ program MINHOP
   character(len=20) :: units,atmn
   character(len=80) :: line
   type(atoms_data) :: atoms
-  type(input_variables) :: inputs
+  type(input_variables) :: inputs,inputs_opt, inputs_md
   type(restart_objects) :: rst
 ! some variable definitions are not needed anymore due to the new restart variable type
 ! type(wavefunctions_descriptors) :: wfd
@@ -130,9 +130,50 @@ program MINHOP
         call memocc(i_stat,product(shape(pos))*kind(pos),'pos','global')
         if (iproc.eq.0) write(67,'(a,a)') 'reading positions from ',filename
         if (iproc.eq.0) write(*,'(a,a)') ' # reading positions from ',filename
-       call read_atomic_positions(iproc,99,units,inputs,atoms,pos)
-       close(99)
+       call read_atomic_positions(iproc,99,units,inputs_opt,atoms,pos)
+       close(unit=99)
+       !Copy box geometry parameters into inputs_md
+       inputs_md%geocode = inputs_opt%geocode
+       inputs_md%alat1 = inputs_opt%alat1
+       inputs_md%alat2 = inputs_opt%alat2
+       inputs_md%alat3 = inputs_opt%alat3
+     !Read input parameters for geometry optimization 
+     call read_input_variables(iproc,'input.dat',inputs_opt)
+     call read_input_variables(iproc,'mdinput.dat',inputs_md)
         
+!DEBUG
+inputs%geocode          = inputs_opt%geocode
+inputs%ncount_cluster_x = inputs_opt%ncount_cluster_x
+inputs%frac_fluct       = inputs_opt%frac_fluct
+inputs%randdis          = inputs_opt%randdis
+inputs%betax            = inputs_opt%betax
+inputs%forcemax         = inputs_opt%forcemax
+inputs%ixc              = inputs_opt%ixc
+inputs%ncharge          = inputs_opt%ncharge
+inputs%itermax          = inputs_opt%itermax
+inputs%ncong            = inputs_opt%ncong
+inputs%idsx             = inputs_opt%idsx
+inputs%ncongt           = inputs_opt%ncongt
+inputs%inputPsiId       = inputs_opt%inputPsiId
+inputs%nspin            = inputs_opt%nspin
+inputs%mpol             = inputs_opt%mpol
+inputs%nvirt            = inputs_opt%nvirt
+inputs%nplot            = inputs_opt%nplot
+inputs%hgrid            = inputs_opt%hgrid
+inputs%crmult           = inputs_opt%crmult
+inputs%frmult           = inputs_opt%frmult
+inputs%cpmult           = inputs_opt%cpmult
+inputs%fpmult           = inputs_opt%fpmult
+inputs%elecfield        = inputs_opt%elecfield
+inputs%gnrm_cv          = inputs_opt%gnrm_cv
+inputs%rbuf             = inputs_opt%rbuf
+inputs%alat1            = inputs_opt%alat1
+inputs%alat2            = inputs_opt%alat2
+inputs%alat3            = inputs_opt%alat3
+inputs%output_grid      = inputs_opt%output_grid
+inputs%output_wf        = inputs_opt%output_wf
+inputs%calc_tail        = inputs_opt%calc_tail
+inputs%gaussian_help    = inputs_opt%gaussian_help  
 
 !write(*,*) 'WARNING, coordinates scaled'
 !        pos(:,:)=pos(:,:)*8.d0
