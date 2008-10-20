@@ -90,15 +90,16 @@
 subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
   implicit none
-  include 'mpif.h'
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode
   logical, intent(in) :: sumpion
   integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
-  real(kind=8), intent(in) :: hx,hy,hz,offset
-  real(kind=8), dimension(*), intent(in) :: karray
-  real(kind=8), intent(out) :: eh,exc,vxc
-  real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
+  real(gp), intent(in) :: hx,hy,hz
+  real(dp), intent(in) :: offset
+  real(dp), dimension(*), intent(in) :: karray
+  real(gp), intent(out) :: eh,exc,vxc
+  real(dp), dimension(*), intent(inout) :: rhopot
+  real(wp), dimension(*), intent(inout) :: pot_ion
   !local variables
   character(len=*), parameter :: subname='PSolver'
   integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
@@ -106,12 +107,12 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4,ind4sh
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,i4,ind2nd
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim,ispin,istden,istglo
-  real(kind=8) :: ehartreeLOC,eexcuLOC,vexcuLOC
-  real(kind=8) :: scal,newoffset,pot,factor
-  real(kind=8), dimension(:,:,:), allocatable :: zf
-  real(kind=8), dimension(:,:,:,:), allocatable :: zfionxc
+  real(dp) :: scal,ehartreeLOC,eexcuLOC,vexcuLOC,pot
+  real(wp), dimension(:,:,:,:), allocatable :: zfionxc
+  real(dp), dimension(:,:,:), allocatable :: zf
   integer, dimension(:,:), allocatable :: gather_arr
-  real(kind=8), dimension(:), allocatable :: energies_mpi,rhopot_G
+  real(dp), dimension(:), allocatable :: rhopot_G
+  real(gp), dimension(:), allocatable :: energies_mpi
 
   call timing(iproc,'Exchangecorr  ','ON')
   !calculate the dimensions wrt the geocode
@@ -189,9 +190,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      nlim=n2
   else if (geocode == 'F') then
      nlim=n2/2
-  else
-     !never used
-     nlim=0
   end if
 
 !!$  print *,'density must go from',min(istart+1,m2),'to',iend,'with n2/2=',n2/2
@@ -221,47 +219,38 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         j2=i2-istart
         do i3=1,md3
            do i1=1,md1
-              zf(i1,i3,j2)=0.d0
+              zf(i1,i3,j2)=0.0_dp
 !             zfionxc(i1,i3,j2,ispin)=0.d0 !this is not needed, only if pot is updated in Solver
            end do
         end do
      end do
-     eexcuLOC=0.d0
-     vexcuLOC=0.d0
+     eexcuLOC=0.0_dp
+     vexcuLOC=0.0_dp
   else
-     eexcuLOC=0.d0
-     vexcuLOC=0.d0
+     eexcuLOC=0.0_dp
+     vexcuLOC=0.0_dp
   end if
 
   
   call timing(iproc,'Exchangecorr  ','OF')
 
-  !pot_ion=0.0d0
-  
   !this routine builds the values for each process of the potential (zf), multiplying by scal 
   if(geocode == 'P') then
      !no powers of hgrid because they are incorporated in the plane wave treatment
-     scal=1.d0/real(n1*n2*n3,kind=8)
+     scal=1.0_dp/real(n1*n2*n3,dp)
      call P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf(1,1,1),&
           scal,hx,hy,hz,offset)
-     factor=0.5d0*hx*hy*hz
   else if (geocode == 'S') then
      !only one power of hgrid 
      !factor of -4*pi for the definition of the Poisson equation
-     scal=-16.d0*datan(1.d0)*hy/real(n1*n2*n3,kind=8)
+     scal=-16.0_dp*atan(1.0_dp)*real(hy,dp)/real(n1*n2*n3,dp)
      call S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
           scal,hx,hy,hz)!,ehartreeLOC)
-     factor=0.5d0*hx*hy*hz
   else if (geocode == 'F') then
      !hgrid=max(hx,hy,hz)
-     scal=hx*hy*hz/real(n1*n2*n3,kind=8)
+     scal=hx*hy*hz/real(n1*n2*n3,dp)
      call F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
           scal)!,hgrid)!,ehartreeLOC)
-     factor=0.5d0*hx*hy*hz
-     
-  else
-      !Never used
-      factor=0.d0
   end if
   
   call timing(iproc,'PSolv_comput  ','ON')
@@ -277,7 +266,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 
   !if (iproc == 0) print *,'n03,nxt,nxc,geocode,datacode',n03,nxt,nxc,geocode,datacode
 
-  ehartreeLOC=0.d0
+  ehartreeLOC=0.0_dp
   !recollect the final data
   if (ixc==0) then !without XC the spin does not exist
      do j2=1,nxc
@@ -289,7 +278,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               ind=i1+ind2
               pot=zf(i1,i3,j2)
               ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-              rhopot(ind)=pot
+              rhopot(ind)=real(pot,wp)
            end do
         end do
      end do
@@ -303,7 +292,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               ind=i1+ind2
               pot=zf(i1,i3,j2)
               ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-              rhopot(ind)=pot+zfionxc(i1,i3,j2,1)
+              rhopot(ind)=real(pot,wp)+real(zfionxc(i1,i3,j2,1),wp)
            end do
         end do
      end do
@@ -321,7 +310,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
                  ind=ind+1
                  pot=zf(i1,i3,j2)
                  ehartreeLOC=ehartreeLOC+rhopot(ind2nd)*pot
-                 rhopot(ind)=pot+zfionxc(i1,i3,j2,2)
+                 rhopot(ind)=real(pot,wp)+real(zfionxc(i1,i3,j2,2),wp)
               end do
            end do
         end do
@@ -342,7 +331,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               ind4=i1+(i3-1)*n01+(j2-1)*n01*n02+ind4sh
               pot=zf(i1,i3,j2)
               ehartreeLOC=ehartreeLOC+rhopot(ind)*pot
-              rhopot(ind)=pot
+              rhopot(ind)=real(pot,wp)
               pot_ion(ind4)=zfionxc(i1,i3,j2,1)
            end do
         end do
@@ -366,7 +355,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         end do
      end if
   end if
-  ehartreeLOC=ehartreeLOC*factor
+  ehartreeLOC=ehartreeLOC*0.5_dp*hx*hy*hz
   
   i_all=-product(shape(zf))*kind(zf)
   deallocate(zf,stat=i_stat)
@@ -388,8 +377,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      energies_mpi(1)=ehartreeLOC
      energies_mpi(2)=eexcuLOC
      energies_mpi(3)=vexcuLOC
-     call MPI_ALLREDUCE(energies_mpi(1),energies_mpi(4),3,MPI_double_precision,  &
-          MPI_SUM,MPI_COMM_WORLD,ierr)
+     call MPI_ALLREDUCE(energies_mpi(1),energies_mpi(4),3,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
      eh=energies_mpi(4)
      exc=energies_mpi(5)
      vxc=energies_mpi(6)
@@ -425,14 +413,14 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
               istden=istden+n01*n02*n03
               istglo=istglo+n01*n02*n03
            end if
-           call MPI_ALLGATHERV(rhopot(istden),gather_arr(iproc,1),MPI_double_precision,&
-                rhopot(istglo),gather_arr(0,1),gather_arr(0,2),MPI_double_precision,&
+           call MPI_ALLGATHERV(rhopot(istden),gather_arr(iproc,1),mpidtypw,&
+                rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
                 MPI_COMM_WORLD,ierr)
            !if it is the case gather also the results of the XC potential
            if (ixc /=0 .and. .not. sumpion) then
               call MPI_ALLGATHERV(pot_ion(istden),gather_arr(iproc,1),&
-                   MPI_double_precision,pot_ion(istglo),gather_arr(0,1),gather_arr(0,2),&
-                   MPI_double_precision,MPI_COMM_WORLD,ierr)
+                   mpidtypw,pot_ion(istglo),gather_arr(0,1),gather_arr(0,2),&
+                   mpidtypw,MPI_COMM_WORLD,ierr)
            end if
         end do
         call timing(iproc,'PSolv_commun  ','OF')
@@ -447,9 +435,9 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      end if
 
   else
-     eh=ehartreeLOC
-     exc=eexcuLOC
-     vxc=vexcuLOC
+     eh=real(ehartreeLOC,gp)
+     exc=real(eexcuLOC,gp)
+     vxc=real(vexcuLOC,gp)
   end if
 
   if(nspin==1 .and. ixc /= 0) eh=eh*2.0d0

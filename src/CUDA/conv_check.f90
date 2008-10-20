@@ -215,11 +215,17 @@ program conv_check
         !!print *,'i1,maxdiff',i_max,i1_max,psi_out(i_max,i1_max,1),psi_cuda(i1_max,i_max,1)
 
         if (maxdiff <= 3.d-7) then
-           write(*,'(a,i6,i6,f9.5,1pe12.5)')'n,ndat,GPU/CPU ratio',&
-                n1,ndat,CPUtime/GPUtime,maxdiff
-        else
-           write(*,'(a,i6,i6,f9.5,1pe12.5,a)')'n,ndat,GPU/CPU ratio',&
+           write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+                'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
                 n1,ndat,CPUtime/GPUtime,maxdiff,&
+                CPUtime*1.d3/real(ntimes,kind=8),real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                GPUtime*1.d3/real(ntimes,kind=8),real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+        else
+           write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+                'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                n1,ndat,CPUtime/GPUtime,maxdiff,&
+                CPUtime*1.d3/real(ntimes,kind=8),real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                GPUtime*1.d3/real(ntimes,kind=8),real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
                 '<<<< WARNING' 
         end if
 

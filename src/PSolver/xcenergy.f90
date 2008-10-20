@@ -93,7 +93,7 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   real(kind=8), dimension(:,:,:), allocatable :: exci,d2vxci
   real(kind=8), dimension(:,:,:,:), allocatable :: vxci,dvxci,dvxcdgr
   real(kind=8), dimension(:,:,:,:,:), allocatable :: gradient
-  real(kind=8) :: elocal,vlocal,rho,pot,potion,hgrid,facpotion,sfactor
+  real(kind=8) :: elocal,vlocal,rho,pot,potion,facpotion,sfactor
   integer :: npts,i_all,order,offset,i_stat,ispden
   integer :: i1,i2,i3,j1,j2,j3,jp2,jpp2,jppp2
   integer :: ndvxc,nvxcdgr,ngr2
@@ -126,12 +126,8 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   end if
 
   !these are always the same
-!  nspden=1
   order=1
   
-  !useful for the freeBC case
-  hgrid=max(hx,hy,hz)
-
   !starting point of the density array for the GGA cases in parallel
   offset=nwbl+1
   if (ixc/=0) then
@@ -164,15 +160,15 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         allocate(gradient(m1,m3,nwb,2*nspden-1,0:3+ndebug),stat=i_stat)
         call memocc(i_stat,gradient,'gradient',subname)
 
-        !the calculation of the gradient will depend on the geometry code
-        if (geocode=='F') then
-           call calc_gradient(m1,m3,nxt,nwb,nwbl,nwbr,rhopot,nspden,&
-                hgrid,hgrid,hgrid,gradient)
-        else
-        print *,'geocode=',geocode,&
-             ':the calculation of the gradient is still to be performed in this case'
-        stop
-        end if
+        !!the calculation of the gradient will depend on the geometry code
+        !if (geocode=='F') then
+           call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rhopot,nspden,&
+                hx,hy,hz,gradient)
+        !else
+        !print *,'geocode=',geocode,&
+        !     ':the calculation of the gradient is still to be performed in this case'
+        !stop
+        !end if
 
      end if
 
@@ -233,12 +229,13 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
       end if
 
      !do not calculate the White-Bird term in the Leeuwen Baerends XC case
-        if (ixc/=13 .and. geocode == 'F') then
-           call vxcpostprocessing(m1,m3,nwb,nxc,nxcl,nxcr,nspden,nvxcdgr,gradient,&
-                hgrid,hgrid,hgrid,dvxcdgr,vxci)
+        if (ixc/=13) then
+           call vxcpostprocessing(geocode,m1,m3,nwb,nxc,nxcl,nxcr,nspden,nvxcdgr,gradient,&
+                hx,hy,hz,dvxcdgr,vxci)
         end if
 
         !restore the density array in the good position if it was shifted for the parallel GGA
+        !operation not necessarily needed
         if (nspden==2 .and. nxt /= nwb) then
            j3=nwb+1
            do i3=nwb-nwbr,1,-1
@@ -516,18 +513,19 @@ end subroutine xc_energy
 !! arguments.
 !!
 !! SOURCE
-subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,hx,hy,hz,dvxcdgr,wb_vxc)
+subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,hx,hy,hz,dvxcdgr,wb_vxc)
   implicit none
+  character(len=1), intent(in) :: geocode
   integer, intent(in) :: n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr
-  real(kind=8), intent(in) :: hx,hy,hz
-  real(kind=8), dimension(n01,n02,n03,2*nspden-1,0:3), intent(in) :: gradient
-  real(kind=8), dimension(n01,n02,n03,nvxcdgr), intent(in) :: dvxcdgr
-  real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: wb_vxc
+  real(gp), intent(in) :: hx,hy,hz
+  real(dp), dimension(n01,n02,n03,2*nspden-1,0:3), intent(in) :: gradient
+  real(dp), dimension(n01,n02,n03,nvxcdgr), intent(in) :: dvxcdgr
+  real(dp), dimension(n01,n02,n03,nspden), intent(inout) :: wb_vxc
   !Local variables
   character(len=*), parameter :: subname='vxcpostprocessing'
   integer :: i1,i2,i3,dir_i,i_all,i_stat,ispden
-  real(kind=8) :: dnexcdgog,grad_i,rho_up,rho_down,rho_tot
-  real(kind=8), dimension(:,:,:,:,:), allocatable :: f_i
+  real(dp) :: dnexcdgog,grad_i,rho_up,rho_down,rho_tot
+  real(dp), dimension(:,:,:,:,:), allocatable :: f_i
 
   !Body
 
@@ -543,8 +541,8 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
            do i3=1,n03
               do i2=1,n02
                  do i1=1,n01
-                    dnexcdgog=0.5d0*dvxcdgr(i1,i2,i3,1) + dvxcdgr(i1,i2,i3,3)
-                    grad_i=2.d0*gradient(i1,i2,i3,1,dir_i)
+                    dnexcdgog=0.5_dp*dvxcdgr(i1,i2,i3,1) + dvxcdgr(i1,i2,i3,3)
+                    grad_i=2.0_dp*gradient(i1,i2,i3,1,dir_i)
                     f_i(i1,i2,i3,dir_i,1)=dnexcdgog*grad_i
                  end do
               end do
@@ -556,8 +554,8 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
            do i3=1,n03
               do i2=1,n02
                  do i1=1,n01
-                    dnexcdgog=0.5d0*dvxcdgr(i1,i2,i3,1)
-                    grad_i=2.d0*gradient(i1,i2,i3,1,dir_i)
+                    dnexcdgog=0.5_dp*dvxcdgr(i1,i2,i3,1)
+                    grad_i=2.0_dp*gradient(i1,i2,i3,1,dir_i)
                     f_i(i1,i2,i3,dir_i,1)=dnexcdgog*grad_i
                  end do
               end do
@@ -603,8 +601,7 @@ subroutine vxcpostprocessing(n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,h
   end if
 
   !let us now calculate the gradient and correct the result
-  call wb_correction(n01,n02,n03,n3eff,wbl,wbr,f_i,&
-       hx,hy,hz,nspden,wb_vxc)
+  call wb_correction(geocode,n01,n02,n03,n3eff,wbl,wbr,f_i,hx,hy,hz,nspden,wb_vxc)
 
 
   i_all=-product(shape(f_i))*kind(f_i)

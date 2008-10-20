@@ -85,15 +85,8 @@ program PS_Check
   hy=acell/real(n02,kind=8)
   hz=acell/real(n03,kind=8)
 
-  !grid for the free BC case
-  hgrid=max(hx,hy,hz)
-  !hgrid=hx
-
   !order of the scaling functions choosed
   itype_scf=16
-
-!!$  ixc=1
-!!$  geocode='S'
 
   !calculate the kernel in parallel for each processor
   call createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,pkernel)
@@ -270,15 +263,6 @@ contains
           xc_temp(i+n01*n02*n3p)=xc_pot(i+istpot-1+n01*n02*n03)
        end do
        istxc=1
-!!$       !toggle the components of xc_pot in the distributed case
-!!$       do i=1,n01*n02*n3p
-!!$          test_xc(i)=xc_pot(i+istpot-1+n01*n02*n3p)
-!!$          test_xc(i+n01*n02*n3p)=xc_pot(i+istpot-1+n01*n02*n03)
-!!$       end do
-!!$       do i=1,n01*n02*n3p
-!!$          xc_pot(i+istpot-1+n01*n02*n3p)=test_xc(i+n01*n02*n3p)
-!!$          xc_pot(i+istpot-1+n01*n02*n03)=test_xc(i)
-!!$       end do
     else
        rhopot=density
        xc_temp => xc_pot
@@ -307,16 +291,6 @@ contains
        i_all=-product(shape(xc_temp))*kind(xc_temp)
        deallocate(xc_temp,stat=i_stat)
        call memocc(i_stat,i_all,'xc_temp',subname)
-
-!!$       !toggle the components of xc_pot in the distributed case
-!!$       do i=1,n01*n02*n3p
-!!$          test_xc(i)=xc_pot(i+istpot-1+n01*n02*n3p)
-!!$          test_xc(i+n01*n02*n3p)=xc_pot(i+istpot-1+n01*n02*n03)
-!!$       end do
-!!$       do i=1,n01*n02*n3p
-!!$          xc_pot(i+istpot-1+n01*n02*n3p)=test_xc(i+n01*n02*n3p)
-!!$          xc_pot(i+istpot-1+n01*n02*n03)=test_xc(i)
-!!$       end do
     else
        rhopot=density
     end if
