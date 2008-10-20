@@ -140,40 +140,9 @@ program MINHOP
      !Read input parameters for geometry optimization 
      call read_input_variables(iproc,'input.dat',inputs_opt)
      call read_input_variables(iproc,'mdinput.dat',inputs_md)
-        
+
 !DEBUG
-inputs%geocode          = inputs_opt%geocode
-inputs%ncount_cluster_x = inputs_opt%ncount_cluster_x
-inputs%frac_fluct       = inputs_opt%frac_fluct
-inputs%randdis          = inputs_opt%randdis
-inputs%betax            = inputs_opt%betax
-inputs%forcemax         = inputs_opt%forcemax
-inputs%ixc              = inputs_opt%ixc
-inputs%ncharge          = inputs_opt%ncharge
-inputs%itermax          = inputs_opt%itermax
-inputs%ncong            = inputs_opt%ncong
-inputs%idsx             = inputs_opt%idsx
-inputs%ncongt           = inputs_opt%ncongt
-inputs%inputPsiId       = inputs_opt%inputPsiId
-inputs%nspin            = inputs_opt%nspin
-inputs%mpol             = inputs_opt%mpol
-inputs%nvirt            = inputs_opt%nvirt
-inputs%nplot            = inputs_opt%nplot
-inputs%hgrid            = inputs_opt%hgrid
-inputs%crmult           = inputs_opt%crmult
-inputs%frmult           = inputs_opt%frmult
-inputs%cpmult           = inputs_opt%cpmult
-inputs%fpmult           = inputs_opt%fpmult
-inputs%elecfield        = inputs_opt%elecfield
-inputs%gnrm_cv          = inputs_opt%gnrm_cv
-inputs%rbuf             = inputs_opt%rbuf
-inputs%alat1            = inputs_opt%alat1
-inputs%alat2            = inputs_opt%alat2
-inputs%alat3            = inputs_opt%alat3
-inputs%output_grid      = inputs_opt%output_grid
-inputs%output_wf        = inputs_opt%output_wf
-inputs%calc_tail        = inputs_opt%calc_tail
-inputs%gaussian_help    = inputs_opt%gaussian_help  
+call copy_inputs(inputs_opt,inputs)
 
 !write(*,*) 'WARNING, coordinates scaled'
 !        pos(:,:)=pos(:,:)*8.d0
@@ -1800,4 +1769,46 @@ subroutine rdposout(igeostep,rxyz,nat)
   enddo
   close(unit=9)
 end subroutine rdposout
+
+
+subroutine copy_inputs(in,out)
+  use module_types, only: input_variables
+  implicit none
+  type(input_variables), intent(in) :: in
+  type(input_variables), intent(out) :: out
+  !DEBUG
+  out%geocode          = in%geocode
+  out%ncount_cluster_x = in%ncount_cluster_x
+  out%frac_fluct       = in%frac_fluct
+  out%randdis          = in%randdis
+  out%betax            = in%betax
+  out%forcemax         = in%forcemax
+  out%ixc              = in%ixc
+  out%ncharge          = in%ncharge
+  out%itermax          = in%itermax
+  out%ncong            = in%ncong
+  out%idsx             = in%idsx
+  out%ncongt           = in%ncongt
+  out%inputPsiId       = in%inputPsiId
+  out%nspin            = in%nspin
+  out%mpol             = in%mpol
+  out%nvirt            = in%nvirt
+  out%nplot            = in%nplot
+  out%hgrid            = in%hgrid
+  out%crmult           = in%crmult
+  out%frmult           = in%frmult
+  out%cpmult           = in%cpmult
+  out%fpmult           = in%fpmult
+  out%elecfield        = in%elecfield
+  out%gnrm_cv          = in%gnrm_cv
+  out%rbuf             = in%rbuf
+  out%alat1            = in%alat1
+  out%alat2            = in%alat2
+  out%alat3            = in%alat3
+  out%output_grid      = in%output_grid
+  out%output_wf        = in%output_wf
+  out%calc_tail        = in%calc_tail
+  out%gaussian_help    = in%gaussian_help
+end subroutine copy_inputs
+
 
