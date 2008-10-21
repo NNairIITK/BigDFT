@@ -106,6 +106,28 @@
 
 ! auxiliary subroutines --------------------------
 
+subroutine dimensions_fft(n1,n2,n3,nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
+	implicit none
+	integer, intent(in)::n1,n2,n3
+	integer,intent(out)::nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
+! Array sizes for the real-to-complex FFT: note that n1(there)=n1(here)+1
+! and the same for n2,n3.
+	nd1=n1+2;		nd2=n2+2;	nd3=n3+2
+	! n1b>=n1f;   n3f>=n3b
+	n1f=(n1+2)/2 
+	n3f=(n3+1)/2+1
+	
+	n1b=(n1+1)/2+1
+	n3b=(n3+2)/2
+	
+	nd1f=n1f+1
+	nd3f=n3f+1
+	
+	nd1b=n1b+1
+	nd3b=n3b+1
+end subroutine dimensions_fft
+
+
         subroutine init(n1,n2,n3,nd1,nd2,nd3,zin,z)
         implicit real*8 (a-h,o-z)
         dimension zin(2,n1,n2,n3),z(2,nd1,nd2,nd3)
@@ -447,6 +469,973 @@
         return
         end
 
+        subroutine FFT_for(n1,n2,n3,n1f,n3f,nd1,nd2,nd3,nd1f,nd3f,x0,z1,z3,inzee)
+!        CALCULATES THE DISCRETE FOURIERTRANSFORM F(I1,I2,I3)=
+!        S_(j1,j2,j3) EXP(isign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
+!       with optimal performance on vector computer, workstations and 
+!       multiprocessor shared memory computers using OpenMP compiler directives
+!        INPUT:
+!            n1,n2,n3:physical dimension of the transform. It must be a 
+!                     product of the prime factors 2,3,5, but greater than 3. 
+!                    If two ni's are equal it is recommended to place them 
+!                    behind each other.
+!            nd1,nd2,nd3:memory dimension of Z. ndi must always be greater or 
+!                        equal than ni. On a vector machine, it is recomended 
+!                       to chose ndi=ni if ni is odd and ndi=ni+1 if ni is 
+!                       even to obtain optimal execution speed. On RISC 
+!                       machines ndi=ni is usually fine for odd ni, for even 
+!                       ni one should try ndi=ni+1, ni+2, ni+4 to find the 
+!                       optimal performance. 
+!           inzee=1: first part of Z is data (input) array, 
+!                    second part work array
+!           inzee=2: first part of Z is work array, second part data array
+!                Z(1,i1,i2,i3,inzee)=real(R(i1,i2,i3))
+!                Z(2,i1,i2,i3,inzee)=imag(R(i1,i2,i3))
+!        OUTPUT:
+!           inzee=1: first part of Z is data (output) array, 
+!                    second part work array
+!           inzee=2: first part of Z is work array, second part data array
+!                real(F(i1,i2,i3))=Z(1,i1,i2,i3,inzee)
+!                imag(F(i1,i2,i3))=Z(2,i1,i2,i3,inzee)
+!           inzee on output is in general different from inzee on input
+!        The input data are always overwritten independently of the 
+!       value of inzee.
+! PERFORMANCE AND THE NCACHE
+!       The most important feature for performance is the right choice of 
+!       the parameter ncache. On a vector machine ncache has to be put to 0.
+!       On a RISC machine with cache, it is very important to find the optimal 
+!       value of NCACHE. NCACHE determines the size of the work array zw, that
+!       has to fit into cache. It has therefore to be chosen to equal roughly 
+!        half the size of the physical cache in units of real*8 numbers.
+!       If the machine has 2 cache levels it can not be predicted which 
+!       cache level will be the most relevant one for choosing ncache. 
+!       The optimal value of ncache can easily be determined by numerical 
+!       experimentation. A too large value of ncache leads to a dramatic 
+!       and sudden decrease of performance, a too small value to a to a 
+!       slow and less dramatic decrease of performance. If NCACHE is set 
+!       to a value so small, that not even a single one dimensional transform 
+!       can be done in the workarray zw, the program stops with an error 
+!       message.
+!  Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
+!  Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1995, 1999
+!  Copyright (C) Stefan Goedecker, CEA Grenoble, 2002
+!  This file is distributed under the terms of the
+!  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+
+        implicit real*8 (a-h,o-z)
+!$      interface
+!$        integer ( kind=4 ) function omp_get_num_threads ( )
+!$        end function omp_get_num_threads
+!$      end interface
+!$      interface
+!$        integer ( kind=4 ) function omp_get_thread_num ( )
+!$        end function omp_get_thread_num
+!$      end interface
+
+		integer,intent(in)::nd1,nd2,nd3,nd1f,nd3f
+		integer,intent(in)::n1,n2,n3,n1f,n3f
+        REAL(KIND=8), ALLOCATABLE, DIMENSION(:,:,:) :: zw  
+        REAL(KIND=8), ALLOCATABLE, DIMENSION(:,:) :: trig
+        INTEGER, ALLOCATABLE, DIMENSION(:) :: after,now,before
+
+		real*8,intent(in):: x0(n1,n2,n3)
+		real*8,intent(out)::z3(2,nd1*nd2*nd3f,2)
+		real*8			  ::z1(2,nd1f*nd2*nd3,2) ! work array
+
+		integer::mm,nffta,isign=1
+        if (max(n1,n2,n3).gt.1024) stop '1024'
+
+! some reasonable values of ncache: 
+!   IBM/RS6000/590: 16*1024 ; IBM/RS6000/390: 3*1024 ; 
+!   IBM/PwPC: 1*1024 ; SGI/MIPS/R8000: 16*1024 ; DEC/Alpha/EV5 and EV6 6*1024
+!   But if you care about performance find the optimal value of ncache yourself!
+!       On all vector machines: ncache=0
+
+		inzee=1
+        ncache=6*1024
+!*******************Alexey*********************************************************************
+!         ncache=0
+!**********************************************************************************************
+
+! check whether input values are reasonable
+	if (inzee.le.0 .or. inzee.ge.3) stop 'wrong inzee'
+	if (isign.ne.1 .and. isign.ne.-1) stop 'wrong isign'
+	if (n1.gt.nd1) stop 'n1>nd1'
+	if (n2.gt.nd2) stop 'n2>nd2'
+	if (n3.gt.nd3) stop 'n3>nd3'
+	
+		
+!		call x0_to_z1_simple(x0,z1,inzee)
+		call x0_to_z1(x0,z1,inzee)
+
+      if (ncache.eq.0) then
+! vector computer with memory banks:
+        allocate(trig(2,1024),after(20),now(20),before(20))
+
+        call ctrig(n3,trig,after,before,now,isign,ic)
+
+		mm=nd1f*nd2 
+		nffta=nd1f*n2
+
+        do 51093,i=1,ic-1
+        call fftstp(mm,nffta,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
+                          trig,after(i),now(i),before(i),isign)
+51093	        inzee=3-inzee
+        i=ic
+        call fftrot(mm,nffta,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
+                          trig,after(i),now(i),before(i),isign)
+        inzee=3-inzee
+
+		call z1_to_z3(z1,z3,inzee)
+!===============================================================================================
+        if (n2.ne.n3) call ctrig(n2,trig,after,before,now,isign,ic)
+        nfft=nd3f*n1
+        mm=nd3f*nd1
+        do 52093,i=1,ic-1
+        call fftstp(mm,nfft,nd2,mm,nd2,z3(1,1,inzee),z3(1,1,3-inzee), &
+                           trig,after(i),now(i),before(i),isign)
+52093        inzee=3-inzee
+        i=ic
+        call fftrot(mm,nfft,nd2,mm,nd2,z3(1,1,inzee),z3(1,1,3-inzee), &
+                       trig,after(i),now(i),before(i),isign)
+        inzee=3-inzee
+
+        if (n1.ne.n2) call ctrig(n1,trig,after,before,now,isign,ic)
+        nfft=nd2*n3f
+        mm=nd2*nd3f
+        do 53093,i=1,ic-1
+        call fftstp(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
+                         trig,after(i),now(i),before(i),isign)
+53093        inzee=3-inzee
+        i=ic
+        call fftrot(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
+                         trig,after(i),now(i),before(i),isign)
+        inzee=3-inzee
+
+! RISC machine with cache:
+      else
+! INtel IFC does not understand default(private)
+!!$omp parallel  default(private) &
+!$omp parallel & 
+!$omp private(zw,trig,before,after,now,i,j,iam,npr,jj,ma,mb,mm,ic,n,m,jompa,jompb,lot,lotomp,inzeep,inzet,nn,nfft) &
+!$omp shared(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee,ncache) 
+        npr=1
+!$       npr=omp_get_num_threads()
+        iam=0
+!$       iam=omp_get_thread_num()
+!        write(6,*) 'npr,iam',npr,iam
+! Critical section only necessary on Intel
+!$omp critical
+        allocate(zw(2,ncache/4,2),trig(2,1024),after(20),now(20),before(20))
+!$omp end critical
+
+        inzet=inzee
+! TRANSFORM ALONG Z AXIS
+
+        mm=nd1f*nd2
+        m=nd3
+        lot=max(1,ncache/(4*n3))
+        nn=lot
+        n=n3
+        if (2*n*lot*2.gt.ncache) stop 'ncache1'
+
+        call ctrig(n3,trig,after,before,now,isign,ic)
+
+      if (ic.eq.1) then
+        i=ic
+        lotomp=(nd1f*n2)/npr+1
+        ma=iam*lotomp+1
+        mb=min((iam+1)*lotomp,nd1f*n2)
+        nfft=mb-ma+1
+        j=ma
+        jj=j*nd3-nd3+1
+        call fftrot(mm,nfft,m,mm,m,z1(1,j,inzet),z1(1,jj,3-inzet), &
+                          trig,after(i),now(i),before(i),isign)
+
+      else
+
+        lotomp=(nd1f*n2)/npr+1
+        jompa=iam*lotomp+1
+        jompb=min((iam+1)*lotomp,nd1f*n2)
+        do 1000,j=jompa,jompb,lot
+        ma=j
+        mb=min(j+(lot-1),jompb)
+        nfft=mb-ma+1
+        jj=j*nd3-nd3+1
+
+        i=1
+        inzeep=2
+        call fftstp(mm,nfft,m,nn,n,z1(1,j,inzet),zw(1,1,3-inzeep), &
+                         trig,after(i),now(i),before(i),isign)
+        inzeep=1
+
+        do 1093,i=2,ic-1
+        call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
+                         trig,after(i),now(i),before(i),isign)
+1093        inzeep=3-inzeep
+        i=ic
+        call fftrot(nn,nfft,n,mm,m,zw(1,1,inzeep),z1(1,jj,3-inzet), &
+                         trig,after(i),now(i),before(i),isign)
+1000        continue
+      endif
+
+        inzet=3-inzet
+
+
+		call z1_to_z3(z1,z3,inzet)
+!$omp barrier
+
+! TRANSFORM ALONG Y AXIS
+        mm=nd3f*nd1
+        m=nd2
+        lot=max(1,ncache/(4*n2))
+        nn=lot
+        n=n2
+        if (2*n*lot*2.gt.ncache) stop 'ncache2'
+
+        if (n2.ne.n3) call ctrig(n2,trig,after,before,now,isign,ic)
+
+      if (ic.eq.1) then
+        i=ic
+        lotomp=(nd3f*n1)/npr+1
+        ma=iam*lotomp+1
+        mb=min((iam+1)*lotomp,nd3f*n1)
+        nfft=mb-ma+1
+        j=ma
+        jj=j*nd2-nd2+1
+        call fftrot(mm,nfft,m,mm,m,z3(1,j,inzet),z3(1,jj,3-inzet), &
+                         trig,after(i),now(i),before(i),isign)
+
+      else
+
+        lotomp=(nd3f*n1)/npr+1
+        jompa=iam*lotomp+1
+        jompb=min((iam+1)*lotomp,nd3f*n1)
+        do 2000,j=jompa,jompb,lot
+        ma=j
+        mb=min(j+(lot-1),jompb)
+        nfft=mb-ma+1
+        jj=j*nd2-nd2+1
+
+        i=1
+        inzeep=2
+        call fftstp(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
+                         trig,after(i),now(i),before(i),isign)
+        inzeep=1
+
+        do 2093,i=2,ic-1
+        call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
+                         trig,after(i),now(i),before(i),isign)
+2093        inzeep=3-inzeep
+
+        i=ic
+        call fftrot(nn,nfft,n,mm,m,zw(1,1,inzeep),z3(1,jj,3-inzet), &
+                         trig,after(i),now(i),before(i),isign)
+2000        continue
+      endif
+        inzet=3-inzet
+
+!$omp barrier
+
+! TRANSFORM ALONG X AXIS
+        mm=nd2*nd3f
+        m=nd1
+        lot=max(1,ncache/(4*n1))
+        nn=lot
+        n=n1
+        if (2*n*lot*2.gt.ncache) stop 'ncache3'
+
+        if (n1.ne.n2) call ctrig(n1,trig,after,before,now,isign,ic)
+
+      if (ic.eq.1) then
+        i=ic
+        lotomp=(nd2*n3f)/npr+1
+        ma=iam*lotomp+1
+        mb=min((iam+1)*lotomp,nd2*n3f)
+        nfft=mb-ma+1
+        j=ma
+        jj=j*nd1-nd1+1
+        call fftrot(mm,nfft,m,mm,m,z3(1,j,inzet),z3(1,jj,3-inzet), &
+                         trig,after(i),now(i),before(i),isign)
+
+      else
+
+        lotomp=(nd2*n3f)/npr+1
+        jompa=iam*lotomp+1
+        jompb=min((iam+1)*lotomp,nd2*n3f)
+        do 3000,j=jompa,jompb,lot
+        ma=j
+        mb=min(j+(lot-1),jompb)
+        nfft=mb-ma+1
+        jj=j*nd1-nd1+1
+
+        i=1
+        inzeep=2
+        call fftstp(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
+                         trig,after(i),now(i),before(i),isign)
+        inzeep=1
+
+        do 3093,i=2,ic-1
+        call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
+                         trig,after(i),now(i),before(i),isign)
+3093        inzeep=3-inzeep
+        i=ic
+        call fftrot(nn,nfft,n,mm,m,zw(1,1,inzeep),z3(1,jj,3-inzet), &
+                         trig,after(i),now(i),before(i),isign)
+3000        continue
+      endif
+        inzet=3-inzet
+        
+        deallocate(zw,trig,after,now,before)
+        if (iam.eq.0) inzee=inzet
+!$omp end parallel  
+
+
+      endif
+	  	contains
+
+			subroutine x0_to_z1(x0,z1,inzee)
+			! Transform the real array x0 into a complex z1
+			! real      part of z1: elements of x0 with odd  i1
+			! imaginary part of z1: elements of x0 with even i1
+			implicit none
+			integer,intent(in)::inzee
+			real*8,intent(in):: x0(n1,n2,n3)
+			real*8,intent(out)::z1(2,nd1f,nd2,nd3,2)
+			integer i2,i3
+
+			do i3=1,n3
+				do i2=1,n2
+					! 2*n1f=n1 for even n1
+					! 2*n1f=n1+1 for odd n1. Then, we copy one more element than
+					! necessary, but that's no problem.
+					call my_copy(z1(1,1,i2,i3,inzee),x0(1,i2,i3))
+				enddo
+			enddo
+
+			end subroutine x0_to_z1
+
+			subroutine my_copy(x,y)
+				! copies complex array y into complex array x
+				implicit none
+				real*8 x(2,n1f),y(2,n1f)
+				x=y
+			end subroutine my_copy
+
+			subroutine x0_to_z1_simple(x0,z1,inzee)
+			! Transform the real array x0 into a complex z1
+			! real      part of z1: elements of x0 with odd  i1
+			! imaginary part of z1: elements of x0 with even i1
+			implicit none
+			integer,intent(in)::inzee
+			real*8,intent(in):: x0(n1,n2,n3)
+			real*8,intent(out)::z1(2,nd1f,nd2,nd3,2)
+			integer i1,i2,i3
+			
+			if (n1f*2.eq.n1) then
+				do i3=1,n3
+					do i2=1,n2
+						do i1=1,n1f
+							z1(1,i1,i2,i3,inzee)=x0(2*i1-1,i2,i3)
+							z1(2,i1,i2,i3,inzee)=x0(2*i1  ,i2,i3)
+						enddo
+					enddo
+				enddo
+			else ! n1=2*n1f-1
+				do i3=1,n3
+					do i2=1,n2
+						do i1=1,n1f-1
+							z1(1,i1,i2,i3,inzee)=x0(2*i1-1,i2,i3)
+							z1(2,i1,i2,i3,inzee)=x0(2*i1  ,i2,i3)
+						enddo
+						z1(1,n1f,i2,i3,inzee)=x0(n1,i2,i3)
+					enddo
+				enddo
+			endif
+
+			end subroutine x0_to_z1_simple
+
+
+	subroutine z1_to_z3(z1,z3,inzee)
+	! transforms the array z1 that stores elements of z corresponding to even 
+	! and odd values of i1, as symmetric and antisymmetric combinations w.r.t.
+	! flip of i3,
+	! into the array z3 that stores only elements of z with i3=<nd3f
+	implicit none
+	integer,intent(in)::inzee
+	integer i1,i2,i3
+	real*8,intent(in):: z1(2,nd3,nd1f,nd2,2)
+	real*8,intent(out)::z3( 2,nd3f,nd1 ,nd2,2)
+	
+	if (n1f*2.eq.n1) then
+		! i3=1
+		do i2=1,n2
+			do i1=1,n1f
+				z3(1,1,2*i1-1,i2,inzee)= 2.d0*z1(1,1,i1,i2,inzee)
+				z3(2,1,2*i1-1,i2,inzee)= 0.d0
+				z3(1,1,2*i1  ,i2,inzee)= 2.d0*z1(2,1,i1,i2,inzee)
+				z3(2,1,2*i1  ,i2,inzee)= 0.d0
+			enddo
+		enddo
+		
+		do i2=1,n2
+			do i1=1,n1f
+				do i3=2,n3f
+					z3(1,i3,2*i1-1,i2,inzee)= z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
+					z3(2,i3,2*i1-1,i2,inzee)= z1(2,i3,i1,i2,inzee)-z1(2,n3+2-i3,i1,i2,inzee)
+					z3(1,i3,2*i1  ,i2,inzee)= z1(2,i3,i1,i2,inzee)+z1(2,n3+2-i3,i1,i2,inzee)
+					z3(2,i3,2*i1  ,i2,inzee)=-z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
+				enddo
+			enddo
+		enddo
+	else ! n1=2*n1f-1
+		! i3=1
+		do i2=1,n2
+			do i1=1,n1f-1
+				z3(1,1,2*i1-1,i2,inzee)= 2.d0*z1(1,1,i1,i2,inzee)
+				z3(2,1,2*i1-1,i2,inzee)= 0.d0
+				z3(1,1,2*i1  ,i2,inzee)= 2.d0*z1(2,1,i1,i2,inzee)
+				z3(2,1,2*i1  ,i2,inzee)= 0.d0
+			enddo
+		enddo
+		
+		do i2=1,n2
+			do i1=1,n1f-1
+				do i3=2,n3f
+					z3(1,i3,2*i1-1,i2,inzee)= z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
+					z3(2,i3,2*i1-1,i2,inzee)= z1(2,i3,i1,i2,inzee)-z1(2,n3+2-i3,i1,i2,inzee)
+					z3(1,i3,2*i1  ,i2,inzee)= z1(2,i3,i1,i2,inzee)+z1(2,n3+2-i3,i1,i2,inzee)
+					z3(2,i3,2*i1  ,i2,inzee)=-z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
+				enddo
+			enddo
+		enddo
+
+		! i1=n1f is treated separately: 2*n1f-1=n1, but terms with 2*n1f are
+		! omitted
+
+		do i2=1,n2
+			z3(1,1,n1,i2,inzee)= 2.d0*z1(1,1,n1f,i2,inzee)
+			z3(2,1,n1,i2,inzee)= 0.d0
+		enddo
+		
+		do i2=1,n2
+			do i3=2,n3f
+				z3(1,i3,n1,i2,inzee)= z1(1,i3,n1f,i2,inzee)+z1(1,n3+2-i3,n1f,i2,inzee)
+				z3(2,i3,n1,i2,inzee)= z1(2,i3,n1f,i2,inzee)-z1(2,n3+2-i3,n1f,i2,inzee)
+			enddo
+		enddo
+	endif
+
+	end subroutine z1_to_z3
+
+
+		end subroutine fft_for
+
+
+        subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z1,z3,inzee)
+!        CALCULATES THE DISCRETE FOURIERTRANSFORM F(I1,I2,I3)=
+!        S_(j1,j2,j3) EXP(isign*i*2*pi*(j1*i1/n1+j2*i2/n2+j3*i3/n3)) R(j1,j2,j3)
+!       with optimal performance on vector computer, workstations and 
+!       multiprocessor shared memory computers using OpenMP compiler directives
+!        INPUT:
+!            n1,n2,n3:physical dimension of the transform. It must be a 
+!                     product of the prime factors 2,3,5, but greater than 3. 
+!                    If two ni's are equal it is recommended to place them 
+!                    behind each other.
+!            nd1,nd2,nd3:memory dimension of Z. ndi must always be greater or 
+!                        equal than ni. On a vector machine, it is recomended 
+!                       to chose ndi=ni if ni is odd and ndi=ni+1 if ni is 
+!                       even to obtain optimal execution speed. On RISC 
+!                       machines ndi=ni is usually fine for odd ni, for even 
+!                       ni one should try ndi=ni+1, ni+2, ni+4 to find the 
+!                       optimal performance. 
+!           inzee=1: first part of Z is data (input) array, 
+!                    second part work array
+!           inzee=2: first part of Z is work array, second part data array
+!                Z(1,i1,i2,i3,inzee)=real(R(i1,i2,i3))
+!                Z(2,i1,i2,i3,inzee)=imag(R(i1,i2,i3))
+!        OUTPUT:
+!           inzee=1: first part of Z is data (output) array, 
+!                    second part work array
+!           inzee=2: first part of Z is work array, second part data array
+!                real(F(i1,i2,i3))=Z(1,i1,i2,i3,inzee)
+!                imag(F(i1,i2,i3))=Z(2,i1,i2,i3,inzee)
+!           inzee on output is in general different from inzee on input
+!        The input data are always overwritten independently of the 
+!       value of inzee.
+! PERFORMANCE AND THE NCACHE
+!       The most important feature for performance is the right choice of 
+!       the parameter ncache. On a vector machine ncache has to be put to 0.
+!       On a RISC machine with cache, it is very important to find the optimal 
+!       value of NCACHE. NCACHE determines the size of the work array zw, that
+!       has to fit into cache. It has therefore to be chosen to equal roughly 
+!        half the size of the physical cache in units of real*8 numbers.
+!       If the machine has 2 cache levels it can not be predicted which 
+!       cache level will be the most relevant one for choosing ncache. 
+!       The optimal value of ncache can easily be determined by numerical 
+!       experimentation. A too large value of ncache leads to a dramatic 
+!       and sudden decrease of performance, a too small value to a to a 
+!       slow and less dramatic decrease of performance. If NCACHE is set 
+!       to a value so small, that not even a single one dimensional transform 
+!       can be done in the workarray zw, the program stops with an error 
+!       message.
+!  Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
+!  Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1995, 1999
+!  Copyright (C) Stefan Goedecker, CEA Grenoble, 2002
+!  This file is distributed under the terms of the
+!  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+
+        implicit real*8 (a-h,o-z)
+!$      interface
+!$        integer ( kind=4 ) function omp_get_num_threads ( )
+!$        end function omp_get_num_threads
+!$      end interface
+!$      interface
+!$        integer ( kind=4 ) function omp_get_thread_num ( )
+!$        end function omp_get_thread_num
+!$      end interface
+
+
+        REAL(KIND=8), ALLOCATABLE, DIMENSION(:,:,:) :: zw  
+        REAL(KIND=8), ALLOCATABLE, DIMENSION(:,:) :: trig
+        INTEGER, ALLOCATABLE, DIMENSION(:) :: after,now,before
+		integer,intent(in):: nd3f,n3f,n1b,nd1b,n3b,nd3b
+		integer,intent(in):: n1,n2,n3,nd1,nd2,nd3
+		real*8,intent(inout)::z3(2,nd1*nd2*nd3b,2)
+		real*8		  	    ::z1(2,nd1b*nd2*nd3,2) ! work array
+		real*8,intent(out):: y(n1,n2,n3)
+
+		isign=-1
+        if (max(n1,n2,n3).gt.1024) stop '1024'
+
+! some reasonable values of ncache: 
+!   IBM/RS6000/590: 16*1024 ; IBM/RS6000/390: 3*1024 ; 
+!   IBM/PwPC: 1*1024 ; SGI/MIPS/R8000: 16*1024 ; DEC/Alpha/EV5 and EV6 6*1024
+!   But if you care about performance find the optimal value of ncache yourself!
+!       On all vector machines: ncache=0
+
+        ncache=6*1024
+!		ncache=0
+
+! check whether input values are reasonable
+	if (inzee.le.0 .or. inzee.ge.3) stop 'wrong inzee'
+	if (isign.ne.1 .and. isign.ne.-1) stop 'wrong isign'
+	if (n1.gt.nd1) stop 'n1>nd1'
+	if (n2.gt.nd2) stop 'n2>nd2'
+	if (n3.gt.nd3) stop 'n3>nd3'
+	
+
+!		call z3_to_z1(z3,z1,inzee)
+
+      if (ncache.eq.0) then
+! vector computer with memory banks:
+        allocate(trig(2,1024),after(20),now(20),before(20))
+
+        call ctrig(n3,trig,after,before,now,isign,ic)
+        nfft=nd1b*n2
+        mm=nd1b*nd2
+        do 51093,i=1,ic-1
+        call fftstp(mm,nfft,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
+                          trig,after(i),now(i),before(i),isign)
+51093        inzee=3-inzee
+        i=ic
+        call fftrot(mm,nfft,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
+                          trig,after(i),now(i),before(i),isign)
+
+        inzee=3-inzee
+
+        if (n2.ne.n3) call ctrig(n2,trig,after,before,now,isign,ic)
+        nfft=nd3*n1b
+        mm=nd3*nd1b
+        do 52093,i=1,ic-1
+        call fftstp(mm,nfft,nd2,mm,nd2,z1(1,1,inzee),z1(1,1,3-inzee), &
+                           trig,after(i),now(i),before(i),isign)
+52093        inzee=3-inzee
+        i=ic
+        call fftrot(mm,nfft,nd2,mm,nd2,z1(1,1,inzee),z1(1,1,3-inzee), &
+                       trig,after(i),now(i),before(i),isign)
+        inzee=3-inzee
+
+		! here we transform back from z1 to z3
+		call z1_to_z3(z1,z3,inzee)
+
+        if (n1.ne.n2) call ctrig(n1,trig,after,before,now,isign,ic)
+        nfft=nd2*n3b
+        mm=nd2*nd3b
+        do 53093,i=1,ic-1
+        call fftstp(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
+                         trig,after(i),now(i),before(i),isign)
+53093        inzee=3-inzee
+        i=ic
+        call fftrot(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
+                         trig,after(i),now(i),before(i),isign)
+        inzee=3-inzee
+
+		call z3_to_y(z3,y,inzee)
+
+! RISC machine with cache:
+      else
+! INtel IFC does not understand default(private)
+!!$omp parallel  default(private) &
+!$omp parallel & 
+!$omp private(zw,trig,before,after,now,i,j,iam,npr,jj,ma,mb,mm,ic,n,m,jompa,jompb,lot,lotomp,inzeep,inzet,nn,nfft) &
+!$omp shared(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee,ncache) 
+        npr=1
+!$       npr=omp_get_num_threads()
+        iam=0
+!$       iam=omp_get_thread_num()
+!        write(6,*) 'npr,iam',npr,iam
+! Critical section only necessary on Intel
+!$omp critical
+        allocate(zw(2,ncache/4,2),trig(2,1024),after(20),now(20),before(20))
+!$omp end critical
+
+        inzet=inzee
+! TRANSFORM ALONG Z AXIS
+
+        mm=nd1b*nd2
+        m=nd3
+        lot=max(1,ncache/(4*n3))
+        nn=lot
+        n=n3
+        if (2*n*lot*2.gt.ncache) stop 'ncache1'
+
+        call ctrig(n3,trig,after,before,now,isign,ic)
+
+      if (ic.eq.1) then
+        i=ic
+        lotomp=(nd1b*n2)/npr+1
+        ma=iam*lotomp+1
+        mb=min((iam+1)*lotomp,nd1b*n2)
+        nfft=mb-ma+1
+        j=ma
+        jj=j*nd3-nd3+1
+        call fftrot(mm,nfft,m,mm,m,z1(1,j,inzet),z1(1,jj,3-inzet), &
+                          trig,after(i),now(i),before(i),isign)
+
+      else
+
+        lotomp=(nd1b*n2)/npr+1
+        jompa=iam*lotomp+1
+        jompb=min((iam+1)*lotomp,nd1b*n2)
+        do 1000,j=jompa,jompb,lot
+        ma=j
+        mb=min(j+(lot-1),jompb)
+        nfft=mb-ma+1
+        jj=j*nd3-nd3+1
+
+        i=1
+        inzeep=2
+        call fftstp(mm,nfft,m,nn,n,z1(1,j,inzet),zw(1,1,3-inzeep), &
+                         trig,after(i),now(i),before(i),isign)
+        inzeep=1
+
+        do 1093,i=2,ic-1
+        call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
+                         trig,after(i),now(i),before(i),isign)
+1093        inzeep=3-inzeep
+        i=ic
+        call fftrot(nn,nfft,n,mm,m,zw(1,1,inzeep),z1(1,jj,3-inzet), &
+                         trig,after(i),now(i),before(i),isign)
+1000        continue
+      endif
+
+        inzet=3-inzet
+
+!$omp barrier
+
+! TRANSFORM ALONG Y AXIS
+        mm=nd3*nd1b
+        m=nd2
+        lot=max(1,ncache/(4*n2))
+        nn=lot
+        n=n2
+        if (2*n*lot*2.gt.ncache) stop 'ncache2'
+
+        if (n2.ne.n3) call ctrig(n2,trig,after,before,now,isign,ic)
+
+      if (ic.eq.1) then
+        i=ic
+        lotomp=(nd3*n1b)/npr+1
+        ma=iam*lotomp+1
+        mb=min((iam+1)*lotomp,nd3*n1b)
+        nfft=mb-ma+1
+        j=ma
+        jj=j*nd2-nd2+1
+        call fftrot(mm,nfft,m,mm,m,z1(1,j,inzet),z1(1,jj,3-inzet), &
+                         trig,after(i),now(i),before(i),isign)
+
+      else
+
+        lotomp=(nd3*n1b)/npr+1
+        jompa=iam*lotomp+1
+        jompb=min((iam+1)*lotomp,nd3*n1b)
+        do 2000,j=jompa,jompb,lot
+        ma=j
+        mb=min(j+(lot-1),jompb)
+        nfft=mb-ma+1
+        jj=j*nd2-nd2+1
+
+        i=1
+        inzeep=2
+        call fftstp(mm,nfft,m,nn,n,z1(1,j,inzet),zw(1,1,3-inzeep), &
+                         trig,after(i),now(i),before(i),isign)
+        inzeep=1
+
+        do 2093,i=2,ic-1
+        call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
+                         trig,after(i),now(i),before(i),isign)
+2093        inzeep=3-inzeep
+
+        i=ic
+        call fftrot(nn,nfft,n,mm,m,zw(1,1,inzeep),z1(1,jj,3-inzet), &
+                         trig,after(i),now(i),before(i),isign)
+2000        continue
+      endif
+        inzet=3-inzet
+
+		call z1_to_z3(z1,z3,inzet)
+!$omp barrier
+
+! TRANSFORM ALONG X AXIS
+        mm=nd2*nd3b
+        m=nd1
+        lot=max(1,ncache/(4*n1))
+        nn=lot
+        n=n1
+        if (2*n*lot*2.gt.ncache) stop 'ncache3'
+
+        if (n1.ne.n2) call ctrig(n1,trig,after,before,now,isign,ic)
+
+      if (ic.eq.1) then
+        i=ic
+        lotomp=(nd2*n3b)/npr+1
+        ma=iam*lotomp+1
+        mb=min((iam+1)*lotomp,nd2*n3b)
+        nfft=mb-ma+1
+        j=ma
+        jj=j*nd1-nd1+1
+        call fftrot(mm,nfft,m,mm,m,z3(1,j,inzet),z3(1,jj,3-inzet), &
+                         trig,after(i),now(i),before(i),isign)
+
+      else
+
+        lotomp=(nd2*n3b)/npr+1
+        jompa=iam*lotomp+1
+        jompb=min((iam+1)*lotomp,nd2*n3b)
+        do 3000,j=jompa,jompb,lot
+        ma=j
+        mb=min(j+(lot-1),jompb)
+        nfft=mb-ma+1
+        jj=j*nd1-nd1+1
+
+        i=1
+        inzeep=2
+        call fftstp(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
+                         trig,after(i),now(i),before(i),isign)
+        inzeep=1
+
+        do 3093,i=2,ic-1
+        call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
+                         trig,after(i),now(i),before(i),isign)
+3093        inzeep=3-inzeep
+        i=ic
+        call fftrot(nn,nfft,n,mm,m,zw(1,1,inzeep),z3(1,jj,3-inzet), &
+                         trig,after(i),now(i),before(i),isign)
+3000        continue
+      endif
+        inzet=3-inzet
+        
+		call z3_to_y(z3,y,inzet)
+        deallocate(zw,trig,after,now,before)
+        if (iam.eq.0) inzee=inzet
+!$omp end parallel  
+
+
+      endif
+
+        return
+	contains
+
+			subroutine z3_to_z1(z3,z1,inzee)
+			! transforms the data from the format z3:
+			! output of fft_for: stores only elements of z with i3=<nd3f
+			! 
+			! to the format z1:
+			! input of fft_back: stores only elements of z with i1=<nd1b
+			implicit none
+			integer,intent(in)::inzee
+        	real*8,intent(in):: z3(2,nd1 ,nd2,nd3f,2)
+			real*8,intent(out)::z1(2,nd1b,nd2,nd3,2)
+			integer i1,i2,i3
+
+			! i3=1: then z1 is contained in z3 
+			do i2=1,n2
+				do i1=1,n1b
+					z1(1,i1,i2,1,inzee)=z3(1,i1,i2,1,inzee)
+					z1(2,i1,i2,1,inzee)=z3(2,i1,i2,1,inzee)
+				enddo
+			enddo	
+
+			do i3=2,n3f
+				! i2=1
+				! i1=1
+				z1(1,1,1,i3,inzee)=z3(1,1,1,i3,inzee)
+				z1(2,1,1,i3,inzee)=z3(2,1,1,i3,inzee)
+
+				z1(1,1,1,n3+2-i3,inzee)=z3(1,1,1,i3,inzee)
+				z1(2,1,1,n3+2-i3,inzee)=-z3(2,1,1,i3,inzee)
+
+				! i2=1
+				do i1=2,n1b
+					z1(1,i1,1,i3,inzee)=z3(1,i1,1,i3,inzee)
+					z1(2,i1,1,i3,inzee)=z3(2,i1,1,i3,inzee)
+
+					z1(1,i1,1,n3+2-i3,inzee)= z3(1,n1+2-i1,1,i3,inzee)
+					z1(2,i1,1,n3+2-i3,inzee)=-z3(2,n1+2-i1,1,i3,inzee)
+				enddo
+
+				do i2=2,n2
+					! i1=1
+					z1(1,1,i2,i3,inzee)=z3(1,1,i2,i3,inzee)
+					z1(2,1,i2,i3,inzee)=z3(2,1,i2,i3,inzee)
+
+					z1(1,1,i2,n3+2-i3,inzee)= z3(1,1,n2+2-i2,i3,inzee)
+					z1(2,1,i2,n3+2-i3,inzee)=-z3(2,1,n2+2-i2,i3,inzee)
+
+					do i1=2,n1b
+						z1(1,i1,i2,i3,inzee)=z3(1,i1,i2,i3,inzee)
+						z1(2,i1,i2,i3,inzee)=z3(2,i1,i2,i3,inzee)
+
+						z1(1,i1,i2,n3+2-i3,inzee)= z3(1,n1+2-i1,n2+2-i2,i3,inzee)
+						z1(2,i1,i2,n3+2-i3,inzee)=-z3(2,n1+2-i1,n2+2-i2,i3,inzee)
+					enddo
+				enddo
+			enddo
+								
+			end subroutine z3_to_z1
+
+	subroutine z1_to_z3(z1,z3,inzee)
+	! transforms the data from the format z1:
+	! stores the part of z with i1=<nd1b 
+	! to the format z3:
+	! stores the elements of z with even and odd values of i3
+	! as its even and odd parts w.r.t. flip of n1
+	implicit none
+	integer,intent(in)::inzee
+	real*8,intent(in):: z1(2,nd2,nd3,nd1b,2)
+	real*8,intent(out)::z3(2,nd2,nd3b,nd1,2)
+	integer i1,i2,i3
+
+	if (2*n3b.eq.n3) then 
+		! i1=1
+		do i3=1,n3b
+			do i2=1,n2
+				z3(1,i2,i3,1,inzee)= z1(1,i2,2*i3-1,1,inzee)-z1(2,i2,2*i3,1,inzee)
+				z3(2,i2,i3,1,inzee)= z1(2,i2,2*i3-1,1,inzee)+z1(1,i2,2*i3,1,inzee)
+			enddo
+		enddo
+
+		do i1=2,n1b
+			do i3=1,n3b
+				do i2=1,n2
+					z3(1,i2,i3,i1     ,inzee)= z1(1,i2,2*i3-1,i1,inzee)-z1(2,i2,2*i3,i1,inzee)
+					z3(2,i2,i3,i1     ,inzee)= z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
+					z3(1,i2,i3,n1+2-i1,inzee)= z1(1,i2,2*i3-1,i1,inzee)+z1(2,i2,2*i3,i1,inzee)
+					z3(2,i2,i3,n1+2-i1,inzee)=-z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
+				enddo
+			enddo
+		enddo
+	else  ! 2*n3b=n3+1
+		! i1=1
+		do i3=1,n3b-1
+			do i2=1,n2
+				z3(1,i2,i3,1,inzee)= z1(1,i2,2*i3-1,1,inzee)-z1(2,i2,2*i3,1,inzee)
+				z3(2,i2,i3,1,inzee)= z1(2,i2,2*i3-1,1,inzee)+z1(1,i2,2*i3,1,inzee)
+			enddo
+		enddo
+
+		do i1=2,n1b
+			do i3=1,n3b-1
+				do i2=1,n2
+					z3(1,i2,i3,i1     ,inzee)= z1(1,i2,2*i3-1,i1,inzee)-z1(2,i2,2*i3,i1,inzee)
+					z3(2,i2,i3,i1     ,inzee)= z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
+					z3(1,i2,i3,n1+2-i1,inzee)= z1(1,i2,2*i3-1,i1,inzee)+z1(2,i2,2*i3,i1,inzee)
+					z3(2,i2,i3,n1+2-i1,inzee)=-z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
+				enddo
+			enddo
+		enddo
+
+		! i3=n3b is treated separately: 2*n3b-1=n3, but the terms with 2*n3b are
+		! omitted
+
+		! i1=1
+		do i2=1,n2
+			z3(1,i2,n3b,1,inzee)= z1(1,i2,n3,1,inzee)
+			z3(2,i2,n3b,1,inzee)= z1(2,i2,n3,1,inzee)
+		enddo
+
+		do i1=2,n1b
+			do i2=1,n2
+				z3(1,i2,n3b,i1     ,inzee)= z1(1,i2,n3,i1,inzee)
+				z3(2,i2,n3b,i1     ,inzee)= z1(2,i2,n3,i1,inzee)
+				z3(1,i2,n3b,n1+2-i1,inzee)= z1(1,i2,n3,i1,inzee)
+				z3(2,i2,n3b,n1+2-i1,inzee)=-z1(2,i2,n3,i1,inzee)
+			enddo
+		enddo
+
+	endif
+
+	end subroutine z1_to_z3
+
+	subroutine z3_to_y(z3,y,inzee)
+	! transforms the output of FFT: z3, for which:
+	! real part of      z3 contains elements of y with odd  i3
+	! imaginary part of z3 contains elements of y with even i3
+
+	! into the final output: real array y.
+	implicit none
+	integer,intent(in)::inzee
+	real*8,intent(in)::z3(2,nd1,nd2,nd3b,2)
+	real*8,intent(out)::y(n1,n2,n3)
+	integer i1,i2,i3
+	real*8 fac
+
+	fac=.5d0/(n1*n2*n3)
+
+	if (2*n3b.eq.n3) then 
+		do i3=1,n3b
+			do i2=1,n2
+				do i1=1,n1
+					y(i1,i2,2*i3-1)=z3(1,i1,i2,i3,inzee)*fac
+					y(i1,i2,2*i3  )=z3(2,i1,i2,i3,inzee)*fac
+				enddo
+			enddo
+		enddo
+	else ! 2*n3b=n3+1
+		do i3=1,n3b-1
+			do i2=1,n2
+				do i1=1,n1
+					y(i1,i2,2*i3-1)=z3(1,i1,i2,i3,inzee)*fac
+					y(i1,i2,2*i3  )=z3(2,i1,i2,i3,inzee)*fac
+				enddo
+			enddo
+		enddo
+
+		! i3=n3b is treated separately: 2*n3b-1=n3, but the terms with 2*n3b are
+		! omitted
+
+		do i2=1,n2
+			do i1=1,n1
+				y(i1,i2,n3)=z3(1,i1,i2,n3b,inzee)*fac
+			enddo
+		enddo
+	endif
+
+	end subroutine z3_to_y
+
+
+		end subroutine fft_back
 
 
         subroutine ctrig(n,trig,after,before,now,isign,ic)
