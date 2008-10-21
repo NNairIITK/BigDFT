@@ -23,7 +23,7 @@ program MINHOP
   character(len=20) :: units,atmn
   character(len=80) :: line
   type(atoms_data) :: atoms
-  type(input_variables) :: inputs,inputs_opt, inputs_md
+  type(input_variables) :: inputs_opt, inputs_md
   type(restart_objects) :: rst
 ! some variable definitions are not needed anymore due to the new restart variable type
 ! type(wavefunctions_descriptors) :: wfd
@@ -140,9 +140,6 @@ program MINHOP
      !Read input parameters for geometry optimization 
      call read_input_variables(iproc,'input.dat',inputs_opt)
      call read_input_variables(iproc,'mdinput.dat',inputs_md)
-
-!DEBUG
-call copy_inputs(inputs_opt,inputs)
 
 !write(*,*) 'WARNING, coordinates scaled'
 !        pos(:,:)=pos(:,:)*8.d0
@@ -265,16 +262,14 @@ call copy_inputs(inputs_opt,inputs)
 !        alphax=1.d-3  ! LJ
 !       if (iproc.eq.0) write(67,*) alphax,'optimal stepsize for LJ systems'
     
-     call read_input_variables(iproc,'input.dat',inputs)
-     call my_input_variables(iproc,.true.,inputs)
-     inputs%inputPsiId=0
-
+     !call read_input_variables(iproc,'input.dat',inputs)
+     !call my_input_variables(iproc,.true.,inputs)
+     inputs_opt%inputPsiId=0
 
   call init_restart_objects(atoms,rst,'global')
 ! new way of initializing data
 
-     call call_bigdft(nproc,iproc,atoms,pos,inputs,e_pos,ff,rst,infocode)
-
+     call call_bigdft(nproc,iproc,atoms,pos,inputs_opt,e_pos,ff,rst,infocode)
 
      write(17,*) 'ENERGY ',e_pos
      energyold=1.d100
@@ -295,8 +290,8 @@ call copy_inputs(inputs_opt,inputs)
       if (iproc.eq.0) write(*,*)'# calling conjgrad for the first time here. energy ',e_pos
 
 
-     call my_input_variables(iproc,.true.,inputs)
-     call conjgrad(nproc,iproc,atoms,pos,e_pos,ff,rst,ncount_cluster,inputs)
+     !call my_input_variables(iproc,.true.,inputs)
+     call conjgrad(nproc,iproc,atoms,pos,e_pos,ff,rst,ncount_cluster,inputs_opt)
   if (iproc.eq.0) write(67,*) ncount_cluster,' Wvfnctn Opt. steps for accurate initial conf'
   if (iproc.eq.0) write(*,*)'# ', ncount_cluster,' Wvfnctn Opt. steps for accurate initial conf'
       nconjgr=0
@@ -342,8 +337,8 @@ call copy_inputs(inputs_opt,inputs)
            if (iproc.eq.0) write(*,*)&
               ' # Ready to continue an aborted optimization. Reading posout file ',irestart
            call rdposout(irestart,wpos,atoms%nat)
-           ncout_cluster=irestart
-           inputs%inputPsiId=0  !ALEX notices we need an input guess for the aborted geo
+           ncount_cluster=irestart
+           inputs_opt%inputPsiId=0  !ALEX notices we need an input guess for the aborted geo
            goto 5556
         end if
 
@@ -412,7 +407,7 @@ call copy_inputs(inputs_opt,inputs)
           escape=escape+1.d0
           call mdescape(mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,wpos, &
                    nproc,iproc,atoms,&
-                    rst,inputs)
+                    rst,inputs_md)
                    
           call fix_fragmentation(iproc,atoms%nat,wpos,nputback)
           
@@ -421,9 +416,9 @@ call copy_inputs(inputs_opt,inputs)
            av_ekinetic=av_ekinetic+ekinetic
            ncount_cluster=0
 5556    continue ! entry point for restart of optimization at cluster step irestart+1
-     call my_input_variables(iproc,.false.,inputs)
+     !call my_input_variables(iproc,.false.,inputs)
 
-     call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,rst,ncount_cluster,inputs)
+     call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,rst,ncount_cluster,inputs_md)
 
           if(iproc==0)then
             call timeleft(tt)
@@ -440,8 +435,8 @@ call copy_inputs(inputs_opt,inputs)
   if (iproc.eq.0) write(67,*) ncount_cluster,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
   if (iproc.eq.0) write(*,*)'# ', ncount_cluster,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
      ncount_cluster=0
-     call my_input_variables(iproc,.true.,inputs)
-     call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,rst,ncount_cluster,inputs)
+     !call my_input_variables(iproc,.true.,inputs)
+     call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,rst,ncount_cluster,inputs_opt)
 !     call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,&
 !           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,inputs)
           if(iproc==0)then
@@ -572,7 +567,7 @@ call copy_inputs(inputs_opt,inputs)
             goto 1000
           else
 !C          local minima rejected -------------------------------------------------------
-            inputs%inputPsiId=0  !ALEX says: Better do an input guess for the next escape
+            inputs_opt%inputPsiId=0  !ALEX says: Better do an input guess for the next escape
             if (iproc.eq.0) write(2,'(2(1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),l3,a)')  &
                        hopp,escape,e_wpos-eref,ediff,ekinetic, &
                        escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' R '
@@ -714,10 +709,8 @@ close(111)
    contains
 
 
-
-        subroutine mdescape(mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
-                   nproc,iproc,atoms,rst,inputs)!  &
-!                   psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs)
+subroutine mdescape(mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
+                   nproc,iproc,atoms,rst,inputs_md)!  &
 ! Does a MD run with the atomic positiosn rxyz
   use module_base
   use module_types
@@ -726,22 +719,21 @@ close(111)
      type(atoms_data) :: atoms
      type(restart_objects) :: rst
      dimension ff(3,atoms%nat),gg(3,atoms%nat),vxyz(3,atoms%nat),rxyz(3,atoms%nat),rxyz_old(3,atoms%nat)
-     type(input_variables) :: inputs
+     type(input_variables) :: inputs_md
      !type(wavefunctions_descriptors), intent(inout) :: wfd
      !real(kind=8), pointer :: psi(:), eval(:)
 
 
-     call my_input_variables(iproc,.false.,inputs)
+     !call my_input_variables(iproc,.false.,inputs_md)
 !C initialize positions,velocities, forces
         call gausdist(atoms%nat,rxyz,vxyz)
-        inputs%inputPsiId=1
+        inputs_md%inputPsiId=1
         !if(iproc==0)write(*,*)' #  no softening'
         call soften(mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
-                   nproc,iproc,atoms,rst,inputs)! &
-!                   psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs)
+                   nproc,iproc,atoms,rst,inputs_md)! &
 
         !call soften(nproc,iproc,atoms,rxyz,curv0,curv,res,it,&
-        !           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs)
+        !           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs_md)
         !if(iproc==0)write(*,'(a,i4,3(1pe11.3))')&
         ! 'MINHOP soften done'!,iter: rayl0,rayl,res=',it,rayl0,rayl,res
         call velopt(atoms%nat,rxyz,ekinetic,vxyz)
@@ -754,7 +746,7 @@ close(111)
         en0000=0.d0
         econs_max=-1.d100
         econs_min=1.d100
-        call my_input_variables(iproc,.false.,inputs)
+        !call my_input_variables(iproc,.false.,inputs_md)
         do 2000, istep=1,1000
 
 !C      Evolution of the system according to 'VELOCITY VERLET' algorithm
@@ -771,9 +763,9 @@ close(111)
         enmin1=en0000
 !        call energyandforces(nat,rxyz,ff,e_rxyz,count_md)
 !    if (iproc.eq.0) write(*,*) 'CLUSTER FOR  MD'
-     inputs%inputPsiId=1
-     if (istep.gt.2) inputs%itermax=30
-     call call_bigdft(nproc,iproc,atoms,rxyz,inputs,e_rxyz,ff,rst,infocode)
+     inputs_md%inputPsiId=1
+     if (istep.gt.2) inputs_md%itermax=30
+     call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,e_rxyz,ff,rst,infocode)
         call wtmd(istep,atoms%nat,e_rxyz,rxyz,atoms%iatype,atoms%atomnames,atoms%natpol)
 
         en0000=e_rxyz-e_pos
@@ -821,6 +813,7 @@ close(111)
         endif
    
 end  subroutine mdescape
+
 
 subroutine my_input_variables(iproc,accurate,in)
 
@@ -881,14 +874,14 @@ end subroutine my_input_variables
 
 
 subroutine soften(mdmin,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
-                   nproc,iproc,atoms,rst,inputs)! &
+                   nproc,iproc,atoms,rst,inputs_md)! &
   use module_base
   use module_types
   use module_interfaces, except_this_one => conjgrad
      implicit real*8 (a-h,o-z)
      type(atoms_data) :: atoms
      dimension fxyz(3*atoms%nat),gg(3*atoms%nat),vxyz(3*atoms%nat),rxyz(3*atoms%nat),rxyz_old(3*atoms%nat)
-     type(input_variables) :: inputs
+     type(input_variables) :: inputs_md
      type(restart_objects) :: rst
 !     type(wavefunctions_descriptors), intent(inout) :: wfd
 !     real(kind=8), pointer :: psi(:), eval(:)
@@ -904,11 +897,11 @@ subroutine soften(mdmin,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
 
         !allocate(wpos(3,nat),fxyz(3,nat))
 
-     call my_input_variables(iproc,.false.,inputs)
-     inputs%inputPsiId=1
+     !call my_input_variables(iproc,.false.,inputs_md)
+     inputs_md%inputPsiId=1
     if(iproc==0)write(*,*)'# soften initial step '
 !        call  energyandforces(nat,rxyz,fxyz,etot0,count)
-     call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot0,fxyz,rst,infocode)
+     call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,etot0,fxyz,rst,infocode)
 
 
 ! scale velocity to generate dimer 
@@ -934,7 +927,7 @@ subroutine soften(mdmin,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
 
 !        wpos=rxyz+vxyz
 !        call  energyandforces(nat,wpos,fxyz,etot,count)
-     call call_bigdft(nproc,iproc,atoms,wpos,inputs,etot,fxyz,rst,infocode)
+     call call_bigdft(nproc,iproc,atoms,wpos,inputs_md,etot,fxyz,rst,infocode)
         fd2=2.d0*(etot-etot0)/eps_vxyz**2
 
         sdf=0.d0
@@ -1003,13 +996,11 @@ subroutine soften(mdmin,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
       !if(res>curv*eps_vxyz*5.d-1)write(*,*)'# process', iproc,' has no convergence in low_cur_dir',res
 !1000   continue
 
-
-
-
 !        call  moment(nat,vxyz)
 !        call  torque(nat,rxyz,vxyz)
 !        deallocate(wpos,fxyz)
 end subroutine soften
+
 
 end program MINHOP
 !!***
@@ -1811,4 +1802,42 @@ subroutine copy_inputs(in,out)
   out%gaussian_help    = in%gaussian_help
 end subroutine copy_inputs
 
+subroutine compare_inputs(in,out)
+  use module_types, only: input_variables
+  implicit none
+  type(input_variables), intent(in) :: in, out
+  !DEBUG
+  if(out%geocode          /= in%geocode)          write(*,*) 'geocode'
+  if(out%ncount_cluster_x /= in%ncount_cluster_x) write(*,*) 'ncount_cluster'
+  if(out%frac_fluct       /= in%frac_fluct)       write(*,*) '      frac_fluct'
+  if(out%randdis          /= in%randdis)          write(*,*) '         randdis'
+  if(out%betax            /= in%betax)            write(*,*) '           betax'
+  if(out%forcemax         /= in%forcemax)         write(*,*) '        forcemax'
+  if(out%ixc              /= in%ixc)              write(*,*) '             ixc'
+  if(out%ncharge          /= in%ncharge)          write(*,*) '         ncharge'
+  if(out%itermax          /= in%itermax)          write(*,*) '         itermax'
+  if(out%ncong            /= in%ncong)            write(*,*) '           ncong'
+  if(out%idsx             /= in%idsx)             write(*,*) '            idsx'
+  if(out%ncongt           /= in%ncongt)           write(*,*) '          ncongt'
+  if(out%inputPsiId       /= in%inputPsiId)       write(*,*) '      inputPsiId'
+  if(out%nspin            /= in%nspin)            write(*,*) '           nspin'
+  if(out%mpol             /= in%mpol)             write(*,*) '            mpol'
+  if(out%nvirt            /= in%nvirt)            write(*,*) '           nvirt'
+  if(out%nplot            /= in%nplot)            write(*,*) '           nplot'
+  if(out%hgrid            /= in%hgrid)            write(*,*) '           hgrid'
+  if(out%crmult           /= in%crmult)           write(*,*) '          crmult'
+  if(out%frmult           /= in%frmult)           write(*,*) '          frmult'
+  if(out%cpmult           /= in%cpmult)           write(*,*) '          cpmult'
+  if(out%fpmult           /= in%fpmult)           write(*,*) '          fpmult'
+  if(out%elecfield        /= in%elecfield)        write(*,*) '       elecfield'
+  if(out%gnrm_cv          /= in%gnrm_cv)          write(*,*) '         gnrm_cv'
+  if(out%rbuf             /= in%rbuf)             write(*,*) '            rbuf'
+  if(out%alat1            /= in%alat1)            write(*,*) '           alat1'
+  if(out%alat2            /= in%alat2)            write(*,*) '           alat2'
+  if(out%alat3            /= in%alat3)            write(*,*) '           alat3'
+  if(out%output_grid  .neqv. in%output_grid)      write(*,*) '     output_grid'
+  if(out%output_wf    .neqv. in%output_wf)        write(*,*) '       output_wf'
+  if(out%calc_tail    .neqv. in%calc_tail)        write(*,*) '       calc_tail'
+  if(out%gaussian_help.neqv. in%gaussian_help)    write(*,*) '   gaussian_help'
+end subroutine compare_inputs
 
