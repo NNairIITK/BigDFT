@@ -1,6 +1,6 @@
 !!****p* MINHOP
 !!
-!! FUNCTION
+!! DESCRIPTION
 !!  Main program fro the minima hopping
 !!
 !! COPYRIGHT
@@ -48,8 +48,8 @@ program MINHOP
 
   character(len=41) :: filename
   character(len=5) :: fn
-        !include 'mpif.h'
 
+        !include 'mpif.h'
 
  ! Start MPI version
      call MPI_INIT(ierr)
@@ -57,7 +57,7 @@ program MINHOP
      call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
      !call system('echo $HOSTNAME')
 
-       if (iproc.eq.0)then
+     if (iproc.eq.0)then
         write(*,'(23x,a)')' '
         write(*,'(23x,a)')'      __  __ _ _  _ _   _  __  ___ '
         write(*,'(23x,a)')'     |  \/  |_| \| | |_| |/  \| _ \ '
@@ -69,9 +69,9 @@ program MINHOP
         call print_logo()
         write(*,'(23x,a)')'----> you can grep this file for # to compare with global.out'
         write(*,'(23x,a)')' #NOTE: this version reads nspin, mpol  from input.dat'
-        end if
+     end if
 
-        open(unit=67,file='global.out')
+     open(unit=67,file='global.out')
 
   write(filename,'(A,i3.3,a)')'latest.pos.force.',iproc,'.dat'
   open(unit=111,file=filename)
@@ -878,123 +878,121 @@ subroutine soften(mdmin,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
   use module_base
   use module_types
   use module_interfaces, except_this_one => conjgrad
-     implicit real*8 (a-h,o-z)
-     type(atoms_data) :: atoms
-     dimension fxyz(3*atoms%nat),gg(3*atoms%nat),vxyz(3*atoms%nat),rxyz(3*atoms%nat),rxyz_old(3*atoms%nat)
-     type(input_variables) :: inputs_md
-     type(restart_objects) :: rst
-!     type(wavefunctions_descriptors), intent(inout) :: wfd
-!     real(kind=8), pointer :: psi(:), eval(:)
-     !local variables
-     dimension wpos(3*atoms%nat)
+  implicit real*8 (a-h,o-z)
+  type(atoms_data) :: atoms
+  dimension fxyz(3*atoms%nat),gg(3*atoms%nat),vxyz(3*atoms%nat),rxyz(3*atoms%nat),rxyz_old(3*atoms%nat)
+  type(input_variables) :: inputs_md
+  type(restart_objects) :: rst
+!  type(wavefunctions_descriptors), intent(inout) :: wfd
+!  real(kind=8), pointer :: psi(:), eval(:)
+!Local variables
+  dimension wpos(3*atoms%nat)
 
-        nit=10
-        eps_vxyz=5.d-1
+  nit=10
+  eps_vxyz=5.d-1
 !       alpha=4.d-2   ! Au
 !        alpha=.8d-3  ! step size for LJ systems
-       alpha=6.d0  ! step size for Si in DFT
+  alpha=6.d0  ! step size for Si in DFT
 ! may be scaled by in%betax!
 
-        !allocate(wpos(3,nat),fxyz(3,nat))
+ !allocate(wpos(3,nat),fxyz(3,nat))
 
-     !call my_input_variables(iproc,.false.,inputs_md)
-     inputs_md%inputPsiId=1
-    if(iproc==0)write(*,*)'# soften initial step '
+ !call my_input_variables(iproc,.false.,inputs_md)
+  inputs_md%inputPsiId=1
+  if(iproc==0)write(*,*)'# soften initial step '
 !        call  energyandforces(nat,rxyz,fxyz,etot0,count)
-     call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,etot0,fxyz,rst,infocode)
-
+  call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,etot0,fxyz,rst,infocode)
 
 ! scale velocity to generate dimer 
 
-        svxyz=0.d0
-        do i=1,3*atoms%nat
-        svxyz=svxyz+vxyz(i)**2
-        enddo
-        svxyz=eps_vxyz/sqrt(svxyz)
-        do i=1,3*atoms%nat
-        vxyz(i)=svxyz*vxyz(i)
-        enddo
+  svxyz=0.d0
+  do i=1,3*atoms%nat
+     svxyz=svxyz+vxyz(i)**2
+  enddo
+  svxyz=eps_vxyz/sqrt(svxyz)
+  do i=1,3*atoms%nat
+     vxyz(i)=svxyz*vxyz(i)
+  enddo
 !equivalent to
 !      vxyz = vxyz*eps_vxyz/(dnrm2(3*atoms%nat,vxyz,1))
 
 
-    do it=1,nit
+  do it=1,nit
 !       if(iproc==0)write(*,*)'w   =      r       +       v  '
-        do i=1,3*atoms%nat
+     do i=1,3*atoms%nat
         wpos(i)=rxyz(i)+vxyz(i)
         !if(iproc==0)write(*,*)wpos(i),rxyz(i),vxyz(i)
-        end do
+     end do
 
 !        wpos=rxyz+vxyz
 !        call  energyandforces(nat,wpos,fxyz,etot,count)
      call call_bigdft(nproc,iproc,atoms,wpos,inputs_md,etot,fxyz,rst,infocode)
-        fd2=2.d0*(etot-etot0)/eps_vxyz**2
+     fd2=2.d0*(etot-etot0)/eps_vxyz**2
 
-        sdf=0.d0
-        svxyz=0.d0
-        do i=1,3*atoms%nat
+     sdf=0.d0
+     svxyz=0.d0
+     do i=1,3*atoms%nat
         sdf=sdf+vxyz(i)*fxyz(i)
         svxyz=svxyz+vxyz(i)*vxyz(i)
-        end do
+     end do
 !equivalent to
 !        sdf=ddot(3*atoms%nat,vxyz(1,1),1,fxyz(1,1),1)
 !        svxyz=dnrm2(3*atoms%nat,vxyz(1,1),1)
 
-        curv=-sdf/svxyz
-        if (it.eq.1) curv0=curv
+     curv=-sdf/svxyz
+     if (it.eq.1) curv0=curv
 
-        res=0.d0
-        tt=0.d0
-        do i=1,3*atoms%nat
+     res=0.d0
+     tt=0.d0
+     do i=1,3*atoms%nat
         tt=tt+fxyz(i)**2
         fxyz(i)=fxyz(i)+curv*vxyz(i)
         res=res+fxyz(i)**2
-        end do
-        res=sqrt(res)
-        tt=sqrt(tt)
+     end do
+     res=sqrt(res)
+     tt=sqrt(tt)
 !equivalent to
 !        tt=dsqrt(dnrm2(3*atoms%nat,fxyz(1,1),1))
 !        call daxpy(3*atoms%nat,curv,vxyz(1,1),1,fxyz(1,1),1)
 !        res=dsqrt(dnrm2(3*atoms%nat,fxyz(1,1),1))
 
-        if(iproc==0)write(*,'(a,i3,5(f12.5))')'# soften it, curv, fd2,dE and res:',&
+     if(iproc==0)write(*,'(a,i3,5(f12.5))')'# soften it, curv, fd2,dE and res:',&
                                                        it, curv, fd2,etot-etot0,res
-        !if(iproc==0)write(11,'(i5,4(1pe13.5),1pe18.10)')&
-        !if(iproc==0)write(11,*)&
-        !        it,tt,res,curv,fd2,etot-etot0
+     !if(iproc==0)write(11,'(i5,4(1pe13.5),1pe18.10)')&
+     !if(iproc==0)write(11,*)&
+     !        it,tt,res,curv,fd2,etot-etot0
 
-        do i=1,3*atoms%nat
+     do i=1,3*atoms%nat
         wpos(i)=wpos(i)+alpha*fxyz(i)
-        end do
-        do i=1,3*atoms%nat
+     end do
+     do i=1,3*atoms%nat
         vxyz(i)=wpos(i)-rxyz(i)
-        end do
+     end do
 !equivalent to
 !        call daxpy(3*atoms%nat,alpha,fxyz(1),1,wpos(1),1)
 !        vxyz=wpos-rxyz
 
-        call  elim_moment(atoms%nat,vxyz)
-        call  elim_torque(atoms%nat,rxyz,vxyz)
+     call  elim_moment(atoms%nat,vxyz)
+     call  elim_torque(atoms%nat,rxyz,vxyz)
 
-        svxyz=0.d0
-        do i=1,3*atoms%nat
-          svxyz=svxyz+vxyz(i)*vxyz(i)
-        end do
+     svxyz=0.d0
+     do i=1,3*atoms%nat
+        svxyz=svxyz+vxyz(i)*vxyz(i)
+     end do
 !equivalent to
 !        svxyz=dnrm2(3*atoms%nat,vxyz(1),1)**2
-        if (res.le.curv*eps_vxyz*5.d-1)exit! goto 1000
-        svxyz=eps_vxyz/dsqrt(svxyz)
+     if (res.le.curv*eps_vxyz*5.d-1) exit
+     svxyz=eps_vxyz/dsqrt(svxyz)
 
-        do i=1,3*atoms%nat
-          vxyz(i)=vxyz(i)*svxyz
-        end do
+     do i=1,3*atoms%nat
+        vxyz(i)=vxyz(i)*svxyz
+     end do
 !equivalent to
 !        call dscal(3*atoms%nat,svxyz,vxyz(1),1)
 
-      end do ! iter
-      !if(iproc==0)close(11)
-      !if(res>curv*eps_vxyz*5.d-1)write(*,*)'# process', iproc,' has no convergence in low_cur_dir',res
-!1000   continue
+  end do ! iter
+  !if(iproc==0)close(11)
+  !if(res>curv*eps_vxyz*5.d-1)write(*,*)'# process', iproc,' has no convergence in low_cur_dir',res
 
 !        call  moment(nat,vxyz)
 !        call  torque(nat,rxyz,vxyz)

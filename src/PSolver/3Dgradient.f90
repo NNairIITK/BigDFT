@@ -23,20 +23,21 @@
 !!
 !! SOURCE
 !!
-subroutine wb_correction(n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
+subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
      wb_vxc)
  implicit none
  !Arguments
+ character(len=1), intent(in) :: geocode
  integer, intent(in) :: n1,n2,n3,n3grad,wbl,wbr,nspden
- real(kind=8), intent(in) :: hx,hy,hz
- real(kind=8), dimension(n1,n2,n3,3,nspden), intent(in) :: f_i
- real(kind=8), dimension(n1,n2,n3,nspden), intent(inout) :: wb_vxc
+ real(gp), intent(in) :: hx,hy,hz
+ real(dp), dimension(n1,n2,n3,3,nspden), intent(in) :: f_i
+ real(dp), dimension(n1,n2,n3,nspden), intent(inout) :: wb_vxc
  !Local variables
- integer :: i1,i2,i3,idir,ispden
+ integer :: i1,i2,i3,idir,ispden,i3s,i3e
  !filters of finite difference derivative for order 4
- real(kind=8), parameter :: a1=0.8d0, a2=-0.2d0
- real(kind=8), parameter :: a3=0.038095238095238095238d0, a4=-0.0035714285714285714286d0
- real(kind=8) :: derx,dery,derz,c1,c2,c3,c4
+ real(dp), parameter :: a1=0.8d0, a2=-0.2d0
+ real(dp), parameter :: a3=0.038095238095238095238d0, a4=-0.0035714285714285714286d0
+ real(dp) :: derx,dery,derz,c1,c2,c3,c4
  !Body
 
  !some check
@@ -45,6 +46,12 @@ subroutine wb_correction(n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
          'wbl=',wbl,'wbr=',wbr
     stop
  end if
+ if (geocode /='F' .and. wbl /= wbr ) then
+    print *,'wb_correction:incompatibility of the dimensions, n3=',n3,'n3grad=',n3grad,&
+         'wbl=',wbl,'wbr=',wbr,'geocode',geocode
+    stop
+ end if
+
 
  !coefficients to calculate the wb correction to the gradient
  c4=a4
@@ -58,245 +65,470 @@ subroutine wb_correction(n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
     !loop over the different directions
 
     !x direction
+    if (geocode == 'F') then
+       do i3=wbl,n3grad+wbl-1
+          do i2=1,n2
+             derx=-c1*f_i(1,i2,i3,1,ispden)&
+                  -c1*f_i(2,i2,i3,1,ispden)&
+                  -c2*f_i(3,i2,i3,1,ispden)&
+                  -c3*f_i(4,i2,i3,1,ispden)&
+                  -c4*f_i(5,i2,i3,1,ispden)
+             wb_vxc(1,i2,i3,ispden)=wb_vxc(1,i2,i3,ispden)+derx/hx
 
-    do i3=wbl,n3grad+wbl-1
-       do i2=1,n2
-          derx=-c1*f_i(1,i2,i3,1,ispden)&
-               -c1*f_i(2,i2,i3,1,ispden)&
-               -c2*f_i(3,i2,i3,1,ispden)&
-               -c3*f_i(4,i2,i3,1,ispden)&
-               -c4*f_i(5,i2,i3,1,ispden)
-          wb_vxc(1,i2,i3,ispden)=wb_vxc(1,i2,i3,ispden)+derx/hx
+             derx=&
+                  a1*f_i(1,i2,i3,1,ispden)&
+                  -a1*f_i(3,i2,i3,1,ispden)-a2*f_i(4,i2,i3,1,ispden)&
+                  -a3*f_i(5,i2,i3,1,ispden)-a4*f_i(6,i2,i3,1,ispden)
+             wb_vxc(2,i2,i3,ispden)=wb_vxc(2,i2,i3,ispden)+derx/hx
 
-          derx=&
-               a1*f_i(1,i2,i3,1,ispden)&
-               -a1*f_i(3,i2,i3,1,ispden)-a2*f_i(4,i2,i3,1,ispden)&
-               -a3*f_i(5,i2,i3,1,ispden)-a4*f_i(6,i2,i3,1,ispden)
-          wb_vxc(2,i2,i3,ispden)=wb_vxc(2,i2,i3,ispden)+derx/hx
+             derx=&
+                  a2*f_i(1,i2,i3,1,ispden)+a1*f_i(2,i2,i3,1,ispden)&
+                  -a1*f_i(4,i2,i3,1,ispden)-a2*f_i(5,i2,i3,1,ispden)&
+                  -a3*f_i(6,i2,i3,1,ispden)-a4*f_i(7,i2,i3,1,ispden)
+             wb_vxc(3,i2,i3,ispden)=wb_vxc(3,i2,i3,ispden)+derx/hx
 
-          derx=&
-               a2*f_i(1,i2,i3,1,ispden)+a1*f_i(2,i2,i3,1,ispden)&
-               -a1*f_i(4,i2,i3,1,ispden)-a2*f_i(5,i2,i3,1,ispden)&
-               -a3*f_i(6,i2,i3,1,ispden)-a4*f_i(7,i2,i3,1,ispden)
-          wb_vxc(3,i2,i3,ispden)=wb_vxc(3,i2,i3,ispden)+derx/hx
+             derx=a3*f_i(1,i2,i3,1,ispden)&
+                  +a2*f_i(2,i2,i3,1,ispden)+a1*f_i(3,i2,i3,1,ispden)&
+                  -a1*f_i(5,i2,i3,1,ispden)-a2*f_i(6,i2,i3,1,ispden)&
+                  -a3*f_i(7,i2,i3,1,ispden)-a4*f_i(8,i2,i3,1,ispden)
+             wb_vxc(4,i2,i3,ispden)=wb_vxc(4,i2,i3,ispden)+derx/hx
 
-          derx=a3*f_i(1,i2,i3,1,ispden)&
-               +a2*f_i(2,i2,i3,1,ispden)+a1*f_i(3,i2,i3,1,ispden)&
-               -a1*f_i(5,i2,i3,1,ispden)-a2*f_i(6,i2,i3,1,ispden)&
-               -a3*f_i(7,i2,i3,1,ispden)-a4*f_i(8,i2,i3,1,ispden)
-          wb_vxc(4,i2,i3,ispden)=wb_vxc(4,i2,i3,ispden)+derx/hx
+             do i1=5,n1-4
+                derx=-a1*(f_i(i1+1,i2,i3,1,ispden)-f_i(i1-1,i2,i3,1,ispden))&
+                     -a2*(f_i(i1+2,i2,i3,1,ispden)-f_i(i1-2,i2,i3,1,ispden))&
+                     -a3*(f_i(i1+3,i2,i3,1,ispden)-f_i(i1-3,i2,i3,1,ispden))&
+                     -a4*(f_i(i1+4,i2,i3,1,ispden)-f_i(i1-4,i2,i3,1,ispden))
+                wb_vxc(i1,i2,i3,ispden)=wb_vxc(i1,i2,i3,ispden)+derx/hx
+             end do
 
-          do i1=5,n1-4
-             derx=-a1*(f_i(i1+1,i2,i3,1,ispden)-f_i(i1-1,i2,i3,1,ispden))&
-                  -a2*(f_i(i1+2,i2,i3,1,ispden)-f_i(i1-2,i2,i3,1,ispden))&
-                  -a3*(f_i(i1+3,i2,i3,1,ispden)-f_i(i1-3,i2,i3,1,ispden))&
-                  -a4*(f_i(i1+4,i2,i3,1,ispden)-f_i(i1-4,i2,i3,1,ispden))
-             wb_vxc(i1,i2,i3,ispden)=wb_vxc(i1,i2,i3,ispden)+derx/hx
+             derx=-a1*(f_i(n1-2,i2,i3,1,ispden)-f_i(n1-4,i2,i3,1,ispden))&
+                  -a2*(f_i(n1-1,i2,i3,1,ispden)-f_i(n1-5,i2,i3,1,ispden))&
+                  -a3*(f_i(n1,i2,i3,1,ispden)-f_i(n1-6,i2,i3,1,ispden))&
+                  -a4*(-f_i(n1-7,i2,i3,1,ispden))
+             wb_vxc(n1-3,i2,i3,ispden)=wb_vxc(n1-3,i2,i3,ispden)+derx/hx
+
+             derx=-a1*(f_i(n1-1,i2,i3,1,ispden)-f_i(n1-3,i2,i3,1,ispden))&
+                  -a2*(f_i(n1,i2,i3,1,ispden)-f_i(n1-4,i2,i3,1,ispden))&
+                  -a3*(-f_i(n1-5,i2,i3,1,ispden))&
+                  -a4*(-f_i(n1-6,i2,i3,1,ispden))
+             wb_vxc(n1-2,i2,i3,ispden)=wb_vxc(n1-2,i2,i3,ispden)+derx/hx
+
+             derx=-a1*(f_i(n1,i2,i3,1,ispden)-f_i(n1-2,i2,i3,1,ispden))&
+                  -a2*(-f_i(n1-3,i2,i3,1,ispden))&
+                  -a3*(-f_i(n1-4,i2,i3,1,ispden))&
+                  -a4*(-f_i(n1-5,i2,i3,1,ispden))
+             wb_vxc(n1-1,i2,i3,ispden)=wb_vxc(n1-1,i2,i3,ispden)+derx/hx
+
+             derx= c1*f_i(n1,i2,i3,1,ispden)&
+                  +c1*f_i(n1-1,i2,i3,1,ispden)&
+                  +c2*f_i(n1-2,i2,i3,1,ispden)&
+                  +c3*f_i(n1-3,i2,i3,1,ispden)&
+                  +c4*f_i(n1-4,i2,i3,1,ispden)
+             wb_vxc(n1,i2,i3,ispden)=wb_vxc(n1,i2,i3,ispden)+derx/hx
           end do
-
-          derx=-a1*(f_i(n1-2,i2,i3,1,ispden)-f_i(n1-4,i2,i3,1,ispden))&
-               -a2*(f_i(n1-1,i2,i3,1,ispden)-f_i(n1-5,i2,i3,1,ispden))&
-               -a3*(f_i(n1,i2,i3,1,ispden)-f_i(n1-6,i2,i3,1,ispden))&
-               -a4*(-f_i(n1-7,i2,i3,1,ispden))
-          wb_vxc(n1-3,i2,i3,ispden)=wb_vxc(n1-3,i2,i3,ispden)+derx/hx
-
-          derx=-a1*(f_i(n1-1,i2,i3,1,ispden)-f_i(n1-3,i2,i3,1,ispden))&
-               -a2*(f_i(n1,i2,i3,1,ispden)-f_i(n1-4,i2,i3,1,ispden))&
-               -a3*(-f_i(n1-5,i2,i3,1,ispden))&
-               -a4*(-f_i(n1-6,i2,i3,1,ispden))
-          wb_vxc(n1-2,i2,i3,ispden)=wb_vxc(n1-2,i2,i3,ispden)+derx/hx
-
-          derx=-a1*(f_i(n1,i2,i3,1,ispden)-f_i(n1-2,i2,i3,1,ispden))&
-               -a2*(-f_i(n1-3,i2,i3,1,ispden))&
-               -a3*(-f_i(n1-4,i2,i3,1,ispden))&
-               -a4*(-f_i(n1-5,i2,i3,1,ispden))
-          wb_vxc(n1-1,i2,i3,ispden)=wb_vxc(n1-1,i2,i3,ispden)+derx/hx
-
-          derx= c1*f_i(n1,i2,i3,1,ispden)&
-               +c1*f_i(n1-1,i2,i3,1,ispden)&
-               +c2*f_i(n1-2,i2,i3,1,ispden)&
-               +c3*f_i(n1-3,i2,i3,1,ispden)&
-               +c4*f_i(n1-4,i2,i3,1,ispden)
-          wb_vxc(n1,i2,i3,ispden)=wb_vxc(n1,i2,i3,ispden)+derx/hx
        end do
-    end do
+    else !surface or periodic case is the same for x direction
+       do i3=wbl,n3grad+wbl-1
+          do i2=1,n2
+             derx=-a1*(f_i(2,i2,i3,1,ispden)-f_i(n1,i2,i3,1,ispden))&
+                  -a2*(f_i(3,i2,i3,1,ispden)-f_i(n1-1,i2,i3,1,ispden))&
+                  -a3*(f_i(4,i2,i3,1,ispden)-f_i(n1-2,i2,i3,1,ispden))&
+                  -a4*(f_i(5,i2,i3,1,ispden)-f_i(n1-3,i2,i3,1,ispden))
+             wb_vxc(1,i2,i3,ispden)=wb_vxc(1,i2,i3,ispden)+derx/hx
+
+             derx=-a1*(f_i(3,i2,i3,1,ispden)-f_i(1,i2,i3,1,ispden))&
+                  -a2*(f_i(4,i2,i3,1,ispden)-f_i(n1,i2,i3,1,ispden))&
+                  -a3*(f_i(5,i2,i3,1,ispden)-f_i(n1-1,i2,i3,1,ispden))&
+                  -a4*(f_i(6,i2,i3,1,ispden)-f_i(n1-2,i2,i3,1,ispden))
+             wb_vxc(2,i2,i3,ispden)=wb_vxc(2,i2,i3,ispden)+derx/hx
+
+             derx=-a1*(f_i(4,i2,i3,1,ispden)-f_i(2,i2,i3,1,ispden))&
+                  -a2*(f_i(5,i2,i3,1,ispden)-f_i(1,i2,i3,1,ispden))&
+                  -a3*(f_i(6,i2,i3,1,ispden)-f_i(n1,i2,i3,1,ispden))&
+                  -a4*(f_i(7,i2,i3,1,ispden)-f_i(n1-1,i2,i3,1,ispden))
+             wb_vxc(3,i2,i3,ispden)=wb_vxc(3,i2,i3,ispden)+derx/hx
+
+             derx=-a1*(f_i(5,i2,i3,1,ispden)-f_i(3,i2,i3,1,ispden))&
+                  -a2*(f_i(6,i2,i3,1,ispden)-f_i(2,i2,i3,1,ispden))&
+                  -a3*(f_i(7,i2,i3,1,ispden)-f_i(1,i2,i3,1,ispden))&
+                  -a4*(f_i(8,i2,i3,1,ispden)-f_i(n1,i2,i3,1,ispden))
+             wb_vxc(4,i2,i3,ispden)=wb_vxc(4,i2,i3,ispden)+derx/hx
+
+             do i1=5,n1-4
+                derx=-a1*(f_i(i1+1,i2,i3,1,ispden)-f_i(i1-1,i2,i3,1,ispden))&
+                     -a2*(f_i(i1+2,i2,i3,1,ispden)-f_i(i1-2,i2,i3,1,ispden))&
+                     -a3*(f_i(i1+3,i2,i3,1,ispden)-f_i(i1-3,i2,i3,1,ispden))&
+                     -a4*(f_i(i1+4,i2,i3,1,ispden)-f_i(i1-4,i2,i3,1,ispden))
+                wb_vxc(i1,i2,i3,ispden)=wb_vxc(i1,i2,i3,ispden)+derx/hx
+             end do
+
+             derx=-a1*(f_i(n1-2,i2,i3,1,ispden)-f_i(n1-4,i2,i3,1,ispden))&
+                  -a2*(f_i(n1-1,i2,i3,1,ispden)-f_i(n1-5,i2,i3,1,ispden))&
+                  -a3*(f_i(n1,i2,i3,1,ispden)-f_i(n1-6,i2,i3,1,ispden))&
+                  -a4*(f_i(1,i2,i3,1,ispden)-f_i(n1-7,i2,i3,1,ispden))
+             wb_vxc(n1-3,i2,i3,ispden)=wb_vxc(n1-3,i2,i3,ispden)+derx/hx
+
+             derx=-a1*(f_i(n1-1,i2,i3,1,ispden)-f_i(n1-3,i2,i3,1,ispden))&
+                  -a2*(f_i(n1,i2,i3,1,ispden)-f_i(n1-4,i2,i3,1,ispden))&
+                  -a3*(f_i(1,i2,i3,1,ispden)-f_i(n1-5,i2,i3,1,ispden))&
+                  -a4*(f_i(2,i2,i3,1,ispden)-f_i(n1-6,i2,i3,1,ispden))
+             wb_vxc(n1-2,i2,i3,ispden)=wb_vxc(n1-2,i2,i3,ispden)+derx/hx
+
+             derx=-a1*(f_i(n1,i2,i3,1,ispden)-f_i(n1-2,i2,i3,1,ispden))&
+                  -a2*(f_i(1,i2,i3,1,ispden)-f_i(n1-3,i2,i3,1,ispden))&
+                  -a3*(f_i(2,i2,i3,1,ispden)-f_i(n1-4,i2,i3,1,ispden))&
+                  -a4*(f_i(3,i2,i3,1,ispden)-f_i(n1-5,i2,i3,1,ispden))
+             wb_vxc(n1-1,i2,i3,ispden)=wb_vxc(n1-1,i2,i3,ispden)+derx/hx
+
+             derx=-a1*(f_i(1,i2,i3,1,ispden)-f_i(n1-1,i2,i3,1,ispden))&
+                  -a2*(f_i(2,i2,i3,1,ispden)-f_i(n1-2,i2,i3,1,ispden))&
+                  -a3*(f_i(3,i2,i3,1,ispden)-f_i(n1-3,i2,i3,1,ispden))&
+                  -a4*(f_i(4,i2,i3,1,ispden)-f_i(n1-4,i2,i3,1,ispden))
+             wb_vxc(n1,i2,i3,ispden)=wb_vxc(n1,i2,i3,ispden)+derx/hx
+          end do
+       end do
+    end if
 
     !y direction
-
-    do i3=wbl,n3grad+wbl-1
-       do i1=1,n1
-          dery=-c1*f_i(i1,1,i3,2,ispden)&
-               -c1*f_i(i1,2,i3,2,ispden)&
-               -c2*f_i(i1,3,i3,2,ispden)&
-               -c3*f_i(i1,4,i3,2,ispden)&
-               -c4*f_i(i1,5,i3,2,ispden)
-          wb_vxc(i1,1,i3,ispden)=wb_vxc(i1,1,i3,ispden)+dery/hy
-       end do
-       do i1=1,n1
-          dery=&
-               a1*f_i(i1,1,i3,2,ispden)&
-               -a1*f_i(i1,3,i3,2,ispden)-a2*f_i(i1,4,i3,2,ispden)&
-               -a3*f_i(i1,5,i3,2,ispden)-a4*f_i(i1,6,i3,2,ispden)
-          wb_vxc(i1,2,i3,ispden)=wb_vxc(i1,2,i3,ispden)+dery/hy
-       end do
-       do i1=1,n1
-          dery=&
-               a2*f_i(i1,1,i3,2,ispden)+a1*f_i(i1,2,i3,2,ispden)&
-               -a1*f_i(i1,4,i3,2,ispden)-a2*f_i(i1,5,i3,2,ispden)&
-               -a3*f_i(i1,6,i3,2,ispden)-a4*f_i(i1,7,i3,2,ispden)
-          wb_vxc(i1,3,i3,ispden)=wb_vxc(i1,3,i3,ispden)+dery/hy
-       end do
-       do i1=1,n1
-          dery=a3*f_i(i1,1,i3,2,ispden)&
-               +a2*f_i(i1,2,i3,2,ispden)+a1*f_i(i1,3,i3,2,ispden)&
-               -a1*f_i(i1,5,i3,2,ispden)-a2*f_i(i1,6,i3,2,ispden)&
-               -a3*f_i(i1,7,i3,2,ispden)-a4*f_i(i1,8,i3,2,ispden)
-          wb_vxc(i1,4,i3,ispden)=wb_vxc(i1,4,i3,ispden)+dery/hy
-       end do
-       do i2=5,n2-4
+    if (geocode /= 'P') then
+       !only the periodic case is periodic in y
+       do i3=wbl,n3grad+wbl-1
           do i1=1,n1
-             dery=-a1*(f_i(i1,i2+1,i3,2,ispden)-f_i(i1,i2-1,i3,2,ispden))&
-                  -a2*(f_i(i1,i2+2,i3,2,ispden)-f_i(i1,i2-2,i3,2,ispden))&
-                  -a3*(f_i(i1,i2+3,i3,2,ispden)-f_i(i1,i2-3,i3,2,ispden))&
-                  -a4*(f_i(i1,i2+4,i3,2,ispden)-f_i(i1,i2-4,i3,2,ispden))
-             wb_vxc(i1,i2,i3,ispden)=wb_vxc(i1,i2,i3,ispden)+dery/hy
+             dery=-c1*f_i(i1,1,i3,2,ispden)&
+                  -c1*f_i(i1,2,i3,2,ispden)&
+                  -c2*f_i(i1,3,i3,2,ispden)&
+                  -c3*f_i(i1,4,i3,2,ispden)&
+                  -c4*f_i(i1,5,i3,2,ispden)
+             wb_vxc(i1,1,i3,ispden)=wb_vxc(i1,1,i3,ispden)+dery/hy
+          end do
+          do i1=1,n1
+             dery=&
+                  a1*f_i(i1,1,i3,2,ispden)&
+                  -a1*f_i(i1,3,i3,2,ispden)-a2*f_i(i1,4,i3,2,ispden)&
+                  -a3*f_i(i1,5,i3,2,ispden)-a4*f_i(i1,6,i3,2,ispden)
+             wb_vxc(i1,2,i3,ispden)=wb_vxc(i1,2,i3,ispden)+dery/hy
+          end do
+          do i1=1,n1
+             dery=&
+                  a2*f_i(i1,1,i3,2,ispden)+a1*f_i(i1,2,i3,2,ispden)&
+                  -a1*f_i(i1,4,i3,2,ispden)-a2*f_i(i1,5,i3,2,ispden)&
+                  -a3*f_i(i1,6,i3,2,ispden)-a4*f_i(i1,7,i3,2,ispden)
+             wb_vxc(i1,3,i3,ispden)=wb_vxc(i1,3,i3,ispden)+dery/hy
+          end do
+          do i1=1,n1
+             dery=a3*f_i(i1,1,i3,2,ispden)&
+                  +a2*f_i(i1,2,i3,2,ispden)+a1*f_i(i1,3,i3,2,ispden)&
+                  -a1*f_i(i1,5,i3,2,ispden)-a2*f_i(i1,6,i3,2,ispden)&
+                  -a3*f_i(i1,7,i3,2,ispden)-a4*f_i(i1,8,i3,2,ispden)
+             wb_vxc(i1,4,i3,ispden)=wb_vxc(i1,4,i3,ispden)+dery/hy
+          end do
+          do i2=5,n2-4
+             do i1=1,n1
+                dery=-a1*(f_i(i1,i2+1,i3,2,ispden)-f_i(i1,i2-1,i3,2,ispden))&
+                     -a2*(f_i(i1,i2+2,i3,2,ispden)-f_i(i1,i2-2,i3,2,ispden))&
+                     -a3*(f_i(i1,i2+3,i3,2,ispden)-f_i(i1,i2-3,i3,2,ispden))&
+                     -a4*(f_i(i1,i2+4,i3,2,ispden)-f_i(i1,i2-4,i3,2,ispden))
+                wb_vxc(i1,i2,i3,ispden)=wb_vxc(i1,i2,i3,ispden)+dery/hy
+             end do
+          end do
+          do i1=1,n1
+             dery=-a1*(f_i(i1,n2-2,i3,2,ispden)-f_i(i1,n2-4,i3,2,ispden))&
+                  -a2*(f_i(i1,n2-1,i3,2,ispden)-f_i(i1,n2-5,i3,2,ispden))&
+                  -a3*(f_i(i1,n2,i3,2,ispden)-f_i(i1,n2-6,i3,2,ispden))&
+                  -a4*(-f_i(i1,n2-7,i3,2,ispden))
+             wb_vxc(i1,n2-3,i3,ispden)=wb_vxc(i1,n2-3,i3,ispden)+dery/hy
+          end do
+          do i1=1,n1
+             dery=-a1*(f_i(i1,n2-1,i3,2,ispden)-f_i(i1,n2-3,i3,2,ispden))&
+                  -a2*(f_i(i1,n2,i3,2,ispden)-f_i(i1,n2-4,i3,2,ispden))&
+                  -a3*(-f_i(i1,n2-5,i3,2,ispden))&
+                  -a4*(-f_i(i1,n2-6,i3,2,ispden))
+             wb_vxc(i1,n2-2,i3,ispden)=wb_vxc(i1,n2-2,i3,ispden)+dery/hy
+          end do
+          do i1=1,n1
+             dery=-a1*(f_i(i1,n2,i3,2,ispden)-f_i(i1,n2-2,i3,2,ispden))&
+                  -a2*(-f_i(i1,n2-3,i3,2,ispden))&
+                  -a3*(-f_i(i1,n2-4,i3,2,ispden))&
+                  -a4*(-f_i(i1,n2-5,i3,2,ispden))
+             wb_vxc(i1,n2-1,i3,ispden)=wb_vxc(i1,n2-1,i3,ispden)+dery/hy
+          end do
+          do i1=1,n1
+             dery= c1*f_i(i1,n2,i3,2,ispden)&
+                  +c1*f_i(i1,n2-1,i3,2,ispden)&
+                  +c2*f_i(i1,n2-2,i3,2,ispden)&
+                  +c3*f_i(i1,n2-3,i3,2,ispden)&
+                  +c4*f_i(i1,n2-4,i3,2,ispden)
+             wb_vxc(i1,n2,i3,ispden)=wb_vxc(i1,n2,i3,ispden)+dery/hy
           end do
        end do
-       do i1=1,n1
-          dery=-a1*(f_i(i1,n2-2,i3,2,ispden)-f_i(i1,n2-4,i3,2,ispden))&
-               -a2*(f_i(i1,n2-1,i3,2,ispden)-f_i(i1,n2-5,i3,2,ispden))&
-               -a3*(f_i(i1,n2,i3,2,ispden)-f_i(i1,n2-6,i3,2,ispden))&
-               -a4*(-f_i(i1,n2-7,i3,2,ispden))
-          wb_vxc(i1,n2-3,i3,ispden)=wb_vxc(i1,n2-3,i3,ispden)+dery/hy
+    else
+       do i3=wbl,n3grad+wbl-1
+          do i1=1,n1
+             dery=-a1*(f_i(i1,2,i3,2,ispden)-f_i(i1,n2,i3,2,ispden))&
+                  -a2*(f_i(i1,3,i3,2,ispden)-f_i(i1,n2-1,i3,2,ispden))&
+                  -a3*(f_i(i1,4,i3,2,ispden)-f_i(i1,n2-2,i3,2,ispden))&
+                  -a4*(f_i(i1,5,i3,2,ispden)-f_i(i1,n2-3,i3,2,ispden))
+             wb_vxc(i1,1,i3,ispden)=wb_vxc(i1,1,i3,ispden)+dery/hy
+          end do
+          do i1=1,n1
+             dery=-a1*(f_i(i1,3,i3,2,ispden)-f_i(i1,1,i3,2,ispden))&
+                  -a2*(f_i(i1,4,i3,2,ispden)-f_i(i1,n2,i3,2,ispden))&
+                  -a3*(f_i(i1,5,i3,2,ispden)-f_i(i1,n2-1,i3,2,ispden))&
+                  -a4*(f_i(i1,6,i3,2,ispden)-f_i(i1,n2-2,i3,2,ispden))
+             wb_vxc(i1,2,i3,ispden)=wb_vxc(i1,2,i3,ispden)+dery/hy
+          end do
+          do i1=1,n1
+             dery=-a1*(f_i(i1,4,i3,2,ispden)-f_i(i1,2,i3,2,ispden))&
+                  -a2*(f_i(i1,5,i3,2,ispden)-f_i(i1,1,i3,2,ispden))&
+                  -a3*(f_i(i1,6,i3,2,ispden)-f_i(i1,n2,i3,2,ispden))&
+                  -a4*(f_i(i1,7,i3,2,ispden)-f_i(i1,n2-1,i3,2,ispden))
+             wb_vxc(i1,3,i3,ispden)=wb_vxc(i1,3,i3,ispden)+dery/hy
+          end do
+          do i1=1,n1
+             dery=-a1*(f_i(i1,5,i3,2,ispden)-f_i(i1,3,i3,2,ispden))&
+                  -a2*(f_i(i1,6,i3,2,ispden)-f_i(i1,2,i3,2,ispden))&
+                  -a3*(f_i(i1,7,i3,2,ispden)-f_i(i1,1,i3,2,ispden))&
+                  -a4*(f_i(i1,8,i3,2,ispden)-f_i(i1,n2,i3,2,ispden))
+             wb_vxc(i1,4,i3,ispden)=wb_vxc(i1,4,i3,ispden)+dery/hy
+          end do
+          do i2=5,n2-4
+             do i1=1,n1
+                dery=-a1*(f_i(i1,i2+1,i3,2,ispden)-f_i(i1,i2-1,i3,2,ispden))&
+                     -a2*(f_i(i1,i2+2,i3,2,ispden)-f_i(i1,i2-2,i3,2,ispden))&
+                     -a3*(f_i(i1,i2+3,i3,2,ispden)-f_i(i1,i2-3,i3,2,ispden))&
+                     -a4*(f_i(i1,i2+4,i3,2,ispden)-f_i(i1,i2-4,i3,2,ispden))
+                wb_vxc(i1,i2,i3,ispden)=wb_vxc(i1,i2,i3,ispden)+dery/hy
+             end do
+          end do
+          do i1=1,n1
+             dery=-a1*(f_i(i1,n2-2,i3,2,ispden)-f_i(i1,n2-4,i3,2,ispden))&
+                  -a2*(f_i(i1,n2-1,i3,2,ispden)-f_i(i1,n2-5,i3,2,ispden))&
+                  -a3*(f_i(i1,n2,i3,2,ispden)-f_i(i1,n2-6,i3,2,ispden))&
+                  -a4*(f_i(i1,1,i3,2,ispden)-f_i(i1,n2-7,i3,2,ispden))
+             wb_vxc(i1,n2-3,i3,ispden)=wb_vxc(i1,n2-3,i3,ispden)+dery/hy
+          end do
+          do i1=1,n1
+             dery=-a1*(f_i(i1,n2-1,i3,2,ispden)-f_i(i1,n2-3,i3,2,ispden))&
+                  -a2*(f_i(i1,n2,i3,2,ispden)-f_i(i1,n2-4,i3,2,ispden))&
+                  -a3*(f_i(i1,1,i3,2,ispden)-f_i(i1,n2-5,i3,2,ispden))&
+                  -a4*(f_i(i1,2,i3,2,ispden)-f_i(i1,n2-6,i3,2,ispden))
+             wb_vxc(i1,n2-2,i3,ispden)=wb_vxc(i1,n2-2,i3,ispden)+dery/hy
+          end do
+          do i1=1,n1
+             dery=-a1*(f_i(i1,n2,i3,2,ispden)-f_i(i1,n2-2,i3,2,ispden))&
+                  -a2*(f_i(i1,1,i3,2,ispden)-f_i(i1,n2-3,i3,2,ispden))&
+                  -a3*(f_i(i1,2,i3,2,ispden)-f_i(i1,n2-4,i3,2,ispden))&
+                  -a4*(f_i(i1,3,i3,2,ispden)-f_i(i1,n2-5,i3,2,ispden))
+             wb_vxc(i1,n2-1,i3,ispden)=wb_vxc(i1,n2-1,i3,ispden)+dery/hy
+          end do
+          do i1=1,n1
+             dery=-a1*(f_i(i1,1,i3,2,ispden)-f_i(i1,n2-1,i3,2,ispden))&
+                  -a2*(f_i(i1,2,i3,2,ispden)-f_i(i1,n2-2,i3,2,ispden))&
+                  -a3*(f_i(i1,3,i3,2,ispden)-f_i(i1,n2-3,i3,2,ispden))&
+                  -a4*(f_i(i1,4,i3,2,ispden)-f_i(i1,n2-4,i3,2,ispden))
+             wb_vxc(i1,n2,i3,ispden)=wb_vxc(i1,n2,i3,ispden)+dery/hy
+          end do
        end do
-       do i1=1,n1
-          dery=-a1*(f_i(i1,n2-1,i3,2,ispden)-f_i(i1,n2-3,i3,2,ispden))&
-               -a2*(f_i(i1,n2,i3,2,ispden)-f_i(i1,n2-4,i3,2,ispden))&
-               -a3*(-f_i(i1,n2-5,i3,2,ispden))&
-               -a4*(-f_i(i1,n2-6,i3,2,ispden))
-          wb_vxc(i1,n2-2,i3,ispden)=wb_vxc(i1,n2-2,i3,ispden)+dery/hy
-       end do
-       do i1=1,n1
-          dery=-a1*(f_i(i1,n2,i3,2,ispden)-f_i(i1,n2-2,i3,2,ispden))&
-               -a2*(-f_i(i1,n2-3,i3,2,ispden))&
-               -a3*(-f_i(i1,n2-4,i3,2,ispden))&
-               -a4*(-f_i(i1,n2-5,i3,2,ispden))
-          wb_vxc(i1,n2-1,i3,ispden)=wb_vxc(i1,n2-1,i3,ispden)+dery/hy
-       end do
-       do i1=1,n1
-          dery= c1*f_i(i1,n2,i3,2,ispden)&
-               +c1*f_i(i1,n2-1,i3,2,ispden)&
-               +c2*f_i(i1,n2-2,i3,2,ispden)&
-               +c3*f_i(i1,n2-3,i3,2,ispden)&
-               +c4*f_i(i1,n2-4,i3,2,ispden)
-          wb_vxc(i1,n2,i3,ispden)=wb_vxc(i1,n2,i3,ispden)+dery/hy
-       end do
-    end do
+    end if
 
     !z direction
-
-    if(wbl <= 1) then
-       do i2=1,n2
-          do i1=1,n1
-             derz=-c1*f_i(i1,i2,1,3,ispden)&
-                  -c1*f_i(i1,i2,2,3,ispden)&
-                  -c2*f_i(i1,i2,3,3,ispden)&
-                  -c3*f_i(i1,i2,4,3,ispden)&
-                  -c4*f_i(i1,i2,5,3,ispden)
-             wb_vxc(i1,i2,1,ispden)=wb_vxc(i1,i2,1,ispden)+derz/hz
+    if (geocode == 'F') then
+       if(wbl <= 1) then
+          do i2=1,n2
+             do i1=1,n1
+                derz=-c1*f_i(i1,i2,1,3,ispden)&
+                     -c1*f_i(i1,i2,2,3,ispden)&
+                     -c2*f_i(i1,i2,3,3,ispden)&
+                     -c3*f_i(i1,i2,4,3,ispden)&
+                     -c4*f_i(i1,i2,5,3,ispden)
+                wb_vxc(i1,i2,1,ispden)=wb_vxc(i1,i2,1,ispden)+derz/hz
+             end do
+          end do
+       end if
+       if(wbl <= 2 .and. n3 > 5 ) then
+          do i2=1,n2
+             do i1=1,n1
+                derz=&
+                     a1*f_i(i1,i2,1,3,ispden)&
+                     -a1*f_i(i1,i2,3,3,ispden)-a2*f_i(i1,i2,4,3,ispden)&
+                     -a3*f_i(i1,i2,5,3,ispden)-a4*f_i(i1,i2,6,3,ispden)
+                wb_vxc(i1,i2,2,ispden)=wb_vxc(i1,i2,2,ispden)+derz/hz
+             end do
+          end do
+       end if
+       if(wbl <= 3 .and. n3 > 6 ) then
+          do i2=1,n2
+             do i1=1,n1
+                derz=&
+                     a2*f_i(i1,i2,1,3,ispden)+a1*f_i(i1,i2,2,3,ispden)&
+                     -a1*f_i(i1,i2,4,3,ispden)-a2*f_i(i1,i2,5,3,ispden)&
+                     -a3*f_i(i1,i2,6,3,ispden)-a4*f_i(i1,i2,7,3,ispden)
+                wb_vxc(i1,i2,3,ispden)=wb_vxc(i1,i2,3,ispden)+derz/hz
+             end do
+          end do
+       end if
+       if(wbl <= 4 .and. n3 > 7 ) then
+          do i2=1,n2
+             do i1=1,n1
+                derz=a3*f_i(i1,i2,1,3,ispden)&
+                     +a2*f_i(i1,i2,2,3,ispden)+a1*f_i(i1,i2,3,3,ispden)&
+                     -a1*f_i(i1,i2,5,3,ispden)-a2*f_i(i1,i2,6,3,ispden)&
+                     -a3*f_i(i1,i2,7,3,ispden)-a4*f_i(i1,i2,8,3,ispden)
+                wb_vxc(i1,i2,4,ispden)=wb_vxc(i1,i2,4,ispden)+derz/hz
+             end do
+          end do
+       end if
+       do i3=5,n3-4
+          do i2=1,n2
+             do i1=1,n1
+                derz=-a1*(f_i(i1,i2,i3+1,3,ispden)-f_i(i1,i2,i3-1,3,ispden))&
+                     -a2*(f_i(i1,i2,i3+2,3,ispden)-f_i(i1,i2,i3-2,3,ispden))&
+                     -a3*(f_i(i1,i2,i3+3,3,ispden)-f_i(i1,i2,i3-3,3,ispden))&
+                     -a4*(f_i(i1,i2,i3+4,3,ispden)-f_i(i1,i2,i3-4,3,ispden))
+                wb_vxc(i1,i2,i3,ispden)=wb_vxc(i1,i2,i3,ispden)+derz/hz
+             end do
           end do
        end do
+       if (wbr <=4 .and. n3 > 7 ) then
+          do i2=1,n2
+             do i1=1,n1
+                derz=-a1*(f_i(i1,i2,n3-2,3,ispden)-f_i(i1,i2,n3-4,3,ispden))&
+                     -a2*(f_i(i1,i2,n3-1,3,ispden)-f_i(i1,i2,n3-5,3,ispden))&
+                     -a3*(f_i(i1,i2,n3,3,ispden)-f_i(i1,i2,n3-6,3,ispden))&
+                     -a4*(-f_i(i1,i2,n3-7,3,ispden))
+                wb_vxc(i1,i2,n3-3,ispden)=wb_vxc(i1,i2,n3-3,ispden)+derz/hz
+             end do
+          end do
+       end if
+       if(wbr <= 3 .and. n3 > 6) then
+          do i2=1,n2
+             do i1=1,n1
+                derz=-a1*(f_i(i1,i2,n3-1,3,ispden)-f_i(i1,i2,n3-3,3,ispden))&
+                     -a2*(f_i(i1,i2,n3,3,ispden)-f_i(i1,i2,n3-4,3,ispden))&
+                     -a3*(-f_i(i1,i2,n3-5,3,ispden))&
+                     -a4*(-f_i(i1,i2,n3-6,3,ispden))
+                wb_vxc(i1,i2,n3-2,ispden)=wb_vxc(i1,i2,n3-2,ispden)+derz/hz
+             end do
+          end do
+       end if
+       if(wbr <= 2 .and. n3 > 5) then
+          do i2=1,n2
+             do i1=1,n1
+                derz=-a1*(f_i(i1,i2,n3,3,ispden)-f_i(i1,i2,n3-2,3,ispden))&
+                     -a2*(-f_i(i1,i2,n3-3,3,ispden))&
+                     -a3*(-f_i(i1,i2,n3-4,3,ispden))&
+                     -a4*(-f_i(i1,i2,n3-5,3,ispden))
+                wb_vxc(i1,i2,n3-1,ispden)=wb_vxc(i1,i2,n3-1,ispden)+derz/hz
+             end do
+          end do
+       end if
+       if(wbr <= 1) then
+          do i2=1,n2
+             do i1=1,n1
+                derz= c1*f_i(i1,i2,n3,3,ispden)&
+                     +c1*f_i(i1,i2,n3-1,3,ispden)&
+                     +c2*f_i(i1,i2,n3-2,3,ispden)&
+                     +c3*f_i(i1,i2,n3-3,3,ispden)&
+                     +c4*f_i(i1,i2,n3-4,3,ispden)
+                wb_vxc(i1,i2,n3,ispden)=wb_vxc(i1,i2,n3,ispden)+derz/hz
+             end do
+          end do
+       end if
+    else
+       if(wbl == 1) then
+          do i2=1,n2
+             do i1=1,n1
+                derz=-a1*(f_i(i1,i2,2,3,ispden)-f_i(i1,i2,n3,3,ispden))&
+                     -a2*(f_i(i1,i2,3,3,ispden)-f_i(i1,i2,n3-1,3,ispden))&
+                     -a3*(f_i(i1,i2,4,3,ispden)-f_i(i1,i2,n3-2,3,ispden))&
+                     -a4*(f_i(i1,i2,5,3,ispden)-f_i(i1,i2,n3-3,3,ispden))
+                wb_vxc(i1,i2,1,ispden)=wb_vxc(i1,i2,1,ispden)+derz/hz
+             end do
+          end do
+          do i2=1,n2
+             do i1=1,n1
+                derz=-a1*(f_i(i1,i2,3,3,ispden)-f_i(i1,i2,1,3,ispden))&
+                     -a2*(f_i(i1,i2,4,3,ispden)-f_i(i1,i2,n3,3,ispden))&
+                     -a3*(f_i(i1,i2,5,3,ispden)-f_i(i1,i2,n3-1,3,ispden))&
+                     -a4*(f_i(i1,i2,6,3,ispden)-f_i(i1,i2,n3-2,3,ispden))
+                wb_vxc(i1,i2,2,ispden)=wb_vxc(i1,i2,2,ispden)+derz/hz
+             end do
+          end do
+          do i2=1,n2
+             do i1=1,n1
+                derz=-a1*(f_i(i1,i2,4,3,ispden)-f_i(i1,i2,2,3,ispden))&
+                     -a2*(f_i(i1,i2,5,3,ispden)-f_i(i1,i2,1,3,ispden))&
+                     -a3*(f_i(i1,i2,6,3,ispden)-f_i(i1,i2,n3,3,ispden))&
+                     -a4*(f_i(i1,i2,7,3,ispden)-f_i(i1,i2,n3-1,3,ispden))
+                wb_vxc(i1,i2,3,ispden)=wb_vxc(i1,i2,3,ispden)+derz/hz
+             end do
+          end do
+          do i2=1,n2
+             do i1=1,n1
+                derz=-a1*(f_i(i1,i2,5,3,ispden)-f_i(i1,i2,3,3,ispden))&
+                     -a2*(f_i(i1,i2,6,3,ispden)-f_i(i1,i2,2,3,ispden))&
+                     -a3*(f_i(i1,i2,7,3,ispden)-f_i(i1,i2,1,3,ispden))&
+                     -a4*(f_i(i1,i2,8,3,ispden)-f_i(i1,i2,n3,3,ispden))
+                wb_vxc(i1,i2,4,ispden)=wb_vxc(i1,i2,4,ispden)+derz/hz
+             end do
+          end do
+          i3s=5
+          i3e=n3-4
+       else
+          i3s=1
+          i3e=n3
+       end if
+       do i3=i3s,i3e
+          do i2=1,n2
+             do i1=1,n1
+                derz=-a1*(f_i(i1,i2,i3+1,3,ispden)-f_i(i1,i2,i3-1,3,ispden))&
+                     -a2*(f_i(i1,i2,i3+2,3,ispden)-f_i(i1,i2,i3-2,3,ispden))&
+                     -a3*(f_i(i1,i2,i3+3,3,ispden)-f_i(i1,i2,i3-3,3,ispden))&
+                     -a4*(f_i(i1,i2,i3+4,3,ispden)-f_i(i1,i2,i3-4,3,ispden))
+                wb_vxc(i1,i2,i3,ispden)=wb_vxc(i1,i2,i3,ispden)+derz/hz
+             end do
+          end do
+       end do
+       !wbr or wbl is the same in periodic BC
+       if (wbr == 1) then
+          do i2=1,n2
+             do i1=1,n1
+                derz=-a1*(f_i(i1,i2,n3-2,3,ispden)-f_i(i1,i2,n3-4,3,ispden))&
+                     -a2*(f_i(i1,i2,n3-1,3,ispden)-f_i(i1,i2,n3-5,3,ispden))&
+                     -a3*(f_i(i1,i2,n3,3,ispden)-f_i(i1,i2,n3-6,3,ispden))&
+                     -a4*(f_i(i1,i2,1,3,ispden)-f_i(i1,i2,n3-7,3,ispden))
+                wb_vxc(i1,i2,n3-3,ispden)=wb_vxc(i1,i2,n3-3,ispden)+derz/hz
+             end do
+          end do
+          do i2=1,n2
+             do i1=1,n1
+                derz=-a1*(f_i(i1,i2,n3-1,3,ispden)-f_i(i1,i2,n3-3,3,ispden))&
+                     -a2*(f_i(i1,i2,n3,3,ispden)-f_i(i1,i2,n3-4,3,ispden))&
+                     -a3*(f_i(i1,i2,1,3,ispden)-f_i(i1,i2,n3-5,3,ispden))&
+                     -a4*(f_i(i1,i2,2,3,ispden)-f_i(i1,i2,n3-6,3,ispden))
+                wb_vxc(i1,i2,n3-2,ispden)=wb_vxc(i1,i2,n3-2,ispden)+derz/hz
+             end do
+          end do
+          do i2=1,n2
+             do i1=1,n1
+                derz=-a1*(f_i(i1,i2,n3,3,ispden)-f_i(i1,i2,n3-2,3,ispden))&
+                     -a2*(f_i(i1,i2,1,3,ispden)-f_i(i1,i2,n3-3,3,ispden))&
+                     -a3*(f_i(i1,i2,2,3,ispden)-f_i(i1,i2,n3-4,3,ispden))&
+                     -a4*(f_i(i1,i2,3,3,ispden)-f_i(i1,i2,n3-5,3,ispden))
+                wb_vxc(i1,i2,n3-1,ispden)=wb_vxc(i1,i2,n3-1,ispden)+derz/hz
+             end do
+          end do
+          do i2=1,n2
+             do i1=1,n1
+                derz=-a1*(f_i(i1,i2,1,3,ispden)-f_i(i1,i2,n3-1,3,ispden))&
+                     -a2*(f_i(i1,i2,2,3,ispden)-f_i(i1,i2,n3-2,3,ispden))&
+                     -a3*(f_i(i1,i2,3,3,ispden)-f_i(i1,i2,n3-3,3,ispden))&
+                     -a4*(f_i(i1,i2,4,3,ispden)-f_i(i1,i2,n3-4,3,ispden))
+                wb_vxc(i1,i2,n3,ispden)=wb_vxc(i1,i2,n3,ispden)+derz/hz
+             end do
+          end do
+       end if
     end if
-    if(wbl <= 2 .and. n3 > 5 ) then
-       do i2=1,n2
-          do i1=1,n1
-             derz=&
-                  a1*f_i(i1,i2,1,3,ispden)&
-                  -a1*f_i(i1,i2,3,3,ispden)-a2*f_i(i1,i2,4,3,ispden)&
-                  -a3*f_i(i1,i2,5,3,ispden)-a4*f_i(i1,i2,6,3,ispden)
-             wb_vxc(i1,i2,2,ispden)=wb_vxc(i1,i2,2,ispden)+derz/hz
-          end do
-       end do
-    end if
-    if(wbl <= 3 .and. n3 > 6 ) then
-       do i2=1,n2
-          do i1=1,n1
-             derz=&
-                  a2*f_i(i1,i2,1,3,ispden)+a1*f_i(i1,i2,2,3,ispden)&
-                  -a1*f_i(i1,i2,4,3,ispden)-a2*f_i(i1,i2,5,3,ispden)&
-                  -a3*f_i(i1,i2,6,3,ispden)-a4*f_i(i1,i2,7,3,ispden)
-             wb_vxc(i1,i2,3,ispden)=wb_vxc(i1,i2,3,ispden)+derz/hz
-          end do
-       end do
-    end if
-    if(wbl <= 4 .and. n3 > 7 ) then
-       do i2=1,n2
-          do i1=1,n1
-             derz=a3*f_i(i1,i2,1,3,ispden)&
-                  +a2*f_i(i1,i2,2,3,ispden)+a1*f_i(i1,i2,3,3,ispden)&
-                  -a1*f_i(i1,i2,5,3,ispden)-a2*f_i(i1,i2,6,3,ispden)&
-                  -a3*f_i(i1,i2,7,3,ispden)-a4*f_i(i1,i2,8,3,ispden)
-             wb_vxc(i1,i2,4,ispden)=wb_vxc(i1,i2,4,ispden)+derz/hz
-          end do
-       end do
-    end if
-    do i3=5,n3-4
-       do i2=1,n2
-          do i1=1,n1
-             derz=-a1*(f_i(i1,i2,i3+1,3,ispden)-f_i(i1,i2,i3-1,3,ispden))&
-                  -a2*(f_i(i1,i2,i3+2,3,ispden)-f_i(i1,i2,i3-2,3,ispden))&
-                  -a3*(f_i(i1,i2,i3+3,3,ispden)-f_i(i1,i2,i3-3,3,ispden))&
-                  -a4*(f_i(i1,i2,i3+4,3,ispden)-f_i(i1,i2,i3-4,3,ispden))
-             wb_vxc(i1,i2,i3,ispden)=wb_vxc(i1,i2,i3,ispden)+derz/hz
-          end do
-       end do
-    end do
-    if (wbr <=4 .and. n3 > 7 ) then
-       do i2=1,n2
-          do i1=1,n1
-             derz=-a1*(f_i(i1,i2,n3-2,3,ispden)-f_i(i1,i2,n3-4,3,ispden))&
-                  -a2*(f_i(i1,i2,n3-1,3,ispden)-f_i(i1,i2,n3-5,3,ispden))&
-                  -a3*(f_i(i1,i2,n3,3,ispden)-f_i(i1,i2,n3-6,3,ispden))&
-                  -a4*(-f_i(i1,i2,n3-7,3,ispden))
-             wb_vxc(i1,i2,n3-3,ispden)=wb_vxc(i1,i2,n3-3,ispden)+derz/hz
-          end do
-       end do
-    end if
-    if(wbr <= 3 .and. n3 > 6) then
-       do i2=1,n2
-          do i1=1,n1
-             derz=-a1*(f_i(i1,i2,n3-1,3,ispden)-f_i(i1,i2,n3-3,3,ispden))&
-                  -a2*(f_i(i1,i2,n3,3,ispden)-f_i(i1,i2,n3-4,3,ispden))&
-                  -a3*(-f_i(i1,i2,n3-5,3,ispden))&
-                  -a4*(-f_i(i1,i2,n3-6,3,ispden))
-             wb_vxc(i1,i2,n3-2,ispden)=wb_vxc(i1,i2,n3-2,ispden)+derz/hz
-          end do
-       end do
-    end if
-    if(wbr <= 2 .and. n3 > 5) then
-       do i2=1,n2
-          do i1=1,n1
-             derz=-a1*(f_i(i1,i2,n3,3,ispden)-f_i(i1,i2,n3-2,3,ispden))&
-                  -a2*(-f_i(i1,i2,n3-3,3,ispden))&
-                  -a3*(-f_i(i1,i2,n3-4,3,ispden))&
-                  -a4*(-f_i(i1,i2,n3-5,3,ispden))
-             wb_vxc(i1,i2,n3-1,ispden)=wb_vxc(i1,i2,n3-1,ispden)+derz/hz
-          end do
-       end do
-    end if
-    if(wbr <= 1) then
-       do i2=1,n2
-          do i1=1,n1
-             derz= c1*f_i(i1,i2,n3,3,ispden)&
-                  +c1*f_i(i1,i2,n3-1,3,ispden)&
-                  +c2*f_i(i1,i2,n3-2,3,ispden)&
-                  +c3*f_i(i1,i2,n3-3,3,ispden)&
-                  +c4*f_i(i1,i2,n3-4,3,ispden)
-             wb_vxc(i1,i2,n3,ispden)=wb_vxc(i1,i2,n3,ispden)+derz/hz
-          end do
-       end do
-    end if
-
     !end of the loop over spin components
  end do
 
@@ -337,22 +569,23 @@ end subroutine wb_correction
 !!
 !! SOURCE
 !!
-subroutine calc_gradient(n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
+subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
      gradient)
  implicit none
  !Arguments
+ character(len=1), intent(in) :: geocode
  integer, intent(in) :: n1,n2,n3,n3grad,deltaleft,deltaright,nspden
- real(kind=8), intent(in) :: hx,hy,hz
- real(kind=8), dimension(n1,n2,n3,nspden), intent(inout) :: rhoinp
- real(kind=8), dimension(n1,n2,n3grad,2*nspden-1,0:3), intent(out) :: gradient
+ real(gp), intent(in) :: hx,hy,hz
+ real(dp), dimension(n1,n2,n3,nspden), intent(inout) :: rhoinp
+ real(dp), dimension(n1,n2,n3grad,2*nspden-1,0:3), intent(out) :: gradient
  !Local variables
  character(len=*), parameter :: subname='calc_gradient'
  integer :: i1,i2,i3,j3,i_all,i_stat,ispden
  !filters of finite difference derivative for order 4
- real(kind=8), parameter :: a1=0.8d0, a2=-0.2d0
- real(kind=8), parameter :: a3=0.038095238095238095238d0, a4=-0.0035714285714285714286d0
- real(kind=8) :: derx,dery,derz,modsq
- real(kind=8), dimension(:,:,:), allocatable :: density
+ real(dp), parameter :: a1=0.8d0, a2=-0.2d0
+ real(dp), parameter :: a3=0.038095238095238095238d0, a4=-0.0035714285714285714286d0
+ real(dp) :: derx,dery,derz,modsq
+ real(dp), dimension(:,:,:), allocatable :: density
  !Body
 
 
@@ -363,63 +596,184 @@ subroutine calc_gradient(n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,h
     stop
  end if
 
+ if (geocode /= 'F' .and. deltaleft/=deltaright) then
+    print *,'calc_gradient:incompatibility of the dimensions, n3=',n3,'n3grad=',n3grad,&
+         'deltaleft=',deltaleft,'deltaright=',deltaright,'geocode=',geocode
+    stop
+ end if
+
+
  !let us initialize the larger vector to calculate the gradient
  allocate(density(n1+8,n2+8,n3grad+8+ndebug),stat=i_stat)
  call memocc(i_stat,density,'density',subname)
 
  do ispden=1,nspden !loop over up/dw densities
-    do i3=1,4-deltaleft
-       do i2=5,n2+4
-          do i1=5,n1+4
-             density(i1,i2,i3)=rhoinp(i1-4,i2-4,1,ispden)
+    select case(geocode)
+    case('F')
+       do i3=1,4-deltaleft
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3)=rhoinp(i1-4,i2-4,1,ispden)
+             end do
           end do
        end do
-    end do
-    do i3=1,deltaleft
-       do i2=5,n2+4
-          do i1=5,n1+4
-             density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+       do i3=1,deltaleft
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+             end do
           end do
        end do
-    end do
-    do i3=deltaleft+1,n3grad+deltaleft
-       do i2=1,4
-          do i1=5,n1+4
-             density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,1,i3,ispden)
+       do i3=deltaleft+1,n3grad+deltaleft
+          do i2=1,4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,1,i3,ispden)
+             end do
+          end do
+          do i2=5,n2+4
+             do i1=1,4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(1,i2-4,i3,ispden)
+             end do
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+             end do
+             do i1=n1+5,n1+8
+                density(i1,i2,i3+4-deltaleft)=rhoinp(n1,i2-4,i3,ispden)
+             end do
+          end do
+          do i2=n2+5,n2+8
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,n2,i3,ispden)
+             end do
           end do
        end do
-       do i2=5,n2+4
-          do i1=1,4
-             density(i1,i2,i3+4-deltaleft)=rhoinp(1,i2-4,i3,ispden)
-          end do
-          do i1=5,n1+4
-             density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
-          end do
-          do i1=n1+5,n1+8
-             density(i1,i2,i3+4-deltaleft)=rhoinp(n1,i2-4,i3,ispden)
+       do i3=n3grad+deltaleft+1,n3
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+             end do
           end do
        end do
-       do i2=n2+5,n2+8
-          do i1=5,n1+4
-             density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,n2,i3,ispden)
+       do i3=1,4-deltaright
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+n3+4-deltaleft)=rhoinp(i1-4,i2-4,n3,ispden)
+             end do
           end do
        end do
-    end do
-    do i3=n3grad+deltaleft+1,n3
-       do i2=5,n2+4
-          do i1=5,n1+4
-             density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+    case('P')
+       !periodic BC, deltaleft/right are zero only if the array is not cut
+       do i3=1,4-deltaleft
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3)=rhoinp(i1-4,i2-4,n3-4+i3,ispden)
+             end do
           end do
        end do
-    end do
-    do i3=1,4-deltaright
-       do i2=5,n2+4
-          do i1=5,n1+4
-             density(i1,i2,i3+n3+4-deltaleft)=rhoinp(i1-4,i2-4,n3,ispden)
+       !normal case, the array rhoinp contains all the necessary
+       do i3=1,deltaleft
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+             end do
           end do
        end do
-    end do
-    
+       do i3=deltaleft+1,n3grad+deltaleft
+          do i2=1,4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,n2-4+i2,i3,ispden)
+             end do
+          end do
+          do i2=5,n2+4
+             do i1=1,4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(n1-4+i1,i2-4,i3,ispden)
+             end do
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+             end do
+             do i1=n1+5,n1+8
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-n1-4,i2-4,i3,ispden)
+             end do
+          end do
+          do i2=n2+5,n2+8
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-n2-4,i3,ispden)
+             end do
+          end do
+       end do
+       do i3=n3grad+deltaleft+1,n3
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+             end do
+          end do
+       end do
+       do i3=1,4-deltaright
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+n3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+             end do
+          end do
+       end do
+    case('S')
+       !surface case, periodic in x and z while isolated for y
+       do i3=1,4-deltaleft
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3)=rhoinp(i1-4,i2-4,n3-4+i3,ispden)
+             end do
+          end do
+       end do
+       do i3=1,deltaleft
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+             end do
+          end do
+       end do
+       do i3=deltaleft+1,n3grad+deltaleft
+          do i2=1,4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,1,i3,ispden)
+             end do
+          end do
+          do i2=5,n2+4
+             do i1=1,4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(n1-4+i1,i2-4,i3,ispden)
+             end do
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+             end do
+             do i1=n1+5,n1+8
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-n1-4,i2-4,i3,ispden)
+             end do
+          end do
+          do i2=n2+5,n2+8
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,n2,i3,ispden)
+             end do
+          end do
+       end do
+       do i3=n3grad+deltaleft+1,n3
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+             end do
+          end do
+       end do
+       do i3=1,4-deltaright
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+n3+4-deltaleft)=rhoinp(i1-4,i2-4,i3,ispden)
+             end do
+          end do
+       end do
+    case default
+       write(*,*)' Wrong geocode for gradient calculation:',geocode
+       stop
+    end select
+
+
     !calculating the gradient by using the auxiliary array
     do i3=5,n3grad+4 
        do i2=5,n2+4
@@ -453,57 +807,188 @@ subroutine calc_gradient(n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,h
  !Once again for total density 
  !(adding up component only since density already contains dw component from above)
  if(nspden==2) then
-      do i3=1,4-deltaleft
-       do i2=5,n2+4
-          do i1=5,n1+4
-             density(i1,i2,i3)=density(i1,i2,i3)+rhoinp(i1-4,i2-4,1,1)
+    select case(geocode)
+    case('F')
+       do i3=1,4-deltaleft
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3)=density(i1,i2,i3)+rhoinp(i1-4,i2-4,1,1)
+             end do
           end do
        end do
-    end do
-    do i3=1,deltaleft
-       do i2=5,n2+4
-          do i1=5,n1+4
-             density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+rhoinp(i1-4,i2-4,i3,1)
+       do i3=1,deltaleft
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-4,i2-4,i3,1)
+             end do
           end do
        end do
-    end do
-    do i3=deltaleft+1,n3grad+deltaleft
-       do i2=1,4
-          do i1=5,n1+4
-             density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+rhoinp(i1-4,1,i3,1)
+       do i3=deltaleft+1,n3grad+deltaleft
+          do i2=1,4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-4,1,i3,1)
+             end do
+          end do
+          do i2=5,n2+4
+             do i1=1,4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(1,i2-4,i3,1)
+             end do
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-4,i2-4,i3,1)
+             end do
+             do i1=n1+5,n1+8
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(n1,i2-4,i3,1)
+             end do
+          end do
+          do i2=n2+5,n2+8
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-4,n2,i3,1)
+             end do
           end do
        end do
-       do i2=5,n2+4
-          do i1=1,4
-             density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+rhoinp(1,i2-4,i3,1)
-          end do
-          do i1=5,n1+4
-             density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+rhoinp(i1-4,i2-4,i3,1)
-          end do
-          do i1=n1+5,n1+8
-             density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+rhoinp(n1,i2-4,i3,1)
+       do i3=n3grad+deltaleft+1,n3
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-4,i2-4,i3,1)
+             end do
           end do
        end do
-       do i2=n2+5,n2+8
-          do i1=5,n1+4
-             density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+rhoinp(i1-4,n2,i3,1)
+       do i3=1,4-deltaright
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+n3+4-deltaleft)=density(i1,i2,i3+n3+4-deltaleft)+&
+                     rhoinp(i1-4,i2-4,n3,1)
+             end do
           end do
        end do
-    end do
-    do i3=n3grad+deltaleft+1,n3
-       do i2=5,n2+4
-          do i1=5,n1+4
-             density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+rhoinp(i1-4,i2-4,i3,1)
+    case('P')
+       do i3=1,4-deltaleft
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3)=density(i1,i2,i3)+rhoinp(i1-4,i2-4,n3-4+i3,1)
+             end do
           end do
        end do
-    end do
-    do i3=1,4-deltaright
-       do i2=5,n2+4
-          do i1=5,n1+4
-             density(i1,i2,i3+n3+4-deltaleft)=density(i1,i2,i3+n3+4-deltaleft)+rhoinp(i1-4,i2-4,n3,1)
+       do i3=1,deltaleft
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-4,i2-4,i3,1)
+             end do
           end do
        end do
-    end do
+       do i3=deltaleft+1,n3grad+deltaleft
+          do i2=1,4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-4,n2-4+i2,i3,1)
+             end do
+          end do
+          do i2=5,n2+4
+             do i1=1,4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(n1-4+i1,i2-4,i3,1)
+             end do
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-4,i2-4,i3,1)
+             end do
+             do i1=n1+5,n1+8
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-n1-4,i2-4,i3,1)
+             end do
+          end do
+          do i2=n2+5,n2+8
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-4,i2-n2-4,i3,1)
+             end do
+          end do
+       end do
+       do i3=n3grad+deltaleft+1,n3
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-4,i2-4,i3,1)
+             end do
+          end do
+       end do
+       do i3=1,4-deltaright
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+n3+4-deltaleft)=density(i1,i2,i3+n3+4-deltaleft)+&
+                     rhoinp(i1-4,i2-4,i3,1)
+             end do
+          end do
+       end do
+    case('S')
+       do i3=1,4-deltaleft
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3)=density(i1,i2,i3)+rhoinp(i1-4,i2-4,n3-4+i3,1)
+             end do
+          end do
+       end do
+       do i3=1,deltaleft
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-4,i2-4,i3,1)
+             end do
+          end do
+       end do
+       do i3=deltaleft+1,n3grad+deltaleft
+          do i2=1,4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-4,1,i3,1)
+             end do
+          end do
+          do i2=5,n2+4
+             do i1=1,4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(n1-4+i1,i2-4,i3,1)
+             end do
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-4,i2-4,i3,1)
+             end do
+             do i1=n1+5,n1+8
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-n1-4,i2-4,i3,1)
+             end do
+          end do
+          do i2=n2+5,n2+8
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-4,n2,i3,1)
+             end do
+          end do
+       end do
+       do i3=n3grad+deltaleft+1,n3
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+4-deltaleft)=density(i1,i2,i3+4-deltaleft)+&
+                     rhoinp(i1-4,i2-4,i3,1)
+             end do
+          end do
+       end do
+       do i3=1,4-deltaright
+          do i2=5,n2+4
+             do i1=5,n1+4
+                density(i1,i2,i3+n3+4-deltaleft)=density(i1,i2,i3+n3+4-deltaleft)+&
+                     rhoinp(i1-4,i2-4,i3,1)
+             end do
+          end do
+       end do
+    end select
     
     !calculating the gradient by using the auxiliary array
     do i3=5,n3grad+4 
@@ -554,7 +1039,7 @@ subroutine calc_gradient(n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,h
              end do
           end do
        end do
-
+       
     end if
 
   
