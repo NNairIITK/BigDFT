@@ -12,14 +12,18 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   real(wp), intent(inout) ::  x(nvctr_c+7*nvctr_f)
   !local variables
+  integer, parameter :: lowfil=-14,lupfil=14
   character(len=*), parameter :: subname='precong_per'
   integer :: i,i_stat,i_all
   real(wp) :: rmr,rmr_new,alpha,beta
   real(wp), dimension(0:8) :: scal
   real(wp), dimension(:), allocatable :: b,r,d,ww,psifscf
+  real(wp), allocatable,dimension(:,:) :: af,bf,cf,ef
+  integer,allocatable,dimension(:)::modul1,modul2,modul3
 
   call allocate_all
 
+  call prepare_sdc(n1,n2,n3,modul1,modul2,modul3,af,bf,cf,ef,hx,hy,hz)
   !	initializes the wavelet scaling coefficients	
   call wscal_init_per(scal,hx,hy,hz,cprecr)
   b=x
@@ -30,8 +34,8 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        cprecr,hx,hy,hz,x,&
        psifscf(1),psifscf(n1+2),psifscf(n1+n2+3),ww(1),ww(4*(n1+2)*(n2+2)*(n3+2)+1))
 
-  call apply_hp(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-       cprecr,hx,hy,hz,x,d,psifscf,ww) ! d:=Ax
+  call apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
+       cprecr,hx,hy,hz,x,d,psifscf,ww,modul1,modul2,modul3,af,bf,cf,ef) ! d:=Ax
   r=b-d
 
   call wscal_per(nvctr_c,nvctr_f,scal,r(1),r(nvctr_c+1),d(1),d(nvctr_c+1))
@@ -39,8 +43,8 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   do i=1,ncong 
      !		write(*,*)i,sqrt(rmr)
 
-     call apply_hp(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-          cprecr,hx,hy,hz,d,b,psifscf,ww) ! b:=Ad
+     call apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
+          cprecr,hx,hy,hz,d,b,psifscf,ww,modul1,modul2,modul3,af,bf,cf,ef) ! b:=Ad
 
      alpha=rmr/dot_product(d,b) !does this built_in function is well optimised?
      x=x+alpha*d
@@ -59,6 +63,15 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 contains
 
   subroutine allocate_all
+
+  allocate(modul1(lowfil:n1+lupfil))
+  allocate(modul2(lowfil:n2+lupfil))
+  allocate(modul3(lowfil:n3+lupfil))
+  allocate(af(lowfil:lupfil,3))
+  allocate(bf(lowfil:lupfil,3))
+  allocate(cf(lowfil:lupfil,3))
+  allocate(ef(lowfil:lupfil,3))
+	  
     allocate(b(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
     call memocc(i_stat,b,'b',subname)
     allocate(r(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
@@ -91,6 +104,10 @@ contains
     i_all=-product(shape(d))*kind(d)
     deallocate(d,stat=i_stat)
     call memocc(i_stat,i_all,'d',subname)
+
+  deallocate(af,bf,cf,ef)
+  deallocate(modul1,modul2,modul3)
+	
   end subroutine deallocate_all
 end subroutine precong_per
 
@@ -248,67 +265,7 @@ subroutine apply_hp(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        ww,y(1),y(nvctr_c+1),psifscf)
 end subroutine apply_hp
 
-subroutine uncompress_c(hpsi,x_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
-  use module_base
-  implicit none
-  integer, intent(in) :: n1,n2,n3
-  integer, intent(in) :: nseg_c,nvctr_c
-  integer, dimension(nseg_c), intent(in) :: keyv_c
-  integer, dimension(2,nseg_c), intent(in) :: keyg_c
-  real(wp), dimension(nvctr_c), intent(in) :: hpsi
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: x_c
-  !local variables
-  integer iseg,jj,j0,j1,ii,i3,i2,i0,i1,i
 
-  x_c=0.0_wp !razero
-  do iseg=1,nseg_c
-
-     jj=keyv_c(iseg)
-     j0=keyg_c(1,iseg)
-     j1=keyg_c(2,iseg)
-
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-
-     do i=i0,i1
-        x_c(i,i2,i3)=hpsi(i-i0+jj)
-     enddo
-  enddo
-end subroutine uncompress_c
-
-subroutine compress_c(hpsi,y_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
-  use module_base
-  implicit none
-  integer, intent(in) :: n1,n2,n3
-  integer, intent(in) :: nseg_c,nvctr_c
-  integer, dimension(nseg_c), intent(in) :: keyv_c
-  integer, dimension(2,nseg_c), intent(in) :: keyg_c
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: y_c
-  real(wp), dimension(nvctr_c), intent(out) :: hpsi
-  !local variables
-  integer iseg,jj,j0,j1,ii,i3,i2,i0,i1,i
-
-  ! coarse part
-  do iseg=1,nseg_c
-     jj=keyv_c(iseg)
-     j0=keyg_c(1,iseg)
-     j1=keyg_c(2,iseg)
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-     do i=i0,i1
-        hpsi(i-i0+jj)=y_c(i,i2,i3)
-     enddo
-  enddo
-
-end subroutine compress_c
 
 
 ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)`

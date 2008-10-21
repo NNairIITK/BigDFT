@@ -1,4 +1,4 @@
-EXTRA_DIST = \
+	EXTRA_DIST = \
 	$(convolution_includes)
 
 convolution_includes = 	v.inc \
@@ -18,28 +18,30 @@ endif
 if USE_OPTI_CONVOLUT
 convolution_source = combined_shrink_optim.f90 \
 	combined_grow_optim.f90 \
-	combined_shrink_optim.f90 \
 	convolut_ib_optim.f90 \
 	conv_per_optim.f90 \
-	convolut_common.f90 \
+	convolut_common_slab.f90 \
+	convolut_common_per.f90 \
 	growshrink.f90 \
 	conv_per_common.f90 \
 	convolut_common_per.f90 \
 	convolut_optim_per.f90 \
-	convolut_simple_slab.f90 \
+	convolut_altern_optim_per.f90 \
+	convolut_optim_slab.f90 \
 	$(GPU_INTERFACE)
 
 else
 convolution_source = combined_shrink_simple.f90 \
 	combined_grow_simple.f90 \
-	combined_shrink_simple.f90 \
 	convolut_ib_simple.f90 \
 	conv_per_simple.f90 \
-	convolut_common.f90  \
+	convolut_common_slab.f90 \
+	convolut_common_per.f90 \
 	growshrink.f90 \
 	conv_per_common.f90 \
 	convolut_common_per.f90 \
 	convolut_simple_per.f90 \
+	convolut_altern_optim_per.f90 \
 	convolut_simple_slab.f90 \
 	$(GPU_INTERFACE)
 endif

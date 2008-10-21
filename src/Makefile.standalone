@@ -9,8 +9,8 @@
 
 #Athena intel
 #Link = $(F95)
-#F95 = mpif90  -i_dynamic -L/soft/intel/mkl/9.0/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
-#F77 = mpif90  -i_dynamic
+#F95 = mpif90 -p -i_dynamic -L/soft/intel/mkl/9.0/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
+#F77 = mpif90 -p -i_dynamic
 #FFLAGS =
 #LIBRARIES = -L/soft/intel/mkl721/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
 
@@ -50,10 +50,10 @@
 #FLAGS =  -O2 -fastsse -Mcache_align -Minfo -Mnoprefetch -Mipa=fast
 
 #Grenoble Workstations compilers
-F95 =ompif90 -O2
-F77 =ompif90 -O2
-LIBRARIES = -L/usr/lib/lapack-g95  -llapack -lblas 
-Link = $(F95) 
+#F95 =ompif90 -O2
+#F77 =ompif90 -O2
+#LIBRARIES = -L/usr/lib/lapack-g95  -llapack -lblas 
+#Link = $(F95) 
 
 ######################################################################
 
@@ -102,9 +102,9 @@ low_level = init/projectors.f90  \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
-	wfn_opt/precond_per.f90 \
+	wfn_opt/precond_per_optim.f90 \
 	wfn_opt/precond_slab.f90 \
-	wfn_opt/kernel_per.f90 \
+	wfn_opt/kernel_per_optim.f90 \
 	wfn_opt/kernel_slab_simple.f90 \
 	wfn_opt/fft_per.f90 \
 	wfn_opt/fft2d.f \
@@ -142,10 +142,11 @@ SOURCES_CONVOLUTIONS = convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_ib_optim.f90 \
 	convolutions/conv_per_optim.f90 \
 	convolutions/conv_per_common.f90 \
-	convolutions/convolut_common.f90 \
+	convolutions/convolut_common_slab.f90 \
 	convolutions/convolut_common_per.f90 \
 	convolutions/convolut_optim_per.f90 \
-	convolutions/convolut_simple_slab.f90 \
+	convolutions/convolut_altern_optim_per.f90 \
+	convolutions/convolut_optim_slab.f90 \
 	$(GPUCONV_INTERFACE)
 
 MODULES_ABINIT= PSolver/ABINIT-common/defs_basis.F90 \
@@ -236,11 +237,23 @@ OBJECTS_TEST =  $(OBJECTS_ABINIT) $(OBJECTS_POISSON) \
 				$(OBJECTS_CONVOLUTIONS) $(OBJECTS_F95) $(OBJECTS_TIME) \
 				$(OBJECTS_PROJECTORS) memguess.f90
 
+OBJECTS_MINHOP =  $(OBJECTS_ABINIT) $(OBJECTS_POISSON) \
+                                $(OBJECTS_CONVOLUTIONS) $(OBJECTS_F95) $(OBJECTS_TIME) \
+                                $(OBJECTS_PROJECTORS) global.f90
+
+
+
 cluster: $(OBJECTS_MODULES) $(OBJECTS) CUDAlib
 	$(Link) -o cluster $(OBJECTS_MODULES) $(OBJECTS) $(LIBRARIES) 
 
 memguess: $(OBJECTS_MODULES) $(OBJECTS_TEST) CUDAlib
 		$(Link) -o memguess $(OBJECTS_MODULES) $(OBJECTS_TEST) $(LIBRARIES)
+
+
+minhop: $(OBJECTS_MODULES) $(OBJECTS_MINHOP) CUDAlib
+	$(Link) -o minhop $(OBJECTS_MODULES) $(OBJECTS_MINHOP) $(LIBRARIES) 
+
+
 
 clean:
 	rm -f *.o cluster memguess *.mod *~ PSolver/*.o PSolver/*~ \

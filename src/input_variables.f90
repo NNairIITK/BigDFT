@@ -818,6 +818,9 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
 
      !control the hardest and the softest gaussian
      minrad=1.e10_gp
+!******************************************************************************************	 
+ 	maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
+!******************************************************************************************	 
      do i=0,4
         !the maximum radii is useful only for projectors
         if (i==1) maxrad=0.0_gp

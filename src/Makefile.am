@@ -64,26 +64,30 @@ endif
 if USE_OPTI_CONVOLUT
 convolution_source = convolutions/combined_shrink_optim.f90 \
 	convolutions/combined_grow_optim.f90 \
-	convolutions/growshrink.f90 \
 	convolutions/convolut_ib_optim.f90 \
 	convolutions/conv_per_optim.f90 \
+	convolutions/convolut_common_slab.f90 \
+	convolutions/convolut_common_per.f90 \
+	convolutions/growshrink.f90 \
 	convolutions/conv_per_common.f90 \
-	convolutions/convolut_common.f90 \
 	convolutions/convolut_common_per.f90 \
 	convolutions/convolut_optim_per.f90 \
-	convolutions/convolut_simple_slab.f90 \
+	convolutions/convolut_altern_optim_per.f90 \
+	convolutions/convolut_optim_slab.f90 \
 	$(GPU_INTERFACE)
 
 else
 convolution_source = convolutions/combined_shrink_simple.f90 \
 	convolutions/combined_grow_simple.f90 \
-	convolutions/growshrink.f90 \
 	convolutions/convolut_ib_simple.f90 \
 	convolutions/conv_per_simple.f90 \
+	convolutions/convolut_common_slab.f90 \
+	convolutions/convolut_common_per.f90 \
+	convolutions/growshrink.f90 \
 	convolutions/conv_per_common.f90 \
-	convolutions/convolut_common.f90 \
 	convolutions/convolut_common_per.f90 \
 	convolutions/convolut_simple_per.f90 \
+	convolutions/convolut_altern_optim_per.f90 \
 	convolutions/convolut_simple_slab.f90 \
 	$(GPU_INTERFACE)
 
@@ -125,9 +129,9 @@ low_level = init/projectors.f90  \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
-	wfn_opt/precond_per.f90 \
+	wfn_opt/precond_per_optim.f90 \
 	wfn_opt/precond_slab.f90 \
-	wfn_opt/kernel_per.f90 \
+	wfn_opt/kernel_per_optim.f90 \
 	wfn_opt/kernel_slab_simple.f90 \
 	wfn_opt/fft_per.f90 \
 	wfn_opt/fft2d.f \
