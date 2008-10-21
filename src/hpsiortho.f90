@@ -193,12 +193,12 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
   call memocc(i_stat,i_all,'y_c',subname)
 
   if (geocode == 'F') then
-	  i_all=-product(shape(x_f1))*kind(x_f1)
-	  deallocate(x_f1,stat=i_stat)
-	  call memocc(i_stat,i_all,'x_f1',subname)
-	  i_all=-product(shape(x_f2))*kind(x_f2)
-	  deallocate(x_f2,stat=i_stat)
-	  call memocc(i_stat,i_all,'x_f2',subname)
+     i_all=-product(shape(x_f1))*kind(x_f1)
+     deallocate(x_f1,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f1',subname)
+     i_all=-product(shape(x_f2))*kind(x_f2)
+     deallocate(x_f2,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f2',subname)
      i_all=-product(shape(x_f3))*kind(x_f3)
      deallocate(x_f3,stat=i_stat)
      call memocc(i_stat,i_all,'x_f3',subname)
@@ -841,8 +841,8 @@ subroutine calc_moments(iproc,nproc,norb,norbp,nvctr,nspinor,psi,mom_vec)
      end do
      
      if(nproc>1) then
-           call MPI_GATHER(mom_vec(1,1,2),4*norbp,MPI_DOUBLE_PRECISION,mom_vec(1,1,1),4*norbp, &
-                MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+        call MPI_GATHER(mom_vec(1,1,2),4*norbp,MPI_DOUBLE_PRECISION,mom_vec(1,1,1),4*norbp, &
+             MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
      else
      end if
      

@@ -546,16 +546,18 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
   character(len=1), intent(in) :: datacode
   logical, intent(in) :: sumpion
   integer, intent(in) :: iproc,nproc,n01,n02,n03,n3d,ixc,nspin
-  real(kind=8), intent(in) :: hx,hy,hz,offset
-  real(kind=8), dimension(*), intent(in) :: karray
-  real(kind=8), intent(out) :: eh,exc,vxc
-  real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
+  real(gp), intent(in) :: hx,hy,hz
+  real(dp), intent(in) :: offset
+  real(dp), dimension(*), intent(in) :: karray
+  real(gp), intent(out) :: eh,exc,vxc
+  real(wp), dimension(*), intent(inout) :: pot_ion
+  real(dp), dimension(*), intent(inout) :: rhopot
   !local variables
   character(len=*), parameter :: subname='PSolverNC'
-  real(kind=8) :: rhon,rhos,factor
+  real(dp) :: rhon,rhos,factor
   integer :: i_all,i_stat,ierr,i1,i2,i3,idx,offs
-  real(kind=8), dimension(:,:,:), allocatable :: m_norm
-  real(kind=8), dimension(:,:,:,:), allocatable :: rho_diag
+  real(dp), dimension(:,:,:), allocatable :: m_norm
+  real(dp), dimension(:,:,:,:), allocatable :: rho_diag
   
   
   if(nspin==4) then
@@ -574,8 +576,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
                  !rho_diag(i1,i2,i3,1)=rhopot(i1,i2,i3,1)
                  m_norm(i1,i2,i3)=&
                       sqrt(rhopot(idx+offs)**2+rhopot(idx+2*offs)**2+rhopot(idx+3*offs)**2)
-                 rho_diag(i1,i2,i3,1)=(rhopot(idx)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
-                 rho_diag(i1,i2,i3,2)=(rhopot(idx)-m_norm(i1,i2,i3))*0.5d0!+1.00e-20
+                 rho_diag(i1,i2,i3,1)=(rhopot(idx)+m_norm(i1,i2,i3))*0.5_dp!+1.00e-20
+                 rho_diag(i1,i2,i3,2)=(rhopot(idx)-m_norm(i1,i2,i3))*0.5_dp!+1.00e-20
                  idx=idx+1
                  !m_norm(i1,i2,i3)=sqrt(rhopot(i1,i2,i3,2)**2+rhopot(i1,i2,i3,3)**2+rhopot(i1,i2,i3,4)**2)
                  !rho_diag(i1,i2,i3,1)=(rhopot(i1,i2,i3,1)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
@@ -588,8 +590,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
         call memocc(i_stat,rho_diag,'rho_diag',subname)
         allocate(m_norm(1,1,1+ndebug),stat=i_stat)
         call memocc(i_stat,m_norm,'m_norm',subname)
-        rho_diag=0.0d0
-        m_norm=0.0d0
+        rho_diag=0.0_dp
+        m_norm=0.0_dp
      end if
      
      !        print *,'Mnorm,rho_diag',sum(2.0d0*rho_diag(:,:,:,1)),sum(m_norm)&
@@ -605,13 +607,13 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
      do i3=1,n3d
         do i2=1,n02
            do i1=1,n01
-              rhon=(rho_diag(i1,i2,i3,1)+rho_diag(i1,i2,i3,2))*0.5d0
-              rhos=(rho_diag(i1,i2,i3,1)-rho_diag(i1,i2,i3,2))*0.5d0
-              if(m_norm(i1,i2,i3)>rhopot(idx)*4.0e-20)then
+              rhon=(rho_diag(i1,i2,i3,1)+rho_diag(i1,i2,i3,2))*0.5_dp
+              rhos=(rho_diag(i1,i2,i3,1)-rho_diag(i1,i2,i3,2))*0.5_dp
+              if(m_norm(i1,i2,i3)>rhopot(idx)*4.0e-20_dp)then
                  !                 if(m_norm(i1,i2,i3)>rhopot(i1,i2,i3,1)*4.0e-20)then
                  factor=rhos/m_norm(i1,i2,i3)
               else
-                 factor=0.0d0
+                 factor=0.0_dp
               end if
               rhopot(idx)=rhon+rhopot(idx+3*offs)*factor
               rhopot(idx+offs)=rhopot(idx+offs)*factor
@@ -832,6 +834,21 @@ subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,
               nwbr=min(nordgr,m2-nordgr-iend)
            end if
         end if
+     else if (geocode /= 'F' .and. ixc >= 11 .and. ixc <= 16 .and. nxc /= m2) then
+        if (ixc==13) then
+           !now the dimension of the part required for the gradient
+           nwbl=nordgr
+           nwbr=nordgr
+           nxcl=1
+           nxcr=1
+        else
+           nxcl=nordgr+1
+           nwbl=nordgr
+           nxcr=nordgr+1
+           nwbr=nordgr
+        end if
+     !this case is also considered below
+     !else if (geocode /= 'F' .and. ixc >= 11 .and. ixc <= 16 .and. nxc == m2) then
      else !(for the moment GGA is not implemented in the non free BC)
         nwbl=0
         nwbr=0

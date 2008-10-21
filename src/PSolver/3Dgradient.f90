@@ -32,7 +32,7 @@ subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
  !Arguments
  character(len=1), intent(in) :: geocode
  integer, intent(in) :: n1,n2,n3,n3grad,wbl,wbr,nspden
- real(gp), intent(in) :: hx,hy,hz
+ real(dp), intent(in) :: hx,hy,hz
  real(dp), dimension(n1,n2,n3,3,nspden), intent(in) :: f_i
  real(dp), dimension(n1,n2,n3,nspden), intent(inout) :: wb_vxc
  !Local variables
@@ -581,7 +581,7 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
  !Arguments
  character(len=1), intent(in) :: geocode
  integer, intent(in) :: n1,n2,n3,n3grad,deltaleft,deltaright,nspden
- real(gp), intent(in) :: hx,hy,hz
+ real(dp), intent(in) :: hx,hy,hz
  real(dp), dimension(n1,n2,n3,nspden), intent(inout) :: rhoinp
  real(dp), dimension(n1,n2,n3grad,2*nspden-1,0:3), intent(out) :: gradient
  !Local variables

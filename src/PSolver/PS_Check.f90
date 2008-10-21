@@ -203,7 +203,7 @@ contains
     !local variables
     character(len=*), parameter :: subname='compare_with_reference'
     integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,i1_max,i2_max,i3_max,i_all,i_stat,istpoti,i
-    integer :: istxc
+    integer :: istxc,i1,i2,i3
     real(kind=8) :: eexcu,vexcu,max_diff,ehartree,tt
     real(kind=8), dimension(:), allocatable :: test,test_xc
     real(kind=8), dimension(:), pointer :: xc_temp
@@ -247,13 +247,18 @@ contains
           end if
        end if
     else
-          test=potential!+pot_ion
+       test=potential!+pot_ion
     end if
 
     if (nspden == 2 .and. distcode == 'D') then
-       do i=1,n01*n02*n3d
-          rhopot(i+istden-1)=density(i+istden-1)
-          rhopot(i+istden-1+n01*n02*n3d)=density(i+istden-1+n01*n02*n03)
+       do i3=1,n3d
+          do i2=1,n02
+             do i1=1,n01
+                i=i1+(i2-1)*n01+(i3s+i3-2)*n01*n02
+                rhopot(i)=density(i)
+                rhopot(i+n01*n02*n3d)=density(i+n01*n02*n03)
+             end do
+          end do
        end do
        allocate(xc_temp(n01*n02*n3p*nspden+ndebug),stat=i_stat)
        call memocc(i_stat,xc_temp,'xc_temp',subname)
@@ -284,9 +289,14 @@ contains
          'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
 
     if (nspden == 2 .and. distcode == 'D') then
-       do i=1,n01*n02*n3d
-          rhopot(i+istden-1)=density(i+istden-1)
-          rhopot(i+istden-1+n01*n02*n3d)=density(i+istden-1+n01*n02*n03)
+       do i3=1,n3d
+          do i2=1,n02
+             do i1=1,n01
+                i=i1+(i2-1)*n01+(i3s+i3-2)*n01*n02
+                rhopot(i)=density(i)
+                rhopot(i+n01*n02*n3d)=density(i+n01*n02*n03)
+             end do
+          end do
        end do
        i_all=-product(shape(xc_temp))*kind(xc_temp)
        deallocate(xc_temp,stat=i_stat)

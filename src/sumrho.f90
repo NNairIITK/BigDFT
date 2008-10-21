@@ -14,15 +14,15 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(gp), intent(in) :: hxh,hyh,hzh
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-  real(gp), dimension(norb), intent(in) :: occup,spinsgn
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(in) :: psi
   real(dp), dimension(max(nrho,1),nspin), intent(out), target :: rho
+  real(gp), dimension(norb), intent(in) :: occup,spinsgn
   !local variables
   character(len=*), parameter :: subname='sumrho'
   logical :: rsflag
   integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf,itmred
   integer :: ind1,ind2,ind3,ind1s,ind2s,ind3s,oidx,sidx,nspinn
-  integer :: i00,i0,i1,i2,i3,i3off,i3s,isjmp,i,ispin,iorb,jproc,i_all,i_stat,ierr
+  integer :: i00,i0,i1,i2,i3,i3off,i3s,isjmp,i,ispin,iorb,jproc,i_all,i_stat,ierr,j3,j3p,j
   real(dp) :: charge,tt
   real(gp) :: hfac,hgridh
   real(wp), dimension(0:3) :: scal
@@ -41,7 +41,10 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
 
   !flag for toggling the REDUCE_SCATTER stategy
   rsflag=.not. (ixc >= 11 .and. ixc <=16)
-  
+
+
+  !here starts the routine for building partial density inside the localisation region
+  !this routine should be treated as a building-block for the linear scaling code
   do i=0,3
      scal(i)=1.0_wp
   enddo
@@ -192,6 +195,26 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
      
   enddo
 
+  i_all=-product(shape(psir))*kind(psir)
+  deallocate(psir,stat=i_stat)
+  call memocc(i_stat,i_all,'psir',subname)
+  i_all=-product(shape(x_c_psifscf))*kind(x_c_psifscf)
+  deallocate(x_c_psifscf,stat=i_stat)
+  call memocc(i_stat,i_all,'x_c_psifscf',subname)
+  i_all=-product(shape(x_f_psig))*kind(x_f_psig)
+  deallocate(x_f_psig,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f_psig',subname)
+  i_all=-product(shape(w1))*kind(w1)
+  deallocate(w1,stat=i_stat)
+  call memocc(i_stat,i_all,'w1',subname)
+  i_all=-product(shape(w2))*kind(w2)
+  deallocate(w2,stat=i_stat)
+  call memocc(i_stat,i_all,'w2',subname)
+
+  !end of the partial density building block
+  
+  !the density must be communicated to meet the shape of the poisson solver
+
   if (nproc > 1) then
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')
@@ -207,12 +230,30 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')
      if (.not. rsflag) then
-        !here we must add the treatment for the periodic GGA
-        i3off=n1i*n2i*(nscatterarr(iproc,3)-nscatterarr(iproc,4))
+!!$        !here we must add the treatment for the periodic GGA
+!!$        i3off=n1i*n2i*(nscatterarr(iproc,3)-nscatterarr(iproc,4))
+!!$        n3d=nscatterarr(iproc,1)
+!!$        do ispin=1,nspin
+!!$           do i=1,n1i*n2i*n3d
+!!$              rho(i,ispin)=rho_p(i+i3off,ispin)
+!!$           end do
+!!$        end do
+        
+        !treatment which includes the periodic GGA
+        !the density should meet the poisson solver distribution
+        i3s=nscatterarr(iproc,3)-nscatterarr(iproc,4)
         n3d=nscatterarr(iproc,1)
         do ispin=1,nspin
-           do i=1,n1i*n2i*n3d
-              rho(i,ispin)=rho_p(i+i3off,ispin)
+           do i3=1,n3d
+              j3=i3+i3s
+              j3p=modulo(j3-1,n3i)+1
+              do i2=1,n2i
+                 do i1=1,n1i
+                    i=i1+(i2-1)*n1i+n1i*n2i*(i3-1)
+                    j=i1+(i2-1)*n1i+n1i*n2i*(j3p-1)
+                    rho(i,ispin)=rho_p(j,ispin)
+                 end do
+              end do
            end do
         end do
      end if
@@ -294,21 +335,6 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
   i_all=-product(shape(tmred))*kind(tmred)
   deallocate(tmred,stat=i_stat)
   call memocc(i_stat,i_all,'tmred',subname)
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
-  i_all=-product(shape(x_c_psifscf))*kind(x_c_psifscf)
-  deallocate(x_c_psifscf,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c_psifscf',subname)
-  i_all=-product(shape(x_f_psig))*kind(x_f_psig)
-  deallocate(x_f_psig,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f_psig',subname)
-  i_all=-product(shape(w1))*kind(w1)
-  deallocate(w1,stat=i_stat)
-  call memocc(i_stat,i_all,'w1',subname)
-  i_all=-product(shape(w2))*kind(w2)
-  deallocate(w2,stat=i_stat)
-  call memocc(i_stat,i_all,'w2',subname)
 
   call timing(iproc,'Rho_comput    ','OF')
 
@@ -328,7 +354,7 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
   real(dp), dimension(n1i,n2i,nrhotot,nspinn), intent(inout) :: rho_p
   integer, dimension(:,:,:), pointer, optional :: ibyyzz_r 
   !local variables
-  integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e
+  integer :: i3s,jproc,i3off,n3d,isjmp,i1,i2,i3,i1s,i1e,j3
   real(gp) :: hfac2
   real(dp) :: psisq,p1,p2,p3,p4,r1,r2,r3,r4
   !sum different slices by taking into account the overlap
@@ -340,7 +366,8 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
   i1e=n1i
 
   loop_xc_overlap: do jproc=0,nproc-1
-     !case for REDUCE_SCATTER approach
+     !case for REDUCE_SCATTER approach, not used for GGA since enlarges the 
+     !communication buffer
      if (rsflag) then
         i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
         n3d=nscatterarr(jproc,1)
@@ -356,28 +383,32 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
         isjmp=2
      end if
      do i3=i3off+1,i3off+n3d
+        !this allows the presence of GGA with non-isolated BC. If i3 is between 1 and n3i
+        !j3=i3. This is useful only when dealing with rsflags and GGA, so we can comment it out
+        !j3=modulo(i3-1,n3i)+1 
+        j3=i3
         i3s=i3s+1
         do i2=1,n2i
            !this if statement is inserted here for avoiding code duplication
            !it is to be seen whether the code results to be too much unoptimised
            if (present(ibyyzz_r)) then
-              i1s=ibyyzz_r(1,i2-15,i3-15)+1
-              i1e=ibyyzz_r(2,i2-15,i3-15)+1
+              i1s=ibyyzz_r(1,i2-15,j3-15)+1
+              i1e=ibyyzz_r(2,i2-15,j3-15)+1
            end if
            if (nspinor == 1) then
               do i1=i1s,i1e
                  !conversion between the different types
-                 psisq=real(psir(i1,i2,i3,1),dp)
+                 psisq=real(psir(i1,i2,j3,1),dp)
                  psisq=psisq*psisq
-                 rho_p(i1,i2,i3s,isjmp)=rho_p(i1,i2,i3s,isjmp)+hfac*psisq
+                 rho_p(i1,i2,i3s,isjmp)=rho_p(i1,i2,i3s,isjmp)+real(hfac,dp)*psisq
               end do
            else  !similar loop for nspinor=4
               do i1=i1s,i1e
                  !conversion between the different types
-                 p1=real(psir(i1,i2,i3,1),dp)
-                 p2=real(psir(i1,i2,i3,2),dp)
-                 p3=real(psir(i1,i2,i3,3),dp)
-                 p4=real(psir(i1,i2,i3,4),dp)
+                 p1=real(psir(i1,i2,j3,1),dp)
+                 p2=real(psir(i1,i2,j3,2),dp)
+                 p3=real(psir(i1,i2,j3,3),dp)
+                 p4=real(psir(i1,i2,j3,4),dp)
 
                  !density values
                  r1=p1*p1+p2*p2+p3*p3+p4*p4
@@ -385,15 +416,15 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
                  r3=p1*p4-p2*p3
                  r4=p1*p1+p2*p2-p3*p3-p4*p4
 
-                 rho_p(i1,i2,i3s,1)=rho_p(i1,i2,i3s,1)+hfac*r1
-                 rho_p(i1,i2,i3s,2)=rho_p(i1,i2,i3s,2)+hfac2*r2
-                 rho_p(i1,i2,i3s,3)=rho_p(i1,i2,i3s,3)+hfac2*r3
-                 rho_p(i1,i2,i3s,4)=rho_p(i1,i2,i3s,4)+hfac*r4
+                 rho_p(i1,i2,i3s,1)=rho_p(i1,i2,i3s,1)+real(hfac,dp)*r1
+                 rho_p(i1,i2,i3s,2)=rho_p(i1,i2,i3s,2)+real(hfac2,dp)*r2
+                 rho_p(i1,i2,i3s,3)=rho_p(i1,i2,i3s,3)+real(hfac2,dp)*r3
+                 rho_p(i1,i2,i3s,4)=rho_p(i1,i2,i3s,4)+real(hfac,dp)*r4
               end do
            end if
         end do
      end do
-     if (.not. rsflag) exit loop_xc_overlap
+     if (.not. rsflag) exit loop_xc_overlap !the whole range is already done
   end do loop_xc_overlap
 
   if (i3s /= nrhotot) then
