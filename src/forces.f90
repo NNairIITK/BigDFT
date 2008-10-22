@@ -60,32 +60,6 @@ subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
      fygau=0.d0
      fzgau=0.d0
 
-!!$     !parallelize the calculation of the ionic forces in the nonperiodic case
-!!$     if (mod(iat-1,nproc).eq.iproc .and. iproc < at%nat .and. geocode /= 'P') then
-!!$        !Derivative of the ion-ion energy
-!!$        do jat=1,iat-1
-!!$           dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-!!$           jtyp=at%iatype(jat)
-!!$           !eion=eion+at%nelpsp(jtyp)*at%nelpsp(ityp)/dist
-!!$           fxion=fxion+real(at%nelpsp(jtyp),kind=8)*&
-!!$                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(rx-rxyz(1,jat))
-!!$           fyion=fyion+real(at%nelpsp(jtyp),kind=8)*&
-!!$                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(ry-rxyz(2,jat))
-!!$           fzion=fzion+real(at%nelpsp(jtyp),kind=8)*&
-!!$                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(rz-rxyz(3,jat))
-!!$        end do
-!!$        do jat=iat+1,at%nat
-!!$           dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
-!!$           jtyp=at%iatype(jat)
-!!$           fxion=fxion+real(at%nelpsp(jtyp),kind=8)*&
-!!$                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(rx-rxyz(1,jat))
-!!$           fyion=fyion+real(at%nelpsp(jtyp),kind=8)*&
-!!$                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(ry-rxyz(2,jat))
-!!$           fzion=fzion+real(at%nelpsp(jtyp),kind=8)*&
-!!$                (real(at%nelpsp(ityp),kind=8)/(dist**3))*(rz-rxyz(3,jat))
-!!$        end do
-!!$     end if
-
      !building array of coefficients of the derivative of the gaussian part
      cprime(1)=2.d0*at%psppar(0,2,ityp)-at%psppar(0,1,ityp)
      cprime(2)=4.d0*at%psppar(0,3,ityp)-at%psppar(0,2,ityp)
@@ -95,9 +69,8 @@ subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
      ! determine number of local terms
      nloc=0
      do iloc=1,4
-        if (at%psppar(0,iloc,ityp).ne.0.d0) nloc=iloc
+        if (at%psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
      enddo
-
 
      !local part
      rloc=at%psppar(0,0,ityp)

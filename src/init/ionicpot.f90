@@ -1,5 +1,5 @@
-subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,alat3,rxyz,eion,fion,psoffset,&
-     n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,alat3,&
+     rxyz,eion,fion,psoffset,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
   use module_base
   use module_types
   use Poisson_Solver
@@ -64,7 +64,7 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
                 gprimd(ii,2)*fewald(2,iat)+&
                 gprimd(ii,3)*fewald(3,iat))
         end do
-        if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
+        !if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
      end do
 
      i_all=-product(shape(xred))*kind(xred)
@@ -161,15 +161,16 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
         fion(2,iat)=fyion
         fion(3,iat)=fzion
 
-        if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
+        !if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
         !energy which comes from the self-interaction of the spread charge
         eself=eself+real(at%nelpsp(ityp)**2,gp)*0.5_gp*sqrt(1.d0/pi)/at%psppar(0,0,ityp)
      end do
 
-     if (nproc==1 .and. slowion) print *,'eself',eself
+     !if (nproc==1 .and. slowion) print *,'eself',eself
      
   end if
 
+  !for the surfaces BC,
   !activate for the moment only the slow calculation of the ionic energy and forces
   if (geocode == 'S') slowion=.true.
   
@@ -184,7 +185,6 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
      call ext_buffers(perx,nbl1,nbr1)
      call ext_buffers(pery,nbl2,nbr2)
      call ext_buffers(perz,nbl3,nbr3)
-
 
      !the ions corresponds to gaussian charges disposed in the same way as the pseudopotentials
 
@@ -283,11 +283,12 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
         fion(2,iat)=-hxh*hyh*hzh*prefactor*fyslf
         fion(3,iat)=-hxh*hyh*hzh*prefactor*fzslf
 
-        if (nproc==1) print *,'iat,fself',iat,fxslf,fyslf,fzslf
+        !if (nproc==1) print *,'iat,fself',iat,fxslf,fyslf,fzslf
 
      enddo
 
-     if (nproc==1) print *,'eself',eself
+     !if (nproc==1) 
+     !print *,'iproc,eself',iproc,eself
 
      if (n3pi >0 ) then
         !then calculate the hartree energy and forces of the charge distributions
@@ -344,7 +345,8 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
 
      eion=ehart-eself
 
-     if (nproc==1) print *,'eion',eion
+     !if (nproc==1) 
+     !print *,'iproc,eion',iproc,eion
 
      do iat=1,at%nat
         ityp=at%iatype(iat)
@@ -404,7 +406,7 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
         fion(2,iat)=fion(2,iat)+(hxh*hyh*hzh*prefactor)*fyerf
         fion(3,iat)=fion(3,iat)+(hxh*hyh*hzh*prefactor)*fzerf
 
-        if (nproc==1) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
+        !if (nproc==1) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
 
 !!$        write(10+iat,'(1x,f8.3,i5,(1x,3(1x,1pe12.5)))',advance='no') &
 !!$             hxh,iat,(fion(j1,iat),j1=1,3)

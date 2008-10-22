@@ -94,6 +94,16 @@ program BigDFT
      end if
   enddo
 
+  !atoms inside the box (this can be insertedindise call_bigdft routine
+  if (inputs%geocode == 'P') then
+     rxyz(1,iat)=modulo(rxyz(1,iat),inputs%alat1)
+     rxyz(2,iat)=modulo(rxyz(2,iat),inputs%alat2)
+     rxyz(3,iat)=modulo(rxyz(3,iat),inputs%alat3)
+  else if (inputs%geocode == 'S') then
+     rxyz(1,iat)=modulo(rxyz(1,iat),inputs%alat1)
+     rxyz(3,iat)=modulo(rxyz(3,iat),inputs%alat3)
+  end if
+
   call init_restart_objects(atoms,rst,subname)
 
   call call_bigdft(nproc,iproc,atoms,rxyz,inputs,energy,fxyz,rst,infocode)

@@ -84,11 +84,11 @@ subroutine memory_occupation(istat,isize,array,routine)
      if (istat/=0) then
         if (isize>=0) then
            write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
-                'error code=',istat,' exiting...'
+                ', error code=',istat,' exiting...'
            stop
         else if (isize<0) then
            write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
-                'error code=',istat,' exiting...'
+                ', error code=',istat,' exiting...'
            stop
         end if
      end if

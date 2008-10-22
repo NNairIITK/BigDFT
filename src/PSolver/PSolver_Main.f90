@@ -104,7 +104,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   character(len=*), parameter :: subname='PSolver'
   integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
-  integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4,ind4sh
+  integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4,ind4sh,i,j
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,i4,ind2nd
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim,ispin,istden,istglo
   real(dp) :: scal,ehartreeLOC,eexcuLOC,vexcuLOC,pot
@@ -165,16 +165,36 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if (datacode=='G') then
      !starting address of rhopot in the case of global i/o
      i3start=istart+2-nxcl-nwbl
-     if(nspin==2 .and. nproc>1) then
+     if((nspin==2 .and. nproc>1) .or. i3start <=0 .or. i3start+nxt-1 > n03 ) then
         !allocation of an auxiliary array for avoiding the shift of the density
         allocate(rhopot_g(m1*m3*nxt*2+ndebug),stat=i_stat)
         call memocc(i_stat,rhopot_g,'rhopot_g',subname)
-        do i1=1,m1*m3*nxt
-           rhopot_G(i1)=rhopot(n01*n02*(i3start-1)+i1)
+        !here we should put the modulo of the results for the non-isolated GGA
+        do i3=1,nxt
+           do i2=1,m3
+              do i1=1,m1
+                 i=i1+(i2-1)*m1+(i3-1)*m1*m3
+                 j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02
+                 rhopot_G(i)=rhopot(j)
+              end do
+           end do
         end do
-        do i1=1,m1*m3*nxt
-           rhopot_G(i1+m1*m3*nxt)=rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)
+        do i3=1,nxt
+           do i2=1,m3
+              do i1=1,m1
+                 i=i1+(i2-1)*m1+(i3-1)*m1*m3+m1*m3*nxt
+                 j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+n01*n02*n03
+                 rhopot_G(i)=rhopot(j)
+              end do
+           end do
         end do
+!!$
+!!$        do i1=1,m1*m3*nxt
+!!$           rhopot_G(i1)=rhopot(n01*n02*(i3start-1)+i1)
+!!$        end do
+!!$        do i1=1,m1*m3*nxt
+!!$           rhopot_G(i1+m1*m3*nxt)=rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)
+!!$        end do
      end if
   else if (datacode == 'D') then
      !distributed i/o
@@ -196,16 +216,19 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 !!$  print *,'        it goes from',i3start+nwbl+nxcl-1,'to',i3start+nxc-1
 
   if (istart+1 <= m2) then 
-       if(nspin==2 .and. datacode=='G' .and. nproc>1) then
+       if(datacode=='G' .and. &
+            ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
+        !allocation of an auxiliary array for avoiding the shift of the de ) then
           call xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
                ixc,hx,hy,hz,rhopot_G,pot_ion,sumpion,zf,zfionxc,&
                eexcuLOC,vexcuLOC,iproc,nproc,nspin)
-          do i1=1,m1*m3*nxt
-             rhopot(n01*n02*(i3start-1)+i1)=rhopot_G(i1)
-          end do
-          do i1=1,m1*m3*nxt
-             rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)=rhopot_G(i1+m1*m3*nxt)
-          end do
+          !this in principle is not needed
+!!$          do i1=1,m1*m3*nxt
+!!$             rhopot(n01*n02*(i3start-1)+i1)=rhopot_G(i1)
+!!$          end do
+!!$          do i1=1,m1*m3*nxt
+!!$             rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)=rhopot_G(i1+m1*m3*nxt)
+!!$          end do
           i_all=-product(shape(rhopot_G))*kind(rhopot_G)
           deallocate(rhopot_G,stat=i_stat)
           call memocc(i_stat,i_all,'rhopot_g',subname)
@@ -440,7 +463,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      vxc=real(vexcuLOC,gp)
   end if
 
-  if(nspin==1 .and. ixc /= 0) eh=eh*2.0d0
+  if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
   if (iproc==0) write(*,'(a)')'done.'
 
 end subroutine PSolver

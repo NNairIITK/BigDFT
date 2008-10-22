@@ -42,22 +42,6 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
           'Hamiltonian application...'
   end if
 
-  !build the potential on the whole simulation box
-  !in the linear scaling case this should be done for a given localisation region
-  if (nproc > 1) then
-     allocate(pot(n1i*n2i*n3i,nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,pot,'pot',subname)
-
-     do ispin=1,nspin
-        call MPI_ALLGATHERV(potential(1,ispin),ndimpot,&
-             mpidtypw,pot(1,ispin),ngatherarr(0,1),&
-             ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
-     end do
-  else
-     pot => potential
-  end if
-
-
   ! calculate the action of the local hamiltonian on the orbitals
   select case(geocode)
      case('F')
@@ -132,6 +116,22 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
         call memocc(i_stat,y_c,'y_c',subname)
 
   end select
+
+  !build the potential on the whole simulation box
+  !in the linear scaling case this should be done for a given localisation region
+  !cannot be deplaced due to the fact that n1i is not calculated
+  if (nproc > 1) then
+     allocate(pot(n1i*n2i*n3i,nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,pot,'pot',subname)
+
+     do ispin=1,nspin
+        call MPI_ALLGATHERV(potential(1,ispin),ndimpot,&
+             mpidtypw,pot(1,ispin),ngatherarr(0,1),&
+             ngatherarr(0,2),mpidtypw,MPI_COMM_WORLD,ierr)
+     end do
+  else
+     pot => potential
+  end if
 
 
   ! Wavefunction in real space

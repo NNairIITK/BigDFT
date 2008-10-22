@@ -100,6 +100,10 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
                  tpos(1,iat)=modulo(rxyz(1,iat)+beta0*hh(1,iat),in%alat1)
                  tpos(2,iat)=modulo(rxyz(2,iat)+beta0*hh(2,iat),in%alat2)
                  tpos(3,iat)=modulo(rxyz(3,iat)+beta0*hh(3,iat),in%alat3)
+              else if (in%geocode == 'S') then
+                 tpos(1,iat)=modulo(rxyz(1,iat)+beta0*hh(1,iat),in%alat1)
+                 tpos(2,iat)=rxyz(2,iat)+beta0*hh(2,iat)
+                 tpos(3,iat)=modulo(rxyz(3,iat)+beta0*hh(3,iat),in%alat3)
               else
                  tpos(1,iat)=rxyz(1,iat)+beta0*hh(1,iat)
                  tpos(2,iat)=rxyz(2,iat)+beta0*hh(2,iat)
@@ -147,6 +151,10 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
               if (in%geocode == 'P') then
                  rxyz(1,iat)=modulo(rxyz(1,iat)+beta*hh(1,iat),in%alat1)
                  rxyz(2,iat)=modulo(rxyz(2,iat)+beta*hh(2,iat),in%alat2)
+                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*hh(3,iat),in%alat3)
+              else if (in%geocode == 'S') then
+                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*hh(1,iat),in%alat1)
+                 rxyz(2,iat)=rxyz(2,iat)+beta*hh(2,iat)
                  rxyz(3,iat)=modulo(rxyz(3,iat)+beta*hh(3,iat),in%alat3)
               else
                  rxyz(1,iat)=rxyz(1,iat)+beta*hh(1,iat)
@@ -400,13 +408,6 @@ contains
 
           ncount_cluster=ncount_cluster+1
 
-!!$          !useless, this is already did in cluster routine
-!!$          do iat=1,at%nat
-!!$             rxyz_old(1,iat)=rxyz(1,iat)
-!!$             rxyz_old(2,iat)=rxyz(2,iat)
-!!$             rxyz_old(3,iat)=rxyz(3,iat)
-!!$          enddo
-
           !if the energy goes up (a small tolerance is allowed by anoise)
           !reduce the value of beta
           !this procedure stops in the case beta is much too small compared with the initial one
@@ -536,6 +537,10 @@ contains
                    rxyz(1,iat)=modulo(rxyz(1,iat)+beta*ff(1,iat),in%alat1)
                    rxyz(2,iat)=modulo(rxyz(2,iat)+beta*ff(2,iat),in%alat2)
                    rxyz(3,iat)=modulo(rxyz(3,iat)+beta*ff(3,iat),in%alat3)
+                else if (in%geocode == 'S') then
+                   rxyz(1,iat)=modulo(rxyz(1,iat)+beta*ff(1,iat),in%alat1)
+                   rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
+                   rxyz(3,iat)=modulo(rxyz(3,iat)+beta*ff(3,iat),in%alat3)
                 else
                    rxyz(1,iat)=rxyz(1,iat)+beta*ff(1,iat)
                    rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
@@ -604,6 +609,10 @@ contains
                 pos(1,iat)=modulo(pos(1,iat)+t1,in%alat1)
                 pos(2,iat)=modulo(pos(2,iat)+t2,in%alat2)
                 pos(3,iat)=modulo(pos(3,iat)+t3,in%alat3)
+             else if (in%geocode == 'S') then
+                pos(1,iat)=modulo(pos(1,iat)+t1,in%alat1)
+                pos(2,iat)=pos(2,iat)+t2
+                pos(3,iat)=modulo(pos(3,iat)+t3,in%alat3)
              else
                 pos(1,iat)=pos(1,iat)+t1
                 pos(2,iat)=pos(2,iat)+t2
@@ -636,6 +645,10 @@ contains
                 tpos(1,iat)=modulo(pos(1,iat)+beta0*ff(1,iat),in%alat1)
                 tpos(2,iat)=modulo(pos(2,iat)+beta0*ff(2,iat),in%alat2)
                 tpos(3,iat)=modulo(pos(3,iat)+beta0*ff(3,iat),in%alat3)
+             else if (in%geocode == 'S') then
+                tpos(1,iat)=modulo(pos(1,iat)+beta0*ff(1,iat),in%alat1)
+                tpos(2,iat)=pos(2,iat)+beta0*ff(2,iat)
+                tpos(3,iat)=modulo(pos(3,iat)+beta0*ff(3,iat),in%alat3)
              else
                 tpos(1,iat)=pos(1,iat)+beta0*ff(1,iat)
                 tpos(2,iat)=pos(2,iat)+beta0*ff(2,iat)
@@ -662,6 +675,10 @@ contains
              if (in%geocode == 'P') then
                 pos(1,iat)=modulo(pos(1,iat)+tt*ff(1,iat),in%alat1)
                 pos(2,iat)=modulo(pos(2,iat)+tt*ff(2,iat),in%alat2)
+                pos(3,iat)=modulo(pos(3,iat)+tt*ff(3,iat),in%alat3)
+             else if (in%geocode == 'S') then
+                pos(1,iat)=modulo(pos(1,iat)+tt*ff(1,iat),in%alat1)
+                pos(2,iat)=pos(2,iat)+tt*ff(2,iat)
                 pos(3,iat)=modulo(pos(3,iat)+tt*ff(3,iat),in%alat3)
              else
                 pos(1,iat)=pos(1,iat)+tt*ff(1,iat)

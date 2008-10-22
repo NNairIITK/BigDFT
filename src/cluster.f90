@@ -375,7 +375,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call memocc(i_stat,fion,'fion',subname)
 
   call IonicEnergyandForces(geocode,iproc,nproc,atoms,hxh,hyh,hzh,alat1,alat2,alat3,rxyz,eion,fion,&
-       psoffset,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+       psoffset,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
 
   !can pass the atoms data structure as argument
   call createIonicPotential(geocode,iproc,nproc,atoms%nat,atoms%ntypes,atoms%iatype,&
@@ -892,7 +892,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
 
      if (nproc > 1) then
-        !allocate full density in pot_ion directory
+        !allocate full density in pot_ion array
         allocate(pot_ion(n1i*n2i*n3i+ndebug),stat=i_stat)
         call memocc(i_stat,pot_ion,'pot_ion',subname)
 
