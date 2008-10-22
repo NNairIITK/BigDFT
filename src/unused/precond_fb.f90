@@ -44,7 +44,7 @@
         real(kind=8),allocatable,dimension(:,:) :: GG_F, HPSI_F, HPSI_F_OLD
         real(kind=8),allocatable,dimension(:,:) ::  HPSI_F_MOD,   PSI_F_NEW
         
-        PARAMETER(A2=3.55369228991319019D0,ALPHAMIN=.05d0,COSMIN=.5D0)
+        real(kind=8), parameter :: A2=3.55369228991319019D0,ALPHAMIN=.05d0,COSMIN=.5D0
 
         OPEN(10,FILE='input.dat') 
           DO I=1,8

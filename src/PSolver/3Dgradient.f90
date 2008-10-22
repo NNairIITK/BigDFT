@@ -25,6 +25,7 @@
 !!
 subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
      wb_vxc)
+ use module_base
  implicit none
  !Arguments
  character(len=1), intent(in) :: geocode
@@ -571,6 +572,7 @@ end subroutine wb_correction
 !!
 subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
      gradient)
+ use module_base
  implicit none
  !Arguments
  character(len=1), intent(in) :: geocode

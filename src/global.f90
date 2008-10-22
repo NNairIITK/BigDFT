@@ -253,7 +253,7 @@ program MINHOP
         filename = 'global.mon'
         write(67,*) 'iteration results written in:',filename
         write(*,*) '# iteration results written in:',filename
-        open(unit=2,file=filename,status='unknown',position='append')
+        open(unit=2,file=filename,status='unknown',access='append')
       endif
 
 ! (un)comment the correct 2 lines
@@ -1058,12 +1058,15 @@ end program MINHOP
              end
 
 
-      subroutine hunt(xx,n,x,jlo)
+subroutine hunt(xx,n,x,jlo)
+  implicit none
 !C x is in interval [xx(jlo),xx(jlow+1)[ ; xx(0)=-Infinity ; xx(n+1) = Infinity
-      integer jlo,n
-      real*8 x,xx(n)
-      integer inc,jhi,jm
-      logical ascnd
+!Arguments
+  integer :: jlo,n
+  real(kind=8) :: x,xx(n)
+!Local variables
+  integer :: inc,jhi,jm
+  logical :: ascnd
         if (n.le.0) stop 'hunt'
         if (n.eq.1) then
         if (x.ge.xx(1)) then
@@ -1081,7 +1084,8 @@ end program MINHOP
       endif
       inc=1
       if(x.ge.xx(jlo).eqv.ascnd)then
-1       jhi=jlo+inc
+1       continue
+        jhi=jlo+inc
         if(jhi.gt.n)then
           jhi=n+1
         else if(x.ge.xx(jhi).eqv.ascnd)then
@@ -1091,7 +1095,8 @@ end program MINHOP
         endif
       else
         jhi=jlo
-2       jlo=jhi-inc
+2       continue
+        jlo=jhi-inc
         if(jlo.lt.1)then
           jlo=0
         else if(x.lt.xx(jlo).eqv.ascnd)then
@@ -1100,7 +1105,8 @@ end program MINHOP
           goto 2
         endif
       endif
-3     if(jhi-jlo.eq.1)then
+3     continue
+      if(jhi-jlo.eq.1)then
         if(x.eq.xx(n))jlo=n
         if(x.eq.xx(1))jlo=1
         return
@@ -1112,7 +1118,7 @@ end program MINHOP
         jhi=jm
       endif
       goto 3
-      END
+END SUBROUTINE hunt
 
 
       subroutine velopt(nat,rxyz,ekinetic,vxyz)

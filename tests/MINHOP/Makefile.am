@@ -33,6 +33,7 @@ check: $(PPFILES)
 	cp -f $(top_srcdir)/tests/MINHOP/ioput .
 	cp -f $(top_srcdir)/tests/MINHOP/rand.inp .
 	cp -f $(top_srcdir)/tests/MINHOP/poscur.xyz .
+	rm -f global.mon
 	$(run_parallel) $(top_builddir)/src/global > MINHOP.out
 	python $(top_srcdir)/tests/fldiff.py global.mon $(top_srcdir)/tests/Refs/global.mon.ref
 	python $(top_srcdir)/tests/fldiff.py --bigdft MINHOP.out \

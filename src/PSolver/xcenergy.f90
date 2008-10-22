@@ -508,6 +508,7 @@ end subroutine xc_energy
 !!
 !! SOURCE
 subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,hx,hy,hz,dvxcdgr,wb_vxc)
+  use module_base
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr
