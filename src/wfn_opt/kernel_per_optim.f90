@@ -141,6 +141,11 @@ inzee=1
 z=0.0_gp
 z(1,1,inzee)=fil(0)
 
+if (nd1 < 14) then
+   write(*,*)'ERROR: dimension too little dimension n',nd1,n1
+   stop
+end if
+
 do i=1,14
 	z(1,i+1,inzee)=fil(i)
 enddo

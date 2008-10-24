@@ -170,24 +170,26 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         allocate(rhopot_g(m1*m3*nxt*2+ndebug),stat=i_stat)
         call memocc(i_stat,rhopot_g,'rhopot_g',subname)
         !here we should put the modulo of the results for the non-isolated GGA
-        do i3=1,nxt
-           do i2=1,m3
-              do i1=1,m1
-                 i=i1+(i2-1)*m1+(i3-1)*m1*m3
-                 j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02
-                 rhopot_G(i)=rhopot(j)
+        do ispin=1,nspin
+           do i3=1,nxt
+              do i2=1,m3
+                 do i1=1,m1
+                    i=i1+(i2-1)*m1+(i3-1)*m1*m3+(ispin-1)*m1*m3*nxt
+                    j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+(ispin-1)*n01*n02*n03
+                    rhopot_G(i)=rhopot(j)
+                 end do
               end do
            end do
         end do
-        do i3=1,nxt
-           do i2=1,m3
-              do i1=1,m1
-                 i=i1+(i2-1)*m1+(i3-1)*m1*m3+m1*m3*nxt
-                 j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+n01*n02*n03
-                 rhopot_G(i)=rhopot(j)
-              end do
-           end do
-        end do
+!!$        do i3=1,nxt
+!!$           do i2=1,m3
+!!$              do i1=1,m1
+!!$                 i=i1+(i2-1)*m1+(i3-1)*m1*m3+m1*m3*nxt
+!!$                 j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+n01*n02*n03
+!!$                 rhopot_G(i)=rhopot(j)
+!!$              end do
+!!$           end do
+!!$        end do
 !!$
 !!$        do i1=1,m1*m3*nxt
 !!$           rhopot_G(i1)=rhopot(n01*n02*(i3start-1)+i1)
@@ -223,6 +225,17 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
                ixc,hx,hy,hz,rhopot_G,pot_ion,sumpion,zf,zfionxc,&
                eexcuLOC,vexcuLOC,iproc,nproc,nspin)
           !this in principle is not needed
+          do ispin=1,nspin
+             do i3=1,nxt
+                do i2=1,m3
+                   do i1=1,m1
+                      i=i1+(i2-1)*m1+(i3-1)*m1*m3+(ispin-1)*m1*m3*nxt
+                      j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+(ispin-1)*n01*n02*n03
+                      rhopot(j)=rhopot_G(i)
+                   end do
+                end do
+             end do
+          end do
 !!$          do i1=1,m1*m3*nxt
 !!$             rhopot(n01*n02*(i3start-1)+i1)=rhopot_G(i1)
 !!$          end do

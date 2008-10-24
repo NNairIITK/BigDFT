@@ -261,7 +261,7 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   character(len=2) :: symbol
   character(len=20) :: tatonam
   character(len=50) :: extra
-  character(len=100) :: line
+  character(len=150) :: line
   logical :: lpsdbl,dowrite
   integer :: nateq,iat,jat,ityp,i,ierror,ierrsfx,i_stat,natpol,j
 ! To read the file posinp (avoid differences between compilers)
@@ -295,7 +295,7 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   at%natpol(:)=100
 
   !read from positions of .xyz format, but accepts also the old .ascii format
-  read(ifile,'(a100)')line
+  read(ifile,'(a150)')line
 
   !old format, still here for backward compatibility
   !admits only simple precision calculation
@@ -345,12 +345,13 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
         if (iat /= 1) read(ifile,*) rx,ry,rz,tatonam
      else
         !xyz input file, allow extra information
-        read(ifile,'(a100)')line 
+        read(ifile,'(a150)')line 
         if (lpsdbl) then
            read(line,*,iostat=ierrsfx)symbol,rxd0,ryd0,rzd0,extra
         else
            read(line,*,iostat=ierrsfx)symbol,rx,ry,rz,extra
         end if
+        !print *,line
         call find_extra_info(line,extra)
         call parse_extra_info(iproc,iat,extra,at)
 
@@ -490,7 +491,7 @@ end subroutine read_atomic_positions
 !!
 subroutine find_extra_info(line,extra)
   implicit none
-  character(len=100), intent(in) :: line
+  character(len=150), intent(in) :: line
   character(len=50), intent(out) :: extra
   !local variables
   logical :: space
@@ -506,7 +507,11 @@ subroutine find_extra_info(line,extra)
      end if
      !print *,line(i:i),nspace
      if (nspace==8) then
-        extra=line(i:min(100,i+49))
+        extra=line(i:min(150,i+49))
+        exit find_space
+     end if
+     if (i==150) then
+        extra='nothing'
         exit find_space
      end if
      i=i+1
@@ -535,8 +540,9 @@ subroutine parse_extra_info(iproc,iat,extra,at)
   character(len=3) :: suffix
   integer :: ierr,ierr1,ierr2,nspol,nchrg,nsgn
   !case with all the information
+  !print *,iat,'ex'//trim(extra)//'ex'
   read(extra,*,iostat=ierr)nspol,nchrg,suffix
-  if (extra == '') then !case with empty information
+  if (extra == 'nothing') then !case with empty information
      nspol=0
      nchrg=0
      suffix='   '

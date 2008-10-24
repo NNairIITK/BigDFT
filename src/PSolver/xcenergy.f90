@@ -457,7 +457,6 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      exc=sfactor*real(hx*hy*hz,dp)*exc
      vxc=sfactor*real(hx*hy*hz,dp)*vxc
 
-
      !De-allocations
      i_all=-product(shape(exci))*kind(exci)
      deallocate(exci,stat=i_stat)

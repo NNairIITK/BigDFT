@@ -860,72 +860,22 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   deallocate(spinsgn_foo,stat=i_stat)
   call memocc(i_stat,i_all,'spinsgn_foo',subname)
 
+  !plot also the ionic potential
+  if (in%output_grid) then
+     call plot_density(geocode,'pot_ion.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,1,&
+          alat1,alat2,alat3,ngatherarr,pot_ion)
+  end if
+
   i_all=-product(shape(pot_ion))*kind(pot_ion)
   deallocate(pot_ion,stat=i_stat)
   call memocc(i_stat,i_all,'pot_ion',subname)
 
+  !plot the density on the density.pot file
   if (in%output_grid) then
-     if (iproc == 0) then
-        open(unit=22,file='density.pot',status='unknown')
-        write(22,*)'normalised density'
-        write(22,*) 2*n1+2,2*n2+2,2*n3+2
-        write(22,*) alat1,' 0. ',alat2
-        write(22,*) ' 0. ',' 0. ',alat3
-        write(22,*)'xyz   periodic'
-     end if
+     call plot_density(geocode,'density.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nelec,&
+     alat1,alat2,alat3,ngatherarr,rho)
+  end if
 
-     !conditions for periodicity in the three directions
-     !value of the buffer in the x and z direction
-     if (geocode /= 'F') then
-        nl1=1
-        nl3=1
-     else
-        nl1=14
-        nl3=14
-     end if
-     !value of the buffer in the y direction
-     if (geocode == 'P') then
-        nl2=1
-     else
-        nl2=14
-     end if
-
-
-     if (nproc > 1) then
-        !allocate full density in pot_ion array
-        allocate(pot_ion(n1i*n2i*n3i+ndebug),stat=i_stat)
-        call memocc(i_stat,pot_ion,'pot_ion',subname)
-
-        call MPI_ALLGATHERV(rho,n1i*n2i*n3p,&
-             MPI_DOUBLE_PRECISION,pot_ion,ngatherarr(0,1),&
-             ngatherarr(0,2),MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-
-        if (iproc == 0) then
-           do i3=0,2*n3+1
-              do i2=0,2*n2+1
-                 do i1=0,2*n1+1
-                    ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-                    write(22,*)pot_ion(ind)/real(nelec,dp)
-                 end do
-              end do
-           end do
-        end if
-
-        i_all=-product(shape(pot_ion))*kind(pot_ion)
-        deallocate(pot_ion,stat=i_stat)
-        call memocc(i_stat,i_all,'pot_ion',subname)
-     else
-        do i3=0,2*n3+1
-           do i2=0,2*n2+1
-              do i1=0,2*n1+1
-                 ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-                 write(22,*)rho(ind)/real(nelec,dp)
-              end do
-           end do
-        end do
-     end if
-     if (iproc == 0 )close(22)
-  endif
 
   if (n3p>0) then
      allocate(pot(n1i,n2i,n3p,1+ndebug),stat=i_stat)
@@ -935,10 +885,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,pot,'pot',subname)
   end if
 
+  !calculate electrostatic potential
   call DCOPY(n1i*n2i*n3p,rho,1,pot,1) 
   call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
        pot,pkernel,pot,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1)
   !here nspin=1 since ixc=0
+
+  !plot also the electrostatic potential
+  if (in%output_grid) then
+     call plot_density(geocode,'potential.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,1,&
+          alat1,alat2,alat3,ngatherarr,pot)
+  end if
 
   i_all=-product(shape(pkernel))*kind(pkernel)
   deallocate(pkernel,stat=i_stat)
@@ -1240,3 +1197,4 @@ contains
 
 END SUBROUTINE cluster
 !!***
+

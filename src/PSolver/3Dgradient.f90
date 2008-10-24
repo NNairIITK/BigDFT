@@ -36,7 +36,7 @@ subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
  real(dp), dimension(n1,n2,n3,3,nspden), intent(in) :: f_i
  real(dp), dimension(n1,n2,n3,nspden), intent(inout) :: wb_vxc
  !Local variables
- integer :: i1,i2,i3,idir,ispden,i3s,i3e
+ integer :: i1,i2,i3,idir,ispden
  !filters of finite difference derivative for order 4
  real(dp), parameter :: a1=0.8d0, a2=-0.2d0
  real(dp), parameter :: a3=0.038095238095238095238d0, a4=-0.0035714285714285714286d0
@@ -475,13 +475,13 @@ subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
                 wb_vxc(i1,i2,4,ispden)=wb_vxc(i1,i2,4,ispden)+derz/hz
              end do
           end do
-          i3s=5
-          i3e=n3-4
+!!$          i3s=5
+!!$          i3e=n3-4
        else
-          i3s=1
-          i3e=n3
+!!$          i3s=1
+!!$          i3e=n3
        end if
-       do i3=i3s,i3e
+       do i3=5,n3-4 
           do i2=1,n2
              do i1=1,n1
                 derz=-a1*(f_i(i1,i2,i3+1,3,ispden)-f_i(i1,i2,i3-1,3,ispden))&
