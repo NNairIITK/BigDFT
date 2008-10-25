@@ -1685,7 +1685,7 @@ endif
 !	write(*,*) i,earr(i,1)
 !        enddo
 
-        do 33 k=1,min(nlmin_l,npminx)
+    do k=1,min(nlmin_l,npminx)
 !        write(*,*) 'k,elocmin(k)',k,elocmin(k)
 
          
@@ -1710,13 +1710,13 @@ endif
         write(9,'(i6,2x,a,1pe24.17)') nat,'  atomic ',elocmin(k)
         write(9,'(e24.17)') elocmin(k)
         do iat=1,nat
-        write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)'),atomnames(iatype(iat)),&
-                                        pos(1,iat,kk),pos(2,iat,kk),pos(3,iat,kk),natpol(iat)-100
+            write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)'),atomnames(iatype(iat)),&
+                                            pos(1,iat,kk),pos(2,iat,kk),pos(3,iat,kk),natpol(iat)-100
         enddo
         close(9)
         endif
 
-33      continue
+    end do
 
         return
         end
@@ -1726,8 +1726,9 @@ endif
         subroutine zero(n,x)
         implicit real*8 (a-h,o-z)
         dimension x(n)
-        do 10,j=1,n
-10      x(j)=0.d0
+        do j=1,n
+           x(j)=0.d0
+        end do
         return
         end
 
