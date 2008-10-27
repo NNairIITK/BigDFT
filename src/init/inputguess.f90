@@ -66,14 +66,14 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,n
               nl(3,ity),(occupat(i,ity),i=1+nl(2,ity)+nl(1,ity),nl(3,ity)+nl(2,ity)+nl(1,ity)),&
               nl(4,ity),(occupat(i,ity),&
               i=1+nl(3,ity)+nl(2,ity)+nl(1,ity),nl(4,ity)+nl(3,ity)+nl(2,ity)+nl(1,ity))
-           !print *,nl(:,ity),occupat(:,ity)
+           !write(*,*) nl(:,ity),occupat(:,ity)
            if (nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity).gt.5) then
-              print *,'error: number of valence orbitals too big'
-              print *,nl(:,ity),occupat(:,ity)
+              write(*,*) 'error: number of valence orbitals too big'
+              write(*,*) nl(:,ity),occupat(:,ity)
               stop
            end if
            read(24,*) ng(ity)
-           !print *, pspatomnames(ity),(nl(l,ity),l=1,4),ng(ity),ngx,npsp
+           !write(*,*)  pspatomnames(ity),(nl(l,ity),l=1,4),ng(ity),ngx,npsp
            if (ng(ity).gt.ngx) stop 'enlarge ngx'
            !read(24,'(30(e12.5))') (xp(i,ity)  ,i=1,ng(ity))
            read(24,*) (xp(i,ity)  ,i=1,ng(ity))
@@ -127,7 +127,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,n
 !!$           do j=1,ng(ity)
 !!$              write(12,*)(psiat(j,i,ity),i=1,nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity))
 !!$           end do
-!!$           !print *,' --------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------'
+!!$           !write(*,*) ' --------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------'
 !!$        end if
         if (iproc.eq.0) write(*,'(1x,a)')'done.'
 
@@ -168,7 +168,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,n
         end do
         norbsc_arr(iatsc,1)=iorbsc_count
         norbsc=norbsc+iorbsc_count
-        !if (iproc == 0) print *,iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
+        !if (iproc == 0) write(*,*) iat,nsccode,iorbsc_count,norbsc,scorb(:,:,iatsc)
      end if
   end do
 
@@ -294,7 +294,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,at,&
      ictotpsi=0
      nctot=nl(1,ity)+nl(2,ity)+nl(3,ity)+nl(4,ity)
      if (iorbsc(1)+nctot > norbe .and. iorbv(1)+nctot > norbe) then
-        print *,'transgpw occupe',nlat(:),norbe
+        write(*,*) 'transgpw occupe',nlat(:),norbe
         stop
      end if
      polarised=.false.
@@ -340,7 +340,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,at,&
               if (semicore(l,inl)) then
                  !the orbital is semi-core
                  iorb=iorbsc(ispin)
-                 !print *,'iproc, SEMICORE orbital, iat,l',iproc,iat,l
+                 !write(*,*) 'iproc, SEMICORE orbital, iat,l',iproc,iat,l
                  !the occupation number is divided by two in the case of spin polarisation
                  if (nspin==2) then
                     occshell=0.5_gp*shelloccup
@@ -382,7 +382,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,at,&
                     scprw=real(1.0_dp/sqrt(scpr),wp)
                     call wscal(wfd%nvctr_c,wfd%nvctr_f,scprw,psi(1,jorb),psi(wfd%nvctr_c+1,jorb))
                     !call wnrm(nvctr_c,nvctr_f,psi(1,jorb),psi(nvctr_c+1,jorb),scpr) 
-                    !print *,'newnorm', scpr,occupe(iorb),occshell,ictot
+                    !write(*,*) 'newnorm', scpr,occupe(iorb),occshell,ictot
                  endif
               end do
               if (semicore(l,inl)) then
@@ -400,7 +400,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,at,&
 
   end do
   if (iorbsc(1) /= norbsc) then
-     print *,iorbsc(1),norbsc
+     write(*,*) iorbsc(1),norbsc
      stop 'createAtomic orbitals: error (iorbsc)'
   end if
   if (iorbv(1)/= norbe) stop 'createAtomic orbitals: error (iorbv)'
@@ -587,7 +587,7 @@ subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
      lx(1)=1 ; ly(1)=1 ; lz(1)=1
      fac_arr(1)=2.890611442640554_gp
   else
-     print *,'l,m',l,m
+     write(*,*) 'l,m',l,m
      stop 'input guess format error'
   endif
 

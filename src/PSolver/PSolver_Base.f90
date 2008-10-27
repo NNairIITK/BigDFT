@@ -13,6 +13,7 @@
 !!
 subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
              scal,hx,hy,hz,offset)
+  use module_base, only: ndebug
   implicit none
   !to be preprocessed
   include 'mpif.h'
@@ -1711,6 +1712,7 @@ end subroutine unscramble_pack
 !!
 subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
              ,scal)!,hgrid)!,ehartree)
+  use module_base, only: ndebug
   implicit none
   include 'mpif.h'
   include 'perfdata.inc'

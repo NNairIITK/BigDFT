@@ -13,6 +13,7 @@
 !!
 subroutine scaling_function(itype,nd,nrange,a,x)
 
+  use module_base, only: ndebug
   implicit none
   !Arguments
   !Type of interpolating functions

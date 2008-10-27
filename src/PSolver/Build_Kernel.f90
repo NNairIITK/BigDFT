@@ -49,6 +49,7 @@
 !! SOURCE
 !!
 subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kernel)
+  use module_base, only: ndebug
   implicit none
   include 'mpif.h'
   character(len=1), intent(in) :: geocode
@@ -613,6 +614,7 @@ end subroutine Surfaces_Kernel
 
 
 subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g_mu)
+  use module_base, only: ndebug
   implicit none
   real(kind=8), parameter :: mu_max=0.2d0
   integer, intent(in) :: n,n_scf,intorder,itype_scf
@@ -886,6 +888,8 @@ end subroutine indices
 !!
 subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
      hx,hy,hz,itype_scf,iproc,nproc,karray)
+
+ use module_base, only: ndebug
 
  implicit none
 
