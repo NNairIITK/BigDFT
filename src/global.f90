@@ -121,10 +121,10 @@ program MINHOP
         filename = 'poscur.xyz'
         open(unit=99,file=filename,status='old')
         if (nlmin.eq.0) then 
-           read(99,*) atoms%nat,units
+           read(99,*) atoms%nat,atoms%units
            tre_pos=1000.d0
         else
-           read(99,*) atoms%nat,units,tre_pos
+           read(99,*) atoms%nat,atoms%units,tre_pos
         endif
         if (iproc.eq.0) write(67,*) 'nat=',atoms%nat
         if (iproc.eq.0) write(*,*) '#nat=',atoms%nat
@@ -132,7 +132,7 @@ program MINHOP
         call memocc(i_stat,product(shape(pos))*kind(pos),'pos','global')
         if (iproc.eq.0) write(67,'(a,a)') 'reading positions from ',filename
         if (iproc.eq.0) write(*,'(a,a)') ' # reading positions from ',filename
-       call read_atomic_positions(iproc,99,units,inputs,atoms,pos)
+       call read_atomic_positions(iproc,99,atoms,pos)
        close(99)
         
 

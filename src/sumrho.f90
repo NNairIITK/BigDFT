@@ -280,6 +280,8 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
 !!$     nspinn=nspin
 !!$  end if
 
+
+  !print *,'nspin,iproc',nspin,nspinn,nspinor,iproc
   
 
   tmred(nspin+1,itmred)=0.0_dp

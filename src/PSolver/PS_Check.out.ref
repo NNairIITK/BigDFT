@@ -7,7 +7,7 @@
   LB_kernel        : processors   0  -  0 work at 100%
                      processor       1   works at  96%
  Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
- ===================== npsden:  1
+ ===================== nspden:  1
  PSolver, free  BC, dimensions:    57   48   63   proc    2   ixc:  0 ...done.
  Energies:  3.989422803955E-01  0.000000000000E+00  0.000000000000E+00
  ANALYTIC    Max diff:  3.442615081894E-10   <<<< WARNING
@@ -43,8 +43,8 @@
  COMPLETE  D    Max diff:  0.000000000000E+00
  Energies diff:  5.551115123126E-17  0.000000000000E+00  0.000000000000E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 262 allocations and 262 deallocations, remaining memory(B):0
- memory occupation peak: 27 MB
+ 266 allocations and 266 deallocations, remaining memory(B):0
+ memory occupation peak: 25 MB
  for the array  cosinarr in the routine kernelfft
  ------------------------------------------------------------ Poisson Kernel Creation
  Calculating Poisson solver kernel, free BC...done.
@@ -55,7 +55,7 @@
   LB_kernel        : processors   0  -  0 work at 100%
                      processor       1   works at  96%
  Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
- ===================== npsden:  1
+ ===================== nspden:  1
  PSolver, free  BC, dimensions:    57   48   63   proc    2   ixc:  1 ...done.
  Energies:  3.989422803955E-01 -3.175268521803E-01 -4.144744900528E-01
  ANALYTIC    Max diff:  3.442615081894E-10   <<<< WARNING
@@ -94,7 +94,7 @@
  PSolver, free  BC, dimensions:    57   48   63   proc    1   ixc:  1 ...done.
  COMPLETE  D    Max diff:  2.220446049250E-16
  Energies diff:  5.551115123126E-17 -1.132427485118E-14 -2.342570581959E-14
- ===================== npsden:  2
+ ===================== nspden:  2
  PSolver, free  BC, dimensions:    57   48   63   proc    2   ixc:  1 ...done.
  Energies:  3.989422803955E-01 -3.175268521803E-01 -4.144744900527E-01
  ANALYTIC    Max diff:  3.442615081894E-10   <<<< WARNING
@@ -122,19 +122,19 @@
  PSolver, free  BC, dimensions:    57   48   63   proc    1   ixc:  1 ...done.
  ANACOMPLET G    Max diff:  0.000000000000E+00
  XCCOMPLETE G    Max diff:  0.000000000000E+00
- Energies diff:  1.110223024625E-16 -3.619327060278E-14 -6.217248937901E-14
+ Energies diff:  0.000000000000E+00 -3.619327060278E-14 -6.217248937901E-14
  PSolver, free  BC, dimensions:    57   48   63   proc    1   ixc:  1 ...done.
  COMPLETE  G    Max diff:  2.220446049250E-16
- Energies diff:  1.110223024625E-16 -3.619327060278E-14 -6.217248937901E-14
+ Energies diff:  0.000000000000E+00 -3.619327060278E-14 -6.217248937901E-14
  PSolver, free  BC, dimensions:    57   48   63   proc    1   ixc:  1 ...done.
  ANACOMPLET D    Max diff:  0.000000000000E+00
  XCCOMPLETE D    Max diff:  0.000000000000E+00
- Energies diff:  1.110223024625E-16 -3.619327060278E-14 -6.217248937901E-14
+ Energies diff:  0.000000000000E+00 -3.619327060278E-14 -6.217248937901E-14
  PSolver, free  BC, dimensions:    57   48   63   proc    1   ixc:  1 ...done.
  COMPLETE  D    Max diff:  2.220446049250E-16
- Energies diff:  1.110223024625E-16 -3.619327060278E-14 -6.217248937901E-14
+ Energies diff:  0.000000000000E+00 -3.619327060278E-14 -6.217248937901E-14
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 536 allocations and 536 deallocations, remaining memory(B):0
+ 545 allocations and 545 deallocations, remaining memory(B):0
  memory occupation peak: 32 MB
  for the array  cosinarr in the routine F_Poisson_Solver
  ------------------------------------------------------------ Poisson Kernel Creation
@@ -146,7 +146,7 @@
   LB_kernel        : processors   0  -  0 work at 100%
                      processor       1   works at  96%
  Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
- ===================== npsden:  1
+ ===================== nspden:  1
  PSolver, free  BC, dimensions:    57   48   63   proc    2   ixc: 11 ...done.
  Energies:  3.989422803955E-01 -3.363455254940E-01 -4.318324152021E-01
  ANALYTIC    Max diff:  3.442615081894E-10   <<<< WARNING
@@ -185,7 +185,7 @@
  PSolver, free  BC, dimensions:    57   48   63   proc    1   ixc: 11 ...done.
  COMPLETE  D    Max diff:  2.220446049250E-16
  Energies diff:  5.551115123126E-17 -2.547961841515E-14 -3.891331701311E-14
- ===================== npsden:  2
+ ===================== nspden:  2
  PSolver, free  BC, dimensions:    57   48   63   proc    2   ixc: 11 ...done.
  Energies:  3.989422803955E-01 -3.363455254940E-01 -4.318324152021E-01
  ANALYTIC    Max diff:  3.442615081894E-10   <<<< WARNING
@@ -213,19 +213,19 @@
  PSolver, free  BC, dimensions:    57   48   63   proc    1   ixc: 11 ...done.
  ANACOMPLET G    Max diff:  0.000000000000E+00
  XCCOMPLETE G    Max diff:  0.000000000000E+00
- Energies diff:  1.110223024625E-16 -3.069766663089E-14 -6.022959908591E-14
+ Energies diff:  0.000000000000E+00 -3.069766663089E-14 -6.022959908591E-14
  PSolver, free  BC, dimensions:    57   48   63   proc    1   ixc: 11 ...done.
  COMPLETE  G    Max diff:  2.220446049250E-16
- Energies diff:  1.110223024625E-16 -3.069766663089E-14 -6.022959908591E-14
+ Energies diff:  0.000000000000E+00 -3.069766663089E-14 -6.022959908591E-14
  PSolver, free  BC, dimensions:    57   48   63   proc    1   ixc: 11 ...done.
  ANACOMPLET D    Max diff:  0.000000000000E+00
  XCCOMPLETE D    Max diff:  0.000000000000E+00
- Energies diff:  1.110223024625E-16 -3.069766663089E-14 -6.022959908591E-14
+ Energies diff:  0.000000000000E+00 -3.069766663089E-14 -6.022959908591E-14
  PSolver, free  BC, dimensions:    57   48   63   proc    1   ixc: 11 ...done.
  COMPLETE  D    Max diff:  2.220446049250E-16
- Energies diff:  1.110223024625E-16 -3.069766663089E-14 -6.022959908591E-14
+ Energies diff:  0.000000000000E+00 -3.069766663089E-14 -6.022959908591E-14
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 608 allocations and 608 deallocations, remaining memory(B):0
+ 617 allocations and 617 deallocations, remaining memory(B):0
  memory occupation peak: 55 MB
  for the array  f_i in the routine vxcpostprocessing
  ------------------------------------------------------------ Poisson Kernel Creation
@@ -237,7 +237,7 @@
   LB_kernel        : processors   0  -  0 work at 100%
                      processor       1   works at  96%
  Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
- ===================== npsden:  1
+ ===================== nspden:  1
  PSolver, free  BC, dimensions:    57   48   63   proc    2   ixc: 13 ...done.
  Energies:  3.989422803955E-01 -3.177880430657E-01 -5.501171932419E-01
  ANALYTIC    Max diff:  3.442615081894E-10   <<<< WARNING
@@ -276,7 +276,7 @@
  PSolver, free  BC, dimensions:    57   48   63   proc    1   ixc: 13 ...done.
  COMPLETE  D    Max diff:  2.220446049250E-16
  Energies diff:  5.551115123126E-17 -2.181588243388E-14 -1.487698852998E-14
- ===================== npsden:  2
+ ===================== nspden:  2
  PSolver, free  BC, dimensions:    57   48   63   proc    2   ixc: 13 ...done.
  Energies:  3.989422803955E-01 -3.177880430656E-01 -5.547092771748E-01
  ANALYTIC    Max diff:  3.442615081894E-10   <<<< WARNING
@@ -304,19 +304,19 @@
  PSolver, free  BC, dimensions:    57   48   63   proc    1   ixc: 13 ...done.
  ANACOMPLET G    Max diff:  0.000000000000E+00
  XCCOMPLETE G    Max diff:  0.000000000000E+00
- Energies diff:  1.110223024625E-16 -1.659783421815E-14 -5.972999872483E-14
+ Energies diff:  0.000000000000E+00 -1.659783421815E-14 -5.972999872483E-14
  PSolver, free  BC, dimensions:    57   48   63   proc    1   ixc: 13 ...done.
  COMPLETE  G    Max diff:  2.220446049250E-16
- Energies diff:  1.110223024625E-16 -1.659783421815E-14 -5.972999872483E-14
+ Energies diff:  0.000000000000E+00 -1.659783421815E-14 -5.972999872483E-14
  PSolver, free  BC, dimensions:    57   48   63   proc    1   ixc: 13 ...done.
  ANACOMPLET D    Max diff:  0.000000000000E+00
  XCCOMPLETE D    Max diff:  0.000000000000E+00
- Energies diff:  1.110223024625E-16 -1.659783421815E-14 -5.972999872483E-14
+ Energies diff:  0.000000000000E+00 -1.659783421815E-14 -5.972999872483E-14
  PSolver, free  BC, dimensions:    57   48   63   proc    1   ixc: 13 ...done.
  COMPLETE  D    Max diff:  2.220446049250E-16
- Energies diff:  1.110223024625E-16 -1.659783421815E-14 -5.972999872483E-14
+ Energies diff:  0.000000000000E+00 -1.659783421815E-14 -5.972999872483E-14
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 572 allocations and 572 deallocations, remaining memory(B):0
+ 581 allocations and 581 deallocations, remaining memory(B):0
  memory occupation peak: 43 MB
  for the array  vxci in the routine xc_energy
  ------------------------------------------------------------ Poisson Kernel Creation
@@ -326,7 +326,7 @@
  Load Balancing for Poisson Solver related operations:
  LB_density        : processors   0  -  1 work at 100%
  Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
- ===================== npsden:  1
+ ===================== nspden:  1
  PSolver, periodic BC, dimensions:    64   64   64   proc    2   ixc:  0 ...done.
  Energies:  3.075484915324E+04  0.000000000000E+00  0.000000000000E+00
  ANALYTIC    Max diff:  3.296918293927E-12
@@ -359,8 +359,8 @@
  COMPLETE  D    Max diff:  0.000000000000E+00
  Energies diff:  3.637978807092E-12  0.000000000000E+00  0.000000000000E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 208 allocations and 208 deallocations, remaining memory(B):0
- memory occupation peak: 28 MB
+ 212 allocations and 212 deallocations, remaining memory(B):0
+ memory occupation peak: 26 MB
  for the array  zmpi2 in the routine P_Poisson_Solver
  ------------------------------------------------------------ Poisson Kernel Creation
  Poisson solver for periodic BC, no kernel calculation...done.
@@ -369,7 +369,7 @@
  Load Balancing for Poisson Solver related operations:
  LB_density        : processors   0  -  1 work at 100%
  Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
- ===================== npsden:  1
+ ===================== nspden:  1
  PSolver, periodic BC, dimensions:    64   64   64   proc    2   ixc:  1 ...done.
  Energies: -2.725736510833E+05 -5.303130376677E+04 -7.013474104202E+04
  ANALYTIC    Max diff:  3.296918293927E-12
@@ -405,7 +405,7 @@
  PSolver, periodic BC, dimensions:    64   64   64   proc    1   ixc:  1 ...done.
  COMPLETE  D    Max diff:  2.842170943040E-14
  Energies diff:  0.000000000000E+00  6.257323548198E-10 -1.964508555830E-09
- ===================== npsden:  2
+ ===================== nspden:  2
  PSolver, periodic BC, dimensions:    64   64   64   proc    2   ixc:  1 ...done.
  Energies: -2.725736510833E+05 -5.303130376677E+04 -7.013474104202E+04
  ANALYTIC    Max diff:  3.296918293927E-12
@@ -442,7 +442,7 @@
  COMPLETE  D    Max diff:  2.842170943040E-14
  Energies diff:  0.000000000000E+00  3.085006028414E-09  1.702574081719E-09
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 451 allocations and 451 deallocations, remaining memory(B):0
+ 460 allocations and 460 deallocations, remaining memory(B):0
  memory occupation peak: 40 MB
  for the array  vxci in the routine xc_energy
  ------------------------------------------------------------ Poisson Kernel Creation
@@ -454,12 +454,12 @@
   LB_kernel        : processors   0  -  0 work at 100%
                      processor       1   works at  97%
  Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
- ===================== npsden:  1
+ ===================== nspden:  1
  PSolver, surfaces BC, dimensions:    32   64   48   proc    2   ixc:  0 ...done.
- Energies:  4.689138878901E+03  0.000000000000E+00  0.000000000000E+00
- ANALYTIC    Max diff:  6.848155234559E-09   <<<< WARNING
-       result: -1.829332543823E-05
-     original: -1.828647728300E-05
+ Energies:  2.969431884210E+01  0.000000000000E+00  0.000000000000E+00
+ ANALYTIC    Max diff:  5.449590680576E-10   <<<< WARNING
+       result: -1.455736584731E-06
+     original: -1.455191625663E-06
   Max diff at: 1 8 25
  PSolver, surfaces BC, dimensions:    32   64   48   proc    2   ixc:  0 ...done.
  ANACOMPLET G    Max diff:  0.000000000000E+00
@@ -479,19 +479,19 @@
                                  Full Grid Arrays=786432
  PSolver, surfaces BC, dimensions:    32   64   48   proc    1   ixc:  0 ...done.
  ANACOMPLET G    Max diff:  0.000000000000E+00
- Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ Energies diff: -3.552713678801E-15  0.000000000000E+00  0.000000000000E+00
  PSolver, surfaces BC, dimensions:    32   64   48   proc    1   ixc:  0 ...done.
  COMPLETE  G    Max diff:  0.000000000000E+00
- Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ Energies diff: -3.552713678801E-15  0.000000000000E+00  0.000000000000E+00
  PSolver, surfaces BC, dimensions:    32   64   48   proc    1   ixc:  0 ...done.
  ANACOMPLET D    Max diff:  0.000000000000E+00
- Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ Energies diff: -3.552713678801E-15  0.000000000000E+00  0.000000000000E+00
  PSolver, surfaces BC, dimensions:    32   64   48   proc    1   ixc:  0 ...done.
  COMPLETE  D    Max diff:  0.000000000000E+00
- Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ Energies diff: -3.552713678801E-15  0.000000000000E+00  0.000000000000E+00
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 1529 allocations and 1529 deallocations, remaining memory(B):0
- memory occupation peak: 13 MB
+ 1533 allocations and 1533 deallocations, remaining memory(B):0
+ memory occupation peak: 12 MB
  for the array  cosinarr in the routine S_Poisson_Solver
  ------------------------------------------------------------ Poisson Kernel Creation
  Calculating Poisson solver kernel, surfaces BC...done.
@@ -502,26 +502,26 @@
   LB_kernel        : processors   0  -  0 work at 100%
                      processor       1   works at  97%
  Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
- ===================== npsden:  1
+ ===================== nspden:  1
  PSolver, surfaces BC, dimensions:    32   64   48   proc    2   ixc:  1 ...done.
- Energies: -2.263201411323E+07 -2.800722446157E+04 -3.701314897733E+04
- ANALYTIC    Max diff:  2.044301261385E-01   <<<< WARNING
-       result: -4.401067736052E+03
-     original: -4.401272166179E+03
+ Energies: -1.433189036352E+05 -9.950230668165E+02 -1.308724746241E+03
+ ANALYTIC    Max diff:  1.626803254584E-02   <<<< WARNING
+       result: -3.502258425375E+02
+     original: -3.502421105701E+02
   Max diff at: 1 63 25
  PSolver, surfaces BC, dimensions:    32   64   48   proc    2   ixc:  1 ...done.
  ANACOMPLET G    Max diff:  0.000000000000E+00
  XCCOMPLETE G    Max diff:  0.000000000000E+00
  Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
  PSolver, surfaces BC, dimensions:    32   64   48   proc    2   ixc:  1 ...done.
- COMPLETE  G    Max diff:  4.547473508865E-13
+ COMPLETE  G    Max diff:  5.684341886081E-14
  Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
  PSolver, surfaces BC, dimensions:    32   64   48   proc    2   ixc:  1 ...done.
  ANACOMPLET D    Max diff:  0.000000000000E+00
  XCCOMPLETE D    Max diff:  0.000000000000E+00
  Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
  PSolver, surfaces BC, dimensions:    32   64   48   proc    2   ixc:  1 ...done.
- COMPLETE  D    Max diff:  4.547473508865E-13
+ COMPLETE  D    Max diff:  5.684341886081E-14
  Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
  ------------------------------------------------------------ Poisson Kernel Creation
  Calculating Poisson solver kernel, surfaces BC...done.
@@ -529,38 +529,38 @@
                                  Full Grid Arrays=786432
  PSolver, surfaces BC, dimensions:    32   64   48   proc    1   ixc:  1 ...done.
  ANACOMPLET G    Max diff:  0.000000000000E+00
- XCCOMPLETE G    Max diff:  4.440892098501E-16
- Energies diff:  0.000000000000E+00 -4.256435204297E-10  8.622009772807E-09
+ XCCOMPLETE G    Max diff:  2.220446049250E-16
+ Energies diff:  0.000000000000E+00  2.239630703116E-11 -3.958575689467E-10
  PSolver, surfaces BC, dimensions:    32   64   48   proc    1   ixc:  1 ...done.
- COMPLETE  G    Max diff:  4.547473508865E-13
- Energies diff:  0.000000000000E+00 -4.256435204297E-10  8.622009772807E-09
+ COMPLETE  G    Max diff:  5.684341886081E-14
+ Energies diff:  0.000000000000E+00  2.239630703116E-11 -3.958575689467E-10
  PSolver, surfaces BC, dimensions:    32   64   48   proc    1   ixc:  1 ...done.
  ANACOMPLET D    Max diff:  0.000000000000E+00
- XCCOMPLETE D    Max diff:  4.440892098501E-16
- Energies diff:  0.000000000000E+00 -4.256435204297E-10  8.622009772807E-09
+ XCCOMPLETE D    Max diff:  2.220446049250E-16
+ Energies diff:  0.000000000000E+00  2.239630703116E-11 -3.958575689467E-10
  PSolver, surfaces BC, dimensions:    32   64   48   proc    1   ixc:  1 ...done.
- COMPLETE  D    Max diff:  4.547473508865E-13
- Energies diff:  0.000000000000E+00 -4.256435204297E-10  8.622009772807E-09
- ===================== npsden:  2
+ COMPLETE  D    Max diff:  5.684341886081E-14
+ Energies diff:  0.000000000000E+00  2.239630703116E-11 -3.958575689467E-10
+ ===================== nspden:  2
  PSolver, surfaces BC, dimensions:    32   64   48   proc    2   ixc:  1 ...done.
- Energies: -2.263201411323E+07 -2.800722446157E+04 -3.701314897734E+04
- ANALYTIC    Max diff:  2.044301261385E-01   <<<< WARNING
-       result: -4.401067736052E+03
-     original: -4.401272166179E+03
+ Energies: -1.433189036352E+05 -9.950230668165E+02 -1.308724746241E+03
+ ANALYTIC    Max diff:  1.626803254584E-02   <<<< WARNING
+       result: -3.502258425375E+02
+     original: -3.502421105701E+02
   Max diff at: 1 63 25
  PSolver, surfaces BC, dimensions:    32   64   48   proc    2   ixc:  1 ...done.
  ANACOMPLET G    Max diff:  0.000000000000E+00
  XCCOMPLETE G    Max diff:  0.000000000000E+00
  Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
  PSolver, surfaces BC, dimensions:    32   64   48   proc    2   ixc:  1 ...done.
- COMPLETE  G    Max diff:  4.547473508865E-13
+ COMPLETE  G    Max diff:  5.684341886081E-14
  Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
  PSolver, surfaces BC, dimensions:    32   64   48   proc    2   ixc:  1 ...done.
  ANACOMPLET D    Max diff:  0.000000000000E+00
  XCCOMPLETE D    Max diff:  0.000000000000E+00
  Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
  PSolver, surfaces BC, dimensions:    32   64   48   proc    2   ixc:  1 ...done.
- COMPLETE  D    Max diff:  4.547473508865E-13
+ COMPLETE  D    Max diff:  5.684341886081E-14
  Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
  ------------------------------------------------------------ Poisson Kernel Creation
  Calculating Poisson solver kernel, surfaces BC...done.
@@ -568,19 +568,19 @@
                                  Full Grid Arrays=786432
  PSolver, surfaces BC, dimensions:    32   64   48   proc    1   ixc:  1 ...done.
  ANACOMPLET G    Max diff:  0.000000000000E+00
- XCCOMPLETE G    Max diff:  4.440892098501E-16
- Energies diff:  0.000000000000E+00 -4.729372449219E-10  4.722096491605E-09
+ XCCOMPLETE G    Max diff:  2.220446049250E-16
+ Energies diff:  0.000000000000E+00 -1.250555214938E-12  8.051301847445E-10
  PSolver, surfaces BC, dimensions:    32   64   48   proc    1   ixc:  1 ...done.
- COMPLETE  G    Max diff:  4.547473508865E-13
- Energies diff:  0.000000000000E+00 -4.729372449219E-10  4.722096491605E-09
+ COMPLETE  G    Max diff:  5.684341886081E-14
+ Energies diff:  0.000000000000E+00 -1.250555214938E-12  8.051301847445E-10
  PSolver, surfaces BC, dimensions:    32   64   48   proc    1   ixc:  1 ...done.
  ANACOMPLET D    Max diff:  0.000000000000E+00
- XCCOMPLETE D    Max diff:  4.440892098501E-16
- Energies diff:  0.000000000000E+00 -4.729372449219E-10  4.722096491605E-09
+ XCCOMPLETE D    Max diff:  2.220446049250E-16
+ Energies diff:  0.000000000000E+00 -1.250555214938E-12  8.051301847445E-10
  PSolver, surfaces BC, dimensions:    32   64   48   proc    1   ixc:  1 ...done.
- COMPLETE  D    Max diff:  4.547473508865E-13
- Energies diff:  0.000000000000E+00 -4.729372449219E-10  4.722096491605E-09
+ COMPLETE  D    Max diff:  5.684341886081E-14
+ Energies diff:  0.000000000000E+00 -1.250555214938E-12  8.051301847445E-10
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 2641 allocations and 2641 deallocations, remaining memory(B):0
+ 2650 allocations and 2650 deallocations, remaining memory(B):0
  memory occupation peak: 16 MB
  for the array  cosinarr in the routine S_Poisson_Solver

@@ -224,7 +224,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
           call xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
                ixc,hx,hy,hz,rhopot_G,pot_ion,sumpion,zf,zfionxc,&
                eexcuLOC,vexcuLOC,iproc,nproc,nspin)
-          !this in principle is not needed
           do ispin=1,nspin
              do i3=1,nxt
                 do i2=1,m3
@@ -256,7 +255,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         do i3=1,md3
            do i1=1,md1
               zf(i1,i3,j2)=0.0_dp
-!             zfionxc(i1,i3,j2,ispin)=0.d0 !this is not needed, only if pot is updated in Solver
            end do
         end do
      end do

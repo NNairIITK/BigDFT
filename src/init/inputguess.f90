@@ -185,13 +185,12 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,n
 
 END SUBROUTINE readAtomicOrbitals
 
-subroutine createAtomicOrbitals(geocode,iproc,nproc,at,&
+subroutine createAtomicOrbitals(iproc,nproc,at,&
      rxyz,norbe,norbep,norbsc,occupe,occupat,ngx,xp,psiat,ng,nl,&
      wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,psi,eks,scorb)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
   integer, intent(in) :: norbe,norbep,ngx,iproc,nproc,n1,n2,n3
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer, intent(in) :: norbsc,nspin
@@ -367,7 +366,7 @@ subroutine createAtomicOrbitals(geocode,iproc,nproc,at,&
                  if (myorbital(iorb,nspin*norbe,iproc,nproc)) then
                     !this will calculate the proper spherical harmonics
                     call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
-                    call crtonewave(geocode,n1,n2,n3,ng(ity),nterm,lx,ly,lz,fac_arr,&
+                    call crtonewave(at%geocode,n1,n2,n3,ng(ity),nterm,lx,ly,lz,fac_arr,&
                          xp(1,ity),psiatn,rx,ry,rz,hx,hy,hz, & 
                          0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
                          wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),wfd%nseg_f,wfd%nvctr_f,&

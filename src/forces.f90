@@ -1,4 +1,4 @@
-subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
+subroutine local_forces(iproc,nproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc)
 ! Calculates the local forces acting on the atoms belonging to iproc
   use module_base
@@ -6,7 +6,6 @@ subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
   implicit none
   !Arguments---------
   type(atoms_data), intent(in) :: at
-  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
   real(kind=8), intent(in) :: hxh,hyh,hzh
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
@@ -32,9 +31,9 @@ subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
   forceleaked=0.d0
 
   !conditions for periodicity in the three directions
-  perx=(geocode /= 'F')
-  pery=(geocode == 'P')
-  perz=(geocode /= 'F')
+  perx=(at%geocode /= 'F')
+  pery=(at%geocode == 'P')
+  perz=(at%geocode /= 'F')
 
   call ext_buffers(perx,nbl1,nbr1)
   call ext_buffers(pery,nbl2,nbr2)
@@ -148,13 +147,12 @@ subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
 
 end subroutine local_forces
 
-subroutine projectors_derivatives(geocode,iproc,at,n1,n2,n3,norb,&
+subroutine projectors_derivatives(iproc,at,n1,n2,n3,norb,&
      nlpspd,proj,rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and ads them to the force array
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
-  character(len=1), intent(in) :: geocode
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   !Arguments-------------
   integer, intent(in) :: iproc,norb
@@ -223,7 +221,7 @@ subroutine projectors_derivatives(geocode,iproc,at,n1,n2,n3,norb,&
                        lz(iterm)=lxyz_arr(3,iterm,idir)
                     end do
 
-                    call crtproj(geocode,iproc,nterm,n1,n2,n3,&
+                    call crtproj(at%geocode,iproc,nterm,n1,n2,n3,&
                          nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,&
                          nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f,radii_cf(at%iatype(iat),3),&
                          radii_cf(at%iatype(iat),2),&
@@ -251,7 +249,7 @@ end subroutine projectors_derivatives
 
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and adds them to the force array
 !recalculate the projectors at the end if refill flag is .true.
-subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
+subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
      norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,fsep,refill)
   use module_base
   use module_types
@@ -260,7 +258,6 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
   type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  character(len=1), intent(in) :: geocode
   logical, intent(in) :: refill
   integer, intent(in) :: iproc,norb,norbp,nspinor,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult 
@@ -338,7 +335,7 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
            do l=1,4 !for GTH it will stop at l=2
               do i=1,3 !for GTH it will stop at i=2
                  if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                    call projector(geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
+                    call projector(at%geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
                          at%psppar(l,0,ityp),rxyz(1,iat),&
                          nlpspd%nboxp_c(1,1,iat),nlpspd%nboxp_f(1,1,iat),n1,n2,n3,&
                          hx,hy,hz,cpmult,fpmult,radii_cf(ityp,3),radii_cf(ityp,2),&
@@ -385,8 +382,8 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
      do idir=0,3
 
         if (idir /= 0) then !for the first run the projectors are already allocated
-           call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
-                nlpspd,proj,idir)
+           call fill_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,&
+                radii_cf,nlpspd,proj,idir)
         end if
 
 
@@ -435,7 +432,7 @@ subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
      end do
 
      if (refill) then !restore the projectors in the proj array (for on the run forces calc.)
-        call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
+        call fill_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
              nlpspd,proj,0)
      end if
   end if

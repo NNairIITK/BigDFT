@@ -94,20 +94,20 @@ program memguess
 
   !read number of atoms
   open(unit=99,file='posinp',status='old')
-  read(99,*) atoms%nat,units
+  read(99,*) atoms%nat,atoms%units
  
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz,'rxyz',subname)
 
   !read atomic positions
-  call read_atomic_positions(0,99,units,in,atoms,rxyz)
+  call read_atomic_positions(0,99,atoms,rxyz)
 
   close(99)
 
   !new way of reading the input variables, use structures
   call read_input_variables(0,in)
 
-  call print_input_parameters(in)
+  call print_input_parameters(in,atoms)
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
@@ -219,8 +219,8 @@ program memguess
   hy=in%hgrid
   hz=in%hgrid
 
-  call system_size(0,in%geocode,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,&
-       in%alat1,in%alat2,in%alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
+  call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,&
+       n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
 
   ! determine localization region for all projectors, but do not yet fill the descriptor arrays
   allocate(nlpspd%nseg_p(0:2*atoms%nat+ndebug),stat=i_stat)
@@ -234,7 +234,7 @@ program memguess
   allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid,'logrid',subname)
 
-  call localize_projectors(in%geocode,0,n1,n2,n3,hx,hy,hz,in%cpmult,in%fpmult,rxyz,radii_cf,&
+  call localize_projectors(0,n1,n2,n3,hx,hy,hz,in%frmult,in%frmult,rxyz,radii_cf,&
        logrid,atoms,nlpspd)
 
   i_all=-product(shape(logrid))*kind(logrid)
@@ -276,7 +276,7 @@ program memguess
   call memocc(i_stat,i_all,'iasctype',subname)
 
 
-  call MemoryEstimator(in%geocode,nproc,in%idsx,n1,n2,n3,in%alat1,in%alat2,in%alat3,&
+  call MemoryEstimator(atoms%geocode,nproc,in%idsx,n1,n2,n3,atoms%alat1,atoms%alat2,atoms%alat3,&
        hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,in%crmult,in%frmult,&
        norb,nlpspd%nprojel,atoms%atomnames,output_grid,in%nspin,peakmem)
 
@@ -320,24 +320,24 @@ subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
   use module_base
   use module_types
   implicit none
-  type(atoms_data), intent(in) :: atoms
+  type(atoms_data), intent(inout) :: atoms
   real(kind=8), intent(in) :: crmult,frmult,hgrid
   real(kind=8), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz
   !local variables
   character(len=*), parameter :: subname='optimise_volume'
   integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1,n2,n3,n1i,n2i,n3i,iat,i_all,i_stat,it,i
-  real(kind=8) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax,alat1,alat2,alat3
+  real(kind=8) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax
   real(kind=8), dimension(3,3) :: urot
   real(kind=8), dimension(:,:), allocatable :: txyz
 
   allocate(txyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,txyz,'txyz',subname)
 
-  call system_size(1,'F',atoms,rxyz,radii_cf,crmult,frmult,hgrid,hgrid,hgrid,&
-       alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
+  call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hgrid,hgrid,hgrid,&
+       n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
   !call volume(nat,rxyz,vol)
-  vol=alat1*alat2*alat3
+  vol=atoms%alat1*atoms%alat2*atoms%alat3
   write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
 
   it=0
@@ -383,17 +383,17 @@ subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
         txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
      enddo
 
-     call system_size(1,'F',atoms,txyz,radii_cf,crmult,frmult,hgrid,hgrid,hgrid,&
-          alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
-     tvol=alat1*alat2*alat3
+     call system_size(1,atoms,txyz,radii_cf,crmult,frmult,hgrid,hgrid,hgrid,&
+          n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
+     tvol=atoms%alat1*atoms%alat2*atoms%alat3
      !call volume(nat,txyz,tvol)
      if (tvol.lt.vol) then
         write(*,'(1x,a,1pe16.8,1x,i0,1x,f15.5)')'Found new best volume: ',tvol,it,diag
         rxyz(:,:)=txyz(:,:)
         vol=tvol
-        dmax=max(alat1,alat2,alat3)
+        dmax=max(atoms%alat1,atoms%alat2,atoms%alat3)
         ! if box longest along x switch x and z
-        if (alat1 == dmax)  then
+        if (atoms%alat1 == dmax)  then
            do  iat=1,atoms%nat
               tx=rxyz(1,iat)
               tz=rxyz(3,iat)
@@ -402,7 +402,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
               rxyz(3,iat)=tx
            enddo
            ! if box longest along y switch y and z
-        else if (alat2 == dmax .and. alat1 /= dmax)  then
+        else if (atoms%alat2 == dmax .and. atoms%alat1 /= dmax)  then
            do  iat=1,atoms%nat
               ty=rxyz(2,iat) 
               tz=rxyz(3,iat)

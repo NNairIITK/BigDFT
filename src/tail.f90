@@ -359,7 +359,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
 
         if (DistProjApply) then
            !here the box do not change, only the projectors descriptors
-           call applyprojectorsonthefly('F',0,1,1,1,(/1.0_gp/),at,n1,n2,n3,&
+           call applyprojectorsonthefly(0,1,1,1,(/1.0_gp/),at,n1,n2,n3,&
                 rxyz,hgrid,hgrid,hgrid,cpmult,fpmult,radii_cf,wfdb,nlpspd,proj,psib,hpsib,eproj)
            !only the wavefunction descriptors must change
         else

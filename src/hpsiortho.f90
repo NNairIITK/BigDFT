@@ -1,4 +1,4 @@
-subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
+subroutine HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
      norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
      ngatherarr,ndimpot,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,nspinor,spinsgn)
   use module_base
@@ -8,7 +8,6 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(convolutions_bounds), intent(in) :: bounds
-  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ndimpot
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,nspinor
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
@@ -23,15 +22,9 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(out) :: hpsi
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
-  integer :: i_all,i_stat,ierr,iorb,n1i,n2i,n3i
-  integer :: nw1,nw2,nsoffset,oidx,ispin,md
-  real(gp) :: ekin,epot,eproj
+  integer :: i_all,i_stat,ierr,n1i,n2i,n3i,iorb,ispin
+  real(gp) :: eproj
   real(gp), dimension(3,2) :: wrkallred
-  real(wp), dimension(:,:), allocatable :: w1,w2,psir
-  !for the periodic BC case, these arrays substitute 
-  !psifscf,psifscfk,psig,ww respectively
-  real(wp), dimension(:,:,:,:), allocatable :: x_c,y_c,x_f1,x_f2,x_f3
-  real(wp), dimension(:,:,:,:,:), allocatable :: x_f,x_fc,y_f
   real(wp), dimension(:,:), pointer :: pot
 
   call timing(iproc,'ApplyLocPotKin','ON')
@@ -42,79 +35,20 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
           'Hamiltonian application...'
   end if
 
-  ! calculate the action of the local hamiltonian on the orbitals
-  select case(geocode)
+  !dimensions of the potential
+  select case(at%geocode)
      case('F')
         n1i=2*n1+31
         n2i=2*n2+31
         n3i=2*n3+31
-
-        !dimensions of work arrays
-        ! shrink convention: nw1>nw2
-        nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
-             (n1+1)*(2*n2+31)*(2*n3+31),&
-             2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
-             2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
-
-        nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
-             4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
-             (n1+1)*(n2+1)*(2*n3+31),&
-             (2*n1+31)*(n2+1)*(n3+1))
-
-        !allocation of work arrays
-        allocate(y_c(0:n1,0:n2,0:n3,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,y_c,'y_c',subname)
-        allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,y_f,'y_f',subname)
-        allocate(x_c(0:n1,0:n2,0:n3,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,x_c,'x_c',subname)
-        allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,x_f,'x_f',subname)
-        allocate(w1(nw1,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w1,'w1',subname)
-        allocate(w2(nw2,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,w2,'w2',subname)
-        allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,x_f1,'x_f1',subname)
-        allocate(x_f2(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,x_f2,'x_f2',subname)
-        allocate(x_f3(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,x_f3,'x_f3',subname)
-
-        !initialisation of the work arrays
-        call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,x_f1)
-        call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,x_f2)
-        call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,x_f3)
-        call razero((n1+1)*(n2+1)*(n3+1)*nspinor,x_c)
-        call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,x_f)
-        call razero((n1+1)*(n2+1)*(n3+1)*nspinor,y_c)
-        call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,y_f)
-
-!!$        call razero(nw1*nspinor,w1)
-!!$        call razero(nw2*nspinor,w2)
-
      case('S')
         n1i=2*n1+2
         n2i=2*n2+31
         n3i=2*n3+2
-		
-        !allocation of work arrays
-        allocate(x_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,x_c,'x_c',subname)
-        allocate(y_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,y_c,'y_c',subname)
-		
      case('P')
         n1i=2*n1+2
         n2i=2*n2+2
         n3i=2*n3+2
-
-        !allocation of work arrays
-        allocate(x_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,x_c,'x_c',subname)
-        allocate(y_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,y_c,'y_c',subname)
-
   end select
 
   !build the potential on the whole simulation box
@@ -133,95 +67,10 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
      pot => potential
   end if
 
-
-  ! Wavefunction in real space
-  allocate(psir(n1i*n2i*n3i,nspinor+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
-
-  call razero(n1i*n2i*n3i*nspinor,psir)
-
-  ekin_sum=0.0_gp
-  epot_sum=0.0_gp
-
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-
-     if(spinsgn(iorb)>0.0_gp) then
-        nsoffset=1
-     else
-        nsoffset=2
-     end if
-     if(nspinor==4) nsoffset=1
-
-     oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
-
-     select case(geocode)
-        case('F')
-           call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
-                hx,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
-                bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c,&
-                bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f,y_c,y_f,psir, &
-                psi(1,oidx),pot(1,nsoffset),hpsi(1,oidx),epot,ekin,&
-                x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
-                bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
-                bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
-                bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
-                bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,nw1,nw2,bounds%ibyyzz_r,&
-                nspinor)
-        case('P')
-           call applylocpotkinone_per(n1,n2,n3,hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
-                wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
-                psir,x_c,y_c,psi(1,oidx),pot(1,nsoffset),&
-                hpsi(1,oidx),epot,ekin) 
-        case('S')
-           call applylocpotkinone_slab(n1,n2,n3,hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
-                wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
-                psir,x_c,y_c,psi(1,oidx),pot(1,nsoffset),&
-                hpsi(1,oidx),epot,ekin) 
-        end select
-
-     ekin_sum=ekin_sum+occup(iorb)*ekin
-     epot_sum=epot_sum+occup(iorb)*epot
-
-  enddo
-
-  !deallocations of work arrays
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
-
-  i_all=-product(shape(x_c))*kind(x_c)
-  deallocate(x_c,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c',subname)
-  i_all=-product(shape(y_c))*kind(y_c)
-  deallocate(y_c,stat=i_stat)
-  call memocc(i_stat,i_all,'y_c',subname)
-
-  if (geocode == 'F') then
-     i_all=-product(shape(x_f1))*kind(x_f1)
-     deallocate(x_f1,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f1',subname)
-     i_all=-product(shape(x_f2))*kind(x_f2)
-     deallocate(x_f2,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f2',subname)
-     i_all=-product(shape(x_f3))*kind(x_f3)
-     deallocate(x_f3,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f3',subname)
-     i_all=-product(shape(y_f))*kind(y_f)
-     deallocate(y_f,stat=i_stat)
-     call memocc(i_stat,i_all,'y_f',subname)
-     i_all=-product(shape(x_f))*kind(x_f)
-     deallocate(x_f,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f',subname)
-     i_all=-product(shape(w1))*kind(w1)
-     deallocate(w1,stat=i_stat)
-     call memocc(i_stat,i_all,'w1',subname)
-     i_all=-product(shape(w2))*kind(w2)
-     deallocate(w2,stat=i_stat)
-     call memocc(i_stat,i_all,'w2',subname)
-  end if
-
-  !end of local hamiltonian action
-
+  call local_hamiltonian(iproc,at%geocode,&
+       n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,&
+       hx,hy,hz,wfd,bounds,nspin,nspinor,norbp,norb,occup,spinsgn,pot,psi,hpsi,ekin_sum,epot_sum)
+  
   if (nproc > 1) then
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
@@ -238,7 +87,7 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
   eproj_sum=0.d0
   !apply the projectors following the strategy (On-the-fly calculation or not)
   if (DistProjApply) then
-     call applyprojectorsonthefly(geocode,iproc,nspinor,norb,norbp,occup,at,n1,n2,n3,&
+     call applyprojectorsonthefly(iproc,nspinor,norb,norbp,occup,at,n1,n2,n3,&
           rxyz,hx,hy,hz,cpmult,fpmult,radii_cf,wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   else
      ! loop over all my orbitals

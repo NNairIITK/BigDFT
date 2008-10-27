@@ -39,7 +39,7 @@
 ! end do
 ! (retranspose v and psi) 
 
-subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
+subroutine davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
      cpmult,fpmult,radii_cf,&
      norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,&
      hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  & 
@@ -52,7 +52,6 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(convolutions_bounds), intent(in) :: bounds
-  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc,n1i,n2i,n3i
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i3xcsh,nvctrp,norbu
   integer, intent(in) :: nvirte,nvirtep,nvirt,ncong,n3p,itermax,nplot
@@ -196,7 +195,7 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
 !write(*,*)"start adress: ",1,1,1+i3xcsh,1
 !write(*,*)"start adress: ",1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)
 
-  call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
+  call HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
        nvirte,nvirtep,ones,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
        wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
        rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,1,1,ones)
@@ -330,7 +329,7 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
      call timing(iproc,'Precondition  ','ON')
 
      !LG: why we use for preconditioning the eval form the initial input guess?
-     call preconditionall(geocode,iproc,nproc,nvirte,nvirtep,&
+     call preconditionall(at%geocode,iproc,nproc,nvirte,nvirtep,&
           n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz, &
           ncong,1,wfd,eval,bounds%kb,g,gnrm_fake)
 
@@ -355,7 +354,7 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
      allocate(hg(nvctrp*nvirtep*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,hg,'hg',subname)
 
-     call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
+     call HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
           nvirte,nvirtep,ones,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
           rhopot(1+i3xcsh*n1i*n2i),g,hg,ekin_sum,epot_sum,eproj_sum,1,1,ones)
@@ -543,7 +542,7 @@ subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3
      ! Hamilton application on v
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
   
-     call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
+     call HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
           nvirte,nvirtep,ones,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
           rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,1,1,ones)

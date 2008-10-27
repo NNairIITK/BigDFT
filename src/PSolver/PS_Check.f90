@@ -107,7 +107,7 @@ program PS_Check
 
   do ispden=1,2
      if (iproc==0) write(unit=*,fmt="(1x,a,i0)") &
-          '===================== npsden:  ',ispden
+          '===================== nspden:  ',ispden
      !then assign the value of the analytic density and the potential
      allocate(rhopot(n01*n02*n03*ispden+ndebug),stat=i_stat)
      call memocc(i_stat,rhopot,'rhopot',subname)
@@ -200,7 +200,6 @@ contains
     real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
     real(kind=8), dimension(n01*n02*n03*nspden), intent(in) :: density
     real(kind=8), dimension(n01*n02*n03), intent(inout) :: pot_ion
-    !real(kind=8), dimension(n01*n02*n03*nspden), intent(inout) :: rhopot
     real(kind=8), dimension(n01*n02*n03*nspden), target, intent(inout) :: xc_pot
     real(kind=8), dimension(:), pointer :: pkernel
     !local variables
@@ -288,7 +287,7 @@ contains
 
     call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
          rhopot(1,1,1,1),pkernel,test_xc,ehartree,eexcu,vexcu,offset,.false.,nspden)
-
+    
     !compare the values of the analytic results (no dependence on spin)
     call compare(iproc,nproc,n01,n02,n3p,1,potential(istpot),rhopot(1,1,i3xcsh+1,1),&
          'ANACOMPLET '//distcode)
@@ -514,9 +513,10 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,
               x1 = hx*real(i1-n02/2-1,kind=8)
               call functions(x1,ax,bx,fx,fx2,ifx)
               do i=1,nspden
-                 density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)*(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
+                 density(i1,i2,i3,i) = &
+                      1.d0/real(nspden,kind=8)/(16.d0*datan(1.d0))*(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
               end do
-              potential(i1,i2,i3) = -fx*fy*fz*16.d0*datan(1.d0)
+              potential(i1,i2,i3) = -fx*fy*fz
               denval=max(denval,-density(i1,i2,i3,1))
            end do
         end do

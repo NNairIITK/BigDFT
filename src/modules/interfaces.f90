@@ -105,18 +105,17 @@ interface
      real(kind=8), intent(out) :: occup(norb),spinsgn(norb)
    end subroutine input_occup
 
-   subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
-        alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
+   subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
+        n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
      use module_types
      implicit none
-     type(atoms_data), intent(in) :: atoms
-     character(len=1), intent(in) :: geocode
+     type(atoms_data), intent(inout) :: atoms
      integer, intent(in) :: iproc
      real(kind=8), intent(in) :: crmult,frmult
      real(kind=8), dimension(3,atoms%nat), intent(inout) :: rxyz
      real(kind=8), dimension(atoms%ntypes,3), intent(in) :: radii_cf
      integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
-     real(kind=8), intent(inout) :: hx,hy,hz,alat1,alat2,alat3
+     real(kind=8), intent(inout) :: hx,hy,hz
    end subroutine system_size
 
    subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
@@ -134,18 +133,17 @@ interface
      real(kind=8), intent(out) :: peakmem
    end subroutine MemoryEstimator
 
-   subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_grid,&
-        hx,hy,hz,atoms,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
+   subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
+        hx,hy,hz,atoms,rxyz,radii_cf,crmult,frmult,&
         wfd,nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,nspinor)
      use module_types
      implicit none
      !Arguments
      type(atoms_data), intent(in) :: atoms
-     character(len=1), intent(in) :: geocode
      logical, intent(in) :: output_grid
      integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspinor
-     real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
+     real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult
      real(kind=8), dimension(3,atoms%nat), intent(in) :: rxyz
      real(kind=8), dimension(atoms%ntypes,3), intent(in) :: radii_cf
      type(wavefunctions_descriptors) , intent(out) :: wfd
@@ -154,12 +152,11 @@ interface
      integer, intent(out) :: nvctrp
    end subroutine createWavefunctionsDescriptors
 
-   subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
+   subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,&
         radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
      use module_types
      implicit none
      type(atoms_data), intent(in) :: at
-     character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,n1,n2,n3
      real(kind=8), intent(in) :: cpmult,fpmult,hx,hy,hz
      real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
@@ -178,14 +175,13 @@ interface
      integer, dimension(0:nproc-1,2), intent(out) :: ngatherarr
    end subroutine createDensPotDescriptors
 
-   subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,alat3,rxyz,eion,fion,psoffset,&
+   subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,rxyz,eion,fion,psoffset,&
         n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
      use module_types
      implicit none
      type(atoms_data), intent(in) :: at
-     character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi
-     real(kind=8), intent(in) :: alat1,alat2,alat3,hxh,hyh,hzh
+     real(kind=8), intent(in) :: hxh,hyh,hzh
      real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
      real(kind=8), dimension(*), intent(in) :: pkernel
      real(kind=8), intent(out) :: eion,psoffset
@@ -208,7 +204,7 @@ interface
      real(kind=8), dimension(*), intent(inout) :: pot_ion
    end subroutine createIonicPotential
 
-   subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
+   subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,&
         nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
         norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
         pkernel,ixc,psi,psit,hpsi,eval,nscatterarr,ngatherarr,nspin,spinsgn)
@@ -219,7 +215,6 @@ interface
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(convolutions_bounds), intent(in) :: bounds
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-     character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
      real(kind=8), intent(in) :: hx,hy,hz,cpmult,fpmult
@@ -235,7 +230,7 @@ interface
      real(kind=8), dimension(:), pointer :: psi,psit,hpsi
    end subroutine import_gaussians
 
-   subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
+   subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
         nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
         norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
         wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,&
@@ -247,7 +242,6 @@ interface
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
      type(convolutions_bounds), intent(in) :: bounds
-     character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
      integer, intent(inout) :: nspin,nvirte,nvirtep,nvirt
@@ -304,7 +298,7 @@ interface
      real(kind=8), dimension(max(nrho,1),nspinor), intent(out), target :: rho
    end subroutine sumrho
 
-   subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
+   subroutine HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
         norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
         ngatherarr,ndimpot,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,nspinor,spinsgn)
      use module_base
@@ -314,7 +308,6 @@ interface
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
      type(convolutions_bounds), intent(in) :: bounds
-     character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ndimpot
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,nspinor
      real(kind=8), intent(in) :: hx,hy,hz,cpmult,fpmult
@@ -383,14 +376,13 @@ interface
      real(wp), dimension(:) , pointer :: psi,hpsi,psit
    end subroutine last_orthon
 
-   subroutine local_forces(geocode,iproc,nproc,at,rxyz,hxh,hyh,hzh,&
+   subroutine local_forces(iproc,nproc,at,rxyz,hxh,hyh,hzh,&
         n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc)
      ! Calculates the local forces acting on the atoms belonging to iproc
      use module_types
      implicit none
      !Arguments---------
      type(atoms_data), intent(in) :: at
-     character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
      real(kind=8), intent(in) :: hxh,hyh,hzh
      real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
@@ -398,12 +390,11 @@ interface
      real(kind=8), dimension(3,at%nat), intent(out) :: floc
    end subroutine local_forces
 
-   subroutine projectors_derivatives(geocode,iproc,at,n1,n2,n3,norb,&
+   subroutine projectors_derivatives(iproc,at,n1,n2,n3,norb,&
         nlpspd,proj,rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
      use module_types
      implicit none
      type(atoms_data), intent(in) :: at
-     character(len=1), intent(in) :: geocode
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
      !Arguments-------------
      integer, intent(in) :: iproc,norb
@@ -415,7 +406,7 @@ interface
      real(kind=8), dimension(nlpspd%nprojel,3), intent(out) :: derproj
    end subroutine projectors_derivatives
 
-   subroutine nonlocal_forces(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
+   subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
         norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,fsep,refill)
      use module_base
      use module_types
@@ -423,7 +414,6 @@ interface
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-     character(len=1), intent(in) :: geocode
      logical, intent(in) :: refill
      integer, intent(in) :: iproc,norb,norbp,nspinor,n1,n2,n3
      real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult 
@@ -473,7 +463,7 @@ interface
      real(wp), dimension(nvctr_c + 7 * nvctr_f), intent(out) :: psi
    end subroutine reformatonewave
 
-   subroutine davidson(geocode,iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
+   subroutine davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
         cpmult,fpmult,radii_cf,&
         norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,&
         hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  & 
@@ -485,7 +475,6 @@ interface
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
      type(convolutions_bounds), intent(in) :: bounds
-     character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc,n1i,n2i,n3i
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i3xcsh,nvctrp,norbu
      integer, intent(in) :: nvirte,nvirtep,nvirt,ncong,n3p,itermax,nplot

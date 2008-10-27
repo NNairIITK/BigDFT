@@ -5,11 +5,10 @@ module module_types
   !-Input variable structure
   !structure of the variables read by input.dat file
   type, public :: input_variables
-     character(len=1) :: geocode
      integer :: ncount_cluster_x
      real(kind=8) :: frac_fluct,randdis,betax,forcemax
      integer :: ixc,ncharge,itermax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,nvirt,nplot
-     real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf,alat1,alat2,alat3
+     real(kind=8) :: hgrid,crmult,frmult,elecfield,gnrm_cv,rbuf
      logical :: output_grid,output_wf,calc_tail,gaussian_help
   end type input_variables
 
@@ -52,8 +51,11 @@ module module_types
   end type nonlocal_psp_descriptors
 
   type, public :: atoms_data
+     character(len=1) :: geocode
+     character(len=20) :: units
      integer :: nat,ntypes,natsc
      character(len=20), dimension(:), pointer :: atomnames
+     real(kind=8) :: alat1,alat2,alat3
      logical, dimension(:), pointer :: lfrztyp
      integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom
      real(kind=8), dimension(:,:,:), pointer :: psppar

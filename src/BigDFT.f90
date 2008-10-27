@@ -68,7 +68,7 @@ program BigDFT
 
   !read number of atoms
   open(unit=99,file='posinp',status='old')
-  read(99,*) atoms%nat,units
+  read(99,*) atoms%nat,atoms%units
 
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz,'rxyz',subname)
@@ -76,7 +76,7 @@ program BigDFT
   call memocc(i_stat,fxyz,'fxyz',subname)
 
   ! read atomic positions
-  call read_atomic_positions(iproc,99,units,inputs,atoms,rxyz)
+  call read_atomic_positions(iproc,99,atoms,rxyz)
 
   close(99)
 
@@ -96,13 +96,13 @@ program BigDFT
 
   !atoms inside the box (this can be insertedindise call_bigdft routine
   do iat=1,atoms%nat
-     if (inputs%geocode == 'P') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),inputs%alat1)
-        rxyz(2,iat)=modulo(rxyz(2,iat),inputs%alat2)
-        rxyz(3,iat)=modulo(rxyz(3,iat),inputs%alat3)
-     else if (inputs%geocode == 'S') then
-        rxyz(1,iat)=modulo(rxyz(1,iat),inputs%alat1)
-        rxyz(3,iat)=modulo(rxyz(3,iat),inputs%alat3)
+     if (atoms%geocode == 'P') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(2,iat)=modulo(rxyz(2,iat),atoms%alat2)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
+     else if (atoms%geocode == 'S') then
+        rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
+        rxyz(3,iat)=modulo(rxyz(3,iat),atoms%alat3)
      end if
   end do
 

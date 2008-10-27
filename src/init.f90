@@ -1,5 +1,5 @@
-subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_grid,&
-     hx,hy,hz,atoms,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
+subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
+     hx,hy,hz,atoms,rxyz,radii_cf,crmult,frmult,&
      wfd,nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,nspinor)
   !calculates the descriptor arrays keyg and keyv as well as nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp
   !calculates also the bounds arrays needed for convolutions
@@ -8,11 +8,10 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
   implicit none
   !Arguments
   type(atoms_data), intent(in) :: atoms
-  character(len=1), intent(in) :: geocode
   logical, intent(in) :: output_grid
   integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nspinor
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  real(gp), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
+  real(gp), intent(in) :: hx,hy,hz,crmult,frmult
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(wavefunctions_descriptors) , intent(out) :: wfd
@@ -27,7 +26,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
   !allocate kinetic bounds, only for free BC
-  if (geocode == 'F') then
+  if (atoms%geocode == 'F') then
      allocate(bounds%kb%ibyz_c(2,0:n2,0:n3+ndebug),stat=i_stat)
      call memocc(i_stat,bounds%kb%ibyz_c,'bounds%kb%ibyz_c',subname)
      allocate(bounds%kb%ibxz_c(2,0:n1,0:n3+ndebug),stat=i_stat)
@@ -54,23 +53,23 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
   call memocc(i_stat,logrid_f,'logrid_f',subname)
 
   ! coarse grid quantities
-  call fill_logrid(geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,atoms%ntypes,atoms%iatype,rxyz, & 
-       radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
+  call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
+       atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,wfd%nseg_c,wfd%nvctr_c)
   if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
        'Coarse resolution grid: Number of segments= ',wfd%nseg_c,'points=',wfd%nvctr_c
 
-  if (geocode == 'F') then
+  if (atoms%geocode == 'F') then
      call make_bounds(n1,n2,n3,logrid_c,bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c)
   end if
 
   ! fine grid quantities
-  call fill_logrid(geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,atoms%ntypes,atoms%iatype,rxyz, & 
-       radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
+  call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
+       atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,wfd%nseg_f,wfd%nvctr_f)
   if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
        '  Fine resolution grid: Number of segments= ',wfd%nseg_f,'points=',wfd%nvctr_f
-  if (geocode == 'F') then
+  if (atoms%geocode == 'F') then
      call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
   end if
 
@@ -149,7 +148,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
        nvctrp*nproc*8*nspinor !
 
   !for free BC admits the bounds arrays
-  if (geocode == 'F') then
+  if (atoms%geocode == 'F') then
 
      !allocate grow, shrink and real bounds
      allocate(bounds%gb%ibzxx_c(2,0:n3,-14:2*n1+16+ndebug),stat=i_stat)
@@ -190,13 +189,12 @@ END SUBROUTINE createWavefunctionsDescriptors
 
 
 !pass to implicit none while inserting types on this routine
-subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
+subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,&
      radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   use module_base
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
-  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -222,7 +220,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
   allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
   call memocc(i_stat,logrid,'logrid',subname)
 
-  call localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
+  call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
        logrid,at,nlpspd)
 
   ! allocations for arrays holding the projectors and their data descriptors
@@ -247,7 +245,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
         nu1=nlpspd%nboxp_c(2,1,iat)
         nu2=nlpspd%nboxp_c(2,2,iat)
         nu3=nlpspd%nboxp_c(2,3,iat)
-        call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+        call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
              at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),cpmult,hx,hy,hz,logrid)
 
         iseg=nlpspd%nseg_p(2*iat-2)+1
@@ -264,7 +262,7 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
         nu1=nlpspd%nboxp_f(2,1,iat)
         nu2=nlpspd%nboxp_f(2,2,iat)
         nu3=nlpspd%nboxp_f(2,3,iat)
-        call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+        call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
              at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
         iseg=nlpspd%nseg_p(2*iat-1)+1
         mseg=nlpspd%nseg_p(2*iat)-nlpspd%nseg_p(2*iat-1)
@@ -281,13 +279,13 @@ subroutine createProjectorsArrays(geocode,iproc,n1,n2,n3,rxyz,at,&
   !fill the projectors if the strategy is a distributed calculation
   if (.not. DistProjApply) then
      !calculate the wavelet expansion of projectors
-     call fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
+     call fill_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
           nlpspd,proj,0)
   end if
 
 END SUBROUTINE createProjectorsArrays
 
-subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
+subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
      pkernel,ixc,psi,psit,hpsi,eval,nscatterarr,ngatherarr,nspin,spinsgn)
@@ -300,7 +298,6 @@ subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(convolutions_bounds), intent(in) :: bounds
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
@@ -342,7 +339,7 @@ subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
   hzh=.5_gp*hz
 
   !calculate dimension of the interpolating scaling function grid
-  select case(geocode)
+  select case(at%geocode)
      case('F')
         n1i=2*n1+31
         n2i=2*n2+31
@@ -389,7 +386,7 @@ subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
 !!$  deallocate(smat,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'smat',subname)
 
-  call gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
+  call gaussians_to_wavelets(at%geocode,iproc,nproc,norb,norbp,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,CP2K,wfn_cp2k,psi)
 
   !deallocate CP2K variables
@@ -416,18 +413,18 @@ subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call memocc(i_stat,ones,'ones',subname)
   ones(:)=1.0_gp
 
-  call sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,&
+  call sumrho(at%geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,&
        occup,wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,1,1,ones,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
-  call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
+  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,1)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
 
-  call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
+  call HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
        norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
        ngatherarr,n1i*n2i*nscatterarr(iproc,2),&
        rhopot(1+n1i*n2i*nscatterarr(iproc,4)),&
@@ -463,7 +460,7 @@ subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
 
 END SUBROUTINE import_gaussians
 
-subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
+subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
      wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,&
@@ -480,7 +477,6 @@ subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(convolutions_bounds), intent(in) :: bounds
-  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
   integer, intent(inout) :: nspin,nvirte,nvirtep,nvirt
@@ -524,7 +520,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
      nspinor=1
   end if
   !calculate dimension of the interpolating scaling function grid
-  select case(geocode)
+  select case(at%geocode)
      case('F')
         n1i=2*n1+31
         n2i=2*n2+31
@@ -614,7 +610,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call memocc(i_stat,psi,'psi',subname)
   
   ! Create input guess orbitals
-  call createAtomicOrbitals(geocode,iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
+  call createAtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
        ngx,xp,psiat,ng,nl,wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,psi,eks,scorb)
   
 !!$  !!plot the initial LCAO wavefunctions
@@ -657,11 +653,11 @@ subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
      ist=norbe+1
   end do
     
-  call sumrho(geocode,iproc,nproc,nspin*norbe,norbep,ixc,n1,n2,n3,hxh,hyh,hzh,occupe,  & 
+  call sumrho(at%geocode,iproc,nproc,nspin*norbe,norbep,ixc,n1,n2,n3,hxh,hyh,hzh,occupe,  & 
        wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,nspin,1,spinsgne, &
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
 
-  call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
+  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,nspin)
   
 
@@ -669,7 +665,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
   allocate(hpsi(nvctrp*norbep*nproc+ndebug),stat=i_stat)
   call memocc(i_stat,hpsi,'hpsi',subname)
   
-  call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
+  call HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
        nspin*norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
        ngatherarr,n1i*n2i*nscatterarr(iproc,2),rhopot(1+n1i*n2i*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,1,spinsgne)

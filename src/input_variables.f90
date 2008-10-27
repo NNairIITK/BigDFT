@@ -70,11 +70,12 @@ subroutine read_input_variables(iproc,in)
   character(len=7) :: cudagpu
   character(len=100) :: line
   real(kind=4) :: hgrid,crmult,frmult,cpmult,fpmult
-  integer :: ierror,ierrfrc,iconv,iblas
+  integer :: ierror,ierrfrc,iconv,iblas,iline
 
   ! Read the input variables.
   open(unit=1,file='input.dat',status='old')
 
+  iline=0
   !read the line for force the CUDA GPU calculation for all processors
   read(1,'(a100)')line
   read(line,*,iostat=ierrfrc) cudagpu
@@ -89,47 +90,61 @@ subroutine read_input_variables(iproc,in)
         GPUblas=.true.
      end if
      read(1,*,iostat=ierror) in%ncount_cluster_x
+     call check
   else
      read(line,*,iostat=ierror) in%ncount_cluster_x
+     call check
   end if
 
-  !read(1,*,iostat=ierror) in%ncount_cluster_x
   read(1,'(a100)')line
   read(line,*,iostat=ierrfrc) in%frac_fluct,in%forcemax
   if (ierrfrc /= 0) then
      read(line,*,iostat=ierror) in%frac_fluct
      in%forcemax=0.0_gp
   end if
+  call check
   read(1,*,iostat=ierror) in%randdis
+  call check
   read(1,*,iostat=ierror) in%betax
+  call check
   read(1,*,iostat=ierror) hgrid
+  call check
   read(1,*,iostat=ierror) crmult
+  call check
   read(1,*,iostat=ierror) frmult
-  read(1,*,iostat=ierror) cpmult
-  read(1,*,iostat=ierror) fpmult
+  call check
+  !read(1,*,iostat=ierror) cpmult !this value can be removed from the input files
+  !read(1,*,iostat=ierror) fpmult !this value can be removed from the input files
   !put the value at the max, such that to coincide with the maximum possible extension
-!!$  fpmult=100.e0
   in%hgrid  = real(hgrid,gp)
   in%crmult = real(crmult,gp)
   in%frmult = real(frmult,gp)
-!!$  in%cpmult = real(cpmult,gp)
-!!$  in%fpmult = real(fpmult,gp)
-  in%cpmult = in%frmult
-!!$  if (in%fpmult > in%frmult) then
-!!$     if (iproc == 0) write(*,*) ' NONSENSE: fpmult > frmult, putting them equal'
-     in%fpmult=in%frmult
-!!$  end if
+
+  !in%cpmult = in%frmult
+  !in%fpmult=in%frmult
+
   read(1,*,iostat=ierror) in%ixc
+  call check
   read(1,*,iostat=ierror) in%ncharge,in%elecfield
+  call check
   read(1,*,iostat=ierror) in%gnrm_cv
+  call check
   read(1,*,iostat=ierror) in%itermax
+  call check
   read(1,*,iostat=ierror) in%ncong
+  call check
   read(1,*,iostat=ierror) in%idsx
+  call check
   read(1,*,iostat=ierror) in%calc_tail
+  call check
   read(1,*,iostat=ierror) in%rbuf
+  call check
   read(1,*,iostat=ierror) in%ncongt
+  call check
   read(1,*,iostat=ierror) in%nspin,in%mpol
+  call check
   read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
+  call check
 
   !project however the wavefunction on gaussians if asking to write them on disk
   in%gaussian_help=(in%inputPsiId >= 10) .or. in%output_wf 
@@ -139,13 +154,9 @@ subroutine read_input_variables(iproc,in)
      in%inputPsiId=0
   end if
 
-  if (ierror/=0) then
-     if (iproc == 0) write(*,'(1x,a)') 'Error while reading the file "input.dat"'
-     stop
-  end if
-
   !add reading lines for Davidson treatment (optional for backward compatibility)
   read(1,*,iostat=ierror) in%nvirt, in%nplot
+  !call check
   
   if (ierror/=0) then
      in%nvirt=0
@@ -155,7 +166,7 @@ subroutine read_input_variables(iproc,in)
      !systems
      if (in%nspin/=1 .and. in%nvirt/=0) then
         if (iproc==0) then
-           write(*,'(1x,a)')'ERROR: Davidson treeatment allowed on fon non spin-polarised systems'
+           write(*,'(1x,a)')'ERROR: Davidson treatment allowed on fon non spin-polarised systems'
         end if
         stop
      end if
@@ -189,6 +200,16 @@ subroutine read_input_variables(iproc,in)
         stop
      end if
 
+contains
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       if (iproc == 0) write(*,'(1x,a,i3)') &
+            'Error while reading the file "input.dat", line=',iline
+       stop
+    end if
+  end subroutine check
+
 end subroutine read_input_variables
 !!***
 
@@ -202,10 +223,11 @@ end subroutine read_input_variables
 !!
 !! SOURCE
 !!
-subroutine print_input_parameters(in)
+subroutine print_input_parameters(in,atoms)
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
+  type(atoms_data), intent(in) :: atoms
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------- Input Parameters'
@@ -218,18 +240,18 @@ subroutine print_input_parameters(in)
        '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
        '| Extension=',in%rbuf
   write(*,'(1x,a,i7,1x,a,1x,a,i8,1x,a,i4)')&
-       'total charge=',in%ncharge, '| Coarse Proj.= Max.','| CG Prec.Steps=',in%ncong,&
+       'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
        '|  CG Steps=',in%ncongt
   write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
-       ' elec. field=',in%elecfield,'|   Fine Proj.= Max.','| DIIS Hist. N.=',in%idsx
+       ' elec. field=',in%elecfield,'|                   ','| DIIS Hist. N.=',in%idsx
   if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
           'Polarisation=',2*in%mpol, '|'
   end if
-  if (in%geocode /= 'F') then
+  if (atoms%geocode /= 'F') then
      write(*,'(1x,a,1x,a,3(1x,1pe12.5))')&
-          '  Geom. Code=    '//in%geocode//'   |',&
-          '  Box Sizes (Bohr) =',in%alat1,in%alat2,in%alat3
+          '  Geom. Code=    '//atoms%geocode//'   |',&
+          '  Box Sizes (Bohr) =',atoms%alat1,atoms%alat2,atoms%alat3
 
   end if
 end subroutine print_input_parameters
@@ -245,14 +267,12 @@ end subroutine print_input_parameters
 !!
 !! SOURCE
 !!
-subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
+subroutine read_atomic_positions(iproc,ifile,at,rxyz)
   use module_base
   use module_types
   implicit none
-  character(len=20), intent(in) :: units
   integer, intent(in) :: iproc,ifile
   type(atoms_data), intent(inout) :: at
-  type(input_variables), intent(out) :: in
   real(gp), dimension(3,at%nat), intent(out) :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_atomic_positions'
@@ -280,7 +300,7 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
   call memocc(i_stat,at%natpol,'at%natpol',subname)
 
   !controls if the positions are provided with machine precision
-  if (units == 'angstroemd0' .or. units== 'atomicd0' .or. units== 'bohrd0') then
+  if (at%units == 'angstroemd0' .or. at%units== 'atomicd0' .or. at%units== 'bohrd0') then
      lpsdbl=.true.
   else
      lpsdbl=.false.
@@ -303,10 +323,10 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
 
   !in case of old format, put geocode to F and alat to 0.
   if (ierror == 0) then
-     in%geocode='F'
-     in%alat1=0.0_gp
-     in%alat2=0.0_gp
-     in%alat3=0.0_gp
+     at%geocode='F'
+     at%alat1=0.0_gp
+     at%alat2=0.0_gp
+     at%alat3=0.0_gp
   else
      if (lpsdbl) then
         read(line,*,iostat=ierrsfx) tatonam,alat1d0,alat2d0,alat3d0
@@ -315,15 +335,15 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
      end if
      if (ierrsfx == 0) then
         if (trim(tatonam)=='periodic') then
-           in%geocode='P'
+           at%geocode='P'
         else if (trim(tatonam)=='surface') then 
-           in%geocode='S'
-           in%alat2=0.0_gp
+           at%geocode='S'
+           at%alat2=0.0_gp
         else !otherwise free bc
-           in%geocode='F'
-           in%alat1=0.0_gp
-           in%alat2=0.0_gp
-           in%alat3=0.0_gp
+           at%geocode='F'
+           at%alat1=0.0_gp
+           at%alat2=0.0_gp
+           at%alat3=0.0_gp
         end if
         if (.not. lpsdbl) then
            alat1d0=real(alat1,gp)
@@ -331,12 +351,39 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
            alat3d0=real(alat3,gp)
         end if
      else
-        in%geocode='F'
-        in%alat1=0.0_gp
-        in%alat2=0.0_gp
-        in%alat3=0.0_gp
+        at%geocode='F'
+        at%alat1=0.0_gp
+        at%alat2=0.0_gp
+        at%alat3=0.0_gp
      end if
   end if
+
+  !reduced coordinates are possible only with periodic units
+  if (at%units == 'reduced' .and. at%geocode /= 'P') then
+     if (iproc==0) write(*,'(1x,a)')&
+          'ERROR: Reduced coordinates are only allowed with fully periodic BC'
+  end if
+
+  !convert the values of the cell sizes in bohr
+  if (at%units=='angstroem' .or. at%units=='angstroemd0') then
+     ! if Angstroem convert to Bohr
+     at%alat1=alat1d0/bohr
+     at%alat2=alat2d0/bohr
+     at%alat3=alat3d0/bohr
+  else if  (at%units=='atomic' .or. at%units=='bohr'  .or.&
+       at%units== 'atomicd0' .or. at%units== 'bohrd0') then
+     at%alat1=alat1d0
+     at%alat2=alat2d0
+     at%alat3=alat3d0
+  else if (at%units == 'reduced') then !assume that for reduced coordinates cell size is in bohr
+     at%alat1=real(alat1,gp)
+     at%alat2=real(alat2,gp)
+     at%alat3=real(alat3,gp)
+  else
+     write(*,*) 'length units in input file unrecognized'
+     write(*,*) 'recognized units are angstroem or atomic = bohr'
+     stop 
+  endif
 
   at%ntypes=0
   do iat=1,at%nat
@@ -366,12 +413,15 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
         rxyz(2,iat)=real(ry,gp)
         rxyz(3,iat)=real(rz,gp)
      end if
-
-     if (in%geocode == 'P') then
+     if (at%units == 'reduced') then !add treatment for reduced coordinates
+        rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
+        rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
+        rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
+     else if (at%geocode == 'P') then
         rxyz(1,iat)=modulo(rxyz(1,iat),alat1d0)
         rxyz(2,iat)=modulo(rxyz(2,iat),alat2d0)
         rxyz(3,iat)=modulo(rxyz(3,iat),alat3d0)
-     else if (in%geocode == 'S') then
+     else if (at%geocode == 'S') then
         rxyz(1,iat)=modulo(rxyz(1,iat),alat1d0)
         rxyz(3,iat)=modulo(rxyz(3,iat),alat3d0)
      end if
@@ -388,33 +438,26 @@ subroutine read_atomic_positions(iproc,ifile,units,in,at,rxyz)
      !        rxyz(3,iat)=rxyz(3,iat)+step*t3
 
      do ityp=1,at%ntypes
-        if (tatonam.eq.atomnames(ityp)) then
+        if (tatonam == atomnames(ityp)) then
            at%iatype(iat)=ityp
            goto 200
         endif
      enddo
      at%ntypes=at%ntypes+1
-     if (at%ntypes.gt.100) stop 'more than 100 atomnames not permitted'
+     if (at%ntypes > 100) stop 'more than 100 atomnames not permitted'
      atomnames(ityp)=tatonam
      at%iatype(iat)=at%ntypes
 200  continue
-     if (units=='angstroem' .or. units=='angstroemd0') then
+
+     if (at%units=='angstroem' .or. at%units=='angstroemd0') then
         ! if Angstroem convert to Bohr
-        in%alat1=alat1d0/bohr
-        in%alat2=alat2d0/bohr
-        in%alat3=alat3d0/bohr
         do i=1,3 
            rxyz(i,iat)=rxyz(i,iat)/bohr
         enddo
-     else if  (units=='atomic' .or. units=='bohr'  .or.&
-          units== 'atomicd0' .or. units== 'bohrd0') then
-        in%alat1=alat1d0
-        in%alat2=alat2d0
-        in%alat3=alat3d0
-     else
-        write(*,*) 'length units in input file unrecognized'
-        write(*,*) 'recognized units are angstroem or atomic = bohr'
-        stop 
+     else if (at%units == 'reduced') then 
+        rxyz(1,iat)=rxyz(1,iat)*at%alat1
+        rxyz(2,iat)=rxyz(2,iat)*at%alat2
+        rxyz(3,iat)=rxyz(3,iat)*at%alat3
      endif
   enddo
 
@@ -904,9 +947,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
 
      !control the hardest and the softest gaussian
      minrad=1.e10_gp
-!******************************************************************************************	 
- 	maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
-!******************************************************************************************	 
+     maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
      do i=0,4
         !the maximum radii is useful only for projectors
         if (i==1) maxrad=0.0_gp
@@ -1193,28 +1234,27 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
 end subroutine read_system_variables
 
 
-subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
-     alat1,alat2,alat3,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
+subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
+     n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
   !calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
   !and shifts the atoms such that their position is the most symmetric possible
   use module_base
   use module_types
   implicit none
-  type(atoms_data), intent(in) :: atoms
-  character(len=1), intent(in) :: geocode
+  type(atoms_data), intent(inout) :: atoms
   integer, intent(in) :: iproc
   real(gp), intent(in) :: crmult,frmult
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
-  real(gp), intent(inout) :: hx,hy,hz,alat1,alat2,alat3
+  real(gp), intent(inout) :: hx,hy,hz
   !local variables
   real(gp), parameter ::eps_mach=1.e-12_gp,onem=1.0_gp-eps_mach
   integer :: iat,j
   real(gp) :: rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
 
   !check the geometry code with the grid spacings
-  if (geocode == 'F' .and. (hx/=hy .or. hx/=hz .or. hy/=hz)) then
+  if (atoms%geocode == 'F' .and. (hx/=hy .or. hx/=hz .or. hy/=hz)) then
      write(*,'(1x,a)')'ERROR: The values of the grid spacings must be equal in the Free BC case'
      stop
   end if
@@ -1254,15 +1294,15 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
 
 
   !define the box sizes for free BC, and calculate dimensions for the fine grid with ISF
-  if (geocode == 'F') then
-     alat1=(cxmax-cxmin)
-     alat2=(cymax-cymin)
-     alat3=(czmax-czmin)
+  if (atoms%geocode == 'F') then
+     atoms%alat1=(cxmax-cxmin)
+     atoms%alat2=(cymax-cymin)
+     atoms%alat3=(czmax-czmin)
 
      ! grid sizes n1,n2,n3
-     n1=int(alat1/hx)
-     n2=int(alat2/hy)
-     n3=int(alat3/hz)
+     n1=int(atoms%alat1/hx)
+     n2=int(atoms%alat2/hy)
+     n3=int(atoms%alat3/hz)
      alatrue1=real(n1,gp)*hx
      alatrue2=real(n2,gp)*hy
      alatrue3=real(n3,gp)*hz
@@ -1271,10 +1311,11 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
      n2i=2*n2+31
      n3i=2*n3+31
 
-  else if (geocode == 'P') then !define the grid spacings, controlling the FFT compatibility
-     call correct_grid(alat1,hx,n1)
-     call correct_grid(alat2,hy,n2)
-     call correct_grid(alat3,hz,n3)
+  else if (atoms%geocode == 'P') then 
+     !define the grid spacings, controlling the FFT compatibility
+     call correct_grid(atoms%alat1,hx,n1)
+     call correct_grid(atoms%alat2,hy,n2)
+     call correct_grid(atoms%alat3,hz,n3)
      alatrue1=(cxmax-cxmin)
      alatrue2=(cymax-cymin)
      alatrue3=(czmax-czmin)
@@ -1283,14 +1324,13 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
      n2i=2*n2+2
      n3i=2*n3+2
 
-  else if (geocode == 'S') then
-     call correct_grid(alat1,hx,n1)
-     alat2=(cymax-cymin)
-     call correct_grid(alat3,hz,n3)
+  else if (atoms%geocode == 'S') then
+     call correct_grid(atoms%alat1,hx,n1)
+     atoms%alat2=(cymax-cymin)
+     call correct_grid(atoms%alat3,hz,n3)
 
      alatrue1=(cxmax-cxmin)
-     alat2=(cymax-cymin)
-     n2=int(alat2/hy)
+     n2=int(atoms%alat2/hy)
      alatrue2=real(n2,gp)*hy
      alatrue3=(czmax-czmin)
 
@@ -1301,20 +1341,20 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
   end if
 
   !balanced shift taking into account the missing space
-  cxmin=cxmin+0.5_gp*(alat1-alatrue1)
-  cymin=cymin+0.5_gp*(alat2-alatrue2)
-  czmin=czmin+0.5_gp*(alat3-alatrue3)
+  cxmin=cxmin+0.5_gp*(atoms%alat1-alatrue1)
+  cymin=cymin+0.5_gp*(atoms%alat2-alatrue2)
+  czmin=czmin+0.5_gp*(atoms%alat3-alatrue3)
 
   !correct the box sizes for the isolated case
-  if (geocode == 'F') then
-     alat1=alatrue1
-     alat2=alatrue2
-     alat3=alatrue3
-  else if (geocode == 'S') then
+  if (atoms%geocode == 'F') then
+     atoms%alat1=alatrue1
+     atoms%alat2=alatrue2
+     atoms%alat3=alatrue3
+  else if (atoms%geocode == 'S') then
      cxmin=0.0_gp
-     alat2=alatrue2
+     atoms%alat2=alatrue2
      czmin=0.0_gp
-  else if (geocode == 'P') then
+  else if (atoms%geocode == 'P') then
      !for the moment we do not put the shift, at the end it will be tested
      !here we should put the center of mass
      cxmin=0.0_gp
@@ -1373,7 +1413,7 @@ subroutine system_size(iproc,geocode,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,
      write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf5.2))') &
           '   Shift of=',-cxmin,-cymin,-czmin,' Grid Spacings=',hx,hy,hz
      write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
-          '  Box Sizes=',alat1,alat2,alat3,n1,n2,n3
+          '  Box Sizes=',atoms%alat1,atoms%alat2,atoms%alat3,n1,n2,n3
      write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
           '      Extremes for the high resolution grid points:',&
           nfl1,'<',nfu1,nfl2,'<',nfu2,nfl3,'<',nfu3
