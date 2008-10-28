@@ -318,7 +318,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
 
   !write the results
   if (iproc == 0) then
-     if(nspinor==4) then
+     if(nspin==4) then
         charge=tmred(1,1)
         tt=sqrt(tmred(2,1)**2+tmred(3,1)**2+tmred(4,1)**2)
      else
