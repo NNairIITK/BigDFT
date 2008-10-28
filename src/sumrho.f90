@@ -234,9 +234,9 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
                MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         end do
      else
-       ! call MPI_ALLREDUCE(MPI_IN_PLACE,rho_p,n1i*n2i*n3i*nspin,&
-       !      MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-	   stop 'error with MPI, in sumrho.f90'
+         call MPI_ALLREDUCE(MPI_IN_PLACE,rho_p,n1i*n2i*n3i*nspin,&
+              MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+         !stop 'rsflag active in sumrho.f90, check MPI2 implementation'
      end if
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')

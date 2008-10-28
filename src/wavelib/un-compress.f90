@@ -970,18 +970,16 @@ subroutine find_dimensions(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   integer, dimension(2,nseg_f), intent(in) :: keyg_f
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
-!*******************************Alexey********************************************************
+
   logical wav_loc
-	integer,intent(out)::min1,min2,min3,max1,max2,max3,nf
-	min1=n1
-	min2=n2
-	min3=n3
-
-	max1=0
-	max2=0
-	max3=0
-
-!*********************************************************************************************
+  integer, intent(out) :: min1,min2,min3,max1,max2,max3,nf
+  min1=n1
+  min2=n2
+  min3=n3
+  
+  max1=0
+  max2=0
+  max3=0
 
   do iseg=1,nseg_f
      jj=keyv_f(iseg)
@@ -994,14 +992,14 @@ subroutine find_dimensions(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
 
-	 if (i0.lt.min1) min1=i0
-	 if (i2.lt.min2) min2=i2
-	 if (i3.lt.min3) min3=i3
-
-	 if	(i1.gt.max1) max1=i1
-	 if	(i2.gt.max2) max2=i2
-	 if	(i3.gt.max3) max3=i3
-	 
+     if (i0.lt.min1) min1=i0
+     if (i2.lt.min2) min2=i2
+     if (i3.lt.min3) min3=i3
+     
+     if (i1.gt.max1) max1=i1
+     if (i2.gt.max2) max2=i2
+     if (i3.gt.max3) max3=i3
+     
   enddo
 
   ! check that the wavelets are far from the box edges
