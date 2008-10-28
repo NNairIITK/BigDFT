@@ -146,7 +146,6 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   allocate(ibbxy_f(2,0:nb1,0:nb2+ndebug),stat=i_stat)
   call memocc(i_stat,ibbxy_f,'ibbxy_f',subname)
 
-  !!*********************************Alexey*********************************************************
   !   allocate for grow
   allocate(ibbzxx_c(2,0:nb3,-14:2*nb1+16+ndebug),stat=i_stat)
   call memocc(i_stat,ibbzxx_c,'ibbzxx_c',subname)
@@ -174,7 +173,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   !allocate for real space
   allocate(ibbyyzz_r(2,-14:2*nb2+16,-14:2*nb3+16+ndebug),stat=i_stat)
   call memocc(i_stat,ibbyyzz_r,'ibbyyzz_r',subname)
-  !***********************************************************************************************
+
   ! coarse grid quantities
   call fill_logrid('F',nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,at%nat,at%ntypes,at%iatype,txyz, & 
        radii_cf(1,1),crmult,hgrid,hgrid,hgrid,logrid_c)
@@ -476,7 +475,6 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   deallocate(ibbxy_f,stat=i_stat)
   call memocc(i_stat,i_all,'ibbxy_f',subname)
 
-  !!*****************************Alexey************************************************************
   i_all=-product(shape(x_c))*kind(x_c)
   deallocate(x_c,stat=i_stat)
   call memocc(i_stat,i_all,'x_c',subname)

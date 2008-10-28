@@ -1,6 +1,7 @@
 subroutine HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
      norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
-     ngatherarr,ndimpot,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,nspinor,spinsgn)
+     ngatherarr,ndimpot,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,&
+	 nspin,nspinor,spinsgn,hybrid_on)
   use module_base
   use module_types
   implicit none
@@ -18,6 +19,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,rad
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(in) :: psi
   real(wp), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
+  logical,intent(in)::hybrid_on
   real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(out) :: hpsi
   !local variables
@@ -26,6 +28,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,rad
   real(gp) :: eproj
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:,:), pointer :: pot
+  integer,parameter::lupfil=14
 
   call timing(iproc,'ApplyLocPotKin','ON')
 
@@ -67,10 +70,11 @@ subroutine HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,rad
      pot => potential
   end if
 
-  call local_hamiltonian(iproc,at%geocode,&
+  call local_hamiltonian(iproc,at%geocode,hybrid_on,&
        n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,&
        hx,hy,hz,wfd,bounds,nspin,nspinor,norbp,norb,occup,spinsgn,pot,psi,hpsi,ekin_sum,epot_sum)
   
+
   if (nproc > 1) then
      i_all=-product(shape(pot))*kind(pot)
      deallocate(pot,stat=i_stat)
@@ -122,7 +126,7 @@ end subroutine HamiltonianApplication
 subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
      eval,ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-     alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
+     alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn,hybrid_on)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi
@@ -130,6 +134,7 @@ subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
   type(kinetic_bounds), intent(in) :: kbounds
   type(wavefunctions_descriptors), intent(in) :: wfd
   character(len=1), intent(in) :: geocode
+  logical, intent(in) :: hybrid_on
   integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncong,idsx,iter
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin,nspinor
   real(gp), intent(in) :: hx,hy,hz,energy,energy_old
@@ -155,7 +160,6 @@ subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
   if (iter == 1) then
      !logical control variable for switch DIIS-SD
      switchSD=.false.
-
      ids=0
      mids=1
      idiistol=0
@@ -177,8 +181,8 @@ subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
   norbu=0
   norbd=0
   do iorb=1,norb
-     if(spinsgn(iorb)>0.0_gp) norbu=norbu+1
-     if(spinsgn(iorb)<0.0_gp) norbd=norbd+1
+     if(spinsgn(iorb) > 0.0_gp) norbu=norbu+1
+     if(spinsgn(iorb) < 0.0_gp) norbd=norbd+1
   end do
 
   !transpose the hpsi wavefunction
@@ -253,10 +257,11 @@ subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
      write(*,'(1x,a)',advance='no')&
           'done, preconditioning...'
   end if
-  ! Preconditions all orbitals belonging to iproc
+
+  !Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
   call preconditionall(geocode,iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     hx,hy,hz,ncong,nspinor,wfd,eval,kbounds,hpsi,gnrm)
+     hx,hy,hz,ncong,nspinor,wfd,eval,kbounds,hpsi,gnrm,hybrid_on)
 
   !sum over all the partial residues
   if (nproc > 1) then

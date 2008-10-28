@@ -204,6 +204,7 @@ contains
     real(kind=8), dimension(:), pointer :: pkernel
     !local variables
     character(len=*), parameter :: subname='compare_with_reference'
+    character(len=10) :: message
     integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,i1_max,i2_max,i3_max,i_all,i_stat,istpoti,i
     integer :: istxc,i1,i2,i3,isp,i3sd
     real(kind=8) :: eexcu,vexcu,max_diff,ehartree,tt
@@ -236,6 +237,7 @@ contains
     allocate(rhopot(n01,n02,n3d,nspden+ndebug),stat=i_stat)
     call memocc(i_stat,rhopot,'rhopot',subname)
 
+    write(message,*)geocode,distcode,nspden
 
     if (ixc /= 0) then
        if (nspden == 1) then
@@ -290,12 +292,12 @@ contains
     
     !compare the values of the analytic results (no dependence on spin)
     call compare(iproc,nproc,n01,n02,n3p,1,potential(istpot),rhopot(1,1,i3xcsh+1,1),&
-         'ANACOMPLET '//distcode)
+         'ANACOMPLET '//message)
 
     !compare also the xc_potential
     if (ixc/=0) call compare(iproc,nproc,n01,n02,nspden*n3p,1,xc_temp(istxc),&
          test_xc(1),&
-         'XCCOMPLETE '//distcode)
+         'XCCOMPLETE '//message)
     if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") &
          'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
 
@@ -322,7 +324,7 @@ contains
 
     !then compare again, but the complete result
     call compare(iproc,nproc,n01,n02,nspden*n3p,1,test(istpot),&
-         rhopot(1,1,i3xcsh+1,1),'COMPLETE  '//distcode)
+         rhopot(1,1,i3xcsh+1,1),'COMPLETE  '//message)
     if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") &
          'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
 

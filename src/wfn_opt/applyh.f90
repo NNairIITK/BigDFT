@@ -1,10 +1,12 @@
 ! calculate the action of the local hamiltonian on the orbitals
-subroutine local_hamiltonian(iproc,geocode,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,&
+subroutine local_hamiltonian(iproc,geocode,hybrid_on,&
+     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,&
      hx,hy,hz,wfd,bounds,nspin,nspinor,norbp,norb,occup,spinsgn,pot,psi,hpsi,ekin_sum,epot_sum)
   use module_base
   use module_types
   implicit none
   character(len=1), intent(in) :: geocode
+  logical, intent(in) :: hybrid_on
   integer, intent(in) :: iproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
   integer, intent(in) :: norbp,norb,nspinor,nspin
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -80,12 +82,13 @@ subroutine local_hamiltonian(iproc,geocode,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
      call memocc(i_stat,y_c,'y_c',subname)
 
   case('P')
-     !allocation of work arrays
-     allocate(x_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,x_c,'x_c',subname)
-     allocate(y_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
-     call memocc(i_stat,y_c,'y_c',subname)
-
+     if (.not.hybrid_on) then
+        !allocation of work arrays: only for the non-adaptive case
+        allocate(x_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,x_c,'x_c',subname)
+        allocate(y_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,y_c,'y_c',subname)
+     endif
   end select
 
 
@@ -123,10 +126,18 @@ subroutine local_hamiltonian(iproc,geocode,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
              bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,nw1,nw2,bounds%ibyyzz_r,&
              nspinor)
      case('P')
-        call applylocpotkinone_per(n1,n2,n3,hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
-             wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
-             psir,x_c,y_c,psi(1,oidx),pot(1,1,1,nsoffset),&
-             hpsi(1,oidx),epot,ekin) 
+        if (hybrid_on) then
+           call applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+                hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
+                wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
+                psir,psi(1,oidx),pot(1,1,1,nsoffset),&
+                hpsi(1,oidx),epot,ekin,bounds) 
+        else
+           call applylocpotkinone_per(n1,n2,n3,hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
+                wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
+                psir,x_c,y_c,psi(1,oidx),pot(1,1,1,nsoffset),&
+                hpsi(1,oidx),epot,ekin) 
+        end if
      case('S')
         call applylocpotkinone_slab(n1,n2,n3,hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
              wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
@@ -144,12 +155,14 @@ subroutine local_hamiltonian(iproc,geocode,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
 
-  i_all=-product(shape(x_c))*kind(x_c)
-  deallocate(x_c,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c',subname)
-  i_all=-product(shape(y_c))*kind(y_c)
-  deallocate(y_c,stat=i_stat)
-  call memocc(i_stat,i_all,'y_c',subname)
+  if (.not. (hybrid_on .and. geocode == 'P')) then
+     i_all=-product(shape(x_c))*kind(x_c)
+     deallocate(x_c,stat=i_stat)
+     call memocc(i_stat,i_all,'x_c',subname)
+     i_all=-product(shape(y_c))*kind(y_c)
+     deallocate(y_c,stat=i_stat)
+     call memocc(i_stat,i_all,'y_c',subname)
+  end if
 
   if (geocode == 'F') then
      i_all=-product(shape(x_f1))*kind(x_f1)
@@ -418,6 +431,144 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
        psi_out,hpsi(1),hpsi(nvctr_c+1),psir)
 
 END SUBROUTINE applylocpotkinone_per
+
+
+subroutine applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+     hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
+     psir,psi,pot,hpsi,epot,ekin,bounds)
+  !  Applies the local potential and kinetic energy operator to one wavefunction 
+  ! Input: pot,psi
+  ! Output: hpsi,epot,ekin
+  use module_base
+  use module_types
+  implicit none
+  type(convolutions_bounds),intent(in):: bounds
+  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f
+  integer,intent(in):: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
+  real(gp), intent(in) :: hx,hy,hz
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(in) :: pot
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
+  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(inout) :: psir
+  real(gp), intent(out) :: epot,ekin
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(out) :: hpsi
+  !local variables
+  integer :: i
+  integer nf
+  real(wp) :: tt
+  real(gp) :: v,p
+  real(gp), dimension(3) :: hgridh,hgrid
+  real(wp),allocatable::x_f(:,:,:,:),x_c(:,:,:)
+  real(wp),allocatable,dimension(:)::x_f1,x_f2,x_f3
+  real(wp),allocatable,dimension(:,:,:)::y_c
+  real(wp),allocatable,dimension(:,:,:,:)::y_f
+  real(wp),allocatable,dimension(:)::w,ww
+ 
+
+  integer i_stat,i_all
+  integer nw,nww,i2,i3
+  
+  ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+  nf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+  nw=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
+  nw=max(nw,2*(n3+1)*(n1+1)*(n2+1))	   ! for the comb_shrink_hyb_c
+  nw=max(nw,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
+  allocate(w(nw),stat=i_stat)
+  call memocc(i_stat,w,'w','applylocpotkinone_hyb')
+  
+  nww=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
+  nww=max(nww,4*(n2+1)*(n3+1)*(n1+1))	! for the comb_shrink_hyb_c   
+  nww=max(nww,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
+  allocate(ww(nww),stat=i_stat)
+  call memocc(i_stat,ww,'ww','applylocpotkinone_hyb')
+
+   allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+   call memocc(i_stat,x_f,'x_f','applylocpotkinone_hyb')
+   allocate(x_c(0:n1,0:n2,0:n3),stat=i_stat)
+   call memocc(i_stat,x_c,'x_c ','applylocpotkinone_hyb')
+   allocate(x_f1(nf),stat=i_stat)
+   call memocc(i_stat,x_f1,'x_f1','applylocpotkinone_hyb')
+   allocate(x_f2(nf),stat=i_stat)
+   call memocc(i_stat,x_f2,'x_f2','applylocpotkinone_hyb')
+   allocate(x_f3(nf),stat=i_stat)
+   call memocc(i_stat,x_f3,'x_f3','applylocpotkinone_hyb')
+	 
+   allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+   call memocc(i_stat,y_f,'y_f','applylocpotkinone_hyb')
+   allocate(y_c(0:n1,0:n2,0:n3),stat=i_stat)
+   call memocc(i_stat,y_c,'y_c','applylocpotkinone_hyb')
+
+  call uncompress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+       psi(1),psi(nvctr_c+1),x_c,x_f,x_f1,x_f2,x_f3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+
+! x_c: input, psir1: output
+! psir: work array
+  call comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw,nww&
+     ,w,ww,x_c,x_f,psir,bounds%gb)
+  
+  epot=0.0_gp
+  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+     v=real(pot(i),gp)
+     p=real(psir(i),gp)
+     tt=pot(i)*psir(i)
+     epot=epot+p*v*p
+     psir(i)=tt
+  enddo
+
+! y_c has the scfunction output of the kinetic energy operator  
+!psir  : input, y_c: output, psi_in:work
+ call comb_shrink_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ww,w,psir,y_c,y_f,bounds%sb)
+
+  hgrid(1)=hx
+  hgrid(2)=hy
+  hgrid(3)=hz
+
+! compute the kinetic part and add  it to psi_out
+! the kinetic energy is calculated at the same time
+  
+  call convolut_kinetic_hyb_T(n1,n2,n3, &
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
+     hgrid,x_c,x_f,y_c,y_f,ekin,x_f1,x_f2,x_f3,bounds%kb%ibyz_f,&
+	bounds%kb%ibxz_f,bounds%kb%ibxy_f)
+
+  call compress_per_f(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), & 
+     y_c,y_f,hpsi(1),hpsi(nvctr_c+1),nfl1,nfl2,nfl3,nfu1,nfu2,nfu3)
+
+     i_all=-product(shape(y_c))*kind(y_c)
+     deallocate(y_c,stat=i_stat)
+     call memocc(i_stat,i_all,'y_c','applylocpotkinone_hyb')
+     i_all=-product(shape(x_c))*kind(x_c)
+     deallocate(x_c,stat=i_stat)
+     call memocc(i_stat,i_all,'x_c','applylocpotkinone_hyb')
+
+	  i_all=-product(shape(x_f1))*kind(x_f1)
+	  deallocate(x_f1,stat=i_stat)
+	  call memocc(i_stat,i_all,'x_f1','applylocpotkinone_hyb')
+	  i_all=-product(shape(x_f2))*kind(x_f2)
+	  deallocate(x_f2,stat=i_stat)
+	  call memocc(i_stat,i_all,'x_f2','applylocpotkinone_hyb')
+     i_all=-product(shape(x_f3))*kind(x_f3)
+     deallocate(x_f3,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f3','applylocpotkinone_hyb')
+     i_all=-product(shape(y_f))*kind(y_f)
+     deallocate(y_f,stat=i_stat)
+     call memocc(i_stat,i_all,'y_f','applylocpotkinone_hyb')
+     i_all=-product(shape(x_f))*kind(x_f)
+     deallocate(x_f,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f','applylocpotkinone_hyb')
+     i_all=-product(shape(w))*kind(w)
+     deallocate(w,stat=i_stat)
+     call memocc(i_stat,i_all,'w','applylocpotkinone_hyb')
+     i_all=-product(shape(ww))*kind(ww)
+     deallocate(ww,stat=i_stat)
+     call memocc(i_stat,i_all,'ww','applylocpotkinone_hyb')
+	   
+END SUBROUTINE applylocpotkinone_hyb
+
 
 
 subroutine applylocpotkinone_slab(n1,n2,n3, & 

@@ -1,5 +1,3 @@
-
-
 subroutine timeleft(tt)
 ! MODIFIED version for refined time limit on restart of global.f90.
 ! Only difference: Calls routine CPUtime(tt)
@@ -11,10 +9,6 @@ subroutine timeleft(tt)
           call cpu_time(tcpu)
           tt=timelimit-tcpu/3600d0 ! in hours
 end subroutine timeleft
-
-
-
-
 
 subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
   use module_base
@@ -743,7 +737,13 @@ subroutine wtposout(igeostep,energy,rxyz,atoms)
   write(9,*) atoms%nat,' atomicd0 '!, energy,igeostep
   !write(9,*) xmax+5.d0, 0.d0, ymax+5.d0
   !write(9,*) 0.d0, 0.d0, zmax+5.d0
-  write(9,*)' energy,igeostep ', energy,igeostep
+  if (atoms%geocode == 'P') then
+     write(9,'(a,3(1x,1pe21.14))')'periodic',atoms%alat1,atoms%alat2,atoms%alat3
+  else if (atoms%geocode == 'S' then
+     write(9,'(a,3(1x,1pe21.14))')'surface',atoms%alat1,atoms%alat2,atoms%alat3
+  else
+     write(9,*)' energy,igeostep ', energy,igeostep
+  end if
   do iat=1,atoms%nat
      name=trim(atoms%atomnames(atoms%iatype(iat)))
      if (name(3:3)=='_') then
