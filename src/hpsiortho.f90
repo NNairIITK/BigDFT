@@ -1,6 +1,7 @@
 subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
      norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
-     ngatherarr,ndimpot,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,nspinor,spinsgn)
+     ngatherarr,ndimpot,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,&
+	 nspin,nspinor,spinsgn,hybrid_on)
   use module_base
   use module_types
   implicit none
@@ -19,6 +20,7 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(in) :: psi
   real(wp), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
+  logical,intent(in)::hybrid_on
   real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(out) :: hpsi
   !local variables
@@ -33,6 +35,7 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
   real(wp), dimension(:,:,:,:), allocatable :: x_c,y_c,x_f1,x_f2,x_f3
   real(wp), dimension(:,:,:,:,:), allocatable :: x_f,x_fc,y_f
   real(wp), dimension(:,:), pointer :: pot
+  integer,parameter::lupfil=14
 
   call timing(iproc,'ApplyLocPotKin','ON')
 
@@ -108,11 +111,13 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
         n2i=2*n2+2
         n3i=2*n3+2
 
-        !allocation of work arrays
-        allocate(x_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,x_c,'x_c',subname)
-        allocate(y_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,y_c,'y_c',subname)
+		if (.not.hybrid_on) then
+			!allocation of work arrays: only for the non-adaptive case
+	        allocate(x_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+	        call memocc(i_stat,x_c,'x_c',subname)
+	        allocate(y_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+	        call memocc(i_stat,y_c,'y_c',subname)
+		endif
 
   end select
 
@@ -164,10 +169,19 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
                 bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,nw1,nw2,bounds%ibyyzz_r,&
                 nspinor)
         case('P')
-           call applylocpotkinone_per(n1,n2,n3,hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
+			if (hybrid_on) then
+	            call applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+		        hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
+                wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
+                psir,psi(1,oidx),pot(1,nsoffset),&
+                hpsi(1,oidx),epot,ekin,bounds) 
+			else
+           		call applylocpotkinone_per(n1,n2,n3,hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
                 wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
                 psir,x_c,y_c,psi(1,oidx),pot(1,nsoffset),&
                 hpsi(1,oidx),epot,ekin) 
+			endif
+
         case('S')
            call applylocpotkinone_slab(n1,n2,n3,hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
                 wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
@@ -185,12 +199,12 @@ subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fp
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
 
-  i_all=-product(shape(x_c))*kind(x_c)
-  deallocate(x_c,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c',subname)
-  i_all=-product(shape(y_c))*kind(y_c)
-  deallocate(y_c,stat=i_stat)
-  call memocc(i_stat,i_all,'y_c',subname)
+!  i_all=-product(shape(x_c))*kind(x_c)
+!  deallocate(x_c,stat=i_stat)
+!  call memocc(i_stat,i_all,'x_c',subname)
+!  i_all=-product(shape(y_c))*kind(y_c)
+!  deallocate(y_c,stat=i_stat)
+!  call memocc(i_stat,i_all,'y_c',subname)
 
   if (geocode == 'F') then
 	  i_all=-product(shape(x_f1))*kind(x_f1)
@@ -265,7 +279,7 @@ end subroutine HamiltonianApplication
 subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
      eval,ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-     alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
+     alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn,hybrid_on)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi
@@ -278,6 +292,7 @@ subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
   real(gp), intent(in) :: hx,hy,hz,energy,energy_old
   real(wp), dimension(norb), intent(in) :: eval
   real(gp), dimension(norb), intent(in) :: occup,spinsgn
+  logical,intent(in)::hybrid_on
   integer, intent(inout) :: idsx_actual
   real(wp), intent(inout) :: alpha
   real(dp), intent(inout) :: gnrm,scprsum
@@ -399,7 +414,7 @@ subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
   ! Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
   call preconditionall(geocode,iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     hx,hy,hz,ncong,nspinor,wfd,eval,kbounds,hpsi,gnrm)
+     hx,hy,hz,ncong,nspinor,wfd,eval,kbounds,hpsi,gnrm,hybrid_on)
 
   !sum over all the partial residues
   if (nproc > 1) then

@@ -148,17 +148,16 @@ subroutine syn_rot_per(n,ndat,x,y)
   real(wp) :: so1,so2,so3,so4,so5,so6,so7,so8
   real(wp) :: se1,se2,se3,se4,se5,se6,se7,se8
 
-	real(gp)::tel
-	integer::ncount1,ncount2,ncount_rate,ncount_max
-	integer::mflop
-   
-	! (n+1): the range of i (average)
-	! 8: filter length for l (average)
-	! 4: number of flops in one line
-	! 2: even and odd 
-	mflop=ndat*(n+1)*8*4*2
-	
-  call system_clock(ncount1,ncount_rate,ncount_max)
+!	real(gp)::tel
+!	integer::ncount1,ncount2,ncount_rate,ncount_max
+!	integer::mflop
+!   
+!	! (n+1): the range of i (average)
+!	! 8: filter length for l (average)
+!	! 4: number of flops in one line
+!	! 2: even and odd 
+!	mflop=ndat*(n+1)*8*4*2
+!  call system_clock(ncount1,ncount_rate,ncount_max)
 
   call fill_mod_arr(mod_arr,-4,n+4,n+1)
 
@@ -248,9 +247,9 @@ subroutine syn_rot_per(n,ndat,x,y)
 
   enddo
 
-  call system_clock(ncount2,ncount_rate,ncount_max)
-  tel=dble(ncount2-ncount1)/dble(ncount_rate)
-  write(97,'(a40,1x,e10.3,1x,f6.1)') 'syn_rot_per:',tel,1.d-6*mflop/tel
+!  call system_clock(ncount2,ncount_rate,ncount_max)
+!  tel=dble(ncount2-ncount1)/dble(ncount_rate)
+!  write(97,'(a40,1x,e10.3,1x,f6.1)') 'syn_rot_per:',tel,1.d-6*mflop/tel
 end subroutine syn_rot_per
 
 subroutine convrot_n_per(n1,ndat,x,y)
@@ -948,34 +947,34 @@ end subroutine convolut_kinetic_per_T
 
 
 subroutine fill_mod_arr(arr,nleft,nright,n)
-  implicit none
-  integer,intent(in)::nleft,nright,n
-  integer,intent(out)::arr(nleft:nright)
-  !local variables
-  integer :: i
+implicit none
+integer,intent(in)::nleft,nright,n
+integer,intent(out)::arr(nleft:nright)
+integer::i
 
-  if (nleft >= -n) then
-     do i=nleft,-1
-        arr(i)=n+i
-     enddo
-  else
-     do i=nleft,-1
-        arr(i)=modulo(i,n)
-     enddo
-  endif
+if (nleft.ge.-n) then
+	do i=nleft,-1
+		arr(i)=n+i
+	enddo
+else
+	do i=nleft,-1
+		arr(i)=modulo(i,n)
+	enddo
+endif
 
-  do i=0,n-1
-     arr(i)=i
-  enddo
+do i=max(0,nleft),min(n-1,nright)
+	arr(i)=i
+enddo
 
-  if (nright < 2*n) then
-     do i=n,nright
-        arr(i)=i-n
-     enddo
-  else
-     do i=n,nright
-        arr(i)=modulo(i,n)
-     enddo
-  endif
-
+if (nright.lt.2*n) then
+	do i=n,nright
+		arr(i)=i-n
+	enddo
+else
+	do i=n,nright
+		arr(i)=modulo(i,n)
+	enddo
+endif
+	
 end subroutine fill_mod_arr
+

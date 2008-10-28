@@ -1,5 +1,7 @@
 subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,  & 
-     wfd,psi,rho,nrho,nscatterarr,nspin,nspinor,spinsgn,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
+     wfd,psi,rho,nrho,nscatterarr,nspin,nspinor,spinsgn,&
+	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,hybrid_on)
+!	 nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
   ! Output: rho
@@ -13,6 +15,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
   integer, intent(in) :: iproc,nproc,norb,norbp,nrho,nspin,nspinor,ixc
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(gp), intent(in) :: hxh,hyh,hzh
+  logical,intent(in)::hybrid_on
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(gp), dimension(norb), intent(in) :: occup,spinsgn
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(in) :: psi
@@ -30,6 +33,8 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
   real(wp), dimension(:), allocatable :: x_c_psifscf,x_f_psig,w1,w2
   real(wp), dimension(:,:), allocatable :: tmred
   real(dp), dimension(:,:), pointer :: rho_p
+  integer,parameter::lupfil=14
+
 !  include 'mpif.h'
 
   call timing(iproc,'Rho_comput    ','ON')
@@ -81,11 +86,25 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
         n2i=2*n2+2
         n3i=2*n3+2
         
-        !dimension of the work arrays
-        nw1=1-ndebug
-        nw2=1-ndebug
-        nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
-        nxf=1-ndebug
+		if (hybrid_on) then
+			! hybrid case:
+	        nxc=(n1+1)*(n2+1)*(n3+1)
+    	    nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+		
+			nw1=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
+			nw1=max(nw1,2*(n3+1)*(n1+1)*(n2+1))	   ! for the comb_shrink_hyb_c
+			nw1=max(nw1,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
+			
+			nw2=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
+			nw2=max(nw2,4*(n2+1)*(n3+1)*(n1+1))	! for the comb_shrink_hyb_c   
+			nw2=max(nw2,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
+		else
+			!dimension of the work arrays, fully periodic case
+	        nw1=1-ndebug
+	        nw2=1-ndebug
+	        nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
+	        nxf=1-ndebug
+		endif
 
   end select
 
@@ -163,13 +182,27 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
 
            case('P')
 
-              do sidx=1,nspinor
-                 call uncompress_per(n1,n2,n3,wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),   &
-                      wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),   &
+  	         do sidx=1,nspinor
+				 if (hybrid_on) then
+				    ! hybrid case
+    				call uncompress_per_f_short(n1,n2,n3,wfd%nseg_c,&
+				    wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),& 
+                     wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),   &
+                      psi(1,oidx+sidx),psi(wfd%nvctr_c+1,oidx+sidx),x_c_psifscf,x_f_psig,&
+					  nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+				   
+			  		call comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2&
+				     ,w1,w2,x_c_psifscf,x_f_psig,psir(1,sidx),bounds%gb)
+				 else
+              			call uncompress_per(n1,n2,n3,wfd%nseg_c,&
+						wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),&
+                     wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
                       psi(1,oidx+sidx),psi(wfd%nvctr_c+1,oidx+sidx),x_c_psifscf,psir(1,sidx))
                  
-!                 call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,x_c_psifscf,psir(1,sidx)) 
-                 call convolut_magic_n_per_self(2*n1+1,2*n2+1,2*n3+1,x_c_psifscf,psir(1,sidx)) 
+	                 call convolut_magic_n_per_self(2*n1+1,2*n2+1,2*n3+1,&
+					 x_c_psifscf,psir(1,sidx)) 
+				 endif
+
               end do
 
               call partial_density(rsflag,nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
@@ -201,8 +234,9 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
                MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         end do
      else
-        call MPI_ALLREDUCE(MPI_IN_PLACE,rho_p,n1i*n2i*n3i*nspin,&
-             MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+       ! call MPI_ALLREDUCE(MPI_IN_PLACE,rho_p,n1i*n2i*n3i*nspin,&
+       !      MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+	   stop 'error with MPI, in sumrho.f90'
      end if
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')

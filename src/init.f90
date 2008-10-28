@@ -1,6 +1,6 @@
 subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_grid,&
      hx,hy,hz,atoms,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
-     wfd,nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,nspinor)
+     wfd,nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,nspinor,hybrid_on)
   !calculates the descriptor arrays keyg and keyv as well as nseg_c,nseg_f,nvctr_c,nvctr_f,nvctrp
   !calculates also the bounds arrays needed for convolutions
   use module_base
@@ -15,6 +15,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
   real(gp), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+  logical,intent(in)::hybrid_on
   type(wavefunctions_descriptors) , intent(out) :: wfd
   !boundary arrays
   type(convolutions_bounds), intent(out) :: bounds
@@ -73,6 +74,8 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
   if (geocode == 'F') then
      call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
   end if
+
+
 
   ! Create the file grid.xyz to visualize the grid of functions
   if (iproc ==0 .and. output_grid) then
@@ -186,7 +189,66 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_gr
 
   end if
 
+!*************Added by Alexey*****************************************************************
+  if ( geocode == 'P' .and. hybrid_on) then
+	  call make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
+	  call make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+     bounds%kb%ibxy_f,bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
+     bounds%kb%ibyz_f,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f)
+  endif	
+!*********************************************************************************************  
 END SUBROUTINE createWavefunctionsDescriptors
+
+subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
+use module_base
+use module_types
+implicit none
+type(wavefunctions_descriptors), intent(in) :: wfd
+type(convolutions_bounds),intent(out):: bounds
+
+integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+
+logical,allocatable,dimension(:,:,:)::logrid
+character(len=*), parameter :: subname='make_bounds'
+integer::i_stat,i_all,nseg_c,i2,i3
+
+allocate(bounds%kb%ibyz_f(2,0:n2,0:n3+ndebug),stat=i_stat)
+call memocc(i_stat,bounds%kb%ibyz_f,'bounds%kb%ibyz_f',subname)
+allocate(bounds%kb%ibxz_f(2,0:n1,0:n3+ndebug),stat=i_stat)
+call memocc(i_stat,bounds%kb%ibxz_f,'bounds%kb%ibxz_f',subname)
+allocate(bounds%kb%ibxy_f(2,0:n1,0:n2+ndebug),stat=i_stat)
+call memocc(i_stat,bounds%kb%ibxy_f,'bounds%kb%ibxy_f',subname)
+
+allocate(bounds%gb%ibyz_ff(2,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+call memocc(i_stat,bounds%gb%ibyz_ff,'bounds%gb%ibyz_ff',subname)
+allocate(bounds%gb%ibzxx_f(2,nfl3:nfu3,0:2*n1+1),stat=i_stat)
+call memocc(i_stat,bounds%gb%ibzxx_f,'bounds%gb%ibzxx_f',subname)
+allocate(bounds%gb%ibxxyy_f(2,0:2*n1+1,0:2*n2+1),stat=i_stat)
+call memocc(i_stat,bounds%gb%ibxxyy_f,'bounds%gb%ibxxyy_f',subname)
+
+allocate(bounds%sb%ibxy_ff(2,nfl1:nfu1,nfl2:nfu2),stat=i_stat)
+call memocc(i_stat,bounds%sb%ibxy_ff,'bounds%sb%ibxy_ff',subname)
+allocate(bounds%sb%ibzzx_f(2,0:2*n3+1,nfl1:nfu1),stat=i_stat)
+call memocc(i_stat,bounds%sb%ibzzx_f,'bounds%sb%ibzzx_f',subname)
+allocate(bounds%sb%ibyyzz_f(2,0:2*n2+1,0:2*n3+1),stat=i_stat)
+call memocc(i_stat,bounds%sb%ibyyzz_f,'bounds%sb%ibyyzz_f',subname)
+
+allocate(logrid(0:n1,0:n2,0:n3),stat=i_stat)
+call memocc(i_stat,logrid,'logrid',subname)
+
+nseg_c=wfd%nseg_c
+call make_logrid_f(n1,n2,n3, & 
+     wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
+     wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,nseg_c+1),wfd%keyv(nseg_c+1),  & 
+     logrid)
+	 
+call make_bounds(n1,n2,n3,logrid,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
+
+i_all=-product(shape(logrid))*kind(logrid)
+deallocate(logrid,stat=i_stat)
+call memocc(i_stat,i_all,'logrid',subname)
+
+end subroutine make_bounds_per
 
 
 !pass to implicit none while inserting types on this routine
@@ -290,7 +352,7 @@ END SUBROUTINE createProjectorsArrays
 subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
-     pkernel,ixc,psi,psit,hpsi,eval,nscatterarr,ngatherarr,nspin,spinsgn)
+     pkernel,ixc,psi,psit,hpsi,eval,nscatterarr,ngatherarr,nspin,spinsgn,hybrid_on)
   use module_base
   use module_interfaces, except_this_one => import_gaussians
   use module_types
@@ -304,6 +366,7 @@ subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
   integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
+  logical,intent(in)::hybrid_on
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(norb), intent(in) :: spinsgn,occup
@@ -418,7 +481,7 @@ subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
 
   call sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,&
        occup,wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,1,1,ones,&
-       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
+       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,hybrid_on)
 
   call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,1)
@@ -431,7 +494,7 @@ subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
        norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
        ngatherarr,n1i*n2i*nscatterarr(iproc,2),&
        rhopot(1+n1i*n2i*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,1,ones)
+       psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,1,ones,hybrid_on)
 
   i_all=-product(shape(ones))*kind(ones)
   deallocate(ones,stat=i_stat)
@@ -467,7 +530,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
      wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,&
-     nscatterarr,ngatherarr,nspin,spinsgn)
+     nscatterarr,ngatherarr,nspin,spinsgn,hybrid_on)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -492,6 +555,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(dp), dimension(*), intent(in) :: pkernel
+  logical,intent(in)::hybrid_on
   real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
   real(wp), dimension(norb), intent(out) :: eval
   real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
@@ -659,7 +723,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
     
   call sumrho(geocode,iproc,nproc,nspin*norbe,norbep,ixc,n1,n2,n3,hxh,hyh,hzh,occupe,  & 
        wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,nspin,1,spinsgne, &
-       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
+       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,hybrid_on)
 
   call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,nspin)
@@ -672,7 +736,7 @@ subroutine input_wf_diag(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
        nspin*norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
        ngatherarr,n1i*n2i*nscatterarr(iproc,2),rhopot(1+n1i*n2i*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,1,spinsgne)
+       psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,1,spinsgne,hybrid_on)
 
   i_all=-product(shape(spinsgne))*kind(spinsgne)
   deallocate(spinsgne,stat=i_stat)

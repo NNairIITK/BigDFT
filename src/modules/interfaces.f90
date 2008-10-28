@@ -136,7 +136,7 @@ interface
 
    subroutine createWavefunctionsDescriptors(iproc,nproc,geocode,n1,n2,n3,output_grid,&
         hx,hy,hz,atoms,alat1,alat2,alat3,rxyz,radii_cf,crmult,frmult,&
-        wfd,nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,nspinor)
+        wfd,nvctrp,norb,norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,nspinor,hybrid_on)
      use module_types
      implicit none
      !Arguments
@@ -148,6 +148,7 @@ interface
      real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
      real(kind=8), dimension(3,atoms%nat), intent(in) :: rxyz
      real(kind=8), dimension(atoms%ntypes,3), intent(in) :: radii_cf
+  	 logical,intent(in)::hybrid_on
      type(wavefunctions_descriptors) , intent(out) :: wfd
      !boundary arrays
      type(convolutions_bounds), intent(out) :: bounds
@@ -211,7 +212,7 @@ interface
    subroutine import_gaussians(geocode,iproc,nproc,cpmult,fpmult,radii_cf,at,&
         nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
         norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
-        pkernel,ixc,psi,psit,hpsi,eval,nscatterarr,ngatherarr,nspin,spinsgn)
+        pkernel,ixc,psi,psit,hpsi,eval,nscatterarr,ngatherarr,nspin,spinsgn,hybrid_on)
      use module_base
      use module_types
      implicit none
@@ -223,6 +224,7 @@ interface
      integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
      real(kind=8), intent(in) :: hx,hy,hz,cpmult,fpmult
+	 logical,intent(in)::hybrid_on
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
      real(kind=8), dimension(norb), intent(in) :: spinsgn,occup
@@ -239,7 +241,7 @@ interface
         nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
         norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
         wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,&
-        nscatterarr,ngatherarr,nspin,spinsgn)
+        nscatterarr,ngatherarr,nspin,spinsgn,hybrid_on)
      use module_base
      use module_types
      implicit none
@@ -259,6 +261,7 @@ interface
      real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
      real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
      real(kind=8), dimension(*), intent(in) :: pkernel
+     logical,intent(in)::hybrid_on
      real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
      real(kind=8), dimension(norb), intent(out) :: eval
      real(kind=8), dimension(:), pointer :: psi,hpsi,psit,psivirt
@@ -289,7 +292,8 @@ interface
    end subroutine first_orthon
 
    subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,  & 
-        wfd,psi,rho,nrho,nscatterarr,nspin,nspinor,spinsgn,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds)
+        wfd,psi,rho,nrho,nscatterarr,nspin,nspinor,spinsgn,&
+		nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,hybrid_on)
      use module_types
      implicit none
      type(wavefunctions_descriptors), intent(in) :: wfd
@@ -301,12 +305,14 @@ interface
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
      real(kind=8), dimension(norb), intent(in) :: occup,spinsgn
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
+	 logical,intent(in)::hybrid_on
      real(kind=8), dimension(max(nrho,1),nspinor), intent(out), target :: rho
    end subroutine sumrho
 
    subroutine HamiltonianApplication(geocode,iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
         norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
-        ngatherarr,ndimpot,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,nspinor,spinsgn)
+        ngatherarr,ndimpot,potential,psi,hpsi,&
+		ekin_sum,epot_sum,eproj_sum,nspin,nspinor,spinsgn,hybrid_on)
      use module_base
      use module_types
      implicit none
@@ -326,13 +332,14 @@ interface
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
      real(kind=8), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
      real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
+	 logical,intent(in)::hybrid_on	
      real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: hpsi
    end subroutine HamiltonianApplication
 
    subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
         nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
         eval,ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-        alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn)
+        alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn,hybrid_on)
      use module_base
      use module_types
      implicit none
@@ -344,6 +351,7 @@ interface
      real(gp), intent(in) :: hx,hy,hz,energy,energy_old
      real(wp), dimension(norb), intent(in) :: eval
      real(gp), dimension(norb), intent(in) :: occup,spinsgn
+	 logical,intent(in)::hybrid_on
      integer, intent(inout) :: idsx_actual
      real(wp), intent(inout) :: alpha
      real(dp), intent(inout) :: gnrm,scprsum
@@ -477,7 +485,7 @@ interface
         cpmult,fpmult,radii_cf,&
         norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,&
         hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  & 
-        pkernel,ixc,psi,v,eval,ncong,nscatterarr,ngatherarr)
+        pkernel,ixc,psi,v,eval,ncong,nscatterarr,ngatherarr,hybrid_on)
      use module_base
      use module_types
      implicit none
@@ -501,6 +509,7 @@ interface
      !this is a Fortran 95 standard, should be avoided (it is a pity IMHO)
      !real(kind=8), dimension(:,:,:,:), allocatable :: rhopot 
      real(wp), dimension(norb), intent(in) :: eval
+	 logical,intent(in)::hybrid_on
      real(wp), dimension(:), pointer :: psi,v
    end subroutine davidson
 
@@ -521,7 +530,7 @@ interface
 
    subroutine preconditionall(geocode,iproc,nproc,norb,norbp,n1,n2,n3,&
         nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-        hx,hy,hz,ncong,nspinor,wfd,eval,kb,hpsi,gnrm)
+        hx,hy,hz,ncong,nspinor,wfd,eval,kb,hpsi,gnrm,hybrid_on)
      use module_base
      use module_types
      implicit none
@@ -532,6 +541,7 @@ interface
      integer, intent(in) :: nspinor,ncong
      real(gp), intent(in) :: hx,hy,hz
      real(wp), dimension(norb), intent(in) :: eval
+	 logical,intent(in)::hybrid_on
      real(dp), intent(out) :: gnrm
      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(inout) :: hpsi
    end subroutine preconditionall
