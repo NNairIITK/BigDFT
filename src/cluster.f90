@@ -323,11 +323,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
        n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
 
-!*****added by Alexey**********************************************************************	   
+  !evaluate if the conditiond for the hybrid evaluation in periodic BC hold
   hybrid_on=               (nfu1-nfl1+lupfil.lt.n1+1)
   hybrid_on=(hybrid_on.and.(nfu2-nfl2+lupfil.lt.n2+1))
   hybrid_on=(hybrid_on.and.(nfu3-nfl3+lupfil.lt.n3+1))
-!******************************************************************************************  
 		
   hxh=0.5d0*hx
   hyh=0.5d0*hy
@@ -335,7 +334,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   ndegree_ip=16 !default value to be put to 16 and update references for test
-  call createKernel(atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,iproc,nproc,pkernel)
+  call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel)
 
   ! Create wavefunctions descriptors and allocate them
   call timing(iproc,'CrtDescriptors','ON')
@@ -366,6 +365,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call memocc(i_stat,ngatherarr,'ngatherarr',subname)
 
   !create the descriptors for the density and the potential
+  !these descriptors should take into account the localisation regions
   call createDensPotDescriptors(iproc,nproc,atoms%geocode,'D',n1i,n2i,n3i,ixc,&
        n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
 
@@ -470,7 +470,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      allocate(psi(nvctrp*norbp*nproc*nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
-     if (iproc.eq.0) then
+     if (iproc == 0) then
         write( *,'(1x,a)')&
              '-------------------------------------------------------------- Wavefunctions Restart'
      end if
@@ -499,7 +499,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      allocate(psi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
-     if (iproc.eq.0) then
+     if (iproc == 0) then
         write( *,'(1x,a)')&
              '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
@@ -514,7 +514,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   else if (in%inputPsiId == 11 ) then 
      !restart from previously calculated gaussian coefficients
-     if (iproc.eq.0) then
+     if (iproc == 0) then
         write( *,'(1x,a)')&
              '--------------------------------------- Quick Wavefunctions Restart (Gaussian basis)'
      end if
@@ -533,7 +533,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   else if (in%inputPsiId == 12 ) then 
      !reading wavefunctions from gaussian file
-     if (iproc.eq.0) then
+     if (iproc == 0) then
         write( *,'(1x,a)')&
              '------------------------------------------- Reading Wavefunctions from gaussian file'
      end if

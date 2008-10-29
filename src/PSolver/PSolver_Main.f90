@@ -88,7 +88,8 @@
 !! SOURCE
 !! 
 subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
+     rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin,&
+     quiet) !optional argument
   implicit none
   character(len=1), intent(in) :: geocode
   character(len=1), intent(in) :: datacode
@@ -100,8 +101,10 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(gp), intent(out) :: eh,exc,vxc
   real(dp), dimension(*), intent(inout) :: rhopot
   real(wp), dimension(*), intent(inout) :: pot_ion
+  character(len=3), intent(in), optional :: quiet
   !local variables
   character(len=*), parameter :: subname='PSolver'
+  logical :: wrtmsg
   integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
   integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4,ind4sh,i,j
@@ -115,19 +118,35 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(gp), dimension(:), allocatable :: energies_mpi
 
   call timing(iproc,'Exchangecorr  ','ON')
+
+
+  !do not write anything on screen if quiet is set to yes
+  if (present(quiet)) then
+     if(quiet == 'yes' .or. quiet == 'YES') then
+        wrtmsg=.false.
+     else if(quiet == 'no' .or. quiet == 'NO') then
+        wrtmsg=.true.
+     else
+        write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
+        stop
+     end if
+  else
+     wrtmsg=.true.
+  end if
+
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
-     if (iproc==0) &
+     if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i3,a)',advance='no')&
           'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'S') then
-     if (iproc==0) &
+     if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i3,a)',advance='no')&
           'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'F') then
-     if (iproc==0) &
+     if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i3,a)',advance='no')&
           'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
@@ -265,7 +284,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      vexcuLOC=0.0_dp
   end if
 
-  
+ 
   call timing(iproc,'Exchangecorr  ','OF')
 
   !this routine builds the values for each process of the potential (zf), multiplying by scal 
@@ -475,7 +494,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   end if
 
   if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
-  if (iproc==0) write(*,'(a)')'done.'
+  if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
 
 end subroutine PSolver
 !!***

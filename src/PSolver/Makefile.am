@@ -135,6 +135,10 @@ check:
 	$(run_parallel) ./PS_Check 57 48 63 13 F >> PS_Check.out
 	$(run_parallel) ./PS_Check 64 64 64 0 P >> PS_Check.out
 	$(run_parallel) ./PS_Check 64 64 64 1 P >> PS_Check.out
+	$(run_parallel) ./PS_Check 64 64 64 11 P >> PS_Check.out
+	$(run_parallel) ./PS_Check 64 64 64 13 P >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 0 S >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 1 S >> PS_Check.out
+	$(run_parallel) ./PS_Check 32 64 48 11 S >> PS_Check.out
+	$(run_parallel) ./PS_Check 32 64 48 13 S >> PS_Check.out
 	python $(top_srcdir)/tests/fldiff.py PS_Check.out $(top_srcdir)/src/PSolver/PS_Check.out.ref

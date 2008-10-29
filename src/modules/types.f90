@@ -31,7 +31,7 @@ module module_types
      type(kinetic_bounds) :: kb
      type(shrink_bounds) :: sb
      type(grow_bounds) :: gb
-     integer, dimension(:,:,:), pointer ::ibyyzz_r ! real space border
+     integer, dimension(:,:,:), pointer :: ibyyzz_r ! real space border
   end type convolutions_bounds
   
   type, public :: wavefunctions_descriptors

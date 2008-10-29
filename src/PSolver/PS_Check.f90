@@ -89,7 +89,7 @@ program PS_Check
   itype_scf=16
 
   !calculate the kernel in parallel for each processor
-  call createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,pkernel)
+  call createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,quiet='yes')
 
   !Allocations, considering also spin density
   !Density
@@ -148,7 +148,7 @@ program PS_Check
      call memocc(i_stat,i_all,'pkernel',subname)
 
      !calculate the kernel 
-     call createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,0,1,pkernel)
+     call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,quiet='yes')
 
      call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
           offset,ehartree,eexcu,vexcu,&
@@ -237,7 +237,7 @@ contains
     allocate(rhopot(n01,n02,n3d,nspden+ndebug),stat=i_stat)
     call memocc(i_stat,rhopot,'rhopot',subname)
 
-    write(message,*)geocode,distcode,nspden
+    write(message,*)geocode,ixc,distcode,nspden
 
     if (ixc /= 0) then
        if (nspden == 1) then
@@ -288,7 +288,7 @@ contains
     end if
 
     call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-         rhopot(1,1,1,1),pkernel,test_xc,ehartree,eexcu,vexcu,offset,.false.,nspden)
+         rhopot(1,1,1,1),pkernel,test_xc,ehartree,eexcu,vexcu,offset,.false.,nspden,quiet='yes')
     
     !compare the values of the analytic results (no dependence on spin)
     call compare(iproc,nproc,n01,n02,n3p,1,potential(istpot),rhopot(1,1,i3xcsh+1,1),&
@@ -320,7 +320,7 @@ contains
 
     !now we can try with the sumpotion=.true. variable
     call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-         rhopot(1,1,1,1),pkernel,pot_ion(istpoti),ehartree,eexcu,vexcu,offset,.true.,nspden)
+         rhopot(1,1,1,1),pkernel,pot_ion(istpoti),ehartree,eexcu,vexcu,offset,.true.,nspden,quiet='yes')
 
     !then compare again, but the complete result
     call compare(iproc,nproc,n01,n02,nspden*n3p,1,test(istpot),&

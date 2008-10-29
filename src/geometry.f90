@@ -739,7 +739,7 @@ subroutine wtposout(igeostep,energy,rxyz,atoms)
   !write(9,*) 0.d0, 0.d0, zmax+5.d0
   if (atoms%geocode == 'P') then
      write(9,'(a,3(1x,1pe21.14))')'periodic',atoms%alat1,atoms%alat2,atoms%alat3
-  else if (atoms%geocode == 'S' then
+  else if (atoms%geocode == 'S') then
      write(9,'(a,3(1x,1pe21.14))')'surface',atoms%alat1,atoms%alat2,atoms%alat3
   else
      write(9,*)' energy,igeostep ', energy,igeostep
