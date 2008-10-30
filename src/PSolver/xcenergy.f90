@@ -71,6 +71,8 @@
 subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,iproc,nproc,nspden)
 
+  use module_base, only: ndebug
+
   implicit none
 
   !Arguments----------------------

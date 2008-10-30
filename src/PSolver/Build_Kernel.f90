@@ -228,6 +228,8 @@ end subroutine createKernel
 !!
 subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc)
   
+  use module_base, only: ndebug
+
   implicit none
   include 'mpif.h'
   include 'perfdata.inc'
@@ -1229,6 +1231,7 @@ end subroutine inserthalf
 !! SOURCE
 !!
 subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
+  use module_base, only: ndebug
   implicit none
   include 'mpif.h'
   include 'perfdata.inc'
