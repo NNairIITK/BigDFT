@@ -455,6 +455,7 @@ subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
         ng=G%ndoc(ishell)
         !angular momentum of the basis set(shifted for compatibility with BigDFT routines
         l=G%nam(ishell)
+        !print *,iproc,iat,ishell,G%nam(ishell),G%nshell(iat)
         !multiply the values of the gaussian contraction times the orbital coefficient
         do m=1,2*l-1
            call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
@@ -470,10 +471,13 @@ subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
            do iorb=1,norb
               if (myorbital(iorb,norb,iproc,nproc)) then
                  jorb=iorb-iproc*norbp
-                 do i=1,wfd%nvctr_c+7*wfd%nvctr_f
-                    !for this also daxpy BLAS can be used
-                    psi(i,jorb)=psi(i,jorb)+wfn_gau(icoeff,jorb)*tpsi(i)
-                 end do
+                 if (wfn_gau(icoeff,jorb) /= 0.0_wp) then
+                    !print *,icoeff,iorb,iat,jorb,G%nat
+                    do i=1,wfd%nvctr_c+7*wfd%nvctr_f
+                       !for this also daxpy BLAS can be used
+                       psi(i,jorb)=psi(i,jorb)+wfn_gau(icoeff,jorb)*tpsi(i)
+                    end do
+                 end if
               end if
            end do
            icoeff=icoeff+1
@@ -498,7 +502,7 @@ subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
         jorb=iorb-iproc*norbp
         call wnrm(wfd%nvctr_c,wfd%nvctr_f,psi(1,jorb),psi(wfd%nvctr_c+1,jorb),scpr) 
         call wscal(wfd%nvctr_c,wfd%nvctr_f,real(1.0_dp/sqrt(scpr),wp),psi(1,jorb),psi(wfd%nvctr_c+1,jorb))
-        !print *,'norm of orbital ',iorb,scpr
+        !write(*,'(1x,a,i5,1pe14.7)')'norm of orbital ',iorb,scpr
         tt=max(tt,abs(1.0_dp-scpr))
      end if
   end do
@@ -572,7 +576,7 @@ end subroutine gaussians_to_wavelets
 !!$        do m=1,2*l-1
 !!$           call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
            !this kinetic energy is not reliable
-           eks=eks+ek*occup(iorb)*cimu(m,ishell,iat,iorb)
+!!eks=eks+ek*occup(iorb)*cimu(m,ishell,iat,iorb)
 !!$           call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,G%xp(iexpo),G%psiat(iexpo),&
 !!$                rx,ry,rz,hx,hy,hz,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
 !!$                wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,wfd%nseg_f,wfd%nvctr_f,&

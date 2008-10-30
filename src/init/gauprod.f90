@@ -212,6 +212,7 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
   !the number of gaussian centers are thus nat
   G%nat=at%nat
   G%rxyz => rxyz
+
   !copy the parsed values in the gaussian structure
   !count also the total number of shells
   allocate(G%nshell(at%nat+ndebug),stat=i_stat)

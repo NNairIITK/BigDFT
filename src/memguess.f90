@@ -35,7 +35,8 @@ program memguess
   type(nonlocal_psp_descriptors) :: nlpspd
   logical, dimension(:,:,:), allocatable :: logrid
   integer, dimension(:,:), allocatable :: norbsc_arr
-  real(kind=8), dimension(:,:), allocatable :: rxyz,radii_cf
+  real(kind=8), dimension(:,:), allocatable, target :: rxyz
+  real(kind=8), dimension(:,:), allocatable :: radii_cf
   real(kind=8), dimension(:,:,:), allocatable :: psiat
   real(kind=8), dimension(:,:), allocatable :: xp, occupat
   integer, dimension(:,:), allocatable :: nl

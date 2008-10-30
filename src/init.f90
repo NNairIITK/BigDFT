@@ -416,7 +416,8 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,&
         n3i=2*n3+2
   end select
 
-  call parse_cp2k_files(iproc,'gaubasis.dat','gaucoeff.dat',at%nat,at%ntypes,norb,norbp,at%iatype,rxyz,CP2K,wfn_cp2k)
+  call parse_cp2k_files(iproc,'gaubasis.dat','gaucoeff.dat',&
+       at%nat,at%ntypes,norb,norbp,at%iatype,rxyz,CP2K,wfn_cp2k)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(psi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
@@ -566,6 +567,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
   integer, dimension(:,:), allocatable :: nl,norbsc_arr
+  real(wp), dimension(:,:), allocatable :: gaucoeff
   real(gp), dimension(:), allocatable :: occupe,spinsgne
   real(gp), dimension(:,:), allocatable :: xp,occupat
   real(gp), dimension(:,:,:), allocatable :: psiat
@@ -620,6 +622,8 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   end if
 
   !Generate the input guess via the inguess_generator
+  !here we should allocate the gaussian basis descriptors 
+  !the prescriptions can be found in the creation of psp basis
 
   call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,nspin,&
        scorb,norbsc_arr)
@@ -648,6 +652,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   norbep=int((1.d0-eps_mach*tt) + tt)
 
 
+  !this is the distribution procedure for cubic code
   if (iproc == 0 .and. nproc>1) then
      jpst=0
      do jproc=0,nproc-2
@@ -663,6 +668,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      write(*,'(3(a,i0),a)')&
           ' Processes from ',jpst,' to ',nproc-1,' treat ',norbeyou,' inguess orbitals '
   end if
+  
 
   hxh=.5_gp*hx
   hyh=.5_gp*hy
@@ -674,12 +680,18 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call memocc(i_stat,psi,'psi',subname)
   
   ! Create input guess orbitals
-  call createAtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
-       ngx,xp,psiat,ng,nl,wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,psi,eks,scorb)
+  !call createAtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
+  !     ngx,xp,psiat,ng,nl,wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,psi,eks,scorb)
+  allocate(gaucoeff(norbe,norbep+ndebug),stat=i_stat)
+  call memocc(i_stat,gaucoeff,'gaucoeff',subname)
+  
+  call AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
+     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff)!,&
+     !wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,psi)
   !createAtomicOrbitals should generate the gaussian basis set and the data needed to generate
   !the wavefunctions inside a given localisation region. This can then be hit with this routine
-  !call gaussians_to_wavelets(at%geocode,iproc,nproc,norb,norbp,&
-  !   n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,CP2K,wfn_cp2k,psi)
+  call gaussians_to_wavelets(at%geocode,iproc,nproc,norbe*nspin,norbep,&
+     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,gaucoeff,psi)
 
   
 !!$  !!plot the initial LCAO wavefunctions
@@ -688,11 +700,18 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 !!$  !   print *,'iounit',iounit,'-',iounit+2
 !!$  !   call plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,  & 
 !!$  !        rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc), &
-!!$          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r,&
-!!$          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+!!$  !        ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r,&
+!!$  !        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 !!$  !end do
 
+  !deallocate the gaussian basis descriptors
+  call deallocate_gwf(G,subname)
 
+
+  i_all=-product(shape(gaucoeff))*kind(gaucoeff)
+  deallocate(gaucoeff,stat=i_stat)
+  call memocc(i_stat,i_all,'gaucoeff',subname)
+  
   i_all=-product(shape(scorb))*kind(scorb)
   deallocate(scorb,stat=i_stat)
   call memocc(i_stat,i_all,'scorb',subname)
