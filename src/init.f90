@@ -824,22 +824,17 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 end subroutine input_wf_diag
 
 !!****f* BigDFT/DiagHam
-!! NAME
-!!    DiagHam
-!!
-!! FUNCTION
+!! DESCRIPTION
 !!    Diagonalise the hamiltonian in a basis set of norbe orbitals and select the first
 !!    norb eigenvectors. Works also with the spin-polarisation case and perform also the 
 !!    treatment of semicore atoms. 
 !!    In the absence of norbe parameters, it simply diagonalize the hamiltonian in the given
 !!    orbital basis set.
-!!
 !! COPYRIGHT
 !!    Copyright (C) 2008 CEA Grenoble
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!
 !! INPUT VARIABLES
 !!    iproc  process id
 !!    nproc  number of mpi processes
@@ -855,7 +850,6 @@ end subroutine input_wf_diag
 !!    wfd    data structure of the wavefunction descriptors
 !!    norbe  (optional) number of orbitals of the initial set of wavefunction, to be reduced
 !!    etol   tolerance for which a degeneracy should be printed. Set to zero if absent
-!!
 !! INPUT-OUTPUT VARIABLES
 !!    psi    wavefunctions. 
 !!           If norbe is absent: on input, set of norb wavefunctions, 
@@ -867,7 +861,6 @@ end subroutine input_wf_diag
 !!                               destroyed on output
 !!           If norbe is present: on input, set of norbe wavefunctions, 
 !!                                destroyed on output
-!!
 !! OUTPUT VARIABLES
 !!    psit   wavefunctions in the transposed form.
 !!           On input: nullified
@@ -877,16 +870,10 @@ end subroutine input_wf_diag
 !!           if nvirte >0: on Output transposed wavefunction (if nproc>1), direct otherwise
 !!           if nvirte=0: nullified
 !!    eval   array of the first norb eigenvalues       
-!!    
-!!
-!!
-!! WARNING
-!!
 !! AUTHOR
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2008
-!!
 !! SOURCE
 !! 
 subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp,wfd,&

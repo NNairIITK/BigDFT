@@ -1,21 +1,26 @@
-!control the memory occupation by calculating the overall size of the allocated arrays
-!usage: 
-! when allocating allocating an array "stuff" of dimension n in the routine "dosome"
-!  allocate(stuff(n),stat=i_stat)
-!  call memocc(i_stat,product(shape(stuff))*kind(stuff),'stuff','dosome')
-! when deallocating 
-!  i_all=-product(shape(stuff))*kind(stuff)
-!  deallocate(stuff,stat=i_stat)
-!  call memocc(i_stat,i_all,'stuff','dosome')
-! the counters are initialized with
-!  call memocc(0,iproc,'count','start') (iproc = mpi rank, nproc=mpi size)
-! and stopped with
-!  call memocc(0,0,'count','stop')
-! at the end of the calculation a short report is printed on the screen
-! some information can be also written on disk following the needs
-!  This file is distributed under the terms of the
-!  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!  Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007
+!!****f* BigDFT/memory_occupation
+!! FUNCTION
+!! Control the memory occupation by calculating the overall size of the allocated arrays
+!! DESCRIPTION
+!!   when allocating allocating an array "stuff" of dimension n in the routine "dosome"
+!!     allocate(stuff(n),stat=i_stat)
+!!     call memocc(i_stat,product(shape(stuff))*kind(stuff),'stuff','dosome')
+!!   when deallocating 
+!!     i_all=-product(shape(stuff))*kind(stuff)
+!!     deallocate(stuff,stat=i_stat)
+!!     call memocc(i_stat,i_all,'stuff','dosome')
+!!   the counters are initialized with
+!!     call memocc(0,iproc,'count','start') (iproc = mpi rank, nproc=mpi size)
+!!   and stopped with
+!!     call memocc(0,0,'count','stop')
+!!   at the end of the calculation a short report is printed on the screen
+!!   some information can be also written on disk following the needs
+!! COPYRIGHT
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007
+!! SOURCE
+!!
 subroutine memory_occupation(istat,isize,array,routine)
   use module_base, only: memorylimit
   implicit none
@@ -144,6 +149,8 @@ subroutine memory_occupation(istat,isize,array,routine)
      end select
   end select
 end subroutine memory_occupation
+!!***
+
 
 !functions which specify NaN according to IEEE specifications
 function d_nan()

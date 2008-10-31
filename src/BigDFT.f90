@@ -1,12 +1,9 @@
 !!****p* BigDFT/BigDFT
-!! NAME
-!!   BigDFT
-!!
 !! FUNCTION
 !!  Main program to calculate electronic structures
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007 CEA, UNIBAS
+!!    Copyright (C) 2007-2008 CEA, UNIBAS
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -81,7 +78,7 @@ program BigDFT
   close(99)
 
   ! read input variables, use structures
-  call read_input_variables(iproc,inputs)
+  call read_input_variables(iproc,'input.dat',inputs)
  
   do iat=1,atoms%nat
      if (.not. atoms%lfrztyp(iat)) then

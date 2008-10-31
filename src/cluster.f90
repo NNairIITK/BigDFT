@@ -1,18 +1,12 @@
 !!****f* BigDFT/call_bigdft
-!! NAME
-!!  call_bigdft
-!!
 !! FUNCTION
-!!  Routines to use bigdft as a blackbox
-!!
+!!   Routines to use bigdft as a blackbox
 !! COPYRIGHT
-!! Copyright (C) 2005-2008 BigDFT group 
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~/COPYING file
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the list of contributors, see ~/AUTHORS 
-!!
-!!
+!!   Copyright (C) 2005-2008 BigDFT group 
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
 !! SOURCE
 !!
  subroutine call_bigdft(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
@@ -119,8 +113,6 @@ end subroutine call_bigdft
 
 
 !!****f* BigDFT/cluster
-!! NAME
-!!  cluster
 !!
 !! FUNCTION
 !!  Main routine which does self-consistent loop.

@@ -1,7 +1,4 @@
 !!****h* PSolver/lazy_8
-!! NAME
-!!   lazy_8
-!!
 !! FUNCTION
 !!   Filters for interpolating scaling functions (order 8)
 !!

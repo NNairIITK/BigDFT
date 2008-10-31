@@ -1,44 +1,49 @@
-! Davidsons method for iterative diagonalization of virtual Kohn Sham orbitals
-! under orthogonality constraints to occupied orbitals psi. The nvirt input
-! variable gives the number of unoccupied orbitals for which the exit criterion
-! for the gradients norm holds. nvirte = norbe - norb >= nvirt is the number of
-! virtual orbitals processed by the method. The dimension of the subspace for
-! diagonalization is 2*nvirte = n2virt
-!                                                                 Alex Willand
-! Algorithm
-! _________
-! (parallel)
-
-
-! (tanspose psi, v is already transposed)
-! orthogonality of v to psi
-! orthogonalize v
-! (retranspose v)
-! Hamilton(v) --> hv
-! transpose v and hv
-! Rayleigh quotients  e
-! do
-!    gradients g= e*v -hv
-!    exit condition gnrm
-!    orthogonality of g to psi
-!    (retranspose g)
-!    preconditioning of g
-!    (transpose g again)
-!    orthogonality of g to psi
-!    (retranspose g)
-!    Hamilton(g) --> hg
-!    (transpose g and hg)
-!    subspace matrices H and S
-!    DSYGV(H,e,S)  --> H
-!    update v with eigenvectors H
-!    orthogonality of v to psi
-!    orthogonalize v
-!    (retranspose v)
-!    Hamilton(v) --> hv
-!    (transpose v and hv)
-! end do
-! (retranspose v and psi) 
-
+!!****f* BigDFT/davidson
+!! AUTHOR
+!!   Alexander Willand
+!! DESCRIPTION
+!!   Davidsons method for iterative diagonalization of virtual Kohn Sham orbitals
+!!   under orthogonality constraints to occupied orbitals psi. The nvirt input
+!!   variable gives the number of unoccupied orbitals for which the exit criterion
+!!   for the gradients norm holds. nvirte = norbe - norb >= nvirt is the number of
+!!   virtual orbitals processed by the method. The dimension of the subspace for
+!!   diagonalization is 2*nvirte = n2virt
+!!                                                                   Alex Willand
+!!   Algorithm
+!!   _________
+!!   (parallel)
+    
+    
+!!   (transpose psi, v is already transposed)
+!!   orthogonality of v to psi
+!!   orthogonalize v
+!!   (retranspose v)
+!!   Hamilton(v) --> hv
+!!   transpose v and hv
+!!   Rayleigh quotients  e
+!!   do
+!!      gradients g= e*v -hv
+!!      exit condition gnrm
+!!      orthogonality of g to psi
+!!      (retranspose g)
+!!      preconditioning of g
+!!      (transpose g again)
+!!      orthogonality of g to psi
+!!      (retranspose g)
+!!      Hamilton(g) --> hg
+!!      (transpose g and hg)
+!!      subspace matrices H and S
+!!      DSYGV(H,e,S)  --> H
+!!      update v with eigenvectors H
+!!      orthogonality of v to psi
+!!      orthogonalize v
+!!      (retranspose v)
+!!      Hamilton(v) --> hv
+!!      (transpose v and hv)
+!!   end do
+!!   (retranspose v and psi) 
+!!! SOURCE
+!!
 subroutine davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
      cpmult,fpmult,radii_cf,&
      norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,&
@@ -671,15 +676,21 @@ subroutine davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
 
 
 end subroutine davidson
+!!***
 
 
+!!****f* BigDFT/orthoconvirt
+!! DESCRIPTION
+!!   Makes sure all psivirt/gradients are othogonal to the occupied states psi
+!!   This routine is almost the same as orthoconstraint. Only differences:
+!!   hpsi(:,norb) -->  psivirt(:,nvirte) , therefore different dimensions.
+!!
+!! WARNING
+!!   Orthogonality to spin polarized channels is achieved in two calls,
+!    because up and down orbitals of psi are not orthogonal.
+!! SOURCE
+!! 
 subroutine orthoconvirt(norb,nvirte,nvctrp,psi,hpsi,msg)
-  !Makes sure all psivirt/gradients are othogonal to the occupied states psi
-  !This routine is almost the same as orthoconstraint. Only differences:
-  !hpsi(:,norb) -->  psivirt(:,nvirte) , therefore different dimensions.
-
-  !Note: Orthogonality to spin polarized channels is achieved in two calls,
-  !because up and down orbitals of psi are not orthogonal.
   use module_base
   implicit none! real(kind=8) (a-h,o-z)
   integer::norb,nvirte,nvctrp,i_all,i_stat,iorb,jorb,iproc
@@ -728,14 +739,20 @@ subroutine orthoconvirt(norb,nvirte,nvctrp,psi,hpsi,msg)
   call timing(iproc,'LagrM_comput  ','OF')
 
 END SUBROUTINE orthoconvirt
+!!***
 
 
-!makes sure all psivirt/gradients are othogonal to the occupied states psi.
-!This routine is almost the same as orthoconstraint_p. Difference:
-!hpsi(:,norb) -->  psivirt(:,nvirte) , therefore rectangular alag.
-
-!Note: Orthogonality to spin polarized channels is achieved in two calls,
-!because up and down orbitals of psi are not orthogonal.
+!!****f* BigDFT/orthoconvirt_p
+!! DESCRIPTION
+!!   Makes sure all psivirt/gradients are othogonal to the occupied states psi.
+!!   This routine is almost the same as orthoconstraint_p. Difference:
+!!   hpsi(:,norb) -->  psivirt(:,nvirte) , therefore rectangular alag.
+!! 
+!! WARNING
+!!   Orthogonality to spin polarized channels is achieved in two calls,
+!!   because up and down orbitals of psi are not orthogonal.
+!! SOURCE
+!!
 subroutine orthoconvirt_p(iproc,nproc,norb,nvirte,nvctrp,psi,hpsi,msg)
   use module_base
   implicit none
@@ -798,3 +815,4 @@ subroutine orthoconvirt_p(iproc,nproc,norb,nvirte,nvctrp,psi,hpsi,msg)
   call timing(iproc,'LagrM_comput  ','OF')
 
 END SUBROUTINE orthoconvirt_p
+!!***

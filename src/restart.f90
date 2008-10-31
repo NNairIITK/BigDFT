@@ -1,4 +1,3 @@
-
 subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,n3,wfd,psi,&
      hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
   use module_base

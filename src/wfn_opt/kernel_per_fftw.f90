@@ -1,42 +1,41 @@
-
-subroutine hit_with_kernel(x,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,c)	
+subroutine hit_with_kernel(x,z,kern_k1,kern_k2,kern_k3,n1,n2,n3,nd1,nd2,nd3,c)  
 ! hits the input array x with the kernel
 ! ((-1/2\Delta+C)_{ij})^{-1}
   use module_base
-	implicit none
-	integer,intent(in)::n1,n2,n3,nd1,nd2,nd3
-	real(gp),intent(in)::kern_k1(0:n1)
-	real(gp),intent(in)::kern_k2(0:n2)
-	real(gp),intent(in)::kern_k3(0:n3)
-	real(gp),intent(in)::c
+  implicit none
+  integer,intent(in)::n1,n2,n3,nd1,nd2,nd3
+  real(gp),intent(in)::kern_k1(0:n1)
+  real(gp),intent(in)::kern_k2(0:n2)
+  real(gp),intent(in)::kern_k3(0:n3)
+  real(gp),intent(in)::c
 
-	real(wp),intent(inout)::x(0:n1,0:n2,0:n3)! input/output
+  real(wp),intent(inout)::x(0:n1,0:n2,0:n3)! input/output
 
-	real(wp)::z(2,0:(n1+1)/2,0:n2,0:n3)! work array
-	real(gp) tt,fac_n
-	integer i1,i2,i3,isign,inzee
+  real(wp)::z(2,0:(n1+1)/2,0:n2,0:n3)! work array
+  real(gp) tt,fac_n
+  integer i1,i2,i3,isign,inzee
 !***for fft:************************************************************************************
-    include 'fftw3.f'
-    integer(8)::plan_f,plan_b
-	!***********************************************************************************************
-	
-	fac_n=(n1+1)*(n2+1)*(n3+1)
-	call dfftw_plan_dft_r2c_3d(plan_f,n1+1,n2+1,n3+1,x,z,fftw_estimate)
-   	call dfftw_execute(plan_f)
-	call dfftw_destroy_plan(plan_f)
-	! hit the fourier transform of x with the kernel
-	do i3=0,n3
-		do i2=0,n2
-			do i1=0,(n1+1)/2
-				tt=(kern_k1(i1)+kern_k2(i2)+kern_k3(i3)+c)*fac_n
-				z(:,i1,i2,i3)=z(:,i1,i2,i3)/tt
-			enddo
-		enddo
-	enddo
+  include 'fftw3.f'
+  integer(8)::plan_f,plan_b
+!***********************************************************************************************
+  
+  fac_n=(n1+1)*(n2+1)*(n3+1)
+  call dfftw_plan_dft_r2c_3d(plan_f,n1+1,n2+1,n3+1,x,z,fftw_estimate)
+     call dfftw_execute(plan_f)
+  call dfftw_destroy_plan(plan_f)
+  ! hit the fourier transform of x with the kernel
+  do i3=0,n3
+    do i2=0,n2
+      do i1=0,(n1+1)/2
+        tt=(kern_k1(i1)+kern_k2(i2)+kern_k3(i3)+c)*fac_n
+        z(:,i1,i2,i3)=z(:,i1,i2,i3)/tt
+      enddo
+    enddo
+  enddo
 
-	call dfftw_plan_dft_c2r_3d(plan_b,n1+1,n2+1,n3+1,z,x,fftw_estimate)
-   	call dfftw_execute(plan_b)
-	call dfftw_destroy_plan(plan_b)
+  call dfftw_plan_dft_c2r_3d(plan_b,n1+1,n2+1,n3+1,z,x,fftw_estimate)
+     call dfftw_execute(plan_b)
+  call dfftw_destroy_plan(plan_b)
 
 end subroutine hit_with_kernel
 
@@ -47,7 +46,7 @@ subroutine make_kernel(n1,hgrid,kern)
 ! construct the kernel (-1/2 d^2/dx^2)_{ij}
 ! at a real space grid with grid size hgrid
 ! and then fourier transform it to momentum space
-  use module_base
+use module_base
 implicit none
 integer,intent(in)::n1
 real(gp),intent(in)::hgrid
@@ -83,7 +82,7 @@ fil(13)=   2.70800493626319438269856689037647576e-13_gp*scale
 fil(14)=  -6.924474940639200152025730585882e-18_gp*scale
 
 do i=1,14
-	fil(-i)=fil(i)
+  fil(-i)=fil(i)
 enddo
 
 allocate(z(2,0:n1))
@@ -93,8 +92,8 @@ allocate(zin(2,0:n1))
 zin=0._gp
 zin(1,0)=fil(0)
 do i=1,14
-	zin(1,i)     =fil(i)
-	zin(1,n1+1-i)=fil(i)
+  zin(1,i)     =fil(i)
+  zin(1,n1+1-i)=fil(i)
 enddo
 
 call dfftw_plan_dft_1d(plan_f,n1+1,zin,z,FFTW_FORWARD ,FFTW_ESTIMATE)
@@ -102,7 +101,7 @@ call dfftw_execute(plan_f)
 call dfftw_destroy_plan(plan_f)
 
 do i=0,n1
-	kern(i)=z(1,i)
+  kern(i)=z(1,i)
 enddo
 
 deallocate(z,zin)

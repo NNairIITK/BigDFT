@@ -1,7 +1,4 @@
 !!****p* PSolver/PSolver_Program
-!! NAME
-!!   PSolver_Program
-!!
 !! FUNCTION
 !!    Program test for Poisson
 !!    Laplacian V = 4pi rho

@@ -1,7 +1,4 @@
 !!****f* PSolver/wb_correction
-!! NAME
-!! wb_correction
-!!
 !! FUNCTION
 !! Calculates the White-Bird correction to the XC potential.
 !! Since this correction strongly depends on the way of calculating the gradient
@@ -28,6 +25,7 @@
 !!
 subroutine wb_correction(geocode,n1,n2,n3,n3grad,wbl,wbr,f_i,hx,hy,hz,nspden,&
      wb_vxc)
+ use module_base
  implicit none
  !Arguments
  character(len=1), intent(in) :: geocode
@@ -540,9 +538,6 @@ end subroutine wb_correction
 
 
 !!****f* BigDFT/calc_gradient
-!! NAME
-!! calc_gradient
-!!
 !! FUNCTION
 !! Calculates the finite difference gradient.White-Bird correction to the XC potential.
 !! The gradient in point x is calculated by taking four point before and after x.
@@ -577,6 +572,7 @@ end subroutine wb_correction
 !!
 subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
      gradient)
+ use module_base
  implicit none
  !Arguments
  character(len=1), intent(in) :: geocode

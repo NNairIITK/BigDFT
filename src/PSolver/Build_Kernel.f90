@@ -1,7 +1,4 @@
 !!****f* BigDFT/createKernel
-!! NAME
-!!    createKernel
-!!
 !! FUNCTION
 !!    Allocate a pointer which corresponds to the zero-padded FFT slice needed for
 !!    calculating the convolution with the kernel expressed in the interpolating scaling
@@ -53,6 +50,7 @@
 !!
 subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,&
      quiet) !optional arguments
+  use module_base, only: ndebug
   implicit none
   include 'mpif.h'
   character(len=1), intent(in) :: geocode
@@ -223,9 +221,6 @@ end subroutine createKernel
 
 
 !!****f* BigDFT/Surfaces_Kernel
-!! NAME
-!!   Surfaces_Kernel
-!!
 !! FUNCTION
 !!    Build the kernel of the Poisson operator with
 !!    surfaces Boundary conditions
@@ -250,6 +245,8 @@ end subroutine createKernel
 !!
 subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc)
   
+  use module_base, only: ndebug
+
   implicit none
   include 'mpif.h'
   include 'perfdata.inc'
@@ -636,6 +633,7 @@ end subroutine Surfaces_Kernel
 
 
 subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g_mu)
+  use module_base, only: ndebug
   implicit none
   real(kind=8), parameter :: mu_max=0.2d0
   integer, intent(in) :: n,n_scf,intorder,itype_scf
@@ -883,9 +881,6 @@ end subroutine indices
 
 
 !!****f* BigDFT/Free_Kernel
-!! NAME
-!!   Free_Kernel
-!!
 !! FUNCTION
 !!    Build the kernel of a gaussian function
 !!    for interpolating scaling functions.
@@ -912,6 +907,8 @@ end subroutine indices
 !!
 subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
      hx,hy,hz,itype_scf,iproc,nproc,karray)
+
+ use module_base, only: ndebug
 
  implicit none
 
@@ -1218,9 +1215,6 @@ end subroutine inserthalf
 
 
 !!****f* BigDFT/kernelfft
-!! NAME
-!!   kernelfft
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Calculates the FFT of the distributed kernel
@@ -1254,6 +1248,7 @@ end subroutine inserthalf
 !! SOURCE
 !!
 subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
+  use module_base, only: ndebug
   implicit none
   include 'mpif.h'
   include 'perfdata.inc'

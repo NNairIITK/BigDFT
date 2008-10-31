@@ -1,14 +1,9 @@
 !!****f* BigDFT/CalculateTailCorrection
-!! NAME
-!!   CalculateTailCorrection
-!!
 !! FUNCTION
 !!  Calculate the finite size corrections over wavefunctions
 !!  Conceived only for isolated Boundary Conditions
-!!  
 !! COPYRIGHT
-!!    Copyright (C) 2007 UNIBAS,CEA
-!!
+!!    Copyright (C) 2007-2008 UNIBAS,CEA
 !! SOURCE
 !!
 subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&

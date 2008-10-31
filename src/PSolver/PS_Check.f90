@@ -1,7 +1,4 @@
 !!****p* PSolver/PS_Check
-!! NAME
-!!   PS_Check
-!!
 !! FUNCTION
 !!    Performs a check of the Poisson Solver suite by running with different regimes
 !!    and for different choices of the XC functionals

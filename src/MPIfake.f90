@@ -1,7 +1,4 @@
 !!****f* BigDFT/MPIfake
-!! NAME
-!!   MPIfake
-!!
 !! FUNCTION
 !!    Fake functions for MPI in the case onf serial version
 !!
