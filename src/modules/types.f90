@@ -81,6 +81,13 @@ module module_types
      type(gaussian_basis) :: gbd
   end type restart_objects
 
+  type, public :: locreg_descriptors
+     integer :: ns1,ns2,ns3 !starting points of the localisation region in global coordinates
+     type(grid_dimensions) :: d
+     type(wavefunctions_descriptors) :: wfd
+     type(convolutions_bounds) :: bounds
+  end type locreg_descriptors
+
 contains
 
   subroutine init_restart_objects(atoms,rst,routine)

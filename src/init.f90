@@ -570,7 +570,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   real(wp), dimension(:,:), allocatable :: gaucoeff
   real(gp), dimension(:), allocatable :: occupe,spinsgne
   real(gp), dimension(:,:), allocatable :: xp,occupat
-  real(gp), dimension(:,:,:), allocatable :: psiat
+  real(gp), dimension(:,:,:), allocatable :: psiat,locreg
 
   !Calculate no. up and down orbitals for spin-polarized starting guess
   norbu=0
@@ -684,12 +684,16 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !     ngx,xp,psiat,ng,nl,wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,psi,eks,scorb)
   allocate(gaucoeff(norbe,norbep+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeff,'gaucoeff',subname)
+  allocate(locreg(2,3,at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,locreg,'locreg',subname)
+
   
   call AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
-     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff)!,&
+     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,locreg)!,&
      !wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,psi)
   !createAtomicOrbitals should generate the gaussian basis set and the data needed to generate
   !the wavefunctions inside a given localisation region. This can then be hit with this routine
+
   call gaussians_to_wavelets(at%geocode,iproc,nproc,norbe*nspin,norbep,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,gaucoeff,psi)
 
@@ -711,6 +715,10 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   i_all=-product(shape(gaucoeff))*kind(gaucoeff)
   deallocate(gaucoeff,stat=i_stat)
   call memocc(i_stat,i_all,'gaucoeff',subname)
+  i_all=-product(shape(locreg))*kind(locreg)
+  deallocate(locreg,stat=i_stat)
+  call memocc(i_stat,i_all,'locreg',subname)
+
   
   i_all=-product(shape(scorb))*kind(scorb)
   deallocate(scorb,stat=i_stat)

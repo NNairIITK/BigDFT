@@ -422,7 +422,7 @@ subroutine createAtomicOrbitals(iproc,nproc,at,&
 end subroutine createAtomicOrbitals
 
 subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
-     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff)!,&
+     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,locreg)!,&
   !wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,psi)
   use module_base
   use module_types
@@ -444,7 +444,9 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
   type(gaussian_basis), intent(out) :: G
   real(gp), intent(out) :: eks
   real(gp), dimension(nspin*norbe), intent(out) :: occupe
+  real(gp), dimension(2,3,at%nat), intent(out) :: locreg
   real(wp), dimension(norbe,norbep), intent(out) :: gaucoeff !norbe=G%ncoeff
+  
   !local variables
   character(len=*), parameter :: subname= 'AtomicOrbitals'
   integer, parameter :: nterm_max=3,noccmax=2,nlmax=4,nlevmax=6
@@ -454,7 +456,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
   integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,nterm,iocc,ictotpsi,ishell,icoeff,ig
   real(wp) :: scprw
   real(dp) :: scpr
-  real(gp) :: rx,ry,rz,ek,occshell,rcov,rprb,ehomo,shelloccup
+  real(gp) :: rx,ry,rz,ek,occshell,rcov,rprb,ehomo,shelloccup,rloc_avg,norm
   logical, dimension(nlmax,noccmax) :: semicore
   integer, dimension(2) :: iorbsc,iorbv
   integer, dimension(nlevmax,0:(nlmax-1)) :: neleconf
@@ -462,7 +464,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
   integer, dimension(nlmax) :: nlat
   real(gp), dimension(5) :: occupatat
   real(gp), dimension(nterm_max) :: fac_arr
-  real(gp), dimension(:), allocatable :: psiatn
+  real(gp), dimension(:), allocatable :: psiatn,locradius
 
   if (iproc ==0) then
      write(*,'(1x,a)',advance='no')'Calculating AIO wavefunctions...'
@@ -535,6 +537,9 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
   allocate(psiatn(ngx+ndebug),stat=i_stat)
   call memocc(i_stat,psiatn,'psiatn',subname)
 
+  allocate(locradius(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,locradius,'locradius',subname)
+
   eks=0.0_gp
   iorb=0
   iatsc=0
@@ -602,6 +607,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
         stop
      end if
      polarised=.false.
+
      do l=1,4
         do inl=1,nl(l,ity)
            ishell=ishell+1
@@ -620,8 +626,12 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
               iexpo=iexpo+1
               G%psiat(iexpo)=psiatn(ig)
               G%xp(iexpo)=xp(ig,ity)
+              !mean localisation radius of the atomic region
+              rloc_avg=rloc_avg+G%psiat(iexpo)*G%xp(iexpo)
+              !rloc_avg=max(rloc_avg,G%xp(iexpo))
+              norm=norm+G%psiat(iexpo)
            end do
-
+           locradius(iat)=15.d0*rloc_avg/norm
            !decide the polarisation of the orbital by changing the population
            if (nint(shelloccup) /=  2*(2*l-1) ) then
               !this is a polarisable orbital
@@ -746,6 +756,25 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
   if (iproc ==0) then
      write(*,'(1x,a)')'done.'
   end if
+
+
+!!$  !to be rediscussed again
+!!$  !localisation radii for the atomic orbitals
+!!$  do iat=1,at%nat
+!!$     rx=rxyz(1,iat)
+!!$     ry=rxyz(2,iat)
+!!$     rz=rxyz(3,iat)
+!!$
+!!$     do i=1,3
+!!$        locreg(1,i,iat
+!!$     print *,'iat,locradius',i,locradius(i)
+!!$  end do
+!!$  !determine localisation regions for the atomic orbitals
+
+
+  i_all=-product(shape(locradius))*kind(locradius)
+  deallocate(locradius,stat=i_stat)
+  call memocc(i_stat,i_all,'locradius',subname)
 
 end subroutine AtomicOrbitals
 
