@@ -161,12 +161,20 @@ module module_types
   end type restart_objects
 !!***
 
+!!****t* module_types/locreg_descriptors
+!! DESCRIPTION
+!! Contains the information needed for describing completely a
+!! wavefunction localisation region
+!! SOURCE
+!!
   type, public :: locreg_descriptors
+     character(len=1) :: geocode
      integer :: ns1,ns2,ns3 !starting points of the localisation region in global coordinates
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
   end type locreg_descriptors
+!!***
 
 contains
 

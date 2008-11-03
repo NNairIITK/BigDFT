@@ -316,9 +316,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
        n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
 
   !evaluate if the conditiond for the hybrid evaluation in periodic BC hold
-  hybrid_on=               (nfu1-nfl1+lupfil.lt.n1+1)
-  hybrid_on=(hybrid_on.and.(nfu2-nfl2+lupfil.lt.n2+1))
-  hybrid_on=(hybrid_on.and.(nfu3-nfl3+lupfil.lt.n3+1))
+  hybrid_on=               (nfu1-nfl1+lupfil < n1+1)
+  hybrid_on=(hybrid_on.and.(nfu2-nfl2+lupfil < n2+1))
+  hybrid_on=(hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
 		
   hxh=0.5d0*hx
   hyh=0.5d0*hy

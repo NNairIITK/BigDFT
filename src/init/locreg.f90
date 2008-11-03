@@ -1,66 +1,187 @@
-
-!this routine determine the limits of the coarse grid third dimension which must be
-!given to the convolution routines such as to generate the correct portion of fine grid
-!compatible with the Poisson Solver data distribution.
-!for the moment this is based only on isolated Boundary Conditions
-subroutine CoarseForSolverDescriptors(i3s,i3e,n3,i3sc,i3ec)
-  implicit none
-  integer, intent(in) :: i3s,i3e,n3
-  integer, intent(out) :: i3sc,i3ec  
-  !local variables
-  integer, parameter :: nbl=14,nbr=15 ! the fine dimensions of 0:n3 are -nbl:2*n3+1+nbr
-  
-  !i3s-1-nbl:i3e-1-nbl should be contained inside -nbl+2*i3sc:2*i3ec+1+nbr
-  !thus
-  !-nbl+2*i3sc <= i3s-1-nbl  <==> 2*i3sc <= i3s-1
-  !2*i3c+1+nbr >= i3e-1-nbl  <==> 2*i3ec >= i3e-2-nbl-nbr
-  !and finally
-  ! i3sc=(i3s-1)/2
-  ! i3ec=(i3e-nbl-nbr-1)/2
-
-  !then we should also calculate the displacement for recuperating the good value from the
-  !psir
-  !this is
-  ! i3s-1-2*i3sc
-  !all such values should be inserted into arrays, and rescaled sich that i3sc=0 and i3ec=n3
-  !the values of nfl3 and nfu3 should also be shifted and truncated following the determined
-  !interval
-
-  !also the bounds arrays should be modified accordingly
-  !the kinetic bounds can be left as they are, simply by passing the correct starting address
-  !the grow bounds arrays should be modified pointwise
-  
-
-end subroutine CoarseForSolverDescriptors
-
-
-!create a routine which transpose the wavefunctions into a form ready for the density construction
-!starting from the mask arrays
-!this routine should be rethought, the maskarray is much too big
-subroutine rhotranspose(iproc,nproc,norbp,norb,nspinor,wfd,wfd_loc,psi_loc,&
-     maskrho,ncountrhoreg,psit)
+!determine a set of localisation regions from the centers and the radii.
+!cut in cubes the global reference system
+subroutine determine_locreg(geocode,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
   use module_base
   use module_types
   implicit none
-  type(wavefunctions_descriptors), intent(in) :: wfd,wfd_loc
-  integer , intent(in) :: iproc,nproc,norbp,norb,nspinor
-  logical, dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(in) :: maskrho
-  integer, dimension(nproc), intent(in) :: ncountrhoreg
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(in) :: psi_loc
-  !this array may also have dimension zero
-  real(wp), dimension(wfd_loc%nvctr_c+7*wfd_loc%nvctr_f,norb*nspinor), intent(out) :: psit
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: nlr
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors), intent(in) :: Glr
+  real(gp), dimension(nlr), intent(in) :: locrad
+  real(gp), dimension(3,nlr), intent(in) :: cxyz
+  type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
   !local variables
-  character(len=*), parameter :: subname='rhotranspose'
-  integer :: i_stat,i_all,iorb
-
-  !first rearrange the wavefunction in each of thel ocalisation regions which belong to a
-  !processor
-!!$  call rhoswitch_waves(nlr,norbp,nvctr_c,nvctr_f,nseg_tot,nvctr_tot,nseglr,keymask,&
-!!$     ncount,psi,psiloc)
-
+  logical :: perx,pery,perz
+  integer :: ilr,isx,isy,isz,iex,iey,iez
+  real(gp) :: rx,ry,rz,cutoff
   
 
-end subroutine rhotranspose
+  !determine the limits of the different localisation regions
+  do ilr=1,nlr
+
+     rx=cxyz(1,ilr)
+     ry=cxyz(2,ilr)
+     rz=cxyz(3,ilr)
+
+     cutoff=locrad(ilr)
+
+     isx=floor((rx-cutoff)/hx)
+     isy=floor((ry-cutoff)/hy)
+     isz=floor((rz-cutoff)/hz)
+
+     iex=ceiling((rx+cutoff)/hx)
+     iey=ceiling((ry+cutoff)/hy)
+     iez=ceiling((rz+cutoff)/hz)
+
+     !assign the geometric code to the localisation region
+     select case(geocode)
+     case('F')
+        isx=max(isx,0)
+        isy=max(isy,0)
+        isz=max(isz,0)
+        
+        iex=min(iex,Glr%d%n1)
+        iey=min(iey,Glr%d%n2)
+        iez=min(iez,Glr%d%n3)
+
+        perx=.false.
+        pery=.false.
+        perz=.false.
+        Llr(ilr)%geocode='F'
+     case('S')
+        if (iex - isx >= Glr%d%n1 - 14) then
+           isx=0
+           iex=Glr%d%n1
+           perx=.true.
+        else
+           isx=modulo(isx,Glr%d%n1+1)
+           iex=modulo(iex,Glr%d%n1+1)
+           perx=.false.
+        end if
+
+        isy=max(isy,0)
+        iey=min(iey,Glr%d%n2)
+        pery=.false.
+
+        !control the geometric code for the localisation region
+        if (iez - isz >= Glr%d%n3 - 14) then
+           isz=0
+           iez=Glr%d%n3
+           perz=.true.
+        else
+           isz=modulo(isz,Glr%d%n3+1)
+           iez=modulo(iez,Glr%d%n3+1)
+           perz=.false.
+        end if
+
+        if (perx .and. perz) then
+           Llr(ilr)%geocode='S'
+        else if (.not.perx .and. .not.perz) then
+           Llr(ilr)%geocode='F'
+        else
+           write(*,*)'ERROR: localisation region geometry not allowed'
+           stop
+        end if
+
+     case('P')
+        if (iex - isx >= Glr%d%n1 - 14) then
+           isx=0
+           iex=Glr%d%n1
+           perx=.true.
+        else
+           isx=modulo(isx,Glr%d%n1+1)
+           iex=modulo(iex,Glr%d%n1+1)
+           perx=.false.
+        end if
+        if (iey - isy >= Glr%d%n2 - 14) then
+           isy=0
+           iey=Glr%d%n2
+           pery=.true.
+        else
+           isy=modulo(isy,Glr%d%n2+1)
+           iey=modulo(iey,Glr%d%n2+1)
+           pery=.false.
+        end if
+        if (iez - isz >= Glr%d%n3 - 14) then
+           isz=0
+           iez=Glr%d%n3
+           perz=.true.
+        else
+           isz=modulo(isz,Glr%d%n3+1)
+           iez=modulo(iez,Glr%d%n3+1)
+           perz=.false.
+        end if
+        if (perx .and. perz .and. pery) then
+           Llr(ilr)%geocode='P'
+        else if (.not.perx .and. .not.perz .and. .not. pery) then
+           Llr(ilr)%geocode='F'
+        else if (perx .and. perz .and. .not. pery) then
+           Llr(ilr)%geocode='S'
+        else
+           write(*,*)'ERROR: localisation region geometry not allowed'
+           stop
+        end if
+
+     end select
+     
+     !values for the starting point of the cube
+     Llr(ilr)%ns1=isx
+     Llr(ilr)%ns2=isy
+     Llr(ilr)%ns3=isz
+     !dimensions of the localisation region
+     Llr(ilr)%d%n1=iex-isx
+     Llr(ilr)%d%n2=iey-isy
+     Llr(ilr)%d%n3=iez-isz
+
+     !dimensions of the fine grid inside the localisation region
+     if (iex < isx) then
+        Llr(ilr)%d%nfl1=max(isx,Glr%d%nfl1)-isx
+        Llr(ilr)%d%nfu1=min(iex,Glr%d%nfu1)-isx
+     else
+        write(*,*)'Yet to be implemented (little effort)'
+        stop
+     end if
+
+     if (iey < isy) then
+        Llr(ilr)%d%nfl2=max(isy,Glr%d%nfl2)-isy
+        Llr(ilr)%d%nfu2=min(iey,Glr%d%nfu2)-isy
+     else
+        write(*,*)'Yet to be implemented (little effort)'
+        stop
+     end if
+
+     if (iez < isz) then
+        Llr(ilr)%d%nfl3=max(isz,Glr%d%nfl3)-isz
+        Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
+     else
+        write(*,*)'Yet to be implemented (little effort)'
+        stop
+     end if
+     
+     !dimensions of the interpolating scaling functions grid
+     select case(Llr(ilr)%geocode)
+     case('F')
+        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
+        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+     case('S')
+        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+     case('P')
+        Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+        Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+2
+        Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+     end select
+
+     !define the wavefunction descriptors inside the localisation region
+     
+
+  end do
+
+end subroutine determine_locreg
+
 
 !pass from the global wavefunction for a set of orbitals to the local wavefunctions
 !for all the orbitals
@@ -117,40 +238,6 @@ subroutine rhoswitch_waves(nlr,norbp,nvctr_c,nvctr_f,nseg_tot,nvctr_tot,nseglr,k
      jsegsh=jsegsh+j
   end do
 end subroutine rhoswitch_waves
-
-
-!build the wavefunction in real space starting from its compressed form
-!one of the building blocks for a localised region call
-subroutine build_psir(d,wfd,gb,ibyz_c,ibyyzz_r,w1,w2,x_c,x_f,scal,psi,psir)
-  use module_base
-  use module_types
-  implicit none
-  type(grid_dimensions), intent(in) :: d
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  type(grow_bounds), intent(in) :: gb
-  integer, dimension(2,0:d%n2,0:d%n3), intent(in) :: ibyz_c
-  integer, dimension(2,-14:2*d%n2+16,-14:2*d%n3+16), intent(in):: ibyyzz_r
-  real(wp), dimension(0:3), intent(in) :: scal
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(in) :: psi
-  real(wp), dimension(max(4*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)*(2*(d%nfu1-d%nfl1)+31),&
-       (2*d%n1+31)*(d%n2+1)*(d%n3+1))), &
-       intent(inout) :: w1 !work
-  real(wp), dimension(max((d%n3+1)*(2*d%n1+31)*(2*d%n2+31),&
-       2*(d%nfu3-d%nfl3+1)*(2*(d%nfu1-d%nfl1)+31)*(2*(d%nfu2-d%nfl2)+31))), &
-       intent(inout) :: w2 ! work
-  real(wp), dimension(0:d%n1,0:d%n2,0:d%n3), intent(inout) :: x_c
-  real(wp), dimension(7,d%nfl1:d%nfu1,d%nfl2:d%nfu2,d%nfl3:d%nfu3), intent(inout) :: x_f
-  real(wp), dimension(d%n1i,d%n2i,d%n3i), intent(out) :: psir
-  
-  call uncompress_forstandard_short(d%n1,d%n2,d%n3,d%nfl1,d%nfu1,d%nfl2,d%nfu2,d%nfl3,d%nfu3, & 
-       wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
-       wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),   &
-       scal,psi(1),psi(wfd%nvctr_c+1),x_c,x_f)
-  
-  call comb_grow_all(d%n1,d%n2,d%n3,d%nfl1,d%nfu1,d%nfl2,d%nfu2,d%nfl3,d%nfu3,w1,w2,x_c,x_f,  & 
-       psir,ibyz_c,gb%ibzxx_c,gb%ibxxyy_c,gb%ibyz_ff,gb%ibzxx_f,gb%ibxxyy_f,ibyyzz_r)
-  
-end subroutine build_psir
 
 
 !this subroutine define other wavefunctions descriptors starting from the original descriptors 
@@ -232,13 +319,13 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocre
   !coarse part
   call segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
        wfdg%nseg_c,wfdg%nvctr_c,wfdg%keyg(1,1),wfdg%keyv(1),&
-       wfdl%nseg_c,wfdl%nvctr_c,wfdl%keyg(1,1),wfdl%keyv(1),keymask(1))
+       wfdl%nseg_c,wfdl%nvctr_c,wfdl%keyg(1,1),wfdl%keyv(1))!,keymask(1))
 
   !fine part
   call segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,&
        wfdg%nseg_f,wfdg%nvctr_f,wfdg%keyg(1,wfdg%nseg_c+1),wfdg%keyv(wfdg%nseg_c+1),&
-       wfdl%nseg_f,wfdl%nvctr_f,wfdl%keyg(1,wfdl%nseg_c+1),wfdl%keyv(wfdl%nseg_c+1),&
-       keymask(wfdg%nseg_c+1))
+       wfdl%nseg_f,wfdl%nvctr_f,wfdl%keyg(1,wfdl%nseg_c+1),wfdl%keyv(wfdl%nseg_c+1))!,&
+       !keymask(wfdg%nseg_c+1))
 
   !a little check on the masking array
 !!$  if (count(maskarr) /= wfdl%nvctr_c+7*wfdl%nvctr_f) then
@@ -308,13 +395,13 @@ subroutine build_keymask(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg_tot,keyg,ke
 end subroutine build_keymask
 
 subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
-     nseg_loc,nvctr_loc,keyg_loc,keyv_loc,keymask)
+     nseg_loc,nvctr_loc,keyg_loc,keyv_loc)!,keymask)
   implicit none
   integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,nseg_loc,nvctr_loc
   integer, dimension(nseg), intent(in) :: keyv
   integer, dimension(2,nseg), intent(in) :: keyg
   integer, dimension(nseg_loc), intent(out) :: keyv_loc
-  integer, dimension(2,nseg_loc), intent(out) :: keyg_loc,keymask
+  integer, dimension(2,nseg_loc), intent(out) :: keyg_loc!,keymask
   !local variables
   logical :: go,lseg
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i,ind,j,nsrt,nend,nvctr_check,n1l,n2l,n3l,i1l,i2l,i3l
@@ -353,7 +440,7 @@ subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,ke
            nvctr_check=nvctr_check+1
            if (.not. lseg) then
               nsrt=nsrt+1
-              keymask(1,nsrt)=ind
+              !keymask(1,nsrt)=ind
               keyg_loc(1,nsrt)=ngridp
               keyv_loc(nsrt)=nvctr_check
            end if
@@ -361,7 +448,7 @@ subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,ke
         else
            if (lseg) then
               nend=nend+1
-              keymask(2,nend)=ind-1
+              !keymask(2,nend)=ind-1
               keyg_loc(2,nend)=ngridp-1
               lseg=.false. 
            end if
@@ -369,7 +456,7 @@ subroutine segkeys_loc(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,ke
      end do
      if (lseg) then
         nend=nend+1
-        keymask(2,nend)=ind
+        !keymask(2,nend)=ind
         keyg_loc(2,nend)=ngridp
      end if
   end do
