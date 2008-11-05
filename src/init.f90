@@ -73,13 +73,11 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
      call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
   end if
 
-
-
   ! Create the file grid.xyz to visualize the grid of functions
   if (iproc ==0 .and. output_grid) then
      open(unit=22,file='grid.xyz',status='unknown')
-     write(22,*) wfd%nvctr_c+wfd%nvctr_f,' atomic'
-     write(22,*)'complete simulation grid with low ang high resolution points'
+     write(22,*) wfd%nvctr_c+wfd%nvctr_f+atoms%nat,' atomic'
+     write(22,*)'complete simulation grid with low and high resolution points'
      do iat=1,atoms%nat
         write(22,'(a6,2x,3(1x,e12.5),3x)') &
              trim(atoms%atomnames(atoms%iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
@@ -106,7 +104,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
   endif
 
   ! allocations for arrays holding the wavefunctions and their data descriptors
-  call allocate_wfd(wfd,'crtwvfnctsdescriptors')
+  call allocate_wfd(wfd,subname)
 
   ! now fill the wavefunction descriptor arrays
   ! coarse grid quantities
@@ -187,14 +185,14 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
 
   end if
 
-!*************Added by Alexey*****************************************************************
+!*************Added by Alexey************************************************************
   if ( atoms%geocode == 'P' .and. hybrid_on) then
 	  call make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
 	  call make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      bounds%kb%ibxy_f,bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
      bounds%kb%ibyz_f,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f)
   endif	
-!*********************************************************************************************  
+!****************************************************************************************  
 END SUBROUTINE createWavefunctionsDescriptors
 
 subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
