@@ -103,7 +103,7 @@ PS_Program_LDADD = libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@
 
-PS_Exercise_SOURCES = PS_Exercise.f90 timing.f90 base.f90 
+PS_Exercise_SOURCES = PS_Exercise.f90 timing.f90 base.f90 $(mpi_source)
 PS_Exercise_LDADD = libpoissonsolver.a \
 	ABINIT-common/libABINIT.a \
 	$(LMPI) \
@@ -116,10 +116,10 @@ CLEANFILES = mpif.h malloc.prc time.par PS_Check.out \
 
 #dependencies
 mpif.h:
-	touch mpif.h && \
-	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h && \
-	 echo "integer :: MPI_DOUBLE_PRECISION,MPI_INTEGER,MPI_CHARACTER" >> mpif.h && \
-	 echo "integer :: MPI_MAX,MPI_MIN" >> mpif.h
+	touch mpif.h &&\
+	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
+	 echo "integer :: MPI_MIN, MPI_MAX, MPI_IN_PLACE,MPI_CHARACTER" >> mpif.h
 
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 

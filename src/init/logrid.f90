@@ -334,7 +334,7 @@ subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
   type(wavefunctions_descriptors), intent(in) :: wfd
   logical, dimension(0:n1,0:n2,0:n3), intent(out) :: logrid_c,logrid_f
   !local variables
-  integer :: iseg,j0,j1,ii,i1,i2,i3,i0,nvctr_check,nsrt,nend
+  integer :: iseg,j0,j1,ii,i1,i2,i3,i0,nvctr_check,nsrt,nend,i
 
   !coarse part
   logrid_c(:,:,:)=.false.

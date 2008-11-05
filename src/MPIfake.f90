@@ -86,3 +86,8 @@
         implicit none
         stop 'REDUCE_SCATTER'
         end subroutine  MPI_REDUCE_SCATTER
+
+        subroutine  MPI_ABORT()
+        implicit none
+        stop 
+        end subroutine  MPI_ABORT

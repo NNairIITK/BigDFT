@@ -562,6 +562,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   integer :: ispin,norbu,norbd,iorbst2,ist,n2hamovr,nsthamovr,nspinor
   real(gp) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,accurex
   type(gaussian_basis) :: G
+  type(locreg_descriptors) :: Glr
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
   integer, dimension(:,:), allocatable :: nl,norbsc_arr
@@ -569,6 +570,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   real(gp), dimension(:), allocatable :: occupe,spinsgne,locrad
   real(gp), dimension(:,:), allocatable :: xp,occupat
   real(gp), dimension(:,:,:), allocatable :: psiat
+  type(locreg_descriptors), dimension(:), allocatable :: Llr
 
   !Calculate no. up and down orbitals for spin-polarized starting guess
   norbu=0
@@ -690,7 +692,34 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,locrad)!,&
      !wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,psi)
   !createAtomicOrbitals should generate the gaussian basis set and the data needed to generate
-  !the wavefunctions inside a given localisation region. This can then be hit with this routine
+  !the wavefunctions inside a given localisation region.
+
+  !create the localisation region which are associated to the gaussian extensions and plot them
+  Glr%geocode=at%geocode
+  Glr%ns1=0
+  Glr%ns2=0
+  Glr%ns3=0
+  Glr%d%n1=n1
+  Glr%d%n2=n2
+  Glr%d%n3=n3
+  Glr%d%nfl1=nfl1
+  Glr%d%nfl2=nfl2
+  Glr%d%nfl3=nfl3
+  Glr%d%nfu1=nfu1
+  Glr%d%nfu2=nfu2
+  Glr%d%nfu3=nfu3
+  Glr%wfd=wfd !to be tested
+
+  !allocate the array of localisation regions
+  allocate(Llr(at%nat+ndebug),stat=i_stat)
+  !call memocc(i_stat,Llr,'Llr',subname)
+
+  call determine_locreg(at%nat,rxyz,locrad,hx,hy,hz,Glr,Llr)
+
+  !i_all=-product(shape(Llr))*kind(Llr)
+  deallocate(Llr,stat=i_stat) !these allocation are special
+  !call memocc(i_stat,i_all,'Llr',subname)
+
 
   call gaussians_to_wavelets(at%geocode,iproc,nproc,norbe*nspin,norbep,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,gaucoeff,psi)

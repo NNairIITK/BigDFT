@@ -134,7 +134,7 @@ subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
      Llr(ilr)%d%n3=iez-isz
 
      !dimensions of the fine grid inside the localisation region
-     if (iex < isx) then
+     if (isx < iex) then
         Llr(ilr)%d%nfl1=max(isx,Glr%d%nfl1)-isx
         Llr(ilr)%d%nfu1=min(iex,Glr%d%nfu1)-isx
      else
@@ -142,7 +142,7 @@ subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
         stop
      end if
 
-     if (iey < isy) then
+     if (isy < iey) then
         Llr(ilr)%d%nfl2=max(isy,Glr%d%nfl2)-isy
         Llr(ilr)%d%nfu2=min(iey,Glr%d%nfu2)-isy
      else
@@ -150,7 +150,7 @@ subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
         stop
      end if
 
-     if (iez < isz) then
+     if (isz < iez) then
         Llr(ilr)%d%nfl3=max(isz,Glr%d%nfl3)-isz
         Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
      else
@@ -195,8 +195,7 @@ subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
      call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
           Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
           Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nvctr_c,&
-          Llr(ilr)%wfd%keyg(1,1),Llr(ilr)%wfd%keyv(1)))
-
+          Llr(ilr)%wfd%keyg(1,1),Llr(ilr)%wfd%keyv(1))
      !fine part
      call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
           Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
@@ -214,7 +213,8 @@ subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
 
   end do
 
-  !after all localisation regions are determined plot them
+  !after all localisation regions are determined draw them
+  call draw_locregs(nlr,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,Llr)
 
 end subroutine determine_locreg
 
@@ -228,14 +228,19 @@ subroutine draw_locregs(nlr,n1,n2,n3,hx,hy,hz,Llr)
   !local variables
   character(len=*), parameter :: subname='draw_locregs'
   character(len=4) :: message
-  integer :: i1,i2,i3,ilr,nvctr_tot
+  integer :: i1,i2,i3,ilr,nvctr_tot,i_stat,i_all
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
   !calculate total number
+  nvctr_tot=0
   do ilr=1,nlr
-     
+     nvctr_tot=nvctr_tot+Llr(ilr)%wfd%nvctr_c+Llr(ilr)%wfd%nvctr_f
   end do
 
+  !open file for writing
+  open(unit=22,file='locregs.xyz',status='unknown')
+  write(22,*) nvctr_tot,' atomic'
+  write(22,*)'coarse and fine points of all the different localisation regions'
 
   do ilr=1,nlr
      !define logrids
@@ -275,7 +280,9 @@ subroutine draw_locregs(nlr,n1,n2,n3,hx,hy,hz,Llr)
      deallocate(logrid_f,stat=i_stat)
      call memocc(i_stat,i_all,'logrid_f',subname)
   end do
-  
+
+  !close file for writing
+  close(unit=22)  
 end subroutine draw_locregs
 
 subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
@@ -290,6 +297,7 @@ subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   type(convolutions_bounds), intent(out) :: bounds
   !Local variables
   character(len=*), parameter :: subname='locreg_bounds'
+  integer :: i_stat,i_all
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
   !define logrids
