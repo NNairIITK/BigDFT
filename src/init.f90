@@ -73,13 +73,11 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
      call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
   end if
 
-
-
   ! Create the file grid.xyz to visualize the grid of functions
   if (iproc ==0 .and. output_grid) then
      open(unit=22,file='grid.xyz',status='unknown')
-     write(22,*) wfd%nvctr_c+wfd%nvctr_f,' atomic'
-     write(22,*)'complete simulation grid with low ang high resolution points'
+     write(22,*) wfd%nvctr_c+wfd%nvctr_f+atoms%nat,' atomic'
+     write(22,*)'complete simulation grid with low and high resolution points'
      do iat=1,atoms%nat
         write(22,'(a6,2x,3(1x,e12.5),3x)') &
              trim(atoms%atomnames(atoms%iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
@@ -106,7 +104,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
   endif
 
   ! allocations for arrays holding the wavefunctions and their data descriptors
-  call allocate_wfd(wfd,'crtwvfnctsdescriptors')
+  call allocate_wfd(wfd,subname)
 
   ! now fill the wavefunction descriptor arrays
   ! coarse grid quantities
@@ -187,14 +185,14 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
 
   end if
 
-!*************Added by Alexey*****************************************************************
+!*************Added by Alexey************************************************************
   if ( atoms%geocode == 'P' .and. hybrid_on) then
 	  call make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
 	  call make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      bounds%kb%ibxy_f,bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
      bounds%kb%ibyz_f,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f)
   endif	
-!*********************************************************************************************  
+!****************************************************************************************  
 END SUBROUTINE createWavefunctionsDescriptors
 
 subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
@@ -416,7 +414,8 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,&
         n3i=2*n3+2
   end select
 
-  call parse_cp2k_files(iproc,'gaubasis.dat','gaucoeff.dat',at%nat,at%ntypes,norb,norbp,at%iatype,rxyz,CP2K,wfn_cp2k)
+  call parse_cp2k_files(iproc,'gaubasis.dat','gaucoeff.dat',&
+       at%nat,at%ntypes,norb,norbp,at%iatype,rxyz,CP2K,wfn_cp2k)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(psi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
@@ -539,6 +538,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(convolutions_bounds), intent(in) :: bounds
+  logical, intent(in) :: hybrid_on
   integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
   integer, intent(inout) :: nspin,nvirte,nvirtep,nvirt
@@ -550,7 +550,6 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
   real(dp), dimension(*), intent(in) :: pkernel
-  logical,intent(in)::hybrid_on
   real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
   real(wp), dimension(norb), intent(out) :: eval
   real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
@@ -562,12 +561,16 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbsc,n1i,n2i,n3i
   integer :: ispin,norbu,norbd,iorbst2,ist,n2hamovr,nsthamovr,nspinor
   real(gp) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,accurex
+  type(gaussian_basis) :: G
+  type(locreg_descriptors) :: Glr
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
   integer, dimension(:,:), allocatable :: nl,norbsc_arr
-  real(gp), dimension(:), allocatable :: occupe,spinsgne
+  real(wp), dimension(:,:), allocatable :: gaucoeff
+  real(gp), dimension(:), allocatable :: occupe,spinsgne,locrad
   real(gp), dimension(:,:), allocatable :: xp,occupat
   real(gp), dimension(:,:,:), allocatable :: psiat
+  type(locreg_descriptors), dimension(:), allocatable :: Llr
 
   !Calculate no. up and down orbitals for spin-polarized starting guess
   norbu=0
@@ -619,6 +622,8 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   end if
 
   !Generate the input guess via the inguess_generator
+  !here we should allocate the gaussian basis descriptors 
+  !the prescriptions can be found in the creation of psp basis
 
   call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,nspin,&
        scorb,norbsc_arr)
@@ -647,6 +652,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   norbep=int((1.d0-eps_mach*tt) + tt)
 
 
+  !this is the distribution procedure for cubic code
   if (iproc == 0 .and. nproc>1) then
      jpst=0
      do jproc=0,nproc-2
@@ -662,6 +668,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      write(*,'(3(a,i0),a)')&
           ' Processes from ',jpst,' to ',nproc-1,' treat ',norbeyou,' inguess orbitals '
   end if
+  
 
   hxh=.5_gp*hx
   hyh=.5_gp*hy
@@ -673,8 +680,52 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call memocc(i_stat,psi,'psi',subname)
   
   ! Create input guess orbitals
-  call createAtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
-       ngx,xp,psiat,ng,nl,wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,psi,eks,scorb)
+  !call createAtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
+  !     ngx,xp,psiat,ng,nl,wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,psi,eks,scorb)
+  allocate(gaucoeff(norbe,norbep+ndebug),stat=i_stat)
+  call memocc(i_stat,gaucoeff,'gaucoeff',subname)
+  allocate(locrad(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,locrad,'locrad',subname)
+
+  
+  call AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
+     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,locrad)!,&
+     !wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,psi)
+  !createAtomicOrbitals should generate the gaussian basis set and the data needed to generate
+  !the wavefunctions inside a given localisation region.
+
+  !create the localisation region which are associated to the gaussian extensions and plot them
+  Glr%geocode=at%geocode
+  Glr%ns1=0
+  Glr%ns2=0
+  Glr%ns3=0
+  Glr%d%n1=n1
+  Glr%d%n2=n2
+  Glr%d%n3=n3
+  Glr%d%nfl1=nfl1
+  Glr%d%nfl2=nfl2
+  Glr%d%nfl3=nfl3
+  Glr%d%nfu1=nfu1
+  Glr%d%nfu2=nfu2
+  Glr%d%nfu3=nfu3
+  Glr%wfd=wfd !to be tested
+
+  !allocate the array of localisation regions
+  allocate(Llr(at%nat+ndebug),stat=i_stat)
+  !call memocc(i_stat,Llr,'Llr',subname)
+
+  print *,'locrad',locrad
+
+  call determine_locreg(at%nat,rxyz,locrad,hx,hy,hz,Glr,Llr)
+
+  !i_all=-product(shape(Llr))*kind(Llr)
+  deallocate(Llr,stat=i_stat) !these allocation are special
+  !call memocc(i_stat,i_all,'Llr',subname)
+
+
+  call gaussians_to_wavelets(at%geocode,iproc,nproc,norbe*nspin,norbep,&
+     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,gaucoeff,psi)
+
   
 !!$  !!plot the initial LCAO wavefunctions
 !!$  !do i=2*iproc+1,2*iproc+2
@@ -682,11 +733,22 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 !!$  !   print *,'iounit',iounit,'-',iounit+2
 !!$  !   call plot_wf(iounit,n1,n2,n3,hgrid,nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,  & 
 !!$  !        rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(:,i-2*iproc:i-2*iproc), &
-!!$          ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r,&
-!!$          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+!!$  !        ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r,&
+!!$  !        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 !!$  !end do
 
+  !deallocate the gaussian basis descriptors
+  call deallocate_gwf(G,subname)
 
+
+  i_all=-product(shape(gaucoeff))*kind(gaucoeff)
+  deallocate(gaucoeff,stat=i_stat)
+  call memocc(i_stat,i_all,'gaucoeff',subname)
+  i_all=-product(shape(locrad))*kind(locrad)
+  deallocate(locrad,stat=i_stat)
+  call memocc(i_stat,i_all,'locrad',subname)
+
+  
   i_all=-product(shape(scorb))*kind(scorb)
   deallocate(scorb,stat=i_stat)
   call memocc(i_stat,i_all,'scorb',subname)
@@ -715,6 +777,10 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      spinsgne(ist:ist+norbe-1)=real(1-2*(ispin-1),gp)
      ist=norbe+1
   end do
+
+!!$  !call the gaussian basis structure associated to the input guess
+!!$  call gaussian_pswf_basis(iproc,at,rxyz,G)
+!!$  !create the density starting from input guess gaussians
     
   call sumrho(at%geocode,iproc,nproc,nspin*norbe,norbep,ixc,n1,n2,n3,hxh,hyh,hzh,occupe,  & 
        wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,nspin,1,spinsgne, &
@@ -787,22 +853,17 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 end subroutine input_wf_diag
 
 !!****f* BigDFT/DiagHam
-!! NAME
-!!    DiagHam
-!!
-!! FUNCTION
+!! DESCRIPTION
 !!    Diagonalise the hamiltonian in a basis set of norbe orbitals and select the first
 !!    norb eigenvectors. Works also with the spin-polarisation case and perform also the 
 !!    treatment of semicore atoms. 
 !!    In the absence of norbe parameters, it simply diagonalize the hamiltonian in the given
 !!    orbital basis set.
-!!
 !! COPYRIGHT
 !!    Copyright (C) 2008 CEA Grenoble
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!
 !! INPUT VARIABLES
 !!    iproc  process id
 !!    nproc  number of mpi processes
@@ -818,7 +879,6 @@ end subroutine input_wf_diag
 !!    wfd    data structure of the wavefunction descriptors
 !!    norbe  (optional) number of orbitals of the initial set of wavefunction, to be reduced
 !!    etol   tolerance for which a degeneracy should be printed. Set to zero if absent
-!!
 !! INPUT-OUTPUT VARIABLES
 !!    psi    wavefunctions. 
 !!           If norbe is absent: on input, set of norb wavefunctions, 
@@ -830,7 +890,6 @@ end subroutine input_wf_diag
 !!                               destroyed on output
 !!           If norbe is present: on input, set of norbe wavefunctions, 
 !!                                destroyed on output
-!!
 !! OUTPUT VARIABLES
 !!    psit   wavefunctions in the transposed form.
 !!           On input: nullified
@@ -840,16 +899,10 @@ end subroutine input_wf_diag
 !!           if nvirte >0: on Output transposed wavefunction (if nproc>1), direct otherwise
 !!           if nvirte=0: nullified
 !!    eval   array of the first norb eigenvalues       
-!!    
-!!
-!!
-!! WARNING
-!!
 !! AUTHOR
 !!    Luigi Genovese
 !! CREATION DATE
 !!    February 2008
-!!
 !! SOURCE
 !! 
 subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp,wfd,&

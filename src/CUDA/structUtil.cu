@@ -1,6 +1,5 @@
 /****u* CUDA/structUtil.cu
 **
-** 
 ** AUTHOR
 **  Matthieu Ospici
 **

@@ -45,7 +45,7 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
   !write the first position
   if (iproc.eq.0) call  wtposout(ncount_cluster,etot,rxyz,at)
   !    Open a log file for conjgrad
-  open(unit=16,file='conjgrad.prc',status='unknown')
+  open(unit=16,file='conjgrad.prc',access='append')
 
   if (in%betax <= 0._gp) then
      call detbetax(nproc,iproc,at,rxyz,rst,in)
@@ -739,7 +739,7 @@ subroutine wtposout(igeostep,energy,rxyz,atoms)
   !write(9,*) 0.d0, 0.d0, zmax+5.d0
   if (atoms%geocode == 'P') then
      write(9,'(a,3(1x,1pe21.14))')'periodic',atoms%alat1,atoms%alat2,atoms%alat3
-  else if (atoms%geocode == 'S' then
+  else if (atoms%geocode == 'S') then
      write(9,'(a,3(1x,1pe21.14))')'surface',atoms%alat1,atoms%alat2,atoms%alat3
   else
      write(9,*)' energy,igeostep ', energy,igeostep

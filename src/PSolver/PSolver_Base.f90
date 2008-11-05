@@ -1,7 +1,4 @@
 !!****f* PSolver/P_PoissonSolver
-!! NAME
-!!   P_PoissonSolver
-!!
 !! FUNCTION
 !!  Parallel version of Poisson Solver
 !!
@@ -16,6 +13,7 @@
 !!
 subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
              scal,hx,hy,hz,offset)
+  use module_base, only: ndebug
   implicit none
   !to be preprocessed
   include 'mpif.h'
@@ -527,9 +525,6 @@ end subroutine P_unmpiswitch_downcorn
 
 
 !!****f* PSolver/P_fill_downcorn
-!! NAME
-!!   P_fill_downcorn
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Restore data into output array
@@ -603,9 +598,6 @@ end subroutine P_fill_upcorn
 
 
 !!****f* PSolver/scramble_P
-!! NAME
-!!   scramble_P
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Assign the correct planes to the work array zmpi2
@@ -654,9 +646,6 @@ end subroutine scramble_P
 
 
 !!****f* PSolver/unscramble_P
-!! NAME
-!!   unscramble_P
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Insert the correct planes of the work array zmpi2
@@ -714,9 +703,6 @@ end subroutine unscramble_P
 
 
 !!****f* PSolver/P_multkernel
-!! NAME
-!!   P_multkernel
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Multiply with the kernel taking into account its symmetry
@@ -784,9 +770,6 @@ end subroutine P_multkernel
 
 
 !!****f* PSolver/multkernel
-!! NAME
-!!   multkernel
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Multiply with the kernel taking into account its symmetry
@@ -868,9 +851,6 @@ end subroutine multkernel
 
 
 !!****f* PSolver/S_PoissonSolver
-!! NAME
-!!   PoissonSolver
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Applies the local FFT space Kernel to the density in Real space.
@@ -913,6 +893,7 @@ end subroutine multkernel
 !!
 subroutine S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
              ,scal,hx,hy,hz)!,ehartree)
+  use module_base, only: ndebug
   implicit none
   include 'mpif.h'
   include 'perfdata.inc'
@@ -1448,9 +1429,6 @@ end subroutine S_unmpiswitch_downcorn
 
 
 !!****f* PSolver/unfill_downcorn
-!! NAME
-!!   unfill_downcorn
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Restore data into output array, calculating in the meanwhile
@@ -1543,9 +1521,6 @@ end subroutine halfill_upcorn
 
 
 !!****f* PSolver/scramble_unpack
-!! NAME
-!!   scramble_unpack
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Assign the correct planes to the work array zmpi2
@@ -1625,9 +1600,6 @@ end subroutine scramble_unpack
 
  
 !!****f* PSolver/unscramble_pack
-!! NAME
-!!   unscramble_pack
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Insert the correct planes of the work array zmpi2
@@ -1697,9 +1669,6 @@ end subroutine unscramble_pack
 
 
 !!****f* PSolver/F_PoissonSolver
-!! NAME
-!!   F_PoissonSolver
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Applies the local FFT space Kernel to the density in Real space.
@@ -1744,6 +1713,7 @@ end subroutine unscramble_pack
 !!
 subroutine F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
              ,scal)!,hgrid)!,ehartree)
+  use module_base, only: ndebug
   implicit none
   include 'mpif.h'
   include 'perfdata.inc'
@@ -2298,9 +2268,6 @@ end subroutine unmpiswitch_downcorn
 
 
 !!****f* PSolver/F_unfill_downcorn
-!! NAME
-!!   F_unfill_downcorn
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Restore data into output array, calculating in the meanwhile
@@ -2365,9 +2332,6 @@ end subroutine F_unfill_downcorn
 !!***
 
 !!****f* PSolver/W_PoissonSolver
-!! NAME
-!!   W_PoissonSolver
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Applies the local FFT space Kernel to the density in Real space.
@@ -2409,6 +2373,7 @@ end subroutine F_unfill_downcorn
 !!
 subroutine W_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
              ,scal)!,hgrid)!,ehartree)
+  use module_base, only: ndebug
   implicit none
   include 'mpif.h'
   include 'perfdata.inc'

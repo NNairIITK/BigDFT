@@ -205,7 +205,6 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
   allocate(psiatn(ngx+ndebug),stat=i_stat)
   call memocc(i_stat,psiatn,'psiatn',subname)
 
-
   !Generate the input guess via the inguess_generator
   call readAtomicOrbitals(iproc,ngx,xpt,psiat,occupat,ng,nl,at,norbe,norbsc,1,&
        scorb,norbsc_arr)
@@ -213,12 +212,12 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
   !the number of gaussian centers are thus nat
   G%nat=at%nat
   G%rxyz => rxyz
+
   !copy the parsed values in the gaussian structure
   !count also the total number of shells
   allocate(G%nshell(at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,G%nshell,'G%nshell',subname)
   
-
   G%nshltot=0
   do iat=1,at%nat
      ityp=at%iatype(iat)
@@ -282,8 +281,6 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
      write(*,*)'ERROR: iexpo <> nexpo',iexpo,G%nexpo
      stop 
   end if
-
-  
 
   i_all=-product(shape(scorb))*kind(scorb)
   deallocate(scorb,stat=i_stat)

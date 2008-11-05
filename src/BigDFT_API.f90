@@ -1,7 +1,4 @@
 !!****m* BigDFT/BigDFT_API
-!! NAME
-!!   BigDFT_API
-!!
 !! FUNCTION
 !!  Modules which contains all information about
 !!  - types (data structures)

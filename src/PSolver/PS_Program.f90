@@ -1,7 +1,4 @@
 !!****p* PSolver/PSolver_Program
-!! NAME
-!!   PSolver_Program
-!!
 !! FUNCTION
 !!    Program test for Poisson
 !!    Laplacian V = 4pi rho
@@ -106,7 +103,7 @@ program PSolver_Program
 
   call timing(iproc,'parallel      ','IN')
 
-  call createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,karray)
+  call createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,karray)
 
   if (.not. onlykernel) then
      !Allocations
@@ -191,7 +188,7 @@ program PSolver_Program
   if (alsoserial) then
      call timing(0,'             ','IN')
 
-     call createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,0,1,karray)
+     call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,karray)
 
      if (.not. onlykernel) then
         !offset, used only for the periodic solver case

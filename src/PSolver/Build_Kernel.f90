@@ -1,7 +1,4 @@
 !!****f* BigDFT/createKernel
-!! NAME
-!!    createKernel
-!!
 !! FUNCTION
 !!    Allocate a pointer which corresponds to the zero-padded FFT slice needed for
 !!    calculating the convolution with the kernel expressed in the interpolating scaling
@@ -51,30 +48,48 @@
 !!
 !! SOURCE
 !!
-subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kernel)
+subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,&
+     quiet) !optional arguments
+  use module_base, only: ndebug
   implicit none
   include 'mpif.h'
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
   real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), pointer :: kernel(:)
+  character(len=3), intent(in), optional :: quiet
   !local variables
   character(len=*), parameter :: subname='createKernel'
+  logical :: wrtmsg
   integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_stat
   integer :: jproc,nlimd,nlimk,jhalf,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
   real(kind=8) :: hgrid
 
   call timing(iproc,'PSolvKernel   ','ON')
 
+  !do not write anything on screen if quiet is set to yes
+  if (present(quiet)) then
+     if(quiet == 'yes' .or. quiet == 'YES') then
+        wrtmsg=.false.
+     else if(quiet == 'no' .or. quiet == 'NO') then
+        wrtmsg=.true.
+     else
+        write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
+        stop
+     end if
+  else
+     wrtmsg=.true.
+  end if
+
   hgrid=max(hx,hy,hz)
 
-  if (iproc==0) write(*,'(1x,a)')&
+  if (iproc==0 .and. wrtmsg) write(*,'(1x,a)')&
           '------------------------------------------------------------ Poisson Kernel Creation'
 
 
   if (geocode == 'P') then
      
-     if (iproc==0) write(*,'(1x,a)',advance='no')&
+     if (iproc==0 .and. wrtmsg) write(*,'(1x,a)',advance='no')&
           'Poisson solver for periodic BC, no kernel calculation...'
      
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
@@ -87,7 +102,7 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
 
   else if (geocode == 'S') then
      
-     if (iproc==0) write(*,'(1x,a)',advance='no')&
+     if (iproc==0 .and. wrtmsg) write(*,'(1x,a)',advance='no')&
           'Calculating Poisson solver kernel, surfaces BC...'
 
      !Build the Kernel
@@ -105,7 +120,7 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
 
   else if (geocode == 'F') then
 
-     if (iproc==0) write(*,'(1x,a)',advance='no')&
+     if (iproc==0 .and. wrtmsg) write(*,'(1x,a)',advance='no')&
           'Calculating Poisson solver kernel, free BC...'
 
      !Build the Kernel
@@ -129,7 +144,7 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
      stop
   end if
 
-  if (iproc==0) then
+  if (iproc==0 .and. wrtmsg) then
      write(*,'(a)')'done.'
      if (geocode /= 'P') then 
         write(*,'(1x,2(a,i0))')&
@@ -206,9 +221,6 @@ end subroutine createKernel
 
 
 !!****f* BigDFT/Surfaces_Kernel
-!! NAME
-!!   Surfaces_Kernel
-!!
 !! FUNCTION
 !!    Build the kernel of the Poisson operator with
 !!    surfaces Boundary conditions
@@ -233,6 +245,8 @@ end subroutine createKernel
 !!
 subroutine Surfaces_Kernel(n1,n2,n3,m3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc)
   
+  use module_base, only: ndebug
+
   implicit none
   include 'mpif.h'
   include 'perfdata.inc'
@@ -619,6 +633,7 @@ end subroutine Surfaces_Kernel
 
 
 subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g_mu)
+  use module_base, only: ndebug
   implicit none
   real(kind=8), parameter :: mu_max=0.2d0
   integer, intent(in) :: n,n_scf,intorder,itype_scf
@@ -866,9 +881,6 @@ end subroutine indices
 
 
 !!****f* BigDFT/Free_Kernel
-!! NAME
-!!   Free_Kernel
-!!
 !! FUNCTION
 !!    Build the kernel of a gaussian function
 !!    for interpolating scaling functions.
@@ -895,6 +907,8 @@ end subroutine indices
 !!
 subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
      hx,hy,hz,itype_scf,iproc,nproc,karray)
+
+ use module_base, only: ndebug
 
  implicit none
 
@@ -1201,9 +1215,6 @@ end subroutine inserthalf
 
 
 !!****f* BigDFT/kernelfft
-!! NAME
-!!   kernelfft
-!!
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Calculates the FFT of the distributed kernel
@@ -1237,6 +1248,7 @@ end subroutine inserthalf
 !! SOURCE
 !!
 subroutine kernelfft(n1,n2,n3,nd1,nd2,nd3,nk1,nk2,nk3,nproc,iproc,zf,zr)
+  use module_base, only: ndebug
   implicit none
   include 'mpif.h'
   include 'perfdata.inc'

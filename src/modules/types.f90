@@ -1,9 +1,23 @@
+!!****m* BigDFT/module_types
+!! FUNCTION
+!!  Modules which contains the Fortran data structures
+!! AUTHOR
+!!    Luigi Genovese
+!! COPYRIGHT
+!!    Copyright (C) 2008 CEA
+!! SOURCE
+!! 
 module module_types
   use module_base, only : gp,wp,dp
   implicit none
+!!***
 
-  !-Input variable structure
-  !structure of the variables read by input.dat file
+!!****t* module_types/input_variables
+!! DESCRIPTION
+!!   Input variable structure
+!!   Structure of the variables read by input.dat file
+!! SOURCE
+!!
   type, public :: input_variables
      integer :: ncount_cluster_x
      real(kind=8) :: frac_fluct,randdis,betax,forcemax
@@ -11,35 +25,75 @@ module module_types
      real(kind=8) :: hgrid,crmult,frmult,elecfield,gnrm_cv,rbuf
      logical :: output_grid,output_wf,calc_tail,gaussian_help
   end type input_variables
+!!***
 
+!!****t* convolution_bounds/kinetic_bounds
+!! DESCRIPTION
+!!   Bounds for coarse and fine grids for kinetic operations
+!!   Useful only for isolated systems AND in CPU
+!! SOURCE
+!!
   type, public :: kinetic_bounds
      integer, dimension(:,:,:), pointer :: ibyz_c,ibxz_c,ibxy_c
      integer, dimension(:,:,:), pointer :: ibyz_f,ibxz_f,ibxy_f
   end type kinetic_bounds
+!!***
 
+!!****t* convolution_bounds/shrink_bounds
+!! DESCRIPTION
+!!   Bounds to compress the wavefunctions
+!!   Useful only for isolated systems AND in CPU
+!! SOURCE
+!!
   type, public :: shrink_bounds
      integer, dimension(:,:,:), pointer :: ibzzx_c,ibyyzz_c
      integer, dimension(:,:,:), pointer :: ibxy_ff,ibzzx_f,ibyyzz_f
   end type shrink_bounds
+!!***
 
+!!****t* convolution_bounds/grow_bounds
+!! DESCRIPTION
+!!   Bounds to uncompress the wavefunctions
+!!   Useful only for isolated systems AND in CPU
+!! SOURCE
+!!
   type, public :: grow_bounds
      integer, dimension(:,:,:), pointer :: ibzxx_c,ibxxyy_c
      integer, dimension(:,:,:), pointer :: ibyz_ff,ibzxx_f,ibxxyy_f
   end type grow_bounds
+!!***
 
+!!****t* module_types/convolutions_bounds
+!! DESCRIPTION
+!!   Bounds for convolutions operations
+!!   Useful only for isolated systems AND in CPU
+!! SOURCE
+!!
   type, public :: convolutions_bounds
      type(kinetic_bounds) :: kb
      type(shrink_bounds) :: sb
      type(grow_bounds) :: gb
-     integer, dimension(:,:,:), pointer ::ibyyzz_r ! real space border
+     integer, dimension(:,:,:), pointer :: ibyyzz_r ! real space border
   end type convolutions_bounds
+!!***
   
+!!****t* module_types/wavefunctions_descriptors
+!! DESCRIPTION
+!!   Used for lookup table for compressed wavefunctions
+!! SOURCE
+!!
   type, public :: wavefunctions_descriptors
      integer :: nvctr_c,nvctr_f,nseg_c,nseg_f
      integer, dimension(:,:), pointer :: keyg
      integer, dimension(:), pointer :: keyv
   end type wavefunctions_descriptors
+!!***
 
+!!****t* module_types/nonlocal_psp_descriptors
+!! DESCRIPTION
+!!   Non local pseudopotential descriptors
+!! SOURCE
+!!
   type, public :: nonlocal_psp_descriptors
      !number of projectors and number of elements
      integer :: nproj,nprojel
@@ -49,7 +103,13 @@ module module_types
      ! Parameters for the boxes containing the projectors
      integer, dimension(:,:,:), pointer :: nboxp_c,nboxp_f
   end type nonlocal_psp_descriptors
+!!***
 
+!!****t* module_types/atoms_data
+!! DESCRIPTION
+!!   Atomic data (name, polarisation, ...)
+!! SOURCE
+!!
   type, public :: atoms_data
      character(len=1) :: geocode
      character(len=20) :: units
@@ -60,18 +120,37 @@ module module_types
      integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom
      real(kind=8), dimension(:,:,:), pointer :: psppar
   end type atoms_data
+!!***
 
+!!****t* module_types/grid_dimensions
+!! DESCRIPTION
+!!   Grid dimensions in old different wavelet basis
+!! SOURCE
+!!
   type, public :: grid_dimensions
      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
   end type grid_dimensions
+!!***
 
+!!****t* module_types/gaussian_basis
+!! DESCRIPTION
+!!   Structures of basis of gaussian functions
+!! SOURCE
+!!
   type, public :: gaussian_basis
      integer :: nat,ncoeff,nshltot,nexpo
      integer, dimension(:), pointer :: nshell,ndoc,nam
      real(gp), dimension(:), pointer :: xp,psiat
      real(gp), dimension(:,:), pointer :: rxyz
   end type gaussian_basis
+!!***
 
+!!****t* module_types/restart_objects
+!! DESCRIPTION
+!!  Used to restart a new DFT calculation or to save information 
+!!  for post-treatment
+!! SOURCE
+!!
   type, public :: restart_objects
      integer :: n1,n2,n3,norbp,norb
      real(wp), dimension(:), pointer :: eval,psi
@@ -80,6 +159,22 @@ module module_types
      type(wavefunctions_descriptors) :: wfd
      type(gaussian_basis) :: gbd
   end type restart_objects
+!!***
+
+!!****t* module_types/locreg_descriptors
+!! DESCRIPTION
+!! Contains the information needed for describing completely a
+!! wavefunction localisation region
+!! SOURCE
+!!
+  type, public :: locreg_descriptors
+     character(len=1) :: geocode
+     integer :: ns1,ns2,ns3 !starting points of the localisation region in global coordinates
+     type(grid_dimensions) :: d
+     type(wavefunctions_descriptors) :: wfd
+     type(convolutions_bounds) :: bounds
+  end type locreg_descriptors
+!!***
 
 contains
 

@@ -1,7 +1,4 @@
 !!****p* CUDA/conv_check
-!! NAME
-!!   conv_check
-!!
 !! FUNCTION
 !!    Program test for the convolution in GPU
 !!

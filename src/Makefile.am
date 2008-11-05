@@ -36,17 +36,22 @@ endif
 
 if USE_MINIMA_HOPPING
 minima_hopping_sources = global
-global_SOURCES = global.f90 
+else
+minima_hopping_sources =
+endif
+global_SOURCES = # Should be global.f90, but see below.
 global_LDFLAGS = 
 global_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	$(libs_cuda) 
-else
-minima_hopping_sources =
-endif
+	$(libs_cuda)
+# Hack to avoid global.f90 inclusion into make dist.
+am_global_OBJECTS = global.$(OBJEXT)
+global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
+	$(LDFLAGS) -o $@
+
 
 SUBDIRS = modules $(sub_dirs_ps) convolutions profiling $(sub_dirs_cuda)
 
@@ -141,6 +146,7 @@ low_level = init/projectors.f90  \
 	init/inputguess.f90 \
 	init/gautowav.f90 \
 	init/eleconf.f90 \
+	init/locreg.f90 \
 	wfn_opt/precond.f90 \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
@@ -227,7 +233,7 @@ mpif.h:
 	touch mpif.h &&\
 	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
-	 echo "integer :: MPI_MIN, MPI_MAX, MPI_IN_PLACE" >> mpif.h
+	 echo "integer :: MPI_MIN, MPI_MAX, MPI_IN_PLACE,MPI_CHARACTER" >> mpif.h
 
 test_forces.o: $(mod_bigdft)
 

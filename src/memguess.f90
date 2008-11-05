@@ -1,14 +1,9 @@
 !!****p* BigDFT/memguess
-!! NAME
-!!   memguess
-!!
 !! FUNCTION
 !!  Test the input files and estimates the memory occupation versus the number
 !!  of processors
-!!
 !! AUTHOR
 !!    Luigi Genovese
-!!
 !! COPYRIGHT
 !!    Copyright (C) 2007 CEA
 !!
@@ -35,7 +30,8 @@ program memguess
   type(nonlocal_psp_descriptors) :: nlpspd
   logical, dimension(:,:,:), allocatable :: logrid
   integer, dimension(:,:), allocatable :: norbsc_arr
-  real(kind=8), dimension(:,:), allocatable :: rxyz,radii_cf
+  real(kind=8), dimension(:,:), allocatable, target :: rxyz
+  real(kind=8), dimension(:,:), allocatable :: radii_cf
   real(kind=8), dimension(:,:,:), allocatable :: psiat
   real(kind=8), dimension(:,:), allocatable :: xp, occupat
   integer, dimension(:,:), allocatable :: nl
@@ -105,7 +101,7 @@ program memguess
   close(99)
 
   !new way of reading the input variables, use structures
-  call read_input_variables(0,in)
+  call read_input_variables(0,'input.dat',in)
 
   call print_input_parameters(in,atoms)
 
@@ -301,19 +297,11 @@ end program memguess
 
 
 !!****f* BigDFT/optimise_volume
-!! NAME
-!!   optimise_volume
-!!
 !! FUNCTION
 !!  Rotate the molecule via an orthogonal matrix in order to minimise the
 !!  volume of the cubic cell
-!!
 !! AUTHOR
 !!    Luigi Genovese
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2007 CEA
-!!
 !! SOURCE
 !!
 subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)

@@ -1,7 +1,4 @@
 !!****f* PSolver/xc_energy
-!! NAME
-!!    xc_energy
-!!
 !! FUNCTION
 !!    Calculate the XC terms from the given density in a distributed way.
 !!    it assign also the proper part of the density to the zf array 
@@ -73,6 +70,8 @@
 !!
 subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,iproc,nproc,nspden)
+
+  use module_base, only: ndebug
 
   implicit none
 
@@ -503,9 +502,6 @@ end subroutine xc_energy
 
 
 !!****f* PSolver/vxcpostprocessing
-!! NAME
-!! vxcpostprocessing
-!!
 !! FUNCTION
 !! Correct the XC potential with the White-Bird formula, to be used for the 
 !! GGA case. Works either in parallel of in serial, by proper change of the 
@@ -513,6 +509,7 @@ end subroutine xc_energy
 !!
 !! SOURCE
 subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gradient,hx,hy,hz,dvxcdgr,wb_vxc)
+  use module_base
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr

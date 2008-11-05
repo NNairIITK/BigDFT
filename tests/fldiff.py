@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 04/10/2008
+# Date: 18/10/2008
 #----------------------------------------------------------------------------
 
 import difflib
@@ -95,7 +95,11 @@ context_lines = ""
 #First we compare the first two lines in the case of an added prefix 
 #(as in platine computer of CCRT)
 #We detect a pattern
-pattern='                             BBBB         i       ggggg    '
+if bigdft:
+    pattern = '                             BBBB         i       ggggg    '
+else:
+    pattern = ''
+
 try:
     p1 = original1[0].index(pattern)
     p2 = original2[0].index(pattern)
@@ -125,14 +129,16 @@ for line in original1:
     end_right = end_line in line
     if end_right:
         break
-#Do not compare if a file is not properly finished
-if not end_left:
-    print "WARNING: The file '%s' is not properly finished!" % file1
-if not end_right:
-    print "WARNING: The file '%s' is not properly finished!" % file2
-if not (end_left and end_right): 
-    print "Max Discrepancy: NaN"
-    sys.exit(1)
+
+if bigdft:
+    #Do not compare if a file is not properly finished
+    if not end_left:
+        print "WARNING: The file '%s' is not properly finished!" % file1
+    if not end_right:
+        print "WARNING: The file '%s' is not properly finished!" % file2
+    if not (end_left and end_right): 
+        print "Max Discrepancy: NaN"
+        sys.exit(1)
 
 #Compare both files
 compare = difflib.unified_diff(original1,original2,n=0)

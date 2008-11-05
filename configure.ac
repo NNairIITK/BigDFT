@@ -137,19 +137,19 @@ AC_MSG_RESULT([$ac_use_opti_convolut])
 
 dnl Use the minima hopping method (build the executable global)
 AC_MSG_CHECKING([for minima hopping])
-ac_use_minima_hopping="no"
-AC_ARG_ENABLE(minima-hopping, AS_HELP_STRING([--disable-minima-hopping], [Compile the minima hopping code (need the file src/global.f90, not compiled by default).]),
-                         ac_use_minima_hopping=$enableval, ac_use_minima_hopping="no")
-AM_CONDITIONAL(USE_MINIMA_HOPPING, test "$ac_use_minima_hopping" = "yes")
-if test x"$ac_use_minima_hopping" = "xyes" ; then
+ac_build_bin_minima_hopping="no"
+AC_ARG_ENABLE(minima-hopping, AS_HELP_STRING([--enable-minima-hopping], [Compile the minima hopping code (need the file src/global.f90, not compiled by default).]),
+                         ac_build_bin_minima_hopping=$enableval, ac_build_bin_minima_hopping="no")
+AC_MSG_RESULT([$ac_build_bin_minima_hopping])
+if test x"$ac_build_bin_minima_hopping" = "xyes" ; then
   dnl Check if src/global.f90 does exist.
-  if test -f ../src/global.f90 ; then
-     AC_MSG_CHECKING([src/global.f90])
-  else
-     AC_MSG_ERROR(["No src/global.f90. This file is not freely available."])
+  AC_CHECK_FILE(${srcdir}/src/global.f90, ac_have_global="yes", ac_have_global="no")
+  if test x"$ac_have_global" = x"no" ; then
+     AC_MSG_WARN(["No src/global.f90. This file is not freely available, minima hopping is disabled."])
+     ac_build_bin_minima_hopping="no"
   fi
 fi
-AC_MSG_RESULT([$ac_use_minima_hopping])
+AM_CONDITIONAL(USE_MINIMA_HOPPING, test "$ac_build_bin_minima_hopping" = "yes")
 
 
 dnl Use the GPU computing (only NVIDIA cards with CUDA libraries)
@@ -360,6 +360,7 @@ tests/NaCl/Makefile
 tests/SiH4/Makefile
 tests/H2O-CP2K/Makefile
 tests/SiBulk/Makefile
+tests/H2O-slab/Makefile
 tests/Davidson-SiH4/Makefile
 tests/GPU/Makefile
 tests/MINHOP/Makefile
@@ -368,38 +369,38 @@ AC_OUTPUT
 
 echo "
 Basics:
-  Fortran90 compiler:      $FC
-  Fortran90 compiler name: $fc_type
-  Fortran90 flags:         $FCFLAGS
-  Linker flags:            $LDFLAGS
-  Linked libraries:        $LIBS
+  Fortran90 compiler:        $FC
+  Fortran90 compiler name:   $fc_type
+  Fortran90 flags:           $FCFLAGS
+  Linker flags:              $LDFLAGS
+  Linked libraries:          $LIBS
 
 Build:
-  Library XC (from ABINIT) $ac_build_lib_ABINIT_common
-  Library PSolver          $ac_build_lib_PSolver
-  Library BigDFT           $ac_build_lib_BigDFT
-  Binaries (cluster...)    $ac_build_bin_cluster
+  Library XC (from ABINIT):  $ac_build_lib_ABINIT_common
+  Library PSolver:           $ac_build_lib_PSolver
+  Library BigDFT:            $ac_build_lib_BigDFT
+  Main binaries (cluster...):$ac_build_bin_cluster
+  Minima hopping binary:     $ac_build_bin_minima_hopping
 
 Options:
-  Library making only:     $library
-  With MPI:                $ac_use_mpi
-   | MPI implementation:   $MPI_NAME
-   | include dir.:         $MPI_INCLUDE
-   | Linker flags:         $MPI_LDFLAGS
-   | linked libraries:     $MPI_LIBS
-  With optimised conv.:    $ac_use_opti_convolut
-  With Cuda GPU conv.:     $ac_use_cuda_gpu
-   | NVidia Cuda Compiler: $NVCC
-   | Cuda flags:           $CUDA_FLAGS
-   | GCC41HACK (gcc path): $GCC41HACK
-   | ext. cutil library:   $ac_with_lib_cutils
-   |      cutil path:      $LIB_CUTIL_PATH
-  With minima hopping:     $ac_use_minima_hopping
+  With MPI:                  $ac_use_mpi
+   | MPI implementation:     $MPI_NAME
+   | include dir.:           $MPI_INCLUDE
+   | Linker flags:           $MPI_LDFLAGS
+   | linked libraries:       $MPI_LIBS
+  With optimised conv.:      $ac_use_opti_convolut
+  With Cuda GPU conv.:       $ac_use_cuda_gpu
+   | NVidia Cuda Compiler:   $NVCC
+   | Cuda flags:             $CUDA_FLAGS
+   | GCC41HACK (gcc path):   $GCC41HACK
+   | ext. cutil library:     $ac_with_lib_cutils
+   |      cutil path:        $LIB_CUTIL_PATH
 
 Installation paths:
-  Prefix:                  $prefix
-  Exec prefix:             $exec_prefix
-  Binaries:                $bindir
-  Static libraries:        $libdir
-  Fortran modules:         $moduledir
+  Source code location:      ${srcdir}
+  Prefix:                    $prefix
+  Exec prefix:               $exec_prefix
+  Binaries:                  $bindir
+  Static libraries:          $libdir
+  Fortran modules:           $moduledir
 "

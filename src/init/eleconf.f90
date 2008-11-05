@@ -1,7 +1,4 @@
 !!****f* BigDFT/eleconf
-!! NAME
-!!   eleconf
-!!
 !! FUNCTION
 !!   Give electronic configuration of atom
 !!

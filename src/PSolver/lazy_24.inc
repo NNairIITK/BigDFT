@@ -1,7 +1,4 @@
 !!****h* PSolver/lazy_24
-!! NAME
-!!   lazy_24
-!!
 !! FUNCTION
 !!   Filters for interpolating scaling functions (order 30)
 !!

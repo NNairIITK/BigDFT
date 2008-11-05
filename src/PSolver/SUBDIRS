@@ -1,8 +1,5 @@
 !!****d* PSolver/ABINIT
 !!
-!! NAME
-!!  ABINIT
-!!
 !! DESCRIPTION
 !!  The directory ABINIT-common contains the routines from the ABINIT package,
 !!  specially the XC routines.
@@ -11,9 +8,6 @@
 
 
 !!****d* PSolver/Exercise
-!!
-!! NAME
-!!  Exercise
 !!
 !! DESCRIPTION
 !!  Contains Exercise about the standalone version of the Poisson Solver
