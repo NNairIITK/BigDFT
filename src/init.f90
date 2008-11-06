@@ -714,6 +714,8 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   allocate(Llr(at%nat+ndebug),stat=i_stat)
   !call memocc(i_stat,Llr,'Llr',subname)
 
+  print *,'locrad',locrad
+
   call determine_locreg(at%nat,rxyz,locrad,hx,hy,hz,Glr,Llr)
 
   !i_all=-product(shape(Llr))*kind(Llr)

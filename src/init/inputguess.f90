@@ -605,6 +605,8 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
      end if
      polarised=.false.
 
+     rloc_avg=0.0_gp
+     norm=0.0_gp
      do l=1,4
         do inl=1,nl(l,ity)
            ishell=ishell+1
@@ -628,7 +630,6 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
               !rloc_avg=max(rloc_avg,G%xp(iexpo))
               norm=norm+G%psiat(iexpo)
            end do
-           locrad(iat)=15.d0*rloc_avg/norm
            !decide the polarisation of the orbital by changing the population
            if (nint(shelloccup) /=  2*(2*l-1) ) then
               !this is a polarisable orbital
@@ -720,7 +721,8 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
            icoeff=icoeff+(2*l-1)
         end do
      end do
-     
+     locrad(iat)=rloc_avg/norm
+     print *,iat,locrad(iat)
      if (ictotpsi /= nctot) stop 'Atomic orbitals: error (nctot)'
 
   end do

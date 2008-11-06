@@ -43,11 +43,18 @@ EXTRA_DIST += conv_check.f90 \
 	1Dconv_new.cu
 endif
 
+if USE_MPI
+mpi_source =
+else
+mpi_source = ../MPIfake.f90
+endif
+
+
 CLEANFILES = module_base.@MODULE_EXT@
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ 
 
-conv_check_SOURCES = conv_check.f90 1Dconv.cu 1Dconv_new.cu ../profiling/memory.f90 ../modules/base.f90
+conv_check_SOURCES = conv_check.f90 1Dconv.cu 1Dconv_new.cu ../profiling/memory.f90 ../modules/base.f90 $(mpi_source)
 conv_check_LDFLAGS =
 conv_check_LDADD = ../convolutions/libconvolutions.a \
 	$(libs_cuda)
@@ -66,9 +73,7 @@ convolution.o : conv_shared_multi_kernel.cu \
 	conv_pot_shared_kernel.cu \
 	convolution.h \
 	convSeria.h \
-	structUtil.h \
-	newcase.cu 
-
+	structUtil.h 
 
 conv_shared_multi.cu : structUtil.h
 
