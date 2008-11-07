@@ -69,7 +69,7 @@ typedef struct  _par
 __constant__ par_t par;
 
 //declare the texture for binding the input psi
-texture<float,2> psi_tex;
+texture<float,2, cudaReadModeElementType> psi_tex;
 
 
 int dogenconv(int ndat,
@@ -341,7 +341,7 @@ __global__ void conv1d_stride(int n,int ndat, float *psi_in, float *psi_out)
 	par.fil[7]*psi_sh[ShBaseElem + 7*NUM_LINES ] +
 	par.fil[8]*psi_sh[ShBaseElem + 8*NUM_LINES ] ;
 
-      /*
+      
 	par.fil[0]*psi_sh[ShBaseElem               ] +
 	par.fil[15]*psi_sh[ShBaseElem + 15*par.LinesPerBlock] +
 	par.fil[1]*psi_sh[ShBaseElem +   par.LinesPerBlock ] +
@@ -416,7 +416,7 @@ __global__ void conv1d_stride_tex(int n,int ndat,float *psi_out)
 
   unsigned int ShBaseElem = tid_hw + NUM_LINES*par.hwoffset_copy[hwid];
 
-  int epsilon,npos;
+  int epsilon,npos,x,y;
 
   //NOTE: it is assumed that for non-first segments the starting
   //points is far enough for the filter to be contained
@@ -429,8 +429,9 @@ __global__ void conv1d_stride_tex(int n,int ndat,float *psi_out)
       epsilon=(ipos < 0 ? -1 : ipos/n);
       npos=ipos-epsilon*n;
       //psi_sh[ShBaseElem]=psi_in[BaseElem+ndat*npos];
-      psi_sh[ShBaseElem]=tex2D(psi_tex,BaseElem,npos);
-
+      x=float(BaseElem/(ndat-1));
+      y=float(npos/(n-1));     
+      psi_sh[ShBaseElem]=tex2D(psi_tex,y,x);
       ShBaseElem += HALF_WARP_SIZE;
       ipos += HW_ELEM;
       
@@ -477,8 +478,8 @@ __global__ void conv1d_stride_tex(int n,int ndat,float *psi_out)
 	MFIL7 *psi_sh[ShBaseElem + 7*NUM_LINES ] +
 	MFIL8 *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
 
-      psi_out[BaseElem]=conv;
-      //psi_sh[ShBaseElem+par.lowfil*par.LinesPerBlock]; //for testing only
+      psi_out[BaseElem]=//=conv;
+	psi_sh[ShBaseElem+par.lowfil*NUM_LINES]; //for testing only
 
       ShBaseElem += HALF_WARP_SIZE;
       BaseElem += HW_ELEM;
@@ -530,7 +531,27 @@ int dogenconv(int ndat,
   //create the parameters
   par_t parCPU;
 
-  cudaArray 
+  cudaArray* psiCA;
+
+  //allocate the cuda array for the Psi wavefunction
+  //create the channel format descriptor
+  cudaChannelFormatDesc channelDesc=
+    cudaCreateChannelDesc<float>();
+
+  if(cudaMallocArray(&psiCA,&channelDesc,ndat,n) != 0)
+    {
+      printf("GPU allocation error \n");
+      return 1;
+    }
+
+
+  //copy the input array to the cuda Array
+  if(cudaMemcpyToArray(psiCA,0,0,GPU_idata, ndat*n*sizeof(float),cudaMemcpyDeviceToDevice)  != 0)
+    {
+      printf("DeviceToDevice Memcpy error \n");
+      return 1;
+    }
+
 
   //calculate the number of threads and blocks
   //unsigned int num_lines = min(16,ndat); //hard coded for the moment
@@ -559,19 +580,28 @@ int dogenconv(int ndat,
   dim3  grid1(linecuts,  numBlocks, 1);  
   dim3  threads1(HALF_WARP_SIZE, num_halfwarps , 1);
 
+  psi_tex.addressMode[0] = cudaAddressModeWrap;
+  psi_tex.addressMode[1] = cudaAddressModeWrap;
+  psi_tex.filterMode = cudaFilterModePoint;
+  psi_tex.channelDesc = channelDesc;
+  psi_tex.normalized = false;
+
   //bind the texture reference to the CUDA array
-  //cudaBindTexture(NULL,psi_tex,GPU_idata,n*ndat*sizeof(float));
+  CUDA_SAFE_CALL(cudaBindTextureToArray(psi_tex,psiCA));
 
   //element offset for reading from the texture
   //tex_offset = offset/sizeof(float);
   
   //printf(" offset %i\n",tex_offset); 
   //launch the kernel grid
-  //conv1d_stride_tex <<< grid1, threads1 >>>(n,ndat, GPU_odata);
+  conv1d_stride_tex <<< grid1, threads1 >>>(n,ndat, GPU_odata);
   //conv1d_stride <<< grid1, threads1 >>>(n,ndat, GPU_idata, GPU_odata);
 
   //unbind the texture
-  //cudaUnbindTexture(psi_tex);
+  cudaUnbindTexture(psi_tex);
+
+  //free the CUDA Array
+  cudaFreeArray(psiCA);
 
   cudaThreadSynchronize();
 
