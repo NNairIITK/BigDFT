@@ -32,7 +32,7 @@ program conv_check
   real(wp) :: tt
   real(gp) :: v,p,CPUtime,GPUtime,comp
   real(kind=4), dimension(:,:,:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
-  real(kind=4) :: t0,t1
+  real(kind=4) :: t0,t1,epotGPU
   real(kind=8) :: psi_GPU,v_GPU,work_GPU !pointer to the GPU  memory addresses (with norb=1)
   integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
   integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
@@ -175,6 +175,8 @@ program conv_check
               !call m1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,lowfil1,lupfil1)
               !call n1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,-lowfil1,lupfil1)
               call g1dconv(n1-1,ndat,work_GPU,psi_GPU,filCUDA1,-lowfil1,lupfil1)
+
+              !call localpotential(n1-1,0,ndat-1,work_GPU,psi_GPU,psi_GPU,epotGPU)
            end do
            call cpu_time(t1)
            !call system_clock(it1,count_rate,count_max)
@@ -357,14 +359,17 @@ program conv_check
      do i=1,ntimes
 
         !calculate the potential application on GPU
-        call cuda_psi_to_vpsi(1,n1,n2,n3,psi_GPU,v_GPU,work_GPU,&
+        !call cuda_psi_to_vpsi(1,n1,n2,n3,psi_GPU,v_GPU,work_GPU,&
              filCUDA1,filCUDA2,lowfil1,lupfil1,lowfil2,lupfil2)
+
+        call localpotential(n1,n2,n3,psi_GPU,work_GPU,v_GPU,epotGPU)
 
      end do
      call cpu_time(t1)
 
      !copy vpsi on the CPU
      call GPU_receive((n1+1)*(n2+1)*(n3+1),psi_cuda,psi_GPU,i_stat)
+     !call GPU_receive((n1+1)*(n2+1)*(n3+1),psi_cuda,work_GPU,i_stat)
      !     call cuda_fetch_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,psi_cuda)
 
      GPUtime=real(t1-t0,kind=8)/real(ntimes,kind=8)
@@ -380,11 +385,13 @@ program conv_check
 
      !call CUDA_DEALLOCATE_MEM(1,psi_GPU,v_GPU,work_GPU)
 
+     print *,'epot=',epotGPU
      !check the differences between the results
      maxdiff=0.d0
      do i3=1,n3+1
         do i2=1,n2+1
            do i1=1,n1+1
+              !write(17,*),i1,i2,i3,psi_out(i1,i2,i3),psi_cuda(i1,i2,i3)
               maxdiff=max(abs(psi_out(i1,i2,i3)-real(psi_cuda(i1,i2,i3),kind=8)),maxdiff)
            end do
         end do

@@ -40,7 +40,8 @@ else
 check_PROGRAMS = 
 EXTRA_DIST += conv_check.f90 \
 	1Dconv.cu \
-	1Dconv_new.cu
+	1Dconv_new.cu \
+	locpot.cu
 endif
 
 if USE_MPI
@@ -54,7 +55,7 @@ CLEANFILES = module_base.@MODULE_EXT@
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ 
 
-conv_check_SOURCES = conv_check.f90 1Dconv.cu 1Dconv_new.cu ../profiling/memory.f90 ../modules/base.f90 $(mpi_source)
+conv_check_SOURCES = conv_check.f90 1Dconv.cu 1Dconv_new.cu locpot.cu ../profiling/memory.f90 ../modules/base.f90 $(mpi_source)
 conv_check_LDFLAGS =
 conv_check_LDADD = ../convolutions/libconvolutions.a \
 	$(libs_cuda)
