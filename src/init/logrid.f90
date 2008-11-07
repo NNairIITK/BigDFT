@@ -324,3 +324,67 @@ subroutine squares(ib,n2,n3)
      enddo
   enddo
 end subroutine squares
+
+
+subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  logical, dimension(0:n1,0:n2,0:n3), intent(out) :: logrid_c,logrid_f
+  !local variables
+  integer :: iseg,j0,j1,ii,i1,i2,i3,i0,nvctr_check,nsrt,nend,i
+
+  !coarse part
+  logrid_c(:,:,:)=.false.
+  !control variable
+  nvctr_check=0
+  do iseg=1,wfd%nseg_c
+     j0=wfd%keyg(1,iseg)
+     j1=wfd%keyg(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        nvctr_check=nvctr_check+1
+        logrid_c(i,i2,i3)=.true.
+     end do
+  end do
+  !check
+  if (nvctr_check /= wfd%nvctr_c) then
+     write(*,'(1x,a,2(i6))')&
+          'ERROR: problem in wfd_to_logrid(coarse)',nvctr_check,wfd%nvctr_c
+     stop
+  end if
+
+  !fine part
+  logrid_f(:,:,:)=.false.
+  !control variable
+  nvctr_check=0
+  do iseg=wfd%nseg_c+1,wfd%nseg_c+wfd%nseg_f
+     j0=wfd%keyg(1,iseg)
+     j1=wfd%keyg(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        nvctr_check=nvctr_check+1
+        logrid_f(i,i2,i3)=.true.
+     end do
+  end do
+  !check
+  if (nvctr_check /= wfd%nvctr_f) then
+     write(*,'(1x,a,2(i6))')&
+          'ERROR: problem in wfd_to_logrid(fine)',nvctr_check,wfd%nvctr_f
+     stop
+  end if
+
+
+end subroutine wfd_to_logrids

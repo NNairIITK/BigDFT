@@ -42,7 +42,7 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
 ! Create the file grid.xyz to visualize the grid of functions
   if (output_grid) then
      open(unit=22,file='grid.xyz',status='unknown')
-     write(22,*) nvctr_c+nvctr_f,' atomic'
+     write(22,*) nvctr_c+nvctr_f+nat,' atomic'
      write(22,*)'complete simulation grid with low and high resolution points'
      do iat=1,nat
         write(22,'(a6,2x,3(1x,e12.5),3x)') &

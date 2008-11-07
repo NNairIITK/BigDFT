@@ -85,7 +85,8 @@
 !! SOURCE
 !! 
 subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
+     rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin,&
+     quiet) !optional argument
   use module_base
   implicit none
   character(len=1), intent(in) :: geocode
@@ -98,11 +99,13 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(gp), intent(out) :: eh,exc,vxc
   real(dp), dimension(*), intent(inout) :: rhopot
   real(wp), dimension(*), intent(inout) :: pot_ion
+  character(len=3), intent(in), optional :: quiet
   !local variables
   character(len=*), parameter :: subname='PSolver'
+  logical :: wrtmsg
   integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
-  integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4,ind4sh
+  integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4,ind4sh,i,j
   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,i4,ind2nd
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim,ispin,istden,istglo
   real(dp) :: scal,ehartreeLOC,eexcuLOC,vexcuLOC,pot
@@ -113,19 +116,35 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   real(gp), dimension(:), allocatable :: energies_mpi
 
   call timing(iproc,'Exchangecorr  ','ON')
+
+
+  !do not write anything on screen if quiet is set to yes
+  if (present(quiet)) then
+     if(quiet == 'yes' .or. quiet == 'YES') then
+        wrtmsg=.false.
+     else if(quiet == 'no' .or. quiet == 'NO') then
+        wrtmsg=.true.
+     else
+        write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
+        stop
+     end if
+  else
+     wrtmsg=.true.
+  end if
+
   !calculate the dimensions wrt the geocode
   if (geocode == 'P') then
-     if (iproc==0) &
+     if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i3,a)',advance='no')&
           'PSolver, periodic BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
      call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'S') then
-     if (iproc==0) &
+     if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i3,a)',advance='no')&
           'PSolver, surfaces BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
   else if (geocode == 'F') then
-     if (iproc==0) &
+     if (iproc==0 .and. wrtmsg) &
           write(*,'(1x,a,3(i5),a,i5,a,i3,a)',advance='no')&
           'PSolver, free  BC, dimensions: ',n01,n02,n03,'   proc',nproc,'   ixc:',ixc,' ...'
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
@@ -163,16 +182,38 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if (datacode=='G') then
      !starting address of rhopot in the case of global i/o
      i3start=istart+2-nxcl-nwbl
-     if(nspin==2 .and. nproc>1) then
+     if((nspin==2 .and. nproc>1) .or. i3start <=0 .or. i3start+nxt-1 > n03 ) then
         !allocation of an auxiliary array for avoiding the shift of the density
         allocate(rhopot_g(m1*m3*nxt*2+ndebug),stat=i_stat)
         call memocc(i_stat,rhopot_g,'rhopot_g',subname)
-        do i1=1,m1*m3*nxt
-           rhopot_G(i1)=rhopot(n01*n02*(i3start-1)+i1)
+        !here we should put the modulo of the results for the non-isolated GGA
+        do ispin=1,nspin
+           do i3=1,nxt
+              do i2=1,m3
+                 do i1=1,m1
+                    i=i1+(i2-1)*m1+(i3-1)*m1*m3+(ispin-1)*m1*m3*nxt
+                    j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+(ispin-1)*n01*n02*n03
+                    rhopot_G(i)=rhopot(j)
+                 end do
+              end do
+           end do
         end do
-        do i1=1,m1*m3*nxt
-           rhopot_G(i1+m1*m3*nxt)=rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)
-        end do
+!!$        do i3=1,nxt
+!!$           do i2=1,m3
+!!$              do i1=1,m1
+!!$                 i=i1+(i2-1)*m1+(i3-1)*m1*m3+m1*m3*nxt
+!!$                 j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+n01*n02*n03
+!!$                 rhopot_G(i)=rhopot(j)
+!!$              end do
+!!$           end do
+!!$        end do
+!!$
+!!$        do i1=1,m1*m3*nxt
+!!$           rhopot_G(i1)=rhopot(n01*n02*(i3start-1)+i1)
+!!$        end do
+!!$        do i1=1,m1*m3*nxt
+!!$           rhopot_G(i1+m1*m3*nxt)=rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)
+!!$        end do
      end if
   else if (datacode == 'D') then
      !distributed i/o
@@ -194,16 +235,29 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 !!$  print *,'        it goes from',i3start+nwbl+nxcl-1,'to',i3start+nxc-1
 
   if (istart+1 <= m2) then 
-       if(nspin==2 .and. datacode=='G' .and. nproc>1) then
+       if(datacode=='G' .and. &
+            ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
+        !allocation of an auxiliary array for avoiding the shift of the de ) then
           call xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
                ixc,hx,hy,hz,rhopot_G,pot_ion,sumpion,zf,zfionxc,&
                eexcuLOC,vexcuLOC,iproc,nproc,nspin)
-          do i1=1,m1*m3*nxt
-             rhopot(n01*n02*(i3start-1)+i1)=rhopot_G(i1)
+          do ispin=1,nspin
+             do i3=1,nxt
+                do i2=1,m3
+                   do i1=1,m1
+                      i=i1+(i2-1)*m1+(i3-1)*m1*m3+(ispin-1)*m1*m3*nxt
+                      j=i1+(i2-1)*n01+(modulo(i3start+i3-2,n03))*n01*n02+(ispin-1)*n01*n02*n03
+                      rhopot(j)=rhopot_G(i)
+                   end do
+                end do
+             end do
           end do
-          do i1=1,m1*m3*nxt
-             rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)=rhopot_G(i1+m1*m3*nxt)
-          end do
+!!$          do i1=1,m1*m3*nxt
+!!$             rhopot(n01*n02*(i3start-1)+i1)=rhopot_G(i1)
+!!$          end do
+!!$          do i1=1,m1*m3*nxt
+!!$             rhopot(n01*n02*(i3start-1)+i1+n01*n02*n03)=rhopot_G(i1+m1*m3*nxt)
+!!$          end do
           i_all=-product(shape(rhopot_G))*kind(rhopot_G)
           deallocate(rhopot_G,stat=i_stat)
           call memocc(i_stat,i_all,'rhopot_g',subname)
@@ -218,7 +272,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
         do i3=1,md3
            do i1=1,md1
               zf(i1,i3,j2)=0.0_dp
-!             zfionxc(i1,i3,j2,ispin)=0.d0 !this is not needed, only if pot is updated in Solver
            end do
         end do
      end do
@@ -229,7 +282,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      vexcuLOC=0.0_dp
   end if
 
-  
+ 
   call timing(iproc,'Exchangecorr  ','OF')
 
   !this routine builds the values for each process of the potential (zf), multiplying by scal 
@@ -438,8 +491,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      vxc=real(vexcuLOC,gp)
   end if
 
-  if(nspin==1 .and. ixc /= 0) eh=eh*2.0d0
-  if (iproc==0) write(*,'(a)')'done.'
+  if(nspin==1 .and. ixc /= 0) eh=eh*2.0_gp
+  if (iproc==0  .and. wrtmsg) write(*,'(a)')'done.'
 
 end subroutine PSolver
 !!***
@@ -542,16 +595,18 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
   character(len=1), intent(in) :: datacode
   logical, intent(in) :: sumpion
   integer, intent(in) :: iproc,nproc,n01,n02,n03,n3d,ixc,nspin
-  real(kind=8), intent(in) :: hx,hy,hz,offset
-  real(kind=8), dimension(*), intent(in) :: karray
-  real(kind=8), intent(out) :: eh,exc,vxc
-  real(kind=8), dimension(*), intent(inout) :: rhopot,pot_ion
+  real(gp), intent(in) :: hx,hy,hz
+  real(dp), intent(in) :: offset
+  real(dp), dimension(*), intent(in) :: karray
+  real(gp), intent(out) :: eh,exc,vxc
+  real(wp), dimension(*), intent(inout) :: pot_ion
+  real(dp), dimension(*), intent(inout) :: rhopot
   !local variables
   character(len=*), parameter :: subname='PSolverNC'
-  real(kind=8) :: rhon,rhos,factor
+  real(dp) :: rhon,rhos,factor
   integer :: i_all,i_stat,ierr,i1,i2,i3,idx,offs
-  real(kind=8), dimension(:,:,:), allocatable :: m_norm
-  real(kind=8), dimension(:,:,:,:), allocatable :: rho_diag
+  real(dp), dimension(:,:,:), allocatable :: m_norm
+  real(dp), dimension(:,:,:,:), allocatable :: rho_diag
   
   
   if(nspin==4) then
@@ -570,8 +625,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
                  !rho_diag(i1,i2,i3,1)=rhopot(i1,i2,i3,1)
                  m_norm(i1,i2,i3)=&
                       sqrt(rhopot(idx+offs)**2+rhopot(idx+2*offs)**2+rhopot(idx+3*offs)**2)
-                 rho_diag(i1,i2,i3,1)=(rhopot(idx)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
-                 rho_diag(i1,i2,i3,2)=(rhopot(idx)-m_norm(i1,i2,i3))*0.5d0!+1.00e-20
+                 rho_diag(i1,i2,i3,1)=(rhopot(idx)+m_norm(i1,i2,i3))*0.5_dp!+1.00e-20
+                 rho_diag(i1,i2,i3,2)=(rhopot(idx)-m_norm(i1,i2,i3))*0.5_dp!+1.00e-20
                  idx=idx+1
                  !m_norm(i1,i2,i3)=sqrt(rhopot(i1,i2,i3,2)**2+rhopot(i1,i2,i3,3)**2+rhopot(i1,i2,i3,4)**2)
                  !rho_diag(i1,i2,i3,1)=(rhopot(i1,i2,i3,1)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
@@ -584,8 +639,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
         call memocc(i_stat,rho_diag,'rho_diag',subname)
         allocate(m_norm(1,1,1+ndebug),stat=i_stat)
         call memocc(i_stat,m_norm,'m_norm',subname)
-        rho_diag=0.0d0
-        m_norm=0.0d0
+        rho_diag=0.0_dp
+        m_norm=0.0_dp
      end if
      
      !        print *,'Mnorm,rho_diag',sum(2.0d0*rho_diag(:,:,:,1)),sum(m_norm)&
@@ -601,13 +656,13 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
      do i3=1,n3d
         do i2=1,n02
            do i1=1,n01
-              rhon=(rho_diag(i1,i2,i3,1)+rho_diag(i1,i2,i3,2))*0.5d0
-              rhos=(rho_diag(i1,i2,i3,1)-rho_diag(i1,i2,i3,2))*0.5d0
-              if(m_norm(i1,i2,i3)>rhopot(idx)*4.0e-20)then
+              rhon=(rho_diag(i1,i2,i3,1)+rho_diag(i1,i2,i3,2))*0.5_dp
+              rhos=(rho_diag(i1,i2,i3,1)-rho_diag(i1,i2,i3,2))*0.5_dp
+              if(m_norm(i1,i2,i3)>rhopot(idx)*4.0e-20_dp)then
                  !                 if(m_norm(i1,i2,i3)>rhopot(i1,i2,i3,1)*4.0e-20)then
                  factor=rhos/m_norm(i1,i2,i3)
               else
-                 factor=0.0d0
+                 factor=0.0_dp
               end if
               rhopot(idx)=rhon+rhopot(idx+3*offs)*factor
               rhopot(idx+offs)=rhopot(idx+offs)*factor
@@ -822,6 +877,21 @@ subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,
               nwbr=min(nordgr,m2-nordgr-iend)
            end if
         end if
+     else if (geocode /= 'F' .and. ixc >= 11 .and. ixc <= 16 .and. nxc /= m2) then
+        if (ixc==13) then
+           !now the dimension of the part required for the gradient
+           nwbl=nordgr
+           nwbr=nordgr
+           nxcl=1
+           nxcr=1
+        else
+           nxcl=nordgr+1
+           nwbl=nordgr
+           nxcr=nordgr+1
+           nwbr=nordgr
+        end if
+     !this case is also considered below
+     !else if (geocode /= 'F' .and. ixc >= 11 .and. ixc <= 16 .and. nxc == m2) then
      else !(for the moment GGA is not implemented in the non free BC)
         nwbl=0
         nwbr=0

@@ -215,3 +215,91 @@ subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
 
 end subroutine plot_psifscf
 
+subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nelec,&
+     alat1,alat2,alat3,ngatherarr,rho)
+  use module_base
+  implicit none
+  character(len=1), intent(in) :: geocode
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nelec,nproc
+  real(gp), intent(in) :: alat1,alat2,alat3
+  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+  real(dp), dimension(n1i*n2i*n3p), target, intent(in) :: rho
+  !local variables
+  character(len=*), parameter :: subname='plot_density'
+  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr
+  real(dp) :: later_avg
+  real(dp), dimension(:), pointer :: pot_ion
+
+  if (iproc == 0) then
+     open(unit=22,file=filename,status='unknown')
+     write(22,*)'normalised density'
+     write(22,*) 2*n1+2,2*n2+2,2*n3+2
+     write(22,*) alat1,' 0. ',alat2
+     write(22,*) ' 0. ',' 0. ',alat3
+     write(22,*)'xyz   periodic' !not true in general but needed in the case
+  end if
+
+  !conditions for periodicity in the three directions
+  !value of the buffer in the x and z direction
+  if (geocode /= 'F') then
+     nl1=1
+     nl3=1
+  else
+     nl1=14
+     nl3=14
+  end if
+  !value of the buffer in the y direction
+  if (geocode == 'P') then
+     nl2=1
+  else
+     nl2=14
+  end if
+
+  if (nproc > 1) then
+     !allocate full density in pot_ion array
+     allocate(pot_ion(n1i*n2i*n3i+ndebug),stat=i_stat)
+     call memocc(i_stat,pot_ion,'pot_ion',subname)
+
+     call MPI_ALLGATHERV(rho,n1i*n2i*n3p,&
+          mpidtypd,pot_ion,ngatherarr(0,1),&
+          ngatherarr(0,2),mpidtypd,MPI_COMM_WORLD,ierr)
+  else
+     pot_ion => rho
+  end if
+
+  if (iproc == 0) then
+     do i3=0,2*n3+1
+        do i2=0,2*n2+1
+           do i1=0,2*n1+1
+              ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
+              write(22,*)pot_ion(ind)/real(nelec,dp)
+           end do
+        end do
+     end do
+     close(22)
+     !laterally averaged potential following the isolated direction in surfaces case
+     !if (geocode == 'S') then
+        open(unit=23,file=filename//'_avg'//geocode,status='unknown')
+        later_avg=0.0_dp
+        do i2=0,2*n2+1
+           do i3=0,2*n3+1
+              do i1=0,2*n1+1
+                 ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
+                 later_avg=later_avg+pot_ion(ind)
+              end do
+           end do
+           later_avg=later_avg/real((2*n1+2)*(2*n3+2),dp) !2D integration/2D Volume
+           write(23,*)i2,alat2/real(2*n2+2,dp)*i2,later_avg
+        end do
+        close(23)
+     !end if
+  end if
+
+  if (nproc > 1) then
+       i_all=-product(shape(pot_ion))*kind(pot_ion)
+     deallocate(pot_ion,stat=i_stat)
+     call memocc(i_stat,i_all,'pot_ion',subname)
+  end if
+
+end subroutine plot_density

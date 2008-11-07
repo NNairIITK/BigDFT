@@ -1,11 +1,10 @@
-subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
+subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
      logrid,at,nlpspd)
   use module_base
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
   type(nonlocal_psp_descriptors), intent(out) :: nlpspd
-  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -52,7 +51,7 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
         nlpspd%nproj=nlpspd%nproj+mproj
 
         ! coarse grid quantities
-        call pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),3),cpmult, &
+        call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),3),cpmult, &
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         nlpspd%nboxp_c(1,1,iat)=nl1
@@ -63,7 +62,7 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
         nlpspd%nboxp_c(2,2,iat)=nu2
         nlpspd%nboxp_c(2,3,iat)=nu3
 
-        call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+        call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
              at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,3),cpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
 
@@ -73,7 +72,7 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
 
         nprojelat=mvctr*mproj
         ! fine grid quantities
-        call pregion_size(geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
+        call pregion_size(at%geocode,rxyz(1,iat),radii_cf(at%iatype(iat),2),fpmult,&
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         nlpspd%nboxp_f(1,1,iat)=nl1
@@ -84,7 +83,7 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
         nlpspd%nboxp_f(2,2,iat)=nu2
         nlpspd%nboxp_f(2,3,iat)=nu3
 
-        call fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
+        call fill_logrid(at%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
              at%ntypes,at%iatype(iat),rxyz(1,iat),radii_cf(1,2),fpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
         !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr, fine  projectors ',mseg,mvctr
@@ -108,7 +107,7 @@ subroutine localize_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxy
   if (memorylimit /= 0.e0 .and. .not. DistProjApply .and. &
        real(istart-1,kind=4) > memorylimit*134217728.0e0) then
      if (iproc == 0) then
-        write(*,'(44x,a)') '------   On-the-fly projectors application'
+        write(*,'(44x,a)') '------  On-the-fly projectors application'
      end if
      DistProjApply =.true.
   end if
@@ -167,14 +166,13 @@ end subroutine localize_projectors
 
 
 !fill the proj array with the PSP projectors or their derivatives, following idir value
-subroutine fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
+subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
      nlpspd,proj,idir)
   use module_base
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,n1,n2,n3,idir
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
@@ -211,7 +209,7 @@ subroutine fill_projectors(geocode,iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz
         do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
            if (at%psppar(l,i,ityp) /= 0.0_gp) then
               
-              call projector(geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
+              call projector(at%geocode,at%atomnames(ityp),iproc,iat,idir,l,i,&
                    at%psppar(l,0,ityp),rxyz(1,iat),&
                    nlpspd%nboxp_c(1,1,iat),nlpspd%nboxp_f(1,1,iat),n1,n2,n3,&
                    hx,hy,hz,cpmult,fpmult,radii_cf(ityp,3),radii_cf(ityp,2),&

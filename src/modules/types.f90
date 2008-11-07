@@ -19,11 +19,10 @@ module module_types
 !! SOURCE
 !!
   type, public :: input_variables
-     character(len=1) :: geocode
      integer :: ncount_cluster_x
      real(kind=8) :: frac_fluct,randdis,betax,forcemax
      integer :: ixc,ncharge,itermax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,nvirt,nplot
-     real(kind=8) :: hgrid,crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf,alat1,alat2,alat3
+     real(kind=8) :: hgrid,crmult,frmult,elecfield,gnrm_cv,rbuf
      logical :: output_grid,output_wf,calc_tail,gaussian_help
   end type input_variables
 !!***
@@ -74,7 +73,7 @@ module module_types
      type(kinetic_bounds) :: kb
      type(shrink_bounds) :: sb
      type(grow_bounds) :: gb
-     integer, dimension(:,:,:), pointer ::ibyyzz_r ! real space border
+     integer, dimension(:,:,:), pointer :: ibyyzz_r ! real space border
   end type convolutions_bounds
 !!***
   
@@ -112,8 +111,11 @@ module module_types
 !! SOURCE
 !!
   type, public :: atoms_data
+     character(len=1) :: geocode
+     character(len=20) :: units
      integer :: nat,ntypes,natsc
      character(len=20), dimension(:), pointer :: atomnames
+     real(kind=8) :: alat1,alat2,alat3
      logical, dimension(:), pointer :: lfrztyp
      integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom
      real(kind=8), dimension(:,:,:), pointer :: psppar
@@ -157,6 +159,21 @@ module module_types
      type(wavefunctions_descriptors) :: wfd
      type(gaussian_basis) :: gbd
   end type restart_objects
+!!***
+
+!!****t* module_types/locreg_descriptors
+!! DESCRIPTION
+!! Contains the information needed for describing completely a
+!! wavefunction localisation region
+!! SOURCE
+!!
+  type, public :: locreg_descriptors
+     character(len=1) :: geocode
+     integer :: ns1,ns2,ns3 !starting points of the localisation region in global coordinates
+     type(grid_dimensions) :: d
+     type(wavefunctions_descriptors) :: wfd
+     type(convolutions_bounds) :: bounds
+  end type locreg_descriptors
 !!***
 
 contains

@@ -1,13 +1,12 @@
-subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,alat3,rxyz,eion,fion,psoffset,&
-     n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
+     rxyz,eion,fion,psoffset,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
   use module_base
   use module_types
   use Poisson_Solver
   implicit none
   type(atoms_data), intent(in) :: at
-  character(len=1), intent(in) :: geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi
-  real(gp), intent(in) :: alat1,alat2,alat3,hxh,hyh,hzh
+  real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: pkernel
   real(gp), intent(out) :: eion,psoffset
@@ -28,7 +27,7 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
 
   pi=4.d0*datan(1.d0)
 
-  if (geocode == 'P') then
+  if (at%geocode == 'P') then
      !here we insert the calculation of the ewald forces
      allocate(fewald(3,at%nat+ndebug),stat=i_stat)
      call memocc(i_stat,fewald,'fewald',subname)
@@ -38,9 +37,9 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
      !calculate rprimd
      rprimd(:,:)=0.0_gp
 
-     rprimd(1,1)=alat1
-     rprimd(2,2)=alat2
-     rprimd(3,3)=alat3
+     rprimd(1,1)=at%alat1
+     rprimd(2,2)=at%alat2
+     rprimd(3,3)=at%alat3
 
      !calculate the metrics and the volume
      call metric(gmet,gprimd,-1,rmet,rprimd,ucvol)
@@ -64,7 +63,7 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
                 gprimd(ii,2)*fewald(2,iat)+&
                 gprimd(ii,3)*fewald(3,iat))
         end do
-        if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
+        !if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
      end do
 
      i_all=-product(shape(xred))*kind(xred)
@@ -92,13 +91,13 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
      psoffset=twopitothreehalf*psoffset
      shortlength=shortlength*2.d0*pi
 
-     !print *,'psoffset',psoffset,'pspcore',(psoffset+shortlength)*charge/(alat1*alat2*alat3)
+     !print *,'psoffset',psoffset,'pspcore',(psoffset+shortlength)*charge/(at%alat1*at%alat2*at%alat3)
      !print *,'eion',iproc,eion,charge/ucvol*(psoffset+shortlength)
      !correct ionic energy taking into account the PSP core correction
      eion=eion+charge/ucvol*(psoffset+shortlength)
 
 !!$     !in the surfaces case, correct the energy term following (J.Chem.Phys. 111(7)-3155, 1999)
-!!$     if (geocode == 'S') then
+!!$     if (at%geocode == 'S') then
 !!$        !calculate the Mz dipole component (which in our case corresponds to y direction)
 !!$        !first calculate the center of mass
 !!$        cmassy=0.0_gp
@@ -122,7 +121,7 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
 !!$
 !!$     end if
 
-  else if (geocode == 'F') then
+  else if (at%geocode == 'F') then
 
      eion=0.0_gp
      do iat=1,at%nat
@@ -161,30 +160,30 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
         fion(2,iat)=fyion
         fion(3,iat)=fzion
 
-        if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
+        !if (nproc==1 .and. slowion) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
         !energy which comes from the self-interaction of the spread charge
         eself=eself+real(at%nelpsp(ityp)**2,gp)*0.5_gp*sqrt(1.d0/pi)/at%psppar(0,0,ityp)
      end do
 
-     if (nproc==1 .and. slowion) print *,'eself',eself
+     !if (nproc==1 .and. slowion) print *,'eself',eself
      
   end if
 
+  !for the surfaces BC,
   !activate for the moment only the slow calculation of the ionic energy and forces
-  if (geocode == 'S') slowion=.true.
+  if (at%geocode == 'S') slowion=.true.
   
   if (slowion) then
 
      !case of slow ionic calculation
      !conditions for periodicity in the three directions
-     perx=(geocode /= 'F')
-     pery=(geocode == 'P')
-     perz=(geocode /= 'F')
+     perx=(at%geocode /= 'F')
+     pery=(at%geocode == 'P')
+     perz=(at%geocode /= 'F')
 
      call ext_buffers(perx,nbl1,nbr1)
      call ext_buffers(pery,nbl2,nbr2)
      call ext_buffers(perz,nbl3,nbr3)
-
 
      !the ions corresponds to gaussian charges disposed in the same way as the pseudopotentials
 
@@ -242,7 +241,7 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
        
         !application of the Poisson solver to calculate the self energy and the potential
         !here the value of the datacode must be kept fixed
-        call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
+        call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
              pot_ion,pkernel,pot_ion,ehart,zero,zero,&
              2.0_gp*pi*rloc**2*real(at%nelpsp(ityp),gp),.false.,1)
         eself=eself+ehart
@@ -283,11 +282,12 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
         fion(2,iat)=-hxh*hyh*hzh*prefactor*fyslf
         fion(3,iat)=-hxh*hyh*hzh*prefactor*fzslf
 
-        if (nproc==1) print *,'iat,fself',iat,fxslf,fyslf,fzslf
+        !if (nproc==1) print *,'iat,fself',iat,fxslf,fyslf,fzslf
 
      enddo
 
-     if (nproc==1) print *,'eself',eself
+     !if (nproc==1) 
+     !print *,'iproc,eself',iproc,eself
 
      if (n3pi >0 ) then
         !then calculate the hartree energy and forces of the charge distributions
@@ -339,12 +339,13 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
      end if
 
      !now call the Poisson Solver for the global energy forces
-     call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
+     call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
           pot_ion,pkernel,pot_ion,ehart,zero,zero,0.0d0,.false.,1)
 
      eion=ehart-eself
 
-     if (nproc==1) print *,'eion',eion
+     !if (nproc==1) 
+     !print *,'iproc,eion',iproc,eion
 
      do iat=1,at%nat
         ityp=at%iatype(iat)
@@ -404,7 +405,7 @@ subroutine IonicEnergyandForces(geocode,iproc,nproc,at,hxh,hyh,hzh,alat1,alat2,a
         fion(2,iat)=fion(2,iat)+(hxh*hyh*hzh*prefactor)*fyerf
         fion(3,iat)=fion(3,iat)+(hxh*hyh*hzh*prefactor)*fzerf
 
-        if (nproc==1) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
+        !if (nproc==1) print *,'iat,fion',iat,(fion(j1,iat),j1=1,3)
 
 !!$        write(10+iat,'(1x,f8.3,i5,(1x,3(1x,1pe12.5)))',advance='no') &
 !!$             hxh,iat,(fion(j1,iat),j1=1,3)

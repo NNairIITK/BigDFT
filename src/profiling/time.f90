@@ -248,7 +248,7 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
         nproc=1
      end if
      open(unit=60,file='time.prc',status='unknown')
-     !write(60,*) 'CATEGORY          min. TIME(sec)     max. TIME(sec)           PERCENT'
+     write(60,*)
      write(60,*) 'CATEGORY          mean TIME(sec)       PERCENT'
      total_pc=0.d0
      do i=1,ncat
@@ -259,6 +259,7 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
      write(60,'(70("-"))')
      write(60,'(a,10x,1pe9.2,6x,a,0pf5.1)') &
           'Total CPU time for category: '//message//'=',totaltime,'Total categorized percent ',total_pc
+     write(60,*)
   endif
 
 end subroutine sum_results

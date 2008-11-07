@@ -148,30 +148,44 @@ subroutine syn_rot_per(n,ndat,x,y)
   real(wp) :: so1,so2,so3,so4,so5,so6,so7,so8
   real(wp) :: se1,se2,se3,se4,se5,se6,se7,se8
 
+!	real(gp)::tel
+!	integer::ncount1,ncount2,ncount_rate,ncount_max
+!	integer::mflop
+!   
+!	! (n+1): the range of i (average)
+!	! 8: filter length for l (average)
+!	! 4: number of flops in one line
+!	! 2: even and odd 
+!	mflop=ndat*(n+1)*8*4*2
+!  call system_clock(ncount1,ncount_rate,ncount_max)
 
   call fill_mod_arr(mod_arr,-4,n+4,n+1)
 
   do j=0,ndat/8-1
      do i=0,n
-        se1=0.e0_wp
-        se2=0.e0_wp
-        se3=0.e0_wp
-        se4=0.e0_wp
-        se5=0.e0_wp
-        se6=0.e0_wp
-        se7=0.e0_wp
-        se8=0.e0_wp
+		l=4 
+        k=mod_arr(i-l)
+        se1=ch(8)*x(k,j*8+1)+cg(8)*x(n+1+k,j*8+1)
+        se2=ch(8)*x(k,j*8+2)+cg(8)*x(n+1+k,j*8+2)
+        se3=ch(8)*x(k,j*8+3)+cg(8)*x(n+1+k,j*8+3)
+        se4=ch(8)*x(k,j*8+4)+cg(8)*x(n+1+k,j*8+4)
+        se5=ch(8)*x(k,j*8+5)+cg(8)*x(n+1+k,j*8+5)
+        se6=ch(8)*x(k,j*8+6)+cg(8)*x(n+1+k,j*8+6)
+        se7=ch(8)*x(k,j*8+7)+cg(8)*x(n+1+k,j*8+7)
+        se8=ch(8)*x(k,j*8+8)+cg(8)*x(n+1+k,j*8+8)
 
-        so1=0.e0_wp
-        so2=0.e0_wp
-        so3=0.e0_wp
-        so4=0.e0_wp
-        so5=0.e0_wp
-        so6=0.e0_wp
-        so7=0.e0_wp
-        so8=0.e0_wp
+		l=-4 
+        k=mod_arr(i-l)
+        so1=ch(-7)*x(k,j*8+1)+cg(-7)*x(n+1+k,j*8+1)
+        so2=ch(-7)*x(k,j*8+2)+cg(-7)*x(n+1+k,j*8+2)
+        so3=ch(-7)*x(k,j*8+3)+cg(-7)*x(n+1+k,j*8+3)
+        so4=ch(-7)*x(k,j*8+4)+cg(-7)*x(n+1+k,j*8+4)
+        so5=ch(-7)*x(k,j*8+5)+cg(-7)*x(n+1+k,j*8+5)
+        so6=ch(-7)*x(k,j*8+6)+cg(-7)*x(n+1+k,j*8+6)
+        so7=ch(-7)*x(k,j*8+7)+cg(-7)*x(n+1+k,j*8+7)
+        so8=ch(-7)*x(k,j*8+8)+cg(-7)*x(n+1+k,j*8+8)
 
-        do l=-4,4
+        do l=-3,3
            k=mod_arr(i-l)
 
            se1=se1+ch(2*l  )*x(k,j*8+1)+cg(2*l  )*x(n+1+k,j*8+1)
@@ -216,9 +230,13 @@ subroutine syn_rot_per(n,ndat,x,y)
 
   do j=(ndat/8)*8+1,ndat
      do i=0,n
-        se=0.e0_wp
-        so=0.e0_wp
-        do l=-4,4
+		l=4 
+        k=mod_arr(i-l)
+        se=ch( 8)*x(  k,j)+cg( 8)*x(n+1+k  ,j)
+		l=-4 
+        k=mod_arr(i-l)
+        so=ch(-7)*x(  k,j)+cg(-7)*x(n+1+k  ,j)
+        do l=-3,3
            k=mod_arr(i-l)
            se=se+ch(2*l  )*x(  k,j)+cg(2*l  )*x(n+1+k  ,j)
            so=so+ch(2*l+1)*x(  k,j)+cg(2*l+1)*x(n+1+k  ,j)
@@ -229,6 +247,9 @@ subroutine syn_rot_per(n,ndat,x,y)
 
   enddo
 
+!  call system_clock(ncount2,ncount_rate,ncount_max)
+!  tel=dble(ncount2-ncount1)/dble(ncount_rate)
+!  write(97,'(a40,1x,e10.3,1x,f6.1)') 'syn_rot_per:',tel,1.d-6*mflop/tel
 end subroutine syn_rot_per
 
 subroutine convrot_n_per(n1,ndat,x,y)
@@ -926,34 +947,34 @@ end subroutine convolut_kinetic_per_T
 
 
 subroutine fill_mod_arr(arr,nleft,nright,n)
-  implicit none
-  integer,intent(in)::nleft,nright,n
-  integer,intent(out)::arr(nleft:nright)
-  !local variables
-  integer :: i
+implicit none
+integer,intent(in)::nleft,nright,n
+integer,intent(out)::arr(nleft:nright)
+integer::i
 
-  if (nleft >= -n) then
-     do i=nleft,-1
-        arr(i)=n+i
-     enddo
-  else
-     do i=nleft,-1
-        arr(i)=modulo(i,n)
-     enddo
-  endif
+if (nleft.ge.-n) then
+	do i=nleft,-1
+		arr(i)=n+i
+	enddo
+else
+	do i=nleft,-1
+		arr(i)=modulo(i,n)
+	enddo
+endif
 
-  do i=0,n-1
-     arr(i)=i
-  enddo
+do i=max(0,nleft),min(n-1,nright)
+	arr(i)=i
+enddo
 
-  if (nright < 2*n) then
-     do i=n,nright
-        arr(i)=i-n
-     enddo
-  else
-     do i=n,nright
-        arr(i)=modulo(i,n)
-     enddo
-  endif
-
+if (nright.lt.2*n) then
+	do i=n,nright
+		arr(i)=i-n
+	enddo
+else
+	do i=n,nright
+		arr(i)=modulo(i,n)
+	enddo
+endif
+	
 end subroutine fill_mod_arr
+

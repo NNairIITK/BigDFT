@@ -10,7 +10,6 @@ subroutine timeleft(tt)
           tt=timelimit-tcpu/3600d0 ! in hours
 end subroutine timeleft
 
-
 subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
   use module_base
   use module_types
@@ -91,10 +90,14 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
               tpos(2,iat)=rxyz(2,iat)
               tpos(3,iat)=rxyz(3,iat)
            else
-              if (in%geocode == 'P') then
-                 tpos(1,iat)=modulo(rxyz(1,iat)+beta0*hh(1,iat),in%alat1)
-                 tpos(2,iat)=modulo(rxyz(2,iat)+beta0*hh(2,iat),in%alat2)
-                 tpos(3,iat)=modulo(rxyz(3,iat)+beta0*hh(3,iat),in%alat3)
+              if (at%geocode == 'P') then
+                 tpos(1,iat)=modulo(rxyz(1,iat)+beta0*hh(1,iat),at%alat1)
+                 tpos(2,iat)=modulo(rxyz(2,iat)+beta0*hh(2,iat),at%alat2)
+                 tpos(3,iat)=modulo(rxyz(3,iat)+beta0*hh(3,iat),at%alat3)
+              else if (at%geocode == 'S') then
+                 tpos(1,iat)=modulo(rxyz(1,iat)+beta0*hh(1,iat),at%alat1)
+                 tpos(2,iat)=rxyz(2,iat)+beta0*hh(2,iat)
+                 tpos(3,iat)=modulo(rxyz(3,iat)+beta0*hh(3,iat),at%alat3)
               else
                  tpos(1,iat)=rxyz(1,iat)+beta0*hh(1,iat)
                  tpos(2,iat)=rxyz(2,iat)+beta0*hh(2,iat)
@@ -139,10 +142,14 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
            tpos(2,iat)=rxyz(2,iat)
            tpos(3,iat)=rxyz(3,iat)
            if ( .not. at%lfrztyp(iat)) then
-              if (in%geocode == 'P') then
-                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*hh(1,iat),in%alat1)
-                 rxyz(2,iat)=modulo(rxyz(2,iat)+beta*hh(2,iat),in%alat2)
-                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*hh(3,iat),in%alat3)
+              if (at%geocode == 'P') then
+                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*hh(1,iat),at%alat1)
+                 rxyz(2,iat)=modulo(rxyz(2,iat)+beta*hh(2,iat),at%alat2)
+                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*hh(3,iat),at%alat3)
+              else if (at%geocode == 'S') then
+                 rxyz(1,iat)=modulo(rxyz(1,iat)+beta*hh(1,iat),at%alat1)
+                 rxyz(2,iat)=rxyz(2,iat)+beta*hh(2,iat)
+                 rxyz(3,iat)=modulo(rxyz(3,iat)+beta*hh(3,iat),at%alat3)
               else
                  rxyz(1,iat)=rxyz(1,iat)+beta*hh(1,iat)
                  rxyz(2,iat)=rxyz(2,iat)+beta*hh(2,iat)
@@ -395,13 +402,6 @@ contains
 
           ncount_cluster=ncount_cluster+1
 
-!!$          !useless, this is already did in cluster routine
-!!$          do iat=1,at%nat
-!!$             rxyz_old(1,iat)=rxyz(1,iat)
-!!$             rxyz_old(2,iat)=rxyz(2,iat)
-!!$             rxyz_old(3,iat)=rxyz(3,iat)
-!!$          enddo
-
           !if the energy goes up (a small tolerance is allowed by anoise)
           !reduce the value of beta
           !this procedure stops in the case beta is much too small compared with the initial one
@@ -527,10 +527,14 @@ contains
              tpos(2,iat)=rxyz(2,iat)
              tpos(3,iat)=rxyz(3,iat)
              if ( .not. at%lfrztyp(iat)) then
-                if (in%geocode == 'P') then
-                   rxyz(1,iat)=modulo(rxyz(1,iat)+beta*ff(1,iat),in%alat1)
-                   rxyz(2,iat)=modulo(rxyz(2,iat)+beta*ff(2,iat),in%alat2)
-                   rxyz(3,iat)=modulo(rxyz(3,iat)+beta*ff(3,iat),in%alat3)
+                if (at%geocode == 'P') then
+                   rxyz(1,iat)=modulo(rxyz(1,iat)+beta*ff(1,iat),at%alat1)
+                   rxyz(2,iat)=modulo(rxyz(2,iat)+beta*ff(2,iat),at%alat2)
+                   rxyz(3,iat)=modulo(rxyz(3,iat)+beta*ff(3,iat),at%alat3)
+                else if (at%geocode == 'S') then
+                   rxyz(1,iat)=modulo(rxyz(1,iat)+beta*ff(1,iat),at%alat1)
+                   rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
+                   rxyz(3,iat)=modulo(rxyz(3,iat)+beta*ff(3,iat),at%alat3)
                 else
                    rxyz(1,iat)=rxyz(1,iat)+beta*ff(1,iat)
                    rxyz(2,iat)=rxyz(2,iat)+beta*ff(2,iat)
@@ -595,10 +599,14 @@ contains
           t3=beta0*ff(3,iat)
           sum=sum+t1**2+t2**2+t3**2
           if (.not. at%lfrztyp(iat)) then
-             if (in%geocode == 'P') then
-                pos(1,iat)=modulo(pos(1,iat)+t1,in%alat1)
-                pos(2,iat)=modulo(pos(2,iat)+t2,in%alat2)
-                pos(3,iat)=modulo(pos(3,iat)+t3,in%alat3)
+             if (at%geocode == 'P') then
+                pos(1,iat)=modulo(pos(1,iat)+t1,at%alat1)
+                pos(2,iat)=modulo(pos(2,iat)+t2,at%alat2)
+                pos(3,iat)=modulo(pos(3,iat)+t3,at%alat3)
+             else if (at%geocode == 'S') then
+                pos(1,iat)=modulo(pos(1,iat)+t1,at%alat1)
+                pos(2,iat)=pos(2,iat)+t2
+                pos(3,iat)=modulo(pos(3,iat)+t3,at%alat3)
              else
                 pos(1,iat)=pos(1,iat)+t1
                 pos(2,iat)=pos(2,iat)+t2
@@ -627,10 +635,14 @@ contains
              tpos(2,iat)=pos(2,iat)
              tpos(3,iat)=pos(3,iat)
           else
-             if (in%geocode == 'P') then
-                tpos(1,iat)=modulo(pos(1,iat)+beta0*ff(1,iat),in%alat1)
-                tpos(2,iat)=modulo(pos(2,iat)+beta0*ff(2,iat),in%alat2)
-                tpos(3,iat)=modulo(pos(3,iat)+beta0*ff(3,iat),in%alat3)
+             if (at%geocode == 'P') then
+                tpos(1,iat)=modulo(pos(1,iat)+beta0*ff(1,iat),at%alat1)
+                tpos(2,iat)=modulo(pos(2,iat)+beta0*ff(2,iat),at%alat2)
+                tpos(3,iat)=modulo(pos(3,iat)+beta0*ff(3,iat),at%alat3)
+             else if (at%geocode == 'S') then
+                tpos(1,iat)=modulo(pos(1,iat)+beta0*ff(1,iat),at%alat1)
+                tpos(2,iat)=pos(2,iat)+beta0*ff(2,iat)
+                tpos(3,iat)=modulo(pos(3,iat)+beta0*ff(3,iat),at%alat3)
              else
                 tpos(1,iat)=pos(1,iat)+beta0*ff(1,iat)
                 tpos(2,iat)=pos(2,iat)+beta0*ff(2,iat)
@@ -654,10 +666,14 @@ contains
        endif
        do iat=1,at%nat
           if ( .not. at%lfrztyp(iat)) then
-             if (in%geocode == 'P') then
-                pos(1,iat)=modulo(pos(1,iat)+tt*ff(1,iat),in%alat1)
-                pos(2,iat)=modulo(pos(2,iat)+tt*ff(2,iat),in%alat2)
-                pos(3,iat)=modulo(pos(3,iat)+tt*ff(3,iat),in%alat3)
+             if (at%geocode == 'P') then
+                pos(1,iat)=modulo(pos(1,iat)+tt*ff(1,iat),at%alat1)
+                pos(2,iat)=modulo(pos(2,iat)+tt*ff(2,iat),at%alat2)
+                pos(3,iat)=modulo(pos(3,iat)+tt*ff(3,iat),at%alat3)
+             else if (at%geocode == 'S') then
+                pos(1,iat)=modulo(pos(1,iat)+tt*ff(1,iat),at%alat1)
+                pos(2,iat)=pos(2,iat)+tt*ff(2,iat)
+                pos(3,iat)=modulo(pos(3,iat)+tt*ff(3,iat),at%alat3)
              else
                 pos(1,iat)=pos(1,iat)+tt*ff(1,iat)
                 pos(2,iat)=pos(2,iat)+tt*ff(2,iat)
@@ -721,7 +737,13 @@ subroutine wtposout(igeostep,energy,rxyz,atoms)
   write(9,*) atoms%nat,' atomicd0 '!, energy,igeostep
   !write(9,*) xmax+5.d0, 0.d0, ymax+5.d0
   !write(9,*) 0.d0, 0.d0, zmax+5.d0
-  write(9,*)' energy,igeostep ', energy,igeostep
+  if (atoms%geocode == 'P') then
+     write(9,'(a,3(1x,1pe21.14))')'periodic',atoms%alat1,atoms%alat2,atoms%alat3
+  else if (atoms%geocode == 'S') then
+     write(9,'(a,3(1x,1pe21.14))')'surface',atoms%alat1,atoms%alat2,atoms%alat3
+  else
+     write(9,*)' energy,igeostep ', energy,igeostep
+  end if
   do iat=1,atoms%nat
      name=trim(atoms%atomnames(atoms%iatype(iat)))
      if (name(3:3)=='_') then

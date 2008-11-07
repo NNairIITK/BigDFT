@@ -103,7 +103,7 @@ PS_Program_LDADD = libpoissonsolver.a \
 	$(LMPI) \
 	@MPI_LIBS@
 
-PS_Exercise_SOURCES = PS_Exercise.f90 timing.f90 base.f90 
+PS_Exercise_SOURCES = PS_Exercise.f90 timing.f90 base.f90 $(mpi_source)
 PS_Exercise_LDADD = libpoissonsolver.a \
 	ABINIT-common/libABINIT.a \
 	$(LMPI) \
@@ -116,10 +116,10 @@ CLEANFILES = mpif.h malloc.prc time.par PS_Check.out \
 
 #dependencies
 mpif.h:
-	touch mpif.h && \
-	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h && \
-	 echo "integer :: MPI_DOUBLE_PRECISION,MPI_INTEGER,MPI_CHARACTER" >> mpif.h && \
-	 echo "integer :: MPI_MAX,MPI_MIN" >> mpif.h
+	touch mpif.h &&\
+	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
+	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
+	 echo "integer :: MPI_MIN, MPI_MAX, MPI_IN_PLACE,MPI_CHARACTER" >> mpif.h
 
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 
@@ -135,6 +135,10 @@ check:
 	$(run_parallel) ./PS_Check 57 48 63 13 F >> PS_Check.out
 	$(run_parallel) ./PS_Check 64 64 64 0 P >> PS_Check.out
 	$(run_parallel) ./PS_Check 64 64 64 1 P >> PS_Check.out
+	$(run_parallel) ./PS_Check 64 64 64 11 P >> PS_Check.out
+	$(run_parallel) ./PS_Check 64 64 64 13 P >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 0 S >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 1 S >> PS_Check.out
+	$(run_parallel) ./PS_Check 32 64 48 11 S >> PS_Check.out
+	$(run_parallel) ./PS_Check 32 64 48 13 S >> PS_Check.out
 	python $(top_srcdir)/tests/fldiff.py PS_Check.out $(top_srcdir)/src/PSolver/PS_Check.out.ref

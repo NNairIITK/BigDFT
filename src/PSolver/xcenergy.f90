@@ -80,19 +80,19 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   logical, intent(in) :: sumpion
   integer, intent(in) :: m1,m2,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,iproc,nproc,nspden
   integer, intent(in) :: nwbl,nwbr
-  real(kind=8), intent(in) :: hx,hy,hz
-  real(kind=8), dimension(m1,m3,nxt,nspden), intent(inout) :: rhopot
-  real(kind=8), dimension(*), intent(in) :: pot_ion
-  real(kind=8), dimension(md1,md3,md2/nproc), intent(out) :: zf
-  real(kind=8), dimension(md1,md3,md2/nproc,nspden), intent(out) :: zfionxc
-  real(kind=8), intent(out) :: exc,vxc
+  real(gp), intent(in) :: hx,hy,hz
+  real(dp), dimension(m1,m3,nxt,nspden), intent(inout) :: rhopot
+  real(wp), dimension(*), intent(in) :: pot_ion
+  real(dp), dimension(md1,md3,md2/nproc), intent(out) :: zf
+  real(wp), dimension(md1,md3,md2/nproc,nspden), intent(out) :: zfionxc
+  real(dp), intent(out) :: exc,vxc
 
   !Local variables----------------
   character(len=*), parameter :: subname='xc_energy'
-  real(kind=8), dimension(:,:,:), allocatable :: exci,d2vxci
-  real(kind=8), dimension(:,:,:,:), allocatable :: vxci,dvxci,dvxcdgr
-  real(kind=8), dimension(:,:,:,:,:), allocatable :: gradient
-  real(kind=8) :: elocal,vlocal,rho,pot,potion,facpotion,sfactor
+  real(dp), dimension(:,:,:), allocatable :: exci,d2vxci
+  real(dp), dimension(:,:,:,:), allocatable :: vxci,dvxci,dvxcdgr
+  real(dp), dimension(:,:,:,:,:), allocatable :: gradient
+  real(dp) :: elocal,vlocal,rho,pot,potion,facpotion,sfactor
   integer :: npts,i_all,order,offset,i_stat,ispden
   integer :: i1,i2,i3,j1,j2,j3,jp2,jpp2,jppp2
   integer :: ndvxc,nvxcdgr,ngr2
@@ -135,7 +135,7 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         do i3=1,nxt
            do i2=1,m3
               do i1=1,m1
-                 rhopot(i1,i2,i3,nspden)=.5d0*rhopot(i1,i2,i3,nspden)
+                 rhopot(i1,i2,i3,nspden)=.5_dp*rhopot(i1,i2,i3,nspden)
               end do
            end do
         end do
@@ -162,7 +162,7 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         !!the calculation of the gradient will depend on the geometry code
         !if (geocode=='F') then
            call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rhopot,nspden,&
-                hx,hy,hz,gradient)
+                real(hx,dp),real(hy,dp),real(hz,dp),gradient)
         !else
         !print *,'geocode=',geocode,&
         !     ':the calculation of the gradient is still to be performed in this case'
@@ -230,7 +230,7 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      !do not calculate the White-Bird term in the Leeuwen Baerends XC case
         if (ixc/=13) then
            call vxcpostprocessing(geocode,m1,m3,nwb,nxc,nxcl,nxcr,nspden,nvxcdgr,gradient,&
-                hx,hy,hz,dvxcdgr,vxci)
+                real(hx,dp),real(hy,dp),real(hz,dp),dvxcdgr,vxci)
         end if
 
         !restore the density array in the good position if it was shifted for the parallel GGA
@@ -302,10 +302,10 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 !     end do
 
 
-     exc=0.d0
-     vxc=0.d0
-     sfactor=1.0d0
-     if(nspden==1) sfactor=2.0d0
+     exc=0.0_dp
+     vxc=0.0_dp
+     sfactor=1.0_dp
+     if(nspden==1) sfactor=2.0_dp
      if (sumpion) then
         !summing the xc potential into the zfionxc array with pot_ion
         ispden=1
@@ -322,17 +322,17 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
                  exc=exc+elocal*rho
                  vxc=vxc+vlocal*rho
                  zf(j1,j3,jp2)=sfactor*rho !restore the original normalization
-                 zfionxc(j1,j3,jp2,ispden)=potion+vlocal
+                 zfionxc(j1,j3,jp2,ispden)=potion+real(vlocal,wp)
               end do
               do j1=m1+1,md1
                  zf(j1,j3,jp2)=0.d0
-                 zfionxc(j1,j3,jp2,ispden)=0.d0
+                 zfionxc(j1,j3,jp2,ispden)=0.0_wp
               end do
            end do
            do j3=m3+1,md3
               do j1=1,md1
                  zf(j1,j3,jp2)=0.d0
-                 zfionxc(j1,j3,jp2,ispden)=0.d0
+                 zfionxc(j1,j3,jp2,ispden)=0.0_wp
               end do
            end do
         end do
@@ -340,7 +340,7 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
            do j3=1,md3
               do j1=1,md1
                  zf(j1,j3,jp2)=0.d0
-                 zfionxc(j1,j3,jp2,ispden)=0.d0
+                 zfionxc(j1,j3,jp2,ispden)=0.0_wp
               end do
            end do
         end do
@@ -360,22 +360,22 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
                     exc=exc+elocal*rho
                     vxc=vxc+vlocal*rho
                     zf(j1,j3,jp2)=zf(j1,j3,jp2)+sfactor*rho !restore original normalization
-                    zfionxc(j1,j3,jp2,ispden)=potion+vlocal
+                    zfionxc(j1,j3,jp2,ispden)=potion+real(vlocal,wp)
                  end do
                  do j1=m1+1,md1
-                    zfionxc(j1,j3,jp2,ispden)=0.d0
+                    zfionxc(j1,j3,jp2,ispden)=0.0_wp
                  end do
               end do
               do j3=m3+1,md3
                  do j1=1,md1
-                    zfionxc(j1,j3,jp2,ispden)=0.d0
+                    zfionxc(j1,j3,jp2,ispden)=0.0_wp
                  end do
               end do
            end do
            do jp2=nxc+1,md2/nproc
               do j3=1,md3
                  do j1=1,md1
-                    zfionxc(j1,j3,jp2,ispden)=0.d0
+                    zfionxc(j1,j3,jp2,ispden)=0.0_wp
                  end do
               end do
            end do
@@ -394,25 +394,25 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
                  exc=exc+elocal*rho
                  vxc=vxc+vlocal*rho
                  zf(j1,j3,jp2)=sfactor*rho!restore the original normalization
-                 zfionxc(j1,j3,jp2,ispden)=vlocal
+                 zfionxc(j1,j3,jp2,ispden)=real(vlocal,wp)
               end do
               do j1=m1+1,md1
-                 zf(j1,j3,jp2)=0.d0
-                 zfionxc(j1,j3,jp2,ispden)=0.d0
+                 zf(j1,j3,jp2)=0.0_dp
+                 zfionxc(j1,j3,jp2,ispden)=0.0_wp
               end do
            end do
            do j3=m3+1,md3
               do j1=1,md1
-                 zf(j1,j3,jp2)=0.d0
-                 zfionxc(j1,j3,jp2,ispden)=0.d0
+                 zf(j1,j3,jp2)=0.0_dp
+                 zfionxc(j1,j3,jp2,ispden)=0.0_wp
               end do
            end do
         end do
         do jp2=nxc+1,md2/nproc
            do j3=1,md3
               do j1=1,md1
-                 zf(j1,j3,jp2)=0.d0
-                 zfionxc(j1,j3,jp2,ispden)=0.d0
+                 zf(j1,j3,jp2)=0.0_dp
+                 zfionxc(j1,j3,jp2,ispden)=0.0_wp
               end do
            end do
         end do
@@ -430,22 +430,22 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
                     exc=exc+elocal*rho
                     vxc=vxc+vlocal*rho
                     zf(j1,j3,jp2)=zf(j1,j3,jp2)+sfactor*rho!restore the original normalization
-                    zfionxc(j1,j3,jp2,ispden)=vlocal
+                    zfionxc(j1,j3,jp2,ispden)=real(vlocal,dp)
                  end do
                  do j1=m1+1,md1
-                    zfionxc(j1,j3,jp2,ispden)=0.d0
+                    zfionxc(j1,j3,jp2,ispden)=0.0_wp
                  end do
               end do
               do j3=m3+1,md3
                  do j1=1,md1
-                    zfionxc(j1,j3,jp2,ispden)=0.d0
+                    zfionxc(j1,j3,jp2,ispden)=0.0_wp
                  end do
               end do
            end do
            do jp2=nxc+1,md2/nproc
               do j3=1,md3
                  do j1=1,md1
-                    zfionxc(j1,j3,jp2,ispden)=0.d0
+                    zfionxc(j1,j3,jp2,ispden)=0.0_wp
                  end do
               end do
            end do
@@ -453,9 +453,8 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      end if
      !the two factor is due to the 
      !need of using the density of states in abinit routines
-     exc=sfactor*hx*hy*hz*exc
-     vxc=sfactor*hx*hy*hz*vxc
-
+     exc=sfactor*real(hx*hy*hz,dp)*exc
+     vxc=sfactor*real(hx*hy*hz,dp)*vxc
 
      !De-allocations
      i_all=-product(shape(exci))*kind(exci)
@@ -470,8 +469,8 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
      !case without XC terms
      !distributing the density in the zf array
-     exc=0.d0
-     vxc=0.d0
+     exc=0.0_dp
+     vxc=0.0_dp
      do jp2=1,nxc
         j2=offset+jp2+nxcl-2
         do j3=1,m3
@@ -479,19 +478,19 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
               zf(j1,j3,jp2)=rhopot(j1,j3,j2,1)
            end do
            do j1=m1+1,md1
-              zf(j1,j3,jp2)=0.d0
+              zf(j1,j3,jp2)=0.0_dp
            end do
         end do
         do j3=m3+1,md3
            do j1=1,md1
-              zf(j1,j3,jp2)=0.d0
+              zf(j1,j3,jp2)=0.0_dp
            end do
         end do
      end do
      do jp2=nxc+1,md2/nproc
         do j3=1,md3
            do j1=1,md1
-              zf(j1,j3,jp2)=0.d0
+              zf(j1,j3,jp2)=0.0_dp
            end do
         end do
      end do
@@ -514,7 +513,7 @@ subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gr
   implicit none
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr
-  real(gp), intent(in) :: hx,hy,hz
+  real(dp), intent(in) :: hx,hy,hz
   real(dp), dimension(n01,n02,n03,2*nspden-1,0:3), intent(in) :: gradient
   real(dp), dimension(n01,n02,n03,nvxcdgr), intent(in) :: dvxcdgr
   real(dp), dimension(n01,n02,n03,nspden), intent(inout) :: wb_vxc

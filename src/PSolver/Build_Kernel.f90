@@ -48,7 +48,8 @@
 !!
 !! SOURCE
 !!
-subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kernel)
+subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kernel,&
+     quiet) !optional arguments
   use module_base, only: ndebug
   implicit none
   include 'mpif.h'
@@ -56,23 +57,39 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
   integer, intent(in) :: n01,n02,n03,itype_scf,iproc,nproc
   real(kind=8), intent(in) :: hx,hy,hz
   real(kind=8), pointer :: kernel(:)
+  character(len=3), intent(in), optional :: quiet
   !local variables
   character(len=*), parameter :: subname='createKernel'
+  logical :: wrtmsg
   integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_stat
   integer :: jproc,nlimd,nlimk,jhalf,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
   real(kind=8) :: hgrid
 
   call timing(iproc,'PSolvKernel   ','ON')
 
+  !do not write anything on screen if quiet is set to yes
+  if (present(quiet)) then
+     if(quiet == 'yes' .or. quiet == 'YES') then
+        wrtmsg=.false.
+     else if(quiet == 'no' .or. quiet == 'NO') then
+        wrtmsg=.true.
+     else
+        write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
+        stop
+     end if
+  else
+     wrtmsg=.true.
+  end if
+
   hgrid=max(hx,hy,hz)
 
-  if (iproc==0) write(*,'(1x,a)')&
+  if (iproc==0 .and. wrtmsg) write(*,'(1x,a)')&
           '------------------------------------------------------------ Poisson Kernel Creation'
 
 
   if (geocode == 'P') then
      
-     if (iproc==0) write(*,'(1x,a)',advance='no')&
+     if (iproc==0 .and. wrtmsg) write(*,'(1x,a)',advance='no')&
           'Poisson solver for periodic BC, no kernel calculation...'
      
      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
@@ -85,7 +102,7 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
 
   else if (geocode == 'S') then
      
-     if (iproc==0) write(*,'(1x,a)',advance='no')&
+     if (iproc==0 .and. wrtmsg) write(*,'(1x,a)',advance='no')&
           'Calculating Poisson solver kernel, surfaces BC...'
 
      !Build the Kernel
@@ -103,7 +120,7 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
 
   else if (geocode == 'F') then
 
-     if (iproc==0) write(*,'(1x,a)',advance='no')&
+     if (iproc==0 .and. wrtmsg) write(*,'(1x,a)',advance='no')&
           'Calculating Poisson solver kernel, free BC...'
 
      !Build the Kernel
@@ -127,7 +144,7 @@ subroutine createKernel(geocode,n01,n02,n03,hx,hy,hz,itype_scf,iproc,nproc,kerne
      stop
   end if
 
-  if (iproc==0) then
+  if (iproc==0 .and. wrtmsg) then
      write(*,'(a)')'done.'
      if (geocode /= 'P') then 
         write(*,'(1x,2(a,i0))')&

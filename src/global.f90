@@ -119,10 +119,10 @@ program MINHOP
         filename = 'poscur.xyz'
         open(unit=99,file=filename,status='old')
         if (nlmin.eq.0) then 
-           read(99,*) atoms%nat,units
+           read(99,*) atoms%nat,atoms%units
            tre_pos=1000.d0
         else
-           read(99,*) atoms%nat,units,tre_pos
+           read(99,*) atoms%nat,atoms%units,tre_pos
         endif
         if (iproc.eq.0) write(67,*) 'nat=',atoms%nat
         if (iproc.eq.0) write(*,*) '#nat=',atoms%nat
@@ -130,13 +130,8 @@ program MINHOP
         call memocc(i_stat,product(shape(pos))*kind(pos),'pos','global')
         if (iproc.eq.0) write(67,'(a,a)') 'reading positions from ',filename
         if (iproc.eq.0) write(*,'(a,a)') ' # reading positions from ',filename
-       call read_atomic_positions(iproc,99,units,inputs_opt,atoms,pos)
+       call read_atomic_positions(iproc,99,atoms,pos)
        close(unit=99)
-       !Copy box geometry parameters into inputs_md
-       inputs_md%geocode = inputs_opt%geocode
-       inputs_md%alat1 = inputs_opt%alat1
-       inputs_md%alat2 = inputs_opt%alat2
-       inputs_md%alat3 = inputs_opt%alat3
      !Read input parameters for geometry optimization 
      call read_input_variables(iproc,'input.dat',inputs_opt)
      call read_input_variables(iproc,'mdinput.dat',inputs_md)
@@ -831,8 +826,8 @@ if (accurate) then
    in%hgrid=.6d0
    in%crmult=4.d0
    in%frmult=10.d0
-   in%cpmult=10.d0
-   in%fpmult=10.d0
+   !in%cpmult=10.d0
+   !in%fpmult=10.d0
    in%gnrm_cv=1.d-5
    in%itermax=50
 else
@@ -841,14 +836,14 @@ else
    in%hgrid=.7d0
    in%crmult=3.d0
    in%frmult=8.d0
-   in%cpmult=8.d0
-   in%fpmult=8.d0
+   !in%cpmult=8.d0
+   !in%fpmult=8.d0
    in%gnrm_cv=1.d-4
    in%itermax=50
 endif
 ! Comment out some of the following lines to keep them as read from input.dat
 
-   if (in%fpmult.gt.in%frmult) write(*,*) ' NONSENSE: fpmult > frmult'
+   !if (in%fpmult.gt.in%frmult) write(*,*) ' NONSENSE: fpmult > frmult'
    in%randdis=0.d0
    in%betax=6.d0
    in%ixc=1
