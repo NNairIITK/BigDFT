@@ -82,10 +82,10 @@ subroutine read_input_variables(iproc,filename,in)
         GPUblas=.true.
      end if
      read(1,*,iostat=ierror) in%ncount_cluster_x
-     call check
+     call check()
   else
      read(line,*,iostat=ierror) in%ncount_cluster_x
-     call check
+     call check()
   end if
 
   read(1,'(a100)')line
@@ -94,17 +94,17 @@ subroutine read_input_variables(iproc,filename,in)
      read(line,*,iostat=ierror) in%frac_fluct
      in%forcemax=0.0_gp
   end if
-  call check
+  call check()
   read(1,*,iostat=ierror) in%randdis
-  call check
+  call check()
   read(1,*,iostat=ierror) in%betax
-  call check
+  call check()
   read(1,*,iostat=ierror) hgrid
-  call check
+  call check()
   read(1,*,iostat=ierror) crmult
-  call check
+  call check()
   read(1,*,iostat=ierror) frmult
-  call check
+  call check()
   !read(1,*,iostat=ierror) cpmult !this value can be removed from the input files
   !read(1,*,iostat=ierror) fpmult !this value can be removed from the input files
   !put the value at the max, such that to coincide with the maximum possible extension
@@ -116,27 +116,27 @@ subroutine read_input_variables(iproc,filename,in)
   !in%fpmult=in%frmult
 
   read(1,*,iostat=ierror) in%ixc
-  call check
+  call check()
   read(1,*,iostat=ierror) in%ncharge,in%elecfield
-  call check
+  call check()
   read(1,*,iostat=ierror) in%gnrm_cv
-  call check
+  call check()
   read(1,*,iostat=ierror) in%itermax
-  call check
+  call check()
   read(1,*,iostat=ierror) in%ncong
-  call check
+  call check()
   read(1,*,iostat=ierror) in%idsx
-  call check
+  call check()
   read(1,*,iostat=ierror) in%calc_tail
-  call check
+  call check()
   read(1,*,iostat=ierror) in%rbuf
-  call check
+  call check()
   read(1,*,iostat=ierror) in%ncongt
-  call check
+  call check()
   read(1,*,iostat=ierror) in%nspin,in%mpol
-  call check
+  call check()
   read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
-  call check
+  call check()
 
   !project however the wavefunction on gaussians if asking to write them on disk
   in%gaussian_help=(in%inputPsiId >= 10) .or. in%output_wf 
@@ -148,7 +148,7 @@ subroutine read_input_variables(iproc,filename,in)
 
   !add reading lines for Davidson treatment (optional for backward compatibility)
   read(1,*,iostat=ierror) in%nvirt, in%nplot
-  !call check
+  !call check()
   
   if (ierror/=0) then
      in%nvirt=0
@@ -193,6 +193,7 @@ subroutine read_input_variables(iproc,filename,in)
      end if
 
 contains
+
   subroutine check()
     iline=iline+1
     if (ierror/=0) then

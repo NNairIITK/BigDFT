@@ -66,8 +66,7 @@ convolution.o : conv_shared_multi_kernel.cu \
 	conv_pot_shared_kernel.cu \
 	convolution.h \
 	convSeria.h \
-	structUtil.h \
-	newcase.cu 
+	structUtil.h
 
 
 conv_shared_multi.cu : structUtil.h

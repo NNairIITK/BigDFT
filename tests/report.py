@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Final report
-# Date: 26/06/2008
+# Date: 08/11/2008
 #----------------------------------------------------------------------------
 
 import glob
@@ -12,7 +12,7 @@ import sys
 #Max value
 max_discrepancy = 5.0e-10
 #Regular expression
-re_discrepancy = re.compile("Max Discrepancy[^:]*:[ ]+(.*)")
+re_discrepancy = re.compile("Max Discrepancy[^:]*:[ ]+([^ ]+)")
 
 Exit = 0
 print "Final report (max discrepancy=%7.1e):" % max_discrepancy
