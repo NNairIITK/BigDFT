@@ -47,6 +47,11 @@
 #define MFIL14 -0.5185986881173432922848639136911487e-4f
 #define MFIL15  2.72734492911979659657715313017228e-6f
 
+//error handling in CUDA
+#define CUERR { cudaError_t err; \
+ if ((err = cudaGetLastError()) != cudaSuccess) { \
+ printf("CUDA error: %s, line %d\n", cudaGetErrorString(err), __LINE__); }}
+
 
 typedef struct  _par
 {
@@ -70,7 +75,6 @@ __constant__ par_t par;
 
 //declare the texture for binding the input psi
 texture<float,2, cudaReadModeElementType> psi_tex;
-
 
 int dogenconv(int ndat,
 	      int n, 
@@ -391,6 +395,7 @@ __global__ void conv1d_stride(int n,int ndat, float *psi_in, float *psi_out)
  
 }
 
+
 //assume psi_in is a 2d texture
 __global__ void conv1d_stride_tex(int n,int ndat,float *psi_out) 
 {
@@ -412,11 +417,15 @@ __global__ void conv1d_stride_tex(int n,int ndat,float *psi_out)
   unsigned int BaseElem = par.thline[tid_hw] + lineOffset;
   //write data in shared memory
   //element treated by the given thread in n-axis
-  unsigned int thelem = par.thelem[tid_hw] + par.hwoffset_copy[hwid];
+  //const unsigned int thelem = par.thelem[tid_hw] + par.hwoffset_copy[hwid]
+  //unsigned int thelem2 = (unsigned int) par.thelem[tid_hw] + par.hwoffset_copy[hwid];
+  unsigned int thelem2 = par.hwoffset_copy[hwid];
 
   unsigned int ShBaseElem = tid_hw + NUM_LINES*par.hwoffset_copy[hwid];
 
-  int epsilon,npos,x,y;
+  int epsilon,npos;
+
+  float x,y;
 
   //NOTE: it is assumed that for non-first segments the starting
   //points is far enough for the filter to be contained
@@ -424,14 +433,18 @@ __global__ void conv1d_stride_tex(int n,int ndat,float *psi_out)
   //in other terms: lenght of the line is always bigger than
   //max(lowfil,lupfil)
 
-  for(int i=0,ipos=elemOffset-par.lowfil+thelem;i < par.hwelem_copy[hwid] ; ++i)
+  for(int i=0,ipos=elemOffset-par.lowfil+thelem2;i < par.hwelem_copy[hwid] ; ++i)
     {
       epsilon=(ipos < 0 ? -1 : ipos/n);
       npos=ipos-epsilon*n;
+      float tmp=0.f;//(3 == 5 ? 10.f : 0.f);
       //psi_sh[ShBaseElem]=psi_in[BaseElem+ndat*npos];
-      x=float(BaseElem/(ndat-1));
-      y=float(npos/(n-1));     
-      psi_sh[ShBaseElem]=tex2D(psi_tex,y,x);
+      //x=(float) (npos)/;
+      //y=(float)npos +0.5f; 
+      x=((float) (0) + 0.5f )/((float) (ndat));
+      y=((float) (ipos) + 0.5f )/((float) (n));
+      psi_sh[ShBaseElem]=tex2D(psi_tex,x,y);
+      //CUERR;
       ShBaseElem += HALF_WARP_SIZE;
       ipos += HW_ELEM;
       
@@ -441,13 +454,13 @@ __global__ void conv1d_stride_tex(int n,int ndat,float *psi_out)
   __syncthreads();
 
   //element treated by the given thread in n-axis
-  thelem = par.thelem[tid_hw] + par.hwoffset_calc[hwid];
+  unsigned int thelem = par.thelem[tid_hw] + par.hwoffset_calc[hwid];
   //base element for the given thread in shared memory
   ShBaseElem = tid_hw + NUM_LINES*par.hwoffset_calc[hwid];
   //ShBaseElem = tid_hw + par.LinesPerBlock*par.hwoffset_calc[hwid];
 
   //output base element, from the input one
-  BaseElem =  n*BaseElem+ thelem + elemOffset;
+  BaseElem =  n*BaseElem + thelem + elemOffset;
 
   //perform convolution in shared memory 
   //each thread calculate a number of elements, identical for each
@@ -478,8 +491,8 @@ __global__ void conv1d_stride_tex(int n,int ndat,float *psi_out)
 	MFIL7 *psi_sh[ShBaseElem + 7*NUM_LINES ] +
 	MFIL8 *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
 
-      psi_out[BaseElem]=//=conv;
-	psi_sh[ShBaseElem+par.lowfil*NUM_LINES]; //for testing only
+      //psi_out[BaseElem]=//=conv;
+      //psi_sh[ShBaseElem+par.lowfil*NUM_LINES]; //for testing only
 
       ShBaseElem += HALF_WARP_SIZE;
       BaseElem += HW_ELEM;
@@ -530,15 +543,17 @@ int dogenconv(int ndat,
 
   //create the parameters
   par_t parCPU;
+  //cudaChannelFormatDesc channelDesc = 
+  //cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
 
   cudaArray* psiCA;
 
   //allocate the cuda array for the Psi wavefunction
   //create the channel format descriptor
-  cudaChannelFormatDesc channelDesc=
-    cudaCreateChannelDesc<float>();
+  //cudaChannelFormatDesc channelDesc=
+  // cudaCreateChannelDesc<float>();
 
-  if(cudaMallocArray(&psiCA,&channelDesc,ndat,n) != 0)
+  if(cudaMallocArray(&psiCA,&psi_tex.channelDesc,ndat,n) != 0)
     {
       printf("GPU allocation error \n");
       return 1;
@@ -580,14 +595,16 @@ int dogenconv(int ndat,
   dim3  grid1(linecuts,  numBlocks, 1);  
   dim3  threads1(HALF_WARP_SIZE, num_halfwarps , 1);
 
+  //set texture parameters
   psi_tex.addressMode[0] = cudaAddressModeWrap;
   psi_tex.addressMode[1] = cudaAddressModeWrap;
   psi_tex.filterMode = cudaFilterModePoint;
-  psi_tex.channelDesc = channelDesc;
-  psi_tex.normalized = false;
+  psi_tex.normalized = true;
+
 
   //bind the texture reference to the CUDA array
   CUDA_SAFE_CALL(cudaBindTextureToArray(psi_tex,psiCA));
+  CUERR
 
   //element offset for reading from the texture
   //tex_offset = offset/sizeof(float);
@@ -599,9 +616,9 @@ int dogenconv(int ndat,
 
   //unbind the texture
   cudaUnbindTexture(psi_tex);
-
+  CUERR
   //free the CUDA Array
-  cudaFreeArray(psiCA);
+  CUDA_SAFE_CALL(cudaFreeArray(psiCA));;
 
   cudaThreadSynchronize();
 
@@ -610,3 +627,89 @@ int dogenconv(int ndat,
 }
 
 /****/
+
+
+extern "C" 
+void gpu_allocate__(int *nsize, //memory size
+		    float **GPU_pointer, // pointer indicating the GPU address
+		    int *ierr) // error code, 1 if failure
+
+		    
+{
+
+  unsigned int mem_size = (*nsize)*sizeof(float);
+
+
+  //allocate memory on GPU, return error code in case of problems
+  *ierr=0;
+  if(cudaMalloc( (void**) (GPU_pointer), mem_size) != 0)
+    {
+      printf("GPU allocation error \n");
+      *ierr=1;
+      return;
+    }
+}
+
+extern "C" 
+void gpu_deallocate__(float **GPU_pointer, // pointer indicating the GPU address
+		      int *ierr) // error code, 1 if failure
+{
+  //deallocate memory on GPU, return error code in case of problems
+  *ierr=0;
+  if(cudaFree(*GPU_pointer) != 0)
+    {
+      CUERR
+      printf("GPU deallocation error \n");
+      *ierr=1;
+      return;
+    }
+}
+
+
+//Temporary send-receive operations, displacements to be added (other routines?)
+
+
+extern "C"
+void gpu_send__(int *nsize,
+		float *CPU_pointer, 
+		float **GPU_pointer,
+		int *ierr)
+{
+
+  unsigned int mem_size = (*nsize)*sizeof(float);
+
+  //copy V to GPU
+  *ierr=0;
+  if(cudaMemcpy(*GPU_pointer, CPU_pointer, mem_size, cudaMemcpyHostToDevice)  != 0)
+    {
+      printf("HostToDevice Memcpy error \n");
+      *ierr=1;
+      return;
+    }
+
+}
+
+extern "C" 
+void gpu_receive__(int *nsize,
+		float *CPU_pointer, 
+		float **GPU_pointer,
+		int *ierr)
+{
+
+  unsigned int mem_size = (*nsize)*sizeof(float);
+
+  //copy V to GPU
+  *ierr=0;
+  if(cudaMemcpy(CPU_pointer,*GPU_pointer, mem_size, cudaMemcpyDeviceToHost)  != 0)
+    {
+      CUERR;
+      printf("DeviceToHost Memcpy error \n");
+      printf(" %i \n",mem_size);
+      *ierr=1;
+      return;
+    }
+
+}
+/****/
+
+

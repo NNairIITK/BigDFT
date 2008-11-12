@@ -1133,11 +1133,11 @@ contains
     if (in%nvirt > 0) then
        i_all=-product(shape(psivirt))*kind(psivirt)
        deallocate(psivirt)
-       call memocc(i_stat,i_all,'psivirt','cluster')
+       call memocc(i_stat,i_all,'psivirt',subname)
     end if
 
     if (atoms%geocode == 'F') then
-       call deallocate_bounds(bounds,'cluster')
+       call deallocate_bounds(bounds,subname)
     end if
     !****************Added by Alexey***********************************************************	
     if (atoms%geocode == 'P' .and. hybrid_on) then 

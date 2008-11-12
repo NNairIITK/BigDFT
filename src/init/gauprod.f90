@@ -178,7 +178,7 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
   integer, dimension(:,:), allocatable :: nl,norbsc_arr
-  real(gp), dimension(:), allocatable :: psiatn
+  real(gp), dimension(:), allocatable :: psiatn,locrad
   real(gp), dimension(:,:), allocatable :: xpt,occupat
   real(gp), dimension(:,:,:), allocatable :: psiat  
 
@@ -204,10 +204,18 @@ subroutine gaussian_pswf_basis(iproc,at,rxyz,G)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
   allocate(psiatn(ngx+ndebug),stat=i_stat)
   call memocc(i_stat,psiatn,'psiatn',subname)
+  allocate(locrad(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,locrad,'locrad',subname)
+
 
   !Generate the input guess via the inguess_generator
   call readAtomicOrbitals(iproc,ngx,xpt,psiat,occupat,ng,nl,at,norbe,norbsc,1,&
-       scorb,norbsc_arr)
+       scorb,norbsc_arr,locrad)
+
+  i_all=-product(shape(locrad))*kind(locrad)
+  deallocate(locrad,stat=i_stat)
+  call memocc(i_stat,i_all,'locrad',subname)
+
 
   !the number of gaussian centers are thus nat
   G%nat=at%nat
@@ -329,7 +337,7 @@ subroutine gaussian_ext_pswf_basis(iproc,at,rxyz,G)
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
   integer, dimension(:,:), allocatable :: nl,norbsc_arr
-  real(gp), dimension(:), allocatable :: psiatn
+  real(gp), dimension(:), allocatable :: psiatn,locrad
   real(gp), dimension(:,:), allocatable :: xpt,occupat
   real(gp), dimension(:,:,:), allocatable :: psiat
 
@@ -350,11 +358,18 @@ subroutine gaussian_ext_pswf_basis(iproc,at,rxyz,G)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
   allocate(psiatn(ngx+ndebug),stat=i_stat)
   call memocc(i_stat,psiatn,'psiatn',subname)
+  allocate(locrad(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,locrad,'locrad',subname)
 
 
   !Generate the input guess via the inguess_generator
   call readAtomicOrbitals(iproc,ngx,xpt,psiat,occupat,ng,nl,at,norbe,norbsc,1,&
-       scorb,norbsc_arr)
+       scorb,norbsc_arr,locrad)
+
+  i_all=-product(shape(locrad))*kind(locrad)
+  deallocate(locrad,stat=i_stat)
+  call memocc(i_stat,i_all,'locrad',subname)
+
 
   !the number of gaussian centers are thus nat
   G%nat=at%nat

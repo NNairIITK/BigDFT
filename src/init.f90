@@ -559,7 +559,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   integer, parameter :: ngx=31
   integer :: i,iorb,iorbsc,imatrsc,iorbst,imatrst,i_stat,i_all,ierr,info,jproc,jpst,norbeyou
   integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbsc,n1i,n2i,n3i
-  integer :: ispin,norbu,norbd,iorbst2,ist,n2hamovr,nsthamovr,nspinor
+  integer :: ispin,norbu,norbd,iorbst2,ist,n2hamovr,nsthamovr,nspinor,iat
   real(gp) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,accurex
   type(gaussian_basis) :: G
   type(locreg_descriptors) :: Glr
@@ -615,6 +615,8 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call memocc(i_stat,scorb,'scorb',subname)
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
+  allocate(locrad(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,locrad,'locrad',subname)
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -626,7 +628,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !the prescriptions can be found in the creation of psp basis
 
   call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,nspin,&
-       scorb,norbsc_arr)
+       scorb,norbsc_arr,locrad)
 
   !Check for max number of virtual orbitals
   nvirte=norbe-max(norbu,norbd)!the unoccupied orbitals available as a LCAO
@@ -684,12 +686,10 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !     ngx,xp,psiat,ng,nl,wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,psi,eks,scorb)
   allocate(gaucoeff(norbe,norbep+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeff,'gaucoeff',subname)
-  allocate(locrad(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,locrad,'locrad',subname)
 
   
   call AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
-     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,locrad)!,&
+     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff)!,&
      !wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,psi)
   !createAtomicOrbitals should generate the gaussian basis set and the data needed to generate
   !the wavefunctions inside a given localisation region.
@@ -717,6 +717,11 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   print *,'locrad',locrad
 
   call determine_locreg(at%nat,rxyz,locrad,hx,hy,hz,Glr,Llr)
+
+  do iat=1,at%nat
+     call deallocate_wfd(Llr(iat)%wfd,subname)
+     call deallocate_bounds(Llr(iat)%bounds,subname)
+  end do
 
   !i_all=-product(shape(Llr))*kind(Llr)
   deallocate(Llr,stat=i_stat) !these allocation are special
@@ -788,7 +793,6 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 
   call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,nspin)
-  
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(nvctrp*norbep*nproc+ndebug),stat=i_stat)
