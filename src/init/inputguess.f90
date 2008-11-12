@@ -151,7 +151,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,n
      !calculate the localisation radius for the input orbitals 
      call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
           neleconf,nsccode,mxpl,mxchg)
-     locrad(iat)=5._gp/sqrt(abs(2._gp*ehomo))
+     locrad(iat)=3._gp/sqrt(abs(2._gp*ehomo))
      call charge_and_spol(at%natpol(iat),ichg,ispol)
      !correct in the case of input charge positioning
      if (ichg /=0) then
@@ -425,7 +425,7 @@ subroutine createAtomicOrbitals(iproc,nproc,at,&
 end subroutine createAtomicOrbitals
 
 subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
-     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff)!,&
+     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,iorbtolr)!,&
   !wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,psi)
   use module_base
   use module_types
@@ -446,6 +446,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
   real(gp), dimension(ngx,5,at%ntypes), intent(inout) :: psiat
   type(gaussian_basis), intent(out) :: G
   real(gp), intent(out) :: eks
+  integer, dimension(norbep), intent(out) :: iorbtolr !assign the localisation region
   real(gp), dimension(nspin*norbe), intent(out) :: occupe
   real(wp), dimension(norbe,norbep), intent(out) :: gaucoeff !norbe=G%ncoeff
   
@@ -702,6 +703,8 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
 !!$                    !print *,'newnorm', scpr,occupe(iorb),occshell,ictot
 
                     gaucoeff(icoeff,jorb)=1.0_wp
+                    !associate to each orbital the reference localisation region
+                    iorbtolr(jorb)=iat 
                  endif
                  icoeff=icoeff+1
               end do
@@ -718,7 +721,6 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
         end do
      end do
      if (ictotpsi /= nctot) stop 'Atomic orbitals: error (nctot)'
-
   end do
   if (iexpo /= G%nexpo) then
      write(*,*)'ERROR: iexpo <> nexpo',iexpo,G%nexpo
