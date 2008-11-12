@@ -1,10 +1,9 @@
 !determine a set of localisation regions from the centers and the radii.
 !cut in cubes the global reference system
-subroutine determine_locreg(geocode,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
+subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
   integer, intent(in) :: nlr
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: Glr
@@ -12,10 +11,10 @@ subroutine determine_locreg(geocode,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
   real(gp), dimension(3,nlr), intent(in) :: cxyz
   type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
   !local variables
+  character(len=1), parameter :: subname='determine_locreg'
   logical :: perx,pery,perz
   integer :: ilr,isx,isy,isz,iex,iey,iez
   real(gp) :: rx,ry,rz,cutoff
-  
 
   !determine the limits of the different localisation regions
   do ilr=1,nlr
@@ -35,7 +34,7 @@ subroutine determine_locreg(geocode,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
      iez=ceiling((rz+cutoff)/hz)
 
      !assign the geometric code to the localisation region
-     select case(geocode)
+     select case(Glr%geocode)
      case('F')
         isx=max(isx,0)
         isy=max(isy,0)
@@ -135,27 +134,27 @@ subroutine determine_locreg(geocode,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
      Llr(ilr)%d%n3=iez-isz
 
      !dimensions of the fine grid inside the localisation region
-     if (iex < isx) then
+     if (isx < iex) then
         Llr(ilr)%d%nfl1=max(isx,Glr%d%nfl1)-isx
         Llr(ilr)%d%nfu1=min(iex,Glr%d%nfu1)-isx
      else
-        write(*,*)'Yet to be implemented (little effort)'
+        write(*,*)'Yet to be implemented (little effort?)'
         stop
      end if
 
-     if (iey < isy) then
+     if (isy < iey) then
         Llr(ilr)%d%nfl2=max(isy,Glr%d%nfl2)-isy
         Llr(ilr)%d%nfu2=min(iey,Glr%d%nfu2)-isy
      else
-        write(*,*)'Yet to be implemented (little effort)'
+        write(*,*)'Yet to be implemented (little effort?)'
         stop
      end if
 
-     if (iez < isz) then
+     if (isz < iez) then
         Llr(ilr)%d%nfl3=max(isz,Glr%d%nfl3)-isz
         Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
      else
-        write(*,*)'Yet to be implemented (little effort)'
+        write(*,*)'Yet to be implemented (little effort?)'
         stop
      end if
      
@@ -175,12 +174,199 @@ subroutine determine_locreg(geocode,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
         Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
      end select
 
-     !define the wavefunction descriptors inside the localisation region
      
+     !define the wavefunction descriptors inside the localisation region
+     !calculate the number of point ans segments for local localisation regions
+     !coarse part
+     call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+          Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nvctr_c)
+     !fine part
+     call num_segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
+          Glr%wfd%keyg(1,Glr%wfd%nseg_c+1),Glr%wfd%keyv(Glr%wfd%nseg_c+1),&
+          Llr(ilr)%wfd%nseg_f,Llr(ilr)%wfd%nvctr_f)
+
+     !allocate the wavefunction descriptors following the needs
+     call allocate_wfd(Llr(ilr)%wfd,subname)
+
+     !fill such descriptors
+     !coarse part
+     call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+          Llr(ilr)%wfd%nseg_c,Llr(ilr)%wfd%nvctr_c,&
+          Llr(ilr)%wfd%keyg(1,1),Llr(ilr)%wfd%keyv(1))
+     !fine part
+     call segkeys_loc(Glr%d%n1,Glr%d%n2,Glr%d%n3,isx,iex,isy,iey,isz,iez,&
+          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,&
+          Glr%wfd%keyg(1,Glr%wfd%nseg_c+1),Glr%wfd%keyv(Glr%wfd%nseg_c+1),&
+          Llr(ilr)%wfd%nseg_f,Llr(ilr)%wfd%nvctr_f,&
+          Llr(ilr)%wfd%keyg(1,Llr(ilr)%wfd%nseg_c+1),&
+          Llr(ilr)%wfd%keyv(Llr(ilr)%wfd%nseg_c+1))
+
+     !if the localisation region is isolated build also the bounds
+     if (Llr(ilr)%geocode=='F') then
+        call locreg_bounds(Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3,&
+             Llr(ilr)%d%nfl1,Llr(ilr)%d%nfu1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfu2,&
+             Llr(ilr)%d%nfl3,Llr(ilr)%d%nfu3,Llr(ilr)%wfd,Llr(ilr)%bounds)
+     end if
 
   end do
 
+  !after all localisation regions are determined draw them
+  call draw_locregs(nlr,Glr%d%n1,Glr%d%n2,Glr%d%n3,hx,hy,hz,Llr)
+
 end subroutine determine_locreg
+
+subroutine draw_locregs(nlr,n1,n2,n3,hx,hy,hz,Llr)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nlr,n1,n2,n3
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors), dimension(nlr), intent(in) :: Llr
+  !local variables
+  character(len=*), parameter :: subname='draw_locregs'
+  character(len=4) :: message
+  integer :: i1,i2,i3,ilr,nvctr_tot,i_stat,i_all
+  logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
+
+  !calculate total number
+  nvctr_tot=0
+  do ilr=1,nlr
+     nvctr_tot=nvctr_tot+Llr(ilr)%wfd%nvctr_c+Llr(ilr)%wfd%nvctr_f
+  end do
+
+  !open file for writing
+  open(unit=22,file='locregs.xyz',status='unknown')
+  write(22,*) nvctr_tot,' atomic'
+  write(22,*)'coarse and fine points of all the different localisation regions'
+
+  do ilr=1,nlr
+     !define logrids
+     allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+     call memocc(i_stat,logrid_c,'logrid_c',subname)
+     allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+     call memocc(i_stat,logrid_f,'logrid_f',subname)
+
+     call wfd_to_logrids(n1,n2,n3,Llr(ilr)%wfd,logrid_c,logrid_f)
+
+     write(message,'(1a,i0)')'g',ilr
+     do i3=0,n3  
+        do i2=0,n2  
+           do i1=0,n1
+              if (logrid_c(i1,i2,i3))&
+                   write(22,'(a4,2x,3(1x,e10.3))') &
+                   message,real(i1,gp)*hx,real(i2,gp)*hy,real(i3,gp)*hz
+           enddo
+        enddo
+     end do
+     write(message,'(1a,i0)')'G',ilr
+     do i3=0,n3 
+        do i2=0,n2 
+           do i1=0,n1
+              if (logrid_f(i1,i2,i3))&
+                   write(22,'(a4,2x,3(1x,e10.3))') &
+                   message,real(i1,gp)*hx,real(i2,gp)*hy,real(i3,gp)*hz
+           enddo
+        enddo
+     enddo
+
+
+     i_all=-product(shape(logrid_c))*kind(logrid_c)
+     deallocate(logrid_c,stat=i_stat)
+     call memocc(i_stat,i_all,'logrid_c',subname)
+     i_all=-product(shape(logrid_f))*kind(logrid_f)
+     deallocate(logrid_f,stat=i_stat)
+     call memocc(i_stat,i_all,'logrid_f',subname)
+  end do
+
+  !close file for writing
+  close(unit=22)  
+end subroutine draw_locregs
+
+subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
+  !calculates the bounds arrays needed for convolutions
+  use module_base
+  use module_types
+  implicit none
+  !Arguments
+  integer, intent(in) :: n1,n2,n3
+  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(convolutions_bounds), intent(out) :: bounds
+  !Local variables
+  character(len=*), parameter :: subname='locreg_bounds'
+  integer :: i_stat,i_all
+  logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
+
+  !define logrids
+  allocate(logrid_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid_c,'logrid_c',subname)
+  allocate(logrid_f(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid_f,'logrid_f',subname)
+
+  call wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
+
+  !allocate and calculate kinetic bounds
+  allocate(bounds%kb%ibyz_c(2,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%kb%ibyz_c,'bounds%kb%ibyz_c',subname)
+  allocate(bounds%kb%ibxz_c(2,0:n1,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%kb%ibxz_c,'bounds%kb%ibxz_c',subname)
+  allocate(bounds%kb%ibxy_c(2,0:n1,0:n2+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%kb%ibxy_c,'bounds%kb%ibxy_c',subname)
+  allocate(bounds%kb%ibyz_f(2,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%kb%ibyz_f,'bounds%kb%ibyz_f',subname)
+  allocate(bounds%kb%ibxz_f(2,0:n1,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%kb%ibxz_f,'bounds%kb%ibxz_f',subname)
+  allocate(bounds%kb%ibxy_f(2,0:n1,0:n2+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%kb%ibxy_f,'bounds%kb%ibxy_f',subname)
+
+  call make_bounds(n1,n2,n3,logrid_c,bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c)
+  call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
+
+  i_all=-product(shape(logrid_c))*kind(logrid_c)
+  deallocate(logrid_c,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid_c',subname)
+  i_all=-product(shape(logrid_f))*kind(logrid_f)
+  deallocate(logrid_f,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid_f',subname)
+  
+  !allocate grow, shrink and real bounds
+  allocate(bounds%gb%ibzxx_c(2,0:n3,-14:2*n1+16+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%gb%ibzxx_c,'bounds%gb%ibzxx_c',subname)
+  allocate(bounds%gb%ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%gb%ibxxyy_c,'bounds%gb%ibxxyy_c',subname)
+  allocate(bounds%gb%ibyz_ff(2,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%gb%ibyz_ff,'bounds%gb%ibyz_ff',subname)
+  allocate(bounds%gb%ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%gb%ibzxx_f,'bounds%gb%ibzxx_f',subname)
+  allocate(bounds%gb%ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%gb%ibxxyy_f,'bounds%gb%ibxxyy_f',subname)
+
+  allocate(bounds%sb%ibzzx_c(2,-14:2*n3+16,0:n1+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%sb%ibzzx_c,'bounds%sb%ibzzx_c',subname)
+  allocate(bounds%sb%ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%sb%ibyyzz_c,'bounds%sb%ibyyzz_c',subname)
+  allocate(bounds%sb%ibxy_ff(2,nfl1:nfu1,nfl2:nfu2+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%sb%ibxy_ff,'bounds%sb%ibxy_ff',subname)
+  allocate(bounds%sb%ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%sb%ibzzx_f,'bounds%sb%ibzzx_f',subname)
+  allocate(bounds%sb%ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%sb%ibyyzz_f,'bounds%sb%ibyyzz_f',subname)
+
+  allocate(bounds%ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%ibyyzz_r,'bounds%ibyyzz_r',subname)
+
+  call make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+       bounds%kb%ibxy_c,bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
+       bounds%kb%ibxy_f,bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
+       bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
+       bounds%kb%ibyz_f,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,&
+       bounds%ibyyzz_r)
+
+end subroutine locreg_bounds
+
 
 
 !pass from the global wavefunction for a set of orbitals to the local wavefunctions

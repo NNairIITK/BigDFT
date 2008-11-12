@@ -73,13 +73,11 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
      call make_bounds(n1,n2,n3,logrid_f,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
   end if
 
-
-
   ! Create the file grid.xyz to visualize the grid of functions
   if (iproc ==0 .and. output_grid) then
      open(unit=22,file='grid.xyz',status='unknown')
-     write(22,*) wfd%nvctr_c+wfd%nvctr_f,' atomic'
-     write(22,*)'complete simulation grid with low ang high resolution points'
+     write(22,*) wfd%nvctr_c+wfd%nvctr_f+atoms%nat,' atomic'
+     write(22,*)'complete simulation grid with low and high resolution points'
      do iat=1,atoms%nat
         write(22,'(a6,2x,3(1x,e12.5),3x)') &
              trim(atoms%atomnames(atoms%iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
@@ -106,7 +104,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
   endif
 
   ! allocations for arrays holding the wavefunctions and their data descriptors
-  call allocate_wfd(wfd,'crtwvfnctsdescriptors')
+  call allocate_wfd(wfd,subname)
 
   ! now fill the wavefunction descriptor arrays
   ! coarse grid quantities
@@ -187,14 +185,14 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
 
   end if
 
-!*************Added by Alexey*****************************************************************
+!*************Added by Alexey************************************************************
   if ( atoms%geocode == 'P' .and. hybrid_on) then
 	  call make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
 	  call make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      bounds%kb%ibxy_f,bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
      bounds%kb%ibyz_f,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f)
   endif	
-!*********************************************************************************************  
+!****************************************************************************************  
 END SUBROUTINE createWavefunctionsDescriptors
 
 subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
@@ -561,9 +559,10 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   integer, parameter :: ngx=31
   integer :: i,iorb,iorbsc,imatrsc,iorbst,imatrst,i_stat,i_all,ierr,info,jproc,jpst,norbeyou
   integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbsc,n1i,n2i,n3i
-  integer :: ispin,norbu,norbd,iorbst2,ist,n2hamovr,nsthamovr,nspinor
+  integer :: ispin,norbu,norbd,iorbst2,ist,n2hamovr,nsthamovr,nspinor,iat
   real(gp) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,accurex
   type(gaussian_basis) :: G
+  type(locreg_descriptors) :: Glr
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
   integer, dimension(:,:), allocatable :: nl,norbsc_arr
@@ -571,6 +570,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   real(gp), dimension(:), allocatable :: occupe,spinsgne,locrad
   real(gp), dimension(:,:), allocatable :: xp,occupat
   real(gp), dimension(:,:,:), allocatable :: psiat
+  type(locreg_descriptors), dimension(:), allocatable :: Llr
 
   !Calculate no. up and down orbitals for spin-polarized starting guess
   norbu=0
@@ -615,6 +615,8 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call memocc(i_stat,scorb,'scorb',subname)
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
+  allocate(locrad(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,locrad,'locrad',subname)
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -626,7 +628,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !the prescriptions can be found in the creation of psp basis
 
   call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,nspin,&
-       scorb,norbsc_arr)
+       scorb,norbsc_arr,locrad)
 
   !Check for max number of virtual orbitals
   nvirte=norbe-max(norbu,norbd)!the unoccupied orbitals available as a LCAO
@@ -684,15 +686,47 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !     ngx,xp,psiat,ng,nl,wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,psi,eks,scorb)
   allocate(gaucoeff(norbe,norbep+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeff,'gaucoeff',subname)
-  allocate(locrad(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,locrad,'locrad',subname)
 
   
   call AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
-     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,locrad)!,&
+     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff)!,&
      !wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,psi)
   !createAtomicOrbitals should generate the gaussian basis set and the data needed to generate
-  !the wavefunctions inside a given localisation region. This can then be hit with this routine
+  !the wavefunctions inside a given localisation region.
+
+  !create the localisation region which are associated to the gaussian extensions and plot them
+  Glr%geocode=at%geocode
+  Glr%ns1=0
+  Glr%ns2=0
+  Glr%ns3=0
+  Glr%d%n1=n1
+  Glr%d%n2=n2
+  Glr%d%n3=n3
+  Glr%d%nfl1=nfl1
+  Glr%d%nfl2=nfl2
+  Glr%d%nfl3=nfl3
+  Glr%d%nfu1=nfu1
+  Glr%d%nfu2=nfu2
+  Glr%d%nfu3=nfu3
+  Glr%wfd=wfd !to be tested
+
+  !allocate the array of localisation regions
+  allocate(Llr(at%nat+ndebug),stat=i_stat)
+  !call memocc(i_stat,Llr,'Llr',subname)
+
+  print *,'locrad',locrad
+
+  call determine_locreg(at%nat,rxyz,locrad,hx,hy,hz,Glr,Llr)
+
+  do iat=1,at%nat
+     call deallocate_wfd(Llr(iat)%wfd,subname)
+     call deallocate_bounds(Llr(iat)%bounds,subname)
+  end do
+
+  !i_all=-product(shape(Llr))*kind(Llr)
+  deallocate(Llr,stat=i_stat) !these allocation are special
+  !call memocc(i_stat,i_all,'Llr',subname)
+
 
   call gaussians_to_wavelets(at%geocode,iproc,nproc,norbe*nspin,norbep,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,gaucoeff,psi)
@@ -759,7 +793,6 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 
   call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,nspin)
-  
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(nvctrp*norbep*nproc+ndebug),stat=i_stat)
