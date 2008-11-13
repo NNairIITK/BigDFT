@@ -151,7 +151,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,n
      !calculate the localisation radius for the input orbitals 
      call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
           neleconf,nsccode,mxpl,mxchg)
-     locrad(iat)=3._gp/sqrt(abs(2._gp*ehomo))
+     locrad(iat)=5._gp/sqrt(abs(2._gp*ehomo))
      call charge_and_spol(at%natpol(iat),ichg,ispol)
      !correct in the case of input charge positioning
      if (ichg /=0) then

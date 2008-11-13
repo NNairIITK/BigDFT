@@ -194,18 +194,18 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
      eself=0.0_gp
      do iat=1,at%nat
 
+        ityp=at%iatype(iat)
+        rloc=at%psppar(0,0,ityp)
+        charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
+        prefactor=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
+        cutoff=10.0_gp*rloc
+
         if (n3pi >0 ) then
 
            call razero(n1i*n2i*n3pi,pot_ion)
-           ityp=at%iatype(iat)
            rx=rxyz(1,iat) 
            ry=rxyz(2,iat)
            rz=rxyz(3,iat)
-
-           rloc=at%psppar(0,0,ityp)
-           charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
-           prefactor=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
-           cutoff=10.0_gp*rloc
 
            isx=floor((rx-cutoff)/hxh)
            isy=floor((ry-cutoff)/hyh)

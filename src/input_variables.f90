@@ -1074,7 +1074,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      if (nsccode/= 0) at%natsc=at%natsc+1
   enddo
   nelec=nelec-in%ncharge
-  if (iproc.eq.0) then
+  if (iproc == 0) then
      write(*,'(1x,a,i8)') &
           'Total Number of Electrons ',nelec
   end if
@@ -1379,7 +1379,7 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
      nfu3=n3
   end if
 
-  if (iproc.eq.0) then
+  if (iproc == 0) then
      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
      do iat=1,atoms%nat
         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5),3x,3(1x,0pf9.3))') &
