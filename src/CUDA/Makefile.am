@@ -6,7 +6,8 @@ EXTRA_DIST = \
 	conv_shared_multi_kernel.cu \
 	conv_pot_shared_kernel.cu \
 	Makefile.standalone \
-	read_conf_file.h
+	read_conf_file.h \	
+	reduction.h
 
 SOURCES_CU_CONV1 = convolution.cu \
 	convolutionPot.cu \
@@ -78,6 +79,7 @@ convolution.o : conv_shared_multi_kernel.cu \
 
 conv_shared_multi.cu : structUtil.h
 
+locpot.o: reduction.h
 
 convolutionPot.cu : conv_pot_shared_kernel.cu \
 	convolutionPot.h \

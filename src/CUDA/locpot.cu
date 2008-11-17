@@ -47,6 +47,8 @@
 #define MFIL14 -0.5185986881173432922848639136911487e-4f
 #define MFIL15  2.72734492911979659657715313017228e-6f
 
+#include "reduction.h"
+ 
 
 typedef struct  _parMF
 {
@@ -264,7 +266,6 @@ __global__ void magicfilter1d(int n,int ndat, float *psi_in, float *psi_out,int 
       
     }
 
- 
 }
 
 //1D convolution of multiple lines in the same block
@@ -556,7 +557,7 @@ int magicfilterpot(int n1,int n2, int n3,
 
   //here one should combine psi and work to calculate the potential
   //energy
-  epot=0.f;
+  epot=reducearrays(n1,n2*n3,psi,work);
 
   //reverse MF calculation
   magicfilter1d_t <<< grid3, threads3 >>>(n3,n1*n2,work,psi,2);

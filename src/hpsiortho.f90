@@ -23,6 +23,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,rad
   real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(out) :: hpsi
   !local variables
+  type(locreg_descriptors) :: lr !temporarily local, to be defined as argument
   character(len=*), parameter :: subname='HamiltonianApplication'
   integer :: i_all,i_stat,ierr,n1i,n2i,n3i,iorb,ispin
   real(gp) :: eproj
@@ -54,11 +55,14 @@ subroutine HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,rad
         n3i=2*n3+2
   end select
 
+  call create_Glr(at%geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,wfd,bounds,&
+       lr)
+
   !build the potential on the whole simulation box
   !in the linear scaling case this should be done for a given localisation region
   !cannot be deplaced due to the fact that n1i is not calculated
   if (nproc > 1) then
-     allocate(pot(n1i*n2i*n3i,nspin+ndebug),stat=i_stat)
+     allocate(pot(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspin+ndebug),stat=i_stat)
      call memocc(i_stat,pot,'pot',subname)
 
      do ispin=1,nspin
@@ -70,9 +74,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,rad
      pot => potential
   end if
 
-  call local_hamiltonian(iproc,at%geocode,hybrid_on,&
-       n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,&
-       hx,hy,hz,wfd,bounds,nspin,nspinor,norbp,norb,occup,spinsgn,pot,psi,hpsi,ekin_sum,epot_sum)
+  call local_hamiltonian(iproc,at%geocode,hybrid_on,lr,hx,hy,hz,&
+       nspin,nspinor,norbp,norb,occup,spinsgn,pot,psi,hpsi,ekin_sum,epot_sum)
   
 
   if (nproc > 1) then
@@ -88,18 +91,20 @@ subroutine HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,rad
   ! apply all PSP projectors for all orbitals belonging to iproc
   call timing(iproc,'ApplyProj     ','ON')
 
+  !here the localisation region should be changed, temporary only for cubic approach
   eproj_sum=0.d0
   !apply the projectors following the strategy (On-the-fly calculation or not)
   if (DistProjApply) then
-     call applyprojectorsonthefly(iproc,nspinor,norb,norbp,occup,at,n1,n2,n3,&
-          rxyz,hx,hy,hz,cpmult,fpmult,radii_cf,wfd,nlpspd,proj,psi,hpsi,eproj_sum)
+     call applyprojectorsonthefly(iproc,nspinor,norb,norbp,occup,at,lr%d%n1,lr%d%n2,lr%d%n3,&
+          rxyz,hx,hy,hz,cpmult,fpmult,radii_cf,lr%wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   else
+     !one should add a flag here which states that it works only for global reion
      ! loop over all my orbitals
      do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor
         call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
              nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,&
              nlpspd%nvctr_p,&
-             proj,wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,wfd%nvctr_c,wfd%nvctr_f,  & 
+             proj,lr%wfd%nseg_c,lr%wfd%nseg_f,lr%wfd%keyg,lr%wfd%keyv,lr%wfd%nvctr_c,lr%wfd%nvctr_f,  & 
              psi(1,iorb-iproc*norbp*nspinor),hpsi(1,iorb-iproc*norbp*nspinor),eproj)
         eproj_sum=eproj_sum+occup((iorb-1)/nspinor+1)*eproj
      enddo
