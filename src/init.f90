@@ -564,7 +564,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   type(gaussian_basis) :: G
   type(locreg_descriptors) :: Glr
   logical, dimension(:,:,:), allocatable :: scorb
-  integer, dimension(:), allocatable :: ng
+  integer, dimension(:), allocatable :: ng,iorbtolr
   integer, dimension(:,:), allocatable :: nl,norbsc_arr
   real(wp), dimension(:,:), allocatable :: gaucoeff
   real(gp), dimension(:), allocatable :: occupe,spinsgne,locrad
@@ -686,10 +686,12 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !     ngx,xp,psiat,ng,nl,wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,psi,eks,scorb)
   allocate(gaucoeff(norbe,norbep+ndebug),stat=i_stat)
   call memocc(i_stat,gaucoeff,'gaucoeff',subname)
+  allocate(iorbtolr(norbep+ndebug),stat=i_stat)
+  call memocc(i_stat,iorbtolr,'iorbtolr',subname)
 
   
   call AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
-     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff)!,&
+     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,iorbtolr)!,&
      !wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,psi)
   !createAtomicOrbitals should generate the gaussian basis set and the data needed to generate
   !the wavefunctions inside a given localisation region.
@@ -714,19 +716,20 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   allocate(Llr(at%nat+ndebug),stat=i_stat)
   !call memocc(i_stat,Llr,'Llr',subname)
 
-  print *,'locrad',locrad
+  !print *,'locrad',locrad
 
   call determine_locreg(at%nat,rxyz,locrad,hx,hy,hz,Glr,Llr)
 
   do iat=1,at%nat
      call deallocate_wfd(Llr(iat)%wfd,subname)
-     call deallocate_bounds(Llr(iat)%bounds,subname)
+     if (Llr(iat)%geocode=='F') then
+        call deallocate_bounds(Llr(iat)%bounds,subname)
+     end if
   end do
 
   !i_all=-product(shape(Llr))*kind(Llr)
   deallocate(Llr,stat=i_stat) !these allocation are special
   !call memocc(i_stat,i_all,'Llr',subname)
-
 
   call gaussians_to_wavelets(at%geocode,iproc,nproc,norbe*nspin,norbep,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,gaucoeff,psi)
@@ -752,6 +755,10 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   i_all=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=i_stat)
   call memocc(i_stat,i_all,'locrad',subname)
+  i_all=-product(shape(iorbtolr))*kind(iorbtolr)
+  deallocate(iorbtolr,stat=i_stat)
+  call memocc(i_stat,i_all,'iorbtolr',subname)
+
 
   
   i_all=-product(shape(scorb))*kind(scorb)
