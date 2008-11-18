@@ -74,7 +74,7 @@ int magicfilterpot(int n1,int n2, int n3,
 		   float *psi,
 		   float *work,
 		   float *pot,
-		   float epot);
+		   float *epot);
 
 
 
@@ -478,7 +478,7 @@ void localpotential_(int *n1,int *n2,int *n3,
 	       *psi,
 	       *work,
 	       *pot,
-	       *epot) != 0)
+	       epot) != 0)
     {
       printf("ERROR: GPU magicfilterpot\n ");
       return;
@@ -491,7 +491,7 @@ int magicfilterpot(int n1,int n2, int n3,
 		   float *psi,
 		   float *work,
 		   float *pot,
-		   float epot)
+		   float *epot)
 {
 
   //create the parameters
@@ -557,7 +557,8 @@ int magicfilterpot(int n1,int n2, int n3,
 
   //here one should combine psi and work to calculate the potential
   //energy
-  epot=reducearrays(n1,n2*n3,psi,work);
+  reducearrays(n1,n2*n3,psi,work,epot);
+  cudaThreadSynchronize(); //can be removed since the arrays are not overwritten
 
   //reverse MF calculation
   magicfilter1d_t <<< grid3, threads3 >>>(n3,n1*n2,work,psi,2);
@@ -574,3 +575,89 @@ int magicfilterpot(int n1,int n2, int n3,
 }
 
 /****/
+
+
+extern "C" 
+void gpu_allocate__(int *nsize, //memory size
+		    float **GPU_pointer, // pointer indicating the GPU address
+		    int *ierr) // error code, 1 if failure
+
+		    
+{
+
+  unsigned int mem_size = (*nsize)*sizeof(float);
+
+
+  //allocate memory on GPU, return error code in case of problems
+  *ierr=0;
+  if(cudaMalloc( (void**) (GPU_pointer), mem_size) != 0)
+    {
+      printf("GPU allocation error \n");
+      *ierr=1;
+      return;
+    }
+}
+
+extern "C" 
+void gpu_deallocate__(float **GPU_pointer, // pointer indicating the GPU address
+		      int *ierr) // error code, 1 if failure
+{
+  //deallocate memory on GPU, return error code in case of problems
+  *ierr=0;
+  if(cudaFree(*GPU_pointer) != 0)
+    {
+      CUERR
+      printf("GPU deallocation error \n");
+      *ierr=1;
+      return;
+    }
+}
+
+
+//Temporary send-receive operations, displacements to be added (other routines?)
+
+
+extern "C"
+void gpu_send__(int *nsize,
+		float *CPU_pointer, 
+		float **GPU_pointer,
+		int *ierr)
+{
+
+  unsigned int mem_size = (*nsize)*sizeof(float);
+
+  //copy V to GPU
+  *ierr=0;
+  if(cudaMemcpy(*GPU_pointer, CPU_pointer, mem_size, cudaMemcpyHostToDevice)  != 0)
+    {
+      printf("HostToDevice Memcpy error \n");
+      *ierr=1;
+      return;
+    }
+
+}
+
+extern "C" 
+void gpu_receive__(int *nsize,
+		float *CPU_pointer, 
+		float **GPU_pointer,
+		int *ierr)
+{
+
+  unsigned int mem_size = (*nsize)*sizeof(float);
+
+  //copy V to GPU
+  *ierr=0;
+  if(cudaMemcpy(CPU_pointer,*GPU_pointer, mem_size, cudaMemcpyDeviceToHost)  != 0)
+    {
+      CUERR;
+      printf("DeviceToHost Memcpy error \n");
+      printf(" %i \n",mem_size);
+      *ierr=1;
+      return;
+    }
+
+}
+/****/
+
+

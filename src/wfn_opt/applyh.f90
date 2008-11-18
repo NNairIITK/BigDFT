@@ -389,19 +389,38 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      psi_cuda=real(psi_in,kind=4)
      v_cuda=real(pot,kind=4)
 
-     !allocate the GPU memory
-     !copy the data on GPU
-     call CUDA_ALLOC_MEM(1,2*n1+1,2*n2+1,2*n3+1,psi_cuda,v_cuda,psi_GPU,v_GPU,work_GPU)
+!!$     !allocate the GPU memory
+!!$     !copy the data on GPU
+!!$     call CUDA_ALLOC_MEM(1,2*n1+1,2*n2+1,2*n3+1,psi_cuda,v_cuda,psi_GPU,v_GPU,work_GPU)
+!!$
+!!$     !calculate the potential application on GPU
+!!$     call cuda_psi_to_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,v_GPU,work_GPU,&
+!!$          filCUDA1,filCUDA2,lowfil1,lupfil1,lowfil2,lupfil2)
+!!$     
+!!$     !copy vpsi on the CPU
+!!$     call cuda_fetch_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,psi_cuda)
+!!$
+!!$     !deallocate GOU memory
+!!$     call CUDA_DEALLOCATE_MEM(1,psi_GPU,v_GPU,work_GPU)
 
-     !calculate the potential application on GPU
-     call cuda_psi_to_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,v_GPU,work_GPU,&
-          filCUDA1,filCUDA2,lowfil1,lupfil1,lowfil2,lupfil2)
-     
-     !copy vpsi on the CPU
-     call cuda_fetch_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,psi_cuda)
+     !new CUDA implementation
 
-     !deallocate GOU memory
-     call CUDA_DEALLOCATE_MEM(1,psi_GPU,v_GPU,work_GPU)
+     !allocate GPU memory
+     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),psi_GPU,i_stat)
+     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),v_GPU,i_stat)
+     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),work_GPU,i_stat)
+
+     call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,psi_GPU,i_stat)
+     call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),v_cuda,v_GPU,i_stat)
+
+     call localpotential(2*n1+1,2*n2+1,2*n3+1,psi_GPU,work_GPU,v_GPU,epot)
+
+     call GPU_receive((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,psi_GPU,i_stat)
+
+     !deallocate GPU memory
+     call GPU_deallocate(psi_GPU,i_stat)
+     call GPU_deallocate(v_GPU,i_stat)
+     call GPU_deallocate(work_GPU,i_stat)
 
      !copy values on the output function
      psi_out=real(psi_cuda,wp)

@@ -14,6 +14,8 @@ SOURCES_CU_CONV1 = convolution.cu \
 	structUtil.cu \
 	cudafct.cu
 
+SOURCES_CONV = locpot.cu
+
 SOURCES_CXX_CONV1 = convSeria.cpp \
 	setCPU_GPU_aff.cpp \
 	read_conf_file.cpp \
@@ -23,7 +25,7 @@ INC_CUDA = -I@LIB_CUTIL_PATH@
 
 noinst_LIBRARIES = libGPU.a
 
-libGPU_a_SOURCES = $(SOURCES_CU_CONV1) $(SOURCES_CXX_CONV1)
+libGPU_a_SOURCES = $(SOURCES_CU_CONV1) $(SOURCES_CXX_CONV1) $(SOURCES_CONV)
 AM_CPPFLAGS = $(INC_CUDA) -I. -I@CUDA_PATH@/include/ 
 AM_CFLAGS = $(INC_CUDA) -I. -I@CUDA_PATH@/include/ -DCUBLAS_USE_THUNKING 
 
@@ -56,7 +58,7 @@ CLEANFILES = module_base.@MODULE_EXT@
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ 
 
-conv_check_SOURCES = conv_check.f90 1Dconv.cu 1Dconv_new.cu locpot.cu ../profiling/memory.f90 ../modules/base.f90 $(mpi_source)
+conv_check_SOURCES = conv_check.f90 1Dconv.cu 1Dconv_new.cu ../profiling/memory.f90 ../modules/base.f90 $(mpi_source)
 conv_check_LDFLAGS =
 conv_check_LDADD = ../convolutions/libconvolutions.a \
 	$(libs_cuda)

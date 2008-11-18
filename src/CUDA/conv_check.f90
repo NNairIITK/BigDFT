@@ -319,7 +319,7 @@ program conv_check
 
      call cpu_time(t1)
 
-     CPUtime=real(t1-t0,kind=8)/real(ntimes,kind=8)
+     CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
 
 
      write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
@@ -372,7 +372,7 @@ program conv_check
      !call GPU_receive((n1+1)*(n2+1)*(n3+1),psi_cuda,work_GPU,i_stat)
      !     call cuda_fetch_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,psi_cuda)
 
-     GPUtime=real(t1-t0,kind=8)/real(ntimes,kind=8)
+     GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
 
      write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
           GPUtime*1.d3/real(ntimes,kind=8),&

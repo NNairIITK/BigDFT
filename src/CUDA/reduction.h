@@ -12,14 +12,17 @@
 # define   	REDUCTION_H_
 
 //values from which the reduction is done on CPU
-#define  COPYVALUES 1024
+#define  COPYVALUES 4096
 
-
+#define CUERR { cudaError_t err; \
+ if ((err = cudaGetLastError()) != cudaSuccess) { \
+ printf("CUDA error: %s, line %d\n", cudaGetErrorString(err), __LINE__); }}
 
 float reducearrays(int n,
 		   int ndat,
 		   float *psi,
-		   float *vpsi);
+		   float *vpsi,
+		   float *epot);
 
 
 template <unsigned int blockSize>
@@ -105,14 +108,16 @@ __global__ void reducethen(int n, float *in,float *out)
 float reducearrays(int n,
 		   int ndat,
 		   float *psi,
-		   float *vpsi)
+		   float *vpsi,
+		   float *epot)
+
 {
 
-  float epot[COPYVALUES];
+  float epots[COPYVALUES];
 
   //first reduce the two arrays in the input-output form
   int threads=256; //first value, fixed
-  int blocks=(n*ndat-1) >> 8 + 1; //ntot-1/256 +1
+  int blocks=(n*ndat-1)/256 + 1; //ntot-1/256 +1
 
   dim3 dimBlock(threads, 1, 1);
   dim3 dimGrid(blocks, 1, 1);
@@ -133,39 +138,39 @@ float reducearrays(int n,
       return 0.f;
     }
 
-
   switch (threads)
     {
     case 512:
       reducefirst<512><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
-    case 256:
+    case 256:	 
       reducefirst<256><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
-    case 128:
+    case 128:	 
       reducefirst<128><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
-    case 64:
+    case 64:	 
       reducefirst< 64><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
-    case 32:
+    case 32:	 
       reducefirst< 32><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
-    case 16:
+    case 16:	 
       reducefirst< 16><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
-    case 8:
+    case 8:	 
       reducefirst<  8><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
-    case 4:
+    case 4:	 
       reducefirst<  4><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
-    case 2:
+    case 2:	 
       reducefirst<  2><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
-    case 1:
+    case 1:	 
       reducefirst<  1><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
     default:
       exit(1);
     }
 
-  int ntot=n*ndat;
+  int ntot=blocks;
   threads=512;
   int iin=0;
   int iout=1;
 
   //then pass to the reduction case until only one element is left
+
   while (blocks > COPYVALUES)
     {
       while(ntot < 2*threads){threads/=2;}
@@ -204,29 +209,37 @@ float reducearrays(int n,
       ntot=blocks;
       iin=1-iin;
       iout=1-iout;
-
-      printf("ntot,blocks,iin,iout %i %i %i %i\n",ntot,blocks,iin,iout); 
+      //printf("ntot,blocks,iin,iout %i %i %i %i\n",ntot,blocks,iin,iout); 
 
     }
 
-  if(cudaMemcpy(&epot,&(wrkred[iin]), blocks*sizeof(float), cudaMemcpyDeviceToHost)  != 0)
+  //printf("ntot,blocks,iin,iout %i %i %i %i\n",ntot,blocks,iin,iout); 
+  cudaFree(wrkred[iout]);
+
+
+  if(cudaMemcpy(epots,wrkred[iin], blocks*sizeof(float), cudaMemcpyDeviceToHost)  != 0)
     {
       printf("reducearrays: DeviceToHost Memcpy error \n");
       return 0.f;
     }
 
-  cudaFree(wrkred[1]);
-  cudaFree(wrkred[0]);
 
-  register float result=epot[0];
+  //cudaFree(wrkred);
+  cudaFree(wrkred[iin]);
 
-    for( int i = 1 ; i < blocks; i++ ) 
+  
+  register float result=epots[0];
+
+    for( int i = 1 ; i < blocks; i++ )  
       {
-      result += epot[i];
+      result += epots[i];
+      //printf ("%f",epots);
     }
   
-  return result;
+    *epot=result;
 
+  return result;
+  
 }
 #endif 	    /* !REDUCTION_H_ */
 
