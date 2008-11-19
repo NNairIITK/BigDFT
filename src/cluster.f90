@@ -181,6 +181,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(wavefunctions_descriptors) :: wfd_old
   type(convolutions_bounds) :: bounds
   type(nonlocal_psp_descriptors) :: nlpspd
+  type(locreg_descriptors) :: Glr
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: occup,spinsgn,spinsgn_foo,rho
   real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
@@ -396,6 +397,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      allocate(eval(norb+ndebug),stat=i_stat)
      call memocc(i_stat,eval,'eval',subname)
   end if
+
+  call create_Glr(atoms%geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,wfd,bounds,&
+       Glr)
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   if (in%inputPsiId == -2) then
@@ -1133,11 +1137,11 @@ contains
     if (in%nvirt > 0) then
        i_all=-product(shape(psivirt))*kind(psivirt)
        deallocate(psivirt)
-       call memocc(i_stat,i_all,'psivirt','cluster')
+       call memocc(i_stat,i_all,'psivirt',subname)
     end if
 
     if (atoms%geocode == 'F') then
-       call deallocate_bounds(bounds,'cluster')
+       call deallocate_bounds(bounds,subname)
     end if
     !****************Added by Alexey***********************************************************	
     if (atoms%geocode == 'P' .and. hybrid_on) then 

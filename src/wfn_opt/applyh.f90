@@ -1,26 +1,24 @@
 ! calculate the action of the local hamiltonian on the orbitals
-subroutine local_hamiltonian(iproc,geocode,hybrid_on,&
-     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,&
-     hx,hy,hz,wfd,bounds,nspin,nspinor,norbp,norb,occup,spinsgn,pot,psi,hpsi,ekin_sum,epot_sum)
+subroutine local_hamiltonian(iproc,geocode,hybrid_on,lr,hx,hy,hz,&
+     nspin,nspinor,norbp,norb,occup,spinsgn,pot,psi,hpsi,ekin_sum,epot_sum)
   use module_base
   use module_types
   implicit none
   character(len=1), intent(in) :: geocode
   logical, intent(in) :: hybrid_on
-  integer, intent(in) :: iproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
-  integer, intent(in) :: norbp,norb,nspinor,nspin
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  type(convolutions_bounds), intent(in) :: bounds
+  integer, intent(in) :: iproc,norbp,norb,nspinor,nspin
   real(gp), intent(in) :: hx,hy,hz
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(in) :: psi
-  real(wp), dimension(n1i,n2i,n3i,nspin) :: pot
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor*norbp), intent(in) :: psi
+  real(wp), dimension(lr%d%n1i,lr%d%n2i,lr%d%n3i,nspin) :: pot
   real(gp), dimension(norb), intent(in) :: occup,spinsgn
   real(gp), intent(out) :: ekin_sum,epot_sum
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(out) :: hpsi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor*norbp), intent(out) :: hpsi
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   integer :: i_all,i_stat,ierr,iorb
   integer :: nw1,nw2,nsoffset,oidx,ispin,md
+  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
   real(gp) :: ekin,epot
   real(wp), dimension(:,:), allocatable :: w1,w2,psir
   !for the periodic BC case, these arrays substitute 
@@ -28,7 +26,21 @@ subroutine local_hamiltonian(iproc,geocode,hybrid_on,&
   real(wp), dimension(:,:,:,:), allocatable :: x_c,y_c,x_f1,x_f2,x_f3
   real(wp), dimension(:,:,:,:,:), allocatable :: x_f,x_fc,y_f
 
-  select case(geocode)
+  n1=lr%d%n1
+  n2=lr%d%n2
+  n3=lr%d%n3
+  n1i=lr%d%n1i
+  n2i=lr%d%n2i
+  n3i=lr%d%n3i
+  nfl1=lr%d%nfl1
+  nfl2=lr%d%nfl2
+  nfl3=lr%d%nfl3
+  nfu1=lr%d%nfu1
+  nfu2=lr%d%nfu2
+  nfu3=lr%d%nfu3
+
+
+  select case(lr%geocode)
   case('F')
      !dimensions of work arrays
      ! shrink convention: nw1>nw2
@@ -112,35 +124,35 @@ subroutine local_hamiltonian(iproc,geocode,hybrid_on,&
 
      oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
 
-     select case(geocode)
+     select case(lr%geocode)
      case('F')
         call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
-             hx,wfd%nseg_c,wfd%nseg_f,wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
-             bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c,&
-             bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f,y_c,y_f,psir, &
+             hx,lr%wfd%nseg_c,lr%wfd%nseg_f,lr%wfd%nvctr_c,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv,&
+             lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
+             lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,y_c,y_f,psir, &
              psi(1,oidx),pot(1,1,1,nsoffset),hpsi(1,oidx),epot,ekin,&
              x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
-             bounds%sb%ibzzx_c,bounds%sb%ibyyzz_c,&
-             bounds%sb%ibxy_ff,bounds%sb%ibzzx_f,bounds%sb%ibyyzz_f,&
-             bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,&
-             bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,nw1,nw2,bounds%ibyyzz_r,&
+             lr%bounds%sb%ibzzx_c,lr%bounds%sb%ibyyzz_c,&
+             lr%bounds%sb%ibxy_ff,lr%bounds%sb%ibzzx_f,lr%bounds%sb%ibyyzz_f,&
+             lr%bounds%gb%ibzxx_c,lr%bounds%gb%ibxxyy_c,&
+             lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f,nw1,nw2,lr%bounds%ibyyzz_r,&
              nspinor)
      case('P')
         if (hybrid_on) then
            call applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-                hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
-                wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
+                hx,hy,hz,lr%wfd%nseg_c,lr%wfd%nseg_f,&
+                lr%wfd%nvctr_c,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv,& 
                 psir,psi(1,oidx),pot(1,1,1,nsoffset),&
-                hpsi(1,oidx),epot,ekin,bounds) 
+                hpsi(1,oidx),epot,ekin,lr%bounds) 
         else
-           call applylocpotkinone_per(n1,n2,n3,hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
-                wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
+           call applylocpotkinone_per(n1,n2,n3,hx,hy,hz,lr%wfd%nseg_c,lr%wfd%nseg_f,&
+                lr%wfd%nvctr_c,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv,& 
                 psir,x_c,y_c,psi(1,oidx),pot(1,1,1,nsoffset),&
                 hpsi(1,oidx),epot,ekin) 
         end if
      case('S')
-        call applylocpotkinone_slab(n1,n2,n3,hx,hy,hz,wfd%nseg_c,wfd%nseg_f,&
-             wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,& 
+        call applylocpotkinone_slab(n1,n2,n3,hx,hy,hz,lr%wfd%nseg_c,lr%wfd%nseg_f,&
+             lr%wfd%nvctr_c,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv,& 
              psir,x_c,y_c,psi(1,oidx),pot(1,1,1,nsoffset),&
              hpsi(1,oidx),epot,ekin) 
      end select
@@ -317,6 +329,7 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
   real(wp) :: tt
   real(gp) :: v,p
   real(gp), dimension(3) :: hgridh
+  real(kind=4) :: epotGPU
   real(kind=4), dimension(:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
   real(kind=8) :: psi_GPU,v_GPU,work_GPU !pointer to the GPU  memory addresses (with norb=1)
   integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
@@ -377,19 +390,38 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      psi_cuda=real(psi_in,kind=4)
      v_cuda=real(pot,kind=4)
 
-     !allocate the GPU memory
-     !copy the data on GPU
-     call CUDA_ALLOC_MEM(1,2*n1+1,2*n2+1,2*n3+1,psi_cuda,v_cuda,psi_GPU,v_GPU,work_GPU)
+!!$     !allocate the GPU memory
+!!$     !copy the data on GPU
+!!$     call CUDA_ALLOC_MEM(1,2*n1+1,2*n2+1,2*n3+1,psi_cuda,v_cuda,psi_GPU,v_GPU,work_GPU)
+!!$
+!!$     !calculate the potential application on GPU
+!!$     call cuda_psi_to_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,v_GPU,work_GPU,&
+!!$          filCUDA1,filCUDA2,lowfil1,lupfil1,lowfil2,lupfil2)
+!!$     
+!!$     !copy vpsi on the CPU
+!!$     call cuda_fetch_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,psi_cuda)
+!!$
+!!$     !deallocate GOU memory
+!!$     call CUDA_DEALLOCATE_MEM(1,psi_GPU,v_GPU,work_GPU)
 
-     !calculate the potential application on GPU
-     call cuda_psi_to_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,v_GPU,work_GPU,&
-          filCUDA1,filCUDA2,lowfil1,lupfil1,lowfil2,lupfil2)
-     
-     !copy vpsi on the CPU
-     call cuda_fetch_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,psi_cuda)
+     !new CUDA implementation
 
-     !deallocate GOU memory
-     call CUDA_DEALLOCATE_MEM(1,psi_GPU,v_GPU,work_GPU)
+     !allocate GPU memory
+     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),psi_GPU,i_stat)
+     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),v_GPU,i_stat)
+     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),work_GPU,i_stat)
+
+     call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,psi_GPU,i_stat)
+     call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),v_cuda,v_GPU,i_stat)
+
+     call localpotential(2*n1+1,2*n2+1,2*n3+1,psi_GPU,work_GPU,v_GPU,epotGPU)
+
+     call GPU_receive((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,psi_GPU,i_stat)
+
+     !deallocate GPU memory
+     call GPU_deallocate(psi_GPU,i_stat)
+     call GPU_deallocate(v_GPU,i_stat)
+     call GPU_deallocate(work_GPU,i_stat)
 
      !copy values on the output function
      psi_out=real(psi_cuda,wp)
@@ -401,6 +433,7 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      deallocate(v_cuda,stat=i_stat)
      call memocc(i_stat,i_all,'v_cuda',subname)
      
+     epot=real(epotGPU,kind=8)
   else
 
      ! psir serves as a work array	   

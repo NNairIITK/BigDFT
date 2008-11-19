@@ -28,3 +28,28 @@
     stop 'fake CUDA_DEALLOCATE_MEM'
   end subroutine CUDA_DEALLOCATE_MEM
 
+  subroutine GPU_allocate()
+    implicit none
+    stop 'fake GPU_allocate'
+  end subroutine GPU_allocate
+
+  subroutine GPU_deallocate()
+    implicit none
+    stop 'fake GPU_deallocate'
+  end subroutine GPU_deallocate
+
+  subroutine GPU_send()
+    implicit none
+    stop 'fake GPU_send'
+  end subroutine GPU_send
+
+  subroutine GPU_receive()
+    implicit none
+    stop 'fake GPU_receive'
+  end subroutine GPU_receive
+
+  subroutine localpotential()
+    implicit none
+    stop 'fake localpotential'
+  end subroutine localpotential
+

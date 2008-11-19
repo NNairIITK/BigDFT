@@ -1,5 +1,5 @@
 subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,nspin,&
-     & scorb,norbsc_arr)
+     & scorb,norbsc_arr,locrad)
   use module_base
   use module_types
   implicit none
@@ -13,6 +13,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,n
   real(gp), dimension(ngx,at%ntypes), intent(out) :: xp
   real(gp), dimension(5,at%ntypes), intent(out) :: occupat
   real(gp), dimension(ngx,5,at%ntypes), intent(out) :: psiat
+  real(gp), dimension(at%nat), intent(out) :: locrad
   !local variables
   character(len=*), parameter :: subname='readAtomicOrbitals'
   integer, parameter :: nmax=6,lmax=3
@@ -147,11 +148,13 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,n
      ity=at%iatype(iat)
      norbe=norbe+nl(1,ity)+3*nl(2,ity)+5*nl(3,ity)+7*nl(4,ity)
      nsccode=at%iasctype(ity)
+     !calculate the localisation radius for the input orbitals 
+     call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
+          neleconf,nsccode,mxpl,mxchg)
+     locrad(iat)=5._gp/sqrt(abs(2._gp*ehomo))
      call charge_and_spol(at%natpol(iat),ichg,ispol)
      !correct in the case of input charge positioning
      if (ichg /=0) then
-        call eleconf(at%nzatom(ity),at%nelpsp(ity),symbol,rcov,rprb,ehomo,&
-             neleconf,nsccode,mxpl,mxchg)
         call correct_semicore(at%atomnames(ity),6,3,ichg,neleconf,nsccode)
      end if
      if (nsccode/=0) then !the atom has some semicore orbitals
@@ -422,7 +425,7 @@ subroutine createAtomicOrbitals(iproc,nproc,at,&
 end subroutine createAtomicOrbitals
 
 subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
-     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,locrad)!,&
+     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,iorbtolr)!,&
   !wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,psi)
   use module_base
   use module_types
@@ -443,8 +446,8 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
   real(gp), dimension(ngx,5,at%ntypes), intent(inout) :: psiat
   type(gaussian_basis), intent(out) :: G
   real(gp), intent(out) :: eks
+  integer, dimension(norbep), intent(out) :: iorbtolr !assign the localisation region
   real(gp), dimension(nspin*norbe), intent(out) :: occupe
-  real(gp), dimension(at%nat), intent(out) :: locrad
   real(wp), dimension(norbe,norbep), intent(out) :: gaucoeff !norbe=G%ncoeff
   
   !local variables
@@ -456,7 +459,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
   integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,nterm,iocc,ictotpsi,ishell,icoeff,ig
   real(wp) :: scprw
   real(dp) :: scpr
-  real(gp) :: rx,ry,rz,ek,occshell,rcov,rprb,ehomo,shelloccup,rloc_avg,norm
+  real(gp) :: rx,ry,rz,ek,occshell,rcov,rprb,ehomo,shelloccup
   logical, dimension(nlmax,noccmax) :: semicore
   integer, dimension(2) :: iorbsc,iorbv
   integer, dimension(nlevmax,0:(nlmax-1)) :: neleconf
@@ -605,8 +608,6 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
      end if
      polarised=.false.
 
-     rloc_avg=0.0_gp
-     norm=0.0_gp
      do l=1,4
         do inl=1,nl(l,ity)
            ishell=ishell+1
@@ -625,10 +626,6 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
               iexpo=iexpo+1
               G%psiat(iexpo)=psiatn(ig)
               G%xp(iexpo)=xp(ig,ity)
-              !mean localisation radius of the atomic region
-              rloc_avg=rloc_avg+G%psiat(iexpo)*G%xp(iexpo)
-              !rloc_avg=max(rloc_avg,G%xp(iexpo))
-              norm=norm+G%psiat(iexpo)
            end do
            !decide the polarisation of the orbital by changing the population
            if (nint(shelloccup) /=  2*(2*l-1) ) then
@@ -706,6 +703,8 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
 !!$                    !print *,'newnorm', scpr,occupe(iorb),occshell,ictot
 
                     gaucoeff(icoeff,jorb)=1.0_wp
+                    !associate to each orbital the reference localisation region
+                    iorbtolr(jorb)=iat 
                  endif
                  icoeff=icoeff+1
               end do
@@ -721,10 +720,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
            icoeff=icoeff+(2*l-1)
         end do
      end do
-     locrad(iat)=rloc_avg/norm
-     print *,iat,locrad(iat)
      if (ictotpsi /= nctot) stop 'Atomic orbitals: error (nctot)'
-
   end do
   if (iexpo /= G%nexpo) then
      write(*,*)'ERROR: iexpo <> nexpo',iexpo,G%nexpo

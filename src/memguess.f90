@@ -37,7 +37,7 @@ program memguess
   integer, dimension(:,:), allocatable :: nl
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
-  real(kind=8), dimension(:), allocatable :: occup,spinsgn
+  real(kind=8), dimension(:), allocatable :: occup,spinsgn,locrad
 
 ! Get arguments
   call getarg(1,tatonam)
@@ -149,12 +149,18 @@ program memguess
      call memocc(i_stat,scorb,'scorb',subname)
      allocate(norbsc_arr(atoms%natsc+1,in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
+     allocate(locrad(atoms%nat+ndebug),stat=i_stat)
+     call memocc(i_stat,locrad,'locrad',subname)
+
 
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
      call readAtomicOrbitals(0,ngx,xp,psiat,occupat,ng,nl,atoms,norbe,norbsc,in%nspin,&
-          scorb,norbsc_arr)
+          scorb,norbsc_arr,locrad)
 
      ! De-allocations
+     i_all=-product(shape(locrad))*kind(locrad)
+     deallocate(locrad,stat=i_stat)
+     call memocc(i_stat,i_all,'locrad',subname)
      i_all=-product(shape(xp))*kind(xp)
      deallocate(xp,stat=i_stat)
      call memocc(i_stat,i_all,'xp',subname)
