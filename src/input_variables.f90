@@ -197,8 +197,8 @@ contains
   subroutine check()
     iline=iline+1
     if (ierror/=0) then
-       if (iproc == 0) write(*,'(1x,a,i3)') &
-            'Error while reading the file "input.dat", line=',iline
+       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
        stop
     end if
   end subroutine check
@@ -509,7 +509,6 @@ end subroutine read_atomic_positions
 
 
 !!****f* BigDFT/find_extra_info
-!!
 !! FUNCTION
 !!    Find extra information
 !!
@@ -548,7 +547,6 @@ end subroutine find_extra_info
 
 
 !!****f* BigDFT/parse_extra_info
-!!
 !! FUNCTION
 !!    Parse extra information
 !!
@@ -766,8 +764,12 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
 end subroutine input_occup
 !!***
 
-!calculate the charge and the spin polarisation to be placed on a given atom
-!RULE: natpol = c*1000 + sgn(c)*100 + s: charged and polarised atom (charge c, polarisation s)
+!!****f* BigDFT/charge_and_spol
+!! FUNCTION
+!!   Calculate the charge and the spin polarisation to be placed on a given atom
+!!   RULE: natpol = c*1000 + sgn(c)*100 + s: charged and polarised atom (charge c, polarisation s)
+!! SOURCE
+!!
 subroutine charge_and_spol(natpol,nchrg,nspol)
   implicit none
   integer, intent(in) :: natpol
@@ -785,8 +787,14 @@ subroutine charge_and_spol(natpol,nchrg,nspol)
   nspol=natpol-1000*nchrg-nsgn*100
 
 end subroutine charge_and_spol
+!!***
 
-!this routine performs also some cross-checks with other variables
+
+!!****f* BigDFT/read_system_variables
+!! FUNCTION
+!!   Performs also some cross-checks with other variables
+!! SOURCE
+!!
 subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,norbd,norbp,iunit)
   use module_base
   use module_types
@@ -1209,12 +1217,17 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
 
 end subroutine read_system_variables
+!!***
 
 
+!!****f* BigDFT/system_size
+!! FUNCTION
+!!   Calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
+!!   and shifts the atoms such that their position is the most symmetric possible
+!! SOURCE
+!!
 subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
      n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
-  !calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
-  !and shifts the atoms such that their position is the most symmetric possible
   use module_base
   use module_types
   implicit none
@@ -1235,7 +1248,6 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
      write(*,'(1x,a)')'ERROR: The values of the grid spacings must be equal in the Free BC case'
      stop
   end if
-
 
   !calculate the extremes of the boxes taking into account the spheres around the atoms
   cxmax=-1.e10_gp 
@@ -1397,7 +1409,15 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
   endif
 
 end subroutine system_size
+!!***
 
+
+!!****f* BigDFT/correct_grid
+!! FUNCTION
+!!   Here the dimensions should be corrected in order to 
+!!   allow the fft for the preconditioner
+!! SOURCE
+!!
 subroutine correct_grid(a,h,n)
   use module_base
   use Poisson_Solver
@@ -1407,9 +1427,6 @@ subroutine correct_grid(a,h,n)
   real(gp), intent(inout) :: h
   !local variables
   integer :: m
-
-  !here the dimensions should be corrected in order to 
-  !allow the fft for the preconditioner
 
   n=int(a/h)-1
   m=2*n+2
@@ -1425,3 +1442,4 @@ subroutine correct_grid(a,h,n)
   h=a/real(n+1,gp)
   
 end subroutine correct_grid
+!!***
