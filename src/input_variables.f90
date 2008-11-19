@@ -1405,22 +1405,36 @@ subroutine correct_grid(a,h,n)
   integer, intent(inout) :: n
   real(gp), intent(inout) :: h
   !local variables
-  integer :: m
-
-  !here the dimensions should be corrected in order to 
-  !allow the fft for the preconditioner
+  integer :: m,m2,nt
 
   n=int(a/h)-1
-  m=2*n+2
-  do 
-     call fourier_dim(m,m)
-     if ((m/2)*2==m) then
-        n=(m-2)/2
-        exit
-     else
-        m=m+1
-     end if
+  nt=n+1
+  do
+     !correct the direct dimension
+     call fourier_dim(nt,m)
+
+     !control if the double of this dimension is compatible with the FFT
+     call fourier_dim(2*m,m2)
+     !if this check is passed both the preconditioner and the PSolver works
+     if (m2==2*m) exit
+
+     nt=m+1
   end do
+  n=m-1
+
+!!$  !here the dimensions should be corrected in order to 
+!!$  !allow the fft for the preconditioner
+!!$  m=2*n+2
+!!$  do 
+!!$     call fourier_dim(m,m)
+!!$     if ((m/2)*2==m) then
+!!$        n=(m-2)/2
+!!$        exit
+!!$     else
+!!$        m=m+1
+!!$     end if
+!!$  end do
+
   h=a/real(n+1,gp)
   
 end subroutine correct_grid

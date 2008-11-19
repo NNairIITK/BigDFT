@@ -435,7 +435,7 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
   i1e=n1i
 
   loop_xc_overlap: do jproc=0,nproc-1
-     !case for REDUCE_SCATTER approach, not used for GGA since enlarges the 
+     !case for REDUCE_SCATTER approach, not used for GGA since it enlarges the 
      !communication buffer
      if (rsflag) then
         i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)

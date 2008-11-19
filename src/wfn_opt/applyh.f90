@@ -329,6 +329,7 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
   real(wp) :: tt
   real(gp) :: v,p
   real(gp), dimension(3) :: hgridh
+  real(kind=4) :: epotGPU
   real(kind=4), dimension(:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
   real(kind=8) :: psi_GPU,v_GPU,work_GPU !pointer to the GPU  memory addresses (with norb=1)
   integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
@@ -413,7 +414,7 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,psi_GPU,i_stat)
      call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),v_cuda,v_GPU,i_stat)
 
-     call localpotential(2*n1+1,2*n2+1,2*n3+1,psi_GPU,work_GPU,v_GPU,epot)
+     call localpotential(2*n1+1,2*n2+1,2*n3+1,psi_GPU,work_GPU,v_GPU,epotGPU)
 
      call GPU_receive((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,psi_GPU,i_stat)
 
@@ -432,6 +433,7 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      deallocate(v_cuda,stat=i_stat)
      call memocc(i_stat,i_all,'v_cuda',subname)
      
+     epot=real(epotGPU,kind=8)
   else
 
      ! psir serves as a work array	   

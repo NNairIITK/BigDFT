@@ -712,24 +712,24 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   Glr%d%nfu3=nfu3
   Glr%wfd=wfd !to be tested
 
-  !allocate the array of localisation regions
-  allocate(Llr(at%nat+ndebug),stat=i_stat)
-  !call memocc(i_stat,Llr,'Llr',subname)
-
-  !print *,'locrad',locrad
-
-  call determine_locreg(at%nat,rxyz,locrad,hx,hy,hz,Glr,Llr)
-
-  do iat=1,at%nat
-     call deallocate_wfd(Llr(iat)%wfd,subname)
-     if (Llr(iat)%geocode=='F') then
-        call deallocate_bounds(Llr(iat)%bounds,subname)
-     end if
-  end do
-
-  !i_all=-product(shape(Llr))*kind(Llr)
-  deallocate(Llr,stat=i_stat) !these allocation are special
-  !call memocc(i_stat,i_all,'Llr',subname)
+!!$  !allocate the array of localisation regions
+!!$  allocate(Llr(at%nat+ndebug),stat=i_stat)
+!!$  !call memocc(i_stat,Llr,'Llr',subname)
+!!$
+!!$  !print *,'locrad',locrad
+!!$
+!!$  call determine_locreg(at%nat,rxyz,locrad,hx,hy,hz,Glr,Llr)
+!!$
+!!$  do iat=1,at%nat
+!!$     call deallocate_wfd(Llr(iat)%wfd,subname)
+!!$     if (Llr(iat)%geocode=='F') then
+!!$        call deallocate_bounds(Llr(iat)%bounds,subname)
+!!$     end if
+!!$  end do
+!!$
+!!$  !i_all=-product(shape(Llr))*kind(Llr)
+!!$  deallocate(Llr,stat=i_stat) !these allocation are special
+!!$  !call memocc(i_stat,i_all,'Llr',subname)
 
   call gaussians_to_wavelets(at%geocode,iproc,nproc,norbe*nspin,norbep,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,gaucoeff,psi)
