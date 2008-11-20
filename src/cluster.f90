@@ -346,7 +346,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   if (iproc==0) then
      call MemoryEstimator(atoms%geocode,nproc,idsx,n1,n2,n3,atoms%alat1,atoms%alat2,atoms%alat3,&
           hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,norb,&
-          nlpspd%nprojel,atoms%atomnames,.false.,nspin,peakmem)
+          nlpspd%nprojel,atoms%atomnames,0,nspin,peakmem)
   end if
 
   !allocate values of the array for the data scattering in sumrho
@@ -815,6 +815,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end if
 
 
+  !plot the ionic potential, if required by output_grid
+  if (in%output_grid==3) then
+     call plot_density(atoms%geocode,'pot_ion.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,1,&
+          atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,pot_ion)
+  end if
+
+  i_all=-product(shape(pot_ion))*kind(pot_ion)
+  deallocate(pot_ion,stat=i_stat)
+  call memocc(i_stat,i_all,'pot_ion',subname)
+
+
+
   !------------------------------------------------------------------------
   ! here we start the calculation of the forces
   if (iproc.eq.0) then
@@ -865,20 +877,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   deallocate(spinsgn_foo,stat=i_stat)
   call memocc(i_stat,i_all,'spinsgn_foo',subname)
 
-  !plot also the ionic potential
-  if (in%output_grid) then
-     call plot_density(atoms%geocode,'pot_ion.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,1,&
-          atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,pot_ion)
-  end if
-
-  i_all=-product(shape(pot_ion))*kind(pot_ion)
-  deallocate(pot_ion,stat=i_stat)
-  call memocc(i_stat,i_all,'pot_ion',subname)
-
   !plot the density on the density.pot file
-  if (in%output_grid) then
+  if (in%output_grid==1 .or. in%output_grid==3) then
      call plot_density(atoms%geocode,'density.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nelec,&
      atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rho)
+  else if(in%output_grid==2) then
+     call plot_density_cube('density.cube',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,max(n3p,1),&
+          nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
   end if
 
 
@@ -897,7 +902,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !here nspin=1 since ixc=0
 
   !plot also the electrostatic potential
-  if (in%output_grid) then
+  if (in%output_grid == 3) then
      call plot_density(atoms%geocode,'potential.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,1,&
           atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,pot)
   end if
@@ -1143,7 +1148,7 @@ contains
     if (atoms%geocode == 'F') then
        call deallocate_bounds(bounds,subname)
     end if
-    !****************Added by Alexey***********************************************************	
+
     if (atoms%geocode == 'P' .and. hybrid_on) then 
 
        i_all=-product(shape(bounds%kb%ibxy_f))*kind(bounds%kb%ibxy_f)
@@ -1180,8 +1185,6 @@ contains
        deallocate(bounds%gb%ibxxyy_f,stat=i_stat)
        call memocc(i_stat,i_all,'ibxxyy_f',subname)
     endif
-
-    !***************************************************************************************	
 
     !semicores useful only for the input guess
     i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)

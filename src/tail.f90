@@ -16,8 +16,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
-  logical, intent(in) :: output_grid
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncongt,nspin
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncongt,nspin,output_grid
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf,cpmult,fpmult
   real(kind=8), dimension(norb), intent(in) :: occup,eval,spinsgn
@@ -193,7 +192,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   call make_bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
 
 ! Create the file grid.xyz to visualize the grid of functions
-  if (iproc ==0 .and. output_grid) then
+  if (iproc ==0 .and. output_grid == 1) then
      write(*,'(1x,a)')&
           'Writing the file describing the new atomic positions of the effective system'
      open(unit=22,file='grid_tail.xyz',status='unknown')

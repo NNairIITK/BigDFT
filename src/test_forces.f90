@@ -100,7 +100,7 @@ program test_forces
 
   !some input variablesm to be completed
   inputs%inputPsiId=0
-  inputs%output_grid=.false.
+  inputs%output_grid=0
   inputs%output_wf=.false.
   inputs%calc_tail=.false.
   inputs%calc_tail=.false.

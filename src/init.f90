@@ -8,8 +8,8 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
   implicit none
   !Arguments
   type(atoms_data), intent(in) :: atoms
-  logical, intent(in) :: output_grid,hybrid_on
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nspinor
+  logical, intent(in) :: hybrid_on
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,nspinor,output_grid
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(gp), intent(in) :: hx,hy,hz,crmult,frmult
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
@@ -74,7 +74,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
   end if
 
   ! Create the file grid.xyz to visualize the grid of functions
-  if (iproc ==0 .and. output_grid) then
+  if (iproc ==0 .and. output_grid==1) then
      open(unit=22,file='grid.xyz',status='unknown')
      write(22,*) wfd%nvctr_c+wfd%nvctr_f+atoms%nat,' atomic'
      write(22,*)'complete simulation grid with low and high resolution points'
@@ -857,8 +857,13 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')'done.'
-     write(*,'(1x,a,1pe9.2)') 'expected accuracy in kinetic energy due to grid size',accurex
-     write(*,'(1x,a,1pe9.2)') 'suggested value for gnrm_cv ',accurex/real(norb,kind=8)
+     !gaussian estimation valid only for Free BC
+     if (at%geocode == 'F') then
+        write(*,'(1x,a,1pe9.2)') &
+          'expected accuracy in kinetic energy due to grid size',accurex
+        write(*,'(1x,a,1pe9.2)') &
+             'suggested value for gnrm_cv ',accurex/real(norb,kind=8)
+     end if
   endif
      
 end subroutine input_wf_diag

@@ -22,8 +22,9 @@ module module_types
      integer :: ncount_cluster_x
      real(kind=8) :: frac_fluct,randdis,betax,forcemax
      integer :: ixc,ncharge,itermax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,nvirt,nplot
+     integer :: output_grid
      real(kind=8) :: hgrid,crmult,frmult,elecfield,gnrm_cv,rbuf
-     logical :: output_grid,output_wf,calc_tail,gaussian_help
+     logical :: output_wf,calc_tail,gaussian_help
   end type input_variables
 !!***
 

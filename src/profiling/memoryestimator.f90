@@ -5,8 +5,7 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   implicit none
   !Arguments
   character(len=1), intent(in) :: geocode
-  logical, intent(in) :: output_grid
-  integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin,nprojel
+  integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin,nprojel,output_grid
   integer, dimension(nat), intent(in) :: iatype
   character(len=20), dimension(ntypes), intent(in) :: atomnames
   real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
@@ -40,7 +39,7 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,nseg_f,nvctr_f)
 
 ! Create the file grid.xyz to visualize the grid of functions
-  if (output_grid) then
+  if (output_grid==1) then
      open(unit=22,file='grid.xyz',status='unknown')
      write(22,*) nvctr_c+nvctr_f+nat,' atomic'
      write(22,*)'complete simulation grid with low and high resolution points'

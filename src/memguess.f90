@@ -19,8 +19,8 @@ program memguess
   character(len=*), parameter :: subname='memguess'
   integer, parameter :: ngx=31
   character(len=20) :: tatonam,units
-  logical :: calc_tail,output_grid,optimise
-  integer :: ierror,nproc,n1,n2,n3,i_stat,i_all
+  logical :: calc_tail,optimise
+  integer :: ierror,nproc,n1,n2,n3,i_stat,i_all,output_grid
   integer :: nelec,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
   integer :: norb,norbu,norbd,norbe,norbp,norbsc
   integer :: iunit,ityp
@@ -61,14 +61,14 @@ program memguess
      read(unit=tatonam,fmt=*) nproc
      call getarg(2,tatonam)
      if(trim(tatonam)=='') then
-        output_grid=.false.
+        output_grid=0
      else if (trim(tatonam)=='y') then
-        output_grid=.true.
+        output_grid=1
         write(*,'(1x,a)')&
              'The system grid will be displayed in the "grid.xyz" file'
      else if (trim(tatonam)=='o') then
         optimise=.true.
-        output_grid=.true.
+        output_grid=1
         write(*,'(1x,a)')&
              'The optimised system grid will be displayed in the "grid.xyz" file'
      else

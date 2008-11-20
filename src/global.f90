@@ -19,7 +19,6 @@ program MINHOP
   implicit real(kind=8) (a-h,o-z)
   real(kind=4) :: tts
   logical :: newmin
-  logical :: output_wf,output_grid,calc_tail
   character(len=20) :: units,atmn
   character(len=80) :: line
   type(atoms_data) :: atoms
@@ -56,6 +55,9 @@ program MINHOP
      call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
      call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
      !call system('echo $HOSTNAME')
+
+     !initialize memory counting
+     call memocc(0,iproc,'count','start')
 
      if (iproc.eq.0)then
         write(*,'(23x,a)')' '
@@ -826,8 +828,6 @@ if (accurate) then
    in%hgrid=.6d0
    in%crmult=4.d0
    in%frmult=10.d0
-   in%cpmult=10.d0
-   in%fpmult=10.d0
    in%gnrm_cv=1.d-5
    in%itermax=50
 else
@@ -836,14 +836,10 @@ else
    in%hgrid=.7d0
    in%crmult=3.d0
    in%frmult=8.d0
-   in%cpmult=8.d0
-   in%fpmult=8.d0
    in%gnrm_cv=1.d-4
    in%itermax=50
 endif
 ! Comment out some of the following lines to keep them as read from input.dat
-
-   if (in%fpmult.gt.in%frmult) write(*,*) ' NONSENSE: fpmult > frmult'
    in%randdis=0.d0
    in%betax=6.d0
    in%ixc=1
@@ -859,7 +855,7 @@ endif
 
   !these values are hard-coded for the moment but they can be entered in the input file
   !in case of need also other variables can be entered without any changements
-  in%output_grid=.false. 
+  in%output_grid=0
 ! in%inputPsiId=1  !ALEX prefers to define this one in the main program
   in%output_wf=.false.
   in%nvirt=0
