@@ -616,10 +616,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   ! loop for wavefunction minimization
   wfn_loop: do iter=1,itermax
-!!$     if (idsx > 0) then
-!!$        mids=mod(ids,idsx)+1
-!!$        ids=ids+1
-!!$     end if
      if (iproc == 0) then 
         write( *,'(1x,a,i0)')&
            '---------------------------------------------------------------------------- iter= ',&
@@ -775,7 +771,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,thetaphi,'thetaphi',subname)
      thetaphi=0.0_gp
 
-     call wavelets_to_gaussians(atoms%geocode,norbp,n1,n2,n3,gbd,thetaphi,hx,hy,hz,wfd,psi,gaucoeffs)
+     call wavelets_to_gaussians(atoms%geocode,norbp,n1,n2,n3,gbd,thetaphi,&
+          hx,hy,hz,wfd,psi,gaucoeffs)
 
      i_all=-product(shape(thetaphi))*kind(thetaphi)
      deallocate(thetaphi,stat=i_stat)
@@ -837,9 +834,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! Selfconsistent potential is saved in rhopot, 
   ! new arrays rho,pot for calculation of forces ground state electronic density
 
-  allocate(spinsgn_foo(norb+ndebug),stat=i_stat)
-  call memocc(i_stat,spinsgn_foo,'spinsgn_foo',subname)
-  spinsgn_foo(:)=1.0d0
+!!$  allocate(spinsgn_foo(norb+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,spinsgn_foo,'spinsgn_foo',subname)
+!!$  spinsgn_foo(:)=1.0d0
   ! Potential from electronic charge density
 
   !manipulate scatter array for avoiding the GGA shift
@@ -850,43 +847,45 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      nscatterarr(jproc,4)=0
   end do
 
-  !here there are the spinor which must be taken into account
-  if(nproc>1) then
-     if (n3p>0) then
-        allocate(rho(n1i*n2i*n3p+ndebug),stat=i_stat)
-        call memocc(i_stat,rho,'rho',subname)
-     else
-        allocate(rho(1+ndebug),stat=i_stat)
-        call memocc(i_stat,rho,'rho',subname)
-     end if
+  if (n3p>0) then
+     allocate(rho(n1i*n2i*n3p*nspin+ndebug),stat=i_stat)
+     call memocc(i_stat,rho,'rho',subname)
   else
-     if (n3p>0) then
-        allocate(rho(n1i*n2i*n3p*nspinor+ndebug),stat=i_stat)
-        call memocc(i_stat,rho,'rho',subname)
-     else
-        allocate(rho(1+ndebug),stat=i_stat)
-        call memocc(i_stat,rho,'rho',subname)
-     end if
+     allocate(rho(1+ndebug),stat=i_stat)
+     call memocc(i_stat,rho,'rho',subname)
   end if
-
   call sumrho(atoms%geocode,iproc,nproc,norb,norbp,0,n1,n2,n3,hxh,hyh,hzh,occup,  & 
-       wfd,psi,rho,n1i*n2i*n3p,nscatterarr,1,nspinor,spinsgn_foo,&
+       wfd,psi,rho,n1i*n2i*n3p,nscatterarr,nspin,nspinor,spinsgn,&
        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,hybrid_on)
-
-  i_all=-product(shape(spinsgn_foo))*kind(spinsgn_foo)
-  deallocate(spinsgn_foo,stat=i_stat)
-  call memocc(i_stat,i_all,'spinsgn_foo',subname)
+!!$  i_all=-product(shape(spinsgn_foo))*kind(spinsgn_foo)
+!!$  deallocate(spinsgn_foo,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'spinsgn_foo',subname)
 
   !plot the density on the density.pot file
   if (in%output_grid==1 .or. in%output_grid==3) then
-     call plot_density(atoms%geocode,'density.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nelec,&
-     atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rho)
+     if (nspin == 2 ) then
+        if(iproc==0) write(*,*)&
+             'ERROR: density cannot be plotted in .pot format for a spin-polarised calculation'
+     else
+        call plot_density(atoms%geocode,'density.pot',iproc,nproc,&
+             n1,n2,n3,n1i,n2i,n3i,n3p,nelec,atoms%alat1,atoms%alat2,atoms%alat3,&
+             ngatherarr,rho)
+     end if
   else if(in%output_grid==2) then
-     call plot_density_cube('density.cube',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,max(n3p,1),&
+     call plot_density_cube('density',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,max(n3p,1),&
           nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
   end if
-
-
+  !calculate the total density in the case of nspin==2
+  if (nspin==2) then
+     do i3=1,n3p
+        do i2=1,n2i
+           do i1=1,n1i
+              ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+              rho(ind)=rho(ind)+rho(ind+n1i*n2i*n3p)
+           end do
+        end do
+     end do
+  end if
   if (n3p>0) then
      allocate(pot(n1i,n2i,n3p,1+ndebug),stat=i_stat)
      call memocc(i_stat,pot,'pot',subname)
@@ -903,7 +902,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !plot also the electrostatic potential
   if (in%output_grid == 3) then
-     call plot_density(atoms%geocode,'potential.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,1,&
+     call plot_density(atoms%geocode,'potential.pot',iproc,nproc,&
+          n1,n2,n3,n1i,n2i,n3i,n3p,1,&
           atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,pot)
   end if
 

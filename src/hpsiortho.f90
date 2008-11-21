@@ -55,8 +55,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,rad
         n3i=2*n3+2
   end select
 
-  call create_Glr(at%geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,wfd,bounds,&
-       lr)
+  call create_Glr(at%geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,&
+       wfd,bounds,lr)
 
   !build the potential on the whole simulation box
   !in the linear scaling case this should be done for a given localisation region

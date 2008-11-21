@@ -63,6 +63,16 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
      call make_bounds(n1,n2,n3,logrid_c,bounds%kb%ibyz_c,bounds%kb%ibxz_c,bounds%kb%ibxy_c)
   end if
 
+  if (atoms%geocode == 'P' .and. wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
+     if (iproc ==0)then
+        write(*,*)&
+          ' WARNING: the coarse grid does not fill the entire periodic box'
+        write(*,*)&
+          '          errors due to translational invariance breaking may occur'
+
+     end if
+  end if
+
   ! fine grid quantities
   call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
        atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
@@ -712,24 +722,26 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   Glr%d%nfu3=nfu3
   Glr%wfd=wfd !to be tested
 
-!!$  !allocate the array of localisation regions
-!!$  allocate(Llr(at%nat+ndebug),stat=i_stat)
-!!$  !call memocc(i_stat,Llr,'Llr',subname)
-!!$
-!!$  !print *,'locrad',locrad
-!!$
-!!$  call determine_locreg(at%nat,rxyz,locrad,hx,hy,hz,Glr,Llr)
-!!$
-!!$  do iat=1,at%nat
-!!$     call deallocate_wfd(Llr(iat)%wfd,subname)
-!!$     if (Llr(iat)%geocode=='F') then
-!!$        call deallocate_bounds(Llr(iat)%bounds,subname)
-!!$     end if
-!!$  end do
-!!$
-!!$  !i_all=-product(shape(Llr))*kind(Llr)
-!!$  deallocate(Llr,stat=i_stat) !these allocation are special
-!!$  !call memocc(i_stat,i_all,'Llr',subname)
+  if (at%geocode == 'F') then
+     !allocate the array of localisation regions
+     allocate(Llr(at%nat+ndebug),stat=i_stat)
+     !call memocc(i_stat,Llr,'Llr',subname)
+
+     !print *,'locrad',locrad
+
+     call determine_locreg(at%nat,rxyz,locrad,hx,hy,hz,Glr,Llr)
+
+     do iat=1,at%nat
+        call deallocate_wfd(Llr(iat)%wfd,subname)
+        if (Llr(iat)%geocode=='F') then
+           call deallocate_bounds(Llr(iat)%bounds,subname)
+        end if
+     end do
+
+     !i_all=-product(shape(Llr))*kind(Llr)
+     deallocate(Llr,stat=i_stat) !these allocation are special
+     !call memocc(i_stat,i_all,'Llr',subname)
+  end if
 
   call gaussians_to_wavelets(at%geocode,iproc,nproc,norbe*nspin,norbep,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,gaucoeff,psi)
