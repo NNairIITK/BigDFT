@@ -533,7 +533,7 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocre
 
   call allocate_wfd(wfdl,subname)
 
-  allocate(keymask(ndimkey),stat=i_stat)
+  allocate(keymask(ndimkey+ndebug),stat=i_stat)
   call memocc(i_stat,keymask,'keymask',subname)
 
   !now fill the local wavefunction descriptors

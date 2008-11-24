@@ -398,8 +398,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,eval,'eval',subname)
   end if
 
-  call create_Glr(atoms%geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,wfd,bounds,&
-       Glr)
+  call create_Glr(atoms%geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,&
+       wfd,bounds,Glr)
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   if (in%inputPsiId == -2) then
@@ -442,17 +442,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !import gaussians form CP2K (data in files gaubasis.dat and gaucoeff.dat)
      !and calculate eigenvalues
      call import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,atoms,&
-          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-          norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj, &
+          norb,norbp,occup,nvctrp,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj, &
           pkernel,ixc,psi,psit,hpsi,eval,nscatterarr,ngatherarr,nspin,spinsgn,hybrid_on)
 
   else if (in%inputPsiId == 0) then 
 
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,atoms,&
-          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-          norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
-          wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,&
+          norb,norbp,nvirte,nvirtep,nvirt,nvctrp,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
+          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,&
           nscatterarr,ngatherarr,nspin,spinsgn,hybrid_on)
   
   else if (in%inputPsiId == 1) then 
@@ -626,24 +624,24 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      if (gnrm <= gnrm_cv .or. iter == itermax) call timing(iproc,'WFN_OPT','PR')
 
      ! Potential from electronic charge density
-     call sumrho(atoms%geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,  & 
-     wfd,psi,rhopot,n1i*n2i*n3d,nscatterarr,nspin,nspinor,spinsgn,&
-     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,hybrid_on)
+     call sumrho(iproc,nproc,norb,norbp,Glr,ixc,hxh,hyh,hzh,occup,  & 
+     psi,rhopot,n1i*n2i*n3d,nscatterarr,nspin,nspinor,spinsgn,hybrid_on)
      
      if(nspinor==4) then
         !this wrapper can be inserted inside the poisson solver 
-         call PSolverNC(atoms%geocode,'D',iproc,nproc,n1i,n2i,n3i,n3d,ixc,hxh,hyh,hzh,&
+        call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
+             ixc,hxh,hyh,hzh,&
              rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
      else
               
-        call PSolver(atoms%geocode,'D',iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
+        call PSolver(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
+             ixc,hxh,hyh,hzh,&
              rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
         
      end if
 
      call HamiltonianApplication(iproc,nproc,atoms,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
-          norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-          wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
+          norb,norbp,occup,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,&
           eproj_sum,nspin,nspinor,spinsgn,hybrid_on)
 
@@ -671,8 +669,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         exit wfn_loop 
      endif
 
-     call hpsitopsi(atoms%geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
-          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,bounds%kb,&
+     call hpsitopsi(iproc,nproc,norb,norbp,occup,hx,hy,hz,nvctrp,Glr,&
           eval,ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
           alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn,hybrid_on)
 
@@ -738,7 +735,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   if (nvirt > 0 .and. in%inputPsiId == 0) then
      call davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,atoms,&
           cpmult,fpmult,radii_cf,&
-          norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,&
+          norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,Glr,&
           hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  &
           pkernel,ixc,psi,psivirt,eval,ncong,nscatterarr,ngatherarr,hybrid_on)
   end if
@@ -763,11 +760,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call gaussian_pswf_basis(iproc,atoms,rxyz,gbd)
 
      if (.not. associated(gaucoeffs)) then
-        allocate(gaucoeffs(gbd%ncoeff,norbp),stat=i_stat)
+        allocate(gaucoeffs(gbd%ncoeff,norbp+ndebug),stat=i_stat)
         call memocc(i_stat,gaucoeffs,'gaucoeffs',subname)
      end if
 
-     allocate(thetaphi(2,gbd%nat),stat=i_stat)
+     allocate(thetaphi(2,gbd%nat+ndebug),stat=i_stat)
      call memocc(i_stat,thetaphi,'thetaphi',subname)
      thetaphi=0.0_gp
 
@@ -854,9 +851,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      allocate(rho(1+ndebug),stat=i_stat)
      call memocc(i_stat,rho,'rho',subname)
   end if
-  call sumrho(atoms%geocode,iproc,nproc,norb,norbp,0,n1,n2,n3,hxh,hyh,hzh,occup,  & 
-       wfd,psi,rho,n1i*n2i*n3p,nscatterarr,nspin,nspinor,spinsgn,&
-       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,hybrid_on)
+  call sumrho(iproc,nproc,norb,norbp,Glr,0,hxh,hyh,hzh,occup,& 
+       psi,rho,n1i*n2i*n3p,nscatterarr,nspin,nspinor,spinsgn,hybrid_on)
 !!$  i_all=-product(shape(spinsgn_foo))*kind(spinsgn_foo)
 !!$  deallocate(spinsgn_foo,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'spinsgn_foo',subname)

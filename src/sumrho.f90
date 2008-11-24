@@ -1,25 +1,20 @@
-subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,  & 
-     wfd,psi,rho,nrho,nscatterarr,nspin,nspinor,spinsgn,&
-     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,hybrid_on)
+subroutine sumrho(iproc,nproc,norb,norbp,lr,ixc,hxh,hyh,hzh,occup,  & 
+     psi,rho,nrho,nscatterarr,nspin,nspinor,spinsgn,hybrid_on)
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
   ! Output: rho
   use module_base!, only: gp,dp,wp,ndebug,memocc
   use module_types
   implicit none
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  type(convolutions_bounds), intent(in) :: bounds
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,norb,norbp,nrho,nspin,nspinor,ixc
-  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  real(gp), intent(in) :: hxh,hyh,hzh
   logical, intent(in) :: hybrid_on
+  integer, intent(in) :: iproc,nproc,norb,norbp,nrho,nspin,nspinor,ixc
+  real(gp), intent(in) :: hxh,hyh,hzh
+  type(locreg_descriptors) :: lr 
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(in) :: psi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,norbp*nspinor), intent(in) :: psi
   real(dp), dimension(max(nrho,1),nspin), intent(out), target :: rho
   real(gp), dimension(norb), intent(in) :: occup,spinsgn
   !local variables
-  type(locreg_descriptors) :: lr !temporarily local, to be defined as argument
   character(len=*), parameter :: subname='sumrho'
   logical :: rsflag
   integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf,itmred
@@ -36,23 +31,23 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
           'Calculation of charge density...'
   end if
 
-  select case(geocode)
-  case('F')
-     n1i=2*n1+31
-     n2i=2*n2+31
-     n3i=2*n3+31
-  case('S')
-     n1i=2*n1+2
-     n2i=2*n2+31
-     n3i=2*n3+2
-  case('P')
-     n1i=2*n1+2
-     n2i=2*n2+2
-     n3i=2*n3+2
-  end select
-
-  call create_Glr(geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,wfd,bounds,&
-       lr)
+!!$  select case(geocode)
+!!$  case('F')
+!!$     n1i=2*n1+31
+!!$     n2i=2*n2+31
+!!$     n3i=2*n3+31
+!!$  case('S')
+!!$     n1i=2*n1+2
+!!$     n2i=2*n2+31
+!!$     n3i=2*n3+2
+!!$  case('P')
+!!$     n1i=2*n1+2
+!!$     n2i=2*n2+2
+!!$     n3i=2*n3+2
+!!$  end select
+!!$
+!!$  call create_Glr(geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,wfd,bounds,&
+!!$       lr)
 
   !flag for toggling the REDUCE_SCATTER stategy
   rsflag=.not. (ixc >= 11 .and. ixc <=16)
@@ -82,6 +77,7 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
      call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p,nproc)
   end if
 
+  !for each of the orbitals treated by the processor build the partial densities
   call local_partial_density(iproc,nproc,hybrid_on,rsflag,nscatterarr,&
      nrhotot,lr,hxh,hyh,hzh,nspin,nspinor,norbp,norb,occup,spinsgn,psi,rho_p)
 
@@ -206,8 +202,8 @@ subroutine sumrho(geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,occup,
 
 end subroutine sumrho
 
-  !here starts the routine for building partial density inside the localisation region
-  !this routine should be treated as a building-block for the linear scaling code
+!here starts the routine for building partial density inside the localisation region
+!this routine should be treated as a building-block for the linear scaling code
 subroutine local_partial_density(iproc,nproc,hybrid_on,rsflag,nscatterarr,&
      nrhotot,lr,hxh,hyh,hzh,nspin,nspinor,norbp,norb,occup,spinsgn,psi,rho_p)
   use module_base
@@ -267,10 +263,10 @@ subroutine local_partial_density(iproc,nproc,hybrid_on,rsflag,nscatterarr,&
      nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
   case('S')
      !dimension of the work arrays
-     nw1=1-ndebug
-     nw2=1-ndebug
+     nw1=1
+     nw2=1
      nxc=(2*n1+2)*(2*n2+31)*(2*n3+2)
-     nxf=1-ndebug
+     nxf=1
   case('P')
      if (hybrid_on) then
         ! hybrid case:
@@ -286,14 +282,13 @@ subroutine local_partial_density(iproc,nproc,hybrid_on,rsflag,nscatterarr,&
         nw2=max(nw2,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
      else
         !dimension of the work arrays, fully periodic case
-        nw1=1-ndebug
-        nw2=1-ndebug
+        nw1=1
+        nw2=1
         nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
-        nxf=1-ndebug
+        nxf=1
      endif
 
   end select
-
   !work arrays
   allocate(x_c_psifscf(nxc+ndebug),stat=i_stat)
   call memocc(i_stat,x_c_psifscf,'x_c_psifscf',subname)
@@ -304,11 +299,11 @@ subroutine local_partial_density(iproc,nproc,hybrid_on,rsflag,nscatterarr,&
   allocate(w2(nw2+ndebug),stat=i_stat)
   call memocc(i_stat,w2,'w2',subname)
 
+
   ! Wavefunction in real space
   nspinn=max(nspin,nspinor)
   allocate(psir(n1i*n2i*n3i,nspinn+ndebug),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
-
   !initialisation
   if (lr%geocode == 'F') then
      call razero(nxc,x_c_psifscf)

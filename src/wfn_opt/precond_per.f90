@@ -39,19 +39,22 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   r=b-d
 
   call wscal_per(nvctr_c,nvctr_f,scal,r(1),r(nvctr_c+1),d(1),d(nvctr_c+1))
-  rmr=dot_product(r,d)
+  !rmr=dot_product(r,d)
+  rmr=dot(nvctr_c+7*nvctr_f,r(1),1,d(1),1)
   do i=1,ncong 
      !		write(*,*)i,sqrt(rmr)
 
      call apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
           cprecr,hx,hy,hz,d,b,psifscf,ww,modul1,modul2,modul3,af,bf,cf,ef) ! b:=Ad
 
-     alpha=rmr/dot_product(d,b) !does this built_in function is well optimised?
+     !alpha=rmr/dot_product(d,b) !does this built_in function is well optimised?
+     alpha=rmr/dot(nvctr_c+7*nvctr_f,d(1),1,b(1),1)
      x=x+alpha*d
      r=r-alpha*b
 
      call wscal_per(nvctr_c,nvctr_f,scal,r(1),r(nvctr_c+1),b(1),b(nvctr_c+1))
-     rmr_new=dot_product(r,b)
+     !rmr_new=dot_product(r,b)
+     rmr_new=dot(nvctr_c+7*nvctr_f,r(1),1,b(1),1)
 
      beta=rmr_new/rmr
      d=b+beta*d
@@ -64,13 +67,20 @@ contains
 
   subroutine allocate_all
 
-  allocate(modul1(lowfil:n1+lupfil))
-  allocate(modul2(lowfil:n2+lupfil))
-  allocate(modul3(lowfil:n3+lupfil))
-  allocate(af(lowfil:lupfil,3))
-  allocate(bf(lowfil:lupfil,3))
-  allocate(cf(lowfil:lupfil,3))
-  allocate(ef(lowfil:lupfil,3))
+    allocate(modul1(lowfil:n1+lupfil+ndebug),stat=i_stat)
+    call memocc(i_stat,modul1,'modul1',subname)
+    allocate(modul2(lowfil:n2+lupfil+ndebug),stat=i_stat)
+    call memocc(i_stat,modul2,'modul2',subname)
+    allocate(modul3(lowfil:n3+lupfil+ndebug),stat=i_stat)
+    call memocc(i_stat,modul3,'modul3',subname)
+    allocate(af(lowfil:lupfil,3+ndebug),stat=i_stat)
+    call memocc(i_stat,af,'af',subname)
+    allocate(bf(lowfil:lupfil,3+ndebug),stat=i_stat)
+    call memocc(i_stat,bf,'bf',subname)
+    allocate(cf(lowfil:lupfil,3+ndebug),stat=i_stat)
+    call memocc(i_stat,cf,'cf',subname)
+    allocate(ef(lowfil:lupfil,3+ndebug),stat=i_stat)
+    call memocc(i_stat,ef,'ef',subname)
 	  
     allocate(b(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
     call memocc(i_stat,b,'b',subname)
@@ -105,9 +115,34 @@ contains
     deallocate(d,stat=i_stat)
     call memocc(i_stat,i_all,'d',subname)
 
-  deallocate(af,bf,cf,ef)
-  deallocate(modul1,modul2,modul3)
-	
+    i_all=-product(shape(ef))*kind(ef)
+    deallocate(ef,stat=i_stat)
+    call memocc(i_stat,i_all,'ef',subname)
+
+    i_all=-product(shape(cf))*kind(cf)
+    deallocate(cf,stat=i_stat)
+    call memocc(i_stat,i_all,'cf',subname)
+
+    i_all=-product(shape(bf))*kind(bf)
+    deallocate(bf,stat=i_stat)
+    call memocc(i_stat,i_all,'bf',subname)
+
+    i_all=-product(shape(af))*kind(af)
+    deallocate(af,stat=i_stat)
+    call memocc(i_stat,i_all,'af',subname)
+
+    i_all=-product(shape(modul1))*kind(modul1)
+    deallocate(modul1,stat=i_stat)
+    call memocc(i_stat,i_all,'modul1',subname)
+
+    i_all=-product(shape(modul2))*kind(modul2)
+    deallocate(modul2,stat=i_stat)
+    call memocc(i_stat,i_all,'modul2',subname)
+
+    i_all=-product(shape(modul3))*kind(modul3)
+    deallocate(modul3,stat=i_stat)
+    call memocc(i_stat,i_all,'modul3',subname)
+
   end subroutine deallocate_all
 end subroutine precong_per
 

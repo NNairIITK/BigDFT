@@ -60,18 +60,18 @@ subroutine read_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,eval,filena
   open(unit=99,file=filename,status='unknown')
   read(99,*)G%nat,G%nshltot,G%nexpo,G%ncoeff
   
-  allocate(G%nshell(G%nat),stat=i_stat)
+  allocate(G%nshell(G%nat+ndebug),stat=i_stat)
   call memocc(i_stat,G%nshell,'G%nshell',subname)
-  allocate(G%nam(G%nshltot),stat=i_stat)
+  allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
   call memocc(i_stat,G%nam,'G%nam',subname)
-  allocate(G%ndoc(G%nshltot),stat=i_stat)
+  allocate(G%ndoc(G%nshltot+ndebug),stat=i_stat)
   call memocc(i_stat,G%ndoc,'G%ndoc',subname)
-  allocate(G%xp(G%nexpo),stat=i_stat)
+  allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%xp,'G%xp',subname)
-  allocate(G%psiat(G%nexpo),stat=i_stat)
+  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%psiat,'G%psiat',subname)
 
-  allocate(coeffs(G%ncoeff,norbp),stat=i_stat)
+  allocate(coeffs(G%ncoeff,norbp+ndebug),stat=i_stat)
   call memocc(i_stat,coeffs,'coeffs',subname)
 
   do iat=1,G%nat
@@ -109,12 +109,12 @@ subroutine write_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,eval,filen
   integer, dimension(:,:), allocatable :: gatherarr
   real(gp), dimension(:,:), allocatable :: gaupsi
 
-  allocate(gaupsi(G%ncoeff,norb),stat=i_stat)
+  allocate(gaupsi(G%ncoeff,norb+ndebug),stat=i_stat)
   call memocc(i_stat,gaupsi,'gaupsi',subname)
 
 
   if (nproc > 1) then
-     allocate(gatherarr(0:nproc-1,2),stat=i_stat)
+     allocate(gatherarr(0:nproc-1,2+ndebug),stat=i_stat)
      call memocc(i_stat,gatherarr,'gatherarr',subname)
 
      !gather the coefficients in a unique array
@@ -564,18 +564,18 @@ subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
   integer, dimension(:,:), allocatable :: gatherarr
   real(gp), dimension(:,:), allocatable :: ovrlp,gaupsi,tmp,smat
 
-  allocate(ovrlp(G%ncoeff,G%ncoeff),stat=i_stat)
+  allocate(ovrlp(G%ncoeff,G%ncoeff+ndebug),stat=i_stat)
   call memocc(i_stat,ovrlp,'ovrlp',subname)
-  allocate(gaupsi(G%ncoeff,norb),stat=i_stat)
+  allocate(gaupsi(G%ncoeff,norb+ndebug),stat=i_stat)
   call memocc(i_stat,gaupsi,'gaupsi',subname)
-  allocate(tmp(G%ncoeff,norb),stat=i_stat)
+  allocate(tmp(G%ncoeff,norb+ndebug),stat=i_stat)
   call memocc(i_stat,tmp,'tmp',subname)
-  allocate(smat(norb,norb),stat=i_stat)
+  allocate(smat(norb,norb+ndebug),stat=i_stat)
   call memocc(i_stat,smat,'smat',subname)
 
 
   if (nproc > 1) then
-     allocate(gatherarr(0:nproc-1,2),stat=i_stat)
+     allocate(gatherarr(0:nproc-1,2+ndebug),stat=i_stat)
      call memocc(i_stat,gatherarr,'gatherarr',subname)
 
      !gather the coefficients in a unique array
