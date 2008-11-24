@@ -120,8 +120,7 @@ interface
      implicit none
      !Arguments
      character(len=1), intent(in) :: geocode
-     logical, intent(in) :: output_grid
-     integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin,nprojel
+     integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin,nprojel,output_grid
      integer, dimension(nat), intent(in) :: iatype
      character(len=20), dimension(ntypes), intent(in) :: atomnames
      real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult,alat1,alat2,alat3
@@ -137,8 +136,7 @@ interface
      implicit none
      !Arguments
      type(atoms_data), intent(in) :: atoms
-     logical, intent(in) :: output_grid
-     integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp
+     integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,output_grid
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspinor
      real(kind=8), intent(in) :: hx,hy,hz,crmult,frmult
      real(kind=8), dimension(3,atoms%nat), intent(in) :: rxyz
@@ -439,8 +437,7 @@ interface
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
-     logical, intent(in) :: output_grid
-     integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncongt,nspin
+     integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncongt,nspin,output_grid
      integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
      real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf,cpmult,fpmult
      real(kind=8), dimension(norb), intent(in) :: occup,eval,spinsgn

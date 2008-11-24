@@ -78,9 +78,11 @@ subroutine memory_occupation(istat,isize,array,routine)
         !memory allocation problem, and which eliminates it for a successful run
         if (nalloc == ndealloc .and. tot%memory==int(0,kind=8)) then
            !clean the malloc file
-           open(unit=98,file='malloc.prc',status='unknown')
-           write(98,*)
-           close(98)
+           if (iproc==0) then
+              open(unit=98,file='malloc.prc',status='unknown')
+              write(98,*)
+              close(98)
+           end if
         end if
      end if
 
@@ -90,10 +92,12 @@ subroutine memory_occupation(istat,isize,array,routine)
         if (isize>=0) then
            write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
                 ', error code=',istat,' exiting...'
+           if (iproc == 0) close(98)
            stop
         else if (isize<0) then
            write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
                 ', error code=',istat,' exiting...'
+           if (iproc == 0) close(98)
            stop
         end if
      end if

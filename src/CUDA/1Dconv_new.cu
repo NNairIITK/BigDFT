@@ -76,7 +76,16 @@ __constant__ par_t par;
 //declare the texture for binding the input psi
 texture<float,2, cudaReadModeElementType> psi_tex;
 
+#include "kernel_tex.cu"
+
 int dogenconv(int ndat,
+	      int n, 
+	      float *GPU_idata,
+	      float *GPU_odata,
+	      int lowfil,
+	      int lupfil);
+
+int dogenconv_n(int ndat,
 	      int n, 
 	      float *GPU_idata,
 	      float *GPU_odata,
@@ -441,9 +450,9 @@ __global__ void conv1d_stride_tex(int n,int ndat,float *psi_out)
       //psi_sh[ShBaseElem]=psi_in[BaseElem+ndat*npos];
       //x=(float) (npos)/;
       //y=(float)npos +0.5f; 
-      x=((float) (0) + 0.5f )/((float) (ndat));
-      y=((float) (ipos) + 0.5f )/((float) (n));
-      psi_sh[ShBaseElem]=tex2D(psi_tex,x,y);
+      x=((float) (BaseElem) + 0.5f )/((float) (ndat));
+      y=((float) (npos) + 0.5f )/((float) (n));
+      psi_sh[ShBaseElem]=12.f;//tex2D(psi_tex,x,y);
       //CUERR;
       ShBaseElem += HALF_WARP_SIZE;
       ipos += HW_ELEM;
@@ -491,8 +500,8 @@ __global__ void conv1d_stride_tex(int n,int ndat,float *psi_out)
 	MFIL7 *psi_sh[ShBaseElem + 7*NUM_LINES ] +
 	MFIL8 *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
 
-      //psi_out[BaseElem]=//=conv;
-      //psi_sh[ShBaseElem+par.lowfil*NUM_LINES]; //for testing only
+      psi_out[BaseElem]=//=conv;
+	psi_sh[ShBaseElem+par.lowfil*NUM_LINES]; //for testing only
 
       ShBaseElem += HALF_WARP_SIZE;
       BaseElem += HW_ELEM;
@@ -599,29 +608,69 @@ int dogenconv(int ndat,
   psi_tex.addressMode[0] = cudaAddressModeWrap;
   psi_tex.addressMode[1] = cudaAddressModeWrap;
   psi_tex.filterMode = cudaFilterModePoint;
-  psi_tex.normalized = true;
+  psi_tex.normalized = 1;
 
 
   //bind the texture reference to the CUDA array
-  CUDA_SAFE_CALL(cudaBindTextureToArray(psi_tex,psiCA));
-  CUERR
+  cudaBindTextureToArray(psi_tex,psiCA,psi_tex.channelDesc);
+  CUERR;
 
   //element offset for reading from the texture
   //tex_offset = offset/sizeof(float);
   
   //printf(" offset %i\n",tex_offset); 
   //launch the kernel grid
-  conv1d_stride_tex <<< grid1, threads1 >>>(n,ndat, GPU_odata);
+  //conv1d_stride_tex <<< grid1, threads1 >>>(n,ndat, GPU_odata);
   //conv1d_stride <<< grid1, threads1 >>>(n,ndat, GPU_idata, GPU_odata);
+
+  conv1d_stride_tex_m<<< grid1, threads1 >>>(n,ndat, GPU_idata, GPU_odata);
+  cudaThreadSynchronize();
 
   //unbind the texture
   cudaUnbindTexture(psi_tex);
-  CUERR
+  CUERR;
   //free the CUDA Array
   CUDA_SAFE_CALL(cudaFreeArray(psiCA));;
 
-  cudaThreadSynchronize();
+  //cudaThreadSynchronize();
 
+  return 0;
+
+}
+
+int dogenconv_n(int ndat,
+	      int n, 
+	      float *GPU_idata,
+	      float *GPU_odata,
+	      int lowfil,
+	      int lupfil)
+{
+
+  //create the parameters
+  par_t parCPU;
+
+  //calculate the number of threads and blocks
+  unsigned int numBlocks,linecuts,num_halfwarps;
+
+  constantParameters(&parCPU,&num_halfwarps,n,ndat,lowfil,lupfil,
+		     &linecuts,&numBlocks);
+
+  //send them to constant memory
+  if(cudaMemcpyToSymbol(par,&parCPU, sizeof(par_t)) != 0)
+    {
+      printf("MemcpyToSymbol error\n");
+
+      return 1;
+    }
+ 
+  //define the number of threads and blocks according to parameter definitions
+  dim3  grid1(linecuts,  numBlocks, 1);  
+  dim3  threads1(HALF_WARP_SIZE, num_halfwarps , 1);
+
+  //launch the kernel grid
+  conv1d_stride <<< grid1, threads1 >>>(n,ndat, GPU_idata, GPU_odata);
+  cudaThreadSynchronize();
+  
   return 0;
 
 }
