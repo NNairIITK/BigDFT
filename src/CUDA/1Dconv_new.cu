@@ -529,7 +529,7 @@ void g1dconv_(int *n,
   const int n2 = *n+1;
 
   
-  if(dogenconv(n1,
+  if(dogenconv_n(n1,
 	       n2, 
 	       *data_in,
 	       *data_out,
