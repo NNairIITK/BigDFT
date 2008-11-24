@@ -1,3 +1,5 @@
+!Deprecated (T.D. 24/11/2008)
+
 program optim_rot
   implicit real*8 (a-h,o-z)
   character*20 atomnames
@@ -12,7 +14,8 @@ program optim_rot
      read(1,*) rxyz(:,iat),atomnames(iat)
   enddo
   close(1)
-end program optim_rot
+
+contains
 
   !! translate molecule such that the origin of the coordinate system is in its center
   !         xmin=1.d100 ; xmax=-1.d100
@@ -44,8 +47,8 @@ end program optim_rot
     real(kind=8), dimension(3,nat), intent(inout) :: rxyz
     !local variables
     character(len=*), parameter :: subname='optimise_volume'
-    integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
-    real(kind=8) :: x,y,z,vol,tx,ty,tz
+    integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,i,i_all,i_stat,iat,it,n1,n2,n3
+    real(kind=8) :: x,y,z,vol,tx,ty,tz,alat1,alat2,alat3,diag,dmax,s,tvol
     real(kind=8), dimension(3,3) :: urot
     real(kind=8), dimension(:,:), allocatable :: txyz
 
@@ -155,3 +158,6 @@ subroutine volume(nat,rxyz,vol)
   vol=(xmax-xmin+2.d0*rad)*(ymax-ymin+2.d0*rad)*(zmax-zmin+2.d0*rad)
 
 end subroutine volume
+
+
+end program optim_rot
