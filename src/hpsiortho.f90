@@ -1,29 +1,25 @@
 subroutine HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
-     norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
-     ngatherarr,ndimpot,potential,psi,hpsi,ekin_sum,epot_sum,eproj_sum,&
-	 nspin,nspinor,spinsgn,hybrid_on)
+     norb,norbp,occup,nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
+     ekin_sum,epot_sum,eproj_sum,nspin,nspinor,spinsgn,hybrid_on)
   use module_base
   use module_types
   implicit none
-  type(atoms_data), intent(in) :: at
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  type(convolutions_bounds), intent(in) :: bounds
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ndimpot
-  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,nspinor
+  logical, intent(in) :: hybrid_on
+  integer, intent(in) :: iproc,nproc,norb,norbp,ndimpot,nspin,nspinor
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
+  type(atoms_data), intent(in) :: at
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(locreg_descriptors), intent(in) :: lr 
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(norb), intent(in) :: occup,spinsgn
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
   real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(in) :: psi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor*norbp), intent(in) :: psi
   real(wp), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
-  logical,intent(in)::hybrid_on
   real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(out) :: hpsi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor*norbp), intent(out) :: hpsi
   !local variables
-  type(locreg_descriptors) :: lr !temporarily local, to be defined as argument
   character(len=*), parameter :: subname='HamiltonianApplication'
   integer :: i_all,i_stat,ierr,n1i,n2i,n3i,iorb,ispin
   real(gp) :: eproj
@@ -39,24 +35,24 @@ subroutine HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,rad
           'Hamiltonian application...'
   end if
 
-  !dimensions of the potential
-  select case(at%geocode)
-     case('F')
-        n1i=2*n1+31
-        n2i=2*n2+31
-        n3i=2*n3+31
-     case('S')
-        n1i=2*n1+2
-        n2i=2*n2+31
-        n3i=2*n3+2
-     case('P')
-        n1i=2*n1+2
-        n2i=2*n2+2
-        n3i=2*n3+2
-  end select
-
-  call create_Glr(at%geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,&
-       wfd,bounds,lr)
+!!$  !dimensions of the potential
+!!$  select case(at%geocode)
+!!$     case('F')
+!!$        n1i=2*n1+31
+!!$        n2i=2*n2+31
+!!$        n3i=2*n3+31
+!!$     case('S')
+!!$        n1i=2*n1+2
+!!$        n2i=2*n2+31
+!!$        n3i=2*n3+2
+!!$     case('P')
+!!$        n1i=2*n1+2
+!!$        n2i=2*n2+2
+!!$        n3i=2*n3+2
+!!$  end select
+!!$
+!!$  call create_Glr(at%geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,&
+!!$       wfd,bounds,lr)
 
   !build the potential on the whole simulation box
   !in the linear scaling case this should be done for a given localisation region
@@ -74,6 +70,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,rad
      pot => potential
   end if
 
+  !apply the local hamiltonian for each of the orbitals
+  !given to each processor
   call local_hamiltonian(iproc,at%geocode,hybrid_on,lr,hx,hy,hz,&
        nspin,nspinor,norbp,norb,occup,spinsgn,pot,psi,hpsi,ekin_sum,epot_sum)
   
@@ -128,21 +126,17 @@ subroutine HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,rad
 end subroutine HamiltonianApplication
 
 
-subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
-     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,wfd,kbounds,&
+subroutine hpsitopsi(iproc,nproc,norb,norbp,occup,hx,hy,hz,nvctrp,lr,&
      eval,ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
      alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn,hybrid_on)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi
   implicit none
-  type(kinetic_bounds), intent(in) :: kbounds
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  character(len=1), intent(in) :: geocode
   logical, intent(in) :: hybrid_on
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncong,idsx,iter
-  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin,nspinor
+  integer, intent(in) :: iproc,nproc,norb,norbp,ncong,idsx,iter,nvctrp,nspin,nspinor
   real(gp), intent(in) :: hx,hy,hz,energy,energy_old
+  type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(norb), intent(in) :: eval
   real(gp), dimension(norb), intent(in) :: occup,spinsgn
   integer, intent(inout) :: idsx_actual
@@ -191,12 +185,12 @@ subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
   end do
 
   !transpose the hpsi wavefunction
-  call transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,hpsi,work=psi)
+  call transpose(iproc,nproc,norb,norbp,nspinor,lr%wfd,nvctrp,hpsi,work=psi)
 
   if (nproc == 1) then
      !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
      psit => psi
-     call transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psit)
+     call transpose(iproc,nproc,norb,norbp,nspinor,lr%wfd,nvctrp,psit)
   end if
 
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
@@ -255,7 +249,7 @@ subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
   end if
 
   !retranspose the hpsi wavefunction
-  call untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,hpsi,work=psi)
+  call untranspose(iproc,nproc,norb,norbp,nspinor,lr%wfd,nvctrp,hpsi,work=psi)
 
   call timing(iproc,'Precondition  ','ON')
   if (iproc==0) then
@@ -263,10 +257,11 @@ subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
           'done, preconditioning...'
   end if
 
+
   !Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
-  call preconditionall(geocode,iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     hx,hy,hz,ncong,nspinor,wfd,eval,kbounds,hpsi,gnrm,hybrid_on)
+  call preconditionall(iproc,nproc,norb,norbp,lr,hx,hy,hz,ncong,nspinor,eval,&
+       hpsi,gnrm,hybrid_on)
 
   !sum over all the partial residues
   if (nproc > 1) then
@@ -284,7 +279,7 @@ subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
   !apply the minimization method (DIIS or steepest descent)
   if (idsx_actual > 0) then
      !transpose the hpsi wavefunction into the diis array
-     call transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,hpsi,work=psi,&
+     call transpose(iproc,nproc,norb,norbp,nspinor,lr%wfd,nvctrp,hpsi,work=psi,&
           outadd=hpsidst(1+nvctrp*nspinor*norbp*nproc*(mids-1)))
 
      call timing(iproc,'Diis          ','ON')
@@ -312,7 +307,7 @@ subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
      if (iproc == 0) write(*,'(1x,a,1pe11.3)') 'alpha=',alpha
 
      !transpose the hpsi wavefunction
-     call transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,hpsi,work=psi)
+     call transpose(iproc,nproc,norb,norbp,nspinor,lr%wfd,nvctrp,hpsi,work=psi)
 
      call timing(iproc,'Diis          ','ON')
      do iorb=1,norb*nspinor
@@ -328,16 +323,16 @@ subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
   end if
 
   if(nspin==1.or.nspinor==4) then
-     call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor)
+     call orthon_p(iproc,nproc,norb,nvctrp,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psit,nspinor)
   else
-     call orthon_p(iproc,nproc,norbu,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor)
+     call orthon_p(iproc,nproc,norbu,nvctrp,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psit,nspinor)
      if(norbd > 0) then
-        call orthon_p(iproc,nproc,norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit(1+nvctrp*norbu),nspinor)
+        call orthon_p(iproc,nproc,norbd,nvctrp,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psit(1+nvctrp*norbu),nspinor)
      end if
   end if
     !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
   
-  call untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psit,work=hpsi,outadd=psi(1))
+  call untranspose(iproc,nproc,norb,norbp,nspinor,lr%wfd,nvctrp,psit,work=hpsi,outadd=psi(1))
   if (nproc == 1) then
      nullify(psit)
   end if
@@ -351,7 +346,7 @@ subroutine hpsitopsi(geocode,iproc,nproc,norb,norbp,occup,hx,hy,hz,n1,n2,n3,&
      allocate(mom_vec(4,norbp*nproc,min(nproc,2)+ndebug),stat=i_stat)
      call memocc(i_stat,mom_vec,'mom_vec',subname)
 
-     call calc_moments(iproc,nproc,norb,norbp,wfd%nvctr_c+7*wfd%nvctr_f,nspinor,psi,mom_vec)
+     call calc_moments(iproc,nproc,norb,norbp,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor,psi,mom_vec)
      !only the root process has the correct array
      if(iproc==0) then
         write(*,'(1x,a)')&

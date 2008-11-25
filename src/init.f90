@@ -225,21 +225,21 @@ call memocc(i_stat,bounds%kb%ibxz_f,'bounds%kb%ibxz_f',subname)
 allocate(bounds%kb%ibxy_f(2,0:n1,0:n2+ndebug),stat=i_stat)
 call memocc(i_stat,bounds%kb%ibxy_f,'bounds%kb%ibxy_f',subname)
 
-allocate(bounds%gb%ibyz_ff(2,nfl2:nfu2,nfl3:nfu3),stat=i_stat)
+allocate(bounds%gb%ibyz_ff(2,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
 call memocc(i_stat,bounds%gb%ibyz_ff,'bounds%gb%ibyz_ff',subname)
-allocate(bounds%gb%ibzxx_f(2,nfl3:nfu3,0:2*n1+1),stat=i_stat)
+allocate(bounds%gb%ibzxx_f(2,nfl3:nfu3,0:2*n1+1+ndebug),stat=i_stat)
 call memocc(i_stat,bounds%gb%ibzxx_f,'bounds%gb%ibzxx_f',subname)
-allocate(bounds%gb%ibxxyy_f(2,0:2*n1+1,0:2*n2+1),stat=i_stat)
+allocate(bounds%gb%ibxxyy_f(2,0:2*n1+1,0:2*n2+1+ndebug),stat=i_stat)
 call memocc(i_stat,bounds%gb%ibxxyy_f,'bounds%gb%ibxxyy_f',subname)
 
-allocate(bounds%sb%ibxy_ff(2,nfl1:nfu1,nfl2:nfu2),stat=i_stat)
+allocate(bounds%sb%ibxy_ff(2,nfl1:nfu1,nfl2:nfu2+ndebug),stat=i_stat)
 call memocc(i_stat,bounds%sb%ibxy_ff,'bounds%sb%ibxy_ff',subname)
-allocate(bounds%sb%ibzzx_f(2,0:2*n3+1,nfl1:nfu1),stat=i_stat)
+allocate(bounds%sb%ibzzx_f(2,0:2*n3+1,nfl1:nfu1+ndebug),stat=i_stat)
 call memocc(i_stat,bounds%sb%ibzzx_f,'bounds%sb%ibzzx_f',subname)
-allocate(bounds%sb%ibyyzz_f(2,0:2*n2+1,0:2*n3+1),stat=i_stat)
+allocate(bounds%sb%ibyyzz_f(2,0:2*n2+1,0:2*n3+1+ndebug),stat=i_stat)
 call memocc(i_stat,bounds%sb%ibyyzz_f,'bounds%sb%ibyyzz_f',subname)
 
-allocate(logrid(0:n1,0:n2,0:n3),stat=i_stat)
+allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
 call memocc(i_stat,logrid,'logrid',subname)
 
 nseg_c=wfd%nseg_c
@@ -355,22 +355,19 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,&
 END SUBROUTINE createProjectorsArrays
 
 subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,&
-     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
-     norb,norbp,occup,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,wfd,bounds,nlpspd,proj,& 
+     norb,norbp,occup,nvctrp,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj,& 
      pkernel,ixc,psi,psit,hpsi,eval,nscatterarr,ngatherarr,nspin,spinsgn,hybrid_on)
   use module_base
   use module_interfaces, except_this_one => import_gaussians
   use module_types
   use Poisson_Solver
   implicit none
-  type(atoms_data), intent(in) :: at
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  type(convolutions_bounds), intent(in) :: bounds
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
-  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp,nspin
+  logical, intent(in) :: hybrid_on
+  integer, intent(in) :: iproc,nproc,norb,norbp,ixc,nvctrp,nspin
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
-  logical,intent(in)::hybrid_on
+  type(atoms_data), intent(in) :: at
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(locreg_descriptors), intent(in) :: Glr
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(norb), intent(in) :: spinsgn,occup
@@ -384,7 +381,7 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   real(wp), dimension(:), pointer :: psi,psit,hpsi
   !local variables
   character(len=*), parameter :: subname='import_gaussians'
-  integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp,jorb,n1i,n2i,n3i,j
+  integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp,jorb,j
   real(kind=4) :: t1,t0
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,accurex,maxdiff
   type(gaussian_basis) :: CP2K
@@ -408,21 +405,21 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   hyh=.5_gp*hy
   hzh=.5_gp*hz
 
-  !calculate dimension of the interpolating scaling function grid
-  select case(at%geocode)
-     case('F')
-        n1i=2*n1+31
-        n2i=2*n2+31
-        n3i=2*n3+31
-     case('S')
-        n1i=2*n1+2
-        n2i=2*n2+31
-        n3i=2*n3+2
-     case('P')
-        n1i=2*n1+2
-        n2i=2*n2+2
-        n3i=2*n3+2
-  end select
+!!$  !calculate dimension of the interpolating scaling function grid
+!!$  select case(at%geocode)
+!!$     case('F')
+!!$        n1i=2*n1+31
+!!$        n2i=2*n2+31
+!!$        n3i=2*n3+31
+!!$     case('S')
+!!$        n1i=2*n1+2
+!!$        n2i=2*n2+31
+!!$        n3i=2*n3+2
+!!$     case('P')
+!!$        n1i=2*n1+2
+!!$        n2i=2*n2+2
+!!$        n3i=2*n3+2
+!!$  end select
 
   call parse_cp2k_files(iproc,'gaubasis.dat','gaucoeff.dat',&
        at%nat,at%ntypes,norb,norbp,at%iatype,rxyz,CP2K,wfn_cp2k)
@@ -457,8 +454,9 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 !!$  deallocate(smat,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'smat',subname)
 
-  call gaussians_to_wavelets(at%geocode,iproc,nproc,norb,norbp,&
-     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,CP2K,wfn_cp2k,psi)
+  call gaussians_to_wavelets(at%geocode,iproc,nproc,norb,norbp,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+     Glr%d%nfl1,Glr%d%nfu1,Glr%d%nfl2,Glr%d%nfu2,Glr%d%nfl3,Glr%d%nfu3,&
+     hx,hy,hz,Glr%wfd,CP2K,wfn_cp2k,psi)
 
   !deallocate CP2K variables
   call deallocate_gwf(CP2K,subname)
@@ -484,11 +482,11 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call memocc(i_stat,ones,'ones',subname)
   ones(:)=1.0_gp
 
-  call sumrho(at%geocode,iproc,nproc,norb,norbp,ixc,n1,n2,n3,hxh,hyh,hzh,&
-       occup,wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,1,1,ones,&
-       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,hybrid_on)
+  call sumrho(iproc,nproc,norb,norbp,Glr,ixc,hxh,hyh,hzh,&
+       occup,psi,rhopot,&
+       Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,1,1,ones,hybrid_on)
 
-  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
+  call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,1)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
@@ -496,9 +494,9 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call memocc(i_stat,hpsi,'hpsi',subname)
 
   call HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
-       norb,norbp,occup,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
-       ngatherarr,n1i*n2i*nscatterarr(iproc,2),&
-       rhopot(1+n1i*n2i*nscatterarr(iproc,4)),&
+       norb,norbp,occup,nlpspd,proj,Glr,ngatherarr,&
+       Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+       rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,1,ones,hybrid_on)
 
   i_all=-product(shape(ones))*kind(ones)
@@ -524,7 +522,7 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
        'Imported Wavefunctions Orthogonalization:'
 
-  call DiagHam(iproc,nproc,at%natsc,nspin,1,norb,0,norb,norbp,nvctrp,wfd,&
+  call DiagHam(iproc,nproc,at%natsc,nspin,1,norb,0,norb,norbp,nvctrp,Glr%wfd,&
        psi,hpsi,psit,eval)
 
   if (iproc.eq.0) write(*,'(1x,a)')'done.'
@@ -532,9 +530,8 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 END SUBROUTINE import_gaussians
 
 subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
-     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     norb,norbp,nvirte,nvirtep,nvirt,n1,n2,n3,nvctrp,hx,hy,hz,rxyz,rhopot,pot_ion,&
-     wfd,bounds,nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,&
+     norb,norbp,nvirte,nvirtep,nvirt,nvctrp,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
+     nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,&
      nscatterarr,ngatherarr,nspin,spinsgn,hybrid_on)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
@@ -544,15 +541,13 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   use module_types
   use Poisson_Solver
   implicit none
-  type(atoms_data), intent(in) :: at
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  type(convolutions_bounds), intent(in) :: bounds
   logical, intent(in) :: hybrid_on
-  integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc
-  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nvctrp
+  integer, intent(in) :: iproc,nproc,norb,norbp,ixc,nvctrp
   integer, intent(inout) :: nspin,nvirte,nvirtep,nvirt
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
+  type(atoms_data), intent(in) :: at
+  type(nonlocal_psp_descriptors), intent(in) :: nlpspd
+  type(locreg_descriptors), intent(in) :: Glr
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
   real(gp), dimension(norb), intent(in) :: spinsgn
@@ -567,12 +562,11 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   character(len=*), parameter :: subname='input_wf_diag'
   real(kind=8), parameter :: eps_mach=1.d-12
   integer, parameter :: ngx=31
-  integer :: i,iorb,iorbsc,imatrsc,iorbst,imatrst,i_stat,i_all,ierr,info,jproc,jpst,norbeyou
-  integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbsc,n1i,n2i,n3i
+  integer :: i,iorb,iorbsc,imatrsc,iorbst,imatrst,i_stat,i_all,ierr,info
+  integer :: norbe,norbep,norbi,norbj,norbeme,ndim_hamovr,n_lp,norbsc,jproc,jpst,norbeyou
   integer :: ispin,norbu,norbd,iorbst2,ist,n2hamovr,nsthamovr,nspinor,iat
   real(gp) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,accurex
   type(gaussian_basis) :: G
-  type(locreg_descriptors) :: Glr
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng,iorbtolr
   integer, dimension(:,:), allocatable :: nl,norbsc_arr
@@ -595,21 +589,21 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   else
      nspinor=1
   end if
-  !calculate dimension of the interpolating scaling function grid
-  select case(at%geocode)
-     case('F')
-        n1i=2*n1+31
-        n2i=2*n2+31
-        n3i=2*n3+31
-     case('S')
-        n1i=2*n1+2
-        n2i=2*n2+31
-        n3i=2*n3+2
-     case('P')
-        n1i=2*n1+2
-        n2i=2*n2+2
-        n3i=2*n3+2
-  end select
+!!$  !calculate dimension of the interpolating scaling function grid
+!!$  select case(at%geocode)
+!!$     case('F')
+!!$        n1i=2*n1+31
+!!$        n2i=2*n2+31
+!!$        n3i=2*n3+31
+!!$     case('S')
+!!$        n1i=2*n1+2
+!!$        n2i=2*n2+31
+!!$        n3i=2*n3+2
+!!$     case('P')
+!!$        n1i=2*n1+2
+!!$        n2i=2*n2+2
+!!$        n3i=2*n3+2
+!!$  end select
 
   allocate(xp(ngx,at%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,xp,'xp',subname)
@@ -707,20 +701,20 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !the wavefunctions inside a given localisation region.
 
   !create the localisation region which are associated to the gaussian extensions and plot them
-  Glr%geocode=at%geocode
-  Glr%ns1=0
-  Glr%ns2=0
-  Glr%ns3=0
-  Glr%d%n1=n1
-  Glr%d%n2=n2
-  Glr%d%n3=n3
-  Glr%d%nfl1=nfl1
-  Glr%d%nfl2=nfl2
-  Glr%d%nfl3=nfl3
-  Glr%d%nfu1=nfu1
-  Glr%d%nfu2=nfu2
-  Glr%d%nfu3=nfu3
-  Glr%wfd=wfd !to be tested
+!!$  Glr%geocode=at%geocode
+!!$  Glr%ns1=0
+!!$  Glr%ns2=0
+!!$  Glr%ns3=0
+!!$  Glr%d%n1=n1
+!!$  Glr%d%n2=n2
+!!$  Glr%d%n3=n3
+!!$  Glr%d%nfl1=nfl1
+!!$  Glr%d%nfl2=nfl2
+!!$  Glr%d%nfl3=nfl3
+!!$  Glr%d%nfu1=nfu1
+!!$  Glr%d%nfu2=nfu2
+!!$  Glr%d%nfu3=nfu3
+!!$  Glr%wfd=wfd !to be tested
 
   if (at%geocode == 'F') then
      !allocate the array of localisation regions
@@ -744,7 +738,9 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   end if
 
   call gaussians_to_wavelets(at%geocode,iproc,nproc,norbe*nspin,norbep,&
-     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,gaucoeff,psi)
+     Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+     Glr%d%nfl1,Glr%d%nfu1,Glr%d%nfl2,Glr%d%nfu2,Glr%d%nfl3,Glr%d%nfu3,&
+     hx,hy,hz,Glr%wfd,G,gaucoeff,psi)
 
   
 !!$  !!plot the initial LCAO wavefunctions
@@ -806,11 +802,11 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 !!$  call gaussian_pswf_basis(iproc,at,rxyz,G)
 !!$  !create the density starting from input guess gaussians
     
-  call sumrho(at%geocode,iproc,nproc,nspin*norbe,norbep,ixc,n1,n2,n3,hxh,hyh,hzh,occupe,  & 
-       wfd,psi,rhopot,n1i*n2i*nscatterarr(iproc,1),nscatterarr,nspin,1,spinsgne, &
-       nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,hybrid_on)
+  call sumrho(iproc,nproc,nspin*norbe,norbep,Glr,ixc,hxh,hyh,hzh,occupe,  & 
+       psi,rhopot,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,&
+       nspin,1,spinsgne,hybrid_on)
 
-  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
+  call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,nspin)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
@@ -818,8 +814,9 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call memocc(i_stat,hpsi,'hpsi',subname)
   
   call HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
-       nspin*norbe,norbep,occupe,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds,nlpspd,proj,&
-       ngatherarr,n1i*n2i*nscatterarr(iproc,2),rhopot(1+n1i*n2i*nscatterarr(iproc,4)),&
+       nspin*norbe,norbep,occupe,nlpspd,proj,Glr,&
+       ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
+       rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,1,spinsgne,hybrid_on)
 
   i_all=-product(shape(spinsgne))*kind(spinsgne)
@@ -851,7 +848,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'
 
-  call DiagHam(iproc,nproc,at%natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp,wfd,&
+  call DiagHam(iproc,nproc,at%natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp,Glr%wfd,&
        psi,hpsi,psit,eval,norbe,norbep,etol,norbsc_arr,nvirte,nvirtep,psivirt)
  
 
@@ -1105,7 +1102,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,nspinor,norbu,norbd,norb,norbp,nvctrp
   if(present(nvirte) .and. present(psivirt) .and. nvirte > 0) then
      tt=dble(nvirte)/dble(nproc)
      nvirtep=int((1.d0-eps_mach*tt) + tt)
-     allocate(psivirt(nvctrp*nvirtep*nproc),stat=i_stat)
+     allocate(psivirt(nvctrp*nvirtep*nproc+ndebug),stat=i_stat)
      call memocc(i_stat,psivirt,'psivirt',subname)
   end if
 

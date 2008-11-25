@@ -253,9 +253,9 @@ contains
     !local variables
     integer :: i_all,i_stat
 
-    allocate(wfd%keyg(2,wfd%nseg_c+wfd%nseg_f),stat=i_stat)
+    allocate(wfd%keyg(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keyg,'keyg',routine)
-    allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f),stat=i_stat)
+    allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keyv,'keyv',routine)
 
   end subroutine allocate_wfd

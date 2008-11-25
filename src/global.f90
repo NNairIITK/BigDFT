@@ -45,6 +45,7 @@ program MINHOP
   real(kind=8), allocatable, dimension(:,:) :: pos,ff,wpos,vxyz,gg,earr
   real(kind=8), allocatable, dimension(:,:,:) :: poslocmin
 
+  character(len=*), parameter :: subname='global'
   character(len=41) :: filename
   character(len=5) :: fn
 
@@ -100,8 +101,8 @@ program MINHOP
         read(12,*) accur
         if (iproc.eq.0) write(67,*) 'accuracy for rounding=',accur
         if (nlmin.gt.nlminx) stop 'nlmin>nlminx'
-        allocate(earr(0:nlminx+nbuf,2),stat=i_stat)
-        call memocc(i_stat,product(shape(earr))*kind(earr),'earr','global')
+        allocate(earr(0:nlminx+nbuf,2+ndebug),stat=i_stat)
+        call memocc(i_stat,earr,'earr',subname)
         earr(0,1)=-1.d100
         if (nlmin.eq.0) then 
             if (iproc.eq.0) write(67,*) 'New run with nlminx=',nlminx
@@ -128,8 +129,8 @@ program MINHOP
         endif
         if (iproc.eq.0) write(67,*) 'nat=',atoms%nat
         if (iproc.eq.0) write(*,*) '#nat=',atoms%nat
-        allocate(pos(3,atoms%nat),stat=i_stat)
-        call memocc(i_stat,product(shape(pos))*kind(pos),'pos','global')
+        allocate(pos(3,atoms%nat+ndebug),stat=i_stat)
+        call memocc(i_stat,pos,'pos',subname)
         if (iproc.eq.0) write(67,'(a,a)') 'reading positions from ',filename
         if (iproc.eq.0) write(*,'(a,a)') ' # reading positions from ',filename
        call read_atomic_positions(iproc,99,atoms,pos)
@@ -142,18 +143,18 @@ program MINHOP
 !        pos(:,:)=pos(:,:)*8.d0
 
 ! allocate other arrays
-  allocate(ff(3,atoms%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(ff))*kind(ff),'ff','global')
-  allocate(wpos(3,atoms%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(wpos))*kind(wpos),'wpos','global')
-  allocate(vxyz(3,atoms%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(vxyz))*kind(vxyz),'vxyz','global')
-  allocate(gg(3,atoms%nat),stat=i_stat)
-  call memocc(i_stat,product(shape(gg))*kind(gg),'gg','global')
-  allocate(poslocmin(3,atoms%nat,npminx),stat=i_stat)
-  call memocc(i_stat,product(shape(poslocmin))*kind(poslocmin),'poslocmin','global')
-!        allocate(rxyz_old(3,atoms%nat),stat=i_stat)
-!        call memocc(i_stat,product(shape(rxyz_old))*kind(rxyz_old),'rxyz_old','BigDFT')
+  allocate(ff(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,ff,'ff',subname)
+  allocate(wpos(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,wpos,'wpos',subname)
+  allocate(vxyz(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,vxyz,'vxyz',subname)
+  allocate(gg(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,gg,'gg',subname)
+  allocate(poslocmin(3,atoms%nat,npminx+ndebug),stat=i_stat)
+  call memocc(i_stat,poslocmin,'poslocmin',subname)
+!        allocate(rxyz_old(3,atoms%nat+ndebug),stat=i_stat)
+!        call memocc(i_stat,rxyz_old,'rxyz_old','BigDFT')
 
 
 ! read input parameters
@@ -263,7 +264,7 @@ program MINHOP
      !call my_input_variables(iproc,.true.,inputs)
      inputs_opt%inputPsiId=0
 
-  call init_restart_objects(atoms,rst,'global')
+  call init_restart_objects(atoms,rst,subname)
 ! new way of initializing data
 
      call call_bigdft(nproc,iproc,atoms,pos,inputs_opt,e_pos,ff,rst,infocode)
@@ -644,18 +645,18 @@ program MINHOP
   !deallocations as in BigDFT
   i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
   deallocate(atoms%lfrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'lfrztyp','global')
+  call memocc(i_stat,i_all,'lfrztyp',subname)
   i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
   deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'iatype','global')
+  call memocc(i_stat,i_all,'iatype',subname)
   i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
   deallocate(atoms%natpol,stat=i_stat)
-  call memocc(i_stat,i_all,'natpol','global')
+  call memocc(i_stat,i_all,'natpol',subname)
   i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
   deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atomnames','global')
+  call memocc(i_stat,i_all,'atomnames',subname)
 
-  call free_restart_objects(rst,'global')
+  call free_restart_objects(rst,subname)
 
 
 ! deallocation of global's variables
@@ -663,25 +664,25 @@ program MINHOP
 
   i_all=-product(shape(pos))*kind(pos)
         deallocate(pos,stat=i_stat)
-        call memocc(i_stat,i_all,'pos','global')
+        call memocc(i_stat,i_all,'pos',subname)
   i_all=-product(shape(earr))*kind(earr)
         deallocate(earr,stat=i_stat)
-        call memocc(i_stat,i_all,'earr','global')
+        call memocc(i_stat,i_all,'earr',subname)
   i_all=-product(shape(ff))*kind(ff)
         deallocate(ff,stat=i_stat)
-        call memocc(i_stat,i_all,'ff','global')
+        call memocc(i_stat,i_all,'ff',subname)
   i_all=-product(shape(wpos))*kind(wpos)
         deallocate(wpos,stat=i_stat)
-        call memocc(i_stat,i_all,'wpos','global')
+        call memocc(i_stat,i_all,'wpos',subname)
   i_all=-product(shape(vxyz))*kind(vxyz)
         deallocate(vxyz,stat=i_stat)
-        call memocc(i_stat,i_all,'vxyz','global')
+        call memocc(i_stat,i_all,'vxyz',subname)
   i_all=-product(shape(gg))*kind(gg)
         deallocate(gg,stat=i_stat)
-        call memocc(i_stat,i_all,'gg','global')
+        call memocc(i_stat,i_all,'gg',subname)
   i_all=-product(shape(poslocmin))*kind(poslocmin)
         deallocate(poslocmin,stat=i_stat)
-        call memocc(i_stat,i_all,'poslocmin','global')
+        call memocc(i_stat,i_all,'poslocmin',subname)
 
         if (iproc.eq.0) write(67,'(a,1x,3(1x,1pe10.3))') 'Out:ediff,ekinetic,dt',ediff,ekinetic,dt
         close(2) 

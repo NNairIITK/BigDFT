@@ -282,7 +282,7 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
 !!$  !to be eliminated only for testing purposes
 !!$  fsep(:,:)=0.d0
 
-  allocate(scalprod(0:3,7,3,4,at%nat,norbp*nspinor),stat=i_stat)
+  allocate(scalprod(0:3,7,3,4,at%nat,norbp*nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
 
   !calculate the coefficients for the off-diagonal terms

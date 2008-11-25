@@ -262,7 +262,7 @@ minhop: $(OBJECTS_MODULES) $(OBJECTS_MINHOP) CUDAlib
 
 
 clean:
-	rm -f *.o cluster memguess *.mod *~ PSolver/*.o PSolver/*~ \
+	rm -f *.o cluster memguess *.mod */*.mod *~ PSolver/*.o PSolver/*~ \
 	convolutions/*.o profiling/*.o init/*.o wfn_opt/*.o wavelib/*.o \
 	ABINIT-ewald/*.f90 ABINIT-ewald/*.o PSolver/ABINIT-common/*.f90 \
 	PSolver/ABINIT-common/*.o PSolver/ABINIT-common/*~ modules/*~ modules/*.o \
