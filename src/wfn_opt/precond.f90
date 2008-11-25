@@ -148,8 +148,9 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   scal(3)=sqrt(1.0_wp/(h3+cprecr))
 
   if (inguess_on) then
-     !          the right hand side is temporarily stored in the rpsi array        
-     rpsi=hpsi           
+     !          the right hand side is temporarily stored in the rpsi array
+     !rpsi=hpsi           
+     call dcopy(nvctr_c+7*nvctr_f,hpsi,1,rpsi,1) 
      !          and preconditioned with d^{-1/2} as usual:
      call  wscalv(nvctr_c,nvctr_f,scal,rpsi,rpsi(nvctr_c+1))
 

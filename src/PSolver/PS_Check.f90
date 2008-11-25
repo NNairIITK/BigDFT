@@ -238,7 +238,8 @@ contains
 
     if (ixc /= 0) then
        if (nspden == 1) then
-          test=potential+pot_ion+xc_pot
+          test(1:n01*n02*n03)=&
+               potential(1:n01*n02*n03)+pot_ion(1:n01*n02*n03)+xc_pot(1:n01*n02*n03)
        else
           if (distcode == 'G') then
              do i=1,n01*n02*n03
@@ -255,7 +256,7 @@ contains
           end if
        end if
     else
-       test=potential!+pot_ion
+       test(1:n01*n02*n03)=potential(1:n01*n02*n03)!+pot_ion
     end if
 
     do isp=1,nspden

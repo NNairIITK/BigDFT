@@ -733,10 +733,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
        'Difference:evsum,energybs',evsum,energybs
  
   if (nvirt > 0 .and. in%inputPsiId == 0) then
-     call davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,atoms,&
-          cpmult,fpmult,radii_cf,&
-          norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,Glr,&
-          hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  &
+     call davidson(iproc,nproc,n1i,n2i,n3i,atoms,cpmult,fpmult,radii_cf,&
+          norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,nvctrp,Glr,&
+          hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,nlpspd,proj, &
           pkernel,ixc,psi,psivirt,eval,ncong,nscatterarr,ngatherarr,hybrid_on)
   end if
   
