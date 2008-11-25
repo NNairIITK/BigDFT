@@ -155,7 +155,7 @@ subroutine syn_rot_grow(n,ndat,x,y)
 	! 4: number of flops in one line
 	! 2: even and odd 
 
-	allocate(lb(2,-3:n+3))
+	allocate(lb(2,-3:n+3+ndebug))
 	do i=-3,n+3
 		lb(1,i)=max(i-n,-4)
 		lb(2,i)=min(i,4)

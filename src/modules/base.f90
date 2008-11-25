@@ -30,7 +30,7 @@ module module_base
 
   !Memory limit value in GB. It stops EVERYTHING if some process passes such limit
   !For no memory limit, leave it to zero
-  real(kind=4), parameter :: memorylimit=0.6e0
+  real(kind=4), parameter :: memorylimit=0.e0
 
   !flag for GPU computing, if CUDA libraries are present
   !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
@@ -71,6 +71,9 @@ module module_base
   end interface
   interface c_gemm
      module procedure c_gemm_simple,c_gemm_double
+  end interface
+  interface dot
+     module procedure dot_simple,dot_double
   end interface
   interface nrm2
      module procedure nrm2_simple,nrm2_double
@@ -423,6 +426,34 @@ module module_base
       call ZAXPY(n,da,dx,incx,dy,incy)
     end subroutine c_axpy_double
 
+    !euclidean dot product
+    function dot_simple(n,sx,incx,sy,incy)
+      implicit none
+      integer, intent(in) :: n,incx,incy
+      real(kind=4), intent(in) :: sx,sy
+      real(kind=4) :: dot_simple
+      !local variables
+      real(kind=4) :: cublas_sdot,sdot
+      if (GPUblas) then
+         !call to CUBLAS function
+         dot_simple=cublas_sdot(n,sx,incx,sy,incy)
+      else
+         !call to BLAS function
+         dot_simple=sdot(n,sx,incx,sy,incy)
+      end if
+    end function dot_simple
+
+    function dot_double(n,dx,incx,dy,incy)
+      implicit none
+      integer, intent(in) :: n,incx,incy
+      real(kind=8), intent(in) :: dx,dy
+      real(kind=8) :: dot_double
+      !local variables
+      real(kind=8) :: ddot
+      !call to BLAS function
+      dot_double=ddot(n,dx,incx,dy,incy)
+    end function dot_double
+
 
 
     !euclidean NoRM of a vector
@@ -441,6 +472,7 @@ module module_base
          nrm2_simple=snrm2(n,x,incx)
       end if
     end function nrm2_simple
+
     function nrm2_double(n,x,incx)
       implicit none
       integer, intent(in) :: n,incx

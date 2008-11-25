@@ -19,8 +19,8 @@ program memguess
   character(len=*), parameter :: subname='memguess'
   integer, parameter :: ngx=31
   character(len=20) :: tatonam,units
-  logical :: calc_tail,output_grid,optimise
-  integer :: ierror,nproc,n1,n2,n3,i_stat,i_all
+  logical :: calc_tail,optimise
+  integer :: ierror,nproc,n1,n2,n3,i_stat,i_all,output_grid
   integer :: nelec,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
   integer :: norb,norbu,norbd,norbe,norbp,norbsc
   integer :: iunit,ityp
@@ -37,7 +37,7 @@ program memguess
   integer, dimension(:,:), allocatable :: nl
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
-  real(kind=8), dimension(:), allocatable :: occup,spinsgn
+  real(kind=8), dimension(:), allocatable :: occup,spinsgn,locrad
 
 ! Get arguments
   call getarg(1,tatonam)
@@ -61,14 +61,14 @@ program memguess
      read(unit=tatonam,fmt=*) nproc
      call getarg(2,tatonam)
      if(trim(tatonam)=='') then
-        output_grid=.false.
+        output_grid=0
      else if (trim(tatonam)=='y') then
-        output_grid=.true.
+        output_grid=1
         write(*,'(1x,a)')&
              'The system grid will be displayed in the "grid.xyz" file'
      else if (trim(tatonam)=='o') then
         optimise=.true.
-        output_grid=.true.
+        output_grid=1
         write(*,'(1x,a)')&
              'The optimised system grid will be displayed in the "grid.xyz" file'
      else
@@ -149,12 +149,18 @@ program memguess
      call memocc(i_stat,scorb,'scorb',subname)
      allocate(norbsc_arr(atoms%natsc+1,in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
+     allocate(locrad(atoms%nat+ndebug),stat=i_stat)
+     call memocc(i_stat,locrad,'locrad',subname)
+
 
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
      call readAtomicOrbitals(0,ngx,xp,psiat,occupat,ng,nl,atoms,norbe,norbsc,in%nspin,&
-          scorb,norbsc_arr)
+          scorb,norbsc_arr,locrad)
 
      ! De-allocations
+     i_all=-product(shape(locrad))*kind(locrad)
+     deallocate(locrad,stat=i_stat)
+     call memocc(i_stat,i_all,'locrad',subname)
      i_all=-product(shape(xp))*kind(xp)
      deallocate(xp,stat=i_stat)
      call memocc(i_stat,i_all,'xp',subname)

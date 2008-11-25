@@ -44,22 +44,23 @@
 !!   (retranspose v and psi) 
 !!! SOURCE
 !!
-subroutine davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
+subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
      cpmult,fpmult,radii_cf,&
-     norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,&
-     hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  & 
+     norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,nvctrp,lr,&
+     hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,nlpspd,proj,  & 
      pkernel,ixc,psi,v,eval,ncong,nscatterarr,ngatherarr,hybrid_on)
   use module_base
   use module_types
   use module_interfaces, except_this_one => davidson
   implicit none
+  logical, intent(in) :: hybrid_on
+  integer, intent(in) :: iproc,nproc,norb,norbp,ixc,n1i,n2i,n3i
+  integer, intent(in) :: i3xcsh,nvctrp,norbu
+  integer, intent(in) :: nvirte,nvirtep,nvirt,ncong,n3p,itermax,nplot
   type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  type(convolutions_bounds), intent(in) :: bounds
-  integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc,n1i,n2i,n3i
-  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i3xcsh,nvctrp,norbu
-  integer, intent(in) :: nvirte,nvirtep,nvirt,ncong,n3p,itermax,nplot
+  type(locreg_descriptors), intent(in) :: lr 
   real(gp), dimension(norb), intent(in) :: occup
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
   real(dp), intent(in) :: gnrm_cv
@@ -72,7 +73,6 @@ subroutine davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
   !this is a Fortran 95 standard, should be avoided (it is a pity IMHO)
   !real(kind=8), dimension(:,:,:,:), allocatable :: rhopot 
   real(wp), dimension(norb), intent(in) :: eval
-  logical,intent(in)::hybrid_on
   real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc) 
                         !v, that is psivirt, is transposed on input and direct on output
   !local variables
@@ -202,8 +202,7 @@ subroutine davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
 !write(*,*)"start adress: ",1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)
 
   call HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
-       nvirte,nvirtep,ones,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-       wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
+       nvirte,nvirtep,ones,nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
        rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,1,1,ones,hybrid_on)
 
   !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
@@ -335,9 +334,8 @@ subroutine davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
      call timing(iproc,'Precondition  ','ON')
 
      !LG: why we use for preconditioning the eval form the initial input guess?
-     call preconditionall(at%geocode,iproc,nproc,nvirte,nvirtep,&
-          n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz, &
-          ncong,1,wfd,eval,bounds%kb,g,gnrm_fake,hybrid_on)
+     call preconditionall(iproc,nproc,nvirte,nvirtep,lr,hx,hy,hz, &
+          ncong,1,eval,g,gnrm_fake,hybrid_on)
 
      call timing(iproc,'Precondition  ','OF')
      if (iproc==0)write(*,'(1x,a)')'done.'
@@ -361,15 +359,13 @@ subroutine davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
      call memocc(i_stat,hg,'hg',subname)
 
      call HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
-          nvirte,nvirtep,ones,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-          wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
+          nvirte,nvirtep,ones,nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1+i3xcsh*n1i*n2i),g,hg,ekin_sum,epot_sum,eproj_sum,1,1,ones,hybrid_on)
 
                               !ixcs
 !  and the syntax from init, wfn_diag
 !  call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
-!       psppar,npspcode,2*nvirte,2*nvirtep,ones(1),n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-!       wfd,bounds,nlpspd,proj,&
+!       psppar,npspcode,2*nvirte,2*nvirtep,ones(1),nlpspd,proj,lr,&
 !       ngatherarr,nscatterarr(iproc,2),rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
 !       g,hg,ekin_sum,epot_sum,eproj_sum,1,ones(1))
 
@@ -549,8 +545,7 @@ subroutine davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
   
      call HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
-          nvirte,nvirtep,ones,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-          wfd,bounds,nlpspd,proj,ngatherarr,n1i*n2i*n3p,&
+          nvirte,nvirtep,ones,nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,1,1,ones,hybrid_on)
 
      !transpose  v and hv
@@ -651,8 +646,7 @@ subroutine davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
 
      ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-iproc*nvirtep-1)
      write(orbname,'(A,i3.3)')'virtual',iorb
-     call plot_wf(orbname,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,rxyz(1,1),rxyz(2,1),rxyz(3,1),wfd,&
-          bounds,v(ind:))
+     call plot_wf(orbname,lr,hx,hy,hz,rxyz(1,1),rxyz(2,1),rxyz(3,1),v(ind:))
   end do
 
   do iorb=min((iproc+1)*norbp,norb),iproc*norbp+1,-1 ! sweep over highest occupied orbitals
@@ -669,8 +663,7 @@ subroutine davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
 
      ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-iproc*norbp-1)
      write(orbname,'(A,i3.3)')'orbital',iorb
-     call plot_wf(orbname,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,rxyz(1,1),rxyz(2,1),rxyz(3,1),wfd,&
-          bounds,psi(ind:))
+     call plot_wf(orbname,lr,hx,hy,hz,rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(ind:))
   end do
   ! END OF PLOTTING
 

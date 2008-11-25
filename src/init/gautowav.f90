@@ -422,7 +422,7 @@ subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
   !local variables
   character(len=*), parameter :: subname='gaussians_to_wavelets'
   integer, parameter :: nterm_max=3
-  logical :: myorbital
+  logical :: myorbital,maycalc
   integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,i,nterm,ierr,ig
   real(dp) :: normdev,tt,scpr
   real(gp) :: rx,ry,rz
@@ -459,13 +459,26 @@ subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
         !multiply the values of the gaussian contraction times the orbital coefficient
         do m=1,2*l-1
            call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
-!!$           !this kinetic energy is not reliable
-!!$           eks=eks+ek*occup(iorb)*cimu(m,ishell,iat,iorb)
-           call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,G%xp(iexpo),G%psiat(iexpo),&
-                rx,ry,rz,hx,hy,hz,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-                wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,wfd%nseg_f,wfd%nvctr_f,&
-                wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
-                tpsi(1),tpsi(wfd%nvctr_c+1))
+           !control whether the basis element may be
+           !contribute to some of the orbital of the processor
+           maycalc=.false.
+           loop_calc: do iorb=1,norb
+              if (myorbital(iorb,norb,iproc,nproc)) then
+                 jorb=iorb-iproc*norbp
+                 if (wfn_gau(icoeff,jorb) /= 0.0_wp) then
+                    maycalc=.true.
+                    exit loop_calc
+                 end if
+              end if
+           end do loop_calc
+           if (maycalc) then
+              call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,&
+                   G%xp(iexpo),G%psiat(iexpo),&
+                   rx,ry,rz,hx,hy,hz,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+                   wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,wfd%nseg_f,wfd%nvctr_f,&
+                   wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
+                   tpsi(1),tpsi(wfd%nvctr_c+1))
+           end if
            !sum the result inside the orbital wavefunction
            !loop over the orbitals
            do iorb=1,norb
