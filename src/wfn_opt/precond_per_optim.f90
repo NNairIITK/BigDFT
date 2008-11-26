@@ -13,7 +13,7 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   ! local variables
   integer, parameter :: lowfil=-14,lupfil=14
   real(gp)::scal(0:8)
-  real(wp)::rmr,rmr_new,alpha,beta
+  real(wp)::rmr,rmr_new,alpha,beta,dot
   integer i,i_stat,i_all
   real(wp),allocatable::b(:),r(:),d(:)
   real(wp),allocatable::psifscf(:),ww(:)

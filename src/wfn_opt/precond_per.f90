@@ -15,7 +15,7 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   integer, parameter :: lowfil=-14,lupfil=14
   character(len=*), parameter :: subname='precong_per'
   integer :: i,i_stat,i_all
-  real(wp) :: rmr,rmr_new,alpha,beta
+  real(wp) :: rmr,rmr_new,alpha,beta,dot
   real(wp), dimension(0:8) :: scal
   real(wp), dimension(:), allocatable :: b,r,d,ww,psifscf
   real(wp), allocatable,dimension(:,:) :: af,bf,cf,ef

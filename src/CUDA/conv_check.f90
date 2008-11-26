@@ -27,15 +27,17 @@ program conv_check
   character(len=*), parameter :: subname='conv_check'
   character(len=50) :: chain
   integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,ndat,i1_max,i_max,it0,it1,ndim
-  integer :: count_rate,count_max
+  integer :: count_rate,count_max,l
   integer :: n1s,n1e,ndats,ndate
-  real(wp) :: tt
-  real(gp) :: v,p,CPUtime,GPUtime,comp
+  real(wp) :: tt,scale
+  real(gp) :: v,p,CPUtime,GPUtime,comp,ekin
   real(kind=4), dimension(:,:,:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
-  real(kind=4) :: t0,t1,epotGPU
-  real(kind=8) :: psi_GPU,v_GPU,work_GPU !pointer to the GPU  memory addresses (with norb=1)
+  real(kind=4) :: t0,t1,epotGPU,ekinGPU
+  real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU !pointer to the GPU  memory addresses (with norb=1)
   integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
   integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
+  integer, parameter :: lowfilK=-14,lupfilK=14 ! kinetic term
+  real(kind=8), dimension(lowfilK:lupfilK) :: fil
   real(kind=4) filCUDA1(lowfil1:lupfil1) !array of filters to be passed to CUDA interface
   data filCUDA1 / &
        8.4334247333529341094733325815816e-7_4,&
@@ -73,6 +75,7 @@ program conv_check
        -0.1290557201342060969516786758559028e-4_4,&
        8.4334247333529341094733325815816e-7_4 /
 
+
 !!$  !Use arguments
 !!$  call getarg(1,chain)
 !!$  read(unit=chain,fmt=*) n1
@@ -85,21 +88,55 @@ program conv_check
   hy=0.1e0_gp
   hz=0.1e0_gp
 
+  scale=real(-.5_gp/hx**2,wp)
+
+  ! second derivative filters for Daubechies 16
+  fil(0)=   -3.5536922899131901941296809374e0_wp*scale
+  fil(1)=    2.2191465938911163898794546405e0_wp*scale
+  fil(2)=   -0.6156141465570069496314853949e0_wp*scale
+  fil(3)=    0.2371780582153805636239247476e0_wp*scale
+  fil(4)=   -0.0822663999742123340987663521e0_wp*scale
+  fil(5)=    0.02207029188482255523789911295638968409e0_wp*scale
+  fil(6)=   -0.409765689342633823899327051188315485e-2_wp*scale
+  fil(7)=    0.45167920287502235349480037639758496e-3_wp*scale
+  fil(8)=   -0.2398228524507599670405555359023135e-4_wp*scale
+  fil(9)=    2.0904234952920365957922889447361e-6_wp*scale
+  fil(10)=  -3.7230763047369275848791496973044e-7_wp*scale
+  fil(11)=  -1.05857055496741470373494132287e-8_wp*scale
+  fil(12)=  -5.813879830282540547959250667e-11_wp*scale
+  fil(13)=   2.70800493626319438269856689037647576e-13_wp*scale
+  fil(14)=  -6.924474940639200152025730585882e-18_wp*scale
+
+!!$  ! second derivative filters for Daubechies 16
+!!$  fil(0)=    0.e-3_wp*scale
+!!$  fil(1)=    1.e-3_wp*scale
+!!$  fil(2)=    2.e-3_wp*scale
+!!$  fil(3)=    3.e-3_wp*scale
+!!$  fil(4)=    4.e-3_wp*scale
+!!$  fil(5)=    5.e-3_wp*scale
+!!$  fil(6)=    6.e-3_wp*scale
+!!$  fil(7)=    7.e-3_wp*scale
+!!$  fil(8)=    8.e-3_wp*scale
+!!$  fil(9)=    9.e-3_wp*scale
+!!$  fil(10)=  10.e-3_wp*scale
+!!$  fil(11)=  11.e-3_wp*scale
+!!$  fil(12)=  12.e-3_wp*scale
+!!$  fil(13)=  13.e-3_wp*scale
+!!$  fil(14)=  14.e-3_wp*scale
+
+
+  do i=1,14
+     fil(-i)=fil(i)
+  enddo
+
+  ekin=0.0_wp
 
   !one dimensional case
   if (ndim == 1) then
      do ndat=ndats,ndate
         do n1=n1s,n1e
-           !values for the grid
-!!$  n1=127
-           n2=50
-           n3=50
-           !ntimes=1
-
-
            !set of one-dimensional convolutions
            !allocate arrays
-           !ndat=256!(n2+1)*(n3+1)
            allocate(psi_in(n1,ndat,1+ndebug),stat=i_stat)
            call memocc(i_stat,psi_in,'psi_in',subname)
            allocate(psi_out(ndat,n1,1+ndebug),stat=i_stat)
@@ -143,8 +180,6 @@ program conv_check
            allocate(v_cuda(ndat,n1,1+ndebug),stat=i_stat)
            call memocc(i_stat,v_cuda,'v_cuda',subname)
 
-
-           !print *,'one'
            !the input and output arrays must be reverted in this implementation
            do i=1,ndat
               do i1=1,n1
@@ -152,10 +187,8 @@ program conv_check
                  !write(16,'(2(i6),2(1pe24.17)')i,i1,v_cuda(i,i1,1),psi_in(i1,i,1)
               end do
            end do
-           !print *,'two'
 
            call GPU_allocate(n1*ndat,psi_GPU,i_stat)
-           !print *,'three'
            call GPU_allocate(n1*ndat,work_GPU,i_stat)
 
            !call GPU_send(n1*ndat,v_cuda,psi_GPU,i_stat)
@@ -193,8 +226,6 @@ program conv_check
            call GPU_deallocate(psi_GPU,i_stat)
            call GPU_deallocate(work_GPU,i_stat)
 
-
-
            !check the differences between the results
            maxdiff=0.d0
            i1_max=1
@@ -217,6 +248,107 @@ program conv_check
 
            !print *,'i1,maxdiff',i_max,i1_max,v_cuda(i_max,i1_max,1),psi_cuda(i1_max,i_max,1)
            !!print *,'i1,maxdiff',i_max,i1_max,psi_out(i_max,i1_max,1),psi_cuda(i1_max,i_max,1)
+           if (maxdiff <= 3.d-4) then
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+           else
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
+                   '<<<< WARNING' 
+           end if
+
+           !**************************************************kinetic term
+
+           write(*,'(a,i6,i6)')'CPU Kinetic, dimensions:',n1,ndat
+           psi_out=0.d0
+           !take timings
+           !call system_clock(it0,count_rate,count_max)
+           ekin=0.0_gp
+           call cpu_time(t0)
+           do i=1,ntimes
+              do i2=1,ndat
+                 do i1=1,n1
+                    tt=0.0_wp
+                    do l=lowfilK,lupfilK
+                       j=modulo(i1-1+l,n1)+1
+                       tt=tt+psi_in(j   ,i2,1)*fil(l)
+                    enddo
+                    psi_out(i2,i1,1)=psi_out(i2,i1,1)+tt
+                    ekin=ekin+psi_in(i1,i2,1)*tt
+                 enddo
+              end do
+           end do
+           call cpu_time(t1)
+           !call system_clock(it1,count_rate,count_max)
+
+           !CPUtime=real(it1-it0,kind=8)/real(count_rate*ntimes,kind=8)
+           CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+                CPUtime*1.d3/real(ntimes,kind=8),real(n1*ndat*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+
+
+           print *,'ekin',ekin
+
+
+           call GPU_allocate(n1*ndat,psi_GPU,i_stat)
+           call GPU_allocate(n1*ndat,work_GPU,i_stat)
+           call GPU_allocate(n1*ndat,work2_GPU,i_stat)
+
+           call GPU_send(n1*ndat,v_cuda,work_GPU,i_stat)
+
+           !print *,'starting CUDA'
+
+           !now the CUDA part
+           !take timings
+           write(*,'(a,i6,i6)')'GPU Kinetic, dimensions:',n1,ndat
+
+           !call system_clock(it0,count_rate,count_max)
+           call cpu_time(t0)
+           do i=1,ntimes
+              call kineticterm(ndat-1,0,n1-1,&
+                   real(hx,kind=4),real(hy,kind=4),real(hz,kind=4),&
+                   work_GPU,psi_GPU,work2_GPU,ekinGPU)
+           end do
+           call cpu_time(t1)
+           !call system_clock(it1,count_rate,count_max)
+
+           !GPUtime=real(it1-it0,kind=8)/real(count_rate*ntimes,kind=8)
+           GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
+                GPUtime*1.d3/real(ntimes,kind=8),real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9)
+           !print *,'ending CUDA'
+
+           call GPU_receive(n1*ndat,psi_cuda,psi_GPU,i_stat)
+
+           call GPU_deallocate(psi_GPU,i_stat)
+           call GPU_deallocate(work_GPU,i_stat)
+           call GPU_deallocate(work2_GPU,i_stat)
+
+           !check the differences between the results
+           maxdiff=0.d0
+           i1_max=1
+           i_max=1
+           do i=1,ndat
+              do i1=1,n1
+                 !write(17,'(2(i6),2(1pe24.17))')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
+                 write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
+                 comp=abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8))
+                 !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
+                 if (comp > maxdiff) then
+                    maxdiff=comp
+                    i1_max=i1
+                    i_max=i
+                 end if
+              end do
+           end do
 
            if (maxdiff <= 3.d-7) then
               write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
@@ -232,6 +364,7 @@ program conv_check
                    GPUtime*1.d3/real(ntimes,kind=8),real(n1*ndat*ntimes,kind=8)*32.d0/(GPUtime*1.d9),&
                    '<<<< WARNING' 
            end if
+           
 
            i_all=-product(shape(psi_in))
            deallocate(psi_in,stat=i_stat)
@@ -320,7 +453,6 @@ program conv_check
      call cpu_time(t1)
 
      CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
-
 
      write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
           CPUtime*1.d3/real(ntimes,kind=8),&
