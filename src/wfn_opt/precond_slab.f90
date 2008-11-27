@@ -19,7 +19,7 @@ subroutine precong_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   real(wp), intent(inout) ::  x(nvctr_c+7*nvctr_f)
   ! local variables
   real(gp)::scal(0:8)
-  real(wp)::rmr,rmr_new,alpha,beta,dot
+  real(wp)::rmr,rmr_new,alpha,beta
   integer i,i_stat,i_all
   real(wp),allocatable::b(:),r(:),d(:)
   real(wp),allocatable::psifscf(:),ww(:)

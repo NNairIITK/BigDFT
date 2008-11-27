@@ -29,7 +29,6 @@
 #define LOWFIL 14
 #define LUPFIL 14
 
-
 //convolution filters
 #define KFIL0   -3.5536922899131901941296809374f
 #define KFIL1    2.2191465938911163898794546405f
@@ -46,7 +45,6 @@
 #define KFIL12  -5.813879830282540547959250667e-11f
 #define KFIL13   2.70800493626319438269856689037647576e-13f
 #define KFIL14  -6.924474940639200152025730585882e-18f
-
 
 /*
 #define KFIL0   0.e-3f 
@@ -89,10 +87,18 @@ void correctSequence(int thds,int elem,int * tab);
 
 int kineticfilter(int n1,int n2, int n3,
 		  float h1,float h2,float h3,
-		  float *psi,
-		  float *work1,
-		  float *work2,
-		  float *epot);
+		  float *x,
+		  float *workx,
+		  float *y,
+		  float *worky,
+		  float *ekin);
+
+float reducearrays(int n,
+		   int ndat,
+		   float *psi,
+		   float *vpsi,
+		   float *epot);
+
 
 // Magic Filter parameters to be used for calculating the convolution
 void KParameters(parK_t* par,
@@ -170,7 +176,7 @@ void KParameters(parK_t* par,
 
 //1D convolution of multiple lines in the same block
 __global__ void kinetic1d(int n,int ndat, 
-			  float *psi_in, float *psi_out, float *psi_in_rot, 
+			  float *x_in, float *x_out, float *y_in, float *y_out,
 			  int idim)
 {
 
@@ -202,14 +208,14 @@ __global__ void kinetic1d(int n,int ndat,
   //NOTE: it is assumed that for non-first segments the starting
   //points is far enough for the filter to be contained
   //and the same for non-last segments.
-  //in other terms: lenght of the line is always bigger than
+  //in other terms: total lenght of the line is always bigger than
   //max(lowfil,lupfil)
 
   for(int i=0,ipos=elemOffset-LOWFIL+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
     {
       epsilon=(ipos < 0 ? -1 : ipos/n);
       npos=ipos-epsilon*n;
-      psi_sh[ShBaseElem]=psi_in[BaseElem+ndat*npos];
+      psi_sh[ShBaseElem]=x_in[BaseElem+ndat*npos];
 
       ShBaseElem += HALF_WARP_SIZE;
       ipos += HW_ELEM;
@@ -220,12 +226,18 @@ __global__ void kinetic1d(int n,int ndat,
   __syncthreads();
 
   //element treated by the given thread in n-axis
-  thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_calc[hwid];
+  thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_calc[hwid] + elemOffset;
   //base element for the given thread in shared memory
   ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_calc[hwid];
 
+  //recycle elemOffset variable to stock the previous BaseElem
+  elemOffset = BaseElem;
+
   //output base element, from the input one
-  BaseElem =  n*BaseElem+ thelem + elemOffset;
+  BaseElem =  n*elemOffset+ thelem;
+
+  //input base element, transposed (recycle thelem)
+  thelem = ndat*thelem + elemOffset;
 
   //perform convolution in shared memory 
   //each thread calculate a number of elements, identical for each
@@ -268,13 +280,55 @@ __global__ void kinetic1d(int n,int ndat,
 		psi_sh[ShBaseElem + 15*NUM_LINES]) +
 	KFIL0 * psi_sh[ShBaseElem + 14*NUM_LINES];
 
-      psi_out[BaseElem]=-par[idim].scale*conv;//another array should
-					      //be added
+      y_out[BaseElem]=y_in[thelem]-par[idim].scale*conv;
+
       //psi_sh[ShBaseElem+LOWFIL*NUM_LINES]; //for testing only
-      psi_in_rot[BaseElem]=psi_sh[ShBaseElem+LOWFIL*NUM_LINES]; 
+      x_out[BaseElem]=psi_sh[ShBaseElem+LOWFIL*NUM_LINES]; 
+
 
       ShBaseElem += HALF_WARP_SIZE;
       BaseElem += HW_ELEM;
+      thelem += ndat*HW_ELEM;
+      
+
+    }
+}
+
+
+//1D convolution of multiple lines in the same block
+__global__ void c_initialize(int n,int ndat,
+			     float *x_in, float *y_in,
+			     float c,int idim)
+{
+
+  //line treated by the given block
+  unsigned int lineOffset = min(blockIdx.y*NUM_LINES,ndat-NUM_LINES);
+  //starting element treated by the block
+  unsigned int elemOffset = 
+    min(blockIdx.x*par[idim].ElementsPerBlock,n-par[idim].ElementsPerBlock);
+
+  //half-warp id
+  const unsigned int hwid = threadIdx.y;
+  //tid within the HW
+  const unsigned int tid_hw = threadIdx.x;
+
+  //line treated by the given thread in ndat axis
+  //which is the input base element
+  unsigned int BaseElem = par[idim].thline[tid_hw] + lineOffset;
+
+  //element treated by the given thread in n-axis
+  unsigned int thelem = 
+    par[idim].thelem[tid_hw] + par[idim].hwoffset_calc[hwid] + elemOffset;
+
+  //input base element, transposed (recycle thelem)
+  thelem = ndat*thelem + BaseElem;
+
+  for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
+    {
+      
+      y_in[thelem]=c*x_in[thelem];
+
+      thelem += ndat*HW_ELEM;
       
 
     }
@@ -284,7 +338,7 @@ __global__ void kinetic1d(int n,int ndat,
 extern "C" 
 void kineticterm_(int *n1,int *n2,int *n3,
 		  float *hx,float *hy,float *hz,
-		  float **psi,float **work1,float **work2,
+		  float **x,float **y,float **workx,float **worky,
 		  float *ekin) 
 
 {
@@ -292,7 +346,7 @@ void kineticterm_(int *n1,int *n2,int *n3,
   
   if(kineticfilter(*n1+1,*n2+1,*n3+1,
 		   *hx,*hy,*hz,
-		   *psi,*work1,*work2,
+		   *x,*workx,*y,*worky,
 		   ekin) != 0)
     {
       printf("ERROR: GPU kineticfilter\n ");
@@ -303,11 +357,12 @@ void kineticterm_(int *n1,int *n2,int *n3,
 
 
 int kineticfilter(int n1,int n2, int n3,
-		   float h1,float h2,float h3,
-		   float *psi,
-		   float *work1,
-		   float *work2,
-		   float *epot)
+		  float h1,float h2,float h3,
+		  float *x,
+		  float *workx,
+		  float *y,
+		  float *worky,
+		  float *ekin)
 {
 
   //create the parameters
@@ -347,14 +402,25 @@ int kineticfilter(int n1,int n2, int n3,
       return 1;
     }
 
-  kinetic1d <<< grid3, threads3 >>>(n3,n1*n2,psi,work1,work2,2);
+  //here the worky array should be initialised to c*x
+  c_initialize <<< grid3, threads3 >>>(n3,n1*n2,x,worky,0.f,2);
   cudaThreadSynchronize();
 
-  //kinetic1d <<< grid2, threads2 >>>(n2,n1*n3,work2,psi,1);
-  //cudaThreadSynchronize();
+  kinetic1d <<< grid3, threads3 >>>(n3,n1*n2,x,workx,worky,y,2);
+  cudaThreadSynchronize();
 
-  //kinetic1d <<< grid1, threads1 >>>(n1,n2*n3,psi,pot,work,0);
-  //cudaThreadSynchronize();
+  //these two should be commented out for a one-dimensional test
+
+  kinetic1d <<< grid2, threads2 >>>(n2,n1*n3,workx,x,y,worky,1);
+  cudaThreadSynchronize();
+
+  kinetic1d <<< grid1, threads1 >>>(n1,n2*n3,x,workx,worky,y,0);
+  cudaThreadSynchronize();
+
+
+  //then calculate the kinetic energy
+  reducearrays(n1,n2*n3,y,x,ekin);
+  cudaThreadSynchronize();
 
   return 0;
 
