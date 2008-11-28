@@ -76,7 +76,7 @@ program conv_check
        -0.1290557201342060969516786758559028e-4_4,&
        8.4334247333529341094733325815816e-7_4 /
 
-
+ 
 !!$  !Use arguments
 !!$  call getarg(1,chain)
 !!$  read(unit=chain,fmt=*) n1
@@ -297,7 +297,6 @@ program conv_check
 
            print *,'ekin',ekin
 
-
            call GPU_allocate(n1*ndat,psi_GPU,i_stat)
            call GPU_allocate(n1*ndat,work_GPU,i_stat)
            call GPU_allocate(n1*ndat,work2_GPU,i_stat)
@@ -315,7 +314,7 @@ program conv_check
            call cpu_time(t0)
            do i=1,ntimes
               call kineticterm(ndat-1,0,n1-1,&
-                   real(hx,kind=4),real(hy,kind=4),real(hz,kind=4),&
+                   real(hx,kind=4),real(hy,kind=4),real(hz,kind=4),0.e0,&
                    work_GPU,psi_GPU,work2_GPU,v_GPU,ekinGPU)
            end do
            call cpu_time(t1)
@@ -521,6 +520,7 @@ program conv_check
      !call CUDA_DEALLOCATE_MEM(1,psi_GPU,v_GPU,work_GPU)
 
      print *,'epot=',epotGPU
+     !print *,'epot=',epot
      !check the differences between the results
      maxdiff=0.d0
      do i3=1,n3+1
@@ -604,6 +604,19 @@ program conv_check
 
      call cpu_time(t1)
 
+     print *,'ekin=',ekin
+     ekin=0.d0
+     !check the differences between the results
+     maxdiff=0.d0
+     do i3=1,n3+1
+        do i2=1,n2+1
+           do i1=1,n1+1
+              ekin=ekin+psi_in(i1,i2,i3)*psi_out(i1,i2,i3)
+           end do
+        end do
+     end do
+
+
      CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
 
      write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
@@ -637,7 +650,7 @@ program conv_check
      do i=1,ntimes
 
         call kineticterm(n1,n2,n3,&
-             real(hx,kind=4),real(hy,kind=4),real(hz,kind=4),&
+             real(hx,kind=4),real(hy,kind=4),real(hz,kind=4),0.e0,&
              work_GPU,psi_GPU,work2_GPU,v_GPU,ekinGPU)
 
      end do
@@ -652,7 +665,7 @@ program conv_check
      write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
           GPUtime*1.d3/real(ntimes,kind=8),&
           real(n1*n2*n3*ntimes,kind=8)*192.d0/(GPUtime*1.d9)
-
+ 
      !deallocate GPU memory
      call GPU_deallocate(psi_GPU,i_stat)
      call GPU_deallocate(v_GPU,i_stat)
@@ -661,6 +674,8 @@ program conv_check
 
 
      print *,'ekin=',ekinGPU
+     !print *,'ekin=',ekin 
+     ekin=0.d0
      !check the differences between the results
      maxdiff=0.d0
      do i3=1,n3+1
@@ -668,10 +683,12 @@ program conv_check
            do i1=1,n1+1
               !write(17,*),i1,i2,i3,psi_out(i1,i2,i3),psi_cuda(i1,i2,i3)
               maxdiff=max(abs(psi_out(i1,i2,i3)-real(psi_cuda(i1,i2,i3),kind=8)),maxdiff)
+              ekin=ekin+psi_in(i1,i2,i3)*real(psi_cuda(i1,i2,i3),kind=8)
            end do
         end do
      end do
 
+     print *,'ekin=',ekin
      if (maxdiff <= 3.d-4) then
         write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
              'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&

@@ -86,7 +86,7 @@ __constant__ parK_t par[3];
 void correctSequence(int thds,int elem,int * tab);
 
 int kineticfilter(int n1,int n2, int n3,
-		  float h1,float h2,float h3,
+		  float h1,float h2,float h3,float c,
 		  float *x,
 		  float *workx,
 		  float *y,
@@ -99,6 +99,11 @@ float reducearrays(int n,
 		   float *vpsi,
 		   float *epot);
 
+float reducearrays_d(int n,
+		     int ndat,
+		     float *psi,
+		     float *vpsi,
+		     double *epot);
 
 // Magic Filter parameters to be used for calculating the convolution
 void KParameters(parK_t* par,
@@ -250,6 +255,7 @@ __global__ void kinetic1d(int n,int ndat,
       register float conv = 
 	//hand-unrolled loop 
 	//order changed for increasing the precision
+	/*
 	KFIL14*(psi_sh[ShBaseElem               ] +
 		psi_sh[ShBaseElem + 28*NUM_LINES]) +
 	KFIL13*(psi_sh[ShBaseElem +    NUM_LINES]  +
@@ -279,6 +285,39 @@ __global__ void kinetic1d(int n,int ndat,
 	KFIL1 *(psi_sh[ShBaseElem + 13*NUM_LINES]  +
 		psi_sh[ShBaseElem + 15*NUM_LINES]) +
 	KFIL0 * psi_sh[ShBaseElem + 14*NUM_LINES];
+	*/
+
+	KFIL0 * psi_sh[ShBaseElem + 14*NUM_LINES]  +
+	KFIL1 *(psi_sh[ShBaseElem + 13*NUM_LINES]  +
+		psi_sh[ShBaseElem + 15*NUM_LINES]) +
+	KFIL2 *(psi_sh[ShBaseElem + 12*NUM_LINES]  +
+		psi_sh[ShBaseElem + 16*NUM_LINES]) +
+	KFIL3 *(psi_sh[ShBaseElem + 11*NUM_LINES]  +
+		psi_sh[ShBaseElem + 17*NUM_LINES]) +
+	KFIL4 *(psi_sh[ShBaseElem + 10*NUM_LINES]  +
+		psi_sh[ShBaseElem + 18*NUM_LINES]) +
+	KFIL5 *(psi_sh[ShBaseElem +  9*NUM_LINES]  +
+		psi_sh[ShBaseElem + 19*NUM_LINES]) +
+	KFIL6 *(psi_sh[ShBaseElem +  8*NUM_LINES]  +
+		psi_sh[ShBaseElem + 20*NUM_LINES]) +
+	KFIL7 *(psi_sh[ShBaseElem +  7*NUM_LINES]  +
+		psi_sh[ShBaseElem + 21*NUM_LINES]) +
+	KFIL8 *(psi_sh[ShBaseElem +  6*NUM_LINES]  +
+		psi_sh[ShBaseElem + 22*NUM_LINES]) +
+	KFIL9 *(psi_sh[ShBaseElem +  5*NUM_LINES]  +
+		psi_sh[ShBaseElem + 23*NUM_LINES]) +
+	KFIL10*(psi_sh[ShBaseElem +  4*NUM_LINES]  +
+		psi_sh[ShBaseElem + 24*NUM_LINES]) +
+	KFIL11*(psi_sh[ShBaseElem +  3*NUM_LINES]  +
+		psi_sh[ShBaseElem + 25*NUM_LINES]) +
+	KFIL12*(psi_sh[ShBaseElem +  2*NUM_LINES]  +
+		psi_sh[ShBaseElem + 26*NUM_LINES]) +
+	KFIL13*(psi_sh[ShBaseElem +    NUM_LINES]  +
+		psi_sh[ShBaseElem + 27*NUM_LINES]) +
+	KFIL14*(psi_sh[ShBaseElem               ]  +
+		psi_sh[ShBaseElem + 28*NUM_LINES]) ;
+
+
 
       y_out[BaseElem]=y_in[thelem]-par[idim].scale*conv;
 
@@ -337,7 +376,7 @@ __global__ void c_initialize(int n,int ndat,
 
 extern "C" 
 void kineticterm_(int *n1,int *n2,int *n3,
-		  float *hx,float *hy,float *hz,
+		  float *hx,float *hy,float *hz,float *c,
 		  float **x,float **y,float **workx,float **worky,
 		  float *ekin) 
 
@@ -345,7 +384,7 @@ void kineticterm_(int *n1,int *n2,int *n3,
 
   
   if(kineticfilter(*n1+1,*n2+1,*n3+1,
-		   *hx,*hy,*hz,
+		   *hx,*hy,*hz,*c,
 		   *x,*workx,*y,*worky,
 		   ekin) != 0)
     {
@@ -357,7 +396,7 @@ void kineticterm_(int *n1,int *n2,int *n3,
 
 
 int kineticfilter(int n1,int n2, int n3,
-		  float h1,float h2,float h3,
+		  float h1,float h2,float h3,float c,
 		  float *x,
 		  float *workx,
 		  float *y,
@@ -403,7 +442,7 @@ int kineticfilter(int n1,int n2, int n3,
     }
 
   //here the worky array should be initialised to c*x
-  c_initialize <<< grid3, threads3 >>>(n3,n1*n2,x,worky,0.f,2);
+  c_initialize <<< grid3, threads3 >>>(n3,n1*n2,x,worky,c,2);
   cudaThreadSynchronize();
 
   kinetic1d <<< grid3, threads3 >>>(n3,n1*n2,x,workx,worky,y,2);
@@ -417,9 +456,8 @@ int kineticfilter(int n1,int n2, int n3,
   kinetic1d <<< grid1, threads1 >>>(n1,n2*n3,x,workx,worky,y,0);
   cudaThreadSynchronize();
 
-
   //then calculate the kinetic energy
-  reducearrays(n1,n2*n3,y,x,ekin);
+  reducearrays(n1,n2*n3,x,y,ekin);
   cudaThreadSynchronize();
 
   return 0;

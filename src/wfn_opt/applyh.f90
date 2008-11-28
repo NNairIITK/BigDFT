@@ -330,9 +330,9 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
   real(wp) :: tt
   real(gp) :: v,p
   real(gp), dimension(3) :: hgridh
-  real(kind=4) :: epotGPU
+  real(kind=4) :: epotGPU,ekinGPU
   real(kind=4), dimension(:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
-  real(kind=8) :: psi_GPU,v_GPU,work_GPU !pointer to the GPU  memory addresses (with norb=1)
+  real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU,work3_GPU !pointer to the GPU  memory addresses (with norb=1)
   integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
   integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
   real(kind=4) filCUDA1(lowfil1:lupfil1) !array of filters to be passed to CUDA interface
@@ -380,6 +380,11 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
 
   ! Initialisation of potential energy  
   epot=0.0_gp
+  ekin=0.0_gp
+
+  hgridh(1)=hx*.5_gp
+  hgridh(2)=hy*.5_gp
+  hgridh(3)=hz*.5_gp
 
   if (GPUconv) then !convolution in cuda for the complete potential
 
@@ -388,8 +393,10 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      allocate(v_cuda((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug),stat=i_stat)
      call memocc(i_stat,v_cuda,'v_cuda',subname)
 
-     psi_cuda=real(psi_in,kind=4)
-     v_cuda=real(pot,kind=4)
+     do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+        psi_cuda(i)=real(psi_in(i),kind=4)
+        v_cuda(i)=real(pot(i),kind=4)
+     enddo
 
 !!$     !allocate the GPU memory
 !!$     !copy the data on GPU
@@ -406,26 +413,40 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
 !!$     call CUDA_DEALLOCATE_MEM(1,psi_GPU,v_GPU,work_GPU)
 
      !new CUDA implementation
+     !to be modularised into one unique routine (can allocate less GPU memory)
 
      !allocate GPU memory
      call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),psi_GPU,i_stat)
      call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),v_GPU,i_stat)
      call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),work_GPU,i_stat)
+     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),work2_GPU,i_stat)
+     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),work3_GPU,i_stat)
 
      call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,psi_GPU,i_stat)
      call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),v_cuda,v_GPU,i_stat)
 
-     call localpotential(2*n1+1,2*n2+1,2*n3+1,psi_GPU,work_GPU,v_GPU,epotGPU)
+     call kineticterm(2*n1+1,2*n2+1,2*n3+1,&
+          real(hgridh(1),kind=4),real(hgridh(2),kind=4),real(hgridh(3),kind=4),0.e0,&
+          psi_GPU,work2_GPU,work_GPU,work3_GPU,ekinGPU)
 
-     call GPU_receive((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,psi_GPU,i_stat)
+     call localpotential(2*n1+1,2*n2+1,2*n3+1,work_GPU,psi_GPU,v_GPU,epotGPU)
+
+     call GPU_receive((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,work_GPU,i_stat)
+     call GPU_receive((2*n1+2)*(2*n2+2)*(2*n3+2),v_cuda,work2_GPU,i_stat)
 
      !deallocate GPU memory
      call GPU_deallocate(psi_GPU,i_stat)
      call GPU_deallocate(v_GPU,i_stat)
      call GPU_deallocate(work_GPU,i_stat)
+     call GPU_deallocate(work2_GPU,i_stat)
+     call GPU_deallocate(work3_GPU,i_stat)
 
      !copy values on the output function
-     psi_out=real(psi_cuda,wp)
+     do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+        v=real(v_cuda(i),wp)
+        p=real(psi_cuda(i),wp)
+        psi_out(i)=p+v
+     enddo
 
      i_all=-product(shape(psi_cuda))
      deallocate(psi_cuda,stat=i_stat)
@@ -435,6 +456,7 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      call memocc(i_stat,i_all,'v_cuda',subname)
      
      epot=real(epotGPU,kind=8)
+     ekin=real(ekinGPU,kind=8)
   else
 
      ! psir serves as a work array	   
@@ -450,15 +472,11 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
 
      call convolut_magic_t_per_self(2*n1+1,2*n2+1,2*n3+1,psir,psi_out)
 
+     ! compute the kinetic part and add  it to psi_out
+     ! the kinetic energy is calculated at the same time
+     call convolut_kinetic_per_T(2*n1+1,2*n2+1,2*n3+1,hgridh,psi_in,psi_out,ekin)
+
   end if
-
-  hgridh(1)=hx*.5_gp
-  hgridh(2)=hy*.5_gp
-  hgridh(3)=hz*.5_gp
-
-! compute the kinetic part and add  it to psi_out
-! the kinetic energy is calculated at the same time
-  call convolut_kinetic_per_T(2*n1+1,2*n2+1,2*n3+1,hgridh,psi_in,psi_out,ekin)
   
   call compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
