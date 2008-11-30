@@ -342,6 +342,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
 
+  !calculate the partitioning of the orbitals between the different processors
+
   !memory estimation
   if (iproc==0) then
      call MemoryEstimator(atoms%geocode,nproc,idsx,n1,n2,n3,atoms%alat1,atoms%alat2,atoms%alat3,&

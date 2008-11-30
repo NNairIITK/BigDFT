@@ -177,6 +177,18 @@ module module_types
   end type locreg_descriptors
 !!***
 
+!!****t* module_types/communications_arrays
+!! DESCRIPTION
+!! Contains the information needed for communicating the wavefunctions
+!! between processors for the transposition
+!!
+!! SOURCE
+!!
+  type, public :: communications_arrays
+     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
+  end type communications_arrays
+!!***
+
 contains
 
   subroutine init_restart_objects(atoms,rst,routine)

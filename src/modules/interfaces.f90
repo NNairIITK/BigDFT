@@ -531,6 +531,32 @@ interface
      real(wp), optional, intent(out) :: outadd !pass only the address to avoid pointer problems 
    end subroutine untranspose
 
+   subroutine transpose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
+        work,outadd) !optional
+     use module_base
+     use module_types
+     implicit none
+     integer, intent(in) :: iproc,nproc,norbp,nspinor,nvctrp !the latter will depend on orbitals
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     type(communications_arrays), intent(in) :: comms
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
+     real(wp), dimension(:), pointer, optional :: work
+     real(wp), dimension(*), intent(out), optional :: outadd
+   end subroutine transpose_v
+
+   subroutine untranspose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
+        work,outadd) !optional
+     use module_base
+     use module_types
+     implicit none
+     integer, intent(in) :: iproc,nproc,norbp,nspinor,nvctrp
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     type(communications_arrays), intent(in) :: comms
+     real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(inout) :: psi
+     real(wp), dimension(:), pointer, optional :: work
+     real(wp), dimension(*), intent(out), optional :: outadd
+   end subroutine untranspose_v
+
    subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi)
      use module_base
      use module_types

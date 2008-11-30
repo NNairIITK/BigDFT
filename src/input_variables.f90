@@ -1407,7 +1407,7 @@ subroutine correct_grid(a,h,n)
   !local variables
   integer :: m,m2,nt
 
-  n=int(a/h)-1
+  n=ceiling(a/h)-1
   nt=n+1
   do
      !correct the direct dimension

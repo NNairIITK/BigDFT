@@ -53,3 +53,8 @@
     stop 'fake localpotential'
   end subroutine localpotential
 
+  subroutine kineticterm()
+    implicit none
+    stop 'fake kineticterm'
+  end subroutine kineticterm
+

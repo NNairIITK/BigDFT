@@ -453,7 +453,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
   real(kind=8), dimension(*), intent(inout) :: pot_ion
   real(kind=8), intent(out) :: eion
   !local variables
-  logical :: perx,pery,perz,gox,goy,goz,htoobig=.true.
+  logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.
   integer :: iat,jat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,jtyp,nspin
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   real(kind=8) :: hgridh,pi,rholeaked,dist,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz

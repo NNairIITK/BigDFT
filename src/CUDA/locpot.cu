@@ -49,6 +49,12 @@
 
 #include "reduction.h"
  
+float reducearrays_d(int n,
+		     int ndat,
+		     float *psi,
+		     float *vpsi,
+		     double *epot);
+
 
 typedef struct  _parMF
 {
@@ -478,7 +484,7 @@ void localpotential_(int *n1,int *n2,int *n3,
 	       *psi,
 	       *work,
 	       *pot,
-	       epot) != 0)
+	       epot) != 0) 
     {
       printf("ERROR: GPU magicfilterpot\n ");
       return;
@@ -576,6 +582,7 @@ int magicfilterpot(int n1,int n2, int n3,
 
 /****/
 
+//such routines should go in separate files
 
 extern "C" 
 void gpu_allocate__(int *nsize, //memory size
@@ -659,5 +666,4 @@ void gpu_receive__(int *nsize,
 
 }
 /****/
-
 
