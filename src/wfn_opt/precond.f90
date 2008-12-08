@@ -1,15 +1,15 @@
 ! Calls the preconditioner for each orbital treated by the processor
-subroutine preconditionall(iproc,nproc,norb,norbp,lr,&
+subroutine preconditionall(iproc,nproc,norbp,lr,&
      hx,hy,hz,ncong,nspinor,eval,hpsi,gnrm,hybrid_on)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc,norb,norbp
+  logical,intent(in) :: hybrid_on
+  integer, intent(in) :: iproc,nproc,norbp
   integer, intent(in) :: nspinor,ncong
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension(norb), intent(in) :: eval
-  logical,intent(in)::hybrid_on
+  real(wp), dimension(norbp), intent(in) :: eval
   real(dp), intent(out) :: gnrm
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,norbp*nspinor), intent(inout) :: hpsi
   !local variables
@@ -24,8 +24,8 @@ subroutine preconditionall(iproc,nproc,norb,norbp,lr,&
 
   ! norm of gradient
   gnrm=0.0_dp
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-     indo=(iorb-1)*nspinor+1-iproc*norbp*nspinor
+  do iorb=1,norbp
+     indo=(iorb-1)*nspinor+1
      !loop over the spinorial components
      do inds=indo,indo+nspinor-1
 

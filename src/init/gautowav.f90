@@ -1,11 +1,11 @@
 !control the accuracy of the expansion in gaussian
-subroutine check_gaussian_expansion(geocode,iproc,nproc,norb,norbp,&
+subroutine check_gaussian_expansion(geocode,iproc,nproc,norb,isorb,norbp,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,psi,G,coeffs)
   use module_base
   use module_types
   implicit none
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: iproc,nproc,norb,isorb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(gaussian_basis), intent(in) :: G
@@ -20,18 +20,18 @@ subroutine check_gaussian_expansion(geocode,iproc,nproc,norb,norbp,&
   allocate(workpsi((wfd%nvctr_c+7*wfd%nvctr_f)*norbp+ndebug),stat=i_stat)
   call memocc(i_stat,workpsi,'workpsi',subname)
 
-  call gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
+  call gaussians_to_wavelets(geocode,iproc,isorb,norb,norbp,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,coeffs,workpsi)
 
   maxdiffp=0.0_wp
   do iorb=1,norbp
      orbdiff=0.0_wp
-     if (iorb+iproc*norbp <= norb) then
+     !if (iorb+iproc*norbp <= norb) then
         do i=1,wfd%nvctr_c+7*wfd%nvctr_f
            j=i+(iorb-1)*(wfd%nvctr_c+7*wfd%nvctr_f)
            orbdiff=max(orbdiff,(psi(i,iorb)-workpsi(j))**2)
         end do
-     end if
+     !end if
      maxdiffp=max(maxdiffp,orbdiff)
      !print *,'iproc,iorb,orbdiff',iorb,orbdiff
   end do
@@ -51,12 +51,14 @@ subroutine check_gaussian_expansion(geocode,iproc,nproc,norb,norbp,&
 
 end subroutine check_gaussian_expansion
 
-subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,norbp,iatype,rxyz,CP2K,wfn_cp2k)
+subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,rxyz,&
+     CP2K,wfn_cp2k)
   use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: basisfile,orbitalfile
-  integer, intent(in) :: norb,iproc,nat,ntypes,norbp
+  integer, intent(in) :: iproc,nat,ntypes
+  type(orbitals_data), intent(in) :: orbs
   integer, dimension(nat), intent(in) :: iatype
   real(gp), dimension(3,nat), target, intent(in) :: rxyz
   type(gaussian_basis), intent(out) :: CP2K
@@ -273,7 +275,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,norbp,ia
   call memocc(i_stat,ctmp,'ctmp',subname)
   allocate(iorbtmp(10+ndebug),stat=i_stat)
   call memocc(i_stat,iorbtmp,'iorbtmp',subname)
-  allocate(cimu(mmax,nbx,nat,norb+ndebug),stat=i_stat)
+  allocate(cimu(mmax,nbx,nat,orbs%norb+ndebug),stat=i_stat)
   call memocc(i_stat,cimu,'cimu',subname)
 
   read(36,*)
@@ -325,7 +327,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,norbp,ia
        end do
        jat=iat
        if (jbas==2*nam(ishell,iatype(iat))+1 .and. ishell==nshell(iatype(iat))&
-            .and. iat==nat .and. nend==norb) then
+            .and. iat==nat .and. nend==orbs%norb) then
           exit store_coeff
        else
           cycle store_coeff
@@ -361,10 +363,10 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,norbp,ia
 !!$  end do
 
   !allocate and assign the coefficients of each orbital
-  allocate(wfn_cp2k(CP2K%ncoeff,norbp+ndebug),stat=i_stat)
+  allocate(wfn_cp2k(CP2K%ncoeff,orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,wfn_cp2k,'wfn_cp2k',subname)
-  do iorb=1,norbp
-     jorb=iorb+iproc*norbp
+  do iorb=1,orbs%norbp
+     jorb=iorb+orbs%isorb
      icoeff=0
      ishell=0
      do iat=1,CP2K%nat
@@ -406,18 +408,19 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,norbp,ia
 
 end subroutine parse_cp2k_files
 
-subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
+subroutine gaussians_to_wavelets(geocode,iproc,orbs,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,wfn_gau,psi)
   use module_base
   use module_types
   implicit none
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3 
+  integer, intent(in) :: iproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3 
   real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
+  type(orbitals_data), intent(in) :: orbs
   type(gaussian_basis), intent(in) :: G
-  real(wp), dimension(G%ncoeff,norbp), intent(in) :: wfn_gau
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: psi
+  real(wp), dimension(G%ncoeff,orbs%norbp), intent(in) :: wfn_gau
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp), intent(out) :: psi
 
   !local variables
   character(len=*), parameter :: subname='gaussians_to_wavelets'
@@ -436,7 +439,7 @@ subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
   call memocc(i_stat,tpsi,'tpsi',subname)
 
   !initialize the wavefunction
-  call razero((wfd%nvctr_c+7*wfd%nvctr_f)*norbp,psi)
+  call razero((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp,psi)
   !this can be changed to be passed only once to all the gaussian basis
   !eks=0.d0
   !loop over the atoms
@@ -462,9 +465,9 @@ subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
            !control whether the basis element may be
            !contribute to some of the orbital of the processor
            maycalc=.false.
-           loop_calc: do iorb=1,norb
-              if (myorbital(iorb,norb,iproc,nproc)) then
-                 jorb=iorb-iproc*norbp
+           loop_calc: do iorb=1,orbs%norb
+              if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
+                 jorb=iorb-orbs%isorb
                  if (wfn_gau(icoeff,jorb) /= 0.0_wp) then
                     maycalc=.true.
                     exit loop_calc
@@ -481,9 +484,9 @@ subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
            end if
            !sum the result inside the orbital wavefunction
            !loop over the orbitals
-           do iorb=1,norb
-              if (myorbital(iorb,norb,iproc,nproc)) then
-                 jorb=iorb-iproc*norbp
+           do iorb=1,orbs%norb
+              if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
+                 jorb=iorb-orbs%isorb
                  if (wfn_gau(icoeff,jorb) /= 0.0_wp) then
                     !print *,icoeff,iorb,iat,jorb,G%nat
                     do i=1,wfd%nvctr_c+7*wfd%nvctr_f
@@ -510,9 +513,9 @@ subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
   !calculate the deviation from 1 of the orbital norm
   normdev=0.0_dp
   tt=0.0_dp
-  do iorb=1,norb
-     if (myorbital(iorb,norb,iproc,nproc)) then
-        jorb=iorb-iproc*norbp
+  do iorb=1,orbs%norb
+     if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
+        jorb=iorb-orbs%isorb
         call wnrm(wfd%nvctr_c,wfd%nvctr_f,psi(1,jorb),psi(wfd%nvctr_c+1,jorb),scpr) 
         call wscal(wfd%nvctr_c,wfd%nvctr_f,real(1.0_dp/sqrt(scpr),wp),psi(1,jorb),psi(wfd%nvctr_c+1,jorb))
         !write(*,'(1x,a,i5,1pe14.7)')'norm of orbital ',iorb,scpr
@@ -530,7 +533,6 @@ subroutine gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
   i_all=-product(shape(tpsi))*kind(tpsi)
   deallocate(tpsi,stat=i_stat)
   call memocc(i_stat,i_all,'tpsi',subname)
-
 
 end subroutine gaussians_to_wavelets
 

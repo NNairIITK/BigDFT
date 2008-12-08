@@ -61,6 +61,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   type(locreg_descriptors), intent(in) :: lr 
+  type(communications_arrays), intent(in) :: comms
   real(gp), dimension(norb), intent(in) :: occup
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
   real(dp), intent(in) :: gnrm_cv
@@ -80,21 +81,18 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
   character(len=10)::orbname
   logical :: msg !extended output
   integer :: n2virt,n2virtp,ierr,i_stat,i_all,iorb,jorb,iter,nwork,ind,i1,i2!<-last 3 for debug
-  integer :: ise,ish,jnd
+  integer :: ise,ish,jnd,isorbv
   real(kind=8), external :: ddot,dnrm2
   real(kind=8) :: tt,gnrm,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,gnrm_fake
+  type(communications_arrays) :: commsv
+  integer, dimension(:), allocatable :: norbv_par
   real(gp), dimension(:), allocatable :: ones
   real(kind=8), dimension(:), allocatable :: work
   real(wp), dimension(:), allocatable :: hv,g,hg
   real(wp), dimension(:), pointer :: psiw
   real(dp), dimension(:,:,:), allocatable :: e,hamovr
-  !last index of e and hamovr are for mpi_allraduce. e (eigenvalues) is also used as 2 work arrays
-
-  !this should be avoided, it creates a copy of all the bounds pointers, occupying more memory
-  !better to define a set of pointers kbounds and associate them with a procedure
-  !kbounds => bounds%kb
-!!$  type(kinetic_bounds):: kbounds  ! this copy is for readability when preoonditioning is called
-!!$  kbounds=bounds%kb
+  !last index of e and hamovr are for mpi_allreduce. 
+  !e (eigenvalues) is also used as 2 work arrays
   
   msg=.false.! no extended output
   !msg =(iproc==0)!extended output
@@ -130,7 +128,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
   endif
 
   !transpose the wavefunction psi 
-  call transpose(iproc,nproc,norb,norbp,1,wfd,nvctrp,psi,work=psiw)
+  call transpose_v(iproc,nproc,norbp,1,wfd,nvctrp,comms,psi,work=psiw)
 
   if (nproc > 1) then
      i_all=-product(shape(psiw))*kind(psiw)
@@ -152,57 +150,40 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
   call  orthon_p(iproc,nproc,nvirte,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,v,1)
 
 
+  !define the descriptors for the transposition of v
+  !allocate distribution of the orbitals between processors
+  allocate(norbv_par(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,norbv_par,'norbv_par',subname)
+  !allocate communications arrays for virtual orbitals
+  call allocate_comms(nproc,commsv,subname)
+  
+  call partition_orbitals(iproc,nproc,nvirte,1,nvctrp,isorbv,norbv_par,&
+     commsv)
+
+  !dimension for allocation of the virtual wavefunction
+  npsivdim=max((wfd%nvctr_c+7*wfd%nvctr_f)*norbv_par(iproc),nvctrp*nvirtep)
+
   !retranspose v
   if(nproc > 1)then
      !reallocate the work array with the good sizeXS
-     allocate(psiw(nvctrp*nvirtep*nproc+ndebug),stat=i_stat)
+     allocate(psiw(npsivdim+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
   end if
 
-  call untranspose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,v,work=psiw)
+  call untranspose_v(iproc,nproc,norbv_par(iproc),1,wfd,nvctrp,commsv,v,work=psiw)
 
-
-  !DEBUG output of initial guess
-!  do iorb=iproc*nvirtep+1,min((iproc+1)*nvirtep,nvirt)
-!     !adress
-!     if (parallel) then
-!        ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-iproc*nvirtep-1)
-!        i1=mod(ind-1,nvctrp)+1
-!        i2=(ind-i1)/nvctrp+1
-!     else
-!        i1=1
-!        i2=iorb-iproc*norbp
-!     end if
-!
-!     if(iorb>5)then
-!        exit
-!     end if
-!     if(iproc==0)write(*,*)'nvrt total is',wfd%nvctr_c+7*wfd%nvctr_f
-!     write(orbname,'(A,i3.3)')'vguess-',iorb
-!     write(*,*)'1-norm for v guess',iorb,1d0-dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,v(1,iorb-iproc*norbp),1)
-!     call plot_wf(orbname,n1,n2,n3,hgrid,wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,wfd%nseg_f,wfd%nvctr_f,  &
-!          rxyz(1,1),rxyz(2,1),rxyz(3,1),v(i1,i2),&
-!          bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,bounds%gb%ibyz_ff,bounds%gb%ibzxx_f,&
-!          bounds%gb%ibxxyy_f,bounds%ibyyzz_r,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
-!  end do
- 
   ! 1st Hamilton application on psivirt
   if(iproc==0)write(*,'(1x,a)',advance="no")"done. first "
 
-  allocate(hv(nvctrp*nproc*nvirtep+ndebug),stat=i_stat)
+  allocate(hv(npsivdim+ndebug),stat=i_stat)
   call memocc(i_stat,hv,'hv',subname)
   
-  allocate(ones(nvirtep*nproc+ndebug),stat=i_stat)
+  allocate(ones(norbv_par(iproc)+ndebug),stat=i_stat)
   call memocc(i_stat,ones,'ones',subname)
-  ones(:)=1.0_gp ! a placeholder for the arrays of occupation and spins
-
-!debug
-!write(*,*)"shape(rhopot)",shape(rhopot)
-!write(*,*)"start adress: ",1,1,1+i3xcsh,1
-!write(*,*)"start adress: ",1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)
+  ones(1:norbv_par(iproc))=1.0_gp ! a placeholder for the arrays of occupation and spins
 
   call HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
-       nvirte,nvirtep,ones,nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
+       norbv_par(iproc),ones,nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
        rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,1,1,ones,hybrid_on)
 
   !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
@@ -211,22 +192,22 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
   call memocc(i_stat,e,'e',subname)
 
   !transpose  v and hv
-  call transpose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,v,work=psiw)
-  call transpose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,hv,work=psiw)
+  call transpose_v(iproc,nproc,norbv_par(iproc),1,wfd,nvctrp,commsv,v,work=psiw)
+  call transpose_v(iproc,nproc,norbv_par(iproc),1,wfd,nvctrp,commsv,hv,work=psiw)
 
   call timing(iproc,'Davidson      ','ON')
   !Timing excludes transposition, hamilton application and preconditioning
 
   ! Rayleigh quotients.
   do iorb=1,nvirte ! temporary variables 
-     e(iorb,1,ise)= ddot(nvctrp,v(1+nvctrp*(iorb-1)),1,hv(1+nvctrp*(iorb-1)),1)          != <psi|H|psi> 
-     e(iorb,2,ise)= dnrm2(nvctrp,v(1+nvctrp*(iorb-1)),1)**2                    != <psi|psi> 
+     e(iorb,1,ise)= dot(nvctrp,v(1+nvctrp*(iorb-1)),1,hv(1+nvctrp*(iorb-1)),1)          != <psi|H|psi> 
+     e(iorb,2,ise)= nrm2(nvctrp,v(1+nvctrp*(iorb-1)),1)**2                    != <psi|psi> 
   end do
 
   if(nproc > 1)then
      !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
      call MPI_ALLREDUCE(e(1,1,2),e(1,1,1),2*nvirte,&
-          MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+          mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
 
   if(iproc==0)write(*,'(1x,a)')"done."
@@ -246,18 +227,19 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
 !write(*,*)"**********"
 !end if
   
+
   !itermax=... use the input variable instead
   do iter=1,itermax
      if(iproc==0)write(*,'(1x,a,i3)')&
      "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~iter",iter
      if(msg) write(*,'(1x,a)')"squared norm of the (nvirt) gradients"
 
-     allocate(g(nvctrp*nproc*nvirtep+ndebug),stat=i_stat)
+     allocate(g(npsivdim+ndebug),stat=i_stat)
      call memocc(i_stat,g,'g',subname)
 
-     call DCOPY(nvctrp*nvirtep*nproc,hv,1,g,1)! don't overwrite hv
+     call dcopy(npsivdim,hv,1,g,1)! don't overwrite hv
      do iorb=1,nvirte
-         call DAXPY(nvctrp,-e(iorb,1,1),v(1+nvctrp*(iorb-1)),1,g(1+nvctrp*(iorb-1)),1)
+         call axpy(nvctrp,-e(iorb,1,1),v(1+nvctrp*(iorb-1)),1,g(1+nvctrp*(iorb-1)),1)
          !gradient = hv-e*v
          e(iorb,2,ise)=dnrm2(nvctrp,g(1+nvctrp*(iorb-1)),1)**2
          !local contribution to the square norm
@@ -266,7 +248,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
      if(nproc > 1)then
         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
         call MPI_ALLREDUCE(e(1,2,2),e(1,2,1),nvirte,&
-             MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+             mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
      end if
 
      gnrm=0_dp
@@ -306,7 +288,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
      if(nproc > 1)then
         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
         call MPI_ALLREDUCE(e(1,2,2),e(1,2,1),nvirte,&
-             MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+             mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
      end if
 
      gnrm=0_dp
@@ -325,7 +307,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
      call timing(iproc,'Davidson      ','OF')
 
      !retranspose the gradient g 
-     call untranspose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,g,work=psiw)
+     call untranspose_v(iproc,nproc,norbv_par(iproc),1,wfd,nvctrp,commsv,g,work=psiw)
 
      ! Here the gradients norm could be calculated in the direct form instead,
      ! as it is done in hpsiortho before preconditioning. 
@@ -334,7 +316,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
      call timing(iproc,'Precondition  ','ON')
 
      !LG: why we use for preconditioning the eval form the initial input guess?
-     call preconditionall(iproc,nproc,nvirte,nvirtep,lr,hx,hy,hz, &
+     call preconditionall(iproc,nproc,norbv_par(iproc),lr,hx,hy,hz, &
           ncong,1,eval,g,gnrm_fake,hybrid_on)
 
      call timing(iproc,'Precondition  ','OF')
@@ -344,14 +326,14 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
                  "Orthogonality of preconditioned gradients to occupied psi..."
 
      !transpose  g 
-     call transpose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,g,work=psiw)
+     call transpose_v(iproc,nproc,norbv_par(iproc),1,wfd,nvctrp,commsv,g,work=psiw)
 
      !project g such that they are orthogonal to all occupied psi
      call  orthoconvirt_p(iproc,nproc,norbu,nvirte,nvctrp,psi,g,msg)
      if(norbu<norb)call  orthoconvirt_p(iproc,nproc,norb-norbu,nvirte,nvctrp,&
                                            psi(1+nvctrp*norbu),g,msg)
      !retranspose the gradient g
-     call untranspose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,g,work=psiw)
+     call untranspose_v(iproc,nproc,norbv_par(iproc),1,wfd,nvctrp,commsv,g,work=psiw)
 
      if(iproc==0)write(*,'(1x,a)')"done."
 
@@ -359,19 +341,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
      call memocc(i_stat,hg,'hg',subname)
 
      call HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
-          nvirte,nvirtep,ones,nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
+          norbv_par(iproc),ones,nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1+i3xcsh*n1i*n2i),g,hg,ekin_sum,epot_sum,eproj_sum,1,1,ones,hybrid_on)
 
-                              !ixcs
-!  and the syntax from init, wfn_diag
-!  call HamiltonianApplication(parallel,datacode,iproc,nproc,nat,ntypes,iatype,hgrid,&
-!       psppar,npspcode,2*nvirte,2*nvirtep,ones(1),nlpspd,proj,lr,&
-!       ngatherarr,nscatterarr(iproc,2),rhopot(1+(2*n1+31)*(2*n2+31)*nscatterarr(iproc,4)),&
-!       g,hg,ekin_sum,epot_sum,eproj_sum,1,ones(1))
-
      !transpose  g and hg
-     call transpose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,g,work=psiw)
-     call transpose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,hg,work=psiw)
+     call transpose_v(iproc,nproc,norbv_par(iproc),1,wfd,nvctrp,commsv,g,work=psiw)
+     call transpose_v(iproc,nproc,norbv_par(iproc),1,wfd,nvctrp,commsv,hg,work=psiw)
 
      call timing(iproc,'Davidson      ','ON')
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
@@ -379,12 +354,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
 
      if(msg)write(*,'(1x,a)')"Norm of all preconditioned gradients"
      do iorb=1,nvirte
-         e(iorb,2,ise)=dnrm2(nvctrp,g(1+nvctrp*(iorb-1)),1)**2
+         e(iorb,2,ise)=nrm2(nvctrp,g(1+nvctrp*(iorb-1)),1)**2
      end do
      if(nproc > 1)then
         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
         call MPI_ALLREDUCE(e(1,2,2),e(1,2,1),nvirte,&
-             MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+             mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
      end if
      gnrm=0.0_dp
      do iorb=1,nvirte
@@ -410,17 +385,17 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
         do jorb=iorb,nvirte!or 1,nvirte 
            ind=1+nvctrp*(iorb-1)
            jnd=1+nvctrp*(jorb-1)
-           hamovr(iorb,jorb,ish-1)=               ddot(nvctrp,v(ind),1,hv(jnd),1)
-           hamovr(jorb,iorb+nvirte,ish-1)=        ddot(nvctrp,g(ind),1,hv(jnd),1)
-           !=hamovr(iorb+nvirte,jorb,ish-1)=        ddot(nvctrp,g(ind),1,hv(jnd),1)
-           hamovr(iorb,jorb+nvirte,ish-1)=        ddot(nvctrp,v(ind),1,hg(jnd),1)
-           hamovr(iorb+nvirte,jorb+nvirte,ish-1)= ddot(nvctrp,g(ind),1,hg(jnd),1)
+           hamovr(iorb,jorb,ish-1)=               dot(nvctrp,v(ind),1,hv(jnd),1)
+           hamovr(jorb,iorb+nvirte,ish-1)=        dot(nvctrp,g(ind),1,hv(jnd),1)
+           !=hamovr(iorb+nvirte,jorb,ish-1)=        dot(nvctrp,g(ind),1,hv(jnd),1)
+           hamovr(iorb,jorb+nvirte,ish-1)=        dot(nvctrp,v(ind),1,hg(jnd),1)
+           hamovr(iorb+nvirte,jorb+nvirte,ish-1)= dot(nvctrp,g(ind),1,hg(jnd),1)
 
-           hamovr(iorb,jorb,ish)=               ddot(nvctrp,v(ind),1, v(jnd),1)
-           hamovr(jorb,iorb+nvirte,ish)=       ddot(nvctrp,g(ind),1, v(jnd),1)
-           !=hamovr(iorb+nvirte,jorb,ish)=        ddot(nvctrp,g(ind),1, v(jnd),1)
-           hamovr(iorb,jorb+nvirte,ish)=        ddot(nvctrp,v(ind),1, g(jnd),1)
-           hamovr(iorb+nvirte,jorb+nvirte,ish)= ddot(nvctrp,g(ind),1, g(jnd),1)
+           hamovr(iorb,jorb,ish)=               dot(nvctrp,v(ind),1, v(jnd),1)
+           hamovr(jorb,iorb+nvirte,ish)=       dot(nvctrp,g(ind),1, v(jnd),1)
+           !=hamovr(iorb+nvirte,jorb,ish)=        dot(nvctrp,g(ind),1, v(jnd),1)
+           hamovr(iorb,jorb+nvirte,ish)=        dot(nvctrp,v(ind),1, g(jnd),1)
+           hamovr(iorb+nvirte,jorb+nvirte,ish)= dot(nvctrp,g(ind),1, g(jnd),1)
         enddo
      enddo
 
@@ -437,7 +412,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
      if(nproc > 1)then
         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
         call MPI_ALLREDUCE(hamovr(1,1,3),hamovr(1,1,1),2*n2virt**2,&
-             MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+             mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
      end if
      
      if(msg)then
@@ -502,13 +477,13 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
         call razero(nvctrp,hv(1+nvctrp*(jorb-1)))
         do iorb=1,nvirte ! sum over v and g
            tt=hamovr(iorb,jorb,1)
-           call daxpy(nvctrp,tt,v(1+nvctrp*(iorb-1)),1,hv(1+nvctrp*(jorb-1)),1)
+           call axpy(nvctrp,tt,v(1+nvctrp*(iorb-1)),1,hv(1+nvctrp*(jorb-1)),1)
            tt=hamovr(iorb+nvirte,jorb,1)
-           call daxpy(nvctrp,tt,g(1+nvctrp*(iorb-1)),1,hv(1+nvctrp*(jorb-1)),1)
+           call axpy(nvctrp,tt,g(1+nvctrp*(iorb-1)),1,hv(1+nvctrp*(jorb-1)),1)
         enddo
      enddo
 
-     call DCOPY(nvctrp*nvirtep*nproc,hv,1,v,1)
+     call dcopy(nvctrp*nvirte,hv,1,v,1)
 
      !Note: The previous data layout allowed level 3 BLAS
      !call DGEMM('N','N',nvctrp,nvirte,n2virt,1.d0,v(1,1),nvctrp,hamovr(1,1,1),n2virt,0.d0,hv(1,1),nvctrp)
@@ -539,18 +514,18 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
      call  orthon_p(iproc,nproc,nvirte,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,v,1)
 
      !retranspose v
-     call untranspose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,v,work=psiw)
+     call untranspose_v(iproc,nproc,norbv_par(iproc),1,wfd,nvctrp,commsv,v,work=psiw)
  
      ! Hamilton application on v
      if(iproc==0)write(*,'(1x,a)',advance="no")"done."
   
      call HamiltonianApplication(iproc,nproc,at,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
-          nvirte,nvirtep,ones,nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
+          norbv_par(iproc),ones,nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,1,1,ones,hybrid_on)
 
      !transpose  v and hv
-     call transpose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,v,work=psiw)
-     call transpose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,hv,work=psiw)
+     call transpose_v(iproc,nproc,norbv_par(iproc),1,wfd,nvctrp,commsv,v,work=psiw)
+     call transpose_v(iproc,nproc,norbv_par(iproc),1,wfd,nvctrp,commsv,hv,work=psiw)
 
      if(iproc==0)write(*,'(1x,a)')"done. "
      call timing(iproc,'Davidson      ','ON')
@@ -580,7 +555,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
   call timing(iproc,'Davidson      ','OF')
 
   !retranspose v and psi
-  call untranspose(iproc,nproc,nvirte,nvirtep,1,wfd,nvctrp,v,work=psiw)
+  call untranspose_v(iproc,nproc,norbv_par(iproc),1,wfd,nvctrp,commsv,v,work=psiw)
 
   !resize work array before final transposition
   if(nproc > 1)then
@@ -592,7 +567,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
      call memocc(i_stat,psiw,'psiw',subname)
   end if
 
-  call untranspose(iproc,nproc,norb,norbp,1,wfd,nvctrp,psi,work=psiw)
+  call untranspose_v(iproc,nproc,norbp,1,wfd,nvctrp,comms,psi,work=psiw)
 
   if(nproc > 1) then
      i_all=-product(shape(psiw))*kind(psiw)
@@ -625,47 +600,33 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
           "WARNING: More plots requested than orbitals calculated." 
   end if
 
-  do iorb=iproc*nvirtep+1,min((iproc+1)*nvirtep,nvirt)!requested: nvirt of nvirte orbitals
-     if(iorb>nplot)then
+  do iorb=1,norbv_par(iproc)!requested: nvirt of nvirte orbitals
+     if(iorb+iorbsv > nplot)then
         if(iproc==0.and.nplot>0)write(*,'(A)')&
              'WARNING: No plots of occupied orbitals requested.'
         exit 
      end if
-!!$     !calculate the address to start from, since psivirt and
-!!$     !psi are allocated in the transposed way. Physical shape
-!!$     !is (nvtrp,norbp*nproc), logical shape is (nvctr_tot,norbp).
-!!$     if (nproc > 1) then
-!!$        ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-iproc*nvirtep-1)
-!!$        i1=mod(ind-1,nvctrp)+1
-!!$        i2=(ind-i1)/nvctrp+1
-!!$     else
-!!$        i1=1
-!!$        i2=iorb-iproc*nvirtep
-!!$     end if
-!!$
-
-     ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-iproc*nvirtep-1)
+     ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-1)
      write(orbname,'(A,i3.3)')'virtual',iorb
      call plot_wf(orbname,lr,hx,hy,hz,rxyz(1,1),rxyz(2,1),rxyz(3,1),v(ind:))
   end do
 
-  do iorb=min((iproc+1)*norbp,norb),iproc*norbp+1,-1 ! sweep over highest occupied orbitals
-     if(norb-iorb+1+nvirt>nplot)exit! we have written nplot pot files
+  do iorb=norbp,1,-1 ! sweep over highest occupied orbitals
+     if(norb-iorb+iorbs+1+nvirt>nplot)exit! we have written nplot pot files
      !adress
-!!$     if (nproc > 1) then
-!!$        ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-iproc*norbp-1)
-!!$        i1=mod(ind-1,nvctrp)+1
-!!$        i2=(ind-i1)/nvctrp+1
-!!$     else
-!!$        i1=1
-!!$        i2=iorb-iproc*norbp
-!!$     end if
-
-     ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-iproc*norbp-1)
+     ind=1+(wfd%nvctr_c+7*wfd%nvctr_f)*(iorb-1)
      write(orbname,'(A,i3.3)')'orbital',iorb
      call plot_wf(orbname,lr,hx,hy,hz,rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(ind:))
   end do
   ! END OF PLOTTING
+
+
+  !deallocate descriptors for virtual orbitals
+  i_all=-product(shape(norbv_par))*kind(norbv_par)
+  deallocate(norbv_par,stat=i_stat)
+  call memocc(i_stat,i_all,'norbv_par',subname)
+
+  call deallocate_comms(commsv,subname)
 
 
 end subroutine davidson

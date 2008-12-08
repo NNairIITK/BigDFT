@@ -82,6 +82,11 @@
         stop 'ALLTOALL'
         end subroutine  MPI_ALLTOALL
 
+        subroutine  MPI_ALLTOALLV()
+        implicit none
+        stop 'ALLTOALLV'
+        end subroutine  MPI_ALLTOALLV
+
         subroutine  MPI_REDUCE_SCATTER()
         implicit none
         stop 'REDUCE_SCATTER'

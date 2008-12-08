@@ -247,7 +247,7 @@ subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
   end do
 
   !after all localisation regions are determined draw them
-  call draw_locregs(nlr,hx,hy,hz,Llr)
+  !call draw_locregs(nlr,hx,hy,hz,Llr)
 
 end subroutine determine_locreg
 
@@ -1009,3 +1009,74 @@ subroutine bound_conversion(nl2,nu2,nl3,nu3,nl1_loc,i1s,i1e,i2s,i2e,i3s,i3e,ib,i
   end if
 
 end subroutine bound_conversion
+
+!partition the orbitals between processors to ensure load balancing
+!the criterion will depend on GPU computation
+!and/or on the sizes of the different localisation region
+subroutine partition_orbitals(iproc,nproc,norb,nspinor,nvctrp,isorb,norb_par,&
+     comms)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc,nspinor,norb,nvctrp
+  integer, intent(out) :: isorb
+  type(communications_arrays), intent(out) :: comms
+  integer, dimension(0:nproc-1), intent(out) :: norb_par
+  !local variables
+  integer :: iorb,jproc,norb_tot
+
+  !initialise the array
+  do jproc=0,nproc-1
+     norb_par(jproc)=0
+  end do
+
+  !cubic-code strategy: balance the orbitals between processors
+  !in the most symmetric way
+  do iorb=1,norb
+     jproc=mod(iorb-1,nproc)
+     norb_par(jproc)=norb_par(jproc)+1
+  end do
+
+  !calculate the number of elements to be sent to each process
+  !and the array of displacements
+  !cubic strategy: -each wavefunction has the same number of points
+  !                -each processor has all the orbitals in transposed form
+  !                -each wavefunction is equally distributed in its transposed form
+  !send buffer
+  do jproc=0,nproc-1
+     comms%ncntd(jproc)=nvctrp*norb_par(iproc)*nspinor
+  end do
+  comms%ndspld(0)=0
+  do jproc=1,nproc-1
+     comms%ndspld(jproc)=comms%ndspld(jproc-1)+comms%ncntd(jproc)
+  end do
+  !receive buffer
+  do jproc=0,nproc-1
+     comms%ncntt(jproc)=nvctrp*norb_par(jproc)*nspinor
+  end do
+  comms%ndsplt(0)=0
+  do jproc=1,nproc-1
+     comms%ndsplt(jproc)=comms%ndsplt(jproc-1)+comms%ncntt(jproc)
+  end do
+
+
+  !check the distribution
+  norb_tot=0
+  do jproc=0,iproc-1
+     norb_tot=norb_tot+norb_par(jproc)
+  end do
+  !reference orbital for process
+  isorb=norb_tot
+  do jproc=iproc,nproc-1
+     norb_tot=norb_tot+norb_par(jproc)
+  end do
+
+
+  if(norb_tot /= norb) then
+     write(*,*)'ERROR: partition of orbitals incorrect'
+     stop
+  end if
+
+
+
+end subroutine partition_orbitals

@@ -153,12 +153,13 @@ module module_types
 !! SOURCE
 !!
   type, public :: restart_objects
-     integer :: n1,n2,n3,norbp,norb
-     real(wp), dimension(:), pointer :: eval,psi
+     integer :: n1,n2,n3
+     real(wp), dimension(:), pointer :: psi
      real(wp), dimension(:,:), pointer :: gaucoeffs
      real(gp), dimension(:,:), pointer :: rxyz_old
      type(wavefunctions_descriptors) :: wfd
      type(gaussian_basis) :: gbd
+     type(orbitals_data) :: orbs
   end type restart_objects
 !!***
 
@@ -170,6 +171,7 @@ module module_types
 !!
   type, public :: locreg_descriptors
      character(len=1) :: geocode
+     logical :: hybrid_on !interesting for global, periodic, localisation regions
      integer :: ns1,ns2,ns3 !starting points of the localisation region in global coordinates
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
@@ -177,7 +179,77 @@ module module_types
   end type locreg_descriptors
 !!***
 
+!!****t* module_types/communications_arrays
+!! DESCRIPTION
+!! Contains the information needed for communicating the wavefunctions
+!! between processors for the transposition
+!!
+!! SOURCE
+!!
+  type, public :: communications_arrays
+     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
+  end type communications_arrays
+!!***
+
+!!****t* module_types/orbitals_data
+!! DESCRIPTION
+!! All the parameters which are important for describing the orbitals
+!!
+!! SOURCE
+!!
+  type, public :: orbitals_data
+     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim
+     integer, dimension(:), pointer :: norb_par
+     real(wp), dimension(:), pointer :: eval
+     real(gp), dimension(:), pointer :: occup,spinsgn
+  end type orbitals_data
+!!***
+
+
 contains
+
+  subroutine allocate_comms(nproc,comms,routine)
+    use module_base
+    implicit none
+    character(len=*), intent(in) :: routine
+    integer, intent(in) :: nproc
+    type(communications_arrays), intent(out) :: comms
+    !local variables
+    integer :: i_all,i_stat
+
+    allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
+    call memocc(i_stat,comms%ncntd,'ncntd',routine)
+    allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
+    call memocc(i_stat,comms%ncntt,'ncntt',routine)
+    allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
+    call memocc(i_stat,comms%ndspld,'ndspld',routine)
+    allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
+    call memocc(i_stat,comms%ndsplt,'ndsplt',routine)
+  end subroutine allocate_comms
+
+  subroutine deallocate_comms(comms,routine)
+    use module_base
+    implicit none
+    character(len=*), intent(in) :: routine
+    type(communications_arrays), intent(out) :: comms
+    !local variables
+    integer :: i_all,i_stat
+
+    i_all=-product(shape(comms%ncntd))*kind(comms%ncntd)
+    deallocate(comms%ncntd,stat=i_stat)
+    call memocc(i_stat,i_all,'ncntd',routine)
+    i_all=-product(shape(comms%ncntt))*kind(comms%ncntt)
+    deallocate(comms%ncntt,stat=i_stat)
+    call memocc(i_stat,i_all,'ncntt',routine)
+    i_all=-product(shape(comms%ndspld))*kind(comms%ndspld)
+    deallocate(comms%ndspld,stat=i_stat)
+    call memocc(i_stat,i_all,'ndspld',routine)
+    i_all=-product(shape(comms%ndsplt))*kind(comms%ndsplt)
+    deallocate(comms%ndsplt,stat=i_stat)
+    call memocc(i_stat,i_all,'ndsplt',routine)
+  end subroutine deallocate_comms
+
+
 
   subroutine init_restart_objects(atoms,rst,routine)
     use module_base
@@ -194,7 +266,7 @@ contains
 
     !nullify unallocated pointers
     nullify(rst%psi)
-    nullify(rst%eval)
+    nullify(rst%orbs%eval)
 
     nullify(rst%gaucoeffs)
 
@@ -223,8 +295,8 @@ contains
     i_all=-product(shape(rst%psi))*kind(rst%psi)
     deallocate(rst%psi,stat=i_stat)
     call memocc(i_stat,i_all,'psi',routine)
-    i_all=-product(shape(rst%eval))*kind(rst%eval)
-    deallocate(rst%eval,stat=i_stat)
+    i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
+    deallocate(rst%orbs%eval,stat=i_stat)
     call memocc(i_stat,i_all,'eval',routine)
     i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
     deallocate(rst%rxyz_old,stat=i_stat)
@@ -257,7 +329,6 @@ contains
     call memocc(i_stat,wfd%keyg,'keyg',routine)
     allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keyv,'keyv',routine)
-
   end subroutine allocate_wfd
 
   subroutine deallocate_wfd(wfd,routine)

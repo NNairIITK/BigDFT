@@ -615,7 +615,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
         ! determine number of local terms
         nloc=0
         do iloc=1,4
-           if (psppar(0,iloc,ityp).ne.0.d0) nloc=iloc
+           if (psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
         enddo
         rloc=psppar(0,0,ityp)
         cutoff=10.d0*rloc
@@ -627,8 +627,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
         iex=ceiling((rx+cutoff)/hxh)
         iey=ceiling((ry+cutoff)/hyh)
         iez=ceiling((rz+cutoff)/hzh)
-
-
         
         if (nloc /= 0) then
 

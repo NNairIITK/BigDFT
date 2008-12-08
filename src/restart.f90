@@ -1,11 +1,12 @@
-subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,n3,wfd,psi,&
+subroutine copy_old_wavefunctions(iproc,nproc,orbs,hx,hy,hz,n1,n2,n3,wfd,psi,&
      hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
   use module_base
   use module_types
   implicit none
-  type(wavefunctions_descriptors) :: wfd,wfd_old
-  integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nspinor
+  integer, intent(in) :: iproc,nproc,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz
+  type(orbitals_data), intent(in) :: orbs
+  type(wavefunctions_descriptors), intent(inout) :: wfd,wfd_old
   integer, intent(out) :: n1_old,n2_old,n3_old
   real(gp), intent(out) :: hx_old,hy_old,hz_old
   real(wp), dimension(:), pointer :: psi,psi_old
@@ -31,26 +32,25 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,
   !deallocation
   call deallocate_wfd(wfd,subname)
 
-  hx_old   = hx
-  hy_old   = hy
-  hz_old   = hz
+  hx_old = hx
+  hy_old = hy
+  hz_old = hz
 
-  n1_old      = n1
-  n2_old      = n2
-  n3_old      = n3
+  n1_old = n1
+  n2_old = n2
+  n3_old = n3
+
   !add the number of distributed point for the compressed wavefunction
   tt=dble(wfd_old%nvctr_c+7*wfd_old%nvctr_f)/dble(nproc)
   nvctrp_old=int((1.d0-eps_mach*tt) + tt)
 
-  allocate(psi_old((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*norbp*nspinor+ndebug),stat=i_stat)
+  allocate(psi_old((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor+ndebug),&
+       stat=i_stat)
   call memocc(i_stat,psi_old,'psi_old',subname)
-!!$  allocate(eval_old(norb+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,eval_old,'eval_old',subname)
 
-!  do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor,nspinor
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+  do iorb=1,orbs%norbp
      tt=0.d0
-     oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
+     oidx=(iorb-1)*orbs%nspinor+1
      do sidx=oidx,oidx+nspinor-1
         do j=1,wfd_old%nvctr_c+7*wfd_old%nvctr_f
            ind1=j+(wfd_old%nvctr_c+7*wfd_old%nvctr_f)*(sidx-1)
@@ -58,24 +58,6 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,
            tt=tt+real(psi(ind1),kind=8)**2
         enddo
      end do
-     
-!!$     do sidx=oidx,oidx+nspinor-1
-!!$     !the control between the different psi
-!!$     !must be such that the allocation dimensions are respected
-!!$     !(remember that the allocations are slightly enlarged to avoid
-!!$     !allocation of work arrays for transposition in the parallel case)
-!!$!     do sidx=0,nspinor-1
-!!$        do j=1,wfd_old%nvctr_c+7*wfd_old%nvctr_f
-!!$           !starting address of the direct array in transposed form
-!!$           !changed for obrtaining the good one
-!!$           call trans_address(nvctrp_old,wfd_old%nvctr_c+7*wfd_old%nvctr_f,&
-!!$                j,sidx, i1,i2)
-!!$        !call trans_address(nvctrp_old*nspinor,(wfd_old%nvctr_c+7*wfd_old%nvctr_f)*nspinor,&
-!!$        !     j,sidx, i1,i2)
-!!$           psi_old(j,sidx)     = psi(i1,i2)
-!!$           tt=tt+psi(i1,i2)**2
-!!$        enddo
-!!$     end do
 
      tt=sqrt(tt)
      if (abs(tt-1.d0) > 1.d-8) then
@@ -87,9 +69,6 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
   call memocc(i_stat,i_all,'psi',subname)
-!!$  i_all=-product(shape(eval))*kind(eval)
-!!$  deallocate(eval,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'eval',subname)
 
 end subroutine copy_old_wavefunctions
 

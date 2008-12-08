@@ -1,10 +1,10 @@
-subroutine restart_from_gaussians(geocode,iproc,nproc,norb,norbp,&
+subroutine restart_from_gaussians(geocode,iproc,norb,isorb,norbp,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,psi,G,coeffs)
   use module_base
   use module_types
   implicit none
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: iproc,isorb,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(gaussian_basis), intent(inout) :: G
@@ -21,7 +21,7 @@ subroutine restart_from_gaussians(geocode,iproc,nproc,norb,norbp,&
 
   call dual_gaussian_coefficients(norbp,G,coeffs)
 
-  call gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
+  call gaussians_to_wavelets(geocode,iproc,norb,isorb,norbp,&
      n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,coeffs,psi)
 
   !deallocate gaussian structure and coefficients
@@ -34,12 +34,12 @@ subroutine restart_from_gaussians(geocode,iproc,nproc,norb,norbp,&
 
 end subroutine restart_from_gaussians
 
-subroutine read_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,eval,filename)
+subroutine read_gaussian_information(iproc,nproc,norb,isorb,norbp,G,coeffs,eval,filename)
   use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc,nproc,norb,norbp
+  integer, intent(in) :: iproc,nproc,norb,norbp,isorb
   type(gaussian_basis), intent(out) :: G
   real(wp), dimension(norb), intent(out) :: eval
   real(wp), dimension(:,:), pointer :: coeffs
@@ -85,8 +85,8 @@ subroutine read_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,eval,filena
      read(99,*)jorb,eval(jorb)
      do icoeff=1,G%ncoeff
         read(99,*)jorb,jcoeff,coeff
-        if (iproc*norbp < iorb .and. iorb <= min((iproc+1)*norbp,norb) ) then
-           coeffs(jcoeff,jorb-iproc*norbp)=coeff
+        if (isorb < iorb .and. iorb <= isorb+norbp) then
+           coeffs(jcoeff,jorb-isorb)=coeff
         end if
      end do
   end do
