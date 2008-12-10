@@ -130,8 +130,7 @@ interface
      implicit none
      !Arguments
      type(atoms_data), intent(in) :: atoms
-     logical, intent(in) :: hybrid_on
-     integer, intent(in) :: iproc,nproc,nspinor,output_grid
+     integer, intent(in) :: iproc,nproc
      real(gp), intent(in) :: hx,hy,hz,crmult,frmult
      real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
      real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
@@ -197,12 +196,10 @@ interface
         pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin)
      use module_base
      use module_types
-     use Poisson_Solver
      implicit none
      integer, intent(in) :: iproc,nproc,ixc,nvctrp,nspin
      real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
      type(atoms_data), intent(in) :: at
-     type(orbitals_data), intent(in) :: orbs
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
      type(locreg_descriptors), intent(in) :: Glr
      type(communications_arrays), intent(in) :: comms
@@ -224,13 +221,12 @@ interface
         nscatterarr,ngatherarr,nspin)
      use module_base
      use module_types
-     use Poisson_Solver
      implicit none
      integer, intent(in) :: iproc,nproc,ixc,nvctrp
      integer, intent(inout) :: nspin,nvirt
      real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
      type(atoms_data), intent(in) :: at
-     type(orbitals_data), intent(in) :: orbs
+     type(orbitals_data), intent(inout) :: orbs
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
      type(locreg_descriptors), intent(in) :: Glr
      type(communications_arrays), intent(in) :: comms
@@ -250,7 +246,7 @@ interface
      use module_base
      use module_types
      implicit none
-     integer, intent(in) :: iproc,norb,norbp,nat,n1_old,n2_old,n3_old,n1,n2,n3
+     integer, intent(in) :: iproc,nat,n1_old,n2_old,n3_old,n1,n2,n3
      real(gp), intent(in) :: hx_old,hy_old,hz_old,hx,hy,hz
      type(wavefunctions_descriptors), intent(in) :: wfd,wfd_old
      type(orbitals_data), intent(in) :: orbs
@@ -410,9 +406,9 @@ interface
    end subroutine nonlocal_forces
 
    subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,orbs,&
-        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,&,
-     pot,hgrid,rxyz,radii_cf,crmult,frmult,cpmult,fpmult,nspin,&
-          proj,psi,output_grid,ekin_sum,epot_sum,eproj_sum)
+        nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,&
+        pot,hgrid,rxyz,radii_cf,crmult,frmult,cpmult,fpmult,nspin,&
+        proj,psi,output_grid,ekin_sum,epot_sum,eproj_sum)
      use module_base
      use module_types
      implicit none
@@ -474,17 +470,16 @@ interface
      real(wp), dimension(:), pointer :: psi,v
    end subroutine davidson
 
-   subroutine build_eigenvectors(nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc,nspin,nspinor,&
+   subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,&
         ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,nvirte,psivirt)
      use module_base
      implicit none
      !Arguments
-     integer, intent(in) :: nproc,norbu,norbd,norbp,norbep,nvctrp,nvctr,natsc
-     integer, intent(in) :: nspin,nspinor,ndim_hamovr
+     integer, intent(in) :: norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr
      integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
-     real(kind=8), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
-     real(kind=8), dimension(nvctrp,norbep*nproc), intent(in) :: psi
-     real(kind=8), dimension(nvctrp*nspinor,norbp*nproc), intent(out) :: ppsit
+     real(wp), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
+     real(wp), dimension(nvctrp,norbe), intent(in) :: psi
+     real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: ppsit
      integer, intent(in), optional :: nvirte
      real(wp), dimension(:), pointer, optional :: psivirt
    end subroutine build_eigenvectors
@@ -535,7 +530,7 @@ interface
      type(communications_arrays), intent(in) :: comms
      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
      real(wp), dimension(:), pointer, optional :: work
-     real(wp), dimension(*), intent(out), optional :: outadd
+     real(wp), intent(out), optional :: outadd
    end subroutine transpose_v
 
    subroutine untranspose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
@@ -548,7 +543,7 @@ interface
      type(communications_arrays), intent(in) :: comms
      real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(inout) :: psi
      real(wp), dimension(:), pointer, optional :: work
-     real(wp), dimension(*), intent(out), optional :: outadd
+     real(wp), intent(out), optional :: outadd
    end subroutine untranspose_v
 
    subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi)
@@ -575,12 +570,14 @@ interface
      integer, dimension(:,:,:), pointer, optional :: ibyyzz_r 
    end subroutine partial_density
 
-   subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,norb,norbp,iatype,rxyz,CP2K,wfn_cp2k)
+   subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,rxyz,&
+        CP2K,wfn_cp2k)
      use module_base
      use module_types
      implicit none
      character(len=*), intent(in) :: basisfile,orbitalfile
-     integer, intent(in) :: norb,iproc,nat,ntypes,norbp
+     integer, intent(in) :: iproc,nat,ntypes
+     type(orbitals_data), intent(in) :: orbs
      integer, dimension(nat), intent(in) :: iatype
      real(gp), dimension(3,nat), target, intent(in) :: rxyz
      type(gaussian_basis), intent(out) :: CP2K
@@ -607,7 +604,7 @@ interface
      type(orbitals_data), intent(in) :: orbs
      type(locreg_descriptors), intent(in) :: lr
      type(gaussian_basis), intent(inout) :: G
-     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp), intent(out) :: psi
+     real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp), intent(out) :: psi
      real(wp), dimension(:,:), pointer :: coeffs
    end subroutine restart_from_gaussians
 

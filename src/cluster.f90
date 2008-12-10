@@ -89,7 +89,7 @@
         i_all=-product(shape(rst%psi))*kind(rst%psi)
         deallocate(rst%psi,stat=i_stat)
         call memocc(i_stat,i_all,'psi',subname)
-        i_all=-product(shape(rst%eval))*kind(rst%eval)
+        i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
         deallocate(rst%orbs%eval,stat=i_stat)
         call memocc(i_stat,i_all,'eval',subname)
 
@@ -185,6 +185,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(nonlocal_psp_descriptors) :: nlpspd
   type(locreg_descriptors) :: Glr
   type(communications_arrays) :: comms
+  type(orbitals_data) :: orbsv
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: spinsgn_foo,rho
   real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
@@ -387,7 +388,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !avoid allocation of the eigenvalues array in case of restart
   if (in%inputPsiId /= 1 .and. in%inputPsiId /= 11) then
      allocate(orbs%eval(orbs%norb+ndebug),stat=i_stat)
-     call memocc(i_stat,eval,'eval',subname)
+     call memocc(i_stat,orbs%eval,'eval',subname)
   end if
 
   !localisation region already created
@@ -429,7 +430,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      orbs%eval(1:orbs%norb)=-0.5d0
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,Glr%wfd,nvctrp,in%nspin,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,orbs,Glr%wfd,nvctrp,comms,psi,hpsi,psit)
 
   else if (in%inputPsiId == -1) then
 
@@ -551,7 +552,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call restart_from_gaussians(iproc,orbs,Glr,hx,hy,hz,psi,gbd,gaucoeffs)
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,wfd,nvctrp,comms,in%nspin,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,orbs,wfd,nvctrp,comms,psi,hpsi,psit)
 
   else
 
@@ -626,7 +627,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
           n1i*n2i*n3d,nscatterarr,in%nspin)
      
-     if(nspinor==4) then
+     if(orbs%nspinor==4) then
         !this wrapper can be inserted inside the poisson solver 
         call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
              ixc,hxh,hyh,hzh,&
@@ -735,7 +736,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call davidson(iproc,nproc,n1i,n2i,n3i,atoms,cpmult,fpmult,radii_cf,&
           orbs,orbsv,nvirt,gnrm_cv,nplot,nvctrp,Glr,comms,&
           hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,itermax,wfd,nlpspd,proj, &
-          pkernel,ixc,psi,psivirt,eval,ncong,nscatterarr,ngatherarr)
+          pkernel,ixc,psi,psivirt,ncong,nscatterarr,ngatherarr)
   end if
   
   !project the wavefunctions on a gaussian basis and keep in memory

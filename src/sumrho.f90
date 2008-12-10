@@ -50,8 +50,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   end if
 
   !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
-  if(nspinor==4) then 
-     call razero(lr%d%n1i*lr%d%n2i*nrhotot*nspinor,rho_p)
+  if(orbs%nspinor==4) then 
+     call razero(lr%d%n1i*lr%d%n2i*nrhotot*orbs%nspinor,rho_p)
      call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot,rho_p,nproc)
   else
      call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p,nproc)
@@ -60,7 +60,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   !for each of the orbitals treated by the processor build the partial densities
   call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
      nrhotot,lr,hxh,hyh,hzh,nspin,orbs%nspinor,orbs%norbp,&
-     orbs%occup(min(orbs%isorb+1,orbs%norb)),spinsgn(min(orbs%isorb+1,orbs%norb)),&
+     orbs%occup(min(orbs%isorb+1,orbs%norb)),orbs%spinsgn(min(orbs%isorb+1,orbs%norb)),&
      psi,rho_p)
 
   !the density must be communicated to meet the shape of the poisson solver

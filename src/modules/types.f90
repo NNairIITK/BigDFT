@@ -146,6 +146,21 @@ module module_types
   end type gaussian_basis
 !!***
 
+!!****t* module_types/orbitals_data
+!! DESCRIPTION
+!! All the parameters which are important for describing the orbitals
+!!
+!! SOURCE
+!!
+  type, public :: orbitals_data
+     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim
+     integer, dimension(:), pointer :: norb_par
+     real(wp), dimension(:), pointer :: eval
+     real(gp), dimension(:), pointer :: occup,spinsgn
+  end type orbitals_data
+!!***
+
+
 !!****t* module_types/restart_objects
 !! DESCRIPTION
 !!  Used to restart a new DFT calculation or to save information 
@@ -189,20 +204,6 @@ module module_types
   type, public :: communications_arrays
      integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
   end type communications_arrays
-!!***
-
-!!****t* module_types/orbitals_data
-!! DESCRIPTION
-!! All the parameters which are important for describing the orbitals
-!!
-!! SOURCE
-!!
-  type, public :: orbitals_data
-     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim
-     integer, dimension(:), pointer :: norb_par
-     real(wp), dimension(:), pointer :: eval
-     real(gp), dimension(:), pointer :: occup,spinsgn
-  end type orbitals_data
 !!***
 
 

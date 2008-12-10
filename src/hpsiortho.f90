@@ -72,7 +72,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   !apply the projectors following the strategy (On-the-fly calculation or not)
   if (DistProjApply) then
      call applyprojectorsonthefly(iproc,orbs%nspinor,orbs%norbp,&
-          orbs%occup(min(orbs%iorbs+1,orbs%norb),at,lr%d%n1,lr%d%n2,lr%d%n3,&
+          orbs%occup(min(orbs%isorb+1,orbs%norb)),at,lr%d%n1,lr%d%n2,lr%d%n3,&
           rxyz,hx,hy,hz,cpmult,fpmult,radii_cf,lr%wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   else
      !one should add a flag here which states that it works only for global reion
@@ -84,7 +84,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
              proj,lr%wfd%nseg_c,lr%wfd%nseg_f,lr%wfd%keyg,lr%wfd%keyv,&
              lr%wfd%nvctr_c,lr%wfd%nvctr_f, & 
              psi(1,iorb),hpsi(1,iorb),eproj)
-        eproj_sum=eproj_sum+occup((iorb+orbs%iorbs-1)/orbs%nspinor+1)*eproj
+        eproj_sum=eproj_sum+orbs%occup((iorb+orbs%isorb-1)/orbs%nspinor+1)*eproj
      enddo
   end if
 
