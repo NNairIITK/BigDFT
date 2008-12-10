@@ -333,7 +333,15 @@ fi # End of the if library compilation
 
 
 dnl default installation directories
-moduledir=${includedir}/$fc_type
+AC_ARG_WITH(moduledir,
+            AS_HELP_STRING([--with-moduledir],
+                           [installation directory for module files [[INCLUDEDIR/FC_TYPE]]]),
+              ac_moduledir=$withval, ac_moduledir="no")
+if test x"$ac_moduledir" != x"no" ; then
+  moduledir=$ac_moduledir
+else
+  moduledir=${includedir}/${fc_type}
+fi
 AC_SUBST(moduledir)
 
 dnl Give the name of file.in to transform to file
