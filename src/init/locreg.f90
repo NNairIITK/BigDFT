@@ -247,7 +247,7 @@ subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
   end do
 
   !after all localisation regions are determined draw them
-  call draw_locregs(nlr,hx,hy,hz,Llr)
+  !call draw_locregs(nlr,hx,hy,hz,Llr)
 
 end subroutine determine_locreg
 
@@ -533,7 +533,7 @@ subroutine loc_wfd(ilocreg,nlocreg,n1,n2,n3,lrlims,wfdg,wfdl,keymask,ncountlocre
 
   call allocate_wfd(wfdl,subname)
 
-  allocate(keymask(ndimkey),stat=i_stat)
+  allocate(keymask(ndimkey+ndebug),stat=i_stat)
   call memocc(i_stat,keymask,'keymask',subname)
 
   !now fill the local wavefunction descriptors
@@ -1009,3 +1009,4 @@ subroutine bound_conversion(nl2,nu2,nl3,nu3,nl1_loc,i1s,i1e,i2s,i2e,i3s,i3e,ib,i
   end if
 
 end subroutine bound_conversion
+

@@ -1,14 +1,13 @@
-subroutine restart_from_gaussians(geocode,iproc,nproc,norb,norbp,&
-     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,psi,G,coeffs)
+subroutine restart_from_gaussians(iproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
-  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: lr
   type(gaussian_basis), intent(inout) :: G
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: psi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp), intent(out) :: psi
   real(wp), dimension(:,:), pointer :: coeffs
   !local variables
   character(len=*), parameter :: subname='restart_from_gaussians'
@@ -19,10 +18,9 @@ subroutine restart_from_gaussians(geocode,iproc,nproc,norb,norbp,&
   
   !call gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
 
-  call dual_gaussian_coefficients(norbp,G,coeffs)
+  call dual_gaussian_coefficients(orbs%norbp,G,coeffs)
 
-  call gaussians_to_wavelets(geocode,iproc,nproc,norb,norbp,&
-     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,coeffs,psi)
+  call gaussians_to_wavelets(lr%geocode,iproc,orbs,lr%d,hx,hy,hz,lr%wfd,G,coeffs,psi)
 
   !deallocate gaussian structure and coefficients
   call deallocate_gwf(G,subname)
@@ -34,20 +32,21 @@ subroutine restart_from_gaussians(geocode,iproc,nproc,norb,norbp,&
 
 end subroutine restart_from_gaussians
 
-subroutine read_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,eval,filename)
+subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc,nproc,norb,norbp
+  integer, intent(in) :: iproc,nproc
+  type(orbitals_data), intent(in) :: orbs
   type(gaussian_basis), intent(out) :: G
-  real(wp), dimension(norb), intent(out) :: eval
   real(wp), dimension(:,:), pointer :: coeffs
   !local variables
   character(len=*), parameter :: subname='read_gaussian_information'
   logical :: exists
-  integer :: jproc,i_stat,i_all,ierr,jexpo,iexpo,iat,iorb,jat,icoeff,jcoeff,jorb
-  real(gp) :: rx,ry,rz,coeff
+  integer :: jproc,i_stat,i_all,ierr,jexpo,iexpo,iat,iorb,jat,icoeff,jcoeff,jorb,j
+  real(gp) :: rx,ry,rz
+  real(gp), dimension(4) :: coeff
 
   !read the information from a file
   inquire(file=filename,exist=exists)
@@ -60,18 +59,18 @@ subroutine read_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,eval,filena
   open(unit=99,file=filename,status='unknown')
   read(99,*)G%nat,G%nshltot,G%nexpo,G%ncoeff
   
-  allocate(G%nshell(G%nat),stat=i_stat)
+  allocate(G%nshell(G%nat+ndebug),stat=i_stat)
   call memocc(i_stat,G%nshell,'G%nshell',subname)
-  allocate(G%nam(G%nshltot),stat=i_stat)
+  allocate(G%nam(G%nshltot+ndebug),stat=i_stat)
   call memocc(i_stat,G%nam,'G%nam',subname)
-  allocate(G%ndoc(G%nshltot),stat=i_stat)
+  allocate(G%ndoc(G%nshltot+ndebug),stat=i_stat)
   call memocc(i_stat,G%ndoc,'G%ndoc',subname)
-  allocate(G%xp(G%nexpo),stat=i_stat)
+  allocate(G%xp(G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%xp,'G%xp',subname)
-  allocate(G%psiat(G%nexpo),stat=i_stat)
+  allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%psiat,'G%psiat',subname)
 
-  allocate(coeffs(G%ncoeff,norbp),stat=i_stat)
+  allocate(coeffs(G%ncoeff,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,coeffs,'coeffs',subname)
 
   do iat=1,G%nat
@@ -81,12 +80,14 @@ subroutine read_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,eval,filena
   do iexpo=1,G%nexpo
      read(99,*)jexpo,G%xp(jexpo),G%psiat(jexpo)
   end do
-  do iorb=1,norb
-     read(99,*)jorb,eval(jorb)
+  do iorb=1,orbs%norb
+     read(99,*)jorb,orbs%eval(jorb)
      do icoeff=1,G%ncoeff
-        read(99,*)jorb,jcoeff,coeff
-        if (iproc*norbp < iorb .and. iorb <= min((iproc+1)*norbp,norb) ) then
-           coeffs(jcoeff,jorb-iproc*norbp)=coeff
+        read(99,*)jorb,jcoeff,(coeff(j),j=1,orbs%nspinor)
+        if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
+           do j=1,orbs%nspinor
+              coeffs(jcoeff,(jorb-1-orbs%isorb)*orbs%nspinor+j)=coeff(j)
+           end do
         end if
      end do
   end do
@@ -94,33 +95,37 @@ subroutine read_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,eval,filena
  
 end subroutine read_gaussian_information
 
-subroutine write_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,eval,filename)
+subroutine write_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc,nproc,norb,norbp
+  integer, intent(in) :: iproc,nproc
   type(gaussian_basis), intent(in) :: G
-  real(wp), dimension(norb), intent(in) :: eval
-  real(wp), dimension(G%ncoeff,norbp), intent(in) :: coeffs
+  type(orbitals_data), intent(in) :: orbs
+  real(wp), dimension(G%ncoeff,orbs%norbp*orbs%nspinor), intent(in) :: coeffs
   !local variables
   character(len=*), parameter :: subname='write_gaussian_information'
-  integer :: jproc,i_stat,i_all,ierr,jexpo,iexpo,iat,iorb,jat,icoeff,jcoeff,jorb,j
+  integer :: jproc,i_stat,i_all,ierr,jexpo,iexpo,iat,iorb,jat,icoeff,jcoeff,jorb,j,norb_tot
   integer, dimension(:,:), allocatable :: gatherarr
   real(gp), dimension(:,:), allocatable :: gaupsi
 
-  allocate(gaupsi(G%ncoeff,norb),stat=i_stat)
+  allocate(gaupsi(G%ncoeff,orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,gaupsi,'gaupsi',subname)
 
 
   if (nproc > 1) then
-     allocate(gatherarr(0:nproc-1,2),stat=i_stat)
+     allocate(gatherarr(0:nproc-1,2+ndebug),stat=i_stat)
      call memocc(i_stat,gatherarr,'gatherarr',subname)
-
+     
+     norb_tot=0
+     gatherarr(0,1)=G%ncoeff*orbs%norb_par(0)*orbs%nspinor
+     gatherarr(0,2)=G%ncoeff*norb_tot*orbs%nspinor
      !gather the coefficients in a unique array
-     do jproc=0,nproc-1
-        gatherarr(jproc,1)=G%ncoeff*min(max(norb-jproc*norbp,0),norbp)
-        gatherarr(jproc,2)=G%ncoeff*min(jproc*norbp,norb)
+     do jproc=1,nproc-1
+        norb_tot=norb_tot+orbs%norb_par(jproc-1)
+        gatherarr(jproc,1)=G%ncoeff*orbs%norb_par(jproc)
+        gatherarr(jproc,2)=G%ncoeff*norb_tot*orbs%nspinor
      end do
 
      call MPI_GATHERV(coeffs,gatherarr(iproc,1),mpidtypw,gaupsi,gatherarr(0,1),gatherarr(0,2),&
@@ -130,7 +135,7 @@ subroutine write_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,eval,filen
      deallocate(gatherarr,stat=i_stat)
      call memocc(i_stat,i_all,'gatherarr',subname)
   else
-     gaupsi(1:G%ncoeff,1:norb)=coeffs(1:G%ncoeff,1:norb)
+     gaupsi(1:G%ncoeff,1:orbs%norb*orbs%nspinor)=coeffs(1:G%ncoeff,1:norb*orbs%nspinor)
   end if
 
   !write the information on a file
@@ -145,10 +150,11 @@ subroutine write_gaussian_information(iproc,nproc,norb,norbp,G,coeffs,eval,filen
      do iexpo=1,G%nexpo
         write(99,'(i6,2(1x,1pe21.14))')iexpo,G%xp(iexpo),G%psiat(iexpo)
      end do
-     do iorb=1,norb
-        write(99,'(i6,1x,1pe21.14)')iorb,eval(iorb)
+     do iorb=1,orbs%norb
+        write(99,'(i6,1x,1pe21.14)')iorb,orbs%eval(iorb)
         do icoeff=1,G%ncoeff
-           write(99,'(2(i6),1x,1pe21.14)')iorb,icoeff,gaupsi(icoeff,iorb)
+           write(99,'(2(i6),4(1x,1pe21.14))')iorb,icoeff,&
+                (gaupsi(icoeff,norbs%nspinor*(iorb-1)+jorb),jorb=1,orbs%nspinor)
         end do
      end do
      close(99)
@@ -564,18 +570,18 @@ subroutine gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
   integer, dimension(:,:), allocatable :: gatherarr
   real(gp), dimension(:,:), allocatable :: ovrlp,gaupsi,tmp,smat
 
-  allocate(ovrlp(G%ncoeff,G%ncoeff),stat=i_stat)
+  allocate(ovrlp(G%ncoeff,G%ncoeff+ndebug),stat=i_stat)
   call memocc(i_stat,ovrlp,'ovrlp',subname)
-  allocate(gaupsi(G%ncoeff,norb),stat=i_stat)
+  allocate(gaupsi(G%ncoeff,norb+ndebug),stat=i_stat)
   call memocc(i_stat,gaupsi,'gaupsi',subname)
-  allocate(tmp(G%ncoeff,norb),stat=i_stat)
+  allocate(tmp(G%ncoeff,norb+ndebug),stat=i_stat)
   call memocc(i_stat,tmp,'tmp',subname)
-  allocate(smat(norb,norb),stat=i_stat)
+  allocate(smat(norb,norb+ndebug),stat=i_stat)
   call memocc(i_stat,smat,'smat',subname)
 
 
   if (nproc > 1) then
-     allocate(gatherarr(0:nproc-1,2),stat=i_stat)
+     allocate(gatherarr(0:nproc-1,2+ndebug),stat=i_stat)
      call memocc(i_stat,gatherarr,'gatherarr',subname)
 
      !gather the coefficients in a unique array

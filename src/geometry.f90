@@ -107,7 +107,7 @@ subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
         end do
 
         in%inputPsiId=1
-        in%output_grid=.false.
+        in%output_grid=0
         in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,tpos,in,tetot,gpf,rst,infocode)
 
@@ -396,7 +396,7 @@ contains
           itot=itot+1
 
           in%inputPsiId=1
-          in%output_grid=.false.
+          in%output_grid=0
           in%output_wf=.false.
           call call_bigdft(nproc,iproc,at,rxyz,in,etot,ff,rst,infocode)
 
@@ -583,7 +583,7 @@ contains
     loop_detbeta: do
   
        in%inputPsiId=1
-       in%output_grid=.false.
+       in%output_grid=0
        in%output_wf=.false.
        call call_bigdft(nproc,iproc,at,pos,in,etotm1,ff,rst,infocode)
 

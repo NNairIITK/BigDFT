@@ -1,11 +1,12 @@
-subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,n3,wfd,psi,&
+subroutine copy_old_wavefunctions(iproc,nproc,orbs,hx,hy,hz,n1,n2,n3,wfd,psi,&
      hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
   use module_base
   use module_types
   implicit none
-  type(wavefunctions_descriptors) :: wfd,wfd_old
-  integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nspinor
+  integer, intent(in) :: iproc,nproc,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz
+  type(orbitals_data), intent(in) :: orbs
+  type(wavefunctions_descriptors), intent(inout) :: wfd,wfd_old
   integer, intent(out) :: n1_old,n2_old,n3_old
   real(gp), intent(out) :: hx_old,hy_old,hz_old
   real(wp), dimension(:), pointer :: psi,psi_old
@@ -31,26 +32,25 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,
   !deallocation
   call deallocate_wfd(wfd,subname)
 
-  hx_old   = hx
-  hy_old   = hy
-  hz_old   = hz
+  hx_old = hx
+  hy_old = hy
+  hz_old = hz
 
-  n1_old      = n1
-  n2_old      = n2
-  n3_old      = n3
+  n1_old = n1
+  n2_old = n2
+  n3_old = n3
+
   !add the number of distributed point for the compressed wavefunction
   tt=dble(wfd_old%nvctr_c+7*wfd_old%nvctr_f)/dble(nproc)
   nvctrp_old=int((1.d0-eps_mach*tt) + tt)
 
-  allocate(psi_old((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*norbp*nspinor+ndebug),stat=i_stat)
+  allocate(psi_old((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor+ndebug),&
+       stat=i_stat)
   call memocc(i_stat,psi_old,'psi_old',subname)
-!!$  allocate(eval_old(norb+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,eval_old,'eval_old',subname)
 
-!  do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor,nspinor
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+  do iorb=1,orbs%norbp
      tt=0.d0
-     oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
+     oidx=(iorb-1)*orbs%nspinor+1
      do sidx=oidx,oidx+nspinor-1
         do j=1,wfd_old%nvctr_c+7*wfd_old%nvctr_f
            ind1=j+(wfd_old%nvctr_c+7*wfd_old%nvctr_f)*(sidx-1)
@@ -58,24 +58,6 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,
            tt=tt+real(psi(ind1),kind=8)**2
         enddo
      end do
-     
-!!$     do sidx=oidx,oidx+nspinor-1
-!!$     !the control between the different psi
-!!$     !must be such that the allocation dimensions are respected
-!!$     !(remember that the allocations are slightly enlarged to avoid
-!!$     !allocation of work arrays for transposition in the parallel case)
-!!$!     do sidx=0,nspinor-1
-!!$        do j=1,wfd_old%nvctr_c+7*wfd_old%nvctr_f
-!!$           !starting address of the direct array in transposed form
-!!$           !changed for obrtaining the good one
-!!$           call trans_address(nvctrp_old,wfd_old%nvctr_c+7*wfd_old%nvctr_f,&
-!!$                j,sidx, i1,i2)
-!!$        !call trans_address(nvctrp_old*nspinor,(wfd_old%nvctr_c+7*wfd_old%nvctr_f)*nspinor,&
-!!$        !     j,sidx, i1,i2)
-!!$           psi_old(j,sidx)     = psi(i1,i2)
-!!$           tt=tt+psi(i1,i2)**2
-!!$        enddo
-!!$     end do
 
      tt=sqrt(tt)
      if (abs(tt-1.d0) > 1.d-8) then
@@ -87,24 +69,22 @@ subroutine copy_old_wavefunctions(iproc,nproc,norb,norbp,nspinor,hx,hy,hz,n1,n2,
   i_all=-product(shape(psi))*kind(psi)
   deallocate(psi,stat=i_stat)
   call memocc(i_stat,i_all,'psi',subname)
-!!$  i_all=-product(shape(eval))*kind(eval)
-!!$  deallocate(eval,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'eval',subname)
 
 end subroutine copy_old_wavefunctions
 
-subroutine reformatmywaves(iproc,norb,norbp,nat,&
+subroutine reformatmywaves(iproc,orbs,nat,&
      hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
      hx,hy,hz,n1,n2,n3,rxyz,wfd,psi)
   use module_base
   use module_types
   implicit none
-  type(wavefunctions_descriptors), intent(in) :: wfd,wfd_old
   integer, intent(in) :: iproc,norb,norbp,nat,n1_old,n2_old,n3_old,n1,n2,n3
   real(gp), intent(in) :: hx_old,hy_old,hz_old,hx,hy,hz
+  type(wavefunctions_descriptors), intent(in) :: wfd,wfd_old
+  type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,nat), intent(in) :: rxyz,rxyz_old
-  real(wp), dimension(wfd_old%nvctr_c+7*wfd_old%nvctr_f,norbp), intent(in) :: psi_old
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: psi
+  real(wp), dimension(wfd_old%nvctr_c+7*wfd_old%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi_old
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: psi
   !local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat
@@ -188,22 +168,22 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
 !checkend
   end if
 
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+  do iorb=1,orbs%norbp*orbs%nspinor
 
      if (.not. reformat) then
 !write(100+iproc,*) 'no reformatting' 
 
         do j=1,wfd_old%nvctr_c
-           psi(j,iorb-iproc*norbp)=psi_old(j, iorb - iproc * norbp)
+           psi(j,iorb)=psi_old(j, iorb)
         enddo
         do j=1,7*wfd_old%nvctr_f-6,7
-           psi(wfd%nvctr_c+j+0,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+0,iorb-iproc*norbp)
-           psi(wfd%nvctr_c+j+1,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+1,iorb-iproc*norbp)
-           psi(wfd%nvctr_c+j+2,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+2,iorb-iproc*norbp)
-           psi(wfd%nvctr_c+j+3,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+3,iorb-iproc*norbp)
-           psi(wfd%nvctr_c+j+4,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+4,iorb-iproc*norbp)
-           psi(wfd%nvctr_c+j+5,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+5,iorb-iproc*norbp)
-           psi(wfd%nvctr_c+j+6,iorb-iproc*norbp)=psi_old(wfd%nvctr_c+j+6,iorb-iproc*norbp)
+           psi(wfd%nvctr_c+j+0,iorb)=psi_old(wfd%nvctr_c+j+0,iorb)
+           psi(wfd%nvctr_c+j+1,iorb)=psi_old(wfd%nvctr_c+j+1,iorb)
+           psi(wfd%nvctr_c+j+2,iorb)=psi_old(wfd%nvctr_c+j+2,iorb)
+           psi(wfd%nvctr_c+j+3,iorb)=psi_old(wfd%nvctr_c+j+3,iorb)
+           psi(wfd%nvctr_c+j+4,iorb)=psi_old(wfd%nvctr_c+j+4,iorb)
+           psi(wfd%nvctr_c+j+5,iorb)=psi_old(wfd%nvctr_c+j+5,iorb)
+           psi(wfd%nvctr_c+j+6,iorb)=psi_old(wfd%nvctr_c+j+6,iorb)
         enddo
 
      else
@@ -225,7 +205,7 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
            i0=ii-i2*(n1_old+1)
            i1=i0+j1-j0
            do i=i0,i1
-              psigold(i,1,i2,1,i3,1) = psi_old(i-i0+jj,iorb-iproc*norbp)
+              psigold(i,1,i2,1,i3,1) = psi_old(i-i0+jj,iorb)
            enddo
         enddo
 
@@ -241,13 +221,13 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
            i0=ii-i2*(n1_old+1)
            i1=i0+j1-j0
            do i=i0,i1
-              psigold(i,2,i2,1,i3,1)=psi_old(wfd_old%nvctr_c+1+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,1,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+2+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,2,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+3+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,1,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+4+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,2,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+5+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,1,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+6+7*(i-i0+jj-1), iorb-iproc*norbp)
-              psigold(i,2,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+7+7*(i-i0+jj-1), iorb-iproc*norbp)
+              psigold(i,2,i2,1,i3,1)=psi_old(wfd_old%nvctr_c+1+7*(i-i0+jj-1), iorb)
+              psigold(i,1,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+2+7*(i-i0+jj-1), iorb)
+              psigold(i,2,i2,2,i3,1)=psi_old(wfd_old%nvctr_c+3+7*(i-i0+jj-1), iorb)
+              psigold(i,1,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+4+7*(i-i0+jj-1), iorb)
+              psigold(i,2,i2,1,i3,2)=psi_old(wfd_old%nvctr_c+5+7*(i-i0+jj-1), iorb)
+              psigold(i,1,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+6+7*(i-i0+jj-1), iorb)
+              psigold(i,2,i2,2,i3,2)=psi_old(wfd_old%nvctr_c+7+7*(i-i0+jj-1), iorb)
            enddo
         enddo
 
@@ -257,7 +237,7 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
              n1_old,n2_old,n3_old,nat,rxyz_old,psigold,hx,hy,hz,&
              wfd%nvctr_c,wfd%nvctr_f,n1,n2,n3,rxyz,&
              wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,psifscf,& 
-             psi(1,iorb-iproc*norbp))
+             psi(1,iorb))
 
         i_all=-product(shape(psigold))*kind(psigold)
         deallocate(psigold,stat=i_stat)
@@ -273,20 +253,20 @@ subroutine reformatmywaves(iproc,norb,norbp,nat,&
 
 END SUBROUTINE reformatmywaves
 
-subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,nat,rxyz_old,rxyz,  & 
-     wfd,psi,eval)
+subroutine readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz_old,rxyz,  & 
+     wfd,psi)
   ! reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
   ! have changed
   use module_base
   use module_types
   implicit none
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  integer, intent(in) :: iproc,norb,norbp,n1,n2,n3,nat
+  integer, intent(in) :: iproc,n1,n2,n3,nat
   real(gp), intent(in) :: hx,hy,hz
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,nat), intent(in) :: rxyz
-  real(wp), dimension(norb), intent(out) :: eval
   real(gp), dimension(3,nat), intent(out) :: rxyz_old
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: psi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
   !local variables
   character(len=*), parameter :: subname='readmywaves'
   character(len=4) :: f4
@@ -302,16 +282,16 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,nat,rxyz_old,rxyz,  &
   allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8+ndebug),stat=i_stat)
   call memocc(i_stat,psifscf,'psifscf',subname)
 
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+  do iorb=1,orbs%norbp*orbs%nspinor
 
-     write(f4,'(i4.4)') iorb
+     write(f4,'(i4.4)') iorb+orbs%isorb*orbs%nspinor
      filename = 'wavefunction.'//f4
      open(unit=99,file=filename,status='unknown')
 
-     call readonewave(99, .true., iorb,iproc,n1,n2,n3, &
+     call readonewave(99, .true.,iorb,iproc,n1,n2,n3, &
           & hx,hy,hz,nat,rxyz_old,rxyz,wfd%nseg_c,wfd%nseg_f,&
           wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
-          psi(1,iorb-iproc*norbp),eval(iorb),psifscf)
+          psi(1,iorb),orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb),psifscf)
      close(99)
 
   end do
@@ -327,17 +307,18 @@ subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,nat,rxyz_old,rxyz,  &
 
 end subroutine readmywaves
 
-subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi,eval)
+subroutine writemywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi,eval)
   ! write all my wavefunctions in files by calling writeonewave
   use module_types
   use module_base
   implicit none
-  integer, intent(in) :: iproc,norb,norbp,n1,n2,n3,nat
+  integer, intent(in) :: iproc,n1,n2,n3,nat
   real(gp), intent(in) :: hx,hy,hz
+  type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
   real(gp), dimension(3,nat), intent(in) :: rxyz
   real(wp), dimension(norb), intent(in) :: eval
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
   !local variables
   character(len=4) :: f4
   character(len=50) :: filename
@@ -348,17 +329,17 @@ subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi,eval
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
 
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+  do iorb=1,orbs%norbp*orbs%nspinor
 
-     write(f4,'(i4.4)') iorb
+     write(f4,'(i4.4)')  iorb+orbs%isorb*orbs%nspinor
      filename = 'wavefunction.'//f4
      write(*,*) 'opening ',filename
      open(unit=99,file=filename,status='unknown')
 
-     call writeonewave(99,.true.,iorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
+     call writeonewave(99,.true.,(iorb-1)/orbs%nspinor+1+orbs%isorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
           wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
           wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
-          psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),norb,eval)
+          psi(1,iorb),psi(wfd%nvctr_c+1,iorb),norb,eval)
      close(99)
 
   enddo

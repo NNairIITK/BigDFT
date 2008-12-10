@@ -453,11 +453,11 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
   real(kind=8), dimension(*), intent(inout) :: pot_ion
   real(kind=8), intent(out) :: eion
   !local variables
-  logical :: perx,pery,perz,gox,goy,goz
+  logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.
   integer :: iat,jat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,jtyp,nspin
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   real(kind=8) :: hgridh,pi,rholeaked,dist,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
-  real(kind=8) :: tt_tot,rholeaked_tot,eself
+  real(kind=8) :: tt_tot,rholeaked_tot,eself,potxyz
   real(kind=8) :: ehart,eexcu,vexcu
   real(kind=8), dimension(4) :: charges_mpi
 
@@ -495,18 +495,18 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
 !!$  end if
 
   !Creates charge density arising from the ionic PSP cores
-  if (n3pi >0 ) then
+  call razero(n1i*n2i*n3pi,pot_ion)
 
-     !conditions for periodicity in the three directions
-     perx=(geocode /= 'F')
-     pery=(geocode == 'P')
-     perz=(geocode /= 'F')
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
 
-     call ext_buffers(perx,nbl1,nbr1)
-     call ext_buffers(pery,nbl2,nbr2)
-     call ext_buffers(perz,nbl3,nbr3)
+  call ext_buffers(perx,nbl1,nbr1)
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
 
-     call razero(n1i*n2i*n3pi,pot_ion)
+  if (n3pi >0 .and. .not. htoobig) then
 
      do iat=1,nat
         ityp=iatype(iat)
@@ -585,12 +585,14 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
   if (iproc.eq.0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
        'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
 
-  call timing(iproc,'CrtLocPot     ','OF')
-  !here the value of the datacode must be kept fixed
-  nspin=1
-  call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-       pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,-psoffset,.false.,nspin)
-  call timing(iproc,'CrtLocPot     ','ON')
+  if (.not. htoobig) then
+     call timing(iproc,'CrtLocPot     ','OF')
+     !here the value of the datacode must be kept fixed
+     nspin=1
+     call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
+          pot_ion,pkernel,pot_ion,ehart,eexcu,vexcu,-psoffset,.false.,nspin)
+     call timing(iproc,'CrtLocPot     ','ON')
+  end if
 
   !print *,'ehart',ehart
   !print *,'true eion',ehart-eself
@@ -613,7 +615,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
         ! determine number of local terms
         nloc=0
         do iloc=1,4
-           if (psppar(0,iloc,ityp).ne.0.d0) nloc=iloc
+           if (psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
         enddo
         rloc=psppar(0,0,ityp)
         cutoff=10.d0*rloc
@@ -625,8 +627,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
         iex=ceiling((rx+cutoff)/hxh)
         iey=ceiling((ry+cutoff)/hyh)
         iez=ceiling((rz+cutoff)/hzh)
-
-
         
         if (nloc /= 0) then
 
@@ -662,6 +662,25 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
         end if
 
      enddo
+
+
+     if (htoobig) then
+        !add to pot_ion an explicit error function to correct in the case of big grid spacing
+        !for the moment works only in the isolated BC case
+        do i3=1,n3pi
+           z=real(i3+i3s-1-nbl3-1,gp)*hzh
+           do i2=1,n2i
+              y=real(i2-nbl2-1,gp)*hyh
+              do i1=1,n1i
+                 x=real(i1-nbl1-1,gp)*hxh
+                 ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+                 call sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
+                 pot_ion(ind)=pot_ion(ind)+potxyz
+              end do
+           end do
+        end do
+     end if
+     
 
   end if
 
@@ -722,6 +741,48 @@ subroutine ind_positions(periodic,i,n,j,go)
   end if
 
 end subroutine ind_positions
+
+subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
+  use module_base
+  implicit none
+  integer, intent(in) :: nat,ntypes
+  real(gp) :: x,y,z
+  integer, dimension(nat), intent(in) :: iatype
+  integer, dimension(ntypes), intent(in) :: nelpsp
+  real(gp), dimension(0:4,0:6,ntypes), intent(in) :: psppar
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  real(wp), intent(out) :: potxyz
+  !local variables
+  integer :: iat,ityp
+  real(wp) :: pi,charge
+  real(gp) :: r,sq2rl,rx,ry,rz
+  
+
+  pi=4.0_wp*atan(1.0_wp)
+
+  potxyz =0.0_wp
+
+  do iat=1,nat
+
+     ityp=iatype(iat)
+     sq2rl=sqrt(2.0_gp)*psppar(0,0,ityp)
+     charge=real(nelpsp(ityp),wp)
+
+     rx=rxyz(1,iat)-x 
+     ry=rxyz(2,iat)-y
+     rz=rxyz(3,iat)-z
+
+     r=sqrt(rx**2+ry**2+rz**2)
+
+     if (r == 0.0_gp) then
+        potxyz = potxyz - charge*2.0_wp/(sqrt(pi)*real(sq2rl,wp))
+     else
+        potxyz = potxyz - charge*real(erf(r/sq2rl)/r,wp)
+     end if
+
+  end do
+
+end subroutine sum_erfcr
 
 subroutine ext_buffers(periodic,nl,nr)
   implicit none

@@ -6,26 +6,25 @@
 !!    Copyright (C) 2007-2008 UNIBAS,CEA
 !! SOURCE
 !!
-subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
-     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,eval,&
-     pot,hgrid,rxyz,radii_cf,crmult,frmult,cpmult,fpmult,nspin,spinsgn,&
-     proj,psi,occup,output_grid,ekin_sum,epot_sum,eproj_sum)
+subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,orbs,&
+     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,&,
+     pot,hgrid,rxyz,radii_cf,crmult,frmult,cpmult,fpmult,nspin,&
+     proj,psi,output_grid,ekin_sum,epot_sum,eproj_sum)
   use module_base
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
-  logical, intent(in) :: output_grid
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncongt,nspin
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,ncongt,nspin,output_grid
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf,cpmult,fpmult
-  real(kind=8), dimension(norb), intent(in) :: occup,eval,spinsgn
   real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
   real(kind=8), dimension(2*n1+31,2*n2+31,2*n3+31,nspin), intent(in) :: pot
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
+  real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp), intent(in) :: psi
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
   !local variables
   character(len=*), parameter :: subname='CalculateTailCorrection'
@@ -193,7 +192,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   call make_bounds(nb1,nb2,nb3,logrid_f,ibbyz_f,ibbxz_f,ibbxy_f)
 
 ! Create the file grid.xyz to visualize the grid of functions
-  if (iproc ==0 .and. output_grid) then
+  if (iproc ==0 .and. output_grid == 1) then
      write(*,'(1x,a)')&
           'Writing the file describing the new atomic positions of the effective system'
      open(unit=22,file='grid_tail.xyz',status='unknown')
@@ -318,7 +317,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   epot_sum=0.d0
   eproj_sum=0.d0
 
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+  do iorb=1,orbs%norbp
 
      !build the compressed wavefunction in the enlarged box
      call transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
@@ -326,7 +325,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
           wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),  &
           nsegb_c,nvctrb_c,keybg(1,1),keybv(1),nsegb_f,nvctrb_f,&
           keybg(1,nsegb_c+1),keybv(nsegb_c+1),&
-          nbuf,psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),  & 
+          nbuf,psi(1,iorb),psi(wfd%nvctr_c+1,iorb),  & 
           x_c,x_f,psib(1),psib(nvctrb_c+1))
 
      !write(*,*) 'transform_fortail finished',iproc,iorb
@@ -335,7 +334,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
      npt=2
      tail_adding: do ipt=1,npt
 
-        if(spinsgn(iorb)>0.0d0) then
+        if(orbs%spinsgn(iorb+orbs%isorb)>0.0d0) then
            ispin=1
         else
            ispin=2
@@ -377,8 +376,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
         if (ipt.eq.npt) exit tail_adding
 
         !calculate tail using the preconditioner as solver for the green function application
-        cprecr=-eval(iorb)
-        call precong(iorb,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, &
+        cprecr=-orbs%eval(iorb+orbs%isorb)
+        call precong(iorb+orbs%isorb,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, &
              nsegb_c,nvctrb_c,nsegb_f,nvctrb_f,keybg,keybv, &
              ncongt,cprecr,hgrid,ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,hpsib)
         !call plot_wf(10,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
@@ -415,11 +414,11 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
 
      if (iproc == 0) then
         write(*,'(a)',advance='no') &
-             repeat('.',(iorb*40)/norbp-((iorb-1)*40)/norbp)
+             repeat('.',((iorb+orbs%isorb)*40)/norbp-((iorb-1)*40)/norbp)
      end if
-     ekin_sum=ekin_sum+ekin*occup(iorb)
-     epot_sum=epot_sum+epot*occup(iorb)
-     eproj_sum=eproj_sum+eproj*occup(iorb)
+     ekin_sum=ekin_sum+ekin*orbs%occup(iorb+orbs%isorb)
+     epot_sum=epot_sum+epot*orbs%occup(iorb+orbs%isorb)
+     eproj_sum=eproj_sum+eproj*orbs%occup(iorb+orbs%isorb)
 
   end do
 

@@ -89,7 +89,7 @@
 #define CUBLAS_SASUM            cublas_sasum_
 #define CUBLAS_SAXPY            cublas_saxpy__
 #define CUBLAS_SCOPY            cublas_scopy_
-#define CUBLAS_SDOT             cublas_sdot_
+#define CUBLAS_SDOT             cublas_sdot__
 #define CUBLAS_SNRM2            cublas_snrm2__
 #define CUBLAS_SROT             cublas_srot_
 #define CUBLAS_SROTG            cublas_srotg_

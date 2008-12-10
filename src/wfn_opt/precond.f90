@@ -1,24 +1,20 @@
 ! Calls the preconditioner for each orbital treated by the processor
-subroutine preconditionall(geocode,iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     hx,hy,hz,ncong,nspinor,wfd,eval,kb,hpsi,gnrm,hybrid_on)
+subroutine preconditionall(iproc,nproc,norbp,lr,&
+     hx,hy,hz,ncong,nspinor,eval,hpsi,gnrm)
   use module_base
   use module_types
   implicit none
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  type(kinetic_bounds), intent(in) :: kb
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: iproc,nproc,norbp
   integer, intent(in) :: nspinor,ncong
   real(gp), intent(in) :: hx,hy,hz
-  real(wp), dimension(norb), intent(in) :: eval
-  logical,intent(in)::hybrid_on
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(norbp), intent(in) :: eval
   real(dp), intent(out) :: gnrm
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(inout) :: hpsi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,norbp*nspinor), intent(inout) :: hpsi
   !local variables
   integer :: iorb,inds,indo
   real(wp) :: cprecr
   real(dp) :: scpr
-  real(kind=8), external :: dnrm2
   integer,parameter::lupfil=14
 
   ! Preconditions all orbitals belonging to iproc
@@ -26,55 +22,56 @@ subroutine preconditionall(geocode,iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl
 
   ! norm of gradient
   gnrm=0.0_dp
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
-     indo=(iorb-1)*nspinor+1-iproc*norbp*nspinor
+  do iorb=1,norbp
+     indo=(iorb-1)*nspinor+1
      !loop over the spinorial components
      do inds=indo,indo+nspinor-1
 
-        scpr=dnrm2(wfd%nvctr_c+7*wfd%nvctr_f,hpsi(1,inds),1)
+        scpr=nrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,hpsi(1,inds),1)
         gnrm=gnrm+scpr**2
 
-        select case(geocode)
+        select case(lr%geocode)
         case('F')
            !in this case the grid spacings are uniform
            cprecr=-eval(iorb)
            if(scpr /=0.0_dp) then
-              call precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
-                   wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
-                   ncong,cprecr,hx,kb%ibyz_c,kb%ibxz_c,kb%ibxy_c,&
-                   kb%ibyz_f,kb%ibxz_f,kb%ibxy_f,hpsi(1,inds))
+              call precong(iorb,lr%d%n1,lr%d%n2,lr%d%n3,&
+                   lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
+                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                   ncong,cprecr,hx,lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
+                   lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,hpsi(1,inds))
            end if
         case('P')
            cprecr=0.5_wp
            !           cprecr=abs(eval(iorb))
            !		   if (cprecr.lt..1_wp) cprecr=.5_wp
-           if (ncong.eq.0) then
-              call prec_fft(n1,n2,n3, &
-                   wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
+           if (ncong == 0) then
+              call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
+                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
                    cprecr,hx,hy,hz,hpsi(1,inds))
            else
-				if (hybrid_on) then
-              	   call precong_per_hyb(n1,n2,n3, &
-                   wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
-                   ncong,cprecr,hx,hy,hz,hpsi(1,inds),&
-                   kb%ibyz_f,kb%ibxz_f,kb%ibxy_f)
-				else
-              	   call precong_per(n1,n2,n3, &
-                   wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
-                   ncong,cprecr,hx,hy,hz,hpsi(1,inds))
-				endif	
+              if (lr%hybrid_on) then
+                 call precong_per_hyb(lr%d%n1,lr%d%n2,lr%d%n3, &
+                      lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                      ncong,cprecr,hx,hy,hz,hpsi(1,inds),&
+                      lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f)
+              else
+                 call precong_per(lr%d%n1,lr%d%n2,lr%d%n3, &
+                      lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                      ncong,cprecr,hx,hy,hz,hpsi(1,inds))
+              endif
            endif
         case('S')
            cprecr=0.5_wp
-			if (ncong.eq.0) then
-				call prec_fft_slab(n1,n2,n3, &
-				wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
-                cprecr,hx,hy,hz,hpsi(1,inds))
-			else
-        		call precong_slab(n1,n2,n3, &
-				wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
-				ncong,cprecr,hx,hy,hz,hpsi(1,inds))
-			endif
+           if (ncong.eq.0) then
+              call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
+                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                   cprecr,hx,hy,hz,hpsi(1,inds))
+           else
+              call precong_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
+                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                   ncong,cprecr,hx,hy,hz,hpsi(1,inds))
+           endif
         end select
      end do
   enddo
@@ -149,8 +146,9 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   scal(3)=sqrt(1.0_wp/(h3+cprecr))
 
   if (inguess_on) then
-     !          the right hand side is temporarily stored in the rpsi array        
-     rpsi=hpsi           
+     !          the right hand side is temporarily stored in the rpsi array
+     !rpsi=hpsi           
+     call dcopy(nvctr_c+7*nvctr_f,hpsi,1,rpsi,1) 
      !          and preconditioned with d^{-1/2} as usual:
      call  wscalv(nvctr_c,nvctr_f,scal,rpsi,rpsi(nvctr_c+1))
 

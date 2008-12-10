@@ -1,3 +1,53 @@
+subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
+  use module_base
+  use module_types
+  implicit none
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(convolutions_bounds),intent(out):: bounds
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+
+  logical,allocatable,dimension(:,:,:) :: logrid
+  character(len=*), parameter :: subname='make_bounds'
+  integer :: i_stat,i_all,nseg_c,i2,i3
+
+  allocate(bounds%kb%ibyz_f(2,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%kb%ibyz_f,'bounds%kb%ibyz_f',subname)
+  allocate(bounds%kb%ibxz_f(2,0:n1,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%kb%ibxz_f,'bounds%kb%ibxz_f',subname)
+  allocate(bounds%kb%ibxy_f(2,0:n1,0:n2+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%kb%ibxy_f,'bounds%kb%ibxy_f',subname)
+
+  allocate(bounds%gb%ibyz_ff(2,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%gb%ibyz_ff,'bounds%gb%ibyz_ff',subname)
+  allocate(bounds%gb%ibzxx_f(2,nfl3:nfu3,0:2*n1+1+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%gb%ibzxx_f,'bounds%gb%ibzxx_f',subname)
+  allocate(bounds%gb%ibxxyy_f(2,0:2*n1+1,0:2*n2+1+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%gb%ibxxyy_f,'bounds%gb%ibxxyy_f',subname)
+
+  allocate(bounds%sb%ibxy_ff(2,nfl1:nfu1,nfl2:nfu2+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%sb%ibxy_ff,'bounds%sb%ibxy_ff',subname)
+  allocate(bounds%sb%ibzzx_f(2,0:2*n3+1,nfl1:nfu1+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%sb%ibzzx_f,'bounds%sb%ibzzx_f',subname)
+  allocate(bounds%sb%ibyyzz_f(2,0:2*n2+1,0:2*n3+1+ndebug),stat=i_stat)
+  call memocc(i_stat,bounds%sb%ibyyzz_f,'bounds%sb%ibyyzz_f',subname)
+
+  allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
+  call memocc(i_stat,logrid,'logrid',subname)
+
+  nseg_c=wfd%nseg_c
+  call make_logrid_f(n1,n2,n3, & 
+       wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
+       wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,nseg_c+1),wfd%keyv(nseg_c+1),  & 
+       logrid)
+
+  call make_bounds(n1,n2,n3,logrid,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
+
+  i_all=-product(shape(logrid))*kind(logrid)
+  deallocate(logrid,stat=i_stat)
+  call memocc(i_stat,i_all,'logrid',subname)
+
+end subroutine make_bounds_per
+
 subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
      ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
      ibyz_f,ibyz_ff,ibzxx_f,ibxxyy_f)

@@ -147,7 +147,7 @@ subroutine local_forces(iproc,nproc,at,rxyz,hxh,hyh,hzh,&
 
 end subroutine local_forces
 
-subroutine projectors_derivatives(iproc,at,n1,n2,n3,norb,&
+subroutine projectors_derivatives(iproc,at,n1,n2,n3,&
      nlpspd,proj,rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and ads them to the force array
   use module_types
@@ -155,7 +155,7 @@ subroutine projectors_derivatives(iproc,at,n1,n2,n3,norb,&
   type(atoms_data), intent(in) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   !Arguments-------------
-  integer, intent(in) :: iproc,norb
+  integer, intent(in) :: iproc
   integer, intent(in) :: n1,n2,n3
   real(kind=8),intent(in) :: cpmult,fpmult,hx,hy,hz
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
@@ -250,7 +250,7 @@ end subroutine projectors_derivatives
 !Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and adds them to the force array
 !recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
-     norb,norbp,nspinor,occup,nlpspd,proj,wfd,psi,fsep,refill)
+     orbs,nlpspd,proj,wfd,psi,fsep,refill)
   use module_base
   use module_types
   implicit none
@@ -259,17 +259,17 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   logical, intent(in) :: refill
-  integer, intent(in) :: iproc,norb,norbp,nspinor,n1,n2,n3
+  integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult 
-  real(gp), dimension(norb), intent(in) :: occup
+  type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp*nspinor), intent(in) :: psi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
   real(wp), dimension(nlpspd%nprojel), intent(inout) :: proj
   real(gp), dimension(3,at%nat), intent(inout) :: fsep
   !local variables--------------
   character(len=*), parameter :: subname='nonlocal_forces'
-  integer :: istart_c,istart_f,iproj,iat,ityp,i,j,l,m,jorb
+  integer :: istart_c,istart_f,iproj,iat,ityp,i,j,l,m
   integer :: istart_c_i,istart_f_i,istart_c_j,istart_f_j
   integer :: mvctr_c,mvctr_f,mbseg_c,mbseg_f,jseg_c,jseg_f
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings
@@ -282,7 +282,7 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
 !!$  !to be eliminated only for testing purposes
 !!$  fsep(:,:)=0.d0
 
-  allocate(scalprod(0:3,7,3,4,at%nat,norbp*nspinor),stat=i_stat)
+  allocate(scalprod(0:3,7,3,4,at%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,scalprod,'scalprod',subname)
 
   !calculate the coefficients for the off-diagonal terms
@@ -347,8 +347,7 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
            enddo
 
            !calculate the contribution for each orbital
-           do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor
-              jorb=iorb-iproc*norbp*nspinor
+           do iorb=1,orbs%norbp*orbs%nspinor
               istart_c=1
               do l=1,4
                  do i=1,3
@@ -359,11 +358,11 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
                                wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
                                wfd%keyv(1),wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,1),&
                                wfd%keyg(1,wfd%nseg_c+1),&
-                               psi(1,jorb),psi(wfd%nvctr_c+1,jorb),  &
+                               psi(1,iorb),psi(wfd%nvctr_c+1,iorb),  &
                                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                                nlpspd%keyv_p(jseg_c),nlpspd%keyv_p(jseg_f),  &
                                nlpspd%keyg_p(1,jseg_c),nlpspd%keyg_p(1,jseg_f),&
-                               proj(istart_c),proj(istart_f),scalprod(idir,m,i,l,iat,jorb))
+                               proj(istart_c),proj(istart_f),scalprod(idir,m,i,l,iat,iorb))
 
                           istart_c=istart_f+7*mbvctr_f
                        end do
@@ -388,8 +387,7 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
 
 
         ! calculate the scalar product for all the orbitals
-        do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor
-           jorb=iorb-iproc*norbp*nspinor
+        do iorb=1,orbs%norbp*orbs%nspinor
            ! loop over all projectors
            iproj=0
            istart_c=1
@@ -412,11 +410,11 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
                                wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,&
                                wfd%keyv(1),wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,1),&
                                wfd%keyg(1,wfd%nseg_c+1),&
-                               psi(1,jorb),psi(wfd%nvctr_c+1,jorb),  &
+                               psi(1,iorb),psi(wfd%nvctr_c+1,iorb),  &
                                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                                nlpspd%keyv_p(jseg_c),nlpspd%keyv_p(jseg_f),  &
                                nlpspd%keyg_p(1,jseg_c),nlpspd%keyg_p(1,jseg_f),&
-                               proj(istart_c),proj(istart_f),scalprod(idir,m,i,l,iat,jorb))
+                               proj(istart_c),proj(istart_f),scalprod(idir,m,i,l,iat,iorb))
 
                           istart_c=istart_f+7*mbvctr_f
                        end do
@@ -441,8 +439,7 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
   call memocc(i_stat,fxyz_orb,'fxyz_orb',subname)
 
   ! loop over all my orbitals for calculating forces
-  do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor
-     jorb=iorb-iproc*norbp*nspinor
+  do iorb=1,orbs%norbp*orbs%nspinor
      ! loop over all projectors
      fxyz_orb(:,:)=0.0_gp
      do iat=1,at%nat
@@ -452,9 +449,9 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
               if (at%psppar(l,i,ityp) /= 0.0_gp) then
                  do m=1,2*l-1
                     ! scalar product with the derivatives in all the directions
-                    sp0=real(scalprod(0,m,i,l,iat,jorb),gp)
+                    sp0=real(scalprod(0,m,i,l,iat,iorb),gp)
                     do idir=1,3
-                       spi=real(scalprod(idir,m,i,l,iat,jorb),gp)
+                       spi=real(scalprod(idir,m,i,l,iat,iorb),gp)
                        fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
                             at%psppar(l,i,ityp)*sp0*spi
                     end do
@@ -478,11 +475,11 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
                        do m=1,2*l-1
                           !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
                           !(the two factor is below)
-                          sp0i=real(scalprod(0,m,i,l,iat,jorb),gp)
-                          sp0j=real(scalprod(0,m,j,l,iat,jorb),gp)
+                          sp0i=real(scalprod(0,m,i,l,iat,iorb),gp)
+                          sp0j=real(scalprod(0,m,j,l,iat,iorb),gp)
                           do idir=1,3
-                             spi=real(scalprod(idir,m,i,l,iat,jorb),gp)
-                             spj=real(scalprod(idir,m,j,l,iat,jorb),gp)
+                             spi=real(scalprod(idir,m,i,l,iat,iorb),gp)
+                             spj=real(scalprod(idir,m,j,l,iat,iorb),gp)
                              fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
                                   hij*(sp0j*spi+spj*sp0i)
                           end do
@@ -495,9 +492,9 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
      end do
 
      do iat=1,at%nat
-        fsep(1,iat)=fsep(1,iat)+occup((iorb-1)/nspinor+1)*2.0_gp*fxyz_orb(1,iat)
-        fsep(2,iat)=fsep(2,iat)+occup((iorb-1)/nspinor+1)*2.0_gp*fxyz_orb(2,iat)
-        fsep(3,iat)=fsep(3,iat)+occup((iorb-1)/nspinor+1)*2.0_gp*fxyz_orb(3,iat)
+        fsep(1,iat)=fsep(1,iat)+orbs%occup((iorb-1)/nspinor+1+orbs%isorb)*2.0_gp*fxyz_orb(1,iat)
+        fsep(2,iat)=fsep(2,iat)+orbs%occup((iorb-1)/nspinor+1+orbs%isorb)*2.0_gp*fxyz_orb(2,iat)
+        fsep(3,iat)=fsep(3,iat)+orbs%occup((iorb-1)/nspinor+1+orbs%isorb)*2.0_gp*fxyz_orb(3,iat)
      end do
 
   end do

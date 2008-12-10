@@ -1,19 +1,17 @@
 ! calculate the action of the local hamiltonian on the orbitals
-subroutine local_hamiltonian(iproc,geocode,hybrid_on,lr,hx,hy,hz,&
-     nspin,nspinor,norbp,norb,occup,spinsgn,pot,psi,hpsi,ekin_sum,epot_sum)
+subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
+     nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
-  logical, intent(in) :: hybrid_on
   integer, intent(in) :: iproc,norbp,norb,nspinor,nspin
   real(gp), intent(in) :: hx,hy,hz
+  type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor*norbp), intent(in) :: psi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension(lr%d%n1i,lr%d%n2i,lr%d%n3i,nspin) :: pot
-  real(gp), dimension(norb), intent(in) :: occup,spinsgn
   real(gp), intent(out) :: ekin_sum,epot_sum
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor*norbp), intent(out) :: hpsi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   integer :: i_all,i_stat,ierr,iorb
@@ -94,7 +92,7 @@ subroutine local_hamiltonian(iproc,geocode,hybrid_on,lr,hx,hy,hz,&
      call memocc(i_stat,y_c,'y_c',subname)
 
   case('P')
-     if (.not.hybrid_on) then
+     if (.not. lr%hybrid_on) then
         !allocation of work arrays: only for the non-adaptive case
         allocate(x_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
         call memocc(i_stat,x_c,'x_c',subname)
@@ -113,16 +111,15 @@ subroutine local_hamiltonian(iproc,geocode,hybrid_on,lr,hx,hy,hz,&
   ekin_sum=0.0_gp
   epot_sum=0.0_gp
 
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+  do iorb=1,orbs%norbp
 
-     if(spinsgn(iorb)>0.0_gp) then
+     if(orbs%spinsgn(iorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
         nsoffset=1
      else
         nsoffset=2
      end if
-     if(nspinor==4) nsoffset=1
 
-     oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
+     oidx=(iorb-1)*orbs%nspinor+1
 
      select case(lr%geocode)
      case('F')
@@ -136,9 +133,9 @@ subroutine local_hamiltonian(iproc,geocode,hybrid_on,lr,hx,hy,hz,&
              lr%bounds%sb%ibxy_ff,lr%bounds%sb%ibzzx_f,lr%bounds%sb%ibyyzz_f,&
              lr%bounds%gb%ibzxx_c,lr%bounds%gb%ibxxyy_c,&
              lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f,nw1,nw2,lr%bounds%ibyyzz_r,&
-             nspinor)
-     case('P')
-        if (hybrid_on) then
+             orbs%nspinor)
+     case('P') !for these cases the non-collinear term is lacking (nspinor must be 1)
+        if (lr%hybrid_on) then
            call applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
                 hx,hy,hz,lr%wfd%nseg_c,lr%wfd%nseg_f,&
                 lr%wfd%nvctr_c,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv,& 
@@ -157,8 +154,8 @@ subroutine local_hamiltonian(iproc,geocode,hybrid_on,lr,hx,hy,hz,&
              hpsi(1,oidx),epot,ekin) 
      end select
 
-     ekin_sum=ekin_sum+occup(iorb)*ekin
-     epot_sum=epot_sum+occup(iorb)*epot
+     ekin_sum=ekin_sum+orbs%occup(iorb+orbs%isorb)*ekin
+     epot_sum=epot_sum+orbs%occup(iorb_orbs%isorb)*epot
 
   enddo
 
@@ -167,7 +164,7 @@ subroutine local_hamiltonian(iproc,geocode,hybrid_on,lr,hx,hy,hz,&
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
 
-  if (.not. (hybrid_on .and. geocode == 'P')) then
+  if (.not. (lr%hybrid_on .and. lr%geocode == 'P')) then
      i_all=-product(shape(x_c))*kind(x_c)
      deallocate(x_c,stat=i_stat)
      call memocc(i_stat,i_all,'x_c',subname)
@@ -176,7 +173,7 @@ subroutine local_hamiltonian(iproc,geocode,hybrid_on,lr,hx,hy,hz,&
      call memocc(i_stat,i_all,'y_c',subname)
   end if
 
-  if (geocode == 'F') then
+  if (lr%geocode == 'F') then
      i_all=-product(shape(x_f1))*kind(x_f1)
      deallocate(x_f1,stat=i_stat)
      call memocc(i_stat,i_all,'x_f1',subname)
@@ -293,7 +290,8 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
      
      call ConvolkineticT(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
           hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f, &
-          x_c(0,0,0,IDX),x_f(1,nfl1,nfl2,nfl3,IDX),y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX),EKINO, &
+          x_c(0,0,0,IDX),x_f(1,nfl1,nfl2,nfl3,IDX),&
+          y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX),EKINO, &
           x_f1(nfl1,nfl2,nfl3,IDX),x_f2(nfl2,nfl1,nfl3,IDX),x_f3(nfl3,nfl1,nfl2,IDX))
      ekin=ekin+ekino
      
@@ -329,8 +327,9 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
   real(wp) :: tt
   real(gp) :: v,p
   real(gp), dimension(3) :: hgridh
+  real(kind=4) :: epotGPU,ekinGPU
   real(kind=4), dimension(:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
-  real(kind=8) :: psi_GPU,v_GPU,work_GPU !pointer to the GPU  memory addresses (with norb=1)
+  real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU,work3_GPU !pointer to the GPU  memory addresses (with norb=1)
   integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
   integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
   real(kind=4) filCUDA1(lowfil1:lupfil1) !array of filters to be passed to CUDA interface
@@ -378,6 +377,11 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
 
   ! Initialisation of potential energy  
   epot=0.0_gp
+  ekin=0.0_gp
+
+  hgridh(1)=hx*.5_gp
+  hgridh(2)=hy*.5_gp
+  hgridh(3)=hz*.5_gp
 
   if (GPUconv) then !convolution in cuda for the complete potential
 
@@ -386,25 +390,60 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      allocate(v_cuda((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug),stat=i_stat)
      call memocc(i_stat,v_cuda,'v_cuda',subname)
 
-     psi_cuda=real(psi_in,kind=4)
-     v_cuda=real(pot,kind=4)
+     do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+        psi_cuda(i)=real(psi_in(i),kind=4)
+        v_cuda(i)=real(pot(i),kind=4)
+     enddo
 
-     !allocate the GPU memory
-     !copy the data on GPU
-     call CUDA_ALLOC_MEM(1,2*n1+1,2*n2+1,2*n3+1,psi_cuda,v_cuda,psi_GPU,v_GPU,work_GPU)
+!!$     !allocate the GPU memory
+!!$     !copy the data on GPU
+!!$     call CUDA_ALLOC_MEM(1,2*n1+1,2*n2+1,2*n3+1,psi_cuda,v_cuda,psi_GPU,v_GPU,work_GPU)
+!!$
+!!$     !calculate the potential application on GPU
+!!$     call cuda_psi_to_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,v_GPU,work_GPU,&
+!!$          filCUDA1,filCUDA2,lowfil1,lupfil1,lowfil2,lupfil2)
+!!$     
+!!$     !copy vpsi on the CPU
+!!$     call cuda_fetch_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,psi_cuda)
+!!$
+!!$     !deallocate GOU memory
+!!$     call CUDA_DEALLOCATE_MEM(1,psi_GPU,v_GPU,work_GPU)
 
-     !calculate the potential application on GPU
-     call cuda_psi_to_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,v_GPU,work_GPU,&
-          filCUDA1,filCUDA2,lowfil1,lupfil1,lowfil2,lupfil2)
-     
-     !copy vpsi on the CPU
-     call cuda_fetch_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,psi_cuda)
+     !new CUDA implementation
+     !to be modularised into one unique routine (can allocate less GPU memory)
 
-     !deallocate GOU memory
-     call CUDA_DEALLOCATE_MEM(1,psi_GPU,v_GPU,work_GPU)
+     !allocate GPU memory
+     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),psi_GPU,i_stat)
+     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),v_GPU,i_stat)
+     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),work_GPU,i_stat)
+     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),work2_GPU,i_stat)
+     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),work3_GPU,i_stat)
+
+     call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,psi_GPU,i_stat)
+     call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),v_cuda,v_GPU,i_stat)
+
+     call kineticterm(2*n1+1,2*n2+1,2*n3+1,&
+          real(hgridh(1),kind=4),real(hgridh(2),kind=4),real(hgridh(3),kind=4),0.e0,&
+          psi_GPU,work2_GPU,work_GPU,work3_GPU,ekinGPU)
+
+     call localpotential(2*n1+1,2*n2+1,2*n3+1,work_GPU,psi_GPU,v_GPU,epotGPU)
+
+     call GPU_receive((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,work_GPU,i_stat)
+     call GPU_receive((2*n1+2)*(2*n2+2)*(2*n3+2),v_cuda,work2_GPU,i_stat)
+
+     !deallocate GPU memory
+     call GPU_deallocate(psi_GPU,i_stat)
+     call GPU_deallocate(v_GPU,i_stat)
+     call GPU_deallocate(work_GPU,i_stat)
+     call GPU_deallocate(work2_GPU,i_stat)
+     call GPU_deallocate(work3_GPU,i_stat)
 
      !copy values on the output function
-     psi_out=real(psi_cuda,wp)
+     do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+        v=real(v_cuda(i),wp)
+        p=real(psi_cuda(i),wp)
+        psi_out(i)=p+v
+     enddo
 
      i_all=-product(shape(psi_cuda))
      deallocate(psi_cuda,stat=i_stat)
@@ -413,6 +452,8 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      deallocate(v_cuda,stat=i_stat)
      call memocc(i_stat,i_all,'v_cuda',subname)
      
+     epot=real(epotGPU,kind=8)
+     ekin=real(ekinGPU,kind=8)
   else
 
      ! psir serves as a work array	   
@@ -428,15 +469,11 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
 
      call convolut_magic_t_per_self(2*n1+1,2*n2+1,2*n3+1,psir,psi_out)
 
+     ! compute the kinetic part and add  it to psi_out
+     ! the kinetic energy is calculated at the same time
+     call convolut_kinetic_per_T(2*n1+1,2*n2+1,2*n3+1,hgridh,psi_in,psi_out,ekin)
+
   end if
-
-  hgridh(1)=hx*.5_gp
-  hgridh(2)=hy*.5_gp
-  hgridh(3)=hz*.5_gp
-
-! compute the kinetic part and add  it to psi_out
-! the kinetic energy is calculated at the same time
-  call convolut_kinetic_per_T(2*n1+1,2*n2+1,2*n3+1,hgridh,psi_in,psi_out,ekin)
   
   call compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
        nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
@@ -838,7 +875,7 @@ end subroutine realspaceINPLACE
 
 !Calculate on-the fly each projector for each atom, then applies the projectors 
 !to all distributed orbitals
-subroutine applyprojectorsonthefly(iproc,nspinor,norb,norbp,occup,at,n1,n2,n3,&
+subroutine applyprojectorsonthefly(iproc,nspinor,norbp,occup,at,n1,n2,n3,&
      rxyz,hx,hy,hz,cpmult,fpmult,radii_cf,wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   use module_base
   use module_types
@@ -850,7 +887,7 @@ subroutine applyprojectorsonthefly(iproc,nspinor,norb,norbp,occup,at,n1,n2,n3,&
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
-  real(gp), dimension(norb), intent(in) :: occup
+  real(gp), dimension(norbp), intent(in) :: occup
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(in) :: psi
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(inout) :: hpsi
   real(gp), intent(out) :: eproj_sum
@@ -867,7 +904,7 @@ subroutine applyprojectorsonthefly(iproc,nspinor,norb,norbp,occup,at,n1,n2,n3,&
   eproj_sum=0.0_gp
 
   !quick return if no orbitals on this porcessor
-  if (iproc*norbp*nspinor+1 > norb*nspinor) then
+  if (norbp == 0) then
      return
   end if
 
@@ -900,8 +937,8 @@ subroutine applyprojectorsonthefly(iproc,nspinor,norb,norbp,occup,at,n1,n2,n3,&
      mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
      jseg_c=nlpspd%nseg_p(2*iat-2)+1
 
-     do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor
-        jorb=iorb-iproc*norbp*nspinor
+     do iorb=1,norbp*nspinor
+        jorb=iorb
         eproj=0.0_gp
 
         istart_c=1
