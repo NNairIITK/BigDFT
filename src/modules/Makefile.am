@@ -10,6 +10,17 @@ else
 mpi_include = mpif.h
 endif
 
+if CAPITALIZE
+mod_bigdft = MODULE_BASE.@MODULE_EXT@ \
+	MODULE_TYPES.@MODULE_EXT@ \
+	MODULE_INTERFACES.@MODULE_EXT@
+else
+mod_bigdft = module_base.@MODULE_EXT@ \
+	module_types.@MODULE_EXT@ \
+	module_interfaces.@MODULE_EXT@
+endif
+module_DATA = $(mod_bigdft)
+
 modules_source = base.f90 \
 	types.f90 \
 	interfaces.f90 \
@@ -28,6 +39,9 @@ CLEANFILES = mpif.h MODULE_BASE.@MODULE_EXT@ module_base.@MODULE_EXT@ \
 interfaces.o: base.o types.o
 types.o: base.o
 base.o: $(mpi_include)
+
+$(mod_bigdft) : base.o types.o interfaces.o
+
 
 mpif.h:
 	touch mpif.h &&\
