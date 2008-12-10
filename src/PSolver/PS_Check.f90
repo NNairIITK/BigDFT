@@ -201,7 +201,7 @@ contains
     real(kind=8), dimension(:), pointer :: pkernel
     !local variables
     character(len=*), parameter :: subname='compare_with_reference'
-    character(len=10) :: message
+    character(len=100) :: message
     integer :: n3d,n3p,n3pi,i3xcsh,i3s,istden,istpot,i1_max,i2_max,i3_max,i_all,i_stat,istpoti,i
     integer :: istxc,i1,i2,i3,isp,i3sd
     real(kind=8) :: eexcu,vexcu,max_diff,ehartree,tt
@@ -234,7 +234,7 @@ contains
     allocate(rhopot(n01,n02,n3d,nspden+ndebug),stat=i_stat)
     call memocc(i_stat,rhopot,'rhopot',subname)
 
-    write(message,*)geocode,ixc,distcode,nspden
+    write(message,*) geocode,ixc,distcode,nspden
 
     if (ixc /= 0) then
        if (nspden == 1) then
