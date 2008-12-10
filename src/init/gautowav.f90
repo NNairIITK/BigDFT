@@ -408,14 +408,14 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
 
 end subroutine parse_cp2k_files
 
-subroutine gaussians_to_wavelets(geocode,iproc,orbs,&
-     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,wfn_gau,psi)
+subroutine gaussians_to_wavelets(geocode,iproc,orbs,grid,hx,hy,hz,wfd,G,wfn_gau,psi)
   use module_base
   use module_types
   implicit none
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3 
+  integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
+  type(grid_dimensions), intent(in) :: grid
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(in) :: orbs
   type(gaussian_basis), intent(in) :: G
@@ -477,7 +477,9 @@ subroutine gaussians_to_wavelets(geocode,iproc,orbs,&
            if (maycalc) then
               call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,&
                    G%xp(iexpo),G%psiat(iexpo),&
-                   rx,ry,rz,hx,hy,hz,0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
+                   rx,ry,rz,hx,hy,hz,&
+                   0,grid%n1,0,grid%n2,0,grid%n3,&
+                   grid%nfl1,grid%nfu1,grid%nfl2,grid%nfu2,grid%nfl3,grid%nfu3,  & 
                    wfd%nseg_c,wfd%nvctr_c,wfd%keyg,wfd%keyv,wfd%nseg_f,wfd%nvctr_f,&
                    wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
                    tpsi(1),tpsi(wfd%nvctr_c+1))

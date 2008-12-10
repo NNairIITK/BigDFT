@@ -206,11 +206,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! tmp debug array
   real(kind=8), dimension(:,:), allocatable :: tmred
   
-  !*****added by Alexey******************************************************	   
-  integer, parameter :: lupfil=14
-
-  !**************************************************************************  
-
   !copying the input variables for readability
   !this section is of course not needed
   !note that this procedure is convenient ONLY in the case of scalar variables
@@ -246,11 +241,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   hx=in%hgrid
   hy=in%hgrid
   hz=in%hgrid
-
-!!$  geocode=atoms%geocode
-!!$  alat1=atoms%alat1
-!!$  alat2=atoms%alat2
-!!$  alat3=atoms%alat3
 
   if (iproc.eq.0) then
      write( *,'(1x,a,1x,i0)') &
@@ -306,44 +296,32 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
-  !here norbp is still temporary, must be redefined
-  call read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,&
-       orbs%norb,orbs%norbu,orbs%norbd,orbs%norbp,iunit)
-
-  allocate(orbs%occup(orbs%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,occup,'occup',subname)
-  allocate(orbs%spinsgn(orbs%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,spinsgn,'spinsgn',subname)
-
-  ! Occupation numbers
-  call input_occup(iproc,iunit,nelec,orbs%norb,orbs%norbu,orbs%norbd,nspin,mpol,&
-       orbs%occup,orbs%spinsgn)
+  call system_properties(iproc,nproc,in,atoms,orbs,radii_cf,nelec)
 
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
-  call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
-       n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
-
-  !evaluate if the conditiond for the hybrid evaluation if periodic BC hold
-  !can be insterted in system_size
-  Glr%hybrid_on=               (nfu1-nfl1+lupfil < n1+1)
-  Glr%hybrid_on=(Glr%hybrid_on.and.(nfu2-nfl2+lupfil < n2+1))
-  Glr%hybrid_on=(Glr%hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
-		
+  call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
+	
+  !variables substitution for the PSolver part
   hxh=0.5d0*hx
   hyh=0.5d0*hy
   hzh=0.5d0*hz
+  n1i=Glr%d%n1i
+  n2i=Glr%d%n2i
+  n3i=Glr%d%n3i
 
+  n1=Glr%d%n1
+  n2=Glr%d%n2
+  n3=Glr%d%n3
+ 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   ndegree_ip=16 !default value 
   call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel)
 
-  ! Create wavefunctions descriptors and allocate them
+  ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call timing(iproc,'CrtDescriptors','ON')
-  !also here norbp is temporary, not reliable
-  call createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,in%output_grid,hx,hy,hz,&
-       atoms,rxyz,radii_cf,crmult,frmult,wfd,&
-       nvctrp,orbs%norb,orbs%norbp,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,nspinor,Glr%hybrid_on)
+  call createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,&
+       atoms,rxyz,radii_cf,crmult,frmult,Glr,orbs,nvctrp)
   call timing(iproc,'CrtDescriptors','OF')
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
@@ -354,30 +332,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !calculate the partitioning of the orbitals between the different processors
 
-  !allocate distribution of the orbitals between processors
-  allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,norb_par,'norb_par',subname)
-  !allocate communications arrays
-  call allocate_comms(nproc,comms,subname)
-  
-  call partition_orbitals(iproc,nproc,orbs%norb,orbs%nspinor,nvctrp,&
-       orbs%isorb,orbs%norb_par,comms)
-
-  !important assignation of the norbp value
-  orbs%norbp=orbs%norb_par(iproc)
-
-  !dimension for allocation of the wavefunction
-  orbs%npsidim=max((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norb_par(iproc),nvctrp*orbs%norb)*&
-       orbs%nspinor
-
   !memory estimation
   if (iproc==0) then
      call MemoryEstimator(atoms%geocode,nproc,idsx,n1,n2,n3,&
           atoms%alat1,atoms%alat2,atoms%alat3,&
           hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,&
-          orbs%norb,&
-          nlpspd%nprojel,atoms%atomnames,0,nspin,peakmem)
+          orbs%norb,nlpspd%nprojel,atoms%atomnames,0,in%nspin,peakmem)
   end if
+
+  !allocate communications arrays
+  call allocate_comms(nproc,comms,subname)
+  call orbitals_communicators(iproc,nproc,nvctrp,orbs,comms)  
 
   !these arrays should be included in the comms descriptor
   !allocate values of the array for the data scattering in sumrho
@@ -387,7 +352,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !allocate array for the communications of the potential
   allocate(ngatherarr(0:nproc-1,2+ndebug),stat=i_stat)
   call memocc(i_stat,ngatherarr,'ngatherarr',subname)
-
   !create the descriptors for the density and the potential
   !these descriptors should take into account the localisation regions
   call createDensPotDescriptors(iproc,nproc,atoms%geocode,'D',n1i,n2i,n3i,ixc,&
@@ -416,10 +380,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !Allocate Charge density, Potential in real space
   if (n3d >0) then
-     allocate(rhopot(n1i,n2i,n3d,nspin+ndebug),stat=i_stat)
+     allocate(rhopot(n1i,n2i,n3d,in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,rhopot,'rhopot',subname)
   else
-     allocate(rhopot(1,1,1,nspin+ndebug),stat=i_stat)
+     allocate(rhopot(1,1,1,in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,rhopot,'rhopot',subname)
   end if
 
@@ -429,8 +393,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,eval,'eval',subname)
   end if
 
-  call create_Glr(atoms%geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,&
-       wfd,bounds,Glr)
+  !localisation region already created
+!!$  call create_Glr(atoms%geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,&
+!!$       wfd,bounds,Glr)
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   if (in%inputPsiId == -2) then
@@ -446,8 +411,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      psi=0.0d0
      ttsum=0.0d0
-     do iorb=1,orbs%norb*nspinor
-        if(mod(iorb-1,nspinor)==0) then
+     do iorb=1,orbs%norb*orbs%nspinor
+        if(mod(iorb-1,orbs%nspinor)==0) then
            do i1=1,nvctrp
               do j=0,iproc-1
                  call random_number(tt)
@@ -464,10 +429,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end do
      !write( *,'(a,30f10.4)') 'Rand Check',ttsum,(sum(psi(:,iorb)),iorb=1,norbp*nproc*nspinor)
  
-     eval(1:orbs%norb)=-0.5d0
+     orbs%eval(1:orbs%norb)=-0.5d0
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,orbs,wfd,nvctrp,nspin,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,orbs,Glr%wfd,nvctrp,in%nspin,psi,hpsi,psit)
 
   else if (in%inputPsiId == -1) then
 
@@ -475,15 +440,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !and calculate eigenvalues
      call import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,atoms,orbs,comms,&
           nvctrp,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj, &
-          pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin)
+          pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin)
 
   else if (in%inputPsiId == 0) then 
-
+     if (in%nspin == 4) then
+        nspin=2
+     else
+        nspin=in%nspin
+     end if
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,atoms,&
-          norb,norbp,nvirte,nvirtep,nvirt,nvctrp,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
-          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,eval,&
-          nscatterarr,ngatherarr,nspin,spinsgn,hybrid_on)
+          orbs,orbsv,nvirt,nvctrp,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
+          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,nscatterarr,ngatherarr,nspin)
   
   else if (in%inputPsiId == 1) then 
      !these parts should be reworked for the non-collinear spin case
@@ -493,7 +461,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !allocate principal wavefunction
      !allocated in the transposed way such as 
      !it can also be used as a work array for transposition
-     allocate(psi(nvctrp*norbp*nproc*nspinor+ndebug),stat=i_stat)
+     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
      if (iproc == 0) then
@@ -501,7 +469,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              '-------------------------------------------------------------- Wavefunctions Restart'
      end if
 
-     call reformatmywaves(iproc,norb*nspinor,norbp*nspinor,atoms%nat,hx_old,hy_old,hz_old,&
+     call reformatmywaves(iproc,orbs,atoms%nat,hx_old,hy_old,hz_old,&
           n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,hx,hy,hz,n1,n2,n3,rxyz,wfd,psi)
 
      call deallocate_wfd(wfd_old,'cluster')
@@ -514,7 +482,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      gnrm_check=0.d0
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd,nvctrp,nspin,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,orbs,wfd,nvctrp,comms,psi,hpsi,psit)
 
   else if (in%inputPsiId == 2 ) then 
      !restart from previously calculated wavefunctions, on disk
@@ -523,7 +491,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !allocated in the transposed way such as 
      !it can also be used as a work array for transposition
 
-     allocate(psi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
+     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
      if (iproc == 0) then
@@ -531,13 +499,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
 
-     call readmywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,wfd,psi,eval)
+     call readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,wfd,psi)
 
      !initialise control value for gnrm in the case of a restart
-     gnrm_check=0.d0
+     gnrm_check=0.0_gp
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd,nvctrp,nspin,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,orbs,wfd,nvctrp,comms,psi,hpsi,psit)
 
   else if (in%inputPsiId == 11 ) then 
      !restart from previously calculated gaussian coefficients
@@ -549,14 +517,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !allocate principal wavefunction
      !allocated in the transposed way such as 
      !it can also be used as a work array for transposition
-     allocate(psi(nvctrp*norbp*nproc+ndebug),stat=i_stat)
+     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
 
-     call restart_from_gaussians(atoms%geocode,iproc,nproc,norb,norbp,&
-     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,psi,gbd,gaucoeffs)
+     call restart_from_gaussians(iproc,orbs,Glr,hx,hy,hz,psi,gbd,gaucoeffs)
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,norbu,norbd,norb,norbp,wfd,nvctrp,nspin,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,orbs,wfd,nvctrp,comms,psi,hpsi,psit)
 
   else if (in%inputPsiId == 12 ) then 
      !reading wavefunctions from gaussian file
@@ -569,12 +536,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !allocated in the transposed way such as 
      !it can also be used as a work array for transposition
      
-     allocate(psi(npsidim+ndebug),stat=i_stat)
+     allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psi,'psi',subname)
-
      
-     call read_gaussian_information(iproc,nproc,norb,isorb,norb_par(iproc),&
-          gbd,gaucoeffs,eval,'wavefunctions.gau')
+     call read_gaussian_information(iproc,nproc,orbs,gbd,gaucoeffs,'wavefunctions.gau')
      !associate the new positions, provided that the atom number is good
      if (gbd%nat == atoms%nat) then
         gbd%rxyz=>rxyz
@@ -586,12 +551,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         stop
      end if
  
-     call restart_from_gaussians(atoms%geocode,iproc,norb,isorb,norb_par(iproc),&
-          n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,psi,gbd,gaucoeffs)
+     call restart_from_gaussians(iproc,orbs,Glr,hx,hy,hz,psi,gbd,gaucoeffs)
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
-     call first_orthon(iproc,nproc,norbu,norbd,norb,norb_par(iproc),wfd,nvctrp,npsidim,&
-          nspin,psi,hpsi,psit)
+     call first_orthon(iproc,nproc,orbs,wfd,nvctrp,comms,in%nspin,psi,hpsi,psit)
 
   else
 
@@ -604,11 +567,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   end if
 
-  !this rearrange the value of norbu, to be changed
-  if(nspinor==4) then
-     norbu=norb
-     norbd=0
-  end if
+!!$  !this rearrange the value of norbu, to be changed
+!!$  if(nspinor==4) then
+!!$     norbu=norb
+!!$     norbd=0
+!!$  end if
 
   !save the new atomic positions in the rxyz_old array
   do iat=1,atoms%nat
@@ -618,10 +581,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   enddo
 
   ! allocate arrays necessary for DIIS convergence acceleration
+  !the allocation with npsidim is not necessary here since DIIS arrays
+  !are always calculated in the transpsed form
   if (idsx > 0) then
-     allocate(psidst(npsidim*idsx+ndebug),stat=i_stat)
+     allocate(psidst(nvctrp*orbs%nspinor*orbs%norbp*nproc*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(npsidim*idsx+ndebug),stat=i_stat)
+     allocate(hpsidst(nvctrp*orbs%nspinor*orbs%norbp*nproc*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,hpsidst,'hpsidst',subname)
      allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)
@@ -661,26 +626,25 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      if (gnrm <= gnrm_cv .or. iter == itermax) call timing(iproc,'WFN_OPT','PR')
 
      ! Potential from electronic charge density
-     call sumrho(iproc,nproc,norb_par(iproc),Glr,ixc,hxh,hyh,hzh,occup(min(isorb+1,norb)),  & 
-     psi,rhopot,n1i*n2i*n3d,nscatterarr,nspin,nspinor,spinsgn(min(isorb+1,norb)),hybrid_on)
+     call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
+          n1i*n2i*n3d,nscatterarr,in%nspin)
      
      if(nspinor==4) then
         !this wrapper can be inserted inside the poisson solver 
         call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
              ixc,hxh,hyh,hzh,&
-             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
+             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,in%nspin)
      else
               
         call PSolver(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
              ixc,hxh,hyh,hzh,&
-             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
+             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,in%nspin)
         
      end if
 
-     call HamiltonianApplication(iproc,nproc,atoms,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
-          norb_par(iproc),occup(min(isorb+1,norb)),nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-          rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,&
-          eproj_sum,nspin,nspinor,spinsgn(min(isorb+1,norb)),hybrid_on)
+     call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
+          cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+          rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,in%nspin)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
@@ -706,9 +670,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         exit wfn_loop 
      endif
 
-     call hpsitopsi(iproc,nproc,norb,norb_par(iproc),norb_par,occup(min(isorb+1,norb)),hx,hy,hz,nvctrp,Glr,comms,&
-          eval(min(isorb+1,norb)),ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-          alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn(min(isorb+1,norb)),hybrid_on)
+     call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,Glr,comms,ncong,&
+          iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
+          alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,in%nspin)
 
      tt=(energybs-scprsum)/scprsum
      if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
@@ -724,7 +688,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      endif
 
      if (in%inputPsiId == 0) then
-        if ((gnrm > 4.d0 .and. norbu/=norbd) .or. (norbu==norbd .and. gnrm > 10.d0)) then
+        if ((gnrm > 4.d0 .and. orbs%norbu /= orbs%norbd) .or. &
+             (orbs%norbu == orbs%norbd .and. gnrm > 10.d0)) then
            if (iproc == 0) then
               write( *,'(1x,a)')&
                    'Error: the norm of the residue is too large also with input wavefunctions.'
@@ -771,8 +736,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
  
   if (nvirt > 0 .and. in%inputPsiId == 0) then
      call davidson(iproc,nproc,n1i,n2i,n3i,atoms,cpmult,fpmult,radii_cf,&
-          norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,nvctrp,Glr,&
-          hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,nlpspd,proj, &
+          orbs,orbsv,nvirt,gnrm_cv,nplot,nvctrp,Glr,comms,&
+          hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,itermax,wfd,nlpspd,proj, &
           pkernel,ixc,psi,psivirt,eval,ncong,nscatterarr,ngatherarr,hybrid_on)
   end if
   
@@ -1218,9 +1183,9 @@ contains
        call memocc(i_stat,i_all,'ibxxyy_f',subname)
     endif
 
-    i_all=-product(shape(norb_par))*kind(norb_par)
-    deallocate(norb_par,stat=i_stat)
-    call memocc(i_stat,i_all,'norb_par',subname)
+    i_all=-product(shape(orbs%norb_par))*kind(orbs%norb_par)
+    deallocate(orbs%norb_par,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%norb_par',subname)
 
     call deallocate_comms(comms,subname)
 
@@ -1254,12 +1219,12 @@ contains
     deallocate(proj,stat=i_stat)
     call memocc(i_stat,i_all,'proj',subname)
 
-    i_all=-product(shape(occup))*kind(occup)
-    deallocate(occup,stat=i_stat)
-    call memocc(i_stat,i_all,'occup',subname)
-    i_all=-product(shape(spinsgn))*kind(spinsgn)
-    deallocate(spinsgn,stat=i_stat)
-    call memocc(i_stat,i_all,'spinsgn',subname)
+    i_all=-product(shape(orbs%occup))*kind(orbs%occup)
+    deallocate(orbs%occup,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%occup',subname)
+    i_all=-product(shape(orbs%spinsgn))*kind(orbs%spinsgn)
+    deallocate(orbs%spinsgn,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%spinsgn',subname)
     i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
     deallocate(atoms%psppar,stat=i_stat)
     call memocc(i_stat,i_all,'psppar',subname)

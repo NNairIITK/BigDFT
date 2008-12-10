@@ -1,10 +1,9 @@
 ! Calls the preconditioner for each orbital treated by the processor
 subroutine preconditionall(iproc,nproc,norbp,lr,&
-     hx,hy,hz,ncong,nspinor,eval,hpsi,gnrm,hybrid_on)
+     hx,hy,hz,ncong,nspinor,eval,hpsi,gnrm)
   use module_base
   use module_types
   implicit none
-  logical,intent(in) :: hybrid_on
   integer, intent(in) :: iproc,nproc,norbp
   integer, intent(in) :: nspinor,ncong
   real(gp), intent(in) :: hx,hy,hz
@@ -16,7 +15,6 @@ subroutine preconditionall(iproc,nproc,norbp,lr,&
   integer :: iorb,inds,indo
   real(wp) :: cprecr
   real(dp) :: scpr
-  real(kind=8), external :: dnrm2
   integer,parameter::lupfil=14
 
   ! Preconditions all orbitals belonging to iproc
@@ -29,7 +27,7 @@ subroutine preconditionall(iproc,nproc,norbp,lr,&
      !loop over the spinorial components
      do inds=indo,indo+nspinor-1
 
-        scpr=dnrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,hpsi(1,inds),1)
+        scpr=nrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,hpsi(1,inds),1)
         gnrm=gnrm+scpr**2
 
         select case(lr%geocode)
@@ -52,7 +50,7 @@ subroutine preconditionall(iproc,nproc,norbp,lr,&
                    lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
                    cprecr,hx,hy,hz,hpsi(1,inds))
            else
-              if (hybrid_on) then
+              if (lr%hybrid_on) then
                  call precong_per_hyb(lr%d%n1,lr%d%n2,lr%d%n3, &
                       lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
                       ncong,cprecr,hx,hy,hz,hpsi(1,inds),&

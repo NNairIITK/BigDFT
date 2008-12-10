@@ -42,7 +42,13 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   if (output_grid==1) then
      open(unit=22,file='grid.xyz',status='unknown')
      write(22,*) nvctr_c+nvctr_f+nat,' atomic'
-     write(22,*)'complete simulation grid with low and high resolution points'
+     if (geocode='F') then
+        write(22,*)'complete simulation grid with low and high resolution points'
+     else if (geocode =='S') then
+        write(22,'(a,2x,3(1x,1pe24.17))')'surface',alat1,alat2,alat3
+     else if (geocode =='P') then
+        write(22,'(a,2x,3(1x,1pe24.17))')'periodic',alat1,alat2,alat3
+     end if
      do iat=1,nat
         write(22,'(a6,2x,3(1x,e12.5),3x)') &
              trim(atomnames(iatype(iat))),rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)

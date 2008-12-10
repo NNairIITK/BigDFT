@@ -1,6 +1,5 @@
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
-     cpmult,fpmult,radii_cf,&
-     nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
+     cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
      ekin_sum,epot_sum,eproj_sum,nspin)
   use module_base
   use module_types
@@ -106,22 +105,18 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 end subroutine HamiltonianApplication
 
 
-subroutine hpsitopsi(iproc,nproc,norb,norbp,norb_par,occup,hx,hy,hz,nvctrp,npsidim,lr,&
-     comms,&
-     eval,ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-     alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,nspinor,spinsgn,hybrid_on)
+subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
+     ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
+     alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi
   implicit none
-  logical, intent(in) :: hybrid_on
-  integer, intent(in) :: iproc,nproc,norbp,ncong,idsx,iter,nvctrp,nspin,nspinor
+  integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nvctrp,nspin
   real(gp), intent(in) :: hx,hy,hz,energy,energy_old
   type(locreg_descriptors), intent(in) :: lr
   type(communications_arrays), intent(in) :: comms
-  integer, dimension(0:nproc-1), intent(in) :: norb_par
-  real(wp), dimension(norbp), intent(in) :: eval
-  real(gp), dimension(norbp), intent(in) :: occup,spinsgn
+  type(orbitals_data), intent(in) :: orbs
   integer, intent(inout) :: idsx_actual
   real(wp), intent(inout) :: alpha
   real(dp), intent(inout) :: gnrm,scprsum
@@ -132,7 +127,7 @@ subroutine hpsitopsi(iproc,nproc,norb,norbp,norb_par,occup,hx,hy,hz,nvctrp,npsid
   character(len=*), parameter :: subname='hpsitopsi'
   logical, save :: switchSD
   integer, save :: idiistol,mids,ids
-  integer :: ierr,ind,i1,i2,iorb,i,k,norbu,norbd,i_stat,i_all,oidx,sidx
+  integer :: ierr,ind,i1,i2,iorb,i,k,i_stat,i_all,oidx,sidx
   real(wp) :: cprecr
   real(dp) :: tt,scpr,scprpart
   real(wp), dimension(:,:,:), allocatable :: mom_vec
@@ -159,53 +154,46 @@ subroutine hpsitopsi(iproc,nproc,norb,norbp,norb_par,occup,hx,hy,hz,nvctrp,npsid
           'done, orthoconstraint...'
   end if
 
-  !Calculate no. up and dw orbitals for spin-polarized starting guess
-  norbu=0
-  norbd=0
-  do iorb=1,norb
-     if(spinsgn(iorb) > 0.0_gp) norbu=norbu+1
-     if(spinsgn(iorb) < 0.0_gp) norbd=norbd+1
-  end do
-
   !transpose the hpsi wavefunction
-  call transpose_v(iproc,nproc,norbp,nspinor,lr%wfd,nvctrp,comms,hpsi,work=psi)
+  call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,nvctrp,comms,hpsi,work=psi)
 
   if (nproc == 1) then
      !associate psit pointer for orthoconstraint and transpose it (for the non-collinear case)
      psit => psi
-     call transpose_v(iproc,nproc,norbp,nspinor,lr%wfd,nvctrp,comms,psit)
+     call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,nvctrp,comms,psit)
   end if
 
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
   ! insert branching for CUDA section(experimental)
   ! once the mixed precision version is ready such part can be eliminated
   if (GPUblas) then
-     allocate(psitcuda(nspinor*nvctrp*norb+ndebug),stat=i_stat)
+     allocate(psitcuda(orbs%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psitcuda,'psitcuda',subname)
-     allocate(hpsitcuda(nspinor*nvctrp*norb+ndebug),stat=i_stat)
+     allocate(hpsitcuda(orbs%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,hpsitcuda,'hpsitcuda',subname)
 
-     do i=1,nspinor*nvctrp*norb
+     do i=1,orbs%npsidim
         psitcuda(i)=real(psit(i),kind=4)
         hpsitcuda(i)=real(hpsi(i),kind=4)
      end do
 
      if(nspin==1.or.nspinor==4) then
-        call orthoconstraint_cuda(iproc,nproc,norb,occup,nvctrp,psitcuda,hpsitcuda,&
-             scprsum,nspinor)
+        call orthoconstraint_cuda(iproc,nproc,orbs%norb,orbs%occup,nvctrp,&
+             psitcuda,hpsitcuda,scprsum,orbs%nspinor)
      else
-        call orthoconstraint_cuda(iproc,nproc,norbu,occup,nvctrp,psitcuda,hpsitcuda,&
-             scprsum,nspinor)
+        call orthoconstraint_cuda(iproc,nproc,orbs%norbu,orbs%occup,nvctrp,&
+             psitcuda,hpsitcuda,scprsum,orbs%nspinor)
         scprpart=0.0d0
-        if(norbd>0) then
+        if(orbs%norbd > 0) then
            scprpart=scprsum 
-           call orthoconstraint_cuda(iproc,nproc,norbd,occup(norbu+1),nvctrp,&
-                psitcuda(1+nvctrp*norbu),hpsitcuda(1+nvctrp*norbu),scprsum,nspinor)
+           call orthoconstraint_cuda(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),&
+                nvctrp,psitcuda(1+nvctrp*orbs%norbu),hpsitcuda(1+nvctrp*orbs%norbu),&
+                scprsum,orbs%nspinor)
         end if
         scprsum=scprsum+scprpart
      end if
 
-     do i=1,nspinor*nvctrp*norb
+     do i=1,orbs%npsidim
         psit(i)=real(psitcuda(i),wp)
         hpsi(i)=real(hpsitcuda(i),wp)
      end do
@@ -217,22 +205,25 @@ subroutine hpsitopsi(iproc,nproc,norb,norbp,norb_par,occup,hx,hy,hz,nvctrp,npsid
      deallocate(hpsitcuda,stat=i_stat)
      call memocc(i_stat,i_all,'hpsitcuda',subname)
   else
-     if(nspin==1.or.nspinor==4) then
-        call orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsi,scprsum,nspinor)
-     else
-        call orthoconstraint_p(iproc,nproc,norbu,occup,nvctrp,psit,hpsi,scprsum,nspinor)
-        scprpart=0.0_dp
-        if(norbd>0) then
-           scprpart=scprsum 
-           call orthoconstraint_p(iproc,nproc,norbd,occup(norbu+1),nvctrp,&
-                psit(1+nvctrp*norbu),hpsi(1+nvctrp*norbu),scprsum,nspinor)
-        end if
+!!$     if(nspin==1 .or. orbs%nspinor==4) then
+!!$        call orthoconstraint_p(iproc,nproc,orbs%norb,orbs%occup,nvctrp,psit,hpsi,&
+!!$             scprsum,orbs%nspinor)
+!!$     else
+     call orthoconstraint_p(iproc,nproc,orbs%norbu,orbs%occup,nvctrp,psit,hpsi,&
+          scprsum,orbs%nspinor)
+     scprpart=0.0_dp
+     if(orbs%norbd > 0) then
+        scprpart=scprsum 
+        call orthoconstraint_p(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),nvctrp,&
+             psit(1+nvctrp*orbs%norbu),hpsi(1+nvctrp*orbs%norbu),scprsum,orbs%nspinor)
+!!$        end if
         scprsum=scprsum+scprpart
      end if
   end if
 
   !retranspose the hpsi wavefunction
-  call untranspose_v(iproc,nproc,norbp,nspinor,lr%wfd,nvctrp,comms,hpsi,work=psi)
+  call untranspose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,nvctrp,comms,&
+       hpsi,work=psi)
 
   call timing(iproc,'Precondition  ','ON')
   if (iproc==0) then
@@ -243,15 +234,15 @@ subroutine hpsitopsi(iproc,nproc,norb,norbp,norb_par,occup,hx,hy,hz,nvctrp,npsid
 
   !Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
-  call preconditionall(iproc,nproc,norbp,lr,hx,hy,hz,ncong,nspinor,eval,&
-       hpsi,gnrm,hybrid_on)
+  call preconditionall(iproc,nproc,orbs%norbp,lr,hx,hy,hz,ncong,orbs%nspinor,&
+       orbs%eval(min(orbs%isorb+1,orbs%norb)),hpsi,gnrm,lr%hybrid_on)
 
   !sum over all the partial residues
   if (nproc > 1) then
      tt=gnrm
      call MPI_ALLREDUCE(tt,gnrm,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
   endif
-  gnrm=sqrt(gnrm/real(norb,dp))
+  gnrm=sqrt(gnrm/real(orbs%norb,dp))
 
   if (iproc==0) then
      write(*,'(1x,a)')&
@@ -262,22 +253,22 @@ subroutine hpsitopsi(iproc,nproc,norb,norbp,norb_par,occup,hx,hy,hz,nvctrp,npsid
   !apply the minimization method (DIIS or steepest descent)
   if (idsx_actual > 0) then
      !transpose the hpsi wavefunction into the diis array
-     call transpose_v(iproc,nproc,norbp,nspinor,lr%wfd,nvctrp,comms,hpsi,work=psi,&
-          outadd=hpsidst(1+nvctrp*nspinor*norbp*nproc*(mids-1)))
+     call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,nvctrp,comms,&
+          hpsi,work=psi,outadd=hpsidst(1+nvctrp*orbs%nspinor*orbs%norbp*nproc*(mids-1)))
 
      call timing(iproc,'Diis          ','ON')
      if (nproc > 1) then
-        do i=1,nvctrp*norb*nspinor
-           psidst(i+nvctrp*nspinor*norbp*nproc*(mids-1))= psit(i)
+        do i=1,nvctrp*orbs%norb*orbs%nspinor
+           psidst(i+nvctrp*orbs%nspinor*orbs%norbp*nproc*(mids-1))= psit(i)
         enddo
      else
-        do i=1,nvctrp*norb*nspinor
-           psidst(i+nvctrp*nspinor*norbp*nproc*(mids-1))= psit(i)
-           hpsidst(i+nvctrp*nspinor*norbp*nproc*(mids-1))=hpsi(i)
+        do i=1,nvctrp*orbs%norb*orbs%nspinor
+           psidst(i+nvctrp*orbs%nspinor*orbs%norbp*nproc*(mids-1))= psit(i)
+           hpsidst(i+nvctrp*orbs%nspinor*orbs%norbp*nproc*(mids-1))=hpsi(i)
         enddo
      endif
 
-     call diisstp(norb,norbp,nproc,iproc,nspinor,  &
+     call diisstp(orbs%norb,orbs%norbp,nproc,iproc,orbs%nspinor,  &
           ads,ids,mids,idsx_actual,nvctrp,psit,psidst,hpsidst)
   else
      ! update all wavefunctions with the preconditioned gradient
@@ -290,10 +281,11 @@ subroutine hpsitopsi(iproc,nproc,norb,norbp,norb_par,occup,hx,hy,hz,nvctrp,npsid
      if (iproc == 0) write(*,'(1x,a,1pe11.3)') 'alpha=',alpha
 
      !transpose the hpsi wavefunction
-     call transpose_v(iproc,nproc,norbp,nspinor,lr%wfd,nvctrp,comms,hpsi,work=psi)
+     call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,nvctrp,comms,&
+          hpsi,work=psi)
 
      call timing(iproc,'Diis          ','ON')
-     do iorb=1,norb*nspinor
+     do iorb=1,orbs%norb*orbs%nspinor
         call axpy(nvctrp,-alpha,hpsi(1+nvctrp*(iorb-1)),1,psit(1+nvctrp*(iorb-1)),1)
      enddo
   endif
@@ -305,17 +297,20 @@ subroutine hpsitopsi(iproc,nproc,norb,norbp,norb_par,occup,hx,hy,hz,nvctrp,npsid
           'Orthogonalization...'
   end if
 
-  if(nspin==1 .or. nspinor==4) then
-     call orthon_p(iproc,nproc,norb,nvctrp,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psit,nspinor)
-  else
-     call orthon_p(iproc,nproc,norbu,nvctrp,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psit,nspinor)
-     if(norbd > 0) then
-        call orthon_p(iproc,nproc,norbd,nvctrp,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psit(1+nvctrp*norbu),nspinor)
-     end if
+!!$  if(nspin==1 .or. nspinor==4) then
+!!$     call orthon_p(iproc,nproc,norb,nvctrp,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,psit,nspinor)
+!!$  else
+  call orthon_p(iproc,nproc,orbs%norbu,nvctrp,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
+       psit,orbs%nspinor)
+  if(norbd > 0) then
+     call orthon_p(iproc,nproc,orbs%norbd,nvctrp,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
+          psit(1+nvctrp*norbu),orbs%nspinor)
   end if
+!!$  end if
     !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
   
-  call untranspose_v(iproc,nproc,norbp,nspinor,lr%wfd,nvctrp,comms,psit,work=hpsi,outadd=psi(1))
+  call untranspose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,nvctrp,comms,&
+       psit,work=hpsi,outadd=psi(1))
   if (nproc == 1) then
      nullify(psit)
   end if
@@ -325,19 +320,19 @@ subroutine hpsitopsi(iproc,nproc,norb,norbp,norb_par,occup,hx,hy,hz,nvctrp,npsid
           'done.'
   end if
 
-  if(nspinor==4) then
-     allocate(mom_vec(4,norb,min(nproc,2)+ndebug),stat=i_stat)
+  if(orbs%nspinor==4) then
+     allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
      call memocc(i_stat,mom_vec,'mom_vec',subname)
 
-     call calc_moments(iproc,nproc,norb,norb_par,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
-          nspinor,psi,mom_vec)
+     call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,&
+          lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,psi,mom_vec)
      !only the root process has the correct array
      if(iproc==0) then
         write(*,'(1x,a)')&
              'Magnetic polarization per orbital'
         write(*,'(1x,a)')&
              '  iorb    m_x       m_y       m_z'
-        do iorb=1,norb
+        do iorb=1,orbs%norb
            write(*,'(1x,i5,3f10.5)') &
                 iorb,(mom_vec(k,iorb,1)/mom_vec(1,iorb,1),k=2,4)
         end do
@@ -385,9 +380,9 @@ subroutine hpsitopsi(iproc,nproc,norb,norbp,norb_par,occup,hx,hy,hz,nvctrp,npsid
      ids=0
      idiistol=0
 
-     allocate(psidst(npsidim*idsx+ndebug),stat=i_stat)
+     allocate(psidst(nvctrp*orbs%nspinor*orbs%norbp*nproc*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(npsidim*idsx+ndebug),stat=i_stat)
+     allocate(hpsidst(nvctrp*orbs%nspinor*orbs%norbp*nproc*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,hpsidst,'hpsidst',subname)
      allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)

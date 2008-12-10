@@ -1,14 +1,13 @@
-subroutine restart_from_gaussians(geocode,iproc,norb,isorb,norbp,&
-     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,psi,G,coeffs)
+subroutine restart_from_gaussians(iproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,isorb,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
-  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: lr
   type(gaussian_basis), intent(inout) :: G
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: psi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp), intent(out) :: psi
   real(wp), dimension(:,:), pointer :: coeffs
   !local variables
   character(len=*), parameter :: subname='restart_from_gaussians'
@@ -19,10 +18,9 @@ subroutine restart_from_gaussians(geocode,iproc,norb,isorb,norbp,&
   
   !call gaussian_orthogonality(iproc,nproc,norb,norbp,G,coeffs)
 
-  call dual_gaussian_coefficients(norbp,G,coeffs)
+  call dual_gaussian_coefficients(orbs%norbp,G,coeffs)
 
-  call gaussians_to_wavelets(geocode,iproc,norb,isorb,norbp,&
-     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,coeffs,psi)
+  call gaussians_to_wavelets(lr%geocode,iproc,orbs,lr%d,hx,hy,hz,lr%wfd,G,coeffs,psi)
 
   !deallocate gaussian structure and coefficients
   call deallocate_gwf(G,subname)
@@ -34,14 +32,14 @@ subroutine restart_from_gaussians(geocode,iproc,norb,isorb,norbp,&
 
 end subroutine restart_from_gaussians
 
-subroutine read_gaussian_information(iproc,nproc,norb,isorb,norbp,G,coeffs,eval,filename)
+subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   use module_base
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
-  integer, intent(in) :: iproc,nproc,norb,norbp,isorb
+  integer, intent(in) :: iproc,nproc
+  type(orbitals_data), intent(in) :: orbs
   type(gaussian_basis), intent(out) :: G
-  real(wp), dimension(norb), intent(out) :: eval
   real(wp), dimension(:,:), pointer :: coeffs
   !local variables
   character(len=*), parameter :: subname='read_gaussian_information'
@@ -71,7 +69,7 @@ subroutine read_gaussian_information(iproc,nproc,norb,isorb,norbp,G,coeffs,eval,
   allocate(G%psiat(G%nexpo+ndebug),stat=i_stat)
   call memocc(i_stat,G%psiat,'G%psiat',subname)
 
-  allocate(coeffs(G%ncoeff,norbp+ndebug),stat=i_stat)
+  allocate(coeffs(G%ncoeff,orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,coeffs,'coeffs',subname)
 
   do iat=1,G%nat
@@ -81,12 +79,12 @@ subroutine read_gaussian_information(iproc,nproc,norb,isorb,norbp,G,coeffs,eval,
   do iexpo=1,G%nexpo
      read(99,*)jexpo,G%xp(jexpo),G%psiat(jexpo)
   end do
-  do iorb=1,norb
-     read(99,*)jorb,eval(jorb)
+  do iorb=1,orbs%norb
+     read(99,*)jorb,orbs%eval(jorb)
      do icoeff=1,G%ncoeff
         read(99,*)jorb,jcoeff,coeff
-        if (isorb < iorb .and. iorb <= isorb+norbp) then
-           coeffs(jcoeff,jorb-isorb)=coeff
+        if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
+           coeffs(jcoeff,jorb-orbs%isorb)=coeff
         end if
      end do
   end do
