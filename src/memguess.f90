@@ -117,6 +117,11 @@ program memguess
 
   call system_properties(0,nproc,in,atoms,orbs,radii_cf,nelec)
 
+  i_all=-product(shape(orbs%norb_par))*kind(orbs%norb_par)
+  deallocate(orbs%norb_par,stat=i_stat)
+  call memocc(i_stat,i_all,'orbs%norb_par',subname)
+
+
   if (optimise) then
      call optimise_volume(atoms,in%crmult,in%frmult,in%hgrid,rxyz,radii_cf)
      write(*,'(1x,a)')'Writing optimised positions in file posout_000.xyz...'

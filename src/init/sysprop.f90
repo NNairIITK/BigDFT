@@ -11,7 +11,7 @@ subroutine system_properties(iproc,nproc,in,at,orbs,radii_cf,nelec)
   real(gp), dimension(at%ntypes,3), intent(out) :: radii_cf
   !local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou
+  integer :: iunit,norb,norbu,norbd,nspinor,jpst,norbme,norbyou,i_all,i_stat,jproc
 
   call read_system_variables(iproc,nproc,in,at,radii_cf,nelec,&
        norb,norbu,norbd,iunit)
@@ -59,7 +59,7 @@ end subroutine system_properties
 subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,norbd,iunit)
   use module_base
   use module_types
-  implicit non
+  implicit none
   type(input_variables), intent(in) :: in
   integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(inout) :: at
@@ -488,9 +488,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc,nspinor,norb,norbu,norbd,nvctrp
+  integer, intent(in) :: iproc,nproc,nspinor,norb,norbu,norbd
   type(orbitals_data), intent(out) :: orbs
-  type(communications_arrays), intent(out) :: comms
   !local variables
   integer :: iorb,jproc,norb_tot
 

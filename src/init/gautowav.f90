@@ -1,34 +1,33 @@
 !control the accuracy of the expansion in gaussian
-subroutine check_gaussian_expansion(geocode,iproc,nproc,norb,isorb,norbp,&
-     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,psi,G,coeffs)
+subroutine check_gaussian_expansion(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,norb,isorb,norbp,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hx,hy,hz
-  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: lr
   type(gaussian_basis), intent(in) :: G
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
-  real(wp), dimension(G%ncoeff,norbp), intent(in) :: coeffs
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
+  real(wp), dimension(G%ncoeff,orbs%norbp), intent(in) :: coeffs
   !local variables
   character(len=*), parameter :: subname='check_gaussian_expansion'
   integer :: iorb,i_stat,i_all,i,j,ierr
   real(wp) :: maxdiffp,maxdiff,orbdiff
   real(wp), dimension(:), allocatable :: workpsi
 
-  allocate(workpsi((wfd%nvctr_c+7*wfd%nvctr_f)*norbp+ndebug),stat=i_stat)
+  allocate(workpsi((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,workpsi,'workpsi',subname)
 
-  call gaussians_to_wavelets(geocode,iproc,isorb,norb,norbp,&
-     n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hx,hy,hz,wfd,G,coeffs,workpsi)
+  call gaussians_to_wavelets(iproc,nproc,lr%geocode,orbs,lr%d,hx,hy,hz,&
+       lr%wfd,G,coeffs,workpsi)
 
   maxdiffp=0.0_wp
-  do iorb=1,norbp
+  do iorb=1,orbs%norbp
      orbdiff=0.0_wp
      !if (iorb+iproc*norbp <= norb) then
-        do i=1,wfd%nvctr_c+7*wfd%nvctr_f
-           j=i+(iorb-1)*(wfd%nvctr_c+7*wfd%nvctr_f)
+        do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+           j=i+(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
            orbdiff=max(orbdiff,(psi(i,iorb)-workpsi(j))**2)
         end do
      !end if
@@ -43,7 +42,8 @@ subroutine check_gaussian_expansion(geocode,iproc,nproc,norb,isorb,norbp,&
   end if
 
   if (iproc == 0) then
-     write(*,'(1x,a,1pe12.5)')'Mean L2 norm of gaussian-wavelet difference:',sqrt(maxdiff/real(norb,wp))
+     write(*,'(1x,a,1pe12.5)')'Mean L2 norm of gaussian-wavelet difference:',&
+          sqrt(maxdiff/real(orbs%norb,wp))
   end if
   i_all=-product(shape(workpsi))*kind(workpsi)
   deallocate(workpsi,stat=i_stat)
@@ -374,7 +374,7 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
            ishell=ishell+1
            do iam=1,2*CP2K%nam(ishell)-1
               icoeff=icoeff+1
-              if (jorb <= norb) wfn_cp2k(icoeff,iorb)=cimu(iam,isat,iat,jorb)
+              if (jorb <= orbs%norb) wfn_cp2k(icoeff,iorb)=cimu(iam,isat,iat,jorb)
            end do
         end do
      end do
@@ -405,15 +405,14 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
      write(*,'(1x,a)')'done.'
   end if
 
-
 end subroutine parse_cp2k_files
 
-subroutine gaussians_to_wavelets(geocode,iproc,orbs,grid,hx,hy,hz,wfd,G,wfn_gau,psi)
+subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wfn_gau,psi)
   use module_base
   use module_types
   implicit none
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc,nproc
   real(gp), intent(in) :: hx,hy,hz
   type(grid_dimensions), intent(in) :: grid
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -475,7 +474,7 @@ subroutine gaussians_to_wavelets(geocode,iproc,orbs,grid,hx,hy,hz,wfd,G,wfn_gau,
               end if
            end do loop_calc
            if (maycalc) then
-              call crtonewave(geocode,n1,n2,n3,ng,nterm,lx,ly,lz,fac_arr,&
+              call crtonewave(geocode,grid%n1,grid%n2,grid%n3,ng,nterm,lx,ly,lz,fac_arr,&
                    G%xp(iexpo),G%psiat(iexpo),&
                    rx,ry,rz,hx,hy,hz,&
                    0,grid%n1,0,grid%n2,0,grid%n3,&

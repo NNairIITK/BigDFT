@@ -51,7 +51,7 @@ subroutine copy_old_wavefunctions(iproc,nproc,orbs,hx,hy,hz,n1,n2,n3,wfd,psi,&
   do iorb=1,orbs%norbp
      tt=0.d0
      oidx=(iorb-1)*orbs%nspinor+1
-     do sidx=oidx,oidx+nspinor-1
+     do sidx=oidx,oidx+orbs%nspinor-1
         do j=1,wfd_old%nvctr_c+7*wfd_old%nvctr_f
            ind1=j+(wfd_old%nvctr_c+7*wfd_old%nvctr_f)*(sidx-1)
            psi_old(ind1)= psi(ind1)
@@ -78,7 +78,7 @@ subroutine reformatmywaves(iproc,orbs,nat,&
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,norb,norbp,nat,n1_old,n2_old,n3_old,n1,n2,n3
+  integer, intent(in) :: iproc,nat,n1_old,n2_old,n3_old,n1,n2,n3
   real(gp), intent(in) :: hx_old,hy_old,hz_old,hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd,wfd_old
   type(orbitals_data), intent(in) :: orbs
@@ -284,14 +284,14 @@ subroutine readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz_old,rxyz,  &
 
   do iorb=1,orbs%norbp*orbs%nspinor
 
-     write(f4,'(i4.4)') iorb
+     write(f4,'(i4.4)') iorb+orbs%isorb*orbs%nspinor
      filename = 'wavefunction.'//f4
      open(unit=99,file=filename,status='unknown')
 
      call readonewave(99, .true.,iorb,iproc,n1,n2,n3, &
           & hx,hy,hz,nat,rxyz_old,rxyz,wfd%nseg_c,wfd%nseg_f,&
           wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
-          psi(1,iorb),orbs%eval(iorb+orbs%isorb),psifscf)
+          psi(1,iorb),orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb),psifscf)
      close(99)
 
   end do
@@ -307,17 +307,17 @@ subroutine readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz_old,rxyz,  &
 
 end subroutine readmywaves
 
-subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi,eval)
+subroutine writemywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
   ! write all my wavefunctions in files by calling writeonewave
   use module_types
   use module_base
   implicit none
-  integer, intent(in) :: iproc,norb,norbp,n1,n2,n3,nat
+  integer, intent(in) :: iproc,n1,n2,n3,nat
   real(gp), intent(in) :: hx,hy,hz
+  type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
   real(gp), dimension(3,nat), intent(in) :: rxyz
-  real(wp), dimension(norb), intent(in) :: eval
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
   !local variables
   character(len=4) :: f4
   character(len=50) :: filename
@@ -328,17 +328,17 @@ subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi,eval
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
 
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+  do iorb=1,orbs%norbp*orbs%nspinor
 
-     write(f4,'(i4.4)') iorb
+     write(f4,'(i4.4)')  iorb+orbs%isorb*orbs%nspinor
      filename = 'wavefunction.'//f4
      write(*,*) 'opening ',filename
      open(unit=99,file=filename,status='unknown')
 
-     call writeonewave(99,.true.,iorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
+     call writeonewave(99,.true.,(iorb-1)/orbs%nspinor+1+orbs%isorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
           wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
           wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
-          psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),norb,eval)
+          psi(1,iorb),psi(wfd%nvctr_c+1,iorb),orbs%norb,orbs%eval)
      close(99)
 
   enddo

@@ -4,7 +4,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,norbp,norb,nspinor,nspin
+  integer, intent(in) :: iproc,nspin
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
@@ -53,67 +53,67 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
           (2*n1+31)*(n2+1)*(n3+1))
 
      !allocation of work arrays
-     allocate(y_c(0:n1,0:n2,0:n3,nspinor+ndebug),stat=i_stat)
+     allocate(y_c(0:n1,0:n2,0:n3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,y_c,'y_c',subname)
-     allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
+     allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,y_f,'y_f',subname)
-     allocate(x_c(0:n1,0:n2,0:n3,nspinor+ndebug),stat=i_stat)
+     allocate(x_c(0:n1,0:n2,0:n3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,x_c,'x_c',subname)
-     allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
+     allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,x_f,'x_f',subname)
-     allocate(w1(nw1,nspinor+ndebug),stat=i_stat)
+     allocate(w1(nw1,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,w1,'w1',subname)
-     allocate(w2(nw2,nspinor+ndebug),stat=i_stat)
+     allocate(w2(nw2,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,w2,'w2',subname)
-     allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
+     allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,x_f1,'x_f1',subname)
-     allocate(x_f2(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
+     allocate(x_f2(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,x_f2,'x_f2',subname)
-     allocate(x_f3(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
+     allocate(x_f3(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,x_f3,'x_f3',subname)
 
      !initialisation of the work arrays
-     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,x_f1)
-     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,x_f2)
-     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,x_f3)
-     call razero((n1+1)*(n2+1)*(n3+1)*nspinor,x_c)
-     call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,x_f)
-     call razero((n1+1)*(n2+1)*(n3+1)*nspinor,y_c)
-     call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,y_f)
+     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*orbs%nspinor,x_f1)
+     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*orbs%nspinor,x_f2)
+     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*orbs%nspinor,x_f3)
+     call razero((n1+1)*(n2+1)*(n3+1)*orbs%nspinor,x_c)
+     call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*orbs%nspinor,x_f)
+     call razero((n1+1)*(n2+1)*(n3+1)*orbs%nspinor,y_c)
+     call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*orbs%nspinor,y_f)
 
-!!$        call razero(nw1*nspinor,w1)
-!!$        call razero(nw2*nspinor,w2)
+!!$        call razero(nw1*orbs%nspinor,w1)
+!!$        call razero(nw2*orbs%nspinor,w2)
 
   case('S')
      !allocation of work arrays
-     allocate(x_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+     allocate(x_c(n1i,n2i,n3i,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,x_c,'x_c',subname)
-     allocate(y_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+     allocate(y_c(n1i,n2i,n3i,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,y_c,'y_c',subname)
 
   case('P')
      if (.not. lr%hybrid_on) then
         !allocation of work arrays: only for the non-adaptive case
-        allocate(x_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+        allocate(x_c(n1i,n2i,n3i,orbs%nspinor+ndebug),stat=i_stat)
         call memocc(i_stat,x_c,'x_c',subname)
-        allocate(y_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+        allocate(y_c(n1i,n2i,n3i,orbs%nspinor+ndebug),stat=i_stat)
         call memocc(i_stat,y_c,'y_c',subname)
      endif
   end select
 
 
   ! Wavefunction in real space
-  allocate(psir(n1i*n2i*n3i,nspinor+ndebug),stat=i_stat)
+  allocate(psir(n1i*n2i*n3i,orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
 
-  call razero(n1i*n2i*n3i*nspinor,psir)
+  call razero(n1i*n2i*n3i*orbs%nspinor,psir)
 
   ekin_sum=0.0_gp
   epot_sum=0.0_gp
 
   do iorb=1,orbs%norbp
 
-     if(orbs%spinsgn(iorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
+     if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
         nsoffset=1
      else
         nsoffset=2
@@ -155,7 +155,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      end select
 
      ekin_sum=ekin_sum+orbs%occup(iorb+orbs%isorb)*ekin
-     epot_sum=epot_sum+orbs%occup(iorb_orbs%isorb)*epot
+     epot_sum=epot_sum+orbs%occup(iorb+orbs%isorb)*epot
 
   enddo
 
@@ -875,21 +875,21 @@ end subroutine realspaceINPLACE
 
 !Calculate on-the fly each projector for each atom, then applies the projectors 
 !to all distributed orbitals
-subroutine applyprojectorsonthefly(iproc,nspinor,norbp,occup,at,n1,n2,n3,&
+subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
      rxyz,hx,hy,hz,cpmult,fpmult,radii_cf,wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nspinor,norb,norbp,n1,n2,n3
+  integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
   type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
-  real(gp), dimension(norbp), intent(in) :: occup
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(in) :: psi
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(inout) :: hpsi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
   real(gp), intent(out) :: eproj_sum
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
   !local variables
@@ -904,7 +904,7 @@ subroutine applyprojectorsonthefly(iproc,nspinor,norbp,occup,at,n1,n2,n3,&
   eproj_sum=0.0_gp
 
   !quick return if no orbitals on this porcessor
-  if (norbp == 0) then
+  if (orbs%norbp == 0) then
      return
   end if
 
@@ -937,8 +937,7 @@ subroutine applyprojectorsonthefly(iproc,nspinor,norbp,occup,at,n1,n2,n3,&
      mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
      jseg_c=nlpspd%nseg_p(2*iat-2)+1
 
-     do iorb=1,norbp*nspinor
-        jorb=iorb
+     do iorb=1,orbs%norbp*orbs%nspinor
         eproj=0.0_gp
 
         istart_c=1
@@ -950,12 +949,12 @@ subroutine applyprojectorsonthefly(iproc,nspinor,norbp,occup,at,n1,n2,n3,&
                       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                       nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),&
-                      psi(1,jorb),hpsi(1,jorb),eproj)
+                      psi(1,iorb),hpsi(1,iorb),eproj)
                  istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)
               end if
            enddo
         enddo
-        eproj_sum=eproj_sum+occup((iorb-1)/nspinor+1)*eproj
+        eproj_sum=eproj_sum+orbs%occup((iorb+orbs%isorb-1)/orbs%nspinor+1)*eproj
         
      end do
 

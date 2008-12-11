@@ -146,21 +146,18 @@ module module_types
   end type gaussian_basis
 !!***
 
-!!****t* module_types/restart_objects
+!!****t* module_types/orbitals_data
 !! DESCRIPTION
-!!  Used to restart a new DFT calculation or to save information 
-!!  for post-treatment
+!! All the parameters which are important for describing the orbitals
+!!
 !! SOURCE
 !!
-  type, public :: restart_objects
-     integer :: n1,n2,n3
-     real(wp), dimension(:), pointer :: psi
-     real(wp), dimension(:,:), pointer :: gaucoeffs
-     real(gp), dimension(:,:), pointer :: rxyz_old
-     type(wavefunctions_descriptors) :: wfd
-     type(gaussian_basis) :: gbd
-     type(orbitals_data) :: orbs
-  end type restart_objects
+  type, public :: orbitals_data
+     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim
+     integer, dimension(:), pointer :: norb_par
+     real(wp), dimension(:), pointer :: eval
+     real(gp), dimension(:), pointer :: occup,spinsgn
+  end type orbitals_data
 !!***
 
 !!****t* module_types/locreg_descriptors
@@ -179,6 +176,23 @@ module module_types
   end type locreg_descriptors
 !!***
 
+!!****t* module_types/restart_objects
+!! DESCRIPTION
+!!  Used to restart a new DFT calculation or to save information 
+!!  for post-treatment
+!! SOURCE
+!!
+  type, public :: restart_objects
+     integer :: n1,n2,n3
+     real(wp), dimension(:), pointer :: psi
+     real(wp), dimension(:,:), pointer :: gaucoeffs
+     real(gp), dimension(:,:), pointer :: rxyz_old
+     type(locreg_descriptors) :: Glr
+     type(gaussian_basis) :: gbd
+     type(orbitals_data) :: orbs
+  end type restart_objects
+!!***
+
 !!****t* module_types/communications_arrays
 !! DESCRIPTION
 !! Contains the information needed for communicating the wavefunctions
@@ -189,20 +203,6 @@ module module_types
   type, public :: communications_arrays
      integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
   end type communications_arrays
-!!***
-
-!!****t* module_types/orbitals_data
-!! DESCRIPTION
-!! All the parameters which are important for describing the orbitals
-!!
-!! SOURCE
-!!
-  type, public :: orbitals_data
-     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim
-     integer, dimension(:), pointer :: norb_par
-     real(wp), dimension(:), pointer :: eval
-     real(gp), dimension(:), pointer :: occup,spinsgn
-  end type orbitals_data
 !!***
 
 
@@ -249,8 +249,6 @@ contains
     call memocc(i_stat,i_all,'ndsplt',routine)
   end subroutine deallocate_comms
 
-
-
   subroutine init_restart_objects(atoms,rst,routine)
     use module_base
     implicit none
@@ -270,8 +268,8 @@ contains
 
     nullify(rst%gaucoeffs)
 
-    nullify(rst%wfd%keyg)
-    nullify(rst%wfd%keyv)
+    nullify(rst%Glr%wfd%keyg)
+    nullify(rst%Glr%wfd%keyv)
 
     nullify(rst%gbd%nshell)
     nullify(rst%gbd%ndoc)
@@ -290,7 +288,7 @@ contains
     !local variables
     integer :: i_all,i_stat
 
-    call deallocate_wfd(rst%wfd,routine)
+    call deallocate_wfd(rst%Glr%wfd,routine)
 
     i_all=-product(shape(rst%psi))*kind(rst%psi)
     deallocate(rst%psi,stat=i_stat)

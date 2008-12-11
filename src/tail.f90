@@ -6,31 +6,31 @@
 !!    Copyright (C) 2007-2008 UNIBAS,CEA
 !! SOURCE
 !!
-subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
-     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,nlpspd,ncongt,eval,&
-     pot,hgrid,rxyz,radii_cf,crmult,frmult,cpmult,fpmult,nspin,spinsgn,&
-     proj,psi,occup,output_grid,ekin_sum,epot_sum,eproj_sum)
+subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
+     Glr,nlpspd,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,cpmult,fpmult,nspin,&
+     proj,psi,output_grid,ekin_sum,epot_sum,eproj_sum)
   use module_base
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
-  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: Glr
   type(nonlocal_psp_descriptors), intent(inout) :: nlpspd
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,norb,norbp,ncongt,nspin,output_grid
-  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  integer, intent(in) :: iproc,nproc,ncongt,nspin,output_grid
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf,cpmult,fpmult
-  real(kind=8), dimension(norb), intent(in) :: occup,eval,spinsgn
   real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
-  real(kind=8), dimension(2*n1+31,2*n2+31,2*n3+31,nspin), intent(in) :: pot
+  real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nspin), intent(in) :: pot
   real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
-  real(kind=8), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
+  real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
   !local variables
   character(len=*), parameter :: subname='CalculateTailCorrection'
   integer :: iseg,i0,j0,i1,j1,i2,i3,ii,iat,iorb,npt,ipt,i,ierr,i_all,i_stat,nbuf,ispin
-  integer :: nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
+  integer :: nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3
+  integer :: n1,n2,n3,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f
   real(kind=8) :: alatb1,alatb2,alatb3,ekin,epot,eproj,tt,cprecr,sum_tail,ekin1,epot1,eproj1
+  type(orbitals_data) :: orbsb
   type(wavefunctions_descriptors) :: wfdb
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
   integer, dimension(:,:,:), allocatable :: ibbyz_c,ibbyz_f,ibbxz_c,ibbxz_f,ibbxy_c,ibbxy_f
@@ -58,6 +58,10 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   real(kind=8), dimension(:), allocatable :: w1,w2
   real(kind=8), dimension(:,:,:), allocatable::y_c!output 
   real(kind=8), dimension(:,:,:,:), allocatable :: y_f! output
+
+  n1=Glr%d%n1
+  n2=Glr%d%n2
+  n3=Glr%d%n3
 
   nbuf=nint(rbuf/hgrid)
   !    --- new grid sizes n1,n2,n3
@@ -105,8 +109,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   !---reformat wavefunctions
 
   ! fine grid size (needed for creation of input wavefunction, preconditioning)
-  nbfl1=nfl1+nbuf ; nbfl2=nfl2+nbuf ; nbfl3=nfl3+nbuf
-  nbfu1=nfu1+nbuf ; nbfu2=nfu2+nbuf ; nbfu3=nfu3+nbuf
+  nbfl1=Glr%d%nfl1+nbuf ; nbfl2=Glr%d%nfl2+nbuf ; nbfl3=Glr%d%nfl3+nbuf
+  nbfu1=Glr%d%nfu1+nbuf ; nbfu2=Glr%d%nfu2+nbuf ; nbfu3=Glr%d%nfu3+nbuf
   if (iproc.eq.0) then
      write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
           '  Extremes for the new high resolution grid points:',&
@@ -275,7 +279,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
           'Wavefunction memory occupation in the extended grid (Bytes): ',&
           (nvctrb_c+7*nvctrb_f)*8
      write(*,'(1x,a,i0,a)') &
-          'Calculating tail corrections on ',norbp,' orbitals per processor.'
+          'Calculating tail corrections on ',orbs%norbp,' orbitals per processor.'
      write(*,'(1x,a)',advance='no') &
           '     orbitals are processed separately'
   end if
@@ -317,15 +321,30 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
   epot_sum=0.d0
   eproj_sum=0.d0
 
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+  !allocate the fake orbital structure for the application of projectors
+  allocate(orbsb%norb_par(0:0+ndebug),stat=i_stat)
+  call memocc(i_stat,orbsb%norb_par,'orbsb%norb_par',subname)
+  call orbitals_descriptors(0,1,1,1,0,1,orbsb)
+  allocate(orbsb%occup(orbsb%norb+ndebug),stat=i_stat)
+  call memocc(i_stat,orbsb%occup,'orbsb%occup',subname)
+  allocate(orbsb%spinsgn(orbsb%norb+ndebug),stat=i_stat)
+  call memocc(i_stat,orbsb%spinsgn,'orbsb%spinsgn',subname)
+  orbsb%occup(1:orbsb%norb)=1.0_gp
+  orbsb%spinsgn(1:orbsb%norb)=1.0_gp
+
+  i_all=-product(shape(orbsb%norb_par))*kind(orbsb%norb_par)
+  deallocate(orbsb%norb_par,stat=i_stat)
+  call memocc(i_stat,i_all,'orbsb%norb_par',subname)
+
+  do iorb=1,orbs%norbp
 
      !build the compressed wavefunction in the enlarged box
      call transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
-          wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),&
-          wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),  &
+          Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
+          Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keyg(1,Glr%wfd%nseg_c+1),Glr%wfd%keyv(Glr%wfd%nseg_c+1),  &
           nsegb_c,nvctrb_c,keybg(1,1),keybv(1),nsegb_f,nvctrb_f,&
           keybg(1,nsegb_c+1),keybv(nsegb_c+1),&
-          nbuf,psi(1,iorb-iproc*norbp),psi(wfd%nvctr_c+1,iorb-iproc*norbp),  & 
+          nbuf,psi(1,iorb),psi(Glr%wfd%nvctr_c+1,iorb),  & 
           x_c,x_f,psib(1),psib(nvctrb_c+1))
 
      !write(*,*) 'transform_fortail finished',iproc,iorb
@@ -334,7 +353,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
      npt=2
      tail_adding: do ipt=1,npt
 
-        if(spinsgn(iorb)>0.0d0) then
+        if(orbs%spinsgn(iorb+orbs%isorb)>0.0d0) then
            ispin=1
         else
            ispin=2
@@ -352,7 +371,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
 
         if (DistProjApply) then
            !here the box do not change, only the projectors descriptors
-           call applyprojectorsonthefly(0,1,1,1,(/1.0_gp/),at,n1,n2,n3,&
+           call applyprojectorsonthefly(0,orbsb,at,n1,n2,n3,&
                 rxyz,hgrid,hgrid,hgrid,cpmult,fpmult,radii_cf,wfdb,nlpspd,proj,psib,hpsib,eproj)
            !only the wavefunction descriptors must change
         else
@@ -364,20 +383,19 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
            !write(*,'(a,2i3,2f12.8)') 'applyprojectorsone finished',iproc,iorb,eproj,sum_tail
         end if
 
-
         !calculate residue for the single orbital
         tt=0.d0
         do i=1,nvctrb_c+7*nvctrb_f
-           hpsib(i)=hpsib(i)-eval(iorb)*psib(i)
+           hpsib(i)=hpsib(i)-orbs%eval(iorb+orbs%isorb)*psib(i)
            tt=tt+hpsib(i)**2
         enddo
         tt=sqrt(tt)
 
-        if (ipt.eq.npt) exit tail_adding
+        if (ipt == npt) exit tail_adding
 
         !calculate tail using the preconditioner as solver for the green function application
-        cprecr=-eval(iorb)
-        call precong(iorb,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, &
+        cprecr=-orbs%eval(iorb+orbs%isorb)
+        call precong(iorb+orbs%isorb,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, &
              nsegb_c,nvctrb_c,nsegb_f,nvctrb_f,keybg,keybv, &
              ncongt,cprecr,hgrid,ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,hpsib)
         !call plot_wf(10,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
@@ -414,17 +432,25 @@ subroutine CalculateTailCorrection(iproc,nproc,at,n1,n2,n3,rbuf,norb,norbp,&
 
      if (iproc == 0) then
         write(*,'(a)',advance='no') &
-             repeat('.',(iorb*40)/norbp-((iorb-1)*40)/norbp)
+             repeat('.',((iorb+orbs%isorb)*40)/orbs%norbp-((iorb-1)*40)/orbs%norbp)
      end if
-     ekin_sum=ekin_sum+ekin*occup(iorb)
-     epot_sum=epot_sum+epot*occup(iorb)
-     eproj_sum=eproj_sum+eproj*occup(iorb)
+     ekin_sum=ekin_sum+ekin*orbs%occup(iorb+orbs%isorb)
+     epot_sum=epot_sum+epot*orbs%occup(iorb+orbs%isorb)
+     eproj_sum=eproj_sum+eproj*orbs%occup(iorb+orbs%isorb)
 
   end do
 
   if (iproc == 0) then
      write(*,'(1x,a)')'done.'
   end if
+
+  i_all=-product(shape(orbsb%occup))*kind(orbsb%occup)
+  deallocate(orbsb%occup,stat=i_stat)
+  call memocc(i_stat,i_all,'orbsb%occup',subname)
+  i_all=-product(shape(orbsb%spinsgn))*kind(orbsb%spinsgn)
+  deallocate(orbsb%spinsgn,stat=i_stat)
+  call memocc(i_stat,i_all,'orbsb%spinsgn',subname)
+
 
   i_all=-product(shape(txyz))*kind(txyz)
   deallocate(txyz,stat=i_stat)

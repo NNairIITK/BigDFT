@@ -71,8 +71,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   eproj_sum=0.0_gp
   !apply the projectors following the strategy (On-the-fly calculation or not)
   if (DistProjApply) then
-     call applyprojectorsonthefly(iproc,orbs%nspinor,orbs%norbp,&
-          orbs%occup(min(orbs%iorbs+1,orbs%norb),at,lr%d%n1,lr%d%n2,lr%d%n3,&
+     call applyprojectorsonthefly(iproc,orbs,at,lr%d%n1,lr%d%n2,lr%d%n3,&
           rxyz,hx,hy,hz,cpmult,fpmult,radii_cf,lr%wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   else
      !one should add a flag here which states that it works only for global reion
@@ -84,7 +83,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
              proj,lr%wfd%nseg_c,lr%wfd%nseg_f,lr%wfd%keyg,lr%wfd%keyv,&
              lr%wfd%nvctr_c,lr%wfd%nvctr_f, & 
              psi(1,iorb),hpsi(1,iorb),eproj)
-        eproj_sum=eproj_sum+occup((iorb+orbs%iorbs-1)/orbs%nspinor+1)*eproj
+        eproj_sum=eproj_sum+orbs%occup((iorb+orbs%isorb-1)/orbs%nspinor+1)*eproj
      enddo
   end if
 
@@ -177,21 +176,21 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
         hpsitcuda(i)=real(hpsi(i),kind=4)
      end do
 
-     if(nspin==1.or.nspinor==4) then
-        call orthoconstraint_cuda(iproc,nproc,orbs%norb,orbs%occup,nvctrp,&
-             psitcuda,hpsitcuda,scprsum,orbs%nspinor)
-     else
-        call orthoconstraint_cuda(iproc,nproc,orbs%norbu,orbs%occup,nvctrp,&
-             psitcuda,hpsitcuda,scprsum,orbs%nspinor)
-        scprpart=0.0d0
-        if(orbs%norbd > 0) then
-           scprpart=scprsum 
-           call orthoconstraint_cuda(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),&
-                nvctrp,psitcuda(1+nvctrp*orbs%norbu),hpsitcuda(1+nvctrp*orbs%norbu),&
-                scprsum,orbs%nspinor)
-        end if
-        scprsum=scprsum+scprpart
+!!$     if(nspin==1.or.nspinor==4) then
+!!$        call orthoconstraint_cuda(iproc,nproc,orbs%norb,orbs%occup,nvctrp,&
+!!$             psitcuda,hpsitcuda,scprsum,orbs%nspinor)
+!!$     else
+     call orthoconstraint_cuda(iproc,nproc,orbs%norbu,orbs%occup,nvctrp,&
+          psitcuda,hpsitcuda,scprsum,orbs%nspinor)
+     scprpart=0.0d0
+     if(orbs%norbd > 0) then
+        scprpart=scprsum 
+        call orthoconstraint_cuda(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),&
+             nvctrp,psitcuda(1+nvctrp*orbs%norbu),hpsitcuda(1+nvctrp*orbs%norbu),&
+             scprsum,orbs%nspinor)
      end if
+     scprsum=scprsum+scprpart
+!!$     end if
 
      do i=1,orbs%npsidim
         psit(i)=real(psitcuda(i),wp)
@@ -235,7 +234,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
   !Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
   call preconditionall(iproc,nproc,orbs%norbp,lr,hx,hy,hz,ncong,orbs%nspinor,&
-       orbs%eval(min(orbs%isorb+1,orbs%norb)),hpsi,gnrm,lr%hybrid_on)
+       orbs%eval(min(orbs%isorb+1,orbs%norb)),hpsi,gnrm)
 
   !sum over all the partial residues
   if (nproc > 1) then
@@ -302,9 +301,9 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
 !!$  else
   call orthon_p(iproc,nproc,orbs%norbu,nvctrp,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
        psit,orbs%nspinor)
-  if(norbd > 0) then
+  if(orbs%norbd > 0) then
      call orthon_p(iproc,nproc,orbs%norbd,nvctrp,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
-          psit(1+nvctrp*norbu),orbs%nspinor)
+          psit(1+nvctrp*orbs%norbu),orbs%nspinor)
   end if
 !!$  end if
     !       call checkortho_p(iproc,nproc,norb,nvctrp,psit)
@@ -455,7 +454,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,nvctrp,comms,psi,hpsi,psit)
 !!$     call orthon_p(iproc,nproc,norb,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,nspinor) 
 !!$  else
   call orthon_p(iproc,nproc,orbs%norbu,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,psit,orbs%nspinor) 
-  if(norbd > 0) then
+  if(orbs%norbd > 0) then
      call orthon_p(iproc,nproc,orbs%norbd,nvctrp,wfd%nvctr_c+7*wfd%nvctr_f,&
           psit(1+nvctrp*orbs%norbu),orbs%nspinor) 
   end if
@@ -475,51 +474,46 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,nvctrp,comms,psi,hpsi,psit)
 end subroutine first_orthon
 
 ! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
-subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,norb_par,wfd,nvctrp,&
-     nspin,comms,psi,hpsi,psit,occup,evsum,eval)
+subroutine last_orthon(iproc,nproc,orbs,wfd,nvctrp,&
+     nspin,comms,psi,hpsi,psit,evsum)
   use module_base
   use module_types
   use module_interfaces, except_this_one => last_orthon
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
+  type(orbitals_data), intent(in) :: orbs
   type(communications_arrays), intent(in) :: comms
-  integer, intent(in) :: iproc,nproc,norbu,norbd,norb,norbp,nvctrp,nspin
-  integer, dimension(0:nproc-1), intent(in) :: norb_par
-  real(gp), dimension(norb), intent(in) :: occup
+  integer, intent(in) :: iproc,nproc,nvctrp,nspin
   real(wp), intent(out) :: evsum
-  real(wp), dimension(norb), intent(out) :: eval
   real(wp), dimension(:) , pointer :: psi,hpsi,psit
   !local variables
   character(len=*), parameter :: subname='last_orthon'
-  integer :: i_all,i_stat,ierr,iorb,jorb,nspinor,md
+  integer :: i_all,i_stat,ierr,iorb,jorb,md
   real(wp) :: evpart
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
-  if(nspin==4) then
-     nspinor=4
-  else
-     nspinor=1
-  end if
-
-  call transpose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,hpsi,work=psi)
+  call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,wfd,nvctrp,comms,&
+       hpsi,work=psi)
   if (nproc==1) then
      psit => psi
-     call transpose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psit)
+     call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,wfd,nvctrp,comms,psit)
   end if
 
-  if(nspin==1.or.nspinor==4) then
-     call KStrans_p(iproc,nproc,norb,nvctrp,occup,hpsi,psit,evsum,eval,nspinor)
-  else
-     call KStrans_p(iproc,nproc,norbu,nvctrp,occup,hpsi,psit,evsum,eval,nspinor)
-     evpart=evsum
-     if(norbd>0) then
-        call KStrans_p(iproc,nproc,norbd,nvctrp,occup(norbu+1),&
-             hpsi(1+nvctrp*norbu),psit(1+nvctrp*norbu),evsum,eval(norbu+1),nspinor)
-        evsum=evsum+evpart
-     end if
+!!$  if(nspin==1.or.nspinor==4) then
+!!$     call KStrans_p(iproc,nproc,norb,nvctrp,occup,hpsi,psit,evsum,eval,nspinor)
+!!$  else
+  call KStrans_p(iproc,nproc,orbs%norbu,nvctrp,orbs%occup,hpsi,psit,&
+       evsum,orbs%eval,orbs%nspinor)
+  evpart=evsum
+  if(orbs%norbd > 0) then
+     call KStrans_p(iproc,nproc,orbs%norbd,nvctrp,orbs%occup(orbs%norbu+1),&
+          hpsi(1+nvctrp*orbs%norbu),psit(1+nvctrp*orbs%norbu),&
+          evsum,orbs%eval(orbs%norbu+1),orbs%nspinor)
+     evsum=evsum+evpart
   end if
+!!$  end if
 
-  call untranspose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,&
+  call untranspose_v(iproc,nproc,orbs%norbp,orbs%nspinor,wfd,nvctrp,comms,&
        psit,work=hpsi,outadd=psi(1))
 
   if (nproc > 1) then
@@ -533,51 +527,50 @@ subroutine last_orthon(iproc,nproc,norbu,norbd,norb,norbp,norb_par,wfd,nvctrp,&
   !for a non-collinear treatment,
   !here we can add the calculation of the moments for printing their value
   !close to the corresponding eigenvector
-  ! this section can be inserted inside last_orthon
-  if(nspinor==4) then
-     allocate(mom_vec(4,norb,min(nproc,2)+ndebug),stat=i_stat)
+  if(orbs%nspinor==4) then
+     allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)
      call memocc(i_stat,mom_vec,'mom_vec',subname)
 
-     call calc_moments(iproc,nproc,norb,norb_par,wfd%nvctr_c+7*wfd%nvctr_f,&
-          nspinor,psi,mom_vec)
+     call calc_moments(iproc,nproc,orbs%norb,orbs%norb_par,wfd%nvctr_c+7*wfd%nvctr_f,&
+          orbs%nspinor,psi,mom_vec)
   end if
 
   !print the found eigenvalues
   if (iproc == 0) then
      write(*,'(1x,a)')&
           '-------------------------------------------------------------- Kohn-Sham Eigenvalues'
-     if (nspin==1.or.nspinor==4) then
-        if (nspinor ==4) then
+     if (nspin==1.or.orbs%nspinor==4) then
+        if (orbs%nspinor ==4) then
         write(*,'(1x,a)')&
              '           Eigenvalue                                      m_x       m_y       m_z'
-           do iorb=1,norb
+           do iorb=1,orbs%norb
               write(*,'(1x,a,i4,a,1x,1pe21.14,20x,(1x,3(0pf10.5)))') &
-                   'eval(',iorb,')=',eval(iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
+                   'eval(',iorb,')=',orbs%eval(iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
            end do
         else
-           do iorb=1,norb
-              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',eval(iorb)
+           do iorb=1,orbs%norb
+              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',orbs%eval(iorb)
            end do
         end if
      else
-        do iorb=1,min(norbu,norbd)
-           jorb=norbu+iorb
+        do iorb=1,min(orbs%norbu,orbs%norbd)
+           jorb=orbs%norbu+iorb
            write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
-                'eval(',iorb,',u)=',eval(iorb),'eval(',iorb,',d)=',eval(jorb)
+                'eval(',iorb,',u)=',orbs%eval(iorb),'eval(',iorb,',d)=',orbs%eval(jorb)
         end do
-        if (norbu > norbd) then
-           do iorb=norbd+1,norbu
-              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,',u)=',eval(iorb)
+        if (orbs%norbu > orbs%norbd) then
+           do iorb=orbs%norbd+1,orbs%norbu
+              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,',u)=',orbs%eval(iorb)
            end do
-        else if (norbd > norbu) then
-           do iorb=2*norbu+1,norbu+norbd
-              write(*,'(50x,a,i4,a,1x,1pe21.14)') 'eval(',iorb-norbu,',d)=',eval(iorb)
+        else if (orbs%norbd > orbs%norbu) then
+           do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
+              write(*,'(50x,a,i4,a,1x,1pe21.14)') 'eval(',iorb-orbs%norbu,',d)=',orbs%eval(iorb)
            end do
         end if
      end if
   end if
 
-  if (nspinor ==4) then
+  if (orbs%nspinor ==4) then
      i_all=-product(shape(mom_vec))*kind(mom_vec)
      deallocate(mom_vec,stat=i_stat)
      call memocc(i_stat,i_all,'mom_vec',subname)
@@ -593,8 +586,8 @@ end subroutine last_orthon
 subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
   use module_base
   implicit none
-  integer, intent(in) :: iproc,nproc,norb,nvctr,nspino
-  real(wp), dimension(0:nproc-1), intent(in) :: norb_par
+  integer, intent(in) :: iproc,nproc,norb,nvctr,nspinor
+  integer, dimension(0:nproc-1), intent(in) :: norb_par
   real(wp), dimension(nvctr,norb*nspinor), intent(in) :: psi
   real(wp), dimension(4,norb,min(nproc,2)), intent(out) :: mom_vec
   !local variables
@@ -639,7 +632,7 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
            norb_displ(jproc)=norb_displ(jproc-1)+norb_par(jproc)
         end do
         
-        call MPI_GATHERV(mom_vec(1,1,2),4*norbp,mpidtypw,&
+        call MPI_GATHERV(mom_vec(1,1,2),4*norb_par(iproc),mpidtypw,&
              mom_vec(1,1,1),4*norb_par,4*norb_displ,mpidtypw,&
              0,MPI_COMM_WORLD,ierr)
 

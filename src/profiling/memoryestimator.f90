@@ -42,7 +42,7 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   if (output_grid==1) then
      open(unit=22,file='grid.xyz',status='unknown')
      write(22,*) nvctr_c+nvctr_f+nat,' atomic'
-     if (geocode='F') then
+     if (geocode=='F') then
         write(22,*)'complete simulation grid with low and high resolution points'
      else if (geocode =='S') then
         write(22,'(a,2x,3(1x,1pe24.17))')'surface',alat1,alat2,alat3

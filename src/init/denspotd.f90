@@ -80,4 +80,4 @@ subroutine orbitals_communicators(iproc,nproc,nvctrp,orbs,comms)
      comms%ndsplt(jproc)=comms%ndsplt(jproc-1)+comms%ncntt(jproc)
   end do
 
-end subroutine orbitals_communications
+end subroutine orbitals_communicators
