@@ -177,7 +177,62 @@ module module_types
   end type locreg_descriptors
 !!***
 
+!!****t* module_types/communications_arrays
+!! DESCRIPTION
+!! Contains the information needed for communicating the wavefunctions
+!! between processors for the transposition
+!!
+!! SOURCE
+!!
+  type, public :: communications_arrays
+     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
+  end type communications_arrays
+!!***
+
 contains
+
+  subroutine allocate_comms(nproc,comms,routine)
+    use module_base
+    implicit none
+    character(len=*), intent(in) :: routine
+    integer, intent(in) :: nproc
+    type(communications_arrays), intent(out) :: comms
+    !local variables
+    integer :: i_all,i_stat
+
+    allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
+    call memocc(i_stat,comms%ncntd,'ncntd',routine)
+    allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
+    call memocc(i_stat,comms%ncntt,'ncntt',routine)
+    allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
+    call memocc(i_stat,comms%ndspld,'ndspld',routine)
+    allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
+    call memocc(i_stat,comms%ndsplt,'ndsplt',routine)
+  end subroutine allocate_comms
+
+  subroutine deallocate_comms(comms,routine)
+    use module_base
+    implicit none
+    character(len=*), intent(in) :: routine
+    type(communications_arrays), intent(out) :: comms
+    !local variables
+    integer :: i_all,i_stat
+
+    i_all=-product(shape(comms%ncntd))*kind(comms%ncntd)
+    deallocate(comms%ncntd,stat=i_stat)
+    call memocc(i_stat,i_all,'ncntd',routine)
+    i_all=-product(shape(comms%ncntt))*kind(comms%ncntt)
+    deallocate(comms%ncntt,stat=i_stat)
+    call memocc(i_stat,i_all,'ncntt',routine)
+    i_all=-product(shape(comms%ndspld))*kind(comms%ndspld)
+    deallocate(comms%ndspld,stat=i_stat)
+    call memocc(i_stat,i_all,'ndspld',routine)
+    i_all=-product(shape(comms%ndsplt))*kind(comms%ndsplt)
+    deallocate(comms%ndsplt,stat=i_stat)
+    call memocc(i_stat,i_all,'ndsplt',routine)
+  end subroutine deallocate_comms
+
+
 
   subroutine init_restart_objects(atoms,rst,routine)
     use module_base
@@ -257,7 +312,6 @@ contains
     call memocc(i_stat,wfd%keyg,'keyg',routine)
     allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keyv,'keyv',routine)
-
   end subroutine allocate_wfd
 
   subroutine deallocate_wfd(wfd,routine)

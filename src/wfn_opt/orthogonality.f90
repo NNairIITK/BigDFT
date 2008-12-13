@@ -653,7 +653,7 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
   end if
 
   if (nproc > 1) then
-     call MPI_ALLREDUCE(hamks(1,1,2),hamks(1,1,1),norbs*norb,mpidtypd,&
+     call MPI_ALLREDUCE(hamks(1,1,2),hamks(1,1,1),norbs*norb,mpidtypw,&
           MPI_SUM,MPI_COMM_WORLD,ierr)
   end if
 !  do iorb=1,norb

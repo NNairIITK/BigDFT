@@ -15,7 +15,8 @@ SOURCES_CU_CONV1 = convolution.cu \
 	structUtil.cu \
 	cudafct.cu
 
-SOURCES_CONV = locpot.cu
+SOURCES_CONV = locpot.cu \
+	kinetic.cu
 
 SOURCES_CXX_CONV1 = convSeria.cpp \
 	setCPU_GPU_aff.cpp \

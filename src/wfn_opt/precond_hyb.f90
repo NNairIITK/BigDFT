@@ -46,7 +46,8 @@ subroutine precong_per_hyb(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 
   !	initializes the wavelet scaling coefficients	
   call wscal_init_per(scal,hx,hy,hz,cprecr)
-  b=x
+  !b=x
+  call dcopy(nvctr_c+7*nvctr_f,x,1,b,1) 
 
   !	compute the input guess x via a Fourier transform in a cubic box.
   !	Arrays psifscf and ww serve as work arrays for the Fourier

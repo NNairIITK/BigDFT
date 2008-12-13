@@ -18,7 +18,7 @@ module module_base
   !use MPI
   implicit none  
   !buffer to be added at the end of the last dimension of an array to control bounds_check
-  integer, parameter :: ndebug=10
+  integer, parameter :: ndebug=0
 
   !general precision, density and the wavefunctions types
   integer, parameter :: gp=kind(1.0d0)  !general-type precision

@@ -53,3 +53,8 @@
     stop 'FAKE SNRM2'
   end subroutine cublas_SNRM2
 
+  subroutine cublas_SDOT()
+    implicit none
+    stop 'FAKE SDOT'
+  end subroutine cublas_SDOT
+

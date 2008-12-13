@@ -14,11 +14,10 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
   real(gp), intent(in) :: hx,hy,hz,crmult,frmult
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
-  type(wavefunctions_descriptors) , intent(out) :: wfd
-  !boundary arrays
-  type(convolutions_bounds), intent(out) :: bounds
   integer, intent(out) :: nvctrp
-  !Local variables
+  type(wavefunctions_descriptors) , intent(out) :: wfd
+  type(convolutions_bounds), intent(out) :: bounds
+  !local variables
   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
   real(kind=8), parameter :: eps_mach=1.d-12
   integer :: iat,i1,i2,i3,norbme,norbyou,jpst,jproc,i_all,i_stat

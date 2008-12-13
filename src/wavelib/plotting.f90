@@ -1,117 +1,192 @@
-subroutine plot_wf(orbname,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,rx,ry,rz,wfd,&
-     bounds,psi)
+subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi)
   use module_base
   use module_types
   implicit none
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  type(convolutions_bounds), intent(in) :: bounds
   character(len=10) :: orbname 
-  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  real(gp), intent(in) :: hgrid,rx,ry,rz
+  real(gp), intent(in) :: hx,hy,hz,rx,ry,rz
+  type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
   !local variables
   character(len=*), parameter :: subname='plot_wf'
-  integer :: nw1,nw2,i_stat,i_all,i
+  integer :: nw1,nw2,i_stat,i_all,i,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
+  integer :: nxc,nxf,nl1,nl2,nl3,n1i,n2i,n3i
   real(wp), dimension(0:3) :: scal
-  real(wp), dimension(:), allocatable :: psir,w1,w2
-  real(wp), dimension(:,:,:), allocatable :: x_c
-  real(wp), dimension(:,:,:,:), allocatable :: x_f
+  real(wp), dimension(:), allocatable :: psir,w1,w2,x_c_psifscf,x_f_psig
 
-  nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
-       (n1+1)*(2*n2+31)*(2*n3+31),&
-       2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
-       2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
-
-  nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
-       4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
-       (n1+1)*(n2+1)*(2*n3+31))
+  n1=lr%d%n1
+  n2=lr%d%n2
+  n3=lr%d%n3
+  n1i=lr%d%n1i
+  n2i=lr%d%n2i
+  n3i=lr%d%n3i
+  nfl1=lr%d%nfl1
+  nfl2=lr%d%nfl2
+  nfl3=lr%d%nfl3
+  nfu1=lr%d%nfu1
+  nfu2=lr%d%nfu2
+  nfu3=lr%d%nfu3
 
   do i=0,3
      scal(i)=1.d0
   enddo
 
-  allocate(x_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,x_c,'x_c',subname)
-  allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
-  call memocc(i_stat,x_f,'x_f',subname)
+  select case(lr%geocode)
+  case('F')
+     !dimension of the work arrays
+     ! shrink convention: nw1>nw2
+     nw1=max((n3+1)*(2*n1+31)*(2*n2+31),& 
+          (n1+1)*(2*n2+31)*(2*n3+31),&
+          2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+          2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+     nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+          4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+          (n1+1)*(n2+1)*(2*n3+31),&
+          (2*n1+31)*(n2+1)*(n3+1))
+     nxc=(n1+1)*(n2+1)*(n3+1)!(2*n1+2)*(2*n2+2)*(2*n3+2)
+     nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+  case('S')
+     !dimension of the work arrays
+     nw1=1
+     nw2=1
+     nxc=(2*n1+2)*(2*n2+31)*(2*n3+2)
+     nxf=1
+  case('P')
+     !dimension of the work arrays, fully periodic case
+     nw1=1
+     nw2=1
+     nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
+     nxf=1
+  end select
+  !work arrays
+  allocate(x_c_psifscf(nxc+ndebug),stat=i_stat)
+  call memocc(i_stat,x_c_psifscf,'x_c_psifscf',subname)
+  allocate(x_f_psig(nxf+ndebug),stat=i_stat)
+  call memocc(i_stat,x_f_psig,'x_f_psig',subname)
   allocate(w1(nw1+ndebug),stat=i_stat)
   call memocc(i_stat,w1,'w1',subname)
   allocate(w2(nw2+ndebug),stat=i_stat)
   call memocc(i_stat,w2,'w2',subname)
-  allocate(psir((2*n1+31)*(2*n2+31)*(2*n3+31)+ndebug),stat=i_stat)
+
+  allocate(psir(n1i*n2i*n3i+ndebug),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
+  !initialisation
+  if (lr%geocode == 'F') then
+     call razero(nxc,x_c_psifscf)
+     call razero(nxf,x_f_psig)
+     call razero(n1i*n2i*n3i,psir)
+  end if
+  select case(lr%geocode)
+  case('F')
+     call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
+          lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),  & 
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+          lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1), &
+          scal,psi(1),psi(lr%wfd%nvctr_c+1),x_c_psifscf,x_f_psig)
 
-  call razero((n1+1)*(n2+1)*(n3+1),x_c)
-  call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f)
+     call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,&
+          x_c_psifscf,x_f_psig,  & 
+          psir(1),lr%bounds%kb%ibyz_c,lr%bounds%gb%ibzxx_c,lr%bounds%gb%ibxxyy_c,&
+          lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f,&
+          lr%bounds%ibyyzz_r)
+     
+  case('P')
+     call uncompress_per(n1,n2,n3,lr%wfd%nseg_c,&
+          lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+          lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),&
+          psi(1),psi(lr%wfd%nvctr_c+1),x_c_psifscf,psir(1))
 
-  call uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-       wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
-       wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),   &
-       scal,psi(1),psi(wfd%nvctr_c+1),x_c,x_f)
+     call convolut_magic_n_per_self(2*n1+1,2*n2+1,2*n3+1,&
+          x_c_psifscf,psir(1))
+     
+  case('S')
+     call uncompress_slab(n1,n2,n3,lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+          lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
+          lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg(1,lr%wfd%nseg_c+1),&
+          lr%wfd%keyv(lr%wfd%nseg_c+1),   &
+          psi(1),psi(lr%wfd%nvctr_c+1),x_c_psifscf,psir(1))
 
-  call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,x_c,x_f,  & 
-       psir,bounds%kb%ibyz_c,bounds%gb%ibzxx_c,bounds%gb%ibxxyy_c,bounds%gb%ibyz_ff,&
-       bounds%gb%ibzxx_f,bounds%gb%ibxxyy_f,bounds%ibyyzz_r)
+     call convolut_magic_n_slab_self(2*n1+1,2*n2+15,2*n3+1,x_c_psifscf,psir(1))
+  end select
 
-  !call plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,psir)
-  call plot_pot_full(rx,ry,rz,hgrid,n1,n2,n3,orbname,psir)
+  i_all=-product(shape(x_c_psifscf))*kind(x_c_psifscf)
+  deallocate(x_c_psifscf,stat=i_stat)
+  call memocc(i_stat,i_all,'x_c_psifscf',subname)
+  i_all=-product(shape(x_f_psig))*kind(x_f_psig)
+  deallocate(x_f_psig,stat=i_stat)
+  call memocc(i_stat,i_all,'x_f_psig',subname)
+  i_all=-product(shape(w1))*kind(w1)
+  deallocate(w1,stat=i_stat)
+  call memocc(i_stat,i_all,'w1',subname)
+  i_all=-product(shape(w2))*kind(w2)
+  deallocate(w2,stat=i_stat)
+  call memocc(i_stat,i_all,'w2',subname)
+
+  if (lr%geocode /= 'F') then
+     nl1=1
+     nl3=1
+  else
+     nl1=14
+     nl3=14
+  end if
+  !value of the buffer in the y direction
+  if (lr%geocode == 'P') then
+     nl2=1
+  else
+     nl2=14
+  end if
+
+
+  !call plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,psir)
+  call plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+       nl1,nl2,nl3,orbname,psir)
 
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
 
-  i_all=-product(shape(x_c))*kind(x_c)
-  deallocate(x_c,stat=i_stat)
-  call memocc(i_stat,i_all,'x_c',subname)
-
-  i_all=-product(shape(x_f))*kind(x_f)
-  deallocate(x_f,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f',subname)
-
-  i_all=-product(shape(w1))*kind(w1)
-  deallocate(w1,stat=i_stat)
-  call memocc(i_stat,i_all,'w1',subname)
-
-  i_all=-product(shape(w2))*kind(w2)
-  deallocate(w2,stat=i_stat)
-  call memocc(i_stat,i_all,'w2',subname)
-
 END SUBROUTINE plot_wf
 
-subroutine plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,pot)
+subroutine plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,pot)
   use module_base
   implicit none
-  integer, intent(in) :: n1,n2,n3,iounit
-  real(gp), intent(in) :: rx,ry,rz,hgrid
-  real(dp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(in) :: pot
+  integer, intent(in) :: n1,n2,n3,iounit,n1i,n2i,n3i,nl1,nl2,nl3
+  real(gp), intent(in) :: rx,ry,rz,hx,hy,hz
+  real(dp), dimension(*), intent(in) :: pot
   !local variables
-  integer :: i1,i2,i3
-  real(gp) :: hgridh
+  integer :: i1,i2,i3,ind
+  real(gp) :: hxh,hyh,hzh
 
-  hgridh=.5d0*hgrid
+  hxh=.5_gp*hx
+  hyh=.5_gp*hy
+  hzh=.5_gp*hz
+
   open(iounit) 
   open(iounit+1) 
   open(iounit+2) 
 
-  i3=nint(rz/hgridh)
-  i2=nint(ry/hgridh)
+  i3=nint(rz/hzh)
+  i2=nint(ry/hyh)
   write(*,*) 'plot_p, i2,i3,n2,n3 ',i2,i3,n2,n3
-  do i1=-14,2*n1+16
-     write(iounit,*) real(i1,gp)*hgridh,pot(i1,i2,i3)
+  do i1=0,2*n1
+     ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
+     write(iounit,*) real(i1,gp)*hxh,pot(ind)
   enddo
 
-  i1=nint(rx/hgridh)
-  i2=nint(ry/hgridh)
+  i1=nint(rx/hxh)
+  i2=nint(ry/hyh)
   write(*,*) 'plot_p, i1,i2 ',i1,i2
-  do i3=-14,2*n3+16
-     write(iounit+1,*) real(i3,gp)*hgridh,pot(i1,i2,i3)
+  do i3=0,2*n3
+     ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
+     write(iounit+1,*) real(i3,gp)*hzh,pot(ind)
   enddo
 
-  i1=nint(rx/hgridh)
-  i3=nint(rz/hgridh)
+  i1=nint(rx/hxh)
+  i3=nint(rz/hzh)
   write(*,*) 'plot_p, i1,i3 ',i1,i3
-  do i2=-14,2*n2+16
-     write(iounit+2,*) real(i2,gp)*hgridh,pot(i1,i2,i3)
+  do i2=0,2*n2
+     ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
+     write(iounit+2,*) real(i2,gp)*hyh,pot(ind)
   enddo
 
   close(iounit) 
@@ -120,43 +195,39 @@ subroutine plot_pot(rx,ry,rz,hgrid,n1,n2,n3,iounit,pot)
 
 end subroutine plot_pot
 
-subroutine plot_pot_full(rx,ry,rz,hgrid,n1,n2,n3,orbname,pot)
+subroutine plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
+     nl1,nl2,nl3,orbname,pot)
   use module_base
   implicit none
   character(len=10), intent(in) :: orbname
-  integer, intent(in) :: n1,n2,n3
-  real(gp), intent(in) :: rx,ry,rz,hgrid
-  real(dp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(in) :: pot
+  integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,n1i,n2i,n3i
+  real(gp), intent(in) :: rx,ry,rz,hx,hy,hz
+  real(dp), dimension(*), intent(in) :: pot
   !local variables
-  integer :: i1,i2,i3
-  real(gp) :: hgridh
+  integer :: i1,i2,i3,ind
+  real(gp) :: hxh,hyh,hzh
 
 !virtual orbitals are identified by their name
 !  write(*,'(1x,a,i0)')'printing orbital number= ',iounit
   write(*,'(A)')'printing '//orbname
-  hgridh=.5d0*hgrid
+  hxh=.5_gp*hx
+  hyh=.5_gp*hy
+  hzh=.5_gp*hz
 !  write(orbname,'(i0)')iounit
 !  open(unit=22,file='psi'//orbname//'.pot',status='unknown')
   open(unit=22,file=orbname//'.pot',status='unknown')
 !  write(22,*)'orbital'//orbname
   write(22,*)orbname
   write(22,*) 2*n1+1,2*n2+1,2*n3+1
-  write(22,*) n1*hgrid,' 0. ',n2*hgrid
-  write(22,*) ' 0. ',' 0. ',n3*hgrid
+  !here there can be shifts in visualising periodic objects (n1 -> n1+1)
+  write(22,*) n1*hx,' 0. ',n2*hy
+  write(22,*) ' 0. ',' 0. ',n3*hz
   write(22,*)'xyz'
-!   the density can easily obtained later, if needed.
-!!  open(unit=23,file='den'//orbname//'.pot',status='unknown')
-!  open(unit=23,file=orbname//'.dens.pot',status='unknown')
-!  write(23,*)orbname
-!  write(23,*) 2*n1+1,2*n2+1,2*n3+1
-!  write(23,*) n1*hgrid,' 0. ',n2*hgrid
-!  write(23,*) ' 0. ',' 0. ',n3*hgrid
-!  write(23,*)'xyz'
   do i3=0,2*n3
      do i2=0,2*n2
         do i1=0,2*n1
-           write(22,*)pot(i1,i2,i3)
-           !write(23,*)pot(i1,i2,i3)**2
+           ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
+           write(22,*)pot(ind)
         end do
      end do
   end do
@@ -531,7 +602,7 @@ subroutine plot_density_cube(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin
                  else
                     advancestring='no'
                  end if
-                 ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2
+                 ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
                  write(23,'(1x,1pe13.6)',advance=advancestring)&
                       pot_ion(ind,1)-pot_ion(ind,2)
               end do

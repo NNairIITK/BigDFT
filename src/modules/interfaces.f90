@@ -450,35 +450,32 @@ interface
      real(wp), dimension(nvctr_c + 7 * nvctr_f), intent(out) :: psi
    end subroutine reformatonewave
 
-   subroutine davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,at,&
+   subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,&
         cpmult,fpmult,radii_cf,&
-        norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,lr,&
-        hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  & 
+        norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,nvctrp,lr,&
+        hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,nlpspd,proj,  & 
         pkernel,ixc,psi,v,eval,ncong,nscatterarr,ngatherarr,hybrid_on)
      use module_base
      use module_types
      implicit none
+     logical, intent(in) :: hybrid_on
+     integer, intent(in) :: iproc,nproc,norb,norbp,ixc,n1i,n2i,n3i
+     integer, intent(in) :: i3xcsh,nvctrp,norbu
+     integer, intent(in) :: nvirte,nvirtep,nvirt,ncong,n3p,itermax,nplot
      type(atoms_data), intent(in) :: at
      type(wavefunctions_descriptors), intent(in) :: wfd
      type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-     type(convolutions_bounds), intent(in) :: bounds
      type(locreg_descriptors), intent(in) :: lr 
-     integer, intent(in) :: iproc,nproc,norb,norbp,n1,n2,n3,ixc,n1i,n2i,n3i
-     integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,i3xcsh,nvctrp,norbu
-     integer, intent(in) :: nvirte,nvirtep,nvirt,ncong,n3p,itermax,nplot
      real(gp), dimension(norb), intent(in) :: occup
      real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
-     real(dp), intent(in) :: gnrm_cv !convergence criterion for gradients
+     real(dp), intent(in) :: gnrm_cv
      real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
-     integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
+     integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr 
      integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
      real(gp), dimension(3,at%nat), intent(in) :: rxyz
      real(wp), dimension(nlpspd%nprojel), intent(in) :: proj
      real(dp), dimension(*), intent(in) :: pkernel,rhopot
-     !this is a Fortran 95 standard, should be avoided (it is a pity IMHO)
-     !real(kind=8), dimension(:,:,:,:), allocatable :: rhopot 
      real(wp), dimension(norb), intent(in) :: eval
-	 logical,intent(in)::hybrid_on
      real(wp), dimension(:), pointer :: psi,v
    end subroutine davidson
 
@@ -534,17 +531,40 @@ interface
      real(wp), optional, intent(out) :: outadd !pass only the address to avoid pointer problems 
    end subroutine untranspose
 
-   subroutine plot_wf(orbname,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,hgrid,rx,ry,rz,wfd,&
-        bounds,psi)
+   subroutine transpose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
+        work,outadd) !optional
      use module_base
      use module_types
      implicit none
+     integer, intent(in) :: iproc,nproc,norbp,nspinor,nvctrp !the latter will depend on orbitals
      type(wavefunctions_descriptors), intent(in) :: wfd
-     type(convolutions_bounds), intent(in) :: bounds
+     type(communications_arrays), intent(in) :: comms
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
+     real(wp), dimension(:), pointer, optional :: work
+     real(wp), dimension(*), intent(out), optional :: outadd
+   end subroutine transpose_v
+
+   subroutine untranspose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
+        work,outadd) !optional
+     use module_base
+     use module_types
+     implicit none
+     integer, intent(in) :: iproc,nproc,norbp,nspinor,nvctrp
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     type(communications_arrays), intent(in) :: comms
+     real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(inout) :: psi
+     real(wp), dimension(:), pointer, optional :: work
+     real(wp), dimension(*), intent(out), optional :: outadd
+   end subroutine untranspose_v
+
+   subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi)
+     use module_base
+     use module_types
+     implicit none
      character(len=10) :: orbname 
-     integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-     real(gp), intent(in) :: hgrid,rx,ry,rz
-     real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
+     real(gp), intent(in) :: hx,hy,hz,rx,ry,rz
+     type(locreg_descriptors), intent(in) :: lr
+     real(wp), dimension(*) :: psi
    end subroutine plot_wf
 
    subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&

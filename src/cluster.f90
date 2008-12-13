@@ -182,6 +182,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(convolutions_bounds) :: bounds
   type(nonlocal_psp_descriptors) :: nlpspd
   type(locreg_descriptors) :: Glr
+  type(communications_arrays) :: comms
+  integer, dimension(:), allocatable :: norb_par
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: occup,spinsgn,spinsgn_foo,rho
   real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
@@ -316,7 +318,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
        n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
 
-  !evaluate if the conditiond for the hybrid evaluation in periodic BC hold
+  !evaluate if the conditiond for the hybrid evaluation if periodic BC hold
+  !can be insterted in system_size
   hybrid_on=               (nfu1-nfl1+lupfil < n1+1)
   hybrid_on=(hybrid_on.and.(nfu2-nfl2+lupfil < n2+1))
   hybrid_on=(hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
@@ -326,7 +329,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   hzh=0.5d0*hz
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-  ndegree_ip=16 !default value to be put to 16 and update references for test
+  ndegree_ip=16 !default value 
   call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel)
 
   ! Create wavefunctions descriptors and allocate them
@@ -342,12 +345,24 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
 
+  !calculate the partitioning of the orbitals between the different processors
+
   !memory estimation
   if (iproc==0) then
      call MemoryEstimator(atoms%geocode,nproc,idsx,n1,n2,n3,atoms%alat1,atoms%alat2,atoms%alat3,&
           hx,hy,hz,atoms%nat,atoms%ntypes,atoms%iatype,rxyz,radii_cf,crmult,frmult,norb,&
           nlpspd%nprojel,atoms%atomnames,0,nspin,peakmem)
   end if
+
+  !allocate distribution of the orbitals between processors
+  allocate(norb_par(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,norb_par,'norb_par',subname)
+  !allocate communications arrays
+  call allocate_comms(nproc,comms,subname)
+  
+  call partition_orbitals(iproc,nproc,norb,nspinor,nvctrp,norb_par,&
+     comms)
+
 
   !allocate values of the array for the data scattering in sumrho
   !its values are ignored in the datacode='G' case
@@ -733,10 +748,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
        'Difference:evsum,energybs',evsum,energybs
  
   if (nvirt > 0 .and. in%inputPsiId == 0) then
-     call davidson(iproc,nproc,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,atoms,&
-          cpmult,fpmult,radii_cf,&
-          norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,n1,n2,n3,nvctrp,Glr,&
-          hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,bounds,nlpspd,proj,  &
+     call davidson(iproc,nproc,n1i,n2i,n3i,atoms,cpmult,fpmult,radii_cf,&
+          norb,norbu,norbp,nvirte,nvirtep,nvirt,gnrm_cv,nplot,nvctrp,Glr,&
+          hx,hy,hz,rxyz,rhopot,occup,i3xcsh,n3p,itermax,wfd,nlpspd,proj, &
           pkernel,ixc,psi,psivirt,eval,ncong,nscatterarr,ngatherarr,hybrid_on)
   end if
   
@@ -1181,6 +1195,12 @@ contains
        deallocate(bounds%gb%ibxxyy_f,stat=i_stat)
        call memocc(i_stat,i_all,'ibxxyy_f',subname)
     endif
+
+    i_all=-product(shape(norb_par))*kind(norb_par)
+    deallocate(norb_par,stat=i_stat)
+    call memocc(i_stat,i_all,'norb_par',subname)
+
+    call deallocate_comms(comms,subname)
 
     !semicores useful only for the input guess
     i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)

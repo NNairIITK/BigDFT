@@ -31,7 +31,8 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   call prepare_sdc(n1,n2,n3,modul1,modul2,modul3,af,bf,cf,ef,hx,hy,hz)
   !	initializes the wavelet scaling coefficients	
   call wscal_init_per(scal,hx,hy,hz,cprecr)
-  b=x
+  !b=x
+  call dcopy(nvctr_c+7*nvctr_f,x,1,b,1) 
 
   !	compute the input guess x via a Fourier transform in a cubic box.
   !	Arrays psifscf and ww serve as work arrays for the Fourier
@@ -44,6 +45,7 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   call apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        cprecr,hx,hy,hz,x,d,psifscf,ww,modul1,modul2,modul3,af,bf,cf,ef) ! d:=Ax
   r=b-d
+
 
   call wscal_per(nvctr_c,nvctr_f,scal,r(1),r(nvctr_c+1),d(1),d(nvctr_c+1))
   !rmr=dot_product(r,d)
