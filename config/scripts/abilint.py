@@ -1,11 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
+# Copyright (C) 2008 BigDFT group (TD)
+# This file is distributed under the terms of the
+# GNU General Public License, see ~abinit/COPYING
+# or http://www.gnu.org/copyleft/gpl.txt .
+# For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
+#----------------------------------------------------------------------------
 # VERSION for BigDFT
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 23/11/2008
+# Date: 05/12/2008
 #----------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -30,16 +36,14 @@
 
 #TODO
 #----
+# Add include files for dependencies
+# The module ftfvw2 needs interfaces: Check if everything is correct
 # Add correct children to _xxx_ files.
 # Add children and parents to the files interfaces_xxx.F90.
 # Add a true functionality to remove variables
-# Check if a definition of a fortran type is in a module
-# Do not consider only with module and double declarations of variables
 # Call after a ';' is not detected.
-# Handle better the preprocessing directives
-# The analyze of declaration is done twice, specially for type and interfaces
+# Handle the preprocessing directives (?)
 # Unify the detection and the creation of the interfaces by means of the class Fortran_Interface
-# Remove all specific stuff related to abinit for the analyze
 
 
 #Description
@@ -106,7 +110,7 @@ abilint [options] <source> <dest>
     options:
       --beautify  beautify the code (experimental, only add robodoc headers)
       --graph=<routine1,routine2,...> or --graph=all (experimental)
-                  build the graph of calls of the <routine> in the file routine.ps
+                  build the graph of calls for the <routine> in the file 'routine.dot'
       --graph=directories
                   build the graph of interdependences between directories
                   (need the package graphviz)
@@ -150,7 +154,7 @@ prefix = "interfaces_"
 
 #To add before and after statements added by abilint
 abilint_start = "!This section has been created automatically by the script Abilint (TD)."\
-                + " Do not modify these by hand.\n"
+                + " Do not modify the following lines by hand.\n"
 abilint_end =  "!End of the abilint section\n"
 
 #i# use_before = abilint_start + "#ifdef HAVE_FORTRAN_INTERFACES\n"
@@ -178,16 +182,18 @@ intrinsic_routines = [ "cpu_time",
 intrinsic_functions = [ "abs", "achar", "acos", "adjustl", "adjustr", "aimag", "aint", "all",
                        "allocated", "anint", "any", "asin", "associated", "atan", "atan2",
                        "bit_size", "btest", "ceiling", "char", "cmplx", "conjg", "cos", "cosh",
-                       "count", "dble", "digits", "dim", "dot_product", "dprod", "eoshift",
-                       "epsilon", "exp", "exponent", "floor", "fraction", "huge", "iachar", "iand",
+                       "count", 
+                       "dabs", "dble", "dcmplx", "dfloat", "digits", "dim", "dot_product", "dprod",
+                       "dreal", "eoshift", "epsilon", "exp", "exponent", 
+                       "float", "floor", "fraction", "huge", "iachar", "iand",
                        "ibclr", "ibits", "ibset", "ichar", "ieor", "index", "int", "ior", "ishft",
                        "ishftc", "kind", "lbound", "len", "len_trim", "lge", "lgt", "ll", "llt",
                        "log", "logical", "log10", "matmul", "max", "maxexponent", "maxloc",
                        "maxval", "merge", "min", "minexponent", "minloc", "minval", "mod", "modulo",
-                       "nearest", "nint", "not", "null", "pack", "precision", "present", "product",
+                       "nearest", "nint", "not", "null", "pack", "pad", "precision", "present", "product",
                        "radix", "range", "real", "repeat", "reshape", "rrspacing", "scale", "scan",
                        "selected_int_kind", "selected_real_kind", "set_exponent", "shape", "sign",
-                       "sin", "sinh", "size", "spacing", "spread", "sqrt", "sum", "tan", "tanh",
+                       "sin", "sinh", "size", "spacing", "spread", "sqrt", "tan", "tanh",
                        "tiny", "transfer", "transpose", "trim", "ubound", "unpack", "verify",
                        "datan", "dcos", "dexp", "dlog", "dsin", "dsqrt", "dtan"
                       ]
@@ -220,7 +226,7 @@ re_local_variables = re.compile("[\n ]*!Local[^\n]+\n")
 re_use_replaced = re.compile('^[ ]+use[ ]*(defs_berry|defs_dyson|defs_interfaces|defs_xc|defs_xderive|defs_xfuncmpi)[ ]*?\n',re.MULTILINE+re.IGNORECASE)
 
 
-#Function to split variable in declaration statements (critics and robust)
+#Function to split variable in declaration statements (critics and robust but ugly)
 def split_variables(string):
     """Split declaration into variables: [ (varname,declaration), ...]
     Accept comments and \n (!)"""
@@ -233,6 +239,25 @@ def split_variables(string):
             #Parameters: iterate up to a comma or the end
             declaration += c
             for c in it:
+                #Check if inside an array (/
+                if c == "(":
+                    declaration += c
+                    c = it.next()
+                    if c == "/":
+                        #Inside: waiting for /)
+                        declaration += c
+                        c = it.next()
+                        while True:
+                            declaration += c
+                            c = it.next()
+                            if c == "/":
+                                #Check if )
+                                declaration += c
+                                c = it.next()
+                                if c == ")":
+                                    declaration +=c
+                                    #Out
+                                    break
                 if c == '"' or c == "'":
                     #Iterate up to the last quote
                     quote = c
@@ -310,7 +335,7 @@ def split_code(text):
             if char == 'd' or char == 'e':
                 word += char
                 char = iter_text.next()
-                if char == '-':
+                if char == '-' or char == '+':
                     word += char
                     char = iter_text.next()
                 elif not char.isdigit():
@@ -328,16 +353,18 @@ def split_code(text):
             elif char in 'aglno' and word[-1] == '.':
                 statement.append(word[:-1])
                 word = '.'
+            elif char == "_":
+                #1._
+                statement.append(word)
+                word = char
+                char = ''
         if word:
             statement.append(word)
             continuation = False
             word = ''
         #Alpha-Alphanumeric
         while char.isalnum() or char == '_':
-            if word == '' and char == '_':
-                statement.append(char)
-            else:
-                word += char
+            word += char
             char = iter_text.next()
         if word:
             statement.append(word)
@@ -399,7 +426,7 @@ def indent_code(text,n=0):
     return new
 
 
-#Class for a project (i.e. bigdft)
+#Class for a project
 class Project:
     "Class to define a project which is a set of directories and files."
     def __init__(self,dir,pat_dir=['*'],pat_file=["*"],exclude=[],name="",logfile="project.log",\
@@ -539,11 +566,11 @@ class Project:
             routine.add_use_interface(self)
         self.message.done()
     #
-    def analyze_all(self,except_pattern="a"*40):
-        "Analyze all the project except the files which contain except_pattern"
+    def analyze_all(self,exclude="a"*40):
+        "Analyze all the project except the files which contain exclude"
         self.message.section("Analyze all the project...")
         for file in self.files.values():
-            if except_pattern not in file.name:
+            if exclude not in file.name:
                 file.analyze(self)
         self.message.done()
         #Build the list of arguments of all routines
@@ -559,16 +586,16 @@ class Project:
             routine.analyze_execution(self)
         self.message.done()
     #
-    def analyze_comments(self,except_pattern="a"*40):
-        "Analyze the comments of all the files except the files which contain except_pattern"
+    def analyze_comments(self,exclude="a"*40):
+        "Analyze the comments of all the files except the files which contain exclude"
         self.message.section("Analyze the comments...")
         for file in self.files.values():
-            if isinstance(file,File_F90) and except_pattern not in file.name:
+            if isinstance(file,File_F90) and exclude not in file.name:
                 file.analyze_comments(self)
         self.message.done()
     #
     def analyze_directories(self):
-        "Analyze the dependencies between directories"
+        "Analyze the hierarchy of directories given by 'rank_dir'"
         #First establish the hierarchy
         self.hierarchy()
         for routine in self.routines.values():
@@ -658,33 +685,40 @@ class Project:
         for routine in self.routines.values():
             routine.cache_use(self)
     #
-    def dependencies(self,depname):
-        "Build the list of dependencies for all routines"
+    def dependencies(self,inside_name,outside_name):
+        "Build the list of dependencies for all routines inside and outside the directory"
         self.message.section("Build the list of dependencies for each file...")
-        #First create a list of all modules per directories
+        #First create a list of all modules per directories (dir_modules)
         dir_modules = dict()
         for module in self.modules.values():
             if not dir_modules.has_key(module.dir):
                 dir_modules[module.dir] = [ module.name ]
             else:
                 dir_modules[module.dir].append(module.name)
+        #Then build the dependencies in the same directory (dependencies) and outside
         for (dir,files) in self.dirsfiles.items():
             dep = dict()
+            dirs = set()
+            dependencies = None
             for filename in files:
                 fullname = "%s/%s" %(dir,filename)
                 file = self.files[fullname]
                 if isinstance(file,File_F90):
-                    dependencies = file.dependencies(self)
+                    (dependencies,dirs_child) = file.dependencies(self)
+                    dirs.update(dirs_child)
                     if dependencies:
                         dep[file.name] = map(lambda x: x.file,dependencies)
                         dep[file.name].sort()
-            #Create the file only if modules are inside the directories
+            #Create the file 'inside_name' only if modules are inside the directories
+            if dir_modules.has_key(dir) or dirs:
+                self.message.write("[%s:" % dir,verbose=-10)
             if dir_modules.has_key(dir):
-                #Build abinit.dep
-                self.message.write("[%s]" % dir,verbose=-10)
-                depfile = self.add_file(dir,depname,create=True)
+                #Build the file inside_name
+                self.message.write("(%s)" % inside_name,verbose=-10)
+                depfile = self.add_file(dir,inside_name,create=True)
                 #Add header of the file
-                depfile.add_code(head_dependencies % {"dir": dir})
+                depfile.add_code(head_dependencies % {"dir": dir, 
+                                                      "message": "(inside the directory)"})
                 #Add to clean files .mod
                 depfile.add_code("CLEANFILES += ")
                 linmod = dir_modules[dir]
@@ -696,10 +730,27 @@ class Project:
                 files = dep.keys()
                 files.sort()
                 for file in files:
-                    depfile.add_code("\n%s: " % file.replace(".F90",".$(OBJEXT)"))
+                    #Remove all suffixes (ex. .F90 and .F90.in)
+                    depfile.add_code("\n%s.%s: " % (file.split(".")[0],"$(OBJEXT)"))
                     for module in dep[file]:
-                        depfile.add_code("%s " % module.replace(".F90",".$(OBJEXT)"))
+                        depfile.add_code("%s.%s " % (module.split(".")[0],"$(OBJEXT)"))
                     depfile.add_code("\n")
+            if dirs:
+                #Build the file outside_name
+                self.message.write("(%s)" % outside_name,verbose=-10)
+                depfile = self.add_file(dir,outside_name,create=True)
+                #Add header of the file
+                depfile.add_code(head_dependencies % {"dir": dir,
+                                                      "message": "(outside the directory)"})
+                #Add the current directory
+                depfile.add_code("include_dirs = [")
+                comma = ""
+                for d in dirs:
+                    depfile.add_code('%s\n\t"%s"' % (comma,d.replace("%s/src/" % OLD,"")))
+                    comma = ","
+                depfile.add_code("]\n")
+            if dir_modules.has_key(dir) or dirs:
+                self.message.write("]",verbose=-10)
         self.message.done()
     #
     def dump_ftype(self,name,filename):
@@ -1295,10 +1346,13 @@ class File_F90(File):
     def dependencies(self,project):
         "Build the dependencies"
         dependencies = set()
+        dirs = set()
         for child in self.children:
             if isinstance(child,Routine) or isinstance(child,Function) or isinstance(child,Module):
-                dependencies.update(child.dependencies(project))
-        return dependencies
+                (dependencies_child,dirs_child) = child.dependencies(project)
+                dependencies.update(dependencies_child)
+                dirs.update(dirs_child)
+        return (dependencies,dirs)
     #
     def interface(self):
         "Build the interface"
@@ -1673,6 +1727,8 @@ class Module(Code):
                 self.use_modules.update(struct.use_modules)
                 #Add the variables declared in the module
                 struct.Declaration.dict_vars.update(self.Declaration.dict_vars)
+                #Add also the private variables
+                struct.Declaration.dict_vars.update(self.Declaration.dict_vars_private)
             elif self.re_sub_end.match(line):
                 #Detect the end of a subroutine or module
                 #We have finished
@@ -1684,17 +1740,22 @@ class Module(Code):
             else:
                 self.message.fatal("\n%s\n--> No detected routine!\n" % line \
                         + "This part of code can not be parsed as Fortran file:\n" \
-                                   + "Analysis Error in %s/%s:<%s>\n" % (self.dir,self.file,self.name))
+                        + "Analysis Error in %s/%s:<%s>\n" % (self.dir,self.file,self.name))
     #
     def dependencies(self,project):
         "Build the dependencies from the list of use"
         dependencies = set()
+        dirs = set()
         for mod in self.use_modules:
             a = project.modules.get(mod)
-            if a and a.dir == self.dir:
-                #Only dependencies of modules with the same directories
-                dependencies.add(a)
-        return dependencies
+            if a:
+                if a.dir == self.dir:
+                    #Only dependencies of modules with the same directories
+                    dependencies.add(a)
+                else:
+                    #Add dir which contains a module needed for the compilation of self
+                    dirs.add(a.dir)
+        return (dependencies,dirs)
     #
     def update_declaration(self,name,tt):
         "Add name into the declaration and also in each children"
@@ -1987,16 +2048,24 @@ class Generic_Routine(Routine):
         self.file = file.name
         self.dir = file.dir
         self.module = file.module
+    #
     def add_use_interface(self,project):
         "Do nothing"
         return
+    #
+    def analyze_execution(self,project):
+        "Do nothing"
+        return
+    #
     def get_arguments(self,project):
         "Do nothing"
         self.arguments = ""
         return
+    #
     def interface(self):
         "Do nothing"
         return ""
+    #
     def set_called_routines(self,project):
         "Determine routines and functions which are called by the routine: Use all routines from the other routines"
         for routine in self.generic_file.children:
@@ -2148,8 +2217,8 @@ class Use(Code):
     #Add use
     def add_use_interface(self,modules,else_modules):
         "Add 'use interfaces_xxx'"
-        #Remove section created by abilint
-        self.code = re_section_abilint.sub('',self.code)
+        #Remove section created by abilint (replace by \n if a use after)
+        self.code = re_section_abilint.sub('\n',self.code)
         if re_section_abilint_start.search(self.code):
             self.message.error("Routine %s: alone header of an abilint section" % self.parent.name)
             #Remove the beginning of a section created by abilint (if separated)
@@ -2157,15 +2226,13 @@ class Use(Code):
         if re_section_abilint_end.search(self.code):
             self.message.error("Routine %s: alone footer of an abilint section" % self.parent.name)
             #Remove the end of a section created by abilint (if separated)
-            self.code = re_section_abilint_end.sub('',self.code)
+            self.code = re_section_abilint_end.sub('\n',self.code)
         #Remove line with use prefix
         self.code = self.re_use_prefix.sub('',self.code)
         #Remove some replaced use
         self.code = re_use_replaced.sub('',self.code)
         #Remove empty preprocessing directives
         self.code = self.re_empty_preproc.sub('',self.code)
-        #Remove multiple \n
-        self.code = self.re_multi_n.sub('\n',self.code)
         #Add preprocessing commands, comments and implicit none
         if modules or else_modules:
             text_use = "\n\n" + use_before
@@ -2188,11 +2255,14 @@ class Use(Code):
         else:
             #Be sure to have 2 \n
             self.code += (2-self.code[-2:].count("\n"))*"\n"
+        #Remove multiple \n
+        self.code = self.re_multi_n.sub('\n\n',self.code)
     #
     #Analyze the code
     def analyze(self,iter_code):
         """Analyze use statements 
-           (special treatment for preprocessing commands which needs to be clarify)"""
+           (special treatment for preprocessing commands which needs to be clarify)
+           only is ignored."""
         Code.analyze(self)
         #List of used modules
         self.modules = set()
@@ -2204,7 +2274,11 @@ class Use(Code):
                 #Add comments and the line
                 self.add_code(comments+line)
                 #Add this module
-                self.modules.add(res.groupdict()["name"])
+                self.modules.add(res.groupdict()["name"].lower())
+                while self.re_continuation.search(line):
+                    print line,res.groupdict()["name"].lower()
+                    line = iter_code.next()
+                    self.add_code(line)
                 comments=""
             elif self.re_allcomment.match(line):
                 if "#if" in line:
@@ -2585,11 +2659,7 @@ class Declaration(Code):
                     dict_vars[name] = ("",var)
                 else:
                     dict_vars[name] = (decl,var)
-        #Remove private variables
-        for (name,(decl,var)) in dict_vars.items():
-            if "private" in decl.lower():
-                del(dict_vars[name])
-        #Check if all variables are a type
+        #Check if all variables have a type
         if not dict_implicit:
             #Implicit none
             for (name,(decl,var)) in dict_vars.items():
@@ -2605,6 +2675,12 @@ class Declaration(Code):
                 elif decl =="parameter":
                     #Add type of the implicit dictionary
                     dict_vars[name] = ("%s, %s" % (dict_implicit[name[0]],decl),var)
+        #Put private variables in a private directory and remove it
+        self.dict_vars_private = dict()
+        for (name,(decl,var)) in dict_vars.items():
+            if "private" in decl.lower():
+                self.dict_vars_private[name] = dict_vars[name]
+                del(dict_vars[name])
         self.dict_vars = dict_vars
     #
     #Give the declaration of arguments
@@ -2773,11 +2849,11 @@ class Execution(Code):
     re_string = re.compile('''['"][^'"]*['"]''')
     #Alphanumeric
     re_word = re.compile('[a-z]\w*')
-    #List of reserved keywords
+    #List of reserved keywords (special case for call, end, format)
     reserved_keywords = [ "case", "close", "continue", "cycle",
-                         "default", "do", "else", "elseif", "exit", "goto",
+                         "default", "do", "else", "elseif", "exit", "goto","go","to",
                          "if", "nullify",
-                         "print", "return", "select", "stop", "then", "while" ]
+                         "print", "return", "select", "stop", "then", "where", "while" ]
     #Add intrinsic functions
     reserved_keywords.extend(intrinsic_functions)
     #List of reserved keywords with variables
@@ -2788,9 +2864,13 @@ class Execution(Code):
                       "endfile": [ "unit", "iostat", "err" ],
                       "inquire": [ "unit", "exist", "file", "opened", "number", "named", "access", "sequential", "form", "formatted",
                                    "recl", "nextrec", "blank", "position", "action", "read", "write", "readwrite", "delim", "pad"],
+                      "maxval": [ "mask" ],
+                      "minval": [ "mask" ],
                       "open": [ "access", "action", "blank", "delim", "file", "form", "iostat", "pad", "position", "recl", "status", "unit"],
-                      "read": [ "fmt", "iostat", "unit"],
+                      "pack": [ "mask" ],
+                      "read": [ "fmt", "iostat", "rec", "unit"],
                       "rewind": [ "unit", "iostat", "err" ],
+                      "sum": [ "mask" ],
                       "write": [ "advance", "fmt", "iostat", "unit"]}
     #
     def analyze(self,line,iter_code,project):
@@ -2852,13 +2932,16 @@ class Execution(Code):
                         #We iterate at the end of the line
                         #if "end do", we detect if there is a block name
                         l=len(line)
-                        if (word == "endif" and l == 2) or \
+                        if (word == "endif" and l == 2) or (l == 3 and line[1] == "if") or \
                            (word == "enddo" and l == 2) or (l == 3 and line[1] == "do"):
                             variables.remove(line[-1])
                         break
+                    elif word == "format":
+                        #We skip the line
+                        break
                     else:
                         if in_call:
-                            #Check if xxx=
+                            #Check if xxx= (should be better to have also reserved words)
                             next = iter_line.next()
                             if next == "=":
                                 #Do not add
@@ -2879,9 +2962,8 @@ class Execution(Code):
         undeclared = list(variables.difference(declared_variables))
         if undeclared:
             undeclared.sort()
-            self.message.write("%s/%s:%s\n" % \
-                (self.parent.dir,self.parent.file,self.parent.name),verbose=-10)
-            self.message.write("Undeclared variables: %s\n" % undeclared,verbose=-10)
+            self.message.section("%s/%s:%s\nUndeclared variables: %s\n" % \
+                (self.parent.dir,self.parent.file,self.parent.name,undeclared))
             line = ""
             implicit = ""
             #Build the declaration
@@ -2904,7 +2986,7 @@ class Execution(Code):
                 declaration += line+"\n"
                 #self.message.write("Added declaration to the routine '%s':\n" % self.parent.name,verbose=-10)
             if declaration:
-                self.message.write(declaration,verbose=-10)
+                self.message.section(declaration)
             #Add to the declaration of the routine
             #self.parent.Declaration.code += declaration
             self.message.done()
@@ -3304,9 +3386,9 @@ head_dependencies = \
 mpif_file = """
 integer, parameter :: mpi_comm_world = 0, mpi_max = 1, mpi_min = 2, mpi_sum = 3
 integer, parameter :: mpi_character = 5
-integer, parameter :: mpi_integer = 7
-integer, parameter :: mpi_real = 13
-integer, parameter :: mpi_double_precision = 17
+integer, parameter :: mpi_integer = 7, mpi_integer8=11
+integer, parameter :: mpi_real = 13, mpi_complex=18
+integer, parameter :: mpi_double_precision = 17, mpi_double_complex=22
 !Seems to have no value ?
 integer, parameter :: mpi_in_place = 999
 """
@@ -3412,7 +3494,7 @@ if __name__ == "__main__":
     if NEW == OLD:
         bigdft.cache_load(NEW)
     #Analyze the project.
-    bigdft.analyze_all(except_pattern="interfaces_")
+    bigdft.analyze_all(exclude="interfaces_")
     #Set the called routines
     bigdft.set_children_parents()
     if lint:
