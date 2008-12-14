@@ -87,7 +87,7 @@
 !        if (ntime.ne.1) write(6,'(a,2(x,e11.4),x,i4)')  & 
 !              'Time (CPU,ELA) per FFT call (sec):' ,time,tela,ntime
 !        flops=5*n1*n2*n3*log(1.d0*n1*n2*n3)/log(2.d0)
-!    write(6,*) 'Estimated floating point operations per FFT call',flops
+!	write(6,*) 'Estimated floating point operations per FFT call',flops
 !        if (ntime.ne.1) print*, 'CPU:  Mflops:' ,1.d-6*flops/time
 !        if (ntime.ne.1) print*, 'ELAP: Mflops:' ,1.d-6*flops/tela
 !
@@ -107,41 +107,40 @@
 ! auxiliary subroutines --------------------------
 
 subroutine dimensions_fft(n1,n2,n3,nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
-    implicit none
-    integer, intent(in)::n1,n2,n3
-    integer,intent(out)::nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
+	implicit none
+	integer, intent(in)::n1,n2,n3
+	integer,intent(out)::nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
 ! Array sizes for the real-to-complex FFT: note that n1(there)=n1(here)+1
 ! and the same for n2,n3.
-    nd1=n1+2;        nd2=n2+2;    nd3=n3+2
-    ! n1b>=n1f;   n3f>=n3b
-    n1f=(n1+2)/2 
-    n3f=(n3+1)/2+1
-    
-    n1b=(n1+1)/2+1
-    n3b=(n3+2)/2
-    
-    nd1f=n1f+1
-    nd3f=n3f+1
-    
-    nd1b=n1b+1
-    nd3b=n3b+1
+	nd1=n1+2;		nd2=n2+2;	nd3=n3+2
+	! n1b>=n1f;   n3f>=n3b
+	n1f=(n1+2)/2 
+	n3f=(n3+1)/2+1
+	
+	n1b=(n1+1)/2+1
+	n3b=(n3+2)/2
+	
+	nd1f=n1f+1
+	nd3f=n3f+1
+	
+	nd1b=n1b+1
+	nd3b=n3b+1
 end subroutine dimensions_fft
 
 
-subroutine init(n1,n2,n3,nd1,nd2,nd3,zin,z)
-    implicit real*8 (a-h,o-z)
-    dimension zin(2,n1,n2,n3),z(2,nd1,nd2,nd3)
-    do i3=1,n3
-        do i2=1,n2
-            do i1=1,n1
-                zin(1,i1,i2,i3) = cos(1.23*float(i1*111+ i2*11 + i3))
-                zin(2,i1,i2,i3) = sin(3.21*float(i3*111 + i2*11 + i1))
-                z(1,i1,i2,i3) = zin(1,i1,i2,i3) 
-                z(2,i1,i2,i3) = zin(2,i1,i2,i3)
-            end do
-        end do
-    end do
-end subroutine init
+        subroutine init(n1,n2,n3,nd1,nd2,nd3,zin,z)
+        implicit real*8 (a-h,o-z)
+        dimension zin(2,n1,n2,n3),z(2,nd1,nd2,nd3)
+        do 9763,i3=1,n3
+        do 9763,i2=1,n2
+        do 9763,i1=1,n1
+        zin(1,i1,i2,i3) = cos(1.23*float(i1*111+ i2*11 + i3))
+        zin(2,i1,i2,i3) = sin(3.21*float(i3*111 + i2*11 + i1))
+        z(1,i1,i2,i3) = zin(1,i1,i2,i3) 
+        z(2,i1,i2,i3) = zin(2,i1,i2,i3) 
+9763        continue
+        return
+        end
 
         subroutine vgl(n1,n2,n3,nd1,nd2,nd3,x,md1,md2,md3,y,scale,tta,ttm)
         implicit real*8 (a-h,o-z)
@@ -242,12 +241,12 @@ end subroutine init
         ncache=6*1024
 
 ! check whether input values are reasonable
-    if (inzee.le.0 .or. inzee.ge.3) stop 'wrong inzee'
-    if (isign.ne.1 .and. isign.ne.-1) stop 'wrong isign'
-    if (n1.gt.nd1) stop 'n1>nd1'
-    if (n2.gt.nd2) stop 'n2>nd2'
-    if (n3.gt.nd3) stop 'n3>nd3'
-    
+	if (inzee.le.0 .or. inzee.ge.3) stop 'wrong inzee'
+	if (isign.ne.1 .and. isign.ne.-1) stop 'wrong isign'
+	if (n1.gt.nd1) stop 'n1>nd1'
+	if (n2.gt.nd2) stop 'n2>nd2'
+	if (n3.gt.nd3) stop 'n3>nd3'
+	
 
 ! vector computer with memory banks:
       if (ncache.eq.0) then
@@ -533,17 +532,17 @@ end subroutine init
 !$        end function omp_get_thread_num
 !$      end interface
 
-        integer,intent(in)::nd1,nd2,nd3,nd1f,nd3f
-        integer,intent(in)::n1,n2,n3,n1f,n3f
+		integer,intent(in)::nd1,nd2,nd3,nd1f,nd3f
+		integer,intent(in)::n1,n2,n3,n1f,n3f
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:,:,:) :: zw  
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:,:) :: trig
         INTEGER, ALLOCATABLE, DIMENSION(:) :: after,now,before
 
-        real*8,intent(in):: x0(n1,n2,n3)
-        real*8,intent(out)::z3(2,nd1*nd2*nd3f,2)
-        real*8              ::z1(2,nd1f*nd2*nd3,2) ! work array
+		real*8,intent(in):: x0(n1,n2,n3)
+		real*8,intent(out)::z3(2,nd1*nd2*nd3f,2)
+		real*8			  ::z1(2,nd1f*nd2*nd3,2) ! work array
 
-        integer::mm,nffta,isign=1
+		integer::mm,nffta,isign=1
         if (max(n1,n2,n3).gt.1024) stop '1024'
 
 ! some reasonable values of ncache: 
@@ -552,22 +551,22 @@ end subroutine init
 !   But if you care about performance find the optimal value of ncache yourself!
 !       On all vector machines: ncache=0
 
-        inzee=1
+		inzee=1
         ncache=6*1024
 !*******************Alexey*********************************************************************
 !         ncache=0
 !**********************************************************************************************
 
 ! check whether input values are reasonable
-    if (inzee.le.0 .or. inzee.ge.3) stop 'wrong inzee'
-    if (isign.ne.1 .and. isign.ne.-1) stop 'wrong isign'
-    if (n1.gt.nd1) stop 'n1>nd1'
-    if (n2.gt.nd2) stop 'n2>nd2'
-    if (n3.gt.nd3) stop 'n3>nd3'
-    
-        
-!        call x0_to_z1_simple(x0,z1,inzee)
-        call x0_to_z1(x0,z1,inzee)
+	if (inzee.le.0 .or. inzee.ge.3) stop 'wrong inzee'
+	if (isign.ne.1 .and. isign.ne.-1) stop 'wrong isign'
+	if (n1.gt.nd1) stop 'n1>nd1'
+	if (n2.gt.nd2) stop 'n2>nd2'
+	if (n3.gt.nd3) stop 'n3>nd3'
+	
+		
+!		call x0_to_z1_simple(x0,z1,inzee)
+		call x0_to_z1(x0,z1,inzee)
 
       if (ncache.eq.0) then
 ! vector computer with memory banks:
@@ -575,19 +574,19 @@ end subroutine init
 
         call ctrig(n3,trig,after,before,now,isign,ic)
 
-        mm=nd1f*nd2 
-        nffta=nd1f*n2
+		mm=nd1f*nd2 
+		nffta=nd1f*n2
 
         do 51093,i=1,ic-1
         call fftstp(mm,nffta,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
                           trig,after(i),now(i),before(i),isign)
-51093            inzee=3-inzee
+51093	        inzee=3-inzee
         i=ic
         call fftrot(mm,nffta,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
                           trig,after(i),now(i),before(i),isign)
         inzee=3-inzee
 
-        call z1_to_z3(z1,z3,inzee)
+		call z1_to_z3(z1,z3,inzee)
 !===============================================================================================
         if (n2.ne.n3) call ctrig(n2,trig,after,before,now,isign,ic)
         nfft=nd3f*n1
@@ -683,7 +682,7 @@ end subroutine init
         inzet=3-inzet
 
 
-        call z1_to_z3(z1,z3,inzet)
+		call z1_to_z3(z1,z3,inzet)
 !$omp barrier
 
 ! TRANSFORM ALONG Y AXIS
@@ -793,144 +792,144 @@ end subroutine init
 
 
       endif
-          contains
+	  	contains
 
-            subroutine x0_to_z1(x0,z1,inzee)
-            ! Transform the real array x0 into a complex z1
-            ! real      part of z1: elements of x0 with odd  i1
-            ! imaginary part of z1: elements of x0 with even i1
-            implicit none
-            integer,intent(in)::inzee
-            real*8,intent(in):: x0(n1,n2,n3)
-            real*8,intent(out)::z1(2,nd1f,nd2,nd3,2)
-            integer i2,i3
+			subroutine x0_to_z1(x0,z1,inzee)
+			! Transform the real array x0 into a complex z1
+			! real      part of z1: elements of x0 with odd  i1
+			! imaginary part of z1: elements of x0 with even i1
+			implicit none
+			integer,intent(in)::inzee
+			real*8,intent(in):: x0(n1,n2,n3)
+			real*8,intent(out)::z1(2,nd1f,nd2,nd3,2)
+			integer i2,i3
 
-            do i3=1,n3
-                do i2=1,n2
-                    ! 2*n1f=n1 for even n1
-                    ! 2*n1f=n1+1 for odd n1. Then, we copy one more element than
-                    ! necessary, but that's no problem.
-                    call my_copy(z1(1,1,i2,i3,inzee),x0(1,i2,i3))
-                enddo
-            enddo
+			do i3=1,n3
+				do i2=1,n2
+					! 2*n1f=n1 for even n1
+					! 2*n1f=n1+1 for odd n1. Then, we copy one more element than
+					! necessary, but that's no problem.
+					call my_copy(z1(1,1,i2,i3,inzee),x0(1,i2,i3))
+				enddo
+			enddo
 
-            end subroutine x0_to_z1
+			end subroutine x0_to_z1
 
-            subroutine my_copy(x,y)
-                ! copies complex array y into complex array x
-                implicit none
-                real*8 x(2,n1f),y(2,n1f)
-                x=y
-            end subroutine my_copy
+			subroutine my_copy(x,y)
+				! copies complex array y into complex array x
+				implicit none
+				real*8 x(2,n1f),y(2,n1f)
+				x=y
+			end subroutine my_copy
 
-            subroutine x0_to_z1_simple(x0,z1,inzee)
-            ! Transform the real array x0 into a complex z1
-            ! real      part of z1: elements of x0 with odd  i1
-            ! imaginary part of z1: elements of x0 with even i1
-            implicit none
-            integer,intent(in)::inzee
-            real*8,intent(in):: x0(n1,n2,n3)
-            real*8,intent(out)::z1(2,nd1f,nd2,nd3,2)
-            integer i1,i2,i3
-            
-            if (n1f*2.eq.n1) then
-                do i3=1,n3
-                    do i2=1,n2
-                        do i1=1,n1f
-                            z1(1,i1,i2,i3,inzee)=x0(2*i1-1,i2,i3)
-                            z1(2,i1,i2,i3,inzee)=x0(2*i1  ,i2,i3)
-                        enddo
-                    enddo
-                enddo
-            else ! n1=2*n1f-1
-                do i3=1,n3
-                    do i2=1,n2
-                        do i1=1,n1f-1
-                            z1(1,i1,i2,i3,inzee)=x0(2*i1-1,i2,i3)
-                            z1(2,i1,i2,i3,inzee)=x0(2*i1  ,i2,i3)
-                        enddo
-                        z1(1,n1f,i2,i3,inzee)=x0(n1,i2,i3)
-                    enddo
-                enddo
-            endif
+			subroutine x0_to_z1_simple(x0,z1,inzee)
+			! Transform the real array x0 into a complex z1
+			! real      part of z1: elements of x0 with odd  i1
+			! imaginary part of z1: elements of x0 with even i1
+			implicit none
+			integer,intent(in)::inzee
+			real*8,intent(in):: x0(n1,n2,n3)
+			real*8,intent(out)::z1(2,nd1f,nd2,nd3,2)
+			integer i1,i2,i3
+			
+			if (n1f*2.eq.n1) then
+				do i3=1,n3
+					do i2=1,n2
+						do i1=1,n1f
+							z1(1,i1,i2,i3,inzee)=x0(2*i1-1,i2,i3)
+							z1(2,i1,i2,i3,inzee)=x0(2*i1  ,i2,i3)
+						enddo
+					enddo
+				enddo
+			else ! n1=2*n1f-1
+				do i3=1,n3
+					do i2=1,n2
+						do i1=1,n1f-1
+							z1(1,i1,i2,i3,inzee)=x0(2*i1-1,i2,i3)
+							z1(2,i1,i2,i3,inzee)=x0(2*i1  ,i2,i3)
+						enddo
+						z1(1,n1f,i2,i3,inzee)=x0(n1,i2,i3)
+					enddo
+				enddo
+			endif
 
-            end subroutine x0_to_z1_simple
-
-
-    subroutine z1_to_z3(z1,z3,inzee)
-    ! transforms the array z1 that stores elements of z corresponding to even 
-    ! and odd values of i1, as symmetric and antisymmetric combinations w.r.t.
-    ! flip of i3,
-    ! into the array z3 that stores only elements of z with i3=<nd3f
-    implicit none
-    integer,intent(in)::inzee
-    integer i1,i2,i3
-    real*8,intent(in):: z1(2,nd3,nd1f,nd2,2)
-    real*8,intent(out)::z3( 2,nd3f,nd1 ,nd2,2)
-    
-    if (n1f*2.eq.n1) then
-        ! i3=1
-        do i2=1,n2
-            do i1=1,n1f
-                z3(1,1,2*i1-1,i2,inzee)= 2.d0*z1(1,1,i1,i2,inzee)
-                z3(2,1,2*i1-1,i2,inzee)= 0.d0
-                z3(1,1,2*i1  ,i2,inzee)= 2.d0*z1(2,1,i1,i2,inzee)
-                z3(2,1,2*i1  ,i2,inzee)= 0.d0
-            enddo
-        enddo
-        
-        do i2=1,n2
-            do i1=1,n1f
-                do i3=2,n3f
-                    z3(1,i3,2*i1-1,i2,inzee)= z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
-                    z3(2,i3,2*i1-1,i2,inzee)= z1(2,i3,i1,i2,inzee)-z1(2,n3+2-i3,i1,i2,inzee)
-                    z3(1,i3,2*i1  ,i2,inzee)= z1(2,i3,i1,i2,inzee)+z1(2,n3+2-i3,i1,i2,inzee)
-                    z3(2,i3,2*i1  ,i2,inzee)=-z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
-                enddo
-            enddo
-        enddo
-    else ! n1=2*n1f-1
-        ! i3=1
-        do i2=1,n2
-            do i1=1,n1f-1
-                z3(1,1,2*i1-1,i2,inzee)= 2.d0*z1(1,1,i1,i2,inzee)
-                z3(2,1,2*i1-1,i2,inzee)= 0.d0
-                z3(1,1,2*i1  ,i2,inzee)= 2.d0*z1(2,1,i1,i2,inzee)
-                z3(2,1,2*i1  ,i2,inzee)= 0.d0
-            enddo
-        enddo
-        
-        do i2=1,n2
-            do i1=1,n1f-1
-                do i3=2,n3f
-                    z3(1,i3,2*i1-1,i2,inzee)= z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
-                    z3(2,i3,2*i1-1,i2,inzee)= z1(2,i3,i1,i2,inzee)-z1(2,n3+2-i3,i1,i2,inzee)
-                    z3(1,i3,2*i1  ,i2,inzee)= z1(2,i3,i1,i2,inzee)+z1(2,n3+2-i3,i1,i2,inzee)
-                    z3(2,i3,2*i1  ,i2,inzee)=-z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
-                enddo
-            enddo
-        enddo
-
-        ! i1=n1f is treated separately: 2*n1f-1=n1, but terms with 2*n1f are
-        ! omitted
-
-        do i2=1,n2
-            z3(1,1,n1,i2,inzee)= 2.d0*z1(1,1,n1f,i2,inzee)
-            z3(2,1,n1,i2,inzee)= 0.d0
-        enddo
-        
-        do i2=1,n2
-            do i3=2,n3f
-                z3(1,i3,n1,i2,inzee)= z1(1,i3,n1f,i2,inzee)+z1(1,n3+2-i3,n1f,i2,inzee)
-                z3(2,i3,n1,i2,inzee)= z1(2,i3,n1f,i2,inzee)-z1(2,n3+2-i3,n1f,i2,inzee)
-            enddo
-        enddo
-    endif
-
-    end subroutine z1_to_z3
+			end subroutine x0_to_z1_simple
 
 
-        end subroutine fft_for
+	subroutine z1_to_z3(z1,z3,inzee)
+	! transforms the array z1 that stores elements of z corresponding to even 
+	! and odd values of i1, as symmetric and antisymmetric combinations w.r.t.
+	! flip of i3,
+	! into the array z3 that stores only elements of z with i3=<nd3f
+	implicit none
+	integer,intent(in)::inzee
+	integer i1,i2,i3
+	real*8,intent(in):: z1(2,nd3,nd1f,nd2,2)
+	real*8,intent(out)::z3( 2,nd3f,nd1 ,nd2,2)
+	
+	if (n1f*2.eq.n1) then
+		! i3=1
+		do i2=1,n2
+			do i1=1,n1f
+				z3(1,1,2*i1-1,i2,inzee)= 2.d0*z1(1,1,i1,i2,inzee)
+				z3(2,1,2*i1-1,i2,inzee)= 0.d0
+				z3(1,1,2*i1  ,i2,inzee)= 2.d0*z1(2,1,i1,i2,inzee)
+				z3(2,1,2*i1  ,i2,inzee)= 0.d0
+			enddo
+		enddo
+		
+		do i2=1,n2
+			do i1=1,n1f
+				do i3=2,n3f
+					z3(1,i3,2*i1-1,i2,inzee)= z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
+					z3(2,i3,2*i1-1,i2,inzee)= z1(2,i3,i1,i2,inzee)-z1(2,n3+2-i3,i1,i2,inzee)
+					z3(1,i3,2*i1  ,i2,inzee)= z1(2,i3,i1,i2,inzee)+z1(2,n3+2-i3,i1,i2,inzee)
+					z3(2,i3,2*i1  ,i2,inzee)=-z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
+				enddo
+			enddo
+		enddo
+	else ! n1=2*n1f-1
+		! i3=1
+		do i2=1,n2
+			do i1=1,n1f-1
+				z3(1,1,2*i1-1,i2,inzee)= 2.d0*z1(1,1,i1,i2,inzee)
+				z3(2,1,2*i1-1,i2,inzee)= 0.d0
+				z3(1,1,2*i1  ,i2,inzee)= 2.d0*z1(2,1,i1,i2,inzee)
+				z3(2,1,2*i1  ,i2,inzee)= 0.d0
+			enddo
+		enddo
+		
+		do i2=1,n2
+			do i1=1,n1f-1
+				do i3=2,n3f
+					z3(1,i3,2*i1-1,i2,inzee)= z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
+					z3(2,i3,2*i1-1,i2,inzee)= z1(2,i3,i1,i2,inzee)-z1(2,n3+2-i3,i1,i2,inzee)
+					z3(1,i3,2*i1  ,i2,inzee)= z1(2,i3,i1,i2,inzee)+z1(2,n3+2-i3,i1,i2,inzee)
+					z3(2,i3,2*i1  ,i2,inzee)=-z1(1,i3,i1,i2,inzee)+z1(1,n3+2-i3,i1,i2,inzee)
+				enddo
+			enddo
+		enddo
+
+		! i1=n1f is treated separately: 2*n1f-1=n1, but terms with 2*n1f are
+		! omitted
+
+		do i2=1,n2
+			z3(1,1,n1,i2,inzee)= 2.d0*z1(1,1,n1f,i2,inzee)
+			z3(2,1,n1,i2,inzee)= 0.d0
+		enddo
+		
+		do i2=1,n2
+			do i3=2,n3f
+				z3(1,i3,n1,i2,inzee)= z1(1,i3,n1f,i2,inzee)+z1(1,n3+2-i3,n1f,i2,inzee)
+				z3(2,i3,n1,i2,inzee)= z1(2,i3,n1f,i2,inzee)-z1(2,n3+2-i3,n1f,i2,inzee)
+			enddo
+		enddo
+	endif
+
+	end subroutine z1_to_z3
+
+
+		end subroutine fft_for
 
 
         subroutine FFT_back(n1,n2,n3,n1f,n1b,n3f,n3b,nd1,nd2,nd3,nd1f,nd1b,nd3f,nd3b,y,z1,z3,inzee)
@@ -1000,13 +999,13 @@ end subroutine init
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:,:,:) :: zw  
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:,:) :: trig
         INTEGER, ALLOCATABLE, DIMENSION(:) :: after,now,before
-        integer,intent(in):: nd3f,n3f,n1b,nd1b,n3b,nd3b
-        integer,intent(in):: n1,n2,n3,nd1,nd2,nd3
-        real*8,intent(inout)::z3(2,nd1*nd2*nd3b,2)
-        real*8                  ::z1(2,nd1b*nd2*nd3,2) ! work array
-        real*8,intent(out):: y(n1,n2,n3)
+		integer,intent(in):: nd3f,n3f,n1b,nd1b,n3b,nd3b
+		integer,intent(in):: n1,n2,n3,nd1,nd2,nd3
+		real*8,intent(inout)::z3(2,nd1*nd2*nd3b,2)
+		real*8		  	    ::z1(2,nd1b*nd2*nd3,2) ! work array
+		real*8,intent(out):: y(n1,n2,n3)
 
-        isign=-1
+		isign=-1
         if (max(n1,n2,n3).gt.1024) stop '1024'
 
 ! some reasonable values of ncache: 
@@ -1016,17 +1015,17 @@ end subroutine init
 !       On all vector machines: ncache=0
 
         ncache=6*1024
-!        ncache=0
+!		ncache=0
 
 ! check whether input values are reasonable
-    if (inzee.le.0 .or. inzee.ge.3) stop 'wrong inzee'
-    if (isign.ne.1 .and. isign.ne.-1) stop 'wrong isign'
-    if (n1.gt.nd1) stop 'n1>nd1'
-    if (n2.gt.nd2) stop 'n2>nd2'
-    if (n3.gt.nd3) stop 'n3>nd3'
-    
+	if (inzee.le.0 .or. inzee.ge.3) stop 'wrong inzee'
+	if (isign.ne.1 .and. isign.ne.-1) stop 'wrong isign'
+	if (n1.gt.nd1) stop 'n1>nd1'
+	if (n2.gt.nd2) stop 'n2>nd2'
+	if (n3.gt.nd3) stop 'n3>nd3'
+	
 
-!        call z3_to_z1(z3,z1,inzee)
+!		call z3_to_z1(z3,z1,inzee)
 
       if (ncache.eq.0) then
 ! vector computer with memory banks:
@@ -1057,8 +1056,8 @@ end subroutine init
                        trig,after(i),now(i),before(i),isign)
         inzee=3-inzee
 
-        ! here we transform back from z1 to z3
-        call z1_to_z3(z1,z3,inzee)
+		! here we transform back from z1 to z3
+		call z1_to_z3(z1,z3,inzee)
 
         if (n1.ne.n2) call ctrig(n1,trig,after,before,now,isign,ic)
         nfft=nd2*n3b
@@ -1072,7 +1071,7 @@ end subroutine init
                          trig,after(i),now(i),before(i),isign)
         inzee=3-inzee
 
-        call z3_to_y(z3,y,inzee)
+		call z3_to_y(z3,y,inzee)
 
 ! RISC machine with cache:
       else
@@ -1195,7 +1194,7 @@ end subroutine init
       endif
         inzet=3-inzet
 
-        call z1_to_z3(z1,z3,inzet)
+		call z1_to_z3(z1,z3,inzet)
 !$omp barrier
 
 ! TRANSFORM ALONG X AXIS
@@ -1247,7 +1246,7 @@ end subroutine init
       endif
         inzet=3-inzet
         
-        call z3_to_y(z3,y,inzet)
+		call z3_to_y(z3,y,inzet)
         deallocate(zw,trig,after,now,before)
         if (iam.eq.0) inzee=inzet
 !$omp end parallel  
@@ -1256,187 +1255,187 @@ end subroutine init
       endif
 
         return
-    contains
+	contains
 
-            subroutine z3_to_z1(z3,z1,inzee)
-            ! transforms the data from the format z3:
-            ! output of fft_for: stores only elements of z with i3=<nd3f
-            ! 
-            ! to the format z1:
-            ! input of fft_back: stores only elements of z with i1=<nd1b
-            implicit none
-            integer,intent(in)::inzee
-            real*8,intent(in):: z3(2,nd1 ,nd2,nd3f,2)
-            real*8,intent(out)::z1(2,nd1b,nd2,nd3,2)
-            integer i1,i2,i3
+			subroutine z3_to_z1(z3,z1,inzee)
+			! transforms the data from the format z3:
+			! output of fft_for: stores only elements of z with i3=<nd3f
+			! 
+			! to the format z1:
+			! input of fft_back: stores only elements of z with i1=<nd1b
+			implicit none
+			integer,intent(in)::inzee
+        	real*8,intent(in):: z3(2,nd1 ,nd2,nd3f,2)
+			real*8,intent(out)::z1(2,nd1b,nd2,nd3,2)
+			integer i1,i2,i3
 
-            ! i3=1: then z1 is contained in z3 
-            do i2=1,n2
-                do i1=1,n1b
-                    z1(1,i1,i2,1,inzee)=z3(1,i1,i2,1,inzee)
-                    z1(2,i1,i2,1,inzee)=z3(2,i1,i2,1,inzee)
-                enddo
-            enddo    
+			! i3=1: then z1 is contained in z3 
+			do i2=1,n2
+				do i1=1,n1b
+					z1(1,i1,i2,1,inzee)=z3(1,i1,i2,1,inzee)
+					z1(2,i1,i2,1,inzee)=z3(2,i1,i2,1,inzee)
+				enddo
+			enddo	
 
-            do i3=2,n3f
-                ! i2=1
-                ! i1=1
-                z1(1,1,1,i3,inzee)=z3(1,1,1,i3,inzee)
-                z1(2,1,1,i3,inzee)=z3(2,1,1,i3,inzee)
+			do i3=2,n3f
+				! i2=1
+				! i1=1
+				z1(1,1,1,i3,inzee)=z3(1,1,1,i3,inzee)
+				z1(2,1,1,i3,inzee)=z3(2,1,1,i3,inzee)
 
-                z1(1,1,1,n3+2-i3,inzee)=z3(1,1,1,i3,inzee)
-                z1(2,1,1,n3+2-i3,inzee)=-z3(2,1,1,i3,inzee)
+				z1(1,1,1,n3+2-i3,inzee)=z3(1,1,1,i3,inzee)
+				z1(2,1,1,n3+2-i3,inzee)=-z3(2,1,1,i3,inzee)
 
-                ! i2=1
-                do i1=2,n1b
-                    z1(1,i1,1,i3,inzee)=z3(1,i1,1,i3,inzee)
-                    z1(2,i1,1,i3,inzee)=z3(2,i1,1,i3,inzee)
+				! i2=1
+				do i1=2,n1b
+					z1(1,i1,1,i3,inzee)=z3(1,i1,1,i3,inzee)
+					z1(2,i1,1,i3,inzee)=z3(2,i1,1,i3,inzee)
 
-                    z1(1,i1,1,n3+2-i3,inzee)= z3(1,n1+2-i1,1,i3,inzee)
-                    z1(2,i1,1,n3+2-i3,inzee)=-z3(2,n1+2-i1,1,i3,inzee)
-                enddo
+					z1(1,i1,1,n3+2-i3,inzee)= z3(1,n1+2-i1,1,i3,inzee)
+					z1(2,i1,1,n3+2-i3,inzee)=-z3(2,n1+2-i1,1,i3,inzee)
+				enddo
 
-                do i2=2,n2
-                    ! i1=1
-                    z1(1,1,i2,i3,inzee)=z3(1,1,i2,i3,inzee)
-                    z1(2,1,i2,i3,inzee)=z3(2,1,i2,i3,inzee)
+				do i2=2,n2
+					! i1=1
+					z1(1,1,i2,i3,inzee)=z3(1,1,i2,i3,inzee)
+					z1(2,1,i2,i3,inzee)=z3(2,1,i2,i3,inzee)
 
-                    z1(1,1,i2,n3+2-i3,inzee)= z3(1,1,n2+2-i2,i3,inzee)
-                    z1(2,1,i2,n3+2-i3,inzee)=-z3(2,1,n2+2-i2,i3,inzee)
+					z1(1,1,i2,n3+2-i3,inzee)= z3(1,1,n2+2-i2,i3,inzee)
+					z1(2,1,i2,n3+2-i3,inzee)=-z3(2,1,n2+2-i2,i3,inzee)
 
-                    do i1=2,n1b
-                        z1(1,i1,i2,i3,inzee)=z3(1,i1,i2,i3,inzee)
-                        z1(2,i1,i2,i3,inzee)=z3(2,i1,i2,i3,inzee)
+					do i1=2,n1b
+						z1(1,i1,i2,i3,inzee)=z3(1,i1,i2,i3,inzee)
+						z1(2,i1,i2,i3,inzee)=z3(2,i1,i2,i3,inzee)
 
-                        z1(1,i1,i2,n3+2-i3,inzee)= z3(1,n1+2-i1,n2+2-i2,i3,inzee)
-                        z1(2,i1,i2,n3+2-i3,inzee)=-z3(2,n1+2-i1,n2+2-i2,i3,inzee)
-                    enddo
-                enddo
-            enddo
-                                
-            end subroutine z3_to_z1
+						z1(1,i1,i2,n3+2-i3,inzee)= z3(1,n1+2-i1,n2+2-i2,i3,inzee)
+						z1(2,i1,i2,n3+2-i3,inzee)=-z3(2,n1+2-i1,n2+2-i2,i3,inzee)
+					enddo
+				enddo
+			enddo
+								
+			end subroutine z3_to_z1
 
-    subroutine z1_to_z3(z1,z3,inzee)
-    ! transforms the data from the format z1:
-    ! stores the part of z with i1=<nd1b 
-    ! to the format z3:
-    ! stores the elements of z with even and odd values of i3
-    ! as its even and odd parts w.r.t. flip of n1
-    implicit none
-    integer,intent(in)::inzee
-    real*8,intent(in):: z1(2,nd2,nd3,nd1b,2)
-    real*8,intent(out)::z3(2,nd2,nd3b,nd1,2)
-    integer i1,i2,i3
+	subroutine z1_to_z3(z1,z3,inzee)
+	! transforms the data from the format z1:
+	! stores the part of z with i1=<nd1b 
+	! to the format z3:
+	! stores the elements of z with even and odd values of i3
+	! as its even and odd parts w.r.t. flip of n1
+	implicit none
+	integer,intent(in)::inzee
+	real*8,intent(in):: z1(2,nd2,nd3,nd1b,2)
+	real*8,intent(out)::z3(2,nd2,nd3b,nd1,2)
+	integer i1,i2,i3
 
-    if (2*n3b.eq.n3) then 
-        ! i1=1
-        do i3=1,n3b
-            do i2=1,n2
-                z3(1,i2,i3,1,inzee)= z1(1,i2,2*i3-1,1,inzee)-z1(2,i2,2*i3,1,inzee)
-                z3(2,i2,i3,1,inzee)= z1(2,i2,2*i3-1,1,inzee)+z1(1,i2,2*i3,1,inzee)
-            enddo
-        enddo
+	if (2*n3b.eq.n3) then 
+		! i1=1
+		do i3=1,n3b
+			do i2=1,n2
+				z3(1,i2,i3,1,inzee)= z1(1,i2,2*i3-1,1,inzee)-z1(2,i2,2*i3,1,inzee)
+				z3(2,i2,i3,1,inzee)= z1(2,i2,2*i3-1,1,inzee)+z1(1,i2,2*i3,1,inzee)
+			enddo
+		enddo
 
-        do i1=2,n1b
-            do i3=1,n3b
-                do i2=1,n2
-                    z3(1,i2,i3,i1     ,inzee)= z1(1,i2,2*i3-1,i1,inzee)-z1(2,i2,2*i3,i1,inzee)
-                    z3(2,i2,i3,i1     ,inzee)= z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
-                    z3(1,i2,i3,n1+2-i1,inzee)= z1(1,i2,2*i3-1,i1,inzee)+z1(2,i2,2*i3,i1,inzee)
-                    z3(2,i2,i3,n1+2-i1,inzee)=-z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
-                enddo
-            enddo
-        enddo
-    else  ! 2*n3b=n3+1
-        ! i1=1
-        do i3=1,n3b-1
-            do i2=1,n2
-                z3(1,i2,i3,1,inzee)= z1(1,i2,2*i3-1,1,inzee)-z1(2,i2,2*i3,1,inzee)
-                z3(2,i2,i3,1,inzee)= z1(2,i2,2*i3-1,1,inzee)+z1(1,i2,2*i3,1,inzee)
-            enddo
-        enddo
+		do i1=2,n1b
+			do i3=1,n3b
+				do i2=1,n2
+					z3(1,i2,i3,i1     ,inzee)= z1(1,i2,2*i3-1,i1,inzee)-z1(2,i2,2*i3,i1,inzee)
+					z3(2,i2,i3,i1     ,inzee)= z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
+					z3(1,i2,i3,n1+2-i1,inzee)= z1(1,i2,2*i3-1,i1,inzee)+z1(2,i2,2*i3,i1,inzee)
+					z3(2,i2,i3,n1+2-i1,inzee)=-z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
+				enddo
+			enddo
+		enddo
+	else  ! 2*n3b=n3+1
+		! i1=1
+		do i3=1,n3b-1
+			do i2=1,n2
+				z3(1,i2,i3,1,inzee)= z1(1,i2,2*i3-1,1,inzee)-z1(2,i2,2*i3,1,inzee)
+				z3(2,i2,i3,1,inzee)= z1(2,i2,2*i3-1,1,inzee)+z1(1,i2,2*i3,1,inzee)
+			enddo
+		enddo
 
-        do i1=2,n1b
-            do i3=1,n3b-1
-                do i2=1,n2
-                    z3(1,i2,i3,i1     ,inzee)= z1(1,i2,2*i3-1,i1,inzee)-z1(2,i2,2*i3,i1,inzee)
-                    z3(2,i2,i3,i1     ,inzee)= z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
-                    z3(1,i2,i3,n1+2-i1,inzee)= z1(1,i2,2*i3-1,i1,inzee)+z1(2,i2,2*i3,i1,inzee)
-                    z3(2,i2,i3,n1+2-i1,inzee)=-z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
-                enddo
-            enddo
-        enddo
+		do i1=2,n1b
+			do i3=1,n3b-1
+				do i2=1,n2
+					z3(1,i2,i3,i1     ,inzee)= z1(1,i2,2*i3-1,i1,inzee)-z1(2,i2,2*i3,i1,inzee)
+					z3(2,i2,i3,i1     ,inzee)= z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
+					z3(1,i2,i3,n1+2-i1,inzee)= z1(1,i2,2*i3-1,i1,inzee)+z1(2,i2,2*i3,i1,inzee)
+					z3(2,i2,i3,n1+2-i1,inzee)=-z1(2,i2,2*i3-1,i1,inzee)+z1(1,i2,2*i3,i1,inzee)
+				enddo
+			enddo
+		enddo
 
-        ! i3=n3b is treated separately: 2*n3b-1=n3, but the terms with 2*n3b are
-        ! omitted
+		! i3=n3b is treated separately: 2*n3b-1=n3, but the terms with 2*n3b are
+		! omitted
 
-        ! i1=1
-        do i2=1,n2
-            z3(1,i2,n3b,1,inzee)= z1(1,i2,n3,1,inzee)
-            z3(2,i2,n3b,1,inzee)= z1(2,i2,n3,1,inzee)
-        enddo
+		! i1=1
+		do i2=1,n2
+			z3(1,i2,n3b,1,inzee)= z1(1,i2,n3,1,inzee)
+			z3(2,i2,n3b,1,inzee)= z1(2,i2,n3,1,inzee)
+		enddo
 
-        do i1=2,n1b
-            do i2=1,n2
-                z3(1,i2,n3b,i1     ,inzee)= z1(1,i2,n3,i1,inzee)
-                z3(2,i2,n3b,i1     ,inzee)= z1(2,i2,n3,i1,inzee)
-                z3(1,i2,n3b,n1+2-i1,inzee)= z1(1,i2,n3,i1,inzee)
-                z3(2,i2,n3b,n1+2-i1,inzee)=-z1(2,i2,n3,i1,inzee)
-            enddo
-        enddo
+		do i1=2,n1b
+			do i2=1,n2
+				z3(1,i2,n3b,i1     ,inzee)= z1(1,i2,n3,i1,inzee)
+				z3(2,i2,n3b,i1     ,inzee)= z1(2,i2,n3,i1,inzee)
+				z3(1,i2,n3b,n1+2-i1,inzee)= z1(1,i2,n3,i1,inzee)
+				z3(2,i2,n3b,n1+2-i1,inzee)=-z1(2,i2,n3,i1,inzee)
+			enddo
+		enddo
 
-    endif
+	endif
 
-    end subroutine z1_to_z3
+	end subroutine z1_to_z3
 
-    subroutine z3_to_y(z3,y,inzee)
-    ! transforms the output of FFT: z3, for which:
-    ! real part of      z3 contains elements of y with odd  i3
-    ! imaginary part of z3 contains elements of y with even i3
+	subroutine z3_to_y(z3,y,inzee)
+	! transforms the output of FFT: z3, for which:
+	! real part of      z3 contains elements of y with odd  i3
+	! imaginary part of z3 contains elements of y with even i3
 
-    ! into the final output: real array y.
-    implicit none
-    integer,intent(in)::inzee
-    real*8,intent(in)::z3(2,nd1,nd2,nd3b,2)
-    real*8,intent(out)::y(n1,n2,n3)
-    integer i1,i2,i3
-    real*8 fac
+	! into the final output: real array y.
+	implicit none
+	integer,intent(in)::inzee
+	real*8,intent(in)::z3(2,nd1,nd2,nd3b,2)
+	real*8,intent(out)::y(n1,n2,n3)
+	integer i1,i2,i3
+	real*8 fac
 
-    fac=.5d0/(n1*n2*n3)
+	fac=.5d0/(n1*n2*n3)
 
-    if (2*n3b.eq.n3) then 
-        do i3=1,n3b
-            do i2=1,n2
-                do i1=1,n1
-                    y(i1,i2,2*i3-1)=z3(1,i1,i2,i3,inzee)*fac
-                    y(i1,i2,2*i3  )=z3(2,i1,i2,i3,inzee)*fac
-                enddo
-            enddo
-        enddo
-    else ! 2*n3b=n3+1
-        do i3=1,n3b-1
-            do i2=1,n2
-                do i1=1,n1
-                    y(i1,i2,2*i3-1)=z3(1,i1,i2,i3,inzee)*fac
-                    y(i1,i2,2*i3  )=z3(2,i1,i2,i3,inzee)*fac
-                enddo
-            enddo
-        enddo
+	if (2*n3b.eq.n3) then 
+		do i3=1,n3b
+			do i2=1,n2
+				do i1=1,n1
+					y(i1,i2,2*i3-1)=z3(1,i1,i2,i3,inzee)*fac
+					y(i1,i2,2*i3  )=z3(2,i1,i2,i3,inzee)*fac
+				enddo
+			enddo
+		enddo
+	else ! 2*n3b=n3+1
+		do i3=1,n3b-1
+			do i2=1,n2
+				do i1=1,n1
+					y(i1,i2,2*i3-1)=z3(1,i1,i2,i3,inzee)*fac
+					y(i1,i2,2*i3  )=z3(2,i1,i2,i3,inzee)*fac
+				enddo
+			enddo
+		enddo
 
-        ! i3=n3b is treated separately: 2*n3b-1=n3, but the terms with 2*n3b are
-        ! omitted
+		! i3=n3b is treated separately: 2*n3b-1=n3, but the terms with 2*n3b are
+		! omitted
 
-        do i2=1,n2
-            do i1=1,n1
-                y(i1,i2,n3)=z3(1,i1,i2,n3b,inzee)*fac
-            enddo
-        enddo
-    endif
+		do i2=1,n2
+			do i1=1,n1
+				y(i1,i2,n3)=z3(1,i1,i2,n3b,inzee)*fac
+			enddo
+		enddo
+	endif
 
-    end subroutine z3_to_y
+	end subroutine z3_to_y
 
 
-        end subroutine fft_back
+		end subroutine fft_back
 
 
         subroutine ctrig(n,trig,after,before,now,isign,ic)
