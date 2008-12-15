@@ -1,4 +1,4 @@
-!!****f* BigDFT/call_bigdft
+!****f* BigDFT/call_bigdft
 !! FUNCTION
 !!   Routines to use bigdft as a blackbox
 !! COPYRIGHT
@@ -500,7 +500,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
 
-     call readmywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,wfd,psi,eval)
+     call readmywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,rxyz_old,wfd,psi,eval)
 
      !initialise control value for gnrm in the case of a restart
      gnrm_check=0.d0

@@ -28,6 +28,7 @@
 !!  - nonlocal_forces
 !!  - CalculateTailCorrection
 !!  - reformatonewave
+!!  - eleconf
 !!
 !! AUTHOR
 !!    Luigi Genovese, Damien Caliste
@@ -114,6 +115,17 @@ interface
      integer, intent(out) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
      real(kind=8), intent(inout) :: hx,hy,hz
    end subroutine system_size
+   
+   subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
+     implicit none
+     ! Arguments
+     integer, intent(in) :: nzatom,nvalelec
+     character(len=2), intent(out) :: symbol
+     real(kind=8), intent(out) :: rcov,rprb,ehomo
+     integer, parameter :: nmax=6,lmax=3
+     integer, intent(out) :: neleconf(nmax,0:lmax)
+     integer, intent(out) :: nsccode,mxpl,mxchg
+   end subroutine eleconf
 
    subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
         iatype,rxyz,radii_cf,crmult,frmult,norb,nprojel,atomnames,output_grid,nspin,peakmem)
@@ -128,6 +140,17 @@ interface
      real(kind=8), dimension(ntypes,3), intent(in) ::  radii_cf
      real(kind=8), intent(out) :: peakmem
    end subroutine MemoryEstimator
+
+   subroutine create_Glr(geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,wfd,bounds,Glr)
+     use module_base
+     use module_types
+     implicit none
+     character(len=1), intent(in) :: geocode
+     integer, intent(in) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     type(convolutions_bounds), intent(in) :: bounds
+     type(locreg_descriptors), intent(out) :: Glr
+   end subroutine create_Glr
 
    subroutine createWavefunctionsDescriptors(iproc,nproc,n1,n2,n3,output_grid,&
         hx,hy,hz,atoms,rxyz,radii_cf,crmult,frmult,&
@@ -250,6 +273,70 @@ interface
      real(wp), dimension(norb), intent(out) :: eval
      real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
    end subroutine input_wf_diag
+
+   subroutine writemywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi,eval)
+     ! write all my wavefunctions in files by calling writeonewave
+     use module_types
+     use module_base
+     implicit none
+     integer, intent(in) :: iproc,norb,norbp,n1,n2,n3,nat
+     real(gp), intent(in) :: hx,hy,hz
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     real(gp), dimension(3,nat), intent(in) :: rxyz
+     real(wp), dimension(norb), intent(in) :: eval
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
+   end subroutine writemywaves
+
+   subroutine readmywaves(iproc,norb,norbp,n1,n2,n3,hx,hy,hz,nat,rxyz_old,rxyz,  & 
+        wfd,psi,eval)
+     ! reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
+     ! have changed
+     use module_base
+     use module_types
+     implicit none
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     integer, intent(in) :: iproc,norb,norbp,n1,n2,n3,nat
+     real(gp), intent(in) :: hx,hy,hz
+     real(gp), dimension(3,nat), intent(in) :: rxyz
+     real(wp), dimension(norb), intent(out) :: eval
+     real(gp), dimension(3,nat), intent(out) :: rxyz_old
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(out) :: psi
+   end subroutine readmywaves
+
+   subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
+        nseg_c,nvctr_c,keyg_c,keyv_c,  & 
+        nseg_f,nvctr_f,keyg_f,keyv_f, & 
+        psi_c,psi_f,norb,eval)
+     use module_base
+     implicit none
+     logical, intent(in) :: useFormattedOutput
+     integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f,norb
+     real(gp), intent(in) :: hx,hy,hz
+     integer, dimension(nseg_c), intent(in) :: keyv_c
+     integer, dimension(nseg_f), intent(in) :: keyv_f
+     integer, dimension(2,nseg_c), intent(in) :: keyg_c
+     integer, dimension(2,nseg_f), intent(in) :: keyg_f
+     real(wp), dimension(norb), intent(in) :: eval
+     real(wp), dimension(nvctr_c), intent(in) :: psi_c
+     real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
+     real(gp), dimension(3,nat), intent(in) :: rxyz
+   end subroutine writeonewave
+
+   subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
+        & hx,hy,hz,nat,rxyz_old,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval,psifscf)
+     use module_base
+     implicit none
+     logical, intent(in) :: useFormattedInput
+     integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3,nat,nseg_c,nseg_f,nvctr_c,nvctr_f
+     integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+     integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+     real(gp), intent(in) :: hx,hy,hz
+     real(gp), dimension(3,nat), intent(in) :: rxyz
+     real(wp), intent(out) :: eval
+     real(gp), dimension(3,nat), intent(out) :: rxyz_old
+     real(wp), dimension(nvctr_c+7*nvctr_f), intent(out) :: psi
+     real(wp), dimension(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8), intent(out) :: psifscf
+   end subroutine readonewave
 
    subroutine reformatmywaves(iproc,norb,norbp,nat,&
         hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
