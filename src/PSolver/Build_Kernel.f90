@@ -132,7 +132,6 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
 
      call Free_Kernel(n01,n02,n03,n1,n2,n3,nd1,nd2,nd3,hx,hy,hz,itype_scf,iproc,nproc,kernel)
 
-
      !last plane calculated for the density and the kernel
      nlimd=n2/2
      nlimk=n3/2+1
@@ -214,6 +213,7 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
      end if
 
   end if
+
   call timing(iproc,'PSolvKernel   ','OF')
 
 end subroutine createKernel

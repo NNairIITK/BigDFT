@@ -35,17 +35,13 @@
         integer :: ierr
         end subroutine MPI_FINALIZE
 
-        subroutine  MPI_ALLREDUCE(wrkallred,allred,n,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+        subroutine  MPI_ALLREDUCE()
         implicit none
-        real :: wrkallred,allred
-        integer :: n,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr
         stop 'ALLREDUCE'
         end subroutine MPI_ALLREDUCE
 
-        subroutine  MPI_BCAST(psi,nvctr,MPI_DOUBLE_PRECISION,jproc,MPI_COMM_WORLD,ierr)
+        subroutine MPI_BCAST()
         implicit none
-        real :: psi
-        integer :: nvctr,MPI_DOUBLE_PRECISION,jproc,MPI_COMM_WORLD,ierr
         end subroutine MPI_BCAST
 
         subroutine  MPI_BARRIER(MPI_COMM_WORLD,ierr)

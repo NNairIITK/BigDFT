@@ -167,12 +167,14 @@ low_level = init/projectors.f90  \
 	wavelib/razero.f90 \
 	wavelib/gauss_to_daub.f90 
 
-
-#common routine with abinit
+if BUILD_LIB_ABINIT
 abinit = ABINIT-ewald/ewald.F90 \
 	 ABINIT-ewald/metric.F90 \
 	 ABINIT-ewald/matr3inv.F90 \
-	 ABINIT-ewald/derfc.F90 
+	 ABINIT-ewald/derfc.F90
+else
+abinit = 
+endif
 
 libbigdft_a_SOURCES = \
 	$(mpi_source) \
@@ -242,7 +244,7 @@ test_forces.o: $(mod_bigdft)
 
 $(mod_bigdft) : BigDFT_API.o
 
-$(moodules_objects) : mpif.h
+$(modules_objects) : $(modules_objects)
 
 #BigDFT.o: \
 #	base.o \

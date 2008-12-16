@@ -38,7 +38,7 @@ subroutine memory_occupation(istat,isize,array,routine)
   integer, save :: nalloc,ndealloc,iproc
   integer :: ierr
 
-  !print *,array,routine
+  !print *,iproc,array,routine
 
   select case(array)
   case('count')

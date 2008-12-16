@@ -802,14 +802,13 @@ subroutine gbasovrlp(expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,dx,dy,dz,&
 end subroutine gbasovrlp
 
 !overlap matrix between two different basis structures
-!works only if A%ncoeff==B%ncoeff
 subroutine gaussian_overlap(A,B,ovrlp)
   use module_base
   use module_types
   implicit none
   type(gaussian_basis), intent(in) :: A,B
-  real(gp), dimension(A%ncoeff,B%ncoeff) :: ovrlp !only lower triangular part for A%ncoeff=B%ncoeff
-
+  real(gp), dimension(A%ncoeff,B%ncoeff) :: ovrlp 
+  !only lower triangular part for A%ncoeff=B%ncoeff
   !local variables
   integer, parameter :: niw=18,nrw=6
   integer :: ishell,iexpo,icoeff,ishellB,iexpoB,icoeffB,iat,jat,isat,isatB,jsat,jshell
@@ -849,7 +848,8 @@ subroutine gaussian_overlap(A,B,ovrlp)
                  do mB=1,2*lB-1
                     jovrlp=jovrlp+1
                     if (jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) then
-                       call gbasovrlp(A%xp(iexpo),A%psiat(iexpo),B%xp(jexpo),B%psiat(jexpo),&
+                       call gbasovrlp(A%xp(iexpo),A%psiat(iexpo),&
+                            B%xp(jexpo),B%psiat(jexpo),&
                             ngA,ngB,lA,mA,lB,mB,dx,dy,dz,&
                             niw,nrw,iw,rw,ovrlp(iovrlp,jovrlp))
                     end if
@@ -888,106 +888,11 @@ subroutine gprod(a1,a2,dx,dy,dz,l1,m1,l2,m2,niw,nrw,iw,rw,ovrlp)
   integer :: mx1,mx2,mx3,my1,my2,my3,mz1,mz2,mz3
   real(gp) :: fx,fy,fz,fa,fb,govrlp,f1,f2,f3,g1,g2,g3
 
-!!$  rw(1)=0.d0
-!!$  rw(2)=0.d0
-!!$  rw(3)=0.d0
-!!$
-!!$  do i=1,3*nx
-!!$     iw(i)=0
-!!$  end do
-  
-  
   !calculates the number of different couples
   call calc_coeff_inguess(l1,m1,nx,n1,&
        iw(1),iw(nx+1),iw(2*nx+1),rw(1))
-!!$  lx1=iw(1)
-!!$  lx2=iw(2)
-!!$  lx3=iw(3)
-!!$  ly1=iw(4)
-!!$  ly2=iw(5)
-!!$  ly3=iw(6)
-!!$  lz1=iw(7)
-!!$  lz2=iw(8)
-!!$  lz3=iw(9)
-!!$  
-!!$  f1=rw(1)
-!!$  f2=rw(2)
-!!$  f3=rw(3)
-
   call calc_coeff_inguess(l2,m2,nx,n2,&
        iw(3*nx+1),iw(4*nx+1),iw(5*nx+1),rw(n1+1))
-
-!!$  mx1=iw(1)
-!!$  mx2=iw(2)
-!!$  mx3=iw(3)
-!!$  my1=iw(4)
-!!$  my2=iw(5)
-!!$  my3=iw(6)
-!!$  mz1=iw(7)
-!!$  mz2=iw(8)
-!!$  mz3=iw(9)
-!!$  
-!!$  g1=rw(1)
-!!$  g2=rw(2)
-!!$  g3=rw(3)
-!!$
-!!$  !start unrolled loop
-!!$  ovrlp=0.d0
-!!$
-!!$  fx=govrlp(a1,a2,dx,lx1,mx1)
-!!$  fy=govrlp(a1,a2,dy,ly1,my1)
-!!$  fz=govrlp(a1,a2,dz,lz1,mz1)
-!!$
-!!$  ovrlp=ovrlp+f1*g1*fx*fy*fz
-!!$
-!!$  fx=govrlp(a1,a2,dx,lx1,mx2)
-!!$  fy=govrlp(a1,a2,dy,ly1,my2)
-!!$  fz=govrlp(a1,a2,dz,lz1,mz2)
-!!$
-!!$  ovrlp=ovrlp+f1*g2*fx*fy*fz
-!!$
-!!$  fx=govrlp(a1,a2,dx,lx1,mx3)
-!!$  fy=govrlp(a1,a2,dy,ly1,my3)
-!!$  fz=govrlp(a1,a2,dz,lz1,mz3)
-!!$
-!!$  ovrlp=ovrlp+f1*g3*fx*fy*fz
-!!$
-!!$  fx=govrlp(a1,a2,dx,lx2,mx1)
-!!$  fy=govrlp(a1,a2,dy,ly2,my1)
-!!$  fz=govrlp(a1,a2,dz,lz2,mz1)
-!!$
-!!$  ovrlp=ovrlp+f2*g1*fx*fy*fz
-!!$
-!!$  fx=govrlp(a1,a2,dx,lx2,mx2)
-!!$  fy=govrlp(a1,a2,dy,ly2,my2)
-!!$  fz=govrlp(a1,a2,dz,lz2,mz2)
-!!$
-!!$  ovrlp=ovrlp+f2*g2*fx*fy*fz
-!!$
-!!$  fx=govrlp(a1,a2,dx,lx2,mx3)
-!!$  fy=govrlp(a1,a2,dy,ly2,my3)
-!!$  fz=govrlp(a1,a2,dz,lz2,mz3)
-!!$
-!!$  ovrlp=ovrlp+f2*g3*fx*fy*fz
-!!$
-!!$  fx=govrlp(a1,a2,dx,lx3,mx1)
-!!$  fy=govrlp(a1,a2,dy,ly3,my1)
-!!$  fz=govrlp(a1,a2,dz,lz3,mz1)
-!!$
-!!$  ovrlp=ovrlp+f3*g1*fx*fy*fz
-!!$
-!!$  fx=govrlp(a1,a2,dx,lx3,mx2)
-!!$  fy=govrlp(a1,a2,dy,ly3,my2)
-!!$  fz=govrlp(a1,a2,dz,lz3,mz2)
-!!$
-!!$  ovrlp=ovrlp+f3*g2*fx*fy*fz
-!!$
-!!$  fx=govrlp(a1,a2,dx,lx3,mx3)
-!!$  fy=govrlp(a1,a2,dy,ly3,my3)
-!!$  fz=govrlp(a1,a2,dz,lz3,mz3)
-!!$
-!!$  ovrlp=ovrlp+f3*g3*fx*fy*fz
-
   ovrlp=0.d0
   do i2=1,n2
      qx=iw(3*nx+i2)

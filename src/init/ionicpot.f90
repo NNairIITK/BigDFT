@@ -421,7 +421,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
            gion(2,iat)=fion(2,iat)
            gion(3,iat)=fion(3,iat)
         end do
-        
+
         call MPI_ALLREDUCE(gion,fion,3*at%nat,mpidtypg,MPI_SUM,MPI_COMM_WORLD,ierr)
 
         i_all=-product(shape(gion))*kind(gion)
@@ -433,7 +433,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
 
   end if
 
-  if (iproc.eq.0) write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
+  if (iproc == 0) write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
 end subroutine IonicEnergyandForces
 
 
@@ -573,8 +573,10 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
   if (nproc > 1) then
      charges_mpi(1)=tt
      charges_mpi(2)=rholeaked
-     call MPI_ALLREDUCE(charges_mpi(1),charges_mpi(3),2,MPI_double_precision,  &
+
+     call MPI_ALLREDUCE(charges_mpi(1),charges_mpi(3),2,mpidtypd, &
           MPI_SUM,MPI_COMM_WORLD,ierr)
+
      tt_tot=charges_mpi(3)
      rholeaked_tot=charges_mpi(4)
   else

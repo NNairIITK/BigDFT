@@ -307,7 +307,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   n1=Glr%d%n1
   n2=Glr%d%n2
   n3=Glr%d%n3
- 
+
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   ndegree_ip=16 !default value 
   call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel)
@@ -325,7 +325,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call timing(iproc,'CrtProjectors ','OF')
 
   !calculate the partitioning of the orbitals between the different processors
-
   !memory estimation
   if (iproc==0) then
      call MemoryEstimator(atoms%geocode,nproc,idsx,n1,n2,n3,&

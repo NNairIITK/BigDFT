@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-if BUILD_LIB_XC
+if BUILD_LIB_ABINIT
 sub_dirs_xc = ABINIT-common
 else
 sub_dirs_xc = 
@@ -78,10 +78,12 @@ if USE_MPI
 mpi_source =
 mpi_include =
 LMPI = @MPI_LDFLAGS@
+run_parallel = ompirun -np 2
 else
 mpi_source = ../MPIfake.f90
 mpi_include = mpif.h
 LMPI = 
+run_parallel =
 endif
 
 libpoissonsolver_a_SOURCES = \
