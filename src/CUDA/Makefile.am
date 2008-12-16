@@ -100,5 +100,5 @@ convSeria.cpp structUtil.cu : structUtil.h
 read_conf_file.cpp : read_conf_file.h
 
 check:
-	echo 1 182 182 4096 4096 100 > fort.1
+	echo 3 128 128 64 64 5 > fort.1
 	$(top_builddir)/src/CUDA/conv_check
