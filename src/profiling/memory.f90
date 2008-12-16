@@ -38,6 +38,8 @@ subroutine memory_occupation(istat,isize,array,routine)
   integer, save :: nalloc,ndealloc,iproc
   integer :: ierr
 
+  !print *,array,routine
+
   select case(array)
   case('count')
      if (routine=='start') then

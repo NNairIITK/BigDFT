@@ -437,8 +437,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin)
 
   else if (in%inputPsiId == 0) then 
+     !temporary correction for non-collinear case in view of gaussian input guess
      if (in%nspin == 4) then
         nspin=2
+        orbs%norbu=orbs%norb/2
+        orbs%norbd=orbs%norb-orbs%norbu
      else
         nspin=in%nspin
      end if
@@ -446,7 +449,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,atoms,&
           orbs,orbsv,nvirt,nvctrp,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,nscatterarr,ngatherarr,nspin)
-  
+     if (in%nspin == 4) then
+        orbs%norbu=orbs%norb
+        orbs%norbd=0
+     end if
+ 
   else if (in%inputPsiId == 1) then 
      !these parts should be reworked for the non-collinear spin case
 
@@ -578,9 +585,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transpsed form
   if (idsx > 0) then
-     allocate(psidst(nvctrp*orbs%nspinor*orbs%norbp*nproc*idsx+ndebug),stat=i_stat)
+     allocate(psidst(nvctrp*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(nvctrp*orbs%nspinor*orbs%norbp*nproc*idsx+ndebug),stat=i_stat)
+     allocate(hpsidst(nvctrp*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,hpsidst,'hpsidst',subname)
      allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)

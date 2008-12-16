@@ -110,6 +110,7 @@ program memguess
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
  
+
   ! store PSP parameters
   ! modified to accept both GTH and HGHs pseudopotential types
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
@@ -120,7 +121,6 @@ program memguess
   i_all=-product(shape(orbs%norb_par))*kind(orbs%norb_par)
   deallocate(orbs%norb_par,stat=i_stat)
   call memocc(i_stat,i_all,'orbs%norb_par',subname)
-
 
   if (optimise) then
      call optimise_volume(atoms,in%crmult,in%frmult,in%hgrid,rxyz,radii_cf)
@@ -137,7 +137,7 @@ program memguess
   call memocc(i_stat,i_all,'spinsgn',subname)
   
   !in the case in which the number of orbitals is not "trivial" check whether they are too many
-  if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) ) then
+  if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) .and. in%nspin /=4 ) then
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
      allocate(xp(ngx,atoms%ntypes+ndebug),stat=i_stat)
      call memocc(i_stat,xp,'xp',subname)
@@ -195,7 +195,7 @@ program memguess
                 ') generated from the input guess.'
            stop
         end if
-     else
+     else if (in%nspin == 2) then
         if (orbs%norbu > norbe) then
            write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',orbs%norbu,&
                 ') must not be greater than the number of orbitals (',norbe,&

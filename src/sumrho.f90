@@ -156,7 +156,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
      nullify(rho_p)
 
      !charge=tt
-  end if
+  endif
 
   !write the results
   if (iproc == 0) then
@@ -284,9 +284,11 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
 
   ! Wavefunction in real space
   nspinn=max(nspin,nspinor)
+  !print *,iproc,'here',n1i,n2i,n3i,nspinn
   allocate(psir(n1i*n2i*n3i,nspinn+ndebug),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
   !initialisation
+  !print *,iproc,'there'
   if (lr%geocode == 'F') then
      call razero(nxc,x_c_psifscf)
      call razero(nxf,x_f_psig)
@@ -294,6 +296,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   end if
 
   do iorb=1,norbp
+
      hfac=(occup(iorb)/(hxh*hyh*hzh))
 
      oidx=(iorb-1)*nspinor

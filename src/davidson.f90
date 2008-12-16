@@ -151,9 +151,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
   call allocate_comms(nproc,commsv,subname)
   call orbitals_communicators(iproc,nproc,nvctrp,orbsv,commsv)  
   !dimension for allocation of the virtual wavefunction
-  orbsv%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbsv%norbp,nvctrp*orbsv%norb)*&
+  orbsv%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbsv%norbp,nvctrp*orbsv%norb_par(0)*nproc)*&
        orbsv%nspinor
 
+  i_all=-product(shape(orbsv%norb_par))*kind(orbsv%norb_par)
+  deallocate(orbsv%norb_par,stat=i_stat)
+  call memocc(i_stat,i_all,'orbsv%norb_par',subname)
 
   !retranspose v
   if(nproc > 1)then
@@ -307,7 +310,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
 
      !we use for preconditioning the eval from the lowest value of the KS wavefunctions
      call preconditionall(iproc,nproc,orbsv%norbp,lr,hx,hy,hz, &
-          ncong,1,orbs%eval,g,gnrm_fake)
+          ncong,1,orbs%eval(min(orbsv%isorb+1,orbsv%norb)),g,gnrm_fake)
 
      call timing(iproc,'Precondition  ','OF')
      if (iproc==0)write(*,'(1x,a)')'done.'

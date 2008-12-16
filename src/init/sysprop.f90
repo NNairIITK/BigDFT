@@ -361,11 +361,11 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      if (mod(nelec,2).ne.0 .and. iproc==0) then
         write(*,'(1x,a)') 'WARNING: odd number of electrons, no closed shell system'
      end if
-     !    else if(in%nspin==4) then
-     !       if (iproc==0) write(*,'(1x,a)') 'Spin-polarized non-collinear calculation'
-     !       norb=nelec
-     !       norbu=norb
-     !       norbd=0
+  else if(in%nspin==4) then
+     if (iproc==0) write(*,'(1x,a)') 'Spin-polarized non-collinear calculation'
+     norb=nelec
+     norbu=norb
+     norbd=0
   else 
      if (iproc==0) write(*,'(1x,a)') 'Spin-polarized calculation'
      norb=nelec

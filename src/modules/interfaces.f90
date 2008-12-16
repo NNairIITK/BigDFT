@@ -111,6 +111,7 @@ interface
 
    subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
         iatype,rxyz,radii_cf,crmult,frmult,norb,nprojel,atomnames,output_grid,nspin,peakmem)
+     use module_base
      implicit none
      !Arguments
      character(len=1), intent(in) :: geocode
@@ -141,6 +142,7 @@ interface
 
    subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,&
         radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
+     use module_base
      use module_types
      implicit none
      type(atoms_data), intent(in) :: at
@@ -154,6 +156,7 @@ interface
 
    subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc,&
         n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr)
+     use module_base
      implicit none
      character(len=1), intent(in) :: geocode,datacode
      integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,ixc
@@ -164,6 +167,7 @@ interface
 
    subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,rxyz,eion,fion,psoffset,&
         n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+     use module_base
      use module_types
      implicit none
      type(atoms_data), intent(in) :: at
@@ -178,6 +182,7 @@ interface
 
    subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,&
         hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
+     use module_base
      implicit none
      character(len=1), intent(in) :: geocode
      integer, intent(in) :: iproc,nproc,ntypes,nat,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
@@ -331,13 +336,13 @@ interface
      implicit none
      integer, intent(in) :: iproc,nproc,natsc,nspin,nvctrp
      type(wavefunctions_descriptors), intent(in) :: wfd
-     type(communications_arrays), intent(in) :: comms
+     type(communications_arrays), target, intent(in) :: comms
      type(orbitals_data), intent(inout) :: orbs
      real(wp), dimension(:), pointer :: psi,hpsi,psit
      !optional arguments
      real(gp), optional, intent(in) :: etol
      type(orbitals_data), optional, intent(in) :: orbse,orbsv
-     type(communications_arrays), optional, intent(in) :: commse
+     type(communications_arrays), optional, target, intent(in) :: commse
      integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
      real(wp), dimension(:), pointer, optional :: psivirt
    end subroutine DiagHam

@@ -378,9 +378,8 @@ subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,r
            end do
         end do
      end do
+     call gaudim_check(1,icoeff+1,ishell,0,CP2K%ncoeff,CP2K%nshltot)
   end do
-
-  call gaudim_check(1,icoeff+1,ishell,0,CP2K%ncoeff,CP2K%nshltot)
 
   i_all=-product(shape(ctmp))*kind(ctmp)
   deallocate(ctmp,stat=i_stat)

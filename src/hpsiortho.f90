@@ -230,7 +230,6 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
           'done, preconditioning...'
   end if
 
-
   !Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
   call preconditionall(iproc,nproc,orbs%norbp,lr,hx,hy,hz,ncong,orbs%nspinor,&
@@ -253,21 +252,21 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
   if (idsx_actual > 0) then
      !transpose the hpsi wavefunction into the diis array
      call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,nvctrp,comms,&
-          hpsi,work=psi,outadd=hpsidst(1+nvctrp*orbs%nspinor*orbs%norbp*nproc*(mids-1)))
+          hpsi,work=psi,outadd=hpsidst(1+nvctrp*orbs%nspinor*orbs%norb*(mids-1)))
 
      call timing(iproc,'Diis          ','ON')
      if (nproc > 1) then
         do i=1,nvctrp*orbs%norb*orbs%nspinor
-           psidst(i+nvctrp*orbs%nspinor*orbs%norbp*nproc*(mids-1))= psit(i)
+           psidst(i+nvctrp*orbs%nspinor*orbs%norb*(mids-1))= psit(i)
         enddo
      else
         do i=1,nvctrp*orbs%norb*orbs%nspinor
-           psidst(i+nvctrp*orbs%nspinor*orbs%norbp*nproc*(mids-1))= psit(i)
-           hpsidst(i+nvctrp*orbs%nspinor*orbs%norbp*nproc*(mids-1))=hpsi(i)
+           psidst(i+nvctrp*orbs%nspinor*orbs%norb*(mids-1))= psit(i)
+           hpsidst(i+nvctrp*orbs%nspinor*orbs%norb*(mids-1))=hpsi(i)
         enddo
      endif
 
-     call diisstp(orbs%norb,orbs%norbp,nproc,iproc,orbs%nspinor,  &
+     call diisstp(orbs%norb,nproc,iproc,orbs%nspinor,  &
           ads,ids,mids,idsx_actual,nvctrp,psit,psidst,hpsidst)
   else
      ! update all wavefunctions with the preconditioned gradient
@@ -379,9 +378,9 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
      ids=0
      idiistol=0
 
-     allocate(psidst(nvctrp*orbs%nspinor*orbs%norbp*nproc*idsx+ndebug),stat=i_stat)
+     allocate(psidst(nvctrp*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,psidst,'psidst',subname)
-     allocate(hpsidst(nvctrp*orbs%nspinor*orbs%norbp*nproc*idsx+ndebug),stat=i_stat)
+     allocate(hpsidst(nvctrp*orbs%nspinor*orbs%norb*idsx+ndebug),stat=i_stat)
      call memocc(i_stat,hpsidst,'hpsidst',subname)
      allocate(ads(idsx+1,idsx+1,3+ndebug),stat=i_stat)
      call memocc(i_stat,ads,'ads',subname)
@@ -629,7 +628,7 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
 
         norb_displ(0)=0
         do jproc=1,nproc-1
-           norb_displ(jproc)=norb_displ(jproc-1)+norb_par(jproc)
+           norb_displ(jproc)=norb_displ(jproc-1)+norb_par(jproc-1)
         end do
         
         call MPI_GATHERV(mom_vec(1,1,2),4*norb_par(iproc),mpidtypw,&

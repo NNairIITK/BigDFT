@@ -51,7 +51,6 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
           4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
           (n1+1)*(n2+1)*(2*n3+31),&
           (2*n1+31)*(n2+1)*(n3+1))
-
      !allocation of work arrays
      allocate(y_c(0:n1,0:n2,0:n3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,y_c,'y_c',subname)

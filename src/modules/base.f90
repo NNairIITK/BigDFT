@@ -15,7 +15,7 @@ module module_base
   !use MPI
   implicit none  
   !buffer to be added at the end of the last dimension of an array to control bounds_check
-  integer, parameter :: ndebug=0
+  integer, parameter :: ndebug=10
 
   !general precision, density and the wavefunctions types
   integer, parameter :: gp=kind(1.0d0)  !general-type precision
@@ -651,6 +651,7 @@ module module_base
          array(nstart+i)=.false.
       end do
     end subroutine l_padding
+
 
     subroutine c_padding(npaddim,nstart,array)
       implicit none

@@ -115,8 +115,10 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_
 
   !calculate the dimension of the wavefunction
   !for the given processor
-  orbs%npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%norb_par(iproc),nvctrp*orbs%norb)*&
+  orbs%npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%norb_par(iproc),nvctrp*orbs%norb_par(0)*nproc)*&
        orbs%nspinor
+
+!  print *,'iproc,npsidim',iproc,orbs%npsidim
 
   if (iproc.eq.0) write(*,'(1x,a,i0)') &
        'Wavefunction memory occupation per orbital (Bytes): ',&
@@ -482,20 +484,21 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,nspin,&
        scorb,norbsc_arr,locrad)
 
-  !Check for max number of virtual orbitals
-  !the unoccupied orbitals available as a LCAO
-  nvirte=norbe-max(orbs%norbu,orbs%norbd)
-  if(nvirt == nvirte .and. nvirt/=0 .and. iproc==0) then
-     write(*,'(1x,a)')&
-          "WARNING: A smaller number of virtual orbitals may be needed for better convergence."
-     write(*,'(1x,a,i0)')'         Put nvirte= ',nvirte
+  if (nvirt /= 0) then
+     !Check for max number of virtual orbitals
+     !the unoccupied orbitals available as a LCAO
+     nvirte=norbe-max(orbs%norbu,orbs%norbd)
+     if(nvirt == nvirte .and. nvirt/=0 .and. iproc==0) then
+        write(*,'(1x,a)')&
+             "WARNING: A smaller number of virtual orbitals may be needed for better convergence."
+        write(*,'(1x,a,i0)')'         Put nvirte= ',nvirte
+     end if
+     if(nvirte < nvirt)then
+        nvirt=nvirte
+        if(iproc==0)write(*,'(1x,a,i3)')&
+             "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
+     end if
   end if
-  if(nvirte < nvirt)then
-     nvirt=nvirte
-     if(iproc==0)write(*,'(1x,a,i3)')&
-          "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
-  end if
-  
   !no Davidson calculation if nvirt=0
   if (nvirt==0) nvirte=0
 
@@ -514,13 +517,15 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 
   !calculate the dimension of the wavefunction
   !for the given processor
-  orbsv%npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsv%norbp,nvctrp*orbsv%norb)*&
+  orbsv%npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsv%norbp,nvctrp*orbsv%norb_par(0)*nproc)*&
        orbsv%nspinor
 
-  !deallocation
-  i_all=-product(shape(orbsv%norb_par))*kind(orbsv%norb_par)
-  deallocate(orbsv%norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'orbsv%norb_par',subname)
+  !deallocation if no davidson calculation
+  if (nvirt == 0) then
+     i_all=-product(shape(orbsv%norb_par))*kind(orbsv%norb_par)
+     deallocate(orbsv%norb_par,stat=i_stat)
+     call memocc(i_stat,i_all,'orbsv%norb_par',subname)
+  end if
 
   allocate(orbse%norb_par(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,orbse%norb_par,'orbse%norb_par',subname)
@@ -539,7 +544,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   end do
   !calculate the dimension of the wavefunction
   !for the given processor
-  orbse%npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbse%norbp,nvctrp*orbse%norb)*&
+  orbse%npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbse%norbp,nvctrp*orbse%norb_par(0)*nproc)*&
        orbse%nspinor
 
   !this is the distribution procedure for cubic code
@@ -559,10 +564,6 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
           ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '
   end if
   
-  i_all=-product(shape(orbse%norb_par))*kind(orbse%norb_par)
-  deallocate(orbse%norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%norb_par',subname)
-
   hxh=.5_gp*hx
   hyh=.5_gp*hy
   hzh=.5_gp*hz
@@ -680,6 +681,10 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !allocate communications arrays
   call allocate_comms(nproc,commse,subname)
   call orbitals_communicators(iproc,nproc,nvctrp,orbse,commse)  
+
+  i_all=-product(shape(orbse%norb_par))*kind(orbse%norb_par)
+  deallocate(orbse%norb_par,stat=i_stat)
+  call memocc(i_stat,i_all,'orbse%norb_par',subname)
 
   call DiagHam(iproc,nproc,at%natsc,nspin,orbs,nvctrp,Glr%wfd,comms,&
        psi,hpsi,psit,orbse,commse,etol,norbsc_arr,orbsv,psivirt)
@@ -805,7 +810,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal
   integer :: i,ndim_hamovr,i_all,i_stat,n2hamovr,nsthamovr,ierr,norbi_max,j
-  integer :: norbtot,norbtotp,natsceff,norbsc,ndh1,ispin,nvctr
+  integer :: norbtot,norbtotp,natsceff,norbsc,ndh1,ispin,nvctr,npsidim
   real(gp) :: tolerance
   real(kind=8) :: tt
   type(communications_arrays), pointer :: commu
@@ -895,13 +900,15 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
      norbtot=orbse%norb !beware that norbe is equal both for spin up and down
      norbtotp=orbse%norbp !this is coherent with nspin*norbe
      commu => commse
+     npsidim=orbse%npsidim
   else
      norbtot=orbs%norb
      norbtotp=orbs%norbp
      commu => comms
+     npsidim=orbs%npsidim
   end if
   if (nproc > 1) then
-     allocate(psiw(nvctrp*norbtotp*nproc+ndebug),stat=i_stat)
+     allocate(psiw(npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psiw,'psiw',subname)
   else
      psiw => null()
@@ -912,7 +919,11 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
   call transpose_v(iproc,nproc,norbtotp,1,wfd,nvctrp,commu,psi,work=psiw)
   call transpose_v(iproc,nproc,norbtotp,1,wfd,nvctrp,commu,hpsi,work=psiw)
 
- if (nproc > 1) then
+
+
+  
+
+  if (nproc > 1) then
      i_all=-product(shape(psiw))*kind(psiw)
      deallocate(psiw,stat=i_stat)
      call memocc(i_stat,i_all,'psiw',subname)
@@ -967,7 +978,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
 
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')'Building orthogonal Wavefunctions...'
   nvctr=wfd%nvctr_c+7*wfd%nvctr_f
-
   if (.not. present(orbsv)) then
      call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
           natsceff,nspin,orbs%nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit)
