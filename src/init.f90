@@ -356,7 +356,7 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
 !!$  call memocc(i_stat,i_all,'smat',subname)
 
   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbs,Glr%d,&
-     hx,hy,hz,Glr%wfd,CP2K,wfn_cp2k,psi)
+       hx,hy,hz,Glr%wfd,CP2K,wfn_cp2k,psi)
 
   !deallocate CP2K variables
   call deallocate_gwf(CP2K,subname)
@@ -450,8 +450,8 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   integer, dimension(:), allocatable :: ng,iorbtolr
   integer, dimension(:,:), allocatable :: nl,norbsc_arr
   real(wp), dimension(:,:), allocatable :: gaucoeff
-  real(gp), dimension(:), allocatable :: occupe,spinsgne,locrad
-  real(gp), dimension(:,:), allocatable :: xp,occupat
+  real(gp), dimension(:), allocatable :: occupe,spinsgne,locrad,ovrlp
+  real(gp), dimension(:,:), allocatable :: xp,occupat,tmp,smat
   real(gp), dimension(:,:,:), allocatable :: psiat
   type(locreg_descriptors), dimension(:), allocatable :: Llr
 
@@ -563,7 +563,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      write(*,'(3(a,i0),a)')&
           ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '
   end if
-  
+
   hxh=.5_gp*hx
   hyh=.5_gp*hy
   hzh=.5_gp*hz
@@ -571,7 +571,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(psi(orbse%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
-  
+
   ! Create input guess orbitals
   !call createAtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
   !     ngx,xp,psiat,ng,nl,wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nspin,psi,eks,scorb)
@@ -580,9 +580,9 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   allocate(iorbtolr(orbse%norbp+ndebug),stat=i_stat)
   call memocc(i_stat,iorbtolr,'iorbtolr',subname)
 
-  
+
   call AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
-     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,iorbtolr)
+       ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,iorbtolr)
 
   if (at%geocode == 'F') then
      !allocate the array of localisation regions
@@ -604,6 +604,59 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      deallocate(Llr,stat=i_stat) !these allocation are special
      !call memocc(i_stat,i_all,'Llr',subname)
   end if
+
+
+  if (nproc == 1) then
+     !calculate the overlap matrix as well as the kinetic overlap
+     !in view of complete gaussian calculation
+     allocate(ovrlp(G%ncoeff*G%ncoeff),stat=i_stat)
+     call memocc(i_stat,ovrlp,'ovrlp',subname)
+     allocate(tmp(G%ncoeff,orbse%norb),stat=i_stat)
+     call memocc(i_stat,tmp,'tmp',subname)
+     allocate(smat(orbse%norb,orbse%norb),stat=i_stat)
+     call memocc(i_stat,smat,'smat',subname)
+
+     !overlap calculation of the gaussian matrix
+     call gaussian_overlap(G,G,ovrlp)
+     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
+          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
+
+     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
+          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
+
+     !print overlap matrices
+     do i=1,orbse%norb
+        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+     end do
+
+     !overlap calculation of the kinetic operator
+     call kinetic_overlap(G,G,ovrlp)
+     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
+          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
+
+     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
+          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
+
+     !print overlap matrices
+     tt=0.0_wp
+     do i=1,orbse%norb
+        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+        write(12,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+        tt=tt+smat(i,i)
+     end do
+     print *,'trace',tt
+
+     i_all=-product(shape(ovrlp))*kind(ovrlp)
+     deallocate(ovrlp,stat=i_stat)
+     call memocc(i_stat,i_all,'ovrlp',subname)
+     i_all=-product(shape(tmp))*kind(tmp)
+     deallocate(tmp,stat=i_stat)
+     call memocc(i_stat,i_all,'tmp',subname)
+     i_all=-product(shape(smat))*kind(smat)
+     deallocate(smat,stat=i_stat)
+     call memocc(i_stat,i_all,'smat',subname)
+  end if
+
 
   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbse,Glr%d,&
        hx,hy,hz,Glr%wfd,G,gaucoeff,psi)
@@ -919,10 +972,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
   call transpose_v(iproc,nproc,norbtotp,1,wfd,nvctrp,commu,psi,work=psiw)
   call transpose_v(iproc,nproc,norbtotp,1,wfd,nvctrp,commu,hpsi,work=psiw)
 
-
-
-  
-
   if (nproc > 1) then
      i_all=-product(shape(psiw))*kind(psiw)
      deallocate(psiw,stat=i_stat)
@@ -1094,6 +1143,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   character(len=64) :: message
   integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,iorb,i,ndegen,nwrtmsg,jorb,istart,norbj
   integer :: jjorb,jiorb
+  real(wp) :: tt
   real(wp), dimension(2) :: preval
   real(wp), dimension(:), allocatable :: work_lp,evale
 
@@ -1115,22 +1165,34 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   do i=1,natsc+1
      norbi=norbsc_arr(i,1)
 
-!!$     if (iproc == 0) then
+     if (iproc == 0) then
 !!$        !write the matrices on a file
 !!$        open(31+2*(i-1))
-!!$        do jjorb=1,norbi
+        tt=0.0_wp
+        do jjorb=1,norbi
 !!$           write(31+2*(i-1),'(2000(1pe10.2))')&
 !!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
-!!$        end do
+           write(*,'(i4,2000(1pe15.8))')jjorb,&
+                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
+           write(13,'(i4,2000(1pe15.8))')jjorb,&
+                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
+           tt=tt+hamovr(imatrst-1+jjorb+(jjorb-1)*norbi,1)
+        end do
+        print *,'trace',tt
 !!$        close(31+2*(i-1))
 !!$        open(32+2*(i-1))
-!!$        do jjorb=1,norbi
+        do jjorb=1,norbi
 !!$           write(32+2*(i-1),'(2000(1pe10.2))')&
 !!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,2),jiorb=1,norbi)
-!!$        end do
+           write(*,'(i4,2000(1pe15.8))')jjorb,&
+                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,2),jiorb=1,norbi)
+        end do
 !!$        close(32+2*(i-1))
-!!$
-!!$     end if
+
+     end if
+
+     !now compare only the overlap
+     stop
 
      !write(11,*)hamovr(:,1:2)
 

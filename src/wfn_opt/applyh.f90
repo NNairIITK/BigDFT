@@ -266,19 +266,21 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
           w1(1,IDX),w2(1,IDX), x_c(0,0,0,idx),x_f(1,nfl1,nfl2,nfl3,idx), & 
           psir(1,IDX),ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
      
-  END DO
+  end do
 
-  IF (NSPINOR==1) THEN
+  if (nspinor==1) then
      if (nbuf.eq.0) then
         call realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
      else
         call realspace_nbuf(ibyyzz_r,pot,psir,epot,n1,n2,n3,nbuf)
      endif
-  ELSE
+  else
      epot=0.0_gp
      call realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
-  END IF
+  end if
   
+  !WARNING ONLY FOR TESTING
+  call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
   
   ekin=0.0_gp
   do idx=1,nspinor
@@ -331,43 +333,6 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
   real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU,work3_GPU !pointer to the GPU  memory addresses (with norb=1)
   integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
   integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
-  real(kind=4) filCUDA1(lowfil1:lupfil1) !array of filters to be passed to CUDA interface
-  data filCUDA1 / &
-       8.4334247333529341094733325815816e-7_4,&
-       -0.1290557201342060969516786758559028e-4_4,&
-       0.8762984476210559564689161894116397e-4_4,&
-       -0.30158038132690463167163703826169879e-3_4,&
-       0.174723713672993903449447812749852942e-2_4,&
-       -0.942047030201080385922711540948195075e-2_4,&
-       0.2373821463724942397566389712597274535e-1_4,&
-       0.612625895831207982195380597e-1_4,&
-       0.9940415697834003993178616713_4,&
-       -0.604895289196983516002834636e-1_4, &
-       -0.2103025160930381434955489412839065067e-1_4,&
-       0.1337263414854794752733423467013220997e-1_4,&
-       -0.344128144493493857280881509686821861e-2_4,&
-       0.49443227688689919192282259476750972e-3_4,&
-       -0.5185986881173432922848639136911487e-4_4,&
-       2.72734492911979659657715313017228e-6_4 /
-  real(kind=4) filCUDA2(lowfil2:lupfil2) !array of filters to be passed to CUDA interface
-  data filCUDA2 / &
-       2.72734492911979659657715313017228e-6_4,&
-       -0.5185986881173432922848639136911487e-4_4,&
-       0.49443227688689919192282259476750972e-3_4,&
-       -0.344128144493493857280881509686821861e-2_4,&
-       0.1337263414854794752733423467013220997e-1_4,&
-       -0.2103025160930381434955489412839065067e-1_4,&
-       -0.604895289196983516002834636e-1_4,&
-       0.9940415697834003993178616713_4,&
-       0.612625895831207982195380597e-1_4,&
-       0.2373821463724942397566389712597274535e-1_4,&
-       -0.942047030201080385922711540948195075e-2_4,&
-       0.174723713672993903449447812749852942e-2_4,&
-       -0.30158038132690463167163703826169879e-3_4,&
-       0.8762984476210559564689161894116397e-4_4,&
-       -0.1290557201342060969516786758559028e-4_4,&
-       8.4334247333529341094733325815816e-7_4 /
-
 
   ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
   call uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
@@ -393,20 +358,6 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
         psi_cuda(i)=real(psi_in(i),kind=4)
         v_cuda(i)=real(pot(i),kind=4)
      enddo
-
-!!$     !allocate the GPU memory
-!!$     !copy the data on GPU
-!!$     call CUDA_ALLOC_MEM(1,2*n1+1,2*n2+1,2*n3+1,psi_cuda,v_cuda,psi_GPU,v_GPU,work_GPU)
-!!$
-!!$     !calculate the potential application on GPU
-!!$     call cuda_psi_to_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,v_GPU,work_GPU,&
-!!$          filCUDA1,filCUDA2,lowfil1,lupfil1,lowfil2,lupfil2)
-!!$     
-!!$     !copy vpsi on the CPU
-!!$     call cuda_fetch_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,psi_cuda)
-!!$
-!!$     !deallocate GOU memory
-!!$     call CUDA_DEALLOCATE_MEM(1,psi_GPU,v_GPU,work_GPU)
 
      !new CUDA implementation
      !to be modularised into one unique routine (can allocate less GPU memory)
@@ -554,8 +505,8 @@ subroutine applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
 ! x_c: input, psir1: output
 ! psir: work array
-  call comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw,nww&
-     ,w,ww,x_c,x_f,psir,bounds%gb)
+  call comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw,nww,&
+       w,ww,x_c,x_f,psir,bounds%gb)
   
   epot=0.0_gp
   do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
@@ -678,17 +629,18 @@ subroutine applylocpotkinone_slab(n1,n2,n3, &
 END SUBROUTINE applylocpotkinone_slab
 
 subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
+  use module_base
   implicit none
-  integer,intent(in)::n1,n2,n3
-  integer,intent(in)::ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
-  real(kind=8),intent(in)::pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
-  real(kind=8),intent(inout)::psir(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+  integer, intent(in) :: n1,n2,n3
+  integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in) :: ibyyzz_r
+  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(in) :: pot
+  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(inout) :: psir
+  real(wp), intent(out) :: epot
+  !local variables
+  real(wp) :: tt
+  integer :: i1,i2,i3
 
-  real(kind=8),intent(out)::epot
-  real(kind=8) tt
-  integer i1,i2,i3
-
-  epot=0.d0
+  epot=0.0_wp
   do i3=-14,2*n3+16
      do i2=-14,2*n2+16
         do i1=max(ibyyzz_r(1,i2,i3)-14,-14),min(ibyyzz_r(2,i2,i3)-14,2*n1+16)
