@@ -19,7 +19,7 @@ PPFILES = \
 CLEANFILES = $(PPFILES) inguess.new inguess.dat \
 			 posloc* posmd* posout* poslow* posbest* \
 			 global.out global.mon latest.pos.force.*.dat
-			 *.prc fldiff.report $(EXTRA_DIST)
+			 *.prc fort.* fldiff.report $(EXTRA_DIST)
 
 #dependencies
 $(PPFILES):

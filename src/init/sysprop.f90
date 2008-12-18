@@ -55,7 +55,13 @@ subroutine system_properties(iproc,nproc,in,at,orbs,radii_cf,nelec)
 
 end subroutine system_properties
 
-!this routine performs also some cross-checks with other variables
+!!****f* BigDFT/read_system_variables
+!! FUNCTION
+!!   Assign some of the physical system varaibles
+!!   Performs also some cross-checks with other variables
+!! SOURCE
+!!
+!!***
 subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,norbd,iunit)
   use module_base
   use module_types
@@ -483,7 +489,13 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
 
 end subroutine read_system_variables
 
-!define the descriptors of the orbitals
+
+!!****f* BigDFT/input_occup
+!! FUNCTION
+!!    Define the descriptors of the orbitals from a given norb
+!!    It uses the cubic strategy for partitioning the orbitals
+!! SOURCE
+!!
 subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   use module_base
   use module_types

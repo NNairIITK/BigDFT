@@ -1,6 +1,11 @@
-!calculates the overall size of the simulation cell (cxmin,cxmax,cymin,cymax,czmin,czmax)
-!and shifts the atoms such that their position is the most symmetric possible
-!assign these values to the global localisation region descriptor
+!!****f* BigDFT/system_size
+!! FUNCTION
+!!   Calculates the overall size of the simulation cell 
+!!   and shifts the atoms such that their position is the most symmetric possible.
+!!   Assign these values to the global localisation region descriptor.
+!! SOURCE
+!!
+!!***
 subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   use module_base
   use module_types
@@ -209,6 +214,13 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
 
 end subroutine system_size
 
+!!****f* BigDFT/correct_grid
+!! FUNCTION
+!!   Here the dimensions should be corrected in order to 
+!!   allow the fft for the preconditioner and for Poisson Solver
+!! SOURCE
+!!
+!!***
 subroutine correct_grid(a,h,n)
   use module_base
   use Poisson_Solver

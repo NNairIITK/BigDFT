@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 18/10/2008
+# Date: 08/11/2008
 #----------------------------------------------------------------------------
 
 import difflib
@@ -28,13 +28,17 @@ re_version = re.compile("[(]ver[ ]+[0-9.]+[)]",re.IGNORECASE)
 re_float = re.compile("([- ]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
 
 def usage():
-    print "fldiff.py [--bigdft] file1 file2"
+    print "fldiff.py [--bigdft] [--discrepancy=d] file1 file2"
     print "  --bigdft to compare 'bigdft' output files"
+    print "  --discrepancy=d Maximal discrepancy between results" % max_discrepancy
     sys.exit(1)
+
+#Maximum discrepancy between float results
+max_discrepancy = 1.1e-10
 
 #Check arguments
 try:
-    optlist, args = getopt.getopt(sys.argv[1:],"b",["bigdft"])
+    optlist, args = getopt.getopt(sys.argv[1:],"bd:",["bigdft","discrepancy="])
 except getopt.error:
     sys.stderr.write("Error in arguments\n")
     usage()
@@ -42,9 +46,12 @@ bigdft = False
 for opt,arg in optlist:
     if opt == "-b" or opt == "--bigdft":
         bigdft = True
+    elif opt == "-d" or opt == "--discrepancy":
+        max_discrepancy=float(arg)
 if len(args) != 2:
     sys.stderr.write("Error in arguments\n")
     usage()
+print max_discrepancy
 
 #Arguments
 file1 = args[0]
@@ -84,9 +91,6 @@ try:
 except IOError:
     sys.stderr.write("The file '%s' does not exist!\n" % file2)
     sys.exit(1)
-
-#Maximum discrepancy between float results
-max_discrepancy = 1.1e-10
 
 maximum = 0.0
 context_discrepancy = ""
@@ -245,6 +249,12 @@ while not EOF:
             print right[i2],
 
 print context_lines,
-print "Max Discrepancy%s:" % context_discrepancy,maximum
+
+if maximum > max_discrepancy:
+    message = "failed < "
+else:
+    message = "succeeded < "
+
+print "Max Discrepancy %s: %s (%s%s)" % (context_discrepancy,maximum,message,max_discrepancy)
 sys.exit(0)
 

@@ -145,4 +145,4 @@ check:
 	$(run_parallel) ./PS_Check 32 64 48 1 S >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 11 S >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 13 S >> PS_Check.out
-	python $(top_srcdir)/tests/fldiff.py PS_Check.out $(top_srcdir)/src/PSolver/PS_Check.out.ref
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=2.e-8 PS_Check.out $(top_srcdir)/src/PSolver/PS_Check.out.ref

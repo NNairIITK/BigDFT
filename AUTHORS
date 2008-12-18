@@ -4,26 +4,40 @@ Four institutions are implicated in the BigDFT project :
 - Commissariat a l'Energie Atomique (T. Deutsch),
 - University of Basel (S. Goedecker)
 - Université catholique de Louvain (X. Gonze)
-- Christian-Albrechts Universität izu Kiel (R. Schneider)
+- Christian-Albrechts Universität zu Kiel (R. Schneider)
+
+Coming now to individuals,
+direct contributors to BigDFT (version 1.1) are :
+
+Name                      Initials  Email
+
+Anders Bergman            AB        Anders.Bergman@cea.fr
+Damien Caliste            DC        damien.caliste@cea.fr
+Thierry Deutsch           TD        Thierry.Deutsch@cea.fr
+Alireza Ghasemi           AG        alireza.ghasemi@unibas.ch
+Luigi Genovese            LG        Luigi.Genovese@gmail.com
+Stefan Goedecker          SG        Stefan.Goedecker@unibas.ch
+Alexey Neelov             AN        alexey.neelov@unibas.ch
+Matthieu Ospici           MO        Matthieu.Ospici@free.fr
+Alexander Willand         AW
+
 
 Coming now to individuals,
 direct contributors to BigDFT (version 1.0) are :
 
-Name                      Email
+Name                      Initials  Email
 
-Pierre-Matthieu Anglade   anglade@gmail.com
-Anders Bergman            Anders.Bergman@cea.fr
-Damien Caliste            damien.caliste@cea.fr
-Thierry Deutsch           Thierry.Deutsch@cea.fr
-Fritz Krüger              fkr@numerik.uni-kiel.de
-Alireza Ghasemi           alireza.ghasemi@unibas.ch
-Luigi Genovese            Luigi.Genovese@gmail.com
-Stefan Goedecker          Stefan.Goedecker@unibas.ch
-Xavier Gonze              gonze@pcpm.ucl.ac.be
-Alexey Neelov             alexey.neelov@unibas.ch
-Jaroslav Piwonski         jpi@numerik.uni-kiel.de
-Mark Rayson               Mark.Rayson@unibas.ch
-Reinhold Schneider        schneidr@silica.math.TU-Berlin.de
-Oded Zilberberg
-Mathieu Ospici
-Alexander Willand
+Pierre-Matthieu Anglade   PMA       anglade@gmail.com
+Anders Bergman            AB        Anders.Bergman@cea.fr
+Damien Caliste            DC        damien.caliste@cea.fr
+Thierry Deutsch           TD        Thierry.Deutsch@cea.fr
+Fritz Krüger              FK        fkr@numerik.uni-kiel.de
+Alireza Ghasemi           AG        alireza.ghasemi@unibas.ch
+Luigi Genovese            LG        Luigi.Genovese@gmail.com
+Stefan Goedecker          SG        Stefan.Goedecker@unibas.ch
+Xavier Gonze              XG        gonze@pcpm.ucl.ac.be
+Alexey Neelov             AN        alexey.neelov@unibas.ch
+Jaroslav Piwonski         JP        jpi@numerik.uni-kiel.de
+Mark Rayson               MR        Mark.Rayson@unibas.ch
+Reinhold Schneider        RS        schneidr@silica.math.TU-Berlin.de
+Oded Zilberberg           OZ
