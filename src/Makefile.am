@@ -243,7 +243,7 @@ test_forces.o: $(mod_bigdft)
 
 $(mod_bigdft) : BigDFT_API.o
 
-$(modules_objects) : mpif.h
+$(modules_objects) : $(mpi_include)
 
 #BigDFT.o: \
 #	base.o \
