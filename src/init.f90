@@ -1165,34 +1165,34 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   do i=1,natsc+1
      norbi=norbsc_arr(i,1)
 
-     if (iproc == 0) then
-!!$        !write the matrices on a file
-!!$        open(31+2*(i-1))
-        tt=0.0_wp
-        do jjorb=1,norbi
-!!$           write(31+2*(i-1),'(2000(1pe10.2))')&
+!!$     if (iproc == 0) then
+        !write the matrices on a file
+      !open(31+2*(i-1))
+!!$        tt=0.0_wp
+!!$        do jjorb=1,norbi
+           !write(31+2*(i-1),'(2000(1pe10.2))')&
+           !     (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
+!!$           write(*,'(i4,2000(1pe15.8))')jjorb,&
 !!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
-           write(*,'(i4,2000(1pe15.8))')jjorb,&
-                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
-           write(13,'(i4,2000(1pe15.8))')jjorb,&
-                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
-           tt=tt+hamovr(imatrst-1+jjorb+(jjorb-1)*norbi,1)
-        end do
-        print *,'trace',tt
-!!$        close(31+2*(i-1))
-!!$        open(32+2*(i-1))
-        do jjorb=1,norbi
-!!$           write(32+2*(i-1),'(2000(1pe10.2))')&
+!!$           write(13,'(i4,2000(1pe15.8))')jjorb,&
+!!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
+!!$           tt=tt+hamovr(imatrst-1+jjorb+(jjorb-1)*norbi,1)
+!!$        end do
+!!$        print *,'trace',tt
+           !close(31+2*(i-1))
+           !open(32+2*(i-1))
+!!$        do jjorb=1,norbi
+     !write(32+2*(i-1),'(2000(1pe10.2))')&
+     !           (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,2),jiorb=1,norbi)
+!!$           write(*,'(i4,2000(1pe15.8))')jjorb,&
 !!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,2),jiorb=1,norbi)
-           write(*,'(i4,2000(1pe15.8))')jjorb,&
-                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,2),jiorb=1,norbi)
-        end do
-!!$        close(32+2*(i-1))
-
-     end if
-
-     !now compare only the overlap
-     stop
+!!$        end do
+           !close(32+2*(i-1))
+!!$
+!!$     end if
+!!$
+!!$     !now compare only the overlap
+!!$     stop
 
      !write(11,*)hamovr(:,1:2)
 
