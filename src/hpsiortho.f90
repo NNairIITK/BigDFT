@@ -64,32 +64,32 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   call timing(iproc,'ApplyLocPotKin','OF')
 
-  !only for kinetic term, to be removed
-!!$
-!!$  ! apply all PSP projectors for all orbitals belonging to iproc
-!!$  call timing(iproc,'ApplyProj     ','ON')
-!!$
-!!$  !here the localisation region should be changed, temporary only for cubic approach
-!!$  eproj_sum=0.0_gp
-!!$  !apply the projectors following the strategy (On-the-fly calculation or not)
-!!$  if (DistProjApply) then
-!!$     call applyprojectorsonthefly(iproc,orbs,at,lr%d%n1,lr%d%n2,lr%d%n3,&
-!!$          rxyz,hx,hy,hz,cpmult,fpmult,radii_cf,lr%wfd,nlpspd,proj,psi,hpsi,eproj_sum)
-!!$  else
-!!$     !one should add a flag here which states that it works only for global reion
-!!$     ! loop over all my orbitals
-!!$     do iorb=1,orbs%norbp*orbs%nspinor
-!!$        call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
-!!$             nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,&
-!!$             nlpspd%nvctr_p,&
-!!$             proj,lr%wfd%nseg_c,lr%wfd%nseg_f,lr%wfd%keyg,lr%wfd%keyv,&
-!!$             lr%wfd%nvctr_c,lr%wfd%nvctr_f, & 
-!!$             psi(1,iorb),hpsi(1,iorb),eproj)
-!!$        eproj_sum=eproj_sum+orbs%occup((iorb+orbs%isorb-1)/orbs%nspinor+1)*eproj
-!!$     enddo
-!!$  end if
-!!$
-!!$  call timing(iproc,'ApplyProj     ','OF')
+!!$  !TESTING:only for kinetic term, to be removed
+
+  ! apply all PSP projectors for all orbitals belonging to iproc
+  call timing(iproc,'ApplyProj     ','ON')
+
+  !here the localisation region should be changed, temporary only for cubic approach
+  eproj_sum=0.0_gp
+  !apply the projectors following the strategy (On-the-fly calculation or not)
+  if (DistProjApply) then
+     call applyprojectorsonthefly(iproc,orbs,at,lr%d%n1,lr%d%n2,lr%d%n3,&
+          rxyz,hx,hy,hz,cpmult,fpmult,radii_cf,lr%wfd,nlpspd,proj,psi,hpsi,eproj_sum)
+  else
+     !one should add a flag here which states that it works only for global reion
+     ! loop over all my orbitals
+     do iorb=1,orbs%norbp*orbs%nspinor
+        call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
+             nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,&
+             nlpspd%nvctr_p,&
+             proj,lr%wfd%nseg_c,lr%wfd%nseg_f,lr%wfd%keyg,lr%wfd%keyv,&
+             lr%wfd%nvctr_c,lr%wfd%nvctr_f, & 
+             psi(1,iorb),hpsi(1,iorb),eproj)
+        eproj_sum=eproj_sum+orbs%occup((iorb+orbs%isorb-1)/orbs%nspinor+1)*eproj
+     enddo
+  end if
+
+  call timing(iproc,'ApplyProj     ','OF')
 
   !energies reduction
   if (nproc > 1) then

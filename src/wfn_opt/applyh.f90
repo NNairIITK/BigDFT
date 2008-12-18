@@ -279,8 +279,8 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
      call realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   end if
   
-  !WARNING ONLY FOR TESTING
-  call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
+!!$  !WARNING ONLY FOR TESTING
+!!$  call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
   
   ekin=0.0_gp
   do idx=1,nspinor

@@ -1089,7 +1089,7 @@ function kinovrlp(a1,a2,d,l1,l2)
   ovrlp=govrlp(a1,a2,d,l1+2,l2)
   kinovrlp=fac*ovrlp
   !case l1
-  fac=2._gp*a1*real(l1+1,gp)
+  fac=2._gp*a1*real(2*l1+1,gp)
   ovrlp=govrlp(a1,a2,d,l1,l2)
   kinovrlp=kinovrlp-fac*ovrlp
   !case l1-2 (if applicable)
