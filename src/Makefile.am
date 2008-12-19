@@ -148,6 +148,7 @@ low_level = init/projectors.f90  \
 	init/eleconf.f90 \
 	init/locreg.f90 \
 	init/sysprop.f90 \
+	init/gaussians.f90 \
 	wfn_opt/precond.f90 \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
