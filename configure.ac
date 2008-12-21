@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets], [1.1.9], [Damien.Caliste@cea.fr], [bigdft])
+AC_INIT([BigDFT - DFT over wavelets], [1.2.0], [Damien.Caliste@cea.fr], [bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -207,8 +207,8 @@ fi
 
 
 dnl AM_CONDITIONAL for the different libraries, set default values.
-dnl the common library for XC computation.
-ac_build_lib_ABINIT_common="yes"
+dnl the common routines from ABINIT.
+ac_build_lib_ABINIT="yes"
 dnl the pure PSolver library.
 ac_build_lib_PSolver="yes"
 dnl the BigDFT library (without PSolver)
@@ -219,10 +219,10 @@ ac_build_bin_cluster="yes"
 
 dnl disable different build
 dnl The ABINIT common XC library
-AC_ARG_ENABLE(libxc, AS_HELP_STRING([--enable-libxc], [build the XC library from ABINIT code (default = yes).]), ac_build_lib_ABINIT_common=$enableval, ac_build_lib_ABINIT_common="yes")
-AM_CONDITIONAL(BUILD_LIB_XC, test "$ac_build_lib_ABINIT_common" = "yes")
-AC_MSG_CHECKING([for XC library internal build])
-AC_MSG_RESULT([$ac_build_lib_ABINIT_common])
+AC_ARG_ENABLE(libabinit, AS_HELP_STRING([--enable-libabinit], [build the ABINIT library from ABINIT code (default = yes).]), ac_build_lib_ABINIT=$enableval, ac_build_lib_ABINIT="yes")
+AM_CONDITIONAL(BUILD_LIB_ABINIT, test "$ac_build_lib_ABINIT" = "yes")
+AC_MSG_CHECKING([for ABINIT library internal build])
+AC_MSG_RESULT([$ac_build_lib_ABINIT])
 dnl The PSolver library
 AC_ARG_ENABLE(libpoissonsolver, AS_HELP_STRING([--enable-libpoissonsolver], [build the Poisson's solver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
 AM_CONDITIONAL(BUILD_LIB_PSOLVER, test "$ac_build_lib_PSolver" = "yes")
@@ -333,7 +333,15 @@ fi # End of the if library compilation
 
 
 dnl default installation directories
-moduledir=${includedir}/$fc_type
+AC_ARG_WITH(moduledir,
+            AS_HELP_STRING([--with-moduledir],
+                           [installation directory for module files [[INCLUDEDIR/FC_TYPE]]]),
+              ac_moduledir=$withval, ac_moduledir="no")
+if test x"$ac_moduledir" != x"no" ; then
+  moduledir=$ac_moduledir
+else
+  moduledir=${includedir}/${fc_type}
+fi
 AC_SUBST(moduledir)
 
 dnl Give the name of file.in to transform to file
@@ -376,7 +384,7 @@ Basics:
   Linked libraries:          $LIBS
 
 Build:
-  Library XC (from ABINIT):  $ac_build_lib_ABINIT_common
+  Library ABINIT:            $ac_build_lib_ABINIT
   Library PSolver:           $ac_build_lib_PSolver
   Library BigDFT:            $ac_build_lib_BigDFT
   Main binaries (cluster...):$ac_build_bin_cluster

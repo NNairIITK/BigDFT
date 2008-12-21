@@ -39,14 +39,16 @@ if USE_CUDA_GPU
 sub_dirs_cuda=CUDA
 libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a @LIB_CUTIL_PATH@/libcutil.a
 
-check_PROGRAMS = conv_check
+check_PROGRAMS = conv_check GPUham
 
 else
 check_PROGRAMS = 
 EXTRA_DIST += conv_check.f90 \
+	GPUham.f90 \
 	1Dconv.cu \
 	1Dconv_new.cu \
-	locpot.cu
+	locpot.cu \
+	kinetic.cu 
 endif
 
 if USE_MPI
@@ -63,6 +65,11 @@ AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@
 conv_check_SOURCES = conv_check.f90 1Dconv.cu 1Dconv_new.cu ../profiling/memory.f90 ../modules/base.f90 $(mpi_source)
 conv_check_LDFLAGS =
 conv_check_LDADD = ../convolutions/libconvolutions.a \
+	$(libs_cuda)
+
+GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.f90 $(mpi_source)
+GPUham_LDFLAGS =
+GPUham_LDADD = ../convolutions/libconvolutions.a \
 	$(libs_cuda)
 
 .cu.o:

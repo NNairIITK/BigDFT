@@ -2,15 +2,15 @@
 ! calculates the DIIS extrapolated solution psit in the ids-th DIIS step 
 ! using  the previous iteration points phidst and the associated error 
 ! vectors (preconditione gradients) hpsidst
-subroutine diisstp(norb,norbp,nproc,iproc,nspinor,  & 
+subroutine diisstp(norb,nproc,iproc,nspinor,  & 
                    ads,ids,mids,idsx,nvctrp,psit,psidst,hpsidst)
   use module_base
   implicit none
 ! Arguments
-  integer, intent(in) :: norb,norbp,nproc,iproc,nspinor,ids,mids,idsx,nvctrp
-  real(wp), dimension(nvctrp,norbp*nproc*nspinor,idsx), intent(in) :: psidst,hpsidst
+  integer, intent(in) :: norb,nproc,iproc,nspinor,ids,mids,idsx,nvctrp
+  real(wp), dimension(nvctrp,norb*nspinor,idsx), intent(in) :: psidst,hpsidst
   real(dp), dimension(idsx+1,idsx+1,3), intent(inout) :: ads
-  real(wp), dimension(nvctrp,norbp*nproc*nspinor), intent(out) :: psit
+  real(wp), dimension(nvctrp,norb*nspinor), intent(out) :: psit
 ! Local variables
   character(len=*), parameter :: subname='diisstp'
   integer :: i,j,ist,jst,mi,iorb,info,jj,mj,k,i_all,i_stat,ierr
@@ -40,7 +40,7 @@ subroutine diisstp(norb,norbp,nproc,iproc,nspinor,  &
   do i=ist,ids
      mi=mod(i-1,idsx)+1
      do iorb=1,norb*nspinor
-        tt=DDOT(nvctrp,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mi),1)
+        tt=dot(nvctrp,hpsidst(1,iorb,mids),1,hpsidst(1,iorb,mi),1)
         rds(i-ist+1)=rds(i-ist+1)+tt
      end do
   end do

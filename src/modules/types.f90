@@ -146,20 +146,18 @@ module module_types
   end type gaussian_basis
 !!***
 
-!!****t* module_types/restart_objects
+!!****t* module_types/orbitals_data
 !! DESCRIPTION
-!!  Used to restart a new DFT calculation or to save information 
-!!  for post-treatment
+!! All the parameters which are important for describing the orbitals
+!!
 !! SOURCE
 !!
-  type, public :: restart_objects
-     integer :: n1,n2,n3,norbp,norb
-     real(wp), dimension(:), pointer :: eval,psi
-     real(wp), dimension(:,:), pointer :: gaucoeffs
-     real(gp), dimension(:,:), pointer :: rxyz_old
-     type(wavefunctions_descriptors) :: wfd
-     type(gaussian_basis) :: gbd
-  end type restart_objects
+  type, public :: orbitals_data
+     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim
+     integer, dimension(:), pointer :: norb_par
+     real(wp), dimension(:), pointer :: eval
+     real(gp), dimension(:), pointer :: occup,spinsgn
+  end type orbitals_data
 !!***
 
 !!****t* module_types/locreg_descriptors
@@ -170,11 +168,29 @@ module module_types
 !!
   type, public :: locreg_descriptors
      character(len=1) :: geocode
+     logical :: hybrid_on !interesting for global, periodic, localisation regions
      integer :: ns1,ns2,ns3 !starting points of the localisation region in global coordinates
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
   end type locreg_descriptors
+!!***
+
+!!****t* module_types/restart_objects
+!! DESCRIPTION
+!!  Used to restart a new DFT calculation or to save information 
+!!  for post-treatment
+!! SOURCE
+!!
+  type, public :: restart_objects
+     integer :: n1,n2,n3
+     real(wp), dimension(:), pointer :: psi
+     real(wp), dimension(:,:), pointer :: gaucoeffs
+     real(gp), dimension(:,:), pointer :: rxyz_old
+     type(locreg_descriptors) :: Glr
+     type(gaussian_basis) :: gbd
+     type(orbitals_data) :: orbs
+  end type restart_objects
 !!***
 
 !!****t* module_types/communications_arrays
@@ -188,6 +204,7 @@ module module_types
      integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
   end type communications_arrays
 !!***
+
 
 contains
 
@@ -232,8 +249,6 @@ contains
     call memocc(i_stat,i_all,'ndsplt',routine)
   end subroutine deallocate_comms
 
-
-
   subroutine init_restart_objects(atoms,rst,routine)
     use module_base
     implicit none
@@ -249,12 +264,12 @@ contains
 
     !nullify unallocated pointers
     nullify(rst%psi)
-    nullify(rst%eval)
+    nullify(rst%orbs%eval)
 
     nullify(rst%gaucoeffs)
 
-    nullify(rst%wfd%keyg)
-    nullify(rst%wfd%keyv)
+    nullify(rst%Glr%wfd%keyg)
+    nullify(rst%Glr%wfd%keyv)
 
     nullify(rst%gbd%nshell)
     nullify(rst%gbd%ndoc)
@@ -273,13 +288,13 @@ contains
     !local variables
     integer :: i_all,i_stat
 
-    call deallocate_wfd(rst%wfd,routine)
+    call deallocate_wfd(rst%Glr%wfd,routine)
 
     i_all=-product(shape(rst%psi))*kind(rst%psi)
     deallocate(rst%psi,stat=i_stat)
     call memocc(i_stat,i_all,'psi',routine)
-    i_all=-product(shape(rst%eval))*kind(rst%eval)
-    deallocate(rst%eval,stat=i_stat)
+    i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
+    deallocate(rst%orbs%eval,stat=i_stat)
     call memocc(i_stat,i_all,'eval',routine)
     i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
     deallocate(rst%rxyz_old,stat=i_stat)

@@ -300,8 +300,7 @@ subroutine transpose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
 
   if (nproc > 1) then
      !control check
-     if (.not. present(work) .or. .not. associated(work) .or. &
-          product(shape(work)) < nspinor*nvctrp*norbp*nproc) then 
+     if (.not. present(work) .or. .not. associated(work)) then 
         if(iproc == 0) write(*,'(1x,a)')&
              "ERROR: Unproper work array for transposing in parallel"
         stop
@@ -329,6 +328,66 @@ subroutine transpose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
 
 end subroutine transpose_v
 
+!transposition of the arrays, variable version (non homogeneous)
+subroutine transpose_v2(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
+     work,outadd) !optional
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc,norbp,nspinor,nvctrp !the latter will depend on orbitals
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(communications_arrays), intent(in) :: comms
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
+  real(wp), dimension(:), pointer, optional :: work
+  real(wp), dimension(*), intent(out), optional :: outadd
+  !local variables
+  integer :: ierr
+
+
+  call timing(iproc,'Un-TransSwitch','ON')
+
+  if (nproc > 1) then
+     !control check
+     if (.not. present(work) .or. .not. associated(work)) then 
+        if(iproc == 0) write(*,'(1x,a)')&
+             "ERROR: Unproper work array for transposing in parallel"
+        stop
+     end if
+     call switch_waves_v(nproc,norbp,nspinor,&
+          wfd%nvctr_c+7*wfd%nvctr_f,nvctrp,psi,work)
+     call timing(iproc,'Un-TransSwitch','OF')
+     call timing(iproc,'Un-TransComm  ','ON')
+
+     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+     print *,iproc,shape(work),'shape'
+
+     if (present(outadd)) then
+        call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
+             outadd,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
+     else
+        call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
+             psi,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
+     end if
+
+     print *,iproc,shape(work),'shape2'
+     print *,iproc,work(1),work(product(shape(work))) ,'work '
+     stop
+     deallocate(work)
+     stop
+
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'Un-TransSwitch','ON')
+  else
+     if(nspinor==4) then
+        call psitransspi(nvctrp,norbp,psi,.true.)
+     end if
+  end if
+
+  call timing(iproc,'Un-TransSwitch','OF')
+
+end subroutine transpose_v2
+
+
 subroutine untranspose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
      work,outadd) !optional
   use module_base
@@ -347,15 +406,14 @@ subroutine untranspose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
 
   if (nproc > 1) then
      !control check
-     if (.not. present(work) .or. .not. associated(work) .or. &
-          product(shape(work)) < nspinor*nvctrp*norbp*nproc) then
+     if (.not. present(work) .or. .not. associated(work)) then
         if(iproc == 0) write(*,'(1x,a)')&
              "ERROR: Unproper work array for untransposing in parallel"
         stop
      end if
      call timing(iproc,'Un-TransSwitch','OF')
      call timing(iproc,'Un-TransComm  ','ON')
-     call MPI_ALLTOALLV(psi,comms%ncntt,comms%ndspld,mpidtypw,  &
+     call MPI_ALLTOALLV(psi,comms%ncntt,comms%ndsplt,mpidtypw,  &
           work,comms%ncntd,comms%ndspld,mpidtypw,MPI_COMM_WORLD,ierr)
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
@@ -383,10 +441,9 @@ subroutine switch_waves_v(nproc,norbp,nspinor,nvctr,nvctrp,psi,psiw)
   real(wp), dimension(nvctr,nspinor,norbp), intent(in) :: psi
   real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(out) :: psiw
   !local variables
-  integer :: iorb,i,j,ij,isp
+  integer :: iorb,i,j,ij
 
   if(nspinor==1) then
-     isp=1
      do iorb=1,norbp
         ij=1
         do j=1,nproc
@@ -421,6 +478,7 @@ subroutine switch_waves_v(nproc,norbp,nspinor,nvctr,nvctrp,psi,psiw)
         enddo
      enddo
   end if
+
 end subroutine switch_waves_v
 
 subroutine unswitch_waves_v(nproc,norbp,nspinor,nvctr,nvctrp,psiw,psi)
@@ -430,7 +488,7 @@ subroutine unswitch_waves_v(nproc,norbp,nspinor,nvctr,nvctrp,psiw,psi)
   real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(in) :: psiw
   real(wp), dimension(nvctr,nspinor,norbp), intent(out) :: psi
   !local variables
-  integer :: iorb,i,j,ij,isp
+  integer :: iorb,i,j,ij
 
   if(nspinor==1) then
      do iorb=1,norbp

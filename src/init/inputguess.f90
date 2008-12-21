@@ -424,21 +424,17 @@ subroutine createAtomicOrbitals(iproc,nproc,at,&
 
 end subroutine createAtomicOrbitals
 
-subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat,&
-     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,iorbtolr)!,&
-  !wfd,n1,n2,n3,hx,hy,hz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,psi)
+subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
+     ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,iorbtolr)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: norbe,norbep,ngx,iproc,nproc
+  integer, intent(in) :: norbe,ngx,iproc,nproc
   integer, intent(in) :: norbsc,nspin
-!!$  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1,n2,n3
-!!$  real(gp), intent(in) :: hx,hy,hz
-!!$  type(wavefunctions_descriptors), intent(in) :: wfd
-!!$  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbep), intent(out) :: psi
   type(atoms_data), intent(in) :: at
   logical, dimension(4,2,at%natsc), intent(in) :: scorb
   real(gp), dimension(3,at%nat), intent(in), target :: rxyz
+  type(orbitals_data), intent(inout) :: orbse
   integer, dimension(at%ntypes), intent(inout) :: ng
   integer, dimension(4,at%ntypes), intent(inout) :: nl
   real(gp), dimension(ngx,at%ntypes), intent(inout) :: xp
@@ -446,10 +442,8 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
   real(gp), dimension(ngx,5,at%ntypes), intent(inout) :: psiat
   type(gaussian_basis), intent(out) :: G
   real(gp), intent(out) :: eks
-  integer, dimension(norbep), intent(out) :: iorbtolr !assign the localisation region
-  real(gp), dimension(nspin*norbe), intent(out) :: occupe
-  real(wp), dimension(norbe,norbep), intent(out) :: gaucoeff !norbe=G%ncoeff
-  
+  integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
+  real(wp), dimension(norbe,orbse%norbp), intent(out) :: gaucoeff !norbe=G%ncoeff
   !local variables
   character(len=*), parameter :: subname= 'AtomicOrbitals'
   integer, parameter :: nterm_max=3,noccmax=2,nlmax=4,nlevmax=6
@@ -525,7 +519,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
   end if
 
   do icoeff=1,G%ncoeff
-     do jorb=1,norbep
+     do jorb=1,orbse%norbp
         gaucoeff(icoeff,jorb)=0.0_wp
      end do
   end do
@@ -555,10 +549,6 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
   iexpo=0
   icoeff=1
   do iat=1,at%nat
-
-!!$     rx=rxyz(1,iat)
-!!$     ry=rxyz(2,iat)
-!!$     rz=rxyz(3,iat)
 
      ity=at%iatype(iat)
 
@@ -680,28 +670,9 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,norbep,norbsc,occupe,occupat
 
               do m=1,2*l-1
                  iorb=iorb+1
-                 jorb=iorb-iproc*norbep
-                 occupe(iorb)=occshell/real(2*l-1,gp)
-                 if (myorbital(iorb,nspin*norbe,iproc,nproc)) then
-!!$                    !this will calculate the proper spherical harmonics
-!!$                    call calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
-!!$                    call crtonewave(at%geocode,n1,n2,n3,ng(ity),nterm,lx,ly,lz,fac_arr,&
-!!$                         xp(1,ity),G%psiat(iexpo-G%ndoc(ishell)+1),rx,ry,rz,hx,hy,hz, & 
-!!$                         0,n1,0,n2,0,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
-!!$                         wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),wfd%nseg_f,wfd%nvctr_f,&
-!!$                         wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),&
-!!$                         psi(1,jorb),psi(wfd%nvctr_c+1,jorb))
-!!$                    !renormalise wavefunction in case of too crude box
-!!$                    call wnrm(wfd%nvctr_c,wfd%nvctr_f,psi(1,jorb),psi(wfd%nvctr_c+1,jorb),scpr) 
-!!$                    !in the periodic case the function is not always normalised
-!!$                    write(*,'(1x,a24,a7,2(a3,i1),a16,i4,i4,1x,1pe14.7)')&
-!!$                         'ATOMIC INPUT ORBITAL for atom',trim(at%atomnames(ity)),&
-!!$                         'l=',l,'m=',m,'iorb,jorb,norm',iorb,jorb,scpr
-!!$                    scprw=real(1.0_dp/sqrt(scpr),wp)
-!!$                    call wscal(wfd%nvctr_c,wfd%nvctr_f,scprw,psi(1,jorb),psi(wfd%nvctr_c+1,jorb))
-!!$                    !call wnrm(nvctr_c,nvctr_f,psi(1,jorb),psi(nvctr_c+1,jorb),scpr) 
-!!$                    !print *,'newnorm', scpr,occupe(iorb),occshell,ictot
-
+                 jorb=iorb-orbse%isorb
+                 orbse%occup(iorb)=occshell/real(2*l-1,gp)
+                 if (orbse%isorb < iorb .and. iorb <= orbse%isorb+orbse%norbp) then
                     gaucoeff(icoeff,jorb)=1.0_wp
                     !associate to each orbital the reference localisation region
                     iorbtolr(jorb)=iat 

@@ -45,3 +45,47 @@ subroutine createDensPotDescriptors(iproc,nproc,geocode,datacode,n1i,n2i,n3i,ixc
 end subroutine createDensPotDescriptors
 
 
+!partition the orbitals between processors to ensure load balancing
+!the criterion will depend on GPU computation
+!and/or on the sizes of the different localisation region
+subroutine orbitals_communicators(iproc,nproc,nvctrp,orbs,comms)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc,nvctrp
+  type(orbitals_data), intent(in) :: orbs
+  type(communications_arrays), intent(out) :: comms
+  !local variables
+  integer :: jproc
+
+  !calculate the number of elements to be sent to each process
+  !and the array of displacements
+  !cubic strategy: -each wavefunction has the same number of points
+  !                -each processor has all the orbitals in transposed form
+  !                -each wavefunction is equally distributed in its transposed form
+  !send buffer
+
+  !check of allocation of important arrays
+  if (.not. associated(orbs%norb_par)) then
+     write(*,*)'ERROR: norb_par array not allocated'
+     stop
+  end if
+
+
+  do jproc=0,nproc-1
+     comms%ncntd(jproc)=nvctrp*orbs%norb_par(iproc)*orbs%nspinor
+  end do
+  comms%ndspld(0)=0
+  do jproc=1,nproc-1
+     comms%ndspld(jproc)=comms%ndspld(jproc-1)+comms%ncntd(jproc-1)
+  end do
+  !receive buffer
+  do jproc=0,nproc-1
+     comms%ncntt(jproc)=nvctrp*orbs%norb_par(jproc)*orbs%nspinor
+  end do
+  comms%ndsplt(0)=0
+  do jproc=1,nproc-1
+     comms%ndsplt(jproc)=comms%ndsplt(jproc-1)+comms%ncntt(jproc-1)
+  end do
+
+end subroutine orbitals_communicators

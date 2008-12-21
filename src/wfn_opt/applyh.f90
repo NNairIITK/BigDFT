@@ -1,19 +1,17 @@
 ! calculate the action of the local hamiltonian on the orbitals
-subroutine local_hamiltonian(iproc,geocode,hybrid_on,lr,hx,hy,hz,&
-     nspin,nspinor,norbp,norb,occup,spinsgn,pot,psi,hpsi,ekin_sum,epot_sum)
+subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
+     nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   use module_base
   use module_types
   implicit none
-  character(len=1), intent(in) :: geocode
-  logical, intent(in) :: hybrid_on
-  integer, intent(in) :: iproc,norbp,norb,nspinor,nspin
+  integer, intent(in) :: iproc,nspin
   real(gp), intent(in) :: hx,hy,hz
+  type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor*norbp), intent(in) :: psi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension(lr%d%n1i,lr%d%n2i,lr%d%n3i,nspin) :: pot
-  real(gp), dimension(norb), intent(in) :: occup,spinsgn
   real(gp), intent(out) :: ekin_sum,epot_sum
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor*norbp), intent(out) :: hpsi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   integer :: i_all,i_stat,ierr,iorb
@@ -53,76 +51,74 @@ subroutine local_hamiltonian(iproc,geocode,hybrid_on,lr,hx,hy,hz,&
           4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
           (n1+1)*(n2+1)*(2*n3+31),&
           (2*n1+31)*(n2+1)*(n3+1))
-
      !allocation of work arrays
-     allocate(y_c(0:n1,0:n2,0:n3,nspinor+ndebug),stat=i_stat)
+     allocate(y_c(0:n1,0:n2,0:n3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,y_c,'y_c',subname)
-     allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
+     allocate(y_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,y_f,'y_f',subname)
-     allocate(x_c(0:n1,0:n2,0:n3,nspinor+ndebug),stat=i_stat)
+     allocate(x_c(0:n1,0:n2,0:n3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,x_c,'x_c',subname)
-     allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
+     allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,x_f,'x_f',subname)
-     allocate(w1(nw1,nspinor+ndebug),stat=i_stat)
+     allocate(w1(nw1,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,w1,'w1',subname)
-     allocate(w2(nw2,nspinor+ndebug),stat=i_stat)
+     allocate(w2(nw2,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,w2,'w2',subname)
-     allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
+     allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,x_f1,'x_f1',subname)
-     allocate(x_f2(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
+     allocate(x_f2(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,x_f2,'x_f2',subname)
-     allocate(x_f3(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor+ndebug),stat=i_stat)
+     allocate(x_f3(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,x_f3,'x_f3',subname)
 
      !initialisation of the work arrays
-     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,x_f1)
-     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,x_f2)
-     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,x_f3)
-     call razero((n1+1)*(n2+1)*(n3+1)*nspinor,x_c)
-     call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,x_f)
-     call razero((n1+1)*(n2+1)*(n3+1)*nspinor,y_c)
-     call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*nspinor,y_f)
+     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*orbs%nspinor,x_f1)
+     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*orbs%nspinor,x_f2)
+     call razero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*orbs%nspinor,x_f3)
+     call razero((n1+1)*(n2+1)*(n3+1)*orbs%nspinor,x_c)
+     call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*orbs%nspinor,x_f)
+     call razero((n1+1)*(n2+1)*(n3+1)*orbs%nspinor,y_c)
+     call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*orbs%nspinor,y_f)
 
-!!$        call razero(nw1*nspinor,w1)
-!!$        call razero(nw2*nspinor,w2)
+!!$        call razero(nw1*orbs%nspinor,w1)
+!!$        call razero(nw2*orbs%nspinor,w2)
 
   case('S')
      !allocation of work arrays
-     allocate(x_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+     allocate(x_c(n1i,n2i,n3i,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,x_c,'x_c',subname)
-     allocate(y_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+     allocate(y_c(n1i,n2i,n3i,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,y_c,'y_c',subname)
 
   case('P')
-     if (.not.hybrid_on) then
+     if (.not. lr%hybrid_on) then
         !allocation of work arrays: only for the non-adaptive case
-        allocate(x_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+        allocate(x_c(n1i,n2i,n3i,orbs%nspinor+ndebug),stat=i_stat)
         call memocc(i_stat,x_c,'x_c',subname)
-        allocate(y_c(n1i,n2i,n3i,nspinor+ndebug),stat=i_stat)
+        allocate(y_c(n1i,n2i,n3i,orbs%nspinor+ndebug),stat=i_stat)
         call memocc(i_stat,y_c,'y_c',subname)
      endif
   end select
 
 
   ! Wavefunction in real space
-  allocate(psir(n1i*n2i*n3i,nspinor+ndebug),stat=i_stat)
+  allocate(psir(n1i*n2i*n3i,orbs%nspinor+ndebug),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
 
-  call razero(n1i*n2i*n3i*nspinor,psir)
+  call razero(n1i*n2i*n3i*orbs%nspinor,psir)
 
   ekin_sum=0.0_gp
   epot_sum=0.0_gp
 
-  do iorb=iproc*norbp+1,min((iproc+1)*norbp,norb)
+  do iorb=1,orbs%norbp
 
-     if(spinsgn(iorb)>0.0_gp) then
+     if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
         nsoffset=1
      else
         nsoffset=2
      end if
-     if(nspinor==4) nsoffset=1
 
-     oidx=(iorb-1)*nspinor+1-iproc*norbp*nspinor
+     oidx=(iorb-1)*orbs%nspinor+1
 
      select case(lr%geocode)
      case('F')
@@ -136,9 +132,9 @@ subroutine local_hamiltonian(iproc,geocode,hybrid_on,lr,hx,hy,hz,&
              lr%bounds%sb%ibxy_ff,lr%bounds%sb%ibzzx_f,lr%bounds%sb%ibyyzz_f,&
              lr%bounds%gb%ibzxx_c,lr%bounds%gb%ibxxyy_c,&
              lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f,nw1,nw2,lr%bounds%ibyyzz_r,&
-             nspinor)
-     case('P')
-        if (hybrid_on) then
+             orbs%nspinor)
+     case('P') !for these cases the non-collinear term is lacking (nspinor must be 1)
+        if (lr%hybrid_on) then
            call applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
                 hx,hy,hz,lr%wfd%nseg_c,lr%wfd%nseg_f,&
                 lr%wfd%nvctr_c,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv,& 
@@ -157,8 +153,8 @@ subroutine local_hamiltonian(iproc,geocode,hybrid_on,lr,hx,hy,hz,&
              hpsi(1,oidx),epot,ekin) 
      end select
 
-     ekin_sum=ekin_sum+occup(iorb)*ekin
-     epot_sum=epot_sum+occup(iorb)*epot
+     ekin_sum=ekin_sum+orbs%occup(iorb+orbs%isorb)*ekin
+     epot_sum=epot_sum+orbs%occup(iorb+orbs%isorb)*epot
 
   enddo
 
@@ -167,7 +163,7 @@ subroutine local_hamiltonian(iproc,geocode,hybrid_on,lr,hx,hy,hz,&
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
 
-  if (.not. (hybrid_on .and. geocode == 'P')) then
+  if (.not. (lr%hybrid_on .and. lr%geocode == 'P')) then
      i_all=-product(shape(x_c))*kind(x_c)
      deallocate(x_c,stat=i_stat)
      call memocc(i_stat,i_all,'x_c',subname)
@@ -176,7 +172,7 @@ subroutine local_hamiltonian(iproc,geocode,hybrid_on,lr,hx,hy,hz,&
      call memocc(i_stat,i_all,'y_c',subname)
   end if
 
-  if (geocode == 'F') then
+  if (lr%geocode == 'F') then
      i_all=-product(shape(x_f1))*kind(x_f1)
      deallocate(x_f1,stat=i_stat)
      call memocc(i_stat,i_all,'x_f1',subname)
@@ -270,19 +266,21 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
           w1(1,IDX),w2(1,IDX), x_c(0,0,0,idx),x_f(1,nfl1,nfl2,nfl3,idx), & 
           psir(1,IDX),ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
      
-  END DO
+  end do
 
-  IF (NSPINOR==1) THEN
+  if (nspinor==1) then
      if (nbuf.eq.0) then
         call realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
      else
         call realspace_nbuf(ibyyzz_r,pot,psir,epot,n1,n2,n3,nbuf)
      endif
-  ELSE
+  else
      epot=0.0_gp
      call realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
-  END IF
+  end if
   
+!!$  !WARNING ONLY FOR TESTING
+!!$  call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
   
   ekin=0.0_gp
   do idx=1,nspinor
@@ -335,43 +333,6 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
   real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU,work3_GPU !pointer to the GPU  memory addresses (with norb=1)
   integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
   integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
-  real(kind=4) filCUDA1(lowfil1:lupfil1) !array of filters to be passed to CUDA interface
-  data filCUDA1 / &
-       8.4334247333529341094733325815816e-7_4,&
-       -0.1290557201342060969516786758559028e-4_4,&
-       0.8762984476210559564689161894116397e-4_4,&
-       -0.30158038132690463167163703826169879e-3_4,&
-       0.174723713672993903449447812749852942e-2_4,&
-       -0.942047030201080385922711540948195075e-2_4,&
-       0.2373821463724942397566389712597274535e-1_4,&
-       0.612625895831207982195380597e-1_4,&
-       0.9940415697834003993178616713_4,&
-       -0.604895289196983516002834636e-1_4, &
-       -0.2103025160930381434955489412839065067e-1_4,&
-       0.1337263414854794752733423467013220997e-1_4,&
-       -0.344128144493493857280881509686821861e-2_4,&
-       0.49443227688689919192282259476750972e-3_4,&
-       -0.5185986881173432922848639136911487e-4_4,&
-       2.72734492911979659657715313017228e-6_4 /
-  real(kind=4) filCUDA2(lowfil2:lupfil2) !array of filters to be passed to CUDA interface
-  data filCUDA2 / &
-       2.72734492911979659657715313017228e-6_4,&
-       -0.5185986881173432922848639136911487e-4_4,&
-       0.49443227688689919192282259476750972e-3_4,&
-       -0.344128144493493857280881509686821861e-2_4,&
-       0.1337263414854794752733423467013220997e-1_4,&
-       -0.2103025160930381434955489412839065067e-1_4,&
-       -0.604895289196983516002834636e-1_4,&
-       0.9940415697834003993178616713_4,&
-       0.612625895831207982195380597e-1_4,&
-       0.2373821463724942397566389712597274535e-1_4,&
-       -0.942047030201080385922711540948195075e-2_4,&
-       0.174723713672993903449447812749852942e-2_4,&
-       -0.30158038132690463167163703826169879e-3_4,&
-       0.8762984476210559564689161894116397e-4_4,&
-       -0.1290557201342060969516786758559028e-4_4,&
-       8.4334247333529341094733325815816e-7_4 /
-
 
   ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
   call uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
@@ -397,20 +358,6 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
         psi_cuda(i)=real(psi_in(i),kind=4)
         v_cuda(i)=real(pot(i),kind=4)
      enddo
-
-!!$     !allocate the GPU memory
-!!$     !copy the data on GPU
-!!$     call CUDA_ALLOC_MEM(1,2*n1+1,2*n2+1,2*n3+1,psi_cuda,v_cuda,psi_GPU,v_GPU,work_GPU)
-!!$
-!!$     !calculate the potential application on GPU
-!!$     call cuda_psi_to_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,v_GPU,work_GPU,&
-!!$          filCUDA1,filCUDA2,lowfil1,lupfil1,lowfil2,lupfil2)
-!!$     
-!!$     !copy vpsi on the CPU
-!!$     call cuda_fetch_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,psi_cuda)
-!!$
-!!$     !deallocate GOU memory
-!!$     call CUDA_DEALLOCATE_MEM(1,psi_GPU,v_GPU,work_GPU)
 
      !new CUDA implementation
      !to be modularised into one unique routine (can allocate less GPU memory)
@@ -558,8 +505,8 @@ subroutine applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
 ! x_c: input, psir1: output
 ! psir: work array
-  call comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw,nww&
-     ,w,ww,x_c,x_f,psir,bounds%gb)
+  call comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw,nww,&
+       w,ww,x_c,x_f,psir,bounds%gb)
   
   epot=0.0_gp
   do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
@@ -682,17 +629,18 @@ subroutine applylocpotkinone_slab(n1,n2,n3, &
 END SUBROUTINE applylocpotkinone_slab
 
 subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
+  use module_base
   implicit none
-  integer,intent(in)::n1,n2,n3
-  integer,intent(in)::ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
-  real(kind=8),intent(in)::pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
-  real(kind=8),intent(inout)::psir(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+  integer, intent(in) :: n1,n2,n3
+  integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in) :: ibyyzz_r
+  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(in) :: pot
+  real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(inout) :: psir
+  real(wp), intent(out) :: epot
+  !local variables
+  real(wp) :: tt
+  integer :: i1,i2,i3
 
-  real(kind=8),intent(out)::epot
-  real(kind=8) tt
-  integer i1,i2,i3
-
-  epot=0.d0
+  epot=0.0_wp
   do i3=-14,2*n3+16
      do i2=-14,2*n2+16
         do i1=max(ibyyzz_r(1,i2,i3)-14,-14),min(ibyyzz_r(2,i2,i3)-14,2*n1+16)
@@ -878,21 +826,21 @@ end subroutine realspaceINPLACE
 
 !Calculate on-the fly each projector for each atom, then applies the projectors 
 !to all distributed orbitals
-subroutine applyprojectorsonthefly(iproc,nspinor,norb,norbp,occup,at,n1,n2,n3,&
+subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
      rxyz,hx,hy,hz,cpmult,fpmult,radii_cf,wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nspinor,norb,norbp,n1,n2,n3
+  integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
   type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
-  real(gp), dimension(norb), intent(in) :: occup
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(in) :: psi
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor*norbp), intent(inout) :: hpsi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
   real(gp), intent(out) :: eproj_sum
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
   !local variables
@@ -907,7 +855,7 @@ subroutine applyprojectorsonthefly(iproc,nspinor,norb,norbp,occup,at,n1,n2,n3,&
   eproj_sum=0.0_gp
 
   !quick return if no orbitals on this porcessor
-  if (iproc*norbp*nspinor+1 > norb*nspinor) then
+  if (orbs%norbp == 0) then
      return
   end if
 
@@ -940,8 +888,7 @@ subroutine applyprojectorsonthefly(iproc,nspinor,norb,norbp,occup,at,n1,n2,n3,&
      mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
      jseg_c=nlpspd%nseg_p(2*iat-2)+1
 
-     do iorb=iproc*norbp*nspinor+1,min((iproc+1)*norbp,norb)*nspinor
-        jorb=iorb-iproc*norbp*nspinor
+     do iorb=1,orbs%norbp*orbs%nspinor
         eproj=0.0_gp
 
         istart_c=1
@@ -953,12 +900,12 @@ subroutine applyprojectorsonthefly(iproc,nspinor,norb,norbp,occup,at,n1,n2,n3,&
                       wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
                       mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
                       nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),&
-                      psi(1,jorb),hpsi(1,jorb),eproj)
+                      psi(1,iorb),hpsi(1,iorb),eproj)
                  istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)
               end if
            enddo
         enddo
-        eproj_sum=eproj_sum+occup((iorb-1)/nspinor+1)*eproj
+        eproj_sum=eproj_sum+orbs%occup((iorb+orbs%isorb-1)/orbs%nspinor+1)*eproj
         
      end do
 

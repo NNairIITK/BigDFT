@@ -224,6 +224,7 @@ subroutine convolut_magic_n_per_self(n1,n2,n3,x,y)
      call memocc(i_stat,wy,'wy',subname)
 
      !copy input data
+     !here we should put a loop to avoid the ndebug issue
      wx=real(x,kind=4)
 
      !call cuda C interface
