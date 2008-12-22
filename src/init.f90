@@ -443,6 +443,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   integer :: norbe,nvirte,norbi,norbj,norbme,ndim_hamovr,n_lp,norbsc,jproc,jpst,norbyou
   integer :: ispin,iorbst2,ist,n2hamovr,nsthamovr,iat
   real(gp) :: hxh,hyh,hzh,tt,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,accurex
+  real(kind=4) :: t0,t1
   type(gaussian_basis) :: G
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
@@ -606,68 +607,9 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   end if
 
 
-  if (nproc == 1) then
-     !calculate the overlap matrix as well as the kinetic overlap
-     !in view of complete gaussian calculation
-     allocate(ovrlp(G%ncoeff*G%ncoeff),stat=i_stat)
-     call memocc(i_stat,ovrlp,'ovrlp',subname)
-     allocate(tmp(G%ncoeff,orbse%norb),stat=i_stat)
-     call memocc(i_stat,tmp,'tmp',subname)
-     allocate(smat(orbse%norb,orbse%norb),stat=i_stat)
-     call memocc(i_stat,smat,'smat',subname)
-
-     !overlap calculation of the gaussian matrix
-     call gaussian_overlap(G,G,ovrlp)
-     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
-          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
-
-     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
-          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
-
-     !print overlap matrices
-     do i=1,orbse%norb
-        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
-     end do
-
-     !overlap calculation of the kinetic operator
-     call kinetic_overlap(G,G,ovrlp)
-     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
-          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
-
-     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
-          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
-
-     !print overlap matrices
-     tt=0.0_wp
-     do i=1,orbse%norb
-        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
-        write(12,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
-        tt=tt+smat(i,i)
-     end do
-     print *,'trace',tt
-
-     i_all=-product(shape(ovrlp))*kind(ovrlp)
-     deallocate(ovrlp,stat=i_stat)
-     call memocc(i_stat,i_all,'ovrlp',subname)
-     i_all=-product(shape(tmp))*kind(tmp)
-     deallocate(tmp,stat=i_stat)
-     call memocc(i_stat,i_all,'tmp',subname)
-     i_all=-product(shape(smat))*kind(smat)
-     deallocate(smat,stat=i_stat)
-     call memocc(i_stat,i_all,'smat',subname)
-  end if
-
-
   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbse,Glr%d,&
        hx,hy,hz,Glr%wfd,G,gaucoeff,psi)
 
-  !deallocate the gaussian basis descriptors
-  call deallocate_gwf(G,subname)
-
-
-  i_all=-product(shape(gaucoeff))*kind(gaucoeff)
-  deallocate(gaucoeff,stat=i_stat)
-  call memocc(i_stat,i_all,'gaucoeff',subname)
   i_all=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=i_stat)
   call memocc(i_stat,i_all,'locrad',subname)
@@ -700,6 +642,87 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 
   call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,nspin)
+
+!!$  if (nproc == 1) then
+!!$     !calculate the overlap matrix as well as the kinetic overlap
+!!$     !in view of complete gaussian calculation
+!!$     allocate(ovrlp(G%ncoeff*G%ncoeff),stat=i_stat)
+!!$     call memocc(i_stat,ovrlp,'ovrlp',subname)
+!!$     allocate(tmp(G%ncoeff,orbse%norb),stat=i_stat)
+!!$     call memocc(i_stat,tmp,'tmp',subname)
+!!$     allocate(smat(orbse%norb,orbse%norb),stat=i_stat)
+!!$     call memocc(i_stat,smat,'smat',subname)
+!!$
+!!$     !overlap calculation of the gaussian matrix
+!!$     call gaussian_overlap(G,G,ovrlp)
+!!$     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
+!!$          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
+!!$
+!!$     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
+!!$          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
+!!$
+!!$     !print overlap matrices
+!!$     do i=1,orbse%norb
+!!$        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+!!$     end do
+!!$
+!!$     !overlap calculation of the kinetic operator
+!!$     call kinetic_overlap(G,G,ovrlp)
+!!$     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
+!!$          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
+!!$
+!!$     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
+!!$          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
+!!$
+!!$     !print overlap matrices
+!!$     tt=0.0_wp
+!!$     do i=1,orbse%norb
+!!$        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+!!$        !write(12,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+!!$        tt=tt+smat(i,i)
+!!$     end do
+!!$     print *,'trace',tt
+!!$
+!!$     !overlap calculation of the kinetic operator
+!!$     call cpu_time(t0)
+!!$     call potential_overlap(G,G,rhopot,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,hxh,hyh,hzh,&
+!!$          ovrlp)
+!!$     call cpu_time(t1)
+!!$     call dsymm('L','U',G%ncoeff,orbse%norb,1.0_gp,ovrlp(1),G%ncoeff,&
+!!$          gaucoeff(1,1),G%ncoeff,0.d0,tmp(1,1),G%ncoeff)
+!!$
+!!$     call gemm('T','N',orbse%norb,orbse%norb,G%ncoeff,1.0_gp,&
+!!$          gaucoeff(1,1),G%ncoeff,tmp(1,1),G%ncoeff,0.0_wp,smat(1,1),orbse%norb)
+!!$
+!!$     !print overlap matrices
+!!$     tt=0.0_wp
+!!$     do i=1,orbse%norb
+!!$        write(*,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+!!$        !write(12,'(i5,30(1pe15.8))')i,(smat(i,iorb),iorb=1,orbse%norb)
+!!$        tt=tt+smat(i,i)
+!!$     end do
+!!$     print *,'trace',tt
+!!$     print *, 'time',t1-t0
+!!$
+!!$     i_all=-product(shape(ovrlp))*kind(ovrlp)
+!!$     deallocate(ovrlp,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'ovrlp',subname)
+!!$     i_all=-product(shape(tmp))*kind(tmp)
+!!$     deallocate(tmp,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'tmp',subname)
+!!$     i_all=-product(shape(smat))*kind(smat)
+!!$     deallocate(smat,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'smat',subname)
+!!$  end if
+
+  !deallocate the gaussian basis descriptors
+  call deallocate_gwf(G,subname)
+
+
+  i_all=-product(shape(gaucoeff))*kind(gaucoeff)
+  deallocate(gaucoeff,stat=i_stat)
+  call memocc(i_stat,i_all,'gaucoeff',subname)
+
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
   allocate(hpsi(orbse%npsidim+ndebug),stat=i_stat)
@@ -1174,8 +1197,8 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
            !     (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
 !!$           write(*,'(i4,2000(1pe15.8))')jjorb,&
 !!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
-!!$           write(13,'(i4,2000(1pe15.8))')jjorb,&
-!!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
+!!$           !write(13,'(i4,2000(1pe15.8))')jjorb,&
+!!$           !     (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
 !!$           tt=tt+hamovr(imatrst-1+jjorb+(jjorb-1)*norbi,1)
 !!$        end do
 !!$        print *,'trace',tt

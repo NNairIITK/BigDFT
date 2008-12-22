@@ -35,7 +35,7 @@ subroutine print_logo()
   write(*,'(23x,a)')' D        D     F         T    T    '  
   write(*,'(23x,a)')'          D     F        T     T    ' 
   write(*,'(23x,a)')'         D               T    T     '
-  write(*,'(23x,a)')'    DDDDD       F         TTTT                     (Ver 1.1.9)'
+  write(*,'(23x,a)')'    DDDDD       F         TTTT                     (Ver 1.2.1)'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
   write(*,'(1x,a)')&

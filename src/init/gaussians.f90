@@ -268,7 +268,10 @@ subroutine potential_overlap(A,B,pot,n1,n2,n3,hx,hy,hz,ovrlp)
                  do mB=1,2*lB-1
                     jovrlp=jovrlp+1
                     if (jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) then
-                       
+                       call locpotovrlp(n1,n2,n3,pot,hx,hy,hz,A%xp(iexpo),A%psiat(iexpo),&
+                            B%xp(jexpo),B%psiat(jexpo),&
+                            ngA,ngB,lA,mA,lB,mB,rxa,rya,rza,rxb,ryb,rzb,niw,nrw,iw,rw,&
+                            ovrlp(iovrlp,jovrlp))
                     end if
                  end do
                  jexpo=jexpo+ngB
@@ -286,21 +289,83 @@ subroutine potential_overlap(A,B,pot,n1,n2,n3,hx,hy,hz,ovrlp)
   
 end subroutine potential_overlap
 
-subroutine locpotovrlp(n1,n2,n3,pot,expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m2,&
-     rxa,rya,rza,rxb,ryb,rzb,niw,nrw,iw,rw,ovrlp)
+
+!!$!calculate the potential overlap via a successive application of a one dimensional
+!!$!integration. Store the values for the remaining dimensions in the work array
+!!$subroutine onedim_potovrlp
+!!$  use module_base
+!!$  implicit none
+!!$  integer, intent(in) :: n,dat
+!!$  
+!!$  !local variables
+!!$  ovrlp=0.d0
+!!$  do ii1=1,ng1
+!!$     a1=expo1(ii1)
+!!$     a1=0.5_gp/a1**2
+!!$     c1=coeff1(ii1)
+!!$     do ii2=1,ng2
+!!$        a2=expo2(ii2)
+!!$        a2=0.5_gp/a2**2
+!!$        c2=coeff2(ii2)
+!!$        !calculate overall factor given by product of gaussian
+!!$        exp_new=a1*a2/(a1+a2)
+!!$        expn=exp_new*(ra-rb)**2
+!!$        factor=c1*c2*exp(-expn)
+!!$        ovrlp=0.0_gp
+!!$        if (factor > 1.e-8_gp) then
+!!$           xmean=rmean(a1,a2,ra,rb)
+!!$           cutoff=5._gp*sqrt(0.5_gp/(a1+a2))
+!!$           !limits for integration of the potential
+!!$           is=floor((xmean-cutoff)/hgrid)
+!!$           ie=ceiling((xmean+cutoff)/hgrid)
+!!$        
+!!$           povrlp=0.0_gp
+!!$           do i=is,ie
+!!$              call ind_gauss(.false.,i,0,n,j,go)
+!!$              if (gox) then
+!!$                 x=real(i,gp)*hgrid-xmean
+!!$                 xa=real(i,gp)*hgrid-ra
+!!$                 xb=real(i,gp)*hgrid-rb
+!!$                 prodgaus=exp(-(a1+a2)*x**2)
+!!$                 polb=0.0_gp
+!!$                 do iii2=1,n2
+!!$                    polb=polb+fb*(xb**q)
+!!$                 end do
+!!$                 pola=0.0_gp
+!!$                 do iii1=1,n1
+!!$                    pola=pola+fa*(xa**p)
+!!$                 end do
+!!$                 prodgaus=prodgaus*pola*polb
+!!$                 povrlp=povrlp+pot(j1,j2,j3)*prodgaus
+!!$              end if
+!!$           enddo
+!!$        end if
+!!$        ovrlp=ovrlp+factor*povrlp
+!!$     end do
+!!$  end do
+!!$  
+!!$
+!!$end subroutine onedim_potovrlp
+
+subroutine locpotovrlp(n1i,n2i,n3i,pot,hx,hy,hz,expo1,coeff1,expo2,coeff2,&
+     ng1,ng2,l1,m1,l2,m2,rxa,rya,rza,rxb,ryb,rzb,niw,nrw,iw,rw,ovrlp)
   use module_base
   implicit none
-  integer, intent(in) :: ng1,ng2,l1,m1,l2,m2,niw,nrw
-  real(gp), intent(in) :: rxa,rya,rza,rxb,ryb,rzb
+  integer, intent(in) :: ng1,ng2,l1,m1,l2,m2,niw,nrw,n1i,n2i,n3i
+  real(gp), intent(in) :: rxa,rya,rza,rxb,ryb,rzb,hx,hy,hz
   integer, dimension(niw) :: iw
   real(gp), dimension(nrw) :: rw
   real(gp), dimension(ng1), intent(in) :: expo1,coeff1
   real(gp), dimension(ng2), intent(in) :: expo2,coeff2
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: pot
+  real(wp), dimension(n1i,n2i,n3i), intent(in) :: pot
   real(gp), intent(out) :: ovrlp
   !local variables
+  integer, parameter :: nx=3
+  logical :: gox,goy,goz
   integer :: ii1,ii2,j1,j2,j3,i1,i2,i3,isx,isy,isz,iex,iey,iez
-  real(gp) :: a1,a2,c1,c2,rmean,xmean,ymean,zmean,prodgau,cutoff,xa,ya,za,xb,yb,zb
+  integer :: iii1,iii2,iii3,px,py,pz,qx,qy,qz,n1,n2
+  real(gp) :: a1,a2,c1,c2,rmean,xmean,ymean,zmean,prodgau,cutoff,xa,ya,za,xb,yb,zb,polynom
+  real(gp) :: pola,polb,prodgaus,rx,ry,rz,nexp,expx,expy,expz,factor,fa,fb,povrlp,x,y,z
 
 
   !calculates the polynomials which multiply each product of gaussians
@@ -310,7 +375,7 @@ subroutine locpotovrlp(n1,n2,n3,pot,expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m
        iw(3*nx+1),iw(4*nx+1),iw(5*nx+1),rw(n1+1))
 
 
-  ovrlp=0.d0
+  ovrlp=0.0_gp
   do ii1=1,ng1
      a1=expo1(ii1)
      a1=0.5_gp/a1**2
@@ -325,76 +390,94 @@ subroutine locpotovrlp(n1,n2,n3,pot,expo1,coeff1,expo2,coeff2,ng1,ng2,l1,m1,l2,m
         expy=nexp*(rya-ryb)**2
         expz=nexp*(rza-rzb)**2
         factor=c1*c2*exp(-expx-expy-expz)
-        ovrlp=0.0_gp
+        povrlp=0.0_gp
         if (factor > 1.e-8_gp) then
 
            xmean=rmean(a1,a2,rxa,rxb)
            ymean=rmean(a1,a2,rya,ryb)
            zmean=rmean(a1,a2,rza,rzb)
-           cutoff=5._gp*sqrt(0.5_gp/(a1+a2))
+           cutoff=10._gp*sqrt(0.5_gp/(a1+a2))
            !limits for integration of the potential
-           isx=floor((rx-cutoff)/hx)
-           isy=floor((ry-cutoff)/hy)
-           isz=floor((rz-cutoff)/hz)
+           isx=floor((xmean-cutoff)/hx)
+           isy=floor((ymean-cutoff)/hy)
+           isz=floor((zmean-cutoff)/hz)
 
-           iex=ceiling((rx+cutoff)/hx)
-           iey=ceiling((ry+cutoff)/hy)
-           iez=ceiling((rz+cutoff)/hz)
-          
-           povrlp=0.0_gp
+           iex=ceiling((xmean+cutoff)/hx)
+           iey=ceiling((ymean+cutoff)/hy)
+           iez=ceiling((zmean+cutoff)/hz)
+         
            do i3=isz,iez
-              call ind_gauss(.false.,i3,0,n3,j3,goz) 
+              call ind_gauss(.false.,i3,1,n3i,j3,goz) 
               if (goz) then
                  z=real(i3,gp)*hz-zmean
                  za=real(i3,gp)*hz-rza
                  zb=real(i3,gp)*hz-rzb
-                 prodgaus=exp(-(a1+a2)*z**2)
                  do i2=isy,iey
-                    call ind_gauss(.false.,i2,0,n2,j2,goy)
+                    call ind_gauss(.false.,i2,1,n2i,j2,goy)
                     if (goy) then
                        y=real(i2,gp)*hy-ymean
                        ya=real(i2,gp)*hy-rya
                        yb=real(i2,gp)*hy-ryb
-                       prodgaus=prodgaus*exp(-(a1+a2)*y**2)
                        do i1=isx,iex
-                          call ind_gauss(.false.,i1,0,n1,j1,gox)
+                          call ind_gauss(.false.,i1,1,n1i,j1,gox)
                           if (gox) then
-                             x=real(i1,gp)*hx-zmean
+                             x=real(i1,gp)*hx-xmean
                              xa=real(i1,gp)*hx-rxa
                              xb=real(i1,gp)*hx-rxb
-                             prodgaus=prodgaus*exp(-(a1+a2)*x**2)
                              polb=0.0_gp
-                             do i2=1,n2
-                                qx=iw(3*nx+i2)
-                                qy=iw(4*nx+i2)
-                                qz=iw(5*nx+i2)
-                                fb=rw(n1+i2)
-                                polb=polb+fb*(xb**qx)*(yb**qy)*(zb**qz)
+                             do iii2=1,n2
+                                qx=iw(3*nx+iii2)
+                                qy=iw(4*nx+iii2)
+                                qz=iw(5*nx+iii2)
+                                fb=rw(n1+iii2)
+                                polb=polb+polynom(fb,xb,yb,zb,qx,qy,qz)
+                                !fb*(xb**qx)*(yb**qy)*(zb**qz)
                              end do
                              pola=0.0_gp
-                             do i1=1,n1
-                                px=iw(i1)
-                                py=iw(nx+i1)
-                                pz=iw(2*nx+i1)
-                                fa=rw(i1)
-                                pola=pola+fa*(xa**px)*(ya**py)*(za**pz)
+                             do iii1=1,n1
+                                px=iw(iii1)
+                                py=iw(nx+iii1)
+                                pz=iw(2*nx+iii1)
+                                fa=rw(iii1)
+                                pola=pola+polynom(fa,xa,ya,za,px,py,pz)
+                                !fa*(xa**px)*(ya**py)*(za**pz)
                              end do
-                             prodgaus=prodgaus*polx*poly
-                                end do
-                             end do
+                             prodgaus=exp(-(a1+a2)*(x**2+y**2+z**2))*pola*polb
                              povrlp=povrlp+pot(j1,j2,j3)*prodgaus
                           end if
+                          !write(17,*)gox,i1,i2,i3,j1,j2,j3,isx,iex,pola,polb,prodgaus,pot(j1,j2,j3)
                        enddo
                     end if
                  enddo
               end if
            end do
-           ovrlp=factor*ovrlp
         end if
+        !print *,'limits:',isx,isy,isz,iex,iey,iez,xmean,ymean,zmean,povrlp
+        ovrlp=ovrlp+factor*povrlp*hx*hy*hz
      end do
   end do
   
 end subroutine locpotovrlp
+
+function polynom(f,x,y,z,lx,ly,lz)
+  use module_base
+  implicit none
+  integer, intent(in) :: lx,ly,lz
+  real(gp), intent(in) :: f,x,y,z
+  real(gp) :: polynom
+  
+  polynom=f
+  if (lx /=0) then
+     polynom=polynom*x**lx
+  end if
+  if (ly /=0) then
+     polynom=polynom*y**ly
+  end if
+  if (lz /=0) then
+     polynom=polynom*z**lz
+  end if
+  
+end function polynom
 
 function rmean(a1,a2,r1,r2)
   use module_base
@@ -414,12 +497,19 @@ subroutine ind_gauss(periodic,i,is,n,j,go)
   logical, intent(out) :: go
   integer, intent(out) :: j
 
-  if (periodic .and. is == 0) then
+  if (periodic .and. is == 1) then
      go=.true.
      j=modulo(i,n+1)
+  else if (.not. periodic) then
+     j=i+15
+     if (i >= is-15 .and. i <= n+is-16) then
+        go=.true.
+     else
+        go=.false.
+     end if
   else
      j=i
-     if (i >= is .and. i <= n1+is) then
+     if (i >= is .and. i <= n+is) then
         go=.true.
      else
         go=.false.
