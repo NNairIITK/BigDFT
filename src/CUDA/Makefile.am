@@ -58,7 +58,7 @@ mpi_source = ../MPIfake.f90
 endif
 
 
-CLEANFILES = module_base.@MODULE_EXT@
+CLEANFILES = module_base.@MODULE_EXT@ fort.1
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ 
 
