@@ -1,6 +1,5 @@
 /****u* CUDA/1Dconv_new.cu
 **
-** 
 ** AUTHOR
 **  Luigi Genovese
 **
@@ -8,7 +7,7 @@
 */
   
 #include <stdio.h>
-#include <cutil.h>
+//#include <cutil.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <sched.h>

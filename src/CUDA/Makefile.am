@@ -37,7 +37,9 @@ SUFFIXES = .cu
 
 if USE_CUDA_GPU
 sub_dirs_cuda=CUDA
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a @LIB_CUTIL_PATH@/libcutil.a
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a
+#cutil is used for CUDA timer
+#libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a @LIB_CUTIL_PATH@/libcutil.a
 
 check_PROGRAMS = conv_check GPUham
 
@@ -58,7 +60,7 @@ mpi_source = ../MPIfake.f90
 endif
 
 
-CLEANFILES = module_base.@MODULE_EXT@
+CLEANFILES = module_base.@MODULE_EXT@ fort.1
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ 
 
