@@ -496,7 +496,7 @@ interface
      integer, intent(in) :: nspinor,ncong
      real(gp), intent(in) :: hx,hy,hz
      type(locreg_descriptors), intent(in) :: lr
-     real(wp), dimension(norbp), intent(in) :: eval
+     real(wp), intent(in) :: eval
      real(dp), intent(out) :: gnrm
      real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,norbp*nspinor), intent(inout) :: hpsi
    end subroutine preconditionall
