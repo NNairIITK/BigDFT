@@ -119,6 +119,7 @@ subroutine Convolkinetic(n1,n2,n3, &
   enddo
 
 
+
 !  if (firstcall) then
 !
 !     ! (1/2) d^2/dx^2
@@ -247,7 +248,12 @@ subroutine Convolkinetic(n1,n2,n3, &
 !  call system_clock(ncount0,ncount_rate,ncount_max)
 
   ! (1/2) d^2/dx^2
-  
+
+!$omp parallel default(private) &
+!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
+!$omp shared(cprecr,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)& 
+!$omp shared(x_f1,x_f2,x_f3,a,b,c,e)
+  !$omp do  
   do i3=0,n3
      do i2=0,n2
         if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -342,11 +348,14 @@ subroutine Convolkinetic(n1,n2,n3, &
         enddo
      enddo
   enddo
+  !$omp enddo
+  
   !  call system_clock(ncount1,ncount_rate,ncount_max)
   !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
   !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:x',tel,1.d-6*mflop1/tel
 
   ! + (1/2) d^2/dy^2
+  !$omp do
   do i3=0,n3
      do i1=0,n1
         if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
@@ -441,6 +450,7 @@ subroutine Convolkinetic(n1,n2,n3, &
         enddo
      enddo
   enddo
+  !$omp enddo
 
 
   !  call system_clock(ncount2,ncount_rate,ncount_max)
@@ -449,6 +459,7 @@ subroutine Convolkinetic(n1,n2,n3, &
 
   ! + (1/2) d^2/dz^2
 
+  !$omp do
   do i2=0,n2
      do i1=0,n1
         if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
@@ -542,13 +553,18 @@ subroutine Convolkinetic(n1,n2,n3, &
         enddo
      enddo
   enddo
+  !$omp enddo
 
+
+  
   !  call system_clock(ncount3,ncount_rate,ncount_max)
   !  tel=dble(ncount3-ncount2)/dble(ncount_rate)
   !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'FIRST PART:z',tel,1.d-6*mflop3/tel
 
   ! wavelet part
   ! (1/2) d^2/dx^2
+
+  !$omp do
   do i3=nfl3,nfu3
      do i2=nfl2,nfu2
         do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
@@ -573,6 +589,7 @@ subroutine Convolkinetic(n1,n2,n3, &
         enddo
      enddo
   enddo
+  !$omp enddo
 
   !  call system_clock(ncount4,ncount_rate,ncount_max)
   !  tel=dble(ncount4-ncount3)/dble(ncount_rate)
@@ -580,6 +597,7 @@ subroutine Convolkinetic(n1,n2,n3, &
 
 
   ! + (1/2) d^2/dy^2
+  !$omp do
   do i3=nfl3,nfu3
      do i1=nfl1,nfu1
         do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
@@ -604,12 +622,14 @@ subroutine Convolkinetic(n1,n2,n3, &
         enddo
      enddo
   enddo
+  !$omp enddo
 
   !  call system_clock(ncount5,ncount_rate,ncount_max)
   !  tel=dble(ncount5-ncount4)/dble(ncount_rate)
   !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:y',tel,1.d-6*nflop2/tel
 
   ! + (1/2) d^2/dz^2
+  !$omp do
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
         do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
@@ -635,7 +655,9 @@ subroutine Convolkinetic(n1,n2,n3, &
         enddo
      enddo
   enddo
+  !$omp enddo
 
+  !$omp end parallel
 !  call system_clock(ncount6,ncount_rate,ncount_max)
 !  tel=dble(ncount6-ncount5)/dble(ncount_rate)
 !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:z',tel,1.d-6*nflop3/tel
@@ -675,6 +697,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
   real(kind=8) :: tel
   real(wp), dimension(-3+lowfil:lupfil+3) :: a,b,c,d
   real(wp), dimension(lowfil:lupfil) :: e
+  real(wp)::ekinp
 
   scale=-.5_wp/real(hgrid**2,wp)
   !---------------------------------------------------------------------------
@@ -894,20 +917,18 @@ subroutine ConvolkineticT(n1,n2,n3, &
   ! Scaling function part
 
 !  call system_clock(ncount0,ncount_rate,ncount_max)
-  ekin=0._wp
 
 !  ! (1/2) d^2/dx^2
 !
 
-!!$  open(11)
-!!$  do i3=0,n3
-!!$     do i2=0,n2
-!!$        write(11,'(1x,4(i8))')i2,i3,ibyz_c(1,i2,i3),ibyz_c(2,i2,i3)
-!!$     end do
-!!$  end do
-!!$  close(11)
-!!$  stop
-  
+  ekin=0._wp
+!$omp parallel default(private) &
+!$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
+!$omp shared(ekin,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)& 
+!$omp shared(x_f1,x_f2,x_f3,a,b,c,e)
+  ekinp=0._wp
+
+  !$omp do
   do i3=0,n3
      do i2=0,n2
         if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -927,10 +948,10 @@ subroutine ConvolkineticT(n1,n2,n3, &
               y_c(i1+2,i2,i3)=y_c(i1+2,i2,i3)+dyi2
               y_c(i1+3,i2,i3)=y_c(i1+3,i2,i3)+dyi3
 
-              ekin=ekin+dyi0*x_c(i1+0,i2,i3)
-              ekin=ekin+dyi1*x_c(i1+1,i2,i3)
-              ekin=ekin+dyi2*x_c(i1+2,i2,i3)
-              ekin=ekin+dyi3*x_c(i1+3,i2,i3)
+              ekinp=ekinp+dyi0*x_c(i1+0,i2,i3)
+              ekinp=ekinp+dyi1*x_c(i1+1,i2,i3)
+              ekinp=ekinp+dyi2*x_c(i1+2,i2,i3)
+              ekinp=ekinp+dyi3*x_c(i1+3,i2,i3)
            enddo
            icur=i1
         else
@@ -943,7 +964,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
               dyi=dyi + x_c(t,i2,i3)*a(t-i1)
            enddo
            y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-           ekin=ekin+dyi*x_c(i1,i2,i3)
+           ekinp=ekinp+dyi*x_c(i1,i2,i3)
         enddo
 
         istart=max(ibyz_c(1,i2,i3),ibyz_f(1,i2,i3)-lupfil)
@@ -966,10 +987,10 @@ subroutine ConvolkineticT(n1,n2,n3, &
               y_c(i1+2,i2,i3)=y_c(i1+2,i2,i3)+dyi2
               y_c(i1+3,i2,i3)=y_c(i1+3,i2,i3)+dyi3
 
-              ekin=ekin+dyi0*x_c(i1+0,i2,i3)
-              ekin=ekin+dyi1*x_c(i1+1,i2,i3)
-              ekin=ekin+dyi2*x_c(i1+2,i2,i3)
-              ekin=ekin+dyi3*x_c(i1+3,i2,i3)
+              ekinp=ekinp+dyi0*x_c(i1+0,i2,i3)
+              ekinp=ekinp+dyi1*x_c(i1+1,i2,i3)
+              ekinp=ekinp+dyi2*x_c(i1+2,i2,i3)
+              ekinp=ekinp+dyi3*x_c(i1+3,i2,i3)
            enddo
            istart=i1
         endif
@@ -980,7 +1001,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
               dyi=dyi + x_f1(t,i2,i3)*b(t-i1)
            enddo
            y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-           ekin=ekin+dyi*x_c(i1,i2,i3)
+           ekinp=ekinp+dyi*x_c(i1,i2,i3)
         enddo
 
          if (ibyz_c(2,i2,i3)-ibyz_c(1,i2,i3).ge.4) then
@@ -1000,10 +1021,10 @@ subroutine ConvolkineticT(n1,n2,n3, &
               y_f(1,i1+2,i2,i3)=y_f(1,i1+2,i2,i3)+dyi2
               y_f(1,i1+3,i2,i3)=y_f(1,i1+3,i2,i3)+dyi3
 
-              ekin=ekin+dyi0*x_f(1,i1+0,i2,i3)
-              ekin=ekin+dyi1*x_f(1,i1+1,i2,i3)
-              ekin=ekin+dyi2*x_f(1,i1+2,i2,i3)
-              ekin=ekin+dyi3*x_f(1,i1+3,i2,i3)
+              ekinp=ekinp+dyi0*x_f(1,i1+0,i2,i3)
+              ekinp=ekinp+dyi1*x_f(1,i1+1,i2,i3)
+              ekinp=ekinp+dyi2*x_f(1,i1+2,i2,i3)
+              ekinp=ekinp+dyi3*x_f(1,i1+3,i2,i3)
            enddo
            icur=i1
         else
@@ -1015,16 +1036,19 @@ subroutine ConvolkineticT(n1,n2,n3, &
               dyi=dyi + x_c(t,i2,i3)*c(t-i1)
            enddo
            y_f(1,i1,i2,i3)=y_f(1,i1,i2,i3)+dyi
-           ekin=ekin+dyi*x_f(1,i1,i2,i3)
+           ekinp=ekinp+dyi*x_f(1,i1,i2,i3)
         enddo
      enddo
   enddo
+  !$omp enddo
+  
   !  call system_clock(ncount1,ncount_rate,ncount_max)
   !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
   !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:x',tel,1.d-6*mflop1/tel
   !!
   !!  ! + (1/2) d^2/dy^2
   !!
+  !$omp do
   do i3=0,n3
      do i1=0,n1
         if (ibxz_c(2,i1,i3)-ibxz_c(1,i1,i3).ge.4) then
@@ -1044,10 +1068,10 @@ subroutine ConvolkineticT(n1,n2,n3, &
               y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
               y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
 
-              ekin=ekin+dyi0*x_c(i1,i2+0,i3)
-              ekin=ekin+dyi1*x_c(i1,i2+1,i3)
-              ekin=ekin+dyi2*x_c(i1,i2+2,i3)
-              ekin=ekin+dyi3*x_c(i1,i2+3,i3)
+              ekinp=ekinp+dyi0*x_c(i1,i2+0,i3)
+              ekinp=ekinp+dyi1*x_c(i1,i2+1,i3)
+              ekinp=ekinp+dyi2*x_c(i1,i2+2,i3)
+              ekinp=ekinp+dyi3*x_c(i1,i2+3,i3)
            enddo
            icur=i2
         else
@@ -1060,7 +1084,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
               dyi=dyi + x_c(i1,t,i3)*a(t-i2)
            enddo
            y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-           ekin=ekin+dyi*x_c(i1,i2,i3)
+           ekinp=ekinp+dyi*x_c(i1,i2,i3)
         enddo
 
         istart=max(ibxz_c(1,i1,i3),ibxz_f(1,i1,i3)-lupfil)
@@ -1084,10 +1108,10 @@ subroutine ConvolkineticT(n1,n2,n3, &
               y_c(i1,i2+2,i3)=y_c(i1,i2+2,i3)+dyi2
               y_c(i1,i2+3,i3)=y_c(i1,i2+3,i3)+dyi3
 
-              ekin=ekin+dyi0*x_c(i1,i2+0,i3)
-              ekin=ekin+dyi1*x_c(i1,i2+1,i3)
-              ekin=ekin+dyi2*x_c(i1,i2+2,i3)
-              ekin=ekin+dyi3*x_c(i1,i2+3,i3)
+              ekinp=ekinp+dyi0*x_c(i1,i2+0,i3)
+              ekinp=ekinp+dyi1*x_c(i1,i2+1,i3)
+              ekinp=ekinp+dyi2*x_c(i1,i2+2,i3)
+              ekinp=ekinp+dyi3*x_c(i1,i2+3,i3)
            enddo
            istart=i2
         endif
@@ -1098,7 +1122,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
               dyi=dyi + x_f2(t,i1,i3)*b(t-i2)
            enddo
            y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-           ekin=ekin+dyi*x_c(i1,i2,i3)
+           ekinp=ekinp+dyi*x_c(i1,i2,i3)
         enddo
 
          if (ibxz_f(2,i1,i3)-ibxz_f(1,i1,i3).ge.4) then
@@ -1118,10 +1142,10 @@ subroutine ConvolkineticT(n1,n2,n3, &
               y_f(2,i1,i2+2,i3)=y_f(2,i1,i2+2,i3)+dyi2
               y_f(2,i1,i2+3,i3)=y_f(2,i1,i2+3,i3)+dyi3
 
-              ekin=ekin+dyi0*x_f(2,i1,i2+0,i3)
-              ekin=ekin+dyi1*x_f(2,i1,i2+1,i3)
-              ekin=ekin+dyi2*x_f(2,i1,i2+2,i3)
-              ekin=ekin+dyi3*x_f(2,i1,i2+3,i3)
+              ekinp=ekinp+dyi0*x_f(2,i1,i2+0,i3)
+              ekinp=ekinp+dyi1*x_f(2,i1,i2+1,i3)
+              ekinp=ekinp+dyi2*x_f(2,i1,i2+2,i3)
+              ekinp=ekinp+dyi3*x_f(2,i1,i2+3,i3)
            enddo
            icur=i2
         else
@@ -1134,10 +1158,11 @@ subroutine ConvolkineticT(n1,n2,n3, &
               dyi=dyi + x_c(i1,t,i3)*c(t-i2)
            enddo
            y_f(2,i1,i2,i3)=y_f(2,i1,i2,i3)+dyi
-           ekin=ekin+dyi*x_f(2,i1,i2,i3)
+           ekinp=ekinp+dyi*x_f(2,i1,i2,i3)
         enddo
      enddo
   enddo
+  !$omp enddo
   !    
   !!
   !  call system_clock(ncount2,ncount_rate,ncount_max)
@@ -1146,6 +1171,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
   !!
   !!  ! + (1/2) d^2/dz^2
   !!
+  !$omp do
   do i2=0,n2
      do i1=0,n1
         if (ibxy_c(2,i1,i2)-ibxy_c(1,i1,i2).ge.4) then
@@ -1165,10 +1191,10 @@ subroutine ConvolkineticT(n1,n2,n3, &
               y_c(i1,i2,i3+2)=y_c(i1,i2,i3+2)+dyi2
               y_c(i1,i2,i3+3)=y_c(i1,i2,i3+3)+dyi3
 
-              ekin=ekin+dyi0*x_c(i1,i2,i3+0)
-              ekin=ekin+dyi1*x_c(i1,i2,i3+1)
-              ekin=ekin+dyi2*x_c(i1,i2,i3+2)
-              ekin=ekin+dyi3*x_c(i1,i2,i3+3)
+              ekinp=ekinp+dyi0*x_c(i1,i2,i3+0)
+              ekinp=ekinp+dyi1*x_c(i1,i2,i3+1)
+              ekinp=ekinp+dyi2*x_c(i1,i2,i3+2)
+              ekinp=ekinp+dyi3*x_c(i1,i2,i3+3)
            enddo
            icur=i3
         else
@@ -1181,7 +1207,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
               dyi=dyi + x_c(i1,i2,t)*a(t-i3)
            enddo
            y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-           ekin=ekin+dyi*x_c(i1,i2,i3)
+           ekinp=ekinp+dyi*x_c(i1,i2,i3)
         enddo
 
         istart=max(ibxy_c(1,i1,i2),ibxy_f(1,i1,i2)-lupfil)
@@ -1204,10 +1230,10 @@ subroutine ConvolkineticT(n1,n2,n3, &
               y_c(i1,i2,i3+2)=y_c(i1,i2,i3+2)+dyi2
               y_c(i1,i2,i3+3)=y_c(i1,i2,i3+3)+dyi3
 
-              ekin=ekin+dyi0*x_c(i1,i2,i3+0)
-              ekin=ekin+dyi1*x_c(i1,i2,i3+1)
-              ekin=ekin+dyi2*x_c(i1,i2,i3+2)
-              ekin=ekin+dyi3*x_c(i1,i2,i3+3)
+              ekinp=ekinp+dyi0*x_c(i1,i2,i3+0)
+              ekinp=ekinp+dyi1*x_c(i1,i2,i3+1)
+              ekinp=ekinp+dyi2*x_c(i1,i2,i3+2)
+              ekinp=ekinp+dyi3*x_c(i1,i2,i3+3)
            enddo
            istart=i2
         endif
@@ -1218,7 +1244,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
               dyi=dyi + x_f3(t,i1,i2)*b(t-i3)
            enddo
            y_c(i1,i2,i3)=y_c(i1,i2,i3)+dyi
-           ekin=ekin+dyi*x_c(i1,i2,i3)
+           ekinp=ekinp+dyi*x_c(i1,i2,i3)
         enddo
 
          if (ibxy_f(2,i1,i2)-ibxy_f(1,i1,i2).ge.4) then
@@ -1238,10 +1264,10 @@ subroutine ConvolkineticT(n1,n2,n3, &
               y_f(4,i1,i2,i3+2)=y_f(4,i1,i2,i3+2)+dyi2
               y_f(4,i1,i2,i3+3)=y_f(4,i1,i2,i3+3)+dyi3
 
-              ekin=ekin+dyi0*x_f(4,i1,i2,i3+0)
-              ekin=ekin+dyi1*x_f(4,i1,i2,i3+1)
-              ekin=ekin+dyi2*x_f(4,i1,i2,i3+2)
-              ekin=ekin+dyi3*x_f(4,i1,i2,i3+3)
+              ekinp=ekinp+dyi0*x_f(4,i1,i2,i3+0)
+              ekinp=ekinp+dyi1*x_f(4,i1,i2,i3+1)
+              ekinp=ekinp+dyi2*x_f(4,i1,i2,i3+2)
+              ekinp=ekinp+dyi3*x_f(4,i1,i2,i3+3)
            enddo
            icur=i3
         else
@@ -1254,16 +1280,18 @@ subroutine ConvolkineticT(n1,n2,n3, &
               dyi=dyi + x_c(i1,i2,t)*c(t-i3)
            enddo
            y_f(4,i1,i2,i3)=y_f(4,i1,i2,i3)+dyi
-           ekin=ekin+dyi*x_f(4,i1,i2,i3)
+           ekinp=ekinp+dyi*x_f(4,i1,i2,i3)
         enddo
      enddo
   enddo
+  !$omp enddo
   ! call system_clock(ncount3,ncount_rate,ncount_max)
   ! tel=dble(ncount3-ncount2)/dble(ncount_rate)
   ! write(99,'(a40,1x,e10.3,1x,f6.1)') 'T:FIRST PART:z',tel,1.d-6*mflop3/tel
 
   ! wavelet part
   ! (1/2) d^2/dx^2
+  !$omp do
   do i3=nfl3,nfu3
      do i2=nfl2,nfu2
         do i1=ibyz_f(1,i2,i3),ibyz_f(2,i2,i3)
@@ -1285,16 +1313,17 @@ subroutine ConvolkineticT(n1,n2,n3, &
            y_f(5,i1,i2,i3)=y_f(5,i1,i2,i3)+t212
            y_f(3,i1,i2,i3)=y_f(3,i1,i2,i3)+t221
            y_f(7,i1,i2,i3)=y_f(7,i1,i2,i3)+t222
-           ekin=ekin+t112*x_f(4,i1,i2,i3)
-           ekin=ekin+t121*x_f(2,i1,i2,i3)
-           ekin=ekin+t211*x_f(1,i1,i2,i3)
-           ekin=ekin+t122*x_f(6,i1,i2,i3)
-           ekin=ekin+t212*x_f(5,i1,i2,i3)
-           ekin=ekin+t221*x_f(3,i1,i2,i3)
-           ekin=ekin+t222*x_f(7,i1,i2,i3)
+           ekinp=ekinp+t112*x_f(4,i1,i2,i3)
+           ekinp=ekinp+t121*x_f(2,i1,i2,i3)
+           ekinp=ekinp+t211*x_f(1,i1,i2,i3)
+           ekinp=ekinp+t122*x_f(6,i1,i2,i3)
+           ekinp=ekinp+t212*x_f(5,i1,i2,i3)
+           ekinp=ekinp+t221*x_f(3,i1,i2,i3)
+           ekinp=ekinp+t222*x_f(7,i1,i2,i3)
         enddo
      enddo
   enddo
+  !$omp enddo
 
   !  call system_clock(ncount4,ncount_rate,ncount_max)
   !  tel=dble(ncount4-ncount3)/dble(ncount_rate)
@@ -1303,6 +1332,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
 
   ! + (1/2) d^2/dy^2
   !nb=16
+  !$omp do
   do i3=nfl3,nfu3
      do i1=nfl1,nfu1
         do i2=ibxz_f(1,i1,i3),ibxz_f(2,i1,i3)
@@ -1324,16 +1354,17 @@ subroutine ConvolkineticT(n1,n2,n3, &
            y_f(5,i1,i2,i3)=y_f(5,i1,i2,i3)+t212
            y_f(3,i1,i2,i3)=y_f(3,i1,i2,i3)+t221
            y_f(7,i1,i2,i3)=y_f(7,i1,i2,i3)+t222
-           ekin=ekin+t112*x_f(4,i1,i2,i3)
-           ekin=ekin+t121*x_f(2,i1,i2,i3)
-           ekin=ekin+t211*x_f(1,i1,i2,i3)
-           ekin=ekin+t122*x_f(6,i1,i2,i3)
-           ekin=ekin+t212*x_f(5,i1,i2,i3)
-           ekin=ekin+t221*x_f(3,i1,i2,i3)
-           ekin=ekin+t222*x_f(7,i1,i2,i3)
+           ekinp=ekinp+t112*x_f(4,i1,i2,i3)
+           ekinp=ekinp+t121*x_f(2,i1,i2,i3)
+           ekinp=ekinp+t211*x_f(1,i1,i2,i3)
+           ekinp=ekinp+t122*x_f(6,i1,i2,i3)
+           ekinp=ekinp+t212*x_f(5,i1,i2,i3)
+           ekinp=ekinp+t221*x_f(3,i1,i2,i3)
+           ekinp=ekinp+t222*x_f(7,i1,i2,i3)
         enddo
      enddo
   enddo
+  !$omp enddo
 
   !  call system_clock(ncount5,ncount_rate,ncount_max)
   !  tel=dble(ncount5-ncount4)/dble(ncount_rate)
@@ -1341,6 +1372,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
 
   ! + (1/2) d^2/dz^2
   !nb=16
+  !$omp do
   do i2=nfl2,nfu2
      do i1=nfl1,nfu1
         do i3=ibxy_f(1,i1,i2),ibxy_f(2,i1,i2)
@@ -1362,16 +1394,23 @@ subroutine ConvolkineticT(n1,n2,n3, &
            y_f(5,i1,i2,i3)=y_f(5,i1,i2,i3)+t212
            y_f(3,i1,i2,i3)=y_f(3,i1,i2,i3)+t221
            y_f(7,i1,i2,i3)=y_f(7,i1,i2,i3)+t222
-           ekin=ekin+t112*x_f(4,i1,i2,i3)
-           ekin=ekin+t121*x_f(2,i1,i2,i3)
-           ekin=ekin+t211*x_f(1,i1,i2,i3)
-           ekin=ekin+t122*x_f(6,i1,i2,i3)
-           ekin=ekin+t212*x_f(5,i1,i2,i3)
-           ekin=ekin+t221*x_f(3,i1,i2,i3)
-           ekin=ekin+t222*x_f(7,i1,i2,i3)
+           ekinp=ekinp+t112*x_f(4,i1,i2,i3)
+           ekinp=ekinp+t121*x_f(2,i1,i2,i3)
+           ekinp=ekinp+t211*x_f(1,i1,i2,i3)
+           ekinp=ekinp+t122*x_f(6,i1,i2,i3)
+           ekinp=ekinp+t212*x_f(5,i1,i2,i3)
+           ekinp=ekinp+t221*x_f(3,i1,i2,i3)
+           ekinp=ekinp+t222*x_f(7,i1,i2,i3)
         enddo
      enddo
   enddo
+  !$omp enddo
+  
+  !$omp critical
+  ekin=ekin+ekinp
+  !$omp end critical
+  
+  !$omp end parallel
 
   !for them oment put the conversion of the kinetic energy here to avoid 
   !intensive conversions in the loops

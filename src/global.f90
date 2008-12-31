@@ -1,26 +1,12 @@
-!!****p* MINHOP
-!! NAME
-!!   MINHOP
-!!
-!! FUNCTION
-!!  Main program fro the minima hopping
-!!
-!! COPYRIGHT
-!!    Copyright (C) 2008 UNIBAS
-!!    This file is not freely distributed.
-!!    A licence is necessary from UNIBAS
-!!
-!! SOURCE
-!!
-program MINHOP
+  program MINHOP
 
   use module_base
   use module_types
   use module_interfaces
 
   implicit real(kind=8) (a-h,o-z)
-  real(kind=4) :: tts
-  logical :: newmin
+  real(kind=4) tts
+  logical newmin
   logical :: output_wf,output_grid,calc_tail
   character(len=20) :: units,atmn
   character(len=80) :: line
@@ -36,20 +22,20 @@ program MINHOP
 !  real(kind=8), dimension(:), pointer :: eval
 !  real(kind=8), dimension(:), pointer :: psi
 
-  integer, parameter :: npminx=200
+        parameter(npminx=200)
 !C parameters for minima hopping
-  integer, parameter :: mdmin=2
-  real(kind=8), parameter :: beta1=1.10d0,beta2=1.10d0,beta3=1.d0/1.10d0
-  real(kind=8), parameter :: alpha1=1.d0/1.10d0,alpha2=1.10d0
-  integer, parameter :: nbuf=1000
+        parameter(mdmin=2)
+        parameter(beta1=1.10d0,beta2=1.10d0,beta3=1.d0/1.10d0)
+        parameter(alpha1=1.d0/1.10d0,alpha2=1.10d0)
+        parameter(nbuf=1000)
 ! interval for writing intermediate results
-  integer, parameter :: minter=1
-  real(kind=8) :: elocmin(npminx),abuf(nbuf)
-  real(kind=8), allocatable, dimension(:,:) :: pos,ff,wpos,vxyz,gg,earr
-  real(kind=8), allocatable, dimension(:,:,:) :: poslocmin
+        parameter(minter=1)
+        dimension elocmin(npminx),abuf(nbuf)
+        real*8, allocatable, dimension(:,:) :: pos,ff,wpos,vxyz,gg,earr
+        real*8, allocatable, dimension(:,:,:) :: poslocmin
 
-  character(len=41) :: filename
-  character(len=5) :: fn
+        character(41) filename
+        character(5) fn
         !include 'mpif.h'
 
 
@@ -76,16 +62,16 @@ program MINHOP
         open(unit=67,file='global.out')
 
   write(filename,'(A,i3.3,a)')'latest.pos.force.',iproc,'.dat'
-  open(unit=111,file=filename)
+  open(111,file=filename)
  
 
-        if (iproc.eq.0) write(67,'(a,3(1x,1pe11.4))') 'beta1,beta2,beta3',beta1,beta2,beta3
-        if (iproc.eq.0) write(67,'(a,2(1x,1pe11.4))') 'alpha1,alpha2',alpha1,alpha2
+       if (iproc.eq.0) write(67,'(a,3(x,e11.4))') 'beta1,beta2,beta3',beta1,beta2,beta3
+        if (iproc.eq.0) write(67,'(a,2(x,e11.4))') 'alpha1,alpha2',alpha1,alpha2
         ratio=-log(alpha2)/log(alpha1)
-        if (iproc.eq.0) write(67,'(a,2(1x,1pe10.3))') 'predicted fraction accepted, rejected', & 
+        if (iproc.eq.0) write(67,'(a,2(x,e10.3))') 'predicted fraction accepted, rejected', & 
                                                     ratio/(1.d0+ratio), 1.d0/(1.d0+ratio)
         tt= beta2**ratio*beta3
-        if (iproc.eq.0) write(67,'(a,2(1x,1pe11.4))') 'critical ratio (.ge. 1)',tt
+        if (iproc.eq.0) write(67,'(a,2(x,e11.4))') 'critical ratio (.ge. 1)',tt
         if (tt.lt.0.999999999999999d0) stop 'incompatible alpha s, beta s'
         if (iproc.eq.0) write(67,*) 'mdmin',mdmin
 
@@ -207,8 +193,8 @@ program MINHOP
         do  i=1,nrandoff
            call random_number(tts)
         enddo
-        if (iproc.eq.0) write(67,'(a,1x,3(1x,1pe10.3))') 'In :ediff,ekinetic,dt',ediff,ekinetic,dt
-        if (iproc.eq.0) write(*,'(a,1x,3(1x,1pe10.3))') ' # In :ediff,ekinetic,dt',ediff,ekinetic,dt
+        if (iproc.eq.0) write(67,'(a,x,3(x,e10.3))') 'In :ediff,ekinetic,dt',ediff,ekinetic,dt
+        if (iproc.eq.0) write(*,'(a,x,3(x,e10.3))') ' # In :ediff,ekinetic,dt',ediff,ekinetic,dt
 
 
 ! If restart run read previously found energies
@@ -256,12 +242,12 @@ program MINHOP
     
      call read_input_variables(iproc,inputs)
      call my_input_variables(iproc,.true.,inputs)
-     inputs%inputPsiId=0
-
 
   call init_restart_objects(atoms,rst,'global')
 ! new way of initializing data
 
+     if (atoms%geocode.eq.'P') & 
+         call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,pos)
      call call_bigdft(nproc,iproc,atoms,pos,inputs,e_pos,ff,rst,infocode)
 
 
@@ -289,6 +275,8 @@ program MINHOP
 
 
      call my_input_variables(iproc,.true.,inputs)
+     if (atoms%geocode.eq.'P') & 
+         call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,pos)
      call conjgrad(nproc,iproc,atoms,pos,e_pos,ff,rst,ncount_cluster,inputs)
 !     call conjgrad(nproc,iproc,atoms,pos,e_pos,ff,&
 !          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,inputs)
@@ -302,13 +290,13 @@ program MINHOP
       nconjgr=nconjgr+1
 
         re_pos=round(e_pos-eref,accur)
-        if (iproc.eq.0) write(67,'(a,1x,i3,3(1x,1pe17.10))') 'INPUT(relaxed): iproc, e_pos,re_pos,eref ',iproc,e_pos,re_pos,eref
-        if (iproc.eq.0) write(*,'(a,1x,i3,3(1x,1pe17.10))') ' # INPUT(relaxed): iproc, e_pos,re_pos,eref ',iproc,e_pos,re_pos,eref
+        if (iproc.eq.0) write(67,'(a,x,i3,3(1x,e17.10))') 'INPUT(relaxed): iproc, e_pos,re_pos,eref ',iproc,e_pos,re_pos,eref
+        if (iproc.eq.0) write(*,'(a,x,i3,3(1x,e17.10))') ' # INPUT(relaxed): iproc, e_pos,re_pos,eref ',iproc,e_pos,re_pos,eref
 
 
         if (nlmin.gt.0) then
-        if (iproc.eq.0) write(67,'(a,2(1x,1pe24.17))') 'new/old energy for input file',re_pos,tre_pos
-        if (iproc.eq.0) write(*,'(a,2(1x,1pe24.17))') '# new/old energy for input file',re_pos,tre_pos
+        if (iproc.eq.0) write(67,'(a,2(1x,e24.17))') 'new/old energy for input file',re_pos,tre_pos
+        if (iproc.eq.0) write(*,'(a,2(1x,e24.17))') '# new/old energy for input file',re_pos,tre_pos
         if (re_pos.ne.tre_pos .and. iproc.eq.0) write(67,*) 'WARNING: new/old energies for input file differ'
         if (re_pos.ne.tre_pos .and. iproc.eq.0) write(*,*) '# WARNING: new/old energies for input file differ'
         endif
@@ -328,8 +316,8 @@ program MINHOP
         re_sm=min(re_pos,earr(1,1))
         if (iproc.eq.0) write(67,*) 'iproc,initial re_sm',iproc,re_sm
         if (iproc.eq.0) write(*,*) '# iproc,initial re_sm',iproc,re_sm
-        if (iproc.eq.0) write(2,'(2(1x,f10.0),1x,1pe21.14,2(1x,1pe10.3))') hopp,escape,e_pos-eref,ediff,ekinetic
-!        write(200+iproc,'(2(1x,f10.0),1x,1pe24.17,2(1x,1pe10.3))') hopp,escape,e_pos-eref,ediff,ekinetic
+        if (iproc.eq.0) write(2,'(2(x,f10.0),x,e21.14,2(x,e10.3))') hopp,escape,e_pos-eref,ediff,ekinetic
+!        write(200+iproc,'(2(x,f10.0),x,e24.17,2(x,e10.3))') hopp,escape,e_pos-eref,ediff,ekinetic
 
 
 
@@ -407,6 +395,9 @@ program MINHOP
           wpos(1,iat)=pos(1,iat) ; wpos(2,iat)=pos(2,iat) ; wpos(3,iat)=pos(3,iat)
           enddo
           escape=escape+1.d0
+          call my_input_variables(iproc,.false.,inputs)
+          if (atoms%geocode.eq.'P') & 
+              call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
           call mdescape(mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,wpos, &
                    nproc,iproc,atoms,&
                     rst,inputs)
@@ -420,7 +411,8 @@ program MINHOP
            ncount_cluster=0
 5556    continue ! entry point for restart of optimization at cluster step irestart+1
      call my_input_variables(iproc,.false.,inputs)
-
+     if (atoms%geocode.eq.'P') & 
+         call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
      call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,rst,ncount_cluster,inputs)
 !     call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,&
 !          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,inputs)
@@ -440,6 +432,8 @@ program MINHOP
   if (iproc.eq.0) write(*,*)'# ', ncount_cluster,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
      ncount_cluster=0
      call my_input_variables(iproc,.true.,inputs)
+     if (atoms%geocode.eq.'P') & 
+     call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
      call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,rst,ncount_cluster,inputs)
 !     call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,&
 !           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,inputs)
@@ -462,13 +456,13 @@ program MINHOP
       endif
       nconjgr=nconjgr+1
           re_wpos=round(e_wpos-eref,accur)
-          if (iproc.eq.0) write(67,'(a,i3,i3,4(1x,1pe14.7))')  & 
+          if (iproc.eq.0) write(67,'(a,i3,i3,4(1x,e14.7))')  & 
                     'nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos', & 
                      nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos
-          if (iproc.eq.0) write(*,'(a,i3,i3,4(1x,1pe14.7))')  & 
+          if (iproc.eq.0) write(*,'(a,i3,i3,4(1x,e14.7))')  & 
                     '# nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos', & 
                      nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos
-!          write(200+iproc,'(a,i3,i3,4(1x,1pe14.7))')  & 
+!          write(200+iproc,'(a,i3,i3,4(1x,e14.7))')  & 
 !                    'nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos', & 
 !                     nlmin_l,nlmin,e_wpos,e_pos,re_wpos,re_pos
 !C not escaped
@@ -476,11 +470,12 @@ program MINHOP
              escape_sam=escape_sam+1.d0
              esep=esep+(e_pos-e_wpos)**2
              ekinetic=ekinetic*beta1
+             if (iproc.eq.0) write(*,*) '# ekinetic*beta1',ekinetic
              if (iproc.eq.0) call wtioput(ediff,ekinetic,dt)
-           if (iproc.eq.0) write(2,'(2(1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a)')  &
+           if (iproc.eq.0) write(2,'(2(1x,f10.0),1x,e21.14,2(1x,e10.3),3(1x,f5.2),a)')  &
                        hopp,escape,e_wpos-eref,ediff,ekinetic, &
                        escape_sam/escape,escape_old/escape,escape_new/escape,'   S'
-!           write(200+iproc,'(2(1x,f10.0),1x,1pe24.17,2(1x,1pe10.3),3(1x,0pf5.2),a)')  &
+!           write(200+iproc,'(2(1x,f10.0),1x,e24.17,2(1x,e10.3),3(1x,f5.2),a)')  &
 !                       hopp,escape,e_wpos-eref,ediff,ekinetic, &
 !                       escape_sam/escape,escape_old/escape,escape_new/escape,'   S'
 !write(100+iproc,*) 'SAME:re_pos,re_wpos ',re_pos,re_wpos
@@ -495,14 +490,15 @@ program MINHOP
 !C  check whether new minimum
           call hunt(earr(1,1),min(nlmin,nlminx+nbuf),re_wpos,k_e_wpos)
           if (re_wpos.eq.earr(k_e_wpos,1)) then
-          if (iproc.eq.0) write(67,'(a,i3,i3,i4,1x,1pe14.7)')  & 
+          if (iproc.eq.0) write(67,'(a,i3,i3,i4,1x,e14.7)')  & 
               'nlmin_l,nlmin,k_e_wpos,re_wpos=earr',nlmin_l,nlmin,k_e_wpos,re_wpos
-          if (iproc.eq.0) write(*,'(a,i3,i3,i4,1x,1pe14.7)')  & 
+          if (iproc.eq.0) write(*,'(a,i3,i3,i4,1x,e14.7)')  & 
               ' # Revisited: nlmin_l,nlmin,k_e_wpos,re_wpos=earr',nlmin_l,nlmin,k_e_wpos,re_wpos
             newmin=.false.
             escape_old=escape_old+1.d0
 ! standard feedback
             ekinetic=ekinetic*beta2
+             if (iproc.eq.0) write(*,*) '# ekinetic*beta2',ekinetic
 ! enhanced feedback mechanism for ekinetic                                       
 !            ekinetic=ekinetic*beta2*(1.d0+.33d0*log(earr(k_e_wpos,2)))
 ! enhanced feedback mechanism for ediff                              
@@ -512,6 +508,7 @@ program MINHOP
             newmin=.true.
             escape_new=escape_new+1.d0
             ekinetic=ekinetic*beta3
+             if (iproc.eq.0) write(*,*) '# ekinetic*beta3',ekinetic
 ! determine energy separation between distinct minima
           if (k_e_wpos+1.le.nlminx)  then
           tt=min(re_wpos-earr(k_e_wpos,1),earr(k_e_wpos+1,1)-re_wpos)
@@ -523,8 +520,8 @@ program MINHOP
             if (k_e_wpos.eq.0) then
                 re_sm=min(re_sm,re_wpos)
                 if (iproc.eq.0) then 
-                  write(67,'(a,i7,1x,1pe24.17,1x,i2)') 'new lowest ',nlmin,re_wpos,iproc
-                  write(*,'(a,i7,1x,1pe24.17,1x,i2)') '# new lowest ',nlmin,re_wpos,iproc
+                  write(67,'(a,i7,x,e24.17,x,i2)') 'new lowest ',nlmin,re_wpos,iproc
+                  write(*,'(a,i7,x,e24.17,x,i2)') '# new lowest ',nlmin,re_wpos,iproc
                   call wtbest(atoms%nat,re_wpos,wpos, &
                        atoms%iatype,atoms%atomnames,atoms%natpol)
                 endif  
@@ -539,10 +536,10 @@ program MINHOP
 !write(67,*) 'e_wpos,e_pos',e_wpos,e_pos
           if(e_wpos-e_pos.lt.ediff) then
 !C          local minima accepted -------------------------------------------------------
-           if (iproc.eq.0) write(2,'(2(1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),l3,a)')  &
+           if (iproc.eq.0) write(2,'(2(1x,f10.0),1x,e21.14,2(1x,e10.3),3(1x,f5.2),l3,a)')  &
                        hopp,escape,e_wpos-eref,ediff,ekinetic, &
                        escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' A '
-!           write(200+iproc,'(2(1x,f10.0),1x,1pe24.17,2(1x,1pe10.3),3(1x,0pf5.2),l,a)')  &
+!           write(200+iproc,'(2(1x,f10.0),1x,e24.17,2(1x,e10.3),3(1x,f5.2),l,a)')  &
 !                       hopp,escape,e_wpos-eref,ediff,ekinetic, &
 !                       escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' A '
             hopp_acc=hopp_acc+1.d0
@@ -572,12 +569,12 @@ program MINHOP
           else
 !C          local minima rejected -------------------------------------------------------
             inputs%inputPsiId=0  !ALEX says: Better do an input guess for the next escape
-            if (iproc.eq.0) write(2,'(2(1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),l3,a)')  &
+            if (iproc.eq.0) write(2,'(2(1x,f10.0),1x,e21.14,2(1x,e10.3),3(1x,f5.2),l3,a)')  &
                        hopp,escape,e_wpos-eref,ediff,ekinetic, &
                        escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' R '
-            if (iproc.eq.0) write(*,'(a,1pe21.14)')' # rejected: ew-e>ediff ',e_wpos-e_pos
+            if (iproc.eq.0) write(*,'(a,e21.14)')' # rejected: ew-e>ediff ',e_wpos-e_pos
 
-!           write(200+iproc,'(2(1x,f10.0),1x,1pe24.17,2(1x,1pe10.3),3(1x,0pf5.2),l,a)')  &
+!           write(200+iproc,'(2(1x,f10.0),1x,e24.17,2(1x,e10.3),3(1x,f5.2),l,a)')  &
 !                       hopp,escape,e_wpos-eref,ediff,ekinetic, &
 !                       escape_sam/escape,escape_old/escape,escape_new/escape,newmin,' R '
             hopp_rej=hopp_rej+1.d0
@@ -624,12 +621,12 @@ program MINHOP
         call cpu_time(tcpu2)
      if (iproc.eq.0) then
 !C ratios from all the global counters
-        write(67,'(i2,1x,a,3(1x,1pe10.3))') iproc,'ratio stuck,same,old,new', &
+        write(67,'(i2,x,a,3(x,e10.3))') iproc,'ratio stuck,same,old,new', &
                escape_sam/escape,escape_old/escape,escape_new/escape
-        write(67,'(i2,1x,a,2(1x,1pe10.3))') iproc,'ratio acc,rej', hopp_acc/hopp,hopp_rej/hopp
-        write(67,'(i2,1x,a,3(1x,f12.1))') iproc,'count_md,count_sd,count_cg',count_md,count_sd,count_cg
-        write(67,'(i2,1x,a,1x,1pe10.3)') iproc,'cpu(hrs) ', (tcpu2-tcpu1)/3600.d0
-        write(67,'(i2,1x,a,2(1x,1pe10.3))') &
+        write(67,'(i2,x,a,2(x,e10.3))') iproc,'ratio acc,rej', hopp_acc/hopp,hopp_rej/hopp
+        write(67,'(i2,x,a,3(x,f12.1))') iproc,'count_md,count_sd,count_cg',count_md,count_sd,count_cg
+        write(67,'(i2,x,a,x,e10.3)') iproc,'cpu(hrs) ', (tcpu2-tcpu1)/3600.d0
+        write(67,'(i2,x,a,2(x,e10.3))') &
                   iproc,'average ediff, ekinetic',av_ediff/hopp,av_ekinetic/escape
         write(*,'(a,1x,i8)') 'number of configurations for which atoms escaped ',nputback
 
@@ -640,7 +637,7 @@ program MINHOP
         ss=ss+earr(i,2)
         enddo
         write(67,'(i2,a,f8.0)') iproc,'  most frequent visits ',tt
-        write(67,'(i2,a,1pe10.3)') iproc,'  av. numb. visits per minimum',ss/nlmin
+        write(67,'(i2,a,e10.3)') iproc,'  av. numb. visits per minimum',ss/nlmin
         write(67,'(a,e9.2)') 'minimum energy separation between presumably different configurations',egap
         if (escape_sam.gt.0) then
         esep=sqrt(esep/escape_sam)
@@ -690,7 +687,7 @@ program MINHOP
         deallocate(poslocmin,stat=i_stat)
         call memocc(i_stat,i_all,'poslocmin','global')
 
-        if (iproc.eq.0) write(67,'(a,1x,3(1x,1pe10.3))') 'Out:ediff,ekinetic,dt',ediff,ekinetic,dt
+        if (iproc.eq.0) write(67,'(a,x,3(x,e10.3))') 'Out:ediff,ekinetic,dt',ediff,ekinetic,dt
         close(2) 
 
 !  call deallocate_wfd(wfd,'BigDFT')
@@ -730,10 +727,8 @@ close(111)
      !real(kind=8), pointer :: psi(:), eval(:)
 
 
-     call my_input_variables(iproc,.false.,inputs)
 !C initialize positions,velocities, forces
         call gausdist(atoms%nat,rxyz,vxyz)
-        inputs%inputPsiId=1
         !if(iproc==0)write(*,*)' #  no softening'
         call soften(mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
                    nproc,iproc,atoms,rst,inputs)! &
@@ -741,7 +736,7 @@ close(111)
 
         !call soften(nproc,iproc,atoms,rxyz,curv0,curv,res,it,&
         !           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs)
-        !if(iproc==0)write(*,'(a,i4,3(1pe11.3))')&
+        !if(iproc==0)write(*,'(a,i4,3(e11.3))')&
         ! 'MINHOP soften done'!,iter: rayl0,rayl,res=',it,rayl0,rayl,res
         call velopt(atoms%nat,rxyz,ekinetic,vxyz)
         call zero(3*atoms%nat,gg)
@@ -753,7 +748,7 @@ close(111)
         en0000=0.d0
         econs_max=-1.d100
         econs_min=1.d100
-        call my_input_variables(iproc,.false.,inputs)
+        inputs%InputPsiId=0
         do 2000, istep=1,1000
 
 !C      Evolution of the system according to 'VELOCITY VERLET' algorithm
@@ -770,8 +765,7 @@ close(111)
         enmin1=en0000
 !        call energyandforces(nat,rxyz,ff,e_rxyz,count_md)
 !    if (iproc.eq.0) write(*,*) 'CLUSTER FOR  MD'
-     inputs%inputPsiId=1
-     if (istep.gt.2) inputs%itermax=30
+     if (istep.gt.2) inputs%itermax=50
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,e_rxyz,ff,rst,infocode)
 !     call call_cluster(nproc,iproc,atoms,rxyz,e_rxyz,ff,&
 !          psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs,infocode)
@@ -783,8 +777,8 @@ close(111)
         econs_max=max(econs_max,rkin+e_rxyz)
         econs_min=min(econs_min,rkin+e_rxyz)
         devcon=econs_max-econs_min
-        if (iproc.eq.0) write(17,'(a,i5,1x,1pe17.10,2(1x,i2))') 'MD ',istep,e_rxyz,nummax,nummin
-        if (iproc.eq.0) write(*,'(a,i5,1x,1pe17.10,2(1x,i2))') ' #MD ',istep,e_rxyz,nummax,nummin
+        if (iproc.eq.0) write(17,'(a,i5,1x,e17.10,2(1x,i2))') 'MD ',istep,e_rxyz,nummax,nummin
+        if (iproc.eq.0) write(*,'(a,i5,1x,e17.10,2(1x,i2))') ' #MD ',istep,e_rxyz,nummax,nummin
         if (nummin.ge.mdmin .and. istep.gt.50) then
           if (nummax.ne.nummin .and. iproc.eq.0) write(67,*) 'WARNING: nummin,nummax',nummin,nummax
           goto 2222
@@ -812,7 +806,7 @@ close(111)
 
 ! adjust time step to meet precision criterion
         devcon=devcon/(3*atoms%nat-3)
-        if (iproc.eq.0) write(66,'(a,2(1x,1pe11.4),1x,i5)') 'MD devcon ',devcon,devcon/ekinetic,istep
+        if (iproc.eq.0) write(66,'(a,2(1x,e11.4),1x,i5)') 'MD devcon ',devcon,devcon/ekinetic,istep
         if (devcon/ekinetic.lt.7.d-2) then
         write(66,*) 'MD:old,new dt',dt,dt*1.05d0
         dt=dt*1.05d0
@@ -836,34 +830,36 @@ subroutine my_input_variables(iproc,accurate,in)
   ! Read the input variables.
 if (accurate) then
    in%ncount_cluster_x=500
-   in%frac_fluct=2.00d0
-   in%hgrid=.6d0
-   in%crmult=4.d0
+   in%frac_fluct=3.00d0
+   in%hgrid=.60d0
+!   in%alat1=28.d0
+!   in%alat2=28.d0
+!   in%alat3=28.d0
+   in%crmult=5.d0
    in%frmult=10.d0
-   in%cpmult=10.d0
-   in%fpmult=10.d0
    in%gnrm_cv=1.d-5
-   in%itermax=50
+   in%itermax=100
 else
    in%ncount_cluster_x=500
-   in%frac_fluct=4.d0
-   in%hgrid=.7d0
-   in%crmult=3.d0
+   in%frac_fluct=5.d0
+   in%hgrid=.80d0
+!   in%alat1=20.d0
+!   in%alat2=20.d0
+!   in%alat3=20.d0
+   in%crmult=4.d0
    in%frmult=8.d0
-   in%cpmult=8.d0
-   in%fpmult=8.d0
    in%gnrm_cv=1.d-4
    in%itermax=50
 endif
 ! Comment out some of the following lines to keep them as read from input.dat
 
-   if (in%fpmult.gt.in%frmult) write(*,*) ' NONSENSE: fpmult > frmult'
+!   in%geocode='P'
    in%randdis=0.d0
-   in%betax=6.d0
+   in%betax=15.d0
    in%ixc=1
    in%ncharge=0.d0
    in%elecfield=0.d0
-   in%ncong=7
+   in%ncong=5
    in%idsx=6
    in%calc_tail=.false.
    in%rbuf=5.d0
@@ -874,12 +870,13 @@ endif
   !these values are hard-coded for the moment but they can be entered in the input file
   !in case of need also other variables can be entered without any changements
   in%output_grid=.false. 
-! in%inputPsiId=1  !ALEX prefers to define this one in the main program
+  in%inputPsiId=0
   in%output_wf=.false.
   in%nvirt=0
   in%nplot=0 
 
 end subroutine my_input_variables
+
 
         subroutine soften(mdmin,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
                    nproc,iproc,atoms,rst,inputs)! &
@@ -898,7 +895,7 @@ end subroutine my_input_variables
      !local variables
      dimension wpos(3*atoms%nat)
 
-        nit=10
+        nit=6
         eps_vxyz=5.d-1
 !       alpha=4.d-2   ! Au
 !        alpha=.8d-3  ! step size for LJ systems
@@ -907,8 +904,7 @@ end subroutine my_input_variables
 
         !allocate(wpos(3,nat),fxyz(3,nat))
 
-     call my_input_variables(iproc,.false.,inputs)
-     inputs%inputPsiId=1
+     inputs%InputPsiId=0
     if(iproc==0)write(*,*)'# soften initial step '
 !        call  energyandforces(nat,rxyz,fxyz,etot0,count)
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot0,fxyz,rst,infocode)
@@ -973,7 +969,7 @@ end subroutine my_input_variables
 
         if(iproc==0)write(*,'(a,i3,5(f12.5))')'# soften it, curv, fd2,dE and res:',&
                                                        it, curv, fd2,etot-etot0,res
-        !if(iproc==0)write(11,'(i5,4(1pe13.5),1pe18.10)')&
+        !if(iproc==0)write(11,'(i5,4(e13.5),e18.10)')&
         !if(iproc==0)write(11,*)&
         !        it,tt,res,curv,fd2,etot-etot0
 
@@ -1018,8 +1014,7 @@ end subroutine my_input_variables
 !        deallocate(wpos,fxyz)
 end subroutine soften
 
-end program MINHOP
-!!***
+    end program MINHOP
 
 
 
@@ -1247,7 +1242,7 @@ end program MINHOP
         real*4 ts
         parameter(nbix=20)
         dimension rxyz(3,nat), vxyz(3,nat),nbi(nbix)
-        parameter( bondlength=2.7d0)
+        parameter( bondlength=6.d0)
 
         nloop=0
 100     continue
@@ -1305,8 +1300,8 @@ end program MINHOP
           call random_number(ts) ; ts=ts-.5
           vxyz(3,i)=dble(ts)*ampl
 
-!        write(*,'(i3,3(1pe12.4))') iat,(rxyz(i,iat)+.5d0*vxyz(i,iat),i=1,3)
-!        write(*,'(i3,3(1pe12.4))') jat,(rxyz(i,jat)+.5d0*vxyz(i,jat),i=1,3)
+!        write(*,'(i3,3(e12.4))') iat,(rxyz(i,iat)+.5d0*vxyz(i,iat),i=1,3)
+!        write(*,'(i3,3(e12.4))') jat,(rxyz(i,jat)+.5d0*vxyz(i,jat),i=1,3)
         
         return
         end subroutine
@@ -1334,7 +1329,7 @@ end program MINHOP
         ty=ty+(rxyz(3,iat)-cmz)*vxyz(1,iat)-(rxyz(1,iat)-cmx)*vxyz(3,iat)
         tz=tz+(rxyz(1,iat)-cmx)*vxyz(2,iat)-(rxyz(2,iat)-cmy)*vxyz(1,iat)
         enddo
-        write(*,'(a,3(1pe11.3))') 'torque',tx,ty,tz
+        write(*,'(a,3(e11.3))') 'torque',tx,ty,tz
 
         return
         end
@@ -1378,7 +1373,7 @@ do it=1,100
          endif
          enddo
 
-!         write(*,'(i4,3(1pe11.3))') ii,t
+!         write(*,'(i4,3(e11.3))') ii,t
 
 
 ! modify velocities
@@ -1405,7 +1400,7 @@ do it=1,100
       endif
 
   enddo
-  write(*,'(a,3(1pe11.3))') 'WARNING REMAINING TORQUE',t
+  write(*,'(a,3(e11.3))') 'WARNING REMAINING TORQUE',t
 
         return
         end
@@ -1422,7 +1417,7 @@ do it=1,100
         sy=sy+vxyz(2,iat)
         sz=sz+vxyz(3,iat)
         enddo
-        write(*,'(a,3(1pe11.3))') 'momentum',sx,sy,sz
+        write(*,'(a,3(e11.3))') 'momentum',sx,sy,sz
 
         return
         end
@@ -1453,7 +1448,7 @@ do it=1,100
 
      subroutine fix_fragmentation(iproc,nat,rxyz,nputback)
      implicit real*8 (a-h,o-z)
-     parameter(bondlength=8.0d0)
+     parameter(bondlength=6.0d0)
      dimension rxyz(3,nat)
 ! automatic arrays
      logical belong(nat)
@@ -1476,7 +1471,7 @@ do it=1,100
      if (belong(iat)) then 
         do jat=1,nat
         xj=rxyz(1,jat) ; yj=rxyz(2,jat) ; zj=rxyz(3,jat)
-        if ( (xi-xj)**2+(yi-yj)**2+(zi-zj)**2 .le. (bondlength*1.25d0)**2) then 
+        if ( (xi-xj)**2+(yi-yj)**2+(zi-zj)**2 .le. (bondlength*1.50d0)**2) then 
            if (belong(jat).eqv. .false.) nadd=nadd+1
            belong(jat)=.true. 
         endif
@@ -1496,7 +1491,7 @@ else
       nputback=nputback+1
 
          if (iproc.eq.0) then
-           write(*,*) 'fragmentation occured',nloop,ncluster
+           write(*,*) '# fragmentation occured',nloop,ncluster
            write(444,*) nat,iat
            write(444,*) ' fragmented configuration ', nputback
            do kat=1,nat
@@ -1577,10 +1572,10 @@ endif
 
           filename = 'poscur.xyz'
           open(unit=9,file=filename,status='unknown')
-          write(9,'(i4,2x,a,1x,1pe17.10,3x,a)') nat,'  atomic',re_pos
-          write(9,'(1pe17.10)') re_pos
+          write(9,'(i4,2x,a,1x,e17.10,3x,a)') nat,'  atomic',re_pos
+          write(9,'(e17.10)') re_pos
           do iat=1,nat
-          write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)') atomnames(iatype(iat)),pos(1,iat),pos(2,iat),pos(3,iat),natpol(iat)-100
+          write(9,'(a8,3x,3(1x,e24.17),3x,i5.5)') atomnames(iatype(iat)),pos(1,iat),pos(2,iat),pos(3,iat),natpol(iat)-100
           enddo
           write(*,*) ' wrote ',filename,' for  RESTART'
           close(9)
@@ -1593,9 +1588,9 @@ endif
           mm=min(nlmin,nlminx+nbuf)
           write(12,'(2(i10),a)') mm,mm+5,' # of minima already found, # of minima to be found in consecutive run'
           write(12,'(e24.17,1x,a)') eref,'   eref'
-          write(12,'(e24.17,1x,a)') accur,'   accur'
+		  write(12,'(e24.17,1x,a)') accur,'   accur'
           do k=1,mm
-          write(12,'(e24.17,1x,1pe17.10)') earr(k,1),earr(k,2)
+          write(12,'(e24.17,x,e17.10)') earr(k,1),earr(k,2)
           enddo
           write(*,*) ' wrote earr.dat for  RESTART'
           close(12)
@@ -1610,7 +1605,7 @@ endif
         subroutine wtioput(ediff,ekinetic,dt)
         implicit real*8 (a-h,o-z)
           open(unit=11,file='ioput',status='unknown')
-          write(11,'(3(1x,1pe24.17),a)') ediff,ekinetic,dt,' ediff, ekinetic and dt'
+          write(11,'(3(x,e24.17),a)') ediff,ekinetic,dt,' ediff, ekinetic and dt'
           close(11)
         end subroutine
 
@@ -1626,10 +1621,10 @@ endif
 !C generate filename and open files
         filename = 'posbest.xyz'
         open(unit=9,file=filename,status='unknown')
-        write(9,'(i4,2x,a,1pe24.17)') nat,'  atomic', energy
+        write(9,'(i4,2x,a,e24.17)') nat,'  atomic', energy
         write(9,'(e24.17)') energy
         do iat=1,nat
-        write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)') atomnames(iatype(iat)),&
+        write(9,'(a8,3x,3(1x,e24.17),3x,i5.5)') atomnames(iatype(iat)),&
                                         pos(1,iat),pos(2,iat),pos(3,iat),natpol(iat)-100
         enddo
         close(9)
@@ -1648,10 +1643,10 @@ endif
         write(fn,'(i4.4)') istep
         filename = 'posmd_'//fn//'.xyz'
         open(unit=9,file=filename,status='unknown')
-        write(9,'(i4,2x,a,1x,1pe24.17)') nat,'  atomic',energy
+        write(9,'(i4,2x,a,1x,e24.17)') nat,'  atomic',energy
         write(9,'(e24.17)') energy
         do iat=1,nat
-        write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)') atomnames(iatype(iat)),&
+        write(9,'(a8,3x,3(1x,e24.17),3x,i5.5)') atomnames(iatype(iat)),&
                                         pos(1,iat),pos(2,iat),pos(3,iat),natpol(iat)-100
         enddo
         close(9)
@@ -1672,10 +1667,10 @@ endif
         write(fn,'(i4.4)') nconjgr
         filename = 'poslocm_'//fn//'.xyz'
         open(unit=9,file=filename,status='unknown')
-        write(9,'(i4,2x,a,1x,1pe24.17)') nat,'  atomic',energy
-        write(9,'(e24.17,1x,1pe10.3)') energy,fnrm
+        write(9,'(i4,2x,a,1x,e24.17)') nat,'  atomic',energy
+        write(9,'(e24.17,1x,e10.3)') energy,fnrm
         do iat=1,nat
-        write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)') atomnames(iatype(iat)),&
+        write(9,'(a8,3x,3(1x,e24.17),3x,i5.5)') atomnames(iatype(iat)),&
                                         pos(1,iat),pos(2,iat),pos(3,iat),natpol(iat)-100
         enddo
         close(9)
@@ -1712,16 +1707,16 @@ endif
 
         if (kk.le.npminx) then
 
-!        write(*,'(a,i2,i4,i4,1x,1pe21.14)') 'k,kk,elocmin(k)',k,kk,elocmin(k)
+!        write(*,'(a,i2,i4,i4,x,e21.14)') 'k,kk,elocmin(k)',k,kk,elocmin(k)
 
 !C generate filename and open files
         write(fn,'(i5.5)') kk
         filename = 'poslow'//fn//'.xyz'
         open(unit=9,file=filename,status='unknown')
-        write(9,'(i6,2x,a,1pe24.17)') nat,'  atomic ',elocmin(k)
+        write(9,'(i6,2x,a,e24.17)') nat,'  atomic ',elocmin(k)
         write(9,'(e24.17)') elocmin(k)
         do iat=1,nat
-        write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)'),atomnames(iatype(iat)),&
+        write(9,'(a8,3x,3(1x,e24.17),3x,i5.5)'),atomnames(iatype(iat)),&
                                         pos(1,iat,kk),pos(2,iat,kk),pos(3,iat,kk),natpol(iat)-100
         enddo
         close(9)
@@ -1749,7 +1744,7 @@ endif
            integer*8 ii
            ii=enerd/accur
            round=ii*accur
-!           write(*,'(a,1pe24.17,1x,i17,1x,1pe24.17)') 'enerd,ii,round',enerd,ii,round
+!           write(*,'(a,e24.17,1x,i17,1x,e24.17)') 'enerd,ii,round',enerd,ii,round
         return
         end
 
@@ -1767,7 +1762,7 @@ subroutine rdposout(igeostep,rxyz,nat)
   !filename = 'posout_'//fn//'.ascii'
   filename = 'posout_'//fn//'.xyz'
  ! write(*,*)'# reading unrelaxed structure from ',filename
-  open(unit=9,file=filename,status='old')
+  open(unit=9,file=filename)
   read(9,*)fn!no need for header
   read(9,*)fn!same
   do iat=1,nat
@@ -1777,4 +1772,36 @@ subroutine rdposout(igeostep,rxyz,nat)
 end subroutine rdposout
 
 
+
+subroutine adjustrxyz(nat,alat1,alat2,alat3,rxyz)
+  implicit none
+  integer, intent(in) :: nat
+  real(kind=8), dimension(3,nat), intent(inout) :: rxyz
+
+  !local variables
+  integer :: iat,i 
+  real(kind=8) ,intent(in) :: alat1,alat2,alat3
+  real(kind=8), dimension(3)  :: cent
+
+  do i=1,3
+  cent(i)=0.d0
+  enddo
+  do iat=1,nat
+  do i=1,3
+  cent(i)=cent(i)+rxyz(i,iat)
+  enddo
+  enddo
+  do i=1,3
+  cent(i)=cent(i)/nat
+  enddo
+
+  write(*,'(a,6(1x,e9.2))') 'old CM, shift',(cent(i),i=1,3),  & 
+         -cent(1)+alat1*.5d0,-cent(2)+alat2*.5d0,-cent(3)+alat3*.5d0
+
+  do iat=1,nat
+  rxyz(1,iat)=rxyz(1,iat)-cent(1)+alat1*.5d0
+  rxyz(2,iat)=rxyz(2,iat)-cent(2)+alat2*.5d0
+  rxyz(3,iat)=rxyz(3,iat)-cent(3)+alat3*.5d0
+  enddo
+end subroutine adjustrxyz
 

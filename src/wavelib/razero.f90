@@ -18,6 +18,22 @@ subroutine razero(n,x)
      x(i)=0.d0
   end do
 end subroutine razero
+
+subroutine omp_razero(n,x)
+use module_base
+  implicit none
+  !Arguments
+  integer, intent(in) :: n
+  real(wp), intent(out) :: x(n)
+  !Local variables
+  integer :: i
+
+  !$omp do
+  do i=1,n
+     x(i)=0._wp
+  end do
+  !$omp enddo
+end subroutine omp_razero
 !!***
 
 !!****f* BigDFT/tenminustwenty

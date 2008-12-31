@@ -1,10 +1,10 @@
-subroutine precong_per_hyb(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
+subroutine precong_per_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      ncong,cprecr,hx,hy,hz,x,ibyz,ibxz,ibxy)
 use module_base
 ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
 ! x is the right hand side on input and the solution on output
 implicit none
-integer, intent(in) :: n1,n2,n3,ncong
+integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ncong
 integer,intent(in)::ibyz(2,0:n2,0:n3+ndebug),ibxz(2,0:n1,0:n3+ndebug),ibxy(2,0:n1,0:n2+ndebug)
 integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
 real(gp), intent(in) :: hx,hy,hz,cprecr
@@ -32,15 +32,12 @@ real(wp), dimension(:,:,:,:,:), allocatable::z1,z3 ! work array for FFT
 
 integer::nd1,nd2,nd3
 integer::n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b	
-integer:: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,nf
+integer:: nf
 
 	
 	call dimensions_fft(n1,n2,n3,nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
 	
-!	array sizes for the adaptive wavelet data structure	
-	call find_dimensions(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-	       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),&
-		   nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,nf)
+    nf=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
 	
 	call allocate_all
 

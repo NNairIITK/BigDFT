@@ -54,7 +54,7 @@ subroutine preconditionall(geocode,iproc,nproc,norb,norbp,n1,n2,n3,nfl1,nfu1,nfl
                    cprecr,hx,hy,hz,hpsi(1,inds))
            else
 				if (hybrid_on) then
-              	   call precong_per_hyb(n1,n2,n3, &
+              	   call precong_per_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
                    wfd%nseg_c,wfd%nvctr_c,wfd%nseg_f,wfd%nvctr_f,wfd%keyg,wfd%keyv, &
                    ncong,cprecr,hx,hy,hz,hpsi(1,inds),&
                    kb%ibyz_f,kb%ibxz_f,kb%ibxy_f)

@@ -323,10 +323,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,&
        n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i)
 
-  !evaluate if the conditiond for the hybrid evaluation in periodic BC hold
-  hybrid_on=               (nfu1-nfl1+lupfil.lt.n1+1)
-  hybrid_on=(hybrid_on.and.(nfu2-nfl2+lupfil.lt.n2+1))
-  hybrid_on=(hybrid_on.and.(nfu3-nfl3+lupfil.lt.n3+1))
+if (atoms%geocode.eq.'P')	then    
+	!evaluate if the conditiond for the hybrid evaluation in periodic BC hold
+	hybrid_on=               (nfu1-nfl1+lupfil.lt.n1+1)
+	hybrid_on=(hybrid_on.and.(nfu2-nfl2+lupfil.lt.n2+1))
+	hybrid_on=(hybrid_on.and.(nfu3-nfl3+lupfil.lt.n3+1))
+
+	hybrid_on=.false. ! JUST FOR TESTING	
+	if (hybrid_on.AND.iproc==1) then
+	    write(*,*)'wavelet localization is ON'
+	else
+	    write(*,*)'wavelet localization is OFF'
+	endif
+endif
+      
 		
   hxh=0.5d0*hx
   hyh=0.5d0*hy

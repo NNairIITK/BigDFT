@@ -315,7 +315,7 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
   character(len=*), parameter :: subname='applylocpotkinone_per'
   integer :: i,i_stat,i_all
   real(wp) :: tt
-  real(gp) :: v,p
+  real(gp) :: v,p,epot_p
   real(gp), dimension(3) :: hgridh
   real(kind=4), dimension(:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
   real(kind=8) :: psi_GPU,v_GPU,work_GPU !pointer to the GPU  memory addresses (with norb=1)
@@ -406,13 +406,25 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      ! psir serves as a work array	   
      call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psi_in,psir,psi_out) 
 
+	 !$omp parallel default(private)&
+	 !$omp shared(pot,psir,n1,n2,n3,epot)
+
+	 epot_p=0._gp
+	 !$omp do
      do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
         v=real(pot(i),gp)
         p=real(psir(i),gp)
         tt=pot(i)*psir(i)
-        epot=epot+p*v*p
+        epot_p=epot_p+p*v*p
         psir(i)=tt
      enddo
+	 !$omp end do
+	 
+  	 !$omp critical
+  	 epot=epot+epot_p
+	 !$omp end critical
+	 
+	 !$omp end parallel
 
      call convolut_magic_t_per_self(2*n1+1,2*n2+1,2*n3+1,psir,psi_out)
 

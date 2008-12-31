@@ -38,6 +38,7 @@ program BigDFT
   character(len=20), dimension(:), allocatable :: atomnames
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: rxyz,fxyz
+  integer npr,iam
  
   !$      interface
   !$        integer ( kind=4 ) function omp_get_num_threads ( )
@@ -57,11 +58,13 @@ program BigDFT
   !initialize memory counting
   call memocc(0,iproc,'count','start')
 
-  !$omp parallel private(iam)  shared (npr)
-  !$       iam=omp_get_thread_num()
-  !$       if (iam.eq.0) npr=omp_get_num_threads()
-  !$       write(*,*) 'iproc,iam,npr',iproc,iam,npr
-  !$omp end parallel
+!**********Commented out by Alexey, 15.11.2008************************************************  
+!$omp parallel private(iam)  shared (npr)
+!$       iam=omp_get_thread_num()
+!$       if (iam.eq.0) npr=omp_get_num_threads()
+!$       write(*,*) 'iproc,iam,npr',iproc,iam,npr
+!$omp end parallel
+!*********************************************************************************************
 
   !welcome screen
   if (iproc==0) call print_logo()
