@@ -50,13 +50,13 @@ subroutine comb_grow_c(n1,n2,n3,w1,w2,x,y,ibyz,ibzxx,ibxxyy,ibyyzz_r)
   real(wp), dimension(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16), intent(out) :: y
 
   ! i1,i2,i3 -> i2,i3,I1
-  call  comb_rot_grow_loc_square_1(n1,n2,n3,x,w1,ibyz,ibzxx,.true.) 
+  call  comb_rot_grow_loc_square(n1,n2,n3,x,w1,ibyz,ibzxx) 
 
   ! i2,i3,I1 -> i3,I1,I2
-  call  comb_rot_grow_loc_square_1(n2,n3,2*n1+30,w1,w2,ibzxx,ibxxyy,.true.) 
+  call  comb_rot_grow_loc_square(n2,n3,2*n1+30,w1,w2,ibzxx,ibxxyy) 
 
   ! i3,I1,I2  -> I1,I2,I3
-  call  comb_rot_grow_loc_square_1(n3,2*n1+30,2*n2+30,w2,y,ibxxyy,ibyyzz_r,.false.) 
+  call  comb_rot_grow_loc_square_3(n3,2*n1+30,2*n2+30,w2,y,ibxxyy) 
 
 END SUBROUTINE comb_grow_c
 
@@ -132,12 +132,21 @@ subroutine comb_rot_grow_loc_1(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib,ib2)
   !    call system_clock(ncount0,ncount_rate,ncount_max)
 
   !   y=0._wp
+
+!$omp parallel default (private) shared(x,y,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)&
+!$omp shared(ib,ib2,fil2)
+
+  !$omp do 
   do l1=-14+2*nfl1,2*nfu1+16
      do l3=nfl3,nfu3
         y(:,:,ib2(1,l3,l1):ib2(2,l3,l1),l3,l1)=0._wp
      enddo
   enddo
+  !$omp enddo
 
+  !$omp barrier
+  
+  !$omp do
   do l3=nfl3,nfu3
      do l2=nfl2,nfu2
 
@@ -187,6 +196,8 @@ subroutine comb_rot_grow_loc_1(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib,ib2)
 
      enddo
   enddo
+  !$omp enddo
+  !$omp end parallel
 
   !    call system_clock(ncount1,ncount_rate,ncount_max)
   !    tel=dble(ncount1-ncount0)/dble(ncount_rate)
@@ -227,12 +238,22 @@ subroutine comb_rot_grow_loc_2(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib,ib2)
   !    call system_clock(ncount0,ncount_rate,ncount_max)
 
   !     y=0._wp
+
+
+!$omp parallel default (private) shared(x,y,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)&
+!$omp shared(ib,ib2,fil2)
+
+  !$omp do
   do l2=-14+2*nfl2,2*nfu2+16
      do l1=-14+2*nfl1,2*nfu1+16
         y(:,ib2(1,l1,l2):ib2(2,l1,l2),l1,l2)=0._wp
      enddo
   enddo
+  !$omp enddo
 
+  !$omp barrier
+
+  !$omp do
   do l1=-14+2*nfl1,2*nfu1+16
      do l3=nfl3,nfu3
 
@@ -262,6 +283,9 @@ subroutine comb_rot_grow_loc_2(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib,ib2)
 
      enddo
   enddo
+  !$omp enddo
+
+  !$omp end parallel
 
   !    call system_clock(ncount1,ncount_rate,ncount_max)
   !    tel=dble(ncount1-ncount0)/dble(ncount_rate)
@@ -398,6 +422,8 @@ subroutine comb_rot_shrink_loc_3(ndat,x,y,nfl,nfu,ib)
   !open(unit=20,file='long.flop')
   !call system_clock(ncount0,ncount_rate,ncount_max)
 
+  !$omp parallel do default(private) shared(ndat,nfl,nfu) &
+  !$omp shared(x,y,ib,fil2)
   do j=1,ndat
      do i=ib(1,j),ib(2,j)
         ci112=0._wp
@@ -427,6 +453,7 @@ subroutine comb_rot_shrink_loc_3(ndat,x,y,nfl,nfu,ib)
         y(7,j,i)=ci222    
      enddo
   enddo
+  !$omp end parallel do
 
   !call system_clock(ncount1,ncount_rate,ncount_max)
   !tel=dble(ncount1-ncount0)/dble(ncount_rate)

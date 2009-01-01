@@ -20,6 +20,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
   integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
   real(gp) :: ucvol,rloc,twopitothreehalf,pi,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxslf,fyslf,fzslf,fxerf,fyerf,fzerf,cutoff,zero
+  real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod
   real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart,Mz,cmassy
   real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
@@ -133,27 +134,47 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
         fxion=0.0_gp
         fyion=0.0_gp
         fzion=0.0_gp
+        !initialisation of the hessian
+        hxx=0.0_gp
+        hxy=0.0_gp
+        hxz=0.0_gp
+        hyy=0.0_gp
+        hyz=0.0_gp
+        hzz=0.0_gp
+
         !    ion-ion interaction
         do jat=1,iat-1
-           dist=sqrt( (rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2 )
+           dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
            jtyp=at%iatype(jat)
-           eion=eion+real(at%nelpsp(jtyp)*at%nelpsp(ityp),gp)/dist
-           fxion=fxion+real(at%nelpsp(jtyp),gp)*&
-                (real(at%nelpsp(ityp),gp)/(dist**3))*(rx-rxyz(1,jat))
-           fyion=fyion+real(at%nelpsp(jtyp),gp)*&
-                (real(at%nelpsp(ityp),gp)/(dist**3))*(ry-rxyz(2,jat))
-           fzion=fzion+real(at%nelpsp(jtyp),gp)*&
-                (real(at%nelpsp(ityp),gp)/(dist**3))*(rz-rxyz(3,jat))
+           chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
+           eion=eion+chgprod/dist
+           !forces
+           fxion=fxion+chgprod/(dist**3)*(rx-rxyz(1,jat))
+           fyion=fyion+chgprod/(dist**3)*(ry-rxyz(2,jat))
+           fzion=fzion+chgprod/(dist**3)*(rz-rxyz(3,jat))
+           !hessian matrix
+           hxx=hxx+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))**2-chgprod/(dist**3)
+           hxy=hxy+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(ry-rxyz(2,jat))
+           hxz=hxz+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(rz-rxyz(3,jat))
+           hyy=hyy+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))**2-chgprod/(dist**3)
+           hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
+           hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
         enddo
         do jat=iat+1,at%nat
            dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
            jtyp=at%iatype(jat)
-           fxion=fxion+real(at%nelpsp(jtyp),gp)*&
-                (real(at%nelpsp(ityp),gp)/(dist**3))*(rx-rxyz(1,jat))
-           fyion=fyion+real(at%nelpsp(jtyp),gp)*&
-                (real(at%nelpsp(ityp),gp)/(dist**3))*(ry-rxyz(2,jat))
-           fzion=fzion+real(at%nelpsp(jtyp),gp)*&
-                (real(at%nelpsp(ityp),gp)/(dist**3))*(rz-rxyz(3,jat))
+           chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
+           !forces
+           fxion=fxion+chgprod/(dist**3)*(rx-rxyz(1,jat))
+           fyion=fyion+chgprod/(dist**3)*(ry-rxyz(2,jat))
+           fzion=fzion+chgprod/(dist**3)*(rz-rxyz(3,jat))
+           !hessian matrix
+           hxx=hxx+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))**2-chgprod/(dist**3)
+           hxy=hxy+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(ry-rxyz(2,jat))
+           hxz=hxz+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(rz-rxyz(3,jat))
+           hyy=hyy+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))**2-chgprod/(dist**3)
+           hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
+           hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
         end do
 
         fion(1,iat)=fxion

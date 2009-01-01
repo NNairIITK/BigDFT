@@ -12,9 +12,9 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   real(wp), intent(inout) ::  x(nvctr_c+7*nvctr_f)
   ! local variables
   integer, parameter :: lowfil=-14,lupfil=14
-  real(gp)::scal(0:8)
-  real(wp)::rmr,rmr_new,alpha,beta
-  integer i,i_stat,i_all
+  real(gp)::scal(0:8),fac
+  real(wp)::rmr_old,rmr_new,alpha,beta
+  integer i,i_stat,i_all,icong
   real(wp),allocatable::b(:),r(:),d(:)
   real(wp),allocatable::psifscf(:),ww(:)
   integer::nd1,nd2,nd3
@@ -31,45 +31,55 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   call prepare_sdc(n1,n2,n3,modul1,modul2,modul3,af,bf,cf,ef,hx,hy,hz)
   !	initializes the wavelet scaling coefficients	
   call wscal_init_per(scal,hx,hy,hz,cprecr)
+
+  !	scale the r.h.s. that is also the scaled input guess :
+  !	b'=D^{-1/2}b
+  call wscal_per_self(nvctr_c,nvctr_f,scal,x(1),x(nvctr_c+1))
   !b=x
   call dcopy(nvctr_c+7*nvctr_f,x,1,b,1) 
 
   !	compute the input guess x via a Fourier transform in a cubic box.
   !	Arrays psifscf and ww serve as work arrays for the Fourier
-  call prec_fft_fast(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
+  fac=1.d0/scal(0)**2
+  call prec_fft_c(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        cprecr,hx,hy,hz,x,&
        psifscf(1),psifscf(n1+2),psifscf(n1+n2+3),ww(1),ww(nd1b*nd2*nd3*4+1),&
        ww(nd1b*nd2*nd3*4+nd1*nd2*nd3f*4+1),&
-       nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b)
+       nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,fac)
 
-  call apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-       cprecr,hx,hy,hz,x,d,psifscf,ww,modul1,modul2,modul3,af,bf,cf,ef) ! d:=Ax
-  r=b-d
+  call apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
+       cprecr,hx,hy,hz,x,d,psifscf,ww,modul1,modul2,modul3,af,bf,cf,ef,scal) ! d:=Ax
+  r=b-d ! r=b-Ax
+  d=r
+  !rmr_new=dot_product(r,r)
+  rmr_new=dot(nvctr_c+7*nvctr_f,r(1),1,r(1),1)
 
+  do icong=1,ncong 
+     !write(*,*)icong,rmr_new
 
-  call wscal_per(nvctr_c,nvctr_f,scal,r(1),r(nvctr_c+1),d(1),d(nvctr_c+1))
-  !rmr=dot_product(r,d)
-  rmr=dot(nvctr_c+7*nvctr_f,r(1),1,d(1),1)
-  
-  do i=1,ncong 
-     !		write(*,*)i,sqrt(rmr)
+     call apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
+          cprecr,hx,hy,hz,d,b,psifscf,ww,modul1,modul2,modul3,af,bf,cf,ef,scal) ! b:=Ad
 
-     call apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-          cprecr,hx,hy,hz,d,b,psifscf,ww,modul1,modul2,modul3,af,bf,cf,ef) ! b:=Ad
+     alpha=rmr_new/dot(nvctr_c+7*nvctr_f,d(1),1,b(1),1)
 
-     !alpha=rmr/dot_product(d,b)
-     alpha=rmr/dot(nvctr_c+7*nvctr_f,d(1),1,b(1),1)
-     x=x+alpha*d
-     r=r-alpha*b
+     do i=1,nvctr_c+7*nvctr_f
+        x(i)=x(i)+alpha*d(i)
+        r(i)=r(i)-alpha*b(i)
+     enddo
 
-     call wscal_per(nvctr_c,nvctr_f,scal,r(1),r(nvctr_c+1),b(1),b(nvctr_c+1))
-     !rmr_new=dot_product(r,b)
-     rmr_new=dot(nvctr_c+7*nvctr_f,r(1),1,b(1),1)
+     if (icong==ncong) exit
 
-     beta=rmr_new/rmr
-     d=b+beta*d
-     rmr=rmr_new
+     rmr_old=rmr_new	
+     rmr_new=dot(nvctr_c+7*nvctr_f,r(1),1,r(1),1)
+
+     beta=rmr_new/rmr_old
+     d=r+beta*d
   enddo
+
+  ! x=D^{-1/2}x'
+  call wscal_per_self(nvctr_c,nvctr_f,scal,x(1),x(nvctr_c+1))
+  !	write(30,*) x
+  !	stop
 
   call deallocate_all
 
@@ -95,7 +105,7 @@ contains
     allocate(r(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
     call memocc(i_stat,r,'r','precong_per')
     allocate(d(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-    call memocc(i_stat,d,'','precong_per')
+    call memocc(i_stat,d,'d','precong_per')
     allocate( psifscf((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug),stat=i_stat )
     call memocc(i_stat,psifscf,'psifscf','precong_per')
     allocate( ww((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug) ,stat=i_stat)
@@ -155,6 +165,42 @@ contains
   end subroutine deallocate_all
 end subroutine precong_per
 
+subroutine prec_fft_c(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
+     cprecr,hx,hy,hz,hpsi,&
+     kern_k1,kern_k2,kern_k3,z1,z3,x_c,&
+     nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,fac)
+  ! Solves (KE+cprecr*I)*xx=yy by FFT in a cubic box 
+  ! x_c is the right hand side on input and the solution on output
+  ! This version uses work arrays kern_k1-kern_k3 and z allocated elsewhere
+  use module_base
+  implicit none 
+  integer, intent(in) :: n1,n2,n3
+  integer,intent(in)::nd1,nd2,nd3
+  integer,intent(in)::n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b	
+  integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
+  real(gp), intent(in) :: hx,hy,hz,cprecr,fac
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  real(wp), intent(inout) ::  hpsi(nvctr_c+7*nvctr_f) 
+
+  !work arrays
+  real(gp):: kern_k1(0:n1),kern_k2(0:n2),kern_k3(0:n3)
+  real(wp),dimension(0:n1,0:n2,0:n3):: x_c! in and out of Fourier preconditioning
+  real(wp)::z1(2,nd1b,nd2,nd3,2)! work array
+  real(wp)::z3(2,nd1,nd2,nd3f,2)! work array
+
+  call make_kernel(n1,hx,kern_k1)
+  call make_kernel(n2,hy,kern_k2)
+  call make_kernel(n3,hz,kern_k3)
+
+  call uncompress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
+
+  call  hit_with_kernel_fac(x_c,z1,z3,kern_k1,kern_k2,kern_k3,n1+1,n2+1,n3+1,nd1,nd2,nd3,&
+       n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,cprecr,fac)
+
+  call   compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
+
+end subroutine prec_fft_c
 
 subroutine prec_fft_fast(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,hpsi,&
@@ -352,6 +398,31 @@ subroutine wscal_f(mvctr_f,psi_f,hx,hy,hz,c)
 
 end subroutine wscal_f
 
+subroutine wscal_per_self(mvctr_c,mvctr_f,scal,psi_c,psi_f)
+  ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
+  use module_base
+  implicit none
+  integer,intent(in)::mvctr_c,mvctr_f
+  real(gp),intent(in)::scal(0:8)
+  real(wp),intent(inout)::psi_c(mvctr_c),psi_f(7,mvctr_f)
+
+  integer i
+
+  do i=1,mvctr_c
+     psi_c(i)=psi_c(i)*scal(0)           !  1 1 1
+  enddo
+
+  do i=1,mvctr_f
+     psi_f(1,i)=psi_f(1,i)*scal(1)       !  2 1 1
+     psi_f(2,i)=psi_f(2,i)*scal(2)       !  1 2 1
+     psi_f(3,i)=psi_f(3,i)*scal(3)       !  2 2 1
+     psi_f(4,i)=psi_f(4,i)*scal(4)       !  1 1 2
+     psi_f(5,i)=psi_f(5,i)*scal(5)       !  2 1 2
+     psi_f(6,i)=psi_f(6,i)*scal(6)       !  1 2 2
+     psi_f(7,i)=psi_f(7,i)*scal(7)       !  2 2 2
+  enddo
+
+end subroutine wscal_per_self
 
 subroutine wscal_per(mvctr_c,mvctr_f,scal,psi_c_in,psi_f_in,psi_c_out,psi_f_out)
   ! multiplies a wavefunction psi_c,psi_f (in vector form) with a scaling vector (scal)
@@ -394,14 +465,14 @@ subroutine wscal_init_per(scal,hx,hy,hz,c)
   hh(2)=.5_wp/hy**2
   hh(3)=.5_wp/hz**2
 
-  scal(0)=1._wp/(a2*hh(1)+a2*hh(2)+a2*hh(3)+c)       !  1 1 1
-  scal(1)=1._wp/(b2*hh(1)+a2*hh(2)+a2*hh(3)+c)       !  2 1 1
-  scal(2)=1._wp/(a2*hh(1)+b2*hh(2)+a2*hh(3)+c)       !  1 2 1
-  scal(3)=1._wp/(b2*hh(1)+b2*hh(2)+a2*hh(3)+c)       !  2 2 1
-  scal(4)=1._wp/(a2*hh(1)+a2*hh(2)+b2*hh(3)+c)       !  1 1 2
-  scal(5)=1._wp/(b2*hh(1)+a2*hh(2)+b2*hh(3)+c)       !  2 1 2
-  scal(6)=1._wp/(a2*hh(1)+b2*hh(2)+b2*hh(3)+c)       !  1 2 2
-  scal(7)=1._wp/(b2*hh(1)+b2*hh(2)+b2*hh(3)+c)       !  2 2 2
+  scal(0)=1._wp/sqrt(a2*hh(1)+a2*hh(2)+a2*hh(3)+c)       !  1 1 1
+  scal(1)=1._wp/sqrt(b2*hh(1)+a2*hh(2)+a2*hh(3)+c)       !  2 1 1
+  scal(2)=1._wp/sqrt(a2*hh(1)+b2*hh(2)+a2*hh(3)+c)       !  1 2 1
+  scal(3)=1._wp/sqrt(b2*hh(1)+b2*hh(2)+a2*hh(3)+c)       !  2 2 1
+  scal(4)=1._wp/sqrt(a2*hh(1)+a2*hh(2)+b2*hh(3)+c)       !  1 1 2
+  scal(5)=1._wp/sqrt(b2*hh(1)+a2*hh(2)+b2*hh(3)+c)       !  2 1 2
+  scal(6)=1._wp/sqrt(a2*hh(1)+b2*hh(2)+b2*hh(3)+c)       !  1 2 2
+  scal(7)=1._wp/sqrt(b2*hh(1)+b2*hh(2)+b2*hh(3)+c)       !  2 2 2
 
 end subroutine wscal_init_per
 

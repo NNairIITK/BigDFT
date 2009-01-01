@@ -35,7 +35,8 @@ subroutine ana_rot_per(n,ndat,x,y)
 
   call fill_mod_arr(mod_arr,-7,2*n+8,2*n+2)
 
-  !  do j=1,ndat
+!$omp parallel default (private) shared(x,y,cg,ch,ndat,n,mod_arr)
+!$omp do 
 
   do j=0,ndat/8-1
      do i=0,n
@@ -98,6 +99,10 @@ subroutine ana_rot_per(n,ndat,x,y)
      enddo
   enddo
 
+  !$omp end do
+  
+  !$omp do  
+
   do j=(ndat/8)*8+1,ndat
      do i=0,n
         ci=0.e0_wp
@@ -111,6 +116,9 @@ subroutine ana_rot_per(n,ndat,x,y)
         y(j,n+1+i)=di
      enddo
   enddo
+  !$omp end do
+
+!$omp end parallel
 end subroutine ana_rot_per
 
 
@@ -161,6 +169,8 @@ subroutine syn_rot_per(n,ndat,x,y)
 
   call fill_mod_arr(mod_arr,-4,n+4,n+1)
 
+!$omp parallel default (private) shared(x,y,cg,ch,ndat,n,mod_arr)
+!$omp do 
   do j=0,ndat/8-1
      do i=0,n
 		l=4 
@@ -227,7 +237,9 @@ subroutine syn_rot_per(n,ndat,x,y)
 
   enddo
 
+!$omp  end do
 
+!$omp  do  
   do j=(ndat/8)*8+1,ndat
      do i=0,n
 		l=4 
@@ -247,6 +259,8 @@ subroutine syn_rot_per(n,ndat,x,y)
 
   enddo
 
+!$omp  end do
+!$omp end parallel
 !  call system_clock(ncount2,ncount_rate,ncount_max)
 !  tel=dble(ncount2-ncount1)/dble(ncount_rate)
 !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'syn_rot_per:',tel,1.d-6*mflop/tel
@@ -289,6 +303,8 @@ subroutine convrot_n_per(n1,ndat,x,y)
 
   call fill_mod_arr(mod_arr,lowfil,n1+lupfil,n1+1)
 
+!$omp parallel default (private) shared(x,y,fil,ndat,n1,mod_arr)
+!$omp do 
   do j=0,ndat/12-1
 
      do i=0,n1
@@ -341,6 +357,10 @@ subroutine convrot_n_per(n1,ndat,x,y)
      enddo
   enddo
 
+  !$omp end do
+
+  !$omp do
+
   do j=(ndat/12)*12+1,ndat
      do i=0,n1
 
@@ -353,6 +373,9 @@ subroutine convrot_n_per(n1,ndat,x,y)
 
      enddo
   enddo
+
+  !$omp end do
+  !$omp end parallel
 
 end subroutine convrot_n_per
 
@@ -394,6 +417,8 @@ subroutine convrot_t_per(n1,ndat,x,y)
 
   call fill_mod_arr(mod_arr,lowfil,n1+lupfil,n1+1)
 
+!$omp parallel default (private) shared(x,y,fil,ndat,n1,mod_arr)
+!$omp do 
   do j=0,ndat/12-1
 
      do i=0,n1
@@ -446,6 +471,10 @@ subroutine convrot_t_per(n1,ndat,x,y)
      enddo
   enddo
 
+  !$omp end do
+
+  !$omp do
+
   do j=(ndat/12)*12+1,ndat
      do i=0,n1
 
@@ -458,6 +487,9 @@ subroutine convrot_t_per(n1,ndat,x,y)
 
      enddo
   enddo
+  !$omp end do
+
+  !$omp end parallel
 
   return
 end subroutine convrot_t_per
@@ -482,6 +514,7 @@ subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
   real(wp), dimension(3) :: scale
   real(wp), dimension(lowfil:lupfil,3) :: fil
 
+  !$omp parallel default(private) shared(x,y,n1,n2,n3,c,hgrid,fil,mod_arr1,mod_arr2,mod_arr3)
   call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
   call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
   call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
@@ -512,6 +545,7 @@ subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
   call conv_kin_x(x,y,(n2+1)*(n3+1))   
   call conv_kin_y
   call conv_kin_z(x,y,(n1+1)*(n2+1))
+  !$omp end parallel
 
 contains
 
@@ -519,6 +553,7 @@ contains
     implicit none
     real(wp) tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7
 
+!$omp do 
     do i3=0,n3/8-1
        do i1=0,n1
           do i2=0,n2
@@ -554,7 +589,9 @@ contains
           enddo
        enddo
     enddo
+!$omp  end do
 
+!$omp do 
     do i3=(n3/8)*8,n3
        do i1=0,n1
           do i2=0,n2
@@ -567,6 +604,7 @@ contains
           enddo
        enddo
     enddo
+!$omp  end do
   end subroutine conv_kin_y
 
 
@@ -577,6 +615,7 @@ contains
     real(wp),intent(out)::y(0:n1,ndat)
     real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 
+!$omp do 
     do i=0,ndat/12-1
        do i1=0,n1
           tt1 =x(i1,i*12+1)*c
@@ -622,7 +661,9 @@ contains
           y(i1,i*12+12)=tt12
        enddo
     enddo
+!$omp  end do
 
+!$omp  do 
     do i=(ndat/12)*12+1,ndat
        do i1=0,n1
           tt=x(i1,i)*c
@@ -633,6 +674,7 @@ contains
           y(i1,i)=tt
        enddo
     enddo
+!$omp  end do
   end subroutine conv_kin_x
 
   subroutine conv_kin_z(x,y,ndat)
@@ -642,6 +684,7 @@ contains
     real(wp),intent(out)::y(ndat,0:n1)
     real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 
+!$omp do 
     do i=0,ndat/12-1
        do i3=0,n3
           tt1=0.e0_wp
@@ -688,7 +731,9 @@ contains
           y(i*12+12,i3)=y(i*12+12,i3)+tt12
        enddo
     enddo
+!$omp  end do
 
+!$omp  do 
     do i=(ndat/12)*12+1,ndat
        do i3=0,n3
           tt=0.e0_wp
@@ -699,12 +744,13 @@ contains
           y(i,i3)=y(i,i3)+tt
        enddo
     enddo
+!$omp  end do
   end subroutine conv_kin_z
 
 end subroutine convolut_kinetic_per_c
 
 
-subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin)
+subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin_out)
   !   applies the kinetic energy operator onto x to get y. Works for periodic BC
   !	y:=y-1/2Delta x
   use module_base
@@ -713,17 +759,20 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin)
   real(gp), dimension(3), intent(in) :: hgrid
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y
-  real(wp),intent(out)::ekin
+  real(wp),intent(out)::ekin_out
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
   integer :: i1,i2,i3,i,l,j
   integer, dimension(lowfil:n1+lupfil) :: mod_arr1
   integer, dimension(lowfil:n2+lupfil) :: mod_arr2
   integer, dimension(lowfil:n3+lupfil) :: mod_arr3
-  real(wp) :: tt
+  real(wp) :: tt,ekin
   real(wp), dimension(3) :: scale
   real(wp), dimension(lowfil:lupfil,3) :: fil
 
+  ekin_out=0._wp
+  !$omp parallel default(private) shared(x,y,n1,n2,n3,hgrid,ekin_out,fil,mod_arr1,mod_arr2,mod_arr3)
+  
   call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
   call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
   call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
@@ -752,19 +801,29 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin)
   enddo
   ekin=0.0_wp
 
-  call conv_kin_x(x,y,(n2+1)*(n3+1))   
-  call conv_kin_y
-  call conv_kin_z(x,y,(n1+1)*(n2+1))
+  call conv_kin_x(x,y,(n2+1)*(n3+1),ekin)   
+  call conv_kin_y(ekin)
+  call conv_kin_z(x,y,(n1+1)*(n2+1),ekin)
+ 
+  !$omp critical
+  	ekin_out=ekin_out+ekin
+  !$omp end critical
+
+  !$omp end parallel
+
+
 
 contains
 
-  subroutine conv_kin_x(x,y,ndat)
+  subroutine conv_kin_x(x,y,ndat,ekin)
     implicit none
     integer,intent(in)::ndat
     real(wp),intent(in):: x(0:n1,ndat)
     real(wp),intent(out)::y(0:n1,ndat)
+	real(wp),intent(inout)::ekin
     real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
-
+	
+	!$omp do
     do i=0,ndat/12-1
        do i1=0,n1
           tt1=0.e0_wp
@@ -810,7 +869,9 @@ contains
           y(i1,i*12+12)=y(i1,i*12+12)+tt12;	 ekin=ekin+tt12*x(i1,i*12+12)
        enddo
     enddo
+	!$omp end do
 
+	!$omp do
     do i=(ndat/12)*12+1,ndat
        do i1=0,n1
           tt=0.e0_wp
@@ -821,12 +882,15 @@ contains
           y(i1,i)=y(i1,i)+tt ; ekin=ekin+tt*x(i1,i)
        enddo
     enddo
+	!$omp end do
   end subroutine conv_kin_x
 
-  subroutine conv_kin_y
+  subroutine conv_kin_y(ekin)
     implicit none
+	real(wp),intent(inout)::ekin
     real(wp) tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7
 
+	!$omp do
     do i3=0,n3/8-1
        do i1=0,n1
           do i2=0,n2
@@ -862,7 +926,10 @@ contains
           enddo
        enddo
     enddo
+	
+	!$omp end do
 
+	!$omp do
     do i3=(n3/8)*8,n3
        do i1=0,n1
           do i2=0,n2
@@ -875,15 +942,18 @@ contains
           enddo
        enddo
     enddo
+	!$omp end do
   end subroutine conv_kin_y
 
-  subroutine conv_kin_z(x,y,ndat)
+  subroutine conv_kin_z(x,y,ndat,ekin)
     implicit none
     integer,intent(in)::ndat
     real(wp),intent(in):: x(ndat,0:n1)
     real(wp),intent(out)::y(ndat,0:n1)
+	real(wp),intent(inout)::ekin
     real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 
+	!$omp do
     do i=0,ndat/12-1
        do i3=0,n3
           tt1=0.e0_wp
@@ -930,7 +1000,9 @@ contains
           y(i*12+12,i3)=y(i*12+12,i3)+tt12;	 ekin=ekin+tt12*x(i*12+12,i3)
        enddo
     enddo
+	!$omp end do
 
+	!$omp do
     do i=(ndat/12)*12+1,ndat
        do i3=0,n3
           tt=0.e0_wp
@@ -941,6 +1013,7 @@ contains
           y(i,i3)=y(i,i3)+tt; ekin=ekin+tt*x(i,i3)
        enddo
     enddo
+	!$omp end do
   end subroutine conv_kin_z
 
 end subroutine convolut_kinetic_per_T
