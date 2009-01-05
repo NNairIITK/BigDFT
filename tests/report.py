@@ -22,9 +22,9 @@ for file in glob.glob("*/fldiff.report"):
     if discrepancy:
         discrepancy = float(discrepancy[0])
         if discrepancy <= max_discrepancy:
-            start = ""
+            start = "\033[0;32m"
             state = "succeeded < %7.1e" % max_discrepancy
-            end = ""
+            end = "\033[m"
         else:
             start = "\033[0;31m"
             state = "failed    > %7.1e" % max_discrepancy

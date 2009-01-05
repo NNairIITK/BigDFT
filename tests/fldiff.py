@@ -256,10 +256,14 @@ while not EOF:
 print context_lines,
 
 if maximum > max_discrepancy:
-    message = "failed < "
+    start = "\033[0;31m"
+    message = "failed    < "
+    end = "\033[m"
 else:
+    start = "\033[0;32m"
     message = "succeeded < "
+    end = "\033[m"
 
-print "Max Discrepancy %s: %s (%s%s)" % (context_discrepancy,maximum,message,max_discrepancy)
+print "%sMax Discrepancy %s: %s (%s%s)%s" % (start,context_discrepancy,maximum,message,max_discrepancy,end)
 sys.exit(0)
 
