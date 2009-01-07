@@ -777,7 +777,7 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
   real(wp), intent(out) :: potxyz
   !local variables
   integer :: iat,ityp
-  real(wp) :: pi,charge
+  real(wp) :: pi,charge,erf
   real(gp) :: r,sq2rl,rx,ry,rz
   
 
