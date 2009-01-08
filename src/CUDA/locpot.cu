@@ -8,79 +8,46 @@
 */
   
 #include <stdio.h>
-#include <cutil.h>
-#include <pthread.h>
-#include <semaphore.h>
-#include <sched.h>
+#include "locpot.h" //function declaration
+#include "structDef_locpot.h"
+#include "commonDef.h"
 
-#define max(a,b) (a > b ? a : b)
-#define min(a,b) (a < b ? a : b)
 
-//maximum size of the shared memory array
-//conceived for maximize occupancy on a hardware of compute
-//capability 1.2 and higher (1024 threads at same time on a given multiprocessor)
-#define MAX_SHARED_SIZE 3072 //16*256 4 kB (should be =~ 3.9 kB, try also 3072)
-#define HALF_WARP_SIZE 16 // for all architectures
-#define NUM_LINES 16 
-#define HW_ELEM 1 //this is HALF_WARP_SIZE/NUM_LINES
+__constant__ parMF_t par[3]; //must be defined here because it is used by both by this file and kernels_locpot.cu
 
-//parameter related to the Magic Filter convolution
-//lowfil + lupfil + 1  must be a multiple of 16
-#define LOWFIL 8
-#define LUPFIL 7
-
-//convolution filters
-#define MFIL0   8.4334247333529341094733325815816e-7f
-#define MFIL1  -0.1290557201342060969516786758559028e-4f
-#define MFIL2   0.8762984476210559564689161894116397e-4f
-#define MFIL3  -0.30158038132690463167163703826169879e-3f
-#define MFIL4   0.174723713672993903449447812749852942e-2f
-#define MFIL5  -0.942047030201080385922711540948195075e-2f
-#define MFIL6   0.2373821463724942397566389712597274535e-1f
-#define MFIL7   0.612625895831207982195380597e-1f
-#define MFIL8   0.9940415697834003993178616713f
-#define MFIL9  -0.604895289196983516002834636e-1f
-#define MFIL10 -0.2103025160930381434955489412839065067e-1f
-#define MFIL11  0.1337263414854794752733423467013220997e-1f
-#define MFIL12 -0.344128144493493857280881509686821861e-2f
-#define MFIL13  0.49443227688689919192282259476750972e-3f
-#define MFIL14 -0.5185986881173432922848639136911487e-4f
-#define MFIL15  2.72734492911979659657715313017228e-6f
+#include "reduction.hcu"
+#include "kernels_locpot.hcu"
 
 #include "reduction.h"
- 
-float reducearrays_d(int n,
-		     int ndat,
-		     float *psi,
-		     float *vpsi,
-		     double *epot);
 
 
-typedef struct  _parMF
-{
-  unsigned int ElementsPerBlock;
 
-  int thline[HALF_WARP_SIZE]; //line considered by a thread within the half-warp
-  int thelem[HALF_WARP_SIZE]; //elements considered by a thread within the half-warp
-  int hwelem_calc[16]; //maximum number of half warps
-  int hwelem_copy[16]; //maximum number of half-warps
-  int hwoffset_calc[16]; //maximum number of half warps
-  int hwoffset_copy[16]; //maximum number of half-warps
 
-} parMF_t;
 
-__constant__ parMF_t par[3];
+extern "C" 
+void localpotential_(int *n1,
+		     int *n2,
+		     int *n3,
+		     float **psi,
+		     float **work,
+		     float **pot,
+		     float *epot) 
 
-//declare the texture for binding the input psi
-//texture<float> psi_tex;
+{  
+  if(magicfilterpot(*n1+1,*n2+1,*n3+1,
+		    *psi, 
+		    *work,
+		    *pot,
+		    epot) != 0) 
+    {
+      printf("ERROR: GPU magicfilterpot\n ");
+      return;
+    } 
+  return; 
+}
 
-void correctSequence(int thds,int elem,int * tab);
 
-int magicfilterpot(int n1,int n2, int n3,
-		   float *psi,
-		   float *work,
-		   float *pot,
-		   float *epot);
+
 
 
 
@@ -157,340 +124,13 @@ void MFParameters(parMF_t* par,
 
 }
 
-//uniformise the tabular of the number of elements treated by each
-//thread (counterpart of uniformiseTab)
-void correctSequence(int thds,int elem,int * tab)
-{
-  //put to zero all the values;
-  for(int j=0;j< elem; ++j)
-    {
-      tab[j]=0;
-    }
-
-  //then start to fill consecutively until reaching of the end
-  //if elem > thds no element will be zero
-  //this is the most balanced choice
-  for(int i=0;i< elem; ++i)
-    {
-      tab[i % thds]+=1;
-    }
-}
 
 
 
-//1D convolution of multiple lines in the same block
-//__global__ void magicfilter1d(int n,int ndat, float *psi_out) //for textures
-__global__ void magicfilter1d(int n,int ndat, float *psi_in, float *psi_out,int idim)
-{
 
-  //line treated by the given block
-  unsigned int lineOffset = min(blockIdx.y*NUM_LINES,ndat-NUM_LINES);
-  //starting element treated by the block
-  unsigned int elemOffset = min(blockIdx.x*par[idim].ElementsPerBlock,n-par[idim].ElementsPerBlock);
 
-  //half-warp id
-  const unsigned int hwid = threadIdx.y;
-  //tid within the HW
-  const unsigned int tid_hw = threadIdx.x;
 
-  //shared memory array
-  __shared__ float psi_sh[MAX_SHARED_SIZE/sizeof(float)];
 
-  //line treated by the given thread in ndat axis
-  //which is the input base element
-  unsigned int BaseElem = par[idim].thline[tid_hw] + lineOffset;
-  //write data in shared memory
-  //element treated by the given thread in n-axis
-  unsigned int thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_copy[hwid];
-
-  unsigned int ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_copy[hwid];
-
-  int epsilon,npos;
-
-  //NOTE: it is assumed that for non-first segments the starting
-  //points is far enough for the filter to be contained
-  //and the same for non-last segments.
-  //in other terms: lenght of the line is always bigger than
-  //max(lowfil,lupfil)
-
-  for(int i=0,ipos=elemOffset-LOWFIL+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
-    {
-      epsilon=(ipos < 0 ? -1 : ipos/n);
-      npos=ipos-epsilon*n;
-      psi_sh[ShBaseElem]=psi_in[BaseElem+ndat*npos];
-      //psi_sh[ShBaseElem]=tex1Dfetch(psi_tex,BaseElem+ndat*npos);
-
-      ShBaseElem += HALF_WARP_SIZE;
-      ipos += HW_ELEM;
-      
-    }
-
-  //end shared memory copy
-  __syncthreads();
-
-  //element treated by the given thread in n-axis
-  thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_calc[hwid];
-  //base element for the given thread in shared memory
-  ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_calc[hwid];
-
-  //output base element, from the input one
-  BaseElem =  n*BaseElem+ thelem + elemOffset;
-
-  //perform convolution in shared memory 
-  //each thread calculate a number of elements, identical for each
-  //half-warp
-  //#pragma unroll 5 (to be tested if it is important)
-
-  for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
-    {
-      //values of the convolution
-      register float conv = 
-	//hand-unrolled loop (16 elements for this filter)
-	//order changed for increasing the precision
-	MFIL0 *psi_sh[ShBaseElem               ] +
-	MFIL15*psi_sh[ShBaseElem + 15*NUM_LINES] +
-	MFIL1 *psi_sh[ShBaseElem +   NUM_LINES ] +
-	MFIL14*psi_sh[ShBaseElem + 14*NUM_LINES] +
-	MFIL2 *psi_sh[ShBaseElem + 2*NUM_LINES ] +
-	MFIL13*psi_sh[ShBaseElem + 13*NUM_LINES] +
-	MFIL3 *psi_sh[ShBaseElem + 3*NUM_LINES ] +
-	MFIL12*psi_sh[ShBaseElem + 12*NUM_LINES] +
-	MFIL4 *psi_sh[ShBaseElem + 4*NUM_LINES ] +
-	MFIL11*psi_sh[ShBaseElem + 11*NUM_LINES] +
-	MFIL5 *psi_sh[ShBaseElem + 5*NUM_LINES ] +
-	MFIL10*psi_sh[ShBaseElem + 10*NUM_LINES] +
-	MFIL6 *psi_sh[ShBaseElem + 6*NUM_LINES ] +
-	MFIL9 *psi_sh[ShBaseElem + 9*NUM_LINES ] +
-	MFIL7 *psi_sh[ShBaseElem + 7*NUM_LINES ] +
-	MFIL8 *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
-
-      psi_out[BaseElem]=conv;
-      //psi_sh[ShBaseElem+LOWFIL*par[idim].LinesPerBlock]; //for testing only
-
-      ShBaseElem += HALF_WARP_SIZE;
-      BaseElem += HW_ELEM;
-      
-    }
-
-}
-
-//1D convolution of multiple lines in the same block
-//multiplies by the potential and calculate the potential energy
-//__global__ void magicfilter1d_pot(int n,int ndat, float *psi_out)
-__global__ void magicfilter1d_pot(int n,int ndat, float *psi_in, 
-				  float *pot, float *psi_out,int idim)
-{
-
-  //line treated by the given block
-  unsigned int lineOffset = min(blockIdx.y*NUM_LINES,ndat-NUM_LINES);
-  //starting element treated by the block
-  unsigned int elemOffset = min(blockIdx.x*par[idim].ElementsPerBlock,n-par[idim].ElementsPerBlock);
-
-  //half-warp id
-  const unsigned int hwid = threadIdx.y;
-  //tid within the HW
-  const unsigned int tid_hw = threadIdx.x;
-
-  //shared memory array
-  __shared__ float psi_sh[MAX_SHARED_SIZE/sizeof(float)];
-
-  //line treated by the given thread in ndat axis
-  //which is the input base element
-  unsigned int BaseElem = par[idim].thline[tid_hw] + lineOffset;
-  //write data in shared memory
-  //element treated by the given thread in n-axis
-  unsigned int thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_copy[hwid];
-
-  unsigned int ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_copy[hwid];
-
-  int epsilon,npos;
-
-  //NOTE: it is assumed that for non-first segments the starting
-  //points is far enough for the filter to be contained
-  //and the same for non-last segments.
-  //in other terms: lenght of the line is always bigger than
-  //max(lowfil,lupfil)
-
-  for(int i=0,ipos=elemOffset-LOWFIL+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
-    {
-      //control flag for periodic boundary conditions
-      epsilon=(ipos < 0 ? -1 : ipos/n);
-      npos=ipos-epsilon*n;
-
-      psi_sh[ShBaseElem]=psi_in[BaseElem+ndat*npos];
-      //psi_sh[ShBaseElem]=tex1Dfetch(psi_tex,BaseElem+ndat*npos);
-
-      ShBaseElem += HALF_WARP_SIZE;
-      ipos += HW_ELEM;
-    }
-
-  //end shared memory copy
-  __syncthreads();
-
-  //element treated by the given thread in n-axis
-  thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_calc[hwid];
-  //base element for the given thread in shared memory
-  ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_calc[hwid];
-
-  //output base element, from the input one
-  BaseElem =  n*BaseElem+ thelem + elemOffset;
-
-  //limit element for which the block treats unique elements
-
-  //perform convolution in shared memory 
-  //each thread calculate a number of elements, identical for each
-  //half-warp
-
-  for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
-    {
-      //values of the convolution
-      register float conv = 
-	//hand-unrolled loop (16 elements for this filter)
-	//order changed for increasing the precision
-	MFIL0 *psi_sh[ShBaseElem               ] +
-	MFIL15*psi_sh[ShBaseElem + 15*NUM_LINES] +
-	MFIL1 *psi_sh[ShBaseElem +   NUM_LINES ] +
-	MFIL14*psi_sh[ShBaseElem + 14*NUM_LINES] +
-	MFIL2 *psi_sh[ShBaseElem + 2*NUM_LINES ] +
-	MFIL13*psi_sh[ShBaseElem + 13*NUM_LINES] +
-	MFIL3 *psi_sh[ShBaseElem + 3*NUM_LINES ] +
-	MFIL12*psi_sh[ShBaseElem + 12*NUM_LINES] +
-	MFIL4 *psi_sh[ShBaseElem + 4*NUM_LINES ] +
-	MFIL11*psi_sh[ShBaseElem + 11*NUM_LINES] +
-	MFIL5 *psi_sh[ShBaseElem + 5*NUM_LINES ] +
-	MFIL10*psi_sh[ShBaseElem + 10*NUM_LINES] +
-	MFIL6 *psi_sh[ShBaseElem + 6*NUM_LINES ] +
-	MFIL9 *psi_sh[ShBaseElem + 9*NUM_LINES ] +
-	MFIL7 *psi_sh[ShBaseElem + 7*NUM_LINES ] +
-	MFIL8 *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
-
-      //register float v=tex1Dfetch(pot_tex,BaseElem);
-
-      psi_out[BaseElem]=conv*pot[BaseElem];
-
-      ShBaseElem += HALF_WARP_SIZE;
-      BaseElem += HW_ELEM;
-      
-    }
- 
-}
-
-//transposed convolution
-__global__ void magicfilter1d_t(int n,int ndat, float *psi_in, float *psi_out,int idim)
-{
-
-  //line treated by the given block
-  unsigned int lineOffset = min(blockIdx.y*NUM_LINES,ndat-NUM_LINES);
-  //starting element treated by the block
-  unsigned int elemOffset = 
-    min(blockIdx.x*par[idim].ElementsPerBlock,n-par[idim].ElementsPerBlock);
-
-  //half-warp id
-  const unsigned int hwid = threadIdx.y;
-  //tid within the HW
-  const unsigned int tid_hw = threadIdx.x;
-
-  //shared memory array
-  __shared__ float psi_sh[MAX_SHARED_SIZE/sizeof(float)];
-
-  //line treated by the given thread in ndat axis
-  //which is the input base element
-  unsigned int BaseElem = par[idim].thline[tid_hw] + lineOffset;
-  //write data in shared memory
-  //element treated by the given thread in n-axis
-  unsigned int thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_copy[hwid];
-
-  unsigned int ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_copy[hwid];
-
-  int epsilon,npos;
-
-  //NOTE: it is assumed that for non-first segments the starting
-  //points is far enough for the filter to be contained
-  //and the same for non-last segments.
-  //in other terms: lenght of the line is always bigger than
-  //max(lowfil,lupfil)
-
-  for(int i=0,ipos=elemOffset-LUPFIL+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
-    {
-      epsilon=(ipos < 0 ? -1 : ipos/n);
-      npos=ipos-epsilon*n;
-      psi_sh[ShBaseElem]=psi_in[BaseElem+ndat*npos];
-      //psi_sh[ShBaseElem]=tex1Dfetch(psi_tex,BaseElem+ndat*npos);
-
-      ShBaseElem += HALF_WARP_SIZE;
-      ipos += HW_ELEM;
-      
-    }
-
-  //end shared memory copy
-  __syncthreads();
-
-  //element treated by the given thread in n-axis
-  thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_calc[hwid];
-  //base element for the given thread in shared memory
-  ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_calc[hwid];
-
-  //output base element, from the input one
-  BaseElem =  n*BaseElem+ thelem + elemOffset;
-
-  //perform convolution in shared memory 
-  //each thread calculate a number of elements, identical for each
-  //half-warp
-  //#pragma unroll 5 (to be tested if it is important)
-
-  for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
-    {
-      //values of the convolution
-      register float conv = 
-	//hand-unrolled loop (16 elements for this filter)
-	//order changed for increasing the precision
-	MFIL15*psi_sh[ShBaseElem               ] +
-	MFIL0 *psi_sh[ShBaseElem + 15*NUM_LINES] +
-	MFIL14*psi_sh[ShBaseElem +   NUM_LINES ] +
-	MFIL1 *psi_sh[ShBaseElem + 14*NUM_LINES] +
-	MFIL13*psi_sh[ShBaseElem + 2*NUM_LINES ] +
-	MFIL2 *psi_sh[ShBaseElem + 13*NUM_LINES] +
-	MFIL12*psi_sh[ShBaseElem + 3*NUM_LINES ] +
-	MFIL3 *psi_sh[ShBaseElem + 12*NUM_LINES] +
-	MFIL11*psi_sh[ShBaseElem + 4*NUM_LINES ] +
-	MFIL4 *psi_sh[ShBaseElem + 11*NUM_LINES] +
-	MFIL10*psi_sh[ShBaseElem + 5*NUM_LINES ] +
-	MFIL5 *psi_sh[ShBaseElem + 10*NUM_LINES] +
-	MFIL9 *psi_sh[ShBaseElem + 6*NUM_LINES ] +
-	MFIL6 *psi_sh[ShBaseElem + 9*NUM_LINES ] +
-	MFIL8 *psi_sh[ShBaseElem + 7*NUM_LINES ] +
-	MFIL7 *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
-
-      psi_out[BaseElem]=conv;
-      //psi_sh[ShBaseElem+LOWFIL*par[idim].LinesPerBlock]; //for testing only
-
-      ShBaseElem += HALF_WARP_SIZE;
-      BaseElem += HW_ELEM;
-      
-    }
-
- 
-}
-
-extern "C" 
-void localpotential_(int *n1,int *n2,int *n3,
-		     float **psi,float **work,float **pot,
-		     float *epot) 
-
-{
-
-  
-  if(magicfilterpot(*n1+1,*n2+1,*n3+1,
-	       *psi,
-	       *work,
-	       *pot,
-	       epot) != 0) 
-    {
-      printf("ERROR: GPU magicfilterpot\n ");
-      return;
-    } 
-  return; 
-}
 
 
 int magicfilterpot(int n1,int n2, int n3,
@@ -580,90 +220,4 @@ int magicfilterpot(int n1,int n2, int n3,
 
 }
 
-/****/
-
-//such routines should go in separate files
-
-extern "C" 
-void gpu_allocate__(int *nsize, //memory size
-		    float **GPU_pointer, // pointer indicating the GPU address
-		    int *ierr) // error code, 1 if failure
-
-		    
-{
-
-  unsigned int mem_size = (*nsize)*sizeof(float);
-
-
-  //allocate memory on GPU, return error code in case of problems
-  *ierr=0;
-  if(cudaMalloc( (void**) (GPU_pointer), mem_size) != 0)
-    {
-      printf("GPU allocation error \n");
-      *ierr=1;
-      return;
-    }
-}
-
-extern "C" 
-void gpu_deallocate__(float **GPU_pointer, // pointer indicating the GPU address
-		      int *ierr) // error code, 1 if failure
-{
-  //deallocate memory on GPU, return error code in case of problems
-  *ierr=0;
-  if(cudaFree(*GPU_pointer) != 0)
-    {
-      CUERR
-      printf("GPU deallocation error \n");
-      *ierr=1;
-      return;
-    }
-}
-
-
-//Temporary send-receive operations, displacements to be added (other routines?)
-
-
-extern "C"
-void gpu_send__(int *nsize,
-		float *CPU_pointer, 
-		float **GPU_pointer,
-		int *ierr)
-{
-
-  unsigned int mem_size = (*nsize)*sizeof(float);
-
-  //copy V to GPU
-  *ierr=0;
-  if(cudaMemcpy(*GPU_pointer, CPU_pointer, mem_size, cudaMemcpyHostToDevice)  != 0)
-    {
-      printf("HostToDevice Memcpy error \n");
-      *ierr=1;
-      return;
-    }
-
-}
-
-extern "C" 
-void gpu_receive__(int *nsize,
-		float *CPU_pointer, 
-		float **GPU_pointer,
-		int *ierr)
-{
-
-  unsigned int mem_size = (*nsize)*sizeof(float);
-
-  //copy V to GPU
-  *ierr=0;
-  if(cudaMemcpy(CPU_pointer,*GPU_pointer, mem_size, cudaMemcpyDeviceToHost)  != 0)
-    {
-      CUERR;
-      printf("DeviceToHost Memcpy error \n");
-      printf(" %i \n",mem_size);
-      *ierr=1;
-      return;
-    }
-
-}
-/****/
 
