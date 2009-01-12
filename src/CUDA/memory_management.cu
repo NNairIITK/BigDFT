@@ -8,6 +8,33 @@
  if ((err = cudaGetLastError()) != cudaSuccess) { \
  printf("CUDA error: %s, line %d\n", cudaGetErrorString(err), __LINE__); }}
 
+#define GPU_SIMPLE 1
+#define GPU_DOUBLE 2
+
+static int getPrecisionSize();
+static short gpu_precision;
+
+
+
+
+
+
+
+extern "C"
+void set_gpu_simple__()
+{
+  gpu_precision = GPU_SIMPLE;
+}
+
+extern "C"
+void set_gpu_double__()
+{
+  gpu_precision = GPU_DOUBLE;
+}
+
+
+
+
 extern "C" 
 void gpu_allocate__(int *nsize, //memory size
 		    float **GPU_pointer, // pointer indicating the GPU address
@@ -16,7 +43,7 @@ void gpu_allocate__(int *nsize, //memory size
 		    
 {
 
-  unsigned int mem_size = (*nsize)*sizeof(float);
+  unsigned int mem_size = (*nsize)*getPrecisionSize();
 
 
   //allocate memory on GPU, return error code in case of problems
@@ -55,7 +82,7 @@ void gpu_send__(int *nsize,
 		int *ierr)
 {
 
-  unsigned int mem_size = (*nsize)*sizeof(float);
+  unsigned int mem_size = (*nsize)*getPrecisionSize();
 
   //copy V to GPU
   *ierr=0;
@@ -70,14 +97,14 @@ void gpu_send__(int *nsize,
 
 extern "C" 
 void gpu_receive__(int *nsize,
-		float *CPU_pointer, 
-		float **GPU_pointer,
-		int *ierr)
+		   float *CPU_pointer, 
+		   float **GPU_pointer,
+		   int *ierr)
 {
 
-  unsigned int mem_size = (*nsize)*sizeof(float);
+  unsigned int mem_size = (*nsize)*getPrecisionSize();
 
-  //copy V to GPU
+ 
   *ierr=0;
   if(cudaMemcpy(CPU_pointer,*GPU_pointer, mem_size, cudaMemcpyDeviceToHost)  != 0)
     {
@@ -88,4 +115,13 @@ void gpu_receive__(int *nsize,
       return;
     }
 
+}
+
+//private fct
+static int getPrecisionSize()
+{
+  if(gpu_precision == GPU_DOUBLE)
+    return sizeof(double);
+  else
+    return sizeof(float);
 }

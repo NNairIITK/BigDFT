@@ -6,7 +6,9 @@
 
 //1D convolution of multiple lines in the same block
 //__global__ void magicfilter1d(int n,int ndat, float *psi_out) //for textures
-__global__ void magicfilter1d(int n,int ndat, float *psi_in, float *psi_out,int idim)
+
+template<typename T>
+__global__ void magicfilter1d(int n,int ndat, T *psi_in, T *psi_out,int idim)
 {
 
   //line treated by the given block
@@ -20,7 +22,7 @@ __global__ void magicfilter1d(int n,int ndat, float *psi_in, float *psi_out,int 
   const unsigned int tid_hw = threadIdx.x;
 
   //shared memory array
-  __shared__ float psi_sh[MAX_SHARED_SIZE/sizeof(float)];
+  __shared__ T psi_sh[MAX_SHARED_SIZE/sizeof(T)];
 
   //line treated by the given thread in ndat axis
   //which is the input base element
@@ -70,7 +72,7 @@ __global__ void magicfilter1d(int n,int ndat, float *psi_in, float *psi_out,int 
   for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
     {
       //values of the convolution
-      register float conv = 
+      register T conv = 
 	//hand-unrolled loop (16 elements for this filter)
 	//order changed for increasing the precision
 	MFIL0 *psi_sh[ShBaseElem               ] +
@@ -103,8 +105,9 @@ __global__ void magicfilter1d(int n,int ndat, float *psi_in, float *psi_out,int 
 //1D convolution of multiple lines in the same block
 //multiplies by the potential and calculate the potential energy
 //__global__ void magicfilter1d_pot(int n,int ndat, float *psi_out)
-__global__ void magicfilter1d_pot(int n,int ndat, float *psi_in, 
-				  float *pot, float *psi_out,int idim)
+template<typename T>
+__global__ void magicfilter1d_pot(int n,int ndat, T *psi_in, 
+				  T *pot, T *psi_out,int idim)
 {
 
   //line treated by the given block
@@ -118,7 +121,7 @@ __global__ void magicfilter1d_pot(int n,int ndat, float *psi_in,
   const unsigned int tid_hw = threadIdx.x;
 
   //shared memory array
-  __shared__ float psi_sh[MAX_SHARED_SIZE/sizeof(float)];
+  __shared__ T psi_sh[MAX_SHARED_SIZE/sizeof(T)];
 
   //line treated by the given thread in ndat axis
   //which is the input base element
@@ -170,7 +173,7 @@ __global__ void magicfilter1d_pot(int n,int ndat, float *psi_in,
   for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
     {
       //values of the convolution
-      register float conv = 
+      register T conv = 
 	//hand-unrolled loop (16 elements for this filter)
 	//order changed for increasing the precision
 	MFIL0 *psi_sh[ShBaseElem               ] +
@@ -202,7 +205,8 @@ __global__ void magicfilter1d_pot(int n,int ndat, float *psi_in,
 }
 
 //transposed convolution
-__global__ void magicfilter1d_t(int n,int ndat, float *psi_in, float *psi_out,int idim)
+template<typename T>
+__global__ void magicfilter1d_t(int n,int ndat, T *psi_in, T *psi_out,int idim)
 {
 
   //line treated by the given block
@@ -217,7 +221,7 @@ __global__ void magicfilter1d_t(int n,int ndat, float *psi_in, float *psi_out,in
   const unsigned int tid_hw = threadIdx.x;
 
   //shared memory array
-  __shared__ float psi_sh[MAX_SHARED_SIZE/sizeof(float)];
+  __shared__ T psi_sh[MAX_SHARED_SIZE/sizeof(T)];
 
   //line treated by the given thread in ndat axis
   //which is the input base element
@@ -267,7 +271,7 @@ __global__ void magicfilter1d_t(int n,int ndat, float *psi_in, float *psi_out,in
   for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
     {
       //values of the convolution
-      register float conv = 
+      register T conv = 
 	//hand-unrolled loop (16 elements for this filter)
 	//order changed for increasing the precision
 	MFIL15*psi_sh[ShBaseElem               ] +

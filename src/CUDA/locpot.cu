@@ -11,40 +11,20 @@
 #include "locpot.h" //function declaration
 #include "structDef_locpot.h"
 #include "commonDef.h"
-
+#include "reduction.h"
 
 __constant__ parMF_t par[3]; //must be defined here because it is used by both by this file and kernels_locpot.cu
 
-#include "reduction.hcu"
+//#include "reduction.hcu"
 #include "kernels_locpot.hcu"
 
-#include "reduction.h"
 
 
 
 
 
-extern "C" 
-void localpotential_(int *n1,
-		     int *n2,
-		     int *n3,
-		     float **psi,
-		     float **work,
-		     float **pot,
-		     float *epot) 
 
-{  
-  if(magicfilterpot(*n1+1,*n2+1,*n3+1,
-		    *psi, 
-		    *work,
-		    *pot,
-		    epot) != 0) 
-    {
-      printf("ERROR: GPU magicfilterpot\n ");
-      return;
-    } 
-  return; 
-}
+
 
 
 
@@ -52,6 +32,7 @@ void localpotential_(int *n1,
 
 
 // Magic Filter parameters to be used for calculating the convolution
+template<typename T>
 void MFParameters(parMF_t* par,
 		  unsigned int* num_halfwarps,
 		  //unsigned int num_lines,
@@ -63,7 +44,7 @@ void MFParameters(parMF_t* par,
 {
 
   //number of total allowed elements of a input line
-  unsigned int num_elem_tot=MAX_SHARED_SIZE/sizeof(float)/NUM_LINES; //between1024and64
+  unsigned int num_elem_tot=MAX_SHARED_SIZE/sizeof(T)/NUM_LINES; //between1024and64
   
   //number of elements of the output
   unsigned int num_elem_max=min(num_elem_tot-LOWFIL-LUPFIL-1,n); //between 1008 and 48 for 16-fil
@@ -132,12 +113,12 @@ void MFParameters(parMF_t* par,
 
 
 
-
+template<typename T>
 int magicfilterpot(int n1,int n2, int n3,
-		   float *psi,
-		   float *work,
-		   float *pot,
-		   float *epot)
+		   T *psi,
+		   T *work,
+		   T *pot,
+		   T *epot)
 {
 
   //create the parameters
@@ -149,21 +130,21 @@ int magicfilterpot(int n1,int n2, int n3,
 
   //calculate the parameters in constant memory for each of the 1D convolution
   //define the number of threads and blocks according to parameter definitions
-  MFParameters(&parCPU[2],&num_halfwarps,n3,n1*n2,&linecuts,&numBlocks);
+  MFParameters<T>(&parCPU[2],&num_halfwarps,n3,n1*n2,&linecuts,&numBlocks);
   dim3  grid3(linecuts,  numBlocks, 1);  
   dim3  threads3(HALF_WARP_SIZE, num_halfwarps , 1);
 
   //printf("num_blocksx %i, num_blocksy %i, halfwarps %i,n1,ndat, %i %i\n",
   //linecuts,numBlocks,num_halfwarps,n3,n1*n2);
 
-  MFParameters(&parCPU[1],&num_halfwarps,n2,n1*n3,&linecuts,&numBlocks);
+  MFParameters<T>(&parCPU[1],&num_halfwarps,n2,n1*n3,&linecuts,&numBlocks);
   dim3  grid2(linecuts,  numBlocks, 1);  
   dim3  threads2(HALF_WARP_SIZE, num_halfwarps , 1);
 
   //printf("num_blocksx %i, num_blocksy %i, halfwarps %i,n1,ndat, %i %i\n",
   //linecuts,numBlocks,num_halfwarps,n2,n1*n3);
 
-  MFParameters(&parCPU[0],&num_halfwarps,n1,n2*n3,&linecuts,&numBlocks);
+  MFParameters<T>(&parCPU[0],&num_halfwarps,n1,n2*n3,&linecuts,&numBlocks);
   dim3  grid1(linecuts,  numBlocks, 1);  
   dim3  threads1(HALF_WARP_SIZE, num_halfwarps , 1);
 
@@ -189,31 +170,31 @@ int magicfilterpot(int n1,int n2, int n3,
 
   //launch the kernel grid
   //conv1d_stride <<< grid1, threads1 >>>(n,ndat, GPU_odata);
-  magicfilter1d <<< grid3, threads3 >>>(n3,n1*n2,psi,work,2);
+  magicfilter1d<T> <<< grid3, threads3 >>>(n3,n1*n2,psi,work,2);
   //unbind the texture
   //cudaUnbindTexture(psi_tex);
 
   cudaThreadSynchronize();
 
-  magicfilter1d <<< grid2, threads2 >>>(n2,n1*n3,work,psi,1);
+  magicfilter1d<T> <<< grid2, threads2 >>>(n2,n1*n3,work,psi,1);
   cudaThreadSynchronize();
 
-  magicfilter1d_pot <<< grid1, threads1 >>>(n1,n2*n3,psi,pot,work,0);
+  magicfilter1d_pot<T> <<< grid1, threads1 >>>(n1,n2*n3,psi,pot,work,0);
   cudaThreadSynchronize();
 
   //here one should combine psi and work to calculate the potential
   //energy
-  reducearrays(n1,n2*n3,psi,work,epot);
+  reducearrays<T>(n1,n2*n3,psi,work,epot);
   cudaThreadSynchronize(); //can be removed since the arrays are not overwritten
 
   //reverse MF calculation
-  magicfilter1d_t <<< grid3, threads3 >>>(n3,n1*n2,work,psi,2);
+  magicfilter1d_t<T> <<< grid3, threads3 >>>(n3,n1*n2,work,psi,2);
   cudaThreadSynchronize();
 
-  magicfilter1d_t <<< grid2, threads2 >>>(n2,n1*n3,psi,work,1);
+  magicfilter1d_t<T> <<< grid2, threads2 >>>(n2,n1*n3,psi,work,1);
   cudaThreadSynchronize();
 
-  magicfilter1d_t <<< grid1, threads1 >>>(n1,n2*n3,work,psi,0);
+  magicfilter1d_t<T> <<< grid1, threads1 >>>(n1,n2*n3,work,psi,0);
   cudaThreadSynchronize();
 
   return 0;
@@ -221,3 +202,47 @@ int magicfilterpot(int n1,int n2, int n3,
 }
 
 
+
+extern "C" 
+void localpotential_(int *n1,
+		     int *n2,
+		     int *n3,
+		     float **psi,
+		     float **work,
+		     float **pot,
+		     float *epot) 
+
+{  
+  if(magicfilterpot<float>(*n1+1,*n2+1,*n3+1,
+		    *psi, 
+		    *work,
+		    *pot,
+		    epot) != 0) 
+    {
+      printf("ERROR: GPU magicfilterpot\n ");
+      return;
+    } 
+  return; 
+}
+
+extern "C" 
+void localpotentiald_(int *n1,
+		     int *n2,
+		     int *n3,
+		     double **psi,
+		     double **work,
+		     double **pot,
+		     double *epot) 
+
+{  
+  if(magicfilterpot<double>(*n1+1,*n2+1,*n3+1,
+		    *psi, 
+		    *work,
+		    *pot,
+		    epot) != 0) 
+    {
+      printf("ERROR: GPU magicfilterpot\n ");
+      return;
+    } 
+  return; 
+}

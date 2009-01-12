@@ -131,11 +131,17 @@ program GPUham
   allocate(v_cuda((n1+1),(n2+1),(n3+1)+ndebug),stat=i_stat)
   call memocc(i_stat,v_cuda,'v_cuda',subname)
 
-  psi_cuda=real(psi_in,kind=4)
-  v_cuda=real(pot,kind=4)
+  !!psi_cuda=real(psi_in,kind=4)
+  !!v_cuda=real(pot,kind=4)
+
+ psi_cuda=psi_in
+  v_cuda=pot
+
 
   ! Initialisation of potential energy  
   epot=0.0_gp
+
+  call set_gpu_double()
 
   !allocate the GPU memory
   call GPU_allocate((n1+1)*(n2+1)*(n3+1),psi_GPU,i_stat)
@@ -153,11 +159,19 @@ program GPUham
   call cpu_time(t0)
   do i=1,ntimes
 
-     call kineticterm(n1,n2,n3,&
-          real(hx,kind=4),real(hy,kind=4),real(hz,kind=4),0.e0,&
+  !!   call kineticterm(n1,n2,n3,&
+  !!        real(hx,kind=4),real(hy,kind=4),real(hz,kind=4),0.e0,&
+  !!        psi_GPU,work2_GPU,work_GPU,work3_GPU,ekinGPU)
+
+
+     call kinetictermd(n1,n2,n3,&
+          hx,hy,hz,0.e0,&
           psi_GPU,work2_GPU,work_GPU,work3_GPU,ekinGPU)
 
-     call localpotential(n1,n2,n3,work_GPU,psi_GPU,v_GPU,epotGPU)
+
+  !!   call localpotential(n1,n2,n3,work_GPU,psi_GPU,v_GPU,epotGPU)
+
+     call localpotentiald(n1,n2,n3,work_GPU,psi_GPU,v_GPU,epotGPU)
 
   end do
   call cpu_time(t1)

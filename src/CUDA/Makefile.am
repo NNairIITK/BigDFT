@@ -22,6 +22,7 @@ SOURCES_SHARED = convSeria.cpp \
 	setCPU_GPU_aff.cpp \
 	read_conf_file.cpp \
 	memory_management.cu \
+	reduction.cu \
 	commonDef.cpp \
 	fortran.c
 
