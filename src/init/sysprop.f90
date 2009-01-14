@@ -22,6 +22,9 @@ subroutine system_properties(iproc,nproc,in,at,orbs,radii_cf,nelec)
      nspinor=1
   end if
 
+!!$  !temporary changement, to be controlled
+!!$  nspinor=2
+
   allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
 

@@ -596,7 +596,7 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
   integer :: i_all,i_stat,ierr,iorb,jproc
   integer :: ispin,md,ndim,oidx
   integer, dimension(:), allocatable :: norb_displ
-  real(wp) :: m00,m11,m13,m24,m12,m34,m14,m23,dot
+  real(wp) :: m00,m11,m13,m24,m12,m34,m14,m23
   !real(wp), dimension(:,:,:), allocatable :: mom_vec
 
   ndim=2

@@ -1,3 +1,191 @@
+!perform a set of non-blocking send-receive operations
+subroutine nonblocking_transposition(iproc,nproc,ncmpts,norblt,nspinor,&
+     psi,norb_par,mpirequests)
+  use module_base
+  implicit none
+  integer, intent(in) :: iproc,nproc,ncmpts,norblt,nspinor
+  integer, dimension(0:nproc-1), intent(in) :: norb_par
+  real(wp), dimension(ncmpts,norblt*nspinor), intent(inout) :: psi
+  integer, dimension(nproc-1), intent(out) :: mpirequests
+  !local variables
+  integer :: jproc,ierr,isorb
+
+  !the first process does not receive data
+  isorb=0
+  do jproc=1,iproc
+     call MPI_IRECV(psi(1,nspinor*min(isorb+1,norblt)),nspinor*norb_par(jproc-1)*ncmpts,&
+          mpidtypw,jproc-1,iproc+nproc*(jproc-1),MPI_COMM_WORLD,mpirequests(jproc),ierr)
+     isorb=isorb+norb_par(jproc-1)
+  end do
+
+  isorb=0
+  do jproc=1,iproc
+     isorb=isorb+norb_par(jproc-1)
+  end do
+  !the last process does not send data
+  do jproc=iproc+1,nproc-1
+     call MPI_ISEND(psi(1,nspinor*min(isorb+1,norblt)),nspinor*norb_par(iproc)*ncmpts,&
+          mpidtypw,jproc,jproc+nproc*iproc,MPI_COMM_WORLD,mpirequests(jproc),ierr)
+  end do
+  
+end subroutine nonblocking_transposition
+
+subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovrlp,orbs,&
+     norbsc_arr,psi,hpsi,ovrlp)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc,ncmpts,nspin,ndimovrlp,natsc
+  type(orbitals_data), intent(in) :: orbs
+  integer, dimension(nproc-1), intent(in) :: mpirequests
+  integer, dimension((natsc+1)*nspin), intent(in) :: norbsc_arr
+  real(wp), dimension(orbs%nspinor*ncmpts,orbs%isorb+orbs%norbp), intent(in) :: psi
+  real(wp), dimension(orbs%nspinor*ncmpts,orbs%norbp), intent(in) :: hpsi
+  real(wp), dimension(nspin*ndimovrlp,2), intent(out) :: ovrlp
+  !local variables
+  character(len=*), parameter :: subname='overlap_and_gather'
+  integer :: ierr,iorb,jorb,imatrst,isorb,i_all,i_stat,jproc,norblt,i,ipos,nwrkdim
+  integer :: iind,jind,iarr,iarrsum,ispin,norbi
+  !integer, dimension(MPI_STATUS_SIZE) :: mpistatuses
+  integer, dimension(:,:), allocatable :: mpicd
+  real(wp), dimension(:), allocatable :: overlaps
+
+  !at this point all the communicated objects before should have been received
+  !control that, calculate the overlap matrices and gather the results
+  !dimension of the overlap work array
+  nwrkdim=max(orbs%norb*(orbs%norb+1),2*(orbs%isorb+orbs%norbp)*orbs%norbp)
+  allocate(overlaps(nwrkdim+ndebug),stat=i_stat)
+  call memocc(i_stat,overlaps,'overlaps',subname)
+
+
+  !control that all the non-blocking communications are finished
+  call MPI_WAITALL(nproc-1,mpirequests,MPI_STATUSES_IGNORE,ierr)
+  
+  !calculate a piece of psipsi and hpsipsi overlap matrix (Lower triangular)
+  !non-balanced distribution, i.e. the last processor calculates the max number of lines
+  !while the first calculates only the on-site part of the overlap
+  !the overlap should be calculated differently for complex/spinorial wavefunctions
+  norblt=orbs%isorb+orbs%norbp
+  if (orbs%norbp /= 0) then
+     call gemm('T','N',norblt,orbs%norbp,ncmpts,1.0_wp,psi(1,1),ncmpts,hpsi(1,1),ncmpts,&
+          0.0_wp,overlaps(1),norblt)
+     !the psi overlap must be calculated by using gaussian overlap
+     call gemm('T','N',orbs%isorb+orbs%norbp,orbs%norbp,ncmpts,&
+          1.0_wp,psi(1,1),ncmpts,psi(1,orbs%isorb+1),ncmpts,&
+          0.0_wp,overlaps(norblt*orbs%norbp+1),norblt)
+  end if
+
+  imatrst=0
+  ipos=0
+  do i=1,2
+     !reorder the overlap array
+     do iorb=1,orbs%norbp
+        do jorb=1,iorb+orbs%isorb
+           ipos=ipos+1
+           overlaps(ipos)=overlaps(jorb+norblt*(iorb-1)+imatrst)
+        end do
+     end do
+     imatrst=imatrst+norblt*orbs%norbp
+  end do
+  !shift the position of the values for gathering the orbitals
+  imatrst=orbs%isorb*(orbs%isorb+1)
+  do i=ipos,1,-1
+     overlaps(i+imatrst)=overlaps(i)
+  end do
+
+  !here we gather the different contributions on the 
+  !processors which have some orbital onsite.
+  !at the end each processor have all the Lower Triangular part of the overlap matrix
+  if (nproc > 1 ) then
+     !build the counts and displacement arrays
+     allocate(mpicd(0:nproc-1,2+ndebug),stat=i_stat)
+     call memocc(i_stat,mpicd,'mpicd',subname)
+
+     !count
+     mpicd(0,1)=orbs%norb_par(0)*(orbs%norb_par(0)+1)
+     !displacement
+     mpicd(0,2)=0
+     isorb=orbs%norb_par(0)
+     do jproc=1,nproc-1
+        !count
+        mpicd(jproc,1)=(isorb+orbs%norb_par(jproc))*(isorb+orbs%norb_par(jproc)+1)-&
+             isorb*(isorb+1)
+        !displacements
+        mpicd(jproc,2)=mpicd(jproc-1,2)+mpicd(jproc-1,1)
+        isorb=isorb+orbs%norb_par(jproc)
+     end do
+
+     call MPI_ALLGATHERV(MPI_IN_PLACE,0,mpidtypw,overlaps,mpicd(0,1),mpicd(0,2),&
+          mpidtypw,MPI_COMM_WORLD,ierr)
+
+     i_all=-product(shape(mpicd))*kind(mpicd)
+     deallocate(mpicd,stat=i_stat)
+     call memocc(i_stat,i_all,'mpicd',subname)
+  end if
+
+  !fill the final array with the values of the overlap matrix
+  !in an ordered, LT disposition
+  isorb=0
+  ipos=0
+  !iterators for the semicore arrays
+  iarr=1
+  iarrsum=0
+  imatrst=0
+  do jproc=0,nproc-1
+     do i=1,2
+        do iorb=isorb+1,isorb+orbs%norb_par(jproc)
+           !determine the index of the overlap in the semicore arrangement
+           if (iorb > norbsc_arr(iarr)+iarrsum) then
+              iarrsum=iarrsum+norbsc_arr(iarr)
+              imatrst=imatrst+norbsc_arr(iarr)**2
+              iarr=iarr+1
+           end if
+           norbi=norbsc_arr(iarr)
+           iind=iorb-iarrsum
+           do jorb=1,iorb !this is LT, can switch to UT
+              ipos=ipos+1
+              jind=jorb-iarrsum
+              if (jind > 0 .and. jind <= iind) then
+                 ovrlp(imatrst+jind+norbi*(iind-1),i)=overlaps(ipos)
+              end if
+              !ovrlp(jorb,iorb,i)=overlaps(ipos)
+              !ovrlp(jorb+(iorb-1)*orbs%norbp,i)=overlaps(ipos)
+           end do
+        end do
+     end do
+     isorb=isorb+orbs%norb_par(jproc)
+  end do
+
+  !fill the final array with the values of the overlap matrix
+  !for each group of the semicore atoms
+  !put them in the UT disposition
+  imatrst=0
+  do ispin=1,nspin !this assumes that the semicore is identical for both the spins
+     do i=1,natsc+1
+        norbi=norbsc_arr(i+(ispin-1)*(natsc+1))
+        if (iproc == 0) then
+           print *,'tt'
+           do jorb=1,norbi
+              write(*,'(i4,2000(1pe15.8))')jorb,&
+                   (ovrlp(imatrst+iorb+norbi*(jorb-1),1),iorb=1,jorb)
+           end do
+           do jorb=1,norbi
+              write(*,'(i4,2000(1pe15.8))')jorb,&
+                   (ovrlp(imatrst+iorb+norbi*(jorb-1),2),iorb=1,jorb)
+           end do
+        end if
+        imatrst=imatrst+norbi**2
+     end do
+  end do
+
+  i_all=-product(shape(overlaps))*kind(overlaps)
+  deallocate(overlaps,stat=i_stat)
+  call memocc(i_stat,i_all,'overlaps',subname)
+
+
+end subroutine overlap_and_gather
+
+
 !overlap matrix between two different basis structures
 subroutine gaussian_overlap(A,B,ovrlp)
   use module_base

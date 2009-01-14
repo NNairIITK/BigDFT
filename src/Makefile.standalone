@@ -23,7 +23,7 @@
 #LIBRARIES = -L/soft/intel/mkl721/lib/em64t  -lmkl_lapack -lmkl_em64t -lguide -lpthread
 
 
-#Athena lapack
+#Athena pathscale non functional
 #Link = $(F95)
 #F95 = mpif90  -L/soft/acml4.0.1/pathscale64_mp/lib  -I/soft/acml4.0.1/pathscale64_mp/include -lacml_mp -lacml_mv -mp -lpthread
 #F77 = mpif90
@@ -38,7 +38,17 @@
 #FFLAGS =
 #LIBRARIES = /opt/intel/mkl72/lib/32/libmkl_lapack.a /opt/intel/mkl72/lib/32/libmkl_ia32.a -L/opt/intel/mkl72/lib/32/ -lguide -lpthread  -D_REENTRANT -L/opt/scali/lib -lfmpi -lmpi
 
-##Palu:
+#CSCS blanc, note that module lapack does not set the library path variables, so we put them here explicitly
+F95 =  mpfort -compiler xlf95_r -q64 -C
+F77 = mpfort -compiler xlf_r -q64 -C
+Link = $(F95)
+LIBRARIES =  /apps/lapack/3.1.1/XL/lib/lapack_ppc64.a /apps/lapack/3.1.1/XL/lib/blas_ppc64.a  
+FLAGS = ###-q64  -O -qnosave -qsmp  -lesslsmp
+
+
+
+
+#Palu:
 #Link = ftn
 # pathscale compiler
 #F95 = /opt/xt-mpt/1.5.47/mpich2-64/PSP2/bin/mpif90
@@ -50,11 +60,11 @@
 #F77 = /opt/xt-pe/1.5.47/bin/snos64/ftn
 #FLAGS =  -O2 -fastsse -Mcache_align -Minfo -Mnoprefetch -Mipa=fast
 
-#Grenoble Workstations compilers
-F95 =ompif90 -O2
-F77 =ompif90 -O2
-LIBRARIES = -L/usr/lib/lapack-g95  -llapack -lblas 
-Link = $(F95) 
+##Grenoble Workstations compilers
+#F95 =ompif90 -O2
+#F77 =ompif90 -O2
+#LIBRARIES = -L/usr/lib/lapack-g95  -llapack -lblas 
+#Link = $(F95) 
 
 ######################################################################
 
@@ -103,6 +113,7 @@ low_level = init/projectors.f90  \
 	init/locreg.f90 \
 	init/sysprop.f90 \
 	init/gaussians.f90 \
+	init/wfn_init.f90 \
 	wfn_opt/precond.f90 \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
@@ -208,16 +219,16 @@ OBJECTS_MODULES = $(SOURCES_MODULES:.f90=.o)
 
 
 $(OBJECTS_MODULES): %.o: %.f90
-	$(F95) $(FFLAGS) -I.. -c $< -o $@
+	$(F95) $(FFLAGS) -I. -c $< -o $@
 
 $(OBJECTS_F95): %.o: %.f90
-	$(F95) $(FFLAGS) -I.. -c $< -o $@
+	$(F95) $(FFLAGS) -I. -c $< -o $@
 
 $(OBJECTS_TIME): %.o: %.f90
-	$(F95) $(FFLAGS) -I.. -c $< -o $@
+	$(F95) $(FFLAGS) -I. -c $< -o $@
 
 $(OBJECTS_PROJECTORS): %.o: %.f90
-	$(F95) $(FFLAGS) -I.. -c $< -o $@
+	$(F95) $(FFLAGS) -I. -c $< -o $@
 
 $(OBJECTS_ABINIT): %.o: %.f90
 	$(F95) -IPSolver/ABINIT-common -c $< -o $@
@@ -226,7 +237,7 @@ $(OBJECTS_POISSON): %.o: %.f90
 	$(F95) $(FFLAGS) -c $< -o $@
 
 $(OBJECTS_CONVOLUTIONS): %.o: %.f90
-	$(F95) $(FFLAGS) -I.. -c $< -o $@
+	$(F95) $(FFLAGS) -I. -c $< -o $@
 
 
 
@@ -249,6 +260,11 @@ OBJECTS_MINHOP =  $(OBJECTS_ABINIT) $(OBJECTS_POISSON) \
                                 $(OBJECTS_CONVOLUTIONS) $(OBJECTS_F95) $(OBJECTS_TIME) \
                                 $(OBJECTS_PROJECTORS) global.f90
 
+OBJECTS_RELAX =  $(OBJECTS_ABINIT) $(OBJECTS_POISSON) \
+		                                       $(OBJECTS_CONVOLUTIONS) $(OBJECTS_F95) $(OBJECTS_TIME) \
+		                                       $(OBJECTS_PROJECTORS) relax.low.f90
+
+
 
 
 cluster: $(OBJECTS_MODULES) $(OBJECTS) CUDAlib
@@ -262,13 +278,17 @@ minhop: $(OBJECTS_MODULES) $(OBJECTS_MINHOP) CUDAlib
 	$(Link) -o minhop $(OBJECTS_MODULES) $(OBJECTS_MINHOP) $(LIBRARIES) 
 
 
+relax: $(OBJECTS_MODULES) $(OBJECTS_MINHOP) CUDAlib
+		                $(Link) -o relax $(OBJECTS_MODULES) $(OBJECTS_RELAX) $(LIBRARIES) 
+
+
 
 clean:
 	rm -f *.o cluster memguess *.mod */*.mod *~ PSolver/*.o PSolver/*~ \
 	convolutions/*.o profiling/*.o init/*.o wfn_opt/*.o wavelib/*.o \
 	ABINIT-ewald/*.f90 ABINIT-ewald/*.o PSolver/ABINIT-common/*.f90 \
 	PSolver/ABINIT-common/*.o PSolver/ABINIT-common/*~ modules/*~ modules/*.o \
-	CUDA/*.o CUDA/*.a
+	CUDA/*.o CUDA/*.a modules/*.mod
 
 tar:
 	make clean

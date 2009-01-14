@@ -264,10 +264,14 @@ program MINHOP
      !call my_input_variables(iproc,.true.,inputs)
      inputs_opt%inputPsiId=0
 
+
   call init_restart_objects(atoms,rst,subname)
 ! new way of initializing data
 
+     if (atoms%geocode.eq.'P') & 
+         call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,pos)
      call call_bigdft(nproc,iproc,atoms,pos,inputs_opt,e_pos,ff,rst,infocode)
+
 
      write(17,*) 'ENERGY ',e_pos
      energyold=1.d100
@@ -289,6 +293,8 @@ program MINHOP
 
 
      !call my_input_variables(iproc,.true.,inputs)
+     if (atoms%geocode.eq.'P') & 
+         call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,pos)
      call conjgrad(nproc,iproc,atoms,pos,e_pos,ff,rst,ncount_cluster,inputs_opt)
   if (iproc.eq.0) write(67,*) ncount_cluster,' Wvfnctn Opt. steps for accurate initial conf'
   if (iproc.eq.0) write(*,*)'# ', ncount_cluster,' Wvfnctn Opt. steps for accurate initial conf'
@@ -415,6 +421,8 @@ program MINHOP
            ncount_cluster=0
 5556    continue ! entry point for restart of optimization at cluster step irestart+1
      !call my_input_variables(iproc,.false.,inputs)
+     if (atoms%geocode.eq.'P') & 
+         call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
 
      call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,rst,ncount_cluster,inputs_md)
 
@@ -434,6 +442,8 @@ program MINHOP
   if (iproc.eq.0) write(*,*)'# ', ncount_cluster,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
      ncount_cluster=0
      !call my_input_variables(iproc,.true.,inputs)
+     if (atoms%geocode.eq.'P') & 
+     call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
      call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,rst,ncount_cluster,inputs_opt)
 !     call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,&
 !           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,ncount_cluster,inputs)
@@ -762,7 +772,7 @@ subroutine mdescape(mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
 !        call energyandforces(nat,rxyz,ff,e_rxyz,count_md)
 !    if (iproc.eq.0) write(*,*) 'CLUSTER FOR  MD'
      inputs_md%inputPsiId=1
-     if (istep.gt.2) inputs_md%itermax=30
+     if (istep.gt.2) inputs_md%itermax=50
      call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,e_rxyz,ff,rst,infocode)
         call wtmd(istep,atoms%nat,e_rxyz,rxyz,atoms%iatype,atoms%atomnames,atoms%natpol)
 
@@ -845,7 +855,7 @@ endif
    in%betax=6.d0
    in%ixc=1
    in%ncharge=0.d0
-   in%elecfield=0.d0
+   !in%elecfield=0.d0
    in%ncong=7
    in%idsx=6
    in%calc_tail=.false.
@@ -863,7 +873,6 @@ endif
   in%nplot=0 
 
 end subroutine my_input_variables
-
 
 subroutine soften(mdmin,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
                    nproc,iproc,atoms,rst,inputs_md)! &
@@ -1758,4 +1767,36 @@ subroutine rdposout(igeostep,rxyz,nat)
   close(unit=9)
 end subroutine rdposout
 
+
+subroutine adjustrxyz(nat,alat1,alat2,alat3,rxyz)
+  use module_base
+  implicit none
+  integer, intent(in) :: nat
+  real(gp) ,intent(in) :: alat1,alat2,alat3
+  real(gp), dimension(3,nat), intent(inout) :: rxyz
+  !local variables
+  integer :: iat,i 
+  real(gp), dimension(3)  :: cent
+
+  do i=1,3
+  cent(i)=0.0_gp
+  enddo
+  do iat=1,nat
+  do i=1,3
+  cent(i)=cent(i)+rxyz(i,iat)
+  enddo
+  enddo
+  do i=1,3
+  cent(i)=cent(i)/real(nat,gp)
+  enddo
+
+  write(*,'(a,6(1x,e9.2))') 'old CM, shift',(cent(i),i=1,3),  & 
+         -cent(1)+alat1*.5_gp,-cent(2)+alat2*.5_gp,-cent(3)+alat3*.5_gp
+
+  do iat=1,nat
+  rxyz(1,iat)=rxyz(1,iat)-cent(1)+alat1*.5_gp
+  rxyz(2,iat)=rxyz(2,iat)-cent(2)+alat2*.5_gp
+  rxyz(3,iat)=rxyz(3,iat)-cent(3)+alat3*.5_gp
+  enddo
+end subroutine adjustrxyz
 

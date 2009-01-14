@@ -72,9 +72,15 @@
         else
            in%inputPsiId=0
         end if
-     else if (in%inputPsiId==1 .and. infocode==1) then
+     else if ((in%inputPsiId==1 .or. in%inputPsiId==0) .and. infocode==1) then
         !in%inputPsiId=0 !better to diagonalise that to restart an input guess
-        if(iproc==0)write(*,*)' WARNING: Wavefunctions converged after cycle',icycle 
+        in%inputPsiId=1
+        if(iproc==0) then
+           write(*,*)&
+             ' WARNING: Wavefunctions not converged after cycle',icycle
+           write(*,*)' restart after diagonalisation'
+        end if
+        
      else if (in%inputPsiId == 0 .and. infocode==3) then
         if (iproc.eq.0) then
            write( *,'(1x,a)')'Convergence error, cannot proceed.'
@@ -164,15 +170,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !local variables
   character(len=*), parameter :: subname='cluster'
   character(len=10) :: orbname
-  logical :: calc_tail
-  integer :: ixc,ncharge,ncong,idsx,ncongt,nspin,itermax,idsx_actual
-  integer :: nvirt
+  logical :: endloop
+  integer :: ixc,ncharge,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
+  integer :: nvirt,ndiis_sd_sw
   integer :: nelec,ndegree_ip,nvctrp,mids,iorb,ids,idiistol,j
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
   integer :: ncount0,ncount1,ncount_rate,ncount_max,iunit,n1i,n2i,n3i,i03,i04
   integer :: i1,i2,i3,ind,iat,ierror,i_all,i_stat,iter,ierr,isorb,jproc,ispin,nplot
   real :: tcpu0,tcpu1
-  real(kind=8) :: crmult,frmult,cpmult,fpmult,elecfield,gnrm_cv,rbuf,hx,hy,hz,hxh,hyh,hzh
+  real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hx,hy,hz,hxh,hyh,hzh
   real(kind=8) :: peakmem,gnrm_check,hgrid_old,energy_old,sumz
   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
   real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min,psoffset
@@ -214,12 +220,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   fpmult=in%frmult
   ixc=in%ixc
   ncharge=in%ncharge
-  elecfield=in%elecfield
   gnrm_cv=in%gnrm_cv
   itermax=in%itermax
   ncong=in%ncong
   idsx=in%idsx
-  calc_tail=in%calc_tail
   rbuf=in%rbuf
   ncongt=in%ncongt
   nspin=in%nspin
@@ -366,10 +370,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,rxyz,eion,fion,&
        psoffset,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
 
-  !can pass the atoms data structure as argument
-  call createIonicPotential(atoms%geocode,iproc,nproc,atoms%nat,atoms%ntypes,atoms%iatype,&
-       atoms%psppar,atoms%nelpsp,rxyz,hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s+i3xcsh,&
-       n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
+  call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
+       in%ef,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
 
   !Allocate Charge density, Potential in real space
   if (n3d >0) then
@@ -385,10 +387,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      allocate(orbs%eval(orbs%norb+ndebug),stat=i_stat)
      call memocc(i_stat,orbs%eval,'eval',subname)
   end if
-
-  !localisation region already created
-!!$  call create_Glr(atoms%geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,&
-!!$       wfd,bounds,Glr)
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
   if (in%inputPsiId == -2) then
@@ -605,6 +603,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   infocode=1
   !local variable for the diis history
   idsx_actual=idsx
+  !number of switching betweed DIIS and SD during self-consistent loop
+  ndiis_sd_sw=0
+  !previous value of idsx_actual to control if switching has appeared
+  idsx_actual_before=idsx_actual
 
   !end of the initialization part
   call timing(iproc,'INIT','PR')
@@ -616,9 +618,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
            '---------------------------------------------------------------------------- iter= ',&
            iter
      endif
+     !control whether the minimisation iterations ended
+     endloop= gnrm <= gnrm_cv .or. iter == itermax
 
-     !control whether the minimisation iterations ended and stop the partial timing counter
-     if (gnrm <= gnrm_cv .or. iter == itermax) call timing(iproc,'WFN_OPT','PR')
+     !control how many times the DIIS has switched into SD
+     if (idsx_actual /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
+
+     !terminate SCF loop if forced to switch more than once from DIIS to SD
+     endloop=endloop .or. ndiis_sd_sw > 2
+
+     !stop the partial timing counter if necessary
+     if (endloop) call timing(iproc,'WFN_OPT','PR')
 
      ! Potential from electronic charge density
      call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
@@ -646,7 +656,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      energy=energybs-ehart+eexcu-vexcu+eion
 
      !check for convergence or whether max. numb. of iterations exceeded
-     if (gnrm <= gnrm_cv .or. iter == itermax) then 
+     if (endloop) then 
         if (iproc.eq.0) then 
            write( *,'(1x,a,i0,a)')'done. ',iter,' minimization iterations required'
            write( *,'(1x,a)') &
@@ -665,6 +675,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         exit wfn_loop 
      endif
 
+     !control the previous value of idsx_actual
+     idsx_actual_before=idsx_actual
+     
      call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,Glr,comms,ncong,&
           iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
           alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,in%nspin)
@@ -855,8 +868,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              ngatherarr,rho)
      end if
   else if(in%output_grid==2) then
-     call plot_density_cube('density',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,max(n3p,1),&
-          nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+     call plot_density_cube(atoms%geocode,'density',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,&
+          max(n3p,1),nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
   end if
   !calculate the total density in the case of nspin==2
   if (in%nspin==2) then
@@ -914,7 +927,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   if (iproc == 0) write( *,'(1x,a)',advance='no')'done, calculate nonlocal forces...'
 
   call nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,atoms,rxyz,radii_cf,&
-       orbs,nlpspd,proj,Glr%wfd,psi,gxyz,calc_tail) !refill projectors for tails
+       orbs,nlpspd,proj,Glr%wfd,psi,gxyz,in%calc_tail) !refill projectors for tails
 
   if (iproc == 0) write( *,'(1x,a)')'done.'
 
@@ -970,7 +983,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call timing(iproc,'Forces        ','OF')
 
   !------------------------------------------------------------------------
-  if (calc_tail .and. atoms%geocode == 'F') then
+  if (in%calc_tail .and. atoms%geocode == 'F') then
      call timing(iproc,'Tail          ','ON')
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential

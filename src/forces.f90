@@ -7,15 +7,15 @@ subroutine local_forces(iproc,nproc,at,rxyz,hxh,hyh,hzh,&
   !Arguments---------
   type(atoms_data), intent(in) :: at
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
-  real(kind=8), intent(in) :: hxh,hyh,hzh
-  real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
-  real(kind=8), dimension(*), intent(in) :: rho,pot
-  real(kind=8), dimension(3,at%nat), intent(out) :: floc
+  real(gp), intent(in) :: hxh,hyh,hzh
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(dp), dimension(*), intent(in) :: rho,pot
+  real(gp), dimension(3,at%nat), intent(out) :: floc
   !Local variables---------
   logical :: perx,pery,perz,gox,goy,goz
   real(kind=8) :: hgridh,pi,prefactor,cutoff,rloc,Vel,rhoel
   real(kind=8) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc
-  real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,dist,tt,eew,ucvol,alat1,alat2,alat3
+  real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,dist,tt
   integer :: ii,ix,iy,iz,i1,i2,i3,i3start,i3end,ind,iat,jat,ityp,jtyp,nloc,iloc,i_all,i_stat
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
   !array of coefficients of the derivative
@@ -140,7 +140,6 @@ subroutine local_forces(iproc,nproc,at,rxyz,hxh,hyh,hzh,&
 !!$          (hxh*hyh*hzh*prefactor)*fzerf,(hxh*hyh*hzh/rloc**2)*fxgau,(hxh*hyh*hzh/rloc**2)*fygau,(hxh*hyh*hzh/rloc**2)*fzgau
 
   end do
-
 
   forceleaked=forceleaked*prefactor*hxh*hyh*hzh
   if (iproc.eq.0) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked

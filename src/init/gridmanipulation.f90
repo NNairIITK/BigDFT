@@ -212,6 +212,13 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu2-nfl2+lupfil < n2+1))
   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
 
+  if (Glr%hybrid_on) then
+     if (iproc == 0) write(*,*)'wavelet localization is ON'
+  else
+     if (iproc == 0) write(*,*)'wavelet localization is OFF'
+  endif
+
+
 end subroutine system_size
 
 !!****f* BigDFT/correct_grid

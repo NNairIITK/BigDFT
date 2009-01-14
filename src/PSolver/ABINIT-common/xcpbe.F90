@@ -3752,8 +3752,10 @@ subroutine xcpbe(exci,npts,nspden,option,order,rho_updn,vxci,ndvxci,ngr2,& !Mand
 
           end do
           exci(ipts)=exc*rhotot_inv
-          if(present(exexch).and.exexch==1)cycle
-
+          if(present(exexch)) then
+             if (exexch==1) cycle
+          end if
+             
           ! -----------------------------------------------------------------------------
           ! Then takes care of the LSD correlation part of the functional
 

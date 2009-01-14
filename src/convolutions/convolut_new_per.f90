@@ -41,6 +41,47 @@ subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        psig_out,y(1),y(nvctr_c+1))
 end subroutine apply_hp_sd
 
+subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
+     cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e,scal)
+  use module_base
+  implicit none
+  integer, parameter :: lowfil=-14,lupfil=14
+  integer, intent(in) :: n1,n2,n3
+  integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
+  real(gp),intent(in)::scal(0:7)
+  real(gp), intent(in) :: cprecr
+  real(gp), intent(in) :: hx,hy,hz
+  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer,intent(in)::modul1(lowfil:n1+lupfil)
+  integer,intent(in)::modul2(lowfil:n2+lupfil)
+  integer,intent(in)::modul3(lowfil:n3+lupfil)
+  real(gp),intent(in)::a(lowfil:lupfil,3)
+  real(gp),intent(in)::b(lowfil:lupfil,3)
+  real(gp),intent(in)::c(lowfil:lupfil,3)
+  real(gp),intent(in)::e(lowfil:lupfil,3)
+  real(wp), intent(in) ::  x(nvctr_c+7*nvctr_f)  
+
+  real(wp), intent(out) ::  y(nvctr_c+7*nvctr_f)
+  !local variables
+  real(gp), dimension(3) :: hgrid
+  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)) :: psig_in,psig_out
+
+  call uncompress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+       x(1),x(nvctr_c+1),psig_in,scal)
+
+  hgrid(1)=hx
+  hgrid(2)=hy
+  hgrid(3)=hz
+  call convolut_kinetic_per_sdc(n1,n2,n3,hgrid,psig_in,psig_out,cprecr,modul1,modul2,modul3,a,b,c,e)
+
+  call compress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
+       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
+       psig_out,y(1),y(nvctr_c+1),scal)
+end subroutine apply_hp_scal
+
+
 
 subroutine convolut_kinetic_per_sdc(n1,n2,n3,hgrid,x,y,cprecr,modul1,modul2,modul3,a,b,c,e)
 !   applies the kinetic energy operator onto x to get y. Works for periodic BC
@@ -77,6 +118,10 @@ real(gp),intent(in)::e(lowfil:lupfil,3)
 !  call system_clock(ncount0,ncount_rate,ncount_max)
   
   
+!$omp parallel default(private) &
+!$omp shared(x,y,n1,n2,n3,cprecr,modul1,modul2,modul3,a,b,c,e)
+
+!$omp do
   do i3=0,n3
      ! (1/2) d^2/dx^2
      do i2=0,n2
@@ -146,10 +191,13 @@ real(gp),intent(in)::e(lowfil:lupfil,3)
      
   enddo
 
+  !$omp end do  
+
 !  call system_clock(ncount1,ncount_rate,ncount_max)
 !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
 !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'x,y:',tel,1.d-6*mflop1/tel
-  
+ 
+!$omp do	
   do i2=0,n2
      do i1=0,n1
         do i3=0,n3
@@ -183,6 +231,9 @@ real(gp),intent(in)::e(lowfil:lupfil,3)
         enddo
      enddo
   enddo
+
+  !$omp end do
+  !$omp end parallel  
  
 !  call system_clock(ncount2,ncount_rate,ncount_max)
 !  tel=dble(ncount2-ncount1)/dble(ncount_rate)
