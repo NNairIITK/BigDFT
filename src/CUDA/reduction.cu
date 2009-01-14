@@ -26,7 +26,7 @@ float reducearrays(int n,
 		   T *epot)
 {
 
-  float epots[COPYVALUES];
+  T epots[COPYVALUES];
 
   //first reduce the two arrays in the input-output form
   int threads=256; //first value, fixed
@@ -159,9 +159,23 @@ float reducearrays(int n,
 /****/
 
 //little hack : specification of double and float reducearray in order to compil only once the template
-//Of course, this fct is never called
-void fctHackTemplate()
+//Of course, this fct are never called
+template float reducearrays<float>(int n,
+				   int ndat,
+				   float *psi,
+				   float *vpsi,
+				   float *epot);
+
+template float reducearrays<double>(int n,
+				    int ndat,
+				    double *psi,
+				    double *vpsi,
+				    double *epot);
+
+
+
+/*void fctHackTemplate()
 {
   float yo = reducearrays<float>(NULL,NULL,NULL,NULL,NULL);
-  float yo2 = reducearrays<double>(NULL,NULL,NULL,NULL,NULL);
-}
+  double yo2 = reducearrays<double>(NULL,NULL,NULL,NULL,NULL);
+  }*/

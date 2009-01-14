@@ -6,8 +6,8 @@
 //capability 1.2 and higher (1024 threads at same time on a given multiprocessor)
 #define MAX_SHARED_SIZE 3072 //16*256 4 kB (should be =~ 3.9 kB, try also 3072)
 #define HALF_WARP_SIZE 16 // for all architectures
-#define NUM_LINES 16 
-#define HW_ELEM 1 //this is HALF_WARP_SIZE/NUM_LINES
+#define NUM_LINES 8 
+#define HW_ELEM 2 //this is HALF_WARP_SIZE/NUM_LINES
 
 //parameter related to the Magic Filter convolution
 //lowfil + lupfil + 1  must be a multiple of 16

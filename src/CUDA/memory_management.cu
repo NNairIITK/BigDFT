@@ -19,7 +19,7 @@ static short gpu_precision;
 
 
 
-
+// functions to set memory operations precision
 extern "C"
 void set_gpu_simple__()
 {

@@ -32,8 +32,9 @@ program GPUham
   real(wp) :: tt,scale
   real(gp) :: v,p,CPUtime,GPUtime,comp,ekin,CPUGflops,GPUGflops
   real(gp), dimension(3) :: hgridh
-  real(kind=4), dimension(:,:,:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
+!  real(kind=4), dimension(:,:,:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
   real(kind=4) :: t0,t1,epotGPU,ekinGPU
+real(kind=8) :: epotGPU2,ekinGPU2
   !pointer to the GPU  memory addresses (with norb=1)
   real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU,work3_GPU
 
@@ -125,23 +126,14 @@ program GPUham
 
   print *,'ekin,epot=',ekin,epot
 
-  !create the CUDA values
-  allocate(psi_cuda((n1+1),(n2+1),(n3+1)+ndebug),stat=i_stat)
-  call memocc(i_stat,psi_cuda,'psi_cuda',subname)
-  allocate(v_cuda((n1+1),(n2+1),(n3+1)+ndebug),stat=i_stat)
-  call memocc(i_stat,v_cuda,'v_cuda',subname)
 
-  !!psi_cuda=real(psi_in,kind=4)
-  !!v_cuda=real(pot,kind=4)
 
- psi_cuda=psi_in
-  v_cuda=pot
 
 
   ! Initialisation of potential energy  
   epot=0.0_gp
 
-  call set_gpu_double()
+  call set_gpu_double() !after this call, all memory operations are in double precision, call set_gpu_simple() in order to have simple memory operations
 
   !allocate the GPU memory
   call GPU_allocate((n1+1)*(n2+1)*(n3+1),psi_GPU,i_stat)
@@ -151,35 +143,30 @@ program GPUham
   call GPU_allocate((n1+1)*(n2+1)*(n3+1),work3_GPU,i_stat)
 
 
-  call GPU_send((n1+1)*(n2+1)*(n3+1),psi_cuda,psi_GPU,i_stat)
-  call GPU_send((n1+1)*(n2+1)*(n3+1),v_cuda,v_GPU,i_stat)
+  call GPU_send((n1+1)*(n2+1)*(n3+1),psi_in,psi_GPU,i_stat)
+  call GPU_send((n1+1)*(n2+1)*(n3+1),pot,v_GPU,i_stat)
 
   write(*,'(a,i6,i6,i6)')'GPU Hamiltonian, dimensions:',n1,n2,n3
 
   call cpu_time(t0)
   do i=1,ntimes
 
-  !!   call kineticterm(n1,n2,n3,&
-  !!        real(hx,kind=4),real(hy,kind=4),real(hz,kind=4),0.e0,&
-  !!        psi_GPU,work2_GPU,work_GPU,work3_GPU,ekinGPU)
-
 
      call kinetictermd(n1,n2,n3,&
           hx,hy,hz,0.e0,&
-          psi_GPU,work2_GPU,work_GPU,work3_GPU,ekinGPU)
+          psi_GPU,work2_GPU,work_GPU,work3_GPU,ekinGPU2)
+     
 
-
-  !!   call localpotential(n1,n2,n3,work_GPU,psi_GPU,v_GPU,epotGPU)
-
-     call localpotentiald(n1,n2,n3,work_GPU,psi_GPU,v_GPU,epotGPU)
+ 
+     call localpotentiald(n1,n2,n3,work_GPU,psi_GPU,v_GPU,epotGPU2)
 
   end do
   call cpu_time(t1)
 
   !copy vpsi on the CPU
 
-  call GPU_receive((n1+1)*(n2+1)*(n3+1),psi_cuda,work_GPU,i_stat)
-  call GPU_receive((n1+1)*(n2+1)*(n3+1),v_cuda,work2_GPU,i_stat)
+  call GPU_receive((n1+1)*(n2+1)*(n3+1),psi_in,work_GPU,i_stat)
+  call GPU_receive((n1+1)*(n2+1)*(n3+1),pot,work2_GPU,i_stat)
 
   GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
   GPUGflops=real(n1*n2*n3*ntimes,kind=8)*366.d0/(GPUtime*1.d9)
@@ -194,19 +181,19 @@ program GPUham
   call GPU_deallocate(work2_GPU,i_stat)
   call GPU_deallocate(work3_GPU,i_stat)
 
-  print *,'ekin,epot=',ekinGPU,epotGPU
+  print *,'ekin,epot=',ekinGPU2,epotGPU2
 
 
   !add Vpsi to Kpsi
-  psi_cuda=psi_cuda+v_cuda
+  psi_in=psi_in+pot
 
   !check the differences between the results
   maxdiff=0.d0
   do i3=1,n3+1
      do i2=1,n2+1
         do i1=1,n1+1
-           write(17,*),i1,i2,i3,psi_out(i1,i2,i3),psi_cuda(i1,i2,i3)
-           maxdiff=max(abs(psi_out(i1,i2,i3)-real(psi_cuda(i1,i2,i3),kind=8)),maxdiff)
+           write(17,*),i1,i2,i3,psi_out(i1,i2,i3),psi_in(i1,i2,i3)
+           maxdiff=max(abs(psi_out(i1,i2,i3)-psi_in(i1,i2,i3)),maxdiff)
         end do
      end do
   end do
@@ -226,12 +213,7 @@ program GPUham
           '<<<< WARNING' 
   end if
 
-  i_all=-product(shape(psi_cuda))
-  deallocate(psi_cuda,stat=i_stat)
-  call memocc(i_stat,i_all,'psi_cuda',subname)
-  i_all=-product(shape(v_cuda))
-  deallocate(v_cuda,stat=i_stat)
-  call memocc(i_stat,i_all,'v_cuda',subname)
+
 
   i_all=-product(shape(psi_in))
   deallocate(psi_in,stat=i_stat)

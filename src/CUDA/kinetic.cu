@@ -159,7 +159,7 @@ int kineticfilter(int n1,int n2, int n3,
     }
 
   //here the worky array should be initialised to c*x
-  c_initialize<T> <<< grid3, threads3 >>>(n3,n1*n2,x,worky,c,2);
+   c_initialize<T> <<< grid3, threads3 >>>(n3,n1*n2,x,worky,c,2);
   cudaThreadSynchronize();
 
   kinetic1d<T> <<< grid3, threads3 >>>(n3,n1*n2,x,workx,worky,y,2);
