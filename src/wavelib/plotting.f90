@@ -361,6 +361,7 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ne
               end do
            end do
            later_avg=later_avg/real((2*n1+2)*(2*n3+2),dp) !2D integration/2D Volume
+           !problem with periodic/isolated BC
            write(23,*)i2,alat2/real(2*n2+2,dp)*i2,later_avg
         end do
         close(23)
@@ -375,11 +376,12 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ne
 
 end subroutine plot_density
 
-subroutine plot_density_cube(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
+subroutine plot_density_cube(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
      hxh,hyh,hzh,at,rxyz,ngatherarr,rho)
   use module_base
   use module_types
   implicit none
+  character(len=1), intent(in) :: geocode
   character(len=*), intent(in) :: filename
   integer, intent(in) :: iproc,n1i,n2i,n3i,n3p,n1,n2,n3,nspin,nproc
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -390,7 +392,10 @@ subroutine plot_density_cube(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin
   !local variables
   character(len=*), parameter :: subname='plot_density_cube'
   character(len=3) :: advancestring
-  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,icount,j,iat
+  character(len=5) :: suffix
+  character(len=15) :: message
+  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,icount,j,iat,ia,ib
+  real(dp) :: a,b
   real(dp), dimension(:,:), pointer :: pot_ion
 
   !conditions for periodicity in the three directions
@@ -432,117 +437,68 @@ subroutine plot_density_cube(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin
   if (iproc == 0) then
 
      if (nspin /=2) then
-        open(unit=22,file=filename//'.cube',status='unknown')
-        write(22,*)'CUBE file for charge density'
-        write(22,*)'Case for total spin'
-        !number of atoms
-        write(22,'(i5,3(f12.6))') at%nat,0.0_gp,0.0_gp,0.0_gp
-        !grid and grid spacings
-        write(22,'(i5,3(f12.6))') 2*n1+2,hxh,0.0_gp,0.0_gp
-        write(22,'(i5,3(f12.6))') 2*n2+2,0.0_gp,hyh,0.0_gp
-        write(22,'(i5,3(f12.6))') 2*n3+2,0.0_gp,0.0_gp,hzh
-        !atomic number and positions
-        do iat=1,at%nat
-           write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
-        end do
-
-        !the loop is reverted for a cube file
-        !charge normalised to the total charge
-        do i1=0,2*n1+1
-           do i2=0,2*n2+1
-              icount=0
-              do i3=0,2*n3+1
-                 icount=icount+1
-                 if (icount == 6 .or. i3==2*n3+1) then
-                    advancestring='yes'
-                    icount=0
-                 else
-                    advancestring='no'
-                 end if
-
-                 ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-                 write(22,'(1x,1pe13.6)',advance=advancestring)pot_ion(ind,1)
-              end do
-           end do
-        end do
-        close(22)
+        suffix=''
+        message='total spin'
+        a=1.0_dp
+        ia=1
+        b=0.0_dp
+        ib=1
+        call cubefile_write
      else
-        open(unit=22,file=filename//'-up.cube',status='unknown')
+        suffix='-up'
+        message='spin up'
+        a=1.0_dp
+        ia=1
+        b=0.0_dp
+        ib=2
+        call cubefile_write
+
+        suffix='-down'
+        message='spin down'
+        a=0.0_dp
+        ia=1
+        b=1.0_dp
+        ib=2
+        call cubefile_write
+
+        suffix=''
+        message='total spin'
+        a=1.0_dp
+        ia=1
+        b=1.0_dp
+        ib=2
+        call cubefile_write
+
+        suffix='-u-d'
+        message='spin difference'
+        a=1.0_dp
+        ia=1
+        b=-1.0_dp
+        ib=2
+        call cubefile_write
+     end if
+  end if
+
+  if (nproc > 1) then
+     i_all=-product(shape(pot_ion))*kind(pot_ion)
+     deallocate(pot_ion,stat=i_stat)
+     call memocc(i_stat,i_all,'pot_ion',subname)
+  end if
+
+contains
+
+  subroutine cubefile_write
+        open(unit=22,file=filename//trim(suffix)//'.cube',status='unknown')
         write(22,*)'CUBE file for charge density'
-        write(22,*)'Case for spin up'
+        write(22,*)'Case for '//trim(message)
         !number of atoms
-        write(22,'(i5,3(f12.6))') at%nat,0.0_gp,0.0_gp,0.0_gp
-        !grid and grid spacings
-        write(22,'(i5,3(f12.6))') 2*n1+2,hxh,0.0_gp,0.0_gp
-        write(22,'(i5,3(f12.6))') 2*n2+2,0.0_gp,hyh,0.0_gp
-        write(22,'(i5,3(f12.6))') 2*n3+2,0.0_gp,0.0_gp,hzh
-        !atomic number and positions
-        do iat=1,at%nat
-           write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
-        end do
-
-        !the loop is reverted for a cube file
-        !charge normalised to the total charge
-        do i1=0,2*n1+1
-           do i2=0,2*n2+1
-              icount=0
-              do i3=0,2*n3+1
-                 icount=icount+1
-                 if (icount == 6 .or. i3==2*n3+1) then
-                    advancestring='yes'
-                    icount=0
-                 else
-                    advancestring='no'
-                 end if
-
-                 ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-                 write(22,'(1x,1pe13.6)',advance=advancestring)pot_ion(ind,1)
-              end do
-           end do
-        end do
-        close(22)
-
-        open(unit=22,file=filename//'-down.cube',status='unknown')
-        write(22,*)'CUBE file for charge density'
-        write(22,*)'Case for spin down'
-        !number of atoms
-        write(22,'(i5,3(f12.6))') at%nat,0.0_gp,0.0_gp,0.0_gp
-        !grid and grid spacings
-        write(22,'(i5,3(f12.6))') 2*n1+2,hxh,0.0_gp,0.0_gp
-        write(22,'(i5,3(f12.6))') 2*n2+2,0.0_gp,hyh,0.0_gp
-        write(22,'(i5,3(f12.6))') 2*n3+2,0.0_gp,0.0_gp,hzh
-        !atomic number and positions
-        do iat=1,at%nat
-           write(22,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
-        end do
-
-        !the loop is reverted for a cube file
-        !charge normalised to the total charge
-
-        do i1=0,2*n1+1
-           do i2=0,2*n2+1
-              icount=0
-              do i3=0,2*n3+1
-                 icount=icount+1
-                 if (icount == 6 .or. i3==2*n3+1) then
-                    advancestring='yes'
-                    icount=0
-                 else
-                    advancestring='no'
-                 end if
-
-                 ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-                 write(22,'(1x,1pe13.6)',advance=advancestring)pot_ion(ind,2)
-              end do
-           end do
-        end do
-        close(22)
-
-        open(unit=22,file=filename//'.cube',status='unknown')
-        write(22,*)'CUBE file for charge density'
-        write(22,*)'Case for total spin'
-        !number of atoms
-        write(22,'(i5,3(f12.6))') at%nat,0.0_gp,0.0_gp,0.0_gp
+        if (geocode=='P') then
+           write(22,'(i5,3(f12.6))') at%nat,0.0_gp,0.0_gp,0.0_gp
+        else if (geocode=='S') then
+           write(22,'(i5,3(f12.6))') at%nat,0.0_gp,-hyh,0.0_gp
+        else if (geocode=='F') then
+           write(22,'(i5,3(f12.6))') at%nat,-hxh,-hyh,-hzh
+        end if
         !grid and grid spacings
         write(22,'(i5,3(f12.6))') 2*n1+2,hxh,0.0_gp,0.0_gp
         write(22,'(i5,3(f12.6))') 2*n2+2,0.0_gp,hyh,0.0_gp
@@ -568,55 +524,13 @@ subroutine plot_density_cube(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin
 
                  ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
                  write(22,'(1x,1pe13.6)',advance=advancestring)&
-                      pot_ion(ind,1)+pot_ion(ind,2)
+                      a*pot_ion(ind,ia)+b*pot_ion(ind,ib)
               end do
            end do
         end do
         close(22)
-
-        open(unit=23,file=filename//'-u-d.cube',status='unknown')
-        write(23,*)'CUBE file for charge density'
-        write(23,*)'Case for spin difference'
-        !number of atoms
-        write(23,'(i5,3(f12.6))') at%nat,0.0_gp,0.0_gp,0.0_gp
-        !grid and grid spacings
-        write(23,'(i5,3(f12.6))') 2*n1+2,hxh,0.0_gp,0.0_gp
-        write(23,'(i5,3(f12.6))') 2*n2+2,0.0_gp,hyh,0.0_gp
-        write(23,'(i5,3(f12.6))') 2*n3+2,0.0_gp,0.0_gp,hzh
-        !atomic number and positions
-        do iat=1,at%nat
-           write(23,'(i5,4(f12.6))') at%nzatom(at%iatype(iat)),0.0_gp,(rxyz(j,iat),j=1,3)
-        end do
-
-        !the loop is reverted for a cube file
-        !charge normalised to the total charge
-
-        do i1=0,2*n1+1
-           do i2=0,2*n2+1
-              icount=0
-              do i3=0,2*n3+1
-                 icount=icount+1
-                 if (icount == 6 .or. i3==2*n3+1) then
-                    advancestring='yes'
-                    icount=0
-                 else
-                    advancestring='no'
-                 end if
-                 ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-                 write(23,'(1x,1pe13.6)',advance=advancestring)&
-                      pot_ion(ind,1)-pot_ion(ind,2)
-              end do
-           end do
-        end do
-        close(23)
-
-     end if
-  end if
-
-  if (nproc > 1) then
-     i_all=-product(shape(pot_ion))*kind(pot_ion)
-     deallocate(pot_ion,stat=i_stat)
-     call memocc(i_stat,i_all,'pot_ion',subname)
-  end if
+  end subroutine cubefile_write
 
 end subroutine plot_density_cube
+
+

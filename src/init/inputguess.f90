@@ -1,3 +1,175 @@
+subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvctrp,nvirt,nspin,&
+     orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nproc,nspin,nvctrp
+  integer, intent(inout) :: nvirt
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: Glr
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), intent(out) :: eks
+  integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
+  real(gp), dimension(at%nat), intent(out) :: locrad
+  type(orbitals_data), intent(out) :: orbse,orbsv
+  type(gaussian_basis), intent(out) :: G
+  real(wp), dimension(:,:), pointer :: psigau
+  !local variables
+  character(len=*), parameter :: subname='inputguess_gaussian_orbitals'
+  integer, parameter :: ngx=31
+  integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte
+  integer :: ispin,jproc,ist,jpst
+  logical, dimension(:,:,:), allocatable :: scorb
+  integer, dimension(:), allocatable :: ng,iorbtolr
+  integer, dimension(:,:), allocatable :: nl
+  !real(gp), dimension(:), allocatable :: occupe,spinsgneovrlp
+  real(gp), dimension(:,:), allocatable :: xp,occupat
+  real(gp), dimension(:,:,:), allocatable :: psiat
+
+  allocate(xp(ngx,at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,xp,'xp',subname)
+  allocate(psiat(ngx,5,at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,psiat,'psiat',subname)
+  allocate(occupat(5,at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,occupat,'occupat',subname)
+  allocate(ng(at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,ng,'ng',subname)
+  allocate(nl(4,at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,nl,'nl',subname)
+  allocate(scorb(4,2,at%natsc+ndebug),stat=i_stat)
+  call memocc(i_stat,scorb,'scorb',subname)
+
+  !Generate the input guess via the inguess_generator
+  !here we should allocate the gaussian basis descriptors 
+  !the prescriptions can be found in the creation of psp basis
+  call readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,nspin,&
+       scorb,norbsc_arr,locrad)
+
+  if (nvirt /= 0) then
+     !Check for max number of virtual orbitals
+     !the unoccupied orbitals available as a LCAO
+     nvirte=norbe-max(orbs%norbu,orbs%norbd)
+     if(nvirt == nvirte .and. nvirt/=0 .and. iproc==0) then
+        write(*,'(1x,a)')&
+             "WARNING: A smaller number of virtual orbitals may be needed for better convergence."
+        write(*,'(1x,a,i0)')'         Put nvirte= ',nvirte
+     end if
+     if(nvirte < nvirt)then
+        nvirt=nvirte
+        if(iproc==0)write(*,'(1x,a,i3)')&
+             "WARNING: Number of virtual orbitals is too large. New value: ",nvirt
+     end if
+  end if
+  !no Davidson calculation if nvirt=0
+  if (nvirt==0) nvirte=0
+
+  !create the orbitals descriptors, for virtual and inputguess orbitals
+  allocate(orbsv%norb_par(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,orbsv%norb_par,'orbsv%norb_par',subname)
+  !davidson treatment for spin-pol case should be reworked
+  call orbitals_descriptors(iproc,nproc,nvirte,nvirte,0,1,orbsv)
+  !allocate the arrays and fill them properly
+  allocate(orbsv%occup(orbsv%norb+ndebug),stat=i_stat)
+  call memocc(i_stat,orbsv%occup,'orbsv%occup',subname)
+  allocate(orbsv%spinsgn(orbsv%norb+ndebug),stat=i_stat)
+  call memocc(i_stat,orbsv%spinsgn,'orbsv%spinsgn',subname)
+  orbsv%occup(1:orbsv%norb)=1.0_gp
+  orbsv%spinsgn(1:orbsv%norb)=1.0_gp
+
+  !calculate the dimension of the wavefunction
+  !for the given processor
+  orbsv%npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsv%norbp,&
+       nvctrp*orbsv%norb_par(0)*nproc)*&
+       orbsv%nspinor
+
+  !deallocation if no davidson calculation
+  if (nvirt == 0) then
+     i_all=-product(shape(orbsv%norb_par))*kind(orbsv%norb_par)
+     deallocate(orbsv%norb_par,stat=i_stat)
+     call memocc(i_stat,i_all,'orbsv%norb_par',subname)
+  end if
+
+
+  !!!orbitals descriptor for inguess orbitals
+  !here nspinor is put equal to one
+  allocate(orbse%norb_par(0:nproc-1+ndebug),stat=i_stat)
+  call memocc(i_stat,orbse%norb_par,'orbse%norb_par',subname)
+  !the number of orbitals to be considered is doubled 
+  !in the case of a spin-polarised calculation
+  call orbitals_descriptors(iproc,nproc,nspin*norbe,norbe,(nspin-1)*norbe,1,orbse)
+  !allocate the arrays and fill them properly
+  allocate(orbse%occup(orbse%norb+ndebug),stat=i_stat)
+  call memocc(i_stat,orbse%occup,'orbse%occup',subname)
+  allocate(orbse%spinsgn(orbse%norb+ndebug),stat=i_stat)
+  call memocc(i_stat,orbse%spinsgn,'orbse%spinsgn',subname)
+  ist=1
+  do ispin=1,nspin
+     orbse%spinsgn(ist:ist+norbe-1)=real(1-2*(ispin-1),gp)
+     ist=norbe+1
+  end do
+  !calculate the dimension of the wavefunction
+  !for the given processor
+  orbse%npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbse%norbp,nvctrp*orbse%norb_par(0)*nproc)*&
+       orbse%nspinor
+
+  !this is the distribution procedure for cubic code
+  if (iproc == 0 .and. nproc>1) then
+     jpst=0
+     do jproc=0,nproc-2
+        norbme=orbse%norb_par(jproc)
+        norbyou=orbse%norb_par(jproc+1)
+        if (norbme /= norbyou) then
+           !this is a screen output that must be modified
+           write(*,'(3(a,i0),a)')&
+                ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' inguess orbitals '
+           jpst=jproc+1
+        end if
+     end do
+     write(*,'(3(a,i0),a)')&
+          ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '
+  end if
+
+  !allocate the gaussian coefficients for the number of orbitals which is needed
+  allocate(psigau(norbe,(orbse%isorb+orbse%norbp)*orbse%nspinor+ndebug),stat=i_stat)
+  call memocc(i_stat,psigau,'psigau',subname)
+  allocate(iorbtolr(orbse%norbp+ndebug),stat=i_stat)
+  call memocc(i_stat,iorbtolr,'iorbtolr',subname)
+
+
+  !fill just the interesting part of the orbital
+  call AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
+       ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,&
+       psigau(1,orbse%nspinor*min(orbse%isorb+1,orbse%norb)),&
+       iorbtolr)
+
+  i_all=-product(shape(scorb))*kind(scorb)
+  deallocate(scorb,stat=i_stat)
+  call memocc(i_stat,i_all,'scorb',subname)
+  i_all=-product(shape(xp))*kind(xp)
+  deallocate(xp,stat=i_stat)
+  call memocc(i_stat,i_all,'xp',subname)
+  i_all=-product(shape(psiat))*kind(psiat)
+  deallocate(psiat,stat=i_stat)
+  call memocc(i_stat,i_all,'psiat',subname)
+  i_all=-product(shape(occupat))*kind(occupat)
+  deallocate(occupat,stat=i_stat)
+  call memocc(i_stat,i_all,'occupat',subname)
+  i_all=-product(shape(ng))*kind(ng)
+  deallocate(ng,stat=i_stat)
+  call memocc(i_stat,i_all,'ng',subname)
+  i_all=-product(shape(nl))*kind(nl)
+  deallocate(nl,stat=i_stat)
+  call memocc(i_stat,i_all,'nl',subname)
+  i_all=-product(shape(iorbtolr))*kind(iorbtolr)
+  deallocate(iorbtolr,stat=i_stat)
+  call memocc(i_stat,i_all,'iorbtolr',subname)
+
+
+end subroutine inputguess_gaussian_orbitals
+
+
+
 subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,nspin,&
      & scorb,norbsc_arr,locrad)
   use module_base
@@ -443,7 +615,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
   type(gaussian_basis), intent(out) :: G
   real(gp), intent(out) :: eks
   integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
-  real(wp), dimension(norbe,orbse%norbp), intent(out) :: gaucoeff !norbe=G%ncoeff
+  real(wp), dimension(norbe,orbse%norbp*orbse%nspinor), intent(out) :: gaucoeff !norbe=G%ncoeff
   !local variables
   character(len=*), parameter :: subname= 'AtomicOrbitals'
   integer, parameter :: nterm_max=3,noccmax=2,nlmax=4,nlevmax=6
@@ -519,7 +691,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
   end if
 
   do icoeff=1,G%ncoeff
-     do jorb=1,orbse%norbp
+     do jorb=1,orbse%norbp*orbse%nspinor
         gaucoeff(icoeff,jorb)=0.0_wp
      end do
   end do
@@ -673,6 +845,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
                  jorb=iorb-orbse%isorb
                  orbse%occup(iorb)=occshell/real(2*l-1,gp)
                  if (orbse%isorb < iorb .and. iorb <= orbse%isorb+orbse%norbp) then
+                    !here we put only the case nspinor==1
                     gaucoeff(icoeff,jorb)=1.0_wp
                     !associate to each orbital the reference localisation region
                     iorbtolr(jorb)=iat 

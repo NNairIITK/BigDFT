@@ -23,7 +23,7 @@ subroutine transposeto(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,work,out)
      call timing(iproc,'Un-TransSwitch','ON')
   else
      if(nspinor==4) then
-        call psitransspi(nvctrp,norb,psi,.true.)
+        call psitransspi(nspinor,nvctrp,norb,psi,.true.)
      end if
   end if
 
@@ -69,7 +69,7 @@ subroutine transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
      call timing(iproc,'Un-TransSwitch','ON')
   else
      if(nspinor==4) then
-        call psitransspi(nvctrp,norb,psi,.true.)
+        call psitransspi(nspinor,nvctrp,norb,psi,.true.)
      end if
   end if
 
@@ -115,7 +115,7 @@ subroutine untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
      end if
   else
      if(nspinor==4) then
-        call psitransspi(nvctrp,norb,psi,.false.)
+        call psitransspi(nspinor,nvctrp,norb,psi,.false.)
      end if
   end if
 
@@ -207,62 +207,65 @@ subroutine unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psiw,psi
   
 end subroutine unswitch_waves
 
-subroutine psitransspi(nvctrp,norb,psi,forward)
+subroutine psitransspi(nspinor,nvctrp,norb,psi,forward)
   use module_base
   implicit none
-  integer, intent(in) :: norb,nvctrp
+  integer, intent(in) :: norb,nvctrp,nspinor
   logical, intent(in) :: forward
-  real(wp), dimension(4*nvctrp,norb), intent(inout) :: psi
+  real(wp), dimension(nspinor*nvctrp,norb), intent(inout) :: psi
   !local variables
   character(len=*), parameter :: subname='psitransspi'
   integer :: i,iorb,ij,isp,i_all,i_stat
   real(wp), dimension(:,:,:), allocatable :: tpsit
 
-!  call timing(0,'Un-Transall   ','ON')
-
-  allocate(tpsit(nvctrp,4,norb+ndebug),stat=i_stat)
+  allocate(tpsit(nvctrp,nspinor,norb+ndebug),stat=i_stat)
   call memocc(i_stat,tpsit,'tpsit',subname)
-!  print '(a,5f10.5,2i5,l1)','p2s',(abs(psi(i,1)),i=1,5),shape(psi),forward
   if(forward) then
-!     print *, 'transposing psi forward'
-!      print '(a,30f10.5)','tsp',((sum(abs(psi(:,iorb)))),iorb=1,norb)
     do iorb=1,norb
-!        ij=1
-        do isp=1,4
+        do isp=1,nspinor
            do i=1,nvctrp
               tpsit(i,isp,iorb)=psi(i+(isp-1)*nvctrp,iorb)
-!              ij=ij+1
            enddo
         enddo
      enddo
-!      print '(a,30f10.5)','tsp',((sum(abs(tpsit(:,isp,iorb))),isp=1,4),iorb=1,norb)
-    do iorb=1,norb
-!        ij=1
-        do i=1,nvctrp
-           psi(2*i-1,iorb)=tpsit(i,1,iorb)
-           psi(2*i,iorb)=tpsit(i,2,iorb)
-           psi(2*i+2*nvctrp-1,iorb)=tpsit(i,3,iorb)
-           psi(2*i+2*nvctrp,iorb)=tpsit(i,4,iorb)
-!           ij=ij+1
+     if (nspinor == 2) then
+        do iorb=1,norb
+           do i=1,nvctrp
+              psi(2*i-1,iorb)=tpsit(i,1,iorb)
+              psi(2*i,iorb)=tpsit(i,2,iorb)
+           enddo
         enddo
-     enddo
+     else if (nspinor == 4) then
+        do iorb=1,norb
+           do i=1,nvctrp
+              psi(2*i-1,iorb)=tpsit(i,1,iorb)
+              psi(2*i,iorb)=tpsit(i,2,iorb)
+              psi(2*i+2*nvctrp-1,iorb)=tpsit(i,3,iorb)
+              psi(2*i+2*nvctrp,iorb)=tpsit(i,4,iorb)
+           enddo
+        enddo
+     end if
   else
-!     print *,'tsp',((sum(abs(psi(:,iorb)))),iorb=1,norb)
-!     print *,'transposing psi backward'
-     do iorb=1,norb
-!        ij=1
-        do i=1,nvctrp
-           tpsit(i,1,iorb)=psi(2*i-1,iorb)
-           tpsit(i,2,iorb)=psi(2*i,iorb)
-           tpsit(i,3,iorb)=psi(2*i-1+2*nvctrp,iorb)
-           tpsit(i,4,iorb)=psi(2*i+2*nvctrp,iorb)
-!           ij=ij+1
+     if (nspinor == 2) then
+        do iorb=1,norb
+           do i=1,nvctrp
+              tpsit(i,1,iorb)=psi(2*i-1,iorb)
+              tpsit(i,2,iorb)=psi(2*i,iorb)
+           enddo
         enddo
-     enddo
-!     print *,'tsp',((sum(abs(tpsit(:,isp,iorb))),isp=1,4),iorb=1,norb)
+     else if (nspinor == 4) then
+        do iorb=1,norb
+           do i=1,nvctrp
+              tpsit(i,1,iorb)=psi(2*i-1,iorb)
+              tpsit(i,2,iorb)=psi(2*i,iorb)
+              tpsit(i,3,iorb)=psi(2*i-1+2*nvctrp,iorb)
+              tpsit(i,4,iorb)=psi(2*i+2*nvctrp,iorb)
+           enddo
+        enddo
+     end if
+
      do iorb=1,norb
-!        ij=1
-        do isp=1,4
+        do isp=1,nspinor
            do i=1,nvctrp
               psi(i+(isp-1)*nvctrp,iorb)=tpsit(i,isp,iorb)
               ij=ij+1
@@ -274,10 +277,6 @@ subroutine psitransspi(nvctrp,norb,psi,forward)
   i_all=-product(shape(tpsit))*kind(tpsit)
   deallocate(tpsit,stat=i_stat)
   call memocc(i_stat,i_all,'tpsit',subname)
-
-!   call timing(0,'Un-Transall   ','OF')
-!  print '(a,5f10.5,2i5,l1)','p2E',(abs(psi(i,1)),i=1,5),shape(psi),forward
-
 end subroutine psitransspi
 
 
@@ -319,73 +318,14 @@ subroutine transpose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
      call timing(iproc,'Un-TransComm  ','OF')
      call timing(iproc,'Un-TransSwitch','ON')
   else
-     if(nspinor==4) then
-        call psitransspi(nvctrp,norbp,psi,.true.)
+     if(nspinor /= 1) then
+        call psitransspi(nspinor,nvctrp,norbp,psi,.true.)
      end if
   end if
 
   call timing(iproc,'Un-TransSwitch','OF')
 
 end subroutine transpose_v
-
-!transposition of the arrays, variable version (non homogeneous)
-subroutine transpose_v2(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
-     work,outadd) !optional
-  use module_base
-  use module_types
-  implicit none
-  integer, intent(in) :: iproc,nproc,norbp,nspinor,nvctrp !the latter will depend on orbitals
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  type(communications_arrays), intent(in) :: comms
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
-  real(wp), dimension(:), pointer, optional :: work
-  real(wp), dimension(*), intent(out), optional :: outadd
-  !local variables
-  integer :: ierr
-
-
-  call timing(iproc,'Un-TransSwitch','ON')
-
-  if (nproc > 1) then
-     !control check
-     if (.not. present(work) .or. .not. associated(work)) then 
-        if(iproc == 0) write(*,'(1x,a)')&
-             "ERROR: Unproper work array for transposing in parallel"
-        stop
-     end if
-     call switch_waves_v(nproc,norbp,nspinor,&
-          wfd%nvctr_c+7*wfd%nvctr_f,nvctrp,psi,work)
-     call timing(iproc,'Un-TransSwitch','OF')
-     call timing(iproc,'Un-TransComm  ','ON')
-
-     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-     print *,iproc,shape(work),'shape'
-
-     if (present(outadd)) then
-        call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-             outadd,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
-     else
-        call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-             psi,comms%ncntt,comms%ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
-     end if
-
-     print *,iproc,shape(work),'shape2'
-     print *,iproc,work(1),work(product(shape(work))) ,'work '
-     stop
-     deallocate(work)
-     stop
-
-     call timing(iproc,'Un-TransComm  ','OF')
-     call timing(iproc,'Un-TransSwitch','ON')
-  else
-     if(nspinor==4) then
-        call psitransspi(nvctrp,norbp,psi,.true.)
-     end if
-  end if
-
-  call timing(iproc,'Un-TransSwitch','OF')
-
-end subroutine transpose_v2
 
 
 subroutine untranspose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
@@ -425,8 +365,8 @@ subroutine untranspose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
              wfd%nvctr_c+7*wfd%nvctr_f,nvctrp,work,psi)
      end if
   else
-     if(nspinor==4) then
-        call psitransspi(nvctrp,norbp,psi,.false.)
+     if(nspinor /= 1) then
+        call psitransspi(nspinor,nvctrp,norbp,psi,.false.)
      end if
   end if
 
@@ -457,7 +397,23 @@ subroutine switch_waves_v(nproc,norbp,nspinor,nvctr,nvctrp,psi,psiw)
            enddo
         enddo
      enddo
-  else
+  else if (nspinor == 2) then
+     do iorb=1,norbp
+        ij=1
+        do j=1,nproc
+           do i=1,nvctrp
+              if (ij <= nvctr) then
+                 psiw(2*i-1,iorb,j)=psi(ij,1,iorb)
+                 psiw(2*i,iorb,j)=psi(ij,2,iorb)
+              else
+                 psiw(2*i-1,iorb,j)=0.0_wp
+                 psiw(2*i,iorb,j)=0.0_wp
+              endif
+              ij=ij+1
+           enddo
+        enddo
+     enddo
+  else if (nspinor == 4) then
      do iorb=1,norbp
         ij=1
         do j=1,nproc
@@ -501,7 +457,19 @@ subroutine unswitch_waves_v(nproc,norbp,nspinor,nvctr,nvctrp,psiw,psi)
            enddo
         enddo loop
      enddo
-  else
+  else if (nspinor == 2) then
+     do iorb=1,norbp
+        ij=1
+        loop2: do j=1,nproc
+           do i=1,nvctrp
+              psi(ij,1,iorb)=psiw(2*i-1,iorb,j)
+              psi(ij,2,iorb)=psiw(2*i,iorb,j)
+              ij=ij+1
+              if (ij > nvctr) exit loop2
+           enddo
+        enddo loop2
+     enddo
+  else if (nspinor == 4) then
      do iorb=1,norbp
         ij=1
         loop4: do j=1,nproc

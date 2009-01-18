@@ -855,7 +855,7 @@ endif
    in%betax=6.d0
    in%ixc=1
    in%ncharge=0.d0
-   in%elecfield=0.d0
+   !in%elecfield=0.d0
    in%ncong=7
    in%idsx=6
    in%calc_tail=.false.
