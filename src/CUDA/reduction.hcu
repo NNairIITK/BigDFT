@@ -1,0 +1,467 @@
+/****c* CUDA/reduction.h
+** 
+** AUTHOR
+**  Luigi Genovese
+** 
+** CHANGELOG
+**
+** SOURCE
+*/
+
+#ifndef   	REDUCTION_HCU_
+#define   	REDUCTION_HCU_
+
+
+#include "reduction.h"
+//values from which the reduction is done on CPU
+
+#define CUERR { cudaError_t err; \
+ if ((err = cudaGetLastError()) != cudaSuccess) { \
+ printf("CUDA error: %s, line %d\n", cudaGetErrorString(err), __LINE__); }}
+
+
+
+
+template <typename T, unsigned int blockSize>
+ __global__ void reducefirst(int n,int ndat, T *psi, T *vpsi, T *psivpsi)
+{
+
+  const unsigned int tid = threadIdx.x; //from 1 to 256
+  const unsigned int ivp = blockIdx.x*blockSize + tid; //index of vpsi array
+						 //(coalesced)
+
+  __shared__ T pvp_sh[blockSize];
+  
+  //index of psi array (uncoalesced), may benefit from textures
+  const unsigned int ix=ivp/n;
+  const unsigned int iy=ivp - n*ix;
+  const unsigned int ip=ix + ndat*iy;
+
+  //copy the two arrays in shared memory
+  pvp_sh[tid]=0.f;
+  
+  if(ivp < n*ndat)
+    {
+      pvp_sh[tid]=psi[ip]*vpsi[ivp];
+    }
+
+  //end shared memory copy
+  __syncthreads();
+
+  //reduction of the array in one element
+  if (blockSize >= 512) { if (tid < 256) { pvp_sh[tid] += pvp_sh[tid + 256]; } __syncthreads(); }
+  if (blockSize >= 256) { if (tid < 128) { pvp_sh[tid] += pvp_sh[tid + 128]; } __syncthreads(); }
+  if (blockSize >= 128) { if (tid < 64) { pvp_sh[tid] += pvp_sh[tid + 64]; } __syncthreads(); }
+
+  if (tid < 32) {
+    if (blockSize >= 64) pvp_sh[tid] += pvp_sh[tid + 32];
+    if (blockSize >= 32) pvp_sh[tid] += pvp_sh[tid + 16];
+    if (blockSize >= 16) pvp_sh[tid] += pvp_sh[tid + 8];
+    if (blockSize >= 8) pvp_sh[tid] += pvp_sh[tid + 4];
+    if (blockSize >= 4) pvp_sh[tid] += pvp_sh[tid + 2];
+    if (blockSize >= 2) pvp_sh[tid] += pvp_sh[tid + 1];
+  }
+  if (tid == 0) psivpsi[blockIdx.x] = pvp_sh[0];
+}
+
+
+template <typename T, unsigned int blockSize>
+__global__ void reducethen(int n, T *in, T *out)
+{
+
+  const unsigned int tid = threadIdx.x; //from 1 to 256
+  unsigned int i = blockIdx.x*blockSize*2 + tid; //(coalesced)
+  const unsigned int gridSize = blockSize*2*gridDim.x;
+
+  __shared__ T pvp_sh[blockSize];
+  
+  pvp_sh[tid]=0.f;
+  
+  while(i < n)
+    {
+      pvp_sh[tid]+=in[i]+in[i+blockSize];
+      i+=gridSize;
+    }
+
+  //end shared memory copy
+  __syncthreads();
+
+  //reduction of the array in one element
+  if (blockSize >= 512) { if (tid < 256) { pvp_sh[tid] += pvp_sh[tid + 256]; } 
+    __syncthreads(); }
+
+  if (blockSize >= 256) { if (tid < 128) { pvp_sh[tid] += pvp_sh[tid + 128]; } 
+    __syncthreads(); }
+
+  if (blockSize >= 128) { if (tid < 64) { pvp_sh[tid] += pvp_sh[tid + 64]; }
+    __syncthreads(); }
+
+  if (tid < 32) 
+    {
+      if (blockSize >= 64) pvp_sh[tid] += pvp_sh[tid + 32];
+      if (blockSize >= 32) pvp_sh[tid] += pvp_sh[tid + 16];
+      if (blockSize >= 16) pvp_sh[tid] += pvp_sh[tid + 8];
+      if (blockSize >= 8) pvp_sh[tid] += pvp_sh[tid + 4];
+      if (blockSize >= 4) pvp_sh[tid] += pvp_sh[tid + 2];
+      if (blockSize >= 2) pvp_sh[tid] += pvp_sh[tid + 1];
+    }
+  if (tid == 0) 
+    out[blockIdx.x] = pvp_sh[0];
+}
+
+/*template<typename T>
+float reducearrays(int n,
+		   int ndat,
+		   T *psi,
+		   T *vpsi,
+		   T *epot)
+{
+
+  float epots[COPYVALUES];
+
+  //first reduce the two arrays in the input-output form
+  int threads=256; //first value, fixed
+  int blocks=(n*ndat-1)/256 + 1; //ntot-1/256 +1
+
+  dim3 dimBlock(threads, 1, 1);
+  dim3 dimGrid(blocks, 1, 1);
+
+  //allocate on the GPU the memory to host the reduction arrays
+  T* wrkred[2];
+  size_t size0=blocks*sizeof(T);
+  size_t size1=(blocks/2+1)*sizeof(T);
+
+  if(cudaMalloc( (void**) &(wrkred[0]), size0) != 0)
+    {
+      printf("reducearrays:GPU allocation error 1 \n");
+      return 0.f;
+    }
+  if(cudaMalloc( (void**) &(wrkred[1]), size1) != 0)
+    {
+      printf("reducearrays:GPU allocation error 2\n");
+      return 0.f;
+    }
+
+  switch (threads)
+    {
+    case 512:
+      reducefirst<T, 512><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 256:	 
+      reducefirst<T, 256><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 128:	 
+      reducefirst<T, 128><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 64:	 
+      reducefirst<T, 64><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 32:	 
+      reducefirst<T, 32><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 16:	 
+      reducefirst<T, 16><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 8:	 
+      reducefirst<T,  8><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 4:	 
+      reducefirst<T,  4><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 2:	 
+      reducefirst<T,  2><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 1:	 
+      reducefirst<T,  1><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    default:
+      exit(1);
+    }
+
+  int ntot=blocks;
+  threads=512;
+  int iin=0;
+  int iout=1;
+
+  //then pass to the reduction case until only one element is left
+
+  while (blocks > COPYVALUES)
+    {
+      while(ntot < 2*threads){threads/=2;}
+
+      blocks=(ntot-1)/(2*threads) +1;
+
+      dim3 dimBlock(threads, 1, 1);
+      dim3 dimGrid(blocks, 1, 1);
+
+      switch (threads)
+	{
+	case 512:
+	  reducethen<T, 512><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 256:
+	  reducethen<T, 256><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 128:
+	  reducethen<T, 128><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 64:
+	  reducethen<T, 64><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 32:
+	  reducethen<T, 32><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 16:
+	  reducethen<T, 16><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 8:
+	  reducethen<T,  8><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 4:
+	  reducethen<T,  4><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 2:
+	  reducethen<T,  2><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 1:
+	  reducethen<T,  1><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	default:
+	  exit(1);
+	}
+
+      ntot=blocks;
+      iin=1-iin;
+      iout=1-iout;
+      //printf("ntot,blocks,iin,iout %i %i %i %i\n",ntot,blocks,iin,iout); 
+
+    }
+
+  //printf("ntot,blocks,iin,iout %i %i %i %i\n",ntot,blocks,iin,iout); 
+  cudaFree(wrkred[iout]);
+
+
+  if(cudaMemcpy(epots,wrkred[iin], blocks*sizeof(T), cudaMemcpyDeviceToHost)  != 0)
+    {
+      printf("reducearrays: DeviceToHost Memcpy error \n");
+      return 0.f;
+    }
+
+
+  //cudaFree(wrkred);
+  cudaFree(wrkred[iin]);
+
+  
+  register T  result=epots[0];
+
+    for( int i = 1 ; i < blocks; i++ )  
+      {
+      result += epots[i];
+      //printf ("%f",epots);
+    }
+  
+    *epot=result;
+
+  return result;
+  
+}
+
+template <unsigned int blockSize>
+__global__ void reducefirst_d(int n,int ndat, float *psi, float *vpsi, double *psivpsi)
+{
+
+  const unsigned int tid = threadIdx.x; //from 1 to 256
+  const unsigned int ivp = blockIdx.x*blockSize + tid; //index of vpsi array
+						 //(coalesced)
+
+  __shared__ double pvp_sh[blockSize];
+  
+  //index of psi array (uncoalesced), may benefit from textures
+  const unsigned int ix=ivp/n;
+  const unsigned int iy=ivp - n*ix;
+  const unsigned int ip=ix + ndat*iy;
+
+  //copy the two arrays in shared memory
+  pvp_sh[tid]=0.f;
+  
+  if(ivp < n*ndat)
+    {
+
+      pvp_sh[tid]=(double) (psi[ip]*vpsi[ip]);
+    }
+
+  //end shared memory copy
+  __syncthreads();
+
+  //reduction of the array in one element
+  if (blockSize >= 512) { if (tid < 256) { pvp_sh[tid] += pvp_sh[tid + 256]; } __syncthreads(); }
+  if (blockSize >= 256) { if (tid < 128) { pvp_sh[tid] += pvp_sh[tid + 128]; } __syncthreads(); }
+  if (blockSize >= 128) { if (tid < 64) { pvp_sh[tid] += pvp_sh[tid + 64]; } __syncthreads(); }
+
+  if (tid < 32) {
+    if (blockSize >= 64) pvp_sh[tid] += pvp_sh[tid + 32];
+    if (blockSize >= 32) pvp_sh[tid] += pvp_sh[tid + 16];
+    if (blockSize >= 16) pvp_sh[tid] += pvp_sh[tid + 8];
+    if (blockSize >= 8) pvp_sh[tid] += pvp_sh[tid + 4];
+    if (blockSize >= 4) pvp_sh[tid] += pvp_sh[tid + 2];
+    if (blockSize >= 2) pvp_sh[tid] += pvp_sh[tid + 1];
+  }
+  if (tid == 0) psivpsi[blockIdx.x] = pvp_sh[0];
+}
+
+
+template <unsigned int blockSize>
+__global__ void reducethen_d(int n, double *in,double *out)
+{
+
+  const unsigned int tid = threadIdx.x; //from 1 to 256
+  unsigned int i = blockIdx.x*blockSize*2 + tid; //(coalesced)
+  const unsigned int gridSize = blockSize*2*gridDim.x;
+
+  __shared__ double pvp_sh[blockSize];
+  
+  pvp_sh[tid]=0.;
+  
+  while(i < n)
+    {
+      pvp_sh[tid]+=in[i]+in[i+blockSize];
+      i+=gridSize;
+    }
+
+  //end shared memory copy
+  __syncthreads();
+
+  //reduction of the array in one element
+  if (blockSize >= 512) { if (tid < 256) { pvp_sh[tid] += pvp_sh[tid + 256]; } __syncthreads(); }
+  if (blockSize >= 256) { if (tid < 128) { pvp_sh[tid] += pvp_sh[tid + 128]; } __syncthreads(); }
+  if (blockSize >= 128) { if (tid < 64) { pvp_sh[tid] += pvp_sh[tid + 64]; } __syncthreads(); }
+
+  if (tid < 32) {
+    if (blockSize >= 64) pvp_sh[tid] += pvp_sh[tid + 32];
+    if (blockSize >= 32) pvp_sh[tid] += pvp_sh[tid + 16];
+    if (blockSize >= 16) pvp_sh[tid] += pvp_sh[tid + 8];
+    if (blockSize >= 8) pvp_sh[tid] += pvp_sh[tid + 4];
+    if (blockSize >= 4) pvp_sh[tid] += pvp_sh[tid + 2];
+    if (blockSize >= 2) pvp_sh[tid] += pvp_sh[tid + 1];
+  }
+  if (tid == 0) out[blockIdx.x] = pvp_sh[0];
+}
+
+float reducearrays_d(int n,
+		   int ndat,
+		   float *psi,
+		   float *vpsi,
+		   double *epot)
+{
+
+  double epots[COPYVALUES];
+
+  //first reduce the two arrays in the input-output form
+  int threads=256; //first value, fixed
+  int blocks=(n*ndat-1)/256 + 1; //ntot-1/256 +1
+
+  dim3 dimBlock(threads, 1, 1);
+  dim3 dimGrid(blocks, 1, 1);
+
+  //allocate on the GPU the memory to host the reduction arrays
+  double* wrkred[2];
+  size_t size0=blocks*sizeof(double);
+  size_t size1=(blocks/2+1)*sizeof(double);
+
+  if(cudaMalloc( (void**) &(wrkred[0]), size0) != 0)
+    {
+      printf("reducearrays:GPU allocation error 1 \n");
+      return 0.f;
+    }
+  if(cudaMalloc( (void**) &(wrkred[1]), size1) != 0)
+    {
+      printf("reducearrays:GPU allocation error 2\n");
+      return 0.f;
+    }
+
+  switch (threads)
+    {
+    case 512:
+      reducefirst_d<512><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 256:	 
+      reducefirst_d<256><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 128:	 
+      reducefirst_d<128><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 64:	 
+      reducefirst_d< 64><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 32:	 
+      reducefirst_d< 32><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 16:	 
+      reducefirst_d< 16><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 8:	 
+      reducefirst_d<  8><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 4:	 
+      reducefirst_d<  4><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 2:	 
+      reducefirst_d<  2><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    case 1:	 
+      reducefirst_d<  1><<< dimGrid, dimBlock >>>(n,ndat,psi,vpsi,wrkred[0]); break;
+    default:
+      exit(1);
+    }
+
+  int ntot=blocks;
+  threads=512;
+  int iin=0;
+  int iout=1;
+
+  //then pass to the reduction case until only one element is left
+
+  while (blocks > COPYVALUES)
+    {
+      while(ntot < 2*threads){threads/=2;}
+
+      blocks=(ntot-1)/(2*threads) +1;
+
+      dim3 dimBlock(threads, 1, 1);
+      dim3 dimGrid(blocks, 1, 1);
+
+      switch (threads)
+	{
+	case 512:
+	  reducethen_d<512><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 256:
+	  reducethen_d<256><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 128:
+	  reducethen_d<128><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 64:
+	  reducethen_d< 64><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 32:
+	  reducethen_d< 32><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 16:
+	  reducethen_d< 16><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 8:
+	  reducethen_d<  8><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 4:
+	  reducethen_d<  4><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 2:
+	  reducethen_d<  2><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	case 1:
+	  reducethen_d<  1><<< dimGrid, dimBlock >>>(ntot,wrkred[iin],wrkred[iout]); break;
+	default:
+	  exit(1);
+	}
+
+      ntot=blocks;
+      iin=1-iin;
+      iout=1-iout;
+      //printf("ntot,blocks,iin,iout %i %i %i %i\n",ntot,blocks,iin,iout); 
+
+    }
+
+  //printf("ntot,blocks,iin,iout %i %i %i %i\n",ntot,blocks,iin,iout); 
+  cudaFree(wrkred[iout]);
+
+
+  if(cudaMemcpy(epots,wrkred[iin], blocks*sizeof(double), cudaMemcpyDeviceToHost)  != 0)
+    {
+      printf("reducearrays: DeviceToHost Memcpy error \n");
+      return 0.f;
+    }
+
+
+  //cudaFree(wrkred);
+  cudaFree(wrkred[iin]);
+
+  
+  register double result=epots[0];
+
+    for( int i = 1 ; i < blocks; i++ )  
+      {
+      result += epots[i];
+      //printf ("%f",epots);
+    }
+  
+    *epot=result;
+
+  return result;
+  
+}*/
+#endif 	    /* !REDUCTION_H_ */
+
+/****/

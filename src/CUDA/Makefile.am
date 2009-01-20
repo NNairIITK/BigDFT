@@ -7,7 +7,7 @@ EXTRA_DIST = \
 	conv_pot_shared_kernel.cu \
 	Makefile.standalone \
 	read_conf_file.h \
-	reduction.h \
+	reduction.hcu \
 	kernel_tex.cu
 
 SOURCES_CU_CONV1 = convolution.cu \
@@ -16,23 +16,28 @@ SOURCES_CU_CONV1 = convolution.cu \
 	cudafct.cu
 
 SOURCES_CONV = locpot.cu \
-	kinetic.cu
+	kinetic.cu \
+	anasyn.cu \
+	reduction.cu \
+	locham.cu
 
-SOURCES_CXX_CONV1 = convSeria.cpp \
+SOURCES_SHARED = convSeria.cpp \
 	setCPU_GPU_aff.cpp \
 	read_conf_file.cpp \
+	memory_management.cu \
+	commonDef.cpp \
 	fortran.c
 
 INC_CUDA = -I@LIB_CUTIL_PATH@
 
 noinst_LIBRARIES = libGPU.a
 
-libGPU_a_SOURCES = $(SOURCES_CU_CONV1) $(SOURCES_CXX_CONV1) $(SOURCES_CONV)
+libGPU_a_SOURCES = $(SOURCES_CU_CONV1) $(SOURCES_SHARED) $(SOURCES_CONV)
 AM_CPPFLAGS = $(INC_CUDA) -I. -I@CUDA_PATH@/include/ 
 AM_CFLAGS = $(INC_CUDA) -I. -I@CUDA_PATH@/include/ -DCUBLAS_USE_THUNKING 
 
 NVCC = @NVCC@
-CUDA_FLAGS = @INC_GCC41CUDA@ @CUDA_FLAGS@
+CUDA_FLAGS = @INC_GCC41CUDA@ -arch sm_13  @CUDA_FLAGS@ 
 SUFFIXES = .cu
 
 if USE_CUDA_GPU
@@ -48,7 +53,8 @@ EXTRA_DIST += conv_check.f90 \
 	1Dconv.cu \
 	1Dconv_new.cu \
 	locpot.cu \
-	kinetic.cu 
+	kinetic.cu \
+	locham.cu
 endif
 
 if USE_MPI
@@ -90,7 +96,13 @@ convolution.o : conv_shared_multi_kernel.cu \
 
 conv_shared_multi.cu : structUtil.h
 
-locpot.o: reduction.h
+locpot.o: reduction.hcu kernels_locpot.hcu structDef_locpot.h
+
+kinetic.o: reduction.hcu kernels_kinetic.hcu structDef_kinetic.h
+
+anasyn.o: kernels_anasyn.hcu structDef_anasyn.h
+
+locham.o : kernels_anasyn.hcu kernels_locpot.hcu kernels_kinetic.hcu reduction.hcu
 
 convolutionPot.cu : conv_pot_shared_kernel.cu \
 	convolutionPot.h \
@@ -107,5 +119,5 @@ convSeria.cpp structUtil.cu : structUtil.h
 read_conf_file.cpp : read_conf_file.h
 
 check:
-	echo 3 128 128 64 64 5 > fort.1
+	echo 1 64 64 2048 2048 5 0 > fort.1
 	$(top_builddir)/src/CUDA/conv_check

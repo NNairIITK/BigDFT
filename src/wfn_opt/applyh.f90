@@ -383,11 +383,11 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,psi_GPU,i_stat)
      call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),v_cuda,v_GPU,i_stat)
 
-     call kineticterm(2*n1+1,2*n2+1,2*n3+1,&
+     call kinetictermd(2*n1+1,2*n2+1,2*n3+1,&
           real(hgridh(1),kind=4),real(hgridh(2),kind=4),real(hgridh(3),kind=4),0.e0,&
           psi_GPU,work2_GPU,work_GPU,work3_GPU,ekinGPU)
 
-     call localpotential(2*n1+1,2*n2+1,2*n3+1,work_GPU,psi_GPU,v_GPU,epotGPU)
+     call localpotentiald(2*n1+1,2*n2+1,2*n3+1,work_GPU,psi_GPU,v_GPU,epotGPU)
 
      call GPU_receive((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,work_GPU,i_stat)
      call GPU_receive((2*n1+2)*(2*n2+2)*(2*n3+2),v_cuda,work2_GPU,i_stat)
