@@ -103,8 +103,7 @@ program PS_Check
   call memocc(i_stat,xc_pot,'xc_pot',subname)
 
   do ispden=1,2
-     if (iproc==0) write(unit=*,fmt="(1x,a,i0)") &
-          '===================== nspden:  ',ispden
+     if (iproc == 0) write(unit=*,fmt="(1x,a,i0)")  '===================== nspden:  ',ispden
      !then assign the value of the analytic density and the potential
      allocate(rhopot(n01*n02*n03*ispden+ndebug),stat=i_stat)
      call memocc(i_stat,rhopot,'rhopot',subname)
@@ -117,14 +116,14 @@ program PS_Check
      call PSolver(geocode,'G',iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
           rhopot,pkernel,xc_pot,ehartree,eexcu,vexcu,offset,.false.,ispden)
      
-     if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies:',ehartree,eexcu,vexcu
+     if (iproc == 0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies:',ehartree,eexcu,vexcu
      if (iproc == 0) then
         !compare the values of the analytic results
-        call compare(0,1,n01,n02,n03,1,potential,rhopot,'ANALYTIC  ')
+        call compare(0,-1,n01,n02,n03,1,potential,rhopot,'ANALYTIC')
      end if
      !if the latter test pass, we have a reference for all the other calculations
      !build the reference quantities (based on the numerical result, not the analytic)
-     potential=rhopot
+     potential(:)=rhopot(1:n01*n02*n03)
      !now the parallel calculation part
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
@@ -138,23 +137,23 @@ program PS_Check
           offset,ehartree,eexcu,vexcu,&
           density,potential,pot_ion,xc_pot,pkernel)
 
-  !test for the serial solver
-  if (iproc == 0 .and. nproc > 1 ) then
-     i_all=-product(shape(pkernel))*kind(pkernel)
-     deallocate(pkernel,stat=i_stat)
-     call memocc(i_stat,i_all,'pkernel',subname)
+     !test for the serial solver
+     if (iproc == 0 .and. nproc >= 1 ) then
+        i_all=-product(shape(pkernel))*kind(pkernel)
+        deallocate(pkernel,stat=i_stat)
+        call memocc(i_stat,i_all,'pkernel',subname)
 
-     !calculate the kernel 
-     call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,quiet='yes')
+        !calculate the kernel 
+        call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,quiet='yes')
 
-     call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
-          offset,ehartree,eexcu,vexcu,&
-          density,potential,pot_ion,xc_pot,pkernel)
+        call compare_with_reference(0,1,geocode,'G',n01,n02,n03,ixc,ispden,hx,hy,hz,&
+             offset,ehartree,eexcu,vexcu,&
+             density,potential,pot_ion,xc_pot,pkernel)
 
-     call compare_with_reference(0,1,geocode,'D',n01,n02,n03,ixc,ispden,hx,hy,hz,&
-          offset,ehartree,eexcu,vexcu,&
-          density,potential,pot_ion,xc_pot,pkernel)
-  end if
+        call compare_with_reference(0,1,geocode,'D',n01,n02,n03,ixc,ispden,hx,hy,hz,&
+             offset,ehartree,eexcu,vexcu,&
+             density,potential,pot_ion,xc_pot,pkernel)
+     end if
 
      if (ixc == 0) exit
   end do
@@ -183,7 +182,10 @@ program PS_Check
   call MPI_FINALIZE(ierr)  
 
 !end program PS_Check
+
+
 contains
+
 
   subroutine compare_with_reference(iproc,nproc,geocode,distcode,n01,n02,n03,&
        ixc,nspden,hx,hy,hz,offset,ehref,excref,vxcref,&
@@ -234,7 +236,7 @@ contains
     allocate(rhopot(n01,n02,n3d,nspden+ndebug),stat=i_stat)
     call memocc(i_stat,rhopot,'rhopot',subname)
 
-    write(message,*) geocode,ixc,distcode,nspden
+    if (iproc == 0) write(message,'(1x,a,1x,i0,1x,a,1x,i0)') geocode,ixc,distcode,nspden
 
     if (ixc /= 0) then
        if (nspden == 1) then
@@ -322,7 +324,7 @@ contains
 
     !then compare again, but the complete result
     call compare(iproc,nproc,n01,n02,nspden*n3p,1,test(istpot),&
-         rhopot(1,1,i3xcsh+1,1),'COMPLETE  '//message)
+         rhopot(1,1,i3xcsh+1,1),'COMPLETE   '//message)
     if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") &
          'Energies diff:',ehref-ehartree,excref-eexcu,vxcref-vexcu
 
@@ -339,55 +341,53 @@ contains
 
   end subroutine compare_with_reference
 
-end program PS_Check
-!!***
 
-
-subroutine compare(iproc,nproc,n01,n02,n03,nspden,potential,density,description)
-  implicit none
-  include 'mpif.h'
-  character(len=*), intent(in) :: description
-  integer, intent(in) :: iproc,nproc,n01,n02,n03,nspden
-  real(kind=8), dimension(n01,n02,n03), intent(in) :: potential,density
-  !local variables
-  integer :: i1,i2,i3,ierr,i1_max,i2_max,i3_max
-  real(kind=8) :: factor,diff_par,max_diff
-  max_diff = 0.d0
-  i1_max = 1
-  i2_max = 1
-  i3_max = 1
-  do i3=1,n03
-     do i2=1,n02 
-        do i1=1,n01
-           factor=abs(real(nspden,kind=8)*potential(i1,i2,i3)-density(i1,i2,i3))
-           if (max_diff < factor) then
-              max_diff = factor
-              i1_max = i1
-              i2_max = i2
-              i3_max = i3
-           end if
-        end do
-     end do
-  end do
+  subroutine compare(iproc,nproc,n01,n02,n03,nspden,potential,density,description)
+    implicit none
+    include 'mpif.h'
+    character(len=*), intent(in) :: description
+    integer, intent(in) :: iproc,nproc,n01,n02,n03,nspden
+    real(kind=8), dimension(n01,n02,n03), intent(in) :: potential,density
+    !local variables
+    integer :: i1,i2,i3,ierr,i1_max,i2_max,i3_max
+    real(kind=8) :: factor,diff_par,max_diff
+    max_diff = 0.d0
+    i1_max = 1
+    i2_max = 1
+    i3_max = 1
+    do i3=1,n03
+       do i2=1,n02 
+          do i1=1,n01
+             factor=abs(real(nspden,kind=8)*potential(i1,i2,i3)-density(i1,i2,i3))
+             if (max_diff < factor) then
+                max_diff = factor
+                i1_max = i1
+                i2_max = i2
+                i3_max = i3
+             end if
+          end do
+       end do
+    end do
 
 !!$  print *,'iproc,i3xcsh,i3s,max_diff',iproc,i3xcsh,i3s,max_diff
-  
-  if (nproc > 1) then
-     !extract the max
-     call MPI_ALLREDUCE(max_diff,diff_par,1,MPI_double_precision,  &
-          MPI_MAX,MPI_COMM_WORLD,ierr)
-  else
-     diff_par=max_diff
-  end if
 
-  if (iproc == 0) then
-     if (nproc == 1) then
-        if (diff_par > 1.e-10) then
-           write(unit=*,fmt="(1x,a,1pe20.12,a)") trim(description)//'    Max diff:',diff_par,&
-                '   <<<< WARNING'
-           write(unit=*,fmt="(1x,a,1pe20.12)")'      result:',density(i1_max,i2_max,i3_max),&
-                '    original:',potential(i1_max,i2_max,i3_max)
-           write(*,'(a,3(i0,1x))')'  Max diff at: ',i1_max,i2_max,i3_max
+    if (nproc > 1) then
+       !extract the max
+       call MPI_ALLREDUCE(max_diff,diff_par,1,MPI_double_precision,  &
+            MPI_MAX,MPI_COMM_WORLD,ierr)
+    else
+       diff_par=max_diff
+    end if
+
+    if (iproc == 0) then
+       if (nproc == -1) then
+          if (diff_par > 1.e-10) then
+             write(unit=*,fmt="(1x,a,1pe20.12,a)") &
+                  trim(description) // '    Max diff:',diff_par,'   <<<< WARNING'
+             write(unit=*,fmt="(1x,a,1pe20.12)") &
+                  '      result:',density(i1_max,i2_max,i3_max),&
+                  '    original:',potential(i1_max,i2_max,i3_max)
+             write(*,'(a,3(i0,1x))') '  Max diff at: ',i1_max,i2_max,i3_max
 !!$           i3=i3_max
 !!$           i1=i1_max
 !!$           do i2=1,n02
@@ -396,22 +396,24 @@ subroutine compare(iproc,nproc,n01,n02,n03,nspden,potential,density,description)
 !!$              !end do
 !!$           end do
 !!$           stop
-        else
-           write(unit=*,fmt="(1x,a,1pe20.12)") trim(description)// '    Max diff:',diff_par
-        end if
-     else
-        if (diff_par > 1.e-10) then
-           write(unit=*,fmt="(1x,a,1pe20.12,a)") trim(description)//'    Max diff:',diff_par,&
-                '   <<<< WARNING'
-        else
-           write(unit=*,fmt="(1x,a,1pe20.12)") trim(description)// '    Max diff:',diff_par
-        end if
-     end if
-  end if
+          else
+             write(unit=*,fmt="(1x,a,1pe20.12)") &
+                  trim(description) // '    Max diff:',diff_par
+          end if
+       else
+          if (diff_par > 1.e-10) then
+             write(unit=*,fmt="(1x,a,1pe20.12,a)") &
+                  trim(description) // '    Max diff:',diff_par,'   <<<< WARNING'
+          else
+             write(unit=*,fmt="(1x,a,1pe20.12)") &
+                  trim(description) //'    Max diff:',diff_par
+          end if
+       end if
+    end if
 
-  max_diff=diff_par
+    max_diff=diff_par
 
-end subroutine compare
+  end subroutine compare
 
 
 ! this subroutine builds some analytic functions that can be used for 
@@ -422,35 +424,35 @@ end subroutine compare
 ! The parameters of the functions must be adjusted in order to have a sufficiently localized
 ! function in the isolated direction and an explicitly periodic function in the periodic ones.
 ! Beware of the high-frequency components that may falsify the results when hgrid is too high.
-subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,&
-     density,potential,rhopot,pot_ion,offset)
-  implicit none
-  character(len=1), intent(in) :: geocode
-  integer, intent(in) :: n01,n02,n03,ixc,nspden
-  real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz
-  real(kind=8), intent(out) :: offset
-  real(kind=8), dimension(n01,n02,n03), intent(out) :: pot_ion,potential
-  real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: density,rhopot
-  !local variables
-  integer :: i1,i2,i3,nu,ifx,ify,ifz,i
-  real(kind=8) :: x,x1,x2,x3,y,length,denval,pi,a2,derf,hgrid,factor,r,r2
-  real(kind=8) :: fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,potion_fac
+  subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,&
+       density,potential,rhopot,pot_ion,offset)
+    implicit none
+    character(len=1), intent(in) :: geocode
+    integer, intent(in) :: n01,n02,n03,ixc,nspden
+    real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz
+    real(kind=8), intent(out) :: offset
+    real(kind=8), dimension(n01,n02,n03), intent(out) :: pot_ion,potential
+    real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: density,rhopot
+    !local variables
+    integer :: i1,i2,i3,nu,ifx,ify,ifz,i
+    real(kind=8) :: x,x1,x2,x3,y,length,denval,pi,a2,derf,hgrid,factor,r,r2
+    real(kind=8) :: fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,potion_fac
 
-  if (trim(geocode) == 'P') then
-     !parameters for the test functions
-     length=acell
-     a=0.5d0/a_gauss**2
-     !test functions in the three directions
-     ifx=5
-     ify=5
-     ifz=5
-     !parameters of the test functions
-     ax=length
-     ay=length
-     az=length
-     bx=2.d0!real(nu,kind=8)
-     by=2.d0!real(nu,kind=8)
-     bz=2.d0
+    if (trim(geocode) == 'P') then
+       !parameters for the test functions
+       length=acell
+       a=0.5d0/a_gauss**2
+       !test functions in the three directions
+       ifx=5
+       ify=5
+       ifz=5
+       !parameters of the test functions
+       ax=length
+       ay=length
+       az=length
+       bx=2.d0!real(nu,kind=8)
+       by=2.d0!real(nu,kind=8)
+       bz=2.d0
 
 !!$     !plot of the functions used
 !!$     do i1=1,n03
@@ -461,224 +463,231 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,nspden,acell,a_gauss,hx,hy,hz,
 !!$        write(20,*)i1,fx,fx2,fz,fz2
 !!$     end do
 
-     !Initialization of density and potential
-     denval=0.d0 !value for keeping the density positive
-     do i3=1,n03
-        x3 = hz*real(i3-n03/2-1,kind=8)
-        call functions(x3,az,bz,fz,fz2,ifz)
-        do i2=1,n02
-           x2 = hy*real(i2-n02/2-1,kind=8)
-           call functions(x2,ay,by,fy,fy2,ify)
-           do i1=1,n01
-              x1 = hx*real(i1-n01/2-1,kind=8)
-              call functions(x1,ax,bx,fx,fx2,ifx)
-              do i=1,nspden
-                 density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)*(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
-              end do
-              potential(i1,i2,i3) = -16.d0*datan(1.d0)*fx*fy*fz
-              denval=max(denval,-density(i1,i2,i3,1))
-           end do
-        end do
-     end do
+       !Initialization of density and potential
+       denval=0.d0 !value for keeping the density positive
+       do i3=1,n03
+          x3 = hz*real(i3-n03/2-1,kind=8)
+          call functions(x3,az,bz,fz,fz2,ifz)
+          do i2=1,n02
+             x2 = hy*real(i2-n02/2-1,kind=8)
+             call functions(x2,ay,by,fy,fy2,ify)
+             do i1=1,n01
+                x1 = hx*real(i1-n01/2-1,kind=8)
+                call functions(x1,ax,bx,fx,fx2,ifx)
+                do i=1,nspden
+                   density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)*(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
+                end do
+                potential(i1,i2,i3) = -16.d0*datan(1.d0)*fx*fy*fz
+                denval=max(denval,-density(i1,i2,i3,1))
+             end do
+          end do
+       end do
 
-     if (ixc==0) denval=0.d0
+       if (ixc==0) denval=0.d0
 
-  else if (trim(geocode) == 'S') then
-     !parameters for the test functions
-     length=acell
-     a=0.5d0/a_gauss**2
-     !test functions in the three directions
-     ifx=5
-     ifz=5
-     !non-periodic dimension
-     ify=6
-     !parameters of the test functions
-     ax=length
-     az=length
-     bx=real(nu,kind=8)
-     bz=real(nu,kind=8)
-     !non-periodic dimension
-     ay=length
-     by=a
+    else if (trim(geocode) == 'S') then
+       !parameters for the test functions
+       length=acell
+       a=0.5d0/a_gauss**2
+       !test functions in the three directions
+       ifx=5
+       ifz=5
+       !non-periodic dimension
+       ify=6
+       !parameters of the test functions
+       ax=length
+       az=length
+       bx=real(nu,kind=8)
+       bz=real(nu,kind=8)
+       !non-periodic dimension
+       ay=length
+       by=a
 
-     !Initialisation of density and potential
-     denval=0.d0 !value for keeping the density positive
-     do i3=1,n03
-        x3 = hz*real(i3-n03/2-1,kind=8)
-        call functions(x3,az,bz,fz,fz2,ifz)
-        do i2=1,n02
-           x2 = hy*real(i2-n02/2-1,kind=8)
-           call functions(x2,ay,by,fy,fy2,ify)
-           do i1=1,n01
-              x1 = hx*real(i1-n02/2-1,kind=8)
-              call functions(x1,ax,bx,fx,fx2,ifx)
-              do i=1,nspden
-                 density(i1,i2,i3,i) = &
-                      1.d0/real(nspden,kind=8)/(16.d0*datan(1.d0))*(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
-              end do
-              potential(i1,i2,i3) = -fx*fy*fz
-              denval=max(denval,-density(i1,i2,i3,1))
-           end do
-        end do
-     end do
+       !Initialisation of density and potential
+       denval=0.d0 !value for keeping the density positive
+       do i3=1,n03
+          x3 = hz*real(i3-n03/2-1,kind=8)
+          call functions(x3,az,bz,fz,fz2,ifz)
+          do i2=1,n02
+             x2 = hy*real(i2-n02/2-1,kind=8)
+             call functions(x2,ay,by,fy,fy2,ify)
+             do i1=1,n01
+                x1 = hx*real(i1-n02/2-1,kind=8)
+                call functions(x1,ax,bx,fx,fx2,ifx)
+                do i=1,nspden
+                   density(i1,i2,i3,i) = &
+                        1.d0/real(nspden,kind=8)/(16.d0*datan(1.d0))*(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
+                end do
+                potential(i1,i2,i3) = -fx*fy*fz
+                denval=max(denval,-density(i1,i2,i3,1))
+             end do
+          end do
+       end do
 
-     if (ixc==0) denval=0.d0
+       if (ixc==0) denval=0.d0
 
-  else if (trim(geocode) == 'F') then
+    else if (trim(geocode) == 'F') then
 
-     !grid for the free BC case
-     !hgrid=max(hx,hy,hz)
+       !grid for the free BC case
+       !hgrid=max(hx,hy,hz)
 
-     pi = 4.d0*atan(1.d0)
-     a2 = a_gauss**2
+       pi = 4.d0*atan(1.d0)
+       a2 = a_gauss**2
 
-     !Normalization
-     factor = 1.d0/(a_gauss*a2*pi*sqrt(pi))
-     !gaussian function
-     do i3=1,n03
-        x3 = hz*real(i3-n03/2,kind=8)
-        do i2=1,n02
-           x2 = hy*real(i2-n02/2,kind=8)
-           do i1=1,n01
-              x1 = hx*real(i1-n01/2,kind=8)
-              r2 = x1*x1+x2*x2+x3*x3
-              do i=1,nspden
-                 density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)*max(factor*exp(-r2/a2),1d-24)
-              end do
-              r = sqrt(r2)
-              !Potential from a gaussian
-              if (r == 0.d0) then
-                 potential(i1,i2,i3) = 2.d0/(sqrt(pi)*a_gauss)
-              else
-                 potential(i1,i2,i3) = derf(r/a_gauss)/r
-              end if
-           end do
-        end do
-     end do
-     
-     denval=0.d0
+       !Normalization
+       factor = 1.d0/(a_gauss*a2*pi*sqrt(pi))
+       !gaussian function
+       do i3=1,n03
+          x3 = hz*real(i3-n03/2,kind=8)
+          do i2=1,n02
+             x2 = hy*real(i2-n02/2,kind=8)
+             do i1=1,n01
+                x1 = hx*real(i1-n01/2,kind=8)
+                r2 = x1*x1+x2*x2+x3*x3
+                do i=1,nspden
+                   density(i1,i2,i3,i) = 1.d0/real(nspden,kind=8)*max(factor*exp(-r2/a2),1d-24)
+                end do
+                r = sqrt(r2)
+                !Potential from a gaussian
+                if (r == 0.d0) then
+                   potential(i1,i2,i3) = 2.d0/(sqrt(pi)*a_gauss)
+                else
+                   potential(i1,i2,i3) = derf(r/a_gauss)/r
+                end if
+             end do
+          end do
+       end do
+       
+       denval=0.d0
 
-  else
+    else
 
-     print *,'geometry code not admitted',geocode
-     stop
+       print *,'geometry code not admitted',geocode
+       stop
 
-  end if
+    end if
 
-! For ixc/=0 the XC potential is added to the solution, and an analytic comparison is no more
-! possible. In that case the only possible comparison is between the serial and the parallel case
-! To ease the comparison between the serial and the parallel case we add a random pot_ion
-! to the potential.
+  ! For ixc/=0 the XC potential is added to the solution, and an analytic comparison is no more
+  ! possible. In that case the only possible comparison is between the serial and the parallel case
+  ! To ease the comparison between the serial and the parallel case we add a random pot_ion
+  ! to the potential.
 
-  if (denval /= 0.d0) then
-     rhopot(:,:,:,:) = density(:,:,:,:) + denval +1.d-20
-  else
-     rhopot(:,:,:,:) = density(:,:,:,:) 
-  end if
+    if (denval /= 0.d0) then
+       rhopot(:,:,:,:) = density(:,:,:,:) + denval +1.d-20
+    else
+       rhopot(:,:,:,:) = density(:,:,:,:) 
+    end if
 
-  offset=0.d0
-  do i3=1,n03
-     do i2=1,n02
-        do i1=1,n01
-           tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
-           pot_ion(i1,i2,i3)=tt
-           offset=offset+potential(i1,i2,i3)
-           !add the case for offset in the surfaces case 
-           !(for periodic case it is absorbed in offset)
-           if (geocode == 'S' .and. denval /= 0.d0) then
-              x2 = hy*real(i2-1,kind=8)-0.5d0*acell+0.5d0*hy
-              potential(i1,i2,i3)=potential(i1,i2,i3)&
-                   -8.d0*datan(1.d0)*denval*real(nspden,kind=8)*(x2**2+0.25d0*acell**2)
-              !this stands for
-              !denval*2pi*Lx*Lz/Ly^2(y^2-Ly^2/4), less accurate in hgrid
-           end if
+    offset=0.d0
+    do i3=1,n03
+       do i2=1,n02
+          do i1=1,n01
+             tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
+             pot_ion(i1,i2,i3)=tt
+             offset=offset+potential(i1,i2,i3)
+             !add the case for offset in the surfaces case 
+             !(for periodic case it is absorbed in offset)
+             if (geocode == 'S' .and. denval /= 0.d0) then
+                x2 = hy*real(i2-1,kind=8)-0.5d0*acell+0.5d0*hy
+                potential(i1,i2,i3)=potential(i1,i2,i3)&
+                     -8.d0*datan(1.d0)*denval*real(nspden,kind=8)*(x2**2+0.25d0*acell**2)
+                !this stands for
+                !denval*2pi*Lx*Lz/Ly^2(y^2-Ly^2/4), less accurate in hgrid
+             end if
 
 !!$           if (rhopot(i1,i2,i3,1) <= 0.d0) then
 !!$              print *,i1,i2,i3,rhopot(i1,i2,i3,1),denval
 !!$           end if
-        end do
-     end do
-  end do
-  if (denval /= 0.d0) density=rhopot
-  offset=offset*hx*hy*hz
+          end do
+       end do
+    end do
+    if (denval /= 0.d0) density=rhopot
+    offset=offset*hx*hy*hz
 
-  !print *,'offset',offset
+    !print *,'offset',offset
 
-end subroutine test_functions
+  end subroutine test_functions
 
-subroutine functions(x,a,b,f,f2,whichone)
-  implicit none
-  integer, intent(in) :: whichone
-  real(kind=8), intent(in) :: x,a,b
-  real(kind=8), intent(out) :: f,f2
-  !local variables
-  real(kind=8) :: r,r2,y,yp,ys,factor,pi,g,h,g1,g2,h1,h2
-  real(kind=8) :: length,frequency,nu,sigma,agauss
 
-  pi = 4.d0*datan(1.d0)
-  select case(whichone)
-  case(1)
-     !constant
-     f=1.d0
-     f2=0.d0
-  case(2)
-     !gaussian of sigma s.t. a=1/(2*sigma^2)
-     r2=a*x**2
-     f=dexp(-r2)
-     f2=(-2.d0*a+4.d0*a*r2)*dexp(-r2)
-  case(3)
-     !gaussian "shrinked" with a=length of the system
-     length=a
-     r=pi*x/length
-     y=dtan(r)
-     yp=pi/length*1.d0/(dcos(r))**2
-     ys=2.d0*pi/length*y*yp
-     factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
-     f2=factor*dexp(-y**2)
-     f=dexp(-y**2)
-  case(4)
-     !cosine with a=length, b=frequency
-     length=a
-     frequency=b
-     r=frequency*pi*x/length
-     f=dcos(r)
-     f2=-(frequency*pi/length)**2*dcos(r)
-  case(5)
-     !exp of a cosine, a=length
-     nu=2.d0
-     r=pi*nu/a*x
-     y=dcos(r)
-     yp=dsin(r)
-     f=dexp(y)
-     factor=(pi*nu/a)**2*(-y+yp**2)
-     f2=factor*f
-  case(6)
-     !gaussian times "shrinked" gaussian, sigma=length/10
-     length=a
-     r=pi*x/length
-     y=dtan(r)
-     yp=pi/length*1.d0/(dcos(r))**2
-     ys=2.d0*pi/length*y*yp
-     factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
-     g=dexp(-y**2)
-     g1=-2.d0*y*yp*g
-     g2=factor*dexp(-y**2)
-     
-     sigma=length/10
-     agauss=0.5d0/sigma**2
-     r2=agauss*x**2
-     h=dexp(-r2)
-     h1=-2.d0*agauss*x*h
-     h2=(-2.d0*agauss+4.d0*agauss*r2)*dexp(-r2)
-     f=g*h
-     f2=g2*h+g*h2+2.d0*g1*h1
-  case(7)
-     !sine with a=length, b=frequency
-     length=a
-     frequency=b
-     r=frequency*pi*x/length
-     f=dsin(r)
-     f2=-(frequency*pi/length)**2*dsin(r)
-  end select
+  subroutine functions(x,a,b,f,f2,whichone)
+    implicit none
+    integer, intent(in) :: whichone
+    real(kind=8), intent(in) :: x,a,b
+    real(kind=8), intent(out) :: f,f2
+    !local variables
+    real(kind=8) :: r,r2,y,yp,ys,factor,pi,g,h,g1,g2,h1,h2
+    real(kind=8) :: length,frequency,nu,sigma,agauss
 
-end subroutine functions
+    pi = 4.d0*datan(1.d0)
+    select case(whichone)
+    case(1)
+       !constant
+       f=1.d0
+       f2=0.d0
+    case(2)
+       !gaussian of sigma s.t. a=1/(2*sigma^2)
+       r2=a*x**2
+       f=dexp(-r2)
+       f2=(-2.d0*a+4.d0*a*r2)*dexp(-r2)
+    case(3)
+       !gaussian "shrinked" with a=length of the system
+       length=a
+       r=pi*x/length
+       y=dtan(r)
+       yp=pi/length*1.d0/(dcos(r))**2
+       ys=2.d0*pi/length*y*yp
+       factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
+       f2=factor*dexp(-y**2)
+       f=dexp(-y**2)
+    case(4)
+       !cosine with a=length, b=frequency
+       length=a
+       frequency=b
+       r=frequency*pi*x/length
+       f=dcos(r)
+       f2=-(frequency*pi/length)**2*dcos(r)
+    case(5)
+       !exp of a cosine, a=length
+       nu=2.d0
+       r=pi*nu/a*x
+       y=dcos(r)
+       yp=dsin(r)
+       f=dexp(y)
+       factor=(pi*nu/a)**2*(-y+yp**2)
+       f2=factor*f
+    case(6)
+       !gaussian times "shrinked" gaussian, sigma=length/10
+       length=a
+       r=pi*x/length
+       y=dtan(r)
+       yp=pi/length*1.d0/(dcos(r))**2
+       ys=2.d0*pi/length*y*yp
+       factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
+       g=dexp(-y**2)
+       g1=-2.d0*y*yp*g
+       g2=factor*dexp(-y**2)
+       
+       sigma=length/10
+       agauss=0.5d0/sigma**2
+       r2=agauss*x**2
+       h=dexp(-r2)
+       h1=-2.d0*agauss*x*h
+       h2=(-2.d0*agauss+4.d0*agauss*r2)*dexp(-r2)
+       f=g*h
+       f2=g2*h+g*h2+2.d0*g1*h1
+    case(7)
+       !sine with a=length, b=frequency
+       length=a
+       frequency=b
+       r=frequency*pi*x/length
+       f=dsin(r)
+       f2=-(frequency*pi/length)**2*dsin(r)
+    end select
+
+  end subroutine functions
+
+
+end program PS_Check
+!!***
+
+
