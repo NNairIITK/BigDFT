@@ -295,7 +295,7 @@ contains
          'ANACOMPLET '//message)
 
     !compare also the xc_potential
-    if (ixc/=0) call compare(iproc,nproc,n01,n02,nspden*n3p,1,xc_temp(istxc),&
+    if (ixc/=0) call compare(iproc,nproc,n01,n02,nspden*n3p,1,xc_temp(istxc:),&
          test_xc(1),&
          'XCCOMPLETE '//message)
     if (iproc==0) write(unit=*,fmt="(1x,a,3(1pe20.12))") &
