@@ -118,7 +118,7 @@ program PS_Check
      
      if (iproc == 0) write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies:',ehartree,eexcu,vexcu
      if (iproc == 0) then
-        !compare the values of the analytic results
+        !compare the values of the analytic results (nproc == -1 indicates that it is serial)
         call compare(0,-1,n01,n02,n03,1,potential,rhopot,'ANALYTIC')
      end if
      !if the latter test pass, we have a reference for all the other calculations
@@ -342,6 +342,8 @@ contains
   end subroutine compare_with_reference
 
 
+! Compare arrays potential and density
+! if nproc == -1: serial version i.e. special comparison
   subroutine compare(iproc,nproc,n01,n02,n03,nspden,potential,density,description)
     implicit none
     include 'mpif.h'
