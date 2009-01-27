@@ -206,6 +206,20 @@ module module_types
   end type communications_arrays
 !!***
 
+!!****t* module_types/GPU_pointers
+!! DESCRIPTION
+!! Contains the pointers to be handled to control GPU information
+!! Given that they are pointers on GPU address, they are C pointers
+!! which takes 8 bytes
+!! So they are declared as kind=8 variables either if the GPU works in simple precision
+!! Also other information concerning the GPU runs can be stored in this structure
+!!
+!! SOURCE
+!!
+  type, public :: GPU_pointers
+     real(kind=8) :: keys,psi,hpsi,work1,work2,work3,work4,pot
+  end type GPU_pointers
+!!***
 
 contains
 

@@ -166,6 +166,9 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
 
   enddo
 
+!!$  !pot=psir
+!!$  call dcopy(n1i*n2i*n3i,psir,1,pot,1)
+
   !deallocations of work arrays
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
@@ -358,7 +361,7 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
   hgridh(2)=hy*.5_gp
   hgridh(3)=hz*.5_gp
 
-  if (GPUconv) then !convolution in cuda for the complete potential
+  if (GPUconv .and. .false.) then !convolution in cuda for the complete potential
 
      allocate(psi_cuda((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug),stat=i_stat)
      call memocc(i_stat,psi_cuda,'psi_cuda',subname)
@@ -420,11 +423,11 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      ! psir serves as a work array	   
      call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psi_in,psir,psi_out) 
 
-	 !$omp parallel default(private)&
-	 !$omp shared(pot,psir,n1,n2,n3,epot)
-
-	 epot_p=0._gp
-	 !$omp do
+     !$omp parallel default(private)&
+     !$omp shared(pot,psir,n1,n2,n3,epot)
+     
+     epot_p=0._gp
+     !$omp do
      do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
         v=real(pot(i),gp)
         p=real(psir(i),gp)
@@ -432,14 +435,14 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
         epot_p=epot_p+p*v*p
         psir(i)=tt
      enddo
-	 !$omp end do
-	 
-  	 !$omp critical
-  	 epot=epot+epot_p
-	 !$omp end critical
-	 
-	 !$omp end parallel
-
+     !$omp end do
+     
+     !$omp critical
+     epot=epot+epot_p
+     !$omp end critical
+     
+     !$omp end parallel
+     
      call convolut_magic_t_per_self(2*n1+1,2*n2+1,2*n3+1,psir,psi_out)
 
      ! compute the kinetic part and add  it to psi_out

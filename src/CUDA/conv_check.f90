@@ -27,15 +27,18 @@ program conv_check
   character(len=*), parameter :: subname='conv_check'
   character(len=50) :: chain
   integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,ndat,i1_max,i_max,it0,it1,ndim
-  integer :: count_rate,count_max,l
-  integer :: n1s,n1e,ndats,ndate
+  integer :: count_rate,count_max,l,i1s,i1e
+  integer :: n1s,n1e,ndats,ndate,nvctr_cf,nseg,iseg
   real(wp) :: tt,scale
   real(gp) :: v,p,CPUtime,GPUtime,comp,ekin
   real(gp), dimension(3) :: hgridh
+  integer, dimension(:), allocatable :: keyv
+  integer, dimension(:,:), allocatable :: keyg
+  real(kind=8), dimension(:), allocatable :: psi !temporary in view of wp 
   real(kind=8), dimension(:,:,:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
   real(kind=8) :: ekinGPUd
   real(kind=4) :: t0,t1,epotGPU,ekinGPU
-  real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU !pointer to the GPU  memory addresses (with norb=1)
+  real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU,keys_GPU !pointer to the GPU  memory addresses (with norb=1)
   integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
   integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
   integer, parameter :: lowfilK=-14,lupfilK=14 ! kinetic term
@@ -371,7 +374,7 @@ program conv_check
               do i=1,ndat
                  do i1=1,n1
                     !write(17,'(2(i6),2(1pe24.17))')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
-                    write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
+                    !write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
                     comp=abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8))
                     !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
                     if (comp > maxdiff) then
@@ -456,7 +459,7 @@ program conv_check
               do i=1,ndat
                  do i1=1,n1
                     !write(17,'(2(i6),2(1pe24.17))')i,i1,v_cuda(i,i1,1),psi_cuda(i1,i,1)
-                    write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
+                    !write(17,'(2(i6),2(1pe24.17))')i,i1,psi_out(i,i1,1),psi_cuda(i1,i,1)
                     comp=abs(psi_out(i,i1,1)-real(psi_cuda(i1,i,1),kind=8))
                     !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
                     if (comp > maxdiff) then
@@ -487,20 +490,264 @@ program conv_check
               end if
            end if
 
-
-           i_all=-product(shape(psi_in))
-           deallocate(psi_in,stat=i_stat)
-           call memocc(i_stat,i_all,'psi_in',subname)
            i_all=-product(shape(psi_out))
            deallocate(psi_out,stat=i_stat)
            call memocc(i_stat,i_all,'psi_out',subname)
-
+           i_all=-product(shape(psi_in))
+           deallocate(psi_in,stat=i_stat)
+           call memocc(i_stat,i_all,'psi_in',subname)
            i_all=-product(shape(psi_cuda))
            deallocate(psi_cuda,stat=i_stat)
            call memocc(i_stat,i_all,'psi_cuda',subname)
            i_all=-product(shape(v_cuda))
            deallocate(v_cuda,stat=i_stat)
            call memocc(i_stat,i_all,'v_cuda',subname)
+
+
+           !**************************************************compression-decompression
+           !create keys arrays
+           !cubic domain
+           nseg=(n1+1)*(n1+1)
+
+           print *,'nseg=',nseg
+
+           allocate(keyg(2,nseg+ndebug),stat=i_stat)
+           call memocc(i_stat,keyg,'keyg',subname)
+           allocate(keyv(nseg+ndebug),stat=i_stat)
+           call memocc(i_stat,keyv,'keyv',subname)
+
+           !take a rectangle of a cubic region
+           i1s=5
+           i1e=n1-5
+           keyv(1)=1
+           do i3=0,n1
+              do i2=0,n1
+                 iseg=i2+1+(n1+1)*i3
+                 keyg(1,iseg)=i3*((n1+1)*(n1+1)) + i2*(n1+1) + i1s+1
+                 keyg(2,iseg)=i3*((n1+1)*(n1+1)) + i2*(n1+1) + i1e+1
+                 if (iseg >1) keyv(iseg)=keyv(iseg-1)+i1e-i1s+1
+              end do
+           end do
+           nvctr_cf=keyv(nseg)+i1e-i1s+1
+
+           allocate(psi(8*nvctr_cf),stat=i_stat)
+           call memocc(i_stat,psi,'psi',subname)
+           !determine the values for psi function
+           do i=1,nvctr_cf
+              psi(i)=real(i,kind=8)
+           end do
+           do i=1,nvctr_cf
+              do j=1,7
+                 psi(nvctr_cf+7*(i-1)+j)=real(i,kind=8)+0.1d0*real(j,kind=8)
+              end do
+           end do
+
+           allocate(psi_in((2*n1+2),(2*n1+2),(2*n1+2)+ndebug),stat=i_stat)
+           call memocc(i_stat,psi_in,'psi_in',subname)
+
+           allocate(psi_cuda((2*n1+2),(2*n1+2),(2*n1+2)+ndebug),stat=i_stat)
+           call memocc(i_stat,psi_cuda,'psi_cuda',subname)
+
+
+           
+           write(*,'(a,3(i6))')'CPU Uncompress, dimensions:',n1,n1,n1
+
+           !take timings
+           call cpu_time(t0)
+           do i=1,ntimes
+              call uncompress(n1,n1,n1,nseg,nvctr_cf,keyg,keyv,  & 
+                   nseg,nvctr_cf,keyg,keyv,psi(1),psi(nvctr_cf+1),psi_in)
+
+              !call compress(n1,n1,n1,0,n1,0,n1,0,n1,nseg,mvctr_cf,keyg,keyv,  & 
+              !     nseg,mvctr_cf,keyg,keyv,psi_in,psi(1),psi(nvctr_cf+1))
+           end do
+           call cpu_time(t1)
+
+           CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
+                CPUtime*1.d3/real(ntimes,kind=8),&
+                real(8*nvctr_cf*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+
+
+           !now the CUDA part
+           call GPU_allocate(8*nvctr_cf,psi_GPU,i_stat)
+           call GPU_allocate((2*n1+2)*(2*n1+2)*(2*n1+2),work_GPU,i_stat)
+
+           call GPU_send(8*nvctr_cf,psi,psi_GPU,i_stat)
+
+           !assign the keys values
+           call adjust_keys_for_gpu(nseg,nseg,keyv,keyg,keyv,keyg,nvctr_cf,keys_GPU)
+
+           !now the CUDA part
+           !take timings
+
+           write(*,'(a,3(i6))')'GPU Uncompress, dimensions:',n1,n1,n1
+
+           call cpu_time(t0)
+           do i=1,ntimes
+              call uncompressgpu(n1,n1,n1,psi_GPU,work_GPU,keys_GPU)
+           end do
+           call cpu_time(t1)
+           GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
+                GPUtime*1.d3/real(ntimes,kind=8),&
+                real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
+
+           call GPU_receive((2*n1+2)*(2*n1+2)*(2*n1+2),psi_cuda,work_GPU,i_stat)
+
+           call GPU_deallocate(psi_GPU,i_stat)
+           call GPU_deallocate(work_GPU,i_stat)
+           call GPU_deallocate(keys_GPU,i_stat)
+
+
+           !check the differences between the results
+           maxdiff=0.d0
+           i1_max=1
+           i_max=1
+           do i3=1,2*n1+2
+              do i2=1,2*n1+2
+                 do i1=1,2*n1+2
+                    !write(17,'(3(i6),2(1pe24.17))')i1,i2,i3,&
+                    !     psi_in(i1,i2,i3),psi_cuda(i1,i2,i3)
+                 comp=abs(psi_in(i1,i2,i3)-real(psi_cuda(i1,i2,i3),kind=8))
+                 !comp=abs(v_cuda(i,i1,1)-psi_cuda(i1,i,1))
+                 if (comp > maxdiff) then
+                    maxdiff=comp
+                    i1_max=i1
+                    i_max=i
+                 end if
+                 end do
+              end do
+           end do
+           if (maxdiff <= 1.d-12) then
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
+           else
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9),&
+                   '<<<< WARNING' 
+           end if
+
+           i_all=-product(shape(psi_cuda))
+           deallocate(psi_cuda,stat=i_stat)
+           call memocc(i_stat,i_all,'psi_cuda',subname)
+           allocate(psi_cuda(8*nvctr_cf,1,1),stat=i_stat)
+           call memocc(i_stat,psi_cuda,'psi_cuda',subname)
+
+
+           write(*,'(a,3(i6))')'CPU Compress, dimensions:',n1,n1,n1
+
+           !take timings
+           call cpu_time(t0)
+           do i=1,ntimes
+              call compress(n1,n1,n1,0,n1,0,n1,0,n1,nseg,nvctr_cf,keyg,keyv,  & 
+                   nseg,nvctr_cf,keyg,keyv,psi_in,psi(1),psi(nvctr_cf+1))
+           end do
+           call cpu_time(t1)
+
+           CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
+                CPUtime*1.d3/real(ntimes,kind=8),&
+                real(8*nvctr_cf*ntimes,kind=8)*32.d0/(CPUtime*1.d9)
+
+
+           !now the CUDA part
+           call GPU_allocate(8*nvctr_cf,psi_GPU,i_stat)
+           call GPU_allocate((2*n1+2)*(2*n1+2)*(2*n1+2),work_GPU,i_stat)
+
+           call GPU_send((2*n1+2)*(2*n1+2)*(2*n1+2),psi_in,work_GPU,i_stat)
+
+           call adjust_keys_for_gpu(nseg,nseg,keyv,keyg,keyv,keyg,nvctr_cf,keys_GPU)
+
+           !now the CUDA part
+           !take timings
+
+           write(*,'(a,3(i6))')'GPU Compress, dimensions:',n1,n1,n1
+
+           call cpu_time(t0)
+           do i=1,ntimes
+              call compressgpu(n1,n1,n1,work_GPU,psi_GPU,keys_GPU)
+           end do
+           call cpu_time(t1)
+           GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+           write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GCopy',&
+                GPUtime*1.d3/real(ntimes,kind=8),&
+                real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
+
+           call GPU_receive(8*nvctr_cf,psi_cuda,psi_GPU,i_stat)
+
+           call GPU_deallocate(psi_GPU,i_stat)
+           call GPU_deallocate(work_GPU,i_stat)
+           call GPU_deallocate(keys_GPU,i_stat)
+
+
+           !check the differences between the results
+           maxdiff=0.d0
+           i1_max=1
+           i_max=1
+           do i1=1,8*nvctr_cf
+              !write(17,'(i6,2(1pe24.17))')i1,psi(i1),psi_cuda(i1,1,1)
+              comp=abs(psi(i1)-real(psi_cuda(i1,1,1),kind=8))
+              if (comp > maxdiff) then
+                 maxdiff=comp
+                 i1_max=i1
+                 i_max=i
+              end if
+           end do
+           if (maxdiff <= 1.d-12) then
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9)
+           else
+              write(*,'(a,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
+                   'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
+                   n1,ndat,CPUtime/GPUtime,maxdiff,&
+                   CPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(CPUtime*1.d9),&
+                   GPUtime*1.d3/real(ntimes,kind=8),&
+                   real(8*nvctr_cf*ntimes,kind=8)/(GPUtime*1.d9),&
+                   '<<<< WARNING' 
+           end if
+
+           i_all=-product(shape(psi))
+           deallocate(psi,stat=i_stat)
+           call memocc(i_stat,i_all,'psi',subname)
+           i_all=-product(shape(psi_in))
+           deallocate(psi_in,stat=i_stat)
+           call memocc(i_stat,i_all,'psi_in',subname)
+           i_all=-product(shape(psi_cuda))
+           deallocate(psi_cuda,stat=i_stat)
+           call memocc(i_stat,i_all,'psi_cuda',subname)
+
+
+
+           i_all=-product(shape(keyg))
+           deallocate(keyg,stat=i_stat)
+           call memocc(i_stat,i_all,'keyg',subname)
+           i_all=-product(shape(keyv))
+           deallocate(keyv,stat=i_stat)
+           call memocc(i_stat,i_all,'keyv',subname)
+
+
+
         end do
      end do
     

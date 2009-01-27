@@ -84,8 +84,8 @@ program GPUham
            !same initialisation for psi and pot
            psi_in(2*i1,2*i2,2*i3)=tt
            psi_in(2*i1-1,2*i2-1,2*i3-1)=tt
-           pot(2*i1,2*i2,2*i3)=tt
-           pot(2*i1-1,2*i2-1,2*i3-1)=tt
+           pot(2*i1,2*i2,2*i3)=1.d0!tt
+           pot(2*i1-1,2*i2-1,2*i3-1)=1.d0!tt
 
         end do
      end do
@@ -184,6 +184,7 @@ program GPUham
   end do
   call cpu_time(t1)
 
+  psifscf=15.d0
   call GPU_receive(8*(n1+1)*(n2+1)*(n3+1),psifscf,out_GPU,i_stat)
 
   GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
