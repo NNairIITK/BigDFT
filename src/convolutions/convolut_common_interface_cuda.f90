@@ -431,18 +431,18 @@ subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU)
   real(kind=8) :: epot,ekinpot
 
 
-  call uncompressgpu(n1,n2,n3,GPU%psi,GPU%work4,GPU%keys)
-!!$
-  call gpulocham(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-       GPU%work4,GPU%work3,GPU%pot,&
-       GPU%work1,GPU%work2,epot,ekinpot)
-!!$
-  call compressgpu(n1,n2,n3,GPU%work3,GPU%hpsi,GPU%keys)
-!!$
-!!$
-!!$  call gpufulllocham(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-!!$       GPU%psi,GPU%hpsi,GPU%pot,GPU%keys,&
-!!$       GPU%work4,GPU%work3,GPU%work1,GPU%work2,epot,ekinpot)
+!!$  call uncompressgpu(n1,n2,n3,GPU%psi,GPU%work4,GPU%keys)
+
+!!$  call gpulocham(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+!!$       GPU%work4,GPU%work3,GPU%pot,&
+!!$       GPU%work1,GPU%work2,epot,ekinpot)
+
+!!$  call compressgpu(n1,n2,n3,GPU%work3,GPU%hpsi,GPU%keys)
+
+
+  call gpufulllocham(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+       GPU%psi,GPU%hpsi,GPU%pot,GPU%keys,&
+       GPU%work4,GPU%work3,GPU%work1,GPU%work2,epot,ekinpot)
   
   !print *,'epotGPU,ekinpotGPU',epot,ekinpot
 

@@ -295,6 +295,7 @@ int fulllocalhamiltonian(int n1,int n2, int n3,
   //reducearrays<T>(2*n1,4*n2*n3,work2,work,epot);
   //cudaThreadSynchronize();
 
+
   //reverse MF calculation
   magicfilter1d_t<T> <<< gridMF3, threadsMF3 >>>(2*n3,4*n1*n2,work,work2,6);
   cudaThreadSynchronize();
@@ -316,7 +317,7 @@ int fulllocalhamiltonian(int n1,int n2, int n3,
   //c_initialize<T> <<< gridK3, threadsK3 >>>(2*n3,4*n1*n2,psi,work2,0.,3);
   //cudaThreadSynchronize();
 
-
+  
   //define the scale factor to be applied to the convolution
   T scale=0.5/(h3*h3);
   kinetic1d<T> <<< gridK3, threadsK3 >>>(2*n3,4*n1*n2,scale,psi,work,work2,out,3);
@@ -344,6 +345,7 @@ int fulllocalhamiltonian(int n1,int n2, int n3,
 
   waveletanalysis<T> <<< gridWT1, threadsWT1 >>>(n1,4*n2*n3,work2,out,2);
   cudaThreadSynchronize();
+
 
   //recompress
   compresscoarsefine<T> <<< gridC, threadsC >>>(n1,n2,n3,out,hpsiw,keys);

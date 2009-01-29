@@ -538,7 +538,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,lr,hx,hy,hz,rxyz)
               arg=0.5d0*r2/sigma2
               ttd=dexp(-arg)
               !same initialisation for psi and pot
-              pot(i1,i2,i3,ispin)=1.d0!ttd
+              pot(i1,i2,i3,ispin)=0.d0!ttd
            end do
         end do
      end do

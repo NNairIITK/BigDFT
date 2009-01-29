@@ -84,7 +84,7 @@ program GPUham
            !same initialisation for psi and pot
            psi_in(2*i1,2*i2,2*i3)=tt
            psi_in(2*i1-1,2*i2-1,2*i3-1)=tt
-           pot(2*i1,2*i2,2*i3)=1.d0!tt
+           pot(2*i1,2*i2,2*i3)=0.d0!tt
            pot(2*i1-1,2*i2-1,2*i3-1)=1.d0!tt
 
         end do
