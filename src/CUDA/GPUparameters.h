@@ -1,39 +1,25 @@
-/****u* CUDA/anasyn.cu
-**
-** 
-** AUTHOR
-**  Luigi Genovese
-**
-** SOURCE
-*/
-  
-#include <stdio.h>
-#include "commonDef.h"
-#include "structDef_anasyn.h"
-#include "GPUparameters.h"
+#ifndef __GPUparameters__
+#define __GPUparameters__
 
-__constant__ parGPU_t par[3];
-
-
-#include "kernels_anasyn.hcu"
-
-/*
 // parameters to be used for calculating the convolution
 template<typename T>
-void WTParameters(parGPU_t* par,
-		  unsigned int* num_halfwarps,
-		  int n,
-		  int ndat,
-		  unsigned int* linecuts,
-		  unsigned int* num_blocks)
+void GPUParameters(parGPU_t* par,
+		   unsigned int* num_halfwarps,
+		   int n,
+		   int ndat,
+		   int nfac,
+		   int lowfil,int lupfil,
+		   unsigned int* linecuts,
+ unsigned int* num_blocks)
 
 {
 
   //number of total allowed elements of a input line
-  unsigned int num_elem_tot=MAX_SHARED_SIZE/sizeof(T)/NUM_LINES/2; //between1024and64
+  //nfac added for wavelet transformation routines
+  unsigned int num_elem_tot=MAX_SHARED_SIZE/sizeof(T)/NUM_LINES/nfac; //between1024and64
   
   //number of elements of the output
-  unsigned int num_elem_max=min(num_elem_tot-LOWFILWT-LUPFILWT-1,n); //between 1008 and 48 for 16-fil
+  unsigned int num_elem_max=min(num_elem_tot-lowfil-lupfil-1,n); //between 1008 and 48 for 16-fil
 
   //number of pieces in which a line is divided
   //if the line is too small and not a multiple of ElementsPerHalfWarp
@@ -62,7 +48,7 @@ void WTParameters(parGPU_t* par,
 	}
     }
 
-  *num_halfwarps = halfwarps;
+  *num_halfwarps = halfwarps; 
 
 
   //printf("num_elem_tot %i,num_elem_max %i,linecuts %i,num_blocks %i,elemperBL %i, halfwarps %i,\n",
@@ -78,7 +64,7 @@ void WTParameters(parGPU_t* par,
   //define the sequences of the number of elements
   correctSequence(halfwarps,par->ElementsPerBlock/HW_ELEM,par->hwelem_calc);
 
-  correctSequence(halfwarps,(par->ElementsPerBlock+LOWFILWT+LUPFILWT+1)/HW_ELEM,
+  correctSequence(halfwarps,(par->ElementsPerBlock+lowfil+lupfil+1)/HW_ELEM,
 		  par->hwelem_copy);
 
   //define the offsets
@@ -94,62 +80,5 @@ void WTParameters(parGPU_t* par,
 
     }
 }
-*/
 
-//MUST CONTINUE WITH #D ANALYSIS SYNTHESIS VERSION
-
-extern "C" 
-void ana1d_(int *n,int *ndat,
-	    double **psi,double **out) 
-
-{
-
-  
-  if(wavana1d<double>(*n+1,*ndat,
-		      *psi,
-		      *out) != 0) 
-    {
-      printf("ERROR: GPU waveletanalysis\n ");
-      return;
-    } 
-  return; 
-}
-
-extern "C" 
-void syn1d_(int *n,int *ndat,
-	    double **psi,double **out) 
-
-{
-
-  
-  if(wavsyn1d<double>(*n+1,*ndat,
-		      *psi,
-		      *out) != 0) 
-    {
-      printf("ERROR: GPU waveletanalysis\n ");
-      return;
-    } 
-  return; 
-}
-
-
-extern "C" 
-void somenamed_(int *n1,int *n2,int *n3,
-		     double **psi,double **out) 
-
-{
-
-  
-  if(wavana<double>(*n1+1,*n2+1,*n3+1,
-	       *psi,
-	       *out) != 0) 
-    {
-      printf("ERROR: GPU waveletanalysis\n ");
-      return;
-    } 
-  return; 
-}
-
-
-/****/
-
+#endif

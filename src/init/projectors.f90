@@ -107,7 +107,7 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   if (memorylimit /= 0.e0 .and. .not. DistProjApply .and. &
        real(istart-1,kind=4) > memorylimit*134217728.0e0) then
      if (iproc == 0) then
-        write(*,'(44x,a)') '------  On-the-fly projectors application'
+        write(*,'(44x,a)') '------ On-the-fly projectors application'
      end if
      DistProjApply =.true.
   end if

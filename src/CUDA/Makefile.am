@@ -7,37 +7,44 @@ EXTRA_DIST = \
 	conv_pot_shared_kernel.cu \
 	Makefile.standalone \
 	read_conf_file.h \
+	GPUparameters.h \
 	reduction.hcu \
-	kernel_tex.cu
+	kernel_tex.cu \
+	kernels_compress.hcu \
+	kernels_locpot.hcu \
+	kernels_kinetic.hcu \
+	$(SOURCES_CONV_CHECK)
 
 SOURCES_CU_CONV1 = convolution.cu \
 	convolutionPot.cu \
 	structUtil.cu \
 	cudafct.cu
 
-SOURCES_CONV = locpot.cu \
+SOURCES_CONV = 	memory_management.cu \
+	reduction.cu \
+	locham.cu 
+
+SOURCES_CONV_CHECK = locpot.cu \
 	kinetic.cu \
 	anasyn.cu \
-	reduction.cu \
-	locham.cu
+	compress.cu
 
 SOURCES_SHARED = convSeria.cpp \
 	setCPU_GPU_aff.cpp \
 	read_conf_file.cpp \
-	memory_management.cu \
 	commonDef.cpp \
-	fortran.c
+	fortran.c 
 
 INC_CUDA = -I@LIB_CUTIL_PATH@
 
 noinst_LIBRARIES = libGPU.a
 
-libGPU_a_SOURCES = $(SOURCES_CU_CONV1) $(SOURCES_SHARED) $(SOURCES_CONV)
+libGPU_a_SOURCES = $(SOURCES_CU_CONV1) $(SOURCES_SHARED) $(SOURCES_CONV) 
 AM_CPPFLAGS = $(INC_CUDA) -I. -I@CUDA_PATH@/include/ 
 AM_CFLAGS = $(INC_CUDA) -I. -I@CUDA_PATH@/include/ -DCUBLAS_USE_THUNKING 
 
 NVCC = @NVCC@
-CUDA_FLAGS = @INC_GCC41CUDA@ -arch sm_13  @CUDA_FLAGS@ 
+CUDA_FLAGS = @INC_GCC41CUDA@ -arch sm_13 @CUDA_FLAGS@ 
 SUFFIXES = .cu
 
 if USE_CUDA_GPU
@@ -46,7 +53,14 @@ libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a
 #cutil is used for CUDA timer
 #libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a @LIB_CUTIL_PATH@/libcutil.a
 
-check_PROGRAMS = conv_check GPUham
+if BUILD_BINARIES
+bin_PROGRAMS = GPUham
+else
+bin_PROGRAMS = 
+endif
+
+
+check_PROGRAMS = conv_check
 
 else
 check_PROGRAMS = 
@@ -54,9 +68,7 @@ EXTRA_DIST += conv_check.f90 \
 	GPUham.f90 \
 	1Dconv.cu \
 	1Dconv_new.cu \
-	locpot.cu \
-	kinetic.cu \
-	locham.cu
+	$(SOURCES_CONV)
 endif
 
 if USE_MPI
@@ -70,14 +82,14 @@ CLEANFILES = module_base.@MODULE_EXT@ fort.1
 
 AM_FCFLAGS = -I../modules @MPI_INCLUDE@ -I. -I$(srcdir) @XC_INCLUDE@ 
 
-conv_check_SOURCES = conv_check.f90 1Dconv.cu 1Dconv_new.cu ../profiling/memory.f90 ../modules/base.f90 $(mpi_source)
+conv_check_SOURCES = conv_check.f90  ../profiling/memory.f90 ../modules/base.f90 $(mpi_source)
 conv_check_LDFLAGS =
-conv_check_LDADD = ../convolutions/libconvolutions.a \
+conv_check_LDADD = ../libbigdft.a \
 	$(libs_cuda)
 
 GPUham_SOURCES = GPUham.f90 ../profiling/memory.f90 ../modules/base.f90 $(mpi_source)
 GPUham_LDFLAGS =
-GPUham_LDADD = ../convolutions/libconvolutions.a \
+GPUham_LDADD = ../libbigdft.a \
 	$(libs_cuda)
 
 .cu.o:
@@ -106,6 +118,8 @@ anasyn.o: kernels_anasyn.hcu structDef_anasyn.h
 
 locham.o : kernels_anasyn.hcu kernels_locpot.hcu kernels_kinetic.hcu reduction.hcu
 
+compress.o : commonDef.h kernels_compress.hcu
+
 convolutionPot.cu : conv_pot_shared_kernel.cu \
 	convolutionPot.h \
 	convSeria.h \
@@ -121,5 +135,5 @@ convSeria.cpp structUtil.cu : structUtil.h
 read_conf_file.cpp : read_conf_file.h
 
 check:
-	echo 1 64 64 2048 2048 5 0 > fort.1
+	echo 1 64 64 2048 2048 1 > fort.1
 	$(top_builddir)/src/CUDA/conv_check
