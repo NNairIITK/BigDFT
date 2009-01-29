@@ -15,6 +15,7 @@
         implicit none
         integer :: ierr
         end subroutine MPI_INIT
+!!***
         
         subroutine  MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
         implicit none
@@ -110,4 +111,3 @@
         implicit none
         stop 'MPIFAKE: WAITALL'
         end subroutine  MPI_WAITALL
-!!***
