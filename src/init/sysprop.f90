@@ -1,5 +1,9 @@
-!calculate the important objects related to the physical properties of 
-!the system
+!!****f* BigDFT/system_properties
+!! FUNCTION
+!!  Calculate the important objects related to the physical properties of the system
+!!
+!! SOURCE
+!!
 subroutine system_properties(iproc,nproc,in,at,orbs,radii_cf,nelec)
   use module_base
   use module_types
@@ -57,6 +61,8 @@ subroutine system_properties(iproc,nproc,in,at,orbs,radii_cf,nelec)
        orbs%occup,orbs%spinsgn)
 
 end subroutine system_properties
+!!***
+
 
 !!****f* BigDFT/read_system_variables
 !! FUNCTION
@@ -64,7 +70,6 @@ end subroutine system_properties
 !!   Performs also some cross-checks with other variables
 !! SOURCE
 !!
-!!***
 subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,norbd,iunit)
   use module_base
   use module_types
@@ -495,9 +500,10 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
 !!$  !if (iproc.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
 
 end subroutine read_system_variables
+!!***
 
 
-!!****f* BigDFT/input_occup
+!!****f* BigDFT/orbitals_descriptors
 !! FUNCTION
 !!    Define the descriptors of the orbitals from a given norb
 !!    It uses the cubic strategy for partitioning the orbitals
@@ -548,6 +554,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   orbs%norbd=norbd
 
 end subroutine orbitals_descriptors
+!!***
 
 
 !!****f* BigDFT/input_occup

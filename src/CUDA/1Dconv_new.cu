@@ -1,6 +1,5 @@
 /****u* CUDA/1Dconv_new.cu
 **
-** 
 ** AUTHOR
 **  Luigi Genovese
 **
@@ -8,7 +7,6 @@
 */
 
 #include <stdio.h>
-#include <cutil.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <sched.h>
@@ -432,9 +430,8 @@ __global__ void conv1d_stride_tex(int n,int ndat,float *psi_out)
 
   unsigned int ShBaseElem = tid_hw + NUM_LINES*par.hwoffset_copy[hwid];
 
-  int epsilon,npos;
-
-  float x,y;
+  //int epsilon,npos;
+  //float x,y;
 
   //NOTE: it is assumed that for non-first segments the starting
   //points is far enough for the filter to be contained
@@ -444,14 +441,13 @@ __global__ void conv1d_stride_tex(int n,int ndat,float *psi_out)
 
   for(int i=0,ipos=elemOffset-par.lowfil+thelem2;i < par.hwelem_copy[hwid] ; ++i)
     {
-      epsilon=(ipos < 0 ? -1 : ipos/n);
-      npos=ipos-epsilon*n;
-      float tmp=0.f;//(3 == 5 ? 10.f : 0.f);
+      //epsilon=(ipos < 0 ? -1 : ipos/n);
+      //npos=ipos-epsilon*n;
       //psi_sh[ShBaseElem]=psi_in[BaseElem+ndat*npos];
       //x=(float) (npos)/;
       //y=(float)npos +0.5f; 
-      x=((float) (BaseElem) + 0.5f )/((float) (ndat));
-      y=((float) (npos) + 0.5f )/((float) (n));
+      //x=((float) (BaseElem) + 0.5f )/((float) (ndat));
+      //y=((float) (npos) + 0.5f )/((float) (n));
       psi_sh[ShBaseElem]=12.f;//tex2D(psi_tex,x,y);
       //CUERR;
       ShBaseElem += HALF_WARP_SIZE;
@@ -478,8 +474,8 @@ __global__ void conv1d_stride_tex(int n,int ndat,float *psi_out)
 
   for(int i=0;i < par.hwelem_calc[hwid]; ++i)
     {
-      //values of the convolution
-      register float conv = 
+    //values of the convolution
+    /* register float conv = 
 	//hand-unrolled loop (16 elements for this filter)
 	//order changed for increasing the precision
 
@@ -498,14 +494,14 @@ __global__ void conv1d_stride_tex(int n,int ndat,float *psi_out)
 	MFIL6 *psi_sh[ShBaseElem + 6*NUM_LINES ] +
 	MFIL9 *psi_sh[ShBaseElem + 9*NUM_LINES ] +
 	MFIL7 *psi_sh[ShBaseElem + 7*NUM_LINES ] +
-	MFIL8 *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
+	MFIL8 *psi_sh[ShBaseElem + 8*NUM_LINES ] ; */
 
-      psi_out[BaseElem]=//=conv;
+    psi_out[BaseElem]=//=conv;
 	psi_sh[ShBaseElem+par.lowfil*NUM_LINES]; //for testing only
 
-      ShBaseElem += HALF_WARP_SIZE;
-      BaseElem += HW_ELEM;
-      //BaseElem += par.ElementsPerHalfWarp;
+    ShBaseElem += HALF_WARP_SIZE;
+    BaseElem += HW_ELEM;
+    //BaseElem += par.ElementsPerHalfWarp;
 
       
     }
@@ -630,7 +626,8 @@ int dogenconv(int ndat,
   cudaUnbindTexture(psi_tex);
   CUERR;
   //free the CUDA Array
-  CUDA_SAFE_CALL(cudaFreeArray(psiCA));;
+  //CUDA_SAFE_CALL(cudaFreeArray(psiCA));;
+  cudaFreeArray(psiCA);;
 
   //cudaThreadSynchronize();
 

@@ -411,6 +411,8 @@ subroutine free_gpu(GPU)
 
   call GPU_deallocate(GPU%work1,i_stat)
   call GPU_deallocate(GPU%work2,i_stat)
+  call GPU_deallocate(GPU%work3,i_stat)
+  call GPU_deallocate(GPU%work4,i_stat)
   call GPU_deallocate(GPU%keys,i_stat)
   call GPU_deallocate(GPU%pot,i_stat)
   call GPU_deallocate(GPU%psi,i_stat)

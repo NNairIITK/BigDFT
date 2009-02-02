@@ -13,7 +13,7 @@
 */
 
 #include <stdio.h>
-#include <cutil.h>
+//#include <cutil.h>
 //#include <multithreading.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -39,15 +39,17 @@ pthread_mutex_t mutexTime = PTHREAD_MUTEX_INITIALIZER; //for timers
 static sem_t sem2;
 static sem_t sem3;
 
+static pthread_t *threads; 
+//beark beark !!!
+*/
 
-static pthread_t *threads; //beark beark !!!*/
 
-
+// Functions in libcutil.a for timing
 void cutCreateTimerM(unsigned int *timer)
 {
-   pthread_mutex_lock (&mutexTime);
+  pthread_mutex_lock (&mutexTime);
 
-  cutCreateTimer(timer);
+  //cutCreateTimer(timer);
   
   pthread_mutex_unlock (&mutexTime);
 
@@ -55,39 +57,43 @@ void cutCreateTimerM(unsigned int *timer)
 
 void cutStopTimerM(unsigned int timer)
 {
-   pthread_mutex_lock (&mutexTime);
+  pthread_mutex_lock (&mutexTime);
 
+  //cutStopTimer(timer);
 
-  cutStopTimer(timer);
   pthread_mutex_unlock (&mutexTime);
 }
+
 void cutStartTimerM(unsigned int timer)
 {
-   pthread_mutex_lock (&mutexTime);
+  pthread_mutex_lock (&mutexTime);
 
-  cutStartTimer(timer);
+  //cutStartTimer(timer);
 
   pthread_mutex_unlock (&mutexTime);
 }
+
 void cutResetTimerM(unsigned int timer)
 {
-   pthread_mutex_lock (&mutexTime);
+  pthread_mutex_lock (&mutexTime);
 
-  cutResetTimer(timer);
+  //cutResetTimer(timer);
 
   pthread_mutex_unlock (&mutexTime);
 }
 
 float cutGetTimerValueM(unsigned int timer)
 {
-   pthread_mutex_lock (&mutexTime);
+  pthread_mutex_lock (&mutexTime);
 
-  float tmp =  cutGetTimerValue(timer);
+  //float tmp =  cutGetTimerValue(timer);
+  float tmp = 0.0;
  
   pthread_mutex_unlock (&mutexTime);
   return tmp;
 
 }
+
 
 //********** INTERFACE BETWEEN FORTRAN & C ************
 
@@ -197,12 +203,10 @@ int conv3dGPU(multiTab_t* m_dataIn,
 {
 
 
-  //******* copy CPU -> GPU
+//******* copy CPU -> GPU
  
  
-  const unsigned int mem_size = m_dataIn->n1 *m_dataIn->n2 * m_dataIn->n3 * sizeof(float) ;
-
- 
+ const unsigned int mem_size = m_dataIn->n1 *m_dataIn->n2 * m_dataIn->n3 * sizeof(float) ;
 
  unsigned int timer;
   cutCreateTimerM(&timer);
@@ -223,7 +227,7 @@ int conv3dGPU(multiTab_t* m_dataIn,
   //  cutStartTimerM(timer);
 
 
-  //alocation
+  //allocation
   float* GPU_idata = m_dataIn->GPU_data;  
   // printf("GPU_idata %p\n",GPU_idata);
   float* GPU_odata = m_dataOut->GPU_data;  

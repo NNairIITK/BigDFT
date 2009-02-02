@@ -49,7 +49,9 @@ SUFFIXES = .cu
 
 if USE_CUDA_GPU
 sub_dirs_cuda=CUDA
-libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a @LIB_CUTIL_PATH@/libcutil.a
+libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a
+#cutil is used for CUDA timer
+#libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a @LIB_CUTIL_PATH@/libcutil.a
 
 if BUILD_BINARIES
 bin_PROGRAMS = GPUham

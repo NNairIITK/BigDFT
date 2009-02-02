@@ -455,7 +455,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,lr,hx,hy,hz,rxyz)
   real(wp), dimension(:,:,:,:), allocatable :: pot,psig
   real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
 
-  ntimes=50
+  ntimes=100
 
   !create the orbitals data structure for one orbital
   allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)

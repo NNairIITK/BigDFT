@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 05/12/2008
+# Date: 16/12/2008
 #----------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -1052,7 +1052,7 @@ class Structure:
     #Comments and also preprocessing commands
     re_comment_match = re.compile("^([ \t]*(([!#].*)|[ ]*)\n)+")
     #Detect the beginning and the end of a block
-    re_sub_start = re.compile('[ \t]*(module|program|recursive|subroutine|(([^!\'"\n]*?)function))',re.IGNORECASE)
+    re_sub_start = re.compile('^[ \t]*(module|program|recursive|subroutine|(([^!\'"\n]*?)function))',re.IGNORECASE)
     re_sub_end   = re.compile('^[ \t]*end[ \t]*(function|module|program|subroutine|\n)',re.IGNORECASE)
     #
     def __init__(self,name=None,parent=None,message=None):
@@ -1490,8 +1490,6 @@ class Code(Structure):
     re_continuation = re.compile("&[ \t]*(![^\n]*)?\n")
     #Include command
     re_include = re.compile('^[ ]*include.*?\n',re.MULTILINE+re.IGNORECASE)
-    #End of a block
-    re_sub_end   = re.compile('[ \t]*end[ \t]*(function|module|program|subroutine|\n)',re.IGNORECASE)
     #
     def __init__(self,name=None,parent=None,message=None):
         "Initialisation"
@@ -1713,6 +1711,11 @@ class Module(Code):
                 if not isinstance(struct,Comment):
                     struct = Comment(parent=self)
                 struct.add_code(line)
+            elif self.re_sub_end.match(line):
+                #Detect the end of a subroutine or module (before re_sub_start ortherwise trouble)
+                #We have finished
+                Code(parent=self).add_code(line)
+                return
             elif self.re_sub_start.match(line):
                 line_lower = line.lower()
                 if "subroutine" in line_lower or "recursive" in line_lower:
@@ -1729,11 +1732,6 @@ class Module(Code):
                 struct.Declaration.dict_vars.update(self.Declaration.dict_vars)
                 #Add also the private variables
                 struct.Declaration.dict_vars.update(self.Declaration.dict_vars_private)
-            elif self.re_sub_end.match(line):
-                #Detect the end of a subroutine or module
-                #We have finished
-                Code(parent=self).add_code(line)
-                return
             elif self.re_include.match(line):
                 #Include directive
                 struct = Include(project,parent=self,line=line)
@@ -3384,6 +3382,7 @@ head_dependencies = \
 
 #Ersatz of 'mpif.h' file
 mpif_file = """
+integer, parameter :: mpi_comm_self = 1, mpi_comm_null = 2
 integer, parameter :: mpi_comm_world = 0, mpi_max = 1, mpi_min = 2, mpi_sum = 3
 integer, parameter :: mpi_character = 5
 integer, parameter :: mpi_integer = 7, mpi_integer8=11

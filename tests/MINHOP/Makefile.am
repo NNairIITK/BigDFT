@@ -36,5 +36,5 @@ check: $(PPFILES)
 	rm -f global.mon
 	$(run_parallel) $(top_builddir)/src/global > MINHOP.out
 	python $(top_srcdir)/tests/fldiff.py global.mon $(top_srcdir)/tests/Refs/global.mon.ref
-	python $(top_srcdir)/tests/fldiff.py --bigdft MINHOP.out \
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=5.e-9 --bigdft MINHOP.out \
 		   $(top_srcdir)/tests/Refs/MINHOP.out.ref | tee fldiff.report

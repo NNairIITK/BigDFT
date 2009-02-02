@@ -27,7 +27,7 @@ program conv_check
   character(len=*), parameter :: subname='conv_check'
   character(len=50) :: chain
   integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,ndat,i1_max,i_max,it0,it1,ndim
-  integer :: count_rate,count_max,l,i1s,i1e
+  integer :: count_rate,count_max,l,ierror,i1s,i1e
   integer :: n1s,n1e,ndats,ndate,nvctr_cf,nseg,iseg
   real(wp) :: tt,scale
   real(gp) :: v,p,CPUtime,GPUtime,comp,ekin
@@ -51,7 +51,17 @@ program conv_check
 !!$  call getarg(2,chain)
 !!$  read(unit=chain,fmt=*) ndat
 
-  read(1,*)ndim,n1s,n1e,ndats,ndate,ntimes
+  read(unit=1,fmt=*,iostat=ierror) ndim,n1s,n1e,ndats,ndate,ntimes
+  if (ierror /= 0) then
+     write(*,*) "In a file 'fort.1', put a line with:"
+     write(*,*) "ndim n1s n1e ndats ndate ntimes"
+     write(*,*) "where:"
+     write(*,*) "- ndim (1 or 3) is the dimension of the real space"
+     write(*,*) "       1 do convolution from n1s to n1e (ntimes * (ndate-ndats+1))"
+     write(*,*) "       3 do convolution n1=(from n1s to n1e), n2=ndats, n3=ndate"
+     write(*,*) "- ntimes is the number of convolutions"
+     stop
+  end if
 
   hx=0.1e0_gp
   hy=0.1e0_gp
