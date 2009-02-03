@@ -55,7 +55,76 @@ subroutine compress(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3, &
      enddo
   enddo
 
-END SUBROUTINE compress
+end subroutine compress
+
+subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
+     nseg_f,nvctr_f,keyg_f,keyv_f,  & 
+     psi_c,psi_f,psig)
+  ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
+  ! into fine scaling functions (psifscf)
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
+  integer, dimension(nseg_c), intent(in) :: keyv_c
+  integer, dimension(nseg_f), intent(in) :: keyv_f
+  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+  integer, dimension(2,nseg_f), intent(in) :: keyg_f
+  real(wp), dimension(nvctr_c), intent(in) :: psi_c
+  real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
+  real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
+  !local variables
+  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
+
+  !$omp parallel default(private) &
+  !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f)
+  
+  call omp_razero(8*(n1+1)*(n2+1)*(n3+1),psig)
+
+  ! coarse part
+  !$omp do
+  do iseg=1,nseg_c
+     jj=keyv_c(iseg)
+     j0=keyg_c(1,iseg)
+     j1=keyg_c(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psig(i,1,i2,1,i3,1)=psi_c(i-i0+jj)
+     enddo
+  enddo
+  !$omp enddo
+
+  ! fine part
+  !$omp do
+  do iseg=1,nseg_f
+     jj=keyv_f(iseg)
+     j0=keyg_f(1,iseg)
+     j1=keyg_f(2,iseg)
+     ii=j0-1
+     i3=ii/((n1+1)*(n2+1))
+     ii=ii-i3*(n1+1)*(n2+1)
+     i2=ii/(n1+1)
+     i0=ii-i2*(n1+1)
+     i1=i0+j1-j0
+     do i=i0,i1
+        psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)
+        psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)
+        psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)
+        psig(i,1,i2,1,i3,2)=psi_f(4,i-i0+jj)
+        psig(i,2,i2,1,i3,2)=psi_f(5,i-i0+jj)
+        psig(i,1,i2,2,i3,2)=psi_f(6,i-i0+jj)
+        psig(i,2,i2,2,i3,2)=psi_f(7,i-i0+jj)
+     enddo
+  enddo
+  !$omp enddo
+
+  !$omp end parallel
+end subroutine uncompress
+
 
 subroutine fill_random(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
      mseg_c,mvctr_c,keyg_c,keyv_c,  & 

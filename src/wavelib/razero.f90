@@ -14,10 +14,18 @@ subroutine razero(n,x)
   do i=1,n
      x(i)=0.d0
   end do
-end subroutine razero
+END SUBROUTINE razero
+!!***
 
+
+!!****f* BigDFT/omp_razero
+!! FUNCTION
+!!   Set to zero an array x(n): omp version of razero
+!!
+!! SOURCE
+!!
 subroutine omp_razero(n,x)
-use module_base
+  use module_base
   implicit none
   !Arguments
   integer, intent(in) :: n
@@ -30,8 +38,9 @@ use module_base
      x(i)=0._wp
   end do
   !$omp enddo
-end subroutine omp_razero
+END SUBROUTINE omp_razero
 !!***
+
 
 !!****f* BigDFT/tenminustwenty
 !! FUNCTION

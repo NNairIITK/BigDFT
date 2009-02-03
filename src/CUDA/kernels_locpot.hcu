@@ -3,6 +3,8 @@
 
 #include "structDef_locpot.h"
 
+
+
 template<typename T>
 __device__ inline T computeElt(T *psi_sh,unsigned int ShBaseElem)
 {
@@ -57,7 +59,7 @@ template<typename T>
 __global__ void magicfilter1d(int n,int ndat, T *psi_in, T *psi_out,int idim)
 {
 
-  //line treated by the given block
+  //line treated by the given block 
   unsigned int lineOffset = min(blockIdx.y*NUM_LINES,ndat-NUM_LINES);
   //starting element treated by the block
   unsigned int elemOffset = min(blockIdx.x*par[idim].ElementsPerBlock,n-par[idim].ElementsPerBlock);
@@ -87,7 +89,7 @@ __global__ void magicfilter1d(int n,int ndat, T *psi_in, T *psi_out,int idim)
   //in other terms: lenght of the line is always bigger than
   //max(lowfil,lupfil)
 
-  for(int i=0,ipos=elemOffset-LOWFIL+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
+  for(int i=0,ipos=elemOffset-LOWFILMF+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
     {
       epsilon=(ipos < 0 ? -1 : ipos/n);
       npos=ipos-epsilon*n;
@@ -118,10 +120,9 @@ __global__ void magicfilter1d(int n,int ndat, T *psi_in, T *psi_out,int idim)
   for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
     {
       //values of the convolution
- 
 
-      psi_out[BaseElem]=computeElt<T>(psi_sh,ShBaseElem);
-    
+      psi_out[BaseElem]= psi_out[BaseElem]=computeElt<T>(psi_sh,ShBaseElem);
+      //psi_sh[ShBaseElem+LOWFILMF*par[idim].LinesPerBlock]; //for testing only
 
       ShBaseElem += HALF_WARP_SIZE;
       BaseElem += HW_ELEM;
@@ -168,7 +169,7 @@ __global__ void magicfilter1d_pot(int n,int ndat, T *psi_in,
   //in other terms: lenght of the line is always bigger than
   //max(lowfil,lupfil)
 
-  for(int i=0,ipos=elemOffset-LOWFIL+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
+  for(int i=0,ipos=elemOffset-LOWFILMF+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
     {
       //control flag for periodic boundary conditions
       epsilon=(ipos < 0 ? -1 : ipos/n);
@@ -248,7 +249,7 @@ __global__ void magicfilter1d_t(int n,int ndat, T *psi_in, T *psi_out,int idim)
   //in other terms: lenght of the line is always bigger than
   //max(lowfil,lupfil)
 
-  for(int i=0,ipos=elemOffset-LUPFIL+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
+  for(int i=0,ipos=elemOffset-LUPFILMF+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
     {
       epsilon=(ipos < 0 ? -1 : ipos/n);
       npos=ipos-epsilon*n;
@@ -279,10 +280,10 @@ __global__ void magicfilter1d_t(int n,int ndat, T *psi_in, T *psi_out,int idim)
   for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
     {
       //values of the convolution
- 
+  
 
       psi_out[BaseElem]=computeElt_t<T>(psi_sh,ShBaseElem);
-      //psi_sh[ShBaseElem+LOWFIL*par[idim].LinesPerBlock]; //for testing only
+      //psi_sh[ShBaseElem+LOWFILMF*par[idim].LinesPerBlock]; //for testing only
 
       ShBaseElem += HALF_WARP_SIZE;
       BaseElem += HW_ELEM;
@@ -291,5 +292,4 @@ __global__ void magicfilter1d_t(int n,int ndat, T *psi_in, T *psi_out,int idim)
 
  
 }
-
 #endif

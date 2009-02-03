@@ -1,10 +1,9 @@
-#ifndef _commonDefh_
-#define _commonDefh_
+#ifndef _lochamh_
+#define _lochamh_
 
 #define max(a,b) (a > b ? a : b)
 #define min(a,b) (a < b ? a : b)
 
-//parameters for convolutions
 //maximum size of the shared memory array
 //conceived for maximize occupancy on a hardware of compute
 //capability 1.2 and higher (1024 threads at same time on a given multiprocessor)
@@ -14,15 +13,8 @@
 #define HW_ELEM 2 //this is HALF_WARP_SIZE/NUM_LINES
 
 
-//parameters for compression-decompression
-#define MAX_CONSTANT_SIZE 32768 //The overall available memory is 64KB
-#define ELEMS_BLOCK 256  // maximum size of a segment for de-compression
-#define NBLOCKS_MAX 65536 //for all architectures
-
-
 void correctSequence(int thds,int elem,int * tab);
 
-//structure for convolutions
 typedef struct  _parGPU
 {
   unsigned int ElementsPerBlock;
@@ -36,14 +28,12 @@ typedef struct  _parGPU
 
 } parGPU_t;
 
-//structure for de-compression
-typedef struct  _keysGPU
-{
-  unsigned int nsegs;
-
-  int keys[MAX_CONSTANT_SIZE/sizeof(int)]; //array containing the grid information 
-
-} keysGPU_t;
-
+extern "C" 
+void gpulocham_(int *n1,int *n2, int *n3,
+		double *h1,double *h2,double *h3,
+		double **psi,double **out,double **pot,			     
+		double **work,
+		double **work2,
+		double *epot,double *ekinpot);
 
 #endif

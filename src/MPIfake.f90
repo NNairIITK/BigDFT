@@ -16,6 +16,7 @@
         integer :: ierr
         end subroutine MPI_INIT
 !!***
+        
         subroutine  MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
         implicit none
         integer :: MPI_COMM_WORLD,iproc,ierr
@@ -35,11 +36,6 @@
         integer :: ierr
         end subroutine MPI_FINALIZE
 
-        subroutine  MPI_ALLREDUCE()
-        implicit none
-        stop 'ALLREDUCE'
-        end subroutine MPI_ALLREDUCE
-
         subroutine MPI_BCAST()
         implicit none
         end subroutine MPI_BCAST
@@ -53,42 +49,65 @@
         implicit none
         end subroutine MPI_REDUCE
 
+! These routines in serial version should not be called.
+! A stop is added
+
+        subroutine  MPI_ALLREDUCE()
+        implicit none
+        stop 'MPIFAKE: ALLREDUCE'
+        end subroutine MPI_ALLREDUCE
+
         subroutine  MPI_ALLGatherV()
         implicit none
-        stop 'ALLGATHERV'
+        stop 'MPIFAKE: ALLGATHERV'
         end subroutine  MPI_ALLGatherV
 
         subroutine  MPI_ALLGather()
         implicit none
-        stop 'ALLGATHER'
+        stop 'MPIFAKE: ALLGATHER'
         end subroutine  MPI_ALLGather
 
         subroutine  MPI_GatherV()
         implicit none
-        stop 'GATHERV'
+        stop 'MPIFAKE: GATHERV'
         end subroutine  MPI_GatherV
 
         subroutine  MPI_Gather()
         implicit none
-        stop 'GATHER'
+        stop 'MPIFAKE: GATHER'
         end subroutine  MPI_Gather
 
         subroutine  MPI_ALLTOALL()
         implicit none
-        stop 'ALLTOALL'
+        stop 'MPIFAKE: ALLTOALL'
         end subroutine  MPI_ALLTOALL
 
         subroutine  MPI_ALLTOALLV()
         implicit none
-        stop 'ALLTOALLV'
+        stop 'MPIFAKE: ALLTOALLV'
         end subroutine  MPI_ALLTOALLV
 
         subroutine  MPI_REDUCE_SCATTER()
         implicit none
-        stop 'REDUCE_SCATTER'
+        stop 'MPIFAKE: REDUCE_SCATTER'
         end subroutine  MPI_REDUCE_SCATTER
 
         subroutine  MPI_ABORT()
         implicit none
-        stop 
+        stop 'MPIFAKE: MPI_ABORT'
         end subroutine  MPI_ABORT
+
+        subroutine  MPI_IRECV()
+        implicit none
+        stop 'MPIFAKE: IRECV'
+        end subroutine  MPI_IRECV
+        
+        subroutine  MPI_ISEND()
+        implicit none
+        stop 'MPIFAKE: ISEND'
+        end subroutine  MPI_ISEND
+        
+        subroutine  MPI_WAITALL()
+        implicit none
+        stop 'MPIFAKE: WAITALL'
+        end subroutine  MPI_WAITALL

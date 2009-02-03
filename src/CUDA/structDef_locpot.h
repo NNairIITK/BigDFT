@@ -2,19 +2,10 @@
 #define _structDeflocpot_
 
 
-
-//maximum size of the shared memory array
-//conceived for maximize occupancy on a hardware of compute
-//capability 1.2 and higher (1024 threads at same time on a given multiprocessor)
-#define MAX_SHARED_SIZE 3072 //16*256 4 kB (should be =~ 3.9 kB, try also 3072)
-#define HALF_WARP_SIZE 16 // for all architectures
-#define NUM_LINES 8 
-#define HW_ELEM 2 //this is HALF_WARP_SIZE/NUM_LINES
-
 //parameter related to the Magic Filter convolution
 //lowfil + lupfil + 1  must be a multiple of 16
-#define LOWFIL 8
-#define LUPFIL 7
+#define LOWFILMF 8
+#define LUPFILMF 7
 
 //convolution filters
 #define MFIL0   8.4334247333529341094733325815816e-7
@@ -33,19 +24,5 @@
 #define MFIL13  0.49443227688689919192282259476750972e-3
 #define MFIL14 -0.5185986881173432922848639136911487e-4
 #define MFIL15  2.72734492911979659657715313017228e-6
-
-
-typedef struct  _parMF
-{
-  unsigned int ElementsPerBlock;
-
-  int thline[HALF_WARP_SIZE]; //line considered by a thread within the half-warp
-  int thelem[HALF_WARP_SIZE]; //elements considered by a thread within the half-warp
-  int hwelem_calc[16]; //maximum number of half warps
-  int hwelem_copy[16]; //maximum number of half-warps
-  int hwoffset_calc[16]; //maximum number of half warps
-  int hwoffset_copy[16]; //maximum number of half-warps
-
-} parMF_t;
 
 #endif

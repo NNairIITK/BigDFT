@@ -458,28 +458,28 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
 end subroutine IonicEnergyandForces
 
 
-subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,&
-     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
+subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
+     hxh,hyh,hzh,ef,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
   use module_base
+  use module_types
   use Poisson_Solver
   implicit none
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: iproc,nproc,ntypes,nat,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
-  real(kind=8), intent(in) :: hxh,hyh,hzh,elecfield,psoffset
-  integer, dimension(nat), intent(in) :: iatype
-  integer, dimension(ntypes), intent(in) :: nelpsp
-  real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
-  real(kind=8), dimension(3,nat), intent(in) :: rxyz
-  real(kind=8), dimension(*), intent(in) :: pkernel
-  real(kind=8), dimension(*), intent(inout) :: pot_ion
-  real(kind=8), intent(out) :: eion
+  integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+  real(gp), intent(in) :: hxh,hyh,hzh,psoffset
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3), intent(in) :: ef
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(dp), dimension(*), intent(in) :: pkernel
+  real(wp), dimension(*), intent(inout) :: pot_ion
+  real(gp), intent(out) :: eion
   !local variables
-  logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.
+  logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.,efwrite
   integer :: iat,jat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,jtyp,nspin
   integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   real(kind=8) :: hgridh,pi,rholeaked,dist,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,eself,potxyz
-  real(kind=8) :: ehart,eexcu,vexcu
+  real(gp) :: ehart,eexcu,vexcu,elecfield,ystart,yend
   real(kind=8), dimension(4) :: charges_mpi
 
   call timing(iproc,'CrtLocPot     ','ON')
@@ -493,27 +493,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
   ! Ionic charge (must be calculated for the PS active processes)
   rholeaked=0.d0
   ! Ionic energy (can be calculated for all the processors)
-
-!!$  if (geocode == 'F') then
-!!$     
-!!$     eion=0.d0
-!!$     eself=0.d0
-!!$     do iat=1,nat
-!!$        ityp=iatype(iat)
-!!$        rx=rxyz(1,iat) 
-!!$        ry=rxyz(2,iat)
-!!$        rz=rxyz(3,iat)
-!!$        !    ion-ion interaction
-!!$        do jat=1,iat-1
-!!$           dist=sqrt( (rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2 )
-!!$           jtyp=iatype(jat)
-!!$           eion=eion+real(nelpsp(jtyp)*nelpsp(ityp),kind=8)/dist
-!!$        enddo
-!!$        !energy which comes from the self-interaction of the spread charge
-!!$        eself=eself+real(nelpsp(ityp)**2,kind=8)*0.5*sqrt(1.d0/pi)/psppar(0,0,ityp)
-!!$     end do
-!!$     if (iproc.eq.0) write(*,'(1x,a,1pe22.14)') 'ion-ion interaction energy',eion
-!!$  end if
 
   !Creates charge density arising from the ionic PSP cores
   call razero(n1i*n2i*n3pi,pot_ion)
@@ -529,14 +508,14 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
 
   if (n3pi >0 .and. .not. htoobig) then
 
-     do iat=1,nat
-        ityp=iatype(iat)
+     do iat=1,at%nat
+        ityp=at%iatype(iat)
         rx=rxyz(1,iat) 
         ry=rxyz(2,iat)
         rz=rxyz(3,iat)
 
-        rloc=psppar(0,0,ityp)
-        charge=real(nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
+        rloc=at%psppar(0,0,ityp)
+        charge=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
         cutoff=10.d0*rloc
 
         isx=floor((rx-cutoff)/hxh)
@@ -628,8 +607,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
 !!$  print *,'previous offset',tt_tot*hxh*hyh*hzh
 
   if (n3pi > 0) then
-     do iat=1,nat
-        ityp=iatype(iat)
+     do iat=1,at%nat
+        ityp=at%iatype(iat)
 
         rx=rxyz(1,iat)
         ry=rxyz(2,iat)
@@ -638,9 +617,9 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
         ! determine number of local terms
         nloc=0
         do iloc=1,4
-           if (psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
+           if (at%psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
         enddo
-        rloc=psppar(0,0,ityp)
+        rloc=at%psppar(0,0,ityp)
         cutoff=10.d0*rloc
 
         isx=floor((rx-cutoff)/hxh)
@@ -669,9 +648,9 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
                              r2=x**2+y**2+z**2
                              arg=r2/rloc**2
                              xp=exp(-.5d0*arg)
-                             tt=psppar(0,nloc,ityp)
+                             tt=at%psppar(0,nloc,ityp)
                              do iloc=nloc-1,1,-1
-                                tt=arg*tt+psppar(0,iloc,ityp)
+                                tt=arg*tt+at%psppar(0,iloc,ityp)
                              enddo
                              ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
                              pot_ion(ind)=pot_ion(ind)+xp*tt
@@ -697,7 +676,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
               do i1=1,n1i
                  x=real(i1-nbl1-1,gp)*hxh
                  ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                 call sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
+                 call sum_erfcr(at%nat,at%ntypes,x,y,z,at%iatype,at%nelpsp,at%psppar,rxyz,potxyz)
                  pot_ion(ind)=pot_ion(ind)+potxyz
               end do
            end do
@@ -714,28 +693,66 @@ subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nel
 !!$  end do
 !!$  print *,'actual offset',tt_tot*hxh*hyh*hzh
 
+  elecfield=ef(1)
+  ystart=ef(2)
+  yend=ef(3)
 
-  !use rhopot to calculate the potential from a constant electric field along x direction
-  if (elecfield /= 0.d0) then
+  !use rhopot to calculate the potential from a constant electric field along y direction
+  if (elecfield /= 0.0_gp) then
      !constant electric field allowed only for free BC
-     if (geocode == 'F') then
-     if (iproc.eq.0) write(*,'(1x,a)') &
-          'The constant electric field is allowed only for Free BC'
+     if (geocode == 'P') then
+     if (iproc == 0) write(*,'(1x,a)') &
+          'The constant electric field is allowed only for Free and Surfaces BC'
      stop
      end if
-     if (iproc.eq.0) write(*,'(1x,a,1pe10.2)') &
-          'Adding constant electric field of intensity',elecfield,&
-          'Ha*Bohr'
+     if (iproc.eq.0) write(*,'(1x,3(a,1pe10.2),a)') &
+          'Constant electric field of',elecfield,&
+          ' Ha*Bohr for:',ystart,' < y <',yend,' Bohr'
+
+     !write or not electric field in a separate file
+     efwrite=.true.
 
      if (n3pi > 0) then
         do i3=1,n3pi
-           do i2= -14,2*n2+16
-              do i1= -14,2*n1+16
-                 ind=i1+15+(i2+14)*(2*n1+31)+(i3-1)*(2*n1+31)*(2*n2+31)
-                 pot_ion(ind)=pot_ion(ind)+0.5d0*elecfield*hxh*real(i1-n1,kind=8)
-              enddo
-           enddo
-        enddo
+           !z=real(i3+i3s-1-nbl3-1,gp)*hzh
+           do i2=1,n2i
+              y=real(i2-nbl2-1,gp)*hyh
+              if (y < ystart) then
+                 if (iproc == 0 .and. i3 ==1 .and. efwrite) &
+                      write(17,*)y,elecfield*(0.5_gp*(ystart-yend))
+                 do i1=1,n1i
+                    !x=real(i1-nbl1-1,gp)*hxh
+                    ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+                    pot_ion(ind)=pot_ion(ind)+elecfield*(0.5_gp*(ystart-yend))
+                 end do
+              else if (y > yend) then
+                 if (iproc == 0 .and. i3 ==1 .and. efwrite) &
+                      write(17,*)y,-elecfield*(0.5_gp*(ystart-yend))
+                 do i1=1,n1i
+                    !x=real(i1-nbl1-1,gp)*hxh
+                    ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+                    pot_ion(ind)=pot_ion(ind)-elecfield*(0.5_gp*(ystart-yend))
+                 end do
+              else
+                 if (iproc == 0 .and. i3 ==1 .and. efwrite) &
+                      write(17,*)y,elecfield*(y-0.5_gp*(ystart+yend))
+                 do i1=1,n1i
+                    !x=real(i1-nbl1-1,gp)*hxh
+                    ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+                    pot_ion(ind)=pot_ion(ind)+elecfield*(y-0.5_gp*(ystart+yend))
+                 end do
+              end if
+           end do
+        end do
+!!$
+!!$        do i3=1,n3pi
+!!$           do i2= -14,2*n2+16
+!!$              do i1= -14,2*n1+16
+!!$                 ind=i1+15+(i2+14)*(2*n1+31)+(i3-1)*(2*n1+31)*(2*n2+31)
+!!$                 pot_ion(ind)=pot_ion(ind)+0.5d0*elecfield*hxh*real(i1-n1,kind=8)
+!!$              enddo
+!!$           enddo
+!!$        enddo
      end if
   end if
 

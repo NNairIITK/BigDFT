@@ -220,5 +220,235 @@ subroutine convolut_magic_t_per_cuda(n1,n2,n3,x,y)
 
 end subroutine convolut_magic_t_per_cuda
 
+!prepare the keys to be passed in GPU global or constant memory (presumably texture)
+subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c,keys_GPU)
+  use module_base
+  implicit none
+  integer, intent(in) :: nseg_c,nseg_f,nvctr_c
+  integer, dimension(nseg_c), intent(in) :: keyv_c
+  integer, dimension(nseg_f), intent(in) :: keyv_f  
+  integer, dimension(2,nseg_c), intent(in) :: keyg_c
+  integer, dimension(2,nseg_f), intent(in) :: keyg_f
+  real(kind=8), intent(out) :: keys_GPU
+  !local variables
+  character(len=*), parameter :: subname='adjust_keys_for_gpu'
+  !maximum number of elements to be passed into a block
+  integer :: iseg,i_stat,i_all,segment_elements,nseg_tot,j,nseggpu,nblocks,nseg_block
+  integer :: elems_block,nblocks_max
+  integer, dimension(:,:), allocatable :: keys
+  
+  call readkeysinfo(elems_block,nblocks_max)
+  
+  nseg_tot=0
+  !assign the keys values, coarse part
+  do iseg=1,nseg_c
+     segment_elements=keyg_c(2,iseg)-keyg_c(1,iseg)
+     if (segment_elements <= elems_block) then
+        nseg_tot=nseg_tot+1
+     else
+        nseg_tot=nseg_tot+1
+        do j=1,segment_elements/elems_block-1
+           nseg_tot=nseg_tot+1
+        end do
+        j=segment_elements/elems_block
+        nseg_tot=nseg_tot+1
+     end if
+  end do
+  !assign the keys values, fine part
+  do iseg=1,nseg_f
+     segment_elements=keyg_f(2,iseg)-keyg_f(1,iseg)
+     if (segment_elements <= elems_block) then
+        nseg_tot=nseg_tot+1
+     else
+        nseg_tot=nseg_tot+1
+        do j=1,segment_elements/elems_block-1
+           nseg_tot=nseg_tot+1
+        end do
+        j=segment_elements/elems_block;
+        nseg_tot=nseg_tot+1
+     end if
+  end do
+
+  !number of segments treated by each block;
+  nseg_block =(nseg_tot+1)/nblocks_max +1
+
+  nblocks=min(nblocks_max,nseg_tot+1)
+
+  !print *,'nseg,nblocks',nseg_block,nblocks
+  call copynseginfo(nblocks,nseg_block)
+
+  nseggpu=nseg_block*nblocks
+
+  !allocate the array to be copied
+  allocate(keys(4,nseggpu+ndebug),stat=i_stat)
+  call memocc(i_stat,keys,'keys',subname)
+  
+  nseg_tot=0
+  !assign the keys values, coarse part
+  do iseg=1,nseg_c
+     segment_elements=keyg_c(2,iseg)-keyg_c(1,iseg)
+     if (segment_elements <= elems_block) then
+        nseg_tot=nseg_tot+1;
+        keys(1,nseg_tot)=1 !which means coarse segment
+        keys(2,nseg_tot)=segment_elements
+        keys(3,nseg_tot)=keyv_c(iseg)
+        keys(4,nseg_tot)=keyg_c(1,iseg)
+     else
+        nseg_tot=nseg_tot+1
+        keys(1,nseg_tot)=1
+        keys(2,nseg_tot)=elems_block
+        keys(3,nseg_tot)=keyv_c(iseg)
+        keys(4,nseg_tot)=keyg_c(1,iseg)	  
+        do j=1,segment_elements/elems_block-1
+           nseg_tot=nseg_tot+1
+           keys(1,nseg_tot)=1
+           keys(2,nseg_tot)=elems_block
+           keys(3,nseg_tot)=keyv_c(iseg)+j*elems_block+1
+           keys(4,nseg_tot)=keyg_c(1,iseg)+j*elems_block+1
+        end do
+        j=segment_elements/elems_block;
+        nseg_tot=nseg_tot+1
+        keys(1,nseg_tot)=1
+        keys(2,nseg_tot)=segment_elements-j*elems_block
+        keys(3,nseg_tot)=keyv_c(iseg)+j*elems_block+1
+        keys(4,nseg_tot)=keyg_c(1,iseg)+j*elems_block+1
+     end if
+  end do
+  !assign the keys values, fine part
+  do iseg=1,nseg_f
+     segment_elements=keyg_f(2,iseg)-keyg_f(1,iseg)
+     if (segment_elements <= elems_block) then
+        nseg_tot=nseg_tot+1;
+        keys(1,nseg_tot)=nvctr_c !which means fine segment
+        keys(2,nseg_tot)=segment_elements
+        keys(3,nseg_tot)=keyv_f(iseg)
+        keys(4,nseg_tot)=keyg_f(1,iseg)
+     else
+        nseg_tot=nseg_tot+1
+        keys(1,nseg_tot)=nvctr_c
+        keys(2,nseg_tot)=elems_block
+        keys(3,nseg_tot)=keyv_f(iseg)
+        keys(4,nseg_tot)=keyg_f(1,iseg)	  
+        do j=1,segment_elements/elems_block-1
+           nseg_tot=nseg_tot+1
+           keys(1,nseg_tot)=nvctr_c
+           keys(2,nseg_tot)=elems_block
+           keys(3,nseg_tot)=keyv_f(iseg)+j*elems_block+1
+           keys(4,nseg_tot)=keyg_f(1,iseg)+j*elems_block+1
+        end do
+        j=segment_elements/elems_block;
+        nseg_tot=nseg_tot+1
+        keys(1,nseg_tot)=nvctr_c
+        keys(2,nseg_tot)=segment_elements-j*elems_block
+        keys(3,nseg_tot)=keyv_f(iseg)+j*elems_block+1
+        keys(4,nseg_tot)=keyg_f(1,iseg)+j*elems_block+1
+     end if
+  end do
+
+  !fill the last part of the segments
+  do iseg=nseg_tot+1,nblocks*nseg_block
+     keys(1,iseg)=0
+     keys(2,iseg)=0
+     keys(3,iseg)=0
+     keys(4,iseg)=0
+  end do
+
+  !allocate the gpu pointer and copy the values
+  call GPU_int_allocate(4*nseggpu,keys_GPU,i_stat)
+
+  call GPU_int_send(4*nseggpu,keys,keys_GPU,i_stat)
+
+
+  i_all=-product(shape(keys))
+  deallocate(keys,stat=i_stat)
+  call memocc(i_stat,i_all,'keys',subname)
+
+
+end subroutine adjust_keys_for_gpu
+
+subroutine prepare_gpu_for_locham(n1,n2,n3,wfd,orbs,GPU)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(orbitals_data), intent(in) :: orbs
+  type(GPU_pointers), intent(out) :: GPU
+  !local variables
+  integer :: i_stat
+
+  !after this call, all memory operations are in double precision, 
+  !call set_gpu_simple() in order to have simple memory operations
+  call set_gpu_double() 
+
+  call adjust_keys_for_gpu(wfd%nseg_c,wfd%nseg_f,wfd%keyv(1),wfd%keyg(1,1),&
+       wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,wfd%nseg_c+1),wfd%nvctr_c,GPU%keys)
+
+  !create parameters
+  call creategpuparameters(n1,n2,n3)
+
+  !allocate space on the card
+  call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%psi,i_stat)
+  call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%work1,i_stat)
+  call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%work2,i_stat)
+  call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%work3,i_stat)
+  call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%work4,i_stat)
+  call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%pot,i_stat)
+  call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%hpsi,i_stat)
+  
+end subroutine prepare_gpu_for_locham
+
+
+
+subroutine free_gpu(GPU)
+  use module_base
+  use module_types
+  implicit none
+  type(GPU_pointers), intent(out) :: GPU
+  !local variables
+  integer :: i_stat
+  
+
+  call GPU_deallocate(GPU%work1,i_stat)
+  call GPU_deallocate(GPU%work2,i_stat)
+  call GPU_deallocate(GPU%work3,i_stat)
+  call GPU_deallocate(GPU%work4,i_stat)
+  call GPU_deallocate(GPU%keys,i_stat)
+  call GPU_deallocate(GPU%pot,i_stat)
+  call GPU_deallocate(GPU%psi,i_stat)
+  call GPU_deallocate(GPU%hpsi,i_stat)
+
+end subroutine free_gpu
+
+subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  real(gp), intent(in) :: hx,hy,hz
+  type(orbitals_data), intent(in) :: orbs
+  type(GPU_pointers), intent(out) :: GPU
+  !local variables
+  integer :: i_stat
+  real(kind=8) :: epot,ekinpot
+
+
+!!$  call uncompressgpu(n1,n2,n3,GPU%psi,GPU%work4,GPU%keys)
+
+!!$  call gpulocham(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+!!$       GPU%work4,GPU%work3,GPU%pot,&
+!!$       GPU%work1,GPU%work2,epot,ekinpot)
+
+!!$  call compressgpu(n1,n2,n3,GPU%work3,GPU%hpsi,GPU%keys)
+
+
+  call gpufulllocham(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+       GPU%psi,GPU%hpsi,GPU%pot,GPU%keys,&
+       GPU%work4,GPU%work3,GPU%work1,GPU%work2,epot,ekinpot)
+  
+  !print *,'epotGPU,ekinpotGPU',epot,ekinpot
+
+
+end subroutine gpu_locham
 
 

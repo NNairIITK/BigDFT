@@ -19,12 +19,13 @@ module module_types
 !! SOURCE
 !!
   type, public :: input_variables
+     logical :: output_wf,calc_tail,gaussian_help
      integer :: ncount_cluster_x
-     real(kind=8) :: frac_fluct,randdis,betax,forcemax
      integer :: ixc,ncharge,itermax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,nvirt,nplot
      integer :: output_grid
-     real(kind=8) :: hgrid,crmult,frmult,elecfield,gnrm_cv,rbuf
-     logical :: output_wf,calc_tail,gaussian_help
+     real(gp) :: frac_fluct,randdis,betax,forcemax
+     real(gp) :: hgrid,crmult,frmult,gnrm_cv,rbuf
+     real(gp), dimension(3) :: ef
   end type input_variables
 !!***
 
@@ -116,10 +117,10 @@ module module_types
      character(len=20) :: units
      integer :: nat,ntypes,natsc
      character(len=20), dimension(:), pointer :: atomnames
-     real(kind=8) :: alat1,alat2,alat3
+     real(gp) :: alat1,alat2,alat3
      logical, dimension(:), pointer :: lfrztyp
      integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom
-     real(kind=8), dimension(:,:,:), pointer :: psppar
+     real(gp), dimension(:,:,:), pointer :: psppar
   end type atoms_data
 !!***
 
@@ -205,6 +206,20 @@ module module_types
   end type communications_arrays
 !!***
 
+!!****t* module_types/GPU_pointers
+!! DESCRIPTION
+!! Contains the pointers to be handled to control GPU information
+!! Given that they are pointers on GPU address, they are C pointers
+!! which takes 8 bytes
+!! So they are declared as kind=8 variables either if the GPU works in simple precision
+!! Also other information concerning the GPU runs can be stored in this structure
+!!
+!! SOURCE
+!!
+  type, public :: GPU_pointers
+     real(kind=8) :: keys,psi,hpsi,work1,work2,work3,work4,pot
+  end type GPU_pointers
+!!***
 
 contains
 

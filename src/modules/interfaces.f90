@@ -180,20 +180,20 @@ interface
      real(kind=8), dimension(*), intent(out) :: pot_ion
    end subroutine IonicEnergyandForces
 
-   subroutine createIonicPotential(geocode,iproc,nproc,nat,ntypes,iatype,psppar,nelpsp,rxyz,&
-        hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
+   subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
+        hxh,hyh,hzh,ef,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
      use module_base
+     use module_types
      implicit none
      character(len=1), intent(in) :: geocode
-     integer, intent(in) :: iproc,nproc,ntypes,nat,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
-     real(kind=8), intent(in) :: hxh,hyh,hzh,elecfield,psoffset
-     integer, dimension(nat), intent(in) :: iatype
-     integer, dimension(ntypes), intent(in) :: nelpsp
-     real(kind=8), dimension(0:4,0:6,ntypes), intent(in) :: psppar
-     real(kind=8), dimension(3,nat), intent(in) :: rxyz
-     real(kind=8), dimension(*), intent(in) :: pkernel
-     real(kind=8), intent(out) :: eion
-     real(kind=8), dimension(*), intent(inout) :: pot_ion
+     integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+     real(gp), intent(in) :: hxh,hyh,hzh,psoffset
+     type(atoms_data), intent(in) :: at
+     real(gp), dimension(3), intent(in) :: ef
+     real(gp), dimension(3,at%nat), intent(in) :: rxyz
+     real(dp), dimension(*), intent(in) :: pkernel
+     real(wp), dimension(*), intent(inout) :: pot_ion
+     real(gp), intent(out) :: eion
    end subroutine createIonicPotential
 
    subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
@@ -559,13 +559,13 @@ interface
      real(wp), dimension(*) :: psi
    end subroutine plot_wf
 
-   subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,nspinor,nspinn,nrhotot,&
+   subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
         hfac,nscatterarr,spinsgn,psir,rho_p,&
         ibyyzz_r) !optional argument
      use module_base
      implicit none
      logical, intent(in) :: rsflag
-     integer, intent(in) :: nproc,n1i,n2i,n3i,nrhotot,nspinor,nspinn
+     integer, intent(in) :: nproc,n1i,n2i,n3i,nrhotot,nspinn,npsir
      real(gp), intent(in) :: hfac,spinsgn
      integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
      real(wp), dimension(n1i,n2i,n3i,nspinn), intent(in) :: psir
@@ -610,6 +610,25 @@ interface
      real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp), intent(out) :: psi
      real(wp), dimension(:,:), pointer :: coeffs
    end subroutine restart_from_gaussians
+
+   subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvctrp,nvirt,nspin,&
+        orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
+     use module_base
+     use module_types
+     implicit none
+     integer, intent(in) :: iproc,nproc,nspin,nvctrp
+     integer, intent(inout) :: nvirt
+     type(atoms_data), intent(in) :: at
+     type(orbitals_data), intent(in) :: orbs
+     type(locreg_descriptors), intent(in) :: Glr
+     real(gp), dimension(3,at%nat), intent(in) :: rxyz
+     real(gp), intent(out) :: eks
+     integer, dimension(at%natsc+1,nspin), intent(out) :: norbsc_arr
+     real(gp), dimension(at%nat), intent(out) :: locrad
+     type(orbitals_data), intent(out) :: orbse,orbsv
+     type(gaussian_basis), intent(out) :: G
+     real(wp), dimension(:,:), pointer :: psigau
+   end subroutine inputguess_gaussian_orbitals
 
 end interface
 

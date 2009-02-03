@@ -22,7 +22,7 @@ program GPUham
   implicit none
   integer  :: n1,n2,n3
   real(gp) :: hx,hy,hz,r2,sigma2,x,y,z,maxdiff,epot,arg
-  real(wp), dimension(:,:,:), allocatable :: pot,psir,psi_in,psi_out
+  real(wp), dimension(:,:,:), allocatable :: pot,psir,psifscf,psi_in,psi_out
   !local variables
   character(len=*), parameter :: subname='conv_check'
   character(len=50) :: chain
@@ -30,19 +30,19 @@ program GPUham
   integer :: count_rate,count_max,l
   integer :: n1s,n1e,ndats,ndate
   real(wp) :: tt,scale
-  real(gp) :: v,p,CPUtime,GPUtime,comp,ekin,CPUGflops,GPUGflops
+  real(gp) :: v,p,CPUtime,GPUtime,comp,ekin,CPUGflops,GPUGflops,epot_p
   real(gp), dimension(3) :: hgridh
 !  real(kind=4), dimension(:,:,:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
   real(kind=4) :: t0,t1,epotGPU,ekinGPU
-real(kind=8) :: epotGPU2,ekinGPU2
+  real(kind=8) :: epotGPU2,ekinGPU2
   !pointer to the GPU  memory addresses (with norb=1)
-  real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU,work3_GPU
+  real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU,out_GPU
 
   read(1,*)n1,n2,n3,ntimes
 
-  hx=0.1e0_gp
-  hy=0.1e0_gp
-  hz=0.1e0_gp
+  hx=0.8e0_gp
+  hy=0.8e0_gp
+  hz=0.8e0_gp
 
   scale=real(-.5_gp/hx**2,wp)
 
@@ -54,14 +54,20 @@ real(kind=8) :: epotGPU2,ekinGPU2
 
   ekin=0.0_wp
   
+
+  !init cublas
+
+  call cublas_init()
   !allocate arrays
-  allocate(psi_in((n1+1),(n2+1),(n3+1)+ndebug),stat=i_stat)
+  allocate(psi_in(2*(n1+1),2*(n2+1),2*(n3+1)+ndebug),stat=i_stat)
   call memocc(i_stat,psi_in,'psi_in',subname)
-  allocate(psi_out((n1+1),(n2+1),(n3+1)+ndebug),stat=i_stat)
+  allocate(psi_out(2*(n1+1),2*(n2+1),2*(n3+1)+ndebug),stat=i_stat)
   call memocc(i_stat,psi_out,'psi_out',subname)
-  allocate(psir((n1+1),(n2+1),(n3+1)+ndebug),stat=i_stat)
+  allocate(psir(2*(n1+1),2*(n2+1),2*(n3+1)+ndebug),stat=i_stat)
   call memocc(i_stat,psir,'psir',subname)
-  allocate(pot((n1+1),(n2+1),(n3+1)+ndebug),stat=i_stat)
+  allocate(psifscf(2*(n1+1),2*(n2+1),2*(n3+1)+ndebug),stat=i_stat)
+  call memocc(i_stat,psifscf,'psifscf',subname)
+  allocate(pot(2*(n1+1),2*(n2+1),2*(n3+1)+ndebug),stat=i_stat)
   call memocc(i_stat,pot,'pot',subname)
 
   ! Wavefunction expressed everywhere in fine scaling functions 
@@ -80,46 +86,71 @@ real(kind=8) :: epotGPU2,ekinGPU2
            arg=0.5d0*r2/sigma2
            tt=dexp(-arg)
            !same initialisation for psi and pot
-           psi_in(i1,i2,i3)=tt
-           pot(i1,i2,i3)=tt
+           psi_in(2*i1,2*i2,2*i3)=tt
+           psi_in(2*i1-1,2*i2-1,2*i3-1)=tt
+           pot(2*i1,2*i2,2*i3)=0.d0!tt
+           pot(2*i1-1,2*i2-1,2*i3-1)=1.d0!tt
+
         end do
      end do
   end do
 
-  write(*,'(a,i6,i6,i6)')'CPU local hamiltonian, dimensions:',n1,n2,n3
+  psifscf=psi_in
+
+  write(*,'(a,i6,i6,i6)')'CPU local hamiltonian, dimensions:',2*n1+1,2*n2+1,2*n3+1
 
   !take timings
   call cpu_time(t0)
 
   do j=1,ntimes
      !traditional convolution, CPU
-     ! psir serves as a work array	   
-     call convolut_magic_n_per(n1,n2,n3,psi_in,psir,psi_out) 
 
-     ! Initialisation of potential energy  
-     epot=0.0_gp
-     do i3=1,n3+1
-        do i2=1,n2+1
-           do i1=1,n1+1
+     ! calculate fine scaling functions
+     call synthese_per_self(n1,n2,n3,psifscf,psi_out)
+
+     ! psir serves as a work array	   
+     call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psi_out,psir,psifscf) 
+
+     !$omp parallel default(private)&
+     !$omp shared(pot,psir,n1,n2,n3,epot)
+
+     epot_p=0._gp
+     !$omp do
+     do i3=1,2*n3+2
+        do i2=1,2*n2+2
+           do i1=1,2*n1+2
               v=real(pot(i1,i2,i3),gp)
               p=real(psir(i1,i2,i3),gp)
               tt=pot(i1,i2,i3)*psir(i1,i2,i3)
-              epot=epot+p*v*p
+              epot_p=epot_p+p*v*p
               psir(i1,i2,i3)=tt
            end do
         end do
      end do
+     !$omp end do
 
-     call convolut_magic_t_per_self(n1,n2,n3,psir,psi_out)
+     !$omp critical
+     epot=epot+epot_p
+     !$omp end critical
 
-     call convolut_kinetic_per_T(n1,n2,n3,hgridh,psi_in,psi_out,ekin)
+     !$omp end parallel
+
+     call convolut_magic_t_per_self(2*n1+1,2*n2+1,2*n3+1,psir,psifscf)
+
+     ! compute the kinetic part and add  it to psifscf
+     ! the kinetic energy is calculated at the same time
+
+     call convolut_kinetic_per_T(2*n1+1,2*n2+1,2*n3+1,hgridh,psi_out,psifscf,ekin)
+
+     !the output is psi_out
+     call analyse_per_self(n1,n2,n3,psifscf,psi_out)
 
   end do
 
   call cpu_time(t1)
 
   CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
-  CPUGflops=real(n1*n2*n3*ntimes,kind=8)*366.d0/(CPUtime*1.d9)
+  CPUGflops=8.d0*real(n1*n2*n3*ntimes,kind=8)*366.d0/(CPUtime*1.d9)
 
   write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
        CPUtime*1.d3/real(ntimes,kind=8),CPUGflops
@@ -127,46 +158,38 @@ real(kind=8) :: epotGPU2,ekinGPU2
   print *,'ekin,epot=',ekin,epot
 
 
-
-
-
   ! Initialisation of potential energy  
   epot=0.0_gp
 
-  call set_gpu_double() !after this call, all memory operations are in double precision, call set_gpu_simple() in order to have simple memory operations
+  !after this call, all memory operations are in double precision, 
+  !call set_gpu_simple() in order to have simple memory operations
+  call set_gpu_double() 
 
   !allocate the GPU memory
-  call GPU_allocate((n1+1)*(n2+1)*(n3+1),psi_GPU,i_stat)
-  call GPU_allocate((n1+1)*(n2+1)*(n3+1),v_GPU,i_stat)
-  call GPU_allocate((n1+1)*(n2+1)*(n3+1),work_GPU,i_stat)
-  call GPU_allocate((n1+1)*(n2+1)*(n3+1),work2_GPU,i_stat)
-  call GPU_allocate((n1+1)*(n2+1)*(n3+1),work3_GPU,i_stat)
+  call GPU_allocate(8*(n1+1)*(n2+1)*(n3+1),psi_GPU,i_stat)
+  call GPU_allocate(8*(n1+1)*(n2+1)*(n3+1),v_GPU,i_stat)
+  call GPU_allocate(8*(n1+1)*(n2+1)*(n3+1),work_GPU,i_stat)
+  call GPU_allocate(8*(n1+1)*(n2+1)*(n3+1),work2_GPU,i_stat)
+  call GPU_allocate(8*(n1+1)*(n2+1)*(n3+1),out_GPU,i_stat)
 
 
-  call GPU_send((n1+1)*(n2+1)*(n3+1),psi_in,psi_GPU,i_stat)
-  call GPU_send((n1+1)*(n2+1)*(n3+1),pot,v_GPU,i_stat)
+  call GPU_send(8*(n1+1)*(n2+1)*(n3+1),psi_in,psi_GPU,i_stat)
+  call GPU_send(8*(n1+1)*(n2+1)*(n3+1),pot,v_GPU,i_stat)
 
-  write(*,'(a,i6,i6,i6)')'GPU Hamiltonian, dimensions:',n1,n2,n3
+  write(*,'(a,i6,i6,i6)')'GPU Hamiltonian, dimensions:',2*n1+1,2*n2+1,2*n3+1
 
   call cpu_time(t0)
   do i=1,ntimes
 
-
-     call kinetictermd(n1,n2,n3,&
-          hx,hy,hz,0.e0,&
-          psi_GPU,work2_GPU,work_GPU,work3_GPU,ekinGPU2)
-     
-
+     call gpulocham(n1,n2,n3,&
+          hx,hy,hz,&
+          psi_GPU,out_GPU,v_GPU,work_GPU,work2_GPU,epotGPU2,ekinGPU2)
  
-     call localpotentiald(n1,n2,n3,work_GPU,psi_GPU,v_GPU,epotGPU2)
-
   end do
   call cpu_time(t1)
 
-  !copy vpsi on the CPU
-
-  call GPU_receive((n1+1)*(n2+1)*(n3+1),psi_in,work_GPU,i_stat)
-  call GPU_receive((n1+1)*(n2+1)*(n3+1),pot,work2_GPU,i_stat)
+  psifscf=15.d0
+  call GPU_receive(8*(n1+1)*(n2+1)*(n3+1),psifscf,out_GPU,i_stat)
 
   GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
   GPUGflops=real(n1*n2*n3*ntimes,kind=8)*366.d0/(GPUtime*1.d9)
@@ -179,21 +202,17 @@ real(kind=8) :: epotGPU2,ekinGPU2
   call GPU_deallocate(v_GPU,i_stat)
   call GPU_deallocate(work_GPU,i_stat)
   call GPU_deallocate(work2_GPU,i_stat)
-  call GPU_deallocate(work3_GPU,i_stat)
+  call GPU_deallocate(out_GPU,i_stat)
 
   print *,'ekin,epot=',ekinGPU2,epotGPU2
 
-
-  !add Vpsi to Kpsi
-  psi_in=psi_in+pot
-
   !check the differences between the results
   maxdiff=0.d0
-  do i3=1,n3+1
-     do i2=1,n2+1
-        do i1=1,n1+1
-           write(17,*),i1,i2,i3,psi_out(i1,i2,i3),psi_in(i1,i2,i3)
-           maxdiff=max(abs(psi_out(i1,i2,i3)-psi_in(i1,i2,i3)),maxdiff)
+  do i3=1,2*(n3+1)
+     do i2=1,2*(n2+1)
+        do i1=1,2*(n1+1)
+           write(17,*),i1,i2,i3,psi_out(i1,i2,i3),psifscf(i1,i2,i3)
+           maxdiff=max(abs(psi_out(i1,i2,i3)-psifscf(i1,i2,i3)),maxdiff)
         end do
      end do
   end do
@@ -224,9 +243,16 @@ real(kind=8) :: epotGPU2,ekinGPU2
   i_all=-product(shape(psir))
   deallocate(psir,stat=i_stat)
   call memocc(i_stat,i_all,'psir',subname)
+  i_all=-product(shape(psifscf))
+  deallocate(psifscf,stat=i_stat)
+  call memocc(i_stat,i_all,'psifscf',subname)
   i_all=-product(shape(pot))
   deallocate(pot,stat=i_stat)
   call memocc(i_stat,i_all,'pot',subname)
+
+
+
+ call cublas_shutdown()
 
 end program GPUham
 

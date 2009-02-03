@@ -1,18 +1,10 @@
 #ifndef __structDefkinetic__
 #define __structDefkinetic__
 
-//maximum size of the shared memory array
-//conceived for maximize occupancy on a hardware of compute
-//capability 1.2 and higher (1024 threads at same time on a given multiprocessor)
-#define MAX_SHARED_SIZE 3072 //16*256 4 kB (should be =~ 3.9 kB, try also 3072)
-#define HALF_WARP_SIZE 16 // for all architectures
-#define NUM_LINES 8 
-#define HW_ELEM 2 //this is HALF_WARP_SIZE/NUM_LINES
-
 //parameter related to the Magic Filter convolution
 //lowfil + lupfil + 1  must be a multiple of 16
-#define LOWFIL 14
-#define LUPFIL 14
+#define LOWFILK 14
+#define LUPFILK 14
 
 //convolution filters
 #define KFIL0   -3.5536922899131901941296809374
@@ -48,19 +40,5 @@
 #define KFIL13 13.e-3f
 #define KFIL14 14.e-3f
 */
-
-typedef struct  _parK
-{
-  int ElementsPerBlock;
-
-  int thline[HALF_WARP_SIZE]; //line considered by a thread within the half-warp
-  int thelem[HALF_WARP_SIZE]; //elements considered by a thread within the half-warp
-  int hwelem_calc[16]; //maximum number of half warps
-  int hwelem_copy[16]; //maximum number of half-warps
-  int hwoffset_calc[16]; //maximum number of half warps
-  int hwoffset_copy[16]; //maximum number of half-warps
-  float scale;
-
-} parK_t;
 
 #endif

@@ -13,13 +13,10 @@
 #include "reduction.hcu"
 
 //values from which the reduction is done on CPU
-#define  COPYVALUES 4096
-
-
 
 
 template<typename T>
-float reducearrays(int n,
+int reducearrays(int n,
 		   int ndat,
 		   T *psi,
 		   T *vpsi,
@@ -43,12 +40,12 @@ float reducearrays(int n,
   if(cudaMalloc( (void**) &(wrkred[0]), size0) != 0)
     {
       printf("reducearrays:GPU allocation error 1 \n");
-      return 0.f;
+      return 0;
     }
   if(cudaMalloc( (void**) &(wrkred[1]), size1) != 0)
     {
       printf("reducearrays:GPU allocation error 2\n");
-      return 0.f;
+      return 0;
     }
 
   switch (threads)
@@ -132,8 +129,9 @@ float reducearrays(int n,
 
   if(cudaMemcpy(epots,wrkred[iin], blocks*sizeof(T), cudaMemcpyDeviceToHost)  != 0)
     {
-      printf("reducearrays: DeviceToHost Memcpy error \n");
-      return 0.f;
+      printf("reducearraysAAA: DeviceToHost Memcpy error \n");
+      CUERR
+      return 0;
     }
 
 
@@ -151,7 +149,7 @@ float reducearrays(int n,
   
     *epot=result;
 
-  return result;
+  return 0;
   
 }
 
@@ -160,21 +158,22 @@ float reducearrays(int n,
 
 //little hack : specification of double and float reducearray in order to compil only once the template
 //Of course, this fct are never called
-template float reducearrays<float>(int n,
+
+template int reducearrays<float>(int n,
 				   int ndat,
 				   float *psi,
 				   float *vpsi,
 				   float *epot);
 
-template float reducearrays<double>(int n,
+template int reducearrays<double>(int n,
 				    int ndat,
 				    double *psi,
 				    double *vpsi,
 				    double *epot);
 
 
-
-/*void fctHackTemplate()
+/*
+void fctHackTemplate()
 {
   float yo = reducearrays<float>(NULL,NULL,NULL,NULL,NULL);
   double yo2 = reducearrays<double>(NULL,NULL,NULL,NULL,NULL);

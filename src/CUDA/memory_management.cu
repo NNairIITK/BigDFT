@@ -57,6 +57,28 @@ void gpu_allocate__(int *nsize, //memory size
 }
 
 extern "C" 
+void gpu_int_allocate__(int *nsize, //memory size
+			float **GPU_pointer, // pointer indicating the GPU address
+			int *ierr) // error code, 1 if failure
+
+		    
+{
+ 
+  unsigned int mem_size = (*nsize)*sizeof(int);
+
+
+  //allocate memory on GPU, return error code in case of problems
+  *ierr=0;
+  if(cudaMalloc( (void**) (GPU_pointer), mem_size) != 0)
+    {
+      printf("GPU allocation error \n");
+      *ierr=1;
+      return;
+    }
+}
+
+
+extern "C" 
 void gpu_deallocate__(float **GPU_pointer, // pointer indicating the GPU address
 		      int *ierr) // error code, 1 if failure
 {
@@ -94,6 +116,27 @@ void gpu_send__(int *nsize,
     }
 
 }
+
+extern "C"
+void gpu_int_send__(int *nsize,
+		    int *CPU_pointer, 
+		    float **GPU_pointer,
+		    int *ierr)
+{
+
+  unsigned int mem_size = (*nsize)*sizeof(int);
+
+  //copy V to GPU
+  *ierr=0;
+  if(cudaMemcpy(*GPU_pointer, CPU_pointer, mem_size, cudaMemcpyHostToDevice)  != 0)
+    {
+      printf("HostToDevice Memcpy error \n");
+      *ierr=1;
+      return;
+    }
+
+}
+
 
 extern "C" 
 void gpu_receive__(int *nsize,

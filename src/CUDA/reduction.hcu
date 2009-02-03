@@ -14,7 +14,6 @@
 
 #include "reduction.h"
 //values from which the reduction is done on CPU
-#define  COPYVALUES 4096
 
 #define CUERR { cudaError_t err; \
  if ((err = cudaGetLastError()) != cudaSuccess) { \

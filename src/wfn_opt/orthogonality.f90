@@ -80,7 +80,6 @@ subroutine orthoconstraint_cuda(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum
 
 end subroutine orthoconstraint_cuda
 
-
 subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,nspinor)
   !Effect of orthogonality constraints on gradient 
   use module_base
@@ -100,9 +99,9 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   istart=2
   if (nproc == 1) istart=1
 
-  if(nspinor==1) then
+  if(nspinor == 1 .or. nspinor == 2) then
      norbs=norb
-  else
+  else if (nspinor == 4) then
      norbs=2*norb
   end if
 
@@ -113,6 +112,7 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
      call GEMM('T','N',norb,norb,nvctrp,1.0_wp,psit(1,1),nvctrp,hpsit(1,1),nvctrp,0.0_wp,&
           alag(1,1,istart),norb)
   else
+     !this part should be recheck in the case of nspinor == 2
      call C_GEMM('C','N',norb,norb,2*nvctrp,(1.0_wp,0.0_wp),psit(1,1),2*nvctrp, &
           hpsit(1,1),2*nvctrp,(0.0_wp,0.0_wp),alag(1,1,istart),norb)
   end if
@@ -131,13 +131,14 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
 !          write(*,'(10(1x,1pe10.3))') (alag(jorb,iorb,1),jorb=1,norbs)
 !          enddo
 !          endif
+
   scprsum=0.0_dp
-  if(nspinor==1) then
+  if(nspinor == 1 .or. nspinor == 2) then
      do iorb=1,norb
         occ=real(occup(iorb),dp)
         scprsum=scprsum+occ*real(alag(iorb,iorb,1),dp)
      enddo
-  else
+  else if (nspinor == 4) then
     do iorb=1,norb
        occ=real(occup(iorb),dp)
        scprsum=scprsum+occ*real(alag(2*iorb-1,iorb,1),dp)
@@ -176,7 +177,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 
   call timing(iproc,'GramS_comput  ','ON')
 
-  if (norb.eq.1) then 
+  if (norb == 1) then 
 
      nvctr_eff=min(nvctr_tot-iproc*nvctrp,nvctrp)
 
@@ -214,14 +215,15 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
      istart=2
      if (nproc == 1) istart=1
 
-     if(nspinor==1) then
+     if(nspinor==1 .or. nspinor == 2) then
         norbs=norb
-     else
+     else if (nspinor ==4) then
         norbs=2*norb
      end if
 
      allocate(ovrlp(norbs,norb,istart+ndebug),stat=i_stat)
      call memocc(i_stat,ovrlp,'ovrlp',subname)
+
      call razero(norbs*norb*istart,ovrlp)
 
      ! Upper triangle of overlap matrix using BLAS
@@ -321,7 +323,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 
 END SUBROUTINE orthon_p
 
-
+!the loewe routines must be uniformised serial/parallel and nspinor should be added
 subroutine loewe_p(iproc,nproc,norb,ndim,nvctrp,nvctr_tot,psit)
   ! loewdin orthogonalisation
   use module_base

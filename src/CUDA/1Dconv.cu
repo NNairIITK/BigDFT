@@ -1,19 +1,19 @@
 /****u* CUDA/1Dconv.cu
 **
-** 
 ** AUTHOR
 **  Matthieu Ospici
 **
 ** CHANGELOG
 ** Started on  Tue Mar 11 14:54:55 2008 Matthieu Ospici
-**
 ** Last update Thu Sep 18 18:22:55 2008 Luigi Genovese
+** Last update Thu Dec 25 2008 Thierry Deutsch: comment cutil.h to avoid the use of libcutil.a
 **
 ** SOURCE
 */
 
 #include <stdio.h>
-#include <cutil.h>
+
+//#include <cutil.h>
 //#include <multithreading.h>
 #include <pthread.h>
 #include <semaphore.h>

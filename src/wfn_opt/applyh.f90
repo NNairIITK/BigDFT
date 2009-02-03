@@ -15,7 +15,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
   integer :: i_all,i_stat,ierr,iorb
-  integer :: nw1,nw2,nsoffset,oidx,ispin,md
+  integer :: nw1,nw2,nsoffset,oidx,ispin,md,npot
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
   real(gp) :: ekin,epot
   real(wp), dimension(:,:), allocatable :: w1,w2,psir
@@ -100,6 +100,10 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      endif
   end select
 
+  !components of the potential
+  npot=orbs%nspinor
+  if (orbs%nspinor == 2) npot=1
+
 
   ! Wavefunction in real space
   allocate(psir(n1i*n2i*n3i,orbs%nspinor+ndebug),stat=i_stat)
@@ -123,7 +127,8 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      select case(lr%geocode)
      case('F')
         call applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,0, &
-             hx,lr%wfd%nseg_c,lr%wfd%nseg_f,lr%wfd%nvctr_c,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv,&
+             hx,lr%wfd%nseg_c,lr%wfd%nseg_f,lr%wfd%nvctr_c,lr%wfd%nvctr_f,&
+             lr%wfd%keyg,lr%wfd%keyv,&
              lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
              lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,y_c,y_f,psir, &
              psi(1,oidx),pot(1,1,1,nsoffset),hpsi(1,oidx),epot,ekin,&
@@ -131,9 +136,12 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
              lr%bounds%sb%ibzzx_c,lr%bounds%sb%ibyyzz_c,&
              lr%bounds%sb%ibxy_ff,lr%bounds%sb%ibzzx_f,lr%bounds%sb%ibyyzz_f,&
              lr%bounds%gb%ibzxx_c,lr%bounds%gb%ibxxyy_c,&
-             lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f,nw1,nw2,lr%bounds%ibyyzz_r,&
-             orbs%nspinor)
-     case('P') !for these cases the non-collinear term is lacking (nspinor must be 1)
+             lr%bounds%gb%ibyz_ff,lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f,&
+             nw1,nw2,lr%bounds%ibyyzz_r,&
+             orbs%nspinor,npot)
+     case('P') 
+        !for these cases the non-collinear term is lacking (nspinor must be 1)
+        !must also add the treatment for complex functions (nspinor=2)
         if (lr%hybrid_on) then
            call applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
                 hx,hy,hz,lr%wfd%nseg_c,lr%wfd%nseg_f,&
@@ -157,6 +165,9 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      epot_sum=epot_sum+orbs%occup(iorb+orbs%isorb)*epot
 
   enddo
+
+!!$  !pot=psir
+!!$  call dcopy(n1i*n2i*n3i,psir,1,pot,1)
 
   !deallocations of work arrays
   i_all=-product(shape(psir))*kind(psir)
@@ -204,14 +215,14 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
      y_c,y_f,psir,  &
      psi,pot,hpsi,epot,ekin,x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
      ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
-     ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r,nspinor)!
+     ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,nw1,nw2,ibyyzz_r,nspinor,npot)!
   !  Applies the local potential and kinetic energy operator to one wavefunction 
   ! Input: pot,psi
   ! Output: hpsi,epot,ekin
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf,nw1,nw2
-  integer, intent(in) :: nseg_c,nseg_f,nvctr_c,nvctr_f,nspinor
+  integer, intent(in) :: nseg_c,nseg_f,nvctr_c,nvctr_f,nspinor,npot
   real(gp), intent(in) :: hgrid
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
@@ -230,7 +241,7 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   integer, dimension(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16), intent(in) :: ibxxyy_f
   integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in) :: ibyyzz_r
   real(wp), dimension(nvctr_c+7*nvctr_f,nspinor), intent(in) :: psi
-  real(wp), dimension((2*n1+31)*(2*n2+31)*(2*n3+31),nspinor), intent(in) :: pot
+  real(wp), dimension((2*n1+31)*(2*n2+31)*(2*n3+31),npot), intent(in) :: pot
   real(wp), dimension(nw1,nspinor), intent(inout) :: w1
   real(wp), dimension(nw2,nspinor), intent(inout) :: w2
   real(wp), dimension(0:n1,0:n2,0:n3,nspinor), intent(inout) :: y_c
@@ -244,8 +255,8 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   real(gp), intent(out) :: epot,ekin
   real(wp), dimension(nvctr_c+7*nvctr_f,nspinor), intent(out) :: hpsi
   !local variables
-  integer :: i,idx
-  real(gp) :: ekino
+  integer :: i,idx,ispinor
+  real(gp) :: ekino,epots
   real(wp), dimension(0:3) :: scal
 
   do i=0,3
@@ -268,14 +279,17 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
      
   end do
 
-  if (nspinor==1) then
-     if (nbuf.eq.0) then
-        call realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
+  epot=0.0_gp
+  if (nspinor==1 .or. nspinor == 2) then
+     if (nbuf == 0) then
+        do ispinor=1,nspinor
+           call realspace(ibyyzz_r,pot,psir(1,ispinor),epots,n1,n2,n3)
+           epot=epot+epots
+        end do
      else
         call realspace_nbuf(ibyyzz_r,pot,psir,epot,n1,n2,n3,nbuf)
      endif
   else
-     epot=0.0_gp
      call realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   end if
   
@@ -347,7 +361,7 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
   hgridh(2)=hy*.5_gp
   hgridh(3)=hz*.5_gp
 
-  if (GPUconv) then !convolution in cuda for the complete potential
+  if (GPUconv .and. .false.) then !convolution in cuda for the complete potential
 
      allocate(psi_cuda((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug),stat=i_stat)
      call memocc(i_stat,psi_cuda,'psi_cuda',subname)
@@ -372,11 +386,11 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,psi_GPU,i_stat)
      call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),v_cuda,v_GPU,i_stat)
 
-     call kineticterm(2*n1+1,2*n2+1,2*n3+1,&
+     call kinetictermd(2*n1+1,2*n2+1,2*n3+1,&
           real(hgridh(1),kind=4),real(hgridh(2),kind=4),real(hgridh(3),kind=4),0.e0,&
           psi_GPU,work2_GPU,work_GPU,work3_GPU,ekinGPU)
 
-     call localpotential(2*n1+1,2*n2+1,2*n3+1,work_GPU,psi_GPU,v_GPU,epotGPU)
+     call localpotentiald(2*n1+1,2*n2+1,2*n3+1,work_GPU,psi_GPU,v_GPU,epotGPU)
 
      call GPU_receive((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,work_GPU,i_stat)
      call GPU_receive((2*n1+2)*(2*n2+2)*(2*n3+2),v_cuda,work2_GPU,i_stat)
@@ -405,15 +419,17 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      epot=real(epotGPU,kind=8)
      ekin=real(ekinGPU,kind=8)
   else
+     !psi_in=1.d0
+
 
      ! psir serves as a work array	   
      call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psi_in,psir,psi_out) 
 
-	 !$omp parallel default(private)&
-	 !$omp shared(pot,psir,n1,n2,n3,epot)
-
-	 epot_p=0._gp
-	 !$omp do
+     !$omp parallel default(private)&
+     !$omp shared(pot,psir,n1,n2,n3,epot)
+     
+     epot_p=0._gp
+     !$omp do
      do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
         v=real(pot(i),gp)
         p=real(psir(i),gp)
@@ -421,14 +437,14 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
         epot_p=epot_p+p*v*p
         psir(i)=tt
      enddo
-	 !$omp end do
-	 
-  	 !$omp critical
-  	 epot=epot+epot_p
-	 !$omp end critical
-	 
-	 !$omp end parallel
-
+     !$omp end do
+     
+     !$omp critical
+     epot=epot+epot_p
+     !$omp end critical
+     
+     !$omp end parallel
+     
      call convolut_magic_t_per_self(2*n1+1,2*n2+1,2*n3+1,psir,psi_out)
 
      ! compute the kinetic part and add  it to psi_out

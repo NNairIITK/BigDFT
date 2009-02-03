@@ -56,6 +56,7 @@
 !!                this value is ignored when ixc=0. In that case zfionxc is untouched
 !!    zf          output array corresponding to the density which can be passed to FFT part
 !!    zfionxc     output array which will contain pot_ion+vxci or vxci, following sumpion
+!!
 !! WARNING
 !!    The dimensions of pot_ion must be compatible with geocode, datacode, nproc, 
 !!    ixc and iproc. Since the arguments of these routines are indicated with the *, it

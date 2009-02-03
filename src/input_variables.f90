@@ -35,13 +35,13 @@ subroutine print_logo()
   write(*,'(23x,a)')' D        D     F         T    T    '  
   write(*,'(23x,a)')'          D     F        T     T    ' 
   write(*,'(23x,a)')'         D               T    T     '
-  write(*,'(23x,a)')'    DDDDD       F         TTTT                     (Ver 1.2.1)'
+  write(*,'(23x,a)')'    DDDDD       F         TTTT                     (Ver 1.2.2)'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
   write(*,'(1x,a)')&
        '|              Daubechies Wavelets for DFT Pseudopotential Calculations            |'
   write(*,'(1x,a)')&
-          '------------------------------------------------------------------------------------'
+       '------------------------------------------------------------------------------------'
 end subroutine print_logo
 !!***
 
@@ -117,7 +117,14 @@ subroutine read_input_variables(iproc,filename,in)
 
   read(1,*,iostat=ierror) in%ixc
   call check()
-  read(1,*,iostat=ierror) in%ncharge,in%elecfield
+  read(1,'(a100)')line
+  read(line,*,iostat=ierror) in%ncharge,in%ef(1)
+  if (ierror == 0 .and. in%ef(1) /= 0.0_gp) then
+     read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
+  else
+     in%ef(2)=0.0_gp
+     in%ef(3)=0.0_gp
+  end if
   call check()
   read(1,*,iostat=ierror) in%gnrm_cv
   call check()
@@ -232,7 +239,7 @@ subroutine print_input_parameters(in,atoms)
        'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
        '|  CG Steps=',in%ncongt
   write(*,'(1x,a,1pe7.1,1x,a,1x,a,i8)')&
-       ' elec. field=',in%elecfield,'|                   ','| DIIS Hist. N.=',in%idsx
+       ' elec. field=',in%ef(1),'|                   ','| DIIS Hist. N.=',in%idsx
   if (in%nspin>=2) then
      write(*,'(1x,a,i7,1x,a)')&
           'Polarisation=',2*in%mpol, '|'

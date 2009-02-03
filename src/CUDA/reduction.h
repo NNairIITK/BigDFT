@@ -2,16 +2,14 @@
 #define   	REDUCTION_H
 
 
-
+#define  COPYVALUES 4096
 
 template<typename T>
-float reducearrays(int n,
+int reducearrays(int n,
 		   int ndat,
 		   T *psi,
 		   T *vpsi,
 		   T *epot);
-
-
 
 
 #endif

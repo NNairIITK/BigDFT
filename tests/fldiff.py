@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 08/11/2008
+# Date: 25/12/2008
 #----------------------------------------------------------------------------
 
 import difflib
@@ -51,6 +51,8 @@ for opt,arg in optlist:
 if len(args) != 2:
     sys.stderr.write("Error in arguments\n")
     usage()
+
+#Display the maximum discrepancy
 print max_discrepancy
 
 #Arguments
@@ -111,6 +113,9 @@ except ValueError:
     #First line not found ??
     p1 = -1
     p2 = -1
+except IndexError:
+    sys.stdout.write("One file is blank!\n")
+    sys.exit(1)
 
 if p1 >= 0 and p2 >= 0 and p1 != p2:
     #we try something
@@ -251,10 +256,14 @@ while not EOF:
 print context_lines,
 
 if maximum > max_discrepancy:
-    message = "failed < "
+    start = "\033[0;31m"
+    message = "failed    < "
+    end = "\033[m"
 else:
+    start = "\033[0;32m"
     message = "succeeded < "
+    end = "\033[m"
 
-print "Max Discrepancy %s: %s (%s%s)" % (context_discrepancy,maximum,message,max_discrepancy)
+print "%sMax Discrepancy %s: %s (%s%s)%s" % (start,context_discrepancy,maximum,message,max_discrepancy,end)
 sys.exit(0)
 
