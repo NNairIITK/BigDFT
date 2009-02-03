@@ -3,6 +3,52 @@
 
 #include "structDef_locpot.h"
 
+template<typename T>
+__device__ inline T computeElt(T *psi_sh,unsigned int ShBaseElem)
+{
+  return 
+    //hand-unrolled loop (16 elements for this filter)
+    //order changed for increasing the precision
+    ((T)MFIL0) *psi_sh[ShBaseElem               ] +
+    ((T)MFIL15)*psi_sh[ShBaseElem + 15*NUM_LINES] +
+    ((T)MFIL1) *psi_sh[ShBaseElem +   NUM_LINES ] +
+    ((T)MFIL14)*psi_sh[ShBaseElem + 14*NUM_LINES] +
+    ((T)MFIL2) *psi_sh[ShBaseElem + 2*NUM_LINES ] +
+    ((T)MFIL13)*psi_sh[ShBaseElem + 13*NUM_LINES] +
+    ((T)MFIL3) *psi_sh[ShBaseElem + 3*NUM_LINES ] +
+    ((T)MFIL12)*psi_sh[ShBaseElem + 12*NUM_LINES] +
+    ((T)MFIL4) *psi_sh[ShBaseElem + 4*NUM_LINES ] +
+    ((T)MFIL11)*psi_sh[ShBaseElem + 11*NUM_LINES] +
+    ((T)MFIL5) *psi_sh[ShBaseElem + 5*NUM_LINES ] +
+    ((T)MFIL10)*psi_sh[ShBaseElem + 10*NUM_LINES] +
+    ((T)MFIL6) *psi_sh[ShBaseElem + 6*NUM_LINES ] +
+    ((T)MFIL9) *psi_sh[ShBaseElem + 9*NUM_LINES ] +
+    ((T)MFIL7) *psi_sh[ShBaseElem + 7*NUM_LINES ] +
+    ((T)MFIL8) *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
+}
+
+template<typename T>
+__device__ inline T computeElt_t(T *psi_sh,unsigned int ShBaseElem)
+{
+  return
+    ((T)MFIL15)*psi_sh[ShBaseElem               ] +
+    ((T)MFIL0) *psi_sh[ShBaseElem + 15*NUM_LINES] +
+    ((T)MFIL14)*psi_sh[ShBaseElem +   NUM_LINES ] +
+    ((T)MFIL1) *psi_sh[ShBaseElem + 14*NUM_LINES] +
+    ((T)MFIL13)*psi_sh[ShBaseElem + 2*NUM_LINES ] +
+    ((T)MFIL2) *psi_sh[ShBaseElem + 13*NUM_LINES] +
+    ((T)MFIL12)*psi_sh[ShBaseElem + 3*NUM_LINES ] +
+    ((T)MFIL3) *psi_sh[ShBaseElem + 12*NUM_LINES] +
+    ((T)MFIL11)*psi_sh[ShBaseElem + 4*NUM_LINES ] +
+    ((T)MFIL4) *psi_sh[ShBaseElem + 11*NUM_LINES] +
+    ((T)MFIL10)*psi_sh[ShBaseElem + 5*NUM_LINES ] +
+    ((T)MFIL5) *psi_sh[ShBaseElem + 10*NUM_LINES] +
+    ((T)MFIL9) *psi_sh[ShBaseElem + 6*NUM_LINES ] +
+    ((T)MFIL6) *psi_sh[ShBaseElem + 9*NUM_LINES ] +
+    ((T)MFIL8) *psi_sh[ShBaseElem + 7*NUM_LINES ] +
+    ((T)MFIL7) *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
+}
+
 
 //1D convolution of multiple lines in the same block
 //__global__ void magicfilter1d(int n,int ndat, float *psi_out) //for textures
@@ -72,28 +118,10 @@ __global__ void magicfilter1d(int n,int ndat, T *psi_in, T *psi_out,int idim)
   for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
     {
       //values of the convolution
-      register T conv = 
-	//hand-unrolled loop (16 elements for this filter)
-	//order changed for increasing the precision
-	MFIL0 *psi_sh[ShBaseElem               ] +
-	MFIL15*psi_sh[ShBaseElem + 15*NUM_LINES] +
-	MFIL1 *psi_sh[ShBaseElem +   NUM_LINES ] +
-	MFIL14*psi_sh[ShBaseElem + 14*NUM_LINES] +
-	MFIL2 *psi_sh[ShBaseElem + 2*NUM_LINES ] +
-	MFIL13*psi_sh[ShBaseElem + 13*NUM_LINES] +
-	MFIL3 *psi_sh[ShBaseElem + 3*NUM_LINES ] +
-	MFIL12*psi_sh[ShBaseElem + 12*NUM_LINES] +
-	MFIL4 *psi_sh[ShBaseElem + 4*NUM_LINES ] +
-	MFIL11*psi_sh[ShBaseElem + 11*NUM_LINES] +
-	MFIL5 *psi_sh[ShBaseElem + 5*NUM_LINES ] +
-	MFIL10*psi_sh[ShBaseElem + 10*NUM_LINES] +
-	MFIL6 *psi_sh[ShBaseElem + 6*NUM_LINES ] +
-	MFIL9 *psi_sh[ShBaseElem + 9*NUM_LINES ] +
-	MFIL7 *psi_sh[ShBaseElem + 7*NUM_LINES ] +
-	MFIL8 *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
+ 
 
-      psi_out[BaseElem]=conv;
-      //psi_sh[ShBaseElem+LOWFIL*par[idim].LinesPerBlock]; //for testing only
+      psi_out[BaseElem]=computeElt<T>(psi_sh,ShBaseElem);
+    
 
       ShBaseElem += HALF_WARP_SIZE;
       BaseElem += HW_ELEM;
@@ -173,29 +201,9 @@ __global__ void magicfilter1d_pot(int n,int ndat, T *psi_in,
   for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
     {
       //values of the convolution
-      register T conv = 
-	//hand-unrolled loop (16 elements for this filter)
-	//order changed for increasing the precision
-	MFIL0 *psi_sh[ShBaseElem               ] +
-	MFIL15*psi_sh[ShBaseElem + 15*NUM_LINES] +
-	MFIL1 *psi_sh[ShBaseElem +   NUM_LINES ] +
-	MFIL14*psi_sh[ShBaseElem + 14*NUM_LINES] +
-	MFIL2 *psi_sh[ShBaseElem + 2*NUM_LINES ] +
-	MFIL13*psi_sh[ShBaseElem + 13*NUM_LINES] +
-	MFIL3 *psi_sh[ShBaseElem + 3*NUM_LINES ] +
-	MFIL12*psi_sh[ShBaseElem + 12*NUM_LINES] +
-	MFIL4 *psi_sh[ShBaseElem + 4*NUM_LINES ] +
-	MFIL11*psi_sh[ShBaseElem + 11*NUM_LINES] +
-	MFIL5 *psi_sh[ShBaseElem + 5*NUM_LINES ] +
-	MFIL10*psi_sh[ShBaseElem + 10*NUM_LINES] +
-	MFIL6 *psi_sh[ShBaseElem + 6*NUM_LINES ] +
-	MFIL9 *psi_sh[ShBaseElem + 9*NUM_LINES ] +
-	MFIL7 *psi_sh[ShBaseElem + 7*NUM_LINES ] +
-	MFIL8 *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
+     
 
-      //register float v=tex1Dfetch(pot_tex,BaseElem);
-
-      psi_out[BaseElem]=conv*pot[BaseElem];
+      psi_out[BaseElem]=computeElt<T>(psi_sh,ShBaseElem)*pot[BaseElem];
 
       ShBaseElem += HALF_WARP_SIZE;
       BaseElem += HW_ELEM;
@@ -271,27 +279,9 @@ __global__ void magicfilter1d_t(int n,int ndat, T *psi_in, T *psi_out,int idim)
   for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
     {
       //values of the convolution
-      register T conv = 
-	//hand-unrolled loop (16 elements for this filter)
-	//order changed for increasing the precision
-	MFIL15*psi_sh[ShBaseElem               ] +
-	MFIL0 *psi_sh[ShBaseElem + 15*NUM_LINES] +
-	MFIL14*psi_sh[ShBaseElem +   NUM_LINES ] +
-	MFIL1 *psi_sh[ShBaseElem + 14*NUM_LINES] +
-	MFIL13*psi_sh[ShBaseElem + 2*NUM_LINES ] +
-	MFIL2 *psi_sh[ShBaseElem + 13*NUM_LINES] +
-	MFIL12*psi_sh[ShBaseElem + 3*NUM_LINES ] +
-	MFIL3 *psi_sh[ShBaseElem + 12*NUM_LINES] +
-	MFIL11*psi_sh[ShBaseElem + 4*NUM_LINES ] +
-	MFIL4 *psi_sh[ShBaseElem + 11*NUM_LINES] +
-	MFIL10*psi_sh[ShBaseElem + 5*NUM_LINES ] +
-	MFIL5 *psi_sh[ShBaseElem + 10*NUM_LINES] +
-	MFIL9 *psi_sh[ShBaseElem + 6*NUM_LINES ] +
-	MFIL6 *psi_sh[ShBaseElem + 9*NUM_LINES ] +
-	MFIL8 *psi_sh[ShBaseElem + 7*NUM_LINES ] +
-	MFIL7 *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
+ 
 
-      psi_out[BaseElem]=conv;
+      psi_out[BaseElem]=computeElt_t<T>(psi_sh,ShBaseElem);
       //psi_sh[ShBaseElem+LOWFIL*par[idim].LinesPerBlock]; //for testing only
 
       ShBaseElem += HALF_WARP_SIZE;
