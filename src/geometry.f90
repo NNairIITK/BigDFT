@@ -370,7 +370,7 @@ contains
     itot=0
 
     redo_sd: do
-       if (ncount_cluster.gt.in%ncount_cluster_x) then 
+       if (ncount_cluster > in%ncount_cluster_x) then 
           if (iproc.eq.0) then
              write(*,*) 'ncount_cluster in SD1',ncount_cluster
              write(16,*) 'SD FINISHED',iproc

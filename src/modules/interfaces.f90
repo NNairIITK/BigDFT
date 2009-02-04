@@ -431,19 +431,18 @@ interface
    end subroutine CalculateTailCorrection
 
    !added for abinit compatilbility
-   subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,nat,&
-        & rxyz_old,psigold,hx,hy,hz,nvctr_c,nvctr_f,n1,n2,n3,rxyz,nseg_c,nseg_f,&
-        & keyg,keyv,psifscf,psi)
+   subroutine reformatonewave(iproc,displ,wfd,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,nat,&
+        rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
      use module_base
+     use module_types
      implicit none
-     integer, intent(in) :: iproc,n1_old,n2_old,n3_old,nat,nvctr_c,nvctr_f,n1,n2,n3,nseg_c,nseg_f
+     integer, intent(in) :: iproc,n1_old,n2_old,n3_old,nat,n1,n2,n3
      real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
-     integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-     integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+     type(wavefunctions_descriptors), intent(in) :: wfd
      real(gp), dimension(3,nat), intent(in) :: rxyz_old,rxyz
      real(wp), dimension(0:n1_old,2,0:n2_old,2,0:n3_old,2), intent(in) :: psigold
      real(wp), dimension(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8), intent(out) :: psifscf
-     real(wp), dimension(nvctr_c + 7 * nvctr_f), intent(out) :: psi
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
    end subroutine reformatonewave
 
    subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&

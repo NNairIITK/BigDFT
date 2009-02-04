@@ -1,16 +1,15 @@
-subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,nat,&
-     & rxyz_old,psigold,hx,hy,hz,nvctr_c,nvctr_f,n1,n2,n3,rxyz,nseg_c,nseg_f,&
-     & keyg,keyv,psifscf,psi)
+subroutine reformatonewave(iproc,displ,wfd,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,nat,&
+     rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
   use module_base
+  use module_types
   implicit none
-  integer, intent(in) :: iproc,n1_old,n2_old,n3_old,nat,nvctr_c,nvctr_f,n1,n2,n3,nseg_c,nseg_f
+  integer, intent(in) :: iproc,n1_old,n2_old,n3_old,nat,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  type(wavefunctions_descriptors), intent(in) :: wfd
   real(gp), dimension(3,nat), intent(in) :: rxyz_old,rxyz
   real(wp), dimension(0:n1_old,2,0:n2_old,2,0:n3_old,2), intent(in) :: psigold
   real(wp), dimension(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8), intent(out) :: psifscf
-  real(wp), dimension(nvctr_c + 7 * nvctr_f), intent(out) :: psi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
   !local variables
   character(len=*), parameter :: subname='reformatonewave'
   logical :: cif1,cif2,cif3
@@ -81,34 +80,11 @@ subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old
            y=real(i2,gp)*hyh
            do i1=-7,2*n1+8
               x=real(i1,gp)*hxh
-!! The lines below might be reactivated in connection with a better interpolation scheme
-!           if (nat.le.10) then ! calculate individual shifts for each atom
-!             dx=0.d0 ; dy=0.d0 ; dz=0.d0 ; w=0.d0
-!             do iat=1,nat ! Warning: this unoptimized loop can become very expensive for a large NAT
-!               rbond=1.d0
-!               arg=(x-rxyz(1,iat))**2+(x-rxyz(2,iat))**2+(x-rxyz(3,iat))**2
-!               arg=-.5d0*(arg/rbond**2)
-!               xp=exp(arg)
-!               w=w+xp
-!               dx=dx+xp*(rxyz(1,iat)-rxyz_old(1,iat))
-!               dy=dy+xp*(rxyz(2,iat)-rxyz_old(2,iat))
-!               dz=dz+xp*(rxyz(3,iat)-rxyz_old(3,iat))
-!             enddo
-!             w=w+1.d-10
-!             dx=dx*(1.d0/w) ; dy=dy*(1.d0/w) ; dz=dz*(1.d0/w)
-!           endif
+
               xold=x-dx 
               yold=y-dy
               zold=z-dz
-!if (i1.eq.n1 .and. i2.eq.n2 .and. i3.eq.n3  .or.  & 
-!    i1.eq.-7 .and. i2.eq.-7 .and. i3.eq.-7  .or.  & 
-!    i1.eq.0 .and. i2.eq.0 .and. i3.eq.0  .or.  & 
-!    i1.eq.n1/2 .and. i2.eq.n2/2 .and. i3.eq.n3/2 .or.  &
-!    i1.eq.3*n1/2 .and. i2.eq.3*n2/2 .and. i3.eq.3*n3/2 .or.  &
-!    i1.eq.n1/4 .and. i2.eq.n2/4 .and. i3.eq.n3/4  ) then
-!write(iproc+200,'(a,6(e12.4))') 'new ',x,y,z,dx,dy,dz
-!write(iproc+200,'(a,3(e12.4))') 'old ',xold,yold,zold
-!endif
+
               j1=nint((xold)/hxh_old)
               cif1=(j1 >= -6 .and. j1 <= 2*n1_old+7)
               j2=nint((yold)/hyh_old)
@@ -116,9 +92,6 @@ subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old
               j3=nint((zold)/hzh_old)
               cif3=(j3 >= -6 .and. j3 <= 2*n3_old+7)
               
-           !        if (cif1 .and. cif2 .and. cif3) psifscf(i1,i2,i3)=psifscfold(j1,j2,j3)
-           !        if (cif1 .and. cif2 .and. cif3) psifscf(i1,i2,i3)=psifscfoex(j1,j2,j3)
-
               if (cif1 .and. cif2 .and. cif3) then 
                  zr =real(((z-dz)-real(j3,gp)*hzh_old)/hzh_old,wp)
                  do l2=-1,1
@@ -154,7 +127,7 @@ subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old
      enddo
   endif
 
-!write(100+iproc,*) 'norm of psifscf ',dnrm2((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf,1)
+  !write(100+iproc,*) 'norm of psifscf ',dnrm2((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf,1)
 
   i_all=-product(shape(psifscfold))*kind(psifscfold)
   deallocate(psifscfold,stat=i_stat)
@@ -168,9 +141,9 @@ subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old
 
   !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
   call compress(n1,n2,n3,0,n1,0,n2,0,n3,  &
-       nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-       psig,psi(1),psi(nvctr_c+1))
+       wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),   &
+       wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),   &
+       psig,psi(1),psi(wfd%nvctr_c+1))
 
   !write(100+iproc,*) 'norm of reformatted psi ',dnrm2(nvctr_c+7*nvctr_f,psi,1)
 
@@ -182,19 +155,39 @@ subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old
   call memocc(i_stat,i_all,'ww',subname)
 end subroutine reformatonewave
 
-subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
-     & hx,hy,hz,nat,rxyz_old,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval,psifscf)
+!calculates the minimum difference between two coordinates
+!knowing that there could have been a modulo operation
+function mindist(periodic,alat,r,r_old)
   use module_base
   implicit none
+  logical, intent(in) :: periodic
+  real(gp), intent(in) :: r,r_old,alat
+  real(gp) :: mindist
+  !local variables
+
+  if (periodic) then
+!!$     rm=r-alat-r_old
+!!$     r0=r-r_old
+!!$     rp=r+alat-rold
+  else
+     mindist=r-r_old
+  end if
+
+end function mindist
+
+subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
+     & hx,hy,hz,nat,wfd,rxyz_old,rxyz,psi,eval,psifscf)
+  use module_base
+  use module_types
+  implicit none
   logical, intent(in) :: useFormattedInput
-  integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3,nat,nseg_c,nseg_f,nvctr_c,nvctr_f
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3,nat
+  type(wavefunctions_descriptors), intent(in) :: wfd
   real(gp), intent(in) :: hx,hy,hz
   real(gp), dimension(3,nat), intent(in) :: rxyz
   real(wp), intent(out) :: eval
   real(gp), dimension(3,nat), intent(out) :: rxyz_old
-  real(wp), dimension(nvctr_c+7*nvctr_f), intent(out) :: psi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
   real(wp), dimension(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8), intent(out) :: psifscf
   !local variables
   character(len=*), parameter :: subname='readonewave'
@@ -239,7 +232,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   displ=sqrt(tx+ty+tz)
 
   if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
-       nvctr_c_old == nvctr_c .and. nvctr_f_old == nvctr_f .and. & 
+       nvctr_c_old == wfd%nvctr_c .and. nvctr_f_old == wfd%nvctr_f .and. & 
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
 
      write(*,*) 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
@@ -257,13 +250,13 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
         else
            read(unitwf) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
         end if
-        psi(nvctr_c+j+0)=t1
-        psi(nvctr_c+j+1)=t2
-        psi(nvctr_c+j+2)=t3
-        psi(nvctr_c+j+3)=t4
-        psi(nvctr_c+j+4)=t5
-        psi(nvctr_c+j+5)=t6
-        psi(nvctr_c+j+6)=t7
+        psi(wfd%nvctr_c+j+0)=t1
+        psi(wfd%nvctr_c+j+1)=t2
+        psi(wfd%nvctr_c+j+2)=t3
+        psi(wfd%nvctr_c+j+3)=t4
+        psi(wfd%nvctr_c+j+4)=t5
+        psi(wfd%nvctr_c+j+5)=t6
+        psi(wfd%nvctr_c+j+6)=t7
      enddo
 
   else
@@ -271,8 +264,10 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      write(*,*) 'wavefunction ',iorb,' needs reformatting on processor',iproc
      if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,*) &
           'because hgrid_old >< hgrid',hx_old,hy_old,hz_old,hx,hy,hz
-     if (nvctr_c_old /= nvctr_c) write(*,*) 'because nvctr_c_old >< nvctr_c',nvctr_c_old,nvctr_c
-     if (nvctr_f_old /= nvctr_f) write(*,*) 'because nvctr_f_old >< nvctr_f',nvctr_f_old,nvctr_f
+     if (nvctr_c_old /= wfd%nvctr_c) write(*,*) 'because nvctr_c_old >< nvctr_c',&
+          nvctr_c_old,wfd%nvctr_c
+     if (nvctr_f_old /= wfd%nvctr_f) write(*,*) 'because nvctr_f_old >< nvctr_f',&
+          nvctr_f_old,wfd%nvctr_f
      if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
           write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
      if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule'
@@ -305,9 +300,8 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      enddo
 
      ! I put nat = 1 here, since only one position is saved in wavefunction files.
-     call reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,nat,&
-          rxyz_old,psigold,hx,hy,hz,nvctr_c,nvctr_f,n1,n2,n3,rxyz,nseg_c,nseg_f,&
-          keyg,keyv,psifscf,psi)
+     call reformatonewave(iproc,displ,wfd,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,nat,&
+          rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
 
      i_all=-product(shape(psigold))*kind(psigold)
      deallocate(psigold,stat=i_stat)

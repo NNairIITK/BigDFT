@@ -962,7 +962,7 @@ contains
 
     do it=1,nit
        !       if(iproc==0)write(*,*)'w   =      r       +       v  '
-       !update the positions, if the atom is not freezed
+       !update the positions, if the atom is not frozen
        do i=1,3*atoms%nat
           iat=(i-1)/3+1
           if (atoms%lfrztyp(iat)) then

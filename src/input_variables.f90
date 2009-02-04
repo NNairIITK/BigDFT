@@ -128,7 +128,14 @@ subroutine read_input_variables(iproc,filename,in)
   call check()
   read(1,*,iostat=ierror) in%gnrm_cv
   call check()
-  read(1,*,iostat=ierror) in%itermax
+  read(1,'(a100)')line
+  read(line,*,iostat=ierror) in%itermax,in%nrepmax
+  if (ierror == 0) then
+     !read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
+  else
+     read(line,*,iostat=ierror)in%itermax
+     in%nrepmax=10
+  end if
   call check()
   read(1,*,iostat=ierror) in%ncong
   call check()
@@ -232,9 +239,9 @@ subroutine print_input_parameters(in,atoms)
   write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
        'Grid spacing=',in%hgrid,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
        '| Calculate=',in%calc_tail
-  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i8,1x,a,f4.1)')&
+  write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i5,a,i2,1x,a,f4.1)')&
        '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&
-       '| Extension=',in%rbuf
+       'x',in%nrepmax,'| Extension=',in%rbuf
   write(*,'(1x,a,i7,1x,a,1x,a,i8,1x,a,i4)')&
        'total charge=',in%ncharge, '|                   ','| CG Prec.Steps=',in%ncong,&
        '|  CG Steps=',in%ncongt
@@ -351,9 +358,9 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
   end if
 
   !reduced coordinates are possible only with periodic units
-  if (at%units == 'reduced' .and. at%geocode /= 'P') then
+  if (at%units == 'reduced' .and. at%geocode == 'F') then
      if (iproc==0) write(*,'(1x,a)')&
-          'ERROR: Reduced coordinates are only allowed with fully periodic BC'
+          'ERROR: Reduced coordinates are not allowed with isolated BC'
   end if
 
   !convert the values of the cell sizes in bohr
@@ -367,7 +374,8 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
      at%alat1=alat1d0
      at%alat2=alat2d0
      at%alat3=alat3d0
-  else if (at%units == 'reduced') then !assume that for reduced coordinates cell size is in bohr
+  else if (at%units == 'reduced') then
+     !assume that for reduced coordinates cell size is in bohr
      at%alat1=real(alat1,gp)
      at%alat2=real(alat2,gp)
      at%alat3=real(alat3,gp)
@@ -407,7 +415,7 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
      end if
      if (at%units == 'reduced') then !add treatment for reduced coordinates
         rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
-        rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
+        if (at%geocode == 'P') rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
         rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
      else if (at%geocode == 'P') then
         rxyz(1,iat)=modulo(rxyz(1,iat),alat1d0)
@@ -448,7 +456,7 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
         enddo
      else if (at%units == 'reduced') then 
         rxyz(1,iat)=rxyz(1,iat)*at%alat1
-        rxyz(2,iat)=rxyz(2,iat)*at%alat2
+        if (at%geocode == 'P') rxyz(2,iat)=rxyz(2,iat)*at%alat2
         rxyz(3,iat)=rxyz(3,iat)*at%alat3
      endif
   enddo

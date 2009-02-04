@@ -93,7 +93,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
      shortlength=shortlength*2.d0*pi
 
      !print *,'psoffset',psoffset,'pspcore',(psoffset+shortlength)*charge/(at%alat1*at%alat2*at%alat3)
-     !print *,'eion',iproc,eion,charge/ucvol*(psoffset+shortlength)
+     !if (iproc ==0) print *,'eion',eion,charge/ucvol*(psoffset+shortlength)
      !correct ionic energy taking into account the PSP core correction
      eion=eion+charge/ucvol*(psoffset+shortlength)
 
@@ -192,7 +192,9 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
 
   !for the surfaces BC,
   !activate for the moment only the slow calculation of the ionic energy and forces
+  !if (at%geocode == 'S' .or. at%geocode == 'P') slowion=.true.
   if (at%geocode == 'S') slowion=.true.
+  !slowion=.true.
   
   if (slowion) then
 
@@ -215,97 +217,106 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
      eself=0.0_gp
      do iat=1,at%nat
 
+        fion(1,iat)=0.0_gp
+        fion(2,iat)=0.0_gp
+        fion(3,iat)=0.0_gp
+
         ityp=at%iatype(iat)
         rloc=at%psppar(0,0,ityp)
         charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
         prefactor=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
         cutoff=10.0_gp*rloc
 
-        if (n3pi >0 ) then
+        !calculate the self energy of the isolated bc
+        eself=eself+real(at%nelpsp(ityp),gp)**2/rloc
 
-           call razero(n1i*n2i*n3pi,pot_ion)
-           rx=rxyz(1,iat) 
-           ry=rxyz(2,iat)
-           rz=rxyz(3,iat)
-
-           isx=floor((rx-cutoff)/hxh)
-           isy=floor((ry-cutoff)/hyh)
-           isz=floor((rz-cutoff)/hzh)
-
-           iex=ceiling((rx+cutoff)/hxh)
-           iey=ceiling((ry+cutoff)/hyh)
-           iez=ceiling((rz+cutoff)/hzh)
-
-           !these nested loops will be used also for the actual ionic forces, to be recalculated
-           do i3=isz,iez
-              z=real(i3,gp)*hzh-rz
-              call ind_positions(perz,i3,n3,j3,goz) 
-              j3=j3+nbl3+1
-              do i2=isy,iey
-                 y=real(i2,gp)*hyh-ry
-                 call ind_positions(pery,i2,n2,j2,goy)
-                 do i1=isx,iex
-                    x=real(i1,gp)*hxh-rx
-                    call ind_positions(perx,i1,n1,j1,gox)
-                    r2=x**2+y**2+z**2
-                    arg=r2/rloc**2
-                    xp=exp(-.5_gp*arg)
-                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                       pot_ion(ind)=-real(xp*charge,dp)
-                    endif
-                 end do
-              end do
-           end do
-        end if
-
-       
-        !application of the Poisson solver to calculate the self energy and the potential
-        !here the value of the datacode must be kept fixed
-        call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-             pot_ion,pkernel,pot_ion,ehart,zero,zero,&
-             2.0_gp*pi*rloc**2*real(at%nelpsp(ityp),gp),.false.,1)
-        eself=eself+ehart
-
-        !initialise forces calculation
-        fxslf=0.0_gp
-        fyslf=0.0_gp
-        fzslf=0.0_gp
-
-        if (n3pi >0 ) then
-           do i3=isz,iez
-              z=real(i3,gp)*hzh-rz
-              call ind_positions(perz,i3,n3,j3,goz) 
-              j3=j3+nbl3+1
-              do i2=isy,iey
-                 y=real(i2,gp)*hyh-ry
-                 call ind_positions(pery,i2,n2,j2,goy)
-                 do i1=isx,iex
-                    x=real(i1,gp)*hxh-rx
-                    call ind_positions(perx,i1,n1,j1,gox)
-                    r2=x**2+y**2+z**2
-                    arg=r2/rloc**2
-                    xp=exp(-.5_gp*arg)
-                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                       !error function part
-                       Vel=pot_ion(ind)
-                       fxslf=fxslf+xp*Vel*x
-                       fyslf=fyslf+xp*Vel*y
-                       fzslf=fzslf+xp*Vel*z
-                    endif
-                 end do
-              end do
-           end do
-        end if
-
-        fion(1,iat)=-hxh*hyh*hzh*prefactor*fxslf
-        fion(2,iat)=-hxh*hyh*hzh*prefactor*fyslf
-        fion(3,iat)=-hxh*hyh*hzh*prefactor*fzslf
-
-        !if (nproc==1) print *,'iat,fself',iat,fxslf,fyslf,fzslf
+!!$        if (n3pi >0 ) then
+!!$
+!!$           call razero(n1i*n2i*n3pi,pot_ion)
+!!$           rx=rxyz(1,iat) 
+!!$           ry=rxyz(2,iat)
+!!$           rz=rxyz(3,iat)
+!!$
+!!$           isx=floor((rx-cutoff)/hxh)
+!!$           isy=floor((ry-cutoff)/hyh)
+!!$           isz=floor((rz-cutoff)/hzh)
+!!$
+!!$           iex=ceiling((rx+cutoff)/hxh)
+!!$           iey=ceiling((ry+cutoff)/hyh)
+!!$           iez=ceiling((rz+cutoff)/hzh)
+!!$
+!!$           !these nested loops will be used also for the actual ionic forces, to be recalculated
+!!$           do i3=isz,iez
+!!$              z=real(i3,gp)*hzh-rz
+!!$              call ind_positions(perz,i3,n3,j3,goz) 
+!!$              j3=j3+nbl3+1
+!!$              do i2=isy,iey
+!!$                 y=real(i2,gp)*hyh-ry
+!!$                 call ind_positions(pery,i2,n2,j2,goy)
+!!$                 do i1=isx,iex
+!!$                    x=real(i1,gp)*hxh-rx
+!!$                    call ind_positions(perx,i1,n1,j1,gox)
+!!$                    r2=x**2+y**2+z**2
+!!$                    arg=r2/rloc**2
+!!$                    xp=exp(-.5_gp*arg)
+!!$                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+!!$                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+!!$                       pot_ion(ind)=pot_ion(ind)-real(xp*charge,dp)
+!!$                    endif
+!!$                 end do
+!!$              end do
+!!$           end do
+!!$        end if
+!!$
+!!$       
+!!$        !application of the Poisson solver to calculate the self energy and the potential
+!!$        !here the value of the datacode must be kept fixed
+!!$        call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
+!!$             pot_ion,pkernel,pot_ion,ehart,zero,zero,&
+!!$             2.0_gp*pi*rloc**2*real(at%nelpsp(ityp),gp),.false.,1)
+!!$        eself=eself+ehart
+!!$
+!!$        !initialise forces calculation
+!!$        fxslf=0.0_gp
+!!$        fyslf=0.0_gp
+!!$        fzslf=0.0_gp
+!!$
+!!$        if (n3pi >0 ) then
+!!$           do i3=isz,iez
+!!$              z=real(i3,gp)*hzh-rz
+!!$              call ind_positions(perz,i3,n3,j3,goz) 
+!!$              j3=j3+nbl3+1
+!!$              do i2=isy,iey
+!!$                 y=real(i2,gp)*hyh-ry
+!!$                 call ind_positions(pery,i2,n2,j2,goy)
+!!$                 do i1=isx,iex
+!!$                    x=real(i1,gp)*hxh-rx
+!!$                    call ind_positions(perx,i1,n1,j1,gox)
+!!$                    r2=x**2+y**2+z**2
+!!$                    arg=r2/rloc**2
+!!$                    xp=exp(-.5_gp*arg)
+!!$                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+!!$                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+!!$                       !error function part
+!!$                       Vel=pot_ion(ind)
+!!$                       fxslf=fxslf+xp*Vel*x
+!!$                       fyslf=fyslf+xp*Vel*y
+!!$                       fzslf=fzslf+xp*Vel*z
+!!$                    endif
+!!$                 end do
+!!$              end do
+!!$           end do
+!!$        end if
+!!$
+!!$        fion(1,iat)=-hxh*hyh*hzh*prefactor*fxslf
+!!$        fion(2,iat)=-hxh*hyh*hzh*prefactor*fyslf
+!!$        fion(3,iat)=-hxh*hyh*hzh*prefactor*fzslf
+!!$
+!!$        !if (nproc==1) print *,'iat,fself',iat,fxslf,fyslf,fzslf
 
      enddo
+
+     eself=0.5_gp/sqrt(pi)*eself
 
      !if (nproc==1) 
      !print *,'iproc,eself',iproc,eself
@@ -361,7 +372,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
 
      !now call the Poisson Solver for the global energy forces
      call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-          pot_ion,pkernel,pot_ion,ehart,zero,zero,0.0d0,.false.,1)
+          pot_ion,pkernel,pot_ion,ehart,zero,zero,-2.0_gp*psoffset,.false.,1)
 
      eion=ehart-eself
 
@@ -451,6 +462,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
 
      end if
 
+     !if (iproc ==0) print *,'eion',eion,psoffset,shortlength
 
   end if
 
