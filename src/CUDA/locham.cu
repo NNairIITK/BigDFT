@@ -14,9 +14,9 @@
 #include "GPUparameters.h"
 
 
-#include "locpot.h"  //for mf1d and magicfilterpot fcts
-#include "anasyn.h" //wavana1d wavsyn1d
-#include "compress.h" // uncompressgpu compressgpu
+//#include "locpot.h"  //for mf1d and magicfilterpot fcts
+//#include "anasyn.h" //wavana1d wavsyn1d
+//#include "compress.h" // uncompressgpu compressgpu
 __constant__ parGPU_t par[9];
 
 //global variables for launching different grids
@@ -58,9 +58,32 @@ float do_blasDot<float>(int size, float *tab1, float *tab2)
 template<>
 double do_blasDot(int size, double *tab1, double *tab2)
 {
-    return cublasDdot(size, 
-		     tab1, 1,
-		     tab2, 1);
+
+  double ret = cublasDdot(size, 
+			  tab1, 1,
+			  tab2, 1);
+
+
+ 
+  /*  if(cublasGetError() == CUBLAS_STATUS_NOT_INITIALIZED)
+    {
+      printf("CUBLAS_STATUS_NOT_INITIALIZED\n");
+    }
+  else if(cublasGetError() == CUBLAS_STATUS_ALLOC_FAILED)
+      {
+	printf("CUBLAS_STATUS_ALLOC_FAILED\n");
+      }
+  else if(cublasGetError() == CUBLAS_STATUS_ARCH_MISMATCH)
+	{
+	  printf("CUBLAS_STATUS_ARCH_MISMATCH\n");
+	}
+  else if(cublasGetError() == CUBLAS_STATUS_EXECUTION_FAILED)
+	  {
+	    printf("CUBLAS_STATUS_EXECUTION_FAILED\n");
+	    }*/
+
+   
+  return ret;
 }
 // end template specialisation
 
@@ -218,18 +241,11 @@ int completelocalhamiltonian(int n1,int n2, int n3,
   cudaThreadSynchronize();
 
 
+  //calculate potential energy
   *epot = do_blasDot(8*n1*n2*n3, psi, work2);
  
 
 
-  //calculate the kinetic operator and add that to the potential
-  //energy
-  //use work2 inside the worky array to add the result to the vpsi
-  //array
-
-  //here the worky array should be initialised to c*x
-  //c_initialize<T> <<< gridK3, threadsK3 >>>(2*n3,4*n1*n2,psi,work2,0.,3);
-  //cudaThreadSynchronize();
 
 
   //define the scale factor to be applied to the convolution
@@ -245,9 +261,11 @@ int completelocalhamiltonian(int n1,int n2, int n3,
   kinetic1d<T> <<< gridK1, threadsK1 >>>(2*n1,4*n2*n3,scale,psi,work,work2,out,5);
   cudaThreadSynchronize();
 
-  //calculate the reduction of the final array, not correct for ekin
-  //reducearrays<T>(2*n1,4*n2*n3,work,out,ekinpot);
-  //cudaThreadSynchronize();
+
+  //calculate potential energy
+  *ekinpot = do_blasDot(8*n1*n2*n3, out, work);
+  *ekinpot -= *epot;
+
 
   //wavelet analysis
   waveletanalysis<T> <<< gridWT3, threadsWT3 >>>(n3,4*n1*n2,out,work,0);
