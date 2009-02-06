@@ -48,7 +48,6 @@ subroutine synthese_grow(n1,n2,n3,ww,x,y)
 
 end subroutine synthese_grow
 
-
 subroutine analyse_slab(n1,n2,n3,ww,y,x)
   ! A analysis wavelet transformation where the size of the data is forced to shrink
   ! The input array y is not overwritten
@@ -67,8 +66,7 @@ subroutine analyse_slab(n1,n2,n3,ww,y,x)
   nt=(2*n1+2)*(2*n2+2)
   call  ana_rot_per(n3,nt,y,x)
 
-  return
-END SUBROUTINE analyse_slab
+end subroutine analyse_slab
 
 subroutine synthese_slab(n1,n2,n3,ww,x,y)
   ! A synthesis wavelet transformation where the size of the data is allowed to grow
