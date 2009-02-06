@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces memguess $(minima_hopping_sources)
+binaries_sources = cluster test_forces memguess frequencies $(minima_hopping_sources)
 else
 binaries_sources = 
 endif
@@ -211,6 +211,15 @@ test_forces_LDADD = libbigdft.a \
 
 memguess_SOURCES = memguess.f90 
 memguess_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
+	PSolver/ABINIT-common/libABINIT.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
+	$(libs_cuda)
+
+frequencies_SOURCES = frequencies.f90 
+frequencies_LDFLAGS = 
+frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
 	$(LMPI) \
