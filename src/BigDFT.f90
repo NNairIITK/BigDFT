@@ -171,5 +171,5 @@ program BigDFT
 
   if (nproc > 1) call MPI_FINALIZE(ierr)
 
- end program BigDFT
- !!***
+END PROGRAM BigDFT
+!!***

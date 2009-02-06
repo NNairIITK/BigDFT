@@ -622,7 +622,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
   end do
   ! END OF PLOTTING
 
-end subroutine davidson
+END SUBROUTINE davidson
 !!***
 
 
