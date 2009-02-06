@@ -233,11 +233,9 @@ subroutine reformatmywaves(iproc,orbs,nat,&
 
 !write(100+iproc,*) 'norm psigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold,1)
 
-        call reformatonewave(iproc,displ,hx_old,hy_old,hz_old, &
+        call reformatonewave(iproc,displ,wfd,hx_old,hy_old,hz_old, &
              n1_old,n2_old,n3_old,nat,rxyz_old,psigold,hx,hy,hz,&
-             wfd%nvctr_c,wfd%nvctr_f,n1,n2,n3,rxyz,&
-             wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,psifscf,& 
-             psi(1,iorb))
+             n1,n2,n3,rxyz,psifscf,psi(1,iorb))
 
         i_all=-product(shape(psigold))*kind(psigold)
         deallocate(psigold,stat=i_stat)
@@ -289,8 +287,7 @@ subroutine readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz_old,rxyz,  &
      open(unit=99,file=filename,status='unknown')
 
      call readonewave(99, .true.,iorb,iproc,n1,n2,n3, &
-          & hx,hy,hz,nat,rxyz_old,rxyz,wfd%nseg_c,wfd%nseg_f,&
-          wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
+          & hx,hy,hz,nat,wfd,rxyz_old,rxyz,&
           psi(1,iorb),orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb),psifscf)
      close(99)
 

@@ -55,9 +55,9 @@ int copygpulochamparameters(int n1,int n2, int n3)
   GPUParameters<T>(&parCPU[5],&num_halfwarpsKx,2*n1,4*n2*n3,1,LOWFILK,LUPFILK,&linecutsKx,&numBlocksKx);
 
   //parameters for the magic filters
-  GPUParameters<T>(&parCPU[6],&num_halfwarpsMFz,2*n3,4*n1*n2,1,8,7,&linecutsMFz,&numBlocksMFz);
-  GPUParameters<T>(&parCPU[7],&num_halfwarpsMFy,2*n2,4*n1*n3,1,8,7,&linecutsMFy,&numBlocksMFy);
-  GPUParameters<T>(&parCPU[8],&num_halfwarpsMFx,2*n1,4*n2*n3,1,8,7,&linecutsMFx,&numBlocksMFx);
+  GPUParameters<T>(&parCPU[6],&num_halfwarpsMFz,2*n3,4*n1*n2,1,LOWFILMF,LUPFILMF,&linecutsMFz,&numBlocksMFz);
+  GPUParameters<T>(&parCPU[7],&num_halfwarpsMFy,2*n2,4*n1*n3,1,LOWFILMF,LUPFILMF,&linecutsMFy,&numBlocksMFy);
+  GPUParameters<T>(&parCPU[8],&num_halfwarpsMFx,2*n1,4*n2*n3,1,LOWFILMF,LUPFILMF,&linecutsMFx,&numBlocksMFx);
 
   //send them to constant memory, once and for all
   if(cudaMemcpyToSymbol(*par,&parCPU, 9*sizeof(parGPU_t)) != 0)

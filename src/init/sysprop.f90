@@ -224,7 +224,8 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      !old way of calculating the radii, requires modification of the PSP files
      read(11,'(a100)',iostat=ierror)line
      if (ierror /=0) then
-        if (iproc ==0) write(*,*)' WARNING: last line of pseudopotential missing, put an empty line'
+        !if (iproc ==0) write(*,*)&
+        !     ' WARNING: last line of pseudopotential missing, put an empty line'
         line=''
      end if
      read(line,*,iostat=ierror1) radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3)

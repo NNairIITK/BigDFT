@@ -49,7 +49,7 @@
 
   inputPsiId_orig=in%inputPsiId
 
-  loop_cluster: do icycle=1,10
+  loop_cluster: do icycle=1,in%nrepmax
 
      if (in%inputPsiId == 0 .and. associated(rst%psi)) then
         i_all=-product(shape(rst%psi))*kind(rst%psi)

@@ -419,6 +419,8 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      epot=real(epotGPU,kind=8)
      ekin=real(ekinGPU,kind=8)
   else
+     !psi_in=1.d0
+
 
      ! psir serves as a work array	   
      call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psi_in,psir,psi_out) 

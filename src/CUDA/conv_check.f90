@@ -27,7 +27,7 @@ program conv_check
   character(len=*), parameter :: subname='conv_check'
   character(len=50) :: chain
   integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,ndat,i1_max,i_max,it0,it1,ndim
-  integer :: count_rate,count_max,l,i1s,i1e
+  integer :: count_rate,count_max,l,ierror,i1s,i1e
   integer :: n1s,n1e,ndats,ndate,nvctr_cf,nseg,iseg
   real(wp) :: tt,scale
   real(gp) :: v,p,CPUtime,GPUtime,comp,ekin

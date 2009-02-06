@@ -68,12 +68,12 @@
     stop 'fake kinetictermd'
   end subroutine kinetictermd
 
-  subroutine prepare_gpu_for_locham()
+   subroutine prepare_gpu_for_locham()
     implicit none
     stop 'fake prepare_gpu_for_locham'
   end subroutine prepare_gpu_for_locham
-
-  subroutine gpu_locham()
+ 
+    subroutine gpu_locham()
     implicit none
     stop 'gpu_locham'
   end subroutine gpu_locham
@@ -82,4 +82,4 @@
     implicit none
     stop 'free_gpu'
   end subroutine free_gpu
-
+ 

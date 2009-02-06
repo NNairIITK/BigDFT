@@ -477,12 +477,12 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !once the wavefunction coefficients are known perform a set 
   !of nonblocking send-receive operations to calculate overlap matrices
 
-  !create mpirequests array for controlling the success of the send-receive operation
-  allocate(mpirequests(nproc-1+ndebug),stat=i_stat)
-  call memocc(i_stat,mpirequests,'mpirequests',subname)
-
-  call nonblocking_transposition(iproc,nproc,G%ncoeff,orbse%isorb+orbse%norbp,&
-       orbse%nspinor,psigau,orbse%norb_par,mpirequests)
+!!$  !create mpirequests array for controlling the success of the send-receive operation
+!!$  allocate(mpirequests(nproc-1+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,mpirequests,'mpirequests',subname)
+!!$
+!!$  call nonblocking_transposition(iproc,nproc,G%ncoeff,orbse%isorb+orbse%norbp,&
+!!$       orbse%nspinor,psigau,orbse%norb_par,mpirequests)
 
 
   !experimental part for building the localisation regions
@@ -608,22 +608,22 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
        rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin)
 
-  !calculate the overlap matrix knowing that the original functions are gaussian-based
-  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,thetaphi,'thetaphi',subname)
-  thetaphi=0.0_gp
-
-  !calculate the scalar product between the hamiltonian and the gaussian basis
-  allocate(hpsigau(G%ncoeff,orbse%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,hpsigau,'hpsigau',subname)
-
-
-  call wavelets_to_gaussians(at%geocode,orbse%norbp,Glr%d%n1,Glr%d%n2,Glr%d%n3,G,&
-       thetaphi,hx,hy,hz,Glr%wfd,hpsi,hpsigau)
-
-  i_all=-product(shape(thetaphi))*kind(thetaphi)
-  deallocate(thetaphi,stat=i_stat)
-  call memocc(i_stat,i_all,'thetaphi',subname)
+!!$  !calculate the overlap matrix knowing that the original functions are gaussian-based
+!!$  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,thetaphi,'thetaphi',subname)
+!!$  thetaphi=0.0_gp
+!!$
+!!$  !calculate the scalar product between the hamiltonian and the gaussian basis
+!!$  allocate(hpsigau(G%ncoeff,orbse%norbp+ndebug),stat=i_stat)
+!!$  call memocc(i_stat,hpsigau,'hpsigau',subname)
+!!$
+!!$
+!!$  call wavelets_to_gaussians(at%geocode,orbse%norbp,Glr%d%n1,Glr%d%n2,Glr%d%n3,G,&
+!!$       thetaphi,hx,hy,hz,Glr%wfd,hpsi,hpsigau)
+!!$
+!!$  i_all=-product(shape(thetaphi))*kind(thetaphi)
+!!$  deallocate(thetaphi,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'thetaphi',subname)
 
 
   accurex=abs(eks-ekin_sum)
@@ -643,16 +643,16 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call deallocate_gwf(G,subname)
 
 
-  i_all=-product(shape(mpirequests))*kind(mpirequests)
-  deallocate(mpirequests,stat=i_stat)
-  call memocc(i_stat,i_all,'mpirequests',subname)
+!!$  i_all=-product(shape(mpirequests))*kind(mpirequests)
+!!$  deallocate(mpirequests,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'mpirequests',subname)
 
   i_all=-product(shape(psigau))*kind(psigau)
   deallocate(psigau,stat=i_stat)
   call memocc(i_stat,i_all,'psigau',subname)
-  i_all=-product(shape(hpsigau))*kind(hpsigau)
-  deallocate(hpsigau,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsigau',subname)
+!!$  i_all=-product(shape(hpsigau))*kind(hpsigau)
+!!$  deallocate(hpsigau,stat=i_stat)
+!!$  call memocc(i_stat,i_all,'hpsigau',subname)
 
 
 
