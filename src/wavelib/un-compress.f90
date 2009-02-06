@@ -594,6 +594,8 @@ subroutine uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp enddo
 
   !$omp end parallel
+  !psig=1.d0
+  !psig=1.d0/sqrt(real(8*(n1+1)*(n2+1)*(n3+1),wp))
 
   ! calculate fine scaling functions
   call synthese_per_self(n1,n2,n3,psig,psifscf)

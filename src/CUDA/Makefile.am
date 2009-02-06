@@ -39,7 +39,7 @@ INC_CUDA = -I@LIB_CUTIL_PATH@
 
 noinst_LIBRARIES = libGPU.a
 
-libGPU_a_SOURCES = $(SOURCES_CU_CONV1) $(SOURCES_SHARED) $(SOURCES_CONV) 
+libGPU_a_SOURCES = $(SOURCES_CU_CONV1) $(SOURCES_SHARED)  $(SOURCES_CONV)
 AM_CPPFLAGS = $(INC_CUDA) -I. -I@CUDA_PATH@/include/ 
 AM_CFLAGS = $(INC_CUDA) -I. -I@CUDA_PATH@/include/ -DCUBLAS_USE_THUNKING 
 
@@ -116,7 +116,11 @@ kinetic.o: reduction.hcu kernels_kinetic.hcu structDef_kinetic.h
 
 anasyn.o: kernels_anasyn.hcu structDef_anasyn.h
 
-locham.o : kernels_anasyn.hcu kernels_locpot.hcu kernels_kinetic.hcu reduction.hcu
+locham.o : kernels_anasyn.hcu \
+	kernels_locpot.hcu \
+	kernels_kinetic.hcu \
+	reduction.hcu \
+	GPUparameters.h
 
 compress.o : commonDef.h kernels_compress.hcu
 

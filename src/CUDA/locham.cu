@@ -8,29 +8,85 @@
 */
   
 #include <stdio.h>
+#include <cublas.h>
 #include "commonDef.h"
 #include "reduction.h"
 #include "GPUparameters.h"
 
+
+//#include "locpot.h"  //for mf1d and magicfilterpot fcts
+//#include "anasyn.h" //wavana1d wavsyn1d
+//#include "compress.h" // uncompressgpu compressgpu
 __constant__ parGPU_t par[9];
 
 //global variables for launching different grids
+static unsigned int numBlocksWTz,linecutsWTz,num_halfwarpsWTz;
+static unsigned int numBlocksWTy,linecutsWTy,num_halfwarpsWTy;
+static unsigned int numBlocksWTx,linecutsWTx,num_halfwarpsWTx;
+static unsigned int numBlocksKz,linecutsKz,num_halfwarpsKz;
+static unsigned int numBlocksKy,linecutsKy,num_halfwarpsKy;
+static unsigned int numBlocksKx,linecutsKx,num_halfwarpsKx;
+static unsigned int numBlocksMFz,linecutsMFz,num_halfwarpsMFz;
+static unsigned int numBlocksMFy,linecutsMFy,num_halfwarpsMFy;
+static unsigned int numBlocksMFx,linecutsMFx,num_halfwarpsMFx;
+static unsigned int nseg_blockC,nblocksC;
 
-unsigned int numBlocksWTz,linecutsWTz,num_halfwarpsWTz;
-unsigned int numBlocksWTy,linecutsWTy,num_halfwarpsWTy;
-unsigned int numBlocksWTx,linecutsWTx,num_halfwarpsWTx;
-unsigned int numBlocksKz,linecutsKz,num_halfwarpsKz;
-unsigned int numBlocksKy,linecutsKy,num_halfwarpsKy;
-unsigned int numBlocksKx,linecutsKx,num_halfwarpsKx;
-unsigned int numBlocksMFz,linecutsMFz,num_halfwarpsMFz;
-unsigned int numBlocksMFy,linecutsMFy,num_halfwarpsMFy;
-unsigned int numBlocksMFx,linecutsMFx,num_halfwarpsMFx;
 
 
-#include "kernels_anasyn.hcu"
-#include "kernels_locpot.hcu"
-#include "kernels_kinetic.hcu"
-#include "kernels_compress.hcu"
+#include "anasyn.cu"
+#include "locpot.cu"
+#include "kinetic.cu"
+#include "compress.cu"
+
+
+
+//template specialization for simple or double
+template<typename T>
+T do_blasDot(int size, T *tab1, T *tab2)
+{
+  return -1; //if this code is expended is a bug because T is neither double nor simple
+}
+
+template<>
+float do_blasDot<float>(int size, float *tab1, float *tab2)
+{
+    return cublasSdot(size, 
+		     tab1, 1,
+		     tab2, 1);
+}
+
+template<>
+double do_blasDot(int size, double *tab1, double *tab2)
+{
+
+  double ret = cublasDdot(size, 
+			  tab1, 1,
+			  tab2, 1);
+
+
+ 
+  /*  if(cublasGetError() == CUBLAS_STATUS_NOT_INITIALIZED)
+    {
+      printf("CUBLAS_STATUS_NOT_INITIALIZED\n");
+    }
+  else if(cublasGetError() == CUBLAS_STATUS_ALLOC_FAILED)
+      {
+	printf("CUBLAS_STATUS_ALLOC_FAILED\n");
+      }
+  else if(cublasGetError() == CUBLAS_STATUS_ARCH_MISMATCH)
+	{
+	  printf("CUBLAS_STATUS_ARCH_MISMATCH\n");
+	}
+  else if(cublasGetError() == CUBLAS_STATUS_EXECUTION_FAILED)
+	  {
+	    printf("CUBLAS_STATUS_EXECUTION_FAILED\n");
+	    }*/
+
+   
+  return ret;
+}
+// end template specialisation
+
 
 
 template<typename T>
@@ -82,13 +138,116 @@ void creategpuparameters_(int *n1,int *n2, int *n3)
   return; 
 }
 
+template<typename T>
+int waveletstosf(int n1,int n2, int n3,
+		 dim3 gridWT1, dim3 gridWT2, dim3 gridWT3,
+		 dim3 threadsWT1, dim3 threadsWT2, dim3 threadsWT3,
+		 T *in,T *out)
+{
+
+  //wavelet synthesis
+  waveletsynthesis<T> <<< gridWT3, threadsWT3 >>>(n3,4*n1*n2,in,out,0);
+  cudaThreadSynchronize();
+  
+  waveletsynthesis<T> <<< gridWT2, threadsWT2 >>>(n2,4*n1*n3,out,in,1);
+  cudaThreadSynchronize();
+
+  waveletsynthesis<T> <<< gridWT1, threadsWT1 >>>(n1,4*n2*n3,in,out,2);
+  cudaThreadSynchronize();
+
+  return 0;
+}
+
+template<typename T>
+int sftowavelets(int n1,int n2, int n3,
+		 dim3 gridWT1, dim3 gridWT2, dim3 gridWT3,
+		 dim3 threadsWT1, dim3 threadsWT2, dim3 threadsWT3,
+		 T *in,T *out)
+{
+
+  //wavelet analysis
+  waveletanalysis<T> <<< gridWT3, threadsWT3 >>>(n3,4*n1*n2,in,out,0);
+  cudaThreadSynchronize();
+
+  waveletanalysis<T> <<< gridWT2, threadsWT2 >>>(n2,4*n1*n3,out,in,1);
+  cudaThreadSynchronize();
+
+  waveletanalysis<T> <<< gridWT1, threadsWT1 >>>(n1,4*n2*n3,in,out,2);
+  cudaThreadSynchronize();
+
+  return 0;
+}
+
+
+
+template<typename T>
+int potentialapplication(int n1,int n2, int n3,
+			 dim3 gridMF1, dim3 gridMF2, dim3 gridMF3,
+			 dim3 threadsMF1, dim3 threadsMF2, dim3 threadsMF3,
+			 T *psi,T *out,T *pot,T *epot,
+			 T *work)
+{
+
+  //calculate the MF transformation
+  magicfilter1d<T> <<< gridMF3, threadsMF3 >>>(2*n3,4*n1*n2,psi,work,6);
+  cudaThreadSynchronize();
+
+  magicfilter1d<T> <<< gridMF2, threadsMF2 >>>(2*n2,4*n1*n3,work,out,7);
+  cudaThreadSynchronize();
+
+  magicfilter1d_pot<T> <<< gridMF1, threadsMF1 >>>(2*n1,4*n2*n3,out,pot,work,8);
+  cudaThreadSynchronize();
+
+  //reverse MF calculation
+  magicfilter1d_t<T> <<< gridMF3, threadsMF3 >>>(2*n3,4*n1*n2,work,out,6);
+  cudaThreadSynchronize();
+
+  magicfilter1d_t<T> <<< gridMF2, threadsMF2 >>>(2*n2,4*n1*n3,out,work,7);
+  cudaThreadSynchronize();
+
+  magicfilter1d_t<T> <<< gridMF1, threadsMF1 >>>(2*n1,4*n2*n3,work,out,8);
+  cudaThreadSynchronize();
+
+  //calculate potential energy
+  *epot = do_blasDot(8*n1*n2*n3, psi, out);
+ 
+  return 0;
+
+}
+
+template<typename T>
+int kineticapplication(int n1,int n2, int n3,
+		       T h1,T h2,T h3,
+		       dim3 gridK1, dim3 gridK2, dim3 gridK3,
+		       dim3 threadsK1, dim3 threadsK2, dim3 threadsK3,
+		       T *psi,T *vpsi,T *out,T *ekinpot,
+		       T *work)
+{
+  //define the scale factor to be applied to the convolution
+  T scale=0.5/(h3*h3);
+  kinetic1d<T> <<< gridK3, threadsK3 >>>(2*n3,4*n1*n2,scale,psi,work,vpsi,out,3);
+  cudaThreadSynchronize();
+
+  scale=0.5/(h2*h2);
+  kinetic1d<T> <<< gridK2, threadsK2 >>>(2*n2,4*n1*n3,scale,work,psi,out,vpsi,4);
+  cudaThreadSynchronize();
+
+  scale=0.5/(h1*h1);
+  kinetic1d<T> <<< gridK1, threadsK1 >>>(2*n1,4*n2*n3,scale,psi,work,vpsi,out,5);
+  cudaThreadSynchronize();
+
+  //calculate potential energy
+  *ekinpot = do_blasDot(8*n1*n2*n3, out, work);
+
+  return 0;
+}
 
 template<typename T>
 int completelocalhamiltonian(int n1,int n2, int n3,
 			     T h1,T h2,T h3,
 			     T *psi,T *out,T *pot,			     
-			     T *work,
-			     T *work2,
+			     T *psifscf,
+			     T *vpsifscf,
 			     T *epot,T *ekinpot)
 {
 
@@ -145,80 +304,29 @@ int completelocalhamiltonian(int n1,int n2, int n3,
     }
 
   //start the hamiltonian calculation
-  
-  //wavelet synthesis
-  waveletsynthesis<T> <<< gridWT3, threadsWT3 >>>(n3,4*n1*n2,psi,work,0);
-  cudaThreadSynchronize();
-  
-  waveletsynthesis<T> <<< gridWT2, threadsWT2 >>>(n2,4*n1*n3,work,work2,1);
-  cudaThreadSynchronize();
 
-  waveletsynthesis<T> <<< gridWT1, threadsWT1 >>>(n1,4*n2*n3,work2,psi,2);
-  cudaThreadSynchronize();
+  waveletstosf<T>(n1,n2,n3,gridWT1,gridWT2,gridWT3,
+		  threadsWT1,threadsWT2,threadsWT3,
+		  psi,psifscf);
 
 
-  //then calculate the potential energy
-  magicfilter1d<T> <<< gridMF3, threadsMF3 >>>(2*n3,4*n1*n2,psi,work,6);
-  cudaThreadSynchronize();
+  potentialapplication<T>(n1,n2,n3,gridMF1,gridMF2,gridMF3,
+			  threadsMF1,threadsMF2,threadsMF3,
+			  psifscf,vpsifscf,pot,epot,
+			  out); //work array
 
-  magicfilter1d<T> <<< gridMF2, threadsMF2 >>>(2*n2,4*n1*n3,work,work2,7);
-  cudaThreadSynchronize();
+  kineticapplication<T>(n1,n2,n3,h1,h2,h3,
+			gridK1,gridK2,gridK3,
+			threadsK1,threadsK2,threadsK3,
+			psifscf,vpsifscf,psi,ekinpot,
+			out); //work array
 
-  //use other work array and save psi for kinetic operator
-  magicfilter1d_pot<T> <<< gridMF1, threadsMF1 >>>(2*n1,4*n2*n3,work2,pot,work,8);
-  cudaThreadSynchronize();
+  *ekinpot -= *epot;
 
-  //calculate the potential energy
-  //reducearrays<T>(2*n1,4*n2*n3,work2,work,epot);
-  //cudaThreadSynchronize();
+  sftowavelets<T>(n1,n2,n3,gridWT1,gridWT2,gridWT3,
+		  threadsWT1,threadsWT2,threadsWT3,
+		  psi,out);
 
-  //reverse MF calculation
-  magicfilter1d_t<T> <<< gridMF3, threadsMF3 >>>(2*n3,4*n1*n2,work,work2,6);
-  cudaThreadSynchronize();
-
-  magicfilter1d_t<T> <<< gridMF2, threadsMF2 >>>(2*n2,4*n1*n3,work2,work,7);
-  cudaThreadSynchronize();
-
-  magicfilter1d_t<T> <<< gridMF1, threadsMF1 >>>(2*n1,4*n2*n3,work,work2,8);
-  cudaThreadSynchronize();
-
-
-  //calculate the kinetic operator and add that to the potential
-  //energy
-  //use work2 inside the worky array to add the result to the vpsi
-  //array
-
-  //here the worky array should be initialised to c*x
-  //c_initialize<T> <<< gridK3, threadsK3 >>>(2*n3,4*n1*n2,psi,work2,0.,3);
-  //cudaThreadSynchronize();
-
-
-  //define the scale factor to be applied to the convolution
-  T scale=0.5/(h3*h3);
-  kinetic1d<T> <<< gridK3, threadsK3 >>>(2*n3,4*n1*n2,scale,psi,work,work2,out,3);
-  cudaThreadSynchronize();
-
-  scale=0.5/(h2*h2);
-  kinetic1d<T> <<< gridK2, threadsK2 >>>(2*n2,4*n1*n3,scale,work,psi,out,work2,4);
-  cudaThreadSynchronize();
-
-  scale=0.5/(h1*h1);
-  kinetic1d<T> <<< gridK1, threadsK1 >>>(2*n1,4*n2*n3,scale,psi,work,work2,out,5);
-  cudaThreadSynchronize();
-
-  //calculate the reduction of the final array, not correct for ekin
-  //reducearrays<T>(2*n1,4*n2*n3,work,out,ekinpot);
-  //cudaThreadSynchronize();
-
-  //wavelet analysis
-  waveletanalysis<T> <<< gridWT3, threadsWT3 >>>(n3,4*n1*n2,out,work,0);
-  cudaThreadSynchronize();
-
-  waveletanalysis<T> <<< gridWT2, threadsWT2 >>>(n2,4*n1*n3,work,work2,1);
-  cudaThreadSynchronize();
-
-  waveletanalysis<T> <<< gridWT1, threadsWT1 >>>(n1,4*n2*n3,work2,out,2);
-  cudaThreadSynchronize();
 
   return 0;
 
@@ -230,8 +338,8 @@ int fulllocalhamiltonian(int n1,int n2, int n3,
 			 T h1,T h2,T h3,
 			 T *psiw,T *hpsiw,T *pot,int *keys,
 			 T *psi,T *out, 
-			 T *work,
-			 T *work2,
+			 T *psifscf,
+			 T *vpsifscf,
 			 T *epot,T *ekinpot)
 {
 
@@ -262,95 +370,49 @@ int fulllocalhamiltonian(int n1,int n2, int n3,
 
   //uncompression
   //set the value of the psig array to zero
+  
   cudaMemset((void*) psi,0,8*n1*n2*n3*sizeof(T));
+  cudaThreadSynchronize();
 
   uncompresscoarsefine<T> <<< gridC, threadsC >>>(n1,n2,n3,psiw,psi,keys);
   cudaThreadSynchronize();
-
-
-  //start the hamiltonian calculation
   
-  //wavelet synthesis
-  waveletsynthesis<T> <<< gridWT3, threadsWT3 >>>(n3,4*n1*n2,psi,work,0);
-  cudaThreadSynchronize();
-  
-  waveletsynthesis<T> <<< gridWT2, threadsWT2 >>>(n2,4*n1*n3,work,work2,1);
-  cudaThreadSynchronize();
 
-  waveletsynthesis<T> <<< gridWT1, threadsWT1 >>>(n1,4*n2*n3,work2,psi,2);
-  cudaThreadSynchronize();
-
-  //then calculate the potential energy
-  magicfilter1d<T> <<< gridMF3, threadsMF3 >>>(2*n3,4*n1*n2,psi,work,6);
-  cudaThreadSynchronize();
-
-  magicfilter1d<T> <<< gridMF2, threadsMF2 >>>(2*n2,4*n1*n3,work,work2,7);
-  cudaThreadSynchronize();
-
-  //use other work array and save psi for kinetic operator
-  magicfilter1d_pot<T> <<< gridMF1, threadsMF1 >>>(2*n1,4*n2*n3,work2,pot,work,8);
-  cudaThreadSynchronize();
-
-  //calculate the potential energy
-  //reducearrays<T>(2*n1,4*n2*n3,work2,work,epot);
+  //cudaMemset((void*) psi,1,8*n1*n2*n3*sizeof(T));
   //cudaThreadSynchronize();
 
 
-  //reverse MF calculation
-  magicfilter1d_t<T> <<< gridMF3, threadsMF3 >>>(2*n3,4*n1*n2,work,work2,6);
-  cudaThreadSynchronize();
-
-  magicfilter1d_t<T> <<< gridMF2, threadsMF2 >>>(2*n2,4*n1*n3,work2,work,7);
-  cudaThreadSynchronize();
-
-  magicfilter1d_t<T> <<< gridMF1, threadsMF1 >>>(2*n1,4*n2*n3,work,work2,8);
-  cudaThreadSynchronize();
+  //start the hamiltonian calculation
+  waveletstosf<T>(n1,n2,n3,gridWT1,gridWT2,gridWT3,
+		  threadsWT1,threadsWT2,threadsWT3,
+		  psi,psifscf);
 
 
-  //calculate the kinetic operator and add that to the potential
-  //energy
-  //use work2 inside the worky array to add the result to the vpsi
-  //array
-
+  potentialapplication<T>(n1,n2,n3,gridMF1,gridMF2,gridMF3,
+			  threadsMF1,threadsMF2,threadsMF3,
+			  psifscf,vpsifscf,pot,epot,
+			  out); //work array
 
   //here the worky array should be initialised to c*x
   //c_initialize<T> <<< gridK3, threadsK3 >>>(2*n3,4*n1*n2,psi,work2,0.,3);
   //cudaThreadSynchronize();
 
-  
-  //define the scale factor to be applied to the convolution
-  T scale=0.5/(h3*h3);
-  kinetic1d<T> <<< gridK3, threadsK3 >>>(2*n3,4*n1*n2,scale,psi,work,work2,out,3);
-  cudaThreadSynchronize();
+  kineticapplication<T>(n1,n2,n3,h1,h2,h3,
+			gridK1,gridK2,gridK3,
+			threadsK1,threadsK2,threadsK3,
+			psifscf,vpsifscf,psi,ekinpot,
+			out); //work array
 
-  scale=0.5/(h2*h2);
-  kinetic1d<T> <<< gridK2, threadsK2 >>>(2*n2,4*n1*n3,scale,work,psi,out,work2,4);
-  cudaThreadSynchronize();
+  *ekinpot -= *epot;
 
-  scale=0.5/(h1*h1);
-  kinetic1d<T> <<< gridK1, threadsK1 >>>(2*n1,4*n2*n3,scale,psi,work,work2,out,5);
-  cudaThreadSynchronize();
-
-
-  //calculate the reduction of the final array, not correct for ekin
-  //reducearrays<T>(2*n1,4*n2*n3,work,out,ekinpot);
-  //cudaThreadSynchronize();
-
-  //wavelet analysis
-  waveletanalysis<T> <<< gridWT3, threadsWT3 >>>(n3,4*n1*n2,out,work,0);
-  cudaThreadSynchronize();
-
-  waveletanalysis<T> <<< gridWT2, threadsWT2 >>>(n2,4*n1*n3,work,work2,1);
-  cudaThreadSynchronize();
-
-  waveletanalysis<T> <<< gridWT1, threadsWT1 >>>(n1,4*n2*n3,work2,out,2);
-  cudaThreadSynchronize();
+  sftowavelets<T>(n1,n2,n3,gridWT1,gridWT2,gridWT3,
+		  threadsWT1,threadsWT2,threadsWT3,
+		  psi,out);
 
 
   //recompress
   compresscoarsefine<T> <<< gridC, threadsC >>>(n1,n2,n3,out,hpsiw,keys);
   cudaThreadSynchronize();
-
 
   return 0;
 
@@ -399,40 +461,6 @@ void gpufulllocham_(int *n1,int *n2, int *n3,
 				  epot,ekinpot)!= 0) 
     {
       printf("ERROR: GPU fulllocalhamiltonian\n ");
-      return;
-    } 
-  return; 
-}
-
-extern "C" 
-void ana1d_(int *n,int *ndat,
-	    double **psi,double **out) 
-
-{
-
-  
-  if(wavana1d<double>(*n+1,*ndat,
-		      *psi,
-		      *out) != 0) 
-    {
-      printf("ERROR: GPU waveletanalysis\n ");
-      return;
-    } 
-  return; 
-}
-
-extern "C" 
-void syn1d_(int *n,int *ndat,
-	    double **psi,double **out) 
-
-{
-
-  
-  if(wavsyn1d<double>(*n+1,*ndat,
-		      *psi,
-		      *out) != 0) 
-    {
-      printf("ERROR: GPU waveletanalysis\n ");
       return;
     } 
   return; 
@@ -499,7 +527,6 @@ void magicfilter1d_(int *n,int *ndat,
   return; 
 }
 
-
 extern "C"
 void uncompressgpu_(int* n1, int* n2,int *n3 ,
 		    double **psi, double **psig, int **keys)
@@ -542,4 +569,107 @@ void readkeysinfo_(int *elems_block, int *nblocks_max)
   *elems_block=ELEMS_BLOCK;
   *nblocks_max=NBLOCKS_MAX;
 }
+
+extern "C" 
+void kineticterm_(int *n1,int *n2,int *n3,
+		  float *hx,float *hy,float *hz,float *c,
+		  float **x,float **y,float **workx,float **worky,
+		  float *ekin) 
+
+{
+
+  
+  if(kineticfilter<float>(*n1+1,*n2+1,*n3+1,
+			  *hx,*hy,*hz,*c,
+			  *x,*workx,*y,*worky,
+			  ekin) != 0)
+    {
+      printf("ERROR: GPU kineticfilter\n ");
+      return;
+    } 
+  return; 
+}
+
+extern "C" 
+void kinetictermd_(int *n1,int *n2,int *n3,
+		   double *hx,double *hy,double *hz,double *c,
+		   double **x,double **y,double **workx,double **worky,
+		   double *ekin) 
+
+{
+
+  
+  if(kineticfilter<double>(*n1+1,*n2+1,*n3+1,
+			  *hx,*hy,*hz,*c,
+			  *x,*workx,*y,*worky,
+			  ekin) != 0)
+    {
+      printf("ERROR: GPU kineticfilter\n ");
+      return;
+    } 
+  return; 
+  }
+
+extern "C" 
+void kinetic1d_(int *n,int *ndat,
+		double *h,double *c,
+		double **x,double **y,double **workx,double **worky,
+		double *ekin) 
+
+{
+
+  
+  if(k1d<double>(*ndat,*n+1,
+		 *h,*c,
+		 *x,*workx,*y,*worky,ekin) != 0)
+    {
+      printf("ERROR: GPU kineticfilter\n ");
+      return;
+    } 
+  return; 
+}
+
+
+
+
+
+
+extern "C" 
+void ana1d_(int *n,int *ndat,
+	    double **psi,double **out) 
+
+{
+
+  
+  if(wavana1d<double>(*n+1,*ndat,
+		      *psi,
+		      *out) != 0) 
+    {
+      printf("ERROR: GPU waveletanalysis\n ");
+      return;
+    } 
+  return; 
+}
+
+extern "C" 
+void syn1d_(int *n,int *ndat,
+	    double **psi,double **out) 
+
+{
+
+  
+  if(wavsyn1d<double>(*n+1,*ndat,
+		      *psi,
+		      *out) != 0) 
+    {
+      printf("ERROR: GPU waveletanalysis\n ");
+      return;
+    } 
+  return; 
+}
+
+
+
+
+
 

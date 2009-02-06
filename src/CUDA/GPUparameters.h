@@ -14,12 +14,15 @@ void GPUParameters(parGPU_t* par,
 
 {
 
+  //extra terms which should be added for the copy
+  unsigned int nextra=HW_ELEM*((lowfil+lupfil)/HW_ELEM+1);
+
   //number of total allowed elements of a input line
   //nfac added for wavelet transformation routines
   unsigned int num_elem_tot=MAX_SHARED_SIZE/sizeof(T)/NUM_LINES/nfac; //between1024and64
   
   //number of elements of the output
-  unsigned int num_elem_max=min(num_elem_tot-lowfil-lupfil-1,n); //between 1008 and 48 for 16-fil
+  unsigned int num_elem_max=min(num_elem_tot-nextra,n); //between 1008 and 48 for 16-fil
 
   //number of pieces in which a line is divided
   //if the line is too small and not a multiple of ElementsPerHalfWarp
@@ -64,7 +67,8 @@ void GPUParameters(parGPU_t* par,
   //define the sequences of the number of elements
   correctSequence(halfwarps,par->ElementsPerBlock/HW_ELEM,par->hwelem_calc);
 
-  correctSequence(halfwarps,(par->ElementsPerBlock+lowfil+lupfil+1)/HW_ELEM,
+  correctSequence(halfwarps,par->ElementsPerBlock/HW_ELEM
+		  +nextra/HW_ELEM, //exceeding term for the copy
 		  par->hwelem_copy);
 
   //define the offsets

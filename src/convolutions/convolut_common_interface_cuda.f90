@@ -234,7 +234,7 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
   character(len=*), parameter :: subname='adjust_keys_for_gpu'
   !maximum number of elements to be passed into a block
   integer :: iseg,i_stat,i_all,segment_elements,nseg_tot,j,nseggpu,nblocks,nseg_block
-  integer :: elems_block,nblocks_max
+  integer :: elems_block,nblocks_max,ncuts
   integer, dimension(:,:), allocatable :: keys
   
   call readkeysinfo(elems_block,nblocks_max)
@@ -242,30 +242,26 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
   nseg_tot=0
   !assign the keys values, coarse part
   do iseg=1,nseg_c
-     segment_elements=keyg_c(2,iseg)-keyg_c(1,iseg)
+     segment_elements=keyg_c(2,iseg)-keyg_c(1,iseg)+1
      if (segment_elements <= elems_block) then
         nseg_tot=nseg_tot+1
      else
-        nseg_tot=nseg_tot+1
-        do j=1,segment_elements/elems_block-1
+        ncuts=(segment_elements-1)/elems_block+1
+        do j=1,ncuts
            nseg_tot=nseg_tot+1
         end do
-        j=segment_elements/elems_block
-        nseg_tot=nseg_tot+1
      end if
   end do
   !assign the keys values, fine part
   do iseg=1,nseg_f
-     segment_elements=keyg_f(2,iseg)-keyg_f(1,iseg)
+     segment_elements=keyg_f(2,iseg)-keyg_f(1,iseg)+1
      if (segment_elements <= elems_block) then
         nseg_tot=nseg_tot+1
      else
-        nseg_tot=nseg_tot+1
-        do j=1,segment_elements/elems_block-1
+        ncuts=(segment_elements-1)/elems_block+1
+        do j=1,ncuts
            nseg_tot=nseg_tot+1
         end do
-        j=segment_elements/elems_block;
-        nseg_tot=nseg_tot+1
      end if
   end do
 
@@ -286,7 +282,7 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
   nseg_tot=0
   !assign the keys values, coarse part
   do iseg=1,nseg_c
-     segment_elements=keyg_c(2,iseg)-keyg_c(1,iseg)
+     segment_elements=keyg_c(2,iseg)-keyg_c(1,iseg)+1
      if (segment_elements <= elems_block) then
         nseg_tot=nseg_tot+1;
         keys(1,nseg_tot)=1 !which means coarse segment
@@ -294,29 +290,25 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
         keys(3,nseg_tot)=keyv_c(iseg)
         keys(4,nseg_tot)=keyg_c(1,iseg)
      else
-        nseg_tot=nseg_tot+1
-        keys(1,nseg_tot)=1
-        keys(2,nseg_tot)=elems_block
-        keys(3,nseg_tot)=keyv_c(iseg)
-        keys(4,nseg_tot)=keyg_c(1,iseg)	  
-        do j=1,segment_elements/elems_block-1
+        ncuts=(segment_elements-1)/elems_block+1
+        do j=1,ncuts-1
            nseg_tot=nseg_tot+1
            keys(1,nseg_tot)=1
            keys(2,nseg_tot)=elems_block
-           keys(3,nseg_tot)=keyv_c(iseg)+j*elems_block+1
-           keys(4,nseg_tot)=keyg_c(1,iseg)+j*elems_block+1
+           keys(3,nseg_tot)=keyv_c(iseg)+(j-1)*elems_block
+           keys(4,nseg_tot)=keyg_c(1,iseg)+(j-1)*elems_block
         end do
-        j=segment_elements/elems_block;
+        j=ncuts
         nseg_tot=nseg_tot+1
         keys(1,nseg_tot)=1
-        keys(2,nseg_tot)=segment_elements-j*elems_block
-        keys(3,nseg_tot)=keyv_c(iseg)+j*elems_block+1
-        keys(4,nseg_tot)=keyg_c(1,iseg)+j*elems_block+1
+        keys(2,nseg_tot)=segment_elements-(j-1)*elems_block
+        keys(3,nseg_tot)=keyv_c(iseg)+(j-1)*elems_block
+        keys(4,nseg_tot)=keyg_c(1,iseg)+(j-1)*elems_block
      end if
   end do
   !assign the keys values, fine part
   do iseg=1,nseg_f
-     segment_elements=keyg_f(2,iseg)-keyg_f(1,iseg)
+     segment_elements=keyg_f(2,iseg)-keyg_f(1,iseg)+1
      if (segment_elements <= elems_block) then
         nseg_tot=nseg_tot+1;
         keys(1,nseg_tot)=nvctr_c !which means fine segment
@@ -324,24 +316,20 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
         keys(3,nseg_tot)=keyv_f(iseg)
         keys(4,nseg_tot)=keyg_f(1,iseg)
      else
-        nseg_tot=nseg_tot+1
-        keys(1,nseg_tot)=nvctr_c
-        keys(2,nseg_tot)=elems_block
-        keys(3,nseg_tot)=keyv_f(iseg)
-        keys(4,nseg_tot)=keyg_f(1,iseg)	  
-        do j=1,segment_elements/elems_block-1
+        ncuts=(segment_elements-1)/elems_block+1
+        do j=1,ncuts-1
            nseg_tot=nseg_tot+1
            keys(1,nseg_tot)=nvctr_c
            keys(2,nseg_tot)=elems_block
-           keys(3,nseg_tot)=keyv_f(iseg)+j*elems_block+1
-           keys(4,nseg_tot)=keyg_f(1,iseg)+j*elems_block+1
+           keys(3,nseg_tot)=keyv_f(iseg)+(j-1)*elems_block
+           keys(4,nseg_tot)=keyg_f(1,iseg)+(j-1)*elems_block
         end do
-        j=segment_elements/elems_block;
+        j=ncuts
         nseg_tot=nseg_tot+1
         keys(1,nseg_tot)=nvctr_c
-        keys(2,nseg_tot)=segment_elements-j*elems_block
-        keys(3,nseg_tot)=keyv_f(iseg)+j*elems_block+1
-        keys(4,nseg_tot)=keyg_f(1,iseg)+j*elems_block+1
+        keys(2,nseg_tot)=segment_elements-(j-1)*elems_block
+        keys(3,nseg_tot)=keyv_f(iseg)+(j-1)*elems_block
+        keys(4,nseg_tot)=keyg_f(1,iseg)+(j-1)*elems_block
      end if
   end do
 
@@ -420,34 +408,29 @@ subroutine free_gpu(GPU)
 
 end subroutine free_gpu
 
-subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU)
+subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz
+  real(gp), intent(out) :: ekin_sum,epot_sum
   type(orbitals_data), intent(in) :: orbs
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: i_stat
-  real(kind=8) :: epot,ekinpot
+  integer :: i_stat,iorb
+  real(gp) :: ekin,epot
 
+  do iorb=1,orbs%norbp
 
-!!$  call uncompressgpu(n1,n2,n3,GPU%psi,GPU%work4,GPU%keys)
+     call gpufulllocham(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+          GPU%psi,GPU%hpsi,GPU%pot,GPU%keys,&
+          GPU%work4,GPU%work3,GPU%work1,GPU%work2,epot,ekin)
 
-!!$  call gpulocham(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-!!$       GPU%work4,GPU%work3,GPU%pot,&
-!!$       GPU%work1,GPU%work2,epot,ekinpot)
+     ekin_sum=ekin_sum+orbs%occup(iorb+orbs%isorb)*ekin
+     epot_sum=epot_sum+orbs%occup(iorb+orbs%isorb)*epot
 
-!!$  call compressgpu(n1,n2,n3,GPU%work3,GPU%hpsi,GPU%keys)
-
-
-  call gpufulllocham(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-       GPU%psi,GPU%hpsi,GPU%pot,GPU%keys,&
-       GPU%work4,GPU%work3,GPU%work1,GPU%work2,epot,ekinpot)
-  
-  !print *,'epotGPU,ekinpotGPU',epot,ekinpot
-
+  end do
 
 end subroutine gpu_locham
 

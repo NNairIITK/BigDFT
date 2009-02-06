@@ -1,10 +1,5 @@
-/****c* CUDA/fortran.c
-**
-** SOURCE
-*/
-
 /*
- * Copyright 1993-2007 NVIDIA Corporation.  All rights reserved.
+ * Copyright 1993-2008 NVIDIA Corporation.  All rights reserved.
  *
  * NOTICE TO USER:   
  *
@@ -65,6 +60,8 @@
 #define CUBLAS_FORTRAN_COMPILER CUBLAS_INTEL_FORTRAN
 #elif defined(__linux)
 #define CUBLAS_FORTRAN_COMPILER CUBLAS_G77
+#elif defined(__APPLE__)
+#define CUBLAS_FORTRAN_COMPILER CUBLAS_G77
 #else
 #error unsupported platform
 #endif
@@ -74,74 +71,133 @@
  *       g77 invocation may not use -fno-f2c, which forces different return 
  *       type conventions than the one used below
  */
-#define CUBLAS_INIT             cublas_init_
-#define CUBLAS_SHUTDOWN         cublas_shutdown_
-#define CUBLAS_ALLOC            cublas_alloc_
-#define CUBLAS_FREE             cublas_free_
-#define CUBLAS_SET_VECTOR       cublas_set_vector_
-#define CUBLAS_GET_VECTOR       cublas_get_vector_
-#define CUBLAS_SET_MATRIX       cublas_set_matrix_
-#define CUBLAS_GET_MATRIX       cublas_get_matrix_
-#define CUBLAS_GET_ERROR        cublas_get_error_
-#define CUBLAS_XERBLA           cublas_xerbla_
-#define CUBLAS_ISAMAX           cublas_isamax_
-#define CUBLAS_ISAMIN           cublas_isamin_
-#define CUBLAS_SASUM            cublas_sasum_
+#define CUBLAS_INIT             cublas_init__
+#define CUBLAS_SHUTDOWN         cublas_shutdown__
+#define CUBLAS_ALLOC            cublas_alloc__
+#define CUBLAS_FREE             cublas_free__
+#define CUBLAS_SET_VECTOR       cublas_set_vector__
+#define CUBLAS_GET_VECTOR       cublas_get_vector__
+#define CUBLAS_SET_MATRIX       cublas_set_matrix__
+#define CUBLAS_GET_MATRIX       cublas_get_matrix__
+#define CUBLAS_GET_ERROR        cublas_get_error__
+#define CUBLAS_XERBLA           cublas_xerbla__
+#define CUBLAS_ISAMAX           cublas_isamax__
+#define CUBLAS_ISAMIN           cublas_isamin__
+#define CUBLAS_SASUM            cublas_sasum__
 #define CUBLAS_SAXPY            cublas_saxpy__
-#define CUBLAS_SCOPY            cublas_scopy_
+#define CUBLAS_SCOPY            cublas_scopy__
 #define CUBLAS_SDOT             cublas_sdot__
 #define CUBLAS_SNRM2            cublas_snrm2__
-#define CUBLAS_SROT             cublas_srot_
-#define CUBLAS_SROTG            cublas_srotg_
-#define CUBLAS_SROTM            cublas_srotm_
-#define CUBLAS_SROTMG           cublas_srotmg_
+#define CUBLAS_SROT             cublas_srot__
+#define CUBLAS_SROTG            cublas_srotg__
+#define CUBLAS_SROTM            cublas_srotm__
+#define CUBLAS_SROTMG           cublas_srotmg__
 #define CUBLAS_SSCAL            cublas_sscal__
-#define CUBLAS_SSWAP            cublas_sswap_
+#define CUBLAS_SSWAP            cublas_sswap__
 #define CUBLAS_CAXPY            cublas_caxpy__
-#define CUBLAS_CCOPY            cublas_ccopy_
-#define CUBLAS_CROT             cublas_crot_
-#define CUBLAS_CROTG            cublas_crotg_
+#define CUBLAS_CCOPY            cublas_ccopy__
+#define CUBLAS_CROT             cublas_crot__
+#define CUBLAS_CROTG            cublas_crotg__
 #define CUBLAS_CSCAL            cublas_cscal__
-#define CUBLAS_CSROT            cublas_csrot_
-#define CUBLAS_CSSCAL           cublas_csscal_
-#define CUBLAS_CSWAP            cublas_cswap_
-#define CUBLAS_CDOTU            cublas_cdotu_
-#define CUBLAS_CDOTC            cublas_cdotc_
-#define CUBLAS_ICAMAX           cublas_icamax_
-#define CUBLAS_SCASUM           cublas_scasum_
-#define CUBLAS_SCNRM2           cublas_scnrm2_
-#define CUBLAS_SGBMV            cublas_sgbmv_
-#define CUBLAS_SGEMV            cublas_sgemv_
-#define CUBLAS_SGER             cublas_sger_
-#define CUBLAS_SSBMV            cublas_ssbmv_
-#define CUBLAS_SSPMV            cublas_sspmv_
-#define CUBLAS_SSPR             cublas_sspr_
-#define CUBLAS_SSPR2            cublas_sspr2_
-#define CUBLAS_SSYMV            cublas_ssymv_
-#define CUBLAS_SSYR             cublas_ssyr_
-#define CUBLAS_SSYR2            cublas_ssyr2_
-#define CUBLAS_STBMV            cublas_stbmv_
-#define CUBLAS_STBSV            cublas_stbsv_
-#define CUBLAS_STPMV            cublas_stpmv_
-#define CUBLAS_STPSV            cublas_stpsv_
-#define CUBLAS_STRMV            cublas_strmv_
-#define CUBLAS_STRSV            cublas_strsv_
+#define CUBLAS_CSROT            cublas_csrot__
+#define CUBLAS_CSSCAL           cublas_csscal__
+#define CUBLAS_CSWAP            cublas_cswap__
+#define CUBLAS_CDOTU            cublas_cdotu__
+#define CUBLAS_CDOTC            cublas_cdotc__
+#define CUBLAS_ICAMAX           cublas_icamax__
+#define CUBLAS_SCASUM           cublas_scasum__
+#define CUBLAS_SCNRM2           cublas_scnrm2__
+#define CUBLAS_SGBMV            cublas_sgbmv__
+#define CUBLAS_SGEMV            cublas_sgemv__
+#define CUBLAS_SGER             cublas_sger__
+#define CUBLAS_SSBMV            cublas_ssbmv__
+#define CUBLAS_SSPMV            cublas_sspmv__
+#define CUBLAS_SSPR             cublas_sspr__
+#define CUBLAS_SSPR2            cublas_sspr2__
+#define CUBLAS_SSYMV            cublas_ssymv__
+#define CUBLAS_SSYR             cublas_ssyr__
+#define CUBLAS_SSYR2            cublas_ssyr2__
+#define CUBLAS_STBMV            cublas_stbmv__
+#define CUBLAS_STBSV            cublas_stbsv__
+#define CUBLAS_STPMV            cublas_stpmv__
+#define CUBLAS_STPSV            cublas_stpsv__
+#define CUBLAS_STRMV            cublas_strmv__
+#define CUBLAS_STRSV            cublas_strsv__
 #define CUBLAS_SGEMM            cublas_sgemm__
-#define CUBLAS_SSYMM            cublas_ssymm_
-#define CUBLAS_SSYR2K           cublas_ssyr2k_
+#define CUBLAS_SSYMM            cublas_ssymm__
+#define CUBLAS_SSYR2K           cublas_ssyr2k__
 #define CUBLAS_SSYRK            cublas_ssyrk__
 #define CUBLAS_STRMM            cublas_strmm__
-#define CUBLAS_STRSM            cublas_strsm_
+#define CUBLAS_STRSM            cublas_strsm__
 #define CUBLAS_CGEMM            cublas_cgemm__
-#define CUBLAS_CHEMM            cublas_chemm_
-#define CUBLAS_CSYMM            cublas_csymm_
+#define CUBLAS_CHEMM            cublas_chemm__
+#define CUBLAS_CSYMM            cublas_csymm__
 #define CUBLAS_CTRMM            cublas_ctrmm__
-#define CUBLAS_CTRSM            cublas_ctrsm_
+#define CUBLAS_CTRSM            cublas_ctrsm__
 #define CUBLAS_CHERK            cublas_cherk__
-#define CUBLAS_CSYRK            cublas_csyrk_
-#define CUBLAS_CHER2K           cublas_cher2k_
-#define CUBLAS_CSYR2K           cublas_csyr2k_
+#define CUBLAS_CSYRK            cublas_csyrk__
+#define CUBLAS_CHER2K           cublas_cher2k__
+#define CUBLAS_CSYR2K           cublas_csyr2k__
+#define CUBLAS_IDAMAX           cublas_idamax__
+#define CUBLAS_IDAMIN           cublas_idamin__
+#define CUBLAS_DASUM            cublas_dasum__
+#define CUBLAS_DAXPY            cublas_daxpy__
+#define CUBLAS_DCOPY            cublas_dcopy__
+#define CUBLAS_DDOT             cublas_ddot__
+#define CUBLAS_DNRM2            cublas_dnrm2__
+#define CUBLAS_DROT             cublas_drot__
+#define CUBLAS_DROTG            cublas_drotg__
+#define CUBLAS_DROTM            cublas_drotm__
+#define CUBLAS_DROTMG           cublas_drotmg__
+#define CUBLAS_DSCAL            cublas_dscal__
+#define CUBLAS_DSWAP            cublas_dswap__
+#define CUBLAS_ZAXPY            cublas_zaxpy__
+#define CUBLAS_ZCOPY            cublas_zcopy__
+#define CUBLAS_ZROT             cublas_zrot__
+#define CUBLAS_ZROTG            cublas_zrotg__
+#define CUBLAS_ZSCAL            cublas_zscal__
+#define CUBLAS_ZDROT            cublas_zdrot__
+#define CUBLAS_ZDSCAL           cublas_zdscal__
+#define CUBLAS_ZSWAP            cublas_zswap__
+#define CUBLAS_ZDOTU            cublas_zdotu__
+#define CUBLAS_ZDOTC            cublas_zdotc__
+#define CUBLAS_IZAMAX           cublas_izamax__
+#define CUBLAS_DZASUM           cublas_dzasum__
+#define CUBLAS_DZNRM2           cublas_dznrm2__
+#define CUBLAS_DGBMV            cublas_dgbmv__
+#define CUBLAS_DGEMV            cublas_dgemv__
+#define CUBLAS_DGER             cublas_dger__
+#define CUBLAS_DSBMV            cublas_dsbmv__
+#define CUBLAS_DSPMV            cublas_dspmv__
+#define CUBLAS_DSPR             cublas_dspr__
+#define CUBLAS_DSPR2            cublas_dspr2__
+#define CUBLAS_DSYMV            cublas_dsymv__
+#define CUBLAS_DSYR             cublas_dsyr__
+#define CUBLAS_DSYR2            cublas_dsyr2__
+#define CUBLAS_DTBMV            cublas_dtbmv__
+#define CUBLAS_DTBSV            cublas_dtbsv__
+#define CUBLAS_DTPMV            cublas_dtpmv__
+#define CUBLAS_DTPSV            cublas_dtpsv__
+#define CUBLAS_DTRMV            cublas_dtrmv__
+#define CUBLAS_DTRSV            cublas_dtrsv__
+#define CUBLAS_DGEMM            cublas_dgemm__
+#define CUBLAS_DSYMM            cublas_dsymm__
+#define CUBLAS_DSYR2K           cublas_dsyr2k__
+#define CUBLAS_DSYRK            cublas_dsyrk__
+#define CUBLAS_DTRMM            cublas_dtrmm__
+#define CUBLAS_DTRSM            cublas_dtrsm__
+#define CUBLAS_ZGEMM            cublas_zgemm__
+#define CUBLAS_ZHEMM            cublas_zhemm__
+#define CUBLAS_ZSYMM            cublas_zsymm__
+#define CUBLAS_ZTRMM            cublas_ztrmm__
+#define CUBLAS_ZTRSM            cublas_ztrsm__
+#define CUBLAS_ZHERK            cublas_zherk__
+#define CUBLAS_ZSYRK            cublas_zsyrk__
+#define CUBLAS_ZHER2K           cublas_zher2k__
+#define CUBLAS_ZSYR2K           cublas_zsyr2k__
+
 #elif CUBLAS_FORTRAN_COMPILER==CUBLAS_INTEL_FORTRAN
+
 #define CUBLAS_INIT             CUBLAS_INIT 
 #define CUBLAS_SHUTDOWN         CUBLAS_SHUTDOWN
 #define CUBLAS_ALLOC            CUBLAS_ALLOC
@@ -209,6 +265,64 @@
 #define CUBLAS_CSYRK            CUBLAS_CSYRK
 #define CUBLAS_CHER2K           CUBLAS_CHER2K
 #define CUBLAS_CSYR2K           CUBLAS_CSYR2K
+#define CUBLAS_IDAMAX           CUBLAS_IDAMAX
+#define CUBLAS_IDAMIN           CUBLAS_IDAMIN
+#define CUBLAS_DASUM            CUBLAS_DASUM
+#define CUBLAS_DAXPY            CUBLAS_DAXPY
+#define CUBLAS_DCOPY            CUBLAS_DCOPY
+#define CUBLAS_DDOT             CUBLAS_DDOT
+#define CUBLAS_DNRM2            CUBLAS_DNRM2
+#define CUBLAS_DROT             CUBLAS_DROT
+#define CUBLAS_DROTG            CUBLAS_DROTG
+#define CUBLAS_DROTM            CUBLAS_DROTM
+#define CUBLAS_DROTMG           CUBLAS_DROTMG
+#define CUBLAS_DSCAL            CUBLAS_DSCAL
+#define CUBLAS_DSWAP            CUBLAS_DSWAP
+#define CUBLAS_ZAXPY            CUBLAS_ZAXPY
+#define CUBLAS_ZCOPY            CUBLAS_ZCOPY
+#define CUBLAS_ZROT             CUBLAS_ZROT
+#define CUBLAS_ZROTG            CUBLAS_ZROTG
+#define CUBLAS_ZSCAL            CUBLAS_ZSCAL
+#define CUBLAS_ZDROT            CUBLAS_ZDROT
+#define CUBLAS_ZDSCAL           CUBLAS_ZDSCAL
+#define CUBLAS_ZSWAP            CUBLAS_ZSWAP 
+#define CUBLAS_ZDOTU            CUBLAS_ZDOTU
+#define CUBLAS_ZDOTC            CUBLAS_ZDOTC
+#define CUBLAS_IZAMAX           CUBLAS_IZAMAX
+#define CUBLAS_DZASUM           CUBLAS_DZASUM
+#define CUBLAS_DZNRM2           CUBLAS_DZNRM2
+#define CUBLAS_DGBMV            CUBLAS_DGBMV
+#define CUBLAS_DGEMV            CUBLAS_DGEMV
+#define CUBLAS_DGER             CUBLAS_DGER
+#define CUBLAS_DSBMV            CUBLAS_DSBMV
+#define CUBLAS_DSPMV            CUBLAS_DSPMV
+#define CUBLAS_DSPR             CUBLAS_DSPR
+#define CUBLAS_DSPR2            CUBLAS_DSPR2
+#define CUBLAS_DSYMV            CUBLAS_DSYMV
+#define CUBLAS_DSYR             CUBLAS_DSYR
+#define CUBLAS_DSYR2            CUBLAS_DSYR2
+#define CUBLAS_DTBMV            CUBLAS_DTBMV
+#define CUBLAS_DTBSV            CUBLAS_DTBSV
+#define CUBLAS_DTPMV            CUBLAS_DTPMV
+#define CUBLAS_DTPSV            CUBLAS_DTPSV
+#define CUBLAS_DTRMV            CUBLAS_DTRMV
+#define CUBLAS_DTRSV            CUBLAS_DTRSV
+#define CUBLAS_DGEMM            CUBLAS_DGEMM
+#define CUBLAS_DSYMM            CUBLAS_DSYMM
+#define CUBLAS_DSYR2K           CUBLAS_DSYR2K
+#define CUBLAS_DSYRK            CUBLAS_DSYRK
+#define CUBLAS_DTRMM            CUBLAS_DTRMM
+#define CUBLAS_DTRSM            CUBLAS_DTRSM
+#define CUBLAS_ZGEMM            CUBLAS_ZGEMM
+#define CUBLAS_ZHEMM            CUBLAS_ZHEMM
+#define CUBLAS_ZSYMM            CUBLAS_ZSYMM
+#define CUBLAS_ZTRMM            CUBLAS_ZTRMM
+#define CUBLAS_ZTRSM            CUBLAS_ZTRSM
+#define CUBLAS_ZHERK            CUBLAS_ZHERK
+#define CUBLAS_ZSYRK            CUBLAS_ZSYRK
+#define CUBLAS_ZHER2K           CUBLAS_ZHER2K
+#define CUBLAS_ZSYR2K           CUBLAS_ZSYR2K
+
 #else
 #error unsupported Fortran compiler
 #endif
@@ -460,9 +574,102 @@ void CUBLAS_CGEMM (const char *transa, const char *transb, const int *m,
                    const cuComplex *A, const int *lda, const cuComplex *B,
                    const int *ldb, const cuComplex *beta, cuComplex *C, 
                    const int *ldc);
+
+/* DP BLAS1 */
+double CUBLAS_DDOT (const int *n, const double *x, const int *incx, double *y, 
+                   const int *incy);
+double CUBLAS_DASUM (const int *n, const double *x, const int *incx);
+double CUBLAS_DNRM2 (const int *n, const double *x, const int *incx);
+int CUBLAS_IDAMAX (const int *n, const double *x, const int *incx);
+int CUBLAS_IDAMIN (const int *n, const double *x, const int *incx);
+void CUBLAS_DAXPY (const int *n, const double *alpha, const double *x, 
+                   const int *incx, double *y, const int *incy);
+void CUBLAS_DCOPY (const int *n, const double *x, const int *incx, double *y, 
+                   const int *incy);
+void CUBLAS_DROT (const int *n, double *x, const int *incx, double *y, 
+                  const int *incy, const double *sc, const double *ss);
+void CUBLAS_DROTG (double *sa, double *sb, double *sc, double *ss);
+void CUBLAS_DROTM (const int *n, double *x, const int *incx, double *y,
+                   const int *incy, const double* sparam);
+void CUBLAS_DROTMG (double *sd1, double *sd2, double *sx1, const double *sy1, 
+                    double* sparam);
+void CUBLAS_DSCAL (const int *n, const double *alpha, double *x,
+                   const int *incx);
+void CUBLAS_DSWAP(const int *n, double *x, const int *incx, double *y,
+                  const int *incy);
+
+/* DP BLAS2 */
+void CUBLAS_DGEMV (const char *trans, const int *m, const int *n,
+                   const double *alpha, const double *A, const int *lda,
+                   const double *x, const int *incx, const double *beta, 
+                   double *y, const int *incy);
+void CUBLAS_DGER (const int *m, const int *n, const double *alpha,
+                  const double *x, const int *incx, const double *y,
+                  const int *incy, double *A, const int *lda);
+void CUBLAS_DSYR (const char *uplo, const int *n, const double *alpha,
+                  const double *x, const int *incx, double *A, const int *lda);
+void CUBLAS_DTRSV (const char *uplo, const char *trans, const char *diag, 
+                   const int *n, const double *A, const int *lda, double *x, 
+                   const int *incx);
+
+/* DP BLAS3 */
+void CUBLAS_DGEMM (const char *transa, const char *transb, const int *m,
+                   const int *n, const int *k, const double *alpha, 
+                   const double *A, const int *lda, const double *B, 
+                   const int *ldb, const double *beta, double *C, 
+                   const int *ldc);
+void CUBLAS_DSYMM (const char *side, const char *uplo, const int *m,
+                   const int *n, const double *alpha, const double *A,
+                   const int *lda, const double *B, const int *ldb, 
+                   const double *beta, double *C, const int *ldc);
+void CUBLAS_DSYR2K (const char *uplo, const char *trans, const int *n, 
+                    const int *k, const double *alpha, const double *A,
+                    const int *lda,const double *B, const int *ldb, 
+                    const double *beta, double *C, const int *ldc);
+void CUBLAS_DSYRK (const char *uplo, const char *trans, const int *n,
+                   const int *k, const double *alpha, const double *A,
+                   const int *lda, const double *beta, double *C,
+                   const int *ldc);
+void CUBLAS_DTRMM (const char *side, const char *uplo, const char *transa, 
+                   const char *diag, const int *m, const int *n,
+                   const double *alpha, const double *A, const int *lda,
+                   double *B, const int *ldb);
+void CUBLAS_DTRSM (const char *side, const char *uplo, const char *transa, 
+                   const char *diag, const int *m, const int *n,
+                   const double *alpha, const double *A, const int *lda,
+                   double *B, const int *ldb);
+
+void CUBLAS_ZGEMM (const char *transa, const char *transb, const int *m,
+                   const int *n, const int *k, const cuDoubleComplex *alpha,
+                   const cuDoubleComplex *A, const int *lda, 
+                   const cuDoubleComplex *B, const int *ldb, 
+                   const cuDoubleComplex *beta, cuDoubleComplex *C, 
+                   const int *ldc);
+
 #if defined(__cplusplus)
 }
 #endif /* __cplusplus */
+
+#define CUBLAS_WRAPPER_ERROR_NOERR      0
+#define CUBLAS_WRAPPER_ERROR_ALLOC      1
+#define CUBLAS_WRAPPER_ERROR_SET        2
+#define CUBLAS_WRAPPER_ERROR_GET        3
+#define CUBLAS_WRAPPER_ERROR_STUB       4
+
+static char *errMsg[5] = 
+{
+    "no error",
+    "allocation error",
+    "setVector/setMatrix error",
+    "getVector/getMatrix error",
+    "not implemented"
+};
+
+static void wrapperError (const char *funcName, int error)
+{
+    printf ("cublas%s wrapper: %s\n", funcName, errMsg[error]);
+    fflush (stdout);
+}
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------- BLAS1 ----------------------------------*/
@@ -470,11 +677,22 @@ void CUBLAS_CGEMM (const char *transa, const char *transb, const int *m,
 
 int CUBLAS_ISAMAX (const int *n, const float *x, const int *incx)
 {
-    float *devPtrx;
-    int retVal;
+    float *devPtrx = 0;
+    int retVal = 0;
+    cublasStatus stat;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (*n <= 0) return retVal;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx), sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Isamax", CUBLAS_WRAPPER_ERROR_ALLOC);
+        return retVal;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Isamax", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        return retVal;
+    }
     retVal = cublasIsamax (*n, devPtrx, *incx);
     cublasFree (devPtrx);
     return retVal;
@@ -482,11 +700,22 @@ int CUBLAS_ISAMAX (const int *n, const float *x, const int *incx)
 
 int CUBLAS_ISAMIN (const int *n, const float *x, const int *incx)
 {
-    float *devPtrx;
-    int retVal;
+    float *devPtrx = 0;
+    int retVal = 0;
+    cublasStatus stat;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (*n == 0) return retVal;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx), sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Isamin", CUBLAS_WRAPPER_ERROR_ALLOC);
+        return retVal;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Isamin", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        return retVal;
+    }
     retVal = cublasIsamin (*n, devPtrx, *incx);
     cublasFree (devPtrx);
     return retVal;
@@ -498,11 +727,23 @@ double CUBLAS_SASUM (const int *n, const float *x, const int *incx)
 float CUBLAS_SASUM (const int *n, const float *x, const int *incx)
 #endif
 {
-    float *devPtrx;
-    float retVal;
-    
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    float *devPtrx = 0;
+    float retVal = 0.0f;
+    cublasStatus stat;
+
+    if (*n == 0) return retVal;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx), sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Sasum", CUBLAS_WRAPPER_ERROR_ALLOC);
+        return retVal;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Sasum", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        return retVal;
+    }
+   
     retVal = cublasSasum (*n, devPtrx, *incx);
     cublasFree (devPtrx);
     return retVal;
@@ -511,14 +752,31 @@ float CUBLAS_SASUM (const int *n, const float *x, const int *incx)
 void CUBLAS_SAXPY (const int *n, const float *alpha, const float *x, 
                    const int *incx, float *y, const int *incy)
 {
-    float *devPtrx, *devPtry;
+    float *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasAlloc (*n * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-    cublasSetVector (*n, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    cublasSetVector (*n, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Saxpy", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Saxpy", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
     cublasSaxpy (*n, *alpha, devPtrx, *incx, devPtry, *incy);
-    cublasGetVector (*n, sizeof(y[0]), devPtry, abs(*incy), y, abs(*incy));
+    stat1 = cublasGetVector (*n,sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Saxpy", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
 }
@@ -526,14 +784,31 @@ void CUBLAS_SAXPY (const int *n, const float *alpha, const float *x,
 void CUBLAS_SCOPY (const int *n, const float *x, const int *incx, float *y,
                    const int *incy)
 {
-    float *devPtrx, *devPtry;
+    float *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasAlloc (*n * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-    cublasSetVector (*n, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    cublasSetVector (*n, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Scopy", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Scopy", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
     cublasScopy (*n, devPtrx, *incx, devPtry, *incy);
-    cublasGetVector (*n, sizeof(y[0]), devPtry, abs(*incy), y, abs(*incy));
+    stat1 = cublasGetVector (*n,sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Scopy", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
 }
@@ -546,13 +821,27 @@ float CUBLAS_SDOT (const int *n, const float *x, const int *incx, float *y,
                    const int *incy)
 #endif
 {
-    float *devPtrx, *devPtry, retVal;
+    float *devPtrx = 0, *devPtry = 0, retVal = 0.0f;
+    cublasStatus stat1, stat2;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasAlloc (*n * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-    cublasSetVector (*n, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    cublasSetVector (*n, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
-    retVal = cublasSdot (*n, devPtrx, *incx, devPtry, *incy);
+    if (*n == 0) return retVal;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sdot", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return retVal;
+    }
+    stat1 = cublasSetVector (*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sdot", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return retVal;
+    }
+retVal = cublasSdot (*n, devPtrx, *incx, devPtry, *incy);
     cublasFree (devPtrx);
     cublasFree (devPtry);
     return retVal;
@@ -564,11 +853,21 @@ double CUBLAS_SNRM2 (const int *n, const float *x, const int *incx)
 float CUBLAS_SNRM2 (const int *n, const float *x, const int *incx)
 #endif
 {
-    float *devPtrx;
-    float retVal;
-    
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    float *devPtrx = 0;
+    float retVal = 0.0f;
+    cublasStatus stat;
+
+    if (*n == 0) return retVal;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Snrm2", CUBLAS_WRAPPER_ERROR_ALLOC);
+        return retVal;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Snrm2", CUBLAS_WRAPPER_ERROR_SET);
+        return retVal;
+    }
     retVal = cublasSnrm2 (*n, devPtrx, *incx);
     cublasFree (devPtrx);
     return retVal;
@@ -577,15 +876,32 @@ float CUBLAS_SNRM2 (const int *n, const float *x, const int *incx)
 void CUBLAS_SROT (const int *n, float *x, const int *incx, float *y, 
                   const int *incy, const float *sc, const float *ss)
 {
-    float *devPtrx, *devPtry;
+    float *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasAlloc (*n * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-    cublasSetVector (*n, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    cublasSetVector (*n, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Srot", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Srot", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
     cublasSrot (*n, devPtrx, *incx, devPtry, *incy, *sc, *ss);
-    cublasGetVector (*n, sizeof(x[0]), devPtrx, abs(*incx), x, abs(*incx));
-    cublasGetVector (*n, sizeof(y[0]), devPtry, abs(*incy), y, abs(*incy));
+    stat1 = cublasGetVector (*n,sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    stat2 = cublasGetVector (*n,sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Srot", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
 }
@@ -598,15 +914,32 @@ void CUBLAS_SROTG (float *sa, float *sb, float *sc, float *ss)
 void CUBLAS_SROTM (const int *n, float *x, const int *incx, float *y, 
                    const int *incy, const float* sparam)
 {
-    float *devPtrx, *devPtry;
+    float *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasAlloc (*n * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-    cublasSetVector (*n, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    cublasSetVector (*n, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Srotm", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Srotm", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
     cublasSrotm (*n, devPtrx, *incx, devPtry, *incy, sparam);
-    cublasGetVector (*n, sizeof(x[0]), devPtrx, abs(*incx), x, abs(*incx));
-    cublasGetVector (*n, sizeof(y[0]), devPtry, abs(*incy), y, abs(*incy));
+    stat1 = cublasGetVector (*n,sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    stat2 = cublasGetVector (*n,sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Srotm", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
 }
@@ -619,27 +952,58 @@ void CUBLAS_SROTMG (float *sd1, float *sd2, float *sx1, const float *sy1,
 
 void CUBLAS_SSCAL (const int *n, const float *alpha, float *x, const int *incx)
 {
-    float *devPtrx;
-    
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    float *devPtrx = 0;
+    cublasStatus stat;
+
+    if (*n == 0) return;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Sscal", CUBLAS_WRAPPER_ERROR_ALLOC);
+        return;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Sscal", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        return;
+    }
     cublasSscal (*n, *alpha, devPtrx, *incx);
     cublasGetVector (*n, sizeof(x[0]), devPtrx, *incx, x, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Sscal", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx); 
 }
 
 void CUBLAS_SSWAP (const int *n, float *x, const int *incx, float *y, 
                    const int *incy)
 {
-    float *devPtrx, *devPtry;
+    float *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasAlloc (*n * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-    cublasSetVector (*n, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    cublasSetVector (*n, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sswap", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sswap", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
     cublasSswap (*n, devPtrx, *incx, devPtry, *incy);
-    cublasGetVector (*n, sizeof(x[0]), devPtrx, abs(*incx), x, abs(*incx));
-    cublasGetVector (*n, sizeof(y[0]), devPtry, abs(*incy), y, abs(*incy));
+    stat1 = cublasGetVector (*n,sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    stat2 = cublasGetVector (*n,sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sswap", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
 }
@@ -647,14 +1011,31 @@ void CUBLAS_SSWAP (const int *n, float *x, const int *incx, float *y,
 void CUBLAS_CAXPY (const int *n, const cuComplex *alpha, const cuComplex *x, 
                    const int *incx, cuComplex *y, const int *incy)
 {
-    cuComplex *devPtrx, *devPtry;
+    cuComplex *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasAlloc (*n * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-    cublasSetVector (*n, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    cublasSetVector (*n, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Caxpy", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n, sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n, sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Caxpy", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
     cublasCaxpy (*n, *alpha, devPtrx, *incx, devPtry, *incy);
-    cublasGetVector (*n, sizeof(y[0]), devPtry, abs(*incy), y, abs(*incy));
+    stat1 = cublasGetVector (*n, sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Caxpy", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
 }
@@ -662,30 +1043,64 @@ void CUBLAS_CAXPY (const int *n, const cuComplex *alpha, const cuComplex *x,
 void CUBLAS_CCOPY (const int *n, const cuComplex *x, const int *incx, 
                    cuComplex *y, const int *incy)
 {
-    cuComplex *devPtrx, *devPtry;
+    cuComplex *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasAlloc (*n * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-    cublasSetVector (*n, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    cublasSetVector (*n, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ccopy", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n, sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n, sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ccopy", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
     cublasCcopy (*n, devPtrx, *incx, devPtry, *incy);
-    cublasGetVector (*n, sizeof(y[0]), devPtry, abs(*incy), y, abs(*incy));
+    stat1 = cublasGetVector (*n, sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Ccopy", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
 }
 
 void CUBLAS_CROT (const int *n, cuComplex *x, const int *incx, cuComplex *y, 
-                   const int *incy, const float *sc, const cuComplex *cs)
+                  const int *incy, const float *sc, const cuComplex *cs)
 {
-    cuComplex *devPtrx, *devPtry;
+    cuComplex *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasAlloc (*n * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-    cublasSetVector (*n, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    cublasSetVector (*n, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Crot", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n, sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n, sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Crot", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
     cublasCrot (*n, devPtrx, *incx, devPtry, *incy, *sc, *cs);
-    cublasGetVector (*n, sizeof(x[0]), devPtrx, abs(*incx), x, abs(*incx));
-    cublasGetVector (*n, sizeof(y[0]), devPtry, abs(*incy), y, abs(*incy));
+    stat1 = cublasGetVector (*n, sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    stat2 = cublasGetVector (*n, sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Crot", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
 }
@@ -699,27 +1114,56 @@ void CUBLAS_CROTG (cuComplex *ca, const cuComplex *cb, float *sc,
 void CUBLAS_CSCAL (const int *n, const cuComplex *alpha, cuComplex *x, 
                    const int *incx)
 {
-    cuComplex *devPtrx;
+    cuComplex *devPtrx = 0;
+    cublasStatus stat;
     
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (*n == 0) return;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Cscal", CUBLAS_WRAPPER_ERROR_ALLOC);
+        return;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Cscal", CUBLAS_WRAPPER_ERROR_SET);
+        return;
+    }
     cublasCscal (*n, *alpha, devPtrx, *incx);
-    cublasGetVector (*n, sizeof(x[0]), devPtrx, *incx, x, *incx);
+    stat = cublasGetVector (*n, sizeof(x[0]), devPtrx, *incx, x, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Cscal", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx); 
 }
 
 void CUBLAS_CSROT (const int *n, cuComplex *x, const int *incx, cuComplex *y, 
                    const int *incy, const float *sc, const float *ss)
 {
-    cuComplex *devPtrx, *devPtry;
+    cuComplex *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasAlloc (*n * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-    cublasSetVector (*n, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    cublasSetVector (*n, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Csrot", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n, sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n, sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Csrot", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
     cublasCsrot (*n, devPtrx, *incx, devPtry, *incy, *sc, *ss);
-    cublasGetVector (*n, sizeof(x[0]), devPtrx, abs(*incx), x, abs(*incx));
-    cublasGetVector (*n, sizeof(y[0]), devPtry, abs(*incy), y, abs(*incy));
+    stat1 = cublasGetVector (*n, sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    stat2 = cublasGetVector (*n, sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Csrot", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
 }
@@ -727,27 +1171,59 @@ void CUBLAS_CSROT (const int *n, cuComplex *x, const int *incx, cuComplex *y,
 void CUBLAS_CSSCAL (const int *n, const float *alpha, cuComplex *x, 
                     const int *incx)
 {
-    cuComplex *devPtrx;
-    
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    cuComplex *devPtrx = 0;
+    cublasStatus stat;
+
+    if (*n == 0) return;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Csscal", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        return;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Csscal", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        return;
+    }
     cublasCsscal (*n, *alpha, devPtrx, *incx);
     cublasGetVector (*n, sizeof(x[0]), devPtrx, *incx, x, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Csscal", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx); 
 }
 
 void CUBLAS_CSWAP (const int *n, cuComplex *x, const int *incx, cuComplex *y,
                    const int *incy)
 {
-    cuComplex *devPtrx, *devPtry;
+    cuComplex *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasAlloc (*n * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-    cublasSetVector (*n, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    cublasSetVector (*n, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (imax(1,*n *abs(*incy)),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Cswap", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n, sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n, sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Cswap", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
     cublasCswap (*n, devPtrx, *incx, devPtry, *incy);
-    cublasGetVector (*n, sizeof(x[0]), devPtrx, abs(*incx), x, abs(*incx));
-    cublasGetVector (*n, sizeof(y[0]), devPtry, abs(*incy), y, abs(*incy));
+    stat1 = cublasGetVector (*n, sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    stat2 = cublasGetVector (*n, sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Cswap", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
 }
@@ -755,12 +1231,27 @@ void CUBLAS_CSWAP (const int *n, cuComplex *x, const int *incx, cuComplex *y,
 void CUBLAS_CDOTU (cuComplex *retVal, const int *n, const cuComplex *x, 
                    const int *incx, const cuComplex *y, const int *incy)
 {
-    cuComplex *devPtrx, *devPtry;
+    cuComplex *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasAlloc (*n * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-    cublasSetVector (*n, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    cublasSetVector (*n, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
+    *retVal = make_cuComplex (0.0f, 0.0f);
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Cdotu", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n, sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n, sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Cdotu", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
     *retVal = cublasCdotu (*n, devPtrx, *incx, devPtry, *incy);
     cublasFree (devPtrx);
     cublasFree (devPtry);
@@ -769,12 +1260,27 @@ void CUBLAS_CDOTU (cuComplex *retVal, const int *n, const cuComplex *x,
 void CUBLAS_CDOTC (cuComplex *retVal, const int *n, const cuComplex *x, 
                    const int *incx, const cuComplex *y, const int *incy)
 {
-    cuComplex *devPtrx, *devPtry;
+    cuComplex *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasAlloc (*n * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-    cublasSetVector (*n, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    cublasSetVector (*n, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
+    *retVal = make_cuComplex (0.0f, 0.0f);
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Cdotc", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n, sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n, sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Cdotc", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
     *retVal = cublasCdotc (*n, devPtrx, *incx, devPtry, *incy);
     cublasFree (devPtrx);
     cublasFree (devPtry);
@@ -782,11 +1288,22 @@ void CUBLAS_CDOTC (cuComplex *retVal, const int *n, const cuComplex *x,
 
 int CUBLAS_ICAMAX (const int *n, const cuComplex *x, const int *incx)
 {
-    cuComplex *devPtrx;
-    int retVal;
+    cuComplex *devPtrx = 0;
+    int retVal = 0;
+    cublasStatus stat;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (*n == 0) return retVal;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Icamax", CUBLAS_WRAPPER_ERROR_ALLOC);
+        return retVal;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Icamax", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        return retVal;
+    }
     retVal = cublasIcamax (*n, devPtrx, *incx);
     cublasFree (devPtrx);
     return retVal;
@@ -794,11 +1311,22 @@ int CUBLAS_ICAMAX (const int *n, const cuComplex *x, const int *incx)
 
 int CUBLAS_ICAMIN (const int *n, const cuComplex *x, const int *incx)
 {
-    cuComplex *devPtrx;
-    int retVal;
+    cuComplex *devPtrx = 0;
+    int retVal = 0;
+    cublasStatus stat;
 
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (*n == 0) return retVal;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Icamin", CUBLAS_WRAPPER_ERROR_ALLOC);
+        return retVal;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Icamin", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        return retVal;
+    }
     retVal = cublasIcamin (*n, devPtrx, *incx);
     cublasFree (devPtrx);
     return retVal;
@@ -810,11 +1338,22 @@ double CUBLAS_SCASUM (const int *n, const cuComplex *x, const int *incx)
 float CUBLAS_SCASUM (const int *n, const cuComplex *x, const int *incx)
 #endif
 {
-    cuComplex *devPtrx;
-    float retVal;
-    
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    cuComplex *devPtrx = 0;
+    float retVal = 0.0f;
+    cublasStatus stat;
+
+    if (*n == 0) return retVal;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Scasum", CUBLAS_WRAPPER_ERROR_ALLOC);
+        return retVal;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Scasum", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        return retVal;
+    }
     retVal = cublasScasum (*n, devPtrx, *incx);
     cublasFree (devPtrx);
     return retVal;
@@ -826,15 +1365,354 @@ double CUBLAS_SCNRM2 (const int *n, const cuComplex *x, const int *incx)
 float CUBLAS_SCNRM2 (const int *n, const cuComplex *x, const int *incx)
 #endif
 {
-    cuComplex *devPtrx;
-    float retVal;
-    
-    cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-    cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    cuComplex *devPtrx = 0;
+    float retVal = 0.0f;
+    cublasStatus stat;
+
+    if (*n == 0) return retVal;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Scnrm2", CUBLAS_WRAPPER_ERROR_ALLOC);
+        return retVal;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Scnrm2", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        return retVal;
+    }
     retVal = cublasScnrm2 (*n, devPtrx, *incx);
     cublasFree (devPtrx);
     return retVal;
 }
+
+int CUBLAS_IDAMAX (const int *n, const double *x, const int *incx)
+{
+    double *devPtrx = 0;
+    int retVal = 0;
+    cublasStatus stat;
+
+    if (*n == 0) return retVal;;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Idamax", CUBLAS_WRAPPER_ERROR_ALLOC);
+        return retVal;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Idamax", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        return retVal;
+    }
+    retVal = cublasIdamax (*n, devPtrx, *incx);
+    cublasFree (devPtrx);
+    return retVal;
+}
+
+int CUBLAS_IDAMIN (const int *n, const double *x, const int *incx)
+{
+    double *devPtrx = 0;
+    int retVal = 0;
+    cublasStatus stat;
+
+    if (*n == 0) return retVal;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Idamin", CUBLAS_WRAPPER_ERROR_ALLOC);
+        return retVal;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Idamin", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        return retVal;
+    }
+    retVal = cublasIdamin (*n, devPtrx, *incx);
+    cublasFree (devPtrx);
+    return retVal;
+}
+
+double CUBLAS_DASUM (const int *n, const double *x, const int *incx)
+{
+    double *devPtrx = 0;
+    double retVal = 0;
+    cublasStatus stat;
+
+    if (*n == 0) return retVal;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dasum", CUBLAS_WRAPPER_ERROR_ALLOC);
+        return retVal;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dasum", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        return retVal;
+    }
+    retVal = cublasDasum (*n, devPtrx, *incx);
+    cublasFree (devPtrx);
+    return retVal;
+}
+
+void CUBLAS_DAXPY (const int *n, const double *alpha, const double *x, 
+                   const int *incx, double *y, const int *incy)
+{
+    double *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Daxpy", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n, sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n, sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Daxpy", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    cublasDaxpy (*n, *alpha, devPtrx, *incx, devPtry, *incy);
+    stat1 = cublasGetVector (*n, sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Daxpy", CUBLAS_WRAPPER_ERROR_GET);
+    }
+    cublasFree (devPtrx);
+    cublasFree (devPtry);
+}
+
+void CUBLAS_DCOPY (const int *n, const double *x, const int *incx, double *y,
+                   const int *incy)
+{
+    double *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dcopy", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n, sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n, sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dcopy", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    cublasDcopy (*n, devPtrx, *incx, devPtry, *incy);
+    stat1 = cublasGetVector (*n, sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dcopy", CUBLAS_WRAPPER_ERROR_GET);
+    }
+    cublasFree (devPtrx);
+    cublasFree (devPtry);
+}
+
+double CUBLAS_DDOT (const int *n, const double *x, const int *incx, double *y,
+                    const int *incy)
+{
+    double *devPtrx = 0, *devPtry = 0;
+    double retVal = 0.0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return retVal;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ddot", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return retVal;
+    }
+    stat1 = cublasSetVector (*n, sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n, sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ddot", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return retVal;
+    }
+    retVal = cublasDdot (*n, devPtrx, *incx, devPtry, *incy);
+    cublasFree (devPtrx);
+    cublasFree (devPtry);
+    return retVal;
+}
+
+double CUBLAS_DNRM2 (const int *n, const double *x, const int *incx)
+{
+    double *devPtrx = 0;
+    double retVal = 0.0;
+    cublasStatus stat;
+
+    if (*n == 0) return retVal;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dnrm2", CUBLAS_WRAPPER_ERROR_ALLOC);
+        return retVal;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dnrm2", CUBLAS_WRAPPER_ERROR_SET);
+        return retVal;
+    }
+    retVal = cublasDnrm2 (*n, devPtrx, *incx);
+    cublasFree (devPtrx);
+    return retVal;
+}
+
+void CUBLAS_DROT (const int *n, double *x, const int *incx, double *y, 
+                  const int *incy, const double *sc, const double *ss)
+{
+    double *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Drot", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n, sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat1 = cublasSetVector (*n, sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Drot", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    cublasDrot (*n, devPtrx, *incx, devPtry, *incy, *sc, *ss);
+    stat1 = cublasGetVector (*n, sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    stat2 = cublasGetVector (*n, sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Drot", CUBLAS_WRAPPER_ERROR_GET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    cublasFree (devPtrx);
+    cublasFree (devPtry);
+}
+
+void CUBLAS_DROTG (double *sa, double *sb, double *sc, double *ss)
+{
+    cublasDrotg (sa, sb, sc, ss);
+}
+
+void CUBLAS_DROTM (const int *n, double *x, const int *incx, double *y, 
+                   const int *incy, const double* sparam)
+{
+    double *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Drotm", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n, sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n, sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Drotm", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    cublasDrotm (*n, devPtrx, *incx, devPtry, *incy, sparam);
+    stat1 = cublasGetVector (*n, sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    stat2 = cublasGetVector (*n, sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Drotm", CUBLAS_WRAPPER_ERROR_GET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    cublasFree (devPtrx);
+    cublasFree (devPtry);
+}
+
+void CUBLAS_DROTMG (double *sd1, double *sd2, double *sx1, const double *sy1,
+                    double* sparam)
+{
+    cublasDrotmg (sd1, sd2, sx1, sy1, sparam);
+}
+
+void CUBLAS_DSCAL (const int *n, const double *alpha, double *x, 
+                   const int *incx)
+{
+    double *devPtrx = 0;
+    cublasStatus stat;
+
+    if (*n == 0) return;
+    stat = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dscal", CUBLAS_WRAPPER_ERROR_ALLOC);
+        return;
+    }
+    stat = cublasSetVector (*n, sizeof(x[0]), x, *incx, devPtrx, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dscal", CUBLAS_WRAPPER_ERROR_SET);
+        return;
+    }
+    cublasDscal (*n, *alpha, devPtrx, *incx);
+    stat = cublasGetVector (*n, sizeof(x[0]), devPtrx, *incx, x, *incx);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dscal", CUBLAS_WRAPPER_ERROR_GET);
+        return;
+    }
+    cublasFree (devPtrx); 
+}
+
+void CUBLAS_DSWAP (const int *n, double *x, const int *incx, double *y, 
+                   const int *incy)
+{
+    double *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
+    stat1 = cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+    stat2 = cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dswap", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    stat1 = cublasSetVector (*n, sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n, sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dswap", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        return;
+    }
+    cublasDswap (*n, devPtrx, *incx, devPtry, *incy);
+    stat1 = cublasGetVector (*n, sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    stat2 = cublasGetVector (*n, sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dswap", CUBLAS_WRAPPER_ERROR_GET);
+    }
+    cublasFree (devPtrx);
+    cublasFree (devPtry);
+}
+
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------- BLAS2 ----------------------------------*/
@@ -846,49 +1724,71 @@ void CUBLAS_SGBMV (const char *trans, const int *m, const int *n,
                    const int *incx, const float *beta, float *y, 
                    const int *incy)
 {
-    float *devPtrx, *devPtry, *devPtrA;
+    float *devPtrx = 0, *devPtry = 0, *devPtrA = 0;
+    cublasStatus stat1, stat2, stat3;
+
+    if ((*m == 0) || (*n == 0)) return;
 
     /*  X      - REAL             array of DIMENSION at least
      *           ( 1 + ( n - 1 )*abs( INCX ) ) when TRANS = 'N' or 'n'
      *           and at least
      *           ( 1 + ( m - 1 )*abs( INCX ) ) otherwise.
-     */
-    if (toupper(trans[0]) == 'N') {
-        cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-        cublasSetVector (*n, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    } else {
-        cublasAlloc (*m * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-        cublasSetVector (*m, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    }
-    /*  Y      - REAL             array of DIMENSION at least
+     *  Y      - REAL             array of DIMENSION at least
      *           ( 1 + ( m - 1 )*abs( INCY ) ) when TRANS = 'N' or 'n'
      *           and at least
      *           ( 1 + ( n - 1 )*abs( INCY ) ) otherwise.
+     *  A      - REAL             array of DIMENSION ( LDA, n ). 
+     * Before entry, the leading ( kl + ku + 1 ) by n part of the
+     * array A must contain the matrix of coefficients
      */
     if (toupper(trans[0]) == 'N') {
-        cublasAlloc (*m * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-        cublasSetVector (*m, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
+        stat1 = cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+        stat2 = cublasAlloc(1+(*m-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
     } else {
-        cublasAlloc (*n * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-        cublasSetVector (*n, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
-    }       
-    /* A      - REAL             array of DIMENSION ( LDA, n ). 
-     * Before entry, the leading ( kl + ku + 1 ) by n part of the
-     * array A must contain the matrix of coefficients, supplied
-     */
-    cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
-    cublasSetMatrix (imin(*kl+*ku+1,*lda), *n, sizeof(A[0]), A, *lda, devPtrA, 
-                     *lda);
+        stat1 = cublasAlloc(1+(*m-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+        stat2 = cublasAlloc(1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    }
+    stat3 = cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sgbmv", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
+    if (toupper(trans[0]) == 'N') {
+        stat1=cublasSetVector(*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+        stat2=cublasSetVector(*m,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    } else {
+        stat1=cublasSetVector(*m,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+        stat2=cublasSetVector(*n,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    }
+    stat3 = cublasSetMatrix (imin(*kl+*ku+1,*lda), *n, sizeof(A[0]), A, *lda, 
+                             devPtrA, *lda);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sgbmv", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
     cublasSgbmv (trans[0], *m, *n, *kl, *ku, *alpha, devPtrA, *lda, devPtrx, 
                  *incx, *beta, devPtry, *incy);
     if (toupper(trans[0]) == 'N') {
-        cublasGetVector (*m, sizeof(y[0]), devPtry, abs(*incy), y, abs(*incy));
+        stat1=cublasGetVector(*m,sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
     } else {
-        cublasGetVector (*n, sizeof(y[0]), devPtry, abs(*incy), y, abs(*incy));
-    }       
-    cublasFree (devPtrA);
-    cublasFree (devPtry);
+        stat1=cublasGetVector(*n,sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    }
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Sgbmv", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
+    cublasFree (devPtry);
+    cublasFree (devPtrA);
 }
 
 void CUBLAS_SGEMV (const char *trans, const int *m, const int *n,
@@ -896,71 +1796,121 @@ void CUBLAS_SGEMV (const char *trans, const int *m, const int *n,
                    const float *x, const int *incx, const float *beta,
                    float *y, const int *incy)
 {
-    float *devPtrA, *devPtrx, *devPtry;
+    float *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2, stat3;
+
+    if ((*m == 0) || (*n == 0)) return;
     
     /*  X      - REAL             array of DIMENSION at least
      *           ( 1 + ( n - 1 )*abs( INCX ) ) when TRANS = 'N' or 'n'
      *           and at least
      *           ( 1 + ( m - 1 )*abs( INCX ) ) otherwise.
-     */
-    if (toupper(trans[0]) == 'N') {
-        cublasAlloc (*n * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-        cublasSetVector (*n, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    } else {
-        cublasAlloc (*m * abs(*incx), sizeof(x[0]), (void**)&devPtrx);
-        cublasSetVector (*m, sizeof(x[0]), x, abs(*incx), devPtrx, abs(*incx));
-    }
-    /*  Y      - REAL             array of DIMENSION at least
+     *  Y      - REAL             array of DIMENSION at least
      *           ( 1 + ( m - 1 )*abs( INCY ) ) when TRANS = 'N' or 'n'
      *           and at least
      *           ( 1 + ( n - 1 )*abs( INCY ) ) otherwise.
-     */
-    if (toupper(trans[0]) == 'N') {
-        cublasAlloc (*m * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-        cublasSetVector (*m, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
-    } else {
-        cublasAlloc (*n * abs(*incy), sizeof(y[0]), (void**)&devPtry);
-        cublasSetVector (*n, sizeof(y[0]), y, abs(*incy), devPtry, abs(*incy));
-    }       
-    /*  A      - REAL             array of DIMENSION ( LDA, n ).
+     *  A      - REAL             array of DIMENSION ( LDA, n ).
      *           Before entry, the leading m by n part of the array A must
      *           contain the matrix of coefficients.
      */
-    cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
-    cublasSetMatrix (imin(*m,*lda), *n, sizeof(A[0]), A, *lda, devPtrA, *lda);
+    if (toupper(trans[0]) == 'N') {
+        stat1=cublasAlloc (1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+        stat2=cublasAlloc (1+(*m-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    } else {
+        stat1=cublasAlloc (1+(*m-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+        stat2=cublasAlloc (1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    }
+    stat3=cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sgemv", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
+    if (toupper(trans[0]) == 'N') {
+        stat1=cublasSetVector(*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+        stat2=cublasSetVector(*m,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    } else {
+        stat1=cublasSetVector(*m,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+        stat2=cublasSetVector(*n,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    }       
+    stat3=cublasSetMatrix (imin(*m,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sgemv", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
     cublasSgemv (trans[0], *m, *n, *alpha, devPtrA, *lda, devPtrx, *incx,
                  *beta, devPtry, *incy);
     if (toupper(trans[0]) == 'N') {
-        cublasGetVector (*m, sizeof(y[0]), devPtry, abs(*incy), y, abs(*incy));
+        stat1=cublasGetVector(*m,sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
     } else {
-        cublasGetVector (*n, sizeof(y[0]), devPtry, abs(*incy), y, abs(*incy));
+        stat1=cublasGetVector(*n,sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
     }       
-    cublasFree (devPtrA);
-    cublasFree (devPtry);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Sgemv", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
+    cublasFree (devPtry);
+    cublasFree (devPtrA);
 }
 
 void CUBLAS_SGER (const int *m, const int *n, const float *alpha, 
                   const float *x, const int *incx, const float *y,
                   const int *incy, float *A, const int *lda)
 {
-    float *devPtrA, *devPtrx, *devPtry;
+    float *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2, stat3;
 
-    cublasAlloc (*m * abs(*incx), sizeof(devPtrx[0]), (void**)&devPtrx);
-    cublasAlloc (*n * abs(*incy), sizeof(devPtry[0]), (void**)&devPtry);
-    cublasSetVector (*m* abs(*incx), sizeof(x[0]), x, 1, devPtrx, 1);
-    cublasSetVector (*n* abs(*incy), sizeof(y[0]), y, 1, devPtry, 1);
+    if ((*m == 0) || (*n == 0)) return;
 
-    // REAL array of DIMENSION ( LDA, n ).
-    //      Before entry, the leading m by n part of the array A must
-    //      contain the matrix of coefficients. On exit, A is
-    cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
-    cublasSetMatrix (imin(*m,*lda), *n, sizeof(A[0]), A, *lda, devPtrA, *lda);
+    /*  X      - REAL             array of dimension at least
+     *           ( 1 + ( m - 1 )*abs( INCX ) ).
+     *  Y      - REAL             array of dimension at least
+     *           ( 1 + ( n - 1 )*abs( INCY ) ).
+     *  A      - REAL array of DIMENSION ( LDA, n ).
+     *           Before entry, the leading m by n part of the array A must
+     *           contain the matrix of coefficients. On exit, A is
+     */
+    stat1=cublasAlloc(1+(*m-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(devPtry[0]),(void**)&devPtry);
+    stat3=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sger", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
+    stat1=cublasSetVector(*m,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2=cublasSetVector(*n,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    stat3=cublasSetMatrix(imin(*m,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sger", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
     cublasSger (*m, *n, *alpha, devPtrx, *incx, devPtry, *incy, devPtrA, *lda);
-    cublasGetMatrix (imin(*m,*lda), *n, sizeof(A[0]), devPtrA, *lda, A, *lda);
-    cublasFree (devPtrA);
+    stat1 = cublasGetMatrix(imin(*m,*lda),*n,sizeof(A[0]),devPtrA,*lda,A,*lda);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Sger", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
+    cublasFree (devPtrA);
 }
 
 void CUBLAS_SSBMV (const char *uplo, const int *n, const int *k, 
@@ -968,112 +1918,199 @@ void CUBLAS_SSBMV (const char *uplo, const int *n, const int *k,
                    const float *x, const int *incx, const float *beta, 
                    float *y, const int *incy)
 {
-    float *devPtrA, *devPtrx, *devPtry;
+    float *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2, stat3;
+
+    if (*n == 0) return;
     
     /*  X      - REAL             array of DIMENSION at least
      *           ( 1 + ( n - 1 )*abs( INCX ) ).
-     */
-    cublasAlloc (*n * abs(*incx), sizeof(devPtrx[0]), (void**)&devPtrx);
-    cublasSetVector (*n* abs(*incx), sizeof(x[0]), x, 1, devPtrx, 1);
-    /*  Y      - REAL             array of DIMENSION at least
+     *
+     *  Y      - REAL             array of DIMENSION at least
      *           ( 1 + ( n - 1 )*abs( INCY ) ).
-     */
-    cublasAlloc (*n * abs(*incy), sizeof(devPtry[0]), (void**)&devPtry);
-    cublasSetVector (*n* abs(*incy), sizeof(y[0]), y, 1, devPtry, 1);    
-    /*  A      - REAL             array of DIMENSION ( LDA, n ).
+     *  A      - REAL             array of DIMENSION ( LDA, n ).
      *           Before entry with UPLO = 'U' or 'u', the leading ( k + 1 )
      *           by n part of the array A must contain the upper triangular
      */
-    cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
-    cublasSetMatrix (imin(*k+1,*lda), *n, sizeof(A[0]), A, *lda, devPtrA, *lda);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(devPtry[0]),(void**)&devPtry);
+    stat3=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ssbmv", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
+    stat1 = cublasSetVector(*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector(*n,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    stat3 = cublasSetMatrix (imin(*k+1,*lda), *n, sizeof(A[0]), A, *lda, 
+                             devPtrA,*lda);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ssbmv", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
     cublasSsbmv (uplo[0], *n, *k, *alpha, devPtrA, *lda, devPtrx, *incx, *beta,
                  devPtry, *incy);
-    cublasGetVector (*n* abs(*incy), sizeof(y[0]), devPtry, 1, y, 1);
-    cublasFree (devPtrA);
+    stat1 = cublasGetVector (*n,sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Ssbmv", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
+    cublasFree (devPtrA);
 }
 
 void CUBLAS_SSPMV (const char *uplo, const int *n, const float *alpha,
                    const float *AP, const float *x, const int *incx, 
                    const float *beta, float *y, const int *incy)
 {
-    float *devPtrAP, *devPtrx, *devPtry;
+    float *devPtrAP = 0, *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2, stat3;
+
+    if (*n == 0) return;
 
     /*  X      - REAL             array of dimension at least
      *           ( 1 + ( n - 1 )*abs( INCX ) ).
-     */
-    cublasAlloc (*n * abs(*incx), sizeof(devPtrx[0]), (void**)&devPtrx);
-    cublasSetVector (*n* abs(*incx), sizeof(x[0]), x, 1, devPtrx, 1);
-    /*  Y      - REAL             array of dimension at least
+     *  Y      - REAL             array of dimension at least
      *           ( 1 + ( n - 1 )*abs( INCY ) ).
-     */
-    cublasAlloc (*n * abs(*incy), sizeof(devPtry[0]), (void**)&devPtry);
-    cublasSetVector (*n* abs(*incy), sizeof(y[0]), y, 1, devPtry, 1);
-    /*  AP     - REAL             array of DIMENSION at least
+     *  AP     - REAL             array of DIMENSION at least
      *           ( ( n*( n + 1 ) )/2 ).
      *           Before entry with UPLO = 'U' or 'u', the array AP must
      *           contain the upper triangular part of the symmetric matrix
      */
-    cublasAlloc (((*n)*(*n+1))/2, sizeof(devPtrAP[0]), (void**)&devPtrAP);
-    cublasSetVector (((*n)*(*n+1))/2, sizeof(AP[0]), AP, 1, devPtrAP, 1);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(devPtry[0]),(void**)&devPtry);
+    stat3=cublasAlloc(((*n)*(*n+1))/2, sizeof(devPtrAP[0]), (void**)&devPtrAP);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sspmv", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrAP);
+        return;
+    }
+    stat1 = cublasSetVector (*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    stat3 = cublasSetVector (((*n)*(*n+1))/2,sizeof(AP[0]),AP,1,devPtrAP,1);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sspmv", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrAP);
+        return;
+    }
     cublasSspmv (*uplo, *n, *alpha, devPtrAP, devPtrx, *incx, *beta, devPtry,
                  *incy);
-    cublasGetVector ((*n) * abs(*incy), sizeof(y[0]), devPtry, 1, y, 1);
-    cublasFree (devPtrAP);
+    stat1 = cublasGetVector (*n,sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Sspmv", CUBLAS_WRAPPER_ERROR_GET); 
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
+    cublasFree (devPtrAP);
 }
 
 void CUBLAS_SSPR (const char *uplo, const int *n, const float *alpha, 
-                    const float *x, const int *incx, float *AP)
+                  const float *x, const int *incx, float *AP)
 {
-    float *devPtrAP, *devPtrx;
+    float *devPtrAP = 0, *devPtrx = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
 
     /*  X      - REAL             array of dimension at least
      *           ( 1 + ( n - 1 )*abs( INCX ) ).
-     */
-    cublasAlloc (*n * abs(*incx), sizeof(devPtrx[0]), (void**)&devPtrx);
-    cublasSetVector (*n* abs(*incx), sizeof(x[0]), x, 1, devPtrx, 1);
-    /*  AP     - REAL             array of DIMENSION at least
+     *  AP     - REAL             array of DIMENSION at least
      *           ( ( n*( n + 1 ) )/2 ).
      */
-    cublasAlloc (((*n) * (*n+1))/2, sizeof(devPtrAP[0]), (void**)&devPtrAP);
-    cublasSetVector (((*n) * (*n+1))/2, sizeof(AP[0]), AP, 1, devPtrAP, 1);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(((*n)*(*n+1))/2, sizeof(devPtrAP[0]), (void**)&devPtrAP);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sspr", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtrAP);
+        return;
+    }
+    stat1=cublasSetVector (*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2=cublasSetVector (((*n)*(*n+1))/2,sizeof(AP[0]),AP,1,devPtrAP,1);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sspr", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtrAP);
+        return;
+    }
     cublasSspr (uplo[0], *n, *alpha, devPtrx, *incx, devPtrAP);
-    cublasGetVector (((*n) * (*n+1))/2, sizeof(AP[0]), devPtrAP, 1, AP, 1);
-    cublasFree (devPtrAP);
+    stat1=cublasGetVector (((*n)*(*n+1))/2,sizeof(AP[0]),devPtrAP,1,AP,1);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Sspr", CUBLAS_WRAPPER_ERROR_GET); 
+    }
     cublasFree (devPtrx);
+    cublasFree (devPtrAP);
 }
 
 void CUBLAS_SSPR2 (const char *uplo, const int *n, const float *alpha,
                    const float *x, const int *incx, const float *y, 
                    const int *incy, float *AP)
 {
-    float *devPtrAP, *devPtrx, *devPtry;
+    float *devPtrAP = 0, *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2, stat3;
+
+    if (*n == 0) return;
 
     /*  X      - REAL             array of dimension at least
      *           ( 1 + ( n - 1 )*abs( INCX ) ).
-     */
-    cublasAlloc (*n * abs(*incx), sizeof(devPtrx[0]), (void**)&devPtrx);
-    cublasSetVector (*n* abs(*incx), sizeof(x[0]), x, 1, devPtrx, 1);
-    /*  Y      - REAL             array of dimension at least
+     *  Y      - REAL             array of dimension at least
      *           ( 1 + ( n - 1 )*abs( INCY ) ).
+     *  AP     - REAL             array of DIMENSION at least
+     *           ( ( n*( n + 1 ) )/2 ).
+     *           Before entry with  UPLO = 'U' or 'u', the array AP must
+     *           contain the upper triangular part of the symmetric matrix
      */
-    cublasAlloc (*n * abs(*incy), sizeof(devPtry[0]), (void**)&devPtry);
-    cublasSetVector (*n* abs(*incy), sizeof(y[0]), y, 1, devPtry, 1);
-   /*  AP     - REAL             array of DIMENSION at least
-    *           ( ( n*( n + 1 ) )/2 ).
-    *           Before entry with  UPLO = 'U' or 'u', the array AP must
-    *           contain the upper triangular part of the symmetric matrix
-    */
-    cublasAlloc (((*n) * (*n+1))/2, sizeof(devPtrAP[0]), (void**)&devPtrAP);
-    cublasSetVector (((*n) * (*n+1))/2, sizeof(AP[0]), AP, 1, devPtrAP, 1);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(devPtry[0]),(void**)&devPtry);
+    stat3=cublasAlloc(((*n)*(*n+1))/2, sizeof(devPtrAP[0]), (void**)&devPtrAP);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sspr2", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrAP);
+        return;
+    }
+    stat1 = cublasSetVector (1+(*n-1)*abs(*incx),sizeof(x[0]),x,1,devPtrx,1);
+    stat2 = cublasSetVector (1+(*n-1)*abs(*incy),sizeof(y[0]),y,1,devPtry,1);
+    stat3 = cublasSetVector (((*n)*(*n+1))/2,sizeof(AP[0]),AP,1,devPtrAP,1);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sspr2", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrAP);
+        return;
+    }
     cublasSspr2 (uplo[0], *n, *alpha, devPtrx, *incx, devPtry, *incy,devPtrAP);
-    cublasGetVector (((*n) * (*n+1))/2, sizeof(AP[0]), devPtrAP, 1, AP, 1);
-    cublasFree (devPtrAP);
+    stat1 = cublasGetVector (((*n)*(*n+1))/2,sizeof(AP[0]),devPtrAP,1,AP,1);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Sspr2", CUBLAS_WRAPPER_ERROR_GET); 
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
+    cublasFree (devPtrAP);
 }
 
 void CUBLAS_SSYMV (const char *uplo, const int *n, const float *alpha,
@@ -1081,196 +2118,360 @@ void CUBLAS_SSYMV (const char *uplo, const int *n, const float *alpha,
                    const int *incx, const float *beta, float *y, 
                    const int *incy)
 {
-    float *devPtrA, *devPtrx, *devPtry;
-    
+    float *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2, stat3;
+
+    if (*n == 0) return;
+
     /*  X      - REAL             array of dimension at least
      *           ( 1 + ( n - 1 )*abs( INCX ) ).
-     */
-    cublasAlloc (*n * abs(*incx), sizeof(devPtrx[0]), (void**)&devPtrx);
-    cublasSetVector (*n* abs(*incx), sizeof(x[0]), x, 1, devPtrx, 1);
-    /*  Y      - REAL             array of dimension at least
+     *  Y      - REAL             array of dimension at least
      *           ( 1 + ( n - 1 )*abs( INCY ) ).
-     */
-    cublasAlloc (*n * abs(*incy), sizeof(devPtry[0]), (void**)&devPtry);
-    cublasSetVector (*n* abs(*incy), sizeof(y[0]), y, 1, devPtry, 1);
-    /*  A      - REAL             array of DIMENSION ( LDA, n ).
+     *  A      - REAL             array of DIMENSION ( LDA, n ).
      *           Before entry with  UPLO = 'U' or 'u', the leading n by n
      *           upper triangular part of the array A must contain the upper
+     *           Before entry with UPLO = 'L' or 'l', the leading n by n
+     *           lower triangular part of the array A must contain the lower
      */
-    cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
-    cublasSetMatrix (imin(*n,*lda), *n, sizeof(A[0]), A, *lda, devPtrA, *lda);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(devPtry[0]),(void**)&devPtry);
+    stat3=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ssymv", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
+    stat1 = cublasSetVector (*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (*n,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    stat3 = cublasSetMatrix (imin(*n,*lda), *n, sizeof(A[0]), A, *lda, devPtrA,
+                             *lda);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ssymv", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
     cublasSsymv (uplo[0], *n, *alpha, devPtrA, *lda, devPtrx, *incx, *beta,
                  devPtry, *incy);
-    cublasGetVector (*n * abs(*incy), sizeof(y[0]), devPtry, 1, y, 1);
-    cublasFree (devPtrA);
+    stat1 = cublasGetVector (*n,sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Ssymv", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
+    cublasFree (devPtrA);
 }
 
 void CUBLAS_SSYR (const char *uplo, const int *n, const float *alpha, 
                   const float *x, const int *incx, float *A, const int *lda)
 {
-    float *devPtrA, *devPtrx;
+    float *devPtrA = 0, *devPtrx = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
 
     /*  X      - REAL             array of dimension at least
      *           ( 1 + ( n - 1 )*abs( INCX ) ).
-     */
-    cublasAlloc (*n * abs(*incx), sizeof(devPtrx[0]), (void**)&devPtrx);
-    cublasSetVector (*n* abs(*incx), sizeof(x[0]), x, 1, devPtrx, 1);
-    /*  A      - REAL             array of DIMENSION ( LDA, n ).
+     *  A      - REAL             array of DIMENSION ( LDA, n ).
      *           Before entry with  UPLO = 'U' or 'u', the leading n by n
      *           upper triangular part of the array A must contain the upper
+     *           Before entry with UPLO = 'L' or 'l', the leading n by n
+     *           lower triangular part of the array A must contain the lower
      */
-    cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
-    cublasSetMatrix (imin(*n,*lda), *n, sizeof(A[0]), A, *lda, devPtrA, *lda);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc((*lda)*(*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ssyr", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtrA);
+        return;
+    }
+    stat1 = cublasSetVector(*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetMatrix(imin(*n,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ssyr", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtrA);
+        return;
+    }
     cublasSsyr (uplo[0], *n, *alpha, devPtrx, *incx, devPtrA, *lda);
-    cublasGetMatrix (imin(*n,*lda), *n, sizeof(A[0]), devPtrA, *lda, A, *lda);
-    cublasFree (devPtrA);
+    stat1 = cublasGetMatrix(imin(*n,*lda),*n,sizeof(A[0]),devPtrA,*lda,A,*lda);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Ssyr", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
+    cublasFree (devPtrA);
 }
 
 void CUBLAS_SSYR2 (const char *uplo, const int *n, const float *alpha,
                    const float *x, const int *incx, const float *y,
                    const int *incy, float *A, const int *lda)
 {
-    float *devPtrA, *devPtrx, *devPtry;
+    float *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2, stat3;
+
+    if (*n == 0) return;
 
     /*  X      - REAL             array of dimension at least
      *           ( 1 + ( n - 1 )*abs( INCX ) ).
-     */ 
-    cublasAlloc (*n * abs(*incx), sizeof(devPtrx[0]), (void**)&devPtrx);
-    cublasSetVector (*n * abs(*incx), sizeof(x[0]), x, 1, devPtrx, 1);
-    /*
      *  Y      - REAL             array of dimension at least
      *           ( 1 + ( n - 1 )*abs( INCY ) ).
-     */
-    cublasAlloc (*n * abs(*incy), sizeof(devPtry[0]), (void**)&devPtry);
-    cublasSetVector (*n* abs(*incy), sizeof(y[0]), y, 1, devPtry, 1);
-    /*  A      - REAL             array of DIMENSION ( LDA, n ).
+     *  A      - REAL             array of DIMENSION ( LDA, n ).
      *           Before entry with  UPLO = 'U' or 'u', the leading n by n
      *           upper triangular part of the array A must contain the upper
+     *           Before entry with UPLO = 'L' or 'l', the leading n by n
+     *           lower triangular part of the array A must contain the lower
      */
-    cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
-    cublasSetMatrix (imin(*n,*lda), *n, sizeof(A[0]), A, *lda, devPtrA, *lda);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(devPtry[0]),(void**)&devPtry);
+    stat3=cublasAlloc((*lda)*(*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ssyr2", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
+    stat1=cublasSetVector (*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2=cublasSetVector (*n,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    stat3=cublasSetMatrix (imin(*n,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ssyr2", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
     cublasSsyr2 (uplo[0], *n, *alpha, devPtrx, *incx, devPtry, *incy, devPtrA,
                  *lda);
-    cublasGetMatrix (imin(*n,*lda), *n, sizeof(A[0]), devPtrA, *lda, A, *lda);
-    cublasFree (devPtrA);
+    stat1=cublasGetMatrix (imin(*n,*lda),*n,sizeof(A[0]),devPtrA,*lda,A,*lda);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Ssyr2", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
     cublasFree (devPtry);
+    cublasFree (devPtrA);
 }
 
 void CUBLAS_STBMV (const char *uplo, const char *trans, const char *diag,
                    const int *n, const int *k, const float *A, const int *lda,
                    float *x, const int *incx)
 {
-    float *devPtrA, *devPtrx;
+    float *devPtrA = 0, *devPtrx = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
     
     /*  X      - REAL             array of dimension at least
      *           ( 1 + ( n - 1 )*abs( INCX ) ).
-     */
-    cublasAlloc (*n * abs(*incx), sizeof(devPtrx[0]), (void**)&devPtrx);
-    cublasSetVector (*n* abs(*incx), sizeof(x[0]), x, 1, devPtrx, 1);
-    /*  A      - REAL             array of DIMENSION ( LDA, n ).
+     *  A      - REAL             array of DIMENSION ( LDA, n ).
      *           Before entry with UPLO = 'U' or 'u', the leading ( k + 1 )
      *           by n part of the array A must contain the upper triangular
+     *           Before entry with UPLO = 'L' or 'l', the leading ( k + 1 )
+     *           by n part of the array A must contain the lower triangular
      */
-    cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
-    cublasSetMatrix (imin(*k+1,*lda), *n, sizeof(A[0]), A, *lda, devPtrA, *lda);
-    cublasStbmv (uplo[0], trans[0], diag[0], *n, *k, devPtrA, *lda, devPtrx, 
-                 *incx);
-    cublasGetVector (*n* abs(*incx), sizeof(x[0]), devPtrx, 1, x, 1);
-    cublasFree (devPtrA);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Stbmv", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtrA);
+        return;
+    }
+    stat1=cublasSetVector(*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2=cublasSetMatrix(imin(*k+1,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Stbmv", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtrA);
+        return;
+    }
+    cublasStbmv (uplo[0],trans[0],diag[0],*n,*k,devPtrA,*lda,devPtrx,*incx);
+    stat1 = cublasGetVector (*n,sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Stbmv", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
+    cublasFree (devPtrA);
 }
 
 void CUBLAS_STBSV (const char *uplo, const char *trans, const char *diag,
                    const int *n, const int *k, const float *A, const int *lda,
                    float *x, const int *incx)
 {
-    float *devPtrA, *devPtrx;
+    float *devPtrA = 0, *devPtrx = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
 
     /*  X      - REAL             array of dimension at least
      *           ( 1 + ( n - 1 )*abs( INCX ) ).
-     */
-    cublasAlloc (*n * abs(*incx), sizeof(devPtrx[0]), (void**)&devPtrx);
-    cublasSetVector (*n * abs(*incx), sizeof(x[0]), x, 1, devPtrx, 1);
-    /*  A      - REAL             array of DIMENSION ( LDA, n ).
+     *  A      - REAL             array of DIMENSION ( LDA, n ).
      *           Before entry with UPLO = 'U' or 'u', the leading ( k + 1 )
      *           by n part of the array A must contain the upper triangular
+     *           Before entry with UPLO = 'L' or 'l', the leading ( k + 1 )
+     *           by n part of the array A must contain the lower triangular
      */
-    cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
-    cublasSetMatrix (imin(*k+1,*lda), *n, sizeof(A[0]), A, *lda, devPtrA, *lda);
-    cublasStbsv (uplo[0], trans[0], diag[0], *n, *k, devPtrA, *lda, devPtrx,
-                 *incx);
-    cublasGetVector (*n * abs(*incx), sizeof(x[0]), devPtrx, 1, x, 1);
-    cublasFree (devPtrA);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Stbsv", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtrA);
+        return;
+    }
+    stat1=cublasSetVector(*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2=cublasSetMatrix(imin(*k+1,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Stbsv", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtrA);
+        return;
+    }
+    cublasStbsv (uplo[0],trans[0],diag[0],*n,*k,devPtrA,*lda,devPtrx,*incx);
+    stat1 = cublasGetVector (*n,sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Stbsv", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
+    cublasFree (devPtrA);
 }
 
 void CUBLAS_STPMV (const char *uplo, const char *trans, const char *diag,
                    const int *n, const float *AP, float *x, const int *incx)
 {
-    float *devPtrAP, *devPtrx;
+    float *devPtrAP = 0, *devPtrx = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
 
     /*  X      - REAL             array of dimension at least
      *           ( 1 + ( n - 1 )*abs( INCX ) ).
-     */
-    cublasAlloc (*n * abs(*incx), sizeof(devPtrx[0]), (void**)&devPtrx);
-    cublasSetVector (*n* abs(*incx), sizeof(x[0]), x, 1, devPtrx, 1);
-    /*  AP     - REAL             array of DIMENSION at least
+     *  AP     - REAL             array of DIMENSION at least
      *           ( ( n*( n + 1 ) )/2 ).
-     *           Before entry with  UPLO = 'U' or 'u', the array AP must
      */
-    cublasAlloc (((*n) * (*n+1))/2, sizeof(devPtrAP[0]), (void**)&devPtrAP);
-    cublasSetVector (((*n) * (*n+1))/2, sizeof(AP[0]), AP, 1, devPtrAP, 1);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(((*n)*(*n+1))/2, sizeof(devPtrAP[0]), (void**)&devPtrAP);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Stpmv", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtrAP);
+        return;
+    }
+    stat1 = cublasSetVector (*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (((*n)*(*n+1))/2,sizeof(AP[0]),AP,1,devPtrAP,1);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Stpmv", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtrAP);
+        return;
+    }
     cublasStpmv (uplo[0], trans[0], diag[0], *n, devPtrAP, devPtrx, *incx);
-    cublasGetVector (*n* abs(*incx), sizeof(x[0]), devPtrx, 1, x, 1);
-    cublasFree (devPtrAP);
+    stat1 = cublasGetVector (*n,sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Stpmv", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
+    cublasFree (devPtrAP);
 }
 
 void CUBLAS_STPSV (const char *uplo, const char *trans, const char *diag,
                    const int *n, const float *AP, float *x, const int *incx)
 {
-    float *devPtrAP, *devPtrx;
+    float *devPtrAP = 0, *devPtrx = 0;
+    cublasStatus stat1, stat2;
 
-     /*  X      - REAL             array of dimension at least
-      *           ( 1 + ( n - 1 )*abs( INCX ) ).
-      */
-    cublasAlloc (*n * abs(*incx), sizeof(devPtrx[0]), (void**)&devPtrx);
-    cublasSetVector (*n* abs(*incx), sizeof(x[0]), x, 1, devPtrx, 1);
-    /*  AP     - REAL             array of DIMENSION at least
+    if (*n == 0) return;
+
+    /*  X      - REAL             array of dimension at least
+     *           ( 1 + ( n - 1 )*abs( INCX ) ).
+     *  AP     - REAL             array of DIMENSION at least
      *           ( ( n*( n + 1 ) )/2 ).
-     *           Before entry with  UPLO = 'U' or 'u', the array AP must
      */
-    cublasAlloc (((*n) * (*n+1))/2, sizeof(devPtrAP[0]), (void**)&devPtrAP);
-    cublasSetVector (((*n) * (*n+1))/2, sizeof(AP[0]), AP, 1, devPtrAP, 1);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(((*n)*(*n+1))/2, sizeof(devPtrAP[0]), (void**)&devPtrAP);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Stpsv", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtrAP);
+        return;
+    }
+    stat1 = cublasSetVector (*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetVector (((*n)*(*n+1))/2,sizeof(AP[0]),AP,1,devPtrAP,1);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Stpsv", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtrAP);
+        return;
+    }
     cublasStpsv (uplo[0], trans[0], diag[0], *n, devPtrAP, devPtrx, *incx);
-    cublasGetVector (*n* abs(*incx), sizeof(x[0]), devPtrx, 1, x, 1);
-    cublasFree (devPtrAP);
+    stat1 = cublasGetVector (*n,sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Stpsv", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrx);
+    cublasFree (devPtrAP);
 }
 
 void CUBLAS_STRMV (const char *uplo, const char *trans,
                             const char *diag, const int *n, const float *A,
                             const int *lda, float *x, const int *incx)
 {
-    float *devPtrA, *devPtrx;
+    float *devPtrA = 0, *devPtrx = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
     
     /*  X      - REAL             array of dimension at least
      *           ( 1 + ( n - 1 )*abs( INCX ) ).
-     */
-    cublasAlloc (*n * abs(*incx), sizeof(devPtrx[0]), (void**)&devPtrx);
-    cublasSetVector (*n* abs(*incx), sizeof(x[0]), x, 1, devPtrx, 1);
-    /*  A      - REAL             array of DIMENSION ( LDA, n ).
+     *  A      - REAL             array of DIMENSION ( LDA, n ).
      *           Before entry with  UPLO = 'U' or 'u', the leading n by n
      *           upper triangular part of the array A must contain the upper
      */
-    cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
-    cublasSetMatrix (imin(*n,*lda), *n, sizeof(A[0]), A, *lda, devPtrA, *lda);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Strmv", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtrA);
+        return;
+    }
+    stat1=cublasSetVector (*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2=cublasSetMatrix (imin(*n,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Strmv", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtrA);
+        return;
+    }
     cublasStrmv (uplo[0], trans[0], diag[0], *n, devPtrA, *lda, devPtrx,*incx);
-    cublasGetVector (*n* abs(*incx), sizeof(x[0]), devPtrx, 1, x, 1);
+    stat1=cublasGetVector (*n,sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Strmv", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrA);
     cublasFree (devPtrx);
 }
@@ -1279,23 +2480,316 @@ void CUBLAS_STRSV (const char *uplo, const char *trans, const char *diag,
                    const int *n, const float *A, const int *lda, float *x, 
                    const int *incx)
 {
-    float *devPtrA, *devPtrx;
+    float *devPtrA = 0, *devPtrx = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
 
     /*  X      - REAL             array of dimension at least
      *           ( 1 + ( n - 1 )*abs( INCX ) ).
-     */
-    cublasAlloc (*n * abs(*incx), sizeof(devPtrx[0]), (void**)&devPtrx);
-    cublasSetVector (*n* abs(*incx), sizeof(x[0]), x, 1, devPtrx, 1);
-    /*  A      - REAL             array of DIMENSION ( LDA, n ).
+     *  A      - REAL             array of DIMENSION ( LDA, n ).
      *           Before entry with  UPLO = 'U' or 'u', the leading n by n
      *           upper triangular part of the array A must contain the upper
+     *           Before entry with UPLO = 'L' or 'l', the leading n by n
+     *           lower triangular part of the array A must contain the lower
      */
-    cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
-    cublasSetMatrix (imin(*n,*lda), *n, sizeof(A[0]), A, *lda, devPtrA, *lda);
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Strsv", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtrA);
+        return;
+    }
+    stat1=cublasSetVector (*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2=cublasSetMatrix (imin(*n,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Strsv", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtrA);
+        return;
+    }
     cublasStrsv (uplo[0], trans[0], diag[0], *n, devPtrA, *lda, devPtrx,*incx);
-    cublasGetVector (*n* abs(*incx), sizeof(x[0]), devPtrx, 1, x, 1);
+    stat1=cublasGetVector (*n,sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Strsv", CUBLAS_WRAPPER_ERROR_GET);
+    }
+    cublasFree (devPtrx);
+    cublasFree (devPtrA);
+}
+
+void CUBLAS_DGEMV (const char *trans, const int *m, const int *n,
+                   const double *alpha, const double *A, const int *lda,
+                   const double *x, const int *incx, const double *beta,
+                   double *y, const int *incy)
+{
+    double *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2, stat3;
+    
+    if ((*m == 0) || (*n == 0)) return;
+
+    /*  X      - REAL             array of DIMENSION at least
+     *           ( 1 + ( n - 1 )*abs( INCX ) ) when TRANS = 'N' or 'n'
+     *           and at least
+     *           ( 1 + ( m - 1 )*abs( INCX ) ) otherwise.
+     *  Y      - REAL             array of DIMENSION at least
+     *           ( 1 + ( m - 1 )*abs( INCY ) ) when TRANS = 'N' or 'n'
+     *           and at least
+     *           ( 1 + ( n - 1 )*abs( INCY ) ) otherwise.
+     *  A      - REAL             array of DIMENSION ( LDA, n ).
+     *           Before entry, the leading m by n part of the array A must
+     *           contain the matrix of coefficients.
+     */
+    if (toupper(trans[0]) == 'N') {
+        stat1 = cublasAlloc(1+(*n-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+        stat2 = cublasAlloc(1+(*m-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    } else {
+        stat1 = cublasAlloc(1+(*m-1)*abs(*incx),sizeof(x[0]),(void**)&devPtrx);
+        stat2 = cublasAlloc(1+(*n-1)*abs(*incy),sizeof(y[0]),(void**)&devPtry);
+    }
+    stat3 = cublasAlloc ((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dgemv", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
+    if (toupper(trans[0]) == 'N') {
+        stat1=cublasSetVector(*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+        stat2=cublasSetVector(*m,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    } else {
+        stat1=cublasSetVector(*m,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+        stat2=cublasSetVector(*n,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    }       
+    stat3=cublasSetMatrix (imin(*m,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    stat3=cublasSetMatrix (imin(*m,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dgemv", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
+    cublasDgemv (trans[0], *m, *n, *alpha, devPtrA, *lda, devPtrx, *incx,
+                 *beta, devPtry, *incy);
+    if (toupper(trans[0]) == 'N') {
+        stat1=cublasGetVector(*m,sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    } else {
+        stat1=cublasGetVector(*n,sizeof(y[0]),devPtry,abs(*incy),y,abs(*incy));
+    }       
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dgemv", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrA);
     cublasFree (devPtrx);
+    cublasFree (devPtry);
+}
+
+void CUBLAS_DGER (const int *m, const int *n, const double *alpha, 
+                  const double *x, const int *incx, const double *y,
+                  const int *incy, double *A, const int *lda)
+{
+    double *devPtrA = 0, *devPtrx = 0, *devPtry = 0;
+    cublasStatus stat1, stat2, stat3;
+
+    if ((*m == 0) || (*n == 0)) return;
+
+    /*  X      - REAL             array of dimension at least
+     *           ( 1 + ( m - 1 )*abs( INCX ) ).
+     *
+     *  Y      - REAL             array of dimension at least
+     *           ( 1 + ( n - 1 )*abs( INCY ) ).
+     *
+     * A       - REAL array of DIMENSION ( LDA, n ).
+     *           Before entry, the leading m by n part of the array A must
+     *           contain the matrix of coefficients. On exit, A is
+     */
+    stat1=cublasAlloc(1+(*m-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc(1+(*n-1)*abs(*incy),sizeof(devPtry[0]),(void**)&devPtry);
+    stat3=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dger", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
+    stat1=cublasSetVector(*m,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2=cublasSetVector(*n,sizeof(y[0]),y,abs(*incy),devPtry,abs(*incy));
+    stat3=cublasSetMatrix(imin(*m,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dger", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtry);
+        cublasFree (devPtrA);
+        return;
+    }
+    cublasDger (*m, *n, *alpha, devPtrx, *incx, devPtry, *incy, devPtrA, *lda);
+    stat1 = cublasGetMatrix(imin(*m,*lda),*n,sizeof(A[0]),devPtrA,*lda,A,*lda);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dger", CUBLAS_WRAPPER_ERROR_GET);
+    }
+    cublasFree (devPtrx);
+    cublasFree (devPtry);
+    cublasFree (devPtrA);
+}
+
+void CUBLAS_DSYR (const char *uplo, const int *n, const double *alpha, 
+                  const double *x, const int *incx, double *A, const int *lda)
+{
+    double *devPtrA = 0, *devPtrx = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
+
+    /*  X      - REAL             array of dimension at least
+     *           ( 1 + ( n - 1 )*abs( INCX ) ).
+     *  A      - REAL             array of DIMENSION ( LDA, n ).
+     *           Before entry with  UPLO = 'U' or 'u', the leading n by n
+     *           upper triangular part of the array A must contain the upper
+     *           Before entry with UPLO = 'L' or 'l', the leading n by n
+     *           lower triangular part of the array A must contain the lower
+     */
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dsyr", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtrA);
+        return;
+    }
+    stat1 = cublasSetVector(*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2 = cublasSetMatrix(imin(*n,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dsyr", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtrA);
+        return;
+    }
+    cublasDsyr (uplo[0], *n, *alpha, devPtrx, *incx, devPtrA, *lda);
+    stat1 = cublasGetMatrix(imin(*n,*lda),*n,sizeof(A[0]),devPtrA,*lda,A,*lda);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dsyr", CUBLAS_WRAPPER_ERROR_GET);
+    }
+    cublasFree (devPtrx);
+    cublasFree (devPtrA);
+}
+
+void CUBLAS_DTRSV (const char *uplo, const char *trans, const char *diag, 
+                   const int *n, const double *A, const int *lda, double *x, 
+                   const int *incx)
+{
+    double *devPtrA = 0, *devPtrx = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
+
+    /*  X      - REAL             array of dimension at least
+     *           ( 1 + ( n - 1 )*abs( INCX ) ).
+     *  A      - REAL             array of DIMENSION ( LDA, n ).
+     *           Before entry with  UPLO = 'U' or 'u', the leading n by n
+     *           upper triangular part of the array A must contain the upper
+     *           Before entry with UPLO = 'L' or 'l', the leading n by n
+     *           lower triangular part of the array A must contain the lower
+     */
+    stat1=cublasAlloc(1+(*n-1)*abs(*incx),sizeof(devPtrx[0]),(void**)&devPtrx);
+    stat2=cublasAlloc((*lda) * (*n), sizeof(devPtrA[0]), (void**)&devPtrA);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dtrsv", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrx);
+        cublasFree (devPtrA);
+        return;
+    }
+    stat1=cublasSetVector (*n,sizeof(x[0]),x,abs(*incx),devPtrx,abs(*incx));
+    stat2=cublasSetMatrix (imin(*n,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) ||
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dtrsv", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrx);
+        cublasFree (devPtrA);
+        return;
+    }
+    cublasDtrsv (uplo[0], trans[0], diag[0], *n, devPtrA, *lda, devPtrx,*incx);
+    stat1=cublasGetVector (*n,sizeof(x[0]),devPtrx,abs(*incx),x,abs(*incx));
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dtrsv", CUBLAS_WRAPPER_ERROR_GET);
+    }
+    cublasFree (devPtrx);
+    cublasFree (devPtrA);
+}
+
+void CUBLAS_DSPR2 (void)
+{
+    wrapperError ("Dspr2", CUBLAS_WRAPPER_ERROR_STUB);
+}
+
+void CUBLAS_DSYR2 (void)
+{
+    wrapperError ("Dsyr2", CUBLAS_WRAPPER_ERROR_STUB);
+}
+
+void CUBLAS_DSPR (void)
+{
+    wrapperError ("Dspr", CUBLAS_WRAPPER_ERROR_STUB);
+}
+
+void CUBLAS_DTPSV (void)
+{
+    wrapperError ("Dtpsv", CUBLAS_WRAPPER_ERROR_STUB);
+}
+
+void CUBLAS_DTBSV (void)
+{
+    wrapperError ("Dtbsv", CUBLAS_WRAPPER_ERROR_STUB);
+}
+
+void CUBLAS_DTPMV (void)
+{
+    wrapperError ("Dtpmv", CUBLAS_WRAPPER_ERROR_STUB);
+}
+
+void CUBLAS_DTBMV (void)
+{
+    wrapperError ("Dtbmv", CUBLAS_WRAPPER_ERROR_STUB);
+}
+
+void CUBLAS_DTRMV (void)
+{
+    wrapperError ("Dtrmv", CUBLAS_WRAPPER_ERROR_STUB);
+}
+
+void CUBLAS_DSPMV (void)
+{
+    wrapperError ("Dspmv", CUBLAS_WRAPPER_ERROR_STUB); 
+}
+
+void CUBLAS_DSBMV (void)
+{
+    wrapperError ("Dsbmv", CUBLAS_WRAPPER_ERROR_STUB); 
+} 
+
+void CUBLAS_DSYMV (void)
+{
+    wrapperError ("Dsymv", CUBLAS_WRAPPER_ERROR_STUB); 
+}
+
+void CUBLAS_DGBMV (void)
+{
+    wrapperError ("Dgbmv", CUBLAS_WRAPPER_ERROR_STUB);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1308,7 +2802,10 @@ void CUBLAS_SGEMM (const char *transa, const char *transb, const int *m,
                    const int *ldb, const float *beta, float *C, const int *ldc)
 {
     int ka, kb;
-    float *devPtrA, *devPtrB, *devPtrC;
+    float *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    cublasStatus stat1, stat2, stat3;
+
+    if ((*m == 0) || (*n == 0)) return; 
 
     /*  A      - REAL             array of DIMENSION ( LDA, ka ), where ka is
      *           k  when  TRANSA = 'N' or 'n',  and is  m  otherwise.
@@ -1316,47 +2813,58 @@ void CUBLAS_SGEMM (const char *transa, const char *transb, const int *m,
      *           part of the array  A  must contain the matrix  A,  otherwise
      *           the leading  k by m  part of the array  A  must contain  the
      *           matrix A.
-     */
-    ka = (toupper(transa[0]) == 'N') ? *k : *m;
-    cublasAlloc (*lda * ka, sizeof(devPtrA[0]), (void**)&devPtrA);
-    if (toupper(transa[0]) == 'N') {
-        cublasSetMatrix (imin(*m,*lda), *k, sizeof(A[0]), A, *lda, devPtrA, 
-                         *lda);
-    } else {
-        cublasSetMatrix (imin(*k,*lda), *m, sizeof(A[0]), A, *lda, devPtrA, 
-                         *lda);
-    }
-
-    /*  B      - REAL             array of DIMENSION ( LDB, kb ), where kb is
+     *  B      - REAL             array of DIMENSION ( LDB, kb ), where kb is
      *           n  when  TRANSB = 'N' or 'n',  and is  k  otherwise.
      *           Before entry with  TRANSB = 'N' or 'n',  the leading  k by n
      *           part of the array  B  must contain the matrix  B,  otherwise
      *           the leading  n by k  part of the array  B  must contain  the
      *           matrix B.
-     */
-    kb = (toupper(transb[0]) == 'N') ? *n : *k;
-    cublasAlloc (*ldb * kb, sizeof(devPtrB[0]), (void**)&devPtrB);
-    if (toupper(transb[0]) == 'N') {
-        cublasSetMatrix (imin(*k,*ldb), *n, sizeof(B[0]), B, *ldb, devPtrB, 
-                         *ldb);
-    } else {
-        cublasSetMatrix (imin(*n,*ldb), *k, sizeof(B[0]), B, *ldb, devPtrB,
-                         *ldb);
-    }
-    
-    /*  C      - REAL             array of DIMENSION ( LDC, n ).
+     *  C      - REAL             array of DIMENSION ( LDC, n ).
      *           Before entry, the leading  m by n  part of the array  C must
      *           contain the matrix  C,  except when  beta  is zero, in which
      *           case C need not be set on entry.
      *           On exit, the array  C  is overwritten by the  m by n  matrix
      */
-    cublasAlloc ((*ldc) * (*n), sizeof(devPtrC[0]), (void**)&devPtrC);
-    cublasSetMatrix (imin(*m,*ldc), *n, sizeof(C[0]), C, *ldc, devPtrC, *ldc);
-
+    ka = (toupper(transa[0]) == 'N') ? *k : *m;
+    kb = (toupper(transb[0]) == 'N') ? *n : *k;
+    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(devPtrB[0]), (void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(devPtrC[0]), (void**)&devPtrC);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sgemm", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
+    }
+    if (toupper(transa[0]) == 'N') {
+        stat1=cublasSetMatrix(imin(*m,*lda),*k,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    } else {
+        stat1=cublasSetMatrix(imin(*k,*lda),*m,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    }
+    if (toupper(transb[0]) == 'N') {
+        stat2=cublasSetMatrix(imin(*k,*ldb),*n,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    } else {
+        stat2=cublasSetMatrix(imin(*n,*ldb),*k,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    }
+    stat3=cublasSetMatrix(imin(*m,*ldc),*n,sizeof(C[0]),C,*ldc,devPtrC,*ldc);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Sgemm", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
+    }
     cublasSgemm (transa[0], transb[0], *m, *n, *k, *alpha, devPtrA, *lda, 
                  devPtrB, *ldb, *beta, devPtrC, *ldc);
-
-    cublasGetMatrix (imin(*m,*ldc), *n, sizeof(C[0]), devPtrC, *ldc, C, *ldc);
+    stat1=cublasGetMatrix(imin(*m,*ldc),*n,sizeof(C[0]),devPtrC,*ldc,C,*ldc);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Sgemm", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrA);
     cublasFree (devPtrB);
     cublasFree (devPtrC);
@@ -1368,7 +2876,10 @@ void CUBLAS_SSYMM (const char *side, const char *uplo, const int *m,
                    const float *beta, float *C, const int *ldc)
 {
     int ka;
-    float *devPtrA, *devPtrB, *devPtrC;
+    float *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    cublasStatus stat1, stat2, stat3;
+
+    if ((*m == 0) || (*n == 0)) return;
     
     /*  A      - REAL             array of DIMENSION ( LDA, ka ), where ka is
      *           m  when  SIDE = 'L' or 'l'  and is  n otherwise.
@@ -1376,36 +2887,45 @@ void CUBLAS_SSYMM (const char *side, const char *uplo, const int *m,
      *           the array  A  must contain the  symmetric matrix, [..]
      *           Before entry  with  SIDE = 'R' or 'r',  the  n by n  part of
      *           the array  A  must contain the  symmetric matrix, [..]
-     */
-    ka = (toupper(side[0]) == 'L') ? *m : *n;
-    cublasAlloc ((*lda) * ka, sizeof(devPtrA[0]), (void**)&devPtrA);
-    if (toupper(side[0]) == 'L') {
-        cublasSetMatrix (imin(*m,*lda), *m, sizeof(A[0]), A, *lda, devPtrA, 
-                         *lda);
-    } else {
-        cublasSetMatrix (imin(*n,*lda), *n, sizeof(A[0]), A, *lda, devPtrA,
-                         *lda);
-    }
-
-    /*  B      - REAL             array of DIMENSION ( LDB, n ).
+     *  B      - REAL             array of DIMENSION ( LDB, n ).
      *           Before entry, the leading  m by n part of the array  B  must
      *           contain the matrix B.
-     */
-    cublasAlloc ((*ldb) * (*n), sizeof(devPtrB[0]), (void**)&devPtrB);
-    cublasSetMatrix (imin(*m,*ldb), *n, sizeof(B[0]), B, *ldb, devPtrB, *ldb);
-
-    /*  C      - REAL             array of DIMENSION ( LDC, n ).
+     *  C      - REAL             array of DIMENSION ( LDC, n ).
      *           Before entry, the leading  m by n  part of the array  C must
      *           contain the matrix  C,  except when  beta  is zero, in which
      *           case C need not be set on entry.
      */
-    cublasAlloc ((*ldc) * (*n), sizeof(devPtrC[0]), (void**)&devPtrC);
-    cublasSetMatrix (imin(*m,*ldc), *n, sizeof(C[0]), C, *ldc, devPtrC, *ldc);
-    
+    ka = (toupper(side[0]) == 'L') ? *m : *n;
+    stat1 = cublasAlloc ((*lda) * ka, sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc ((*ldb) * (*n), sizeof(devPtrB[0]), (void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n), sizeof(devPtrC[0]), (void**)&devPtrC);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ssymm", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
+    }
+    stat1 = cublasSetMatrix(imin(ka,*lda),ka,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    stat2 = cublasSetMatrix(imin(*m,*ldb),*n,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    stat3 = cublasSetMatrix(imin(*m,*ldc),*n,sizeof(C[0]),C,*ldc,devPtrC,*ldc);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ssymm", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
+    }
     cublasSsymm (side[0], uplo[0], *m, *n, *alpha, devPtrA, *lda, devPtrB,
                  *ldb, *beta, devPtrC, *ldc);
-
-    cublasGetMatrix (imin(*m,*ldc), *n, sizeof(C[0]), devPtrC, *ldc, C, *ldc);
+    stat1 = cublasGetMatrix(imin(*m,*ldc),*n,sizeof(C[0]),devPtrC,*ldc,C,*ldc);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Ssymm", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrA);
     cublasFree (devPtrB);
     cublasFree (devPtrC);
@@ -1417,7 +2937,10 @@ void CUBLAS_SSYR2K (const char *uplo, const char *trans, const int *n,
                     const float *beta, float *C, const int *ldc)
 {
     int ka, kb;
-    float *devPtrA, *devPtrB, *devPtrC;
+    float *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    cublasStatus stat1, stat2, stat3;
+
+    if (*n == 0) return;
 
     /*  A      - REAL             array of DIMENSION ( LDA, ka ), where ka is
      *           k  when  TRANS = 'N' or 'n',  and is  n  otherwise.
@@ -1425,47 +2948,52 @@ void CUBLAS_SSYR2K (const char *uplo, const char *trans, const int *n,
      *           part of the array  A  must contain the matrix  A,  otherwise
      *           the leading  k by n  part of the array  A  must contain  the
      *           matrix A.
-     */
-    ka = (toupper(trans[0]) == 'N') ? *k : *n;
-    cublasAlloc (*lda * ka, sizeof(devPtrA[0]), (void**)&devPtrA);
-    if (toupper(trans[0]) == 'N') {
-        cublasSetMatrix (imin(*n,*lda), *k, sizeof(A[0]), A, *lda, devPtrA,
-                         *lda);
-    } else {
-        cublasSetMatrix (imin(*k,*lda), *n, sizeof(A[0]), A, *lda, devPtrA,
-                         *lda);
-    }
-
-    /*  B      - REAL             array of DIMENSION ( LDB, kb ), where kb is
+     *  B      - REAL             array of DIMENSION ( LDB, kb ), where kb is
      *           k  when  TRANS = 'N' or 'n',  and is  n  otherwise.
      *           Before entry with  TRANS = 'N' or 'n',  the leading  n by k
      *           part of the array  B  must contain the matrix  B,  otherwise
      *           the leading  k by n  part of the array  B  must contain  the
      *           matrix B.
+     * C       - single precision array of dimensions (ldc, n). If uplo == 'U' 
+     *           or 'u', the leading n x n triangular part of the array C must 
      */
+    ka = (toupper(trans[0]) == 'N') ? *k : *n;
     kb = (toupper(trans[0]) == 'N') ? *k : *n;
-    cublasAlloc ((*ldb) * kb, sizeof(devPtrB[0]), (void**)&devPtrB);
-    if (toupper(trans[0]) == 'N') {
-        cublasSetMatrix (imin(*n,*ldb), *k, sizeof(B[0]), B, *ldb, devPtrB,
-                         *ldb);
-    } else {
-        cublasSetMatrix (imin(*k,*ldb), *n, sizeof(B[0]), B, *ldb, devPtrB,
-                         *ldb);
+    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(devPtrA[0]),(void**)&devPtrA);
+    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(devPtrB[0]),(void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(devPtrC[0]),(void**)&devPtrC);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ssyr2k", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
     }
-
-    /* C      single precision array of dimensions (ldc, n). If uplo == 'U' or
-     *        'u', the leading n x n triangular part of the array C must 
-     *        contain the upper triangular part of the symmetric matrix C and 
-     *        the strictly lower triangular part of C is not referenced. On 
-     *        exit, the upper 
-     */
-    cublasAlloc ((*ldc) * (*n), sizeof(devPtrC[0]), (void**)&devPtrC);
-    cublasSetMatrix (imin(*n,*ldc), *n, sizeof(C[0]), C, *ldc, devPtrC, *ldc);
-
+    if (toupper(trans[0]) == 'N') {
+      stat1=cublasSetMatrix(imin(*n,*lda),*k,sizeof(A[0]),A,*lda,devPtrA,*lda);
+      stat2=cublasSetMatrix(imin(*n,*ldb),*k,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    } else {
+      stat1=cublasSetMatrix(imin(*k,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+      stat2=cublasSetMatrix(imin(*k,*ldb),*n,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    }
+    stat3 = cublasSetMatrix(imin(*n,*ldc),*n,sizeof(C[0]),C,*ldc,devPtrC,*ldc);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ssyr2k", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
+    }
     cublasSsyr2k (uplo[0], trans[0], *n, *k, *alpha, devPtrA, *lda, devPtrB, 
-           *ldb, *beta, devPtrC, *ldc);
-
-    cublasGetMatrix (imin(*n,*ldc), *n, sizeof(C[0]), devPtrC, *ldc, C, *ldc);
+                  *ldb, *beta, devPtrC, *ldc);
+    stat1 = cublasGetMatrix(imin(*n,*ldc),*n,sizeof(C[0]),devPtrC,*ldc,C,*ldc);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Ssyr2k", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrA);
     cublasFree (devPtrB);
     cublasFree (devPtrC);
@@ -1476,35 +3004,49 @@ void CUBLAS_SSYRK (const char *uplo, const char *trans, const int *n,
                    const int *lda, const float *beta, float *C, const int *ldc)
 {
     int ka;
-    float *devPtrA, *devPtrC;
+    float *devPtrA = 0, *devPtrC = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
 
     /* A      single precision array of dimensions (lda, ka), where ka is k 
      *        when trans == 'N' or 'n', and is n otherwise. When trans == 'N' 
      *        or 'n', the leading n x k part of array A must contain the matrix
      *        A, otherwise the leading k x n part of the array must contain the
      *        matrix A.
-     */
-    ka = (toupper(trans[0]) == 'N') ? *k : *n;
-    cublasAlloc (*lda * ka, sizeof(devPtrA[0]), (void**)&devPtrA);
-    if (toupper(trans[0]) == 'N') {
-        cublasSetMatrix (imin(*n,*lda), *k, sizeof(A[0]), A, *lda, devPtrA,
-                         *lda);
-    } else {
-        cublasSetMatrix (imin(*k,*lda), *n, sizeof(A[0]), A, *lda, devPtrA,
-                         *lda);
-    }
-    
-    /* C      single precision array of dimensions (ldc, n). If uplo='U'or'u',
+     * C      single precision array of dimensions (ldc, n). If uplo='U'or'u',
      *        the leading n x n triangular part of the array C must contain the
      *        upper triangular part of the symmetric matrix C and the strictly 
      */
-    cublasAlloc ((*ldc) * (*n), sizeof(devPtrC[0]), (void**)&devPtrC);
-    cublasSetMatrix (imin(*n,*ldc), *n, sizeof(C[0]), C, *ldc, devPtrC, *ldc);
-    
+    ka = (toupper(trans[0]) == 'N') ? *k : *n;
+    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(devPtrA[0]),(void**)&devPtrA);
+    stat2 = cublasAlloc ((*ldc)*(*n), sizeof(devPtrC[0]), (void**)&devPtrC);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ssyrk", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrA);
+        cublasFree (devPtrC);
+        return;
+    }
+    if (toupper(trans[0]) == 'N') {
+      stat1=cublasSetMatrix(imin(*n,*lda),*k,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    } else {
+      stat1=cublasSetMatrix(imin(*k,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    }
+    stat2 = cublasSetMatrix(imin(*n,*ldc),*n,sizeof(C[0]),C,*ldc,devPtrC,*ldc);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Ssyrk", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrA);
+        cublasFree (devPtrC);
+        return;
+    }
     cublasSsyrk (uplo[0], trans[0], *n, *k, *alpha, devPtrA, *lda, *beta,
                  devPtrC, *ldc);
-
-    cublasGetMatrix (imin(*n,*ldc), *n, sizeof(C[0]), devPtrC, *ldc, C, *ldc);
+    stat1 = cublasGetMatrix(imin(*n,*ldc),*n,sizeof(C[0]),devPtrC,*ldc,C,*ldc);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Ssyrk", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrA);
     cublasFree (devPtrC);
 }
@@ -1515,7 +3057,10 @@ void CUBLAS_STRMM (const char *side, const char *uplo, const char *transa,
                    float *B, const int *ldb)
 {
     int k;
-    float *devPtrA, *devPtrB;
+    float *devPtrA = 0, *devPtrB = 0;
+    cublasStatus stat1, stat2;
+    
+    if ((*m == 0) || (*n == 0)) return;
 
     /* A      single precision array of dimensions (lda, k). k = m if side =
      *        'L' or 'l', k = n if side = 'R' or 'r'. If uplo = 'U' or 'u'
@@ -1524,27 +3069,35 @@ void CUBLAS_STRMM (const char *side, const char *uplo, const char *transa,
      *        triangular part of A is not referenced. If uplo = 'L' or 'l'
      *        the leading k x k lower triangular part of the array A must
      *        contain the lower triangular matrix, and the strictly upper
-     */
-    k = (toupper(side[0]) == 'L') ? *m : *n;
-    cublasAlloc (*lda * k, sizeof(devPtrA[0]), (void**)&devPtrA);
-    if (toupper(side[0]) == 'L') {
-        cublasSetMatrix (imin(k,*lda), k, sizeof(A[0]), A, *lda, devPtrA, *lda);
-    } else {
-        cublasSetMatrix (imin(k,*lda), k, sizeof(A[0]), A, *lda, devPtrA, *lda);
-    }
-
-    /* B      single precision array of dimensions (ldb, n). On entry, the 
+     * B      single precision array of dimensions (ldb, n). On entry, the 
      *        leading m x n part of the array contains the matrix B. It is
      *        overwritten with the transformed matrix on exit.
      */
-    cublasAlloc ((*ldb) * (*n), sizeof(devPtrB[0]), (void**)&devPtrB);
-    cublasSetMatrix (imin(*m,*ldb), *n, sizeof(B[0]), B, *ldb, devPtrB, *ldb);
-
+    k = (toupper(side[0]) == 'L') ? *m : *n;
+    stat1 = cublasAlloc (*lda * k, sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc (*ldb * (*n), sizeof(devPtrB[0]), (void**)&devPtrB);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Strmm", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        return;
+    }
+    stat1 = cublasSetMatrix(imin(k,*lda),k,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    stat2 = cublasSetMatrix(imin(*m,*ldb),*n,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Strmm", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        return;
+    }
     cublasStrmm (side[0], uplo[0], transa[0], diag[0], *m, *n, *alpha, devPtrA,
-           *lda, devPtrB, *ldb);
-
-    cublasGetMatrix (imin(*m,*ldb), *n, sizeof(B[0]), devPtrB, *ldb, B, *ldb);
-    
+                 *lda, devPtrB, *ldb);
+    stat1 = cublasGetMatrix(imin(*m,*ldb),*n,sizeof(B[0]),devPtrB,*ldb,B,*ldb);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Strmm", CUBLAS_WRAPPER_ERROR_GET);
+    }        
     cublasFree (devPtrA);
     cublasFree (devPtrB);
 }
@@ -1554,25 +3107,45 @@ void CUBLAS_STRSM (const char *side, const char *uplo, const char *transa,
                    const float *alpha, const float *A, const int *lda,
                    float *B, const int *ldb)
 {
-    float *devPtrA, *devPtrB;
+    float *devPtrA = 0, *devPtrB = 0;
     int k;
+    cublasStatus stat1, stat2;
 
-    //  A      - REAL             array of DIMENSION ( LDA, k ), where k is m
-    //           when  SIDE = 'L' or 'l'  and is  n  when  SIDE = 'R' or 'r'.
-    //           Before entry  with  UPLO = 'U' or 'u',  the  leading  k by k
-    //           upper triangular part of the array  A must contain the upper
+    if ((*m == 0) || (*n == 0)) return;
+
+    /*  A      - REAL             array of DIMENSION ( LDA, k ), where k is m
+     *           when  SIDE = 'L' or 'l'  and is  n  when  SIDE = 'R' or 'r'.
+     *           Before entry  with  UPLO = 'U' or 'u',  the  leading  k by k
+     *           upper triangular part of the array  A must contain the upper
+     *  B      - REAL             array of DIMENSION ( LDB, n ).
+     *           Before entry,  the leading  m by n part of the array  B must
+     *           contain  the  right-hand  side  matrix  B,  and  on exit  is
+     */
     k = (toupper(side[0]) == 'L') ? *m : *n;
-    cublasAlloc (*lda * k, sizeof(devPtrA[0]), (void**)&devPtrA);
-    cublasSetMatrix (imin(k,*lda), k, sizeof(A[0]), A, *lda, devPtrA, *lda);
-
-    //  B      - REAL             array of DIMENSION ( LDB, n ).
-    //           Before entry,  the leading  m by n part of the array  B must
-    //           contain  the  right-hand  side  matrix  B,  and  on exit  is
-    cublasAlloc ((*ldb) * (*n), sizeof(devPtrB[0]), (void**)&devPtrB);
-    cublasSetMatrix (imin(*m,*ldb), *n, sizeof(B[0]), B, *ldb, devPtrB, *ldb);
+    stat1 = cublasAlloc (*lda * k, sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc (*ldb * (*n), sizeof(devPtrB[0]), (void**)&devPtrB);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Strsm", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        return;
+    }
+    stat1 = cublasSetMatrix(imin(k,*lda),k,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    stat2 = cublasSetMatrix(imin(*m,*ldb),*n,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Strsm", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        return;
+    }
     cublasStrsm (side[0], uplo[0], transa[0], diag[0], *m, *n, *alpha, devPtrA,
                  *lda, devPtrB, *ldb);
-    cublasGetMatrix (imin(*m,*ldb), *n, sizeof(B[0]), devPtrB, *ldb, B, *ldb);
+    stat1 = cublasGetMatrix(imin(*m,*ldb),*n,sizeof(B[0]),devPtrB,*ldb,B,*ldb);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Strsm", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrA);
     cublasFree (devPtrB);
 }
@@ -1584,7 +3157,10 @@ void CUBLAS_CGEMM (const char *transa, const char *transb, const int *m,
                    const int *ldc)
 {
     int ka, kb;
-    cuComplex *devPtrA, *devPtrB, *devPtrC;
+    cuComplex *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    cublasStatus stat1, stat2, stat3;
+
+    if ((*m == 0) || (*n == 0)) return; 
 
     /*  A      - COMPLEX          array of DIMENSION ( LDA, ka ), where ka is
      *           k  when  TRANSA = 'N' or 'n',  and is  m  otherwise.
@@ -1592,50 +3168,58 @@ void CUBLAS_CGEMM (const char *transa, const char *transb, const int *m,
      *           part of the array  A  must contain the matrix  A,  otherwise
      *           the leading  k by m  part of the array  A  must contain  the
      *           matrix A.
-     */
-
-    ka = (toupper(transa[0]) == 'N') ? *k : *m;
-    cublasAlloc (*lda * ka, sizeof(devPtrA[0]), (void**)&devPtrA);
-    if (toupper(transa[0]) == 'N') {
-        cublasSetMatrix (imin(*m,*lda), *k, sizeof(A[0]), A, *lda, devPtrA, 
-                         *lda);
-    } else {
-        cublasSetMatrix (imin(*k,*lda), *m, sizeof(A[0]), A, *lda, devPtrA, 
-                         *lda);
-    }
-
-    /*  B      - COMPLEX          array of DIMENSION ( LDB, kb ), where kb is
+     *  B      - COMPLEX          array of DIMENSION ( LDB, kb ), where kb is
      *           n  when  TRANSB = 'N' or 'n',  and is  k  otherwise.
      *           Before entry with  TRANSB = 'N' or 'n',  the leading  k by n
      *           part of the array  B  must contain the matrix  B,  otherwise
      *           the leading  n by k  part of the array  B  must contain  the
      *           matrix B.
-     */
-
-    kb = (toupper(transb[0]) == 'N') ? *n : *k;
-    cublasAlloc (*ldb * kb, sizeof(devPtrB[0]), (void**)&devPtrB);
-    if (toupper(transb[0]) == 'N') {
-        cublasSetMatrix (imin(*k,*ldb), *n, sizeof(B[0]), B, *ldb, devPtrB, 
-                         *ldb);
-    } else {
-        cublasSetMatrix (imin(*n,*ldb), *k, sizeof(B[0]), B, *ldb, devPtrB,
-                         *ldb);
-    }
-
-    /*  C      - COMPLEX          array of DIMENSION ( LDC, n ).
+     *  C      - COMPLEX          array of DIMENSION ( LDC, n ).
      *           Before entry, the leading  m by n  part of the array  C must
      *           contain the matrix  C,  except when  beta  is zero, in which
      *           case C need not be set on entry.
      *           On exit, the array  C  is overwritten by the  m by n  matrix
      */
-
-    cublasAlloc ((*ldc) * (*n), sizeof(devPtrC[0]), (void**)&devPtrC);
-    cublasSetMatrix (imin(*m,*ldc), *n, sizeof(C[0]), C, *ldc, devPtrC, *ldc);
-
+    ka = (toupper(transa[0]) == 'N') ? *k : *m;
+    kb = (toupper(transb[0]) == 'N') ? *n : *k;
+    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(devPtrA[0]),(void**)&devPtrA);
+    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(devPtrB[0]),(void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(devPtrC[0]),(void**)&devPtrC);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Cgemm", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
+    }
+    if (toupper(transa[0]) == 'N') {
+      stat1=cublasSetMatrix(imin(*m,*lda),*k,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    } else {
+      stat1=cublasSetMatrix(imin(*k,*lda),*m,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    }
+    if (toupper(transb[0]) == 'N') {
+      stat2=cublasSetMatrix(imin(*k,*ldb),*n,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    } else {
+      stat2=cublasSetMatrix(imin(*n,*ldb),*k,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    }
+    stat3=cublasSetMatrix(imin(*m,*ldc),*n,sizeof(C[0]),C,*ldc,devPtrC,*ldc);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Cgemm", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
+    }
     cublasCgemm (transa[0], transb[0], *m, *n, *k, *alpha, devPtrA, *lda, 
                  devPtrB, *ldb, *beta, devPtrC, *ldc);
-
-    cublasGetMatrix (imin(*m,*ldc), *n, sizeof(C[0]), devPtrC, *ldc, C, *ldc);
+    stat1=cublasGetMatrix(imin(*m,*ldc),*n,sizeof(C[0]),devPtrC,*ldc,C,*ldc);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Cgemm", CUBLAS_WRAPPER_ERROR_GET);
+    }
     cublasFree (devPtrA);
     cublasFree (devPtrB);
     cublasFree (devPtrC);
@@ -1643,35 +3227,500 @@ void CUBLAS_CGEMM (const char *transa, const char *transb, const int *m,
 
 void CUBLAS_CHEMM (void)
 {
-    printf ("CUBLAS_CHEMM stub\n");
+    wrapperError ("Chemm", CUBLAS_WRAPPER_ERROR_STUB);
 }
 void CUBLAS_CSYMM (void)
 {
-    printf ("CUBLAS_CSYMM stub\n");
+    wrapperError ("Csymm", CUBLAS_WRAPPER_ERROR_STUB);
 }
 void CUBLAS_CTRMM (void)
 {
-    printf ("CUBLAS_CTRMM stub\n");
+    wrapperError ("Ctrmm", CUBLAS_WRAPPER_ERROR_STUB);
 }
 void CUBLAS_CTRSM (void)
 {
-    printf ("CUBLAS_CTRSM stub\n");
+    wrapperError ("Ctrsm", CUBLAS_WRAPPER_ERROR_STUB);
 }
 void CUBLAS_CHERK (void)
 {
-    printf ("CUBLAS_CHERK stub\n");
+    wrapperError ("CHerk", CUBLAS_WRAPPER_ERROR_STUB);
 }
 void CUBLAS_CSYRK (void)
 {
-    printf ("CUBLAS_CSYRK stub\n");
+    wrapperError ("CSyrk", CUBLAS_WRAPPER_ERROR_STUB);
 }
 void CUBLAS_CHER2K (void)
 {
-    printf ("CUBLAS_CHER2K stub\n");
+    wrapperError ("CHer2k", CUBLAS_WRAPPER_ERROR_STUB);
 }
 void CUBLAS_CSYR2K (void)
 {
-    printf ("CUBLAS_CSYR2K stub\n");
+    wrapperError ("CSyr2k", CUBLAS_WRAPPER_ERROR_STUB);
+}
+
+void CUBLAS_DGEMM (const char *transa, const char *transb, const int *m,
+                   const int *n, const int *k, const double *alpha,
+                   const double *A, const int *lda, const double *B,
+                   const int *ldb, const double *beta, double *C,
+                   const int *ldc)
+{
+    int ka, kb;
+    double *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    cublasStatus stat1, stat2, stat3;
+
+    if ((*m == 0) || (*n == 0)) return;
+
+    /*  A      - REAL             array of DIMENSION ( LDA, ka ), where ka is
+     *           k  when  TRANSA = 'N' or 'n',  and is  m  otherwise.
+     *           Before entry with  TRANSA = 'N' or 'n',  the leading  m by k
+     *           part of the array  A  must contain the matrix  A,  otherwise
+     *           the leading  k by m  part of the array  A  must contain  the
+     *           matrix A.
+     *  B      - REAL             array of DIMENSION ( LDB, kb ), where kb is
+     *           n  when  TRANSB = 'N' or 'n',  and is  k  otherwise.
+     *           Before entry with  TRANSB = 'N' or 'n',  the leading  k by n
+     *           part of the array  B  must contain the matrix  B,  otherwise
+     *           the leading  n by k  part of the array  B  must contain  the
+     *           matrix B. 
+     *  C      - REAL             array of DIMENSION ( LDC, n ).
+     *           Before entry, the leading  m by n  part of the array  C must
+     *           contain the matrix  C,  except when  beta  is zero, in which
+     *           case C need not be set on entry.
+     *           On exit, the array  C  is overwritten by the  m by n  matrix
+     */
+    ka = (toupper(transa[0]) == 'N') ? *k : *m;
+    kb = (toupper(transb[0]) == 'N') ? *n : *k;
+    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(devPtrB[0]), (void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(devPtrC[0]), (void**)&devPtrC);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dgemm", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
+    }
+    if (toupper(transa[0]) == 'N') {
+      stat1=cublasSetMatrix(imin(*m,*lda),*k,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    } else {
+      stat1=cublasSetMatrix(imin(*k,*lda),*m,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    }
+    if (toupper(transb[0]) == 'N') {
+      stat2=cublasSetMatrix(imin(*k,*ldb),*n,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    } else {
+      stat2=cublasSetMatrix(imin(*n,*ldb),*k,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    }
+    stat3=cublasSetMatrix(imin(*m,*ldc),*n,sizeof(C[0]),C,*ldc,devPtrC,*ldc);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dgemm", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
+    }
+    cublasDgemm (transa[0], transb[0], *m, *n, *k, *alpha, devPtrA, *lda, 
+                 devPtrB, *ldb, *beta, devPtrC, *ldc);
+    stat1=cublasGetMatrix(imin(*m,*ldc),*n,sizeof(C[0]),devPtrC,*ldc,C,*ldc);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dgemm", CUBLAS_WRAPPER_ERROR_GET);
+    }
+    cublasFree (devPtrA);
+    cublasFree (devPtrB);
+    cublasFree (devPtrC);
+}
+
+void CUBLAS_DSYMM (const char *side, const char *uplo, const int *m, 
+                   const int *n, const double *alpha, const double *A, 
+                   const int *lda, const double *B, const int *ldb, 
+                   const double *beta, double *C, const int *ldc)
+{
+    int ka;
+    double *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    cublasStatus stat1, stat2, stat3;
+    
+    if ((*m == 0) || (*n == 0)) return;
+
+    /*  A      - REAL             array of DIMENSION ( LDA, ka ), where ka is
+     *           m  when  SIDE = 'L' or 'l'  and is  n otherwise.
+     *           Before entry  with  SIDE = 'L' or 'l',  the  m by m  part of
+     *           the array  A  must contain the  symmetric matrix, [..]
+     *           Before entry  with  SIDE = 'R' or 'r',  the  n by n  part of
+     *           the array  A  must contain the  symmetric matrix, [..]
+     *  B      - REAL             array of DIMENSION ( LDB, n ).
+     *           Before entry, the leading  m by n part of the array  B  must
+     *           contain the matrix B.
+     *  C      - REAL             array of DIMENSION ( LDC, n ).
+     *           Before entry, the leading  m by n  part of the array  C must
+     *           contain the matrix  C,  except when  beta  is zero, in which
+     *           case C need not be set on entry.
+     */
+    ka = (toupper(side[0]) == 'L') ? *m : *n;
+    stat1 = cublasAlloc ((*lda) * ka, sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc ((*ldb) * (*n), sizeof(devPtrB[0]), (void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n), sizeof(devPtrC[0]), (void**)&devPtrC);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dsymm", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
+    }
+    stat1 = cublasSetMatrix(imin(ka,*lda),ka,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    stat2 = cublasSetMatrix(imin(*m,*ldb),*n,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    stat3 = cublasSetMatrix(imin(*m,*ldc),*n,sizeof(C[0]),C,*ldc,devPtrC,*ldc);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dsymm", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
+    }
+    cublasDsymm (side[0], uplo[0], *m, *n, *alpha, devPtrA, *lda, devPtrB,
+                 *ldb, *beta, devPtrC, *ldc);
+    stat1 = cublasGetMatrix(imin(*m,*ldc),*n,sizeof(C[0]),devPtrC,*ldc,C,*ldc);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dsymm", CUBLAS_WRAPPER_ERROR_GET);
+    }
+    cublasFree (devPtrA);
+    cublasFree (devPtrB);
+    cublasFree (devPtrC);
+}
+
+void CUBLAS_DSYR2K (const char *uplo, const char *trans, const int *n,
+                    const int *k, const double *alpha, const double *A, 
+                    const int *lda, const double *B, const int *ldb, 
+                    const double *beta, double *C, const int *ldc)
+{
+    int ka, kb;
+    double *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    cublasStatus stat1, stat2, stat3;
+
+    if (*n == 0) return;
+
+    /*  A      - REAL             array of DIMENSION ( LDA, ka ), where ka is
+     *           k  when  TRANS = 'N' or 'n',  and is  n  otherwise.
+     *           Before entry with  TRANS = 'N' or 'n',  the leading  n by k
+     *           part of the array  A  must contain the matrix  A,  otherwise
+     *           the leading  k by n  part of the array  A  must contain  the
+     *           matrix A.
+     *  B      - REAL             array of DIMENSION ( LDB, kb ), where kb is
+     *           k  when  TRANS = 'N' or 'n',  and is  n  otherwise.
+     *           Before entry with  TRANS = 'N' or 'n',  the leading  n by k
+     *           part of the array  B  must contain the matrix  B,  otherwise
+     *           the leading  k by n  part of the array  B  must contain  the
+     *           matrix B.
+     *  C      - single precision array of dimensions (ldc, n). If uplo == 'U' 
+     *           or  'u', the leading n x n triangular part of the array C must
+     */
+    ka = (toupper(trans[0]) == 'N') ? *k : *n;
+    kb = (toupper(trans[0]) == 'N') ? *k : *n;
+    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(devPtrA[0]),(void**)&devPtrA);
+    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(devPtrB[0]),(void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(devPtrC[0]),(void**)&devPtrC);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dsyr2k", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
+    }
+    if (toupper(trans[0]) == 'N') {
+      stat1=cublasSetMatrix(imin(*n,*lda),*k,sizeof(A[0]),A,*lda,devPtrA,*lda);
+      stat2=cublasSetMatrix(imin(*n,*ldb),*k,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    } else {
+      stat1=cublasSetMatrix(imin(*k,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+      stat2=cublasSetMatrix(imin(*k,*ldb),*n,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    }
+    stat3=cublasSetMatrix(imin(*n,*ldc),*n,sizeof(C[0]),C,*ldc,devPtrC,*ldc);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dsyr2k", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
+    }
+    cublasDsyr2k (uplo[0], trans[0], *n, *k, *alpha, devPtrA, *lda, devPtrB, 
+                  *ldb, *beta, devPtrC, *ldc);
+    stat1=cublasGetMatrix(imin(*n,*ldc),*n,sizeof(C[0]),devPtrC,*ldc,C,*ldc);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dsyr2k", CUBLAS_WRAPPER_ERROR_GET);
+    }
+    cublasFree (devPtrA);
+    cublasFree (devPtrB);
+    cublasFree (devPtrC);
+}
+
+void CUBLAS_DSYRK (const char *uplo, const char *trans, const int *n, 
+                   const int *k, const double *alpha, const double *A, 
+                   const int *lda, const double *beta, double *C, 
+                   const int *ldc)
+{
+    int ka;
+    double *devPtrA = 0, *devPtrC = 0;
+    cublasStatus stat1, stat2;
+
+    if (*n == 0) return;
+
+    /* A      single precision array of dimensions (lda, ka), where ka is k 
+     *        when trans == 'N' or 'n', and is n otherwise. When trans == 'N' 
+     *        or 'n', the leading n x k part of array A must contain the matrix
+     *        A, otherwise the leading k x n part of the array must contain the
+     *        matrix A.
+     * C      single precision array of dimensions (ldc, n). If uplo='U'or'u',
+     *        the leading n x n triangular part of the array C must contain the
+     *        upper triangular part of the symmetric matrix C and the strictly 
+     */
+    ka = (toupper(trans[0]) == 'N') ? *k : *n;
+    stat1 = cublasAlloc(imax(1,*lda*ka),sizeof(devPtrA[0]),(void**)&devPtrA);
+    stat2 = cublasAlloc(imax(1,*ldc*(*n)),sizeof(devPtrC[0]),(void**)&devPtrC);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dsyrk", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrA);
+        cublasFree (devPtrC);
+        return;
+    }
+    if (toupper(trans[0]) == 'N') {
+      stat1=cublasSetMatrix(imin(*n,*lda),*k,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    } else {
+      stat1=cublasSetMatrix(imin(*k,*lda),*n,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    }
+    stat2 = cublasSetMatrix(imin(*n,*ldc),*n,sizeof(C[0]),C,*ldc,devPtrC,*ldc);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dsyrk", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrA);
+        cublasFree (devPtrC);
+        return;
+    }
+    cublasDsyrk (uplo[0], trans[0], *n, *k, *alpha, devPtrA, *lda, *beta,
+                 devPtrC, *ldc);
+    stat1 = cublasGetMatrix(imin(*n,*ldc),*n,sizeof(C[0]),devPtrC,*ldc,C,*ldc);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dsyrk", CUBLAS_WRAPPER_ERROR_GET);
+    }
+    cublasFree (devPtrA);
+    cublasFree (devPtrC);
+}
+
+void CUBLAS_DTRMM (const char *side, const char *uplo, const char *transa,
+                   const char *diag, const int *m, const int *n,
+                   const double *alpha, const double *A, const int *lda,
+                   double *B, const int *ldb)
+{
+    int k;
+    double *devPtrA = 0, *devPtrB = 0;
+    cublasStatus stat1, stat2;
+
+    if ((*m == 0) || (*n == 0)) return;
+
+    /* A      single precision array of dimensions (lda, k). k = m if side =
+     *        'L' or 'l', k = n if side = 'R' or 'r'. If uplo = 'U' or 'u'
+     *        the leading k x k upper triangular part of the array A must
+     *        contain the upper triangular matrix, and the strictly lower
+     *        triangular part of A is not referenced. If uplo = 'L' or 'l'
+     *        the leading k x k lower triangular part of the array A must
+     *        contain the lower triangular matrix, and the strictly upper
+     * B      single precision array of dimensions (ldb, n). On entry, the 
+     *        leading m x n part of the array contains the matrix B. It is
+     *        overwritten with the transformed matrix on exit.
+     */
+    k = (toupper(side[0]) == 'L') ? *m : *n;
+    stat1 = cublasAlloc (*lda * k, sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc (*ldb * (*n), sizeof(devPtrB[0]), (void**)&devPtrB);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dtrmm", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        return;
+    }
+    stat1 = cublasSetMatrix(imin(k,*lda),k,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    stat2 = cublasSetMatrix(imin(*m,*ldb),*n,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dtrmm", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        return;
+    }
+    cublasDtrmm (side[0], uplo[0], transa[0], diag[0], *m, *n, *alpha, devPtrA,
+                 *lda, devPtrB, *ldb);
+    stat1 = cublasGetMatrix(imin(*m,*ldb),*n,sizeof(B[0]),devPtrB,*ldb,B,*ldb);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dtrmm", CUBLAS_WRAPPER_ERROR_GET);
+    }        
+    cublasFree (devPtrA);
+    cublasFree (devPtrB);
+}
+
+void CUBLAS_DTRSM (const char *side, const char *uplo, const char *transa, 
+                   const char *diag, const int *m, const int *n, 
+                   const double *alpha, const double *A, const int *lda,
+                   double *B, const int *ldb)
+{
+    double *devPtrA = 0, *devPtrB = 0;
+    int k;
+    cublasStatus stat1, stat2;
+
+    if ((*m == 0) || (*n == 0)) return;
+
+    /*  A      - REAL             array of DIMENSION ( LDA, k ), where k is m
+     *           when  SIDE = 'L' or 'l'  and is  n  when  SIDE = 'R' or 'r'.
+     *           Before entry  with  UPLO = 'U' or 'u',  the  leading  k by k
+     *           upper triangular part of the array  A must contain the upper
+     *  B      - REAL             array of DIMENSION ( LDB, n ).
+     *           Before entry,  the leading  m by n part of the array  B must
+     *           contain  the  right-hand  side  matrix  B,  and  on exit  is
+     */
+    k = (toupper(side[0]) == 'L') ? *m : *n;
+    stat1 = cublasAlloc (*lda * k, sizeof(devPtrA[0]), (void**)&devPtrA);
+    stat2 = cublasAlloc (*ldb * (*n), sizeof(devPtrB[0]), (void**)&devPtrB);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dtrsm", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        return;
+    }
+    stat1 = cublasSetMatrix(imin(k,*lda),k,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    stat2 = cublasSetMatrix(imin(*m,*ldb),*n,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Dtrsm", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        return;
+    }
+    cublasDtrsm (side[0], uplo[0], transa[0], diag[0], *m, *n, *alpha, devPtrA,
+                 *lda, devPtrB, *ldb);
+    stat1=cublasGetMatrix(imin(*m,*ldb),*n,sizeof(B[0]),devPtrB,*ldb,B,*ldb);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Dtrsm", CUBLAS_WRAPPER_ERROR_GET);
+    }
+    cublasFree (devPtrA);
+    cublasFree (devPtrB);
+}
+
+void CUBLAS_ZGEMM (const char *transa, const char *transb, const int *m,
+                   const int *n, const int *k, const cuDoubleComplex *alpha,
+                   const cuDoubleComplex *A, const int *lda, 
+                   const cuDoubleComplex *B, const int *ldb, 
+                   const cuDoubleComplex *beta, cuDoubleComplex *C, 
+                   const int *ldc)
+{
+    int ka, kb;
+    cuDoubleComplex *devPtrA = 0, *devPtrB = 0, *devPtrC = 0;
+    cublasStatus stat1, stat2, stat3;
+
+    if ((*m == 0) || (*n == 0)) return; 
+    
+    /*  A      - COMPLEX          array of DIMENSION ( LDA, ka ), where ka is
+     *           k  when  TRANSA = 'N' or 'n',  and is  m  otherwise.
+     *           Before entry with  TRANSA = 'N' or 'n',  the leading  m by k
+     *           part of the array  A  must contain the matrix  A,  otherwise
+     *           the leading  k by m  part of the array  A  must contain  the
+     *           matrix A.
+     *  B      - COMPLEX          array of DIMENSION ( LDB, kb ), where kb is
+     *           n  when  TRANSB = 'N' or 'n',  and is  k  otherwise.
+     *           Before entry with  TRANSB = 'N' or 'n',  the leading  k by n
+     *           part of the array  B  must contain the matrix  B,  otherwise
+     *           the leading  n by k  part of the array  B  must contain  the
+     *           matrix B.
+     *  C      - COMPLEX          array of DIMENSION ( LDC, n ).
+     *           Before entry, the leading  m by n  part of the array  C must
+     *           contain the matrix  C,  except when  beta  is zero, in which
+     *           case C need not be set on entry.
+     *           On exit, the array  C  is overwritten by the  m by n  matrix
+     */
+    ka = (toupper(transa[0]) == 'N') ? *k : *m;
+    kb = (toupper(transb[0]) == 'N') ? *n : *k;
+    stat1 = cublasAlloc (imax(1,*lda*ka),sizeof(devPtrA[0]),(void**)&devPtrA);
+    stat2 = cublasAlloc (imax(1,*ldb*kb),sizeof(devPtrB[0]),(void**)&devPtrB);
+    stat3 = cublasAlloc ((*ldc) * (*n),  sizeof(devPtrC[0]),(void**)&devPtrC);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Zgemm", CUBLAS_WRAPPER_ERROR_ALLOC);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
+    }
+    if (toupper(transa[0]) == 'N') {
+      stat1=cublasSetMatrix(imin(*m,*lda),*k,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    } else {
+      stat1=cublasSetMatrix(imin(*k,*lda),*m,sizeof(A[0]),A,*lda,devPtrA,*lda);
+    }
+    if (toupper(transb[0]) == 'N') {
+      stat2=cublasSetMatrix(imin(*k,*ldb),*n,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    } else {
+      stat2=cublasSetMatrix(imin(*n,*ldb),*k,sizeof(B[0]),B,*ldb,devPtrB,*ldb);
+    }
+    stat3=cublasSetMatrix(imin(*m,*ldc),*n,sizeof(C[0]),C,*ldc,devPtrC,*ldc);
+    if ((stat1 != CUBLAS_STATUS_SUCCESS) || 
+        (stat2 != CUBLAS_STATUS_SUCCESS) ||
+        (stat3 != CUBLAS_STATUS_SUCCESS)) {
+        wrapperError ("Zgemm", CUBLAS_WRAPPER_ERROR_SET);
+        cublasFree (devPtrA);
+        cublasFree (devPtrB);
+        cublasFree (devPtrC);
+        return;
+    }
+    cublasZgemm (transa[0], transb[0], *m, *n, *k, *alpha, devPtrA, *lda, 
+                 devPtrB, *ldb, *beta, devPtrC, *ldc);
+    stat1=cublasGetMatrix(imin(*m,*ldc),*n,sizeof(C[0]),devPtrC,*ldc,C,*ldc);
+    if (stat1 != CUBLAS_STATUS_SUCCESS) {
+        wrapperError ("Zgemm", CUBLAS_WRAPPER_ERROR_GET);
+    }
+    cublasFree (devPtrA);
+    cublasFree (devPtrB);
+    cublasFree (devPtrC);
+}
+
+void CUBLAS_ZHEMM (void)
+{
+    wrapperError ("ZHemm", CUBLAS_WRAPPER_ERROR_STUB);
+}
+void CUBLAS_ZSYMM (void)
+{
+    wrapperError ("ZSymm", CUBLAS_WRAPPER_ERROR_STUB);
+}
+void CUBLAS_ZTRMM (void)
+{
+    wrapperError ("ZTrmm", CUBLAS_WRAPPER_ERROR_STUB);
+}
+void CUBLAS_ZTRSM (void)
+{
+    wrapperError ("ZTrsm", CUBLAS_WRAPPER_ERROR_STUB);
+}
+void CUBLAS_ZHERK (void)
+{
+    wrapperError ("ZHerk", CUBLAS_WRAPPER_ERROR_STUB);
+}
+void CUBLAS_ZSYRK (void)
+{
+    wrapperError ("ZSyrk", CUBLAS_WRAPPER_ERROR_STUB);
+}
+void CUBLAS_ZHER2K (void)
+{
+    wrapperError ("ZHer2k", CUBLAS_WRAPPER_ERROR_STUB);
+}
+void CUBLAS_ZSYR2K (void)
+{
+    wrapperError ("ZSyr2k", CUBLAS_WRAPPER_ERROR_STUB);
 }
 
 #else /* defined(CUBLAS_USE_THUNKING) */
@@ -1744,6 +3793,30 @@ void CUBLAS_CDOTC (cuComplex *retVal, const int *n, const devptr_t *devPtrx,
                    const int *incx, const devptr_t *devPtry, const int *incy);
 int CUBLAS_ICAMAX (const int *n, const devptr_t *devPtrx, const int *incx);
 int CUBLAS_ICAMIN (const int *n, const devptr_t *devPtrx, const int *incx);
+double CUBLAS_DDOT (const int *n, const devptr_t *devPtrx, const int *incx, 
+                   const devptr_t *devPtry, const int *incy);
+double CUBLAS_DASUM (const int *n, const devptr_t *devPtrx, const int *incx);
+double CUBLAS_DNRM2 (const int *n, const devptr_t *devPtrx, const int *incx);
+int CUBLAS_IDAMAX (const int *n, const devptr_t *devPtrx, const int *incx);
+int CUBLAS_IDAMIN (const int *n, const devptr_t *devPtrx, const int *incx);
+void CUBLAS_DAXPY (const int *n, const double *alpha, const devptr_t *devPtrx, 
+                   const int *incx, const devptr_t *devPtry, const int *incy);
+void CUBLAS_DCOPY (const int *n, const devptr_t *devPtrx, const int *incx, 
+                   const devptr_t *devPtry, const int *incy);
+void CUBLAS_DROT (const int *n, const devptr_t *devPtrX, const int *incx, 
+                  const devptr_t *devPtrY, const int *incy, const double *sc, 
+                  const double *ss);
+void CUBLAS_DROTG (double *sa, double *sb, double *sc, double *ss);
+void CUBLAS_DROTM (const int *n, const devptr_t *devPtrx, const int *incx, 
+                   const devptr_t *devPtry, const int *incy, 
+                   const double* sparam);
+void CUBLAS_DROTMG (double *sd1, double *sd2, double *sx1, const double *sy1, 
+                    double* sparam);
+void CUBLAS_DSCAL (const int *n, const double *alpha, const devptr_t *devPtrx,
+                   const int *incx);
+void CUBLAS_DSWAP (const int *n, const devptr_t *devPtrx, const int *incx, 
+                   const devptr_t *devPtry, const int *incy);
+
 
 /* BLAS2 */
 void CUBLAS_SGBMV (const char *trans, const int *m, const int *n,
@@ -1803,6 +3876,21 @@ void CUBLAS_STRMV (const char *uplo, const char *trans, const char *diag,
 void CUBLAS_STRSV (const char *uplo, const char *trans, const char *diag, 
                    const int *n, const devptr_t *devPtrA, const int *lda,
                    const devptr_t *devPtrx, const int *incx);
+void CUBLAS_DGEMV (const char *trans, const int *m, const int *n,
+                   const double *alpha, const devptr_t *devPtrA, 
+                   const int *lda, const devptr_t *devPtrx, const int *incx, 
+                   const double *beta, const devptr_t *devPtry, 
+                   const int *incy);
+void CUBLAS_DGER (const int *m, const int *n, const double *alpha, 
+                  const devptr_t *devPtrx, const int *incx, 
+                  const devptr_t *devPtry, const int *incy, 
+                  const devptr_t *devPtrA, const int *lda);
+void CUBLAS_DSYR (const char *uplo, const int *n, const double *alpha,
+                  const devptr_t *devPtrx, const int *incx, 
+                  const devptr_t *devPtrA, const int *lda);
+void CUBLAS_DTRSV (const char *uplo, const char *trans, const char *diag, 
+                   const int *n, const devptr_t *devPtrA, const int *lda,
+                   const devptr_t *devPtrx, const int *incx);
 
 /* BLAS 3 */
 void CUBLAS_SGEMM (const char *transa, const char *transb, const int *m,
@@ -1837,6 +3925,43 @@ void CUBLAS_CGEMM (const char *transa, const char *transb, const int *m,
                    const devptr_t *devPtrB, const int *ldb, 
                    const cuComplex *beta, const devptr_t *devPtrC,
                    const int *ldc);
+
+void CUBLAS_DGEMM (const char *transa, const char *transb, const int *m,
+                   const int *n, const int *k, const double *alpha, 
+                   const devptr_t *A, const int *lda, const devptr_t *B, 
+                   const int *ldb, const double *beta, const devptr_t *C, 
+                   const int *ldc);
+void CUBLAS_DSYMM (const char *side, const char *uplo, const int *m,
+                   const int *n, const double *alpha, const devptr_t *devPtrA,
+                   const int *lda, const devptr_t *devPtrB, const int *ldb,
+                   const double *beta, const devptr_t *devPtrC,
+                   const int *ldc);
+void CUBLAS_DSYR2K (const char *uplo, const char *trans, const int *n,
+                    const int *k, const double *alpha, const devptr_t *devPtrA,
+                    const int *lda, const devptr_t *devPtrB, const int *ldb,
+                    const double *beta, const devptr_t *devPtrC, 
+                    const int *ldc);
+void CUBLAS_DSYRK (const char *uplo, const char *trans, const int *n,
+                   const int *k, const double *alpha, const devptr_t *devPtrA,
+                   const int *lda, const double *beta, const devptr_t *devPtrC,
+                   const int *ldc);
+void CUBLAS_DTRMM (const char *side, const char *uplo, const char *transa, 
+                   const char *diag, const int *m, const int *n,
+                   const double *alpha, const devptr_t *devPtrA, 
+                   const int *lda,
+                   const devptr_t *devPtrB, const int *ldb);
+void CUBLAS_DTRSM (const char *side, const char *uplo, const char *transa, 
+                   const char *diag, const int *m, const int *n, 
+                   const double *alpha, const devptr_t *devPtrA, 
+                   const int *lda, const devptr_t *devPtrB, const int *ldb);
+
+void CUBLAS_ZGEMM (const char *transa, const char *transb, const int *m,
+                   const int *n, const int *k, const cuDoubleComplex *alpha,
+                   const devptr_t *devPtrA, const int *lda,
+                   const devptr_t *devPtrB, const int *ldb, 
+                   const cuDoubleComplex *beta, const devptr_t *devPtrC,
+                   const int *ldc);
+
 #if defined(__cplusplus)
 }
 #endif /* __cplusplus */
@@ -2067,6 +4192,105 @@ float CUBLAS_SCNRM2 (const int *n, const devptr_t *devPtrx, const int *incx)
     return cublasScnrm2 (*n, x, *incx);
 }
 
+int CUBLAS_IDAMAX (const int *n, const devptr_t *devPtrx, const int *incx)
+{
+    double *x = (double *)(uintptr_t)(*devPtrx);
+    int retVal;
+    retVal = cublasIdamax (*n, x, *incx);
+    return retVal;
+}
+
+int CUBLAS_IDAMIN (const int *n, const devptr_t *devPtrx, const int *incx)
+{
+    double *x = (double *)(uintptr_t)(*devPtrx);
+    int retVal;
+    retVal = cublasIdamin (*n, x, *incx);
+    return retVal;
+}
+
+double CUBLAS_DASUM (const int *n, const devptr_t *devPtrx, const int *incx)
+{
+    double *x = (double *)(uintptr_t)(*devPtrx);
+    double retVal;
+    retVal = cublasDasum (*n, x, *incx);
+    return retVal;
+}
+
+void CUBLAS_DAXPY (const int *n, const double *alpha, const devptr_t *devPtrx, 
+                   const int *incx, const devptr_t *devPtry, const int *incy)
+{
+    double *x = (double *)(uintptr_t)(*devPtrx);
+    double *y = (double *)(uintptr_t)(*devPtry);
+    cublasDaxpy (*n, *alpha, x, *incx, y, *incy);
+}
+
+void CUBLAS_DCOPY (const int *n, const devptr_t *devPtrx, const int *incx, 
+                   const devptr_t *devPtry, const int *incy)
+{
+    double *x = (double *)(uintptr_t)(*devPtrx);
+    double *y = (double *)(uintptr_t)(*devPtry);
+    cublasDcopy (*n, x, *incx, y, *incy);
+}
+
+double CUBLAS_DDOT (const int *n, const devptr_t *devPtrx, const int *incx, 
+                    const devptr_t *devPtry, const int *incy)
+{
+    double *x = (double *)(uintptr_t)(*devPtrx);
+    double *y = (double *)(uintptr_t)(*devPtry);
+    return cublasDdot (*n, x, *incx, y, *incy);
+}
+
+double CUBLAS_DNRM2 (const int *n, const devptr_t *devPtrx, const int *incx)
+{
+    double *x = (double *)(uintptr_t)(*devPtrx);
+    return cublasDnrm2 (*n, x, *incx);
+}
+
+void CUBLAS_DROT (const int *n, const devptr_t *devPtrx, const int *incx, 
+                  const devptr_t *devPtry, const int *incy, const double *sc, 
+                  const double *ss)
+{
+    double *x = (double *)(uintptr_t)(*devPtrx);
+    double *y = (double *)(uintptr_t)(*devPtry);
+    cublasDrot (*n, x, *incx, y, *incy, *sc, *ss);
+}
+
+void CUBLAS_DROTG (double *sa, double *sb, double *sc, double *ss)
+{
+    cublasDrotg (sa, sb, sc, ss);
+}
+
+void CUBLAS_DROTM (const int *n, const devptr_t *devPtrx, const int *incx, 
+                   const devptr_t *devPtry, const int *incy, 
+                   const double* sparam) 
+{
+    double *x = (double *)(uintptr_t)(*devPtrx);
+    double *y = (double *)(uintptr_t)(*devPtry);
+    cublasDrotm (*n, x, *incx, y, *incy, sparam);
+}
+
+void CUBLAS_DROTMG (double *sd1, double *sd2, double *sx1, const double *sy1,
+                    double* sparam)
+{
+    cublasDrotmg (sd1, sd2, sx1, sy1, sparam);
+}
+
+void CUBLAS_DSCAL (const int *n, const double *alpha, const devptr_t *devPtrx,
+                   const int *incx)
+{
+    double *x = (double *)(uintptr_t)(*devPtrx);
+    cublasDscal (*n, *alpha, x, *incx);
+}
+
+void CUBLAS_DSWAP (const int *n, const devptr_t *devPtrx, const int *incx, 
+                   const devptr_t *devPtry, const int *incy)
+{
+    double *x = (double *)(uintptr_t)(*devPtrx);
+    double *y = (double *)(uintptr_t)(*devPtry);
+    cublasDswap (*n, x, *incx, y, *incy);
+}
+
+
 /*---------------------------------------------------------------------------*/
 /*---------------------------------- BLAS2 ----------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -2234,6 +4458,47 @@ void CUBLAS_STRSV (const char *uplo, const char *trans, const char *diag,
     cublasStrsv (uplo[0], trans[0], diag[0], *n, A, *lda, x, *incx);
 }
 
+void CUBLAS_DGEMV (const char *trans, const int *m, const int *n, 
+                   const double *alpha, const devptr_t *devPtrA,
+                   const int *lda, const devptr_t *devPtrx, const int *incx,
+                   const double *beta, const devptr_t *devPtry,
+                   const int *incy)
+{
+    double *A = (double *)(uintptr_t)(*devPtrA);
+    double *x = (double *)(uintptr_t)(*devPtrx);
+    double *y = (double *)(uintptr_t)(*devPtry);
+    cublasDgemv (trans[0], *m, *n, *alpha, A, *lda, x, *incx, *beta, y, *incy);
+}
+
+void CUBLAS_DGER (const int *m, const int *n, const double *alpha, 
+                  const devptr_t *devPtrx, const int *incx,
+                  const devptr_t *devPtry, const int *incy,
+                  const devptr_t *devPtrA, const int *lda)
+{
+    double *A = (double *)(uintptr_t)(*devPtrA);
+    double *x = (double *)(uintptr_t)(*devPtrx);
+    double *y = (double *)(uintptr_t)(*devPtry);    
+    cublasDger (*m, *n, *alpha, x, *incx, y, *incy, A, *lda);
+}
+
+void CUBLAS_DSYR (const char *uplo, const int *n, const double *alpha,
+                  const devptr_t *devPtrx, const int *incx,
+                  const devptr_t *devPtrA, const int *lda)
+{
+    double *A = (double *)(uintptr_t)(*devPtrA);
+    double *x = (double *)(uintptr_t)(*devPtrx);    
+    cublasDsyr (uplo[0], *n, *alpha, x, *incx, A, *lda);
+}
+
+void CUBLAS_DTRSV (const char *uplo, const char *trans, const char *diag,
+                   const int *n, const devptr_t *devPtrA, const int *lda,
+                   const devptr_t *devPtrx, const int *incx)
+{
+    double *A = (double *)(uintptr_t)(*devPtrA);
+    double *x = (double *)(uintptr_t)(*devPtrx);       
+    cublasDtrsv (uplo[0], trans[0], diag[0], *n, A, *lda, x, *incx);
+}
+
 /*---------------------------------------------------------------------------*/
 /*---------------------------------- BLAS3 ----------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -2354,7 +4619,89 @@ void CUBLAS_CSYR2K (void)
     printf ("CUBLAS_CSYR2K stub\n");
 }
 
-#endif  /* defined(CUBLAS_USE_THUNKING) */
+void CUBLAS_DGEMM (const char *transa, const char *transb, const int *m,
+                   const int *n, const int *k, const double *alpha,
+                   const devptr_t *devPtrA, const int *lda, 
+                   const devptr_t *devPtrB, const int *ldb, const double *beta,
+                   const devptr_t *devPtrC, const int *ldc)
+{
+    double *A = (double *)(uintptr_t)(*devPtrA);
+    double *B = (double *)(uintptr_t)(*devPtrB);
+    double *C = (double *)(uintptr_t)(*devPtrC);
+    cublasDgemm (transa[0], transb[0], *m, *n, *k, *alpha, A, *lda, 
+                 B, *ldb, *beta, C, *ldc);
+}
 
-/****/
+void CUBLAS_DSYMM (const char *side, const char *uplo, const int *m, 
+                   const int *n, const double *alpha, const devptr_t *devPtrA,
+                   const int *lda, const devptr_t *devPtrB, const int *ldb, 
+                   const double *beta, const devptr_t *devPtrC, const int *ldc)
+{
+    double *A = (double *)(uintptr_t)(*devPtrA);
+    double *B = (double *)(uintptr_t)(*devPtrB);
+    double *C = (double *)(uintptr_t)(*devPtrC);
+    cublasDsymm (*side, *uplo, *m, *m, *alpha, A, *lda, B, *ldb, *beta, C,
+                 *ldc);
+}
+
+void CUBLAS_DSYR2K (const char *uplo, const char *trans, const int *n,
+                    const int *k, const double *alpha, const devptr_t *devPtrA,
+                    const int *lda, const devptr_t *devPtrB, const int *ldb, 
+                    const double *beta, const devptr_t *devPtrC,
+                    const int *ldc)
+{
+    double *A = (double *)(uintptr_t)(*devPtrA);
+    double *B = (double *)(uintptr_t)(*devPtrB);
+    double *C = (double *)(uintptr_t)(*devPtrC);
+    cublasDsyr2k (*uplo, *trans, *n, *k, *alpha, A, *lda, B, *ldb, *beta, 
+                  C, *ldc);
+}
+
+void CUBLAS_DSYRK (const char *uplo, const char *trans, const int *n, 
+                   const int *k, const double *alpha, const devptr_t *devPtrA, 
+                   const int *lda, const double *beta, const devptr_t *devPtrC,
+                   const int *ldc)
+{
+    double *A = (double *)(uintptr_t)(*devPtrA);
+    double *C = (double *)(uintptr_t)(*devPtrC);
+    cublasDsyrk (*uplo, *trans, *n, *k, *alpha, A, *lda, *beta, C, *ldc);
+}
+
+void CUBLAS_DTRMM (const char *side, const char *uplo, const char *transa,
+                   const char *diag, const int *m, const int *n,
+                   const double *alpha, const devptr_t *devPtrA, 
+                   const int *lda, const devptr_t *devPtrB, const int *ldb)
+{
+    double *A = (double *)(uintptr_t)(*devPtrA);
+    double *B = (double *)(uintptr_t)(*devPtrB);
+    cublasDtrmm (*side, *uplo, *transa, *diag, *m, *n, *alpha, A, *lda, B,
+                 *ldb);
+}
+
+void CUBLAS_DTRSM (const char *side, const char *uplo, const char *transa,
+                   const char *diag, const int *m, const int *n, 
+                   const double *alpha, const devptr_t *devPtrA,
+                   const int *lda, const devptr_t *devPtrB, const int *ldb)
+{
+    double *A = (double *)(uintptr_t)*devPtrA;
+    double *B = (double *)(uintptr_t)*devPtrB;
+    cublasDtrsm (side[0], uplo[0], transa[0], diag[0], *m, *n, *alpha,
+                 A, *lda, B, *ldb);
+}
+
+void CUBLAS_ZGEMM (const char *transa, const char *transb, const int *m,
+                   const int *n, const int *k, const cuDoubleComplex *alpha,
+                   const devptr_t *devPtrA, const int *lda,
+                   const devptr_t *devPtrB, const int *ldb, 
+                   const cuDoubleComplex *beta, const devptr_t *devPtrC,
+                   const int *ldc)
+{
+    cuDoubleComplex *A = (cuDoubleComplex *)(uintptr_t)*devPtrA;
+    cuDoubleComplex *B = (cuDoubleComplex *)(uintptr_t)*devPtrB;
+    cuDoubleComplex *C = (cuDoubleComplex *)(uintptr_t)*devPtrC;    
+    cublasZgemm (transa[0], transb[0], *m, *n, *k, *alpha, A, *lda, B, *ldb, 
+                 *beta, C, *ldc);
+}
+
+#endif  /* defined(CUBLAS_USE_THUNKING) */
 

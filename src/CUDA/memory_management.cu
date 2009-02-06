@@ -11,7 +11,7 @@
 #define GPU_SIMPLE 1
 #define GPU_DOUBLE 2
 
-static int getPrecisionSize();
+static unsigned int getPrecisionSize();
 static short gpu_precision;
 
 
@@ -36,8 +36,54 @@ void set_gpu_double__()
 
 
 extern "C" 
+void cpu_pinned_allocation__(int *nsize, //memory size
+			     void **CPU_pointer,
+			     int *ierr) // error code, 1 if failure
+
+		    
+{
+  unsigned int mem_size = (*nsize)*(10)*getPrecisionSize();
+  *ierr=0;
+
+  if(cudaMallocHost(CPU_pointer, mem_size ) != cudaSuccess)
+    {
+      printf("CPU pinned allocation error \n");
+      *ierr=1;
+      return;
+    }
+
+
+  
+}
+
+
+extern "C" 
+void cpu_pinned_deallocation__(void **CPU_pointer,
+			       int *ierr) // error code, 1 if failure
+
+		    
+{
+ 
+  *ierr=0;
+
+  if(cudaFreeHost(*CPU_pointer) != cudaSuccess)
+    {
+      printf("CPU pinned dealocation error \n");
+      *ierr=1;
+      return;
+    }
+
+  CUERR;
+}
+
+
+
+
+
+
+extern "C" 
 void gpu_allocate__(int *nsize, //memory size
-		    float **GPU_pointer, // pointer indicating the GPU address
+		    void **GPU_pointer, // pointer indicating the GPU address
 		    int *ierr) // error code, 1 if failure
 
 		    
@@ -48,7 +94,7 @@ void gpu_allocate__(int *nsize, //memory size
 
   //allocate memory on GPU, return error code in case of problems
   *ierr=0;
-  if(cudaMalloc( (void**) (GPU_pointer), mem_size) != 0)
+  if(cudaMalloc( GPU_pointer, mem_size) != 0)
     {
       printf("GPU allocation error \n");
       *ierr=1;
@@ -58,7 +104,7 @@ void gpu_allocate__(int *nsize, //memory size
 
 extern "C" 
 void gpu_int_allocate__(int *nsize, //memory size
-			float **GPU_pointer, // pointer indicating the GPU address
+			void **GPU_pointer, // pointer indicating the GPU address
 			int *ierr) // error code, 1 if failure
 
 		    
@@ -69,7 +115,7 @@ void gpu_int_allocate__(int *nsize, //memory size
 
   //allocate memory on GPU, return error code in case of problems
   *ierr=0;
-  if(cudaMalloc( (void**) (GPU_pointer), mem_size) != 0)
+  if(cudaMalloc( GPU_pointer, mem_size) != 0)
     {
       printf("GPU allocation error \n");
       *ierr=1;
@@ -79,7 +125,7 @@ void gpu_int_allocate__(int *nsize, //memory size
 
 
 extern "C" 
-void gpu_deallocate__(float **GPU_pointer, // pointer indicating the GPU address
+void gpu_deallocate__(void **GPU_pointer, // pointer indicating the GPU address
 		      int *ierr) // error code, 1 if failure
 {
   //deallocate memory on GPU, return error code in case of problems
@@ -99,8 +145,8 @@ void gpu_deallocate__(float **GPU_pointer, // pointer indicating the GPU address
 
 extern "C"
 void gpu_send__(int *nsize,
-		float *CPU_pointer, 
-		float **GPU_pointer,
+		void *CPU_pointer, 
+		void **GPU_pointer,
 		int *ierr)
 {
 
@@ -120,7 +166,7 @@ void gpu_send__(int *nsize,
 extern "C"
 void gpu_int_send__(int *nsize,
 		    int *CPU_pointer, 
-		    float **GPU_pointer,
+		    void **GPU_pointer,
 		    int *ierr)
 {
 
@@ -140,8 +186,8 @@ void gpu_int_send__(int *nsize,
 
 extern "C" 
 void gpu_receive__(int *nsize,
-		   float *CPU_pointer, 
-		   float **GPU_pointer,
+		   void *CPU_pointer, 
+		   void **GPU_pointer,
 		   int *ierr)
 {
 
@@ -161,7 +207,7 @@ void gpu_receive__(int *nsize,
 }
 
 //private fct
-static int getPrecisionSize()
+static unsigned int getPrecisionSize()
 {
   if(gpu_precision == GPU_DOUBLE)
     return sizeof(double);
