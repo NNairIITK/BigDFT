@@ -467,7 +467,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              '-------------------------------------------------------------- Wavefunctions Restart'
      end if
 
-     call reformatmywaves(iproc,orbs,atoms%nat,hx_old,hy_old,hz_old,&
+     call reformatmywaves(iproc,orbs,atoms,hx_old,hy_old,hz_old,&
           n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,hx,hy,hz,n1,n2,n3,rxyz,Glr%wfd,psi)
 
      call deallocate_wfd(wfd_old,'cluster')
@@ -497,7 +497,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
 
-     call readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,atoms%nat,rxyz,Glr%wfd,psi)
+     call readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psi)
 
      !initialise control value for gnrm in the case of a restart
      gnrm_check=0.0_gp

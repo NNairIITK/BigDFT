@@ -256,7 +256,7 @@ program MINHOP
      filename = 'global.mon'
      write(67,*) 'iteration results written in:',filename
      write(*,*) '# iteration results written in:',filename
-     open(unit=2,file=filename,status='unknown',access='append')
+     open(unit=2,file=filename,status='unknown',position='append')
   endif
 
   ! (un)comment the correct 2 lines
@@ -378,7 +378,7 @@ program MINHOP
         !goto 3000
         exit hopping_loop 
      endif
-     !            Energy has reached taregt eref and global minimum is presumably found
+     !            Energy has reached target eref and global minimum is presumably found
      if (re_sm <= 1.d-3) then
         write(*,*)'# process', iproc,'success: relative energy < 0.001'
         !goto 3000
@@ -784,15 +784,30 @@ contains
     econs_max=-1.d100
     econs_min=1.d100
     !call my_input_variables(iproc,.false.,inputs_md)
-    do istep=1,1000
+    md_loop: do istep=1,1000
 
        !C      Evolution of the system according to 'VELOCITY VERLET' algorithm
        rkin=0.d0
        do iat=1,atoms%nat
           if (.not. atoms%lfrztyp(iat)) then
-             rxyz(1,iat)=rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat)
-             rxyz(2,iat)=rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
-             rxyz(3,iat)=rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat)
+             if (atoms%geocode == 'P') then
+                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
+                     atoms%alat1)
+                rxyz(2,iat)=modulo(rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat),&
+                     atoms%alat2)
+                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
+                     atoms%alat3)
+             else if (atoms%geocode == 'S') then
+                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
+                     atoms%alat1)
+                rxyz(2,iat)=       rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
+                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
+                     atoms%alat3)
+             else if (atoms%geocode == 'F') then
+                rxyz(1,iat)=rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat)
+                rxyz(2,iat)=rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
+                rxyz(3,iat)=rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat)
+             end if
              rkin=rkin+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
           end if
        enddo
@@ -803,12 +818,12 @@ contains
        !        call energyandforces(nat,rxyz,ff,e_rxyz,count_md)
        !    if (iproc.eq.0) write(*,*) 'CLUSTER FOR  MD'
        inputs_md%inputPsiId=1
-       if (istep.gt.2) inputs_md%itermax=50
+       if (istep > 2) inputs_md%itermax=50
        call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,e_rxyz,ff,rst,infocode)
 
        !call wtmd(istep,atoms%nat,e_rxyz,rxyz,atoms%iatype,atoms%atomnames,atoms%natpol)
        if (iproc == 0) then
-          write(fn,'(i4.4)') istep
+          write(fn,'(i4.4)') istep+int(count_md)
           call wtxyz('posmd_'//fn,e_rxyz,rxyz,atoms,'')
        end if
 
@@ -822,9 +837,10 @@ contains
             istep,e_rxyz,nummax,nummin
        if (iproc.eq.0) write(*,'(a,i5,1x,1pe17.10,2(1x,i2))') ' #MD ',&
             istep,e_rxyz,nummax,nummin
-       if (nummin.ge.mdmin .and. istep.gt.50) then
-          if (nummax.ne.nummin .and. iproc.eq.0) write(67,*) 'WARNING: nummin,nummax',nummin,nummax
-          goto 2222
+       if (nummin.ge.mdmin .and. istep > 50) then
+          if (nummax.ne.nummin .and. iproc == 0) &
+               write(67,*) 'WARNING: nummin,nummax',nummin,nummax
+          exit md_loop
        endif
        do iat=1,atoms%nat
           at1=ff(1,iat)
@@ -841,16 +857,23 @@ contains
           gg(2,iat) = at2
           gg(3,iat) = at3
        end do
-    end do
-    if (iproc.eq.0) write(67,*) 'TOO MANY MD STEPS'
-    dt=2.d0*dt
+    end do md_loop
+    if (istep >=1000) then
+       if (iproc == 0) write(67,*) 'TOO MANY MD STEPS'
+       dt=2.d0*dt
+    end if
+    !save the value of count_md for the moment
+    count_md=count_md+real(istep,gp)
+
     !C MD stopped, now do relaxation
-2222 continue
+
     !  if (iproc.eq.0) write(67,*) 'EXIT MD',istep
     
     ! adjust time step to meet precision criterion
     devcon=devcon/(3*atoms%nat-3)
-    if (iproc.eq.0) write(66,'(a,2(1x,1pe11.4),1x,i5)') 'MD devcon ',devcon,devcon/ekinetic,istep
+    if (iproc == 0) &
+         write(66,'(a,2(1x,1pe11.4),1x,i5)')&
+         'MD devcon ',devcon,devcon/ekinetic,istep
     if (devcon/ekinetic.lt.7.d-2) then
        write(66,*) 'MD:old,new dt',dt,dt*1.05d0
        dt=dt*1.05d0
@@ -963,12 +986,35 @@ contains
     do it=1,nit
        !       if(iproc==0)write(*,*)'w   =      r       +       v  '
        !update the positions, if the atom is not frozen
-       do i=1,3*atoms%nat
-          iat=(i-1)/3+1
+!!$       do i=1,3*atoms%nat
+!!$          iat=(i-1)/3+1
+!!$          if (atoms%lfrztyp(iat)) then
+!!$             wpos(i)=rxyz(i)
+!!$          else
+!!$             wpos(i)=rxyz(i)+vxyz(i)
+!!$          end if
+!!$          !if(iproc==0)write(*,*)wpos(i),rxyz(i),vxyz(i)
+!!$       end do
+       
+       do iat=1,atoms%nat
           if (atoms%lfrztyp(iat)) then
-             wpos(i)=rxyz(i)
+             wpos(3*(iat-1)+1)=rxyz(3*(iat-1)+1)
+             wpos(3*(iat-1)+2)=rxyz(3*(iat-1)+2)
+             wpos(3*(iat-1)+3)=rxyz(3*(iat-1)+3)
           else
-             wpos(i)=rxyz(i)+vxyz(i)
+             if (atoms%geocode == 'P') then
+                wpos(3*(iat-1)+1)=modulo(rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1),atoms%alat1)
+                wpos(3*(iat-1)+2)=modulo(rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2),atoms%alat2)
+                wpos(3*(iat-1)+3)=modulo(rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3),atoms%alat3)
+             else if (atoms%geocode == 'S') then
+                wpos(3*(iat-1)+1)=modulo(rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1),atoms%alat1)
+                wpos(3*(iat-1)+2)=       rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2)
+                wpos(3*(iat-1)+3)=modulo(rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3),atoms%alat3)
+             else if (atoms%geocode == 'F') then
+                wpos(3*(iat-1)+1)=rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1)
+                wpos(3*(iat-1)+2)=rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2)
+                wpos(3*(iat-1)+3)=rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3)
+             end if
           end if
           !if(iproc==0)write(*,*)wpos(i),rxyz(i),vxyz(i)
        end do
@@ -1017,12 +1063,31 @@ contains
        !if(iproc==0)write(11,*)&
        !        it,tt,res,curv,fd2,etot-etot0
 
-       do i=1,3*atoms%nat
-          iat=(i-1)/3+1
+       do iat=1,atoms%nat
           if (.not. atoms%lfrztyp(iat)) then
-             wpos(i)=wpos(i)+alpha*fxyz(i)
+             if (atoms%geocode == 'P') then
+                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%alat1)
+                wpos(3*(iat-1)+2)=modulo(wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2),atoms%alat2)
+                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%alat3)
+             else if (atoms%geocode == 'S') then
+                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%alat1)
+                wpos(3*(iat-1)+2)=       wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
+                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%alat3)
+             else if (atoms%geocode == 'F') then
+                wpos(3*(iat-1)+1)=wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1)
+                wpos(3*(iat-1)+2)=wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
+                wpos(3*(iat-1)+3)=wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3)
+             end if
+
           end if
        end do
+!!$       do i=1,3*atoms%nat
+!!$          iat=(i-1)/3+1
+!!$          if (.not. atoms%lfrztyp(iat)) then
+!!$             wpos(i)=wpos(i)+alpha*fxyz(i)
+!!$          end if
+!!$       end do
+
        do i=1,3*atoms%nat
           vxyz(i)=wpos(i)-rxyz(i)
        end do
@@ -1616,9 +1681,19 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
         tt=bondlength/sqrt(d1**2+d2**2+d3**2)
         do iat=1,at%nat
            if (.not. belong(iat) .and. .not. at%lfrztyp(iat)) then
-              rxyz(1,iat)=rxyz(1,iat)+d1*(tt-1.0d0)
-              rxyz(2,iat)=rxyz(2,iat)+d2*(tt-1.0d0)
-              rxyz(3,iat)=rxyz(3,iat)+d3*(tt-1.0d0)
+              if (at%geocode == 'P') then
+                 rxyz(1,iat)=modulo(rxyz(1,iat)+d1*(tt-1.0d0),at%alat1)
+                 rxyz(2,iat)=modulo(rxyz(2,iat)+d2*(tt-1.0d0),at%alat2)
+                 rxyz(3,iat)=modulo(rxyz(3,iat)+d3*(tt-1.0d0),at%alat3)
+              else if (at%geocode == 'S') then
+                 rxyz(1,iat)=modulo(rxyz(1,iat)+d1*(tt-1.0d0),at%alat1)
+                 rxyz(2,iat)=       rxyz(2,iat)+d2*(tt-1.0d0)
+                 rxyz(3,iat)=modulo(rxyz(3,iat)+d3*(tt-1.0d0),at%alat3)
+              else
+                 rxyz(1,iat)=rxyz(1,iat)+d1*(tt-1.0d0)
+                 rxyz(2,iat)=rxyz(2,iat)+d2*(tt-1.0d0)
+                 rxyz(3,iat)=rxyz(3,iat)+d3*(tt-1.0d0)
+              end if
            endif
         enddo
 

@@ -94,7 +94,7 @@ program BigDFT
      end if
   enddo
 
-  !atoms inside the box (this can be insertedindise call_bigdft routine
+  ! atoms inside the box (this can be inserted inside call_bigdft routine)
   do iat=1,atoms%nat
      if (atoms%geocode == 'P') then
         rxyz(1,iat)=modulo(rxyz(1,iat),atoms%alat1)
@@ -114,9 +114,9 @@ program BigDFT
      if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
      ! geometry optimization
      !    betax=2.d0   ! Cinchonidine
-     !    betax=4.d0  ! Si H_4
-     !   betax=7.5d0  ! silicon systems
-     !    betax=10.d0  !  Na_Cl clusters
+     !    betax=4.d0   ! Si H_4
+     !    betax=7.5d0  ! Silicon systems
+     !    betax=10.d0  ! Na_Cl clusters
      ncount_cluster=1
 
      call conjgrad(nproc,iproc,atoms,rxyz,etot,fxyz,rst,ncount_cluster,inputs)
@@ -171,5 +171,5 @@ program BigDFT
 
   if (nproc > 1) call MPI_FINALIZE(ierr)
 
- end program BigDFT
- !!***
+END PROGRAM BigDFT
+!!***
