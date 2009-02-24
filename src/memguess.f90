@@ -447,7 +447,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,lr,hx,hy,hz,rxyz)
   integer :: iorb
   real(kind=4) :: tt,t0,t1
   real(wp) :: maxdiff,comp
-  real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum
+  real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU
   real(kind=8) :: CPUtime,CPUGflops,GPUtime,GPUGflops
   type(gaussian_basis) :: G
   type(orbitals_data) :: orbs
@@ -506,7 +506,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,lr,hx,hy,hz,rxyz)
   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbs,lr%d,&
        hx,hy,hz,lr%wfd,G,gaucoeffs,psi)
 
- 
+  psi=1.d0/sqrt(real(lr%d%n1i*lr%d%n2i*lr%d%n3i,wp))
+
   i_all=-product(shape(gaucoeffs))*kind(gaucoeffs)
   deallocate(gaucoeffs,stat=i_stat)
   call memocc(i_stat,i_all,'gaucoeffs',subname)
@@ -538,7 +539,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,lr,hx,hy,hz,rxyz)
               arg=0.5d0*r2/sigma2
               ttd=dexp(-arg)
               !same initialisation for psi and pot
-              pot(i1,i2,i3,ispin)=0.d0!ttd
+              pot(i1,i2,i3,ispin)=1.d0!ttd
            end do
         end do
      end do
@@ -575,16 +576,17 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,lr,hx,hy,hz,rxyz)
   print *,'ekin,epot=',ekin_sum,epot_sum
 
   !warm-up
-  call gpu_locham(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU)
+  call gpu_locham(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU,ekinGPU,epotGPU)
 
   !apply the GPU hamiltonian
   !take timings
   call cpu_time(t0)
   do j=1,ntimes
-     call gpu_locham(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU)
-     !call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum) 
+     call gpu_locham(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU,ekinGPU,epotGPU)
   end do
   call cpu_time(t1)
+
+  print *,'ekinGPU,epotGPU',ekinGPU,epotGPU
 
   GPUtime=real(t1-t0,kind=8)
   GPUGflops=8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3*ntimes,kind=8)*366.d0/(GPUtime*1.d9)

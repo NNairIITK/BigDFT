@@ -444,12 +444,12 @@ subroutine applylocpotkinone_per(n1,n2,n3, &
      !$omp end critical
      
      !$omp end parallel
-     
+    
      call convolut_magic_t_per_self(2*n1+1,2*n2+1,2*n3+1,psir,psi_out)
 
      ! compute the kinetic part and add  it to psi_out
      ! the kinetic energy is calculated at the same time
-     call convolut_kinetic_per_T(2*n1+1,2*n2+1,2*n3+1,hgridh,psi_in,psi_out,ekin)
+     call convolut_kinetic_per_t(2*n1+1,2*n2+1,2*n3+1,hgridh,psi_in,psi_out,ekin)
 
   end if
   

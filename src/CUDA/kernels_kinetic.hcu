@@ -81,69 +81,38 @@ __global__ void kinetic1d(int n,int ndat,T scale,
       register T conv = 
 	//hand-unrolled loop 
 	//order changed for increasing the precision
-	///*
-	KFIL14*(psi_sh[ShBaseElem               ] +
-		psi_sh[ShBaseElem + 28*NUM_LINES]) +
-	KFIL13*(psi_sh[ShBaseElem +    NUM_LINES]  +
-		psi_sh[ShBaseElem + 27*NUM_LINES]) +
-	KFIL12*(psi_sh[ShBaseElem +  2*NUM_LINES]  +
-		psi_sh[ShBaseElem + 26*NUM_LINES]) +
-	KFIL11*(psi_sh[ShBaseElem +  3*NUM_LINES]  +
-		psi_sh[ShBaseElem + 25*NUM_LINES]) +
-	KFIL10*(psi_sh[ShBaseElem +  4*NUM_LINES]  +
-		psi_sh[ShBaseElem + 24*NUM_LINES]) +
-	KFIL9 *(psi_sh[ShBaseElem +  5*NUM_LINES]  +
-		psi_sh[ShBaseElem + 23*NUM_LINES]) +
-	KFIL8 *(psi_sh[ShBaseElem +  6*NUM_LINES]  +
-		psi_sh[ShBaseElem + 22*NUM_LINES]) +
-	KFIL7 *(psi_sh[ShBaseElem +  7*NUM_LINES]  +
-		psi_sh[ShBaseElem + 21*NUM_LINES]) +
-	KFIL6 *(psi_sh[ShBaseElem +  8*NUM_LINES]  +
-		psi_sh[ShBaseElem + 20*NUM_LINES]) +
-	KFIL5 *(psi_sh[ShBaseElem +  9*NUM_LINES]  +
-		psi_sh[ShBaseElem + 19*NUM_LINES]) +
-	KFIL4 *(psi_sh[ShBaseElem + 10*NUM_LINES]  +
-		psi_sh[ShBaseElem + 18*NUM_LINES]) +
-	KFIL3 *(psi_sh[ShBaseElem + 11*NUM_LINES]  +
-		psi_sh[ShBaseElem + 17*NUM_LINES]) +
-	KFIL2 *(psi_sh[ShBaseElem + 12*NUM_LINES]  +
-		psi_sh[ShBaseElem + 16*NUM_LINES]) +
-	KFIL1 *(psi_sh[ShBaseElem + 13*NUM_LINES]  +
-		psi_sh[ShBaseElem + 15*NUM_LINES]) +
-	KFIL0 * psi_sh[ShBaseElem + 14*NUM_LINES];
-      //*/
+	((T)KFIL14)*(psi_sh[ShBaseElem               ] +
+		     psi_sh[ShBaseElem + 28*NUM_LINES]) +
+	((T)KFIL13)*(psi_sh[ShBaseElem +    NUM_LINES]  +
+		     psi_sh[ShBaseElem + 27*NUM_LINES]) +
+	((T)KFIL12)*(psi_sh[ShBaseElem +  2*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 26*NUM_LINES]) +
+	((T)KFIL11)*(psi_sh[ShBaseElem +  3*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 25*NUM_LINES]) +
+	((T)KFIL10)*(psi_sh[ShBaseElem +  4*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 24*NUM_LINES]) +
+	((T)KFIL9) *(psi_sh[ShBaseElem +  5*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 23*NUM_LINES]) +
+	((T)KFIL8) *(psi_sh[ShBaseElem +  6*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 22*NUM_LINES]) +
+	((T)KFIL7) *(psi_sh[ShBaseElem +  7*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 21*NUM_LINES]) +
+	((T)KFIL6) *(psi_sh[ShBaseElem +  8*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 20*NUM_LINES]) +
+	((T)KFIL5) *(psi_sh[ShBaseElem +  9*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 19*NUM_LINES]) +
+	((T)KFIL4) *(psi_sh[ShBaseElem + 10*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 18*NUM_LINES]) +
+	((T)KFIL3) *(psi_sh[ShBaseElem + 11*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 17*NUM_LINES]) +
+	((T)KFIL2) *(psi_sh[ShBaseElem + 12*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 16*NUM_LINES]) +
+	((T)KFIL1) *(psi_sh[ShBaseElem + 13*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 15*NUM_LINES]) +
+	((T)KFIL0) * psi_sh[ShBaseElem + 14*NUM_LINES];
+      
 
-      /*
-	KFIL0 * psi_sh[ShBaseElem + 14*NUM_LINES]  +
-	KFIL1 *(psi_sh[ShBaseElem + 13*NUM_LINES]  +
-		psi_sh[ShBaseElem + 15*NUM_LINES]) +
-	KFIL2 *(psi_sh[ShBaseElem + 12*NUM_LINES]  +
-		psi_sh[ShBaseElem + 16*NUM_LINES]) +
-	KFIL3 *(psi_sh[ShBaseElem + 11*NUM_LINES]  +
-		psi_sh[ShBaseElem + 17*NUM_LINES]) +
-	KFIL4 *(psi_sh[ShBaseElem + 10*NUM_LINES]  +
-		psi_sh[ShBaseElem + 18*NUM_LINES]) +
-	KFIL5 *(psi_sh[ShBaseElem +  9*NUM_LINES]  +
-		psi_sh[ShBaseElem + 19*NUM_LINES]) +
-	KFIL6 *(psi_sh[ShBaseElem +  8*NUM_LINES]  +
-		psi_sh[ShBaseElem + 20*NUM_LINES]) +
-	KFIL7 *(psi_sh[ShBaseElem +  7*NUM_LINES]  +
-		psi_sh[ShBaseElem + 21*NUM_LINES]) +
-	KFIL8 *(psi_sh[ShBaseElem +  6*NUM_LINES]  +
-		psi_sh[ShBaseElem + 22*NUM_LINES]) +
-	KFIL9 *(psi_sh[ShBaseElem +  5*NUM_LINES]  +
-		psi_sh[ShBaseElem + 23*NUM_LINES]) +
-	KFIL10*(psi_sh[ShBaseElem +  4*NUM_LINES]  +
-		psi_sh[ShBaseElem + 24*NUM_LINES]) +
-	KFIL11*(psi_sh[ShBaseElem +  3*NUM_LINES]  +
-		psi_sh[ShBaseElem + 25*NUM_LINES]) +
-	KFIL12*(psi_sh[ShBaseElem +  2*NUM_LINES]  +
-		psi_sh[ShBaseElem + 26*NUM_LINES]) +
-	KFIL13*(psi_sh[ShBaseElem +    NUM_LINES]  +
-		psi_sh[ShBaseElem + 27*NUM_LINES]) +
-	KFIL14*(psi_sh[ShBaseElem               ]  +
-		psi_sh[ShBaseElem + 28*NUM_LINES]) ;
-      */
+     
 
 
       y_out[BaseElem]=y_in[thelem]-scale*conv;
@@ -202,190 +171,12 @@ __global__ void c_initialize(int n,int ndat,
 }
 
 
-template<typename T>
-int kineticfilter(int n1,int n2, int n3,
-		  T h1,T h2,T h3,T c,
-		  T *x,
-		  T *workx,
-		  T *y,
-		  T *worky,
-		  T *ekin)
-{
 
-  //create the parameters
-  parGPU_t parCPU[3];
-
-  //calculate the number of threads and blocks
-  unsigned int numBlocks,linecuts,num_halfwarps;
-
-  //calculate the parameters in constant memory for each of the 1D convolution
-  //define the number of threads and blocks according to parameter definitions
-  GPUParameters<T>(&parCPU[2],&num_halfwarps,n3,n1*n2,1,LOWFILK,LUPFILK,&linecuts,&numBlocks);
-  dim3  grid3(linecuts,  numBlocks, 1);  
-  dim3  threads3(HALF_WARP_SIZE, num_halfwarps , 1);
-
-  //printf("num_blocksx %i, num_blocksy %i, halfwarps %i,n1,ndat, %i %i\n",
-  //linecuts,numBlocks,num_halfwarps,n3,n1*n2);
-
-  GPUParameters<T>(&parCPU[1],&num_halfwarps,n2,n1*n3,1,LOWFILK,LUPFILK,&linecuts,&numBlocks);
-  dim3  grid2(linecuts,  numBlocks, 1);  
-  dim3  threads2(HALF_WARP_SIZE, num_halfwarps , 1);
-
-  //printf("num_blocksx %i, num_blocksy %i, halfwarps %i,n1,ndat, %i %i\n",
-  //linecuts,numBlocks,num_halfwarps,n2,n1*n3);
-
-  GPUParameters<T>(&parCPU[0],&num_halfwarps,n1,n2*n3,1,LOWFILK,LUPFILK,&linecuts,&numBlocks);
-  dim3  grid1(linecuts,  numBlocks, 1);  
-  dim3  threads1(HALF_WARP_SIZE, num_halfwarps , 1);
-
-  //printf("num_blocksx %i, num_blocksy %i, halfwarps %i,n1,ndat, %i %i\n",
-  //linecuts,numBlocks,num_halfwarps,n1,n3*n2);
-
-  //send them to constant memory, once and for all
-  if(cudaMemcpyToSymbol(*par,&parCPU, 3*sizeof(parGPU_t)) != 0)
-    {
-      printf("MemcpyToSymbol error\n");
-
-      return 1;
-    }
-
-
-  //here the worky array should be initialised to c*x
-  c_initialize<T> <<< grid3, threads3 >>>(n3,n1*n2,x,worky,c,2);
-  cudaThreadSynchronize();
-
-
-  //define the scale factor to be applied to the convolution
-  T scale=0.5/(h3*h3);
-
-  kinetic1d<T> <<< grid3, threads3 >>>(n3,n1*n2,scale,x,workx,worky,y,2);
-  cudaThreadSynchronize();
-
-  scale=0.5/(h2*h2);
-  kinetic1d<T> <<< grid2, threads2 >>>(n2,n1*n3,scale,workx,x,y,worky,1);
-  cudaThreadSynchronize();
-
-  scale=0.5/(h1*h1);
-  kinetic1d<T> <<< grid1, threads1 >>>(n1,n2*n3,scale,x,workx,worky,y,0);
-  cudaThreadSynchronize();
-
-  //then calculate the kinetic energy
-  reducearrays<T>(n1,n2*n3,x,y,ekin);
-  cudaThreadSynchronize();
-
-  return 0;
-
-}
-
-template<typename T>
-int k1d(int ndat, int n,
-	T h,T c,
-	T *x,
-	T *workx,
-	T *y,
-	T *worky,
-	T *ekin)
-{
-
-  //create the parameters
-  parGPU_t parCPU[1];
-
-  //calculate the number of threads and blocks
-  unsigned int numBlocks,linecuts,num_halfwarps;
-
-  //calculate the parameters in constant memory for each of the 1D convolution
-  //define the number of threads and blocks according to parameter definitions
-  GPUParameters<T>(&parCPU[0],&num_halfwarps,n,ndat,1,LOWFILK,LUPFILK,&linecuts,&numBlocks);
-  dim3  grid3(linecuts,  numBlocks, 1);  
-  dim3  threads3(HALF_WARP_SIZE, num_halfwarps , 1);
-
-  //send them to constant memory, once and for all
-  if(cudaMemcpyToSymbol(*par,&parCPU, sizeof(parGPU_t)) != 0)
-    {
-      printf("MemcpyToSymbol error\n");
-
-      return 1;
-    }
-
-
-  //define the scale factor to be applied to the convolution
-  T scale=0.5/(h*h);
-
-  //here the worky array should be initialised to c*x
-  c_initialize<T> <<< grid3, threads3 >>>(n,ndat,x,worky,c,0);
-  cudaThreadSynchronize();
-
-  kinetic1d<T> <<< grid3, threads3 >>>(n,ndat,scale,x,workx,worky,y,0);
-  cudaThreadSynchronize();
-
-  //then calculate the kinetic energy
-  reducearrays<T>(n,ndat,x,y,ekin);
-  cudaThreadSynchronize();
-  return 0;
-
-}
 
 /****/
 
 
-extern "C" 
-void kineticterm_(int *n1,int *n2,int *n3,
-		  float *hx,float *hy,float *hz,float *c,
-		  float **x,float **y,float **workx,float **worky,
-		  float *ekin) 
 
-{
-
-  
-  if(kineticfilter<float>(*n1+1,*n2+1,*n3+1,
-			  *hx,*hy,*hz,*c,
-			  *x,*workx,*y,*worky,
-			  ekin) != 0)
-    {
-      printf("ERROR: GPU kineticfilter\n ");
-      return;
-    } 
-  return; 
-}
-
-extern "C" 
-void kinetictermd_(int *n1,int *n2,int *n3,
-		   double *hx,double *hy,double *hz,double *c,
-		   double **x,double **y,double **workx,double **worky,
-		   double *ekin) 
-
-{
-
-  
-  if(kineticfilter<double>(*n1+1,*n2+1,*n3+1,
-			  *hx,*hy,*hz,*c,
-			  *x,*workx,*y,*worky,
-			  ekin) != 0)
-    {
-      printf("ERROR: GPU kineticfilter\n ");
-      return;
-    } 
-  return; 
-  }
-
-extern "C" 
-void kinetic1d_(int *n,int *ndat,
-		double *h,double *c,
-		double **x,double **y,double **workx,double **worky,
-		double *ekin) 
-
-{
-
-  
-  if(k1d<double>(*ndat,*n+1,
-		 *h,*c,
-		 *x,*workx,*y,*worky,ekin) != 0)
-    {
-      printf("ERROR: GPU kineticfilter\n ");
-      return;
-    } 
-  return; 
-}
 
 
 
