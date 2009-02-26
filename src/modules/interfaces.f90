@@ -71,17 +71,15 @@ interface
      real(gp), dimension(3,at%nat), intent(out) :: fxyz
    end subroutine conjgrad
 
-   subroutine copy_old_wavefunctions(iproc,nproc,orbs,hx,hy,hz,n1,n2,n3,wfd,psi,&
-        hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
+   subroutine copy_old_wavefunctions(iproc,nproc,orbs,n1,n2,n3,wfd,psi,&
+        n1_old,n2_old,n3_old,wfd_old,psi_old)
      use module_base
      use module_types
      implicit none
      integer, intent(in) :: iproc,nproc,n1,n2,n3
-     real(gp), intent(in) :: hx,hy,hz
      type(orbitals_data), intent(in) :: orbs
      type(wavefunctions_descriptors), intent(inout) :: wfd,wfd_old
      integer, intent(out) :: n1_old,n2_old,n3_old
-     real(gp), intent(out) :: hx_old,hy_old,hz_old
      real(wp), dimension(:), pointer :: psi,psi_old
    end subroutine copy_old_wavefunctions
 
@@ -631,6 +629,28 @@ interface
      type(gaussian_basis), intent(out) :: G
      real(wp), dimension(:,:), pointer :: psigau
    end subroutine inputguess_gaussian_orbitals
+
+   subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
+        ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,iorbtolr)
+     use module_base
+     use module_types
+     implicit none
+     integer, intent(in) :: norbe,ngx,iproc,nproc
+     integer, intent(in) :: norbsc,nspin
+     type(atoms_data), intent(in) :: at
+     logical, dimension(4,2,at%natsc), intent(in) :: scorb
+     real(gp), dimension(3,at%nat), intent(in), target :: rxyz
+     type(orbitals_data), intent(inout) :: orbse
+     integer, dimension(at%ntypes), intent(inout) :: ng
+     integer, dimension(4,at%ntypes), intent(inout) :: nl
+     real(gp), dimension(ngx,at%ntypes), intent(inout) :: xp
+     real(gp), dimension(5,at%ntypes), intent(inout) :: occupat
+     real(gp), dimension(ngx,5,at%ntypes), intent(inout) :: psiat
+     type(gaussian_basis), intent(out) :: G
+     real(gp), intent(out) :: eks
+     integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
+     real(wp), intent(out) :: gaucoeff !norbe=G%ncoeff
+   end subroutine AtomicOrbitals
 
 end interface
 

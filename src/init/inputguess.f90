@@ -2,6 +2,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvctrp,nvirt,nsp
      orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => inputguess_gaussian_orbitals
   implicit none
   integer, intent(in) :: iproc,nproc,nspin,nvctrp
   integer, intent(inout) :: nvirt

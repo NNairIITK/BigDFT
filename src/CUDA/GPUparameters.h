@@ -1,6 +1,10 @@
 #ifndef __GPUparameters__
 #define __GPUparameters__
 
+//filters for second derivative in daubechies basis
+#define A2  3.55369228991319019
+#define B2  24.8758460293923314
+
 // parameters to be used for calculating the convolution
 template<typename T>
 void GPUParameters(parGPU_t* par,
@@ -83,6 +87,27 @@ void GPUParameters(parGPU_t* par,
       //par->hwelem_calc[j],par->hwelem_copy[j]);
 
     }
+}
+
+// parameters for the preconditioning
+template<typename T>
+void GPUprecondparameters(T *GPUscal,T hx,T hy, T hz)
+{
+  T h1,h2,h3;
+
+  h1= ((T)0.5)/(hx*hx);
+  h2= ((T)0.5)/(hy*hy);
+  h3= ((T)0.5)/(hz*hz);
+
+  GPUscal[0]=A2*h1+A2*h2+A2*h3;
+  GPUscal[1]=B2*h1+A2*h2+A2*h3;
+  GPUscal[2]=A2*h1+B2*h2+A2*h3;
+  GPUscal[3]=B2*h1+B2*h2+A2*h3;
+  GPUscal[4]=A2*h1+A2*h2+B2*h3;
+  GPUscal[5]=B2*h1+A2*h2+B2*h3;
+  GPUscal[6]=A2*h1+B2*h2+B2*h3;
+  GPUscal[7]=B2*h1+B2*h2+B2*h3;
+
 }
 
 #endif

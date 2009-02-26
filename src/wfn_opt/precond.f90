@@ -15,7 +15,6 @@ subroutine preconditionall(iproc,nproc,norbp,lr,&
   integer :: iorb,inds,indo
   real(wp) :: cprecr
   real(dp) :: scpr
-  integer,parameter::lupfil=14
 
   ! Preconditions all orbitals belonging to iproc
   !and calculate the norm of the residue
