@@ -38,7 +38,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
 
 
   !flag for toggling the REDUCE_SCATTER stategy
-  rsflag=.true. ! .not. (ixc >= 11 .and. ixc <=16)
+  rsflag=.not. (ixc >= 11 .and. ixc <=16)
 
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rsflag) then
@@ -82,9 +82,9 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
                MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         end do
      else
-         !call MPI_ALLREDUCE(MPI_IN_PLACE,rho_p,lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,&
-         !     MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-         stop 'rsflag active in sumrho.f90, check MPI2 implementation'
+         call MPI_ALLREDUCE(MPI_IN_PLACE,rho_p,lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,&
+              MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+         !stop 'rsflag active in sumrho.f90, check MPI2 implementation'
      end if
      call timing(iproc,'Rho_commun    ','OF')
      call timing(iproc,'Rho_comput    ','ON')

@@ -43,16 +43,16 @@ program GPUham
   real(kind=8) :: epotGPU2,ekinGPU2
   !pointer to the GPU  memory addresses (with norb=1)
   real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU,out_GPU
-integer::   res
+  integer::   res
 
- type(C_PTR) :: cptr_psi_in, cptr_pot, cptr_psifscf
+  type(C_PTR) :: cptr_psi_in, cptr_pot, cptr_psifscf
 
 
   read(1,*)n1,n2,n3,ntimes
-
-  hx=0.8e0_gp
-  hy=0.8e0_gp
-  hz=0.8e0_gp
+  hx=0.21376778958023715_gp
+  !hx=0.8e0_gp
+  hy=hx
+  hz=hx
 
   scale=real(-.5_gp/hx**2,wp)
 
@@ -126,12 +126,16 @@ integer::   res
            !same initialisation for psi and pot
            psi_in(2*i1,2*i2,2*i3)=tt
            psi_in(2*i1-1,2*i2-1,2*i3-1)=tt
-           pot(2*i1,2*i2,2*i3)=0.d0!tt
+           pot(2*i1,2*i2,2*i3)=1.d0!tt
            pot(2*i1-1,2*i2-1,2*i3-1)=1.d0!tt
 
         end do
      end do
   end do
+
+  pot=1.d0
+
+  psi_in=1.d0/sqrt(real(8*(n1+1)*(n2+1)*(n3+1),wp))
 
   psifscf=psi_in
 
@@ -142,7 +146,7 @@ integer::   res
 
   do j=1,ntimes
      !traditional convolution, CPU
-
+     
      ! calculate fine scaling functions
      call synthese_per_self(n1,n2,n3,psifscf,psi_out)
 
@@ -178,7 +182,7 @@ integer::   res
      ! compute the kinetic part and add  it to psifscf
      ! the kinetic energy is calculated at the same time
 
-     call convolut_kinetic_per_T(2*n1+1,2*n2+1,2*n3+1,hgridh,psi_out,psifscf,ekin)
+     call convolut_kinetic_per_t(2*n1+1,2*n2+1,2*n3+1,hgridh,psi_out,psifscf,ekin)
 
      !the output is psi_out
      call analyse_per_self(n1,n2,n3,psifscf,psi_out)
@@ -318,7 +322,4 @@ integer::   res
 end program GPUham
 
 !!***
-
-
-
 

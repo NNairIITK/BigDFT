@@ -10,6 +10,7 @@ __device__ inline T computeElt(T *psi_sh,unsigned int ShBaseElem)
 {
   return 
     //hand-unrolled loop (16 elements for this filter)
+
     //order changed for increasing the precision
     ((T)MFIL0) *psi_sh[ShBaseElem               ] +
     ((T)MFIL15)*psi_sh[ShBaseElem + 15*NUM_LINES] +
@@ -27,12 +28,33 @@ __device__ inline T computeElt(T *psi_sh,unsigned int ShBaseElem)
     ((T)MFIL9) *psi_sh[ShBaseElem + 9*NUM_LINES ] +
     ((T)MFIL7) *psi_sh[ShBaseElem + 7*NUM_LINES ] +
     ((T)MFIL8) *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
+
+    /*
+    ((T)MFIL0) *psi_sh[ShBaseElem               ] +
+    ((T)MFIL1) *psi_sh[ShBaseElem +   NUM_LINES ] +
+    ((T)MFIL2) *psi_sh[ShBaseElem + 2*NUM_LINES ] +
+    ((T)MFIL3) *psi_sh[ShBaseElem + 3*NUM_LINES ] +
+    ((T)MFIL4) *psi_sh[ShBaseElem + 4*NUM_LINES ] +
+    ((T)MFIL5) *psi_sh[ShBaseElem + 5*NUM_LINES ] +
+    ((T)MFIL6) *psi_sh[ShBaseElem + 6*NUM_LINES ] +
+    ((T)MFIL7) *psi_sh[ShBaseElem + 7*NUM_LINES ] +
+    ((T)MFIL8) *psi_sh[ShBaseElem + 8*NUM_LINES ] +
+    ((T)MFIL9) *psi_sh[ShBaseElem + 9*NUM_LINES ] +
+    ((T)MFIL10)*psi_sh[ShBaseElem + 10*NUM_LINES] +
+    ((T)MFIL11)*psi_sh[ShBaseElem + 11*NUM_LINES] +
+    ((T)MFIL12)*psi_sh[ShBaseElem + 12*NUM_LINES] +
+    ((T)MFIL13)*psi_sh[ShBaseElem + 13*NUM_LINES] +
+    ((T)MFIL14)*psi_sh[ShBaseElem + 14*NUM_LINES] +
+    ((T)MFIL15)*psi_sh[ShBaseElem + 15*NUM_LINES] ;
+    */
+
 }
 
 template<typename T>
 __device__ inline T computeElt_t(T *psi_sh,unsigned int ShBaseElem)
 {
   return
+
     ((T)MFIL15)*psi_sh[ShBaseElem               ] +
     ((T)MFIL0) *psi_sh[ShBaseElem + 15*NUM_LINES] +
     ((T)MFIL14)*psi_sh[ShBaseElem +   NUM_LINES ] +
@@ -49,6 +71,25 @@ __device__ inline T computeElt_t(T *psi_sh,unsigned int ShBaseElem)
     ((T)MFIL6) *psi_sh[ShBaseElem + 9*NUM_LINES ] +
     ((T)MFIL8) *psi_sh[ShBaseElem + 7*NUM_LINES ] +
     ((T)MFIL7) *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
+
+    /*
+    ((T)MFIL0) *psi_sh[ShBaseElem + 15*NUM_LINES] +
+    ((T)MFIL1) *psi_sh[ShBaseElem + 14*NUM_LINES] +
+    ((T)MFIL2) *psi_sh[ShBaseElem + 13*NUM_LINES] +
+    ((T)MFIL3) *psi_sh[ShBaseElem + 12*NUM_LINES] +
+    ((T)MFIL4) *psi_sh[ShBaseElem + 11*NUM_LINES] +
+    ((T)MFIL5) *psi_sh[ShBaseElem + 10*NUM_LINES] +
+    ((T)MFIL6) *psi_sh[ShBaseElem + 9*NUM_LINES ] +
+    ((T)MFIL7) *psi_sh[ShBaseElem + 8*NUM_LINES ] +
+    ((T)MFIL8) *psi_sh[ShBaseElem + 7*NUM_LINES ] +
+    ((T)MFIL9) *psi_sh[ShBaseElem + 6*NUM_LINES ] +
+    ((T)MFIL10)*psi_sh[ShBaseElem + 5*NUM_LINES ] +
+    ((T)MFIL11)*psi_sh[ShBaseElem + 4*NUM_LINES ] +
+    ((T)MFIL12)*psi_sh[ShBaseElem + 3*NUM_LINES ] +
+    ((T)MFIL13)*psi_sh[ShBaseElem + 2*NUM_LINES ] +
+    ((T)MFIL14)*psi_sh[ShBaseElem +   NUM_LINES ] +
+    ((T)MFIL15)*psi_sh[ShBaseElem               ] ;
+    */
 }
 
 

@@ -13,6 +13,14 @@ EXTRA_DIST = \
 	kernels_compress.hcu \
 	kernels_locpot.hcu \
 	kernels_kinetic.hcu \
+	kernels_anasyn.hcu \
+	structDef_anasyn.h \
+	structDef_locpot.h \
+	structDef_kinetic.h \
+	kinetic.h \
+	locpot.h \
+	reduction.h \
+	commonDef.h \
 	$(SOURCES_CONV_CHECK)
 
 SOURCES_CU_CONV1 = convolution.cu \
@@ -116,7 +124,12 @@ kinetic.o: reduction.hcu kernels_kinetic.hcu structDef_kinetic.h
 
 anasyn.o: kernels_anasyn.hcu structDef_anasyn.h
 
-locham.o : kernels_anasyn.hcu kernels_locpot.hcu kernels_kinetic.hcu reduction.hcu
+locham.o : kernels_anasyn.hcu \
+	kernels_locpot.hcu \
+	kernels_kinetic.hcu \
+	kernels_compress.hcu \
+	reduction.hcu \
+	GPUparameters.h
 
 compress.o : commonDef.h kernels_compress.hcu
 

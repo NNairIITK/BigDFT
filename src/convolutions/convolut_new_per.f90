@@ -97,13 +97,13 @@ subroutine convolut_kinetic_per_sdc(n1,n2,n3,hgrid,x,y,cprecr,modul1,modul2,modu
   integer :: i1,i2,i3,i,l,j
   real(wp) :: tt111,tt112,tt121,tt122,tt211,tt212,tt221,tt222
   real(wp), dimension(3) :: scale
-integer,intent(in)::modul1(lowfil:n1+lupfil)
-integer,intent(in)::modul2(lowfil:n2+lupfil)
-integer,intent(in)::modul3(lowfil:n3+lupfil)
-real(gp),intent(in)::a(lowfil:lupfil,3)
-real(gp),intent(in)::b(lowfil:lupfil,3)
-real(gp),intent(in)::c(lowfil:lupfil,3)
-real(gp),intent(in)::e(lowfil:lupfil,3)
+  integer,intent(in)::modul1(lowfil:n1+lupfil)
+  integer,intent(in)::modul2(lowfil:n2+lupfil)
+  integer,intent(in)::modul3(lowfil:n3+lupfil)
+  real(gp),intent(in)::a(lowfil:lupfil,3)
+  real(gp),intent(in)::b(lowfil:lupfil,3)
+  real(gp),intent(in)::c(lowfil:lupfil,3)
+  real(gp),intent(in)::e(lowfil:lupfil,3)
   
   real(gp)::tel
   integer::ncount0,ncount1,ncount2,ncount_rate,ncount_max

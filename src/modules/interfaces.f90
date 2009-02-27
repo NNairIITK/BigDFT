@@ -71,17 +71,15 @@ interface
      real(gp), dimension(3,at%nat), intent(out) :: fxyz
    end subroutine conjgrad
 
-   subroutine copy_old_wavefunctions(iproc,nproc,orbs,hx,hy,hz,n1,n2,n3,wfd,psi,&
-        hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
+   subroutine copy_old_wavefunctions(iproc,nproc,orbs,n1,n2,n3,wfd,psi,&
+        n1_old,n2_old,n3_old,wfd_old,psi_old)
      use module_base
      use module_types
      implicit none
      integer, intent(in) :: iproc,nproc,n1,n2,n3
-     real(gp), intent(in) :: hx,hy,hz
      type(orbitals_data), intent(in) :: orbs
      type(wavefunctions_descriptors), intent(inout) :: wfd,wfd_old
      integer, intent(out) :: n1_old,n2_old,n3_old
-     real(gp), intent(out) :: hx_old,hy_old,hz_old
      real(wp), dimension(:), pointer :: psi,psi_old
    end subroutine copy_old_wavefunctions
 
@@ -246,20 +244,22 @@ interface
      real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
    end subroutine input_wf_diag
 
-   subroutine reformatmywaves(iproc,orbs,nat,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
-        rxyz_old,wfd_old,psi_old,hx,hy,hz,n1,n2,n3,rxyz,wfd,psi)
+   subroutine reformatmywaves(iproc,orbs,at,&
+        hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
+        hx,hy,hz,n1,n2,n3,rxyz,wfd,psi)
      use module_base
      use module_types
      implicit none
-     integer, intent(in) :: iproc,nat,n1_old,n2_old,n3_old,n1,n2,n3
+     integer, intent(in) :: iproc,n1_old,n2_old,n3_old,n1,n2,n3
      real(gp), intent(in) :: hx_old,hy_old,hz_old,hx,hy,hz
      type(wavefunctions_descriptors), intent(in) :: wfd,wfd_old
+     type(atoms_data), intent(in) :: at
      type(orbitals_data), intent(in) :: orbs
-     real(gp), dimension(3,nat), intent(in) :: rxyz,rxyz_old
+     real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
      real(wp), dimension(wfd_old%nvctr_c+7*wfd_old%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi_old
      real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: psi
    end subroutine reformatmywaves
-
+   
    subroutine first_orthon(iproc,nproc,orbs,wfd,nvctrp,comms,psi,hpsi,psit)
      use module_base
      use module_types
@@ -431,19 +431,19 @@ interface
    end subroutine CalculateTailCorrection
 
    !added for abinit compatilbility
-   subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,nat,&
-        & rxyz_old,psigold,hx,hy,hz,nvctr_c,nvctr_f,n1,n2,n3,rxyz,nseg_c,nseg_f,&
-        & keyg,keyv,psifscf,psi)
+   subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,&
+        n1_old,n2_old,n3_old,rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
      use module_base
+     use module_types
      implicit none
-     integer, intent(in) :: iproc,n1_old,n2_old,n3_old,nat,nvctr_c,nvctr_f,n1,n2,n3,nseg_c,nseg_f
+     integer, intent(in) :: iproc,n1_old,n2_old,n3_old,n1,n2,n3
      real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
-     integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-     integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-     real(gp), dimension(3,nat), intent(in) :: rxyz_old,rxyz
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     type(atoms_data), intent(in) :: at
+     real(gp), dimension(3,at%nat), intent(in) :: rxyz_old,rxyz
      real(wp), dimension(0:n1_old,2,0:n2_old,2,0:n3_old,2), intent(in) :: psigold
      real(wp), dimension(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8), intent(out) :: psifscf
-     real(wp), dimension(nvctr_c + 7 * nvctr_f), intent(out) :: psi
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
    end subroutine reformatonewave
 
    subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
@@ -629,6 +629,28 @@ interface
      type(gaussian_basis), intent(out) :: G
      real(wp), dimension(:,:), pointer :: psigau
    end subroutine inputguess_gaussian_orbitals
+
+   subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
+        ngx,xp,psiat,ng,nl,nspin,eks,scorb,G,gaucoeff,iorbtolr)
+     use module_base
+     use module_types
+     implicit none
+     integer, intent(in) :: norbe,ngx,iproc,nproc
+     integer, intent(in) :: norbsc,nspin
+     type(atoms_data), intent(in) :: at
+     logical, dimension(4,2,at%natsc), intent(in) :: scorb
+     real(gp), dimension(3,at%nat), intent(in), target :: rxyz
+     type(orbitals_data), intent(inout) :: orbse
+     integer, dimension(at%ntypes), intent(inout) :: ng
+     integer, dimension(4,at%ntypes), intent(inout) :: nl
+     real(gp), dimension(ngx,at%ntypes), intent(inout) :: xp
+     real(gp), dimension(5,at%ntypes), intent(inout) :: occupat
+     real(gp), dimension(ngx,5,at%ntypes), intent(inout) :: psiat
+     type(gaussian_basis), intent(out) :: G
+     real(gp), intent(out) :: eks
+     integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
+     real(wp), intent(out) :: gaucoeff !norbe=G%ncoeff
+   end subroutine AtomicOrbitals
 
 end interface
 

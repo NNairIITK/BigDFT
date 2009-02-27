@@ -12,7 +12,6 @@
 
 
 //parameters for the kernel (global variables)
-//__constant__ int keys[MAX_CONSTANT_SIZE/sizeof(int)];
 
 #include "kernels_compress.hcu"
 

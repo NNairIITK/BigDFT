@@ -1,14 +1,12 @@
-subroutine copy_old_wavefunctions(iproc,nproc,orbs,hx,hy,hz,n1,n2,n3,wfd,psi,&
-     hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
+subroutine copy_old_wavefunctions(iproc,nproc,orbs,n1,n2,n3,wfd,psi,&
+     n1_old,n2_old,n3_old,wfd_old,psi_old)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc,n1,n2,n3
-  real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(inout) :: wfd,wfd_old
   integer, intent(out) :: n1_old,n2_old,n3_old
-  real(gp), intent(out) :: hx_old,hy_old,hz_old
   real(wp), dimension(:), pointer :: psi,psi_old
   !local variables
   character(len=*), parameter :: subname='copy_old_wavefunctions'
@@ -31,10 +29,6 @@ subroutine copy_old_wavefunctions(iproc,nproc,orbs,hx,hy,hz,n1,n2,n3,wfd,psi,&
   enddo
   !deallocation
   call deallocate_wfd(wfd,subname)
-
-  hx_old = hx
-  hy_old = hy
-  hz_old = hz
 
   n1_old = n1
   n2_old = n2
@@ -72,38 +66,51 @@ subroutine copy_old_wavefunctions(iproc,nproc,orbs,hx,hy,hz,n1,n2,n3,wfd,psi,&
 
 end subroutine copy_old_wavefunctions
 
-subroutine reformatmywaves(iproc,orbs,nat,&
+subroutine reformatmywaves(iproc,orbs,at,&
      hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
      hx,hy,hz,n1,n2,n3,rxyz,wfd,psi)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nat,n1_old,n2_old,n3_old,n1,n2,n3
+  integer, intent(in) :: iproc,n1_old,n2_old,n3_old,n1,n2,n3
   real(gp), intent(in) :: hx_old,hy_old,hz_old,hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd,wfd_old
+  type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
-  real(gp), dimension(3,nat), intent(in) :: rxyz,rxyz_old
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
   real(wp), dimension(wfd_old%nvctr_c+7*wfd_old%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: psi
   !local variables
   character(len=*), parameter :: subname='reformatmywaves'
-  logical :: reformat
-  integer :: iat,iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg
-  real(gp) :: tx,ty,tz,displ
+  logical :: reformat,perx,pery,perz
+  integer :: iat,iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3
+  real(gp) :: tx,ty,tz,displ,mindist
   real(wp), dimension(:,:,:), allocatable :: psifscf
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
 
-  allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8+ndebug),stat=i_stat)
+  !conditions for periodicity in the three directions
+  perx=(at%geocode /= 'F')
+  pery=(at%geocode == 'P')
+  perz=(at%geocode /= 'F')
+
+  !buffers realted to periodicity
+  !WARNING: the boundary conditions are not assumed to change between new and old
+  call ext_buffers_coarse(perx,nb1)
+  call ext_buffers_coarse(pery,nb2)
+  call ext_buffers_coarse(perz,nb3)
+
+
+  allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
   call memocc(i_stat,psifscf,'psifscf',subname)
 
   tx=0.0_gp 
   ty=0.0_gp
   tz=0.0_gp
 
-  do iat=1,nat
-  tx=tx+(rxyz(1,iat)-rxyz_old(1,iat))**2
-  ty=ty+(rxyz(2,iat)-rxyz_old(2,iat))**2
-  tz=tz+(rxyz(3,iat)-rxyz_old(3,iat))**2
+  do iat=1,at%nat
+     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
+     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
+     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
   enddo
   displ=sqrt(tx+ty+tz)
 !  write(100+iproc,*) 'displacement',dis
@@ -233,11 +240,9 @@ subroutine reformatmywaves(iproc,orbs,nat,&
 
 !write(100+iproc,*) 'norm psigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold,1)
 
-        call reformatonewave(iproc,displ,hx_old,hy_old,hz_old, &
-             n1_old,n2_old,n3_old,nat,rxyz_old,psigold,hx,hy,hz,&
-             wfd%nvctr_c,wfd%nvctr_f,n1,n2,n3,rxyz,&
-             wfd%nseg_c,wfd%nseg_f,wfd%keyg,wfd%keyv,psifscf,& 
-             psi(1,iorb))
+        call reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old, &
+             n1_old,n2_old,n3_old,rxyz_old,psigold,hx,hy,hz,&
+             n1,n2,n3,rxyz,psifscf,psi(1,iorb))
 
         i_all=-product(shape(psigold))*kind(psigold)
         deallocate(psigold,stat=i_stat)
@@ -253,25 +258,27 @@ subroutine reformatmywaves(iproc,orbs,nat,&
 
 END SUBROUTINE reformatmywaves
 
-subroutine readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz_old,rxyz,  & 
+subroutine readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi)
   ! reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
   ! have changed
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,n1,n2,n3,nat
+  integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(in) :: orbs
-  real(gp), dimension(3,nat), intent(in) :: rxyz
-  real(gp), dimension(3,nat), intent(out) :: rxyz_old
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
   !local variables
   character(len=*), parameter :: subname='readmywaves'
   character(len=4) :: f4
   character(len=50) :: filename
-  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2
+  logical :: perx,pery,perz
+  integer :: ncount1,ncount_rate,ncount_max,iorb,i_stat,i_all,ncount2,nb1,nb2,nb3
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
@@ -279,7 +286,18 @@ subroutine readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz_old,rxyz,  &
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
 
-  allocate(psifscf(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8+ndebug),stat=i_stat)
+  !conditions for periodicity in the three directions
+  perx=(at%geocode /= 'F')
+  pery=(at%geocode == 'P')
+  perz=(at%geocode /= 'F')
+
+  !buffers realted to periodicity
+  !WARNING: the boundary conditions are not assumed to change between new and old
+  call ext_buffers_coarse(perx,nb1)
+  call ext_buffers_coarse(pery,nb2)
+  call ext_buffers_coarse(perz,nb3)
+
+  allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
   call memocc(i_stat,psifscf,'psifscf',subname)
 
   do iorb=1,orbs%norbp*orbs%nspinor
@@ -289,8 +307,7 @@ subroutine readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz_old,rxyz,  &
      open(unit=99,file=filename,status='unknown')
 
      call readonewave(99, .true.,iorb,iproc,n1,n2,n3, &
-          & hx,hy,hz,nat,rxyz_old,rxyz,wfd%nseg_c,wfd%nseg_f,&
-          wfd%nvctr_c,wfd%nvctr_f,wfd%keyg,wfd%keyv,&
+          & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
           psi(1,iorb),orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb),psifscf)
      close(99)
 

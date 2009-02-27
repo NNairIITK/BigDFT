@@ -144,9 +144,6 @@ program MINHOP
   call read_input_variables(iproc,'input.dat',inputs_opt)
   call read_input_variables(iproc,'mdinput.dat',inputs_md)
 
-  !write(*,*) 'WARNING, coordinates scaled'
-  !        pos(:,:)=pos(:,:)*8.d0
-
   ! allocate other arrays
   allocate(ff(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,ff,'ff',subname)
@@ -210,18 +207,18 @@ program MINHOP
   open(unit=11,file='rand.inp',status='old')
   read(11,*) nrandoff
   close(11)
-  if (iproc.eq.0) write(*,*) '# nrandoff ',nrandoff
+  if (iproc == 0) write(*,*) '# nrandoff ',nrandoff
 
   do  i=1,nrandoff
      call random_number(tts)
   enddo
-  if (iproc.eq.0) write(67,'(a,1x,3(1x,1pe10.3))') 'In :ediff,ekinetic,dt',ediff,ekinetic,dt
-  if (iproc.eq.0) write(*,'(a,1x,3(1x,1pe10.3))') ' # In :ediff,ekinetic,dt',ediff,ekinetic,dt
+  if (iproc == 0) write(67,'(a,1x,3(1x,1pe10.3))') 'In :ediff,ekinetic,dt',ediff,ekinetic,dt
+  if (iproc == 0) write(*,'(a,1x,3(1x,1pe10.3))') ' # In :ediff,ekinetic,dt',ediff,ekinetic,dt
 
 
   ! If restart run read previously found energies
   nlmin_l=0
-  if (nlmin.gt.0) then
+  if (nlmin > 0) then
      kk=1
      do
         write(fn5,'(i5.5)') kk
@@ -391,9 +388,9 @@ program MINHOP
         if (iproc == 0) then 
            write(67,*) ' Writing intermediate results at',nlmin_l,nlmin
            write(*,*) '#  Writing intermediate results at',nlmin_l,nlmin
-           call winter(atoms,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
-                earr,elocmin,poslocmin,eref,ediff,ekinetic,dt)
         endif
+        call winter(iproc,atoms,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
+             earr,elocmin,poslocmin,eref,ediff,ekinetic,dt)
         nlmin_old=nlmin
      endif
 
@@ -623,11 +620,13 @@ end do hopping_loop
 
 !3000 continue
 
-  if (iproc.eq.0) then
+  if (iproc == 0) then
      write(67,*) 'writing final results'
      write(*,*) '# writing final results'
-     call winter(atoms,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
-          earr,elocmin,poslocmin,eref,ediff,ekinetic,dt)
+  end if
+  call winter(iproc,atoms,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
+       earr,elocmin,poslocmin,eref,ediff,ekinetic,dt)
+  if (iproc == 0) then
      write(67,*) ' found ',nlmin_l,nlmin,' minima'
      write(*,*) '# found ',nlmin_l,nlmin,' minima'
      !this section could be put in wtioput. However, here we only put
@@ -784,15 +783,30 @@ contains
     econs_max=-1.d100
     econs_min=1.d100
     !call my_input_variables(iproc,.false.,inputs_md)
-    do istep=1,1000
+    md_loop: do istep=1,1000
 
        !C      Evolution of the system according to 'VELOCITY VERLET' algorithm
        rkin=0.d0
        do iat=1,atoms%nat
           if (.not. atoms%lfrztyp(iat)) then
-             rxyz(1,iat)=rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat)
-             rxyz(2,iat)=rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
-             rxyz(3,iat)=rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat)
+             if (atoms%geocode == 'P') then
+                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
+                     atoms%alat1)
+                rxyz(2,iat)=modulo(rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat),&
+                     atoms%alat2)
+                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
+                     atoms%alat3)
+             else if (atoms%geocode == 'S') then
+                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
+                     atoms%alat1)
+                rxyz(2,iat)=       rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
+                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
+                     atoms%alat3)
+             else if (atoms%geocode == 'F') then
+                rxyz(1,iat)=rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat)
+                rxyz(2,iat)=rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
+                rxyz(3,iat)=rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat)
+             end if
              rkin=rkin+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
           end if
        enddo
@@ -803,12 +817,12 @@ contains
        !        call energyandforces(nat,rxyz,ff,e_rxyz,count_md)
        !    if (iproc.eq.0) write(*,*) 'CLUSTER FOR  MD'
        inputs_md%inputPsiId=1
-       if (istep.gt.2) inputs_md%itermax=50
+       if (istep > 2) inputs_md%itermax=50
        call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,e_rxyz,ff,rst,infocode)
 
        !call wtmd(istep,atoms%nat,e_rxyz,rxyz,atoms%iatype,atoms%atomnames,atoms%natpol)
        if (iproc == 0) then
-          write(fn,'(i4.4)') istep
+          write(fn,'(i4.4)') istep+int(count_md)
           call wtxyz('posmd_'//fn,e_rxyz,rxyz,atoms,'')
        end if
 
@@ -822,9 +836,10 @@ contains
             istep,e_rxyz,nummax,nummin
        if (iproc.eq.0) write(*,'(a,i5,1x,1pe17.10,2(1x,i2))') ' #MD ',&
             istep,e_rxyz,nummax,nummin
-       if (nummin.ge.mdmin .and. istep.gt.50) then
-          if (nummax.ne.nummin .and. iproc.eq.0) write(67,*) 'WARNING: nummin,nummax',nummin,nummax
-          goto 2222
+       if (nummin.ge.mdmin .and. istep > 50) then
+          if (nummax.ne.nummin .and. iproc == 0) &
+               write(67,*) 'WARNING: nummin,nummax',nummin,nummax
+          exit md_loop
        endif
        do iat=1,atoms%nat
           at1=ff(1,iat)
@@ -841,16 +856,23 @@ contains
           gg(2,iat) = at2
           gg(3,iat) = at3
        end do
-    end do
-    if (iproc.eq.0) write(67,*) 'TOO MANY MD STEPS'
-    dt=2.d0*dt
+    end do md_loop
+    if (istep >=1000) then
+       if (iproc == 0) write(67,*) 'TOO MANY MD STEPS'
+       dt=2.d0*dt
+    end if
+    !save the value of count_md for the moment
+    count_md=count_md+real(istep,gp)
+
     !C MD stopped, now do relaxation
-2222 continue
+
     !  if (iproc.eq.0) write(67,*) 'EXIT MD',istep
     
     ! adjust time step to meet precision criterion
     devcon=devcon/(3*atoms%nat-3)
-    if (iproc.eq.0) write(66,'(a,2(1x,1pe11.4),1x,i5)') 'MD devcon ',devcon,devcon/ekinetic,istep
+    if (iproc == 0) &
+         write(66,'(a,2(1x,1pe11.4),1x,i5)')&
+         'MD devcon ',devcon,devcon/ekinetic,istep
     if (devcon/ekinetic.lt.7.d-2) then
        write(66,*) 'MD:old,new dt',dt,dt*1.05d0
        dt=dt*1.05d0
@@ -962,13 +984,36 @@ contains
 
     do it=1,nit
        !       if(iproc==0)write(*,*)'w   =      r       +       v  '
-       !update the positions, if the atom is not freezed
-       do i=1,3*atoms%nat
-          iat=(i-1)/3+1
+       !update the positions, if the atom is not frozen
+!!$       do i=1,3*atoms%nat
+!!$          iat=(i-1)/3+1
+!!$          if (atoms%lfrztyp(iat)) then
+!!$             wpos(i)=rxyz(i)
+!!$          else
+!!$             wpos(i)=rxyz(i)+vxyz(i)
+!!$          end if
+!!$          !if(iproc==0)write(*,*)wpos(i),rxyz(i),vxyz(i)
+!!$       end do
+       
+       do iat=1,atoms%nat
           if (atoms%lfrztyp(iat)) then
-             wpos(i)=rxyz(i)
+             wpos(3*(iat-1)+1)=rxyz(3*(iat-1)+1)
+             wpos(3*(iat-1)+2)=rxyz(3*(iat-1)+2)
+             wpos(3*(iat-1)+3)=rxyz(3*(iat-1)+3)
           else
-             wpos(i)=rxyz(i)+vxyz(i)
+             if (atoms%geocode == 'P') then
+                wpos(3*(iat-1)+1)=modulo(rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1),atoms%alat1)
+                wpos(3*(iat-1)+2)=modulo(rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2),atoms%alat2)
+                wpos(3*(iat-1)+3)=modulo(rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3),atoms%alat3)
+             else if (atoms%geocode == 'S') then
+                wpos(3*(iat-1)+1)=modulo(rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1),atoms%alat1)
+                wpos(3*(iat-1)+2)=       rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2)
+                wpos(3*(iat-1)+3)=modulo(rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3),atoms%alat3)
+             else if (atoms%geocode == 'F') then
+                wpos(3*(iat-1)+1)=rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1)
+                wpos(3*(iat-1)+2)=rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2)
+                wpos(3*(iat-1)+3)=rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3)
+             end if
           end if
           !if(iproc==0)write(*,*)wpos(i),rxyz(i),vxyz(i)
        end do
@@ -1017,12 +1062,31 @@ contains
        !if(iproc==0)write(11,*)&
        !        it,tt,res,curv,fd2,etot-etot0
 
-       do i=1,3*atoms%nat
-          iat=(i-1)/3+1
+       do iat=1,atoms%nat
           if (.not. atoms%lfrztyp(iat)) then
-             wpos(i)=wpos(i)+alpha*fxyz(i)
+             if (atoms%geocode == 'P') then
+                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%alat1)
+                wpos(3*(iat-1)+2)=modulo(wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2),atoms%alat2)
+                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%alat3)
+             else if (atoms%geocode == 'S') then
+                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%alat1)
+                wpos(3*(iat-1)+2)=       wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
+                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%alat3)
+             else if (atoms%geocode == 'F') then
+                wpos(3*(iat-1)+1)=wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1)
+                wpos(3*(iat-1)+2)=wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
+                wpos(3*(iat-1)+3)=wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3)
+             end if
+
           end if
        end do
+!!$       do i=1,3*atoms%nat
+!!$          iat=(i-1)/3+1
+!!$          if (.not. atoms%lfrztyp(iat)) then
+!!$             wpos(i)=wpos(i)+alpha*fxyz(i)
+!!$          end if
+!!$       end do
+
        do i=1,3*atoms%nat
           vxyz(i)=wpos(i)-rxyz(i)
        end do
@@ -1616,9 +1680,19 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
         tt=bondlength/sqrt(d1**2+d2**2+d3**2)
         do iat=1,at%nat
            if (.not. belong(iat) .and. .not. at%lfrztyp(iat)) then
-              rxyz(1,iat)=rxyz(1,iat)+d1*(tt-1.0d0)
-              rxyz(2,iat)=rxyz(2,iat)+d2*(tt-1.0d0)
-              rxyz(3,iat)=rxyz(3,iat)+d3*(tt-1.0d0)
+              if (at%geocode == 'P') then
+                 rxyz(1,iat)=modulo(rxyz(1,iat)+d1*(tt-1.0d0),at%alat1)
+                 rxyz(2,iat)=modulo(rxyz(2,iat)+d2*(tt-1.0d0),at%alat2)
+                 rxyz(3,iat)=modulo(rxyz(3,iat)+d3*(tt-1.0d0),at%alat3)
+              else if (at%geocode == 'S') then
+                 rxyz(1,iat)=modulo(rxyz(1,iat)+d1*(tt-1.0d0),at%alat1)
+                 rxyz(2,iat)=       rxyz(2,iat)+d2*(tt-1.0d0)
+                 rxyz(3,iat)=modulo(rxyz(3,iat)+d3*(tt-1.0d0),at%alat3)
+              else
+                 rxyz(1,iat)=rxyz(1,iat)+d1*(tt-1.0d0)
+                 rxyz(2,iat)=rxyz(2,iat)+d2*(tt-1.0d0)
+                 rxyz(3,iat)=rxyz(3,iat)+d3*(tt-1.0d0)
+              end if
            endif
         enddo
 
@@ -1636,13 +1710,13 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
 end subroutine fix_fragmentation
 
 
-subroutine winter(at,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
+subroutine winter(iproc,at,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
      earr,elocmin,poslocmin,eref,ediff,ekinetic,dt)
   use module_base
   use module_types
   implicit none
   !implicit real*8 (a-h,o-z)
-  integer, intent(in) :: npminx,nlminx,nbuf,nlmin,nlmin_l
+  integer, intent(in) :: npminx,nlminx,nbuf,nlmin,nlmin_l,iproc
   real(gp), intent(in) :: re_pos,eref,ediff,ekinetic,dt,accur
   type(atoms_data), intent(in) :: at
   real(gp), dimension(npminx), intent(in) :: elocmin
@@ -1654,37 +1728,31 @@ subroutine winter(at,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, &
   character(len=20) :: filename
   integer :: mm,k
 
-  call wtxyz('poscur',re_pos,pos,at,'')
+  if (iproc == 0) then
+     call wtxyz('poscur',re_pos,pos,at,'')
+     write(*,*) ' wrote poscur.xyz for  RESTART'
+  end if
+     
+  call wtpos(iproc,at,npminx,nlminx,nbuf,nlmin,nlmin_l,poslocmin,earr,elocmin)
 
-!!$  filename = 'poscur.xyz'
-!!$  open(unit=9,file=filename,status='unknown')
-!!$  write(9,'(i4,2x,a,1x,1pe17.10,3x,a)') nat,'  atomic',re_pos
-!!$  write(9,'(1pe17.10)') re_pos
-!!$  do iat=1,nat
-!!$     write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)') atomnames(iatype(iat)),pos(1,iat),pos(2,iat),pos(3,iat),natpol(iat)-100
-!!$  enddo
-
-  write(*,*) ' wrote poscur.xyz for  RESTART'
-!!$  close(9)
-
-  call wtpos(at,npminx,nlminx,nbuf,nlmin,nlmin_l,poslocmin,earr,elocmin)
-
-  write(*,*) ' wrote poslow files'
-
-  open(unit=12,file='earr.dat',status='unknown')
-  mm=min(nlmin,nlminx+nbuf)
-  write(12,'(2(i10),a)') mm,mm+5,&
-       ' # of minima already found, # of minima to be found in consecutive run'
-  write(12,'(e24.17,1x,a)') eref,'   eref'
-  write(12,'(e24.17,1x,a)') accur,'   accur'
-  do k=1,mm
-     write(12,'(e24.17,1x,1pe17.10)') earr(k,1),earr(k,2)
-  enddo
-  write(*,*) ' wrote earr.dat for  RESTART'
-  close(12)
-
-  call  wtioput(ediff,ekinetic,dt)
-  write(*,*) ' wrote ioput for  RESTART'
+  if (iproc == 0) then
+     write(*,*) ' wrote poslow files'
+     
+     open(unit=12,file='earr.dat',status='unknown')
+     mm=min(nlmin,nlminx+nbuf)
+     write(12,'(2(i10),a)') mm,mm+5,&
+          ' # of minima already found, # of minima to be found in consecutive run'
+     write(12,'(e24.17,1x,a)') eref,'   eref'
+     write(12,'(e24.17,1x,a)') accur,'   accur'
+     do k=1,mm
+        write(12,'(e24.17,1x,1pe17.10)') earr(k,1),earr(k,2)
+     enddo
+     write(*,*) ' wrote earr.dat for  RESTART'
+     close(12)
+     
+     call  wtioput(ediff,ekinetic,dt)
+     write(*,*) ' wrote ioput for  RESTART'
+  end if
 
 end subroutine winter
 
@@ -1766,12 +1834,12 @@ end subroutine wtlmin
 
 
 
-subroutine wtpos(at,npminx,nlminx,nbuf,nlmin,nlmin_l,pos,earr,elocmin)
+subroutine wtpos(iproc,at,npminx,nlminx,nbuf,nlmin,nlmin_l,pos,earr,elocmin)
   use module_base
   use module_types
   implicit none
   !implicit real*8 (a-h,o-z)
-  integer, intent(in) :: npminx,nlminx,nbuf,nlmin,nlmin_l
+  integer, intent(in) :: npminx,nlminx,nbuf,nlmin,nlmin_l,iproc
   type(atoms_data), intent(in) :: at
   real(gp), dimension(npminx), intent(in) :: elocmin
   real(gp), dimension(0:nlminx+nbuf,2), intent(in) :: earr
@@ -1795,7 +1863,7 @@ subroutine wtpos(at,npminx,nlminx,nbuf,nlmin,nlmin_l,pos,earr,elocmin)
      find_kk : do
         kk=kk+1
         if (kk > min(nlmin,nlminx+nbuf)) then 
-           write(*,*) 'ranking error for',k
+           if (iproc == 0) write(*,*) 'ranking error for',k
            stop 
         endif
         if (earr(kk,1) == elocmin(k)) exit find_kk
@@ -1806,17 +1874,10 @@ subroutine wtpos(at,npminx,nlminx,nbuf,nlmin,nlmin_l,pos,earr,elocmin)
         !        write(*,'(a,i2,i4,i4,1x,1pe21.14)') 'k,kk,elocmin(k)',k,kk,elocmin(k)
 
         !C generate filename and open files
-        write(fn,'(i5.5)') kk
-        call wtxyz('poslow'//fn,elocmin(k),pos(1,1,kk),at,'')
-!!$        filename = 'poslow'//fn//'.xyz'
-!!$        open(unit=9,file=filename,status='unknown')
-!!$        write(9,'(i6,2x,a,1pe24.17)') nat,'  atomic ',elocmin(k)
-!!$        write(9,'(e24.17)') elocmin(k)
-!!$        do iat=1,nat
-!!$           write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)'),atomnames(iatype(iat)),&
-!!$                pos(1,iat,kk),pos(2,iat,kk),pos(3,iat,kk),natpol(iat)-100
-!!$        enddo
-!!$        close(9)
+        if (iproc == 0) then
+           write(fn,'(i5.5)') kk
+           call wtxyz('poslow'//fn,elocmin(k),pos(1,1,kk),at,'')
+        end if
      endif
 
   end do

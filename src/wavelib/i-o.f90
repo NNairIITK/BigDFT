@@ -1,21 +1,21 @@
-subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,nat,&
-     & rxyz_old,psigold,hx,hy,hz,nvctr_c,nvctr_f,n1,n2,n3,rxyz,nseg_c,nseg_f,&
-     & keyg,keyv,psifscf,psi)
+subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
+     rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
   use module_base
+  use module_types
   implicit none
-  integer, intent(in) :: iproc,n1_old,n2_old,n3_old,nat,nvctr_c,nvctr_f,n1,n2,n3,nseg_c,nseg_f
+  integer, intent(in) :: iproc,n1_old,n2_old,n3_old,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  real(gp), dimension(3,nat), intent(in) :: rxyz_old,rxyz
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz_old,rxyz
   real(wp), dimension(0:n1_old,2,0:n2_old,2,0:n3_old,2), intent(in) :: psigold
-  real(wp), dimension(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8), intent(out) :: psifscf
-  real(wp), dimension(nvctr_c + 7 * nvctr_f), intent(out) :: psi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
+  real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
   !local variables
   character(len=*), parameter :: subname='reformatonewave'
-  logical :: cif1,cif2,cif3
-  integer :: i_stat,i_all,i1,i2,i3,j1,j2,j3,l1,l2,iat
-  real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,x,y,z,dx,dy,dz,xold,yold,zold
+  logical :: cif1,cif2,cif3,perx,pery,perz
+  integer :: i_stat,i_all,i1,i2,i3,j1,j2,j3,l1,l2,iat,nb1,nb2,nb3,ind,jj1,jj2,jj3a,jj3b,jj3c
+  real(gp) :: hxh,hyh,hzh,hxh_old,hyh_old,hzh_old,x,y,z,dx,dy,dz,xold,yold,zold,mindist
   real(wp) :: zr,yr,xr,y01,ym1,y00,yp1
   real(wp), dimension(-1:1,-1:1) :: xya
   real(wp), dimension(-1:1) :: xa
@@ -23,29 +23,45 @@ subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psig
   real(wp), dimension(:,:,:), allocatable :: psifscfold
 
-  allocate(psifscfold(-7:2*n1_old+8,-7:2*n2_old+8,-7:2*n3_old+8+ndebug),stat=i_stat)
+  !conditions for periodicity in the three directions
+  perx=(at%geocode /= 'F')
+  pery=(at%geocode == 'P')
+  perz=(at%geocode /= 'F')
+
+  !buffers realted to periodicity
+  !WARNING: the boundary conditions are not assumed to change between new and old
+  call ext_buffers_coarse(perx,nb1)
+  call ext_buffers_coarse(pery,nb2)
+  call ext_buffers_coarse(perz,nb3)
+
+  allocate(psifscfold(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
   call memocc(i_stat,psifscfold,'psifscfold',subname)
-  allocate(wwold((2*n1_old+16)*(2*n2_old+16)*(2*n3_old+16)+ndebug),stat=i_stat)
+  allocate(wwold((2*n1_old+2+2*nb1)*(2*n2_old+2+2*nb2)*(2*n3_old+2+2*nb3)+ndebug),stat=i_stat)
   call memocc(i_stat,wwold,'wwold',subname)
 
-  call synthese_grow(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
+  if (at%geocode=='F') then
+     call synthese_grow(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
+  else if (at%geocode=='S') then     
+     call synthese_slab(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
+  else if (at%geocode=='P') then     
+     call synthese_per(n1_old,n2_old,n3_old,wwold,psigold,psifscfold) 
+  end if
 
   i_all=-product(shape(wwold))*kind(wwold)
   deallocate(wwold,stat=i_stat)
   call memocc(i_stat,i_all,'wwold',subname)
-
-  !write(100+iproc,*) 'norm psifscfold ',dnrm2((2*n1_old+16)*(2*n2_old+16)*(2*n3_old+16),&
-  !     psifscfold,1)
   
   !write(*,*) iproc,' displ ',displ
   if (hx == hx_old .and. hy == hy_old .and. hz == hz_old .and. &
        n1_old==n1 .and. n2_old==n2 .and. n3_old==n3 .and. &
        displ<= 1.d-2) then
      !if (iproc==0) write(*,*) iproc,' orbital just copied'
-     do i3=-7,2*n3+8
-        do i2=-7,2*n2+8
-           do i1=-7,2*n1+8
-              psifscf(i1,i2,i3)=psifscfold(i1,i2,i3)
+     do i3=-nb3,2*n3+1+nb3
+        do i2=-nb2,2*n2+1+nb2
+           do i1=-nb1,2*n1+1+nb1
+              ind=i1+nb1+1+(2*n1+2+2*nb1)*(i2+nb2)+&
+                   (2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(i3+nb3)
+              psifscf(ind)=psifscfold(i1,i2,i3)
            enddo
         enddo
      enddo
@@ -55,14 +71,16 @@ subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old
      dx=0.0_gp
      dy=0.0_gp 
      dz=0.0_gp
-     do iat=1,nat ! Calculate average shift
-        dx=dx+(rxyz(1,iat)-rxyz_old(1,iat))
-        dy=dy+(rxyz(2,iat)-rxyz_old(2,iat))
-        dz=dz+(rxyz(3,iat)-rxyz_old(3,iat))
+     !Calculate average shift
+     !Take into account the modulo operation which should be done for non-isolated BC
+     do iat=1,at%nat 
+        dx=dx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))
+        dy=dy+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))
+        dz=dz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))
      enddo
-     dx=dx/real(nat,gp)
-     dy=dy/real(nat,gp)
-     dz=dz/real(nat,gp)
+     dx=dx/real(at%nat,gp)
+     dy=dy/real(at%nat,gp)
+     dz=dz/real(at%nat,gp)
      
      ! transform to new structure    
      !if (iproc==0) write(*,*) iproc,' orbital fully transformed'
@@ -73,59 +91,47 @@ subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old
      hzh=.5_gp*hz
      hzh_old=.5_gp*hz_old
 
-     call razero((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf)
+     call razero((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3),psifscf)
 
-     do i3=-7,2*n3+8
+     do i3=-nb3,2*n3+1+nb3
         z=real(i3,gp)*hzh
-        do i2=-7,2*n2+8
+        do i2=-nb2,2*n2+1+nb2
            y=real(i2,gp)*hyh
-           do i1=-7,2*n1+8
+           do i1=-nb1,2*n1+1+nb1
               x=real(i1,gp)*hxh
-!! The lines below might be reactivated in connection with a better interpolation scheme
-!           if (nat.le.10) then ! calculate individual shifts for each atom
-!             dx=0.d0 ; dy=0.d0 ; dz=0.d0 ; w=0.d0
-!             do iat=1,nat ! Warning: this unoptimized loop can become very expensive for a large NAT
-!               rbond=1.d0
-!               arg=(x-rxyz(1,iat))**2+(x-rxyz(2,iat))**2+(x-rxyz(3,iat))**2
-!               arg=-.5d0*(arg/rbond**2)
-!               xp=exp(arg)
-!               w=w+xp
-!               dx=dx+xp*(rxyz(1,iat)-rxyz_old(1,iat))
-!               dy=dy+xp*(rxyz(2,iat)-rxyz_old(2,iat))
-!               dz=dz+xp*(rxyz(3,iat)-rxyz_old(3,iat))
-!             enddo
-!             w=w+1.d-10
-!             dx=dx*(1.d0/w) ; dy=dy*(1.d0/w) ; dz=dz*(1.d0/w)
-!           endif
+
               xold=x-dx 
               yold=y-dy
               zold=z-dz
-!if (i1.eq.n1 .and. i2.eq.n2 .and. i3.eq.n3  .or.  & 
-!    i1.eq.-7 .and. i2.eq.-7 .and. i3.eq.-7  .or.  & 
-!    i1.eq.0 .and. i2.eq.0 .and. i3.eq.0  .or.  & 
-!    i1.eq.n1/2 .and. i2.eq.n2/2 .and. i3.eq.n3/2 .or.  &
-!    i1.eq.3*n1/2 .and. i2.eq.3*n2/2 .and. i3.eq.3*n3/2 .or.  &
-!    i1.eq.n1/4 .and. i2.eq.n2/4 .and. i3.eq.n3/4  ) then
-!write(iproc+200,'(a,6(e12.4))') 'new ',x,y,z,dx,dy,dz
-!write(iproc+200,'(a,3(e12.4))') 'old ',xold,yold,zold
-!endif
-              j1=nint((xold)/hxh_old)
-              cif1=(j1 >= -6 .and. j1 <= 2*n1_old+7)
-              j2=nint((yold)/hyh_old)
-              cif2=(j2 >= -6 .and. j2 <= 2*n2_old+7)
-              j3=nint((zold)/hzh_old)
-              cif3=(j3 >= -6 .and. j3 <= 2*n3_old+7)
-              
-           !        if (cif1 .and. cif2 .and. cif3) psifscf(i1,i2,i3)=psifscfold(j1,j2,j3)
-           !        if (cif1 .and. cif2 .and. cif3) psifscf(i1,i2,i3)=psifscfoex(j1,j2,j3)
 
+              j1=nint((xold)/hxh_old)
+              cif1=(j1 >= -6 .and. j1 <= 2*n1_old+7) .or. perx
+              j2=nint((yold)/hyh_old)
+              cif2=(j2 >= -6 .and. j2 <= 2*n2_old+7) .or. pery
+              j3=nint((zold)/hzh_old)
+              cif3=(j3 >= -6 .and. j3 <= 2*n3_old+7) .or. perz
+
+              ind=i1+nb1+1+(2*n1+2+2*nb1)*(i2+nb2)+&
+                   (2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(i3+nb3)
+
+              
               if (cif1 .and. cif2 .and. cif3) then 
                  zr =real(((z-dz)-real(j3,gp)*hzh_old)/hzh_old,wp)
                  do l2=-1,1
                     do l1=-1,1
-                       ym1=psifscfold(j1+l1,j2+l2,j3-1)
-                       y00=psifscfold(j1+l1,j2+l2,j3  )
-                       yp1=psifscfold(j1+l1,j2+l2,j3+1)
+                       !the modulo has no effect on free BC thanks to the
+                       !if statement above
+                       jj1=modulo(j1+l1+nb1,2*n1_old+1+2*nb1+1)-nb1
+                       jj2=modulo(j2+l2+nb2,2*n2_old+1+2*nb2+1)-nb2
+                       jj3a=modulo(j3-1+nb3,2*n3_old+1+2*nb3+1)-nb3
+                       jj3b=modulo(j3  +nb3,2*n3_old+1+2*nb3+1)-nb3
+                       jj3c=modulo(j3+1+nb3,2*n3_old+1+2*nb3+1)-nb3
+                       
+
+                       ym1=psifscfold(jj1,jj2,jj3a)
+                       y00=psifscfold(jj1,jj2,jj3b)
+                       yp1=psifscfold(jj1,jj2,jj3c)
+
                        xya(l1,l2)=ym1 + &
                             (1.0_wp + zr)*(y00 - ym1 + zr*(.5_wp*ym1 - y00  + .5_wp*yp1))
                     enddo
@@ -144,7 +150,7 @@ subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old
                  ym1=xa(-1)
                  y00=xa(0)
                  yp1=xa(1)
-                 psifscf(i1,i2,i3)=ym1 + &
+                 psifscf(ind)=ym1 + &
                       (1.0_wp + xr)*(y00 - ym1 + xr*(.5_wp*ym1 - y00  + .5_wp*yp1))
 
               endif
@@ -154,23 +160,29 @@ subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old
      enddo
   endif
 
-!write(100+iproc,*) 'norm of psifscf ',dnrm2((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf,1)
+  !write(100+iproc,*) 'norm of psifscf ',dnrm2((2*n1+16)*(2*n2+16)*(2*n3+16),psifscf,1)
 
   i_all=-product(shape(psifscfold))*kind(psifscfold)
   deallocate(psifscfold,stat=i_stat)
   call memocc(i_stat,i_all,'psifscfold',subname)
   allocate(psig(0:n1,2,0:n2,2,0:n3,2+ndebug),stat=i_stat)
   call memocc(i_stat,psig,'psig',subname)
-  allocate(ww((2*n1+16)*(2*n2+16)*(2*n3+16)+ndebug),stat=i_stat)
+  allocate(ww((2*n1+2+2*nb1)*(2*n2+2+2*nb2)*(2*n3+2+2*nb3)+ndebug),stat=i_stat)
   call memocc(i_stat,ww,'ww',subname)
 
-  call analyse_shrink(n1,n2,n3,ww,psifscf,psig)
+  if (at%geocode=='F') then
+     call analyse_shrink(n1,n2,n3,ww,psifscf,psig)
+  else if (at%geocode == 'S') then
+     call analyse_slab(n1,n2,n3,ww,psifscf,psig)
+  else if (at%geocode == 'P') then
+     call analyse_per(n1,n2,n3,ww,psifscf,psig)
+  end if
 
   !write(100+iproc,*) 'norm new psig ',dnrm2(8*(n1+1)*(n2+1)*(n3+1),psig,1)
   call compress(n1,n2,n3,0,n1,0,n2,0,n3,  &
-       nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-       psig,psi(1),psi(nvctr_c+1))
+       wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),   &
+       wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1),   &
+       psig,psi(1),psi(wfd%nvctr_c+1))
 
   !write(100+iproc,*) 'norm of reformatted psi ',dnrm2(nvctr_c+7*nvctr_f,psi,1)
 
@@ -182,25 +194,68 @@ subroutine reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old
   call memocc(i_stat,i_all,'ww',subname)
 end subroutine reformatonewave
 
-subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
-     & hx,hy,hz,nat,rxyz_old,rxyz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,psi,eval,psifscf)
+!calculates the minimum difference between two coordinates
+!knowing that there could have been a modulo operation
+function mindist(periodic,alat,r,r_old)
   use module_base
   implicit none
+  logical, intent(in) :: periodic
+  real(gp), intent(in) :: r,r_old,alat
+  real(gp) :: mindist
+
+  if (periodic) then
+     if (r_old > 0.5_gp*alat) then
+        if (r < 0.5_gp*alat) then
+           mindist=r+alat-r_old
+        else
+           mindist=r-r_old
+        end if
+     else
+        if (r > 0.5_gp*alat) then
+           mindist=r-alat-r_old
+        else
+           mindist=r-r_old
+        end if
+     end if
+  else
+     mindist=r-r_old
+  end if
+
+end function mindist
+
+subroutine ext_buffers_coarse(periodic,nb)
+  implicit none
+  logical, intent(in) :: periodic
+  integer, intent(out) :: nb
+  if (periodic) then
+     nb=0
+  else
+     nb=7
+  end if
+end subroutine ext_buffers_coarse
+
+
+subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
+     & hx,hy,hz,at,wfd,rxyz_old,rxyz,psi,eval,psifscf)
+  use module_base
+  use module_types
+  implicit none
   logical, intent(in) :: useFormattedInput
-  integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3,nat,nseg_c,nseg_f,nvctr_c,nvctr_f
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3
+  type(wavefunctions_descriptors), intent(in) :: wfd
+  type(atoms_data), intent(in) :: at
   real(gp), intent(in) :: hx,hy,hz
-  real(gp), dimension(3,nat), intent(in) :: rxyz
+  real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(wp), intent(out) :: eval
-  real(gp), dimension(3,nat), intent(out) :: rxyz_old
-  real(wp), dimension(nvctr_c+7*nvctr_f), intent(out) :: psi
-  real(wp), dimension(-7:2*n1+8,-7:2*n2+8,-7:2*n3+8), intent(out) :: psifscf
+  real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f), intent(out) :: psi
+  real(wp), dimension(*), intent(out) :: psifscf !this supports different BC
   !local variables
   character(len=*), parameter :: subname='readonewave'
+  logical :: perx,pery,perz
   integer :: iorb_old,n1_old,n2_old,n3_old,iat,j,iel,nvctr_c_old,nvctr_f_old,i_stat,i_all,i1,i2,i3
   real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
-  real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old
+  real(gp) :: tx,ty,tz,displ,hx_old,hy_old,hz_old,mindist
   real(wp), dimension(:,:,:,:,:,:), allocatable :: psigold
 
   !write(*,*) 'INSIDE readonewave'
@@ -215,31 +270,36 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      read(unitwf,*) hx_old,hy_old,hz_old
      read(unitwf,*) n1_old,n2_old,n3_old
      !write(*,*) 'reading ',nat,' atomic positions'
-     do iat=1,nat
+     do iat=1,at%nat
         read(unitwf,*)(rxyz_old(j,iat),j=1,3)
      enddo
      read(unitwf,*) nvctr_c_old, nvctr_f_old
   else
      read(unitwf) hx_old,hy_old,hz_old
      read(unitwf) n1_old,n2_old,n3_old
-     do iat=1,nat
+     do iat=1,at%nat
         read(unitwf)(rxyz_old(j,iat),j=1,3)
      enddo
      read(unitwf) nvctr_c_old, nvctr_f_old
   end if
 
+  !conditions for periodicity in the three directions
+  perx=(at%geocode /= 'F')
+  pery=(at%geocode == 'P')
+  perz=(at%geocode /= 'F')
+
   tx=0.0_gp 
-  ty=0.0_gp  
-  tz=0.0_gp 
-  do iat=1,nat
-     tx=tx+(rxyz(1,iat)-rxyz_old(1,iat))**2
-     ty=ty+(rxyz(2,iat)-rxyz_old(2,iat))**2
-     tz=tz+(rxyz(3,iat)-rxyz_old(3,iat))**2
+  ty=0.0_gp
+  tz=0.0_gp
+  do iat=1,at%nat
+     tx=tx+mindist(perx,at%alat1,rxyz(1,iat),rxyz_old(1,iat))**2
+     ty=ty+mindist(pery,at%alat2,rxyz(2,iat),rxyz_old(2,iat))**2
+     tz=tz+mindist(perz,at%alat3,rxyz(3,iat),rxyz_old(3,iat))**2
   enddo
   displ=sqrt(tx+ty+tz)
 
   if (hx_old == hx .and. hy_old == hy .and. hz_old == hz .and.&
-       nvctr_c_old == nvctr_c .and. nvctr_f_old == nvctr_f .and. & 
+       nvctr_c_old == wfd%nvctr_c .and. nvctr_f_old == wfd%nvctr_f .and. & 
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
 
      write(*,*) 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
@@ -257,13 +317,13 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
         else
            read(unitwf) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
         end if
-        psi(nvctr_c+j+0)=t1
-        psi(nvctr_c+j+1)=t2
-        psi(nvctr_c+j+2)=t3
-        psi(nvctr_c+j+3)=t4
-        psi(nvctr_c+j+4)=t5
-        psi(nvctr_c+j+5)=t6
-        psi(nvctr_c+j+6)=t7
+        psi(wfd%nvctr_c+j+0)=t1
+        psi(wfd%nvctr_c+j+1)=t2
+        psi(wfd%nvctr_c+j+2)=t3
+        psi(wfd%nvctr_c+j+3)=t4
+        psi(wfd%nvctr_c+j+4)=t5
+        psi(wfd%nvctr_c+j+5)=t6
+        psi(wfd%nvctr_c+j+6)=t7
      enddo
 
   else
@@ -271,8 +331,10 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      write(*,*) 'wavefunction ',iorb,' needs reformatting on processor',iproc
      if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,*) &
           'because hgrid_old >< hgrid',hx_old,hy_old,hz_old,hx,hy,hz
-     if (nvctr_c_old /= nvctr_c) write(*,*) 'because nvctr_c_old >< nvctr_c',nvctr_c_old,nvctr_c
-     if (nvctr_f_old /= nvctr_f) write(*,*) 'because nvctr_f_old >< nvctr_f',nvctr_f_old,nvctr_f
+     if (nvctr_c_old /= wfd%nvctr_c) write(*,*) 'because nvctr_c_old >< nvctr_c',&
+          nvctr_c_old,wfd%nvctr_c
+     if (nvctr_f_old /= wfd%nvctr_f) write(*,*) 'because nvctr_f_old >< nvctr_f',&
+          nvctr_f_old,wfd%nvctr_f
      if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
           write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
      if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule'
@@ -305,9 +367,8 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      enddo
 
      ! I put nat = 1 here, since only one position is saved in wavefunction files.
-     call reformatonewave(iproc,displ,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,nat,&
-          rxyz_old,psigold,hx,hy,hz,nvctr_c,nvctr_f,n1,n2,n3,rxyz,nseg_c,nseg_f,&
-          keyg,keyv,psifscf,psi)
+     call reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,&
+          rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
 
      i_all=-product(shape(psigold))*kind(psigold)
      deallocate(psigold,stat=i_stat)

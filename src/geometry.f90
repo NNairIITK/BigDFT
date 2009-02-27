@@ -343,7 +343,7 @@ contains
     character(len=*), parameter :: subname='steepdes'
     character(len=3) :: fn
     logical :: care
-    integer :: nsatur,iat,itot,nitsd,itsd
+    integer :: nsatur,iat,itot,nitsd,itsd,nbeqbx
     real(gp) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise,sumx,sumy,sumz
     real(gp) :: forcemax,t1,t2,t3,de1,de2,df1,df2
     real(gp), allocatable, dimension(:,:) :: tpos
@@ -355,6 +355,7 @@ contains
 
     beta=in%betax
     care=.true.
+    nbeqbx=0
     nsatur=0
     etotitm2=1.e100_gp
     fnrmitm2=1.e100_gp
@@ -370,7 +371,7 @@ contains
     itot=0
 
     redo_sd: do
-       if (ncount_cluster.gt.in%ncount_cluster_x) then 
+       if (ncount_cluster > in%ncount_cluster_x) then 
           if (iproc.eq.0) then
              write(*,*) 'ncount_cluster in SD1',ncount_cluster
              write(16,*) 'SD FINISHED',iproc
@@ -448,8 +449,8 @@ contains
           !control whether we are in a situation in which SD do not change things too much
           if (care .and. itsd >= 3 .and. beta == in%betax .and. &
                df1 < anoise .and. &                              !forces are decreasing
-               de1 > -.1_gp .and. de1 < anoise .and. &            !energy slowly decreasing
-               fnrm <= .1_gp .and. fnrm/fnrmitm1 > .8_gp .and. &   !norm of forces is saturating
+               de1 > -.1_gp .and. de1 < anoise .and. &           !energy slowly decreasing
+               fnrm <= .1_gp .and. fnrm/fnrmitm1 > .8_gp .and. & !norm of forces saturating
                de2 > -2._gp*anoise .and. df2 > -2._gp*anoise) then !close to a local minimum (E&F)
              nsatur=nsatur+1
           else
@@ -513,10 +514,17 @@ contains
           fnrmitm1=fnrm
 
           beta=min(1.2_gp*beta,in%betax)
-
+          if (beta /= in%betax) nbeqbx=0
           if (beta == in%betax) then 
-             if (iproc.eq.0) write(16,*) 'beta=betax'
+             if (iproc == 0) write(16,*) 'beta=betax'
              care=.true.
+             !if beta=betax since too many interations (say 5),
+             !then betax can be increased
+             nbeqbx=nbeqbx+1
+             if (nbeqbx == 5) then
+                in%betax=1.2_gp*in%betax
+                nbeqbx=0
+             end if
           endif
           if (iproc.eq.0) write(16,*) 'beta=',beta
           do iat=1,at%nat
