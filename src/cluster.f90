@@ -27,12 +27,13 @@
   !temporary interface
   interface
      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
-          psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,in,infocode)
+          psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hgrid_old,in,infocode)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: nproc,iproc
        integer, intent(out) :: infocode
+       real(gp), intent(inout) :: hgrid_old
        type(input_variables), intent(in) :: in
        type(locreg_descriptors), intent(inout) :: Glr
        type(atoms_data), intent(inout) :: atoms
@@ -64,7 +65,7 @@
 
      call cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
-          rst%rxyz_old,in,infocode)
+          rst%rxyz_old,rst%hgrid_old,in,infocode)
 
      if (in%inputPsiId==1 .and. infocode==2) then
         if (in%gaussian_help) then
@@ -134,7 +135,7 @@ end subroutine call_bigdft
 !! SOURCE
 !!
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
-     psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,in,infocode)
+     psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hgrid_old,in,infocode)
   ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
   ! inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
   !                  as definition of the previous system.
@@ -155,6 +156,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   use Poisson_Solver
   implicit none
   integer, intent(in) :: nproc,iproc
+  real(gp), intent(inout) :: hgrid_old
   type(input_variables), intent(in) :: in
   type(locreg_descriptors), intent(inout) :: Glr
   type(atoms_data), intent(inout) :: atoms
@@ -179,7 +181,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   integer :: i1,i2,i3,ind,iat,ierror,i_all,i_stat,iter,ierr,isorb,jproc,ispin,nplot
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hx,hy,hz,hxh,hyh,hzh
-  real(kind=8) :: peakmem,gnrm_check,hgrid_old,energy_old,sumz
+  real(kind=8) :: peakmem,gnrm_check,energy_old,sumz
   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
   real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min,psoffset
   real(kind=8) :: factor,ttsum,hx_old,hy_old,hz_old
@@ -259,16 +261,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   if (in%inputPsiId == 1) then
      !regenerate grid spacings
      if (atoms%geocode == 'P') then
-        call correct_grid(atoms%alat1,hx,Glr%d%n1)
-        call correct_grid(atoms%alat2,hy,Glr%d%n2)
-        call correct_grid(atoms%alat3,hz,Glr%d%n3)
+        call correct_grid(atoms%alat1,hx_old,Glr%d%n1)
+        call correct_grid(atoms%alat2,hy_old,Glr%d%n2)
+        call correct_grid(atoms%alat3,hz_old,Glr%d%n3)
      else if (atoms%geocode == 'S') then 
-        call correct_grid(atoms%alat1,hx,Glr%d%n1)
-        call correct_grid(atoms%alat3,hz,Glr%d%n3)
+        call correct_grid(atoms%alat1,hx_old,Glr%d%n1)
+        hy_old=hgrid_old
+        call correct_grid(atoms%alat3,hz_old,Glr%d%n3)
+     else if (atoms%geocode == 'F') then 
+        hx_old=hgrid_old
+        hy_old=hgrid_old
+        hz_old=hgrid_old
      end if
-     call copy_old_wavefunctions(iproc,nproc,orbs,hx,hy,hz,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
-          Glr%wfd,psi,&
-          hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
+     call copy_old_wavefunctions(iproc,nproc,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+          Glr%wfd,psi,n1_old,n2_old,n3_old,wfd_old,psi_old)
   else if (in%inputPsiId == 11) then
      !deallocate wavefunction and descriptors for placing the gaussians
      
@@ -577,6 +583,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      rxyz_old(2,iat)=rxyz(2,iat)
      rxyz_old(3,iat)=rxyz(3,iat)
   enddo
+  !save the new grid spacing into the hgrid_old value
+  hgrid_old=in%hgrid
 
   ! allocate arrays necessary for DIIS convergence acceleration
   !the allocation with npsidim is not necessary here since DIIS arrays

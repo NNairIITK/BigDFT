@@ -32,23 +32,34 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   !	initializes the wavelet scaling coefficients	
   call wscal_init_per(scal,hx,hy,hz,cprecr)
 
+
   !	scale the r.h.s. that is also the scaled input guess :
   !	b'=D^{-1/2}b
   call wscal_per_self(nvctr_c,nvctr_f,scal,x(1),x(nvctr_c+1))
   !b=x
   call dcopy(nvctr_c+7*nvctr_f,x,1,b,1) 
 
-  !	compute the input guess x via a Fourier transform in a cubic box.
-  !	Arrays psifscf and ww serve as work arrays for the Fourier
-  fac=1.d0/scal(0)**2
-  call prec_fft_c(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-       cprecr,hx,hy,hz,x,&
-       psifscf(1),psifscf(n1+2),psifscf(n1+n2+3),ww(1),ww(nd1b*nd2*nd3*4+1),&
-       ww(nd1b*nd2*nd3*4+nd1*nd2*nd3f*4+1),&
-       nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,fac)
+  !if GPU is swithced on and there is no call to GPU preconditioner
+  !do not do the FFT preconditioning
+  if (.not. GPUconv) then
+
+     !	compute the input guess x via a Fourier transform in a cubic box.
+     !	Arrays psifscf and ww serve as work arrays for the Fourier
+
+     fac=1.d0/scal(0)**2
+     call prec_fft_c(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
+          cprecr,hx,hy,hz,x,&
+          psifscf(1),psifscf(n1+2),psifscf(n1+n2+3),ww(1),ww(nd1b*nd2*nd3*4+1),&
+          ww(nd1b*nd2*nd3*4+nd1*nd2*nd3f*4+1),&
+          nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,fac)
+  end if
 
   call apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        cprecr,hx,hy,hz,x,d,psifscf,ww,modul1,modul2,modul3,af,bf,cf,ef,scal) ! d:=Ax
+
+!!$  x=d
+!!$  return
+
   r=b-d ! r=b-Ax
   d=r
   !rmr_new=dot_product(r,r)
@@ -195,10 +206,10 @@ subroutine prec_fft_c(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 
   call uncompress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
-  call  hit_with_kernel_fac(x_c,z1,z3,kern_k1,kern_k2,kern_k3,n1+1,n2+1,n3+1,nd1,nd2,nd3,&
+  call hit_with_kernel_fac(x_c,z1,z3,kern_k1,kern_k2,kern_k3,n1+1,n2+1,n3+1,nd1,nd2,nd3,&
        n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,cprecr,fac)
 
-  call   compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
+  call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
 end subroutine prec_fft_c
 
@@ -280,7 +291,7 @@ subroutine prec_fft(n1,n2,n3, &
   call  hit_with_kernel(x_c,z1,z3,kern_k1,kern_k2,kern_k3,n1+1,n2+1,n3+1,nd1,nd2,nd3,&
        n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,cprecr)
 
-  call   compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
+  call compress_c(hpsi,x_c,keyg(1,1),keyv(1),nseg_c,nvctr_c,n1,n2,n3)
 
   call deallocate_all
 
@@ -456,10 +467,11 @@ subroutine wscal_init_per(scal,hx,hy,hz,c)
   !	initialization for the array scal in the subroutine wscal_per 	
   use module_base
   implicit none
-  real(wp),intent(in)::c,hx,hy,hz
-  real(wp),PARAMETER::B2=24.8758460293923314D0,A2=3.55369228991319019D0
-  real(wp),intent(out)::scal(0:8)
-  real(gp)::hh(3)
+  real(wp), intent(in) :: c,hx,hy,hz
+  real(wp), dimension(0:8), intent(out) :: scal
+  !local variables
+  real(wp), parameter :: b2=24.8758460293923314d0,a2=3.55369228991319019d0
+  real(gp) :: hh(3)
 
   hh(1)=.5_wp/hx**2
   hh(2)=.5_wp/hy**2

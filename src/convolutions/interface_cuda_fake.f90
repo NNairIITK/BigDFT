@@ -72,11 +72,17 @@
     implicit none
     stop 'fake prepare_gpu_for_locham'
   end subroutine prepare_gpu_for_locham
- 
-    subroutine gpu_locham()
+
+  subroutine gpu_locham()
     implicit none
     stop 'gpu_locham'
   end subroutine gpu_locham
+
+  subroutine gpu_precond()
+    implicit none
+    stop 'gpu_locham'
+  end subroutine gpu_precond
+
 
   subroutine free_gpu()
     implicit none

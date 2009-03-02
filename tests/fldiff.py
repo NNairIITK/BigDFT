@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 25/12/2008
+# Date: 02/03/2009
 #----------------------------------------------------------------------------
 
 import difflib
@@ -33,7 +33,7 @@ def usage():
     print "  --discrepancy=d Maximal discrepancy between results" % max_discrepancy
     sys.exit(1)
 
-#Maximum discrepancy between float results
+#Maximum discrepancy between float results (default)
 max_discrepancy = 1.1e-10
 
 #Check arguments

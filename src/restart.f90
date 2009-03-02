@@ -11,17 +11,15 @@
 !!
 !! SOURCE
 !!
-subroutine copy_old_wavefunctions(iproc,nproc,orbs,hx,hy,hz,n1,n2,n3,wfd,psi,&
-     hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,wfd_old,psi_old)
+subroutine copy_old_wavefunctions(iproc,nproc,orbs,n1,n2,n3,wfd,psi,&
+     n1_old,n2_old,n3_old,wfd_old,psi_old)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc,n1,n2,n3
-  real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(inout) :: wfd,wfd_old
   integer, intent(out) :: n1_old,n2_old,n3_old
-  real(gp), intent(out) :: hx_old,hy_old,hz_old
   real(wp), dimension(:), pointer :: psi,psi_old
   !Local variables
   character(len=*), parameter :: subname='copy_old_wavefunctions'
@@ -44,10 +42,6 @@ subroutine copy_old_wavefunctions(iproc,nproc,orbs,hx,hy,hz,n1,n2,n3,wfd,psi,&
   enddo
   !deallocation
   call deallocate_wfd(wfd,subname)
-
-  hx_old = hx
-  hy_old = hy
-  hz_old = hz
 
   n1_old = n1
   n2_old = n2

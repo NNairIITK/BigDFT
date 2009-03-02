@@ -185,6 +185,7 @@ module module_types
 !!
   type, public :: restart_objects
      integer :: n1,n2,n3
+     real(gp) :: hgrid_old
      real(wp), dimension(:), pointer :: psi
      real(wp), dimension(:,:), pointer :: gaucoeffs
      real(gp), dimension(:,:), pointer :: rxyz_old
@@ -217,7 +218,7 @@ module module_types
 !! SOURCE
 !!
   type, public :: GPU_pointers
-     real(kind=8) :: keys,psi,hpsi,work1,work2,work3,work4,pot
+     real(kind=8) :: keys,psi,hpsi,work1,work2,work3,work4,pot,r,b,d
   end type GPU_pointers
 !!***
 

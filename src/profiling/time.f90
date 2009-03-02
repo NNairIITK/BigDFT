@@ -119,7 +119,7 @@ subroutine timing(iproc,category,action)
               timesum(i)=pctimes(i)
            end do
         end if
-        if (iproc.eq.0) then
+        if (iproc == 0) then
            if (parallel) then
               call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
            else

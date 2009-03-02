@@ -320,11 +320,11 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
 
      !if (nproc==1) 
      !print *,'iproc,eself',iproc,eself
+     call razero(n1i*n2i*n3pi,pot_ion)
 
      if (n3pi >0 ) then
         !then calculate the hartree energy and forces of the charge distributions
         !(and save the values for the ionic potential)
-        call razero(n1i*n2i*n3pi,pot_ion)
 
         do iat=1,at%nat
            ityp=at%iatype(iat)
@@ -376,8 +376,11 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
 
      eion=ehart-eself
 
+     !print *,'ehart,eself',iproc,ehart,eself
+
      !if (nproc==1) 
      !print *,'iproc,eion',iproc,eion
+
 
      do iat=1,at%nat
         ityp=at%iatype(iat)
@@ -406,31 +409,32 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
 
         !calculate the forces near the atom due to the error function part of the potential
         !calculate forces for all atoms only in the distributed part of the simulation box
-        do i3=isz,iez
-           z=real(i3,gp)*hzh-rz
-           call ind_positions(perz,i3,n3,j3,goz) 
-           j3=j3+nbl3+1
-           do i2=isy,iey
-              y=real(i2,gp)*hyh-ry
-              call ind_positions(pery,i2,n2,j2,goy)
-              do i1=isx,iex
-                 x=real(i1,gp)*hxh-rx
-                 call ind_positions(perx,i1,n1,j1,gox)
-                 r2=x**2+y**2+z**2
-                 arg=r2/rloc**2
-                 xp=exp(-.5_gp*arg)
-                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                    ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                    !error function part
-                    Vel=pot_ion(ind)
-                    fxerf=fxerf+xp*Vel*x
-                    fyerf=fyerf+xp*Vel*y
-                    fzerf=fzerf+xp*Vel*z
-                 endif
+        if (n3pi >0 ) then
+           do i3=isz,iez
+              z=real(i3,gp)*hzh-rz
+              call ind_positions(perz,i3,n3,j3,goz) 
+              j3=j3+nbl3+1
+              do i2=isy,iey
+                 y=real(i2,gp)*hyh-ry
+                 call ind_positions(pery,i2,n2,j2,goy)
+                 do i1=isx,iex
+                    x=real(i1,gp)*hxh-rx
+                    call ind_positions(perx,i1,n1,j1,gox)
+                    r2=x**2+y**2+z**2
+                    arg=r2/rloc**2
+                    xp=exp(-.5_gp*arg)
+                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                       !error function part
+                       Vel=pot_ion(ind)
+                       fxerf=fxerf+xp*Vel*x
+                       fyerf=fyerf+xp*Vel*y
+                       fzerf=fzerf+xp*Vel*z
+                    endif
+                 end do
               end do
            end do
-        end do
-
+        end if
         !final result of the forces
 
         fion(1,iat)=fion(1,iat)+(hxh*hyh*hzh*prefactor)*fxerf

@@ -144,9 +144,6 @@ program MINHOP
   call read_input_variables(iproc,'input.dat',inputs_opt)
   call read_input_variables(iproc,'mdinput.dat',inputs_md)
 
-  !write(*,*) 'WARNING, coordinates scaled'
-  !        pos(:,:)=pos(:,:)*8.d0
-
   ! allocate other arrays
   allocate(ff(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,ff,'ff',subname)
@@ -210,18 +207,18 @@ program MINHOP
   open(unit=11,file='rand.inp',status='old')
   read(11,*) nrandoff
   close(11)
-  if (iproc.eq.0) write(*,*) '# nrandoff ',nrandoff
+  if (iproc == 0) write(*,*) '# nrandoff ',nrandoff
 
   do  i=1,nrandoff
      call random_number(tts)
   enddo
-  if (iproc.eq.0) write(67,'(a,1x,3(1x,1pe10.3))') 'In :ediff,ekinetic,dt',ediff,ekinetic,dt
-  if (iproc.eq.0) write(*,'(a,1x,3(1x,1pe10.3))') ' # In :ediff,ekinetic,dt',ediff,ekinetic,dt
+  if (iproc == 0) write(67,'(a,1x,3(1x,1pe10.3))') 'In :ediff,ekinetic,dt',ediff,ekinetic,dt
+  if (iproc == 0) write(*,'(a,1x,3(1x,1pe10.3))') ' # In :ediff,ekinetic,dt',ediff,ekinetic,dt
 
 
   ! If restart run read previously found energies
   nlmin_l=0
-  if (nlmin.gt.0) then
+  if (nlmin > 0) then
      kk=1
      do
         write(fn5,'(i5.5)') kk
@@ -391,9 +388,9 @@ program MINHOP
         if (iproc == 0) then 
            write(67,*) ' Writing intermediate results at',nlmin_l,nlmin
            write(*,*) '#  Writing intermediate results at',nlmin_l,nlmin
-           call winter(atoms,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
-                earr,elocmin,poslocmin,eref,ediff,ekinetic,dt)
         endif
+        call winter(iproc,atoms,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
+             earr,elocmin,poslocmin,eref,ediff,ekinetic,dt)
         nlmin_old=nlmin
      endif
 
@@ -623,11 +620,13 @@ end do hopping_loop
 
 !3000 continue
 
-  if (iproc.eq.0) then
+  if (iproc == 0) then
      write(67,*) 'writing final results'
      write(*,*) '# writing final results'
-     call winter(atoms,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
-          earr,elocmin,poslocmin,eref,ediff,ekinetic,dt)
+  end if
+  call winter(iproc,atoms,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
+       earr,elocmin,poslocmin,eref,ediff,ekinetic,dt)
+  if (iproc == 0) then
      write(67,*) ' found ',nlmin_l,nlmin,' minima'
      write(*,*) '# found ',nlmin_l,nlmin,' minima'
      !this section could be put in wtioput. However, here we only put
@@ -1711,13 +1710,13 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
 end subroutine fix_fragmentation
 
 
-subroutine winter(at,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
+subroutine winter(iproc,at,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, & 
      earr,elocmin,poslocmin,eref,ediff,ekinetic,dt)
   use module_base
   use module_types
   implicit none
   !implicit real*8 (a-h,o-z)
-  integer, intent(in) :: npminx,nlminx,nbuf,nlmin,nlmin_l
+  integer, intent(in) :: npminx,nlminx,nbuf,nlmin,nlmin_l,iproc
   real(gp), intent(in) :: re_pos,eref,ediff,ekinetic,dt,accur
   type(atoms_data), intent(in) :: at
   real(gp), dimension(npminx), intent(in) :: elocmin
@@ -1729,37 +1728,31 @@ subroutine winter(at,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, &
   character(len=20) :: filename
   integer :: mm,k
 
-  call wtxyz('poscur',re_pos,pos,at,'')
+  if (iproc == 0) then
+     call wtxyz('poscur',re_pos,pos,at,'')
+     write(*,*) ' wrote poscur.xyz for  RESTART'
+  end if
+     
+  call wtpos(iproc,at,npminx,nlminx,nbuf,nlmin,nlmin_l,poslocmin,earr,elocmin)
 
-!!$  filename = 'poscur.xyz'
-!!$  open(unit=9,file=filename,status='unknown')
-!!$  write(9,'(i4,2x,a,1x,1pe17.10,3x,a)') nat,'  atomic',re_pos
-!!$  write(9,'(1pe17.10)') re_pos
-!!$  do iat=1,nat
-!!$     write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)') atomnames(iatype(iat)),pos(1,iat),pos(2,iat),pos(3,iat),natpol(iat)-100
-!!$  enddo
-
-  write(*,*) ' wrote poscur.xyz for  RESTART'
-!!$  close(9)
-
-  call wtpos(at,npminx,nlminx,nbuf,nlmin,nlmin_l,poslocmin,earr,elocmin)
-
-  write(*,*) ' wrote poslow files'
-
-  open(unit=12,file='earr.dat',status='unknown')
-  mm=min(nlmin,nlminx+nbuf)
-  write(12,'(2(i10),a)') mm,mm+5,&
-       ' # of minima already found, # of minima to be found in consecutive run'
-  write(12,'(e24.17,1x,a)') eref,'   eref'
-  write(12,'(e24.17,1x,a)') accur,'   accur'
-  do k=1,mm
-     write(12,'(e24.17,1x,1pe17.10)') earr(k,1),earr(k,2)
-  enddo
-  write(*,*) ' wrote earr.dat for  RESTART'
-  close(12)
-
-  call  wtioput(ediff,ekinetic,dt)
-  write(*,*) ' wrote ioput for  RESTART'
+  if (iproc == 0) then
+     write(*,*) ' wrote poslow files'
+     
+     open(unit=12,file='earr.dat',status='unknown')
+     mm=min(nlmin,nlminx+nbuf)
+     write(12,'(2(i10),a)') mm,mm+5,&
+          ' # of minima already found, # of minima to be found in consecutive run'
+     write(12,'(e24.17,1x,a)') eref,'   eref'
+     write(12,'(e24.17,1x,a)') accur,'   accur'
+     do k=1,mm
+        write(12,'(e24.17,1x,1pe17.10)') earr(k,1),earr(k,2)
+     enddo
+     write(*,*) ' wrote earr.dat for  RESTART'
+     close(12)
+     
+     call  wtioput(ediff,ekinetic,dt)
+     write(*,*) ' wrote ioput for  RESTART'
+  end if
 
 end subroutine winter
 
@@ -1841,12 +1834,12 @@ end subroutine wtlmin
 
 
 
-subroutine wtpos(at,npminx,nlminx,nbuf,nlmin,nlmin_l,pos,earr,elocmin)
+subroutine wtpos(iproc,at,npminx,nlminx,nbuf,nlmin,nlmin_l,pos,earr,elocmin)
   use module_base
   use module_types
   implicit none
   !implicit real*8 (a-h,o-z)
-  integer, intent(in) :: npminx,nlminx,nbuf,nlmin,nlmin_l
+  integer, intent(in) :: npminx,nlminx,nbuf,nlmin,nlmin_l,iproc
   type(atoms_data), intent(in) :: at
   real(gp), dimension(npminx), intent(in) :: elocmin
   real(gp), dimension(0:nlminx+nbuf,2), intent(in) :: earr
@@ -1870,7 +1863,7 @@ subroutine wtpos(at,npminx,nlminx,nbuf,nlmin,nlmin_l,pos,earr,elocmin)
      find_kk : do
         kk=kk+1
         if (kk > min(nlmin,nlminx+nbuf)) then 
-           write(*,*) 'ranking error for',k
+           if (iproc == 0) write(*,*) 'ranking error for',k
            stop 
         endif
         if (earr(kk,1) == elocmin(k)) exit find_kk
@@ -1881,17 +1874,10 @@ subroutine wtpos(at,npminx,nlminx,nbuf,nlmin,nlmin_l,pos,earr,elocmin)
         !        write(*,'(a,i2,i4,i4,1x,1pe21.14)') 'k,kk,elocmin(k)',k,kk,elocmin(k)
 
         !C generate filename and open files
-        write(fn,'(i5.5)') kk
-        call wtxyz('poslow'//fn,elocmin(k),pos(1,1,kk),at,'')
-!!$        filename = 'poslow'//fn//'.xyz'
-!!$        open(unit=9,file=filename,status='unknown')
-!!$        write(9,'(i6,2x,a,1pe24.17)') nat,'  atomic ',elocmin(k)
-!!$        write(9,'(e24.17)') elocmin(k)
-!!$        do iat=1,nat
-!!$           write(9,'(a8,3x,3(1x,1pe24.17),3x,i5.5)'),atomnames(iatype(iat)),&
-!!$                pos(1,iat,kk),pos(2,iat,kk),pos(3,iat,kk),natpol(iat)-100
-!!$        enddo
-!!$        close(9)
+        if (iproc == 0) then
+           write(fn,'(i5.5)') kk
+           call wtxyz('poslow'//fn,elocmin(k),pos(1,1,kk),at,'')
+        end if
      endif
 
   end do

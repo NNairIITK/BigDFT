@@ -98,46 +98,48 @@ subroutine local_forces(iproc,nproc,at,rxyz,hxh,hyh,hzh,&
 
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
-     do i3=isz,iez
-        z=real(i3,kind=8)*hzh-rz
-        call ind_positions(perz,i3,n3,j3,goz) 
-        j3=j3+nbl3+1
-        do i2=isy,iey
-           y=real(i2,kind=8)*hyh-ry
-           call ind_positions(pery,i2,n2,j2,goy)
-           do i1=isx,iex
-              x=real(i1,kind=8)*hxh-rx
-              call ind_positions(perx,i1,n1,j1,gox)
-              r2=x**2+y**2+z**2
-              arg=r2/rloc**2
-              xp=exp(-.5d0*arg)
-              if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                 ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                 !gaussian part
-                 tt=0.d0
-                 if (nloc /= 0) then
-                    !derivative of the polynomial
-                    tt=cprime(nloc)
-                    do iloc=nloc-1,1,-1
-                       tt=arg*tt+cprime(iloc)
-                    enddo
-                    rhoel=rho(ind)
-                    forceloc=xp*tt*rhoel
-                    fxgau=fxgau+forceloc*x
-                    fygau=fygau+forceloc*y
-                    fzgau=fzgau+forceloc*z
-                 end if
-                 !error function part
-                 Vel=pot(ind)
-                 fxerf=fxerf+xp*Vel*x
-                 fyerf=fyerf+xp*Vel*y
-                 fzerf=fzerf+xp*Vel*z
-              else if (.not. goz) then
-                 forceleaked=forceleaked+xp*tt*rho(1) !(as a sample value)
-              endif
+     if (n3pi >0 ) then
+        do i3=isz,iez
+           z=real(i3,kind=8)*hzh-rz
+           call ind_positions(perz,i3,n3,j3,goz) 
+           j3=j3+nbl3+1
+           do i2=isy,iey
+              y=real(i2,kind=8)*hyh-ry
+              call ind_positions(pery,i2,n2,j2,goy)
+              do i1=isx,iex
+                 x=real(i1,kind=8)*hxh-rx
+                 call ind_positions(perx,i1,n1,j1,gox)
+                 r2=x**2+y**2+z**2
+                 arg=r2/rloc**2
+                 xp=exp(-.5d0*arg)
+                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+                    ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                    !gaussian part
+                    tt=0.d0
+                    if (nloc /= 0) then
+                       !derivative of the polynomial
+                       tt=cprime(nloc)
+                       do iloc=nloc-1,1,-1
+                          tt=arg*tt+cprime(iloc)
+                       enddo
+                       rhoel=rho(ind)
+                       forceloc=xp*tt*rhoel
+                       fxgau=fxgau+forceloc*x
+                       fygau=fygau+forceloc*y
+                       fzgau=fzgau+forceloc*z
+                    end if
+                    !error function part
+                    Vel=pot(ind)
+                    fxerf=fxerf+xp*Vel*x
+                    fyerf=fyerf+xp*Vel*y
+                    fzerf=fzerf+xp*Vel*z
+                 else if (.not. goz) then
+                    forceleaked=forceleaked+xp*tt*rho(1) !(as a sample value)
+                 endif
+              end do
            end do
         end do
-     end do
+     end if
 
      !final result of the forces
 

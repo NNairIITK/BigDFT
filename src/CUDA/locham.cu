@@ -13,11 +13,13 @@
 #include "reduction.h"
 #include "GPUparameters.h"
 
-
 //#include "locpot.h"  //for mf1d and magicfilterpot fcts
 //#include "anasyn.h" //wavana1d wavsyn1d
 //#include "compress.h" // uncompressgpu compressgpu
 __constant__ parGPU_t par[9];
+
+//WARNING this should be changed for simple precision
+__constant__ double GPUscal[8];
 
 //global variables for launching different grids
 static unsigned int numBlocksWTz,linecutsWTz,num_halfwarpsWTz;
@@ -31,20 +33,18 @@ static unsigned int numBlocksMFy,linecutsMFy,num_halfwarpsMFy;
 static unsigned int numBlocksMFx,linecutsMFx,num_halfwarpsMFx;
 static unsigned int nseg_blockC,nblocksC;
 
-
-
 #include "anasyn.cu"
 #include "locpot.cu"
 #include "kinetic.cu"
 #include "compress.cu"
 
-
+//some specifications for the cublas routines used in the calculations
 
 //template specialization for simple or double
 template<typename T>
 T do_blasDot(int size, T *tab1, T *tab2)
 {
-  return -1; //if this code is expended is a bug because T is neither double nor simple
+  return -1; //if this code is extended is a bug because T is neither double nor simple
 }
 
 template<>
@@ -85,7 +85,66 @@ double do_blasDot(int size, double *tab1, double *tab2)
    
   return ret;
 }
+
+template<typename T>
+void do_blasAxpy(int size,T alpha, T *x, T *y)
+{
+  return ;
+}
+
+template<>
+void do_blasAxpy<float>(int size, float alpha,float *x, float *y)
+{
+  cublasSaxpy(size,alpha,x,1,y,1); 
+}
+
+template<>
+void do_blasAxpy<double>(int size, double alpha,double *x, double *y)
+{
+  cublasDaxpy(size,alpha,x,1,y,1); 
+}
+
+
+template<typename T>
+void do_blasScal(int size,T alpha, T *x)
+{
+  return ;
+}
+
+template<>
+void do_blasScal<float>(int size, float alpha,float *x)
+{
+  cublasSscal(size,alpha,x,1); 
+}
+
+template<>
+void do_blasScal<double>(int size, double alpha,double *x)
+{
+  cublasDscal(size,alpha,x,1); 
+}
+
+
+
 // end template specialisation
+
+
+template<typename T>
+int copygpuprecondparameters(T hx, T hy,T hz)
+{
+
+  T CPUscal[8];
+
+  GPUprecondparameters<T>(CPUscal,hx,hy,hz);
+
+  //send them to constant memory, once and for all
+  if(cudaMemcpyToSymbol(*GPUscal,&CPUscal, 8*sizeof(T)) != 0)
+    {
+      printf("MemcpyToSymbol error\n");
+  
+      return 1;
+    }
+  return 0;
+}
 
 
 
@@ -126,7 +185,8 @@ int copygpulochamparameters(int n1,int n2, int n3)
 }
 
 extern "C" 
-void creategpuparameters_(int *n1,int *n2, int *n3)
+void creategpuparameters_(int *n1,int *n2, int *n3, 
+			  double *hx, double *hy, double *hz)
 {
 
   
@@ -135,6 +195,17 @@ void creategpuparameters_(int *n1,int *n2, int *n3)
       printf("ERROR: GPU creategpuparameters\n ");
       return;
     } 
+
+
+  /*
+  if(copygpuprecondparameters<double>(*hx, *hy, *hz)!= 0) 
+    {
+      printf("ERROR: GPU creategpuparameters(precond)\n ");
+      return;
+    } 
+  */
+
+
   return; 
 }
 
@@ -178,8 +249,8 @@ int sftowavelets(int n1,int n2, int n3,
   return 0;
 }
 
-
-
+  
+ 
 template<typename T>
 int potentialapplication(int n1,int n2, int n3,
 			 dim3 gridMF1, dim3 gridMF2, dim3 gridMF3,
@@ -418,6 +489,151 @@ int fulllocalhamiltonian(int n1,int n2, int n3,
 
 }
 
+template<typename T>
+int gpuapply_hp(int n1,int n2, int n3,
+		T h1,T h2,T h3,T c,
+		T *psiw,T *hpsiw,int *keys,
+		T *psi,T *out, 
+		T *psifscf,
+		T *cpsifscf)
+{
+
+  
+  dim3  gridWT3(linecutsWTz,  numBlocksWTz, 1);  
+  dim3  threadsWT3(HALF_WARP_SIZE, num_halfwarpsWTz , 1);
+  dim3  gridWT2(linecutsWTy,  numBlocksWTy, 1);  
+  dim3  threadsWT2(HALF_WARP_SIZE, num_halfwarpsWTy , 1);
+  dim3  gridWT1(linecutsWTx,  numBlocksWTx, 1);  
+  dim3  threadsWT1(HALF_WARP_SIZE, num_halfwarpsWTx , 1);
+
+  dim3  gridK3(linecutsKz,  numBlocksKz, 1);  
+  dim3  threadsK3(HALF_WARP_SIZE, num_halfwarpsKz , 1);
+  dim3  gridK2(linecutsKy,  numBlocksKy, 1);  
+  dim3  threadsK2(HALF_WARP_SIZE, num_halfwarpsKy , 1);
+  dim3  gridK1(linecutsKx,  numBlocksKx, 1);  
+  dim3  threadsK1(HALF_WARP_SIZE, num_halfwarpsKx , 1);
+
+  dim3  gridC(nblocksC, 1, 1);  
+  dim3  threadsC(ELEMS_BLOCK, nseg_blockC , 1);
+
+
+  T ekinpot;
+
+  //uncompression
+  //set the value of the psig array to zero
+  //do_blasScal(8*n1*n2*n3,(T) 0.,psi); //alternative way
+  cudaMemset((void*) psi,0,8*n1*n2*n3*sizeof(T));
+  //cudaThreadSynchronize();
+
+
+  //decompress wavefunctions with scaling factor
+  uncompresscoarsefinescal<T> <<< gridC, threadsC >>>(n1,n2,n3,h1,h2,h3,c,psiw,psi,keys);
+  cudaThreadSynchronize();
+  
+
+  //wavelet transformation
+  waveletstosf<T>(n1,n2,n3,gridWT1,gridWT2,gridWT3,
+		  threadsWT1,threadsWT2,threadsWT3,
+		  psi,psifscf);
+
+  //worky array should be initialised to c*x
+  c_initialize<T> <<< gridK3, threadsK3 >>>(2*n3,4*n1*n2,psifscf,cpsifscf,c,3);
+  cudaThreadSynchronize();
+
+  kineticapplication<T>(n1,n2,n3,h1,h2,h3,
+			gridK1,gridK2,gridK3,
+			threadsK1,threadsK2,threadsK3,
+			psifscf,cpsifscf,psi,&ekinpot,
+			out); //work array
+
+  sftowavelets<T>(n1,n2,n3,gridWT1,gridWT2,gridWT3,
+		  threadsWT1,threadsWT2,threadsWT3,
+		  psi,out);
+
+
+  //recompress
+  compresscoarsefinescal<T> <<< gridC, threadsC >>>(n1,n2,n3,h1,h2,h3,c,out,hpsiw,keys);
+  cudaThreadSynchronize();
+
+  return 0;
+
+}
+
+//preconditioning loop
+//reproduces the precong_per routine without prec_fft_c
+template<typename T>
+int gpucg_precong(int n1,int n2, int n3,int npsi,int ncong,
+		  T h1,T h2,T h3,T c,T *x,int *keys,T *r,T *b,T *d,
+		  T *work1,T *work2,T *work3, T *work4)
+{
+
+  dim3  gridC(nblocksC, 1, 1);  
+  dim3  threadsC(ELEMS_BLOCK, nseg_blockC , 1);
+
+
+  wscalgpu<T> <<< gridC, threadsC >>>(x,h1,h2,h3,c,keys);
+  cudaThreadSynchronize();
+
+  gpuapply_hp<T>(n1,n2,n3,h1,h2,h3,c,
+		 x,d,keys,
+		 work1,work2,work3,work4);
+
+  //change the sign of the 0-th step such as to use axpy calls
+  //d=d-x
+  do_blasAxpy(npsi,(T)(-1.),x,d);
+
+  //r=d
+  cudaMemcpy(r,d,npsi*sizeof(T), cudaMemcpyDeviceToDevice);
+  cudaThreadSynchronize();
+
+  T rmr_new=do_blasDot(npsi, r, r);
+
+  T alpha,beta,rmr_old;
+
+  for(int i=0;i < ncong;++i)
+    {
+      gpuapply_hp<T>(n1,n2,n3,h1,h2,h3,c,
+		     d,b,keys,
+		     work1,work2,work3,work4);
+
+      alpha=rmr_new/do_blasDot(npsi, d, b);
+
+      //here the sign is inverted because of the
+      //mapping d -> -d => b -> -b
+      
+      //x=x-alpha*d
+      do_blasAxpy(npsi,-alpha,d,x);
+
+      if (i != ncong-1)
+	{
+	  //r=r-alpha*b (r does not change sign since also b is opposite)
+	  do_blasAxpy(npsi,-alpha,b,r);
+
+	  rmr_old=rmr_new;
+	  rmr_new=do_blasDot(npsi, r, r);
+
+	  beta=rmr_new/rmr_old;
+
+	  //d=d+1/beta*r
+	  do_blasAxpy(npsi,(T)(1)/beta,r,d);
+
+	  //d=beta*d
+	  do_blasScal(npsi,beta,d);
+	}
+  
+	
+    }
+
+
+  wscalgpu<T> <<< gridC, threadsC >>>(x,h1,h2,h3,c,keys);
+  cudaThreadSynchronize();
+
+
+  return 0;
+
+}
+
+
 
 extern "C" 
 void gpulocham_(int *n1,int *n2, int *n3,
@@ -465,6 +681,29 @@ void gpufulllocham_(int *n1,int *n2, int *n3,
     } 
   return; 
 }
+
+extern "C" 
+void gpuprecond_(int *n1,int *n2, int *n3,int *npsi,
+		 double *h1,double *h2,double *h3,
+		 double **x,int **keys, 
+		 double **r,double **b,double **d,
+		 double **work1,double **work2,
+		 double **work3,
+		 double **work4,
+		 double *c,int *ncong)
+{
+  
+
+  if(gpucg_precong<double>(*n1+1,*n2+1,*n3+1,*npsi,*ncong,
+			   *h1,*h2,*h3,*c,
+			   *x,*keys,*r,*b,*d,*work1,*work2,*work3,*work4)!= 0)
+    {
+      printf("ERROR: GPU fulllocalhamiltonian\n ");
+      return;
+    } 
+  return; 
+}
+
 
 
 extern "C" 

@@ -275,6 +275,7 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
 
   nseggpu=nseg_block*nblocks
 
+
   !allocate the array to be copied
   allocate(keys(4,nseggpu+ndebug),stat=i_stat)
   call memocc(i_stat,keys,'keys',subname)
@@ -346,19 +347,19 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
 
   call GPU_int_send(4*nseggpu,keys,keys_GPU,i_stat)
 
-
-  i_all=-product(shape(keys))
+  i_all=-product(shape(keys))*kind(keys)
   deallocate(keys,stat=i_stat)
   call memocc(i_stat,i_all,'keys',subname)
 
 
 end subroutine adjust_keys_for_gpu
 
-subroutine prepare_gpu_for_locham(n1,n2,n3,wfd,orbs,GPU)
+subroutine prepare_gpu_for_locham(n1,n2,n3,hx,hy,hz,wfd,orbs,GPU)
   use module_base
   use module_types
   implicit none
   integer, intent(in) :: n1,n2,n3
+  real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(in) :: orbs
   type(GPU_pointers), intent(out) :: GPU
@@ -373,7 +374,7 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,wfd,orbs,GPU)
        wfd%keyv(wfd%nseg_c+1),wfd%keyg(1,wfd%nseg_c+1),wfd%nvctr_c,GPU%keys)
 
   !create parameters
-  call creategpuparameters(n1,n2,n3)
+  call creategpuparameters(n1,n2,n3,hx,hy,hz)
 
   !allocate space on the card
   call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%psi,i_stat)
@@ -383,6 +384,11 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,wfd,orbs,GPU)
   call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%work4,i_stat)
   call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%pot,i_stat)
   call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%hpsi,i_stat)
+  !needed for the preconditioning
+  call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%r,i_stat)
+  call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%b,i_stat)
+  call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%d,i_stat)
+
   
 end subroutine prepare_gpu_for_locham
 
@@ -397,6 +403,9 @@ subroutine free_gpu(GPU)
   integer :: i_stat
   
 
+  call GPU_deallocate(GPU%r,i_stat)
+  call GPU_deallocate(GPU%b,i_stat)
+  call GPU_deallocate(GPU%d,i_stat)
   call GPU_deallocate(GPU%work1,i_stat)
   call GPU_deallocate(GPU%work2,i_stat)
   call GPU_deallocate(GPU%work3,i_stat)
@@ -433,5 +442,30 @@ subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
   end do
 
 end subroutine gpu_locham
+
+
+subroutine gpu_precond(lr,hx,hy,hz,GPU,norbp,ncong,eval)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: norbp,ncong
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(norbp), intent(in) :: eval
+  type(GPU_pointers), intent(out) :: GPU
+  !local variables
+  integer :: i_stat,iorb
+
+  do iorb=1,norbp
+
+     call gpuprecond(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
+          0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+          GPU%hpsi,&
+          GPU%keys,GPU%r,GPU%b,GPU%d,GPU%work1,GPU%work2,GPU%work3,GPU%work4,&
+          0.5_wp,ncong)
+
+  end do
+
+end subroutine gpu_precond
 
 
