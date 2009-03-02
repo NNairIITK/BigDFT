@@ -229,12 +229,12 @@ program memguess
      call memocc(i_stat,orbstst%norb_par,'orbstst%norb_par',subname)
      !test orbitals
      nspin=1
-     norb=1
-     norbu=1
+     norb=orbs%norb
+     norbu=norb
      norbd=0
      nspinor=1
 
-     call orbitals_descriptors(0,1,norb,norbu,norbd,nspinor,orbstst)
+     call orbitals_descriptors(0,nproc,norb,norbu,norbd,nspinor,orbstst)
      allocate(orbstst%occup(orbstst%norb+ndebug),stat=i_stat)
      call memocc(i_stat,orbstst%occup,'orbstst%occup',subname)
      allocate(orbstst%spinsgn(orbstst%norb+ndebug),stat=i_stat)
@@ -250,10 +250,11 @@ program memguess
         orbstst%spinsgn(iorb)=1.0_gp
      end do
 
-     call createWavefunctionsDescriptors(0,1,hx,hy,hz,&
+     call createWavefunctionsDescriptors(0,nproc,hx,hy,hz,&
           atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst,nvctrp)
      
-     call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,Glr,hx,hy,hz,rxyz)
+     call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,in%ixc,&
+          Glr,hx,hy,hz,rxyz)
      
      call deallocate_wfd(Glr%wfd,subname)
 
@@ -473,12 +474,14 @@ end subroutine optimise_volume
 !!***
 
 
-subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ncong,lr,hx,hy,hz,rxyz)
+subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
+     lr,hx,hy,hz,rxyz)
   use module_base
   use module_types
   use module_interfaces
+  use Poisson_Solver
   implicit none
-  integer, intent(in) :: iproc,nproc,nspin,ncong
+  integer, intent(in) :: iproc,nproc,nspin,ncong,ixc
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -486,15 +489,17 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ncong,lr,hx,hy,
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   !local variables
   character(len=*), parameter :: subname='compare_cpu_gpu_hamiltonian'
+  logical :: rsflag
   integer :: icoeff,norb,norbu,norbd,nspinor,i_stat,i_all,i1,i2,i3,ispin,j,ntimes
-  integer :: iorb
+  integer :: iorb,n3d,n3p,n3pi,i3xcsh,i3s,jproc,nrhotot,nspinn
   real(kind=4) :: tt,t0,t1
   real(wp) :: maxdiff,comp
-  real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU,gnrm
+  real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU,gnrm,gnrmGPU
   real(kind=8) :: CPUtime,CPUGflops,GPUtime,GPUGflops
   type(gaussian_basis) :: G
   type(GPU_pointers) :: GPU
-  real(wp), dimension(:,:,:,:), allocatable :: pot,psig
+  integer, dimension(:,:), allocatable :: nscatterarr
+  real(wp), dimension(:,:,:,:), allocatable :: pot,psig,rho
   real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
 
   ntimes=1
@@ -538,12 +543,86 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ncong,lr,hx,hy,
   !deallocate the gaussian basis descriptors
   call deallocate_gwf(G,subname)
 
-  !allocate and initialise the potential
+  !allocate and initialise the potential and the density
   allocate(pot(lr%d%n1i,lr%d%n2i,lr%d%n3i,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,pot,'pot',subname)
+  allocate(rho(lr%d%n1i,lr%d%n2i,lr%d%n3i,nspin+ndebug),stat=i_stat)
+  call memocc(i_stat,rho,'rho',subname)
 
-!!$  allocate(psig(lr%d%n1i,lr%d%n2i,lr%d%n3i,nspin+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,psig,'psig',subname)
+
+
+  !here the potential can be used for building the density
+  allocate(nscatterarr(0:nproc-1,4+ndebug),stat=i_stat)
+  call memocc(i_stat,nscatterarr,'nscatterarr',subname)
+  !normally nproc=1
+  do jproc=0,nproc-1
+     call PS_dim4allocation(at%geocode,'D',jproc,nproc,lr%d%n1i,lr%d%n2i,lr%d%n3i,ixc,&
+          n3d,n3p,n3pi,i3xcsh,i3s)
+     nscatterarr(jproc,1)=n3d
+     nscatterarr(jproc,2)=n3p
+     nscatterarr(jproc,3)=i3s+i3xcsh-1
+     nscatterarr(jproc,4)=i3xcsh
+  end do
+
+  !components of the charge density
+  if (orbs%nspinor ==4) then
+     nspinn=4
+  else
+     nspinn=nspin
+  end if
+
+  !flag for toggling the REDUCE_SCATTER stategy
+  rsflag=.not. (ixc >= 11 .and. ixc <=16)
+
+  !calculate dimensions of the complete array to be allocated before the reduction procedure
+  if (rsflag) then
+     nrhotot=0
+     do jproc=0,nproc-1
+        nrhotot=nrhotot+nscatterarr(jproc,1)
+     end do
+  else
+     nrhotot=lr%d%n3i
+  end if
+
+  call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,pot,nproc)
+
+  !for each of the orbitals treated by the processor build the partial densities
+  call cpu_time(t0)
+  call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
+     nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,orbs%nspinor,orbs%norbp,&
+     orbs%occup(min(orbs%isorb+1,orbs%norb)),orbs%spinsgn(min(orbs%isorb+1,orbs%norb)),&
+     psi,pot)
+  call cpu_time(t1)
+  CPUtime=real(t1-t0,kind=8)
+
+  call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho,nproc)
+
+  !now the GPU part
+  !for each of the orbitals treated by the processor build the partial densities
+  call cpu_time(t0)
+  call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
+     nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,orbs%nspinor,orbs%norbp,&
+     orbs%occup(min(orbs%isorb+1,orbs%norb)),orbs%spinsgn(min(orbs%isorb+1,orbs%norb)),&
+     psi,rho)
+  call cpu_time(t1)
+  GPUtime=real(t1-t0,kind=8)
+
+
+  i_all=-product(shape(nscatterarr))*kind(nscatterarr)
+  deallocate(nscatterarr,stat=i_stat)
+  call memocc(i_stat,i_all,'nscatterarr',subname)
+
+  !compare the results between the different actions of the hamiltonian
+  !check the differences between the results
+  call compare_data_and_gflops(CPUtime,GPUtime,&
+       8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,pot,rho,&
+       lr%d%n1i*lr%d%n2i*lr%d%n3i,ntimes)
+
+  i_all=-product(shape(rho))*kind(rho)
+  deallocate(rho,stat=i_stat)
+  call memocc(i_stat,i_all,'rho',subname)
+
+
 
   !here the grid spacings are the small ones
   sigma2=0.125_gp*((lr%d%n1i*hx)**2+(lr%d%n2i*hy)**2+(lr%d%n3i*hz)**2)
@@ -569,8 +648,10 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ncong,lr,hx,hy,
   call prepare_gpu_for_locham(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,lr%wfd,orbs,GPU)
 
   !copy the wavefunctions and the potential on GPU
-  call GPU_send((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp,&
-       psi,GPU%psi,i_stat)
+  do iorb=1,orbs%norbp
+     call GPU_send((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
+          psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
+  end do
   call GPU_send(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,pot,GPU%pot,i_stat)
 
 
@@ -607,10 +688,11 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ncong,lr,hx,hy,
   GPUtime=real(t1-t0,kind=8)
   
   !receive the data of GPU
-  call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp,&
-       psi,GPU%hpsi,i_stat)
+  do iorb=1,orbs%norbp
+     call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
+          psi(1,(iorb-1)*orbs%nspinor+1),GPU%hpsi(iorb),i_stat)
+  end do
   
-  !call GPU_receive(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,psig,GPU%work3,i_stat)
 
   !compare the results between the different actions of the hamiltonian
   !check the differences between the results
@@ -622,10 +704,6 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ncong,lr,hx,hy,
   i_all=-product(shape(pot))*kind(pot)
   deallocate(pot,stat=i_stat)
   call memocc(i_stat,i_all,'pot',subname)
-
-!!$  i_all=-product(shape(psig))*kind(psig)
-!!$  deallocate(psig,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'psig',subname)
 
   !-------------------now the same for preconditioning
   !the input function is psi
@@ -644,19 +722,22 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ncong,lr,hx,hy,
   !the input function is GPU%hpsi in that case
   call cpu_time(t0)
   do j=1,ntimes
-     call gpu_precond(lr,hx,hy,hz,GPU,orbs%norbp,ncong,orbs%eval(min(orbs%isorb+1,orbs%norb)))
+     call gpu_precond(lr,hx,hy,hz,GPU,orbs%norbp,ncong,&
+          orbs%eval(min(orbs%isorb+1,orbs%norb)),gnrmGPU)
   end do
   call cpu_time(t1)
   
   GPUtime=real(t1-t0,kind=8)
-  print *,'gnrm',gnrm
+  print *,'gnrmGPU',gnrmGPU
 
-  call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp,&
-       psi,GPU%hpsi,i_stat)
+  do iorb=1,orbs%norbp
+     call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
+          psi(1,(iorb-1)*orbs%nspinor+1),GPU%hpsi(iorb),i_stat)
+  end do
 
 
   !free the card at the end
-  call free_gpu(GPU)
+  call free_gpu(GPU,orbs%norbp)
 
   call compare_data_and_gflops(CPUtime,GPUtime,&
        8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,hpsi,psi,&
