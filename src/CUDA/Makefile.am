@@ -9,6 +9,7 @@ EXTRA_DIST = \
 	read_conf_file.h \
 	GPUparameters.h \
 	reduction.hcu \
+	reduction.h \
 	kernel_tex.cu \
 	kernels_compress.hcu \
 	kernels_locpot.hcu \
