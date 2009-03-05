@@ -35,7 +35,9 @@ SOURCES_CONV = 	memory_management.cu \
 SOURCES_CONV_CHECK = locpot.cu \
 	kinetic.cu \
 	anasyn.cu \
-	compress.cu
+	compress.cu \
+	precond.cu \
+	density.cu
 
 SOURCES_SHARED = convSeria.cpp \
 	setCPU_GPU_aff.cpp \
@@ -129,7 +131,9 @@ locham.o : kernels_anasyn.hcu \
 	kernels_kinetic.hcu \
 	kernels_compress.hcu \
 	reduction.hcu \
-	GPUparameters.h
+	GPUparameters.h \
+	precond.cu \
+	density.cu
 
 compress.o : commonDef.h kernels_compress.hcu
 

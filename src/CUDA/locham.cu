@@ -249,34 +249,6 @@ int sftowavelets(int n1,int n2, int n3,
   return 0;
 }
 
-/*
-//accumulate the partial density of a decompressed, fscf psi
-template<typename T>
-int densityaccumulation(int n1,int n2, int n3,
-			dim3 gridMF1, dim3 gridMF2, dim3 gridMF3,
-			dim3 threadsMF1, dim3 threadsMF2, dim3 threadsMF3,
-			T *psifscf,T *psisq,T hfac,T *rhop)
-{
-
-  //calculate the MF transformation
-  magicfilter1d<T> <<< gridMF3, threadsMF3 >>>(2*n3,4*n1*n2,psifscf,psisq,6);
-  cudaThreadSynchronize();
-
-  magicfilter1d<T> <<< gridMF2, threadsMF2 >>>(2*n2,4*n1*n3,psisq,psifscf,7);
-  cudaThreadSynchronize();
-
-  magicfilter1d_den<T> <<< gridMF1, threadsMF1 >>>(2*n1,4*n2*n3,psifscf,psisq,8);
-  cudaThreadSynchronize();
- 
-  //accumulate the density with cuBlas
-  //rhop=rhop+hfac*psisq
-  do_blasAxpy(8*n1*n2*n3,hfac,psisq,rhop);
-
-  return 0;
-
-}
-*/
-  
  
 template<typename T>
 int potentialapplication(int n1,int n2, int n3,
@@ -318,7 +290,7 @@ int kineticapplication(int n1,int n2, int n3,
 		       T h1,T h2,T h3,
 		       dim3 gridK1, dim3 gridK2, dim3 gridK3,
 		       dim3 threadsK1, dim3 threadsK2, dim3 threadsK3,
-		       T *psi,T *vpsi,T *out,T *ekinpot,
+		       T *psi,T *vpsi,T *out,
 		       T *work)
 {
   //define the scale factor to be applied to the convolution
@@ -334,8 +306,8 @@ int kineticapplication(int n1,int n2, int n3,
   kinetic1d<T> <<< gridK1, threadsK1 >>>(2*n1,4*n2*n3,scale,psi,work,vpsi,out,5);
   cudaThreadSynchronize();
 
-  //calculate potential energy
-  *ekinpot = do_blasDot(8*n1*n2*n3, out, work);
+  //calculate potential+kinetic energy
+  //*ekinpot = do_blasDot(8*n1*n2*n3, out, work);
 
   return 0;
 }
@@ -416,8 +388,11 @@ int completelocalhamiltonian(int n1,int n2, int n3,
   kineticapplication<T>(n1,n2,n3,h1,h2,h3,
 			gridK1,gridK2,gridK3,
 			threadsK1,threadsK2,threadsK3,
-			psifscf,vpsifscf,psi,ekinpot,
+			psifscf,vpsifscf,psi,
 			out); //work array
+
+  //calculate potential+kinetic energy
+  *ekinpot = do_blasDot(8*n1*n2*n3, psi, out);
 
   *ekinpot -= *epot;
 
@@ -486,15 +461,14 @@ int fulllocalhamiltonian(int n1,int n2, int n3,
 			  psifscf,vpsifscf,pot,epot,
 			  out); //work array
 
-  //here the worky array should be initialised to c*x
-  //c_initialize<T> <<< gridK3, threadsK3 >>>(2*n3,4*n1*n2,psi,work2,0.,3);
-  //cudaThreadSynchronize();
-
   kineticapplication<T>(n1,n2,n3,h1,h2,h3,
 			gridK1,gridK2,gridK3,
 			threadsK1,threadsK2,threadsK3,
-			psifscf,vpsifscf,psi,ekinpot,
+			psifscf,vpsifscf,psi,
 			out); //work array
+
+  //calculate potential+kinetic energy
+  *ekinpot = do_blasDot(8*n1*n2*n3, psi, out);
 
   *ekinpot -= *epot;
 
@@ -512,12 +486,11 @@ int fulllocalhamiltonian(int n1,int n2, int n3,
 }
 
 template<typename T>
-int gpuapply_hp(int n1,int n2, int n3,
-		T h1,T h2,T h3,T c,
-		T *psiw,T *hpsiw,int *keys,
-		T *psi,T *out, 
-		T *psifscf,
-		T *cpsifscf)
+int localhamiltonian(int n1,int n2, int n3,
+		     T h1,T h2,T h3,
+		     T *psi,T *pot,int *keys,
+		     T *work1,T *work2, T *work3, 
+		     T *epot,T *ekin)
 {
 
   
@@ -535,133 +508,51 @@ int gpuapply_hp(int n1,int n2, int n3,
   dim3  gridK1(linecutsKx,  numBlocksKx, 1);  
   dim3  threadsK1(HALF_WARP_SIZE, num_halfwarpsKx , 1);
 
+  dim3  gridMF3(linecutsMFz,  numBlocksMFz, 1);  
+  dim3  threadsMF3(HALF_WARP_SIZE, num_halfwarpsMFz , 1);
+  dim3  gridMF2(linecutsMFy,  numBlocksMFy, 1);  
+  dim3  threadsMF2(HALF_WARP_SIZE, num_halfwarpsMFy , 1);
+  dim3  gridMF1(linecutsMFx,  numBlocksMFx, 1);  
+  dim3  threadsMF1(HALF_WARP_SIZE, num_halfwarpsMFx , 1);
+
   dim3  gridC(nblocksC, 1, 1);  
   dim3  threadsC(ELEMS_BLOCK, nseg_blockC , 1);
 
+  //calculate the potential application from psifcsf (which is psi)
+  potentialapplication<T>(n1,n2,n3,gridMF1,gridMF2,gridMF3,
+			  threadsMF1,threadsMF2,threadsMF3,
+			  psi,work1,pot,epot,
+			  work2); //work array
 
-  T ekinpot;
-
-  //uncompression
-  //set the value of the psig array to zero
-  //do_blasScal(8*n1*n2*n3,(T) 0.,psi); //alternative way
-  cudaMemset((void*) psi,0,8*n1*n2*n3*sizeof(T));
-  //cudaThreadSynchronize();
-
-
-  //decompress wavefunctions with scaling factor
-  uncompresscoarsefinescal<T> <<< gridC, threadsC >>>(n1,n2,n3,h1,h2,h3,c,psiw,psi,keys);
-  cudaThreadSynchronize();
-  
-
-  //wavelet transformation
-  waveletstosf<T>(n1,n2,n3,gridWT1,gridWT2,gridWT3,
-		  threadsWT1,threadsWT2,threadsWT3,
-		  psi,psifscf);
-
-  //worky array should be initialised to c*x
-  c_initialize<T> <<< gridK3, threadsK3 >>>(2*n3,4*n1*n2,psifscf,cpsifscf,c,3);
-  cudaThreadSynchronize();
 
   kineticapplication<T>(n1,n2,n3,h1,h2,h3,
 			gridK1,gridK2,gridK3,
 			threadsK1,threadsK2,threadsK3,
-			psifscf,cpsifscf,psi,&ekinpot,
-			out); //work array
+			psi,work1,work3,
+			work2); //work array
+
+  //calculate potential+kinetic energy
+  *ekin = do_blasDot(8*n1*n2*n3, work3, work2);
+
+  //restore kinetic energy
+  *ekin -= *epot;
 
   sftowavelets<T>(n1,n2,n3,gridWT1,gridWT2,gridWT3,
 		  threadsWT1,threadsWT2,threadsWT3,
-		  psi,out);
+		  work3,work1);
 
 
-  //recompress
-  compresscoarsefinescal<T> <<< gridC, threadsC >>>(n1,n2,n3,h1,h2,h3,c,out,hpsiw,keys);
+  //recompress and put the output in the psi array
+  compresscoarsefine<T> <<< gridC, threadsC >>>(n1,n2,n3,work1,psi,keys);
   cudaThreadSynchronize();
 
   return 0;
 
 }
-
-//preconditioning loop
-//reproduces the precong_per routine without prec_fft_c
-template<typename T>
-int gpucg_precong(int n1,int n2, int n3,int npsi,int ncong,
-		  T h1,T h2,T h3,T c,T *x,int *keys,T *r,T *b,T *d,
-		  T *work1,T *work2,T *work3, T *work4, T *gnrm)
-{
-
-  dim3  gridC(nblocksC, 1, 1);  
-  dim3  threadsC(ELEMS_BLOCK, nseg_blockC , 1);
-
-
-  //calcualte the residue for that orbitals
-  *gnrm=do_blasDot(npsi, x, x);
-
-  wscalgpu<T> <<< gridC, threadsC >>>(x,h1,h2,h3,c,keys);
-  cudaThreadSynchronize();
-
-  gpuapply_hp<T>(n1,n2,n3,h1,h2,h3,c,
-		 x,d,keys,
-		 work1,work2,work3,work4);
-
-  //change the sign of the 0-th step such as to use axpy calls
-  //d=d-x
-  do_blasAxpy(npsi,(T)(-1.),x,d);
-
-  //r=d
-  cudaMemcpy(r,d,npsi*sizeof(T), cudaMemcpyDeviceToDevice);
-  cudaThreadSynchronize();
-
-  T rmr_new=do_blasDot(npsi, r, r);
-
-  T alpha,beta,rmr_old;
-
-  for(int i=0;i < ncong;++i)
-    {
-      gpuapply_hp<T>(n1,n2,n3,h1,h2,h3,c,
-		     d,b,keys,
-		     work1,work2,work3,work4);
-
-      alpha=rmr_new/do_blasDot(npsi, d, b);
-
-      //here the sign is inverted because of the
-      //mapping d -> -d => b -> -b
-      
-      //x=x-alpha*d
-      do_blasAxpy(npsi,-alpha,d,x);
-
-      if (i != ncong-1)
-	{
-	  //r=r-alpha*b (r does not change sign since also b is opposite)
-	  do_blasAxpy(npsi,-alpha,b,r);
-
-	  rmr_old=rmr_new;
-	  rmr_new=do_blasDot(npsi, r, r);
-
-	  beta=rmr_new/rmr_old;
-
-	  //d=d+1/beta*r
-	  do_blasAxpy(npsi,(T)(1)/beta,r,d);
-
-	  //d=beta*d
-	  do_blasScal(npsi,beta,d);
-	}
-  
-	
-    }
-
-
-  wscalgpu<T> <<< gridC, threadsC >>>(x,h1,h2,h3,c,keys);
-  cudaThreadSynchronize();
-
-
-  return 0;
-
-}
-
 
 
 extern "C" 
-void gpulocham_(int *n1,int *n2, int *n3,
+void gpuhamilt_(int *n1,int *n2, int *n3,
 		double *h1,double *h2,double *h3,
 		double **psi,double **out,double **pot,			     
 		double **work,
@@ -683,6 +574,28 @@ void gpulocham_(int *n1,int *n2, int *n3,
 
 
 /****/
+
+extern "C" 
+void gpulocham_(int *n1,int *n2, int *n3,
+		double *h1,double *h2,double *h3,
+		double **psi,double **pot,int **keys, 
+		double **work1,double **work2,double **work3,
+		double *epot,double *ekin)
+{
+
+  
+  if(localhamiltonian<double>(*n1+1,*n2+1,*n3+1,
+			      *h1,*h2,*h3,
+			      *psi,*pot,*keys,
+			      *work1,*work2,*work3,
+			      epot,ekin)!= 0) 
+    {
+      printf("ERROR: GPU localhamiltonian\n ");
+      return;
+    } 
+  return; 
+}
+
 
 
 extern "C" 
@@ -707,29 +620,9 @@ void gpufulllocham_(int *n1,int *n2, int *n3,
   return; 
 }
 
-extern "C" 
-void gpuprecond_(int *n1,int *n2, int *n3,int *npsi,
-		 double *h1,double *h2,double *h3,
-		 double **x,int **keys, 
-		 double **r,double **b,double **d,
-		 double **work1,double **work2,
-		 double **work3,
-		 double **work4,
-		 double *c,int *ncong, double *gnrm)
-{
-  
 
-  if(gpucg_precong<double>(*n1+1,*n2+1,*n3+1,*npsi,*ncong,
-			   *h1,*h2,*h3,*c,
-			   *x,*keys,*r,*b,*d,*work1,*work2,*work3,*work4,gnrm)!= 0)
-    {
-      printf("ERROR: GPU fulllocalhamiltonian\n ");
-      return;
-    } 
-  return; 
-}
-
-
+#include "precond.cu"
+#include "density.cu"
 
 extern "C" 
 void localpotential_(int *n1,
@@ -892,10 +785,6 @@ void kinetic1d_(int *n,int *ndat,
     } 
   return; 
 }
-
-
-
-
 
 
 extern "C" 

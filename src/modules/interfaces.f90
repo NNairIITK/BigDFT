@@ -271,10 +271,7 @@ interface
      real(wp), dimension(:) , pointer :: psi,hpsi,psit
    end subroutine first_orthon
 
-   subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,nspin)
-     ! Calculates the charge density by summing the square of all orbitals
-     ! Input: psi
-     ! Output: rho
+   subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,nspin,GPU)
      use module_base!, only: gp,dp,wp,ndebug,memocc
      use module_types
      implicit none
@@ -282,14 +279,15 @@ interface
      real(gp), intent(in) :: hxh,hyh,hzh
      type(orbitals_data), intent(in) :: orbs
      type(locreg_descriptors), intent(in) :: lr 
-     integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr
+     integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
      real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
      real(dp), dimension(max(nrho,1),nspin), intent(out), target :: rho
+     type(GPU_pointers), intent(inout) :: GPU
    end subroutine sumrho
 
    subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
         cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
-        ekin_sum,epot_sum,eproj_sum,nspin)
+        ekin_sum,epot_sum,eproj_sum,nspin,GPU)
      use module_base
      use module_types
      implicit none
@@ -307,11 +305,12 @@ interface
      real(wp), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
      real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
      real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+     type(GPU_pointers), intent(inout) :: GPU
    end subroutine HamiltonianApplication
 
    subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
         ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-        alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin)
+        alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,GPU)
      use module_base
      use module_types
      implicit none
@@ -326,6 +325,7 @@ interface
      real(gp), intent(inout) :: energy_min
      real(wp), dimension(:), pointer :: psi,psit,hpsi,psidst,hpsidst
      real(wp), dimension(:,:,:), pointer :: ads
+     type(GPU_pointers), intent(inout) :: GPU
    end subroutine hpsitopsi
 
    subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&

@@ -232,7 +232,7 @@ program GPUham
   call cpu_time(t0)
   do i=1,ntimes
 
-     call gpulocham(n1,n2,n3,&
+     call gpuhamilt(n1,n2,n3,&
           hx,hy,hz,&
           psi_GPU,out_GPU,v_GPU,work_GPU,work2_GPU,epotGPU2,ekinGPU2)
  
