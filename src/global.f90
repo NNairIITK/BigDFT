@@ -453,11 +453,11 @@ program MINHOP
         exit hopping_loop 
      end if
 
-     if (iproc.eq.0) write(67,*) ncount_cluster,&
+     if (iproc == 0) write(67,*) ncount_cluster,&
           ' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
-     if (iproc.eq.0) write(*,*)'# ', ncount_cluster,&
+     if (iproc == 0) write(*,*)'# ', ncount_cluster,&
           ' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
-     ncount_cluster=0
+     !ncount_cluster=0
      !call my_input_variables(iproc,.true.,inputs)
      if (atoms%geocode.eq.'P') & 
           call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
@@ -1929,7 +1929,7 @@ subroutine rdposout(igeostep,rxyz,nat)
   close(unit=9)
 end subroutine rdposout
 
-
+!routine for adjusting the dimensions with the center of mass in the middle
 subroutine adjustrxyz(nat,alat1,alat2,alat3,rxyz)
   use module_base
   implicit none

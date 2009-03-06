@@ -81,6 +81,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
   integer :: ise,ish,jnd
   real(kind=8) :: tt,gnrm,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,gnrm_fake
   type(communications_arrays) :: commsv
+  type(GPU_pointers) :: GPU !added for interface compatibility, not working here
   real(wp), dimension(:), allocatable :: work
   real(wp), dimension(:), allocatable :: hv,g,hg
   real(wp), dimension(:), pointer :: psiw
@@ -175,7 +176,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
   
   call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
        nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-       rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,1)
+       rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,1,GPU)
 
   !if(iproc==0)write(*,'(1x,a)',advance="no")"done. Rayleigh quotients..."
 
@@ -337,7 +338,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
 
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,cpmult,fpmult,&
           radii_cf,nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-          rhopot(1+i3xcsh*n1i*n2i),g,hg,ekin_sum,epot_sum,eproj_sum,1)
+          rhopot(1+i3xcsh*n1i*n2i),g,hg,ekin_sum,epot_sum,eproj_sum,1,GPU)
 
      !transpose  g and hg
      call transpose_v(iproc,nproc,orbsv%norbp,1,lr%wfd,nvctrp,commsv,g,work=psiw)
@@ -518,7 +519,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
   
      call HamiltonianApplication(iproc,nproc,at,orbsv,hx,hy,hz,rxyz,cpmult,fpmult,&
           radii_cf,nlpspd,proj,lr,ngatherarr,n1i*n2i*n3p,&
-          rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,1)
+          rhopot(1+i3xcsh*n1i*n2i),v,hv,ekin_sum,epot_sum,eproj_sum,1,GPU)
 
      !transpose  v and hv
      call transpose_v(iproc,nproc,orbsv%norbp,1,lr%wfd,nvctrp,commsv,v,work=psiw)

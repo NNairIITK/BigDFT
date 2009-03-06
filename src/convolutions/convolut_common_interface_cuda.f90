@@ -354,11 +354,11 @@ subroutine adjust_keys_for_gpu(nseg_c,nseg_f,keyv_c,keyg_c,keyv_f,keyg_f,nvctr_c
 
 end subroutine adjust_keys_for_gpu
 
-subroutine prepare_gpu_for_locham(n1,n2,n3,hx,hy,hz,wfd,orbs,GPU)
+subroutine prepare_gpu_for_locham(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: n1,n2,n3
+  integer, intent(in) :: n1,n2,n3,nspin
   real(gp), intent(in) :: hx,hy,hz
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(in) :: orbs
@@ -380,24 +380,21 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,hx,hy,hz,wfd,orbs,GPU)
   !allocate the number of GPU pointers for the wavefunctions
   allocate(GPU%psi(orbs%norbp),stat=i_stat)
   call memocc(i_stat,GPU%psi,'GPU%psi',subname)
-  allocate(GPU%hpsi(orbs%norbp),stat=i_stat)
-  call memocc(i_stat,GPU%hpsi,'GPU%hpsi',subname)
-
 
   !allocate space on the card
+  !allocate the compressed wavefunctions such as to be used as workspace
   do iorb=1,orbs%norbp
-     call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%psi(iorb),i_stat)
-     call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%hpsi(iorb),i_stat)
+     !print *,iorb
+     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor*orbs%norbp,GPU%psi(iorb),i_stat)
   end do
   call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%work1,i_stat)
   call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%work2,i_stat)
   call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%work3,i_stat)
-  call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%work4,i_stat)
-  call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%pot,i_stat)
+  !here spin value should be taken into account
+  call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2)*nspin,GPU%rhopot,i_stat)
   !needed for the preconditioning
-  call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%r,i_stat)
-  call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%b,i_stat)
-  call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%d,i_stat)
+  call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f),GPU%r,i_stat)
+  call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%d,i_stat)
 
   
 end subroutine prepare_gpu_for_locham
@@ -415,30 +412,43 @@ subroutine free_gpu(GPU,norbp)
   
 
   call GPU_deallocate(GPU%r,i_stat)
-  call GPU_deallocate(GPU%b,i_stat)
   call GPU_deallocate(GPU%d,i_stat)
   call GPU_deallocate(GPU%work1,i_stat)
   call GPU_deallocate(GPU%work2,i_stat)
   call GPU_deallocate(GPU%work3,i_stat)
-  call GPU_deallocate(GPU%work4,i_stat)
   call GPU_deallocate(GPU%keys,i_stat)
-  call GPU_deallocate(GPU%pot,i_stat)
+  call GPU_deallocate(GPU%rhopot,i_stat)
 
   do iorb=1,norbp
      call GPU_deallocate(GPU%psi(iorb),i_stat)
-     call GPU_deallocate(GPU%hpsi(iorb),i_stat)
   end do
 
   i_all=-product(shape(GPU%psi))*kind(GPU%psi)
   deallocate(GPU%psi,stat=i_stat)
   call memocc(i_stat,i_all,'GPU%psi',subname)
-  i_all=-product(shape(GPU%hpsi))*kind(GPU%hpsi)
-  deallocate(GPU%hpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'GPU%hpsi',subname)
-
-
 
 end subroutine free_gpu
+
+subroutine gpu_locden(lr,nspin,hxh,hyh,hzh,orbs,GPU)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nspin
+  real(gp), intent(in) :: hxh,hyh,hzh
+  type(locreg_descriptors), intent(in) :: lr
+  type(orbitals_data), intent(in) :: orbs
+  type(GPU_pointers), intent(out) :: GPU
+  !local variables
+
+  call gpulocden(lr%d%n1,lr%d%n2,lr%d%n3,orbs%norbp,nspin,&
+       hxh,hyh,hzh,&
+       orbs%occup(min(orbs%isorb+1,orbs%norb)),&
+       orbs%spinsgn(min(orbs%isorb+1,orbs%norb)),&
+       GPU%psi,GPU%keys,&
+       GPU%work1,GPU%work2,GPU%rhopot)
+
+end subroutine gpu_locden
+
 
 subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
   use module_base
@@ -456,9 +466,9 @@ subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
   epot_sum=0.0_gp
   do iorb=1,orbs%norbp
 
-     call gpufulllocham(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-          GPU%psi(iorb),GPU%hpsi(iorb),GPU%pot,GPU%keys,&
-          GPU%work4,GPU%work3,GPU%work1,GPU%work2,epot,ekin)
+     call gpulocham(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+          GPU%psi(iorb),GPU%rhopot,GPU%keys,&
+          GPU%work1,GPU%work2,GPU%work3,epot,ekin)
 
      ekin_sum=ekin_sum+orbs%occup(iorb+orbs%isorb)*ekin
      epot_sum=epot_sum+orbs%occup(iorb+orbs%isorb)*epot
@@ -485,10 +495,11 @@ subroutine gpu_precond(lr,hx,hy,hz,GPU,norbp,ncong,eval,gnrm)
   gnrm=0.0_wp
   do iorb=1,norbp
 
+     !use rhopot as a work array here
      call gpuprecond(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
           0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-          GPU%hpsi(iorb),&
-          GPU%keys,GPU%r,GPU%b,GPU%d,GPU%work1,GPU%work2,GPU%work3,GPU%work4,&
+          GPU%psi(iorb),&
+          GPU%keys,GPU%r,GPU%rhopot,GPU%d,GPU%work1,GPU%work2,GPU%work3,&
           0.5_wp,ncong,gnrm_gpu)
 
      gnrm=gnrm+gnrm_gpu

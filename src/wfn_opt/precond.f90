@@ -30,6 +30,7 @@ subroutine preconditionall(iproc,nproc,norbp,lr,&
         scpr=nrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,hpsi(1,inds),1)
         gnrm=gnrm+scpr**2
 
+
         select case(lr%geocode)
         case('F')
            !in this case the grid spacings are uniform

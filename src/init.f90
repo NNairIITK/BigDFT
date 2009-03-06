@@ -80,6 +80,15 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_
           '          errors due to translational invariance breaking may occur'
 
      end if
+     if (GPUconv) then
+        if (iproc ==0)then
+           write(*,*)&
+                '          The code should be stopped for a GPU calculation     '
+           write(*,*)&
+                '          since density is not initialised to 10^-20               '
+        end if
+        stop
+     end if
   end if
 
   ! fine grid quantities
@@ -301,6 +310,7 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
   real(kind=4) :: t1,t0
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,accurex,maxdiff
   type(gaussian_basis) :: CP2K
+  type(GPU_pointers) :: GPU !added for interface compatibility, not working here
   integer, dimension(:), allocatable :: iwork
   real(gp), dimension(:), allocatable :: ones,ovrlp,work
   real(gp), dimension(:,:), allocatable :: tmp,smat
@@ -371,7 +381,7 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
   call memocc(i_stat,i_all,'wfn_cp2k',subname)
 
   call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-       Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,1)
+       Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,1,GPU)
 
   call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,1)
@@ -384,7 +394,7 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
        nlpspd,proj,Glr,ngatherarr,&
        Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
        rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eproj_sum,1)
+       psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,GPU)
 
   accurex=abs(eks-ekin_sum)
   if (iproc.eq.0) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
@@ -449,6 +459,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   type(gaussian_basis) :: G
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
+  type(GPU_pointers) :: GPU
   integer, dimension(:), allocatable :: mpirequests
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(wp), dimension(:,:), allocatable :: hpsigau
@@ -511,6 +522,12 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   allocate(psi(orbse%npsidim+ndebug),stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
 
+  !allocate arrays for the GPU if a card is present
+  if (GPUconv) then
+       call prepare_gpu_for_locham(Glr%d%n1,Glr%d%n2,Glr%d%n3,nspin,&
+            hx,hy,hz,Glr%wfd,orbse,GPU)
+  end if
+
   !use only the part of the arrays for building the hamiltonian matrix
   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbse,Glr%d,&
        hx,hy,hz,Glr%wfd,G,psigau(1,orbse%nspinor*min(orbse%isorb+1,orbse%norb)),psi)
@@ -521,7 +538,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 
   !application of the hamiltonian for gaussian based treatment
   call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-       Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin)
+       Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU)
 
   call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
        rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,nspin)
@@ -606,7 +623,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call HamiltonianApplication(iproc,nproc,at,orbse,hx,hy,hz,rxyz,cpmult,fpmult,radii_cf,&
        nlpspd,proj,Glr,ngatherarr,Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,2),&
        rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
-       psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin)
+       psi,hpsi,ekin_sum,epot_sum,eproj_sum,nspin,GPU)
 
 !!$  !calculate the overlap matrix knowing that the original functions are gaussian-based
 !!$  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
@@ -662,6 +679,11 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !order, so the linear algebra on the transposed wavefunctions 
   !may be splitted
 
+
+  !free GPU if it is the case
+  if (GPUconv) then
+     call free_gpu(GPU,orbse%norbp)
+  end if
 
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'

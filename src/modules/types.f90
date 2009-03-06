@@ -218,8 +218,8 @@ module module_types
 !! SOURCE
 !!
   type, public :: GPU_pointers
-     real(kind=8) :: keys,work1,work2,work3,work4,pot,r,b,d
-     real(kind=8), dimension(:), pointer :: psi,hpsi
+     real(kind=8) :: keys,work1,work2,work3,rhopot,r,d
+     real(kind=8), dimension(:), pointer :: psi
   end type GPU_pointers
 !!***
 

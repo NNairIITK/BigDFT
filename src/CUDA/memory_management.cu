@@ -96,6 +96,7 @@ void gpu_allocate__(int *nsize, //memory size
   *ierr=0;
   if(cudaMalloc( GPU_pointer, mem_size) != 0)
     {
+      CUERR
       printf("GPU allocation error \n");
       *ierr=1;
       return;

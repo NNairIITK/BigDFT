@@ -1,4 +1,4 @@
-subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,nspin)
+subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,nspin,GPU)
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
   ! Output: rho
@@ -12,6 +12,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
   real(dp), dimension(max(nrho,1),nspin), intent(out), target :: rho
+  type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='sumrho'
   logical :: rsflag
@@ -57,19 +58,38 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
      rho_p => rho
   end if
 
-  !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
-  if(orbs%nspinor==4) then 
-     call razero(lr%d%n1i*lr%d%n2i*nrhotot*orbs%nspinor,rho_p)
-     call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot,rho_p,nproc)
-  else
-     call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p,nproc)
-  end if
+  !switch between GPU/CPU treatment of the density
+  if (GPUconv) then
+     call timing(iproc,'Rho_comput    ','OF')
+     call timing(iproc,'Rho_commun    ','ON')
+     !copy the wavefunctions on GPU
+     do iorb=1,orbs%norbp
+        call GPU_send((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
+             psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
+     end do
+     call timing(iproc,'Rho_commun    ','OF')
+     call timing(iproc,'Rho_comput    ','ON')
 
-  !for each of the orbitals treated by the processor build the partial densities
-  call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
-     nrhotot,lr,hxh,hyh,hzh,nspin,orbs%nspinor,orbs%norbp,&
-     orbs%occup(min(orbs%isorb+1,orbs%norb)),orbs%spinsgn(min(orbs%isorb+1,orbs%norb)),&
-     psi,rho_p)
+     !calculate the density
+     call gpu_locden(lr,nspin,hxh,hyh,hzh,orbs,GPU)
+
+     !copy back the results and leave the uncompressed wavefunctions on the card
+     call GPU_receive(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,rho_p,GPU%rhopot,i_stat)
+  else
+     !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
+     if(orbs%nspinor==4) then 
+        call razero(lr%d%n1i*lr%d%n2i*nrhotot*orbs%nspinor,rho_p)
+        call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot,rho_p,nproc)
+     else
+        call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p,nproc)
+     end if
+
+     !for each of the orbitals treated by the processor build the partial densities
+     call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
+          nrhotot,lr,hxh,hyh,hzh,nspin,orbs%nspinor,orbs%norbp,&
+          orbs%occup(min(orbs%isorb+1,orbs%norb)),orbs%spinsgn(min(orbs%isorb+1,orbs%norb)),&
+          psi,rho_p)
+  end if
 
   !the density must be communicated to meet the shape of the poisson solver
   if (nproc > 1) then

@@ -509,7 +509,11 @@ module module_base
       real(kind=8), intent(in) :: b
       real(kind=8), intent(inout) :: c
       !call to BLAS routine
-      call DGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
+      if (GPUblas) then
+         call cublas_DGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
+      else
+         call DGEMM(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
+      end if
     end subroutine gemm_double
 
     subroutine c_gemm_simple(transa,transb,m,n,k,alpha,a,lda,b,ldb,beta,c,ldc)
@@ -564,8 +568,13 @@ module module_base
       real(kind=8), intent(in) :: alpha,beta
       real(kind=8), intent(in) :: a
       real(kind=8), intent(out) :: c 
-      !call to BLAS routine
-      call DSYRK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
+      if (GPUblas) then
+         !call to CUBLAS routine
+         call cublas_DSYRK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
+      else
+         !call to BLAS routine
+         call DSYRK(uplo,trans,n,k,alpha,a,lda,beta,c,ldc)
+      end if
     end subroutine syrk_double
 
     !HErmitian Rank K operation
