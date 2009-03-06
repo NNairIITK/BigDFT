@@ -260,18 +260,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! We save the variables that defined the previous psi if the restart is active
   if (in%inputPsiId == 1) then
      !regenerate grid spacings
+     hx_old=hgrid_old
+     hy_old=hgrid_old
+     hz_old=hgrid_old
      if (atoms%geocode == 'P') then
         call correct_grid(atoms%alat1,hx_old,Glr%d%n1)
         call correct_grid(atoms%alat2,hy_old,Glr%d%n2)
         call correct_grid(atoms%alat3,hz_old,Glr%d%n3)
      else if (atoms%geocode == 'S') then 
         call correct_grid(atoms%alat1,hx_old,Glr%d%n1)
-        hy_old=hgrid_old
         call correct_grid(atoms%alat3,hz_old,Glr%d%n3)
-     else if (atoms%geocode == 'F') then 
-        hx_old=hgrid_old
-        hy_old=hgrid_old
-        hz_old=hgrid_old
      end if
      call copy_old_wavefunctions(iproc,nproc,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
           Glr%wfd,psi,n1_old,n2_old,n3_old,wfd_old,psi_old)

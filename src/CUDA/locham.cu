@@ -249,6 +249,33 @@ int sftowavelets(int n1,int n2, int n3,
   return 0;
 }
 
+/*
+//accumulate the partial density of a decompressed, fscf psi
+template<typename T>
+int densityaccumulation(int n1,int n2, int n3,
+			dim3 gridMF1, dim3 gridMF2, dim3 gridMF3,
+			dim3 threadsMF1, dim3 threadsMF2, dim3 threadsMF3,
+			T *psifscf,T *psisq,T hfac,T *rhop)
+{
+
+  //calculate the MF transformation
+  magicfilter1d<T> <<< gridMF3, threadsMF3 >>>(2*n3,4*n1*n2,psifscf,psisq,6);
+  cudaThreadSynchronize();
+
+  magicfilter1d<T> <<< gridMF2, threadsMF2 >>>(2*n2,4*n1*n3,psisq,psifscf,7);
+  cudaThreadSynchronize();
+
+  magicfilter1d_den<T> <<< gridMF1, threadsMF1 >>>(2*n1,4*n2*n3,psifscf,psisq,8);
+  cudaThreadSynchronize();
+ 
+  //accumulate the density with cuBlas
+  //rhop=rhop+hfac*psisq
+  do_blasAxpy(8*n1*n2*n3,hfac,psisq,rhop);
+
+  return 0;
+
+}
+*/
   
  
 template<typename T>
@@ -448,11 +475,6 @@ int fulllocalhamiltonian(int n1,int n2, int n3,
   uncompresscoarsefine<T> <<< gridC, threadsC >>>(n1,n2,n3,psiw,psi,keys);
   cudaThreadSynchronize();
   
-
-  //cudaMemset((void*) psi,1,8*n1*n2*n3*sizeof(T));
-  //cudaThreadSynchronize();
-
-
   //start the hamiltonian calculation
   waveletstosf<T>(n1,n2,n3,gridWT1,gridWT2,gridWT3,
 		  threadsWT1,threadsWT2,threadsWT3,
@@ -564,12 +586,15 @@ int gpuapply_hp(int n1,int n2, int n3,
 template<typename T>
 int gpucg_precong(int n1,int n2, int n3,int npsi,int ncong,
 		  T h1,T h2,T h3,T c,T *x,int *keys,T *r,T *b,T *d,
-		  T *work1,T *work2,T *work3, T *work4)
+		  T *work1,T *work2,T *work3, T *work4, T *gnrm)
 {
 
   dim3  gridC(nblocksC, 1, 1);  
   dim3  threadsC(ELEMS_BLOCK, nseg_blockC , 1);
 
+
+  //calcualte the residue for that orbitals
+  *gnrm=do_blasDot(npsi, x, x);
 
   wscalgpu<T> <<< gridC, threadsC >>>(x,h1,h2,h3,c,keys);
   cudaThreadSynchronize();
@@ -690,13 +715,13 @@ void gpuprecond_(int *n1,int *n2, int *n3,int *npsi,
 		 double **work1,double **work2,
 		 double **work3,
 		 double **work4,
-		 double *c,int *ncong)
+		 double *c,int *ncong, double *gnrm)
 {
   
 
   if(gpucg_precong<double>(*n1+1,*n2+1,*n3+1,*npsi,*ncong,
 			   *h1,*h2,*h3,*c,
-			   *x,*keys,*r,*b,*d,*work1,*work2,*work3,*work4)!= 0)
+			   *x,*keys,*r,*b,*d,*work1,*work2,*work3,*work4,gnrm)!= 0)
     {
       printf("ERROR: GPU fulllocalhamiltonian\n ");
       return;

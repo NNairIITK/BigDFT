@@ -192,6 +192,7 @@ subroutine reformatonewave(iproc,displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old
   i_all=-product(shape(ww))*kind(ww)
   deallocate(ww,stat=i_stat)
   call memocc(i_stat,i_all,'ww',subname)
+
 end subroutine reformatonewave
 
 !calculates the minimum difference between two coordinates
@@ -203,16 +204,19 @@ function mindist(periodic,alat,r,r_old)
   real(gp), intent(in) :: r,r_old,alat
   real(gp) :: mindist
 
+  !for periodic BC calculate mindist only if the center of mass can be defined without the modulo
   if (periodic) then
      if (r_old > 0.5_gp*alat) then
         if (r < 0.5_gp*alat) then
-           mindist=r+alat-r_old
+           !mindist=r+alat-r_old
+           mindist=0.0_gp
         else
            mindist=r-r_old
         end if
      else
         if (r > 0.5_gp*alat) then
-           mindist=r-alat-r_old
+           !mindist=r-alat-r_old
+           mindist=0.0_gp
         else
            mindist=r-r_old
         end if

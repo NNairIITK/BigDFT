@@ -710,8 +710,9 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 !!$  print *,'actual offset',tt_tot*hxh*hyh*hzh
 
   elecfield=ef(1)
-  ystart=ef(2)
-  yend=ef(3)
+  !correct ystart and yend to the whole simulation box 
+  ystart=max(ef(2),0.0_gp)
+  yend=min(ef(3),at%alat2)
 
   !use rhopot to calculate the potential from a constant electric field along y direction
   if (elecfield /= 0.0_gp) then
@@ -734,24 +735,18 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
            do i2=1,n2i
               y=real(i2-nbl2-1,gp)*hyh
               if (y < ystart) then
-                 if (iproc == 0 .and. i3 ==1 .and. efwrite) &
-                      write(17,*)y,elecfield*(0.5_gp*(ystart-yend))
                  do i1=1,n1i
                     !x=real(i1-nbl1-1,gp)*hxh
                     ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
                     pot_ion(ind)=pot_ion(ind)+elecfield*(0.5_gp*(ystart-yend))
                  end do
               else if (y > yend) then
-                 if (iproc == 0 .and. i3 ==1 .and. efwrite) &
-                      write(17,*)y,-elecfield*(0.5_gp*(ystart-yend))
                  do i1=1,n1i
                     !x=real(i1-nbl1-1,gp)*hxh
                     ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
                     pot_ion(ind)=pot_ion(ind)-elecfield*(0.5_gp*(ystart-yend))
                  end do
               else
-                 if (iproc == 0 .and. i3 ==1 .and. efwrite) &
-                      write(17,*)y,elecfield*(y-0.5_gp*(ystart+yend))
                  do i1=1,n1i
                     !x=real(i1-nbl1-1,gp)*hxh
                     ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
@@ -760,15 +755,22 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
               end if
            end do
         end do
-!!$
-!!$        do i3=1,n3pi
-!!$           do i2= -14,2*n2+16
-!!$              do i1= -14,2*n1+16
-!!$                 ind=i1+15+(i2+14)*(2*n1+31)+(i3-1)*(2*n1+31)*(2*n2+31)
-!!$                 pot_ion(ind)=pot_ion(ind)+0.5d0*elecfield*hxh*real(i1-n1,kind=8)
-!!$              enddo
-!!$           enddo
-!!$        enddo
+
+        if (efwrite .and. iproc == 0) then
+           open(unit=17,file='elecfield_y',status='unknown')
+           do i2=nbl2+1,n2i-nbr2-1
+              y=real(i2-nbl2-1,gp)*hyh
+              if (y < ystart) then
+                 write(17,*)i2,y,elecfield*(0.5_gp*(ystart-yend))
+              else if (y > yend) then
+                 write(17,*)i2,y,-elecfield*(0.5_gp*(ystart-yend))
+              else
+                 write(17,*)i2,y,elecfield*(y-0.5_gp*(ystart+yend))
+              end if
+           end do
+           close(17)
+        end if
+
      end if
   end if
 

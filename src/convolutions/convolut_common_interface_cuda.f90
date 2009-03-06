@@ -364,7 +364,8 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,hx,hy,hz,wfd,orbs,GPU)
   type(orbitals_data), intent(in) :: orbs
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: i_stat
+  character(len=*), parameter :: subname='prepare_gpu_for_locham'
+  integer :: i_stat,iorb
 
   !after this call, all memory operations are in double precision, 
   !call set_gpu_simple() in order to have simple memory operations
@@ -376,14 +377,23 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,hx,hy,hz,wfd,orbs,GPU)
   !create parameters
   call creategpuparameters(n1,n2,n3,hx,hy,hz)
 
+  !allocate the number of GPU pointers for the wavefunctions
+  allocate(GPU%psi(orbs%norbp),stat=i_stat)
+  call memocc(i_stat,GPU%psi,'GPU%psi',subname)
+  allocate(GPU%hpsi(orbs%norbp),stat=i_stat)
+  call memocc(i_stat,GPU%hpsi,'GPU%hpsi',subname)
+
+
   !allocate space on the card
-  call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%psi,i_stat)
+  do iorb=1,orbs%norbp
+     call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%psi(iorb),i_stat)
+     call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%hpsi(iorb),i_stat)
+  end do
   call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%work1,i_stat)
   call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%work2,i_stat)
   call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%work3,i_stat)
   call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%work4,i_stat)
   call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%pot,i_stat)
-  call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%hpsi,i_stat)
   !needed for the preconditioning
   call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%r,i_stat)
   call GPU_allocate((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%b,i_stat)
@@ -394,13 +404,14 @@ end subroutine prepare_gpu_for_locham
 
 
 
-subroutine free_gpu(GPU)
+subroutine free_gpu(GPU,norbp)
   use module_base
   use module_types
   implicit none
   type(GPU_pointers), intent(out) :: GPU
   !local variables
-  integer :: i_stat
+  character(len=*), parameter :: subname='free_GPU'
+  integer :: i_stat,iorb,norbp,i_all
   
 
   call GPU_deallocate(GPU%r,i_stat)
@@ -412,8 +423,20 @@ subroutine free_gpu(GPU)
   call GPU_deallocate(GPU%work4,i_stat)
   call GPU_deallocate(GPU%keys,i_stat)
   call GPU_deallocate(GPU%pot,i_stat)
-  call GPU_deallocate(GPU%psi,i_stat)
-  call GPU_deallocate(GPU%hpsi,i_stat)
+
+  do iorb=1,norbp
+     call GPU_deallocate(GPU%psi(iorb),i_stat)
+     call GPU_deallocate(GPU%hpsi(iorb),i_stat)
+  end do
+
+  i_all=-product(shape(GPU%psi))*kind(GPU%psi)
+  deallocate(GPU%psi,stat=i_stat)
+  call memocc(i_stat,i_all,'GPU%psi',subname)
+  i_all=-product(shape(GPU%hpsi))*kind(GPU%hpsi)
+  deallocate(GPU%hpsi,stat=i_stat)
+  call memocc(i_stat,i_all,'GPU%hpsi',subname)
+
+
 
 end subroutine free_gpu
 
@@ -429,11 +452,12 @@ subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
   !local variables
   integer :: i_stat,iorb
   real(gp) :: ekin,epot
-
+  ekin_sum=0.0_gp
+  epot_sum=0.0_gp
   do iorb=1,orbs%norbp
 
      call gpufulllocham(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-          GPU%psi,GPU%hpsi,GPU%pot,GPU%keys,&
+          GPU%psi(iorb),GPU%hpsi(iorb),GPU%pot,GPU%keys,&
           GPU%work4,GPU%work3,GPU%work1,GPU%work2,epot,ekin)
 
      ekin_sum=ekin_sum+orbs%occup(iorb+orbs%isorb)*ekin
@@ -444,7 +468,7 @@ subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
 end subroutine gpu_locham
 
 
-subroutine gpu_precond(lr,hx,hy,hz,GPU,norbp,ncong,eval)
+subroutine gpu_precond(lr,hx,hy,hz,GPU,norbp,ncong,eval,gnrm)
   use module_base
   use module_types
   implicit none
@@ -452,17 +476,22 @@ subroutine gpu_precond(lr,hx,hy,hz,GPU,norbp,ncong,eval)
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(norbp), intent(in) :: eval
+  real(wp), intent(out) :: gnrm
   type(GPU_pointers), intent(out) :: GPU
   !local variables
   integer :: i_stat,iorb
+  real(wp) :: gnrm_gpu
 
+  gnrm=0.0_wp
   do iorb=1,norbp
 
      call gpuprecond(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
           0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-          GPU%hpsi,&
+          GPU%hpsi(iorb),&
           GPU%keys,GPU%r,GPU%b,GPU%d,GPU%work1,GPU%work2,GPU%work3,GPU%work4,&
-          0.5_wp,ncong)
+          0.5_wp,ncong,gnrm_gpu)
+
+     gnrm=gnrm+gnrm_gpu
 
   end do
 
