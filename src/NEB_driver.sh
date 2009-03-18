@@ -9,7 +9,7 @@
 
 # Compute the forces for all the current replica.
 # INPUTS:
-#   [all free_only] [job_name] [workdir]
+#   [all free_only] [job_name] [workdir] [first_config]
 # OUTPUTS:
 #   [gen_output_file]
 DEBUG=
@@ -21,8 +21,15 @@ job_name=$2
 restart_file=$job_name".NEB.restart"
 n_images=`grep Replica $restart_file | wc -l`
 datadir=$PWD
-workdir=$3
+case $3 in
+     /*) workdir=$3 ;;
+     *) workdir=$PWD/$3 ;;
+esac
 n_nodes=$((`wc -l $restart_file | cut -d' ' -f1` / $n_images - 2))
+case $4 in
+     /*) first_config=$4 ;;
+     *) first_config=$PWD/$4 ;;
+esac
 
 if test x"$DEBUG" != x ; then
     echo "External computation of forces for replicas."
@@ -80,7 +87,7 @@ while [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; do
 	    fi
 
 	    # Create the input
-	    make_input $job_name $datadir $count $n_nodes
+	    make_input $job_name $datadir $count $n_nodes $first_config
 
 	    # Erase the keyword
 	    rm -f START
@@ -119,9 +126,9 @@ for ((i = 0; i < 256; i++)) ; do
     ch=`printf "%03d" $i`
     if ! [ -f $job_name.NEB.it${ch}.tar.bz ] ; then
 	if test x"$DEBUG" != x ; then
-	    echo "Compression of replica calculations into '$job_name.NEB.it${ch}.tar.bz'"
+	    echo "Compression of replica calculations into '$job_name.NEB.it${ch}.tar.bz2'"
 	fi
-	tar -cjf $job_name.NEB.it${ch}.tar.bz *.NEB.*
+	tar -cjf $job_name.NEB.it${ch}.tar.bz2 *.NEB.*
 	break
     fi
 done

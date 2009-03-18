@@ -373,6 +373,8 @@ tests/Davidson-SiH4/Makefile
 tests/GPU/Makefile
 tests/MINHOP/Makefile
 tests/NEB/Makefile
+tests/NEB/input
+tests/NEB/NEB_include.sh
 ])
 AC_OUTPUT
 

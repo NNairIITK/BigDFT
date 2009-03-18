@@ -1,6 +1,6 @@
 &NEB                                                          
-  scratch_dir         = "/tmp"
-  job_name            = "test_3"
+  scratch_dir         = "@builddir@"
+  job_name            = "triH"
   restart             = .FALSE.,                           
   climbing            = .FALSE.,
   optimization        = .FALSE.,
@@ -9,10 +9,10 @@
   ds                  = 0.8D0,
   k_max               = 0.100D0, 
   k_min               = 0.050D0,
-  max_iterations      = 10,
+  max_iterations      = 3,
   tolerance           = 0.0001D0,
   convergence         = 0.05D0,
-  num_of_images       = 3,                     
-  first_config        = "deb.xyz",              
-  last_config         = "fin.xyz",                         
+  num_of_images       = 5,                     
+  first_config        = "@srcdir@/start.xyz",              
+  last_config         = "@srcdir@/stop.xyz",                         
 /                                                             
