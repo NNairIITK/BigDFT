@@ -124,9 +124,6 @@ MODULE Miscellany
     
       CHARACTER (LEN=*), INTENT(IN)   :: file
       LOGICAL                         :: file_exists
-      INTEGER, EXTERNAL               :: stat
-      INTEGER                         :: ierrno
-      INTEGER, DIMENSION(12)          :: statb
  
   
       inquire(FILE = file, EXIST = file_exists)

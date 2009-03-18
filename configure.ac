@@ -372,6 +372,7 @@ tests/H2O-slab/Makefile
 tests/Davidson-SiH4/Makefile
 tests/GPU/Makefile
 tests/MINHOP/Makefile
+tests/NEB/Makefile
 ])
 AC_OUTPUT
 

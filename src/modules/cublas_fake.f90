@@ -58,3 +58,13 @@
     stop 'FAKE SDOT'
   end subroutine cublas_SDOT
 
+  subroutine cublas_dgemm()
+    implicit none
+    stop 'FAKE dgemm'
+  end subroutine cublas_dgemm
+ 
+  subroutine cublas_dsyrk()
+    implicit none
+    stop 'FAKE dsyrk'
+  end subroutine cublas_dsyrk
+ 

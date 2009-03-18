@@ -78,14 +78,17 @@
     stop 'gpu_locham'
   end subroutine gpu_locham
 
+  subroutine gpu_locden()
+    implicit none
+    stop 'gpu_locden'
+  end subroutine gpu_locden
+
   subroutine gpu_precond()
     implicit none
     stop 'gpu_locham'
   end subroutine gpu_precond
 
-
   subroutine free_gpu()
     implicit none
     stop 'free_gpu'
   end subroutine free_gpu
- 
