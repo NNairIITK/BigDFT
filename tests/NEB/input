@@ -1,0 +1,18 @@
+&NEB                                                          
+  scratch_dir         = "/tmp"
+  job_name            = "test_3"
+  restart             = .FALSE.,                           
+  climbing            = .FALSE.,
+  optimization        = .FALSE.,
+  minimization_scheme = "quick-min",
+  damp                = 1.D0,
+  ds                  = 0.8D0,
+  k_max               = 0.100D0, 
+  k_min               = 0.050D0,
+  max_iterations      = 10,
+  tolerance           = 0.0001D0,
+  convergence         = 0.05D0,
+  num_of_images       = 3,                     
+  first_config        = "deb.xyz",              
+  last_config         = "fin.xyz",                         
+/                                                             
