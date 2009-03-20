@@ -189,6 +189,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
   type(orbitals_data) :: orbsv
+  type(GPU_pointers) :: GPU
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: spinsgn_foo,rho
   real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
@@ -260,18 +261,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! We save the variables that defined the previous psi if the restart is active
   if (in%inputPsiId == 1) then
      !regenerate grid spacings
+     hx_old=hgrid_old
+     hy_old=hgrid_old
+     hz_old=hgrid_old
      if (atoms%geocode == 'P') then
         call correct_grid(atoms%alat1,hx_old,Glr%d%n1)
         call correct_grid(atoms%alat2,hy_old,Glr%d%n2)
         call correct_grid(atoms%alat3,hz_old,Glr%d%n3)
      else if (atoms%geocode == 'S') then 
         call correct_grid(atoms%alat1,hx_old,Glr%d%n1)
-        hy_old=hgrid_old
         call correct_grid(atoms%alat3,hz_old,Glr%d%n3)
-     else if (atoms%geocode == 'F') then 
-        hx_old=hgrid_old
-        hy_old=hgrid_old
-        hz_old=hgrid_old
      end if
      call copy_old_wavefunctions(iproc,nproc,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
           Glr%wfd,psi,n1_old,n2_old,n3_old,wfd_old,psi_old)
@@ -599,6 +598,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call razero(3*(idsx+1)**2,ads)
   endif
 
+  !allocate arrays for the GPU if a card is present
+  if (GPUconv) then
+       call prepare_gpu_for_locham(Glr%d%n1,Glr%d%n2,Glr%d%n3,in%nspin,&
+            hx,hy,hz,Glr%wfd,orbs,GPU)
+  end if
+
+
+
   alpha=2.d0
   energy=1.d10
   gnrm=1.d10
@@ -640,7 +647,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      ! Potential from electronic charge density
      call sumrho(iproc,nproc,orbs,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
-          n1i*n2i*n3d,nscatterarr,in%nspin)
+          n1i*n2i*n3d,nscatterarr,in%nspin,GPU)
      
      if(orbs%nspinor==4) then
         !this wrapper can be inserted inside the poisson solver 
@@ -657,7 +664,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      call HamiltonianApplication(iproc,nproc,atoms,orbs,hx,hy,hz,rxyz,&
           cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-          rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,in%nspin)
+          rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
@@ -688,7 +695,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      
      call hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,Glr,comms,ncong,&
           iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-          alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,in%nspin)
+          alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,in%nspin,GPU)
 
      tt=(energybs-scprsum)/scprsum
      if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
@@ -863,7 +870,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      allocate(rho(1+ndebug),stat=i_stat)
      call memocc(i_stat,rho,'rho',subname)
   end if
-  call sumrho(iproc,nproc,orbs,Glr,0,hxh,hyh,hzh,psi,rho,n1i*n2i*n3p,nscatterarr,in%nspin)
+  call sumrho(iproc,nproc,orbs,Glr,0,hxh,hyh,hzh,psi,rho,n1i*n2i*n3p,nscatterarr,in%nspin,GPU)
 
   !plot the density on the density.pot file
   if (in%output_grid==1 .or. in%output_grid==3) then
@@ -1116,6 +1123,11 @@ contains
        i_all=-product(shape(hpsi))*kind(hpsi)
        deallocate(hpsi,stat=i_stat)
        call memocc(i_stat,i_all,'hpsi',subname)
+     
+       !free GPU if it is the case
+       if (GPUconv) then
+          call free_gpu(GPU,orbs%norbp)
+       end if
 
        i_all=-product(shape(pot_ion))*kind(pot_ion)
        deallocate(pot_ion,stat=i_stat)
@@ -1188,6 +1200,11 @@ contains
        deallocate(Glr%bounds%gb%ibxxyy_f,stat=i_stat)
        call memocc(i_stat,i_all,'ibxxyy_f',subname)
     endif
+
+    !free GPU if it is the case
+    if (GPUconv) then
+       call free_gpu(GPU,orbs%norbp)
+    end if
 
     i_all=-product(shape(orbs%norb_par))*kind(orbs%norb_par)
     deallocate(orbs%norb_par,stat=i_stat)

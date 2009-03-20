@@ -1,6 +1,6 @@
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
-     ekin_sum,epot_sum,eproj_sum,nspin)
+     ekin_sum,epot_sum,eproj_sum,nspin,GPU)
   use module_base
   use module_types
   implicit none
@@ -18,6 +18,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   real(wp), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
   real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+  type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
   integer :: i_all,i_stat,ierr,n1i,n2i,n3i,iorb,ispin
@@ -52,7 +53,33 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   !apply the local hamiltonian for each of the orbitals
   !given to each processor
-  call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
+
+  !switch between GPU/CPU treatment
+  if (GPUconv) then
+     call timing(iproc,'ApplyLocPotKin','OF')
+     call timing(iproc,'Un-TransComm  ','ON')
+     !copy the potential on GPU
+     call GPU_send(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,pot,GPU%rhopot,i_stat)
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'ApplyLocPotKin','ON')
+
+     !calculate the local hamiltonian
+     !WARNING: wavefunctions should be already on the card in decompressed form
+     call gpu_locham(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
+
+     call timing(iproc,'ApplyLocPotKin','OF')
+     call timing(iproc,'Un-TransComm  ','ON')
+     !copy back the compressed wavefunctions
+     !receive the data of GPU
+     do iorb=1,orbs%norbp
+        call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
+             hpsi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
+     end do
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'ApplyLocPotKin','ON')
+  else
+     call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
+  end if
   
   if (nproc > 1) then
      i_all=-product(shape(pot))*kind(pot)
@@ -63,8 +90,6 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   end if
 
   call timing(iproc,'ApplyLocPotKin','OF')
-
-!!$  !TESTING:only for kinetic term, to be removed
 
   ! apply all PSP projectors for all orbitals belonging to iproc
   call timing(iproc,'ApplyProj     ','ON')
@@ -108,7 +133,7 @@ end subroutine HamiltonianApplication
 
 subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
      ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
-     alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin)
+     alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,GPU)
   use module_base
   use module_types
   use module_interfaces, except_this_one => hpsitopsi
@@ -124,6 +149,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
   real(gp), intent(inout) :: energy_min
   real(wp), dimension(:), pointer :: psi,psit,hpsi,psidst,hpsidst
   real(wp), dimension(:,:,:), pointer :: ads
+  type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='hpsitopsi'
   logical, save :: switchSD
@@ -167,7 +193,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
   ! insert branching for CUDA section(experimental)
   ! once the mixed precision version is ready such part can be eliminated
-  if (GPUblas) then
+  if (GPUblas .and. .false.) then
      allocate(psitcuda(orbs%npsidim+ndebug),stat=i_stat)
      call memocc(i_stat,psitcuda,'psitcuda',subname)
      allocate(hpsitcuda(orbs%npsidim+ndebug),stat=i_stat)
@@ -234,8 +260,34 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
 
   !Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
-  call preconditionall(iproc,nproc,orbs%norbp,lr,hx,hy,hz,ncong,orbs%nspinor,&
-       orbs%eval(min(orbs%isorb+1,orbs%norb)),hpsi,gnrm)
+  !switch between CPU and GPU treatment
+  if (GPUconv) then
+     !copy the wavefunctions on GPU
+     call timing(iproc,'Precondition  ','OF')
+     call timing(iproc,'Un-TransComm  ','ON')
+     do iorb=1,orbs%norbp
+        call GPU_send((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
+       hpsi(1+((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor)*((iorb-1)*orbs%nspinor)),&
+       GPU%psi(iorb),i_stat)
+     end do
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'Precondition  ','ON')
+     call gpu_precond(lr,hx,hy,hz,GPU,orbs%norbp,ncong,&
+          orbs%eval(min(orbs%isorb+1,orbs%norb)),gnrm)
+     call timing(iproc,'Precondition  ','OF')
+     call timing(iproc,'Un-TransComm  ','ON')
+     do iorb=1,orbs%norbp
+        call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
+       hpsi(1+((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor)*((iorb-1)*orbs%nspinor)),&
+       GPU%psi(iorb),i_stat)
+     end do
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'Precondition  ','ON')
+
+  else
+     call preconditionall(iproc,nproc,orbs%norbp,lr,hx,hy,hz,ncong,orbs%nspinor,&
+          orbs%eval(min(orbs%isorb+1,orbs%norb)),hpsi,gnrm)
+  end if
 
   !sum over all the partial residues
   if (nproc > 1) then
