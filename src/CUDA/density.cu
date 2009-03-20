@@ -102,6 +102,7 @@ void gpulocden_(int *n1,int *n2, int *n3,int *norbp,int *nspin,
 		double **rho)
 {
   
+  //  printf("%i %i %i %i %i %lf %lf %lf %lf %lf %p %p %p %p %p",
   if(localpartialdensity<double>(*n1+1,*n2+1,*n3+1,*nspin,*norbp,
 				 *h1,*h2,*h3,occup,spinsgn,
 				 psi,*rho,*keys,

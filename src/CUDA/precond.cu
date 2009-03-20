@@ -1,3 +1,10 @@
+
+#define CUERR { cudaError_t err; \
+ if ((err = cudaGetLastError()) != cudaSuccess) { \
+ printf("CUDA error: %s, line %d\n", cudaGetErrorString(err), __LINE__); }}
+
+
+
 template<typename T>
 int gpuapply_hp(int n1,int n2, int n3,
 		T h1,T h2,T h3,T c,
@@ -149,6 +156,9 @@ void gpuprecond_(int *n1,int *n2, int *n3,int *npsi,
 		 double *c,int *ncong, double *gnrm)
 {
   
+  /* printf("%i, %i, %i, %i,  %lf, %lf, %lf, %p, %p, %p, %p, %p %p, %p, %p, %lf, %i, %lf\n",*n1+1,*n2+1,*n3+1,*npsi,*ncong,
+	 *h1,*h2,*h3,*c,
+	 *x,*keys,*r,*b,*d,*work1,*work2,*work3,*gnrm);*/
 
   if(gpucg_precong<double>(*n1+1,*n2+1,*n3+1,*npsi,*ncong,
 			   *h1,*h2,*h3,*c,
@@ -157,5 +167,7 @@ void gpuprecond_(int *n1,int *n2, int *n3,int *npsi,
       printf("ERROR: GPU fulllocalhamiltonian\n ");
       return;
     } 
+
+  CUERR;
   return; 
 }

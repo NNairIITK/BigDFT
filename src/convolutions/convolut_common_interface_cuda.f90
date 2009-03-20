@@ -397,6 +397,10 @@ subroutine prepare_gpu_for_locham(n1,n2,n3,nspin,hx,hy,hz,wfd,orbs,GPU)
   call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),GPU%d,i_stat)
 
   
+  call cpu_pinned_allocation((2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor*orbs%norbp,GPU%pinned_in,i_stat)
+  call cpu_pinned_allocation((2*n1+2)*(2*n2+2)*(2*n3+2)*orbs%nspinor*orbs%norbp,GPU%pinned_out,i_stat)
+
+  
 end subroutine prepare_gpu_for_locham
 
 
@@ -450,6 +454,30 @@ subroutine gpu_locden(lr,nspin,hxh,hyh,hzh,orbs,GPU)
 end subroutine gpu_locden
 
 
+subroutine gpu_locden_helper_stream(lr,nspin,hxh,hyh,hzh,orbs,GPU,stream_ptr)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nspin
+  real(gp), intent(in) :: hxh,hyh,hzh
+  type(locreg_descriptors), intent(in) :: lr
+  type(orbitals_data), intent(in) :: orbs
+  type(GPU_pointers), intent(out) :: GPU
+  integer, intent(in) :: stream_ptr
+  !local variables
+
+  call gpulocden_stream(lr%d%n1,lr%d%n2,lr%d%n3,orbs%norbp,nspin,&
+       hxh,hyh,hzh,&
+       orbs%occup(min(orbs%isorb+1,orbs%norb)),&
+       orbs%spinsgn(min(orbs%isorb+1,orbs%norb)),&
+       GPU%psi,GPU%keys,&
+       GPU%work1,GPU%work2,GPU%rhopot,&
+       stream_ptr)
+
+end subroutine gpu_locden_helper_stream
+
+
+
 subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
   use module_base
   use module_types
@@ -476,6 +504,41 @@ subroutine gpu_locham(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
   end do
 
 end subroutine gpu_locham
+
+
+subroutine gpu_locham_helper_stream(n1,n2,n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum,iorb,stream_ptr)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  real(gp), intent(in) :: hx,hy,hz
+  real(gp), intent(out) :: ekin_sum,epot_sum
+  type(orbitals_data), intent(in) :: orbs
+  type(GPU_pointers), intent(out) :: GPU
+  !local variables
+  integer :: i_stat
+  integer, intent(in) ::iorb
+  real(gp) :: ekin,epot
+
+  real(gp) :: ocupGPU
+  integer, intent(in) :: stream_ptr
+
+  ekin_sum=0.0_gp
+  epot_sum=0.0_gp
+
+
+  ocupGPU = orbs%occup(iorb+orbs%isorb)
+
+  call gpulocham_stream(n1,n2,n3,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+       GPU%psi(iorb),GPU%rhopot,GPU%keys,&
+       GPU%work1,GPU%work2,GPU%work3,epot_sum,ekin_sum,ocupGPU,stream_ptr)
+
+   !  ekin_sum=ekin_sum+orbs%occup(iorb+orbs%isorb)*ekin
+   !  epot_sum=epot_sum+orbs%occup(iorb+orbs%isorb)*epot
+
+ 
+
+end subroutine gpu_locham_helper_stream
 
 
 subroutine gpu_precond(lr,hx,hy,hz,GPU,norbp,ncong,eval,gnrm)
@@ -509,3 +572,33 @@ subroutine gpu_precond(lr,hx,hy,hz,GPU,norbp,ncong,eval,gnrm)
 end subroutine gpu_precond
 
 
+subroutine gpu_precond_helper_stream(lr,hx,hy,hz,GPU,norbp,ncong,eval,gnrm,currOrb,stream_ptr)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: norbp,ncong
+  real(gp), intent(in) :: hx,hy,hz
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(norbp), intent(in) :: eval
+  real(wp), intent(out) :: gnrm
+  type(GPU_pointers), intent(out) :: GPU
+  !local variables
+  integer :: i_stat
+  integer,intent(in) :: currOrb
+ ! real(wp) :: gnrm_gpu
+  integer, intent(in) :: stream_ptr
+  gnrm=0.0_wp
+ 
+
+  !use rhopot as a work array here
+  call gpuprecond_stream(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
+       0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
+       GPU%psi(currOrb),&
+       GPU%keys,GPU%r,GPU%rhopot,GPU%d,GPU%work1,GPU%work2,GPU%work3,&
+       0.5_wp,ncong,gnrm,stream_ptr)
+  
+ ! gnrm=gnrm+gnrm_gpu this calc is performed on call
+
+ 
+
+end subroutine gpu_precond_helper_stream

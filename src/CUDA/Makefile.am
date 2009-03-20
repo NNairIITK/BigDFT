@@ -40,10 +40,14 @@ SOURCES_CONV_CHECK = locpot.cu \
 	density.cu
 
 SOURCES_SHARED = convSeria.cpp \
+	dynamicGPU/interface_stream.cpp \
+	dynamicGPU/init_network.cpp \
+	dynamicGPU/convolution_fct_call.cpp \
+	dynamicGPU/localqueu.cpp \
 	setCPU_GPU_aff.cpp \
 	read_conf_file.cpp \
-	commonDef.cpp \
-	fortran.c 
+	commonDef.cpp  \
+	fortran.c
 
 INC_CUDA = -I@LIB_CUTIL_PATH@
 
