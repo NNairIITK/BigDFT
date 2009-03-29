@@ -1,15 +1,7 @@
 EXTRA_DIST = \
-	structUtil.h \
-	convolution.h \
-	convolutionPot.h \
-	convSeria.h \
-	conv_shared_multi_kernel.cu \
-	conv_pot_shared_kernel.cu \
 	Makefile.standalone \
 	read_conf_file.h \
 	GPUparameters.h \
-	reduction.hcu \
-	kernel_tex.cu \
 	kernels_compress.hcu \
 	kernels_locpot.hcu \
 	kernels_kinetic.hcu \
@@ -19,17 +11,11 @@ EXTRA_DIST = \
 	structDef_kinetic.h \
 	kinetic.h \
 	locpot.h \
-	reduction.h \
 	commonDef.h \
 	$(SOURCES_CONV_CHECK)
 
-SOURCES_CU_CONV1 = convolution.cu \
-	convolutionPot.cu \
-	structUtil.cu \
-	cudafct.cu
-
-SOURCES_CONV = 	memory_management.cu \
-	reduction.cu \
+SOURCES_CONV = 	cudafct.cu \
+	memory_management.cu \
 	locham.cu 
 
 SOURCES_CONV_CHECK = locpot.cu \
@@ -39,8 +25,7 @@ SOURCES_CONV_CHECK = locpot.cu \
 	precond.cu \
 	density.cu
 
-SOURCES_SHARED = convSeria.cpp \
-	setCPU_GPU_aff.cpp \
+SOURCES_SHARED = setCPU_GPU_aff.cpp \
 	read_conf_file.cpp \
 	commonDef.cpp \
 	fortran.c 
@@ -69,15 +54,12 @@ else
 bin_PROGRAMS = 
 endif
 
-
 check_PROGRAMS = conv_check
 
 else
 check_PROGRAMS = 
 EXTRA_DIST += conv_check.f90 \
 	GPUham.f90 \
-	1Dconv.cu \
-	1Dconv_new.cu \
 	$(SOURCES_CONV)
 endif
 
@@ -107,47 +89,23 @@ GPUham_LDADD = ../libbigdft.a \
 
 
 #dependencies
-convolution.o : conv_shared_multi_kernel.cu \
-	convolution.h \
-	convSeria.h \
-	structUtil.h
 
-1Dconv.o : conv_shared_multi_kernel.cu \
-	conv_pot_shared_kernel.cu \
-	convolution.h \
-	convSeria.h \
-	structUtil.h 
+locpot.o: kernels_locpot.hcu structDef_locpot.h	commonDef.h
 
-conv_shared_multi.cu : structUtil.h
+kinetic.o: kernels_kinetic.hcu structDef_kinetic.h commonDef.h
 
-locpot.o: reduction.hcu kernels_locpot.hcu structDef_locpot.h
-
-kinetic.o: reduction.hcu kernels_kinetic.hcu structDef_kinetic.h
-
-anasyn.o: kernels_anasyn.hcu structDef_anasyn.h
+anasyn.o: kernels_anasyn.hcu structDef_anasyn.h commonDef.h
 
 locham.o : kernels_anasyn.hcu \
 	kernels_locpot.hcu \
 	kernels_kinetic.hcu \
 	kernels_compress.hcu \
-	reduction.hcu \
 	GPUparameters.h \
 	precond.cu \
-	density.cu
+	density.cu \
+	commonDef.h
 
 compress.o : commonDef.h kernels_compress.hcu
-
-convolutionPot.cu : conv_pot_shared_kernel.cu \
-	convolutionPot.h \
-	convSeria.h \
-	structUtil.h
-
-conv_pot_shared_kernel.cu : structUtil.h
-
-conv_check.o : 1Dconv.cu
-
-
-convSeria.cpp structUtil.cu : structUtil.h
 
 read_conf_file.cpp : read_conf_file.h
 
