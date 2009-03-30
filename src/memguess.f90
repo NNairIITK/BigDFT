@@ -19,6 +19,7 @@ program memguess
   character(len=*), parameter :: subname='memguess'
   integer, parameter :: ngx=31
   character(len=20) :: tatonam,units
+  character(len=40) :: comment
   logical :: calc_tail,optimise
   integer :: ierror,nproc,i_stat,i_all,output_grid
   integer :: nelec
@@ -125,7 +126,9 @@ program memguess
   if (optimise) then
      call optimise_volume(atoms,in%crmult,in%frmult,in%hgrid,rxyz,radii_cf)
      write(*,'(1x,a)')'Writing optimised positions in file posout_000.xyz...'
-     call wtposout(0,0.d0,rxyz,atoms)
+     write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
+     call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
+
   end if
 
   
