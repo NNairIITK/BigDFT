@@ -19,6 +19,7 @@ program memguess
   character(len=*), parameter :: subname='memguess'
   integer, parameter :: ngx=31
   character(len=20) :: tatonam,units
+  character(len=40) :: comment
   logical :: optimise,GPUtest
   integer :: ierror,nproc,i_stat,i_all,output_grid
   integer :: nelec,ntimes
@@ -149,7 +150,9 @@ program memguess
         call shift_periodic_directions(atoms,rxyz,radii_cf)
      end if
      write(*,'(1x,a)')'Writing optimised positions in file posout_000.xyz...'
-     call wtxyz('posout_000',0.d0,rxyz,atoms,'')
+     write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
+     call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
+
   end if
 
   

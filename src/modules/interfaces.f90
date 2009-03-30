@@ -57,19 +57,29 @@ interface
      real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
    end subroutine call_bigdft
 
-   subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
-     use module_base
-     use module_types
-     implicit none
-     integer, intent(in) :: nproc,iproc
-     integer, intent(inout) :: ncount_cluster
-     real(gp), intent(out) :: etot
-     type(atoms_data), intent(inout) :: at
-     type(input_variables), intent(inout) :: in
-     type(restart_objects), intent(inout) :: rst
-     real(gp), dimension(3,at%nat), intent(inout) :: rxyz
-     real(gp), dimension(3,at%nat), intent(out) :: fxyz
-   end subroutine conjgrad
+
+subroutine geopt(nproc,iproc,x,at,f,epot,rst,in,ncount_bigdft)
+
+
+!    use module_base
+!    use module_interfaces, except_this_one => geopt
+!    use module_types
+!    use minimization, only:parameterminimization
+
+    use module_base
+    use module_types
+!    use minimization, only:parameterminimization
+    implicit none
+    integer, intent(in) :: nproc,iproc
+    integer, intent(inout) :: ncount_bigdft
+    type(atoms_data), intent(in) :: at
+    type(input_variables), intent(in) :: in
+    type(restart_objects), intent(inout) :: rst
+    real(gp), intent(inout) :: epot
+    real(gp), dimension(3*at%nat), intent(inout) :: x
+    real(gp), dimension(3*at%nat), intent(out) :: f
+end subroutine geopt
+
 
    subroutine copy_old_wavefunctions(iproc,nproc,orbs,n1,n2,n3,wfd,psi,&
         n1_old,n2_old,n3_old,wfd_old,psi_old)
