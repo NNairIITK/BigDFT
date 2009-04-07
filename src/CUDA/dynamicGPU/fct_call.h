@@ -1,12 +1,12 @@
-/*
-** fct_call.h
-** 
-** Made by Matthieu Ospici
-** Login   <mo219174@badiane>
-** 
-** Started on  Thu Apr 17 13:32:28 2008 Matthieu Ospici
-** Last update Thu Apr 17 13:32:28 2008 Matthieu Ospici
+/****h* fct_call.h/fct_call
+*  DESCRIPTION
+*   fct_call is a class designed to be extended in order to create new code for GPU
+*   the virtual operator() must be extended
+* AUTHOR
+*   Matthieu Ospici
+*  SOURCE
 */
+
 
 #ifndef   	FCT_CALL_H_
 # define   	FCT_CALL_H_
@@ -20,12 +20,5 @@ public:
 };
 
 
-
-class fct_call_do_nothing : public fct_call
-{
-public:
-  virtual void operator()(int) {}; 
-  virtual ~fct_call_do_nothing(){};
-};
 
 #endif 	    /* !FCT_CALL_H_ */

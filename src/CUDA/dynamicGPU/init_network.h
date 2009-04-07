@@ -8,6 +8,13 @@
 #include <sys/types.h>    
 #include <sys/socket.h>
 #include <stdlib.h>
+/****h* init_network.h/init_sharing
+*  DESCRIPTION
+*    C++ classes used for initializing the GPU sharing system
+* AUTHOR
+*   Matthieu Ospici
+*  SOURCE
+*/
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -25,7 +32,7 @@
 #include "localqueu.h"
 #include "manage_gpu.h"
 
-
+//encapsulation of an unix semaphore
 class sem_unix
 {
 public:

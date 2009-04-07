@@ -23,7 +23,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   real(wp), dimension(:,:), allocatable :: tmred
   real(dp), dimension(:,:), pointer :: rho_p
 
-  real(kind=8) :: stream_ptr
+!  real(kind=8) :: stream_ptr
 
   call timing(iproc,'Rho_comput    ','ON')
 
@@ -62,68 +62,14 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
 
   !switch between GPU/CPU treatment of the density
   if (GPUconv) then
-
-     if (.not. GPUshare) then
-
-        call timing(iproc,'Rho_comput    ','OF')
-        call timing(iproc,'Rho_commun    ','ON')
-      
-        !copy the wavefunctions on GPU
-        do iorb=1,orbs%norbp
-           call GPU_send((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-                psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
-        end do
-        call timing(iproc,'Rho_commun    ','OF')
-        call timing(iproc,'Rho_comput    ','ON')
-        
-        !calculate the density
-        call gpu_locden(lr,nspin,hxh,hyh,hzh,orbs,GPU)
-        
-        !copy back the results and leave the uncompressed wavefunctions on the card
-        call GPU_receive(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,rho_p,GPU%rhopot,i_stat)
-     else
-        !use dynamic GPU
-        call timing(iproc,'Rho_comput    ','OF')
-        call timing(iproc,'Rho_commun    ','ON')
-         call timing(iproc,'Rho_commun    ','OF')
-        call timing(iproc,'Rho_comput    ','ON')
-
-        call create_stream(stream_ptr) !only one stream, it could be good to optimize that
-        !copy the wavefunctions on GPU
-        do iorb=1,orbs%norbp
-           call  mem_copy_f_to_c_stream((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-                GPU%pinned_in,&
-                psi(1,(iorb-1)*orbs%nspinor+1),&
-                i_stat,stream_ptr)
-           
-           call GPU_send_PI_stream((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-                GPU%pinned_in,&
-                GPU%psi(iorb),i_stat,stream_ptr)
-        end do
-
-       
-       
-        !calculate the density
-        call gpu_locden_helper_stream(lr,nspin,hxh,hyh,hzh,orbs,GPU,stream_ptr)
-  
-        !copy back the results and leave the uncompressed wavefunctions on the card
-
-        call GPU_receive_PI_stream(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,&
-             GPU%pinned_out,&
-             GPU%rhopot,&
-             i_stat,stream_ptr)
-
+     call timing(iproc,'Rho_comput    ','OF')
+     call timing(iproc,'Rho_commun    ','ON')
+     call timing(iproc,'Rho_commun    ','OF')
+     call timing(iproc,'Rho_comput    ','ON')
      
-       call  mem_copy_c_to_f_stream(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,&
-             rho_p,&
-             GPU%pinned_out,&
-             i_stat,stream_ptr)
 
-     
-        call launch_all_streams() !stream are removed after this call, the queue becomes empty
-     
-     
-     end if
+     call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
+    
   else
      !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
      if(orbs%nspinor==4) then 

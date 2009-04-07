@@ -28,8 +28,8 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   integer,parameter::lupfil=14
 
   !stream ptr array
-  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
-  real(kind=8) :: stream_ptr_first_trsf
+!  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
+!  real(kind=8) :: stream_ptr_first_trsf
 
   call timing(iproc,'ApplyLocPotKin','ON')
 
@@ -60,82 +60,23 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   !switch between GPU/CPU treatment
   if (GPUconv) then
+     call timing(iproc,'ApplyLocPotKin','OF')
+     call timing(iproc,'Un-TransComm  ','ON')
      
-     if (.not. GPUshare) then
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'ApplyLocPotKin','ON')
 
-        call timing(iproc,'ApplyLocPotKin','OF')
-        call timing(iproc,'Un-TransComm  ','ON')
-        !copy the potential on GPU
-        call GPU_send(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,pot,GPU%rhopot,i_stat)
-        call timing(iproc,'Un-TransComm  ','OF')
-        call timing(iproc,'ApplyLocPotKin','ON')
-        
-        !calculate the local hamiltonian
-        !WARNING: wavefunctions should be already on the card in decompressed form
-        call gpu_locham(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum)
-        
-        call timing(iproc,'ApplyLocPotKin','OF')
-        call timing(iproc,'Un-TransComm  ','ON')
-        !copy back the compressed wavefunctions
-        !receive the data of GPU
-        do iorb=1,orbs%norbp
-           call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-                hpsi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
-        end do
-        call timing(iproc,'Un-TransComm  ','OF')
-        call timing(iproc,'ApplyLocPotKin','ON')
-     else
-        !dynamic GPU (shared)
-        
-        call timing(iproc,'ApplyLocPotKin','OF')
-        call timing(iproc,'Un-TransComm  ','ON')
 
-        call timing(iproc,'Un-TransComm  ','OF')
-        call timing(iproc,'ApplyLocPotKin','ON')
-        !copy the potential on GPU
-        call create_stream(stream_ptr_first_trsf)
-        call  mem_copy_f_to_c_stream(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,&
-             GPU%pinned_in,&
-            pot,&
-             i_stat,stream_ptr_first_trsf) !only one the first stream !
-              
-        
-        call GPU_send_PI_stream(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,&
-             GPU%pinned_in,&
-             GPU%rhopot,i_stat,stream_ptr_first_trsf)
+     call local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
      
+     call timing(iproc,'ApplyLocPotKin','OF')
+     call timing(iproc,'Un-TransComm  ','ON')
+     
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'ApplyLocPotKin','ON')
 
-        call launch_all_streams() !stream are removed after this call, the queue becomes empty
 
-        do iorb=1,orbs%norbp
-           call create_stream(tab_stream_ptr(iorb))
-  
-        
-        !calculate the local hamiltonian
-        !WARNING: wavefunctions should be already on the card in decompressed form
-           call gpu_locham_helper_stream(lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,orbs,GPU,ekin_sum,epot_sum,iorb,tab_stream_ptr(iorb))
-        
-  
-        !copy back the compressed wavefunctions
-        !receive the data of GPU
-      
-           call GPU_receive_PI_stream((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-                GPU%pinned_out,&
-                GPU%psi(iorb),i_stat,tab_stream_ptr(iorb))
 
-           call  mem_copy_c_to_f_stream((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-                hpsi(1,(iorb-1)*orbs%nspinor+1),&
-                GPU%pinned_out,i_stat,tab_stream_ptr(iorb))
-
-          
-        end do
-        call launch_all_streams() !stream are removed after this call, the queue becomes empty
-      call timing(iproc,'ApplyLocPotKin','OF')
-        call timing(iproc,'Un-TransComm  ','ON')
-
-        call timing(iproc,'Un-TransComm  ','OF')
-        call timing(iproc,'ApplyLocPotKin','ON')
-     end if
   else
      call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   end if
@@ -220,7 +161,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
   real(kind=4), dimension(:), allocatable :: psitcuda,hpsitcuda
 
   !stream ptr array
-  real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
+ ! real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
 
   !adjust the save variables for DIIS/SD switch
   if (iter == 1) then
@@ -324,86 +265,18 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
   !and calculate the partial norm of the residue
   !switch between CPU and GPU treatment
   if (GPUconv) then
-     !copy the wavefunctions on GPU
-  !   GPU%useDynamic = .true.
+     call timing(iproc,'Precondition  ','OF')
+     call timing(iproc,'Un-TransComm  ','ON')
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'Precondition  ','ON')
 
-     if (.not. GPUshare) then
-        call timing(iproc,'Precondition  ','OF')
-        call timing(iproc,'Un-TransComm  ','ON')
-        do iorb=1,orbs%norbp
-           call GPU_send((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-                hpsi(1+((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor)*((iorb-1)*orbs%nspinor)),&
-                GPU%psi(iorb),i_stat)
-        end do
-        call timing(iproc,'Un-TransComm  ','OF')
-        call timing(iproc,'Precondition  ','ON')
-        call gpu_precond(lr,hx,hy,hz,GPU,orbs%norbp,ncong,&
-             orbs%eval(min(orbs%isorb+1,orbs%norb)),gnrm)
-        call timing(iproc,'Precondition  ','OF')
-        call timing(iproc,'Un-TransComm  ','ON')
-        do iorb=1,orbs%norbp
-           call GPU_receive((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-                hpsi(1+((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor)*((iorb-1)*orbs%nspinor)),&
-                GPU%psi(iorb),i_stat)
-        end do
+     call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
+          hpsi,gnrm,GPU)
 
-       
-
-        call timing(iproc,'Un-TransComm  ','OF')
-        call timing(iproc,'Precondition  ','ON')
-     else
-        
-        !====use dynamic repartition
-
-        
-        !create streams
- 
-        call timing(iproc,'Precondition  ','OF')
-        call timing(iproc,'Un-TransComm  ','ON')
-        call timing(iproc,'Un-TransComm  ','OF')
-        call timing(iproc,'Precondition  ','ON')
-
-        do iorb=1,orbs%norbp
-           call create_stream(tab_stream_ptr(iorb))
-           
-           call  mem_copy_f_to_c_stream((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-                GPU%pinned_in,&
-                hpsi(1+((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor)*((iorb-1)*orbs%nspinor)),&
-                i_stat,tab_stream_ptr(iorb))
-              
-           
-           call GPU_send_PI_stream((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-                GPU%pinned_in,&
-                GPU%psi(iorb),i_stat,tab_stream_ptr(iorb))
-          
-
-         
-           call gpu_precond_helper_stream(lr,hx,hy,hz,GPU,orbs%norbp,ncong,&
-                orbs%eval(min(orbs%isorb+1,orbs%norb)),gnrm,iorb,tab_stream_ptr(iorb))
-       
-     
-
-           call GPU_receive_PI_stream((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-                GPU%pinned_out,&
-                GPU%psi(iorb),i_stat,tab_stream_ptr(iorb))
-
-
-           call  mem_copy_c_to_f_stream((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-                hpsi(1+((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor)*((iorb-1)*orbs%nspinor)),&
-                GPU%pinned_out,i_stat,tab_stream_ptr(iorb))
-        end do
-
-
-        call launch_all_streams() !stream are removed after this call, the queue becomes empty
-
-
-        call timing(iproc,'Precondition  ','OF')
-        call timing(iproc,'Un-TransComm  ','ON')
-        call timing(iproc,'Un-TransComm  ','OF')
-        call timing(iproc,'Precondition  ','ON')
-
-        !end of dynamic repartirion
-     end if
+     call timing(iproc,'Precondition  ','OF') 
+     call timing(iproc,'Un-TransComm  ','ON')
+     call timing(iproc,'Un-TransComm  ','OF')
+     call timing(iproc,'Precondition  ','ON')
         
   else
      call preconditionall(iproc,nproc,orbs%norbp,lr,hx,hy,hz,ncong,orbs%nspinor,&

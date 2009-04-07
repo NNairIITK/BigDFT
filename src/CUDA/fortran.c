@@ -44,6 +44,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stddef.h>
+#include <stdlib.h>
 #if defined(__GNUC__)
 #include <stdint.h>
 #endif /* __GNUC__ */

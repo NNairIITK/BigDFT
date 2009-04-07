@@ -23,7 +23,7 @@
 #include "init_network.h"
 #include "message.h"
 #include "localqueu.h"
-#include "manage_gpu.h"
+//#include "manage_gpu.h"
 #include "cudafct.h"
 void local_network::init() throw (network_error)
 {
@@ -105,7 +105,7 @@ void local_network::init() throw (network_error)
 		      currNum = lu;
 		    }
 		  ++lu;
-		  // printf("%i-- %i\n", getpid(), n);
+		
 		}
 	    }
 	  while (lectOK == 1 && fgetc(es) != EOF);
@@ -127,36 +127,29 @@ void local_network::init() throw (network_error)
 
       //compute which card has each participant
       std::vector<int> tab(NUM_PARTICIPANTS,0);
-      //    int tab[NUM_PARTICIPANTS];
-      
-      int div = NUM_PARTICIPANTS / NUM_GPU;
-      int v=-1;
-        for(int i=0;i<NUM_PARTICIPANTS;i+=div)
-	{
-	  ++v;
-	    for(int j=0;j<div;++j)
-	    {
-	         tab.at(j+i) = v;
-	      //    tab.at(0) = 0;
-	      //   tab.at(1) = 0;
-	      //   tab.at(2) = 0;
-	        std::cout << "CURR GPU " << j+i << " " << v << std::endl;
+    
+      {
+	const int div = NUM_PARTICIPANTS / NUM_GPU;
 
-	      // std::cout << "CURR GPU " << "O" << " " << tab.at(0) << std::endl;
-	      // std::cout << "CURR GPU " << "1" << " " << tab.at(1) << std::endl;
-	    }
-	}
-      
+	int numIt = div;
+	int itGPU = 0;
+	for(int i=0; i<NUM_PARTICIPANTS; ++i)
+	  {
+	    tab.at(i) = itGPU;
+	    std::cout << "Unix process " << i << " has GPU : " << itGPU << std::endl;
+	    if(i + 1 == numIt)
+	      {
+		numIt += div;
+		++itGPU;
+	      }
+	
+	  }
+
+	
+      }
       currGPU = tab.at(getCurr());
 
-      //	std::cout << "Cur GPu ù*** " << currGPU << std::endl;
-      // currGPU = 1;//tab[getCurr()];
 
-
-
-     
-
-      // c_cuda_setdevice(currGPU);
       //create numGPU semaphore (only the process 0)
 
       if(currNum == 0)
@@ -166,18 +159,18 @@ void local_network::init() throw (network_error)
 
 	  sem_unix_gpu_CALC = new sem_unix(sem_unix_gpu_TRSF->getSemid(),2*currGPU + 1);
 
-	  std::cout << "creat " << 2*NUM_GPU << "sem, TRSF : " <<2*currGPU<< " CALC : " << 2*currGPU + 1 << std::endl;
+	  // std::cout << "creat " << 2*NUM_GPU << "sem, TRSF : " <<2*currGPU<< " CALC : " << 2*currGPU + 1 << std::endl;
 
 	  message msgSem;
 
 	
 	  msgSem.node = sem_unix_gpu_TRSF->getSemid();
-	  std::cout << "On envoie !" << msgSem.node << std::endl;
+	  //  std::cout << "On envoie !" << msgSem.node << std::endl;
 	  send_next(&msgSem);
 	
 	  
 	  recv_prev(&msgSem);
-	  std::cout << "OK message bouclé" << msgSem.node << std::endl;
+	  std::cout << "OK, all process has semaphore : " << msgSem.node << std::endl;
 	}
       else
 	{
@@ -188,11 +181,11 @@ void local_network::init() throw (network_error)
 
 	  sem_unix_gpu_CALC = new sem_unix(msgSemRcv.node,2*currGPU +1);
 
-	  std::cout << "RECU,  sem, TRSF : " <<2*currGPU<< " CALC : " << 2*currGPU + 1 << std::endl;
+	  // std::cout << "RECU,  sem, TRSF : " <<2*currGPU<< " CALC : " << 2*currGPU + 1 << std::endl;
 
-	  std::cout << "On a recu , curGPU" << currGPU << "  curndode " << msgSemRcv.node << std::endl;
+	  //  std::cout << "On a recu , curGPU" << currGPU << "  curndode " << msgSemRcv.node << std::endl;
 
-	  std::cout << "On re envoie !" << msgSemRcv.node << std::endl;
+	  //  std::cout << "On re envoie !" << msgSemRcv.node << std::endl;
 	  send_next(&msgSemRcv);
 	  }
       fclose(es);
