@@ -1,14 +1,17 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
- #include <unistd.h>
+#include <unistd.h>
 
+#include "exceptions.h"
 
 #include "init_network.h"
 #include "message.h"
 #include "manage_gpu.h"
 
 #include "class_utils.h" //for deleter
+
+#include "read_conf_file.h" 
 
 #include "localqueu.h"
 #include "convolution_fct_call.h"
@@ -17,22 +20,71 @@ extern short gpu_precision;
 unsigned int getPrecisionSize();
 
 
-local_network *l;
-localqueu *locq;
+local_network *l = NULL;
+localqueu *locq = NULL;
 
 sem_unix *sem_gpu_CALC;
 sem_unix *sem_gpu_TRSF;
-//std::vector<gpu_stream*> v_stream; //maintain all stream
+
 
 
 extern "C" 
-void init_gpu_sharing__(int *NUM_MPI_NODE,
-			int *NUM_CARD)
+void init_gpu_sharing__(int *error)
 {
-  l = new local_network(*NUM_MPI_NODE,*NUM_CARD);
-  locq = new localqueu();
-  sem_gpu_CALC = l->getSemCalc();
-  sem_gpu_TRSF = l->getSemTrsf();
+  *error = 0;
+  try
+    {
+      int mpi_tasks_per_node,num_GPU;
+     
+      //read file
+      readConfFile read_conf("inter_node.config");
+      read_conf.get("MPI_TASKS_PER_NODE",&mpi_tasks_per_node);
+      read_conf.get("NUM_GPU",&num_GPU);
+      
+      //init node
+      l = new local_network(mpi_tasks_per_node,num_GPU);
+
+      locq = new localqueu();
+      sem_gpu_CALC = l->getSemCalc();
+      sem_gpu_TRSF = l->getSemTrsf();
+    }
+
+  catch(synchronization_error se)
+    {
+      std::cerr << "*** ERROR(s) DETECTED AT THE INITIALIZATION OF THE INTER-NODE COMMUNICATION SYSTEM ***" << std::endl;
+      std::cerr << "ERROR MESSAGE : " << se.what() << std::endl;
+      *error = 1;
+    }
+
+  catch(inter_node_communication_error ie)
+    {
+      std::cerr << "*** ERROR(s) DETECTED AT THE INITIALIZATION OF THE INTER-NODE COMMUNICATION SYSTEM ***" << std::endl;
+      std::cerr << "ERROR MESSAGE : " << ie.what() << std::endl;
+      *error = 1;
+    }
+
+
+  catch(read_not_found re)
+    {
+      std::cerr << "*** ERROR : INVALID CONFIG FILE. You have to se the number of mpi tasks per node and the number of GPU to use per node ***" << std::endl;
+      std::cerr << "Missing information : " << re.what() << std::endl;
+      *error = 1;
+    }
+
+  catch(file_not_found fe)
+    {
+      std::cerr << "*** ERROR : CONFIG FILE NOT FOUND" << std::endl;
+      std::cerr << "File not found : " << fe.what() << std::endl;
+      *error = 1;
+    }
+
+  catch(std::exception e)
+    {
+      std::cerr << "*** ERROR(s) DETECTED AT THE INITIALIZATION OF THE INTER-NODE COMMUNICATION SYSTEM ***" << std::endl;
+      std::cerr << "ERROR MESSAGE : " << e.what() << std::endl;
+      *error = 1;
+    }
+ 
 }
 
 

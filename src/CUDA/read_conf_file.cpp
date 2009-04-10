@@ -11,7 +11,7 @@ readConfFile::readConfFile( const std::string& filename) throw(file_not_found)
 
 
   if (!configfile)
-    throw file_not_found();
+    throw file_not_found(filename);
 
 
   std::string s ;
@@ -20,7 +20,7 @@ readConfFile::readConfFile( const std::string& filename) throw(file_not_found)
     {
       getline(configfile,s) ;
       if (s.size() == 0 || s[0]=='#') 
-	continue ; // Ignore lignes vides et commentaires.
+	continue ; // Skip empty lines and comment
 
       int offset = s.find('=');
       std::string key(s.substr(0,offset)) ;
@@ -35,9 +35,17 @@ void readConfFile::get(const std::string& key, std::string& value) const throw(r
   mapFile_t::const_iterator found = mFile.find(key) ;
 
   if (found == mFile.end()) // not found
-      throw read_not_found() ;
+      throw read_not_found(key) ;
   else
     value = (*found).second ;
+}
+
+void readConfFile::get(const std::string& key, int *value) const throw(read_not_found)  
+{
+  std::string tmp;
+  get(key,tmp);
+  
+  *value =  strTo<int>(tmp);
 }
 
 //========================================================================
@@ -59,7 +67,7 @@ int readConfFileGPU_CPU::getGPU(int MPI_ID) const throw(read_not_found_GPU)
     }
   catch(read_not_found e)
     {
-      throw read_not_found_GPU();
+      throw read_not_found_GPU(e.what());
     }
 }
 
@@ -80,7 +88,7 @@ int readConfFileGPU_CPU::getCPU(int MPI_ID) const throw(read_not_found_CPU)
     }
   catch(read_not_found e)
     {
-      throw read_not_found_CPU();
+      throw read_not_found_CPU(e.what());
     }
  
   

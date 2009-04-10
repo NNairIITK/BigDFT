@@ -62,7 +62,7 @@ subroutine read_input_variables(iproc,filename,in)
   character(len=7) :: cudagpu
   character(len=100) :: line
   real(kind=4) :: hgrid,crmult,frmult,cpmult,fpmult
-  integer :: ierror,ierrfrc,iconv,iblas,iline
+  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
 
   ! Read the input variables.
   open(unit=1,file=filename,status='old')
@@ -74,7 +74,10 @@ subroutine read_input_variables(iproc,filename,in)
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
    !  call set_cpu_gpu_aff(iproc,iconv,iblas)
    ! GPUshare=.false.
-     call init_gpu_sharing(8,2)
+     call init_gpu_sharing(initerror) !to fix the number of gpu and mpi tasks per node, we have to fil the inter_node.config file
+     if (initerror == 1) then
+        stop
+     end if
      GPUshare=.true.
      if (iconv == 0) then
         !change the value of the GPU convolution flag defined in the module_base

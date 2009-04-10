@@ -193,7 +193,7 @@ private:
 };
 
 
-class fct_call_alloc_pi : public fct_call
+/*class fct_call_alloc_pi : public fct_call
 {
 public:
   fct_call_alloc_pi(void **GPU_pointer_, unsigned int memSize_)
@@ -229,5 +229,5 @@ private:
   
  
   
-};
+  };*/
 #endif

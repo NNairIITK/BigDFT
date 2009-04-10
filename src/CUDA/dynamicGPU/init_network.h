@@ -37,11 +37,11 @@ class sem_unix
 {
 public:
   sem_unix(int semid,int currGPU); //constructor if we have aleready a sem_id
-  sem_unix(const char *nomfic, int numGPU,int currGPU) throw (network_error);
+  sem_unix(const char *nomfic, int numGPU,int currGPU) throw (synchronization_error);
   ~sem_unix();
 
-  void P() throw (network_error);
-  void V() throw (network_error);
+  void P() throw (synchronization_error);
+  void V() throw (synchronization_error);
 
   int getSemid() const {return semid;};
 private:
@@ -69,13 +69,13 @@ private:
 class local_network
 {
 public:
-  local_network(int num_local_mpi_node, int num_gpu) throw (network_error)
+  local_network(int num_local_mpi_node, int num_gpu) throw (inter_node_communication_error)
     :NUM_PARTICIPANTS(num_local_mpi_node),NUM_GPU(num_gpu)
   {init();}  
 
   ~local_network();
 
-  void messageLoopNetwork(localqueu&) throw (network_error);
+  void messageLoopNetwork(localqueu&) throw (inter_node_communication_error);
 
 
 
@@ -89,11 +89,11 @@ public:
   sem_unix *getSemTrsf() {return sem_unix_gpu_TRSF;}
   manage_gpu *man_gpu;
 
-  int send_next(const message* msg) throw (network_error);
-  int recv_prev(message* msg) throw (network_error);
+  int send_next(const message* msg) throw (inter_node_communication_error);
+  int recv_prev(message* msg) throw (inter_node_communication_error);
 
 private:
-  void init() throw (network_error);
+  void init() throw (inter_node_communication_error);
 
 
 
