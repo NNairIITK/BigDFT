@@ -191,61 +191,14 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
   end if
 
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
-  ! insert branching for CUDA section(experimental)
-  ! once the mixed precision version is ready such part can be eliminated
-  if (GPUblas .and. .false.) then
-     allocate(psitcuda(orbs%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,psitcuda,'psitcuda',subname)
-     allocate(hpsitcuda(orbs%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,hpsitcuda,'hpsitcuda',subname)
-
-     do i=1,orbs%npsidim
-        psitcuda(i)=real(psit(i),kind=4)
-        hpsitcuda(i)=real(hpsi(i),kind=4)
-     end do
-
-!!$     if(nspin==1.or.nspinor==4) then
-!!$        call orthoconstraint_cuda(iproc,nproc,orbs%norb,orbs%occup,nvctrp,&
-!!$             psitcuda,hpsitcuda,scprsum,orbs%nspinor)
-!!$     else
-     call orthoconstraint_cuda(iproc,nproc,orbs%norbu,orbs%occup,nvctrp,&
-          psitcuda,hpsitcuda,scprsum,orbs%nspinor)
-     scprpart=0.0d0
-     if(orbs%norbd > 0) then
-        scprpart=scprsum 
-        call orthoconstraint_cuda(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),&
-             nvctrp,psitcuda(1+nvctrp*orbs%norbu),hpsitcuda(1+nvctrp*orbs%norbu),&
-             scprsum,orbs%nspinor)
-     end if
+  call orthoconstraint_p(iproc,nproc,orbs%norbu,orbs%occup,nvctrp,psit,hpsi,&
+       scprsum,orbs%nspinor)
+  scprpart=0.0_dp
+  if(orbs%norbd > 0) then
+     scprpart=scprsum 
+     call orthoconstraint_p(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),nvctrp,&
+          psit(1+nvctrp*orbs%norbu),hpsi(1+nvctrp*orbs%norbu),scprsum,orbs%nspinor)
      scprsum=scprsum+scprpart
-!!$     end if
-
-     do i=1,orbs%npsidim
-        psit(i)=real(psitcuda(i),wp)
-        hpsi(i)=real(hpsitcuda(i),wp)
-     end do
-
-     i_all=-product(shape(psitcuda))*kind(psitcuda)
-     deallocate(psitcuda,stat=i_stat)
-     call memocc(i_stat,i_all,'psitcuda',subname)
-     i_all=-product(shape(hpsitcuda))*kind(hpsitcuda)
-     deallocate(hpsitcuda,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsitcuda',subname)
-  else
-!!$     if(nspin==1 .or. orbs%nspinor==4) then
-!!$        call orthoconstraint_p(iproc,nproc,orbs%norb,orbs%occup,nvctrp,psit,hpsi,&
-!!$             scprsum,orbs%nspinor)
-!!$     else
-     call orthoconstraint_p(iproc,nproc,orbs%norbu,orbs%occup,nvctrp,psit,hpsi,&
-          scprsum,orbs%nspinor)
-     scprpart=0.0_dp
-     if(orbs%norbd > 0) then
-        scprpart=scprsum 
-        call orthoconstraint_p(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),nvctrp,&
-             psit(1+nvctrp*orbs%norbu),hpsi(1+nvctrp*orbs%norbu),scprsum,orbs%nspinor)
-!!$        end if
-        scprsum=scprsum+scprpart
-     end if
   end if
 
   !retranspose the hpsi wavefunction

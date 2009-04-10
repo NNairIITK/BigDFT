@@ -204,6 +204,8 @@ program MINHOP
   end if
   close(11)
 
+  open(unit=16,file='geopt.mon',status='unknown')
+
   open(unit=11,file='rand.inp',status='old')
   read(11,*) nrandoff
   close(11)
@@ -761,13 +763,8 @@ contains
     call gausdist(atoms%nat,rxyz,vxyz)
     inputs_md%inputPsiId=1
     !if(iproc==0)write(*,*)' #  no softening'
-    call soften(mdmin,ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
-         nproc,iproc,atoms,rst,inputs_md)! &
-
-    !call soften(nproc,iproc,atoms,rxyz,curv0,curv,res,it,&
-    !           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs_md)
-!    if(iproc==0)write(*,'(a,i4,3(1pe11.3))')&
-!     '#MINHOP soften done:iter,rayl0,rayl,res=',it,rayl0,rayl,res
+    call soften(ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
+         nproc,iproc,atoms,rst,inputs_md)
     call velopt(atoms,rxyz,ekinetic,vxyz)
     call zero(3*atoms%nat,gg)
 
@@ -881,7 +878,7 @@ contains
   
   
 
-  subroutine soften(mdmin,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
+  subroutine soften(ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
        nproc,iproc,atoms,rst,inputs_md)! &
     use module_base
     use module_types
@@ -896,13 +893,9 @@ contains
     !Local variables
     dimension wpos(3*atoms%nat)
 
-    nit=10
+    nit=20
     eps_vxyz=5.d-1
-    !       alpha=4.d-2   ! Au
-    !        alpha=.8d-3  ! step size for LJ systems
-    !alpha=6.d0  ! step size for Si in DFT
-    alpha=4.d0  ! step size for Si in DFT
-    ! may be scaled by in%betax!
+    alpha=inputs_md%betax
 
     !allocate(wpos(3,nat),fxyz(3,nat))
 
@@ -1820,7 +1813,7 @@ subroutine wtpos(iproc,at,npminx,nlminx,nbuf,nlmin,nlmin_l,pos,earr,elocmin)
         !C generate filename and open files
         if (iproc == 0) then
            write(fn,'(i5.5)') kk
-           call wtxyz('poslow'//fn,elocmin(k),pos(1,1,kk),at,'')
+           call wtxyz('poslow'//fn,elocmin(k),pos(1,1,k),at,'')
         end if
      endif
 
