@@ -11,8 +11,8 @@
 #define GPU_SIMPLE 1
 #define GPU_DOUBLE 2
 
-static unsigned int getPrecisionSize();
-static short gpu_precision;
+unsigned int getPrecisionSize();
+short gpu_precision;
 
 
 
@@ -207,8 +207,12 @@ void gpu_receive__(int *nsize,
 
 }
 
+
+
+
+
 //private fct
-static unsigned int getPrecisionSize()
+unsigned int getPrecisionSize()
 {
   if(gpu_precision == GPU_DOUBLE)
     return sizeof(double);

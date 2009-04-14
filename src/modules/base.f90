@@ -35,7 +35,7 @@ module module_base
   !flag for GPU computing, if CUDA libraries are present
   !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !this value can be changed in the read_input_variables routine
-  logical :: GPUconv=.false.,GPUblas=.false.
+  logical :: GPUconv=.false.,GPUblas=.false.,GPUshare=.false.
 
   !logical parameter for the projectors application strategy (true for distributed way)
   !if the projector allocation passes the memorylimit this is switched to true

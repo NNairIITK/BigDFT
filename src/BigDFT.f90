@@ -172,5 +172,6 @@ if (inputs%ncount_cluster_x > 1) then
 
   if (nproc > 1) call MPI_FINALIZE(ierr)
 
+  if (GPUshare) call stop_gpu_sharing()
  end program BigDFT
  !!***

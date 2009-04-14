@@ -72,7 +72,10 @@ subroutine read_input_variables(iproc,filename,in)
   read(1,'(a100)')line
   read(line,*,iostat=ierrfrc) cudagpu
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
-     call set_cpu_gpu_aff(iproc,iconv,iblas)
+   !  call set_cpu_gpu_aff(iproc,iconv,iblas)
+   ! GPUshare=.false.
+     call init_gpu_sharing(8,2)
+     GPUshare=.true.
      if (iconv == 0) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUconv=.true.
