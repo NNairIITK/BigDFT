@@ -28,8 +28,8 @@ sem_unix *sem_gpu_TRSF;
 
 
 
-extern "C" 
-void init_gpu_sharing__(int *error)
+
+void init_gpu_sharing(const char* NAME_FILE, int *error)
 {
   *error = 0;
   try
@@ -37,7 +37,7 @@ void init_gpu_sharing__(int *error)
       int mpi_tasks_per_node,num_GPU;
      
       //read file
-      readConfFile read_conf("inter_node.config");
+      readConfFile read_conf(NAME_FILE);
       read_conf.get("MPI_TASKS_PER_NODE",&mpi_tasks_per_node);
       read_conf.get("NUM_GPU",&num_GPU);
       
@@ -66,7 +66,7 @@ void init_gpu_sharing__(int *error)
 
   catch(read_not_found re)
     {
-      std::cerr << "*** ERROR : INVALID CONFIG FILE. You have to se the number of mpi tasks per node and the number of GPU to use per node ***" << std::endl;
+      std::cerr << "*** ERROR : INVALID CONFIG FILE. You have to set the number of mpi tasks per node and the number of GPU to use per node ***" << std::endl;
       std::cerr << "Missing information : " << re.what() << std::endl;
       *error = 1;
     }

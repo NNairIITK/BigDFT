@@ -216,14 +216,14 @@ end subroutine dimensions_fft
 !  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
 
         implicit real*8 (a-h,o-z)
-!$      interface
-!$        integer ( kind=4 ) function omp_get_num_threads ( )
-!$        end function omp_get_num_threads
-!$      end interface
-!$      interface
-!$        integer ( kind=4 ) function omp_get_thread_num ( )
-!$        end function omp_get_thread_num
-!$      end interface
+!!!$      interface
+!!!!$        integer ( kind=4 ) function omp_get_num_threads ( )
+!!!!$        end function omp_get_num_threads
+!!!$      end interface
+!!!!$      interface
+!!!!$        integer ( kind=4 ) function omp_get_thread_num ( )
+!!!!$        end function omp_get_thread_num
+!!!!$      end interface
 
 
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:,:,:) :: zw  
@@ -291,19 +291,19 @@ end subroutine dimensions_fft
 ! RISC machine with cache:
       else
 ! INtel IFC does not understand default(private)
-!!$omp parallel  default(private) &
-!$omp parallel & 
-!$omp private(zw,trig,before,after,now,i,j,iam,npr,jj,ma,mb,mm,ic,n,m,jompa,jompb,lot,lotomp,inzeep,inzet,nn,nfft) &
-!$omp shared(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee,ncache) 
+!!!!!$omp parallel  default(private) &
+!!!!$omp parallel & 
+!!!!$omp private(zw,trig,before,after,now,i,j,iam,npr,jj,ma,mb,mm,ic,n,m,jompa,jompb,lot,lotomp,inzeep,inzet,nn,nfft) &
+!!!!$omp shared(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee,ncache) 
         npr=1
-!$       npr=omp_get_num_threads()
+!!!!$       npr=omp_get_num_threads()
         iam=0
-!$       iam=omp_get_thread_num()
+!!!!$       iam=omp_get_thread_num()
 !        write(6,*) 'npr,iam',npr,iam
 ! Critical section only necessary on Intel
-!$omp critical
+!!!!$omp critical
         allocate(zw(2,ncache/4,2),trig(2,1024),after(20),now(20),before(20))
-!$omp end critical
+!!!!$omp end critical
 
         inzet=inzee
 ! TRANSFORM ALONG Z AXIS
@@ -357,7 +357,7 @@ end subroutine dimensions_fft
 
         inzet=3-inzet
 
-!$omp barrier
+!!!!!!!!!$omp barrier
 
 ! TRANSFORM ALONG Y AXIS
         mm=nd3*nd1
@@ -409,7 +409,7 @@ end subroutine dimensions_fft
       endif
         inzet=3-inzet
 
-!$omp barrier
+!!!!!!!!$omp barrier
 
 ! TRANSFORM ALONG X AXIS
         mm=nd2*nd3
@@ -462,7 +462,7 @@ end subroutine dimensions_fft
         
         deallocate(zw,trig,after,now,before)
         if (iam.eq.0) inzee=inzet
-!$omp end parallel  
+!!!!!!!!!!$omp end parallel  
 
 
       endif
@@ -523,14 +523,14 @@ end subroutine dimensions_fft
 !  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
 
         implicit real*8 (a-h,o-z)
-!$      interface
-!$        integer ( kind=4 ) function omp_get_num_threads ( )
-!$        end function omp_get_num_threads
-!$      end interface
-!$      interface
-!$        integer ( kind=4 ) function omp_get_thread_num ( )
-!$        end function omp_get_thread_num
-!$      end interface
+!!!!!!!$      interface
+!!!!!!$        integer ( kind=4 ) function omp_get_num_threads ( )
+!!!!!!$        end function omp_get_num_threads
+!!!!!!$      end interface
+!!!!!!!$      interface
+!!!!!!!$        integer ( kind=4 ) function omp_get_thread_num ( )
+!!!!!!!!$        end function omp_get_thread_num
+!!!!!!!!$      end interface
 
 		integer,intent(in)::nd1,nd2,nd3,nd1f,nd3f
 		integer,intent(in)::n1,n2,n3,n1f,n3f
@@ -615,19 +615,19 @@ end subroutine dimensions_fft
 ! RISC machine with cache:
       else
 ! INtel IFC does not understand default(private)
-!!$omp parallel  default(private) &
-!$omp parallel & 
-!$omp private(zw,trig,before,after,now,i,j,iam,npr,jj,ma,mb,mm,ic,n,m,jompa,jompb,lot,lotomp,inzeep,inzet,nn,nfft) &
-!$omp shared(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee,ncache) 
+!!!!$omp parallel  default(private) &
+!!!!$omp parallel & 
+!!!!$omp private(zw,trig,before,after,now,i,j,iam,npr,jj,ma,mb,mm,ic,n,m,jompa,jompb,lot,lotomp,inzeep,inzet,nn,nfft) &
+!!!!$omp shared(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee,ncache) 
         npr=1
-!$       npr=omp_get_num_threads()
+!!!!!!!$       npr=omp_get_num_threads()
         iam=0
-!$       iam=omp_get_thread_num()
-!        write(6,*) 'npr,iam',npr,iam
+!!!!!!!$       iam=omp_get_thread_num()
+!!!!!        write(6,*) 'npr,iam',npr,iam
 ! Critical section only necessary on Intel
-!$omp critical
+!!!!!$omp critical
         allocate(zw(2,ncache/4,2),trig(2,1024),after(20),now(20),before(20))
-!$omp end critical
+!!!!!$omp end critical
 
         inzet=inzee
 ! TRANSFORM ALONG Z AXIS
@@ -683,7 +683,7 @@ end subroutine dimensions_fft
 
 
 		call z1_to_z3(z1,z3,inzet)
-!$omp barrier
+!!!!!!!!!$omp barrier
 
 ! TRANSFORM ALONG Y AXIS
         mm=nd3f*nd1
@@ -735,7 +735,7 @@ end subroutine dimensions_fft
       endif
         inzet=3-inzet
 
-!$omp barrier
+!!!!!!!!!$omp barrier
 
 ! TRANSFORM ALONG X AXIS
         mm=nd2*nd3f
@@ -788,7 +788,7 @@ end subroutine dimensions_fft
         
         deallocate(zw,trig,after,now,before)
         if (iam.eq.0) inzee=inzet
-!$omp end parallel  
+!!!!!!!!!$omp end parallel  
 
 
       endif
@@ -986,14 +986,14 @@ end subroutine dimensions_fft
 !  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
 
         implicit real*8 (a-h,o-z)
-!$      interface
-!$        integer ( kind=4 ) function omp_get_num_threads ( )
-!$        end function omp_get_num_threads
-!$      end interface
-!$      interface
-!$        integer ( kind=4 ) function omp_get_thread_num ( )
-!$        end function omp_get_thread_num
-!$      end interface
+!!!!!!!$      interface
+!!!!!!!$        integer ( kind=4 ) function omp_get_num_threads ( )
+!!!!!!$        end function omp_get_num_threads
+!!!!!!$      end interface
+!!!!!!!$      interface
+!!!!!!!$        integer ( kind=4 ) function omp_get_thread_num ( )
+!!!!!!!$        end function omp_get_thread_num
+!!!!!!!!$      end interface
 
 
         REAL(KIND=8), ALLOCATABLE, DIMENSION(:,:,:) :: zw  
@@ -1076,19 +1076,19 @@ end subroutine dimensions_fft
 ! RISC machine with cache:
       else
 ! INtel IFC does not understand default(private)
-!!$omp parallel  default(private) &
-!$omp parallel & 
-!$omp private(zw,trig,before,after,now,i,j,iam,npr,jj,ma,mb,mm,ic,n,m,jompa,jompb,lot,lotomp,inzeep,inzet,nn,nfft) &
-!$omp shared(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee,ncache) 
+!!!!!!!!!$omp parallel  default(private) &
+!!!!!$omp parallel & 
+!!!!!$omp private(zw,trig,before,after,now,i,j,iam,npr,jj,ma,mb,mm,ic,n,m,jompa,jompb,lot,lotomp,inzeep,inzet,nn,nfft) &
+!!!!!$omp shared(n1,n2,n3,nd1,nd2,nd3,z,isign,inzee,ncache) 
         npr=1
-!$       npr=omp_get_num_threads()
+!!!!!$       npr=omp_get_num_threads()
         iam=0
-!$       iam=omp_get_thread_num()
+!!!$       iam=omp_get_thread_num()
 !        write(6,*) 'npr,iam',npr,iam
 ! Critical section only necessary on Intel
-!$omp critical
+!!!!!!$omp critical
         allocate(zw(2,ncache/4,2),trig(2,1024),after(20),now(20),before(20))
-!$omp end critical
+!!!!!!!$omp end critical
 
         inzet=inzee
 ! TRANSFORM ALONG Z AXIS
@@ -1142,7 +1142,7 @@ end subroutine dimensions_fft
 
         inzet=3-inzet
 
-!$omp barrier
+!!!!!!!!$omp barrier
 
 ! TRANSFORM ALONG Y AXIS
         mm=nd3*nd1b
@@ -1195,7 +1195,7 @@ end subroutine dimensions_fft
         inzet=3-inzet
 
 		call z1_to_z3(z1,z3,inzet)
-!$omp barrier
+!!!!!!$omp barrier
 
 ! TRANSFORM ALONG X AXIS
         mm=nd2*nd3b
@@ -1249,7 +1249,7 @@ end subroutine dimensions_fft
 		call z3_to_y(z3,y,inzet)
         deallocate(zw,trig,after,now,before)
         if (iam.eq.0) inzee=inzet
-!$omp end parallel  
+!!!!!!!!!!!$omp end parallel  
 
 
       endif

@@ -44,7 +44,7 @@ SOURCES_SHARED = convSeria.cpp \
 	dynamicGPU/init_network.cpp \
 	dynamicGPU/convolution_fct_call.cpp \
 	dynamicGPU/localqueu.cpp \
-	setCPU_GPU_aff.cpp \
+	init_lib.cpp \
 	read_conf_file.cpp \
 	commonDef.cpp  \
 	fortran.c

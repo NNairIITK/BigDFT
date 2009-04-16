@@ -37,14 +37,14 @@ program BigDFT
   real(gp), dimension(:,:), allocatable :: rxyz,fxyz
   integer npr,iam
  
-  !$      interface
-  !$        integer ( kind=4 ) function omp_get_num_threads ( )
-  !$        end function omp_get_num_threads
-  !$      end interface
-  !$      interface
-  !$        integer ( kind=4 ) function omp_get_thread_num ( )
-  !$        end function omp_get_thread_num
-  !$      end interface
+  !!!!$      interface
+  !!!!$        integer ( kind=4 ) function omp_get_num_threads ( )
+  !!!!$        end function omp_get_num_threads
+  !!!!$      end interface
+  !!!!$      interface
+  !!!!$        integer ( kind=4 ) function omp_get_thread_num ( )
+ !!!! !$        end function omp_get_thread_num
+  !!!!!$      end interface
 
   ! Start MPI in parallel version
   !in the case of MPIfake libraries the number of processors is automatically adjusted
@@ -56,11 +56,11 @@ program BigDFT
   call memocc(0,iproc,'count','start')
 
 !**********Commented out by Alexey, 15.11.2008************************************************  
-!$omp parallel private(iam)  shared (npr)
-!$       iam=omp_get_thread_num()
-!$       if (iam.eq.0) npr=omp_get_num_threads()
-!$       write(*,*) 'iproc,iam,npr',iproc,iam,npr
-!$omp end parallel
+!!!!$omp parallel private(iam)  shared (npr)
+!!!!$       iam=omp_get_thread_num()
+!!!!$       if (iam.eq.0) npr=omp_get_num_threads()
+!!!!!$       write(*,*) 'iproc,iam,npr',iproc,iam,npr
+!!!!!$omp end parallel
 !*********************************************************************************************
 
   !welcome screen
