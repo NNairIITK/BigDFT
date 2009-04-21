@@ -25,11 +25,12 @@ SOURCES_CONV_CHECK = locpot.cu \
 	precond.cu \
 	density.cu
 
-SOURCES_SHARED = setCPU_GPU_aff.cpp \
+SOURCES_SHARED = \
 	dynamicGPU/interface_stream.cpp \
 	dynamicGPU/init_network.cpp \
 	dynamicGPU/convolution_fct_call.cpp \
 	dynamicGPU/localqueu.cpp \
+	init_lib.cpp \
 	read_conf_file.cpp \
 	commonDef.cpp  \
 	fortran.c
