@@ -72,7 +72,10 @@ extern "C" void set_cpu_gpu_aff__(int *iproc, int *flag, int *flag_blas_conv)
       std::cout << "ID : " << *iproc << "UNDEF CPU , so we disable affinity " << std::endl;
     }
 
-
+  catch(read_not_found e)
+    {
+      std::cout << "STRAGE STRANGE " << std::endl;
+    }
   
 
 }

@@ -483,12 +483,12 @@ end subroutine geopt
      real(wp), dimension(:), pointer :: psi,v
    end subroutine davidson
 
-   subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,&
+   subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
         ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,nvirte,psivirt)
      use module_base
      implicit none
      !Arguments
-     integer, intent(in) :: norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr
+     integer, intent(in) :: norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,nspinore
      integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
      real(wp), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
      real(wp), dimension(nvctrp,norbe), intent(in) :: psi
@@ -559,11 +559,11 @@ end subroutine geopt
      real(wp), intent(out), optional :: outadd
    end subroutine untranspose_v
 
-   subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi)
+   subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi,comment)
      use module_base
      use module_types
      implicit none
-     character(len=10) :: orbname 
+     character(len=10), intent(in) :: orbname,comment
      real(gp), intent(in) :: hx,hy,hz,rx,ry,rz
      type(locreg_descriptors), intent(in) :: lr
      real(wp), dimension(*) :: psi
@@ -637,7 +637,7 @@ end subroutine geopt
      real(gp), dimension(at%nat), intent(out) :: locrad
      type(orbitals_data), intent(out) :: orbse,orbsv
      type(gaussian_basis), intent(out) :: G
-     real(wp), dimension(:,:), pointer :: psigau
+     real(wp), dimension(:,:,:), pointer :: psigau
    end subroutine inputguess_gaussian_orbitals
 
    subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
@@ -661,6 +661,17 @@ end subroutine geopt
      integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
      real(wp), intent(out) :: gaucoeff !norbe=G%ncoeff
    end subroutine AtomicOrbitals
+
+   subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,&
+        ibyyzz_r) !optional
+     use module_base
+     implicit none
+     integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot
+     real(wp), dimension(-nl1:2*n1+2+nl1,-nl2:2*n2+2+nl2,-nl3:2*n3+2+nl3,nspinor), intent(inout) :: psir
+     real(wp), dimension(-nl1:2*n1+2+nl1-4*nbuf,-nl2:2*n2+2+nl2-4*nbuf,-nl3:2*n3+2+nl3-4*nbuf,npot), intent(in) :: pot
+     integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
+     real(gp), intent(out) :: epot
+   end subroutine apply_potential
 
 end interface
 

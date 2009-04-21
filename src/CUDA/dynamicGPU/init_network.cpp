@@ -23,9 +23,9 @@
 #include "init_network.h"
 #include "message.h"
 #include "localqueu.h"
-//#include "manage_gpu.h"
+
 #include "cudafct.h"
-void local_network::init() throw (network_error)
+void local_network::init() throw (inter_node_communication_error)
 {
 
   man_gpu = NULL;
@@ -63,7 +63,7 @@ void local_network::init() throw (network_error)
       if ((sock = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0) 
 	{
 	  sock = 0;
-	  throw network_error("server: socket");
+	  throw inter_node_communication_error("server: socket");
       
 	}
       
@@ -76,7 +76,7 @@ void local_network::init() throw (network_error)
   
       if (bind(sock, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0) 
 	{
-	  throw network_error("server: socket");
+	  throw inter_node_communication_error("server: bind");
 	} 
       
       
@@ -85,7 +85,21 @@ void local_network::init() throw (network_error)
       
       strncpy(nomfic, "/tmp/yo.yo", SIZE_FICH_NAME);
       es = fopen(nomfic, "a+");
+
+      //put lock on file
+
+      if(lockf(fileno(es),F_LOCK, 0) <0)
+        printf("** WARNING ** lockf take ERROR\n");
+
       fprintf(es, "%i\n", getpid());
+
+      lockf(fileno(es),F_ULOCK, 0);
+
+
+    
+
+
+
       //  printf( "%i\n", getpid());
       while(lu < NUM_PARTICIPANTS)
 	{
@@ -99,13 +113,18 @@ void local_network::init() throw (network_error)
 	      lectOK = fscanf(es, "%i", &n);
 	      if (lectOK == 1) 
 		{
+		  if(lu >= NUM_PARTICIPANTS)
+		    {
+		      throw inter_node_communication_error("Too much MPI process launched on node");
+		    }
 		  participants[lu] = n;
 		  if(n == getpid())
 		    {
 		      currNum = lu;
 		    }
 		  ++lu;
-		
+
+
 		}
 	    }
 	  while (lectOK == 1 && fgetc(es) != EOF);
@@ -136,7 +155,7 @@ void local_network::init() throw (network_error)
 	for(int i=0; i<NUM_PARTICIPANTS; ++i)
 	  {
 	    tab.at(i) = itGPU;
-	    std::cout << "Unix process " << i << " has GPU : " << itGPU << std::endl;
+	    std::cout << "Unix process (not MPI) " << i << " has GPU : " << itGPU << std::endl;
 	    if(i + 1 == numIt)
 	      {
 		numIt += div;
@@ -159,18 +178,18 @@ void local_network::init() throw (network_error)
 
 	  sem_unix_gpu_CALC = new sem_unix(sem_unix_gpu_TRSF->getSemid(),2*currGPU + 1);
 
-	  // std::cout << "creat " << 2*NUM_GPU << "sem, TRSF : " <<2*currGPU<< " CALC : " << 2*currGPU + 1 << std::endl;
+
 
 	  message msgSem;
 
 	
 	  msgSem.node = sem_unix_gpu_TRSF->getSemid();
-	  //  std::cout << "On envoie !" << msgSem.node << std::endl;
+	 
 	  send_next(&msgSem);
 	
 	  
 	  recv_prev(&msgSem);
-	  std::cout << "OK, all process has semaphore : " << msgSem.node << std::endl;
+	  std::cout << "OK, all process has semaphores : " << msgSem.node << std::endl;
 	}
       else
 	{
@@ -181,19 +200,14 @@ void local_network::init() throw (network_error)
 
 	  sem_unix_gpu_CALC = new sem_unix(msgSemRcv.node,2*currGPU +1);
 
-	  // std::cout << "RECU,  sem, TRSF : " <<2*currGPU<< " CALC : " << 2*currGPU + 1 << std::endl;
 
-	  //  std::cout << "On a recu , curGPU" << currGPU << "  curndode " << msgSemRcv.node << std::endl;
-
-	  //  std::cout << "On re envoie !" << msgSemRcv.node << std::endl;
 	  send_next(&msgSemRcv);
 	  }
       fclose(es);
       remove(nomfic);
 
       c_cuda_setdevice(currGPU);
-      //    man_gpu = new manage_gpu(currGPU); //snif...
-      // man_gpu = new manage_gpu(1); //snif...
+
     }
   catch(...)
     {
@@ -201,6 +215,7 @@ void local_network::init() throw (network_error)
 	close(sock);
 
       unlink(toaddr.sun_path);
+
       if(es != NULL)
 	{
 	  fclose(es);
@@ -231,32 +246,27 @@ void local_network::init() throw (network_error)
      delete sem_unix_gpu_CALC;
      delete sem_unix_gpu_TRSF;
 }
-int local_network::send_next(const message *msg) throw (network_error)
+int local_network::send_next(const message *msg) throw (inter_node_communication_error)
 {
   if(sendto(sock, msg, sizeof(message), 0, (struct sockaddr*)&toaddr, sizeof(toaddr)) < 0)
     {
-      perror("sendto()");
-
       std::ostringstream oss;
       oss << "sendto(), msg : " << msg->msgType;
 
-
-      throw network_error(oss.str());
+      throw inter_node_communication_error(oss.str());
       // return errno;
     }
 
   return 0;
 }
 
-int local_network::recv_prev(message *msg) throw (network_error)
+int local_network::recv_prev(message *msg) throw (inter_node_communication_error)
 {
   int n;
 socklen_t tosize;
  if((n = recvfrom(sock, msg, sizeof(message), 0, NULL, &tosize)) < 0)
     {
-      perror("recvfrom()");
-      throw network_error("recvfrom()");
-      
+      throw inter_node_communication_error("recvfrom()");
     }
 
   return n;
@@ -264,7 +274,7 @@ socklen_t tosize;
 
 
 
-void local_network::messageLoopNetwork(localqueu& locq) throw (network_error)
+void local_network::messageLoopNetwork(localqueu& locq) throw (inter_node_communication_error)
 {
 
   //  manage_end me(NUM_PARTICIPANTS);
@@ -493,8 +503,8 @@ void   local_network::doTRSF(fct_call *fct)
 {
   sem_unix_gpu_TRSF->P();
   
-  //  std::cout << "on FAIT un TRANSF !!" << std::endl;
-  (*fct)(666);
+  //call the function (operator() overloaded)
+  (*fct)(0);
   
 
   sem_unix_gpu_TRSF->V();
@@ -503,8 +513,8 @@ void   local_network::doCALC(fct_call *fct)
 {
   sem_unix_gpu_CALC->P();
   
-  //  std::cout << "on FAIT un CALC !!" << std::endl;
-  (*fct)(666);
+  //call the function (operator() overloaded)
+  (*fct)(0);
   
 
   sem_unix_gpu_CALC->V();
@@ -542,7 +552,7 @@ bool manage_end::allFinish() const
 //----------------------- sem unix
 
 
-sem_unix::sem_unix(const char *nomfic, int numGPU,int currGPU_) throw (network_error)
+sem_unix::sem_unix(const char *nomfic, int numGPU,int currGPU_) throw (synchronization_error)
  {
    currGPU = currGPU_;
 
@@ -552,28 +562,17 @@ sem_unix::sem_unix(const char *nomfic, int numGPU,int currGPU_) throw (network_e
      int              val;    /* Value for SETVAL */
      struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
      unsigned short  *array;  /* Array for GETALL, SETALL */
-     //  struct seminfo  *__buf;  /* Buffer for IPC_INFO
-     //			 (Linux-specific) */
-   } arg_ctl;
+     } arg_ctl;
    
    bzero(&arg_ctl,sizeof(semun));
-   /*   union semun 
-   {
-     int val;
-     struct semid_ds *buf;
-     ushort *array;
-     } arg_ctl;*/
-   
 	  
   
    semid = semget ( ftok (nomfic, semKEY), numGPU, IPC_CREAT | IPC_EXCL | 0666);
    
    if(semid == -1) 
      {
-       perror("semid");
-       std::cout << "Erreur semid " <<std::endl;
        semctl (semid , 0 , IPC_RMID , 0) ;
-       throw network_error("Erreur semid");
+       throw synchronization_error("Semid ERROR");
      }
 
    arg_ctl.val = 1;
@@ -582,9 +581,8 @@ sem_unix::sem_unix(const char *nomfic, int numGPU,int currGPU_) throw (network_e
      {
        if(semctl (semid, i, SETVAL, arg_ctl) == -1) 
 	 {
-	   std::cout << "Erreur semctl gpu :  " << i << std::endl;
 	   semctl (semid , 0 , IPC_RMID , 0) ;
-	   throw network_error("Erreur semctl");
+	   throw synchronization_error("Semctl ERROR");
 	
 	 }
      }
@@ -605,16 +603,16 @@ sem_unix::~sem_unix()
     {
       if(semctl (semid , 0 , IPC_RMID , 0) <0)
 	{
-	  std::cout << "erreur destructeur sem " << std::endl;
+	  std::cout << "Semaphore destruction error" << std::endl;
 	}
-      std::cout << "Remove sem : "  << std::endl; 
+      std::cout << "Remove sem : "  << semid << std::endl; 
     }
 }
  
 
-void sem_unix::P() throw (network_error)
+void sem_unix::P() throw (synchronization_error)
 {
-  // std::cout << "Do P() " << semid<< ", id " << currGPU <<  std::endl;
+
   struct sembuf sempar;
   bzero(&sempar,sizeof(sembuf));
   sempar.sem_num = currGPU;
@@ -622,15 +620,13 @@ void sem_unix::P() throw (network_error)
   sempar.sem_flg = SEM_UNDO;
   if(semop (semid , &sempar , 1) < 0)
     {
-      perror("P()");
-      throw network_error("Erreur semop P()");
+      throw synchronization_error("Semop P() error");
     }
-  //  std::cout << "FINISH  P() " << semid<< ", id " << currGPU <<  std::endl;
+
 }
 /********************************************************/
-void sem_unix::V() throw (network_error)
+void sem_unix::V() throw (synchronization_error)
 {
-  //  std::cout << "Do V() " << semid<< ", id " << currGPU << std::endl;
   struct sembuf sempar;
   bzero(&sempar,sizeof(sembuf));
   sempar.sem_num = currGPU;
@@ -638,8 +634,6 @@ void sem_unix::V() throw (network_error)
   sempar.sem_flg = SEM_UNDO;
   if(semop (semid , &sempar , 1) < 0)
     {
-      perror("P()");
-      throw network_error("Erreur semop V()");
+      throw synchronization_error("Semop V() error");
     }
-  //  std::cout << "FINISH  V() " << semid<< ", id " << currGPU <<  std::endl;
 }

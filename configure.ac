@@ -105,7 +105,7 @@ if test "$ac_use_mpi" = "yes"; then
       if test x"$MPI_NAME" = x ; then
         MPI_NAME=mpi
       fi
-      MPI_LIBS="-l$MPI_NAME -lf$MPI_NAME"
+      MPI_LIBS="-l$MPI_NAME -l${MPI_NAME}if"
       if ! test x"$MPI_INCLUDE" = x ; then
         MPI_INCLUDE=-I$MPI_INCLUDE
       fi

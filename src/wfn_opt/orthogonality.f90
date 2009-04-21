@@ -1,85 +1,3 @@
-subroutine orthoconstraint_cuda(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,nspinor)
-  !Effect of orthogonality constraints on gradient 
-  use module_base
-  implicit none
-  integer, intent(in) :: iproc,nproc,norb,nvctrp,nspinor
-  real(gp), dimension(norb), intent(in) :: occup
-  real(kind=4), dimension(nspinor*nvctrp,norb), intent(in) :: psit 
-  real(dp), intent(out) :: scprsum
-  real(kind=4), dimension(nspinor*nvctrp,norb), intent(out) :: hpsit
-  !local variables
-  character(len=*), parameter :: subname='orthoconstraint_p'
-  integer :: i_stat,i_all,istart,iorb,jorb,ierr,norbs,i,j
-  real(dp) :: occ
-  real(kind=4), dimension(:,:,:), allocatable :: alag
-
-  call timing(iproc,'LagrM_comput  ','ON')
-  istart=2
-  if (nproc == 1) istart=1
-
-  if(nspinor==1) then
-     norbs=norb
-  else
-     norbs=2*norb
-  end if
-
-  allocate(alag(norbs,norb,istart+ndebug),stat=i_stat)
-  call memocc(i_stat,alag,'alag',subname)
-  !     alag(jorb,iorb,istart)=+psit(k,jorb)*hpsit(k,iorb)
-
-  if(nspinor==1) then
-     call GEMM('T','N',norb,norb,nvctrp,1.0_4,psit(1,1),nvctrp,hpsit(1,1),nvctrp,0.0_4,&
-          alag(1,1,istart),norb)
-  else
-     call C_GEMM('C','N',norb,norb,2*nvctrp,(1.0_4,0.0_4),psit(1,1),2*nvctrp, &
-          hpsit(1,1),2*nvctrp,(0.0_4,0.0_4),alag(1,1,istart),norb)
-  end if
-
-  if (nproc > 1) then
-     call timing(iproc,'LagrM_comput  ','OF')
-     call timing(iproc,'LagrM_commun  ','ON')
-     call MPI_ALLREDUCE(alag(1,1,2),alag(1,1,1),norbs*norb,&
-          MPI_REAL,MPI_SUM,MPI_COMM_WORLD,ierr)
-     call timing(iproc,'LagrM_commun  ','OF')
-     call timing(iproc,'LagrM_comput  ','ON')
-  end if
-!!$          if (iproc.eq.0) then
-!!$          write(*,*) 'ALAG',iproc,norb,norbs
-!!$          do iorb=1,norb
-!!$          write(*,'(10(1x,1pe10.3))') (alag(jorb,iorb,1),jorb=1,norbs)
-!!$          enddo
-!!$          endif
-  scprsum=0.0_dp
-  if(nspinor==1) then
-     do iorb=1,norb
-        occ=real(occup(iorb),dp)
-        scprsum=scprsum+occ*real(alag(iorb,iorb,1),dp)
-     enddo
-  else
-    do iorb=1,norb
-       occ=real(occup(iorb),dp)
-       scprsum=scprsum+occ*real(alag(2*iorb-1,iorb,1),dp)
-       scprsum=scprsum+occ*real(alag(2*iorb,iorb,1),dp)
-     enddo
-  end if
-!  if(iproc==0) print *,'ortho_p',scprsum
-
-  ! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
-  if(nspinor==1) then
-     call GEMM('N','N',nvctrp,norb,norb,-1.0_4,psit(1,1),nvctrp,alag(1,1,1),norb,1.0_4,&
-          hpsit(1,1),nvctrp)
-  else
-     call C_GEMM('N','N',2*nvctrp,norb,norb,(-1.0_4,0.0_4),psit(1,1),2*nvctrp,&
-          alag(1,1,1),norb,(1.0_4,0.0_4),hpsit(1,1),2*nvctrp)
-  end if
-  i_all=-product(shape(alag))*kind(alag)
-  deallocate(alag,stat=i_stat)
-  call memocc(i_stat,i_all,'alag',subname)
-
-  call timing(iproc,'LagrM_comput  ','OF')
-
-end subroutine orthoconstraint_cuda
-
 subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,nspinor)
   !Effect of orthogonality constraints on gradient 
   use module_base
@@ -91,7 +9,7 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   real(wp), dimension(nspinor*nvctrp,norb), intent(out) :: hpsit
   !local variables
   character(len=*), parameter :: subname='orthoconstraint_p'
-  integer :: i_stat,i_all,istart,iorb,jorb,ierr,norbs,i,j
+  integer :: i_stat,i_all,istart,iorb,jorb,ierr,norbs,i,j,ncomp
   real(dp) :: occ
   real(wp), dimension(:,:,:), allocatable :: alag
 
@@ -99,10 +17,14 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   istart=2
   if (nproc == 1) istart=1
 
-  if(nspinor == 1 .or. nspinor == 2) then
+  if(nspinor == 1) then
      norbs=norb
+  else if(nspinor == 2) then
+     norbs=2*norb
+     ncomp=1
   else if (nspinor == 4) then
      norbs=2*norb
+     ncomp=2
   end if
 
   allocate(alag(norbs,norb,istart+ndebug),stat=i_stat)
@@ -113,8 +35,8 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
           alag(1,1,istart),norb)
   else
      !this part should be recheck in the case of nspinor == 2
-     call C_GEMM('C','N',norb,norb,2*nvctrp,(1.0_wp,0.0_wp),psit(1,1),2*nvctrp, &
-          hpsit(1,1),2*nvctrp,(0.0_wp,0.0_wp),alag(1,1,istart),norb)
+     call C_GEMM('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psit(1,1),ncomp*nvctrp, &
+          hpsit(1,1),ncomp*nvctrp,(0.0_wp,0.0_wp),alag(1,1,istart),norb)
   end if
 
   if (nproc > 1) then
@@ -133,12 +55,12 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
 !          endif
 
   scprsum=0.0_dp
-  if(nspinor == 1 .or. nspinor == 2) then
+  if(nspinor == 1) then
      do iorb=1,norb
         occ=real(occup(iorb),dp)
         scprsum=scprsum+occ*real(alag(iorb,iorb,1),dp)
      enddo
-  else if (nspinor == 4) then
+  else if (nspinor == 4 .or. nspinor == 2) then
     do iorb=1,norb
        occ=real(occup(iorb),dp)
        scprsum=scprsum+occ*real(alag(2*iorb-1,iorb,1),dp)
@@ -152,8 +74,8 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
      call GEMM('N','N',nvctrp,norb,norb,-1.0_wp,psit(1,1),nvctrp,alag(1,1,1),norb,1.0_wp,&
           hpsit(1,1),nvctrp)
   else
-     call C_GEMM('N','N',2*nvctrp,norb,norb,(-1.0_wp,0.0_wp),psit(1,1),2*nvctrp,&
-          alag(1,1,1),norb,(1.0_wp,0.0_wp),hpsit(1,1),2*nvctrp)
+     call C_GEMM('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),psit(1,1),ncomp*nvctrp,&
+          alag(1,1,1),norb,(1.0_wp,0.0_wp),hpsit(1,1),ncomp*nvctrp)
   end if
   i_all=-product(shape(alag))*kind(alag)
   deallocate(alag,stat=i_stat)
@@ -171,7 +93,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
   real(wp), dimension(nspinor*nvctrp,norb), intent(inout) :: psit
   !local variables
   character(len=*), parameter :: subname='orthon_p'
-  integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,i,j,norbs,iorb,jorb
+  integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,i,j,norbs,iorb,jorb,ncomp
   real(wp) :: tt,ttLOC,ttr,tti
   real(wp), dimension(:,:,:), allocatable :: ovrlp
 
@@ -179,6 +101,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 
   if (norb == 1) then 
 
+     !for the inhomogeneous distribution this should  be changed
      nvctr_eff=min(nvctr_tot-iproc*nvctrp,nvctrp)
 
      if (nvctr_eff > 0) then
@@ -186,9 +109,9 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
         if(nspinor==1) then
            tt=nrm2(nvctr_eff,psit(1,1),1)
         else
-           print *,'for one orbital the norm of the spinor must be calculated'
-           stop
-           tt=nrm2(nvctr_eff,psit(1,1),1) !NOT CORRECT
+           !print *,'for one orbital the norm of the spinor must be calculated'
+           !stop
+           tt=nrm2(nvctr_eff*nspinor,psit(1,1),1) !NOT CORRECT
         end if
         ttLOC=tt**2
      else
@@ -207,7 +130,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
         call vscal(nvctr_eff,tt,psit(1,1),1)
      else
         !not correct, to be adjusted
-        call c_vscal(nvctr_eff,tt,psit(1,1),1)
+        call vscal(nvctr_eff*nspinor,tt,psit(1,1),1)
      end if
 
   else
@@ -215,10 +138,14 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
      istart=2
      if (nproc == 1) istart=1
 
-     if(nspinor==1 .or. nspinor == 2) then
+     if(nspinor==1) then
         norbs=norb
+     else if (nspinor ==2) then
+        norbs=2*norb
+        ncomp=1
      else if (nspinor ==4) then
         norbs=2*norb
+        ncomp=2
      end if
 
      allocate(ovrlp(norbs,norb,istart+ndebug),stat=i_stat)
@@ -245,7 +172,8 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 !!$           end do
 !!$        end do
 !!$        stop
-        call herk('L','C',norb,2*nvctrp,1.0_wp,psit(1,1),2*nvctrp,0.0_wp,ovrlp(1,1,istart),norb)
+        call herk('L','C',norb,ncomp*nvctrp,1.0_wp,psit(1,1),ncomp*nvctrp,&
+             0.0_wp,ovrlp(1,1,istart),norb)
      end if
 
      if (nproc > 1) then
@@ -305,8 +233,8 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 !!$           end if
 !!$        end do
        ! new vectors   !!check if third argument should be transpose or conjugate
-        call c_trmm ('R','L','C','N',2*nvctrp,norb,(1.0_wp,0.0_wp),ovrlp(1,1,1),norb,psit(1,1),&
-             2*nvctrp)
+        call c_trmm ('R','L','C','N',ncomp*nvctrp,norb,(1.0_wp,0.0_wp),&
+             ovrlp(1,1,1),norb,psit(1,1),ncomp*nvctrp)
 
         !if(nproc==1) call psitransspi(nvctrp,norb,psit,.true.)
 
@@ -613,7 +541,7 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
   real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: psit
   !local variables
   character(len=*), parameter :: subname='KStrans_p'
-  integer :: i_all,i_stat,ierr,iorb,jorb,n_lp,istart,info,norbs
+  integer :: i_all,i_stat,ierr,iorb,jorb,n_lp,istart,info,norbs,ncomp
   real(dp) :: scpr,alpha
   ! arrays for KS orbitals
   real(wp), dimension(:), allocatable :: work_lp,work_rp
@@ -622,6 +550,10 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
 
   if(nspinor==4) then
      norbs=2*norb
+     ncomp=2
+  else if (nspinor==2) then
+     norbs=2*norb
+     ncomp=1
   else
      norbs=norb
   end if
@@ -650,8 +582,8 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
      call gemm('T','N',norb,norb,nvctrp,1.0_wp,psit(1,1),nvctrp,hpsit(1,1),nvctrp,0.0_wp,&
           hamks(1,1,istart),norb)
   else
-     call c_gemm('C','N',norb,norb,2*nvctrp,(1.0_wp,0.0_wp),psit(1,1),2*nvctrp, &
-          hpsit(1,1),2*nvctrp,(0.0_wp,0.0_wp),hamks(1,1,istart),norb)
+     call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psit(1,1),ncomp*nvctrp, &
+          hpsit(1,1),ncomp*nvctrp,(0.0_wp,0.0_wp),hamks(1,1,istart),norb)
   end if
 
   if (nproc > 1) then
@@ -707,7 +639,7 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
      do iorb=1,norb
         call razero(nvctrp*nspinor,psitt(1,iorb))
         do jorb=1,norb
-           call c_axpy(2*nvctrp,hamks(2*jorb-1,iorb,1),psit(1,jorb),1,psitt(1,iorb),1)
+           call c_axpy(ncomp*nvctrp,hamks(2*jorb-1,iorb,1),psit(1,jorb),1,psitt(1,iorb),1)
         enddo
      enddo
   end if

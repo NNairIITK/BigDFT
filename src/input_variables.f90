@@ -42,6 +42,8 @@ subroutine print_logo()
        '|              Daubechies Wavelets for DFT Pseudopotential Calculations            |'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
+  write(*,'(1x,a)')&
+       '                                  The Journal of Chemical Physics 129, 014109 (2008)'
 end subroutine print_logo
 !!***
 
@@ -61,8 +63,7 @@ subroutine read_input_variables(iproc,filename,in)
   !local variables
   character(len=7) :: cudagpu
   character(len=100) :: line
-  real(kind=4) :: hgrid,crmult,frmult,cpmult,fpmult
-  integer :: ierror,ierrfrc,iconv,iblas,iline
+  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
 
   ! Read the input variables.
   open(unit=1,file=filename,status='old')
@@ -74,7 +75,10 @@ subroutine read_input_variables(iproc,filename,in)
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
    !  call set_cpu_gpu_aff(iproc,iconv,iblas)
    ! GPUshare=.false.
-     call init_gpu_sharing(8,2)
+     call init_gpu_sharing(initerror) !to fix the number of gpu and mpi tasks per node, we have to fil the inter_node.config file
+     if (initerror == 1) then
+        stop
+     end if
      GPUshare=.true.
      if (iconv == 0) then
         !change the value of the GPU convolution flag defined in the module_base
@@ -102,21 +106,12 @@ subroutine read_input_variables(iproc,filename,in)
   call check()
   read(1,*,iostat=ierror) in%betax
   call check()
-  read(1,*,iostat=ierror) hgrid
+  read(1,*,iostat=ierror) in%hx,in%hy,in%hz
   call check()
-  read(1,*,iostat=ierror) crmult
+  read(1,*,iostat=ierror) in%crmult
   call check()
-  read(1,*,iostat=ierror) frmult
+  read(1,*,iostat=ierror) in%frmult
   call check()
-  !read(1,*,iostat=ierror) cpmult !this value can be removed from the input files
-  !read(1,*,iostat=ierror) fpmult !this value can be removed from the input files
-  !put the value at the max, such that to coincide with the maximum possible extension
-  in%hgrid  = real(hgrid,gp)
-  in%crmult = real(crmult,gp)
-  in%frmult = real(frmult,gp)
-
-  !in%cpmult = in%frmult
-  !in%fpmult=in%frmult
 
   read(1,*,iostat=ierror) in%ixc
   call check()
@@ -240,7 +235,7 @@ subroutine print_input_parameters(in,atoms)
   write(*,'(1x,a)')&
        '    System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.'
   write(*,'(1x,a,f7.3,1x,a,f5.2,1x,a,1pe8.1,1x,a,l4)')&
-       'Grid spacing=',in%hgrid,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
+       'Max. hgrid  =',in%hx,   '|  Coarse Wfs.=',in%crmult,'| Wavefns Conv.=',in%gnrm_cv,&
        '| Calculate=',in%calc_tail
   write(*,'(1x,a,i7,1x,a,f5.2,1x,a,i5,a,i2,1x,a,f4.1)')&
        '       XC id=',in%ixc,     '|    Fine Wfs.=',in%frmult,'| Max. N. Iter.=',in%itermax,&

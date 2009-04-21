@@ -28,13 +28,13 @@
   !temporary interface
   interface
      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
-          psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hgrid_old,in,infocode)
+          psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,infocode)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: nproc,iproc
        integer, intent(out) :: infocode
-       real(gp), intent(inout) :: hgrid_old
+       real(gp), intent(inout) :: hx_old,hy_old,hz_old
        type(input_variables), intent(in) :: in
        type(locreg_descriptors), intent(inout) :: Glr
        type(atoms_data), intent(inout) :: atoms
@@ -66,7 +66,7 @@
 
      call cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           rst%psi,rst%Glr,rst%gaucoeffs,rst%gbd,rst%orbs,&
-          rst%rxyz_old,rst%hgrid_old,in,infocode)
+          rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,in,infocode)
 
      if (in%inputPsiId==1 .and. infocode==2) then
         if (in%gaussian_help) then
@@ -137,7 +137,7 @@ end subroutine call_bigdft
 !! SOURCE
 !!
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
-     psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hgrid_old,in,infocode)
+     psi,Glr,gaucoeffs,gbd,orbs,rxyz_old,hx_old,hy_old,hz_old,in,infocode)
   ! inputPsiId = 0 : compute input guess for Psi by subspace diagonalization of atomic orbitals
   ! inputPsiId = 1 : read waves from argument psi, using n1, n2, n3, hgrid and rxyz_old
   !                  as definition of the previous system.
@@ -158,7 +158,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   use Poisson_Solver
   implicit none
   integer, intent(in) :: nproc,iproc
-  real(gp), intent(inout) :: hgrid_old
+  real(gp), intent(inout) :: hx_old,hy_old,hz_old
   type(input_variables), intent(in) :: in
   type(locreg_descriptors), intent(inout) :: Glr
   type(atoms_data), intent(inout) :: atoms
@@ -182,11 +182,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   integer :: ncount0,ncount1,ncount_rate,ncount_max,iunit,n1i,n2i,n3i,i03,i04
   integer :: i1,i2,i3,ind,iat,ierror,i_all,i_stat,iter,ierr,isorb,jproc,ispin,nplot
   real :: tcpu0,tcpu1
-  real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hx,hy,hz,hxh,hyh,hzh
+  real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
   real(kind=8) :: peakmem,gnrm_check,energy_old,sumz
   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
   real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min,psoffset
-  real(kind=8) :: factor,ttsum,hx_old,hy_old,hz_old
+  real(kind=8) :: factor,ttsum
   type(wavefunctions_descriptors) :: wfd_old
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
@@ -232,18 +232,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   rbuf=in%rbuf
   ncongt=in%ncongt
   nspin=in%nspin
-!!$  if(nspin==4) then
-!!$     orbs%nspinor=4
-!!$  else
-!!$     orbs%nspinor=1
-!!$  end if
 
   nvirt=in%nvirt
   nplot=in%nplot
 
-  hx=in%hgrid
-  hy=in%hgrid
-  hz=in%hgrid
+  hx=in%hx
+  hy=in%hy
+  hz=in%hz
 
   if (iproc.eq.0) then
      write( *,'(1x,a,1x,i0)') &
@@ -263,9 +258,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! We save the variables that defined the previous psi if the restart is active
   if (in%inputPsiId == 1) then
      !regenerate grid spacings
-     hx_old=hgrid_old
-     hy_old=hgrid_old
-     hz_old=hgrid_old
      if (atoms%geocode == 'P') then
         call correct_grid(atoms%alat1,hx_old,Glr%d%n1)
         call correct_grid(atoms%alat2,hy_old,Glr%d%n2)
@@ -443,9 +435,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   else if (in%inputPsiId == 0) then 
      !temporary correction for non-collinear case in view of gaussian input guess
      if (in%nspin == 4) then
-        nspin=2
-        orbs%norbu=orbs%norb/2
-        orbs%norbd=orbs%norb-orbs%norbu
+        nspin=4!not 2
+!!$        orbs%norbu=orbs%norb/2
+!!$        orbs%norbd=orbs%norb-orbs%norbu
      else
         nspin=in%nspin
      end if
@@ -572,12 +564,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   end if
 
-!!$  !this rearrange the value of norbu, to be changed
-!!$  if(nspinor==4) then
-!!$     norbu=norb
-!!$     norbd=0
-!!$  end if
-
   !save the new atomic positions in the rxyz_old array
   do iat=1,atoms%nat
      rxyz_old(1,iat)=rxyz(1,iat)
@@ -585,7 +571,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      rxyz_old(3,iat)=rxyz(3,iat)
   enddo
   !save the new grid spacing into the hgrid_old value
-  hgrid_old=in%hgrid
+  hx_old=in%hx
+  hy_old=in%hy
+  hz_old=in%hz
 
   ! allocate arrays necessary for DIIS convergence acceleration
   !the allocation with npsidim is not necessary here since DIIS arrays
@@ -655,7 +643,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         !this wrapper can be inserted inside the poisson solver 
         call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
              ixc,hxh,hyh,hzh,&
-             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,in%nspin)
+             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
      else
               
         call PSolver(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
@@ -684,7 +672,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                 'final ehart, eexcu,  vexcu ',ehart,eexcu,vexcu
            write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') &
                 'FINAL iter,total energy,gnrm',iter,energy,gnrm
-           !write(61,*)hgrid,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
+           !write(61,*)hx,hy,hz,energy,ekin_sum,epot_sum,eproj_sum,ehart,eexcu,vexcu
            if (energy > energy_min) write( *,'(1x,a,1pe9.2)')&
                 'WARNING: Found an energy value lower than the FINAL energy, delta:',energy-energy_min
         end if
@@ -866,7 +854,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   end do
 
   if (n3p>0) then
-     allocate(rho(n1i*n2i*n3p*nspin+ndebug),stat=i_stat)
+     allocate(rho(n1i*n2i*n3p*in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,rho,'rho',subname)
   else
      allocate(rho(1+ndebug),stat=i_stat)
@@ -876,7 +864,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !plot the density on the density.pot file
   if (in%output_grid==1 .or. in%output_grid==3) then
-     if (nspin == 2 ) then
+     if (in%nspin == 2 ) then
         if(iproc==0) write(*,*)&
              'ERROR: density cannot be plotted in .pot format for a spin-polarised calculation'
      else
@@ -886,7 +874,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
   else if(in%output_grid==2) then
      call plot_density_cube(atoms%geocode,'density',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,&
-          max(n3p,1),nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
+          max(n3p,1),in%nspin,hxh,hyh,hzh,atoms,rxyz,ngatherarr,rho)
   end if
   !calculate the total density in the case of nspin==2
   if (in%nspin==2) then
@@ -1004,7 +992,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call timing(iproc,'Tail          ','ON')
      !    Calculate energy correction due to finite size effects
      !    ---reformat potential
-     allocate(pot(n1i,n2i,n3i,nspin+ndebug),stat=i_stat)
+     allocate(pot(n1i,n2i,n3i,in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,pot,'pot',subname)
 
      if (nproc > 1) then
@@ -1012,7 +1000,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              MPI_DOUBLE_PRECISION,pot(1,1,1,1),ngatherarr(0,1),ngatherarr(0,2), & 
              MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
         !print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
-        if(nspin==2) then
+        if(in%nspin==2) then
            !print '(a,2f12.6)','RHOdw',sum(abs(rhopot(:,:,:,2))),sum(abs(pot(:,:,:,2)))
            if (n3d /= n3p) then
               i03=1+i3xcsh+n3p
@@ -1026,7 +1014,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                 MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
         end if
      else
-        do ispin=1,nspin
+        do ispin=1,in%nspin
            !here one could have not allocated pot and: call move_alloc(rhopot,pot) 
            !(but it is a Fortran 95/2003 spec)
            do i3=1,n3i

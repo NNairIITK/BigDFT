@@ -85,8 +85,9 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      call applyprojectorsonthefly(iproc,orbs,at,lr%d%n1,lr%d%n2,lr%d%n3,&
           rxyz,hx,hy,hz,cpmult,fpmult,radii_cf,lr%wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   else
-     !one should add a flag here which states that it works only for global reion
+     !one should add a flag here which states that it works only for global region
      ! loop over all my orbitals
+     !should be changed in view of spin-orbit coupling
      do iorb=1,orbs%norbp*orbs%nspinor
         call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
              nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,&
@@ -498,7 +499,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nvctrp,&
   end if
 
   !for a non-collinear treatment,
-  !here we can add the calculation of the moments for printing their value
+  !we add the calculation of the moments for printing their value
   !close to the corresponding eigenvector
   if(orbs%nspinor==4) then
      allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)

@@ -625,8 +625,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
                  !rho_diag(i1,i2,i3,1)=rhopot(i1,i2,i3,1)
                  m_norm(i1,i2,i3)=&
                       sqrt(rhopot(idx+offs)**2+rhopot(idx+2*offs)**2+rhopot(idx+3*offs)**2)
-                 rho_diag(i1,i2,i3,1)=(rhopot(idx)+m_norm(i1,i2,i3))*0.5_dp!+1.00e-20
-                 rho_diag(i1,i2,i3,2)=(rhopot(idx)-m_norm(i1,i2,i3))*0.5_dp!+1.00e-20
+                 rho_diag(i1,i2,i3,1)=(rhopot(idx)+m_norm(i1,i2,i3))*0.5_dp+1.00e-20
+                 rho_diag(i1,i2,i3,2)=(rhopot(idx)-m_norm(i1,i2,i3))*0.5_dp+1.00e-20
                  idx=idx+1
                  !m_norm(i1,i2,i3)=sqrt(rhopot(i1,i2,i3,2)**2+rhopot(i1,i2,i3,3)**2+rhopot(i1,i2,i3,4)**2)
                  !rho_diag(i1,i2,i3,1)=(rhopot(i1,i2,i3,1)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
@@ -643,15 +643,10 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
         m_norm=0.0_dp
      end if
      
-     !        print *,'Mnorm,rho_diag',sum(2.0d0*rho_diag(:,:,:,1)),sum(m_norm)&
-     !             ,sum(2.0d0*rho_diag(:,:,:,1)+m_norm),sum(2.0d0*rho_diag(:,:,:,1)-m_norm)
-     
-     !        Call PSolver(geocode,datacode,iproc,nproc,n1i,n2i,n3i,ixc,hxh,hyh,hzh,&
-     !             rho_diag,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,2) 
      call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
           rho_diag,karray,pot_ion,eh,exc,vxc,offset,sumpion,2)
-     !        print *,'Psolver R',ehart,eexcu,vexcu
-     
+     !print *,'Psolver R',eh,exc,vxc
+     !open(17)
      idx=1
      do i3=1,n3d
         do i2=1,n02
@@ -664,6 +659,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
               else
                  factor=0.0_dp
               end if
+              !write(17,'(3(i0,1x),5(1pe12.5))')i1,i2,i3,rhon,rhos,rho_diag(i1,i2,i3,1),rho_diag(i1,i2,i3,2),factor
               rhopot(idx)=rhon+rhopot(idx+3*offs)*factor
               rhopot(idx+offs)=rhopot(idx+offs)*factor
               rhopot(idx+2*offs)=-rhopot(idx+2*offs)*factor
@@ -676,6 +672,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
            end do
         end do
      end do
+     !close(17)
      i_all=-product(shape(rho_diag))*kind(rho_diag)
      deallocate(rho_diag,stat=i_stat)
      call memocc(i_stat,i_all,'rho_diag',subname)

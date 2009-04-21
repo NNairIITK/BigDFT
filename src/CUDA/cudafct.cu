@@ -1,4 +1,4 @@
-#include <iostream>
+#include <stdio.h>
 #include <cuda.h>
 
 #define CUERR { cudaError_t err; \
@@ -23,7 +23,7 @@ int c_cudaMalloc(void** p,unsigned int memsize)
     if(ret != cudaSuccess)
     {
       CUERR;
-      std::cout << "**** ERROR *** : c_cuda_malloc" << std::endl;
+      printf("**** ERROR *** : c_cuda_malloc\n");
     }
   return ret;
  
@@ -36,7 +36,7 @@ int c_cudaMallocHost(void** p,unsigned int memsize)
     if(ret != cudaSuccess)
     {
       CUERR;
-      std::cout << "**** ERROR *** : c_cuda_mallocHost" << std::endl;
+      printf("**** ERROR *** : c_cuda_mallocHost\n");
     }
   return ret;
   
@@ -73,14 +73,14 @@ int c_cuda_gpu_send_pi(void *dest, const void *src,  size_t memByte)
   if(ret != cudaSuccess)
     {
       CUERR;
-      std::cout << "**** ERROR *** : c_cuda_gpu_send_pi" << std::endl;
+      printf("**** ERROR *** : c_cuda_gpu_send_pi\n");
     }
 
-    if(cudaStreamSynchronize(0) != cudaSuccess)
+  if(cudaStreamSynchronize(0) != cudaSuccess)
     {
       CUERR;
-      std::cout << "**** ERROR *** : c_cuda_gpu_recv_pi STREAM" << std::endl;
-      }
+      printf("**** ERROR *** : c_cuda_gpu_recv_pi STREAM\n");
+    }
 
   return ret;
 
@@ -92,13 +92,13 @@ int c_cuda_gpu_recv_pi(void *dest, const void *src,  size_t memByte)
   if(ret != cudaSuccess)
     {
       CUERR;
-      std::cout << "**** ERROR *** : c_cuda_gpu_recv_pi" << std::endl;
+      printf("**** ERROR *** : c_cuda_gpu_recv_pi\n");
     }
 
     if(cudaStreamSynchronize(0) != cudaSuccess)
     {
       CUERR;
-      std::cout << "**** ERROR *** : c_cuda_gpu_recv_pi STREAM" << std::endl;
+      printf("**** ERROR *** : c_cuda_gpu_recv_pi STREAM\n");
       }
   return ret;
 

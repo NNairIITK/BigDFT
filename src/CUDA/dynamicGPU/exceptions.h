@@ -4,10 +4,10 @@
 #include <string>
 #include <exception>
  
-class network_error: public std::exception
+class inter_node_communication_error: public std::exception
 {
 public:
-    network_error(std::string _msg) throw()
+    inter_node_communication_error(std::string _msg) throw()
          :msg(_msg)
     {}
  
@@ -18,14 +18,40 @@ public:
      
  
     
-    virtual ~network_error() throw()
+    virtual ~inter_node_communication_error() throw()
     {}
  
 private:
   
-    std::string msg;       //Description de l'erreur
+    std::string msg;       //Error description
   
 };
+
+
+
+class synchronization_error: public std::exception
+{
+public:
+  synchronization_error(std::string _msg) throw()
+    :msg(_msg)
+  {}
+ 
+  virtual const char* what() const throw()
+  {
+    return msg.c_str();
+  }
+     
+ 
+    
+    virtual ~synchronization_error() throw()
+    {}
+ 
+private:
+  
+    std::string msg;       //Error description
+  
+};
+
 
 
 class other_error: public std::exception
@@ -47,7 +73,7 @@ public:
  
 private:
   
-    std::string msg;       //Description de l'erreur
+    std::string msg;       //Error description
   
 };
 #endif

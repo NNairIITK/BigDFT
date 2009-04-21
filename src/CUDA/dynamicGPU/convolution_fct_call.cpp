@@ -205,11 +205,11 @@ void fct_call_calc_locden<double>::operator()(int tID)
 	     rho);
 }
 
-void fct_call_alloc_pi::operator()(int tID)
+/*void fct_call_alloc_pi::operator()(int tID)
 {
   //std::cout << pthread_self() <<" PIptr : " <<  GPU_pointer << " mem si " << memSize << std::endl;
   c_cudaMallocHost(GPU_pointer,memSize);
-}
+  }
 
 void fct_call_alloc::operator()(int tID)
 {
@@ -222,4 +222,4 @@ void fct_call_alloc::operator()(int tID)
 
   
    //  std::cout << pthread_self() <<" END  alloc " << std::endl;
-}
+   }*/
