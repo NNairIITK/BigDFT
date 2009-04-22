@@ -175,7 +175,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   character(len=*), parameter :: subname='cluster'
   character(len=10) :: orbname
   logical :: endloop
-  integer :: ixc,ncharge,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
+  integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
   integer :: nvirt,ndiis_sd_sw
   integer :: nelec,ndegree_ip,nvctrp,mids,iorb,ids,idiistol,j
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
@@ -224,7 +224,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   cpmult=in%frmult
   fpmult=in%frmult
   ixc=in%ixc
-  ncharge=in%ncharge
   gnrm_cv=in%gnrm_cv
   itermax=in%itermax
   ncong=in%ncong
@@ -445,10 +444,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,atoms,&
           orbs,orbsv,nvirt,nvctrp,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,nscatterarr,ngatherarr,nspin)
-     if (in%nspin == 4) then
-        orbs%norbu=orbs%norb
-        orbs%norbd=0
-     end if
+!!$     if (in%nspin == 4) then
+!!$        orbs%norbu=orbs%norb
+!!$        orbs%norbd=0
+!!$     end if
  
   else if (in%inputPsiId == 1) then 
      !these parts should be reworked for the non-collinear spin case
@@ -782,7 +781,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call memocc(i_stat,thetaphi,'thetaphi',subname)
      thetaphi=0.0_gp
 
-     call wavelets_to_gaussians(atoms%geocode,orbs%norbp,n1,n2,n3,gbd,thetaphi,&
+     call wavelets_to_gaussians(atoms%geocode,orbs%norbp,orbs%nspinor,n1,n2,n3,gbd,thetaphi,&
           hx,hy,hz,Glr%wfd,psi,gaucoeffs)
 
      i_all=-product(shape(thetaphi))*kind(thetaphi)
@@ -997,8 +996,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      if (nproc > 1) then
         call MPI_ALLGATHERV(rhopot(1,1,1+i3xcsh,1),n1i*n2i*n3p,&
-             MPI_DOUBLE_PRECISION,pot(1,1,1,1),ngatherarr(0,1),ngatherarr(0,2), & 
-             MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+             mpidtypd,pot(1,1,1,1),ngatherarr(0,1),ngatherarr(0,2), & 
+             mpidtypd,MPI_COMM_WORLD,ierr)
         !print '(a,2f12.6)','RHOup',sum(abs(rhopot(:,:,:,1))),sum(abs(pot(:,:,:,1)))
         if(in%nspin==2) then
            !print '(a,2f12.6)','RHOdw',sum(abs(rhopot(:,:,:,2))),sum(abs(pot(:,:,:,2)))
@@ -1010,8 +1009,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
               i04=2
            end if
            call MPI_ALLGATHERV(rhopot(1,1,i03,i04),n1i*n2i*n3p,&
-                MPI_DOUBLE_PRECISION,pot(1,1,1,2),ngatherarr(0,1),ngatherarr(0,2), & 
-                MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
+                mpidtypd,pot(1,1,1,2),ngatherarr(0,1),ngatherarr(0,2), & 
+                mpidtypd,MPI_COMM_WORLD,ierr)
         end if
      else
         do ispin=1,in%nspin
@@ -1238,6 +1237,15 @@ contains
     i_all=-product(shape(orbs%spinsgn))*kind(orbs%spinsgn)
     deallocate(orbs%spinsgn,stat=i_stat)
     call memocc(i_stat,i_all,'orbs%spinsgn',subname)
+    i_all=-product(shape(orbs%kpts))*kind(orbs%kpts)
+    deallocate(orbs%kpts,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%kpts',subname)
+    i_all=-product(shape(orbs%kwgts))*kind(orbs%kwgts)
+    deallocate(orbs%kwgts,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%kwgts',subname)
+    i_all=-product(shape(orbs%iokpt))*kind(orbs%iokpt)
+    deallocate(orbs%iokpt,stat=i_stat)
+    call memocc(i_stat,i_all,'orbs%iokpt',subname)
     i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
     deallocate(atoms%psppar,stat=i_stat)
     call memocc(i_stat,i_all,'psppar',subname)

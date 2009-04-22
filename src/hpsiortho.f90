@@ -95,7 +95,9 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
              proj,lr%wfd%nseg_c,lr%wfd%nseg_f,lr%wfd%keyg,lr%wfd%keyv,&
              lr%wfd%nvctr_c,lr%wfd%nvctr_f, & 
              psi(1,iorb),hpsi(1,iorb),eproj)
-        eproj_sum=eproj_sum+orbs%occup((iorb+orbs%isorb-1)/orbs%nspinor+1)*eproj
+        eproj_sum=eproj_sum+&
+             orbs%kwgts(orbs%iokpt((iorb-1)/orbs%nspinor+1))*&
+             orbs%occup((iorb+orbs%isorb-1)/orbs%nspinor+1)*eproj
      enddo
   end if
 

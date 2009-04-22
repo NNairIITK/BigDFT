@@ -258,6 +258,16 @@ program memguess
   i_all=-product(shape(orbs%spinsgn))*kind(orbs%spinsgn)
   deallocate(orbs%spinsgn,stat=i_stat)
   call memocc(i_stat,i_all,'spinsgn',subname)
+  i_all=-product(shape(orbs%kpts))*kind(orbs%kpts)
+  deallocate(orbs%kpts,stat=i_stat)
+  call memocc(i_stat,i_all,'orbs%kpts',subname)
+  i_all=-product(shape(orbs%kwgts))*kind(orbs%kwgts)
+  deallocate(orbs%kwgts,stat=i_stat)
+  call memocc(i_stat,i_all,'orbs%kwgts',subname)
+  i_all=-product(shape(orbs%iokpt))*kind(orbs%iokpt)
+  deallocate(orbs%iokpt,stat=i_stat)
+  call memocc(i_stat,i_all,'orbs%iokpt',subname)
+
 
 
   if (GPUtest .and. .not. GPUconv) then
@@ -790,8 +800,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   call cpu_time(t0)
   do j=1,ntimes
      call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
-          nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,orbs%nspinor,orbs%norbp,&
-          orbs%occup(min(orbs%isorb+1,orbs%norb)),orbs%spinsgn(min(orbs%isorb+1,orbs%norb)),&
+          nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,orbs,&
           psi,pot)
   end do
   call cpu_time(t1)

@@ -517,7 +517,24 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   integer, intent(in) :: iproc,nproc,nspinor,norb,norbu,norbd
   type(orbitals_data), intent(out) :: orbs
   !local variables
-  integer :: iorb,jproc,norb_tot
+  character(len=*), parameter :: subname='orbitals_descriptors'
+  integer :: iorb,jproc,norb_tot,ikpt,i_stat,jorb
+
+
+  !assign the value of the k-points
+  orbs%nkpts=1
+  !allocate vectors related to k-points
+  allocate(orbs%kpts(3,orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
+  allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
+  !only the gamma point for the moment
+  do ikpt=1,orbs%nkpts
+     orbs%kpts(1,ikpt)=0.0_gp
+     orbs%kpts(2,ikpt)=0.0_gp
+     orbs%kpts(3,ikpt)=0.0_gp
+     orbs%kwgts(ikpt)=1.0_gp
+  end do
 
   !initialise the array
   do jproc=0,nproc-1
@@ -526,7 +543,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
 
   !cubic-code strategy: balance the orbitals between processors
   !in the most symmetric way
-  do iorb=1,norb
+  do iorb=1,norb*orbs%nkpts
      jproc=mod(iorb-1,nproc)
      orbs%norb_par(jproc)=orbs%norb_par(jproc)+1
   end do
@@ -542,7 +559,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
      norb_tot=norb_tot+orbs%norb_par(jproc)
   end do
 
-  if(norb_tot /= norb) then
+  if(norb_tot /= norb*orbs%nkpts) then
      write(*,*)'ERROR: partition of orbitals incorrect'
      stop
   end if
@@ -553,6 +570,20 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
   orbs%nspinor=nspinor
   orbs%norbu=norbu
   orbs%norbd=norbd
+
+  allocate(orbs%iokpt(orbs%norbp+ndebug),stat=i_stat)
+  call memocc(i_stat,orbs%iokpt,'orbs%iokpt',subname)
+  !assign the k-point to the given orbital, counting one orbital after each other
+  jorb=0
+  do ikpt=1,orbs%nkpts
+     do iorb=1,orbs%norb
+        jorb=jorb+1
+        if (jorb > orbs%isorb .and. jorb <= orbs%isorb+orbs%norbp) then
+           orbs%iokpt(jorb-orbs%isorb)=ikpt
+        end if
+     end do
+  end do
+
 
 end subroutine orbitals_descriptors
 !!***

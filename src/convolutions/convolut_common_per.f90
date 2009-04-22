@@ -104,7 +104,7 @@ subroutine convolut_magic_n_per(n1,n2,n3,x,y,ww)
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y
   !local variables
   character(len=*), parameter :: subname='convolut_magic_n_per'
   integer, parameter :: lowfil=-8,lupfil=7 !for GPU computation
