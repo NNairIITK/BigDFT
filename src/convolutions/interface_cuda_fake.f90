@@ -83,9 +83,37 @@
     stop 'gpu_locham'
   end subroutine gpu_precond
 
+  subroutine gpu_locden()
+    implicit none
+    stop 'gpu_locham'
+  end subroutine gpu_locden
 
   subroutine free_gpu()
     implicit none
     stop 'free_gpu'
   end subroutine free_gpu
  
+ subroutine preconditionall_gpu()
+   implicit none
+   stop 'FAKE CPU_GPU_AFF'
+ end subroutine preconditionall_gpu
+
+ subroutine init_gpu_sharing()
+   implicit none
+   stop 'FAKE CPU_GPU_AFF'
+ end subroutine init_gpu_sharing
+
+ subroutine local_partial_density_gpu()
+   implicit none
+   stop 'FAKE CPU_GPU_AFF'
+ end subroutine local_partial_density_gpu
+
+ subroutine local_hamiltonian_gpu()
+   implicit none
+   stop 'FAKE CPU_GPU_AFF'
+ end subroutine local_hamiltonian_gpu
+
+ subroutine stop_gpu_sharing()
+   implicit none
+   stop 'FAKE CPU_GPU_AFF'
+ end subroutine stop_gpu_sharing

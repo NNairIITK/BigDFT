@@ -19,11 +19,12 @@ program memguess
   character(len=*), parameter :: subname='memguess'
   integer, parameter :: ngx=31
   character(len=20) :: tatonam,units
-  logical :: calc_tail,optimise
+  character(len=40) :: comment
+  logical :: optimise,GPUtest
   integer :: ierror,nproc,i_stat,i_all,output_grid
-  integer :: nelec
+  integer :: nelec,ntimes
   integer :: norbe,norbsc,nvctrp,nspin,iorb,norbu,norbd,nspinor,norb
-  integer :: iunit,ityp
+  integer :: iunit,ityp,norbgpu,nspin_ig
   real(kind=8) :: peakmem,hx,hy,hz
   type(input_variables) :: in
   type(atoms_data) :: atoms
@@ -45,6 +46,7 @@ program memguess
   call getarg(1,tatonam)
   
   optimise=.false.
+  GPUtest=.false.
   if(trim(tatonam)=='') then
      write(*,'(1x,a)')&
           'Usage: ./memguess <nproc> [y]'
@@ -58,6 +60,10 @@ program memguess
           'You can also put an "o" if you want to rotate the molecule such that'
      write(*,'(1x,a)')&
           '  the volume of the simulation box is optimised'
+     write(*,'(1x,a)')&
+          'In the case of a CUDAGPU calculation you can put "GPUtest" after the'
+     write(*,'(1x,a)')&
+          '  number of processors, followed by the number of repeats'
      stop
   else
      read(unit=tatonam,fmt=*) nproc
@@ -73,13 +79,28 @@ program memguess
         output_grid=1
         write(*,'(1x,a)')&
              'The optimised system grid will be displayed in the "grid.xyz" file'
+     else if (trim(tatonam)=='GPUtest') then
+        GPUtest=.true.
+        write(*,'(1x,a)')&
+             'Perform the test with GPU, if present.'
+        call getarg(3,tatonam)
+        ntimes=1
+        norbgpu=0
+        read(tatonam,*,iostat=ierror)ntimes
+        if (ierror==0) then
+           write(*,'(1x,a,i0,a)')&
+                'Repeat each calculation ',ntimes,' times.'
+           call getarg(4,tatonam)
+           read(tatonam,*,iostat=ierror)norbgpu
+        end if
+
      else
         write(*,'(1x,a)')&
              'Usage: ./memguess <nproc> [y]'
         write(*,'(1x,a)')&
              'Indicate the number of processes after the executable'
         write(*,'(1x,a)')&
-             'ERROR: The only second argument which is accepted is "y"'
+             'ERROR: The only second argument which is accepted are "y", "o" or "GPUtest"'
         stop
      end if
   end if
@@ -124,17 +145,19 @@ program memguess
 
   if (optimise) then
      if (atoms%geocode =='F') then
-        call optimise_volume(atoms,in%crmult,in%frmult,in%hgrid,rxyz,radii_cf)
+        call optimise_volume(atoms,in%crmult,in%frmult,hx,hy,hz,rxyz,radii_cf)
      else
         call shift_periodic_directions(atoms,rxyz,radii_cf)
      end if
      write(*,'(1x,a)')'Writing optimised positions in file posout_000.xyz...'
-     call wtxyz('posout_000',0.d0,rxyz,atoms,'')
+     write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
+     call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
+
   end if
 
   
   !in the case in which the number of orbitals is not "trivial" check whether they are too many
-  if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) .and. in%nspin /=4 ) then
+  if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0)) then
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
      allocate(xp(ngx,atoms%ntypes+ndebug),stat=i_stat)
      call memocc(i_stat,xp,'xp',subname)
@@ -153,10 +176,21 @@ program memguess
      allocate(locrad(atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,locrad,'locrad',subname)
 
+     if (in%nspin==4) then
+        nspin_ig=1
+     else
+        nspin_ig=in%nspin
+     end if
+
 
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
-     call readAtomicOrbitals(0,ngx,xp,psiat,occupat,ng,nl,atoms,norbe,norbsc,in%nspin,&
+     call readAtomicOrbitals(0,ngx,xp,psiat,occupat,ng,nl,atoms,norbe,norbsc,nspin_ig,&
           scorb,norbsc_arr,locrad)
+
+     if (in%nspin==4) then
+        !in that case the number of orbitals double
+        norbe=2*norbe
+     end if
 
      ! De-allocations
      i_all=-product(shape(locrad))*kind(locrad)
@@ -185,7 +219,7 @@ program memguess
      call memocc(i_stat,i_all,'norbsc_arr',subname)
 
      ! Check the maximum number of orbitals
-     if (in%nspin==1) then
+     if (in%nspin==1 .or. in%nspin==4) then
         if (orbs%norb>norbe) then
            write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',orbs%norb,&
                 ') must not be greater than the number of orbitals (',norbe,&
@@ -211,9 +245,9 @@ program memguess
 
 ! Determine size alat of overall simulation cell and shift atom positions
 ! then calculate the size in units of the grid space
-  hx=in%hgrid
-  hy=in%hgrid
-  hz=in%hgrid
+  hx=in%hx
+  hy=in%hy
+  hz=in%hz
 
   call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr)
 
@@ -226,14 +260,22 @@ program memguess
   call memocc(i_stat,i_all,'spinsgn',subname)
 
 
-  if (GPUconv .and. atoms%geocode=='P') then
+  if (GPUtest .and. .not. GPUconv) then
+     write(*,*)' ERROR: you can not put a GPUtest flag is there is no GPUrun.'
+     stop
+  end if
+  if (GPUconv .and. atoms%geocode=='P' .and. GPUtest) then
      !test the hamiltonian in CPU or GPU
      !create the orbitals data structure for one orbital
      allocate(orbstst%norb_par(0:0+ndebug),stat=i_stat)
      call memocc(i_stat,orbstst%norb_par,'orbstst%norb_par',subname)
      !test orbitals
      nspin=1
-     norb=orbs%norb
+     if (norbgpu == 0) then
+        norb=orbs%norb
+     else
+        norb=norbgpu
+     end if
      norbu=norb
      norbd=0
      nspinor=1
@@ -258,7 +300,7 @@ program memguess
           atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst,nvctrp)
      
      call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,in%ixc,&
-          Glr,hx,hy,hz,rxyz)
+          Glr,hx,hy,hz,rxyz,ntimes)
      
      call deallocate_wfd(Glr%wfd,subname)
 
@@ -370,12 +412,12 @@ end program memguess
 !!    Stefan Goedecker, Luigi Genovese
 !! SOURCE
 !!
-subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
+subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
   use module_base
   use module_types
   implicit none
   type(atoms_data), intent(inout) :: atoms
-  real(gp), intent(in) :: crmult,frmult,hgrid
+  real(gp), intent(in) :: crmult,frmult,hx,hy,hz
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
   !local variables
@@ -389,7 +431,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
   allocate(txyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,txyz,'txyz',subname)
 
-  call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hgrid,hgrid,hgrid,Glr)
+  call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   !call volume(nat,rxyz,vol)
   vol=atoms%alat1*atoms%alat2*atoms%alat3
   write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
@@ -440,7 +482,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
         txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
      enddo
 
-     call system_size(1,atoms,txyz,radii_cf,crmult,frmult,hgrid,hgrid,hgrid,Glr)
+     call system_size(1,atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
      tvol=atoms%alat1*atoms%alat2*atoms%alat3
      !call volume(nat,txyz,tvol)
      if (tvol < vol) then
@@ -520,9 +562,12 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
         !apply the shift to all atomic positions taking into account the modulo operation
         do iat=1,at%nat
            txyz(1,iat)=modulo(rxyz(1,iat)+shiftx*maxsh,at%alat1)
+           txyz(2,iat)=rxyz(2,iat)
+           txyz(3,iat)=rxyz(3,iat)
         end do
 
         call calc_vol(at%geocode,at%nat,txyz,tvol)
+        !print *,'vol',tvol
 
         if (tvol < vol) then
            write(*,'(1x,a,1pe16.8,1x,i0,1x,f15.5)')'Found new best volume: ',tvol
@@ -539,7 +584,9 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
 
         !apply the shift to all atomic positions taking into account the modulo operation
         do iat=1,at%nat
+           txyz(1,iat)=rxyz(1,iat)
            txyz(2,iat)=modulo(rxyz(2,iat)+shifty*maxsh,at%alat2)
+           txyz(3,iat)=rxyz(3,iat)
         end do
 
         call calc_vol(at%geocode,at%nat,txyz,tvol)
@@ -559,6 +606,8 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
 
         !apply the shift to all atomic positions taking into account the modulo operation
         do iat=1,at%nat
+           txyz(1,iat)=rxyz(1,iat)
+           txyz(2,iat)=rxyz(2,iat)
            txyz(3,iat)=modulo(rxyz(3,iat)+shiftz*maxsh,at%alat3)
         end do
 
@@ -613,7 +662,7 @@ subroutine calc_vol(geocode,nat,rxyz,vol)
      czmax=max(czmax,rxyz(3,iat)) 
      czmin=min(czmin,rxyz(3,iat))
   enddo
-
+  !print *,cxmax,cxmin,cymax,cymin,czmax,czmin
   !now calculate the volume for the periodic part
   if (geocode == 'P') then
      vol=(cxmax-cxmin)*(cymax-cymin)*(czmax-czmin)
@@ -625,13 +674,13 @@ end subroutine calc_vol
 
 
 subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
-     lr,hx,hy,hz,rxyz)
+     lr,hx,hy,hz,rxyz,ntimes)
   use module_base
   use module_types
   use module_interfaces
   use Poisson_Solver
   implicit none
-  integer, intent(in) :: iproc,nproc,nspin,ncong,ixc
+  integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -640,11 +689,12 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !local variables
   character(len=*), parameter :: subname='compare_cpu_gpu_hamiltonian'
   logical :: rsflag
-  integer :: icoeff,norb,norbu,norbd,nspinor,i_stat,i_all,i1,i2,i3,ispin,j,ntimes
+  integer :: icoeff,norb,norbu,norbd,nspinor,i_stat,i_all,i1,i2,i3,ispin,j
   integer :: iorb,n3d,n3p,n3pi,i3xcsh,i3s,jproc,nrhotot,nspinn,nvctrp
   real(kind=4) :: tt,t0,t1
   real(wp) :: maxdiff,comp
   real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU,gnrm,gnrmGPU
+  real(gp) :: Rden,Rham,Rgemm,Rsyrk,Rprec
   real(kind=8) :: CPUtime,CPUGflops,GPUtime,GPUGflops
   type(gaussian_basis) :: G
   type(GPU_pointers) :: GPU
@@ -652,8 +702,6 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   real(wp), dimension(:,:,:,:), allocatable :: pot,psig,rho
   real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
   real(wp), dimension(:,:,:), allocatable :: overlap
-
-  ntimes=10
 
   !nullify the G%rxyz pointer
   nullify(G%rxyz)
@@ -740,10 +788,12 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   !for each of the orbitals treated by the processor build the partial densities
   call cpu_time(t0)
-  call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
-     nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,orbs%nspinor,orbs%norbp,&
-     orbs%occup(min(orbs%isorb+1,orbs%norb)),orbs%spinsgn(min(orbs%isorb+1,orbs%norb)),&
-     psi,pot)
+  do j=1,ntimes
+     call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
+          nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,orbs%nspinor,orbs%norbp,&
+          orbs%occup(min(orbs%isorb+1,orbs%norb)),orbs%spinsgn(min(orbs%isorb+1,orbs%norb)),&
+          psi,pot)
+  end do
   call cpu_time(t1)
   CPUtime=real(t1-t0,kind=8)
 
@@ -757,7 +807,9 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !now the GPU part
   !for each of the orbitals treated by the processor build the partial densities
   call cpu_time(t0)
-  call gpu_locden(lr,nspin,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,orbs,GPU)
+  do j=1,ntimes
+     call gpu_locden(lr,nspin,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,orbs,GPU)
+  end do
   call cpu_time(t1)
   GPUtime=real(t1-t0,kind=8)
 
@@ -772,7 +824,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !check the differences between the results
   call compare_data_and_gflops(CPUtime,GPUtime,&
        8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,pot,rho,&
-       lr%d%n1i*lr%d%n2i*lr%d%n3i,ntimes,.false.)
+       lr%d%n1i*lr%d%n2i*lr%d%n3i,ntimes,.false.,Rden)
 
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)
@@ -847,7 +899,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !check the differences between the results
   call compare_data_and_gflops(CPUtime,GPUtime,&
        8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,hpsi,psi,&
-       orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes,.false.)
+       orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes,.false.,Rham)
 
 
   i_all=-product(shape(pot))*kind(pot)
@@ -886,7 +938,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !comparison between the results
   call compare_data_and_gflops(CPUtime,GPUtime,&
        8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,overlap(1,1,1),overlap(1,1,2),&
-       orbs%norbp**2,ntimes,.false.)
+       orbs%norbp**2,ntimes,.false.,Rgemm)
 
 
   nvctrp=lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
@@ -910,7 +962,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   call compare_data_and_gflops(CPUtime,GPUtime,&
        8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,overlap(1,1,1),overlap(1,1,2),&
-       orbs%norbp**2,ntimes,.true.)
+       orbs%norbp**2,ntimes,.false.,Rsyrk)
 
   i_all=-product(shape(overlap))*kind(overlap)
   deallocate(overlap,stat=i_stat)
@@ -954,7 +1006,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   call compare_data_and_gflops(CPUtime,GPUtime,&
        8.d0*real(lr%d%n1*lr%d%n2*lr%d%n3,kind=8)*366.d0,hpsi,psi,&
-       orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes,.false.)
+       orbs%norbp*orbs%nspinor*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),ntimes,.false.,Rprec)
 
 
   i_all=-product(shape(psi))*kind(psi)
@@ -964,17 +1016,19 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   deallocate(hpsi,stat=i_stat)
   call memocc(i_stat,i_all,'hpsi',subname)
 
+  write(*,'(1x,a,5(1x,f7.3))')'Ratios:',Rden,Rham,Rgemm,Rsyrk,Rprec
   
 end subroutine compare_cpu_gpu_hamiltonian
 
 
 subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
-     CPUdata,GPUdata,n,ntimes,dowrite)
+     CPUdata,GPUdata,n,ntimes,dowrite,ratio)
   use module_base
   implicit none
   logical, intent(in) :: dowrite
   integer, intent(in) :: n,ntimes
   real(gp), intent(in) :: CPUtime,GPUtime,GFlopsfactor
+  real(gp), intent(out) :: ratio
   real(wp), dimension(n), intent(in) :: CPUdata,GPUdata
   !local variables
   integer :: i
@@ -992,6 +1046,7 @@ subroutine compare_data_and_gflops(CPUtime,GPUtime,GFlopsfactor,&
      comp=abs(CPUdata(i)-GPUdata(i))
      maxdiff=max(maxdiff,comp)
   end do
+  ratio=CPUtime/GPUtime
   if (maxdiff <= 1.d-12) then
      write(*,'(1x,a,1x,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
           'GPU/CPU ratio,Time,Gflops: CPU,GPU',&

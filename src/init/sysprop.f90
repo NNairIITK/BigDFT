@@ -26,8 +26,8 @@ subroutine system_properties(iproc,nproc,in,at,orbs,radii_cf,nelec)
      nspinor=1
   end if
 
-!!$  !temporary changement, to be controlled
-!!$  nspinor=2
+  !temporary changement, to be controlled
+  !nspinor=2
 
   allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
@@ -38,18 +38,18 @@ subroutine system_properties(iproc,nproc,in,at,orbs,radii_cf,nelec)
   !tuned for the moment only on the cubic distribution
   if (iproc == 0 .and. nproc > 1) then
      jpst=0
-     do jproc=0,nproc-2
+     do jproc=0,nproc-1
         norbme=orbs%norb_par(jproc)
-        norbyou=orbs%norb_par(jproc+1)
-        if (norbme /= norbyou) then
+        norbyou=orbs%norb_par(min(jproc+1,nproc-1))
+        if (norbme /= norbyou .or. jproc == nproc-1) then
            !this is a screen output that must be modified
            write(*,'(3(a,i0),a)')&
                 ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' orbitals '
            jpst=jproc+1
         end if
      end do
-     write(*,'(3(a,i0),a)')&
-          ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
+     !write(*,'(3(a,i0),a)')&
+     !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
   end if
 
   allocate(orbs%occup(orbs%norb+ndebug),stat=i_stat)
@@ -258,7 +258,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
           radii_cf(ityp,1),radii_cf(ityp,2),radii_cf(ityp,3),message
 
      !control whether the grid spacing is too high
-     if (iproc == 0 .and. in%hgrid > 2.5_gp*minrad) then
+     if (iproc == 0 .and. max(in%hx,in%hy,in%hz) > 2.5_gp*minrad) then
         write(*,'(1x,a)')&
              'WARNING: The grid spacing value may be too high to treat correctly the above pseudo.' 
         write(*,'(1x,a,f5.2,a)')&

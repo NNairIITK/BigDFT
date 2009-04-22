@@ -1277,7 +1277,7 @@ end subroutine gaudim_check
 
 
 !calculate the projection of a gaussian for a given eigenspace of spherical harmonics
-!centered on a given point and rotated by theta(along y) and phi(along x)
+!centered on a given point and rotated by theta(along z) and phi(along x)
 subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,&
      wfd,psi,coeffs)
   use module_base

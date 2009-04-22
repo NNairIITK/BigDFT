@@ -60,23 +60,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
 
   !switch between GPU/CPU treatment
   if (GPUconv) then
-     call timing(iproc,'ApplyLocPotKin','OF')
-     call timing(iproc,'Un-TransComm  ','ON')
-     
-     call timing(iproc,'Un-TransComm  ','OF')
-     call timing(iproc,'ApplyLocPotKin','ON')
-
-
      call local_hamiltonian_GPU(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
-     
-     call timing(iproc,'ApplyLocPotKin','OF')
-     call timing(iproc,'Un-TransComm  ','ON')
-     
-     call timing(iproc,'Un-TransComm  ','OF')
-     call timing(iproc,'ApplyLocPotKin','ON')
-
-
-
   else
      call local_hamiltonian(iproc,orbs,lr,hx,hy,hz,nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   end if
@@ -101,8 +85,9 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      call applyprojectorsonthefly(iproc,orbs,at,lr%d%n1,lr%d%n2,lr%d%n3,&
           rxyz,hx,hy,hz,cpmult,fpmult,radii_cf,lr%wfd,nlpspd,proj,psi,hpsi,eproj_sum)
   else
-     !one should add a flag here which states that it works only for global reion
+     !one should add a flag here which states that it works only for global region
      ! loop over all my orbitals
+     !should be changed in view of spin-orbit coupling
      do iorb=1,orbs%norbp*orbs%nspinor
         call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
              nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,nlpspd%keyg_p,nlpspd%keyv_p,&
@@ -194,61 +179,14 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
   end if
 
   ! Apply  orthogonality constraints to all orbitals belonging to iproc
-  ! insert branching for CUDA section(experimental)
-  ! once the mixed precision version is ready such part can be eliminated
-  if (GPUblas .and. .false.) then
-     allocate(psitcuda(orbs%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,psitcuda,'psitcuda',subname)
-     allocate(hpsitcuda(orbs%npsidim+ndebug),stat=i_stat)
-     call memocc(i_stat,hpsitcuda,'hpsitcuda',subname)
-
-     do i=1,orbs%npsidim
-        psitcuda(i)=real(psit(i),kind=4)
-        hpsitcuda(i)=real(hpsi(i),kind=4)
-     end do
-
-!!$     if(nspin==1.or.nspinor==4) then
-!!$        call orthoconstraint_cuda(iproc,nproc,orbs%norb,orbs%occup,nvctrp,&
-!!$             psitcuda,hpsitcuda,scprsum,orbs%nspinor)
-!!$     else
-     call orthoconstraint_cuda(iproc,nproc,orbs%norbu,orbs%occup,nvctrp,&
-          psitcuda,hpsitcuda,scprsum,orbs%nspinor)
-     scprpart=0.0d0
-     if(orbs%norbd > 0) then
-        scprpart=scprsum 
-        call orthoconstraint_cuda(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),&
-             nvctrp,psitcuda(1+nvctrp*orbs%norbu),hpsitcuda(1+nvctrp*orbs%norbu),&
-             scprsum,orbs%nspinor)
-     end if
+  call orthoconstraint_p(iproc,nproc,orbs%norbu,orbs%occup,nvctrp,psit,hpsi,&
+       scprsum,orbs%nspinor)
+  scprpart=0.0_dp
+  if(orbs%norbd > 0) then
+     scprpart=scprsum 
+     call orthoconstraint_p(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),nvctrp,&
+          psit(1+nvctrp*orbs%norbu),hpsi(1+nvctrp*orbs%norbu),scprsum,orbs%nspinor)
      scprsum=scprsum+scprpart
-!!$     end if
-
-     do i=1,orbs%npsidim
-        psit(i)=real(psitcuda(i),wp)
-        hpsi(i)=real(hpsitcuda(i),wp)
-     end do
-
-     i_all=-product(shape(psitcuda))*kind(psitcuda)
-     deallocate(psitcuda,stat=i_stat)
-     call memocc(i_stat,i_all,'psitcuda',subname)
-     i_all=-product(shape(hpsitcuda))*kind(hpsitcuda)
-     deallocate(hpsitcuda,stat=i_stat)
-     call memocc(i_stat,i_all,'hpsitcuda',subname)
-  else
-!!$     if(nspin==1 .or. orbs%nspinor==4) then
-!!$        call orthoconstraint_p(iproc,nproc,orbs%norb,orbs%occup,nvctrp,psit,hpsi,&
-!!$             scprsum,orbs%nspinor)
-!!$     else
-     call orthoconstraint_p(iproc,nproc,orbs%norbu,orbs%occup,nvctrp,psit,hpsi,&
-          scprsum,orbs%nspinor)
-     scprpart=0.0_dp
-     if(orbs%norbd > 0) then
-        scprpart=scprsum 
-        call orthoconstraint_p(iproc,nproc,orbs%norbd,orbs%occup(orbs%norbu+1),nvctrp,&
-             psit(1+nvctrp*orbs%norbu),hpsi(1+nvctrp*orbs%norbu),scprsum,orbs%nspinor)
-!!$        end if
-        scprsum=scprsum+scprpart
-     end if
   end if
 
   !retranspose the hpsi wavefunction
@@ -265,19 +203,8 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
   !and calculate the partial norm of the residue
   !switch between CPU and GPU treatment
   if (GPUconv) then
-     call timing(iproc,'Precondition  ','OF')
-     call timing(iproc,'Un-TransComm  ','ON')
-     call timing(iproc,'Un-TransComm  ','OF')
-     call timing(iproc,'Precondition  ','ON')
-
      call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
           hpsi,gnrm,GPU)
-
-     call timing(iproc,'Precondition  ','OF') 
-     call timing(iproc,'Un-TransComm  ','ON')
-     call timing(iproc,'Un-TransComm  ','OF')
-     call timing(iproc,'Precondition  ','ON')
-        
   else
      call preconditionall(iproc,nproc,orbs%norbp,lr,hx,hy,hz,ncong,orbs%nspinor,&
           orbs%eval(min(orbs%isorb+1,orbs%norb)),hpsi,gnrm)
@@ -572,7 +499,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nvctrp,&
   end if
 
   !for a non-collinear treatment,
-  !here we can add the calculation of the moments for printing their value
+  !we add the calculation of the moments for printing their value
   !close to the corresponding eigenvector
   if(orbs%nspinor==4) then
      allocate(mom_vec(4,orbs%norb,min(nproc,2)+ndebug),stat=i_stat)

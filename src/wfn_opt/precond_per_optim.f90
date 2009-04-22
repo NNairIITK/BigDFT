@@ -41,7 +41,7 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
 
   !if GPU is swithced on and there is no call to GPU preconditioner
   !do not do the FFT preconditioning
-  if (.not. GPUconv .and. .false. ) then
+  if (.not. GPUconv) then
 
      !	compute the input guess x via a Fourier transform in a cubic box.
      !	Arrays psifscf and ww serve as work arrays for the Fourier

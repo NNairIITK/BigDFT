@@ -57,19 +57,29 @@ interface
      real(gp), dimension(3,atoms%nat), intent(out) :: fxyz
    end subroutine call_bigdft
 
-   subroutine conjgrad(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_cluster,in)
-     use module_base
-     use module_types
-     implicit none
-     integer, intent(in) :: nproc,iproc
-     integer, intent(inout) :: ncount_cluster
-     real(gp), intent(out) :: etot
-     type(atoms_data), intent(inout) :: at
-     type(input_variables), intent(inout) :: in
-     type(restart_objects), intent(inout) :: rst
-     real(gp), dimension(3,at%nat), intent(inout) :: rxyz
-     real(gp), dimension(3,at%nat), intent(out) :: fxyz
-   end subroutine conjgrad
+
+subroutine geopt(nproc,iproc,x,at,f,epot,rst,in,ncount_bigdft)
+
+
+!    use module_base
+!    use module_interfaces, except_this_one => geopt
+!    use module_types
+!    use minimization, only:parameterminimization
+
+    use module_base
+    use module_types
+!    use minimization, only:parameterminimization
+    implicit none
+    integer, intent(in) :: nproc,iproc
+    integer, intent(inout) :: ncount_bigdft
+    type(atoms_data), intent(in) :: at
+    type(input_variables), intent(in) :: in
+    type(restart_objects), intent(inout) :: rst
+    real(gp), intent(inout) :: epot
+    real(gp), dimension(3*at%nat), intent(inout) :: x
+    real(gp), dimension(3*at%nat), intent(out) :: f
+end subroutine geopt
+
 
    subroutine copy_old_wavefunctions(iproc,nproc,orbs,n1,n2,n3,wfd,psi,&
         n1_old,n2_old,n3_old,wfd_old,psi_old)
@@ -473,12 +483,12 @@ interface
      real(wp), dimension(:), pointer :: psi,v
    end subroutine davidson
 
-   subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,&
+   subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
         ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,nvirte,psivirt)
      use module_base
      implicit none
      !Arguments
-     integer, intent(in) :: norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr
+     integer, intent(in) :: norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,nspinore
      integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
      real(wp), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
      real(wp), dimension(nvctrp,norbe), intent(in) :: psi
@@ -549,11 +559,11 @@ interface
      real(wp), intent(out), optional :: outadd
    end subroutine untranspose_v
 
-   subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi)
+   subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi,comment)
      use module_base
      use module_types
      implicit none
-     character(len=10) :: orbname 
+     character(len=10), intent(in) :: orbname,comment
      real(gp), intent(in) :: hx,hy,hz,rx,ry,rz
      type(locreg_descriptors), intent(in) :: lr
      real(wp), dimension(*) :: psi
@@ -627,7 +637,7 @@ interface
      real(gp), dimension(at%nat), intent(out) :: locrad
      type(orbitals_data), intent(out) :: orbse,orbsv
      type(gaussian_basis), intent(out) :: G
-     real(wp), dimension(:,:), pointer :: psigau
+     real(wp), dimension(:,:,:), pointer :: psigau
    end subroutine inputguess_gaussian_orbitals
 
    subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
@@ -651,6 +661,17 @@ interface
      integer, dimension(orbse%norbp), intent(out) :: iorbtolr !assign the localisation region
      real(wp), intent(out) :: gaucoeff !norbe=G%ncoeff
    end subroutine AtomicOrbitals
+
+   subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,&
+        ibyyzz_r) !optional
+     use module_base
+     implicit none
+     integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot
+     real(wp), dimension(-nl1:2*n1+2+nl1,-nl2:2*n2+2+nl2,-nl3:2*n3+2+nl3,nspinor), intent(inout) :: psir
+     real(wp), dimension(-nl1:2*n1+2+nl1-4*nbuf,-nl2:2*n2+2+nl2-4*nbuf,-nl3:2*n3+2+nl3-4*nbuf,npot), intent(in) :: pot
+     integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
+     real(gp), intent(out) :: epot
+   end subroutine apply_potential
 
 end interface
 

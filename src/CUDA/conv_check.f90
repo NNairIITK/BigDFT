@@ -26,13 +26,13 @@ program conv_check
   !local variables
   character(len=*), parameter :: subname='conv_check'
   character(len=50) :: chain
-  integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,ndat,i1_max,i_max,it0,it1,ndim
+  integer :: i,i_stat,i_all,j,i1,i2,i3,ntimes,ndat,i1_max,i_max,it0,it1,ndim,itimes
   integer :: count_rate,count_max,l,ierror,i1s,i1e
   integer :: n1s,n1e,ndats,ndate,nvctr_cf,nseg,iseg
   real(wp) :: tt,scale
   real(gp) :: v,p,CPUtime,GPUtime,comp,ekin
   real(gp), dimension(3) :: hgridh
-  integer, dimension(:), allocatable :: keyv
+  integer, dimension(:), allocatable :: keyv,modarr
   integer, dimension(:,:), allocatable :: keyg
   real(kind=8), dimension(:), allocatable :: psi !temporary in view of wp 
   real(kind=8), dimension(:,:,:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
@@ -233,26 +233,38 @@ program conv_check
            !**************************************************kinetic term
 
            write(*,'(a,i6,i6)')'CPU Kinetic, dimensions:',n1,ndat
+
+           allocate(modarr(lowfilK:n1-1+lupfilK+ndebug),stat=i_stat)
+           call memocc(i_stat,modarr,'modarr',subname)
+           call fill_mod_arr(modarr,lowfilK,n1-1+lupfilK,n1)
+
+
            psi_out=0.d0
            !take timings
            call cpu_time(t0)
-           do i=1,ntimes
+           do itimes=1,ntimes
               ekin=0.0_gp
-              do i2=1,ndat
-                 do i1=1,n1
-                    tt=0.0_wp
-                    do l=lowfilK,lupfilK
-                       j=modulo(i1-1+l,n1)+1
-                       tt=tt+psi_in(j   ,i2,1)*fil(l)
-                    enddo
-                    psi_out(i2,i1,1)=tt
-                    ekin=ekin+psi_in(i1,i2,1)*tt
-                 enddo
-              end do
+!!$              do i2=1,ndat
+!!$                 do i1=1,n1
+!!$                    tt=0.0_wp
+!!$                    do l=lowfilK,lupfilK
+!!$                       j=modulo(i1-1+l,n1)+1
+!!$                       tt=tt+psi_in(j   ,i2,1)*fil(l)
+!!$                    enddo
+!!$                    psi_out(i2,i1,1)=tt
+!!$                    ekin=ekin+psi_in(i1,i2,1)*tt
+!!$                 enddo
+!!$              end do
+              call conv_kin_x(psi_in,psi_out,ndat,ekin)   
+
            end do
            call cpu_time(t1)
 
            CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
+
+           i_all=-product(shape(modarr))
+           deallocate(modarr,stat=i_stat)
+           call memocc(i_stat,i_all,'modarr',subname)
 
            write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
                 CPUtime*1.d3/real(ntimes,kind=8),&
@@ -513,7 +525,6 @@ program conv_check
            deallocate(v_cuda,stat=i_stat)
            call memocc(i_stat,i_all,'v_cuda',subname)
 
-
            !**************************************************compression-decompression
            !create keys arrays
            !cubic domain
@@ -761,353 +772,82 @@ program conv_check
         end do
      end do
     
-     !three-dimensional case
-  else if (ndim == 3) then
-
-     n1=n1s
-     n2=n1e
-     n3=ndats
-
-     !-------------------------3d case---------------------------
-     !allocate arrays
-     allocate(psi_in((n1+1),(n2+1),(n3+1)+ndebug),stat=i_stat)
-     call memocc(i_stat,psi_in,'psi_in',subname)
-     allocate(psi_out((n1+1),(n2+1),(n3+1)+ndebug),stat=i_stat)
-     call memocc(i_stat,psi_out,'psi_out',subname)
-     allocate(psir((n1+1),(n2+1),(n3+1)+ndebug),stat=i_stat)
-     call memocc(i_stat,psir,'psir',subname)
-     allocate(pot((n1+1),(n2+1),(n3+1)+ndebug),stat=i_stat)
-     call memocc(i_stat,pot,'pot',subname)
-
-     ! Wavefunction expressed everywhere in fine scaling functions 
-
-     !fake initialisation, random numbers
-     !here the grid spacings are the small ones
-     sigma2=0.25d0*(((n1+1)*hx)**2+((n2+1)*hy)**2+((n3+1)*hz)**2)
-     do i3=1,n3+1
-        z=hz*real(i3-n3/2-1,kind=8)
-        do i2=1,n2+1
-           y=hy*real(i2-n2/2-1,kind=8)
-           do i1=1,n1+1
-              x=hx*real(i1-n1/2-1,kind=8)
-              !tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
-              r2=x**2+y**2+z**2
-              arg=0.5d0*r2/sigma2
-              tt=dexp(-arg)
-              !same initialisation for psi and pot
-              psi_in(i1,i2,i3)=tt
-              pot(i1,i2,i3)=tt
-           end do
-        end do
-     end do
-
-     write(*,'(a,i6,i6,i6)')'CPU Convolutions, dimensions:',n1,n2,n3
-
-     !take timings
-     call cpu_time(t0)
-
-     do j=1,ntimes
-        !traditional convolution, CPU
-        ! psir serves as a work array	   
-        call convolut_magic_n_per(n1,n2,n3,psi_in,psir,psi_out) 
-
-        ! Initialisation of potential energy  
-        epot=0.0_gp
-        do i3=1,n3+1
-           do i2=1,n2+1
-              do i1=1,n1+1
-                 v=real(pot(i1,i2,i3),gp)
-                 p=real(psir(i1,i2,i3),gp)
-                 tt=pot(i1,i2,i3)*psir(i1,i2,i3)
-                 epot=epot+p*v*p
-                 psir(i1,i2,i3)=tt
-              end do
-           end do
-        end do
-
-        call convolut_magic_t_per_self(n1,n2,n3,psir,psi_out)
-
-     end do
-
-     call cpu_time(t1)
-
-     CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
-
-     write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
-          CPUtime*1.d3/real(ntimes,kind=8),&
-          real(n1*n2*n3*ntimes,kind=8)*192.d0/(CPUtime*1.d9)
-
-     print *,'epot=',epot
-
-     !save the values of psi_out and of epot for GPU comparison
-
-     !create the CUDA values
-     allocate(psi_cuda((n1+1),(n2+1),(n3+1)+ndebug),stat=i_stat)
-     call memocc(i_stat,psi_cuda,'psi_cuda',subname)
-     allocate(v_cuda((n1+1),(n2+1),(n3+1)+ndebug),stat=i_stat)
-     call memocc(i_stat,v_cuda,'v_cuda',subname)
-
-     psi_cuda=real(psi_in,kind=4)
-     v_cuda=real(pot,kind=4)
-
-     ! Initialisation of potential energy  
-     epot=0.0_gp
-
-     !allocate the GPU memory
-     call GPU_allocate((n1+1)*(n2+1)*(n3+1),psi_GPU,i_stat)
-     call GPU_allocate((n1+1)*(n2+1)*(n3+1),v_GPU,i_stat)
-     call GPU_allocate((n1+1)*(n2+1)*(n3+1),work_GPU,i_stat)
-
-     call GPU_send((n1+1)*(n2+1)*(n3+1),psi_cuda,psi_GPU,i_stat)
-     call GPU_send((n1+1)*(n2+1)*(n3+1),v_cuda,v_GPU,i_stat)
-
-     !copy the data on GPU(must be separated)
-     !call CUDA_ALLOC_MEM(1,2*n1+1,2*n2+1,2*n3+1,psi_cuda,v_cuda,psi_GPU,v_GPU,work_GPU)
-
-     write(*,'(a,i6,i6,i6)')'GPU Convolutions, dimensions:',n1,n2,n3
-
-     call cpu_time(t0)
-     do i=1,ntimes
-
-        !calculate the potential application on GPU
-        !call cuda_psi_to_vpsi(1,n1,n2,n3,psi_GPU,v_GPU,work_GPU,&
-        !filCUDA1,filCUDA2,lowfil1,lupfil1,lowfil2,lupfil2)
-
-        call localpotential(n1,n2,n3,psi_GPU,work_GPU,v_GPU,epotGPU)
-
-     end do
-     call cpu_time(t1)
-
-     !copy vpsi on the CPU
-     call GPU_receive((n1+1)*(n2+1)*(n3+1),psi_cuda,psi_GPU,i_stat)
-     !call GPU_receive((n1+1)*(n2+1)*(n3+1),psi_cuda,work_GPU,i_stat)
-     !     call cuda_fetch_vpsi(1,2*n1+1,2*n2+1,2*n3+1,psi_GPU,psi_cuda)
-
-     GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
-
-     write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
-          GPUtime*1.d3/real(ntimes,kind=8),&
-          real(n1*n2*n3*ntimes,kind=8)*192.d0/(GPUtime*1.d9)
-
-     !deallocate GPU memory
-     call GPU_deallocate(psi_GPU,i_stat)
-     call GPU_deallocate(v_GPU,i_stat)
-     call GPU_deallocate(work_GPU,i_stat)
-
-     !call CUDA_DEALLOCATE_MEM(1,psi_GPU,v_GPU,work_GPU)
-
-     print *,'epot=',epotGPU
-     !print *,'epot=',epot
-     !check the differences between the results
-     maxdiff=0.d0
-     do i3=1,n3+1
-        do i2=1,n2+1
-           do i1=1,n1+1
-              !write(17,*),i1,i2,i3,psi_out(i1,i2,i3),psi_cuda(i1,i2,i3)
-              maxdiff=max(abs(psi_out(i1,i2,i3)-real(psi_cuda(i1,i2,i3),kind=8)),maxdiff)
-           end do
-        end do
-     end do
-
-     if (maxdiff <= 3.d-6) then
-        write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
-             'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-             n1,n2,n3,CPUtime/GPUtime,maxdiff,&
-             CPUtime*1.d3/real(ntimes,kind=8),&
-             real(n1*n2*n3*ntimes,kind=8)*192.d0/(CPUtime*1.d9),&
-             GPUtime*1.d3/real(ntimes,kind=8),&
-             real(n1*n2*n3*ntimes,kind=8)*192.d0/(GPUtime*1.d9)
-     else
-        write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
-             'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-             n1,n2,n3,CPUtime/GPUtime,maxdiff,&
-             CPUtime*1.d3/real(ntimes,kind=8),&
-             real(n1*n2*n3*ntimes,kind=8)*192.d0/(CPUtime*1.d9),&
-             GPUtime*1.d3/real(ntimes,kind=8),&
-             real(n1*n2*n3*ntimes,kind=8)*192.d0/(GPUtime*1.d9),&
-             '<<<< WARNING' 
-     end if
-
-
-
-     i_all=-product(shape(psi_cuda))
-     deallocate(psi_cuda,stat=i_stat)
-     call memocc(i_stat,i_all,'psi_cuda',subname)
-     i_all=-product(shape(v_cuda))
-     deallocate(v_cuda,stat=i_stat)
-     call memocc(i_stat,i_all,'v_cuda',subname)
-     
-     !********************************************kinetic
-
-     ! Wavefunction expressed everywhere in fine scaling functions 
-
-     !fake initialisation, random numbers
-     !here the grid spacings are the small ones
-     sigma2=0.25d0*(((n1+1)*hx)**2+((n2+1)*hy)**2+((n3+1)*hz)**2)
-     do i3=1,n3+1
-        z=hz*real(i3-n3/2-1,kind=8)
-        do i2=1,n2+1
-           y=hy*real(i2-n2/2-1,kind=8)
-           do i1=1,n1+1
-              x=hx*real(i1-n1/2-1,kind=8)
-              !tt=abs(dsin(real(i1+i2+i3,kind=8)+.7d0))
-              r2=x**2+y**2+z**2
-              arg=0.5d0*r2/sigma2
-              tt=dexp(-arg)
-              !same initialisation for psi and pot
-              psi_in(i1,i2,i3)=tt
-           end do
-        end do
-     end do
-
-     hgridh(1)=hx
-     hgridh(2)=hy
-     hgridh(3)=hz
-
-     psi_out=0.0_wp
-
-     write(*,'(a,i6,i6,i6)')'CPU Kinetic, dimensions:',n1,n2,n3
-
-     !take timings
-     call cpu_time(t0)
-
-     do j=1,ntimes
-
-        ! compute the kinetic part and add  it to psi_out
-        ! the kinetic energy is calculated at the same time
-        call convolut_kinetic_per_T(n1,n2,n3,hgridh,psi_in,psi_out,ekin)
-
-     end do
-
-     call cpu_time(t1)
-
-     print *,'ekin=',ekin
-     ekin=0.d0
-     !check the differences between the results
-     maxdiff=0.d0
-     do i3=1,n3+1
-        do i2=1,n2+1
-           do i1=1,n1+1
-              ekin=ekin+psi_in(i1,i2,i3)*psi_out(i1,i2,i3)
-           end do
-        end do
-     end do
-
-
-     CPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
-
-     write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
-          CPUtime*1.d3/real(ntimes,kind=8),&
-          real(n1*n2*n3*ntimes,kind=8)*192.d0/(CPUtime*1.d9)
-
-     print *,'ekin=',ekin
-
-     !save the values of psi_out and of epot for GPU comparison
-
-     !create the CUDA values
-     allocate(psi_cuda((n1+1),(n2+1),(n3+1)+ndebug),stat=i_stat)
-     call memocc(i_stat,psi_cuda,'psi_cuda',subname)
-
-     psi_cuda=real(psi_in,kind=4)
-
-     ! Initialisation of potential energy  
-     epot=0.0_gp
-
-     !allocate the GPU memory
-     call GPU_allocate((n1+1)*(n2+1)*(n3+1),psi_GPU,i_stat)
-     call GPU_allocate((n1+1)*(n2+1)*(n3+1),v_GPU,i_stat)
-     call GPU_allocate((n1+1)*(n2+1)*(n3+1),work_GPU,i_stat)
-     call GPU_allocate((n1+1)*(n2+1)*(n3+1),work2_GPU,i_stat)
-
-     call GPU_send((n1+1)*(n2+1)*(n3+1),psi_cuda,work_GPU,i_stat)
-
-     write(*,'(a,i6,i6,i6)')'GPU Kinetic, dimensions:',n1,n2,n3
-
-     call cpu_time(t0)
-     do i=1,ntimes
-
-        call kineticterm(n1,n2,n3,&
-             real(hx,kind=4),real(hy,kind=4),real(hz,kind=4),0.e0,&
-             work_GPU,psi_GPU,work2_GPU,v_GPU,ekinGPU)
-
-     end do
-     call cpu_time(t1)
-
-     !copy vpsi on the CPU
-     call GPU_receive((n1+1)*(n2+1)*(n3+1),psi_cuda,psi_GPU,i_stat)
-     !call GPU_receive((n1+1)*(n2+1)*(n3+1),psi_cuda,work_GPU,i_stat)
-
-     GPUtime=real(t1-t0,kind=8)!/real(ntimes,kind=8)
-
-     write(*,'(a,f9.2,1pe12.5)')'Finished. Time(ms), GFlops',&
-          GPUtime*1.d3/real(ntimes,kind=8),&
-          real(n1*n2*n3*ntimes,kind=8)*192.d0/(GPUtime*1.d9)
- 
-     !deallocate GPU memory
-     call GPU_deallocate(psi_GPU,i_stat)
-     call GPU_deallocate(v_GPU,i_stat)
-     call GPU_deallocate(work_GPU,i_stat)
-     call GPU_deallocate(work2_GPU,i_stat)
-
-
-     print *,'ekin=',ekinGPU
-     !print *,'ekin=',ekin 
-     ekin=0.d0
-     !check the differences between the results
-     maxdiff=0.d0
-     do i3=1,n3+1
-        do i2=1,n2+1
-           do i1=1,n1+1
-              !write(17,*),i1,i2,i3,psi_out(i1,i2,i3),psi_cuda(i1,i2,i3)
-              maxdiff=max(abs(psi_out(i1,i2,i3)-real(psi_cuda(i1,i2,i3),kind=8)),maxdiff)
-              ekin=ekin+psi_in(i1,i2,i3)*real(psi_cuda(i1,i2,i3),kind=8)
-           end do
-        end do
-     end do
-
-     print *,'ekin=',ekin
-     if (maxdiff <= 3.d-4) then
-        write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4))')&
-             'n1,n2,n3,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-             n1,n2,n3,CPUtime/GPUtime,maxdiff,&
-             CPUtime*1.d3/real(ntimes,kind=8),&
-             real(n1*n2*n3*ntimes,kind=8)*192.d0/(CPUtime*1.d9),&
-             GPUtime*1.d3/real(ntimes,kind=8),&
-             real(n1*n2*n3*ntimes,kind=8)*192.d0/(GPUtime*1.d9)
-     else
-        write(*,'(a,i6,i6,i6,f9.5,1pe12.5,2(0pf9.2,0pf12.4),a)')&
-             'n,ndat,GPU/CPU ratio,Time,Gflops: CPU,GPU',&
-             n1,n2,n3,CPUtime/GPUtime,maxdiff,&
-             CPUtime*1.d3/real(ntimes,kind=8),&
-             real(n1*n2*n3*ntimes,kind=8)*192.d0/(CPUtime*1.d9),&
-             GPUtime*1.d3/real(ntimes,kind=8),&
-             real(n1*n2*n3*ntimes,kind=8)*192.d0/(GPUtime*1.d9),&
-             '<<<< WARNING' 
-     end if
-
-
-
-     i_all=-product(shape(psi_cuda))
-     deallocate(psi_cuda,stat=i_stat)
-     call memocc(i_stat,i_all,'psi_cuda',subname)
-
-
-     i_all=-product(shape(psi_in))
-     deallocate(psi_in,stat=i_stat)
-     call memocc(i_stat,i_all,'psi_in',subname)
-     i_all=-product(shape(psi_out))
-     deallocate(psi_out,stat=i_stat)
-     call memocc(i_stat,i_all,'psi_out',subname)
-     i_all=-product(shape(psir))
-     deallocate(psir,stat=i_stat)
-     call memocc(i_stat,i_all,'psir',subname)
-     i_all=-product(shape(pot))
-     deallocate(pot,stat=i_stat)
-     call memocc(i_stat,i_all,'pot',subname)
-
   else 
      print *,'wrong ndim',ndim
   end if
+
+contains
+
+  subroutine conv_kin_x(x,y,ndat,ekin)
+    implicit none
+    integer,intent(in)::ndat
+    real(wp),intent(in):: x(0:n1-1,ndat)
+    real(wp),intent(out)::y(ndat,0:n1-1)
+    real(wp),intent(inout)::ekin
+    real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
+
+    !$omp do
+    do i=0,ndat/12-1
+       do i1=0,n1-1
+          tt1=0.e0_wp
+          tt2=0.e0_wp
+          tt3=0.e0_wp
+          tt4=0.e0_wp
+          tt5=0.e0_wp
+          tt6=0.e0_wp
+          tt7=0.e0_wp
+          tt8=0.e0_wp
+          tt9 =0.e0_wp
+          tt10=0.e0_wp
+          tt11=0.e0_wp
+          tt12=0.e0_wp
+
+          do l=lowfilK,lupfilK
+             j=modarr(i1+l)
+
+             tt1=tt1+x(j,i*12+1)*fil(l)
+             tt2=tt2+x(j,i*12+2)*fil(l)
+             tt3=tt3+x(j,i*12+3)*fil(l)
+             tt4=tt4+x(j,i*12+4)*fil(l)
+             tt5=tt5+x(j,i*12+5)*fil(l)
+             tt6=tt6+x(j,i*12+6)*fil(l)
+             tt7=tt7+x(j,i*12+7)*fil(l)
+             tt8=tt8+x(j,i*12+8)*fil(l)
+             tt9 =tt9 +x(j,i*12+9 )*fil(l)
+             tt10=tt10+x(j,i*12+10)*fil(l)
+             tt11=tt11+x(j,i*12+11)*fil(l)
+             tt12=tt12+x(j,i*12+12)*fil(l)
+          enddo
+          y(i*12+1 ,i1)=tt1;	 ekin=ekin+tt1*x(i1,i*12+1)
+          y(i*12+2 ,i1)=tt2;	 ekin=ekin+tt2*x(i1,i*12+2)
+          y(i*12+3 ,i1)=tt3;	 ekin=ekin+tt3*x(i1,i*12+3)
+          y(i*12+4 ,i1)=tt4;	 ekin=ekin+tt4*x(i1,i*12+4)
+          y(i*12+5 ,i1)=tt5;	 ekin=ekin+tt5*x(i1,i*12+5)
+          y(i*12+6 ,i1)=tt6;	 ekin=ekin+tt6*x(i1,i*12+6)
+          y(i*12+7 ,i1)=tt7;	 ekin=ekin+tt7*x(i1,i*12+7)
+          y(i*12+8 ,i1)=tt8;	 ekin=ekin+tt8*x(i1,i*12+8)
+          y(i*12+9 ,i1)=tt9 ;	 ekin=ekin+tt9 *x(i1,i*12+9 )
+          y(i*12+10,i1)=tt10;	 ekin=ekin+tt10*x(i1,i*12+10)
+          y(i*12+11,i1)=tt11;	 ekin=ekin+tt11*x(i1,i*12+11)
+          y(i*12+12,i1)=tt12;	 ekin=ekin+tt12*x(i1,i*12+12)
+       enddo
+    enddo
+    !$omp end do
+
+    !$omp do
+    do i=(ndat/12)*12+1,ndat
+       do i1=0,n1-1
+          tt=0.e0_wp
+          do l=lowfilK,lupfilK
+             j=modarr(i1+l)
+             tt=tt+x(j   ,i)*fil(l)
+          enddo
+          y(i,i1)=tt ; ekin=ekin+tt*x(i1,i)
+       enddo
+    enddo
+    !$omp end do
+  end subroutine conv_kin_x
+
  
 end program conv_check
 

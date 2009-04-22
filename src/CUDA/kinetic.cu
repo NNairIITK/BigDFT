@@ -12,11 +12,6 @@
 #include "kinetic.h"
 
 #include "commonDef.h"
-
-
-#include "reduction.h"
-
-
 #include "structDef_kinetic.h"
 #include "GPUparameters.h"
 
@@ -96,8 +91,8 @@ int kineticfilter(int n1,int n2, int n3,
   cudaThreadSynchronize();
 
   //then calculate the kinetic energy
-  reducearrays<T>(n1,n2*n3,x,y,ekin);
-  cudaThreadSynchronize();
+  // reducearrays<T>(n1,n2*n3,x,y,ekin);
+  //  cudaThreadSynchronize();
 
   return 0;
 
@@ -145,8 +140,8 @@ int k1d(int ndat, int n,
   cudaThreadSynchronize();
 
   //then calculate the kinetic energy
-  reducearrays<T>(n,ndat,x,y,ekin);
-  cudaThreadSynchronize();
+  //  reducearrays<T>(n,ndat,x,y,ekin);
+  //  cudaThreadSynchronize();
   return 0;
 
 }
