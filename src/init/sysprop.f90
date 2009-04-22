@@ -521,7 +521,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
 
   !initialise the array
   do jproc=0,nproc-1
-     orbs%norb_par(jproc)=0
+     orbs%norb_par(jproc)=0 !taille 0 nproc-1
   end do
 
   !cubic-code strategy: balance the orbitals between processors

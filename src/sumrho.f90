@@ -61,6 +61,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   end if
 
   !switch between GPU/CPU treatment of the density
+  call  MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
   if (GPUconv) then
      call timing(iproc,'Rho_comput    ','OF')
      call timing(iproc,'Rho_commun    ','ON')
@@ -85,6 +87,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
           orbs%occup(min(orbs%isorb+1,orbs%norb)),orbs%spinsgn(min(orbs%isorb+1,orbs%norb)),&
           psi,rho_p)
   end if
+
+  call  MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   !the density must be communicated to meet the shape of the poisson solver
   if (nproc > 1) then
