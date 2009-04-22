@@ -24,7 +24,7 @@ program memguess
   integer :: ierror,nproc,i_stat,i_all,output_grid
   integer :: nelec,ntimes
   integer :: norbe,norbsc,nvctrp,nspin,iorb,norbu,norbd,nspinor,norb
-  integer :: iunit,ityp,norbgpu
+  integer :: iunit,ityp,norbgpu,nspin_ig
   real(kind=8) :: peakmem,hx,hy,hz
   type(input_variables) :: in
   type(atoms_data) :: atoms
@@ -145,7 +145,7 @@ program memguess
 
   if (optimise) then
      if (atoms%geocode =='F') then
-        call optimise_volume(atoms,in%crmult,in%frmult,in%hgrid,rxyz,radii_cf)
+        call optimise_volume(atoms,in%crmult,in%frmult,hx,hy,hz,rxyz,radii_cf)
      else
         call shift_periodic_directions(atoms,rxyz,radii_cf)
      end if
@@ -157,7 +157,7 @@ program memguess
 
   
   !in the case in which the number of orbitals is not "trivial" check whether they are too many
-  if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0) .and. in%nspin /=4 ) then
+  if ( max(orbs%norbu,orbs%norbd) /= ceiling(real(nelec,kind=4)/2.0)) then
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files + give norbe)
      allocate(xp(ngx,atoms%ntypes+ndebug),stat=i_stat)
      call memocc(i_stat,xp,'xp',subname)
@@ -176,10 +176,21 @@ program memguess
      allocate(locrad(atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,locrad,'locrad',subname)
 
+     if (in%nspin==4) then
+        nspin_ig=1
+     else
+        nspin_ig=in%nspin
+     end if
+
 
      ! Read the inguess.dat file or generate the input guess via the inguess_generator
-     call readAtomicOrbitals(0,ngx,xp,psiat,occupat,ng,nl,atoms,norbe,norbsc,in%nspin,&
+     call readAtomicOrbitals(0,ngx,xp,psiat,occupat,ng,nl,atoms,norbe,norbsc,nspin_ig,&
           scorb,norbsc_arr,locrad)
+
+     if (in%nspin==4) then
+        !in that case the number of orbitals double
+        norbe=2*norbe
+     end if
 
      ! De-allocations
      i_all=-product(shape(locrad))*kind(locrad)
@@ -208,7 +219,7 @@ program memguess
      call memocc(i_stat,i_all,'norbsc_arr',subname)
 
      ! Check the maximum number of orbitals
-     if (in%nspin==1) then
+     if (in%nspin==1 .or. in%nspin==4) then
         if (orbs%norb>norbe) then
            write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',orbs%norb,&
                 ') must not be greater than the number of orbitals (',norbe,&
@@ -234,9 +245,9 @@ program memguess
 
 ! Determine size alat of overall simulation cell and shift atom positions
 ! then calculate the size in units of the grid space
-  hx=in%hgrid
-  hy=in%hgrid
-  hz=in%hgrid
+  hx=in%hx
+  hy=in%hy
+  hz=in%hz
 
   call system_size(0,atoms,rxyz,radii_cf,in%crmult,in%frmult,hx,hy,hz,Glr)
 
@@ -401,12 +412,12 @@ end program memguess
 !!    Stefan Goedecker, Luigi Genovese
 !! SOURCE
 !!
-subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
+subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
   use module_base
   use module_types
   implicit none
   type(atoms_data), intent(inout) :: atoms
-  real(gp), intent(in) :: crmult,frmult,hgrid
+  real(gp), intent(in) :: crmult,frmult,hx,hy,hz
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
   !local variables
@@ -420,7 +431,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
   allocate(txyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,txyz,'txyz',subname)
 
-  call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hgrid,hgrid,hgrid,Glr)
+  call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   !call volume(nat,rxyz,vol)
   vol=atoms%alat1*atoms%alat2*atoms%alat3
   write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
@@ -471,7 +482,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
         txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
      enddo
 
-     call system_size(1,atoms,txyz,radii_cf,crmult,frmult,hgrid,hgrid,hgrid,Glr)
+     call system_size(1,atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
      tvol=atoms%alat1*atoms%alat2*atoms%alat3
      !call volume(nat,txyz,tvol)
      if (tvol < vol) then
@@ -551,9 +562,12 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
         !apply the shift to all atomic positions taking into account the modulo operation
         do iat=1,at%nat
            txyz(1,iat)=modulo(rxyz(1,iat)+shiftx*maxsh,at%alat1)
+           txyz(2,iat)=rxyz(2,iat)
+           txyz(3,iat)=rxyz(3,iat)
         end do
 
         call calc_vol(at%geocode,at%nat,txyz,tvol)
+        !print *,'vol',tvol
 
         if (tvol < vol) then
            write(*,'(1x,a,1pe16.8,1x,i0,1x,f15.5)')'Found new best volume: ',tvol
@@ -570,7 +584,9 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
 
         !apply the shift to all atomic positions taking into account the modulo operation
         do iat=1,at%nat
+           txyz(1,iat)=rxyz(1,iat)
            txyz(2,iat)=modulo(rxyz(2,iat)+shifty*maxsh,at%alat2)
+           txyz(3,iat)=rxyz(3,iat)
         end do
 
         call calc_vol(at%geocode,at%nat,txyz,tvol)
@@ -590,6 +606,8 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
 
         !apply the shift to all atomic positions taking into account the modulo operation
         do iat=1,at%nat
+           txyz(1,iat)=rxyz(1,iat)
+           txyz(2,iat)=rxyz(2,iat)
            txyz(3,iat)=modulo(rxyz(3,iat)+shiftz*maxsh,at%alat3)
         end do
 
@@ -644,7 +662,7 @@ subroutine calc_vol(geocode,nat,rxyz,vol)
      czmax=max(czmax,rxyz(3,iat)) 
      czmin=min(czmin,rxyz(3,iat))
   enddo
-
+  !print *,cxmax,cxmin,cymax,cymin,czmax,czmin
   !now calculate the volume for the periodic part
   if (geocode == 'P') then
      vol=(cxmax-cxmin)*(cymax-cymin)*(czmax-czmin)

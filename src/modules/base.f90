@@ -35,7 +35,7 @@ module module_base
   !flag for GPU computing, if CUDA libraries are present
   !in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !this value can be changed in the read_input_variables routine
-  logical :: GPUconv=.false.,GPUblas=.false.
+  logical :: GPUconv=.false.,GPUblas=.false.,GPUshare=.false.
 
   !logical parameter for the projectors application strategy (true for distributed way)
   !if the projector allocation passes the memorylimit this is switched to true
@@ -64,6 +64,10 @@ module module_base
   interface sygv
      module procedure sygv_simple,sygv_double
   end interface
+  interface hegv
+     module procedure hegv_simple,hegv_double
+  end interface
+
 
   !interfaces for BLAS routines
   interface gemm
@@ -268,6 +272,28 @@ module module_base
       !call to LAPACK routine
       call dsygv(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,info)
     end subroutine sygv_double
+
+    subroutine hegv_simple(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,rwork,info)
+      implicit none
+      character(len=1), intent(in) :: jobz,uplo
+      integer, intent(in) :: lda,lwork,n,itype,ldb
+      integer, intent(out) :: info
+      real(kind=4), intent(inout) :: a,work,rwork,b
+      real(kind=4), intent(out) :: w
+      !call to LAPACK routine
+      call chegv(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,rwork,info)
+    end subroutine hegv_simple
+
+    subroutine hegv_double(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,rwork,info)
+      implicit none
+      character(len=1), intent(in) :: jobz,uplo
+      integer, intent(in) :: lda,lwork,n,itype,ldb
+      integer, intent(out) :: info
+      real(kind=8), intent(inout) :: a,work,rwork,b
+      real(kind=8), intent(out) :: w
+      !call to LAPACK routine
+      call zhegv(itype,jobz,uplo,n,a,lda,b,ldb,w,work,lwork,rwork,info)
+    end subroutine hegv_double
 
 
     !interfaces for BLAS routines

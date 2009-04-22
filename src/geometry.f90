@@ -68,11 +68,23 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
 
   if (iproc ==0)  write(*,'(a,1x,a)') ' Begin of minimization using ',parmin%approach
   if(trim(parmin%approach)=='LBFGS') then
+
+     if (iproc ==0) write(*,*) '# ENTERING BFGS'
+
      call bfgs(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
-     if (fail) call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
+
+     if (fail) then 
+
+        if (iproc ==0) write(*,*) '# ENTERING CG after BFGS failure'
+        call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
+
+     end if
+
   else if(trim(parmin%approach)=='SDCG') then
-     if (iproc ==0) write(*,*) 'ENTERING CG'
+
+     if (iproc ==0) write(*,*) '# ENTERING CG'
      call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
+
   else
      stop 'geometry optimization method undefined'
   endif
@@ -123,7 +135,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   iwrite=0
 
   fluctsum=0._gp
-  nfluct=0._gp
+  nfluct=0
 
   !Silicon has to be atom of type 1 and the posinp has to start with all Si atoms
   n_silicon=0
@@ -212,9 +224,11 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   iwrite=0
 
   if (iproc==0)    write(*,*) 'Maximum number of SD steps used in the beginning: ',nitsd
+
   if (iproc==0 .and. .not.autoprecon .and. iprecon.ne.-1)   write(*,*) 'Number of precon steps: ',iprecon
 
-  call steepdes(nproc,iproc,at,x,epot,f,rst,ncount_bigdft,fluctsum,nfluct,fnrm,in,fnormmax_sw,nitsd)
+  call steepdes(nproc,iproc,at,x,epot,f,rst,ncount_bigdft,fluctsum,nfluct,fnrm,in,&
+       fnormmax_sw,nitsd,fluct)
 
   call fnrmandforcemax(f,tmp,fmax,at)
   !check if the convergence is reached after SD
@@ -287,11 +301,16 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         !                if (iproc==0) call wtposout(????ncount_bigdft+500,epot,x,at)
         in%inputPsiId=1
         call call_bigdft(nproc,iproc,at,x,in,epot,f,rst,infocode)
+
+        if (iproc == 0) call transforce(at%nat,f)
+
         ncount_bigdft=ncount_bigdft + 1
         if (ncount_bigdft==1) ehist(1)=epot
         xdft(:)=x(:)
-        call updatefluctsum(at%nat,f,nfluct,fluctsum,fluct)
+
         call fnrmandforcemax(f,fnrm,fmax,at)
+        if (fmax < 3.d-1) call updatefluctsum(at%nat,f,nfluct,fluctsum,fluct)
+
         call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
 
      endif
@@ -393,14 +412,14 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         cycle bfgs_loop
      endif
 
-     if(iproc==0) then
-        write(123,*) n/3
-        write(123,*) iconf, ncount_bigdft, "After bfgs and transform"
-        do i=1,n,3
-           write(123,'(a,3e24.15)') 'Si',x(i:i+2) !*0.529177d0
-        enddo
-        iconf=iconf+1
-     endif
+!!$     if(iproc==0) then
+!!$        write(123,*) n/3
+!!$        write(123,*) iconf, ncount_bigdft, "After bfgs and transform"
+!!$        do i=1,n,3
+!!$           write(123,'(a,3e24.15)') 'Si',x(i:i+2) !*0.529177d0
+!!$        enddo
+!!$        iconf=iconf+1
+!!$     endif
 
      if (iproc.eq.0 .AND. parmin%iflag.ne.2)  write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=', &
           fmax,'fnrm=',    fnrm    ,'fluct=', fluct 
@@ -415,6 +434,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         if (iproc==0) write(16,*) "Error in BFGS, switching to SD and CG"
         x(:)=xwrite(:)
         fail=.true. 
+        !write(100+iproc,*) 'positions:',x
         exit
      endif
 
@@ -876,7 +896,8 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   call memocc(i_stat,hh,'hh',subname)
 
   anoise=1.e-4_gp
-  fluctsum=0._gp ; nfluct=0._gp
+  fluctsum=0._gp 
+  nfluct=0
 
   if (in%betax <= 0._gp) then
      call detbetax(nproc,iproc,at,rxyz,rst,in,ncount_bigdft)
@@ -888,7 +909,12 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   nitsd=500
 
   !start with a steepest descent algorithm
-  call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,fluctsum,nfluct,fnrm,in,in%forcemax,nitsd)
+  call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,&
+       fluctsum,nfluct,fnrm,in,in%forcemax,nitsd,fluct)
+  if (ncount_bigdft >= in%ncount_cluster_x) then
+     call close_and_deallocate
+     return
+  end if
 
   !calculate the max of the forces
   call fnrmandforcemax(fxyz,tmp,fmax,at)
@@ -942,6 +968,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         in%output_grid=0
         in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,tpos,in,tetot,gpf,rst,infocode)
+        if (iproc == 0) call transforce(at%nat,gpf)
         ncount_bigdft=ncount_bigdft+1
 
         !C projection of gradients at beta=0 and beta onto hh
@@ -990,6 +1017,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         end do
 
         call call_bigdft(nproc,iproc,at,rxyz,in,etot,fxyz,rst,infocode)
+        if (iproc == 0) call transforce(at%nat,fxyz)
         ncount_bigdft=ncount_bigdft+1
         !if the energy goes up (a small tolerance of anoise is allowed)
         !switch back to SD
@@ -1003,7 +1031,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
               rxyz(3,iat)=tpos(3,iat)
            end do
 
-           call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,fluctsum,nfluct,fnrm,in,in%forcemax,nitsd)
+           call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,fluctsum,nfluct,fnrm,in,in%forcemax,nitsd,fluct)
 
            !calculate the max of the forces
            call fnrmandforcemax(fxyz,tmp,fmax,at)
@@ -1026,7 +1054,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
 
         !if (iproc.eq.0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_bigdft,etot,sqrt(fnrm)
 
-        call updatefluctsum(at%nat,fxyz,nfluct,fluctsum,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(at%nat,fxyz,nfluct,fluctsum,fluct)
 
 
         obenx=0._gp
@@ -1080,7 +1108,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
               rxyz(3,iat)=tpos(3,iat)
            end do
 
-           call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,fluctsum,nfluct,fnrm,in,in%forcemax,nitsd)
+           call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,fluctsum,nfluct,fnrm,in,in%forcemax,nitsd,fluct)
 
            !calculate the max of the forces
            call fnrmandforcemax(fxyz,tmp,fmax,at)
@@ -1113,7 +1141,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
      write(*,*) 'average CG stepsize in terms of betax',avbeta/avnum,iproc
   end if
 
-  call close_and_deallocate
+ call close_and_deallocate
 
 contains
 
@@ -1134,7 +1162,7 @@ contains
 
 end subroutine conjgrad
 
-subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,nfluct,fnrm,in,forcemax_sw,nitsd)
+subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,nfluct,fnrm,in,forcemax_sw,nitsd,fluct)
   use module_base
   use module_types
   !use module_interfaces
@@ -1146,14 +1174,14 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,nfluc
   integer, intent(inout) :: ncount_bigdft
   real(gp), dimension(3,at%nat), intent(inout) :: rxyz
   real(gp), intent(out) :: fnrm,etot
-  real(gp), intent(inout) :: fluctsum
+  real(gp), intent(inout) :: fluctsum,fluct
   real(gp), dimension(3,at%nat), intent(out) ::ff
   real(gp), intent(in)::forcemax_sw
   !local variables
   character(len=*), parameter :: subname='steepdes'
   logical :: care, check
-  integer :: nsatur,iat,itot,itsd,i_stat,i_all,infocode,neqbx
-  real(gp) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise,sumx,sumy,sumz,fluct
+  integer :: nsatur,iat,itot,itsd,i_stat,i_all,infocode,nbeqbx
+  real(gp) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise,sumx,sumy,sumz
   real(gp) :: fmax,t1,t2,t3,de1,de2,df1,df2,tmp,beta
   real(gp), allocatable, dimension(:,:) :: tpos
   character*4 fn4
@@ -1162,11 +1190,12 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,nfluc
   allocate(tpos(3,at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,tpos,'tpos',subname)
 
-  anoise=0.d-4
+  anoise=0.e-4_gp
+  fluct=0._gp
 
   beta=in%betax
   care=.true.
-  neqbx=0
+  nbeqbx=0
   nsatur=0
   etotitm2=1.e100_gp
   fnrmitm2=1.e100_gp
@@ -1184,8 +1213,8 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,nfluc
   redo_sd: do
      if (ncount_bigdft.gt.in%ncount_cluster_x) then 
         if (iproc.eq.0) then
-           write(*,*) 'ncount_bigdft in SD1',ncount_bigdft
-           write(16,*) 'SD FINISHED',iproc
+           write(*,*) 'SD FINISHED because ncount_bigdft > ncount_cluster_x',iproc,ncount_bigdft,in%ncount_cluster_x
+           write(16,*) 'SD FINISHED because ncount_bigdft > ncount_cluster_x',iproc,ncount_bigdft,in%ncount_cluster_x
         end if
 
         i_all=-product(shape(tpos))*kind(tpos)
@@ -1203,6 +1232,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,nfluc
         in%output_grid=0
         in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,rxyz,in,etot,ff,rst,infocode)
+        if (iproc == 0) call transforce(at%nat,ff)
         ncount_bigdft=ncount_bigdft+1
 
         !if the energy goes up (a small tolerance is allowed by anoise)
@@ -1237,7 +1267,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,nfluc
         df1=fnrm-fnrmitm1
         df2=fnrm-2._gp*fnrmitm1+fnrmitm2
 
-        call updatefluctsum(at%nat,ff,nfluct,fluctsum,fluct)
+        if (fmax < 3.d-1) call updatefluctsum(at%nat,ff,nfluct,fluctsum,fluct)
         if (iproc.eq.0) then
            write(16,'(a,6(1x,e10.3),1x,i2)') 'fmax, fnrm/fnrmitm1, de1<0 , de2>0 , df1<0 , df2>0 ,nsatur',  & 
                 fmax, fnrm/fnrmitm1,de1,de2,df1,df2,nsatur
@@ -1248,7 +1278,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,nfluc
         if (care .and. itsd >= 3 .and. beta == in%betax .and. &
              df1 < anoise .and. &                              !forces are decreasing
              de1 > -.1_gp .and. de1 < anoise .and. &            !energy slowly decreasing
-             fmax <= .01_gp .and. fnrm/fnrmitm1 > .50_gp .and. &   !norm of forces is saturating
+             fmax <= .03_gp .and. fnrm/fnrmitm1 > .50_gp .and. &   !norm of forces is saturating
              de2 > -2._gp*anoise .and. df2 > -2._gp*anoise) then !close to a local minimum (E&F)
            nsatur=nsatur+1
         else
@@ -1268,20 +1298,41 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,nfluc
         end if
 
 
-        if (iproc==0)   write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*in%frac_fluct,fluct
+        if (iproc==0) then
+           write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',&
+                fnrm,fluct*in%frac_fluct,fluct
+        end if
 
         !exit statements
 
         !the norm of the forces is of the same order of the fluctuations
         !or we are much too close to the fixed point from the SD viewpoint
         !or the forces are below the fixed tolerance
+
+        if (iproc==0) then
+            if (fnrm < fluct*in%frac_fluct ) write(*,*)&
+                 'SD EXIT because fnrm < fluct*frac_fluct' ,&
+                 fnrm,fluct*in%frac_fluct
+            if (fmax < forcemax_sw ) write(*,*)&
+                 'SD EXIT because fmax < forcemax_sw ',&
+                 fmax , forcemax_sw
+            if (nsatur > 5  ) write(*,*)&
+                 'SD EXIT because nsatur > 5 ',nsatur 
+            if (fnrm < fluct*in%frac_fluct ) write(16,*) &
+                 'SD EXIT because fnrm < fluct*frac_fluct',&
+                 fnrm , fluct*in%frac_fluct
+            if (fmax < forcemax_sw ) write(16,*)&
+                 'SD EXIT because fmax < forcemax_sw ' ,fmax , forcemax_sw
+            if (nsatur > 5  ) write(16,*) 'SD EXIT because nsatur > 5 ',nsatur 
+        endif
+
         if (fnrm < fluct*in%frac_fluct .or. &
              nsatur > 5 .or. fmax < forcemax_sw) &
              exit loop_sd
 
         !maximum number of allowed iterations reached
         if (ncount_bigdft > in%ncount_cluster_x) then 
-           if (iproc.eq.0) write(*,*) 'ncount_bigdft in SD2',ncount_bigdft
+           if (iproc == 0) write(*,*) 'ncount_bigdft in SD2',ncount_bigdft,in%ncount_cluster_x
            exit loop_sd
         endif
 
@@ -1303,17 +1354,17 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,nfluc
         fnrmitm1=fnrm
         
         beta=min(1.2_gp*beta,in%betax)
-        if (beta /= in%betax) nbeqbx=0
+!!$        if (beta /= in%betax) nbeqbx=0
         if (beta == in%betax) then 
            !     if (iproc.eq.0) write(16,*) 'beta=betax'
            care=.true.
-           !if beta=betax since too many iterations (say 5),
-           !then betax can be increased
-           nbeqbx=nbeqbx+1
-           if (nbeqbx == 5) then
-              in%betax=1.2_gp*in%betax
-              nbeqbx=0
-           end if
+!!$           !if beta=betax since too many iterations (say 5),
+!!$           !then betax can be increased
+!!$           nbeqbx=nbeqbx+1
+!!$           if (nbeqbx == 5) then
+!!$              in%betax=1.2_gp*in%betax
+!!$              nbeqbx=0
+!!$           end if
         endif
         if (iproc.eq.0) write(16,*) 'beta=',beta
         do iat=1,at%nat
@@ -1500,8 +1551,9 @@ end subroutine detbetax
 subroutine convcheck(fnrm, fmax, fluctfrac_fluct, forcemax, check)
   use module_base
   implicit none
-  logical, intent(INOUT)::check
-  real(gp), intent(IN):: fnrm, fmax, fluctfrac_fluct,forcemax
+  real(gp), intent(in):: fnrm, fmax, fluctfrac_fluct,forcemax
+  logical, intent(out)::check
+
 
   check=.false.
   if (fnrm < fluctfrac_fluct .or. &
@@ -1529,7 +1581,9 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,at)
         t1=t1+ff(1,iat)**2 
         t2=t2+ff(2,iat)**2 
         t3=t3+ff(3,iat)**2
+        !in general fmax is measured with the inf norm
         fmax=max(fmax,sqrt(ff(1,iat)**2+ff(2,iat)**2+ff(3,iat)**2))
+        !fmax=max(fmax,abs(ff(1,iat)),abs(ff(2,iat)),abs(ff(3,iat)))
      end if
   enddo
 
@@ -1541,11 +1595,14 @@ end subroutine fnrmandforcemax
 subroutine updatefluctsum(nat,fxyz,nfluct,fluctsum,fluct)
   use module_base
   implicit none
+  integer, intent(in) :: nat
   real(gp),intent(inout):: fluctsum,fluct
-  real(gp),intent(in):: fxyz(3,nat)
-  real(gp):: sumx,sumy,sumz
+  real(gp), dimension(3,nat), intent(in) :: fxyz
   integer, intent(inout):: nfluct
-  integer ::iat, nat
+  !local variables
+  real(gp), save :: fluct_im1,fluct_im2,fluct_i
+  integer :: iat
+  real(gp) :: sumx,sumy,sumz
 
   sumx=0._gp 
   sumy=0._gp 
@@ -1556,9 +1613,47 @@ subroutine updatefluctsum(nat,fxyz,nfluct,fluctsum,fluct)
      sumz=sumz+fxyz(3,iat)
   end do
   nfluct=nfluct+1
+!!$  !limit the fluctuation value to n=3
+!!$  !to be done only in the case of SDCG
+!!$  !for BFGS it is best to consider everything
+!!$  if (nfluct >= 3) then
+!!$     fluct_im2=fluct_im1
+!!$     fluct_im1=fluct_i
+!!$  else if (nfluct == 2) then
+!!$     fluct_im2=0.0_gp
+!!$     fluct_im1=fluct_i
+!!$  else if (nfluct == 1) then
+!!$     fluct_im2=0.0_gp
+!!$     fluct_im1=0.0_gp
+!!$  end if
+!!$  fluct_i=sumx**2+sumy**2+sumz**2
+!!$  fluct=sqrt(real(nat,gp))*(fluct_i+fluct_im1+fluct_im2)/3.0_gp
+
   fluctsum=fluctsum+sumx**2+sumy**2+sumz**2
-  fluct=fluctsum*sqrt(real(nat,8))/real(nfluct,8)
+  !commented out, it increases the fluctuation artificially
+  fluct=fluctsum*sqrt(real(nat,gp))/real(nfluct,gp)
 end subroutine updatefluctsum
+
+subroutine transforce(nat,fxyz)
+  use module_base
+  implicit none
+  real(gp),intent(in):: fxyz(3,nat)
+  real(gp):: sumx,sumy,sumz
+  integer ::iat, nat
+
+  sumx=0._gp 
+  sumy=0._gp 
+  sumz=0._gp
+  do iat=1,nat
+     sumx=sumx+fxyz(1,iat) 
+     sumy=sumy+fxyz(2,iat) 
+     sumz=sumz+fxyz(3,iat)
+  end do
+  write(*,*) 'translational force along x=', sumx
+  write(*,*) 'translational force along y=', sumy
+  write(*,*) 'translational force along z=', sumz
+end subroutine transforce
+
 
 !*****************************************************************************************
 subroutine lbfgs(n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)

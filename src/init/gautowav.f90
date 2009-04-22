@@ -417,15 +417,15 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(in) :: orbs
   type(gaussian_basis), intent(in) :: G
-  real(wp), dimension(G%ncoeff,orbs%norbp), intent(in) :: wfn_gau
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp), intent(out) :: psi
+  real(wp), dimension(G%ncoeff,orbs%nspinor,orbs%norbp), intent(in) :: wfn_gau
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(out) :: psi
 
   !local variables
   character(len=*), parameter :: subname='gaussians_to_wavelets'
   integer, parameter :: nterm_max=3
   logical :: myorbital,maycalc
-  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,i,nterm,ierr,ig
-  real(dp) :: normdev,tt,scpr
+  integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,i,nterm,ierr,ig,ispinor
+  real(dp) :: normdev,tt,scpr,totnorm
   real(gp) :: rx,ry,rz
   integer, dimension(nterm_max) :: lx,ly,lz
   real(gp), dimension(nterm_max) :: fac_arr
@@ -437,7 +437,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   call memocc(i_stat,tpsi,'tpsi',subname)
 
   !initialize the wavefunction
-  call razero((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp,psi)
+  call razero((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor,psi)
   !this can be changed to be passed only once to all the gaussian basis
   !eks=0.d0
   !loop over the atoms
@@ -467,10 +467,12 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
            loop_calc: do iorb=1,orbs%norb
               if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
                  jorb=iorb-orbs%isorb
-                 if (wfn_gau(icoeff,jorb) /= 0.0_wp) then
-                    maycalc=.true.
-                    exit loop_calc
-                 end if
+                 do ispinor=1,orbs%nspinor
+                    if (wfn_gau(icoeff,ispinor,jorb) /= 0.0_wp) then
+                       maycalc=.true.
+                       exit loop_calc
+                    end if
+                 end do
               end if
            end do loop_calc
            if (maycalc) then
@@ -488,13 +490,17 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
            do iorb=1,orbs%norb
               if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
                  jorb=iorb-orbs%isorb
-                 if (wfn_gau(icoeff,jorb) /= 0.0_wp) then
-                    !print *,icoeff,iorb,iat,jorb,G%nat
-                    do i=1,wfd%nvctr_c+7*wfd%nvctr_f
-                       !for this also daxpy BLAS can be used
-                       psi(i,jorb)=psi(i,jorb)+wfn_gau(icoeff,jorb)*tpsi(i)
-                    end do
-                 end if
+                 do ispinor=1,orbs%nspinor
+!!$                    if (wfn_gau(icoeff,ispinor,jorb) /= 0.0_wp) then
+!!$                       !print *,icoeff,iorb,iat,jorb,G%nat
+!!$                    do i=1,wfd%nvctr_c+7*wfd%nvctr_f
+!!$                       !for this also daxpy BLAS can be used
+!!$                       psi(i,jorb)=psi(i,jorb)+wfn_gau(icoeff,jorb)*tpsi(i)
+!!$                    end do
+                    call axpy(wfd%nvctr_c+7*wfd%nvctr_f,wfn_gau(icoeff,ispinor,jorb),&
+                         tpsi(1),1,psi(1,ispinor,jorb),1)
+!!$                    end if
+                 end do
               end if
            end do
            icoeff=icoeff+1
@@ -517,10 +523,16 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   do iorb=1,orbs%norb
      if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
         jorb=iorb-orbs%isorb
-        call wnrm(wfd%nvctr_c,wfd%nvctr_f,psi(1,jorb),psi(wfd%nvctr_c+1,jorb),scpr) 
-        call wscal(wfd%nvctr_c,wfd%nvctr_f,real(1.0_dp/sqrt(scpr),wp),psi(1,jorb),psi(wfd%nvctr_c+1,jorb))
-        !write(*,'(1x,a,i5,1pe14.7)')'norm of orbital ',iorb,scpr
-        tt=max(tt,abs(1.0_dp-scpr))
+        totnorm=0.0_dp
+        do ispinor=1,orbs%nspinor !to be verified in case of nspinor=4
+           call wnrm(wfd%nvctr_c,wfd%nvctr_f,psi(1,ispinor,jorb),psi(wfd%nvctr_c+1,ispinor,jorb),scpr) 
+           totnorm=totnorm+scpr
+        end do
+        do ispinor=1,orbs%nspinor !to be verified in case of nspinor=4
+           call wscal(wfd%nvctr_c,wfd%nvctr_f,real(1.0_dp/sqrt(totnorm),wp),psi(1,ispinor,jorb),psi(wfd%nvctr_c+1,ispinor,jorb))
+        end do
+        !write(*,'(1x,a,i5,1pe14.7)')'norm of orbital ',iorb,totnorm
+        tt=max(tt,abs(1.0_dp-totnorm))
      end if
   end do
   if (nproc > 1) then

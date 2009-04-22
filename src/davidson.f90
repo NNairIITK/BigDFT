@@ -75,7 +75,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
                         !v, that is psivirt, is transposed on input and direct on output
   !local variables
   character(len=*), parameter :: subname='davidson'
-  character(len=10)::orbname
+  character(len=10) :: orbname,comment
   logical :: msg !extended output
   integer :: n2virt,n2virtp,ierr,i_stat,i_all,iorb,jorb,iter,nwork,ind,i1,i2!<-last 3 for debug
   integer :: ise,ish,jnd
@@ -610,16 +610,18 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
         exit 
      end if
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
-     write(orbname,'(A,i3.3)')'virtual',iorb
-     call plot_wf(orbname,lr,hx,hy,hz,rxyz(1,1),rxyz(2,1),rxyz(3,1),v(ind:))
+     write(orbname,'(A,i3.3)')'virtual',iorb+orbsv%isorb
+     write(comment,'(1pe10.6)')e(iorb+orbsv%isorb,1,1)
+     call plot_wf(orbname,lr,hx,hy,hz,rxyz(1,1),rxyz(2,1),rxyz(3,1),v(ind:),comment)
   end do
 
   do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
-     if(orbs%norb-iorb+orbs%isorb+1+nvirt > nplot)exit! we have written nplot pot files
+     if(orbs%norb-iorb-orbs%isorb+1+nvirt > nplot)exit! we have written nplot pot files
      !adress
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
-     write(orbname,'(A,i3.3)')'orbital',iorb
-     call plot_wf(orbname,lr,hx,hy,hz,rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(ind:))
+     write(orbname,'(A,i3.3)')'orbital',iorb+orbs%isorb
+     write(comment,'(1pe10.6)')orbs%eval(iorb+orbs%isorb)
+     call plot_wf(orbname,lr,hx,hy,hz,rxyz(1,1),rxyz(2,1),rxyz(3,1),psi(ind:),comment)
   end do
   ! END OF PLOTTING
 

@@ -5,7 +5,7 @@ SUBDIRS =
 EXTRA_DIST = \
 	input.dat \
 	posinp \
-	cpu_gpu_aff.config
+	GPU.config
 
 PPFILES = \
 	psppar.Si
@@ -20,6 +20,6 @@ $(PPFILES):
 check: $(PPFILES) 
 	cp -f $(top_srcdir)/tests/GPU/input.dat .
 	cp -f $(top_srcdir)/tests/GPU/posinp .
-	cp -f $(top_srcdir)/tests/GPU/cpu_gpu_aff.config .
+	cp -f $(top_srcdir)/tests/GPU/GPU.config .
 	$(top_builddir)/src/cluster > GPU.out
 	python $(top_srcdir)/tests/fldiff.py --bigdft GPU.out $(top_srcdir)/tests/Refs/GPU.out.ref | tee fldiff.report

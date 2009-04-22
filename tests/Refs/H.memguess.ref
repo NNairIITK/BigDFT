@@ -21,10 +21,11 @@
                         D        D     F         T    T    
                                  D     F        T     T    
                                 D               T    T     
-                           DDDDD       F         TTTT                     (Ver 1.1.9)
+                           DDDDD       F         TTTT                     (Ver 1.2.3)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
+                                   The Journal of Chemical Physics 129, 014109 (2008)
  Number of atoms     = 1
  Number of atom types= 1
  Atoms of type 1 are H
@@ -36,9 +37,9 @@
  Spin-polarised calculation:  NO 
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Grid spacing=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
-        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=      50 | Extension= 5.0
- total charge=      0 |                    | CG Prec.Steps=      15 |  CG Steps=  30
+ Max. hgrid =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 5.0
+ total charge=      0 |                    | CG Prec.Steps=       7 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
@@ -55,6 +56,7 @@
     Shift of=  6.75000E+00  6.75000E+00  6.75000E+00 Grid Spacings=  0.45  0.45  0.45
    Box Sizes=  1.35000E+01  1.35000E+01  1.35000E+01           30        30        30
        Extremes for the high resolution grid points:        13<17     13<17     13<17
+ wavelet localization is ON
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1       H               1                    0
@@ -81,6 +83,6 @@
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 20 MB
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 20 allocations and 20 deallocations, remaining memory(B):0
+ 21 allocations and 21 deallocations, remaining memory(B):0
  memory occupation peak: 0 MB
  for the array  logrid_f in the routine MemoryEstimator

@@ -20,8 +20,10 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   integer :: ind1,ind2,ind3,ind1s,ind2s,ind3s,oidx,sidx,nspinn
   integer :: i00,i0,i1,i2,i3,i3off,i3s,isjmp,i,ispin,iorb,jproc,i_all,i_stat,ierr,j3,j3p,j
   real(dp) :: charge,tt
-  real(wp), dimension(:,:), allocatable :: tmred
+  real(dp), dimension(:,:), allocatable :: tmred
   real(dp), dimension(:,:), pointer :: rho_p
+
+!  real(kind=8) :: stream_ptr
 
   call timing(iproc,'Rho_comput    ','ON')
 
@@ -60,29 +62,11 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
 
   !switch between GPU/CPU treatment of the density
   if (GPUconv) then
-     call timing(iproc,'Rho_comput    ','OF')
-     call timing(iproc,'Rho_commun    ','ON')
-     !copy the wavefunctions on GPU
-     do iorb=1,orbs%norbp
-        call GPU_send((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
-             psi(1,(iorb-1)*orbs%nspinor+1),GPU%psi(iorb),i_stat)
-     end do
-     call timing(iproc,'Rho_commun    ','OF')
-     call timing(iproc,'Rho_comput    ','ON')
-
-     !calculate the density
-     call gpu_locden(lr,nspin,hxh,hyh,hzh,orbs,GPU)
-
-     !copy back the results and leave the uncompressed wavefunctions on the card
-     call GPU_receive(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin,rho_p,GPU%rhopot,i_stat)
+     call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   else
      !initialize the rho array at 10^-20 instead of zero, due to the invcb ABINIT routine
-     if(orbs%nspinor==4) then 
-        call razero(lr%d%n1i*lr%d%n2i*nrhotot*orbs%nspinor,rho_p)
-        call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot,rho_p,nproc)
-     else
-        call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p,nproc)
-     end if
+     call razero(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p)
+     call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p,nproc)
 
      !for each of the orbitals treated by the processor build the partial densities
      call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
@@ -150,8 +134,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
      do i=1,lr%d%n1i*lr%d%n2i*nscatterarr(iproc,2)
 !!$        tt=tt+rho(i+i3off,ispin)
         tmred(ispin,itmred)=tmred(ispin,itmred)+rho(i+i3off,ispin)
-!!$        !temporary check for debugging purposes
-!!$        if (rho(i+i3off,ispin) < 9.d-21) then
+        !temporary check for debugging purposes
+!!$        if (rho(i+i3off,ispin)/rho(i+i3off,ispin) /= 1.d0) then
 !!$           print *,iproc,'error in density construction',rho(i+i3off,ispin)
 !!$        end if
      enddo
@@ -217,7 +201,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   type(locreg_descriptors), intent(in) :: lr
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
   real(gp), dimension(norbp), intent(in) :: occup,spinsgn
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,norbp*nspinor), intent(in) :: psi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor,norbp), intent(in) :: psi
   real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,max(nspin,nspinor)), intent(inout) :: rho_p
   !local variables
   character(len=*), parameter :: subname='local_partial_density'
@@ -330,7 +314,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
      if (hfac /= 0.d0) then
 
         !sum for complex function case, npsir=1 in that case
-        do oidx=(iorb-1)*nspinor,(iorb-1)*nspinor+ncomplex
+        do oidx=0,ncomplex
 
            select case(lr%geocode)
            case('F')
@@ -341,7 +325,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
                       lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),  & 
                       lr%wfd%nseg_f,lr%wfd%nvctr_f,&
                       lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1), &
-                      scal,psi(1,oidx+sidx),psi(lr%wfd%nvctr_c+1,oidx+sidx),&
+                      scal,psi(1,oidx+sidx,iorb),psi(lr%wfd%nvctr_c+1,oidx+sidx,iorb),&
                       x_c_psifscf,x_f_psig)
 
                  call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,&
@@ -364,7 +348,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
                          lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
                          lr%wfd%nseg_f,lr%wfd%nvctr_f,&
                          lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1), &
-                         psi(1,oidx+sidx),psi(lr%wfd%nvctr_c+1,oidx+sidx),&
+                         psi(1,oidx+sidx,iorb),psi(lr%wfd%nvctr_c+1,oidx+sidx,iorb),&
                          x_c_psifscf,x_f_psig,&
                          nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
 
@@ -375,7 +359,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
                          lr%wfd%nvctr_c,lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
                          lr%wfd%nseg_f,lr%wfd%nvctr_f,&
                          lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),&
-                         psi(1,oidx+sidx),psi(lr%wfd%nvctr_c+1,oidx+sidx),&
+                         psi(1,oidx+sidx,iorb),psi(lr%wfd%nvctr_c+1,oidx+sidx,iorb),&
                          x_c_psifscf,psir(1,sidx))
 
                     call convolut_magic_n_per_self(2*n1+1,2*n2+1,2*n3+1,&
@@ -394,7 +378,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
                       lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
                       lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg(1,lr%wfd%nseg_c+1),&
                       lr%wfd%keyv(lr%wfd%nseg_c+1),   &
-                      psi(1,oidx+sidx),psi(lr%wfd%nvctr_c+1,oidx+sidx),x_c_psifscf,&
+                      psi(1,oidx+sidx,iorb),psi(lr%wfd%nvctr_c+1,oidx+sidx,iorb),x_c_psifscf,&
                       psir(1,sidx))
 
                  call convolut_magic_n_slab_self(2*n1+1,2*n2+15,2*n3+1,x_c_psifscf,&
