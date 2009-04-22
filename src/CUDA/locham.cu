@@ -1,4 +1,4 @@
-/****u* CUDA/anasyn.cu
+/****U* CUDA/anasyn.cu
 **
 ** 
 ** AUTHOR
@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <cublas.h>
 #include "commonDef.h"
-#include "reduction.h"
 #include "GPUparameters.h"
 
 //#include "locpot.h"  //for mf1d and magicfilterpot fcts

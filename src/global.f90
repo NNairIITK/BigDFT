@@ -262,8 +262,6 @@ program MINHOP
   !        alphax=1.d-3  ! LJ
   !       if (iproc.eq.0) write(67,*) alphax,'optimal stepsize for LJ systems'
 
-  !call read_input_variables(iproc,'input.dat',inputs)
-  !call my_input_variables(iproc,.true.,inputs)
   inputs_opt%inputPsiId=0
 
 
@@ -277,7 +275,7 @@ program MINHOP
 
   write(17,*) 'ENERGY ',e_pos
   energyold=1.d100
-  ncount_cluster=0
+  ncount_bigdft=0
 
 
   !        if(irestart>0)then
@@ -293,12 +291,13 @@ program MINHOP
 
   if (iproc.eq.0) write(*,*)'# calling conjgrad for the first time here. energy ',e_pos
 
-  !call my_input_variables(iproc,.true.,inputs)
   if (atoms%geocode.eq.'P') & 
        call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,pos)
-  call conjgrad(nproc,iproc,atoms,pos,e_pos,ff,rst,ncount_cluster,inputs_opt)
-  if (iproc.eq.0) write(67,*) ncount_cluster,' Wvfnctn Opt. steps for accurate initial conf'
-  if (iproc.eq.0) write(*,*)'# ', ncount_cluster,' Wvfnctn Opt. steps for accurate initial conf'
+
+    call geopt(nproc,iproc,pos,atoms,ff,e_pos,rst,inputs_opt,ncount_bigdft)
+
+  if (iproc.eq.0) write(67,*) ncount_bigdft,' Wvfnctn Opt. steps for accurate initial conf'
+  if (iproc.eq.0) write(*,*)'# ', ncount_bigdft,' Wvfnctn Opt. steps for accurate initial conf'
   nconjgr=0
   if (iproc == 0) then 
      tt=dnrm2(3*atoms%nat,ff,1)
@@ -348,7 +347,7 @@ program MINHOP
           ' # Ready to continue an aborted optimization. Reading posout file ',irestart
      !presumably better to use read_atomic_positions
      call rdposout(irestart,wpos,atoms%nat)
-     ncount_cluster=irestart
+     ncount_bigdft=irestart
      inputs_opt%inputPsiId=0  !ALEX notices we need an input guess for the aborted geo
      goto 5556
   end if
@@ -431,14 +430,13 @@ program MINHOP
      if(iproc==0)call  timeleft(tt)
      if(iproc==0)write(*,*)'# CPU time hours left',tt
      av_ekinetic=av_ekinetic+ekinetic
-     ncount_cluster=0
+     ncount_bigdft=0
 
 5556 continue ! entry point for restart of optimization at cluster step irestart+1
-     !call my_input_variables(iproc,.false.,inputs)
      if (atoms%geocode.eq.'P') & 
           call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
 
-     call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,rst,ncount_cluster,inputs_md)
+      call geopt(nproc,iproc,wpos,atoms,ff,e_wpos,rst,inputs_md,ncount_bigdft)
 
      if(iproc==0)then
         call timeleft(tt)
@@ -449,19 +447,17 @@ program MINHOP
         write(*,*)&
              '# CPU time exceeded during approximate geometry relaxation, process',iproc
         ! allows to continue the next run by relaxing the aborted escape attempt
-        irestart=ncount_cluster  
+        irestart=ncount_bigdft  
         exit hopping_loop 
      end if
 
-     if (iproc == 0) write(67,*) ncount_cluster,&
-          ' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
-     if (iproc == 0) write(*,*)'# ', ncount_cluster,&
-          ' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
+     if (iproc.eq.0) write(67,*) ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
+     if (iproc.eq.0) write(*,*)'# ', ncount_bigdft,' Wvfnctn Opt. steps for approximate geo. rel of MD conf.'
+     !ncount_bigdft=0
      !ncount_cluster=0
-     !call my_input_variables(iproc,.true.,inputs)
      if (atoms%geocode.eq.'P') & 
           call  adjustrxyz(atoms%nat,atoms%alat1,atoms%alat2,atoms%alat3,wpos)
-     call conjgrad(nproc,iproc,atoms,wpos,e_wpos,ff,rst,ncount_cluster,inputs_opt)
+      call geopt(nproc,iproc,wpos,atoms,ff,e_wpos,rst,inputs_opt,ncount_bigdft)
 
      if(iproc==0)then
         call timeleft(tt)
@@ -471,12 +467,12 @@ program MINHOP
      if (tt<0) then
         !if (iproc.eq.0) write(*,*) '# CPU time exceeded during accurate geometry relaxation'
         write(*,*) '# CPU time exceeded during accurate geometry relaxation, process',iproc
-        irestart=ncount_cluster  ! allows to continue the next run by relaxing the aborted escape attempt
+        irestart=ncount_bigdft  ! allows to continue the next run by relaxing the aborted escape attempt
         !goto 3000
         exit hopping_loop 
      end if
-     if (iproc.eq.0) write(67,*) ncount_cluster,' Wvfnctn Opt. steps for accurate geo. rel of MD conf.'
-     if (iproc.eq.0) write(*,*)'# ', ncount_cluster,' Wvfnctn Opt. steps for accurate geo. rel of MD conf.'
+     if (iproc.eq.0) write(67,*) ncount_bigdft,' Wvfnctn Opt. steps for accurate geo. rel of MD conf.'
+     if (iproc.eq.0) write(*,*)'# ', ncount_bigdft,' Wvfnctn Opt. steps for accurate geo. rel of MD conf.'
      if (iproc == 0) then 
         tt=dnrm2(3*atoms%nat,ff,1)
         !call wtlmin(nconjgr,atoms%nat,e_wpos-eref,tt,wpos,atoms%iatype,atoms%atomnames,atoms%natpol)
@@ -759,8 +755,8 @@ contains
     !type(wavefunctions_descriptors), intent(inout) :: wfd
     !real(kind=8), pointer :: psi(:), eval(:)
 
+    if(iproc==0) write(*,*) '# MINHOP start soften '
 
-    !call my_input_variables(iproc,.false.,inputs_md)
     !C initialize positions,velocities, forces
     call gausdist(atoms%nat,rxyz,vxyz)
     inputs_md%inputPsiId=1
@@ -770,11 +766,12 @@ contains
 
     !call soften(nproc,iproc,atoms,rxyz,curv0,curv,res,it,&
     !           psi,wfd,norbp,norb,eval,n1,n2,n3,rxyz_old,inputs_md)
-    !if(iproc==0)write(*,'(a,i4,3(1pe11.3))')&
-    ! 'MINHOP soften done'!,iter: rayl0,rayl,res=',it,rayl0,rayl,res
+!    if(iproc==0)write(*,'(a,i4,3(1pe11.3))')&
+!     '#MINHOP soften done:iter,rayl0,rayl,res=',it,rayl0,rayl,res
     call velopt(atoms,rxyz,ekinetic,vxyz)
     call zero(3*atoms%nat,gg)
 
+    if(iproc==0) write(*,*) '# MINHOP start MD'
     !C inner (escape) loop
     nummax=0
     nummin=0
@@ -782,7 +779,6 @@ contains
     en0000=0.d0
     econs_max=-1.d100
     econs_min=1.d100
-    !call my_input_variables(iproc,.false.,inputs_md)
     md_loop: do istep=1,1000
 
        !C      Evolution of the system according to 'VELOCITY VERLET' algorithm
@@ -814,7 +810,6 @@ contains
 
        enmin2=enmin1
        enmin1=en0000
-       !        call energyandforces(nat,rxyz,ff,e_rxyz,count_md)
        !    if (iproc.eq.0) write(*,*) 'CLUSTER FOR  MD'
        inputs_md%inputPsiId=1
        if (istep > 2) inputs_md%itermax=50
@@ -822,7 +817,8 @@ contains
 
        !call wtmd(istep,atoms%nat,e_rxyz,rxyz,atoms%iatype,atoms%atomnames,atoms%natpol)
        if (iproc == 0) then
-          write(fn,'(i4.4)') istep+int(count_md)
+!          write(fn,'(i4.4)') istep+int(count_md)
+          write(fn,'(i4.4)') istep
           call wtxyz('posmd_'//fn,e_rxyz,rxyz,atoms,'')
        end if
 
@@ -884,56 +880,6 @@ contains
   end subroutine mdescape
   
   
-  subroutine my_input_variables(iproc,accurate,in)
-
-    implicit none
-    integer, intent(in) :: iproc
-    logical, intent(in) :: accurate
-    type(input_variables), intent(out) :: in
-    !local variables
-    integer :: ierror
-
-    ! Read the input variables.
-    if (accurate) then
-       in%ncount_cluster_x=500
-       in%frac_fluct=2.00d0
-       in%hgrid=.6d0
-       in%crmult=4.d0
-       in%frmult=10.d0
-       in%gnrm_cv=1.d-5
-       in%itermax=50
-    else
-       in%ncount_cluster_x=500
-       in%frac_fluct=4.d0
-       in%hgrid=.7d0
-       in%crmult=3.d0
-       in%frmult=8.d0
-       in%gnrm_cv=1.d-4
-       in%itermax=50
-    endif
-    ! Comment out some of the following lines to keep them as read from input.dat
-    in%randdis=0.d0
-    in%betax=6.d0
-    in%ixc=1
-    in%ncharge=0.d0
-    !in%elecfield=0.d0
-    in%ncong=7
-    in%idsx=6
-    in%calc_tail=.false.
-    in%rbuf=5.d0
-    in%ncongt=20
-    !   in%nspin=1
-    !   in%mpol=0
-
-    !these values are hard-coded for the moment but they can be entered in the input file
-    !in case of need also other variables can be entered without any changements
-    in%output_grid=0
-    ! in%inputPsiId=1  !ALEX prefers to define this one in the main program
-    in%output_wf=.false.
-    in%nvirt=0
-    in%nplot=0 
-
-  end subroutine my_input_variables
 
   subroutine soften(mdmin,ekinetic,e_pos,fxyz,gg,vxyz,dt,count_md,rxyz, &
        nproc,iproc,atoms,rst,inputs_md)! &
@@ -954,15 +900,14 @@ contains
     eps_vxyz=5.d-1
     !       alpha=4.d-2   ! Au
     !        alpha=.8d-3  ! step size for LJ systems
-    alpha=6.d0  ! step size for Si in DFT
+    !alpha=6.d0  ! step size for Si in DFT
+    alpha=4.d0  ! step size for Si in DFT
     ! may be scaled by in%betax!
 
     !allocate(wpos(3,nat),fxyz(3,nat))
 
-    !call my_input_variables(iproc,.false.,inputs_md)
     inputs_md%inputPsiId=1
     if(iproc==0)write(*,*)'# soften initial step '
-    !        call  energyandforces(nat,rxyz,fxyz,etot0,count)
     call call_bigdft(nproc,iproc,atoms,rxyz,inputs_md,etot0,fxyz,rst,infocode)
 
     ! scale velocity to generate dimer 
@@ -1019,7 +964,6 @@ contains
        end do
 
        !        wpos=rxyz+vxyz
-       !        call  energyandforces(nat,wpos,fxyz,etot,count)
        call call_bigdft(nproc,iproc,atoms,wpos,inputs_md,etot,fxyz,rst,infocode)
        fd2=2.d0*(etot-etot0)/eps_vxyz**2
 

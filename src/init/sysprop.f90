@@ -38,18 +38,18 @@ subroutine system_properties(iproc,nproc,in,at,orbs,radii_cf,nelec)
   !tuned for the moment only on the cubic distribution
   if (iproc == 0 .and. nproc > 1) then
      jpst=0
-     do jproc=0,nproc-2
+     do jproc=0,nproc-1
         norbme=orbs%norb_par(jproc)
-        norbyou=orbs%norb_par(jproc+1)
-        if (norbme /= norbyou) then
+        norbyou=orbs%norb_par(min(jproc+1,nproc-1))
+        if (norbme /= norbyou .or. jproc == nproc-1) then
            !this is a screen output that must be modified
            write(*,'(3(a,i0),a)')&
                 ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' orbitals '
            jpst=jproc+1
         end if
      end do
-     write(*,'(3(a,i0),a)')&
-          ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
+     !write(*,'(3(a,i0),a)')&
+     !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
   end if
 
   allocate(orbs%occup(orbs%norb+ndebug),stat=i_stat)

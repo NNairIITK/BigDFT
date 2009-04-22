@@ -115,20 +115,20 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvctrp,nvirt,nsp
        orbse%nspinor
 
   !this is the distribution procedure for cubic code
-  if (iproc == 0 .and. nproc>1) then
+  if (iproc == 0 .and. nproc > 1) then
      jpst=0
-     do jproc=0,nproc-2
+     do jproc=0,nproc-1
         norbme=orbse%norb_par(jproc)
-        norbyou=orbse%norb_par(jproc+1)
-        if (norbme /= norbyou) then
+        norbyou=orbse%norb_par(min(jproc+1,nproc-1))
+        if (norbme /= norbyou .or. jproc == nproc-1) then
            !this is a screen output that must be modified
            write(*,'(3(a,i0),a)')&
                 ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' inguess orbitals '
            jpst=jproc+1
         end if
      end do
-     write(*,'(3(a,i0),a)')&
-          ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '
+     !write(*,'(3(a,i0),a)')&
+     !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '
   end if
 
   !allocate the gaussian coefficients for the number of orbitals which is needed

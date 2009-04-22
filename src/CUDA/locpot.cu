@@ -11,11 +11,9 @@
 #include "locpot.h" //function declaration
 #include "commonDef.h"
 #include "structDef_locpot.h"
-#include "reduction.h"
 
 //__constant__ parGPU_t par[3]; //must be defined here because it is used by both by this file and kernels_locpot.cu
 
-#include "reduction.hcu"
 #include "kernels_locpot.hcu"
 
 
