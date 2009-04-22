@@ -139,7 +139,7 @@
 
    write(*,'(1x,a)')''
    write(*,'(1x,a)')'============================================================'
-   write(*,'(1x,3(a,1pe20.12),1x,a,0pf6.3))')'Accuracy=',max_diff,' Hartree energy=',energy,' Potential energy= ',epot
+   write(*,'(1x,3(a,1pe20.12),1x,a,0pf6.3)')'Accuracy=',max_diff,' Hartree energy=',energy,' Potential energy= ',epot
    write(*,'(2(1x,a,0pf6.3))')'time: Kernel=',t1-t0,' Solver=',t3-t2
    write(*,'(1x,a)')'============================================================'
    write(*,'(1x,a)')' The functions are printed in the file "functions.dat" and the results in "results.out"'
