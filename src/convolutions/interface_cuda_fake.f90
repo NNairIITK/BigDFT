@@ -3,6 +3,11 @@
     stop 'FAKE CPU_GPU_AFF'
   end subroutine set_cpu_gpu_aff
 
+  subroutine init_lib()
+    implicit none
+    stop 'FAKE CUDA Interface'
+  end subroutine init_lib
+
   subroutine intertamponcGPU()
     implicit none
     stop 'FAKE CUDA Interface'

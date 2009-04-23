@@ -32,6 +32,7 @@ program frequencies
   real(gp), dimension(:,:), allocatable :: rxyz,fxyz,rpos,fpos_m,fpos_p
   real(gp), dimension(:,:), allocatable :: hessian,vector_l,vector_r
   real(gp), dimension(:), allocatable :: eigen_r,eigen_i
+  real(gp), dimension(3) :: h_grid
   integer :: npr,iam
  
   !$      interface
@@ -138,17 +139,21 @@ program frequencies
   allocate(hessian(3*atoms%nat,3*atoms%nat),stat=i_stat)
   call memocc(i_stat,hessian,'hessian',subname)
 
-! Move to alpha*hgrid
+! Move to alpha*h_grid
   alpha=1.d0/real(64,kind(1.d0))
 ! Initialize the hessian
   hessian = 0.d0
+! Initialize h_grid
+  h_grid(1) = inputs%hx
+  h_grid(2) = inputs%hy
+  h_grid(3) = inputs%hz
 
   if (iproc ==0 ) then
      write(*,"(1x,a)") '=Frequencies calculation='
      open(unit=10,file='frequencies.dat',status="unknown")
      open(unit=20,file='hessian.dat',status="unknown")
-     write(10,'(a,1pe20.10)') '#step=',alpha*inputs%hgrid
-     write(10,'(a,100(1pe20.10))') '#--',etot,alpha*inputs%hgrid,fxyz
+     write(10,'(a,1pe20.10)') '#step=',alpha*inputs%hx,alpha*inputs%hy,alpha*inputs%hz
+     write(10,'(a,100(1pe20.10))') '#--',etot,alpha*inputs%hx,alpha*inputs%hy,alpha*inputs%hz,fxyz
   end if
 
   do iat=1,atoms%nat
@@ -174,10 +179,10 @@ program frequencies
            else
               cc(1:1)='+'
            end if
+           !Displacement
+           dd=real(j,gp)*alpha*h_grid(i)
            !We copy atomic positions
            rpos=rxyz
-           !!Displacement
-           dd=real(j,gp)*alpha*inputs%hgrid
            if (iproc==0) write(*,"(1x,a,i0,a,a)") '=F:Move the atom ',iat,' in the direction ',cc
 
            if (atoms%geocode == 'P') then
@@ -201,7 +206,7 @@ program frequencies
         ! Build the hessian
         do jat=1,atoms%nat
            do j=1,3
-              dd = (fpos_p(j,jat) - fpos_m(j,jat))/(2.d0*alpha*inputs%hgrid)
+              dd = (fpos_p(j,jat) - fpos_m(j,jat))/(2.d0*alpha*h_grid(i))
               !if (abs(dd).gt.1.d-10) then
                  hessian(3*(jat-1)+j,3*(iat-1)+i) = dd
               !end if
