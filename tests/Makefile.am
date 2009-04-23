@@ -11,7 +11,6 @@ SUBDIRS = \
 	  Mn2  \
 	  H2O-CP2K \
 	  SiBulk \
-	  H2O-slab \
 	  Davidson-SiH4
 
 
