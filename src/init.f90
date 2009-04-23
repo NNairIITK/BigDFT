@@ -743,6 +743,15 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      i_all=-product(shape(orbsv%spinsgn))*kind(orbsv%spinsgn)
      deallocate(orbsv%spinsgn,stat=i_stat)
      call memocc(i_stat,i_all,'orbsv%spinsgn',subname)
+     i_all=-product(shape(orbsv%kpts))*kind(orbsv%kpts)
+     deallocate(orbsv%kpts,stat=i_stat)
+     call memocc(i_stat,i_all,'orbsv%kpts',subname)
+     i_all=-product(shape(orbsv%kwgts))*kind(orbsv%kwgts)
+     deallocate(orbsv%kwgts,stat=i_stat)
+     call memocc(i_stat,i_all,'orbsv%kwgts',subname)
+     i_all=-product(shape(orbsv%iokpt))*kind(orbsv%iokpt)
+     deallocate(orbsv%iokpt,stat=i_stat)
+     call memocc(i_stat,i_all,'orbsv%iokpt',subname)
   end if
 
   i_all=-product(shape(orbse%occup))*kind(orbse%occup)
@@ -751,6 +760,15 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   i_all=-product(shape(orbse%spinsgn))*kind(orbse%spinsgn)
   deallocate(orbse%spinsgn,stat=i_stat)
   call memocc(i_stat,i_all,'orbse%spinsgn',subname)
+  i_all=-product(shape(orbse%kpts))*kind(orbse%kpts)
+  deallocate(orbse%kpts,stat=i_stat)
+  call memocc(i_stat,i_all,'orbse%kpts',subname)
+  i_all=-product(shape(orbse%kwgts))*kind(orbse%kwgts)
+  deallocate(orbse%kwgts,stat=i_stat)
+  call memocc(i_stat,i_all,'orbse%kwgts',subname)
+  i_all=-product(shape(orbse%iokpt))*kind(orbse%iokpt)
+  deallocate(orbse%iokpt,stat=i_stat)
+  call memocc(i_stat,i_all,'orbse%iokpt',subname)
 
      
 end subroutine input_wf_diag

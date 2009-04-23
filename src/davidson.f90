@@ -589,6 +589,16 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
   i_all=-product(shape(orbsv%spinsgn))*kind(orbsv%spinsgn)
   deallocate(orbsv%spinsgn,stat=i_stat)
   call memocc(i_stat,i_all,'orbsv%spinsgn',subname)
+  i_all=-product(shape(orbsv%kpts))*kind(orbsv%kpts)
+  deallocate(orbsv%kpts,stat=i_stat)
+  call memocc(i_stat,i_all,'orbsv%kpts',subname)
+  i_all=-product(shape(orbsv%kwgts))*kind(orbsv%kwgts)
+  deallocate(orbsv%kwgts,stat=i_stat)
+  call memocc(i_stat,i_all,'orbsv%kwgts',subname)
+  i_all=-product(shape(orbsv%iokpt))*kind(orbsv%iokpt)
+  deallocate(orbsv%iokpt,stat=i_stat)
+  call memocc(i_stat,i_all,'orbsv%iokpt',subname)
+
 
   ! PLOTTING
 

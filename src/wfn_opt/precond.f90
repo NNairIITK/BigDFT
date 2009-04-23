@@ -50,17 +50,22 @@ subroutine preconditionall(iproc,nproc,norbp,lr,&
            !		   if (cprecr.lt..1_wp) cprecr=.5_wp
            if (ncong == 0) then
               call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                   lr%wfd%keyg,lr%wfd%keyv, &
                    cprecr,hx,hy,hz,hpsi(1,inds))
            else
               if (lr%hybrid_on) then
-              	   call precong_per_hyb(lr%d%n1,lr%d%n2,lr%d%n3,lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
-                      lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                 call precong_per_hyb(lr%d%n1,lr%d%n2,lr%d%n3,&
+                      lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
+                      lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                      lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
                       ncong,cprecr,hx,hy,hz,hpsi(1,inds),&
                       lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f)
               else
                  call precong_per(lr%d%n1,lr%d%n2,lr%d%n3, &
-                      lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                      lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                      lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                      lr%wfd%keyg,lr%wfd%keyv, &
                       ncong,cprecr,hx,hy,hz,hpsi(1,inds))
               endif
            endif
@@ -68,11 +73,13 @@ subroutine preconditionall(iproc,nproc,norbp,lr,&
            cprecr=0.5_wp
            if (ncong.eq.0) then
               call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
+                   lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
                    cprecr,hx,hy,hz,hpsi(1,inds))
            else
               call precong_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
+                   lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
                    ncong,cprecr,hx,hy,hz,hpsi(1,inds))
            endif
         end select

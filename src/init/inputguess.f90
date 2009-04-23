@@ -892,9 +892,11 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
                           end if
 
                           mnorm=sqrt(mx**2+my**2+mz**2)
-                          mx=mx/mnorm
-                          my=my/mnorm
-                          mz=mz/mnorm
+                          if (mnorm /= 0.0_gp) then
+                             mx=mx/mnorm
+                             my=my/mnorm
+                             mz=mz/mnorm
+                          end if
 
                           ma=0.0_gp
                           mb=0.0_gp

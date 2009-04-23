@@ -166,6 +166,8 @@ SOURCES_CONVOLUTIONS = convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_optim_per.f90 \
 	convolutions/convolut_new_per.f90 \
 	convolutions/convolut_optim_slab.f90 \
+	convolutions/convolut_simple_per_k.f90 \
+	convolutions/convolut_simple_slab_k.f90 \
 	$(GPUCONV_INTERFACE)
 
 MODULES_ABINIT= PSolver/ABINIT-common/defs_basis.F90 \

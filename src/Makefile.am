@@ -93,6 +93,8 @@ convolution_source = convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_optim_per.f90 \
 	convolutions/convolut_new_per.f90 \
 	convolutions/convolut_optim_slab.f90 \
+	convolutions/convolut_simple_per_k.f90 \
+	convolutions/convolut_simple_slab_k.f90 \
 	$(GPU_INTERFACE)
 
 else
@@ -109,6 +111,8 @@ convolution_source = convolutions/combined_shrink_simple.f90 \
 	convolutions/convolut_simple_per.f90 \
 	convolutions/convolut_new_per.f90 \
 	convolutions/convolut_simple_slab.f90 \
+	convolutions/convolut_simple_per_k.f90 \
+	convolutions/convolut_simple_slab_k.f90 \
 	$(GPU_INTERFACE)
 
 endif

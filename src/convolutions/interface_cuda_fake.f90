@@ -3,11 +3,6 @@
     stop 'FAKE CPU_GPU_AFF'
   end subroutine set_cpu_gpu_aff
 
-  subroutine init_lib()
-    implicit none
-    stop 'FAKE CUDA Interface'
-  end subroutine init_lib
-
   subroutine intertamponcGPU()
     implicit none
     stop 'FAKE CUDA Interface'
@@ -100,25 +95,30 @@
  
  subroutine preconditionall_gpu()
    implicit none
-   stop 'FAKE CPU_GPU_AFF'
+   stop 'preconditionall_gpu'
  end subroutine preconditionall_gpu
 
  subroutine init_gpu_sharing()
    implicit none
-   stop 'FAKE CPU_GPU_AFF'
+   stop 'init_gpu_sharing'
  end subroutine init_gpu_sharing
 
  subroutine local_partial_density_gpu()
    implicit none
-   stop 'FAKE CPU_GPU_AFF'
+   stop 'local_partial_density_gpu'
  end subroutine local_partial_density_gpu
 
  subroutine local_hamiltonian_gpu()
    implicit none
-   stop 'FAKE CPU_GPU_AFF'
+   stop 'local_hamiltonian_gpu'
  end subroutine local_hamiltonian_gpu
 
  subroutine stop_gpu_sharing()
    implicit none
-   stop 'FAKE CPU_GPU_AFF'
+   stop 'stop_gpu_sharing'
  end subroutine stop_gpu_sharing
+
+ subroutine init_lib()
+   implicit none
+   stop 'init_lib'
+ end subroutine init_lib

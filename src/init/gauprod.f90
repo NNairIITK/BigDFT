@@ -7,7 +7,7 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
   type(gaussian_basis), intent(inout) :: G
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp), intent(out) :: psi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
   real(wp), dimension(:,:), pointer :: coeffs
   !local variables
   character(len=*), parameter :: subname='restart_from_gaussians'
@@ -1195,26 +1195,28 @@ function ifac(is,ie)
 end function ifac
 
 !calculate the projection of norb wavefunctions on a gaussian basis set
-subroutine wavelets_to_gaussians(geocode,norbp,n1,n2,n3,G,thetaphi,hx,hy,hz,wfd,psi,coeffs)
+subroutine wavelets_to_gaussians(geocode,norbp,nspinor,n1,n2,n3,G,thetaphi,hx,hy,hz,wfd,psi,coeffs)
   use module_base
   use module_types
   implicit none
   character(len=1), intent(in) :: geocode
-  integer, intent(in) :: norbp,n1,n2,n3
+  integer, intent(in) :: norbp,n1,n2,n3,nspinor
   real(gp), intent(in) :: hx,hy,hz
   type(gaussian_basis), intent(in) :: G
   type(wavefunctions_descriptors), intent(in) :: wfd
   real(gp), dimension(2,G%nat), intent(in) :: thetaphi
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,norbp), intent(in) :: psi
-  real(wp), dimension(G%ncoeff,norbp), intent(out) :: coeffs
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(in) :: psi
+  real(wp), dimension(G%ncoeff,nspinor,norbp), intent(out) :: coeffs
   !local variables
-  integer :: iorb
+  integer :: iorb,ispinor
   
   do iorb=1,norbp
-     call orbital_projection(geocode,n1,n2,n3,G%nat,G%rxyz,thetaphi,&
-          G%nshell,G%ndoc,G%nam,G%xp,G%psiat,G%nshltot,G%nexpo,G%ncoeff,&
-          hx,hy,hz,wfd,psi(1,iorb),coeffs(1,iorb))
-     !print *,'iorb, coeffs',iorb,coeffs(:,iorb)
+     do ispinor=1,nspinor
+        call orbital_projection(geocode,n1,n2,n3,G%nat,G%rxyz,thetaphi,&
+             G%nshell,G%ndoc,G%nam,G%xp,G%psiat,G%nshltot,G%nexpo,G%ncoeff,&
+             hx,hy,hz,wfd,psi(1,ispinor,iorb),coeffs(1,ispinor,iorb))
+        !print *,'iorb, coeffs',iorb,coeffs(:,iorb)
+     end do
   end do
   
 end subroutine wavelets_to_gaussians

@@ -491,7 +491,6 @@ subroutine convrot_t_per(n1,ndat,x,y)
 
   !$omp end parallel
 
-  return
 end subroutine convrot_t_per
 
 
@@ -758,7 +757,7 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin_out)
   integer, intent(in) :: n1,n2,n3
   real(gp), dimension(3), intent(in) :: hgrid
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: y
   real(wp),intent(out)::ekin_out
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14

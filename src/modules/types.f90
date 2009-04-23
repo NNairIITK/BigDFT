@@ -150,14 +150,16 @@ module module_types
 !!****t* module_types/orbitals_data
 !! DESCRIPTION
 !! All the parameters which are important for describing the orbitals
+!! Add also the objects related to k-points sampling, after symmetries applications
 !!
 !! SOURCE
 !!
   type, public :: orbitals_data
-     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim
-     integer, dimension(:), pointer :: norb_par
+     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts
+     integer, dimension(:), pointer :: norb_par,iokpt
      real(wp), dimension(:), pointer :: eval
-     real(gp), dimension(:), pointer :: occup,spinsgn
+     real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
+     real(gp), dimension(:,:), pointer :: kpts
   end type orbitals_data
 !!***
 
