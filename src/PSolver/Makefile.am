@@ -129,7 +129,7 @@ Poisson_Solver.o : base.o $(SOURCES_MOD)
 
 base.o : $(mpi_include)
 
-PS_Check.o PSolver.o: Poisson_Solver.o
+PS_Check.o: Poisson_Solver.o
 
 
 check:

@@ -11,7 +11,7 @@
 !!
 !! SOURCE
 !!
-subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
+subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf,&
              scal,hx,hy,hz,offset)
   use module_base, only: ndebug
   implicit none
@@ -21,6 +21,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
   !Arguments
   integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc
   real(kind=8), intent(in) :: scal,hx,hy,hz,offset
+  real(kind=8), dimension(nd1,nd2,nd3/nproc), intent(in) :: pot
   real(kind=8), dimension(md1,md3,md2/nproc), intent(inout) :: zf
   !Local variables
   character(len=*), parameter :: subname='P_Poisson_Solver'
@@ -40,7 +41,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
        ftrig1,ftrig2,ftrig3
   integer, dimension(:), allocatable :: after1,now1,before1, & 
        after2,now2,before2,after3,now3,before3
-  
+ 
   !Body
 
   call timing(iproc,'PSolv_comput  ','ON')
@@ -104,11 +105,11 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
   call memocc(i_stat,zt,'zt',subname)
   allocate(zmpi2(2,n1,md2/nproc,nd3+ndebug),stat=i_stat)
   call memocc(i_stat,zmpi2,'zmpi2',subname)
+
   if (nproc > 1) then
      allocate(zmpi1(2,n1,md2/nproc,nd3/nproc,nproc+ndebug),stat=i_stat)
      call memocc(i_stat,zmpi1,'zmpi1',subname)
   end if
-
 
   !calculating the FFT work arrays (beware on the HalFFT in n3 dimension)
   call ctrig(n3,btrig3,after3,before3,now3,1,ic3)
@@ -265,8 +266,11 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
 
            !Multiply with kernel in fourier space
            i3=iproc*(nd3/nproc)+j3
-           call P_multkernel(n1,n2,n3,lot,nfft,j,i3,zw(1,1,inzee),hx,hy,hz,offset)
-           
+!!$           call P_multkernel_old(n1,n2,n3,lot,nfft,j,i3,zw(1,1,inzee),hx,hy,hz,offset)!,fourisf)
+           call P_multkernel(nd1,nd2,n1,n2,lot,nfft,j,pot(1,1,j3),zw(1,1,inzee),&
+                i3,hx,hy,hz,offset)
+
+
            !TRANSFORM BACK IN REAL SPACE
            
            !transform along y axis
@@ -421,6 +425,7 @@ subroutine P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf,&
   i_all=-product(shape(zt))*kind(zt)
   deallocate(zt,stat=i_stat)
   call memocc(i_stat,i_all,'zt',subname)
+
   if (nproc > 1) then
      i_all=-product(shape(zmpi1))*kind(zmpi1)
      deallocate(zmpi1,stat=i_stat)
@@ -702,7 +707,7 @@ end subroutine unscramble_P
 !!***
 
 
-!!****f* PSolver/P_multkernel
+!!****f* PSolver/P_multkernel_old
 !! FUNCTION
 !!     (Based on suitable modifications of S.Goedecker routines)
 !!     Multiply with the kernel taking into account its symmetry
@@ -729,12 +734,13 @@ end subroutine unscramble_P
 !!
 !! SOURCE
 !!
-subroutine P_multkernel(n1,n2,n3,lot,nfft,jS,i3,zw,hx,hy,hz,offset)
+subroutine P_multkernel_old(n1,n2,n3,lot,nfft,jS,i3,zw,hx,hy,hz,offset)!,fourisf)
   implicit none
   !Argments
   integer, intent(in) :: n1,n2,n3,lot,nfft,jS,i3
   real(kind=8), intent(in) :: hx,hy,hz,offset
   real(kind=8), dimension(2,lot,n2), intent(inout) :: zw
+  !real(kind=8), dimension(0:n1/2), intent(in) :: fourisf
   !Local variables
   integer :: i1,j1,i2,j2,j3
   real(kind=8) :: ker,pi,fourpi2,mu3,p1,p2
@@ -755,18 +761,81 @@ subroutine P_multkernel(n1,n2,n3,lot,nfft,jS,i3,zw,hx,hy,hz,offset)
         p2=real(j2-1,kind=8)/real(n2,kind=8)
         ker=pi*((p1/hx)**2+(p2/hz)**2+mu3)!beware of the exchanged dimension
         if (ker/=0.d0) then
-           ker=1.d0/ker
+           !here add the multiplication with the ISF fourtransf
+           ker=1.d0/ker!*fourisf(abs(j1-1))*fourisf(abs(j2-1))*fourisf(abs(j3-1))
            zw(1,i1,i2)=zw(1,i1,i2)*ker
            zw(2,i1,i2)=zw(2,i1,i2)*ker
         else
-           zw(1,i1,i2)=offset/(hx*hy*hz)
-           zw(2,i1,i2)=0.d0
+           zw(1,i1,i2)=offset/(hx*hy*hz) 
+           zw(2,i1,i2)=0.d0              
         end if
      end do
   end do
 
+end subroutine P_multkernel_old
+!!***
+
+!!****f* PSolver/P_multkernel
+!! FUNCTION
+!!     (Based on suitable modifications of S.Goedecker routines)
+!!     Multiply with the kernel taking into account its symmetry
+!!     Conceived to be used into convolution loops
+!!
+!! SYNOPSIS
+!!     pot:      Kernel, symmetric and real, half the length
+!!     zw:       Work array (input/output)
+!!     n1,n2:    logical dimension of the FFT transform, reference for zw
+!!     nd1,nd2:  Dimensions of POT
+!!     jS, nfft: starting point of the plane and number of remaining lines
+!!     offset  : Offset to be defined for periodic BC (usually 0)
+!!
+!! RESTRICTIONS on USAGE
+!!     Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
+!!     Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
+!!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
+!!     Copyright (C) 2009 Luigi Genovese, ESRF Grenoble
+!!     This file is distributed under the terms of the
+!!      GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+!!
+!! AUTHORS
+!!    S. Goedecker, L. Genovese
+!!
+!! CREATION DATE
+!!     February 2006
+!!
+!! SOURCE
+!!
+subroutine P_multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw,j3,hx,hy,hz,offset)
+  implicit none
+  !Argments
+  integer, intent(in) :: nd1,nd2,n1,n2,lot,nfft,jS,j3
+  real(kind=8), intent(in) :: hx,hy,hz,offset
+  real(kind=8), dimension(nd1,nd2), intent(in) :: pot
+  real(kind=8), dimension(2,lot,n2), intent(inout) :: zw
+  !real(kind=8), dimension(0:n1/2), intent(in) :: fourisf
+  !Local variables
+  real(kind=8), parameter :: pi=3.14159265358979323846d0
+  integer :: i1,j1,i2,j2
+
+  !Body
+  !generic case
+  do i2=1,n2
+     do i1=1,nfft
+        j1=i1+jS-1
+        j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
+        j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
+        if (j1 ==1 .and. j2==1 .and. j3==1) then
+           zw(1,i1,i2)=offset/(hx*hy*hz) 
+           zw(2,i1,i2)=0.d0              
+        else
+           zw(1,i1,i2)=zw(1,i1,i2)*pot(j1,j2)
+           zw(2,i1,i2)=zw(2,i1,i2)*pot(j1,j2)
+        end if
+     end do
+  end do
 end subroutine P_multkernel
 !!***
+
 
 
 !!****f* PSolver/multkernel
@@ -2808,3 +2877,6 @@ subroutine W_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,pot,zf&
   call timing(iproc,'PSolv_comput  ','OF')
 end subroutine W_PoissonSolver
 !!***
+
+
+
