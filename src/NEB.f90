@@ -517,6 +517,10 @@ MODULE NEB_routines
       
       END IF
  
+!!$      IF ( restart ) THEN
+!!$         num_of_images = num_of_images - 2
+!!$      END IF
+
       IF ( minimization_scheme == "steepest_descent" ) THEN
       
         algorithm = 1
@@ -642,6 +646,7 @@ MODULE NEB_routines
                               PES_gradient((j+1),i), &
                               PES_gradient((j+2),i)
             END DO
+            PES_gradient(:, i) = PES_gradient(:, i) * (-1d0)
 	    
             IF ( V(i) >= Emax ) THEN
  
@@ -1159,7 +1164,7 @@ MODULE NEB_routines
           END DO
 
           PES_gradient(:,replica) = PES_gradient(:,replica) * &
-                                    DBLE( fix_atom )
+                                    DBLE( fix_atom ) * (-1.d0)
 
         END DO
 
@@ -1283,9 +1288,9 @@ MODULE NEB_routines
                              fix_atom(j),     &
                              fix_atom((j+1)), &
                              fix_atom((j+2)), &
-                             PES_gradient(j,i),     &
-                             PES_gradient((j+1),i), &
-                             PES_gradient((j+2),i)
+                             -PES_gradient(j,i),     &
+                             -PES_gradient((j+1),i), &
+                             -PES_gradient((j+2),i)
   
           END DO
 

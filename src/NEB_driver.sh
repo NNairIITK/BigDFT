@@ -124,11 +124,11 @@ done
 cd $workdir
 for ((i = 0; i < 256; i++)) ; do
     ch=`printf "%03d" $i`
-    if ! [ -f $job_name.NEB.it${ch}.tar.bz ] ; then
+    if ! [ -f $job_name.NEB.it${ch}.tar.bz2 ] ; then
 	if test x"$DEBUG" != x ; then
 	    echo "Compression of replica calculations into '$job_name.NEB.it${ch}.tar.bz2'"
 	fi
-	tar -cjf $job_name.NEB.it${ch}.tar.bz2 *.NEB.*
+	tar --exclude *.bz2 -cjf $job_name.NEB.it${ch}.tar.bz2 $job_name.NEB.*
 	break
     fi
 done
