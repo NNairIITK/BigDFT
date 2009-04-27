@@ -252,11 +252,11 @@ end subroutine dimensions_fft
       if (ncache.eq.0) then
         allocate(trig(2,1024),after(20),now(20),before(20))
 
-        call ctrig(n3,trig,after,before,now,isign,ic)
+        call ctrig_(n3,trig,after,before,now,isign,ic)
         nfft=nd1*n2
         mm=nd1*nd2
         do 51093,i=1,ic-1
-        call fftstp(mm,nfft,nd3,mm,nd3,z(1,1,inzee),z(1,1,3-inzee), &
+        call fftstp_(mm,nfft,nd3,mm,nd3,z(1,1,inzee),z(1,1,3-inzee), &
                           trig,after(i),now(i),before(i),isign)
 51093        inzee=3-inzee
         i=ic
@@ -264,11 +264,11 @@ end subroutine dimensions_fft
                           trig,after(i),now(i),before(i),isign)
         inzee=3-inzee
 
-        if (n2.ne.n3) call ctrig(n2,trig,after,before,now,isign,ic)
+        if (n2.ne.n3) call ctrig_(n2,trig,after,before,now,isign,ic)
         nfft=nd3*n1
         mm=nd3*nd1
         do 52093,i=1,ic-1
-        call fftstp(mm,nfft,nd2,mm,nd2,z(1,1,inzee),z(1,1,3-inzee), &
+        call fftstp_(mm,nfft,nd2,mm,nd2,z(1,1,inzee),z(1,1,3-inzee), &
                            trig,after(i),now(i),before(i),isign)
 52093        inzee=3-inzee
         i=ic
@@ -276,11 +276,11 @@ end subroutine dimensions_fft
                        trig,after(i),now(i),before(i),isign)
         inzee=3-inzee
 
-        if (n1.ne.n2) call ctrig(n1,trig,after,before,now,isign,ic)
+        if (n1.ne.n2) call ctrig_(n1,trig,after,before,now,isign,ic)
         nfft=nd2*n3
         mm=nd2*nd3
         do 53093,i=1,ic-1
-        call fftstp(mm,nfft,nd1,mm,nd1,z(1,1,inzee),z(1,1,3-inzee), &
+        call fftstp_(mm,nfft,nd1,mm,nd1,z(1,1,inzee),z(1,1,3-inzee), &
                          trig,after(i),now(i),before(i),isign)
 53093        inzee=3-inzee
         i=ic
@@ -315,7 +315,7 @@ end subroutine dimensions_fft
         n=n3
         if (2*n*lot*2.gt.ncache) stop 'ncache1'
 
-        call ctrig(n3,trig,after,before,now,isign,ic)
+        call ctrig_(n3,trig,after,before,now,isign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -341,12 +341,12 @@ end subroutine dimensions_fft
 
         i=1
         inzeep=2
-        call fftstp(mm,nfft,m,nn,n,z(1,j,inzet),zw(1,1,3-inzeep), &
+        call fftstp_(mm,nfft,m,nn,n,z(1,j,inzet),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
         inzeep=1
 
         do 1093,i=2,ic-1
-        call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
+        call fftstp_(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
 1093        inzeep=3-inzeep
         i=ic
@@ -367,7 +367,7 @@ end subroutine dimensions_fft
         n=n2
         if (2*n*lot*2.gt.ncache) stop 'ncache2'
 
-        if (n2.ne.n3) call ctrig(n2,trig,after,before,now,isign,ic)
+        if (n2.ne.n3) call ctrig_(n2,trig,after,before,now,isign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -393,12 +393,12 @@ end subroutine dimensions_fft
 
         i=1
         inzeep=2
-        call fftstp(mm,nfft,m,nn,n,z(1,j,inzet),zw(1,1,3-inzeep), &
+        call fftstp_(mm,nfft,m,nn,n,z(1,j,inzet),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
         inzeep=1
 
         do 2093,i=2,ic-1
-        call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
+        call fftstp_(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
 2093        inzeep=3-inzeep
 
@@ -419,7 +419,7 @@ end subroutine dimensions_fft
         n=n1
         if (2*n*lot*2.gt.ncache) stop 'ncache3'
 
-        if (n1.ne.n2) call ctrig(n1,trig,after,before,now,isign,ic)
+        if (n1.ne.n2) call ctrig_(n1,trig,after,before,now,isign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -445,12 +445,12 @@ end subroutine dimensions_fft
 
         i=1
         inzeep=2
-        call fftstp(mm,nfft,m,nn,n,z(1,j,inzet),zw(1,1,3-inzeep), &
+        call fftstp_(mm,nfft,m,nn,n,z(1,j,inzet),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
         inzeep=1
 
         do 3093,i=2,ic-1
-        call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
+        call fftstp_(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
 3093        inzeep=3-inzeep
         i=ic
@@ -572,13 +572,13 @@ end subroutine dimensions_fft
 ! vector computer with memory banks:
         allocate(trig(2,1024),after(20),now(20),before(20))
 
-        call ctrig(n3,trig,after,before,now,isign,ic)
+        call ctrig_(n3,trig,after,before,now,isign,ic)
 
 		mm=nd1f*nd2 
 		nffta=nd1f*n2
 
         do 51093,i=1,ic-1
-        call fftstp(mm,nffta,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
+        call fftstp_(mm,nffta,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
                           trig,after(i),now(i),before(i),isign)
 51093	        inzee=3-inzee
         i=ic
@@ -588,11 +588,11 @@ end subroutine dimensions_fft
 
 		call z1_to_z3(z1,z3,inzee)
 !===============================================================================================
-        if (n2.ne.n3) call ctrig(n2,trig,after,before,now,isign,ic)
+        if (n2.ne.n3) call ctrig_(n2,trig,after,before,now,isign,ic)
         nfft=nd3f*n1
         mm=nd3f*nd1
         do 52093,i=1,ic-1
-        call fftstp(mm,nfft,nd2,mm,nd2,z3(1,1,inzee),z3(1,1,3-inzee), &
+        call fftstp_(mm,nfft,nd2,mm,nd2,z3(1,1,inzee),z3(1,1,3-inzee), &
                            trig,after(i),now(i),before(i),isign)
 52093        inzee=3-inzee
         i=ic
@@ -600,11 +600,11 @@ end subroutine dimensions_fft
                        trig,after(i),now(i),before(i),isign)
         inzee=3-inzee
 
-        if (n1.ne.n2) call ctrig(n1,trig,after,before,now,isign,ic)
+        if (n1.ne.n2) call ctrig_(n1,trig,after,before,now,isign,ic)
         nfft=nd2*n3f
         mm=nd2*nd3f
         do 53093,i=1,ic-1
-        call fftstp(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
+        call fftstp_(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
                          trig,after(i),now(i),before(i),isign)
 53093        inzee=3-inzee
         i=ic
@@ -639,7 +639,7 @@ end subroutine dimensions_fft
         n=n3
         if (2*n*lot*2.gt.ncache) stop 'ncache1'
 
-        call ctrig(n3,trig,after,before,now,isign,ic)
+        call ctrig_(n3,trig,after,before,now,isign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -665,12 +665,12 @@ end subroutine dimensions_fft
 
         i=1
         inzeep=2
-        call fftstp(mm,nfft,m,nn,n,z1(1,j,inzet),zw(1,1,3-inzeep), &
+        call fftstp_(mm,nfft,m,nn,n,z1(1,j,inzet),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
         inzeep=1
 
         do 1093,i=2,ic-1
-        call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
+        call fftstp_(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
 1093        inzeep=3-inzeep
         i=ic
@@ -693,7 +693,7 @@ end subroutine dimensions_fft
         n=n2
         if (2*n*lot*2.gt.ncache) stop 'ncache2'
 
-        if (n2.ne.n3) call ctrig(n2,trig,after,before,now,isign,ic)
+        if (n2.ne.n3) call ctrig_(n2,trig,after,before,now,isign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -719,12 +719,12 @@ end subroutine dimensions_fft
 
         i=1
         inzeep=2
-        call fftstp(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
+        call fftstp_(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
         inzeep=1
 
         do 2093,i=2,ic-1
-        call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
+        call fftstp_(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
 2093        inzeep=3-inzeep
 
@@ -745,7 +745,7 @@ end subroutine dimensions_fft
         n=n1
         if (2*n*lot*2.gt.ncache) stop 'ncache3'
 
-        if (n1.ne.n2) call ctrig(n1,trig,after,before,now,isign,ic)
+        if (n1.ne.n2) call ctrig_(n1,trig,after,before,now,isign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -771,12 +771,12 @@ end subroutine dimensions_fft
 
         i=1
         inzeep=2
-        call fftstp(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
+        call fftstp_(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
         inzeep=1
 
         do 3093,i=2,ic-1
-        call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
+        call fftstp_(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
 3093        inzeep=3-inzeep
         i=ic
@@ -1031,11 +1031,11 @@ end subroutine dimensions_fft
 ! vector computer with memory banks:
         allocate(trig(2,1024),after(20),now(20),before(20))
 
-        call ctrig(n3,trig,after,before,now,isign,ic)
+        call ctrig_(n3,trig,after,before,now,isign,ic)
         nfft=nd1b*n2
         mm=nd1b*nd2
         do 51093,i=1,ic-1
-        call fftstp(mm,nfft,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
+        call fftstp_(mm,nfft,nd3,mm,nd3,z1(1,1,inzee),z1(1,1,3-inzee), &
                           trig,after(i),now(i),before(i),isign)
 51093        inzee=3-inzee
         i=ic
@@ -1044,11 +1044,11 @@ end subroutine dimensions_fft
 
         inzee=3-inzee
 
-        if (n2.ne.n3) call ctrig(n2,trig,after,before,now,isign,ic)
+        if (n2.ne.n3) call ctrig_(n2,trig,after,before,now,isign,ic)
         nfft=nd3*n1b
         mm=nd3*nd1b
         do 52093,i=1,ic-1
-        call fftstp(mm,nfft,nd2,mm,nd2,z1(1,1,inzee),z1(1,1,3-inzee), &
+        call fftstp_(mm,nfft,nd2,mm,nd2,z1(1,1,inzee),z1(1,1,3-inzee), &
                            trig,after(i),now(i),before(i),isign)
 52093        inzee=3-inzee
         i=ic
@@ -1059,11 +1059,11 @@ end subroutine dimensions_fft
 		! here we transform back from z1 to z3
 		call z1_to_z3(z1,z3,inzee)
 
-        if (n1.ne.n2) call ctrig(n1,trig,after,before,now,isign,ic)
+        if (n1.ne.n2) call ctrig_(n1,trig,after,before,now,isign,ic)
         nfft=nd2*n3b
         mm=nd2*nd3b
         do 53093,i=1,ic-1
-        call fftstp(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
+        call fftstp_(mm,nfft,nd1,mm,nd1,z3(1,1,inzee),z3(1,1,3-inzee), &
                          trig,after(i),now(i),before(i),isign)
 53093        inzee=3-inzee
         i=ic
@@ -1100,7 +1100,7 @@ end subroutine dimensions_fft
         n=n3
         if (2*n*lot*2.gt.ncache) stop 'ncache1'
 
-        call ctrig(n3,trig,after,before,now,isign,ic)
+        call ctrig_(n3,trig,after,before,now,isign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -1126,12 +1126,12 @@ end subroutine dimensions_fft
 
         i=1
         inzeep=2
-        call fftstp(mm,nfft,m,nn,n,z1(1,j,inzet),zw(1,1,3-inzeep), &
+        call fftstp_(mm,nfft,m,nn,n,z1(1,j,inzet),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
         inzeep=1
 
         do 1093,i=2,ic-1
-        call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
+        call fftstp_(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
 1093        inzeep=3-inzeep
         i=ic
@@ -1152,7 +1152,7 @@ end subroutine dimensions_fft
         n=n2
         if (2*n*lot*2.gt.ncache) stop 'ncache2'
 
-        if (n2.ne.n3) call ctrig(n2,trig,after,before,now,isign,ic)
+        if (n2.ne.n3) call ctrig_(n2,trig,after,before,now,isign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -1178,12 +1178,12 @@ end subroutine dimensions_fft
 
         i=1
         inzeep=2
-        call fftstp(mm,nfft,m,nn,n,z1(1,j,inzet),zw(1,1,3-inzeep), &
+        call fftstp_(mm,nfft,m,nn,n,z1(1,j,inzet),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
         inzeep=1
 
         do 2093,i=2,ic-1
-        call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
+        call fftstp_(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
 2093        inzeep=3-inzeep
 
@@ -1205,7 +1205,7 @@ end subroutine dimensions_fft
         n=n1
         if (2*n*lot*2.gt.ncache) stop 'ncache3'
 
-        if (n1.ne.n2) call ctrig(n1,trig,after,before,now,isign,ic)
+        if (n1.ne.n2) call ctrig_(n1,trig,after,before,now,isign,ic)
 
       if (ic.eq.1) then
         i=ic
@@ -1231,12 +1231,12 @@ end subroutine dimensions_fft
 
         i=1
         inzeep=2
-        call fftstp(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
+        call fftstp_(mm,nfft,m,nn,n,z3(1,j,inzet),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
         inzeep=1
 
         do 3093,i=2,ic-1
-        call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
+        call fftstp_(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep), &
                          trig,after(i),now(i),before(i),isign)
 3093        inzeep=3-inzeep
         i=ic
@@ -1438,7 +1438,7 @@ end subroutine dimensions_fft
 		end subroutine fft_back
 
 
-        subroutine ctrig(n,trig,after,before,now,isign,ic)
+        subroutine ctrig_(n,trig,after,before,now,isign,ic)
 !  Copyright (C) Stefan Goedecker, Lausanne, Switzerland, August 1, 1991
 !  Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
 !  Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
@@ -1564,7 +1564,7 @@ end subroutine dimensions_fft
 
 !ccccccccccccccccccccccccccccccccccccccccccccccc
 
-         subroutine fftstp(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
+         subroutine fftstp_(mm,nfft,m,nn,n,zin,zout,trig,after,now,before,isign)
 !  Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
 !  Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1995, 1999
 !  This file is distributed under the terms of the
@@ -3003,7 +3003,7 @@ end subroutine dimensions_fft
 6120        continue
 
         else 
-        stop 'error fftstp'
+        stop 'error fftstp_'
         endif
 
         return

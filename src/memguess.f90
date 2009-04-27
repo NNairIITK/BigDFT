@@ -32,7 +32,7 @@ program memguess
   type(nonlocal_psp_descriptors) :: nlpspd
   logical, dimension(:,:,:), allocatable :: logrid
   integer, dimension(:,:), allocatable :: norbsc_arr
-  real(kind=8), dimension(:,:), allocatable, target :: rxyz
+  real(gp), dimension(:,:), pointer :: rxyz
   real(kind=8), dimension(:,:), allocatable :: radii_cf
   real(kind=8), dimension(:,:,:), allocatable :: psiat
   real(kind=8), dimension(:,:), allocatable :: xp, occupat
@@ -91,16 +91,7 @@ program memguess
   call print_logo()
 
   !read number of atoms
-  open(unit=99,file='posinp',status='old')
-  read(99,*) atoms%nat,atoms%units
- 
-  allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz,'rxyz',subname)
-
-  !read atomic positions
-  call read_atomic_positions(0,99,atoms,rxyz)
-
-  close(99)
+  call read_atomic_file(0,atoms,rxyz)
 
   !new way of reading the input variables, use structures
   call read_input_variables(0,'input.dat',in)

@@ -34,7 +34,8 @@ program BigDFT
   type(restart_objects) :: rst
   character(len=20), dimension(:), allocatable :: atomnames
   ! atomic coordinates, forces
-  real(gp), dimension(:,:), allocatable :: rxyz,fxyz
+  real(gp), dimension(:,:), allocatable :: fxyz
+  real(gp), dimension(:,:), pointer :: rxyz
   integer npr,iam
  
   !$      interface
@@ -66,19 +67,11 @@ program BigDFT
   !welcome screen
   if (iproc==0) call print_logo()
 
-  !read number of atoms
-  open(unit=99,file='posinp',status='old')
-  read(99,*) atoms%nat,atoms%units
+  !read atomic file
+  call read_atomic_file(iproc,atoms,rxyz)
 
-  allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz,'rxyz',subname)
   allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fxyz,'fxyz',subname)
-
-  ! read atomic positions
-  call read_atomic_positions(iproc,99,atoms,rxyz)
-
-  close(99)
 
   ! read input variables, use structures
   call read_input_variables(iproc,'input.dat',inputs)

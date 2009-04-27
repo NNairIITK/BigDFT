@@ -106,6 +106,15 @@ interface
      real(gp), intent(inout) :: hx,hy,hz
      type(locreg_descriptors), intent(out) :: Glr
    end subroutine system_size
+   
+   subroutine read_atomic_file(iproc,at,rxyz)
+     use module_base
+     use module_types
+     implicit none
+     integer, intent(in) :: iproc
+     type(atoms_data), intent(inout) :: at
+     real(gp), dimension(:,:), pointer :: rxyz
+   end subroutine read_atomic_file
 
    subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
         iatype,rxyz,radii_cf,crmult,frmult,norb,nprojel,atomnames,output_grid,nspin,peakmem)
