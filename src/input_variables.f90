@@ -281,20 +281,23 @@ subroutine read_atomic_file(iproc,at,rxyz)
 
   file_exists = .false.
 
-  if (.not. file_exists) then
-     inquire(FILE = 'posinp', EXIST = file_exists)
-     if (file_exists) write(filename, "(A)") "posinp"
-     write(at%format, "(A)") "xyz"
-  end if
+  ! Test posinp.xyz
   if (.not. file_exists) then
      inquire(FILE = 'posinp.xyz', EXIST = file_exists)
      if (file_exists) write(filename, "(A)") "posinp.xyz"
      write(at%format, "(A)") "xyz"
   end if
+  ! Test posinp.ascii
   if (.not. file_exists) then
      inquire(FILE = 'posinp.ascii', EXIST = file_exists)
      if (file_exists) write(filename, "(A)") "posinp.ascii"
      write(at%format, "(A)") "ascii"
+  end if
+  ! Fallback to old name
+  if (.not. file_exists) then
+     inquire(FILE = 'posinp', EXIST = file_exists)
+     if (file_exists) write(filename, "(A)") "posinp"
+     write(at%format, "(A)") "xyz"
   end if
 
   if (.not. file_exists) then
@@ -751,6 +754,7 @@ subroutine read_atomic_ascii(iproc,ifile,at,rxyz)
   end if
 
   ! Try to determine the number atoms and the keywords.
+  write(at%units, "(A)") "bohr"
   at%geocode = 'P'
   at%nat     = 0
   do i = 4, nlines, 1

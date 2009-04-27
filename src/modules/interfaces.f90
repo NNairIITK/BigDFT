@@ -87,7 +87,8 @@ interface
      use module_base
      use module_types
      implicit none
-     integer, intent(in) :: iproc,nproc,nelec
+     integer, intent(in) :: iproc,nproc
+     integer, intent(out) :: nelec
      type(input_variables), intent(in) :: in
      type(atoms_data), intent(inout) :: at
      type(orbitals_data), intent(out) :: orbs
@@ -115,6 +116,16 @@ interface
      type(atoms_data), intent(inout) :: at
      real(gp), dimension(:,:), pointer :: rxyz
    end subroutine read_atomic_file
+
+   subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
+     use module_base
+     use module_types
+     implicit none
+     character(len=*), intent(in) :: filename,comment
+     type(atoms_data), intent(in) :: atoms
+     real(gp), intent(in) :: energy
+     real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+   end subroutine write_atomic_file
 
    subroutine read_atomic_ascii(iproc,ifile,at,rxyz)
      use module_base

@@ -87,7 +87,7 @@
            write( *,'(1x,a)')'Convergence error, cannot proceed.'
            write( *,'(1x,a)')' writing positions in file posout_999.xyz then exiting'
 
-           call wtposout(999,energy,rxyz,atoms)
+           call write_atomic_file("posout_999",energy,rxyz,atoms,'Convergence error')
 
         end if
 

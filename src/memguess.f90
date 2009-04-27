@@ -18,12 +18,11 @@ program memguess
   implicit none
   character(len=*), parameter :: subname='memguess'
   integer, parameter :: ngx=31
-  character(len=20) :: tatonam,units
-  logical :: calc_tail,optimise
-  integer :: ierror,nproc,i_stat,i_all,output_grid
+  character(len=20) :: tatonam
+  logical :: optimise
+  integer :: nproc,i_stat,i_all,output_grid
   integer :: nelec
   integer :: norbe,norbsc,nvctrp,nspin,iorb,norbu,norbd,nspinor,norb
-  integer :: iunit,ityp
   real(kind=8) :: peakmem,hx,hy,hz
   type(input_variables) :: in
   type(atoms_data) :: atoms
@@ -39,7 +38,7 @@ program memguess
   integer, dimension(:,:), allocatable :: nl
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
-  real(kind=8), dimension(:), allocatable :: occup,spinsgn,locrad
+  real(kind=8), dimension(:), allocatable :: locrad
 
 ! Get arguments
   call getarg(1,tatonam)
@@ -119,8 +118,8 @@ program memguess
      else
         call shift_periodic_directions(atoms,rxyz,radii_cf)
      end if
-     write(*,'(1x,a)')'Writing optimised positions in file posout_000.xyz...'
-     call wtxyz('posout_000',0.d0,rxyz,atoms,'')
+     write(*,'(1x,a)')'Writing optimised positions in file posout_000.[xyz,ascii]...'
+     call write_atomic_file('posout_000',0.d0,rxyz,atoms,'')
   end if
 
   
@@ -371,7 +370,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hgrid,rxyz,radii_cf)
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
   !local variables
   character(len=*), parameter :: subname='optimise_volume'
-  integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1,n2,n3,n1i,n2i,n3i,iat,i_all,i_stat,it,i
+  integer :: iat,i_all,i_stat,it,i
   real(gp) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax
   type(locreg_descriptors) :: Glr
   real(gp), dimension(3,3) :: urot
@@ -485,10 +484,8 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
   real(gp), dimension(3,at%nat), intent(inout) :: rxyz
   !local variables
   character(len=*), parameter :: subname='shift_periodic_directions'
-  integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1,n2,n3,n1i,n2i,n3i,iat,i_all,i_stat,i,ityp
-  real(gp) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax,maxsh,shiftx,shifty,shiftz
-  type(locreg_descriptors) :: Glr
-  real(gp), dimension(3,3) :: urot
+  integer :: iat,i_all,i_stat,i,ityp
+  real(gp) :: vol,tvol,maxsh,shiftx,shifty,shiftz
   real(gp), dimension(:,:), allocatable :: txyz
 
   !calculate maximum shift between these values
@@ -631,16 +628,15 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !local variables
   character(len=*), parameter :: subname='compare_cpu_gpu_hamiltonian'
   logical :: rsflag
-  integer :: icoeff,norb,norbu,norbd,nspinor,i_stat,i_all,i1,i2,i3,ispin,j,ntimes
+  integer :: icoeff,i_stat,i_all,i1,i2,i3,ispin,j,ntimes
   integer :: iorb,n3d,n3p,n3pi,i3xcsh,i3s,jproc,nrhotot,nspinn,nvctrp
   real(kind=4) :: tt,t0,t1
-  real(wp) :: maxdiff,comp
   real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU,gnrm,gnrmGPU
-  real(kind=8) :: CPUtime,CPUGflops,GPUtime,GPUGflops
+  real(kind=8) :: CPUtime,GPUtime
   type(gaussian_basis) :: G
   type(GPU_pointers) :: GPU
   integer, dimension(:,:), allocatable :: nscatterarr
-  real(wp), dimension(:,:,:,:), allocatable :: pot,psig,rho
+  real(wp), dimension(:,:,:,:), allocatable :: pot,rho
   real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
   real(wp), dimension(:,:,:), allocatable :: overlap
 
