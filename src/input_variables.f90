@@ -35,7 +35,7 @@ subroutine print_logo()
   write(*,'(23x,a)')' D        D     F         T    T    '  
   write(*,'(23x,a)')'          D     F        T     T    ' 
   write(*,'(23x,a)')'         D               T    T     '
-  write(*,'(23x,a)')'    DDDDD       F         TTTT                     (Ver 1.1.9)'
+  write(*,'(23x,a)')'    DDDDD       F         TTTT                     (Ver 1.2.1)'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
   write(*,'(1x,a)')&
@@ -245,6 +245,53 @@ subroutine print_input_parameters(in,atoms)
 end subroutine print_input_parameters
 !!***
 
+!!****f* BigDFT/read_atomic_file
+!! FUNCTION
+!!    Read atomic file
+!! SOURCE
+!!
+subroutine read_atomic_file(iproc,at,rxyz)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc
+  type(atoms_data), intent(inout) :: at
+  real(gp), dimension(:,:), pointer :: rxyz
+  !local variables
+  character(len=*), parameter :: subname='read_atomic_file'
+  integer :: i_stat
+  logical :: file_exists
+  character(len = 128) :: filename
+
+  file_exists = .false.
+
+  if (.not. file_exists) then
+     inquire(FILE = 'posinp', EXIST = file_exists)
+     if (file_exists) write(filename, "(A)") "posinp"
+  end if
+  if (.not. file_exists) then
+     inquire(FILE = 'posinp.xyz', EXIST = file_exists)
+     if (file_exists) write(filename, "(A)") "posinp.xyz"
+  end if
+
+  if (.not. file_exists) then
+     write(*,*) "Atomic input file not found."
+     write(*,*) " Files looked for are 'posinp' and 'posinp.xyz'."
+     stop 
+  end if
+
+  open(unit=99,file=trim(filename),status='old')
+  read(99,*) at%nat,at%units
+ 
+  allocate(rxyz(3,at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,rxyz,'rxyz',subname)
+
+  !read atomic positions
+  call read_atomic_positions(iproc,99,at,rxyz)
+
+  close(99)
+end subroutine read_atomic_file
+!!***
 
 !!****f* BigDFT/read_atomic_positions
 !! FUNCTION

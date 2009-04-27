@@ -78,12 +78,10 @@ if USE_MPI
 mpi_source =
 mpi_include =
 LMPI = @MPI_LDFLAGS@
-run_parallel = ompirun -np 2
 else
 mpi_source = ../MPIfake.f90
 mpi_include = mpif.h
 LMPI = 
-run_parallel =
 endif
 
 libpoissonsolver_a_SOURCES = \
@@ -121,7 +119,7 @@ mpif.h:
 	touch mpif.h &&\
 	 echo "integer :: MPI_SUM, MPI_COMM_WORLD" >> mpif.h &&\
 	 echo "integer, parameter :: MPI_DOUBLE_PRECISION=1, MPI_REAL=1, MPI_INTEGER=1" >> mpif.h &&\
-	 echo "integer :: MPI_MIN, MPI_MAX, MPI_IN_PLACE,MPI_CHARACTER" >> mpif.h
+	 echo "integer :: MPI_MIN, MPI_MAX, MPI_IN_PLACE, MPI_CHARACTER" >> mpif.h
 
 poisson_solver.@MODULE_EXT@ POISSON_SOLVER.@MODULE_EXT@: Poisson_Solver.o
 
@@ -143,4 +141,4 @@ check:
 	$(run_parallel) ./PS_Check 32 64 48 1 S >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 11 S >> PS_Check.out
 	$(run_parallel) ./PS_Check 32 64 48 13 S >> PS_Check.out
-	python $(top_srcdir)/tests/fldiff.py PS_Check.out $(top_srcdir)/src/PSolver/PS_Check.out.ref
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=2.e-8 PS_Check.out $(top_srcdir)/src/PSolver/PS_Check.out.ref

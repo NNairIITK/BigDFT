@@ -96,6 +96,15 @@ interface
      real(kind=8), dimension(at%ntypes,3), intent(out) :: radii_cf
    end subroutine read_system_variables
 
+   subroutine read_atomic_file(iproc,at,rxyz)
+     use module_base
+     use module_types
+     implicit none
+     integer, intent(in) :: iproc
+     type(atoms_data), intent(inout) :: at
+     real(gp), dimension(:,:), pointer :: rxyz
+   end subroutine read_atomic_file
+
    subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spinsgn)
      implicit none
      ! Arguments

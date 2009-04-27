@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 18/10/2008
+# Date: 22/04/2009
 #----------------------------------------------------------------------------
 
 import difflib
@@ -27,14 +27,19 @@ re_version = re.compile("[(]ver[ ]+[0-9.]+[)]",re.IGNORECASE)
 #Match a floating number
 re_float = re.compile("([- ]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
 
+#Maximum discrepancy between float results (default)
+max_discrepancy = 1.1e-10
+
 def usage():
-    print "fldiff.py [--bigdft] file1 file2"
+    print "fldiff.py [--bigdft] [--discrepancy=d] [--help] file1 file2"
     print "  --bigdft to compare 'bigdft' output files"
+    print "  --discrepancy=%7.1e Maximal discrepancy between results" % max_discrepancy
+    print "  --help   display this message"
     sys.exit(1)
 
 #Check arguments
 try:
-    optlist, args = getopt.getopt(sys.argv[1:],"b",["bigdft"])
+    optlist, args = getopt.getopt(sys.argv[1:],"bd:h",["bigdft","discrepancy=","help"])
 except getopt.error:
     sys.stderr.write("Error in arguments\n")
     usage()
@@ -42,9 +47,16 @@ bigdft = False
 for opt,arg in optlist:
     if opt == "-b" or opt == "--bigdft":
         bigdft = True
+    elif opt == "-d" or opt == "--discrepancy":
+        max_discrepancy=float(arg)
+    elif opt == "-h" or opt == "--help":
+        usage()
 if len(args) != 2:
     sys.stderr.write("Error in arguments\n")
     usage()
+
+#Display the maximum discrepancy
+print max_discrepancy
 
 #Arguments
 file1 = args[0]
@@ -85,9 +97,6 @@ except IOError:
     sys.stderr.write("The file '%s' does not exist!\n" % file2)
     sys.exit(1)
 
-#Maximum discrepancy between float results
-max_discrepancy = 1.1e-10
-
 maximum = 0.0
 context_discrepancy = ""
 context_lines = ""
@@ -107,6 +116,9 @@ except ValueError:
     #First line not found ??
     p1 = -1
     p2 = -1
+except IndexError:
+    sys.stdout.write("One file is blank!\n")
+    sys.exit(1)
 
 if p1 >= 0 and p2 >= 0 and p1 != p2:
     #we try something
@@ -245,6 +257,16 @@ while not EOF:
             print right[i2],
 
 print context_lines,
-print "Max Discrepancy%s:" % context_discrepancy,maximum
+
+if maximum > max_discrepancy:
+    start = "\033[0;31m"
+    message = "failed    < "
+    end = "\033[m"
+else:
+    start = "\033[0;32m"
+    message = "succeeded < "
+    end = "\033[m"
+
+print "%sMax Discrepancy %s: %s (%s%s)%s" % (start,context_discrepancy,maximum,message,max_discrepancy,end)
 sys.exit(0)
 
