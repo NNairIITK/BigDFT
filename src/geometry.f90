@@ -64,7 +64,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   ncount_bigdft=0
   write(fn4,'(i4.4)') ncount_bigdft
   write(comment,'(a)')'INITIAL CONFIGURATION '
-  call wtxyz('posout_'//fn4,epot,pos,at,trim(comment))
+  call write_atomic_file('posout_'//fn4,epot,pos,at,trim(comment))
 
   if (iproc ==0)  write(*,'(a,1x,a)') ' Begin of minimization using ',parmin%approach
   if(trim(parmin%approach)=='LBFGS') then
@@ -326,7 +326,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         if (iproc==0) then 
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',fnrm
-           call wtxyz('posout_'//fn4,epot,xwrite,at,trim(comment))
+           call write_atomic_file('posout_'//fn4,epot,xwrite,at,trim(comment))
         endif
 
         ehist(2:histlen)=ehist(1:histlen-1)
@@ -1031,7 +1031,8 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         if (iproc==0) then 
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'CONJG:fnrm= ',fnrm
-           call wtxyz('posout_'//fn4,etot,rxyz,at,trim(comment))
+           call  write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
+           !call wtxyz('posout_'//fn4,etot,rxyz,at,trim(comment))
         endif
 
 
@@ -1270,7 +1271,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,nfluc
            if (iproc==0) then 
               write(fn4,'(i4.4)') ncount_bigdft 
               write(comment,'(a,1pe10.3)')'SD:fnrm= ',fnrm
-              call wtxyz('posout_'//fn4,etot,rxyz,at,trim(comment))
+              call write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
            endif
 
 
@@ -2262,6 +2263,25 @@ subroutine cal_a_c_3(a_l,fx,dx,a_t,fp,dp,stpmin,stpmax,a_c)
 end subroutine cal_a_c_3
 !*****************************************************************************************
 
+subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename,comment
+  type(atoms_data), intent(in) :: atoms
+  real(gp), intent(in) :: energy
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+
+  if (atoms%format == "xyz") then
+     call wtxyz(filename,energy,rxyz,atoms,comment)
+  else if (atoms%format == "ascii") then
+     call wtascii(filename,energy,rxyz,atoms,comment)
+  else
+     write(*,*) "Error, unknown file format."
+     stop
+  end if
+end subroutine write_atomic_file
+
 subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   use module_base
   use module_types
@@ -2273,8 +2293,6 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   !local variables
   real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   character(len=2) :: symbol
-  character(len=3) :: suffix
-  character(len=3) :: fn
   character(len=10) :: name
   character(len=11) :: units
   integer :: iat,j,ichg,ispol
@@ -2314,13 +2332,10 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
      name=trim(atoms%atomnames(atoms%iatype(iat)))
      if (name(3:3)=='_') then
         symbol=name(1:2)
-        suffix=name(4:6)
      else if (name(2:2)=='_') then
         symbol=name(1:1)
-        suffix=name(3:5)
      else
         symbol=name(1:2)
-        suffix=' '
      end if
 
      call charge_and_spol(atoms%natpol(iat),ichg,ispol)
@@ -2345,6 +2360,82 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   close(unit=9)
 
 end subroutine wtxyz
+
+subroutine wtascii(filename,energy,rxyz,atoms,comment)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename,comment
+  type(atoms_data), intent(in) :: atoms
+  real(gp), intent(in) :: energy
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  !local variables
+  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
+  character(len=2) :: symbol
+  character(len=10) :: name
+  integer :: iat,j,ichg,ispol
+  real(gp) :: xmax,ymax,zmax,factor
+
+  open(unit=9,file=filename//'.ascii')
+  xmax=0.0_gp
+  ymax=0.0_gp
+  zmax=0.0_gp
+
+  do iat=1,atoms%nat
+     xmax=max(rxyz(1,iat),xmax)
+     ymax=max(rxyz(2,iat),ymax)
+     zmax=max(rxyz(3,iat),zmax)
+  enddo
+  if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
+     factor=bohr
+  else
+     factor=1.0_gp
+  end if
+
+  write(9, "(A,A)") "# BigDFT file - ", trim(comment)
+  write(9, "(3e24.17)") atoms%alat1, 0.d0, atoms%alat2
+  write(9, "(3e24.17)") 0.d0,        0.d0, atoms%alat3
+
+  write(9, "(A,A)") "#keyword: ", trim(atoms%units)
+  if (atoms%geocode == 'P') write(9, "(A)") "#keyword: periodic"
+  if (atoms%geocode == 'S') write(9, "(A)") "#keyword: surface"
+  if (atoms%geocode == 'F') write(9, "(A)") "#keyword: freeBC"
+  if (energy /= 0.d0) then
+     write(9, "(A,e24.17)") "# Total energy (Ht): ", energy
+  end if
+
+  do iat=1,atoms%nat
+     name=trim(atoms%atomnames(atoms%iatype(iat)))
+     if (name(3:3)=='_') then
+        symbol=name(1:2)
+     else if (name(2:2)=='_') then
+        symbol=name(1:1)
+     else
+        symbol=name(1:2)
+     end if
+
+     call charge_and_spol(atoms%natpol(iat),ichg,ispol)
+
+     !takes into account the blocked atoms and the input polarisation
+     if (atoms%lfrztyp(iat) .and. ispol == 0 .and. ichg == 0 ) then
+        write(9,'(3(1x,1pe24.17),2x,a2,2x,a4)') (rxyz(j,iat)*factor,j=1,3),symbol,'   f'
+     else if (atoms%lfrztyp(iat) .and. ispol /= 0 .and. ichg == 0) then
+        write(9,'(3(1x,1pe24.17),2x,a2,i7,2x,a4)') (rxyz(j,iat)*factor,j=1,3),&
+             symbol,ispol,'   f'
+     else if (atoms%lfrztyp(iat) .and. ichg /= 0) then
+        write(9,'(3(1x,1pe24.17),2x,a2,2(i7),2x,a4)') (rxyz(j,iat)*factor,j=1,3),&
+             symbol,ispol,ichg,'   f'
+     else if (ispol /= 0 .and. ichg == 0) then
+        write(9,'(3(1x,1pe24.17),2x,a2,i7)') (rxyz(j,iat)*factor,j=1,3),symbol,ispol
+     else if (ichg /= 0) then
+        write(9,'(3(1x,1pe24.17),2x,a2,2(i7))') (rxyz(j,iat)*factor,j=1,3),symbol,ispol,ichg
+     else
+        write(9,'(3(1x,1pe24.17),2x,a2,2x,a4)') (rxyz(j,iat)*factor,j=1,3),symbol
+     end if
+  enddo
+  close(unit=9)
+
+end subroutine wtascii
 
 !routine for moving atomic positions, takes into account the 
 !frozen atoms and the size of the cell

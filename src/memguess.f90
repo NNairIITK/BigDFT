@@ -18,11 +18,10 @@ program memguess
   implicit none
   character(len=*), parameter :: subname='memguess'
   integer, parameter :: ngx=31
-  character(len=20) :: tatonam,units
+  character(len=20) :: tatonam
   character(len=40) :: comment
   logical :: optimise,GPUtest
-  integer :: ierror,nproc,i_stat,i_all,output_grid
-  integer :: nelec,ntimes
+  integer :: nelec,ntimes,nproc,i_stat,ierror,i_all,output_grid
   integer :: norbe,norbsc,nvctrp,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: iunit,ityp,norbgpu,nspin_ig
   real(kind=8) :: peakmem,hx,hy,hz
@@ -33,14 +32,14 @@ program memguess
   type(nonlocal_psp_descriptors) :: nlpspd
   logical, dimension(:,:,:), allocatable :: logrid
   integer, dimension(:,:), allocatable :: norbsc_arr
-  real(kind=8), dimension(:,:), allocatable, target :: rxyz
+  real(gp), dimension(:,:), pointer :: rxyz
   real(kind=8), dimension(:,:), allocatable :: radii_cf
   real(kind=8), dimension(:,:,:), allocatable :: psiat
   real(kind=8), dimension(:,:), allocatable :: xp, occupat
   integer, dimension(:,:), allocatable :: nl
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
-  real(kind=8), dimension(:), allocatable :: occup,spinsgn,locrad
+  real(kind=8), dimension(:), allocatable :: locrad
 
 ! Get arguments
   call getarg(1,tatonam)
@@ -112,16 +111,7 @@ program memguess
   call print_logo()
 
   !read number of atoms
-  open(unit=99,file='posinp',status='old')
-  read(99,*) atoms%nat,atoms%units
- 
-  allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz,'rxyz',subname)
-
-  !read atomic positions
-  call read_atomic_positions(0,99,atoms,rxyz)
-
-  close(99)
+  call read_atomic_file(0,atoms,rxyz)
 
   !new way of reading the input variables, use structures
   call read_input_variables(0,'input.dat',in)
@@ -149,9 +139,10 @@ program memguess
      else
         call shift_periodic_directions(atoms,rxyz,radii_cf)
      end if
-     write(*,'(1x,a)')'Writing optimised positions in file posout_000.xyz...'
+     write(*,'(1x,a)')'Writing optimised positions in file posout_000.[xyz,ascii]...'
      write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
-     call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
+     call write_atomic_file('posopt',0.d0,rxyz,atoms,trim(comment))
+     !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
 
   end if
 
@@ -432,7 +423,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
   !local variables
   character(len=*), parameter :: subname='optimise_volume'
-  integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1,n2,n3,n1i,n2i,n3i,iat,i_all,i_stat,it,i
+  integer :: iat,i_all,i_stat,it,i
   real(gp) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax
   type(locreg_descriptors) :: Glr
   real(gp), dimension(3,3) :: urot
@@ -546,10 +537,8 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
   real(gp), dimension(3,at%nat), intent(inout) :: rxyz
   !local variables
   character(len=*), parameter :: subname='shift_periodic_directions'
-  integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1,n2,n3,n1i,n2i,n3i,iat,i_all,i_stat,i,ityp
-  real(gp) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax,maxsh,shiftx,shifty,shiftz
-  type(locreg_descriptors) :: Glr
-  real(gp), dimension(3,3) :: urot
+  integer :: iat,i_all,i_stat,i,ityp
+  real(gp) :: vol,tvol,maxsh,shiftx,shifty,shiftz
   real(gp), dimension(:,:), allocatable :: txyz
 
   !calculate maximum shift between these values
@@ -702,14 +691,13 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   integer :: icoeff,norb,norbu,norbd,nspinor,i_stat,i_all,i1,i2,i3,ispin,j
   integer :: iorb,n3d,n3p,n3pi,i3xcsh,i3s,jproc,nrhotot,nspinn,nvctrp
   real(kind=4) :: tt,t0,t1
-  real(wp) :: maxdiff,comp
   real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU,gnrm,gnrmGPU
   real(gp) :: Rden,Rham,Rgemm,Rsyrk,Rprec
-  real(kind=8) :: CPUtime,CPUGflops,GPUtime,GPUGflops
+  real(kind=8) :: CPUtime,GPUtime
   type(gaussian_basis) :: G
   type(GPU_pointers) :: GPU
   integer, dimension(:,:), allocatable :: nscatterarr
-  real(wp), dimension(:,:,:,:), allocatable :: pot,psig,rho
+  real(wp), dimension(:,:,:,:), allocatable :: pot,rho
   real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
   real(wp), dimension(:,:,:), allocatable :: overlap
 

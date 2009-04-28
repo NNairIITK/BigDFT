@@ -17,9 +17,11 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces memguess $(minima_hopping_sources)
+binaries_sources = cluster test_forces memguess NEB $(minima_hopping_sources)
+scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
+scripts_sources = 
 endif
 
 if USE_CUDA_GPU
@@ -60,11 +62,13 @@ EXTRA_DIST = \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
-	lib
+	lib \
+	NEB_driver.sh
 
 AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common
 
 bin_PROGRAMS = $(binaries_sources)
+bin_SCRIPTS = $(scripts_sources)
 
 lib_LIBRARIES = $(lib_bigdft)
 module_DATA = $(mod_bigdft)
@@ -212,6 +216,10 @@ test_forces_LDADD = libbigdft.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
+
+NEB_SOURCES = NEB.f90
+NEB_LDFLAGS = 
+NEB_LDADD =
 
 memguess_SOURCES = memguess.f90 
 memguess_LDADD = libbigdft.a \

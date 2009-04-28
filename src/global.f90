@@ -131,6 +131,9 @@ program MINHOP
 
   call read_atomic_positions(iproc,99,atoms,pos)
   close(unit=99)
+  !add the atomic format at hand (should be changed)
+  write(atoms%format, "(A)") "xyz"
+  
   !Read input parameters for geometry optimization 
   call read_input_variables(iproc,'input.dat',inputs_opt)
   call read_input_variables(iproc,'mdinput.dat',inputs_md)
