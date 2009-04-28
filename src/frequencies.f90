@@ -152,7 +152,7 @@ program frequencies
      write(*,"(1x,a)") '=Frequencies calculation='
      open(unit=10,file='frequencies.dat',status="unknown")
      open(unit=20,file='hessian.dat',status="unknown")
-     write(10,'(a,1pe20.10)') '#step=',alpha*inputs%hx,alpha*inputs%hy,alpha*inputs%hz
+     write(10,'(a,3(1pe20.10))') '#step=',alpha*inputs%hx,alpha*inputs%hy,alpha*inputs%hz
      write(10,'(a,100(1pe20.10))') '#--',etot,alpha*inputs%hx,alpha*inputs%hy,alpha*inputs%hz,fxyz
   end if
 
