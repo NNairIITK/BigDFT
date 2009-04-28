@@ -4,27 +4,23 @@ SUBDIRS =
 
 EXTRA_DIST = \
 	input.dat \
-	posinp
+	posinp \
+	input.geopt
 
 PPFILES = \
 	psppar.Na \
 	psppar.Cl
 
-CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* NaCl.out posout* *.prc\
+CLEANFILES = $(PPFILES) NaCl.out posout* geopt.mon *.prc\
 			 fldiff.report $(EXTRA_DIST) $(PPFILES)
 
 #dependencies
-psppar.Na:
+psppar.Na psppar.Cl:
 	cp $(top_srcdir)/utils/PSPfiles/HGH/$@ .
 
-psppar.Cl:
-	cp $(top_srcdir)/utils/PSPfiles/$@ .
-
-inguess.dat:
-	cp $(top_srcdir)/tests/inguess.dat .
-
-check: $(PPFILES) inguess.dat
+check: $(PPFILES)
 	cp -f $(top_srcdir)/tests/NaCl/input.dat .
+	cp -f $(top_srcdir)/tests/NaCl/input.geopt .
 	cp -f $(top_srcdir)/tests/NaCl/posinp .
 	$(run_parallel) $(top_builddir)/src/cluster > NaCl.out
 	python $(top_srcdir)/tests/fldiff.py --bigdft NaCl.out $(top_srcdir)/tests/Refs/NaCl.out.ref | tee fldiff.report

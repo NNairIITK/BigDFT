@@ -24,15 +24,6 @@ program MINHOP
   type(atoms_data) :: atoms
   type(input_variables) :: inputs_opt, inputs_md
   type(restart_objects) :: rst
-  ! some variable definitions are not needed anymore due to the new restart variable type
-  ! type(wavefunctions_descriptors) :: wfd
-
-  logical, dimension(:), allocatable :: lfrztyp
-  !  real(kind=8), dimension(:,:), allocatable :: rxyz_old
-
-  !  real(kind=8), dimension(:), pointer :: eval
-  !  real(kind=8), dimension(:), pointer :: psi
-
   integer, parameter :: npminx=200
   !C parameters for minima hopping
   integer, parameter :: mdmin=2
@@ -779,31 +770,35 @@ contains
     md_loop: do istep=1,1000
 
        !C      Evolution of the system according to 'VELOCITY VERLET' algorithm
-       rkin=0.d0
-       do iat=1,atoms%nat
-          if (.not. atoms%lfrztyp(iat)) then
-             if (atoms%geocode == 'P') then
-                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
-                     atoms%alat1)
-                rxyz(2,iat)=modulo(rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat),&
-                     atoms%alat2)
-                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
-                     atoms%alat3)
-             else if (atoms%geocode == 'S') then
-                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
-                     atoms%alat1)
-                rxyz(2,iat)=       rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
-                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
-                     atoms%alat3)
-             else if (atoms%geocode == 'F') then
-                rxyz(1,iat)=rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat)
-                rxyz(2,iat)=rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
-                rxyz(3,iat)=rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat)
-             end if
-             rkin=rkin+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
-          end if
-       enddo
-       rkin=rkin*.5d0
+       call atomic_dot(atoms,vxyz,vxyz,rkin)
+       
+       call move_atoms_positions(atoms,rxyz,dt,vxyz+.5_gp*dt*gg,rxyz)
+
+!!$       rkin=0.d0
+!!$       do iat=1,atoms%nat
+!!$          if (.not. atoms%lfrztyp(iat)) then
+!!$             if (atoms%geocode == 'P') then
+!!$                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
+!!$                     atoms%alat1)
+!!$                rxyz(2,iat)=modulo(rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat),&
+!!$                     atoms%alat2)
+!!$                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
+!!$                     atoms%alat3)
+!!$             else if (atoms%geocode == 'S') then
+!!$                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
+!!$                     atoms%alat1)
+!!$                rxyz(2,iat)=       rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
+!!$                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
+!!$                     atoms%alat3)
+!!$             else if (atoms%geocode == 'F') then
+!!$                rxyz(1,iat)=rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat)
+!!$                rxyz(2,iat)=rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
+!!$                rxyz(3,iat)=rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat)
+!!$             end if
+!!$             rkin=rkin+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
+!!$          end if
+!!$       enddo
+!!$       rkin=rkin*.5d0
 
        enmin2=enmin1
        enmin1=en0000
@@ -834,21 +829,25 @@ contains
                write(67,*) 'WARNING: nummin,nummax',nummin,nummax
           exit md_loop
        endif
-       do iat=1,atoms%nat
-          at1=ff(1,iat)
-          at2=ff(2,iat)
-          at3=ff(3,iat)
-          !C Evolution of the velocities of the system
-          if (.not. atoms%lfrztyp(iat)) then
-             vxyz(1,iat)=vxyz(1,iat) + (.5d0*dt) * (at1 + gg(1,iat))
-             vxyz(2,iat)=vxyz(2,iat) + (.5d0*dt) * (at2 + gg(2,iat))
-             vxyz(3,iat)=vxyz(3,iat) + (.5d0*dt) * (at3 + gg(3,iat))
-          end if
-          !C Memorization of old forces
-          gg(1,iat) = at1
-          gg(2,iat) = at2
-          gg(3,iat) = at3
-       end do
+
+       call move_atoms_positions(atoms,vxyz,0.5_gp*dt,ff+gg,vxyz)
+       gg=ff
+
+!!$       do iat=1,atoms%nat
+!!$          at1=ff(1,iat)
+!!$          at2=ff(2,iat)
+!!$          at3=ff(3,iat)
+!!$          !C Evolution of the velocities of the system
+!!$          if (.not. atoms%lfrztyp(iat)) then
+!!$             vxyz(1,iat)=vxyz(1,iat) + (.5d0*dt) * (at1 + gg(1,iat))
+!!$             vxyz(2,iat)=vxyz(2,iat) + (.5d0*dt) * (at2 + gg(2,iat))
+!!$             vxyz(3,iat)=vxyz(3,iat) + (.5d0*dt) * (at3 + gg(3,iat))
+!!$          end if
+!!$          !C Memorization of old forces
+!!$          gg(1,iat) = at1
+!!$          gg(2,iat) = at2
+!!$          gg(3,iat) = at3
+!!$       end do
     end do md_loop
     if (istep >=1000) then
        if (iproc == 0) write(67,*) 'TOO MANY MD STEPS'
@@ -905,17 +904,19 @@ contains
 
     ! scale velocity to generate dimer 
 
-    svxyz=0.d0
-    do i=1,3*atoms%nat
-       iat=(i-1)/3+1
-       if (.not. atoms%lfrztyp(iat)) then
-          svxyz=svxyz+vxyz(i)**2
-       end if
-    enddo
+    call atomic_dot(atoms,vxyz,vxyz,svxyz)
+!!$    svxyz=0.d0
+!!$    do i=1,3*atoms%nat
+!!$       iat=(i-1)/3+1
+!!$       if (.not. atoms%lfrztyp(iat)) then
+!!$          svxyz=svxyz+vxyz(i)**2
+!!$       end if
+!!$    enddo
     svxyz=eps_vxyz/sqrt(svxyz)
-    do i=1,3*atoms%nat
-       vxyz(i)=svxyz*vxyz(i)
-    enddo
+    call move_atoms_positions(atoms,vxyz,svxyz-1.0_gp,vxyz,vxyz)
+!!$    do i=1,3*atoms%nat
+!!$       vxyz(i)=svxyz*vxyz(i)
+!!$    enddo
     !equivalent to
     !      vxyz = vxyz*eps_vxyz/(dnrm2(3*atoms%nat,vxyz,1))
 
@@ -933,42 +934,46 @@ contains
 !!$          !if(iproc==0)write(*,*)wpos(i),rxyz(i),vxyz(i)
 !!$       end do
        
-       do iat=1,atoms%nat
-          if (atoms%lfrztyp(iat)) then
-             wpos(3*(iat-1)+1)=rxyz(3*(iat-1)+1)
-             wpos(3*(iat-1)+2)=rxyz(3*(iat-1)+2)
-             wpos(3*(iat-1)+3)=rxyz(3*(iat-1)+3)
-          else
-             if (atoms%geocode == 'P') then
-                wpos(3*(iat-1)+1)=modulo(rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1),atoms%alat1)
-                wpos(3*(iat-1)+2)=modulo(rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2),atoms%alat2)
-                wpos(3*(iat-1)+3)=modulo(rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3),atoms%alat3)
-             else if (atoms%geocode == 'S') then
-                wpos(3*(iat-1)+1)=modulo(rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1),atoms%alat1)
-                wpos(3*(iat-1)+2)=       rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2)
-                wpos(3*(iat-1)+3)=modulo(rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3),atoms%alat3)
-             else if (atoms%geocode == 'F') then
-                wpos(3*(iat-1)+1)=rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1)
-                wpos(3*(iat-1)+2)=rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2)
-                wpos(3*(iat-1)+3)=rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3)
-             end if
-          end if
-          !if(iproc==0)write(*,*)wpos(i),rxyz(i),vxyz(i)
-       end do
+       call move_atoms_positions(atoms,rxyz,1.0_gp,vxyz,wpos)
+!!$       do iat=1,atoms%nat
+!!$          if (atoms%lfrztyp(iat)) then
+!!$             wpos(3*(iat-1)+1)=rxyz(3*(iat-1)+1)
+!!$             wpos(3*(iat-1)+2)=rxyz(3*(iat-1)+2)
+!!$             wpos(3*(iat-1)+3)=rxyz(3*(iat-1)+3)
+!!$          else
+!!$             if (atoms%geocode == 'P') then
+!!$                wpos(3*(iat-1)+1)=modulo(rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1),atoms%alat1)
+!!$                wpos(3*(iat-1)+2)=modulo(rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2),atoms%alat2)
+!!$                wpos(3*(iat-1)+3)=modulo(rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3),atoms%alat3)
+!!$             else if (atoms%geocode == 'S') then
+!!$                wpos(3*(iat-1)+1)=modulo(rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1),atoms%alat1)
+!!$                wpos(3*(iat-1)+2)=       rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2)
+!!$                wpos(3*(iat-1)+3)=modulo(rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3),atoms%alat3)
+!!$             else if (atoms%geocode == 'F') then
+!!$                wpos(3*(iat-1)+1)=rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1)
+!!$                wpos(3*(iat-1)+2)=rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2)
+!!$                wpos(3*(iat-1)+3)=rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3)
+!!$             end if
+!!$          end if
+!!$          !if(iproc==0)write(*,*)wpos(i),rxyz(i),vxyz(i)
+!!$       end do
 
        !        wpos=rxyz+vxyz
        call call_bigdft(nproc,iproc,atoms,wpos,inputs_md,etot,fxyz,rst,infocode)
        fd2=2.d0*(etot-etot0)/eps_vxyz**2
 
-       sdf=0.d0
-       svxyz=0.d0
-       do i=1,3*atoms%nat
-          iat=(i-1)/3+1
-          if (.not. atoms%lfrztyp(iat)) then
-             sdf=sdf+vxyz(i)*fxyz(i)
-             svxyz=svxyz+vxyz(i)*vxyz(i)
-          end if
-       end do
+
+       call atomic_dot(atoms,vxyz,fxyz,sdf)
+       call atomic_dot(atoms,vxyz,vxyz,svxyz)
+!!$       sdf=0.d0
+!!$       svxyz=0.d0
+!!$       do i=1,3*atoms%nat
+!!$          iat=(i-1)/3+1
+!!$          if (.not. atoms%lfrztyp(iat)) then
+!!$             sdf=sdf+vxyz(i)*fxyz(i)
+!!$             svxyz=svxyz+vxyz(i)*vxyz(i)
+!!$          end if
+!!$       end do
        !equivalent to
        !        sdf=ddot(3*atoms%nat,vxyz(1,1),1,fxyz(1,1),1)
        !        svxyz=dnrm2(3*atoms%nat,vxyz(1,1),1)
@@ -976,16 +981,20 @@ contains
        curv=-sdf/svxyz
        if (it.eq.1) curv0=curv
 
-       res=0.d0
-       tt=0.d0
-       do i=1,3*atoms%nat
-          iat=(i-1)/3+1
-          if (.not. atoms%lfrztyp(iat)) then
-             tt=tt+fxyz(i)**2
-             fxyz(i)=fxyz(i)+curv*vxyz(i)
-             res=res+fxyz(i)**2
-          end if
-       end do
+
+       call atomic_dot(atoms,fxyz,fxyz,tt)
+       call move_atoms_positions(atoms,fxyz,curv,vxyz,fxyz)
+       call atomic_dot(atoms,fxyz,fxyz,res)
+!!$       res=0.d0
+!!$       tt=0.d0
+!!$       do i=1,3*atoms%nat
+!!$          iat=(i-1)/3+1
+!!$          if (.not. atoms%lfrztyp(iat)) then
+!!$             tt=tt+fxyz(i)**2
+!!$             fxyz(i)=fxyz(i)+curv*vxyz(i)
+!!$             res=res+fxyz(i)**2
+!!$          end if
+!!$       end do
        res=sqrt(res)
        tt=sqrt(tt)
        !equivalent to
@@ -999,24 +1008,27 @@ contains
        !if(iproc==0)write(11,*)&
        !        it,tt,res,curv,fd2,etot-etot0
 
-       do iat=1,atoms%nat
-          if (.not. atoms%lfrztyp(iat)) then
-             if (atoms%geocode == 'P') then
-                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%alat1)
-                wpos(3*(iat-1)+2)=modulo(wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2),atoms%alat2)
-                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%alat3)
-             else if (atoms%geocode == 'S') then
-                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%alat1)
-                wpos(3*(iat-1)+2)=       wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
-                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%alat3)
-             else if (atoms%geocode == 'F') then
-                wpos(3*(iat-1)+1)=wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1)
-                wpos(3*(iat-1)+2)=wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
-                wpos(3*(iat-1)+3)=wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3)
-             end if
+       call move_atoms_positions(atoms,wpos,alpha,fxyz,wpos)
+!!$
+!!$       do iat=1,atoms%nat
+!!$          if (.not. atoms%lfrztyp(iat)) then
+!!$             if (atoms%geocode == 'P') then
+!!$                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%alat1)
+!!$                wpos(3*(iat-1)+2)=modulo(wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2),atoms%alat2)
+!!$                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%alat3)
+!!$             else if (atoms%geocode == 'S') then
+!!$                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%alat1)
+!!$                wpos(3*(iat-1)+2)=       wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
+!!$                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%alat3)
+!!$             else if (atoms%geocode == 'F') then
+!!$                wpos(3*(iat-1)+1)=wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1)
+!!$                wpos(3*(iat-1)+2)=wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
+!!$                wpos(3*(iat-1)+3)=wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3)
+!!$             end if
+!!$
+!!$          end if
+!!$       end do
 
-          end if
-       end do
 !!$       do i=1,3*atoms%nat
 !!$          iat=(i-1)/3+1
 !!$          if (.not. atoms%lfrztyp(iat)) then
@@ -1024,9 +1036,10 @@ contains
 !!$          end if
 !!$       end do
 
-       do i=1,3*atoms%nat
-          vxyz(i)=wpos(i)-rxyz(i)
-       end do
+       call move_atoms_positions(atoms,wpos,-1.0_gp,rxyz,vxyz)
+!!$       do i=1,3*atoms%nat
+!!$          vxyz(i)=wpos(i)-rxyz(i)
+!!$       end do
        !equivalent to
        !        call daxpy(3*atoms%nat,alpha,fxyz(1),1,wpos(1),1)
        !        vxyz=wpos-rxyz
@@ -1034,21 +1047,25 @@ contains
        call  elim_moment(atoms%nat,vxyz)
        call  elim_torque(atoms%nat,rxyz,vxyz)
 
-       svxyz=0.d0
-       do i=1,3*atoms%nat
-          iat=(i-1)/3+1
-          if (.not. atoms%lfrztyp(iat)) then
-             svxyz=svxyz+vxyz(i)*vxyz(i)
-          end if
-       end do
+       call atomic_dot(atoms,vxyz,vxyz,svxyz)
+!!$
+!!$       svxyz=0.d0
+!!$       do i=1,3*atoms%nat
+!!$          iat=(i-1)/3+1
+!!$          if (.not. atoms%lfrztyp(iat)) then
+!!$             svxyz=svxyz+vxyz(i)*vxyz(i)
+!!$          end if
+!!$       end do
        !equivalent to
        !        svxyz=dnrm2(3*atoms%nat,vxyz(1),1)**2
        if (res <= curv*eps_vxyz*5.d-1) exit
        svxyz=eps_vxyz/dsqrt(svxyz)
 
-       do i=1,3*atoms%nat
-          vxyz(i)=vxyz(i)*svxyz
-       end do
+       
+       call move_atoms_positions(atoms,vxyz,svxyz-1.0_gp,vxyz,vxyz)
+!!$       do i=1,3*atoms%nat
+!!$          vxyz(i)=vxyz(i)*svxyz
+!!$       end do
        !equivalent to
        !        call dscal(3*atoms%nat,svxyz,vxyz(1),1)
 
@@ -1215,24 +1232,29 @@ subroutine velopt(at,rxyz,ekinetic,vxyz)
 
 
   !C      Kinetic energy of the random velocities
-  rkinsum= 0.d0      
-  do iat=1,at%nat
-     if (.not. at%lfrztyp(iat)) then
-        rkinsum= rkinsum+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
-     end if
-  end do
-  rkin=.5d0*rkinsum/(3*at%nat-3)
+  call atomic_dot(at,vxyz,vxyz,rkinsum)
+!!$  rkinsum= 0.d0      
+!!$  do iat=1,at%nat
+!!$     if (.not. at%lfrztyp(iat)) then
+!!$        rkinsum= rkinsum+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
+!!$     end if
+!!$  end do
+  !here the number of atoms should be subtracted with the number of blocked atoms
+  rkin=.5d0*rkinsum/(3*at%nat-3) 
   !       write(*,*) 'rkin,ekinetic',rkin,ekinetic
 
   !C      Rescaling of velocities to get reference kinetic energy
   sclvel= dsqrt(ekinetic/rkin)
-  do iat=1,at%nat
-     if (.not. at%lfrztyp(iat)) then
-        vxyz(1,iat)=vxyz(1,iat)*sclvel
-        vxyz(2,iat)=vxyz(2,iat)*sclvel
-        vxyz(3,iat)=vxyz(3,iat)*sclvel
-     end if
-  end do
+
+  call move_atoms_positions(at,vxyz,sclvel-1.0_gp,vxyz,vxyz)
+
+!!$  do iat=1,at%nat
+!!$     if (.not. at%lfrztyp(iat)) then
+!!$        vxyz(1,iat)=vxyz(1,iat)*sclvel
+!!$        vxyz(2,iat)=vxyz(2,iat)*sclvel
+!!$        vxyz(3,iat)=vxyz(3,iat)*sclvel
+!!$     end if
+!!$  end do
 
 end subroutine velopt
 
@@ -1611,6 +1633,7 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
            endif
         enddo
 
+        !leave things like that due to the presence of the belong(:) array
         d1=rxyz(1,ii)-rxyz(1,jj)
         d2=rxyz(2,ii)-rxyz(2,jj)
         d3=rxyz(3,ii)-rxyz(3,jj)
