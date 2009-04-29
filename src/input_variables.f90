@@ -359,8 +359,8 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
 
   allocate(at%iatype(at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,at%iatype,'at%iatype',subname)
-  allocate(at%lfrztyp(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,at%lfrztyp,'at%lfrztyp',subname)
+  allocate(at%ifrztyp(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,at%ifrztyp,'at%ifrztyp',subname)
   allocate(at%natpol(at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,at%natpol,'at%natpol',subname)
 
@@ -373,7 +373,7 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
 
   !this array is useful for frozen atoms
   !no atom is frozen by default
-  at%lfrztyp(:)=.false.
+  at%ifrztyp(:)=0
   !also the spin polarisation and the charge are is fixed to zero by default
   !this corresponds to the value of 100
   !RULE natpol=charge*1000 + 100 + spinpol
@@ -581,7 +581,7 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
   enddo
 
   do iat=1,at%nat
-     if (iproc.eq.0 .and. at%lfrztyp(iat)) &
+     if (iproc.eq.0 .and. at%ifrztyp(iat)/=0) &
           write(*,'(1x,a,i0,a,a)') 'FIXED Atom N.:',iat,', Name: ',trim(at%atomnames(at%iatype(iat)))
   enddo
 
@@ -689,7 +689,7 @@ subroutine parse_extra_info(iproc,iat,extra,at)
   
   if (trim(suffix) == 'f') then
      !the atom is considered as blocked
-     at%lfrztyp(iat)=.true.
+     at%ifrztyp(iat)=1
   end if
 
 contains
@@ -791,8 +791,8 @@ subroutine read_atomic_ascii(iproc,ifile,at,rxyz)
 
   allocate(at%iatype(at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,at%iatype,'at%iatype',subname)
-  allocate(at%lfrztyp(at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,at%lfrztyp,'at%lfrztyp',subname)
+  allocate(at%ifrztyp(at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,at%ifrztyp,'at%ifrztyp',subname)
   allocate(at%natpol(at%nat+ndebug),stat=i_stat)
   call memocc(i_stat,at%natpol,'at%natpol',subname)
   allocate(rxyz(3,at%nat+ndebug),stat=i_stat)
@@ -807,7 +807,7 @@ subroutine read_atomic_ascii(iproc,ifile,at,rxyz)
 
   !this array is useful for frozen atoms
   !no atom is frozen by default
-  at%lfrztyp(:)=.false.
+  at%ifrztyp(:)=0
   !also the spin polarisation and the charge are is fixed to zero by default
   !this corresponds to the value of 100
   !RULE natpol=charge*1000 + 100 + spinpol
@@ -982,7 +982,7 @@ subroutine read_atomic_ascii(iproc,ifile,at,rxyz)
   enddo
 
   do iat=1,at%nat
-     if (iproc.eq.0 .and. at%lfrztyp(iat)) &
+     if (iproc.eq.0 .and. at%ifrztyp(iat) /=0) &
           write(*,'(1x,a,i0,a,a)') 'FIXED Atom N.:',iat,', Name: ',trim(at%atomnames(at%iatype(iat)))
   enddo
 

@@ -148,7 +148,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   !this feature is now useless since the positions are updated with move_atoms_positions
 !!$  nr=0
 !!$  do i=1,at%nat
-!!$     if ( .not. at%lfrztyp(i)) nr=nr+3
+!!$     if (at%ifrztyp(i) == 0 ) nr=nr+3
 !!$  enddo
   !replaced with 
   nr=3*at%nat
@@ -307,12 +307,12 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
      xc(:)=x(:)
      do i=1,nr 
-        if (.not. at%lfrztyp((i-1)/3+1)) then
+        if (at%ifrztyp((i-1)/3+1) == 0) then
            x(i)=0.0_gp
            f(i)=0.0_gp
            xc(i)=0.0_gp
            do j=1,nr 
-              if (.not. at%lfrztyp((j-1)/3+1)) then
+              if (at%ifrztyp((j-1)/3+1) == 0) then
                  x(i)=x(i)+xt(j)*hess(i,j)
                  f(i)=f(i)+ft(j)*hess(i,j)
                  xc(i)=xc(i)+xtc(j)*hess(i,j)    
@@ -1583,7 +1583,7 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,at)
   t3=0._gp
   fmax=0._gp
   do iat=1,at%nat
-     if (.not. at%lfrztyp(iat)) then
+     if (at%ifrztyp(iat) == 0) then
         t1=t1+ff(1,iat)**2 
         t2=t2+ff(2,iat)**2 
         t3=t3+ff(3,iat)**2
@@ -2295,6 +2295,7 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   character(len=2) :: symbol
   character(len=10) :: name
   character(len=11) :: units
+  character(len=50) :: extra
   integer :: iat,j,ichg,ispol
   real(gp) :: xmax,ymax,zmax,factor
 
@@ -2338,24 +2339,28 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
         symbol=name(1:2)
      end if
 
-     call charge_and_spol(atoms%natpol(iat),ichg,ispol)
+     call write_extra_info(extra,atoms%natpol(iat),atoms%ifrztyp(iat))
 
-     !takes into account the blocked atoms and the input polarisation
-     if (atoms%lfrztyp(iat) .and. ispol == 0 .and. ichg == 0 ) then
-        write(9,'(a2,4x,3(1x,1pe24.17),2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3),'   f'
-     else if (atoms%lfrztyp(iat) .and. ispol /= 0 .and. ichg == 0) then
-        write(9,'(a2,4x,3(1x,1pe24.17),i7,2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3),&
-             ispol,'   f'
-     else if (atoms%lfrztyp(iat) .and. ichg /= 0) then
-        write(9,'(a2,4x,3(1x,1pe24.17),2(i7),2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3),&
-             ispol,ichg,'   f'
-     else if (ispol /= 0 .and. ichg == 0) then
-        write(9,'(a2,4x,3(1x,1pe24.17),i7)')symbol,(rxyz(j,iat)*factor,j=1,3),ispol
-     else if (ichg /= 0) then
-        write(9,'(a2,4x,3(1x,1pe24.17),2(i7))')symbol,(rxyz(j,iat)*factor,j=1,3),ispol,ichg
-     else
-        write(9,'(a2,4x,3(1x,1pe24.17),2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3)
-     end if
+     write(9,'(a2,4x,3(1x,1pe24.17),2x,a50)')symbol,(rxyz(j,iat)*factor,j=1,3),extra
+
+!!$     call charge_and_spol(atoms%natpol(iat),ichg,ispol)
+!!$
+!!$     !takes into account the blocked atoms and the input polarisation
+!!$     if (atoms%ifrztyp(iat) /= 0 .and. ispol == 0 .and. ichg == 0 ) then
+!!$        write(9,'(a2,4x,3(1x,1pe24.17),2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3),'   f'
+!!$     else if (atoms%ifrztyp(iat) /= 0 .and. ispol /= 0 .and. ichg == 0) then
+!!$        write(9,'(a2,4x,3(1x,1pe24.17),i7,2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3),&
+!!$             ispol,'   f'
+!!$     else if (atoms%ifrztyp(iat) /=0 .and. ichg /= 0) then
+!!$        write(9,'(a2,4x,3(1x,1pe24.17),2(i7),2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3),&
+!!$             ispol,ichg,'   f'
+!!$     else if (ispol /= 0 .and. ichg == 0) then
+!!$        write(9,'(a2,4x,3(1x,1pe24.17),i7)')symbol,(rxyz(j,iat)*factor,j=1,3),ispol
+!!$     else if (ichg /= 0) then
+!!$        write(9,'(a2,4x,3(1x,1pe24.17),2(i7))')symbol,(rxyz(j,iat)*factor,j=1,3),ispol,ichg
+!!$     else
+!!$        write(9,'(a2,4x,3(1x,1pe24.17),2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3)
+!!$     end if
   enddo
   close(unit=9)
 
@@ -2372,6 +2377,7 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   !local variables
   real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   character(len=2) :: symbol
+  character(len=50) :: extra
   character(len=10) :: name
   integer :: iat,j,ichg,ispol
   real(gp) :: xmax,ymax,zmax,factor
@@ -2414,28 +2420,60 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
         symbol=name(1:2)
      end if
 
-     call charge_and_spol(atoms%natpol(iat),ichg,ispol)
+     call write_extra_info(extra,atoms%natpol(iat),atoms%ifrztyp(iat))     
 
-     !takes into account the blocked atoms and the input polarisation
-     if (atoms%lfrztyp(iat) .and. ispol == 0 .and. ichg == 0 ) then
-        write(9,'(3(1x,1pe24.17),2x,a2,2x,a4)') (rxyz(j,iat)*factor,j=1,3),symbol,'   f'
-     else if (atoms%lfrztyp(iat) .and. ispol /= 0 .and. ichg == 0) then
-        write(9,'(3(1x,1pe24.17),2x,a2,i7,2x,a4)') (rxyz(j,iat)*factor,j=1,3),&
-             symbol,ispol,'   f'
-     else if (atoms%lfrztyp(iat) .and. ichg /= 0) then
-        write(9,'(3(1x,1pe24.17),2x,a2,2(i7),2x,a4)') (rxyz(j,iat)*factor,j=1,3),&
-             symbol,ispol,ichg,'   f'
-     else if (ispol /= 0 .and. ichg == 0) then
-        write(9,'(3(1x,1pe24.17),2x,a2,i7)') (rxyz(j,iat)*factor,j=1,3),symbol,ispol
-     else if (ichg /= 0) then
-        write(9,'(3(1x,1pe24.17),2x,a2,2(i7))') (rxyz(j,iat)*factor,j=1,3),symbol,ispol,ichg
-     else
-        write(9,'(3(1x,1pe24.17),2x,a2,2x,a4)') (rxyz(j,iat)*factor,j=1,3),symbol
-     end if
+     write(9,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor,j=1,3),symbol,extra
+
+!!$     call charge_and_spol(atoms%natpol(iat),ichg,ispol)
+!!$
+!!$     !takes into account the blocked atoms and the input polarisation
+!!$     if (atoms%ifrztyp(iat) /=0 .and. ispol == 0 .and. ichg == 0 ) then
+!!$        write(9,'(3(1x,1pe24.17),2x,a2,2x,a4)') (rxyz(j,iat)*factor,j=1,3),symbol,'   f'
+!!$     else if (atoms%ifrztyp(iat) /=0 .and. ispol /= 0 .and. ichg == 0) then
+!!$        write(9,'(3(1x,1pe24.17),2x,a2,i7,2x,a4)') (rxyz(j,iat)*factor,j=1,3),&
+!!$             symbol,ispol,'   f'
+!!$     else if (atoms%ifrztyp(iat) /= 0 .and. ichg /= 0) then
+!!$        write(9,'(3(1x,1pe24.17),2x,a2,2(i7),2x,a4)') (rxyz(j,iat)*factor,j=1,3),&
+!!$             symbol,ispol,ichg,'   f'
+!!$     else if (ispol /= 0 .and. ichg == 0) then
+!!$        write(9,'(3(1x,1pe24.17),2x,a2,i7)') (rxyz(j,iat)*factor,j=1,3),symbol,ispol
+!!$     else if (ichg /= 0) then
+!!$        write(9,'(3(1x,1pe24.17),2x,a2,2(i7))') (rxyz(j,iat)*factor,j=1,3),symbol,ispol,ichg
+!!$     else
+!!$        write(9,'(3(1x,1pe24.17),2x,a2,2x,a4)') (rxyz(j,iat)*factor,j=1,3),symbol
+!!$     end if
   enddo
   close(unit=9)
 
 end subroutine wtascii
+
+!write the extra info necessary for the output file
+subroutine write_extra_info(extra,natpol,ifrztyp)
+  use module_base
+  implicit none 
+  integer, intent(in) :: natpol,ifrztyp
+  character(len=50), intent(out) :: extra
+  !local variables
+  integer :: ispol,ichg
+
+  call charge_and_spol(natpol,ichg,ispol)
+  
+  !takes into account the blocked atoms and the input polarisation
+  if (ifrztyp /=0 .and. ispol == 0 .and. ichg == 0 ) then
+     write(extra,'(2x,a4)')'   f'
+  else if (ifrztyp /=0 .and. ispol /= 0 .and. ichg == 0) then
+     write(extra,'(i7,2x,a4)')ispol,'   f'
+  else if (ifrztyp /= 0 .and. ichg /= 0) then
+     write(extra,'(2(i7),2x,a4)')ispol,ichg,'   f'
+  else if (ispol /= 0 .and. ichg == 0) then
+     write(extra,'(i7)') ispol
+  else if (ichg /= 0) then
+     write(extra,'(2(i7))') ispol,ichg
+  else
+     write(extra,'(2x,a4)') ''
+  end if
+  
+end subroutine write_extra_info
 
 !routine for moving atomic positions, takes into account the 
 !frozen atoms and the size of the cell
@@ -2454,7 +2492,7 @@ subroutine move_atoms_positions(at,txyz,alpha,sxyz,rxyz)
   integer :: iat
   
   do iat=1,at%nat
-     if (at%lfrztyp(iat)) then
+     if (at%ifrztyp(iat) /= 0) then
         rxyz(1,iat)=txyz(1,iat)
         rxyz(2,iat)=txyz(2,iat)
         rxyz(3,iat)=txyz(3,iat)
@@ -2494,7 +2532,7 @@ subroutine atomic_dot(at,x,y,scpr)
   scpr=0.0_gp
 
   do iat=1,at%nat
-     if (.not. at%lfrztyp(iat)) then
+     if (at%ifrztyp(iat) == 0) then
         scpr1=x(1,iat)*y(1,iat)
         scpr2=x(2,iat)*y(2,iat)
         scpr3=x(3,iat)*y(3,iat)

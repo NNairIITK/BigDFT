@@ -673,9 +673,9 @@ end do hopping_loop
   endif
 
   !deallocations as in BigDFT
-  i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
-  deallocate(atoms%lfrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'lfrztyp',subname)
+  i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
+  deallocate(atoms%ifrztyp,stat=i_stat)
+  call memocc(i_stat,i_all,'ifrztyp',subname)
   i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
   deallocate(atoms%iatype,stat=i_stat)
   call memocc(i_stat,i_all,'iatype',subname)
@@ -1642,7 +1642,7 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
         d3=rxyz(3,ii)-rxyz(3,jj)
         tt=bondlength/sqrt(d1**2+d2**2+d3**2)
         do iat=1,at%nat
-           if (.not. belong(iat) .and. .not. at%lfrztyp(iat)) then
+           if (.not. belong(iat) .and. at%ifrztyp(iat) == 0) then
               if (at%geocode == 'P') then
                  rxyz(1,iat)=modulo(rxyz(1,iat)+d1*(tt-1.0d0),at%alat1)
                  rxyz(2,iat)=modulo(rxyz(2,iat)+d2*(tt-1.0d0),at%alat2)

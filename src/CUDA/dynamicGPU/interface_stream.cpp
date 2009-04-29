@@ -118,6 +118,21 @@ void launch_all_streams__()
   locq->removeStreams();
 }
 
+
+extern "C"
+void gpu_pack_unpack_stream__( int *ierr,
+			       gpu_stream **stream)
+{
+  *ierr=0;
+
+  fct_call_pack_unpack *pack_unpack= 
+    new fct_call_pack_unpack();
+
+
+  (*stream)->addOp(pack_unpack,PACK);
+}
+
+
 		 
 extern "C"
 void gpu_send_pi_stream__(int *nsize,

@@ -6,6 +6,8 @@
 #include "manage_gpu.h"
 
 
+
+
 class fct_call_trsf_CPU_GPU : public fct_call
 {
 public:
@@ -191,6 +193,15 @@ private:
 
   
 };
+
+
+class fct_call_pack_unpack : public fct_call
+{
+  
+  virtual void operator()(int) {};
+  virtual ~fct_call_pack_unpack(){};
+};
+
 
 
 /*class fct_call_alloc_pi : public fct_call

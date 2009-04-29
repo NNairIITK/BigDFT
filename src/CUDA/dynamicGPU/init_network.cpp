@@ -319,25 +319,53 @@ void local_network::messageLoopNetwork(localqueu& locq) throw (inter_node_commun
   //  bool mtermSend = false;
   fct_call *fct;
   //std::cout << "BEGIN OF DO  " << std::endl;
+  bool packed = false;
+ 
+
   do
     {
       //  std::cout << "Iteration !!  " << std::endl;
       if(locq.isFinish())
 	break; //finish
 
+
+      fct = locq.gpu_dispo(currGPU,PACK);
+      if(fct != NULL)
+	{
+	  //we have a packed operation !!
+	  // next operation must take sem, and the other don't have to take it while onother packed operation is seen
+	  if(!packed)
+	    {
+	      //take sem
+	      sem_unix_gpu_TRSF->P();
+
+	      packed = true;
+	    }
+	  else
+	    {
+	      sem_unix_gpu_TRSF->V();
+	      packed = false;
+	    }
+
+
+	}
+
+
       
       fct = locq.gpu_dispo(currGPU,TRANSF);
       if(fct != NULL)
 	{
+
+
 	  //we must do a TRSF
-	  doTRSF(fct);
+	  doTRSF(fct,packed);
 	}
 
       fct = locq.gpu_dispo(currGPU,CALC);
       if(fct != NULL)
 	{
 	  //we must do a CALC
-	  doCALC(fct);
+	  doCALC(fct,packed);
 	}
       
       //  std::cout << "end of one iteration " << std::endl;
@@ -499,25 +527,27 @@ std::cout << "recv1 : mSTOP , " << msgRecv.node<< std::endl;
   //std::cout << "END OF DO  " << std::endl;
 }
 
-void   local_network::doTRSF(fct_call *fct)
+void   local_network::doTRSF(fct_call *fct,bool packed)
 {
-  sem_unix_gpu_TRSF->P();
+  if(!packed)
+    sem_unix_gpu_TRSF->P();
   
   //call the function (operator() overloaded)
   (*fct)(0);
   
-
-  sem_unix_gpu_TRSF->V();
+  if(!packed)
+    sem_unix_gpu_TRSF->V();
 }
-void   local_network::doCALC(fct_call *fct)
+void   local_network::doCALC(fct_call *fct, bool packed)
 {
-  sem_unix_gpu_CALC->P();
+  if(!packed)
+    sem_unix_gpu_CALC->P();
   
   //call the function (operator() overloaded)
   (*fct)(0);
   
-
-  sem_unix_gpu_CALC->V();
+  if(!packed)
+    sem_unix_gpu_CALC->V();
 }
 
 //------------ manage end ----------------
