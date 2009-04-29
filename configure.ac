@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets], [1.2.2], [Damien.Caliste@cea.fr], [bigdft])
+AC_INIT([BigDFT - DFT over wavelets], [1.2.3], [Damien.Caliste@cea.fr], [bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -105,7 +105,7 @@ if test "$ac_use_mpi" = "yes"; then
       if test x"$MPI_NAME" = x ; then
         MPI_NAME=mpi
       fi
-      MPI_LIBS="-l$MPI_NAME -lf$MPI_NAME"
+      MPI_LIBS="-l$MPI_NAME -l${MPI_NAME}if"
       if ! test x"$MPI_INCLUDE" = x ; then
         MPI_INCLUDE=-I$MPI_INCLUDE
       fi

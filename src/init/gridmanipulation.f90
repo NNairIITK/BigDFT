@@ -207,10 +207,12 @@ subroutine system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   Glr%ns2=0
   Glr%ns3=0
 
+  !while using k-points this condition should be disabled
   !evaluate if the conditiond for the hybrid evaluation if periodic BC hold
   Glr%hybrid_on=                   (nfu1-nfl1+lupfil < n1+1)
   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu2-nfl2+lupfil < n2+1))
   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
+
 
   if (Glr%hybrid_on) then
      if (iproc == 0) write(*,*)'wavelet localization is ON'

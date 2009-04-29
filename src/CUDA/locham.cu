@@ -1,4 +1,4 @@
-/****u* CUDA/anasyn.cu
+/****U* CUDA/anasyn.cu
 **
 ** 
 ** AUTHOR
@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <cublas.h>
 #include "commonDef.h"
-#include "reduction.h"
 #include "GPUparameters.h"
 
 //#include "locpot.h"  //for mf1d and magicfilterpot fcts
@@ -56,7 +55,7 @@ float do_blasDot<float>(int size, float *tab1, float *tab2)
 }
 
 template<>
-double do_blasDot(int size, double *tab1, double *tab2)
+double do_blasDot<double>(int size, double *tab1, double *tab2)
 {
 
   double ret = cublasDdot(size, 
@@ -82,7 +81,7 @@ double do_blasDot(int size, double *tab1, double *tab2)
 	    printf("CUBLAS_STATUS_EXECUTION_FAILED\n");
 	    }*/
 
-   
+  //  cudaThreadSynchronize();
   return ret;
 }
 
@@ -96,12 +95,14 @@ template<>
 void do_blasAxpy<float>(int size, float alpha,float *x, float *y)
 {
   cublasSaxpy(size,alpha,x,1,y,1); 
+  //cudaThreadSynchronize();
 }
 
 template<>
 void do_blasAxpy<double>(int size, double alpha,double *x, double *y)
 {
   cublasDaxpy(size,alpha,x,1,y,1); 
+  //cudaThreadSynchronize();
 }
 
 
@@ -115,12 +116,14 @@ template<>
 void do_blasScal<float>(int size, float alpha,float *x)
 {
   cublasSscal(size,alpha,x,1); 
+  //cudaThreadSynchronize();
 }
 
 template<>
 void do_blasScal<double>(int size, double alpha,double *x)
 {
   cublasDscal(size,alpha,x,1); 
+  //cudaThreadSynchronize();
 }
 
 

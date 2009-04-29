@@ -3,6 +3,7 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      nspin,pot,psi,hpsi,ekin_sum,epot_sum)
   use module_base
   use module_types
+  use module_interfaces
   implicit none
   integer, intent(in) :: iproc,nspin
   real(gp), intent(in) :: hx,hy,hz
@@ -14,15 +15,110 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian'
-  integer :: i_all,i_stat,ierr,iorb
-  integer :: nw1,nw2,nsoffset,oidx,ispin,md,npot
+  integer :: i_all,i_stat,ierr,iorb,npot,nsoffset,oidx
+  real(gp) :: ekin,epot,kx,ky,kz
+  type(workarr_locham) :: wrk_lh
+  real(wp), dimension(:,:), allocatable :: psir
+
+  !initialise the work arrays
+  call initialize_work_arrays_locham(lr,orbs%nspinor,wrk_lh)  
+
+  !components of the potential
+  npot=orbs%nspinor
+  if (orbs%nspinor == 2) npot=1
+
+  ! Wavefunction in real space
+  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor+ndebug),stat=i_stat)
+  call memocc(i_stat,psir,'psir',subname)
+
+  call razero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
+
+  ekin_sum=0.0_gp
+  epot_sum=0.0_gp
+
+  do iorb=1,orbs%norbp
+
+     if(orbs%spinsgn(iorb+orbs%isorb)>0.0_gp .or. nspin == 1 .or. nspin == 4 ) then
+        nsoffset=1
+     else
+        nsoffset=2
+     end if
+
+     oidx=(iorb-1)*orbs%nspinor+1
+
+     !transform the wavefunction in Daubechies basis to the wavefunction in ISF basis
+     !the psir wavefunction is given in the spinorial form
+     call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
+
+     !apply the potential to the psir wavefunction and calculate potential energy
+     select case(lr%geocode)
+     case('F')
+
+        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,1,1,1,0,orbs%nspinor,npot,psir,&
+             pot(1,1,1,nsoffset),epot,&
+             lr%bounds%ibyyzz_r) !optional
+          
+     case('P') 
+        !here the hybrid BC act the same way
+        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,0,0,0,orbs%nspinor,npot,psir,&
+             pot(1,1,1,nsoffset),epot)
+
+     case('S')
+
+        call apply_potential(lr%d%n1,lr%d%n2,lr%d%n3,0,1,0,0,orbs%nspinor,npot,psir,&
+             pot(1,1,1,nsoffset),epot)
+     end select
+
+     !k-point values, if present
+     kx=orbs%kpts(1,orbs%iokpt(iorb))
+     ky=orbs%kpts(2,orbs%iokpt(iorb))
+     kz=orbs%kpts(3,orbs%iokpt(iorb))
+
+     !apply the kinetic term, sum with the potential and transform back to Daubechies basis
+     call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
+          psir,hpsi(1,oidx),ekin)
+
+     ekin_sum=ekin_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*ekin
+     epot_sum=epot_sum+orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*epot
+
+  enddo
+
+  !deallocations of work arrays
+  i_all=-product(shape(psir))*kind(psir)
+  deallocate(psir,stat=i_stat)
+  call memocc(i_stat,i_all,'psir',subname)
+
+  call deallocate_work_arrays_locham(lr,wrk_lh)
+
+end subroutine local_hamiltonian
+
+
+! calculate the action of the local hamiltonian on the orbitals
+subroutine local_hamiltonian_old(iproc,orbs,lr,hx,hy,hz,&
+     nspin,pot,psi,hpsi,ekin_sum,epot_sum)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iproc,nspin
+  real(gp), intent(in) :: hx,hy,hz
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: lr
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
+  real(wp), dimension(lr%d%n1i,lr%d%n2i,lr%d%n3i,nspin) :: pot
+  real(gp), intent(out) :: ekin_sum,epot_sum
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+  !local variables
+  character(len=*), parameter :: subname='local_hamiltonian'
+  integer :: i_all,i_stat,ierr,iorb,npot
+  integer :: nw1,nw2,nsoffset,oidx,ispin,md
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
   real(gp) :: ekin,epot
-  real(wp), dimension(:,:), allocatable :: w1,w2,psir
+  real(wp), dimension(:), allocatable :: w1,w2
+  real(wp), dimension(:,:), allocatable :: psir
   !for the periodic BC case, these arrays substitute 
   !psifscf,psifscfk,psig,ww respectively
   real(wp), dimension(:,:,:,:), allocatable :: x_c,y_c,x_f1,x_f2,x_f3
-  real(wp), dimension(:,:,:,:,:), allocatable :: x_f,x_fc,y_f
+  real(wp), dimension(:,:,:,:,:), allocatable :: x_f,y_f
 
   n1=lr%d%n1
   n2=lr%d%n2
@@ -60,9 +156,9 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      call memocc(i_stat,x_c,'x_c',subname)
      allocate(x_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,x_f,'x_f',subname)
-     allocate(w1(nw1,orbs%nspinor+ndebug),stat=i_stat)
+     allocate(w1(nw1+ndebug),stat=i_stat)
      call memocc(i_stat,w1,'w1',subname)
-     allocate(w2(nw2,orbs%nspinor+ndebug),stat=i_stat)
+     allocate(w2(nw2+ndebug),stat=i_stat)
      call memocc(i_stat,w2,'w2',subname)
      allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,orbs%nspinor+ndebug),stat=i_stat)
      call memocc(i_stat,x_f1,'x_f1',subname)
@@ -147,18 +243,18 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
                 hx,hy,hz,lr%wfd%nseg_c,lr%wfd%nseg_f,&
                 lr%wfd%nvctr_c,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv,& 
                 psir,psi(1,oidx),pot(1,1,1,nsoffset),&
-                hpsi(1,oidx),epot,ekin,lr%bounds) 
+                hpsi(1,oidx),epot,ekin,lr%bounds,orbs%nspinor,npot) 
         else
            call applylocpotkinone_per(n1,n2,n3,hx,hy,hz,lr%wfd%nseg_c,lr%wfd%nseg_f,&
                 lr%wfd%nvctr_c,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv,& 
                 psir,x_c,y_c,psi(1,oidx),pot(1,1,1,nsoffset),&
-                hpsi(1,oidx),epot,ekin) 
+                hpsi(1,oidx),epot,ekin,orbs%nspinor,npot) 
         end if
      case('S')
         call applylocpotkinone_slab(n1,n2,n3,hx,hy,hz,lr%wfd%nseg_c,lr%wfd%nseg_f,&
              lr%wfd%nvctr_c,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv,& 
              psir,x_c,y_c,psi(1,oidx),pot(1,1,1,nsoffset),&
-             hpsi(1,oidx),epot,ekin) 
+             hpsi(1,oidx),epot,ekin,orbs%nspinor,npot) 
      end select
 
      ekin_sum=ekin_sum+orbs%occup(iorb+orbs%isorb)*ekin
@@ -202,12 +298,596 @@ subroutine local_hamiltonian(iproc,orbs,lr,hx,hy,hz,&
      i_all=-product(shape(w1))*kind(w1)
      deallocate(w1,stat=i_stat)
      call memocc(i_stat,i_all,'w1',subname)
-     i_all=-product(shape(w2))*kind(w2)
+ i_all=-product(shape(w2))*kind(w2)
      deallocate(w2,stat=i_stat)
      call memocc(i_stat,i_all,'w2',subname)
   end if
 
-end subroutine local_hamiltonian
+end subroutine local_hamiltonian_old
+
+subroutine initialize_work_arrays_locham(lr,nspinor,w)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nspinor
+  type(locreg_descriptors), intent(in) :: lr
+  type(workarr_locham), intent(out) :: w
+  !local variables
+  character(len=*), parameter :: subname='initialize_work_arrays_locham'
+  integer :: i_all,i_stat
+  integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,nw,nww,nf
+
+  n1=lr%d%n1
+  n2=lr%d%n2
+  n3=lr%d%n3
+  n1i=lr%d%n1i
+  n2i=lr%d%n2i
+  n3i=lr%d%n3i
+  nfl1=lr%d%nfl1
+  nfl2=lr%d%nfl2
+  nfl3=lr%d%nfl3
+  nfu1=lr%d%nfu1
+  nfu2=lr%d%nfu2
+  nfu3=lr%d%nfu3
+
+
+  select case(lr%geocode)
+  case('F')
+     !dimensions of work arrays
+     ! shrink convention: nw1>nw2
+     w%nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
+          (n1+1)*(2*n2+31)*(2*n3+31),&
+          2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+          2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+
+     w%nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+          4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+          (n1+1)*(n2+1)*(2*n3+31),&
+          (2*n1+31)*(n2+1)*(n3+1))
+
+     w%nyc=(n1+1)*(n2+1)*(n3+1)
+     w%nyf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     w%nxc=(n1+1)*(n2+1)*(n3+1)
+     w%nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     w%nxf1=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     w%nxf2=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+     w%nxf3=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+     !allocation of work arrays
+     allocate(w%y_c(w%nyc,nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,w%y_c,'y_c',subname)
+     allocate(w%y_f(w%nyf,nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,w%y_f,'y_f',subname)
+     allocate(w%x_c(w%nxc,nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,w%x_c,'x_c',subname)
+     allocate(w%x_f(w%nxf,nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,w%x_f,'x_f',subname)
+     allocate(w%w1(w%nw1+ndebug),stat=i_stat)
+     call memocc(i_stat,w%w1,'w1',subname)
+     allocate(w%w2(w%nw2+ndebug),stat=i_stat)
+     call memocc(i_stat,w%w2,'w2',subname)
+     allocate(w%x_f1(w%nxf1,nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,w%x_f1,'x_f1',subname)
+     allocate(w%x_f2(w%nxf2,nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,w%x_f2,'x_f2',subname)
+     allocate(w%x_f3(w%nxf3,nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,w%x_f3,'x_f3',subname)
+
+     !initialisation of the work arrays
+     call razero(w%nxf1*nspinor,w%x_f1)
+     call razero(w%nxf2*nspinor,w%x_f2)
+     call razero(w%nxf3*nspinor,w%x_f3)
+     call razero(w%nxc*nspinor,w%x_c)
+     call razero(w%nxf*nspinor,w%x_f)
+     call razero(w%nyc*nspinor,w%y_c)
+     call razero(w%nyf*nspinor,w%y_f)
+
+!!$        call razero(w%nw1*nspinor,w%w1)
+!!$        call razero(w%nw2*nspinor,w%w2)
+
+  case('S')
+     w%nw1=0
+     w%nw2=0
+     w%nyc=n1i*n2i*n3i
+     w%nyf=0
+     w%nxc=n1i*n2i*n3i
+     w%nxf=0
+     w%nxf1=0
+     w%nxf2=0
+     w%nxf3=0
+
+     !allocation of work arrays
+     allocate(w%x_c(w%nxc,nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,w%x_c,'x_c',subname)
+     allocate(w%y_c(w%nyc,nspinor+ndebug),stat=i_stat)
+     call memocc(i_stat,w%y_c,'y_c',subname)
+
+  case('P')
+     if (lr%hybrid_on) then
+        ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+        nf=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+        nw=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
+        nw=max(nw,2*(n3+1)*(n1+1)*(n2+1))	   ! for the comb_shrink_hyb_c
+        nw=max(nw,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
+
+        nww=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
+        nww=max(nww,4*(n2+1)*(n3+1)*(n1+1))	! for the comb_shrink_hyb_c   
+        nww=max(nww,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
+
+        w%nw1=nw
+        w%nw2=nww
+        w%nxc=(n1+1)*(n2+1)*(n3+1)
+        w%nyc=(n1+1)*(n2+1)*(n3+1)
+        w%nxf=7*nf
+        w%nyf=7*nf
+        w%nxf1=nf
+        w%nxf2=nf
+        w%nxf3=nf
+
+        allocate(w%y_c(w%nyc,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,w%y_c,'y_c',subname)
+        allocate(w%y_f(w%nyf,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,w%y_f,'y_f',subname)
+        allocate(w%x_c(w%nxc,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,w%x_c,'x_c',subname)
+        allocate(w%x_f(w%nxf,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,w%x_f,'x_f',subname)
+        allocate(w%w1(w%nw1+ndebug),stat=i_stat)
+        call memocc(i_stat,w%w1,'w1',subname)
+        allocate(w%w2(w%nw2+ndebug),stat=i_stat)
+        call memocc(i_stat,w%w2,'w2',subname)
+        allocate(w%x_f1(w%nxf1,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,w%x_f1,'x_f1',subname)
+        allocate(w%x_f2(w%nxf2,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,w%x_f2,'x_f2',subname)
+        allocate(w%x_f3(w%nxf3,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,w%x_f3,'x_f3',subname)
+
+     else
+
+        w%nw1=0
+        w%nw2=0
+        w%nyc=n1i*n2i*n3i
+        w%nyf=0
+        w%nxc=n1i*n2i*n3i
+        w%nxf=0
+        w%nxf1=0
+        w%nxf2=0
+        w%nxf3=0
+
+        allocate(w%x_c(w%nxc,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,w%x_c,'x_c',subname)
+        allocate(w%y_c(w%nyc,nspinor+ndebug),stat=i_stat)
+        call memocc(i_stat,w%y_c,'y_c',subname)
+     endif
+  end select
+
+end subroutine initialize_work_arrays_locham
+
+subroutine deallocate_work_arrays_locham(lr,w)
+  use module_base
+  use module_types
+  implicit none
+  type(locreg_descriptors), intent(in) :: lr
+  type(workarr_locham), intent(inout) :: w
+  !local variables
+  character(len=*), parameter :: subname='deallocate_work_arrays_locham'
+  integer :: i_stat,i_all
+  
+  i_all=-product(shape(w%y_c))*kind(w%y_c)
+  deallocate(w%y_c,stat=i_stat)
+  call memocc(i_stat,i_all,'y_c',subname)
+  i_all=-product(shape(w%x_c))*kind(w%x_c)
+  deallocate(w%x_c,stat=i_stat)
+  call memocc(i_stat,i_all,'x_c',subname)
+
+
+  if ((lr%geocode == 'P' .and. lr%hybrid_on) .or. lr%geocode == 'F') then
+     i_all=-product(shape(w%x_f1))*kind(w%x_f1)
+     deallocate(w%x_f1,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f1',subname)
+
+     i_all=-product(shape(w%x_f2))*kind(w%x_f2)
+     deallocate(w%x_f2,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f2',subname)
+
+     i_all=-product(shape(w%x_f3))*kind(w%x_f3)
+     deallocate(w%x_f3,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f3',subname)
+
+     i_all=-product(shape(w%y_f))*kind(w%y_f)
+     deallocate(w%y_f,stat=i_stat)
+     call memocc(i_stat,i_all,'y_f',subname)
+
+     i_all=-product(shape(w%x_f))*kind(w%x_f)
+     deallocate(w%x_f,stat=i_stat)
+     call memocc(i_stat,i_all,'x_f',subname)
+
+     i_all=-product(shape(w%w1))*kind(w%w1)
+     deallocate(w%w1,stat=i_stat)
+     call memocc(i_stat,i_all,'w1',subname)
+
+     i_all=-product(shape(w%w2))*kind(w%w2)
+     deallocate(w%w2,stat=i_stat)
+     call memocc(i_stat,i_all,'w2',subname)
+  end if
+
+  
+end subroutine deallocate_work_arrays_locham
+
+
+!transforms a wavefunction written in Daubechies basis into a 
+!real space wavefunction in interpolating scaling functions on a finer grid
+!does the job for all supported BC
+subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nspinor
+  type(locreg_descriptors), intent(in) :: lr
+  type(workarr_locham), intent(inout) :: w
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(in) :: psi
+  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(out) :: psir
+  !local variables
+  integer :: idx,i
+  real(wp), dimension(0:3) :: scal
+
+  do i=0,3
+     scal(i)=1.0_wp
+  enddo
+
+  !call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
+
+  select case(lr%geocode)
+  case('F')
+     
+     do idx=1,nspinor  
+        call uncompress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  & 
+             lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+             lr%wfd%keyg(1,1),lr%wfd%keyv(1),  & 
+             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+             lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),   &
+             scal,psi(1,idx),psi(lr%wfd%nvctr_c+1,idx),  &
+             w%x_c(1,idx),w%x_f(1,idx),&
+             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
+
+        call comb_grow_all(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
+             w%w1,w%w2,w%x_c(1,idx),w%x_f(1,idx), & 
+             psir(1,idx),lr%bounds%kb%ibyz_c,lr%bounds%gb%ibzxx_c,&
+             lr%bounds%gb%ibxxyy_c,lr%bounds%gb%ibyz_ff,&
+             lr%bounds%gb%ibzxx_f,lr%bounds%gb%ibxxyy_f,&
+             lr%bounds%ibyyzz_r)
+
+     end do
+     
+  case('S')
+
+     do idx=1,nspinor
+        call uncompress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+             lr%wfd%keyg(1,1),lr%wfd%keyv(1),   &
+             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+             lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),   &
+             psi(1,idx),psi(lr%wfd%nvctr_c+1,idx),w%x_c(1,idx),psir(1,idx))
+
+        call convolut_magic_n_slab(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,w%x_c(1,idx),psir(1,idx),w%y_c(1,idx)) 
+
+     end do
+
+  case('P')
+     
+     if (lr%hybrid_on) then
+
+        do idx=1,nspinor
+           call uncompress_per_f(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                lr%wfd%keyg(1,1),lr%wfd%keyv(1),   &
+                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),   &
+                psi(1,idx),psi(lr%wfd%nvctr_c+1,idx),w%x_c(1,idx),w%x_f(1,idx),&
+                w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),&
+                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3)
+           
+           call comb_grow_all_hybrid(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
+                w%nw1,w%nw2,&
+                w%w1,w%w2,w%x_c(1,idx),w%x_f(1,idx),psir(1,idx),lr%bounds%gb)
+        end do
+        
+     else
+
+        do idx=1,nspinor
+           call uncompress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                lr%wfd%keyg(1,1),lr%wfd%keyv(1),   &
+                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),   &
+                psi(1,idx),psi(lr%wfd%nvctr_c+1,idx),w%x_c(1,idx),psir(1,idx))
+
+           call convolut_magic_n_per(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,w%x_c(1,idx),psir(1,idx),w%y_c(1,idx)) 
+        end do
+
+     end if
+  end select
+  
+end subroutine daub_to_isf_locham
+
+subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: nspinor
+  real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
+  type(locreg_descriptors), intent(in) :: lr
+  type(workarr_locham), intent(inout) :: w
+  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psir
+  real(gp), intent(out) :: ekin
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(out) :: hpsi
+  !local variables
+  logical :: usekpts
+  integer :: idx,i
+  real(gp) :: ekino
+  real(wp), dimension(0:3) :: scal
+  real(gp), dimension(3) :: hgridh
+
+  !control whether the k points are to be used
+  !real k-point different from Gamma still not implemented
+  usekpts = kx**2+ky**2+kz**2 > 0.0_gp
+
+  hgridh(1)=hx*.5_gp
+  hgridh(2)=hy*.5_gp
+  hgridh(3)=hz*.5_gp
+
+
+  do i=0,3
+     scal(i)=1.0_wp
+  enddo
+
+  ekin=0.0_gp
+
+  select case(lr%geocode)
+  case('F')
+
+     !here kpoints cannot be used (for the moment, to be activated for the 
+     !localisation region scheme
+     if (usekpts) stop 'K points not allowed for Free BC locham'
+
+     do idx=1,nspinor
+        call comb_shrink(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
+             w%w1,w%w2,psir(1,idx),&
+             lr%bounds%kb%ibxy_c,lr%bounds%sb%ibzzx_c,lr%bounds%sb%ibyyzz_c,&
+             lr%bounds%sb%ibxy_ff,lr%bounds%sb%ibzzx_f,lr%bounds%sb%ibyyzz_f,&
+             w%y_c(1,idx),w%y_f(1,idx))
+
+        call ConvolkineticT(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+             hx,&        !here the grid spacings are supposed to be equal
+             lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
+             lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f, &
+             w%x_c(1,idx),w%x_f(1,idx),&
+             w%y_c(1,idx),w%y_f(1,idx),ekino, &
+             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
+        ekin=ekin+ekino
+
+        call compress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+             lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+             lr%wfd%keyg(1,1),lr%wfd%keyv(1),&
+             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+             lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),   &
+             scal,w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+1,idx))
+     end do
+
+  case('S')
+
+     if (usekpts) then
+        !first calculate the proper arrays then transpose them before passing to the
+        !proper routine
+        do idx=1,nspinor
+           call convolut_magic_t_slab_self(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
+                psir(1,idx),w%y_c(1,idx))
+        end do
+
+        !Transposition of the work arrays (use psir as workspace)
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+16,2*lr%d%n3+2,&
+             w%x_c,psir,.true.)
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+16,2*lr%d%n3+2,&
+             w%y_c,psir,.true.)
+
+        ! compute the kinetic part and add  it to psi_out
+        ! the kinetic energy is calculated at the same time
+        ! do this thing for both components of the spinors
+        do idx=1,nspinor,2
+           call convolut_kinetic_slab_T_k(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
+                hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino,kx,ky,kz)
+        ekin=ekin+ekino        
+        end do
+
+        !re-Transposition of the work arrays (use psir as workspace)
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+16,2*lr%d%n3+2,&
+             w%y_c,psir,.false.)
+
+        do idx=1,nspinor
+           call compress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                lr%wfd%keyg(1,1),lr%wfd%keyv(1),   & 
+                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),   & 
+                w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+1,idx),psir(1,idx))
+        end do
+        
+     else
+        do idx=1,nspinor
+           call convolut_magic_t_slab_self(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
+                psir(1,idx),w%y_c(1,idx))
+
+           ! compute the kinetic part and add  it to psi_out
+           ! the kinetic energy is calculated at the same time
+           call convolut_kinetic_slab_T(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
+                hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
+           ekin=ekin+ekino
+
+           call compress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                lr%wfd%keyg(1,1),lr%wfd%keyv(1),   & 
+                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),   & 
+                w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+1,idx),psir(1,idx))
+        end do
+     end if
+
+  case('P')
+     
+     if (lr%hybrid_on) then
+
+        !here kpoints cannot be used, such BC are used only to mimic the Free BC
+        if (usekpts) stop 'K points not allowed for hybrid BC locham'
+
+
+        !here the grid spacing is not halved
+        hgridh(1)=hx
+        hgridh(2)=hy
+        hgridh(3)=hz
+
+        do idx=1,nspinor
+           call comb_shrink_hyb(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
+                w%w2,w%w1,psir(1,idx),w%y_c(1,idx),w%y_f(1,idx),lr%bounds%sb)
+
+           call convolut_kinetic_hyb_T(lr%d%n1,lr%d%n2,lr%d%n3, &
+                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+                hgridh,w%x_c(1,idx),w%x_f(1,idx),w%y_c(1,idx),w%y_f(1,idx),ekino,&
+                w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),lr%bounds%kb%ibyz_f,&
+                lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f)
+           ekin=ekin+ekino
+
+           call compress_per_f(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
+                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1), & 
+                w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+1,idx),&
+                lr%d%nfl1,lr%d%nfl2,lr%d%nfl3,lr%d%nfu1,lr%d%nfu2,lr%d%nfu3)
+        end do
+     else
+
+        if (usekpts) then
+           !first calculate the proper arrays then transpose them before passing to the
+           !proper routine
+           do idx=1,nspinor
+              call convolut_magic_t_per_self(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                   psir(1,idx),w%y_c(1,idx))
+           end do
+
+           !Transposition of the work arrays (use psir as workspace)
+           call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                w%x_c,psir,.true.)
+           call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                w%y_c,psir,.true.)
+
+
+           ! compute the kinetic part and add  it to psi_out
+           ! the kinetic energy is calculated at the same time
+           do idx=1,nspinor,2
+              call convolut_kinetic_per_T_k(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                   hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
+              ekin=ekin+ekino
+           end do
+
+           !Transposition of the work arrays (use psir as workspace)
+           call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                w%y_c,psir,.false.)
+
+           do idx=1,nspinor
+              call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
+                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                   lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
+                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                   lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),   & 
+                   w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+1,idx),psir(1,idx))
+           end do
+        else
+           !first calculate the proper arrays then transpose them before passing to the
+           !proper routine
+           do idx=1,nspinor
+              call convolut_magic_t_per_self(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                   psir(1,idx),w%y_c(1,idx))
+              ! compute the kinetic part and add  it to psi_out
+              ! the kinetic energy is calculated at the same time
+              call convolut_kinetic_per_t(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                   hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
+              ekin=ekin+ekino
+
+              call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
+                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                   lr%wfd%keyg(1,1),lr%wfd%keyv(1),& 
+                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                   lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),& 
+                   w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+1,idx),psir(1,idx))
+           end do
+        end if
+     end if
+
+  end select
+
+end subroutine isf_to_daub_kinetic
+
+!transpose the wavefunction into a real and imaginary part to be treated with k-points
+!to be used only when nspinor=2 or 4
+!here the dimensions are n1->n1+1
+subroutine transpose_for_kpoints(nspinor,n1,n2,n3,x,ww,direct)
+  use module_base
+  implicit none
+  logical, intent(in) :: direct
+  integer, intent(in) :: nspinor,n1,n2,n3
+  real(wp), dimension(nspinor*n1*n2*n3), intent(inout) :: x,ww
+  !local variables
+  integer :: i1,i2,i3,i,idx,id,id2,id3,isd,ispinor,it
+
+  !k-points also admitted in non-collinear case
+  if (direct) then
+     do ispinor=1,nspinor/2
+        isd=(ispinor-1)*2*n1*n2*n3
+        do idx=1,2
+           do i3=1,n3
+              id3=(i3-1)*n1*n2
+              do i2=1,n2
+                 id2=(i2-1)*n1
+                 do i1=1,n1
+                    id=i1+id2+id3+(idx-1)*n1*n2*n3+isd
+                    it=idx+2*(i1-1)+2*id2+2*id3+isd
+                    ww(it)=x(id)
+                 end do
+              end do
+           end do
+        end do
+     end do
+  else
+     do ispinor=1,nspinor/2
+        isd=(ispinor-1)*2*n1*n2*n3
+        do idx=1,2
+           do i3=1,n3
+              id3=(i3-1)*n1*n2
+              do i2=1,n2
+                 id2=(i2-1)*n1
+                 do i1=1,n1
+                    id=i1+id2+id3+(idx-1)*n1*n2*n3+isd
+                    it=idx+2*(i1-1)+2*id2+2*id3+isd
+                    ww(id)=x(it)
+                 end do
+              end do
+           end do
+        end do
+     end do
+  end if
+  
+  !for mixed precision code it should be changed
+  call dcopy(nspinor*n1*n2*n3,ww,1,x,1)
+end subroutine transpose_for_kpoints
 
 subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
      hgrid,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
@@ -220,6 +900,7 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   ! Input: pot,psi
   ! Output: hpsi,epot,ekin
   use module_base
+  use module_interfaces
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf,nw1,nw2
   integer, intent(in) :: nseg_c,nseg_f,nvctr_c,nvctr_f,nspinor,npot
@@ -242,8 +923,8 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in) :: ibyyzz_r
   real(wp), dimension(nvctr_c+7*nvctr_f,nspinor), intent(in) :: psi
   real(wp), dimension((2*n1+31)*(2*n2+31)*(2*n3+31),npot), intent(in) :: pot
-  real(wp), dimension(nw1,nspinor), intent(inout) :: w1
-  real(wp), dimension(nw2,nspinor), intent(inout) :: w2
+  real(wp), dimension(nw1), intent(inout) :: w1
+  real(wp), dimension(nw2), intent(inout) :: w2
   real(wp), dimension(0:n1,0:n2,0:n3,nspinor), intent(inout) :: y_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3,nspinor), intent(inout) :: y_f
   real(wp), dimension((2*n1+31)*(2*n2+31)*(2*n3+31),nspinor), intent(inout) :: psir
@@ -263,7 +944,7 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
      scal(i)=1.0_wp
   enddo
 
-  call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
+  !call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
 
   do idx=1,nspinor  
      call uncompress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  & 
@@ -274,32 +955,33 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
           x_f1(nfl1,nfl2,nfl3,idx),x_f2(nfl2,nfl1,nfl3,idx),x_f3(nfl3,nfl1,nfl2,idx))
      
      call comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-          w1(1,IDX),w2(1,IDX), x_c(0,0,0,idx),x_f(1,nfl1,nfl2,nfl3,idx), & 
+          w1,w2,x_c(0,0,0,idx),x_f(1,nfl1,nfl2,nfl3,idx), & 
           psir(1,IDX),ibyz_c,ibzxx_c,ibxxyy_c,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
      
   end do
 
-  epot=0.0_gp
-  if (nspinor==1 .or. nspinor == 2) then
-     if (nbuf == 0) then
-        do ispinor=1,nspinor
-           call realspace(ibyyzz_r,pot,psir(1,ispinor),epots,n1,n2,n3)
-           epot=epot+epots
-        end do
-     else
-        call realspace_nbuf(ibyyzz_r,pot,psir,epot,n1,n2,n3,nbuf)
-     endif
-  else
-     call realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
-  end if
-  
-!!$  !WARNING ONLY FOR TESTING
-!!$  call razero((2*n1+31)*(2*n2+31)*(2*n3+31)*nspinor,psir)
+  call apply_potential(n1,n2,n3,1,1,1,nbuf,nspinor,npot,psir,pot,epot,&
+       ibyyzz_r) !optional
+
+!!$  epot=0.0_gp
+!!$  if (nspinor==1 .or. nspinor == 2) then
+!!$     do ispinor=1,nspinor
+!!$        if (nbuf == 0) then
+!!$           call realspace(ibyyzz_r,pot,psir(1,ispinor),epots,n1,n2,n3)
+!!$        else
+!!$           !this is for the tails. In principle it should work only for 
+!!$           call realspace_nbuf(ibyyzz_r,pot,psir(1,ispinor),epot,n1,n2,n3,nbuf)
+!!$        endif
+!!$           epot=epot+epots
+!!$        end do
+!!$  else
+!!$     call realspaceINPLACE(ibyyzz_r,pot,psir,epot,n1,n2,n3)
+!!$  end if
   
   ekin=0.0_gp
   do idx=1,nspinor
      call comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-          w1(1,IDX),w2(1,IDX),psir(1,IDX),&
+          w1,w2,psir(1,IDX),&
           ibxy_c,ibzzx_c,ibyyzz_c,ibxy_ff,ibzzx_f,ibyyzz_f,&
           y_c(0,0,0,IDX),y_f(1,nfl1,nfl2,nfl3,IDX))!,ibyz_c,ibyz_f)
      
@@ -321,161 +1003,104 @@ end subroutine applylocpotkinone
 
 subroutine applylocpotkinone_per(n1,n2,n3, & 
      hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
-     psir,psi_in,psi_out,psi,pot,hpsi,epot,ekin)
+     psir,psi_in,psi_out,psi,pot,hpsi,epot,ekin,npot,nspinor)
   !  Applies the local potential and kinetic energy operator to one wavefunction 
   ! Input: pot,psi
   ! Output: hpsi,epot,ekin
   use module_base
+  use module_interfaces
   implicit none
-  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f
+  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f,npot,nspinor
   real(gp), intent(in) :: hx,hy,hz
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(in) :: pot
-  real(wp), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
-  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(inout) :: psir,psi_in,psi_out
+  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2),npot), intent(in) :: pot
+  real(wp), dimension(nvctr_c+7*nvctr_f,nspinor), intent(in) :: psi
+  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2),nspinor), intent(inout) :: psir,psi_in,psi_out
   real(gp), intent(out) :: epot,ekin
-  real(wp), dimension(nvctr_c+7*nvctr_f), intent(out) :: hpsi
+  real(wp), dimension(nvctr_c+7*nvctr_f,nspinor), intent(out) :: hpsi
   !local variables
   character(len=*), parameter :: subname='applylocpotkinone_per'
-  integer :: i,i_stat,i_all
+  integer :: i,i_stat,i_all,idx
   real(wp) :: tt
   real(gp) :: v,p,epot_p
   real(gp), dimension(3) :: hgridh
-  real(kind=4) :: epotGPU,ekinGPU
-  real(kind=4), dimension(:), allocatable :: psi_cuda,v_cuda !temporary in view of wp 
-  real(kind=8) :: psi_GPU,v_GPU,work_GPU,work2_GPU,work3_GPU !pointer to the GPU  memory addresses (with norb=1)
-  integer, parameter :: lowfil1=-8,lupfil1=7 !for GPU computation
-  integer, parameter :: lowfil2=-7,lupfil2=8 !for GPU computation
-
-  ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
-  call uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-       psi(1),psi(nvctr_c+1),psi_in,psir)
 
   ! Initialisation of potential energy  
-  epot=0.0_gp
+!!$  epot=0.0_gp
   ekin=0.0_gp
 
   hgridh(1)=hx*.5_gp
   hgridh(2)=hy*.5_gp
   hgridh(3)=hz*.5_gp
 
-  if (GPUconv .and. .false.) then !convolution in cuda for the complete potential
 
-     allocate(psi_cuda((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug),stat=i_stat)
-     call memocc(i_stat,psi_cuda,'psi_cuda',subname)
-     allocate(v_cuda((2*n1+2)*(2*n2+2)*(2*n3+2)+ndebug),stat=i_stat)
-     call memocc(i_stat,v_cuda,'v_cuda',subname)
-
-     do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
-        psi_cuda(i)=real(psi_in(i),kind=4)
-        v_cuda(i)=real(pot(i),kind=4)
-     enddo
-
-     !new CUDA implementation
-     !to be modularised into one unique routine (can allocate less GPU memory)
-
-     !allocate GPU memory
-     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),psi_GPU,i_stat)
-     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),v_GPU,i_stat)
-     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),work_GPU,i_stat)
-     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),work2_GPU,i_stat)
-     call GPU_allocate((2*n1+2)*(2*n2+2)*(2*n3+2),work3_GPU,i_stat)
-
-     call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,psi_GPU,i_stat)
-     call GPU_send((2*n1+2)*(2*n2+2)*(2*n3+2),v_cuda,v_GPU,i_stat)
-
-     call kinetictermd(2*n1+1,2*n2+1,2*n3+1,&
-          real(hgridh(1),kind=4),real(hgridh(2),kind=4),real(hgridh(3),kind=4),0.e0,&
-          psi_GPU,work2_GPU,work_GPU,work3_GPU,ekinGPU)
-
-     call localpotentiald(2*n1+1,2*n2+1,2*n3+1,work_GPU,psi_GPU,v_GPU,epotGPU)
-
-     call GPU_receive((2*n1+2)*(2*n2+2)*(2*n3+2),psi_cuda,work_GPU,i_stat)
-     call GPU_receive((2*n1+2)*(2*n2+2)*(2*n3+2),v_cuda,work2_GPU,i_stat)
-
-     !deallocate GPU memory
-     call GPU_deallocate(psi_GPU,i_stat)
-     call GPU_deallocate(v_GPU,i_stat)
-     call GPU_deallocate(work_GPU,i_stat)
-     call GPU_deallocate(work2_GPU,i_stat)
-     call GPU_deallocate(work3_GPU,i_stat)
-
-     !copy values on the output function
-     do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
-        v=real(v_cuda(i),wp)
-        p=real(psi_cuda(i),wp)
-        psi_out(i)=p+v
-     enddo
-
-     i_all=-product(shape(psi_cuda))
-     deallocate(psi_cuda,stat=i_stat)
-     call memocc(i_stat,i_all,'psi_cuda',subname)
-     i_all=-product(shape(v_cuda))
-     deallocate(v_cuda,stat=i_stat)
-     call memocc(i_stat,i_all,'v_cuda',subname)
-     
-     epot=real(epotGPU,kind=8)
-     ekin=real(ekinGPU,kind=8)
-  else
-     !psi_in=1.d0
-
+  ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+  do idx=1,nspinor
+     call uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+          nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+          psi(1,idx),psi(nvctr_c+1,idx),psi_in(1,idx),psir(1,idx))
 
      ! psir serves as a work array	   
-     call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psi_in,psir,psi_out) 
+     call convolut_magic_n_per(2*n1+1,2*n2+1,2*n3+1,psi_in(1,idx),psir(1,idx),psi_out(1,idx)) 
+  end do
 
-     !$omp parallel default(private)&
-     !$omp shared(pot,psir,n1,n2,n3,epot)
-     
-     epot_p=0._gp
-     !$omp do
-     do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
-        v=real(pot(i),gp)
-        p=real(psir(i),gp)
-        tt=pot(i)*psir(i)
-        epot_p=epot_p+p*v*p
-        psir(i)=tt
-     enddo
-     !$omp end do
-     
-     !$omp critical
-     epot=epot+epot_p
-     !$omp end critical
-     
-     !$omp end parallel
-    
-     call convolut_magic_t_per_self(2*n1+1,2*n2+1,2*n3+1,psir,psi_out)
+  call apply_potential(n1,n2,n3,0,0,0,0,nspinor,npot,psir,pot,epot)
+
+!!$  !$omp parallel default(private)&
+!!$  !$omp shared(pot,psir,n1,n2,n3,epot)
+!!$
+!!$  epot_p=0._gp
+!!$  !$omp do
+!!$  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+!!$     v=real(pot(i),gp)
+!!$     p=real(psir(i),gp)
+!!$     tt=pot(i)*psir(i)
+!!$     epot_p=epot_p+p*v*p
+!!$     psir(i)=tt
+!!$  enddo
+!!$  !$omp end do
+!!$
+!!$  !$omp critical
+!!$  epot=epot+epot_p
+!!$  !$omp end critical
+!!$
+!!$  !$omp end parallel
+
+  do idx=1,nspinor
+     call convolut_magic_t_per_self(2*n1+1,2*n2+1,2*n3+1,psir(1,idx),psi_out(1,idx))
 
      ! compute the kinetic part and add  it to psi_out
      ! the kinetic energy is calculated at the same time
-     call convolut_kinetic_per_t(2*n1+1,2*n2+1,2*n3+1,hgridh,psi_in,psi_out,ekin)
+     !here we should insert the treatment for k-points
+     call convolut_kinetic_per_t(2*n1+1,2*n2+1,2*n3+1,hgridh,psi_in(1,idx),psi_out(1,idx),ekin)
 
-  end if
-  
-  call compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
-       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
-       psi_out,hpsi(1),hpsi(nvctr_c+1),psir)
+     call compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
+          nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
+          psi_out(1,idx),hpsi(1,idx),hpsi(nvctr_c+1,idx),psir(1,idx))
+  end do
+
 
 END SUBROUTINE applylocpotkinone_per
 
 
 subroutine applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, & 
      hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
-     psir,psi,pot,hpsi,epot,ekin,bounds)
+     psir,psi,pot,hpsi,epot,ekin,bounds,nspinor,npot)
   !  Applies the local potential and kinetic energy operator to one wavefunction 
   ! Input: pot,psi
   ! Output: hpsi,epot,ekin
   use module_base
   use module_types
+  use module_interfaces
   implicit none
   type(convolutions_bounds),intent(in):: bounds
-  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f
+  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f,nspinor,npot
   integer,intent(in):: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3
   real(gp), intent(in) :: hx,hy,hz
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(in) :: pot
+  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2),npot), intent(in) :: pot
   real(wp), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
   real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(inout) :: psir
   real(gp), intent(out) :: epot,ekin
@@ -496,6 +1121,11 @@ subroutine applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   integer i_stat,i_all
   integer nw,nww,i2,i3
   
+
+  !these allocation should be rised up by a level
+  !for the moment do not allow hybrid BC for nspinor/=1/=npot
+  if (nspinor /= 1 .or. npot /=1) stop 'Complex functions not allowed for hybrid BC'
+
   ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
   nf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
 
@@ -536,14 +1166,16 @@ subroutine applylocpotkinone_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   call comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw,nww,&
        w,ww,x_c,x_f,psir,bounds%gb)
   
-  epot=0.0_gp
-  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
-     v=real(pot(i),gp)
-     p=real(psir(i),gp)
-     tt=pot(i)*psir(i)
-     epot=epot+p*v*p
-     psir(i)=tt
-  enddo
+  call apply_potential(n1,n2,n3,0,0,0,0,nspinor,npot,psir,pot,epot)
+
+!!$  epot=0.0_gp
+!!$  do i=1,(2*n1+2)*(2*n2+2)*(2*n3+2)
+!!$     v=real(pot(i),gp)
+!!$     p=real(psir(i),gp)
+!!$     tt=pot(i)*psir(i)
+!!$     epot=epot+p*v*p
+!!$     psir(i)=tt
+!!$  enddo
 
 ! y_c has the scfunction output of the kinetic energy operator  
 !psir  : input, y_c: output, psi_in:work
@@ -600,61 +1232,213 @@ END SUBROUTINE applylocpotkinone_hyb
 
 subroutine applylocpotkinone_slab(n1,n2,n3, & 
      hx,hy,hz,nseg_c,nseg_f,nvctr_c,nvctr_f,keyg,keyv,  & 
-     psir,psi_in,psi_out,psi,pot,hpsi,epot,ekin)
+     psir,psi_in,psi_out,psi,pot,hpsi,epot,ekin,nspinor,npot)
   !  Applies the local potential and kinetic energy operator to one wavefunction 
   ! Input: pot,psi
   ! Output: hpsi,epot,ekin
   use module_base
+  use module_interfaces
   implicit none
-  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f
+  integer, intent(in) :: n1,n2,n3,nseg_c,nseg_f,nvctr_c,nvctr_f,nspinor,npot
   real(gp), intent(in) :: hx,hy,hz
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  real(wp), dimension((2*n1+2)*(2*n2+31)*(2*n3+2)), intent(in) :: pot
-  real(wp), dimension(nvctr_c+7*nvctr_f), intent(in) :: psi
-  real(wp), dimension((2*n1+2)*(2*n2+16)*(2*n3+2)), intent(inout) :: psi_in
-  real(wp), dimension((2*n1+2)*(2*n2+31)*(2*n3+2)), intent(inout) :: psir,psi_out
+  real(wp), dimension((2*n1+2)*(2*n2+31)*(2*n3+2),npot), intent(in) :: pot
+  real(wp), dimension(nvctr_c+7*nvctr_f,nspinor), intent(in) :: psi
+  real(wp), dimension((2*n1+2)*(2*n2+16)*(2*n3+2),nspinor), intent(inout) :: psi_in
+  real(wp), dimension((2*n1+2)*(2*n2+31)*(2*n3+2),nspinor), intent(inout) :: psir,psi_out
   real(gp), intent(out) :: epot,ekin
-  real(wp), dimension(nvctr_c+7*nvctr_f), intent(out) :: hpsi
+  real(wp), dimension(nvctr_c+7*nvctr_f,nspinor), intent(out) :: hpsi
   !local variables
-  integer :: i
+  integer :: i,idx
   real(wp) :: tt
   real(gp) :: v,p
   real(gp), dimension(3) :: hgridh
 
 ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
 !	psir serves as a work array	   
-  call uncompress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
-       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
-       psi(1),psi(nvctr_c+1),psi_in,psir)
-
-!	psi_out serves as a work array	   
-  call convolut_magic_n_slab(2*n1+1,2*n2+15,2*n3+1,psi_in,psir,psi_out) 
-
-  epot=0.0_gp
-  do i=1,(2*n1+2)*(2*n2+31)*(2*n3+2)
-     v=real(pot(i),gp)
-     p=real(psir(i),gp)
-     tt=pot(i)*psir(i)
-     epot=epot+p*v*p
-     psir(i)=tt
-  enddo
-
-  call convolut_magic_t_slab_self(2*n1+1,2*n2+15,2*n3+1,psir,psi_out)
 
   hgridh(1)=hx*.5_gp
   hgridh(2)=hy*.5_gp
   hgridh(3)=hz*.5_gp
 
-! compute the kinetic part and add  it to psi_out
-! the kinetic energy is calculated at the same time
-  call convolut_kinetic_slab_T(2*n1+1,2*n2+15,2*n3+1,hgridh,psi_in,psi_out,ekin)
+  do idx=1,nspinor
+     call uncompress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   &
+          nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   &
+          psi(1,idx),psi(nvctr_c+1,idx),psi_in(1,idx),psir(1,idx))
+     
+     !	psi_out serves as a work array	   
+     call convolut_magic_n_slab(2*n1+1,2*n2+15,2*n3+1,psi_in(1,idx),psir(1,idx),psi_out(1,idx)) 
+  end do
   
-  call compress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
-       nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
-       psi_out,hpsi(1),hpsi(nvctr_c+1),psir)
+  call apply_potential(n1,n2,n3,0,1,0,0,nspinor,npot,psir,pot,epot)
+
+!!$  epot=0.0_gp
+!!$  do i=1,(2*n1+2)*(2*n2+31)*(2*n3+2)
+!!$     v=real(pot(i),gp)
+!!$     p=real(psir(i),gp)
+!!$     tt=pot(i)*psir(i)
+!!$     epot=epot+p*v*p
+!!$     psir(i)=tt
+!!$  enddo
+
+  do idx=1,nspinor
+     call convolut_magic_t_slab_self(2*n1+1,2*n2+15,2*n3+1,psir(1,idx),psi_out(1,idx))
+
+     ! compute the kinetic part and add  it to psi_out
+     ! the kinetic energy is calculated at the same time
+     call convolut_kinetic_slab_T(2*n1+1,2*n2+15,2*n3+1,hgridh,psi_in(1,idx),psi_out(1,idx),ekin)
+  
+     call compress_slab(n1,n2,n3,nseg_c,nvctr_c,keyg(1,1),keyv(1),   & 
+          nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1),   & 
+          psi_out(1,idx),hpsi(1,idx),hpsi(nvctr_c+1,idx),psir(1,idx))
+  end do
 
 END SUBROUTINE applylocpotkinone_slab
+
+
+
+!routine for applying the local potentials
+!supports the non-collinear case, the buffer for tails and different Boundary Conditions
+!Optimal also for the complex wavefuntion case
+subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,&
+     ibyyzz_r) !optional
+  use module_base
+  implicit none
+  integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot
+  real(wp), dimension(-14*nl1:2*n1+1+15*nl1,-14*nl2:2*n2+1+15*nl2,-14*nl3:2*n3+1+15*nl3,nspinor), intent(inout) :: psir
+  real(wp), dimension(-14*nl1:2*n1+1+15*nl1-4*nbuf,-14*nl2:2*n2+1+15*nl2-4*nbuf,&
+       -14*nl3:2*n3+1+15*nl3-4*nbuf,npot), intent(in) :: pot
+  integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
+  real(gp), intent(out) :: epot
+  !local variables
+  integer :: i1,i2,i3,i1s,i1e,ispinor
+  real(wp) :: tt11,tt22,tt33,tt44,tt13,tt14,tt23,tt24,tt31,tt32,tt41,tt42,tt
+  real(wp) :: psir1,psir2,psir3,psir4,pot1,pot2,pot3,pot4
+  real(gp) :: epot_p
+  
+  !the Tail treatment is allowed only in the Free BC case
+  if (nbuf /= 0 .and. nl1*nl2*nl3 == 0) stop 'NONSENSE: nbuf/=0 only for Free BC'
+
+  !case without bounds
+  i1s=-14*nl1
+  i1e=2*n1+1+15*nl1
+
+  epot=0.0_wp
+
+
+  !$omp parallel default(private)&
+  !$omp shared(pot,psir,n1,n2,n3,epot)
+  epot_p=0._gp
+  !$omp do
+  do i3=-14*nl3,2*n3+1+15*nl3
+     if (i3 >= -14+2*nbuf .and. i3 <= 2*n3+16-2*nbuf) then !check for the nbuf case
+        do i2=-14*nl2,2*n2+1+15*nl2
+           if (i2 >= -14+2*nbuf .and. i2 <= 2*n2+16-2*nbuf) then !check for the nbuf case
+              !this if statement is inserted here for avoiding code duplication
+              !it is to be seen whether the code results to be too much unoptimised
+              if (present(ibyyzz_r)) then
+                 !in this case we are surely in Free BC
+                 !the min is to avoid to calculate for no bounds
+                 do i1=-14+2*nbuf,min(ibyyzz_r(1,i2,i3),ibyyzz_r(2,i2,i3))-14-1
+                    psir(i1,i2,i3,:)=0.0_wp
+                 enddo
+                 i1s=max(ibyyzz_r(1,i2,i3)-14,-14+2*nbuf)
+                 i1e=min(ibyyzz_r(2,i2,i3)-14,2*n1+16-2*nbuf)
+              end if
+              
+              !here we put the branchments wrt to the spin
+              if (nspinor == 4) then
+                 do i1=i1s,i1e
+                    !wavefunctions
+                    psir1=psir(i1,i2,i3,1)
+                    psir2=psir(i1,i2,i3,2)
+                    psir3=psir(i1,i2,i3,3)
+                    psir4=psir(i1,i2,i3,4)
+                    !potentials
+                    pot1=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)
+                    pot2=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,2)
+                    pot3=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,3)
+                    pot4=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,4)
+
+                    !diagonal terms
+                    tt11=pot1*psir1 !p1
+                    tt22=pot1*psir2 !p2
+                    tt33=pot4*psir3 !p3
+                    tt44=pot4*psir4 !p4
+                    !Rab*Rb
+                    tt13=pot2*psir3 !p1
+                    !Iab*Ib
+                    tt14=pot3*psir4 !p1
+                    !Rab*Ib
+                    tt23=pot2*psir4 !p2
+                    !Iab*Rb
+                    tt24=pot3*psir3 !p2
+                    !Rab*Ra
+                    tt31=pot2*psir1 !p3
+                    !Iab*Ia
+                    tt32=pot3*psir2 !p3
+                    !Rab*Ia
+                    tt41=pot2*psir2 !p4
+                    !Iab*Ra
+                    tt42=pot3*psir1 !p4
+
+                    ! Change epot later
+                    epot_p=epot_p+tt11*psir1+tt22*psir2+tt33*psir3+tt44*psir4+&
+                         2.0_gp*tt31*psir3-2.0_gp*tt42*psir4+2.0_gp*tt41*psir4+2.0_gp*tt32*psir3
+
+                    !wavefunction update
+                    !p1=h1p1+h2p3-h3p4
+                    !p2=h1p2+h2p4+h3p3
+                    !p3=h2p1+h3p2+h4p3
+                    !p4=h2p2-h3p1+h4p4
+                    psir(i1,i2,i3,1)=tt11+tt13-tt14
+                    psir(i1,i2,i3,2)=tt22+tt23+tt24
+                    psir(i1,i2,i3,3)=tt33+tt31+tt32
+                    psir(i1,i2,i3,4)=tt44+tt41-tt42
+                 end do
+              else
+                 do ispinor=1,nspinor
+                    do i1=i1s,i1e
+                       !the local potential is always real
+                       tt=pot(i1-2*nbuf,i2-2*nbuf,i3-2*nbuf,1)*psir(i1,i2,i3,ispinor)
+                       epot_p=epot_p+real(tt*psir(i1,i2,i3,ispinor),gp)
+                       psir(i1,i2,i3,ispinor)=tt
+                    end do
+                 end do
+              end if
+              
+              if (present(ibyyzz_r)) then
+                 !the max is to avoid the calculation for no bounds
+                 do i1=max(ibyyzz_r(1,i2,i3),ibyyzz_r(2,i2,i3))-14+1,2*n1+16-2*nbuf
+                    psir(i1,i2,i3,:)=0.0_wp
+                 enddo
+              end if
+
+           else
+              do i1=-14,2*n1+16
+                 psir(i1,i2,i3,:)=0.0_wp
+              enddo
+           endif
+        enddo
+     else
+        do i2=-14,2*n2+16
+           do i1=-14,2*n1+16
+              psir(i1,i2,i3,:)=0.0_wp
+           enddo
+        enddo
+     endif
+  enddo
+  !$omp end do
+
+  !$omp critical
+  epot=epot+epot_p
+  !$omp end critical
+
+  !$omp end parallel
+
+
+end subroutine apply_potential
 
 subroutine realspace(ibyyzz_r,pot,psir,epot,n1,n2,n3)
   use module_base
@@ -694,9 +1478,9 @@ subroutine realspace_nbuf(ibyyzz_r,pot,psir,epot,nb1,nb2,nb3,nbuf)
 
   epot=0.d0
   do i3=-14,2*nb3+16
-     if (i3.ge.-14+2*nbuf .and. i3.le.2*nb3+16-2*nbuf) then
+     if (i3 >= -14+2*nbuf .and. i3 <= 2*nb3+16-2*nbuf) then
         do i2=-14,2*nb2+16
-           if (i2.ge.-14+2*nbuf .and. i2.le.2*nb2+16-2*nbuf) then
+           if (i2 >= -14+2*nbuf .and. i2 <= 2*nb2+16-2*nbuf) then
               do i1=-14+2*nbuf,ibyyzz_r(1,i2,i3)-14-1
                  psir(i1,i2,i3)=0.d0
               enddo
@@ -867,13 +1651,13 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(at%ntypes,3), intent(in) :: radii_cf  
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   real(gp), intent(out) :: eproj_sum
   real(wp), dimension(nlpspd%nprojel), intent(out) :: proj
   !local variables
   integer :: iat,nwarnings,iproj,iorb,i,l,jorb,mbvctr_c,mbvctr_f,ityp,jseg_c,mbseg_c,mbseg_f
-  integer :: istart_c,idir
+  integer :: istart_c,idir,ispinor
   real(gp) :: eproj
   
   !put idir=0, no derivative
@@ -916,25 +1700,27 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,n1,n2,n3,&
      mbseg_f=nlpspd%nseg_p(2*iat  )-nlpspd%nseg_p(2*iat-1)
      jseg_c=nlpspd%nseg_p(2*iat-2)+1
 
-     do iorb=1,orbs%norbp*orbs%nspinor
-        eproj=0.0_gp
+     do iorb=1,orbs%norbp
+        do ispinor=1,orbs%nspinor
+           eproj=0.0_gp
 
-        istart_c=1
-        !GTH and HGH pseudopotentials
-        do l=1,4
-           do i=1,3
-              if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                 call applyprojector(l,i,at%psppar(0,0,ityp),at%npspcode(ityp),&
-                      wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
-                      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                      nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),&
-                      psi(1,iorb),hpsi(1,iorb),eproj)
-                 istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)
-              end if
+           istart_c=1
+           !GTH and HGH pseudopotentials
+           do l=1,4
+              do i=1,3
+                 if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                    call applyprojector(l,i,at%psppar(0,0,ityp),at%npspcode(ityp),&
+                         wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyv,wfd%keyg,&
+                         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                         nlpspd%keyv_p(jseg_c),nlpspd%keyg_p(1,jseg_c),proj(istart_c),&
+                         psi(1,ispinor,iorb),hpsi(1,ispinor,iorb),eproj)
+                    istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*(2*l-1)
+                 end if
+              enddo
            enddo
-        enddo
-        eproj_sum=eproj_sum+orbs%occup((iorb+orbs%isorb-1)/orbs%nspinor+1)*eproj
-        
+           eproj_sum=eproj_sum+&
+                orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj
+        end do
      end do
 
   end do

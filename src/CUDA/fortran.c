@@ -44,6 +44,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stddef.h>
+#include <stdlib.h>
 #if defined(__GNUC__)
 #include <stdint.h>
 #endif /* __GNUC__ */
@@ -54,7 +55,7 @@
 
 #define CUBLAS_G77              1
 #define CUBLAS_INTEL_FORTRAN    2
-
+#define CUBLAS_ONE_UNDERSCORE   3
 /* Default to g77 on Linux, and Intel Fortran on Win32 */
 #if defined(_WIN32)
 #define CUBLAS_FORTRAN_COMPILER CUBLAS_INTEL_FORTRAN
@@ -65,6 +66,10 @@
 #else
 #error unsupported platform
 #endif
+
+
+/*#define CUBLAS_FORTRAN_COMPILER CUBLAS_ONE_UNDERSCORE*/
+
 
 #if CUBLAS_FORTRAN_COMPILER==CUBLAS_G77
 /* NOTE: Must use -fno-second-underscore when building Fortran source with g77
@@ -195,6 +200,133 @@
 #define CUBLAS_ZSYRK            cublas_zsyrk__
 #define CUBLAS_ZHER2K           cublas_zher2k__
 #define CUBLAS_ZSYR2K           cublas_zsyr2k__
+
+#elif CUBLAS_FORTRAN_COMPILER==CUBLAS_ONE_UNDERSCORE
+
+#define CUBLAS_INIT             cublas_init_
+#define CUBLAS_SHUTDOWN         cublas_shutdown_
+#define CUBLAS_ALLOC            cublas_alloc_
+#define CUBLAS_FREE             cublas_free_
+#define CUBLAS_SET_VECTOR       cublas_set_vector_
+#define CUBLAS_GET_VECTOR       cublas_get_vector_
+#define CUBLAS_SET_MATRIX       cublas_set_matrix_
+#define CUBLAS_GET_MATRIX       cublas_get_matrix_
+#define CUBLAS_GET_ERROR        cublas_get_error_
+#define CUBLAS_XERBLA           cublas_xerbla_
+#define CUBLAS_ISAMAX           cublas_isamax_
+#define CUBLAS_ISAMIN           cublas_isamin_
+#define CUBLAS_SASUM            cublas_sasum_
+#define CUBLAS_SAXPY            cublas_saxpy_
+#define CUBLAS_SCOPY            cublas_scopy_
+#define CUBLAS_SDOT             cublas_sdot_
+#define CUBLAS_SNRM2            cublas_snrm2_
+#define CUBLAS_SROT             cublas_srot_
+#define CUBLAS_SROTG            cublas_srotg_
+#define CUBLAS_SROTM            cublas_srotm_
+#define CUBLAS_SROTMG           cublas_srotmg_
+#define CUBLAS_SSCAL            cublas_sscal_
+#define CUBLAS_SSWAP            cublas_sswap_
+#define CUBLAS_CAXPY            cublas_caxpy_
+#define CUBLAS_CCOPY            cublas_ccopy_
+#define CUBLAS_CROT             cublas_crot_
+#define CUBLAS_CROTG            cublas_crotg_
+#define CUBLAS_CSCAL            cublas_cscal_
+#define CUBLAS_CSROT            cublas_csrot_
+#define CUBLAS_CSSCAL           cublas_csscal_
+#define CUBLAS_CSWAP            cublas_cswap_
+#define CUBLAS_CDOTU            cublas_cdotu_
+#define CUBLAS_CDOTC            cublas_cdotc_
+#define CUBLAS_ICAMAX           cublas_icamax_
+#define CUBLAS_SCASUM           cublas_scasum_
+#define CUBLAS_SCNRM2           cublas_scnrm2_
+#define CUBLAS_SGBMV            cublas_sgbmv_
+#define CUBLAS_SGEMV            cublas_sgemv_
+#define CUBLAS_SGER             cublas_sger_
+#define CUBLAS_SSBMV            cublas_ssbmv_
+#define CUBLAS_SSPMV            cublas_sspmv_
+#define CUBLAS_SSPR             cublas_sspr_
+#define CUBLAS_SSPR2            cublas_sspr2_
+#define CUBLAS_SSYMV            cublas_ssymv_
+#define CUBLAS_SSYR             cublas_ssyr_
+#define CUBLAS_SSYR2            cublas_ssyr2_
+#define CUBLAS_STBMV            cublas_stbmv_
+#define CUBLAS_STBSV            cublas_stbsv_
+#define CUBLAS_STPMV            cublas_stpmv_
+#define CUBLAS_STPSV            cublas_stpsv_
+#define CUBLAS_STRMV            cublas_strmv_
+#define CUBLAS_STRSV            cublas_strsv_
+#define CUBLAS_SGEMM            cublas_sgemm_
+#define CUBLAS_SSYMM            cublas_ssymm_
+#define CUBLAS_SSYR2K           cublas_ssyr2k_
+#define CUBLAS_SSYRK            cublas_ssyrk_
+#define CUBLAS_STRMM            cublas_strmm_
+#define CUBLAS_STRSM            cublas_strsm_
+#define CUBLAS_CGEMM            cublas_cgemm_
+#define CUBLAS_CHEMM            cublas_chemm_
+#define CUBLAS_CSYMM            cublas_csymm_
+#define CUBLAS_CTRMM            cublas_ctrmm_
+#define CUBLAS_CTRSM            cublas_ctrsm_
+#define CUBLAS_CHERK            cublas_cherk_
+#define CUBLAS_CSYRK            cublas_csyrk_
+#define CUBLAS_CHER2K           cublas_cher2k_
+#define CUBLAS_CSYR2K           cublas_csyr2k_
+#define CUBLAS_IDAMAX           cublas_idamax_
+#define CUBLAS_IDAMIN           cublas_idamin_
+#define CUBLAS_DASUM            cublas_dasum_
+#define CUBLAS_DAXPY            cublas_daxpy_
+#define CUBLAS_DCOPY            cublas_dcopy_
+#define CUBLAS_DDOT             cublas_ddot_
+#define CUBLAS_DNRM2            cublas_dnrm2_
+#define CUBLAS_DROT             cublas_drot_
+#define CUBLAS_DROTG            cublas_drotg_
+#define CUBLAS_DROTM            cublas_drotm_
+#define CUBLAS_DROTMG           cublas_drotmg_
+#define CUBLAS_DSCAL            cublas_dscal_
+#define CUBLAS_DSWAP            cublas_dswap_
+#define CUBLAS_ZAXPY            cublas_zaxpy_
+#define CUBLAS_ZCOPY            cublas_zcopy_
+#define CUBLAS_ZROT             cublas_zrot_
+#define CUBLAS_ZROTG            cublas_zrotg_
+#define CUBLAS_ZSCAL            cublas_zscal_
+#define CUBLAS_ZDROT            cublas_zdrot_
+#define CUBLAS_ZDSCAL           cublas_zdscal_
+#define CUBLAS_ZSWAP            cublas_zswap_
+#define CUBLAS_ZDOTU            cublas_zdotu_
+#define CUBLAS_ZDOTC            cublas_zdotc_
+#define CUBLAS_IZAMAX           cublas_izamax_
+#define CUBLAS_DZASUM           cublas_dzasum_
+#define CUBLAS_DZNRM2           cublas_dznrm2_
+#define CUBLAS_DGBMV            cublas_dgbmv_
+#define CUBLAS_DGEMV            cublas_dgemv_
+#define CUBLAS_DGER             cublas_dger_
+#define CUBLAS_DSBMV            cublas_dsbmv_
+#define CUBLAS_DSPMV            cublas_dspmv_
+#define CUBLAS_DSPR             cublas_dspr_
+#define CUBLAS_DSPR2            cublas_dspr2_
+#define CUBLAS_DSYMV            cublas_dsymv_
+#define CUBLAS_DSYR             cublas_dsyr_
+#define CUBLAS_DSYR2            cublas_dsyr2_
+#define CUBLAS_DTBMV            cublas_dtbmv_
+#define CUBLAS_DTBSV            cublas_dtbsv_
+#define CUBLAS_DTPMV            cublas_dtpmv_
+#define CUBLAS_DTPSV            cublas_dtpsv_
+#define CUBLAS_DTRMV            cublas_dtrmv_
+#define CUBLAS_DTRSV            cublas_dtrsv_
+#define CUBLAS_DGEMM            cublas_dgemm_
+#define CUBLAS_DSYMM            cublas_dsymm_
+#define CUBLAS_DSYR2K           cublas_dsyr2k_
+#define CUBLAS_DSYRK            cublas_dsyrk_
+#define CUBLAS_DTRMM            cublas_dtrmm_
+#define CUBLAS_DTRSM            cublas_dtrsm_
+#define CUBLAS_ZGEMM            cublas_zgemm_
+#define CUBLAS_ZHEMM            cublas_zhemm_
+#define CUBLAS_ZSYMM            cublas_zsymm_
+#define CUBLAS_ZTRMM            cublas_ztrmm_
+#define CUBLAS_ZTRSM            cublas_ztrsm_
+#define CUBLAS_ZHERK            cublas_zherk_
+#define CUBLAS_ZSYRK            cublas_zsyrk_
+#define CUBLAS_ZHER2K           cublas_zher2k_
+#define CUBLAS_ZSYR2K           cublas_zsyr2k_
 
 #elif CUBLAS_FORTRAN_COMPILER==CUBLAS_INTEL_FORTRAN
 

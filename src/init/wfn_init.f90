@@ -39,7 +39,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal
   integer :: i,ndim_hamovr,i_all,i_stat,n2hamovr,nsthamovr,ierr,norbi_max,j
-  integer :: norbtot,norbtotp,natsceff,norbsc,ndh1,ispin,nvctr,npsidim
+  integer :: norbtot,norbtotp,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor
   real(gp) :: tolerance
   real(kind=8) :: tt
   integer, dimension(:,:), allocatable :: norbgrp
@@ -117,10 +117,12 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
      norbtot=orbse%norb !beware that norbe is equal both for spin up and down
      norbtotp=orbse%norbp !this is coherent with nspin*norbe
      npsidim=orbse%npsidim
+     nspinor=orbse%nspinor
   else
      norbtot=orbs%norb
      norbtotp=orbs%norbp
      npsidim=orbs%npsidim
+     nspinor=orbs%nspinor
   end if
 
   allocate(hamovr(nspin*ndim_hamovr,2+ndebug),stat=i_stat)
@@ -133,7 +135,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
      norbsc_arr,psigau,hpsigau,hamovr)
 
   call solve_eigensystem(iproc,orbs%norb,orbs%norbu,orbs%norbd,norbi_max,&
-       ndim_hamovr,natsceff,nspin,tolerance,norbgrp,hamovr,orbs%eval)
+       ndim_hamovr,natsceff,nspin,nspinor,tolerance,norbgrp,hamovr,orbs%eval)
 !!$
 !!$  !allocate the pointer for virtual orbitals
 !!$  if(present(orbsv) .and. present(psivirt) .and. orbsv%norb > 0) then
@@ -292,8 +294,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
   character(len=*), parameter :: subname='DiagHam'
   real(kind=8), parameter :: eps_mach=1.d-12
   logical :: semicore,minimal
-  integer :: i,ndim_hamovr,i_all,i_stat,n2hamovr,nsthamovr,ierr,norbi_max,j
-  integer :: norbtot,norbtotp,natsceff,norbsc,ndh1,ispin,nvctr,npsidim
+  integer :: i,ndim_hamovr,i_all,i_stat,n2hamovr,nsthamovr,ierr,norbi_max,j,noncoll
+  integer :: norbtot,norbtotp,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor
   real(gp) :: tolerance
   real(kind=8) :: tt
   type(communications_arrays), pointer :: commu
@@ -302,12 +304,6 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
   real(wp), dimension(:), pointer :: psiw
 
   !performs some check of the arguments
-  if (present(etol)) then
-     tolerance=etol
-  else
-     tolerance=0.0_gp
-  end if
-
   if (present(orbse) .neqv. present(commse)) then
      if (iproc ==0) write(*,'(1x,a)')&
           'ERROR (DiagHam): the variables orbse and commse must be present at the same time'
@@ -316,16 +312,28 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
      minimal=present(orbse)
   end if
 
+  if (present(etol)) then
+     tolerance=etol
+  else
+     tolerance=0.0_gp
+  end if
+
   semicore=present(norbsc_arr)
 
-  !define the grouping of the orbitals: for the semicore case, follow the semocore atoms,
+  !define the grouping of the orbitals: for the semicore case, follow the semicore atoms,
   !otherwise use the number of orbitals, separated in the spin-polarised case
-  !fro the spin polarised case it is supposed that the semicore orbitals are disposed equally
+  !for the spin-polarised case it is supposed that the semicore orbitals are disposed equally
+  !fon non-collinear spins, the orbitals atoms are doubled
+  if (orbs%nspinor == 4) then
+     noncoll=2
+  else
+     noncoll=1
+  end if
   if (semicore) then
      if (present(orbsv)) then
-        norbi_max=max(maxval(norbsc_arr),orbsv%norb)
+        norbi_max=max(noncoll*maxval(norbsc_arr),orbsv%norb)
      else
-        norbi_max=maxval(norbsc_arr)
+        norbi_max=noncoll*maxval(norbsc_arr)
      end if
 
      !calculate the dimension of the overlap matrix
@@ -335,7 +343,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
         ndh1=0
         norbsc=0
         do i=1,natsc+1
-           ndh1=ndh1+norbsc_arr(i,ispin)**2
+           ndh1=ndh1+(noncoll*norbsc_arr(i,ispin))**2
         end do
         ndim_hamovr=max(ndim_hamovr,ndh1)
      end do
@@ -347,7 +355,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
               stop
            end if
         end if
-        norbsc=sum(norbsc_arr(1:natsc,1))
+        norbsc=noncoll*sum(norbsc_arr(1:natsc,1))
      else
         norbsc=0
      end if
@@ -359,14 +367,13 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
      !assign the grouping of the orbitals
      do j=1,nspin
         do i=1,natsceff+1
-           norbgrp(i,j)=norbsc_arr(i,j)
+           norbgrp(i,j)=noncoll*norbsc_arr(i,j)
         end do
      end do
   else
      !this works also for non spin-polarised since there norbu=norb
      norbi_max=max(orbs%norbu,orbs%norbd) 
      ndim_hamovr=norbi_max**2
-
      natsceff=0
      allocate(norbgrp(1,nspin+ndebug),stat=i_stat)
      call memocc(i_stat,norbgrp,'norbgrp',subname)
@@ -384,11 +391,13 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
      norbtotp=orbse%norbp !this is coherent with nspin*norbe
      commu => commse
      npsidim=orbse%npsidim
+     nspinor=orbse%nspinor
   else
      norbtot=orbs%norb
      norbtotp=orbs%norbp
      commu => comms
      npsidim=orbs%npsidim
+     nspinor=orbs%nspinor
   end if
   if (nproc > 1) then
      allocate(psiw(npsidim+ndebug),stat=i_stat)
@@ -399,8 +408,8 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
 
   !transpose all the wavefunctions for having a piece of all the orbitals 
   !for each processor
-  call transpose_v(iproc,nproc,norbtotp,1,wfd,nvctrp,commu,psi,work=psiw)
-  call transpose_v(iproc,nproc,norbtotp,1,wfd,nvctrp,commu,hpsi,work=psiw)
+  call transpose_v(iproc,nproc,norbtotp,nspinor,wfd,nvctrp,commu,psi,work=psiw)
+  call transpose_v(iproc,nproc,norbtotp,nspinor,wfd,nvctrp,commu,hpsi,work=psiw)
 
   if (nproc > 1) then
      i_all=-product(shape(psiw))*kind(psiw)
@@ -415,13 +424,18 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
      nsthamovr=1
   end if
 
+  !for complex matrices the dimension is doubled
+  if (nspinor /=1) then
+     ndim_hamovr=2*ndim_hamovr
+  end if
+
   allocate(hamovr(nspin*ndim_hamovr,n2hamovr+ndebug),stat=i_stat)
   call memocc(i_stat,hamovr,'hamovr',subname)
 
   if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
        'Overlap Matrix...'
 
-  call overlap_matrices(norbtot,nvctrp,natsceff,nspin,ndim_hamovr,norbgrp,&
+  call overlap_matrices(norbtot,nvctrp,natsceff,nspin,nspinor,ndim_hamovr,norbgrp,&
        hamovr(1,nsthamovr),psi,hpsi)
 
   if (minimal) then
@@ -438,7 +452,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
   end if
 
   call solve_eigensystem(iproc,orbs%norb,orbs%norbu,orbs%norbd,norbi_max,&
-       ndim_hamovr,natsceff,nspin,tolerance,norbgrp,hamovr,orbs%eval)
+       ndim_hamovr,natsceff,nspin,nspinor,tolerance,norbgrp,hamovr,orbs%eval)
 
   !in the case of minimal basis allocate now the transposed wavefunction
   !otherwise do it only in parallel
@@ -459,10 +473,10 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
   nvctr=wfd%nvctr_c+7*wfd%nvctr_f
   if (.not. present(orbsv)) then
      call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
-          natsceff,nspin,orbs%nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit)
+          natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit)
   else
      call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
-          natsceff,nspin,orbs%nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit,orbsv%norb,psivirt)
+          natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr,psi,psit,orbsv%norb,psivirt)
   end if
   
   !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
@@ -529,16 +543,27 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
 end subroutine DiagHam
 !!***
 
-subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,ndim_hamovr,norbsc_arr,hamovr,psi,hpsi)
+subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
+     norbsc_arr,hamovr,psi,hpsi)
   use module_base
   implicit none
-  integer, intent(in) :: norbe,nvctrp,natsc,ndim_hamovr,nspin
+  integer, intent(in) :: norbe,nvctrp,natsc,ndim_hamovr,nspin,nspinor
   integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
   real(wp), dimension(nspin*ndim_hamovr,2), intent(out) :: hamovr
-  real(wp), dimension(nvctrp,norbe), intent(in) :: psi,hpsi
+  real(wp), dimension(nvctrp*nspinor,norbe), intent(in) :: psi,hpsi
   !local variables
-  integer :: iorbst,imatrst,norbi,i,ispin,j
-  real(kind=4) :: t0,t1
+  integer :: iorbst,imatrst,norbi,i,ispin,j,ncomp,ncplx,icplx,iorb,jorb
+
+  !WARNING: here nspin=1 for nspinor=4
+  if(nspinor == 1) then
+     ncplx=1
+  elseif(nspinor == 2) then
+     ncplx=2
+     ncomp=1
+  else if (nspinor == 4) then
+     ncplx=2
+     ncomp=2
+  end if
 
   !calculate the overlap matrix for each group of the semicore atoms
   !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
@@ -548,22 +573,47 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,ndim_hamovr,norbsc_arr,hamo
   do ispin=1,nspin !this construct assumes that the semicore is identical for both the spins
      do i=1,natsc+1
         norbi=norbsc_arr(i,ispin)
-        call gemm('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),nvctrp,hpsi(1,iorbst),nvctrp,&
-             0.0_wp,hamovr(imatrst,1),norbi)
-        call gemm('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),nvctrp,psi(1,iorbst),nvctrp,&
-             0.0_wp,hamovr(imatrst,2),norbi)
+
+        if (nspinor ==1) then
+           call gemm('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),nvctrp,&
+                hpsi(1,iorbst),nvctrp,&
+                0.0_wp,hamovr(imatrst,1),norbi)
+           call gemm('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),nvctrp,&
+                psi(1,iorbst),nvctrp,0.0_wp,hamovr(imatrst,2),norbi)
+        else
+           call c_gemm('C','N',norbi,norbi,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(1,iorbst),&
+                ncomp*nvctrp,hpsi(1,iorbst),ncomp*nvctrp,&
+                (0.0_wp,0.0_wp),hamovr(imatrst,1),norbi)
+           call c_gemm('C','N',norbi,norbi,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(1,iorbst),&
+                ncomp*nvctrp,psi(1,iorbst),ncomp*nvctrp,&
+                (0.0_wp,0.0_wp),hamovr(imatrst,2),norbi)
+
+        end if
+!!$        open(17)
+!!$        open(18)
+!!$        do jorb=1,norbi
+!!$           write(17,'(i0,1x,48(1pe8.1))')jorb,&
+!!$                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,1),icplx=1,ncplx,2),iorb=1,norbi)
+!!$           write(18,'(i0,1x,48(1pe8.1))')jorb,&
+!!$                ((hamovr(2*(iorb-1)+icplx+(jorb-1)*ncplx*norbi,2),icplx=1,ncplx,2),iorb=1,norbi)
+!!$        end do
+!!$
+!!$        close(17)
+!!$        close(18)
+!!$        stop
         iorbst=iorbst+norbi
-        imatrst=imatrst+norbi**2
+        imatrst=imatrst+ncplx*norbi**2
      end do
   end do
 
 end subroutine overlap_matrices
 
-subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,nspin,etol,&
+subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
+     natsc,nspin,nspinor,etol,&
      norbsc_arr,hamovr,eval)
   use module_base
   implicit none
-  integer, intent(in) :: iproc,norb,norbi_max,ndim_hamovr,natsc,nspin,norbu,norbd
+  integer, intent(in) :: iproc,norb,norbi_max,ndim_hamovr,natsc,nspin,norbu,norbd,nspinor
   integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
   real(gp), intent(in) :: etol
   real(wp), dimension(nspin*ndim_hamovr,2), intent(inout) :: hamovr
@@ -571,11 +621,22 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   !local variables
   character(len=*), parameter :: subname='solve_eigensystem'
   character(len=64) :: message
-  integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,iorb,i,ndegen,nwrtmsg,jorb,istart,norbj
-  integer :: jjorb,jiorb
+  integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,iorb,i,ndegen,ncplx,ncomp
+  integer :: jjorb,jiorb,nwrtmsg,jorb,istart,norbj
   real(wp) :: tt
   real(wp), dimension(2) :: preval
-  real(wp), dimension(:), allocatable :: work_lp,evale
+  real(wp), dimension(:), allocatable :: work_lp,evale,work_rp
+
+  !WARNING: here nspin=1 for nspinor=4
+  if(nspinor == 1) then
+     ncplx=1
+  elseif(nspinor == 2) then
+     ncplx=2
+     ncomp=1
+  else if (nspinor == 4) then
+     ncplx=2
+     ncomp=2
+  end if
 
   !find the eigenfunctions for each group
   n_lp=max(10,4*norbi_max)
@@ -583,6 +644,12 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   call memocc(i_stat,work_lp,'work_lp',subname)
   allocate(evale(nspin*norbi_max+ndebug),stat=i_stat)
   call memocc(i_stat,evale,'evale',subname)
+
+  if (nspinor /= 1) then
+     allocate(work_rp(3*norbi_max+1+ndebug),stat=i_stat)
+     call memocc(i_stat,work_rp,'work_rp',subname)
+  end if
+
 
   if (iproc.eq.0) write(*,'(1x,a)')'Linear Algebra...'
 
@@ -595,47 +662,33 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
   do i=1,natsc+1
      norbi=norbsc_arr(i,1)
 
-!!$     if (iproc == 0) then
-        !write the matrices on a file
-      !open(31+2*(i-1))
-!!$        tt=0.0_wp
-!!$        do jjorb=1,norbi
-           !write(31+2*(i-1),'(2000(1pe10.2))')&
-           !     (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
-!!$           write(*,'(i4,2000(1pe15.8))')jjorb,&
-!!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
-!!$           !write(13,'(i4,2000(1pe15.8))')jjorb,&
-!!$           !     (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,1),jiorb=1,norbi)
-!!$           tt=tt+hamovr(imatrst-1+jjorb+(jjorb-1)*norbi,1)
-!!$        end do
-!!$        print *,'trace',tt
-           !close(31+2*(i-1))
-           !open(32+2*(i-1))
-!!$        do jjorb=1,norbi
-     !write(32+2*(i-1),'(2000(1pe10.2))')&
-     !           (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,2),jiorb=1,norbi)
-!!$           write(*,'(i4,2000(1pe15.8))')jjorb,&
-!!$                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi,2),jiorb=1,norbi)
-!!$        end do
-           !close(32+2*(i-1))
-!!$
-!!$     end if
-!!$
-!!$     !now compare only the overlap
-!!$     if (i==natsc+1) stop
+     if (nspinor == 1) then
+        call sygv(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
+             norbi,evale(1),work_lp(1),n_lp,info)
+        if (info /= 0) write(*,*) 'SYGV ERROR',info,i,natsc+1
+        
+        !do the diagonalisation separately in case of spin polarization     
+        if (nspin==2) then
+           norbj=norbsc_arr(i,2)
+           call sygv(1,'V','U',norbj,hamovr(imatrst+ndim_hamovr,1),&
+                norbj,hamovr(imatrst+ndim_hamovr,2),norbj,evale(norbi+1),work_lp(1),n_lp,info)
+           if (info.ne.0) write(*,*) 'SYGV ERROR',info,i,natsc+1
+        end if
+     else
+        call hegv(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
+             norbi,evale(1),work_lp(1),n_lp,work_rp(1),info)
+        if (info /= 0) write(*,*) 'HEGV ERROR',info,i,natsc+1
+        
+        !do the diagonalisation separately in case of spin polarization     
+        if (nspin==2) then
+           norbj=norbsc_arr(i,2)
+           call hegv(1,'V','U',norbj,hamovr(imatrst+ndim_hamovr,1),&
+                norbj,hamovr(imatrst+ndim_hamovr,2),norbj,evale(norbi+1),&
+                work_lp(1),n_lp,work_rp(1),info)
+           if (info.ne.0) write(*,*) 'HEGV ERROR',info,i,natsc+1
+        end if
 
-     !write(11,*)hamovr(:,1:2)
-
-     call sygv(1,'V','U',norbi,hamovr(imatrst,1),norbi,hamovr(imatrst,2),&
-          norbi,evale(1),work_lp(1),n_lp,info)
-     if (info /= 0) write(*,*) 'SYGV ERROR',info,i,natsc+1
-
-     !do the diagonalisation separately in case of spin polarization     
-     if (nspin==2) then
-        norbj=norbsc_arr(i,2)
-        call sygv(1,'V','U',norbj,hamovr(imatrst+ndim_hamovr,1),&
-             norbj,hamovr(imatrst+ndim_hamovr,2),norbj,evale(norbi+1),work_lp(1),n_lp,info)
-        if (info.ne.0) write(*,*) 'SYGV ERROR',info,i,natsc+1
+        
      end if
 
 !!$     if (iproc == 0) then
@@ -749,8 +802,14 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
         end do
      end if
      iorbst=iorbst+norbi
-     imatrst=imatrst+norbi**2
+     imatrst=imatrst+ncplx*norbi**2
   end do
+
+  if (nspinor /= 1) then
+     i_all=-product(shape(work_rp))*kind(work_rp)
+     deallocate(work_rp,stat=i_stat)
+     call memocc(i_stat,i_all,'work_rp',subname)
+  end if
 
   i_all=-product(shape(work_lp))*kind(work_lp)
   deallocate(work_lp,stat=i_stat)
@@ -761,15 +820,15 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,natsc,
 
 end subroutine solve_eigensystem
 
-subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,&
+subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
      ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,nvirte,psivirt)
   use module_base
   implicit none
   !Arguments
-  integer, intent(in) :: norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr
+  integer, intent(in) :: norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,nspinore
   integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
   real(wp), dimension(nspin*ndim_hamovr), intent(in) :: hamovr
-  real(wp), dimension(nvctrp,norbe), intent(in) :: psi
+  real(wp), dimension(nvctrp*nspinore,norbe), intent(in) :: psi
   real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: ppsit
   integer, intent(in), optional :: nvirte
   real(wp), dimension(:), pointer, optional :: psivirt
@@ -777,31 +836,29 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,
   character(len=*), parameter :: subname='build_eigenvectors'
   integer, parameter :: iunit=1978
   integer :: ispin,iorbst,iorbst2,imatrst,norbsc,norbi,norbj,i,iorb,i_stat,i_all
+  integer :: ncplx,ncomp
   logical :: exists
   real(gp) :: mx,my,mz,mnorm,fac,ma,mb,mc,md
   real(wp), dimension(:,:), allocatable :: tpsi
 
+  !WARNING: here nspin=1 for nspinor=4
+  if(nspinor == 1) then
+     ncplx=1
+  elseif(nspinor == 2) then
+     ncplx=2
+     ncomp=1
+  else if (nspinor == 4) then
+     ncplx=2
+     ncomp=2
+  end if
+
   !perform the vector-matrix multiplication for building the input wavefunctions
   ! ppsit(k,iorb)=+psit(k,jorb)*hamovr(jorb,iorb,1)
-  !!     iorbst=1
-  !!     imatrst=1
-  !!     do i=1,natsc
-  !!        norbi=norbsc_arr(i)
-  !!        call DGEMM('N','N',nvctrp,norbi,norbi,1.d0,psi(1,iorbst),nvctrp,&
-  !!             hamovr(imatrst,1),norbi,0.d0,ppsit(1,iorbst),nvctrp)
-  !!        iorbst=iorbst+norbi
-  !!        imatrst=imatrst+norbi**2
-  !!     end do
-  !!     norbi=norbsc_arr(natsc+1)
-  !!     norbj=norb-norbsc
-  !!     call DGEMM('N','N',nvctrp,norbj,norbi,1.d0,psi(1,iorbst),nvctrp,&
-  !!          hamovr(imatrst,1),norbi,0.d0,ppsit(1,iorbst),nvctrp)
-
   !ppsi(k,iorb)=+psi(k,jorb)*hamovr(jorb,iorb,1)
 
   !allocate the pointer for virtual orbitals
 
-  if(nspinor==1 .or. nspinor == 2) then
+  if(nspinor==1 .or. nspinor == 2 .or. nspinor == 4) then
      iorbst=1
      iorbst2=1
      imatrst=1
@@ -810,11 +867,17 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,
         do i=1,natsc
            norbi=norbsc_arr(i,ispin)
            norbsc=norbsc+norbi
-           call gemm('N','N',nvctrp,norbi,norbi,1.0_wp,psi(1,iorbst),nvctrp,&
-                hamovr(imatrst),norbi,0.0_wp,ppsit(1,iorbst2),nvctrp)
+           if (nspinor == 1) then
+              call gemm('N','N',nvctrp,norbi,norbi,1.0_wp,psi(1,iorbst),nvctrp,&
+                   hamovr(imatrst),norbi,0.0_wp,ppsit(1,iorbst2),nvctrp)
+           else
+              call c_gemm('N','N',ncomp*nvctrp,norbi,norbi,(1.0_wp,0.0_wp),&
+                   psi(1,iorbst),ncomp*nvctrp,hamovr(imatrst),norbi,&
+                   (0.0_wp,0.0_wp),ppsit(1,iorbst2),ncomp*nvctrp)
+           end if
            iorbst=iorbst+norbi
            iorbst2=iorbst2+norbi
-           imatrst=imatrst+norbi**2
+           imatrst=imatrst+ncplx*norbi**2
         end do
         norbi=norbsc_arr(natsc+1,ispin)
         if(ispin==1) norbj=norbu-norbsc
@@ -822,8 +885,15 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,
         !        write(*,'(1x,a,5i4)') "DIMS:",norbi,norbj,iorbst,imatrst
         !        norbj=norb-norbsc
         if(norbj>0) then
-           call gemm('N','N',nvctrp,norbj,norbi,1.0_wp,psi(1,iorbst),nvctrp,&
-                hamovr(imatrst),norbi,0.0_wp,ppsit(1,iorbst2),nvctrp)
+           if (nspinor == 1) then
+              call gemm('N','N',nvctrp,norbj,norbi,1.0_wp,psi(1,iorbst),nvctrp,&
+                   hamovr(imatrst),norbi,0.0_wp,ppsit(1,iorbst2),nvctrp)
+           else
+              call c_gemm('N','N',ncomp*nvctrp,norbj,norbi,(1.0_wp,0.0_wp),&
+                   psi(1,iorbst),ncomp*nvctrp,hamovr(imatrst),norbi,&
+                   (0.0_wp,0.0_wp),ppsit(1,iorbst2),ncomp*nvctrp)
+
+           end if
         end if
 
         !now store the input wavefunctions for the Davidson treatment
@@ -832,8 +902,14 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,
         !the results are orthogonal with each other by construction
         !in the case of semicore atomes the orthogonality is not guaranteed
         if (present(nvirte) .and. nvirte >0) then
-           call gemm('N','N',nvctrp,nvirte,norbi,1.0_wp,psi(1,iorbst),nvctrp,&
-                hamovr(imatrst+norbi*norbj),norbi,0.0_wp,psivirt(1),nvctrp)
+           if (nspinor == 1) then
+              call gemm('N','N',nvctrp,nvirte,norbi,1.0_wp,psi(1,iorbst),nvctrp,&
+                   hamovr(imatrst+norbi*norbj),norbi,0.0_wp,psivirt(1),nvctrp)
+           else
+              call c_gemm('N','N',ncomp*nvctrp,nvirte,norbi,(1.0_wp,0.0_wp),&
+                   psi(1,iorbst),ncomp*nvctrp,hamovr(imatrst+norbi*norbj),norbi,&
+                   (0.0_wp,0.0_wp),psivirt(1),ncomp*nvctrp)
+           end if
         end if
         iorbst=norbi+norbsc+1 !this is equal to norbe+1
         iorbst2=norbu+1
@@ -841,7 +917,8 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,
      end do
 
   else
-     allocate(tpsi(nvctrp,norbe+ndebug),stat=i_stat)
+
+     allocate(tpsi(nspinor*nvctrp,norbe+ndebug),stat=i_stat)
      call memocc(i_stat,tpsi,'tpsi',subname)
      iorbst=1
      iorbst2=1
@@ -878,6 +955,7 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinor,
      endif
      open(unit=iunit,file='moments',form='formatted',action='read',status='old')
      fac=0.5_gp
+     !this part can be transferred on the atomic orbitals section
      do iorb=1,norbu+norbd
         read(unit=iunit,fmt=*,iostat=i_stat) mx,my,mz
         if (i_stat /= 0) then

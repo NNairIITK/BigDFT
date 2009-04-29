@@ -1,8 +1,8 @@
-subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi)
+subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi,comment)
   use module_base
   use module_types
   implicit none
-  character(len=10) :: orbname 
+  character(len=10) :: orbname,comment 
   real(gp), intent(in) :: hx,hy,hz,rx,ry,rz
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(*) :: psi!wfd%nvctr_c+7*wfd%nvctr_f
@@ -139,7 +139,7 @@ subroutine plot_wf(orbname,lr,hx,hy,hz,rx,ry,rz,psi)
 
   !call plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,psir)
   call plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
-       nl1,nl2,nl3,orbname,psir)
+       nl1,nl2,nl3,orbname,psir,comment)
 
   i_all=-product(shape(psir))*kind(psir)
   deallocate(psir,stat=i_stat)
@@ -196,10 +196,10 @@ subroutine plot_pot(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,nl1,nl2,nl3,iounit,po
 end subroutine plot_pot
 
 subroutine plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
-     nl1,nl2,nl3,orbname,pot)
+     nl1,nl2,nl3,orbname,pot,comment)
   use module_base
   implicit none
-  character(len=10), intent(in) :: orbname
+  character(len=10), intent(in) :: orbname,comment
   integer, intent(in) :: n1,n2,n3,nl1,nl2,nl3,n1i,n2i,n3i
   real(gp), intent(in) :: rx,ry,rz,hx,hy,hz
   real(dp), dimension(*), intent(in) :: pot
@@ -213,19 +213,20 @@ subroutine plot_pot_full(rx,ry,rz,hx,hy,hz,n1,n2,n3,n1i,n2i,n3i,&
   hxh=.5_gp*hx
   hyh=.5_gp*hy
   hzh=.5_gp*hz
+
 !  write(orbname,'(i0)')iounit
 !  open(unit=22,file='psi'//orbname//'.pot',status='unknown')
   open(unit=22,file=orbname//'.pot',status='unknown')
 !  write(22,*)'orbital'//orbname
   write(22,*)orbname
-  write(22,*) 2*n1+1,2*n2+1,2*n3+1
+  write(22,*) 2*n1+2,2*n2+2,2*n3+2
   !here there can be shifts in visualising periodic objects (n1 -> n1+1)
   write(22,*) n1*hx,' 0. ',n2*hy
   write(22,*) ' 0. ',' 0. ',n3*hz
-  write(22,*)'xyz'
-  do i3=0,2*n3
-     do i2=0,2*n2
-        do i1=0,2*n1
+  write(22,*)'xyz '//comment
+  do i3=0,2*n3+1
+     do i2=0,2*n2+1
+        do i1=0,2*n1+1
            ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
            write(22,*)pot(ind)
         end do

@@ -1,3 +1,10 @@
+
+#define CUERR { cudaError_t err; \
+ if ((err = cudaGetLastError()) != cudaSuccess) { \
+ printf("CUDA error: %s, line %d\n", cudaGetErrorString(err), __LINE__); }}
+
+
+
 template<typename T>
 int gpuapply_hp(int n1,int n2, int n3,
 		T h1,T h2,T h3,T c,
@@ -27,8 +34,7 @@ int gpuapply_hp(int n1,int n2, int n3,
   //set the value of the psig array to zero
   //do_blasScal(8*n1*n2*n3,(T) 0.,psi); //alternative way
   cudaMemset((void*) work1,0,8*n1*n2*n3*sizeof(T));
-  //cudaThreadSynchronize();
-
+  cudaThreadSynchronize();
 
   //decompress wavefunctions with scaling factor
   uncompresscoarsefinescal<T> <<< gridC, threadsC >>>(n1,n2,n3,h1,h2,h3,c,in,work1,keys);
@@ -77,6 +83,7 @@ int gpucg_precong(int n1,int n2, int n3,int npsi,int ncong,
 
   //calculate the residue for the orbital
   *gnrm=do_blasDot(npsi, x, x);
+  cudaThreadSynchronize();
 
   wscalgpu<T> <<< gridC, threadsC >>>(x,h1,h2,h3,c,keys);
   cudaThreadSynchronize();
@@ -88,12 +95,14 @@ int gpucg_precong(int n1,int n2, int n3,int npsi,int ncong,
   //change the sign of the 0-th step such as to use axpy calls
   //d=d-x
   do_blasAxpy(npsi,(T)(-1.),x,d);
+  cudaThreadSynchronize();
 
   //r=d
   cudaMemcpy(r,d,npsi*sizeof(T), cudaMemcpyDeviceToDevice);
   cudaThreadSynchronize();
 
   T rmr_new=do_blasDot(npsi, r, r);
+  cudaThreadSynchronize();
 
   T alpha,beta,rmr_old;
 
@@ -104,28 +113,34 @@ int gpucg_precong(int n1,int n2, int n3,int npsi,int ncong,
 		     work1,work2,work3);
 
       alpha=rmr_new/do_blasDot(npsi, d, b);
+      cudaThreadSynchronize();
 
       //here the sign is inverted because of the
       //mapping d -> -d => b -> -b
       
       //x=x-alpha*d
       do_blasAxpy(npsi,-alpha,d,x);
+      cudaThreadSynchronize();
 
       if (i != ncong-1)
 	{
 	  //r=r-alpha*b (r does not change sign since also b is opposite)
 	  do_blasAxpy(npsi,-alpha,b,r);
+	  cudaThreadSynchronize();
 
 	  rmr_old=rmr_new;
 	  rmr_new=do_blasDot(npsi, r, r);
+	  cudaThreadSynchronize();
 
 	  beta=rmr_new/rmr_old;
 
 	  //d=d+1/beta*r
 	  do_blasAxpy(npsi,(T)(1)/beta,r,d);
+	  cudaThreadSynchronize();
 
 	  //d=beta*d
 	  do_blasScal(npsi,beta,d);
+	  cudaThreadSynchronize();
 	}
   
 	
@@ -149,6 +164,9 @@ void gpuprecond_(int *n1,int *n2, int *n3,int *npsi,
 		 double *c,int *ncong, double *gnrm)
 {
   
+  /* printf("%i, %i, %i, %i,  %lf, %lf, %lf, %p, %p, %p, %p, %p %p, %p, %p, %lf, %i, %lf\n",*n1+1,*n2+1,*n3+1,*npsi,*ncong,
+	 *h1,*h2,*h3,*c,
+	 *x,*keys,*r,*b,*d,*work1,*work2,*work3,*gnrm);*/
 
   if(gpucg_precong<double>(*n1+1,*n2+1,*n3+1,*npsi,*ncong,
 			   *h1,*h2,*h3,*c,
@@ -157,5 +175,7 @@ void gpuprecond_(int *n1,int *n2, int *n3,int *npsi,
       printf("ERROR: GPU fulllocalhamiltonian\n ");
       return;
     } 
+
+  CUERR;
   return; 
 }

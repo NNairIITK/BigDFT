@@ -16,6 +16,7 @@ program BigDFT
   use module_base
   use module_types
   use module_interfaces
+!  use minimization, only:parameterminimization 
 
   !implicit real(kind=8) (a-h,o-z)
   !as a general policy, I will put "implicit none" by assuming the same
@@ -26,8 +27,8 @@ program BigDFT
   character(len=*), parameter :: subname='BigDFT'
   character(len=20) :: units
   integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode
-  integer :: ncount_cluster
-  real(gp) :: energy,etot,sumx,sumy,sumz,tt
+  integer ::  ncount_bigdft
+  real(gp) :: etot,sumx,sumy,sumz,tt
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
@@ -37,15 +38,18 @@ program BigDFT
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
   integer npr,iam
+    integer  :: nfluct
+    real(gp) ::fluctsum
+
  
-  !$      interface
-  !$        integer ( kind=4 ) function omp_get_num_threads ( )
-  !$        end function omp_get_num_threads
-  !$      end interface
-  !$      interface
-  !$        integer ( kind=4 ) function omp_get_thread_num ( )
-  !$        end function omp_get_thread_num
-  !$      end interface
+  !!!!$      interface
+  !!!!$        integer ( kind=4 ) function omp_get_num_threads ( )
+  !!!!$        end function omp_get_num_threads
+  !!!!$      end interface
+  !!!!$      interface
+  !!!!$        integer ( kind=4 ) function omp_get_thread_num ( )
+ !!!! !$        end function omp_get_thread_num
+  !!!!!$      end interface
 
   ! Start MPI in parallel version
   !in the case of MPIfake libraries the number of processors is automatically adjusted
@@ -57,11 +61,11 @@ program BigDFT
   call memocc(0,iproc,'count','start')
 
 !**********Commented out by Alexey, 15.11.2008************************************************  
-!$omp parallel private(iam)  shared (npr)
-!$       iam=omp_get_thread_num()
-!$       if (iam.eq.0) npr=omp_get_num_threads()
-!$       write(*,*) 'iproc,iam,npr',iproc,iam,npr
-!$omp end parallel
+!!!!$omp parallel private(iam)  shared (npr)
+!!!!$       iam=omp_get_thread_num()
+!!!!$       if (iam.eq.0) npr=omp_get_num_threads()
+!!!!!$       write(*,*) 'iproc,iam,npr',iproc,iam,npr
+!!!!!$omp end parallel
 !*********************************************************************************************
 
   !welcome screen
@@ -101,19 +105,16 @@ program BigDFT
 
   call init_restart_objects(atoms,rst,subname)
 
-  call call_bigdft(nproc,iproc,atoms,rxyz,inputs,energy,fxyz,rst,infocode)
+  call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
 
-  if (inputs%ncount_cluster_x > 1) then
-     if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
-     ! geometry optimization
-     !    betax=2.d0   ! Cinchonidine
-     !    betax=4.d0  ! Si H_4
-     !   betax=7.5d0  ! silicon systems
-     !    betax=10.d0  !  Na_Cl clusters
-     ncount_cluster=1
+if (inputs%ncount_cluster_x > 1) then
+    if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+    ! geometry optimization
+    open(unit=16,file='geopt.mon',status='unknown')
+    if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
+    call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
+ end if
 
-     call conjgrad(nproc,iproc,atoms,rxyz,etot,fxyz,rst,ncount_cluster,inputs)
-  end if
 
   if (iproc.eq.0) then
      sumx=0.d0
@@ -164,5 +165,6 @@ program BigDFT
 
   if (nproc > 1) call MPI_FINALIZE(ierr)
 
+  if (GPUshare) call stop_gpu_sharing()
  end program BigDFT
  !!***

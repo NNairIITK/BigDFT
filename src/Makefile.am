@@ -55,7 +55,7 @@ global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules $(sub_dirs_ps) convolutions profiling $(sub_dirs_cuda)
+SUBDIRS = modules $(sub_dirs_ps) convolutions profiling	$(sub_dirs_cuda)
 
 EXTRA_DIST = \
 	Makefile.standalone \
@@ -97,6 +97,8 @@ convolution_source = convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_optim_per.f90 \
 	convolutions/convolut_new_per.f90 \
 	convolutions/convolut_optim_slab.f90 \
+	convolutions/convolut_simple_per_k.f90 \
+	convolutions/convolut_simple_slab_k.f90 \
 	$(GPU_INTERFACE)
 
 else
@@ -113,6 +115,8 @@ convolution_source = convolutions/combined_shrink_simple.f90 \
 	convolutions/convolut_simple_per.f90 \
 	convolutions/convolut_new_per.f90 \
 	convolutions/convolut_simple_slab.f90 \
+	convolutions/convolut_simple_per_k.f90 \
+	convolutions/convolut_simple_slab_k.f90 \
 	$(GPU_INTERFACE)
 
 endif

@@ -24,7 +24,7 @@ module module_types
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,nvirt,nplot
      integer :: output_grid
      real(gp) :: frac_fluct,randdis,betax,forcemax
-     real(gp) :: hgrid,crmult,frmult,gnrm_cv,rbuf
+     real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf
      real(gp), dimension(3) :: ef
   end type input_variables
 !!***
@@ -151,14 +151,16 @@ module module_types
 !!****t* module_types/orbitals_data
 !! DESCRIPTION
 !! All the parameters which are important for describing the orbitals
+!! Add also the objects related to k-points sampling, after symmetries applications
 !!
 !! SOURCE
 !!
   type, public :: orbitals_data
-     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim
-     integer, dimension(:), pointer :: norb_par
+     integer :: norb,norbp,norbu,norbd,nspinor,isorb,npsidim,nkpts
+     integer, dimension(:), pointer :: norb_par,iokpt
      real(wp), dimension(:), pointer :: eval
-     real(gp), dimension(:), pointer :: occup,spinsgn
+     real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
+     real(gp), dimension(:,:), pointer :: kpts
   end type orbitals_data
 !!***
 
@@ -186,7 +188,7 @@ module module_types
 !!
   type, public :: restart_objects
      integer :: n1,n2,n3
-     real(gp) :: hgrid_old
+     real(gp) :: hx_old,hy_old,hz_old
      real(wp), dimension(:), pointer :: psi
      real(wp), dimension(:,:), pointer :: gaucoeffs
      real(gp), dimension(:,:), pointer :: rxyz_old
@@ -212,7 +214,7 @@ module module_types
 !! DESCRIPTION
 !! Contains the pointers to be handled to control GPU information
 !! Given that they are pointers on GPU address, they are C pointers
-!! which takes 8 bytes
+!! which take 8 bytes
 !! So they are declared as kind=8 variables either if the GPU works in simple precision
 !! Also other information concerning the GPU runs can be stored in this structure
 !!
@@ -221,8 +223,28 @@ module module_types
   type, public :: GPU_pointers
      real(kind=8) :: keys,work1,work2,work3,rhopot,r,d
      real(kind=8), dimension(:), pointer :: psi
+
+     real(kind=8) :: pinned_in,pinned_out
+     logical :: useDynamic
   end type GPU_pointers
 !!***
+
+
+!!****t* module_types/workarr_locham
+!! DESCRIPTION
+!! Contains the work arrays needed for hamiltonian application with all the BC
+!!
+!! SOURCE
+!!
+  type, public :: workarr_locham
+     integer :: nw1,nw2,nxc,nyc,nxf1,nxf2,nxf3,nxf,nyf
+     real(wp), dimension(:), pointer :: w1,w2
+     !for the periodic BC case, these arrays substitute 
+     !psifscf,psifscfk,psig,ww respectively
+     real(wp), dimension(:,:), pointer :: x_c,y_c,x_f1,x_f2,x_f3,x_f,y_f
+  end type workarr_locham
+!!***
+
 
 contains
 

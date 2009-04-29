@@ -453,7 +453,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   character(len=*), parameter :: subname='input_wf_diag'
   real(kind=8), parameter :: eps_mach=1.d-12
   integer, parameter :: ngx=31
-  integer :: i_stat,i_all,iat
+  integer :: i_stat,i_all,iat,nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,accurex
   real(kind=4) :: t0,t1
   type(gaussian_basis) :: G
@@ -466,7 +466,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   real(gp), dimension(:), allocatable :: locrad
   real(gp), dimension(:,:), allocatable :: thetaphi
   type(locreg_descriptors), dimension(:), allocatable :: Llr
-  real(wp), dimension(:,:), pointer :: psigau
+  real(wp), dimension(:,:,:), pointer :: psigau
 
   allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
   call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
@@ -478,7 +478,14 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
           '------------------------------------------------------- Input Wavefunctions Creation'
   end if
 
-  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvctrp,nvirt,nspin,&
+  !spin for inputguess orbitals
+  if (nspin == 4) then
+     nspin_ig=1
+  else
+     nspin_ig=nspin
+  end if
+
+  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvctrp,nvirt,nspin_ig,&
        orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
 
   hxh=.5_gp*hx
@@ -530,7 +537,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
 
   !use only the part of the arrays for building the hamiltonian matrix
   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbse,Glr%d,&
-       hx,hy,hz,Glr%wfd,G,psigau(1,orbse%nspinor*min(orbse%isorb+1,orbse%norb)),psi)
+       hx,hy,hz,Glr%wfd,G,psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
 
   i_all=-product(shape(locrad))*kind(locrad)
   deallocate(locrad,stat=i_stat)
@@ -540,8 +547,20 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
        Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU)
 
-  call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
-       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,nspin)
+  if(orbs%nspinor==4) then
+     !this wrapper can be inserted inside the poisson solver 
+     call PSolverNC(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
+          nscatterarr(iproc,1),& !this is n3d
+          ixc,hxh,hyh,hzh,&
+          rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+  else
+     call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
+          ixc,hxh,hyh,hzh,&
+          rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
+  end if
+
+!!$  call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
+!!$       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,nspin)
 
 !!$  if (nproc == 1) then
 !!$     !calculate the overlap matrix as well as the kinetic overlap
@@ -696,7 +715,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   deallocate(orbse%norb_par,stat=i_stat)
   call memocc(i_stat,i_all,'orbse%norb_par',subname)
 
-  call DiagHam(iproc,nproc,at%natsc,nspin,orbs,nvctrp,Glr%wfd,comms,&
+  call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,nvctrp,Glr%wfd,comms,&
        psi,hpsi,psit,orbse,commse,etol,norbsc_arr,orbsv,psivirt)
  
   call deallocate_comms(commse,subname)
@@ -704,8 +723,6 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
   deallocate(norbsc_arr,stat=i_stat)
   call memocc(i_stat,i_all,'norbsc_arr',subname)
-
-  if(orbs%nspinor==4) nspin=4
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')'done.'
@@ -726,6 +743,15 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      i_all=-product(shape(orbsv%spinsgn))*kind(orbsv%spinsgn)
      deallocate(orbsv%spinsgn,stat=i_stat)
      call memocc(i_stat,i_all,'orbsv%spinsgn',subname)
+     i_all=-product(shape(orbsv%kpts))*kind(orbsv%kpts)
+     deallocate(orbsv%kpts,stat=i_stat)
+     call memocc(i_stat,i_all,'orbsv%kpts',subname)
+     i_all=-product(shape(orbsv%kwgts))*kind(orbsv%kwgts)
+     deallocate(orbsv%kwgts,stat=i_stat)
+     call memocc(i_stat,i_all,'orbsv%kwgts',subname)
+     i_all=-product(shape(orbsv%iokpt))*kind(orbsv%iokpt)
+     deallocate(orbsv%iokpt,stat=i_stat)
+     call memocc(i_stat,i_all,'orbsv%iokpt',subname)
   end if
 
   i_all=-product(shape(orbse%occup))*kind(orbse%occup)
@@ -734,6 +760,15 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   i_all=-product(shape(orbse%spinsgn))*kind(orbse%spinsgn)
   deallocate(orbse%spinsgn,stat=i_stat)
   call memocc(i_stat,i_all,'orbse%spinsgn',subname)
+  i_all=-product(shape(orbse%kpts))*kind(orbse%kpts)
+  deallocate(orbse%kpts,stat=i_stat)
+  call memocc(i_stat,i_all,'orbse%kpts',subname)
+  i_all=-product(shape(orbse%kwgts))*kind(orbse%kwgts)
+  deallocate(orbse%kwgts,stat=i_stat)
+  call memocc(i_stat,i_all,'orbse%kwgts',subname)
+  i_all=-product(shape(orbse%iokpt))*kind(orbse%iokpt)
+  deallocate(orbse%iokpt,stat=i_stat)
+  call memocc(i_stat,i_all,'orbse%iokpt',subname)
 
      
 end subroutine input_wf_diag

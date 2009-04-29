@@ -78,17 +78,47 @@
     stop 'gpu_locham'
   end subroutine gpu_locham
 
-  subroutine gpu_locden()
-    implicit none
-    stop 'gpu_locden'
-  end subroutine gpu_locden
-
   subroutine gpu_precond()
     implicit none
     stop 'gpu_locham'
   end subroutine gpu_precond
 
+  subroutine gpu_locden()
+    implicit none
+    stop 'gpu_locham'
+  end subroutine gpu_locden
+
   subroutine free_gpu()
     implicit none
     stop 'free_gpu'
   end subroutine free_gpu
+ 
+ subroutine preconditionall_gpu()
+   implicit none
+   stop 'preconditionall_gpu'
+ end subroutine preconditionall_gpu
+
+ subroutine init_gpu_sharing()
+   implicit none
+   stop 'init_gpu_sharing'
+ end subroutine init_gpu_sharing
+
+ subroutine local_partial_density_gpu()
+   implicit none
+   stop 'local_partial_density_gpu'
+ end subroutine local_partial_density_gpu
+
+ subroutine local_hamiltonian_gpu()
+   implicit none
+   stop 'local_hamiltonian_gpu'
+ end subroutine local_hamiltonian_gpu
+
+ subroutine stop_gpu_sharing()
+   implicit none
+   stop 'stop_gpu_sharing'
+ end subroutine stop_gpu_sharing
+
+ subroutine init_lib()
+   implicit none
+   stop 'init_lib'
+ end subroutine init_lib

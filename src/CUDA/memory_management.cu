@@ -11,12 +11,12 @@
 #define GPU_SIMPLE 1
 #define GPU_DOUBLE 2
 
-static unsigned int getPrecisionSize();
-static short gpu_precision;
+unsigned int getPrecisionSize();
+short gpu_precision;
 
 
-
-
+int memoryGPUSum = 0;
+int memoryPISum = 0;
 
 
 // functions to set memory operations precision
@@ -42,7 +42,7 @@ void cpu_pinned_allocation__(int *nsize, //memory size
 
 		    
 {
-  unsigned int mem_size = (*nsize)*(10)*getPrecisionSize();
+  unsigned int mem_size = (*nsize)*getPrecisionSize();
   *ierr=0;
 
   if(cudaMallocHost(CPU_pointer, mem_size ) != cudaSuccess)
@@ -52,7 +52,8 @@ void cpu_pinned_allocation__(int *nsize, //memory size
       return;
     }
 
-
+  // memoryPISum += mem_size;
+  // printf("CurMem PI = %i \n",memoryPISum);
   
 }
 
@@ -101,6 +102,11 @@ void gpu_allocate__(int *nsize, //memory size
       *ierr=1;
       return;
     }
+
+  // memoryGPUSum += mem_size;
+  //  printf("CurMem PI = %i \n",memoryGPUSum);
+
+
 }
 
 extern "C" 
@@ -207,8 +213,12 @@ void gpu_receive__(int *nsize,
 
 }
 
+
+
+
+
 //private fct
-static unsigned int getPrecisionSize()
+unsigned int getPrecisionSize()
 {
   if(gpu_precision == GPU_DOUBLE)
     return sizeof(double);
