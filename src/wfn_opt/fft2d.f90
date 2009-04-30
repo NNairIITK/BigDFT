@@ -49,22 +49,22 @@ subroutine FFT2d(n1,n2,nd1,nd2,z,isign,inzee,zw,ncache)
       if (ncache.eq.0) then
 
 ! TRANSFORM ALONG Y AXIS
-    call ctrig(n2,trig,after,before,now,isign,ic)
+    call ctrig_(n2,trig,after,before,now,isign,ic)
     nfft=n1
     mm=nd1
     do 52093,i=1,ic-1
-    call fftstp(mm,nfft,nd2,mm,nd2,z(1,1,inzee),z(1,1,3-inzee),trig,after(i),now(i),before(i),isign)
+    call fftstp_(mm,nfft,nd2,mm,nd2,z(1,1,inzee),z(1,1,3-inzee),trig,after(i),now(i),before(i),isign)
 52093    inzee=3-inzee
     i=ic
     call fftrot(mm,nfft,nd2,mm,nd2,z(1,1,inzee),z(1,1,3-inzee),trig,after(i),now(i),before(i),isign)
     inzee=3-inzee
 
 ! TRANSFORM ALONG X AXIS
-    if (n1.ne.n2) call ctrig(n1,trig,after,before,now,isign,ic)
+    if (n1.ne.n2) call ctrig_(n1,trig,after,before,now,isign,ic)
     nfft=n2
     mm=nd2
     do 53093,i=1,ic-1
-    call fftstp(mm,nfft,nd1,mm,nd1,z(1,1,inzee),z(1,1,3-inzee),trig,after(i),now(i),before(i),isign)
+    call fftstp_(mm,nfft,nd1,mm,nd1,z(1,1,inzee),z(1,1,3-inzee),trig,after(i),now(i),before(i),isign)
 53093    inzee=3-inzee
     i=ic
     call fftrot(mm,nfft,nd1,mm,nd1,z(1,1,inzee),z(1,1,3-inzee),trig,after(i),now(i),before(i),isign)
@@ -82,7 +82,7 @@ subroutine FFT2d(n1,n2,nd1,nd2,z,isign,inzee,zw,ncache)
     nn=lot
     n=n2
     if (2*n*lot*2.gt.ncache) stop 'enlarge ncache :2'
-    call ctrig(n2,trig,after,before,now,isign,ic)
+    call ctrig_(n2,trig,after,before,now,isign,ic)
 
     ja=1
     jb=n1
@@ -103,11 +103,11 @@ subroutine FFT2d(n1,n2,nd1,nd2,z,isign,inzee,zw,ncache)
 
     i=1
     inzeep=2
-    call fftstp(mm,nfft,m,nn,n,z(1,j,inzee),zw(1,1,3-inzeep),trig,after(i),now(i),before(i),isign)
+    call fftstp_(mm,nfft,m,nn,n,z(1,j,inzee),zw(1,1,3-inzeep),trig,after(i),now(i),before(i),isign)
     inzeep=1
 
     do 2093,i=2,ic-1
-    call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep),trig,after(i),now(i),before(i),isign)
+    call fftstp_(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep),trig,after(i),now(i),before(i),isign)
 2093    inzeep=3-inzeep
 
     i=ic
@@ -125,7 +125,7 @@ subroutine FFT2d(n1,n2,nd1,nd2,z,isign,inzee,zw,ncache)
     nn=lot
     n=n1
     if (2*n*lot*2.gt.ncache) stop 'enlarge ncache :1'
-    if (n1.ne.n2) call ctrig(n1,trig,after,before,now,isign,ic)
+    if (n1.ne.n2) call ctrig_(n1,trig,after,before,now,isign,ic)
 
       if (ic.eq.1) then
     i=ic
@@ -145,11 +145,11 @@ subroutine FFT2d(n1,n2,nd1,nd2,z,isign,inzee,zw,ncache)
 
     i=1
     inzeep=2
-    call fftstp(mm,nfft,m,nn,n,z(1,j,inzee),zw(1,1,3-inzeep),trig,after(i),now(i),before(i),isign)
+    call fftstp_(mm,nfft,m,nn,n,z(1,j,inzee),zw(1,1,3-inzeep),trig,after(i),now(i),before(i),isign)
     inzeep=1
 
     do 3093,i=2,ic-1
-    call fftstp(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep),trig,after(i),now(i),before(i),isign)
+    call fftstp_(nn,nfft,n,nn,n,zw(1,1,inzeep),zw(1,1,3-inzeep),trig,after(i),now(i),before(i),isign)
 3093    inzeep=3-inzeep
     i=ic
     call fftrot(nn,nfft,n,mm,m,zw(1,1,inzeep),z(1,jj,3-inzee),trig,after(i),now(i),before(i),isign)

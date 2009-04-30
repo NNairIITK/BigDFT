@@ -92,13 +92,15 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
      if (iproc==0 .and. wrtmsg) write(*,'(1x,a)',advance='no')&
           'Poisson solver for periodic BC, no kernel calculation...'
      
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
+     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc)
 
-     allocate(kernel(1+ndebug),stat=i_stat)
+     allocate(kernel(nd1*nd2*nd3/nproc+ndebug),stat=i_stat)
      call memocc(i_stat,kernel,'kernel',subname)
 
+     call Periodic_Kernel(n1,n2,n3,nd1,nd2,nd3,hx,hy,hz,itype_scf,kernel,iproc,nproc)
+
      nlimd=n2
-     nlimk=0
+     nlimk=n3/2+1
 
   else if (geocode == 'S') then
      
@@ -145,15 +147,15 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
 
   if (iproc==0 .and. wrtmsg) then
      write(*,'(a)')'done.'
-     if (geocode /= 'P') then 
+     !if (geocode /= 'P') then 
         write(*,'(1x,2(a,i0))')&
              'Memory occ. per proc. (Bytes):  Density=',md1*md3*md2/nproc*8,&
              '  Kernel=',nd1*nd2*nd3/nproc*8
-     else
-        write(*,'(1x,2(a,i0))')&
-             'Memory occ. per proc. (Bytes):  Density=',md1*md3*md2/nproc*8,&
-             '  Kernel=',8
-     end if
+     !else
+     !   write(*,'(1x,2(a,i0))')&
+     !        'Memory occ. per proc. (Bytes):  Density=',md1*md3*md2/nproc*8,&
+     !        '  Kernel=',8
+     !end if
      write(*,'(1x,a,i0)')&
           '                                Full Grid Arrays=',n01*n02*n03*8
      !print the load balancing of the different dimensions on screen
@@ -218,6 +220,177 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
 
 end subroutine createKernel
 !!***
+
+!!****f* BigDFT/Periodic_Kernel
+!! FUNCTION
+!!    Build the kernel of the Poisson operator with
+!!    surfaces Boundary conditions
+!!    in an interpolating scaling functions basis.
+!!    Beware of the fact that the nonperiodic direction is y!
+!!
+!! SYNOPSIS
+!!    n1,n2,n3           Dimensions for the FFT
+!!    nker1,nker2,nker3  Dimensions of the kernel (nker3=n3/2+1) nker(1,2)=n(1,2)/2+1
+!!    h1,h2,h3           Mesh steps in the three dimensions
+!!    itype_scf          Order of the scaling function
+!!    iproc,nproc        Number of process, number of processes
+!!    karray             output array
+!!
+!! AUTHOR
+!!    L. Genovese
+!! CREATION DATE
+!!    October 2006
+!!
+!! SOURCE
+!!
+subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc)
+  use module_base, only: ndebug
+  implicit none
+  include 'mpif.h'
+  !Arguments
+  integer, intent(in) :: n1,n2,n3,nker1,nker2,nker3,itype_scf,iproc,nproc
+  real(kind=8), intent(in) :: h1,h2,h3
+  real(kind=8), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
+  !Local variables 
+  character(len=*), parameter :: subname='Periodic_Kernel'
+  real(kind=8), parameter :: pi=3.14159265358979323846d0
+  integer :: i1,i2,i3,j3,i_all,i_stat
+  real(kind=8) :: p1,p2,mu3,ker
+  real(kind=8), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
+
+
+  !first control that the domain is not shorter than the scaling function
+  !add also a temporary flag for the allowed ISF types for the kernel
+  if (itype_scf > min(n1,n2,n3) .or. itype_scf /= 16) then
+     print *,'ERROR: dimension of the box are too small for the ISB basis chosen',&
+          itype_scf,n1,n2,n3
+     stop
+  end if
+  !calculate the FFT of the ISF for the three dimensions
+  allocate(fourISFx(0:nker1-1+ndebug),stat=i_stat)
+  call memocc(i_stat,fourISFx,'fourISFx',subname)
+  allocate(fourISFy(0:nker2-1+ndebug),stat=i_stat)
+  call memocc(i_stat,fourISFy,'fourISFy',subname)
+  allocate(fourISFz(0:nker3-1+ndebug),stat=i_stat)
+  call memocc(i_stat,fourISFz,'fourISFz',subname)
+
+  call fourtrans_isf(n1/2+1,fourISFx)
+  call fourtrans_isf(n2/2+1,fourISFy)
+  call fourtrans_isf(n3/2+1,fourISFz)
+
+
+  !calculate directly the reciprocal space components of the kernel function
+  do i3=1,nker3/nproc
+     j3=iproc*(nker3/nproc)+i3
+     if (j3 <= n3/2+1) then
+        mu3=real(j3-1,kind=8)/real(n3,kind=8)
+        mu3=(mu3/h2)**2 !beware of the exchanged dimension
+        do i2=1,nker2
+           p2=real(i2-1,kind=8)/real(n2,kind=8)
+           do i1=1,nker1
+              p1=real(i1-1,kind=8)/real(n1,kind=8)
+              ker=pi*((p1/h1)**2+(p2/h3)**2+mu3)!beware of the exchanged dimension
+              if (ker/=0.d0) then
+                 karray(i1,i2,i3)=1.d0/ker*fourISFx(i1-1)*fourISFy(i2-1)*fourISFz(j3-1)
+              else
+                 karray(i1,i2,i3)=0.d0
+              end if
+           end do
+        end do
+     else
+        do i2=1,nker2
+           do i1=1,nker1
+              karray(i1,i2,i3)=0.d0
+           end do
+        end do
+     end if
+  end do
+
+  i_all=-product(shape(fourISFx))*kind(fourISFx)
+  deallocate(fourISFx,stat=i_stat)
+  call memocc(i_stat,i_all,'fourISFx',subname)
+  i_all=-product(shape(fourISFy))*kind(fourISFy)
+  deallocate(fourISFy,stat=i_stat)
+  call memocc(i_stat,i_all,'fourISFy',subname)
+  i_all=-product(shape(fourISFz))*kind(fourISFz)
+  deallocate(fourISFz,stat=i_stat)
+  call memocc(i_stat,i_all,'fourISFz',subname)
+
+
+
+end subroutine Periodic_Kernel
+
+!calculate the fourier transform
+!suppose the output symmetric and real
+subroutine fourtrans_isf(n,ftisf)
+  implicit none
+  integer, intent(in) :: n
+  real(kind=8), dimension(0:n), intent(out) :: ftisf
+  !local variables
+  real(kind=8), parameter :: twopi=6.28318530717958647688d0
+  integer :: i,j
+  real(kind=8) :: p,pointval,hval,q!,htp
+
+  !zero fourier component
+  ftisf(0)=1.d0
+  !non-zero components, use the previous calculated values for powers of two
+  loop_points: do i=1,n
+     !do nothing if the point can be divided by two
+     if (2*(i/2) == i) then
+        cycle loop_points
+     end if
+     p=real(i,kind=8)*twopi/real(2*n,kind=8)
+     !calculate the values of the given point
+     pointval=1.d0
+     q=p
+     loop_calc: do
+        q=0.5d0*q
+        hval=htp(q)
+        if (abs(hval - 1.d0) <= 1.d-16) then
+           exit loop_calc
+        end if
+        pointval=pointval*hval
+     end do loop_calc
+     ftisf(i)=pointval
+     !calculate the other points on a dyadic grid until needed
+     j=i
+     q=p
+     loop_dyadic: do
+        j=2*j
+        if (j > n) then
+           exit loop_dyadic
+        end if
+        ftisf(j)=htp(q)*ftisf(j/2)
+        q=2.d0*q
+     end do loop_dyadic
+  end do loop_points
+
+contains
+
+  !transform the wavelet filters
+  function htp(p)
+    implicit none
+    real(kind=8), intent(in) :: p
+    real(kind=8) :: htp
+    !local variables
+    integer :: i,j
+    real(kind=8) :: cp,x
+    !include the filters for a given scaling function
+    include 'lazy_16.inc'
+
+    htp=0.d0
+    do j=m-3,1,-2
+       x=real(j,kind=8)
+       cp=cos(p*x)
+       htp=htp+ch(j)*cp
+    end do
+    !this is the value divided by two
+    htp=0.5d0+htp
+
+  end function htp
+
+end subroutine fourtrans_isf
+
 
 
 !!****f* BigDFT/Surfaces_Kernel

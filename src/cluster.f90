@@ -88,8 +88,9 @@
            write( *,'(1x,a)')'Convergence error, cannot proceed.'
            write( *,'(1x,a)')' writing positions in file posfail.xyz then exiting'
            write(comment,'(a)')'UNCONVERGED WF '
-           call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
+           !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
 
+           call write_atomic_file("posfail",energy,rxyz,atoms,trim(comment))
 
         end if
 

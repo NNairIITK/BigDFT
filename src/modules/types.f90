@@ -114,6 +114,7 @@ module module_types
 !!
   type, public :: atoms_data
      character(len=1) :: geocode
+     character(len=5) :: format
      character(len=20) :: units
      integer :: nat,ntypes,natsc
      character(len=20), dimension(:), pointer :: atomnames

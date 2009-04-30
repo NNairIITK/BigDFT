@@ -12,7 +12,8 @@ SUBDIRS = \
 	  H2O-CP2K \
 	  SiBulk \
 	  H2O-slab \
-	  Davidson-SiH4
+	  Davidson-SiH4 \
+	  NEB
 
 
 #This will run the automatic tests also for GPU
