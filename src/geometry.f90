@@ -43,9 +43,9 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   logical :: fail,exists
 
   !-------------------------------------------
-  type(parameterminimization)::parmin
-  character*4 fn4
-  character*40 comment
+  type(parameterminimization) :: parmin
+  character(len=4) :: fn4
+  character(len=40) :: comment
 
   !inquire for the file needed for geometry optimisation
   !if not present, switch to traditional SDCG method
@@ -570,7 +570,7 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
   use module_base
   implicit none
   integer:: nat , nr, lwork , i, j, k, info, iproc,n_silicon
-  real(gp) :: h, rlarge,twelfth, twothird, count, dm, s, cmx, cmy, cmz, t1, t2, t3
+  real(gp) :: h, rlarge,twelfth, twothird, rcount, dm, s, cmx, cmy, cmz, t1, t2, t3
   real(gp), dimension(3) :: alat0,alat
   real(gp), dimension(3*nr) :: eval
   real(gp), dimension(3*nat) :: pos0
@@ -596,7 +596,7 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
   !        lwork=100*nat
   lwork=100*nr
 
-  ! call lenoskytb(nat,alat,pos,grad,etot,count,n_silicon)
+  ! call lenoskytb(nat,alat,pos,grad,etot,rcount,n_silicon)
   ! do i=1,nat
   ! write(iproc+100,*) grad(3*(i-1)+1), grad(3*(i-1)+2), grad(3*(i-1)+3)
   ! enddo 
@@ -612,7 +612,7 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
   rlarge=1.e6_gp
   twelfth=-1._gp/(12._gp*h)
   twothird=-2._gp/(3._gp*h)
-  count=0._gp
+  rcount=0._gp
 
   !      do i=1,3*nat
   do i=1,3*nr
@@ -629,9 +629,9 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
 
      tpos(i)=tpos(i)-2*h
      tposall(i)=tposall(i)-2*h
-     !call energyandforces_app(nat,alat,tpos,grad,etot,count)
-     !        call lenoskytb(nat,alat,tpos,grad,etot,count,n_silicon)
-     call lenoskytb(nat,alat,tposall,grad,etot,count,n_silicon)
+     !call energyandforces_app(nat,alat,tpos,grad,etot,rcount)
+     !        call lenoskytb(nat,alat,tpos,grad,etot,rcount,n_silicon)
+     call lenoskytb(nat,alat,tposall,grad,etot,rcount,n_silicon)
      do j=1,3*nr
         !        do j=1,3*nat
         hess(j,i)=twelfth*grad(j)
@@ -639,9 +639,9 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
 
      tpos(i)=tpos(i)+h
      tposall(i)=tposall(i)+h
-     !call energyandforces_app(nat,alat,tpos,grad,etot,count)
-     !        call lenoskytb(nat,alat,tpos,grad,etot,count,n_silicon)
-     call lenoskytb(nat,alat,tposall,grad,etot,count,n_silicon)
+     !call energyandforces_app(nat,alat,tpos,grad,etot,rcount)
+     !        call lenoskytb(nat,alat,tpos,grad,etot,rcount,n_silicon)
+     call lenoskytb(nat,alat,tposall,grad,etot,rcount,n_silicon)
      do j=1,3*nr
         !        do j=1,3*nat
         hess(j,i)=hess(j,i)-twothird*grad(j)
@@ -649,9 +649,9 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
 
      tpos(i)=tpos(i)+2*h
      tposall(i)=tposall(i)+2*h
-     !call energyandforces_app(nat,alat,tpos,grad,etot,count)
-     !        call lenoskytb(nat,alat,tpos,grad,etot,count,n_silicon)
-     call lenoskytb(nat,alat,tposall,grad,etot,count,n_silicon)
+     !call energyandforces_app(nat,alat,tpos,grad,etot,rcount)
+     !        call lenoskytb(nat,alat,tpos,grad,etot,rcount,n_silicon)
+     call lenoskytb(nat,alat,tposall,grad,etot,rcount,n_silicon)
      do j=1,3*nr
         !        do j=1,3*nat
         hess(j,i)=hess(j,i)+twothird*grad(j)
@@ -659,9 +659,9 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
 
      tpos(i)=tpos(i)+h
      tposall(i)=tposall(i)+h
-     !call energyandforces_app(nat,alat,tpos,grad,etot,count)
-     !        call lenoskytb(nat,alat,tpos,grad,etot,count,n_silicon)
-     call lenoskytb(nat,alat,tposall,grad,etot,count,n_silicon)
+     !call energyandforces_app(nat,alat,tpos,grad,etot,rcount)
+     !        call lenoskytb(nat,alat,tpos,grad,etot,rcount,n_silicon)
+     call lenoskytb(nat,alat,tposall,grad,etot,rcount,n_silicon)
      do j=1,3*nr
         !        do j=1,3*nat
         hess(j,i)=hess(j,i)-twelfth*grad(j)
@@ -2507,6 +2507,10 @@ end subroutine atomic_dot
 
 
 !fake lenosky subroutine to substitute force fields (temporary, to be deplaced)
-subroutine lenoskytb()
+subroutine lenoskytb(nat,alat,tposall,grad,etot,rcount,n_silicon)
+  use module_base
+  implicit none
+  integer, intent(in) :: nat,n_silicon
+  real(gp) :: alat,tposall,grad,etot,rcount
   stop 'FAKE LENOSKY'
 end subroutine lenoskytb

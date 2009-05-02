@@ -2,6 +2,13 @@
 !! FUNCTION
 !!   Give electronic configuration of atom
 !!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA (TD,LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
 !! SYNOPSIS
 !!  Input
 !!   nzatom    Z number of atom
@@ -9,21 +16,26 @@
 !!  Output
 !!   symbol    Atomic symbol
 !!   rcov      Covalent radius
-!!   rprb      Parabolic radius for the input guess using the subroutines "gatom"
+!!   rprb      Parabolic radius for the input guess using the subroutine "gatom"
+!!   ehomo     High occupied molecular orbital energy
+!!             See http://physics.nist.gov/PhysRefData/DFTdata/Tables/ptable.html
 !!   neleconf  Occupation number (electronic configuration of the atom)
 !!   nsccode   Semicore orbitals, indicated as an integer.
 !!             The integer is the n_s + 4*n_p + 16* n_d + 64* n_f
 !!             where n_l are the number of semicore orbitals for a given angular momentum
 !!             starting from the lower level of course
+!!   mxpl      Maximum spin polarisation to be placed on the atom
+!!   mxchg     Maximum charge to be placed on the atom
+!!   amu       Atomic mass unit (use values coming from ABINIT/11util/atmdata.F90)
 !!
 !! SOURCE
 !!
-subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg)
+subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
   implicit none
 ! Arguments
   integer, intent(in) :: nzatom,nvalelec
   character(len=2), intent(out) :: symbol
-  real(kind=8), intent(out) :: rcov,rprb,ehomo
+  real(kind=8), intent(out) :: rcov,rprb,ehomo,amu
   integer, parameter :: nmax=6,lmax=3
   integer, intent(out) :: neleconf(nmax,0:lmax)
   integer, intent(out) :: nsccode,mxpl,mxchg
@@ -51,6 +63,7 @@ rcov=0.75d0
 rprb=1.21d0
 ehomo=-0.233471d0
 neleconf(1,0)=1
+amu=1.00794d0
 
 case(2*1000+2)
 ! -----------------------           2
@@ -60,6 +73,7 @@ rcov=0.75d0
 rprb=1.50d0
 ehomo=-0.570425d0
 neleconf(1,0)=2
+amu=4.002602d0
 
 case(3*1000+1)
 ! -----------------------           3
@@ -69,6 +83,7 @@ rcov=3.40d0
 rprb=6.80d0
 ehomo=-0.10554d0
 neleconf(2,0)=1
+amu=6.941d0
 
 case(3*1000+3)
 ! -----------------------           4
@@ -80,6 +95,7 @@ ehomo=-0.10554d0
 neleconf(1,0)=2
 neleconf(2,0)=1
 nsccode=1
+amu=6.941d0
 
 case(4*1000+2)
 ! -----------------------           5
@@ -89,6 +105,7 @@ rcov=2.30d0
 rprb=4.60d0
 ehomo=-0.205744d0
 neleconf(2,0)=2
+amu=9.012182d0
 
 case(4*1000+4)
 ! -----------------------           6
@@ -100,6 +117,7 @@ ehomo=-0.205744d0
 neleconf(1,0)=2
 neleconf(2,0)=2
 nsccode=1
+amu=9.012182d0
 
 case(5*1000+3)
 ! -----------------------           7
@@ -110,6 +128,7 @@ rprb=3.10d0
 ehomo=-0.136603d0
 neleconf(2,0)=2
 neleconf(2,1)=1
+amu=10.811d0
 
 case(6*1000+4)
 ! -----------------------           8
@@ -120,6 +139,7 @@ rprb=2.90d0
 ehomo=-0.199186d0
 neleconf(2,0)=2
 neleconf(2,1)=2
+amu=12.011d0
 
 case(7*1000+5)
 ! -----------------------           9
@@ -130,6 +150,7 @@ rprb=2.84d0
 ehomo=-0.266297d0
 neleconf(2,0)=2
 neleconf(2,1)=3
+amu=14.00674d0
 
 case(8*1000+6)
 ! -----------------------          10
@@ -140,6 +161,7 @@ rprb=2.75d0
 ehomo=-0.338381d0
 neleconf(2,0)=2
 neleconf(2,1)=4
+amu=15.9994d0
 
 case(9*1000+7)
 ! -----------------------          11
@@ -150,6 +172,7 @@ rprb=2.72d0
 ehomo=-0.415606d0
 neleconf(2,0)=2
 neleconf(2,1)=5
+amu=18.9984032d0
 
 case(10*1000+8)
 ! -----------------------          12
@@ -160,6 +183,7 @@ rprb=2.70d0
 ehomo=-0.498034d0
 neleconf(2,0)=2
 neleconf(2,1)=6
+amu=20.1797d0
 
 case(11*1000+1)
 ! -----------------------          13
@@ -169,6 +193,7 @@ rcov=3.40d0
 rprb=6.80d0
 ehomo=-0.103415d0
 neleconf(3,0)=1
+amu=22.989768d0
 
 case(11*1000+9)
 ! -----------------------          14
@@ -181,6 +206,7 @@ neleconf(2,0)=2
 neleconf(2,1)=6
 neleconf(3,0)=1
 nsccode=12
+amu=22.989768d0
 
 case(12*1000+10)
 ! -----------------------          15
@@ -193,6 +219,7 @@ neleconf(2,0)=2
 neleconf(2,1)=6
 neleconf(3,0)=2
 nsccode=12
+amu=24.3050d0
 
 case(12*1000+2)
 ! -----------------------          16
@@ -202,6 +229,7 @@ rcov=2.65d0
 rprb=5.30d0
 ehomo=-0.175427d0
 neleconf(3,0)=2
+amu=24.3050d0
 
 case(13*1000+3)
 ! -----------------------          17
@@ -212,6 +240,7 @@ rprb=4.45d0
 ehomo=-0.102545d0
 neleconf(3,0)=2
 neleconf(3,1)=1
+amu=26.981539d0
 
 case(14*1000+4)
 ! -----------------------          18
@@ -222,6 +251,7 @@ rprb=4.19d0
 ehomo=-0.153293d0
 neleconf(3,0)=2
 neleconf(3,1)=2
+amu=28.0855d0
 
 case(15*1000+5)
 ! -----------------------          19
@@ -232,6 +262,7 @@ rprb=4.00d0
 ehomo=-0.20608d0
 neleconf(3,0)=2
 neleconf(3,1)=3
+amu=30.973762d0
 
 case(16*1000+6)
 ! -----------------------          20
@@ -242,6 +273,7 @@ rprb=3.85d0
 ehomo=-0.261676d0
 neleconf(3,0)=2
 neleconf(3,1)=4
+amu=32.066d0
 
 case(17*1000+7)
 ! -----------------------          21
@@ -252,6 +284,7 @@ rprb=3.74d0
 ehomo=-0.32038d0
 neleconf(3,0)=2
 neleconf(3,1)=5
+amu=35.4527d0
 
 case(18*1000+8)
 ! -----------------------          22
@@ -262,6 +295,7 @@ rprb=3.60d0
 ehomo=-0.38233d0
 neleconf(3,0)=2
 neleconf(3,1)=6
+amu=39.948d0
 
 case(19*1000+1)
 ! -----------------------          23
@@ -271,6 +305,7 @@ rcov=4.00d0
 rprb=7.00d0
 ehomo=-0.088815d0
 neleconf(4,0)=1
+amu=39.0983d0
 
 case(19*1000+9)
 ! -----------------------          24
@@ -283,6 +318,7 @@ neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(4,0)=1
 nsccode=12
+amu=39.0983d0
 
 case(20*1000+10)
 ! -----------------------          25
@@ -295,6 +331,7 @@ neleconf(3,0)=2
 neleconf(3,1)=6
 neleconf(4,0)=2
 nsccode=12
+amu=40.078d0
 
 case(20*1000+2)
 ! -----------------------          26
@@ -304,6 +341,7 @@ rcov=3.80d0
 rprb=7.00d0
 ehomo=-0.141411d0
 neleconf(4,0)=2
+amu=40.078d0
 
 case(21*1000+11)
 ! -----------------------          27
@@ -317,6 +355,7 @@ neleconf(3,1)=6
 neleconf(3,2)=1
 neleconf(4,0)=2
 nsccode=12
+amu=44.955910d0
 
 case(21*1000+3)
 ! -----------------------          28
@@ -327,6 +366,7 @@ rprb=5.40d0
 ehomo=-0.13108d0
 neleconf(3,2)=1
 neleconf(4,0)=2
+amu=44.955910d0
 
 case(22*1000+12)
 ! -----------------------          29
@@ -340,6 +380,7 @@ neleconf(3,1)=6
 neleconf(3,2)=2
 neleconf(4,0)=2
 nsccode=12
+amu=47.88d0
 
 case(22*1000+4)
 ! -----------------------          30
@@ -350,6 +391,7 @@ rprb=5.40d0
 ehomo=-0.167106d0
 neleconf(3,2)=2
 neleconf(4,0)=2
+amu=47.88d0
 
 case(23*1000+13)
 ! -----------------------          31
@@ -363,6 +405,7 @@ neleconf(3,1)=6
 neleconf(3,2)=3
 neleconf(4,0)=2
 nsccode=12
+amu=50.9415d0
 
 case(23*1000+5)
 ! -----------------------          32
@@ -373,6 +416,7 @@ rprb=5.20d0
 ehomo=-0.175968d0
 neleconf(3,2)=3
 neleconf(4,0)=2
+amu=50.9415d0
 
 case(24*1000+14)
 ! -----------------------          33
@@ -386,6 +430,7 @@ neleconf(3,1)=6
 neleconf(3,2)=5
 neleconf(4,0)=1
 nsccode=12
+amu=51.9961d0
 
 case(24*1000+6)
 ! -----------------------          34
@@ -396,6 +441,7 @@ rprb=5.20d0
 ehomo=-0.118123d0
 neleconf(3,2)=5
 neleconf(4,0)=1
+amu=51.9961d0
 
 case(25*1000+15)
 ! -----------------------          35
@@ -409,6 +455,7 @@ neleconf(3,1)=6
 neleconf(3,2)=5
 neleconf(4,0)=2
 nsccode=12
+amu=54.93805d0
 
 case(25*1000+7)
 ! -----------------------          36
@@ -419,6 +466,7 @@ rprb=5.00d0
 ehomo=-0.191136d0
 neleconf(3,2)=5
 neleconf(4,0)=2
+amu=54.93805d0
 
 case(26*1000+16)
 ! -----------------------          37
@@ -432,6 +480,7 @@ neleconf(3,1)=6
 neleconf(3,2)=6
 neleconf(4,0)=2
 nsccode=12
+amu=55.847d0
 
 case(26*1000+8)
 ! -----------------------          38
@@ -442,6 +491,7 @@ rprb=5.00d0
 ehomo=-0.197978d0
 neleconf(3,2)=6
 neleconf(4,0)=2
+amu=55.847d0
 
 case(27*1000+17)
 ! -----------------------          39
@@ -455,6 +505,7 @@ neleconf(3,1)=6
 neleconf(3,2)=7
 neleconf(4,0)=2
 nsccode=12
+amu=58.93320d0
 
 case(27*1000+9)
 ! -----------------------          40
@@ -465,6 +516,7 @@ rprb=4.80d0
 ehomo=-0.204497d0
 neleconf(3,2)=7
 neleconf(4,0)=2
+amu=58.93320d0
 
 case(28*1000+10)
 ! -----------------------          41
@@ -475,6 +527,7 @@ rprb=4.60d0
 ehomo=-0.210764d0
 neleconf(3,2)=8
 neleconf(4,0)=2
+amu=58.69d0
 
 case(28*1000+18)
 ! -----------------------          42
@@ -488,6 +541,7 @@ neleconf(3,1)=6
 neleconf(3,2)=8
 neleconf(4,0)=2
 nsccode=12
+amu=58.69d0
 
 case(29*1000+11)
 ! -----------------------          43
@@ -499,6 +553,7 @@ ehomo=-0.172056d0
 neleconf(3,2)=10
 neleconf(4,0)=1
 nsccode=3
+amu=63.546d0
 
 case(29*1000+1)
 ! -----------------------          44
@@ -508,6 +563,7 @@ rcov=2.80d0
 rprb=5.60d0
 ehomo=-0.172056d0
 neleconf(4,0)=1
+amu=63.546d0
 
 case(30*1000+12)
 ! -----------------------          45
@@ -519,6 +575,7 @@ ehomo=-0.222725d0
 neleconf(3,2)=10
 neleconf(4,0)=2
 nsccode=3
+amu=65.39d0
 
 case(30*1000+2)
 ! -----------------------          46
@@ -528,6 +585,7 @@ rcov=2.70d0
 rprb=5.40d0
 ehomo=-0.222725d0
 neleconf(4,0)=2
+amu=65.39d0
 
 case(31*1000+13)
 ! -----------------------          47
@@ -540,6 +598,7 @@ neleconf(3,2)=10
 neleconf(4,0)=2
 neleconf(4,1)=1
 nsccode=3
+amu=69.723d0
 
 case(31*1000+3)
 ! -----------------------          48
@@ -550,6 +609,7 @@ rprb=4.80d0
 ehomo=-0.101634d0
 neleconf(4,0)=2
 neleconf(4,1)=1
+amu=69.723d0
 
 case(32*1000+4)
 ! -----------------------          49
@@ -560,6 +620,7 @@ rprb=4.80d0
 ehomo=-0.149882d0
 neleconf(4,0)=2
 neleconf(4,1)=2
+amu=72.61d0
 
 case(33*1000+5)
 ! -----------------------          50
@@ -570,6 +631,7 @@ rprb=4.60d0
 ehomo=-0.197497d0
 neleconf(4,0)=2
 neleconf(4,1)=3
+amu=74.92159d0
 
 case(34*1000+6)
 ! -----------------------          51
@@ -580,6 +642,7 @@ rprb=4.60d0
 ehomo=-0.245806d0
 neleconf(4,0)=2
 neleconf(4,1)=4
+amu=78.96d0
 
 case(35*1000+7)
 ! -----------------------          52
@@ -590,6 +653,7 @@ rprb=4.40d0
 ehomo=-0.295334d0
 neleconf(4,0)=2
 neleconf(4,1)=5
+amu=79.904d0
 
 case(36*1000+8)
 ! -----------------------          53
@@ -600,6 +664,7 @@ rprb=4.40d0
 ehomo=-0.34634d0
 neleconf(4,0)=2
 neleconf(4,1)=6
+amu=83.80d0
 
 case(37*1000+1)
 ! -----------------------          54
@@ -609,6 +674,7 @@ rcov=4.50d0
 rprb=7.00d0
 ehomo=-0.085375d0
 neleconf(5,0)=1
+amu=85.4678d0
 
 case(37*1000+9)
 ! -----------------------          55
@@ -621,6 +687,7 @@ neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(5,0)=1
 nsccode=12
+amu=85.4678d0
 
 case(38*1000+10)
 ! -----------------------          56
@@ -633,6 +700,7 @@ neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(5,0)=2
 nsccode=12
+amu=87.62d0
 
 case(38*1000+2)
 ! -----------------------          57
@@ -642,6 +710,7 @@ rcov=4.00d0
 rprb=7.00d0
 ehomo=-0.131793d0
 neleconf(5,0)=2
+amu=87.62d0
 
 case(39*1000+11)
 ! -----------------------          58
@@ -655,6 +724,7 @@ neleconf(4,1)=6
 neleconf(4,2)=1
 neleconf(5,0)=2
 nsccode=12
+amu=88.90585d0
 
 case(39*1000+3)
 ! -----------------------          59
@@ -665,6 +735,7 @@ rprb=7.00d0
 ehomo=-0.108691d0
 neleconf(4,2)=1
 neleconf(5,0)=2
+amu=88.90585d0
 
 case(40*1000+12)
 ! -----------------------          60
@@ -678,6 +749,7 @@ neleconf(4,1)=6
 neleconf(4,2)=2
 neleconf(5,0)=2
 nsccode=12
+amu=91.224d0
 
 case(40*1000+4)
 ! -----------------------          61
@@ -688,6 +760,7 @@ rprb=6.00d0
 ehomo=-0.150673d0
 neleconf(4,2)=2
 neleconf(5,0)=2
+amu=91.224d0
 
 case(41*1000+13)
 ! -----------------------          62
@@ -701,6 +774,7 @@ neleconf(4,1)=6
 neleconf(4,2)=4
 neleconf(5,0)=1
 nsccode=12
+amu=92.90638d0
 
 case(41*1000+5)
 ! -----------------------          63
@@ -711,6 +785,7 @@ rprb=5.40d0
 ehomo=-0.125252d0
 neleconf(4,2)=4
 neleconf(5,0)=1
+amu=92.90638d0
 
 case(42*1000+14)
 ! -----------------------          64
@@ -724,6 +799,7 @@ neleconf(4,1)=6
 neleconf(4,2)=5
 neleconf(5,0)=1
 nsccode=12
+amu=95.94d0
 
 case(42*1000+6)
 ! -----------------------          65
@@ -734,6 +810,7 @@ rprb=5.20d0
 ehomo=-0.14788d0
 neleconf(4,2)=5
 neleconf(5,0)=1
+amu=95.94d0
 
 case(43*1000+15)
 ! -----------------------          66
@@ -747,6 +824,7 @@ neleconf(4,1)=6
 neleconf(4,2)=6
 neleconf(5,0)=1
 nsccode=12
+amu=98.9062d0
 
 case(43*1000+7)
 ! -----------------------          67
@@ -757,6 +835,7 @@ rprb=5.20d0
 ehomo=-0.183636d0
 neleconf(4,2)=6
 neleconf(5,0)=1
+amu=98.9062d0
 
 case(44*1000+16)
 ! -----------------------          68
@@ -770,6 +849,7 @@ neleconf(4,1)=6
 neleconf(4,2)=7
 neleconf(5,0)=1
 nsccode=12
+amu=101.07d0
 
 case(44*1000+8)
 ! -----------------------          69
@@ -780,6 +860,7 @@ rprb=5.00d0
 ehomo=-0.152834d0
 neleconf(4,2)=7
 neleconf(5,0)=1
+amu=101.07d0
 
 case(45*1000+17)
 ! -----------------------          70
@@ -793,6 +874,7 @@ neleconf(4,1)=6
 neleconf(4,2)=8
 neleconf(5,0)=1
 nsccode=12
+amu=102.9055d0
 
 case(45*1000+9)
 ! -----------------------          71
@@ -803,6 +885,7 @@ rprb=5.00d0
 ehomo=-0.154624d0
 neleconf(4,2)=8
 neleconf(5,0)=1
+amu=102.9055d0
 
 case(46*1000+10)
 ! -----------------------          72
@@ -824,6 +907,7 @@ neleconf(4,0)=2
 neleconf(4,1)=6
 neleconf(4,2)=10
 nsccode=12
+amu=106.42d0
 
 case(47*1000+11)
 ! -----------------------          74
@@ -835,6 +919,7 @@ ehomo=-0.157407d0
 neleconf(4,2)=10
 neleconf(5,0)=1
 nsccode=3
+amu=107.8682d0
 
 case(47*1000+1)
 ! -----------------------          75
@@ -844,6 +929,7 @@ rcov=2.90d0
 rprb=5.80d0
 ehomo=-0.157407d0
 neleconf(5,0)=1
+amu=107.8682d0
 
 case(48*1000+12)
 ! -----------------------          76
@@ -855,6 +941,7 @@ ehomo=-0.204228d0
 neleconf(4,2)=10
 neleconf(5,0)=2
 nsccode=3
+amu=112.411d0
 
 case(48*1000+2)
 ! -----------------------          77
@@ -864,6 +951,7 @@ rcov=2.80d0
 rprb=5.60d0
 ehomo=-0.204228d0
 neleconf(5,0)=2
+amu=112.411d0
 
 case(49*1000+13)
 ! -----------------------          78
@@ -876,6 +964,7 @@ neleconf(4,2)=10
 neleconf(5,0)=2
 neleconf(5,1)=1
 nsccode=3
+amu=114.82d0
 
 case(49*1000+3)
 ! -----------------------          79
@@ -886,6 +975,7 @@ rprb=5.40d0
 ehomo=-0.101782d0
 neleconf(5,0)=2
 neleconf(5,1)=1
+amu=114.82d0
 
 case(50*1000+4)
 ! -----------------------          80
@@ -896,6 +986,7 @@ rprb=5.32d0
 ehomo=-0.14445d0
 neleconf(5,0)=2
 neleconf(5,1)=2
+amu=118.710d0
 
 case(51*1000+5)
 ! -----------------------          81
@@ -906,6 +997,7 @@ rprb=5.32d0
 ehomo=-0.185623d0
 neleconf(5,0)=2
 neleconf(5,1)=3
+amu=121.753d0
 
 case(52*1000+6)
 ! -----------------------          82
@@ -916,6 +1008,7 @@ rprb=5.06d0
 ehomo=-0.226594d0
 neleconf(5,0)=2
 neleconf(5,1)=4
+amu=127.60d0
 
 case(53*1000+7)
 ! -----------------------          83
@@ -926,6 +1019,7 @@ rprb=5.00d0
 ehomo=-0.267904d0
 neleconf(5,0)=2
 neleconf(5,1)=5
+amu=126.90447d0
 
 case(54*1000+8)
 ! -----------------------          84
@@ -936,6 +1030,7 @@ rprb=5.00d0
 ehomo=-0.309835d0
 neleconf(5,0)=2
 neleconf(5,1)=6
+amu=131.29d0
 
 case(55*1000+1)
 ! -----------------------          85
@@ -945,6 +1040,7 @@ rcov=4.50d0
 rprb=7.00d0
 ehomo=-0.078699d0
 neleconf(6,0)=1
+amu=132.90543d0
 
 case(55*1000+9)
 ! -----------------------          86
@@ -957,6 +1053,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=1
 nsccode=12
+amu=132.90543d0
 
 case(56*1000+10)
 ! -----------------------          87
@@ -969,6 +1066,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
 nsccode=12
+amu=137.327d0
 
 case(56*1000+2)
 ! -----------------------          88
@@ -978,6 +1076,7 @@ rcov=4.00d0
 rprb=7.00d0
 ehomo=-0.118967d0
 neleconf(6,0)=2
+amu=137.327d0
 
 case(57*1000+11)
 ! -----------------------          89
@@ -991,6 +1090,7 @@ neleconf(5,1)=6
 neleconf(5,2)=1
 neleconf(6,0)=2
 nsccode=12
+amu=138.9055d0
 
 case(58*1000+12)
 ! -----------------------          90
@@ -1004,6 +1104,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
 nsccode=12
+amu=140.115d0
 
 case(59*1000+13)
 ! -----------------------          91
@@ -1017,6 +1118,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
 nsccode=12
+amu=140.90765d0
 
 case(60*1000+14)
 ! -----------------------          92
@@ -1030,6 +1132,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
 nsccode=12
+amu=144.24d0
 
 case(61*1000+15)
 ! -----------------------          93
@@ -1043,6 +1146,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
 nsccode=12
+amu=147.91d0
 
 case(62*1000+16)
 ! -----------------------          94
@@ -1056,6 +1160,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
 nsccode=12
+amu=150.36d0
 
 case(63*1000+17)
 ! -----------------------          95
@@ -1069,6 +1174,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
 nsccode=12
+amu=151.965d0
 
 case(64*1000+18)
 ! -----------------------          96
@@ -1082,6 +1188,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
 nsccode=12
+amu=157.25d0
 
 case(65*1000+19)
 ! -----------------------          97
@@ -1095,6 +1202,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
 nsccode=12
+amu=158.92534d0
 
 case(66*1000+20)
 ! -----------------------          98
@@ -1108,6 +1216,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
 nsccode=12
+amu=162.50d0
 
 case(67*1000+21)
 ! -----------------------          99
@@ -1121,6 +1230,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
 nsccode=12
+amu=164.93032d0
 
 case(68*1000+22)
 ! -----------------------         100
@@ -1134,6 +1244,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
 nsccode=12
+amu=167.26d0
 
 case(69*1000+23)
 ! -----------------------         101
@@ -1147,6 +1258,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
 nsccode=12
+amu=168.93421d0
 
 case(70*1000+24)
 ! -----------------------         102
@@ -1160,6 +1272,7 @@ neleconf(5,0)=2
 neleconf(5,1)=6
 neleconf(6,0)=2
 nsccode=12
+amu=173.04d0
 
 case(71*1000+25)
 ! -----------------------         103
@@ -1174,6 +1287,7 @@ neleconf(5,1)=6
 neleconf(5,2)=1
 neleconf(6,0)=2
 nsccode=12
+amu=174.967d0
 
 case(72*1000+12)
 ! -----------------------         104
@@ -1187,6 +1301,7 @@ neleconf(5,1)=6
 neleconf(5,2)=2
 neleconf(6,0)=2
 nsccode=12
+amu=178.49d0
 
 case(73*1000+13)
 ! -----------------------         105
@@ -1200,6 +1315,7 @@ neleconf(5,1)=6
 neleconf(5,2)=3
 neleconf(6,0)=2
 nsccode=12
+amu=180.9479d0
 
 case(73*1000+5)
 ! -----------------------         106
@@ -1210,6 +1326,7 @@ rprb=6.20d0
 ehomo=-0.174814d0
 neleconf(5,2)=3
 neleconf(6,0)=2
+amu=180.9479d0
 
 case(74*1000+14)
 ! -----------------------         107
@@ -1223,6 +1340,7 @@ neleconf(5,1)=6
 neleconf(5,2)=4
 neleconf(6,0)=2
 nsccode=12
+amu=183.85d0
 
 case(74*1000+6)
 ! -----------------------         108
@@ -1233,6 +1351,7 @@ rprb=5.20d0
 ehomo=-0.181413d0
 neleconf(5,2)=4
 neleconf(6,0)=2
+amu=183.85d0
 
 case(75*1000+15)
 ! -----------------------         109
@@ -1246,6 +1365,7 @@ neleconf(5,1)=6
 neleconf(5,2)=5
 neleconf(6,0)=2
 nsccode=12
+amu=186.207d0
 
 case(75*1000+7)
 ! -----------------------         110
@@ -1256,6 +1376,7 @@ rprb=5.20d0
 ehomo=-0.186859d0
 neleconf(5,2)=5
 neleconf(6,0)=2
+amu=186.207d0
 
 case(76*1000+16)
 ! -----------------------         111
@@ -1269,6 +1390,7 @@ neleconf(5,1)=6
 neleconf(5,2)=6
 neleconf(6,0)=2
 nsccode=12
+amu=190.2d0
 
 case(76*1000+8)
 ! -----------------------         112
@@ -1279,6 +1401,7 @@ rprb=5.00d0
 ehomo=-0.191489d0
 neleconf(5,2)=6
 neleconf(6,0)=2
+amu=190.2d0
 
 case(77*1000+17)
 ! -----------------------         113
@@ -1292,6 +1415,7 @@ neleconf(5,1)=6
 neleconf(5,2)=7
 neleconf(6,0)=2
 nsccode=12
+amu=192.22d0
 
 case(77*1000+9)
 ! -----------------------         114
@@ -1302,6 +1426,7 @@ rprb=5.20d0
 ehomo=-0.195511d0
 neleconf(5,2)=7
 neleconf(6,0)=2
+amu=192.22d0
 
 case(78*1000+10)
 ! -----------------------         115
@@ -1312,6 +1437,7 @@ rprb=5.20d0
 ehomo=-0.161308d0
 neleconf(5,2)=9
 neleconf(6,0)=1
+amu=195.08d0
 
 case(78*1000+18)
 ! -----------------------         116
@@ -1325,6 +1451,7 @@ neleconf(5,1)=6
 neleconf(5,2)=9
 neleconf(6,0)=1
 nsccode=12
+amu=195.08d0
 
 case(79*1000+11)
 ! -----------------------         117
@@ -1336,6 +1463,7 @@ ehomo=-0.162334d0
 neleconf(5,2)=10
 neleconf(6,0)=1
 nsccode=3
+amu=196.96654d0
 
 case(79*1000+1)
 ! -----------------------         119
@@ -1345,6 +1473,7 @@ rcov=4.00d0
 rprb=6.40d0
 ehomo=-0.162334d0
 neleconf(6,0)=1
+amu=196.96654d0
 
 case(80*1000+12)
 ! -----------------------         120
@@ -1356,6 +1485,7 @@ ehomo=-0.205137d0
 neleconf(5,2)=10
 neleconf(6,0)=2
 nsccode=3
+amu=200.59d0
 
 case(80*1000+2)
 ! -----------------------         121
@@ -1365,6 +1495,7 @@ rcov=3.20d0
 rprb=6.40d0
 ehomo=-0.205137d0
 neleconf(6,0)=2
+amu=200.59d0
 
 case(81*1000+13)
 ! -----------------------         122
@@ -1377,6 +1508,7 @@ neleconf(5,2)=10
 neleconf(6,0)=2
 neleconf(6,1)=1
 nsccode=3
+amu=204.3833d0
 
 case(81*1000+3)
 ! -----------------------         123
@@ -1387,6 +1519,7 @@ rprb=6.40d0
 ehomo=-0.101507d0
 neleconf(6,0)=2
 neleconf(6,1)=1
+amu=204.3833d0
 
 case(82*1000+4)
 ! -----------------------         124
@@ -1397,6 +1530,7 @@ rprb=6.60d0
 ehomo=-0.141831d0
 neleconf(6,0)=2
 neleconf(6,1)=2
+amu=207.2d0
 
 case(83*1000+5)
 ! -----------------------         125
@@ -1407,6 +1541,7 @@ rprb=5.80d0
 ehomo=-0.180198d0
 neleconf(6,0)=2
 neleconf(6,1)=3
+amu=208.98037d0
 
 case(84*1000+6)
 ! -----------------------         126
@@ -1417,6 +1552,7 @@ rprb=5.60d0
 ehomo=-0.217889d0
 neleconf(6,0)=2
 neleconf(6,1)=4
+amu=209.0d0
 
 case(85*1000+7)
 ! -----------------------         127
@@ -1427,6 +1563,7 @@ rprb=5.20d0
 ehomo=-0.255453d0
 neleconf(6,0)=2
 neleconf(6,1)=5
+amu=210.0d0
 
 case(86*1000+8)
 ! -----------------------         128
@@ -1437,6 +1574,7 @@ rprb=5.20d0
 ehomo=-0.29318d0
 neleconf(6,0)=2
 neleconf(6,1)=6
+amu=222.0d0
 
 case default
     write(*,*) "Electronic configuration ",nzatom,nvalelec," not found!"
@@ -1484,6 +1622,13 @@ end select
 end subroutine eleconf
 !!***
 
+
+!!****f* BigDFT/correct_semicore
+!! FUNCTION
+!!   Correct the electronic configuration for a given atomic charge
+!!
+!! SOURCE
+!!
 subroutine correct_semicore(symbol,nmax,lmax,ichg,neleconf,nsccode)
   implicit none
   character(len=2), intent(in) :: symbol
@@ -1492,8 +1637,6 @@ subroutine correct_semicore(symbol,nmax,lmax,ichg,neleconf,nsccode)
   integer, intent(inout) :: nsccode
   !local variables
   integer :: i,l,isccode,itmp,nchgres,ichgp
-  
-  !correct the electronic configuration for a given atomic charge
 
   nchgres=ichg !residual charge
   if (ichg >0) then
@@ -1550,3 +1693,4 @@ subroutine correct_semicore(symbol,nmax,lmax,ichg,neleconf,nsccode)
 !!$     end do
 !!$  end do
 end subroutine correct_semicore
+!!***

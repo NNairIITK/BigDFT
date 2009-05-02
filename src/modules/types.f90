@@ -1,10 +1,15 @@
 !!****m* BigDFT/module_types
 !! FUNCTION
 !!  Modules which contains the Fortran data structures
+!!  and the routines of allocations and de-allocations
 !! AUTHOR
 !!    Luigi Genovese
 !! COPYRIGHT
 !!    Copyright (C) 2008 CEA
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 !! SOURCE
 !! 
 module module_types
@@ -110,6 +115,10 @@ module module_types
 !!****t* module_types/atoms_data
 !! DESCRIPTION
 !!   Atomic data (name, polarisation, ...)
+!! nat         Number of atoms
+!! ntypes      Number of type of atoms
+!! iatype(nat) Type of the atoms
+!! amu(ntypes) Atomic Mass Unit for each type of atoms
 !! SOURCE
 !!
   type, public :: atoms_data
@@ -122,6 +131,7 @@ module module_types
      logical, dimension(:), pointer :: lfrztyp
      integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom
      real(gp), dimension(:,:,:), pointer :: psppar
+     real(gp), dimension(:), pointer :: amu
   end type atoms_data
 !!***
 
@@ -248,51 +258,69 @@ module module_types
 
 contains
 
-  subroutine allocate_comms(nproc,comms,routine)
+
+!!****f* module_types/allocate_comms
+!! FUNCTION
+!!   Allocate communications_arrays
+!! SOURCE
+!!
+  subroutine allocate_comms(nproc,comms,subname)
     use module_base
     implicit none
-    character(len=*), intent(in) :: routine
+    character(len=*), intent(in) :: subname
     integer, intent(in) :: nproc
     type(communications_arrays), intent(out) :: comms
     !local variables
     integer :: i_all,i_stat
 
     allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ncntd,'ncntd',routine)
+    call memocc(i_stat,comms%ncntd,'ncntd',subname)
     allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ncntt,'ncntt',routine)
+    call memocc(i_stat,comms%ncntt,'ncntt',subname)
     allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ndspld,'ndspld',routine)
+    call memocc(i_stat,comms%ndspld,'ndspld',subname)
     allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
-    call memocc(i_stat,comms%ndsplt,'ndsplt',routine)
+    call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
   end subroutine allocate_comms
+!!***
 
-  subroutine deallocate_comms(comms,routine)
+!!****f* module_types/deallocate_comms
+!! FUNCTION
+!!   De-Allocate communications_arrays
+!! SOURCE
+!!
+  subroutine deallocate_comms(comms,subname)
     use module_base
     implicit none
-    character(len=*), intent(in) :: routine
+    character(len=*), intent(in) :: subname
     type(communications_arrays), intent(out) :: comms
     !local variables
     integer :: i_all,i_stat
 
     i_all=-product(shape(comms%ncntd))*kind(comms%ncntd)
     deallocate(comms%ncntd,stat=i_stat)
-    call memocc(i_stat,i_all,'ncntd',routine)
+    call memocc(i_stat,i_all,'ncntd',subname)
     i_all=-product(shape(comms%ncntt))*kind(comms%ncntt)
     deallocate(comms%ncntt,stat=i_stat)
-    call memocc(i_stat,i_all,'ncntt',routine)
+    call memocc(i_stat,i_all,'ncntt',subname)
     i_all=-product(shape(comms%ndspld))*kind(comms%ndspld)
     deallocate(comms%ndspld,stat=i_stat)
-    call memocc(i_stat,i_all,'ndspld',routine)
+    call memocc(i_stat,i_all,'ndspld',subname)
     i_all=-product(shape(comms%ndsplt))*kind(comms%ndsplt)
     deallocate(comms%ndsplt,stat=i_stat)
-    call memocc(i_stat,i_all,'ndsplt',routine)
+    call memocc(i_stat,i_all,'ndsplt',subname)
   end subroutine deallocate_comms
+!!***
 
-  subroutine init_restart_objects(atoms,rst,routine)
+!!****f* module_types/init_restart_objects
+!! FUNCTION
+!!   Allocate and nullify restart objects
+!! SOURCE
+!!
+  subroutine init_restart_objects(atoms,rst,subname)
     use module_base
     implicit none
-    character(len=*), intent(in) :: routine
+    character(len=*), intent(in) :: subname
     type(atoms_data) :: atoms
     type(restart_objects) :: rst
     !local variables
@@ -300,7 +328,7 @@ contains
 
     !allocate pointers
     allocate(rst%rxyz_old(3,atoms%nat+ndebug),stat=i_stat)
-    call memocc(i_stat,rst%rxyz_old,'rxyz_old',routine)
+    call memocc(i_stat,rst%rxyz_old,'rxyz_old',subname)
 
     !nullify unallocated pointers
     nullify(rst%psi)
@@ -319,78 +347,101 @@ contains
     nullify(rst%gbd%rxyz)
 
   end subroutine init_restart_objects
+!!***
 
-  subroutine free_restart_objects(rst,routine)
+!!****f* module_types/free_restart_objects
+!! FUNCTION
+!!   De-Allocate restart_objects
+!! SOURCE
+!!
+  subroutine free_restart_objects(rst,subname)
     use module_base
     implicit none
-    character(len=*), intent(in) :: routine
+    character(len=*), intent(in) :: subname
     type(restart_objects) :: rst
     !local variables
     integer :: i_all,i_stat
 
-    call deallocate_wfd(rst%Glr%wfd,routine)
+    call deallocate_wfd(rst%Glr%wfd,subname)
 
     i_all=-product(shape(rst%psi))*kind(rst%psi)
     deallocate(rst%psi,stat=i_stat)
-    call memocc(i_stat,i_all,'psi',routine)
+    call memocc(i_stat,i_all,'psi',subname)
     i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
     deallocate(rst%orbs%eval,stat=i_stat)
-    call memocc(i_stat,i_all,'eval',routine)
+    call memocc(i_stat,i_all,'eval',subname)
     i_all=-product(shape(rst%rxyz_old))*kind(rst%rxyz_old)
     deallocate(rst%rxyz_old,stat=i_stat)
-    call memocc(i_stat,i_all,'rxyz_old',routine)
+    call memocc(i_stat,i_all,'rxyz_old',subname)
 
     !the gaussian basis descriptors are always allocated together
     !with the gaussian coefficients
     if (associated(rst%gbd%rxyz)) then
        nullify(rst%gbd%rxyz)
-       call deallocate_gwf(rst%gbd,routine)
+       call deallocate_gwf(rst%gbd,subname)
 
        i_all=-product(shape(rst%gaucoeffs))*kind(rst%gaucoeffs)
        deallocate(rst%gaucoeffs,stat=i_stat)
-       call memocc(i_stat,i_all,'gaucoeffs',routine)
+       call memocc(i_stat,i_all,'gaucoeffs',subname)
 
     end if
-       
 
   end subroutine free_restart_objects
+!!***
 
-  subroutine allocate_wfd(wfd,routine)
+!!****f* module_types/allocate_wfd
+!! FUNCTION
+!!   Allocate wavefunctions_descriptors
+!! SOURCE
+!!
+  subroutine allocate_wfd(wfd,subname)
     use module_base
     implicit none
     type(wavefunctions_descriptors), intent(inout) :: wfd
-    character(len=*), intent(in) :: routine
+    character(len=*), intent(in) :: subname
     !local variables
     integer :: i_all,i_stat
 
     allocate(wfd%keyg(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
-    call memocc(i_stat,wfd%keyg,'keyg',routine)
+    call memocc(i_stat,wfd%keyg,'keyg',subname)
     allocate(wfd%keyv(wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
-    call memocc(i_stat,wfd%keyv,'keyv',routine)
+    call memocc(i_stat,wfd%keyv,'keyv',subname)
   end subroutine allocate_wfd
+!!***
 
-  subroutine deallocate_wfd(wfd,routine)
+!!****f* module_types/deallocate_wfd
+!! FUNCTION
+!!   De-Allocate wavefunctions_descriptors
+!! SOURCE
+!!
+  subroutine deallocate_wfd(wfd,subname)
     use module_base
     implicit none
     type(wavefunctions_descriptors) :: wfd
-    character(len=*), intent(in) :: routine
+    character(len=*), intent(in) :: subname
     !local variables
     integer :: i_all,i_stat
 
     i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
     deallocate(wfd%keyg,stat=i_stat)
-    call memocc(i_stat,i_all,'keyg',routine)
+    call memocc(i_stat,i_all,'keyg',subname)
     i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
     deallocate(wfd%keyv,stat=i_stat)
-    call memocc(i_stat,i_all,'keyv',routine)
+    call memocc(i_stat,i_all,'keyv',subname)
 
   end subroutine deallocate_wfd
+!!***
 
-  subroutine deallocate_gwf(G,routine)
+!!****f* module_types/deallocate_gwf
+!! FUNCTION
+!!   De-Allocate gaussian_basis type
+!! SOURCE
+!!
+  subroutine deallocate_gwf(G,subname)
     use module_base
     implicit none
     type(gaussian_basis) :: G
-    character(len=*), intent(in) :: routine
+    character(len=*), intent(in) :: subname
     !local variables
     integer :: i_all,i_stat
 
@@ -398,86 +449,152 @@ contains
     
     i_all=-product(shape(G%ndoc))*kind(G%ndoc)
     deallocate(G%ndoc,stat=i_stat)
-    call memocc(i_stat,i_all,'ndoc',routine)
+    call memocc(i_stat,i_all,'ndoc',subname)
     i_all=-product(shape(G%nam))*kind(G%nam)
     deallocate(G%nam,stat=i_stat)
-    call memocc(i_stat,i_all,'nam',routine)
+    call memocc(i_stat,i_all,'nam',subname)
     i_all=-product(shape(G%nshell))*kind(G%nshell)
     deallocate(G%nshell,stat=i_stat)
-    call memocc(i_stat,i_all,'nshell',routine)
+    call memocc(i_stat,i_all,'nshell',subname)
     i_all=-product(shape(G%psiat))*kind(G%psiat)
     deallocate(G%psiat,stat=i_stat)
-    call memocc(i_stat,i_all,'psiat',routine)
+    call memocc(i_stat,i_all,'psiat',subname)
     i_all=-product(shape(G%xp))*kind(G%xp)
     deallocate(G%xp,stat=i_stat)
-    call memocc(i_stat,i_all,'xp',routine)
+    call memocc(i_stat,i_all,'xp',subname)
 
   end subroutine deallocate_gwf
+!!***
+
+!!****f* module_types/deallocate_atoms_data
+!! FUNCTION
+!!   De-Allocate atoms_data type
+!! SOURCE
+!!
+  subroutine deallocate_atoms_data(atoms,subname)
+    use module_base
+    implicit none
+    !Arguments
+    type(atoms_data) :: atoms
+    character(len=*), intent(in) :: subname
+    !local variables
+    integer :: i_all,i_stat
+
+    i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
+    deallocate(atoms%atomnames,stat=i_stat)
+    call memocc(i_stat,i_all,'atomnames',subname)
+    i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
+    deallocate(atoms%lfrztyp,stat=i_stat)
+    call memocc(i_stat,i_all,'lfrztyp',subname)
+    i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
+    deallocate(atoms%iatype,stat=i_stat)
+    call memocc(i_stat,i_all,'iatype',subname)
+    if (associated(atoms%iasctype)) then
+        i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
+        deallocate(atoms%iasctype,stat=i_stat)
+        call memocc(i_stat,i_all,'iasctype',subname)
+    end if
+    i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
+    deallocate(atoms%natpol,stat=i_stat)
+    call memocc(i_stat,i_all,'natpol',subname)
+    if (associated(atoms%nelpsp)) then
+        i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
+        deallocate(atoms%nelpsp,stat=i_stat)
+        call memocc(i_stat,i_all,'nelpsp',subname)
+    end if
+    if (associated(atoms%npspcode)) then
+        i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
+        deallocate(atoms%npspcode,stat=i_stat)
+        call memocc(i_stat,i_all,'npspcode',subname)
+    end if
+    if (associated(atoms%nzatom)) then
+        i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
+        deallocate(atoms%nzatom,stat=i_stat)
+        call memocc(i_stat,i_all,'nzatom',subname)
+    end if
+    if (associated(atoms%psppar)) then
+        i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
+        deallocate(atoms%psppar,stat=i_stat)
+        call memocc(i_stat,i_all,'psppar',subname)
+    end if
+    if (associated(atoms%amu)) then
+        i_all=-product(shape(atoms%amu))*kind(atoms%amu)
+        deallocate(atoms%amu,stat=i_stat)
+        call memocc(i_stat,i_all,'amu',subname)
+    end if
+
+  end subroutine deallocate_atoms_data
 
 
-  subroutine deallocate_bounds(bounds,routine)
+!!****f* module_types/deallocate_bounds
+!! FUNCTION
+!!   De-Allocate convolutions_bounds type
+!! SOURCE
+!!
+  subroutine deallocate_bounds(bounds,subname)
     use module_base
     implicit none
     type(convolutions_bounds) :: bounds
-    character(len=*), intent(in) :: routine
+    character(len=*), intent(in) :: subname
     !local variables
     integer :: i_all,i_stat
 
     i_all=-product(shape(bounds%kb%ibyz_c))*kind(bounds%kb%ibyz_c)
     deallocate(bounds%kb%ibyz_c,stat=i_stat)
-    call memocc(i_stat,i_all,'ibyz_c',routine)
+    call memocc(i_stat,i_all,'ibyz_c',subname)
     i_all=-product(shape(bounds%kb%ibxz_c))*kind(bounds%kb%ibxz_c)
     deallocate(bounds%kb%ibxz_c,stat=i_stat)
-    call memocc(i_stat,i_all,'ibxz_c',routine)
+    call memocc(i_stat,i_all,'ibxz_c',subname)
     i_all=-product(shape(bounds%kb%ibxy_c))*kind(bounds%kb%ibxy_c)
     deallocate(bounds%kb%ibxy_c,stat=i_stat)
-    call memocc(i_stat,i_all,'ibxy_c',routine)
+    call memocc(i_stat,i_all,'ibxy_c',subname)
     i_all=-product(shape(bounds%kb%ibyz_f))*kind(bounds%kb%ibyz_f)
     deallocate(bounds%kb%ibyz_f,stat=i_stat)
-    call memocc(i_stat,i_all,'ibyz_f',routine)
+    call memocc(i_stat,i_all,'ibyz_f',subname)
     i_all=-product(shape(bounds%kb%ibxz_f))*kind(bounds%kb%ibxz_f)
     deallocate(bounds%kb%ibxz_f,stat=i_stat)
-    call memocc(i_stat,i_all,'ibxz_f',routine)
+    call memocc(i_stat,i_all,'ibxz_f',subname)
     i_all=-product(shape(bounds%kb%ibxy_f))*kind(bounds%kb%ibxy_f)
     deallocate(bounds%kb%ibxy_f,stat=i_stat)
-    call memocc(i_stat,i_all,'ibxy_f',routine)
+    call memocc(i_stat,i_all,'ibxy_f',subname)
 
     i_all=-product(shape(bounds%sb%ibzzx_c))*kind(bounds%sb%ibzzx_c)
     deallocate(bounds%sb%ibzzx_c,stat=i_stat)
-    call memocc(i_stat,i_all,'ibzzx_c',routine)
+    call memocc(i_stat,i_all,'ibzzx_c',subname)
     i_all=-product(shape(bounds%sb%ibyyzz_c))*kind(bounds%sb%ibyyzz_c)
     deallocate(bounds%sb%ibyyzz_c,stat=i_stat)
-    call memocc(i_stat,i_all,'ibyyzz_c',routine)
+    call memocc(i_stat,i_all,'ibyyzz_c',subname)
     i_all=-product(shape(bounds%sb%ibxy_ff))*kind(bounds%sb%ibxy_ff)
     deallocate(bounds%sb%ibxy_ff,stat=i_stat)
-    call memocc(i_stat,i_all,'ibxy_ff',routine)
+    call memocc(i_stat,i_all,'ibxy_ff',subname)
     i_all=-product(shape(bounds%sb%ibzzx_f))*kind(bounds%sb%ibzzx_f)
     deallocate(bounds%sb%ibzzx_f,stat=i_stat)
-    call memocc(i_stat,i_all,'ibzzx_f',routine)
+    call memocc(i_stat,i_all,'ibzzx_f',subname)
     i_all=-product(shape(bounds%sb%ibyyzz_f))*kind(bounds%sb%ibyyzz_f)
     deallocate(bounds%sb%ibyyzz_f,stat=i_stat)
-    call memocc(i_stat,i_all,'ibyyzz_f',routine)
+    call memocc(i_stat,i_all,'ibyyzz_f',subname)
 
     i_all=-product(shape(bounds%gb%ibzxx_c))*kind(bounds%gb%ibzxx_c)
     deallocate(bounds%gb%ibzxx_c,stat=i_stat)
-    call memocc(i_stat,i_all,'ibzxx_c',routine)
+    call memocc(i_stat,i_all,'ibzxx_c',subname)
     i_all=-product(shape(bounds%gb%ibxxyy_c))*kind(bounds%gb%ibxxyy_c)
     deallocate(bounds%gb%ibxxyy_c,stat=i_stat)
-    call memocc(i_stat,i_all,'ibxxyy_c',routine)
+    call memocc(i_stat,i_all,'ibxxyy_c',subname)
     i_all=-product(shape(bounds%gb%ibyz_ff))*kind(bounds%gb%ibyz_ff)
     deallocate(bounds%gb%ibyz_ff,stat=i_stat)
-    call memocc(i_stat,i_all,'ibyz_ff',routine)
+    call memocc(i_stat,i_all,'ibyz_ff',subname)
     i_all=-product(shape(bounds%gb%ibzxx_f))*kind(bounds%gb%ibzxx_f)
     deallocate(bounds%gb%ibzxx_f,stat=i_stat)
-    call memocc(i_stat,i_all,'ibzxx_f',routine)
+    call memocc(i_stat,i_all,'ibzxx_f',subname)
     i_all=-product(shape(bounds%gb%ibxxyy_f))*kind(bounds%gb%ibxxyy_f)
     deallocate(bounds%gb%ibxxyy_f,stat=i_stat)
-    call memocc(i_stat,i_all,'ibxxyy_f',routine)
+    call memocc(i_stat,i_all,'ibxxyy_f',subname)
 
     i_all=-product(shape(bounds%ibyyzz_r))*kind(bounds%ibyyzz_r)
     deallocate(bounds%ibyyzz_r,stat=i_stat)
-    call memocc(i_stat,i_all,'ibyyzz_r',routine)
+    call memocc(i_stat,i_all,'ibyyzz_r',subname)
 
   end subroutine deallocate_bounds
 
 end module module_types
+!!***

@@ -38,10 +38,9 @@ program BigDFT
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
   integer npr,iam
-    integer  :: nfluct
-    real(gp) ::fluctsum
+  integer  :: nfluct
+  real(gp) :: fluctsum
 
- 
   !!!!$      interface
   !!!!$        integer ( kind=4 ) function omp_get_num_threads ( )
   !!!!$        end function omp_get_num_threads
@@ -137,19 +136,7 @@ if (inputs%ncount_cluster_x > 1) then
   endif
 
   !deallocations
-  i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
-  deallocate(atoms%lfrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'lfrztyp',subname)
-  i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
-  deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'iatype',subname)
-  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
-  deallocate(atoms%natpol,stat=i_stat)
-  call memocc(i_stat,i_all,'natpol',subname)
-  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
-  deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atomnames',subname)
-
+  call deallocate_atoms_data(atoms,subname)
   call free_restart_objects(rst,subname)
 
   i_all=-product(shape(rxyz))*kind(rxyz)
@@ -158,7 +145,6 @@ if (inputs%ncount_cluster_x > 1) then
   i_all=-product(shape(fxyz))*kind(fxyz)
   deallocate(fxyz,stat=i_stat)
   call memocc(i_stat,i_all,'fxyz',subname)
-
 
   !finalize memory counting
   call memocc(0,0,'count','stop')

@@ -3,7 +3,7 @@
 !!  Calculate vibrational frequencies
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2009 CEA, UNIBAS
+!!    Copyright (C) 2009 CEA (TD)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -18,11 +18,13 @@ program frequencies
   use module_interfaces
 
   implicit none
+  real(dp), parameter :: Ha_cmm1=219474.6313705_dp  ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
+  real(dp), parameter :: amu_emass=1.660538782d-27/9.10938215d-31 ! 1 atomic mass unit, in electronic mass
   character(len=*), parameter :: subname='BigDFT'
   character(len=20) :: units
   character(len=2) :: cc
-  integer :: iproc,nproc,iat,jat,ityp,i,j,i_stat,i_all,ierr,infocode
-  real(gp) :: etot,etot_m,etot_p,sumx,sumy,sumz,tt,alat,alpha,dd
+  integer :: iproc,nproc,iat,jat,ityp,i,j,i_stat,i_all,ierr,infocode,ity
+  real(gp) :: etot,etot_m,etot_p,sumx,sumy,sumz,tt,alat,alpha,dd,rmass
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
@@ -35,15 +37,6 @@ program frequencies
   real(gp), dimension(3) :: h_grid
   integer :: npr,iam
  
-  !$      interface
-  !$        integer ( kind=4 ) function omp_get_num_threads ( )
-  !$        end function omp_get_num_threads
-  !$      end interface
-  !$      interface
-  !$        integer ( kind=4 ) function omp_get_thread_num ( )
-  !$        end function omp_get_thread_num
-  !$      end interface
-
   ! Start MPI in parallel version
   !in the case of MPIfake libraries the number of processors is automatically adjusted
   call MPI_INIT(ierr)
@@ -53,21 +46,14 @@ program frequencies
   !initialize memory counting
   call memocc(0,iproc,'count','start')
 
-!**********Commented out by Alexey, 15.11.2008************************************************  
-!$omp parallel private(iam)  shared (npr)
-!$       iam=omp_get_thread_num()
-!$       if (iam.eq.0) npr=omp_get_num_threads()
-!$       write(*,*) 'iproc,iam,npr',iproc,iam,npr
-!$omp end parallel
-!*********************************************************************************************
-
-  !welcome screen
+  ! welcome screen
   if (iproc==0) call print_logo()
 
-  !read number of atoms
+  ! read number of atoms
   open(unit=99,file='posinp',status='old')
   read(99,*) atoms%nat,atoms%units
 
+  ! allocations
   allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rxyz,'rxyz',subname)
   allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
@@ -76,7 +62,7 @@ program frequencies
   ! read atomic positions
   call read_atomic_positions(iproc,99,atoms,rxyz)
 
-  close(99)
+  close(unit=99)
 
   ! read input variables, use structures
   call read_input_variables(iproc,'input.dat',inputs)
@@ -183,8 +169,10 @@ program frequencies
            dd=real(j,gp)*alpha*h_grid(i)
            !We copy atomic positions
            rpos=rxyz
-           if (iproc==0) write(*,"(1x,a,i0,a,a)") '=F:Move the atom ',iat,' in the direction ',cc
-
+           if (iproc==0) then
+               write(*,"(1x,a,i0,a,a,a,1pe20.10,a)") &
+               '=F:Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
+           end if
            if (atoms%geocode == 'P') then
               rpos(i,iat)=modulo(rxyz(i,iat)+dd,alat)
            else if (atoms%geocode == 'S') then
@@ -205,10 +193,12 @@ program frequencies
         end do
         ! Build the hessian
         do jat=1,atoms%nat
+           rmass = amu_emass*sqrt(atoms%amu(atoms%iatype(iat))*atoms%amu(atoms%iatype(jat)))
            do j=1,3
-              dd = (fpos_p(j,jat) - fpos_m(j,jat))/(2.d0*alpha*h_grid(i))
+              !force is -de/dR
+              dd = - (fpos_p(j,jat) - fpos_m(j,jat))/(2.d0*alpha*h_grid(i))
               !if (abs(dd).gt.1.d-10) then
-                 hessian(3*(jat-1)+j,3*(iat-1)+i) = dd
+              hessian(3*(jat-1)+j,3*(iat-1)+i) = dd/rmass
               !end if
            end do
         end do
@@ -243,30 +233,38 @@ program frequencies
   call solve(hessian,3*atoms%nat,eigen_r,eigen_i,vector_l,vector_r)
 
   if (iproc==0) then
-     write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (real)      =',eigen_r
-     write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (imaginary) =',eigen_i
-     write(10,'(1x,100(1pe20.10))') eigen_r
-     do iat=1,3*atoms%nat
-        write(10,'(i0,1x,100(1pe20.10))') iat,vector_l(:,iat)
+     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (real)      =',eigen_r
+     write(*,'(1x,a,1x,100(1pe20.10))') '=F: eigenvalues (imaginary) =',eigen_i
+     do i=1,3*atoms%nat
+        if (eigen_r(i)<0.0_dp) then
+           eigen_r(i)=-sqrt(-eigen_r(i))
+       else
+           eigen_r(i)= sqrt( eigen_r(i))
+       end if
      end do
+     write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r
+     write(*,'(1x,a,1x,100(f13.2))') '=F: frequencies (cm-1)      =',eigen_r*Ha_cmm1
+     !Build frequencies.xyz
+     open(unit=10,file='frequencies.xyz',status="unknown")
+     do i=1,3*atoms%nat
+         write(10,'(1x,i0,1x,1pe20.10,a)') atoms%nat,eigen_r(i)
+         write(10,'(1x,a)') 'Frequency'
+         do iat=1,atoms%nat
+            ity=atoms%iatype(iat)
+            do j=1,3
+                write(10,'(i0,1x,100(1pe20.10))') &
+                  atoms%atomnames(ity),vector_l(3*(iat-1)+j,i)
+            end do
+         end do
+         !Blank line
+         write(10,*)
+     end do
+     close(unit=10)
   end if
 
-  close(unit=10)
 
-  !deallocations
-  i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
-  deallocate(atoms%lfrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'lfrztyp',subname)
-  i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
-  deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'iatype',subname)
-  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
-  deallocate(atoms%natpol,stat=i_stat)
-  call memocc(i_stat,i_all,'natpol',subname)
-  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
-  deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atomnames',subname)
-
+  !Deallocations
+  call deallocate_atoms_data(atoms,subname)
   call free_restart_objects(rst,subname)
 
   i_all=-product(shape(rxyz))*kind(rxyz)

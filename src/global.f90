@@ -83,7 +83,6 @@ program MINHOP
   if (tt.lt.0.999999999999999d0) stop 'incompatible alpha s, beta s'
   if (iproc.eq.0) write(67,*) 'mdmin',mdmin
 
-
   call cpu_time(tcpu1)
   ! read  earr.dat
   open(unit=12,file='earr.dat',status='unknown')
@@ -672,25 +671,11 @@ end do hopping_loop
      endif
   endif
 
-  !deallocations as in BigDFT
-  i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
-  deallocate(atoms%lfrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'lfrztyp',subname)
-  i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
-  deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'iatype',subname)
-  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
-  deallocate(atoms%natpol,stat=i_stat)
-  call memocc(i_stat,i_all,'natpol',subname)
-  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
-  deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atomnames',subname)
-
+  ! deallocations as in BigDFT
+  call deallocate_atoms_data(atoms,subname)
   call free_restart_objects(rst,subname)
 
-
   ! deallocation of global's variables
-
 
   i_all=-product(shape(pos))*kind(pos)
   deallocate(pos,stat=i_stat)
@@ -1730,9 +1715,9 @@ end subroutine wtioput
 
 subroutine wtbest(nat,energy,pos,iatype,atomnames,natpol)
   implicit real*8 (a-h,o-z)
-  character(41) filename
-  character(20) atomnames
-  character(3) fn
+  character(len=41) :: filename
+  character(len=20) :: atomnames
+  character(len=3) :: fn
   dimension pos(3,nat),iatype(nat),atomnames(100)
   integer, dimension(nat):: natpol
 
@@ -1751,9 +1736,9 @@ end subroutine wtbest
 
 subroutine wtmd(istep,nat,energy,pos,iatype,atomnames,natpol)
   implicit real*8 (a-h,o-z)
-  character(20) filename
-  character(20) atomnames(100)
-  character(4) fn
+  character(len=20) :: filename
+  character(len=20) :: atomnames(100)
+  character(len=4) :: fn
   dimension pos(3,nat),iatype(nat)
   integer, dimension(nat):: natpol
 
@@ -1775,9 +1760,9 @@ end subroutine wtmd
 
 subroutine wtlmin(nconjgr,nat,energy,fnrm,pos,iatype,atomnames,natpol)
   implicit real*8 (a-h,o-z)
-  character(20) filename
-  character(20) atomnames(100)
-  character(4) fn
+  character(len=20) :: filename
+  character(len=20) :: atomnames(100)
+  character(len=4) :: fn
   dimension pos(3,nat),iatype(nat)
   integer, dimension(nat):: natpol
 

@@ -708,7 +708,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
                    'Error: the norm of the residue is too large also with input wavefunctions.'
            end if
            infocode=3
-           call deallocate_before_exiting
+           call deallocate_before_exiting()
            return
         end if
      else if (in%inputPsiId == 1) then
@@ -719,7 +719,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
            end if
            infocode=2
            if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-           call deallocate_before_exiting
+           call deallocate_before_exiting()
            return
         end if
      end if
@@ -1082,7 +1082,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   endif
   ! --- End if of tail calculation
 
-  call deallocate_before_exiting
+  call deallocate_before_exiting()
 
 contains
 
@@ -1209,6 +1209,9 @@ contains
     i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
     deallocate(atoms%nzatom,stat=i_stat)
     call memocc(i_stat,i_all,'nzatom',subname)
+    i_all=-product(shape(atoms%amu))*kind(atoms%amu)
+    deallocate(atoms%amu,stat=i_stat)
+    call memocc(i_stat,i_all,'amu',subname)
     i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
     deallocate(nlpspd%nboxp_c,stat=i_stat)
     call memocc(i_stat,i_all,'nboxp_c',subname)

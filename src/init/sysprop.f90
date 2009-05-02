@@ -67,7 +67,7 @@ end subroutine system_properties
 
 !!****f* BigDFT/read_system_variables
 !! FUNCTION
-!!   Assign some of the physical system varaibles
+!!   Assign some of the physical system variables
 !!   Performs also some cross-checks with other variables
 !! SOURCE
 !!
@@ -109,6 +109,8 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   call memocc(i_stat,at%nzatom,'at%nzatom',subname)
   allocate(at%iasctype(at%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,at%iasctype,'at%iasctype',subname)
+  allocate(at%amu(at%ntypes+ndebug),stat=i_stat)
+  call memocc(i_stat,at%amu,'at%amu',subname)
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -181,7 +183,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      end if
      !see whether the atom is semicore or not
      call eleconf(at%nzatom(ityp),at%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
-          neleconf,at%iasctype(ityp),mxpl,mxchg)
+          neleconf,at%iasctype(ityp),mxpl,mxchg,at%amu(ityp))
      !if you want no semicore input guess electrons, uncomment the following line
      !at%iasctype(ityp)=0
 
@@ -362,7 +364,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      call charge_and_spol(at%natpol(iat),ichg,ispol)
      if (ichg /=0) then
         call eleconf(at%nzatom(ityp),at%nelpsp(ityp),symbol,rcov,rprb,ehomo,&
-             neleconf,at%iasctype(ityp),mxpl,mxchg)
+             neleconf,at%iasctype(ityp),mxpl,mxchg,at%amu(ityp))
         call correct_semicore(at%atomnames(ityp),6,3,ichg,neleconf,nsccode)
      end if
      if (nsccode/= 0) at%natsc=at%natsc+1

@@ -16,24 +16,29 @@
 !!   at the end of the calculation a short report is printed on the screen
 !!   some information can be also written on disk following the needs
 !! COPYRIGHT
+!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2009
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
-!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007
 !! SOURCE
 !!
 subroutine memory_occupation(istat,isize,array,routine)
+
   use module_base, only: memorylimit
+
   implicit none
 
+! Arguments
+  integer, intent(in) :: istat,isize
+  character(len=*), intent(in) :: array,routine
+  
+! Local variables
   type :: memstat
      character(len=36) :: routine,array
      integer(kind=8) :: memory,peak
   end type memstat
 
-  character(len=*), intent(in) :: array,routine
-  integer, intent(in) :: istat,isize
-  !local variables
   include 'mpif.h'
+
   type(memstat), save :: loc,tot
   integer, save :: nalloc,ndealloc,iproc
   integer :: ierr
@@ -158,7 +163,11 @@ end subroutine memory_occupation
 !!***
 
 
-!functions which specify NaN according to IEEE specifications
+!!****f* BigDFT/d_nan
+!! FUNCTION
+!!   Function which specify NaN according to IEEE specifications
+!! SOURCE
+!!
 function d_nan()
   implicit none
   real(kind=8) :: d_nan
@@ -172,7 +181,13 @@ function d_nan()
   inan(2) = 2147483647
   d_nan = dnan
 end function d_nan
+!!***
 
+!!****f* BigDFT/r_nan
+!! FUNCTION
+!!   Function which specify NaN according to IEEE specifications
+!! SOURCE
+!!
 function r_nan()
   implicit none
   real(kind=4) :: r_nan
@@ -183,4 +198,4 @@ function r_nan()
   inan = 2147483647
   r_nan = rnan
 end function r_nan
-
+!!***
