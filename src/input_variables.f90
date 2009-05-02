@@ -266,15 +266,19 @@ end subroutine print_input_parameters
 !!****f* BigDFT/read_atomic_file
 !! FUNCTION
 !!    Read atomic file
+!! DESCRIPTION
+!!    Output:
+!!      type(atoms_data)  Nullify pointers
+!!      rxyz(3,atoms%nat) Atomic coordinates
 !! SOURCE
 !!
-subroutine read_atomic_file(iproc,at,rxyz)
+subroutine read_atomic_file(iproc,atoms,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_atomic_file
   implicit none
   integer, intent(in) :: iproc
-  type(atoms_data), intent(inout) :: at
+  type(atoms_data), intent(out) :: atoms
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_atomic_file'
@@ -288,19 +292,19 @@ subroutine read_atomic_file(iproc,at,rxyz)
   if (.not. file_exists) then
      inquire(FILE = 'posinp.xyz', EXIST = file_exists)
      if (file_exists) write(filename, "(A)") "posinp.xyz"
-     write(at%format, "(A)") "xyz"
+     write(atoms%format, "(A)") "xyz"
   end if
   ! Test posinp.ascii
   if (.not. file_exists) then
      inquire(FILE = 'posinp.ascii', EXIST = file_exists)
      if (file_exists) write(filename, "(A)") "posinp.ascii"
-     write(at%format, "(A)") "ascii"
+     write(atoms%format, "(A)") "ascii"
   end if
   ! Fallback to old name
   if (.not. file_exists) then
      inquire(FILE = 'posinp', EXIST = file_exists)
      if (file_exists) write(filename, "(A)") "posinp"
-     write(at%format, "(A)") "xyz"
+     write(atoms%format, "(A)") "xyz"
   end if
 
   if (.not. file_exists) then
@@ -311,21 +315,31 @@ subroutine read_atomic_file(iproc,at,rxyz)
 
   open(unit=99,file=trim(filename),status='old')
 
-  if (at%format == "xyz") then
-     read(99,*) at%nat,at%units
+  if (atoms%format == "xyz") then
+     read(99,*) atoms%nat,atoms%units
  
-     allocate(rxyz(3,at%nat+ndebug),stat=i_stat)
+     allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
      call memocc(i_stat,rxyz,'rxyz',subname)
 
      !read atomic positions
-     call read_atomic_positions(iproc,99,at,rxyz)
-  else if (at%format == "ascii") then
+     call read_atomic_positions(iproc,99,atoms,rxyz)
+  else if (atoms%format == "ascii") then
      !read atomic positions
-     call read_atomic_ascii(iproc,99,at,rxyz)
+     call read_atomic_ascii(iproc,99,atoms,rxyz)
   end if
 
-  close(99)
-end subroutine read_atomic_file
+  close(unit=99)
+
+  !Nullify the pointers
+  !atomnames, lfrztyp, natpol  allocated
+  nullify(atoms%iasctype)
+  nullify(atoms%nelpsp)
+  nullify(atoms%npspcode)
+  nullify(atoms%nzatom)
+  nullify(atoms%psppar)
+  nullify(atoms%amu)
+  
+END SUBROUTINE read_atomic_file
 !!***
 
 !!****f* BigDFT/read_atomic_positions
@@ -376,7 +390,7 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
   at%lfrztyp(:)=.false.
   !also the spin polarisation and the charge are is fixed to zero by default
   !this corresponds to the value of 100
-  !RULE natpol=charge*1000 + 100 + spinpol
+!RULE natpol=charge*1000 + 100 + spinpol
   at%natpol(:)=100
 
   !read from positions of .xyz format, but accepts also the old .ascii format

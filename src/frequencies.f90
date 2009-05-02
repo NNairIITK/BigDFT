@@ -195,7 +195,7 @@ program frequencies
         do jat=1,atoms%nat
            rmass = amu_emass*sqrt(atoms%amu(atoms%iatype(iat))*atoms%amu(atoms%iatype(jat)))
            do j=1,3
-              !force is -de/dR
+              !force is -dE/dR
               dd = - (fpos_p(j,jat) - fpos_m(j,jat))/(2.d0*alpha*h_grid(i))
               !if (abs(dd).gt.1.d-10) then
               hessian(3*(jat-1)+j,3*(iat-1)+i) = dd/rmass
@@ -206,6 +206,7 @@ program frequencies
      end do
   end do
 
+  close(unit=10)
   close(unit=20)
 
   !deallocations
@@ -252,7 +253,7 @@ program frequencies
          do iat=1,atoms%nat
             ity=atoms%iatype(iat)
             do j=1,3
-                write(10,'(i0,1x,100(1pe20.10))') &
+                write(10,'(1x,a,1x,100(1pe20.10))') &
                   atoms%atomnames(ity),vector_l(3*(iat-1)+j,i)
             end do
          end do

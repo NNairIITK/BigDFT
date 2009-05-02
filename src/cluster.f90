@@ -127,14 +127,6 @@ end subroutine call_bigdft
 !!  Main routine which does self-consistent loop.
 !!  Do not parse input file and no geometry optimization.
 !!
-!! COPYRIGHT
-!! Copyright (C) 2005-2008 BigDFT group 
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~/COPYING file
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the list of contributors, see ~/AUTHORS 
-!!
-!!
 !! SOURCE
 !!
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
@@ -298,7 +290,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
   call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
-	
+
   !variables substitution for the PSolver part
   hxh=0.5d0*hx
   hyh=0.5d0*hy
@@ -1209,9 +1201,6 @@ contains
     i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
     deallocate(atoms%nzatom,stat=i_stat)
     call memocc(i_stat,i_all,'nzatom',subname)
-    i_all=-product(shape(atoms%amu))*kind(atoms%amu)
-    deallocate(atoms%amu,stat=i_stat)
-    call memocc(i_stat,i_all,'amu',subname)
     i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
     deallocate(nlpspd%nboxp_c,stat=i_stat)
     call memocc(i_stat,i_all,'nboxp_c',subname)

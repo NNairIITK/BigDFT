@@ -69,6 +69,8 @@ end subroutine system_properties
 !! FUNCTION
 !!   Assign some of the physical system variables
 !!   Performs also some cross-checks with other variables
+!! DESCRIPTION
+!!   The pointer in atoms structure have to be associated or nullify.
 !! SOURCE
 !!
 subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,norbd,iunit)
@@ -99,16 +101,52 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   !allocate atoms data variables
   ! store PSP parameters
   ! modified to accept both GTH and HGHs pseudopotential types
+  !psppar
+  if (associated(at%psppar)) then
+     i_all=-product(shape(at%psppar))*kind(at%psppar)
+     deallocate(at%psppar,stat=i_stat)
+     call memocc(i_stat,i_all,'psppar',subname)
+  end if
   allocate(at%psppar(0:4,0:6,at%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,at%psppar,'at%psppar',subname)
+  !nelpsp
+  if (associated(at%nelpsp)) then
+      i_all=-product(shape(at%nelpsp))*kind(at%nelpsp)
+      deallocate(at%nelpsp,stat=i_stat)
+      call memocc(i_stat,i_all,'nelpsp',subname)
+  end if
   allocate(at%nelpsp(at%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,at%nelpsp,'at%nelpsp',subname)
+  !npspcode
+  if (associated(at%npspcode)) then
+      i_all=-product(shape(at%npspcode))*kind(at%npspcode)
+      deallocate(at%npspcode,stat=i_stat)
+      call memocc(i_stat,i_all,'npspcode',subname)
+  end if
   allocate(at%npspcode(at%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,at%npspcode,'at%npspcode',subname)
+  !nzatom
+  if (associated(at%nzatom)) then
+      i_all=-product(shape(at%nzatom))*kind(at%nzatom)
+      deallocate(at%nzatom,stat=i_stat)
+      call memocc(i_stat,i_all,'nzatom',subname)
+  end if
   allocate(at%nzatom(at%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,at%nzatom,'at%nzatom',subname)
+  !iasctype
+  if (associated(at%iasctype)) then
+      i_all=-product(shape(at%iasctype))*kind(at%iasctype)
+      deallocate(at%iasctype,stat=i_stat)
+      call memocc(i_stat,i_all,'iasctype',subname)
+  end if
   allocate(at%iasctype(at%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,at%iasctype,'at%iasctype',subname)
+  !amu
+  if (associated(at%amu)) then
+      i_all=-product(shape(at%amu))*kind(at%amu)
+      deallocate(at%amu,stat=i_stat)
+      call memocc(i_stat,i_all,'amu',subname)
+  end if
   allocate(at%amu(at%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,at%amu,'at%amu',subname)
 
@@ -371,8 +409,8 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
   enddo
   nelec=nelec-in%ncharge
   if (iproc == 0) then
-     write(*,'(1x,a,i8)') &
-          'Total Number of Electrons ',nelec
+     write(*,'(1x,a26,i8)') &
+          'Total Number of Electrons',nelec
   end if
 
   ! Number of orbitals
@@ -704,8 +742,8 @@ subroutine input_occup(iproc,iunit,nelec,norb,norbu,norbd,nspin,mpol,occup,spins
       end if
   end if
   if (iproc==0) then 
-     write(*,'(1x,a,i8)') &
-          'Total Number of Orbitals ',norb
+     write(*,'(1x,a25,i8)') &
+          'Total Number of Orbitals',norb
      iorb1=1
      rocc=occup(1)
      do iorb=1,norb

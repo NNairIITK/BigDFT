@@ -115,10 +115,11 @@ module module_types
 !!****t* module_types/atoms_data
 !! DESCRIPTION
 !!   Atomic data (name, polarisation, ...)
-!! nat         Number of atoms
-!! ntypes      Number of type of atoms
-!! iatype(nat) Type of the atoms
-!! amu(ntypes) Atomic Mass Unit for each type of atoms
+!! nat          Number of atoms
+!! ntypes       Number of type of atoms
+!! iatype(nat)  Type of the atoms
+!! lfrztyp(nat) Frozen atoms
+!! amu(ntypes)  Atomic Mass Unit for each type of atoms
 !! SOURCE
 !!
   type, public :: atoms_data
