@@ -376,7 +376,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !avoid allocation of the eigenvalues array in case of restart
   if (in%inputPsiId /= 1 .and. in%inputPsiId /= 11) then
      allocate(orbs%eval(orbs%norb+ndebug),stat=i_stat)
-     call memocc(i_stat,orbs%eval,'eval',subname)
+     call memocc(i_stat,orbs%eval,'orbs%eval',subname)
   end if
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
@@ -1162,25 +1162,25 @@ contains
 
        i_all=-product(shape(Glr%bounds%sb%ibxy_ff))*kind(Glr%bounds%sb%ibxy_ff)
        deallocate(Glr%bounds%sb%ibxy_ff,stat=i_stat)
-       call memocc(i_stat,i_all,'ibxy_ff',subname)
+       call memocc(i_stat,i_all,'Glr%bounds%sb%ibxy_ff',subname)
        i_all=-product(shape(Glr%bounds%sb%ibzzx_f))*kind(Glr%bounds%sb%ibzzx_f)
        deallocate(Glr%bounds%sb%ibzzx_f,stat=i_stat)
-       call memocc(i_stat,i_all,'ibzzx_f',subname)
+       call memocc(i_stat,i_all,'Glr%bounds%sb%ibzzx_f',subname)
        i_all=-product(shape(Glr%bounds%sb%ibyyzz_f))*kind(Glr%bounds%sb%ibyyzz_f)
        deallocate(Glr%bounds%sb%ibyyzz_f,stat=i_stat)
-       call memocc(i_stat,i_all,'ibyyzz_f',subname)
+       call memocc(i_stat,i_all,'Glr%bounds%sb%ibyyzz_f',subname)
 
        i_all=-product(shape(Glr%bounds%gb%ibyz_ff))*kind(Glr%bounds%gb%ibyz_ff)
        deallocate(Glr%bounds%gb%ibyz_ff,stat=i_stat)
-       call memocc(i_stat,i_all,'ibyz_ff',subname)
+       call memocc(i_stat,i_all,'Glr%bounds%gb%ibyz_ff',subname)
 
        i_all=-product(shape(Glr%bounds%gb%ibzxx_f))*kind(Glr%bounds%gb%ibzxx_f)
        deallocate(Glr%bounds%gb%ibzxx_f,stat=i_stat)
-       call memocc(i_stat,i_all,'ibzxx_f',subname)
+       call memocc(i_stat,i_all,'Glr%bounds%gb%ibzxx_f',subname)
 
        i_all=-product(shape(Glr%bounds%gb%ibxxyy_f))*kind(Glr%bounds%gb%ibxxyy_f)
        deallocate(Glr%bounds%gb%ibxxyy_f,stat=i_stat)
-       call memocc(i_stat,i_all,'ibxxyy_f',subname)
+       call memocc(i_stat,i_all,'Glr%bounds%gb%ibxxyy_f',subname)
     endif
 
     !free GPU if it is the case

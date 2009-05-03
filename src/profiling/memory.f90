@@ -71,17 +71,17 @@ subroutine memory_occupation(istat,isize,array,routine)
         if (iproc == 0) then
            open(unit=98,file='malloc.prc',status='unknown')
            if (memdebug) then
-              write(98,'(a,t40,a,t60,4(1x,a12))')&
+              write(98,'(a,t40,a,t70,4(1x,a12))')&
                    '(Data in KB)             Routine','    Array name',&
                    'Array size','Total Memory'
            else
-              write(98,'(a,t40,a,t60,4(1x,a12))')&
+              write(98,'(a,t40,a,t70,4(1x,a12))')&
                    '(Data in KB)             Routine','    Peak Array',&
                    'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
            end if
         end if
      else if (routine=='stop' .and. iproc==0) then
-        write(98,'(a,t40,a,t60,4(1x,i12))')&
+        write(98,'(a,t40,a,t70,4(1x,i12))')&
              trim(loc%routine),trim(loc%array),&
              loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
              tot%memory/int(1024,kind=8),&
@@ -151,12 +151,12 @@ subroutine memory_occupation(istat,isize,array,routine)
      case (0)
         if (memdebug) then
            !to be used for inspecting an array which is not deallocated
-           write(98,'(a,t40,a,t60,4(1x,i12))')trim(routine),trim(array),isize,tot%memory
+           write(98,'(a,t40,a,t70,4(1x,i12))')trim(routine),trim(array),isize,tot%memory
         else
            !Compact format
            if (trim(loc%routine) /= routine) then
               if (loc%memory /= int(0,kind=8)) then
-                 write(98,'(a,t40,a,t60,4(1x,i12))')&
+                 write(98,'(a,t40,a,t70,4(1x,i12))')&
                       trim(loc%routine),trim(loc%array),&
                       loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
                       tot%memory/int(1024,kind=8),&
@@ -195,7 +195,7 @@ subroutine memory_malloc_check(memdebug,nalloc,ndealloc)
   !Local variables
   if (memdebug .and. nalloc /= ndealloc) then
      write(*,*) &
-       "Use the python script 'malloc_check.py' in config/scripts to check 'malloc.prc' file"
+       "Use the python script 'memcheck.py' in utils/scripts to check 'malloc.prc' file"
   end if
 end subroutine memory_malloc_check
 !!***
