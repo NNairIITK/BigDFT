@@ -20,7 +20,7 @@ program frequencies
   implicit none
   real(dp), parameter :: Ha_cmm1=219474.6313705_dp  ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
   real(dp), parameter :: amu_emass=1.660538782d-27/9.10938215d-31 ! 1 atomic mass unit, in electronic mass
-  character(len=*), parameter :: subname='BigDFT'
+  character(len=*), parameter :: subname='frequencies'
   character(len=20) :: units
   character(len=2) :: cc
   integer :: iproc,nproc,iat,jat,ityp,i,j,i_stat,i_all,ierr,infocode,ity

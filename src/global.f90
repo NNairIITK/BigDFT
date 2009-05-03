@@ -149,7 +149,7 @@ program MINHOP
   allocate(poslocmin(3,atoms%nat,npminx+ndebug),stat=i_stat)
   call memocc(i_stat,poslocmin,'poslocmin',subname)
   !        allocate(rxyz_old(3,atoms%nat+ndebug),stat=i_stat)
-  !        call memocc(i_stat,rxyz_old,'rxyz_old','BigDFT')
+  !        call memocc(i_stat,rxyz_old,'rxyz_old',subname)
 
 
   ! read input parameters
@@ -702,16 +702,16 @@ end do hopping_loop
   if (iproc.eq.0) write(67,'(a,1x,3(1x,1pe10.3))') 'Out:ediff,ekinetic,dt',ediff,ekinetic,dt
   close(2) 
 
-  !  call deallocate_wfd(wfd,'BigDFT')
+  !  call deallocate_wfd(wfd,subname)
   !  i_all=-product(shape(psi))*kind(psi)
   !  deallocate(psi,stat=i_stat)
-  !  call memocc(i_stat,i_all,'psi','BigDFT')
+  !  call memocc(i_stat,i_all,'psi',subname)
   !  i_all=-product(shape(eval))*kind(eval)
   !  deallocate(eval,stat=i_stat)
-  !  call memocc(i_stat,i_all,'eval','BigDFT')
+  !  call memocc(i_stat,i_all,'eval',subname)
   !  i_all=-product(shape(rxyz_old))*kind(rxyz_old)
   !  deallocate(rxyz_old,stat=i_stat)
-  !  call memocc(i_stat,i_all,'rxyz_old','BigDFT')
+  !  call memocc(i_stat,i_all,'rxyz_old',subname)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')

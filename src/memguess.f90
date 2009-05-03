@@ -5,7 +5,11 @@
 !! AUTHOR
 !!    Luigi Genovese
 !! COPYRIGHT
-!!    Copyright (C) 2007 CEA
+!!   Copyright (C) 2007-2009 CEA
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
 !!
 !! SOURCE
 !!
@@ -245,10 +249,10 @@ program memguess
   ! De-allocations
   i_all=-product(shape(orbs%occup))*kind(orbs%occup)
   deallocate(orbs%occup,stat=i_stat)
-  call memocc(i_stat,i_all,'occup',subname)
+  call memocc(i_stat,i_all,'orbs%occup',subname)
   i_all=-product(shape(orbs%spinsgn))*kind(orbs%spinsgn)
   deallocate(orbs%spinsgn,stat=i_stat)
-  call memocc(i_stat,i_all,'spinsgn',subname)
+  call memocc(i_stat,i_all,'orbs%spinsgn',subname)
   i_all=-product(shape(orbs%kpts))*kind(orbs%kpts)
   deallocate(orbs%kpts,stat=i_stat)
   call memocc(i_stat,i_all,'orbs%kpts',subname)

@@ -15,6 +15,13 @@
 !!     call memocc(0,0,'count','stop')
 !!   at the end of the calculation a short report is printed on the screen
 !!   some information can be also written on disk following the needs
+!!
+!!   The file malloc.prc is not deleted if the final total memory is not equal
+!!   to zero.
+!!   memdebug (parameter)
+!!     == .true.  then display a line per allocation or deallocation
+!!                a routine at the end parses the file
+!!     == .false. compact format
 !! COPYRIGHT
 !!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2009
 !!    This file is distributed under the terms of the
@@ -30,8 +37,9 @@ subroutine memory_occupation(istat,isize,array,routine)
 ! Arguments
   integer, intent(in) :: istat,isize
   character(len=*), intent(in) :: array,routine
-  
+
 ! Local variables
+  logical, parameter :: memdebug=.true.
   type :: memstat
      character(len=36) :: routine,array
      integer(kind=8) :: memory,peak
@@ -62,17 +70,23 @@ subroutine memory_occupation(istat,isize,array,routine)
         !open the writing file for the root process
         if (iproc == 0) then
            open(unit=98,file='malloc.prc',status='unknown')
-           write(98,'(a32,a14,4(1x,a12))')&
-                '(Data in KB)             Routine','    Peak Array',&
-                'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
+           if (memdebug) then
+              write(98,'(a,t40,a,t60,4(1x,a12))')&
+                   '(Data in KB)             Routine','    Array name',&
+                   'Array size','Total Memory'
+           else
+              write(98,'(a,t40,a,t60,4(1x,a12))')&
+                   '(Data in KB)             Routine','    Peak Array',&
+                   'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
+           end if
         end if
      else if (routine=='stop' .and. iproc==0) then
-        write(98,'(a32,a14,4(1x,i12))')&
+        write(98,'(a,t40,a,t60,4(1x,i12))')&
              trim(loc%routine),trim(loc%array),&
              loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
              tot%memory/int(1024,kind=8),&
              (tot%peak+loc%peak-loc%memory)/int(1024,kind=8)
-        close(98)
+        close(unit=98)
         write(*,'(1x,a)')&
              '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
         write(*,'(1x,2(i0,a),i0)')&
@@ -83,13 +97,15 @@ subroutine memory_occupation(istat,isize,array,routine)
              'in the routine',trim(tot%routine)
         !here we can add a routine which open the malloc.prc file in case of some 
         !memory allocation problem, and which eliminates it for a successful run
-        if (nalloc == ndealloc .and. tot%memory==int(0,kind=8)) then
+        if (.not.memdebug .and. nalloc == ndealloc .and. tot%memory==int(0,kind=8)) then
            !clean the malloc file
            if (iproc==0) then
               open(unit=98,file='malloc.prc',status='unknown')
               write(98,*)
-              close(98)
+              close(unit=98)
            end if
+        else
+           call memory_malloc_check(memdebug,nalloc,ndealloc)
         end if
      end if
 
@@ -99,12 +115,12 @@ subroutine memory_occupation(istat,isize,array,routine)
         if (isize>=0) then
            write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
                 ', error code=',istat,' exiting...'
-           if (iproc == 0) close(98)
+           if (iproc == 0) close(unit=98)
            stop
         else if (isize<0) then
            write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
                 ', error code=',istat,' exiting...'
-           if (iproc == 0) close(98)
+           if (iproc == 0) close(unit=98)
            stop
         end if
      end if
@@ -133,26 +149,29 @@ subroutine memory_occupation(istat,isize,array,routine)
 
      select case(iproc)
      case (0)
-        !to be used for inspecting an array which is not deallocated
-        !      write(98,'(a32,a14,4(1x,i12))')trim(routine),trim(array),isize,tot%memory
-        if (trim(loc%routine) /= routine) then
-           if (loc%memory /= int(0,kind=8)) then
-              write(98,'(a32,a14,4(1x,i12))')&
-                   trim(loc%routine),trim(loc%array),&
-                   loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
-                   tot%memory/int(1024,kind=8),&
-                   (tot%memory+loc%peak-loc%memory)/int(1024,kind=8)
-           end if
-           loc%routine=routine
-           loc%array=array
-           loc%memory=isize
-           loc%peak=isize
-!!$               end if
+        if (memdebug) then
+           !to be used for inspecting an array which is not deallocated
+           write(98,'(a,t40,a,t60,4(1x,i12))')trim(routine),trim(array),isize,tot%memory
         else
-           loc%memory=loc%memory+isize
-           if (loc%memory > loc%peak) then
-              loc%peak=loc%memory
+           !Compact format
+           if (trim(loc%routine) /= routine) then
+              if (loc%memory /= int(0,kind=8)) then
+                 write(98,'(a,t40,a,t60,4(1x,i12))')&
+                      trim(loc%routine),trim(loc%array),&
+                      loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
+                      tot%memory/int(1024,kind=8),&
+                      (tot%memory+loc%peak-loc%memory)/int(1024,kind=8)
+              end if
+              loc%routine=routine
               loc%array=array
+              loc%memory=isize
+              loc%peak=isize
+           else
+              loc%memory=loc%memory+isize
+              if (loc%memory > loc%peak) then
+                 loc%peak=loc%memory
+                 loc%array=array
+              end if
            end if
         end if
      case default
@@ -160,6 +179,25 @@ subroutine memory_occupation(istat,isize,array,routine)
      end select
   end select
 end subroutine memory_occupation
+!!***
+
+
+!!****f* BigDFT/memory_malloc_check
+!! FUNCTION
+!!   Check the malloc.prc file (verbose format)
+!! SOURCE
+!!
+subroutine memory_malloc_check(memdebug,nalloc,ndealloc)
+  implicit none
+  !Arguments
+  logical, intent(in) :: memdebug
+  integer, intent(in) :: nalloc,ndealloc
+  !Local variables
+  if (memdebug .and. nalloc /= ndealloc) then
+     write(*,*) &
+       "Use the python script 'malloc_check.py' in config/scripts to check 'malloc.prc' file"
+  end if
+end subroutine memory_malloc_check
 !!***
 
 
