@@ -179,9 +179,63 @@ low_level = init/projectors.f90  \
 
 if BUILD_LIB_ABINIT
 abinit = ABINIT-ewald/ewald.F90 \
-	 ABINIT-ewald/metric.F90 \
-	 ABINIT-ewald/matr3inv.F90 \
-	 ABINIT-ewald/derfc.F90
+	ABINIT-ewald/matr3inv.F90 \
+	ABINIT-ewald/derfc.F90 \
+	ABINIT-geometry/sort_dp.F90 \
+	ABINIT-geometry/mati3inv.F90 \
+	ABINIT-geometry/canon9.F90 \
+	ABINIT-geometry/ab6_symmetry_f90.f90 \
+	ABINIT-geometry/bldgrpaf.F90 \
+	ABINIT-geometry/bldgrp.F90 \
+	ABINIT-geometry/bonds_lgth_angles.F90 \
+	ABINIT-geometry/chkdilatmx.F90 \
+	ABINIT-geometry/chkgrp.F90 \
+	ABINIT-geometry/chkorthsy.F90 \
+	ABINIT-geometry/chkprimit.F90 \
+	ABINIT-geometry/gensymshub4.F90 \
+	ABINIT-geometry/gensymshub.F90 \
+	ABINIT-geometry/gensymspgr.F90 \
+	ABINIT-geometry/getptgroupma.F90 \
+	ABINIT-geometry/getspinrot.F90 \
+	ABINIT-geometry/gridgcart.F90 \
+	ABINIT-geometry/holocell.F90 \
+	ABINIT-geometry/metric.F90 \
+	ABINIT-geometry/mkrdim.F90 \
+	ABINIT-geometry/operat.F90 \
+	ABINIT-geometry/prtspgroup.F90 \
+	ABINIT-geometry/ptgmadata.F90 \
+	ABINIT-geometry/smallprim.F90 \
+	ABINIT-geometry/spgdata.F90 \
+	ABINIT-geometry/strainsym.F90 \
+	ABINIT-geometry/strconv.F90 \
+	ABINIT-geometry/stresssym.F90 \
+	ABINIT-geometry/sym2cart.F90 \
+	ABINIT-geometry/symanal.F90 \
+	ABINIT-geometry/symatm.F90 \
+	ABINIT-geometry/symaxes.F90 \
+	ABINIT-geometry/symbrav.F90 \
+	ABINIT-geometry/symchk.F90 \
+	ABINIT-geometry/symdet.F90 \
+	ABINIT-geometry/symfind.F90 \
+	ABINIT-geometry/symlist_bcc.F90 \
+	ABINIT-geometry/symlist_fcc.F90 \
+	ABINIT-geometry/symlist_others.F90 \
+	ABINIT-geometry/symlist_prim.F90 \
+	ABINIT-geometry/symmultsg.F90 \
+	ABINIT-geometry/symplanes.F90 \
+	ABINIT-geometry/symredcart.F90 \
+	ABINIT-geometry/symrelrot.F90 \
+	ABINIT-geometry/symsgcube.F90 \
+	ABINIT-geometry/symsghexa.F90 \
+	ABINIT-geometry/symsgmono.F90 \
+	ABINIT-geometry/symsgortho.F90 \
+	ABINIT-geometry/symsgtetra.F90 \
+	ABINIT-geometry/symspgr.F90 \
+	ABINIT-geometry/symzat.F90 \
+	ABINIT-geometry/xredxcart.F90 \
+	ABINIT-geometry/smpbz.F90 \
+	ABINIT-geometry/symkpt.F90 \
+	ABINIT-geometry/getkgrid.F90
 else
 abinit = 
 endif

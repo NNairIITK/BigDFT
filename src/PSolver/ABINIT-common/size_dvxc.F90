@@ -94,24 +94,25 @@ end subroutine size_dvxc
 !!***
 
 !fake ABINIT subroutines
-subroutine wrtout(unit,message,mode_paral)
+subroutine wrtout(unit,message,paral)
+
+  use defs_basis
+
   implicit none
 
   !Arguments ------------------------------------
   integer,intent(in) :: unit
-  character(len=4),intent(in) :: mode_paral
   character(len=500),intent(inout) :: message
+  character(len=4),intent(in) :: paral
 
-  print *,message
+  write(unit, *) "[AB] ", trim(message)
 end subroutine wrtout
 
-subroutine leave_new(mode_paral)
+subroutine leave_new()
 
   implicit none
 
-  !Arguments ------------------------------------
-  character(len=4),intent(in) :: mode_paral
-
-  print *,'exiting...'
+  write(0, *) "Sorry, I'm dead."
+  write(0, *) "R.I.P."
   stop
 end subroutine leave_new
