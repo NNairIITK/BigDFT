@@ -332,7 +332,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      write(*, "(I3,A,3F10.6,F12.6)") i, ":", kpt(:, i), wkpt(i)
   end do
   call ab6_symmetry_free(symObj)
-  deallocate(xRed)
+  deallocate(xRed) ! I deallocate here only since symObj get a pointer on it.
   ! Remove me!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! TODO: integrate k points
 	
