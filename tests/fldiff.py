@@ -37,9 +37,6 @@ def usage():
     print "  --help   display this message"
     sys.exit(1)
 
-#Maximum discrepancy between float results
-max_discrepancy = 1.1e-10
-
 #Check arguments
 try:
     optlist, args = getopt.getopt(sys.argv[1:],"bd:h",["bigdft","discrepancy=","help"])

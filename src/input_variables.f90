@@ -156,7 +156,7 @@ subroutine read_input_variables(iproc,filename,in)
   call check()
 
   !project however the wavefunction on gaussians if asking to write them on disk
-  in%gaussian_help=(in%inputPsiId >= 10) .or. in%output_wf 
+  in%gaussian_help=(in%inputPsiId >= 10)! commented .or. in%output_wf 
   !switch on the gaussian auxiliary treatment 
   !and the zero of the forces
   if (in%inputPsiId == 10) then
@@ -268,11 +268,12 @@ end subroutine print_input_parameters
 !!    Read atomic file
 !! SOURCE
 !!
-subroutine read_atomic_file(iproc,at,rxyz)
+subroutine read_atomic_file(file,iproc,at,rxyz)
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_atomic_file
   implicit none
+  character(len=*), intent(in) :: file
   integer, intent(in) :: iproc
   type(atoms_data), intent(inout) :: at
   real(gp), dimension(:,:), pointer :: rxyz
@@ -286,26 +287,26 @@ subroutine read_atomic_file(iproc,at,rxyz)
 
   ! Test posinp.xyz
   if (.not. file_exists) then
-     inquire(FILE = 'posinp.xyz', EXIST = file_exists)
-     if (file_exists) write(filename, "(A)") "posinp.xyz"
+     inquire(FILE = file//'.xyz', EXIST = file_exists)
+     if (file_exists) write(filename, "(A)") file//'.xyz'!"posinp.xyz"
      write(at%format, "(A)") "xyz"
   end if
   ! Test posinp.ascii
   if (.not. file_exists) then
-     inquire(FILE = 'posinp.ascii', EXIST = file_exists)
-     if (file_exists) write(filename, "(A)") "posinp.ascii"
+     inquire(FILE = file//'.ascii', EXIST = file_exists)
+     if (file_exists) write(filename, "(A)") file//'.ascii'!"posinp.ascii"
      write(at%format, "(A)") "ascii"
   end if
   ! Fallback to old name
   if (.not. file_exists) then
-     inquire(FILE = 'posinp', EXIST = file_exists)
-     if (file_exists) write(filename, "(A)") "posinp"
+     inquire(FILE = file, EXIST = file_exists)
+     if (file_exists) write(filename, "(A)") file!"posinp"
      write(at%format, "(A)") "xyz"
   end if
 
   if (.not. file_exists) then
      write(*,*) "Atomic input file not found."
-     write(*,*) " Files looked for are 'posinp' and 'posinp.xyz'."
+     write(*,*) " Files looked for are '"//file//"' and '"//file//".xyz'."
      stop 
   end if
 
@@ -582,7 +583,9 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
 
   do iat=1,at%nat
      if (iproc.eq.0 .and. at%ifrztyp(iat)/=0) &
-          write(*,'(1x,a,i0,a,a)') 'FIXED Atom N.:',iat,', Name: ',trim(at%atomnames(at%iatype(iat)))
+          write(*,'(1x,a,i0,a,a,a,i3)') &
+          'FIXED Atom N.:',iat,', Name: ',trim(at%atomnames(at%iatype(iat))),&
+          ', ifrztyp= ',at%ifrztyp(iat)
   enddo
 
 end subroutine read_atomic_positions
@@ -640,7 +643,8 @@ subroutine parse_extra_info(iproc,iat,extra,at)
   integer, intent(in) :: iat,iproc
   type(atoms_data), intent(out) :: at
   !local variables
-  character(len=3) :: suffix
+  character(len=4) :: suffix
+  logical :: go
   integer :: ierr,ierr1,ierr2,nspol,nchrg,nsgn
   !case with all the information
   !print *,iat,'ex'//trim(extra)//'ex'
@@ -648,12 +652,13 @@ subroutine parse_extra_info(iproc,iat,extra,at)
   if (extra == 'nothing') then !case with empty information
      nspol=0
      nchrg=0
-     suffix='   '
+     suffix='    '
   else if (ierr /= 0) then !case with partial information
      read(extra,*,iostat=ierr1)nspol,suffix
      if (ierr1 /=0) then
-        if (trim(extra) == 'f') then
-           suffix='f'
+        call valid_frzchain(trim(extra),go)
+        if (go) then
+           suffix=trim(extra)
            nspol=0
            nchrg=0
         else
@@ -661,17 +666,18 @@ subroutine parse_extra_info(iproc,iat,extra,at)
            if (ierr2 /=0) then
               call error
            end if
-           suffix='   '
+           suffix='    '
            nchrg=0
         end if
      else
         nchrg=0
-        if (trim(suffix) /= 'f') then
+        call valid_frzchain(trim(extra),go)
+        if (.not. go) then
            read(suffix,*,iostat=ierr2)nchrg
            if (ierr2 /= 0) then
               call error
            else
-              suffix='   '
+              suffix='    '
            end if
         end if
      end if
@@ -686,11 +692,14 @@ subroutine parse_extra_info(iproc,iat,extra,at)
   at%natpol(iat)=1000*nchrg+nsgn*100+nspol
 
   !print *,'natpol atomic',iat,at%natpol(iat)
-  
-  if (trim(suffix) == 'f') then
-     !the atom is considered as blocked
-     at%ifrztyp(iat)=1
-  end if
+
+  !convert the suffix into ifrztyp
+  call frozen_ftoi(suffix,at%ifrztyp(iat))
+
+!!$  if (trim(suffix) == 'f') then
+!!$     !the atom is considered as blocked
+!!$     at%ifrztyp(iat)=1
+!!$  end if
 
 contains
 
@@ -699,7 +708,7 @@ contains
       print *,extra
       write(*,'(1x,a,i0,a)')&
            'ERROR in input file for atom number ',iat,&
-           ': after 4th column you can put the input polarisation(s) or "f"'
+           ': after 4th column you can put the input polarisation(s) or the frzchain: f,fxz,fy'
    end if
    stop
  end subroutine error
@@ -1014,3 +1023,451 @@ subroutine charge_and_spol(natpol,nchrg,nspol)
 end subroutine charge_and_spol
 !!***
 
+subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename,comment
+  type(atoms_data), intent(in) :: atoms
+  real(gp), intent(in) :: energy
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+
+  if (atoms%format == "xyz") then
+     call wtxyz(filename,energy,rxyz,atoms,comment)
+  else if (atoms%format == "ascii") then
+     call wtascii(filename,energy,rxyz,atoms,comment)
+  else
+     write(*,*) "Error, unknown file format."
+     stop
+  end if
+end subroutine write_atomic_file
+
+subroutine wtxyz(filename,energy,rxyz,atoms,comment)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename,comment
+  type(atoms_data), intent(in) :: atoms
+  real(gp), intent(in) :: energy
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  !local variables
+  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
+  character(len=2) :: symbol
+  character(len=10) :: name
+  character(len=11) :: units
+  character(len=50) :: extra
+  integer :: iat,j,ichg,ispol
+  real(gp) :: xmax,ymax,zmax,factor
+
+  open(unit=9,file=filename//'.xyz')
+  xmax=0.0_gp
+  ymax=0.0_gp
+  zmax=0.0_gp
+
+  do iat=1,atoms%nat
+     xmax=max(rxyz(1,iat),xmax)
+     ymax=max(rxyz(2,iat),ymax)
+     zmax=max(rxyz(3,iat),zmax)
+  enddo
+  if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
+     factor=bohr
+     units='angstroemd0'
+  else
+     factor=1.0_gp
+     units='atomicd0'
+  end if
+
+
+  write(9,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%nat,trim(units),energy,comment
+
+  if (atoms%geocode == 'P') then
+     write(9,'(a,3(1x,1pe24.17))')'periodic',&
+          atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
+  else if (atoms%geocode == 'S') then
+     write(9,'(a,3(1x,1pe24.17))')'surface',&
+          atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
+  else
+     write(9,*)'Free BC'
+  end if
+  do iat=1,atoms%nat
+     name=trim(atoms%atomnames(atoms%iatype(iat)))
+     if (name(3:3)=='_') then
+        symbol=name(1:2)
+     else if (name(2:2)=='_') then
+        symbol=name(1:1)
+     else
+        symbol=name(1:2)
+     end if
+
+     call write_extra_info(extra,atoms%natpol(iat),atoms%ifrztyp(iat))
+
+     write(9,'(a2,4x,3(1x,1pe24.17),2x,a50)')symbol,(rxyz(j,iat)*factor,j=1,3),extra
+
+!!$     call charge_and_spol(atoms%natpol(iat),ichg,ispol)
+!!$
+!!$     !takes into account the blocked atoms and the input polarisation
+!!$     if (atoms%ifrztyp(iat) /= 0 .and. ispol == 0 .and. ichg == 0 ) then
+!!$        write(9,'(a2,4x,3(1x,1pe24.17),2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3),'   f'
+!!$     else if (atoms%ifrztyp(iat) /= 0 .and. ispol /= 0 .and. ichg == 0) then
+!!$        write(9,'(a2,4x,3(1x,1pe24.17),i7,2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3),&
+!!$             ispol,'   f'
+!!$     else if (atoms%ifrztyp(iat) /=0 .and. ichg /= 0) then
+!!$        write(9,'(a2,4x,3(1x,1pe24.17),2(i7),2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3),&
+!!$             ispol,ichg,'   f'
+!!$     else if (ispol /= 0 .and. ichg == 0) then
+!!$        write(9,'(a2,4x,3(1x,1pe24.17),i7)')symbol,(rxyz(j,iat)*factor,j=1,3),ispol
+!!$     else if (ichg /= 0) then
+!!$        write(9,'(a2,4x,3(1x,1pe24.17),2(i7))')symbol,(rxyz(j,iat)*factor,j=1,3),ispol,ichg
+!!$     else
+!!$        write(9,'(a2,4x,3(1x,1pe24.17),2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3)
+!!$     end if
+  enddo
+  close(unit=9)
+
+end subroutine wtxyz
+
+subroutine wtascii(filename,energy,rxyz,atoms,comment)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename,comment
+  type(atoms_data), intent(in) :: atoms
+  real(gp), intent(in) :: energy
+  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  !local variables
+  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
+  character(len=2) :: symbol
+  character(len=50) :: extra
+  character(len=10) :: name
+  integer :: iat,j,ichg,ispol
+  real(gp) :: xmax,ymax,zmax,factor
+
+  open(unit=9,file=filename//'.ascii')
+  xmax=0.0_gp
+  ymax=0.0_gp
+  zmax=0.0_gp
+
+  do iat=1,atoms%nat
+     xmax=max(rxyz(1,iat),xmax)
+     ymax=max(rxyz(2,iat),ymax)
+     zmax=max(rxyz(3,iat),zmax)
+  enddo
+  if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
+     factor=bohr
+  else
+     factor=1.0_gp
+  end if
+
+  write(9, "(A,A)") "# BigDFT file - ", trim(comment)
+  write(9, "(3e24.17)") atoms%alat1, 0.d0, atoms%alat2
+  write(9, "(3e24.17)") 0.d0,        0.d0, atoms%alat3
+
+  write(9, "(A,A)") "#keyword: ", trim(atoms%units)
+  if (atoms%geocode == 'P') write(9, "(A)") "#keyword: periodic"
+  if (atoms%geocode == 'S') write(9, "(A)") "#keyword: surface"
+  if (atoms%geocode == 'F') write(9, "(A)") "#keyword: freeBC"
+  if (energy /= 0.d0) then
+     write(9, "(A,e24.17)") "# Total energy (Ht): ", energy
+  end if
+
+  do iat=1,atoms%nat
+     name=trim(atoms%atomnames(atoms%iatype(iat)))
+     if (name(3:3)=='_') then
+        symbol=name(1:2)
+     else if (name(2:2)=='_') then
+        symbol=name(1:1)
+     else
+        symbol=name(1:2)
+     end if
+
+     call write_extra_info(extra,atoms%natpol(iat),atoms%ifrztyp(iat))     
+
+     write(9,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor,j=1,3),symbol,extra
+
+!!$     call charge_and_spol(atoms%natpol(iat),ichg,ispol)
+!!$
+!!$     !takes into account the blocked atoms and the input polarisation
+!!$     if (atoms%ifrztyp(iat) /=0 .and. ispol == 0 .and. ichg == 0 ) then
+!!$        write(9,'(3(1x,1pe24.17),2x,a2,2x,a4)') (rxyz(j,iat)*factor,j=1,3),symbol,'   f'
+!!$     else if (atoms%ifrztyp(iat) /=0 .and. ispol /= 0 .and. ichg == 0) then
+!!$        write(9,'(3(1x,1pe24.17),2x,a2,i7,2x,a4)') (rxyz(j,iat)*factor,j=1,3),&
+!!$             symbol,ispol,'   f'
+!!$     else if (atoms%ifrztyp(iat) /= 0 .and. ichg /= 0) then
+!!$        write(9,'(3(1x,1pe24.17),2x,a2,2(i7),2x,a4)') (rxyz(j,iat)*factor,j=1,3),&
+!!$             symbol,ispol,ichg,'   f'
+!!$     else if (ispol /= 0 .and. ichg == 0) then
+!!$        write(9,'(3(1x,1pe24.17),2x,a2,i7)') (rxyz(j,iat)*factor,j=1,3),symbol,ispol
+!!$     else if (ichg /= 0) then
+!!$        write(9,'(3(1x,1pe24.17),2x,a2,2(i7))') (rxyz(j,iat)*factor,j=1,3),symbol,ispol,ichg
+!!$     else
+!!$        write(9,'(3(1x,1pe24.17),2x,a2,2x,a4)') (rxyz(j,iat)*factor,j=1,3),symbol
+!!$     end if
+  enddo
+  close(unit=9)
+
+end subroutine wtascii
+
+!write the extra info necessary for the output file
+subroutine write_extra_info(extra,natpol,ifrztyp)
+  use module_base
+  implicit none 
+  integer, intent(in) :: natpol,ifrztyp
+  character(len=50), intent(out) :: extra
+  !local variables
+  character(len=4) :: frzchain
+  integer :: ispol,ichg
+
+  call charge_and_spol(natpol,ichg,ispol)
+
+  call frozen_itof(ifrztyp,frzchain)
+  
+  !takes into account the blocked atoms and the input polarisation
+  if (ispol == 0 .and. ichg == 0 ) then
+     write(extra,'(2x,a4)')frzchain
+  else if (ispol /= 0 .and. ichg == 0) then
+     write(extra,'(i7,2x,a4)')ispol,frzchain
+  else if (ichg /= 0) then
+     write(extra,'(2(i7),2x,a4)')ispol,ichg,frzchain
+  else
+     write(extra,'(2x,a4)') ''
+  end if
+  
+end subroutine write_extra_info
+
+subroutine frozen_itof(ifrztyp,frzchain)
+  implicit none
+  integer, intent(in) :: ifrztyp
+  character(len=4), intent(out) :: frzchain
+
+  if (ifrztyp == 0) then
+     frzchain='    '
+  else if (ifrztyp == 1) then
+     frzchain='   f'
+  else if (ifrztyp == 2) then
+     frzchain='  fy'
+  else if (ifrztyp == 3) then
+     frzchain=' fxz'
+  end if
+        
+end subroutine frozen_itof
+
+subroutine valid_frzchain(frzchain,go)
+  character(len=*), intent(in) :: frzchain
+  logical, intent(out) :: go
+
+  go= trim(frzchain) == 'f' .or. &
+       trim(frzchain) == 'fy' .or. &
+       trim(frzchain) == 'fxz'
+  
+end subroutine valid_frzchain
+
+subroutine frozen_ftoi(frzchain,ifrztyp)
+  implicit none
+  character(len=4), intent(in) :: frzchain
+  integer, intent(out) :: ifrztyp
+
+  if (trim(frzchain)=='') then
+     ifrztyp = 0
+  else if (trim(frzchain)=='f') then
+     ifrztyp = 1
+  else if (trim(frzchain)=='fy') then
+     ifrztyp = 2
+  else if (trim(frzchain)=='fxz') then
+     ifrztyp = 3
+  end if
+        
+end subroutine frozen_ftoi
+
+!calculate the coefficient for moving atoms following the ifrztyp
+subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
+  use module_base
+  implicit none
+  integer, intent(in) :: ifrztyp,ixyz
+  real(gp), intent(in) :: alpha
+  real(gp), intent(out) :: alphai
+  !local variables
+  logical :: move_this_coordinate
+
+  if (move_this_coordinate(ifrztyp,ixyz)) then
+     alphai=alpha
+  else
+     alphai=0.0_gp
+  end if
+ 
+end subroutine frozen_alpha
+
+!routine for moving atomic positions, takes into account the 
+!frozen atoms and the size of the cell
+!synopsis: rxyz=txyz+alpha*sxyz
+!all the shift are inserted into the box if there are periodic directions
+!if the atom are frozen they are not moved
+subroutine atomic_axpy(at,txyz,alpha,sxyz,rxyz)
+  use module_base
+  use module_types
+  implicit none
+  real(gp), intent(in) :: alpha
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: txyz,sxyz
+  real(gp), dimension(3,at%nat), intent(inout) :: rxyz
+  !local variables
+  integer :: iat
+  real(gp) :: alphax,alphay,alphaz
+
+  do iat=1,at%nat
+     !adjust the moving of the atoms following the frozen direction
+     call frozen_alpha(at%ifrztyp(iat),1,alpha,alphax)
+     call frozen_alpha(at%ifrztyp(iat),2,alpha,alphay)
+     call frozen_alpha(at%ifrztyp(iat),3,alpha,alphaz)
+
+     if (at%geocode == 'P') then
+        rxyz(1,iat)=modulo(txyz(1,iat)+alphax*sxyz(1,iat),at%alat1)
+        rxyz(2,iat)=modulo(txyz(2,iat)+alphay*sxyz(2,iat),at%alat2)
+        rxyz(3,iat)=modulo(txyz(3,iat)+alphaz*sxyz(3,iat),at%alat3)
+     else if (at%geocode == 'S') then
+        rxyz(1,iat)=modulo(txyz(1,iat)+alphax*sxyz(1,iat),at%alat1)
+        rxyz(2,iat)=txyz(2,iat)+alphay*sxyz(2,iat)
+        rxyz(3,iat)=modulo(txyz(3,iat)+alphaz*sxyz(3,iat),at%alat3)
+     else
+        rxyz(1,iat)=txyz(1,iat)+alphax*sxyz(1,iat)
+        rxyz(2,iat)=txyz(2,iat)+alphay*sxyz(2,iat)
+        rxyz(3,iat)=txyz(3,iat)+alphaz*sxyz(3,iat)
+     end if
+  end do
+
+end subroutine atomic_axpy
+
+!routine for moving atomic positions, takes into account the 
+!frozen atoms and the size of the cell
+!synopsis: fxyz=txyz+alpha*sxyz
+!update the forces taking into account the frozen atoms
+!do not apply the modulo operation on forces
+subroutine atomic_axpy_forces(at,txyz,alpha,sxyz,fxyz)
+  use module_base
+  use module_types
+  implicit none
+  real(gp), intent(in) :: alpha
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: txyz,sxyz
+  real(gp), dimension(3,at%nat), intent(inout) :: fxyz
+  !local variables
+  integer :: iat
+  real(gp) :: alphax,alphay,alphaz
+  
+  do iat=1,at%nat
+     !adjust the moving of the forces following the frozen direction
+     call frozen_alpha(at%ifrztyp(iat),1,alpha,alphax)
+     call frozen_alpha(at%ifrztyp(iat),2,alpha,alphay)
+     call frozen_alpha(at%ifrztyp(iat),3,alpha,alphaz)
+
+     fxyz(1,iat)=txyz(1,iat)+alphax*sxyz(1,iat)
+     fxyz(2,iat)=txyz(2,iat)+alphay*sxyz(2,iat)
+     fxyz(3,iat)=txyz(3,iat)+alphaz*sxyz(3,iat)
+  end do
+  
+end subroutine atomic_axpy_forces
+
+
+!calculate the scalar product between atomic positions by considering
+!only non-blocked atoms
+subroutine atomic_dot(at,x,y,scpr)
+  use module_base
+  use module_types
+  implicit none
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: x,y
+  real(gp), intent(out) :: scpr
+  !local variables
+  integer :: iat
+  real(gp) :: scpr1,scpr2,scpr3
+  real(gp) :: alphax,alphay,alphaz
+
+  scpr=0.0_gp
+
+  do iat=1,at%nat
+     call frozen_alpha(at%ifrztyp(iat),1,1.0_gp,alphax)
+     call frozen_alpha(at%ifrztyp(iat),2,1.0_gp,alphay)
+     call frozen_alpha(at%ifrztyp(iat),3,1.0_gp,alphaz)
+     scpr1=alphax*x(1,iat)*y(1,iat)
+     scpr2=alphay*x(2,iat)*y(2,iat)
+     scpr3=alphaz*x(3,iat)*y(3,iat)
+     scpr=scpr+scpr1+scpr2+scpr3
+  end do
+  
+end subroutine atomic_dot
+
+!z=alpha*A*x + beta* y
+subroutine atomic_gemv(at,m,alpha,A,x,beta,y,z)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: m
+  real(gp), intent(in) :: alpha,beta
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%nat), intent(in) :: x
+  real(gp), dimension(m), intent(in) :: y
+  real(gp), dimension(m,3,at%nat), intent(in) :: A
+  real(gp), dimension(m), intent(out) :: z
+  !local variables
+  integer :: iat,i,j
+  real(gp) :: mv,alphai
+  
+  do i=1,m
+     mv=0.0_gp
+     do iat=1,at%nat
+        do j=1,3
+           call frozen_alpha(at%ifrztyp(iat),j,A(i,j,iat),alphai)
+           mv=mv+alphai*x(j,iat)
+        end do
+     end do
+     z(i)=alpha*mv+beta*y(i)
+  end do
+
+end subroutine atomic_gemv
+
+!the function which controls all the moving positions
+function move_this_coordinate(ifrztyp,ixyz)
+  use module_base
+  implicit none
+  integer, intent(in) :: ixyz,ifrztyp
+  logical :: move_this_coordinate
+  
+  move_this_coordinate= &
+       ifrztyp == 0 .or. &
+       (ifrztyp == 2 .and. ixyz /=2) .or. &
+       (ifrztyp == 3 .and. ixyz ==2)
+       
+end function move_this_coordinate
+
+!synopsis: rxyz=txyz+alpha*sxyz
+subroutine atomic_coordinate_axpy(at,ixyz,iat,t,alphas,r)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: ixyz,iat
+  real(gp), intent(in) :: t,alphas
+  type(atoms_data), intent(in) :: at
+  real(gp), intent(out) :: r
+  !local variables
+  logical :: move_this_coordinate,periodize
+  real(gp) :: alat,alphai
+
+  if (ixyz == 1) then
+     alat=at%alat1
+  else if (ixyz == 2) then
+     alat=at%alat2
+  else if (ixyz == 3) then
+     alat=at%alat3
+  end if
+  
+  periodize= at%geocode == 'P' .or. &
+       (at%geocode == 'S' .and. ixyz /= 2)
+
+  call frozen_alpha(at%ifrztyp(iat),ixyz,alphas,alphai)
+
+  if (periodize) then
+     r=modulo(t+alphai,alat)
+  else
+     r=t+alphai
+  end if
+
+end subroutine atomic_coordinate_axpy

@@ -111,7 +111,7 @@ program memguess
   call print_logo()
 
   !read number of atoms
-  call read_atomic_file(0,atoms,rxyz)
+  call read_atomic_file('posinp',0,atoms,rxyz)
 
   !new way of reading the input variables, use structures
   call read_input_variables(0,'input.dat',in)

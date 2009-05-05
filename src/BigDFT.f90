@@ -72,7 +72,7 @@ program BigDFT
   if (iproc==0) call print_logo()
 
   !read atomic file
-  call read_atomic_file(iproc,atoms,rxyz)
+  call read_atomic_file('posinp',iproc,atoms,rxyz)
 
   allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fxyz,'fxyz',subname)

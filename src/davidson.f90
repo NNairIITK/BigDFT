@@ -577,10 +577,6 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
   deallocate(hv,stat=i_stat)
   call memocc(i_stat,i_all,'hv',subname)
 
-  i_all=-product(shape(e))*kind(e)
-  deallocate(e,stat=i_stat)
-  call memocc(i_stat,i_all,'e',subname)
-
   call deallocate_comms(commsv,subname)
 
   i_all=-product(shape(orbsv%occup))*kind(orbsv%occup)
@@ -626,7 +622,7 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
   end do
 
   do iorb=orbs%norbp,1,-1 ! sweep over highest occupied orbitals
-     if(orbs%norb-iorb-orbs%isorb+1+nvirt > nplot)exit! we have written nplot pot files
+     if(orbs%norb-iorb-orbs%isorb-1+nvirt > nplot)exit! we have written nplot pot files
      !adress
      ind=1+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*(iorb-1)
      write(orbname,'(A,i3.3)')'orbital',iorb+orbs%isorb
@@ -635,7 +631,12 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
   end do
   ! END OF PLOTTING
 
-end subroutine davidson
+  i_all=-product(shape(e))*kind(e)
+  deallocate(e,stat=i_stat)
+  call memocc(i_stat,i_all,'e',subname)
+
+
+END SUBROUTINE davidson
 !!***
 
 

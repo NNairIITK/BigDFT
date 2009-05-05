@@ -269,7 +269,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   else
      read(unitwf) iorb_old,eval
   end if
-  if (iorb_old.ne.iorb) stop 'readonewave'
+  if (iorb_old /= iorb) stop 'readonewave'
   if (useFormattedInput) then
      read(unitwf,*) hx_old,hy_old,hz_old
      read(unitwf,*) n1_old,n2_old,n3_old
@@ -306,7 +306,8 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
        nvctr_c_old == wfd%nvctr_c .and. nvctr_f_old == wfd%nvctr_f .and. & 
        n1_old == n1  .and. n2_old == n2 .and. n3_old == n3 .and. displ <= 1.d-3) then
 
-     write(*,*) 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
+     !if (iproc == 0) write(*,*) 'wavefunction ',iorb,' needs NO reformatting on processor',iproc
+     if (iproc == 0) write(*,*) 'wavefunctions need NO reformatting'
      do j=1,nvctr_c_old
         if (useFormattedInput) then
            read(unitwf,*) i1,i2,i3,tt
@@ -332,16 +333,18 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
   else
 
-     write(*,*) 'wavefunction ',iorb,' needs reformatting on processor',iproc
-     if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,*) &
-          'because hgrid_old >< hgrid',hx_old,hy_old,hz_old,hx,hy,hz
-     if (nvctr_c_old /= wfd%nvctr_c) write(*,*) 'because nvctr_c_old >< nvctr_c',&
-          nvctr_c_old,wfd%nvctr_c
-     if (nvctr_f_old /= wfd%nvctr_f) write(*,*) 'because nvctr_f_old >< nvctr_f',&
-          nvctr_f_old,wfd%nvctr_f
-     if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
-          write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
-     if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule'
+     if (iproc == 0) then
+        write(*,*) 'wavefunctions need reformatting'
+        if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) write(*,*) &
+             'because hgrid_old >< hgrid',hx_old,hy_old,hz_old,hx,hy,hz
+        if (nvctr_c_old /= wfd%nvctr_c) write(*,*) 'because nvctr_c_old >< nvctr_c',&
+             nvctr_c_old,wfd%nvctr_c
+        if (nvctr_f_old /= wfd%nvctr_f) write(*,*) 'because nvctr_f_old >< nvctr_f',&
+             nvctr_f_old,wfd%nvctr_f
+        if (n1_old /= n1  .or. n2_old /= n2 .or. n3_old /= n3 ) &
+             write(*,*) 'because cell size has changed',n1_old,n1,n2_old,n2,n3_old,n3
+        if (displ > 1.d-3 ) write(*,*) 'large displacement of molecule'
+     end if
 
      allocate(psigold(0:n1_old,2,0:n2_old,2,0:n3_old,2+ndebug),stat=i_stat)
      call memocc(i_stat,psigold,'psigold',subname)

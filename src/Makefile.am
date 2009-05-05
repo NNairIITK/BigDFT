@@ -17,7 +17,7 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces memguess NEB $(minima_hopping_sources)
+binaries_sources = cluster test_forces memguess NEB frequencies $(minima_hopping_sources)
 scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
@@ -223,6 +223,15 @@ NEB_LDADD =
 
 memguess_SOURCES = memguess.f90 
 memguess_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
+	PSolver/ABINIT-common/libABINIT.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
+	$(libs_cuda)
+
+frequencies_SOURCES = frequencies.f90 
+frequencies_LDFLAGS = 
+frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
 	$(LMPI) \
