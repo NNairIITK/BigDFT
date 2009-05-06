@@ -24,7 +24,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
      psigau,hpsigau,orbse,etol,norbsc_arr)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => DiagHam
+  use module_interfaces
   implicit none
   integer, intent(in) :: iproc,nproc,natsc,nspin
   real(gp), intent(in) :: etol
@@ -500,7 +500,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
      nullify(hpsi)
      hpsi => psi
 !     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
-    nullify(psi)
+     nullify(psi)
      psi => psit
   end if
 

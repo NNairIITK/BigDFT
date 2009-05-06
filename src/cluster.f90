@@ -24,7 +24,7 @@
   !local variables
   character(len=*), parameter :: subname='call_bigdft'
   integer :: i_stat,i_all,ierr,inputPsiId_orig,icycle
-  character*40 comment
+  character(len=40) :: comment
   !temporary interface
   interface
      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
@@ -56,10 +56,10 @@
      if (in%inputPsiId == 0 .and. associated(rst%psi)) then
         i_all=-product(shape(rst%psi))*kind(rst%psi)
         deallocate(rst%psi,stat=i_stat)
-        call memocc(i_stat,i_all,'psi',subname)
+        call memocc(i_stat,i_all,'rst%psi',subname)
         i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
         deallocate(rst%orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'eval',subname)
+        call memocc(i_stat,i_all,'rst%orbs%eval',subname)
 
         call deallocate_wfd(rst%Glr%wfd,subname)
      end if
@@ -96,10 +96,10 @@
 
         i_all=-product(shape(rst%psi))*kind(rst%psi)
         deallocate(rst%psi,stat=i_stat)
-        call memocc(i_stat,i_all,'psi',subname)
+        call memocc(i_stat,i_all,'rst%psi',subname)
         i_all=-product(shape(rst%orbs%eval))*kind(rst%orbs%eval)
         deallocate(rst%orbs%eval,stat=i_stat)
-        call memocc(i_stat,i_all,'eval',subname)
+        call memocc(i_stat,i_all,'rst%orbs%eval',subname)
 
         call deallocate_wfd(rst%Glr%wfd,subname)
         !finalize memory counting (there are still the positions and the forces allocated)
@@ -188,11 +188,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: spinsgn_foo,rho
   real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
-  ! Charge density/potential,ionic potential, pkernel
+  ! Charge density/potential,ionic potential, kernel
   real(kind=8), dimension(:), allocatable :: pot_ion
   real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot,rho_diag
   real(kind=8), dimension(:,:,:), allocatable :: m_norm
-  real(kind=8), dimension(:), pointer :: pkernel
+  real(kind=8), dimension(:), pointer :: kernel
   !wavefunction gradients, hamiltonian on vavefunction
   !transposed  wavefunction
   ! Pointers and variables to store the last psi
@@ -305,7 +305,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
   ndegree_ip=16 !default value 
-  call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel)
+  call createKernel(iproc,nproc,atoms%geocode,n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,kernel)
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call timing(iproc,'CrtDescriptors','ON')
@@ -359,10 +359,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call memocc(i_stat,fion,'fion',subname)
 
   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,rxyz,eion,fion,&
-       psoffset,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
+       psoffset,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,kernel)
 
   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
-       in%ef,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
+       in%ef,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,kernel,pot_ion,eion,psoffset)
 
   !Allocate Charge density, Potential in real space
   if (n3d >0) then
@@ -422,7 +422,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !and calculate eigenvalues
      call import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,atoms,orbs,comms,&
           nvctrp,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj, &
-          pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin)
+          kernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,in%nspin)
 
   else if (in%inputPsiId == 0) then 
      !temporary correction for non-collinear case in view of gaussian input guess
@@ -436,7 +436,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,atoms,&
           orbs,orbsv,nvirt,nvctrp,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
-          nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,nscatterarr,ngatherarr,nspin)
+          nlpspd,proj,kernel,ixc,psi,hpsi,psit,psivirt,nscatterarr,ngatherarr,nspin)
 !!$     if (in%nspin == 4) then
 !!$        orbs%norbu=orbs%norb
 !!$        orbs%norbd=0
@@ -635,12 +635,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         !this wrapper can be inserted inside the poisson solver 
         call PSolverNC(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3d,&
              ixc,hxh,hyh,hzh,&
-             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
+             rhopot,kernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
      else
               
         call PSolver(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
              ixc,hxh,hyh,hzh,&
-             rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,in%nspin)
+             rhopot,kernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,in%nspin)
         
      end if
 
@@ -743,7 +743,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call davidson(iproc,nproc,n1i,n2i,n3i,atoms,cpmult,fpmult,radii_cf,&
           orbs,orbsv,nvirt,gnrm_cv,nplot,nvctrp,Glr,comms,&
           hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,itermax,nlpspd,proj, &
-          pkernel,ixc,psi,psivirt,ncong,nscatterarr,ngatherarr)
+          kernel,ixc,psi,psivirt,ncong,nscatterarr,ngatherarr)
   end if
   
   !project the wavefunctions on a gaussian basis and keep in memory
@@ -890,7 +890,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !calculate electrostatic potential
   call DCOPY(n1i*n2i*n3p,rho,1,pot,1) 
   call PSolver(atoms%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-       pot,pkernel,pot,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1)
+       pot,kernel,pot,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1)
   !here nspin=1 since ixc=0
 
   !plot also the electrostatic potential
@@ -900,9 +900,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
           atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,pot)
   end if
 
-  i_all=-product(shape(pkernel))*kind(pkernel)
-  deallocate(pkernel,stat=i_stat)
-  call memocc(i_stat,i_all,'pkernel',subname)
+  i_all=-product(shape(kernel))*kind(kernel)
+  deallocate(kernel,stat=i_stat)
+  call memocc(i_stat,i_all,'kernel',subname)
 
   allocate(gxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,gxyz,'gxyz',subname)
@@ -1115,9 +1115,9 @@ contains
        deallocate(pot_ion,stat=i_stat)
        call memocc(i_stat,i_all,'pot_ion',subname)
 
-       i_all=-product(shape(pkernel))*kind(pkernel)
-       deallocate(pkernel,stat=i_stat)
-       call memocc(i_stat,i_all,'pkernel',subname)
+       i_all=-product(shape(kernel))*kind(kernel)
+       deallocate(kernel,stat=i_stat)
+       call memocc(i_stat,i_all,'kernel',subname)
 
        ! calc_tail false
        i_all=-product(shape(rhopot))*kind(rhopot)

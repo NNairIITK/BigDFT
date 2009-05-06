@@ -8,7 +8,7 @@
 # For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 #----------------------------------------------------------------------------
 # Check malloc.prc (verbose format i.e. memdebug == .true. in memory.f90)
-# Date: 03/05/2009
+# Date: 06/05/2009
 #----------------------------------------------------------------------------
 
 import sys
@@ -16,11 +16,10 @@ import sys
 def array_name(name):
     'Build different structures'
     ll = name.split('%')
-    if len(ll) <= 2:
+    if len(ll) <= 1:
         return [ name ]
     else:
        var = ll.pop()
-       var = ll.pop() + "%" + var
        ll.reverse()
        array = [ var ]
        for i in ll:
@@ -28,7 +27,13 @@ def array_name(name):
            array.append(var)
        return array
 
-fd = iter(open("malloc.prc","r").readlines())
+print "Read the file 'malloc.prc':"
+try:
+    fd = iter(open("malloc.prc","r").readlines())
+except IOError:
+    sys.stdout.write("The file 'malloc.prc' does not exist!\n")
+    sys.exit(1)
+
 #First line not useful
 fd.next()
 #Initialized dictionary of variables

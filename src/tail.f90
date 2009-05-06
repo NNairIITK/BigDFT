@@ -36,8 +36,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   integer, dimension(:,:,:), allocatable :: ibbyz_c,ibbyz_f,ibbxz_c,ibbxz_f,ibbxy_c,ibbxy_f
   real(kind=8), dimension(:,:), allocatable :: txyz,wrkallred
   real(kind=8), dimension(:), allocatable :: psib,hpsib,psir
-  integer, dimension(:), pointer :: keybv
-  integer, dimension(:,:), pointer :: keybg
+  integer, dimension(:), pointer :: keyv
+  integer, dimension(:,:), pointer :: keyg
 
   !for shrink:
   integer, allocatable, dimension(:,:,:) :: ibbzzx_c,ibbyyzz_c
@@ -232,15 +232,15 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
        ibbyz_c,ibbzxx_c,ibbxxyy_c,ibbyz_f,ibbyz_ff,ibbzxx_f,ibbxxyy_f,ibbyyzz_r)
 
   ! now fill the wavefunction descriptor arrays
-  allocate(keybg(2,nsegb_c+nsegb_f+ndebug),stat=i_stat)
-  call memocc(i_stat,keybg,'keybg',subname)
-  allocate(keybv(nsegb_c+nsegb_f+ndebug),stat=i_stat)
-  call memocc(i_stat,keybv,'keybv',subname)
+  allocate(keyg(2,nsegb_c+nsegb_f+ndebug),stat=i_stat)
+  call memocc(i_stat,keyg,'keyg',subname)
+  allocate(keyv(nsegb_c+nsegb_f+ndebug),stat=i_stat)
+  call memocc(i_stat,keyv,'keyv',subname)
   ! coarse grid quantities
-  call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,keybg(1,1),keybv(1))
+  call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,keyg(1,1),keyv(1))
 
   ! fine grid quantities
-  call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,keybg(1,nsegb_c+1),keybv(nsegb_c+1))
+  call segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,keyg(1,nsegb_c+1),keyv(nsegb_c+1))
 
   i_all=-product(shape(logrid_c))*kind(logrid_c)
   deallocate(logrid_c,stat=i_stat)
@@ -256,8 +256,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      wfdb%nvctr_f=nvctrb_f
      wfdb%nseg_c=nsegb_c
      wfdb%nseg_f=nsegb_f
-     wfdb%keyv => keybv
-     wfdb%keyg => keybg
+     wfdb%keyv => keyv
+     wfdb%keyg => keyg
   end if
 
 
@@ -342,8 +342,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      call transform_fortail(n1,n2,n3,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,&
           Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keyg(1,1),Glr%wfd%keyv(1),&
           Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keyg(1,Glr%wfd%nseg_c+1),Glr%wfd%keyv(Glr%wfd%nseg_c+1),  &
-          nsegb_c,nvctrb_c,keybg(1,1),keybv(1),nsegb_f,nvctrb_f,&
-          keybg(1,nsegb_c+1),keybv(nsegb_c+1),&
+          nsegb_c,nvctrb_c,keyg(1,1),keyv(1),nsegb_f,nvctrb_f,&
+          keyg(1,nsegb_c+1),keyv(nsegb_c+1),&
           nbuf,psi(1,iorb),psi(Glr%wfd%nvctr_c+1,iorb),  & 
           x_c,x_f,psib(1),psib(nvctrb_c+1))
 
@@ -361,7 +361,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
         !calculate gradient
         call applylocpotkinone(nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3,nbuf, &
-             hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keybg,keybv,  &
+             hgrid,nsegb_c,nsegb_f,nvctrb_c,nvctrb_f,keyg,keyv,  &
              ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,y_c,y_f,psir,  &
              psib,pot(1,1,1,ispin),hpsib,epot,ekin, &
              x_c,x_f1,x_f2,x_f3,x_f,w1,w2,&
@@ -378,7 +378,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
            call applyprojectorsone(at%ntypes,at%nat,at%iatype,at%psppar,at%npspcode, &
                 nlpspd%nprojel,nlpspd%nproj,nlpspd%nseg_p,&
                 nlpspd%keyg_p,nlpspd%keyv_p,nlpspd%nvctr_p,proj,  &
-                nsegb_c,nsegb_f,keybg,keybv,nvctrb_c,nvctrb_f,  & 
+                nsegb_c,nsegb_f,keyg,keyv,nvctrb_c,nvctrb_f,  & 
                 psib,hpsib,eproj)
            !write(*,'(a,2i3,2f12.8)') 'applyprojectorsone finished',iproc,iorb,eproj,sum_tail
         end if
@@ -396,9 +396,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         !calculate tail using the preconditioner as solver for the green function application
         cprecr=-orbs%eval(iorb+orbs%isorb)
         call precong(iorb+orbs%isorb,nb1,nb2,nb3,nbfl1,nbfu1,nbfl2,nbfu2,nbfl3,nbfu3, &
-             nsegb_c,nvctrb_c,nsegb_f,nvctrb_f,keybg,keybv, &
+             nsegb_c,nvctrb_c,nsegb_f,nvctrb_f,keyg,keyv, &
              ncongt,cprecr,hgrid,ibbyz_c,ibbxz_c,ibbxy_c,ibbyz_f,ibbxz_f,ibbxy_f,hpsib)
-        !call plot_wf(10,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
+        !call plot_wf(10,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keyg,keyv,nsegb_f,nvctrb_f,  & 
         !      txyz(1,1),txyz(2,1),txyz(3,1),psib)
 
         ! add tail to the bulk wavefunction
@@ -416,7 +416,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         epot1=epot
         eproj1=eproj
         !write(*,'(1x,a,1x,i0,f18.14)') 'norm orbital + tail',iorb,sum_tail
-        !call plot_wf(20,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keybg,keybv,nsegb_f,nvctrb_f,  & 
+        !call plot_wf(20,nb1,nb2,nb3,hgrid,nsegb_c,nvctrb_c,keyg,keyv,nsegb_f,nvctrb_f,  & 
         !      txyz(1,1),txyz(2,1),txyz(3,1),psib)
 
         sum_tail=1.d0/sum_tail
@@ -476,12 +476,12 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   if (DistProjApply) then
      call deallocate_wfd(wfdb,subname)
   else
-     i_all=-product(shape(keybg))*kind(keybg)
-     deallocate(keybg,stat=i_stat)
-     call memocc(i_stat,i_all,'keybg',subname)
-     i_all=-product(shape(keybv))*kind(keybv)
-     deallocate(keybv,stat=i_stat)
-     call memocc(i_stat,i_all,'keybv',subname)
+     i_all=-product(shape(keyg))*kind(keyg)
+     deallocate(keyg,stat=i_stat)
+     call memocc(i_stat,i_all,'keyg',subname)
+     i_all=-product(shape(keyv))*kind(keyv)
+     deallocate(keyv,stat=i_stat)
+     call memocc(i_stat,i_all,'keyv',subname)
   end if
 
   i_all=-product(shape(ibbyz_c))*kind(ibbyz_c)

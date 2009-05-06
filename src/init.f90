@@ -1,6 +1,18 @@
-!calculates the descriptor arrays and nvctrp
-!calculates also the bounds arrays needed for convolutions
-!refers this information to the global localisation region descriptor
+!!****f* BigDFT/
+!! FUNCTION
+!!   Calculates the descriptor arrays and nvctrp
+!!   Calculates also the bounds arrays needed for convolutions
+!!   Refers this information to the global localisation region descriptor
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_cf,&
      crmult,frmult,Glr,orbs,nvctrp)
   use module_base
@@ -182,6 +194,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_
   Glr%geocode=atoms%geocode
 
 end subroutine createWavefunctionsDescriptors
+!!***
 
 !pass to implicit none while inserting types on this routine
 subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,&

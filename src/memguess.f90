@@ -347,16 +347,39 @@ program memguess
   call memocc(i_stat,i_all,'logrid',subname)
   i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
   deallocate(nlpspd%nvctr_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nvctr_p',subname)
+  call memocc(i_stat,i_all,'nlpspd%nvctr_p',subname)
   i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
   deallocate(nlpspd%nseg_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nseg_p',subname)
+  call memocc(i_stat,i_all,'nlpspd%nseg_p',subname)
   i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
   deallocate(nlpspd%nboxp_c,stat=i_stat)
-  call memocc(i_stat,i_all,'nboxp_c',subname)
+  call memocc(i_stat,i_all,'nlpspd%nboxp_c',subname)
   i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
   deallocate(nlpspd%nboxp_f,stat=i_stat)
-  call memocc(i_stat,i_all,'nboxp_f',subname)
+  call memocc(i_stat,i_all,'nlpspd%nboxp_f',subname)
+  i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
+  deallocate(atoms%lfrztyp,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%lfrztyp',subname)
+  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
+  deallocate(atoms%natpol,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%natpol',subname)
+  i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
+  deallocate(atoms%psppar,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%psppar',subname)
+  i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
+  deallocate(atoms%npspcode,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%npspcode',subname)
+  i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
+  deallocate(atoms%nelpsp,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%nelpsp',subname)
+  !no need of using nzatom array
+  i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
+  deallocate(atoms%nzatom,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%nzatom',subname)
+  i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
+  deallocate(atoms%iasctype,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%iasctype',subname)
+
 
   call MemoryEstimator(atoms%geocode,nproc,in%idsx,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
        atoms%alat1,atoms%alat2,atoms%alat3,&
@@ -365,14 +388,22 @@ program memguess
 
   !add the comparison between cuda hamiltonian and normal one if it is the case
 
-  call deallocate_atoms_data(atoms,subname)
 
+  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
+  deallocate(atoms%atomnames,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%atomnames',subname)
   i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)
   call memocc(i_stat,i_all,'radii_cf',subname)
   i_all=-product(shape(rxyz))*kind(rxyz)
   deallocate(rxyz,stat=i_stat)
   call memocc(i_stat,i_all,'rxyz',subname)
+  i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
+  deallocate(atoms%iatype,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%iatype',subname)
+  i_all=-product(shape(atoms%amu))*kind(atoms%amu)
+  deallocate(atoms%amu,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%amu',subname)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')

@@ -671,8 +671,23 @@ end do hopping_loop
      endif
   endif
 
-  ! deallocations as in BigDFT
-  call deallocate_atoms_data(atoms,subname)
+  !deallocations as in BigDFT
+  i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
+  deallocate(atoms%lfrztyp,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%lfrztyp',subname)
+  i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
+  deallocate(atoms%iatype,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%iatype',subname)
+  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
+  deallocate(atoms%natpol,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%natpol',subname)
+  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
+  deallocate(atoms%atomnames,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%atomnames',subname)
+  i_all=-product(shape(atoms%amu))*kind(atoms%amu)
+  deallocate(atoms%amu,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%amu',subname)
+
   call free_restart_objects(rst,subname)
 
   ! deallocation of global's variables

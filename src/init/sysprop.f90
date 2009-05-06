@@ -105,7 +105,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,norb,norbu,
   if (associated(atoms%psppar)) then
      i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
      deallocate(atoms%psppar,stat=i_stat)
-     call memocc(i_stat,i_all,'psppar',subname)
+     call memocc(i_stat,i_all,'atoms%psppar',subname)
   end if
   allocate(atoms%psppar(0:4,0:6,atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%psppar,'atoms%psppar',subname)
@@ -113,7 +113,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,norb,norbu,
   if (associated(atoms%nelpsp)) then
       i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
       deallocate(atoms%nelpsp,stat=i_stat)
-      call memocc(i_stat,i_all,'nelpsp',subname)
+      call memocc(i_stat,i_all,'atoms%nelpsp',subname)
   end if
   allocate(atoms%nelpsp(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nelpsp,'atoms%nelpsp',subname)
@@ -121,7 +121,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,norb,norbu,
   if (associated(atoms%npspcode)) then
       i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
       deallocate(atoms%npspcode,stat=i_stat)
-      call memocc(i_stat,i_all,'npspcode',subname)
+      call memocc(i_stat,i_all,'atoms%npspcode',subname)
   end if
   allocate(atoms%npspcode(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%npspcode,'atoms%npspcode',subname)
@@ -129,7 +129,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,norb,norbu,
   if (associated(atoms%nzatom)) then
       i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
       deallocate(atoms%nzatom,stat=i_stat)
-      call memocc(i_stat,i_all,'nzatom',subname)
+      call memocc(i_stat,i_all,'atoms%nzatom',subname)
   end if
   allocate(atoms%nzatom(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%nzatom,'atoms%nzatom',subname)
@@ -137,7 +137,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,norb,norbu,
   if (associated(atoms%iasctype)) then
       i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
       deallocate(atoms%iasctype,stat=i_stat)
-      call memocc(i_stat,i_all,'iasctype',subname)
+      call memocc(i_stat,i_all,'atoms%iasctype',subname)
   end if
   allocate(atoms%iasctype(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%iasctype,'atoms%iasctype',subname)
@@ -145,7 +145,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,norb,norbu,
   if (associated(atoms%amu)) then
       i_all=-product(shape(atoms%amu))*kind(atoms%amu)
       deallocate(atoms%amu,stat=i_stat)
-      call memocc(i_stat,i_all,'amu',subname)
+      call memocc(i_stat,i_all,'atoms%amu',subname)
   end if
   allocate(atoms%amu(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%amu,'atoms%amu',subname)

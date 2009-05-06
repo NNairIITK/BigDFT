@@ -106,13 +106,13 @@ program BigDFT
 
   call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
 
-if (inputs%ncount_cluster_x > 1) then
-    if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
-    ! geometry optimization
-    open(unit=16,file='geopt.mon',status='unknown')
-    if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
-    call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
- end if
+  if (inputs%ncount_cluster_x > 1) then
+     if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+     ! geometry optimization
+     open(unit=16,file='geopt.mon',status='unknown')
+     if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
+     call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
+  end if
 
 
   if (iproc.eq.0) then
@@ -136,7 +136,22 @@ if (inputs%ncount_cluster_x > 1) then
   endif
 
   !deallocations
-  call deallocate_atoms_data(atoms,subname)
+  i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
+  deallocate(atoms%lfrztyp,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%lfrztyp',subname)
+  i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
+  deallocate(atoms%iatype,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%iatype',subname)
+  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
+  deallocate(atoms%natpol,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%natpol',subname)
+  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
+  deallocate(atoms%atomnames,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%atomnames',subname)
+  i_all=-product(shape(atoms%amu))*kind(atoms%amu)
+  deallocate(atoms%amu,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%amu',subname)
+
   call free_restart_objects(rst,subname)
 
   i_all=-product(shape(rxyz))*kind(rxyz)
@@ -145,6 +160,7 @@ if (inputs%ncount_cluster_x > 1) then
   i_all=-product(shape(fxyz))*kind(fxyz)
   deallocate(fxyz,stat=i_stat)
   call memocc(i_stat,i_all,'fxyz',subname)
+
 
   !finalize memory counting
   call memocc(0,0,'count','stop')

@@ -265,7 +265,22 @@ program frequencies
 
 
   !Deallocations
-  call deallocate_atoms_data(atoms,subname)
+  i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
+  deallocate(atoms%lfrztyp,stat=i_stat)
+  call memocc(i_stat,i_all,'lfrztyp',subname)
+  i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
+  deallocate(atoms%iatype,stat=i_stat)
+  call memocc(i_stat,i_all,'iatype',subname)
+  i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
+  deallocate(atoms%natpol,stat=i_stat)
+  call memocc(i_stat,i_all,'natpol',subname)
+  i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
+  deallocate(atoms%atomnames,stat=i_stat)
+  call memocc(i_stat,i_all,'atomnames',subname)
+  i_all=-product(shape(atoms%amu))*kind(atoms%amu)
+  deallocate(atoms%amu,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%amu',subname)
+
   call free_restart_objects(rst,subname)
 
   i_all=-product(shape(rxyz))*kind(rxyz)

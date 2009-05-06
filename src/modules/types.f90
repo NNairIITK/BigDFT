@@ -425,10 +425,10 @@ contains
 
     i_all=-product(shape(wfd%keyg))*kind(wfd%keyg)
     deallocate(wfd%keyg,stat=i_stat)
-    call memocc(i_stat,i_all,'keyg',subname)
+    call memocc(i_stat,i_all,'wfd%keyg',subname)
     i_all=-product(shape(wfd%keyv))*kind(wfd%keyv)
     deallocate(wfd%keyv,stat=i_stat)
-    call memocc(i_stat,i_all,'keyv',subname)
+    call memocc(i_stat,i_all,'wfd%keyv',subname)
 
   end subroutine deallocate_wfd
 !!***
