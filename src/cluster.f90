@@ -310,29 +310,29 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! TODO: integrate k points
   ! Remove me!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Here, I create a k points grid of 2x2x2 with a shift half.
-  call ab6_symmetry_new(symObj)
-  rprimd(:,:) = 0
-  rprimd(1,1) = atoms%alat1
-  rprimd(2,2) = atoms%alat2
-  rprimd(3,3) = atoms%alat3
-  call ab6_symmetry_set_lattice(symObj, rprimd, ierr)
-  allocate(xRed(3, atoms%nat))
-  xRed(1,:) = modulo(rxyz(1, :) / atoms%alat1, 1._dp)
-  xRed(2,:) = modulo(rxyz(2, :) / atoms%alat2, 1._dp)
-  xRed(3,:) = modulo(rxyz(3, :) / atoms%alat3, 1._dp)
-  call ab6_symmetry_set_structure(symObj, atoms%nat, atoms%iatype, xRed, ierr)
-  ! No spin here.
-  !call ab6_symmetry_set_spin(symObj, 2, spinAt, ierr)
-  ! No field here.
-  !call ab6_symmetry_set_field(symObj, (/ 0., 2., 0. /), ierr)
-  shiftk = reshape((/ 0.5, 0.5, 0.5 /), (/ 3, 1 /))
-  call ab6_symmetry_get_k_grid(symObj, nkpt, kpt, wkpt, ngkpt, 1, shiftk, ierr)
-  write(*,"(A,I3)") "k-points:", nkpt
-  do i = 1, nkpt, 1
-     write(*, "(I3,A,3F10.6,F12.6)") i, ":", kpt(:, i), wkpt(i)
-  end do
-  call ab6_symmetry_free(symObj)
-  deallocate(xRed) ! I deallocate here only since symObj get a pointer on it.
+  !   call ab6_symmetry_new(symObj)
+  !   rprimd(:,:) = 0
+  !   rprimd(1,1) = atoms%alat1
+  !   rprimd(2,2) = atoms%alat2
+  !   rprimd(3,3) = atoms%alat3
+  !   call ab6_symmetry_set_lattice(symObj, rprimd, ierr)
+  !   allocate(xRed(3, atoms%nat))
+  !   xRed(1,:) = modulo(rxyz(1, :) / atoms%alat1, 1._dp)
+  !   xRed(2,:) = modulo(rxyz(2, :) / atoms%alat2, 1._dp)
+  !   xRed(3,:) = modulo(rxyz(3, :) / atoms%alat3, 1._dp)
+  !   call ab6_symmetry_set_structure(symObj, atoms%nat, atoms%iatype, xRed, ierr)
+  !   ! No spin here.
+  !   !call ab6_symmetry_set_spin(symObj, 2, spinAt, ierr)
+  !   ! No field here.
+  !   !call ab6_symmetry_set_field(symObj, (/ 0., 2., 0. /), ierr)
+  !   shiftk = reshape((/ 0.5, 0.5, 0.5 /), (/ 3, 1 /))
+  !   call ab6_symmetry_get_k_grid(symObj, nkpt, kpt, wkpt, ngkpt, 1, shiftk, ierr)
+  !   write(*,"(A,I3)") "k-points:", nkpt
+  !   do i = 1, nkpt, 1
+  !      write(*, "(I3,A,3F10.6,F12.6)") i, ":", kpt(:, i), wkpt(i)
+  !   end do
+  !   call ab6_symmetry_free(symObj)
+  !   deallocate(xRed) ! I deallocate here only since symObj get a pointer on it.
   ! Remove me!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! TODO: integrate k points
 	
