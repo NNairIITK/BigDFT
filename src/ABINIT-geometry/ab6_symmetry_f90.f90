@@ -1,8 +1,6 @@
 module ab6_symmetry
 
   use defs_basis
-  use defs_datatypes
-  use interfaces_12geometry
 
   implicit none
 

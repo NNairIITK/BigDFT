@@ -241,11 +241,11 @@ abinit =
 endif
 
 libbigdft_a_SOURCES = \
+	$(abinit) \
 	$(mpi_source) \
 	BigDFT_API.f90 \
 	$(high_level) \
-	$(low_level) \
-	$(abinit)
+	$(low_level)
 
 libbigdft_a_LIBADD = profiling/time.o \
 	profiling/memory.o \
