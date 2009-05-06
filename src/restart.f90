@@ -332,7 +332,7 @@ subroutine readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  &
      filename = 'wavefunction.'//f4
      open(unit=99,file=filename,status='unknown')
 
-     call readonewave(99, .true.,iorb,iproc,n1,n2,n3, &
+     call readonewave(99, .true.,iorb+orbs%isorb*orbs%nspinor,iproc,n1,n2,n3, &
           & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
           psi(1,iorb),orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb),psifscf)
      close(99)
@@ -383,7 +383,7 @@ subroutine writemywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
      write(*,*) 'opening ',filename
      open(unit=99,file=filename,status='unknown')
 
-     call writeonewave(99,.true.,(iorb-1)/orbs%nspinor+1+orbs%isorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
+     call writeonewave(99,.true.,iorb+orbs%isorb*orbs%nspinor,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
           wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
           wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
           psi(1,iorb),psi(wfd%nvctr_c+1,iorb),orbs%norb,orbs%eval)

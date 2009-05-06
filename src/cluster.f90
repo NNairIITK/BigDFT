@@ -488,7 +488,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
 
-     call readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psi)
+     call readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
 
      !initialise control value for gnrm in the case of a restart
      gnrm_check=0.0_gp

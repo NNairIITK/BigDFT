@@ -111,7 +111,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   character(len=*), parameter :: subname='bfgs'
   real(gp) :: fluct,fnrm
   real(gp) ::sumx,sumy,sumz,fmax
-  logical :: check,switched,autoprecon,onlysih
+  logical :: check,switched,autoprecon,onlysih,previousfrozen
   !-------------------------------------------
   integer :: n,nr,iconf,i_all,i_stat,m,it,nwork,i,j,n_silicon,iter_old
   integer :: infocode,iprecon,iwrite,nitsd,histlen,nfluct
@@ -144,15 +144,6 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   end do
   if (iproc==0 .and. onlysih) write(*,*) "Number of Si for TB", n_silicon
 
-  !Count number of relaxing atoms, the fixed atoms have to be at the end of the files
-  !this feature is now useless since the positions are updated with move_atoms_positions
-!!$  nr=0
-!!$  do i=1,at%nat
-!!$     if ( .not. at%lfrztyp(i)) nr=nr+3
-!!$  enddo
-  !replaced with 
-  nr=3*at%nat
-!!$  if (iproc==0) write(*,*) "Number of atoms to relax", nr/3
 
   !-------------------------------------------------------------------------------------
   ehist(:)=1.d10
@@ -193,6 +184,35 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      m=3
      if (iproc==0)  write(*,*) "AUTO: Automatic precon activated"
   endif
+
+  !Count number of relaxing atoms, the fixed atoms have to be at the end of the files
+  !this feature is now useless when the positions are updated with atomic_coordinate_axpytoms_forces_positions
+  !use however this feature in the case of parmin%DIAGCO=true
+  !but the frozen atoms must be in the end of the posinp file, otherwise it exits
+  if (parmin%DIAGCO) then
+     nr=0
+     previousfrozen=.false.
+     do i=1,at%nat
+        if (at%ifrztyp(i) == 0 ) then 
+           if (previousfrozen) then
+              if (iproc ==0 )then
+                 write(*,*)'ERROR: the atom ',i,&
+                      'is not frozen and there are frozen atoms before it.'
+                 write(*,*)'this is not allowed for parmin%DIAGCO==.true. exiting...'
+              end if
+              stop
+           else
+              nr=nr+3
+           end if
+        else
+           previousfrozen=.true.
+        end if
+     enddo
+  else
+     !replaced with 
+     nr=3*at%nat
+  end if
+!!$  if (iproc==0) write(*,*) "Number of atoms to relax", nr/3
 
   allocate(hess(nr,nr),stat=i_stat)
   call memocc(i_stat,hess,'hess',subname)
@@ -249,7 +269,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   bfgs_loop: do ! main BFGS loop
 
      if((ncount_bigdft==0 .or. parmin%iflag==2 .or. switched) .and. parmin%DIAGCO) then
-        call apphess(at%nat,nr/3,alat,x,hess,eval,iproc,n_silicon)
+        call apphess(at,nr/3,alat,x,hess,eval,iproc,n_silicon)
 
         if (autoprecon .and. parmin%DIAGCO .and. eval(1).lt.-0.1d0) then
            if (iproc==0) write(*,*) "# AUTO: Negative eigenvalue, Switching off precon, BFGS"
@@ -281,7 +301,12 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         in%inputPsiId=1
         call call_bigdft(nproc,iproc,at,x,in,epot,f,rst,infocode)
 
-        if (iproc == 0) call transforce(at%nat,f)
+        if (iproc == 0) then
+           call transforce(at%nat,f,sumx,sumy,sumz)
+           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
+           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
+           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
+        end if
 
         ncount_bigdft=ncount_bigdft+1
         if (ncount_bigdft==1) ehist(1)=epot
@@ -294,32 +319,42 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
      endif
 
-     !the conversion must be changed here
-     !still I do not know why
-     do i=1,nr
-!!$        call atomic_dot(at,x,hess(1,i),xt(i))
-!!$        call atomic_dot(at,f,hess(1,i),ft(i))
-        xt(i)=ddot(nr,x,1,hess(1,i),1)
-        ft(i)=ddot(nr,f,1,hess(1,i),1)
-     enddo
+     if (parmin%DIAGCO) then
+        do i=1,nr
+           xt(i)=ddot(nr,x,1,hess(1,i),1)
+           ft(i)=ddot(nr,f,1,hess(1,i),1)
+        enddo
+     else
+        do i=1,nr
+           !in that case the hessian is diagonal
+           call atomic_dot(at,x,hess(1,i),xt(i))
+           call atomic_dot(at,f,hess(1,i),ft(i))
+        end do
+!!$        xt(:)=x(:)
+!!$        ft(:)=f(:)
+     end if
 
      call lbfgs(at,nr,m,xt,xtc,epot,ft,diag,work,parmin,iproc,iwrite)
 
      xc(:)=x(:)
-     do i=1,nr 
-        if (.not. at%lfrztyp((i-1)/3+1)) then
-           x(i)=0.0_gp
-           f(i)=0.0_gp
-           xc(i)=0.0_gp
-           do j=1,nr 
-              if (.not. at%lfrztyp((j-1)/3+1)) then
-                 x(i)=x(i)+xt(j)*hess(i,j)
-                 f(i)=f(i)+ft(j)*hess(i,j)
-                 xc(i)=xc(i)+xtc(j)*hess(i,j)    
-              end if
-           enddo
-        end if
-     enddo
+
+     call atomic_gemv(at,nr,1.0_gp,hess,xt,0.0_gp,x,x)
+     call atomic_gemv(at,nr,1.0_gp,hess,ft,0.0_gp,f,f)
+     call atomic_gemv(at,nr,1.0_gp,hess,xtc,0.0_gp,xc,xc)
+!!$     do i=1,nr 
+!!$        if (at%ifrztyp((i-1)/3+1) == 0) then
+!!$           x(i)=0.0_gp
+!!$           f(i)=0.0_gp
+!!$           xc(i)=0.0_gp
+!!$           do j=1,nr 
+!!$              if (at%ifrztyp((j-1)/3+1) == 0) then
+!!$                 x(i)=x(i)+xt(j)*hess(i,j)
+!!$                 f(i)=f(i)+ft(j)*hess(i,j)
+!!$                 xc(i)=xc(i)+xtc(j)*hess(i,j)    
+!!$              end if
+!!$           enddo
+!!$        end if
+!!$     enddo
 
      if (iwrite==iter_old+1 ) then
         xwrite(:)=xdft(:)
@@ -361,7 +396,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         if (iproc==0)  write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*in%frac_fluct,fluct
         iter_old=iwrite
         if (autoprecon .and. (.not. parmin%DIAGCO) .and. iwrite >= 5) then
-           call apphess(at%nat,nr/3,alat,x,hesst,evalt,iproc,n_silicon)
+           call apphess(at,nr/3,alat,x,hesst,evalt,iproc,n_silicon)
            if (evalt(1).gt.-0.1d0) then
               if (iproc==0) write(*,*) "AUTO: Switching on precon, eval is checked, BFGS"
               if (iproc==0) write(16,*) " BFGS: Switching on precon, eval is checked", evalt(1)
@@ -566,28 +601,34 @@ function calnorm(n,v)
   calnorm=sqrt(calnorm)
 end function calnorm
 !*******************************************************************************
-subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
+subroutine apphess(at,nr,alat0,pos0,hess,eval,iproc,n_silicon)
   use module_base
+  use module_types
   implicit none
-  integer:: nat , nr, lwork , i, j, k, info, iproc,n_silicon
-  real(gp) :: h, rlarge,twelfth, twothird, rcount, dm, s, cmx, cmy, cmz, t1, t2, t3
+  integer:: nr, lwork , i, j, k, info, iproc,n_silicon
+  real(gp) :: h, rlarge,twelfth, twothird, count, dm, s, cmx, cmy, cmz, t1, t2, t3
+  type(atoms_data), intent(in) :: at
   real(gp), dimension(3) :: alat0,alat
   real(gp), dimension(3*nr) :: eval
-  real(gp), dimension(3*nat) :: pos0
+  real(gp), dimension(3*at%nat) :: pos0
   real(gp), dimension(3*nr,3*nr) :: hess
   !local variables
   character(len=*), parameter :: subname='apphess'
-  integer :: i_stat,i_all
+  logical :: movethis,move_this_coordinate
+  integer :: i_stat,i_all,iat,ixyz
   real(gp) :: etot, shift ,tt
+  real(gp), dimension(3*nr) :: zeroes
   real(gp), allocatable, dimension(:) :: grad,tpos,tposall,work,pos
 
-  allocate(tposall(3*nat),stat=i_stat)
+  zeroes=0.0_gp
+
+  allocate(tposall(3*at%nat),stat=i_stat)
   call memocc(i_stat,tposall,'tposall',subname)
   allocate(tpos(3*nr),stat=i_stat)
   call memocc(i_stat,tpos,'tpos',subname)
-  allocate(grad(3*nat),stat=i_stat)
+  allocate(grad(3*at%nat),stat=i_stat)
   call memocc(i_stat,grad,'grad',subname)
-  allocate(pos(3*nat),stat=i_stat)
+  allocate(pos(3*at%nat),stat=i_stat)
   call memocc(i_stat,pos,'pos',subname)
 
   pos(:)=pos0(:)*0.529177249_gp
@@ -596,7 +637,7 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
   !        lwork=100*nat
   lwork=100*nr
 
-  ! call lenoskytb(nat,alat,pos,grad,etot,rcount,n_silicon)
+  ! call lenoskytb(nat,alat,pos,grad,etot,count,n_silicon)
   ! do i=1,nat
   ! write(iproc+100,*) grad(3*(i-1)+1), grad(3*(i-1)+2), grad(3*(i-1)+3)
   ! enddo 
@@ -612,12 +653,27 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
   rlarge=1.e6_gp
   twelfth=-1._gp/(12._gp*h)
   twothird=-2._gp/(3._gp*h)
-  rcount=0._gp
+  count=0._gp
 
   !      do i=1,3*nat
   do i=1,3*nr
 
-     do k=1,3*nat
+     !atomic index
+     iat=(i-1)/3+1
+     !direction index
+     ixyz=i-3*(iat-1)
+     !calculate if the position can be moved
+     !following the frozen atom type
+     movethis=move_this_coordinate(at%ifrztyp(iat),ixyz)
+     
+     !if the coordinate is frozen put to identity the hessian matrix
+     if (.not. movethis) then
+        hess(:,i)=0.0_gp
+        hess(i,i)=1.0_gp
+        cycle
+     end if
+
+     do k=1,3*at%nat
         !        tpos(k)=pos(k)
         tposall(k)=pos(k)
         grad(k)=0._gp
@@ -627,45 +683,73 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
         tpos(k)=pos(k)
      enddo
 
-     tpos(i)=tpos(i)-2*h
-     tposall(i)=tposall(i)-2*h
-     !call energyandforces_app(nat,alat,tpos,grad,etot,rcount)
-     !        call lenoskytb(nat,alat,tpos,grad,etot,rcount,n_silicon)
-     call lenoskytb(nat,alat,tposall,grad,etot,rcount,n_silicon)
-     do j=1,3*nr
-        !        do j=1,3*nat
-        hess(j,i)=twelfth*grad(j)
-     enddo
+     call atomic_coordinate_axpy(at,ixyz,iat,tpos(i),-2.0_gp*h,tpos(i))
+     call atomic_coordinate_axpy(at,ixyz,iat,tposall(i),-2.0_gp*h,tposall(i))
 
-     tpos(i)=tpos(i)+h
-     tposall(i)=tposall(i)+h
-     !call energyandforces_app(nat,alat,tpos,grad,etot,rcount)
-     !        call lenoskytb(nat,alat,tpos,grad,etot,rcount,n_silicon)
-     call lenoskytb(nat,alat,tposall,grad,etot,rcount,n_silicon)
-     do j=1,3*nr
-        !        do j=1,3*nat
-        hess(j,i)=hess(j,i)-twothird*grad(j)
-     enddo
+!!$     tpos(i)=tpos(i)-2*h
+!!$     tposall(i)=tposall(i)-2*h
 
-     tpos(i)=tpos(i)+2*h
-     tposall(i)=tposall(i)+2*h
-     !call energyandforces_app(nat,alat,tpos,grad,etot,rcount)
-     !        call lenoskytb(nat,alat,tpos,grad,etot,rcount,n_silicon)
-     call lenoskytb(nat,alat,tposall,grad,etot,rcount,n_silicon)
-     do j=1,3*nr
-        !        do j=1,3*nat
-        hess(j,i)=hess(j,i)+twothird*grad(j)
-     enddo
+     !call energyandforces_app(nat,alat,tpos,grad,etot,count)
+     !        call lenoskytb(nat,alat,tpos,grad,etot,count,n_silicon)
+     call lenoskytb(at%nat,alat,tposall,grad,etot,count,n_silicon)
 
-     tpos(i)=tpos(i)+h
-     tposall(i)=tposall(i)+h
-     !call energyandforces_app(nat,alat,tpos,grad,etot,rcount)
-     !        call lenoskytb(nat,alat,tpos,grad,etot,rcount,n_silicon)
-     call lenoskytb(nat,alat,tposall,grad,etot,rcount,n_silicon)
-     do j=1,3*nr
-        !        do j=1,3*nat
-        hess(j,i)=hess(j,i)-twelfth*grad(j)
-     enddo
+     call atomic_axpy_forces(at,zeroes,twelfth,grad,hess(1,i))
+!!$     ! routine move_atom_positions to be entered
+!!$     do j=1,3*nr
+!!$        !        do j=1,3*nat
+!!$        hess(j,i)=twelfth*grad(j)
+!!$     enddo
+
+     !move_coordinates here
+     call atomic_coordinate_axpy(at,ixyz,iat,tpos(i),h,tpos(i))
+     call atomic_coordinate_axpy(at,ixyz,iat,tposall(i),h,tposall(i))
+!!$     tpos(i)=tpos(i)+h
+!!$     tposall(i)=tposall(i)+h
+
+     !call energyandforces_app(nat,alat,tpos,grad,etot,count)
+     !        call lenoskytb(nat,alat,tpos,grad,etot,count,n_silicon)
+     call lenoskytb(at%nat,alat,tposall,grad,etot,count,n_silicon)
+
+     call atomic_axpy_forces(at,hess(1,i),-twothird,grad,hess(1,i))
+!!$     !move_atom_positions
+!!$     do j=1,3*nr
+!!$        !        do j=1,3*nat
+!!$        hess(j,i)=hess(j,i)-twothird*grad(j)
+!!$     enddo
+
+     !move coordinate
+     call atomic_coordinate_axpy(at,ixyz,iat,tpos(i),2.0_gp*h,tpos(i))
+     call atomic_coordinate_axpy(at,ixyz,iat,tposall(i),2.0_gp*h,tposall(i))
+!!$     tpos(i)=tpos(i)+2*h
+!!$     tposall(i)=tposall(i)+2*h
+
+     !call energyandforces_app(nat,alat,tpos,grad,etot,count)
+     !        call lenoskytb(nat,alat,tpos,grad,etot,count,n_silicon)
+     call lenoskytb(at%nat,alat,tposall,grad,etot,count,n_silicon)
+
+     call atomic_axpy_forces(at,hess(1,i),twothird,grad,hess(1,i))
+!!$     !move_atom_positions
+!!$     do j=1,3*nr
+!!$        !        do j=1,3*nat
+!!$        hess(j,i)=hess(j,i)+twothird*grad(j)
+!!$     enddo
+
+     !move coordinates
+     call atomic_coordinate_axpy(at,ixyz,iat,tpos(i),h,tpos(i))
+     call atomic_coordinate_axpy(at,ixyz,iat,tposall(i),h,tposall(i))
+!!$     tpos(i)=tpos(i)+h
+!!$     tposall(i)=tposall(i)+h
+     !call energyandforces_app(nat,alat,tpos,grad,etot,count)
+     !        call lenoskytb(nat,alat,tpos,grad,etot,count,n_silicon)
+     call lenoskytb(at%nat,alat,tposall,grad,etot,count,n_silicon)
+
+     !should it be twothird?
+     call atomic_axpy_forces(at,hess(1,i),-twelfth,grad,hess(1,i))
+!!$     !move_atom_positions
+!!$     do j=1,3*nr
+!!$        !        do j=1,3*nat
+!!$        hess(j,i)=hess(j,i)-twelfth*grad(j)
+!!$     enddo
 
   enddo
 
@@ -685,36 +769,42 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
      if (iproc==0) write(16,*) 'max dev from sym',dm
   endif
 
-
-  if(nr==nat) then
+  !this statement means that there are no blocked atoms
+  if(nr==at%nat) then
      ! project out rotations 
-     cmx=0._gp ; cmy=0._gp ; cmz=0._gp
-     do i=1,3*nat-2,3
+     cmx=0._gp 
+     cmy=0._gp 
+     cmz=0._gp
+     do i=1,3*at%nat-2,3
         cmx=cmx+pos(i+0)
         cmy=cmy+pos(i+1)
         cmz=cmz+pos(i+2)
      enddo
-     cmx=cmx/nat ; cmy=cmy/nat ; cmz=cmz/nat
+     cmx=cmx/at%nat 
+     cmy=cmy/at%nat 
+     cmz=cmz/at%nat
 
      ! x-y plane
-     do i=1,3*nat-2,3
+     do i=1,3*at%nat-2,3
         work(i+1)= (pos(i+0)-cmx)
         work(i+0)=-(pos(i+1)-cmy)
      enddo
 
-     t1=0._gp  ; t2=0._gp 
-     do i=1,3*nat-2,3
+     t1=0._gp  
+     t2=0._gp 
+     do i=1,3*at%nat-2,3
         t1=t1+work(i+0)**2
         t2=t2+work(i+1)**2
      enddo
-     t1=sqrt(.5_gp*rlarge/t1) ; t2=sqrt(.5_gp*rlarge/t2) 
-     do i=1,3*nat-2,3
+     t1=sqrt(.5_gp*rlarge/t1) 
+     t2=sqrt(.5_gp*rlarge/t2) 
+     do i=1,3*at%nat-2,3
         work(i+0)=work(i+0)*t1
         work(i+1)=work(i+1)*t2
      enddo
 
-     do j=1,3*nat-2,3
-        do i=1,3*nat-2,3
+     do j=1,3*at%nat-2,3
+        do i=1,3*at%nat-2,3
            hess(i+0,j+0)=hess(i+0,j+0)+work(i+0)*work(j+0)
            hess(i+1,j+0)=hess(i+1,j+0)+work(i+1)*work(j+0)
            hess(i+0,j+1)=hess(i+0,j+1)+work(i+0)*work(j+1)
@@ -723,24 +813,25 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
      enddo
 
      ! x-z plane
-     do i=1,3*nat-2,3
+     do i=1,3*at%nat-2,3
         work(i+2)= (pos(i+0)-cmx)
         work(i+0)=-(pos(i+2)-cmz)
      enddo
 
      t1=0._gp  ; t3=0._gp 
-     do i=1,3*nat-2,3
+     do i=1,3*at%nat-2,3
         t1=t1+work(i+0)**2
         t3=t3+work(i+2)**2
      enddo
-     t1=sqrt(.5_gp*rlarge/t1) ;  t3=sqrt(.5_gp*rlarge/t3)
-     do i=1,3*nat-2,3
+     t1=sqrt(.5_gp*rlarge/t1) 
+     t3=sqrt(.5_gp*rlarge/t3)
+     do i=1,3*at%nat-2,3
         work(i+0)=work(i+0)*t1
         work(i+2)=work(i+2)*t3
      enddo
 
-     do j=1,3*nat-2,3
-        do i=1,3*nat-2,3
+     do j=1,3*at%nat-2,3
+        do i=1,3*at%nat-2,3
            hess(i+0,j+0)=hess(i+0,j+0)+work(i+0)*work(j+0)
            hess(i+2,j+0)=hess(i+2,j+0)+work(i+2)*work(j+0)
            hess(i+0,j+2)=hess(i+0,j+2)+work(i+0)*work(j+2)
@@ -749,24 +840,26 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
      enddo
 
      ! y-z plane
-     do i=1,3*nat-2,3
+     do i=1,3*at%nat-2,3
         work(i+2)= (pos(i+1)-cmy)
         work(i+1)=-(pos(i+2)-cmz)
      enddo
 
-     t2=0._gp ; t3=0._gp
-     do i=1,3*nat-2,3
+     t2=0._gp 
+     t3=0._gp
+     do i=1,3*at%nat-2,3
         t2=t2+work(i+1)**2
         t3=t3+work(i+2)**2
      enddo
-     t2=sqrt(.5_gp*rlarge/t2) ; t3=sqrt(.5_gp*rlarge/t3)
-     do i=1,3*nat-2,3
+     t2=sqrt(.5_gp*rlarge/t2) 
+     t3=sqrt(.5_gp*rlarge/t3)
+     do i=1,3*at%nat-2,3
         work(i+1)=work(i+1)*t2
         work(i+2)=work(i+2)*t3
      enddo
 
-     do j=1,3*nat-2,3
-        do i=1,3*nat-2,3
+     do j=1,3*at%nat-2,3
+        do i=1,3*at%nat-2,3
            hess(i+1,j+1)=hess(i+1,j+1)+work(i+1)*work(j+1)
            hess(i+2,j+1)=hess(i+2,j+1)+work(i+2)*work(j+1)
            hess(i+1,j+2)=hess(i+1,j+2)+work(i+1)*work(j+2)
@@ -774,11 +867,10 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
         enddo
      enddo
 
-
      ! Project out translations
-     shift=rlarge/nat
-     do j=1,3*nat-2,3
-        do i=1,3*nat-2,3
+     shift=rlarge/at%nat
+     do j=1,3*at%nat-2,3
+        do i=1,3*at%nat-2,3
            hess(i+0,j+0)=hess(i+0,j+0)+shift
            hess(i+1,j+1)=hess(i+1,j+1)+shift
            hess(i+2,j+2)=hess(i+2,j+2)+shift
@@ -791,12 +883,12 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
   !check
   !        call DSYEV('V','L',3*nat,hess,3*nat,eval,WORK,LWORK,INFO)
 
+  !for blockend atoms there will be some one eigenvalues
   call DSYEV('V','L',3*nr,hess,3*nr,eval,WORK,LWORK,INFO)
 
-  if (info.ne.0) stop 'DSYEV'
+  if (info /= 0) stop 'DSYEV'
 
-
-  if (eval(1).lt.0.d0) then
+  if (eval(1) < 0.d0) then
      if (iproc==0) then
         write(*,*) "WARNING: negative eigenvalues in apphess"
         write(*,*) '-----------  App. eigenvalues in a.u. -------------'
@@ -806,8 +898,6 @@ subroutine apphess(nat,nr,alat0,pos0,hess,eval,iproc,n_silicon)
      endif
      ! stop
   endif
-
-
 
   i_all=-product(shape(grad))*kind(grad)
   deallocate(grad,stat=i_stat)
@@ -860,7 +950,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   character(len=*), parameter :: subname='conjgrad'  
   integer :: nfail,it,iat,i_all,i_stat,infocode, nitsd
   real(gp) :: anoise,fluct,avbeta,avnum,fnrm,etotprec,beta0,beta
-  real(gp) :: y0,y1,tt,sumx,sumy,sumz,obenx,obeny,obenz,unten,rlambda,tetot,fmax,tmp
+  real(gp) :: y0,y1,tt,sumx,sumy,sumz,oben1,oben2,oben,unten,rlambda,tetot,fmax,tmp
   real(gp), dimension(:,:), allocatable :: tpos,gpf,hh
   logical::check
   character*4 fn4
@@ -920,7 +1010,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         it=it+1
 
         !C line minimize along hh ----
-        call move_atoms_positions(at,rxyz,beta0,hh,tpos)
+        call atomic_axpy(at,rxyz,beta0,hh,tpos)
 !!$        do iat=1,at%nat
 !!$           if (at%lfrztyp(iat)) then
 !!$              tpos(1,iat)=rxyz(1,iat)
@@ -947,7 +1037,12 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         in%output_grid=0
         in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,tpos,in,tetot,gpf,rst,infocode)
-        if (iproc == 0) call transforce(at%nat,gpf)
+        if (iproc == 0) then
+           call transforce(at%nat,gpf,sumx,sumy,sumz)
+           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
+           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
+           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
+        end if
         ncount_bigdft=ncount_bigdft+1
 
         !C projection of gradients at beta=0 and beta onto hh
@@ -966,7 +1061,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         beta=beta0*max(min(tt,2._gp),-.25_gp)
         
         tpos=rxyz
-        call move_atoms_positions(at,rxyz,beta,hh,rxyz)
+        call atomic_axpy(at,rxyz,beta,hh,rxyz)
 !!$        do iat=1,at%nat
 !!$           tpos(1,iat)=rxyz(1,iat)
 !!$           tpos(2,iat)=rxyz(2,iat)
@@ -999,7 +1094,12 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         end do
 
         call call_bigdft(nproc,iproc,at,rxyz,in,etot,fxyz,rst,infocode)
-        if (iproc == 0) call transforce(at%nat,fxyz)
+        if (iproc == 0) then
+           call transforce(at%nat,fxyz,sumx,sumy,sumz)
+           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
+           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
+           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
+        end if
         ncount_bigdft=ncount_bigdft+1
         !if the energy goes up (a small tolerance of anoise is allowed)
         !switch back to SD
@@ -1041,16 +1141,22 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         if (fmax < 3.d-1) call updatefluctsum(at%nat,fxyz,nfluct,fluctsum,fluct)
 
 
-        obenx=0._gp
-        obeny=0._gp
-        obenz=0._gp
-        unten=0._gp
-        do iat=1,at%nat
-           obenx=obenx+(fxyz(1,iat)-gpf(1,iat))*fxyz(1,iat)
-           obeny=obeny+(fxyz(2,iat)-gpf(2,iat))*fxyz(2,iat)
-           obenz=obenz+(fxyz(3,iat)-gpf(3,iat))*fxyz(3,iat)
-           unten=unten+gpf(1,iat)**2+gpf(2,iat)**2+gpf(3,iat)**2
-        end do
+        call atomic_dot(at,gpf,gpf,unten)
+        call atomic_dot(at,gpf,fxyz,oben1)
+        call atomic_dot(at,fxyz,fxyz,oben2)
+        oben=oben2-oben1
+
+!!$        obenx=0._gp
+!!$        obeny=0._gp
+!!$        obenz=0._gp
+!!$        unten=0._gp
+!!$        do iat=1,at%nat
+!!$           obenx=obenx+(fxyz(1,iat)-gpf(1,iat))*fxyz(1,iat)
+!!$           obeny=obeny+(fxyz(2,iat)-gpf(2,iat))*fxyz(2,iat)
+!!$           obenz=obenz+(fxyz(3,iat)-gpf(3,iat))*fxyz(3,iat)
+!!$           unten=unten+gpf(1,iat)**2+gpf(2,iat)**2+gpf(3,iat)**2
+!!$        end do
+
         call fnrmandforcemax(fxyz,fnrm,fmax,at)
         if (iproc.eq.0) then
            write(16,'(i5,1x,e12.5,1x,e21.14,a,1x,e9.2)')it,sqrt(fnrm),etot,' GEOPT CG ',beta/in%betax
@@ -1075,9 +1181,6 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            return
         endif
 
-
-
-
         !if no convergence is reached after 500 CG steps
         !switch back to SD
         if (it.eq.500) then
@@ -1092,7 +1195,8 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
               rxyz(3,iat)=tpos(3,iat)
            end do
 
-           call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,fluctsum,nfluct,fnrm,in,in%forcemax,nitsd,fluct)
+           call steepdes(nproc,iproc,at,rxyz,etot,fxyz,rst,ncount_bigdft,&
+                fluctsum,nfluct,fnrm,in,in%forcemax,nitsd,fluct)
 
            !calculate the max of the forces
            call fnrmandforcemax(fxyz,tmp,fmax,at)
@@ -1109,12 +1213,14 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
            cycle redo_cg
         endif
 
-        rlambda=(obenx+obeny+obenz)/unten
-        do iat=1,at%nat
-           hh(1,iat)=fxyz(1,iat)+rlambda*hh(1,iat)
-           hh(2,iat)=fxyz(2,iat)+rlambda*hh(2,iat)
-           hh(3,iat)=fxyz(3,iat)+rlambda*hh(3,iat)
-        end do
+        !rlambda=(obenx+obeny+obenz)/unten
+        rlambda=oben/unten
+        call atomic_axpy_forces(at,fxyz,rlambda,hh,hh)
+!!$        do iat=1,at%nat
+!!$           hh(1,iat)=fxyz(1,iat)+rlambda*hh(1,iat)
+!!$           hh(2,iat)=fxyz(2,iat)+rlambda*hh(2,iat)
+!!$           hh(3,iat)=fxyz(3,iat)+rlambda*hh(3,iat)
+!!$        end do
      end do loop_cg
      exit redo_cg
   end do redo_cg
@@ -1146,7 +1252,8 @@ contains
 
 end subroutine conjgrad
 
-subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,nfluct,fnrm,in,forcemax_sw,nitsd,fluct)
+subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
+     nfluct,fnrm,in,forcemax_sw,nitsd,fluct)
   use module_base
   use module_types
   !use module_interfaces
@@ -1216,7 +1323,12 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,nfluc
         in%output_grid=0
         in%output_wf=.false.
         call call_bigdft(nproc,iproc,at,rxyz,in,etot,ff,rst,infocode)
-        if (iproc == 0) call transforce(at%nat,ff)
+        if (iproc == 0) then
+           call transforce(at%nat,ff,sumx,sumy,sumz)
+           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
+           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
+           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
+        end if
         ncount_bigdft=ncount_bigdft+1
 
         !if the energy goes up (a small tolerance is allowed by anoise)
@@ -1350,7 +1462,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,nfluc
         if (iproc.eq.0) write(16,*) 'beta=',beta
 
         tpos=rxyz
-        call move_atoms_positions(at,rxyz,beta,ff,rxyz)
+        call atomic_axpy(at,rxyz,beta,ff,rxyz)
 
 !!$        do iat=1,at%nat
 !!$           tpos(1,iat)=rxyz(1,iat)
@@ -1422,18 +1534,21 @@ subroutine detbetax(nproc,iproc,at,pos,rst,in,ncount_bigdft)
      ncount_bigdft=ncount_bigdft+1
      sum=0.0_gp
 
+     call atomic_dot(at,ff,ff,sum)
+     sum=sum*beta0**2
+
      do iat=1,at%nat
         tpos(1,iat)=pos(1,iat)
         tpos(2,iat)=pos(2,iat)
         tpos(3,iat)=pos(3,iat)
-
-        t1=beta0*ff(1,iat)
-        t2=beta0*ff(2,iat)
-        t3=beta0*ff(3,iat)
-        sum=sum+t1**2+t2**2+t3**2
+!!$
+!!$        t1=beta0*ff(1,iat)
+!!$        t2=beta0*ff(2,iat)
+!!$        t3=beta0*ff(3,iat)
+!!$        sum=sum+t1**2+t2**2+t3**2
      end do
 
-     call move_atoms_positions(at,pos,beta0,ff,pos)
+     call atomic_axpy(at,pos,beta0,ff,pos)
 
 !!$     do iat=1,at%nat
 !!$        tpos(1,iat)=pos(1,iat)
@@ -1475,7 +1590,7 @@ subroutine detbetax(nproc,iproc,at,pos,rst,in,ncount_bigdft)
      endif
 
      
-     call move_atoms_positions(at,pos,beta0,ff,tpos)
+     call atomic_axpy(at,pos,beta0,ff,tpos)
 
 !!$     do iat=1,at%nat
 !!$        if (at%lfrztyp(iat)) then
@@ -1513,7 +1628,7 @@ subroutine detbetax(nproc,iproc,at,pos,rst,in,ncount_bigdft)
         beta=min(beta,.5_gp/der2)
      endif
 
-     call move_atoms_positions(at,pos,tt,ff,tpos)
+     call atomic_axpy(at,pos,tt,ff,tpos)
 
 !!$     do iat=1,at%nat
 !!$        if ( .not. at%lfrztyp(iat)) then
@@ -1578,23 +1693,29 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,at)
   real(gp), intent(out):: fnrm, fmax
   real(gp):: t1,t2,t3
   integer:: iat
-  t1=0._gp 
-  t2=0._gp 
-  t3=0._gp
+
+!!$  t1=0._gp 
+!!$  t2=0._gp 
+!!$  t3=0._gp
   fmax=0._gp
   do iat=1,at%nat
-     if (.not. at%lfrztyp(iat)) then
-        t1=t1+ff(1,iat)**2 
-        t2=t2+ff(2,iat)**2 
-        t3=t3+ff(3,iat)**2
+     call frozen_alpha(at%ifrztyp(iat),1,ff(1,iat)**2,t1)
+     call frozen_alpha(at%ifrztyp(iat),2,ff(2,iat)**2,t2)
+     call frozen_alpha(at%ifrztyp(iat),3,ff(3,iat)**2,t3)
+     fmax=max(fmax,sqrt(t1+t2+t3))
+!!$     if (at%ifrztyp(iat) == 0) then
+!!$        t1=t1+ff(1,iat)**2 
+!!$        t2=t2+ff(2,iat)**2 
+!!$        t3=t3+ff(3,iat)**2
         !in general fmax is measured with the inf norm
-        fmax=max(fmax,sqrt(ff(1,iat)**2+ff(2,iat)**2+ff(3,iat)**2))
+!!$     fmax=max(fmax,sqrt(ff(1,iat)**2+ff(2,iat)**2+ff(3,iat)**2))
         !fmax=max(fmax,abs(ff(1,iat)),abs(ff(2,iat)),abs(ff(3,iat)))
-     end if
+!!$     end if
   enddo
 
   !this is the norm of the forces of non-blocked atoms
-  fnrm=t1+t2+t3
+  call atomic_dot(at,ff,ff,fnrm)
+!!$  fnrm=t1+t2+t3
 end subroutine fnrmandforcemax
 
 
@@ -1610,15 +1731,10 @@ subroutine updatefluctsum(nat,fxyz,nfluct,fluctsum,fluct)
   integer :: iat
   real(gp) :: sumx,sumy,sumz
 
-  sumx=0._gp 
-  sumy=0._gp 
-  sumz=0._gp
-  do iat=1,nat
-     sumx=sumx+fxyz(1,iat) 
-     sumy=sumy+fxyz(2,iat) 
-     sumz=sumz+fxyz(3,iat)
-  end do
+
+  call transforce(nat,fxyz,sumx,sumy,sumz)
   nfluct=nfluct+1
+
 !!$  !limit the fluctuation value to n=3
 !!$  !to be done only in the case of SDCG
 !!$  !for BFGS it is best to consider everything
@@ -1640,13 +1756,15 @@ subroutine updatefluctsum(nat,fxyz,nfluct,fluctsum,fluct)
   fluct=fluctsum*sqrt(real(nat,gp))/real(nfluct,gp)
 end subroutine updatefluctsum
 
-subroutine transforce(nat,fxyz)
+!should we evaluate the translational force also with blocked atoms?
+subroutine transforce(nat,fxyz,sumx,sumy,sumz)
   use module_base
   implicit none
   real(gp),intent(in):: fxyz(3,nat)
-  real(gp):: sumx,sumy,sumz
+  real(gp), intent(out) :: sumx,sumy,sumz
   integer ::iat, nat
 
+  !atomic_dot with one
   sumx=0._gp 
   sumy=0._gp 
   sumz=0._gp
@@ -1655,9 +1773,6 @@ subroutine transforce(nat,fxyz)
      sumy=sumy+fxyz(2,iat) 
      sumz=sumz+fxyz(3,iat)
   end do
-  write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
-  write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
-  write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
 end subroutine transforce
 
 
@@ -1734,15 +1849,16 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
            inmc=n+m+cp+1
            iycn=iypt+cp*n
            w(inmc)= w(n+cp+1)*sq
-           call move_atoms_positions(at,w,-w(inmc),w(iycn+1),w)
+           call atomic_axpy(at,w,-w(inmc),w(iycn+1),w)
 !!$           call daxpy(n,-w(inmc),w(iycn+1),1,w,1)
         enddo
-        !to be ussed only in the case parmin%diagco==.false.
+        !to be used only in the case parmin%diagco==.false.
         !in that case diag=constant
         if (.not. parmin%diagco) then
-           call move_atoms_positions(at,w,diag(1)-1.0_gp,w,w)
+           call atomic_axpy(at,w,diag(1)-1.0_gp,w,w)
         else
            !here the blocked atoms are treated as the others
+           !also atomic_gemv can be used here
            do i=1,n
               w(i)=diag(i)*w(i)
            enddo
@@ -1756,7 +1872,7 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
            inmc=n+m+cp+1
            beta= w(inmc)-beta
            iscn=ispt+cp*n
-           call move_atoms_positions(at,w,beta,w(iscn+1),w)
+           call atomic_axpy(at,w,beta,w(iscn+1),w)
 !!$           call daxpy(n,beta,w(iscn+1),1,w,1)
            cp=cp+1
            if(cp==m) cp=0
@@ -1777,7 +1893,7 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
      endif
      !write(*,*) 'a_t',a_t
      call mcsrch(at,n,x,f,g,w(ispt+point*n+1),a_t,info,nfev,diag,parmin)
-     if(iproc==0) write(*,*) "ALPHA LINESEARCH", a_t, parmin%iter
+     if(iproc==0) write(*,'(a,1pe12.5,i6)') "ALPHA LINESEARCH ", a_t, parmin%iter
      if (info==-1) then
         parmin%iflag=1
         return
@@ -1794,8 +1910,8 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
      nfun=nfun+nfev
      !compute the new step and gradient change
      npt=point*n
-     call move_atoms_positions(at,w(ispt+npt+1),a_t-1.0_gp,w(ispt+npt+1),w(ispt+npt+1))
-     call move_atoms_positions(at,-1.0_gp*w,-1.0_gp,g, w(iypt+npt+1))
+     call atomic_axpy(at,w(ispt+npt+1),a_t-1.0_gp,w(ispt+npt+1),w(ispt+npt+1))
+     call atomic_axpy(at,-1.0_gp*w,-1.0_gp,g, w(iypt+npt+1))
 !!$     do i=1,n
 !!$        w(ispt+npt+i)=a_t*w(ispt+npt+i)
 !!$        w(iypt+npt+i)=-g(i)-w(i)
@@ -1875,14 +1991,15 @@ subroutine init_lbfgs(at,n,m,x,f,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iyp
 
   !to be ussed only in the case parmin%diagco==.false.
   !in that case diag=1.
-  if (.not. parmin%diagco) then
-     call move_atoms_positions(at,g,0.0_gp,g,w(ispt+1))
-  else
+!!$  if (.not. parmin%diagco) then
+!!$     !this line equals to w=g
+!!$     call atomic_axpy(at,g,0.0_gp,g,w(ispt+1))
+!!$  else
      !here the blocked atoms are treated as the others
-     do i=1,n
-        w(ispt+i)=g(i)*diag(i)
-     enddo
-  end if
+  do i=1,n
+     w(ispt+i)=g(i)*diag(i)
+  enddo
+!!$  end if
  
   call atomic_dot(at,g,g,gnorm)
   gnorm=dsqrt(gnorm)
@@ -2024,7 +2141,7 @@ subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin) !line search routine mcs
         !evaluate the function and gradient at a_t
         !and compute the directional derivative.
         !we return to main program to obtain f and g.
-        call move_atoms_positions(at,wa,a_t,s,x)
+        call atomic_axpy(at,wa,a_t,s,x)
 !!$        do j = 1, n
 !!$           x(j) = wa(j) + a_t*s(j)
 !!$        enddo
@@ -2262,249 +2379,6 @@ subroutine cal_a_c_3(a_l,fx,dx,a_t,fp,dp,stpmin,stpmax,a_c)
   endif
 end subroutine cal_a_c_3
 !*****************************************************************************************
-
-subroutine write_atomic_file(filename,energy,rxyz,atoms,comment)
-  use module_base
-  use module_types
-  implicit none
-  character(len=*), intent(in) :: filename,comment
-  type(atoms_data), intent(in) :: atoms
-  real(gp), intent(in) :: energy
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-
-  if (atoms%format == "xyz") then
-     call wtxyz(filename,energy,rxyz,atoms,comment)
-  else if (atoms%format == "ascii") then
-     call wtascii(filename,energy,rxyz,atoms,comment)
-  else
-     write(*,*) "Error, unknown file format."
-     stop
-  end if
-end subroutine write_atomic_file
-
-subroutine wtxyz(filename,energy,rxyz,atoms,comment)
-  use module_base
-  use module_types
-  implicit none
-  character(len=*), intent(in) :: filename,comment
-  type(atoms_data), intent(in) :: atoms
-  real(gp), intent(in) :: energy
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  !local variables
-  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
-  character(len=2) :: symbol
-  character(len=10) :: name
-  character(len=11) :: units
-  integer :: iat,j,ichg,ispol
-  real(gp) :: xmax,ymax,zmax,factor
-
-  open(unit=9,file=filename//'.xyz')
-  xmax=0.0_gp
-  ymax=0.0_gp
-  zmax=0.0_gp
-
-  do iat=1,atoms%nat
-     xmax=max(rxyz(1,iat),xmax)
-     ymax=max(rxyz(2,iat),ymax)
-     zmax=max(rxyz(3,iat),zmax)
-  enddo
-  if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
-     factor=bohr
-     units='angstroemd0'
-  else
-     factor=1.0_gp
-     units='atomicd0'
-  end if
-
-
-  write(9,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%nat,trim(units),energy,comment
-
-  if (atoms%geocode == 'P') then
-     write(9,'(a,3(1x,1pe24.17))')'periodic',&
-          atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
-  else if (atoms%geocode == 'S') then
-     write(9,'(a,3(1x,1pe24.17))')'surface',&
-          atoms%alat1*factor,atoms%alat2*factor,atoms%alat3*factor
-  else
-     write(9,*)'Free BC'
-  end if
-  do iat=1,atoms%nat
-     name=trim(atoms%atomnames(atoms%iatype(iat)))
-     if (name(3:3)=='_') then
-        symbol=name(1:2)
-     else if (name(2:2)=='_') then
-        symbol=name(1:1)
-     else
-        symbol=name(1:2)
-     end if
-
-     call charge_and_spol(atoms%natpol(iat),ichg,ispol)
-
-     !takes into account the blocked atoms and the input polarisation
-     if (atoms%lfrztyp(iat) .and. ispol == 0 .and. ichg == 0 ) then
-        write(9,'(a2,4x,3(1x,1pe24.17),2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3),'   f'
-     else if (atoms%lfrztyp(iat) .and. ispol /= 0 .and. ichg == 0) then
-        write(9,'(a2,4x,3(1x,1pe24.17),i7,2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3),&
-             ispol,'   f'
-     else if (atoms%lfrztyp(iat) .and. ichg /= 0) then
-        write(9,'(a2,4x,3(1x,1pe24.17),2(i7),2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3),&
-             ispol,ichg,'   f'
-     else if (ispol /= 0 .and. ichg == 0) then
-        write(9,'(a2,4x,3(1x,1pe24.17),i7)')symbol,(rxyz(j,iat)*factor,j=1,3),ispol
-     else if (ichg /= 0) then
-        write(9,'(a2,4x,3(1x,1pe24.17),2(i7))')symbol,(rxyz(j,iat)*factor,j=1,3),ispol,ichg
-     else
-        write(9,'(a2,4x,3(1x,1pe24.17),2x,a4)')symbol,(rxyz(j,iat)*factor,j=1,3)
-     end if
-  enddo
-  close(unit=9)
-
-end subroutine wtxyz
-
-subroutine wtascii(filename,energy,rxyz,atoms,comment)
-  use module_base
-  use module_types
-  implicit none
-  character(len=*), intent(in) :: filename,comment
-  type(atoms_data), intent(in) :: atoms
-  real(gp), intent(in) :: energy
-  real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
-  !local variables
-  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
-  character(len=2) :: symbol
-  character(len=10) :: name
-  integer :: iat,j,ichg,ispol
-  real(gp) :: xmax,ymax,zmax,factor
-
-  open(unit=9,file=filename//'.ascii')
-  xmax=0.0_gp
-  ymax=0.0_gp
-  zmax=0.0_gp
-
-  do iat=1,atoms%nat
-     xmax=max(rxyz(1,iat),xmax)
-     ymax=max(rxyz(2,iat),ymax)
-     zmax=max(rxyz(3,iat),zmax)
-  enddo
-  if (trim(atoms%units) == 'angstroem' .or. trim(atoms%units) == 'angstroemd0') then
-     factor=bohr
-  else
-     factor=1.0_gp
-  end if
-
-  write(9, "(A,A)") "# BigDFT file - ", trim(comment)
-  write(9, "(3e24.17)") atoms%alat1, 0.d0, atoms%alat2
-  write(9, "(3e24.17)") 0.d0,        0.d0, atoms%alat3
-
-  write(9, "(A,A)") "#keyword: ", trim(atoms%units)
-  if (atoms%geocode == 'P') write(9, "(A)") "#keyword: periodic"
-  if (atoms%geocode == 'S') write(9, "(A)") "#keyword: surface"
-  if (atoms%geocode == 'F') write(9, "(A)") "#keyword: freeBC"
-  if (energy /= 0.d0) then
-     write(9, "(A,e24.17)") "# Total energy (Ht): ", energy
-  end if
-
-  do iat=1,atoms%nat
-     name=trim(atoms%atomnames(atoms%iatype(iat)))
-     if (name(3:3)=='_') then
-        symbol=name(1:2)
-     else if (name(2:2)=='_') then
-        symbol=name(1:1)
-     else
-        symbol=name(1:2)
-     end if
-
-     call charge_and_spol(atoms%natpol(iat),ichg,ispol)
-
-     !takes into account the blocked atoms and the input polarisation
-     if (atoms%lfrztyp(iat) .and. ispol == 0 .and. ichg == 0 ) then
-        write(9,'(3(1x,1pe24.17),2x,a2,2x,a4)') (rxyz(j,iat)*factor,j=1,3),symbol,'   f'
-     else if (atoms%lfrztyp(iat) .and. ispol /= 0 .and. ichg == 0) then
-        write(9,'(3(1x,1pe24.17),2x,a2,i7,2x,a4)') (rxyz(j,iat)*factor,j=1,3),&
-             symbol,ispol,'   f'
-     else if (atoms%lfrztyp(iat) .and. ichg /= 0) then
-        write(9,'(3(1x,1pe24.17),2x,a2,2(i7),2x,a4)') (rxyz(j,iat)*factor,j=1,3),&
-             symbol,ispol,ichg,'   f'
-     else if (ispol /= 0 .and. ichg == 0) then
-        write(9,'(3(1x,1pe24.17),2x,a2,i7)') (rxyz(j,iat)*factor,j=1,3),symbol,ispol
-     else if (ichg /= 0) then
-        write(9,'(3(1x,1pe24.17),2x,a2,2(i7))') (rxyz(j,iat)*factor,j=1,3),symbol,ispol,ichg
-     else
-        write(9,'(3(1x,1pe24.17),2x,a2,2x,a4)') (rxyz(j,iat)*factor,j=1,3),symbol
-     end if
-  enddo
-  close(unit=9)
-
-end subroutine wtascii
-
-!routine for moving atomic positions, takes into account the 
-!frozen atoms and the size of the cell
-!synopsis: rxyz=txyz+alpha*sxyz
-!all the shift are inserted into the box if there are periodic directions
-!if the atom are frozen they are not moved
-subroutine move_atoms_positions(at,txyz,alpha,sxyz,rxyz)
-  use module_base
-  use module_types
-  implicit none
-  real(gp), intent(in) :: alpha
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: txyz,sxyz
-  real(gp), dimension(3,at%nat), intent(inout) :: rxyz
-  !local variables
-  integer :: iat
-  
-  do iat=1,at%nat
-     if (at%lfrztyp(iat)) then
-        rxyz(1,iat)=txyz(1,iat)
-        rxyz(2,iat)=txyz(2,iat)
-        rxyz(3,iat)=txyz(3,iat)
-     else
-        if (at%geocode == 'P') then
-           rxyz(1,iat)=modulo(txyz(1,iat)+alpha*sxyz(1,iat),at%alat1)
-           rxyz(2,iat)=modulo(txyz(2,iat)+alpha*sxyz(2,iat),at%alat2)
-           rxyz(3,iat)=modulo(txyz(3,iat)+alpha*sxyz(3,iat),at%alat3)
-        else if (at%geocode == 'S') then
-           rxyz(1,iat)=modulo(txyz(1,iat)+alpha*sxyz(1,iat),at%alat1)
-           rxyz(2,iat)=txyz(2,iat)+alpha*sxyz(2,iat)
-           rxyz(3,iat)=modulo(txyz(3,iat)+alpha*sxyz(3,iat),at%alat3)
-        else
-           rxyz(1,iat)=txyz(1,iat)+alpha*sxyz(1,iat)
-           rxyz(2,iat)=txyz(2,iat)+alpha*sxyz(2,iat)
-           rxyz(3,iat)=txyz(3,iat)+alpha*sxyz(3,iat)
-        end if
-     end if
-  end do
-
-end subroutine move_atoms_positions
-
-
-!calculate the scalar product between atomic positions by considering
-!only non-blocked atoms
-subroutine atomic_dot(at,x,y,scpr)
-  use module_base
-  use module_types
-  implicit none
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%nat), intent(in) :: x,y
-  real(gp), intent(out) :: scpr
-  !local variables
-  integer :: iat
-  real(gp) :: scpr1,scpr2,scpr3
-
-  scpr=0.0_gp
-
-  do iat=1,at%nat
-     if (.not. at%lfrztyp(iat)) then
-        scpr1=x(1,iat)*y(1,iat)
-        scpr2=x(2,iat)*y(2,iat)
-        scpr3=x(3,iat)*y(3,iat)
-        scpr=scpr+scpr1+scpr2+scpr3
-     end if
-  end do
-  
-end subroutine atomic_dot
-
-
 
 !fake lenosky subroutine to substitute force fields (temporary, to be deplaced)
 subroutine lenoskytb(nat,alat,tposall,grad,etot,rcount,n_silicon)

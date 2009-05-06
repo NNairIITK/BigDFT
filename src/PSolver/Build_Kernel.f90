@@ -86,7 +86,6 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
   if (iproc==0 .and. wrtmsg) write(*,'(1x,a)')&
           '------------------------------------------------------------ Poisson Kernel Creation'
 
-
   if (geocode == 'P') then
      
      if (iproc==0 .and. wrtmsg) write(*,'(1x,a)',advance='no')&
@@ -274,10 +273,13 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   allocate(fourISFz(0:nker3-1+ndebug),stat=i_stat)
   call memocc(i_stat,fourISFz,'fourISFz',subname)
 
-  call fourtrans_isf(n1/2+1,fourISFx)
-  call fourtrans_isf(n2/2+1,fourISFy)
-  call fourtrans_isf(n3/2+1,fourISFz)
+  call fourtrans_isf(n1/2,fourISFx)
+  call fourtrans_isf(n2/2,fourISFy)
+  call fourtrans_isf(n3/2,fourISFz)
 
+!!$  fourISFx=0.d0
+!!$  fourISFy=0.d0
+!!$  fourISFz=0.d0
 
   !calculate directly the reciprocal space components of the kernel function
   do i3=1,nker3/nproc
@@ -316,8 +318,6 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   deallocate(fourISFz,stat=i_stat)
   call memocc(i_stat,i_all,'fourISFz',subname)
 
-
-
 end subroutine Periodic_Kernel
 
 !calculate the fourier transform
@@ -329,7 +329,7 @@ subroutine fourtrans_isf(n,ftisf)
   !local variables
   real(kind=8), parameter :: twopi=6.28318530717958647688d0
   integer :: i,j
-  real(kind=8) :: p,pointval,hval,q!,htp
+  real(kind=8) :: p,pointval,hval,q,htp
 
   !zero fourier component
   ftisf(0)=1.d0
@@ -345,7 +345,8 @@ subroutine fourtrans_isf(n,ftisf)
      q=p
      loop_calc: do
         q=0.5d0*q
-        hval=htp(q)
+        call fourtrans(q,htp)
+        hval=htp
         if (abs(hval - 1.d0) <= 1.d-16) then
            exit loop_calc
         end if
@@ -360,37 +361,35 @@ subroutine fourtrans_isf(n,ftisf)
         if (j > n) then
            exit loop_dyadic
         end if
-        ftisf(j)=htp(q)*ftisf(j/2)
+        call fourtrans(q,htp)
+        ftisf(j)=htp*ftisf(j/2)
         q=2.d0*q
      end do loop_dyadic
   end do loop_points
 
-contains
-
-  !transform the wavelet filters
-  function htp(p)
-    implicit none
-    real(kind=8), intent(in) :: p
-    real(kind=8) :: htp
-    !local variables
-    integer :: i,j
-    real(kind=8) :: cp,x
-    !include the filters for a given scaling function
-    include 'lazy_16.inc'
-
-    htp=0.d0
-    do j=m-3,1,-2
-       x=real(j,kind=8)
-       cp=cos(p*x)
-       htp=htp+ch(j)*cp
-    end do
-    !this is the value divided by two
-    htp=0.5d0+htp
-
-  end function htp
-
 end subroutine fourtrans_isf
 
+!transform the wavelet filters
+subroutine fourtrans(p,htp)
+  implicit none
+  real(kind=8), intent(in) :: p
+  real(kind=8), intent(out) :: htp
+  !local variables
+  integer :: i,j
+  real(kind=8) :: cp,x
+  !include the filters for a given scaling function
+  include 'lazy_16.inc'
+
+  htp=0.d0
+  do j=m-3,1,-2
+     x=real(j,kind=8)
+     cp=cos(p*x)
+     htp=htp+ch(j)*cp
+  end do
+  !this is the value divided by two
+  htp=0.5d0+htp
+
+end subroutine fourtrans
 
 
 !!****f* BigDFT/Surfaces_Kernel

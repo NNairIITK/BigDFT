@@ -129,8 +129,7 @@ module module_types
      integer :: nat,ntypes,natsc
      character(len=20), dimension(:), pointer :: atomnames
      real(gp) :: alat1,alat2,alat3
-     logical, dimension(:), pointer :: lfrztyp
-     integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom
+     integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom,ifrztyp
      real(gp), dimension(:,:,:), pointer :: psppar
      real(gp), dimension(:), pointer :: amu
   end type atoms_data
@@ -466,65 +465,6 @@ contains
 
   end subroutine deallocate_gwf
 !!***
-
-!!****f* module_types/deallocate_atoms_data
-!! FUNCTION
-!!   De-Allocate atoms_data type
-!! SOURCE
-!!
-  subroutine deallocate_atoms_data(atoms,subname)
-    use module_base
-    implicit none
-    !Arguments
-    type(atoms_data) :: atoms
-    character(len=*), intent(in) :: subname
-    !local variables
-    integer :: i_all,i_stat
-
-    i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
-    deallocate(atoms%atomnames,stat=i_stat)
-    call memocc(i_stat,i_all,'atoms%atomnames',subname)
-    i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
-    deallocate(atoms%lfrztyp,stat=i_stat)
-    call memocc(i_stat,i_all,'atoms%lfrztyp',subname)
-    i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
-    deallocate(atoms%iatype,stat=i_stat)
-    call memocc(i_stat,i_all,'atoms%iatype',subname)
-    if (associated(atoms%iasctype)) then
-        i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
-        deallocate(atoms%iasctype,stat=i_stat)
-        call memocc(i_stat,i_all,'atoms%iasctype',subname)
-    end if
-    i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
-    deallocate(atoms%natpol,stat=i_stat)
-    call memocc(i_stat,i_all,'atoms%natpol',subname)
-    if (associated(atoms%nelpsp)) then
-        i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
-        deallocate(atoms%nelpsp,stat=i_stat)
-        call memocc(i_stat,i_all,'atoms%nelpsp',subname)
-    end if
-    if (associated(atoms%npspcode)) then
-        i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
-        deallocate(atoms%npspcode,stat=i_stat)
-        call memocc(i_stat,i_all,'atoms%npspcode',subname)
-    end if
-    if (associated(atoms%nzatom)) then
-        i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
-        deallocate(atoms%nzatom,stat=i_stat)
-        call memocc(i_stat,i_all,'atoms%nzatom',subname)
-    end if
-    if (associated(atoms%psppar)) then
-        i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
-        deallocate(atoms%psppar,stat=i_stat)
-        call memocc(i_stat,i_all,'atoms%psppar',subname)
-    end if
-    if (associated(atoms%amu)) then
-        i_all=-product(shape(atoms%amu))*kind(atoms%amu)
-        deallocate(atoms%amu,stat=i_stat)
-        call memocc(i_stat,i_all,'atoms%amu',subname)
-    end if
-
-  end subroutine deallocate_atoms_data
 
 
 !!****f* module_types/deallocate_bounds

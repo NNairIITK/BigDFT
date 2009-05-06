@@ -3,7 +3,7 @@
 !!  Calculate vibrational frequencies
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2009 CEA (TD)
+!!    Copyright (C) 2009 CEA, UNIBAS
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -46,7 +46,7 @@ program frequencies
   !initialize memory counting
   call memocc(0,iproc,'count','start')
 
-  ! welcome screen
+  !welcome screen
   if (iproc==0) call print_logo()
 
   ! read number of atoms
@@ -68,7 +68,7 @@ program frequencies
   call read_input_variables(iproc,'input.dat',inputs)
  
   do iat=1,atoms%nat
-     if (.not. atoms%lfrztyp(iat)) then
+     if (atoms%ifrztyp(iat) == 0) then
         call random_number(tt)
         rxyz(1,iat)=rxyz(1,iat)+inputs%randdis*tt
         call random_number(tt)
@@ -143,7 +143,7 @@ program frequencies
   end if
 
   do iat=1,atoms%nat
-     if (atoms%lfrztyp(iat)) then
+     if (atoms%ifrztyp(iat) == 1) then
         if (iproc==0) write(*,"(1x,a,i0,a)") '=F:The atom ',iat,' is frozen.'
         cycle
      end if
@@ -263,20 +263,19 @@ program frequencies
      close(unit=10)
   end if
 
-
   !Deallocations
-  i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
-  deallocate(atoms%lfrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'lfrztyp',subname)
+  i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
+  deallocate(atoms%ifrztyp,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
   i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
   deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'iatype',subname)
+  call memocc(i_stat,i_all,'atoms%iatype',subname)
   i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
   deallocate(atoms%natpol,stat=i_stat)
-  call memocc(i_stat,i_all,'natpol',subname)
+  call memocc(i_stat,i_all,'atoms%natpol',subname)
   i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
   deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atomnames',subname)
+  call memocc(i_stat,i_all,'atoms%atomnames',subname)
   i_all=-product(shape(atoms%amu))*kind(atoms%amu)
   deallocate(atoms%amu,stat=i_stat)
   call memocc(i_stat,i_all,'atoms%amu',subname)

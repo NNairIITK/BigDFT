@@ -5,7 +5,7 @@
 
 #include "fct_call.h"
 
-enum gpuOp {CALC, TRANSF, FINISH};
+enum gpuOp {CALC, TRANSF, PACK, FINISH};
 
 class gpu_stream
 {

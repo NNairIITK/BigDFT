@@ -138,7 +138,7 @@ program PS_Check
           density,potential,pot_ion,xc_pot,pkernel)
 
      !test for the serial solver
-     if (iproc == 0 .and. nproc >= 1 ) then
+     if (iproc == 0 .and. nproc > 1 ) then
         i_all=-product(shape(pkernel))*kind(pkernel)
         deallocate(pkernel,stat=i_stat)
         call memocc(i_stat,i_all,'pkernel',subname)
