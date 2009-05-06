@@ -1699,14 +1699,18 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,at)
 !!$  t3=0._gp
   fmax=0._gp
   do iat=1,at%nat
-     if (at%ifrztyp(iat) == 0) then
+     call frozen_alpha(at%ifrztyp(iat),1,ff(1,iat)**2,t1)
+     call frozen_alpha(at%ifrztyp(iat),2,ff(2,iat)**2,t2)
+     call frozen_alpha(at%ifrztyp(iat),3,ff(3,iat)**2,t3)
+     fmax=max(fmax,sqrt(t1+t2+t3))
+!!$     if (at%ifrztyp(iat) == 0) then
 !!$        t1=t1+ff(1,iat)**2 
 !!$        t2=t2+ff(2,iat)**2 
 !!$        t3=t3+ff(3,iat)**2
         !in general fmax is measured with the inf norm
-        fmax=max(fmax,sqrt(ff(1,iat)**2+ff(2,iat)**2+ff(3,iat)**2))
+!!$     fmax=max(fmax,sqrt(ff(1,iat)**2+ff(2,iat)**2+ff(3,iat)**2))
         !fmax=max(fmax,abs(ff(1,iat)),abs(ff(2,iat)),abs(ff(3,iat)))
-     end if
+!!$     end if
   enddo
 
   !this is the norm of the forces of non-blocked atoms
@@ -1848,7 +1852,7 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
            call atomic_axpy(at,w,-w(inmc),w(iycn+1),w)
 !!$           call daxpy(n,-w(inmc),w(iycn+1),1,w,1)
         enddo
-        !to be ussed only in the case parmin%diagco==.false.
+        !to be used only in the case parmin%diagco==.false.
         !in that case diag=constant
         if (.not. parmin%diagco) then
            call atomic_axpy(at,w,diag(1)-1.0_gp,w,w)

@@ -915,12 +915,12 @@ contains
 !!$    svxyz=0.d0
 !!$    do i=1,3*atoms%nat
 !!$       iat=(i-1)/3+1
-!!$       if (.not. atoms%lfrztyp(iat)) then
+!!$       if (atoms%ifrztyp(iat) == 0) then
 !!$          svxyz=svxyz+vxyz(i)**2
 !!$       end if
 !!$    enddo
     svxyz=eps_vxyz/sqrt(svxyz)
-    call atomic_axpy(atoms,vxyz,svxyz-1.0_gp,vxyz,vxyz)
+    call atomic_axpy_forces(atoms,vxyz,svxyz-1.0_gp,vxyz,vxyz)
 !!$    do i=1,3*atoms%nat
 !!$       vxyz(i)=svxyz*vxyz(i)
 !!$    enddo
@@ -943,7 +943,7 @@ contains
        
        call atomic_axpy(atoms,rxyz,1.0_gp,vxyz,wpos)
 !!$       do iat=1,atoms%nat
-!!$          if (atoms%lfrztyp(iat)) then
+!!$          if (atoms%ifrztyp(iat) /=0) then
 !!$             wpos(3*(iat-1)+1)=rxyz(3*(iat-1)+1)
 !!$             wpos(3*(iat-1)+2)=rxyz(3*(iat-1)+2)
 !!$             wpos(3*(iat-1)+3)=rxyz(3*(iat-1)+3)
