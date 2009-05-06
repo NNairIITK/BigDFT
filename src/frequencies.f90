@@ -226,7 +226,7 @@ program frequencies
   allocate(eigen_i(3*atoms%nat),stat=i_stat)
   call memocc(i_stat,eigen_i,'eigen_i',subname)
   allocate(vector_r(3*atoms%nat,3*atoms%nat),stat=i_stat)
-  call memocc(i_stat,vector_l,'vector_r',subname)
+  call memocc(i_stat,vector_r,'vector_r',subname)
   allocate(vector_l(3*atoms%nat,3*atoms%nat),stat=i_stat)
   call memocc(i_stat,vector_l,'vector_l',subname)
 
