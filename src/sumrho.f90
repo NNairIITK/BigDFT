@@ -61,6 +61,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   end if
 
   !switch between GPU/CPU treatment of the density
+  !call  MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
   if (GPUconv) then
      call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   else
@@ -72,6 +74,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
      call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
           nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   end if
+
+  !call  MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   !the density must be communicated to meet the shape of the poisson solver
   if (nproc > 1) then

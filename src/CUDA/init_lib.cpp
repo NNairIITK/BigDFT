@@ -1,10 +1,15 @@
 #include <iostream>
 #include <exception>
 #include <string>
+#include <sstream>
+
 
 #include <sched.h>
 #include "read_conf_file.h"
 
+#include "trace_exec.h"
+
+trace_exec *tracer;
 
 int c_cudaSetDevice(int device);
 void init_gpu_sharing(const char*,int *error);
@@ -77,6 +82,8 @@ void set_cpu_gpu_aff(int iproc, int *flag, int *flag_blas_conv, int *error)
       std::cout << "STRAGE STRANGE " << std::endl;
     }
   
+  
+
 
 }
 
@@ -120,5 +127,7 @@ void init_lib__(int *iproc,int *error, int *iconv, int *iblas, bool * GPUshare)
 
     }
 
-
+  std::ostringstream ostr;
+  ostr << "trace_" << *iproc;
+  tracer = new trace_exec(ostr.str());
 }

@@ -530,7 +530,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              '---------------------------------------------------- Reading Wavefunctions from disk'
      end if
 
-     call readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz,Glr%wfd,psi)
+     call readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,orbs,Glr%wfd,nvctrp,comms,psi,hpsi,psit)

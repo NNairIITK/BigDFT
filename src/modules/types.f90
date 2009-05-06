@@ -119,8 +119,7 @@ module module_types
      integer :: nat,ntypes,natsc
      character(len=20), dimension(:), pointer :: atomnames
      real(gp) :: alat1,alat2,alat3
-     logical, dimension(:), pointer :: lfrztyp
-     integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom
+     integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom,ifrztyp
      real(gp), dimension(:,:,:), pointer :: psppar
   end type atoms_data
 !!***

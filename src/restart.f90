@@ -1,3 +1,16 @@
+!!****f* BigDFT/copy_old_wavefunctions
+!! FUNCTION
+!!  Copy old wavefunctions from psi to psi_old
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine copy_old_wavefunctions(iproc,nproc,orbs,n1,n2,n3,wfd,psi,&
      n1_old,n2_old,n3_old,wfd_old,psi_old)
   use module_base
@@ -8,7 +21,7 @@ subroutine copy_old_wavefunctions(iproc,nproc,orbs,n1,n2,n3,wfd,psi,&
   type(wavefunctions_descriptors), intent(inout) :: wfd,wfd_old
   integer, intent(out) :: n1_old,n2_old,n3_old
   real(wp), dimension(:), pointer :: psi,psi_old
-  !local variables
+  !Local variables
   character(len=*), parameter :: subname='copy_old_wavefunctions'
   real(kind=8), parameter :: eps_mach=1.d-12
   integer :: iseg,nvctrp_old,i1,i2,j,ind1,ind2,iorb,i_all,i_stat,oidx,sidx
@@ -64,8 +77,15 @@ subroutine copy_old_wavefunctions(iproc,nproc,orbs,n1,n2,n3,wfd,psi,&
   deallocate(psi,stat=i_stat)
   call memocc(i_stat,i_all,'psi',subname)
 
-end subroutine copy_old_wavefunctions
+END SUBROUTINE copy_old_wavefunctions
+!!***
 
+
+!!****f* BigDFT/reformatmywaves
+!! FUNCTION
+!!   Reformat wavefunctions if the mesh have changed (in a restart)
+!! SOURCE
+!!
 subroutine reformatmywaves(iproc,orbs,at,&
      hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
      hx,hy,hz,n1,n2,n3,rxyz,wfd,psi)
@@ -80,7 +100,7 @@ subroutine reformatmywaves(iproc,orbs,at,&
   real(gp), dimension(3,at%nat), intent(in) :: rxyz,rxyz_old
   real(wp), dimension(wfd_old%nvctr_c+7*wfd_old%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: psi
-  !local variables
+  !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat,perx,pery,perz
   integer :: iat,iorb,j,i_stat,i_all,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,nb1,nb2,nb3
@@ -257,11 +277,17 @@ subroutine reformatmywaves(iproc,orbs,at,&
   if (iproc==0) write(*,"(1x,a)")'done.'
 
 END SUBROUTINE reformatmywaves
+!!***
 
+
+!!****f* BigDFT/readmywaves
+!! FUNCTION
+!!  Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
+!!  have changed
+!! SOURCE
+!!
 subroutine readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
      wfd,psi)
-  ! reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
-  ! have changed
   use module_base
   use module_types
   implicit none
@@ -273,7 +299,7 @@ subroutine readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  &
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(gp), dimension(3,at%nat), intent(out) :: rxyz_old
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(out) :: psi
-  !local variables
+  !Local variables
   character(len=*), parameter :: subname='readmywaves'
   character(len=4) :: f4
   character(len=50) :: filename
@@ -306,7 +332,7 @@ subroutine readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  &
      filename = 'wavefunction.'//f4
      open(unit=99,file=filename,status='unknown')
 
-     call readonewave(99, .true.,iorb,iproc,n1,n2,n3, &
+     call readonewave(99, .true.,iorb+orbs%isorb*orbs%nspinor,iproc,n1,n2,n3, &
           & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
           psi(1,iorb),orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb),psifscf)
      close(99)
@@ -322,10 +348,15 @@ subroutine readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  &
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
   write(*,'(a,i4,2(1x,e10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
 
-end subroutine readmywaves
+END SUBROUTINE readmywaves
+!!***
 
+!!****f* BigDFT/writemywaves
+!! FUNCTION
+!!   Write all my wavefunctions in files by calling writeonewave
+!! SOURCE
+!!
 subroutine writemywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
-  ! write all my wavefunctions in files by calling writeonewave
   use module_types
   use module_base
   implicit none
@@ -335,7 +366,7 @@ subroutine writemywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
   type(wavefunctions_descriptors), intent(in) :: wfd
   real(gp), dimension(3,nat), intent(in) :: rxyz
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%norbp*orbs%nspinor), intent(in) :: psi
-  !local variables
+  !Local variables
   character(len=4) :: f4
   character(len=50) :: filename
   integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2
@@ -352,7 +383,7 @@ subroutine writemywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
      write(*,*) 'opening ',filename
      open(unit=99,file=filename,status='unknown')
 
-     call writeonewave(99,.true.,(iorb-1)/orbs%nspinor+1+orbs%isorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
+     call writeonewave(99,.true.,iorb+orbs%isorb*orbs%nspinor,n1,n2,n3,hx,hy,hz,nat,rxyz,  & 
           wfd%nseg_c,wfd%nvctr_c,wfd%keyg(1,1),wfd%keyv(1),  & 
           wfd%nseg_f,wfd%nvctr_f,wfd%keyg(1,wfd%nseg_c+1),wfd%keyv(wfd%nseg_c+1), & 
           psi(1,iorb),psi(wfd%nvctr_c+1,iorb),orbs%norb,orbs%eval)
@@ -365,4 +396,5 @@ subroutine writemywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
   tel=dble(ncount2-ncount1)/dble(ncount_rate)
   write(*,'(a,i4,2(1x,e10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
 
-end subroutine writemywaves
+END SUBROUTINE writemywaves
+!!***

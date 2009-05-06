@@ -111,7 +111,7 @@ program memguess
   call print_logo()
 
   !read number of atoms
-  call read_atomic_file(0,atoms,rxyz)
+  call read_atomic_file('posinp',0,atoms,rxyz)
 
   !new way of reading the input variables, use structures
   call read_input_variables(0,'input.dat',in)
@@ -353,9 +353,9 @@ program memguess
   i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
   deallocate(nlpspd%nboxp_f,stat=i_stat)
   call memocc(i_stat,i_all,'nboxp_f',subname)
-  i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
-  deallocate(atoms%lfrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'lfrztyp',subname)
+  i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
+  deallocate(atoms%ifrztyp,stat=i_stat)
+  call memocc(i_stat,i_all,'ifrztyp',subname)
   i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
   deallocate(atoms%natpol,stat=i_stat)
   call memocc(i_stat,i_all,'natpol',subname)

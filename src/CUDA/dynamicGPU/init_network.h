@@ -97,8 +97,8 @@ private:
 
 
 
-  void   doTRSF(fct_call *fct);
-  void   doCALC(fct_call *fct);
+  void   doTRSF(fct_call *fct,bool);
+  void   doCALC(fct_call *fct,bool);
   const int NUM_PARTICIPANTS;
 
   const int NUM_GPU;

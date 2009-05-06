@@ -72,7 +72,7 @@ program BigDFT
   if (iproc==0) call print_logo()
 
   !read atomic file
-  call read_atomic_file(iproc,atoms,rxyz)
+  call read_atomic_file('posinp',iproc,atoms,rxyz)
 
   allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fxyz,'fxyz',subname)
@@ -81,7 +81,7 @@ program BigDFT
   call read_input_variables(iproc,'input.dat',inputs)
  
   do iat=1,atoms%nat
-     if (.not. atoms%lfrztyp(iat)) then
+     if (atoms%ifrztyp(iat) == 0) then
         call random_number(tt)
         rxyz(1,iat)=rxyz(1,iat)+inputs%randdis*tt
         call random_number(tt)
@@ -137,9 +137,9 @@ if (inputs%ncount_cluster_x > 1) then
   endif
 
   !deallocations
-  i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
-  deallocate(atoms%lfrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'lfrztyp',subname)
+  i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
+  deallocate(atoms%ifrztyp,stat=i_stat)
+  call memocc(i_stat,i_all,'ifrztyp',subname)
   i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
   deallocate(atoms%iatype,stat=i_stat)
   call memocc(i_stat,i_all,'iatype',subname)
