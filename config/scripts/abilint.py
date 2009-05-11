@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 16/12/2008
+# Date: 11/05/2009
 #----------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -1700,6 +1700,7 @@ class Module(Code):
             elif self.re_sub_end.match(line):
                 #Detect the end of a subroutine or module: We have finished
                 Code(parent=self).add_code(line)
+                return
             else:
                 self.message.fatal("\n%s\n--> No detected 'contains' or 'end' statements!\n" % line \
                         + "This part of code can not be parsed as Fortran file:\n" \

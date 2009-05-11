@@ -1252,6 +1252,7 @@ subroutine frozen_itof(ifrztyp,frzchain)
 end subroutine frozen_itof
 
 subroutine valid_frzchain(frzchain,go)
+  implicit none
   character(len=*), intent(in) :: frzchain
   logical, intent(out) :: go
 

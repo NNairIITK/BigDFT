@@ -2,24 +2,25 @@
 !! FUNCTION
 !! Control the memory occupation by calculating the overall size of the allocated arrays
 !! DESCRIPTION
-!!   when allocating allocating an array "stuff" of dimension n in the routine "dosome"
-!!     allocate(stuff(n),stat=i_stat)
-!!     call memocc(i_stat,product(shape(stuff))*kind(stuff),'stuff','dosome')
-!!   when deallocating 
-!!     i_all=-product(shape(stuff))*kind(stuff)
-!!     deallocate(stuff,stat=i_stat)
-!!     call memocc(i_stat,i_all,'stuff','dosome')
-!!   the counters are initialized with
-!!     call memocc(0,iproc,'count','start') (iproc = mpi rank, nproc=mpi size)
-!!   and stopped with
-!!     call memocc(0,0,'count','stop')
-!!   at the end of the calculation a short report is printed on the screen
+!!   when allocating allocating an array "stuff" of dimension n in the routine "dosome":
+!!      allocate(stuff(n),stat=i_stat)
+!!      call memocc(i_stat,product(shape(stuff))*kind(stuff),'stuff','dosome')
+!!   when deallocating:
+!!      i_all=-product(shape(stuff))*kind(stuff)
+!!      deallocate(stuff,stat=i_stat)
+!!      call memocc(i_stat,i_all,'stuff','dosome')
+!!   The counters are initialized with:
+!!      call memocc(0,iproc,'count','start') (iproc = mpi rank, nproc=mpi size)
+!!   and stopped with:
+!!      call memocc(0,0,'count','stop')
+!!   At the end of the calculation a short report is printed on the screen,
 !!   some information can be also written on disk following the needs
 !!
 !!   The file malloc.prc is not deleted if the final total memory is not equal
 !!   to zero.
 !!   memdebug (parameter)
-!!     == .true.  then display a line per allocation or deallocation
+!!     == .true.  verbose format (useful with utils/scripts/memcheck.py)
+!!                then display a line per allocation or deallocation
 !!                a routine at the end parses the file
 !!     == .false. compact format
 !! COPYRIGHT
@@ -39,7 +40,7 @@ subroutine memory_occupation(istat,isize,array,routine)
   character(len=*), intent(in) :: array,routine
 
 ! Local variables
-  logical, parameter :: memdebug=.false.
+  logical, parameter :: memdebug=.true.
   type :: memstat
      character(len=36) :: routine,array
      integer(kind=8) :: memory,peak
@@ -72,11 +73,11 @@ subroutine memory_occupation(istat,isize,array,routine)
            open(unit=98,file='malloc.prc',status='unknown')
            if (memdebug) then
               write(98,'(a,t40,a,t70,4(1x,a12))')&
-                   '(Data in KB)             Routine','    Array name',&
+                   '(Data in KB) Routine','Array name    ',&
                    'Array size','Total Memory'
            else
               write(98,'(a,t40,a,t70,4(1x,a12))')&
-                   '(Data in KB)             Routine','    Peak Array',&
+                   '(Data in KB) Routine','Peak Array    ',&
                    'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
            end if
         end if

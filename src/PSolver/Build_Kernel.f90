@@ -220,6 +220,7 @@ subroutine createKernel(iproc,nproc,geocode,n01,n02,n03,hx,hy,hz,itype_scf,kerne
 end subroutine createKernel
 !!***
 
+
 !!****f* BigDFT/Periodic_Kernel
 !! FUNCTION
 !!    Build the kernel of the Poisson operator with
@@ -319,6 +320,7 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   call memocc(i_stat,i_all,'fourISFz',subname)
 
 end subroutine Periodic_Kernel
+!!***
 
 !calculate the fourier transform
 !suppose the output symmetric and real

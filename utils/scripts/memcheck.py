@@ -8,24 +8,23 @@
 # For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 #----------------------------------------------------------------------------
 # Check malloc.prc (verbose format i.e. memdebug == .true. in memory.f90)
-# Date: 06/05/2009
+# Date: 11/05/2009
 #----------------------------------------------------------------------------
 
 import sys
 
 def array_name(name):
-    'Build different structures'
-    ll = name.split('%')
-    if len(ll) <= 1:
-        return [ name ]
-    else:
-       var = ll.pop()
-       ll.reverse()
-       array = [ var ]
-       for i in ll:
-           var = i + "%" + var
-           array.append(var)
-       return array
+    "Build different structures"
+    array = []
+    ilast = None
+    for i in reversed(name.split("%")[1:]):
+        if ilast:
+            ilast = i + "%" + ilast
+        else:
+            ilast = i
+        array.append(ilast)
+    print array
+    return array
 
 print "Read the file 'malloc.prc':"
 try:
@@ -38,28 +37,48 @@ except IOError:
 fd.next()
 #Initialized dictionary of variables
 variables = dict()
+total_size = 0
+nalloc = 0
+nzero = 0
+ndealloc = 0
 for line in fd:
     a = line.split()
+    #Not used
     routine = a[0]
     name = a[1]
+    if name == "routine":
+        #Last line
+        continue
     size = int(a[2])
+    total_size += size
+    if size < 0:
+        ndealloc += 1
+    elif size > 0:
+        nalloc += 1
+    else:
+        nzero += 1
     if name in variables.keys():
         variables[name][0] += size
         variables[name][1].append((routine,size))
     else:
-        variables[name] = [int(a[2]),[(routine,size)]]
+        variables[name] = [size,[(routine,size)]]
 
 #Group first
-for key in variables.keys():
-    array = array_name(key)
-    if len(array) == 1:
-        continue
-    for var in array:
+keys = variables.keys()
+for key in keys:
+    for var in array_name(key):
         if var in variables.keys():
+            print key,var,"ok"
             #Group
             variables[var][0] += variables[key][0]
             variables[var][1].append(variables[key][1])
             del variables[key]
+            break
+        else:
+            print key,var,"X"
+
+print "Remaining memory=%d, allocations=%d, deallocations=%d, zero=%d" % \
+    (total_size,nalloc,ndealloc,nzero)
 
 #Check if 0
 ok=0

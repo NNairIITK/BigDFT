@@ -1,5 +1,18 @@
-!*****************************************************************************************
+!!****m* BigDFT/minimization
+!! FUNCTION
+!!   Define the type parameterminimization
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 module minimization
+  implicit none
   type parameterminimization
      !general parameters for all methods
      character(10)::approach='unknown'
@@ -20,16 +33,22 @@ module minimization
      real(8)::gtol
      real(8)::stpmin
      real(8)::stpmax
-     real(8)::xtol=epsilon(xtol)
+     real(8)::xtol=epsilon(1.d0)
   end type parameterminimization
 end module minimization
-!*****************************************************************************************
+!!***
 
+
+!!****f* BigDFT/geopt
+!! FUNCTION
+!!   Geometry optimization
+!! SOURCE
+!!
 subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   use module_base
   use module_interfaces, except_this_one => geopt
   use module_types
-  use minimization, only:parameterminimization
+  use minimization, only: parameterminimization
   implicit none
   integer, intent(in) :: nproc,iproc
   type(atoms_data), intent(inout) :: at
@@ -90,9 +109,15 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   endif
   if (iproc==0)   write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach
 
-end subroutine geopt
+END SUBROUTINE geopt
+!!***
 
 
+!!****f* BigDFT/bfgs
+!! FUNCTION
+!!  Broyden-Fletcher-Goldfarb-Shanno method
+!! SOURCE
+!!
 subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -143,7 +168,6 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      if (at%iatype(i) == 1) n_silicon=n_silicon+1
   end do
   if (iproc==0 .and. onlysih) write(*,*) "Number of Si for TB", n_silicon
-
 
   !-------------------------------------------------------------------------------------
   ehist(:)=1.d10
@@ -507,8 +531,9 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   call memocc(i_stat,i_all,'work',subname)
 
   !-------------------------------------------------------------------------------------
-end subroutine bfgs
-!!*******************************************************************************
+END SUBROUTINE bfgs
+!!***
+
 !subroutine initminimize(parmin)
 !    use minimization, only:parameterminimization
 !    implicit none
@@ -547,8 +572,8 @@ end subroutine bfgs
 !        allocate(parmin%ipiv(parmin%idsx+1),stat=istat)
 !        if(istat/=0) stop 'ERROR: failure allocating parmin%ipiv.'
 !    endif
-!end subroutine initminimize
-!!*******************************************************************************
+!END SUBROUTINE initminimize
+!
 !subroutine finalminimize(parmin)
 !    use minimization, only:parameterminimization
 !    implicit none
@@ -568,8 +593,9 @@ end subroutine bfgs
 !        deallocate(parmin%ipiv,stat=istat)
 !        if(istat/=0) stop 'ERROR: failure deallocating parmin%ipiv.'
 !    endif
-!end subroutine finalminimize
-!!*******************************************************************************
+!END SUBROUTINE finalminimize
+!
+
 function mydot(n,v1,v2)
   use module_base
   implicit none
@@ -577,7 +603,8 @@ function mydot(n,v1,v2)
   real(gp)::v1(n),v2(n),mydot
   mydot=0.d0;do i=1,n;mydot=mydot+v1(i)*v2(i);enddo
 end function mydot
-!*******************************************************************************
+
+
 function calmaxforcecomponent(n,v)
   use module_base
   implicit none
@@ -588,7 +615,8 @@ function calmaxforcecomponent(n,v)
      calmaxforcecomponent=max(calmaxforcecomponent,abs(v(i)))
   enddo
 end function calmaxforcecomponent
-!*******************************************************************************
+
+
 function calnorm(n,v)
   use module_base
   implicit none
@@ -600,7 +628,8 @@ function calnorm(n,v)
   enddo
   calnorm=sqrt(calnorm)
 end function calnorm
-!*******************************************************************************
+
+
 subroutine apphess(at,nr,alat0,pos0,hess,eval,iproc,n_silicon)
   use module_base
   use module_types
@@ -916,7 +945,7 @@ subroutine apphess(at,nr,alat0,pos0,hess,eval,iproc,n_silicon)
   deallocate(tpos,stat=i_stat)
   call memocc(i_stat,i_all,'tpos',subname)
 
-end subroutine apphess
+END SUBROUTINE apphess
 !*******************************************************************************
 
 
@@ -930,7 +959,8 @@ subroutine timeleft(tt)
   close(55)
   call cpu_time(tcpu)
   tt=timelimit-tcpu/3600d0 ! in hours
-end subroutine timeleft
+END SUBROUTINE timeleft
+
 
 subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   use module_base
@@ -1248,9 +1278,9 @@ contains
     i_all=-product(shape(hh))*kind(hh)
     deallocate(hh,stat=i_stat)
     call memocc(i_stat,i_all,'hh',subname)
-  end subroutine close_and_deallocate
+  END SUBROUTINE close_and_deallocate
 
-end subroutine conjgrad
+END SUBROUTINE conjgrad
 
 subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
      nfluct,fnrm,in,forcemax_sw,nitsd,fluct)
@@ -1494,7 +1524,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
   deallocate(tpos,stat=i_stat)
   call memocc(i_stat,i_all,'tpos',subname)
 
-end subroutine steepdes
+END SUBROUTINE steepdes
 
 subroutine detbetax(nproc,iproc,at,pos,rst,in,ncount_bigdft)
   ! determines stepsize betax
@@ -1666,7 +1696,7 @@ subroutine detbetax(nproc,iproc,at,pos,rst,in,ncount_bigdft)
   deallocate(gg,stat=i_stat)
   call memocc(i_stat,i_all,'gg',subname)
 
-end subroutine detbetax
+END SUBROUTINE detbetax
 
 
 subroutine convcheck(fnrm, fmax, fluctfrac_fluct, forcemax, check)
@@ -1682,7 +1712,7 @@ subroutine convcheck(fnrm, fmax, fluctfrac_fluct, forcemax, check)
      check=.true.
   endif
 
-end subroutine convcheck
+END SUBROUTINE convcheck
 
 subroutine fnrmandforcemax(ff,fnrm,fmax,at)
   use module_base
@@ -1716,7 +1746,7 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,at)
   !this is the norm of the forces of non-blocked atoms
   call atomic_dot(at,ff,ff,fnrm)
 !!$  fnrm=t1+t2+t3
-end subroutine fnrmandforcemax
+END SUBROUTINE fnrmandforcemax
 
 
 subroutine updatefluctsum(nat,fxyz,nfluct,fluctsum,fluct)
@@ -1754,7 +1784,7 @@ subroutine updatefluctsum(nat,fxyz,nfluct,fluctsum,fluct)
   fluctsum=fluctsum+sumx**2+sumy**2+sumz**2
   !commented out, it increases the fluctuation artificially
   fluct=fluctsum*sqrt(real(nat,gp))/real(nfluct,gp)
-end subroutine updatefluctsum
+END SUBROUTINE updatefluctsum
 
 !should we evaluate the translational force also with blocked atoms?
 subroutine transforce(nat,fxyz,sumx,sumy,sumz)
@@ -1773,14 +1803,14 @@ subroutine transforce(nat,fxyz,sumx,sumy,sumz)
      sumy=sumy+fxyz(2,iat) 
      sumz=sumz+fxyz(3,iat)
   end do
-end subroutine transforce
+END SUBROUTINE transforce
 
 
 !*****************************************************************************************
 subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
   use module_base
   use module_types
-  use minimization, only:parameterminimization
+  use minimization, only: parameterminimization
   implicit none
   integer :: n,m,iproc,iwrite
   type(atoms_data), intent(in) :: at
@@ -1942,7 +1972,7 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
      endif
      new=.true.
   enddo
-end subroutine lbfgs
+END SUBROUTINE lbfgs
 !*****************************************************************************************
 subroutine init_lbfgs(at,n,m,x,f,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
   use module_base
@@ -2007,7 +2037,7 @@ subroutine init_lbfgs(at,n,m,x,f,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iyp
 
   !    stp1=one/gnorm
   stp1=2.d-2/gnorm
-end subroutine init_lbfgs
+END SUBROUTINE init_lbfgs
 !*****************************************************************************************
 subroutine lb1(nfun,gnorm,n,m,x,f,g,a_t,finish,parmin)
   use minimization, only:parameterminimization
@@ -2063,7 +2093,7 @@ subroutine lb1(nfun,gnorm,n,m,x,f,g,a_t,finish,parmin)
           ' BFGS terminated without detecting errors. iflag = 0'
   endif
   return
-end subroutine lb1
+END SUBROUTINE lb1
 !*****************************************************************************************
 subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin) !line search routine mcsrch
   use module_base
@@ -2202,7 +2232,7 @@ subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin) !line search routine mcs
      end if
      yes=.true.
   enddo
-end subroutine mcsrch
+END SUBROUTINE mcsrch
 
 !*****************************************************************************************
 subroutine mcstep(a_l,fx,dx,a_u,fy,dy,a_t,fp,dp,brackt,stpmin,stpmax,info,parmin)
@@ -2325,7 +2355,7 @@ subroutine mcstep(a_l,fx,dx,a_u,fy,dy,a_t,fp,dp,brackt,stpmin,stpmax,info,parmin
      end if
   end if
   return
-end subroutine mcstep
+END SUBROUTINE mcstep
 !*****************************************************************************************
 subroutine cal_a_c(a_l,fx,dx,a_t,fp,dp,a_c)
   implicit none
@@ -2343,7 +2373,7 @@ subroutine cal_a_c(a_l,fx,dx,a_t,fp,dp,a_c)
   !p=-((2.d0*fx-2.d0*fp-dx*a_l-dp*a_l+dx*a_t+dp*a_t)/(a_l-a_t)**3)
   !q=-((3.d0*fx-3.d0*fp-2.d0*dx*a_l-dp*a_l+2.d0*dx*a_t+dp*a_t)/(a_l-a_t)**2)
   !a_c=a_l+(-q+sqrt(q**2-3.d0*p*dx))/(3.d0*p)
-end subroutine cal_a_c
+END SUBROUTINE cal_a_c
 !*****************************************************************************************
 subroutine cal_a_c_2(a_l,fx,dx,a_t,fp,dp,a_c)
   implicit none
@@ -2356,7 +2386,7 @@ subroutine cal_a_c_2(a_l,fx,dx,a_t,fp,dp,a_c)
   q=((gamma-dp)+gamma)+dx
   r=p/q
   a_c=a_t+r*(a_l-a_t)
-end subroutine cal_a_c_2
+END SUBROUTINE cal_a_c_2
 !*****************************************************************************************
 subroutine cal_a_c_3(a_l,fx,dx,a_t,fp,dp,stpmin,stpmax,a_c)
   implicit none
@@ -2377,7 +2407,7 @@ subroutine cal_a_c_3(a_l,fx,dx,a_t,fp,dp,stpmin,stpmax,a_c)
   else
      a_c=stpmin
   endif
-end subroutine cal_a_c_3
+END SUBROUTINE cal_a_c_3
 !*****************************************************************************************
 
 !fake lenosky subroutine to substitute force fields (temporary, to be deplaced)
@@ -2387,4 +2417,4 @@ subroutine lenoskytb(nat,alat,tposall,grad,etot,rcount,n_silicon)
   integer, intent(in) :: nat,n_silicon
   real(gp) :: alat,tposall,grad,etot,rcount
   stop 'FAKE LENOSKY'
-end subroutine lenoskytb
+END SUBROUTINE lenoskytb

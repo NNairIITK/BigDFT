@@ -1,6 +1,7 @@
 !!****p* BigDFT/frequencies
-!! FUNCTION
-!!  Calculate vibrational frequencies
+!! DESCRIPTION
+!!  Calculate vibrational frequencies by frozen phonon approximation.
+!!  Use a file 'frequencies.res' to restart calculations.
 !!
 !! COPYRIGHT
 !!    Copyright (C) 2009 CEA, UNIBAS
@@ -21,8 +22,9 @@ program frequencies
   real(dp), parameter :: Ha_cmm1=219474.6313705_dp  ! 1 Hartree, in cm^-1 (from abinit 5.7.x)
   real(dp), parameter :: amu_emass=1.660538782d-27/9.10938215d-31 ! 1 atomic mass unit, in electronic mass
   character(len=*), parameter :: subname='frequencies'
-  character(len=20) :: units
   character(len=2) :: cc
+  !File units
+  integer, parameter :: u_restart=10,u_hessian=20
   integer :: iproc,nproc,iat,jat,ityp,i,j,i_stat,i_all,ierr,infocode,ity
   real(gp) :: etot,etot_m,etot_p,sumx,sumy,sumz,tt,alat,alpha,dd,rmass
   !input variables
@@ -32,10 +34,14 @@ program frequencies
   character(len=20), dimension(:), allocatable :: atomnames
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: rxyz,fxyz,rpos,fpos_m,fpos_p
+  ! hessian, eigenvectors
   real(gp), dimension(:,:), allocatable :: hessian,vector_l,vector_r
   real(gp), dimension(:), allocatable :: eigen_r,eigen_i
+  ! logical: .true. if already calculated
+  logical, dimension(:,:,:), allocatable :: moves
+  real(gp), dimension(:,:,:,:), allocatable :: forces
   real(gp), dimension(3) :: h_grid
-  integer :: npr,iam
+  integer :: npr,iam,jm
  
   ! Start MPI in parallel version
   !in the case of MPIfake libraries the number of processors is automatically adjusted
@@ -66,7 +72,7 @@ program frequencies
 
   ! read input variables, use structures
   call read_input_variables(iproc,'input.dat',inputs)
- 
+
   do iat=1,atoms%nat
      if (atoms%ifrztyp(iat) == 0) then
         call random_number(tt)
@@ -92,6 +98,7 @@ program frequencies
 
   call init_restart_objects(atoms,rst,subname)
 
+! First, calculate forces for the atomic configuration
   call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
 
   if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
@@ -116,6 +123,7 @@ program frequencies
      end if
   endif
 
+  !Allocations
   allocate(rpos(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rpos,'rpos',subname)
   allocate(fpos_m(3,atoms%nat+ndebug),stat=i_stat)
@@ -124,6 +132,10 @@ program frequencies
   call memocc(i_stat,fpos_p,'fpos_p',subname)
   allocate(hessian(3*atoms%nat,3*atoms%nat),stat=i_stat)
   call memocc(i_stat,hessian,'hessian',subname)
+  allocate(moves(2,3,atoms%nat),stat=i_stat)
+  call memocc(i_stat,moves,'moves',subname)
+  allocate(forces(2,3,atoms%nat,3*atoms%nat),stat=i_stat)
+  call memocc(i_stat,forces,'forces',subname)
 
 ! Move to alpha*h_grid
   alpha=1.d0/real(64,kind(1.d0))
@@ -134,12 +146,17 @@ program frequencies
   h_grid(2) = inputs%hy
   h_grid(3) = inputs%hz
 
+!Initialize moves (displacement already calculated)
+ moves = .false.
+
   if (iproc ==0 ) then
      write(*,"(1x,a)") '=Frequencies calculation='
-     open(unit=10,file='frequencies.dat',status="unknown")
-     open(unit=20,file='hessian.dat',status="unknown")
-     write(10,'(a,3(1pe20.10))') '#step=',alpha*inputs%hx,alpha*inputs%hy,alpha*inputs%hz
-     write(10,'(a,100(1pe20.10))') '#--',etot,alpha*inputs%hx,alpha*inputs%hy,alpha*inputs%hz,fxyz
+     !This file is used as a restart
+     open(unit=u_restart,file='frequencies.res',status="unknown",form="unformatted")
+     !This file contains the hessian for post-processing
+     open(unit=u_hessian,file='hessian.dat',status="unknown")
+     write(u_hessian,'(a,3(1pe20.10))') '#step=',alpha*inputs%hx,alpha*inputs%hy,alpha*inputs%hz
+     write(u_hessian,'(a,100(1pe20.10))') '#--',etot,alpha*inputs%hx,alpha*inputs%hy,alpha*inputs%hz,fxyz
   end if
 
   do iat=1,atoms%nat
@@ -160,6 +177,12 @@ program frequencies
            cc(2:2)='z'
         end if
         do j=-1,1,2
+           !-1-> 1, 1 -> 2, y = ( x + 3 ) / 2
+           jm = (j+3)/2
+           if (moves(jm,i,iat)) then
+               !This move is already done.
+               cycle
+           end if
            if (j==-1) then
               cc(1:1)='-'
            else
@@ -185,10 +208,12 @@ program frequencies
            inputs%output_wf=.false.
            if (j==-1) then
               call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot_m,fpos_m,rst,infocode)
-               if (iproc==0) write(10,'(i0,1x,a,1x,100(1pe20.10))') iat,cc,etot_m-etot,fpos_m-fxyz
+              if (iproc==0) write(u_restart) 1,i,iat,fpos_m
+              moves(1,i,iat) = .true.
            else
               call call_bigdft(nproc,iproc,atoms,rpos,inputs,etot_p,fpos_p,rst,infocode)
-               if (iproc==0) write(10,'(i0,1x,a,1x,100(1pe20.10))') iat,cc,etot_p-etot,fpos_p-fxyz
+              if (iproc==0) write(u_restart) 2,i,iat,fpos_p
+              moves(2,i,iat) = .true.
            end if
         end do
         ! Build the hessian
@@ -202,12 +227,12 @@ program frequencies
               !end if
            end do
         end do
-        if (iproc == 0) write(20,'(i0,1x,i0,1x,100(1pe20.10)))') i,iat,hessian(:,3*(iat-1)+i)
+        if (iproc == 0) write(u_hessian,'(i0,1x,i0,1x,100(1pe20.10)))') i,iat,hessian(:,3*(iat-1)+i)
      end do
   end do
 
-  close(unit=10)
-  close(unit=20)
+  close(unit=u_restart)
+  close(unit=u_hessian)
 
   !deallocations
   i_all=-product(shape(rpos))*kind(rpos)
@@ -246,10 +271,10 @@ program frequencies
      write(*,'(1x,a,1x,100(1pe20.10))') '=F: frequencies (Hartree)   =',eigen_r
      write(*,'(1x,a,1x,100(f13.2))') '=F: frequencies (cm-1)      =',eigen_r*Ha_cmm1
      !Build frequencies.xyz
-     open(unit=10,file='frequencies.xyz',status="unknown")
+     open(unit=15,file='frequencies.xyz',status="unknown")
      do i=1,3*atoms%nat
-         write(10,'(1x,i0,1x,1pe20.10,a)') atoms%nat,eigen_r(i)
-         write(10,'(1x,a)') 'Frequency'
+         write(15,'(1x,i0,1x,1pe20.10,a)') atoms%nat,eigen_r(i)
+         write(15,'(1x,a)') 'Frequency'
          do iat=1,atoms%nat
             ity=atoms%iatype(iat)
             do j=1,3
@@ -258,9 +283,9 @@ program frequencies
             end do
          end do
          !Blank line
-         write(10,*)
+         write(15,*)
      end do
-     close(unit=10)
+     close(unit=15)
   end if
 
   !Deallocations
@@ -304,6 +329,12 @@ program frequencies
   i_all=-product(shape(vector_r))*kind(vector_r)
   deallocate(vector_r,stat=i_stat)
   call memocc(i_stat,i_all,'vector_r',subname)
+  i_all=-product(shape(moves))*kind(moves)
+  deallocate(moves,stat=i_stat)
+  call memocc(i_stat,i_all,'moves',subname)
+  i_all=-product(shape(forces))*kind(forces)
+  deallocate(forces,stat=i_stat)
+  call memocc(i_stat,i_all,'forces',subname)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
