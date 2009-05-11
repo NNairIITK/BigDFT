@@ -1250,7 +1250,7 @@ contains
     call memocc(i_stat,i_all,'radii_cf',subname)
     i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
     deallocate(atoms%npspcode,stat=i_stat)
-    call memocc(i_stat,i_all,'atoms%pspcode',subname)
+    call memocc(i_stat,i_all,'atoms%npspcode',subname)
 
     !end of wavefunction minimisation
     call timing(iproc,'LAST','PR')

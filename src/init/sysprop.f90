@@ -111,8 +111,6 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,norb,norbu,
   call memocc(i_stat,atoms%nzatom,'atoms%nzatom',subname)
   allocate(atoms%iasctype(atoms%ntypes+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%iasctype,'atoms%iasctype',subname)
-  allocate(atoms%amu(atoms%ntypes+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
 
   if (iproc == 0) then
      write(*,'(1x,a)')&

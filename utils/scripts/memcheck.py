@@ -23,7 +23,6 @@ def array_name(name):
         else:
             ilast = i
         array.append(ilast)
-    print array
     return array
 
 print "Read the file 'malloc.prc':"
@@ -45,7 +44,10 @@ for line in fd:
     a = line.split()
     #Not used
     routine = a[0]
-    name = a[1]
+    #Decomment here to use the fullname and derivatives
+    #name = a[1]
+    #Here use the last name (after the last "%")
+    name = a[1].split("%")[-1]
     if name == "routine":
         #Last line
         continue
@@ -68,14 +70,11 @@ keys = variables.keys()
 for key in keys:
     for var in array_name(key):
         if var in variables.keys():
-            print key,var,"ok"
             #Group
             variables[var][0] += variables[key][0]
             variables[var][1].append(variables[key][1])
             del variables[key]
             break
-        else:
-            print key,var,"X"
 
 print "Remaining memory=%d, allocations=%d, deallocations=%d, zero=%d" % \
     (total_size,nalloc,ndealloc,nzero)

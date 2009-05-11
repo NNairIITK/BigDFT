@@ -452,7 +452,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   call memocc(i_stat,i_all,'orbsb%spinsgn',subname)
   i_all=-product(shape(orbsb%kpts))*kind(orbsb%kpts)
   deallocate(orbsb%kpts,stat=i_stat)
-  call memocc(i_stat,i_all,'orbs%kpts',subname)
+  call memocc(i_stat,i_all,'orbsb%kpts',subname)
   i_all=-product(shape(orbsb%kwgts))*kind(orbsb%kwgts)
   deallocate(orbsb%kwgts,stat=i_stat)
   call memocc(i_stat,i_all,'orbsb%kwgts',subname)

@@ -364,6 +364,8 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   call memocc(i_stat,atoms%ifrztyp,'atoms%ifrztyp',subname)
   allocate(atoms%natpol(atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,atoms%natpol,'atoms%natpol',subname)
+  allocate(atoms%amu(atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
 
   !controls if the positions are provided with machine precision
   if (atoms%units == 'angstroemd0' .or. atoms%units== 'atomicd0' .or. atoms%units== 'bohrd0') then
