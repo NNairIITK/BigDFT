@@ -244,6 +244,18 @@ module module_types
   end type workarr_locham
 !!***
 
+!!****t* module_types/workarr_precond
+!! DESCRIPTION
+!! Contains the work arrays needed for th preconditioner with all the BC
+!!
+!! SOURCE
+!!
+  type, public :: workarr_precond
+     real(wp), dimension(:), pointer :: psifscf,ww
+     real(gp), dimension(:,:), pointer :: af,bf,cf,ef
+     integer, dimension(:), pointer :: modul1,modul2,modul3
+  end type workarr_precond
+!!***
 
 contains
 

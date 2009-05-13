@@ -635,7 +635,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
 
   !control whether the k points are to be used
   !real k-point different from Gamma still not implemented
-  usekpts = kx**2+ky**2+kz**2 > 0.0_gp
+  usekpts = kx**2+ky**2+kz**2 > 0.0_gp .or. .true.
 
   hgridh(1)=hx*.5_gp
   hgridh(2)=hy*.5_gp
@@ -747,7 +747,6 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
         !here kpoints cannot be used, such BC are used only to mimic the Free BC
         if (usekpts) stop 'K points not allowed for hybrid BC locham'
 
-
         !here the grid spacing is not halved
         hgridh(1)=hx
         hgridh(2)=hy
@@ -776,6 +775,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
      else
 
         if (usekpts) then
+
            !first calculate the proper arrays then transpose them before passing to the
            !proper routine
            do idx=1,nspinor
@@ -793,8 +793,9 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
            ! compute the kinetic part and add  it to psi_out
            ! the kinetic energy is calculated at the same time
            do idx=1,nspinor,2
+              !print *,'kx,ky,kz',idx,kx,ky,kz
               call convolut_kinetic_per_T_k(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
-                   hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
+                   hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino,kx,ky,kz)
               ekin=ekin+ekino
            end do
 
@@ -848,6 +849,7 @@ subroutine transpose_for_kpoints(nspinor,n1,n2,n3,x,ww,direct)
   !local variables
   integer :: i1,i2,i3,i,idx,id,id2,id3,isd,ispinor,it
 
+
   !k-points also admitted in non-collinear case
   if (direct) then
      do ispinor=1,nspinor/2
@@ -885,8 +887,9 @@ subroutine transpose_for_kpoints(nspinor,n1,n2,n3,x,ww,direct)
      end do
   end if
   
-  !for mixed precision code it should be changed
+  !for mixed precision code dcopy should be generalised
   call dcopy(nspinor*n1*n2*n3,ww,1,x,1)
+
 end subroutine transpose_for_kpoints
 
 subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, & 
