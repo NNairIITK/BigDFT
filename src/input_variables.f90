@@ -774,25 +774,15 @@ subroutine read_atomic_ascii(iproc,ifile,at,rxyz)
      if (line(1:1) /= '#' .and. line(1:1) /= '!' .and. len(trim(line)) /= 0) then
         at%nat = at%nat + 1
      else if (line(1:9) == "#keyword:" .or. line(1:9) == "!keyword:") then
-        if (index(line, 'bohr') > 0) then
-           write(at%units, "(A)") "bohr"
-        else if (index(line, 'bohrd0') > 0) then
-           write(at%units, "(A)") "bohrd0"
-        else if (index(line, 'atomic') > 0) then
-           write(at%units, "(A)") "atomicd0"
-        else if (index(line, 'angstroem') > 0) then
-           write(at%units, "(A)") "angstroem"
-        else if (index(line, 'angstroemd0') > 0) then
-           write(at%units, "(A)") "angstroemd0"
-        else if (index(line, 'reduced') > 0) then
-           write(at%units, "(A)") "reduced"
-        else if (index(line, 'periodic') > 0) then
-           at%geocode = 'P'
-        else if (index(line, 'surface') > 0) then
-           at%geocode = 'S'
-        else if (index(line, 'freeBC') > 0) then
-           at%geocode = 'F'
-        end if
+        if (index(line, 'bohr') > 0)        write(at%units, "(A)") "bohr"
+        if (index(line, 'bohrd0') > 0)      write(at%units, "(A)") "bohrd0"
+        if (index(line, 'atomic') > 0)      write(at%units, "(A)") "atomicd0"
+        if (index(line, 'angstroem') > 0)   write(at%units, "(A)") "angstroem"
+        if (index(line, 'angstroemd0') > 0) write(at%units, "(A)") "angstroemd0"
+        if (index(line, 'reduced') > 0)     write(at%units, "(A)") "reduced"
+        if (index(line, 'periodic') > 0) at%geocode = 'P'
+        if (index(line, 'surface') > 0)  at%geocode = 'S'
+        if (index(line, 'freeBC') > 0)   at%geocode = 'F'
      end if
   end do
   
