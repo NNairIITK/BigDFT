@@ -160,10 +160,18 @@ subroutine read_input_variables(iproc,filename,in)
      in%inputPsiId=0
   end if
 
-  !add reading lines for Davidson treatment (optional for backward compatibility)
-  read(1,*,iostat=ierror) in%nvirt, in%nplot
-  !call check()
-  
+  ! qoh: Try to read dispersion input variable
+  read(1,'(a100)',iostat=ierror)line
+  if (index(line,"dispersion") /= 0) then 
+     read(line,*,iostat=ierror) in%dispersion
+     !add reading lines for Davidson treatment 
+     !(optional for backward compatibility)
+     read(1,*,iostat=ierror) in%nvirt, in%nplot
+  else 
+     in%dispersion = 0
+     read(line,*,iostat=ierror) in%nvirt, in%nplot
+  end if 
+
   if (ierror/=0) then
      in%nvirt=0
      in%nplot=0

@@ -154,6 +154,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   use module_types
   use module_interfaces
   use Poisson_Solver
+  use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hgrid_old
@@ -185,6 +186,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
   real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min,psoffset
   real(kind=8) :: factor,ttsum,hx_old,hy_old,hz_old
+  real(GP) :: edisp ! Dispersion energy
   type(wavefunctions_descriptors) :: wfd_old
   type(nonlocal_psp_descriptors) :: nlpspd
   type(communications_arrays) :: comms
@@ -193,6 +195,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
   real(kind=8), dimension(:), allocatable :: spinsgn_foo,rho
   real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
+  real(GP), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
   real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot,rho_diag
@@ -377,6 +380,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
        in%ef,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
+        
+  call vdwcorrection_calculate_energy(edisp,rxyz,atoms,in,iproc)
+  
+  allocate(fdisp(3,atoms%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,fdisp,'fdisp',subname)
+  
+  call vdwcorrection_calculate_forces(fdisp,rxyz,atoms,in,iproc) 
 
   !Allocate Charge density, Potential in real space
   if (n3d >0) then
@@ -668,7 +678,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      energybs=ekin_sum+epot_sum+eproj_sum
      energy_old=energy
-     energy=energybs-ehart+eexcu-vexcu+eion
+     energy=energybs-ehart+eexcu-vexcu+eion+edisp
 
      !check for convergence or whether max. numb. of iterations exceeded
      if (endloop) then 
@@ -959,14 +969,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !add to the forces the ionic contribution 
   do iat=1,atoms%nat
-     fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)
-     fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)
-     fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)
+     fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)
+     fxyz(2,iat)=fxyz(2,iat)+fion(2,iat)+fdisp(2,iat)
+     fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)
   enddo
 
   i_all=-product(shape(fion))*kind(fion)
   deallocate(fion,stat=i_stat)
   call memocc(i_stat,i_all,'fion',subname)
+  i_all=-product(shape(fdisp))*kind(fdisp)
+  deallocate(fdisp,stat=i_stat)
+  call memocc(i_stat,i_all,'fdisp',subname)
   i_all=-product(shape(gxyz))*kind(gxyz)
   deallocate(gxyz,stat=i_stat)
   call memocc(i_stat,i_all,'gxyz',subname)
@@ -1062,7 +1075,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      !end if
 
      energybs=ekin_sum+epot_sum+eproj_sum
-     energy=energybs-ehart+eexcu-vexcu+eion
+     energy=energybs-ehart+eexcu-vexcu+eion+edisp
 
      !if (iproc==0) then
      !   write(61,'(1pe19.11)')energy
