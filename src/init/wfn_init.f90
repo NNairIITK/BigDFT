@@ -731,16 +731,25 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
                  nwrtmsg=0
               end if
            end if
+           if (abs(iorb+iorbst-1 - norb).le.5) then
+              nwrtmsg=1
+              message=' <- '
+           end if
            if (iorb+iorbst-1 == norb) then
               nwrtmsg=1
               message=' <- Last eigenvalue for input wavefunctions'
               preval(1)=evale(iorb)
+           end if
+           if (iorb+iorbst-2 == norb) then
+              nwrtmsg=1
+              message=' <- First virtual eigenvalue '
            end if
            if (iproc.eq.0) then
               if (nwrtmsg == 1) then
                  write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
                       'evale(',iorb+iorbst-1,')=',evale(iorb),trim(message)
               else
+                 if (iorb.le.5 .or. iorb.ge.norbi-5) & 
                  write(*,'(1x,a,i0,a,1x,1pe21.14)') &
                       'evale(',iorb+iorbst-1,')=',evale(iorb)
               end if
@@ -782,6 +791,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
                       'evale(',iorb+iorbst-1,',u)=',evale(iorb),message,&
                       'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi)
               else
+                 if (iorb.le.5 .or. iorb.ge.norbi-5) & 
                  write(*,'(1x,a,i4,a,1x,1pe21.14,12x,a,i4,a,1x,1pe21.14)') &
                       'evale(',iorb+iorbst-1,',u)=',evale(iorb),&
                       'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi)

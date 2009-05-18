@@ -463,6 +463,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nvctrp,&
   real(wp), dimension(:) , pointer :: psi,hpsi,psit
   !local variables
   character(len=*), parameter :: subname='last_orthon'
+  logical :: dowrite !write the screen output
   integer :: i_all,i_stat,ierr,iorb,jorb,md
   real(wp) :: evpart
   real(wp), dimension(:,:,:), allocatable :: mom_vec
@@ -514,35 +515,75 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nvctrp,&
   if (iproc == 0) then
      write(*,'(1x,a)')&
           '-------------------------------------------------------------- Kohn-Sham Eigenvalues'
-     if (nspin==1.or.orbs%nspinor==4) then
-        if (orbs%nspinor ==4) then
+     if (orbs%nspinor ==4) then
         write(*,'(1x,a)')&
              '           Eigenvalue                                      m_x       m_y       m_z'
-           do iorb=1,orbs%norb
-              write(*,'(1x,a,i4,a,1x,1pe21.14,20x,(1x,3(0pf10.5)))') &
+     end if
+     if (nspin==1.or.orbs%nspinor==4) then
+        do iorb=1,orbs%norb
+           dowrite =iorb <= 5 .or. iorb >= orbs%norb-5
+           if (orbs%nspinor ==4) then
+              if (dowrite) & 
+                   write(*,'(1x,a,i4,a,1x,1pe21.14,20x,(1x,3(0pf10.5)))') &
                    'eval(',iorb,')=',orbs%eval(iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
-           end do
-        else
-           do iorb=1,orbs%norb
-              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',orbs%eval(iorb)
-           end do
-        end if
+           else
+              if (dowrite) & 
+                   write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',orbs%eval(iorb)
+           end if
+        end do
      else
         do iorb=1,min(orbs%norbu,orbs%norbd)
            jorb=orbs%norbu+iorb
-           write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
+           dowrite =iorb <= 5 .or. iorb >= min(orbs%norbu,orbs%norbd)-5
+           if (dowrite) & 
+                write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
                 'eval(',iorb,',u)=',orbs%eval(iorb),'eval(',iorb,',d)=',orbs%eval(jorb)
         end do
         if (orbs%norbu > orbs%norbd) then
            do iorb=orbs%norbd+1,orbs%norbu
+              dowrite =iorb <= 5 .or. iorb >= orbs%norbu-5
+              if (dowrite) & 
               write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,',u)=',orbs%eval(iorb)
            end do
         else if (orbs%norbd > orbs%norbu) then
            do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
-              write(*,'(50x,a,i4,a,1x,1pe21.14)') 'eval(',iorb-orbs%norbu,',d)=',orbs%eval(iorb)
+              dowrite =iorb <= 5 .or. iorb >= orbs%norbd-5
+              if (dowrite) & 
+                   write(*,'(50x,a,i4,a,1x,1pe21.14)') 'eval(',iorb-orbs%norbu,',d)=',orbs%eval(iorb)
            end do
         end if
      end if
+!!$     if (nspin==1.or.orbs%nspinor==4) then
+!!$        if (orbs%nspinor ==4) then
+!!$           do iorb=1,orbs%norb
+!!$              dowrite =iorb <= 5 .or. iorb >= orbs%norb-5
+!!$              if (dowrite) & 
+!!$                   write(*,'(1x,a,i4,a,1x,1pe21.14,20x,(1x,3(0pf10.5)))') &
+!!$                   'eval(',iorb,')=',orbs%eval(iorb),(mom_vec(md,iorb,1)/mom_vec(1,iorb,1),md=2,4)
+!!$           end do
+!!$        else
+!!$           do iorb=1,orbs%norb
+!!$              dowrite =iorb <= 5 .or. iorb >= orbs%norb-5
+!!$              if (dowrite) & 
+!!$                   write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,')=',orbs%eval(iorb)
+!!$           end do
+!!$        end if
+!!$     else
+!!$        do iorb=1,min(orbs%norbu,orbs%norbd)
+!!$           jorb=orbs%norbu+iorb
+!!$           write(*,'(1x,a,i4,a,1x,1pe21.14,14x,a,i4,a,1x,1pe21.14)') &
+!!$                'eval(',iorb,',u)=',orbs%eval(iorb),'eval(',iorb,',d)=',orbs%eval(jorb)
+!!$        end do
+!!$        if (orbs%norbu > orbs%norbd) then
+!!$           do iorb=orbs%norbd+1,orbs%norbu
+!!$              write(*,'(1x,a,i4,a,1x,1pe21.14)') 'eval(',iorb,',u)=',orbs%eval(iorb)
+!!$           end do
+!!$        else if (orbs%norbd > orbs%norbu) then
+!!$           do iorb=2*orbs%norbu+1,orbs%norbu+orbs%norbd
+!!$              write(*,'(50x,a,i4,a,1x,1pe21.14)') 'eval(',iorb-orbs%norbu,',d)=',orbs%eval(iorb)
+!!$           end do
+!!$        end if
+!!$     end if
   end if
 
   if (orbs%nspinor ==4) then

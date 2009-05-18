@@ -175,7 +175,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !local variables
   character(len=*), parameter :: subname='cluster'
   character(len=10) :: orbname
-  logical :: endloop
+  logical :: endloop,quiet=.true.!quiet the screen output
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
   integer :: nvirt,ndiis_sd_sw
   integer :: nelec,ndegree_ip,nvctrp,mids,iorb,ids,idiistol,j
@@ -694,9 +694,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              'ERROR: inconsistency between gradient and energy',tt,energybs,scprsum
      endif
      if (iproc.eq.0) then
-        write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
-             ekin_sum,epot_sum,eproj_sum
-        write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+        if (.not. quiet) then
+           write( *,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
+                ekin_sum,epot_sum,eproj_sum
+           write( *,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
+        end if
         write( *,'(1x,a,i6,2x,1pe24.17,1x,1pe9.2)') 'iter,total energy,gnrm',iter,energy,gnrm
      endif
 

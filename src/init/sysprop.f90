@@ -306,7 +306,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      do ityp=1,at%ntypes
         write(*,'(1x,a)')&
              'Atom Name    rloc      C1        C2        C3        C4  '
-        do l=0,3
+        do l=0,4
            if (l==0) then
               do i=4,0,-1
                  j=i
