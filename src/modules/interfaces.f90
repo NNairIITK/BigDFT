@@ -527,18 +527,16 @@ module module_interfaces
        real(wp), dimension(:), pointer, optional :: psivirt
      end subroutine build_eigenvectors
 
-     subroutine preconditionall(iproc,nproc,norbp,lr,&
-          hx,hy,hz,ncong,nspinor,eval,hpsi,gnrm)
+     subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,norbp
-       integer, intent(in) :: nspinor,ncong
+       integer, intent(in) :: iproc,nproc,ncong
        real(gp), intent(in) :: hx,hy,hz
        type(locreg_descriptors), intent(in) :: lr
-       real(wp), intent(in) :: eval
+       type(orbitals_data), intent(in) :: orbs
        real(dp), intent(out) :: gnrm
-       real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,norbp*nspinor), intent(inout) :: hpsi
+       real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp,orbs%nspinor), intent(inout) :: hpsi
      end subroutine preconditionall
 
      subroutine transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&

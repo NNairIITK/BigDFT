@@ -190,6 +190,7 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
      fil(2,-i,:)=-fil(2,i,:)
   enddo
 
+
   ener=0._wp
   do i3=0,n3
      ! (1/2) d^2/dx^2
@@ -204,7 +205,7 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-		   ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+           ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
      
@@ -222,7 +223,7 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-		   ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+           ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
      
@@ -241,11 +242,11 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-		   ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+           ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
   enddo
 
-  ener=ener*.5_wp
+  !ener=ener*.5_wp
   
 end subroutine convolut_kinetic_slab_T_k

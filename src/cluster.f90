@@ -383,7 +383,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   !avoid allocation of the eigenvalues array in case of restart
   if (in%inputPsiId /= 1 .and. in%inputPsiId /= 11) then
-     allocate(orbs%eval(orbs%norb+ndebug),stat=i_stat)
+     allocate(orbs%eval(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
      call memocc(i_stat,orbs%eval,'eval',subname)
   end if
 

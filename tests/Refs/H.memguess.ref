@@ -37,10 +37,11 @@
  Spin-polarised calculation:  NO 
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 5.0
  total charge=      0 |                    | CG Prec.Steps=       7 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+   Geom. Code=    P   |   Box Sizes (Bohr) =  1.40000E+01  1.40000E+01  1.40000E+01
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
       H          1       2            1.36000  0.15000  0.00000                   X    
@@ -52,10 +53,10 @@
  Total Number of Orbitals        1
  occup(1)= 1.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
-     1      H  6.75000E+00  6.75000E+00  6.75000E+00       15.000    15.000    15.000
-    Shift of=  6.75000E+00  6.75000E+00  6.75000E+00 Grid Spacings=  0.45  0.45  0.45
-   Box Sizes=  1.35000E+01  1.35000E+01  1.35000E+01           30        30        30
-       Extremes for the high resolution grid points:        13<17     13<17     13<17
+     1      H  7.00000E+00  7.00000E+00  7.00000E+00       16.000    16.000    16.000
+    Shift of= -0.00000E+00 -0.00000E+00 -0.00000E+00 Grid Spacings=  0.44  0.44  0.44
+   Box Sizes=  1.40000E+01  1.40000E+01  1.40000E+01           31        31        31
+       Extremes for the high resolution grid points:        14<18     14<18     14<18
  wavelet localization is ON
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
@@ -65,24 +66,24 @@
  Total number of components =                    0
  Percent of zero components =                    0
  ------------------------------------------------------------------ Memory Estimation
- Number of atoms=    1 Number of orbitals=     1 Sim. Box Dimensions=    30   30   30
+ Number of atoms=    1 Number of orbitals=     1 Sim. Box Dimensions=    31   31   31
  Estimation performed for 1 processors.
  Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     6 MB   987 KB
-              Poisson Solver Density (D):     6 MB   768 KB
-     Single Wavefunction for one orbital:     0 MB   118 KB
-    All Wavefunctions for each processor:     0 MB   235 KB
-       Wavefunctions + DIIS per proc (W):     1 MB   615 KB
+               Poisson Solver Kernel (K):     2 MB    98 KB
+              Poisson Solver Density (D):     2 MB     0 KB
+     Single Wavefunction for one orbital:     0 MB   127 KB
+    All Wavefunctions for each processor:     0 MB   254 KB
+       Wavefunctions + DIIS per proc (W):     1 MB   751 KB
      Nonlocal Pseudopotential Arrays (P):     0 MB     0 KB
-    Arrays of full uncompressed grid (U):     5 MB   768 KB
+    Arrays of full uncompressed grid (U):     0 MB   233 KB
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
        ~11*K         |     ~W+(~3)*U+P      |   ~8*D+K+W+P   |       ~W+(~3)*U+P 
-        76MB         |        21MB          |       62MB     |            23MB
- The overall memory requirement needed for this calculation is thus: 76 MB
+        23MB         |         4MB          |       19MB     |             4MB
+ The overall memory requirement needed for this calculation is thus: 23 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
-  memory can be reduced but for this system it will never be less than 20 MB
+  memory can be reduced but for this system it will never be less than 1 MB
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 21 allocations and 21 deallocations, remaining memory(B):0
+ 24 allocations and 24 deallocations, remaining memory(B):0
  memory occupation peak: 0 MB
  for the array  logrid_f in the routine MemoryEstimator

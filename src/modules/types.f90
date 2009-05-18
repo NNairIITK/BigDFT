@@ -244,6 +244,23 @@ module module_types
   end type workarr_locham
 !!***
 
+!!****t* module_types/workarr_precond
+!! DESCRIPTION
+!! Contains the work arrays needed for th preconditioner with all the BC
+!! Take different pointers depending on the boundary conditions
+!!
+!! SOURCE
+!!
+  type, public :: workarr_precond
+     integer, dimension(:), pointer :: modul1,modul2,modul3
+     real(wp), dimension(:), pointer :: psifscf,ww,x_f1,x_f2,x_f3,kern_k1,kern_k2,kern_k3
+     real(wp), dimension(:,:), pointer :: af,bf,cf,ef
+     real(wp), dimension(:,:,:), pointer :: xpsig_c,ypsig_c,x_c
+     real(wp), dimension(:,:,:,:), pointer :: xpsig_f,ypsig_f,x_f,y_f
+     real(wp), dimension(:,:,:,:,:), pointer :: z1,z3 ! work array for FFT
+
+  end type workarr_precond
+!!***
 
 contains
 

@@ -310,8 +310,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
      call timing(iproc,'Precondition  ','ON')
 
      !we use for preconditioning the eval from the lowest value of the KS wavefunctions
-     call preconditionall(iproc,nproc,orbsv%norbp,lr,hx,hy,hz, &
-          ncong,1,orbs%eval(min(orbsv%isorb+1,orbsv%norb)),g,gnrm_fake)
+     orbsv%eval=>orbs%eval
+     call preconditionall(iproc,nproc,orbsv,lr,hx,hy,hz,ncong,g,gnrm_fake)
 
      call timing(iproc,'Precondition  ','OF')
      if (iproc==0)write(*,'(1x,a)')'done.'

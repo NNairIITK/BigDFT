@@ -208,8 +208,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
      call preconditionall_GPU(iproc,nproc,orbs,lr,hx,hy,hz,ncong,&
           hpsi,gnrm,GPU)
   else
-     call preconditionall(iproc,nproc,orbs%norbp,lr,hx,hy,hz,ncong,orbs%nspinor,&
-          orbs%eval(min(orbs%isorb+1,orbs%norb)),hpsi,gnrm)
+     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   end if
 
   !sum over all the partial residues

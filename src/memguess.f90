@@ -971,8 +971,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !the input function is psi
   call cpu_time(t0)
   do j=1,ntimes
-     call preconditionall(iproc,nproc,orbs%norbp,lr,hx,hy,hz,ncong,orbs%nspinor,&
-          orbs%eval(min(orbs%isorb+1,orbs%norb)),hpsi,gnrm)
+     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   end do
   call cpu_time(t1)
 
