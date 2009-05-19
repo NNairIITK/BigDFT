@@ -74,8 +74,8 @@ subroutine read_input_variables(iproc,filename,in)
   read(line,*,iostat=ierrfrc) cudagpu
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
      call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-     iconv = 0
-     iblas = 0
+   !  iconv = 0
+   !  iblas = 0
      
 
    !  call set_cpu_gpu_aff(iproc,iconv,iblas)

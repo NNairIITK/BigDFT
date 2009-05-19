@@ -43,7 +43,7 @@ private:
 class trace_exec
 {
 public:
-  trace_exec(const std::string&);
+  trace_exec(const std::string&,bool enableTrace);
   ~trace_exec();
 
   write_trace getNewWriteTrace(trace_t,const std::string& name );
@@ -53,6 +53,7 @@ private:
   void writeToFile(trace_t,int traceNumber,time_mesure time, const std::string& name);
   std::ofstream *traceFile;
   
+  bool enableTrace;
   
   int nextTraceNumber;
   friend class write_trace;
