@@ -273,7 +273,7 @@ test_forces_LDADD = libbigdft.a \
 
 NEB_SOURCES = NEB.f90
 NEB_LDFLAGS = 
-NEB_LDADD =
+NEB_LDADD = input_variables.o $(modules_objects) profiling/memory.o convolutions/interface_cuda_fake.o
 
 memguess_SOURCES = memguess.f90 
 memguess_LDADD = libbigdft.a \

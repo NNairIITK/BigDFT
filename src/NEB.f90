@@ -433,6 +433,9 @@ MODULE NEB_routines
 
     SUBROUTINE read_input
 
+      use module_types
+      use module_interfaces
+
       IMPLICIT NONE
 
       INTEGER                                    :: i, j, n1, n2
@@ -440,6 +443,8 @@ MODULE NEB_routines
       CHARACTER (LEN=95)                         :: vel_file
       INTEGER, PARAMETER                         :: unit = 10
       REAL (KIND=dbl), DIMENSION(:), ALLOCATABLE :: d_R
+      type(atoms_data)                           :: at
+      real(kind = dbl), dimension(:,:), pointer  :: rxyz
       real(kind = dbl), dimension(3, 1000)       :: xcart1, xcart2
       real(kind = dbl), dimension(3)             :: acell1, acell2
 
@@ -554,8 +559,21 @@ MODULE NEB_routines
       
       END IF
 
-      call read_xyz(n1, xcart1, acell1, trim(first_config))
-      call read_xyz(n2, xcart2, acell2, trim(last_config))
+      call read_atomic_file(trim(first_config), 0, at, rxyz)
+      n1 = at%nat
+      acell1(1) = at%alat1
+      acell1(2) = at%alat2
+      acell1(3) = at%alat3
+      xcart1(:,1:at%nat) = rxyz
+      deallocate(rxyz)
+
+      call read_atomic_file(trim(last_config), 0, at, rxyz)
+      n2 = at%nat
+      acell2(1) = at%alat1
+      acell2(2) = at%alat2
+      acell2(3) = at%alat3
+      xcart2(:,1:at%nat) = rxyz
+      deallocate(rxyz)
 
 !! some consistency checks are done
 
