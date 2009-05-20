@@ -67,8 +67,10 @@ for ((count=${min};count<=${max};count++)) ; do
 	mkdir $dir
     fi
     # Empty the working directory.
-    rm -f $dir/*
-    touch $dir/START
+    if [ ! -f $dir/RESTART ] ; then
+        rm -f $dir/*
+        touch $dir/START
+    fi
     neb_dir[$count]=$dir
 done
 
@@ -94,6 +96,12 @@ while [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; do
 
 	    # Start it
 	    run_job $job_name $count
+	fi
+
+	cd ${neb_dir[$count]}
+	# keyword RESTART
+	if [ -f RESTART ] ; then
+	    rm -f RESTART
 	fi
 
 	cd ${neb_dir[$count]}
@@ -128,7 +136,7 @@ for ((i = 0; i < 256; i++)) ; do
 	if test x"$DEBUG" != x ; then
 	    echo "Compression of replica calculations into '$job_name.NEB.it${ch}.tar.bz2'"
 	fi
-	tar --exclude *.bz2 -cjf $job_name.NEB.it${ch}.tar.bz2 $job_name.NEB.*
+	tar --exclude \*.bz2 -cjf $job_name.NEB.it${ch}.tar.bz2 $job_name.NEB.*
 	break
     fi
 done

@@ -565,6 +565,9 @@ MODULE NEB_routines
       acell1(2) = at%alat2
       acell1(3) = at%alat3
       xcart1(:,1:at%nat) = rxyz
+      if (acell1(1) == 0.) acell1(1) = maxval(rxyz(1,:)) - minval(rxyz(1,:))
+      if (acell1(2) == 0.) acell1(2) = maxval(rxyz(2,:)) - minval(rxyz(2,:))
+      if (acell1(3) == 0.) acell1(3) = maxval(rxyz(3,:)) - minval(rxyz(3,:))
       deallocate(rxyz)
 
       call read_atomic_file(trim(last_config), 0, at, rxyz)
@@ -573,7 +576,15 @@ MODULE NEB_routines
       acell2(2) = at%alat2
       acell2(3) = at%alat3
       xcart2(:,1:at%nat) = rxyz
+      if (acell2(1) == 0.) acell2(1) = maxval(rxyz(1,:)) - minval(rxyz(1,:))
+      if (acell2(2) == 0.) acell2(2) = maxval(rxyz(2,:)) - minval(rxyz(2,:))
+      if (acell2(3) == 0.) acell2(3) = maxval(rxyz(3,:)) - minval(rxyz(3,:))
       deallocate(rxyz)
+
+      if (at%geocode == 'F') then
+        acell1 = max(acell1, acell2)
+        acell2 = acell1
+      end if
 
 !! some consistency checks are done
 
@@ -587,9 +598,9 @@ MODULE NEB_routines
       IF ( minval(abs(acell2 - acell1)) /= 0.d0 ) THEN
       
         WRITE(*,'(T2,"read_input: box size is not constant")')
-	WRITE(*,'(T2,"            Lx = ", F8.6, F8.6 )') acell1(1), acell2(1)
-	WRITE(*,'(T2,"            Ly = ", F8.6, F8.6 )') acell1(2), acell2(2)
-	WRITE(*,'(T2,"            Lz = ", F8.6, F8.6 )') acell1(3), acell2(3)
+	WRITE(*,'(T2,"            Lx = ", F9.4, F9.4 )') acell1(1), acell2(1)
+	WRITE(*,'(T2,"            Ly = ", F9.4, F9.4 )') acell1(2), acell2(2)
+	WRITE(*,'(T2,"            Lz = ", F9.4, F9.4 )') acell1(3), acell2(3)
         STOP  
 
       END IF
@@ -612,7 +623,7 @@ MODULE NEB_routines
       invLx = 1.D0 / Lx
       invLy = 1.D0 / Ly
       invLz = 1.D0 / Lz
-      
+
       CALL dyn_allocation
 
 !! all the arrays are initialized
