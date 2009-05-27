@@ -265,6 +265,7 @@ subroutine psitransspi(nspinor,nvctrp,norb,psi,forward)
      end if
 
      do iorb=1,norb
+        ij=1
         do isp=1,nspinor
            do i=1,nvctrp
               psi(i+(isp-1)*nvctrp,iorb)=tpsit(i,isp,iorb)

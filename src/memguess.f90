@@ -725,6 +725,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   call razero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
 
+
   !convert the gaussians in wavelets
   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbs,lr%d,&
        hx,hy,hz,lr%wfd,G,gaucoeffs,psi)

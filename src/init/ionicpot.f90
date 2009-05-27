@@ -125,6 +125,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
   else if (at%geocode == 'F') then
 
      eion=0.0_gp
+     eself=0.0_gp
      do iat=1,at%nat
         ityp=at%iatype(iat)
         rx=rxyz(1,iat) 

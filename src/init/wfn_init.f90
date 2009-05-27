@@ -1083,7 +1083,7 @@ subroutine psitospi(iproc,nproc,norbe,norbep,norbsc,&
   call memocc(i_stat,mom,'mom',subname)
 
   open(unit=1978,file='moments')
-  do i=1,nat
+  do iat=1,nat
      read(1978,*) mx,my,mz
      mnorm=sqrt(mx**2+my**2+mz**2)
      mom(1,iat)=mx/mnorm

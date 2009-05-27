@@ -1528,7 +1528,7 @@ subroutine realspaceINOUT(ibyyzz_r,pot,psirIN,psirOUT,epot,n1,n2,n3)
 
   real(kind=8),intent(in)::pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
   real(kind=8),intent(in)::psirIN(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
- real(kind=8),intent(out)::psirOUT(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+  real(kind=8),intent(inout)::psirOUT(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
 
   real(kind=8),intent(out)::epot
   real(kind=8) tt

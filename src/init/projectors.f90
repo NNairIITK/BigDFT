@@ -232,7 +232,7 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
         write(*,'(1x,a,i0,a)')'found ',nwarnings,' warnings.'
         write(*,'(1x,a)')'Some projectors may be too rough.'
         write(*,'(1x,a,f6.3)')&
-             'Consider the possibility of reducing hgrid for having a more accurate run.'
+             'Consider the possibility of modifying hgrid and/or the localisationr adii.'
      end if
   end if
 
@@ -328,6 +328,10 @@ subroutine projector(geocode,atomname,iproc,iat,idir,l,i,gau_a,rxyz,nboxp_c,nbox
               end if
               stop
            else
+!!$              write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f4.3)')&
+!!$                   'The norm of the nonlocal PSP for atom n=',iat,&
+!!$                   ' (',trim(atomname),&
+!!$                   ') labeled by l=',l,' m=',m,' is ',scpr
               nwarnings=nwarnings+1
            end if
         end if

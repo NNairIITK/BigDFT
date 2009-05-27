@@ -396,8 +396,7 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
        rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,GPU)
 
-  accurex=abs(eks-ekin_sum)
-  if (iproc.eq.0) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
+  if (iproc.eq.0) write(*,'(1x,a,(f19.10))') 'done. ekin_sum',ekin_sum
 
   if (iproc.eq.0) then
      write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 

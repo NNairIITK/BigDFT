@@ -163,22 +163,30 @@ subroutine read_input_variables(iproc,filename,in)
      in%inputPsiId=0
   end if
 
-  !add reading lines for Davidson treatment (optional for backward compatibility)
-  read(1,*,iostat=ierror) in%nvirt, in%nplot
-  !call check()
-  
-  if (ierror/=0) then
+  ! qoh: Try to read dispersion input variable
+  read(1,'(a100)',iostat=ierror)line
+  if (ierror == 0) then
+     if (index(line,"dispersion") /= 0) then 
+        read(line,*,iostat=ierror) in%dispersion
+        !add reading lines for Davidson treatment 
+        !(optional for backward compatibility)
+        read(1,*,iostat=ierror) in%nvirt, in%nplot
+     else 
+        in%dispersion = 0
+        read(line,*,iostat=ierror) in%nvirt, in%nplot
+     end if
+  else
      in%nvirt=0
      in%nplot=0
-  else
-     !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
-     !systems
-     if (in%nspin/=1 .and. in%nvirt/=0) then
-        if (iproc==0) then
-           write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
-        end if
-        stop
+  end if
+     
+  !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
+  !systems
+  if (in%nspin/=1 .and. in%nvirt/=0) then
+     if (iproc==0) then
+        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
      end if
+     stop
   end if
  
   close(unit=1,iostat=ierror)

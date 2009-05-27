@@ -1963,6 +1963,7 @@ end function emuxc
   if (x.le.0._gp) stop 'wrong argument for gamma'
   if (mod(x,1._gp).eq.0._gp) then
      ii=int(x)
+     gamma=1.0_gp
      do i=2,ii
         gamma=gamma*real(i-1,gp)
      end do
@@ -1993,7 +1994,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
   integer, dimension(ntypes), intent(in) :: iasctype
   integer, dimension(nat), intent(in) :: iatype,natpol
   integer, dimension(norbe*nspin), intent(in) :: spinsgne
-  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbep*nspin), intent(out) :: psi
+  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbep*nspin), intent(inout) :: psi
   !local variables
   character(len=*), parameter :: subname='psitospi0'
   logical :: myorbital,polarised
