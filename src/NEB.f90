@@ -61,7 +61,8 @@ MODULE NEB_variables
   CHARACTER (LEN=80)                           :: first_config, last_config
   CHARACTER (LEN=80)                           :: scratch_dir
   CHARACTER (LEN=80)                           :: data_file, &
-                                                  interpolation_file
+                                                  interpolation_file, &
+                                                  barrier_file
   CHARACTER (LEN=80)                           :: restart_file
   CHARACTER (LEN=80)                           :: job_name
   LOGICAL                                      :: restart, climbing
@@ -497,6 +498,7 @@ MODULE NEB_routines
 
       READ( * , NML=NEB )
 
+      barrier_file       = trim(job_name) // ".NEB.log"
       data_file          = trim(job_name) // ".NEB.dat"
       interpolation_file = trim(job_name) // ".NEB.int"
       restart_file       = trim(job_name) // ".NEB.restart"
@@ -821,6 +823,10 @@ MODULE NEB_routines
       INTEGER         :: N_in, N_fin
       LOGICAL         :: stat
 
+      
+      open(unit = 456, file = trim(barrier_file), action = "WRITE")
+      write(456, "(A)") "# NEB barrier file"
+      close(unit = 456)
 
       IF ( .NOT. restart ) THEN
 
@@ -847,8 +853,12 @@ MODULE NEB_routines
 
           CALL write_dat_files	
 
-          WRITE(*,fmt4) &
+          open(unit = 456, file = trim(barrier_file), action = "WRITE", position = "APPEND")
+
+          WRITE(456, fmt4) &
           1, ( Emax - V(1) ) * E_zero, err * ( E_zero / a_zero ) 
+
+          close(unit = 456)
 
           RETURN
 
@@ -964,8 +974,12 @@ MODULE NEB_routines
 	
         CALL write_dat_files
 
-        WRITE(*,fmt4) &
+        open(unit = 456, file = trim(barrier_file), action = "WRITE", position = "APPEND")
+
+        WRITE(456, fmt4) &
         iteration, ( Emax - V(1) ) * E_zero, err * ( E_zero / a_zero ) 
+
+        close(unit = 456)
 
         IF ( ( err * E_zero / a_zero ) <= convergence )  THEN
 	
