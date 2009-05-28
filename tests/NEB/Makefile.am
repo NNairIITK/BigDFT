@@ -1,6 +1,9 @@
 EXTRA_DIST = \
 	NEB_include.sh \
-	input
+	input \
+	input.dat \
+	start.xyz \
+	stop.xyz
 
 psppar.H:
 	ln -s $(top_srcdir)/utils/PSPfiles/$@
@@ -12,7 +15,7 @@ NEB_driver.sh:
 	ln -s $(top_srcdir)/src/$@
 
 check: psppar.H input.dat NEB_driver.sh NEB_include.sh
-	cp -f $(srcdir)/input.dat .
+	if ! test -f input.dat ; then cp -f ./input.dat .; fi
 	rm -f triH.NEB.it*
 	$(top_builddir)/src/NEB < input | tee NEB.out
 	python $(top_srcdir)/tests/fldiff.py NEB.out $(top_srcdir)/tests/Refs/NEB.out.ref | tee fldiff.report

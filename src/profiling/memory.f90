@@ -37,6 +37,7 @@ subroutine memory_occupation(istat,isize,array,routine)
   type(memstat), save :: loc,tot
   integer, save :: nalloc,ndealloc,iproc
   integer :: ierr
+  logical, save :: useMallocFile = .false.
 
   !print *,iproc,array,routine
 
@@ -55,6 +56,7 @@ subroutine memory_occupation(istat,isize,array,routine)
 
         iproc=isize
         !open the writing file for the root process
+        useMallocFile = .true.
         if (iproc == 0) then
            open(unit=98,file='malloc.prc',status='unknown')
            write(98,'(a32,a14,4(1x,a12))')&
@@ -62,12 +64,14 @@ subroutine memory_occupation(istat,isize,array,routine)
                 'Routine Mem','Routine Peak','Memory Stat.','Memory Peak'
         end if
      else if (routine=='stop' .and. iproc==0) then
-        write(98,'(a32,a14,4(1x,i12))')&
-             trim(loc%routine),trim(loc%array),&
-             loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
-             tot%memory/int(1024,kind=8),&
-             (tot%peak+loc%peak-loc%memory)/int(1024,kind=8)
-        close(98)
+        if (useMallocFile) then
+           write(98,'(a32,a14,4(1x,i12))')&
+                trim(loc%routine),trim(loc%array),&
+                loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
+                tot%memory/int(1024,kind=8),&
+                (tot%peak+loc%peak-loc%memory)/int(1024,kind=8)
+           close(98)
+        end if
         write(*,'(1x,a)')&
              '-------------------------MEMORY CONSUMPTION REPORT-----------------------------'
         write(*,'(1x,2(i0,a),i0)')&
@@ -80,7 +84,7 @@ subroutine memory_occupation(istat,isize,array,routine)
         !memory allocation problem, and which eliminates it for a successful run
         if (nalloc == ndealloc .and. tot%memory==int(0,kind=8)) then
            !clean the malloc file
-           if (iproc==0) then
+           if (iproc==0 .and. useMallocFile) then
               open(unit=98,file='malloc.prc',status='unknown')
               write(98,*)
               close(98)
@@ -94,12 +98,12 @@ subroutine memory_occupation(istat,isize,array,routine)
         if (isize>=0) then
            write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
                 ', error code=',istat,' exiting...'
-           if (iproc == 0) close(98)
+           if (iproc == 0 .and. useMallocFile) close(98)
            stop
         else if (isize<0) then
            write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
                 ', error code=',istat,' exiting...'
-           if (iproc == 0) close(98)
+           if (iproc == 0 .and. useMallocFile) close(98)
            stop
         end if
      end if
@@ -131,7 +135,7 @@ subroutine memory_occupation(istat,isize,array,routine)
         !to be used for inspecting an array which is not deallocated
         !      write(98,'(a32,a14,4(1x,i12))')trim(routine),trim(array),isize,tot%memory
         if (trim(loc%routine) /= routine) then
-           if (loc%memory /= int(0,kind=8)) then
+           if (loc%memory /= int(0,kind=8) .and. useMallocFile) then
               write(98,'(a32,a14,4(1x,i12))')&
                    trim(loc%routine),trim(loc%array),&
                    loc%memory/int(1024,kind=8),loc%peak/int(1024,kind=8),&
