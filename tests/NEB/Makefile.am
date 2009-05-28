@@ -16,8 +16,6 @@ check: psppar.H input.dat NEB_driver.sh NEB_include.sh
 	rm -f triH.NEB.it*
 	$(top_builddir)/src/NEB < input | tee NEB.out
 	python $(top_srcdir)/tests/fldiff.py NEB.out $(top_srcdir)/tests/Refs/NEB.out.ref | tee fldiff.report
+	rm -rf triH.NEB.0*
 
-CLEANFILES = triH.NEB.* velocities_file NEB.out NEB_driver.sh psppar.H gen_output_file
-
-#python $(top_srcdir)/tests/fldiff.py --bigdft NaCl.out $(top_srcdir)/tests/Refs/NaCl.out.ref | tee fldiff.report
-
+CLEANFILES = triH.NEB.* velocities_file NEB.out NEB_driver.sh psppar.H gen_output_file fldiff.report
