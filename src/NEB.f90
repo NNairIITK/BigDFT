@@ -398,40 +398,6 @@ MODULE NEB_routines
 
   CONTAINS
 
-    subroutine read_xyz(natom, xcart, acell, filename)
-      integer, intent(out) :: natom
-      real(kind = dbl), dimension(3, 1000), intent(out) :: xcart
-      real(kind = dbl), dimension(3), intent(out) :: acell
-      character(len = *), intent(in) :: filename
-
-      INTEGER, PARAMETER  :: unit = 10
-      integer :: i
-      character(len = 20) :: str, type
-      real(kind = dbl) :: fact
-
-      OPEN( UNIT = unit, FILE = filename, STATUS = "OLD", &
-           ACTION = "READ" )
-
-      read(unit, *) natom, type
-      if (trim(type) == "angstroem" .or. trim(type) == "angstroemd0") then
-         fact = 1.d0 / a_zero
-      else
-         fact = 1.d0
-      end if
-
-      read(unit, *) str, acell
-
-      DO i = 1, natom, 1
-
-         READ(unit, *) type, xcart(:, i)
-
-      END DO
-
-      xcart(:, 1:natom) = xcart(:, 1:natom) * fact
-
-      close(unit)
-    end subroutine read_xyz
-
     SUBROUTINE read_input
 
       use module_types
@@ -857,6 +823,8 @@ MODULE NEB_routines
 
           WRITE(456, fmt4) &
           1, ( Emax - V(1) ) * E_zero, err * ( E_zero / a_zero ) 
+          WRITE(*, fmt4) &
+          1, ( Emax - V(1) ) * E_zero, err * ( E_zero / a_zero ) 
 
           close(unit = 456)
 
@@ -977,6 +945,8 @@ MODULE NEB_routines
         open(unit = 456, file = trim(barrier_file), action = "WRITE", position = "APPEND")
 
         WRITE(456, fmt4) &
+        iteration, ( Emax - V(1) ) * E_zero, err * ( E_zero / a_zero ) 
+        WRITE(*, fmt4) &
         iteration, ( Emax - V(1) ) * E_zero, err * ( E_zero / a_zero ) 
 
         close(unit = 456)

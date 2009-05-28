@@ -13,9 +13,11 @@ NEB_driver.sh:
 
 check: psppar.H input.dat NEB_driver.sh NEB_include.sh
 	cp -f $(srcdir)/input.dat .
+	rm -f triH.NEB.it*
 	$(top_builddir)/src/NEB < input | tee NEB.out
+	python $(top_srcdir)/tests/fldiff.py NEB.out $(top_srcdir)/tests/Refs/NEB.out.ref | tee fldiff.report
 
-CLEANFILES = triH.NEB.restart velocities_file NEB.out triH.NEB.it*.tar.bz2 NEB_driver.sh psppar.H gen_output_file
+CLEANFILES = triH.NEB.* velocities_file NEB.out NEB_driver.sh psppar.H gen_output_file
 
 #python $(top_srcdir)/tests/fldiff.py --bigdft NaCl.out $(top_srcdir)/tests/Refs/NaCl.out.ref | tee fldiff.report
 
