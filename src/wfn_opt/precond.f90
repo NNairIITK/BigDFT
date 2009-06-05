@@ -28,7 +28,7 @@ subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
      kz=orbs%kpts(3,orbs%iokpt(iorb))
 
      !real k-point different from Gamma still not implemented
-     if (kx**2+ky**2+kz**2 > 0.0_gp ) then
+     if (kx**2+ky**2+kz**2 > 0.0_gp) then
         ncplx=2
      else
         ncplx=1

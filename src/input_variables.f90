@@ -176,10 +176,11 @@ subroutine read_input_variables(iproc,filename,in)
         read(line,*,iostat=ierror) in%nvirt, in%nplot
      end if
   else
+     in%dispersion = 0
      in%nvirt=0
      in%nplot=0
   end if
-     
+
   !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
   !systems
   if (in%nspin/=1 .and. in%nvirt/=0) then
@@ -398,9 +399,9 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
   !in case of old format, put geocode to F and alat to 0.
   if (ierror == 0) then
      at%geocode='F'
-     at%alat1=0.0_gp
-     at%alat2=0.0_gp
-     at%alat3=0.0_gp
+     alat1d0=0.0_gp
+     alat2d0=0.0_gp
+     alat3d0=0.0_gp
   else
      if (lpsdbl) then
         read(line,*,iostat=ierrsfx) tatonam,alat1d0,alat2d0,alat3d0
@@ -426,9 +427,9 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
         end if
      else
         at%geocode='F'
-        at%alat1=0.0_gp
-        at%alat2=0.0_gp
-        at%alat3=0.0_gp
+        alat1d0=0.0_gp
+        alat2d0=0.0_gp
+        alat3d0=0.0_gp
      end if
   end if
 

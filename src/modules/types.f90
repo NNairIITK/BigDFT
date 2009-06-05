@@ -205,7 +205,7 @@ module module_types
 !! SOURCE
 !!
   type, public :: communications_arrays
-     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
+     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt,nvctr_par
   end type communications_arrays
 !!***
 
@@ -273,6 +273,8 @@ contains
     !local variables
     integer :: i_all,i_stat
 
+    allocate(comms%nvctr_par(0:nproc-1+ndebug),stat=i_stat)
+    call memocc(i_stat,comms%nvctr_par,'nvctr_par',routine)
     allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
     call memocc(i_stat,comms%ncntd,'ncntd',routine)
     allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
@@ -291,6 +293,9 @@ contains
     !local variables
     integer :: i_all,i_stat
 
+    i_all=-product(shape(comms%nvctr_par))*kind(comms%nvctr_par)
+    deallocate(comms%nvctr_par,stat=i_stat)
+    call memocc(i_stat,i_all,'nvctr_par',routine)
     i_all=-product(shape(comms%ncntd))*kind(comms%ncntd)
     deallocate(comms%ncntd,stat=i_stat)
     call memocc(i_stat,i_all,'ncntd',routine)

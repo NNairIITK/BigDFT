@@ -48,19 +48,22 @@ end subroutine createDensPotDescriptors
 !partition the orbitals between processors to ensure load balancing
 !the criterion will depend on GPU computation
 !and/or on the sizes of the different localisation region
-subroutine orbitals_communicators(iproc,nproc,nvctrp,orbs,comms)
+subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc,nvctrp
-  type(orbitals_data), intent(in) :: orbs
+  integer, intent(in) :: iproc,nproc
+  type(locreg_descriptors), intent(in) :: lr
+  type(orbitals_data), intent(inout) :: orbs
   type(communications_arrays), intent(out) :: comms
   !local variables
-  integer :: jproc
+  integer :: jproc,i,nvctr_tot,j
+!!$  real(kind=8), parameter :: eps_mach=1.d-12
+!!$  real(kind=8) :: tt
 
   !calculate the number of elements to be sent to each process
   !and the array of displacements
-  !cubic strategy: -each wavefunction has the same number of points
+  !cubic strategy: -the components are equally distributed among the wavefunctions
   !                -each processor has all the orbitals in transposed form
   !                -each wavefunction is equally distributed in its transposed form
   !send buffer
@@ -71,9 +74,52 @@ subroutine orbitals_communicators(iproc,nproc,nvctrp,orbs,comms)
      stop
   end if
 
+  !initialise the array
+  do jproc=0,nproc-1
+     comms%nvctr_par(jproc)=0 !size 0 nproc-1
+  end do
+
+  !balance the components between processors
+  !in the most symmetric way
+  i=1
+  j=1
+  loop_components: do 
+     jproc=mod(i-1,nproc)
+     if (jproc == 0 .or. jproc == 4 .or. .true.) then !here there is the criterion for filling a processor
+        comms%nvctr_par(jproc)=comms%nvctr_par(jproc)+1
+        j=j+1
+     end if
+     if (j > lr%wfd%nvctr_c+7*lr%wfd%nvctr_f) exit loop_components
+     i=i+1
+  end do loop_components
+
+  !check the distribution
+  nvctr_tot=0
+  do jproc=0,nproc-1
+     nvctr_tot=nvctr_tot+comms%nvctr_par(jproc)
+  end do
+  if(nvctr_tot /= lr%wfd%nvctr_c+7*lr%wfd%nvctr_f) then
+     write(*,*)'ERROR: partition of components incorrect'
+     stop
+  end if
+
+
+  if (iproc == 0) print *,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,'nvctrp',comms%nvctr_par(:)
+
+  !calculate the dimension of the wavefunction
+  !for the given processor
+  !take into account max one k-point per processor
+  orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc),&
+       comms%nvctr_par(iproc)*orbs%norb)*orbs%nspinor
+
+  if (iproc == 0) write(*,'(1x,a,i0)') &
+       'Wavefunction memory occupation per orbital (Bytes): ',&
+       orbs%npsidim*8
+
+  !here the k-points should be taken into account
 
   do jproc=0,nproc-1
-     comms%ncntd(jproc)=nvctrp*orbs%norb_par(iproc)*orbs%nspinor
+     comms%ncntd(jproc)=comms%nvctr_par(jproc)*orbs%norb_par(iproc)*orbs%nspinor
   end do
   comms%ndspld(0)=0
   do jproc=1,nproc-1
@@ -81,7 +127,7 @@ subroutine orbitals_communicators(iproc,nproc,nvctrp,orbs,comms)
   end do
   !receive buffer
   do jproc=0,nproc-1
-     comms%ncntt(jproc)=nvctrp*orbs%norb_par(jproc)*orbs%nspinor
+     comms%ncntt(jproc)=comms%nvctr_par(iproc)*orbs%norb_par(jproc)*orbs%nspinor
   end do
   comms%ndsplt(0)=0
   do jproc=1,nproc-1

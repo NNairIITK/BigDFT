@@ -539,7 +539,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
 
   !initialise the array
   do jproc=0,nproc-1
-     orbs%norb_par(jproc)=0 !taille 0 nproc-1
+     orbs%norb_par(jproc)=0 !size 0 nproc-1
   end do
 
   !cubic-code strategy: balance the orbitals between processors
@@ -585,6 +585,10 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
      end do
   end do
 
+  !assign the number of k-points per processor
+  !the strategy for multiple k-points should be decided
+  !orbs%nkpts_par(:)=1
+  
 
 end subroutine orbitals_descriptors
 !!***

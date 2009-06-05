@@ -4,7 +4,7 @@ module minimization
      !general parameters for all methods
      character(10)::approach='unknown'
      real(8)::fmaxtol
-     real(8)::eps=1.d-20
+!     real(8)::eps=1.d-20
      integer::iter=0
      integer::iflag=0
      logical::converged
@@ -20,7 +20,8 @@ module minimization
      real(8)::gtol
      real(8)::stpmin
      real(8)::stpmax
-     real(8)::xtol=1.d-14  !epsilon(xtol)
+     real(8)::xtol=1.d-10  !epsilon(xtol)
+     real(8)::betax 
   end type parameterminimization
 end module minimization
 !*****************************************************************************************
@@ -128,6 +129,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   character*4 fn4
   character*40 comment
   type(parameterminimization)::parmin
+  parmin%betax=in%betax
   !Read from input.geopt
   open(84,file="input.geopt")
   read(84,*) parmin%approach
@@ -147,7 +149,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   parmin%iflag=0            !Initialize bfgs
   iter_old=0                !Counter of iterations
   fnormmax_sw=1.d-2         !SD till the max force comp is less than this value
-  parmin%eps=1.d-20         !Original: 1.d-5
+  !parmin%eps=1.d-20         !Original: 1.d-5
   parmin%fmaxtol=1.d-20     !Original: 1.d0
   parmin%ftol=1.d-6         !Original: 1.d-4
   parmin%gtol=9.d-1         !Original: 9.d-1
@@ -1319,7 +1321,7 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
 !!$     gnorm=sqrt(ddot(n,g,1,g,1))
 !!$     xnorm=sqrt(ddot(n,x,1,x,1))
      xnorm=max(1.0d0,xnorm)
-     if(gnorm/xnorm<=parmin%eps) finish=.true.
+!     if(gnorm/xnorm<=parmin%eps) finish=.true.
      if(parmin%iprint(1)>=0) then
         if (iproc==0)  call lb1(nfun,gnorm,n,m,x,f,g,a_t,finish,parmin)
         !Keep correct transformed positions
@@ -1398,7 +1400,10 @@ subroutine init_lbfgs(at,n,m,x,f,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iyp
 !!$  gnorm=dsqrt(ddot(n,g,1,g,1))
 
   !    stp1=one/gnorm
-  stp1=2.d-2/gnorm
+  
+
+  !stp1=2.d-2/gnorm  !original convention
+  stp1=parmin%betax
 end subroutine init_lbfgs
 !*****************************************************************************************
 subroutine lb1(nfun,gnorm,n,m,x,f,g,a_t,finish,parmin)

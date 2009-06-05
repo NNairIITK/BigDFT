@@ -163,7 +163,7 @@ module module_interfaces
      end subroutine MemoryEstimator
 
      subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-          crmult,frmult,Glr,orbs,nvctrp)
+          crmult,frmult,Glr,orbs)
        use module_base
        use module_types
        implicit none
@@ -175,7 +175,6 @@ module module_interfaces
        real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
        type(locreg_descriptors), intent(inout) :: Glr
        type(orbitals_data), intent(inout) :: orbs
-       integer, intent(out) :: nvctrp
      end subroutine createWavefunctionsDescriptors
 
      subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,&
@@ -235,12 +234,12 @@ module module_interfaces
      end subroutine createIonicPotential
 
      subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
-          nvctrp,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj,& 
+          Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj,& 
           pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,ixc,nvctrp,nspin
+       integer, intent(in) :: iproc,nproc,ixc,nspin
        real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
        type(atoms_data), intent(in) :: at
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -259,13 +258,13 @@ module module_interfaces
      end subroutine import_gaussians
 
      subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
-          orbs,orbsv,nvirt,nvctrp,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
+          orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
           nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,&
           nscatterarr,ngatherarr,nspin)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,ixc,nvctrp
+       integer, intent(in) :: iproc,nproc,ixc
        integer, intent(inout) :: nspin,nvirt
        real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
        type(atoms_data), intent(in) :: at
@@ -300,11 +299,11 @@ module module_interfaces
        real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: psi
      end subroutine reformatmywaves
 
-     subroutine first_orthon(iproc,nproc,orbs,wfd,nvctrp,comms,psi,hpsi,psit)
+     subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,nvctrp
+       integer, intent(in) :: iproc,nproc
        type(orbitals_data), intent(in) :: orbs
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(communications_arrays), intent(in) :: comms
@@ -348,13 +347,13 @@ module module_interfaces
        type(GPU_pointers), intent(inout) :: GPU
      end subroutine HamiltonianApplication
 
-     subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,nvctrp,lr,comms,&
+     subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
           ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
           alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,GPU)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nvctrp,nspin
+       integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
        real(gp), intent(in) :: hx,hy,hz,energy,energy_old
        type(locreg_descriptors), intent(in) :: lr
        type(communications_arrays), intent(in) :: comms
@@ -368,13 +367,13 @@ module module_interfaces
        type(GPU_pointers), intent(inout) :: GPU
      end subroutine hpsitopsi
 
-     subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,nvctrp,wfd,comms,&
+     subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
           psi,hpsi,psit,& !mandatory
           orbse,commse,etol,norbsc_arr,orbsv,psivirt) !optional
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,natsc,nspin,nvctrp
+       integer, intent(in) :: iproc,nproc,natsc,nspin
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(communications_arrays), target, intent(in) :: comms
        type(orbitals_data), intent(inout) :: orbs
@@ -387,7 +386,7 @@ module module_interfaces
        real(wp), dimension(:), pointer, optional :: psivirt
      end subroutine DiagHam
 
-     subroutine last_orthon(iproc,nproc,orbs,wfd,nvctrp,&
+     subroutine last_orthon(iproc,nproc,orbs,wfd,&
           nspin,comms,psi,hpsi,psit,evsum)
        use module_base
        use module_types
@@ -395,7 +394,7 @@ module module_interfaces
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(orbitals_data), intent(in) :: orbs
        type(communications_arrays), intent(in) :: comms
-       integer, intent(in) :: iproc,nproc,nvctrp,nspin
+       integer, intent(in) :: iproc,nproc,nspin
        real(wp), intent(out) :: evsum
        real(wp), dimension(:) , pointer :: psi,hpsi,psit
      end subroutine last_orthon
@@ -487,14 +486,14 @@ module module_interfaces
      end subroutine reformatonewave
 
      subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
-          orbs,orbsv,nvirt,gnrm_cv,nplot,nvctrp,lr,comms,&
+          orbs,orbsv,nvirt,gnrm_cv,nplot,lr,comms,&
           hx,hy,hz,rxyz,rhopot,i3xcsh,n3p,itermax,nlpspd,proj,  & 
           pkernel,ixc,psi,v,ncong,nscatterarr,ngatherarr)
        use module_base
        use module_types
        implicit none
        integer, intent(in) :: iproc,nproc,ixc,n1i,n2i,n3i
-       integer, intent(in) :: i3xcsh,nvctrp
+       integer, intent(in) :: i3xcsh
        integer, intent(in) :: nvirt,ncong,n3p,itermax,nplot
        type(atoms_data), intent(in) :: at
        type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -539,34 +538,12 @@ module module_interfaces
        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%norbp,orbs%nspinor), intent(inout) :: hpsi
      end subroutine preconditionall
 
-     subroutine transpose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
-          work,outadd) !optional
-       use module_base
-       use module_types
-       type(wavefunctions_descriptors), intent(in) :: wfd
-       integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
-       real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
-       real(wp), dimension(:), pointer, optional :: work
-       real(wp), optional, intent(out) :: outadd !pass only the address to avoid pointer problems 
-     end subroutine transpose
-
-     subroutine untranspose(iproc,nproc,norb,norbp,nspinor,wfd,nvctrp,psi,&
-          work,outadd) !optional
-       use module_base
-       use module_types
-       type(wavefunctions_descriptors), intent(in) :: wfd
-       integer, intent(in) :: iproc,nproc,norb,norbp,nspinor,nvctrp
-       real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(inout) :: psi
-       real(wp), dimension(:), pointer, optional :: work
-       real(wp), optional, intent(out) :: outadd !pass only the address to avoid pointer problems 
-     end subroutine untranspose
-
-     subroutine transpose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
+     subroutine transpose_v(iproc,nproc,norbp,nspinor,wfd,comms,psi,&
           work,outadd) !optional
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,norbp,nspinor,nvctrp !the latter will depend on orbitals
+       integer, intent(in) :: iproc,nproc,norbp,nspinor
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(communications_arrays), intent(in) :: comms
        real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
@@ -574,15 +551,15 @@ module module_interfaces
        real(wp), intent(out), optional :: outadd
      end subroutine transpose_v
 
-     subroutine untranspose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
+     subroutine untranspose_v(iproc,nproc,norbp,nspinor,wfd,comms,psi,&
           work,outadd) !optional
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,norbp,nspinor,nvctrp
+       integer, intent(in) :: iproc,nproc,norbp,nspinor
        type(wavefunctions_descriptors), intent(in) :: wfd
        type(communications_arrays), intent(in) :: comms
-       real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(inout) :: psi
+       real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*nspinor*norbp), intent(inout) :: psi
        real(wp), dimension(:), pointer, optional :: work
        real(wp), intent(out), optional :: outadd
      end subroutine untranspose_v
@@ -649,12 +626,12 @@ module module_interfaces
        real(wp), dimension(:,:), pointer :: coeffs
      end subroutine restart_from_gaussians
 
-     subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvctrp,nvirt,nspin,&
+     subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
           orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
        use module_base
        use module_types
        implicit none
-       integer, intent(in) :: iproc,nproc,nspin,nvctrp
+       integer, intent(in) :: iproc,nproc,nspin
        integer, intent(inout) :: nvirt
        type(atoms_data), intent(in) :: at
        type(orbitals_data), intent(in) :: orbs
