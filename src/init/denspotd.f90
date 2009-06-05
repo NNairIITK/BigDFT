@@ -85,7 +85,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   j=1
   loop_components: do 
      jproc=mod(i-1,nproc)
-     if (jproc == 0 .or. jproc == 4 .or. .true.) then !here there is the criterion for filling a processor
+     if (.true.) then !here there is the criterion for filling a processor
         comms%nvctr_par(jproc)=comms%nvctr_par(jproc)+1
         j=j+1
      end if
