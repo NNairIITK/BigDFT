@@ -29,14 +29,20 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
 
   allocate(alag(norbs,norb,istart+ndebug),stat=i_stat)
   call memocc(i_stat,alag,'alag',subname)
+
+  !initialise if nvctrp=0
+  if (nvctrp == 0) then
+     call razero(norbs*norb*istart,alag)
+  end if
+
   !     alag(jorb,iorb,istart)=+psit(k,jorb)*hpsit(k,iorb)
   if(nspinor==1) then
-     call GEMM('T','N',norb,norb,nvctrp,1.0_wp,psit(1,1),nvctrp,hpsit(1,1),nvctrp,0.0_wp,&
+     call GEMM('T','N',norb,norb,nvctrp,1.0_wp,psit(1,1),max(1,nvctrp),hpsit(1,1),max(1,nvctrp),0.0_wp,&
           alag(1,1,istart),norb)
   else
      !this part should be recheck in the case of nspinor == 2
-     call C_GEMM('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psit(1,1),ncomp*nvctrp, &
-          hpsit(1,1),ncomp*nvctrp,(0.0_wp,0.0_wp),alag(1,1,istart),norb)
+     call C_GEMM('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psit(1,1),max(1,ncomp*nvctrp), &
+          hpsit(1,1),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),alag(1,1,istart),norb)
   end if
 
   if (nproc > 1) then
@@ -71,11 +77,11 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
 
   ! hpsit(k,iorb)=-psit(k,jorb)*alag(jorb,iorb,1)
   if(nspinor==1) then
-     call GEMM('N','N',nvctrp,norb,norb,-1.0_wp,psit(1,1),nvctrp,alag(1,1,1),norb,1.0_wp,&
-          hpsit(1,1),nvctrp)
+     call GEMM('N','N',nvctrp,norb,norb,-1.0_wp,psit(1,1),max(1,nvctrp),alag(1,1,1),norb,1.0_wp,&
+          hpsit(1,1),max(1,nvctrp))
   else
-     call C_GEMM('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),psit(1,1),ncomp*nvctrp,&
-          alag(1,1,1),norb,(1.0_wp,0.0_wp),hpsit(1,1),ncomp*nvctrp)
+     call C_GEMM('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),psit(1,1),max(1,ncomp*nvctrp),&
+          alag(1,1,1),norb,(1.0_wp,0.0_wp),hpsit(1,1),max(1,ncomp*nvctrp))
   end if
   i_all=-product(shape(alag))*kind(alag)
   deallocate(alag,stat=i_stat)
@@ -156,7 +162,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
      ! Upper triangle of overlap matrix using BLAS
      !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; upper triangle
      if(nspinor==1) then
-        call syrk('L','T',norb,nvctrp,1.0_wp,psit(1,1),nvctrp,0.0_wp,ovrlp(1,1,istart),norb)
+        call syrk('L','T',norb,nvctrp,1.0_wp,psit(1,1),max(1,nvctrp),0.0_wp,ovrlp(1,1,istart),norb)
      else
 !!$        ovrlp=0.0d0
 !!$        do iorb=1,norb
@@ -172,7 +178,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 !!$           end do
 !!$        end do
 !!$        stop
-        call herk('L','C',norb,ncomp*nvctrp,1.0_wp,psit(1,1),ncomp*nvctrp,&
+        call herk('L','C',norb,ncomp*nvctrp,1.0_wp,psit(1,1),max(1,ncomp*nvctrp),&
              0.0_wp,ovrlp(1,1,istart),norb)
      end if
 
@@ -192,6 +198,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 !!$        enddo
 !!$     end if
 
+     !to be excluded if nvctrp==0
      if(nspinor==1) then
         
         ! Cholesky factorization
@@ -203,7 +210,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
         if (info.ne.0) write(6,*) 'info L^-1',info
         
         ! new vectors   
-        call trmm ('R','L','T','N',nvctrp,norb,1.0_wp,ovrlp(1,1,1),norb,psit(1,1),nvctrp)
+        call trmm ('R','L','T','N',nvctrp,norb,1.0_wp,ovrlp(1,1,1),norb,psit(1,1),max(1,nvctrp))
 
      else
 
@@ -234,7 +241,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 !!$        end do
        ! new vectors   !!check if third argument should be transpose or conjugate
         call c_trmm ('R','L','C','N',ncomp*nvctrp,norb,(1.0_wp,0.0_wp),&
-             ovrlp(1,1,1),norb,psit(1,1),ncomp*nvctrp)
+             ovrlp(1,1,1),norb,psit(1,1),max(1,ncomp*nvctrp))
 
         !if(nproc==1) call psitransspi(nvctrp,norb,psit,.true.)
 
@@ -579,11 +586,11 @@ subroutine KStrans_p(iproc,nproc,norb,nvctrp,occup,  &
 !           hamks(iorb,jorb,istart)=scpr
 !        enddo
 !     enddo
-     call gemm('T','N',norb,norb,nvctrp,1.0_wp,psit(1,1),nvctrp,hpsit(1,1),nvctrp,0.0_wp,&
+     call gemm('T','N',norb,norb,nvctrp,1.0_wp,psit(1,1),max(1,nvctrp),hpsit(1,1),max(1,nvctrp),0.0_wp,&
           hamks(1,1,istart),norb)
   else
-     call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psit(1,1),ncomp*nvctrp, &
-          hpsit(1,1),ncomp*nvctrp,(0.0_wp,0.0_wp),hamks(1,1,istart),norb)
+     call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psit(1,1),max(1,ncomp*nvctrp), &
+          hpsit(1,1),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),hamks(1,1,istart),norb)
   end if
 
   if (nproc > 1) then

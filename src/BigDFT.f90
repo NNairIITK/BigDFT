@@ -165,7 +165,7 @@ program BigDFT
   !finalize memory counting
   call memocc(0,0,'count','stop')
 
-  if (nproc > 1) call MPI_FINALIZE(ierr)
+  call MPI_FINALIZE(ierr)
 
   if (GPUshare) call stop_gpu_sharing()
  end program BigDFT

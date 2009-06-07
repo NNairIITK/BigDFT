@@ -680,7 +680,7 @@ contains
     implicit none
     integer,intent(in)::ndat
     real(wp),intent(in):: x(ndat,0:n1)
-    real(wp),intent(out)::y(ndat,0:n1)
+    real(wp),intent(inout)::y(ndat,0:n1)
     real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 
 !$omp do 
@@ -818,7 +818,7 @@ contains
     implicit none
     integer,intent(in)::ndat
     real(wp),intent(in):: x(0:n1,ndat)
-    real(wp),intent(out)::y(0:n1,ndat)
+    real(wp),intent(inout)::y(0:n1,ndat)
 	real(wp),intent(inout)::ekin
     real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 	
@@ -948,7 +948,7 @@ contains
     implicit none
     integer,intent(in)::ndat
     real(wp),intent(in):: x(ndat,0:n1)
-    real(wp),intent(out)::y(ndat,0:n1)
+    real(wp),intent(inout)::y(ndat,0:n1)
 	real(wp),intent(inout)::ekin
     real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 

@@ -1,88 +1,135 @@
 ! Calls the preconditioner for each orbital treated by the processor
-subroutine preconditionall(iproc,nproc,norbp,lr,&
-     hx,hy,hz,ncong,nspinor,eval,hpsi,gnrm)
+subroutine preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc,norbp
-  integer, intent(in) :: nspinor,ncong
+  integer, intent(in) :: iproc,nproc,ncong
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors), intent(in) :: lr
-  real(wp), dimension(norbp), intent(in) :: eval
+  type(orbitals_data), intent(in) :: orbs
   real(dp), intent(out) :: gnrm
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,norbp*nspinor), intent(inout) :: hpsi
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(inout) :: hpsi
   !local variables
-  integer :: iorb,inds,indo
-  real(wp) :: cprecr
-  real(dp) :: scpr
+  integer :: iorb,inds,indo,ncplx
+  real(wp) :: cprecr,scpr
+  real(gp) :: kx,ky,kz
 
   ! Preconditions all orbitals belonging to iproc
   !and calculate the norm of the residue
 
   ! norm of gradient
   gnrm=0.0_dp
-  do iorb=1,norbp
-     indo=(iorb-1)*nspinor+1
+  do iorb=1,orbs%norbp
+     !indo=(iorb-1)*nspinor+1
      !loop over the spinorial components
-     do inds=indo,indo+nspinor-1
+     !k-point values, if present
+     kx=orbs%kpts(1,orbs%iokpt(iorb))
+     ky=orbs%kpts(2,orbs%iokpt(iorb))
+     kz=orbs%kpts(3,orbs%iokpt(iorb))
+
+     !real k-point different from Gamma still not implemented
+     if (kx**2+ky**2+kz**2 > 0.0_gp) then
+        ncplx=2
+     else
+        ncplx=1
+     end if
+
+     do inds=1,orbs%nspinor,ncplx
 
         !the nrm2 function can be replaced here by ddot
-        scpr=nrm2(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,hpsi(1,inds),1)
-        gnrm=gnrm+scpr**2
+        scpr=nrm2(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),hpsi(1,inds,iorb),1)
+        gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
+
+        if (scpr /= 0.0_wp) then
+           !value of the cpreconditioner
+           select case(lr%geocode)
+           case('F')
+              cprecr=-orbs%eval(orbs%isorb+iorb)
+           case('S')
+              cprecr=0.5_wp
+           case('P')
+              cprecr=0.5_wp
+           end select
 
 
-        select case(lr%geocode)
-        case('F')
-           !in this case the grid spacings are uniform
-           cprecr=-eval(iorb)
-           if(scpr /=0.0_dp) then
-              call precong(iorb,lr%d%n1,lr%d%n2,lr%d%n3,&
-                   lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                   lr%wfd%keyg,lr%wfd%keyv,ncong,cprecr,hx,&
-                   lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
-                   lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
-                   hpsi(1,inds))
-           end if
-        case('P')
-           cprecr=0.5_wp
-           !           cprecr=abs(eval(iorb))
-           !		   if (cprecr.lt..1_wp) cprecr=.5_wp
+           !cases with no CG iterations, diagonal preconditioning
            if (ncong == 0) then
-              call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                   lr%wfd%keyg,lr%wfd%keyv, &
-                   cprecr,hx,hy,hz,hpsi(1,inds))
-           else
-              if (lr%hybrid_on) then
-                 call precong_per_hyb(lr%d%n1,lr%d%n2,lr%d%n3,&
-                      lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
-                      lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                      lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
-                      ncong,cprecr,hx,hy,hz,hpsi(1,inds),&
-                      lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f)
-              else
-                 call precong_per(lr%d%n1,lr%d%n2,lr%d%n3, &
-                      lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                      lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+              select case(lr%geocode)
+              case('F')
+              case('S')
+                 call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
+                      lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
+                      lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+                      cprecr,hx,hy,hz,hpsi(1,inds,iorb))
+              case('P')
+                 call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
+                      lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
                       lr%wfd%keyg,lr%wfd%keyv, &
-                      ncong,cprecr,hx,hy,hz,hpsi(1,inds))
-              endif
-           endif
-        case('S')
-           cprecr=0.5_wp
-           if (ncong.eq.0) then
-              call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                   lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
-                   cprecr,hx,hy,hz,hpsi(1,inds))
-           else
-              call precong_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
-                   lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
-                   ncong,cprecr,hx,hy,hz,hpsi(1,inds))
-           endif
-        end select
+                      cprecr,hx,hy,hz,hpsi(1,inds,iorb))
+              end select
+
+           else !normal preconditioner
+
+              call precondition_residue(lr,ncplx,ncong,cprecr,&
+                   hx,hy,hz,kx,ky,kz,hpsi(1,inds,iorb))
+
+           end if
+
+        end if
+
+!!$     select case(lr%geocode)
+!!$     case('F')
+!!$        !in this case the grid spacings are uniform
+!!$        cprecr=-eval(iorb)
+!!$        if(scpr /=0.0_dp) then
+!!$           call precong(iorb,lr%d%n1,lr%d%n2,lr%d%n3,&
+!!$                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
+!!$                lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$                lr%wfd%keyg,lr%wfd%keyv,ncong,cprecr,hx,&
+!!$                lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
+!!$                lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f,&
+!!$                hpsi(1,inds,iorb))
+!!$        end if
+!!$     case('P')
+!!$        cprecr=0.5_wp
+!!$        !           cprecr=abs(eval(iorb))
+!!$        !		   if (cprecr.lt..1_wp) cprecr=.5_wp
+!!$        if (ncong == 0) then
+!!$           call prec_fft(lr%d%n1,lr%d%n2,lr%d%n3, &
+!!$                lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$                lr%wfd%keyg,lr%wfd%keyv, &
+!!$                cprecr,hx,hy,hz,hpsi(1,inds,iorb))
+!!$        else
+!!$           if (lr%hybrid_on) then
+!!$              call precong_per_hyb(lr%d%n1,lr%d%n2,lr%d%n3,&
+!!$                   lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3, &
+!!$                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+!!$                   lr%wfd%nseg_f,lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+!!$                   ncong,cprecr,hx,hy,hz,hpsi(1,inds,iorb),&
+!!$                   lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f)
+!!$           else
+!!$
+!!$              call precong_per(lr%d%n1,lr%d%n2,lr%d%n3, &
+!!$                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+!!$                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$                   lr%wfd%keyg,lr%wfd%keyv, &
+!!$                   ncong,cprecr,hx,hy,hz,hpsi(1,inds,iorb))
+!!$           endif
+!!$        endif
+!!$     case('S')
+!!$        cprecr=0.5_wp
+!!$        if (ncong == 0) then
+!!$           call prec_fft_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
+!!$                lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
+!!$                lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+!!$                cprecr,hx,hy,hz,hpsi(1,inds,iorb))
+!!$        else
+!!$           call precong_slab(lr%d%n1,lr%d%n2,lr%d%n3, &
+!!$                lr%wfd%nseg_c,lr%wfd%nvctr_c,lr%wfd%nseg_f,&
+!!$                lr%wfd%nvctr_f,lr%wfd%keyg,lr%wfd%keyv, &
+!!$                ncong,cprecr,hx,hy,hz,hpsi(1,inds,iorb))
+!!$        endif
+!!$     end select
      end do
   enddo
 
@@ -201,12 +248,13 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   call razero((n1+1)*(n2+1)*(n3+1),ypsig_c)
   call razero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),ypsig_f)
   
-  call CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+  call calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
        nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
        scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,hpsi,&
        hpsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
        xpsig_c,xpsig_f,ypsig_c,ypsig_f,&
        x_f1,x_f2,x_f3)
+
 
   IF (INGUESS_ON) THEN 
      do i=1,nvctr_c+7*nvctr_f
@@ -225,7 +273,7 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 
   loop_precond: do icong=2,ncong
 
-     call CALC_GRAD_REZA(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
+     call calc_grad_reza(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
           nseg_c,nvctr_c,keyg,keyv,nseg_f,nvctr_f,keyg(1,nseg_c+1),keyv(nseg_c+1), &
           scal,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,&
           ibxy_f,ppsi,ppsi(nvctr_c+1),wpsi,wpsi(nvctr_c+1),&
@@ -238,6 +286,7 @@ subroutine precong(iorb,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
         alpha1=alpha1+rpsi(i)*rpsi(i)
         alpha2=alpha2+rpsi(i)*wpsi(i)
      enddo
+     !write(*,*)icong,alpha1
 
      !residues(icong)=alpha1
      alpha=alpha1/alpha2        
@@ -404,7 +453,6 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
   real(wp) :: h0,h1,h2,h3,fac_h
   real(wp), dimension(:,:,:), allocatable :: hpsip
 
-
   !      number of sweeps in wavelet transformation
   !      the biggest scaling function step: atomic_length*fac_len
   !      (not just atomic_length, because so it is better in practice) 
@@ -413,7 +461,6 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
   !write(*,'(1x,a)') 'number of wavelet transforms (sweeps)',num_trans
 
   ! find right leading dimensions for array
-
 
   !       nd1+1 is the multiple of n2_n
   !       which is closest to n1+1 from above. 

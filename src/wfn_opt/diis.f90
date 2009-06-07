@@ -81,7 +81,7 @@ subroutine diisstp(norb,nproc,iproc,nspinor,  &
   else
      rds(1)=1.0_dp
   endif
-  if (iproc.eq.0) then 
+  if (iproc == 0 .and. verbose > 0) then 
      !write(*,*) 'DIIS weights'
      write(*,'(1x,a,2x,12(1x,1pe9.2))')'DIIS weights',(rds(j),j=1,min(idsx,ids)+1)
   endif

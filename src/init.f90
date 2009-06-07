@@ -14,7 +14,7 @@
 !! SOURCE
 !!
 subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-     crmult,frmult,Glr,orbs,nvctrp)
+     crmult,frmult,Glr,orbs)
   use module_base
   use module_types
   implicit none
@@ -26,10 +26,8 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
   type(locreg_descriptors), intent(inout) :: Glr
   type(orbitals_data), intent(inout) :: orbs
-  integer, intent(out) :: nvctrp
   !local variables
   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
-  real(kind=8), parameter :: eps_mach=1.d-12
   integer :: iat,i1,i2,i3,norbme,norbyou,jpst,jproc,i_all,i_stat
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(kind=8) :: tt
@@ -62,7 +60,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_
      call memocc(i_stat,Glr%bounds%kb%ibxy_f,'Glr%bounds%kb%ibxy_f',subname)
   end if
 
-  if (iproc.eq.0) then
+  if (iproc == 0) then
      write(*,'(1x,a)')&
           '------------------------------------------------- Wavefunctions Descriptors Creation'
   end if
@@ -77,20 +75,20 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_
   call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
        atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_c,Glr%wfd%nseg_c,Glr%wfd%nvctr_c)
-  if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
+  if (iproc == 0) write(*,'(2(1x,a,i10))') &
        'Coarse resolution grid: Number of segments= ',Glr%wfd%nseg_c,'points=',Glr%wfd%nvctr_c
 
   if (atoms%geocode == 'F') then
      call make_bounds(n1,n2,n3,logrid_c,Glr%bounds%kb%ibyz_c,Glr%bounds%kb%ibxz_c,Glr%bounds%kb%ibxy_c)
   end if
 
-  if (atoms%geocode == 'P' .and. Glr%wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
+  if (atoms%geocode == 'P' .and. .not. Glr%hybrid_on .and. Glr%wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
      if (iproc ==0)then
         write(*,*)&
-          ' WARNING: the coarse grid does not fill the entire periodic box'
+          ' ERROR: the coarse grid does not fill the entire periodic box'
         write(*,*)&
           '          errors due to translational invariance breaking may occur'
-
+        stop
      end if
      if (GPUconv) then
         if (iproc ==0)then
@@ -107,7 +105,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_
   call fill_logrid(atoms%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%nat,&
        atoms%ntypes,atoms%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
   call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f,Glr%wfd%nvctr_f)
-  if (iproc.eq.0) write(*,'(2(1x,a,i10))') &
+  if (iproc == 0) write(*,'(2(1x,a,i10))') &
        '  Fine resolution grid: Number of segments= ',Glr%wfd%nseg_f,'points=',Glr%wfd%nvctr_f
   if (atoms%geocode == 'F') then
      call make_bounds(n1,n2,n3,logrid_f,Glr%bounds%kb%ibyz_f,Glr%bounds%kb%ibxz_f,Glr%bounds%kb%ibxy_f)
@@ -130,20 +128,6 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_
   i_all=-product(shape(logrid_f))*kind(logrid_f)
   deallocate(logrid_f,stat=i_stat)
   call memocc(i_stat,i_all,'logrid_f',subname)
-
-  tt=dble(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)/dble(nproc)
-  nvctrp=int((1.d0-eps_mach*tt) + tt)
-
-  !calculate the dimension of the wavefunction
-  !for the given processor
-  orbs%npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbs%norb_par(iproc),nvctrp*orbs%norb_par(0)*nproc)*&
-       orbs%nspinor
-
-!  print *,'iproc,npsidim',iproc,orbs%npsidim
-
-  if (iproc.eq.0) write(*,'(1x,a,i0)') &
-       'Wavefunction memory occupation per orbital (Bytes): ',&
-       nvctrp*nproc*8*orbs%nspinor !
 
   !for free BC admits the bounds arrays
   if (atoms%geocode == 'F') then
@@ -184,11 +168,11 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_
   end if
 
   if ( atoms%geocode == 'P' .and. Glr%hybrid_on) then
-      call make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,Glr%bounds,Glr%wfd)
-      call make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-     Glr%bounds%kb%ibxy_f,Glr%bounds%sb%ibxy_ff,Glr%bounds%sb%ibzzx_f,Glr%bounds%sb%ibyyzz_f,&
-     Glr%bounds%kb%ibyz_f,Glr%bounds%gb%ibyz_ff,Glr%bounds%gb%ibzxx_f,Glr%bounds%gb%ibxxyy_f)
-  endif
+     call make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,Glr%bounds,Glr%wfd)
+     call make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+          Glr%bounds%kb%ibxy_f,Glr%bounds%sb%ibxy_ff,Glr%bounds%sb%ibzzx_f,Glr%bounds%sb%ibyyzz_f,&
+          Glr%bounds%kb%ibyz_f,Glr%bounds%gb%ibyz_ff,Glr%bounds%gb%ibzxx_f,Glr%bounds%gb%ibxxyy_f)
+  endif	
 
   !assign geocode and the starting points
   Glr%geocode=atoms%geocode
@@ -294,14 +278,14 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,&
 END SUBROUTINE createProjectorsArrays
 
 subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
-     nvctrp,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj,& 
+     Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj,& 
      pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin)
   use module_base
   use module_interfaces, except_this_one => import_gaussians
   use module_types
   use Poisson_Solver
   implicit none
-  integer, intent(in) :: iproc,nproc,ixc,nvctrp,nspin
+  integer, intent(in) :: iproc,nproc,ixc,nspin
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
   type(atoms_data), intent(in) :: at
   type(nonlocal_psp_descriptors), intent(in) :: nlpspd
@@ -335,8 +319,12 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
   end if
 
   if (nspin /= 1) then
-     if (iproc==0) write(*,'(1x,a)')&
-          'Gaussian importing is possible only for non-spin polarised calculations'
+     if (iproc==0) then
+        write(*,'(1x,a)')&
+             'Gaussian importing is possible only for non-spin polarised calculations'
+        write(*,'(1x,a)')&
+             'The writing rules of CP2K files for spin-polarised orbitals are not implemented'
+     end if
      stop
   end if
 
@@ -409,10 +397,9 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
        rhopot(1+Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,4)),&
        psi,hpsi,ekin_sum,epot_sum,eproj_sum,1,GPU)
 
-  accurex=abs(eks-ekin_sum)
-  if (iproc.eq.0) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
+  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,(f19.10))') 'done. ekin_sum',ekin_sum
 
-  if (iproc.eq.0) then
+  if (iproc == 0) then
      write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
           ekin_sum,epot_sum,eproj_sum
      write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
@@ -424,17 +411,17 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
   !order, so the linear algebra on the transposed wavefunctions 
   !may be splitted
 
-  if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
+  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Imported Wavefunctions Orthogonalization:'
 
-  call DiagHam(iproc,nproc,at%natsc,nspin,orbs,nvctrp,Glr%wfd,comms,psi,hpsi,psit)
+  call DiagHam(iproc,nproc,at%natsc,nspin,orbs,Glr%wfd,comms,psi,hpsi,psit)
 
-  if (iproc.eq.0) write(*,'(1x,a)')'done.'
+  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE import_gaussians
 
 subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
-     orbs,orbsv,nvirt,nvctrp,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
+     orbs,orbsv,nvirt,comms,Glr,hx,hy,hz,rxyz,rhopot,pot_ion,&
      nlpspd,proj,pkernel,ixc,psi,hpsi,psit,psivirt,&
      nscatterarr,ngatherarr,nspin)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
@@ -445,7 +432,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   use module_types
   use Poisson_Solver
   implicit none
-  integer, intent(in) :: iproc,nproc,ixc,nvctrp
+  integer, intent(in) :: iproc,nproc,ixc
   integer, intent(inout) :: nspin,nvirt
   real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
   type(atoms_data), intent(in) :: at
@@ -464,7 +451,6 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   real(wp), dimension(:), pointer :: psi,hpsi,psit,psivirt
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
-  real(kind=8), parameter :: eps_mach=1.d-12
   integer, parameter :: ngx=31
   integer :: i_stat,i_all,iat,nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,accurex
@@ -498,8 +484,16 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      nspin_ig=nspin
   end if
 
-  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvctrp,nvirt,nspin_ig,&
+  call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin_ig,&
        orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
+
+  !allocate communications arrays for inputguess orbitals
+  call allocate_comms(nproc,commse,subname)
+  call orbitals_communicators(iproc,nproc,Glr,orbse,commse)  
+
+  i_all=-product(shape(orbse%norb_par))*kind(orbse%norb_par)
+  deallocate(orbse%norb_par,stat=i_stat)
+  call memocc(i_stat,i_all,'orbse%norb_par',subname)
 
   hxh=.5_gp*hx
   hyh=.5_gp*hy
@@ -678,8 +672,8 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   accurex=abs(eks-ekin_sum)
   !tolerance for comparing the eigenvalues in the case of degeneracies
   etol=accurex/real(orbse%norbu,gp)
-  if (iproc.eq.0) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
-  if (iproc.eq.0) then
+  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a,2(f19.10))') 'done. ekin_sum,eks:',ekin_sum,eks
+  if (iproc == 0) then
      write(*,'(1x,a,3(1x,1pe18.11))') 'ekin_sum,epot_sum,eproj_sum',  & 
           ekin_sum,epot_sum,eproj_sum
      write(*,'(1x,a,3(1x,1pe18.11))') '   ehart,   eexcu,    vexcu',ehart,eexcu,vexcu
@@ -717,18 +711,10 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
      call free_gpu(GPU,orbse%norbp)
   end if
 
-  if (iproc.eq.0) write(*,'(1x,a)',advance='no')&
+  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')&
        'Input Wavefunctions Orthogonalization:'
 
-  !allocate communications arrays
-  call allocate_comms(nproc,commse,subname)
-  call orbitals_communicators(iproc,nproc,nvctrp,orbse,commse)  
-
-  i_all=-product(shape(orbse%norb_par))*kind(orbse%norb_par)
-  deallocate(orbse%norb_par,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%norb_par',subname)
-
-  call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,nvctrp,Glr%wfd,comms,&
+  call DiagHam(iproc,nproc,at%natsc,nspin_ig,orbs,Glr%wfd,comms,&
        psi,hpsi,psit,orbse,commse,etol,norbsc_arr,orbsv,psivirt)
  
   call deallocate_comms(commse,subname)
@@ -737,7 +723,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   deallocate(norbsc_arr,stat=i_stat)
   call memocc(i_stat,i_all,'norbsc_arr',subname)
 
-  if (iproc.eq.0) then
+  if (iproc == 0 .and. verbose > 1) then
      write(*,'(1x,a)')'done.'
      !gaussian estimation valid only for Free BC
      if (at%geocode == 'F') then

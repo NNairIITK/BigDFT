@@ -39,7 +39,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
 
   call timing(iproc,'Rho_comput    ','ON')
 
-  if (iproc==0) then
+  if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
           'Calculation of charge density...'
   end if
@@ -184,8 +184,14 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
            charge=charge+tmred(ispin,1)
         end do
      end if
-     write(*,'(1x,a,f21.12)')&
-          'done. Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
+     if (verbose > 1) then
+        write(*,'(1x,a,f21.12)')&
+             'done. Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
+     else if (verbose > 0) then
+        write(*,'(1x,a,f21.12)')&
+             'Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
+     end if
+
      if(nspin == 4 .and. tt > 0._dp)&
           write(*,'(a,5f10.4)')'  Magnetic density orientation:',&
           (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)

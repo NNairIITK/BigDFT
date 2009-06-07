@@ -105,6 +105,8 @@ void init_lib__(int *iproc,int *error, int *iconv, int *iblas, bool * GPUshare)
 	{
 	  init_gpu_sharing(NAME_FILE,error);
 	  *GPUshare = true;
+	  *iconv = 0;
+	  *iblas = 0; //enable GPU convolution and GPU blas
 	}
       else
 	{
@@ -129,5 +131,5 @@ void init_lib__(int *iproc,int *error, int *iconv, int *iblas, bool * GPUshare)
 
   std::ostringstream ostr;
   ostr << "trace_" << *iproc;
-  tracer = new trace_exec(ostr.str());
+  tracer = new trace_exec(ostr.str(),false);
 }

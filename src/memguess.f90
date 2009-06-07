@@ -302,7 +302,7 @@ program memguess
      end do
 
      call createWavefunctionsDescriptors(0,nproc,hx,hy,hz,&
-          atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst,nvctrp)
+          atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst)
      
      call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,in%ixc,&
           Glr,hx,hy,hz,rxyz,ntimes)
@@ -732,6 +732,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   call razero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
 
+
   !convert the gaussians in wavelets
   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbs,lr%d,&
        hx,hy,hz,lr%wfd,G,gaucoeffs,psi)
@@ -978,8 +979,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !the input function is psi
   call cpu_time(t0)
   do j=1,ntimes
-     call preconditionall(iproc,nproc,orbs%norbp,lr,hx,hy,hz,ncong,orbs%nspinor,&
-          orbs%eval(min(orbs%isorb+1,orbs%norb)),hpsi,gnrm)
+     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   end do
   call cpu_time(t1)
 

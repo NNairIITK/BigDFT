@@ -11,13 +11,13 @@
 !!
 !! SOURCE
 !!
-subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvctrp,nvirt,nspin,&
+subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvirt,nspin,&
      orbs,orbse,orbsv,norbsc_arr,locrad,G,psigau,eks)
   use module_base
   use module_types
   use module_interfaces, except_this_one => inputguess_gaussian_orbitals
   implicit none
-  integer, intent(in) :: iproc,nproc,nspin,nvctrp
+  integer, intent(in) :: iproc,nproc,nspin
   integer, intent(inout) :: nvirt
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -34,6 +34,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvctrp,nvirt,nsp
   integer, parameter :: ngx=31
   integer :: norbe,norbme,norbyou,i_stat,i_all,norbsc,nvirte
   integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
+  type(communications_arrays) :: commsv
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng,iorbtolr
   integer, dimension(:,:), allocatable :: nl
@@ -106,11 +107,11 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvctrp,nvirt,nsp
   orbsv%occup(1:orbsv%norb)=1.0_gp
   orbsv%spinsgn(1:orbsv%norb)=1.0_gp
 
-  !calculate the dimension of the wavefunction
-  !for the given processor
-  orbsv%npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbsv%norbp,&
-       nvctrp*orbsv%norb_par(0)*nproc)*&
-       orbsv%nspinor
+  !allocate communications arrays for virtual orbitals
+  !warning: here the aim is just to calculate npsidim, should be fixed
+  call allocate_comms(nproc,commsv,subname)
+  call orbitals_communicators(iproc,nproc,Glr,orbsv,commsv)  
+  call deallocate_comms(commsv,subname)
 
   !deallocation if no davidson calculation
   if (nvirt == 0) then
@@ -141,10 +142,6 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,Glr,nvctrp,nvirt,nsp
      orbse%spinsgn(ist:ist+norbe-1)=real(1-2*(ispin-1),gp)
      ist=norbe+1
   end do
-  !calculate the dimension of the wavefunction
-  !for the given processor
-  orbse%npsidim=max((Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f)*orbse%norbp,nvctrp*orbse%norb_par(0)*nproc)*&
-       orbse%nspinor
 
   !this is the distribution procedure for cubic code
   !should be referred to another routine
@@ -244,7 +241,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,n
 
   loop_assign: do ity=1,at%ntypes
 
-     if (iproc.eq.0) then
+     if (iproc == 0 .and. verbose > 1) then
         write(*,'(1x,a,a6,a)',advance='no')&
              'Input wavefunction data for atom ',trim(at%atomnames(ity)),&
              ' NOT found, automatic generation...'
@@ -258,7 +255,7 @@ subroutine readAtomicOrbitals(iproc,ngx,xp,psiat,occupat,ng,nl,at,norbe,norbsc,n
           ng(ity)-1,nl(1,ity),5,occupat(1:5,ity),xp(1:ng(ity),ity),&
           psiat(1:ng(ity),1:5,ity))
      
-     if (iproc.eq.0) write(*,'(1x,a)')'done.'
+     if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'done.'
   
   end do loop_assign
 
@@ -375,7 +372,7 @@ subroutine createAtomicOrbitals(iproc,nproc,at,&
   iorbsc(2)=norbe
   iorbv(2)=norbsc+norbe
 
-  if (iproc ==0) then
+  if (iproc == 0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')'Calculating AIO wavefunctions...'
   end if
 
@@ -549,7 +546,7 @@ subroutine createAtomicOrbitals(iproc,nproc,at,&
   deallocate(psiatn,stat=i_stat)
   call memocc(i_stat,i_all,'psiatn',subname)
 
-  if (iproc ==0) then
+  if (iproc == 0 .and. verbose > 1) then
      write(*,'(1x,a)')'done.'
   end if
 
@@ -605,7 +602,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
   real(gp), dimension(:), allocatable :: psiatn
   real(gp), dimension(:,:), allocatable :: atmoments
 
-  if (iproc ==0) then
+  if (iproc == 0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')'Calculating AIO wavefunctions...'
   end if
 
@@ -1035,7 +1032,7 @@ subroutine AtomicOrbitals(iproc,nproc,at,rxyz,norbe,orbse,norbsc,occupat,&
   end if
 
 
-  if (iproc ==0) then
+  if (iproc ==0 .and. verbose > 1) then
      write(*,'(1x,a)')'done.'
   end if
 
@@ -2095,7 +2092,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
   integer, dimension(ntypes), intent(in) :: iasctype
   integer, dimension(nat), intent(in) :: iatype,natpol
   integer, dimension(norbe*nspin), intent(in) :: spinsgne
-  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbep*nspin), intent(out) :: psi
+  real(kind=8), dimension(nvctr_c+7*nvctr_f,norbep*nspin), intent(inout) :: psi
   !local variables
   character(len=*), parameter :: subname='psitospi0'
   logical :: myorbital,polarised
@@ -2158,4 +2155,3 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,norbsc,nat,&
   end if
 
 END SUBROUTINE psitospi0
-!!***

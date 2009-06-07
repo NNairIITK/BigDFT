@@ -444,7 +444,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   real(gp), dimension(nterm_max) :: fac_arr
   real(wp), dimension(:), allocatable :: tpsi
 
-  if(iproc == 0) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
+  if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
 
   allocate(tpsi(wfd%nvctr_c+7*wfd%nvctr_f+ndebug),stat=i_stat)
   call memocc(i_stat,tpsi,'tpsi',subname)
@@ -520,7 +520,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
         end do
         iexpo=iexpo+ng
      end do
-     if (iproc == 0) then
+     if (iproc == 0 .and. verbose > 1) then
         write(*,'(a)',advance='no') &
              repeat('.',(iat*40)/G%nat-((iat-1)*40)/G%nat)
      end if
@@ -528,7 +528,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
 
   call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
-  if (iproc ==0 ) write(*,'(1x,a)')'done.'
+  if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
   !renormalize the orbitals
   !calculate the deviation from 1 of the orbital norm
   normdev=0.0_dp
@@ -553,7 +553,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   else
      normdev=tt
   end if
-  if (iproc ==0 ) write(*,'(1x,a,1pe12.2)')&
+  if (iproc ==0) write(*,'(1x,a,1pe12.2)')&
        'Deviation from normalization of the imported orbitals',normdev
 
   i_all=-product(shape(tpsi))*kind(tpsi)

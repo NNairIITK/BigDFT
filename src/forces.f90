@@ -38,7 +38,7 @@ subroutine local_forces(iproc,nproc,at,rxyz,hxh,hyh,hzh,&
   
   pi=4.d0*atan(1.d0)
 
-  if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate local forces...'
+  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
   forceleaked=0.d0
 
   !conditions for periodicity in the three directions
@@ -155,7 +155,7 @@ subroutine local_forces(iproc,nproc,at,rxyz,hxh,hyh,hzh,&
   end do
 
   forceleaked=forceleaked*prefactor*hxh*hyh*hzh
-  if (iproc.eq.0) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
+  if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
 
 END SUBROUTINE local_forces
 !!***
