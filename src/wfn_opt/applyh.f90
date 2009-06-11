@@ -333,6 +333,7 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
 
   select case(lr%geocode)
   case('F')
+
      !dimensions of work arrays
      ! shrink convention: nw1>nw2
      w%nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
@@ -386,6 +387,7 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
 !!$        call razero(w%nw2*nspinor,w%w2)
 
   case('S')
+
      w%nw1=0
      w%nw2=0
      w%nyc=n1i*n2i*n3i
@@ -403,6 +405,7 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
      call memocc(i_stat,w%y_c,'y_c',subname)
 
   case('P')
+
      if (lr%hybrid_on) then
         ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
         nf=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
@@ -460,6 +463,7 @@ subroutine initialize_work_arrays_locham(lr,nspinor,w)
         call memocc(i_stat,w%x_c,'x_c',subname)
         allocate(w%y_c(w%nyc,nspinor+ndebug),stat=i_stat)
         call memocc(i_stat,w%y_c,'y_c',subname)
+
      endif
   end select
 
@@ -573,7 +577,8 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
              lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),   &
              psi(1,idx),psi(lr%wfd%nvctr_c+1,idx),w%x_c(1,idx),psir(1,idx))
 
-        call convolut_magic_n_slab(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,w%x_c(1,idx),psir(1,idx),w%y_c(1,idx)) 
+        call convolut_magic_n_slab(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,w%x_c(1,idx),&
+             psir(1,idx),w%y_c(1,idx)) 
 
      end do
 
@@ -607,7 +612,8 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
                 lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),   &
                 psi(1,idx),psi(lr%wfd%nvctr_c+1,idx),w%x_c(1,idx),psir(1,idx))
 
-           call convolut_magic_n_per(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,w%x_c(1,idx),psir(1,idx),w%y_c(1,idx)) 
+           call convolut_magic_n_per(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,w%x_c(1,idx),&
+                psir(1,idx),w%y_c(1,idx)) 
         end do
 
      end if
@@ -635,14 +641,14 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
 
   !control whether the k points are to be used
   !real k-point different from Gamma still not implemented
-  usekpts = kx**2+ky**2+kz**2 > 0.0_gp .or. .true.
+  usekpts = kx**2+ky**2+kz**2 > 0.0_gp !.or. .true.
 
   hgridh(1)=hx*.5_gp
   hgridh(2)=hy*.5_gp
   hgridh(3)=hz*.5_gp
 
-
-  do i=0,3
+ 
+ do i=0,3
      scal(i)=1.0_wp
   enddo
 
@@ -692,11 +698,12 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
                 psir(1,idx),w%y_c(1,idx))
         end do
 
+
         !Transposition of the work arrays (use psir as workspace)
-        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+16,2*lr%d%n3+2,&
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
              w%x_c,psir,.true.)
-        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+16,2*lr%d%n3+2,&
-             w%y_c,psir,.true.)
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
+             w%y_c,psir,.true.)          
 
         ! compute the kinetic part and add  it to psi_out
         ! the kinetic energy is calculated at the same time
@@ -704,11 +711,11 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
         do idx=1,nspinor,2
            call convolut_kinetic_slab_T_k(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
                 hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino,kx,ky,kz)
-        ekin=ekin+ekino        
+           ekin=ekin+ekino        
         end do
 
         !re-Transposition of the work arrays (use psir as workspace)
-        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+16,2*lr%d%n3+2,&
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
              w%y_c,psir,.false.)
 
         do idx=1,nspinor
@@ -731,6 +738,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
                 hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
            ekin=ekin+ekino
 
+
            call compress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
                 lr%wfd%nseg_c,lr%wfd%nvctr_c,&
                 lr%wfd%keyg(1,1),lr%wfd%keyv(1),   & 
@@ -738,6 +746,7 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
                 lr%wfd%keyg(1,lr%wfd%nseg_c+1),lr%wfd%keyv(lr%wfd%nseg_c+1),   & 
                 w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+1,idx),psir(1,idx))
         end do
+
      end if
 
   case('P')
@@ -788,7 +797,6 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin)
                 w%x_c,psir,.true.)
            call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
                 w%y_c,psir,.true.)
-
 
            ! compute the kinetic part and add  it to psi_out
            ! the kinetic energy is calculated at the same time
@@ -1520,7 +1528,7 @@ subroutine realspaceINOUT(ibyyzz_r,pot,psirIN,psirOUT,epot,n1,n2,n3)
 
   real(kind=8),intent(in)::pot(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
   real(kind=8),intent(in)::psirIN(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
- real(kind=8),intent(out)::psirOUT(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
+  real(kind=8),intent(inout)::psirOUT(-14:2*n1+16,-14:2*n2+16,-14:2*n3+16)
 
   real(kind=8),intent(out)::epot
   real(kind=8) tt

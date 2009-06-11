@@ -74,8 +74,8 @@ subroutine read_input_variables(iproc,filename,in)
   read(line,*,iostat=ierrfrc) cudagpu
   if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
      call init_lib(iproc,initerror,iconv,iblas,GPUshare)
-     iconv = 0
-     iblas = 0
+   !  iconv = 0
+   !  iblas = 0
      
 
    !  call set_cpu_gpu_aff(iproc,iconv,iblas)
@@ -163,22 +163,31 @@ subroutine read_input_variables(iproc,filename,in)
      in%inputPsiId=0
   end if
 
-  !add reading lines for Davidson treatment (optional for backward compatibility)
-  read(1,*,iostat=ierror) in%nvirt, in%nplot
-  !call check()
-  
-  if (ierror/=0) then
+  ! qoh: Try to read dispersion input variable
+  read(1,'(a100)',iostat=ierror)line
+  if (ierror == 0) then
+     if (index(line,"dispersion") /= 0) then 
+        read(line,*,iostat=ierror) in%dispersion
+        !add reading lines for Davidson treatment 
+        !(optional for backward compatibility)
+        read(1,*,iostat=ierror) in%nvirt, in%nplot
+     else 
+        in%dispersion = 0
+        read(line,*,iostat=ierror) in%nvirt, in%nplot
+     end if
+  else
+     in%dispersion = 0
      in%nvirt=0
      in%nplot=0
-  else
-     !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
-     !systems
-     if (in%nspin/=1 .and. in%nvirt/=0) then
-        if (iproc==0) then
-           write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
-        end if
-        stop
+  end if
+
+  !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
+  !systems
+  if (in%nspin/=1 .and. in%nvirt/=0) then
+     if (iproc==0) then
+        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
      end if
+     stop
   end if
  
   close(unit=1,iostat=ierror)
@@ -390,9 +399,9 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
   !in case of old format, put geocode to F and alat to 0.
   if (ierror == 0) then
      at%geocode='F'
-     at%alat1=0.0_gp
-     at%alat2=0.0_gp
-     at%alat3=0.0_gp
+     alat1d0=0.0_gp
+     alat2d0=0.0_gp
+     alat3d0=0.0_gp
   else
      if (lpsdbl) then
         read(line,*,iostat=ierrsfx) tatonam,alat1d0,alat2d0,alat3d0
@@ -418,9 +427,9 @@ subroutine read_atomic_positions(iproc,ifile,at,rxyz)
         end if
      else
         at%geocode='F'
-        at%alat1=0.0_gp
-        at%alat2=0.0_gp
-        at%alat3=0.0_gp
+        alat1d0=0.0_gp
+        alat2d0=0.0_gp
+        alat3d0=0.0_gp
      end if
   end if
 

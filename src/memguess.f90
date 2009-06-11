@@ -123,7 +123,6 @@ program memguess
  
 
   ! store PSP parameters
-  ! modified to accept both GTH and HGHs pseudopotential types
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
@@ -135,7 +134,7 @@ program memguess
 
   if (optimise) then
      if (atoms%geocode =='F') then
-        call optimise_volume(atoms,in%crmult,in%frmult,hx,hy,hz,rxyz,radii_cf)
+        call optimise_volume(atoms,in%crmult,in%frmult,in%hx,in%hy,in%hz,rxyz,radii_cf)
      else
         call shift_periodic_directions(atoms,rxyz,radii_cf)
      end if
@@ -179,7 +178,7 @@ program memguess
           scorb,norbsc_arr,locrad)
 
      if (in%nspin==4) then
-        !in that case the number of orbitals double
+        !in that case the number of orbitals doubles
         norbe=2*norbe
      end if
 
@@ -298,7 +297,7 @@ program memguess
      end do
 
      call createWavefunctionsDescriptors(0,nproc,hx,hy,hz,&
-          atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst,nvctrp)
+          atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst)
      
      call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,in%ixc,&
           Glr,hx,hy,hz,rxyz,ntimes)
@@ -431,7 +430,6 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
 
   allocate(txyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,txyz,'txyz',subname)
-
   call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   !call volume(nat,rxyz,vol)
   vol=atoms%alat1*atoms%alat2*atoms%alat3
@@ -725,6 +723,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   call razero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
 
+
   !convert the gaussians in wavelets
   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbs,lr%d,&
        hx,hy,hz,lr%wfd,G,gaucoeffs,psi)
@@ -971,8 +970,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !the input function is psi
   call cpu_time(t0)
   do j=1,ntimes
-     call preconditionall(iproc,nproc,orbs%norbp,lr,hx,hy,hz,ncong,orbs%nspinor,&
-          orbs%eval(min(orbs%isorb+1,orbs%norb)),hpsi,gnrm)
+     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   end do
   call cpu_time(t1)
 

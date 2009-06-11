@@ -141,7 +141,8 @@ high_level = cluster.f90 \
 	tail.f90 \
 	restart.f90 \
 	geometry.f90 \
-	davidson.f90
+	davidson.f90 \
+	vdwcorrection.f90
 
 #objects which can be compiled whithout any dependence
 low_level = init/projectors.f90  \
@@ -243,13 +244,14 @@ CLEANFILES = mpif.h \
 	bigdft_api.@MODULE_EXT@ BIGDFT_API.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ MODULE_INTERFACES.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@ \
-	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@
+	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@ \
+	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@
 
 
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o : $(mpi_include)  $(modules_objects)
 
-#cluster.o geometry.o: 
+cluster.o geometry.o: vdwcorrection.o
 
 #init.o : base.o interfaces.o
 

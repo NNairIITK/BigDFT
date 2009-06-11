@@ -4,7 +4,7 @@ module minimization
      !general parameters for all methods
      character(10)::approach='unknown'
      real(8)::fmaxtol
-     real(8)::eps=1.d-20
+!     real(8)::eps=1.d-20
      integer::iter=0
      integer::iflag=0
      logical::converged
@@ -20,7 +20,8 @@ module minimization
      real(8)::gtol
      real(8)::stpmin
      real(8)::stpmax
-     real(8)::xtol=epsilon(xtol)
+     real(8)::xtol=1.d-10  !epsilon(xtol)
+     real(8)::betax 
   end type parameterminimization
 end module minimization
 !*****************************************************************************************
@@ -47,9 +48,12 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   character*4 fn4
   character*40 comment
 
+  if (iproc ==0) write(16,*) '---------------------------------------------------------------'
+
   !inquire for the file needed for geometry optimisation
   !if not present, switch to traditional SDCG method
   inquire(file="input.geopt",exist=exists)
+
 
   if (exists) then
      !Read from input.geopt
@@ -74,10 +78,8 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
      call bfgs(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
 
      if (fail) then 
-
         if (iproc ==0) write(*,*) '# ENTERING CG after BFGS failure'
         call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
-
      end if
 
   else if(trim(parmin%approach)=='SDCG') then
@@ -85,12 +87,18 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
      if (iproc ==0) write(*,*) '# ENTERING CG'
      call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
 
+  else if(trim(parmin%approach)=='VSSD') then
+ 
+     if (iproc ==0) write(*,*) '# ENTERING VSSD'
+     call vstepsd(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
+
   else
      stop 'geometry optimization method undefined'
   endif
   if (iproc==0)   write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach
 
 end subroutine geopt
+
 
 
 subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
@@ -111,51 +119,37 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   character(len=*), parameter :: subname='bfgs'
   real(gp) :: fluct,fnrm
   real(gp) ::sumx,sumy,sumz,fmax
-  logical :: check,switched,autoprecon,onlysih,previousfrozen
-  !-------------------------------------------
-  integer :: n,nr,iconf,i_all,i_stat,m,it,nwork,i,j,n_silicon,iter_old
+  logical :: check
+  integer :: n,i_all,i_stat,m,it,nwork,i,j,iter_old
   integer :: infocode,iprecon,iwrite,nitsd,histlen,nfluct
   real(gp) :: fluctsum,ddot,shift,tmp,fnormmax_sw,limbfgs,erel
-  real(gp), dimension(3) :: alat
+!  real(gp), dimension(3) :: alat
   real(gp), dimension(30) :: ehist
-  real(gp), dimension(:), allocatable :: diag,work,xt,xtc,xc,ft,ftc,fc,eval,evalt,xdft,xwrite
-  real(gp), dimension(:,:), allocatable :: hess,hesst
+  real(gp), dimension(:), allocatable :: diag,work,xc,xdft,xwrite
   character*4 fn4
   character*40 comment
   type(parameterminimization)::parmin
+  parmin%betax=in%betax
   !Read from input.geopt
   open(84,file="input.geopt")
   read(84,*) parmin%approach
-  read(84,*) onlysih
-  read(84,*) iprecon
   close(84)
   n=3*at%nat
   fail=.false.    
   parmin%converged=.false.
   iwrite=0
 
-  fluctsum=0._gp
-  nfluct=0
-
-  !Silicon has to be atom of type 1 and the posinp has to start with all Si atoms
-  n_silicon=0
-  do i=1,at%nat
-     if (at%iatype(i) == 1) n_silicon=n_silicon+1
-  end do
-  if (iproc==0 .and. onlysih) write(*,*) "Number of Si for TB", n_silicon
-
-
   !-------------------------------------------------------------------------------------
   ehist(:)=1.d10
-  histlen=6                !Maximum 30
-  limbfgs=1.d-10             !Convergence in 5 consecutive steps in energy before bfgs is stopped
+  histlen=6                 !Maximum 30
+  limbfgs=1.d-10            !Convergence in 5 consecutive steps in energy before bfgs is stopped
   m=3                       !BFGS history length
-  nitsd=20              !Maximum number of SD steps before entering BFGS
+  nitsd=20                  !Maximum number of SD steps before entering BFGS
   shift=0.2d0               !Shift for diag of hess
   parmin%iflag=0            !Initialize bfgs
   iter_old=0                !Counter of iterations
   fnormmax_sw=1.d-2         !SD till the max force comp is less than this value
-  parmin%eps=1.d-20         !Original: 1.d-5
+  !parmin%eps=1.d-20         !Original: 1.d-5
   parmin%fmaxtol=1.d-20     !Original: 1.d0
   parmin%ftol=1.d-6         !Original: 1.d-4
   parmin%gtol=9.d-1         !Original: 9.d-1
@@ -163,96 +157,20 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   parmin%stpmax=1.d+20      !Min size of alpha in line-min, orig value
   parmin%maxfev=10          !Original: 20
 
-  if (.not. onlysih) then
-     autoprecon=.false.
-     iprecon=-1
      parmin%DIAGCO=.false.
      m=7
      parmin%stpmax=20.d0
-     if (iproc==0)  write(*,*) "AUTO: No precon is used at all"
-  elseif (iprecon >= 0) then
-     parmin%DIAGCO=.false.
-     parmin%stpmax=20.d0
-     autoprecon=.false.
-     m=7
-     if (iproc==0)  write(*,*) "AUTO: No automatic precon is used, iprecon=",iprecon
-  elseif (iprecon==-1) then
-     parmin%DIAGCO=.true.
-     parmin%stpmax=1.d0
-     iprecon=-1
-     autoprecon=.true.
-     m=3
-     if (iproc==0)  write(*,*) "AUTO: Automatic precon activated"
-  endif
+  
+  fluctsum=0._gp
+  nfluct=0
 
-  !Count number of relaxing atoms, the fixed atoms have to be at the end of the files
-  !this feature is now useless when the positions are updated with atomic_coordinate_axpytoms_forces_positions
-  !use however this feature in the case of parmin%DIAGCO=true
-  !but the frozen atoms must be in the end of the posinp file, otherwise it exits
-  if (parmin%DIAGCO) then
-     nr=0
-     previousfrozen=.false.
-     do i=1,at%nat
-        if (at%ifrztyp(i) == 0 ) then 
-           if (previousfrozen) then
-              if (iproc ==0 )then
-                 write(*,*)'ERROR: the atom ',i,&
-                      'is not frozen and there are frozen atoms before it.'
-                 write(*,*)'this is not allowed for parmin%DIAGCO==.true. exiting...'
-              end if
-              stop
-           else
-              nr=nr+3
-           end if
-        else
-           previousfrozen=.true.
-        end if
-     enddo
-  else
-     !replaced with 
-     nr=3*at%nat
-  end if
-!!$  if (iproc==0) write(*,*) "Number of atoms to relax", nr/3
-
-  allocate(hess(nr,nr),stat=i_stat)
-  call memocc(i_stat,hess,'hess',subname)
-  allocate(eval(nr),stat=i_stat)
-  call memocc(i_stat,eval,'eval',subname)
-  allocate(hesst(nr,nr),stat=i_stat)
-  call memocc(i_stat,hesst,'hesst',subname)
-  allocate(evalt(nr),stat=i_stat)
-  call memocc(i_stat,evalt,'evalt',subname)
-  allocate(xt(nr),stat=i_stat)
-  call memocc(i_stat,xt,'xt',subname)
-  allocate(xtc(nr),stat=i_stat)
-  call memocc(i_stat,xtc,'xtc',subname)
-  allocate(xc(n),stat=i_stat)
-  call memocc(i_stat,xc,'xc',subname)
-  allocate(ft(nr),stat=i_stat)
-  call memocc(i_stat,ft,'ft',subname)
-  allocate(diag(n),stat=i_stat)
-  call memocc(i_stat,diag,'diag',subname)
-  allocate(xdft(n),stat=i_stat)
-  call memocc(i_stat,xdft,'xdft',subname)
-  allocate(xwrite(n),stat=i_stat)
-  call memocc(i_stat,xwrite,'xwrite',subname)
-  allocate(work(n*(2*m+1)+2*m),stat=i_stat)
-  call memocc(i_stat,work,'work',subname)
-
-  alat(1)=at%alat1
-  alat(2)=at%alat2
-  alat(3)=at%alat3
-  xc(:)=x(:)
-  fluct=0._gp
-  iconf=0
-  iwrite=0
+!  alat(1)=at%alat1
+!  alat(2)=at%alat2
+!  alat(3)=at%alat3
+!  fluct=0._gp
 
   if (iproc==0)    write(*,*) 'Maximum number of SD steps used in the beginning: ',nitsd
 
-  if (iproc==0 .and. .not.autoprecon .and. iprecon.ne.-1)   write(*,*) 'Number of precon steps: ',iprecon
-
-  !initialise the switched variable
-  switched=.false.
   call steepdes(nproc,iproc,at,x,epot,f,rst,ncount_bigdft,fluctsum,nfluct,fnrm,in,&
        fnormmax_sw,nitsd,fluct)
 
@@ -262,52 +180,36 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   if (check) then
      if (iproc.eq.0) write(*,*) 'Converged before entering BFGS'
-     return 
+     return     
   endif
+
+  allocate(xc(n),stat=i_stat)
+  call memocc(i_stat,xc,'xc',subname)
+  allocate(diag(n),stat=i_stat)
+  call memocc(i_stat,diag,'diag',subname)
+  allocate(xdft(n),stat=i_stat)
+  call memocc(i_stat,xdft,'xdft',subname)
+  allocate(xwrite(n),stat=i_stat)
+  call memocc(i_stat,xwrite,'xwrite',subname)
+  allocate(work(n*(2*m+1)+2*m),stat=i_stat)
+  call memocc(i_stat,work,'work',subname)
+  xc(:)=x(:)
+  xwrite(:)=x(:)
 
   fail=.false.
   bfgs_loop: do ! main BFGS loop
 
-     if((ncount_bigdft==0 .or. parmin%iflag==2 .or. switched) .and. parmin%DIAGCO) then
-        call apphess(at,nr/3,alat,x,hess,eval,iproc,n_silicon)
-
-        if (autoprecon .and. parmin%DIAGCO .and. eval(1).lt.-0.1d0) then
-           if (iproc==0) write(*,*) "# AUTO: Negative eigenvalue, Switching off precon, BFGS"
-           if (iproc==0) write(16,*) " BFGS: Negative eigenvalue, Switching off precon", eval(1)
-           parmin%DIAGCO=.false.
-           m=7
-           iwrite=0
-           parmin%iflag=0
-           iter_old=0
-           parmin%stpmax=20.d0
-           cycle bfgs_loop
-        endif
-
-        !call eigenvv(n/3,n/3,x,cell,hess,eval,0)
-        do i=1,nr 
-           diag(i)=1.d0/sqrt(eval(i)**2+(shift*maxval(eval(1:min(nr,n-6))))**2)
-        enddo
-     elseif(.not.parmin%DIAGCO) then
-        hess(:,:)=0.d0
-        do i=1,nr
-           hess(i,i)=1.d0
-        enddo
-     endif
-     !for the first iteration switched was not specified
-     !put switched
-     if(ncount_bigdft==0 .or. parmin%iflag==1 .or. switched) then
-        switched=.false.
+     if(ncount_bigdft==0 .or. parmin%iflag==1) then
 
         in%inputPsiId=1
         call call_bigdft(nproc,iproc,at,x,in,epot,f,rst,infocode)
 
-        if (iproc == 0) then
-           call transforce(at%nat,f,sumx,sumy,sumz)
-           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
-           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy
-           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz
-        end if
-
+        if (iproc == 0) then                                        
+           call transforce(at%nat,f,sumx,sumy,sumz)                         
+           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
+           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
+           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
+        end if 
         ncount_bigdft=ncount_bigdft+1
         if (ncount_bigdft==1) ehist(1)=epot
         xdft(:)=x(:)
@@ -319,48 +221,15 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
      endif
 
-     if (parmin%DIAGCO) then
-        do i=1,nr
-           xt(i)=ddot(nr,x,1,hess(1,i),1)
-           ft(i)=ddot(nr,f,1,hess(1,i),1)
-        enddo
-     else
-        do i=1,nr
-           !in that case the hessian is diagonal
-           call atomic_dot(at,x,hess(1,i),xt(i))
-           call atomic_dot(at,f,hess(1,i),ft(i))
-        end do
-!!$        xt(:)=x(:)
-!!$        ft(:)=f(:)
-     end if
+     call lbfgs(at,3*at%nat,m,x,xc,epot,f,diag,work,parmin,iproc,iwrite)
 
-     call lbfgs(at,nr,m,xt,xtc,epot,ft,diag,work,parmin,iproc,iwrite)
 
-     xc(:)=x(:)
-
-     call atomic_gemv(at,nr,1.0_gp,hess,xt,0.0_gp,x,x)
-     call atomic_gemv(at,nr,1.0_gp,hess,ft,0.0_gp,f,f)
-     call atomic_gemv(at,nr,1.0_gp,hess,xtc,0.0_gp,xc,xc)
-!!$     do i=1,nr 
-!!$        if (at%ifrztyp((i-1)/3+1) == 0) then
-!!$           x(i)=0.0_gp
-!!$           f(i)=0.0_gp
-!!$           xc(i)=0.0_gp
-!!$           do j=1,nr 
-!!$              if (at%ifrztyp((j-1)/3+1) == 0) then
-!!$                 x(i)=x(i)+xt(j)*hess(i,j)
-!!$                 f(i)=f(i)+ft(j)*hess(i,j)
-!!$                 xc(i)=xc(i)+xtc(j)*hess(i,j)    
-!!$              end if
-!!$           enddo
-!!$        end if
-!!$     enddo
 
      if (iwrite==iter_old+1 ) then
         xwrite(:)=xdft(:)
         if (iproc==0) then 
            write(fn4,'(i4.4)') ncount_bigdft
-           write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',fnrm
+           write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
            call write_atomic_file('posout_'//fn4,epot,xwrite,at,trim(comment))
         endif
 
@@ -395,45 +264,6 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
         if (iproc==0)  write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct', fnrm,fluct*in%frac_fluct,fluct
         iter_old=iwrite
-        if (autoprecon .and. (.not. parmin%DIAGCO) .and. iwrite >= 5) then
-           call apphess(at,nr/3,alat,x,hesst,evalt,iproc,n_silicon)
-           if (evalt(1).gt.-0.1d0) then
-              if (iproc==0) write(*,*) "AUTO: Switching on precon, eval is checked, BFGS"
-              if (iproc==0) write(16,*) " BFGS: Switching on precon, eval is checked", evalt(1)
-              parmin%DIAGCO=.true.
-              m=3
-              switched=.true.
-              iwrite=0
-              parmin%iflag=0
-              iter_old=0
-              parmin%stpmax=1.d0
-              cycle bfgs_loop
-           endif
-        endif
-     endif
-
-     if (iwrite==iprecon) then
-        if(iproc==0) write(16,*) "BFGS: Switching on precon after iprecon=", iprecon
-        if(iproc==0) write(*,*) " BFGS: Switching on precon after iprecon=", iprecon
-        parmin%DIAGCO=.true.
-        m=3
-        parmin%iflag=0
-        iwrite=0
-        do i=1,nr
-           x(i)=xc(i)
-        enddo
-        iprecon=-10 !at least smaller than -1
-        iter_old=0                   
-        if(iproc==0) then
-           write(*,*) n/3,"after precon"
-           write(*,*)  iconf, ncount_bigdft
-           do i=1,n,3
-              write(*,'(a,3e24.15)') 'Si',x(i:i+2) !*0.529177d0
-           enddo
-           iconf=iconf+1
-        endif
-        switched=.true.
-        cycle bfgs_loop
      endif
 
      if (iproc.eq.0 .AND. parmin%iflag /= 2)  write(*,'(1x,a,1pe14.5,2(1x,a,1pe14.5))') 'FORCES norm(Ha/Bohr): maxval=', &
@@ -458,37 +288,10 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   enddo bfgs_loop   ! main BFGS loop
 
-  i_all=-product(shape(hess))*kind(hess)
-  deallocate(hess,stat=i_stat)
-  call memocc(i_stat,i_all,'hess',subname)
-
-  i_all=-product(shape(eval))*kind(eval)
-  deallocate(eval,stat=i_stat)
-  call memocc(i_stat,i_all,'eval',subname)
-
-  i_all=-product(shape(hesst))*kind(hesst)
-  deallocate(hesst,stat=i_stat)
-  call memocc(i_stat,i_all,'hesst',subname)
-
-  i_all=-product(shape(evalt))*kind(evalt)
-  deallocate(evalt,stat=i_stat)
-  call memocc(i_stat,i_all,'evalt',subname)
-
-  i_all=-product(shape(xt))*kind(xt)
-  deallocate(xt,stat=i_stat)
-  call memocc(i_stat,i_all,'xt',subname)
-
-  i_all=-product(shape(xtc))*kind(xtc)
-  deallocate(xtc,stat=i_stat)
-  call memocc(i_stat,i_all,'xtc',subname)
 
   i_all=-product(shape(xc))*kind(xc)
   deallocate(xc,stat=i_stat)
   call memocc(i_stat,i_all,'xc',subname)
-
-  i_all=-product(shape(ft))*kind(ft)
-  deallocate(ft,stat=i_stat)
-  call memocc(i_stat,i_all,'ft',subname)
 
   i_all=-product(shape(diag))*kind(diag)
   deallocate(diag,stat=i_stat)
@@ -509,416 +312,6 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   !-------------------------------------------------------------------------------------
 end subroutine bfgs
 !!*******************************************************************************
-!subroutine initminimize(parmin)
-!    use minimization, only:parameterminimization
-!    implicit none
-!    type(parameterminimization)::parmin
-!    integer::istat
-!    character(2)::tapp1,tapp2
-!    character(4)::tapp3
-!    tapp1(1:2)=parmin%approach(1:2)
-!    if(len(trim(parmin%approach))==4) tapp2(1:2)=parmin%approach(3:4)
-!    if(len(trim(parmin%approach))==6) tapp3(1:4)=parmin%approach(3:6)
-!    !write(*,*) tapp1
-!    !write(*,*) tapp2
-!    !write(*,*) tapp3
-!    !write(*,*) len(trim(parmin%approach))
-!    parmin%maxforcecall=10000
-!    if(parmin%fmaxtol<0.d0) stop 'ERROR: fmaxtol<0, maybe it is not set.'
-!    if(tapp1=='SD') then
-!        if(parmin%alphax<0.d0) stop 'ERROR: alphax<0, maybe it is not set.'
-!        parmin%alphamin=1.d-1*parmin%alphax
-!        parmin%alphamax=2.d0*parmin%alphax
-!        parmin%fnrmtolsatur=parmin%fmaxtol**0.1d0
-!        parmin%anoise=epsilon(parmin%anoise)
-!        parmin%nitsd=10000
-!        parmin%nsatur=5
-!    endif
-!    if(tapp1=='CG' .or. tapp2=='CG') then
-!        parmin%nitcg=500
-!        parmin%nfail=10
-!    endif
-!    if(tapp3=='DIIS') then
-!        parmin%idsx=10
-!        allocate(parmin%a(parmin%idsx+1,parmin%idsx+1,3),stat=istat)
-!        if(istat/=0) stop 'ERROR: failure allocating parmin%a.'
-!        allocate(parmin%b(parmin%idsx+1),stat=istat)
-!        if(istat/=0) stop 'ERROR: failure allocating parmin%b.'
-!        allocate(parmin%ipiv(parmin%idsx+1),stat=istat)
-!        if(istat/=0) stop 'ERROR: failure allocating parmin%ipiv.'
-!    endif
-!end subroutine initminimize
-!!*******************************************************************************
-!subroutine finalminimize(parmin)
-!    use minimization, only:parameterminimization
-!    implicit none
-!    type(parameterminimization)::parmin
-!    integer::istat
-!    character(2)::tapp1,tapp2
-!    character(4)::tapp3
-!    tapp1(1:2)=parmin%approach(1:2)
-!    if(len(trim(parmin%approach))==4) tapp2(1:2)=parmin%approach(3:4)
-!    if(len(trim(parmin%approach))==6) tapp3(1:4)=parmin%approach(3:6)
-!    if(tapp3=='DIIS') then
-!        parmin%idsx=10
-!        deallocate(parmin%a,stat=istat)
-!        if(istat/=0) stop 'ERROR: failure deallocating parmin%a.'
-!        deallocate(parmin%b,stat=istat)
-!        if(istat/=0) stop 'ERROR: failure deallocating parmin%b.'
-!        deallocate(parmin%ipiv,stat=istat)
-!        if(istat/=0) stop 'ERROR: failure deallocating parmin%ipiv.'
-!    endif
-!end subroutine finalminimize
-!!*******************************************************************************
-function mydot(n,v1,v2)
-  use module_base
-  implicit none
-  integer::n,i
-  real(gp)::v1(n),v2(n),mydot
-  mydot=0.d0;do i=1,n;mydot=mydot+v1(i)*v2(i);enddo
-end function mydot
-!*******************************************************************************
-function calmaxforcecomponent(n,v)
-  use module_base
-  implicit none
-  integer::n,i
-  real(gp)::v(n),calmaxforcecomponent
-  calmaxforcecomponent=0.d0
-  do i=1,n
-     calmaxforcecomponent=max(calmaxforcecomponent,abs(v(i)))
-  enddo
-end function calmaxforcecomponent
-!*******************************************************************************
-function calnorm(n,v)
-  use module_base
-  implicit none
-  integer :: n,i
-  real(gp)::v(n),calnorm
-  calnorm=0.d0
-  do i=1,n
-     calnorm=calnorm+v(i)**2
-  enddo
-  calnorm=sqrt(calnorm)
-end function calnorm
-!*******************************************************************************
-subroutine apphess(at,nr,alat0,pos0,hess,eval,iproc,n_silicon)
-  use module_base
-  use module_types
-  implicit none
-  integer:: nr, lwork , i, j, k, info, iproc,n_silicon
-  real(gp) :: h, rlarge,twelfth, twothird, count, dm, s, cmx, cmy, cmz, t1, t2, t3
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3) :: alat0,alat
-  real(gp), dimension(3*nr) :: eval
-  real(gp), dimension(3*at%nat) :: pos0
-  real(gp), dimension(3*nr,3*nr) :: hess
-  !local variables
-  character(len=*), parameter :: subname='apphess'
-  logical :: movethis,move_this_coordinate
-  integer :: i_stat,i_all,iat,ixyz
-  real(gp) :: etot, shift ,tt
-  real(gp), dimension(3*nr) :: zeroes
-  real(gp), allocatable, dimension(:) :: grad,tpos,tposall,work,pos
-
-  zeroes=0.0_gp
-
-  allocate(tposall(3*at%nat),stat=i_stat)
-  call memocc(i_stat,tposall,'tposall',subname)
-  allocate(tpos(3*nr),stat=i_stat)
-  call memocc(i_stat,tpos,'tpos',subname)
-  allocate(grad(3*at%nat),stat=i_stat)
-  call memocc(i_stat,grad,'grad',subname)
-  allocate(pos(3*at%nat),stat=i_stat)
-  call memocc(i_stat,pos,'pos',subname)
-
-  pos(:)=pos0(:)*0.529177249_gp
-  alat(:)=alat0(:)*0.529177249_gp  
-
-  !        lwork=100*nat
-  lwork=100*nr
-
-  ! call lenoskytb(nat,alat,pos,grad,etot,count,n_silicon)
-  ! do i=1,nat
-  ! write(iproc+100,*) grad(3*(i-1)+1), grad(3*(i-1)+2), grad(3*(i-1)+3)
-  ! enddo 
-
-
-  ! stop
-  allocate(work(lwork),stat=i_stat)
-  call memocc(i_stat,work,'work',subname)       
-  !        allocate(work(lwork))
-
-
-  h=1.e-3_gp
-  rlarge=1.e6_gp
-  twelfth=-1._gp/(12._gp*h)
-  twothird=-2._gp/(3._gp*h)
-  count=0._gp
-
-  !      do i=1,3*nat
-  do i=1,3*nr
-
-     !atomic index
-     iat=(i-1)/3+1
-     !direction index
-     ixyz=i-3*(iat-1)
-     !calculate if the position can be moved
-     !following the frozen atom type
-     movethis=move_this_coordinate(at%ifrztyp(iat),ixyz)
-     
-     !if the coordinate is frozen put to identity the hessian matrix
-     if (.not. movethis) then
-        hess(:,i)=0.0_gp
-        hess(i,i)=1.0_gp
-        cycle
-     end if
-
-     do k=1,3*at%nat
-        !        tpos(k)=pos(k)
-        tposall(k)=pos(k)
-        grad(k)=0._gp
-     enddo
-
-     do k=1,3*nr
-        tpos(k)=pos(k)
-     enddo
-
-     call atomic_coordinate_axpy(at,ixyz,iat,tpos(i),-2.0_gp*h,tpos(i))
-     call atomic_coordinate_axpy(at,ixyz,iat,tposall(i),-2.0_gp*h,tposall(i))
-
-!!$     tpos(i)=tpos(i)-2*h
-!!$     tposall(i)=tposall(i)-2*h
-
-     !call energyandforces_app(nat,alat,tpos,grad,etot,count)
-     !        call lenoskytb(nat,alat,tpos,grad,etot,count,n_silicon)
-     call lenoskytb(at%nat,alat,tposall,grad,etot,count,n_silicon)
-
-     call atomic_axpy_forces(at,zeroes,twelfth,grad,hess(1,i))
-!!$     ! routine move_atom_positions to be entered
-!!$     do j=1,3*nr
-!!$        !        do j=1,3*nat
-!!$        hess(j,i)=twelfth*grad(j)
-!!$     enddo
-
-     !move_coordinates here
-     call atomic_coordinate_axpy(at,ixyz,iat,tpos(i),h,tpos(i))
-     call atomic_coordinate_axpy(at,ixyz,iat,tposall(i),h,tposall(i))
-!!$     tpos(i)=tpos(i)+h
-!!$     tposall(i)=tposall(i)+h
-
-     !call energyandforces_app(nat,alat,tpos,grad,etot,count)
-     !        call lenoskytb(nat,alat,tpos,grad,etot,count,n_silicon)
-     call lenoskytb(at%nat,alat,tposall,grad,etot,count,n_silicon)
-
-     call atomic_axpy_forces(at,hess(1,i),-twothird,grad,hess(1,i))
-!!$     !move_atom_positions
-!!$     do j=1,3*nr
-!!$        !        do j=1,3*nat
-!!$        hess(j,i)=hess(j,i)-twothird*grad(j)
-!!$     enddo
-
-     !move coordinate
-     call atomic_coordinate_axpy(at,ixyz,iat,tpos(i),2.0_gp*h,tpos(i))
-     call atomic_coordinate_axpy(at,ixyz,iat,tposall(i),2.0_gp*h,tposall(i))
-!!$     tpos(i)=tpos(i)+2*h
-!!$     tposall(i)=tposall(i)+2*h
-
-     !call energyandforces_app(nat,alat,tpos,grad,etot,count)
-     !        call lenoskytb(nat,alat,tpos,grad,etot,count,n_silicon)
-     call lenoskytb(at%nat,alat,tposall,grad,etot,count,n_silicon)
-
-     call atomic_axpy_forces(at,hess(1,i),twothird,grad,hess(1,i))
-!!$     !move_atom_positions
-!!$     do j=1,3*nr
-!!$        !        do j=1,3*nat
-!!$        hess(j,i)=hess(j,i)+twothird*grad(j)
-!!$     enddo
-
-     !move coordinates
-     call atomic_coordinate_axpy(at,ixyz,iat,tpos(i),h,tpos(i))
-     call atomic_coordinate_axpy(at,ixyz,iat,tposall(i),h,tposall(i))
-!!$     tpos(i)=tpos(i)+h
-!!$     tposall(i)=tposall(i)+h
-     !call energyandforces_app(nat,alat,tpos,grad,etot,count)
-     !        call lenoskytb(nat,alat,tpos,grad,etot,count,n_silicon)
-     call lenoskytb(at%nat,alat,tposall,grad,etot,count,n_silicon)
-
-     !should it be twothird?
-     call atomic_axpy_forces(at,hess(1,i),-twelfth,grad,hess(1,i))
-!!$     !move_atom_positions
-!!$     do j=1,3*nr
-!!$        !        do j=1,3*nat
-!!$        hess(j,i)=hess(j,i)-twelfth*grad(j)
-!!$     enddo
-
-  enddo
-
-  !check symmetry
-  dm=0._gp
-  !        do i=1,3*nat
-  do i=1,3*nr
-     do j=1,i-1
-        s=.5_gp*(hess(i,j)+hess(j,i))
-        tt=abs(hess(i,j)-hess(j,i))/(1._gp+abs(s))
-        dm=max(dm,tt)
-        hess(i,j)=s
-        hess(j,i)=s
-     enddo
-  enddo
-  if (dm.gt.1.e-4_gp) then
-     if (iproc==0) write(16,*) 'max dev from sym',dm
-  endif
-
-  !this statement means that there are no blocked atoms
-  if(nr==at%nat) then
-     ! project out rotations 
-     cmx=0._gp 
-     cmy=0._gp 
-     cmz=0._gp
-     do i=1,3*at%nat-2,3
-        cmx=cmx+pos(i+0)
-        cmy=cmy+pos(i+1)
-        cmz=cmz+pos(i+2)
-     enddo
-     cmx=cmx/at%nat 
-     cmy=cmy/at%nat 
-     cmz=cmz/at%nat
-
-     ! x-y plane
-     do i=1,3*at%nat-2,3
-        work(i+1)= (pos(i+0)-cmx)
-        work(i+0)=-(pos(i+1)-cmy)
-     enddo
-
-     t1=0._gp  
-     t2=0._gp 
-     do i=1,3*at%nat-2,3
-        t1=t1+work(i+0)**2
-        t2=t2+work(i+1)**2
-     enddo
-     t1=sqrt(.5_gp*rlarge/t1) 
-     t2=sqrt(.5_gp*rlarge/t2) 
-     do i=1,3*at%nat-2,3
-        work(i+0)=work(i+0)*t1
-        work(i+1)=work(i+1)*t2
-     enddo
-
-     do j=1,3*at%nat-2,3
-        do i=1,3*at%nat-2,3
-           hess(i+0,j+0)=hess(i+0,j+0)+work(i+0)*work(j+0)
-           hess(i+1,j+0)=hess(i+1,j+0)+work(i+1)*work(j+0)
-           hess(i+0,j+1)=hess(i+0,j+1)+work(i+0)*work(j+1)
-           hess(i+1,j+1)=hess(i+1,j+1)+work(i+1)*work(j+1)
-        enddo
-     enddo
-
-     ! x-z plane
-     do i=1,3*at%nat-2,3
-        work(i+2)= (pos(i+0)-cmx)
-        work(i+0)=-(pos(i+2)-cmz)
-     enddo
-
-     t1=0._gp  ; t3=0._gp 
-     do i=1,3*at%nat-2,3
-        t1=t1+work(i+0)**2
-        t3=t3+work(i+2)**2
-     enddo
-     t1=sqrt(.5_gp*rlarge/t1) 
-     t3=sqrt(.5_gp*rlarge/t3)
-     do i=1,3*at%nat-2,3
-        work(i+0)=work(i+0)*t1
-        work(i+2)=work(i+2)*t3
-     enddo
-
-     do j=1,3*at%nat-2,3
-        do i=1,3*at%nat-2,3
-           hess(i+0,j+0)=hess(i+0,j+0)+work(i+0)*work(j+0)
-           hess(i+2,j+0)=hess(i+2,j+0)+work(i+2)*work(j+0)
-           hess(i+0,j+2)=hess(i+0,j+2)+work(i+0)*work(j+2)
-           hess(i+2,j+2)=hess(i+2,j+2)+work(i+2)*work(j+2)
-        enddo
-     enddo
-
-     ! y-z plane
-     do i=1,3*at%nat-2,3
-        work(i+2)= (pos(i+1)-cmy)
-        work(i+1)=-(pos(i+2)-cmz)
-     enddo
-
-     t2=0._gp 
-     t3=0._gp
-     do i=1,3*at%nat-2,3
-        t2=t2+work(i+1)**2
-        t3=t3+work(i+2)**2
-     enddo
-     t2=sqrt(.5_gp*rlarge/t2) 
-     t3=sqrt(.5_gp*rlarge/t3)
-     do i=1,3*at%nat-2,3
-        work(i+1)=work(i+1)*t2
-        work(i+2)=work(i+2)*t3
-     enddo
-
-     do j=1,3*at%nat-2,3
-        do i=1,3*at%nat-2,3
-           hess(i+1,j+1)=hess(i+1,j+1)+work(i+1)*work(j+1)
-           hess(i+2,j+1)=hess(i+2,j+1)+work(i+2)*work(j+1)
-           hess(i+1,j+2)=hess(i+1,j+2)+work(i+1)*work(j+2)
-           hess(i+2,j+2)=hess(i+2,j+2)+work(i+2)*work(j+2)
-        enddo
-     enddo
-
-     ! Project out translations
-     shift=rlarge/at%nat
-     do j=1,3*at%nat-2,3
-        do i=1,3*at%nat-2,3
-           hess(i+0,j+0)=hess(i+0,j+0)+shift
-           hess(i+1,j+1)=hess(i+1,j+1)+shift
-           hess(i+2,j+2)=hess(i+2,j+2)+shift
-        enddo
-     enddo
-  endif
-  !transform into a.u.        
-  hess(:,:)=hess(:,:)*0.0102911193_gp
-
-  !check
-  !        call DSYEV('V','L',3*nat,hess,3*nat,eval,WORK,LWORK,INFO)
-
-  !for blockend atoms there will be some one eigenvalues
-  call DSYEV('V','L',3*nr,hess,3*nr,eval,WORK,LWORK,INFO)
-
-  if (info /= 0) stop 'DSYEV'
-
-  if (eval(1) < 0.d0) then
-     if (iproc==0) then
-        write(*,*) "WARNING: negative eigenvalues in apphess"
-        write(*,*) '-----------  App. eigenvalues in a.u. -------------'
-        do i=1,3*nr
-           write(*,*) 'eval ',i,eval(i)
-        enddo
-     endif
-     ! stop
-  endif
-
-  i_all=-product(shape(grad))*kind(grad)
-  deallocate(grad,stat=i_stat)
-  call memocc(i_stat,i_all,'grad',subname)
-  i_all=-product(shape(tpos))*kind(tpos)
-  deallocate(tpos,stat=i_stat)
-  call memocc(i_stat,i_all,'tpos',subname)
-  i_all=-product(shape(pos))*kind(pos)
-  deallocate(pos,stat=i_stat)
-  call memocc(i_stat,i_all,'pos',subname)
-  i_all=-product(shape(work))*kind(work)
-  deallocate(work,stat=i_stat)
-  call memocc(i_stat,i_all,'work',subname)
-
-  i_all=-product(shape(work))*kind(tposall)
-  deallocate(tpos,stat=i_stat)
-  call memocc(i_stat,i_all,'tpos',subname)
-
-end subroutine apphess
-!*******************************************************************************
-
 
 subroutine timeleft(tt)
   ! MODIFIED version for refined time limit on restart of global.f90.
@@ -967,10 +360,6 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
   anoise=1.e-4_gp
   fluctsum=0._gp 
   nfluct=0
-
-  if (in%betax <= 0._gp) then
-     call detbetax(nproc,iproc,at,rxyz,rst,in,ncount_bigdft)
-  endif
 
   avbeta=0._gp
   avnum=0._gp
@@ -1130,7 +519,7 @@ subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)
         etotprec=etot
         if (iproc==0) then 
            write(fn4,'(i4.4)') ncount_bigdft
-           write(comment,'(a,1pe10.3)')'CONJG:fnrm= ',fnrm
+           write(comment,'(a,1pe10.3)')'CONJG:fnrm= ',sqrt(fnrm)
            call  write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
            !call wtxyz('posout_'//fn4,etot,rxyz,at,trim(comment))
         endif
@@ -1382,7 +771,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
            write(16,'(i5,1x,e12.5,1x,e21.14,a)') itsd,sqrt(fnrm),etot,' GEOPT SD '
            if (iproc==0) then 
               write(fn4,'(i4.4)') ncount_bigdft 
-              write(comment,'(a,1pe10.3)')'SD:fnrm= ',fnrm
+              write(comment,'(a,1pe10.3)')'SD:fnrm= ',sqrt(fnrm)
               call write_atomic_file('posout_'//fn4,etot,rxyz,at,trim(comment))
            endif
 
@@ -1496,177 +885,183 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
 
 end subroutine steepdes
 
-subroutine detbetax(nproc,iproc,at,pos,rst,in,ncount_bigdft)
-  ! determines stepsize betax
+
+subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
+! variable step steepest descent
   use module_base
   use module_types
-  use module_interfaces
   implicit none
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
+  real(gp), intent(out) :: etot
   type(atoms_data), intent(inout) :: at
   type(input_variables), intent(inout) :: in
   type(restart_objects), intent(inout) :: rst
-  real(gp), dimension(3,at%nat), intent(inout) :: pos
+  real(gp), dimension(3,at%nat), intent(inout) :: wpos
+  real(gp), dimension(3,at%nat), intent(out) :: ff
   !local variables
-  character(len=*), parameter :: subname='detbetax'
-  integer :: nsuc,i_stat,i_all,iat,infocode
-  real(gp) :: beta0,beta,sum,t1,t2,t3,etotm1,etot0,etotp1,der2,tt
-  real(gp), dimension(:,:), allocatable :: tpos,ff,gg
+  real(gp) ::fluctsum 
+  integer :: nfluct
+  character(len=*), parameter :: subname='vstepsd'  
+  integer :: it,iat,i_all,i_stat,infocode, nitsd,itsd
+  real(gp) :: anoise,fluct,fnrm,fnrmold,beta0,beta,betaxx,betalast,betalastold
+  real(gp) :: etotold,fmax,scpr,curv,tt,sumx,sumy,sumz
+  real(gp), dimension(:,:), allocatable :: posold,ffold
+  logical reset,check
+  character*4 fn4
+  character*40 comment
 
-  allocate(tpos(3,at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,tpos,'tpos',subname)
-  allocate(ff(3,at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,ff,'ff',subname)
-  allocate(gg(3,at%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,gg,'gg',subname)
 
-  beta0=abs(in%betax)
-  beta=1.e100_gp
+  allocate(posold(3,at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,posold,'posold',subname)
+  allocate(ffold(3,at%nat+ndebug),stat=i_stat)
+  call memocc(i_stat,ffold,'ffold',subname)
 
-  nsuc=0
-  loop_detbeta: do
+  anoise=1.e-4_gp
+  fluctsum=0._gp 
+  nfluct=0
 
-     in%inputPsiId=1
-     in%output_grid=0
-     in%output_wf=.false.
-     call call_bigdft(nproc,iproc,at,pos,in,etotm1,ff,rst,infocode)
-     ncount_bigdft=ncount_bigdft+1
-     sum=0.0_gp
+     beta=in%betax
 
-     call atomic_dot(at,ff,ff,sum)
-     sum=sum*beta0**2
+        in%inputPsiId=1
+        in%output_grid=0
+        in%output_wf=.false.
+        call call_bigdft(nproc,iproc,at,wpos,in,etotold,ffold,rst,infocode)
+        call fnrmandforcemax(ffold,fnrm,fmax,at)   
+           if (fmax < 3.d-1) call updatefluctsum(at%nat,ffold,nfluct,fluctsum,fluct)
+           if (iproc == 0) then
+           write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
+        if (iproc == 0) then                                        
+           call transforce(at%nat,ffold,sumx,sumy,sumz)                         
+           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
+           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
+           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
+        end if 
+           write(fn4,'(i4.4)') ncount_bigdft
+           write(comment,'(a,1pe10.3)')'Initial VSSD:fnrm= ',sqrt(fnrm)
+           call  write_atomic_file('posout_'//fn4,etotold,wpos,at,trim(comment))
+           write(16,'(i5,1x,e12.5,1x,e21.14,a,e10.3)') itsd,sqrt(fnrm),etot,' GEOPT VSSD ',beta
+           endif
 
-     do iat=1,at%nat
-        tpos(1,iat)=pos(1,iat)
-        tpos(2,iat)=pos(2,iat)
-        tpos(3,iat)=pos(3,iat)
-!!$
-!!$        t1=beta0*ff(1,iat)
-!!$        t2=beta0*ff(2,iat)
-!!$        t3=beta0*ff(3,iat)
-!!$        sum=sum+t1**2+t2**2+t3**2
-     end do
+        ncount_bigdft=ncount_bigdft+1
 
-     call atomic_axpy(at,pos,beta0,ff,pos)
 
-!!$     do iat=1,at%nat
-!!$        tpos(1,iat)=pos(1,iat)
-!!$        tpos(2,iat)=pos(2,iat)
-!!$        tpos(3,iat)=pos(3,iat)
-!!$        t1=beta0*ff(1,iat)
-!!$        t2=beta0*ff(2,iat)
-!!$        t3=beta0*ff(3,iat)
-!!$        sum=sum+t1**2+t2**2+t3**2
-!!$        if (.not. at%lfrztyp(iat)) then
-!!$           if (at%geocode == 'P') then
-!!$              pos(1,iat)=modulo(pos(1,iat)+t1,at%alat1)
-!!$              pos(2,iat)=modulo(pos(2,iat)+t2,at%alat2)
-!!$              pos(3,iat)=modulo(pos(3,iat)+t3,at%alat3)
-!!$           else if (at%geocode == 'S') then
-!!$              pos(1,iat)=modulo(pos(1,iat)+t1,at%alat1)
-!!$              pos(2,iat)=pos(2,iat)+t2
-!!$              pos(3,iat)=modulo(pos(3,iat)+t3,at%alat3)
-!!$           else
-!!$              pos(1,iat)=pos(1,iat)+t1
-!!$              pos(2,iat)=pos(2,iat)+t2
-!!$              pos(3,iat)=pos(3,iat)+t3
-!!$           end if
-!!$        end if
-!!$     enddo
+          fnrmold=0.d0
+          do iat=1,at%nat
+!          fnrmold=fnrmold+ffold(1,iat)**2+ffold(2,iat)**2+ffold(3,iat)**2
+          posold(1,iat)=wpos(1,iat)
+          posold(2,iat)=wpos(2,iat)
+          posold(3,iat)=wpos(3,iat)
+!          wpos(1,iat)=wpos(1,iat)+beta*ffold(1,iat)
+!          wpos(2,iat)=wpos(2,iat)+beta*ffold(2,iat)
+!          wpos(3,iat)=wpos(3,iat)+beta*ffold(3,iat)
+          enddo
+        call atomic_dot(at,ffold,ffold,fnrmold)
+        call atomic_axpy(at,wpos,beta,ffold,wpos)
+          betaxx=1.d100
+          reset=.true.
+          betalastold=in%betax
 
-     call call_bigdft(nproc,iproc,at,pos,in,etot0,gg,rst,infocode)
-     ncount_bigdft=ncount_bigdft+1
 
-     if (etot0.gt.etotm1) then
-        do iat=1,at%nat
-           pos(1,iat)=tpos(1,iat)
-           pos(2,iat)=tpos(2,iat)
-           pos(3,iat)=tpos(3,iat)
-        enddo
-        beta0=.5_gp*beta0
-        if (iproc.eq.0) write(16,*) 'beta0 reset',beta0
-        cycle loop_detbeta
-     endif
+      nitsd=1000
+      do itsd=1,nitsd
+        in%inputPsiId=1
+        in%output_grid=0
+        in%output_wf=.false.
+        call call_bigdft(nproc,iproc,at,wpos,in,etot,ff,rst,infocode)
+        if (iproc == 0) then                                        
+           call transforce(at%nat,ff,sumx,sumy,sumz)                         
+           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
+           write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
+           write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
+        end if 
+        ncount_bigdft=ncount_bigdft+1
+          fnrm=0.d0
+          scpr=0.d0
+!          do iat=1,at%nat
+!          fnrm=fnrm+ff(1,iat)**2+ff(2,iat)**2+ff(3,iat)**2
+!          scpr=scpr+ffold(1,iat)*ff(1,iat)+ffold(2,iat)*ff(2,iat)+ffold(3,iat)*ff(3,iat)
+!          enddo
+        call  atomic_dot(at,ff,ff,fnrm)
+        call  atomic_dot(at,ff,ffold,scpr)
+        curv=(fnrmold-scpr)/(beta*fnrmold)
+        betalast=.5d0/curv
+        if (reset) betaxx=min(betaxx,1.5d0*betalast)
+        call fnrmandforcemax(ff,fnrm,fmax,at)   
+           if (fmax < 3.d-1) call updatefluctsum(at%nat,ff,nfluct,fluctsum,fluct)
+           if (iproc==0) write(16,'(1x,a,3(1x,1pe14.5))') 'fnrm2,fluct*frac_fluct,fluct',fnrm,fluct*in%frac_fluct,fluct
+           call convcheck(fnrm,fmax,fluct*in%frac_fluct, in%forcemax,check)
+           if (check) goto 100
+           if (ncount_bigdft >= in%ncount_cluster_x) goto 100
 
-     
-     call atomic_axpy(at,pos,beta0,ff,tpos)
 
-!!$     do iat=1,at%nat
-!!$        if (at%lfrztyp(iat)) then
-!!$           tpos(1,iat)=pos(1,iat)
-!!$           tpos(2,iat)=pos(2,iat)
-!!$           tpos(3,iat)=pos(3,iat)
-!!$        else
-!!$           if (at%geocode == 'P') then
-!!$              tpos(1,iat)=modulo(pos(1,iat)+beta0*ff(1,iat),at%alat1)
-!!$              tpos(2,iat)=modulo(pos(2,iat)+beta0*ff(2,iat),at%alat2)
-!!$              tpos(3,iat)=modulo(pos(3,iat)+beta0*ff(3,iat),at%alat3)
-!!$           else if (at%geocode == 'S') then
-!!$              tpos(1,iat)=modulo(pos(1,iat)+beta0*ff(1,iat),at%alat1)
-!!$              tpos(2,iat)=pos(2,iat)+beta0*ff(2,iat)
-!!$              tpos(3,iat)=modulo(pos(3,iat)+beta0*ff(3,iat),at%alat3)
-!!$           else
-!!$              tpos(1,iat)=pos(1,iat)+beta0*ff(1,iat)
-!!$              tpos(2,iat)=pos(2,iat)+beta0*ff(2,iat)
-!!$              tpos(3,iat)=pos(3,iat)+beta0*ff(3,iat)
-!!$           end if
-!!$        end if
-!!$     enddo
+        if (etot.gt.etotold) then
+          reset=.true.
+          beta=in%betax
+          if (iproc == 0) write(16,*) 'new positions rejected, reduced beta',beta
+!          do iat=1,at%nat
+!          wpos(1,iat)=posold(1,iat)+beta*ffold(1,iat)
+!          wpos(2,iat)=posold(2,iat)+beta*ffold(2,iat)
+!          wpos(3,iat)=posold(3,iat)+beta*ffold(3,iat)
+!          enddo
+        call atomic_axpy(at,posold,beta,ffold,wpos)
+        else
+          reset=.false.
+          if (betalast.gt.0) then
+          beta=max(min(beta*1.5d0,betalast),in%betax)
+          else
+          beta=1.25d0*beta
+          endif
 
-     call call_bigdft(nproc,iproc,at,tpos,in,etotp1,gg,rst,infocode)
+           if (iproc == 0) then
+           write(fn4,'(i4.4)') ncount_bigdft-1
+           write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
+           call  write_atomic_file('posout_'//fn4,etot,wpos,at,trim(comment))
+           endif
 
-     ncount_bigdft=ncount_bigdft+1
+          do iat=1,at%nat
+          posold(1,iat)=wpos(1,iat)
+          posold(2,iat)=wpos(2,iat)
+          posold(3,iat)=wpos(3,iat)
+!          wpos(1,iat)=wpos(1,iat)+beta*ff(1,iat)
+!          wpos(2,iat)=wpos(2,iat)+beta*ff(2,iat)
+!          wpos(3,iat)=wpos(3,iat)+beta*ff(3,iat)
+          ffold(1,iat)=ff(1,iat)
+          ffold(2,iat)=ff(2,iat)
+          ffold(3,iat)=ff(3,iat)
+          enddo
+        call atomic_axpy(at,wpos,beta,ff,wpos)
+          etotold=etot
+          fnrmold=fnrm
+          betalastold=betalast
+        endif
 
-     if (iproc.eq.0) write(16,'(a,3(1x,e21.14))') 'etotm1,etot0,etotp1',etotm1,etot0,etotp1
-     der2=(etotp1+etotm1-2.0_gp*etot0)/sum
-     tt=.25_gp/der2
-     beta0=.125_gp/der2
-     if (iproc.eq.0) write(16,*) 'der2,tt=',der2,tt
-     if (der2.gt.0.0_gp) then
-        nsuc=nsuc+1
-        beta=min(beta,.5_gp/der2)
-     endif
+        if (iproc == 0) write(16,'(i5,1x,e12.5,1x,e21.14,a,e10.3,1x,e10.3)') itsd,sqrt(fnrm),etot,' GEOPT VSSD ',beta,betalast
+        if(iproc==0)call timeleft(tt)
+        call MPI_BCAST(tt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,i_stat)
+        if(tt<0) goto 100
 
-     call atomic_axpy(at,pos,tt,ff,tpos)
 
-!!$     do iat=1,at%nat
-!!$        if ( .not. at%lfrztyp(iat)) then
-!!$           if (at%geocode == 'P') then
-!!$              pos(1,iat)=modulo(pos(1,iat)+tt*ff(1,iat),at%alat1)
-!!$              pos(2,iat)=modulo(pos(2,iat)+tt*ff(2,iat),at%alat2)
-!!$              pos(3,iat)=modulo(pos(3,iat)+tt*ff(3,iat),at%alat3)
-!!$           else if (at%geocode == 'S') then
-!!$              pos(1,iat)=modulo(pos(1,iat)+tt*ff(1,iat),at%alat1)
-!!$              pos(2,iat)=pos(2,iat)+tt*ff(2,iat)
-!!$              pos(3,iat)=modulo(pos(3,iat)+tt*ff(3,iat),at%alat3)
-!!$           else
-!!$              pos(1,iat)=pos(1,iat)+tt*ff(1,iat)
-!!$              pos(2,iat)=pos(2,iat)+tt*ff(2,iat)
-!!$              pos(3,iat)=pos(3,iat)+tt*ff(3,iat)
-!!$           end if
-!!$        end if
-!!$     enddo
+      enddo
+        if (iproc == 0) write(16,'(a,i5,e9.2,e18.10,e9.2)') '---- SD FAILED  TO CONVERGE'
+100     if (iproc == 0) then
+          write(16,'(a,i5,e9.2,e18.10)') 'variable stepsize SD FINISHED,iter, force norm,energy',itsd,sqrt(fnrm),etot
+          write(16,'(a,e9.2)') 'suggested value for stepsize:', betaxx
+          write(fn4,'(i4.4)') ncount_bigdft-1
+          write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
+          call  write_atomic_file('posout_'//fn4,etot,wpos,at,trim(comment))
+        endif
 
-     if (nsuc < 3) cycle loop_detbeta
 
-     exit loop_detbeta
-  end do loop_detbeta
-  in%betax=beta
+    i_all=-product(shape(posold))*kind(posold)
+    deallocate(posold,stat=i_stat)
+    call memocc(i_stat,i_all,'posold',subname)
+    i_all=-product(shape(ffold))*kind(ffold)
+    deallocate(ffold,stat=i_stat)
+    call memocc(i_stat,i_all,'ffold',subname)
 
-  if (iproc.eq.0) write(16,*) 'betax=',in%betax
 
-  i_all=-product(shape(tpos))*kind(tpos)
-  deallocate(tpos,stat=i_stat)
-  call memocc(i_stat,i_all,'tpos',subname)
-  i_all=-product(shape(ff))*kind(ff)
-  deallocate(ff,stat=i_stat)
-  call memocc(i_stat,i_all,'ff',subname)
-  i_all=-product(shape(gg))*kind(gg)
-  deallocate(gg,stat=i_stat)
-  call memocc(i_stat,i_all,'gg',subname)
-
-end subroutine detbetax
+        end subroutine vstepsd
 
 
 subroutine convcheck(fnrm, fmax, fluctfrac_fluct, forcemax, check)
@@ -1927,7 +1322,7 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
 !!$     gnorm=sqrt(ddot(n,g,1,g,1))
 !!$     xnorm=sqrt(ddot(n,x,1,x,1))
      xnorm=max(1.0d0,xnorm)
-     if(gnorm/xnorm<=parmin%eps) finish=.true.
+!     if(gnorm/xnorm<=parmin%eps) finish=.true.
      if(parmin%iprint(1)>=0) then
         if (iproc==0)  call lb1(nfun,gnorm,n,m,x,f,g,a_t,finish,parmin)
         !Keep correct transformed positions
@@ -2006,7 +1401,10 @@ subroutine init_lbfgs(at,n,m,x,f,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iyp
 !!$  gnorm=dsqrt(ddot(n,g,1,g,1))
 
   !    stp1=one/gnorm
-  stp1=2.d-2/gnorm
+  
+
+  !stp1=2.d-2/gnorm  !original convention
+  stp1=parmin%betax
 end subroutine init_lbfgs
 !*****************************************************************************************
 subroutine lb1(nfun,gnorm,n,m,x,f,g,a_t,finish,parmin)
@@ -2380,7 +1778,3 @@ subroutine cal_a_c_3(a_l,fx,dx,a_t,fp,dp,stpmin,stpmax,a_c)
 end subroutine cal_a_c_3
 !*****************************************************************************************
 
-!fake lenosky subroutine to substitute force fields (temporary, to be deplaced)
-subroutine lenoskytb()
-  stop 'FAKE LENOSKY'
-end subroutine lenoskytb

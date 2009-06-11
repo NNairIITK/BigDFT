@@ -22,7 +22,7 @@ module module_types
      logical :: output_wf,calc_tail,gaussian_help
      integer :: ncount_cluster_x
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,nvirt,nplot
-     integer :: output_grid
+     integer :: output_grid, dispersion
      real(gp) :: frac_fluct,randdis,betax,forcemax
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf
      real(gp), dimension(3) :: ef
@@ -205,7 +205,7 @@ module module_types
 !! SOURCE
 !!
   type, public :: communications_arrays
-     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt
+     integer, dimension(:), pointer :: ncntd,ncntt,ndspld,ndsplt,nvctr_par
   end type communications_arrays
 !!***
 
@@ -247,13 +247,18 @@ module module_types
 !!****t* module_types/workarr_precond
 !! DESCRIPTION
 !! Contains the work arrays needed for th preconditioner with all the BC
+!! Take different pointers depending on the boundary conditions
 !!
 !! SOURCE
 !!
   type, public :: workarr_precond
-     real(wp), dimension(:), pointer :: psifscf,ww
-     real(gp), dimension(:,:), pointer :: af,bf,cf,ef
      integer, dimension(:), pointer :: modul1,modul2,modul3
+     real(wp), dimension(:), pointer :: psifscf,ww,x_f1,x_f2,x_f3,kern_k1,kern_k2,kern_k3
+     real(wp), dimension(:,:), pointer :: af,bf,cf,ef
+     real(wp), dimension(:,:,:), pointer :: xpsig_c,ypsig_c,x_c
+     real(wp), dimension(:,:,:,:), pointer :: xpsig_f,ypsig_f,x_f,y_f
+     real(wp), dimension(:,:,:,:,:), pointer :: z1,z3 ! work array for FFT
+
   end type workarr_precond
 !!***
 
@@ -268,6 +273,8 @@ contains
     !local variables
     integer :: i_all,i_stat
 
+    allocate(comms%nvctr_par(0:nproc-1+ndebug),stat=i_stat)
+    call memocc(i_stat,comms%nvctr_par,'nvctr_par',routine)
     allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
     call memocc(i_stat,comms%ncntd,'ncntd',routine)
     allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
@@ -286,6 +293,9 @@ contains
     !local variables
     integer :: i_all,i_stat
 
+    i_all=-product(shape(comms%nvctr_par))*kind(comms%nvctr_par)
+    deallocate(comms%nvctr_par,stat=i_stat)
+    call memocc(i_stat,i_all,'nvctr_par',routine)
     i_all=-product(shape(comms%ncntd))*kind(comms%ncntd)
     deallocate(comms%ncntd,stat=i_stat)
     call memocc(i_stat,i_all,'ncntd',routine)

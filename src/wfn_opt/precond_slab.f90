@@ -53,7 +53,7 @@ subroutine precong_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   !rmr=dot_product(r,d)
   rmr=dot(nvctr_c+7*nvctr_f,r(1),1,d(1),1)
   do i=1,ncong 
-     write(*,*)i,rmr
+     !write(*,*)i,rmr
 
      !		call apply_hp_slab(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      !	     cprecr,hx,hy,hz,d,b,psifscf,ww) ! b:=Ad

@@ -81,7 +81,6 @@
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=        576 points=     13824
    Fine resolution grid: Number of segments=        962 points=     11400
- Wavefunction memory occupation per orbital (Bytes): 748992
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Si               8                    5
@@ -107,6 +106,7 @@
  The overall memory requirement needed for this calculation is thus: 23 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 3 MB
+ Wavefunction memory occupation per orbital (Bytes): 1497984
  ion-ion interaction energy -3.47783399134106E+01
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge           -32.000000000000   0.000E+00
@@ -114,8 +114,10 @@
  ------------------------------------------------------- Input Wavefunctions Creation
  Input wavefunction data for atom     Si NOT found, automatic generation... done.
  Generating 32 Atomic Input Orbitals
+ Wavefunction memory occupation per orbital (Bytes): 0
  Processes from 0 to 7 treat 4 inguess orbitals 
  Calculating AIO wavefunctions... done.
+ Wavefunction memory occupation per orbital (Bytes): 2995968
  Writing wavefunctions in wavelet form ........................................ done.
  Deviation from normalization of the imported orbitals    6.93E-02
  Calculation of charge density... done. Total electronic charge=      31.999999999944
@@ -129,27 +131,17 @@
  evale(3)= -3.18683462724948E-02
  evale(4)= -3.18683462724946E-02
  evale(5)= -3.18683462677818E-02
- evale(6)= -3.18683462677816E-02
- evale(7)= -3.18683462677810E-02
- evale(8)=  1.49669380514537E-01
- evale(9)=  1.49669380514538E-01
- evale(10)=  1.49669380514538E-01
- evale(11)=  1.49669380517847E-01
- evale(12)=  1.49669380517848E-01
- evale(13)=  1.49669380517848E-01
- evale(14)=  2.69117340829974E-01
- evale(15)=  2.69117340833544E-01
+ evale(11)=  1.49669380517847E-01 <-
+ evale(12)=  1.49669380517848E-01 <-
+ evale(13)=  1.49669380517848E-01 <-
+ evale(14)=  2.69117340829974E-01 <-
+ evale(15)=  2.69117340833544E-01 <-
  evale(16)=  2.69117340833544E-01 <- Last eigenvalue for input wavefunctions
- evale(17)=  3.75073462184198E-01
- evale(18)=  3.75073462184198E-01
- evale(19)=  3.75073462200914E-01
- evale(20)=  3.78003785322845E-01
- evale(21)=  3.78003785322846E-01
- evale(22)=  3.78003785322846E-01
- evale(23)=  3.78003785352321E-01
- evale(24)=  3.78003785352322E-01
- evale(25)=  3.78003785352323E-01
- evale(26)=  3.85276293546690E-01
+ evale(17)=  3.75073462184198E-01 <- First virtual eigenvalue
+ evale(18)=  3.75073462184198E-01 <-
+ evale(19)=  3.75073462200914E-01 <-
+ evale(20)=  3.78003785322845E-01 <-
+ evale(21)=  3.78003785322846E-01 <-
  evale(27)=  6.52689610340385E-01
  evale(28)=  6.52689610340386E-01
  evale(29)=  6.52689610340387E-01
@@ -258,8 +250,8 @@
  Calculation of charge density... done. Total electronic charge=      31.999999999822
  PSolver, periodic BC, dimensions:    48   48   48   proc    8   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
- Calculate projectors derivatives... done, calculate nonlocal forces... done.
- CPU time for root process     0         5.05         4.81
+ done, calculate nonlocal forces... done.
+ CPU time for root process     0         5.11         4.84
  Final values of the Forces for each atom
      1     Si  1.73481E-09  1.73481E-09  1.73480E-09
      2     Si  1.73481E-09  1.73481E-09  1.73480E-09
@@ -274,6 +266,6 @@
       y direction     1.31532735E-08
       z direction     1.31531954E-08
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 2431 allocations and 2431 deallocations, remaining memory(B):0
+ 2439 allocations and 2439 deallocations, remaining memory(B):0
  memory occupation peak: 26 MB
- for the array  ww in the routine precong_per
+ for the array  ww in the routine allocate_work_arrays

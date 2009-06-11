@@ -33,7 +33,7 @@ implicit none
 integer,intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1,n2,n3
 integer,intent(in)::ibxxyy(2,   0:2*n1+1,0:2*n2+1)
 real(wp), dimension(2,nfl3:nfu3,0:2*n1+1,0:2*n2+1), intent(in) :: x
-real(wp), dimension(            0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(out) :: y
+real(wp), dimension(            0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(inout) :: y
 !local variables
 integer :: l1,l2,i,t,l1_0,l1_1,ll1
 integer :: ii,ii1

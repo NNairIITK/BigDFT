@@ -28,7 +28,7 @@ subroutine system_properties(iproc,nproc,in,at,orbs,radii_cf,nelec)
   end if
 
   !temporary changement, to be controlled
-  nspinor=2
+  !nspinor=2
 
   allocate(orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
@@ -306,7 +306,7 @@ subroutine read_system_variables(iproc,nproc,in,at,radii_cf,nelec,norb,norbu,nor
      do ityp=1,at%ntypes
         write(*,'(1x,a)')&
              'Atom Name    rloc      C1        C2        C3        C4  '
-        do l=0,3
+        do l=0,4
            if (l==0) then
               do i=4,0,-1
                  j=i
@@ -539,7 +539,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
 
   !initialise the array
   do jproc=0,nproc-1
-     orbs%norb_par(jproc)=0 !taille 0 nproc-1
+     orbs%norb_par(jproc)=0 !size 0 nproc-1
   end do
 
   !cubic-code strategy: balance the orbitals between processors
@@ -585,6 +585,10 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspinor,orbs)
      end do
   end do
 
+  !assign the number of k-points per processor
+  !the strategy for multiple k-points should be decided
+  !orbs%nkpts_par(:)=1
+  
 
 end subroutine orbitals_descriptors
 !!***
