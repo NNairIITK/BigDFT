@@ -147,13 +147,19 @@ subroutine read_input_variables(iproc,filename,in)
   end if
 
   !add reading lines for Davidson treatment (optional for backward compatibility)
+
   read(1,*,iostat=ierror) in%nvirt, in%nplot
+
   !call check()
   
+  
+  ! AMmodif
   if (ierror/=0) then
      in%nvirt=0
      in%nplot=0
-  else
+     in%iat_absorber=0
+ else
+
      !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
      !systems
      if (in%nspin/=1 .and. in%nvirt/=0) then
@@ -162,7 +168,16 @@ subroutine read_input_variables(iproc,filename,in)
         end if
         stop
      end if
+
+     ! add reading for absorbing atom. iat_absorber=0 ( default ) means no absorption calculation
+     read(1,*,iostat=ierror)  in%iat_absorber
+     if(ierror/=0) then
+        in%iat_absorber=0
+     endif     
   end if
+  ! AMmodif end
+
+
  
   close(unit=1,iostat=ierror)
 

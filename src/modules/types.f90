@@ -25,6 +25,11 @@ module module_types
      integer :: output_grid
      real(kind=8) :: hgrid,crmult,frmult,elecfield,gnrm_cv,rbuf
      logical :: output_wf,calc_tail,gaussian_help
+     ! AMmodif
+     integer :: iat_absorber
+     !AMmodif end
+
+
   end type input_variables
 !!***
 
@@ -119,6 +124,11 @@ module module_types
      real(kind=8) :: alat1,alat2,alat3
      logical, dimension(:), pointer :: lfrztyp
      integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom
+
+     ! AMmodif
+     integer :: iat_absorber 
+     ! AMmodif end
+
      real(kind=8), dimension(:,:,:), pointer :: psppar
   end type atoms_data
 !!***
