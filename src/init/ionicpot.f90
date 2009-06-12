@@ -14,13 +14,13 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
   real(dp), dimension(*), intent(out) :: pot_ion
   !local variables
   character(len=*), parameter :: subname='IonicEnergyandForces'
-  logical :: slowion=.false.
+  logical :: slowion=.false.,vacancy
   logical :: perx,pery,perz,gox,goy,goz
   integer :: iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
   real(gp) :: ucvol,rloc,twopitothreehalf,pi,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxslf,fyslf,fzslf,fxerf,fyerf,fzerf,cutoff,zero
-  real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod
+  real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod,evacancy
   real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart,Mz,cmassy
   real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
@@ -165,6 +165,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
            dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
            jtyp=at%iatype(jat)
            chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
+
            !forces
            fxion=fxion+chgprod/(dist**3)*(rx-rxyz(1,jat))
            fyion=fyion+chgprod/(dist**3)*(ry-rxyz(2,jat))
@@ -218,6 +219,8 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
      eself=0.0_gp
      do iat=1,at%nat
 
+        vacancy=.false.
+
         fion(1,iat)=0.0_gp
         fion(2,iat)=0.0_gp
         fion(3,iat)=0.0_gp
@@ -231,89 +234,24 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
         !calculate the self energy of the isolated bc
         eself=eself+real(at%nelpsp(ityp),gp)**2/rloc
 
-!!$        if (n3pi >0 ) then
-!!$
-!!$           call razero(n1i*n2i*n3pi,pot_ion)
-!!$           rx=rxyz(1,iat) 
-!!$           ry=rxyz(2,iat)
-!!$           rz=rxyz(3,iat)
-!!$
-!!$           isx=floor((rx-cutoff)/hxh)
-!!$           isy=floor((ry-cutoff)/hyh)
-!!$           isz=floor((rz-cutoff)/hzh)
-!!$
-!!$           iex=ceiling((rx+cutoff)/hxh)
-!!$           iey=ceiling((ry+cutoff)/hyh)
-!!$           iez=ceiling((rz+cutoff)/hzh)
-!!$
-!!$           !these nested loops will be used also for the actual ionic forces, to be recalculated
-!!$           do i3=isz,iez
-!!$              z=real(i3,gp)*hzh-rz
-!!$              call ind_positions(perz,i3,n3,j3,goz) 
-!!$              j3=j3+nbl3+1
-!!$              do i2=isy,iey
-!!$                 y=real(i2,gp)*hyh-ry
-!!$                 call ind_positions(pery,i2,n2,j2,goy)
-!!$                 do i1=isx,iex
-!!$                    x=real(i1,gp)*hxh-rx
-!!$                    call ind_positions(perx,i1,n1,j1,gox)
-!!$                    r2=x**2+y**2+z**2
-!!$                    arg=r2/rloc**2
-!!$                    xp=exp(-.5_gp*arg)
-!!$                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-!!$                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-!!$                       pot_ion(ind)=pot_ion(ind)-real(xp*charge,dp)
-!!$                    endif
-!!$                 end do
-!!$              end do
-!!$           end do
-!!$        end if
-!!$
-!!$       
-!!$        !application of the Poisson solver to calculate the self energy and the potential
-!!$        !here the value of the datacode must be kept fixed
-!!$        call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
-!!$             pot_ion,pkernel,pot_ion,ehart,zero,zero,&
-!!$             2.0_gp*pi*rloc**2*real(at%nelpsp(ityp),gp),.false.,1)
-!!$        eself=eself+ehart
-!!$
-!!$        !initialise forces calculation
-!!$        fxslf=0.0_gp
-!!$        fyslf=0.0_gp
-!!$        fzslf=0.0_gp
-!!$
-!!$        if (n3pi >0 ) then
-!!$           do i3=isz,iez
-!!$              z=real(i3,gp)*hzh-rz
-!!$              call ind_positions(perz,i3,n3,j3,goz) 
-!!$              j3=j3+nbl3+1
-!!$              do i2=isy,iey
-!!$                 y=real(i2,gp)*hyh-ry
-!!$                 call ind_positions(pery,i2,n2,j2,goy)
-!!$                 do i1=isx,iex
-!!$                    x=real(i1,gp)*hxh-rx
-!!$                    call ind_positions(perx,i1,n1,j1,gox)
-!!$                    r2=x**2+y**2+z**2
-!!$                    arg=r2/rloc**2
-!!$                    xp=exp(-.5_gp*arg)
-!!$                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-!!$                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-!!$                       !error function part
-!!$                       Vel=pot_ion(ind)
-!!$                       fxslf=fxslf+xp*Vel*x
-!!$                       fyslf=fyslf+xp*Vel*y
-!!$                       fzslf=fzslf+xp*Vel*z
-!!$                    endif
-!!$                 end do
-!!$              end do
-!!$           end do
-!!$        end if
-!!$
-!!$        fion(1,iat)=-hxh*hyh*hzh*prefactor*fxslf
-!!$        fion(2,iat)=-hxh*hyh*hzh*prefactor*fyslf
-!!$        fion(3,iat)=-hxh*hyh*hzh*prefactor*fzslf
-!!$
-!!$        !if (nproc==1) print *,'iat,fself',iat,fxslf,fyslf,fzslf
+        !in the case of a vacancy calculate the hartree energy by *not* extending 
+        !results outside superecell, to compensate the electronic part
+        if (vacancy) then
+           evacancy=0.0_gp
+           do jat=1,iat-1
+              dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
+              jtyp=at%iatype(jat)
+              chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
+              evacancy=evacancy+chgprod/dist
+           enddo
+           do jat=iat+1,at%nat
+              dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
+              jtyp=at%iatype(jat)
+              chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
+              evacancy=evacancy+chgprod/dist
+           end do
+           print *,'Ionic energy of the vacancy, to be subtracted:',0.5_gp*evacancy
+        end if
 
      enddo
 
@@ -381,7 +319,6 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
 
      !if (nproc==1) 
      !print *,'iproc,eion',iproc,eion
-
 
      do iat=1,at%nat
         ityp=at%iatype(iat)
@@ -476,7 +413,7 @@ end subroutine IonicEnergyandForces
 
 
 subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
-     hxh,hyh,hzh,ef,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
+     hxh,hyh,hzh,ef,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
   use module_base
   use module_types
   use Poisson_Solver
@@ -489,7 +426,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
-  real(gp), intent(out) :: eion
   !local variables
   logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.,efwrite
   integer :: iat,jat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,jtyp,nspin
@@ -601,7 +537,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      rholeaked_tot=rholeaked
   end if
 
-  if (iproc.eq.0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
+  if (iproc == 0) write(*,'(1x,a,f26.12,2x,1pe10.3)') &
        'total ionic charge, leaked charge ',tt_tot,rholeaked_tot
 
   if (.not. htoobig) then
@@ -613,8 +549,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      call timing(iproc,'CrtLocPot     ','ON')
   end if
 
-  !print *,'ehart',ehart
-  !print *,'true eion',ehart-eself
 
 !!$  !calculate the value of the offset to be put
 !!$  tt_tot=0.d0
@@ -723,7 +657,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
           'The constant electric field is allowed only for Free and Surfaces BC'
      stop
      end if
-     if (iproc.eq.0) write(*,'(1x,3(a,1pe10.2),a)') &
+     if (iproc == 0) write(*,'(1x,3(a,1pe10.2),a)') &
           'Constant electric field of',elecfield,&
           ' Ha*Bohr for:',ystart,' < y <',yend,' Bohr'
 

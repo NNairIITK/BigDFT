@@ -218,7 +218,7 @@ module module_interfaces
      end subroutine IonicEnergyandForces
 
      subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
-          hxh,hyh,hzh,ef,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
+          hxh,hyh,hzh,ef,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
        use module_base
        use module_types
        implicit none
@@ -230,7 +230,6 @@ module module_interfaces
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(dp), dimension(*), intent(in) :: pkernel
        real(wp), dimension(*), intent(inout) :: pot_ion
-       real(gp), intent(out) :: eion
      end subroutine createIonicPotential
 
      subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&

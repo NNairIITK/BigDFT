@@ -748,7 +748,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
                  write(*,'(1x,a,i0,a,1x,1pe21.14,a)') &
                       'evale(',iorb+iorbst-1,')=',evale(iorb),trim(message)
               else
-                 if (iorb.le.5 .or. iorb.ge.norbi-5) & 
+                 if ((iorb <= 5 .or. iorb >= norbi-5) .or. verbose > 0) & 
                  write(*,'(1x,a,i0,a,1x,1pe21.14)') &
                       'evale(',iorb+iorbst-1,')=',evale(iorb)
               end if
@@ -790,7 +790,7 @@ subroutine solve_eigensystem(iproc,norb,norbu,norbd,norbi_max,ndim_hamovr,&
                       'evale(',iorb+iorbst-1,',u)=',evale(iorb),message,&
                       'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi)
               else
-                 if (iorb.le.5 .or. iorb.ge.norbi-5) & 
+                 if ((iorb <= 5 .or. iorb >= norbi-5) .or. verbose > 0) & 
                  write(*,'(1x,a,i4,a,1x,1pe21.14,12x,a,i4,a,1x,1pe21.14)') &
                       'evale(',iorb+iorbst-1,',u)=',evale(iorb),&
                       'evale(',iorb+iorbst-1,',d)=',evale(iorb+norbi)

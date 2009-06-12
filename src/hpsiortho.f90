@@ -676,3 +676,103 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
   end if
 
 end subroutine calc_moments
+
+!experimental routine for correcting the potential from a vacancy
+subroutine correct_hartree_potential(geocode,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,i3xcsh,hxh,hyh,hzh,pkernel,&
+     rhoref,pkernel_ref,pot_ion,rhopot,ixc,nspin,ehart,eexcu,vexcu,PSquiet)
+  use module_base
+  use Poisson_Solver
+  implicit none
+  character(len=1), intent(in) :: geocode
+  character(len=3), intent(in) :: PSquiet
+  integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,nspin,ixc,i3xcsh
+  real(gp), intent(in) :: hxh,hyh,hzh
+  real(dp), dimension(n1i,n2i,max(n3d,1),nspin), intent(in) :: rhoref
+  real(dp), dimension(n1i,n2i,max(n3pi,1)), intent(inout) :: pot_ion
+  real(dp), dimension(n1i,n2i,max(n3d,1),nspin), intent(inout) :: rhopot
+  real(gp), intent(out) :: ehart,eexcu,vexcu
+  real(dp), dimension(:), pointer :: pkernel_ref,pkernel
+  !local variables
+  character(len=*), parameter :: subname='correct_hartree_potential'
+  integer :: i_all,i_stat,ierr
+  real(gp) :: ehart_fake,eexcu_fake,vexcu_fake,ehartA,ehartB
+  real(dp), dimension(:,:,:,:), allocatable :: potref,drho
+
+
+  allocate(potref(n1i,n2i,max(n3d,1),nspin+ndebug),stat=i_stat)
+  call memocc(i_stat,potref,'potref',subname)
+
+  allocate(drho(n1i,n2i,max(n3d,1),nspin+ndebug),stat=i_stat)
+  call memocc(i_stat,drho,'drho',subname)
+
+
+  !Delta rho = rho - rho_ref
+  drho=rhopot-rhoref
+
+  !rho_tot -> VH_tot + VXC_tot + Vext 
+  call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,&
+       ixc,hxh,hyh,hzh,&
+       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin,&
+       quiet=PSquiet)
+
+  !Delta rho -> VH_drho(P)
+  call dcopy(n1i*n2i*n3d,drho,1,potref,1) 
+  call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,&
+       0,hxh,hyh,hzh,&
+       potref,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+       quiet=PSquiet)
+  !V -> V - VH_drho(P)
+  call axpy(n1i*n2i*n3p,-1.0_dp,potref(1,1,1+i3xcsh,1),1,rhopot(1,1,1+i3xcsh,1),1)
+
+
+  !calculate\int (VH_drho(P) rho)
+  !put rho in drho
+  call axpy(n1i*n2i*n3d,1.0_dp,rhoref(1,1,1,1),1,drho(1,1,1,1),1)
+  !scalar product
+  ehartA=0.0_dp
+  ehartA=0.5_dp*hxh*hyh*hzh*dot(n1i*n2i*n3p,potref(1,1,1+i3xcsh,1),1,drho(1,1,1+i3xcsh,1),1)
+  !reduce the result
+  if (nproc > 1) then
+     call MPI_ALLREDUCE(ehartA,ehartB,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+  else
+     ehartB=ehartA
+  end if
+  !eliminate VH_drho(P) (rho + Delta rho) from ehartree
+  ehart=ehart-ehart_fake-ehartB
+
+  !save rho in potref
+  call dcopy(n1i*n2i*n3d,drho,1,potref,1) 
+  !restore drho
+  call axpy(n1i*n2i*n3d,-1.0_dp,rhoref(1,1,1,1),1,drho(1,1,1,1),1)
+
+
+  !Delta rho -> VH_drho(I)
+  call PSolver('F','D',iproc,nproc,n1i,n2i,n3i,&
+       0,hxh,hyh,hzh,&
+       drho,pkernel_ref,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+       quiet=PSquiet)
+
+  !V -> V + VH_drho(I)
+  call axpy(n1i*n2i*n3p,1.0_dp,drho(1,1,1+i3xcsh,1),1,rhopot(1,1,1+i3xcsh,1),1)
+
+  !calculate\int (VH_drho(I) rho)
+  !scalar product
+  ehartA=0.0_dp
+  ehartA=0.5_dp*hxh*hyh*hzh*dot(n1i*n2i*n3p,potref(1,1,1+i3xcsh,1),1,drho(1,1,1+i3xcsh,1),1)
+  !reduce the result
+  if (nproc > 1) then
+     call MPI_ALLREDUCE(ehartA,ehartB,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+  else
+     ehartB=ehartA
+  end if
+  !add VH_drho(I) (rho + Delta rho) from ehartree
+  ehart=ehart+ehart_fake+ehartB
+
+  i_all=-product(shape(potref))*kind(potref)
+  deallocate(potref,stat=i_stat)
+  call memocc(i_stat,i_all,'potref',subname)
+  i_all=-product(shape(drho))*kind(drho)
+  deallocate(drho,stat=i_stat)
+  call memocc(i_stat,i_all,'drho',subname)
+
+end subroutine correct_hartree_potential

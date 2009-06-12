@@ -194,6 +194,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   allocate(work(n*(2*m+1)+2*m),stat=i_stat)
   call memocc(i_stat,work,'work',subname)
   xc(:)=x(:)
+  xwrite(:)=x(:)
 
   fail=.false.
   bfgs_loop: do ! main BFGS loop

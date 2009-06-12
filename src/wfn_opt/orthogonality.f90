@@ -203,7 +203,9 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
         
         ! Cholesky factorization
         call potrf( 'L',norb,ovrlp(1,1,1),norb,info)
-        if (info.ne.0) write(6,*) 'info Cholesky factorization',info
+        if (info /= 0) then
+           write(*,*) 'info Cholesky factorization',info
+        end if
         
         ! calculate L^{-1}
         call trtri( 'L','N',norb,ovrlp(1,1,1),norb,info)
@@ -222,7 +224,9 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,nvctr_tot,psit,nspinor)
 !!$           end if
 !!$        end do
         call c_potrf( 'L',norb,ovrlp(1,1,1),norb,info )
-        if (info.ne.0) write(6,*) 'info Cholesky factorization',info
+        if (info /= 0) then
+           write(*,*) 'info Cholesky factorization',info
+        end if
         
         ! calculate L^{-1}
 !!$         do i=1,norb

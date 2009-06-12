@@ -123,7 +123,6 @@ program memguess
  
 
   ! store PSP parameters
-  ! modified to accept both GTH and HGHs pseudopotential types
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
@@ -135,7 +134,7 @@ program memguess
 
   if (optimise) then
      if (atoms%geocode =='F') then
-        call optimise_volume(atoms,in%crmult,in%frmult,hx,hy,hz,rxyz,radii_cf)
+        call optimise_volume(atoms,in%crmult,in%frmult,in%hx,in%hy,in%hz,rxyz,radii_cf)
      else
         call shift_periodic_directions(atoms,rxyz,radii_cf)
      end if
@@ -179,7 +178,7 @@ program memguess
           scorb,norbsc_arr,locrad)
 
      if (in%nspin==4) then
-        !in that case the number of orbitals double
+        !in that case the number of orbitals doubles
         norbe=2*norbe
      end if
 
@@ -431,7 +430,6 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
 
   allocate(txyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,txyz,'txyz',subname)
-
   call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   !call volume(nat,rxyz,vol)
   vol=atoms%alat1*atoms%alat2*atoms%alat3

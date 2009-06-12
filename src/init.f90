@@ -76,7 +76,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_
           ' ERROR: the coarse grid does not fill the entire periodic box'
         write(*,*)&
           '          errors due to translational invariance breaking may occur'
-        stop
+        !stop
      end if
      if (GPUconv) then
         if (iproc ==0)then
