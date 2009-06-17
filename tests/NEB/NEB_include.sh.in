@@ -1,5 +1,20 @@
 #!/bin/bash
 
+init_jobs()
+{
+    return
+}
+
+finalise_jobs()
+{
+    return
+}
+
+wait_jobs()
+{
+    return
+}
+
 make_input()
 {
     # We create a posinp file from the .NEB.restart file.
