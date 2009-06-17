@@ -279,7 +279,7 @@ subroutine read_atomic_file(file,iproc,at,rxyz)
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_atomic_file'
-  integer :: i_stat
+  integer :: i_stat, l
   logical :: file_exists
   character(len = 128) :: filename
 
@@ -301,7 +301,14 @@ subroutine read_atomic_file(file,iproc,at,rxyz)
   if (.not. file_exists) then
      inquire(FILE = file, EXIST = file_exists)
      if (file_exists) write(filename, "(A)") file!"posinp"
-     write(at%format, "(A)") "xyz"
+     l = len(file)
+     if (file(l-3:l) == ".xyz") then
+        write(at%format, "(A)") "xyz"
+     else if (file(l-5:l) == ".ascii") then
+        write(at%format, "(A)") "ascii"
+     else
+        write(at%format, "(A)") "xyz"
+     end if
   end if
 
   if (.not. file_exists) then
