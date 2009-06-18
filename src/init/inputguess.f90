@@ -1177,6 +1177,7 @@ subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 END SUBROUTINE calc_coeff_inguess
 
 
+
 subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,occupat,expo,psiat)
   use module_base
   implicit none
@@ -1378,6 +1379,17 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
 END SUBROUTINE iguess_generator
 
 
+
+
+
+
+
+
+
+
+
+
+
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg)
@@ -1396,6 +1408,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
        res(noccmax,lmax+1),xp(0:ng)
   if (nintp.ne.n_int) stop 'n_int><nintp'
+
 
   do l=0,lmax
      if (occup(1,l+1).gt.0._gp) lcx=l
@@ -1661,6 +1674,16 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
         end do
      end do
   end do
+
+
+! ------------------------------------------------
+  
+
+
+! -----------------------------------------------
+
+
+
 
 ! writing lines suppressed
 !!$        write(66,*)  lmax+1

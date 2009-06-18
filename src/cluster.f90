@@ -118,9 +118,8 @@
   in%inputPsiId=inputPsiId_orig
 
 end subroutine call_bigdft
+
 !!***
-
-
 !!****f* BigDFT/cluster
 !!
 !! FUNCTION
@@ -216,6 +215,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(:,:,:), pointer :: ads
   ! tmp debug array
   real(kind=8), dimension(:,:), allocatable :: tmred
+
+  ! AMmodif  begin
+  type(gaussian_basis) Gabsorber
+  ! AMmodif end
+
   
   !copying the input variables for readability
   !this section is of course not needed
@@ -223,6 +227,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !an array would have been copied, thus occupying more memory space
   !Hence WARNING: these variables are copied, in case of an update the new value should be 
   !reassigned inside the structure
+
+
+
+
 
   crmult=in%crmult
   frmult=in%frmult
@@ -337,12 +345,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,&
        atoms,rxyz,radii_cf,crmult,frmult,Glr,orbs)
   call timing(iproc,'CrtDescriptors','OF')
-
+  print *, " OK 1 " 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call timing(iproc,'CrtProjectors ','ON')
   call createProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,&
        radii_cf,cpmult,fpmult,hx,hy,hz,nlpspd,proj)
   call timing(iproc,'CrtProjectors ','OF')
+  print *, " OK 2 " 
+
+
+ 
 
   !calculate the partitioning of the orbitals between the different processors
   !memory estimation
@@ -583,6 +595,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      stop
 
   end if
+
+
+  if (in%iat_absorber.ne.0) then
+     
+     call GetExcitedOrbitalAsG(  in%iat_absorber ,Gabsorber,&
+          atoms, rxyz,nproc,  iproc, 1 )
+     stop
+
+  endif
 
   !save the new atomic positions in the rxyz_old array
   do iat=1,atoms%nat
@@ -869,6 +890,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   if (in%output_grid==3) then
      call plot_density(atoms%geocode,'pot_ion.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,1,&
           atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,pot_ion)
+     call plot_density(atoms%geocode,'tutto.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,1,&
+          atoms%alat1,atoms%alat2,atoms%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
   end if
 
   i_all=-product(shape(pot_ion))*kind(pot_ion)
