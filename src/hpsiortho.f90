@@ -678,26 +678,28 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
 end subroutine calc_moments
 
 !experimental routine for correcting the potential from a vacancy
-subroutine correct_hartree_potential(geocode,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,i3xcsh,hxh,hyh,hzh,pkernel,&
+subroutine correct_hartree_potential(at,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n3pi,n3d,&
+     i3s,i3xcsh,hxh,hyh,hzh,pkernel,ngatherarr,&
      rhoref,pkernel_ref,pot_ion,rhopot,ixc,nspin,ehart,eexcu,vexcu,PSquiet)
   use module_base
+  use module_types
   use Poisson_Solver
   implicit none
-  character(len=1), intent(in) :: geocode
   character(len=3), intent(in) :: PSquiet
-  integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,nspin,ixc,i3xcsh
+  integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,nspin,ixc,i3xcsh,n1,n2,n3,i3s
   real(gp), intent(in) :: hxh,hyh,hzh
-  real(dp), dimension(n1i,n2i,max(n3d,1),nspin), intent(in) :: rhoref
+  type(atoms_data), intent(in) :: at
+  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+  real(dp), dimension(n1i,n2i,max(n3d,1),nspin), intent(inout) :: rhoref
   real(dp), dimension(n1i,n2i,max(n3pi,1)), intent(inout) :: pot_ion
   real(dp), dimension(n1i,n2i,max(n3d,1),nspin), intent(inout) :: rhopot
   real(gp), intent(out) :: ehart,eexcu,vexcu
   real(dp), dimension(:), pointer :: pkernel_ref,pkernel
   !local variables
   character(len=*), parameter :: subname='correct_hartree_potential'
-  integer :: i_all,i_stat,ierr
-  real(gp) :: ehart_fake,eexcu_fake,vexcu_fake,ehartA,ehartB
-  real(dp), dimension(:,:,:,:), allocatable :: potref,drho
-
+  integer :: i_all,i_stat,ierr,i1,i2,i3
+  real(gp) :: ehart_fake,eexcu_fake,vexcu_fake,ehartA,ehartB,tt,offset
+  real(dp), dimension(:,:,:,:), allocatable :: potref,drho,vxc
 
   allocate(potref(n1i,n2i,max(n3d,1),nspin+ndebug),stat=i_stat)
   call memocc(i_stat,potref,'potref',subname)
@@ -705,32 +707,111 @@ subroutine correct_hartree_potential(geocode,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3
   allocate(drho(n1i,n2i,max(n3d,1),nspin+ndebug),stat=i_stat)
   call memocc(i_stat,drho,'drho',subname)
 
+  allocate(vxc(n1i,n2i,max(n3p,1),nspin+ndebug),stat=i_stat)
+  call memocc(i_stat,drho,'drho',subname)
 
   !Delta rho = rho - rho_ref
   drho=rhopot-rhoref
 
-  !rho_tot -> VH_tot + VXC_tot + Vext 
-  call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,&
+!!$  call plot_density(at%geocode,'deltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+!!$       1,at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,1+i3xcsh,1))
+!!$
+!!$  !calculate the offset
+!!$  tt=0.d0
+!!$  do i3=1,n3p
+!!$     do i2=1,n2i
+!!$        do i1=1,n1i
+!!$           tt=tt+drho(i1,i2,i3+i3xcsh,1)
+!!$        enddo
+!!$     enddo
+!!$  enddo
+!!$  !tt=tt*hxh*hyh*hzh
+!!$  if (nproc > 1) then
+!!$     call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
+!!$          MPI_SUM,MPI_COMM_WORLD,ierr)
+!!$  else
+!!$     offset=tt
+!!$  end if
+!!$
+!!$  if (iproc==0) print *,'offset deltarho',offset*hxh*hyh*hzh
+
+  !rho_tot -> VH_tot & VXC_tot 
+  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
        ixc,hxh,hyh,hzh,&
-       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin,&
+       rhopot,pkernel,vxc,ehart,eexcu,vexcu,0.d0,.false.,nspin,&
        quiet=PSquiet)
 
-  !Delta rho -> VH_drho(P)
-  call dcopy(n1i*n2i*n3d,drho,1,potref,1) 
-  call PSolver(geocode,'D',iproc,nproc,n1i,n2i,n3i,&
+  !calculate the reference Hartree potential
+  !here the offset should be specified for charged systems
+  call dcopy(n1i*n2i*n3d,rhoref,1,potref,1) 
+  !Rho_ref -> VH_ref
+  call PSolver(at%geocode,'D',iproc,nproc,n1i,n2i,n3i,&
        0,hxh,hyh,hzh,&
        potref,pkernel,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
        quiet=PSquiet)
-  !V -> V - VH_drho(P)
-  call axpy(n1i*n2i*n3p,-1.0_dp,potref(1,1,1+i3xcsh,1),1,rhopot(1,1,1+i3xcsh,1),1)
+  
+  !save the total density in rhopot
+  rhopot=rhoref+drho
+
+  !calculate the vacancy hartree potential
+  !Delta rho -> VH_drho(I)
+  call PSolver('F','D',iproc,nproc,n1i,n2i,n3i,&
+       0,hxh,hyh,hzh,&
+       drho,pkernel_ref,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
+       quiet=PSquiet)
+
+!!$  call plot_density(at%geocode,'VHdeltarho.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+!!$       1,at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,1+i3xcsh,1))
 
 
-  !calculate\int (VH_drho(P) rho)
-  !put rho in drho
-  call axpy(n1i*n2i*n3d,1.0_dp,rhoref(1,1,1,1),1,drho(1,1,1,1),1)
-  !scalar product
+  !sum the complete hartree potential
+  call axpy(n1i*n2i*n3p,1.0_dp,potref(1,1,1,1+i3xcsh),1,drho(1,1,1,1+i3xcsh),1)
+
+  if (correct_offset) then
+     !calculate the offset
+     tt=0.d0
+     do i3=1,n3p
+        do i2=1,n2i
+           do i1=1,n1i
+              tt=tt+drho(i1,i2,i3+i3xcsh,1)
+           enddo
+        enddo
+     enddo
+     !tt=tt*hxh*hyh*hzh
+     if (nproc > 1) then
+        call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
+             MPI_SUM,MPI_COMM_WORLD,ierr)
+     else
+        offset=tt
+     end if
+
+     if (iproc==0) print *,'offset to subtract',offset
+
+     !now the hartree potential has zero integral
+     drho=drho-offset/real(n1i*n2i*n3i,dp)
+
+     !calculate the offset
+     tt=0.d0
+     do i3=1,n3p
+        do i2=1,n2i
+           do i1=1,n1i
+              tt=tt+drho(i1,i2,i3+i3xcsh,1)
+           enddo
+        enddo
+     enddo
+     if (nproc > 1) then
+        call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
+             MPI_SUM,MPI_COMM_WORLD,ierr)
+     else
+        offset=tt
+     end if
+
+     if (iproc==0) print *,'offset (verify)',offset*hxh*hyh*hzh
+  end if
+
+  !calculate total hartree energy
   ehartA=0.0_dp
-  ehartA=0.5_dp*hxh*hyh*hzh*dot(n1i*n2i*n3p,potref(1,1,1+i3xcsh,1),1,drho(1,1,1+i3xcsh,1),1)
+  ehartA=0.5_dp*hxh*hyh*hzh*dot(n1i*n2i*n3p,rhopot(1,1,1+i3xcsh,1),1,drho(1,1,1+i3xcsh,1),1)
   !reduce the result
   if (nproc > 1) then
      call MPI_ALLREDUCE(ehartA,ehartB,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -738,39 +819,73 @@ subroutine correct_hartree_potential(geocode,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3
      ehartB=ehartA
   end if
   !eliminate VH_drho(P) (rho + Delta rho) from ehartree
-  ehart=ehart-ehart_fake-ehartB
+  ehart=ehartB
 
-  !save rho in potref
-  call dcopy(n1i*n2i*n3d,drho,1,potref,1) 
-  !restore drho
-  call axpy(n1i*n2i*n3d,-1.0_dp,rhoref(1,1,1,1),1,drho(1,1,1,1),1)
+  !sum the different potentials (valid only for non-spin polarised systems)
+  call axpy(n1i*n2i*n3p,1.0_dp,pot_ion(1,1,1),1,drho(1,1,1,1+i3xcsh),1)
+
+!!$  call plot_density(at%geocode,'VHpVion.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+!!$       1,at%alat1,at%alat2,at%alat3,ngatherarr,drho(1,1,1+i3xcsh,1))
+!!$
+!!$  !calculate the offset
+!!$  tt=0.d0
+!!$  do i3=1,n3p
+!!$     do i2=1,n2i
+!!$        do i1=1,n1i
+!!$           tt=tt+drho(i1,i2,i3+i3xcsh,1)
+!!$        enddo
+!!$     enddo
+!!$  enddo
+!!$  !tt=tt*hxh*hyh*hzh
+!!$  if (nproc > 1) then
+!!$     call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
+!!$          MPI_SUM,MPI_COMM_WORLD,ierr)
+!!$  else
+!!$     offset=tt
+!!$  end if
+!!$
+!!$  if (iproc==0) print *,'offset of Vh+Vion',offset
 
 
-  !Delta rho -> VH_drho(I)
-  call PSolver('F','D',iproc,nproc,n1i,n2i,n3i,&
-       0,hxh,hyh,hzh,&
-       drho,pkernel_ref,pot_ion,ehart_fake,eexcu_fake,vexcu_fake,0.d0,.false.,1,&
-       quiet=PSquiet)
 
-  !V -> V + VH_drho(I)
-  call axpy(n1i*n2i*n3p,1.0_dp,drho(1,1,1+i3xcsh,1),1,rhopot(1,1,1+i3xcsh,1),1)
+  call axpy(n1i*n2i*n3p,1.0_dp,vxc(1,1,1,1),1,drho(1,1,1,1+i3xcsh),1)
+  !final result in rhopot
+  call dcopy(n1i*n2i*n3d,drho,1,rhopot,1) 
 
-  !calculate\int (VH_drho(I) rho)
-  !scalar product
-  ehartA=0.0_dp
-  ehartA=0.5_dp*hxh*hyh*hzh*dot(n1i*n2i*n3p,potref(1,1,1+i3xcsh,1),1,drho(1,1,1+i3xcsh,1),1)
-  !reduce the result
+
+!!$  call plot_density(at%geocode,'Vtot.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,&
+!!$       1,at%alat1,at%alat2,at%alat3,ngatherarr,rhopot(1,1,1+i3xcsh,1))
+
+
+  !calculate the offset
+  tt=0.d0
+  do i3=1,n3p
+     do i2=1,n2i
+        do i1=1,n1i
+           tt=tt+rhopot(i1,i2,i3+i3xcsh,1)
+        enddo
+     enddo
+  enddo
+  !tt=tt*hxh*hyh*hzh
   if (nproc > 1) then
-     call MPI_ALLREDUCE(ehartA,ehartB,1,mpidtypd,MPI_SUM,MPI_COMM_WORLD,ierr)
+     call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
+          MPI_SUM,MPI_COMM_WORLD,ierr)
   else
-     ehartB=ehartA
+     offset=tt
   end if
-  !add VH_drho(I) (rho + Delta rho) from ehartree
-  ehart=ehart+ehart_fake+ehartB
+
+  if (iproc==0) print *,'offset of the total potential',offset
+
+
+  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   i_all=-product(shape(potref))*kind(potref)
   deallocate(potref,stat=i_stat)
   call memocc(i_stat,i_all,'potref',subname)
+  i_all=-product(shape(vxc))*kind(vxc)
+  deallocate(vxc,stat=i_stat)
+  call memocc(i_stat,i_all,'vxc',subname)
+
   i_all=-product(shape(drho))*kind(drho)
   deallocate(drho,stat=i_stat)
   call memocc(i_stat,i_all,'drho',subname)

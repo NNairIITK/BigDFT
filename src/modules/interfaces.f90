@@ -677,6 +677,24 @@ module module_interfaces
        real(gp), intent(out) :: epot
      end subroutine apply_potential
 
+     subroutine correct_hartree_potential(at,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n3pi,n3d,&
+          i3s,i3xcsh,hxh,hyh,hzh,pkernel,ngatherarr,&
+          rhoref,pkernel_ref,pot_ion,rhopot,ixc,nspin,ehart,eexcu,vexcu,PSquiet)
+       use module_base
+       use module_types
+       implicit none
+       character(len=3), intent(in) :: PSquiet
+       integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,nspin,ixc,i3xcsh,n1,n2,n3,i3s
+       real(gp), intent(in) :: hxh,hyh,hzh
+       type(atoms_data), intent(in) :: at
+       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+       real(dp), dimension(n1i,n2i,max(n3d,1),nspin), intent(inout) :: rhoref
+       real(dp), dimension(n1i,n2i,max(n3pi,1)), intent(inout) :: pot_ion
+       real(dp), dimension(n1i,n2i,max(n3d,1),nspin), intent(inout) :: rhopot
+       real(gp), intent(out) :: ehart,eexcu,vexcu
+       real(dp), dimension(:), pointer :: pkernel_ref,pkernel
+     end subroutine correct_hartree_potential
+
   end interface
 
 end module module_interfaces

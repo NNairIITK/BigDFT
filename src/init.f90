@@ -540,7 +540,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !application of the hamiltonian for gaussian based treatment
   call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
        Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU)
-
+  
   if(orbs%nspinor==4) then
      !this wrapper can be inserted inside the poisson solver 
      call PSolverNC(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
@@ -553,8 +553,6 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
           rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
   end if
 
-!!$  call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
-!!$       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,nspin)
 
 !!$  if (nproc == 1) then
 !!$     !calculate the overlap matrix as well as the kinetic overlap

@@ -25,6 +25,11 @@ module module_types
      integer :: output_grid, dispersion
      real(gp) :: frac_fluct,randdis,betax,forcemax
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf
+     ! AMmodif
+     integer :: iat_absorber
+     !AMmodif end
+
+
      real(gp), dimension(3) :: ef
   end type input_variables
 !!***
@@ -121,6 +126,11 @@ module module_types
      real(gp) :: alat1,alat2,alat3
      integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom,ifrztyp
      real(gp), dimension(:,:,:), pointer :: psppar
+
+     ! AMmodif
+     integer :: iat_absorber 
+     ! AMmodif end
+
   end type atoms_data
 !!***
 
