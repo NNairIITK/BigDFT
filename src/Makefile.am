@@ -142,10 +142,12 @@ high_level = cluster.f90 \
 	restart.f90 \
 	geometry.f90 \
 	davidson.f90 \
-	vdwcorrection.f90 \
-	lanczos_interface.f90 \
-	lanczos_base.f90 \
-	lanczos.f90 
+	vdwcorrection.f90 
+
+#\
+#	lanczos_interface.f90 \
+#	lanczos_base.f90 \
+#	lanczos.f90 
 
 #objects which can be compiled whithout any dependence
 low_level = init/projectors.f90  \

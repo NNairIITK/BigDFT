@@ -45,14 +45,6 @@ module module_base
   !inside localize_projectors routines
   logical :: DistProjApply=.true.
 
-  !!!EXPERIMENTAL SECTION, VACANCY CALCULATION
-  !to be put in the reference calculation: nvacancy should be the atom number of the vacancy
-  integer :: nvacancy=0
-  !to be put in the vacancy calculation. nvacancy should be zero here
-  logical :: read_ref_den=.false.,correct_offset=.false.
-
-
-
   !interfaces for LAPACK routines
   interface potrf
      module procedure potrf_simple,potrf_double

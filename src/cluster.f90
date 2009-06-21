@@ -176,7 +176,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   character(len=*), parameter :: subname='cluster'
   character(len=10) :: orbname
   character(len=3) :: PSquiet
-  logical :: endloop
+  logical :: endloop,potion_overwritten
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
   integer :: nvirt,ndiis_sd_sw
   integer :: nelec,ndegree_ip,mids,iorb,ids,idiistol,j,i
@@ -380,10 +380,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   call memocc(i_stat,fion,'fion',subname)
 
   call IonicEnergyandForces(iproc,nproc,atoms,hxh,hyh,hzh,rxyz,eion,fion,&
-       psoffset,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
+       psoffset,in%nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s+i3xcsh,n3pi,pot_ion,pkernel)
 
   call createIonicPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
-       in%ef,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+       in%ef,n1,n2,n3,n3pi,i3s+i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,in%nvacancy,&
+       in%correct_offset)
         
   !this can be inserted inside the IonicEnergyandForces routine
   !(after insertion of the non-regression test)
@@ -402,6 +403,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      allocate(rhopot(1,1,1,in%nspin+ndebug),stat=i_stat)
      call memocc(i_stat,rhopot,'rhopot',subname)
   end if
+
+  !chack the communication distribution
+  call check_communications(iproc,nproc,orbs,Glr,comms)
 
   !avoid allocation of the eigenvalues array in case of restart
   if (in%inputPsiId /= 1 .and. in%inputPsiId /= 11) then
@@ -583,9 +587,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   if (in%iat_absorber /= 0) then
      
-     call lanczos(iproc,nproc,atoms,orbs,comms,hx,hy,hz,rxyz,&
-          cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
-          rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
+!!$     call lanczos(iproc,nproc,atoms,orbs,comms,hx,hy,hz,rxyz,&
+!!$          cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+!!$          rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
      stop
 
      call GetExcitedOrbitalAsG(  in%iat_absorber ,Gabsorber,&
@@ -643,7 +647,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   idsx_actual_before=idsx_actual
 
   !control whether there is a reference density
-  if (read_ref_den) then
+  if (in%read_ref_den) then
 
      !allocate the kernel for the reference density case
      call createKernel(iproc,nproc,'F',n1i,n2i,n3i,hxh,hyh,hzh,ndegree_ip,pkernel_ref,&
@@ -654,67 +658,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
      call read_potfile(atoms%geocode,'density.pot',n1,n2,n3,n1i,n2i,n3i,n3d,i3s,1,rhoref)
 
-!!$     !calculate the offset
-!!$     tt=0.d0
-!!$     do ind=1,n3pi*n2i*n1i
-!!$        tt=tt+pot_ion(ind)
-!!$     enddo
-!!$     !tt=tt*hxh*hyh*hzh
-!!$     if (nproc > 1) then
-!!$        call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-!!$             MPI_SUM,MPI_COMM_WORLD,ierr)
-!!$     else
-!!$        offset=tt
-!!$     end if
-!!$
-!!$     if (iproc==0) print *,'offset potion, psoffset',offset,psoffset
-
-     !overwrite pot_ion with the potential previously created
-     call read_potfile(atoms%geocode,'potion_corr.pot',n1,n2,n3,n1i,n2i,n3i,n3pi,&
-          i3s+i3xcsh,1,pot_ion)
-    
-     if (.not. correct_offset) then
-        !read the ionic energy from disk
-        open(unit=22,file='eion_corr.tmp',status='unknown')
-        read(22,*)eion,ehart_fake
-        close(unit=22)
-     end if
-
-!!$
-!!$     !calculate the offset
-!!$     tt=0.d0
-!!$     do ind=1,n3pi*n2i*n1i
-!!$        tt=tt+pot_ion(ind)
-!!$     enddo
-!!$     !tt=tt*hxh*hyh*hzh
-!!$     if (nproc > 1) then
-!!$        call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-!!$             MPI_SUM,MPI_COMM_WORLD,ierr)
-!!$     else
-!!$        offset=tt
-!!$     end if
-
-!!$     if (iproc==0) &
-!!$          print *,'new offset potion, psoffset from file,psoffset',offset,ehart_fake,psoffset
-!!$
-!!$     !shift the ionic potential to have the same offset as the previous one
-!!$     pot_ion=pot_ion+&
-!!$          psoffset/real(n1i*n2i*n3i,dp)/hxh/hyh/hzh
-!!$
-!!$     !calculate the offset
-!!$     tt=0.d0
-!!$     do ind=1,n3pi*n2i*n1i
-!!$        tt=tt+pot_ion(ind)
-!!$     enddo
-!!$     !tt=tt*hxh*hyh*hzh
-!!$     if (nproc > 1) then
-!!$        call MPI_ALLREDUCE(tt,offset,1,mpidtypd, &
-!!$             MPI_SUM,MPI_COMM_WORLD,ierr)
-!!$     else
-!!$        offset=tt
-!!$     end if
-!!$
-!!$     if (iproc==0) print *,'new offset potion, final',offset*hxh*hyh*hzh
+     potion_overwritten=.false.
 
   end if
 
@@ -751,11 +695,25 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
      else
   
-        if (read_ref_den) then
+        if (in%read_ref_den .and. gnrm <= in%gnrm_sw)then
+           if (.not. potion_overwritten) then
+              !overwrite pot_ion with the potential previously created
+              call read_potfile(atoms%geocode,'potion_corr.pot',n1,n2,n3,n1i,n2i,n3i,n3pi,&
+                   i3s+i3xcsh,1,pot_ion)
+
+              if (.not. in%correct_offset) then
+                 !read the ionic energy from disk
+                 open(unit=22,file='eion_corr.tmp',status='unknown')
+                 read(22,*)eion,ehart_fake
+                 close(unit=22)
+              end if
+              potion_overwritten=.true.
+           end if
            call correct_hartree_potential(atoms,iproc,nproc,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
                 Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
                 n3p,n3pi,n3d,i3s,i3xcsh,hxh,hyh,hzh,pkernel,ngatherarr,&
-                rhoref,pkernel_ref,pot_ion,rhopot,ixc,in%nspin,ehart,eexcu,vexcu,PSquiet)
+                rhoref,pkernel_ref,pot_ion,rhopot,ixc,in%nspin,ehart,eexcu,vexcu,PSquiet,&
+                in%correct_offset)
         else
            call PSolver(atoms%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
                 ixc,hxh,hyh,hzh,&
@@ -982,7 +940,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
        nscatterarr,in%nspin,GPU)
 
   !plot the density on the density.pot file
-  if (in%output_grid==1 .or. in%output_grid==3 .or. nvacancy /=0) then
+  if (in%output_grid==1 .or. in%output_grid==3 .or. in%nvacancy /=0) then
      if (in%nspin == 2 ) then
         if(iproc==0) write(*,*)&
              'ERROR: density cannot be plotted in .pot format for a spin-polarised calculation'
@@ -1031,7 +989,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   deallocate(pkernel,stat=i_stat)
   call memocc(i_stat,i_all,'pkernel',subname)
 
-  if (read_ref_den) then
+  if (in%read_ref_den) then
      i_all=-product(shape(pkernel_ref))*kind(pkernel_ref)
      deallocate(pkernel_ref,stat=i_stat)
      call memocc(i_stat,i_all,'pkernel_ref',subname)
@@ -1162,7 +1120,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      deallocate(rhopot,stat=i_stat)
      call memocc(i_stat,i_all,'rhopot',subname)
 
-     if (read_ref_den) then
+     if (in%read_ref_den) then
         i_all=-product(shape(rhoref))*kind(rhoref)
         deallocate(rhoref,stat=i_stat)
         call memocc(i_stat,i_all,'rhoref',subname)
@@ -1206,7 +1164,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      i_all=-product(shape(rhopot))*kind(rhopot)
      deallocate(rhopot,stat=i_stat)
      call memocc(i_stat,i_all,'rhopot',subname)
-     if (read_ref_den) then
+     if (in%read_ref_den) then
         i_all=-product(shape(rhoref))*kind(rhoref)
         deallocate(rhoref,stat=i_stat)
         call memocc(i_stat,i_all,'rhoref',subname)
@@ -1264,7 +1222,7 @@ contains
        i_all=-product(shape(pkernel))*kind(pkernel)
        deallocate(pkernel,stat=i_stat)
        call memocc(i_stat,i_all,'pkernel',subname)
-       if (read_ref_den) then
+       if (in%read_ref_den) then
           i_all=-product(shape(pkernel_ref))*kind(pkernel_ref)
           deallocate(pkernel_ref,stat=i_stat)
           call memocc(i_stat,i_all,'pkernel_ref',subname)
@@ -1274,7 +1232,7 @@ contains
        i_all=-product(shape(rhopot))*kind(rhopot)
        deallocate(rhopot,stat=i_stat)
        call memocc(i_stat,i_all,'rhopot',subname)
-       if (read_ref_den) then
+       if (in%read_ref_den) then
           i_all=-product(shape(rhoref))*kind(rhoref)
           deallocate(rhoref,stat=i_stat)
           call memocc(i_stat,i_all,'rhoref',subname)

@@ -11,31 +11,31 @@
 !!
 subroutine print_logo()
   implicit none
-  write(*,'(23x,a)')'      BBBB         i       ggggg    '
-  write(*,'(23x,a)')'     B    B               g         '
-  write(*,'(23x,a)')'    B     B        i     g          '
-  write(*,'(23x,a)')'    B    B         i     g        g '
-  write(*,'(23x,a)')'    BBBBB          i     g         g'
-  write(*,'(23x,a)')'    B    B         i     g         g'
-  write(*,'(23x,a)')'    B     B        i     g         g'
-  write(*,'(23x,a)')'    B      B       i     g         g'
-  write(*,'(23x,a)')'    B     B     iiii     g         g'
-  write(*,'(23x,a)')'    B BBBB         i      g        g'
-  write(*,'(23x,a)')'    B             i        g      g '
-  write(*,'(23x,a)')'BBBBBBBBB    iiiii          gggggg  ' 
+  write(*,'(23x,a)')'      TTTT         F       DDDDD    '
+  write(*,'(23x,a)')'     T    T               D         '
+  write(*,'(23x,a)')'    T     T        F     D          '
+  write(*,'(23x,a)')'    T    T         F     D        D '
+  write(*,'(23x,a)')'    TTTTT          F     D         D'
+  write(*,'(23x,a)')'    T    T         F     D         D'
+  write(*,'(23x,a)')'    T     T        F     D         D'
+  write(*,'(23x,a)')'    T      T       F     D         D'
+  write(*,'(23x,a)')'    T     T     FFFF     D         D'
+  write(*,'(23x,a)')'    T TTTT         F      D        D'
+  write(*,'(23x,a)')'    T             F        D      D '
+  write(*,'(23x,a)')'TTTTTTTTT    FFFFF          DDDDDD  ' 
   !write(*,'(23x,a)')'---------------------------------------'
-  write(*,'(23x,a)')'  DDDDDD          FFFFF    TTTTTTTTT'
-  write(*,'(23x,a)')' D      D        F             T    '
-  write(*,'(23x,a)')'D        D      F         TTTT T    '
-  write(*,'(23x,a)')'D         D     FFFF     T     T    '
-  write(*,'(23x,a)')'D         D     F       T      T    '
-  write(*,'(23x,a)')'D         D     F        T     T    '
-  write(*,'(23x,a)')'D         D     F         T    T    '
-  write(*,'(23x,a)')'D         D     F          TTTTT    '
-  write(*,'(23x,a)')' D        D     F         T    T    '  
-  write(*,'(23x,a)')'          D     F        T     T    ' 
-  write(*,'(23x,a)')'         D               T    T     '
-  write(*,'(23x,a)')'    DDDDD       F         TTTT                     (Ver 1.2.3)'
+  write(*,'(23x,a)')'  gggggg          iiiii    BBBBBBBBB'
+  write(*,'(23x,a)')' g      g        i             B    '
+  write(*,'(23x,a)')'g        g      i         BBBB B    '
+  write(*,'(23x,a)')'g         g     iiii     B     B    '
+  write(*,'(23x,a)')'g         g     i       B      B    '
+  write(*,'(23x,a)')'g         g     i        B     B    '
+  write(*,'(23x,a)')'g         g     i         B    B    '
+  write(*,'(23x,a)')'g         g     i          BBBBB    '
+  write(*,'(23x,a)')' g        g     i         B    B    '  
+  write(*,'(23x,a)')'          g     i        B     B    ' 
+  write(*,'(23x,a)')'         g               B    B     '
+  write(*,'(23x,a)')'    ggggg       i         BBBB                     (Ver 1.3.0)'
   write(*,'(1x,a)')&
        '------------------------------------------------------------------------------------'
   write(*,'(1x,a)')&
@@ -47,10 +47,311 @@ subroutine print_logo()
 end subroutine print_logo
 !!***
 
+!!****f* BigDFT/dft_input_variables
+!! FUNCTION
+!!    Read the input variables needed for the DFT calculation
+!!    The variables are divided in two groups:
+!!    "cruising" variables -- general DFT run
+!!    "brakeing" variables -- for the last run, once relaxation is achieved
+!!                            of for a single-point calculation
+!!    Every argument should be considered as mandatory
+!! SOURCE
+!!
+subroutine dft_input_variables(iproc,filename,in)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+  type(input_variables), intent(out) :: in
+  !local variables
+  character(len=7) :: cudagpu
+  character(len=100) :: line
+  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
+
+  ! Read the input variables.
+  open(unit=1,file=filename,status='old')
+
+  !line number, to control the input values
+  iline=0
+  !grid spacings
+  read(1,*,iostat=ierror) in%hx,in%hy,in%hz
+  call check()
+  !coarse and fine radii around atoms
+  read(1,*,iostat=ierror) in%crmult,in%frmult
+  call check()
+  !XC functional (ABINIT XC codes)
+  read(1,*,iostat=ierror) in%ixc
+  call check()
+  !charged system, electric field (intensity and start-end points)
+  read(1,'(a100)')line
+  read(line,*,iostat=ierror) in%ncharge,in%ef(1)
+  if (ierror == 0 .and. in%ef(1) /= 0.0_gp) then
+     read(line,*,iostat=ierror) in%ncharge,in%ef(1),in%ef(2),in%ef(3)
+  else
+     in%ef(2)=0.0_gp
+     in%ef(3)=0.0_gp
+  end if
+  call check()
+  read(1,*,iostat=ierror) in%nspin,in%mpol
+  call check()
+  read(1,*,iostat=ierror) in%gnrm_cv
+  call check()
+  read(1,*,iostat=ierror) in%itermax,in%nrepmax
+  call check()
+  read(1,*,iostat=ierror) in%ncong,in%idsx
+  call check()
+  read(1,*,iostat=ierror) in%dispersion
+  call check()
+  !read the line for force the CUDA GPU calculation for all processors
+  read(1,'(a100)')line
+  read(line,*,iostat=ierrfrc) cudagpu
+  iline=iline+1
+  if (ierrfrc == 0 .and. cudagpu=='CUDAGPU') then
+     call init_lib(iproc,initerror,iconv,iblas,GPUshare)
+   !  iconv = 0
+   !  iblas = 0
+     if (initerror == 1) then
+        stop
+     end if
+    ! GPUshare=.true.
+     if (iconv == 0) then
+        !change the value of the GPU convolution flag defined in the module_base
+        GPUconv=.true.
+     end if
+     if (iblas == 0) then
+        !change the value of the GPU convolution flag defined in the module_base
+        GPUblas=.true.
+     end if
+  end if
+
+  !now the varaibles which are to be used only for the last run
+  read(1,*,iostat=ierror) in%inputPsiId,in%output_wf,in%output_grid
+  call check()
+  !project however the wavefunction on gaussians if asking to write them on disk
+  in%gaussian_help=(in%inputPsiId >= 10)! commented .or. in%output_wf 
+  !switch on the gaussian auxiliary treatment 
+  !and the zero of the forces
+  if (in%inputPsiId == 10) then
+     in%inputPsiId=0
+  end if
+  read(1,*,iostat=ierror) in%rbuf,in%ncongt
+  call check()
+  in%calc_tail=(in%rbuf > 0.0_gp)
+
+  !davidson treatment
+  read(1,*,iostat=ierror) in%nvirt,in%nplot
+  call check()
+
+  !x-adsorber treatment (in progress)
+  read(1,*,iostat=ierror)  in%iat_absorber
+  call check()
+
+  !electrostatic treatment of the vacancy (experimental)
+  read(1,*,iostat=ierror)  in%nvacancy,in%read_ref_den,in%correct_offset,in%gnrm_sw
+  call check()
+
+  !performs some check: for the moment Davidson treatment is allowed only for spin-unpolarised
+  !systems, while in principle it should work immediately
+  if (in%nspin/=1 .and. in%nvirt/=0) then
+     if (iproc==0) then
+        write(*,'(1x,a)')'ERROR: Davidson treatment allowed only for non spin-polarised systems'
+     end if
+     stop
+  end if
+ 
+  close(unit=1,iostat=ierror)
+
+  if (in%nvirt > 0 .and. iproc ==0) then
+     !read virtual orbital and plotting request
+     write(*,'(1x,a,i0)')'Virtual orbitals ',in%nvirt
+     write(*,'(1x,a,i0,a)')'Output for density plots is requested for ',in%nplot,' orbitals'
+  end if
+  if (in%nspin==4) then
+     if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Non-collinear)'
+  else if (in%nspin==2) then
+     if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation: YES (Collinear)'
+  else if (in%nspin==1) then
+     if (iproc == 0) write(*,'(1x,a)') 'Spin-polarised calculation:  NO '
+  else
+     if (iproc == 0) write(*,'(1x,a,i0)')'Wrong spin polarisation id: ',in%nspin
+     stop
+  end if
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  end subroutine check
+
+end subroutine dft_input_variables
+!!***
+
+!!****f* BigDFT/geopt_input_variables
+!! FUNCTION
+!!    Read the input variables needed for the geometry optimisation
+!!    Every argument should be considered as mandatory
+!! SOURCE
+!!
+subroutine geopt_input_variables(iproc,filename,in)
+  use module_base
+  use module_types
+  implicit none
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: iproc
+  type(input_variables), intent(out) :: in
+  !local variables
+  character(len=7) :: cudagpu
+  character(len=100) :: line
+  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
+
+  ! Read the input variables.
+  open(unit=1,file=filename,status='old')
+
+  !line number, to control the input values
+  iline=0
+
+  read(1,*,iostat=ierror) in%geopt_approach
+  call check()
+  read(1,*,iostat=ierror) in%ncount_cluster_x
+  call check()
+  read(1,*,iostat=ierrfrc) in%frac_fluct,in%forcemax
+  call check()
+  read(1,*,iostat=ierror) in%randdis
+  call check()
+  read(1,*,iostat=ierror) in%betax
+  call check()
+
+ 
+  close(unit=1,iostat=ierror)
+
+  if (iproc == 0) then
+     write(*,'(1x,a,i0)') 'Max. number of wavefnctn optim ',in%ncount_cluster_x
+     write(*,'(1x,a,1pe10.2)') 'Convergence criterion for forces: fraction of noise ',&
+          in%frac_fluct
+     write(*,'(1x,a,1pe10.2)') '                                : maximal component ',&
+          in%forcemax
+     write(*,'(1x,a,1pe10.2)') 'Random displacement amplitude ',in%randdis
+     write(*,'(1x,a,1pe10.2)') 'Steepest descent step ',in%betax
+  end if
+
+contains
+
+  subroutine check()
+    iline=iline+1
+    if (ierror/=0) then
+       if (iproc == 0) write(*,'(1x,a,a,a,i3)') &
+            'Error while reading the file "',trim(filename),'", line=',iline
+       stop
+    end if
+  end subroutine check
+
+end subroutine geopt_input_variables
+!!***
+
+!!****f* BigDFT/dft_input_converter
+!! FUNCTION
+!!  Convert the format of input variables
+!! SOURCE
+!!
+subroutine dft_input_converter(in)
+  use module_base
+  use module_types
+  implicit none
+  type(input_variables), intent(in) :: in
+  !local variables
+  character(len=7) :: cudagpu
+  character(len=100) :: line
+  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
+
+  ! Read the input variables.
+  open(unit=1,file='input_convert.dft',status='new')
+
+  !line number, to control the input values
+  iline=0
+  !grid spacings
+  line=''
+  line=' hx,hy,hz: grid spacing in the three directions'
+  write(1,'(3(f6.3),a)') in%hx,in%hy,in%hz,trim(line)
+  !coarse and fine radii around atoms
+  line=''
+  line=' crmult, frmult: c(f)rmult*radii_cf(*,1(2)) gives the coarse (fine)radius around each atom'
+  write(1,'(2(f4.1),a)') in%crmult,in%frmult,trim(line)
+  line=''
+  line=' ixc: exchange-correlation parameter (LDA=1,PBE=11)'
+  !XC functional (ABINIT XC codes)
+  write(1,'(i3,a)') in%ixc,trim(line)
+
+  line=''
+  line=' ncharge: charge of the system, Electric field'
+  write(1,'(i3,3(f6.3),a)') in%ncharge,in%ef(1),in%ef(2),in%ef(3),trim(line)
+
+  line=''
+  line=' nspin=1 non-spin polarization, mpol=total magnetic moment'
+  write(1,'(2(i3),a)') in%nspin,in%mpol,trim(line)
+
+  line=''
+  line=' gnrm_cv: convergence criterion gradient'
+  write(1,'(1pe7.0,a)') in%gnrm_cv,trim(line)
+  
+  line=''
+  line=' itermax,nrepmax: maximum number of wavefunction optimizations and of re-diagonalised runs'
+  write(1,'(2(i3),a)') in%itermax,in%nrepmax,trim(line)
+  
+  line=''
+  line=' ncong, idsx: # CG iterations for the preconditioning equation, length of the diis history'
+  write(1,'(2(i3),a)') in%ncong,in%idsx,trim(line)
+  
+  line=''
+  line=' dispersion correction functional (values 1,2,3), 0=no correction'
+  write(1,'(i3,a)') in%dispersion,trim(line)
+  
+  line=''
+  line=' write "CUDAGPU" on this line to use GPU acceleration (GPU.config file is needed)'
+  write(1,'(a)') trim(line)
+
+  !now the varaibles which are to be used only for the last run
+  line=''
+  line=' InputPsiId, output_wf, output_grid'
+  write(1,*) in%inputPsiId,in%output_wf,in%output_grid,trim(line)
+  
+  line=''
+  line=' calc_tail, rbuf, ncongt: calculate tails,length of the tail (AU),# tail CG iterations'
+  write(1,'(f4.1,i4,a)') in%rbuf,in%ncongt,trim(line)
+
+
+  !davidson treatment
+  line=''
+  line=' davidson treatment, no. of virtual orbitals, no of plotted orbitals'
+  write(1,'(2(i3),a)') in%nvirt,in%nplot,trim(line)
+  
+  line=''
+  line=' x-ray adsorber treatment'
+  !x-adsorber treatment (in progress)
+  write(1,'(i3,a)')  in%iat_absorber,trim(line)
+  
+
+  line=''
+  line='0 .false. .false. 0.d0 vacancy: atom no., read_ref_den, correct_offset, gnrm_switch'
+  !electrostatic treatment of the vacancy (experimental)
+  write(1,*) trim(line)
+   
+  close(unit=1)
+end subroutine dft_input_converter
+!!***
+
+
+
+
 
 !!****f* BigDFT/read_input_variables
 !! FUNCTION
-!!    Read the input variables in the file 'input.dat'
+!!    Read the input variables in the file 'input.dft'
 !! SOURCE
 !!
 subroutine read_input_variables(iproc,filename,in)

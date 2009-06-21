@@ -19,15 +19,14 @@ module module_types
 !! SOURCE
 !!
   type, public :: input_variables
-     logical :: output_wf,calc_tail,gaussian_help
+     character(len=10) :: geopt_approach
+     logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
      integer :: ncount_cluster_x
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,nvirt,nplot
      integer :: output_grid, dispersion
-     real(gp) :: frac_fluct,randdis,betax,forcemax
+     real(gp) :: frac_fluct,randdis,betax,forcemax,gnrm_sw
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf
-     ! AMmodif
-     integer :: iat_absorber
-     !AMmodif end
+     integer :: iat_absorber,nvacancy
 
 
      real(gp), dimension(3) :: ef

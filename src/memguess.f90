@@ -20,7 +20,7 @@ program memguess
   integer, parameter :: ngx=31
   character(len=20) :: tatonam
   character(len=40) :: comment
-  logical :: optimise,GPUtest
+  logical :: optimise,GPUtest,convert=.false.
   integer :: nelec,ntimes,nproc,i_stat,ierror,i_all,output_grid
   integer :: norbe,norbsc,nvctrp,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: iunit,ityp,norbgpu,nspin_ig
@@ -63,6 +63,8 @@ program memguess
           'In the case of a CUDAGPU calculation you can put "GPUtest" after the'
      write(*,'(1x,a)')&
           '  number of processors, followed by the number of repeats'
+     write(*,'(1x,a)')&
+          'You can also put "convert" keyword for converting input file into 1.3 format'
      stop
   else
      read(unit=tatonam,fmt=*) nproc
@@ -92,14 +94,17 @@ program memguess
            call getarg(4,tatonam)
            read(tatonam,*,iostat=ierror)norbgpu
         end if
-
+     else if (trim(tatonam)=='convert') then
+        convert=.true.
+        write(*,'(1x,a)')&
+             'convert the input.dat file in the "input_convert.dft" (1.3 format)'
      else
         write(*,'(1x,a)')&
              'Usage: ./memguess <nproc> [y]'
         write(*,'(1x,a)')&
              'Indicate the number of processes after the executable'
         write(*,'(1x,a)')&
-             'ERROR: The only second argument which is accepted are "y", "o" or "GPUtest"'
+             'ERROR: The only second argument which is accepted are "y", "o", "convert" or "GPUtest"'
         stop
      end if
   end if
@@ -117,6 +122,14 @@ program memguess
   call read_input_variables(0,'input.dat',in)
 
   call print_input_parameters(in,atoms)
+
+  call dft_input_variables(0,'input.dft',in)
+
+  if (convert) then
+     write(*,'(a)',advance='NO')' Conversion of the input file...'
+     call dft_input_converter(in)
+     write(*,*)' ...done'
+  end if
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
