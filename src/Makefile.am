@@ -142,7 +142,10 @@ high_level = cluster.f90 \
 	restart.f90 \
 	geometry.f90 \
 	davidson.f90 \
-	vdwcorrection.f90
+	vdwcorrection.f90 \
+	lanczos_interface.f90 \
+	lanczos_base.f90 \
+	lanczos.f90 
 
 #objects which can be compiled whithout any dependence
 low_level = init/projectors.f90  \
@@ -159,6 +162,7 @@ low_level = init/projectors.f90  \
 	init/sysprop.f90 \
 	init/gaussians.f90 \
 	init/wfn_init.f90 \
+	init/xabsorber.f90 \
 	wfn_opt/precond.f90 \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \

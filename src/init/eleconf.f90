@@ -1564,8 +1564,10 @@ end subroutine correct_semicore
 
 
 ! AMmodif  start
-
-!!****f* BigDFT/modified_eleconf
+! Thi modified version returns the hardest pseudo potential 
+! for the given atom
+!
+!!***** BigDFT/modified_eleconf
 !! FUNCTION
 !!   Give electronic configuration of atom
 !!

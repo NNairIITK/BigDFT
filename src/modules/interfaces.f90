@@ -695,6 +695,30 @@ module module_interfaces
        real(dp), dimension(:), pointer :: pkernel_ref,pkernel
      end subroutine correct_hartree_potential
 
+     subroutine lanczos(iproc,nproc,at,orbs,comms,hx,hy,hz,rxyz,&
+          cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
+          ekin_sum,epot_sum,eproj_sum,nspin,GPU)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nproc,ndimpot,nspin
+       real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
+       type(atoms_data), intent(in), target :: at
+       type(orbitals_data), intent(in) , target :: orbs
+       type(communications_arrays), intent(in), target :: comms
+       type(nonlocal_psp_descriptors), intent(in) , target :: nlpspd
+       type(locreg_descriptors), intent(in) , target :: lr 
+       integer, dimension(0:nproc-1,2), intent(in) , target :: ngatherarr 
+       real(gp), dimension(3,at%nat), intent(in) , target :: rxyz
+       real(gp), dimension(at%ntypes,3), intent(in) , target :: radii_cf  
+       real(wp), dimension(nlpspd%nprojel), intent(in) , target :: proj
+       real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
+       real(wp), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
+       real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
+       real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: hpsi
+       type(GPU_pointers), intent(inout) , target :: GPU
+     end subroutine lanczos
+
   end interface
 
 end module module_interfaces

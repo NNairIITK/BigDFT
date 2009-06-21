@@ -272,6 +272,35 @@ module module_types
   end type workarr_precond
 !!***
 
+
+!!****t* module_types/lanczos_args
+!! DESCRIPTION
+!! Contains the arguments needed for the application of the hamiltonian
+!!
+!! SOURCE
+!!
+  type, public :: lanczos_args
+     !arguments for the hamiltonian
+     integer  :: iproc,nproc,ndimpot,nspin
+     real(gp)  :: hx,hy,hz,cpmult,fpmult
+     real(gp) :: ekin_sum,epot_sum,eproj_sum
+     type(atoms_data), pointer :: at
+     type(orbitals_data), pointer :: orbs
+     type(communications_arrays), pointer :: comms
+     type(nonlocal_psp_descriptors), pointer :: nlpspd
+     type(locreg_descriptors), pointer :: lr 
+     integer, dimension(:,:), pointer :: ngatherarr 
+     real(gp), dimension(:,:),  pointer :: rxyz
+     real(gp), dimension(:,:), pointer :: radii_cf  
+     real(wp), dimension(:), pointer :: proj
+     !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), pointer :: psi
+     real(wp), dimension(:,:), pointer :: potential
+     !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp) :: hpsi
+     type(GPU_pointers), pointer :: GPU
+  end type lanczos_args
+!!***
+
+
 contains
 
   subroutine allocate_comms(nproc,comms,routine)

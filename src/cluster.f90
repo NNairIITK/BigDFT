@@ -118,9 +118,8 @@
   in%inputPsiId=inputPsiId_orig
 
 end subroutine call_bigdft
+
 !!***
-
-
 !!****f* BigDFT/cluster
 !!
 !! FUNCTION
@@ -217,32 +216,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! tmp debug array
   real(kind=8), dimension(:,:), allocatable :: tmred
 
-  ! AMmodif  serve per indicare il tipo di atomo per cui calcolare le f.d.o. atomiche
-  integer :: AMity, AMng , AMnoccmax, AMlmax
-  real(gp) , pointer :: AMexpo(:), AMpsi(:,:,:), AMaeval(:,:), AMoccup(:,:), AMgcoeffs(:)
-  integer :: AMpsp_modifier
-  integer :: AMig, AMnord, AMiocc
-
-  integer :: AMabs_final_L,  AMabs_initial_L
-  integer, parameter :: AMNorder=4
-  real(gp) :: AMScoeffs(AMNorder)
-  integer :: AMiocc_for_j(  AMNorder )
-  real(gp) :: AMene_for_j(  AMNorder )
-  real(gp) , parameter :: AMsphere_radius=3.0
-  real(gp) , pointer:: AMpsi1s(:) 
-  integer :: AMiw
-  integer :: AMreal_start
-  real(gp) :: AMcradius
-  
-  integer ::  AMNsol , AMNgrid, AMigrid
-
-  integer :: AMng_fine
-  real(gp), pointer :: AMexpo_fine(:)
-
-  real(gp), pointer :: AMEgrid(:) ,  AMrgrid(:) , AMpsigrid (:,:) , AMEgrid_pseudo(:) ,  AMpsigrid_pseudo (:,:) 
-  integer idebug
-  ! Ammodif end
-
+  type(gaussian_basis) Gabsorber
   
   !copying the input variables for readability
   !this section is of course not needed
@@ -250,9 +224,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !an array would have been copied, thus occupying more memory space
   !Hence WARNING: these variables are copied, in case of an update the new value should be 
   !reassigned inside the structure
-
-
-
 
 
   crmult=in%crmult
@@ -609,292 +580,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   end if
 
-  ! AMmodif  calculate 1s*dipole projection  over wavelet
-  if (in%iat_absorber.ne.0) then
+
+  if (in%iat_absorber /= 0) then
      
-     AMity = atoms%iatype(in%iat_absorber)
-     AMng  = 60
-     AMnoccmax = 5
-     AMlmax=3
-
-
-     AMng_fine= 200
-
-     AMNsol=50
-     AMNgrid=10000
-
-     AMcradius=4.0
-
-     idebug=10
-
-
-     allocate(AMexpo_fine(AMng_fine  +idebug ), stat=i_stat)
-     call memocc(i_stat,AMexpo_fine,'AMexpo_fine',subname)
-
-     allocate(AMexpo(AMng +idebug  ), stat=i_stat)
-     call memocc(i_stat,AMexpo,'AMexpo',subname)
-
-     allocate(AMpsi ( 0:AMng-1 +idebug ,AMnoccmax,AMlmax+1+idebug ), stat=i_stat)
-     call memocc(i_stat,AMpsi,'AMpsi',subname)
-
-
-     allocate(AMgcoeffs ( 0:AMng_fine-1  +idebug ), stat=i_stat)
-     call memocc(i_stat,AMgcoeffs,'AMgcoeffs',subname)
-
-     allocate(AMaeval ( AMnoccmax +idebug ,AMlmax+1+idebug ), stat=i_stat)
-     call memocc(i_stat,AMaeval,'AMaeval',subname)
-
-     allocate(AMoccup ( AMnoccmax +idebug ,AMlmax+1+idebug ), stat=i_stat)
-     call memocc(i_stat,AMoccup,'AMoccup',subname)
-
-
-     allocate( AMEgrid(AMNsol +idebug ), stat=i_stat)
-     call memocc(i_stat,AMEgrid,'AMEgrid',subname)
-
-     allocate( AMrgrid(AMNgrid +idebug ), stat=i_stat)
-     call memocc(i_stat,AMrgrid,'AMrgrid',subname)
-
-     allocate( AMpsigrid(AMNgrid +idebug , AMNsol), stat=i_stat)
-     call memocc(i_stat,AMpsigrid,'AMpsigrid',subname)
-
-     allocate( AMEgrid_pseudo(AMNsol +idebug ), stat=i_stat)
-     call memocc(i_stat,AMEgrid_pseudo,'AMEgrid_pseudo',subname)
-
-     allocate( AMpsigrid_pseudo(AMNgrid +idebug , AMNsol), stat=i_stat)
-     call memocc(i_stat,AMpsigrid_pseudo,'AMpsigrid_pseudo',subname)
-
-
-
-     allocate(AMpsi1s( AMNgrid +idebug ), stat=i_stat)
-     call memocc(i_stat,AMpsi1s,'AMpsi1s',subname)
-
-
-   
-     do AMigrid=1, AMNgrid
-        AMrgrid(AMigrid) = AMigrid*1.0_gp/AMNgrid * AMcradius
-     enddo
-
-     if(iproc.eq.0) print * , " genero l' atomo per estrarre 1S " 
-
-     AMabs_final_L = 1
-     AMabs_initial_L = 0
-
-     AMpsp_modifier=1
-
-    call abs_generator_modified(iproc,atoms%nzatom(AMity), atoms%nelpsp(AMity),atoms%psppar(0,0,AMity),&
-          atoms%npspcode(AMity),AMng-1 ,AMnoccmax , AMlmax , AMexpo,AMpsi,AMaeval, AMoccup , AMpsp_modifier  , &
-          AMNsol, AMabs_initial_L , AMNgrid,AMEgrid,  AMrgrid , AMpsigrid  )
-
-     !! retrieve 1 s *r 
-
-  
-     do AMigrid=1,AMNgrid
-        AMpsi1s(AMigrid) =   AMpsigrid(AMigrid,1)  *AMrgrid(AMigrid)
-     enddo
-
-     if(iproc.eq.0)   print * , " calcolo l atomo pseudo " 
-     AMpsp_modifier=0
-     call abs_generator_modified(iproc,atoms%nzatom(AMity), atoms%nelpsp(AMity),atoms%psppar(0,0,AMity),&
-          atoms%npspcode(AMity),AMng-1 ,AMnoccmax , AMlmax , AMexpo,AMpsi,AMaeval, AMoccup , AMpsp_modifier , &
-          AMNsol, AMabs_final_L , AMNgrid,AMEgrid_pseudo,  AMrgrid , AMpsigrid_pseudo  )
-
-     if(iproc.eq.0) then
-        if(AMpsp_modifier.eq.0) then
-           call dump_gauwf_on_radgrid("pseudo_wf_radgrid", AMng-1 ,AMnoccmax , AMlmax , AMexpo,AMpsi,AMaeval, AMoccup     )
-        else
-           call dump_gauwf_on_radgrid("real_wf_radgrid", AMng-1 ,AMnoccmax , AMlmax , AMexpo,AMpsi,AMaeval, AMoccup     )
-        endif
-     endif
-
-
-
-
-     open(unit=22,file='numerov_pseudo.dat')
-     do AMigrid=1, AMNgrid
-        write(22,'(200(f20.10,1x))') AMrgrid(AMigrid), (AMpsigrid_pseudo(AMigrid,j ), j=1,AMNsol)   
-     enddo
-     close(unit=22)
-
-     if(iproc.eq.0) print * , " genero l' atomo col pot_vero " 
-
-     AMpsp_modifier=1
-     call abs_generator_modified(iproc,atoms%nzatom(AMity), atoms%nelpsp(AMity),atoms%psppar(0,0,AMity),&
-          atoms%npspcode(AMity),AMng-1 ,AMnoccmax , AMlmax , AMexpo,AMpsi,AMaeval, AMoccup , AMpsp_modifier ,  &
-          AMNsol, AMabs_final_L , AMNgrid,AMEgrid,  AMrgrid , AMpsigrid  )
-      
-     open(unit=22,file='numerov.dat')
-     do AMigrid=1, AMNgrid
-        write(22,'(200(f20.10,1x))') AMrgrid(AMigrid), (AMpsigrid(AMigrid,j ), j=1,AMNsol)   
-     enddo
-     close(unit=22)
-     
-     if(iproc.eq.0) print * , " dumpo le funzioni " 
-
-     if(iproc.eq.0) then
-        if(AMpsp_modifier.eq.0) then
-           call dump_gauwf_on_radgrid("pseudo_wf_radgrid", AMng-1 ,AMnoccmax , AMlmax , AMexpo,AMpsi,AMaeval, AMoccup     )
-        else
-           call dump_gauwf_on_radgrid("real_wf_radgrid", AMng-1 ,AMnoccmax , AMlmax , AMexpo,AMpsi,AMaeval, AMoccup     )
-        endif
-     endif
-
-     AMreal_start=-1
-     do AMiocc=1, AMNsol
-        if((AMEgrid(AMiocc)+0.1).ge.AMEgrid_pseudo(1)) then
-           AMreal_start = AMiocc
-           exit
-        endif
-     enddo
-
-     if(AMreal_start.eq.-1) then
-        print *, " not found positive eigenvalues for projectors with abs_final_L=", AMabs_final_L
-        if (nproc > 1) call MPI_FINALIZE(ierr)
-        stop
-     endif
-
-     print *, " Confronto fra energie real e pseudo "
-     do AMiocc=1, AMNsol
-        if(AMiocc.lt.AMreal_start) then
-           print *,  AMiocc, AMEgrid(AMiocc) 
-        else
-           print *,  AMiocc, AMEgrid(AMiocc) , AMEgrid_pseudo(AMiocc-AMreal_start +1)
-        endif
-     enddo
-
-     ! call find_Scoeffs( AMNorder, AMScoeffs, AMng-1 ,  AMgcoeffs, AMexpo, AMnoccmax , AMlmax ,  AMpsi,AMiocc_for_j, AMabs_final_L, AMpsi1s , AMsphere_radius ,AMene_for_j )
-
-
-     print *, " PROIETTO , real_start",   AMreal_start
-     call find_pfproj( AMNsol,AMNgrid, AMrgrid, AMpsi1s, AMpsigrid, AMreal_start, AMpsigrid_pseudo)
-
-
-     open(unit=22,file='projres.dat')
-     do AMigrid=1, AMNgrid
-        write(22,'(200(f20.10,1x))') AMrgrid(AMigrid),  AMpsi1s(AMigrid), AMpsigrid(AMigrid,1), AMpsigrid_pseudo(AMigrid,1)
-     enddo
-     close(unit=22)
-
-
-
-     AMexpo_fine(1)=             AMexpo(1)/3.0
-     AMexpo_fine(AMng_fine) =       AMcradius*2.0      
-
-     do AMig=1, AMng_fine
-        AMexpo_fine(AMig) = exp( ( log(AMexpo_fine(1))*(AMng_fine-AMig) +log(AMexpo_fine(AMng_fine))*(AMig-1) )/(AMng_fine-1))
-     enddo
-     
-     call find_Scoeffs_grid(AMng_fine-1,  AMexpo_fine, AMNgrid, AMrgrid, AMpsigrid_pseudo(:,1)  , AMgcoeffs , AMabs_final_L  )
-
-     call  dump_1gauwf_on_radgrid("proje_gau_proje_pseudo.dat", AMng_fine-1 , AMexpo_fine,AMgcoeffs   ,   AMabs_final_L +1  )
-
-     AMig=0
-
-     print *, AMig
-     AMig=AMig+1
-
-     i_all=-product(shape(AMpsigrid_pseudo))*kind(AMpsigrid_pseudo)
-     deallocate(AMpsigrid_pseudo,stat=i_stat)
-     call memocc(i_stat,i_all,'AMpsigrid_pseudo',subname)
-
-     print *, AMig
-     AMig=AMig+1
-
-     i_all=-product(shape(AMEgrid))*kind(AMEgrid)
-     deallocate(AMEgrid,stat=i_stat)
-     call memocc(i_stat,i_all,'AMEgrid',subname)
-
-
-
-     print *, AMig
-     AMig=AMig+1
-
-     i_all=-product(shape(AMpsigrid))*kind(AMpsigrid)
-     deallocate(AMpsigrid,stat=i_stat)
-     call memocc(i_stat,i_all,'AMpsigrid',subname)
-
-     print *, AMig
-     AMig=AMig+1
-  
-     i_all=-product(shape(AMoccup))*kind(AMoccup)
-     deallocate(AMoccup,stat=i_stat)
-     call memocc(i_stat,i_all,'AMoccup',subname)
-
-     print *, AMig
-     AMig=AMig+1
-
-     i_all=-product(shape(AMaeval))*kind(AMaeval)
-     deallocate(AMaeval,stat=i_stat)
-     call memocc(i_stat,i_all,'AMaeval',subname)
-
-     print *, AMig
-     AMig=AMig+1
-
-     i_all=-product(shape(AMgcoeffs))*kind(AMgcoeffs)
-     deallocate(AMgcoeffs,stat=i_stat)
-     call memocc(i_stat,i_all,'AMgcoeffs',subname) 
-
-     print *, AMig
-     AMig=AMig+1
-
-     i_all=-product(shape(AMpsi))*kind(AMpsi)
-     deallocate(AMpsi,stat=i_stat)
-     call memocc(i_stat,i_all,'AMpsi',subname) 
-
-     print *, AMig
-     AMig=AMig+1
-
-     i_all=-product(shape(AMexpo))*kind(AMexpo)
-     deallocate(AMexpo,stat=i_stat)
-     call memocc(i_stat,i_all,'AMexpo',subname)
-
-     print *, AMig
-     AMig=AMig+1
-
-     i_all=-product(shape(AMexpo_fine))*kind(AMexpo_fine)
-     deallocate(AMexpo_fine,stat=i_stat)
-     call memocc(i_stat,i_all,'AMexpo_fine',subname)
-
-     print *, AMig
-     AMig=AMig+1
-
-
-
-
-     print *, AMig
-     AMig=AMig+1
-     
-     
-     i_all=-product(shape(AMEgrid_pseudo))*kind(AMEgrid_pseudo)
-     deallocate(AMEgrid_pseudo,stat=i_stat)
-     call memocc(i_stat,i_all,'AMEgrid_pseudo',subname)
-     
-
-     print *, AMig
-     AMig=AMig+1
-
-     i_all=-product(shape(AMrgrid))*kind(AMrgrid)
-     deallocate(AMrgrid,stat=i_stat)
-     call memocc(i_stat,i_all,'AMrgrid',subname)
-
-     print *, AMig
-     AMig=AMig+1
-
-     i_all=-product(shape(AMpsi1s))*kind(AMpsi1s)
-     deallocate(AMpsi1s,stat=i_stat)
-     call memocc(i_stat,i_all,'AMpsi1s',subname)
-
-     if (nproc > 1) call MPI_FINALIZE(ierr)
-     print *, " exiting after gaussian part " 
+     call lanczos(iproc,nproc,atoms,orbs,comms,hx,hy,hz,rxyz,&
+          cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
+          rhopot(1,1,1+i3xcsh,1),psi,hpsi,ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
      stop
+
+     call GetExcitedOrbitalAsG(  in%iat_absorber ,Gabsorber,&
+          atoms, rxyz,nproc,  iproc, 1 )
+
+     stop
+
   endif
-
-
-
-  ! AMmodif end
-
-
-
-
 
   !save the new atomic positions in the rxyz_old array
   do iat=1,atoms%nat

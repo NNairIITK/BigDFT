@@ -392,6 +392,7 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ne
      pot_ion => rho
   end if
 
+
   if (iproc == 0) then
      do i3=0,2*n3+1
         do i2=0,2*n2+1
@@ -426,7 +427,6 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ne
      deallocate(pot_ion,stat=i_stat)
      call memocc(i_stat,i_all,'pot_ion',subname)
   end if
-
 end subroutine plot_density
 
 subroutine plot_density_cube(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&

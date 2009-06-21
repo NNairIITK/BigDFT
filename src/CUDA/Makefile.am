@@ -66,13 +66,13 @@ libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a
 #cutil is used for CUDA timer
 #libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a @LIB_CUTIL_PATH@/libcutil.a
 
-if BUILD_BINARIES
-bin_PROGRAMS = GPUham
-else
-bin_PROGRAMS = 
-endif
+#if BUILD_BINARIES
+#bin_PROGRAMS = GPUham
+#else
+#bin_PROGRAMS = 
+#endif
 
-check_PROGRAMS = conv_check
+check_PROGRAMS = conv_check GPUham
 
 else
 check_PROGRAMS = 

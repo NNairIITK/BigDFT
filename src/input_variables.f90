@@ -174,12 +174,16 @@ subroutine read_input_variables(iproc,filename,in)
      else 
         in%dispersion = 0
         read(line,*,iostat=ierror) in%nvirt, in%nplot
-     end if
+     endif   
      ! add reading for absorbing atom. iat_absorber=0 ( default ) means no absorption calculation
-     read(1,*,iostat=ierror)  in%iat_absorber
-     if(ierror/=0) then
+     if(ierror==0) then
+        read(1,*,iostat=ierror)  in%iat_absorber
+        if(ierror/=0) then
+           in%iat_absorber=0
+        endif
+     else
         in%iat_absorber=0
-     endif     
+     endif
 
   ! AMmodif end
 

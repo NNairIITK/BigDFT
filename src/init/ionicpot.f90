@@ -77,7 +77,7 @@ subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,&
               chgprod=real(at%nelpsp(jtyp),gp)*real(at%nelpsp(ityp),gp)
               evacancy=evacancy+chgprod/dist
            end do
-           print *,'Ionic energy of the vacancy, to be subtracted:',evacancy
+           if (iproc == 0) write(*,*)'Ionic energy of the vacancy, to be subtracted:',evacancy
         end if
      end do
 
@@ -449,6 +449,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      hxh,hyh,hzh,ef,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
   use module_base
   use module_types
+!  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver
   implicit none
   character(len=1), intent(in) :: geocode
@@ -682,51 +683,51 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      call createKernel(iproc,nproc,'F',n1i,n2i,n3i,hxh,hyh,hzh,16,pkernel_ref)
      call timing(iproc,'CrtLocPot     ','ON')
 
-     allocate(potion_corr(n1i*n2i*max(n3pi,1)+ndebug),stat=i_stat)
+
+     !calculate the ionic potential correction in the global data distribution
+     allocate(potion_corr(n1i*n2i*n3i+ndebug),stat=i_stat)
      call memocc(i_stat,potion_corr,'potion_corr',subname)
 
-     call razero(n1i*n2i*max(n3pi,1),potion_corr)
+     call razero(n1i*n2i*n3i,potion_corr)
 
-     if (n3pi >0) then
+     iat=nvacancy
+     ityp=at%iatype(iat)
+     rx=rxyz(1,iat) 
+     ry=rxyz(2,iat)
+     rz=rxyz(3,iat)
 
-        iat=nvacancy
-        ityp=at%iatype(iat)
-        rx=rxyz(1,iat) 
-        ry=rxyz(2,iat)
-        rz=rxyz(3,iat)
+     rloc=at%psppar(0,0,ityp)
+     charge=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
+     cutoff=10.d0*rloc
 
-        rloc=at%psppar(0,0,ityp)
-        charge=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
-        cutoff=10.d0*rloc
+     isx=floor((rx-cutoff)/hxh)
+     isy=floor((ry-cutoff)/hyh)
+     isz=floor((rz-cutoff)/hzh)
 
-        isx=floor((rx-cutoff)/hxh)
-        isy=floor((ry-cutoff)/hyh)
-        isz=floor((rz-cutoff)/hzh)
+     iex=ceiling((rx+cutoff)/hxh)
+     iey=ceiling((ry+cutoff)/hyh)
+     iez=ceiling((rz+cutoff)/hzh)
 
-        iex=ceiling((rx+cutoff)/hxh)
-        iey=ceiling((ry+cutoff)/hyh)
-        iez=ceiling((rz+cutoff)/hzh)
-
-        do i3=isz,iez
-           z=real(i3,kind=8)*hzh-rz
-           j3=i3+nbl3+1
-           do i2=isy,iey
-              y=real(i2,kind=8)*hyh-ry
-              do i1=isx,iex
-                 x=real(i1,kind=8)*hxh-rx
-                 r2=x**2+y**2+z**2
-                 arg=r2/rloc**2
-                 xp=exp(-.5d0*arg)
-                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. &
-                      (i2 >= 0 .and. i2 <= 2*n2+1)  .and. (i3 >= 0 .and. i3 <= 2*n3+1) ) then
-                    ind=i1+1+nbl1+(i2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                    potion_corr(ind)=xp*charge !the sign is inverted here 
-                    !if (xp*charge > 5.d-1) print *,'debug!',i1,i2,i3,iproc,rloc,xp*charge
-                 endif
-              enddo
+     do i3=isz,iez
+        z=real(i3,kind=8)*hzh-rz
+        call ind_positions(perz,i3,n3,j3,goz) 
+        j3=j3+nbl3+1
+        do i2=isy,iey
+           y=real(i2,kind=8)*hyh-ry
+           call ind_positions(pery,i2,n2,j2,goy)
+           do i1=isx,iex
+              x=real(i1,kind=8)*hxh-rx
+              call ind_positions(perx,i1,n1,j1,gox)
+              r2=x**2+y**2+z**2
+              arg=r2/rloc**2
+              xp=exp(-.5d0*arg)
+              if (goz  .and. goy  .and. gox ) then
+                 ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-1)*n1i*n2i
+                 potion_corr(ind)=xp*charge !the sign is inverted here
+              endif
            enddo
         enddo
-     end if
+     enddo
 
      !plot the ionic potential in a .pot file
      !allocate the arrays for plotting
@@ -740,77 +741,87 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      call createDensPotDescriptors(iproc,nproc,at%geocode,'D',n1i,n2i,n3i,0,&
           n3d_fake,n3p_fake,n3pi_fake,i3xcsh_fake,i3s_fake,nscatterarr,ngatherarr)
 
+     i_all=-product(shape(nscatterarr))*kind(nscatterarr)
+     deallocate(nscatterarr,stat=i_stat)
+     call memocc(i_stat,i_all,'nscatterarr',subname)
 
-     !call plot_density(at%geocode,'gaupotion.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3pi,&
-     !     1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
+
+!!$     call plot_density(at%geocode,'gaupotion.pot',iproc,1,n1,n2,n3,n1i,n2i,n3i,n3i,&
+!!$          1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
 
 
 
      call timing(iproc,'CrtLocPot     ','OF')
      !here the value of the datacode must be kept fixed
-     call PSolver('F','D',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
+     call PSolver('F','G',iproc,nproc,n1i,n2i,n3i,0,hxh,hyh,hzh,&
           potion_corr,pkernel_ref,potion_corr,ehart,eexcu,vexcu,0.0_gp,.false.,1)
      call timing(iproc,'CrtLocPot     ','ON')
 
 
-     !call plot_density(at%geocode,'deltapotion.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3pi,&
-     !     1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
+     i_all=-product(shape(pkernel_ref))*kind(pkernel_ref)
+     deallocate(pkernel_ref,stat=i_stat)
+     call memocc(i_stat,i_all,'pkernel_ref',subname)
 
 
-     if (n3pi > 0) then
-        iat=nvacancy
-        ityp=at%iatype(iat)
+!!$     call plot_density(at%geocode,'deltapotion.pot',iproc,1,n1,n2,n3,n1i,n2i,n3i,n3i,&
+!!$          1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
 
-        rx=rxyz(1,iat)
-        ry=rxyz(2,iat)
-        rz=rxyz(3,iat)
 
-        ! determine number of local terms
-        nloc=0
-        do iloc=1,4
-           if (at%psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
-        enddo
-        rloc=at%psppar(0,0,ityp)
-        cutoff=10.d0*rloc
+     iat=nvacancy
+     ityp=at%iatype(iat)
 
-        isx=floor((rx-cutoff)/hxh)
-        isy=floor((ry-cutoff)/hyh)
-        isz=floor((rz-cutoff)/hzh)
+     rx=rxyz(1,iat)
+     ry=rxyz(2,iat)
+     rz=rxyz(3,iat)
 
-        iex=ceiling((rx+cutoff)/hxh)
-        iey=ceiling((ry+cutoff)/hyh)
-        iez=ceiling((rz+cutoff)/hzh)
+     ! determine number of local terms
+     nloc=0
+     do iloc=1,4
+        if (at%psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
+     enddo
+     rloc=at%psppar(0,0,ityp)
+     cutoff=10.d0*rloc
 
-        !do not add the local part for the vacancy
-        if (nloc /= 0) then
+     isx=floor((rx-cutoff)/hxh)
+     isy=floor((ry-cutoff)/hyh)
+     isz=floor((rz-cutoff)/hzh)
 
-           do i3=isz,iez
-              z=real(i3,kind=8)*hzh-rz
-              j3=i3+nbl3+1
-              if ((i3 >= 0 .and. i3 <= 2*n3+1) .and. j3 >= i3s .and. j3 <=  i3s+n3pi-1) then
-                 do i2=isy,iey
-                    y=real(i2,kind=8)*hyh-ry
-                    if ((i2 >= 0 .and. i2 <= 2*n2+1)) then
-                       do i1=isx,iex
-                          x=real(i1,kind=8)*hxh-rx
-                          if (i1 >= 0 .and. i1 <= 2*n1+1) then
-                             r2=x**2+y**2+z**2
-                             arg=r2/rloc**2
-                             xp=exp(-.5d0*arg)
-                             tt=at%psppar(0,nloc,ityp)
-                             do iloc=nloc-1,1,-1
-                                tt=arg*tt+at%psppar(0,iloc,ityp)
-                             enddo
-                             ind=i1+1+nbl1+(i2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                             potion_corr(ind)=potion_corr(ind)-xp*tt ! the sign has changed here
-                          end if
-                       enddo
-                    end if
-                 enddo
-              end if
-           end do
+     iex=ceiling((rx+cutoff)/hxh)
+     iey=ceiling((ry+cutoff)/hyh)
+     iez=ceiling((rz+cutoff)/hzh)
 
-        end if
+     !do not add the local part for the vacancy
+     if (nloc /= 0) then
+
+        do i3=isz,iez
+           z=real(i3,kind=8)*hzh-rz
+           call ind_positions(perz,i3,n3,j3,goz) 
+           j3=j3+nbl3+1
+           if (goz) then
+              do i2=isy,iey
+                 y=real(i2,kind=8)*hyh-ry
+                 call ind_positions(pery,i2,n2,j2,goy)
+                 if (goy) then
+                    do i1=isx,iex
+                       x=real(i1,kind=8)*hxh-rx
+                       call ind_positions(perx,i1,n1,j1,gox)
+                       if (gox) then
+                          r2=x**2+y**2+z**2
+                          arg=r2/rloc**2
+                          xp=exp(-.5d0*arg)
+                          tt=at%psppar(0,nloc,ityp)
+                          do iloc=nloc-1,1,-1
+                             tt=arg*tt+at%psppar(0,iloc,ityp)
+                          enddo
+                          ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-1)*n1i*n2i
+                          potion_corr(ind)=&
+                               potion_corr(ind)-xp*tt ! the sign has changed here
+                       end if
+                    enddo
+                 end if
+              enddo
+           end if
+        end do
 
      end if
 
@@ -818,14 +829,16 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
      !call plot_density(at%geocode,'deltapotion_final.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3pi,&
      !     1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
 
+     !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
      !add the periodic pot_ion
-     call axpy(n1i*n2i*n3pi,1.0_dp,pot_ion(1),1,potion_corr(1),1)
+     ind=1+(i3s-1)*n1i*n2i
+     call axpy(n1i*n2i*n3pi,1.0_dp,pot_ion(1),1,potion_corr(ind),1)
 
      if (correct_offset) then
         !calculate the offset
         tt=0.d0
-        do ind=1,n3pi*n2i*n1i
-           tt=tt+potion_corr(ind)
+        do i1=1,n3pi*n2i*n1i
+           tt=tt+potion_corr(ind-1+i1)
         enddo
         !tt=tt*hxh*hyh*hzh
         if (nproc > 1) then
@@ -842,8 +855,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
 
         !calculate the offset
         tt=0.d0
-        do ind=1,n3pi*n2i*n1i
-           tt=tt+potion_corr(ind)
+        do i1=1,n3pi*n2i*n1i
+           tt=tt+potion_corr(ind-1+i1)
         enddo
         !tt=tt*hxh*hyh*hzh
         if (nproc > 1) then
@@ -856,17 +869,12 @@ subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
         if (iproc==0) print *,'offset recheck',offset
      end if
 
+     !here put nproc=1 
      call plot_density(at%geocode,'potion_corr.pot',iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3pi,&
-          1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr)
+          1,at%alat1,at%alat2,at%alat3,ngatherarr,potion_corr(ind))
 
-     i_all=-product(shape(nscatterarr))*kind(nscatterarr)
-     deallocate(nscatterarr,stat=i_stat)
-     call memocc(i_stat,i_all,'nscatterarr',subname)
-     i_all=-product(shape(pkernel_ref))*kind(pkernel_ref)
-     deallocate(pkernel_ref,stat=i_stat)
-     call memocc(i_stat,i_all,'pkernel_ref',subname)
 
-!!$     call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
 !!$     !reread file from disk
 !!$     !overwrite pot_ion with the potential previously created
 !!$     call read_potfile(at%geocode,'potion_corr.pot',n1,n2,n3,n1i,n2i,n3i,n3pi,i3s,1,potion_corr)
