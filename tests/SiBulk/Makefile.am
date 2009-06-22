@@ -3,8 +3,8 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	input.dat \
-	posinp 
+	input.dft \
+	posinp.xyz 
 
 PPFILES = \
 	psppar.Si
@@ -17,7 +17,7 @@ $(PPFILES):
 	cp $(top_srcdir)/utils/PSPfiles/HGH/$@ .
 
 check: $(PPFILES)
-	cp -f $(top_srcdir)/tests/SiBulk/input.dat .
-	cp -f $(top_srcdir)/tests/SiBulk/posinp .
+	cp -f $(top_srcdir)/tests/SiBulk/input.dft .
+	cp -f $(top_srcdir)/tests/SiBulk/posinp.xyz .
 	$(run_parallel) $(top_builddir)/src/cluster > SiBulk.out
 	python $(top_srcdir)/tests/fldiff.py --bigdft SiBulk.out $(top_srcdir)/tests/Refs/SiBulk.out.ref | tee fldiff.report

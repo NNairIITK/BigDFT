@@ -3,8 +3,8 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	input.dat \
-	posinp
+	input.dft \
+	posinp.xyz
 
 PPFILES = \
 	psppar.H
@@ -17,8 +17,8 @@ $(PPFILES):
 	cp $(top_srcdir)/utils/PSPfiles/$@ .
 
 check: $(PPFILES) 
-	cp -f $(top_srcdir)/tests/H/input.dat .
-	cp -f $(top_srcdir)/tests/H/posinp .
+	cp -f $(top_srcdir)/tests/H/input.dft .
+	cp -f $(top_srcdir)/tests/H/posinp.xyz .
 	$(top_builddir)/src/memguess 1 > H.memguess
 	python $(top_srcdir)/tests/fldiff.py --bigdft H.memguess $(top_srcdir)/tests/Refs/H.memguess.ref | cat
 	$(run_parallel) $(top_builddir)/src/cluster > H.out

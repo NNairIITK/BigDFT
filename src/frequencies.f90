@@ -78,8 +78,12 @@ program frequencies
 
   close(99)
 
-  ! read input variables, use structures
-  call read_input_variables(iproc,'input.dat',inputs)
+  ! read dft input variables
+  call dft_input_variables(iproc,'input.dft',inputs)
+  !call read_input_variables(iproc,'input.dat',inputs)
+
+  !fake geopt variables
+  call geopt_input_variables_default(inputs)
  
   do iat=1,atoms%nat
      if (atoms%ifrztyp(iat) == 0) then

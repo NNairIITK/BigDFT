@@ -1100,9 +1100,6 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
 
 
 
-
-
-
 subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg,&
@@ -1610,17 +1607,19 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
 END SUBROUTINE gatom_modified
 
 
-subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc, iproc, dump_functions)
+subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc, iproc, dump_functions,Gabs_coeffs)
 
   use module_base
   use module_types
   use module_interfaces
 
   implicit none
+  integer, parameter :: abs_final_L = 1
   integer, intent(in) :: in_iat_absorber, nproc, iproc, dump_functions
   type(gaussian_basis) , intent(out) :: Gabsorber
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
+  real(wp), dimension(2*abs_final_L+1), intent(out) :: Gabs_coeffs
   
   ! -----------------------------------------------------------
   
@@ -1630,7 +1629,7 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   integer :: psp_modifier
   integer :: ig, nord, iocc, iexpo
 
-  integer :: abs_final_L,  abs_initial_L
+  integer ::  abs_initial_L
   integer, parameter :: Norder=4
   real(gp) :: Scoeffs(Norder)
   integer :: iocc_for_j(  Norder )
@@ -1710,7 +1709,7 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   enddo
   
   
-  abs_final_L = 1
+
   abs_initial_L = 0
   
  
@@ -1862,7 +1861,7 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
 
 
   Gabsorber%ndoc(1)  =  ng_fine
-  Gabsorber%nam(1)   =  abs_final_l
+  Gabsorber%nam(1)   =  abs_final_l+1
   Gabsorber%nexpo         =  Gabsorber%nexpo+ ng_fine 
   Gabsorber%ncoeff        =  Gabsorber%ncoeff+2* abs_final_l + 1
 
@@ -1876,11 +1875,17 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   do ig=1,Gabsorber%ndoc(1)
      iexpo=iexpo+1
      Gabsorber%psiat(iexpo)=gcoeffs (ig-1)
-     Gabsorber%xp(iexpo)=1.0/2.0/expo(ig)/expo(ig)
+     Gabsorber%xp(iexpo)=expo(ig)
   end do
 
+  print *,'expo',shape(expo),ng_fine,expo(:)
 
   ! -------------------------------------------------------------------------
+
+  !fill the polarisation, hard coded for the moment
+  Gabs_coeffs(1)=0.0_wp
+  Gabs_coeffs(2)=0.0_wp
+  Gabs_coeffs(3)=1.0_wp
 
   i_all=-product(shape(psigrid_pseudo))*kind(psigrid_pseudo)
   deallocate(psigrid_pseudo,stat=i_stat)

@@ -680,12 +680,13 @@ end subroutine calc_moments
 !experimental routine for correcting the potential from a vacancy
 subroutine correct_hartree_potential(at,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n3pi,n3d,&
      i3s,i3xcsh,hxh,hyh,hzh,pkernel,ngatherarr,&
-     rhoref,pkernel_ref,pot_ion,rhopot,ixc,nspin,ehart,eexcu,vexcu,PSquiet)
+     rhoref,pkernel_ref,pot_ion,rhopot,ixc,nspin,ehart,eexcu,vexcu,PSquiet,correct_offset)
   use module_base
   use module_types
   use Poisson_Solver
   implicit none
   character(len=3), intent(in) :: PSquiet
+  logical, intent(in) :: correct_offset
   integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,nspin,ixc,i3xcsh,n1,n2,n3,i3s
   real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: at
@@ -917,3 +918,149 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n3p
   call memocc(i_stat,i_all,'drho',subname)
 
 end subroutine correct_hartree_potential
+
+
+subroutine check_communications(iproc,nproc,orbs,lr,comms)
+  use module_base
+  use module_types
+  use module_interfaces
+  implicit none
+  integer, intent(in) :: iproc,nproc
+  type(orbitals_data), intent(in) :: orbs
+  type(locreg_descriptors), intent(in) :: lr
+  type(communications_arrays), intent(in) :: comms
+  !local variables
+  character(len=*), parameter :: subname='check_communications'
+  integer :: i,ispinor,iorb,indspin,indorb,jproc,iscompm,i_stat,i_all,iscomp,idsx,index
+  real(wp) :: vali,valorb,psival,maxdiff,ierr
+  real(wp), dimension(:), allocatable :: psi
+  real(wp), dimension(:), pointer :: pwork
+
+  !allocate the "wavefunction" amd fill it, and also the workspace
+  allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+  call memocc(i_stat,psi,'psi',subname)
+  allocate(pwork(orbs%npsidim+ndebug),stat=i_stat)
+  call memocc(i_stat,pwork,'pwork',subname)
+
+  do iorb=1,orbs%norbp
+     valorb=real(orbs%isorb+iorb,wp)
+     indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
+     do ispinor=1,orbs%nspinor
+        indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
+        do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+           vali=real(i,wp)*1.d-5
+           psi(i+indspin+indorb)=(valorb+vali)*(-1)**(ispinor-1)
+        end do
+     end do
+  end do
+
+  !transpose the hpsi wavefunction
+  call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,comms,psi,work=pwork)
+
+  !calculate the starting point for the component distribution
+  iscomp=0
+  do jproc=0,iproc-1
+     iscomp=iscomp+comms%nvctr_par(jproc)
+  end do
+
+  !check the results of the transposed wavefunction
+  maxdiff=0.0_wp
+  do iorb=1,orbs%norb
+     valorb=real(iorb,wp)
+     indorb=(iorb-1)*(comms%nvctr_par(iproc))*orbs%nspinor
+     do idsx=1,(orbs%nspinor-1)/2+1
+        do i=1,comms%nvctr_par(iproc)
+           vali=real(i+iscomp,wp)*1.d-5
+           do ispinor=1,((2+orbs%nspinor)/4+1)
+              psival=(-1)**(ispinor-1)*(valorb+vali)
+              index=ispinor+(i-1)*((2+orbs%nspinor)/4+1)+&
+                   (idsx-1)*((2+orbs%nspinor)/4+1)*comms%nvctr_par(iproc)+indorb
+              maxdiff=max(abs(psi(index)-psival),maxdiff)
+           end do
+        end do
+     end do
+  end do
+  if (maxdiff /= 0.0_wp) then
+     write(*,*)'ERROR: process',iproc,'does not transpose wavefunctions correctly!'
+     write(*,*)'       found an error of',maxdiff,'cannot continue.'
+     write(*,*)'       data are written in the file transerror.log, exiting...'
+
+     open(unit=22,file='transerror.log',status='unknown')
+     do iorb=1,orbs%norb
+        valorb=real(iorb,wp)
+        indorb=(iorb-1)*(comms%nvctr_par(iproc))*orbs%nspinor
+        do idsx=1,(orbs%nspinor-1)/2+1
+           do i=1,comms%nvctr_par(iproc)
+              vali=real(i+iscomp,wp)*1.d-5
+              do ispinor=1,((2+orbs%nspinor)/4+1)
+                 psival=(-1)**(ispinor-1)*(valorb+vali)
+                 index=ispinor+(i-1)*((2+orbs%nspinor)/4+1)+&
+                      (idsx-1)*((2+orbs%nspinor)/4+1)*comms%nvctr_par(iproc)+indorb
+                 maxdiff=abs(psi(index)-psival)
+                 write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i+iscomp,iorb,psival,&
+                      psi(index),maxdiff
+              end do
+           end do
+        end do
+     end do
+     close(unit=22)
+
+     call MPI_ABORT(MPI_COMM_WORLD,ierr)
+
+  end if
+
+  !retranspose the hpsi wavefunction
+  call untranspose_v(iproc,nproc,orbs%norbp,orbs%nspinor,lr%wfd,comms,&
+       psi,work=pwork)
+
+  maxdiff=0.0_wp
+  do iorb=1,orbs%norbp
+     valorb=real(orbs%isorb+iorb,wp)
+     indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
+     do ispinor=1,orbs%nspinor
+        indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
+        do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+           vali=real(i,wp)*1.d-5
+           psival=(valorb+vali)*(-1)**(ispinor-1)
+           maxdiff=max(abs(psi(i+indspin+indorb)-psival),maxdiff)
+        end do
+     end do
+  end do
+
+  if (maxdiff /= 0.0_wp) then
+     write(*,*)'ERROR: process',iproc,'does not untranspose wavefunctions correctly!'
+     write(*,*)'       found an error of',maxdiff,'cannot continue.'
+     write(*,*)'       data are written in the file transerror.log, exiting...'
+
+     open(unit=22,file='transerror.log',status='unknown')
+     maxdiff=0.0_wp
+     do iorb=1,orbs%norbp
+        valorb=real(orbs%isorb+iorb,wp)
+        indorb=(iorb-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor
+        do ispinor=1,orbs%nspinor
+           indspin=(ispinor-1)*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
+           do i=1,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+              vali=real(i,wp)*1.d-5
+              psival=(valorb+vali)*(-1)**(ispinor-1)
+              maxdiff=abs(psi(i+indspin+indorb)-psival)
+              write(22,'(i3,i6,i5,3(1x,1pe13.6))')ispinor,i,iorb+orbs%isorb,psival,&
+                   psi(ispinor+(i-1)*orbs%nspinor+indorb),maxdiff
+           end do
+        end do
+     end do
+     close(unit=22)
+
+     call MPI_ABORT(MPI_COMM_WORLD,ierr)
+
+  end if
+
+  i_all=-product(shape(psi))*kind(psi)
+  deallocate(psi,stat=i_stat)
+  call memocc(i_stat,i_all,'psi',subname)
+  i_all=-product(shape(pwork))*kind(pwork)
+  deallocate(pwork,stat=i_stat)
+  call memocc(i_stat,i_all,'pwork',subname)
+
+
+
+end subroutine check_communications

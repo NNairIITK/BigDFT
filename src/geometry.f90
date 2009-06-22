@@ -50,20 +50,23 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
 
   if (iproc ==0) write(16,*) '---------------------------------------------------------------'
 
-  !inquire for the file needed for geometry optimisation
-  !if not present, switch to traditional SDCG method
-  inquire(file="input.geopt",exist=exists)
+  !assign the geometry optimisation method
+  parmin%approach=in%geopt_approach
 
-
-  if (exists) then
-     !Read from input.geopt
-     open(84,file="input.geopt")
-     read(84,*) parmin%approach
-     close(84)
-  else
-     if (iproc ==0) write(*,*)' File "input.geopt" not found, do SDCG method'
-     parmin%approach='SDCG'
-  end if
+!!$  !inquire for the file needed for geometry optimisation
+!!$  !if not present, switch to traditional SDCG method
+!!$  inquire(file="input.geopt",exist=exists)
+!!$
+!!$
+!!$  if (exists) then
+!!$     !Read from input.geopt
+!!$     open(84,file="input.geopt")
+!!$     read(84,*) parmin%approach
+!!$     close(84)
+!!$  else
+!!$     if (iproc ==0) write(*,*)' File "input.geopt" not found, do SDCG method'
+!!$     parmin%approach='SDCG'
+!!$  end if
 
   ncount_bigdft=0
   write(fn4,'(i4.4)') ncount_bigdft
@@ -130,10 +133,11 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   character*40 comment
   type(parameterminimization)::parmin
   parmin%betax=in%betax
-  !Read from input.geopt
-  open(84,file="input.geopt")
-  read(84,*) parmin%approach
-  close(84)
+!!$  !Read from input.geopt
+!!$  open(84,file="input.geopt")
+!!$  read(84,*) parmin%approach
+!!$  close(84)
+  parmin%approach=in%geopt_approach
   n=3*at%nat
   fail=.false.    
   parmin%converged=.false.
@@ -222,8 +226,6 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      endif
 
      call lbfgs(at,3*at%nat,m,x,xc,epot,f,diag,work,parmin,iproc,iwrite)
-
-
 
      if (iwrite==iter_old+1 ) then
         xwrite(:)=xdft(:)

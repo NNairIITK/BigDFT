@@ -3,11 +3,11 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	input.dat \
-	posinp
+	input.dft \
+	posinp.xyz
 
 PPFILES = \
-	psppar.Ca_lda
+	psppar.Ca
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* Ca2.out posout* *.prc\
 			 fldiff.report $(EXTRA_DIST) $(PPFILES)
@@ -21,8 +21,8 @@ inguess.dat:
 
 #Use 4.0e-10 to test fldiff.py and also difference betwen 1 (gfortran) and many cores (g95) (TD)
 check: $(PPFILES) inguess.dat 
-	cp -f $(top_srcdir)/tests/Ca2/input.dat .
-	cp -f $(top_srcdir)/tests/Ca2/posinp .
+	cp -f $(top_srcdir)/tests/Ca2/input.dft .
+	cp -f $(top_srcdir)/tests/Ca2/posinp.xyz .
 	$(run_parallel) $(top_builddir)/src/cluster > Ca2.out
 	python $(top_srcdir)/tests/fldiff.py --bigdft --discrepancy=4.e-10 Ca2.out \
 		$(top_srcdir)/tests/Refs/Ca2.out.ref | tee fldiff.report

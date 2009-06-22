@@ -486,6 +486,9 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   hyh=.5_gp*hy
   hzh=.5_gp*hz
 
+  !check the communication distribution
+  call check_communications(iproc,nproc,orbse,Glr,commse)
+
   !once the wavefunction coefficients are known perform a set 
   !of nonblocking send-receive operations to calculate overlap matrices
 
