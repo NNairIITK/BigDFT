@@ -104,7 +104,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
   end if
 
 
-  if (iproc == 0) print *,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,'nvctrp',comms%nvctr_par(:)
+  !if (iproc == 0) print *,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,'nvctrp',comms%nvctr_par(:)
 
   !calculate the dimension of the wavefunction
   !for the given processor

@@ -64,22 +64,28 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
 
   !-------------------------------------------
   type(parameterminimization) :: parmin
-  character(len=4) :: fn4
-  character(len=40) :: comment
+  character*4 fn4
+  character*40 comment
 
-  !inquire for the file needed for geometry optimisation
-  !if not present, switch to traditional SDCG method
-  inquire(file="input.geopt",exist=exists)
+  if (iproc ==0) write(16,*) '---------------------------------------------------------------'
 
-  if (exists) then
-     !Read from input.geopt
-     open(84,file="input.geopt")
-     read(84,*) parmin%approach
-     close(84)
-  else
-     if (iproc ==0) write(*,*)' File "input.geopt" not found, do SDCG method'
-     parmin%approach='SDCG'
-  end if
+  !assign the geometry optimisation method
+  parmin%approach=in%geopt_approach
+
+!!$  !inquire for the file needed for geometry optimisation
+!!$  !if not present, switch to traditional SDCG method
+!!$  inquire(file="input.geopt",exist=exists)
+!!$
+!!$
+!!$  if (exists) then
+!!$     !Read from input.geopt
+!!$     open(84,file="input.geopt")
+!!$     read(84,*) parmin%approach
+!!$     close(84)
+!!$  else
+!!$     if (iproc ==0) write(*,*)' File "input.geopt" not found, do SDCG method'
+!!$     parmin%approach='SDCG'
+!!$  end if
 
   ncount_bigdft=0
   write(fn4,'(i4.4)') ncount_bigdft
@@ -94,10 +100,8 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
      call bfgs(nproc,iproc,pos,fxyz,epot,at,rst,in,ncount_bigdft,fail)
 
      if (fail) then 
-
         if (iproc ==0) write(*,*) '# ENTERING CG after BFGS failure'
         call conjgrad(nproc,iproc,pos,at,epot,fxyz,rst,in,ncount_bigdft)
-
      end if
 
   else if(trim(parmin%approach)=='SDCG') then
@@ -153,10 +157,11 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   character*40 comment
   type(parameterminimization)::parmin
   parmin%betax=in%betax
-  !Read from input.geopt
-  open(84,file="input.geopt")
-  read(84,*) parmin%approach
-  close(84)
+!!$  !Read from input.geopt
+!!$  open(84,file="input.geopt")
+!!$  read(84,*) parmin%approach
+!!$  close(84)
+  parmin%approach=in%geopt_approach
   n=3*at%nat
   fail=.false.    
   parmin%converged=.false.
@@ -217,6 +222,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   allocate(work(n*(2*m+1)+2*m),stat=i_stat)
   call memocc(i_stat,work,'work',subname)
   xc(:)=x(:)
+  xwrite(:)=x(:)
 
   fail=.false.
   bfgs_loop: do ! main BFGS loop
@@ -245,8 +251,6 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
      endif
 
      call lbfgs(at,3*at%nat,m,x,xc,epot,f,diag,work,parmin,iproc,iwrite)
-
-
 
      if (iwrite==iter_old+1 ) then
         xwrite(:)=xdft(:)

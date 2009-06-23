@@ -70,9 +70,13 @@ program frequencies
 
   close(unit=99)
 
-  ! read input variables, use structures
-  call read_input_variables(iproc,'input.dat',inputs)
+  ! read dft input variables
+  call dft_input_variables(iproc,'input.dft',inputs)
+  !call read_input_variables(iproc,'input.dat',inputs)
 
+  !fake geopt variables
+  call geopt_input_variables_default(inputs)
+ 
   do iat=1,atoms%nat
      if (atoms%ifrztyp(iat) == 0) then
         call random_number(tt)
@@ -98,7 +102,6 @@ program frequencies
 
   call init_restart_objects(atoms,rst,subname)
 
-! First, calculate forces for the atomic configuration
   call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
 
   if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
@@ -123,7 +126,6 @@ program frequencies
      end if
   endif
 
-  !Allocations
   allocate(rpos(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,rpos,'rpos',subname)
   allocate(fpos_m(3,atoms%nat+ndebug),stat=i_stat)
@@ -145,9 +147,6 @@ program frequencies
   h_grid(1) = inputs%hx
   h_grid(2) = inputs%hy
   h_grid(3) = inputs%hz
-
-!Initialize moves (displacement already calculated)
- moves = .false.
 
   if (iproc ==0 ) then
      write(*,"(1x,a)") '=Frequencies calculation='

@@ -2005,7 +2005,7 @@ end function wave
 !!***
 
 
-!!****f* BigDFT/
+!!****f* BigDFT/emuxc
 !! FUNCTION
 !!   
 !!
@@ -2041,7 +2041,7 @@ end function emuxc
 !!***
 
 
-!!****f* BigDFT/
+!!****f* BigDFT/gamma
 !! FUNCTION
 !!   Restricted version of the Gamma function
 !!

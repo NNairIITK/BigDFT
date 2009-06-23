@@ -3,9 +3,9 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	input.dat \
+	input.dft \
 	occup.dat \
-	posinp
+	posinp.xyz
 
 PPFILES = \
 	psppar.C
@@ -21,8 +21,8 @@ inguess.dat:
 	cp $(top_srcdir)/tests/inguess.dat .
 
 check: $(PPFILES) inguess.dat
-	cp -f $(top_srcdir)/tests/C/input.dat .
-	cp -f $(top_srcdir)/tests/C/posinp .
+	cp -f $(top_srcdir)/tests/C/input.dft .
+	cp -f $(top_srcdir)/tests/C/posinp.xyz .
 	cp -f $(top_srcdir)/tests/C/occup.dat .
 	$(run_parallel) $(top_builddir)/src/cluster > C.out
 	python $(top_srcdir)/tests/fldiff.py --bigdft C.out $(top_srcdir)/tests/Refs/C.out.ref | tee fldiff.report

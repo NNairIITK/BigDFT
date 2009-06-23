@@ -1,44 +1,40 @@
-                             BBBB         i       ggggg    
-                            B    B               g         
-                           B     B        i     g          
-                           B    B         i     g        g 
-                           BBBBB          i     g         g
-                           B    B         i     g         g
-                           B     B        i     g         g
-                           B      B       i     g         g
-                           B     B     iiii     g         g
-                           B BBBB         i      g        g
-                           B             i        g      g 
-                       BBBBBBBBB    iiiii          gggggg  
-                         DDDDDD          FFFFF    TTTTTTTTT
-                        D      D        F             T    
-                       D        D      F         TTTT T    
-                       D         D     FFFF     T     T    
-                       D         D     F       T      T    
-                       D         D     F        T     T    
-                       D         D     F         T    T    
-                       D         D     F          TTTTT    
-                        D        D     F         T    T    
-                                 D     F        T     T    
-                                D               T    T     
-                           DDDDD       F         TTTT                     (Ver 1.1.9)
+                             TTTT         F       DDDDD    
+                            T    T               D         
+                           T     T        F     D          
+                           T    T         F     D        D 
+                           TTTTT          F     D         D
+                           T    T         F     D         D
+                           T     T        F     D         D
+                           T      T       F     D         D
+                           T     T     FFFF     D         D
+                           T TTTT         F      D        D
+                           T             F        D      D 
+                       TTTTTTTTT    FFFFF          DDDDDD  
+                         gggggg          iiiii    BBBBBBBBB
+                        g      g        i             B    
+                       g        g      i         BBBB B    
+                       g         g     iiii     B     B    
+                       g         g     i       B      B    
+                       g         g     i        B     B    
+                       g         g     i         B    B    
+                       g         g     i          BBBBB    
+                        g        g     i         B    B    
+                                 g     i        B     B    
+                                g               B    B     
+                           ggggg       i         BBBB                     (Ver 1.3.0)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
+                                   The Journal of Chemical Physics 129, 014109 (2008)
  Number of atoms     = 2
  Number of atom types= 1
  Atoms of type 1 are Mn
- Max. number of wavefnctn optim 1
- Convergence criterion for forces: fraction of noise   1.00E+00
-                                 : maximal component   0.00E+00
- Random displacement amplitude   0.00E+00
- Steepest descent step   4.00E+00
  Spin-polarised calculation: YES (Non-collinear)
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Grid spacing=  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 5.0E-04 | Calculate=   F
-        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=      20 | Extension= 5.0
- total charge=      0 |                    | CG Prec.Steps=      10 |  CG Steps=  30
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 5.0E-04 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   20x10 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       9 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
  Polarisation=      0 |
  ------------------------------------------------------------------ System Properties
@@ -57,15 +53,17 @@
      l=2      rl        h1j       h2j       h3j 
             0.32776  -7.99542
  Total Number of Electrons       14
- Spin-polarized calculation
+ Spin-polarized non-collinear calculation
  Total Number of Orbitals       14
  occup(1:14)= 1.0000
+ Input wavefunction data for atom     Mn NOT found, automatic generation... done.
  Shifted atomic positions, Atomic Units:                   grid spacing units:
      1     Mn  7.87500E+00  7.87500E+00  7.97663E+00       17.500    17.500    17.726
      2     Mn  7.87500E+00  7.87500E+00  1.31734E+01       17.500    17.500    29.274
     Shift of=  7.87500E+00  7.87500E+00  7.97663E+00 Grid Spacings=  0.45  0.45  0.45
    Box Sizes=  1.57500E+01  1.57500E+01  2.11500E+01           35        35        47
        Extremes for the high resolution grid points:        12<23     12<23     12<35
+ wavelet localization is ON
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
     1      Mn               2                   14
@@ -92,6 +90,6 @@
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 149 MB
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 20 allocations and 20 deallocations, remaining memory(B):0
- memory occupation peak: 0 MB
- for the array  logrid_f in the routine MemoryEstimator
+ 38 allocations and 38 deallocations, remaining memory(B):0
+ memory occupation peak: 25 MB
+ for the array  rmt in the routine iguess_generator

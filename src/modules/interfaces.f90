@@ -203,12 +203,12 @@ module module_interfaces
      end subroutine createDensPotDescriptors
 
      subroutine IonicEnergyandForces(iproc,nproc,at,hxh,hyh,hzh,rxyz,eion,fion,psoffset,&
-          n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
+          nvacancy,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,pot_ion,pkernel)
        use module_base
        use module_types
        implicit none
        type(atoms_data), intent(in) :: at
-       integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi
+       integer, intent(in) :: iproc,nproc,n1,n2,n3,n1i,n2i,n3i,i3s,n3pi,nvacancy
        real(kind=8), intent(in) :: hxh,hyh,hzh
        real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
        real(kind=8), dimension(*), intent(in) :: pkernel
@@ -218,19 +218,20 @@ module module_interfaces
      end subroutine IonicEnergyandForces
 
      subroutine createIonicPotential(geocode,iproc,nproc,at,rxyz,&
-          hxh,hyh,hzh,ef,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,eion,psoffset)
+          hxh,hyh,hzh,ef,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,nvacancy,&
+          correct_offset)
        use module_base
        use module_types
        implicit none
        character(len=1), intent(in) :: geocode
-       integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+       logical, intent(in) :: correct_offset
+       integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,nvacancy
        real(gp), intent(in) :: hxh,hyh,hzh,psoffset
        type(atoms_data), intent(in) :: at
        real(gp), dimension(3), intent(in) :: ef
        real(gp), dimension(3,at%nat), intent(in) :: rxyz
        real(dp), dimension(*), intent(in) :: pkernel
        real(wp), dimension(*), intent(inout) :: pot_ion
-       real(gp), intent(out) :: eion
      end subroutine createIonicPotential
 
      subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
@@ -677,6 +678,47 @@ module module_interfaces
        integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r
        real(gp), intent(out) :: epot
      end subroutine apply_potential
+
+     subroutine correct_hartree_potential(at,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n3pi,n3d,&
+          i3s,i3xcsh,hxh,hyh,hzh,pkernel,ngatherarr,&
+          rhoref,pkernel_ref,pot_ion,rhopot,ixc,nspin,ehart,eexcu,vexcu,PSquiet,correct_offset)
+       use module_base
+       use module_types
+       implicit none
+       character(len=3), intent(in) :: PSquiet
+       logical, intent(in) :: correct_offset
+       integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,nspin,ixc,i3xcsh,n1,n2,n3,i3s
+       real(gp), intent(in) :: hxh,hyh,hzh
+       type(atoms_data), intent(in) :: at
+       integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+       real(dp), dimension(n1i,n2i,max(n3d,1),nspin), intent(inout) :: rhoref
+       real(dp), dimension(n1i,n2i,max(n3pi,1)), intent(inout) :: pot_ion
+       real(dp), dimension(n1i,n2i,max(n3d,1),nspin), intent(inout) :: rhopot
+       real(gp), intent(out) :: ehart,eexcu,vexcu
+       real(dp), dimension(:), pointer :: pkernel_ref,pkernel
+     end subroutine correct_hartree_potential
+
+     subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,Gabsorber,Gabs_coeffs,&
+          cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
+          ekin_sum,epot_sum,eproj_sum,nspin,GPU)
+       use module_base
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nproc,ndimpot,nspin
+       real(gp), intent(in) :: hx,hy,hz,cpmult,fpmult
+       type(atoms_data), intent(in), target :: at
+       type(nonlocal_psp_descriptors), intent(in) , target :: nlpspd
+       type(locreg_descriptors), intent(in) , target :: lr 
+       type(gaussian_basis), target :: Gabsorber
+       integer, dimension(0:nproc-1,2), intent(in) , target :: ngatherarr 
+       real(gp), dimension(3,at%nat), intent(in) , target :: rxyz
+       real(gp), dimension(at%ntypes,3), intent(in) , target :: radii_cf  
+       real(wp), dimension(nlpspd%nprojel), intent(in) , target :: proj
+       real(wp), dimension(max(ndimpot,1),nspin), intent(in), target :: potential
+       real(wp), dimension(3), target :: Gabs_coeffs
+       real(gp), intent(out) :: ekin_sum,epot_sum,eproj_sum
+       type(GPU_pointers), intent(inout) , target :: GPU
+     end subroutine lanczos
 
   end interface
 

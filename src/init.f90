@@ -88,7 +88,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_
           ' ERROR: the coarse grid does not fill the entire periodic box'
         write(*,*)&
           '          errors due to translational invariance breaking may occur'
-        stop
+        !stop
      end if
      if (GPUconv) then
         if (iproc ==0)then
@@ -499,6 +499,9 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   hyh=.5_gp*hy
   hzh=.5_gp*hz
 
+  !check the communication distribution
+  call check_communications(iproc,nproc,orbse,Glr,commse)
+
   !once the wavefunction coefficients are known perform a set 
   !of nonblocking send-receive operations to calculate overlap matrices
 
@@ -553,7 +556,7 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   !application of the hamiltonian for gaussian based treatment
   call sumrho(iproc,nproc,orbse,Glr,ixc,hxh,hyh,hzh,psi,rhopot,&
        Glr%d%n1i*Glr%d%n2i*nscatterarr(iproc,1),nscatterarr,nspin,GPU)
-
+  
   if(orbs%nspinor==4) then
      !this wrapper can be inserted inside the poisson solver 
      call PSolverNC(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
@@ -566,8 +569,6 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
           rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,nspin)
   end if
 
-!!$  call PSolver(at%geocode,'D',iproc,nproc,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,ixc,hxh,hyh,hzh,&
-!!$       rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.0_dp,.true.,nspin)
 
 !!$  if (nproc == 1) then
 !!$     !calculate the overlap matrix as well as the kinetic overlap

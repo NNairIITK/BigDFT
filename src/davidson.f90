@@ -197,7 +197,8 @@ subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
 
   ! Rayleigh quotients.
   do iorb=1,orbsv%norb ! temporary variables 
-     e(iorb,1,ise)= dot(commsv%nvctr_par(iproc),v(1+commsv%nvctr_par(iproc)*(iorb-1)),1,hv(1+commsv%nvctr_par(iproc)*(iorb-1)),1)          != <psi|H|psi> 
+     e(iorb,1,ise)= dot(commsv%nvctr_par(iproc),v(1+commsv%nvctr_par(iproc)*(iorb-1)),1,&
+          hv(1+commsv%nvctr_par(iproc)*(iorb-1)),1)          != <psi|H|psi> 
      e(iorb,2,ise)= nrm2(commsv%nvctr_par(iproc),v(1+commsv%nvctr_par(iproc)*(iorb-1)),1)**2                    != <psi|psi> 
   end do
 

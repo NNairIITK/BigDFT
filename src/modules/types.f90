@@ -13,6 +13,7 @@
 !! SOURCE
 !! 
 module module_types
+
   use module_base, only : gp,wp,dp
   implicit none
 !!***
@@ -20,16 +21,18 @@ module module_types
 !!****t* module_types/input_variables
 !! DESCRIPTION
 !!   Input variable structure
-!!   Structure of the variables read by input.dat file
+!!   Structure of the variables read by input.dft file
 !! SOURCE
 !!
   type, public :: input_variables
-     logical :: output_wf,calc_tail,gaussian_help
+     character(len=10) :: geopt_approach
+     logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
      integer :: ncount_cluster_x
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,nvirt,nplot
      integer :: output_grid, dispersion
-     real(gp) :: frac_fluct,randdis,betax,forcemax
+     real(gp) :: frac_fluct,randdis,betax,forcemax,gnrm_sw
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf
+     integer :: iat_absorber,nvacancy,verbosity
      real(gp), dimension(3) :: ef
   end type input_variables
 !!***
@@ -132,6 +135,9 @@ module module_types
      integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom,ifrztyp
      real(gp), dimension(:,:,:), pointer :: psppar
      real(gp), dimension(:), pointer :: amu
+     ! AMmodif
+     integer :: iat_absorber 
+     ! AMmodif end
   end type atoms_data
 !!***
 
@@ -233,7 +239,6 @@ module module_types
   type, public :: GPU_pointers
      real(kind=8) :: keys,work1,work2,work3,rhopot,r,d
      real(kind=8), dimension(:), pointer :: psi
-
      real(kind=8) :: pinned_in,pinned_out
      logical :: useDynamic
   end type GPU_pointers
@@ -269,9 +274,38 @@ module module_types
      real(wp), dimension(:,:,:), pointer :: xpsig_c,ypsig_c,x_c
      real(wp), dimension(:,:,:,:), pointer :: xpsig_f,ypsig_f,x_f,y_f
      real(wp), dimension(:,:,:,:,:), pointer :: z1,z3 ! work array for FFT
-
   end type workarr_precond
 !!***
+
+!!****t* module_types/lanczos_args
+!! DESCRIPTION
+!! Contains the arguments needed for the application of the hamiltonian
+!!
+!! SOURCE
+!!
+  type, public :: lanczos_args
+     !arguments for the hamiltonian
+     integer :: iproc,nproc,ndimpot,nspin
+     real(gp) :: hx,hy,hz,cpmult,fpmult
+     real(gp) :: ekin_sum,epot_sum,eproj_sum
+     type(atoms_data), pointer :: at
+     type(orbitals_data), pointer :: orbs
+     type(communications_arrays), pointer :: comms
+     type(nonlocal_psp_descriptors), pointer :: nlpspd
+     type(locreg_descriptors), pointer :: lr 
+     type(gaussian_basis), pointer :: Gabsorber    
+     integer, dimension(:,:), pointer :: ngatherarr 
+     real(gp), dimension(:,:),  pointer :: rxyz
+     real(gp), dimension(:,:), pointer :: radii_cf  
+     real(wp), dimension(:), pointer :: proj
+     !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), pointer :: psi
+     real(wp), dimension(:,:), pointer :: potential
+     real(wp), dimension(:), pointer :: Gabs_coeffs
+     !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp) :: hpsi
+     type(GPU_pointers), pointer :: GPU
+  end type lanczos_args
+!!***
+
 
 contains
 

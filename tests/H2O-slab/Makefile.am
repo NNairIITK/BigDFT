@@ -3,8 +3,8 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	input.dat \
-	posinp 
+	input.dft \
+	posinp.xyz 
 
 
 PPFILES = \
@@ -19,7 +19,7 @@ $(PPFILES):
 	cp $(top_srcdir)/utils/PSPfiles/HGH-K/$@ .
 
 check: $(PPFILES) 
-	cp -f $(top_srcdir)/tests/H2O-slab/input.dat .
-	cp -f $(top_srcdir)/tests/H2O-slab/posinp .
+	cp -f $(top_srcdir)/tests/H2O-slab/input.dft .
+	cp -f $(top_srcdir)/tests/H2O-slab/posinp.xyz .
 	$(run_parallel) $(top_builddir)/src/cluster > H2O-slab.out
 	python $(top_srcdir)/tests/fldiff.py --bigdft H2O-slab.out $(top_srcdir)/tests/Refs/H2O-slab.out.ref | tee fldiff.report
