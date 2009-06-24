@@ -122,7 +122,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if (present(quiet)) then
      if(quiet == 'yes' .or. quiet == 'YES') then
         wrtmsg=.false.
-     else if(quiet == 'no' .or. quiet == 'NO') then
+     else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
         wrtmsg=.true.
      else
         write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
@@ -282,7 +282,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      vexcuLOC=0.0_dp
   end if
 
- 
   call timing(iproc,'Exchangecorr  ','OF')
 
   !this routine builds the values for each process of the potential (zf), multiplying by scal 

@@ -6,9 +6,11 @@ EXTRA_DIST = \
 	CPUlimit \
 	README \
 	earr.dat \
-	input.dat \
+	input.dft \
+	input.geopt \
 	ioput \
-	mdinput.dat \
+	mdinput.dft \
+	mdinput.geopt \
 	poscur.xyz \
 	rand.inp
 
@@ -28,8 +30,10 @@ $(PPFILES):
 check: $(PPFILES) 
 	cp -f $(top_srcdir)/tests/MINHOP/CPUlimit .
 	cp -f $(top_srcdir)/tests/MINHOP/earr.dat .
-	cp -f $(top_srcdir)/tests/MINHOP/input.dat .
-	cp -f $(top_srcdir)/tests/MINHOP/mdinput.dat .
+	cp -f $(top_srcdir)/tests/MINHOP/input.dft .
+	cp -f $(top_srcdir)/tests/MINHOP/mdinput.dft .
+	cp -f $(top_srcdir)/tests/MINHOP/input.geopt .
+	cp -f $(top_srcdir)/tests/MINHOP/mdinput.geopt .
 	cp -f $(top_srcdir)/tests/MINHOP/ioput .
 	cp -f $(top_srcdir)/tests/MINHOP/rand.inp .
 	cp -f $(top_srcdir)/tests/MINHOP/poscur.xyz .

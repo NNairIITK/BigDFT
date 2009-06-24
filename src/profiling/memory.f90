@@ -99,12 +99,12 @@ subroutine memory_occupation(istat,isize,array,routine)
            write(*,*)' subroutine ',routine,': problem of allocation of array ',array,&
                 ', error code=',istat,' exiting...'
            if (iproc == 0 .and. useMallocFile) close(98)
-           stop
+           call MPI_ABORT(MPI_COMM_WORLD,ierr)
         else if (isize<0) then
            write(*,*)' subroutine ',routine,': problem of deallocation of array ',array,&
                 ', error code=',istat,' exiting...'
            if (iproc == 0 .and. useMallocFile) close(98)
-           stop
+           call MPI_ABORT(MPI_COMM_WORLD,ierr)
         end if
      end if
      !total counter, for all the processes

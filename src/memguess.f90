@@ -20,7 +20,7 @@ program memguess
   integer, parameter :: ngx=31
   character(len=20) :: tatonam
   character(len=40) :: comment
-  logical :: optimise,GPUtest
+  logical :: optimise,GPUtest,convert=.false.,exists
   integer :: nelec,ntimes,nproc,i_stat,ierror,i_all,output_grid
   integer :: norbe,norbsc,nvctrp,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: iunit,ityp,norbgpu,nspin_ig
@@ -63,6 +63,8 @@ program memguess
           'In the case of a CUDAGPU calculation you can put "GPUtest" after the'
      write(*,'(1x,a)')&
           '  number of processors, followed by the number of repeats'
+     write(*,'(1x,a)')&
+          'You can also put "convert" keyword for converting input file into 1.3 format'
      stop
   else
      read(unit=tatonam,fmt=*) nproc
@@ -92,14 +94,17 @@ program memguess
            call getarg(4,tatonam)
            read(tatonam,*,iostat=ierror)norbgpu
         end if
-
+     else if (trim(tatonam)=='convert') then
+        convert=.true.
+        write(*,'(1x,a)')&
+             'convert the input.dat file in the "input_convert.dft" (1.3 format)'
      else
         write(*,'(1x,a)')&
              'Usage: ./memguess <nproc> [y]'
         write(*,'(1x,a)')&
              'Indicate the number of processes after the executable'
         write(*,'(1x,a)')&
-             'ERROR: The only second argument which is accepted are "y", "o" or "GPUtest"'
+             'ERROR: The only second argument which is accepted are "y", "o", "convert" or "GPUtest"'
         stop
      end if
   end if
@@ -113,17 +118,33 @@ program memguess
   !read number of atoms
   call read_atomic_file('posinp',0,atoms,rxyz)
 
-  !new way of reading the input variables, use structures
-  call read_input_variables(0,'input.dat',in)
+  call dft_input_variables(0,'input.dft',in)
+  !read geometry optimsation input variables
+  !inquire for the file needed for geometry optimisation
+  !if not present, perform a simple geometry optimisation
+  inquire(file="input.geopt",exist=exists)
+  if (exists) then
+     call geopt_input_variables(0,'input.geopt',in)
+  else
+     call geopt_input_variables_default(in)
+  end if
+
 
   call print_input_parameters(in,atoms)
+
+
+
+  if (convert) then
+     write(*,'(a)',advance='NO')' Conversion of the input file...'
+     call dft_input_converter(in)
+     write(*,*)' ...done'
+  end if
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
  
 
   ! store PSP parameters
-  ! modified to accept both GTH and HGHs pseudopotential types
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
@@ -135,7 +156,7 @@ program memguess
 
   if (optimise) then
      if (atoms%geocode =='F') then
-        call optimise_volume(atoms,in%crmult,in%frmult,hx,hy,hz,rxyz,radii_cf)
+        call optimise_volume(atoms,in%crmult,in%frmult,in%hx,in%hy,in%hz,rxyz,radii_cf)
      else
         call shift_periodic_directions(atoms,rxyz,radii_cf)
      end if
@@ -179,7 +200,7 @@ program memguess
           scorb,norbsc_arr,locrad)
 
      if (in%nspin==4) then
-        !in that case the number of orbitals double
+        !in that case the number of orbitals doubles
         norbe=2*norbe
      end if
 
@@ -298,7 +319,7 @@ program memguess
      end do
 
      call createWavefunctionsDescriptors(0,nproc,hx,hy,hz,&
-          atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst,nvctrp)
+          atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst)
      
      call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,in%ixc,&
           Glr,hx,hy,hz,rxyz,ntimes)
@@ -431,7 +452,6 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
 
   allocate(txyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,txyz,'txyz',subname)
-
   call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   !call volume(nat,rxyz,vol)
   vol=atoms%alat1*atoms%alat2*atoms%alat3
@@ -725,6 +745,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
 
   call razero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
 
+
   !convert the gaussians in wavelets
   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbs,lr%d,&
        hx,hy,hz,lr%wfd,G,gaucoeffs,psi)
@@ -971,8 +992,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !the input function is psi
   call cpu_time(t0)
   do j=1,ntimes
-     call preconditionall(iproc,nproc,orbs%norbp,lr,hx,hy,hz,ncong,orbs%nspinor,&
-          orbs%eval(min(orbs%isorb+1,orbs%norb)),hpsi,gnrm)
+     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   end do
   call cpu_time(t1)
 

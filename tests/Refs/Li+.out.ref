@@ -1,90 +1,85 @@
-                             BBBB         i       ggggg    
-                            B    B               g         
-                           B     B        i     g          
-                           B    B         i     g        g 
-                           BBBBB          i     g         g
-                           B    B         i     g         g
-                           B     B        i     g         g
-                           B      B       i     g         g
-                           B     B     iiii     g         g
-                           B BBBB         i      g        g
-                           B             i        g      g 
-                       BBBBBBBBB    iiiii          gggggg  
-                         DDDDDD          FFFFF    TTTTTTTTT
-                        D      D        F             T    
-                       D        D      F         TTTT T    
-                       D         D     FFFF     T     T    
-                       D         D     F       T      T    
-                       D         D     F        T     T    
-                       D         D     F         T    T    
-                       D         D     F          TTTTT    
-                        D        D     F         T    T    
-                                 D     F        T     T    
-                                D               T    T     
-                           DDDDD       F         TTTT                     (Ver 1.2.3)
+                             TTTT         F       DDDDD    
+                            T    T               D         
+                           T     T        F     D          
+                           T    T         F     D        D 
+                           TTTTT          F     D         D
+                           T    T         F     D         D
+                           T     T        F     D         D
+                           T      T       F     D         D
+                           T     T     FFFF     D         D
+                           T TTTT         F      D        D
+                           T             F        D      D 
+                       TTTTTTTTT    FFFFF          DDDDDD  
+                         gggggg          iiiii    BBBBBBBBB
+                        g      g        i             B    
+                       g        g      i         BBBB B    
+                       g         g     iiii     B     B    
+                       g         g     i       B      B    
+                       g         g     i        B     B    
+                       g         g     i         B    B    
+                       g         g     i          BBBBB    
+                        g        g     i         B    B    
+                                 g     i        B     B    
+                                g               B    B     
+                           ggggg       i         BBBB                     (Ver 1.3.0)
  ------------------------------------------------------------------------------------
  |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
  ------------------------------------------------------------------------------------
                                    The Journal of Chemical Physics 129, 014109 (2008)
  Number of atoms     = 1
  Number of atom types= 1
- Atoms of type 1 are Li_lda
- Max. number of wavefnctn optim 1
- Convergence criterion for forces: fraction of noise   1.00E+00
-                                 : maximal component   0.00E+00
- Random displacement amplitude   0.00E+00
- Steepest descent step   4.00E+00
+ Atoms of type 1 are Li
  Spin-polarised calculation:  NO 
  ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
  ------------------------------------------------------------------- Input Parameters
      System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
- Max. hgrid =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-04 | Calculate=   T
         XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 5.0
- total charge=      1 |                    | CG Prec.Steps=       7 |  CG Steps=  30
+ total charge=      1 |                    | CG Prec.Steps=       6 |  CG Steps=  30
   elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
  ------------------------------------------------------------------ System Properties
   Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
- Li_lda          3       2            2.07000  0.40000  0.00000                   X    
+     Li          3       2            2.07000  0.40000  0.00000                   X    
  ------------------------------------ Pseudopotential coefficients (Upper Triangular)
  Atom Name    rloc      C1        C2        C3        C4  
-   Li_lda   0.40000 -14.00939   9.50991  -1.75327   0.08346
+       Li   0.40000 -14.00939   9.50991  -1.75327   0.08346
  Total Number of Electrons        2
  Processes from 0 to 0 treat 1 orbitals 
- Processes from 1 to 7 treat 0 orbitals 
+ Processes from 1 to 6 treat 0 orbitals 
  Total Number of Orbitals        1
  occup(1)= 2.0000
  Shifted atomic positions, Atomic Units:                   grid spacing units:
-     1 Li_lda  1.03500E+01  1.03500E+01  1.03500E+01       23.000    23.000    23.000
+     1     Li  1.03500E+01  1.03500E+01  1.03500E+01       23.000    23.000    23.000
     Shift of=  1.03500E+01  1.03500E+01  1.03500E+01 Grid Spacings=  0.45  0.45  0.45
    Box Sizes=  2.07000E+01  2.07000E+01  2.07000E+01           46        46        46
        Extremes for the high resolution grid points:        16<30     16<30     16<30
  wavelet localization is ON
  ------------------------------------------------------------ Poisson Kernel Creation
  Calculating Poisson solver kernel, free BC...done.
- Memory occ. per proc. (Bytes):  Density=2097152  Kernel=2263176
+ Memory occ. per proc. (Bytes):  Density=2490368  Kernel=2529432
                                  Full Grid Arrays=14886936
  Load Balancing for Poisson Solver related operations:
- LB_density        : processors   0  -  7 work at 100%
-  LB_kernel        : processors   0  -  6 work at 100%
-                     processor       7   works at  59%
+ LB_density        : processors   0  -  5 work at 100%
+                     processor       6   works at  74%
+  LB_kernel        : processors   0  -  5 work at 100%
+                     processor       6   works at  79%
  Complete LB per proc.= 1/3 LB_density + 2/3 LB_kernel
  ------------------------------------------------- Wavefunctions Descriptors Creation
  Coarse resolution grid: Number of segments=       1653 points=     50755
    Fine resolution grid: Number of segments=        161 points=      1503
- Wavefunction memory occupation per orbital (Bytes): 490240
  ------------------------------------------------------------ PSP Projectors Creation
  Type    Name Number of atoms Number of projectors
-    1  Li_lda               1                    0
+    1      Li               1                    0
                                             ------   On-the-fly projectors application
  Total number of projectors =                    0
  Total number of components =                    0
  Percent of zero components =                    0
  ------------------------------------------------------------------ Memory Estimation
  Number of atoms=    1 Number of orbitals=     1 Sim. Box Dimensions=    46   46   46
- Estimation performed for 8 processors.
+ Estimation performed for 7 processors.
  Memory occupation for principal arrays:
-               Poisson Solver Kernel (K):     2 MB   163 KB
-              Poisson Solver Density (D):     2 MB     0 KB
+               Poisson Solver Kernel (K):     2 MB   423 KB
+              Poisson Solver Density (D):     2 MB   384 KB
      Single Wavefunction for one orbital:     0 MB   479 KB
     All Wavefunctions for each processor:     1 MB   413 KB
        Wavefunctions + DIIS per proc (W):     7 MB    14 KB
@@ -93,94 +88,97 @@
  Estimation of Memory requirements for principal code sections:
   Kernel calculation | Density Construction | Poisson Solver | Hamiltonian application
        ~19*K         |     W+(~4)*U+D+K+P   |   ~12*D+K+W+P  |    ~W+(~5)*U+D+K+P 
-        41MB         |        57MB          |       33MB     |            63MB
+        45MB         |        57MB          |       37MB     |            63MB
  The overall memory requirement needed for this calculation is thus: 63 MB
  By reducing the DIIS history and/or increasing the number of processors the amount of
   memory can be reduced but for this system it will never be less than 55 MB
+ Wavefunction memory occupation per orbital (Bytes): 490208
  ion-ion interaction energy  0.00000000000000E+00
  ----------------------------------------------------------- Ionic Potential Creation
  total ionic charge, leaked charge            -3.000000000000   0.000E+00
- PSolver, free  BC, dimensions:   123  123  123   proc    8   ixc:  0 ...done.
+ PSolver, free  BC, dimensions:   123  123  123   proc    7   ixc:  0 ...done.
  ------------------------------------------------------- Input Wavefunctions Creation
- Input wavefunction data for atom Li_lda NOT found, automatic generation... done.
+ Input wavefunction data for atom     Li NOT found, automatic generation... done.
  Generating 2 Atomic Input Orbitals
    of which 1 are semicore orbitals
+ Wavefunction memory occupation per orbital (Bytes): 0
  Processes from 0 to 1 treat 1 inguess orbitals 
- Processes from 2 to 7 treat 0 inguess orbitals 
+ Processes from 2 to 6 treat 0 inguess orbitals 
  Calculating AIO wavefunctions... done.
+ Wavefunction memory occupation per orbital (Bytes): 490208
  Writing wavefunctions in wavelet form ........................................ done.
  Deviation from normalization of the imported orbitals    3.08E-05
  Calculation of charge density... done. Total electronic charge=       2.999998921422
- PSolver, free  BC, dimensions:   123  123  123   proc    8   ixc:  1 ...done.
+ PSolver, free  BC, dimensions:   123  123  123   proc    7   ixc:  1 ...done.
  Hamiltonian application... done. ekin_sum,eks:       6.0811813754       6.0786638687
- ekin_sum,epot_sum,eproj_sum  6.08118137545E+00 -9.84788601405E+00  0.00000000000E+00
+ ekin_sum,epot_sum,eproj_sum  6.08118137544E+00 -9.84788601405E+00  0.00000000000E+00
     ehart,   eexcu,    vexcu  3.97405440745E+00 -1.59363814370E+00 -2.09265038789E+00
  Input Wavefunctions Orthogonalization: Overlap Matrix... Linear Algebra...
- evale(1)= -1.85043064075649E+00 <- Last eigenvalue for input wavefunctions
- evale(2)= -6.58433570915294E-02
+ evale(1)= -1.85043064075686E+00 <- Last eigenvalue for input wavefunctions
+ evale(2)= -6.58433570916643E-02 <- First virtual eigenvalue
  Building orthogonal Wavefunctions... done.
  expected accuracy in kinetic energy due to grid size 2.52E-03
  suggested value for gnrm_cv  2.52E-03
  ---------------------------------------------------------------------------- iter= 1
  Calculation of charge density... done. Total electronic charge=       1.999998973969
- PSolver, free  BC, dimensions:   123  123  123   proc    8   ixc:  1 ...done.
+ PSolver, free  BC, dimensions:   123  123  123   proc    7   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    1.00E+00  1.00E+00
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  5.63500835616E+00 -1.01408953616E+01  0.00000000000E+00
     ehart,   eexcu,    vexcu  3.00260172894E+00 -1.41686161714E+00 -1.86206538172E+00
- iter,total energy,gnrm     1  -7.06328496979822162E+00  3.35E-01
+ iter,total energy,gnrm     1  -7.06328496980046783E+00  3.35E-01
  ---------------------------------------------------------------------------- iter= 2
  Calculation of charge density... done. Total electronic charge=       1.999998915779
- PSolver, free  BC, dimensions:   123  123  123   proc    8   ixc:  1 ...done.
+ PSolver, free  BC, dimensions:   123  123  123   proc    7   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -2.57E-01  1.26E+00 -5.77E-06
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  6.15379041164E+00 -1.05628252020E+01  0.00000000000E+00
+ ekin_sum,epot_sum,eproj_sum  6.15379041164E+00 -1.05628252021E+01  0.00000000000E+00
     ehart,   eexcu,    vexcu  3.15155631923E+00 -1.48266731793E+00 -1.94920154116E+00
- iter,total energy,gnrm     2  -7.09405688640384113E+00  7.31E-02
+ iter,total energy,gnrm     2  -7.09405688641016408E+00  7.31E-02
  ---------------------------------------------------------------------------- iter= 3
  Calculation of charge density... done. Total electronic charge=       1.999998867648
- PSolver, free  BC, dimensions:   123  123  123   proc    8   ixc:  1 ...done.
+ PSolver, free  BC, dimensions:   123  123  123   proc    7   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    2.73E-02 -1.00E-01  1.07E+00 -9.41E-08
  Orthogonalization... done.
- ekin_sum,epot_sum,eproj_sum  6.30324724751E+00 -1.06798137513E+01  0.00000000000E+00
+ ekin_sum,epot_sum,eproj_sum  6.30324724751E+00 -1.06798137514E+01  0.00000000000E+00
     ehart,   eexcu,    vexcu  3.19101050530E+00 -1.50019122615E+00 -1.97240831980E+00
- iter,total energy,gnrm     3  -7.09535991549258060E+00  9.87E-03
+ iter,total energy,gnrm     3  -7.09535991550048983E+00  9.87E-03
  ---------------------------------------------------------------------------- iter= 4
  Calculation of charge density... done. Total electronic charge=       1.999998854233
- PSolver, free  BC, dimensions:   123  123  123   proc    8   ixc:  1 ...done.
+ PSolver, free  BC, dimensions:   123  123  123   proc    7   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights   -6.39E-04 -8.94E-03 -1.28E-01  1.14E+00 -1.04E-09
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  6.30099205486E+00 -1.06786170488E+01  0.00000000000E+00
     ehart,   eexcu,    vexcu  3.18979640781E+00 -1.49968958934E+00 -1.97174498955E+00
- iter,total energy,gnrm     4  -7.09536600152526020E+00  1.67E-03
+ iter,total energy,gnrm     4  -7.09536600152747177E+00  1.67E-03
  ---------------------------------------------------------------------------- iter= 5
  Calculation of charge density... done. Total electronic charge=       1.999998851169
- PSolver, free  BC, dimensions:   123  123  123   proc    8   ixc:  1 ...done.
+ PSolver, free  BC, dimensions:   123  123  123   proc    7   ixc:  1 ...done.
  Hamiltonian application... done, orthoconstraint... done, preconditioning... done.
  DIIS weights    2.50E-05  1.22E-04 -3.62E-03 -1.48E-02  1.02E+00 -1.11E-11
  Orthogonalization... done.
  ekin_sum,epot_sum,eproj_sum  6.30248490867E+00 -1.06798525709E+01  0.00000000000E+00
     ehart,   eexcu,    vexcu  3.19009954333E+00 -1.49982966613E+00 -1.97193064690E+00
- iter,total energy,gnrm     5  -7.09536622475432921E+00  9.40E-05
+ iter,total energy,gnrm     5  -7.09536622475632761E+00  9.40E-05
  ---------------------------------------------------------------------------- iter= 6
  Calculation of charge density... done. Total electronic charge=       1.999998851017
- PSolver, free  BC, dimensions:   123  123  123   proc    8   ixc:  1 ...done.
+ PSolver, free  BC, dimensions:   123  123  123   proc    7   ixc:  1 ...done.
  Hamiltonian application... done. 6 minimization iterations required
  --------------------------------------------------- End of Wavefunction Optimisation
  final  ekin,  epot,  eproj   6.30246400804E+00 -1.06798389097E+01  0.00000000000E+00
  final ehart, eexcu,  vexcu   3.19009115623E+00 -1.49982611130E+00 -1.97192594394E+00
- FINAL iter,total energy,gnrm     6  -7.09536622520647509E+00  9.40E-05
+ FINAL iter,total energy,gnrm     6  -7.09536622520883675E+00  9.40E-05
  -------------------------------------------------------------- Kohn-Sham Eigenvalues
- eval(   1)= -2.18868745081389E+00
+ eval(   1)= -2.18868745081392E+00
  ----------------------------------------------------------------- Forces Calculation
  Calculation of charge density... done. Total electronic charge=       1.999998851017
- PSolver, free  BC, dimensions:   123  123  123   proc    8   ixc:  0 ...done.
+ PSolver, free  BC, dimensions:   123  123  123   proc    7   ixc:  0 ...done.
  Calculate local forces...done. Leaked force:  0.00000E+00
- Calculate projectors derivatives... done, calculate nonlocal forces... done.
+ Calculate nonlocal forces... done.
  ---------------------------------------------- Estimation of Finite-Size Corrections
  F-S Correction for an effective space of  5.000 AU more around each external atom
                    requires the adding of     11 additional grid points around cell
@@ -193,15 +191,15 @@
  Calculating tail corrections on 1 orbitals per processor.
       orbitals are processed separately........................................ done.
    Corrected ekin,epot,eproj  6.30246460790E+00 -1.06798395095E+01  0.00000000000E+00
- Total energy with tail correction -7.09536622521771054E+00
- CPU time for root process     0         9.58         9.58
+ Total energy with tail correction -7.09536622521962457E+00
+ CPU time/ELAPSED time for root process     0         6.97         6.76
  Final values of the Forces for each atom
-     1 Li_lda -2.02509E-05 -2.02509E-05 -2.02509E-05
+     1     Li -2.02509E-05 -2.02509E-05 -2.02509E-05
  the sum of the forces is
       x direction    -2.02509369E-05
       y direction    -2.02509370E-05
       z direction    -2.02509370E-05
  -------------------------MEMORY CONSUMPTION REPORT-----------------------------
- 777 allocations and 777 deallocations, remaining memory(B):0
+ 800 allocations and 800 deallocations, remaining memory(B):0
  memory occupation peak: 127 MB
  for the array  mod_my in the routine ana_rot_per_old

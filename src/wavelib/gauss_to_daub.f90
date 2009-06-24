@@ -38,6 +38,7 @@ subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
 
   !rescale the parameters so that hgrid goes to 1.d0  
   a=gau_a/hgrid
+
   i0=nint(gau_cen/hgrid) ! the array is centered at i0
   z0=gau_cen/hgrid-real(i0,gp)
   h=.125_gp*.5_gp

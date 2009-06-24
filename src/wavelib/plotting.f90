@@ -287,6 +287,58 @@ subroutine plot_psifscf(iunit,hgrid,n1,n2,n3,psifscf)
 
 end subroutine plot_psifscf
 
+subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,nelec,rho)
+  use module_base
+  implicit none
+  character(len=1), intent(in) :: geocode
+  character(len=*), intent(in) :: filename
+  integer, intent(in) :: n1i,n2i,n3i,n3d,n1,n2,n3,nelec,i3s
+  real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
+  !local variables
+  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,j1,j2,j3
+  real(dp) :: value
+
+  open(unit=22,file=filename,status='unknown')
+  read(22,*)!'normalised density'
+  read(22,*)!2*n1+2,2*n2+2,2*n3+2
+  read(22,*)!alat1,' 0. ',alat2
+  read(22,*)!' 0. ',' 0. ',alat3
+  read(22,*)!xyz   periodic' !not true in general but needed in the case
+
+  !conditions for periodicity in the three directions
+  !value of the buffer in the x and z direction
+  if (geocode /= 'F') then
+     nl1=1
+     nl3=1
+  else
+     nl1=15
+     nl3=15
+  end if
+  !value of the buffer in the y direction
+  if (geocode == 'P') then
+     nl2=1
+  else
+     nl2=15
+  end if
+
+  call razero(max(n1i*n2i*n3d,1),rho)
+
+  do i3=0,2*n3+1
+     do i2=0,2*n2+1
+        do i1=0,2*n1+1
+           ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-i3s)*n1i*n2i
+           read(22,*)value
+           if (i3+nl3 >= i3s .and. i3+nl3 <= i3s+n3d-1) then
+              rho(ind)=value*real(nelec,dp)
+           end if
+        end do
+     end do
+  end do
+  close(22)
+
+end subroutine read_potfile
+
+
 subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nelec,&
      alat1,alat2,alat3,ngatherarr,rho)
   use module_base
@@ -318,14 +370,14 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ne
      nl1=1
      nl3=1
   else
-     nl1=14
-     nl3=14
+     nl1=15
+     nl3=15
   end if
   !value of the buffer in the y direction
   if (geocode == 'P') then
      nl2=1
   else
-     nl2=14
+     nl2=15
   end if
 
   if (nproc > 1) then
@@ -339,6 +391,7 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ne
   else
      pot_ion => rho
   end if
+
 
   if (iproc == 0) then
      do i3=0,2*n3+1
@@ -374,7 +427,6 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ne
      deallocate(pot_ion,stat=i_stat)
      call memocc(i_stat,i_all,'pot_ion',subname)
   end if
-
 end subroutine plot_density
 
 subroutine plot_density_cube(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&
@@ -405,14 +457,14 @@ subroutine plot_density_cube(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n
      nl1=1
      nl3=1
   else
-     nl1=14
-     nl3=14
+     nl1=15
+     nl3=15
   end if
   !value of the buffer in the y direction
   if (at%geocode == 'P') then
      nl2=1
   else
-     nl2=14
+     nl2=15
   end if
 
   if (nproc > 1) then

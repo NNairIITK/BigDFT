@@ -265,6 +265,6 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
      enddo
   enddo
 
-  ener=ener*.5_wp
+  !ener=ener*.5_wp
   
 end subroutine convolut_kinetic_per_T_k

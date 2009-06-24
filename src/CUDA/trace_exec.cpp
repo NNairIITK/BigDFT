@@ -1,10 +1,15 @@
 
 #include "trace_exec.h"
 
-trace_exec::trace_exec(const std::string& traceFile_)
+trace_exec::trace_exec(const std::string& traceFile_,bool _enableTrace)
 {
-  traceFile = new std::ofstream(traceFile_.c_str());
+  enableTrace = _enableTrace;
+  if(enableTrace)
+    traceFile = new std::ofstream(traceFile_.c_str());
+
   nextTraceNumber = 0;
+
+ 
 }
 trace_exec::~trace_exec()
 {
@@ -25,27 +30,30 @@ void trace_exec::writeToFile(trace_t tr,
 			     time_mesure time, 
 			     const std::string& name)
 {
-  std::string type;
-  switch(tr)
+  if(enableTrace)
     {
-    case GPU_TRSF:
-      type = "GPU_TRSF";
-      break;
-    case GPU_CALC:
-      type = "GPU_CALC";
-      break;
-    case CPU_MEMCPY:
-      type = "CPU_MEMCPY";
-      break;
-    default:
-      type = "DEFAULT";
+      std::string type;
+      switch(tr)
+	{
+	case GPU_TRSF:
+	  type = "GPU_TRSF";
+	  break;
+	case GPU_CALC:
+	  type = "GPU_CALC";
+	  break;
+	case CPU_MEMCPY:
+	  type = "CPU_MEMCPY";
+	  break;
+	default:
+	  type = "DEFAULT";
+	  
+	}
       
+      (*traceFile) << type << "," 
+		   << traceNumber << "," 
+		   << time << "," 
+		   << name << std::endl;
     }
-
-  (*traceFile) << type << "," 
-	       << traceNumber << "," 
-	       << time << "," 
-	       << name << std::endl;
 }
 
 
