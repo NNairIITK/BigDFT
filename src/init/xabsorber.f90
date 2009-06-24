@@ -11,7 +11,7 @@ subroutine find_pfproj( Nsol,Ngrid,rgrid,  psi1s, psigrid, real_start, psigrid_p
   ! ------------------------------------------------------------------------------------
   real(gp) dumgrid(Ngrid), coeffs(Nsol), dumgrid2(Ngrid), mass, mass_pseudo
   integer segno(Nsol), segno_pseudo(Nsol)
-  integer i,j,k
+  integer i,k
   do i=1, Nsol
      do k=1, Ngrid
         dumgrid(k)=psigrid(k,i)*psi1s(k)
@@ -83,10 +83,10 @@ subroutine     find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
   ! -----------------------------------------------------------
   real(gp)  ::   Soverlap(0:ng,0:ng)
   real(gp)  ::   Score(0:ng), dumgrid(Ngrid), dumgrid2(Ngrid)
-  integer :: i,j,k,n,m, iw, INFO, LWORK, nord
-  real(gp) :: a1,b1,a2,b2, A,B, spi, pi
+  integer :: i,j,k,n,INFO, LWORK
+  real(gp) :: b1,b2, B, spi, pi
   real(gp) :: W(0:ng), WORK(3*(ng+1)*(ng+1))
-  real(gp)::  sum, totalpow, gin, gim, gip, ggg, gamma
+  real(gp)::  sum, totalpow, ggg, gamma
 
 
 
@@ -153,7 +153,7 @@ subroutine   dump_1gauwf_on_radgrid(prefix, ng , expo,psi   ,lpow   )
   ! local
   integer, parameter :: n_int=100
   character(200)  filename
-  integer l,i, iocc,ig
+  integer i,ig
   real(8) r,sum
 
 
@@ -175,7 +175,7 @@ subroutine   dump_1gauwf_on_radgrid(prefix, ng , expo,psi   ,lpow   )
 return 
 end subroutine dump_1gauwf_on_radgrid
 
-real(gp)  function  value_at_r(r, ng , expo,psi     )
+function  value_at_r(r, ng , expo,psi     )
   use module_base, only: gp
 
   implicit none
@@ -188,9 +188,9 @@ real(gp)  function  value_at_r(r, ng , expo,psi     )
   ! local
   integer, parameter :: n_int=100
 
-  integer l,i, iocc,ig
+  integer ig
   real(gp) sum
-
+  real(gp) :: value_at_r
 
 
   sum=0.0
@@ -216,7 +216,7 @@ subroutine dump_gauwf_on_radgrid(prefix  ,ng ,noccmax , lmax , expo,psi,aeval, o
   ! local
   integer, parameter :: n_int=100
   character(200)  filename
-  integer l,i,k, iocc,ig
+  integer l,i,k,ig
   real(8) r,sum
 
   do i=1,noccmax
@@ -272,7 +272,6 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   
   !local variables
   character(len=*), parameter :: subname='iguess_generator'
-  character(len=27) :: string 
   character(len=2) :: symbol
   real(gp), parameter :: fact=4.0_gp
   integer, dimension(6,4) :: neleconf
@@ -283,12 +282,10 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   real(gp), dimension(:,:), allocatable :: vh,hsep,ofdcoef
 
   real(gp), dimension(:,:,:,:), allocatable :: rmt
-  logical :: exists
-  integer :: lpx,ncount,nsccode,mxpl,mxchg
-  integer :: l,i,j,iocc,il,lwrite,i_all,i_stat
+  integer :: lpx,nsccode,mxpl,mxchg
+  integer :: l,i,iocc,i_all,i_stat
   real(gp) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt,ehomo
   real(gp) value_at_r
-  integer :: igrid
 
   !filename = 'psppar.'//trim(atomname)
 
@@ -565,15 +562,16 @@ subroutine integrate(f,fint,x,Nx)
 end subroutine integrate
 
 
-real(gp) function pow(x,n)
+function pow(x,n)
   use module_base, only: gp,wp
   real(gp) x
+  real(gp) :: pow
   integer n
   pow=x**n
   return
 end function pow
 
-real(gp) function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
+function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
   use module_base, only: gp,wp
   implicit none
   integer N, normalize, onlyout
@@ -581,6 +579,7 @@ real(gp) function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
   ! ----------------------------------------------
   integer ii, i,j
   real(gp)  ypi
+  real(gp) :: phase
   
   integer yNcross, yflag
   real(gp)  dh,dl,dh2,dl2,dp,dl3,dhdl2,dh2dl,dh3,add1,add2,deno,num

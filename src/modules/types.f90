@@ -311,7 +311,7 @@ contains
     integer, intent(in) :: nproc
     type(communications_arrays), intent(out) :: comms
     !local variables
-    integer :: i_all,i_stat
+    integer :: i_stat
 
     allocate(comms%nvctr_par(0:nproc-1+ndebug),stat=i_stat)
     call memocc(i_stat,comms%nvctr_par,'nvctr_par',routine)
@@ -357,7 +357,7 @@ contains
     type(atoms_data) :: atoms
     type(restart_objects) :: rst
     !local variables
-    integer :: i_all,i_stat
+    integer :: i_stat
 
     !allocate pointers
     allocate(rst%rxyz_old(3,atoms%nat+ndebug),stat=i_stat)
@@ -422,7 +422,7 @@ contains
     type(wavefunctions_descriptors), intent(inout) :: wfd
     character(len=*), intent(in) :: routine
     !local variables
-    integer :: i_all,i_stat
+    integer :: i_stat
 
     allocate(wfd%keyg(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keyg,'keyg',routine)

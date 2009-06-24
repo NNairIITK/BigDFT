@@ -306,13 +306,13 @@ CLEANFILES = mpif.h \
 	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@ \
 	lanczos_base.@MODULE_EXT@ LANCZOS_BASE.@MODULE_EXT@ \
 	lanczos_interface.@MODULE_EXT@ LANCZOS_INTERFACE.@MODULE_EXT@ \
-	formats.@MODULE_EXT@ FORMATS.@MODULE_EXT@ \	
-	miscellany.@MODULE_EXT@ MISCELLANY.@MODULE_EXT@ \	
-	neb_routines.@MODULE_EXT@ NEB_ROUTINES.@MODULE_EXT@ \	
-	numeric.@MODULE_EXT@ NUMERIC.@MODULE_EXT@ \	
-	minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \	
-	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \	
-	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@ 
+	formats.@MODULE_EXT@ FORMATS.@MODULE_EXT@ \
+	miscellany.@MODULE_EXT@ MISCELLANY.@MODULE_EXT@ \
+	neb_routines.@MODULE_EXT@ NEB_ROUTINES.@MODULE_EXT@ \
+	numeric.@MODULE_EXT@ NUMERIC.@MODULE_EXT@ \
+	minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
+	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
+	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@
 
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o : $(mpi_include)  $(modules_objects)

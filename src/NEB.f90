@@ -1,9 +1,9 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!! 		     Copyright (C) 2003 Carlo Sbraccia.                       !!
+!!          Copyright (C) 2003 Carlo Sbraccia.                       !!
 !!                   modifications: 2009 Damien Caliste (DC)                  !!
-!! 		     This file is distributed under the terms                 !!
-!! 		     of the GNU General Public License.                       !!
-!! 		     See http://www.gnu.org/copyleft/gpl.txt .                !!
+!!          This file is distributed under the terms                 !!
+!!          of the GNU General Public License.                       !!
+!!          See http://www.gnu.org/copyleft/gpl.txt .                !!
 !!                                                                            !!
 !!    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,         !!
 !!    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF      !!
@@ -195,7 +195,7 @@ MODULE Minimization_routines
       IF ( squared_old_grad_i >= epsi ) THEN
 
         gamma = DOT_PRODUCT( grad(:,index) , grad(:,index) ) / &
-	        squared_old_grad_i
+          squared_old_grad_i
 
       ELSE
 
@@ -252,7 +252,7 @@ MODULE Minimization_routines
       IF ( squared_old_grad_i >= epsi ) THEN
 
         gamma = DOT_PRODUCT( ( grad(:,index) - old_grad(:,index) ) , &
-	        grad(:,index) ) / squared_old_grad_i
+          grad(:,index) ) / squared_old_grad_i
 
       ELSE
 
@@ -318,7 +318,7 @@ MODULE Minimization_routines
       
       ELSE IF ( algorithm == 6 ) THEN
               
-	vel(:,index) = vel(:,index) - ds / 2.D0 * grad(:,index)
+  vel(:,index) = vel(:,index) - ds / 2.D0 * grad(:,index)
 
       END IF
       
@@ -352,12 +352,12 @@ MODULE Minimization_routines
       IF ( vel_component > 0.D0 ) THEN
       
         vel(:,index) = vel_component * force_versor
-	
+  
       ELSE
       
         vel(:,index) = 0.D0
-	
-      END IF		
+  
+      END IF    
       
     END SUBROUTINE quick_min_second_step
     
@@ -376,10 +376,10 @@ MODULE Minimization_routines
         temp = temp + DOT_PRODUCT( vel(:,i) , vel(:,i) )
 
       END DO
-	
+  
       temp = temp / DBLE( ( num_of_images - 2 ) * dim ) 
-	 
-      vel = vel * SQRT( temp_req / temp )	
+   
+      vel = vel * SQRT( temp_req / temp )  
 
     END SUBROUTINE termalization
     
@@ -417,20 +417,20 @@ MODULE NEB_routines
 
       NAMELIST /NEB/ first_config,        &
                      last_config,         &
-		     scratch_dir,         &
-		     job_name,            &
-		     restart,             &
-		     climbing,            &
-		     optimization,        &
-		     minimization_scheme, &
-		     damp,                &
-		     temp_req,            &
-		     k_max, k_min,        &
-		     ds,                  &
-		     max_iterations,      &
-		     tolerance,           &
-		     convergence,         &
-		     num_of_images
+         scratch_dir,         &
+         job_name,            &
+         restart,             &
+         climbing,            &
+         optimization,        &
+         minimization_scheme, &
+         damp,                &
+         temp_req,            &
+         k_max, k_min,        &
+         ds,                  &
+         max_iterations,      &
+         tolerance,           &
+         convergence,         &
+         num_of_images
 
 
 !! default values are assigned
@@ -476,17 +476,17 @@ MODULE NEB_routines
       
         IF ( first_config == "" ) THEN
         
-	  WRITE(*,'(T2,"read_input: first_config not assigned ")') 
-	  
-	  STOP
-	    
-	ELSE IF ( last_config == "" ) THEN       
-	      
-	  WRITE(*,'(T2,"read_input: last_config not assigned ")') 
-	  
-	  STOP
-	 
-	END IF     
+    WRITE(*,'(T2,"read_input: first_config not assigned ")') 
+    
+    STOP
+      
+  ELSE IF ( last_config == "" ) THEN       
+        
+    WRITE(*,'(T2,"read_input: last_config not assigned ")') 
+    
+    STOP
+   
+  END IF     
       
       END IF
  
@@ -516,14 +516,14 @@ MODULE NEB_routines
       
       ELSE IF ( minimization_scheme == "sim-annealing" ) THEN
         
-	algorithm = 6
+  algorithm = 6
       
       ELSE
       
         WRITE(*,'(T2,"read_input: minimization_scheme ", A20)') &
-	                                                    minimization_scheme
-	WRITE(*,'(T2,"            does not exist")') 
-	STOP 
+                                                      minimization_scheme
+  WRITE(*,'(T2,"            does not exist")') 
+  STOP 
       
       END IF
 
@@ -566,9 +566,9 @@ MODULE NEB_routines
       IF ( minval(abs(acell2 - acell1)) /= 0.d0 ) THEN
       
         WRITE(*,'(T2,"read_input: box size is not constant")')
-	WRITE(*,'(T2,"            Lx = ", F9.4, F9.4 )') acell1(1), acell2(1)
-	WRITE(*,'(T2,"            Ly = ", F9.4, F9.4 )') acell1(2), acell2(2)
-	WRITE(*,'(T2,"            Lz = ", F9.4, F9.4 )') acell1(3), acell2(3)
+  WRITE(*,'(T2,"            Lx = ", F9.4, F9.4 )') acell1(1), acell2(1)
+  WRITE(*,'(T2,"            Ly = ", F9.4, F9.4 )') acell1(2), acell2(2)
+  WRITE(*,'(T2,"            Lz = ", F9.4, F9.4 )') acell1(3), acell2(3)
         STOP  
 
       END IF
@@ -576,7 +576,7 @@ MODULE NEB_routines
       IF ( n1 /= n2 ) THEN
       
         WRITE(*,'(T2,"read_input: number of atoms is not constant")')
-	WRITE(*,'(T2,"            N = ", I8, I8 )') n1, n2
+  WRITE(*,'(T2,"            N = ", I8, I8 )') n1, n2
         STOP  
 
       END IF
@@ -609,13 +609,13 @@ MODULE NEB_routines
 
       IF ( algorithm <= 3 ) THEN
 
-	delta_pos  = 0.D0
-	old_grad   = 0.D0
-	conj_dir_i = 0.D0
+  delta_pos  = 0.D0
+  old_grad   = 0.D0
+  conj_dir_i = 0.D0
 
       ELSE
  
-	vel = 0.D0
+  vel = 0.D0
       
       END IF
 
@@ -644,7 +644,7 @@ MODULE NEB_routines
                               PES_gradient((j+2),i)
             END DO
             PES_gradient(:, i) = PES_gradient(:, i) * (-1d0)
-	    
+      
             IF ( V(i) >= Emax ) THEN
  
               Emax = V(i)         
@@ -652,15 +652,15 @@ MODULE NEB_routines
               Emax_index = i
 
             END IF
-	    
+      
           END DO
 
         CLOSE( UNIT = unit )
-	
-	vel_file = TRIM( scratch_dir )//"/velocities_file"
-	
+  
+  vel_file = TRIM( scratch_dir )//"/velocities_file"
+  
         IF ( ( algorithm >= 4 ) .AND. &
-	     ( file_exists( vel_file ) ) ) THEN
+       ( file_exists( vel_file ) ) ) THEN
 
 !!DEBUG          PRINT *, "reading ", vel_file
       
@@ -717,13 +717,13 @@ MODULE NEB_routines
 !!$
 !!$        CLOSE( UNIT = unit )
         pos(:, num_of_images) = reshape(xcart2, (/ dim /))
-	
-	d_R = ( pos(:,num_of_images) - pos(:,1) ) / &
-	      DBLE( num_of_images - 1 )
+  
+  d_R = ( pos(:,num_of_images) - pos(:,1) ) / &
+        DBLE( num_of_images - 1 )
 
-	fix_atom = 1
-	
-	WHERE ( ABS( d_R ) <=  tolerance ) fix_atom = 0
+  fix_atom = 1
+  
+  WHERE ( ABS( d_R ) <=  tolerance ) fix_atom = 0
 
         DO i = 2, ( num_of_images - 1 )
 
@@ -746,22 +746,22 @@ MODULE NEB_routines
       
       IF ( algorithm <= 3 ) THEN
         
-	ALLOCATE( delta_pos( dim , num_of_images ) )
+  ALLOCATE( delta_pos( dim , num_of_images ) )
       
       ELSE
       
         ALLOCATE( vel( dim , num_of_images ) )     
-	
+  
       END IF
       
       ALLOCATE( grad( dim , num_of_images ) )
-      ALLOCATE( PES_gradient( dim , num_of_images ) )      	  
+      ALLOCATE( PES_gradient( dim , num_of_images ) )          
       
       IF ( algorithm <= 3 ) THEN
-      	     
+             
         ALLOCATE( old_grad( dim , num_of_images ) )    
-	
-      END IF	  
+  
+      END IF    
 
       ALLOCATE( fix_atom( dim ) )
       
@@ -797,27 +797,27 @@ MODULE NEB_routines
       IF ( .NOT. restart ) THEN
 
         CALL write_restart     
-	
+  
         CALL PES_IO(.TRUE.,stat)
-	
- 	IF ( .NOT. stat ) THEN
-	
-!!DEBUG	  WRITE(*,*) " FATAL: corruption in the gen_output_file"
-!!DEBUG	  WRITE(*,*) " STOPPING ...                            "
-		  
+  
+   IF ( .NOT. stat ) THEN
+  
+!!DEBUG    WRITE(*,*) " FATAL: corruption in the gen_output_file"
+!!DEBUG    WRITE(*,*) " STOPPING ...                            "
+      
           RETURN
-		  
-	END IF
-	
+      
+  END IF
+  
         CALL compute_tangent
-	
+  
         IF ( max_iterations == 1 ) THEN
 
           CALL write_restart    
-	  
+    
           CALL compute_error(err)
 
-          CALL write_dat_files	
+          CALL write_dat_files  
 
           open(unit = 456, file = trim(barrier_file), action = "WRITE", position = "APPEND")
 
@@ -841,12 +841,12 @@ MODULE NEB_routines
       IF ( optimization ) THEN
       
         N_in  = 1
-	N_fin = num_of_images
+  N_fin = num_of_images
       
       ELSE
       
         N_in  = 2
-	N_fin = num_of_images - 1
+  N_fin = num_of_images - 1
       
       END IF
 
@@ -857,23 +857,23 @@ MODULE NEB_routines
         iteration = iteration + 1
 
         IF ( iteration > max_iterations ) THEN
-	
-	  CALL write_restart
-	
-	  EXIT minimization
-	  
-	END IF  
+  
+    CALL write_restart
+  
+    EXIT minimization
+    
+  END IF  
 
         IF ( file_exists(exit_file) ) THEN
-	
-	  CALL SYSTEM ("rm -f EXIT")
-	  
-	  WRITE(*,*) " WARNING :  soft exit required"
-	  WRITE(*,*) " STOPPING ...                 "
-	  
-	  CALL write_restart	  
-	  
-	  EXIT minimization
+  
+    CALL SYSTEM ("rm -f EXIT")
+    
+    WRITE(*,*) " WARNING :  soft exit required"
+    WRITE(*,*) " STOPPING ...                 "
+    
+    CALL write_restart    
+    
+    EXIT minimization
 
         END IF
 
@@ -894,41 +894,41 @@ MODULE NEB_routines
             CALL polak_ribiere(i)
 
           ELSE IF ( algorithm >= 4 ) THEN
-	
-	    CALL velocity_Verlet_first_step(i)
+  
+      CALL velocity_Verlet_first_step(i)
  
           END IF
 
         END DO first_minimization_loop
-	
+  
         CALL write_restart
 
         CALL PES_IO(optimization,stat)
-	
-	IF ( .NOT. stat ) THEN
-	
-!!DEBUG	  WRITE(*,*) " FATAL: corruption in the gen_output_file"
-!!DEBUG	  WRITE(*,*) " STOPPING ...                            "
-		  
+  
+  IF ( .NOT. stat ) THEN
+  
+!!DEBUG    WRITE(*,*) " FATAL: corruption in the gen_output_file"
+!!DEBUG    WRITE(*,*) " STOPPING ...                            "
+      
           EXIT minimization
-		  
-	END IF
+      
+  END IF
 
-	CALL compute_tangent
+  CALL compute_tangent
 
-	IF ( algorithm >= 4 ) THEN
+  IF ( algorithm >= 4 ) THEN
 
           CALL gradient
                 
-	  second_minimization_loop: DO i = N_in, N_fin 
+    second_minimization_loop: DO i = N_in, N_fin 
 
             IF ( algorithm == 4 ) THEN
 
               CALL quick_min_second_step(i)
  
             ELSE IF ( algorithm >= 5 ) THEN
-	    
-	      CALL velocity_Verlet_second_step(i)
+      
+        CALL velocity_Verlet_second_step(i)
  
             END IF
  
@@ -939,7 +939,7 @@ MODULE NEB_routines
         END IF
 
         CALL compute_error(err)
-	
+  
         CALL write_dat_files
 
         open(unit = 456, file = trim(barrier_file), action = "WRITE", position = "APPEND")
@@ -952,12 +952,12 @@ MODULE NEB_routines
         close(unit = 456)
 
         IF ( ( err * E_zero / a_zero ) <= convergence )  THEN
-	
-	  CALL write_restart
-	
-	  EXIT minimization
-	  
-	END IF
+  
+    CALL write_restart
+  
+    EXIT minimization
+    
+  END IF
 
       END DO minimization
 
@@ -1002,10 +1002,10 @@ MODULE NEB_routines
           Ei = MAX( MAX( V(i) , V(i-1) ) , MAX( V(i) , V(i+1) ) )
 
         ELSE
-	
-          Ei = MAX( V(i) , V(i-1) )	
-	
-	END IF
+  
+          Ei = MAX( V(i) , V(i-1) )  
+  
+  END IF
 
         IF ( Ei > Eref ) THEN
 
@@ -1027,7 +1027,7 @@ MODULE NEB_routines
         grad(:,num_of_images)    = PES_gradient(:,num_of_images)
       
         norm_grad(1)             = norm( grad(:,1) )
-	norm_grad(num_of_images) = norm( grad(:,num_of_images) )
+  norm_grad(num_of_images) = norm( grad(:,num_of_images) )
 
       END IF
 
@@ -1038,19 +1038,19 @@ MODULE NEB_routines
 !! elastic gradient ( variable elastic consatnt is used )
 
           elastic_gradient = &
-	    ( k(i) * ( cubic_pbc( pos(:,i) - pos(:,(i-1)) ) ) - &
+      ( k(i) * ( cubic_pbc( pos(:,i) - pos(:,(i-1)) ) ) - &
               k(i+1) * ( cubic_pbc( pos(:,(i+1)) - pos(:,i) ) ) ) 
 
         ELSE
 
-!! elastic gradient only along the path ( variable elastic consatnt is used )	
+!! elastic gradient only along the path ( variable elastic consatnt is used )  
 
           elastic_gradient = &
-	    ( k(i) * norm( cubic_pbc( pos(:,i) - pos(:,(i-1)) ) ) - &
+      ( k(i) * norm( cubic_pbc( pos(:,i) - pos(:,(i-1)) ) ) - &
               k(i+1) * norm( cubic_pbc( pos(:,(i+1)) - pos(:,i) ) ) ) * &
-	    tangent(:,i)
-	
-	END IF
+      tangent(:,i)
+  
+  END IF
 
 !! total gradient on each replica ( climbing image is used if needed )
 !! only the component of the PES gradient ortogonal to the path is taken into
@@ -1060,16 +1060,16 @@ MODULE NEB_routines
 
           grad(:,i) = PES_gradient(:,i) - 2.D0 * &
                       DOT_PRODUCT( PES_gradient(:,i) , tangent(:,i) ) * &
-		      tangent(:,i)
+          tangent(:,i)
 
         ELSE
 
           grad(:,i) = PES_gradient(:,i) + elastic_gradient - &
                       DOT_PRODUCT( PES_gradient(:,i) , tangent(:,i) ) * &
-		      tangent(:,i)
+          tangent(:,i)
 
         END IF
-	
+  
         norm_grad(i) = norm( grad(:,i) )
 
       END DO gradient_loop
@@ -1096,7 +1096,7 @@ MODULE NEB_routines
 
         error(i) = norm( PES_gradient(:,i) - &
                          DOT_PRODUCT( PES_gradient(:,i) , tangent(:,i) ) * &
-		         tangent(:,i) )
+             tangent(:,i) )
 
         IF ( error(i) > err ) err = error(i)
         
@@ -1151,14 +1151,14 @@ MODULE NEB_routines
           READ(unit,*) temp_V
 
           IF ( ABS( temp_V - corruption_flag ) <= epsi ) THEN
-	               
-	    stat = .FALSE. 
-	    
-	    RETURN
-	  
-	  END IF
-	  
-	  V(replica) = temp_V
+                 
+      stat = .FALSE. 
+      
+      RETURN
+    
+    END IF
+    
+    V(replica) = temp_V
 
           IF ( V(replica) >= Emax ) THEN
  
@@ -1265,7 +1265,7 @@ MODULE NEB_routines
             cubic_pbc( pos(:,index) - pos(:,( index - 1 )) ) * delta_V_max
 
         ELSE
-	
+  
           path_tangent = &
             cubic_pbc( pos(:,( index + 1 )) - pos(:,( index - 1 )) ) 
 
@@ -1318,7 +1318,7 @@ MODULE NEB_routines
       IF ( algorithm >= 4 ) THEN
       
         OPEN( UNIT = unit, FILE = vel_file, STATUS = "UNKNOWN", &
-	      ACTION = "WRITE" )
+        ACTION = "WRITE" )
     
           DO i = 1, num_of_images
 
@@ -1400,14 +1400,14 @@ MODULE NEB_routines
         WRITE(unit,'(3(2X,F12.8))') 0.D0, 0.D0, 0.D0
 
         DO i = 2, num_of_images
-	
+  
           WRITE(unit,'(3(2X,F12.8))') reaction_coordinate(i) * a_zero, &
                                       ( V(i) - V(1) ) * E_zero,        &
                                       error(i) * ( E_zero / a_zero )
       
         END DO
 
-      CLOSE( UNIT = unit )	
+      CLOSE( UNIT = unit )  
 
       OPEN( UNIT = unit, FILE = interpolation_file, STATUS = "UNKNOWN", &
             ACTION = "WRITE" )

@@ -41,7 +41,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   real(gp), dimension(3*at%nat), intent(inout) :: pos
   real(gp), dimension(3*at%nat), intent(out) :: fxyz
   !local variables
-  logical :: fail,exists
+  logical :: fail
 
   !-------------------------------------------
   type(parameterminimization)::parmin
@@ -123,9 +123,9 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   real(gp) :: fluct,fnrm
   real(gp) ::sumx,sumy,sumz,fmax
   logical :: check
-  integer :: n,i_all,i_stat,m,it,nwork,i,j,iter_old
-  integer :: infocode,iprecon,iwrite,nitsd,histlen,nfluct
-  real(gp) :: fluctsum,ddot,shift,tmp,fnormmax_sw,limbfgs,erel
+  integer :: n,i_all,i_stat,m,i,iter_old
+  integer :: infocode,iwrite,nitsd,histlen,nfluct
+  real(gp) :: fluctsum,shift,tmp,fnormmax_sw,limbfgs,erel
 !  real(gp), dimension(3) :: alat
   real(gp), dimension(30) :: ehist
   real(gp), dimension(:), allocatable :: diag,work,xc,xdft,xwrite
@@ -316,9 +316,12 @@ end subroutine bfgs
 !!*******************************************************************************
 
 subroutine timeleft(tt)
+  use module_base
   ! MODIFIED version for refined time limit on restart of global.f90.
   ! Only difference: Calls routine CPUtime(tt)
-  implicit real*8 (a-h,o-z)
+  integer :: ierr
+  real(gp) :: timelimit, tcpu
+
   open(unit=55,file='CPUlimit',status='unknown')
   read(55,*,iostat=ierr) timelimit ! in hours
   if(ierr/=0)timelimit=1d6
@@ -661,10 +664,10 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
   real(gp), intent(in)::forcemax_sw
   !local variables
   character(len=*), parameter :: subname='steepdes'
-  logical :: care, check
+  logical :: care
   integer :: nsatur,iat,itot,itsd,i_stat,i_all,infocode,nbeqbx
   real(gp) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise,sumx,sumy,sumz
-  real(gp) :: fmax,t1,t2,t3,de1,de2,df1,df2,tmp,beta
+  real(gp) :: fmax,de1,de2,df1,df2,beta
   real(gp), allocatable, dimension(:,:) :: tpos
   character*4 fn4
   character*40 comment
@@ -905,8 +908,8 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
   real(gp) ::fluctsum 
   integer :: nfluct
   character(len=*), parameter :: subname='vstepsd'  
-  integer :: it,iat,i_all,i_stat,infocode, nitsd,itsd
-  real(gp) :: anoise,fluct,fnrm,fnrmold,beta0,beta,betaxx,betalast,betalastold
+  integer :: iat,i_all,i_stat,infocode, nitsd,itsd
+  real(gp) :: anoise,fluct,fnrm,fnrmold,beta,betaxx,betalast,betalastold
   real(gp) :: etotold,fmax,scpr,curv,tt,sumx,sumy,sumz
   real(gp), dimension(:,:), allocatable :: posold,ffold
   logical reset,check
@@ -1124,8 +1127,7 @@ subroutine updatefluctsum(nat,fxyz,nfluct,fluctsum,fluct)
   real(gp), dimension(3,nat), intent(in) :: fxyz
   integer, intent(inout):: nfluct
   !local variables
-  real(gp), save :: fluct_im1,fluct_im2,fluct_i
-  integer :: iat
+!!$  real(gp), save :: fluct_im1,fluct_im2,fluct_i
   real(gp) :: sumx,sumy,sumz
 
 
@@ -1183,14 +1185,14 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
   type(atoms_data), intent(in) :: at
   type(parameterminimization), intent(inout) :: parmin
   real(8)::x(n),xc(n),g(n),diag(n),w(n*(2*m+1)+2*m),f
-  real(8)::one,zero,gnorm,ddot,stp1,xnorm,beta,yr,sq,yy
+  real(8)::one,zero,gnorm,stp1,xnorm,beta,yr,sq,yy
   integer::npt,cp,i,inmc,iycn,iscn
   real(8), save::ys,a_t
   integer, save::bound,info,nfun,nfev,point,iypt,ispt
   logical, save::finish,new
   data one,zero/1.0d+0,0.0d+0/
   if(parmin%iflag==0) then
-     call init_lbfgs(at,n,m,x,f,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
+     call init_lbfgs(at,n,m,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
   endif
   new=.false.
   if(parmin%iflag==0) new=.true.
@@ -1341,7 +1343,7 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
   enddo
 end subroutine lbfgs
 !*****************************************************************************************
-subroutine init_lbfgs(at,n,m,x,f,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
+subroutine init_lbfgs(at,n,m,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
   use module_base
   use module_types
   use minimization, only:parameterminimization
@@ -1349,9 +1351,9 @@ subroutine init_lbfgs(at,n,m,x,f,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iyp
   type(atoms_data), intent(in) :: at
   type(parameterminimization)::parmin
   integer::n,m,i
-  real(8)::x(n),g(n),diag(n),w(n*(2*m+1)+2*m),f
+  real(8)::g(n),diag(n),w(n*(2*m+1)+2*m)
   integer::nfun,point,iypt,ispt
-  real(8)::one,zero,gnorm,ddot,stp1,a_t
+  real(8)::one,zero,gnorm,stp1
   logical::finish
   data one,zero/1.0d+0,0.0d+0/
   parmin%iter=0
@@ -1583,7 +1585,7 @@ subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin) !line search routine mcs
         dgxm=dgx-dgtest
         dgym=dgy-dgtest
         !call mcstep to update the interval of uncertainty and to compute the new step.
-        call mcstep(a_l,fxm,dgxm,a_u,fym,dgym,a_t,fm,dgm, brackt,stmin,stmax,infoc,parmin)
+        call mcstep(a_l,fxm,dgxm,a_u,fym,dgym,a_t,fm,dgm, brackt,stmin,stmax,infoc) !,parmin)
         !reset the function and gradient values for f.
         fx=fxm+a_l*dgtest
         fy=fym+a_u*dgtest
@@ -1591,7 +1593,7 @@ subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin) !line search routine mcs
         dgy=dgym+dgtest
      else
         !call mcstep to update the interval of uncertainty and to compute the new step.
-        call mcstep(a_l,fx,dgx,a_u,fy,dgy,a_t,f,dg,brackt,stmin,stmax,infoc,parmin)
+        call mcstep(a_l,fx,dgx,a_u,fy,dgy,a_t,f,dg,brackt,stmin,stmax,infoc) !,parmin)
      end if
      !force a sufficient decrease in the size of the
      !interval of uncertainty.
@@ -1605,9 +1607,9 @@ subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin) !line search routine mcs
 end subroutine mcsrch
 
 !*****************************************************************************************
-subroutine mcstep(a_l,fx,dx,a_u,fy,dy,a_t,fp,dp,brackt,stpmin,stpmax,info,parmin)
+subroutine mcstep(a_l,fx,dx,a_u,fy,dy,a_t,fp,dp,brackt,stpmin,stpmax,info) !,parmin)
   use minimization, only:parameterminimization
-  type(parameterminimization)::parmin
+!  type(parameterminimization)::parmin
   integer::info
   real(8)::a_l,fx,dx,a_u,fy,dy,a_t,fp,dp,stpmin,stpmax
   logical::brackt,bound
@@ -1729,7 +1731,7 @@ end subroutine mcstep
 !*****************************************************************************************
 subroutine cal_a_c(a_l,fx,dx,a_t,fp,dp,a_c)
   implicit none
-  real(8)::a_l,fx,dx,a_t,fp,dp,a_c,theta,s,gamma,r,q,p
+  real(8)::a_l,fx,dx,a_t,fp,dp,a_c,theta,gamma,r,q,p
   theta=3.d0*(fx-fp)/(a_t-a_l)+dx+dp
   !s=max(abs(theta),abs(dx),abs(dp))
   gamma=sqrt(theta**2-dx*dp)

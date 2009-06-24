@@ -90,7 +90,7 @@ subroutine convolut_kinetic_slab_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
 !           do l=lowfil,lupfil
 !              j=modulo(i2+l,n2+1)
            do l=max(lowfil,-i2),min(lupfil,n2-i2)
-			  j=i2+l 
+        j=i2+l 
               tt1=tt1+x(1,i1,j,i3)*fil(1,l,2)-x(2,i1,j,i3)*fil(2,l,2)
               tt2=tt2+x(2,i1,j,i3)*fil(1,l,2)+x(1,i1,j,i3)*fil(2,l,2)
            enddo
@@ -217,7 +217,7 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            !do l=lowfil,lupfil
            !   j=modulo(i2+l,n2+1)
            do l=max(lowfil,-i2),min(lupfil,n2-i2)
-			  j=i2+l 
+        j=i2+l 
               tt1=tt1+x(1,i1,j,i3)*fil(1,l,2)-x(2,i1,j,i3)*fil(2,l,2)
               tt2=tt2+x(2,i1,j,i3)*fil(1,l,2)+x(1,i1,j,i3)*fil(2,l,2)
            enddo
