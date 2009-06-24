@@ -276,11 +276,13 @@ test_forces_LDADD = libbigdft.a \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
-NEB_SOURCES = NEB.f90
+NEB_SOURCES = NEB.f90 \
+	$(mpi_source)
 NEB_LDFLAGS = 
 NEB_LDADD = input_variables.o $(modules_objects) profiling/memory.o convolutions/interface_cuda_fake.o
 
-memguess_SOURCES = memguess.f90 
+memguess_SOURCES = memguess.f90 \
+	$(mpi_source)
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
@@ -288,7 +290,8 @@ memguess_LDADD = libbigdft.a \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
-frequencies_SOURCES = frequencies.f90 
+frequencies_SOURCES = frequencies.f90  \
+	$(mpi_source)
 frequencies_LDFLAGS = 
 frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
