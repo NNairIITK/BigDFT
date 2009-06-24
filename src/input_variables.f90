@@ -245,6 +245,7 @@ subroutine geopt_input_variables(iproc,filename,in)
   call check()
   read(1,*,iostat=ierror) in%ncount_cluster_x
   call check()
+  in%forcemax = 0.d0
   read(1,*,iostat=ierrfrc) in%frac_fluct,in%forcemax
   call check()
   read(1,*,iostat=ierror) in%randdis
