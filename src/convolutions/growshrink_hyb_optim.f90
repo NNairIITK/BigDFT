@@ -33,7 +33,7 @@ implicit none
 integer,intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1,n2,n3
 integer,intent(in)::ibxxyy(2,   0:2*n1+1,0:2*n2+1)
 real(wp), dimension(2,nfl3:nfu3,0:2*n1+1,0:2*n2+1), intent(in) :: x
-real(wp), dimension(            0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(inout) :: y
+real(wp), dimension(            0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(out) :: y
 !local variables
 integer :: l1,l2,i,t,l1_0,l1_1,ll1
 integer :: ii,ii1
@@ -43,6 +43,9 @@ integer::mfl3,mfu3
 include 'v_17.inc'
 call fill_mod_arr(modul,-14+2*nfl3,2*nfu3+16,2*n3+2)
 
+!$omp parallel default(private)&
+!$omp shared (n2,n1,ibxxyy,modul,x,y,fil2)
+!$omp do
 do l2=0,2*n2+1
 	do l1=0,2*n1+1
 		mfl3=ibxxyy(1,l1,l2)
@@ -71,6 +74,8 @@ do l2=0,2*n2+1
 		endif
 	enddo
 enddo
+!$omp enddo
+!$omp end parallel
 
 end subroutine comb_rot_grow_ib_3
 
@@ -100,6 +105,9 @@ integer::mfl3,mfu3,mfl2,mfu2
 include 'v_17.inc'
 call fill_mod_arr(modul,-14+2*nfl2,2*nfu2+16,2*n2+2)
 
+!$omp parallel default(private)&
+!$omp shared (n2,n1,ibxxyy,modul,x,y,fil2,nfl3,nfu3,ibzxx)
+!$omp do
 do l2=0,2*n2+1
 	do l1=0,2*n1+1
 		mfl3=ibxxyy(1,l1,l2)
@@ -107,7 +115,8 @@ do l2=0,2*n2+1
 		y(:,mfl3:mfu3,l1,l2)=0._wp
 	enddo
 enddo
-
+!$omp enddo
+!$omp do
 do l1=0,2*n1+1
 	do l3=nfl3,nfu3
 	
@@ -145,7 +154,8 @@ do l1=0,2*n1+1
 		endif
 	enddo
 enddo
-
+!$omp enddo
+!$omp end parallel
 END SUBROUTINE comb_rot_grow_ib_2
 
 subroutine comb_rot_grow_ib_1(n1,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ibyz,ibzxx)
@@ -172,6 +182,9 @@ integer::mfl1,mfu1,mfl2,mfu2
 include 'v_17.inc'
 call fill_mod_arr(modul,-14+2*nfl1,2*nfu1+16,2*n1+2)
 
+!$omp parallel default(private)&
+!$omp shared (n1,ibzxx,modul,x,y,fil2,nfl3,nfu3,nfl2,nfu2,ibyz)
+!$omp do
 do l1=0,2*n1+1
 	do l3=nfl3,nfu3
 		mfl2=ibzxx(1,l3,l1)
@@ -179,6 +192,8 @@ do l1=0,2*n1+1
 		y(:,:,mfl2:mfu2,l3,l1)=0._wp
 	enddo
 enddo
+!$omp enddo
+!$omp do
 
 do l3=nfl3,nfu3
 	do l2=nfl2,nfu2
@@ -235,7 +250,8 @@ do l3=nfl3,nfu3
 		endif
 	enddo
 enddo
-
+!$omp enddo
+!$omp end parallel
 END SUBROUTINE comb_rot_grow_ib_1
 
 
@@ -260,6 +276,10 @@ real(wp) :: se1,se2,se3,se4,se5,se6,se7,se8
 integer::modul(-8:n1+7)
 include 'v_17.inc'
 call fill_mod_arr(modul,-8,n1+7,n1+1)
+
+!$omp parallel default(private)&
+!$omp shared (ndat,n1,modul,fil2,x)
+!$omp do
 
 do l=0,ndat/8-1
 	do i=0,n1
@@ -321,7 +341,8 @@ do l=0,ndat/8-1
 		y(l*8+8,2*i+1)=so8
 	enddo
 enddo
-
+!$omp enddo
+!$omp do
 do l=(ndat/8)*8+1,ndat
 	do i=0,n1
 		y2i =fil2(16,1)*x(tt,l)
@@ -335,6 +356,8 @@ do l=(ndat/8)*8+1,ndat
 		y(l,2*i+1)=y2i1
 	enddo
 enddo
+!$omp enddo
+!$omp end parallel
 end subroutine comb_rot_grow
 
 
@@ -398,6 +421,9 @@ real(wp) :: ci1,ci2
 integer::modul(lowfil2+2*nfl1:2*nfu1+lupfil2)
 include 'v.inc'
 call fill_mod_arr(modul,lowfil2+2*nfl1,2*nfu1+lupfil2,2*n1+2)
+!$omp parallel default(private)&
+!$omp shared (ndat,ib,fil2,modul,x)
+!$omp do
 
 do j=1,ndat
 	do i=ib(1,j),ib(2,j)
@@ -413,7 +439,8 @@ do j=1,ndat
 		y(2,j,i)=ci2
 	enddo
 enddo
-
+!$omp end do
+!$omp end parallel
 end subroutine comb_rot_shrink_hyb_1_ib
 
 
@@ -435,6 +462,9 @@ real(wp) :: ci11,ci12,ci21,ci22
 integer::modul(lowfil2+2*nfl:2*nfu+lupfil2)
 include 'v.inc'
 call fill_mod_arr(modul,lowfil2+2*nfl,2*nfu+lupfil2,2*n1+2)
+!$omp parallel default(private)&
+!$omp shared (ndat,ib,fil2,modul,x)
+!$omp do
 
 do j=1,ndat
 	do i=ib(1,j),ib(2,j)
@@ -457,6 +487,8 @@ do j=1,ndat
 		y(2,2,j,i)=ci22
 	enddo
 enddo
+!$omp enddo
+!$omp end parallel
 
 end subroutine comb_rot_shrink_hyb_2_ib
 
@@ -479,6 +511,9 @@ integer::modul(lowfil2+2*nfl:2*nfu+lupfil2)
 include 'v.inc'
 call fill_mod_arr(modul,lowfil2+2*nfl,2*nfu+lupfil2,2*n1+2)
 
+!$omp parallel default(private)&
+!$omp shared (ndat,ib,fil2,modul,x)
+!$omp do
 do j=1,ndat
 	do i=ib(1,j),ib(2,j)
 		ci112=0._wp
@@ -509,7 +544,8 @@ do j=1,ndat
 		y(7,j,i)=ci222    
 	enddo
 enddo
-
+!$omp enddo
+!$omp end parallel
 end subroutine comb_rot_shrink_hyb_3_ib
 
 
@@ -529,7 +565,9 @@ real(wp) :: ci,ci1,ci2,ci3,ci4,ci5,ci6,ci7,ci8,ci9,ci10,ci11,ci12
 integer::modul(lowfil2:2*n1+lupfil2)
 include 'v.inc'
 call fill_mod_arr(modul,lowfil2,2*n1+lupfil2,2*n1+2)
-
+!$omp parallel default(private)&
+!$omp shared (ndat,n1,modul,fil2,x)
+!$omp do
 ! the convolution itself:
 do j=0,ndat/12-1
 	do i=0,n1
@@ -574,7 +612,8 @@ do j=0,ndat/12-1
 		y(j*12+12,i)=ci12
 	enddo
 enddo
-   
+!$omp enddo
+!$omp do   
 do j=(ndat/12)*12+1,ndat
 	do i=0,n1
 		ci=0.d0
@@ -585,5 +624,6 @@ do j=(ndat/12)*12+1,ndat
 		y(j,i)=ci
 	enddo
 enddo
-
+!$omp end do
+!$omp end parallel
 end subroutine comb_rot_shrink_hyb

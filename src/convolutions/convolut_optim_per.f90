@@ -512,8 +512,9 @@ subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
   integer, dimension(lowfil:n3+lupfil) :: mod_arr3	
   real(wp), dimension(3) :: scale
   real(wp), dimension(lowfil:lupfil,3) :: fil
+!dee
 
-  !$omp parallel default(private) shared(x,y,n1,n2,n3,c,hgrid,fil,mod_arr1,mod_arr2,mod_arr3)
+  !$omp parallel default(private) shared(x,y,n1,n2,n3,c,hgrid,fil,mod_arr1,mod_arr2,mod_arr3,i)
   call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
   call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
   call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
@@ -680,7 +681,7 @@ contains
     implicit none
     integer,intent(in)::ndat
     real(wp),intent(in):: x(ndat,0:n1)
-    real(wp),intent(inout)::y(ndat,0:n1)
+    real(wp),intent(out)::y(ndat,0:n1)
     real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 
 !$omp do 
@@ -770,7 +771,9 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin_out)
   real(wp), dimension(lowfil:lupfil,3) :: fil
 
   ekin_out=0._wp
-  !$omp parallel default(private) shared(x,y,n1,n2,n3,hgrid,ekin_out,fil,mod_arr1,mod_arr2,mod_arr3)
+!dee added ekin
+
+  !$omp parallel default(private) shared(x,y,n1,n2,n3,hgrid,ekin_out,fil,mod_arr1,mod_arr2,mod_arr3,i)
   
   call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
   call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
@@ -818,7 +821,7 @@ contains
     implicit none
     integer,intent(in)::ndat
     real(wp),intent(in):: x(0:n1,ndat)
-    real(wp),intent(inout)::y(0:n1,ndat)
+    real(wp),intent(out)::y(0:n1,ndat)
 	real(wp),intent(inout)::ekin
     real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 	
@@ -948,7 +951,7 @@ contains
     implicit none
     integer,intent(in)::ndat
     real(wp),intent(in):: x(ndat,0:n1)
-    real(wp),intent(inout)::y(ndat,0:n1)
+    real(wp),intent(out)::y(ndat,0:n1)
 	real(wp),intent(inout)::ekin
     real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 

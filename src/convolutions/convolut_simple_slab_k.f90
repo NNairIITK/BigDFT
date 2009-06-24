@@ -65,6 +65,8 @@ subroutine convolut_kinetic_slab_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
   do i=1,14
      fil(2,-i,:)=-fil(2,i,:)
   enddo
+!$omp parallel default (private) shared(n1,n2,n3,x,y,c,fil)
+!$omp do
 
   do i3=0,n3
      ! (1/2) d^2/dx^2
@@ -100,6 +102,8 @@ subroutine convolut_kinetic_slab_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
      enddo
      
   enddo
+!$omp enddo
+!$omp do
 
   ! + (1/2) d^2/dz^2
   do i2=0,n2
@@ -117,7 +121,8 @@ subroutine convolut_kinetic_slab_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
         enddo
      enddo
   enddo
-  
+!$omp enddo
+!$omp end parallel  
 end subroutine convolut_kinetic_slab_c_k
 
 subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
@@ -190,8 +195,12 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
      fil(2,-i,:)=-fil(2,i,:)
   enddo
 
-
+!$omp parallel default (private) shared(x,y,ener,fil,c,n1,n2,n3)
   ener=0._wp
+
+!$omp do
+
+
   do i3=0,n3
      ! (1/2) d^2/dx^2
      do i2=0,n2
@@ -205,7 +214,7 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-           ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+		   ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
      
@@ -223,12 +232,13 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-           ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+		   ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
      
   enddo
-
+!$omp enddo
+!$omp do
   ! + (1/2) d^2/dz^2
   do i2=0,n2
      do i1=0,n1
@@ -242,11 +252,11 @@ subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
            enddo
            y(1,i1,i2,i3)=y(1,i1,i2,i3)+tt1
            y(2,i1,i2,i3)=y(2,i1,i2,i3)+tt2
-           ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
+		   ener=ener+tt1*x(1,i1,i2,i3)+tt2*x(2,i1,i2,i3)
         enddo
      enddo
   enddo
-
-  !ener=ener*.5_wp
-  
+!$omp enddo
+  ener=ener*.5_wp
+!$omp end parallel  
 end subroutine convolut_kinetic_slab_T_k

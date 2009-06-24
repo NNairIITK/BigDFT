@@ -366,7 +366,7 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
   real(wp), dimension(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2), intent(in) :: x_f3
   real(gp), intent(out) :: ekinout
   real(wp), dimension(0:n1,0:n2,0:n3), intent(out) :: y_c
-  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: y_f
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(out) :: y_f
   !local variables
   integer, parameter :: lowfil=-14,lupfil=14
   logical :: firstcall=.true. 
@@ -741,7 +741,7 @@ contains
   subroutine conv_kin_y(x,y)
     implicit none
 	real(wp),intent(in)::x(0:n1,0:n2,0:n3)
-	real(wp),intent(inout)::y(0:n1,0:n2,0:n3)
+	real(wp),intent(out)::y(0:n1,0:n2,0:n3)
     real(wp) tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt
 	integer::i2,j
 
@@ -799,7 +799,7 @@ contains
     implicit none
     integer,intent(in)::ndat
     real(wp),intent(in):: x(ndat,0:n1)
-    real(wp),intent(inout)::y(ndat,0:n1)
+    real(wp),intent(out)::y(ndat,0:n1)
     real(wp) tt,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 	integer::j
 
@@ -1165,7 +1165,7 @@ contains
   subroutine conv_kin_y(x,y)
     implicit none
 	real(wp),intent(in)::x(0:n1,0:n2,0:n3)
-	real(wp),intent(inout)::y(0:n1,0:n2,0:n3)
+	real(wp),intent(out)::y(0:n1,0:n2,0:n3)
     real(wp) tt,tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7
 	integer::j
 
@@ -1290,7 +1290,7 @@ contains
     implicit none
     integer,intent(in)::ndat
     real(wp),intent(in):: x(ndat,0:n1)
-    real(wp),intent(inout)::y(ndat,0:n1)
+    real(wp),intent(out)::y(ndat,0:n1)
     real(wp) tt,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 	integer::j
 	

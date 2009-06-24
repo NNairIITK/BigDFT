@@ -457,11 +457,7 @@ subroutine local_partial_density_GPU(iproc,nproc,orbs,&
      
      call create_stream(stream_ptr) !only one stream, it could be good to optimize that
      !copy the wavefunctions on GPU
-
-    call  gpu_pack_unpack_stream(i_stat,stream_ptr)
      do iorb=1,orbs%norbp
-       
-
         call  mem_copy_f_to_c_stream((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%nspinor,&
              GPU%pinned_in,&
              psi(1,(iorb-1)*orbs%nspinor+1),&
@@ -471,7 +467,7 @@ subroutine local_partial_density_GPU(iproc,nproc,orbs,&
              GPU%pinned_in,&
              GPU%psi(iorb),i_stat,stream_ptr)
      end do
-    call  gpu_pack_unpack_stream(i_stat,stream_ptr)
+     
        
      
      !calculate the density
