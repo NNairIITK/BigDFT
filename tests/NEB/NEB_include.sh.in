@@ -32,17 +32,17 @@ make_input()
     id=$3
 
     # Create the posinp file
-    rm -f posinp
+    rm -f posinp.xyz
     
-    echo $n_nodes" atomic" > posinp
-    head -n2 $position_file | tail -n 1 >> posinp
+    echo $n_nodes" atomic" > posinp.xyz
+    head -n2 $position_file | tail -n 1 >> posinp.xyz
     head -n $(($n_nodes + 2)) $position_file | tail -n $n_nodes | sed "s/^ *//g" | cut -d" " -f1 > atoms
     grep -A $(($n_nodes + 1)) -e "Replica: *$id" $restart_file | tail -n $n_nodes | sed "s/  */ /g" | cut -d' ' -f2,3,4 > positions
-    paste -d' ' atoms positions >> posinp
+    paste -d' ' atoms positions >> posinp.xyz
     rm -f atoms positions
 
     # Copy the input.dat
-    cp -f -p $datadir/input.dat .
+    cp -f -p $datadir/input.dft .
 
     # Copy the pseudo-potential files
     cp -f -p $datadir/psppar.* .

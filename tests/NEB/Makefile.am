@@ -14,11 +14,13 @@ input.dft:
 NEB_driver.sh:
 	ln -s $(top_srcdir)/src/$@
 
-check: psppar.H input.dft NEB_driver.sh NEB_include.sh
-	if ! test -f input.dft ; then cp -f ./input.dft .; fi
+NEB.out: $(top_builddir)/src/NEB input NEB_include.sh psppar.H
+	if ! test -f input.dft ; then cp -f $(srcdir)/input.dft .; fi
 	rm -f triH.NEB.it*
 	$(top_builddir)/src/NEB < input | tee NEB.out
-	python $(top_srcdir)/tests/fldiff.py NEB.out $(top_srcdir)/tests/Refs/NEB.out.ref | tee fldiff.report
 	rm -rf triH.NEB.0*
+
+check: psppar.H input.dft NEB_driver.sh NEB_include.sh NEB.out
+	python $(top_srcdir)/tests/fldiff.py --discrepancy=5e-5 NEB.out $(top_srcdir)/tests/Refs/NEB.out.ref | tee fldiff.report
 
 CLEANFILES = triH.NEB.* velocities_file NEB.out NEB_driver.sh psppar.H gen_output_file fldiff.report
