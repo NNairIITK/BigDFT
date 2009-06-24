@@ -118,27 +118,27 @@ program memguess
   !read number of atoms
   call read_atomic_file('posinp',0,atoms,rxyz)
 
-  call dft_input_variables(0,'input.dft',in)
-  !read geometry optimsation input variables
-  !inquire for the file needed for geometry optimisation
-  !if not present, perform a simple geometry optimisation
-  inquire(file="input.geopt",exist=exists)
-  if (exists) then
-     call geopt_input_variables(0,'input.geopt',in)
+  if (convert) then
+     call read_input_variables(0,'input.dft',in)
+     write(*,'(a)',advance='NO')' Conversion of the input file...'
+     call dft_input_converter(in)
+     write(*,*)' ...done'
   else
-     call geopt_input_variables_default(in)
+     call dft_input_variables(0,'input.dft',in)
+     !read geometry optimsation input variables
+     !inquire for the file needed for geometry optimisation
+     !if not present, perform a simple geometry optimisation
+     inquire(file="input.geopt",exist=exists)
+     if (exists) then
+        call geopt_input_variables(0,'input.geopt',in)
+     else
+        call geopt_input_variables_default(in)
+     end if
   end if
 
 
   call print_input_parameters(in,atoms)
 
-
-
-  if (convert) then
-     write(*,'(a)',advance='NO')' Conversion of the input file...'
-     call dft_input_converter(in)
-     write(*,*)' ...done'
-  end if
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'

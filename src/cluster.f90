@@ -599,6 +599,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      call GetExcitedOrbitalAsG(in%iat_absorber ,Gabsorber,&
           atoms,rxyz,nproc,iproc,1,Gabs_coeffs)
 
+     print *,'OK'
      call lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,Gabsorber,Gabs_coeffs,&
           cpmult,fpmult,radii_cf,nlpspd,proj,Glr,ngatherarr,n1i*n2i*n3p,&
           rhopot(1,1,1+i3xcsh,1),ekin_sum,epot_sum,eproj_sum,in%nspin,GPU)
@@ -708,7 +709,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
      else
   
-        if (in%read_ref_den .and. gnrm <= in%gnrm_sw)then
+        if (in%read_ref_den .and. gnrm <= in%gnrm_sw .or. potion_overwritten) then
            if (.not. potion_overwritten) then
               !overwrite pot_ion with the potential previously created
               call read_potfile(atoms%geocode,'potion_corr.pot',n1,n2,n3,n1i,n2i,n3i,n3pi,&

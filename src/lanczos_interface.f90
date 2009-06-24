@@ -212,16 +212,24 @@ contains
   subroutine EP_initialize_start(Gabsorber)
     integer :: i
     type(gaussian_basis) :: Gabsorber
-    if (.not. associated(Qvect)) then
-       write(*,*)'ERROR: initialization vector not allocated!'
-       stop
-    end if
+    real(wp), dimension(:), allocatable :: Qvect_tmp,wrk
+
+
 
     call gaussians_to_wavelets(ha%iproc,ha%nproc,ha%lr%geocode,ha%orbs,ha%lr%d,&
          ha%hx,ha%hy,ha%hz,ha%lr%wfd,Gabsorber,ha%Gabs_coeffs,Qvect(1,0))
 
     call plot_wf('test',ha%lr,ha%hx,ha%hy,ha%hz,ha%rxyz(1,1),ha%rxyz(2,1),ha%rxyz(3,1),&
          Qvect,'')
+
+    if (.not. associated(Qvect)) then
+       write(*,*)'ERROR: initialization vector not allocated!'
+       stop
+    end if
+
+!!$    call transpose_v(iproc,nproc,orbs%norbp,orbs%nspinor,wfd,comms,&
+!!$         Qvect_tmp,work=wrk,outadd=Qvect(1,0))  !
+  
 
     ! plot Qvect(1,0)
 
@@ -236,7 +244,6 @@ contains
     else 
        call EP_set_random_interna(dumQvect(1:,-i))
     endif
-
 
     return 
   end subroutine EP_set_all_random

@@ -284,8 +284,8 @@ module module_types
      real(gp)  :: hx,hy,hz,cpmult,fpmult
      real(gp) :: ekin_sum,epot_sum,eproj_sum
      type(atoms_data), pointer :: at
-     type(orbitals_data), pointer :: orbs
-     type(communications_arrays), pointer :: comms
+     type(orbitals_data) :: orbs
+     type(communications_arrays) :: comms
      type(nonlocal_psp_descriptors), pointer :: nlpspd
      type(locreg_descriptors), pointer :: lr 
      type(gaussian_basis), pointer :: Gabsorber    
