@@ -21,24 +21,39 @@ PPFILES = \
 CLEANFILES = $(PPFILES) inguess.new inguess.dat \
 			 posloc* posmd* posout* poslow* posbest* \
 			 global.out global.mon latest.pos.force.*.dat
-			 *.prc fort.* fldiff.report $(EXTRA_DIST)
+			 *.prc fort.* fldiff.report
 
 #dependencies
 $(PPFILES):
-	cp $(top_srcdir)/utils/PSPfiles/$@ .
+	ln -fs $(top_srcdir)/utils/PSPfiles/$@
 
-check: $(PPFILES) 
-	cp -f $(top_srcdir)/tests/MINHOP/CPUlimit .
-	cp -f $(top_srcdir)/tests/MINHOP/earr.dat .
-	cp -f $(top_srcdir)/tests/MINHOP/input.dft .
-	cp -f $(top_srcdir)/tests/MINHOP/mdinput.dft .
-	cp -f $(top_srcdir)/tests/MINHOP/input.geopt .
-	cp -f $(top_srcdir)/tests/MINHOP/mdinput.geopt .
-	cp -f $(top_srcdir)/tests/MINHOP/ioput .
-	cp -f $(top_srcdir)/tests/MINHOP/rand.inp .
-	cp -f $(top_srcdir)/tests/MINHOP/poscur.xyz .
+MINHOP.out: $(top_builddir)/src/cluster $(PPFILES)
+	if ! test x"$srcdir" = x"." ; then \
+	  ln -fs $(srcdir)/CPUlimit ; \
+	  ln -fs $(srcdir)/earr.dat ; \
+	  ln -fs $(srcdir)/input.dft ; \
+	  ln -fs $(srcdir)/mdinput.dft ; \
+	  ln -fs $(srcdir)/input.geopt ; \
+	  ln -fs $(srcdir)/mdinput.geopt ; \
+	  ln -fs $(srcdir)/ioput ; \
+	  ln -fs $(srcdir)/rand.inp ; \
+	  ln -fs $(srcdir)/poscur.xyz ; \
+        fi
 	rm -f global.mon
-	$(run_parallel) $(top_builddir)/src/global > MINHOP.out
+	$(run_parallel) $(top_builddir)/src/global > $@
+	if ! test x"$srcdir" = x"." ; then \
+	  rm -f CPUlimit ; \
+	  rm -f earr.dat ; \
+	  rm -f input.dft ; \
+	  rm -f mdinput.dft ; \
+	  rm -f input.geopt ; \
+	  rm -f mdinput.geopt ; \
+	  rm -f ioput ; \
+	  rm -f rand.inp ; \
+	  rm -f poscur.xyz ; \
+        fi
+
+check: MINHOP.out
 	python $(top_srcdir)/tests/fldiff.py global.mon $(top_srcdir)/tests/Refs/global.mon.ref
 	python $(top_srcdir)/tests/fldiff.py --discrepancy=5.e-9 --bigdft MINHOP.out \
 		   $(top_srcdir)/tests/Refs/MINHOP.out.ref | tee fldiff.report
