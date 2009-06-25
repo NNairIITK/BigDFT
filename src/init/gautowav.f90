@@ -431,7 +431,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   real(gp), dimension(nterm_max) :: fac_arr
   real(wp), dimension(:), allocatable :: tpsi
 
-  if(iproc == 0) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
+  if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
 
   allocate(tpsi(wfd%nvctr_c+7*wfd%nvctr_f+ndebug),stat=i_stat)
   call memocc(i_stat,tpsi,'tpsi',subname)
@@ -444,6 +444,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   ishell=0
   iexpo=1
   icoeff=1
+
   do iat=1,G%nat
      rx=G%rxyz(1,iat)
      ry=G%rxyz(2,iat)
@@ -491,15 +492,8 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
               if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
                  jorb=iorb-orbs%isorb
                  do ispinor=1,orbs%nspinor
-!!$                    if (wfn_gau(icoeff,ispinor,jorb) /= 0.0_wp) then
-!!$                       !print *,icoeff,iorb,iat,jorb,G%nat
-!!$                    do i=1,wfd%nvctr_c+7*wfd%nvctr_f
-!!$                       !for this also daxpy BLAS can be used
-!!$                       psi(i,jorb)=psi(i,jorb)+wfn_gau(icoeff,jorb)*tpsi(i)
-!!$                    end do
                     call axpy(wfd%nvctr_c+7*wfd%nvctr_f,wfn_gau(icoeff,ispinor,jorb),&
                          tpsi(1),1,psi(1,ispinor,jorb),1)
-!!$                    end if
                  end do
               end if
            end do
@@ -507,7 +501,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
         end do
         iexpo=iexpo+ng
      end do
-     if (iproc == 0) then
+     if (iproc == 0 .and. verbose > 1) then
         write(*,'(a)',advance='no') &
              repeat('.',(iat*40)/G%nat-((iat-1)*40)/G%nat)
      end if
@@ -515,7 +509,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
 
   call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
-  if (iproc ==0 ) write(*,'(1x,a)')'done.'
+  if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
   !renormalize the orbitals
   !calculate the deviation from 1 of the orbital norm
   normdev=0.0_dp
@@ -540,7 +534,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   else
      normdev=tt
   end if
-  if (iproc ==0 ) write(*,'(1x,a,1pe12.2)')&
+  if (iproc ==0) write(*,'(1x,a,1pe12.2)')&
        'Deviation from normalization of the imported orbitals',normdev
 
   i_all=-product(shape(tpsi))*kind(tpsi)

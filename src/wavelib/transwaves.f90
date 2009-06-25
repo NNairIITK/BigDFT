@@ -207,6 +207,7 @@ subroutine unswitch_waves(iproc,nproc,norb,norbp,nvctr_c,nvctr_f,nvctrp,psiw,psi
   
 end subroutine unswitch_waves
 
+
 subroutine psitransspi(nspinor,nvctrp,norb,psi,forward)
   use module_base
   implicit none
@@ -265,6 +266,7 @@ subroutine psitransspi(nspinor,nvctrp,norb,psi,forward)
      end if
 
      do iorb=1,norb
+        ij=1
         do isp=1,nspinor
            do i=1,nvctrp
               psi(i+(isp-1)*nvctrp,iorb)=tpsit(i,isp,iorb)
@@ -281,12 +283,12 @@ end subroutine psitransspi
 
 
 !transposition of the arrays, variable version (non homogeneous)
-subroutine transpose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
+subroutine transpose_v(iproc,nproc,norbp,nspinor,wfd,comms,psi,&
      work,outadd) !optional
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc,norbp,nspinor,nvctrp !the latter will depend on orbitals
+  integer, intent(in) :: iproc,nproc,norbp,nspinor
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(communications_arrays), intent(in) :: comms
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,nspinor,norbp), intent(inout) :: psi
@@ -305,7 +307,7 @@ subroutine transpose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
         stop
      end if
      call switch_waves_v(nproc,norbp,nspinor,&
-          wfd%nvctr_c+7*wfd%nvctr_f,nvctrp,psi,work)
+          wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,psi,work)
      call timing(iproc,'Un-TransSwitch','OF')
      call timing(iproc,'Un-TransComm  ','ON')
      if (present(outadd)) then
@@ -319,7 +321,8 @@ subroutine transpose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
      call timing(iproc,'Un-TransSwitch','ON')
   else
      if(nspinor /= 1) then
-        call psitransspi(nspinor,nvctrp,norbp,psi,.true.)
+        !for only one processor there is no need to transform this
+        call psitransspi(nspinor,wfd%nvctr_c+7*wfd%nvctr_f,norbp,psi,.true.)
      end if
   end if
 
@@ -328,15 +331,15 @@ subroutine transpose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
 end subroutine transpose_v
 
 
-subroutine untranspose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
+subroutine untranspose_v(iproc,nproc,norbp,nspinor,wfd,comms,psi,&
      work,outadd) !optional
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc,norbp,nspinor,nvctrp
+  integer, intent(in) :: iproc,nproc,norbp,nspinor
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(communications_arrays), intent(in) :: comms
-  real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(inout) :: psi
+  real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*nspinor*norbp), intent(inout) :: psi
   real(wp), dimension(:), pointer, optional :: work
   real(wp), dimension(*), intent(out), optional :: outadd
   !local variables
@@ -359,14 +362,14 @@ subroutine untranspose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
      call timing(iproc,'Un-TransSwitch','ON')
      if (present(outadd)) then
         call unswitch_waves_v(nproc,norbp,nspinor,&
-             wfd%nvctr_c+7*wfd%nvctr_f,nvctrp,work,outadd)
+             wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,work,outadd)
      else
         call unswitch_waves_v(nproc,norbp,nspinor,&
-             wfd%nvctr_c+7*wfd%nvctr_f,nvctrp,work,psi)
+             wfd%nvctr_c+7*wfd%nvctr_f,comms%nvctr_par,work,psi)
      end if
   else
      if(nspinor /= 1) then
-        call psitransspi(nspinor,nvctrp,norbp,psi,.false.)
+        call psitransspi(nspinor,wfd%nvctr_c+7*wfd%nvctr_f,norbp,psi,.false.)
      end if
   end if
 
@@ -374,115 +377,146 @@ subroutine untranspose_v(iproc,nproc,norbp,nspinor,wfd,nvctrp,comms,psi,&
 end subroutine untranspose_v
 
 
-subroutine switch_waves_v(nproc,norbp,nspinor,nvctr,nvctrp,psi,psiw)
+subroutine switch_waves_v(nproc,norbp,nspinor,nvctr,nvctr_par,psi,psiw)
   use module_base
   implicit none
-  integer, intent(in) :: nproc,norbp,nvctr,nvctrp,nspinor
+  integer, intent(in) :: nproc,norbp,nvctr,nspinor
+  integer, dimension(nproc), intent(in) :: nvctr_par
   real(wp), dimension(nvctr,nspinor,norbp), intent(in) :: psi
-  real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(out) :: psiw
+  !real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(out) :: psiw
+  real(wp), dimension(nspinor*nvctr*norbp), intent(out) :: psiw
   !local variables
-  integer :: iorb,i,j,ij
+  integer :: iorb,i,j,ij,ijproc,ind,it,it1,it2,it3,it4
 
   if(nspinor==1) then
      do iorb=1,norbp
         ij=1
+        ijproc=0
         do j=1,nproc
-           do i=1,nvctrp
-              if (ij <= nvctr) then !this will eventually depend on iorb
-                 psiw(i,iorb,j)=psi(ij,nspinor,iorb)
-              else
-                 psiw(i,iorb,j)=0.0_wp
-              endif
+           ind=(iorb-1)*nspinor*nvctr_par(j)+ijproc*nspinor*norbp
+           do i=1,nvctr_par(j)
+              it=ind+i
+              psiw(it)=psi(ij,1,iorb)
+              !psiw(i,iorb,j)=psi(ij,nspinor,iorb)
               ij=ij+1
            enddo
+           ijproc=ijproc+nvctr_par(j)
         enddo
      enddo
   else if (nspinor == 2) then
      do iorb=1,norbp
         ij=1
+        ijproc=0
         do j=1,nproc
-           do i=1,nvctrp
-              if (ij <= nvctr) then
-                 psiw(2*i-1,iorb,j)=psi(ij,1,iorb)
-                 psiw(2*i,iorb,j)=psi(ij,2,iorb)
-              else
-                 psiw(2*i-1,iorb,j)=0.0_wp
-                 psiw(2*i,iorb,j)=0.0_wp
-              endif
+           ind=(iorb-1)*nspinor*nvctr_par(j)+ijproc*nspinor*norbp
+           do i=1,nvctr_par(j)
+              it1=ind+2*i-1
+              it2=ind+2*i
+              psiw(it1)=psi(ij,1,iorb)
+              psiw(it2)=psi(ij,2,iorb)
+!!$              psiw(2*i-1,iorb,j)=psi(ij,1,iorb)
+!!$              psiw(2*i,iorb,j)=psi(ij,2,iorb)
               ij=ij+1
            enddo
+           ijproc=ijproc+nvctr_par(j)
         enddo
      enddo
   else if (nspinor == 4) then
      do iorb=1,norbp
         ij=1
+        ijproc=0
         do j=1,nproc
-           do i=1,nvctrp
-              if (ij <= nvctr) then
-                 psiw(2*i-1,iorb,j)=psi(ij,1,iorb)
-                 psiw(2*i,iorb,j)=psi(ij,2,iorb)
-                 psiw(2*i+2*nvctrp-1,iorb,j)=psi(ij,3,iorb)
-                 psiw(2*i+2*nvctrp,iorb,j)=psi(ij,4,iorb)
-              else
-                 psiw(2*i-1,iorb,j)=0.0_wp
-                 psiw(2*i,iorb,j)=0.0_wp
-                 psiw(2*i+2*nvctrp-1,iorb,j)=0.0_wp
-                 psiw(2*i+2*nvctrp,iorb,j)=0.0_wp
-              endif
+           ind=(iorb-1)*nspinor*nvctr_par(j)+ijproc*nspinor*norbp
+           do i=1,nvctr_par(j)
+              it1=ind+2*i-1
+              it2=ind+2*i
+              it3=ind+2*i+2*nvctr_par(j)-1
+              it4=ind+2*i+2*nvctr_par(j)
+              psiw(it1)=psi(ij,1,iorb)
+              psiw(it2)=psi(ij,2,iorb)
+              psiw(it3)=psi(ij,3,iorb)
+              psiw(it4)=psi(ij,4,iorb)
+!!$                 psiw(2*i-1,iorb,j)=psi(ij,1,iorb)
+!!$                 psiw(2*i,iorb,j)=psi(ij,2,iorb)
+!!$                 psiw(2*i+2*nvctrp-1,iorb,j)=psi(ij,3,iorb)
+!!$                 psiw(2*i+2*nvctrp,iorb,j)=psi(ij,4,iorb)
               ij=ij+1
            enddo
+           ijproc=ijproc+nvctr_par(j)
         enddo
      enddo
   end if
 
 end subroutine switch_waves_v
 
-subroutine unswitch_waves_v(nproc,norbp,nspinor,nvctr,nvctrp,psiw,psi)
+subroutine unswitch_waves_v(nproc,norbp,nspinor,nvctr,nvctr_par,psiw,psi)
   use module_base
   implicit none
-  integer, intent(in) :: nproc,norbp,nvctr,nvctrp,nspinor
-  real(wp), dimension(nspinor*nvctrp,norbp,nproc), intent(in) :: psiw
+  integer, intent(in) :: nproc,norbp,nvctr,nspinor
+  integer, dimension(nproc), intent(in) :: nvctr_par
+  real(wp), dimension(nspinor*nvctr*norbp), intent(in) :: psiw
   real(wp), dimension(nvctr,nspinor,norbp), intent(out) :: psi
   !local variables
-  integer :: iorb,i,j,ij
+  integer :: iorb,i,j,ij,ijproc,ind,it,it1,it2,it3,it4
 
   if(nspinor==1) then
      do iorb=1,norbp
         ij=1
-        loop: do j=1,nproc
-           do i=1,nvctrp
-              psi(ij,nspinor,iorb)=psiw(i,iorb,j)
+        ijproc=0
+        do j=1,nproc
+           ind=(iorb-1)*nspinor*nvctr_par(j)+ijproc*nspinor*norbp
+           do i=1,nvctr_par(j)
+              it=ind+i
+              psi(ij,nspinor,iorb)=psiw(it)
+              !psi(ij,nspinor,iorb)=psiw(i,iorb,j)
               ij=ij+1
-              if (ij > nvctr) exit loop !nvctr will depend on orbital
-           enddo
-        enddo loop
-     enddo
+           end do
+           ijproc=ijproc+nvctr_par(j)
+        end do
+     end do
   else if (nspinor == 2) then
      do iorb=1,norbp
         ij=1
-        loop2: do j=1,nproc
-           do i=1,nvctrp
-              psi(ij,1,iorb)=psiw(2*i-1,iorb,j)
-              psi(ij,2,iorb)=psiw(2*i,iorb,j)
+        ijproc=0
+        do j=1,nproc
+           ind=(iorb-1)*nspinor*nvctr_par(j)+ijproc*nspinor*norbp
+           do i=1,nvctr_par(j)
+              it1=ind+2*i-1
+              it2=ind+2*i
+              psi(ij,1,iorb)=psiw(it1)
+              psi(ij,2,iorb)=psiw(it2)
+!!$              psi(ij,1,iorb)=psiw(2*i-1,iorb,j)
+!!$              psi(ij,2,iorb)=psiw(2*i,iorb,j)
               ij=ij+1
-              if (ij > nvctr) exit loop2
-           enddo
-        enddo loop2
-     enddo
+           end do
+           ijproc=ijproc+nvctr_par(j)
+        end do 
+     end do
   else if (nspinor == 4) then
      do iorb=1,norbp
         ij=1
-        loop4: do j=1,nproc
-           do i=1,nvctrp
-              psi(ij,1,iorb)=psiw(2*i-1,iorb,j)
-              psi(ij,2,iorb)=psiw(2*i,iorb,j)
-              psi(ij,3,iorb)=psiw(2*i+2*nvctrp-1,iorb,j)
-              psi(ij,4,iorb)=psiw(2*i+2*nvctrp,iorb,j)
+        ijproc=0
+        do j=1,nproc
+           ind=(iorb-1)*nspinor*nvctr_par(j)+ijproc*nspinor*norbp
+           do i=1,nvctr_par(j)
+              it1=ind+2*i-1
+              it2=ind+2*i
+              it3=ind+2*i+2*nvctr_par(j)-1
+              it4=ind+2*i+2*nvctr_par(j)
+              psi(ij,1,iorb)=psiw(it1)
+              psi(ij,2,iorb)=psiw(it2)
+              psi(ij,3,iorb)=psiw(it3)
+              psi(ij,4,iorb)=psiw(it4)
+
+!!$              psi(ij,1,iorb)=psiw(2*i-1,iorb,j)
+!!$              psi(ij,2,iorb)=psiw(2*i,iorb,j)
+!!$              psi(ij,3,iorb)=psiw(2*i+2*nvctrp-1,iorb,j)
+!!$              psi(ij,4,iorb)=psiw(2*i+2*nvctrp,iorb,j)
               ij=ij+1
-              if (ij > nvctr) exit loop4
-           enddo
-        enddo loop4
-     enddo
+           end do
+           ijproc=ijproc+nvctr_par(j)
+        end do 
+     end do
   end if
   
 end subroutine unswitch_waves_v

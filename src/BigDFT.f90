@@ -26,6 +26,7 @@ program BigDFT
   implicit none
   character(len=*), parameter :: subname='BigDFT'
   character(len=20) :: units
+  logical :: exists
   integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode
   integer ::  ncount_bigdft
   real(gp) :: etot,sumx,sumy,sumz,tt
@@ -35,10 +36,11 @@ program BigDFT
   type(restart_objects) :: rst
   character(len=20), dimension(:), allocatable :: atomnames
   ! atomic coordinates, forces
-  real(gp), dimension(:,:), allocatable :: rxyz,fxyz
+  real(gp), dimension(:,:), allocatable :: fxyz
+  real(gp), dimension(:,:), pointer :: rxyz
   integer npr,iam
-    integer  :: nfluct
-    real(gp) ::fluctsum
+  integer  :: nfluct
+  real(gp) ::fluctsum
 
  
   !!!!$      interface
@@ -70,25 +72,28 @@ program BigDFT
   !welcome screen
   if (iproc==0) call print_logo()
 
-  !read number of atoms
-  open(unit=99,file='posinp',status='old')
-  read(99,*) atoms%nat,atoms%units
+  !read atomic file
+  call read_atomic_file('posinp',iproc,atoms,rxyz)
 
-  allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz,'rxyz',subname)
   allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fxyz,'fxyz',subname)
 
-  ! read atomic positions
-  call read_atomic_positions(iproc,99,atoms,rxyz)
+  ! read dft input variables
+  call dft_input_variables(iproc,'input.dft',inputs)
+  !call read_input_variables(iproc,'input.dat',inputs)
 
-  close(99)
+  !read geometry optimsation input variables
+  !inquire for the file needed for geometry optimisation
+  !if not present, perform a simple geometry optimisation
+  inquire(file="input.geopt",exist=exists)
+  if (exists) then
+     call geopt_input_variables(iproc,'input.geopt',inputs)
+  else
+     call geopt_input_variables_default(inputs)
+  end if
 
-  ! read input variables, use structures
-  call read_input_variables(iproc,'input.dat',inputs)
- 
   do iat=1,atoms%nat
-     if (.not. atoms%lfrztyp(iat)) then
+     if (atoms%ifrztyp(iat) == 0) then
         call random_number(tt)
         rxyz(1,iat)=rxyz(1,iat)+inputs%randdis*tt
         call random_number(tt)
@@ -144,9 +149,9 @@ if (inputs%ncount_cluster_x > 1) then
   endif
 
   !deallocations
-  i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
-  deallocate(atoms%lfrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'lfrztyp',subname)
+  i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
+  deallocate(atoms%ifrztyp,stat=i_stat)
+  call memocc(i_stat,i_all,'ifrztyp',subname)
   i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
   deallocate(atoms%iatype,stat=i_stat)
   call memocc(i_stat,i_all,'iatype',subname)
@@ -170,7 +175,7 @@ if (inputs%ncount_cluster_x > 1) then
   !finalize memory counting
   call memocc(0,0,'count','stop')
 
-  if (nproc > 1) call MPI_FINALIZE(ierr)
+  call MPI_FINALIZE(ierr)
 
   if (GPUshare) call stop_gpu_sharing()
  end program BigDFT

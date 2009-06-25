@@ -17,9 +17,11 @@ lib_bigdft =
 mod_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = cluster test_forces memguess $(minima_hopping_sources)
+binaries_sources = cluster test_forces memguess NEB frequencies $(minima_hopping_sources)
+scripts_sources = NEB_driver.sh
 else
 binaries_sources = 
+scripts_sources = 
 endif
 
 if USE_CUDA_GPU
@@ -60,11 +62,13 @@ EXTRA_DIST = \
 	wavelib/intots.inc \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
-	lib
+	lib \
+	NEB_driver.sh
 
 AM_FCFLAGS = -I. -Imodules -I$(srcdir) @MPI_INCLUDE@ -IPSolver -IPSolver/ABINIT-common
 
 bin_PROGRAMS = $(binaries_sources)
+bin_SCRIPTS = $(scripts_sources)
 
 lib_LIBRARIES = $(lib_bigdft)
 module_DATA = $(mod_bigdft)
@@ -93,6 +97,8 @@ convolution_source = convolutions/combined_shrink_optim.f90 \
 	convolutions/convolut_optim_per.f90 \
 	convolutions/convolut_new_per.f90 \
 	convolutions/convolut_optim_slab.f90 \
+	convolutions/convolut_simple_per_k.f90 \
+	convolutions/convolut_simple_slab_k.f90 \
 	$(GPU_INTERFACE)
 
 else
@@ -109,6 +115,8 @@ convolution_source = convolutions/combined_shrink_simple.f90 \
 	convolutions/convolut_simple_per.f90 \
 	convolutions/convolut_new_per.f90 \
 	convolutions/convolut_simple_slab.f90 \
+	convolutions/convolut_simple_per_k.f90 \
+	convolutions/convolut_simple_slab_k.f90 \
 	$(GPU_INTERFACE)
 
 endif
@@ -133,7 +141,11 @@ high_level = cluster.f90 \
 	tail.f90 \
 	restart.f90 \
 	geometry.f90 \
-	davidson.f90
+	davidson.f90 \
+	vdwcorrection.f90 \
+	lanczos_interface.f90 \
+	lanczos_base.f90 \
+	lanczos.f90 
 
 #objects which can be compiled whithout any dependence
 low_level = init/projectors.f90  \
@@ -150,6 +162,7 @@ low_level = init/projectors.f90  \
 	init/sysprop.f90 \
 	init/gaussians.f90 \
 	init/wfn_init.f90 \
+	init/xabsorber.f90 \
 	wfn_opt/precond.f90 \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
@@ -209,8 +222,21 @@ test_forces_LDADD = libbigdft.a \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
+NEB_SOURCES = NEB.f90
+NEB_LDFLAGS = 
+NEB_LDADD =
+
 memguess_SOURCES = memguess.f90 
 memguess_LDADD = libbigdft.a \
+	PSolver/libpoissonsolver.a \
+	PSolver/ABINIT-common/libABINIT.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
+	$(libs_cuda)
+
+frequencies_SOURCES = frequencies.f90 
+frequencies_LDFLAGS = 
+frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
 	$(LMPI) \
@@ -222,13 +248,24 @@ CLEANFILES = mpif.h \
 	bigdft_api.@MODULE_EXT@ BIGDFT_API.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ MODULE_INTERFACES.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@ \
-	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@
-
+	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@ \
+	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@ \
+	lanczos_base.@MODULE_EXT@ LANCZOS_BASE.@MODULE_EXT@ \
+	lanczos_interface.@MODULE_EXT@ LANCZOS_INTERFACE.@MODULE_EXT@ \
+	formats.@MODULE_EXT@ FORMATS.@MODULE_EXT@ \	
+	miscellany.@MODULE_EXT@ MISCELLANY.@MODULE_EXT@ \	
+	neb_routines.@MODULE_EXT@ NEB_ROUTINES.@MODULE_EXT@ \	
+	numeric.@MODULE_EXT@ NUMERIC.@MODULE_EXT@ \	
+	minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \	
+	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \	
+	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@ 
 
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o : $(mpi_include)  $(modules_objects)
 
-#cluster.o geometry.o: 
+cluster.o geometry.o: vdwcorrection.o
+
+lanczos.o : lanczos_base.o lanczos_interface.o
 
 #init.o : base.o interfaces.o
 

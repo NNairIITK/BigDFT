@@ -1,6 +1,17 @@
+!!****f* BigDFT/local_forces
+!! FUNCTION
+!!   Calculates the local forces acting on the atoms belonging to iproc
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine local_forces(iproc,nproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc)
-! Calculates the local forces acting on the atoms belonging to iproc
   use module_base
   use module_types
   implicit none
@@ -27,7 +38,7 @@ subroutine local_forces(iproc,nproc,at,rxyz,hxh,hyh,hzh,&
   
   pi=4.d0*atan(1.d0)
 
-  if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate local forces...'
+  if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
   forceleaked=0.d0
 
   !conditions for periodicity in the three directions
@@ -144,13 +155,20 @@ subroutine local_forces(iproc,nproc,at,rxyz,hxh,hyh,hzh,&
   end do
 
   forceleaked=forceleaked*prefactor*hxh*hyh*hzh
-  if (iproc.eq.0) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
+  if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
 
-end subroutine local_forces
+END SUBROUTINE local_forces
+!!***
 
+
+!!****f* BigDFT/projectors_derivatives
+!! FUNCTION
+!!  Calculates the nonlocal forces on all atoms arising from the wavefunctions i
+!!  belonging to iproc and ads them to the force array
+!! SOURCE
+!!
 subroutine projectors_derivatives(iproc,at,n1,n2,n3,&
      nlpspd,proj,rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
-!Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and ads them to the force array
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
@@ -245,11 +263,17 @@ subroutine projectors_derivatives(iproc,at,n1,n2,n3,&
   if (iproj.ne.nlpspd%nproj) stop 'incorrect number of projectors created'
   ! projector part finished
 
-end subroutine projectors_derivatives
+END SUBROUTINE projectors_derivatives
+!!***
 
 
-!Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and adds them to the force array
-!recalculate the projectors at the end if refill flag is .true.
+!!****f* BigDFT/nonlocal_forces
+!! FUNCTION
+!!  Calculates the nonlocal forces on all atoms arising from the wavefunctions 
+!!  belonging to iproc and adds them to the force array
+!   recalculate the projectors at the end if refill flag is .true.
+!! SOURCE
+!!
 subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_cf,&
      orbs,nlpspd,proj,wfd,psi,fsep,refill)
   use module_base
@@ -517,11 +541,17 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
   call memocc(i_stat,i_all,'scalprod',subname)
 
 
-end subroutine nonlocal_forces
+END SUBROUTINE nonlocal_forces
+!!***
 
 
+!!****f* BigDFT/nonlocal_forcesold
+!! FUNCTION
+!!  Calculates the nonlocal forces on all atoms arising from the wavefunctions 
+!!  belonging to iproc and adds them to the force array
+!! SOURCE
+!!
 subroutine nonlocal_forcesold(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,psi,fsep,nspinor)
-!Calculates the nonlocal forces on all atoms arising from the wavefunctions belonging to iproc and adds them to the force array
   use module_base
   use module_types
   implicit none
@@ -694,8 +724,15 @@ subroutine nonlocal_forcesold(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,
   deallocate(fxyz_orb,stat=i_stat)
   call memocc(i_stat,i_all,'fxyz_orb',subname)
 
-end subroutine nonlocal_forcesold
+END SUBROUTINE nonlocal_forcesold
+!!***
 
+
+!!****f* BigDFT/calc_coeff_derproj
+!! FUNCTION
+!!   Calculates the coefficient of derivative of projectors
+!! SOURCE
+!!
 subroutine calc_coeff_derproj(l,i,m,nterm_max,rhol,nterm_arr,lxyz_arr,fac_arr)
   implicit none
   integer, intent(in) :: l,i,m,nterm_max
@@ -3029,4 +3066,5 @@ else if (l.eq.4 .and. i.eq.3 .and. m.eq.7) then
 else
    stop 'PSP format error'
 end if
-end subroutine calc_coeff_derproj
+END SUBROUTINE calc_coeff_derproj
+!!***

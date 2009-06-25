@@ -3,8 +3,8 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	input.dat \
-	posinp \
+	input.dft \
+	posinp.xyz \
 	gaubasis.dat \
 	gaucoeff.dat 
 
@@ -20,8 +20,8 @@ $(PPFILES):
 	cp $(top_srcdir)/utils/PSPfiles/HGH/$@ .
 
 check: $(PPFILES) 
-	cp -f $(top_srcdir)/tests/H2O-CP2K/input.dat .
-	cp -f $(top_srcdir)/tests/H2O-CP2K/posinp .
+	cp -f $(top_srcdir)/tests/H2O-CP2K/input.dft .
+	cp -f $(top_srcdir)/tests/H2O-CP2K/posinp.xyz .
 	cp -f $(top_srcdir)/tests/H2O-CP2K/gaucoeff.dat .
 	cp -f $(top_srcdir)/tests/H2O-CP2K/gaubasis.dat .
 	$(run_parallel) $(top_builddir)/src/cluster > H2O-CP2K.out

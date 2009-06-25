@@ -138,7 +138,7 @@ program PS_Check
           density,potential,pot_ion,xc_pot,pkernel)
 
      !test for the serial solver
-     if (iproc == 0 .and. nproc >= 1 ) then
+     if (iproc == 0 .and. nproc > 1 ) then
         i_all=-product(shape(pkernel))*kind(pkernel)
         deallocate(pkernel,stat=i_stat)
         call memocc(i_stat,i_all,'pkernel',subname)
@@ -499,8 +499,8 @@ contains
        !parameters of the test functions
        ax=length
        az=length
-       bx=real(nu,kind=8)
-       bz=real(nu,kind=8)
+       bx=2.d0!real(nu,kind=8)
+       bz=2.d0!real(nu,kind=8)
        !non-periodic dimension
        ay=length
        by=a
@@ -575,7 +575,7 @@ contains
   ! to the potential.
 
     if (denval /= 0.d0) then
-       rhopot(:,:,:,:) = density(:,:,:,:) + denval +1.d-20
+       rhopot(:,:,:,:) = density(:,:,:,:) + denval +1.d-14
     else
        rhopot(:,:,:,:) = density(:,:,:,:) 
     end if

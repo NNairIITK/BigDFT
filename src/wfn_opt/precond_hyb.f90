@@ -32,7 +32,7 @@ integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ncong
 
   integer::nd1,nd2,nd3
   integer::n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b	
-integer:: nf
+  integer:: nf
 
 
   call dimensions_fft(n1,n2,n3,nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
@@ -65,7 +65,8 @@ integer:: nf
   call wscal_per(nvctr_c,nvctr_f,scal,r(1),r(nvctr_c+1),d(1),d(nvctr_c+1))
   !rmr=dot_product(r,d)
   rmr=dot(nvctr_c+7*nvctr_f,r(1),1,d(1),1)
-  do i=1,ncong 
+  do i=1,ncong
+     !write(*,*)i,rmr
      !		write(*,*)i,sqrt(rmr)
 
      call apply_hp_hyb(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &

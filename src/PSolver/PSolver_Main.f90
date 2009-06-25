@@ -122,7 +122,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if (present(quiet)) then
      if(quiet == 'yes' .or. quiet == 'YES') then
         wrtmsg=.false.
-     else if(quiet == 'no' .or. quiet == 'NO') then
+     else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
         wrtmsg=.true.
      else
         write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
@@ -282,14 +282,13 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      vexcuLOC=0.0_dp
   end if
 
- 
   call timing(iproc,'Exchangecorr  ','OF')
 
   !this routine builds the values for each process of the potential (zf), multiplying by scal 
   if(geocode == 'P') then
      !no powers of hgrid because they are incorporated in the plane wave treatment
      scal=1.0_dp/real(n1*n2*n3,dp)
-     call P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,zf(1,1,1),&
+     call P_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
           scal,hx,hy,hz,offset)
   else if (geocode == 'S') then
      !only one power of hgrid 
@@ -314,7 +313,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      i3xcsh=nxcl+nwbl-1
      is_step=m1*m3*nxt
   end if
-
+ 
   !if (iproc == 0) print *,'n03,nxt,nxc,geocode,datacode',n03,nxt,nxc,geocode,datacode
 
   ehartreeLOC=0.0_dp

@@ -12,6 +12,18 @@ EXTRA_DIST = \
 	kinetic.h \
 	locpot.h \
 	commonDef.h \
+	dynamicGPU/exceptions.h \
+	dynamicGPU/init_network.h \
+	dynamicGPU/message.h \
+	dynamicGPU/localqueu.h \
+	dynamicGPU/fct_call.h \
+	dynamicGPU/manage_gpu.h \
+	dynamicGPU/gpu_control.h \
+	dynamicGPU/class_utils.h \
+	dynamicGPU/convolution_fct_call.h \
+	dynamicGPU/cudafct.h \
+	read_conf_exception.h \
+	trace_exec.h \
 	$(SOURCES_CONV_CHECK)
 
 SOURCES_CONV = 	cudafct.cu \
@@ -55,13 +67,13 @@ libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a
 #cutil is used for CUDA timer
 #libs_cuda=-L@CUDA_PATH@/lib/ -lcudart -lcublas libGPU.a @LIB_CUTIL_PATH@/libcutil.a
 
-if BUILD_BINARIES
-bin_PROGRAMS = GPUham
-else
-bin_PROGRAMS = 
-endif
+#if BUILD_BINARIES
+#bin_PROGRAMS = GPUham
+#else
+#bin_PROGRAMS = 
+#endif
 
-check_PROGRAMS = conv_check
+check_PROGRAMS = conv_check GPUham
 
 else
 check_PROGRAMS = 

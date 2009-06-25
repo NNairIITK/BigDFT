@@ -3,8 +3,8 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	input.dat \
-	posinp \
+	input.dft \
+	posinp.xyz \
 	GPU.config
 
 PPFILES = \
@@ -18,8 +18,8 @@ $(PPFILES):
 	cp $(top_srcdir)/utils/PSPfiles/HGH/$@ .
 
 check: $(PPFILES) 
-	cp -f $(top_srcdir)/tests/GPU/input.dat .
-	cp -f $(top_srcdir)/tests/GPU/posinp .
+	cp -f $(top_srcdir)/tests/GPU/input.dft .
+	cp -f $(top_srcdir)/tests/GPU/posinp.xyz .
 	cp -f $(top_srcdir)/tests/GPU/GPU.config .
 	$(top_builddir)/src/cluster > GPU.out
 	python $(top_srcdir)/tests/fldiff.py --bigdft GPU.out $(top_srcdir)/tests/Refs/GPU.out.ref | tee fldiff.report

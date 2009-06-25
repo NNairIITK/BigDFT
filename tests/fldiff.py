@@ -5,7 +5,7 @@
 # 2 - search all floating point expressions
 # 3 - replace it to have a comparable text
 # 4 - compare each floating point expressions
-# Date: 25/12/2008
+# Date: 22/04/2009
 #----------------------------------------------------------------------------
 
 import difflib
@@ -27,18 +27,19 @@ re_version = re.compile("[(]ver[ ]+[0-9.]+[)]",re.IGNORECASE)
 #Match a floating number
 re_float = re.compile("([- ]?[0-9]+[.][0-9]+([EDed][-+]?[0-9]+)?)")
 
-def usage():
-    print "fldiff.py [--bigdft] [--discrepancy=d] file1 file2"
-    print "  --bigdft to compare 'bigdft' output files"
-    print "  --discrepancy=d Maximal discrepancy between results" % max_discrepancy
-    sys.exit(1)
-
-#Maximum discrepancy between float results
+#Maximum discrepancy between float results (default)
 max_discrepancy = 1.1e-10
+
+def usage():
+    print "fldiff.py [--bigdft] [--discrepancy=d] [--help] file1 file2"
+    print "  --bigdft to compare 'bigdft' output files"
+    print "  --discrepancy=%7.1e Maximal discrepancy between results" % max_discrepancy
+    print "  --help   display this message"
+    sys.exit(1)
 
 #Check arguments
 try:
-    optlist, args = getopt.getopt(sys.argv[1:],"bd:",["bigdft","discrepancy="])
+    optlist, args = getopt.getopt(sys.argv[1:],"bd:h",["bigdft","discrepancy=","help"])
 except getopt.error:
     sys.stderr.write("Error in arguments\n")
     usage()
@@ -48,6 +49,8 @@ for opt,arg in optlist:
         bigdft = True
     elif opt == "-d" or opt == "--discrepancy":
         max_discrepancy=float(arg)
+    elif opt == "-h" or opt == "--help":
+        usage()
 if len(args) != 2:
     sys.stderr.write("Error in arguments\n")
     usage()

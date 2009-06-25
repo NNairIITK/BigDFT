@@ -184,6 +184,7 @@ subroutine timing(iproc,category,action)
         end if
         init=.false.
      else
+        print *,action,ii,ncaton,trim(category)
         stop 'TIMING ACTION UNDEFINED'
      endif
 

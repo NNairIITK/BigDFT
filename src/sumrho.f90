@@ -27,7 +27,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
 
   call timing(iproc,'Rho_comput    ','ON')
 
-  if (iproc==0) then
+  if (iproc==0 .and. verbose > 1) then
      write(*,'(1x,a)',advance='no')&
           'Calculation of charge density...'
   end if
@@ -61,7 +61,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   end if
 
   !switch between GPU/CPU treatment of the density
-  call  MPI_BARRIER(MPI_COMM_WORLD,ierr)
+  !call  MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   if (GPUconv) then
      call local_partial_density_GPU(iproc,nproc,orbs,nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
@@ -72,12 +72,10 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
 
      !for each of the orbitals treated by the processor build the partial densities
      call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
-          nrhotot,lr,hxh,hyh,hzh,nspin,orbs%nspinor,orbs%norbp,&
-          orbs%occup(min(orbs%isorb+1,orbs%norb)),orbs%spinsgn(min(orbs%isorb+1,orbs%norb)),&
-          psi,rho_p)
+          nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   end if
 
-  call  MPI_BARRIER(MPI_COMM_WORLD,ierr)
+  !call  MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
   !the density must be communicated to meet the shape of the poisson solver
   if (nproc > 1) then
@@ -175,8 +173,14 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
            charge=charge+tmred(ispin,1)
         end do
      end if
-     write(*,'(1x,a,f21.12)')&
-          'done. Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
+     if (verbose > 1) then
+        write(*,'(1x,a,f21.12)')&
+             'done. Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
+     else if (verbose > 0) then
+        write(*,'(1x,a,f21.12)')&
+             'Total electronic charge=',real(charge,gp)*hxh*hyh*hzh
+     end if
+
      if(nspin == 4 .and. tt > 0._dp)&
           write(*,'(a,5f10.4)')'  Magnetic density orientation:',&
           (tmred(ispin,1)/tmred(1,1),ispin=2,nspin)
@@ -193,20 +197,20 @@ end subroutine sumrho
 !here starts the routine for building partial density inside the localisation region
 !this routine should be treated as a building-block for the linear scaling code
 subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
-     nrhotot,lr,hxh,hyh,hzh,nspin,nspinor,norbp,occup,spinsgn,psi,rho_p)
+     nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   use module_base
   use module_types
   use module_interfaces
   implicit none
   logical, intent(in) :: rsflag
   integer, intent(in) :: iproc,nproc,nrhotot
-  integer, intent(in) :: nspin,nspinor,norbp
+  integer, intent(in) :: nspin
   real(gp), intent(in) :: hxh,hyh,hzh
+  type(orbitals_data), intent(in) :: orbs
   type(locreg_descriptors), intent(in) :: lr
   integer, dimension(0:nproc-1,4), intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
-  real(gp), dimension(norbp), intent(in) :: occup,spinsgn
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor,norbp), intent(in) :: psi
-  real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,max(nspin,nspinor)), intent(inout) :: rho_p
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+  real(dp), dimension(lr%d%n1i,lr%d%n2i,nrhotot,max(nspin,orbs%nspinor)), intent(inout) :: rho_p
   !local variables
   character(len=*), parameter :: subname='local_partial_density'
   integer :: nw1,nw2,nxc,nxf,iorb
@@ -290,14 +294,14 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
 
   !components of wavefunction in real space which must be considered simultaneously
   !and components of the charge density
-  if (nspinor ==4) then
+  if (orbs%nspinor ==4) then
      npsir=4
      nspinn=4
      ncomplex=0
   else
      npsir=1
      nspinn=nspin
-     ncomplex=nspinor-1
+     ncomplex=orbs%nspinor-1
   end if
 
   allocate(psir(n1i*n2i*n3i,npsir+ndebug),stat=i_stat)
@@ -310,10 +314,11 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
      call razero(n1i*n2i*n3i*npsir,psir)
   end if
 
-  do iorb=1,norbp
+  do iorb=1,orbs%norbp
 
-     hfac=(occup(iorb)/(hxh*hyh*hzh))
-     spinval=spinsgn(iorb)
+     !the factor requires the weigth for the k-point
+     hfac=orbs%kwgts(orbs%iokpt(iorb))*(orbs%occup(orbs%isorb+iorb)/(hxh*hyh*hzh))
+     spinval=orbs%spinsgn(orbs%isorb+iorb)
 
      if (hfac /= 0.d0) then
 

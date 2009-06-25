@@ -61,7 +61,7 @@ program PSolver_Program
   call getarg(6,chain)
   read(unit=chain,fmt=*) datacode
 
-  !perform also the comparison wit the serial case
+  !perform also the comparison with the serial case
   alsoserial=.false.
   onlykernel=.false.
   !code for the Poisson Solver in the parallel case
@@ -124,7 +124,18 @@ program PSolver_Program
 
 
      !offset, used only for the periodic solver case
-     if (ixc==0) offset=potential(1,1,1)!-pot_ion(1,1,1)
+     if (ixc==0) then
+        offset=0.0_gp!potential(1,1,1)!-pot_ion(1,1,1)
+        do i3=1,n03
+           do i2=1,n02
+              do i1=1,n01
+                 offset=offset+potential(i1,i2,i3)
+              end do
+           end do
+        end do
+        offset=offset*hx*hy*hz
+        print *,'offset',offset
+     end if
 
      !dimension needed for allocations
      call PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,n3d,n3p,n3pi,i3xcsh,i3s)
@@ -417,7 +428,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
               call functions(x1,ax,bx,fx,fx2,ifx)
               density(i1,i2,i3) = fx2*fy*fz+fx*fy2*fz+fx*fy*fz2
               denval=max(denval,-density(i1,i2,i3))
-              potential(i1,i2,i3) = fx*fy*fz!density(i1,i2,i3)
+              potential(i1,i2,i3) =  -16.d0*datan(1.d0)*fx*fy*fz!density(i1,i2,i3)
            end do
         end do
      end do

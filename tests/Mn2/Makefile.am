@@ -4,8 +4,8 @@ SUBDIRS =
 
 EXTRA_DIST = \
 	moments   \
-	input.dat \
-	posinp
+	input.dft \
+	posinp.xyz
 
 PPFILES = \
 	psppar.Mn
@@ -18,8 +18,8 @@ $(PPFILES):
 	cp $(top_srcdir)/utils/PSPfiles/$@ .
 
 check: $(PPFILES) 
-	cp -f $(top_srcdir)/tests/Mn2/input.dat .
-	cp -f $(top_srcdir)/tests/Mn2/posinp .
+	cp -f $(top_srcdir)/tests/Mn2/input.dft .
+	cp -f $(top_srcdir)/tests/Mn2/posinp.xyz .
 	cp -f $(top_srcdir)/tests/Mn2/moments .
 	$(top_builddir)/src/memguess 1 > Mn2.memguess
 	python $(top_srcdir)/tests/fldiff.py --bigdft Mn2.memguess $(top_srcdir)/tests/Refs/Mn2.memguess.ref | cat

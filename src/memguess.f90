@@ -18,11 +18,10 @@ program memguess
   implicit none
   character(len=*), parameter :: subname='memguess'
   integer, parameter :: ngx=31
-  character(len=20) :: tatonam,units
+  character(len=20) :: tatonam
   character(len=40) :: comment
-  logical :: optimise,GPUtest
-  integer :: ierror,nproc,i_stat,i_all,output_grid
-  integer :: nelec,ntimes
+  logical :: optimise,GPUtest,convert=.false.,exists
+  integer :: nelec,ntimes,nproc,i_stat,ierror,i_all,output_grid
   integer :: norbe,norbsc,nvctrp,nspin,iorb,norbu,norbd,nspinor,norb
   integer :: iunit,ityp,norbgpu,nspin_ig
   real(kind=8) :: peakmem,hx,hy,hz
@@ -33,14 +32,14 @@ program memguess
   type(nonlocal_psp_descriptors) :: nlpspd
   logical, dimension(:,:,:), allocatable :: logrid
   integer, dimension(:,:), allocatable :: norbsc_arr
-  real(kind=8), dimension(:,:), allocatable, target :: rxyz
+  real(gp), dimension(:,:), pointer :: rxyz
   real(kind=8), dimension(:,:), allocatable :: radii_cf
   real(kind=8), dimension(:,:,:), allocatable :: psiat
   real(kind=8), dimension(:,:), allocatable :: xp, occupat
   integer, dimension(:,:), allocatable :: nl
   logical, dimension(:,:,:), allocatable :: scorb
   integer, dimension(:), allocatable :: ng
-  real(kind=8), dimension(:), allocatable :: occup,spinsgn,locrad
+  real(kind=8), dimension(:), allocatable :: locrad
 
 ! Get arguments
   call getarg(1,tatonam)
@@ -64,6 +63,8 @@ program memguess
           'In the case of a CUDAGPU calculation you can put "GPUtest" after the'
      write(*,'(1x,a)')&
           '  number of processors, followed by the number of repeats'
+     write(*,'(1x,a)')&
+          'You can also put "convert" keyword for converting input file into 1.3 format'
      stop
   else
      read(unit=tatonam,fmt=*) nproc
@@ -93,14 +94,17 @@ program memguess
            call getarg(4,tatonam)
            read(tatonam,*,iostat=ierror)norbgpu
         end if
-
+     else if (trim(tatonam)=='convert') then
+        convert=.true.
+        write(*,'(1x,a)')&
+             'convert the input.dat file in the "input_convert.dft" (1.3 format)'
      else
         write(*,'(1x,a)')&
              'Usage: ./memguess <nproc> [y]'
         write(*,'(1x,a)')&
              'Indicate the number of processes after the executable'
         write(*,'(1x,a)')&
-             'ERROR: The only second argument which is accepted are "y", "o" or "GPUtest"'
+             'ERROR: The only second argument which is accepted are "y", "o", "convert" or "GPUtest"'
         stop
      end if
   end if
@@ -112,28 +116,35 @@ program memguess
   call print_logo()
 
   !read number of atoms
-  open(unit=99,file='posinp',status='old')
-  read(99,*) atoms%nat,atoms%units
- 
-  allocate(rxyz(3,atoms%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,rxyz,'rxyz',subname)
+  call read_atomic_file('posinp',0,atoms,rxyz)
 
-  !read atomic positions
-  call read_atomic_positions(0,99,atoms,rxyz)
+  call dft_input_variables(0,'input.dft',in)
+  !read geometry optimsation input variables
+  !inquire for the file needed for geometry optimisation
+  !if not present, perform a simple geometry optimisation
+  inquire(file="input.geopt",exist=exists)
+  if (exists) then
+     call geopt_input_variables(0,'input.geopt',in)
+  else
+     call geopt_input_variables_default(in)
+  end if
 
-  close(99)
-
-  !new way of reading the input variables, use structures
-  call read_input_variables(0,'input.dat',in)
 
   call print_input_parameters(in,atoms)
+
+
+
+  if (convert) then
+     write(*,'(a)',advance='NO')' Conversion of the input file...'
+     call dft_input_converter(in)
+     write(*,*)' ...done'
+  end if
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
  
 
   ! store PSP parameters
-  ! modified to accept both GTH and HGHs pseudopotential types
   allocate(radii_cf(atoms%ntypes,3+ndebug),stat=i_stat)
   call memocc(i_stat,radii_cf,'radii_cf',subname)
 
@@ -145,13 +156,14 @@ program memguess
 
   if (optimise) then
      if (atoms%geocode =='F') then
-        call optimise_volume(atoms,in%crmult,in%frmult,hx,hy,hz,rxyz,radii_cf)
+        call optimise_volume(atoms,in%crmult,in%frmult,in%hx,in%hy,in%hz,rxyz,radii_cf)
      else
         call shift_periodic_directions(atoms,rxyz,radii_cf)
      end if
-     write(*,'(1x,a)')'Writing optimised positions in file posout_000.xyz...'
+     write(*,'(1x,a)')'Writing optimised positions in file posout_000.[xyz,ascii]...'
      write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
-     call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
+     call write_atomic_file('posopt',0.d0,rxyz,atoms,trim(comment))
+     !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
 
   end if
 
@@ -188,7 +200,7 @@ program memguess
           scorb,norbsc_arr,locrad)
 
      if (in%nspin==4) then
-        !in that case the number of orbitals double
+        !in that case the number of orbitals doubles
         norbe=2*norbe
      end if
 
@@ -258,6 +270,16 @@ program memguess
   i_all=-product(shape(orbs%spinsgn))*kind(orbs%spinsgn)
   deallocate(orbs%spinsgn,stat=i_stat)
   call memocc(i_stat,i_all,'spinsgn',subname)
+  i_all=-product(shape(orbs%kpts))*kind(orbs%kpts)
+  deallocate(orbs%kpts,stat=i_stat)
+  call memocc(i_stat,i_all,'orbs%kpts',subname)
+  i_all=-product(shape(orbs%kwgts))*kind(orbs%kwgts)
+  deallocate(orbs%kwgts,stat=i_stat)
+  call memocc(i_stat,i_all,'orbs%kwgts',subname)
+  i_all=-product(shape(orbs%iokpt))*kind(orbs%iokpt)
+  deallocate(orbs%iokpt,stat=i_stat)
+  call memocc(i_stat,i_all,'orbs%iokpt',subname)
+
 
 
   if (GPUtest .and. .not. GPUconv) then
@@ -297,7 +319,7 @@ program memguess
      end do
 
      call createWavefunctionsDescriptors(0,nproc,hx,hy,hz,&
-          atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst,nvctrp)
+          atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst)
      
      call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,in%ixc,&
           Glr,hx,hy,hz,rxyz,ntimes)
@@ -352,9 +374,9 @@ program memguess
   i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
   deallocate(nlpspd%nboxp_f,stat=i_stat)
   call memocc(i_stat,i_all,'nboxp_f',subname)
-  i_all=-product(shape(atoms%lfrztyp))*kind(atoms%lfrztyp)
-  deallocate(atoms%lfrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'lfrztyp',subname)
+  i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
+  deallocate(atoms%ifrztyp,stat=i_stat)
+  call memocc(i_stat,i_all,'ifrztyp',subname)
   i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
   deallocate(atoms%natpol,stat=i_stat)
   call memocc(i_stat,i_all,'natpol',subname)
@@ -422,7 +444,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
   real(gp), dimension(3,atoms%nat), intent(inout) :: rxyz
   !local variables
   character(len=*), parameter :: subname='optimise_volume'
-  integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1,n2,n3,n1i,n2i,n3i,iat,i_all,i_stat,it,i
+  integer :: iat,i_all,i_stat,it,i
   real(gp) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax
   type(locreg_descriptors) :: Glr
   real(gp), dimension(3,3) :: urot
@@ -430,7 +452,6 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
 
   allocate(txyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,txyz,'txyz',subname)
-
   call system_size(1,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
   !call volume(nat,rxyz,vol)
   vol=atoms%alat1*atoms%alat2*atoms%alat3
@@ -536,10 +557,8 @@ subroutine shift_periodic_directions(at,rxyz,radii_cf)
   real(gp), dimension(3,at%nat), intent(inout) :: rxyz
   !local variables
   character(len=*), parameter :: subname='shift_periodic_directions'
-  integer :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1,n2,n3,n1i,n2i,n3i,iat,i_all,i_stat,i,ityp
-  real(gp) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax,maxsh,shiftx,shifty,shiftz
-  type(locreg_descriptors) :: Glr
-  real(gp), dimension(3,3) :: urot
+  integer :: iat,i_all,i_stat,i,ityp
+  real(gp) :: vol,tvol,maxsh,shiftx,shifty,shiftz
   real(gp), dimension(:,:), allocatable :: txyz
 
   !calculate maximum shift between these values
@@ -692,14 +711,13 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   integer :: icoeff,norb,norbu,norbd,nspinor,i_stat,i_all,i1,i2,i3,ispin,j
   integer :: iorb,n3d,n3p,n3pi,i3xcsh,i3s,jproc,nrhotot,nspinn,nvctrp
   real(kind=4) :: tt,t0,t1
-  real(wp) :: maxdiff,comp
   real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU,gnrm,gnrmGPU
   real(gp) :: Rden,Rham,Rgemm,Rsyrk,Rprec
-  real(kind=8) :: CPUtime,CPUGflops,GPUtime,GPUGflops
+  real(kind=8) :: CPUtime,GPUtime
   type(gaussian_basis) :: G
   type(GPU_pointers) :: GPU
   integer, dimension(:,:), allocatable :: nscatterarr
-  real(wp), dimension(:,:,:,:), allocatable :: pot,psig,rho
+  real(wp), dimension(:,:,:,:), allocatable :: pot,rho
   real(wp), dimension(:,:), allocatable :: gaucoeffs,psi,hpsi
   real(wp), dimension(:,:,:), allocatable :: overlap
 
@@ -726,6 +744,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   call memocc(i_stat,hpsi,'hpsi',subname)
 
   call razero(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
+
 
   !convert the gaussians in wavelets
   call gaussians_to_wavelets(iproc,nproc,at%geocode,orbs,lr%d,&
@@ -790,8 +809,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   call cpu_time(t0)
   do j=1,ntimes
      call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
-          nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,orbs%nspinor,orbs%norbp,&
-          orbs%occup(min(orbs%isorb+1,orbs%norb)),orbs%spinsgn(min(orbs%isorb+1,orbs%norb)),&
+          nrhotot,lr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,orbs,&
           psi,pot)
   end do
   call cpu_time(t1)
@@ -974,8 +992,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !the input function is psi
   call cpu_time(t0)
   do j=1,ntimes
-     call preconditionall(iproc,nproc,orbs%norbp,lr,hx,hy,hz,ncong,orbs%nspinor,&
-          orbs%eval(min(orbs%isorb+1,orbs%norb)),hpsi,gnrm)
+     call preconditionall(iproc,nproc,orbs,lr,hx,hy,hz,ncong,hpsi,gnrm)
   end do
   call cpu_time(t1)
 
