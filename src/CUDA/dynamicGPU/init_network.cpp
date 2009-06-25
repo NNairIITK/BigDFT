@@ -25,7 +25,7 @@
 #include "localqueu.h"
 
 #include "cudafct.h"
-void local_network::init() throw (inter_node_communication_error)
+void local_network::init(const manage_cpu_affinity& mca) throw (inter_node_communication_error)
 {
 
   man_gpu = NULL;
@@ -206,11 +206,21 @@ void local_network::init() throw (inter_node_communication_error)
       fclose(es);
       remove(nomfic);
 
+
+      //set affinity
+      //CPU
+
+
+      mca.set_affinity(currNum);
+
+
       c_cuda_setdevice(currGPU);
 
     }
   catch(...)
     {
+
+      std::cout << "EXCEPTION !!!" << std::endl;
       if(sock !=  0)
 	close(sock);
 

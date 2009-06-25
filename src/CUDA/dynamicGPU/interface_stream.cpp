@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <unistd.h>
+#include <sstream>
 
 #include "exceptions.h"
 
@@ -15,6 +16,7 @@
 
 #include "localqueu.h"
 #include "convolution_fct_call.h"
+#include "manage_cpu_affinity.h"
 
 extern short gpu_precision;
 unsigned int getPrecisionSize();
@@ -29,20 +31,34 @@ sem_unix *sem_gpu_TRSF;
 
 
 
-void init_gpu_sharing(const char* NAME_FILE, int *error)
+void init_gpu_sharing(readConfFile &read_conf, int *error)
 {
   *error = 0;
   try
     {
+
       int mpi_tasks_per_node,num_GPU;
      
       //read file
-      readConfFile read_conf(NAME_FILE);
+      // readConfFile read_conf(NAME_FILE);
       read_conf.get("MPI_TASKS_PER_NODE",&mpi_tasks_per_node);
       read_conf.get("NUM_GPU",&num_GPU);
-      
+   
+      manage_cpu_affinity mca;
+
+      for(int i=0;i<num_GPU;++i)
+	{
+	  std::ostringstream iss;
+	  std::string aff;
+	  iss << "GPU_CPUS_AFF" << "_" << i;
+	  read_conf.get(iss.str(),aff);
+	  
+	  mca.add_connexion(gpu_cpus_connexion(aff));
+
+	}
+
       //init node
-      l = new local_network(mpi_tasks_per_node,num_GPU);
+      l = new local_network(mpi_tasks_per_node,num_GPU,mca);
 
       locq = new localqueu();
       sem_gpu_CALC = l->getSemCalc();
