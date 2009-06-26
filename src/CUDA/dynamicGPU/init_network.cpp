@@ -25,7 +25,14 @@
 #include "localqueu.h"
 
 #include "cudafct.h"
-void local_network::init(const manage_cpu_affinity& mca) throw (inter_node_communication_error)
+
+
+//this function is on check_card/check_init.f90
+extern "C"
+void check_init__(int *error);
+
+
+void local_network::init(const manage_cpu_affinity& mca,int iproc) throw (inter_node_communication_error,check_calc_error)
 {
 
   man_gpu = NULL;
@@ -98,7 +105,7 @@ void local_network::init(const manage_cpu_affinity& mca) throw (inter_node_commu
 
     
 
-
+      std::cout << "Waiting for registration of all process..." << std::endl;
 
       //  printf( "%i\n", getpid());
       while(lu < NUM_PARTICIPANTS)
@@ -107,7 +114,6 @@ void local_network::init(const manage_cpu_affinity& mca) throw (inter_node_commu
       
 	  sleep(1);
 	  rewind(es);
-	  
 	  do
 	    {
 	      lectOK = fscanf(es, "%i", &n);
@@ -130,7 +136,7 @@ void local_network::init(const manage_cpu_affinity& mca) throw (inter_node_commu
 	  while (lectOK == 1 && fgetc(es) != EOF);
 	}
    
-      
+      //  std::cout << "Process  registration done !" << std::endl;
       
       voisin = (currNum + 1)%NUM_PARTICIPANTS;
       
@@ -155,7 +161,10 @@ void local_network::init(const manage_cpu_affinity& mca) throw (inter_node_commu
 	for(int i=0; i<NUM_PARTICIPANTS; ++i)
 	  {
 	    tab.at(i) = itGPU;
-	    std::cout << "Unix process (not MPI) " << i << " has GPU : " << itGPU << std::endl;
+
+	    if(iproc == 0)				
+	      std::cout << "Unix process (not MPI) " << i << " has GPU : " << itGPU << std::endl;
+
 	    if(i + 1 == numIt)
 	      {
 		numIt += div;
@@ -206,6 +215,7 @@ void local_network::init(const manage_cpu_affinity& mca) throw (inter_node_commu
       fclose(es);
       remove(nomfic);
 
+      es=NULL;
 
       //set affinity
       //CPU
@@ -216,11 +226,35 @@ void local_network::init(const manage_cpu_affinity& mca) throw (inter_node_commu
 
       c_cuda_setdevice(currGPU);
 
+
+      //check the card precision, in order to detect error
+      //call a fortran function in check_card/check_init.f90
+      if(iproc == 0)
+	std::cout << "Check card on all nodes...." << std::endl;
+
+      int ret_error;
+      check_init__(&ret_error);
+
+      if(ret_error == 0)
+	{
+	  //	  std::cout << "Card check passed " << std::endl;
+	}
+      else
+	{
+	
+	  const int HOST_NAME_SIZE = 300;
+	  char hostname[HOST_NAME_SIZE];
+	  gethostname(hostname,HOST_NAME_SIZE);
+
+	  throw check_calc_error(hostname);
+	  
+	}
+      
     }
   catch(...)
     {
 
-      std::cout << "EXCEPTION !!!" << std::endl;
+     
       if(sock !=  0)
 	close(sock);
 
@@ -611,8 +645,13 @@ sem_unix::sem_unix(const char *nomfic, int numGPU,int currGPU_) throw (synchroni
    
    if(semid == -1) 
      {
+       const int ERR_SIZE = 200;
+       char errorm[ERR_SIZE];
+        strerror_r(errno, errorm, ERR_SIZE);
+
        semctl (semid , 0 , IPC_RMID , 0) ;
-       throw synchronization_error("Semid ERROR");
+       //       throw synchronization_error("Semid ERROR");
+       throw synchronization_error(errorm);
      }
 
    arg_ctl.val = 1;

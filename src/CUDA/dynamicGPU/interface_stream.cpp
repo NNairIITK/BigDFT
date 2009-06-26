@@ -31,7 +31,7 @@ sem_unix *sem_gpu_TRSF;
 
 
 
-void init_gpu_sharing(readConfFile &read_conf, int *error)
+void init_gpu_sharing(readConfFile &read_conf, int iproc, int *error)
 {
   *error = 0;
   try
@@ -58,7 +58,7 @@ void init_gpu_sharing(readConfFile &read_conf, int *error)
 	}
 
       //init node
-      l = new local_network(mpi_tasks_per_node,num_GPU,mca);
+      l = new local_network(mpi_tasks_per_node,num_GPU,mca,iproc);
 
       locq = new localqueu();
       sem_gpu_CALC = l->getSemCalc();
@@ -93,6 +93,18 @@ void init_gpu_sharing(readConfFile &read_conf, int *error)
       std::cerr << "File not found : " << fe.what() << std::endl;
       *error = 1;
     }
+
+
+
+  catch(check_calc_error cce)
+    {
+      std::cerr << "*** ERROR : HARDWARE PROBLEME ON A CARD" << std::endl;
+      std::cerr << "We have send calculations to a card and the result was bad. *** Hostname " << cce.what() << "***" << std::endl;
+      *error = 1;
+    }
+
+
+
 
   catch(std::exception e)
     {

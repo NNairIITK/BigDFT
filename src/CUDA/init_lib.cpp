@@ -12,7 +12,7 @@
 trace_exec *tracer;
 
 int c_cudaSetDevice(int device);
-void init_gpu_sharing(readConfFile&,int *error);
+void init_gpu_sharing(readConfFile&,int iproc,int *error);
 
 const char *NAME_FILE = "GPU.config";
 
@@ -23,6 +23,7 @@ extern "C"
 void init_lib__(int *iproc,int *error, int *iconv, int *iblas, bool * GPUshare)
 {
   
+ 
   try
     {
       //Critical configuration information, if one is missing, exit
@@ -31,18 +32,26 @@ void init_lib__(int *iproc,int *error, int *iconv, int *iblas, bool * GPUshare)
       
       read_conf.get("USE_SHARED",&use_shared);
       
+ 
+
       if(use_shared == 1) 
 	{
-	  //  init_gpu_sharing(NAME_FILE,error);
-	  init_gpu_sharing(read_conf,error);
+	  if(*iproc == 0)
+	    std::cout << "** GPU SHARING ENABLED" << std::endl;
+
+	  init_gpu_sharing(read_conf,*iproc,error);
 	  *GPUshare = true;
 	  *iconv = 0;
 	  *iblas = 0; //enable GPU convolution and GPU blas
 	}
       else
 	{
-	  
+	  if(*iproc == 0)
+	    std::cout << "** GPU SHARING *DISABLED*" << std::endl;
+
 	  set_cpu_gpu_aff(*iproc, iconv, iblas, error);
+	
+
 	  *GPUshare = false;
 	}
     }
@@ -60,9 +69,21 @@ void init_lib__(int *iproc,int *error, int *iconv, int *iblas, bool * GPUshare)
 
     }
 
+  catch(...)
+    {
+      std::cerr<< "** Unexpected exception "<< std::endl;
+      *error = 1;
+
+    }
+
+
+
+
   std::ostringstream ostr;
   ostr << "trace_" << *iproc;
   tracer = new trace_exec(ostr.str(),false);
+
+
 }
 
 
