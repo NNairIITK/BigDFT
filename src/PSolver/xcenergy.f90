@@ -96,16 +96,16 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   real(dp) :: elocal,vlocal,rho,potion,sfactor
   integer :: npts,i_all,order,offset,i_stat,ispden
   integer :: i1,i2,i3,j1,j2,j3,jp2,jpp2,jppp2
-  integer :: ndvxc,nvxcdgr,ngr2
+  integer :: ndvxc,nvxcdgr,ngr2,nd2vxc
 
   !interface with drivexc
   interface
-     subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,&
+     subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxcdgr,&
           dvxc,d2vxc,grho2_updn,vxcgr,exexch)    !Optional arguments 
        implicit none
        !Arguments ------------------------------------
        !scalars
-       integer,intent(in) :: ixc,ndvxc,ngr2,npts,nspden,nvxcdgr,order
+       integer,intent(in) :: ixc,ndvxc,ngr2,nd2vxc,npts,nspden,nvxcdgr,order
        integer,intent(in),optional :: exexch
        !arrays
        real(kind=8),intent(in) :: rho_updn(npts,nspden)
@@ -153,7 +153,8 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 !     end do
 
      !Allocations of the exchange-correlation terms, depending on the ixc value
-     call size_dvxc(ixc,ndvxc,ngr2,nspden,nvxcdgr,order)
+     nd2vxc=1
+     call size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 
      if (ixc >= 11 .and. ixc <= 16) then
         !computation of the gradient
@@ -204,26 +205,26 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      if (ixc >= 11 .and. ixc <= 16) then
       if (order**2 <= 1 .or. ixc == 16) then
          if (ixc /= 13) then             
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                  &grho2_updn=gradient,vxcgr=dvxcdgr) 
          else
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                  &grho2_updn=gradient) 
          end if
       else if (order /= 3) then
          if (ixc /= 13) then             
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                  &dvxc=dvxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
          else
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                  &dvxc=dvxci,grho2_updn=gradient) 
          end if
       else if (order == 3) then
          if (ixc /= 13) then             
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                  &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
          else
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                  &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient) 
          end if
       end if
@@ -259,12 +260,12 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         !cases without gradient
      else
         if (order**2 <=1 .or. ixc >= 31 .and. ixc<=34) then
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr)
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr)
         else if (order==3 .and. (ixc==3 .or. ixc>=7 .and. ixc<=10)) then
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                 &dvxc=dvxci,d2vxc=d2vxci)
         else
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nvxcdgr,&
+           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                 &dvxc=dvxci)
         end if
      end if
