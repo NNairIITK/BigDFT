@@ -11,6 +11,4 @@ integer, parameter :: ncache_optimal=8*1024
 ! definitions of the timing variambles just in case
 integer, parameter :: timing_flag=0
 
-integer :: count_time1,count_time2,count_rate,count_max,number_time,index_time
-real(kind=8) :: time_b0,time_b1,serial_time,parallel_time
 !!***

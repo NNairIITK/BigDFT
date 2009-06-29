@@ -9,7 +9,7 @@ subroutine timing(iproc,category,action)
   !Local variables
   logical :: parallel,init
   integer, parameter :: ncat=23   ! define timimg categories
-  integer :: i,ierr,ii,i_all,i_stat,nproc,ncaton!,nskip
+  integer :: i,ierr,ii,nproc,ncaton!,nskip
   integer :: istart,iend,count_rate,count_max,ielapsed,ncounters,itime,ittime
   !cputime routine gives a real
   !real :: total,total0,time,time0
@@ -204,7 +204,6 @@ subroutine sum_results(parallel,iproc,ncat,cats,itsum,timesum,message)
   real(kind=8), dimension(ncat+1), intent(inout) :: timesum
   !local variables
   integer :: i,iend,count_rate,count_max,ierr,nproc
-  real :: total
   real(kind=8) :: total_pc,pc,totaltime,sum
   real(kind=8), dimension(ncat+1) :: timetot!timemax,timemin
 

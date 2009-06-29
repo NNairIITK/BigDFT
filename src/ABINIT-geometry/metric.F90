@@ -16,7 +16,7 @@
 !! Also computes unit cell volume ucvol in $\textrm{bohr}^3$
 !!
 !! COPYRIGHT
-!! Copyright (C) 1998-2007 ABINIT group (DCA, XG, GMR)
+!! Copyright (C) 1998-2009 ABINIT group (DCA, XG, GMR)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -36,14 +36,16 @@
 !! NOTES
 !!
 !! PARENTS
-!!      afterscfloop,anascr,brdmin,chkinp,conducti_nc,conducti_paw,delocint
-!!      dyfnl3,eltfrhar3,eltfrkin3,eltfrnl3,eltfrxc3,eneres3,energy,forces
-!!      forstrnps,getkgrid,hirsh,ingeo,initaim,invacuum,invars2m,ladielmt,lavnl
-!!      localorb_S,loper3,moddiel,moldyn,newrho,newsp,newvtr,newvtr3,optic
-!!      overlap_wf,partial_dos_fractions,pawgrnl,prcref,prcref_PMA,prctfvw1
-!!      prctfvw2,prctfw3,rdddb9,rdm,rhohxc_coll,scfcv,scfcv3,screening,setup1
-!!      sigma,sigma_OLDPARA,stress,suscep,testkgrid,tetrahedron,wannier,wffile
-!!      wfread,xfpack
+!!      afterscfloop,brdmin,bstruct_init,chkinp,conducti_nc,conducti_paw
+!!      crystal_methods,cutoff_cylinder,delocint,dyfnl3,eltfrhar3,eltfrkin3
+!!      eltfrnl3,eltfrxc3,energy,forces,forstrnps,getkgrid,gw_tools,hirsh,ingeo
+!!      initaim,inkpts,invacuum,invars2m,ladielmt,lavnl,linear_optics_paw
+!!      localorb_S,loper3,mlwfovlp_qp,moddiel,moldyn,mrgscr,newrho,newsp,newvtr
+!!      newvtr3,nres2vres,optic,overlap_wf,partial_dos_fractions,pawgrnl,prcref
+!!      prcref_PMA,prctfvw1,prctfvw2,prctfw3,rdddb9,rdm,respfunc_methods,rhohxc
+!!      scfcv,scfcv3,screening,setup1,setup_coulombian,setup_kmesh,setup_qmesh
+!!      setup_screening,setup_sigma,sigma,stress,suscep,testkgrid,tetrahedron
+!!      wannier,wffile,wfread,xfpack
 !!
 !! CHILDREN
 !!      leave_new,matr3inv,wrtout
@@ -58,11 +60,10 @@ subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
 
  use defs_basis
 
-!This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
-#ifdef HAVE_FORTRAN_INTERFACES
- use interfaces_01manage_mpi
- use interfaces_11util
-#endif
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+ !use interfaces_01manage_mpi
+!use interfaces_11util
 !End of the abilint section
 
  implicit none
@@ -90,8 +91,8 @@ subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
 
 !Compute unit cell volume
  ucvol=rprimd(1,1)*(rprimd(2,2)*rprimd(3,3)-rprimd(3,2)*rprimd(2,3))+&
-&      rprimd(2,1)*(rprimd(3,2)*rprimd(1,3)-rprimd(1,2)*rprimd(3,3))+&
-&      rprimd(3,1)*(rprimd(1,2)*rprimd(2,3)-rprimd(2,2)*rprimd(1,3))
+& rprimd(2,1)*(rprimd(3,2)*rprimd(1,3)-rprimd(1,2)*rprimd(3,3))+&
+& rprimd(3,1)*(rprimd(1,2)*rprimd(2,3)-rprimd(2,2)*rprimd(1,3))
 
 !Check that the input primitive translations are not
 !linearly dependent (and none is zero); i.e. ucvol~=0
@@ -131,8 +132,8 @@ subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
   call wrtout(iout,message,'COLL')
   do nu=1,3
    write(message, '(1x,a,i1,a,3f11.7,2x,a,i1,a,3f11.7)' ) &
-&    'R(',nu,')=',rprimd(:,nu)+tol10,&
-&    'G(',nu,')=',gprimd(:,nu)+tol10
+&   'R(',nu,')=',rprimd(:,nu)+tol10,&
+&   'G(',nu,')=',gprimd(:,nu)+tol10
    call wrtout(iout,message,'COLL')
   end do
   write(message, '(a,1p,e15.7,a)' ) &
@@ -144,15 +145,15 @@ subroutine metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
 !Compute real space metrics
  do ii=1,3
   rmet(ii,:)=rprimd(1,ii)*rprimd(1,:)+&
-&            rprimd(2,ii)*rprimd(2,:)+&
-&            rprimd(3,ii)*rprimd(3,:)
+&  rprimd(2,ii)*rprimd(2,:)+&
+&  rprimd(3,ii)*rprimd(3,:)
  end do
 
 !Compute reciprocal space metrics
  do ii=1,3
   gmet(ii,:)=gprimd(1,ii)*gprimd(1,:)+&
-&            gprimd(2,ii)*gprimd(2,:)+&
-&            gprimd(3,ii)*gprimd(3,:)
+&  gprimd(2,ii)*gprimd(2,:)+&
+&  gprimd(3,ii)*gprimd(3,:)
  end do
 
 !Write out the angles

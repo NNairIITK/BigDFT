@@ -10,31 +10,27 @@
 !!
 !! SOURCE
 !!
-subroutine local_forces(iproc,nproc,at,rxyz,hxh,hyh,hzh,&
+subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,rho,pot,floc)
   use module_base
   use module_types
   implicit none
   !Arguments---------
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
+  integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
   real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(3,at%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: rho,pot
   real(gp), dimension(3,at%nat), intent(out) :: floc
   !Local variables---------
   logical :: perx,pery,perz,gox,goy,goz
-  real(kind=8) :: hgridh,pi,prefactor,cutoff,rloc,Vel,rhoel
+  real(kind=8) :: pi,prefactor,cutoff,rloc,Vel,rhoel
   real(kind=8) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc
-  real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,dist,tt
-  integer :: ii,ix,iy,iz,i1,i2,i3,i3start,i3end,ind,iat,jat,ityp,jtyp,nloc,iloc,i_all,i_stat
+  real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,tt
+  integer :: i1,i2,i3,ind,iat,ityp,nloc,iloc
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
   !array of coefficients of the derivative
   real(kind=8), dimension(4) :: cprime 
-  !array of the metrics in real and reciprocal spaces (useful for the ewald calculation)
-  real(kind=8), dimension(3,3) :: gmet,rmet,rprimd,gprimd
-  !other arrays for the ewald treatment
-  real(kind=8), dimension(:,:), allocatable :: fewald,xred
   
   pi=4.d0*atan(1.d0)
 
@@ -168,7 +164,7 @@ END SUBROUTINE local_forces
 !! SOURCE
 !!
 subroutine projectors_derivatives(iproc,at,n1,n2,n3,&
-     nlpspd,proj,rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
+     nlpspd,rxyz,radii_cf,cpmult,fpmult,hx,hy,hz,derproj)
   use module_types
   implicit none
   type(atoms_data), intent(in) :: at
@@ -179,7 +175,6 @@ subroutine projectors_derivatives(iproc,at,n1,n2,n3,&
   real(kind=8),intent(in) :: cpmult,fpmult,hx,hy,hz
   real(kind=8), dimension(3,at%nat), intent(in) :: rxyz
   real(kind=8), dimension(at%ntypes,3), intent(in) :: radii_cf
-  real(kind=8), dimension(nlpspd%nprojel), intent(in) :: proj
   real(kind=8), dimension(nlpspd%nprojel,3), intent(out) :: derproj
   !Local Variables--------------
   integer, parameter :: nterm_max=20 !if GTH nterm_max=4
@@ -187,7 +182,7 @@ subroutine projectors_derivatives(iproc,at,n1,n2,n3,&
   integer :: mvctr_c,mvctr_f
   integer :: nl1_c,nl2_c,nl3_c,nl1_f,nl2_f,nl3_f,nu1_c,nu2_c,nu3_c,nu1_f,nu2_f,nu3_f
   real(kind=8) :: fpi,factor,gau_a,rx,ry,rz
-  integer :: idir,iterm,i_all,i_stat
+  integer :: idir,iterm
   integer, dimension(3) :: nterm_arr
   integer, dimension(nterm_max) :: lx,ly,lz
   integer, dimension(3,nterm_max,3) :: lxyz_arr
@@ -295,8 +290,7 @@ subroutine nonlocal_forces(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
   !local variables--------------
   character(len=*), parameter :: subname='nonlocal_forces'
   integer :: istart_c,istart_f,iproj,iat,ityp,i,j,l,m
-  integer :: istart_c_i,istart_f_i,istart_c_j,istart_f_j
-  integer :: mvctr_c,mvctr_f,mbseg_c,mbseg_f,jseg_c,jseg_f
+  integer :: mbseg_c,mbseg_f,jseg_c,jseg_f
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj
   integer :: idir,i_all,i_stat
@@ -568,11 +562,9 @@ subroutine nonlocal_forcesold(iproc,at,norb,norbp,occup,nlpspd,proj,derproj,wfd,
   !Local Variables--------------
   character(len=*), parameter :: subname='nonlocal_forces'
   integer :: istart_c,istart_f,iproj,iat,ityp,i,j,l,m
-  integer :: istart_c_i,istart_f_i,istart_c_j,istart_f_j
-  integer :: mvctr_c,mvctr_f,mbseg_c,mbseg_f,jseg_c,jseg_f
+  integer :: mbseg_c,mbseg_f,jseg_c,jseg_f
   integer :: mbvctr_c,mbvctr_f,iorb
-  real(kind=8) :: fpi,factor,gau_a,scpr,scprp,tcprx,tcpry,tcprz,rx,ry,rz,fx,fy,fz
-  real(kind=8) :: scpr_i,scpr_j,scprp_i,scprp_j,tcprx_i,tcprx_j,tcpry_i,tcpry_j,tcprz_i,tcprz_j
+  real(kind=8) :: fx,fy,fz
   real(kind=8) :: offdiagcoeff,hij
   integer :: idir,i_all,i_stat
   real(kind=8), dimension(2,2,3) :: offdiagarr

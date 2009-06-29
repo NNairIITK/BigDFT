@@ -183,7 +183,7 @@ subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
      call convrot_n_per(n3,ndat,x,y)
 
   else
-	  stop 'the GPU part is not yet written'
+    stop 'the GPU part is not yet written'
   end if
 end subroutine convolut_magic_n_slab_self
 
@@ -235,7 +235,7 @@ subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
      call convrot_n_per(n3,ndat,ww,y)
 
   else
-	  stop 'the GPU part is not yet written'
+    stop 'the GPU part is not yet written'
   end if
 end subroutine convolut_magic_n_slab
 
@@ -289,7 +289,7 @@ subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
      call convrot_t_per(n3,ndat,x,y)
 
   else
-	  stop 'the GPU part is not yet written'
+    stop 'the GPU part is not yet written'
   end if
 
 end subroutine convolut_magic_t_slab_self

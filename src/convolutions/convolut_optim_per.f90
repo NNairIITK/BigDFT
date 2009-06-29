@@ -29,7 +29,7 @@ subroutine ana_rot_per(n,ndat,x,y)
        0.031695087811525991431_wp, 0.00054213233180001068935_wp, &
        -0.0033824159510050025955_wp  /
 
-  integer mod_arr(-7:2*n+8)	
+  integer mod_arr(-7:2*n+8)  
   real(wp) :: ci1,ci2,ci3,ci4,ci5,ci6,ci7,ci8
   real(wp) :: di1,di2,di3,di4,di5,di6,di7,di8
 
@@ -152,19 +152,19 @@ subroutine syn_rot_per(n,ndat,x,y)
        0.031695087811525991431_wp, 0.00054213233180001068935_wp, &
        -0.0033824159510050025955_wp , 0.e0_wp /
 
-  integer mod_arr(-4:n+4)	
+  integer mod_arr(-4:n+4)  
   real(wp) :: so1,so2,so3,so4,so5,so6,so7,so8
   real(wp) :: se1,se2,se3,se4,se5,se6,se7,se8
 
-!	real(gp)::tel
-!	integer::ncount1,ncount2,ncount_rate,ncount_max
-!	integer::mflop
+!  real(gp)::tel
+!  integer::ncount1,ncount2,ncount_rate,ncount_max
+!  integer::mflop
 !   
-!	! (n+1): the range of i (average)
-!	! 8: filter length for l (average)
-!	! 4: number of flops in one line
-!	! 2: even and odd 
-!	mflop=ndat*(n+1)*8*4*2
+!  ! (n+1): the range of i (average)
+!  ! 8: filter length for l (average)
+!  ! 4: number of flops in one line
+!  ! 2: even and odd 
+!  mflop=ndat*(n+1)*8*4*2
 !  call system_clock(ncount1,ncount_rate,ncount_max)
 
   call fill_mod_arr(mod_arr,-4,n+4,n+1)
@@ -173,7 +173,7 @@ subroutine syn_rot_per(n,ndat,x,y)
 !$omp do 
   do j=0,ndat/8-1
      do i=0,n
-		l=4 
+    l=4 
         k=mod_arr(i-l)
         se1=ch(8)*x(k,j*8+1)+cg(8)*x(n+1+k,j*8+1)
         se2=ch(8)*x(k,j*8+2)+cg(8)*x(n+1+k,j*8+2)
@@ -184,7 +184,7 @@ subroutine syn_rot_per(n,ndat,x,y)
         se7=ch(8)*x(k,j*8+7)+cg(8)*x(n+1+k,j*8+7)
         se8=ch(8)*x(k,j*8+8)+cg(8)*x(n+1+k,j*8+8)
 
-		l=-4 
+    l=-4 
         k=mod_arr(i-l)
         so1=ch(-7)*x(k,j*8+1)+cg(-7)*x(n+1+k,j*8+1)
         so2=ch(-7)*x(k,j*8+2)+cg(-7)*x(n+1+k,j*8+2)
@@ -242,10 +242,10 @@ subroutine syn_rot_per(n,ndat,x,y)
 !$omp  do  
   do j=(ndat/8)*8+1,ndat
      do i=0,n
-		l=4 
+    l=4 
         k=mod_arr(i-l)
         se=ch( 8)*x(  k,j)+cg( 8)*x(n+1+k  ,j)
-		l=-4 
+    l=-4 
         k=mod_arr(i-l)
         so=ch(-7)*x(  k,j)+cg(-7)*x(n+1+k  ,j)
         do l=-3,3
@@ -297,7 +297,7 @@ subroutine convrot_n_per(n1,ndat,x,y)
        -0.5185986881173432922848639136911487e-4_wp,&
        2.72734492911979659657715313017228e-6_wp /
 
-  integer mod_arr(lowfil:n1+lupfil)	
+  integer mod_arr(lowfil:n1+lupfil)  
   integer i,j,l,k
   real(wp) fill,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 
@@ -323,7 +323,7 @@ subroutine convrot_n_per(n1,ndat,x,y)
         tt12=0.e0_wp
 
         do l=lowfil,lupfil
-           k=mod_arr(i+l)	
+           k=mod_arr(i+l)  
            fill=fil(l)
 
            tt1=tt1+x(  k,j*12+1)*fill
@@ -366,7 +366,7 @@ subroutine convrot_n_per(n1,ndat,x,y)
 
         tt=0.e0_wp
         do l=lowfil,lupfil
-           k=mod_arr(i+l)	
+           k=mod_arr(i+l)  
            tt=tt+x(  k,j)*fil(l)
         enddo
         y(j,i)=tt
@@ -412,7 +412,7 @@ subroutine convrot_t_per(n1,ndat,x,y)
        8.4334247333529341094733325815816D-7 /
 
   integer i,j,l,k
-  integer mod_arr(lowfil:n1+lupfil)	
+  integer mod_arr(lowfil:n1+lupfil)  
   real(wp) fill,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12,tt
 
   call fill_mod_arr(mod_arr,lowfil,n1+lupfil,n1+1)
@@ -437,7 +437,7 @@ subroutine convrot_t_per(n1,ndat,x,y)
         tt12=0.e0_wp
 
         do l=lowfil,lupfil
-           k=mod_arr(i+l)	
+           k=mod_arr(i+l)  
            fill=fil(l)
 
            tt1=tt1+x(  k,j*12+1)*fill
@@ -480,7 +480,7 @@ subroutine convrot_t_per(n1,ndat,x,y)
 
         tt=0.e0_wp
         do l=lowfil,lupfil
-           k=mod_arr(i+l)	
+           k=mod_arr(i+l)  
            tt=tt+x(  k,j)*fil(l)
         enddo
         y(j,i)=tt
@@ -507,9 +507,9 @@ subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
   integer, parameter :: lowfil=-14,lupfil=14
   integer :: i1,i2,i3,i,l,j
   real(wp) :: tt
-  integer, dimension(lowfil:n1+lupfil) :: mod_arr1	
-  integer, dimension(lowfil:n2+lupfil) :: mod_arr2	
-  integer, dimension(lowfil:n3+lupfil) :: mod_arr3	
+  integer, dimension(lowfil:n1+lupfil) :: mod_arr1  
+  integer, dimension(lowfil:n2+lupfil) :: mod_arr2  
+  integer, dimension(lowfil:n3+lupfil) :: mod_arr3  
   real(wp), dimension(3) :: scale
   real(wp), dimension(lowfil:lupfil,3) :: fil
 !dee
@@ -752,7 +752,7 @@ end subroutine convolut_kinetic_per_c
 
 subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin_out)
   !   applies the kinetic energy operator onto x to get y. Works for periodic BC
-  !	y:=y-1/2Delta x
+  !  y:=y-1/2Delta x
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -808,7 +808,7 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin_out)
   call conv_kin_z(x,y,(n1+1)*(n2+1),ekin)
  
   !$omp critical
-  	ekin_out=ekin_out+ekin
+    ekin_out=ekin_out+ekin
   !$omp end critical
 
   !$omp end parallel
@@ -822,10 +822,10 @@ contains
     integer,intent(in)::ndat
     real(wp),intent(in):: x(0:n1,ndat)
     real(wp),intent(out)::y(0:n1,ndat)
-	real(wp),intent(inout)::ekin
+  real(wp),intent(inout)::ekin
     real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
-	
-	!$omp do
+  
+  !$omp do
     do i=0,ndat/12-1
        do i1=0,n1
           tt1=0.e0_wp
@@ -857,23 +857,23 @@ contains
              tt11=tt11+x(j,i*12+11)*fil(l,1)
              tt12=tt12+x(j,i*12+12)*fil(l,1)
           enddo
-          y(i1,i*12+1)=y(i1,i*12+1)+tt1;	 ekin=ekin+tt1*x(i1,i*12+1)
-          y(i1,i*12+2)=y(i1,i*12+2)+tt2;	 ekin=ekin+tt2*x(i1,i*12+2)
-          y(i1,i*12+3)=y(i1,i*12+3)+tt3;	 ekin=ekin+tt3*x(i1,i*12+3)
-          y(i1,i*12+4)=y(i1,i*12+4)+tt4;	 ekin=ekin+tt4*x(i1,i*12+4)
-          y(i1,i*12+5)=y(i1,i*12+5)+tt5;	 ekin=ekin+tt5*x(i1,i*12+5)
-          y(i1,i*12+6)=y(i1,i*12+6)+tt6;	 ekin=ekin+tt6*x(i1,i*12+6)
-          y(i1,i*12+7)=y(i1,i*12+7)+tt7;	 ekin=ekin+tt7*x(i1,i*12+7)
-          y(i1,i*12+8)=y(i1,i*12+8)+tt8;	 ekin=ekin+tt8*x(i1,i*12+8)
-          y(i1,i*12+9 )=y(i1,i*12+9 )+tt9 ;	 ekin=ekin+tt9 *x(i1,i*12+9 )
-          y(i1,i*12+10)=y(i1,i*12+10)+tt10;	 ekin=ekin+tt10*x(i1,i*12+10)
-          y(i1,i*12+11)=y(i1,i*12+11)+tt11;	 ekin=ekin+tt11*x(i1,i*12+11)
-          y(i1,i*12+12)=y(i1,i*12+12)+tt12;	 ekin=ekin+tt12*x(i1,i*12+12)
+          y(i1,i*12+1)=y(i1,i*12+1)+tt1;   ekin=ekin+tt1*x(i1,i*12+1)
+          y(i1,i*12+2)=y(i1,i*12+2)+tt2;   ekin=ekin+tt2*x(i1,i*12+2)
+          y(i1,i*12+3)=y(i1,i*12+3)+tt3;   ekin=ekin+tt3*x(i1,i*12+3)
+          y(i1,i*12+4)=y(i1,i*12+4)+tt4;   ekin=ekin+tt4*x(i1,i*12+4)
+          y(i1,i*12+5)=y(i1,i*12+5)+tt5;   ekin=ekin+tt5*x(i1,i*12+5)
+          y(i1,i*12+6)=y(i1,i*12+6)+tt6;   ekin=ekin+tt6*x(i1,i*12+6)
+          y(i1,i*12+7)=y(i1,i*12+7)+tt7;   ekin=ekin+tt7*x(i1,i*12+7)
+          y(i1,i*12+8)=y(i1,i*12+8)+tt8;   ekin=ekin+tt8*x(i1,i*12+8)
+          y(i1,i*12+9 )=y(i1,i*12+9 )+tt9 ;   ekin=ekin+tt9 *x(i1,i*12+9 )
+          y(i1,i*12+10)=y(i1,i*12+10)+tt10;   ekin=ekin+tt10*x(i1,i*12+10)
+          y(i1,i*12+11)=y(i1,i*12+11)+tt11;   ekin=ekin+tt11*x(i1,i*12+11)
+          y(i1,i*12+12)=y(i1,i*12+12)+tt12;   ekin=ekin+tt12*x(i1,i*12+12)
        enddo
     enddo
-	!$omp end do
+  !$omp end do
 
-	!$omp do
+  !$omp do
     do i=(ndat/12)*12+1,ndat
        do i1=0,n1
           tt=0.e0_wp
@@ -884,15 +884,15 @@ contains
           y(i1,i)=y(i1,i)+tt ; ekin=ekin+tt*x(i1,i)
        enddo
     enddo
-	!$omp end do
+  !$omp end do
   end subroutine conv_kin_x
 
   subroutine conv_kin_y(ekin)
     implicit none
-	real(wp),intent(inout)::ekin
+  real(wp),intent(inout)::ekin
     real(wp) tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7
 
-	!$omp do
+  !$omp do
     do i3=0,n3/8-1
        do i1=0,n1
           do i2=0,n2
@@ -917,21 +917,21 @@ contains
                 tt6=tt6+x(i1,j,i3*8+6)*fil(l,2)
                 tt7=tt7+x(i1,j,i3*8+7)*fil(l,2)
              enddo
-             y(i1,i2,i3*8+0)=y(i1,i2,i3*8+0)+tt0;	 ekin=ekin+tt0*x(i1,i2,i3*8+0)
-             y(i1,i2,i3*8+1)=y(i1,i2,i3*8+1)+tt1;	 ekin=ekin+tt1*x(i1,i2,i3*8+1)
-             y(i1,i2,i3*8+2)=y(i1,i2,i3*8+2)+tt2;	 ekin=ekin+tt2*x(i1,i2,i3*8+2)
-             y(i1,i2,i3*8+3)=y(i1,i2,i3*8+3)+tt3;	 ekin=ekin+tt3*x(i1,i2,i3*8+3)
-             y(i1,i2,i3*8+4)=y(i1,i2,i3*8+4)+tt4;	 ekin=ekin+tt4*x(i1,i2,i3*8+4)
-             y(i1,i2,i3*8+5)=y(i1,i2,i3*8+5)+tt5;	 ekin=ekin+tt5*x(i1,i2,i3*8+5)
-             y(i1,i2,i3*8+6)=y(i1,i2,i3*8+6)+tt6;	 ekin=ekin+tt6*x(i1,i2,i3*8+6)
-             y(i1,i2,i3*8+7)=y(i1,i2,i3*8+7)+tt7;	 ekin=ekin+tt7*x(i1,i2,i3*8+7)
+             y(i1,i2,i3*8+0)=y(i1,i2,i3*8+0)+tt0;   ekin=ekin+tt0*x(i1,i2,i3*8+0)
+             y(i1,i2,i3*8+1)=y(i1,i2,i3*8+1)+tt1;   ekin=ekin+tt1*x(i1,i2,i3*8+1)
+             y(i1,i2,i3*8+2)=y(i1,i2,i3*8+2)+tt2;   ekin=ekin+tt2*x(i1,i2,i3*8+2)
+             y(i1,i2,i3*8+3)=y(i1,i2,i3*8+3)+tt3;   ekin=ekin+tt3*x(i1,i2,i3*8+3)
+             y(i1,i2,i3*8+4)=y(i1,i2,i3*8+4)+tt4;   ekin=ekin+tt4*x(i1,i2,i3*8+4)
+             y(i1,i2,i3*8+5)=y(i1,i2,i3*8+5)+tt5;   ekin=ekin+tt5*x(i1,i2,i3*8+5)
+             y(i1,i2,i3*8+6)=y(i1,i2,i3*8+6)+tt6;   ekin=ekin+tt6*x(i1,i2,i3*8+6)
+             y(i1,i2,i3*8+7)=y(i1,i2,i3*8+7)+tt7;   ekin=ekin+tt7*x(i1,i2,i3*8+7)
           enddo
        enddo
     enddo
-	
-	!$omp end do
+  
+  !$omp end do
 
-	!$omp do
+  !$omp do
     do i3=(n3/8)*8,n3
        do i1=0,n1
           do i2=0,n2
@@ -940,11 +940,11 @@ contains
                 j=mod_arr2(i2+l)
                 tt=tt+x(i1,j   ,i3)*fil(l,2)
              enddo
-             y(i1,i2,i3)=y(i1,i2,i3)+tt;	ekin=ekin+tt*x(i1,i2,i3)
+             y(i1,i2,i3)=y(i1,i2,i3)+tt;  ekin=ekin+tt*x(i1,i2,i3)
           enddo
        enddo
     enddo
-	!$omp end do
+  !$omp end do
   end subroutine conv_kin_y
 
   subroutine conv_kin_z(x,y,ndat,ekin)
@@ -952,10 +952,10 @@ contains
     integer,intent(in)::ndat
     real(wp),intent(in):: x(ndat,0:n1)
     real(wp),intent(out)::y(ndat,0:n1)
-	real(wp),intent(inout)::ekin
+  real(wp),intent(inout)::ekin
     real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 
-	!$omp do
+  !$omp do
     do i=0,ndat/12-1
        do i3=0,n3
           tt1=0.e0_wp
@@ -988,23 +988,23 @@ contains
              tt12=tt12+x(i*12+12,j)*fil(l,3)
           enddo
 
-          y(i*12+1,i3)=y(i*12+1,i3)+tt1;	 ekin=ekin+tt1*x(i*12+1,i3)
-          y(i*12+2,i3)=y(i*12+2,i3)+tt2;	 ekin=ekin+tt2*x(i*12+2,i3)
-          y(i*12+3,i3)=y(i*12+3,i3)+tt3;	 ekin=ekin+tt3*x(i*12+3,i3)
-          y(i*12+4,i3)=y(i*12+4,i3)+tt4;	 ekin=ekin+tt4*x(i*12+4,i3)
-          y(i*12+5,i3)=y(i*12+5,i3)+tt5;	 ekin=ekin+tt5*x(i*12+5,i3)
-          y(i*12+6,i3)=y(i*12+6,i3)+tt6;	 ekin=ekin+tt6*x(i*12+6,i3)
-          y(i*12+7,i3)=y(i*12+7,i3)+tt7;	 ekin=ekin+tt7*x(i*12+7,i3)
-          y(i*12+8,i3)=y(i*12+8,i3)+tt8;	 ekin=ekin+tt8*x(i*12+8,i3)
-          y(i*12+9 ,i3)=y(i*12+9 ,i3)+tt9 ;	 ekin=ekin+tt9*x(i*12+9 ,i3)
-          y(i*12+10,i3)=y(i*12+10,i3)+tt10;	 ekin=ekin+tt10*x(i*12+10,i3)
-          y(i*12+11,i3)=y(i*12+11,i3)+tt11;	 ekin=ekin+tt11*x(i*12+11,i3)
-          y(i*12+12,i3)=y(i*12+12,i3)+tt12;	 ekin=ekin+tt12*x(i*12+12,i3)
+          y(i*12+1,i3)=y(i*12+1,i3)+tt1;   ekin=ekin+tt1*x(i*12+1,i3)
+          y(i*12+2,i3)=y(i*12+2,i3)+tt2;   ekin=ekin+tt2*x(i*12+2,i3)
+          y(i*12+3,i3)=y(i*12+3,i3)+tt3;   ekin=ekin+tt3*x(i*12+3,i3)
+          y(i*12+4,i3)=y(i*12+4,i3)+tt4;   ekin=ekin+tt4*x(i*12+4,i3)
+          y(i*12+5,i3)=y(i*12+5,i3)+tt5;   ekin=ekin+tt5*x(i*12+5,i3)
+          y(i*12+6,i3)=y(i*12+6,i3)+tt6;   ekin=ekin+tt6*x(i*12+6,i3)
+          y(i*12+7,i3)=y(i*12+7,i3)+tt7;   ekin=ekin+tt7*x(i*12+7,i3)
+          y(i*12+8,i3)=y(i*12+8,i3)+tt8;   ekin=ekin+tt8*x(i*12+8,i3)
+          y(i*12+9 ,i3)=y(i*12+9 ,i3)+tt9 ;   ekin=ekin+tt9*x(i*12+9 ,i3)
+          y(i*12+10,i3)=y(i*12+10,i3)+tt10;   ekin=ekin+tt10*x(i*12+10,i3)
+          y(i*12+11,i3)=y(i*12+11,i3)+tt11;   ekin=ekin+tt11*x(i*12+11,i3)
+          y(i*12+12,i3)=y(i*12+12,i3)+tt12;   ekin=ekin+tt12*x(i*12+12,i3)
        enddo
     enddo
-	!$omp end do
+  !$omp end do
 
-	!$omp do
+  !$omp do
     do i=(ndat/12)*12+1,ndat
        do i3=0,n3
           tt=0.e0_wp
@@ -1015,7 +1015,7 @@ contains
           y(i,i3)=y(i,i3)+tt; ekin=ekin+tt*x(i,i3)
        enddo
     enddo
-	!$omp end do
+  !$omp end do
   end subroutine conv_kin_z
 
 end subroutine convolut_kinetic_per_T
@@ -1028,28 +1028,28 @@ integer,intent(out)::arr(nleft:nright)
 integer::i
 
 if (nleft.ge.-n) then
-	do i=nleft,-1
-		arr(i)=n+i
-	enddo
+  do i=nleft,-1
+    arr(i)=n+i
+  enddo
 else
-	do i=nleft,-1
-		arr(i)=modulo(i,n)
-	enddo
+  do i=nleft,-1
+    arr(i)=modulo(i,n)
+  enddo
 endif
 
 do i=max(0,nleft),min(n-1,nright)
-	arr(i)=i
+  arr(i)=i
 enddo
 
 if (nright.lt.2*n) then
-	do i=n,nright
-		arr(i)=i-n
-	enddo
+  do i=n,nright
+    arr(i)=i-n
+  enddo
 else
-	do i=n,nright
-		arr(i)=modulo(i,n)
-	enddo
+  do i=n,nright
+    arr(i)=modulo(i,n)
+  enddo
 endif
-	
+  
 end subroutine fill_mod_arr
 

@@ -25,6 +25,7 @@
   character(len=*), parameter :: subname='call_bigdft'
   character(len=40) :: comment
   integer :: i_stat,i_all,ierr,inputPsiId_orig,icycle
+
   !temporary interface
   interface
      subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
@@ -161,6 +162,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   use module_interfaces
   use Poisson_Solver
   use vdwcorrection, only: vdwcorrection_calculate_energy, vdwcorrection_calculate_forces
+  use ab6_symmetry ! TODO remove me after kpoint integration
   implicit none
   integer, intent(in) :: nproc,iproc
   real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -178,21 +180,20 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(wp), dimension(:,:), pointer :: gaucoeffs
   !local variables
   character(len=*), parameter :: subname='cluster'
-  character(len=10) :: orbname
   character(len=3) :: PSquiet
   logical :: endloop,potion_overwritten
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
   integer :: nvirt,ndiis_sd_sw
-  integer :: nelec,ndegree_ip,mids,iorb,ids,idiistol,j,i
+  integer :: nelec,ndegree_ip,j,i
   integer :: n1_old,n2_old,n3_old,n3d,n3p,n3pi,i3xcsh,i3s,n1,n2,n3
-  integer :: ncount0,ncount1,ncount_rate,ncount_max,iunit,n1i,n2i,n3i,i03,i04
-  integer :: i1,i2,i3,ind,iat,ierror,i_all,i_stat,iter,ierr,isorb,jproc,ispin,nplot
+  integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i,i03,i04
+  integer :: i1,i2,i3,ind,iat,i_all,i_stat,iter,ierr,jproc,ispin,nplot
   real :: tcpu0,tcpu1
   real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
-  real(kind=8) :: peakmem,gnrm_check,energy_old,sumz
+  real(kind=8) :: peakmem,energy_old,sumz
   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum,ehart,eexcu,vexcu,alpha,gnrm,evsum,sumx,sumy
   real(kind=8) :: scprsum,energybs,tt,tel,eexcu_fake,vexcu_fake,ehart_fake,energy_min,psoffset
-  real(kind=8) :: factor,ttsum,offset
+  real(kind=8) :: ttsum
   real(gp) :: edisp ! Dispersion energy
   type(wavefunctions_descriptors) :: wfd_old
   type(nonlocal_psp_descriptors) :: nlpspd
@@ -200,13 +201,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   type(orbitals_data) :: orbsv
   type(GPU_pointers) :: GPU
   integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
-  real(kind=8), dimension(:), allocatable :: spinsgn_foo,rho
+  real(kind=8), dimension(:), allocatable :: rho
   real(kind=8), dimension(:,:), allocatable :: radii_cf,gxyz,fion,thetaphi
   real(gp), dimension(:,:),allocatable :: fdisp
   ! Charge density/potential,ionic potential, pkernel
   real(kind=8), dimension(:), allocatable :: pot_ion
   real(kind=8), dimension(:,:,:,:), allocatable :: rhopot,pot,rhoref
-  real(kind=8), dimension(:,:,:), allocatable :: m_norm
   real(kind=8), dimension(:), pointer :: pkernel,pkernel_ref
   !wavefunction gradients, hamiltonian on vavefunction
   !transposed  wavefunction
@@ -217,11 +217,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   real(kind=8), dimension(:), pointer :: proj
   ! arrays for DIIS convergence accelerator
   real(kind=8), dimension(:,:,:), pointer :: ads
-  ! tmp debug array
-  real(kind=8), dimension(:,:), allocatable :: tmred
-
+  
   type(gaussian_basis) Gabsorber
   real(wp), dimension(:), allocatable :: Gabs_coeffs
+  
+  ! TODO variables for fake k points
+!!$  integer :: symObj
+!!$  integer :: nkpt
+!!$  integer, parameter :: ngkpt(3) = (/ 2, 2, 2 /)
+!!$  real(dp) :: kpt(3, ngkpt(1) * ngkpt(2) * ngkpt(3))
+!!$  real(dp) :: wkpt(ngkpt(1) * ngkpt(2) * ngkpt(3))
+!!$  real(dp) :: shiftk(3, 1)
+!!$  real(dp) :: rprimd(3, 3)
+!!$  real(gp), dimension(:,:), allocatable :: xRed
   
   !copying the input variables for readability
   !this section is of course not needed
@@ -284,7 +292,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
         call correct_grid(atoms%alat1,hx_old,Glr%d%n1)
         call correct_grid(atoms%alat3,hz_old,Glr%d%n3)
      end if
-     call copy_old_wavefunctions(iproc,nproc,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+     call copy_old_wavefunctions(nproc,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
           Glr%wfd,psi,n1_old,n2_old,n3_old,wfd_old,psi_old)
   else if (in%inputPsiId == 11) then
      !deallocate wavefunction and descriptors for placing the gaussians
@@ -316,6 +324,35 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
   call system_size(iproc,atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,Glr)
+
+  ! TODO: integrate k points
+  ! Remove me!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Here, I create a k points grid of 2x2x2 with a shift half.
+  !   call ab6_symmetry_new(symObj)
+  !   rprimd(:,:) = 0
+  !   rprimd(1,1) = atoms%alat1
+  !   rprimd(2,2) = atoms%alat2
+  !   rprimd(3,3) = atoms%alat3
+  !   call ab6_symmetry_set_lattice(symObj, rprimd, ierr)
+  !   allocate(xRed(3, atoms%nat))
+  !   xRed(1,:) = modulo(rxyz(1, :) / atoms%alat1, 1._dp)
+  !   xRed(2,:) = modulo(rxyz(2, :) / atoms%alat2, 1._dp)
+  !   xRed(3,:) = modulo(rxyz(3, :) / atoms%alat3, 1._dp)
+  !   call ab6_symmetry_set_structure(symObj, atoms%nat, atoms%iatype, xRed, ierr)
+  !   ! No spin here.
+  !   !call ab6_symmetry_set_spin(symObj, 2, spinAt, ierr)
+  !   ! No field here.
+  !   !call ab6_symmetry_set_field(symObj, (/ 0., 2., 0. /), ierr)
+  !   shiftk = reshape((/ 0.5, 0.5, 0.5 /), (/ 3, 1 /))
+  !   call ab6_symmetry_get_k_grid(symObj, nkpt, kpt, wkpt, ngkpt, 1, shiftk, ierr)
+  !   write(*,"(A,I3)") "k-points:", nkpt
+  !   do i = 1, nkpt, 1
+  !      write(*, "(I3,A,3F10.6,F12.6)") i, ":", kpt(:, i), wkpt(i)
+  !   end do
+  !   call ab6_symmetry_free(symObj)
+  !   deallocate(xRed) ! I deallocate here only since symObj get a pointer on it.
+  ! Remove me!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! TODO: integrate k points
 	
   !variables substitution for the PSolver part
   hxh=0.5d0*hx
@@ -336,7 +373,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call timing(iproc,'CrtDescriptors','ON')
-  call createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,&
+  call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
        atoms,rxyz,radii_cf,crmult,frmult,Glr,orbs)
   call timing(iproc,'CrtDescriptors','OF')
   ! Calculate all projectors, or allocate array for on-the-fly calculation
@@ -398,7 +435,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   allocate(fdisp(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fdisp,'fdisp',subname)
   !this can be inserted inside the IonicEnergyandForces routine
-  call vdwcorrection_calculate_forces(fdisp,rxyz,atoms,in,iproc) 
+  call vdwcorrection_calculate_forces(fdisp,rxyz,atoms,in) 
 
   !Allocate Charge density, Potential in real space
   if (n3d >0) then
@@ -500,9 +537,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      deallocate(psi_old,stat=i_stat)
      call memocc(i_stat,i_all,'psi_old',subname)
 
-     !initialise control value for gnrm in the case of a restart
-     gnrm_check=0.d0
-
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
 
@@ -522,9 +556,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
      end if
 
      call readmywaves(iproc,orbs,n1,n2,n3,hx,hy,hz,atoms,rxyz_old,rxyz,Glr%wfd,psi)
-
-     !initialise control value for gnrm in the case of a restart
-     gnrm_check=0.0_gp
 
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,orbs,Glr%wfd,comms,psi,hpsi,psit)
@@ -723,7 +754,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
               end if
               potion_overwritten=.true.
            end if
-           call correct_hartree_potential(atoms,iproc,nproc,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+           call correct_hartree_potential(atoms,iproc,nproc,&
                 Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,&
                 n3p,n3pi,n3d,i3s,i3xcsh,hxh,hyh,hzh,pkernel,ngatherarr,&
                 rhoref,pkernel_ref,pot_ion,rhopot,ixc,in%nspin,ehart,eexcu,vexcu,PSquiet,&
@@ -1015,7 +1046,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
 
   call timing(iproc,'Forces        ','ON')
   ! calculate local part of the forces gxyz
-  call local_forces(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
+  call local_forces(iproc,atoms,rxyz,hxh,hyh,hzh,&
        n1,n2,n3,n3p,i3s+i3xcsh,n1i,n2i,n3i,rho,pot,gxyz)
 
   i_all=-product(shape(rho))*kind(rho)

@@ -1,7 +1,7 @@
 
 
-!	Applies the operator (KE+cprecr*I)*x=y
-!	array x is input, array y is output
+!  Applies the operator (KE+cprecr*I)*x=y
+!  array x is input, array y is output
 subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e)
   use module_base
@@ -197,7 +197,7 @@ subroutine convolut_kinetic_per_sdc(n1,n2,n3,hgrid,x,y,cprecr,modul1,modul2,modu
 !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
 !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'x,y:',tel,1.d-6*mflop1/tel
  
-!$omp do	
+!$omp do  
   do i2=0,n2
      do i1=0,n1
         do i3=0,n3
@@ -379,13 +379,13 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
   real(wp), dimension(lowfil:lupfil,3) :: a,b,c,d,e
   integer ii1,ii2,ii3 ! for hybrid convolutions
   integer::ic=1
-	integer mod_arr1(lowfil:n1+lupfil)	
-	integer mod_arr2(lowfil:n2+lupfil)	
-	integer mod_arr3(lowfil:n3+lupfil)	
+  integer mod_arr1(lowfil:n1+lupfil)  
+  integer mod_arr2(lowfil:n2+lupfil)  
+  integer mod_arr3(lowfil:n3+lupfil)  
 
-	call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
-	call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
-	call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
+  call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
+  call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
+  call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
 
   scale(:)=-.5_wp/hgrid(:)**2
   !---------------------------------------------------------------------------
@@ -479,32 +479,32 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
 !!  ! (1/2) d^2/dx^2
 
   do i3=nfl3,nfu3
-	  do i2=nfl2,nfu2
-		  ! wavelet-scaling function:
-		  ! scaling function everywhere, also outside of the box
-		  ! wavelet restricted
+    do i2=nfl2,nfu2
+      ! wavelet-scaling function:
+      ! scaling function everywhere, also outside of the box
+      ! wavelet restricted
             do i1=ibyz(1,i2,i3)-lupfil,ibyz(2,i2,i3)-lowfil
-				ii1=mod_arr1(i1)
+        ii1=mod_arr1(i1)
                 dyi=0._wp
-				do l=max(lowfil,ibyz(1,i2,i3)-i1),min(lupfil,ibyz(2,i2,i3)-i1)
+        do l=max(lowfil,ibyz(1,i2,i3)-i1),min(lupfil,ibyz(2,i2,i3)-i1)
                     dyi=dyi + x_f1(i1+l,i2,i3)*b(l,1)
                 enddo
                 y_c(ii1,i2,i3)=y_c(ii1,i2,i3)+dyi
                 ekin=ekin+dyi*x_c(ii1,i2,i3)
             enddo
             
-			! scaling function-wavelet
-			! wavelet restricted, scaling function everywhere
+      ! scaling function-wavelet
+      ! wavelet restricted, scaling function everywhere
             do i1=ibyz(1,i2,i3),ibyz(2,i2,i3)
                t211=0._wp 
-			   do l=lowfil,lupfil
-			       t=mod_arr1(i1+l)
+         do l=lowfil,lupfil
+             t=mod_arr1(i1+l)
                    t211=t211 + x_c(t,i2,i3)*c(l,1)
                enddo
                y_f(1,i1,i2,i3)=y_f(1,i1,i2,i3)+t211
                ekin=ekin+t211*x_f(1,i1,i2,i3)
             enddo
-	  enddo
+    enddo
   enddo
   
   
@@ -512,13 +512,13 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
 !!  ! + (1/2) d^2/dy^2
 !!
   
-	do i3=nfl3,nfu3
-		do i1=nfl1,nfu1
+  do i3=nfl3,nfu3
+    do i1=nfl1,nfu1
             do i2=ibxz(1,i1,i3)-lupfil,ibxz(2,i1,i3)-lowfil
-				ii2=mod_arr2(i2)
+        ii2=mod_arr2(i2)
                 dyi=0._wp
-				do l=max(lowfil,ibxz(1,i1,i3)-i2),min(lupfil,ibxz(2,i1,i3)-i2)
-                	dyi=dyi + x_f2(i2+l,i1,i3)*b(l,2)
+        do l=max(lowfil,ibxz(1,i1,i3)-i2),min(lupfil,ibxz(2,i1,i3)-i2)
+                  dyi=dyi + x_f2(i2+l,i1,i3)*b(l,2)
                 enddo
                 y_c(i1,ii2,i3)=y_c(i1,ii2,i3)+dyi
                 ekin=ekin+dyi*x_c(i1,ii2,i3)
@@ -526,45 +526,45 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
             
             do i2=ibxz(1,i1,i3),ibxz(2,i1,i3)
                 t121=0._wp 
-				do l=lowfil,lupfil
-					t=mod_arr2(i2+l)	
+        do l=lowfil,lupfil
+          t=mod_arr2(i2+l)  
                     t121=t121 + x_c(i1,t,i3)*c(l,2)
                 enddo
                 y_f(2,i1,i2,i3)=y_f(2,i1,i2,i3)+t121
                 ekin=ekin+t121*x_f(2,i1,i2,i3)
             enddo
-		enddo
-	enddo
+    enddo
+  enddo
   
   
 !!
 !!  ! + (1/2) d^2/dz^2
 !!
   
-	do i2=nfl2,nfu2
-		do i1=nfl1,nfu1
+  do i2=nfl2,nfu2
+    do i1=nfl1,nfu1
             do i3=ibxy(1,i1,i2)-lupfil,ibxy(2,i1,i2)-lowfil
                 dyi=0._wp
-			    ii3=mod_arr3(i3)
-				do l=max(lowfil,ibxy(1,i1,i2)-i3),min(lupfil,ibxy(2,i1,i2)-i3)
-                	dyi=dyi + x_f3(i3+l,i1,i2)*b(l,3)
-            	enddo
+          ii3=mod_arr3(i3)
+        do l=max(lowfil,ibxy(1,i1,i2)-i3),min(lupfil,ibxy(2,i1,i2)-i3)
+                  dyi=dyi + x_f3(i3+l,i1,i2)*b(l,3)
+              enddo
                 y_c(i1,i2,ii3)=y_c(i1,i2,ii3)+dyi
                 ekin=ekin+dyi*x_c(i1,i2,ii3)
             enddo
 
             do i3=ibxy(1,i1,i2),ibxy(2,i1,i2)
                 t112=0._wp 
-				do l=lowfil,lupfil
-					t=mod_arr3(i3+l)	
-                	t112=t112 + x_c(i1,i2,t)*c(l,3)
-            	enddo
+        do l=lowfil,lupfil
+          t=mod_arr3(i3+l)  
+                  t112=t112 + x_c(i1,i2,t)*c(l,3)
+              enddo
                 y_f(4,i1,i2,i3)=y_f(4,i1,i2,i3)+t112
                 ekin=ekin+t112*x_f(4,i1,i2,i3)
             enddo
-		enddo
-	enddo
-	
+    enddo
+  enddo
+  
   
   
   ! wavelet part
@@ -678,7 +678,7 @@ contains
     real(wp),intent(in):: x(0:n1,ndat)
     real(wp),intent(out)::y(0:n1,ndat)
     real(wp) tt,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
-	integer::j
+  integer::j
 
     do i=0,ndat/12-1
        do i1=0,n1
@@ -711,18 +711,18 @@ contains
              tt11=tt11+x(j,i*12+11)*a(l,1)
              tt12=tt12+x(j,i*12+12)*a(l,1)
           enddo
-          y(i1,i*12+1)=y(i1,i*12+1)+tt1;	 ekin=ekin+tt1*x(i1,i*12+1)
-          y(i1,i*12+2)=y(i1,i*12+2)+tt2;	 ekin=ekin+tt2*x(i1,i*12+2)
-          y(i1,i*12+3)=y(i1,i*12+3)+tt3;	 ekin=ekin+tt3*x(i1,i*12+3)
-          y(i1,i*12+4)=y(i1,i*12+4)+tt4;	 ekin=ekin+tt4*x(i1,i*12+4)
-          y(i1,i*12+5)=y(i1,i*12+5)+tt5;	 ekin=ekin+tt5*x(i1,i*12+5)
-          y(i1,i*12+6)=y(i1,i*12+6)+tt6;	 ekin=ekin+tt6*x(i1,i*12+6)
-          y(i1,i*12+7)=y(i1,i*12+7)+tt7;	 ekin=ekin+tt7*x(i1,i*12+7)
-          y(i1,i*12+8)=y(i1,i*12+8)+tt8;	 ekin=ekin+tt8*x(i1,i*12+8)
-          y(i1,i*12+9 )=y(i1,i*12+9 )+tt9 ;	 ekin=ekin+tt9 *x(i1,i*12+9 )
-          y(i1,i*12+10)=y(i1,i*12+10)+tt10;	 ekin=ekin+tt10*x(i1,i*12+10)
-          y(i1,i*12+11)=y(i1,i*12+11)+tt11;	 ekin=ekin+tt11*x(i1,i*12+11)
-          y(i1,i*12+12)=y(i1,i*12+12)+tt12;	 ekin=ekin+tt12*x(i1,i*12+12)
+          y(i1,i*12+1)=y(i1,i*12+1)+tt1;   ekin=ekin+tt1*x(i1,i*12+1)
+          y(i1,i*12+2)=y(i1,i*12+2)+tt2;   ekin=ekin+tt2*x(i1,i*12+2)
+          y(i1,i*12+3)=y(i1,i*12+3)+tt3;   ekin=ekin+tt3*x(i1,i*12+3)
+          y(i1,i*12+4)=y(i1,i*12+4)+tt4;   ekin=ekin+tt4*x(i1,i*12+4)
+          y(i1,i*12+5)=y(i1,i*12+5)+tt5;   ekin=ekin+tt5*x(i1,i*12+5)
+          y(i1,i*12+6)=y(i1,i*12+6)+tt6;   ekin=ekin+tt6*x(i1,i*12+6)
+          y(i1,i*12+7)=y(i1,i*12+7)+tt7;   ekin=ekin+tt7*x(i1,i*12+7)
+          y(i1,i*12+8)=y(i1,i*12+8)+tt8;   ekin=ekin+tt8*x(i1,i*12+8)
+          y(i1,i*12+9 )=y(i1,i*12+9 )+tt9 ;   ekin=ekin+tt9 *x(i1,i*12+9 )
+          y(i1,i*12+10)=y(i1,i*12+10)+tt10;   ekin=ekin+tt10*x(i1,i*12+10)
+          y(i1,i*12+11)=y(i1,i*12+11)+tt11;   ekin=ekin+tt11*x(i1,i*12+11)
+          y(i1,i*12+12)=y(i1,i*12+12)+tt12;   ekin=ekin+tt12*x(i1,i*12+12)
        enddo
     enddo
 
@@ -740,10 +740,10 @@ contains
   
   subroutine conv_kin_y(x,y)
     implicit none
-	real(wp),intent(in)::x(0:n1,0:n2,0:n3)
-	real(wp),intent(out)::y(0:n1,0:n2,0:n3)
+  real(wp),intent(in)::x(0:n1,0:n2,0:n3)
+  real(wp),intent(inout)::y(0:n1,0:n2,0:n3)
     real(wp) tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt
-	integer::i2,j
+  integer::i2,j
 
     do i3=0,n3/8-1
        do i1=0,n1
@@ -769,14 +769,14 @@ contains
                 tt6=tt6+x(i1,j,i3*8+6)*a(l,2)
                 tt7=tt7+x(i1,j,i3*8+7)*a(l,2)
              enddo
-             y(i1,i2,i3*8+0)=y(i1,i2,i3*8+0)+tt0;	 ekin=ekin+tt0*x(i1,i2,i3*8+0)
-             y(i1,i2,i3*8+1)=y(i1,i2,i3*8+1)+tt1;	 ekin=ekin+tt1*x(i1,i2,i3*8+1)
-             y(i1,i2,i3*8+2)=y(i1,i2,i3*8+2)+tt2;	 ekin=ekin+tt2*x(i1,i2,i3*8+2)
-             y(i1,i2,i3*8+3)=y(i1,i2,i3*8+3)+tt3;	 ekin=ekin+tt3*x(i1,i2,i3*8+3)
-             y(i1,i2,i3*8+4)=y(i1,i2,i3*8+4)+tt4;	 ekin=ekin+tt4*x(i1,i2,i3*8+4)
-             y(i1,i2,i3*8+5)=y(i1,i2,i3*8+5)+tt5;	 ekin=ekin+tt5*x(i1,i2,i3*8+5)
-             y(i1,i2,i3*8+6)=y(i1,i2,i3*8+6)+tt6;	 ekin=ekin+tt6*x(i1,i2,i3*8+6)
-             y(i1,i2,i3*8+7)=y(i1,i2,i3*8+7)+tt7;	 ekin=ekin+tt7*x(i1,i2,i3*8+7)
+             y(i1,i2,i3*8+0)=y(i1,i2,i3*8+0)+tt0;   ekin=ekin+tt0*x(i1,i2,i3*8+0)
+             y(i1,i2,i3*8+1)=y(i1,i2,i3*8+1)+tt1;   ekin=ekin+tt1*x(i1,i2,i3*8+1)
+             y(i1,i2,i3*8+2)=y(i1,i2,i3*8+2)+tt2;   ekin=ekin+tt2*x(i1,i2,i3*8+2)
+             y(i1,i2,i3*8+3)=y(i1,i2,i3*8+3)+tt3;   ekin=ekin+tt3*x(i1,i2,i3*8+3)
+             y(i1,i2,i3*8+4)=y(i1,i2,i3*8+4)+tt4;   ekin=ekin+tt4*x(i1,i2,i3*8+4)
+             y(i1,i2,i3*8+5)=y(i1,i2,i3*8+5)+tt5;   ekin=ekin+tt5*x(i1,i2,i3*8+5)
+             y(i1,i2,i3*8+6)=y(i1,i2,i3*8+6)+tt6;   ekin=ekin+tt6*x(i1,i2,i3*8+6)
+             y(i1,i2,i3*8+7)=y(i1,i2,i3*8+7)+tt7;   ekin=ekin+tt7*x(i1,i2,i3*8+7)
           enddo
        enddo
     enddo
@@ -789,7 +789,7 @@ contains
                 j=mod_arr2(i2+l)
                 tt=tt+x(i1,j   ,i3)*a(l,2)
              enddo
-             y(i1,i2,i3)=y(i1,i2,i3)+tt;	ekin=ekin+tt*x(i1,i2,i3)
+             y(i1,i2,i3)=y(i1,i2,i3)+tt;  ekin=ekin+tt*x(i1,i2,i3)
           enddo
        enddo
     enddo
@@ -801,7 +801,7 @@ contains
     real(wp),intent(in):: x(ndat,0:n1)
     real(wp),intent(out)::y(ndat,0:n1)
     real(wp) tt,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
-	integer::j
+  integer::j
 
     do i=0,ndat/12-1
        do i3=0,n3
@@ -835,18 +835,18 @@ contains
              tt12=tt12+x(i*12+12,j)*a(l,3)
           enddo
 
-          y(i*12+1,i3)=y(i*12+1,i3)+tt1;	 ekin=ekin+tt1*x(i*12+1,i3)
-          y(i*12+2,i3)=y(i*12+2,i3)+tt2;	 ekin=ekin+tt2*x(i*12+2,i3)
-          y(i*12+3,i3)=y(i*12+3,i3)+tt3;	 ekin=ekin+tt3*x(i*12+3,i3)
-          y(i*12+4,i3)=y(i*12+4,i3)+tt4;	 ekin=ekin+tt4*x(i*12+4,i3)
-          y(i*12+5,i3)=y(i*12+5,i3)+tt5;	 ekin=ekin+tt5*x(i*12+5,i3)
-          y(i*12+6,i3)=y(i*12+6,i3)+tt6;	 ekin=ekin+tt6*x(i*12+6,i3)
-          y(i*12+7,i3)=y(i*12+7,i3)+tt7;	 ekin=ekin+tt7*x(i*12+7,i3)
-          y(i*12+8,i3)=y(i*12+8,i3)+tt8;	 ekin=ekin+tt8*x(i*12+8,i3)
-          y(i*12+9 ,i3)=y(i*12+9 ,i3)+tt9 ;	 ekin=ekin+tt9*x(i*12+9 ,i3)
-          y(i*12+10,i3)=y(i*12+10,i3)+tt10;	 ekin=ekin+tt10*x(i*12+10,i3)
-          y(i*12+11,i3)=y(i*12+11,i3)+tt11;	 ekin=ekin+tt11*x(i*12+11,i3)
-          y(i*12+12,i3)=y(i*12+12,i3)+tt12;	 ekin=ekin+tt12*x(i*12+12,i3)
+          y(i*12+1,i3)=y(i*12+1,i3)+tt1;   ekin=ekin+tt1*x(i*12+1,i3)
+          y(i*12+2,i3)=y(i*12+2,i3)+tt2;   ekin=ekin+tt2*x(i*12+2,i3)
+          y(i*12+3,i3)=y(i*12+3,i3)+tt3;   ekin=ekin+tt3*x(i*12+3,i3)
+          y(i*12+4,i3)=y(i*12+4,i3)+tt4;   ekin=ekin+tt4*x(i*12+4,i3)
+          y(i*12+5,i3)=y(i*12+5,i3)+tt5;   ekin=ekin+tt5*x(i*12+5,i3)
+          y(i*12+6,i3)=y(i*12+6,i3)+tt6;   ekin=ekin+tt6*x(i*12+6,i3)
+          y(i*12+7,i3)=y(i*12+7,i3)+tt7;   ekin=ekin+tt7*x(i*12+7,i3)
+          y(i*12+8,i3)=y(i*12+8,i3)+tt8;   ekin=ekin+tt8*x(i*12+8,i3)
+          y(i*12+9 ,i3)=y(i*12+9 ,i3)+tt9 ;   ekin=ekin+tt9*x(i*12+9 ,i3)
+          y(i*12+10,i3)=y(i*12+10,i3)+tt10;   ekin=ekin+tt10*x(i*12+10,i3)
+          y(i*12+11,i3)=y(i*12+11,i3)+tt11;   ekin=ekin+tt11*x(i*12+11,i3)
+          y(i*12+12,i3)=y(i*12+12,i3)+tt12;   ekin=ekin+tt12*x(i*12+12,i3)
        enddo
     enddo
 
@@ -892,13 +892,13 @@ subroutine convolut_kinetic_hyb_c(n1,n2,n3, &
   real(wp), dimension(lowfil:lupfil,3) :: a,b,c,d,e
   integer ii1,ii2,ii3 ! for hybrid convolutions
   integer::ic=1
-	integer mod_arr1(lowfil:n1+lupfil)	
-	integer mod_arr2(lowfil:n2+lupfil)	
-	integer mod_arr3(lowfil:n3+lupfil)	
+  integer mod_arr1(lowfil:n1+lupfil)  
+  integer mod_arr2(lowfil:n2+lupfil)  
+  integer mod_arr3(lowfil:n3+lupfil)  
 
-	call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
-	call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
-	call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
+  call fill_mod_arr(mod_arr1,lowfil,n1+lupfil,n1+1)
+  call fill_mod_arr(mod_arr2,lowfil,n2+lupfil,n2+1)
+  call fill_mod_arr(mod_arr3,lowfil,n3+lupfil,n3+1)
 
   scale(:)=-.5_wp/hgrid(:)**2
   !---------------------------------------------------------------------------
@@ -992,85 +992,85 @@ subroutine convolut_kinetic_hyb_c(n1,n2,n3, &
 !  scaling function-scaling function 
 
   do i3=nfl3,nfu3
-	  do i2=nfl2,nfu2
-		  ! wavelet-scaling function:
-		  ! scaling function everywhere, also outside of the box
-		  ! wavelet restricted
+    do i2=nfl2,nfu2
+      ! wavelet-scaling function:
+      ! scaling function everywhere, also outside of the box
+      ! wavelet restricted
             do i1=ibyz(1,i2,i3)-lupfil,ibyz(2,i2,i3)-lowfil
-				ii1=mod_arr1(i1)
+        ii1=mod_arr1(i1)
                 dyi=0._wp
-				do l=max(lowfil,ibyz(1,i2,i3)-i1),min(lupfil,ibyz(2,i2,i3)-i1)
+        do l=max(lowfil,ibyz(1,i2,i3)-i1),min(lupfil,ibyz(2,i2,i3)-i1)
                     dyi=dyi + x_f1(i1+l,i2,i3)*b(l,1)
                 enddo
                 y_c(ii1,i2,i3)=y_c(ii1,i2,i3)+dyi
             enddo
             
-			! scaling function-wavelet
-			! wavelet restricted, scaling function everywhere
+      ! scaling function-wavelet
+      ! wavelet restricted, scaling function everywhere
             do i1=ibyz(1,i2,i3),ibyz(2,i2,i3)
                t211=x_f(1,i1,i2,i3)*cprecr
-			   do l=lowfil,lupfil
-			       t=mod_arr1(i1+l)
+         do l=lowfil,lupfil
+             t=mod_arr1(i1+l)
                    t211=t211 + x_c(t,i2,i3)*c(l,1)
                enddo
                y_f(1,i1,i2,i3)=t211
             enddo
-	  enddo
+    enddo
   enddo
   
 !!
 !!  ! + (1/2) d^2/dy^2
 !!
   
-	do i3=nfl3,nfu3
-		do i1=nfl1,nfu1
+  do i3=nfl3,nfu3
+    do i1=nfl1,nfu1
             do i2=ibxz(1,i1,i3)-lupfil,ibxz(2,i1,i3)-lowfil
-				ii2=mod_arr2(i2)
+        ii2=mod_arr2(i2)
                 dyi=0._wp
-				do l=max(lowfil,ibxz(1,i1,i3)-i2),min(lupfil,ibxz(2,i1,i3)-i2)
-                	dyi=dyi + x_f2(i2+l,i1,i3)*b(l,2)
+        do l=max(lowfil,ibxz(1,i1,i3)-i2),min(lupfil,ibxz(2,i1,i3)-i2)
+                  dyi=dyi + x_f2(i2+l,i1,i3)*b(l,2)
                 enddo
                 y_c(i1,ii2,i3)=y_c(i1,ii2,i3)+dyi
             enddo
             
             do i2=ibxz(1,i1,i3),ibxz(2,i1,i3)
                 t121=x_f(2,i1,i2,i3)*cprecr 
-				do l=lowfil,lupfil
-					t=mod_arr2(i2+l)	
+        do l=lowfil,lupfil
+          t=mod_arr2(i2+l)  
                     t121=t121 + x_c(i1,t,i3)*c(l,2)
                 enddo
                 y_f(2,i1,i2,i3)=t121
             enddo
-		enddo
-	enddo
+    enddo
+  enddo
   
   
 !!
 !!  ! + (1/2) d^2/dz^2
 !!
  
-	do i2=nfl2,nfu2
-		do i1=nfl1,nfu1
+  do i2=nfl2,nfu2
+    do i1=nfl1,nfu1
             do i3=ibxy(1,i1,i2)-lupfil,ibxy(2,i1,i2)-lowfil
                 dyi=0._wp
-			    ii3=mod_arr3(i3)
-				do l=max(lowfil,ibxy(1,i1,i2)-i3),min(lupfil,ibxy(2,i1,i2)-i3)
-                	dyi=dyi + x_f3(i3+l,i1,i2)*b(l,3)
-            	enddo
+          ii3=mod_arr3(i3)
+        do l=max(lowfil,ibxy(1,i1,i2)-i3),min(lupfil,ibxy(2,i1,i2)-i3)
+                  dyi=dyi + x_f3(i3+l,i1,i2)*b(l,3)
+              enddo
                 y_c(i1,i2,ii3)=y_c(i1,i2,ii3)+dyi
             enddo
 
             do i3=ibxy(1,i1,i2),ibxy(2,i1,i2)
                 t112=x_f(4,i1,i2,i3)*cprecr 
-				do l=lowfil,lupfil
-					t=mod_arr3(i3+l)	
-                	t112=t112 + x_c(i1,i2,t)*c(l,3)
-            	enddo
+        do l=lowfil,lupfil
+          t=mod_arr3(i3+l)  
+                  t112=t112 + x_c(i1,i2,t)*c(l,3)
+              enddo
                 y_f(4,i1,i2,i3)=t112
             enddo
-		enddo
-	enddo
-	
+    enddo
+  enddo
+  
   
 !  write(20,*) ibyz
 !  stop
@@ -1164,10 +1164,10 @@ contains
 
   subroutine conv_kin_y(x,y)
     implicit none
-	real(wp),intent(in)::x(0:n1,0:n2,0:n3)
-	real(wp),intent(out)::y(0:n1,0:n2,0:n3)
+  real(wp),intent(in)::x(0:n1,0:n2,0:n3)
+  real(wp),intent(inout)::y(0:n1,0:n2,0:n3)
     real(wp) tt,tt0,tt1,tt2,tt3,tt4,tt5,tt6,tt7
-	integer::j
+  integer::j
 
     do i3=0,n3/8-1
        do i1=0,n1
@@ -1226,7 +1226,7 @@ contains
     real(wp),intent(in):: x(0:n1,ndat)
     real(wp),intent(out)::y(0:n1,ndat)
     real(wp) tt,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
-	integer::j
+  integer::j
 
     do i=0,ndat/12-1
        do i1=0,n1
@@ -1292,8 +1292,8 @@ contains
     real(wp),intent(in):: x(ndat,0:n1)
     real(wp),intent(out)::y(ndat,0:n1)
     real(wp) tt,tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
-	integer::j
-	
+  integer::j
+  
 
     do i=0,ndat/12-1
        do i3=0,n3
@@ -1353,5 +1353,5 @@ contains
        enddo
     enddo
   end subroutine conv_kin_z
-	
+  
 end subroutine convolut_kinetic_hyb_c

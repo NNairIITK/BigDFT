@@ -69,8 +69,8 @@
 !!
 !! SOURCE
 !!
-subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
-     nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,iproc,nproc,nspden)
+subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
+     nxcl,nxcr,ixc,hx,hy,hz,rhopot,pot_ion,sumpion,zf,zfionxc,exc,vxc,nproc,nspden)
 
   use module_base, only: ndebug
 
@@ -79,7 +79,7 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   !Arguments----------------------
   character(len=1), intent(in) :: geocode
   logical, intent(in) :: sumpion
-  integer, intent(in) :: m1,m2,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,iproc,nproc,nspden
+  integer, intent(in) :: m1,m3,nxc,nwb,nxcl,nxcr,nxt,md1,md2,md3,ixc,nproc,nspden
   integer, intent(in) :: nwbl,nwbr
   real(gp), intent(in) :: hx,hy,hz
   real(dp), dimension(m1,m3,nxt,nspden), intent(inout) :: rhopot
@@ -93,7 +93,7 @@ subroutine xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   real(dp), dimension(:,:,:), allocatable :: exci,d2vxci
   real(dp), dimension(:,:,:,:), allocatable :: vxci,dvxci,dvxcdgr
   real(dp), dimension(:,:,:,:,:), allocatable :: gradient
-  real(dp) :: elocal,vlocal,rho,pot,potion,facpotion,sfactor
+  real(dp) :: elocal,vlocal,rho,potion,sfactor
   integer :: npts,i_all,order,offset,i_stat,ispden
   integer :: i1,i2,i3,j1,j2,j3,jp2,jpp2,jppp2
   integer :: ndvxc,nvxcdgr,ngr2
@@ -520,7 +520,7 @@ subroutine vxcpostprocessing(geocode,n01,n02,n03,n3eff,wbl,wbr,nspden,nvxcdgr,gr
   real(dp), dimension(n01,n02,n03,nspden), intent(inout) :: wb_vxc
   !Local variables
   character(len=*), parameter :: subname='vxcpostprocessing'
-  integer :: i1,i2,i3,dir_i,i_all,i_stat,ispden
+  integer :: i1,i2,i3,dir_i,i_all,i_stat
   real(dp) :: dnexcdgog,grad_i,rho_up,rho_down,rho_tot
   real(dp), dimension(:,:,:,:,:), allocatable :: f_i
 

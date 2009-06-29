@@ -11,12 +11,12 @@
 !!
 !! SOURCE
 !!
-subroutine copy_old_wavefunctions(iproc,nproc,orbs,n1,n2,n3,wfd,psi,&
+subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
      n1_old,n2_old,n3_old,wfd_old,psi_old)
   use module_base
   use module_types
   implicit none
-  integer, intent(in) :: iproc,nproc,n1,n2,n3
+  integer, intent(in) :: nproc,n1,n2,n3
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(inout) :: wfd,wfd_old
   integer, intent(out) :: n1_old,n2_old,n3_old
@@ -24,7 +24,7 @@ subroutine copy_old_wavefunctions(iproc,nproc,orbs,n1,n2,n3,wfd,psi,&
   !Local variables
   character(len=*), parameter :: subname='copy_old_wavefunctions'
   real(kind=8), parameter :: eps_mach=1.d-12
-  integer :: iseg,nvctrp_old,i1,i2,j,ind1,ind2,iorb,i_all,i_stat,oidx,sidx
+  integer :: iseg,nvctrp_old,j,ind1,iorb,i_all,i_stat,oidx,sidx
   real(kind=8) :: tt
 
   wfd_old%nvctr_c = wfd%nvctr_c

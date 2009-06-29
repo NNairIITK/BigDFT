@@ -9,10 +9,10 @@
   ds                  = 0.8D0,
   k_max               = 0.100D0, 
   k_min               = 0.050D0,
-  max_iterations      = 3,
+  max_iterations      = 2,
   tolerance           = 0.0001D0,
   convergence         = 0.05D0,
   num_of_images       = 5,                     
-  first_config        = "@srcdir@/start.xyz",              
-  last_config         = "@srcdir@/stop.xyz",                         
+  first_config        = "@srcdir@/start",              
+  last_config         = "@srcdir@/stop",                         
 /                                                             

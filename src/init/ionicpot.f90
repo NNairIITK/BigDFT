@@ -1016,7 +1016,7 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
   !local variables
   integer :: iat,ityp
   real(wp) :: pi,charge,erf
-  real(gp) :: r,sq2rl,rx,ry,rz
+  real(gp) :: r,sq2rl,rx,ry,rz,derf_val
   
 
   pi=4.0_wp*atan(1.0_wp)
@@ -1038,7 +1038,8 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
      if (r == 0.0_gp) then
         potxyz = potxyz - charge*2.0_wp/(sqrt(pi)*real(sq2rl,wp))
      else
-        potxyz = potxyz - charge*real(erf(r/sq2rl)/r,wp)
+        call derf(derf_val,r/sq2rl)
+        potxyz = potxyz - charge*real(derf_val/r,wp)
      end if
 
   end do
@@ -1058,3 +1059,117 @@ subroutine ext_buffers(periodic,nl,nr)
      nr=15
   end if
 end subroutine ext_buffers
+
+subroutine derf(derf_yy,yy)
+
+ use module_base
+ implicit none
+ real(gp),intent(in) :: yy
+ real(gp),intent(out) :: derf_yy
+ integer          ::  done,ii,isw
+ real(gp), parameter :: &
+       ! coefficients for 0.0 <= yy < .477
+       &  pp(5)=(/ 113.8641541510502e0_gp, 377.4852376853020e0_gp,  &
+       &           3209.377589138469e0_gp, .1857777061846032e0_gp,  &
+       &           3.161123743870566e0_gp /)
+  real(gp), parameter :: &
+       &  qq(4)=(/ 244.0246379344442e0_gp, 1282.616526077372e0_gp,  &
+       &           2844.236833439171e0_gp, 23.60129095234412e0_gp/)
+  ! coefficients for .477 <= yy <= 4.0
+  real(gp), parameter :: &
+       &  p1(9)=(/ 8.883149794388376e0_gp, 66.11919063714163e0_gp,  &
+       &           298.6351381974001e0_gp, 881.9522212417691e0_gp,  &
+       &           1712.047612634071e0_gp, 2051.078377826071e0_gp,  &
+       &           1230.339354797997e0_gp, 2.153115354744038e-8_gp, &
+       &           .5641884969886701e0_gp /)
+  real(gp), parameter :: &
+       &  q1(8)=(/ 117.6939508913125e0_gp, 537.1811018620099e0_gp,  &
+       &           1621.389574566690e0_gp, 3290.799235733460e0_gp,  &
+       &           4362.619090143247e0_gp, 3439.367674143722e0_gp,  &
+       &           1230.339354803749e0_gp, 15.74492611070983e0_gp/)
+  ! coefficients for 4.0 < y,
+  real(gp), parameter :: &
+       &  p2(6)=(/ -3.603448999498044e-01_gp, -1.257817261112292e-01_gp,   &
+       &           -1.608378514874228e-02_gp, -6.587491615298378e-04_gp,   &
+       &           -1.631538713730210e-02_gp, -3.053266349612323e-01_gp/)
+  real(gp), parameter :: &
+       &  q2(5)=(/ 1.872952849923460e0_gp   , 5.279051029514284e-01_gp,    &
+       &           6.051834131244132e-02_gp , 2.335204976268692e-03_gp,    &
+       &           2.568520192289822e0_gp /)
+  real(gp), parameter :: &
+       &  sqrpi=.5641895835477563e0_gp, xbig=13.3e0_gp, xlarge=6.375e0_gp, xmin=1.0e-10_gp
+  real(gp) ::  res,xden,xi,xnum,xsq,xx
+
+ xx = yy
+ isw = 1
+!Here change the sign of xx, and keep track of it thanks to isw
+ if (xx<0.0e0_gp) then
+  isw = -1
+  xx = -xx
+ end if
+
+ done=0
+
+!Residual value, if yy < -6.375e0_gp
+ res=-1.0e0_gp
+
+!abs(yy) < .477, evaluate approximation for erfc
+ if (xx<0.477e0_gp) then
+! xmin is a very small number
+  if (xx<xmin) then
+   res = xx*pp(3)/qq(3)
+  else
+   xsq = xx*xx
+   xnum = pp(4)*xsq+pp(5)
+   xden = xsq+qq(4)
+   do ii = 1,3
+    xnum = xnum*xsq+pp(ii)
+    xden = xden*xsq+qq(ii)
+   end do
+   res = xx*xnum/xden
+  end if
+  if (isw==-1) res = -res
+  done=1
+ end if
+
+!.477 < abs(yy) < 4.0 , evaluate approximation for erfc
+ if (xx<=4.0e0_gp .and. done==0 ) then
+  xsq = xx*xx
+  xnum = p1(8)*xx+p1(9)
+  xden = xx+q1(8)
+  do ii=1,7
+   xnum = xnum*xx+p1(ii)
+   xden = xden*xx+q1(ii)
+  end do
+  res = xnum/xden
+  res = res* exp(-xsq)
+  if (isw.eq.-1) res = res-1.0e0_gp
+  done=1
+ end if
+
+!y > 13.3e0_gp
+ if (isw > 0 .and. xx > xbig .and. done==0 ) then
+  res = 1.0e0_gp
+  done=1
+ end if
+
+!4.0 < yy < 13.3e0_gp  .or. -6.375e0_gp < yy < -4.0
+!evaluate minimax approximation for erfc
+ if ( ( isw > 0 .or. xx < xlarge ) .and. done==0 ) then
+  xsq = xx*xx
+  xi = 1.0e0_gp/xsq
+  xnum= p2(5)*xi+p2(6)
+  xden = xi+q2(5)
+  do ii = 1,4
+   xnum = xnum*xi+p2(ii)
+   xden = xden*xi+q2(ii)
+  end do
+  res = (sqrpi+xi*xnum/xden)/xx
+  res = res* exp(-xsq)
+  if (isw.eq.-1) res = res-1.0e0_gp
+ end if
+
+!All cases have been investigated
+ derf_yy = res
+
+end subroutine derf

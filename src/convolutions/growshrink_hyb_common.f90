@@ -32,7 +32,7 @@ subroutine comb_grow_c_simple(n1,n2,n3,w1,w2,x,y)
   use module_base
   implicit none
   integer,intent(in)::n1,n2,n3
-  real(wp),intent(in)::x(0:n1,0:n2,0:n3)	
+  real(wp),intent(in)::x(0:n1,0:n2,0:n3)  
   real(wp),dimension((2*n1+2)*(n2+1)*(n3+1)), intent(inout) :: w1 !work
   real(wp),dimension((n3+1)*(2*n1+2)*(2*n2+2)), intent(inout) :: w2 ! work
   real(wp),dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(out) :: y

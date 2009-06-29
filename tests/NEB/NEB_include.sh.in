@@ -1,5 +1,20 @@
 #!/bin/bash
 
+init_jobs()
+{
+    return
+}
+
+finalise_jobs()
+{
+    return
+}
+
+wait_jobs()
+{
+    return
+}
+
 make_input()
 {
     # We create a posinp file from the .NEB.restart file.
@@ -12,22 +27,22 @@ make_input()
     # $5 the first configuration
     datadir=$2
     restart_file=$datadir/$1".NEB.restart"
-    position_file=$5
+    position_file=$5".xyz"
     n_nodes=$4
     id=$3
 
     # Create the posinp file
-    rm -f posinp
+    rm -f posinp.xyz
     
-    echo $n_nodes" atomic" > posinp
-    head -n2 $position_file | tail -n 1 >> posinp
+    echo $n_nodes" atomic" > posinp.xyz
+    head -n2 $position_file | tail -n 1 >> posinp.xyz
     head -n $(($n_nodes + 2)) $position_file | tail -n $n_nodes | sed "s/^ *//g" | cut -d" " -f1 > atoms
     grep -A $(($n_nodes + 1)) -e "Replica: *$id" $restart_file | tail -n $n_nodes | sed "s/  */ /g" | cut -d' ' -f2,3,4 > positions
-    paste -d' ' atoms positions >> posinp
+    paste -d' ' atoms positions >> posinp.xyz
     rm -f atoms positions
 
     # Copy the input.dat
-    cp -f -p $datadir/input.dat .
+    cp -f -p $datadir/input.dft .
 
     # Copy the pseudo-potential files
     cp -f -p $datadir/psppar.* .
@@ -41,8 +56,12 @@ run_job()
     # INPUTS:
     # $1 name of the job
     # $2 the replica id
-
-(@abs_top_builddir@/src/cluster > log; echo "job done" >> log)&
+    if test -z "$run_parallel" ; then
+	(@abs_top_builddir@/src/cluster > log; echo "job done" >> log)&
+    else
+	$run_parallel @abs_top_builddir@/src/cluster > log
+	echo "job done" >> log
+    fi
 }
 
 check_job()
