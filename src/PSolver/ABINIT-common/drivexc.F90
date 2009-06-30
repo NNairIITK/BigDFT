@@ -12,7 +12,7 @@
 !!
 !!
 !! COPYRIGHT
-!! Copyright (C) 2002-2007 ABINIT group (XG)
+!! Copyright (C) 2002-2009 ABINIT group (XG)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -94,13 +94,14 @@
 !!     dvxc(:,15)=1/abs(grad(rho)) * d/drho (dEc/d(abs(grad(rho))) /abs(grad(rho)))
 !!
 !!   if(abs(order)>2)  (only available for LDA and nspden=1)
-!!    d2vxc(npts)=second derivative of the XC potential
+!!    if nspden=1 d2vxc(npts,1)=second derivative of the XC potential
+!!    if nspden=2 d2vxc(npts,1), d2vxc(npts,2), d2vxc(npts,3), d2vxc(npts,4) (3rd derivative)
 !!
 !! PARENTS
-!!      pawxc,pawxcm,rhohxc_coll
+!!      pawxc,pawxcsph,rhohxc
 !!
 !! CHILDREN
-!!      invcb,leave_new,wrtout,xc_lda,xc_lda_end,xc_lda_init,xchcth,xchelu,xclb
+!!      invcb,leave_new,libxc_functionals_getvxc,wrtout,xchcth,xchelu,xclb
 !!      xcpbe,xcpzca,xcspol,xctetr,xcwign,xcxalp
 !!
 !! SOURCE
@@ -109,35 +110,32 @@
 #include "config.h"
 #endif
 
-subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nvxcdgr,   & !Mandatory arguments
-&                  dvxc,d2vxc,grho2_updn,vxcgr,exexch)    !Optional arguments 
+subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxcdgr,   & !Mandatory arguments
+&                  dvxc,d2vxc,grho2_updn,vxcgr,exexch)    !Optional arguments
 
  use defs_basis
-#if defined HAVE_ETSF_XC
- use xc_types
- use libxc
+#if defined HAVE_LIBXC
+ use libxc_functionals
 #endif
 
-!!$!This section has been created automatically by the script Abilint (TD). Do not modify these by hand.
-#ifdef HAVE_FORTRAN_INTERFACES
- use interfaces_01manage_mpi
- use interfaces_13xc, except_this_one => drivexc
-#else
- use defs_xc, except_this_one => drivexc
-#endif
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+ use interfaces_14_hidewrite
+ use interfaces_16_hideleave
+ use interfaces_56_xc, except_this_one => drivexc
 !End of the abilint section
 
  implicit none
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: ixc,ndvxc,ngr2,npts,nspden,nvxcdgr,order
-integer,intent(in),optional :: exexch
+ integer,intent(in) :: ixc,ndvxc,ngr2,nd2vxc,npts,nspden,nvxcdgr,order
+ integer,intent(in),optional :: exexch
 !arrays
  real(dp),intent(in) :: rho_updn(npts,nspden)
  real(dp),intent(in),optional :: grho2_updn(npts,ngr2)
  real(dp),intent(out) :: exc(npts),vxc(npts,nspden)
- real(dp),intent(out),optional :: d2vxc(npts),dvxc(npts,ndvxc)
+ real(dp),intent(out),optional :: d2vxc(npts,nd2vxc),dvxc(npts,ndvxc)
  real(dp),intent(out),optional :: vxcgr(npts,nvxcdgr)
 
 !Local variables-------------------------------
@@ -146,66 +144,66 @@ integer,intent(in),optional :: exexch
  real(dp),parameter :: rsfac=0.6203504908994000e0_dp
  character(len=500) :: message
 !arrays
- real(dp) :: exctmp(2),rhotmp(2),vxctmp(2)
- real(dp),allocatable :: d2vxci(:),dvxci(:,:),exci_rpa(:),grho2_updn_fake(:,:)
+ real(dp),allocatable :: d2vxci(:,:),dvxci(:,:),exci_rpa(:),grho2_updn_fake(:,:)
  real(dp),allocatable :: rhotot(:),rspts(:),vxci_rpa(:,:),zeta(:)
 !no_abirules
-#if defined HAVE_ETSF_XC
- type(xc_info) :: libxc_info
- type(xc_func) :: libxc_ptr
-#endif
 
 !  *************************************************************************
+
+!DEBUG
+!write(6,*)' drivexc : enter '
+!ENDDEBUG
 
 !Checks the values of order
  if( (order<1 .and. order/=-2) .or. order>4)then
   write(message, '(a,a,a,a,i6,a)' )ch10,&
 &  ' drivexc : BUG -',ch10,&
 &  '  The only allowed values for order are 1,2, -2, or 3, while it is found to be ',&
-&       order,'.'
-  call wrtout(6,message,'COLL')
+&  order,'.'
+  call wrtout(std_out,message,'COLL')
   call leave_new('COLL')
  end if
 
  xclevel=0
- if( ( 1<=ixc .and. ixc<=10).or.(30<=ixc .and. ixc<=39) )xclevel=1 ! LDA
+ if( ( 1<=ixc .and. ixc<=10) )xclevel=1 ! LDA
  if( (11<=ixc .and. ixc<=19).or.(23<=ixc .and. ixc<=29) )xclevel=2 ! GGA
  if( 20<=ixc .and. ixc<=22 )xclevel=3 ! ixc for TDDFT kernel tests
 
 !Checks the compatibility between the inputs and the presence of the optional arguments
 
  if(present(dvxc))then
-  if(order**2 <= 1 .or. ixc==16 .or. ((ixc>=30).and.(ixc<=34)) )then
+  if(order**2 <= 1 .or. ixc==16 .or. ixc==17 .or. ixc==26 .or. ixc==27 )then
    write(message, '(8a,i6,a,i6)' )ch10,&
 &   ' drivexc : BUG -',ch10,&
 &   '  The value of the number of the XC functional ixc',ch10,&
 &   '  or the value of order is not compatible with the presence of the array dvxc',ch10,&
 &   '  ixc=',ixc,'order=',order
-   call wrtout(6,message,'COLL')
+   call wrtout(std_out,message,'COLL')
    call leave_new('COLL')
   end if
  end if
 
  if(present(d2vxc))then
-  if(order /= 3 .or. (ixc /= 3 .and.  (((ixc > 15) .and. (ixc /=23)) .or. ixc < 7)) )then
+  if(order /= 3 .or. (ixc /= 3 .and.  (((ixc > 15) .and. (ixc /=23)) .or. (ixc >= 0 .and. ixc < 7))) )then
    write(message, '(8a,i6,a,i6)' )ch10,&
 &   ' drivexc : BUG -',ch10,&
 &   '  The value of the number of the XC functional ixc',ch10,&
 &   '  or the value of order is not compatible with the presence of the array d2vxc',ch10,&
 &   '  ixc=',ixc,'order=',order
-   call wrtout(6,message,'COLL')
+   call wrtout(std_out,message,'COLL')
    call leave_new('COLL')
   end if
  end if
 
  if(present(vxcgr))then
-  if(nvxcdgr == 0 .or. ((((ixc > 16 .and. ixc /= 23) .or. ixc < 7 ) .and. nvxcdgr /=3 ))) then
+  if(nvxcdgr == 0 .or. &
+&  ((((ixc > 17 .and. ixc /= 23 .and. ixc/=26 .and. ixc/=27) .or. (ixc >= 0 .and. ixc < 7)) .and. nvxcdgr /=3 ))) then
    write(message, '(8a,i6,a,i6)' )ch10,&
 &   ' drivexc : BUG -',ch10,&
 &   '  The value of the number of the XC functional ixc',ch10,&
 &   '  or the value of nvxcdgr is not compatible with the presence of the array vxcgr',ch10,&
 &   '  ixc=',ixc,'  nvxcdgr=',nvxcdgr
-   call wrtout(6,message,'COLL')
+   call wrtout(std_out,message,'COLL')
    call leave_new('COLL')
   end if
  end if
@@ -213,25 +211,25 @@ integer,intent(in),optional :: exexch
  if(present(grho2_updn))then
   if (ngr2/=2*nspden-1 ) then
    write(message, '(4a)' ) ch10,&
-&    ' drivexc : BUG -',ch10,&
-&    '  ngr2 must be 2*nspden-1 !'
-!   call wrtout(06,message,'COLL')
-!   call leave_new('COLL')
+&   ' drivexc : BUG -',ch10,&
+&   '  ngr2 must be 2*nspden-1 !'
+!  call wrtout(06,message,'COLL')
+!  call leave_new('COLL')
   end if
-  if((ixc > 16 .and. ixc /= 23) .or. ixc < 11)then
+  if((ixc > 17 .and. ixc /= 23 .and. ixc/=26 .and. ixc/=27) .or. (ixc >= 0 .and. ixc < 11))then
    write(message, '(8a,i6)' )ch10,&
 &   ' drivexc : BUG -',ch10,&
 &   '  The value of the number of the XC functional ixc',ch10,&
 &   '  is not compatible with the presence of the array grho2_updn',ch10,&
 &   '  ixc=',ixc
-   call wrtout(6,message,'COLL')
+   call wrtout(std_out,message,'COLL')
    call leave_new('COLL')
   end if
  end if
 
 !If needed, compute rhotot and rs
  if (ixc==1 .or. ixc==2 .or. ixc==3 .or. ixc==4 .or. ixc==5 .or. ixc==6 .or. &
-&    ixc==21 .or. ixc==22) then
+& ixc==21 .or. ixc==22) then
   allocate(rhotot(npts),stat=i_all)
   allocate(rspts(npts),stat=i_all)
   if(nspden==1)then
@@ -255,7 +253,7 @@ integer,intent(in),optional :: exexch
 !Default value for vxcgr
  if (present(vxcgr)) vxcgr(:,:)=zero
 
-!!$!Could be more selective in allocating arrays ...
+!!$ !Could be more selective in allocating arrays ...
 !!$ allocate(dvxci(npts,15),d2vxci(npts))
 
  if (ixc==1 .or. ixc==21 .or. ixc==22) then
@@ -265,12 +263,12 @@ integer,intent(in),optional :: exexch
   else
    if(ndvxc /= nspden + 1 )then
     write(message, '(10a,i6,a,i6)' )ch10,&
-&   ' drivexc : BUG -',ch10,&
-&   '  Wrong value of ndvxc:',ch10,&
-&   '  the value of the spin polarization',ch10,&
-&   '  is not compatible with the ixc',ch10,&
-&   '  ixc=',ixc,'nspden=',nspden
-    call wrtout(6,message,'COLL')
+&    ' drivexc : BUG -',ch10,&
+&    '  Wrong value of ndvxc:',ch10,&
+&    '  the value of the spin polarization',ch10,&
+&    '  is not compatible with the ixc',ch10,&
+&    '  ixc=',ixc,'nspden=',nspden
+    call wrtout(std_out,message,'COLL')
     call leave_new('COLL')
    end if
    call xcspol(exc,npts,nspden,order,rspts,vxc,zeta,ndvxc,dvxc)
@@ -279,92 +277,92 @@ integer,intent(in),optional :: exexch
  else if (ixc==2) then
 ! Perdew-Zunger fit to Ceperly-Alder data (no spin-pol)
   if (order**2 <= 1) then
-     call xcpzca(exc,npts,order,rhotot,rspts,vxc(:,1))
+   call xcpzca(exc,npts,order,rhotot,rspts,vxc(:,1))
   else
-     if(ndvxc /= 1 )then
-        write(message, '(6a,i6,a,i6)' )ch10,&
-             &   ' drivexc : BUG -',ch10,&
-             &   '  Wrong value of ndvxc:',ch10,&
-             &   '  ixc=',ixc,'ndvxc=',ndvxc
-        call wrtout(6,message,'COLL')
-        call leave_new('COLL')
-     end if
-     call xcpzca(exc,npts,order,rhotot,rspts,vxc(:,1),dvxc)
+   if(ndvxc /= 1 )then
+    write(message, '(6a,i6,a,i6)' )ch10,&
+&    ' drivexc : BUG -',ch10,&
+&    '  Wrong value of ndvxc:',ch10,&
+&    '  ixc=',ixc,'ndvxc=',ndvxc
+    call wrtout(std_out,message,'COLL')
+    call leave_new('COLL')
+   end if
+   call xcpzca(exc,npts,order,rhotot,rspts,vxc(:,1),dvxc)
   end if
 
  else if (ixc==3) then
 ! Teter fit (4/91) to Ceperley-Alder values (no spin-pol)
-    if (order**2 <= 1) then
-       call xctetr(exc,npts,order,rhotot,rspts,vxc(:,1))
-    else if (order == 2) then
-       if(ndvxc /= 1 )then
-          write(message, '(6a,i3,a,i3)' )ch10,&
-               &   ' drivexc : BUG -',ch10,&
-               &   '  Wrong value of ndvxc:',ch10,&
-               &   '  ixc=',ixc,'ndvxc=',ndvxc
-          call wrtout(6,message,'COLL')
-          call leave_new('COLL')
-       end if
-       call xctetr(exc,npts,order,rhotot,rspts,vxc(:,1),dvxc=dvxc)
-    else if (order == 3) then
-       if(ndvxc /= 1 )then
-          write(message, '(6a,i6,a,i6)' )ch10,&
-               &   ' drivexc : BUG -',ch10,&
-               &   '  Wrong value of ndvxc:',ch10,&
-               &   '  ixc=',ixc,'ndvxc=',ndvxc
-          call wrtout(6,message,'COLL')
-          call leave_new('COLL')
-       end if
-       call xctetr(exc,npts,order,rhotot,rspts,vxc(:,1),d2vxc,dvxc)
-    end if
+  if (order**2 <= 1) then
+   call xctetr(exc,npts,order,rhotot,rspts,vxc(:,1))
+  else if (order == 2) then
+   if(ndvxc /= 1 )then
+    write(message, '(6a,i3,a,i3)' )ch10,&
+&    ' drivexc : BUG -',ch10,&
+&    '  Wrong value of ndvxc:',ch10,&
+&    '  ixc=',ixc,'ndvxc=',ndvxc
+    call wrtout(std_out,message,'COLL')
+    call leave_new('COLL')
+   end if
+   call xctetr(exc,npts,order,rhotot,rspts,vxc(:,1),dvxc=dvxc)
+  else if (order == 3) then
+   if(ndvxc /= 1 )then
+    write(message, '(6a,i6,a,i6)' )ch10,&
+&    ' drivexc : BUG -',ch10,&
+&    '  Wrong value of ndvxc:',ch10,&
+&    '  ixc=',ixc,'ndvxc=',ndvxc
+    call wrtout(std_out,message,'COLL')
+    call leave_new('COLL')
+   end if
+   call xctetr(exc,npts,order,rhotot,rspts,vxc(:,1),d2vxc,dvxc)
+  end if
 
  else if (ixc==4) then
 ! Wigner xc (no spin-pol)
-    if (order**2 <= 1) then
-       call xcwign(exc,npts,order,rhotot,rspts,vxc(:,1))
-    else
-       if(ndvxc /= 1 )then
-          write(message, '(6a,i6,a,i6)' )ch10,&
-               &   ' drivexc : BUG -',ch10,&
-               &   '  Wrong value of ndvxc:',ch10,&
-               &   '  ixc=',ixc,'ndvxc=',ndvxc
-          call wrtout(6,message,'COLL')
-          call leave_new('COLL')
-       end if
-       call xcwign(exc,npts,order,rhotot,rspts,vxc(:,1),dvxc)
-    end if
+  if (order**2 <= 1) then
+   call xcwign(exc,npts,order,rhotot,rspts,vxc(:,1))
+  else
+   if(ndvxc /= 1 )then
+    write(message, '(6a,i6,a,i6)' )ch10,&
+&    ' drivexc : BUG -',ch10,&
+&    '  Wrong value of ndvxc:',ch10,&
+&    '  ixc=',ixc,'ndvxc=',ndvxc
+    call wrtout(std_out,message,'COLL')
+    call leave_new('COLL')
+   end if
+   call xcwign(exc,npts,order,rhotot,rspts,vxc(:,1),dvxc)
+  end if
 
  else if (ixc==5) then
 ! Hedin-Lundqvist xc (no spin-pol)
-    if (order**2 <= 1) then
-       call xchelu(exc,npts,order,rspts,vxc(:,1))
-    else
-       if(ndvxc /= 1 )then
-          write(message, '(6a,i6,a,i6)' )ch10,&
-               &   ' drivexc : BUG -',ch10,&
-               &   '  Wrong value of ndvxc:',ch10,&
-               &   '  ixc=',ixc,'ndvxc=',ndvxc
-          call wrtout(6,message,'COLL')
-          call leave_new('COLL')
-       end if
-       call xchelu(exc,npts,order,rspts,vxc(:,1),dvxc)
-    end if
+  if (order**2 <= 1) then
+   call xchelu(exc,npts,order,rspts,vxc(:,1))
+  else
+   if(ndvxc /= 1 )then
+    write(message, '(6a,i6,a,i6)' )ch10,&
+&    ' drivexc : BUG -',ch10,&
+&    '  Wrong value of ndvxc:',ch10,&
+&    '  ixc=',ixc,'ndvxc=',ndvxc
+    call wrtout(std_out,message,'COLL')
+    call leave_new('COLL')
+   end if
+   call xchelu(exc,npts,order,rspts,vxc(:,1),dvxc)
+  end if
 
  else if (ixc==6) then
 ! X-alpha (no spin-pol)
-    if (order**2 <= 1) then
-       call xcxalp(exc,npts,order,rspts,vxc(:,1))
-    else
-       if(ndvxc /= 1 )then
-          write(message, '(6a,i6,a,i6)' )ch10,&
-               &   ' drivexc : BUG -',ch10,&
-               &   '  Wrong value of ndvxc:',ch10,&
-               &   '  ixc=',ixc,'ndvxc=',ndvxc
-          call wrtout(6,message,'COLL')
-          call leave_new('COLL')
-       end if
-       call xcxalp(exc,npts,order,rspts,vxc(:,1),dvxc)
-    end if
+  if (order**2 <= 1) then
+   call xcxalp(exc,npts,order,rspts,vxc(:,1))
+  else
+   if(ndvxc /= 1 )then
+    write(message, '(6a,i6,a,i6)' )ch10,&
+&    ' drivexc : BUG -',ch10,&
+&    '  Wrong value of ndvxc:',ch10,&
+&    '  ixc=',ixc,'ndvxc=',ndvxc
+    call wrtout(std_out,message,'COLL')
+    call leave_new('COLL')
+   end if
+   call xcxalp(exc,npts,order,rspts,vxc(:,1),dvxc)
+  end if
 
  else if (((ixc>=7 .and. ixc<=15) .or. (ixc==23)) .and. ixc/=10 .and. ixc/=13) then
 
@@ -386,210 +384,212 @@ integer,intent(in),optional :: exexch
   if(ixc==23)optpbe=7
 
   if (ixc >= 7 .and. ixc <= 9) then
-     if (order**2 <= 1) then
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2)
-     else if (order /=3) then
-        if(ndvxc /= 1+nspden .or. nvxcdgr /=0)then
-           write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
-                &   ' drivexc : BUG -',ch10,&
-                &   '  Wrong value of ndvxc or nvxcdgr:',ch10,&
-                &   '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
-           call wrtout(6,message,'COLL')
-           call leave_new('COLL')
-        end if
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,dvxci=dvxc)
-     else if (order ==3) then
-        if(ndvxc /= 1+nspden .or. nvxcdgr /=0)then
-           write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
-                &   ' drivexc : BUG -',ch10,&
-                &   '  Wrong value of ndvxc or nvxcdgr:',ch10,&
-                &   '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
-           call wrtout(6,message,'COLL')
-           call leave_new('COLL')
-        end if
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,d2vxci=d2vxc,dvxci=dvxc)
-     end if
+   if (order**2 <= 1) then
+    call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc)
+   else if (order /=3) then
+    if(ndvxc /= 1+nspden .or. nvxcdgr /=0)then
+     write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
+&     ' drivexc : BUG -',ch10,&
+&     '  Wrong value of ndvxc or nvxcdgr:',ch10,&
+&     '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
+     call wrtout(std_out,message,'COLL')
+     call leave_new('COLL')
+    end if
+    call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,dvxci=dvxc)
+   else if (order ==3) then
+    if(ndvxc /= 1+nspden .or. nvxcdgr /=0 .or. nd2vxc /=(3*nspden-2))then
+     write(message, '(6a,i6,a,i6,a,i6,a,i6)' )ch10,&
+&     ' drivexc : BUG -',ch10,&
+&     '  Wrong value of ndvxc or nvxcdgr or nd2vxc:',ch10,&
+&     '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr,'nd2vxc=',nd2vxc
+     call wrtout(std_out,message,'COLL')
+     call leave_new('COLL')
+    end if
+    call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,d2vxci=d2vxc,dvxci=dvxc)
+   end if
   else if ((ixc >= 11 .and. ixc <= 15) .or. (ixc==23)) then
-    if (order**2 <= 1) then
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,dvxcdgr=vxcgr,exexch=exexch,&
-&                  grho2_updn=grho2_updn)
-     else if (order /=3) then
-        if(ixc == 12 .and. ndvxc /=8  .or. ixc/=12 .and. ndvxc /= 15 .or. nvxcdgr /= 3)then
-           write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
-                &   ' drivexc : BUG -',ch10,&
-                &   '  Wrong value of ndvxc or nvxcdgr:',ch10,&
-                &   '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
-           call wrtout(6,message,'COLL')
-           call leave_new('COLL')
-        end if
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,&
-             dvxcdgr=vxcgr,dvxci=dvxc,grho2_updn=grho2_updn)
-     else if (order ==3) then
-        if(ixc == 12 .and. ndvxc /=8  .or. ixc/=12 .and. ndvxc /= 15 .or. nvxcdgr /=3)then
-           write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
-                &   ' drivexc : BUG -',ch10,&
-                &   '  Wrong value of ndvxc or nvxcdgr:',ch10,&
-                &   '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
-           call wrtout(6,message,'COLL')
-           call leave_new('COLL')
-        end if
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,d2vxci=d2vxc,dvxcdgr=vxcgr,dvxci=dvxc,&
-&                  grho2_updn=grho2_updn)
-     end if
+   if (order**2 <= 1) then
+    call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,dvxcdgr=vxcgr,exexch=exexch,&
+&    grho2_updn=grho2_updn)
+   else if (order /=3) then
+    if(ixc == 12 .and. ndvxc /=8  .or. ixc/=12 .and. ndvxc /= 15 .or. nvxcdgr /= 3)then
+     write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
+&     ' drivexc : BUG -',ch10,&
+&     '  Wrong value of ndvxc or nvxcdgr:',ch10,&
+&     '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
+     call wrtout(std_out,message,'COLL')
+     call leave_new('COLL')
+    end if
+    call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,&
+    dvxcdgr=vxcgr,dvxci=dvxc,grho2_updn=grho2_updn)
+   else if (order ==3) then
+    if(ixc == 12 .and. ndvxc /=8  .or. ixc/=12 .and. ndvxc /= 15 .or. nvxcdgr /=3)then
+     write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
+&     ' drivexc : BUG -',ch10,&
+&     '  Wrong value of ndvxc or nvxcdgr:',ch10,&
+&     '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
+     call wrtout(std_out,message,'COLL')
+     call leave_new('COLL')
+    end if
+    call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,d2vxci=d2vxc,dvxcdgr=vxcgr,dvxci=dvxc,&
+&    grho2_updn=grho2_updn)
+   end if
   end if
 
-!!$  
-!!$
-!!$  if(present(grho2_updn))then
-!!$   call xcpbe(vxcgr,dvxci,exc,grho2_updn,npts,nspden,optpbe,&
-!!$&   order,rho_updn,vxc,d2vxci)
-!!$  else
-!!$   allocate(grho2_updn_fake(npts,2*nspden-1))
-!!$   call xcpbe(vxcgr,dvxci,exc,grho2_updn_fake,npts,nspden,optpbe,&
-!!$&   order,rho_updn,vxc,d2vxci)
-!!$   deallocate(grho2_updn_fake)
-!!$  end if
+! !$
+! !$
+! !$  if(present(grho2_updn))then
+! !$   call xcpbe(vxcgr,dvxci,exc,grho2_updn,npts,nspden,optpbe,&
+! !$&   order,rho_updn,vxc,d2vxci)
+! !$  else
+! !$   allocate(grho2_updn_fake(npts,2*nspden-1))
+! !$   call xcpbe(vxcgr,dvxci,exc,grho2_updn_fake,npts,nspden,optpbe,&
+! !$&   order,rho_updn,vxc,d2vxci)
+! !$   deallocate(grho2_updn_fake)
+! !$  end if
 
-  else if (ixc==10) then
-      ! RPA correlation from Perdew-Wang
-     if (order**2 <= 1) then
-        allocate(exci_rpa(npts),vxci_rpa(npts,2))
-        optpbe=3
-        call xcpbe(exci_rpa,npts,nspden,optpbe,order,rho_updn,vxci_rpa,ndvxc,ngr2)
-        optpbe=1
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2)
-        exc(:)=exc(:)-exci_rpa(:)
-        !PMA: second index of vxc is nspden while that of rpa is 2 they can mismatch
-        vxc(:,1:min(nspden,2))=vxc(:,1:min(nspden,2))-vxci_rpa(:,1:min(nspden,2))
-        deallocate(exci_rpa,vxci_rpa)
-     else if (order /=3) then
-        if(ndvxc /= 1+nspden .or. nvxcdgr /= 0)then
-           write(message,'(6a,i6,a,i6,a,i6)' )ch10,&
-                &   ' drivexc : BUG -',ch10,&
-                &   '  Wrong value of ndvxc or nvxcdgr:',ch10,&
-                &   '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
-           call wrtout(6,message,'COLL')
-           call leave_new('COLL')
-        end if
-        allocate(exci_rpa(npts),vxci_rpa(npts,2))
-        optpbe=3
-        call xcpbe(exci_rpa,npts,nspden,optpbe,order,rho_updn,vxci_rpa,ndvxc,ngr2,dvxci=dvxc)
-        optpbe=1
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,dvxci=dvxc)
-        exc(:)=exc(:)-exci_rpa(:)
-        vxc(:,:)=vxc(:,:)-vxci_rpa(:,:)
-        deallocate(exci_rpa,vxci_rpa)
-     else if (order ==3) then
-        if(ndvxc /= 1+nspden .or. nvxcdgr /=0)then
-           write(message,'(6a,i6,a,i6,a,i6)' )ch10,&
-                &   ' drivexc : BUG -',ch10,&
-                &   '  Wrong value of ndvxc or nvxcdgr:',ch10,&
-                &   '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
-           call wrtout(6,message,'COLL')
-           call leave_new('COLL')
-        end if
-        allocate(exci_rpa(npts),vxci_rpa(npts,2))
-        optpbe=3
-        call xcpbe(exci_rpa,npts,nspden,optpbe,order,rho_updn,vxci_rpa,ndvxc,ngr2,&
-             d2vxci=d2vxc,dvxci=dvxc)
-        optpbe=1
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,&
-             d2vxci=d2vxc,dvxci=dvxc)
-        exc(:)=exc(:)-exci_rpa(:)
-        vxc(:,:)=vxc(:,:)-vxci_rpa(:,:)
-        deallocate(exci_rpa,vxci_rpa)
-     end if
+ else if (ixc==10) then
+! RPA correlation from Perdew-Wang
+  if (order**2 <= 1) then
+   allocate(exci_rpa(npts),vxci_rpa(npts,2))
+   optpbe=3
+   call xcpbe(exci_rpa,npts,nspden,optpbe,order,rho_updn,vxci_rpa,ndvxc,ngr2,nd2vxc)
+   optpbe=1
+   call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc)
+   exc(:)=exc(:)-exci_rpa(:)
+!  PMA: second index of vxc is nspden while that of rpa is 2 they can mismatch
+   vxc(:,1:min(nspden,2))=vxc(:,1:min(nspden,2))-vxci_rpa(:,1:min(nspden,2))
+   deallocate(exci_rpa,vxci_rpa)
+  else if (order /=3) then
+   if(ndvxc /= 1+nspden .or. nvxcdgr /= 0)then
+    write(message,'(6a,i6,a,i6,a,i6)' )ch10,&
+&    ' drivexc : BUG -',ch10,&
+&    '  Wrong value of ndvxc or nvxcdgr:',ch10,&
+&    '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
+    call wrtout(std_out,message,'COLL')
+    call leave_new('COLL')
+   end if
+   allocate(exci_rpa(npts),vxci_rpa(npts,2))
+   optpbe=3
+   call xcpbe(exci_rpa,npts,nspden,optpbe,order,rho_updn,vxci_rpa,ndvxc,ngr2,nd2vxc,dvxci=dvxc)
+   optpbe=1
+   call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,dvxci=dvxc)
+   exc(:)=exc(:)-exci_rpa(:)
+   vxc(:,:)=vxc(:,:)-vxci_rpa(:,:)
+   deallocate(exci_rpa,vxci_rpa)
+  else if (order ==3) then
+   if(ndvxc /= 1+nspden .or. nvxcdgr /=0)then
+    write(message,'(6a,i6,a,i6,a,i6)' )ch10,&
+&    ' drivexc : BUG -',ch10,&
+&    '  Wrong value of ndvxc or nvxcdgr:',ch10,&
+&    '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
+    call wrtout(std_out,message,'COLL')
+    call leave_new('COLL')
+   end if
+   allocate(exci_rpa(npts),vxci_rpa(npts,2))
+   optpbe=3
+   call xcpbe(exci_rpa,npts,nspden,optpbe,order,rho_updn,vxci_rpa,ndvxc,ngr2,nd2vxc,&
+   d2vxci=d2vxc,dvxci=dvxc)
+   optpbe=1
+   call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,&
+   d2vxci=d2vxc,dvxci=dvxc)
+   exc(:)=exc(:)-exci_rpa(:)
+   vxc(:,:)=vxc(:,:)-vxci_rpa(:,:)
+   deallocate(exci_rpa,vxci_rpa)
+  end if
 
  else if(ixc==13) then
 ! LDA xc energy like ixc==7, and Leeuwen-Baerends GGA xc potential
-    if (order**2 <= 1) then 
-       optpbe=1
-       call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2)
-       call xclb(grho2_updn,npts,nspden,rho_updn,vxc)   
-     else if (order /=3) then
-        if(ndvxc /= 1+nspden .or. nvxcdgr /= 0)then
-           write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
-                &   ' drivexc : BUG -',ch10,&
-                &   '  Wrong value of ndvxc or nvxcdgr:',ch10,&
-                &   '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
-           call wrtout(6,message,'COLL')
-           call leave_new('COLL')
-        end if
-        optpbe=1
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,dvxci=dvxc)
-        call xclb(grho2_updn,npts,nspden,rho_updn,vxc)
-     else if (order ==3) then
-        if(ndvxc /= 1+nspden .or. nvxcdgr /=0)then
-           write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
-                &   ' drivexc : BUG -',ch10,&
-                &   '  Wrong value of ndvxc or nvxcdgr:',ch10,&
-                &   '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
-           call wrtout(6,message,'COLL')
-           call leave_new('COLL')
-        end if
-        optpbe=1
-        call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,d2vxci=d2vxc,dvxci=dvxc)
-        call xclb(grho2_updn,npts,nspden,rho_updn,vxc)
-     end if
+  if (order**2 <= 1) then
+   optpbe=1
+   call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc)
+   call xclb(grho2_updn,npts,nspden,rho_updn,vxc)
+  else if (order /=3) then
+   if(ndvxc /= 1+nspden .or. nvxcdgr /= 0)then
+    write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
+&    ' drivexc : BUG -',ch10,&
+&    '  Wrong value of ndvxc or nvxcdgr:',ch10,&
+&    '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
+    call wrtout(std_out,message,'COLL')
+    call leave_new('COLL')
+   end if
+   optpbe=1
+   call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,dvxci=dvxc)
+   call xclb(grho2_updn,npts,nspden,rho_updn,vxc)
+  else if (order ==3) then
+   if(ndvxc /= 1+nspden .or. nvxcdgr /=0)then
+    write(message, '(6a,i6,a,i6,a,i6)' )ch10,&
+&    ' drivexc : BUG -',ch10,&
+&    '  Wrong value of ndvxc or nvxcdgr:',ch10,&
+&    '  ixc=',ixc,'ndvxc=',ndvxc,'nvxcdgr=',nvxcdgr
+    call wrtout(std_out,message,'COLL')
+    call leave_new('COLL')
+   end if
+   optpbe=1
+   call xcpbe(exc,npts,nspden,optpbe,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,d2vxci=d2vxc,dvxci=dvxc)
+   call xclb(grho2_updn,npts,nspden,rho_updn,vxc)
+  end if
 
  else if(ixc==16 .or. ixc==17 .or. ixc==26 .or. ixc==27) then
-     if(nvxcdgr /= 2 )then
-          write(message, '(6a,i6,a,i6)' )ch10,&
-               &   ' drivexc : BUG -',ch10,&
-               &   '  Wrong value of nvxcdgr:',ch10,&
-               &   '  ixc=',ixc,'ndvxcdgr=',nvxcdgr
-          call wrtout(6,message,'COLL')
-          call leave_new('COLL')
-       end if
+  if(nvxcdgr /= 2 )then
+   write(message, '(6a,i6,a,i6)' )ch10,&
+&   ' drivexc : BUG -',ch10,&
+&   '  Wrong value of nvxcdgr:',ch10,&
+&   '  ixc=',ixc,'ndvxcdgr=',nvxcdgr
+   call wrtout(std_out,message,'COLL')
+   call leave_new('COLL')
+  end if
   call xchcth(vxcgr,exc,grho2_updn,ixc,npts,nspden,order,rho_updn,vxc)
 
-#if defined HAVE_ETSF_XC
- else if((ixc>=30).and.(ixc<=34)) then
-  ! ETSF_XC: exchange
-  call xc_f90_lda_init(libxc_ptr,libxc_info,XC_LDA_X,nspden,3,&
-  & XC_NON_RELATIVISTIC)
-  do ipts=1,npts
-   rhotmp(1:nspden)=rho_updn(ipts,1:nspden)
-   call xc_f90_lda_vxc(libxc_ptr,rhotmp(1),exc(ipts),vxctmp(1))
-   vxc(ipts,1:nspden)=vxctmp(1:nspden)
-  end do
-  call xc_f90_lda_end(libxc_ptr)
+ else if( ixc<0 ) then
+#if defined HAVE_LIBXC
 
-  if ( ixc > 30 ) then
-   select case (ixc)
+! Check is all the necessary arrays are present and have the correct dimensions
+  if (libxc_functionals_isgga()) then
 
-    case (31)
-     ! ETSF_XC: correlation (Vosko, Wilk, Nussair)
-     call xc_f90_lda_init(libxc_ptr,libxc_info,XC_LDA_C_VWN,nspden)
+   if ( (.not. present(grho2_updn)) .or. (.not. present(vxcgr)))  then
+    write(message, '(8a,i7,a,i6,a,i6)' )ch10,&
+&    ' drivexc : ERROR -',ch10,&
+&    '  At least one of the functionals is a GGA,',ch10,&
+&    '  but not all the necessary arrays are present.',ch10,&
+&    '  ixc=',ixc,'  nvxcdgr=',nvxcdgr,'  ngr2=',ngr2
+    call wrtout(std_out,message,'COLL')
+    call leave_new('COLL')
+   end if
 
-    case (32)
-     ! ETSF_XC: correlation (Perdew, Zunger)
-     call xc_f90_lda_init(libxc_ptr,libxc_info,XC_LDA_C_PZ,nspden)
-
-    case (33)
-     ! ETSF_XC: correlation (Perdew, Wang)
-     call xc_f90_lda_init(libxc_ptr,libxc_info,XC_LDA_C_PW,nspden)
-
-    case (34)
-     ! ETSF_XC: correlation (Random-Phase Approximation)
-     call xc_f90_lda_init(libxc_ptr,libxc_info,XC_LDA_C_RPA,nspden)
-
-   end select
-
-   do ipts=1,npts
-    rhotmp(1:nspden)=rho_updn(ipts,1:nspden)
-    call xc_f90_lda_vxc(libxc_ptr,rhotmp(1),exctmp(1),vxctmp(1))
-    exc(ipts)=exc(ipts)+exctmp(1)
-    vxc(ipts,1:nspden)=vxc(ipts,1:nspden)+vxctmp(1:nspden)
-   end do
-
-   call xc_f90_lda_end(libxc_ptr)
+   if (ngr2==0 .or. nvxcdgr/=3) then
+    write(message, '(8a,i7,a,i6,a,i6)' )ch10,&
+&    ' drivexc : BUG -',ch10,&
+&    '  The value of the number of the XC functional ixc',ch10,&
+&    '  is not compatible with the value of nvxcdgr or ngr2',ch10,&
+&    '  ixc=',ixc,'  nvxcdgr=',nvxcdgr,'  ngr2=',ngr2
+    call wrtout(std_out,message,'COLL')
+    call leave_new('COLL')
+   end if
   end if
-#endif
 
+! Call LibXC routines for each point in space
+  if (libxc_functionals_isgga()) then
+   do ipts=1,npts
+    call libxc_functionals_getvxc(exc(ipts),nspden,rho_updn(ipts,1:nspden),&
+&    vxc(ipts,1:nspden),grho2_updn(ipts,1:ngr2),vxcgr(ipts,1:3))
+   end do
+  else
+   do ipts=1,npts
+    call libxc_functionals_getvxc(exc(ipts),nspden,rho_updn(ipts,1:nspden),vxc(ipts,1:nspden))
+   end do
+  end if
+
+#else
+  write(message, '(5a)' )ch10,&
+&  ' drivexc : ERROR -',ch10,&
+&  '  ABINIT was not compiled with LibXC support',ch10
+  call wrtout(std_out,message,'COLL')
+  call leave_new('COLL')
+#endif
  end if
 
-!!$!Pass the output to the optional arrays
+!!$ !Pass the output to the optional arrays
 !!$ if(abs(order)>1)then
 !!$  if(present(dvxc))then
 !!$   dvxc(:,:)=dvxci(:,1:size(dvxc,2))
@@ -606,6 +606,10 @@ integer,intent(in),optional :: exexch
  if(allocated(rhotot))deallocate(rhotot)
  if(allocated(rspts))deallocate(rspts)
  if(allocated(zeta))deallocate(zeta)
+
+!DEBUG
+!write(6,*)' drivexc : exit '
+!ENDDEBUG
 
 end subroutine drivexc
 !!***

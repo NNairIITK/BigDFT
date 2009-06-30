@@ -54,6 +54,13 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
   !       nflop=nt*len_2*2*m*4
   !       call system_clock(ncount1,ncount_rate,ncount_max)
 
+!!$omp parallel default (private) shared(nt,len_2,ch,cg,mod_my,c)
+
+
+!!$omp do
+
+
+
   do it=1,nt-11,12
      do i=0,len_2-1
         i2=2*i
@@ -150,9 +157,9 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
 
      enddo
   enddo
-
+!!$omp enddo
   it0=it
-
+!!$omp do
   do it=it0,nt
      do i=0,len_2-1
         i2=2*i
@@ -167,7 +174,8 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
         cd_1(it,len_2+i)=di
      enddo
   enddo
-
+!!$omp enddo
+!!$omp end parallel
   !        call system_clock(ncount2,ncount_rate,ncount_max)
   !        tel=dble(ncount2-ncount1)/dble(ncount_rate)
   !        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'ana_rot_per_old',tel,1.d-6*nflop/tel,nflop
@@ -233,6 +241,10 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
   !       nflop=nt*len_2*(2*m_2+1)*8
   !       call system_clock(ncount1,ncount_rate,ncount_max)
 
+!!$omp parallel default (private) shared(nt,len_2,m_2,ch,cg,mod_my,cd)
+
+
+!!$omp do
   do it=1,nt-11,12
      do i=0,len_2-1
 
@@ -335,9 +347,10 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
 
      enddo
   enddo
+!!$omp enddo
 
   it0=it
-
+!!$omp do
   do it=it0,nt
      do i=0,len_2-1
         ci2 =0.0_wp
@@ -351,7 +364,8 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
         c1(it,2*i+1) = ci21
      enddo
   enddo
-
+!!$omp enddo
+!!$omp end parallel
   !        call system_clock(ncount2,ncount_rate,ncount_max)
   !        tel=dble(ncount2-ncount1)/dble(ncount_rate)
   !        write(95,'(a40,1x,e11.4,1x,f10.1,1x,i9)') 'syn_rot_per_old',tel,1.d-6*nflop/tel,nflop

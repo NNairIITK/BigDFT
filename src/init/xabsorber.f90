@@ -11,7 +11,7 @@ subroutine find_pfproj( Nsol,Ngrid,rgrid,  psi1s, psigrid, real_start, psigrid_p
   ! ------------------------------------------------------------------------------------
   real(gp) dumgrid(Ngrid), coeffs(Nsol), dumgrid2(Ngrid), mass, mass_pseudo
   integer segno(Nsol), segno_pseudo(Nsol)
-  integer i,j,k
+  integer i,k
   do i=1, Nsol
      do k=1, Ngrid
         dumgrid(k)=psigrid(k,i)*psi1s(k)
@@ -83,10 +83,10 @@ subroutine     find_Scoeffs_grid( ng,  expo, Ngrid, rgrid, psi1s , gcoeffs , l )
   ! -----------------------------------------------------------
   real(gp)  ::   Soverlap(0:ng,0:ng)
   real(gp)  ::   Score(0:ng), dumgrid(Ngrid), dumgrid2(Ngrid)
-  integer :: i,j,k,n,m, iw, INFO, LWORK, nord
-  real(gp) :: a1,b1,a2,b2, A,B, spi, pi
+  integer :: i,j,k,n,INFO, LWORK
+  real(gp) :: b1,b2, B, spi, pi
   real(gp) :: W(0:ng), WORK(3*(ng+1)*(ng+1))
-  real(gp)::  sum, totalpow, gin, gim, gip, ggg, gamma
+  real(gp)::  sum, totalpow, ggg, gamma
 
 
 
@@ -153,7 +153,7 @@ subroutine   dump_1gauwf_on_radgrid(prefix, ng , expo,psi   ,lpow   )
   ! local
   integer, parameter :: n_int=100
   character(200)  filename
-  integer l,i, iocc,ig
+  integer i,ig
   real(8) r,sum
 
 
@@ -175,7 +175,7 @@ subroutine   dump_1gauwf_on_radgrid(prefix, ng , expo,psi   ,lpow   )
 return 
 end subroutine dump_1gauwf_on_radgrid
 
-real(gp)  function  value_at_r(r, ng , expo,psi     )
+function  value_at_r(r, ng , expo,psi     )
   use module_base, only: gp
 
   implicit none
@@ -188,9 +188,9 @@ real(gp)  function  value_at_r(r, ng , expo,psi     )
   ! local
   integer, parameter :: n_int=100
 
-  integer l,i, iocc,ig
+  integer ig
   real(gp) sum
-
+  real(gp) :: value_at_r
 
 
   sum=0.0
@@ -216,7 +216,7 @@ subroutine dump_gauwf_on_radgrid(prefix  ,ng ,noccmax , lmax , expo,psi,aeval, o
   ! local
   integer, parameter :: n_int=100
   character(200)  filename
-  integer l,i,k, iocc,ig
+  integer l,i,k,ig
   real(8) r,sum
 
   do i=1,noccmax
@@ -272,7 +272,6 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   
   !local variables
   character(len=*), parameter :: subname='iguess_generator'
-  character(len=27) :: string 
   character(len=2) :: symbol
   real(gp), parameter :: fact=4.0_gp
   integer, dimension(6,4) :: neleconf
@@ -283,12 +282,10 @@ subroutine abs_generator_modified(iproc,izatom,ielpsp,psppar,npspcode,ng, noccma
   real(gp), dimension(:,:), allocatable :: vh,hsep,ofdcoef
 
   real(gp), dimension(:,:,:,:), allocatable :: rmt
-  logical :: exists
-  integer :: lpx,ncount,nsccode,mxpl,mxchg
-  integer :: l,i,j,iocc,il,lwrite,i_all,i_stat
+  integer :: lpx,nsccode,mxpl,mxchg
+  integer :: l,i,iocc,i_all,i_stat
   real(gp) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt,ehomo
   real(gp) value_at_r
-  integer :: igrid
 
   !filename = 'psppar.'//trim(atomname)
 
@@ -565,15 +562,16 @@ subroutine integrate(f,fint,x,Nx)
 end subroutine integrate
 
 
-real(gp) function pow(x,n)
+function pow(x,n)
   use module_base, only: gp,wp
   real(gp) x
+  real(gp) :: pow
   integer n
   pow=x**n
   return
 end function pow
 
-real(gp) function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
+function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
   use module_base, only: gp,wp
   implicit none
   integer N, normalize, onlyout
@@ -581,6 +579,7 @@ real(gp) function phase( E, N, rgrid, V, nonloc, y,l,normalize,Z, onlyout)
   ! ----------------------------------------------
   integer ii, i,j
   real(gp)  ypi
+  real(gp) :: phase
   
   integer yNcross, yflag
   real(gp)  dh,dl,dh2,dl2,dp,dl3,dhdl2,dh2dl,dh3,add1,add2,deno,num
@@ -1100,6 +1099,9 @@ subroutine schro(E, r,  V,nonloc, y, NGRID, nsol, l,  Z)
 
 
 
+
+
+
 subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg,&
@@ -1450,19 +1452,19 @@ subroutine gatom_modified(rcov,rprb,lmax,lpx,noccmax,occup,&
      enddo
   enddo
 
-
   do i=1,Nsol
      do j=1, Nsol
-        H(i,j)=H(i,j)+ ppgrid(i,1)*hsep(1,labs+1)*ppgrid(j,1)&
-                      + ppgrid(i,1)*hsep(2,labs+1)*ppgrid(j,2)&
-                      + ppgrid(i,2)*hsep(2,labs+1)*ppgrid(j,1)&
-                      + ppgrid(i,2)*hsep(3,labs+1)*ppgrid(j,2)&
-                      + ppgrid(i,1)*hsep(4,labs+1)*ppgrid(j,3)&
-                      + ppgrid(i,3)*hsep(4,labs+1)*ppgrid(j,1)&
-                      + ppgrid(i,2)*hsep(5,labs+1)*ppgrid(j,3)&
-                      + ppgrid(i,3)*hsep(5,labs+1)*ppgrid(j,2)&
-                      + ppgrid(i,3)*hsep(6,labs+1)*ppgrid(j,3)
-
+        if ( labs.le.lpx) then
+           H(i,j)=H(i,j)+ ppgrid(i,1)*hsep(1,labs+1)*ppgrid(j,1)&
+                + ppgrid(i,1)*hsep(2,labs+1)*ppgrid(j,2)&
+                + ppgrid(i,2)*hsep(2,labs+1)*ppgrid(j,1)&
+                + ppgrid(i,2)*hsep(3,labs+1)*ppgrid(j,2)&
+                + ppgrid(i,1)*hsep(4,labs+1)*ppgrid(j,3)&
+                + ppgrid(i,3)*hsep(4,labs+1)*ppgrid(j,1)&
+                + ppgrid(i,2)*hsep(5,labs+1)*ppgrid(j,3)&
+                + ppgrid(i,3)*hsep(5,labs+1)*ppgrid(j,2)&
+                + ppgrid(i,3)*hsep(6,labs+1)*ppgrid(j,3)
+        endif
         do igrid=1,Ngrid
            dumgrid1(igrid)=psigrid_naked(igrid,i)*psigrid_naked(igrid,j)*vxcgrid(igrid)
         enddo
@@ -1646,16 +1648,15 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   real(gp), pointer :: expo_fine(:)
 
   real(gp), pointer :: Egrid(:) ,  rgrid(:) , psigrid (:,:) , Egrid_pseudo(:) ,  psigrid_pseudo (:,:) 
-  integer idebug, i_stat
+  integer i_stat
   character(len=*), parameter :: subname='GetExcitedOrbitalAsG'
-
 
 
   ! if (in_iat_absorber.ne.0) then
 
   ity = atoms%iatype(in_iat_absorber)
-  ng  = 60
-  noccmax = 5
+  ng  = 30
+  noccmax = 5 
   lmax=3
   
   ng_fine= 200
@@ -1665,43 +1666,43 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   
   cradius=4.0
   
-  idebug=10
+
   
-  allocate(expo_fine(ng_fine  +idebug ), stat=i_stat)
+  allocate(expo_fine(ng_fine  +ndebug ), stat=i_stat)
   call memocc(i_stat,expo_fine,'expo_fine',subname)
   
-  allocate(expo(ng +idebug  ), stat=i_stat)
+  allocate(expo(ng +ndebug  ), stat=i_stat)
   call memocc(i_stat,expo,'expo',subname)
   
-  allocate(psi ( 0:ng-1 +idebug ,noccmax,lmax+1+idebug ), stat=i_stat)
+  allocate(psi ( 0:ng-1  ,noccmax,lmax+1+ndebug ), stat=i_stat)
   call memocc(i_stat,psi,'psi',subname)
   
   
-  allocate(gcoeffs ( 0:ng_fine-1  +idebug ), stat=i_stat)
+  allocate(gcoeffs ( 0:ng_fine-1  +ndebug ), stat=i_stat)
   call memocc(i_stat,gcoeffs,'gcoeffs',subname)
   
-  allocate(aeval ( noccmax +idebug ,lmax+1+idebug ), stat=i_stat)
+  allocate(aeval ( noccmax  ,lmax+1+ndebug ), stat=i_stat)
   call memocc(i_stat,aeval,'aeval',subname)
   
-  allocate(occup ( noccmax +idebug ,lmax+1+idebug ), stat=i_stat)
+  allocate(occup ( noccmax  ,lmax+1+ndebug ), stat=i_stat)
   call memocc(i_stat,occup,'occup',subname)
   
-  allocate( Egrid(Nsol +idebug ), stat=i_stat)
+  allocate( Egrid(Nsol +ndebug ), stat=i_stat)
   call memocc(i_stat,Egrid,'Egrid',subname)
   
-  allocate( rgrid(Ngrid +idebug ), stat=i_stat)
+  allocate( rgrid(Ngrid +ndebug ), stat=i_stat)
   call memocc(i_stat,rgrid,'rgrid',subname)
   
-  allocate( psigrid(Ngrid +idebug , Nsol), stat=i_stat)
+  allocate( psigrid(Ngrid  , Nsol +ndebug ), stat=i_stat)
   call memocc(i_stat,psigrid,'psigrid',subname)
   
-  allocate( Egrid_pseudo(Nsol +idebug ), stat=i_stat)
+  allocate( Egrid_pseudo(Nsol +ndebug ), stat=i_stat)
   call memocc(i_stat,Egrid_pseudo,'Egrid_pseudo',subname)
   
-  allocate( psigrid_pseudo(Ngrid +idebug , Nsol), stat=i_stat)
+  allocate( psigrid_pseudo(Ngrid  , Nsol +ndebug), stat=i_stat)
   call memocc(i_stat,psigrid_pseudo,'psigrid_pseudo',subname)
 
-  allocate(psi1s( Ngrid +idebug ), stat=i_stat)
+  allocate(psi1s( Ngrid +ndebug ), stat=i_stat)
   call memocc(i_stat,psi1s,'psi1s',subname)
    
   do igrid=1, Ngrid
@@ -1875,7 +1876,7 @@ subroutine GetExcitedOrbitalAsG( in_iat_absorber ,Gabsorber, atoms, rxyz, nproc,
   do ig=1,Gabsorber%ndoc(1)
      iexpo=iexpo+1
      Gabsorber%psiat(iexpo)=gcoeffs (ig-1)
-     Gabsorber%xp(iexpo)=expo(ig)
+     Gabsorber%xp(iexpo)=expo_fine(ig)
   end do
 
   print *,'expo',shape(expo),ng_fine,expo(:)

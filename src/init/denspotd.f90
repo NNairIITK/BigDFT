@@ -113,7 +113,7 @@ subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms)
        comms%nvctr_par(iproc)*orbs%norb)*orbs%nspinor
 
   if (iproc == 0) write(*,'(1x,a,i0)') &
-       'Wavefunction memory occupation per orbital (Bytes): ',&
+       'Wavefunctions memory occupation per processor (Bytes): ',&
        orbs%npsidim*8
 
   !here the k-points should be taken into account

@@ -1,15 +1,16 @@
-.5 0.5 0.5        hgrid:          grid spacing
-6. 8.        crmult:         crmult*radii_cf(*,1) gives the coarse radius around each atom
-1          ixc:            exchange-correlation parameter (LDA=1)
-0 0.d0     ncharge:        charge of the system, Electric field
-1 0
-1.d-4
-50 10
-4 6        ncong:          number of conjugate gradient iterations for the solution of the preconditioning equation
-0
-fake CUDAGPU line
-0. 30
-0 0      
-0 
-0 .false. 0 InputPsiId, output_wf, output_grid
-2
+.5 0.5 0.5   hgrid x y z : grid spacing
+4. 4.        [cf]rmult   : [cf]rmult*radii_cf(*,[12]) gives the coarse/fine radius around each atom
+1            ixc         : exchange-correlation parameter (LDA=1)
+0 0. 0. 0.   charge field: charge of the system, Electric field
+1 0          spin mpol   : nspin=1 non-spin polarization, mpol=total magnetic moment
+1.d-4        gnrm_cv     : convergence criterion gradient
+50 10        iterm,nrepm : maximum number of wavefunction optimizations and of re-diagonalised runs
+5 6          ncong idsx  : number of conjugate gradient iterations for the solution of the preconditioning equation, length of the diis history
+0            dispcor     : dispersion correction functional (values 1,2,3), 0=no correction
+fake CUDAGPU cudagpu     : write "CUDAGPU" to use GPU acceleration (GPU.config file is needed)
+0 F 0        iPsi,outWf,outGrid: InputPsiId, output_wf, output_grid
+0. 30        rtail,ncongt: length of the tail (AU), tail CG iterations
+0 0          dav,outOrb  : davidson treatment, no. of virtual orbitals, no of plotted orbitals
+0            xray        : x-ray adsorber treatment
+0 F F 0      ivac,readRef,offset,gnrm_sw: vacancy: atom no., read_ref_den, correct_offset, gnrm_sw
+2            verbose     : verbosity

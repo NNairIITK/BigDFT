@@ -1,7 +1,7 @@
 
 
-!	Applies the operator (KE+cprecr*I)*x=y
-!	array x is input, array y is output
+!  Applies the operator (KE+cprecr*I)*x=y
+!  array x is input, array y is output
 subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e)
   use module_base
@@ -41,8 +41,8 @@ subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        psig_out,y(1),y(nvctr_c+1))
 end subroutine apply_hp_sd
 
-!	Applies the operator (KE+cprecr*I)*x=y
-!	array x is input, array y is output
+!  Applies the operator (KE+cprecr*I)*x=y
+!  array x is input, array y is output
 subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e,scal)
   use module_base
@@ -200,7 +200,7 @@ real(gp),intent(in)::e(lowfil:lupfil,3)
 !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
 !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'x,y:',tel,1.d-6*mflop1/tel
  
-!$omp do	
+!$omp do  
   do i2=0,n2
      do i1=0,n1
         do i3=0,n3

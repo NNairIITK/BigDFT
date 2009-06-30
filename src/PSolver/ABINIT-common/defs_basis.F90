@@ -138,6 +138,7 @@ module defs_basis
  real(dp), parameter :: tol11=0.00000000001_dp
  real(dp), parameter :: tol12=0.000000000001_dp
  real(dp), parameter :: tol14=0.00000000000001_dp
+ real(dp), parameter :: tol16=0.0000000000000001_dp
 
 !Real physical constants
 !Revised fundamental constants from http://physics.nist.gov/cuu/Constants/index.html

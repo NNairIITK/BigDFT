@@ -15,6 +15,9 @@ libABINIT_a_SOURCES = \
 	defs_basis.F90 \
         defs_datatypes.F90 \
         defs_xc.F90 \
+	interfaces_14_hidewrite.F90 \
+	interfaces_16_hideleave.F90 \
+	interfaces_56_xc.F90 \
         drivexc.F90 \
         xctetr.F90 \
         xcwign.F90 \

@@ -183,7 +183,7 @@ subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
      call convrot_n_per(n3,ndat,x,y)
 
   else
-	  stop 'the GPU part is not yet written'
+    stop 'the GPU part is not yet written'
   end if
 end subroutine convolut_magic_n_slab_self
 
@@ -235,7 +235,7 @@ subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
      call convrot_n_per(n3,ndat,ww,y)
 
   else
-	  stop 'the GPU part is not yet written'
+    stop 'the GPU part is not yet written'
   end if
 end subroutine convolut_magic_n_slab
 
@@ -289,7 +289,7 @@ subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
      call convrot_t_per(n3,ndat,x,y)
 
   else
-	  stop 'the GPU part is not yet written'
+    stop 'the GPU part is not yet written'
   end if
 
 end subroutine convolut_magic_t_slab_self
@@ -327,7 +327,12 @@ real(gp),intent(in)::e(lowfil:lupfil,3)
 !  mflop3=(n1+1)*(n2+1)*(n3+1)*29*8*4   ! convolution in the z       direction
 !  call system_clock(ncount0,ncount_rate,ncount_max)
   
-  
+!dee
+!$omp parallel default(private) &
+!$omp shared (n1,n2,n3,x,y,cprecr,a,b,c,e,modul1,modul3) 
+
+
+!$omp do  
   do i3=0,n3
      ! (1/2) d^2/dx^2
      do i2=0,n2
@@ -396,11 +401,13 @@ real(gp),intent(in)::e(lowfil:lupfil,3)
      enddo
      
   enddo
+!$omp enddo
 
 !  call system_clock(ncount1,ncount_rate,ncount_max)
 !  tel=dble(ncount1-ncount0)/dble(ncount_rate)
 !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'x,y:',tel,1.d-6*mflop1/tel
-  
+
+!$omp do  
   do i2=0,n2
      do i1=0,n1
         do i3=0,n3
@@ -434,7 +441,8 @@ real(gp),intent(in)::e(lowfil:lupfil,3)
         enddo
      enddo
   enddo
- 
+!$omp enddo 
+!$omp end parallel
 !  call system_clock(ncount2,ncount_rate,ncount_max)
 !  tel=dble(ncount2-ncount1)/dble(ncount_rate)
 !  write(97,'(a40,1x,e10.3,1x,f6.1)') 'z:',tel,1.d-6*mflop3/tel

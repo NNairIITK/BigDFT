@@ -22,8 +22,8 @@ program memguess
   character(len=40) :: comment
   logical :: optimise,GPUtest,convert=.false.,exists
   integer :: nelec,ntimes,nproc,i_stat,ierror,i_all,output_grid
-  integer :: norbe,norbsc,nvctrp,nspin,iorb,norbu,norbd,nspinor,norb
-  integer :: iunit,ityp,norbgpu,nspin_ig
+  integer :: norbe,norbsc,nspin,iorb,norbu,norbd,nspinor,norb
+  integer :: norbgpu,nspin_ig
   real(kind=8) :: peakmem,hx,hy,hz
   type(input_variables) :: in
   type(atoms_data) :: atoms
@@ -118,27 +118,27 @@ program memguess
   !read number of atoms
   call read_atomic_file('posinp',0,atoms,rxyz)
 
-  call dft_input_variables(0,'input.dft',in)
-  !read geometry optimsation input variables
-  !inquire for the file needed for geometry optimisation
-  !if not present, perform a simple geometry optimisation
-  inquire(file="input.geopt",exist=exists)
-  if (exists) then
-     call geopt_input_variables(0,'input.geopt',in)
+  if (convert) then
+     call read_input_variables(0,'input.dft',in)
+     write(*,'(a)',advance='NO')' Conversion of the input file...'
+     call dft_input_converter(in)
+     write(*,*)' ...done'
   else
-     call geopt_input_variables_default(in)
+     call dft_input_variables(0,'input.dft',in)
+     !read geometry optimsation input variables
+     !inquire for the file needed for geometry optimisation
+     !if not present, perform a simple geometry optimisation
+     inquire(file="input.geopt",exist=exists)
+     if (exists) then
+        call geopt_input_variables(0,'input.geopt',in)
+     else
+        call geopt_input_variables_default(in)
+     end if
   end if
 
 
   call print_input_parameters(in,atoms)
 
-
-
-  if (convert) then
-     write(*,'(a)',advance='NO')' Conversion of the input file...'
-     call dft_input_converter(in)
-     write(*,*)' ...done'
-  end if
 
   write(*,'(1x,a)')&
        '------------------------------------------------------------------ System Properties'
@@ -318,7 +318,7 @@ program memguess
         orbstst%spinsgn(iorb)=1.0_gp
      end do
 
-     call createWavefunctionsDescriptors(0,nproc,hx,hy,hz,&
+     call createWavefunctionsDescriptors(0,hx,hy,hz,&
           atoms,rxyz,radii_cf,in%crmult,in%frmult,Glr,orbstst)
      
      call compare_cpu_gpu_hamiltonian(0,1,atoms,orbstst,nspin,in%ncong,in%ixc,&
@@ -708,7 +708,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   !local variables
   character(len=*), parameter :: subname='compare_cpu_gpu_hamiltonian'
   logical :: rsflag
-  integer :: icoeff,norb,norbu,norbd,nspinor,i_stat,i_all,i1,i2,i3,ispin,j
+  integer :: icoeff,i_stat,i_all,i1,i2,i3,ispin,j
   integer :: iorb,n3d,n3p,n3pi,i3xcsh,i3s,jproc,nrhotot,nspinn,nvctrp
   real(kind=4) :: tt,t0,t1
   real(gp) :: ttd,x,y,z,r2,arg,sigma2,ekin_sum,epot_sum,ekinGPU,epotGPU,gnrm,gnrmGPU
