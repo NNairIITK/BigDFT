@@ -641,16 +641,17 @@ sem_unix::sem_unix(const char *nomfic, int numGPU,int currGPU_) throw (synchroni
    bzero(&arg_ctl,sizeof(semun));
 	  
   
-   semid = semget ( ftok (nomfic, semKEY), numGPU, IPC_CREAT | IPC_EXCL | 0666);
+   //  semid = semget ( ftok (nomfic, semKEY), numGPU, IPC_CREAT | IPC_EXCL | 0666);
+   semid = semget ( IPC_PRIVATE, numGPU, IPC_CREAT | IPC_EXCL | 0666);
    
    if(semid == -1) 
      {
-       const int ERR_SIZE = 200;
+       perror("Error init sem");
+       const int ERR_SIZE = 1024;
        char errorm[ERR_SIZE];
-        strerror_r(errno, errorm, ERR_SIZE);
+       strerror_r(errno, errorm, ERR_SIZE);
 
        semctl (semid , 0 , IPC_RMID , 0) ;
-       //       throw synchronization_error("Semid ERROR");
        throw synchronization_error(errorm);
      }
 
