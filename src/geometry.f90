@@ -1,5 +1,18 @@
-!*****************************************************************************************
+!!****m* BigDFT/minimization
+!! FUNCTION
+!!   Define the type parameterminimization
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 module minimization
+  implicit none
   type parameterminimization
      !general parameters for all methods
      character(10)::approach='unknown'
@@ -20,17 +33,23 @@ module minimization
      real(8)::gtol
      real(8)::stpmin
      real(8)::stpmax
-     real(8)::xtol=1.d-10  !epsilon(xtol)
+     real(8)::xtol=1.d-10  !epsilon(1.d0)
      real(8)::betax 
   end type parameterminimization
 end module minimization
-!*****************************************************************************************
+!!***
 
+
+!!****f* BigDFT/geopt
+!! FUNCTION
+!!   Geometry optimization
+!! SOURCE
+!!
 subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   use module_base
   use module_interfaces, except_this_one => geopt
   use module_types
-  use minimization, only:parameterminimization
+  use minimization, only: parameterminimization
   implicit none
   integer, intent(in) :: nproc,iproc
   type(atoms_data), intent(inout) :: at
@@ -44,7 +63,7 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   logical :: fail
 
   !-------------------------------------------
-  type(parameterminimization)::parmin
+  type(parameterminimization) :: parmin
   character*4 fn4
   character*40 comment
 
@@ -100,10 +119,15 @@ subroutine geopt(nproc,iproc,pos,at,fxyz,epot,rst,in,ncount_bigdft)
   endif
   if (iproc==0)   write(*,'(a,1x,a)') 'End of minimization using ',parmin%approach
 
-end subroutine geopt
+END SUBROUTINE geopt
+!!***
 
 
-
+!!****f* BigDFT/bfgs
+!! FUNCTION
+!!  Broyden-Fletcher-Goldfarb-Shanno method
+!! SOURCE
+!!
 subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   use module_base
   use module_types
@@ -184,7 +208,7 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
 
   if (check) then
      if (iproc.eq.0) write(*,*) 'Converged before entering BFGS'
-     return     
+     return 
   endif
 
   allocate(xc(n),stat=i_stat)
@@ -208,12 +232,13 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
         in%inputPsiId=1
         call call_bigdft(nproc,iproc,at,x,in,epot,f,rst,infocode)
 
-        if (iproc == 0) then                                        
-           call transforce(at%nat,f,sumx,sumy,sumz)                         
+        if (iproc == 0) then
+           call transforce(at%nat,f,sumx,sumy,sumz)
            write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
            write(*,'(a,1x,1pe24.17)') 'translational force along y=', sumy  
            write(*,'(a,1x,1pe24.17)') 'translational force along z=', sumz  
-        end if 
+        end if
+
         ncount_bigdft=ncount_bigdft+1
         if (ncount_bigdft==1) ehist(1)=epot
         xdft(:)=x(:)
@@ -312,8 +337,8 @@ subroutine bfgs(nproc,iproc,x,f,epot,at,rst,in,ncount_bigdft,fail)
   call memocc(i_stat,i_all,'work',subname)
 
   !-------------------------------------------------------------------------------------
-end subroutine bfgs
-!!*******************************************************************************
+END SUBROUTINE bfgs
+!!***
 
 subroutine timeleft(tt)
   use module_base
@@ -892,7 +917,7 @@ subroutine steepdes(nproc,iproc,at,rxyz,etot,ff,rst,ncount_bigdft,fluctsum,&
   deallocate(tpos,stat=i_stat)
   call memocc(i_stat,i_all,'tpos',subname)
 
-end subroutine steepdes
+END SUBROUTINE steepdes
 
 
 subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
@@ -1070,7 +1095,7 @@ subroutine vstepsd(nproc,iproc,wpos,at,etot,ff,rst,in,ncount_bigdft)
     call memocc(i_stat,i_all,'ffold',subname)
 
 
-        end subroutine vstepsd
+END SUBROUTINE vstepsd
 
 
 subroutine convcheck(fnrm, fmax, fluctfrac_fluct, forcemax, check)
@@ -1086,7 +1111,7 @@ subroutine convcheck(fnrm, fmax, fluctfrac_fluct, forcemax, check)
      check=.true.
   endif
 
-end subroutine convcheck
+END SUBROUTINE convcheck
 
 subroutine fnrmandforcemax(ff,fnrm,fmax,at)
   use module_base
@@ -1120,7 +1145,7 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,at)
   !this is the norm of the forces of non-blocked atoms
   call atomic_dot(at,ff,ff,fnrm)
 !!$  fnrm=t1+t2+t3
-end subroutine fnrmandforcemax
+END SUBROUTINE fnrmandforcemax
 
 
 subroutine updatefluctsum(nat,fxyz,nfluct,fluctsum,fluct)
@@ -1157,7 +1182,7 @@ subroutine updatefluctsum(nat,fxyz,nfluct,fluctsum,fluct)
   fluctsum=fluctsum+sumx**2+sumy**2+sumz**2
   !commented out, it increases the fluctuation artificially
   fluct=fluctsum*sqrt(real(nat,gp))/real(nfluct,gp)
-end subroutine updatefluctsum
+END SUBROUTINE updatefluctsum
 
 !should we evaluate the translational force also with blocked atoms?
 subroutine transforce(nat,fxyz,sumx,sumy,sumz)
@@ -1176,14 +1201,14 @@ subroutine transforce(nat,fxyz,sumx,sumy,sumz)
      sumy=sumy+fxyz(2,iat) 
      sumz=sumz+fxyz(3,iat)
   end do
-end subroutine transforce
+END SUBROUTINE transforce
 
 
 !*****************************************************************************************
 subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
   use module_base
   use module_types
-  use minimization, only:parameterminimization
+  use minimization, only: parameterminimization
   implicit none
   integer :: n,m,iproc,iwrite
   type(atoms_data), intent(in) :: at
@@ -1345,7 +1370,7 @@ subroutine lbfgs(at,n,m,x,xc,f,g,diag,w,parmin,iproc,iwrite)
      endif
      new=.true.
   enddo
-end subroutine lbfgs
+END SUBROUTINE lbfgs
 !*****************************************************************************************
 subroutine init_lbfgs(at,n,m,g,diag,w,parmin,nfun,point,finish,stp1,ispt,iypt)
   use module_base
@@ -1469,7 +1494,7 @@ subroutine lb1(nfun,gnorm,n,m,x,f,g,a_t,finish,parmin)
           ' BFGS terminated without detecting errors. iflag = 0'
   endif
   return
-end subroutine lb1
+END SUBROUTINE lb1
 !*****************************************************************************************
 subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin) !line search routine mcsrch
   use module_base
@@ -1608,7 +1633,7 @@ subroutine mcsrch(at,n,x,f,g,s,a_t,info,nfev,wa,parmin) !line search routine mcs
      end if
      yes=.true.
   enddo
-end subroutine mcsrch
+END SUBROUTINE mcsrch
 
 !*****************************************************************************************
 subroutine mcstep(a_l,fx,dx,a_u,fy,dy,a_t,fp,dp,brackt,stpmin,stpmax,info) !,parmin)
@@ -1731,7 +1756,7 @@ subroutine mcstep(a_l,fx,dx,a_u,fy,dy,a_t,fp,dp,brackt,stpmin,stpmax,info) !,par
      end if
   end if
   return
-end subroutine mcstep
+END SUBROUTINE mcstep
 !*****************************************************************************************
 subroutine cal_a_c(a_l,fx,dx,a_t,fp,dp,a_c)
   implicit none
@@ -1749,7 +1774,7 @@ subroutine cal_a_c(a_l,fx,dx,a_t,fp,dp,a_c)
   !p=-((2.d0*fx-2.d0*fp-dx*a_l-dp*a_l+dx*a_t+dp*a_t)/(a_l-a_t)**3)
   !q=-((3.d0*fx-3.d0*fp-2.d0*dx*a_l-dp*a_l+2.d0*dx*a_t+dp*a_t)/(a_l-a_t)**2)
   !a_c=a_l+(-q+sqrt(q**2-3.d0*p*dx))/(3.d0*p)
-end subroutine cal_a_c
+END SUBROUTINE cal_a_c
 !*****************************************************************************************
 subroutine cal_a_c_2(a_l,fx,dx,a_t,fp,dp,a_c)
   implicit none
@@ -1762,7 +1787,7 @@ subroutine cal_a_c_2(a_l,fx,dx,a_t,fp,dp,a_c)
   q=((gamma-dp)+gamma)+dx
   r=p/q
   a_c=a_t+r*(a_l-a_t)
-end subroutine cal_a_c_2
+END SUBROUTINE cal_a_c_2
 !*****************************************************************************************
 subroutine cal_a_c_3(a_l,fx,dx,a_t,fp,dp,stpmin,stpmax,a_c)
   implicit none
@@ -1783,6 +1808,6 @@ subroutine cal_a_c_3(a_l,fx,dx,a_t,fp,dp,stpmin,stpmax,a_c)
   else
      a_c=stpmin
   endif
-end subroutine cal_a_c_3
+END SUBROUTINE cal_a_c_3
 !*****************************************************************************************
 

@@ -1,8 +1,20 @@
+!!****f* BigDFT/MemoryEstimator
+!! FUNCTION
+!!   Estimation of the used memory
+!! COPYRIGHT
+!!    Copyright (C) Luigi Genovese, CEA Grenoble, France, 2007-2009
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+!! SOURCE
+!!
 subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,hz,nat,ntypes,&
      iatype,rxyz,radii_cf,crmult,frmult,norb,nprojel,atomnames,output_grid,nspin,peakmem)
+
   use module_base
   use Poisson_Solver
+
   implicit none
+
   !Arguments
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: nproc,idsx,n1,n2,n3,nat,ntypes,norb,nspin,nprojel,output_grid
@@ -12,12 +24,11 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
   real(kind=8), dimension(3,nat), intent(in) :: rxyz
   real(kind=8), dimension(ntypes,3), intent(in) ::  radii_cf
   real(kind=8), intent(out) :: peakmem
-  !local variables
+  !Local variables
   character(len=*), parameter :: subname='MemoryEstimator'
   real(kind=8), parameter :: eps_mach=1.d-12
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f,norbp,nvctrp,i_all,i_stat
-  integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,iat,i1,i2,i3,kappa
-  integer(kind=8) :: mega
+  integer :: n01,n02,n03,m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,iat,i1,i2,i3
   real(kind=8) :: omemwf,omemker,omemden,omempot,omemproj
   real(kind=8) :: tt,tmemker,tmemden,tmemps,tmemha,tminamount
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
@@ -189,20 +200,20 @@ subroutine MemoryEstimator(geocode,nproc,idsx,n1,n2,n3,alat1,alat2,alat3,hx,hy,h
        ' memory can be reduced but for this system it will never be less than ',&
        mega(tminamount),' MB'
 
-end subroutine MemoryEstimator
+contains
 
-function mega(omemory)
-  implicit none
-  real(kind=8), intent(in) :: omemory
-  integer(kind=8) :: mega
-  mega=int(omemory/1048576.d0,kind=8)
-end function mega
+  function mega(omemory)
+    implicit none
+    real(kind=8), intent(in) :: omemory
+    integer(kind=8) :: mega
+    mega=int(omemory/1048576.d0,kind=8)
+  end function mega
 
-function kappa(omemory)
-  implicit none
-  real(kind=8), intent(in) :: omemory
-  integer :: kappa
-  kappa=ceiling((omemory-aint(omemory/1048576.d0)*1048576.d0)/1024.d0)
-end function kappa
+  function kappa(omemory)
+    implicit none
+    real(kind=8), intent(in) :: omemory
+    integer :: kappa
+    kappa=ceiling((omemory-aint(omemory/1048576.d0)*1048576.d0)/1024.d0)
+  end function kappa
 
-
+END SUBROUTINE MemoryEstimator

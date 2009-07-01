@@ -1,3 +1,15 @@
+!!****f* BigDFT/sumrho
+!! FUNCTION
+!!    Calculate the electronic density (rho)
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,nspin,GPU)
   ! Calculates the charge density by summing the square of all orbitals
   ! Input: psi
@@ -38,7 +50,6 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   else
      nspinn=nspin
   end if
-
 
   !flag for toggling the REDUCE_SCATTER stategy
   rsflag=.not. (ixc >= 11 .and. ixc <=16)
@@ -192,10 +203,16 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
 
   call timing(iproc,'Rho_comput    ','OF')
 
-end subroutine sumrho
+END SUBROUTINE sumrho
+!!***
 
-!here starts the routine for building partial density inside the localisation region
-!this routine should be treated as a building-block for the linear scaling code
+
+!!****f* BigDFT/first_orthon
+!! FUNCTION
+!!   Here starts the routine for building partial density inside the localisation region
+!!   this routine should be treated as a building-block for the linear scaling code
+!! SOURCE
+!!
 subroutine local_partial_density(nproc,rsflag,nscatterarr,&
      nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   use module_base
@@ -290,7 +307,6 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
   call memocc(i_stat,w1,'w1',subname)
   allocate(w2(nw2+ndebug),stat=i_stat)
   call memocc(i_stat,w2,'w2',subname)
-
 
   !components of wavefunction in real space which must be considered simultaneously
   !and components of the charge density
@@ -418,9 +434,13 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
   deallocate(w2,stat=i_stat)
   call memocc(i_stat,i_all,'w2',subname)
 
-end subroutine local_partial_density
+END SUBROUTINE local_partial_density
+!!***
 
 
+!!****f* BigDFT/partial_density
+!! SOURCE
+!!
 subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      hfac,nscatterarr,spinsgn,psir,rho_p,&
      ibyyzz_r) !optional argument
@@ -515,6 +535,5 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
      stop
   end if
 
-end subroutine partial_density
-
-
+END SUBROUTINE partial_density
+!!***

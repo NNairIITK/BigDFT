@@ -3,7 +3,7 @@
 !!  Main program to calculate electronic structures
 !!
 !! COPYRIGHT
-!!    Copyright (C) 2007-2008 CEA, UNIBAS
+!!    Copyright (C) 2007-2009 CEA, UNIBAS
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -40,7 +40,7 @@ program BigDFT
   real(gp), dimension(:,:), pointer :: rxyz
   integer npr,iam
   integer  :: nfluct
-  real(gp) ::fluctsum
+  real(gp) :: fluctsum
 
  
   !!!!$      interface
@@ -119,13 +119,13 @@ program BigDFT
 
   call call_bigdft(nproc,iproc,atoms,rxyz,inputs,etot,fxyz,rst,infocode)
 
-if (inputs%ncount_cluster_x > 1) then
-    if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
-    ! geometry optimization
-    open(unit=16,file='geopt.mon',status='unknown')
-    if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
-    call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
- end if
+  if (inputs%ncount_cluster_x > 1) then
+     if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+     ! geometry optimization
+     open(unit=16,file='geopt.mon',status='unknown')
+     if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
+     call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
+  end if
 
 
   if (iproc.eq.0) then
@@ -151,16 +151,19 @@ if (inputs%ncount_cluster_x > 1) then
   !deallocations
   i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
   deallocate(atoms%ifrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'ifrztyp',subname)
+  call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
   i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
   deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'iatype',subname)
+  call memocc(i_stat,i_all,'atoms%iatype',subname)
   i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
   deallocate(atoms%natpol,stat=i_stat)
-  call memocc(i_stat,i_all,'natpol',subname)
+  call memocc(i_stat,i_all,'atoms%natpol',subname)
   i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
   deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atomnames',subname)
+  call memocc(i_stat,i_all,'atoms%atomnames',subname)
+  i_all=-product(shape(atoms%amu))*kind(atoms%amu)
+  deallocate(atoms%amu,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%amu',subname)
 
   call free_restart_objects(rst,subname)
 

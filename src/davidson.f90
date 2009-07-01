@@ -41,8 +41,16 @@
 !!      Hamilton(v) --> hv
 !!      (transpose v and hv)
 !!   end do
-!!   (retranspose v and psi) 
-!!! SOURCE
+!!   (retranspose v and psi)
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA, UNIBAS
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
 !!
 subroutine davidson(iproc,nproc,n1i,n2i,n3i,at,cpmult,fpmult,radii_cf,&
      orbs,orbsv,nvirt,gnrm_cv,nplot,lr,comms,&
