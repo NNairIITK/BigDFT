@@ -317,17 +317,21 @@ end subroutine bfgs
 
 subroutine timeleft(tt)
   use module_base
+  implicit none
+  real(gp), intent(out) :: tt
+  !local variables
   ! MODIFIED version for refined time limit on restart of global.f90.
   ! Only difference: Calls routine CPUtime(tt)
   integer :: ierr
-  real(gp) :: timelimit, tcpu
+  real(kind=4) :: tcpu
+  real(gp) :: timelimit
 
   open(unit=55,file='CPUlimit',status='unknown')
   read(55,*,iostat=ierr) timelimit ! in hours
   if(ierr/=0)timelimit=1d6
   close(55)
   call cpu_time(tcpu)
-  tt=timelimit-tcpu/3600d0 ! in hours
+  tt=timelimit-real(tcpu,gp)/3600._gp ! in hours
 end subroutine timeleft
 
 subroutine conjgrad(nproc,iproc,rxyz,at,etot,fxyz,rst,in,ncount_bigdft)

@@ -5,6 +5,9 @@ subroutine Convolkinetic(n1,n2,n3, &
      cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,x_f1,x_f2,x_f3)
   use module_base
   implicit none
+!dee
+!  integer :: iend_test,count_rate_test,count_max_test,istart_test
+
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(wp), intent(in) :: cprecr
   real(gp), intent(in) :: hgrid
@@ -248,6 +251,9 @@ subroutine Convolkinetic(n1,n2,n3, &
 !  call system_clock(ncount0,ncount_rate,ncount_max)
 
   ! (1/2) d^2/dx^2
+
+!dee
+!call system_clock(istart_test,count_rate_test,count_max_test)
 
 !$omp parallel default(private) &
 !$omp shared(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3) &
@@ -658,6 +664,10 @@ subroutine Convolkinetic(n1,n2,n3, &
   !$omp enddo
 
   !$omp end parallel
+!dee
+!call system_clock(iend_test,count_rate_test,count_max_test)
+!write(*,*) 'elapsed time on comb',(iend_test-istart_test)/(1.d0*count_rate_test)
+
 !  call system_clock(ncount6,ncount_rate,ncount_max)
 !  tel=dble(ncount6-ncount5)/dble(ncount_rate)
 !  write(99,'(a40,1x,e10.3,1x,f6.1)') 'SECND PART:z',tel,1.d-6*nflop3/tel

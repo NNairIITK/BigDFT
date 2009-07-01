@@ -232,7 +232,7 @@ subroutine fill_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,at,rxyz,radii_c
         write(*,'(1x,a,i0,a)')'found ',nwarnings,' warnings.'
         write(*,'(1x,a)')'Some projectors may be too rough.'
         write(*,'(1x,a,f6.3)')&
-             'Consider the possibility of modifying hgrid and/or the localisationr adii.'
+             'Consider the possibility of modifying hgrid and/or the localisation radii.'
      end if
   end if
 

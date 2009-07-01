@@ -453,6 +453,8 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
         i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
         n3d=nscatterarr(jproc,1)
         if (n3d==0) exit loop_xc_overlap
+        !alternative definition of i3s, used for OpenMP parallelisation of the outermost loop
+        i3s=sum(nscatterarr(0:jproc-1,1))
      else
         i3off=0
         n3d=n3i

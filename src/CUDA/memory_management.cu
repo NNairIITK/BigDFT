@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 
-//functions for allocate / dealocate / send memory to GPU
+//functions for allocate / deallocate / send memory to GPU
 
 
 #define CUERR { cudaError_t err; \

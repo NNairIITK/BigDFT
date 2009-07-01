@@ -739,7 +739,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
              rhopot,pkernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
      else
   
-        if (in%read_ref_den .and. gnrm <= in%gnrm_sw)then
+        if (in%read_ref_den .and. gnrm <= in%gnrm_sw .or. potion_overwritten) then
            if (.not. potion_overwritten) then
               !overwrite pot_ion with the potential previously created
               call read_potfile(atoms%geocode,'potion_corr.pot',n1,n2,n3,n1i,n2i,n3i,n3pi,&
