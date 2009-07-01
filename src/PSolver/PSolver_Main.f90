@@ -106,7 +106,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
   integer :: i_all,i_stat,ierr,ind,ind2,ind3,ind4,ind4sh,i,j
-  integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,i4,ind2nd
+  integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh,is_step,ind2nd
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,nlim,ispin,istden,istglo
   real(dp) :: scal,ehartreeLOC,eexcuLOC,vexcuLOC,pot
   real(wp), dimension(:,:,:,:), allocatable :: zfionxc
@@ -122,7 +122,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
   if (present(quiet)) then
      if(quiet == 'yes' .or. quiet == 'YES') then
         wrtmsg=.false.
-     else if(quiet == 'no' .or. quiet == 'NO') then
+     else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
         wrtmsg=.true.
      else
         write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
@@ -238,9 +238,9 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
        if(datacode=='G' .and. &
             ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
         !allocation of an auxiliary array for avoiding the shift of the de ) then
-          call xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
+          call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
                ixc,hx,hy,hz,rhopot_G,pot_ion,sumpion,zf,zfionxc,&
-               eexcuLOC,vexcuLOC,iproc,nproc,nspin)
+               eexcuLOC,vexcuLOC,nproc,nspin)
           do ispin=1,nspin
              do i3=1,nxt
                 do i2=1,m3
@@ -262,9 +262,9 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
           deallocate(rhopot_G,stat=i_stat)
           call memocc(i_stat,i_all,'rhopot_g',subname)
        else
-          call xc_energy(geocode,m1,m2,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
+          call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
                ixc,hx,hy,hz,rhopot(1+n01*n02*(i3start-1)),pot_ion,sumpion,zf,zfionxc,&
-               eexcuLOC,vexcuLOC,iproc,nproc,nspin)
+               eexcuLOC,vexcuLOC,nproc,nspin)
        end if
   else if (istart+1 <= nlim) then !this condition ensures we have performed good zero padding
      do i2=istart+1,min(nlim,istart+md2/nproc)
@@ -282,7 +282,6 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      vexcuLOC=0.0_dp
   end if
 
- 
   call timing(iproc,'Exchangecorr  ','OF')
 
   !this routine builds the values for each process of the potential (zf), multiplying by scal 
@@ -296,7 +295,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
      !factor of -4*pi for the definition of the Poisson equation
      scal=-16.0_dp*atan(1.0_dp)*real(hy,dp)/real(n1*n2*n3,dp)
      call S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
-          scal,hx,hy,hz)!,ehartreeLOC)
+          scal) !,hx,hy,hz,ehartreeLOC)
   else if (geocode == 'F') then
      !hgrid=max(hx,hy,hz)
      scal=hx*hy*hz/real(n1*n2*n3,dp)
@@ -604,7 +603,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,ixc,hx,hy,hz,&
   !local variables
   character(len=*), parameter :: subname='PSolverNC'
   real(dp) :: rhon,rhos,factor
-  integer :: i_all,i_stat,ierr,i1,i2,i3,idx,offs
+  integer :: i_all,i_stat,i1,i2,i3,idx,offs
   real(dp), dimension(:,:,:), allocatable :: m_norm
   real(dp), dimension(:,:,:,:), allocatable :: rho_diag
   

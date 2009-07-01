@@ -67,13 +67,20 @@ for ((count=${min};count<=${max};count++)) ; do
 	mkdir $dir
     fi
     # Empty the working directory.
-    rm -f $dir/*
-    touch $dir/START
+    if [ ! -f $dir/RESTART ] ; then
+        rm -f $dir/*
+        touch $dir/START
+    fi
     neb_dir[$count]=$dir
 done
 
+# Run an init function if necessary.
+cd $workdir
+init_jobs $job_name
+
 # Main loop. Start run in each directories, erasing the START keyword.
 jobs_done=0
+iter=0
 while [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; do
 
     # Do things in each directories depending on keywords.
@@ -97,6 +104,12 @@ while [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; do
 	fi
 
 	cd ${neb_dir[$count]}
+	# keyword RESTART
+	if [ -f RESTART ] ; then
+	    rm -f RESTART
+	fi
+
+	cd ${neb_dir[$count]}
 	res=`check_job $job_name`
 	# Job has finished
 	if test $res -gt 0 && [ ! -f OK ] && [ ! -f FAILED ] ; then
@@ -115,12 +128,20 @@ while [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; do
 
     done
 
+    cd $workdir
+    wait_jobs $iter
+
     if [ ${jobs_done} -lt $((${max} - ${min} + 1)) ] ; then
 	sleep 10s
     fi
+    iter=$(($iter + 1))
 done
 
-# Compression of the data
+# Call a finalise script.
+cd $workdir
+finalise_jobs $job_name
+
+# Compression of the work data and saving of previous results
 cd $workdir
 for ((i = 0; i < 256; i++)) ; do
     ch=`printf "%03d" $i`
@@ -128,7 +149,10 @@ for ((i = 0; i < 256; i++)) ; do
 	if test x"$DEBUG" != x ; then
 	    echo "Compression of replica calculations into '$job_name.NEB.it${ch}.tar.bz2'"
 	fi
-	tar --exclude *.bz2 -cjf $job_name.NEB.it${ch}.tar.bz2 $job_name.NEB.*
+	tar --exclude \*.bz2 -cjf $job_name.NEB.it${ch}.tar.bz2 $job_name.NEB.*
+	if [ -f $datadir/$job_name.NEB.dat ] ; then
+	    cp -f -p $datadir/$job_name.NEB.dat $datadir/$job_name.NEB.it${ch}.dat
+	fi
 	break
     fi
 done

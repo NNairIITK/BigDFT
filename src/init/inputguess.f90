@@ -1177,6 +1177,7 @@ subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 END SUBROUTINE calc_coeff_inguess
 
 
+
 subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,occupat,expo,psiat)
   use module_base
   implicit none
@@ -1206,7 +1207,6 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   real(gp) :: alpz,alpl,rcov,rprb,zion,rij,a,a0,a0in,tt,ehomo
 
   !filename = 'psppar.'//trim(atomname)
-
   lpx=0
   lpx_determination: do i=1,4
      if (psppar(i,0) == 0.0_gp) then
@@ -1335,7 +1335,6 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
   end do
 
   call crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
-
   call gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
        zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,n_int,&
        aeval,ng,psi,res,chrg)
@@ -1378,6 +1377,17 @@ subroutine iguess_generator(iproc,izatom,ielpsp,psppar,npspcode,ng,nl,nmax_occ,o
 END SUBROUTINE iguess_generator
 
 
+
+
+
+
+
+
+
+
+
+
+
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
                  zion,alpz,gpot,alpl,hsep,alps,vh,xp,rmt,fact,nintp,&
                  aeval,ng,psi,res,chrg)
@@ -1396,6 +1406,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
        vh(0:ng,0:ng,4,0:ng,0:ng,4),&
        res(noccmax,lmax+1),xp(0:ng)
   if (nintp.ne.n_int) stop 'n_int><nintp'
+
 
   do l=0,lmax
      if (occup(1,l+1).gt.0._gp) lcx=l
@@ -1614,7 +1625,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
          exit big_loop
      end if
   end do big_loop
-! End of the big loop
+! End of the big loopq
 
   call resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,ng,res,&
              zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
@@ -1633,7 +1644,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
         do i=0,ng
            d=xp(i)+xp(j)
            sd=sqrt(d)
-           terf=derf(sd*rcov) 
+           call derf(terf, sd*rcov) 
            texp=exp(-d*rcov**2)
 
            tt=0.4431134627263791_gp*terf/sd**3 - 0.5_gp*rcov*texp/d
@@ -1661,6 +1672,16 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
         end do
      end do
   end do
+
+
+! ------------------------------------------------
+  
+
+
+! -----------------------------------------------
+
+
+
 
 ! writing lines suppressed
 !!$        write(66,*)  lmax+1
@@ -1741,13 +1762,15 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
        gpot(3),pp1(0:ng,lmax+1),pp2(0:ng,lmax+1),pp3(0:ng,lmax+1),&
        alps(lmax+1),hsep(6,lmax+1),res(noccmax,lmax+1),xp(0:ng),&
        xcgrd(n_int),aeval(noccmax,lmax+1),potgrd(n_int)
+  real(gp) :: derf_val
   
 ! potential on grid 
   dr=fact*rprb/real(n_int,gp)
   do k=1,n_int
      r=(real(k,gp)-.5_gp)*dr
+     call derf(derf_val, r/(sqrt(2._gp)*alpz))
      potgrd(k)= .5_gp*(r/rprb**2)**2 - &
-          zion*derf(r/(sqrt(2._gp)*alpz))/r &
+          zion*derf_val/r &
           + exp(-.5_gp*(r/alpl)**2)*&
           ( gpot(1) + gpot(2)*(r/alpl)**2 + gpot(3)*(r/alpl)**4 )&
           + xcgrd(k)/r**2
@@ -1757,7 +1780,8 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
            d=xp(i)+xp(j)
            sd=sqrt(d)
            tx=exp(-d*r**2)
-           tt=spi*derf(sd*r)
+           call derf(tt, sd*r)
+           tt=spi*tt
            u_gp=tt/(4._gp*sd**3*r)
            potgrd(k)=potgrd(k)+u_gp*rho(i,j,1)
            ud1=-tx/(4._gp*d**2) + 3._gp*tt/(8._gp*sd**5*r)

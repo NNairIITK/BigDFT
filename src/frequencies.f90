@@ -19,21 +19,18 @@ program frequencies
 
   implicit none
   character(len=*), parameter :: subname='BigDFT'
-  character(len=20) :: units
   character(len=2) :: cc
-  integer :: iproc,nproc,iat,jat,ityp,i,j,i_stat,i_all,ierr,infocode
+  integer :: iproc,nproc,iat,jat,i,j,i_stat,i_all,ierr,infocode
   real(gp) :: etot,etot_m,etot_p,sumx,sumy,sumz,tt,alat,alpha,dd
   !input variables
   type(atoms_data) :: atoms
   type(input_variables) :: inputs
   type(restart_objects) :: rst
-  character(len=20), dimension(:), allocatable :: atomnames
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: rxyz,fxyz,rpos,fpos_m,fpos_p
   real(gp), dimension(:,:), allocatable :: hessian,vector_l,vector_r
   real(gp), dimension(:), allocatable :: eigen_r,eigen_i
   real(gp), dimension(3) :: h_grid
-  integer :: npr,iam
  
   !$      interface
   !$        integer ( kind=4 ) function omp_get_num_threads ( )
@@ -78,8 +75,12 @@ program frequencies
 
   close(99)
 
-  ! read input variables, use structures
-  call read_input_variables(iproc,'input.dat',inputs)
+  ! read dft input variables
+  call dft_input_variables(iproc,'input.dft',inputs)
+  !call read_input_variables(iproc,'input.dat',inputs)
+
+  !fake geopt variables
+  call geopt_input_variables_default(inputs)
  
   do iat=1,atoms%nat
      if (atoms%ifrztyp(iat) == 0) then

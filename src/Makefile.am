@@ -55,7 +55,7 @@ global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules $(sub_dirs_ps) convolutions profiling	$(sub_dirs_cuda)
+SUBDIRS = modules convolutions profiling $(sub_dirs_cuda) $(sub_dirs_ps)
 
 EXTRA_DIST = \
 	Makefile.standalone \
@@ -142,7 +142,10 @@ high_level = cluster.f90 \
 	restart.f90 \
 	geometry.f90 \
 	davidson.f90 \
-	vdwcorrection.f90
+	vdwcorrection.f90 \
+	lanczos_interface.f90 \
+	lanczos_base.f90 \
+	lanczos.f90 
 
 #objects which can be compiled whithout any dependence
 low_level = init/projectors.f90  \
@@ -159,6 +162,7 @@ low_level = init/projectors.f90  \
 	init/sysprop.f90 \
 	init/gaussians.f90 \
 	init/wfn_init.f90 \
+	init/xabsorber.f90 \
 	wfn_opt/precond.f90 \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
@@ -180,19 +184,73 @@ low_level = init/projectors.f90  \
 
 if BUILD_LIB_ABINIT
 abinit = ABINIT-ewald/ewald.F90 \
-	 ABINIT-ewald/metric.F90 \
-	 ABINIT-ewald/matr3inv.F90 \
-	 ABINIT-ewald/derfc.F90
+	ABINIT-ewald/matr3inv.F90 \
+	ABINIT-ewald/derfc.F90 \
+	ABINIT-geometry/sort_dp.F90 \
+	ABINIT-geometry/mati3inv.F90 \
+	ABINIT-geometry/canon9.F90 \
+	ABINIT-geometry/ab6_symmetry_f90.f90 \
+	ABINIT-geometry/bldgrpaf.F90 \
+	ABINIT-geometry/bldgrp.F90 \
+	ABINIT-geometry/bonds_lgth_angles.F90 \
+	ABINIT-geometry/chkdilatmx.F90 \
+	ABINIT-geometry/chkgrp.F90 \
+	ABINIT-geometry/chkorthsy.F90 \
+	ABINIT-geometry/chkprimit.F90 \
+	ABINIT-geometry/gensymshub4.F90 \
+	ABINIT-geometry/gensymshub.F90 \
+	ABINIT-geometry/gensymspgr.F90 \
+	ABINIT-geometry/getptgroupma.F90 \
+	ABINIT-geometry/getspinrot.F90 \
+	ABINIT-geometry/gridgcart.F90 \
+	ABINIT-geometry/holocell.F90 \
+	ABINIT-geometry/metric.F90 \
+	ABINIT-geometry/mkrdim.F90 \
+	ABINIT-geometry/operat.F90 \
+	ABINIT-geometry/prtspgroup.F90 \
+	ABINIT-geometry/ptgmadata.F90 \
+	ABINIT-geometry/smallprim.F90 \
+	ABINIT-geometry/spgdata.F90 \
+	ABINIT-geometry/strainsym.F90 \
+	ABINIT-geometry/strconv.F90 \
+	ABINIT-geometry/stresssym.F90 \
+	ABINIT-geometry/sym2cart.F90 \
+	ABINIT-geometry/symanal.F90 \
+	ABINIT-geometry/symatm.F90 \
+	ABINIT-geometry/symaxes.F90 \
+	ABINIT-geometry/symbrav.F90 \
+	ABINIT-geometry/symchk.F90 \
+	ABINIT-geometry/symdet.F90 \
+	ABINIT-geometry/symfind.F90 \
+	ABINIT-geometry/symlist_bcc.F90 \
+	ABINIT-geometry/symlist_fcc.F90 \
+	ABINIT-geometry/symlist_others.F90 \
+	ABINIT-geometry/symlist_prim.F90 \
+	ABINIT-geometry/symmultsg.F90 \
+	ABINIT-geometry/symplanes.F90 \
+	ABINIT-geometry/symredcart.F90 \
+	ABINIT-geometry/symrelrot.F90 \
+	ABINIT-geometry/symsgcube.F90 \
+	ABINIT-geometry/symsghexa.F90 \
+	ABINIT-geometry/symsgmono.F90 \
+	ABINIT-geometry/symsgortho.F90 \
+	ABINIT-geometry/symsgtetra.F90 \
+	ABINIT-geometry/symspgr.F90 \
+	ABINIT-geometry/symzat.F90 \
+	ABINIT-geometry/xredxcart.F90 \
+	ABINIT-geometry/smpbz.F90 \
+	ABINIT-geometry/symkpt.F90 \
+	ABINIT-geometry/getkgrid.F90
 else
 abinit = 
 endif
 
 libbigdft_a_SOURCES = \
+	$(abinit) \
 	$(mpi_source) \
 	BigDFT_API.f90 \
 	$(high_level) \
-	$(low_level) \
-	$(abinit)
+	$(low_level)
 
 libbigdft_a_LIBADD = profiling/time.o \
 	profiling/memory.o \
@@ -218,11 +276,17 @@ test_forces_LDADD = libbigdft.a \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
-NEB_SOURCES = NEB.f90
+NEB_SOURCES = NEB.f90 \
+	$(mpi_source)
 NEB_LDFLAGS = 
-NEB_LDADD =
+NEB_LDADD = input_variables.o \
+	$(modules_objects) \
+	profiling/memory.o \
+	convolutions/interface_cuda_fake.o \
+	$(libs_cuda)
 
-memguess_SOURCES = memguess.f90 
+memguess_SOURCES = memguess.f90 \
+	$(mpi_source)
 memguess_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
 	PSolver/ABINIT-common/libABINIT.a \
@@ -230,7 +294,8 @@ memguess_LDADD = libbigdft.a \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
-frequencies_SOURCES = frequencies.f90 
+frequencies_SOURCES = frequencies.f90  \
+	$(mpi_source)
 frequencies_LDFLAGS = 
 frequencies_LDADD = libbigdft.a \
 	PSolver/libpoissonsolver.a \
@@ -245,13 +310,23 @@ CLEANFILES = mpif.h \
 	module_interfaces.@MODULE_EXT@ MODULE_INTERFACES.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ MODULE_TYPES.@MODULE_EXT@ \
 	module_base.@MODULE_EXT@ MODULE_BASE.@MODULE_EXT@ \
-	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@
-
+	vdwcorrection.@MODULE_EXT@ VDWCORRECTION.@MODULE_EXT@ \
+	lanczos_base.@MODULE_EXT@ LANCZOS_BASE.@MODULE_EXT@ \
+	lanczos_interface.@MODULE_EXT@ LANCZOS_INTERFACE.@MODULE_EXT@ \
+	formats.@MODULE_EXT@ FORMATS.@MODULE_EXT@ \
+	miscellany.@MODULE_EXT@ MISCELLANY.@MODULE_EXT@ \
+	neb_routines.@MODULE_EXT@ NEB_ROUTINES.@MODULE_EXT@ \
+	numeric.@MODULE_EXT@ NUMERIC.@MODULE_EXT@ \
+	minimization.@MODULE_EXT@ MINIMIZATION.@MODULE_EXT@ \
+	minimization_routines.@MODULE_EXT@ MINIMIZATION_ROUTINES.@MODULE_EXT@ \
+	neb_variables.@MODULE_EXT@ NEB_VARIABLES.@MODULE_EXT@
 
 #dependencies
 $(libbigdft_a_SOURCES:.f90=.o) BigDFT.o test_forces.o  memguess.o : $(mpi_include)  $(modules_objects)
 
 cluster.o geometry.o: vdwcorrection.o
+
+lanczos.o : lanczos_base.o lanczos_interface.o
 
 #init.o : base.o interfaces.o
 

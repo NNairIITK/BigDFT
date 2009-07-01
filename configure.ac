@@ -9,13 +9,14 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets], [1.2.3], [Damien.Caliste@cea.fr], [bigdft])
+AC_INIT([BigDFT - DFT over wavelets], [1.3.0], [Damien.Caliste@cea.fr], [bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
 AC_CONFIG_AUX_DIR(config)
 dnl Use a config.h file to store macro definitions
 AM_CONFIG_HEADER(config.h)
+AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
 AM_INIT_AUTOMAKE

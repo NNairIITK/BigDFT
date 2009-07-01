@@ -3,8 +3,9 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	input.dat \
-	posinp \
+	input.dft \
+	input.geopt \
+	posinp.xyz \
 	input.geopt
 
 PPFILES = \
@@ -12,15 +13,24 @@ PPFILES = \
 	psppar.Cl
 
 CLEANFILES = $(PPFILES) NaCl.out posout* geopt.mon *.prc\
-			 fldiff.report $(EXTRA_DIST) $(PPFILES)
+			 fldiff.report
 
 #dependencies
-psppar.Na psppar.Cl:
-	cp $(top_srcdir)/utils/PSPfiles/HGH/$@ .
+$(PPFILES):
+	ln -fs $(top_srcdir)/utils/PSPfiles/HGH/$@
 
-check: $(PPFILES)
-	cp -f $(top_srcdir)/tests/NaCl/input.dat .
-	cp -f $(top_srcdir)/tests/NaCl/input.geopt .
-	cp -f $(top_srcdir)/tests/NaCl/posinp .
-	$(run_parallel) $(top_builddir)/src/cluster > NaCl.out
+NaCl.out: $(top_builddir)/src/cluster $(PPFILES)
+	if ! test x"$srcdir" = x"." ; then \
+	  ln -fs $(srcdir)/input.dft ; \
+	  ln -fs $(srcdir)/posinp.xyz ; \
+	  ln -fs $(srcdir)/input.geopt ; \
+        fi
+	$(run_parallel) $(top_builddir)/src/cluster > $@
+	if ! test x"$srcdir" = x"." ; then \
+	  rm -f input.dft ; \
+	  rm -f posinp.xyz ; \
+	  rm -f input.geopt ; \
+        fi
+
+check: NaCl.out
 	python $(top_srcdir)/tests/fldiff.py --bigdft NaCl.out $(top_srcdir)/tests/Refs/NaCl.out.ref | tee fldiff.report

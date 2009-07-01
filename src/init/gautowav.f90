@@ -444,6 +444,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   ishell=0
   iexpo=1
   icoeff=1
+
   do iat=1,G%nat
      rx=G%rxyz(1,iat)
      ry=G%rxyz(2,iat)
@@ -491,15 +492,8 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
               if (orbs%isorb < iorb .and. iorb <= orbs%isorb+orbs%norbp) then
                  jorb=iorb-orbs%isorb
                  do ispinor=1,orbs%nspinor
-!!$                    if (wfn_gau(icoeff,ispinor,jorb) /= 0.0_wp) then
-!!$                       !print *,icoeff,iorb,iat,jorb,G%nat
-!!$                    do i=1,wfd%nvctr_c+7*wfd%nvctr_f
-!!$                       !for this also daxpy BLAS can be used
-!!$                       psi(i,jorb)=psi(i,jorb)+wfn_gau(icoeff,jorb)*tpsi(i)
-!!$                    end do
                     call axpy(wfd%nvctr_c+7*wfd%nvctr_f,wfn_gau(icoeff,ispinor,jorb),&
                          tpsi(1),1,psi(1,ispinor,jorb),1)
-!!$                    end if
                  end do
               end if
            end do

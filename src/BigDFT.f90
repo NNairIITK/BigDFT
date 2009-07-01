@@ -26,6 +26,7 @@ program BigDFT
   implicit none
   character(len=*), parameter :: subname='BigDFT'
   character(len=20) :: units
+  logical :: exists
   integer :: iproc,nproc,iat,ityp,j,i_stat,i_all,ierr,infocode
   integer ::  ncount_bigdft
   real(gp) :: etot,sumx,sumy,sumz,tt
@@ -38,8 +39,8 @@ program BigDFT
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
   integer npr,iam
-    integer  :: nfluct
-    real(gp) ::fluctsum
+  integer  :: nfluct
+  real(gp) ::fluctsum
 
  
   !!!!$      interface
@@ -77,9 +78,20 @@ program BigDFT
   allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fxyz,'fxyz',subname)
 
-  ! read input variables, use structures
-  call read_input_variables(iproc,'input.dat',inputs)
- 
+  ! read dft input variables
+  call dft_input_variables(iproc,'input.dft',inputs)
+  !call read_input_variables(iproc,'input.dat',inputs)
+
+  !read geometry optimsation input variables
+  !inquire for the file needed for geometry optimisation
+  !if not present, perform a simple geometry optimisation
+  inquire(file="input.geopt",exist=exists)
+  if (exists) then
+     call geopt_input_variables(iproc,'input.geopt',inputs)
+  else
+     call geopt_input_variables_default(inputs)
+  end if
+
   do iat=1,atoms%nat
      if (atoms%ifrztyp(iat) == 0) then
         call random_number(tt)

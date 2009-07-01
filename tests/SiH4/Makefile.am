@@ -3,22 +3,33 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	input.dat \
-	posinp 
+	input.dft \
+	input.geopt \
+	posinp.xyz 
 
 PPFILES = \
 	psppar.H \
 	psppar.Si
 
-CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* SiH4.out posout* *.prc\
-			 fldiff.report $(EXTRA_DIST) $(PPFILES)
+CLEANFILES = $(PPFILES) SiH4.out geopt.mon posout* *.prc\
+			fldiff.report
 
 #dependencies
 $(PPFILES):
-	cp $(top_srcdir)/utils/PSPfiles/HGH-K/$@ .
+	ln -fs $(top_srcdir)/utils/PSPfiles/HGH-K/$@
 
-check: $(PPFILES)
-	cp -f $(top_srcdir)/tests/SiH4/input.dat .
-	cp -f $(top_srcdir)/tests/SiH4/posinp .
-	$(run_parallel) $(top_builddir)/src/cluster > SiH4.out
+SiH4.out: $(top_builddir)/src/cluster $(PPFILES)
+	if ! test x"$srcdir" = x"." ; then \
+	  ln -fs $(srcdir)/input.dft ; \
+	  ln -fs $(srcdir)/posinp.xyz ; \
+	  ln -fs $(srcdir)/input.geopt ; \
+        fi
+	$(run_parallel) $(top_builddir)/src/cluster > $@
+	if ! test x"$srcdir" = x"." ; then \
+	  rm -f input.dft ; \
+	  rm -f posinp.xyz ; \
+	  rm -f input.geopt ; \
+        fi
+
+check: SiH4.out
 	python $(top_srcdir)/tests/fldiff.py --bigdft SiH4.out $(top_srcdir)/tests/Refs/SiH4.out.ref | tee fldiff.report

@@ -3,8 +3,8 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	input.dat \
-	posinp 
+	input.dft \
+	posinp.xyz 
 
 
 PPFILES = \
@@ -12,14 +12,22 @@ PPFILES = \
 	psppar.O
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat *.pot *.pot_avg* *xyz H2O-slab.out posout* \
-	*prc fldiff.report $(EXTRA_DIST) $(PPFILES)	
+	*prc fldiff.report
 
 #dependencies
 $(PPFILES):
-	cp $(top_srcdir)/utils/PSPfiles/HGH-K/$@ .
+	ln -fs $(top_srcdir)/utils/PSPfiles/HGH-K/$@
 
-check: $(PPFILES) 
-	cp -f $(top_srcdir)/tests/H2O-slab/input.dat .
-	cp -f $(top_srcdir)/tests/H2O-slab/posinp .
-	$(run_parallel) $(top_builddir)/src/cluster > H2O-slab.out
+H2O-slab.out: $(top_builddir)/src/cluster $(PPFILES)
+	if ! test x"$srcdir" = x"." ; then \
+	  ln -fs $(srcdir)/input.dft ; \
+	  ln -fs $(srcdir)/posinp.xyz ; \
+        fi
+	$(run_parallel) $(top_builddir)/src/cluster > $@
+	if ! test x"$srcdir" = x"." ; then \
+	  rm -f input.dft ; \
+	  rm -f posinp.xyz ; \
+        fi
+
+check: H2O-slab.out
 	python $(top_srcdir)/tests/fldiff.py --bigdft H2O-slab.out $(top_srcdir)/tests/Refs/H2O-slab.out.ref | tee fldiff.report

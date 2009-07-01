@@ -3,22 +3,30 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	input.dat \
-	posinp 
+	input.dft \
+	posinp.xyz 
 
 PPFILES = \
 	psppar.H \
 	psppar.Si
 
 CLEANFILES = $(PPFILES) Davidson-SiH4.out posout* *.pot *.prc\
-			 fldiff.report $(EXTRA_DIST) $(PPFILES)
+			 fldiff.report
 
 #dependencies
 $(PPFILES):
-	cp $(top_srcdir)/utils/PSPfiles/$@ .
+	ln -fs $(top_srcdir)/utils/PSPfiles/$@
 
-check: $(PPFILES)
-	cp -f $(top_srcdir)/tests/Davidson-SiH4/input.dat .
-	cp -f $(top_srcdir)/tests/Davidson-SiH4/posinp .
-	$(run_parallel) $(top_builddir)/src/cluster > Davidson-SiH4.out
+Davidson-SiH4.out: $(top_builddir)/src/cluster $(PPFILES)
+	if ! test x"$srcdir" = x"." ; then \
+	  ln -fs $(srcdir)/input.dft ; \
+	  ln -fs $(srcdir)/posinp.xyz ; \
+        fi
+	$(run_parallel) $(top_builddir)/src/cluster > $@
+	if ! test x"$srcdir" = x"." ; then \
+	  rm -f input.dft ; \
+	  rm -f posinp.xyz ; \
+        fi
+
+check: Davidson-SiH4.out
 	python $(top_srcdir)/tests/fldiff.py --bigdft Davidson-SiH4.out $(top_srcdir)/tests/Refs/Davidson-SiH4.out.ref | tee fldiff.report

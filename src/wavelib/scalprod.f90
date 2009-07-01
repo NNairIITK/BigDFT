@@ -154,15 +154,32 @@ subroutine wpdot(  &
   real(wp), dimension(7,mbvctr_f), intent(in) :: bpsi_f
   real(dp), intent(out) :: scpr
   !local variables
-  integer :: iaseg,ibseg,llc,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,llf,i
+  integer :: iaseg,ibseg,llc,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,llf,i,id,tot
   real(dp) :: pac,paf1,paf2,paf3,paf4,paf5,paf6,paf7,pbc,pbf1,pbf2,pbf3,pbf4,pbf5,pbf6,pbf7
   real(dp) :: scpr1,scpr2,scpr3,scpr4,scpr5,scpr6,scpr7
-  
+!  integer :: ncount0,ncount2,ncount_rate,ncount_max
+!  real(gp) :: tel
+
+
+!dee
+!  open(unit=97,file='time_wpdot',status='unknown')
+!  call system_clock(ncount0,ncount_rate,ncount_max)
+
+   scpr=0.0_dp
+ 
+!dee
+!!$omp parallel default (private) &
+!!$omp shared (maseg_c,keyav_c,keyag_c,keybg_c,mbseg_c,keybv_c,mbseg_f,maseg_f)&
+!!$omp shared (apsi_c,bpsi_c,bpsi_f,keybv_f,mbseg_f,keybg_f,keyag_f,keyav_f)&
+!!$omp shared (apsi_f,scpr)
   llc=0
-  scpr=0.0_dp
+!  scpr=0.0_dp
   !coarse part
   ibseg=1
+!  id=omp_get_thread_num()
+!  tot=omp_get_num_threads()
   !for each segment of the first function
+!if (id .eq. 0) then
   loop_jac: do iaseg=1,maseg_c
      jaj=keyav_c(iaseg)
      ja0=keyag_c(1,iaseg)
@@ -202,6 +219,7 @@ subroutine wpdot(  &
      end do loop_jbc
   enddo loop_jac
 
+!endif
   !print *,'nvctr_c',llc,mavctr_c,mbvctr_c
 
 
@@ -216,6 +234,7 @@ subroutine wpdot(  &
   ! fine part
   !add possibility of zero fine segments for the projectors
   ibseg=1
+!if (id .eq. 1) then
   if (mbseg_f /= 0) then
      loop_jaf: do iaseg=1,maseg_f
         jaj=keyav_f(iaseg)
@@ -273,10 +292,19 @@ subroutine wpdot(  &
      enddo loop_jaf
   end if
 
+!endif
   !print *,'nvctr_f',llf,mavctr_f,mbvctr_f
-
+!!$omp atomic
   scpr=scpr+scpr1+scpr2+scpr3+scpr4+scpr5+scpr6+scpr7
+!!$omp end critical
+!!$omp end parallel
   !        write(*,*) 'llc,llf',llc,llf
+!  call system_clock(ncount2,ncount_rate,ncount_max)
+!  tel=dble(ncount2-ncount0)/dble(ncount_rate)
+!  write(97,'(a40,1x,e10.3,1x,f6.1)') 'wpdot:',tel
+!  close(97)
+
+
 
 END SUBROUTINE wpdot
 
@@ -302,14 +330,28 @@ subroutine waxpy(  &
   real(wp), dimension(mavctr_c), intent(inout) :: apsi_c
   real(wp), dimension(7,mavctr_f), intent(inout) :: apsi_f
   !local variables
-  integer :: iaseg,ibseg,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,i
+  integer :: iaseg,ibseg,jaj,ja0,ja1,jb1,jb0,jbj,iaoff,iboff,length,i,id,tot
+!  integer :: ncount0,ncount2,ncount_rate,ncount_max
+!  real(gp) :: tel 
   real(wp) :: scprwp
+!dee
+!  open(unit=97,file='time_waxpy',status='unknown')
+!  call system_clock(ncount0,ncount_rate,ncount_max)
 
   scprwp=real(scpr,wp)
-
+  
+!dee
+!$omp parallel default (private) &
+!$omp shared (maseg_c,keyav_c,keyag_c,keybg_c,mbseg_c,mbseg_f,maseg_f)&
+!$omp shared (keyav_f,keyag_f,keybg_f,keybv_f,scprwp,bpsi_c,bpsi_f)&
+!$omp shared (apsi_f,apsi_c,keybv_c)
+  id=omp_get_thread_num()
+  tot=omp_get_num_threads()
   !        llc=0
   ! coarse part
   ibseg=1
+
+if (id .eq. 0) then
   loop_jac: do iaseg=1,maseg_c
      jaj=keyav_c(iaseg)
      ja0=keyag_c(1,iaseg)
@@ -343,10 +385,12 @@ subroutine waxpy(  &
         if (ibseg > mbseg_c) exit loop_jac
      end do loop_jbc
   enddo loop_jac
+endif
 
   !        llf=0
   ! fine part
   ibseg=1
+if (id .eq. 1) then
   if (mbseg_f /= 0) then
      loop_jaf: do iaseg=1,maseg_f
         jaj=keyav_f(iaseg)
@@ -388,7 +432,15 @@ subroutine waxpy(  &
         end do loop_jbf
      enddo loop_jaf
   end if
+endif
   !        write(*,*) 'waxpy,llc,llf',llc,llf
+!$omp end parallel
+
+!  call system_clock(ncount2,ncount_rate,ncount_max)
+!  tel=dble(ncount2-ncount0)/dble(ncount_rate)
+!  write(97,'(a40,1x,e10.3,1x,f6.1)') 'waxpy:',tel
+!  close(97)
+
 
 END SUBROUTINE waxpy
 

@@ -295,8 +295,8 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,nelec,rho)
   integer, intent(in) :: n1i,n2i,n3i,n3d,n1,n2,n3,nelec,i3s
   real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
   !local variables
-  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr
-  real(dp) :: later_avg
+  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,j1,j2,j3
+  real(dp) :: value
 
   open(unit=22,file=filename,status='unknown')
   read(22,*)!'normalised density'
@@ -324,16 +324,15 @@ subroutine read_potfile(geocode,filename,n1,n2,n3,n1i,n2i,n3i,n3d,i3s,nelec,rho)
   call razero(max(n1i*n2i*n3d,1),rho)
 
   do i3=0,2*n3+1
-     if (i3+nl3 >= i3s .and. i3+nl3 <= i3s+n3d-1) then
-        do i2=0,2*n2+1
-           do i1=0,2*n1+1
-              ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-i3s)*n1i*n2i
-              read(22,*)rho(ind)
-              rho(ind)=rho(ind)*real(nelec,dp)
-              
-           end do
+     do i2=0,2*n2+1
+        do i1=0,2*n1+1
+           ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-i3s)*n1i*n2i
+           read(22,*)value
+           if (i3+nl3 >= i3s .and. i3+nl3 <= i3s+n3d-1) then
+              rho(ind)=value*real(nelec,dp)
+           end if
         end do
-     end if
+     end do
   end do
   close(22)
 
@@ -393,6 +392,7 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ne
      pot_ion => rho
   end if
 
+
   if (iproc == 0) then
      do i3=0,2*n3+1
         do i2=0,2*n2+1
@@ -427,7 +427,6 @@ subroutine plot_density(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,ne
      deallocate(pot_ion,stat=i_stat)
      call memocc(i_stat,i_all,'pot_ion',subname)
   end if
-
 end subroutine plot_density
 
 subroutine plot_density_cube(geocode,filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,nspin,&

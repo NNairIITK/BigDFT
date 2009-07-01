@@ -3,8 +3,8 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	input.dat \
-	posinp \
+	input.dft \
+	posinp.xyz \
 	gaubasis.dat \
 	gaucoeff.dat 
 
@@ -13,16 +13,26 @@ PPFILES = \
 	psppar.O
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* H2O-CP2K.out posout* *.prc \
-			 fldiff.report $(EXTRA_DIST) $(PPFILES)
+			 fldiff.report
 
 #dependencies
 $(PPFILES):
-	cp $(top_srcdir)/utils/PSPfiles/HGH/$@ .
+	ln -fs $(top_srcdir)/utils/PSPfiles/HGH/$@
 
-check: $(PPFILES) 
-	cp -f $(top_srcdir)/tests/H2O-CP2K/input.dat .
-	cp -f $(top_srcdir)/tests/H2O-CP2K/posinp .
-	cp -f $(top_srcdir)/tests/H2O-CP2K/gaucoeff.dat .
-	cp -f $(top_srcdir)/tests/H2O-CP2K/gaubasis.dat .
-	$(run_parallel) $(top_builddir)/src/cluster > H2O-CP2K.out
+H2O-CP2K.out: $(top_builddir)/src/cluster $(PPFILES)
+	if ! test x"$srcdir" = x"." ; then \
+	  ln -fs $(srcdir)/input.dft ; \
+	  ln -fs $(srcdir)/posinp.xyz ; \
+	  ln -fs $(srcdir)/gaucoeff.dat ; \
+	  ln -fs $(srcdir)/gaubasis.dat ; \
+        fi
+	$(run_parallel) $(top_builddir)/src/cluster > $@
+	if ! test x"$srcdir" = x"." ; then \
+	  rm -f input.dft ; \
+	  rm -f posinp.xyz ; \
+	  rm -f gaucoeff.dat ; \
+	  rm -f gaubasis.dat ; \
+        fi
+
+check: H2O-CP2K.out
 	python $(top_srcdir)/tests/fldiff.py --bigdft H2O-CP2K.out $(top_srcdir)/tests/Refs/H2O-CP2K.out.ref | tee fldiff.report

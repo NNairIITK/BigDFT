@@ -19,12 +19,16 @@ module module_types
 !! SOURCE
 !!
   type, public :: input_variables
-     logical :: output_wf,calc_tail,gaussian_help
+     character(len=10) :: geopt_approach
+     logical :: output_wf,calc_tail,gaussian_help,read_ref_den,correct_offset
      integer :: ncount_cluster_x
      integer :: ixc,ncharge,itermax,nrepmax,ncong,idsx,ncongt,inputPsiId,nspin,mpol,nvirt,nplot
      integer :: output_grid, dispersion
-     real(gp) :: frac_fluct,randdis,betax,forcemax
+     real(gp) :: frac_fluct,randdis,betax,forcemax,gnrm_sw
      real(gp) :: hx,hy,hz,crmult,frmult,gnrm_cv,rbuf
+     integer :: iat_absorber,nvacancy,verbosity
+
+
      real(gp), dimension(3) :: ef
   end type input_variables
 !!***
@@ -121,6 +125,11 @@ module module_types
      real(gp) :: alat1,alat2,alat3
      integer, dimension(:), pointer :: iatype,iasctype,natpol,nelpsp,npspcode,nzatom,ifrztyp
      real(gp), dimension(:,:,:), pointer :: psppar
+
+     ! AMmodif
+     integer :: iat_absorber 
+     ! AMmodif end
+
   end type atoms_data
 !!***
 
@@ -262,6 +271,37 @@ module module_types
   end type workarr_precond
 !!***
 
+
+!!****t* module_types/lanczos_args
+!! DESCRIPTION
+!! Contains the arguments needed for the application of the hamiltonian
+!!
+!! SOURCE
+!!
+  type, public :: lanczos_args
+     !arguments for the hamiltonian
+     integer  :: iproc,nproc,ndimpot,nspin
+     real(gp)  :: hx,hy,hz,cpmult,fpmult
+     real(gp) :: ekin_sum,epot_sum,eproj_sum
+     type(atoms_data), pointer :: at
+     type(orbitals_data) :: orbs
+     type(communications_arrays) :: comms
+     type(nonlocal_psp_descriptors), pointer :: nlpspd
+     type(locreg_descriptors), pointer :: lr 
+     type(gaussian_basis), pointer :: Gabsorber    
+     integer, dimension(:,:), pointer :: ngatherarr 
+     real(gp), dimension(:,:),  pointer :: rxyz
+     real(gp), dimension(:,:), pointer :: radii_cf  
+     real(wp), dimension(:), pointer :: proj
+     !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), pointer :: psi
+     real(wp), dimension(:,:), pointer :: potential
+     real(wp), dimension(:), pointer :: Gabs_coeffs
+     !real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp) :: hpsi
+     type(GPU_pointers), pointer :: GPU
+  end type lanczos_args
+!!***
+
+
 contains
 
   subroutine allocate_comms(nproc,comms,routine)
@@ -271,7 +311,7 @@ contains
     integer, intent(in) :: nproc
     type(communications_arrays), intent(out) :: comms
     !local variables
-    integer :: i_all,i_stat
+    integer :: i_stat
 
     allocate(comms%nvctr_par(0:nproc-1+ndebug),stat=i_stat)
     call memocc(i_stat,comms%nvctr_par,'nvctr_par',routine)
@@ -317,7 +357,7 @@ contains
     type(atoms_data) :: atoms
     type(restart_objects) :: rst
     !local variables
-    integer :: i_all,i_stat
+    integer :: i_stat
 
     !allocate pointers
     allocate(rst%rxyz_old(3,atoms%nat+ndebug),stat=i_stat)
@@ -382,7 +422,7 @@ contains
     type(wavefunctions_descriptors), intent(inout) :: wfd
     character(len=*), intent(in) :: routine
     !local variables
-    integer :: i_all,i_stat
+    integer :: i_stat
 
     allocate(wfd%keyg(2,wfd%nseg_c+wfd%nseg_f+ndebug),stat=i_stat)
     call memocc(i_stat,wfd%keyg,'keyg',routine)

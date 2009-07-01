@@ -142,8 +142,15 @@ program MINHOP
   call read_atomic_positions(iproc,99,atoms,pos)
   close(unit=99)
   !Read input parameters for geometry optimization 
-  call read_input_variables(iproc,'input.dat',inputs_opt)
-  call read_input_variables(iproc,'mdinput.dat',inputs_md)
+  call dft_input_variables(iproc,'input.dft',inputs_opt)
+  call geopt_input_variables(iproc,'input.geopt',inputs_opt)
+
+  call dft_input_variables(iproc,'mdinput.dft',inputs_md)
+  call geopt_input_variables(iproc,'mdinput.geopt',inputs_md)
+
+
+!!$  call read_input_variables(iproc,'input.dat',inputs_opt)
+!!$  call read_input_variables(iproc,'mdinput.dat',inputs_md)
 
   ! allocate other arrays
   allocate(ff(3,atoms%nat+ndebug),stat=i_stat)

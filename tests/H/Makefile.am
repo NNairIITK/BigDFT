@@ -3,23 +3,41 @@
 SUBDIRS = 
 
 EXTRA_DIST = \
-	input.dat \
-	posinp
+	input.dft \
+	posinp.xyz
 
 PPFILES = \
 	psppar.H
 
 CLEANFILES = $(PPFILES) inguess.new inguess.dat wavefunction* H.out posout* \
-			 *.prc H.memguess fldiff.report $(EXTRA_DIST)
+			 *.prc H.memguess fldiff.report
 
 #dependencies
 $(PPFILES):
-	cp $(top_srcdir)/utils/PSPfiles/$@ .
+	ln -fs $(top_srcdir)/utils/PSPfiles/$@
 
-check: $(PPFILES) 
-	cp -f $(top_srcdir)/tests/H/input.dat .
-	cp -f $(top_srcdir)/tests/H/posinp .
-	$(top_builddir)/src/memguess 1 > H.memguess
+H.out: $(top_builddir)/src/cluster $(PPFILES)
+	if ! test x"$srcdir" = x"." ; then \
+	  ln -fs $(srcdir)/input.dft ; \
+	  ln -fs $(srcdir)/posinp.xyz ; \
+        fi
+	$(run_parallel) $(top_builddir)/src/cluster > $@
+	if ! test x"$srcdir" = x"." ; then \
+	  rm -f input.dft ; \
+	  rm -f posinp.xyz ; \
+        fi
+
+H.memguess: $(top_builddir)/src/memguess $(PPFILES)
+	if ! test x"$srcdir" = x"." ; then \
+	  ln -fs $(srcdir)/input.dft ; \
+	  ln -fs $(srcdir)/posinp.xyz ; \
+        fi
+	$(top_builddir)/src/memguess 1 > $@
+	if ! test x"$srcdir" = x"." ; then \
+	  rm -f input.dft ; \
+	  rm -f posinp.xyz ; \
+        fi
+
+check: H.memguess H.out
 	python $(top_srcdir)/tests/fldiff.py --bigdft H.memguess $(top_srcdir)/tests/Refs/H.memguess.ref | cat
-	$(run_parallel) $(top_builddir)/src/cluster > H.out
 	python $(top_srcdir)/tests/fldiff.py --bigdft H.out $(top_srcdir)/tests/Refs/H.out.ref | tee fldiff.report

@@ -1,0 +1,13 @@
+ Number of atoms     = 4
+ Number of atom types= 1
+ Atoms of type 1 are H
+ Number of atoms     = 4
+ Number of atom types= 1
+ Atoms of type 1 are H
+ iteration:   1     E activation =  0.261447     error = 11.563954
+ iteration:   2     E activation = -0.639133     error =  2.891654
+ image:  1   Energy=      -54.74557694   Error= 0.00000
+ image:  2   Energy=      -56.01182894   Error= 0.22754
+ image:  3   Energy=      -55.38471017   Error= 2.89165
+ image:  4   Energy=      -56.01615011   Error= 1.13512
+ image:  5   Energy=      -55.25921657   Error= 0.00000

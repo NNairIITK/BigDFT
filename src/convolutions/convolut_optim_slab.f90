@@ -158,6 +158,9 @@ subroutine syn_rot_grow(n,ndat,x,y)
 !	! 2: even and odd 
 !	mflop=ndat*(n+3)*8*4*2
 !	
+
+!dee
+!  open(unit=97,file='time_check',status='unknown')
 !  call system_clock(ncount1,ncount_rate,ncount_max)
 
 !$omp parallel default (private) shared(ndat,ch,x,cg,n,y)
@@ -276,6 +279,7 @@ subroutine syn_rot_grow(n,ndat,x,y)
 	 
   enddo
 !$omp enddo
+
 !$omp do
 
   do j=(ndat/8)*8+1,ndat
@@ -302,7 +306,8 @@ subroutine syn_rot_grow(n,ndat,x,y)
 
 !  call system_clock(ncount2,ncount_rate,ncount_max)
 !  tel=dble(ncount2-ncount1)/dble(ncount_rate)
-!  write(97,'(a40,1x,e10.3,1x,f6.1)') 'syn_rot_grow:',tel,1.d-6*mflop/tel
+!  write(97,'(a40,1x,e10.3,1x,f6.1)') 'syn_rot_grow:',tel
+!  close(97)
 end subroutine syn_rot_grow
 
 
@@ -395,6 +400,7 @@ subroutine convrot_grow(n1,ndat,x,y)
      enddo
   enddo
 !$omp enddo
+
 !$omp do
   do j=(ndat/12)*12+1,ndat
      do i=-lupfil,n1-lowfil
@@ -705,7 +711,7 @@ contains
 		implicit none
 		integer,intent(in)::ndat
 		real(wp),intent(in):: x(ndat,0:n1)
-		real(wp),intent(out)::y(ndat,0:n1)
+		real(wp),intent(inout)::y(ndat,0:n1)
 		real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 !$omp do
   		do i=0,ndat/12-1
@@ -830,7 +836,7 @@ contains
 		implicit none
 		integer,intent(in)::ndat
 		real(wp),intent(in):: x(0:n1,ndat)
-		real(wp),intent(out)::y(0:n1,ndat)
+		real(wp),intent(inout)::y(0:n1,ndat)
 		real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 !$omp do
   		do i=0,ndat/12-1
@@ -953,7 +959,7 @@ contains
 		implicit none
 		integer,intent(in)::ndat
 		real(wp),intent(in):: x(ndat,0:n1)
-		real(wp),intent(out)::y(ndat,0:n1)
+		real(wp),intent(inout)::y(ndat,0:n1)
 		real(wp) tt1,tt2,tt3,tt4,tt5,tt6,tt7,tt8,tt9,tt10,tt11,tt12
 !$omp do
   		do i=0,ndat/12-1

@@ -16,9 +16,9 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   !local variables
   character(len=*), parameter :: subname='sumrho'
   logical :: rsflag
-  integer :: nw1,nw2,nrhotot,n3d,n1i,n2i,n3i,nxc,nxf,itmred
-  integer :: ind1,ind2,ind3,ind1s,ind2s,ind3s,oidx,sidx,nspinn
-  integer :: i00,i0,i1,i2,i3,i3off,i3s,isjmp,i,ispin,iorb,jproc,i_all,i_stat,ierr,j3,j3p,j
+  integer :: nrhotot,n3d,itmred
+  integer :: nspinn
+  integer :: i1,i2,i3,i3off,i3s,i,ispin,jproc,i_all,i_stat,ierr,j3,j3p,j
   real(dp) :: charge,tt
   real(dp), dimension(:,:), allocatable :: tmred
   real(dp), dimension(:,:), pointer :: rho_p
@@ -71,7 +71,7 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
      call tenminustwenty(lr%d%n1i*lr%d%n2i*nrhotot*nspinn,rho_p,nproc)
 
      !for each of the orbitals treated by the processor build the partial densities
-     call local_partial_density(iproc,nproc,rsflag,nscatterarr,&
+     call local_partial_density(nproc,rsflag,nscatterarr,&
           nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   end if
 
@@ -196,14 +196,14 @@ end subroutine sumrho
 
 !here starts the routine for building partial density inside the localisation region
 !this routine should be treated as a building-block for the linear scaling code
-subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
+subroutine local_partial_density(nproc,rsflag,nscatterarr,&
      nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
   use module_base
   use module_types
   use module_interfaces
   implicit none
   logical, intent(in) :: rsflag
-  integer, intent(in) :: iproc,nproc,nrhotot
+  integer, intent(in) :: nproc,nrhotot
   integer, intent(in) :: nspin
   real(gp), intent(in) :: hxh,hyh,hzh
   type(orbitals_data), intent(in) :: orbs
@@ -216,7 +216,7 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
   integer :: nw1,nw2,nxc,nxf,iorb
   integer :: n1,n2,n3,n1i,n2i,n3i,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer :: oidx,sidx,nspinn,npsir,ncomplex
-  integer :: i_all,i_stat,ierr,j3,j3p,j,i
+  integer :: i_all,i_stat,i
   real(gp) :: hfac,spinval
   real(wp), dimension(0:3) :: scal
   real(wp), dimension(:,:), allocatable :: psir
@@ -266,11 +266,11 @@ subroutine local_partial_density(iproc,nproc,rsflag,nscatterarr,&
         nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
 
         nw1=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
-        nw1=max(nw1,2*(n3+1)*(n1+1)*(n2+1))	   ! for the comb_shrink_hyb_c
+        nw1=max(nw1,2*(n3+1)*(n1+1)*(n2+1))   ! for the comb_shrink_hyb_c
         nw1=max(nw1,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
 
         nw2=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
-        nw2=max(nw2,4*(n2+1)*(n3+1)*(n1+1))	! for the comb_shrink_hyb_c   
+        nw2=max(nw2,4*(n2+1)*(n3+1)*(n1+1))   ! for the comb_shrink_hyb_c   
         nw2=max(nw2,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
      else
         !dimension of the work arrays, fully periodic case
@@ -453,6 +453,8 @@ subroutine partial_density(rsflag,nproc,n1i,n2i,n3i,npsir,nspinn,nrhotot,&
         i3off=nscatterarr(jproc,3)-nscatterarr(jproc,4)
         n3d=nscatterarr(jproc,1)
         if (n3d==0) exit loop_xc_overlap
+        !alternative definition of i3s, used for OpenMP parallelisation of the outermost loop
+        i3s=sum(nscatterarr(0:jproc-1,1))
      else
         i3off=0
         n3d=n3i

@@ -1,3 +1,5 @@
 LBFGS         minimization method: LBFGS or SDCG
-.false.        onlysih: BFGS: if false, no preconditioning is used at all, if true preconditioning is used according to iprecon
--1           iprecon: BFGS: number of steps without preconditioning before entering precon. set to -1 if precon should be handled automaticellay
+100                  ncount_cluster: max steps during geometry relaxation
+0.d0    1.d-4       frac_fluct, fmax:     geometry optimization stops if force norm less than frac_fluct of noise
+0.d0               randdis:        random amplitude for atoms
+8.d0               betax: steepest descent step size,  if negative automatic determination
