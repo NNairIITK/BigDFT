@@ -26,10 +26,8 @@
 
 #include "cudafct.h"
 
+#include "check_card/checker.h"
 
-//this function is on check_card/check_init.f90
-extern "C"
-void check_init__(int *error);
 
 
 void local_network::init(const manage_cpu_affinity& mca,int iproc) throw (inter_node_communication_error,check_calc_error)
@@ -232,23 +230,7 @@ void local_network::init(const manage_cpu_affinity& mca,int iproc) throw (inter_
       if(iproc == 0)
 	std::cout << "Check card on all nodes...." << std::endl;
 
-      int ret_error;
-      check_init__(&ret_error);
-
-      if(ret_error == 0)
-	{
-	  //	  std::cout << "Card check passed " << std::endl;
-	}
-      else
-	{
-	
-	  const int HOST_NAME_SIZE = 300;
-	  char hostname[HOST_NAME_SIZE];
-	  gethostname(hostname,HOST_NAME_SIZE);
-
-	  throw check_calc_error(hostname);
-	  
-	}
+      checker::runTestOne();
       
     }
   catch(...)

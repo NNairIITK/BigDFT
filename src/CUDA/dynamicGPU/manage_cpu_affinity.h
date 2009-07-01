@@ -41,6 +41,9 @@ private:
 class manage_cpu_affinity
 {
 public:
+
+  manage_cpu_affinity(int _iproc):iproc(_iproc){}
+
   void add_connexion(const gpu_cpus_connexion&);
   
 
@@ -50,6 +53,8 @@ public:
 private:
 
   std::list<gpu_cpus_connexion> connexions;
+
+  int iproc;
 };
 
 #endif

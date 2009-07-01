@@ -44,7 +44,7 @@ void init_gpu_sharing(readConfFile &read_conf, int iproc, int *error)
       read_conf.get("MPI_TASKS_PER_NODE",&mpi_tasks_per_node);
       read_conf.get("NUM_GPU",&num_GPU);
    
-      manage_cpu_affinity mca;
+      manage_cpu_affinity mca(iproc);
 
       for(int i=0;i<num_GPU;++i)
 	{

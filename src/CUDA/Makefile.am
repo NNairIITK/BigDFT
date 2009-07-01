@@ -44,6 +44,7 @@ SOURCES_SHARED = \
 	dynamicGPU/localqueu.cpp \
 	dynamicGPU/manage_cpu_affinity.cpp \
 	dynamicGPU/check_card/check_init.f90 \
+	dynamicGPU/check_card/checker.cpp \
 	trace_exec.cpp \
 	init_lib.cpp \
 	read_conf_file.cpp \

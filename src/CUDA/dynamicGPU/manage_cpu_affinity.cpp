@@ -103,8 +103,8 @@ void manage_cpu_affinity::set_affinity(int cpuID) const
       if( cpuID < (cur_cpu_id + cit->get_num_cpus())) //this id is on this block
 	{
 	  	  int test = cit->set_affinity(cpuID - cur_cpu_id);
-
-		  std::cout << "Logic CPU : " << cpuID << " with " << test << std::endl;
+		  if(iproc ==0)
+		    std::cout << "Logic CPU : " << cpuID << " with " << test << std::endl;
 		  found = true;
 	}
       cur_cpu_id  += cit->get_num_cpus();
@@ -113,7 +113,8 @@ void manage_cpu_affinity::set_affinity(int cpuID) const
     }
   
   if(!found)
-    std::cout << "NOT FOUND " << std::endl;
+    if(iproc ==0)
+      std::cout << "Affinity NOT FOUND " << std::endl;
 
   //connexions.at(gpu_to_atach).set_current_affinity();
 }
