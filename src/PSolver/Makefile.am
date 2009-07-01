@@ -92,33 +92,39 @@ endif
 
 
 libpoissonsolver_a_SOURCES = \
-	Poisson_Solver.f90 
+	Poisson_Solver.f90 \
+	../profiling/time.f90 
 
-libpoissonsolver_a_LIBADD = 
+libpoissonsolver_a_LIBADD = ../modules/libmodules.a
 
-PS_Check_SOURCES = PS_Check.f90 timing.f90 ../modules/base.f90 $(mpi_source)
+PS_Check_SOURCES = PS_Check.f90 $(mpi_source)
 PS_Check_LDFLAGS =
-PS_Check_LDADD = libpoissonsolver.a \
+PS_Check_LDADD = 	libpoissonsolver.a \
+	../modules/libmodules.a \
+	../profiling/libprofiling.a \
 	ABINIT-common/libABINIT.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
 
-PS_Program_SOURCES = PS_Program.f90 timing.f90 ../modules/base.f90 $(mpi_source)
+PS_Program_SOURCES = PS_Program.f90 $(mpi_source)
 PS_Program_LDFLAGS = 
-PS_Program_LDADD = libpoissonsolver.a \
+PS_Program_LDADD = 	libpoissonsolver.a \
+	../modules/libmodules.a \
+	../profiling/libprofiling.a \
+	ABINIT-common/libABINIT.a \
+	$(LMPI) \
+	@MPI_LIBS@ \
+	$(libs_cuda) 
+
+PS_Exercise_SOURCES = PS_Exercise.f90 $(mpi_source)
+PS_Exercise_LDADD = 	libpoissonsolver.a \
+	../modules/libmodules.a \
+	../profiling/libprofiling.a \
 	ABINIT-common/libABINIT.a \
 	$(LMPI) \
 	@MPI_LIBS@ \
 	$(libs_cuda)
-
-PS_Exercise_SOURCES = PS_Exercise.f90 timing.f90 ../modules/base.f90 $(mpi_source)
-PS_Exercise_LDADD = libpoissonsolver.a \
-	ABINIT-common/libABINIT.a \
-	$(LMPI) \
-	@MPI_LIBS@ \
-	$(libs_cuda)
-
 
 CLEANFILES = mpif.h malloc.prc time.par PS_Check.out \
 	POISSON_SOLVER.@MODULE_EXT@ poisson_solver.@MODULE_EXT@

@@ -181,7 +181,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   !local variables
   character(len=*), parameter :: subname='cluster'
   character(len=3) :: PSquiet
-  logical :: endloop,potion_overwritten
+  logical :: endloop,potion_overwritten=.false.
   integer :: ixc,ncong,idsx,ncongt,nspin,itermax,idsx_actual,idsx_actual_before
   integer :: nvirt,ndiis_sd_sw
   integer :: nelec,ndegree_ip,j,i
