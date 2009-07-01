@@ -1,3 +1,4 @@
+
 subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,Gabsorber,Gabs_coeffs,&
      cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU)
@@ -26,27 +27,50 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,Gabsorber,Gabs_coeffs,&
   type(lanczos_args) :: ha
 
 
+
+ 
   !create the orbitals descriptors, for virtual and inputguess orbitals
+
+
+
   allocate(ha%orbs%norb_par(0:nproc-1+ndebug),stat=i_stat)
   call memocc(i_stat,ha%orbs%norb_par,'ha%orbs%norb_par',subname)
   !davidson treatment for spin-pol case should be reworked
+
+
+
   call orbitals_descriptors(iproc,nproc,1,1,0,1,ha%orbs)
   !allocate the arrays and fill them properly
   allocate(ha%orbs%occup(ha%orbs%norb+ndebug),stat=i_stat)
+
+
+
+
   call memocc(i_stat,ha%orbs%occup,'ha%orbs%occup',subname)
   allocate(ha%orbs%spinsgn(ha%orbs%norb+ndebug),stat=i_stat)
+
+
+
+
   call memocc(i_stat,ha%orbs%spinsgn,'ha%orbs%spinsgn',subname)
   ha%orbs%occup(1:ha%orbs%norb)=1.0_gp
   ha%orbs%spinsgn(1:ha%orbs%norb)=1.0_gp
 
+
+
+
   !allocate communications arrays for virtual orbitals
   !warning: here the aim is just to calculate npsidim, should be fixed
   call allocate_comms(nproc,ha%comms,subname)
+
+
   call orbitals_communicators(iproc,nproc,lr,ha%orbs,ha%comms)  
+
 
   i_all=-product(shape(ha%orbs%norb_par))*kind(ha%orbs%norb_par)
   deallocate(ha%orbs%norb_par,stat=i_stat)
   call memocc(i_stat,i_all,'ha%orbs%norb_par',subname)
+    
 
   !associate hamapp_arg pointers
   ha%iproc=iproc
@@ -58,6 +82,8 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,Gabsorber,Gabs_coeffs,&
   ha%rxyz=>rxyz
   ha%cpmult=cpmult
   ha%fpmult=fpmult
+
+
   ha%radii_cf=>radii_cf
   ha%nlpspd=>nlpspd !!
   ha%proj=>proj !!
@@ -71,15 +97,22 @@ subroutine lanczos(iproc,nproc,at,hx,hy,hz,rxyz,Gabsorber,Gabs_coeffs,&
   ha%nspin=nspin
   ha%GPU=>GPU !!
 
-  ha%Gabsorber=Gabsorber
+  ha%Gabsorber=>Gabsorber 
+
   ha%Gabs_coeffs=>Gabs_coeffs
   
   !initialise the arguments for HamiltonianApplication
+
+  print *, " chiamo inizializza " 
   call inizializza(ha)
 
+  print *, " chiamo allocate for eigen prob"
   call EP_allocate_for_eigenprob(1)
 
+  print *, " chiamo initialize start " 
   call EP_initialize_start(Gabsorber)
+
+  print * , " uscito da EP_initialize_start "
 
   !deallocate communication and orbitals descriptors
   call deallocate_comms(ha%comms,subname)

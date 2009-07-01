@@ -4,7 +4,7 @@ else
 mpi_include = mpif.h
 endif
 
-AM_FCFLAGS = -I. -I../modules -I$(srcdir) @MPI_INCLUDE@ -I../PSolver
+AM_FCFLAGS = -I. -I../modules -I$(srcdir) @MPI_INCLUDE@ -I../PSolver -I../
 
 noinst_LIBRARIES = libprofiling.a
 

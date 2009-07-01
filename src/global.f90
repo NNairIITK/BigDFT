@@ -24,9 +24,18 @@ program MINHOP
   type(atoms_data) :: atoms
   type(input_variables) :: inputs_opt, inputs_md
   type(restart_objects) :: rst
+  ! some variable definitions are not needed anymore due to the new restart variable type
+  ! type(wavefunctions_descriptors) :: wfd
+
+!  logical, dimension(:), allocatable :: lfrztyp
+  !  real(kind=8), dimension(:,:), allocatable :: rxyz_old
+
+  !  real(kind=8), dimension(:), pointer :: eval
+  !  real(kind=8), dimension(:), pointer :: psi
+
   integer, parameter :: npminx=200
   !C parameters for minima hopping
-  integer, parameter :: mdmin=2
+  integer, parameter :: mdmin=4
   real(kind=8), parameter :: beta1=1.10d0,beta2=1.10d0,beta3=1.d0/1.10d0
   real(kind=8), parameter :: alpha1=1.d0/1.10d0,alpha2=1.10d0
   integer, parameter :: nbuf=1000
@@ -129,11 +138,9 @@ program MINHOP
   if (iproc.eq.0) write(67,'(a,a)') 'reading positions from ',filename
   if (iproc.eq.0) write(*,'(a,a)') ' # reading positions from ',filename
 
+  atoms%format='xyz'
   call read_atomic_positions(iproc,99,atoms,pos)
   close(unit=99)
-  !add the atomic format at hand (should be changed)
-  write(atoms%format, "(A)") "xyz"
-  
   !Read input parameters for geometry optimization 
   call dft_input_variables(iproc,'input.dft',inputs_opt)
   call geopt_input_variables(iproc,'input.geopt',inputs_opt)
@@ -205,7 +212,7 @@ program MINHOP
   end if
   close(11)
 
-  open(unit=16,file='geopt.mon',status='unknown')
+  if (iproc ==0 ) open(unit=16,file='geopt.mon',status='unknown')
 
   open(unit=11,file='rand.inp',status='old')
   read(11,*) nrandoff
@@ -256,7 +263,7 @@ program MINHOP
      filename = 'global.mon'
      write(67,*) 'iteration results written in:',filename
      write(*,*) '# iteration results written in:',filename
-     open(unit=2,file=filename,status='unknown',position='append')
+     open(unit=2,file=filename,status='unknown',access='append')
   endif
 
   ! (un)comment the correct 2 lines
@@ -309,7 +316,7 @@ program MINHOP
 
      write(fn4,'(i4.4)') nconjgr
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
-     call write_atomic_file('poslocm_'//fn4,e_pos-eref,pos,atoms,trim(comment))
+     call wtxyz('poslocm_'//fn4,e_pos-eref,pos,atoms,trim(comment))
 
   endif
   nconjgr=nconjgr+1
@@ -319,15 +326,11 @@ program MINHOP
   if (iproc.eq.0) write(*,'(a,1x,i3,3(1x,1pe17.10))') ' # INPUT(relaxed): iproc, e_pos,re_pos,eref ',iproc,e_pos,re_pos,eref
 
 
-  if (nlmin > 0) then
-     if (iproc == 0) write(67,'(a,2(1x,1pe24.17))') &
-          'new/old energy for input file',re_pos,tre_pos
-     if (iproc == 0) write(*,'(a,2(1x,1pe24.17))') &
-          '# new/old energy for input file',re_pos,tre_pos
-     if (re_pos /= tre_pos .and. iproc.eq.0) write(67,*) &
-          'WARNING: new/old energies for input file differ'
-     if (re_pos /= tre_pos .and. iproc.eq.0) write(*,*) &
-          '# WARNING: new/old energies for input file differ'
+  if (nlmin.gt.0) then
+     if (iproc.eq.0) write(67,'(a,2(1x,1pe24.17))') 'new/old energy for input file',re_pos,tre_pos
+     if (iproc.eq.0) write(*,'(a,2(1x,1pe24.17))') '# new/old energy for input file',re_pos,tre_pos
+     if (re_pos.ne.tre_pos .and. iproc.eq.0) write(67,*) 'WARNING: new/old energies for input file differ'
+     if (re_pos.ne.tre_pos .and. iproc.eq.0) write(*,*) '# WARNING: new/old energies for input file differ'
   endif
   k_e_wpos=1
   if (nlmin.eq.0) then
@@ -381,7 +384,7 @@ program MINHOP
         !goto 3000
         exit hopping_loop 
      endif
-     !            Energy has reached target eref and global minimum is presumably found
+     !            Energy has reached taregt eref and global minimum is presumably found
      if (re_sm <= 1.d-3) then
         write(*,*)'# process', iproc,'success: relative energy < 0.001'
         !goto 3000
@@ -485,7 +488,7 @@ program MINHOP
         !call wtlmin(nconjgr,atoms%nat,e_wpos-eref,tt,wpos,atoms%iatype,atoms%atomnames,atoms%natpol)
         write(fn4,'(i4.4)') nconjgr
         write(comment,'(a,1pe10.3)')'fnrm= ',tt
-        call write_atomic_file('poslocm_'//fn4,e_wpos-eref,wpos,atoms,trim(comment))
+        call wtxyz('poslocm_'//fn4,e_wpos-eref,wpos,atoms,trim(comment))
 
 
      endif
@@ -556,7 +559,7 @@ program MINHOP
            write(*,'(a,i7,1x,1pe24.17,1x,i2)') '# new lowest ',nlmin,re_wpos,iproc
            !call wtbest(atoms%nat,re_wpos,wpos, &
            !     atoms%iatype,atoms%atomnames,atoms%natpol)
-           call write_atomic_file('posbest',re_wpos,wpos,atoms,'')
+           call wtxyz('posbest',re_wpos,wpos,atoms,'')
         endif
      else
         if (iproc.eq.0) write(*,'(a,i3)')' # New local minimum, lower are ',k_e_wpos 
@@ -761,20 +764,30 @@ contains
     type(restart_objects) :: rst
     dimension ff(3,atoms%nat),gg(3,atoms%nat),vxyz(3,atoms%nat),rxyz(3,atoms%nat),rxyz_old(3,atoms%nat)
     type(input_variables) :: inputs_md
-    character(len=4) :: fn
+    character(len=4) :: fn,name
     !type(wavefunctions_descriptors), intent(inout) :: wfd
     !real(kind=8), pointer :: psi(:), eval(:)
 
     if(iproc==0) write(*,*) '# MINHOP start soften '
 
     !C initialize positions,velocities, forces
-    call gausdist(atoms%nat,rxyz,vxyz)
+    call randdist(atoms%nat,rxyz,vxyz)
+!    open(unit=78,file='possoft_0050.xyz',status='old')
+!    read(78,*)         
+!    read(78,*)         
+!    do iat=1,atoms%nat
+!    read(78,*) name,t1,t2,t3        
+!    vxyz(1,iat)=t1*1.8897265d0-rxyz(1,iat)
+!    vxyz(2,iat)=t2*1.8897265d0-rxyz(2,iat)
+!    vxyz(3,iat)=t3*1.8897265d0-rxyz(3,iat)
+!    enddo
+!!    close(78)
     inputs_md%inputPsiId=1
     !if(iproc==0)write(*,*)' #  no softening'
     call soften(ekinetic,e_pos,ff,gg,vxyz,dt,count_md,rxyz, &
          nproc,iproc,atoms,rst,inputs_md)
     call velopt(atoms,rxyz,ekinetic,vxyz)
-    call razero(3*atoms%nat,gg)
+    call zero(3*atoms%nat,gg)
 
     if(iproc==0) write(*,*) '# MINHOP start MD'
     !C inner (escape) loop
@@ -784,38 +797,37 @@ contains
     en0000=0.d0
     econs_max=-1.d100
     econs_min=1.d100
-    md_loop: do istep=1,1000
+    md_loop: do istep=1,300
 
        !C      Evolution of the system according to 'VELOCITY VERLET' algorithm
-       call atomic_dot(atoms,vxyz,vxyz,rkin)
-       
-       call atomic_axpy(atoms,rxyz,dt,vxyz+.5_gp*dt*gg,rxyz)
-
-!!$       rkin=0.d0
-!!$       do iat=1,atoms%nat
-!!$          if (.not. atoms%lfrztyp(iat)) then
-!!$             if (atoms%geocode == 'P') then
-!!$                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
-!!$                     atoms%alat1)
-!!$                rxyz(2,iat)=modulo(rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat),&
-!!$                     atoms%alat2)
-!!$                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
-!!$                     atoms%alat3)
-!!$             else if (atoms%geocode == 'S') then
-!!$                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
-!!$                     atoms%alat1)
-!!$                rxyz(2,iat)=       rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
-!!$                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
-!!$                     atoms%alat3)
-!!$             else if (atoms%geocode == 'F') then
-!!$                rxyz(1,iat)=rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat)
-!!$                rxyz(2,iat)=rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
-!!$                rxyz(3,iat)=rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat)
-!!$             end if
-!!$             rkin=rkin+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
-!!$          end if
-!!$       enddo
-!!$       rkin=rkin*.5d0
+!!       rkin=0.d0
+!!       do iat=1,atoms%nat
+!!          if (.not. atoms%lfrztyp(iat)) then
+!!             if (atoms%geocode == 'P') then
+!!                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
+!!                     atoms%alat1)
+!!                rxyz(2,iat)=modulo(rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat),&
+!!                     atoms%alat2)
+!!                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
+!!                     atoms%alat3)
+!!             else if (atoms%geocode == 'S') then
+!!                rxyz(1,iat)=modulo(rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat),&
+!!                     atoms%alat1)
+!!                rxyz(2,iat)=       rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
+!!                rxyz(3,iat)=modulo(rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat),&
+!!                     atoms%alat3)
+!!             else if (atoms%geocode == 'F') then
+!!                rxyz(1,iat)=rxyz(1,iat) + dt*vxyz(1,iat) + (.5d0*dt*dt)*gg(1,iat)
+!!                rxyz(2,iat)=rxyz(2,iat) + dt*vxyz(2,iat) + (.5d0*dt*dt)*gg(2,iat)
+!!                rxyz(3,iat)=rxyz(3,iat) + dt*vxyz(3,iat) + (.5d0*dt*dt)*gg(3,iat)
+!!             end if
+!!             rkin=rkin+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
+!!          end if
+!!       enddo
+      call atomic_axpy(atoms,rxyz,dt,vxyz,rxyz)
+      call atomic_axpy(atoms,rxyz,.5d0*dt*dt,gg,rxyz)
+      call atomic_dot(atoms,vxyz,vxyz,rkin)
+       rkin=rkin*.5d0
 
        enmin2=enmin1
        enmin1=en0000
@@ -828,7 +840,7 @@ contains
        if (iproc == 0) then
 !          write(fn,'(i4.4)') istep+int(count_md)
           write(fn,'(i4.4)') istep
-          call write_atomic_file('posmd_'//fn,e_rxyz,rxyz,atoms,'')
+          call wtxyz('posmd_'//fn,e_rxyz,rxyz,atoms,'')
        end if
 
        en0000=e_rxyz-e_pos
@@ -846,25 +858,21 @@ contains
                write(67,*) 'WARNING: nummin,nummax',nummin,nummax
           exit md_loop
        endif
-
-       call atomic_axpy_forces(atoms,vxyz,0.5_gp*dt,ff+gg,vxyz)
-       gg=ff
-
-!!$       do iat=1,atoms%nat
-!!$          at1=ff(1,iat)
-!!$          at2=ff(2,iat)
-!!$          at3=ff(3,iat)
-!!$          !C Evolution of the velocities of the system
-!!$          if (.not. atoms%lfrztyp(iat)) then
-!!$             vxyz(1,iat)=vxyz(1,iat) + (.5d0*dt) * (at1 + gg(1,iat))
-!!$             vxyz(2,iat)=vxyz(2,iat) + (.5d0*dt) * (at2 + gg(2,iat))
-!!$             vxyz(3,iat)=vxyz(3,iat) + (.5d0*dt) * (at3 + gg(3,iat))
-!!$          end if
-!!$          !C Memorization of old forces
-!!$          gg(1,iat) = at1
-!!$          gg(2,iat) = at2
-!!$          gg(3,iat) = at3
-!!$       end do
+       do iat=1,atoms%nat
+          at1=ff(1,iat)
+          at2=ff(2,iat)
+          at3=ff(3,iat)
+          !C Evolution of the velocities of the system
+!          if (.not. atoms%lfrztyp(iat)) then
+             vxyz(1,iat)=vxyz(1,iat) + (.5d0*dt) * (at1 + gg(1,iat))
+             vxyz(2,iat)=vxyz(2,iat) + (.5d0*dt) * (at2 + gg(2,iat))
+             vxyz(3,iat)=vxyz(3,iat) + (.5d0*dt) * (at3 + gg(3,iat))
+!          end if
+          !C Memorization of old forces
+          gg(1,iat) = at1
+          gg(2,iat) = at2
+          gg(3,iat) = at3
+       end do
     end do md_loop
     if (istep >=1000) then
        if (iproc == 0) write(67,*) 'TOO MANY MD STEPS'
@@ -883,10 +891,10 @@ contains
          write(66,'(a,2(1x,1pe11.4),1x,i5)')&
          'MD devcon ',devcon,devcon/ekinetic,istep
     if (devcon/ekinetic.lt.7.d-2) then
-       write(66,*) 'MD:old,new dt',dt,dt*1.05d0
+       if (iproc == 0) write(66,*) 'MD:old,new dt',dt,dt*1.05d0
        dt=dt*1.05d0
     else
-       write(66,*) 'MD:old,new dt',dt,dt/1.05d0
+       if (iproc == 0) write(66,*) 'MD:old,new dt',dt,dt/1.05d0
        dt=dt*(1.d0/1.05d0)
     endif
     
@@ -904,13 +912,11 @@ contains
     dimension fxyz(3*atoms%nat),gg(3*atoms%nat),vxyz(3*atoms%nat),rxyz(3*atoms%nat),rxyz_old(3*atoms%nat)
     type(input_variables) :: inputs_md
     type(restart_objects) :: rst
-    !  type(wavefunctions_descriptors), intent(inout) :: wfd
-    !  real(kind=8), pointer :: psi(:), eval(:)
     !Local variables
     dimension wpos(3*atoms%nat)
 
     nit=20
-    eps_vxyz=5.d-1
+!    eps_vxyz=1.d-1*atoms%nat
     alpha=inputs_md%betax
 
     !allocate(wpos(3,nat),fxyz(3,nat))
@@ -921,184 +927,142 @@ contains
 
     ! scale velocity to generate dimer 
 
-    call atomic_dot(atoms,vxyz,vxyz,svxyz)
-!!$    svxyz=0.d0
-!!$    do i=1,3*atoms%nat
-!!$       iat=(i-1)/3+1
-!!$       if (atoms%ifrztyp(iat) == 0) then
-!!$          svxyz=svxyz+vxyz(i)**2
-!!$       end if
-!!$    enddo
-    svxyz=eps_vxyz/sqrt(svxyz)
-    call atomic_axpy_forces(atoms,vxyz,svxyz-1.0_gp,vxyz,vxyz)
-!!$    do i=1,3*atoms%nat
-!!$       vxyz(i)=svxyz*vxyz(i)
-!!$    enddo
-    !equivalent to
-    !      vxyz = vxyz*eps_vxyz/(dnrm2(3*atoms%nat,vxyz,1))
+      call atomic_dot(atoms,vxyz,vxyz,svxyz)
+!    svxyz=0.d0
+!    do i=1,3*atoms%nat
+!       iat=(i-1)/3+1
+!       if (.not. atoms%lfrztyp(iat)) then
+!          svxyz=svxyz+vxyz(i)**2
+!       end if
+!    enddo
+    eps_vxyz=sqrt(svxyz)
+    if(iproc==0)write(*,*)'#  eps_vxyz=',eps_vxyz
 
 
     do it=1,nit
-       !       if(iproc==0)write(*,*)'w   =      r       +       v  '
-       !update the positions, if the atom is not frozen
-!!$       do i=1,3*atoms%nat
-!!$          iat=(i-1)/3+1
-!!$          if (atoms%lfrztyp(iat)) then
-!!$             wpos(i)=rxyz(i)
-!!$          else
-!!$             wpos(i)=rxyz(i)+vxyz(i)
-!!$          end if
-!!$          !if(iproc==0)write(*,*)wpos(i),rxyz(i),vxyz(i)
-!!$       end do
        
-       call atomic_axpy(atoms,rxyz,1.0_gp,vxyz,wpos)
-!!$       do iat=1,atoms%nat
-!!$          if (atoms%ifrztyp(iat) /=0) then
-!!$             wpos(3*(iat-1)+1)=rxyz(3*(iat-1)+1)
-!!$             wpos(3*(iat-1)+2)=rxyz(3*(iat-1)+2)
-!!$             wpos(3*(iat-1)+3)=rxyz(3*(iat-1)+3)
-!!$          else
-!!$             if (atoms%geocode == 'P') then
-!!$                wpos(3*(iat-1)+1)=modulo(rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1),atoms%alat1)
-!!$                wpos(3*(iat-1)+2)=modulo(rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2),atoms%alat2)
-!!$                wpos(3*(iat-1)+3)=modulo(rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3),atoms%alat3)
-!!$             else if (atoms%geocode == 'S') then
-!!$                wpos(3*(iat-1)+1)=modulo(rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1),atoms%alat1)
-!!$                wpos(3*(iat-1)+2)=       rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2)
-!!$                wpos(3*(iat-1)+3)=modulo(rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3),atoms%alat3)
-!!$             else if (atoms%geocode == 'F') then
-!!$                wpos(3*(iat-1)+1)=rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1)
-!!$                wpos(3*(iat-1)+2)=rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2)
-!!$                wpos(3*(iat-1)+3)=rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3)
-!!$             end if
-!!$          end if
-!!$          !if(iproc==0)write(*,*)wpos(i),rxyz(i),vxyz(i)
-!!$       end do
+!       do iat=1,atoms%nat
+!          if (atoms%lfrztyp(iat)) then
+!             wpos(3*(iat-1)+1)=rxyz(3*(iat-1)+1)
+!             wpos(3*(iat-1)+2)=rxyz(3*(iat-1)+2)
+!             wpos(3*(iat-1)+3)=rxyz(3*(iat-1)+3)
+!          else
+!             if (atoms%geocode == 'P') then
+!                wpos(3*(iat-1)+1)=modulo(rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1),atoms%alat1)
+!                wpos(3*(iat-1)+2)=modulo(rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2),atoms%alat2)
+!                wpos(3*(iat-1)+3)=modulo(rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3),atoms%alat3)
+!             else if (atoms%geocode == 'S') then
+!                wpos(3*(iat-1)+1)=modulo(rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1),atoms%alat1)
+!                wpos(3*(iat-1)+2)=       rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2)
+!                wpos(3*(iat-1)+3)=modulo(rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3),atoms%alat3)
+!             else if (atoms%geocode == 'F') then
+!                wpos(3*(iat-1)+1)=rxyz(3*(iat-1)+1)+vxyz(3*(iat-1)+1)
+!                wpos(3*(iat-1)+2)=rxyz(3*(iat-1)+2)+vxyz(3*(iat-1)+2)
+!                wpos(3*(iat-1)+3)=rxyz(3*(iat-1)+3)+vxyz(3*(iat-1)+3)
+!             end if
+!          end if
+!       end do
+      call atomic_axpy(atoms,rxyz,1.d0,vxyz,wpos)
 
-       !        wpos=rxyz+vxyz
+
        call call_bigdft(nproc,iproc,atoms,wpos,inputs_md,etot,fxyz,rst,infocode)
        fd2=2.d0*(etot-etot0)/eps_vxyz**2
 
-
-       call atomic_dot(atoms,vxyz,fxyz,sdf)
-       call atomic_dot(atoms,vxyz,vxyz,svxyz)
-!!$       sdf=0.d0
-!!$       svxyz=0.d0
-!!$       do i=1,3*atoms%nat
-!!$          iat=(i-1)/3+1
-!!$          if (.not. atoms%lfrztyp(iat)) then
-!!$             sdf=sdf+vxyz(i)*fxyz(i)
-!!$             svxyz=svxyz+vxyz(i)*vxyz(i)
-!!$          end if
-!!$       end do
-       !equivalent to
-       !        sdf=ddot(3*atoms%nat,vxyz(1,1),1,fxyz(1,1),1)
-       !        svxyz=dnrm2(3*atoms%nat,vxyz(1,1),1)
+!       sdf=0.d0
+!       svxyz=0.d0
+!       do i=1,3*atoms%nat
+!          iat=(i-1)/3+1
+!          if (.not. atoms%lfrztyp(iat)) then
+!             sdf=sdf+vxyz(i)*fxyz(i)
+!             svxyz=svxyz+vxyz(i)*vxyz(i)
+!          end if
+!       end do
+      call atomic_dot(atoms,vxyz,vxyz,svxyz)
+      call atomic_dot(atoms,vxyz,fxyz,sdf)
 
        curv=-sdf/svxyz
        if (it.eq.1) curv0=curv
 
-
-       call atomic_dot(atoms,fxyz,fxyz,tt)
+!       res=0.d0
+!       do i=1,3*atoms%nat
+!          iat=(i-1)/3+1
+!          if (.not. atoms%lfrztyp(iat)) then
+!             fxyz(i)=fxyz(i)+curv*vxyz(i)
+!             res=res+fxyz(i)**2
+!          end if
+!       end do
        call atomic_axpy_forces(atoms,fxyz,curv,vxyz,fxyz)
        call atomic_dot(atoms,fxyz,fxyz,res)
-!!$       res=0.d0
-!!$       tt=0.d0
-!!$       do i=1,3*atoms%nat
-!!$          iat=(i-1)/3+1
-!!$          if (.not. atoms%lfrztyp(iat)) then
-!!$             tt=tt+fxyz(i)**2
-!!$             fxyz(i)=fxyz(i)+curv*vxyz(i)
-!!$             res=res+fxyz(i)**2
-!!$          end if
-!!$       end do
        res=sqrt(res)
-       tt=sqrt(tt)
-       !equivalent to
-       !        tt=dsqrt(dnrm2(3*atoms%nat,fxyz(1,1),1))
-       !        call daxpy(3*atoms%nat,curv,vxyz(1,1),1,fxyz(1,1),1)
-       !        res=dsqrt(dnrm2(3*atoms%nat,fxyz(1,1),1))
 
-       if(iproc==0)write(*,'(a,i3,5(f12.5))')'# soften it, curv, fd2,dE and res:',&
-            it, curv, fd2,etot-etot0,res
-       !if(iproc==0)write(11,'(i5,4(1pe13.5),1pe18.10)')&
-       !if(iproc==0)write(11,*)&
-       !        it,tt,res,curv,fd2,etot-etot0
+     write(fn4,'(i4.4)') it
+     write(comment,'(a,1pe10.3)')'res= ',res
+     call wtxyz('possoft_'//fn4,etot,wpos,atoms,trim(comment))
 
-       call atomic_axpy(atoms,wpos,alpha,fxyz,wpos)
-!!$
-!!$       do iat=1,atoms%nat
-!!$          if (.not. atoms%lfrztyp(iat)) then
-!!$             if (atoms%geocode == 'P') then
-!!$                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%alat1)
-!!$                wpos(3*(iat-1)+2)=modulo(wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2),atoms%alat2)
-!!$                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%alat3)
-!!$             else if (atoms%geocode == 'S') then
-!!$                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%alat1)
-!!$                wpos(3*(iat-1)+2)=       wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
-!!$                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%alat3)
-!!$             else if (atoms%geocode == 'F') then
-!!$                wpos(3*(iat-1)+1)=wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1)
-!!$                wpos(3*(iat-1)+2)=wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
-!!$                wpos(3*(iat-1)+3)=wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3)
-!!$             end if
-!!$
-!!$          end if
-!!$       end do
+       if(iproc==0)write(*,'(a,i3,5(f12.5),f10.3)')'# soften it, curv, fd2,dE,res,eps_vxyz:',&
+            it, curv, fd2,etot-etot0,res,eps_vxyz
+       if (curv.lt.0.d0 .or. fd2.lt.0.d0) then
+        if(iproc==0) write(*,*) '# NEGATIVE CURVATURE'
+        exit
+       endif
+       if (etot-etot0.lt.1.d-2) eps_vxyz=eps_vxyz*1.2d0
 
-!!$       do i=1,3*atoms%nat
-!!$          iat=(i-1)/3+1
-!!$          if (.not. atoms%lfrztyp(iat)) then
-!!$             wpos(i)=wpos(i)+alpha*fxyz(i)
-!!$          end if
-!!$       end do
+!       do iat=1,atoms%nat
+!          if (.not. atoms%lfrztyp(iat)) then
+!             if (atoms%geocode == 'P') then
+!                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%alat1)
+!                wpos(3*(iat-1)+2)=modulo(wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2),atoms%alat2)
+!                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%alat3)
+!             else if (atoms%geocode == 'S') then
+!                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%alat1)
+!                wpos(3*(iat-1)+2)=       wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
+!                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%alat3)
+!             else if (atoms%geocode == 'F') then
+!                wpos(3*(iat-1)+1)=wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1)
+!                wpos(3*(iat-1)+2)=wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
+!                wpos(3*(iat-1)+3)=wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3)
+!             end if
+!
+!          end if
+!       end do
+       call atomic_axpy_forces(atoms,wpos,alpha,fxyz,wpos)
 
-       !the velocities are defined also for the frozen atoms
-       !call atomic_axpy_forces(atoms,wpos,-1.0_gp,rxyz,vxyz)
        do i=1,3*atoms%nat
           vxyz(i)=wpos(i)-rxyz(i)
        end do
-       !equivalent to
-       !        call daxpy(3*atoms%nat,alpha,fxyz(1),1,wpos(1),1)
-       !        vxyz=wpos-rxyz
+     write(comment,'(a,1pe10.3)')'curv= ',curv
+     call wtxyz('posvxyz',0.d0,vxyz,atoms,trim(comment))
 
        call  elim_moment(atoms%nat,vxyz)
        call  elim_torque(atoms%nat,rxyz,vxyz)
 
+!       svxyz=0.d0
+!       do i=1,3*atoms%nat
+!          iat=(i-1)/3+1
+!          if (.not. atoms%lfrztyp(iat)) then
+!             svxyz=svxyz+vxyz(i)*vxyz(i)
+!          end if
+!       end do
        call atomic_dot(atoms,vxyz,vxyz,svxyz)
-!!$
-!!$       svxyz=0.d0
-!!$       do i=1,3*atoms%nat
-!!$          iat=(i-1)/3+1
-!!$          if (.not. atoms%lfrztyp(iat)) then
-!!$             svxyz=svxyz+vxyz(i)*vxyz(i)
-!!$          end if
-!!$       end do
-       !equivalent to
-       !        svxyz=dnrm2(3*atoms%nat,vxyz(1),1)**2
        if (res <= curv*eps_vxyz*5.d-1) exit
        svxyz=eps_vxyz/dsqrt(svxyz)
 
-       
-       call atomic_axpy_forces(atoms,vxyz,svxyz-1.0_gp,vxyz,vxyz)
-!!$       do i=1,3*atoms%nat
-!!$          vxyz(i)=vxyz(i)*svxyz
-!!$       end do
-       !equivalent to
-       !        call dscal(3*atoms%nat,svxyz,vxyz(1),1)
+       do i=1,3*atoms%nat
+          vxyz(i)=vxyz(i)*svxyz
+       end do
 
     end do ! iter
-    !if(iproc==0)close(11)
-    !if(res>curv*eps_vxyz*5.d-1)write(*,*)'# process', iproc,' has no convergence in low_cur_dir',res
+ 
 
-    !        call  moment(nat,vxyz)
-    !        call  torque(nat,rxyz,vxyz)
     !        deallocate(wpos,fxyz)
   end subroutine soften
 
 
 end program
 !!***
+
+
+
 
 subroutine insert(nlminx,nbuf,nlmin,k_e_wpos,re_wpos,earr)
   ! inserts the energy re_wpos at position k_e_wpos and shifts up all other energies
@@ -1247,29 +1211,24 @@ subroutine velopt(at,rxyz,ekinetic,vxyz)
 
 
   !C      Kinetic energy of the random velocities
-  call atomic_dot(at,vxyz,vxyz,rkinsum)
-!!$  rkinsum= 0.d0      
-!!$  do iat=1,at%nat
-!!$     if (.not. at%lfrztyp(iat)) then
-!!$        rkinsum= rkinsum+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
-!!$     end if
-!!$  end do
-  !here the number of atoms should be subtracted with the number of blocked atoms
-  rkin=.5d0*rkinsum/(3*at%nat-3) 
+  rkinsum= 0.d0      
+  do iat=1,at%nat
+!     if (.not. at%lfrztyp(iat)) then
+        rkinsum= rkinsum+vxyz(1,iat)**2+vxyz(2,iat)**2+vxyz(3,iat)**2
+!     end if
+  end do
+  rkin=.5d0*rkinsum/(3*at%nat-3)
   !       write(*,*) 'rkin,ekinetic',rkin,ekinetic
 
   !C      Rescaling of velocities to get reference kinetic energy
   sclvel= dsqrt(ekinetic/rkin)
-
-  call atomic_axpy_forces(at,vxyz,sclvel-1.0_gp,vxyz,vxyz)
-
-!!$  do iat=1,at%nat
-!!$     if (.not. at%lfrztyp(iat)) then
-!!$        vxyz(1,iat)=vxyz(1,iat)*sclvel
-!!$        vxyz(2,iat)=vxyz(2,iat)*sclvel
-!!$        vxyz(3,iat)=vxyz(3,iat)*sclvel
-!!$     end if
-!!$  end do
+  do iat=1,at%nat
+!     if (.not. at%lfrztyp(iat)) then
+        vxyz(1,iat)=vxyz(1,iat)*sclvel
+        vxyz(2,iat)=vxyz(2,iat)*sclvel
+        vxyz(3,iat)=vxyz(3,iat)*sclvel
+!     end if
+  end do
 
 end subroutine velopt
 
@@ -1280,7 +1239,7 @@ subroutine randdist(nat,rxyz,vxyz)
   ! create a random displacement vector without translational and angular moment
   do i=1,3*nat
      call random_number(tt)
-     vxyz(i)=dble(tt-.5)
+     vxyz(i)=dble(tt-.5)*3.d-1
   enddo
   call  elim_moment(nat,vxyz)
   call  elim_torque(nat,rxyz,vxyz)
@@ -1586,9 +1545,7 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
            zi=rxyz(3,iat)
            if (belong(iat)) then 
               do jat=1,at%nat
-                 xj=rxyz(1,jat) 
-                 yj=rxyz(2,jat) 
-                 zj=rxyz(3,jat)
+                 xj=rxyz(1,jat) ; yj=rxyz(2,jat) ; zj=rxyz(3,jat)
                  if ( (xi-xj)**2+(yi-yj)**2+(zi-zj)**2 <= (bondlength*1.25d0)**2) then 
                     if (.not. belong(jat)) nadd=nadd+1
                     belong(jat)=.true. 
@@ -1650,32 +1607,26 @@ subroutine fix_fragmentation(iproc,at,rxyz,nputback)
            endif
         enddo
 
-        !leave things like that due to the presence of the belong(:) array
         d1=rxyz(1,ii)-rxyz(1,jj)
         d2=rxyz(2,ii)-rxyz(2,jj)
         d3=rxyz(3,ii)-rxyz(3,jj)
         tt=bondlength/sqrt(d1**2+d2**2+d3**2)
         do iat=1,at%nat
-           if (.not. belong(iat)) then
-              call atomic_coordinate_axpy(at,1,iat,rxyz(1,iat),d1*(tt-1.0d0),rxyz(1,iat))
-              call atomic_coordinate_axpy(at,2,iat,rxyz(2,iat),d2*(tt-1.0d0),rxyz(2,iat))
-              call atomic_coordinate_axpy(at,3,iat,rxyz(3,iat),d3*(tt-1.0d0),rxyz(3,iat))
-           end if
-!!$           if (.not. belong(iat) .and. at%ifrztyp(iat) == 0) then
-!!$              if (at%geocode == 'P') then
-!!$                 rxyz(1,iat)=modulo(rxyz(1,iat)+d1*(tt-1.0d0),at%alat1)
-!!$                 rxyz(2,iat)=modulo(rxyz(2,iat)+d2*(tt-1.0d0),at%alat2)
-!!$                 rxyz(3,iat)=modulo(rxyz(3,iat)+d3*(tt-1.0d0),at%alat3)
-!!$              else if (at%geocode == 'S') then
-!!$                 rxyz(1,iat)=modulo(rxyz(1,iat)+d1*(tt-1.0d0),at%alat1)
-!!$                 rxyz(2,iat)=       rxyz(2,iat)+d2*(tt-1.0d0)
-!!$                 rxyz(3,iat)=modulo(rxyz(3,iat)+d3*(tt-1.0d0),at%alat3)
-!!$              else
-!!$                 rxyz(1,iat)=rxyz(1,iat)+d1*(tt-1.0d0)
-!!$                 rxyz(2,iat)=rxyz(2,iat)+d2*(tt-1.0d0)
-!!$                 rxyz(3,iat)=rxyz(3,iat)+d3*(tt-1.0d0)
-!!$              end if
-!!$           endif
+!           if (.not. belong(iat) .and. .not. at%lfrztyp(iat)) then
+              if (at%geocode == 'P') then
+                 rxyz(1,iat)=modulo(rxyz(1,iat)+d1*(tt-1.0d0),at%alat1)
+                 rxyz(2,iat)=modulo(rxyz(2,iat)+d2*(tt-1.0d0),at%alat2)
+                 rxyz(3,iat)=modulo(rxyz(3,iat)+d3*(tt-1.0d0),at%alat3)
+              else if (at%geocode == 'S') then
+                 rxyz(1,iat)=modulo(rxyz(1,iat)+d1*(tt-1.0d0),at%alat1)
+                 rxyz(2,iat)=       rxyz(2,iat)+d2*(tt-1.0d0)
+                 rxyz(3,iat)=modulo(rxyz(3,iat)+d3*(tt-1.0d0),at%alat3)
+              else
+                 rxyz(1,iat)=rxyz(1,iat)+d1*(tt-1.0d0)
+                 rxyz(2,iat)=rxyz(2,iat)+d2*(tt-1.0d0)
+                 rxyz(3,iat)=rxyz(3,iat)+d3*(tt-1.0d0)
+              end if
+!           endif
         enddo
 
         if (iproc.eq.0) then
@@ -1711,7 +1662,7 @@ subroutine winter(iproc,at,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, &
   integer :: mm,k
 
   if (iproc == 0) then
-     call write_atomic_file('poscur',re_pos,pos,at,'')
+     call wtxyz('poscur',re_pos,pos,at,'')
      write(*,*) ' wrote poscur.xyz for  RESTART'
   end if
      
@@ -1722,7 +1673,7 @@ subroutine winter(iproc,at,re_pos,pos,npminx,nlminx,nbuf,nlmin,nlmin_l,accur, &
      
      open(unit=12,file='earr.dat',status='unknown')
      mm=min(nlmin,nlminx+nbuf)
-     write(12,'(2(i10),a)') mm,mm+5,&
+     write(12,'(2(i10),a)') mm,mm+1,&
           ' # of minima already found, # of minima to be found in consecutive run'
      write(12,'(e24.17,1x,a)') eref,'   eref'
      write(12,'(e24.17,1x,a)') accur,'   accur'
@@ -1858,13 +1809,24 @@ subroutine wtpos(iproc,at,npminx,nlminx,nbuf,nlmin,nlmin_l,pos,earr,elocmin)
         !C generate filename and open files
         if (iproc == 0) then
            write(fn,'(i5.5)') kk
-           call write_atomic_file('poslow'//fn,elocmin(k),pos(1,1,k),at,'')
+           call wtxyz('poslow'//fn,elocmin(k),pos(1,1,k),at,'')
         end if
      endif
 
   end do
 
 end subroutine wtpos
+
+
+
+subroutine zero(n,x)
+  implicit real*8 (a-h,o-z)
+  dimension x(n)
+  do j=1,n
+     x(j)=0.d0
+  end do
+  return
+end subroutine zero
 
 
 real*8 function round(enerd,accur)
@@ -1876,6 +1838,8 @@ real*8 function round(enerd,accur)
   !           write(*,'(a,1pe24.17,1x,i17,1x,1pe24.17)') 'enerd,ii,round',enerd,ii,round
   return
 end function round
+
+
 
 subroutine rdposout(igeostep,rxyz,nat)
   implicit none

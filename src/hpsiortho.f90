@@ -34,7 +34,7 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
   type(GPU_pointers), intent(inout) :: GPU
   !local variables
   character(len=*), parameter :: subname='HamiltonianApplication'
-  integer :: i_all,i_stat,ierr,n1i,n2i,n3i,iorb,ispin
+  integer :: i_all,i_stat,ierr,iorb,ispin
   real(gp) :: eproj
   real(gp), dimension(3,2) :: wrkallred
   real(wp), dimension(:,:), pointer :: pot
@@ -161,11 +161,9 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
   character(len=*), parameter :: subname='hpsitopsi'
   logical, save :: switchSD
   integer, save :: idiistol,mids,ids
-  integer :: ierr,ind,i1,i2,iorb,i,k,i_stat,i_all,oidx,sidx
-  real(wp) :: cprecr
-  real(dp) :: tt,scpr,scprpart
+  integer :: ierr,iorb,k,i_stat,i_all
+  real(dp) :: tt,scprpart
   real(wp), dimension(:,:,:), allocatable :: mom_vec
-  real(kind=4), dimension(:), allocatable :: psitcuda,hpsitcuda
 
   !stream ptr array
  ! real(kind=8), dimension(orbs%norbp) :: tab_stream_ptr
@@ -447,7 +445,7 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
   real(wp), dimension(:) , pointer :: psi,hpsi,psit
   !local variables
   character(len=*), parameter :: subname='first_orthon'
-  integer :: i_all,i_stat,ierr,iorb
+  integer :: i_stat
 
 !!$  if(nspin==4) then
 !!$     nspinor=4
@@ -516,7 +514,7 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
   !local variables
   character(len=*), parameter :: subname='last_orthon'
   logical :: dowrite !write the screen output
-  integer :: i_all,i_stat,ierr,iorb,jorb,md
+  integer :: i_all,i_stat,iorb,jorb,md
   real(wp) :: evpart
   real(wp), dimension(:,:,:), allocatable :: mom_vec
 
@@ -667,9 +665,9 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
   !local variables
   character(len=*), parameter :: subname='calc_moments'
   integer :: i_all,i_stat,ierr,iorb,jproc
-  integer :: ispin,md,ndim,oidx
+  integer :: ndim,oidx
   integer, dimension(:), allocatable :: norb_displ
-  real(wp) :: m00,m11,m13,m24,m12,m34,m14,m23
+  real(wp) :: m00,m11,m13,m24,m14,m23
   !real(wp), dimension(:,:,:), allocatable :: mom_vec
 
   ndim=2
@@ -721,7 +719,7 @@ END SUBROUTINE calc_moments
 !!***
 
 !experimental routine for correcting the potential from a vacancy
-subroutine correct_hartree_potential(at,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n3pi,n3d,&
+subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&
      i3s,i3xcsh,hxh,hyh,hzh,pkernel,ngatherarr,&
      rhoref,pkernel_ref,pot_ion,rhopot,ixc,nspin,ehart,eexcu,vexcu,PSquiet,correct_offset)
   use module_base
@@ -730,7 +728,7 @@ subroutine correct_hartree_potential(at,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n3p
   implicit none
   character(len=3), intent(in) :: PSquiet
   logical, intent(in) :: correct_offset
-  integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,nspin,ixc,i3xcsh,n1,n2,n3,i3s
+  integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,nspin,ixc,i3xcsh,i3s
   real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: at
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
@@ -974,7 +972,7 @@ subroutine check_communications(iproc,nproc,orbs,lr,comms)
   type(communications_arrays), intent(in) :: comms
   !local variables
   character(len=*), parameter :: subname='check_communications'
-  integer :: i,ispinor,iorb,indspin,indorb,jproc,iscompm,i_stat,i_all,iscomp,idsx,index
+  integer :: i,ispinor,iorb,indspin,indorb,jproc,i_stat,i_all,iscomp,idsx,index
   real(wp) :: vali,valorb,psival,maxdiff,ierr
   real(wp), dimension(:), allocatable :: psi
   real(wp), dimension(:), pointer :: pwork

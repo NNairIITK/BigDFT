@@ -13,14 +13,14 @@
 !!
 !! SOURCE
 !!
-subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_cf,&
+subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
      crmult,frmult,Glr,orbs)
   use module_base
   use module_types
   implicit none
   !Arguments
   type(atoms_data), intent(in) :: atoms
-  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz,crmult,frmult
   real(gp), dimension(3,atoms%nat), intent(in) :: rxyz
   real(gp), dimension(atoms%ntypes,3), intent(in) :: radii_cf
@@ -28,9 +28,8 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_
   type(orbitals_data), intent(inout) :: orbs
   !local variables
   character(len=*), parameter :: subname='createWavefunctionsDescriptors'
-  integer :: iat,i1,i2,i3,norbme,norbyou,jpst,jproc,i_all,i_stat
+  integer :: i_all,i_stat
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  real(kind=8) :: tt
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
 
   !assign the dimensions to improve (a little) readability
@@ -172,7 +171,7 @@ subroutine createWavefunctionsDescriptors(iproc,nproc,hx,hy,hz,atoms,rxyz,radii_
      call make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
           Glr%bounds%kb%ibxy_f,Glr%bounds%sb%ibxy_ff,Glr%bounds%sb%ibzzx_f,Glr%bounds%sb%ibyyzz_f,&
           Glr%bounds%kb%ibyz_f,Glr%bounds%gb%ibyz_ff,Glr%bounds%gb%ibzxx_f,Glr%bounds%gb%ibxxyy_f)
-  endif	
+  endif
 
   !assign geocode and the starting points
   Glr%geocode=atoms%geocode
@@ -195,8 +194,8 @@ subroutine createProjectorsArrays(iproc,n1,n2,n3,rxyz,at,&
   real(wp), dimension(:), pointer :: proj
   !local variables
   character(len=*), parameter :: subname='createProjectorsArrays'
-  integer :: nl1,nl2,nl3,nu1,nu2,nu3,mseg,mvctr,mproj,istart
-  integer :: iat,i_stat,i_all,ityp,iseg,natyp
+  integer :: nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj
+  integer :: iat,i_stat,i_all,iseg
   logical, dimension(:,:,:), allocatable :: logrid
   
   allocate(nlpspd%nseg_p(0:2*at%nat+ndebug),stat=i_stat)
@@ -303,14 +302,10 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
   real(wp), dimension(:), pointer :: psi,psit,hpsi
   !local variables
   character(len=*), parameter :: subname='import_gaussians'
-  integer :: i,iorb,i_stat,i_all,ierr,info,jproc,n_lp,jorb,j
-  real(kind=4) :: t1,t0
-  real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,accurex,maxdiff
+  integer :: i_stat,i_all
+  real(gp) :: hxh,hyh,hzh,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum
   type(gaussian_basis) :: CP2K
   type(GPU_pointers) :: GPU !added for interface compatibility, not working here
-  integer, dimension(:), allocatable :: iwork
-  real(gp), dimension(:), allocatable :: ones,ovrlp,work
-  real(gp), dimension(:,:), allocatable :: tmp,smat
   real(wp), dimension(:,:), pointer :: wfn_cp2k
 
   if (iproc.eq.0) then
@@ -454,16 +449,12 @@ subroutine input_wf_diag(iproc,nproc,cpmult,fpmult,radii_cf,at,&
   integer, parameter :: ngx=31
   integer :: i_stat,i_all,iat,nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,eexcu,vexcu,epot_sum,ekin_sum,ehart,eproj_sum,etol,accurex
-  real(kind=4) :: t0,t1
   type(gaussian_basis) :: G
   type(orbitals_data) :: orbse
   type(communications_arrays) :: commse
   type(GPU_pointers) :: GPU
-  integer, dimension(:), allocatable :: mpirequests
   integer, dimension(:,:), allocatable :: norbsc_arr
-  real(wp), dimension(:,:), allocatable :: hpsigau
   real(gp), dimension(:), allocatable :: locrad
-  real(gp), dimension(:,:), allocatable :: thetaphi
   type(locreg_descriptors), dimension(:), allocatable :: Llr
   real(wp), dimension(:,:,:), pointer :: psigau
 

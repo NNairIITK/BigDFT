@@ -233,9 +233,7 @@ subroutine geopt_input_variables(iproc,filename,in)
   integer, intent(in) :: iproc
   type(input_variables), intent(out) :: in
   !local variables
-  character(len=7) :: cudagpu
-  character(len=100) :: line
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
+  integer :: ierror,ierrfrc,iline
 
   ! Read the input variables.
   open(unit=1,file=filename,status='old')
@@ -247,6 +245,7 @@ subroutine geopt_input_variables(iproc,filename,in)
   call check()
   read(1,*,iostat=ierror) in%ncount_cluster_x
   call check()
+  in%forcemax = 0.d0
   read(1,*,iostat=ierrfrc) in%frac_fluct,in%forcemax
   call check()
   read(1,*,iostat=ierror) in%randdis
@@ -292,9 +291,8 @@ subroutine dft_input_converter(in)
   implicit none
   type(input_variables), intent(in) :: in
   !local variables
-  character(len=7) :: cudagpu
   character(len=100) :: line
-  integer :: ierror,ierrfrc,iconv,iblas,iline,initerror
+  integer :: iline
 
   ! Read the input variables.
   open(unit=1,file='input_convert.dft',status='new')
@@ -640,7 +638,7 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='read_atomic_file'
-  integer :: i_stat
+  integer :: i_stat, l
   logical :: file_exists
   character(len = 128) :: filename
 
@@ -658,22 +656,25 @@ subroutine read_atomic_file(file,iproc,atoms,rxyz)
      if (file_exists) write(filename, "(A)") file//'.ascii'!"posinp.ascii"
      write(atoms%format, "(A)") "ascii"
   end if
-  ! Fallback to old name
+  ! Test the name directly
   if (.not. file_exists) then
      inquire(FILE = file, EXIST = file_exists)
-     if (file_exists) write(filename, "(A)") file!"posinp"
-     write(atoms%format, "(A)") "xyz"
+     if (file_exists) write(filename, "(A)") file
+     l = len(file)
+     if (file(l-3:l) == ".xyz") then
+        write(atoms%format, "(A)") "xyz"
+     else if (file(l-5:l) == ".ascii") then
+        write(atoms%format, "(A)") "ascii"
+     else
+        write(*,*) "Atomic input file format not recognised."
+        write(*,*) " File should be *.ascii or *.xyz."
+        stop
+     end if
   end if
-!!$  ! Fallback to old name
-!!$  if (.not. file_exists) then
-!!$     inquire(FILE = file, EXIST = file_exists)
-!!$     if (file_exists) write(filename, "(A)") file!"posinp"
-!!$     write(at%format, "(A)") "xyz"
-!!$  end if
 
   if (.not. file_exists) then
      write(*,*) "Atomic input file not found."
-     write(*,*) " Files looked for are '"//file//"'.ascii and '"//file//".xyz'."
+     write(*,*) " Files looked for were '"//file//"'.ascii, '"//file//".xyz' and '"//file//"'."
      stop 
   end if
 
@@ -715,8 +716,8 @@ subroutine read_atomic_positions(iproc,ifile,atoms,rxyz)
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
-  logical :: lpsdbl,dowrite
-  integer :: nateq,iat,jat,ityp,i,ierror,ierrsfx,i_stat,j
+  logical :: lpsdbl
+  integer :: iat,ityp,i,ierrsfx,i_stat
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3
 ! case for which the atomic positions are given whithin general precision
@@ -1114,8 +1115,8 @@ subroutine read_atomic_ascii(iproc,ifile,atoms,rxyz)
   character(len=20) :: tatonam
   character(len=50) :: extra
   character(len=150) :: line
-  logical :: lpsdbl,dowrite
-  integer :: nateq,iat,jat,ityp,i,i_stat,j,nlines
+  logical :: lpsdbl
+  integer :: iat,ityp,i,i_stat,j,nlines
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: rx,ry,rz,alat1,alat2,alat3,alat4,alat5,alat6
 ! case for which the atomic positions are given whithin general precision
@@ -1153,25 +1154,15 @@ subroutine read_atomic_ascii(iproc,ifile,atoms,rxyz)
      if (line(1:1) /= '#' .and. line(1:1) /= '!' .and. len(trim(line)) /= 0) then
         atoms%nat = atoms%nat + 1
      else if (line(1:9) == "#keyword:" .or. line(1:9) == "!keyword:") then
-        if (index(line, 'bohr') > 0) then
-           write(atoms%units, "(A)") "bohr"
-        else if (index(line, 'bohrd0') > 0) then
-           write(atoms%units, "(A)") "bohrd0"
-        else if (index(line, 'atomic') > 0) then
-           write(atoms%units, "(A)") "atomicd0"
-        else if (index(line, 'angstroem') > 0) then
-           write(atoms%units, "(A)") "angstroem"
-        else if (index(line, 'angstroemd0') > 0) then
-           write(atoms%units, "(A)") "angstroemd0"
-        else if (index(line, 'reduced') > 0) then
-           write(atoms%units, "(A)") "reduced"
-        else if (index(line, 'periodic') > 0) then
-           atoms%geocode = 'P'
-        else if (index(line, 'surface') > 0) then
-           atoms%geocode = 'S'
-        else if (index(line, 'freeBC') > 0) then
-           atoms%geocode = 'F'
-        end if
+        if (index(line, 'bohr') > 0)        write(atoms%units, "(A)") "bohr"
+        if (index(line, 'bohrd0') > 0)      write(atoms%units, "(A)") "bohrd0"
+        if (index(line, 'atomic') > 0)      write(atoms%units, "(A)") "atomicd0"
+        if (index(line, 'angstroem') > 0)   write(atoms%units, "(A)") "angstroem"
+        if (index(line, 'angstroemd0') > 0) write(atoms%units, "(A)") "angstroemd0"
+        if (index(line, 'reduced') > 0)     write(atoms%units, "(A)") "reduced"
+        if (index(line, 'periodic') > 0) atoms%geocode = 'P'
+        if (index(line, 'surface') > 0)  atoms%geocode = 'S'
+        if (index(line, 'freeBC') > 0)   atoms%geocode = 'F'
      end if
   end do
   
@@ -1398,7 +1389,7 @@ subroutine wtxyz(filename,energy,rxyz,atoms,comment)
   character(len=10) :: name
   character(len=11) :: units
   character(len=50) :: extra
-  integer :: iat,j,ichg,ispol
+  integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
   open(unit=9,file=filename//'.xyz')
@@ -1463,7 +1454,7 @@ subroutine wtascii(filename,energy,rxyz,atoms,comment)
   character(len=2) :: symbol
   character(len=50) :: extra
   character(len=10) :: name
-  integer :: iat,j,ichg,ispol
+  integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
   open(unit=9,file=filename//'.ascii')
@@ -1754,7 +1745,7 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(out) :: r
   !local variables
-  logical :: move_this_coordinate,periodize
+  logical :: periodize
   real(gp) :: alat,alphai
 
   if (ixyz == 1) then
@@ -1763,6 +1754,10 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
      alat=atoms%alat2
   else if (ixyz == 3) then
      alat=atoms%alat3
+  else
+     alat = -1
+     write(0,*) "Internal error"
+     stop
   end if
   
   periodize= atoms%geocode == 'P' .or. &

@@ -7,6 +7,8 @@ else
 tests_dir = 
 endif
 
+ACLOCAL_AMFLAGS = -I config/m4
+
 SUBDIRS = src \
 	utils \
 	$(tests_dir) \
