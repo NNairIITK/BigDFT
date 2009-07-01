@@ -203,33 +203,33 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      !let us apply ABINIT routines
      !case with gradient
      if (ixc >= 11 .and. ixc <= 16) then
-      if (order**2 <= 1 .or. ixc == 16) then
-         if (ixc /= 13) then             
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
-                 &grho2_updn=gradient,vxcgr=dvxcdgr) 
-         else
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
-                 &grho2_updn=gradient) 
-         end if
-      else if (order /= 3) then
-         if (ixc /= 13) then             
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
-                 &dvxc=dvxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
-         else
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
-                 &dvxc=dvxci,grho2_updn=gradient) 
-         end if
-      else if (order == 3) then
-         if (ixc /= 13) then             
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
-                 &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
-         else
-           call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
-                 &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient) 
-         end if
-      end if
+        if (order**2 <= 1 .or. ixc == 16) then
+           if (ixc /= 13) then             
+              call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+                   &grho2_updn=gradient,vxcgr=dvxcdgr) 
+           else
+              call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+                   &grho2_updn=gradient) 
+           end if
+        else if (order /= 3) then
+           if (ixc /= 13) then             
+              call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+                   &dvxc=dvxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
+           else
+              call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+                   &dvxc=dvxci,grho2_updn=gradient) 
+           end if
+        else if (order == 3) then
+           if (ixc /= 13) then             
+              call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+                   &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
+           else
+              call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+                   &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient) 
+           end if
+        end if
 
-     !do not calculate the White-Bird term in the Leeuwen Baerends XC case
+        !do not calculate the White-Bird term in the Leeuwen Baerends XC case
         if (ixc/=13) then
            call vxcpostprocessing(geocode,m1,m3,nwb,nxc,nxcl,nxcr,nspden,nvxcdgr,gradient,&
                 real(hx,dp),real(hy,dp),real(hz,dp),dvxcdgr,vxci)
@@ -256,9 +256,8 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
               end do
            end do
         end if
-
         !cases without gradient
-     else
+     else if (ixc >= 0) then
         if (order**2 <=1 .or. ixc >= 31 .and. ixc<=34) then
            call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr)
         else if (order==3 .and. (ixc==3 .or. ixc>=7 .and. ixc<=10)) then
@@ -268,6 +267,9 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
            call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                 &dvxc=dvxci)
         end if
+     else if (ixc < 0) then
+        call drivexc(exci,ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,     &
+             &      grho2_updn=gradient,vxcgr=dvxcdgr)
      end if
      !end of the part that can be commented out
 

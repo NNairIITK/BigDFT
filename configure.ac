@@ -330,6 +330,30 @@ if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
   AC_MSG_ERROR(["No lapack library. Use --with-lapack-path or check your Lapack installation."])
 fi
 
+dnl Test the libXC library
+libxc=yes
+AC_ARG_WITH(libxc, AS_HELP_STRING([--with-libxc], [Link with libXC library (default = no).]), libxc=$withval, libxc=yes)
+AC_ARG_WITH(libxc-path, AS_HELP_STRING([--with-libxc-path], [Give the path of the libXC library, lib and module files (default = /usr).]),
+            ac_libxc_dir=$withval, ac_libxc_dir=)
+if test -n "$ac_libxc_dir" ; then
+  LDFLAGS="$LDFLAGS -L$ac_libxc_dir/lib"
+else
+  ac_libxc_dir="/usr"
+fi
+ac_use_libxc="no"
+if test "$libxc" = "yes" ; then
+  AC_CHECK_LIB(xc, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+  AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$capitalize_module_ext, funcs="yes", funcs="no")
+  AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$capitalize_module_ext, lib="yes", lib="no")
+  AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$capitalize_module_ext, types="yes", types="no")
+  if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
+    ac_use_libxc="yes"
+    LIBS="-lxc $LIBS"
+    AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
+    AC_DEFINE([HAVE_LIBXC], [1], [compile the libXC section in the ABINIT code.])
+  fi
+fi
+
 fi # End of the if library compilation
 
 
@@ -407,6 +431,8 @@ Options:
    | GCC41HACK (gcc path):   $GCC41HACK
    | ext. cutil library:     $ac_with_lib_cutils
    |      cutil path:        $LIB_CUTIL_PATH
+  With libXC:                $ac_use_libxc
+   | include dir.:           $LIBXC_INCLUDE
 
 Installation paths:
   Source code location:      ${srcdir}
