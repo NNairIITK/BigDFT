@@ -39,6 +39,10 @@ CLEANFILES = defs_basis.@MODULE_EXT@ \
 	DEFS_XC.@MODULE_EXT@
 
 #dependencies
+
+interfaces_14_hidewrite.o interfaces_16_hideleave.o interfaces_56_xc.o : defs_basis.o
+
+
 defs_datatypes.o: defs_datatypes.F90 \
 	defs_basis.o
 

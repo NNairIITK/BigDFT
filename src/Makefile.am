@@ -55,7 +55,7 @@ global_LINK = $(FCLD) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
 	$(LDFLAGS) -o $@
 
 
-SUBDIRS = modules $(sub_dirs_ps) convolutions profiling	$(sub_dirs_cuda)
+SUBDIRS = modules convolutions profiling $(sub_dirs_cuda) $(sub_dirs_ps)
 
 EXTRA_DIST = \
 	Makefile.standalone \

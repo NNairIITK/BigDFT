@@ -13,7 +13,7 @@ PPFILES = \
 CLEANFILES = $(PPFILES) GPU.out posout* *.prc \
 			 fldiff.report
 
-#dependencies
+#dependencies 
 $(PPFILES):
 	ln -fs $(top_srcdir)/utils/PSPfiles/HGH/$@
 
@@ -23,7 +23,7 @@ GPU.out: $(top_builddir)/src/cluster $(PPFILES)
 	  ln -fs $(srcdir)/posinp.xyz ; \
 	  ln -fs $(srcdir)/GPU.config ; \
         fi
-	$(run_parallel) $(top_builddir)/src/cluster > $@
+	$(top_builddir)/src/cluster > $@
 	if ! test x"$srcdir" = x"." ; then \
 	  rm -f input.dft ; \
 	  rm -f posinp.xyz ; \
