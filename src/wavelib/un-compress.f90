@@ -75,10 +75,10 @@ subroutine uncompress(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
+  call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
   !$omp parallel default(private) &
   !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f)
   
-  call omp_razero(8*(n1+1)*(n2+1)*(n3+1),psig)
 
   ! coarse part
   !$omp do
@@ -157,7 +157,7 @@ subroutine fill_random(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
-        call random_number(x) 
+		call random_number(x) 
         psig_c(i,i2,i3)=x
      enddo
   enddo
@@ -174,10 +174,10 @@ subroutine fill_random(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      i0=ii-i2*(n1+1)
      i1=i0+j1-j0
      do i=i0,i1
-        do l=1,7
-           call random_number(x)
-           psig_f(l,i,i2,i3)=x
-        enddo
+		 do l=1,7
+			 call random_number(x)
+			 psig_f(l,i,i2,i3)=x
+		 enddo
      enddo
   enddo
 
@@ -527,153 +527,6 @@ subroutine compress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !$omp end parallel
 end subroutine compress_per
 
-! Compresses a wavefunction that is given in terms of fine scaling functions (psifscf) into 
-! the retained coarse scaling functions and wavelet coefficients (psi_c,psi_f)
-subroutine compress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
-     nseg_f,nvctr_f,keyg_f,keyv_f,  & 
-     psifscf,psi_c,psi_f,psig,scal)
-  use module_base
-  implicit none
-  integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
-  integer, dimension(nseg_c), intent(in) :: keyv_c
-  integer, dimension(nseg_f), intent(in) :: keyv_f
-  integer, dimension(2,nseg_c), intent(in) :: keyg_c
-  integer, dimension(2,nseg_f), intent(in) :: keyg_f
-  real(wp), dimension(0:7), intent(in) :: scal
-  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(in) :: psifscf
-  real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
-  real(wp), dimension(nvctr_c), intent(out) :: psi_c
-  real(wp), dimension(7,nvctr_f), intent(out) :: psi_f
-  !local variables
-  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
-
-  ! decompose wavelets into coarse scaling functions and wavelets
-  call analyse_per_self(n1,n2,n3,psifscf,psig)
-
-  !$omp parallel default(private) &
-  !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f)
-  
-  ! coarse part
-  !$omp do
-  do iseg=1,nseg_c
-     jj=keyv_c(iseg)
-     j0=keyg_c(1,iseg)
-     j1=keyg_c(2,iseg)
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-     do i=i0,i1
-        psi_c(i-i0+jj)=psig(i,1,i2,1,i3,1)*scal(0)
-     enddo
-  enddo
-  !$omp enddo
-
-  ! fine part
-  !$omp do
-  do iseg=1,nseg_f
-     jj=keyv_f(iseg)
-     j0=keyg_f(1,iseg)
-     j1=keyg_f(2,iseg)
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-     do i=i0,i1
-        psi_f(1,i-i0+jj)=psig(i,2,i2,1,i3,1)*scal(1)
-        psi_f(2,i-i0+jj)=psig(i,1,i2,2,i3,1)*scal(2)
-        psi_f(3,i-i0+jj)=psig(i,2,i2,2,i3,1)*scal(3)
-        psi_f(4,i-i0+jj)=psig(i,1,i2,1,i3,2)*scal(4)
-        psi_f(5,i-i0+jj)=psig(i,2,i2,1,i3,2)*scal(5)
-        psi_f(6,i-i0+jj)=psig(i,1,i2,2,i3,2)*scal(6)
-        psi_f(7,i-i0+jj)=psig(i,2,i2,2,i3,2)*scal(7)
-     enddo
-  enddo
-  !$omp enddo
-
-  !$omp end parallel
-end subroutine compress_per_scal
-
-subroutine uncompress_per_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
-     nseg_f,nvctr_f,keyg_f,keyv_f,  & 
-     psi_c,psi_f,psifscf,psig,scal)
-  ! Expands the compressed wavefunction in vector form (psi_c,psi_f) 
-  ! into fine scaling functions (psifscf)
-  use module_base
-  implicit none
-  integer, intent(in) :: n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f
-  integer, dimension(nseg_c), intent(in) :: keyv_c
-  integer, dimension(nseg_f), intent(in) :: keyv_f
-  integer, dimension(2,nseg_c), intent(in) :: keyg_c
-  integer, dimension(2,nseg_f), intent(in) :: keyg_f
-  real(wp), dimension(0:7), intent(in) :: scal
-  real(wp), dimension(nvctr_c), intent(in) :: psi_c
-  real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
-  real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(inout) :: psig
-  real(wp), dimension((2*n1+2)*(2*n2+2)*(2*n3+2)), intent(out) :: psifscf
-  !local variables
-  integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
-
-  !$omp parallel default(private) &
-  !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f)
-  
-  call omp_razero(8*(n1+1)*(n2+1)*(n3+1),psig)
-
-  ! coarse part
-  !$omp do
-  do iseg=1,nseg_c
-     jj=keyv_c(iseg)
-     j0=keyg_c(1,iseg)
-     j1=keyg_c(2,iseg)
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-     do i=i0,i1
-        psig(i,1,i2,1,i3,1)=psi_c(i-i0+jj)*scal(0)
-     enddo
-  enddo
-  !$omp enddo
-
-  ! fine part
-  !$omp do
-  do iseg=1,nseg_f
-     jj=keyv_f(iseg)
-     j0=keyg_f(1,iseg)
-     j1=keyg_f(2,iseg)
-     ii=j0-1
-     i3=ii/((n1+1)*(n2+1))
-     ii=ii-i3*(n1+1)*(n2+1)
-     i2=ii/(n1+1)
-     i0=ii-i2*(n1+1)
-     i1=i0+j1-j0
-     do i=i0,i1
-        psig(i,2,i2,1,i3,1)=psi_f(1,i-i0+jj)*scal(1)
-        psig(i,1,i2,2,i3,1)=psi_f(2,i-i0+jj)*scal(2)
-        psig(i,2,i2,2,i3,1)=psi_f(3,i-i0+jj)*scal(3)
-        psig(i,1,i2,1,i3,2)=psi_f(4,i-i0+jj)*scal(4)
-        psig(i,2,i2,1,i3,2)=psi_f(5,i-i0+jj)*scal(5)
-        psig(i,1,i2,2,i3,2)=psi_f(6,i-i0+jj)*scal(6)
-        psig(i,2,i2,2,i3,2)=psi_f(7,i-i0+jj)*scal(7)
-     enddo
-  enddo
-  !$omp enddo
-
-  !$omp end parallel
-  !psig=1.d0
-  !psig=1.d0/sqrt(real(8*(n1+1)*(n2+1)*(n3+1),wp))
-
-  ! calculate fine scaling functions
-  call synthese_per_self(n1,n2,n3,psig,psifscf)
-
-end subroutine uncompress_per_scal
-
 subroutine uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  & 
      nseg_f,nvctr_f,keyg_f,keyv_f,  & 
      psi_c,psi_f,psifscf,psig)
@@ -693,10 +546,10 @@ subroutine uncompress_per(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
+  call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
   !$omp parallel default(private) &
   !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f)
   
-  call omp_razero(8*(n1+1)*(n2+1)*(n3+1),psig)
 
   ! coarse part
   !$omp do
@@ -769,10 +622,10 @@ subroutine uncompress_sd_scal(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
 
+  call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
   !$omp parallel default(private) &
   !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f,scal)
   
-  call omp_razero(8*(n1+1)*(n2+1)*(n3+1),psig)
   ! coarse part
 
   !$omp do
@@ -905,11 +758,11 @@ subroutine uncompress_sd(n1,n2,n3,nseg_c,nvctr_c,keyg_c,keyv_c,  &
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
+  call razero(8*(n1+1)*(n2+1)*(n3+1),psig)
 
   !$omp parallel default(private) &
   !$omp shared(psig,psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,nseg_c,nseg_f)
   
-  call omp_razero(8*(n1+1)*(n2+1)*(n3+1),psig)
   ! coarse part
 
   !$omp do
@@ -1036,10 +889,10 @@ subroutine uncompress_c(hpsi,x_c,keyg_c,keyv_c,nseg_c,nvctr_c,n1,n2,n3)
   !local variables
   integer iseg,jj,j0,j1,ii,i3,i2,i0,i1,i
 
+  call razero((n1+1)*(n2+1)*(n3+1),x_c)
   !$omp parallel default(private) &
   !$omp shared(hpsi,x_c,keyv_c,keyg_c,n1,n2,n3,nseg_c)
   
-  call omp_razero((n1+1)*(n2+1)*(n3+1),x_c)
   
   !$omp do
   do iseg=1,nseg_c
