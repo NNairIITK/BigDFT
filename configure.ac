@@ -332,7 +332,7 @@ fi
 
 dnl Test the libXC library
 libxc=yes
-AC_ARG_WITH(libxc, AS_HELP_STRING([--with-libxc], [Link with libXC library (default = no).]), libxc=$withval, libxc=yes)
+AC_ARG_WITH(libxc, AS_HELP_STRING([--with-libxc], [Link with libXC library (default = yes).]), libxc=$withval, libxc=yes)
 AC_ARG_WITH(libxc-path, AS_HELP_STRING([--with-libxc-path], [Give the path of the libXC library, lib and module files (default = /usr).]),
             ac_libxc_dir=$withval, ac_libxc_dir=)
 if test -n "$ac_libxc_dir" ; then

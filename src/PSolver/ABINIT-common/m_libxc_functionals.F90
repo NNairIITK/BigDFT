@@ -36,14 +36,15 @@ module libxc_functionals
 
   implicit none
 
-#if defined HAVE_LIBXC
   type libxc_functional
     private
     integer         :: family ! LDA, GGA, etc.
     integer         :: id     ! identifier
 
+#if defined HAVE_LIBXC
     type(xc_f90_func_t) :: conf ! the pointer used to call the library
     type(xc_f90_info_t) :: info ! information about the functional
+#endif
 
     integer         :: irel
     real(dp)        :: xalpha
@@ -103,6 +104,7 @@ contains
 
 ! *************************************************************************
 
+#if defined HAVE_LIBXC
     funcs(1)%id = -ixc/1000
     funcs(2)%id = -ixc - funcs(1)%id*1000
 
@@ -154,6 +156,13 @@ contains
       call wrtout(std_out,message,'COLL')
 
     end do
+#else
+    write(message, '(a,a,a,a)' ) ch10,&
+         & ' wvl_init_type_wfs : LibXC library is not compiled.', ch10, &
+         & '   Action, used the flag --enable-libxc when configuring.'
+    call wrtout(6,message,'COLL')
+    call leave_new('COLL')
+#endif
 
   end subroutine libxc_functionals_init
 !!***
@@ -181,7 +190,9 @@ contains
     implicit none
 
     integer :: i
+    character(len=500) :: message
 
+#if defined HAVE_LIBXC
     do i = 1, 2
       if (funcs(i)%id == 0) cycle
       select case (funcs(i)%family)
@@ -191,6 +202,13 @@ contains
         call xc_f90_gga_end(funcs(i)%conf)
       end select
     end do
+#else
+    write(message, '(a,a,a,a)' ) ch10,&
+         & ' wvl_init_type_wfs : LibXC library is not compiled.', ch10, &
+         & '   Action, used the flag --enable-libxc when configuring.'
+    call wrtout(6,message,'COLL')
+    call leave_new('COLL')
+#endif
 
   end subroutine libxc_functionals_end
 !!*** 
@@ -221,14 +239,24 @@ contains
 !Local variables-------------------------------
 
     logical :: libxc_functionals_isgga
+    character(len=500) :: message
 
 ! *************************************************************************
 
+#if defined HAVE_LIBXC
     if (any(funcs%family == XC_FAMILY_GGA)) then
       libxc_functionals_isgga = .true.
     else
       libxc_functionals_isgga = .false.
     end if
+#else
+    libxc_functionals_isgga = .false.
+    write(message, '(a,a,a,a)' ) ch10,&
+         & ' wvl_init_type_wfs : LibXC library is not compiled.', ch10, &
+         & '   Action, used the flag --enable-libxc when configuring.'
+    call wrtout(6,message,'COLL')
+    call leave_new('COLL')
+#endif
 
   end function libxc_functionals_isgga
 !!*** 
@@ -268,9 +296,11 @@ contains
 
     integer  :: i
     real(dp) :: rhotmp(nspden), exctmp, sigma(3), vsigma(3), vxctmp(nspden)
+    character(len=500) :: message
 
 ! *************************************************************************
 
+#if defined HAVE_LIBXC
     ! Inititalize all relevant arrays to zero
     vxc=zero
     exc=zero
@@ -318,9 +348,15 @@ contains
       vxc(1:nspden)=vxc(1:nspden)+vxctmp(1:nspden)
 
     end do
+#else
+    write(message, '(a,a,a,a)' ) ch10,&
+         & ' wvl_init_type_wfs : LibXC library is not compiled.', ch10, &
+         & '   Action, used the flag --enable-libxc when configuring.'
+    call wrtout(6,message,'COLL')
+    call leave_new('COLL')
+#endif
 
   end subroutine libxc_functionals_getvxc
-#endif
 
 end module 
 !!***
