@@ -4,6 +4,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
   ! Output: rho
   use module_base!, only: gp,dp,wp,ndebug,memocc
   use module_types
+  use libxc_functionals
+
   implicit none
   integer, intent(in) :: iproc,nproc,nrho,nspin,ixc
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -41,7 +43,8 @@ subroutine sumrho(iproc,nproc,orbs,lr,ixc,hxh,hyh,hzh,psi,rho,nrho,nscatterarr,n
 
 
   !flag for toggling the REDUCE_SCATTER stategy
-  rsflag=.not. (ixc >= 11 .and. ixc <=16)
+  rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
+       & (ixc < 0 .and. libxc_functionals_isgga()))
 
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rsflag) then
