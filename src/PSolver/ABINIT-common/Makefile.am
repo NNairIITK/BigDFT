@@ -43,7 +43,7 @@ CLEANFILES = defs_basis.@MODULE_EXT@ \
 
 #dependencies
 
-interfaces_14_hidewrite.o interfaces_16_hideleave.o interfaces_56_xc.o : defs_basis.o
+interfaces_14_hidewrite.o interfaces_16_hideleave.o interfaces_56_xc.o m_libxc_functionals.o: defs_basis.o
 
 
 defs_datatypes.o: defs_datatypes.F90 \

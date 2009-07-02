@@ -331,27 +331,36 @@ if [ test $withlinalg = "no" && test $withlapack = "no" ] ; then
 fi
 
 dnl Test the libXC library
-libxc=yes
-AC_ARG_WITH(libxc, AS_HELP_STRING([--with-libxc], [Link with libXC library (default = yes).]), libxc=$withval, libxc=yes)
-AC_ARG_WITH(libxc-path, AS_HELP_STRING([--with-libxc-path], [Give the path of the libXC library, lib and module files (default = /usr).]),
+internallibxc="yes"
+AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), internallibxc=$enval, internallibxc="yes")
+AC_ARG_WITH(libxc-path, AS_HELP_STRING([--with-libxc-path], [Give the path for an external libXC library, lib and module files (default = None).]),
             ac_libxc_dir=$withval, ac_libxc_dir=)
-if test -n "$ac_libxc_dir" ; then
-  LDFLAGS="$LDFLAGS -L$ac_libxc_dir/lib"
-else
-  ac_libxc_dir="/usr"
-fi
 ac_use_libxc="no"
-if test "$libxc" = "yes" ; then
-  AC_CHECK_LIB(xc, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
-  AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$capitalize_module_ext, funcs="yes", funcs="no")
-  AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$capitalize_module_ext, lib="yes", lib="no")
-  AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$capitalize_module_ext, types="yes", types="no")
-  if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
-    ac_use_libxc="yes"
-    LIBS="-lxc $LIBS"
-    AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
-    AC_DEFINE([HAVE_LIBXC], [1], [compile the libXC section in the ABINIT code.])
+ac_build_libxc="no"
+if test "$internallibxc" = "yes" ; then
+  ac_build_libxc="yes"
+  ac_use_libxc="yes"
+  AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libXC/src)
+  LDFLAGS="$LDFLAGS -L\$(top_builddir)/libXC/src"
+else
+  if test -n "$ac_libxc_dir" ; then
+    LDFLAGS="$LDFLAGS -L$ac_libxc_dir/lib"
+    
+    dnl Test the given implementation of libXC.
+    AC_CHECK_LIB(xc, xc_f90_lda_vxc, withlibxc=yes, withlibxc=no)
+    AC_CHECK_FILE($ac_libxc_dir/include/libxc_funcs_m.$capitalize_module_ext, funcs="yes", funcs="no")
+    AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_lib_m.$capitalize_module_ext, lib="yes", lib="no")
+    AC_CHECK_FILE($ac_libxc_dir/include/xc_f90_types_m.$capitalize_module_ext, types="yes", types="no")
+    if test "$withlibxc" = "yes" -a "$funcs" = "yes" -a "$lib" = "yes" -a "$types" = "yes"; then
+      ac_use_libxc="yes"
+      AC_SUBST(LIBXC_INCLUDE, "-I"$ac_libxc_dir/include)
+    fi
   fi
+fi
+AM_CONDITIONAL(BUILD_LIBXC, test x"$ac_build_libxc" = x"yes")
+if test x"$ac_use_libxc" = x"yes" ; then
+  AC_DEFINE([HAVE_LIBXC], [1], [compile the libXC section in the ABINIT code.])
+  LIBS="-lxc $LIBS"
 fi
 
 fi # End of the if library compilation
@@ -401,6 +410,11 @@ tests/NEB/Makefile
 tests/NEB/input
 tests/NEB/NEB_include.sh
 ])
+if test x"$ac_build_libxc" = x"yes" ; then
+  # Call libXC ./configure script recursively.
+  ac_configure_args=$ac_configure_args" --enable-fortran"
+  AC_CONFIG_SUBDIRS([libXC])
+fi
 AC_OUTPUT
 
 echo "
@@ -432,6 +446,7 @@ Options:
    | ext. cutil library:     $ac_with_lib_cutils
    |      cutil path:        $LIB_CUTIL_PATH
   With libXC:                $ac_use_libxc
+   | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE
 
 Installation paths:
