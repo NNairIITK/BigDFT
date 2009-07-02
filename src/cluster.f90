@@ -218,7 +218,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,&
   ! arrays for DIIS convergence accelerator
   real(kind=8), dimension(:,:,:), pointer :: ads
   
-  type(gaussian_basis) Gabsorber
+  type(gaussian_basis) :: Gabsorber
   real(wp), dimension(:), allocatable :: Gabs_coeffs
   
   ! TODO variables for fake k points

@@ -34,6 +34,7 @@
 
 MODULE Numeric
 
+  IMPLICIT NONE
   INTEGER, PARAMETER :: sgl = KIND(1.0)
   INTEGER, PARAMETER :: dbl = KIND(1.D0)
 
@@ -42,6 +43,7 @@ END MODULE Numeric
 
 MODULE Formats
 
+  IMPLICIT NONE
   CHARACTER (LEN=*), PARAMETER ::                                              &
   fmt1 = "(3(2X,F12.8),3(2X,I1),3(2X,F12.8))",                                 &
   fmt2 = "(3(2X,F12.8))",                                                      &

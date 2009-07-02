@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
-# Copyright (C) 2008 BigDFT group (TD)
+# Copyright (C) 2008-2009 BigDFT group (TD)
 # This file is distributed under the terms of the
 # GNU General Public License, see ~abinit/COPYING
 # or http://www.gnu.org/copyleft/gpl.txt .
@@ -11,7 +11,7 @@
 #
 # Try to have a common definition of classes with abilint (ABINIT)
 #
-# Date: 11/05/2009
+# Date: 02/07/2009
 #----------------------------------------------------------------------------
 #i# Lines commented: before used for #ifdef interfaces
 
@@ -501,7 +501,7 @@ class Project:
                     self.dirs.append(dd)
                     self.dirsfiles[dd] = list()
                 #Add all files in this sub-directory
-                self.add(dd,pat_dir,pat_file,exclude,read_only,File_Class)
+                self.add(dd,["*"],pat_file,exclude,read_only,File_Class)
                 self.message.write(" <--- add dir %s]\n" % dd)
             elif os.path.isfile(dd):
                 self.add_file(dir,file,read_only=read_only,File_Class=File_Class)
@@ -2165,8 +2165,11 @@ class Header_Routine(Code):
         self.parent.type = search['type']
         self.parent.name = search['name']
         args = search['arguments']
-        if args == '()':
-            args = None
+        if args:
+            #Remove blank characters
+            args = args.replace(' ','')
+            if args == '()':
+                args = None
         if args:
             #Remove comments
             args = self.re_comment.sub('',args)
@@ -2633,6 +2636,9 @@ class Declaration(Code):
                     else:
                         self.message.fatal("\n%s\n--> Parameter statement not correct!\n" % line\
                             + "Analysis Error in %s/%s\n" % (self.parent.dir,self.parent.file))
+                elif decl_lower[0:4] == "type":
+                    #Detect the used type without ::
+                    liste = liste[1]
                 else:
                     self.message.fatal("\n%s\n--> Strange declaration!\n" % line\
                         + "Analysis Error in %s/%s\n" % (self.parent.dir,self.parent.file))
@@ -3293,11 +3299,12 @@ class Message:
         "Display a warning message"
         tt = "Warning[%d]: %s\n" % (len(self.twarnings)+1,text)
         self.twarnings.append(tt)
-        if not self.ret:
-            tt = '\n'+tt
         if verbose <= self.verbose:
+            #Display in stdout
+            if not self.ret:
+                tt = '\n'+tt
             sys.stdout.write(tt)
-        self.ret = True
+            self.ret = True
     #
     def warning_no_interface(self,dir,file,routine,called):
         "Display a warning message concerning not referenced routine"
@@ -3410,8 +3417,8 @@ bigdft_exclude = [ "PSolver/base.f90" ]
 generic_routines = []
 
 #File class per pattern
-bigdft_File_Class = [("*.f90",File_F90), ("*.f",File_F77)]
-#Add before *.F90
+bigdft_File_Class = [("*.F90",File_F90), ("*.f90",File_F90), ("*.f",File_F77)]
+#Add generic routine
 for file in generic_routines:
     bigdft_File_Class.insert(0,(file,File_F90_Generic))
 
@@ -3424,7 +3431,6 @@ special_modif =  {}
 def rank_dir(dir):
     "Define the hierarchy of directories in the project"
     return 0
-
 
 
 #Routines excluded in the graph
@@ -3483,7 +3489,7 @@ if __name__ == "__main__":
     NEW = args[1]
     #Create the project and read all files
     bigdft = Project(OLD,name="BigDFT",\
-                     pat_dir=["src","src/*"],pat_file=["*.F90","*.f90", "*.inc" ],\
+                     pat_dir=["src"],pat_file=["*.F90","*.f90", "*.inc"],\
                      logfile="abilint.log",\
                      exclude=bigdft_exclude,given_include=bigdft_include,\
                      File_Class=bigdft_File_Class)
