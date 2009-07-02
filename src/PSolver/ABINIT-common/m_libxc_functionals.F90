@@ -139,6 +139,8 @@ contains
         end if
       case(XC_FAMILY_GGA)
         call xc_f90_gga_init(funcs(i)%conf,funcs(i)%info,funcs(i)%id,nspden)
+      case(XC_FAMILY_HYB_GGA)
+        call xc_f90_hyb_gga_init(funcs(i)%conf,funcs(i)%info,funcs(i)%id,nspden)
       case default
         write(message, '(4a,i8,2a,i8,6a)' )ch10,&
              &    ' libxc_functionals_init : ERROR -',ch10,&
@@ -200,6 +202,8 @@ contains
         call xc_f90_lda_end(funcs(i)%conf)
       case (XC_FAMILY_GGA)
         call xc_f90_gga_end(funcs(i)%conf)
+      case (XC_FAMILY_HYB_GGA)
+        call xc_f90_hyb_gga_end(funcs(i)%conf)
       end select
     end do
 #else
@@ -335,6 +339,26 @@ contains
           sigma(3) = grho2(2)
         end if
         call xc_f90_gga_vxc(funcs(i)%conf,rhotmp(1),sigma(1),exctmp,vxctmp(1),vsigma(1))
+        if (nspden == 1) then
+          vxcgr(3) = vxcgr(3) + vsigma(1)*two
+        else
+          vxcgr(1) = vxcgr(1) + two*vsigma(1) - vsigma(2)
+          vxcgr(2) = vxcgr(2) + two*vsigma(3) - vsigma(2)
+          vxcgr(3) = vxcgr(3) + vsigma(2)
+        end if
+      case (XC_FAMILY_HYB_GGA)
+        sigma=zero
+        if (nspden==1) then
+          ! ABINIT passes |rho_up|^2 while Libxc needs |rho_tot|^2
+          sigma(1) = four*grho2(1)
+        else
+          ! ABINIT passes |rho_up|^2, |rho_dn|^2, and |rho_tot|^2
+          ! while Libxc needs |rho_up|^2, rho_up.rho_dn, and |rho_dn|^2
+          sigma(1) = grho2(1)
+          sigma(2) = (grho2(3) - grho2(1) - grho2(2))/two
+          sigma(3) = grho2(2)
+        end if
+        call xc_f90_hyb_gga_vxc(funcs(i)%conf,rhotmp(1),sigma(1),exctmp,vxctmp(1),vsigma(1))
         if (nspden == 1) then
           vxcgr(3) = vxcgr(3) + vsigma(1)*two
         else
