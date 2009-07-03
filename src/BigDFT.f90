@@ -35,6 +35,8 @@ program BigDFT
   type(input_variables) :: inputs
   type(restart_objects) :: rst
   character(len=20), dimension(:), allocatable :: atomnames
+  character(len=50), dimension(:), allocatable :: arr_posinp
+  character(len=60)  :: filename
   ! atomic coordinates, forces
   real(gp), dimension(:,:), allocatable :: fxyz
   real(gp), dimension(:,:), pointer :: rxyz
@@ -58,22 +60,38 @@ program BigDFT
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
 
+! find out which input files will be used
+  inquire(file="list_posinp",exist=exist_list)
+  if (exist_list) then
+     open(54,file="list_posinp"
+     read(54,*) nconfig
+     if (nconfig.gt.0) then 
+       allocate(arr_posinp(1:nconfig))
+       do iconfig=1,nconfig
+       read(54,*) arr_posinp(iconfig)
+       enddo
+     else
+       nconfig=1
+       allocate(arr_posinp(1:1))
+       arr_posinp(1)='posinp')
+       endif
+     close(54)
+  else
+     nconfig=1
+     allocate(arr_posinp(1:1))
+     arr_posinp(1)='posinp')
+  end if
+
+do iconf=1,nconfig
+
   !initialize memory counting
   call memocc(0,iproc,'count','start')
-
-!**********Commented out by Alexey, 15.11.2008************************************************  
-!!!!$omp parallel private(iam)  shared (npr)
-!!!!$       iam=omp_get_thread_num()
-!!!!$       if (iam.eq.0) npr=omp_get_num_threads()
-!!!!!$       write(*,*) 'iproc,iam,npr',iproc,iam,npr
-!!!!!$omp end parallel
-!*********************************************************************************************
 
   !welcome screen
   if (iproc==0) call print_logo()
 
   !read atomic file
-  call read_atomic_file('posinp',iproc,atoms,rxyz)
+  call read_atomic_file(arr_posinp(iconfig),iproc,atoms,rxyz)
 
   allocate(fxyz(3,atoms%nat+ndebug),stat=i_stat)
   call memocc(i_stat,fxyz,'fxyz',subname)
@@ -148,6 +166,9 @@ if (inputs%ncount_cluster_x > 1) then
      end if
   endif
 
+filename='relaxed_'//(array_posinp(iconfig)
+call write_atomic_file(filename,etot,rxyz,atoms,' ')
+
   !deallocations
   i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
   deallocate(atoms%ifrztyp,stat=i_stat)
@@ -174,6 +195,9 @@ if (inputs%ncount_cluster_x > 1) then
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
+
+enddo !loop over iconfig
+  deallocate(arr_posinp)
 
   call MPI_FINALIZE(ierr)
 
