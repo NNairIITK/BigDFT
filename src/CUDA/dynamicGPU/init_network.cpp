@@ -25,7 +25,12 @@
 #include "localqueu.h"
 
 #include "cudafct.h"
-void local_network::init() throw (inter_node_communication_error)
+
+#include "check_card/checker.h"
+
+
+
+void local_network::init(const manage_cpu_affinity& mca,int iproc) throw (inter_node_communication_error,check_calc_error)
 {
 
   man_gpu = NULL;
@@ -98,7 +103,7 @@ void local_network::init() throw (inter_node_communication_error)
 
     
 
-
+      std::cout << "Waiting for registration of all process..." << std::endl;
 
       //  printf( "%i\n", getpid());
       while(lu < NUM_PARTICIPANTS)
@@ -107,7 +112,6 @@ void local_network::init() throw (inter_node_communication_error)
       
 	  sleep(1);
 	  rewind(es);
-	  
 	  do
 	    {
 	      lectOK = fscanf(es, "%i", &n);
@@ -130,7 +134,7 @@ void local_network::init() throw (inter_node_communication_error)
 	  while (lectOK == 1 && fgetc(es) != EOF);
 	}
    
-      
+      //  std::cout << "Process  registration done !" << std::endl;
       
       voisin = (currNum + 1)%NUM_PARTICIPANTS;
       
@@ -155,7 +159,10 @@ void local_network::init() throw (inter_node_communication_error)
 	for(int i=0; i<NUM_PARTICIPANTS; ++i)
 	  {
 	    tab.at(i) = itGPU;
-	    std::cout << "Unix process (not MPI) " << i << " has GPU : " << itGPU << std::endl;
+
+	    if(iproc == 0)				
+	      std::cout << "Unix process (not MPI) " << i << " has GPU : " << itGPU << std::endl;
+
 	    if(i + 1 == numIt)
 	      {
 		numIt += div;
@@ -206,11 +213,30 @@ void local_network::init() throw (inter_node_communication_error)
       fclose(es);
       remove(nomfic);
 
+      es=NULL;
+
+      //set affinity
+      //CPU
+
+
+      mca.set_affinity(currNum);
+
+
       c_cuda_setdevice(currGPU);
 
+
+      //check the card precision, in order to detect error
+      //call a fortran function in check_card/check_init.f90
+      if(iproc == 0)
+	std::cout << "Check card on all nodes...." << std::endl;
+
+      checker::runTestOne();
+      
     }
   catch(...)
     {
+
+     
       if(sock !=  0)
 	close(sock);
 
@@ -597,12 +623,18 @@ sem_unix::sem_unix(const char *nomfic, int numGPU,int currGPU_) throw (synchroni
    bzero(&arg_ctl,sizeof(semun));
 	  
   
-   semid = semget ( ftok (nomfic, semKEY), numGPU, IPC_CREAT | IPC_EXCL | 0666);
+   //  semid = semget ( ftok (nomfic, semKEY), numGPU, IPC_CREAT | IPC_EXCL | 0666);
+   semid = semget ( IPC_PRIVATE, numGPU, IPC_CREAT | IPC_EXCL | 0666);
    
    if(semid == -1) 
      {
+       perror("Error init sem");
+       const int ERR_SIZE = 1024;
+       char errorm[ERR_SIZE];
+       strerror_r(errno, errorm, ERR_SIZE);
+
        semctl (semid , 0 , IPC_RMID , 0) ;
-       throw synchronization_error("Semid ERROR");
+       throw synchronization_error(errorm);
      }
 
    arg_ctl.val = 1;

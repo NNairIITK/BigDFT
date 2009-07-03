@@ -54,6 +54,33 @@ private:
 
 
 
+class check_calc_error: public std::exception
+{
+public:
+  check_calc_error(std::string _msg) throw()
+    :msg(_msg)
+  {}
+ 
+  virtual const char* what() const throw()
+  {
+    return msg.c_str();
+  }
+     
+ 
+    
+    virtual ~check_calc_error() throw()
+    {}
+ 
+private:
+  
+    std::string msg;       //Error description
+  
+};
+
+
+
+
+
 class other_error: public std::exception
 {
 public:

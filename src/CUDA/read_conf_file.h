@@ -17,7 +17,7 @@
 #include "read_conf_exception.h"
 #include <map>
 #include <string>
-
+#include "cpp_utils.h"
 
 typedef std::map<std::string , std::string> mapFile_t;
 
@@ -25,14 +25,6 @@ typedef std::map<std::string , std::string> mapFile_t;
 
 
 
-template<typename T>
-T strTo(const std::string& str)
-{
-  T dest;
-  std::istringstream iss( str );
-  iss >> dest;
-  return dest;
-}
 
 
 

@@ -31,6 +31,8 @@
 #include "exceptions.h"
 #include "localqueu.h"
 #include "manage_gpu.h"
+#include "manage_cpu_affinity.h"
+
 
 //encapsulation of an unix semaphore
 class sem_unix
@@ -69,9 +71,9 @@ private:
 class local_network
 {
 public:
-  local_network(int num_local_mpi_node, int num_gpu) throw (inter_node_communication_error)
+  local_network(int num_local_mpi_node, int num_gpu,const manage_cpu_affinity& mca,int iproc) throw (inter_node_communication_error,check_calc_error)
     :NUM_PARTICIPANTS(num_local_mpi_node),NUM_GPU(num_gpu)
-  {init();}  
+    {init(mca,iproc);}  
 
   ~local_network();
 
@@ -93,7 +95,7 @@ public:
   int recv_prev(message* msg) throw (inter_node_communication_error);
 
 private:
-  void init() throw (inter_node_communication_error);
+  void init(const manage_cpu_affinity&,int iproc) throw (inter_node_communication_error,check_calc_error);
 
 
 

@@ -112,8 +112,11 @@ subroutine dft_input_variables(iproc,filename,in)
    !  iconv = 0
    !  iblas = 0
      if (initerror == 1) then
-        stop
+        write(*,'(1x,a)')'ERROR: GPU lib init failed, aborting...'
+        call MPI_ABORT(MPI_COMM_WORLD,initerror,ierror)
      end if
+
+     call MPI_BARRIER(MPI_COMM_WORLD,ierror)
     ! GPUshare=.true.
      if (iconv == 0) then
         !change the value of the GPU convolution flag defined in the module_base
