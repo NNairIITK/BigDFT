@@ -119,13 +119,13 @@ subroutine localize_projectors(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_
   totfullvol=0.0_gp
   do iat=1,at%nat
      ityp=at%iatype(iat)
-     maxrad=min(maxval(at%psppar(1:4,0,ityp)),cpmult/15.0_gp*radii_cf(ityp,3))
+     maxrad=min(maxval(at%psppar(1:4,0,ityp)),cpmult/5.0_gp*radii_cf(ityp,3))
      zerovol=0.0_gp
      fullvol=0.0_gp
      do l=1,4
         do i=1,3
            if (at%psppar(l,i,ityp) /= 0.0_gp) then
-              rad=min(at%psppar(l,0,ityp),cpmult/15.0_gp*radii_cf(ityp,3))
+              rad=min(at%psppar(l,0,ityp),cpmult/5.0_gp*radii_cf(ityp,3))
               zerovol=zerovol+(maxrad**3-rad**3)
               fullvol=fullvol+maxrad**3
            end if

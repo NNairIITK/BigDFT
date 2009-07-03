@@ -50,6 +50,9 @@
      end subroutine cluster 
   end interface
 
+  !put a barrier for all the processes
+  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
   !assign the verbosity of the output
   !the verbose variables is defined in module_base
   verbose=in%verbosity
@@ -97,7 +100,7 @@
 
            call write_atomic_file("posfail",energy,rxyz,atoms,trim(comment))
 
-        end if
+        end if 
 
         i_all=-product(shape(rst%psi))*kind(rst%psi)
         deallocate(rst%psi,stat=i_stat)
@@ -121,6 +124,10 @@
 
   !preserve the previous value
   in%inputPsiId=inputPsiId_orig
+
+  !put a barrier for all the processes
+  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+
 
 end subroutine call_bigdft
 
