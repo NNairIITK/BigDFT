@@ -5,7 +5,11 @@
 !! AUTHOR
 !!    Luigi Genovese
 !! COPYRIGHT
-!!    Copyright (C) 2007 CEA
+!!   Copyright (C) 2007-2009 CEA
+!!   This file is distributed under the terms of the
+!!   GNU General Public License, see ~/COPYING file
+!!   or http://www.gnu.org/copyleft/gpl.txt .
+!!   For the list of contributors, see ~/AUTHORS 
 !!
 !! SOURCE
 !!
@@ -266,10 +270,10 @@ program memguess
   ! De-allocations
   i_all=-product(shape(orbs%occup))*kind(orbs%occup)
   deallocate(orbs%occup,stat=i_stat)
-  call memocc(i_stat,i_all,'occup',subname)
+  call memocc(i_stat,i_all,'orbs%occup',subname)
   i_all=-product(shape(orbs%spinsgn))*kind(orbs%spinsgn)
   deallocate(orbs%spinsgn,stat=i_stat)
-  call memocc(i_stat,i_all,'spinsgn',subname)
+  call memocc(i_stat,i_all,'orbs%spinsgn',subname)
   i_all=-product(shape(orbs%kpts))*kind(orbs%kpts)
   deallocate(orbs%kpts,stat=i_stat)
   call memocc(i_stat,i_all,'orbs%kpts',subname)
@@ -364,38 +368,38 @@ program memguess
   call memocc(i_stat,i_all,'logrid',subname)
   i_all=-product(shape(nlpspd%nvctr_p))*kind(nlpspd%nvctr_p)
   deallocate(nlpspd%nvctr_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nvctr_p',subname)
+  call memocc(i_stat,i_all,'nlpspd%nvctr_p',subname)
   i_all=-product(shape(nlpspd%nseg_p))*kind(nlpspd%nseg_p)
   deallocate(nlpspd%nseg_p,stat=i_stat)
-  call memocc(i_stat,i_all,'nseg_p',subname)
+  call memocc(i_stat,i_all,'nlpspd%nseg_p',subname)
   i_all=-product(shape(nlpspd%nboxp_c))*kind(nlpspd%nboxp_c)
   deallocate(nlpspd%nboxp_c,stat=i_stat)
-  call memocc(i_stat,i_all,'nboxp_c',subname)
+  call memocc(i_stat,i_all,'nlpspd%nboxp_c',subname)
   i_all=-product(shape(nlpspd%nboxp_f))*kind(nlpspd%nboxp_f)
   deallocate(nlpspd%nboxp_f,stat=i_stat)
-  call memocc(i_stat,i_all,'nboxp_f',subname)
+  call memocc(i_stat,i_all,'nlpspd%nboxp_f',subname)
   i_all=-product(shape(atoms%ifrztyp))*kind(atoms%ifrztyp)
   deallocate(atoms%ifrztyp,stat=i_stat)
-  call memocc(i_stat,i_all,'ifrztyp',subname)
+  call memocc(i_stat,i_all,'atoms%ifrztyp',subname)
   i_all=-product(shape(atoms%natpol))*kind(atoms%natpol)
   deallocate(atoms%natpol,stat=i_stat)
-  call memocc(i_stat,i_all,'natpol',subname)
+  call memocc(i_stat,i_all,'atoms%natpol',subname)
   i_all=-product(shape(atoms%psppar))*kind(atoms%psppar)
   deallocate(atoms%psppar,stat=i_stat)
-  call memocc(i_stat,i_all,'psppar',subname)
+  call memocc(i_stat,i_all,'atoms%psppar',subname)
   i_all=-product(shape(atoms%npspcode))*kind(atoms%npspcode)
   deallocate(atoms%npspcode,stat=i_stat)
-  call memocc(i_stat,i_all,'npspcode',subname)
+  call memocc(i_stat,i_all,'atoms%npspcode',subname)
   i_all=-product(shape(atoms%nelpsp))*kind(atoms%nelpsp)
   deallocate(atoms%nelpsp,stat=i_stat)
-  call memocc(i_stat,i_all,'nelpsp',subname)
+  call memocc(i_stat,i_all,'atoms%nelpsp',subname)
   !no need of using nzatom array
   i_all=-product(shape(atoms%nzatom))*kind(atoms%nzatom)
   deallocate(atoms%nzatom,stat=i_stat)
-  call memocc(i_stat,i_all,'nzatom',subname)
+  call memocc(i_stat,i_all,'atoms%nzatom',subname)
   i_all=-product(shape(atoms%iasctype))*kind(atoms%iasctype)
   deallocate(atoms%iasctype,stat=i_stat)
-  call memocc(i_stat,i_all,'iasctype',subname)
+  call memocc(i_stat,i_all,'atoms%iasctype',subname)
 
 
   call MemoryEstimator(atoms%geocode,nproc,in%idsx,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
@@ -408,7 +412,7 @@ program memguess
 
   i_all=-product(shape(atoms%atomnames))*kind(atoms%atomnames)
   deallocate(atoms%atomnames,stat=i_stat)
-  call memocc(i_stat,i_all,'atomnames',subname)
+  call memocc(i_stat,i_all,'atoms%atomnames',subname)
   i_all=-product(shape(radii_cf))*kind(radii_cf)
   deallocate(radii_cf,stat=i_stat)
   call memocc(i_stat,i_all,'radii_cf',subname)
@@ -417,7 +421,10 @@ program memguess
   call memocc(i_stat,i_all,'rxyz',subname)
   i_all=-product(shape(atoms%iatype))*kind(atoms%iatype)
   deallocate(atoms%iatype,stat=i_stat)
-  call memocc(i_stat,i_all,'iatype',subname)
+  call memocc(i_stat,i_all,'atoms%iatype',subname)
+  i_all=-product(shape(atoms%amu))*kind(atoms%amu)
+  deallocate(atoms%amu,stat=i_stat)
+  call memocc(i_stat,i_all,'atoms%amu',subname)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
@@ -698,6 +705,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   use module_types
   use module_interfaces
   use Poisson_Solver
+  use libxc_functionals
+
   implicit none
   integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
   real(gp), intent(in) :: hx,hy,hz
@@ -784,7 +793,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,at,orbs,nspin,ixc,ncong,&
   end if
 
   !flag for toggling the REDUCE_SCATTER stategy
-  rsflag=.not. (ixc >= 11 .and. ixc <=16)
+  rsflag=.not. ((ixc >= 11 .and. ixc <= 16) .or. &
+       & (ixc < 0 .and. libxc_functionals_isgga()))
 
   !calculate dimensions of the complete array to be allocated before the reduction procedure
   if (rsflag) then

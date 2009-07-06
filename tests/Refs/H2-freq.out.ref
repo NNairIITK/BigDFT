@@ -1,0 +1,842 @@
+                             TTTT         F       DDDDD    
+                            T    T               D         
+                           T     T        F     D          
+                           T    T         F     D        D 
+                           TTTTT          F     D         D
+                           T    T         F     D         D
+                           T     T        F     D         D
+                           T      T       F     D         D
+                           T     T     FFFF     D         D
+                           T TTTT         F      D        D
+                           T             F        D      D 
+                       TTTTTTTTT    FFFFF          DDDDDD  
+                         gggggg          iiiii    BBBBBBBBB
+                        g      g        i             B    
+                       g        g      i         BBBB B    
+                       g         g     iiii     B     B    
+                       g         g     i       B      B    
+                       g         g     i        B     B    
+                       g         g     i         B    B    
+                       g         g     i          BBBBB    
+                        g        g     i         B    B    
+                                 g     i        B     B    
+                                g               B    B     
+                           ggggg       i         BBBB                     (Ver 1.3.0)
+ ------------------------------------------------------------------------------------
+ |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
+ ------------------------------------------------------------------------------------
+                                   The Journal of Chemical Physics 129, 014109 (2008)
+ Number of atoms     = 2
+ Number of atom types= 1
+ Atoms of type 1 are H
+ Spin-polarised calculation:  NO 
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 0
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-06 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Processes from 0 to 0 treat 1 orbitals 
+ Processes from 1 to 7 treat 0 orbitals 
+ Total Number of Orbitals         1
+ occup(1)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.14833E+00  6.75000E+00  6.75000E+00       18.107    15.000    15.000
+     2      H  6.70167E+00  6.75000E+00  6.75000E+00       14.893    15.000    15.000
+    Shift of= -1.42500E+00  6.75000E+00  6.75000E+00 Grid Spacings=  0.45  0.45  0.45
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation per processor (Bytes): 142160
+ ion-ion interaction energy  6.91246246551011E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001495710   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    8   ixc:  0 ...done.
+ ------------------------------------------------------- Input Wavefunctions Creation
+ Generating 2 Atomic Input Orbitals
+ Wavefunctions memory occupation per processor (Bytes): 0
+ Processes from 0 to 1 treat 1 inguess orbitals 
+ Processes from 2 to 7 treat 0 inguess orbitals 
+ Wavefunctions memory occupation per processor (Bytes): 142160
+ Deviation from normalization of the imported orbitals    1.62E-06
+ PSolver, free  BC, dimensions:    97   91   91   proc    8   ixc:  1 ...done.
+ ekin_sum,epot_sum,eproj_sum  1.83027081160E+00 -2.01067043201E+00  0.00000000000E+00
+    ehart,   eexcu,    vexcu  1.48585621362E+00 -7.53133546077E-01 -9.84556054545E-01
+ evale(1)= -2.41376689846149E-01 <- Last eigenvalue for input wavefunctions
+ evale(2)=  4.43995561783247E-01 <- First virtual eigenvalue
+ iter,total energy,gnrm     1  -1.04436706636954812E+00  2.28E-01
+ iter,total energy,gnrm     2  -1.13387829749008806E+00  1.10E-01
+ iter,total energy,gnrm     3  -1.13685515476050747E+00  2.00E-02
+ iter,total energy,gnrm     4  -1.13691552487954528E+00  2.39E-03
+ iter,total energy,gnrm     5  -1.13691723318062343E+00  5.10E-04
+ iter,total energy,gnrm     6  -1.13691730687004156E+00  1.05E-04
+ iter,total energy,gnrm     7  -1.13691731052896694E+00  2.86E-05
+ iter,total energy,gnrm     8  -1.13691731064937707E+00  4.33E-06
+ iter,total energy,gnrm     9  -1.13691731065498236E+00  1.31E-06
+ iter,total energy,gnrm    10  -1.13691731065562252E+00  3.43E-07
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.07939554191E+00 -1.82393077345E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28114746821E+00 -6.45403885821E-01 -8.42923028368E-01
+ FINAL iter,total energy,gnrm    11  -1.13691731065566315E+00  3.43E-07
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1)= -3.72267615771629E-01
+ ----------------------------------------------------------------- Forces Calculation
+ CPU time/ELAPSED time for root process     0         3.72         3.42
+ Wavefunction Optimization Finished, exit signal=    0
+ Final values of the Forces for each atom
+     1      H -8.30266E-04  1.49379E-04  1.49379E-04
+     2      H  1.08307E-03  1.63465E-04  1.63465E-04
+ the sum of the forces is
+      x direction     2.52807848E-04
+      y direction     3.12844384E-04
+      z direction     3.12844384E-04
+ =Frequencies calculation=
+ =F:Move the atom 1 in the direction -x by    -7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-06 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Processes from 0 to 0 treat 1 orbitals 
+ Processes from 1 to 7 treat 0 orbitals 
+ Total Number of Orbitals         1
+ occup(1)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.14482E+00  6.75000E+00  6.75000E+00       18.100    15.000    15.000
+     2      H  6.70518E+00  6.75000E+00  6.75000E+00       14.900    15.000    15.000
+    Shift of=  3.51562E-03 -9.02056E-17 -9.02056E-17 Grid Spacings=  0.45  0.45  0.45
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation per processor (Bytes): 142160
+ ion-ion interaction energy  6.94622336979816E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001559448   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    8   ixc:  0 ...done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   2.471923828125E-05 0.000000000000E+00 0.000000000000E+00
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13689476769057651E+00  8.83E-03
+ iter,total energy,gnrm     2  -1.13691452956010886E+00  1.93E-03
+ iter,total energy,gnrm     3  -1.13691563062443612E+00  2.32E-04
+ iter,total energy,gnrm     4  -1.13691563702296894E+00  2.53E-05
+ iter,total energy,gnrm     5  -1.13691563719343436E+00  5.64E-06
+ iter,total energy,gnrm     6  -1.13691563720022049E+00  1.43E-06
+ iter,total energy,gnrm     7  -1.13691563720055933E+00  2.40E-07
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.08271718303E+00 -1.82852878250E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28358297338E+00 -6.46468382955E-01 -8.44324981635E-01
+ FINAL iter,total energy,gnrm     8  -1.13691563720055022E+00  2.40E-07
+ WARNING: Found an energy value lower than the FINAL energy, delta: 9.10E-15
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1)= -3.72905799738271E-01
+ ----------------------------------------------------------------- Forces Calculation
+ CPU time/ELAPSED time for root process     0         2.25         2.24
+ =F:Move the atom 1 in the direction +x by     7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-06 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Processes from 0 to 0 treat 1 orbitals 
+ Processes from 1 to 7 treat 0 orbitals 
+ Total Number of Orbitals         1
+ occup(1)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.15185E+00  6.75000E+00  6.75000E+00       18.115    15.000    15.000
+     2      H  6.69815E+00  6.75000E+00  6.75000E+00       14.885    15.000    15.000
+    Shift of= -3.51563E-03 -9.02056E-17 -9.02056E-17 Grid Spacings=  0.45  0.45  0.45
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation per processor (Bytes): 142160
+ ion-ion interaction energy  6.87902815183132E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001430549   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    8   ixc:  0 ...done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   9.887695312502E-05 0.000000000000E+00 0.000000000000E+00
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13681883771387637E+00  1.77E-02
+ iter,total energy,gnrm     2  -1.13689795989690445E+00  3.85E-03
+ iter,total energy,gnrm     3  -1.13690229751824479E+00  4.58E-04
+ iter,total energy,gnrm     4  -1.13690232617146547E+00  5.44E-05
+ iter,total energy,gnrm     5  -1.13690232688406345E+00  1.16E-05
+ iter,total energy,gnrm     6  -1.13690232691273385E+00  2.96E-06
+ iter,total energy,gnrm     7  -1.13690232691409809E+00  4.88E-07
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.07610180370E+00 -1.81936735749E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.27872299949E+00 -6.44344749767E-01 -8.41528160946E-01
+ FINAL iter,total energy,gnrm     8  -1.13690232691413939E+00  4.88E-07
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1)= -3.71632776895189E-01
+ ----------------------------------------------------------------- Forces Calculation
+ CPU time/ELAPSED time for root process     0         2.25         2.24
+ =F:Move the atom 1 in the direction -y by    -7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-06 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Processes from 0 to 0 treat 1 orbitals 
+ Processes from 1 to 7 treat 0 orbitals 
+ Total Number of Orbitals         1
+ occup(1)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.14833E+00  6.74648E+00  6.75000E+00       18.107    14.992    15.000
+     2      H  6.70167E+00  6.75352E+00  6.75000E+00       14.893    15.008    15.000
+    Shift of= -1.85962E-15  3.51563E-03 -9.02056E-17 Grid Spacings=  0.45  0.45  0.45
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation per processor (Bytes): 142160
+ ion-ion interaction energy  6.91238082123303E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001492465   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    8   ixc:  0 ...done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   2.471923828125E-05 2.471923828125E-05 0.000000000000E+00
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13688517491593166E+00  1.20E-02
+ iter,total energy,gnrm     2  -1.13691531710519156E+00  2.49E-03
+ iter,total energy,gnrm     3  -1.13691704669751936E+00  2.89E-04
+ iter,total energy,gnrm     4  -1.13691705959320788E+00  4.56E-05
+ iter,total energy,gnrm     5  -1.13691706002663495E+00  7.46E-06
+ iter,total energy,gnrm     6  -1.13691706003740434E+00  1.33E-06
+ iter,total energy,gnrm     7  -1.13691706003785020E+00  3.25E-07
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.07938675635E+00 -1.82391879219E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28114140473E+00 -6.45401223075E-01 -8.42919521486E-01
+ FINAL iter,total energy,gnrm     8  -1.13691706003785975E+00  3.25E-07
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1)= -3.72266017920876E-01
+ ----------------------------------------------------------------- Forces Calculation
+ CPU time/ELAPSED time for root process     0         2.25         2.24
+ =F:Move the atom 1 in the direction +y by     7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-06 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Processes from 0 to 0 treat 1 orbitals 
+ Processes from 1 to 7 treat 0 orbitals 
+ Total Number of Orbitals         1
+ occup(1)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.14833E+00  6.75352E+00  6.75000E+00       18.107    15.008    15.000
+     2      H  6.70167E+00  6.74648E+00  6.75000E+00       14.893    14.992    15.000
+    Shift of= -1.85962E-15 -3.51563E-03 -9.02056E-17 Grid Spacings=  0.45  0.45  0.45
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation per processor (Bytes): 142160
+ ion-ion interaction energy  6.91238082123303E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001492465   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    8   ixc:  0 ...done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   0.000000000000E+00 9.887695312500E-05 0.000000000000E+00
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13687231501465713E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691440298854762E+00  3.10E-03
+ iter,total energy,gnrm     3  -1.13691693507941483E+00  4.02E-04
+ iter,total energy,gnrm     4  -1.13691696016502708E+00  1.01E-04
+ iter,total energy,gnrm     5  -1.13691696098449402E+00  6.16E-06
+ iter,total energy,gnrm     6  -1.13691696099653305E+00  1.37E-06
+ iter,total energy,gnrm     7  -1.13691696099681949E+00  1.97E-07
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.07938652687E+00 -1.82391850642E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28114135085E+00 -6.45401188151E-01 -8.42919475432E-01
+ FINAL iter,total energy,gnrm     8  -1.13691696099683504E+00  1.97E-07
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1)= -3.72265989776825E-01
+ ----------------------------------------------------------------- Forces Calculation
+ CPU time/ELAPSED time for root process     0         2.25         2.25
+ =F:Move the atom 1 in the direction -z by    -7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-06 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Processes from 0 to 0 treat 1 orbitals 
+ Processes from 1 to 7 treat 0 orbitals 
+ Total Number of Orbitals         1
+ occup(1)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.14833E+00  6.75000E+00  6.74648E+00       18.107    15.000    14.992
+     2      H  6.70167E+00  6.75000E+00  6.75352E+00       14.893    15.000    15.008
+    Shift of= -1.85962E-15 -9.02056E-17  3.51563E-03 Grid Spacings=  0.45  0.45  0.45
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation per processor (Bytes): 142160
+ ion-ion interaction energy  6.91238082123303E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001492465   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    8   ixc:  0 ...done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   0.000000000000E+00 2.471923828125E-05 2.471923828125E-05
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13689473868034741E+00  1.14E-02
+ iter,total energy,gnrm     2  -1.13691577731543858E+00  2.20E-03
+ iter,total energy,gnrm     3  -1.13691704699445384E+00  2.87E-04
+ iter,total energy,gnrm     4  -1.13691705961648171E+00  7.21E-05
+ iter,total energy,gnrm     5  -1.13691706003116555E+00  4.14E-06
+ iter,total energy,gnrm     6  -1.13691706003767457E+00  1.08E-06
+ iter,total energy,gnrm     7  -1.13691706003783732E+00  1.94E-07
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.07938676068E+00 -1.82391879538E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28114140611E+00 -6.45401223834E-01 -8.42919522484E-01
+ FINAL iter,total energy,gnrm     8  -1.13691706003785309E+00  1.94E-07
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1)= -3.72266017351471E-01
+ ----------------------------------------------------------------- Forces Calculation
+ CPU time/ELAPSED time for root process     0         2.25         2.24
+ =F:Move the atom 1 in the direction +z by     7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-06 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Processes from 0 to 0 treat 1 orbitals 
+ Processes from 1 to 7 treat 0 orbitals 
+ Total Number of Orbitals         1
+ occup(1)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.14833E+00  6.75000E+00  6.75352E+00       18.107    15.000    15.008
+     2      H  6.70167E+00  6.75000E+00  6.74648E+00       14.893    15.000    14.992
+    Shift of= -1.85962E-15 -9.02056E-17 -3.51563E-03 Grid Spacings=  0.45  0.45  0.45
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation per processor (Bytes): 142160
+ ion-ion interaction energy  6.91238082123303E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001492465   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    8   ixc:  0 ...done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   0.000000000000E+00 0.000000000000E+00 9.887695312500E-05
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13687231501277886E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691440299264146E+00  3.10E-03
+ iter,total energy,gnrm     3  -1.13691693507949521E+00  4.02E-04
+ iter,total energy,gnrm     4  -1.13691696016503685E+00  1.01E-04
+ iter,total energy,gnrm     5  -1.13691696098451311E+00  6.16E-06
+ iter,total energy,gnrm     6  -1.13691696099656192E+00  1.37E-06
+ iter,total energy,gnrm     7  -1.13691696099684569E+00  1.97E-07
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.07938652687E+00 -1.82391850642E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28114135085E+00 -6.45401188151E-01 -8.42919475432E-01
+ FINAL iter,total energy,gnrm     8  -1.13691696099684525E+00  1.97E-07
+ WARNING: Found an energy value lower than the FINAL energy, delta: 4.44E-16
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1)= -3.72265989776791E-01
+ ----------------------------------------------------------------- Forces Calculation
+ CPU time/ELAPSED time for root process     0         2.29         2.29
+ =F:Move the atom 2 in the direction -x by    -7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-06 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Processes from 0 to 0 treat 1 orbitals 
+ Processes from 1 to 7 treat 0 orbitals 
+ Total Number of Orbitals         1
+ occup(1)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.15185E+00  6.75000E+00  6.75000E+00       18.115    15.000    15.000
+     2      H  6.69815E+00  6.75000E+00  6.75000E+00       14.885    15.000    15.000
+    Shift of=  3.51562E-03 -9.02056E-17 -9.02056E-17 Grid Spacings=  0.45  0.45  0.45
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation per processor (Bytes): 142160
+ ion-ion interaction energy  6.87902815183133E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001430549   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    8   ixc:  0 ...done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   2.471923828124E-05 0.000000000000E+00 2.471923828125E-05
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13687039410756929E+00  1.20E-02
+ iter,total energy,gnrm     2  -1.13690062187062368E+00  2.46E-03
+ iter,total energy,gnrm     3  -1.13690231389774121E+00  2.69E-04
+ iter,total energy,gnrm     4  -1.13690232650344258E+00  4.53E-05
+ iter,total energy,gnrm     5  -1.13690232690426285E+00  6.69E-06
+ iter,total energy,gnrm     6  -1.13690232691377746E+00  1.26E-06
+ iter,total energy,gnrm     7  -1.13690232691410698E+00  2.84E-07
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.07610178865E+00 -1.81936734789E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.27872299299E+00 -6.44344746447E-01 -8.41528156581E-01
+ FINAL iter,total energy,gnrm     8  -1.13690232691416693E+00  2.84E-07
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1)= -3.71632779622479E-01
+ ----------------------------------------------------------------- Forces Calculation
+ CPU time/ELAPSED time for root process     0         2.25         2.24
+ =F:Move the atom 2 in the direction +x by     7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-06 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Processes from 0 to 0 treat 1 orbitals 
+ Processes from 1 to 7 treat 0 orbitals 
+ Total Number of Orbitals         1
+ occup(1)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.14482E+00  6.75000E+00  6.75000E+00       18.100    15.000    15.000
+     2      H  6.70518E+00  6.75000E+00  6.75000E+00       14.900    15.000    15.000
+    Shift of= -3.51563E-03 -9.02056E-17 -9.02056E-17 Grid Spacings=  0.45  0.45  0.45
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation per processor (Bytes): 142160
+ ion-ion interaction energy  6.94622336979816E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001559448   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    8   ixc:  0 ...done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   9.887695312498E-05 0.000000000000E+00 0.000000000000E+00
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13683238417071464E+00  1.76E-02
+ iter,total energy,gnrm     2  -1.13691118960668569E+00  3.86E-03
+ iter,total energy,gnrm     3  -1.13691561186700718E+00  4.65E-04
+ iter,total energy,gnrm     4  -1.13691563649449390E+00  4.93E-05
+ iter,total energy,gnrm     5  -1.13691563717245825E+00  1.12E-05
+ iter,total energy,gnrm     6  -1.13691563719917377E+00  2.82E-06
+ iter,total energy,gnrm     7  -1.13691563720047495E+00  4.83E-07
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.08271717454E+00 -1.82852877717E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28358296964E+00 -6.46468381067E-01 -8.44324979152E-01
+ FINAL iter,total energy,gnrm     8  -1.13691563720051803E+00  4.83E-07
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1)= -3.72905801314315E-01
+ ----------------------------------------------------------------- Forces Calculation
+ CPU time/ELAPSED time for root process     0         2.25         2.25
+ =F:Move the atom 2 in the direction -y by    -7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-06 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Processes from 0 to 0 treat 1 orbitals 
+ Processes from 1 to 7 treat 0 orbitals 
+ Total Number of Orbitals         1
+ occup(1)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.14833E+00  6.75352E+00  6.75000E+00       18.107    15.008    15.000
+     2      H  6.70167E+00  6.74648E+00  6.75000E+00       14.893    14.992    15.000
+    Shift of= -1.85962E-15  3.51563E-03 -9.02056E-17 Grid Spacings=  0.45  0.45  0.45
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation per processor (Bytes): 142160
+ ion-ion interaction energy  6.91238082123303E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001492465   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    8   ixc:  0 ...done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   2.471923828125E-05 2.471923828125E-05 0.000000000000E+00
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13688483740954571E+00  1.20E-02
+ iter,total energy,gnrm     2  -1.13691522650540633E+00  2.49E-03
+ iter,total energy,gnrm     3  -1.13691694652359621E+00  2.86E-04
+ iter,total energy,gnrm     4  -1.13691696054322144E+00  4.73E-05
+ iter,total energy,gnrm     5  -1.13691696098543948E+00  7.49E-06
+ iter,total energy,gnrm     6  -1.13691696099638651E+00  1.35E-06
+ iter,total energy,gnrm     7  -1.13691696099681505E+00  3.16E-07
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.07938653095E+00 -1.82391850952E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28114135205E+00 -6.45401188825E-01 -8.42919476319E-01
+ FINAL iter,total energy,gnrm     8  -1.13691696099684836E+00  3.16E-07
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1)= -3.72265989284503E-01
+ ----------------------------------------------------------------- Forces Calculation
+ CPU time/ELAPSED time for root process     0         2.25         2.24
+ =F:Move the atom 2 in the direction +y by     7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-06 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Processes from 0 to 0 treat 1 orbitals 
+ Processes from 1 to 7 treat 0 orbitals 
+ Total Number of Orbitals         1
+ occup(1)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.14833E+00  6.74648E+00  6.75000E+00       18.107    14.992    15.000
+     2      H  6.70167E+00  6.75352E+00  6.75000E+00       14.893    15.008    15.000
+    Shift of= -1.85962E-15 -3.51563E-03 -9.02056E-17 Grid Spacings=  0.45  0.45  0.45
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation per processor (Bytes): 142160
+ ion-ion interaction energy  6.91238082123303E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001492465   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    8   ixc:  0 ...done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   0.000000000000E+00 9.887695312500E-05 0.000000000000E+00
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13687241405609707E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691450216512124E+00  3.10E-03
+ iter,total energy,gnrm     3  -1.13691703409504519E+00  4.03E-04
+ iter,total energy,gnrm     4  -1.13691705919312569E+00  1.02E-04
+ iter,total energy,gnrm     5  -1.13691706002550030E+00  6.17E-06
+ iter,total energy,gnrm     6  -1.13691706003755622E+00  1.38E-06
+ iter,total energy,gnrm     7  -1.13691706003782644E+00  2.05E-07
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.07938676111E+00 -1.82391879567E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28114140628E+00 -6.45401223916E-01 -8.42919522593E-01
+ FINAL iter,total energy,gnrm     8  -1.13691706003786641E+00  2.05E-07
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1)= -3.72266017280540E-01
+ ----------------------------------------------------------------- Forces Calculation
+ CPU time/ELAPSED time for root process     0         2.25         2.25
+ =F:Move the atom 2 in the direction -z by    -7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-06 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Processes from 0 to 0 treat 1 orbitals 
+ Processes from 1 to 7 treat 0 orbitals 
+ Total Number of Orbitals         1
+ occup(1)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.14833E+00  6.75000E+00  6.75352E+00       18.107    15.000    15.008
+     2      H  6.70167E+00  6.75000E+00  6.74648E+00       14.893    15.000    14.992
+    Shift of= -1.85962E-15 -9.02056E-17  3.51563E-03 Grid Spacings=  0.45  0.45  0.45
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation per processor (Bytes): 142160
+ ion-ion interaction energy  6.91238082123303E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001492465   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    8   ixc:  0 ...done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   0.000000000000E+00 2.471923828125E-05 2.471923828125E-05
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13689463963413373E+00  1.14E-02
+ iter,total energy,gnrm     2  -1.13691567820649841E+00  2.20E-03
+ iter,total energy,gnrm     3  -1.13691694796611364E+00  2.86E-04
+ iter,total energy,gnrm     4  -1.13691696058153391E+00  7.11E-05
+ iter,total energy,gnrm     5  -1.13691696099012307E+00  4.14E-06
+ iter,total energy,gnrm     6  -1.13691696099664585E+00  1.07E-06
+ iter,total energy,gnrm     7  -1.13691696099682926E+00  1.89E-07
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.07938652665E+00 -1.82391850629E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28114135074E+00 -6.45401188092E-01 -8.42919475355E-01
+ FINAL iter,total energy,gnrm     8  -1.13691696099682837E+00  1.89E-07
+ WARNING: Found an energy value lower than the FINAL energy, delta: 8.88E-16
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1)= -3.72265989824055E-01
+ ----------------------------------------------------------------- Forces Calculation
+ CPU time/ELAPSED time for root process     0         2.25         2.24
+ =F:Move the atom 2 in the direction +z by     7.0312500000E-03 bohr
+ ===================== BigDFT Wavefunction Optimization =============== inputPsiId= 1
+ ------------------------------------------------------------------- Input Parameters
+     System Choice       Resolution Radii        SCF Iteration      Finite Size Corr.
+ Max. hgrid  =  0.450 |  Coarse Wfs.= 5.00 | Wavefns Conv.= 1.0E-06 | Calculate=   F
+        XC id=      1 |    Fine Wfs.= 8.00 | Max. N. Iter.=   50x10 | Extension= 0.0
+ total charge=      0 |                    | CG Prec.Steps=       6 |  CG Steps=  30
+  elec. field=0.0E+00 |                    | DIIS Hist. N.=       6
+ ------------------------------------------------------------------ System Properties
+  Atom    N.Electr.  PSP Code  Radii: Coarse     Fine  CoarsePSP    Calculated   File
+      H          1       2            1.36000  0.15000  0.00000                   X    
+ ------------------------------------ Pseudopotential coefficients (Upper Triangular)
+ Atom Name    rloc      C1        C2        C3        C4  
+        H   0.20000  -4.06633   0.67783
+ Total Number of Electrons        2
+ Processes from 0 to 0 treat 1 orbitals 
+ Processes from 1 to 7 treat 0 orbitals 
+ Total Number of Orbitals         1
+ occup(1)= 2.0000
+ Shifted atomic positions, Atomic Units:                   grid spacing units:
+     1      H  8.14833E+00  6.75000E+00  6.74648E+00       18.107    15.000    14.992
+     2      H  6.70167E+00  6.75000E+00  6.75352E+00       14.893    15.000    15.008
+    Shift of= -1.85962E-15 -9.02056E-17 -3.51563E-03 Grid Spacings=  0.45  0.45  0.45
+   Box Sizes=  1.48500E+01  1.35000E+01  1.35000E+01           33        30        30
+       Extremes for the high resolution grid points:        13<20     13<17     13<17
+ wavelet localization is ON
+ ------------------------------------------------- Wavefunctions Descriptors Creation
+ Coarse resolution grid: Number of segments=        717 points=     16762
+   Fine resolution grid: Number of segments=         21 points=       144
+ ------------------------------------------------------------ PSP Projectors Creation
+ Type    Name Number of atoms Number of projectors
+    1       H               2                    0
+                                            ------   On-the-fly projectors application
+ Total number of projectors =                    0
+ Total number of components =                    0
+ Percent of zero components =                    0
+ Wavefunctions memory occupation per processor (Bytes): 142160
+ ion-ion interaction energy  6.91238082123303E-01
+ ----------------------------------------------------------- Ionic Potential Creation
+ total ionic charge, leaked charge            -2.000001492465   0.000E+00
+ PSolver, free  BC, dimensions:    97   91   91   proc    8   ixc:  0 ...done.
+ -------------------------------------------------------------- Wavefunctions Restart
+ The wavefunctions need reformatting because:                                 
+    molecule was shifted   0.000000000000E+00 0.000000000000E+00 9.887695312500E-05
+ Reformatting... done.
+ iter,total energy,gnrm     1  -1.13687241405765471E+00  1.62E-02
+ iter,total energy,gnrm     2  -1.13691450216928014E+00  3.10E-03
+ iter,total energy,gnrm     3  -1.13691703409512601E+00  4.03E-04
+ iter,total energy,gnrm     4  -1.13691705919310038E+00  1.02E-04
+ iter,total energy,gnrm     5  -1.13691706002549431E+00  6.17E-06
+ iter,total energy,gnrm     6  -1.13691706003755288E+00  1.38E-06
+ iter,total energy,gnrm     7  -1.13691706003784154E+00  2.05E-07
+ --------------------------------------------------- End of Wavefunction Optimisation
+ final  ekin,  epot,  eproj   1.07938676111E+00 -1.82391879567E+00  0.00000000000E+00
+ final ehart, eexcu,  vexcu   1.28114140628E+00 -6.45401223916E-01 -8.42919522593E-01
+ FINAL iter,total energy,gnrm     8  -1.13691706003787218E+00  2.05E-07
+ -------------------------------------------------------------- Kohn-Sham Eigenvalues
+ eval(   1)= -3.72266017280579E-01
+ ----------------------------------------------------------------- Forces Calculation
+ CPU time/ELAPSED time for root process     0         2.27         2.25
+ =F: eigenvalues (real)      =     3.6676471248E-04    1.3314966253E-05    1.3103200656E-05    2.7142424191E-10   -1.2368637561E-11    2.5567824238E-12
+ =F: eigenvalues (imaginary) =     0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00    0.0000000000E+00
+ =F: frequencies (Hartree)   =     1.9151102122E-02    3.6489678339E-03    3.6198343410E-03    1.6474958025E-05   -3.5169073859E-06    1.5989941913E-06
+ =F: frequencies (cm-1)      =       4203.18       800.86       794.46         3.62        -0.77         0.35
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 10302 allocations and 10302 deallocations, remaining memory(B):0
+ memory occupation peak: 28 MB
+ for the array  rmt in the routine iguess_generator

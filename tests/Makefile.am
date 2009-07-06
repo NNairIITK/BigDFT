@@ -13,6 +13,7 @@ SUBDIRS = \
 	  SiBulk \
 	  H2O-slab \
 	  Davidson-SiH4 \
+	  H2-freq \
 	  NEB
 
 

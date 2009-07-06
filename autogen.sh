@@ -9,3 +9,5 @@ echo "Create the config.h.in file with 'autoheader'."
 autoheader
 echo "Creating required files for autotools."
 automake --add-missing --copy
+echo "Autotoolize the libXC source tree."
+cd libXC; autoreconf; cd -

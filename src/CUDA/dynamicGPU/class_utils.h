@@ -12,4 +12,13 @@ public:
 }; 
 
 
+inline void getHostName(std::string& h)
+{
+  const int HOST_NAME_SIZE = 300;
+  char hostname[HOST_NAME_SIZE];
+  gethostname(hostname,HOST_NAME_SIZE);
+
+  h = hostname;
+  }
+
 #endif
