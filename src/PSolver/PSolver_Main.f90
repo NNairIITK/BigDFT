@@ -841,15 +841,22 @@ end subroutine PS_dim4allocation
 !! SOURCE
 !!
 subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
+  use libxc_functionals
+
   implicit none
+
   character(len=1), intent(in) :: geocode
   integer, intent(in) :: ixc,istart,iend,m2
   integer, intent(out) :: nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh
   !local variables
   integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
+  logical :: use_gradient
+
   if (istart <= m2-1) then
+     use_gradient = (ixc >= 11 .and. ixc <= 16) .or. &
+          & (ixc < 0 .and. libxc_functionals_isgga())
      nxc=iend-istart
-     if (ixc >= 11 .and. ixc <= 16 .and. geocode == 'F') then
+     if (use_gradient .and. geocode == 'F') then
         if (ixc==13) then
            !now the dimension of the part required for the gradient
            nwbl=min(istart,nordgr)
@@ -873,7 +880,7 @@ subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,
               nwbr=min(nordgr,m2-nordgr-iend)
            end if
         end if
-     else if (geocode /= 'F' .and. ixc >= 11 .and. ixc <= 16 .and. nxc /= m2) then
+     else if (geocode /= 'F' .and. use_gradient .and. nxc /= m2) then
         if (ixc==13) then
            !now the dimension of the part required for the gradient
            nwbl=nordgr
@@ -887,7 +894,7 @@ subroutine xc_dimensions(geocode,ixc,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,
            nwbr=nordgr
         end if
      !this case is also considered below
-     !else if (geocode /= 'F' .and. ixc >= 11 .and. ixc <= 16 .and. nxc == m2) then
+     !else if (geocode /= 'F' .and. use_gradient .and. nxc == m2) then
      else !(for the moment GGA is not implemented in the non free BC)
         nwbl=0
         nwbr=0

@@ -9,7 +9,7 @@ noinst_LIBRARIES = libABINIT.a
 
 SUBDIRS =
 
-AM_FCFLAGS = @MPI_INCLUDE@
+AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@
 
 libABINIT_a_SOURCES = \
 	defs_basis.F90 \
@@ -18,6 +18,7 @@ libABINIT_a_SOURCES = \
 	interfaces_14_hidewrite.F90 \
 	interfaces_16_hideleave.F90 \
 	interfaces_56_xc.F90 \
+	m_libxc_functionals.F90 \
         drivexc.F90 \
         xctetr.F90 \
         xcwign.F90 \
@@ -34,13 +35,15 @@ libABINIT_a_SOURCES = \
 CLEANFILES = defs_basis.@MODULE_EXT@ \
 	defs_datatypes.@MODULE_EXT@ \
 	defs_xc.@MODULE_EXT@ \
+	m_libxc_functionals.@MODULE_EXT@ \
 	DEFS_BASIS.@MODULE_EXT@ \
 	DEFS_DATATYPES.@MODULE_EXT@ \
-	DEFS_XC.@MODULE_EXT@
+	DEFS_XC.@MODULE_EXT@ \
+	M_LIBXC_FUNCTIONALS.@MODULE_EXT@
 
 #dependencies
 
-interfaces_14_hidewrite.o interfaces_16_hideleave.o interfaces_56_xc.o : defs_basis.o
+interfaces_14_hidewrite.o interfaces_16_hideleave.o interfaces_56_xc.o m_libxc_functionals.o: defs_basis.o
 
 
 defs_datatypes.o: defs_datatypes.F90 \
@@ -52,7 +55,12 @@ defs_xc.o: defs_xc.F90 \
 
 drivexc.o: drivexc.F90 \
 	defs_basis.o \
-	defs_xc.o
+	defs_datatypes.o \
+	defs_xc.o \
+	m_libxc_functionals.o \
+	interfaces_56_xc.o \
+	interfaces_16_hideleave.o \
+	interfaces_14_hidewrite.o
 
 invcb.o: invcb.F90 \
 	defs_basis.o

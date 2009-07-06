@@ -548,11 +548,11 @@ subroutine drivexc(exc,ixc,npts,nspden,order,rho_updn,vxc,ndvxc,ngr2,nd2vxc,nvxc
   if (libxc_functionals_isgga()) then
 
    if ( (.not. present(grho2_updn)) .or. (.not. present(vxcgr)))  then
-    write(message, '(8a,i7,a,i6,a,i6)' )ch10,&
+    write(message, '(8a,l1,a,l1)' )ch10,&
 &    ' drivexc : ERROR -',ch10,&
 &    '  At least one of the functionals is a GGA,',ch10,&
 &    '  but not all the necessary arrays are present.',ch10,&
-&    '  ixc=',ixc,'  nvxcdgr=',nvxcdgr,'  ngr2=',ngr2
+&    '  grho2_updn=',present(grho2_updn),'  vxcgr=',present(vxcgr)
     call wrtout(std_out,message,'COLL')
     call leave_new('COLL')
    end if
