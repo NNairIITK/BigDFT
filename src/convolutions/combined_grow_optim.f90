@@ -146,11 +146,11 @@ subroutine comb_rot_grow_loc_square(n1,n2,n3,x,y,ib,ib2)
 
   !$omp do ! switched off because does not improve the performance.  
   do l1=-14,2*n1+16
-    do l3=0,n3 
-      do l2=ib2(1,l3,l1),ib2(2,l3,l1)
-       y(l2,l3,l1)=0._wp 
-      enddo
-    enddo
+	  do l3=0,n3 
+		  do l2=ib2(1,l3,l1),ib2(2,l3,l1)
+			 y(l2,l3,l1)=0._wp 
+		  enddo
+	  enddo
   enddo
    !$omp enddo
    !$omp barrier
