@@ -143,7 +143,7 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,GPU)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => hpsitopsi
+  use module_interfaces, except_this_one_A => hpsitopsi
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
   real(gp), intent(in) :: hx,hy,hz,energy,energy_old
@@ -436,7 +436,7 @@ END SUBROUTINE trans_address
 subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => first_orthon
+  use module_interfaces, except_this_one_B => first_orthon
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
@@ -503,7 +503,7 @@ END SUBROUTINE first_orthon
 subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => last_orthon
+  use module_interfaces, except_this_one_C => last_orthon
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(in) :: orbs

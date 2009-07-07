@@ -4,7 +4,7 @@ SUBDIRS =
 
 EXTRA_DIST = \
 	input.dft \
-	posinp
+	posinp.xyz
 
 PPFILES = \
 	psppar.H

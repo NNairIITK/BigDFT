@@ -254,7 +254,7 @@ subroutine read_system_variables(iproc,nproc,in,atoms,radii_cf,nelec,norb,norbu,
      close(11)
 
      !correct the coarse and the fine radius for projectors
-     radii_cf(ityp,3)=min(in%crmult*radii_cf(ityp,1),15.0_gp*maxrad)/in%frmult
+     radii_cf(ityp,3)=min(in%crmult*radii_cf(ityp,1),5.0_gp*maxrad)/in%frmult
 
      if (iproc==0) write(*,'(1x,a6,8x,i3,5x,i3,10x,3(1x,f8.5),a)')&
           trim(atoms%atomnames(ityp)),atoms%nelpsp(ityp),atoms%npspcode(ityp),&

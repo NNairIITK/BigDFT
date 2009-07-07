@@ -202,6 +202,7 @@ SOURCES = $(low_level) \
 MODULES_BIGDFT = modules/base.f90 \
 	modules/types.f90 \
 	modules/interfaces.f90 \
+	ABINIT-geometry/ab6_symmetry_f90.f90 \
 	$(GPUBLAS_INTERFACE)
 
 
@@ -234,8 +235,7 @@ MODULES_ABINIT= PSolver/ABINIT-common/defs_basis.F90 \
 	PSolver/ABINIT-common/interfaces_14_hidewrite.F90 \
 	PSolver/ABINIT-common/interfaces_16_hideleave.F90 \
 	PSolver/ABINIT-common/interfaces_56_xc.F90 \
-	PSolver/ABINIT-common/drivexc.F90 \
-	ABINIT-geometry/ab6_symmetry_f90.f90 
+	PSolver/ABINIT-common/drivexc.F90 
 
 XC_ABINIT = PSolver/ABINIT-common/xctetr.F90 \
         PSolver/ABINIT-common/xcwign.F90 \
