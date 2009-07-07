@@ -95,13 +95,13 @@ AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enable by def
 if test "$ac_use_mpi" = "yes"; then
   dnl We set all flags by hand
   AC_ARG_WITH(mpi-include, AS_HELP_STRING([--with-mpi-include],
-              [specify INCLUDE for MPI in case of non-built-in library.]),
+              [specify INCLUDE for MPI in case of non-built-in library. Use the -I before the path(es).]),
               ac_mpi_include=$withval, ac_mpi_include=$MPI_INCLUDE)
   AC_ARG_WITH(mpi-ldflags, AS_HELP_STRING([--with-mpi-ldflags],
-              [specify LDFLAGS for MPI in case of non-built-in library.]),
+              [specify LDFLAGS for MPI in case of non-built-in library. Use the -L before the path(es).]),
               ac_mpi_ldflags=$withval, ac_mpi_ldflags=$MPI_LDFLAGS)
   AC_ARG_WITH(mpi-libs, AS_HELP_STRING([--with-mpi-libs],
-              [specify the libraries for MPI in case of non-built-in library.]),
+              [specify the libraries for MPI in case of non-built-in library. Use the -l before the name(s).]),
               ac_mpi_libs=$withval, ac_mpi_libs=$MPI_LIBS)
 
   LIBS_OLD=$LIBS
@@ -257,39 +257,34 @@ ac_build_bin_cluster="yes"
 
 dnl disable different build
 dnl The ABINIT common XC library
-AC_ARG_ENABLE(libabinit, AS_HELP_STRING([--enable-libabinit], [build the ABINIT library from ABINIT code (default = yes).]), ac_build_lib_ABINIT=$enableval, ac_build_lib_ABINIT="yes")
+AC_ARG_ENABLE(libabinit, AS_HELP_STRING([--disable-libabinit], [build the ABINIT library from ABINIT code (default = yes).]), ac_build_lib_ABINIT=$enableval, ac_build_lib_ABINIT="yes")
 AM_CONDITIONAL(BUILD_LIB_ABINIT, test "$ac_build_lib_ABINIT" = "yes")
 AC_MSG_CHECKING([for ABINIT library internal build])
 AC_MSG_RESULT([$ac_build_lib_ABINIT])
+if test x"$ac_build_lib_ABINIT" = x"yes" ; then
+  xc_path='$(top_builddir)/src/PSolver/ABINIT-common'
+else
+  dnl Required path for ABINIT module inclusion
+  AC_ARG_WITH(xc-module-path, AS_HELP_STRING([--with-xc-module-path],
+              [give the path to the module file defining XC (default = $(top_builddir)/src/PSolver/ABINIT-common).]),
+              xc_path=$withval, xc_path=)
+fi
+AC_SUBST(XC_INCLUDE, "-I"$xc_path)
 dnl The PSolver library
-AC_ARG_ENABLE(libpoissonsolver, AS_HELP_STRING([--enable-libpoissonsolver], [build the Poisson's solver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
+AC_ARG_ENABLE(libpoissonsolver, AS_HELP_STRING([--disable-libpoissonsolver], [build the Poisson's solver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
 AM_CONDITIONAL(BUILD_LIB_PSOLVER, test "$ac_build_lib_PSolver" = "yes")
 AC_MSG_CHECKING([for Poisson's solver internal build])
 AC_MSG_RESULT([$ac_build_lib_PSolver])
 dnl The BigDFT library
-AC_ARG_ENABLE(libbigdft, AS_HELP_STRING([--enable-libbigdft], [build the BigDFT library (default = yes).]), ac_build_lib_BigDFT=$enableval, ac_build_lib_BigDFT="yes")
+AC_ARG_ENABLE(libbigdft, AS_HELP_STRING([--disable-libbigdft], [build the BigDFT library (default = yes).]), ac_build_lib_BigDFT=$enableval, ac_build_lib_BigDFT="yes")
 AM_CONDITIONAL(BUILD_LIB_BIGDFT, test "$ac_build_lib_BigDFT" = "yes")
 AC_MSG_CHECKING([for BigDFT library build])
 AC_MSG_RESULT([$ac_build_lib_BigDFT])
 dnl The cluster executable
-AC_ARG_ENABLE(binaries, AS_HELP_STRING([--enable-binaries], [build the binaries (default = yes).]), ac_build_bin_cluster=$enableval, ac_build_bin_cluster="yes")
+AC_ARG_ENABLE(binaries, AS_HELP_STRING([--disable-binaries], [build the binaries (default = yes).]), ac_build_bin_cluster=$enableval, ac_build_bin_cluster="yes")
 AM_CONDITIONAL(BUILD_BINARIES, test "$ac_build_bin_cluster" = "yes")
 AC_MSG_CHECKING([for BigDFT binaries build])
 AC_MSG_RESULT([$ac_build_bin_cluster])
-
-dnl Required path for ABINIT module inclusion
-xc_path="ABINIT-commmon"
-AC_ARG_WITH(xc-module-path, AS_HELP_STRING([--with-xc-module-path], [give the path to the module file defining fortran type for XC (see ABINIT) (default = ABINIT-common).]), xc_path=$withval, xc_path="ABINIT-common")
-if test "$ac_build_lib_ABINIT_common" = "yes" ; then
-  xc_path="ABINIT-common"
-fi
-AC_SUBST(XC_INCLUDE, "-I"$xc_path)
-
-dnl Required path for PSolver module inclusion
-dnl xc_path="../PSolver"
-dnl AC_ARG_WITH(xc-module-path, AS_HELP_STRING([--with-xc-module-path], [give the path to the module file defining fortran type for XC (see ABINIT) (default = ABINIT-common).]), xc_path=$withval, xc_path="ABINIT-commmon")
-dnl AC_SUBST(XC_INCLUDE, $xc_path)
-
 
 
 dnl ---------------------------------------
