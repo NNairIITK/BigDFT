@@ -1,3 +1,16 @@
+!!****f* BigDFT/HamiltonianApplication
+!! FUNCTION
+!!  Application of the Hamiltonian
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      cpmult,fpmult,radii_cf,nlpspd,proj,lr,ngatherarr,ndimpot,potential,psi,hpsi,&
      ekin_sum,epot_sum,eproj_sum,nspin,GPU)
@@ -115,15 +128,22 @@ subroutine HamiltonianApplication(iproc,nproc,at,orbs,hx,hy,hz,rxyz,&
      eproj_sum=wrkallred(3,1) 
   endif
 
-end subroutine HamiltonianApplication
+END SUBROUTINE HamiltonianApplication
+!!***
 
 
+!!****f* BigDFT/hpsitopsi
+!! FUNCTION
+!!   Operations after h|psi> 
+!!   (transposition, orthonormalisation, inverse transposition)
+!! SOURCE
+!!
 subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      ncong,iter,idsx,idsx_actual,ads,energy,energy_old,energy_min,&
      alpha,gnrm,scprsum,psi,psit,hpsi,psidst,hpsidst,nspin,GPU)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => hpsitopsi
+  use module_interfaces, except_this_one_A => hpsitopsi
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,idsx,iter,nspin
   real(gp), intent(in) :: hx,hy,hz,energy,energy_old
@@ -376,14 +396,20 @@ subroutine hpsitopsi(iproc,nproc,orbs,hx,hy,hz,lr,comms,&
      call razero(3*(idsx+1)**2,ads)
   end if
 
-end subroutine hpsitopsi
+END SUBROUTINE hpsitopsi
+!!***
 
-!calculate the address to start from for calculating the 
-!norm of the residue if hpsi is allocated in the transposed way
-!it can be eliminated when including all this procedure in a subroutine
-!in other terms, it takes the i1,i2 component of an array psi(nvctr,norbp) 
-!from an array of the form psi(nvctrp,norb)
-!for this routine norbp is not needed
+
+!!****f* BigDFT/trans_address
+!! FUNCTION
+!!   Calculate the address to start from for calculating the 
+!!   norm of the residue if hpsi is allocated in the transposed way
+!!   it can be eliminated when including all this procedure in a subroutine
+!!   in other terms, it takes the i1,i2 component of an array psi(nvctr,norbp) 
+!!   from an array of the form psi(nvctrp,norb)
+!!   for this routine norbp is not needed
+!! SOURCE
+!!
 subroutine trans_address(nvctrp,nvctr,i,iorb,i1,i2)
   implicit none
   integer, intent(in) :: nvctrp,nvctr,i,iorb
@@ -398,12 +424,19 @@ subroutine trans_address(nvctrp,nvctr,i,iorb,i1,i2)
 !!$     i1=1
 !!$     i2=iorb
 !!$  end if
-end subroutine trans_address
+END SUBROUTINE trans_address
+!!***
 
+
+!!****f* BigDFT/first_orthon
+!! FUNCTION
+!!   First orthonormalisation
+!! SOURCE
+!!
 subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => first_orthon
+  use module_interfaces, except_this_one_B => first_orthon
   implicit none
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
@@ -459,13 +492,18 @@ subroutine first_orthon(iproc,nproc,orbs,wfd,comms,psi,hpsi,psit)
      call memocc(i_stat,hpsi,'hpsi',subname)
   end if
 
-end subroutine first_orthon
+END SUBROUTINE first_orthon
+!!***
 
-! transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
+!!****f* BigDFT/last_orthon
+!! FUNCTION
+!!   Transform to KS orbitals and deallocate hpsi wavefunction (and also psit in parallel)
+!! SOURCE
+!!
 subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => last_orthon
+  use module_interfaces, except_this_one_C => last_orthon
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(in) :: orbs
@@ -608,9 +646,15 @@ subroutine last_orthon(iproc,nproc,orbs,wfd,nspin,comms,psi,hpsi,psit,evsum)
   deallocate(hpsi,stat=i_stat)
   call memocc(i_stat,i_all,'hpsi',subname)
 
-end subroutine last_orthon
+END SUBROUTINE last_orthon
+!!***
 
 
+!!****f* BigDFT/calc_moments
+!! FUNCTION
+!!   Calculate magnetic moments
+!! SOURCE
+!!
 subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
   use module_base
   implicit none
@@ -668,12 +712,11 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
         deallocate(norb_displ,stat=i_stat)
         call memocc(i_stat,i_all,'norb_displ',subname)
      end if
-     
-     
     
   end if
 
-end subroutine calc_moments
+END SUBROUTINE calc_moments
+!!***
 
 !experimental routine for correcting the potential from a vacancy
 subroutine correct_hartree_potential(at,iproc,nproc,n1i,n2i,n3i,n3p,n3pi,n3d,&

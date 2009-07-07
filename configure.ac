@@ -15,7 +15,7 @@ dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
 AC_CONFIG_AUX_DIR(config)
 dnl Use a config.h file to store macro definitions
-AM_CONFIG_HEADER(config.h)
+dnl AM_CONFIG_HEADER(config.h)
 AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
@@ -29,10 +29,6 @@ if test -n "$F90FLAGS" ; then
   F90FLAGS=`echo $F90FLAGS | sed 's/-qsuffix=[[a-zA-Z:0-9=]]*//'`
 fi
 
-dnl Defining fortran language for tests.
-AC_LANG(Fortran)
-AC_FC_SRCEXT(f90)
-
 dnl We defined CC for the ABINIT part.
 AC_PROG_CC()
 AC_PROG_CXX()
@@ -41,9 +37,13 @@ dnl If FC environment variable is not already set, it
 dnl looks for a modern Fortran compiler, prefering newest
 dnl fortran available (e. g. Fortran95). Then FC variable
 dnl is set.
-AC_PROG_FC()
+AC_PROG_FC([], [Fortran 90])
 
 ABI_PROG_FC()
+
+dnl Defining fortran language for tests.
+AC_LANG(Fortran)
+AC_FC_SRCEXT(f90)
 
 dnl Set if the module name are capitalized or not with the FC compiler.
 AC_MSG_CHECKING([for module extension for compiler '$fc_type'])
@@ -95,7 +95,7 @@ AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enable by def
               ac_use_mpi=$enableval, ac_use_mpi="yes")
 if test "$ac_use_mpi" = "yes"; then
   case "$FC" in
-    *mpi*)
+    *mpi* | ftn)
       dnl The compiler will pass everything needed
       MPI_LIBS=
       MPI_INCLUDE=
@@ -406,6 +406,7 @@ tests/H2O-slab/Makefile
 tests/Davidson-SiH4/Makefile
 tests/GPU/Makefile
 tests/MINHOP/Makefile
+tests/H2-freq/Makefile
 tests/NEB/Makefile
 tests/NEB/input
 tests/NEB/NEB_include.sh

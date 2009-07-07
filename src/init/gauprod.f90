@@ -1,3 +1,16 @@
+!!****f* BigDFT/restart_from_gaussians
+!! FUNCTION
+!!  Restart from gaussian functions
+!!
+!! COPYRIGHT
+!!    Copyright (C) 2007-2009 CEA (LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+!!
+!! SOURCE
+!!
 subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   use module_base
   use module_types
@@ -31,6 +44,7 @@ subroutine restart_from_gaussians(iproc,nproc,orbs,lr,hx,hy,hz,psi,G,coeffs)
   nullify(G%rxyz)
 
 end subroutine restart_from_gaussians
+!!***
 
 subroutine read_gaussian_information(iproc,nproc,orbs,G,coeffs,filename)
   use module_base

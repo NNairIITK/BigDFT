@@ -131,7 +131,7 @@ subroutine convrot_n_per(n1,ndat,x,y)
      do i=0,n1
         tt=0.e0_wp
         do l=lowfil,lupfil
-           k=modulo(i+l,n1+1)  
+           k=modulo(i+l,n1+1)	
            tt=tt+x(  k,j)*fil(l)
         enddo
         y(j,i)=tt
@@ -179,7 +179,7 @@ subroutine convrot_t_per(n1,ndat,x,y)
 
         tt=0.e0_wp
         do l=lowfil,lupfil
-           k=modulo(i+l,n1+1)  
+           k=modulo(i+l,n1+1)	
            tt=tt+x(k,j)*fil(l)
         enddo
         y(j,i)=tt
@@ -321,7 +321,7 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin)
               tt=tt+x(j   ,i2,i3)*fil(l,1)
            enddo
            y(i1,i2,i3)=y(i1,i2,i3)+tt
-      ekin=ekin+x(i1,i2,i3)*tt
+			ekin=ekin+x(i1,i2,i3)*tt
         enddo
      enddo
      
@@ -334,7 +334,7 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin)
               tt=tt+x(i1,j   ,i3)*fil(l,2)
            enddo
            y(i1,i2,i3)=y(i1,i2,i3)+tt
-      ekin=ekin+x(i1,i2,i3)*tt
+			ekin=ekin+x(i1,i2,i3)*tt
         enddo
      enddo
      
@@ -350,7 +350,7 @@ subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin)
               tt=tt+x(i1,i2,   j)*fil(l,3)
            enddo
            y(i1,i2,i3)=y(i1,i2,i3)+tt
-      ekin=ekin+x(i1,i2,i3)*tt
+			ekin=ekin+x(i1,i2,i3)*tt
         enddo
      enddo
   enddo

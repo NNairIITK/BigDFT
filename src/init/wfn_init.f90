@@ -503,7 +503,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
      nullify(hpsi)
      hpsi => psi
 !     if(nspinor==4) call psitransspi(nvctrp,norb,psit,.false.) 
-    nullify(psi)
+     nullify(psi)
      psi => psit
   end if
 

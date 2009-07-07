@@ -11,9 +11,13 @@ subroutine razero(n,x)
   real(kind=8), intent(out) :: x(n)
   !Local variables
   integer :: i
+!$omp parallel default(private) shared(n,x)
+!$omp do 
   do i=1,n
      x(i)=0.d0
   end do
+!$omp enddo
+!$omp end parallel
 END SUBROUTINE razero
 !!***
 

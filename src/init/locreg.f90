@@ -44,7 +44,7 @@ subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)
   real(gp), dimension(3,nlr), intent(in) :: cxyz
   type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
   !local variables
-  character(len=1), parameter :: subname='determine_locreg'
+  character(len=*), parameter :: subname='determine_locreg'
   logical :: perx,pery,perz
   integer :: ilr,isx,isy,isz,iex,iey,iez
   real(gp) :: rx,ry,rz,cutoff
