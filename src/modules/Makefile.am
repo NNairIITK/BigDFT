@@ -21,7 +21,7 @@ mod_bigdft = module_base.@MODULE_EXT@ \
 endif
 module_DATA = $(mod_bigdft)
 
-modules_source = base.f90 \
+modules_source = base.F90 \
 	types.f90 \
 	interfaces.f90 \
 	$(GPUBLAS_INTERFACE)

@@ -89,42 +89,79 @@ if test "$ar" = ":" ; then
 fi
 
 dnl Enable or not MPI.
-AC_MSG_CHECKING([for builtin MPI capabilities])
 ac_use_mpi="yes"
 AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enable by default).]),
               ac_use_mpi=$enableval, ac_use_mpi="yes")
 if test "$ac_use_mpi" = "yes"; then
-  case "$FC" in
-    *mpi* | ftn)
-      dnl The compiler will pass everything needed
-      MPI_LIBS=
-      MPI_INCLUDE=
-      MPI_LDFLAGS=
-      ;;
-    *)
-      dnl We set all flags by hand
-      if test x"$MPI_NAME" = x ; then
-        MPI_NAME=mpi
-      fi
-      MPI_LIBS="-l$MPI_NAME -l${MPI_NAME}if"
-      if ! test x"$MPI_INCLUDE" = x ; then
-        MPI_INCLUDE=-I$MPI_INCLUDE
-      fi
-      if ! test x"$MPI_LDFLAGS" = x ; then
-        MPI_LDFLAGS=-L$MPI_LDFLAGS
-      fi
-      ;;
-  esac
-  AC_SUBST(PARALLEL_OPTION, ".true.")
-else
-  AC_SUBST(PARALLEL_OPTION, ".false.")
+  dnl We set all flags by hand
+  AC_ARG_WITH(mpi-include, AS_HELP_STRING([--with-mpi-include],
+              [specify INCLUDE for MPI in case of non-built-in library.]),
+              ac_mpi_include=$withval, ac_mpi_include=$MPI_INCLUDE)
+  AC_ARG_WITH(mpi-ldflags, AS_HELP_STRING([--with-mpi-ldflags],
+              [specify LDFLAGS for MPI in case of non-built-in library.]),
+              ac_mpi_ldflags=$withval, ac_mpi_ldflags=$MPI_LDFLAGS)
+  AC_ARG_WITH(mpi-libs, AS_HELP_STRING([--with-mpi-libs],
+              [specify the libraries for MPI in case of non-built-in library.]),
+              ac_mpi_libs=$withval, ac_mpi_libs=$MPI_LIBS)
+
+  LIBS_OLD=$LIBS
+  LIBS="$LIBS $ac_mpi_libs"
+  LDFLAGS_OLD=$LDFLAGS
+  LDFLAGS="$LDFLAGS $ac_mpi_ldflags"
+  FCFLAGS_OLD=$FCFLAGS
+  FCFLAGS="$FCFLAGS $ac_mpi_include"
+
+  AC_MSG_CHECKING([for MPI capabilities])
+  AC_LINK_IFELSE([[program main
+  call MPI_INIT
+end]], withmpi=yes, withmpi=no)
+  AC_MSG_RESULT([$withmpi])
+
+  if test x"$withmpi" = x"yes" ; then
+    dnl The compiler will pass everything needed
+    MPI_LIBS=$ac_mpi_libs
+    MPI_INCLUDE=$ac_mpi_include
+    MPI_LDFLAGS=$ac_mpi_ldflags
+
+    dnl Test for MPI2.
+    AC_MSG_CHECKING([for MPI 2 capabilities])
+    AC_LINK_IFELSE([[
+program main
+implicit none
+
+integer :: ierr
+real :: rho(3)
+
+include "mpif.h"
+
+call MPI_ALLREDUCE(MPI_IN_PLACE,rho,3,&
+              MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+end
+]], withmpi2=yes, withmpi2=no)
+    AC_MSG_RESULT([$withmpi2])
+
+    if test x"$withmpi2" = x"yes" ; then
+      ac_with_mpi2="yes"
+      AC_DEFINE([HAVE_MPI2], [1], [use MPI2 capabilities.])
+    else
+      ac_with_mpi2="no"
+    fi
+
+  else
+    ac_use_mpi="no"
+    MPI_LIBS=
+    MPI_INCLUDE=
+    MPI_LDFLAGS=
+  fi
+
+  LIBS="$LIBS_OLD"
+  LDFLAGS="$LDFLAGS_OLD"
+  FCFLAGS="$FCFLAGS_OLD"
 fi
 AM_CONDITIONAL(USE_MPI, test "$ac_use_mpi" = "yes")
 AC_SUBST(MPI_LIBS)
 AC_SUBST(MPI_INCLUDE)
 AC_SUBST(MPI_LDFLAGS)
-AM_CONDITIONAL(USE_MPI, test "$ac_use_mpi" = "yes")
-AC_MSG_RESULT([$ac_use_mpi])
 
 
 dnl Use the simple or the optimised convolution code.
@@ -435,10 +472,10 @@ Build:
 
 Options:
   With MPI:                  $ac_use_mpi
-   | MPI implementation:     $MPI_NAME
-   | include dir.:           $MPI_INCLUDE
+   | Include dir.:           $MPI_INCLUDE
    | Linker flags:           $MPI_LDFLAGS
-   | linked libraries:       $MPI_LIBS
+   | Linked libraries:       $MPI_LIBS
+   | MPI2 support:           $ac_with_mpi2
   With optimised conv.:      $ac_use_opti_convolut
   With Cuda GPU conv.:       $ac_use_cuda_gpu
    | NVidia Cuda Compiler:   $NVCC
