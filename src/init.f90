@@ -280,7 +280,7 @@ subroutine import_gaussians(iproc,nproc,cpmult,fpmult,radii_cf,at,orbs,comms,&
      Glr,hx,hy,hz,rxyz,rhopot,pot_ion,nlpspd,proj,& 
      pkernel,ixc,psi,psit,hpsi,nscatterarr,ngatherarr,nspin)
   use module_base
-  use module_interfaces, except_this_one => import_gaussians
+  use module_interfaces, except_this_one_A => import_gaussians
   use module_types
   use Poisson_Solver
   implicit none

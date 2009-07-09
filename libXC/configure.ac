@@ -77,6 +77,9 @@ if test $ac_cv_build_fortran = yes; then
 
   dnl Need to know the size of a Fortran integer
   ACX_FC_INTEGER_SIZE
+  if test -z "${ac_fcintegersize}" ; then
+    ac_fcintegersize=4
+  fi
   ACX_CC_FORTRAN_INT
 
   AC_LANG_POP([Fortran])
